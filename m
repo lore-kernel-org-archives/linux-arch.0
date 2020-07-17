@@ -1,7 +1,7 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v2 10/11] riscv/tlb: Fix __p*_free_tlb()
-Date: Fri, 17 Jul 2020 13:10:15 +0200
-Message-ID: <20200717111349.942447764@infradead.org>
+Subject: [PATCH v2 05/11] parisc/tlb: Fix __p*_free_tlb()
+Date: Fri, 17 Jul 2020 13:10:10 +0200
+Message-ID: <20200717111349.650029395@infradead.org>
 References: <20200717111005.024867618@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -20,35 +20,81 @@ following order:
 
 to ensure it is safe against concurrent accesses.
 
-Since RISC-V has page based PMDs, no software walkers and IPI based
-TLB invalidation, it can use the simple tlb_remove_page() based
-freeer.
+Because PARISC has non-page-size PMDs, use a custom table freeer.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/riscv/include/asm/pgalloc.h |   11 ++++++-----
- 1 file changed, 6 insertions(+), 5 deletions(-)
+ arch/parisc/Kconfig               |    1 +
+ arch/parisc/include/asm/pgalloc.h |   23 ++++++++++++++++++++---
+ arch/parisc/include/asm/tlb.h     |    9 +++++----
+ 3 files changed, 26 insertions(+), 7 deletions(-)
 
---- a/arch/riscv/include/asm/pgalloc.h
-+++ b/arch/riscv/include/asm/pgalloc.h
-@@ -73,14 +73,15 @@ static inline void pmd_free(struct mm_st
- 	free_page((unsigned long)pmd);
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -63,6 +63,7 @@ config PARISC
+ 	select HAVE_KPROBES_ON_FTRACE
+ 	select HAVE_DYNAMIC_FTRACE_WITH_REGS
+ 	select HAVE_COPY_THREAD_TLS
++	select MMU_GATHER_TABLE_FREE if PGTABLE_LEVELS >= 3
+ 
+ 	help
+ 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
+--- a/arch/parisc/include/asm/pgalloc.h
++++ b/arch/parisc/include/asm/pgalloc.h
+@@ -73,7 +73,7 @@ static inline pmd_t *pmd_alloc_one(struc
+ 	return pmd;
  }
  
--#define __pmd_free_tlb(tlb, pmd, addr)  pmd_free((tlb)->mm, pmd)
-+#define __pmd_free_tlb(tlb, pmd, addr)	\
-+	tlb_remove_table((tlb), virt_to_page(pmd))
+-static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
++static inline bool __pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ {
+ 	if (pmd_flag(*pmd) & PxD_FLAG_ATTACHED) {
+ 		/*
+@@ -83,11 +83,28 @@ static inline void pmd_free(struct mm_st
+ 		 * done by generic mm code.
+ 		 */
+ 		mm_inc_nr_pmds(mm);
+-		return;
++		return false;
+ 	}
+-	free_pages((unsigned long)pmd, PMD_ORDER);
++	return true;
++}
++
++static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
++{
++	if (__pmd_free(mm, pmd))
++		free_pages((unsigned long)pmd, PMD_ORDER);
+ }
  
- #endif /* __PAGETABLE_PMD_FOLDED */
++static inline void __tlb_remove_table(void *table)
++{
++	free_pages((unsigned long)table, PMD_ORDER);
++}
++
++#define __pmd_free_tlb(tlb, pmd, addr)		\
++do {						\
++	if (__pmd_free((tlb)->mm, (pmd)))	\
++		tlb_remove_table((tlb), (pmd));	\
++} while (0)
++
+ #endif
  
--#define __pte_free_tlb(tlb, pte, buf)   \
--do {                                    \
--	pgtable_pte_page_dtor(pte);     \
--	tlb_remove_page((tlb), pte);    \
-+#define __pte_free_tlb(tlb, pte, buf)	\
-+do {					\
-+	pgtable_pte_page_dtor(pte);	\
-+	tlb_remove_table((tlb), (pte));	\
- } while (0)
- #endif /* CONFIG_MMU */
+ static inline void
+--- a/arch/parisc/include/asm/tlb.h
++++ b/arch/parisc/include/asm/tlb.h
+@@ -4,9 +4,10 @@
  
+ #include <asm-generic/tlb.h>
+ 
+-#if CONFIG_PGTABLE_LEVELS == 3
+-#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
+-#endif
+-#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
++#define __pte_free_tlb(tlb,pte,addr)			\
++do {							\
++	pgtable_pte_page_dtor(pte);			\
++	tlb_remove_page((tlb), (pte));			\
++} while (0)
+ 
+ #endif
