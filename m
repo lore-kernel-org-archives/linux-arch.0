@@ -1,42 +1,71 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: Re: clean up address limit helpers v2
-Date: Fri, 17 Jul 2020 08:06:18 +0200
-Message-ID: <20200717060618.GA9842@lst.de>
-References: <20200714105505.935079-1-hch@lst.de> <20200716164924.15e373f4dbb3071e9d4ee37c@linux-foundation.org>
+Subject: [PATCH 03/22] net: streamline __sys_getsockopt
+Date: Fri, 17 Jul 2020 08:23:12 +0200
+Message-ID: <20200717062331.691152-4-hch@lst.de>
+References: <20200717062331.691152-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:37283 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725904AbgGQGGW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Jul 2020 02:06:22 -0400
-Content-Disposition: inline
-In-Reply-To: <20200716164924.15e373f4dbb3071e9d4ee37c@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Christoph Hellwig <hch@lst.de>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200717062331.691152-1-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 16, 2020 at 04:49:24PM -0700, Andrew Morton wrote:
-> On Tue, 14 Jul 2020 12:54:59 +0200 Christoph Hellwig <hch@lst.de> wrote:
-> 
-> > Hi all,
-> > 
-> > in preparation for eventually phasing out direct use of set_fs(), this
-> > series removes the segment_eq() arch helper that is only used to
-> > implement or duplicate the uaccess_kernel() API, and then adds
-> > descriptive helpers to force the kernel address limit.
-> > 
-> > 
-> > Changes since v1:
-> >  - drop to incorrect hunks
-> >  - fix a commit log typo
-> 
-> I think this *is* v1.  I can't find any differences in the patches and I
-> was unable to eyeball any changelog alterations?
+Return early when sockfd_lookup_light fails to reduce a level of
+indentation for most of the function body.
 
-No, this actuall is v2.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ net/socket.c | 31 ++++++++++++++-----------------
+ 1 file changed, 14 insertions(+), 17 deletions(-)
 
-"[PATCH 5/6] uaccess: add force_uaccess_{begin,end} helpers" dropped
-two incorrect hunks in the m68k and sh arch code, and lost and "er"
-in the commit log.
+diff --git a/net/socket.c b/net/socket.c
+index 49a6daf0293b83..b79376b17b45b7 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -2163,28 +2163,25 @@ static int __sys_getsockopt(int fd, int level, int optname,
+ 	int max_optlen;
+ 
+ 	sock = sockfd_lookup_light(fd, &err, &fput_needed);
+-	if (sock != NULL) {
+-		err = security_socket_getsockopt(sock, level, optname);
+-		if (err)
+-			goto out_put;
++	if (!sock)
++		return err;
+ 
+-		max_optlen = BPF_CGROUP_GETSOCKOPT_MAX_OPTLEN(optlen);
++	err = security_socket_getsockopt(sock, level, optname);
++	if (err)
++		goto out_put;
+ 
+-		if (level == SOL_SOCKET)
+-			err =
+-			    sock_getsockopt(sock, level, optname, optval,
++	max_optlen = BPF_CGROUP_GETSOCKOPT_MAX_OPTLEN(optlen);
++
++	if (level == SOL_SOCKET)
++		err = sock_getsockopt(sock, level, optname, optval, optlen);
++	else
++		err = sock->ops->getsockopt(sock, level, optname, optval,
+ 					    optlen);
+-		else
+-			err =
+-			    sock->ops->getsockopt(sock, level, optname, optval,
+-						  optlen);
+ 
+-		err = BPF_CGROUP_RUN_PROG_GETSOCKOPT(sock->sk, level, optname,
+-						     optval, optlen,
+-						     max_optlen, err);
++	err = BPF_CGROUP_RUN_PROG_GETSOCKOPT(sock->sk, level, optname, optval,
++					     optlen, max_optlen, err);
+ out_put:
+-		fput_light(sock->file, fput_needed);
+-	}
++	fput_light(sock->file, fput_needed);
+ 	return err;
+ }
+ 
+-- 
+2.27.0
