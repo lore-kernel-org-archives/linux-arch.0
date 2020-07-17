@@ -1,216 +1,183 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 15/22] net/ipv4: factor out MCAST_MSFILTER setsockopt helpers
-Date: Fri, 17 Jul 2020 08:23:24 +0200
-Message-ID: <20200717062331.691152-16-hch@lst.de>
+Subject: [PATCH 14/22] net/ipv4: factor out MCAST_MSFILTER getsockopt helpers
+Date: Fri, 17 Jul 2020 08:23:23 +0200
+Message-ID: <20200717062331.691152-15-hch@lst.de>
 References: <20200717062331.691152-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53972 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727058AbgGQGYa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:30 -0400
+Return-path: <netfilter-devel-owner@vger.kernel.org>
 In-Reply-To: <20200717062331.691152-1-hch@lst.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: netfilter-devel-owner@vger.kernel.org
 To: "David S. Miller" <davem@davemloft.net>
 Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
+List-Id: linux-arch.vger.kernel.org
 
-Factor out one helper each for setting the native and compat
+Factor out one helper each for getting the native and compat
 version of the MCAST_MSFILTER option.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- net/ipv4/ip_sockglue.c | 162 ++++++++++++++++++++++-------------------
- 1 file changed, 86 insertions(+), 76 deletions(-)
+ net/ipv4/ip_sockglue.c | 131 ++++++++++++++++++++++-------------------
+ 1 file changed, 70 insertions(+), 61 deletions(-)
 
 diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
-index 70d32c9476a2e3..b587dee006f882 100644
+index 95f4248c6fc5ed..70d32c9476a2e3 100644
 --- a/net/ipv4/ip_sockglue.c
 +++ b/net/ipv4/ip_sockglue.c
-@@ -722,6 +722,90 @@ static int do_mcast_group_source(struct sock *sk, int optname,
- 	return ip_mc_source(add, omode, sk, &mreqs, greqs->gsr_interface);
+@@ -1468,6 +1468,74 @@ static bool getsockopt_needs_rtnl(int optname)
+ 	return false;
  }
  
-+static int ip_set_mcast_msfilter(struct sock *sk, void __user *optval,
-+		int optlen)
++static int ip_get_mcast_msfilter(struct sock *sk, void __user *optval,
++		int __user *optlen, int len)
 +{
-+	struct group_filter *gsf = NULL;
++	const int size0 = offsetof(struct group_filter, gf_slist);
++	struct group_filter __user *p = optval;
++	struct group_filter gsf;
++	int num;
 +	int err;
 +
-+	if (optlen < GROUP_FILTER_SIZE(0))
++	if (len < size0)
 +		return -EINVAL;
-+	if (optlen > sysctl_optmem_max)
-+		return -ENOBUFS;
++	if (copy_from_user(&gsf, p, size0))
++		return -EFAULT;
 +
-+	gsf = memdup_user(optval, optlen);
-+	if (IS_ERR(gsf))
-+		return PTR_ERR(gsf);
-+
-+	/* numsrc >= (4G-140)/128 overflow in 32 bits */
-+	err = -ENOBUFS;
-+	if (gsf->gf_numsrc >= 0x1ffffff ||
-+	    gsf->gf_numsrc > sock_net(sk)->ipv4.sysctl_igmp_max_msf)
-+		goto out_free_gsf;
-+
-+	err = -EINVAL;
-+	if (GROUP_FILTER_SIZE(gsf->gf_numsrc) > optlen)
-+		goto out_free_gsf;
-+
-+	err = set_mcast_msfilter(sk, gsf->gf_interface, gsf->gf_numsrc,
-+				 gsf->gf_fmode, &gsf->gf_group, gsf->gf_slist);
-+out_free_gsf:
-+	kfree(gsf);
-+	return err;
++	num = gsf.gf_numsrc;
++	err = ip_mc_gsfget(sk, &gsf, p->gf_slist);
++	if (err)
++		return err;
++	if (gsf.gf_numsrc < num)
++		num = gsf.gf_numsrc;
++	if (put_user(GROUP_FILTER_SIZE(num), optlen) ||
++	    copy_to_user(p, &gsf, size0))
++		return -EFAULT;
++	return 0;
 +}
 +
 +#ifdef CONFIG_COMPAT
-+static int compat_ip_set_mcast_msfilter(struct sock *sk, void __user *optval,
-+		int optlen)
++static int compat_ip_get_mcast_msfilter(struct sock *sk, void __user *optval,
++		int __user *optlen)
 +{
 +	const int size0 = offsetof(struct compat_group_filter, gf_slist);
-+	struct compat_group_filter *gf32;
-+	unsigned int n;
-+	void *p;
-+	int err;
++	struct compat_group_filter __user *p = optval;
++	struct compat_group_filter gf32;
++	struct group_filter gf;
++	int len, err;
++	int num;
 +
-+	if (optlen < size0)
++	if (get_user(len, optlen))
++		return -EFAULT;
++	if (len < size0)
 +		return -EINVAL;
-+	if (optlen > sysctl_optmem_max - 4)
-+		return -ENOBUFS;
 +
-+	p = kmalloc(optlen + 4, GFP_KERNEL);
-+	if (!p)
-+		return -ENOMEM;
-+	gf32 = p + 4; /* we want ->gf_group and ->gf_slist aligned */
++	if (copy_from_user(&gf32, p, size0))
++		return -EFAULT;
 +
-+	err = -EFAULT;
-+	if (copy_from_user(gf32, optval, optlen))
-+		goto out_free_gsf;
-+
-+	/* numsrc >= (4G-140)/128 overflow in 32 bits */
-+	n = gf32->gf_numsrc;
-+	err = -ENOBUFS;
-+	if (n >= 0x1ffffff)
-+		goto out_free_gsf;
-+
-+	err = -EINVAL;
-+	if (offsetof(struct compat_group_filter, gf_slist[n]) > optlen)
-+		goto out_free_gsf;
++	gf.gf_interface = gf32.gf_interface;
++	gf.gf_fmode = gf32.gf_fmode;
++	num = gf.gf_numsrc = gf32.gf_numsrc;
++	gf.gf_group = gf32.gf_group;
 +
 +	rtnl_lock();
 +	lock_sock(sk);
-+
-+	/* numsrc >= (4G-140)/128 overflow in 32 bits */
-+	err = -ENOBUFS;
-+	if (n > sock_net(sk)->ipv4.sysctl_igmp_max_msf)
-+		goto out_unlock;
-+	err = set_mcast_msfilter(sk, gf32->gf_interface, n, gf32->gf_fmode,
-+				 &gf32->gf_group, gf32->gf_slist);
-+out_unlock:
++	err = ip_mc_gsfget(sk, &gf, p->gf_slist);
 +	release_sock(sk);
 +	rtnl_unlock();
-+out_free_gsf:
-+	kfree(p);
-+	return err;
++	if (err)
++		return err;
++	if (gf.gf_numsrc < num)
++		num = gf.gf_numsrc;
++	len = GROUP_FILTER_SIZE(num) - (sizeof(gf) - sizeof(gf32));
++	if (put_user(len, optlen) ||
++	    put_user(gf.gf_fmode, &p->gf_fmode) ||
++	    put_user(gf.gf_numsrc, &p->gf_numsrc))
++		return -EFAULT;
++	return 0;
 +}
 +#endif
 +
- static int do_ip_setsockopt(struct sock *sk, int level,
- 			    int optname, char __user *optval, unsigned int optlen)
+ static int do_ip_getsockopt(struct sock *sk, int level, int optname,
+ 			    char __user *optval, int __user *optlen, unsigned int flags)
  {
-@@ -1167,37 +1251,8 @@ static int do_ip_setsockopt(struct sock *sk, int level,
- 		break;
+@@ -1626,31 +1694,8 @@ static int do_ip_getsockopt(struct sock *sk, int level, int optname,
+ 		goto out;
  	}
  	case MCAST_MSFILTER:
 -	{
--		struct group_filter *gsf = NULL;
+-		struct group_filter __user *p = (void __user *)optval;
+-		struct group_filter gsf;
+-		const int size0 = offsetof(struct group_filter, gf_slist);
+-		int num;
 -
--		if (optlen < GROUP_FILTER_SIZE(0))
--			goto e_inval;
--		if (optlen > sysctl_optmem_max) {
--			err = -ENOBUFS;
--			break;
--		}
--		gsf = memdup_user(optval, optlen);
--		if (IS_ERR(gsf)) {
--			err = PTR_ERR(gsf);
--			break;
--		}
--		/* numsrc >= (4G-140)/128 overflow in 32 bits */
--		if (gsf->gf_numsrc >= 0x1ffffff ||
--		    gsf->gf_numsrc > net->ipv4.sysctl_igmp_max_msf) {
--			err = -ENOBUFS;
--			goto mc_msf_out;
--		}
--		if (GROUP_FILTER_SIZE(gsf->gf_numsrc) > optlen) {
+-		if (len < size0) {
 -			err = -EINVAL;
--			goto mc_msf_out;
+-			goto out;
 -		}
--		err = set_mcast_msfilter(sk, gsf->gf_interface,
--					 gsf->gf_numsrc, gsf->gf_fmode,
--					 &gsf->gf_group, gsf->gf_slist);
--mc_msf_out:
--		kfree(gsf);
-+		err = ip_set_mcast_msfilter(sk, optval, optlen);
- 		break;
+-		if (copy_from_user(&gsf, p, size0)) {
+-			err = -EFAULT;
+-			goto out;
+-		}
+-		num = gsf.gf_numsrc;
+-		err = ip_mc_gsfget(sk, &gsf, p->gf_slist);
+-		if (err)
+-			goto out;
+-		if (gsf.gf_numsrc < num)
+-			num = gsf.gf_numsrc;
+-		if (put_user(GROUP_FILTER_SIZE(num), optlen) ||
+-		    copy_to_user(p, &gsf, size0))
+-			err = -EFAULT;
++		err = ip_get_mcast_msfilter(sk, optval, optlen, len);
+ 		goto out;
 -	}
  	case IP_MULTICAST_ALL:
- 		if (optlen < 1)
- 			goto e_inval;
-@@ -1391,52 +1446,7 @@ int compat_ip_setsockopt(struct sock *sk, int level, int optname,
- 		return err;
- 	}
- 	case MCAST_MSFILTER:
--	{
+ 		val = inet->mc_all;
+ 		break;
+@@ -1762,45 +1807,9 @@ int compat_ip_getsockopt(struct sock *sk, int level, int optname,
+ 	int err;
+ 
+ 	if (optname == MCAST_MSFILTER) {
 -		const int size0 = offsetof(struct compat_group_filter, gf_slist);
--		struct compat_group_filter *gf32;
--		unsigned int n;
--		void *p;
+-		struct compat_group_filter __user *p = (void __user *)optval;
+-		struct compat_group_filter gf32;
+-		struct group_filter gf;
+-		int ulen, err;
+-		int num;
 -
--		if (optlen < size0)
+ 		if (level != SOL_IP)
+ 			return -EOPNOTSUPP;
+-
+-		if (get_user(ulen, optlen))
+-			return -EFAULT;
+-
+-		if (ulen < size0)
 -			return -EINVAL;
--		if (optlen > sysctl_optmem_max - 4)
--			return -ENOBUFS;
 -
--		p = kmalloc(optlen + 4, GFP_KERNEL);
--		if (!p)
--			return -ENOMEM;
--		gf32 = p + 4; /* we want ->gf_group and ->gf_slist aligned */
--		if (copy_from_user(gf32, optval, optlen)) {
--			err = -EFAULT;
--			goto mc_msf_out;
--		}
+-		if (copy_from_user(&gf32, p, size0))
+-			return -EFAULT;
 -
--		n = gf32->gf_numsrc;
--		/* numsrc >= (4G-140)/128 overflow in 32 bits */
--		if (n >= 0x1ffffff) {
--			err = -ENOBUFS;
--			goto mc_msf_out;
--		}
--		if (offsetof(struct compat_group_filter, gf_slist[n]) > optlen) {
--			err = -EINVAL;
--			goto mc_msf_out;
--		}
+-		gf.gf_interface = gf32.gf_interface;
+-		gf.gf_fmode = gf32.gf_fmode;
+-		num = gf.gf_numsrc = gf32.gf_numsrc;
+-		gf.gf_group = gf32.gf_group;
 -
 -		rtnl_lock();
 -		lock_sock(sk);
--		/* numsrc >= (4G-140)/128 overflow in 32 bits */
--		if (n > sock_net(sk)->ipv4.sysctl_igmp_max_msf)
--			err = -ENOBUFS;
--		else
--			err = set_mcast_msfilter(sk, gf32->gf_interface,
--						 n, gf32->gf_fmode,
--						 &gf32->gf_group, gf32->gf_slist);
+-		err = ip_mc_gsfget(sk, &gf, p->gf_slist);
 -		release_sock(sk);
 -		rtnl_unlock();
--mc_msf_out:
--		kfree(p);
--		return err;
--	}
-+		return compat_ip_set_mcast_msfilter(sk, optval, optlen);
+-		if (err)
+-			return err;
+-		if (gf.gf_numsrc < num)
+-			num = gf.gf_numsrc;
+-		ulen = GROUP_FILTER_SIZE(num) - (sizeof(gf) - sizeof(gf32));
+-		if (put_user(ulen, optlen) ||
+-		    put_user(gf.gf_fmode, &p->gf_fmode) ||
+-		    put_user(gf.gf_numsrc, &p->gf_numsrc))
+-			return -EFAULT;
+-		return 0;
++		return compat_ip_get_mcast_msfilter(sk, optval, optlen);
  	}
  
- 	err = do_ip_setsockopt(sk, level, optname, optval, optlen);
+ 	err = do_ip_getsockopt(sk, level, optname, optval, optlen,
 -- 
 2.27.0
