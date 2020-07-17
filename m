@@ -1,112 +1,46 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v2 04/11] sparc32/tlb: Fix __p*_free_tlb()
-Date: Fri, 17 Jul 2020 13:10:09 +0200
-Message-ID: <20200717111349.591934380@infradead.org>
-References: <20200717111005.024867618@infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-sh-owner@vger.kernel.org>
-Sender: linux-sh-owner@vger.kernel.org
+Subject: [PATCH v2 00/11] Fixup page directory freeing
+Date: Fri, 17 Jul 2020 13:10:05 +0200
+Message-ID: <20200717111005.024867618@infradead.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42174 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725912AbgGQLOf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 07:14:35 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
-List-Id: linux-arch.vger.kernel.org
 
-Just like regular pages, page directories need to observe the
-following order:
+Hi All,
 
- 1) unhook
+While fixing a silly bug on SH (patch #1), I realized that even with the
+trivial patch to restore prior behaviour, page directory freeing was still
+broken.
+
+The thing is, on anything SMP, freeing page directories should observe the
+exact same order as normal page freeing:
+
+ 1) unhook page/directory
  2) TLB invalidate
- 3) free
+ 3) free page/directory
 
-to ensure it is safe against concurrent accesses.
+Without this any concurrent page-table walk could end up with a Use-after-Free.
+This is esp. trivial for anything that has software page-table walkers
+(HAVE_FAST_GUP / software TLB fill) or the hardware caches partial page-walks
+(ie. caches page directories).
 
-Because Sparc32 has non-page based page directories, use a custom
-table freeer.
+Even on UP this might give issues, since mmu_gather is preemptible these days.
+An interrupt or preempted task accessing user pages might stumble into the free
+page if the hardware caches page directories.
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/sparc/Kconfig                  |    1 +
- arch/sparc/include/asm/pgalloc_32.h |    7 +++++--
- arch/sparc/mm/srmmu.c               |   28 ++++++++++++++++++++++++++++
- 3 files changed, 34 insertions(+), 2 deletions(-)
+So I've converted everything to always observe the above order, simply so we
+don't have to worry about it.
 
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -57,6 +57,7 @@ config SPARC32
- 	select CLZ_TAB
- 	select HAVE_UID16
- 	select OLD_SIGACTION
-+	select MMU_GATHER_TABLE_FREE
- 
- config SPARC64
- 	def_bool 64BIT
---- a/arch/sparc/include/asm/pgalloc_32.h
-+++ b/arch/sparc/include/asm/pgalloc_32.h
-@@ -12,6 +12,9 @@
- 
- struct page;
- 
-+extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int idx);
-+extern void __tlb_remove_table(void *table);
-+
- void *srmmu_get_nocache(int size, int align);
- void srmmu_free_nocache(void *addr, int size);
- 
-@@ -48,7 +51,7 @@ static inline void free_pmd_fast(pmd_t *
- }
- 
- #define pmd_free(mm, pmd)		free_pmd_fast(pmd)
--#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
-+#define __pmd_free_tlb(tlb, pmd, addr)	pgtable_free_tlb((tlb), (pmd), 1)
- 
- #define pmd_populate(mm, pmd, pte)	pmd_set(pmd, pte)
- #define pmd_pgtable(pmd)		(pgtable_t)__pmd_page(pmd)
-@@ -73,6 +76,6 @@ static inline void free_pte_fast(pte_t *
- #define pte_free_kernel(mm, pte)	free_pte_fast(pte)
- 
- void pte_free(struct mm_struct * mm, pgtable_t pte);
--#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
-+#define __pte_free_tlb(tlb, pte, addr)	pgtable_free_tlb((tlb), (pte), 0)
- 
- #endif /* _SPARC_PGALLOC_H */
---- a/arch/sparc/mm/srmmu.c
-+++ b/arch/sparc/mm/srmmu.c
-@@ -38,6 +38,7 @@
- #include <asm/page.h>
- #include <asm/asi.h>
- #include <asm/smp.h>
-+#include <asm/tlb.h>
- #include <asm/io.h>
- 
- /* Now the cpu specific definitions. */
-@@ -1831,3 +1832,30 @@ void __init load_mmu(void)
- 		sun4m_init_smp();
- #endif
- }
-+
-+#define TLB_IDX_MASK	1UL
-+
-+void __tlb_remove_table(void *table)
-+{
-+	void *dir = (void *)((unsigned long)table & ~TLB_IDX_MASK);
-+	int idx = (unsigned long)table & TLB_IDX_MASK;
-+
-+	switch (idx) {
-+	case 1: /* PMD */
-+		pmd_free(NULL, dir);
-+		break;
-+	case 0: /* PTE */
-+		pte_free(NULL, dir);
-+		break;
-+	}
-+}
-+
-+void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int idx)
-+{
-+	unsigned long pgf = (unsigned long)table;
-+	BUG_ON(idx > TLB_IDX_MASK);
-+	BUG_ON(pgf & TLB_IDX_MASK);
-+	pgf |= idx;
-+	tlb_remove_table(tlb, (void *)pgf);
-+}
-+
+If however I've been over zealous and your arch/mmu really doesn't need this
+and you're offended by this potentially superfluous code, please let me know
+and I'll replace the patch with one that adds a comment describing your
+rationale for why it is not needed.
+
+
+v1: https://lkml.kernel.org/r/20191211120713.360281197@infradead.org
