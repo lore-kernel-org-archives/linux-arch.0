@@ -1,7 +1,7 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v2 01/11] asm-generic/tlb: Fix MMU_GATHER_TABLE_FREE
-Date: Fri, 17 Jul 2020 13:10:06 +0200
-Message-ID: <20200717111349.417688532@infradead.org>
+Subject: [PATCH v2 03/11] sh/tlb: Fix __pmd_free_tlb()
+Date: Fri, 17 Jul 2020 13:10:08 +0200
+Message-ID: <20200717111349.533637732@infradead.org>
 References: <20200717111005.024867618@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -11,73 +11,65 @@ To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.co
 Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
 List-Id: linux-arch.vger.kernel.org
 
-The first MMU_GATHER_TABLE_FREE user showed a logic error in the
-tlb_needs_table_invalidate() definition. Make sure any TABLE_FREE has
-it defined.
+SH violates the freeing order for it's PMD page directories. It's
+__pmd_free_tlb() does not ensure there is a TLB invalidation between
+itself and the eventualy freeing of the page.
 
-Fixes: 0d6e24d430ef ("asm-generic/tlb: provide MMU_GATHER_TABLE_FREE")
+Further complicating the situation is that SH uses non page based
+allocation for it's PMDs.
+
+Use the shiny new HAVE_TABLE_FREE option to enable a custom page table
+freeer.
+
+(SuperH uses IPI based TLB invalidation and therefore doesn't need
+HAVE_RCU_TABLE_FREE for its HAVE_FAST_GUP).
+
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- include/asm-generic/tlb.h |   35 +++++++++++++++++++----------------
- 1 file changed, 19 insertions(+), 16 deletions(-)
+ arch/sh/Kconfig               |    1 +
+ arch/sh/include/asm/pgalloc.h |    3 ++-
+ arch/sh/mm/pgtable.c          |    6 ++++++
+ 3 files changed, 9 insertions(+), 1 deletion(-)
 
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -172,6 +172,18 @@
-  *  various ptep_get_and_clear() functions.
-  */
- 
-+#ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-+
-+/*
-+ * Only RCU table free can override this; otherwise the TLBI is needed to
-+ * provide existence guarantees for software walkers.
-+ */
-+#ifdef tlb_needs_table_invalidate
-+#error tlb_needs_table_invalidate() requires MMU_GATHER_RCU_TABLE_FREE
-+#endif
-+
-+#endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
-+
- #ifdef CONFIG_MMU_GATHER_TABLE_FREE
- 
- struct mmu_table_batch {
-@@ -187,17 +199,6 @@ struct mmu_table_batch {
- 
- extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
- 
--#else /* !CONFIG_MMU_GATHER_HAVE_TABLE_FREE */
--
--/*
-- * Without MMU_GATHER_TABLE_FREE the architecture is assumed to have page based
-- * page directories and we can use the normal page batching to free them.
-- */
--#define tlb_remove_table(tlb, page) tlb_remove_page((tlb), (page))
--
--#endif /* CONFIG_MMU_GATHER_TABLE_FREE */
--
--#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- /*
-  * This allows an architecture that does not use the linux page-tables for
-  * hardware to skip the TLBI when freeing page tables.
-@@ -206,13 +207,15 @@ extern void tlb_remove_table(struct mmu_
- #define tlb_needs_table_invalidate() (true)
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -14,6 +14,7 @@ config SUPERH
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_DEBUG_BUGVERBOSE
+ 	select HAVE_FAST_GUP if MMU
++	select MMU_GATHER_TABLE_FREE if X2TLB
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if (GUSA_RB || CPU_SH4A)
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+--- a/arch/sh/include/asm/pgalloc.h
++++ b/arch/sh/include/asm/pgalloc.h
+@@ -12,7 +12,8 @@ extern void pgd_free(struct mm_struct *m
+ extern void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmd);
+ extern pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address);
+ extern void pmd_free(struct mm_struct *mm, pmd_t *pmd);
+-#define __pmd_free_tlb(tlb, pmdp, addr)		pmd_free((tlb)->mm, (pmdp))
++extern void __tlb_remove_table(void *table);
++#define __pmd_free_tlb(tlb, pmdp, addr)	tlb_remove_table((tlb), (pmdp))
  #endif
  
--#else
-+#else /* !CONFIG_MMU_GATHER_HAVE_TABLE_FREE */
+ static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
+--- a/arch/sh/mm/pgtable.c
++++ b/arch/sh/mm/pgtable.c
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0
+ #include <linux/mm.h>
+ #include <linux/slab.h>
++#include <asm/pgalloc.h>
  
--#ifdef tlb_needs_table_invalidate
--#error tlb_needs_table_invalidate() requires MMU_GATHER_RCU_TABLE_FREE
--#endif
-+/*
-+ * Without MMU_GATHER_TABLE_FREE the architecture is assumed to have page based
-+ * page directories and we can use the normal page batching to free them.
-+ */
-+#define tlb_remove_table(tlb, page) tlb_remove_page((tlb), (page))
+ #define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
  
--#endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
-+#endif /* CONFIG_MMU_GATHER_TABLE_FREE */
- 
- 
- #ifndef CONFIG_MMU_GATHER_NO_GATHER
+@@ -55,4 +56,9 @@ void pmd_free(struct mm_struct *mm, pmd_
+ {
+ 	kmem_cache_free(pmd_cachep, pmd);
+ }
++
++void __tlb_remove_table(void *table)
++{
++	pmd_free(NULL, table);
++}
+ #endif /* PAGETABLE_LEVELS > 2 */
