@@ -1,135 +1,76 @@
-Return-Path: <SRS0=4doj=BL=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43934 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728333AbgHABPA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 Jul 2020 21:15:00 -0400
-From: guoren@kernel.org
-Subject: [PATCH 12/13] csky: Add arch_show_interrupts for IPI interrupts
-Date: Sat,  1 Aug 2020 01:14:12 +0000
-Message-ID: <1596244453-98575-13-git-send-email-guoren@kernel.org>
-In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
-References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <20200717111349.533637732@infradead.org>
+Date: Fri, 17 Jul 2020 13:10:08 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 03/11] sh/tlb: Fix __pmd_free_tlb()
+References: <20200717111005.024867618@infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
 List-ID: <linux-arch.vger.kernel.org>
-To: guoren@kernel.org, arnd@arndb.de
-Cc: linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
-Message-ID: <20200801011412.6CmTmBJKTB2HyAtCRnSvOpcgsUOCe7vYzyE4OYPkGAk@z>
+Message-ID: <20200717111008.Q8pfGbYwza7Wa9qAHeJEGRgLDmTNAJVfCJHf7rWvKcQ@z>
 
-From: Guo Ren <guoren@linux.alibaba.com>
+SH violates the freeing order for it's PMD page directories. It's
+__pmd_free_tlb() does not ensure there is a TLB invalidation between
+itself and the eventualy freeing of the page.
 
-Here is the result:
+Further complicating the situation is that SH uses non page based
+allocation for it's PMDs.
 
- cat /proc/interrupts
-           CPU0       CPU1       CPU2       CPU3
- 15:       1348       1299        952       1076  C-SKY SMP Intc  15  IPI Interrupt
- 16:       1203       1825       1598       1307  C-SKY SMP Intc  16  csky_mp_timer
- 43:        292          0          0          0  C-SKY SMP Intc  43  ttyS0
- 57:        106          0          0          0  C-SKY SMP Intc  57  virtio0
-IPI0:         0          0          0          0  Empty interrupts
-IPI1:        19         41         45         27  Rescheduling interrupts
-IPI2:      1330       1259        908       1050  Function call interrupts
-IPI3:         0          0          0          0  Irq work interrupts
+Use the shiny new HAVE_TABLE_FREE option to enable a custom page table
+freeer.
 
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
+(SuperH uses IPI based TLB invalidation and therefore doesn't need
+HAVE_RCU_TABLE_FREE for its HAVE_FAST_GUP).
+
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/csky/kernel/smp.c | 49 +++++++++++++++++++++++++++++++++++++++++--------
- 1 file changed, 41 insertions(+), 8 deletions(-)
+ arch/sh/Kconfig               |    1 +
+ arch/sh/include/asm/pgalloc.h |    3 ++-
+ arch/sh/mm/pgtable.c          |    6 ++++++
+ 3 files changed, 9 insertions(+), 1 deletion(-)
 
-diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
-index 60f2ab1..e7425e6 100644
---- a/arch/csky/kernel/smp.c
-+++ b/arch/csky/kernel/smp.c
-@@ -15,6 +15,7 @@
- #include <linux/irq_work.h>
- #include <linux/irqdomain.h>
- #include <linux/of.h>
-+#include <linux/seq_file.h>
- #include <linux/sched/task_stack.h>
- #include <linux/sched/mm.h>
- #include <linux/sched/hotplug.h>
-@@ -27,11 +28,6 @@
- #include <abi/fpu.h>
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -14,6 +14,7 @@ config SUPERH
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_DEBUG_BUGVERBOSE
+ 	select HAVE_FAST_GUP if MMU
++	select MMU_GATHER_TABLE_FREE if X2TLB
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if (GUSA_RB || CPU_SH4A)
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+--- a/arch/sh/include/asm/pgalloc.h
++++ b/arch/sh/include/asm/pgalloc.h
+@@ -12,7 +12,8 @@ extern void pgd_free(struct mm_struct *m
+ extern void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmd);
+ extern pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address);
+ extern void pmd_free(struct mm_struct *mm, pmd_t *pmd);
+-#define __pmd_free_tlb(tlb, pmdp, addr)		pmd_free((tlb)->mm, (pmdp))
++extern void __tlb_remove_table(void *table);
++#define __pmd_free_tlb(tlb, pmdp, addr)	tlb_remove_table((tlb), (pmdp))
  #endif
  
--struct ipi_data_struct {
--	unsigned long bits ____cacheline_aligned;
--};
--static DEFINE_PER_CPU(struct ipi_data_struct, ipi_data);
--
- enum ipi_message_type {
- 	IPI_EMPTY,
- 	IPI_RESCHEDULE,
-@@ -40,8 +36,16 @@ enum ipi_message_type {
- 	IPI_MAX
- };
+ static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
+--- a/arch/sh/mm/pgtable.c
++++ b/arch/sh/mm/pgtable.c
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0
+ #include <linux/mm.h>
+ #include <linux/slab.h>
++#include <asm/pgalloc.h>
  
-+struct ipi_data_struct {
-+	unsigned long bits ____cacheline_aligned;
-+	unsigned long stats[IPI_MAX] ____cacheline_aligned;
-+};
-+static DEFINE_PER_CPU(struct ipi_data_struct, ipi_data);
-+
- static irqreturn_t handle_ipi(int irq, void *dev)
+ #define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
+ 
+@@ -55,4 +56,9 @@ void pmd_free(struct mm_struct *mm, pmd_
  {
-+	unsigned long *stats = this_cpu_ptr(&ipi_data)->stats;
-+
- 	while (true) {
- 		unsigned long ops;
- 
-@@ -49,14 +53,20 @@ static irqreturn_t handle_ipi(int irq, void *dev)
- 		if (ops == 0)
- 			return IRQ_HANDLED;
- 
--		if (ops & (1 << IPI_RESCHEDULE))
-+		if (ops & (1 << IPI_RESCHEDULE)) {
-+			stats[IPI_RESCHEDULE]++;
- 			scheduler_ipi();
-+		}
- 
--		if (ops & (1 << IPI_CALL_FUNC))
-+		if (ops & (1 << IPI_CALL_FUNC)) {
-+			stats[IPI_CALL_FUNC]++;
- 			generic_smp_call_function_interrupt();
-+		}
- 
--		if (ops & (1 << IPI_IRQ_WORK))
-+		if (ops & (1 << IPI_IRQ_WORK)) {
-+			stats[IPI_IRQ_WORK]++;
- 			irq_work_run();
-+		}
- 
- 		BUG_ON((ops >> IPI_MAX) != 0);
- 	}
-@@ -88,6 +98,29 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
- 	send_arch_ipi(to_whom);
+ 	kmem_cache_free(pmd_cachep, pmd);
  }
- 
-+static const char * const ipi_names[] = {
-+	[IPI_EMPTY]		= "Empty interrupts",
-+	[IPI_RESCHEDULE]	= "Rescheduling interrupts",
-+	[IPI_CALL_FUNC]		= "Function call interrupts",
-+	[IPI_IRQ_WORK]		= "Irq work interrupts",
-+};
 +
-+int arch_show_interrupts(struct seq_file *p, int prec)
++void __tlb_remove_table(void *table)
 +{
-+	unsigned int cpu, i;
-+
-+	for (i = 0; i < IPI_MAX; i++) {
-+		seq_printf(p, "%*s%u:%s", prec - 1, "IPI", i,
-+			   prec >= 4 ? " " : "");
-+		for_each_online_cpu(cpu)
-+			seq_printf(p, "%10lu ",
-+				per_cpu_ptr(&ipi_data, cpu)->stats[i]);
-+		seq_printf(p, " %s\n", ipi_names[i]);
-+	}
-+
-+	return 0;
++	pmd_free(NULL, table);
 +}
-+
- void arch_send_call_function_ipi_mask(struct cpumask *mask)
- {
- 	send_ipi_message(mask, IPI_CALL_FUNC);
--- 
-2.7.4
+ #endif /* PAGETABLE_LEVELS > 2 */
