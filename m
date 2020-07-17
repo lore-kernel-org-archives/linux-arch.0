@@ -1,84 +1,56 @@
-Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33480 "EHLO
+Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42266 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726918AbgGXHAa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 03:00:30 -0400
-Received: from mail-qv1-xf49.google.com (mail-qv1-xf49.google.com [IPv6:2607:f8b0:4864:20::f49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2C746C0619E4
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:30 -0700 (PDT)
-Received: by mail-qv1-xf49.google.com with SMTP id l12so5216257qvu.21
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:30 -0700 (PDT)
-Date: Fri, 24 Jul 2020 09:00:03 +0200
-In-Reply-To: <20200724070008.1389205-1-elver@google.com>
-Message-ID: <20200724070008.1389205-4-elver@google.com>
-Mime-Version: 1.0
-References: <20200724070008.1389205-1-elver@google.com>
-Subject: [PATCH v2 3/8] kcsan: Skew delay to be longer for certain access types
-From: Marco Elver <elver@google.com>
-Content-Type: text/plain; charset="UTF-8"
+        with ESMTP id S1726256AbgGQLPC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 07:15:02 -0400
+Message-ID: <20200717111349.475459591@infradead.org>
+Date: Fri, 17 Jul 2020 13:10:07 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 02/11] sh/tlb: Fix PGTABLE_LEVELS > 2
+References: <20200717111005.024867618@infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com, paulmck@kernel.org
-Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200724070003.o733_D_pAvIMx7_l1c5b6Eoh57zp5L8NZcmio0vQGoA@z>
+To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>, Geert Uytterhoeven <geert+renesas@glider.be>
+Message-ID: <20200717111007.a7SOo4XPEkkSw8iJvRRWB3yMvED98fRK6m7x0wycI2s@z>
 
-For compound instrumentation and assert accesses, skew the watchpoint
-delay to be longer if randomized. This is useful to improve race
-detection for such accesses.
+Geert reported that his SH7722-based Migo-R board failed to boot after
+commit:
 
-For compound accesses we should increase the delay as we've aggregated
-both read and write instrumentation. By giving up 1 call into the
-runtime, we're less likely to set up a watchpoint and thus less likely
-to detect a race. We can balance this by increasing the watchpoint
-delay.
+  c5b27a889da9 ("sh/tlb: Convert SH to generic mmu_gather")
 
-For assert accesses, we know these are of increased interest, and we
-wish to increase our chances of detecting races for such checks.
+That commit fell victim to copying the wrong pattern --
+__pmd_free_tlb() used to be implemented with pmd_free().
 
-Note that, kcsan_udelay_{task,interrupt} define the upper bound delays.
-When randomized, delays are uniformly distributed between [0, delay].
-Skewing the delay does not break this promise as long as the defined
-upper bounds are still adhered to. The current skew results in delays
-uniformly distributed between [delay/2, delay].
-
-Signed-off-by: Marco Elver <elver@google.com>
+Fixes: c5b27a889da9 ("sh/tlb: Convert SH to generic mmu_gather")
+Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
+Tested-by: Geert Uytterhoeven <geert+renesas@glider.be>
 ---
-v2:
-* Commit message rewording.
----
- kernel/kcsan/core.c | 10 +++++++---
- 1 file changed, 7 insertions(+), 3 deletions(-)
-
-diff --git a/kernel/kcsan/core.c b/kernel/kcsan/core.c
-index fb52de2facf3..4633baebf84e 100644
---- a/kernel/kcsan/core.c
-+++ b/kernel/kcsan/core.c
-@@ -283,11 +283,15 @@ static __always_inline bool kcsan_is_enabled(void)
- 	return READ_ONCE(kcsan_enabled) && get_ctx()->disable_count == 0;
- }
+--- a/arch/sh/include/asm/pgalloc.h
++++ b/arch/sh/include/asm/pgalloc.h
+@@ -12,6 +12,7 @@ extern void pgd_free(struct mm_struct *m
+ extern void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmd);
+ extern pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address);
+ extern void pmd_free(struct mm_struct *mm, pmd_t *pmd);
++#define __pmd_free_tlb(tlb, pmdp, addr)		pmd_free((tlb)->mm, (pmdp))
+ #endif
  
--static inline unsigned int get_delay(void)
-+static inline unsigned int get_delay(int type)
- {
- 	unsigned int delay = in_task() ? kcsan_udelay_task : kcsan_udelay_interrupt;
-+	/* For certain access types, skew the random delay to be longer. */
-+	unsigned int skew_delay_order =
-+		(type & (KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_ASSERT)) ? 1 : 0;
-+
- 	return delay - (IS_ENABLED(CONFIG_KCSAN_DELAY_RANDOMIZE) ?
--				prandom_u32_max(delay) :
-+				prandom_u32_max(delay >> skew_delay_order) :
- 				0);
- }
+ static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
+@@ -33,13 +34,4 @@ do {							\
+ 	tlb_remove_page((tlb), (pte));			\
+ } while (0)
  
-@@ -449,7 +453,7 @@ kcsan_setup_watchpoint(const volatile void *ptr, size_t size, int type)
- 	 * Delay this thread, to increase probability of observing a racy
- 	 * conflicting access.
- 	 */
--	udelay(get_delay());
-+	udelay(get_delay(type));
- 
- 	/*
- 	 * Re-read value, and check if it is as expected; if not, we infer a
--- 
-2.28.0.rc0.142.g3c755180ce-goog
+-#if CONFIG_PGTABLE_LEVELS > 2
+-#define __pmd_free_tlb(tlb, pmdp, addr)			\
+-do {							\
+-	struct page *page = virt_to_page(pmdp);		\
+-	pgtable_pmd_page_dtor(page);			\
+-	tlb_remove_page((tlb), page);			\
+-} while (0);
+-#endif
+-
+ #endif /* __ASM_SH_PGALLOC_H */
