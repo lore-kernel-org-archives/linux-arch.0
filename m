@@ -1,79 +1,105 @@
-From: Sami Tolvanen <samitolvanen@google.com>
-Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
-Date: Fri, 17 Jul 2020 10:47:51 -0700
-Message-ID: <CABCJKuda0AFCZ-1J2NTLc-M0xax007a9u-fzOoxmU2z60jvzbA@mail.gmail.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-5-samitolvanen@google.com> <20200624212737.GV4817@hirez.programming.kicks-ass.net>
- <20200624214530.GA120457@google.com> <20200625074530.GW4817@hirez.programming.kicks-ass.net>
- <20200625161503.GB173089@google.com> <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
- <20200625224042.GA169781@google.com> <20200626112931.GF4817@hirez.programming.kicks-ass.net>
- <CABCJKucSM7gqWmUtiBPbr208wB0pc25afJXc6yBQzJDZf4LSWA@mail.gmail.com> <20200717133645.7816c0b6@oasis.local.home>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [patch V3 01/13] entry: Provide generic syscall entry
+ functionality
+Date: Fri, 17 Jul 2020 10:49:13 -0700
+Message-ID: <202007171045.FB4A586F1D@keescook>
+References: <20200716182208.180916541@linutronix.de>
+ <20200716185424.011950288@linutronix.de>
+ <202007161336.B993ED938@keescook>
+ <87d04vt98w.fsf@nanos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200717133645.7816c0b6@oasis.local.home>
+Content-Disposition: inline
+In-Reply-To: <87d04vt98w.fsf@nanos.tec.linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Matt Helsley <mhelsley@vmware.com>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 17, 2020 at 10:36 AM Steven Rostedt <rostedt@goodmis.org> wrote:
->
-> On Fri, 17 Jul 2020 10:28:13 -0700
-> Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> > On Fri, Jun 26, 2020 at 4:29 AM Peter Zijlstra <peterz@infradead.org> wrote:
-> > >
-> > > On Thu, Jun 25, 2020 at 03:40:42PM -0700, Sami Tolvanen wrote:
-> > >
-> > > > > Not boot tested, but it generates the required sections and they look
-> > > > > more or less as expected, ymmv.
-> > >
-> > > > > diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> > > > > index a291823f3f26..189575c12434 100644
-> > > > > --- a/arch/x86/Kconfig
-> > > > > +++ b/arch/x86/Kconfig
-> > > > > @@ -174,7 +174,6 @@ config X86
-> > > > >     select HAVE_EXIT_THREAD
-> > > > >     select HAVE_FAST_GUP
-> > > > >     select HAVE_FENTRY                      if X86_64 || DYNAMIC_FTRACE
-> > > > > -   select HAVE_FTRACE_MCOUNT_RECORD
-> > > > >     select HAVE_FUNCTION_GRAPH_TRACER
-> > > > >     select HAVE_FUNCTION_TRACER
-> > > > >     select HAVE_GCC_PLUGINS
-> > > >
-> > > > This breaks DYNAMIC_FTRACE according to kernel/trace/ftrace.c:
-> > > >
-> > > >   #ifndef CONFIG_FTRACE_MCOUNT_RECORD
-> > > >   # error Dynamic ftrace depends on MCOUNT_RECORD
-> > > >   #endif
-> > > >
-> > > > And the build errors after that seem to confirm this. It looks like we might
-> > > > need another flag to skip recordmcount.
-> > >
-> > > Hurm, Steve, how you want to do that?
+On Thu, Jul 16, 2020 at 11:55:59PM +0200, Thomas Gleixner wrote:
+> Kees Cook <keescook@chromium.org> writes:
+> > On Thu, Jul 16, 2020 at 08:22:09PM +0200, Thomas Gleixner wrote:
+> >> This code is needlessly duplicated and  different in all
+> >> architectures.
+> >> 
+> >> Provide a generic version based on the x86 implementation which has all the
+> >> RCU and instrumentation bits right.
 > >
-> > Steven, did you have any thoughts about this? Moving recordmcount to
-> > an objtool pass that knows about call sites feels like a much cleaner
-> > solution than annotating kernel code to avoid unwanted relocations.
+> > Ahh! You're reading my mind!
+> 
+> I told you about that plan at the last conference over a beer :)
+
+Thank you for incepting it in my head, then! ;)
+
+> > [1] https://lore.kernel.org/lkml/20200716193141.4068476-2-krisman@collabora.com/
+> 
+> Saw that fly by. *shudder*
+
+Aw, it's nice. Better emulation! :)
+
+> 
+> >> +/*
+> >> + * Define dummy _TIF work flags if not defined by the architecture or for
+> >> + * disabled functionality.
+> >> + */
 > >
->
-> Bah, I started to reply to this then went to look for details, got
-> distracted, forgot about it, my laptop crashed (due to a zoom call),
-> and I lost the email I was writing (haven't looked in the drafts
-> folder, but my idea about this has changed since anyway).
->
-> So the problem is that we process mcount references in other areas and
-> that confuses the ftrace modification portion?
+> > When I was thinking about this last week I was pondering having a split
+> > between the arch-agnositc TIF flags and the arch-specific TIF flags, and
+> > that each arch could have a single "there is agnostic work to be done"
+> > TIF in their thread_info, and the agnostic flags could live in
+> > task_struct or something. Anyway, I'll keep reading...
+> 
+> That's going to be nasty. We rather go and expand the TIF storage to
+> 64bit. And then do the following in a generic header:
 
-Correct.
+I though the point was to make the TIF_WORK check as fast as possible,
+even on the 32-bit word systems. I mean it's not a huge performance hit,
+but *shrug*
 
-> Someone just submitted a patch for arm64 for this:
->
-> https://lore.kernel.org/r/20200717143338.19302-1-gregory.herrero@oracle.com
->
-> Is that what you want?
+> 
+> #ifndef TIF_ARCH_SPECIFIC
+> # define TIF_ARCH_SPECIFIC
+> #endif
+> 
+> enum tif_bits {
+> 	TIF_NEED_RESCHED = 0,
+>         TIF_...,
+>         TIF_LAST_GENERIC,
+>         TIF_ARCH_SPECIFIC,
+> };
+>         
+> and in the arch specific one:
+> 
+> #define TIF_ARCH_SPECIFIC	\
+> 	TIF_ARCH_1,             \
+>         TIF_ARCH_2,
+> 
+> or something like that.
 
-That looks like the same issue, but we need to fix this on x86 instead.
+Okay, yeah, that can work.
 
-Sami
+> > There's been some recent confusion over "has the syscall changed,
+> > or did seccomp request it be skipped?" that was explored in arm64[2]
+> > (though I see Will and Keno in CC already). There might need to be a
+> > clearer way to distinguish between "wild userspace issued a -1 syscall"
+> > and "seccomp or ptrace asked for the syscall to be skipped". The
+> > difference is mostly about when ENOSYS gets set, with respect to calls
+> > to syscall_set_return_value(), but if the syscall gets changed, the arch
+> > may need to recheck the value and consider ENOSYS, etc. IIUC, what Will
+> > ended up with[3] was having syscall_trace_enter() return the syscall return
+> > value instead of the new syscall.
+> 
+> I was chatting with Will about that yesterday. IIRC he plans to fix the
+> immediate issue on arm64 first and then move arm64 over to the generic
+> variant. That's the reason why I reshuffled the patch series so the
+> generic parts are first which allows me to provide will a branch with
+> just those. If there are any changes needed we can just feed them back
+> into that branch and fixup the affected architecture trees.
+> 
+> IOW, that should not block progress on this stuff.
+
+Ok, great! I just wanted to make sure that didn't surprise anyone. :)
+
+-- 
+Kees Cook
