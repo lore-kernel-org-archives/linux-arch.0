@@ -1,231 +1,37 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:37356 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726415AbgGULIm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:42 -0400
-Message-ID: <20200721110808.780082657@linutronix.de>
-Date: Tue, 21 Jul 2020 12:57:11 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V4 05/15] entry: Provide infrastructure for work before
- exiting to guest mode
-References: <20200721105706.030914876@linutronix.de>
+Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48560 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725909AbgGQFtO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 01:49:14 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+In-Reply-To: <20200717044427.68747-1-ebiggers@kernel.org>
+Reply-To: sedat.dilek@gmail.com
+From: Sedat Dilek <sedat.dilek@gmail.com>
+Date: Fri, 17 Jul 2020 07:49:02 +0200
+Message-ID: <CA+icZUVztkBRBhs_NQpTOg7rc34VkBQ1GCr5iXgw+P9XORwd9A@mail.gmail.com>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200721105711.cUhzNOw_bxfn3pccsH8kdIJdgCEOTMl7PwZbF5ezF4w@z>
+To: Eric Biggers <ebiggers@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200717054902.ZkFLrpBB0GzCVMYwVkI6IJS18D3KfA5PcnIQ36kX9pI@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+On Fri, Jul 17, 2020 at 6:48 AM Eric Biggers <ebiggers@kernel.org> wrote:
+>
+> From: Eric Biggers <ebiggers@google.com>
+...
+> This is motivated by the discussion at
+> https://lkml.kernel.org/linux-fsdevel/20200713033330.205104-1-ebiggers@kernel.org/T/#u
+...
+> +In where cases where taking the mutex in the "already initialized" case
 
-Entering a guest is similar to exiting to user space. Pending work like
-handling signals, rescheduling, task work etc. needs to be handled before
-that.
+"In cases where..." (drop first "where")
 
-Provide generic infrastructure to avoid duplication of the same handling
-code all over the place.
+> +presents scalability concerns, the implementation can be optimized to
+> +check the 'inited' flag outside the mutex.  Unfortunately, this
+> +optimization is often implemented incorrectly by using a plain load.
+> +That violates the memory model and may result in unpredictable behavior.
 
-The exit to guest mode handling is different from the exit to usermode
-handling, e.g. vs. rseq and live patching, so a separate function is used.
-
-The initial list of work items handled is:
-
-    TIF_SIGPENDING, TIF_NEED_RESCHED, TIF_NOTIFY_RESUME
-
-Architecture specific TIF flags can be added via defines in the
-architecture specific include files.
-
-The calling convention is also different from the syscall/interrupt entry
-functions as KVM invokes this from the outer vcpu_run() loop with
-interrupts and preemption disabled. To prevent missing a pending work item
-it invokes a check for pending TIF work from interrupt disabled code right
-before exiting to guest mode. The lockdep, RCU and tracing state handling
-is also done directly around the switch to and from guest mode.
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
-V3: Reworked and simplified version adopted to recent X86 and KVM changes
-    
-V2: Moved KVM specific functions to kvm (Paolo)
-    Added lockdep assert (Andy)
-    Dropped live patching from enter guest mode work (Miroslav)
----
- include/linux/entry-kvm.h |   80 ++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/kvm_host.h  |    8 ++++
- kernel/entry/Makefile     |    3 +
- kernel/entry/kvm.c        |   51 +++++++++++++++++++++++++++++
- virt/kvm/Kconfig          |    3 +
- 5 files changed, 144 insertions(+), 1 deletion(-)
-
---- /dev/null
-+++ b/include/linux/entry-kvm.h
-@@ -0,0 +1,80 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __LINUX_ENTRYKVM_H
-+#define __LINUX_ENTRYKVM_H
-+
-+#include <linux/entry-common.h>
-+
-+/* Exit to guest mode work */
-+#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
-+
-+#ifndef ARCH_EXIT_TO_GUEST_MODE_WORK
-+# define ARCH_EXIT_TO_GUEST_MODE_WORK	(0)
-+#endif
-+
-+#define EXIT_TO_GUEST_MODE_WORK					\
-+	(_TIF_NEED_RESCHED | _TIF_SIGPENDING |			\
-+	 _TIF_NOTIFY_RESUME | ARCH_EXIT_TO_GUEST_MODE_WORK)
-+
-+struct kvm_vcpu;
-+
-+/**
-+ * arch_exit_to_guest_mode_work - Architecture specific exit to guest mode
-+ *				  work function.
-+ * @vcpu:	Pointer to current's VCPU data
-+ * @ti_work:	Cached TIF flags gathered in exit_to_guest_mode()
-+ *
-+ * Invoked from exit_to_guest_mode_work(). Defaults to NOOP. Can be
-+ * replaced by architecture specific code.
-+ */
-+static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
-+					      unsigned long ti_work);
-+
-+#ifndef arch_exit_to_guest_mode_work
-+static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
-+					       unsigned long ti_work)
-+{
-+	return 0;
-+}
-+#endif
-+
-+/**
-+ * exit_to_guest_mode - Check and handle pending work which needs to be
-+ *			handled before returning to guest mode
-+ * @vcpu:	Pointer to current's VCPU data
-+ *
-+ * Returns: 0 or an error code
-+ */
-+int exit_to_guest_mode(struct kvm_vcpu *vcpu);
-+
-+/**
-+ * __exit_to_guest_mode_work_pending - Check if work is pending
-+ *
-+ * Returns: True if work pending, False otherwise.
-+ *
-+ * Bare variant of exit_to_guest_mode_work_pending(). Can be called from
-+ * interrupt enabled code for racy quick checks with care.
-+ */
-+static inline bool __exit_to_guest_mode_work_pending(void)
-+{
-+	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-+
-+	return !!(ti_work & EXIT_TO_GUEST_MODE_WORK);
-+}
-+
-+/**
-+ * exit_to_guest_mode_work_pending - Check if work is pending which needs to be
-+ *				     handled before returning to guest mode
-+ *
-+ * Returns: True if work pending, False otherwise.
-+ *
-+ * Has to be invoked with interrupts disabled before the transition to
-+ * guest mode.
-+ */
-+static inline bool exit_to_guest_mode_work_pending(void)
-+{
-+	lockdep_assert_irqs_disabled();
-+	return __exit_to_guest_mode_work_pending();
-+}
-+#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
-+
-+#endif
-
---- a/include/linux/kvm_host.h
-+++ b/include/linux/kvm_host.h
-@@ -1439,4 +1439,12 @@ int kvm_vm_create_worker_thread(struct k
- 				uintptr_t data, const char *name,
- 				struct task_struct **thread_ptr);
- 
-+#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
-+static inline void kvm_handle_signal_exit(struct kvm_vcpu *vcpu)
-+{
-+	vcpu->run->exit_reason = KVM_EXIT_INTR;
-+	vcpu->stat.signal_exits++;
-+}
-+#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
-+
- #endif
---- a/kernel/entry/Makefile
-+++ b/kernel/entry/Makefile
-@@ -1,3 +1,4 @@
- # SPDX-License-Identifier: GPL-2.0
- 
--obj-$(CONFIG_GENERIC_ENTRY) += common.o
-+obj-$(CONFIG_GENERIC_ENTRY) 		+= common.o
-+obj-$(CONFIG_KVM_EXIT_TO_GUEST_WORK)	+= kvm.o
---- /dev/null
-+++ b/kernel/entry/kvm.c
-@@ -0,0 +1,51 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+#include <linux/entry-kvm.h>
-+#include <linux/kvm_host.h>
-+
-+static int exit_to_guest_mode_work(struct kvm_vcpu *vcpu, unsigned long ti_work)
-+{
-+	do {
-+		int ret;
-+
-+		if (ti_work & _TIF_SIGPENDING) {
-+			kvm_handle_signal_exit(vcpu);
-+			return -EINTR;
-+		}
-+
-+		if (ti_work & _TIF_NEED_RESCHED)
-+			schedule();
-+
-+		if (ti_work & _TIF_NOTIFY_RESUME) {
-+			clear_thread_flag(TIF_NOTIFY_RESUME);
-+			tracehook_notify_resume(NULL);
-+		}
-+
-+		ret = arch_exit_to_guest_mode_work(vcpu, ti_work);
-+		if (ret)
-+			return ret;
-+
-+		ti_work = READ_ONCE(current_thread_info()->flags);
-+	} while (ti_work & EXIT_TO_GUEST_MODE_WORK || need_resched());
-+	return 0;
-+}
-+
-+int exit_to_guest_mode(struct kvm_vcpu *vcpu)
-+{
-+	unsigned long ti_work;
-+
-+	/*
-+	 * This is invoked from the outer guest loop with interrupts and
-+	 * preemption enabled.
-+	 *
-+	 * KVM invokes exit_to_guest_mode_work_pending() with interrupts
-+	 * disabled in the inner loop before going into guest mode. No need
-+	 * to disable interrupts here.
-+	 */
-+	ti_work = READ_ONCE(current_thread_info()->flags);
-+	if (!(ti_work & EXIT_TO_GUEST_MODE_WORK))
-+		return 0;
-+
-+	return exit_to_guest_mode_work(vcpu, ti_work);
-+}
-+EXPORT_SYMBOL_GPL(exit_to_guest_mode);
---- a/virt/kvm/Kconfig
-+++ b/virt/kvm/Kconfig
-@@ -60,3 +60,6 @@ config HAVE_KVM_VCPU_RUN_PID_CHANGE
- 
- config HAVE_KVM_NO_POLL
-        bool
-+
-+config KVM_EXIT_TO_GUEST_WORK
-+       bool
+- Sedat -
