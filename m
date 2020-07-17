@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 12/22] netfilter: remove the compat argument to xt_copy_counters_from_user
-Date: Fri, 17 Jul 2020 08:23:21 +0200
-Message-ID: <20200717062331.691152-13-hch@lst.de>
+Subject: [PATCH 16/22] net/ipv4: factor out mcast join/leave setsockopt helpers
+Date: Fri, 17 Jul 2020 08:23:25 +0200
+Message-ID: <20200717062331.691152-17-hch@lst.de>
 References: <20200717062331.691152-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,109 +12,148 @@ To: "David S. Miller" <davem@davemloft.net>
 Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
 List-Id: linux-arch.vger.kernel.org
 
-Lift the in_compat_syscall() from the callers instead.
+Factor out one helper each for setting the native and compat
+version of the MCAST_MSFILTER option.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- include/linux/netfilter/x_tables.h | 2 +-
- net/ipv4/netfilter/arp_tables.c    | 3 +--
- net/ipv4/netfilter/ip_tables.c     | 3 +--
- net/ipv6/netfilter/ip6_tables.c    | 3 +--
- net/netfilter/x_tables.c           | 9 ++++-----
- 5 files changed, 8 insertions(+), 12 deletions(-)
+ net/ipv4/ip_sockglue.c | 109 +++++++++++++++++++++--------------------
+ 1 file changed, 56 insertions(+), 53 deletions(-)
 
-diff --git a/include/linux/netfilter/x_tables.h b/include/linux/netfilter/x_tables.h
-index 5da88451853b28..b8b943ee7b8b66 100644
---- a/include/linux/netfilter/x_tables.h
-+++ b/include/linux/netfilter/x_tables.h
-@@ -302,7 +302,7 @@ int xt_data_to_user(void __user *dst, const void *src,
- 		    int usersize, int size, int aligned_size);
+diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
+index b587dee006f882..73bb88fbe54661 100644
+--- a/net/ipv4/ip_sockglue.c
++++ b/net/ipv4/ip_sockglue.c
+@@ -806,6 +806,60 @@ static int compat_ip_set_mcast_msfilter(struct sock *sk, void __user *optval,
+ }
+ #endif
  
- void *xt_copy_counters_from_user(const void __user *user, unsigned int len,
--				 struct xt_counters_info *info, bool compat);
-+				 struct xt_counters_info *info);
- struct xt_counters *xt_counters_alloc(unsigned int counters);
- 
- struct xt_table *xt_register_table(struct net *net,
-diff --git a/net/ipv4/netfilter/arp_tables.c b/net/ipv4/netfilter/arp_tables.c
-index 15807fb4a65f3e..2c8a4dad39d748 100644
---- a/net/ipv4/netfilter/arp_tables.c
-+++ b/net/ipv4/netfilter/arp_tables.c
-@@ -1008,8 +1008,7 @@ static int do_add_counters(struct net *net, const void __user *user,
- 	struct arpt_entry *iter;
- 	unsigned int addend;
- 
--	paddc = xt_copy_counters_from_user(user, len, &tmp,
--					   in_compat_syscall());
-+	paddc = xt_copy_counters_from_user(user, len, &tmp);
- 	if (IS_ERR(paddc))
- 		return PTR_ERR(paddc);
- 
-diff --git a/net/ipv4/netfilter/ip_tables.c b/net/ipv4/netfilter/ip_tables.c
-index fbfad38f397949..161901dd1cae7f 100644
---- a/net/ipv4/netfilter/ip_tables.c
-+++ b/net/ipv4/netfilter/ip_tables.c
-@@ -1163,8 +1163,7 @@ do_add_counters(struct net *net, const void __user *user,
- 	struct ipt_entry *iter;
- 	unsigned int addend;
- 
--	paddc = xt_copy_counters_from_user(user, len, &tmp,
--					   in_compat_syscall());
-+	paddc = xt_copy_counters_from_user(user, len, &tmp);
- 	if (IS_ERR(paddc))
- 		return PTR_ERR(paddc);
- 
-diff --git a/net/ipv6/netfilter/ip6_tables.c b/net/ipv6/netfilter/ip6_tables.c
-index 96c48e91e6c7f7..fd1f8f93123188 100644
---- a/net/ipv6/netfilter/ip6_tables.c
-+++ b/net/ipv6/netfilter/ip6_tables.c
-@@ -1179,8 +1179,7 @@ do_add_counters(struct net *net, const void __user *user, unsigned int len)
- 	struct ip6t_entry *iter;
- 	unsigned int addend;
- 
--	paddc = xt_copy_counters_from_user(user, len, &tmp,
--					   in_compat_syscall());
-+	paddc = xt_copy_counters_from_user(user, len, &tmp);
- 	if (IS_ERR(paddc))
- 		return PTR_ERR(paddc);
- 	t = xt_find_table_lock(net, AF_INET6, tmp.name);
-diff --git a/net/netfilter/x_tables.c b/net/netfilter/x_tables.c
-index 99a468be4a59fb..32bab45af7e415 100644
---- a/net/netfilter/x_tables.c
-+++ b/net/netfilter/x_tables.c
-@@ -1033,15 +1033,14 @@ EXPORT_SYMBOL_GPL(xt_check_target);
-  * @user: src pointer to userspace memory
-  * @len: alleged size of userspace memory
-  * @info: where to store the xt_counters_info metadata
-- * @compat: true if we setsockopt call is done by 32bit task on 64bit kernel
-  *
-  * Copies counter meta data from @user and stores it in @info.
-  *
-  * vmallocs memory to hold the counters, then copies the counter data
-  * from @user to the new memory and returns a pointer to it.
-  *
-- * If @compat is true, @info gets converted automatically to the 64bit
-- * representation.
-+ * If called from a compat syscall, @info gets converted automatically to the
-+ * 64bit representation.
-  *
-  * The metadata associated with the counters is stored in @info.
-  *
-@@ -1049,13 +1048,13 @@ EXPORT_SYMBOL_GPL(xt_check_target);
-  * If IS_ERR is false, caller has to vfree the pointer.
-  */
- void *xt_copy_counters_from_user(const void __user *user, unsigned int len,
--				 struct xt_counters_info *info, bool compat)
-+				 struct xt_counters_info *info)
++static int ip_mcast_join_leave(struct sock *sk, int optname,
++		void __user *optval, int optlen)
++{
++	struct ip_mreqn mreq = { };
++	struct sockaddr_in *psin;
++	struct group_req greq;
++
++	if (optlen < sizeof(struct group_req))
++		return -EINVAL;
++	if (copy_from_user(&greq, optval, sizeof(greq)))
++		return -EFAULT;
++
++	psin = (struct sockaddr_in *)&greq.gr_group;
++	if (psin->sin_family != AF_INET)
++		return -EINVAL;
++	mreq.imr_multiaddr = psin->sin_addr;
++	mreq.imr_ifindex = greq.gr_interface;
++	if (optname == MCAST_JOIN_GROUP)
++		return ip_mc_join_group(sk, &mreq);
++	return ip_mc_leave_group(sk, &mreq);
++}
++
++#ifdef CONFIG_COMPAT
++static int compat_ip_mcast_join_leave(struct sock *sk, int optname,
++		void __user *optval, int optlen)
++{
++	struct compat_group_req greq;
++	struct ip_mreqn mreq = { };
++	struct sockaddr_in *psin;
++	int err;
++
++	if (optlen < sizeof(struct compat_group_req))
++		return -EINVAL;
++	if (copy_from_user(&greq, optval, sizeof(greq)))
++		return -EFAULT;
++
++	psin = (struct sockaddr_in *)&greq.gr_group;
++	if (psin->sin_family != AF_INET)
++		return -EINVAL;
++	mreq.imr_multiaddr = psin->sin_addr;
++	mreq.imr_ifindex = greq.gr_interface;
++
++	rtnl_lock();
++	lock_sock(sk);
++	if (optname == MCAST_JOIN_GROUP)
++		err = ip_mc_join_group(sk, &mreq);
++	else
++		err = ip_mc_leave_group(sk, &mreq);
++	release_sock(sk);
++	rtnl_unlock();
++	return err;
++}
++#endif
++
+ static int do_ip_setsockopt(struct sock *sk, int level,
+ 			    int optname, char __user *optval, unsigned int optlen)
  {
- 	void *mem;
- 	u64 size;
- 
- #ifdef CONFIG_COMPAT
--	if (compat) {
-+	if (in_compat_syscall()) {
- 		/* structures only differ in size due to alignment */
- 		struct compat_xt_counters_info compat_tmp;
- 
+@@ -1211,29 +1265,8 @@ static int do_ip_setsockopt(struct sock *sk, int level,
+ 	}
+ 	case MCAST_JOIN_GROUP:
+ 	case MCAST_LEAVE_GROUP:
+-	{
+-		struct group_req greq;
+-		struct sockaddr_in *psin;
+-		struct ip_mreqn mreq;
+-
+-		if (optlen < sizeof(struct group_req))
+-			goto e_inval;
+-		err = -EFAULT;
+-		if (copy_from_user(&greq, optval, sizeof(greq)))
+-			break;
+-		psin = (struct sockaddr_in *)&greq.gr_group;
+-		if (psin->sin_family != AF_INET)
+-			goto e_inval;
+-		memset(&mreq, 0, sizeof(mreq));
+-		mreq.imr_multiaddr = psin->sin_addr;
+-		mreq.imr_ifindex = greq.gr_interface;
+-
+-		if (optname == MCAST_JOIN_GROUP)
+-			err = ip_mc_join_group(sk, &mreq);
+-		else
+-			err = ip_mc_leave_group(sk, &mreq);
++		err = ip_mcast_join_leave(sk, optname, optval, optlen);
+ 		break;
+-	}
+ 	case MCAST_JOIN_SOURCE_GROUP:
+ 	case MCAST_LEAVE_SOURCE_GROUP:
+ 	case MCAST_BLOCK_SOURCE:
+@@ -1389,37 +1422,7 @@ int compat_ip_setsockopt(struct sock *sk, int level, int optname,
+ 	switch (optname) {
+ 	case MCAST_JOIN_GROUP:
+ 	case MCAST_LEAVE_GROUP:
+-	{
+-		struct compat_group_req __user *gr32 = (void __user *)optval;
+-		struct group_req greq;
+-		struct sockaddr_in *psin = (struct sockaddr_in *)&greq.gr_group;
+-		struct ip_mreqn mreq;
+-
+-		if (optlen < sizeof(struct compat_group_req))
+-			return -EINVAL;
+-
+-		if (get_user(greq.gr_interface, &gr32->gr_interface) ||
+-		    copy_from_user(&greq.gr_group, &gr32->gr_group,
+-				sizeof(greq.gr_group)))
+-			return -EFAULT;
+-
+-		if (psin->sin_family != AF_INET)
+-			return -EINVAL;
+-
+-		memset(&mreq, 0, sizeof(mreq));
+-		mreq.imr_multiaddr = psin->sin_addr;
+-		mreq.imr_ifindex = greq.gr_interface;
+-
+-		rtnl_lock();
+-		lock_sock(sk);
+-		if (optname == MCAST_JOIN_GROUP)
+-			err = ip_mc_join_group(sk, &mreq);
+-		else
+-			err = ip_mc_leave_group(sk, &mreq);
+-		release_sock(sk);
+-		rtnl_unlock();
+-		return err;
+-	}
++		return compat_ip_mcast_join_leave(sk, optname, optval, optlen);
+ 	case MCAST_JOIN_SOURCE_GROUP:
+ 	case MCAST_LEAVE_SOURCE_GROUP:
+ 	case MCAST_BLOCK_SOURCE:
 -- 
 2.27.0
