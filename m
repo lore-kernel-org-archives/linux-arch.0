@@ -1,85 +1,48 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38204 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727113AbgGUVrU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 17:47:20 -0400
-Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0F165C0619DC
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:47:19 -0700 (PDT)
-Received: by mail-pj1-x1041.google.com with SMTP id cv18so1934700pjb.1
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:47:19 -0700 (PDT)
-Date: Tue, 21 Jul 2020 14:47:17 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [patch V4 10/15] x86/entry: Use generic syscall entry function
-Message-ID: <202007211440.BEF76E2@keescook>
-References: <20200721105706.030914876@linutronix.de>
- <20200721110809.325060396@linutronix.de>
+Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <20200717111349.883694582@infradead.org>
+Date: Fri, 17 Jul 2020 13:10:14 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 09/11] nds32/tlb: Fix __p*_free_tlb()
+References: <20200717111005.024867618@infradead.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200721110809.325060396@linutronix.de>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200721214717.d0E_yDZ0nJrD-0Yp--oSVE3s-k5h8F6r_GbKN0v7kQw@z>
+Message-ID: <20200717111014.KowqPgb_aLEBjt_WQnrMBBNzv7dLsQMWkQps3WNPMaI@z>
 
-On Tue, Jul 21, 2020 at 12:57:16PM +0200, Thomas Gleixner wrote:
-> Replace the syscall entry work handling with the generic version. Provide
-> the necessary helper inlines to handle the real architecture specific
-> parts, e.g. ptrace.
-> 
-> Use a temporary define for idtentry_enter_user which will be cleaned up
-> seperately.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Just like regular pages, page directories need to observe the
+following order:
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+ 1) unhook
+ 2) TLB invalidate
+ 3) free
 
-Though, notes and a comment below...
+to ensure it is safe against concurrent accesses.
 
-> +/* Check that the stack and regs on entry from user mode are sane. */
-> +static __always_inline void arch_check_user_regs(struct pt_regs *regs)
-> +{
-> +	if (IS_ENABLED(CONFIG_DEBUG_ENTRY)) {
-> +		/*
-> +		 * Make sure that the entry code gave us a sensible EFLAGS
-> +		 * register.  Native because we want to check the actual CPU
-> +		 * state, not the interrupt state as imagined by Xen.
-> +		 */
-> +		unsigned long flags = native_save_fl();
-> +		WARN_ON_ONCE(flags & (X86_EFLAGS_AC | X86_EFLAGS_DF |
-> +				      X86_EFLAGS_NT));
+Even though NDS32 is UP only, we still need to observe this order
+because mmu_gather is preemptible.
 
-push, pop, bit test
+NDS32 does not in fact have PMDs.
 
-> +
-> +		/* We think we came from user mode. Make sure pt_regs agrees. */
-> +		WARN_ON_ONCE(!user_mode(regs));
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/nds32/include/asm/tlb.h |    7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
-memory deref, bit test
-
-> +
-> +		/*
-> +		 * All entries from user mode (except #DF) should be on the
-> +		 * normal thread stack and should have user pt_regs in the
-> +		 * correct location.
-> +		 */
-> +		WARN_ON_ONCE(!on_thread_stack());
-
-per-cpu deref, subtract, test
-
-> +		WARN_ON_ONCE(regs != task_pt_regs(current));
-
-memory deref, test
-
-> +	}
-> +}
-
-This doesn't look very expensive, and they certain indicate really bad
-conditions. Does this need to be behind a CONFIG? (Whatever the answer,
-we can probably make those changes in a later series -- some of these
-also look not arch-specific...)
-
--- 
-Kees Cook
+--- a/arch/nds32/include/asm/tlb.h
++++ b/arch/nds32/include/asm/tlb.h
+@@ -6,6 +6,11 @@
+ 
+ #include <asm-generic/tlb.h>
+ 
+-#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
++#define __pte_free_tlb(tlb, pte, address)	\
++do {						\
++	pgtable_pte_page_dtor(pte);		\
++	tlb_remove_table((tlb), (pte));		\
++} while (0)
++
+ 
+ #endif
