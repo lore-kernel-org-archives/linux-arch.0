@@ -1,209 +1,157 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 19/22] net/ipv6: factor out MCAST_MSFILTER setsockopt helpers
-Date: Fri, 17 Jul 2020 08:23:28 +0200
-Message-ID: <20200717062331.691152-20-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 20/22] net/ipv6: factor out mcast join/leave setsockopt helpers
+Date: Fri, 17 Jul 2020 08:23:29 +0200
+Message-ID: <20200717062331.691152-21-hch@lst.de>
 References: <20200717062331.691152-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-bluetooth-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200717062331.691152-1-hch-jcswGhMUV9g@public.gmane.org>
-Sender: linux-bluetooth-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
-Cc: Alexei Starovoitov <ast-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Daniel Borkmann <daniel-FeC+5ew28dpmcu3hnIyYJQ@public.gmane.org>, Chas Williams <3chas3-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Pablo Neira Ayuso <pablo-Cap9r6Oaw4JrovVCs/uTlw@public.gmane.org>, Jozsef Kadlecsik <kadlec-Cap9r6Oaw4JrovVCs/uTlw@public.gmane.org>, Florian Westphal <fw-HFFVJYpyMKqzQB+pC5nmwQ@public.gmane.org>, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netfilter-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-bluetooth-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, bridge-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-can-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dccp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-wpan-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mptcp-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54008 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727062AbgGQGYj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:39 -0400
+In-Reply-To: <20200717062331.691152-1-hch@lst.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
 
 Factor out one helper each for setting the native and compat
 version of the MCAST_MSFILTER option.
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- net/ipv6/ipv6_sockglue.c | 159 ++++++++++++++++++++-------------------
- 1 file changed, 83 insertions(+), 76 deletions(-)
+ net/ipv6/ipv6_sockglue.c | 103 ++++++++++++++++++++-------------------
+ 1 file changed, 53 insertions(+), 50 deletions(-)
 
 diff --git a/net/ipv6/ipv6_sockglue.c b/net/ipv6/ipv6_sockglue.c
-index ef5656f876ac05..6aa49495d7bc0b 100644
+index 6aa49495d7bc0b..1ea0cd12beaee9 100644
 --- a/net/ipv6/ipv6_sockglue.c
 +++ b/net/ipv6/ipv6_sockglue.c
-@@ -171,6 +171,87 @@ static int do_ipv6_mcast_group_source(struct sock *sk, int optname,
- 	return ip6_mc_source(add, omode, sk, greqs);
+@@ -252,6 +252,56 @@ static int compat_ipv6_set_mcast_msfilter(struct sock *sk, void __user *optval,
  }
+ #endif
  
-+static int ipv6_set_mcast_msfilter(struct sock *sk, void __user *optval,
-+		int optlen)
++static int ipv6_mcast_join_leave(struct sock *sk, int optname,
++		void __user *optval, int optlen)
 +{
-+	struct group_filter *gsf;
-+	int ret;
++	struct sockaddr_in6 *psin6;
++	struct group_req greq;
 +
-+	if (optlen < GROUP_FILTER_SIZE(0))
++	if (optlen < sizeof(greq))
 +		return -EINVAL;
-+	if (optlen > sysctl_optmem_max)
-+		return -ENOBUFS;
++	if (copy_from_user(&greq, optval, sizeof(greq)))
++		return -EFAULT;
 +
-+	gsf = memdup_user(optval, optlen);
-+	if (IS_ERR(gsf))
-+		return PTR_ERR(gsf);
-+
-+	/* numsrc >= (4G-140)/128 overflow in 32 bits */
-+	ret = -ENOBUFS;
-+	if (gsf->gf_numsrc >= 0x1ffffffU ||
-+	    gsf->gf_numsrc > sysctl_mld_max_msf)
-+		goto out_free_gsf;
-+
-+	ret = -EINVAL;
-+	if (GROUP_FILTER_SIZE(gsf->gf_numsrc) > optlen)
-+		goto out_free_gsf;
-+
-+	ret = ip6_mc_msfilter(sk, gsf, gsf->gf_slist);
-+out_free_gsf:
-+	kfree(gsf);
-+	return ret;
++	if (greq.gr_group.ss_family != AF_INET6)
++		return -EADDRNOTAVAIL;
++	psin6 = (struct sockaddr_in6 *)&greq.gr_group;
++	if (optname == MCAST_JOIN_GROUP)
++		return ipv6_sock_mc_join(sk, greq.gr_interface,
++					 &psin6->sin6_addr);
++	return ipv6_sock_mc_drop(sk, greq.gr_interface, &psin6->sin6_addr);
 +}
 +
 +#ifdef CONFIG_COMPAT
-+static int compat_ipv6_set_mcast_msfilter(struct sock *sk, void __user *optval,
-+		int optlen)
++static int compat_ipv6_mcast_join_leave(struct sock *sk, int optname,
++		void __user *optval, int optlen)
 +{
-+	const int size0 = offsetof(struct compat_group_filter, gf_slist);
-+	struct compat_group_filter *gf32;
-+	void *p;
-+	int ret;
-+	int n;
++	struct compat_group_req gr32;
++	struct sockaddr_in6 *psin6;
++	int err;
 +
-+	if (optlen < size0)
++	if (optlen < sizeof(gr32))
 +		return -EINVAL;
-+	if (optlen > sysctl_optmem_max - 4)
-+		return -ENOBUFS;
++	if (copy_from_user(&gr32, optval, sizeof(gr32)))
++		return -EFAULT;
 +
-+	p = kmalloc(optlen + 4, GFP_KERNEL);
-+	if (!p)
-+		return -ENOMEM;
-+
-+	gf32 = p + 4; /* we want ->gf_group and ->gf_slist aligned */
-+	ret = -EFAULT;
-+	if (copy_from_user(gf32, optval, optlen))
-+		goto out_free_p;
-+
-+	/* numsrc >= (4G-140)/128 overflow in 32 bits */
-+	ret = -ENOBUFS;
-+	n = gf32->gf_numsrc;
-+	if (n >= 0x1ffffffU || n > sysctl_mld_max_msf)
-+		goto out_free_p;
-+
-+	ret = -EINVAL;
-+	if (offsetof(struct compat_group_filter, gf_slist[n]) > optlen)
-+		goto out_free_p;
-+
++	if (gr32.gr_group.ss_family != AF_INET6)
++		return -EADDRNOTAVAIL;
 +	rtnl_lock();
 +	lock_sock(sk);
-+	ret = ip6_mc_msfilter(sk, &(struct group_filter){
-+			.gf_interface = gf32->gf_interface,
-+			.gf_group = gf32->gf_group,
-+			.gf_fmode = gf32->gf_fmode,
-+			.gf_numsrc = gf32->gf_numsrc}, gf32->gf_slist);
++	psin6 = (struct sockaddr_in6 *)&gr32.gr_group;
++	if (optname == MCAST_JOIN_GROUP)
++		err = ipv6_sock_mc_join(sk, gr32.gr_interface,
++					&psin6->sin6_addr);
++	else
++		err = ipv6_sock_mc_drop(sk, gr32.gr_interface,
++					&psin6->sin6_addr);
 +	release_sock(sk);
 +	rtnl_unlock();
-+
-+out_free_p:
-+	kfree(p);
-+	return ret;
++	return err;
 +}
 +#endif
 +
  static int do_ipv6_setsockopt(struct sock *sk, int level, int optname,
  		    char __user *optval, unsigned int optlen)
  {
-@@ -762,37 +843,8 @@ static int do_ipv6_setsockopt(struct sock *sk, int level, int optname,
- 		break;
- 	}
- 	case MCAST_MSFILTER:
+@@ -803,29 +853,8 @@ static int do_ipv6_setsockopt(struct sock *sk, int level, int optname,
+ 
+ 	case MCAST_JOIN_GROUP:
+ 	case MCAST_LEAVE_GROUP:
 -	{
--		struct group_filter *gsf;
+-		struct group_req greq;
+-		struct sockaddr_in6 *psin6;
 -
--		if (optlen < GROUP_FILTER_SIZE(0))
+-		if (optlen < sizeof(struct group_req))
 -			goto e_inval;
--		if (optlen > sysctl_optmem_max) {
--			retv = -ENOBUFS;
--			break;
--		}
--		gsf = memdup_user(optval, optlen);
--		if (IS_ERR(gsf)) {
--			retv = PTR_ERR(gsf);
--			break;
--		}
--		/* numsrc >= (4G-140)/128 overflow in 32 bits */
--		if (gsf->gf_numsrc >= 0x1ffffffU ||
--		    gsf->gf_numsrc > sysctl_mld_max_msf) {
--			kfree(gsf);
--			retv = -ENOBUFS;
--			break;
--		}
--		if (GROUP_FILTER_SIZE(gsf->gf_numsrc) > optlen) {
--			kfree(gsf);
--			retv = -EINVAL;
--			break;
--		}
--		retv = ip6_mc_msfilter(sk, gsf, gsf->gf_slist);
--		kfree(gsf);
 -
-+		retv = ipv6_set_mcast_msfilter(sk, optval, optlen);
+-		retv = -EFAULT;
+-		if (copy_from_user(&greq, optval, sizeof(struct group_req)))
+-			break;
+-		if (greq.gr_group.ss_family != AF_INET6) {
+-			retv = -EADDRNOTAVAIL;
+-			break;
+-		}
+-		psin6 = (struct sockaddr_in6 *)&greq.gr_group;
+-		if (optname == MCAST_JOIN_GROUP)
+-			retv = ipv6_sock_mc_join(sk, greq.gr_interface,
+-						 &psin6->sin6_addr);
+-		else
+-			retv = ipv6_sock_mc_drop(sk, greq.gr_interface,
+-						 &psin6->sin6_addr);
++		retv = ipv6_mcast_join_leave(sk, optname, optval, optlen);
  		break;
 -	}
- 	case IPV6_ROUTER_ALERT:
- 		if (optlen < sizeof(int))
- 			goto e_inval;
-@@ -977,52 +1029,7 @@ int compat_ipv6_setsockopt(struct sock *sk, int level, int optname,
- 		return err;
- 	}
- 	case MCAST_MSFILTER:
+ 	case MCAST_JOIN_SOURCE_GROUP:
+ 	case MCAST_LEAVE_SOURCE_GROUP:
+ 	case MCAST_BLOCK_SOURCE:
+@@ -975,34 +1004,8 @@ int compat_ipv6_setsockopt(struct sock *sk, int level, int optname,
+ 	switch (optname) {
+ 	case MCAST_JOIN_GROUP:
+ 	case MCAST_LEAVE_GROUP:
 -	{
--		const int size0 = offsetof(struct compat_group_filter, gf_slist);
--		struct compat_group_filter *gf32;
--		void *p;
--		int n;
+-		struct compat_group_req __user *gr32 = (void __user *)optval;
+-		struct group_req greq;
+-		struct sockaddr_in6 *psin6 = (struct sockaddr_in6 *)&greq.gr_group;
 -
--		if (optlen < size0)
+-		if (optlen < sizeof(struct compat_group_req))
 -			return -EINVAL;
--		if (optlen > sysctl_optmem_max - 4)
--			return -ENOBUFS;
 -
--		p = kmalloc(optlen + 4, GFP_KERNEL);
--		if (!p)
--			return -ENOMEM;
+-		if (get_user(greq.gr_interface, &gr32->gr_interface) ||
+-		    copy_from_user(&greq.gr_group, &gr32->gr_group,
+-				sizeof(greq.gr_group)))
+-			return -EFAULT;
 -
--		gf32 = p + 4; /* we want ->gf_group and ->gf_slist aligned */
--		if (copy_from_user(gf32, optval, optlen)) {
--			err = -EFAULT;
--			goto mc_msf_out;
--		}
--
--		n = gf32->gf_numsrc;
--		/* numsrc >= (4G-140)/128 overflow in 32 bits */
--		if (n >= 0x1ffffffU ||
--		    n > sysctl_mld_max_msf) {
--			err = -ENOBUFS;
--			goto mc_msf_out;
--		}
--		if (offsetof(struct compat_group_filter, gf_slist[n]) > optlen) {
--			err = -EINVAL;
--			goto mc_msf_out;
--		}
+-		if (greq.gr_group.ss_family != AF_INET6)
+-			return -EADDRNOTAVAIL;
 -
 -		rtnl_lock();
 -		lock_sock(sk);
--		err = ip6_mc_msfilter(sk, &(struct group_filter){
--				.gf_interface = gf32->gf_interface,
--				.gf_group = gf32->gf_group,
--				.gf_fmode = gf32->gf_fmode,
--				.gf_numsrc = gf32->gf_numsrc}, gf32->gf_slist);
+-		if (optname == MCAST_JOIN_GROUP)
+-			err = ipv6_sock_mc_join(sk, greq.gr_interface,
+-						 &psin6->sin6_addr);
+-		else
+-			err = ipv6_sock_mc_drop(sk, greq.gr_interface,
+-						 &psin6->sin6_addr);
 -		release_sock(sk);
 -		rtnl_unlock();
--mc_msf_out:
--		kfree(p);
 -		return err;
 -	}
-+		return compat_ipv6_set_mcast_msfilter(sk, optval, optlen);
- 	}
- 
- 	err = do_ipv6_setsockopt(sk, level, optname, optval, optlen);
++		return compat_ipv6_mcast_join_leave(sk, optname, optval,
++						    optlen);
+ 	case MCAST_JOIN_SOURCE_GROUP:
+ 	case MCAST_LEAVE_SOURCE_GROUP:
+ 	case MCAST_BLOCK_SOURCE:
 -- 
 2.27.0
