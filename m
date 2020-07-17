@@ -1,54 +1,52 @@
-Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35360 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726643AbgGXNPN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 09:15:13 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v4 6/6] powerpc: implement smp_cond_load_relaxed
-Date: Fri, 24 Jul 2020 23:14:23 +1000
-Message-ID: <20200724131423.1362108-7-npiggin@gmail.com>
-In-Reply-To: <20200724131423.1362108-1-npiggin@gmail.com>
-References: <20200724131423.1362108-1-npiggin@gmail.com>
+Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <20200717111349.825172312@infradead.org>
+Date: Fri, 17 Jul 2020 13:10:13 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 08/11] alpha/tlb: Fix __p*_free_tlb()
+References: <20200717111005.024867618@infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, =?UTF-8?q?Michal=20Such=C3=A1nek?= <msuchanek@suse.de>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200724131423.vLgRNufidJDEIKTXl1Kqf-C6LTg1uGhzjIc3taEct2s@z>
+Message-ID: <20200717111013.eAVRQQkwFpdZGV_PTYhh6iqSi7b6I45_QPZMZOSuLBc@z>
 
-This implements smp_cond_load_relaed with the slowpath busy loop using the
-preferred SMT priority pattern.
+Just like regular pages, page directories need to observe the
+following order:
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+ 1) unhook
+ 2) TLB invalidate
+ 3) free
+
+to ensure it is safe against concurrent accesses.
+
+Since Alpha has page based PMDs, no software walkers and IPI based TLB
+invalidation, it can use the simple tlb_remove_page() based freeer.
+
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/powerpc/include/asm/barrier.h | 14 ++++++++++++++
- 1 file changed, 14 insertions(+)
+ arch/alpha/include/asm/tlb.h |   13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
-index 123adcefd40f..9b4671d38674 100644
---- a/arch/powerpc/include/asm/barrier.h
-+++ b/arch/powerpc/include/asm/barrier.h
-@@ -76,6 +76,20 @@ do {									\
- 	___p1;								\
- })
+--- a/arch/alpha/include/asm/tlb.h
++++ b/arch/alpha/include/asm/tlb.h
+@@ -4,7 +4,16 @@
  
-+#define smp_cond_load_relaxed(ptr, cond_expr) ({		\
-+	typeof(ptr) __PTR = (ptr);				\
-+	__unqual_scalar_typeof(*ptr) VAL;			\
-+	VAL = READ_ONCE(*__PTR);				\
-+	if (unlikely(!(cond_expr))) {				\
-+		spin_begin();					\
-+		do {						\
-+			VAL = READ_ONCE(*__PTR);		\
-+		} while (!(cond_expr));				\
-+		spin_end();					\
-+	}							\
-+	(typeof(*ptr))VAL;					\
-+})
+ #include <asm-generic/tlb.h>
+ 
+-#define __pte_free_tlb(tlb, pte, address)		pte_free((tlb)->mm, pte)
+-#define __pmd_free_tlb(tlb, pmd, address)		pmd_free((tlb)->mm, pmd)
++extern void ___pte_free_tlb(struct mmu_gather *tlb, pte_t *pte);
++extern void ___pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd);
 +
- #ifdef CONFIG_PPC_BOOK3S_64
- #define NOSPEC_BARRIER_SLOT   nop
- #elif defined(CONFIG_PPC_FSL_BOOK3E)
--- 
-2.23.0
++#define __pte_free_tlb(tlb, pte, address)	\
++do {						\
++	pgtable_pte_page_dtor(pte);		\
++	tlb_remove_table((tlb), (pte));		\
++} while (0)
++
++#define __pmd_free_tlb(tlb, pmd, address)	\
++	tlb_remove_table((tlb), virt_to_page(pmd))
+  
+ #endif
