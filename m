@@ -1,104 +1,284 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44880 "EHLO
+Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53944 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731286AbgGVQpQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 12:45:16 -0400
-Received: from mail-wr1-x441.google.com (mail-wr1-x441.google.com [IPv6:2a00:1450:4864:20::441])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5C504C0619DC
-        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:16 -0700 (PDT)
-Received: by mail-wr1-x441.google.com with SMTP id f18so2576809wrs.0
-        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:16 -0700 (PDT)
-From: David Brazdil <dbrazdil@google.com>
-Subject: [PATCH 9/9] kvm: arm64: Remove unnecessary hyp mappings
-Date: Wed, 22 Jul 2020 17:44:24 +0100
-Message-ID: <20200722164424.42225-10-dbrazdil@google.com>
-In-Reply-To: <20200722164424.42225-1-dbrazdil@google.com>
-References: <20200722164424.42225-1-dbrazdil@google.com>
+        with ESMTP id S1727043AbgGQGYX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:23 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 10/22] netfilter/ebtables: clean up compat {get,set}sockopt handling
+Date: Fri, 17 Jul 2020 08:23:19 +0200
+Message-ID: <20200717062331.691152-11-hch@lst.de>
+In-Reply-To: <20200717062331.691152-1-hch@lst.de>
+References: <20200717062331.691152-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, kernel-team@google.com, David Brazdil <dbrazdil@google.com>
-Message-ID: <20200722164424.6jpL4tkerMPEdB88mK5SNuwKEUuqJwzIGs8n5PqXffw@z>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
+Message-ID: <20200717062319.fJiYOv3ouPLD-Bk0DpIQmorHYxk2UUTXMhLbfJDKq9M@z>
 
-With all nVHE per-CPU variables being part of the hyp per-CPU region,
-mapping them individual is not necessary any longer. They are mapped to hyp
-as part of the overall per-CPU region.
+Merge the native and compat {get,set}sockopt handlers using
+in_compat_syscall().  Note that this required moving a fair
+amout of code around to be done sanely.
 
-Signed-off-by: David Brazdil <dbrazdil@google.com>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/arm64/include/asm/kvm_mmu.h | 25 +++++++------------------
- arch/arm64/kvm/arm.c             | 17 +----------------
- 2 files changed, 8 insertions(+), 34 deletions(-)
+ net/bridge/netfilter/ebtables.c | 214 +++++++++++++++-----------------
+ 1 file changed, 98 insertions(+), 116 deletions(-)
 
-diff --git a/arch/arm64/include/asm/kvm_mmu.h b/arch/arm64/include/asm/kvm_mmu.h
-index e9e5875274cb..1a66089cf4f4 100644
---- a/arch/arm64/include/asm/kvm_mmu.h
-+++ b/arch/arm64/include/asm/kvm_mmu.h
-@@ -531,28 +531,17 @@ static inline int kvm_map_vectors(void)
- DECLARE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
- DECLARE_KVM_NVHE_PER_CPU(u64, arm64_ssbd_callback_required);
- 
--static inline int hyp_init_aux_data(void)
-+static inline void hyp_init_aux_data(void)
- {
--	int cpu, err;
-+	int cpu;
- 
--	for_each_possible_cpu(cpu) {
--		u64 *ptr;
--
--		ptr = per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu);
--		err = create_hyp_mappings(ptr, ptr + 1, PAGE_HYP);
--		if (err)
--			return err;
--
--		/* Copy value from kernel to hyp. */
--		*ptr = per_cpu(arm64_ssbd_callback_required, cpu);
--	}
--	return 0;
-+	/* Copy arm64_ssbd_callback_required values from kernel to hyp. */
-+	for_each_possible_cpu(cpu)
-+		*(per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu)) =
-+			per_cpu(arm64_ssbd_callback_required, cpu);
+diff --git a/net/bridge/netfilter/ebtables.c b/net/bridge/netfilter/ebtables.c
+index c83ffe9121639c..fe13108af1f542 100644
+--- a/net/bridge/netfilter/ebtables.c
++++ b/net/bridge/netfilter/ebtables.c
+@@ -1451,86 +1451,6 @@ static int copy_everything_to_user(struct ebt_table *t, void __user *user,
+ 	   ebt_entry_to_user, entries, tmp.entries);
  }
- #else
--static inline int hyp_init_aux_data(void)
+ 
+-static int do_ebt_set_ctl(struct sock *sk,
+-	int cmd, void __user *user, unsigned int len)
 -{
--	return 0;
+-	int ret;
+-	struct net *net = sock_net(sk);
+-
+-	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
+-		return -EPERM;
+-
+-	switch (cmd) {
+-	case EBT_SO_SET_ENTRIES:
+-		ret = do_replace(net, user, len);
+-		break;
+-	case EBT_SO_SET_COUNTERS:
+-		ret = update_counters(net, user, len);
+-		break;
+-	default:
+-		ret = -EINVAL;
+-	}
+-	return ret;
 -}
-+static inline void hyp_init_aux_data(void) {}
+-
+-static int do_ebt_get_ctl(struct sock *sk, int cmd, void __user *user, int *len)
+-{
+-	int ret;
+-	struct ebt_replace tmp;
+-	struct ebt_table *t;
+-	struct net *net = sock_net(sk);
+-
+-	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
+-		return -EPERM;
+-
+-	if (copy_from_user(&tmp, user, sizeof(tmp)))
+-		return -EFAULT;
+-
+-	tmp.name[sizeof(tmp.name) - 1] = '\0';
+-
+-	t = find_table_lock(net, tmp.name, &ret, &ebt_mutex);
+-	if (!t)
+-		return ret;
+-
+-	switch (cmd) {
+-	case EBT_SO_GET_INFO:
+-	case EBT_SO_GET_INIT_INFO:
+-		if (*len != sizeof(struct ebt_replace)) {
+-			ret = -EINVAL;
+-			mutex_unlock(&ebt_mutex);
+-			break;
+-		}
+-		if (cmd == EBT_SO_GET_INFO) {
+-			tmp.nentries = t->private->nentries;
+-			tmp.entries_size = t->private->entries_size;
+-			tmp.valid_hooks = t->valid_hooks;
+-		} else {
+-			tmp.nentries = t->table->nentries;
+-			tmp.entries_size = t->table->entries_size;
+-			tmp.valid_hooks = t->table->valid_hooks;
+-		}
+-		mutex_unlock(&ebt_mutex);
+-		if (copy_to_user(user, &tmp, *len) != 0) {
+-			ret = -EFAULT;
+-			break;
+-		}
+-		ret = 0;
+-		break;
+-
+-	case EBT_SO_GET_ENTRIES:
+-	case EBT_SO_GET_INIT_ENTRIES:
+-		ret = copy_everything_to_user(t, user, len, cmd);
+-		mutex_unlock(&ebt_mutex);
+-		break;
+-
+-	default:
+-		mutex_unlock(&ebt_mutex);
+-		ret = -EINVAL;
+-	}
+-
+-	return ret;
+-}
+-
+ #ifdef CONFIG_COMPAT
+ /* 32 bit-userspace compatibility definitions. */
+ struct compat_ebt_replace {
+@@ -2314,28 +2234,6 @@ static int compat_update_counters(struct net *net, void __user *user,
+ 					hlp.num_counters, user, len);
+ }
+ 
+-static int compat_do_ebt_set_ctl(struct sock *sk,
+-		int cmd, void __user *user, unsigned int len)
+-{
+-	int ret;
+-	struct net *net = sock_net(sk);
+-
+-	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
+-		return -EPERM;
+-
+-	switch (cmd) {
+-	case EBT_SO_SET_ENTRIES:
+-		ret = compat_do_replace(net, user, len);
+-		break;
+-	case EBT_SO_SET_COUNTERS:
+-		ret = compat_update_counters(net, user, len);
+-		break;
+-	default:
+-		ret = -EINVAL;
+-	}
+-	return ret;
+-}
+-
+ static int compat_do_ebt_get_ctl(struct sock *sk, int cmd,
+ 		void __user *user, int *len)
+ {
+@@ -2344,14 +2242,6 @@ static int compat_do_ebt_get_ctl(struct sock *sk, int cmd,
+ 	struct ebt_table *t;
+ 	struct net *net = sock_net(sk);
+ 
+-	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
+-		return -EPERM;
+-
+-	/* try real handler in case userland supplied needed padding */
+-	if ((cmd == EBT_SO_GET_INFO ||
+-	     cmd == EBT_SO_GET_INIT_INFO) && *len != sizeof(tmp))
+-			return do_ebt_get_ctl(sk, cmd, user, len);
+-
+ 	if (copy_from_user(&tmp, user, sizeof(tmp)))
+ 		return -EFAULT;
+ 
+@@ -2413,20 +2303,112 @@ static int compat_do_ebt_get_ctl(struct sock *sk, int cmd,
+ }
  #endif
  
- #define kvm_phys_to_vttbr(addr)		phys_to_ttbr(addr)
-diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
-index bbbc5c1519a9..f2e537d99d2b 100644
---- a/arch/arm64/kvm/arm.c
-+++ b/arch/arm64/kvm/arm.c
-@@ -1628,22 +1628,7 @@ static int init_hyp_mode(void)
- 		}
- 	}
++static int do_ebt_get_ctl(struct sock *sk, int cmd, void __user *user, int *len)
++{
++	struct net *net = sock_net(sk);
++	struct ebt_replace tmp;
++	struct ebt_table *t;
++	int ret;
++
++	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
++		return -EPERM;
++
++#ifdef CONFIG_COMPAT
++	/* try real handler in case userland supplied needed padding */
++	if (in_compat_syscall() &&
++	    ((cmd != EBT_SO_GET_INFO && cmd != EBT_SO_GET_INIT_INFO) ||
++	     *len != sizeof(tmp)))
++		return compat_do_ebt_get_ctl(sk, cmd, user, len);
++#endif
++
++	if (copy_from_user(&tmp, user, sizeof(tmp)))
++		return -EFAULT;
++
++	tmp.name[sizeof(tmp.name) - 1] = '\0';
++
++	t = find_table_lock(net, tmp.name, &ret, &ebt_mutex);
++	if (!t)
++		return ret;
++
++	switch (cmd) {
++	case EBT_SO_GET_INFO:
++	case EBT_SO_GET_INIT_INFO:
++		if (*len != sizeof(struct ebt_replace)) {
++			ret = -EINVAL;
++			mutex_unlock(&ebt_mutex);
++			break;
++		}
++		if (cmd == EBT_SO_GET_INFO) {
++			tmp.nentries = t->private->nentries;
++			tmp.entries_size = t->private->entries_size;
++			tmp.valid_hooks = t->valid_hooks;
++		} else {
++			tmp.nentries = t->table->nentries;
++			tmp.entries_size = t->table->entries_size;
++			tmp.valid_hooks = t->table->valid_hooks;
++		}
++		mutex_unlock(&ebt_mutex);
++		if (copy_to_user(user, &tmp, *len) != 0) {
++			ret = -EFAULT;
++			break;
++		}
++		ret = 0;
++		break;
++
++	case EBT_SO_GET_ENTRIES:
++	case EBT_SO_GET_INIT_ENTRIES:
++		ret = copy_everything_to_user(t, user, len, cmd);
++		mutex_unlock(&ebt_mutex);
++		break;
++
++	default:
++		mutex_unlock(&ebt_mutex);
++		ret = -EINVAL;
++	}
++
++	return ret;
++}
++
++static int do_ebt_set_ctl(struct sock *sk, int cmd, void __user *user,
++		unsigned int len)
++{
++	struct net *net = sock_net(sk);
++	int ret;
++
++	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
++		return -EPERM;
++
++	switch (cmd) {
++	case EBT_SO_SET_ENTRIES:
++#ifdef CONFIG_COMPAT
++		if (in_compat_syscall())
++			ret = compat_do_replace(net, user, len);
++		else
++#endif
++			ret = do_replace(net, user, len);
++		break;
++	case EBT_SO_SET_COUNTERS:
++#ifdef CONFIG_COMPAT
++		if (in_compat_syscall())
++			ret = compat_update_counters(net, user, len);
++		else
++#endif
++			ret = update_counters(net, user, len);
++		break;
++	default:
++		ret = -EINVAL;
++	}
++	return ret;
++}
++
+ static struct nf_sockopt_ops ebt_sockopts = {
+ 	.pf		= PF_INET,
+ 	.set_optmin	= EBT_BASE_CTL,
+ 	.set_optmax	= EBT_SO_SET_MAX + 1,
+ 	.set		= do_ebt_set_ctl,
+-#ifdef CONFIG_COMPAT
+-	.compat_set	= compat_do_ebt_set_ctl,
+-#endif
+ 	.get_optmin	= EBT_BASE_CTL,
+ 	.get_optmax	= EBT_SO_GET_MAX + 1,
+ 	.get		= do_ebt_get_ctl,
+-#ifdef CONFIG_COMPAT
+-	.compat_get	= compat_do_ebt_get_ctl,
+-#endif
+ 	.owner		= THIS_MODULE,
+ };
  
--	for_each_possible_cpu(cpu) {
--		kvm_host_data_t *cpu_data;
--
--		cpu_data = per_cpu_ptr_hyp(kvm_host_data, cpu);
--		err = create_hyp_mappings(cpu_data, cpu_data + 1, PAGE_HYP);
--
--		if (err) {
--			kvm_err("Cannot map host CPU state: %d\n", err);
--			goto out_err;
--		}
--	}
--
--	err = hyp_init_aux_data();
--	if (err)
--		kvm_err("Cannot map host auxiliary data: %d\n", err);
--
-+	hyp_init_aux_data();
- 	return 0;
- 
- out_err:
 -- 
 2.27.0
