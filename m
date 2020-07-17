@@ -1,52 +1,214 @@
-Return-Path: <SRS0=Cqrn=BI=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:51864 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726365AbgG2Nj7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Jul 2020 09:39:59 -0400
-Subject: Re: [patch V5 00/15] entry, x86, kvm: Generic entry/exit
- functionality for host and guest
-References: <20200722215954.464281930@linutronix.de>
- <878sf8tz51.fsf@nanos.tec.linutronix.de>
-From: Steven Price <steven.price@arm.com>
-Message-ID: <e0edb228-b7e1-09ae-c41a-b5f4cbf37347@arm.com>
-Date: Wed, 29 Jul 2020 14:39:51 +0100
+Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54002 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727924AbgGQGYj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:39 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 19/22] net/ipv6: factor out MCAST_MSFILTER setsockopt helpers
+Date: Fri, 17 Jul 2020 08:23:28 +0200
+Message-ID: <20200717062331.691152-20-hch@lst.de>
+In-Reply-To: <20200717062331.691152-1-hch@lst.de>
+References: <20200717062331.691152-1-hch@lst.de>
 MIME-Version: 1.0
-In-Reply-To: <878sf8tz51.fsf@nanos.tec.linutronix.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
-Message-ID: <20200729133951.KWsYlOHXW7BILkQ7p--MEU_wDMvJ_cWxpAiNv4KpPP8@z>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
+Message-ID: <20200717062328.8anqD4jG7XhnWLAb_7N5pvV8Etxqfz0q9IgDZejVmDU@z>
 
-On 24/07/2020 21:51, Thomas Gleixner wrote:
-> Thomas Gleixner <tglx@linutronix.de> writes:
->> This is the 5th version of generic entry/exit functionality for host and
->> guest.
-> 
-> I've merged the pile in two steps. Patch 1-5, i.e. the generic code is
-> here:
-> 
->    git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git core/entry
-> 
-> and merged this branch and patch 6-15 into
-> 
->    git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git x86/entry
-> 
-> core/entry is immutable and any updates, changes go on top. It's meant
-> as a base for other architecture developers who want to fiddle with that
-> without having to get the x86 mess as well.
+Factor out one helper each for setting the native and compat
+version of the MCAST_MSFILTER option.
 
-Hi Thomas,
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ net/ipv6/ipv6_sockglue.c | 159 ++++++++++++++++++++-------------------
+ 1 file changed, 83 insertions(+), 76 deletions(-)
 
-Just FYI: I'm going to take a look at arm64 support for this. I know 
-Mark previously posted[1] a series moving much of the code to C, so 
-hopefully I can build on that and make use of the generic code.
-
-Thanks,
-
-Steve
-
-[1] https://lore.kernel.org/r/20200108185634.1163-1-mark.rutland@arm.com
+diff --git a/net/ipv6/ipv6_sockglue.c b/net/ipv6/ipv6_sockglue.c
+index ef5656f876ac05..6aa49495d7bc0b 100644
+--- a/net/ipv6/ipv6_sockglue.c
++++ b/net/ipv6/ipv6_sockglue.c
+@@ -171,6 +171,87 @@ static int do_ipv6_mcast_group_source(struct sock *sk, int optname,
+ 	return ip6_mc_source(add, omode, sk, greqs);
+ }
+ 
++static int ipv6_set_mcast_msfilter(struct sock *sk, void __user *optval,
++		int optlen)
++{
++	struct group_filter *gsf;
++	int ret;
++
++	if (optlen < GROUP_FILTER_SIZE(0))
++		return -EINVAL;
++	if (optlen > sysctl_optmem_max)
++		return -ENOBUFS;
++
++	gsf = memdup_user(optval, optlen);
++	if (IS_ERR(gsf))
++		return PTR_ERR(gsf);
++
++	/* numsrc >= (4G-140)/128 overflow in 32 bits */
++	ret = -ENOBUFS;
++	if (gsf->gf_numsrc >= 0x1ffffffU ||
++	    gsf->gf_numsrc > sysctl_mld_max_msf)
++		goto out_free_gsf;
++
++	ret = -EINVAL;
++	if (GROUP_FILTER_SIZE(gsf->gf_numsrc) > optlen)
++		goto out_free_gsf;
++
++	ret = ip6_mc_msfilter(sk, gsf, gsf->gf_slist);
++out_free_gsf:
++	kfree(gsf);
++	return ret;
++}
++
++#ifdef CONFIG_COMPAT
++static int compat_ipv6_set_mcast_msfilter(struct sock *sk, void __user *optval,
++		int optlen)
++{
++	const int size0 = offsetof(struct compat_group_filter, gf_slist);
++	struct compat_group_filter *gf32;
++	void *p;
++	int ret;
++	int n;
++
++	if (optlen < size0)
++		return -EINVAL;
++	if (optlen > sysctl_optmem_max - 4)
++		return -ENOBUFS;
++
++	p = kmalloc(optlen + 4, GFP_KERNEL);
++	if (!p)
++		return -ENOMEM;
++
++	gf32 = p + 4; /* we want ->gf_group and ->gf_slist aligned */
++	ret = -EFAULT;
++	if (copy_from_user(gf32, optval, optlen))
++		goto out_free_p;
++
++	/* numsrc >= (4G-140)/128 overflow in 32 bits */
++	ret = -ENOBUFS;
++	n = gf32->gf_numsrc;
++	if (n >= 0x1ffffffU || n > sysctl_mld_max_msf)
++		goto out_free_p;
++
++	ret = -EINVAL;
++	if (offsetof(struct compat_group_filter, gf_slist[n]) > optlen)
++		goto out_free_p;
++
++	rtnl_lock();
++	lock_sock(sk);
++	ret = ip6_mc_msfilter(sk, &(struct group_filter){
++			.gf_interface = gf32->gf_interface,
++			.gf_group = gf32->gf_group,
++			.gf_fmode = gf32->gf_fmode,
++			.gf_numsrc = gf32->gf_numsrc}, gf32->gf_slist);
++	release_sock(sk);
++	rtnl_unlock();
++
++out_free_p:
++	kfree(p);
++	return ret;
++}
++#endif
++
+ static int do_ipv6_setsockopt(struct sock *sk, int level, int optname,
+ 		    char __user *optval, unsigned int optlen)
+ {
+@@ -762,37 +843,8 @@ static int do_ipv6_setsockopt(struct sock *sk, int level, int optname,
+ 		break;
+ 	}
+ 	case MCAST_MSFILTER:
+-	{
+-		struct group_filter *gsf;
+-
+-		if (optlen < GROUP_FILTER_SIZE(0))
+-			goto e_inval;
+-		if (optlen > sysctl_optmem_max) {
+-			retv = -ENOBUFS;
+-			break;
+-		}
+-		gsf = memdup_user(optval, optlen);
+-		if (IS_ERR(gsf)) {
+-			retv = PTR_ERR(gsf);
+-			break;
+-		}
+-		/* numsrc >= (4G-140)/128 overflow in 32 bits */
+-		if (gsf->gf_numsrc >= 0x1ffffffU ||
+-		    gsf->gf_numsrc > sysctl_mld_max_msf) {
+-			kfree(gsf);
+-			retv = -ENOBUFS;
+-			break;
+-		}
+-		if (GROUP_FILTER_SIZE(gsf->gf_numsrc) > optlen) {
+-			kfree(gsf);
+-			retv = -EINVAL;
+-			break;
+-		}
+-		retv = ip6_mc_msfilter(sk, gsf, gsf->gf_slist);
+-		kfree(gsf);
+-
++		retv = ipv6_set_mcast_msfilter(sk, optval, optlen);
+ 		break;
+-	}
+ 	case IPV6_ROUTER_ALERT:
+ 		if (optlen < sizeof(int))
+ 			goto e_inval;
+@@ -977,52 +1029,7 @@ int compat_ipv6_setsockopt(struct sock *sk, int level, int optname,
+ 		return err;
+ 	}
+ 	case MCAST_MSFILTER:
+-	{
+-		const int size0 = offsetof(struct compat_group_filter, gf_slist);
+-		struct compat_group_filter *gf32;
+-		void *p;
+-		int n;
+-
+-		if (optlen < size0)
+-			return -EINVAL;
+-		if (optlen > sysctl_optmem_max - 4)
+-			return -ENOBUFS;
+-
+-		p = kmalloc(optlen + 4, GFP_KERNEL);
+-		if (!p)
+-			return -ENOMEM;
+-
+-		gf32 = p + 4; /* we want ->gf_group and ->gf_slist aligned */
+-		if (copy_from_user(gf32, optval, optlen)) {
+-			err = -EFAULT;
+-			goto mc_msf_out;
+-		}
+-
+-		n = gf32->gf_numsrc;
+-		/* numsrc >= (4G-140)/128 overflow in 32 bits */
+-		if (n >= 0x1ffffffU ||
+-		    n > sysctl_mld_max_msf) {
+-			err = -ENOBUFS;
+-			goto mc_msf_out;
+-		}
+-		if (offsetof(struct compat_group_filter, gf_slist[n]) > optlen) {
+-			err = -EINVAL;
+-			goto mc_msf_out;
+-		}
+-
+-		rtnl_lock();
+-		lock_sock(sk);
+-		err = ip6_mc_msfilter(sk, &(struct group_filter){
+-				.gf_interface = gf32->gf_interface,
+-				.gf_group = gf32->gf_group,
+-				.gf_fmode = gf32->gf_fmode,
+-				.gf_numsrc = gf32->gf_numsrc}, gf32->gf_slist);
+-		release_sock(sk);
+-		rtnl_unlock();
+-mc_msf_out:
+-		kfree(p);
+-		return err;
+-	}
++		return compat_ipv6_set_mcast_msfilter(sk, optval, optlen);
+ 	}
+ 
+ 	err = do_ipv6_setsockopt(sk, level, optname, optval, optlen);
+-- 
+2.27.0
