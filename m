@@ -1,137 +1,143 @@
-Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36690 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726677AbgGTVb3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jul 2020 17:31:29 -0400
+Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <20200717111349.708289813@infradead.org>
+Date: Fri, 17 Jul 2020 13:10:11 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 06/11] mips/tlb: Fix __p*_free_tlb()
+References: <20200717111005.024867618@infradead.org>
 MIME-Version: 1.0
-References: <1593020162-9365-1-git-send-email-Dave.Martin@arm.com>
- <c17e330c-69f7-da7a-feae-cb8b8f5d7ea0@gmail.com> <20200720165205.GI30452@arm.com>
-In-Reply-To: <20200720165205.GI30452@arm.com>
-Reply-To: mtk.manpages@gmail.com
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Date: Mon, 20 Jul 2020 23:31:16 +0200
-Message-ID: <CAKgNAkggayFEjHgPNu1HzvXGfSDoCq=Y-Ni4iv=RBYk2Eb6U1Q@mail.gmail.com>
-Subject: Re: [PATCH v3 0/2] prctl.2 man page updates for Linux 5.6
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-man <linux-man@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200720213116.ngNOpJbV1V0ITDarWiigCkW1rLjOQzKyu5Pw4E7rAaY@z>
+Message-ID: <20200717111011.GTOsi9myL2hK57RcnwfaMdfOPlf5VlfxrpCf1KqXRJg@z>
 
-Hello Dave,
+Just like regular pages, page directories need to observe the
+following order:
 
-TL;DR: don't worry about the small stuff; I'm happy to do the minor
-edits given the high quality of your patches.
+ 1) unhook
+ 2) TLB invalidate
+ 3) free
 
-On Mon, 20 Jul 2020 at 18:52, Dave Martin <Dave.Martin@arm.com> wrote:
->
-> On Mon, Jun 29, 2020 at 01:52:24PM +0200, Michael Kerrisk (man-pages) wrote:
-> > Hi Dave,
-> >
-> > On 6/24/20 7:36 PM, Dave Martin wrote:
-> > > A bunch of updates to the prctl(2) man page to fill in missing
-> > > prctls (mostly) up to Linux 5.6 (along with a few other tweaks and
-> > > fixes).
-> > >
-> > > Patches from the v2 series [1] that have been applied or rejected
-> > > already have been dropped.
-> > >
-> > > All that remain here now are the SVE and tagged address ABI controls
-> > > for arm64.
-> > >
-> > >
-> > >
-> > > [1] https://lore.kernel.org/linux-man/1590614258-24728-1-git-send-email-Dave.Martin@arm.com/
-> > >
-> > >
-> > > Dave Martin (2):
-> > >   prctl.2: Add SVE prctls (arm64)
-> > >   prctl.2: Add tagged address ABI control prctls (arm64)
-> > >
-> > >  man2/prctl.2 | 331 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-> > >  1 file changed, 331 insertions(+)
-> > Thanks. I've pushed these changes to master now.
->
-> Thanks -- btw I finally got around to reviewing master, and noted a few
-> editorial changes that man-pages(7) does not make any statement about:
->
-> "arg1, arg2, and arg3"
->
->         Do you strictly prefer the command before "and" here?
->
->         Conventionally, the final comma would typically be omitted in
->         prose, except where the list members are complex enough that the
->         command is required to assist parsing.  However, lists of formal
->         arguments are not quite vanilla prose.
+to ensure it is safe against concurrent accesses.
 
-There are two camps wrt that comma. I prefer the so-called Oxford
-comma convention, as shown above. man-pages uses it generally.
+MIPS has (thanks to Paul Burton for setting me straight):
 
-> "Providing that" -> "Provided that"
->
->         Any particular rationale here?
+ - HAVE_FAST_GUP, which means we need to consider software
+   walkers (many MIPS also have software TLB-fill, which is a similar
+   software walker).
 
-Either would be fine; the past tense is just slightly better, to my ear.
+ - non-page, page directories, which requires a custom table free.
 
-> "error EFOO" -> "the error EFOO"
->
->         Is this a rule, in general?
+ - Mostly IPI-based TLB invalidate, but it wouldn't be MIPS if it
+   didn't also have broadcast TLB invalidate (I6500, GINVT).
 
-I think the change that you refer to was actually: "with EFOO" to
-"with the error EFOO". The former is just a little too brief, to my
-ear.
+This means that in generic MIPS needs HAVE_RCU_TABLE_FREE.
 
-> .IP \(bu 2
->
->         I assumed that specifying an explicit indentation amount would
->         be fragile.  Going with the default behaviour also tends to
->         result in a more consistent appearance.  Do you have any
->         recommandations in this area?
->
->         Do you have rules about the order to use bullet symbols?  I tend
->         to avoid \(bu if possible, since while it's "correct", nroff can
->         render it nastily as an unadorned letter "o" (e.g., with -Tascii
->         or LC_CTYPE=C).  This is particlarly annoying if the indent is
->         <= 2, since then the "o" tends to be visually swallowed by the
->         following text (i.e., to a casual glance it looks like a word,
->         particlarly if the following text is not capitalised).  Perhaps
->         this is a bad glyph substitution decision in nroff rather than
->         something that should be fixed in the man-pages source, but the
->         man-pages source may be easier to fix...
->
->         There is already inconsistency here: there are may top-level
->         lists using ".IP *" in prctl.2, and plenty of places where the
->         default indentation is used.
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/mips/Kconfig               |    1 +
+ arch/mips/include/asm/pgalloc.h |   13 ++++++-------
+ arch/mips/mm/pgtable.c          |   34 ++++++++++++++++++++++++++++++++++
+ 3 files changed, 41 insertions(+), 7 deletions(-)
 
-I must admit that I'm in the process of rethinking bulleted lists, and
-I have not come to a conclusion (and that's why nothing is said in
-man-pages(7), and also why there is currently inconsistency).
-
-Using .IP with the default indent (8n) results in a very deep indent
-between the glyph and the text, so it's not my preference.
-
-Your note about the poor rendering with "-Tascii" is interesting.
-Perhaps ".IP \(bu 3" may be better. But, I really do not know: do
-people really render with "-Tascii" these days?
-
-> Should any of these be written up in man-pages(7), or is there a checker
-> than can detect them?
-
-Perhaps man-pages should say something about the Oxford comma.
-
-> I wan't to minimise the amount of tweaking you have to do when merging
-> patches.
-
-If every patch that I received was of the same quality as yours are,
-my life would be much easier. The tweaks are minimal work on my part.
-Don't worry. Just send me more patches :-).
-
-Cheers,
-
-Michael
-
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -84,6 +84,7 @@ config MIPS
+ 	select HAVE_VIRT_CPU_ACCOUNTING_GEN if 64BIT || !SMP
+ 	select IRQ_FORCED_THREADING
+ 	select ISA if EISA
++	select MMU_GATHER_RCU_TABLE_FREE
+ 	select MODULES_USE_ELF_REL if MODULES
+ 	select MODULES_USE_ELF_RELA if MODULES && 64BIT
+ 	select PERF_USE_VMALLOC
+--- a/arch/mips/include/asm/pgalloc.h
++++ b/arch/mips/include/asm/pgalloc.h
+@@ -41,6 +41,9 @@ static inline void pud_populate(struct m
+ }
+ #endif
+ 
++extern void __tlb_remove_table(void *table);
++extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int idx);
++
+ /*
+  * Initialize a new pgd / pmd table with invalid pointers.
+  */
+@@ -52,11 +55,7 @@ static inline void pgd_free(struct mm_st
+ 	free_pages((unsigned long)pgd, PGD_ORDER);
+ }
+ 
+-#define __pte_free_tlb(tlb,pte,address)			\
+-do {							\
+-	pgtable_pte_page_dtor(pte);			\
+-	tlb_remove_page((tlb), pte);			\
+-} while (0)
++#define __pte_free_tlb(tlb,pte,address)	pgtable_free_tlb((tlb), (pte), 0)
+ 
+ #ifndef __PAGETABLE_PMD_FOLDED
+ 
+@@ -75,7 +74,7 @@ static inline void pmd_free(struct mm_st
+ 	free_pages((unsigned long)pmd, PMD_ORDER);
+ }
+ 
+-#define __pmd_free_tlb(tlb, x, addr)	pmd_free((tlb)->mm, x)
++#define __pmd_free_tlb(tlb, x, addr)	pgtable_free_tlb((tlb), (x), 1)
+ 
+ #endif
+ 
+@@ -101,7 +100,7 @@ static inline void p4d_populate(struct m
+ 	set_p4d(p4d, __p4d((unsigned long)pud));
+ }
+ 
+-#define __pud_free_tlb(tlb, x, addr)	pud_free((tlb)->mm, x)
++#define __pud_free_tlb(tlb, x, addr)	pgtable_free_tlb((tlb), (x), 2)
+ 
+ #endif /* __PAGETABLE_PUD_FOLDED */
+ 
+--- a/arch/mips/mm/pgtable.c
++++ b/arch/mips/mm/pgtable.c
+@@ -7,6 +7,7 @@
+ #include <linux/mm.h>
+ #include <linux/string.h>
+ #include <asm/pgalloc.h>
++#include <asm-generic/tlb.h>
+ 
+ pgd_t *pgd_alloc(struct mm_struct *mm)
+ {
+@@ -23,3 +24,36 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(pgd_alloc);
++
++#define TLB_IDX_MASK	0x3
++
++void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int idx)
++{
++	unsigned long pgf = (unsigned long)table;
++	BUG_ON(idx > TLB_IDX_MASK);
++	BUG_ON(pgf & TLB_IDX_MASK);
++	pgf |= idx;
++	tlb_remove_table(tlb, (void *)pgf);
++}
++
++void __tlb_remove_table(void *table)
++{
++	void *dir = (void *)((unsigned long)table & ~TLB_IDX_MASK);
++	int idx = (unsigned long)table & TLB_IDX_MASK;
++
++	switch (idx) {
++#ifndef __PAGETABLE_PUD_FOLDED
++	case 2: /* PUD */
++		pud_free(NULL, dir);
++		break;
++#endif
++#ifndef __PAGETABLE_PMD_FOLDED
++	case 1: /* PMD */
++		pmd_free(NULL, dir);
++		break;
++#endif
++	case 0: /* PTE */
++		pte_free(NULL, dir);
++		break;
++	}
++}
