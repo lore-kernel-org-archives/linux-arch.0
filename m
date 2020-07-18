@@ -1,99 +1,44 @@
-From: "Darrick J. Wong" <darrick.wong@oracle.com>
+From: Eric Biggers <ebiggers@kernel.org>
 Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Date: Fri, 17 Jul 2020 17:44:27 -0700
-Message-ID: <20200718004427.GT3151642@magnolia>
+Date: Fri, 17 Jul 2020 17:58:57 -0700
+Message-ID: <20200718005857.GB2183@sol.localdomain>
 References: <20200717044427.68747-1-ebiggers@kernel.org>
- <20200717174750.GQ12769@casper.infradead.org>
+ <20200717205340.GR7625@magnolia>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2130.oracle.com ([141.146.126.79]:52328 "EHLO
-        aserp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727040AbgGRApF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 20:45:05 -0400
+Received: from mail.kernel.org ([198.145.29.99]:42858 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726742AbgGRA67 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Jul 2020 20:58:59 -0400
 Content-Disposition: inline
-In-Reply-To: <20200717174750.GQ12769@casper.infradead.org>
+In-Reply-To: <20200717205340.GR7625@magnolia>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+To: "Darrick J. Wong" <darrick.wong@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
 
-On Fri, Jul 17, 2020 at 06:47:50PM +0100, Matthew Wilcox wrote:
-> On Thu, Jul 16, 2020 at 09:44:27PM -0700, Eric Biggers wrote:
-> > +If that doesn't apply, you'll have to implement one-time init yourself.
-> > +
-> > +The simplest implementation just uses a mutex and an 'inited' flag.
-> > +This implementation should be used where feasible:
+On Fri, Jul 17, 2020 at 01:53:40PM -0700, Darrick J. Wong wrote:
+> > +There are also cases in which the smp_load_acquire() can be replaced by
+> > +the more lightweight READ_ONCE().  (smp_store_release() is still
+> > +required.)  Specifically, if all initialized memory is transitively
+> > +reachable from the pointer itself, then there is no control dependency
 > 
-> I think some syntactic sugar should make it feasible for normal people
-> to implement the most efficient version of this just like they use locks.
+> I don't quite understand what "transitively reachable from the pointer
+> itself" means?  Does that describe the situation where all the objects
+> reachable through the object that the global struct foo pointer points
+> at are /only/ reachable via that global pointer?
 > 
-> > +For the single-pointer case, a further optimized implementation
-> > +eliminates the mutex and instead uses compare-and-exchange:
-> > +
-> > +	static struct foo *foo;
-> > +
-> > +	int init_foo_if_needed(void)
-> > +	{
-> > +		struct foo *p;
-> > +
-> > +		/* pairs with successful cmpxchg_release() below */
-> > +		if (smp_load_acquire(&foo))
-> > +			return 0;
-> > +
-> > +		p = alloc_foo();
-> > +		if (!p)
-> > +			return -ENOMEM;
-> > +
-> > +		/* on success, pairs with smp_load_acquire() above and below */
-> > +		if (cmpxchg_release(&foo, NULL, p) != NULL) {
-> 
-> Why do we have cmpxchg_release() anyway?  Under what circumstances is
-> cmpxchg() useful _without_ having release semantics?
-> 
-> > +			free_foo(p);
-> > +			/* pairs with successful cmpxchg_release() above */
-> > +			smp_load_acquire(&foo);
-> > +		}
-> > +		return 0;
-> > +	}
-> 
-> How about something like this ...
-> 
-> once.h:
-> 
-> static struct init_once_pointer {
-> 	void *p;
-> };
-> 
-> static inline void *once_get(struct init_once_pointer *oncep)
-> { ... }
-> 
-> static inline bool once_store(struct init_once_pointer *oncep, void *p)
-> { ... }
-> 
-> --- foo.c ---
-> 
-> struct foo *get_foo(gfp_t gfp)
-> {
-> 	static struct init_once_pointer my_foo;
-> 	struct foo *foop;
-> 
-> 	foop = once_get(&my_foo);
-> 	if (foop)
-> 		return foop;
-> 
-> 	foop = alloc_foo(gfp);
-> 	if (!once_store(&my_foo, foop)) {
-> 		free_foo(foop);
-> 		foop = once_get(&my_foo);
-> 	}
-> 
-> 	return foop;
-> }
-> 
-> Any kernel programmer should be able to handle that pattern.  And no mutex!
 
-That would be even better.
+The intent is that "transitively reachable" means that all initialized memory
+can be reached by dereferencing the pointer in some way, e.g. p->a->b[5]->c.
 
---D
+It could also be the case that allocating the object initializes some global or
+static data, which isn't reachable in that way.  Access to that data would then
+be a control dependency, which a data dependency barrier wouldn't work for.
+
+It's possible I misunderstood something.  (Note the next paragraph does say that
+using READ_ONCE() is discouraged, exactly for this reason -- it can be hard to
+tell whether it's correct.)  Suggestions of what to write here are appreciated.
+
+- Eric
