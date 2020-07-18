@@ -1,126 +1,83 @@
-From: Eric Biggers <ebiggers@kernel.org>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Date: Fri, 17 Jul 2020 18:38:39 -0700
-Message-ID: <20200718013839.GD2183@sol.localdomain>
-References: <20200717044427.68747-1-ebiggers@kernel.org>
- <20200717174750.GQ12769@casper.infradead.org>
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH 1/6] syscalls: use uaccess_kernel in addr_limit_user_check
+Date: Fri, 17 Jul 2020 18:38:50 -0700
+Message-ID: <20200718013849.GA157764@roeck-us.net>
+References: <20200714105505.935079-1-hch@lst.de>
+ <20200714105505.935079-2-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35264 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726710AbgGRBim (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Jul 2020 21:38:42 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34316 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726710AbgGRBiw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 21:38:52 -0400
 Content-Disposition: inline
-In-Reply-To: <20200717174750.GQ12769@casper.infradead.org>
+In-Reply-To: <20200714105505.935079-2-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Jul 17, 2020 at 06:47:50PM +0100, Matthew Wilcox wrote:
-> On Thu, Jul 16, 2020 at 09:44:27PM -0700, Eric Biggers wrote:
-> > +If that doesn't apply, you'll have to implement one-time init yourself.
-> > +
-> > +The simplest implementation just uses a mutex and an 'inited' flag.
-> > +This implementation should be used where feasible:
+Hi,
+
+On Tue, Jul 14, 2020 at 12:55:00PM +0200, Christoph Hellwig wrote:
+> Use the uaccess_kernel helper instead of duplicating it.
 > 
-> I think some syntactic sugar should make it feasible for normal people
-> to implement the most efficient version of this just like they use locks.
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Note that the cmpxchg version is not necessarily the "most efficient".
+This patch causes a severe hiccup with my mps2-an385 boot test.
 
-If the one-time initialization is expensive, e.g. if it allocates a lot of
-memory or if takes a long time, it could be better to use the mutex version so
-that at most one task does it.
+[    8.545195] ------------[ cut here ]------------
+[    8.545294] WARNING: CPU: 0 PID: 1 at ./include/linux/syscalls.h:267 addr_limit_check_failed+0x11/0x24
+[    8.545376] Invalid address limit on user-mode return
+[    8.545487] CPU: 0 PID: 1 Comm: init Not tainted 5.8.0-rc5-next-20200717 #1
+[    8.545603] Hardware name: MPS2 (Device Tree Support)
+[    8.546053] [<2100af9d>] (unwind_backtrace) from [<2100a353>] (show_stack+0xb/0xc)
+[    8.546240] [<2100a353>] (show_stack) from [<2100dadb>] (__warn+0x6f/0x80)
+[    8.546311] [<2100dadb>] (__warn) from [<2100db1d>] (warn_slowpath_fmt+0x31/0x60)
+[    8.546383] [<2100db1d>] (warn_slowpath_fmt) from [<2100a159>] (addr_limit_check_failed+0x11/0x24)
+[    8.546464] [<2100a159>] (addr_limit_check_failed) from [<210080f3>] (ret_to_user_from_irq+0xf/0x18)
+[    8.546567] Exception stack(0x21427fb0 to 0x21427ff8)
+[    8.546649] 7fa0:                                     00000000 00000000 00000000 00000000
+[    8.546729] 7fc0: 00000000 00000000 00000000 00000000 00000000 00000000 21744f80 00000000
+[    8.546800] 7fe0: 00000000 21757fa8 00000000 21700b6c 01000000 00000000
+[    8.546910] ---[ end trace f1b0cd10cc3456dc ]---
 
-> How about something like this ...
-> 
-> once.h:
-> 
-> static struct init_once_pointer {
-> 	void *p;
-> };
-> 
-> static inline void *once_get(struct init_once_pointer *oncep)
-> { ... }
-> 
-> static inline bool once_store(struct init_once_pointer *oncep, void *p)
-> { ... }
-> 
-> --- foo.c ---
-> 
-> struct foo *get_foo(gfp_t gfp)
-> {
-> 	static struct init_once_pointer my_foo;
-> 	struct foo *foop;
-> 
-> 	foop = once_get(&my_foo);
-> 	if (foop)
-> 		return foop;
-> 
-> 	foop = alloc_foo(gfp);
-> 	if (!once_store(&my_foo, foop)) {
-> 		free_foo(foop);
-> 		foop = once_get(&my_foo);
-> 	}
-> 
-> 	return foop;
-> }
-> 
-> Any kernel programmer should be able to handle that pattern.  And no mutex!
+This keeps happening until qemu aborts.
 
-I don't think this version would be worthwhile.  It eliminates type safety due
-to the use of 'void *', and doesn't actually save any lines of code.  Nor does
-it eliminate the need to correctly implement the cmpxchg failure case, which is
-tricky (it must free the object and get the new one) and will be rarely tested.
+Reverting the patch isn't possible since segment_eq() is gone in
+next-20200717.
 
-It also forces all users of the struct to use this helper function to access it.
-That could be considered a good thing, but it's also bad because even with
-one-time init there's still usually some sort of ordering of "initialization"
-vs. "use".  Just taking a random example I'm familiar with, we do one-time init
-of inode::i_crypt_info when we open an encrypted file, so we guarantee it's set
-for all I/O to the file, where we then simply access ->i_crypt_info directly.
-We don't want the code to read like it's initializing ->i_crypt_info in the
-middle of ->writepages(), since that would be wrong.
+Guenter
 
-An improvement might be to make once_store() take the free function as a
-parameter so that it would handle the failure case for you:
-
-struct foo *get_foo(gfp_t gfp)
-{
-	static struct init_once_pointer my_foo;
-	struct foo *foop;
- 
- 	foop = once_get(&my_foo);
- 	if (!foop) {
-		foop = alloc_foo(gfp);
-		if (foop)
-			once_store(&my_foo, foop, free_foo);
-	}
- 	return foop;
-}
-
-I'm not sure even that version would be worthwhile, though.
-
-What I do like is DO_ONCE() in <linux/once.h>, which is used as just:
-
-    DO_ONCE(func)
-
-But it has limitations:
-
-   - Only atomic context
-   - Initialization can't fail
-   - Only global/static data
-
-We could address the first two limitations by splitting it into DO_ONCE_ATOMIC()
-and DO_ONCE_BLOCKING(), and by allowing the initialization function to return an
-error code.  That would make it work for all global/static data cases, I think.
-
-Ideally we'd have something almost as simple for non-global/non-static data too.
-I'm not sure the best way to do it, though.  It would have to be something more
-complex like:
-
-    ONETIME_INIT_DATA(&my_foo, alloc_foo, free_foo)
-
-- Eric
+---
+# bad: [aab7ee9f8ff0110bfcd594b33dc33748dc1baf46] Add linux-next specific files for 20200717
+# good: [11ba468877bb23f28956a35e896356252d63c983] Linux 5.8-rc5
+git bisect start 'HEAD' 'v5.8-rc5'
+# good: [4d55a7a1298d197755c1a0f4512f56917e938a83] Merge remote-tracking branch 'crypto/master'
+git bisect good 4d55a7a1298d197755c1a0f4512f56917e938a83
+# good: [e63bf5dcce255302e355cb2277a3a39c83752c92] Merge remote-tracking branch 'devicetree/for-next'
+git bisect good e63bf5dcce255302e355cb2277a3a39c83752c92
+# good: [94d932ec3afb923efd8c736974f8316413175a5b] Merge remote-tracking branch 'thunderbolt/next'
+git bisect good 94d932ec3afb923efd8c736974f8316413175a5b
+# good: [5ddd2e0dbe8fceb80b0b36bd38a32217be7a04a5] Merge remote-tracking branch 'livepatching/for-next'
+git bisect good 5ddd2e0dbe8fceb80b0b36bd38a32217be7a04a5
+# bad: [40346f79983caf46fb92f779b0353422d43580a9] ipc/shm.c: Remove the superfluous break
+git bisect bad 40346f79983caf46fb92f779b0353422d43580a9
+# good: [0b917599517f71ddef5f7274a8199a33cecd49b2] kasan: update required compiler versions in documentation
+git bisect good 0b917599517f71ddef5f7274a8199a33cecd49b2
+# good: [701571ae06641cc0632d113a6d25f54ce651e723] mm,hwpoison: rework soft offline for free pages
+git bisect good 701571ae06641cc0632d113a6d25f54ce651e723
+# bad: [1c21deffe923b068d2d297c248845ec93531d1bf] lib/test_bits.c: add tests of GENMASK
+git bisect bad 1c21deffe923b068d2d297c248845ec93531d1bf
+# bad: [9549375184b2cb4f63fa7917665acf9c44114499] uaccess: add force_uaccess_{begin,end} helpers
+git bisect bad 9549375184b2cb4f63fa7917665acf9c44114499
+# good: [233d009c15719e43c53b73296144664e0bd59a2e] mm/memory_hotplug: introduce default dummy memory_add_physaddr_to_nid()
+git bisect good 233d009c15719e43c53b73296144664e0bd59a2e
+# good: [42889ca325dd735ce964838cff81a444637d9d01] mm: drop duplicated words in <linux/mm.h>
+git bisect good 42889ca325dd735ce964838cff81a444637d9d01
+# bad: [3b17e98704eedeeff41672b2f64cef1bbefbb8b2] nds32: use uaccess_kernel in show_regs
+git bisect bad 3b17e98704eedeeff41672b2f64cef1bbefbb8b2
+# bad: [02dc30b876b111276fe7d83d492ddfc2b39b80e3] syscalls: use uaccess_kernel in addr_limit_user_check
+git bisect bad 02dc30b876b111276fe7d83d492ddfc2b39b80e3
+# first bad commit: [02dc30b876b111276fe7d83d492ddfc2b39b80e3] syscalls: use uaccess_kernel in addr_limit_user_check
