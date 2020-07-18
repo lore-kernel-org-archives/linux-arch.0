@@ -1,147 +1,153 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45768 "EHLO
+Return-Path: <SRS0=xaua=A5=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39610 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727042AbgGaXIh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:08:37 -0400
-Received: from mail-pg1-x544.google.com (mail-pg1-x544.google.com [IPv6:2607:f8b0:4864:20::544])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6FB35C061756
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:37 -0700 (PDT)
-Received: by mail-pg1-x544.google.com with SMTP id e8so16768163pgc.5
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:37 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 06/36] x86/boot: Remove run-time relocations from head_{32,64}.S
-Date: Fri, 31 Jul 2020 16:07:50 -0700
-Message-ID: <20200731230820.1742553-7-keescook@chromium.org>
-In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
-References: <20200731230820.1742553-1-keescook@chromium.org>
+        with ESMTP id S1726665AbgGRCNI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 22:13:08 -0400
+Date: Sat, 18 Jul 2020 03:13:04 +0100
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Message-ID: <20200718021304.GS12769@casper.infradead.org>
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+ <20200717174750.GQ12769@casper.infradead.org>
+ <20200718013839.GD2183@sol.localdomain>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200718013839.GD2183@sol.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Ard Biesheuvel <ardb@kernel.org>, Fangrui Song <maskray@google.com>, Sedat Dilek <sedat.dilek@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200731230750.q79TgM8rMi_QnMTmnM9u2G7bevuum3aDPXaCkfM7f90@z>
+To: Eric Biggers <ebiggers@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200718021304.rp6g3Am7_H1HhiYu-kDNIGGwapQ-A0f0ZxmeBEJCeF8@z>
 
-From: Arvind Sankar <nivedita@alum.mit.edu>
+On Fri, Jul 17, 2020 at 06:38:39PM -0700, Eric Biggers wrote:
+> On Fri, Jul 17, 2020 at 06:47:50PM +0100, Matthew Wilcox wrote:
+> > On Thu, Jul 16, 2020 at 09:44:27PM -0700, Eric Biggers wrote:
+> > > +If that doesn't apply, you'll have to implement one-time init yourself.
+> > > +
+> > > +The simplest implementation just uses a mutex and an 'inited' flag.
+> > > +This implementation should be used where feasible:
+> > 
+> > I think some syntactic sugar should make it feasible for normal people
+> > to implement the most efficient version of this just like they use locks.
+> 
+> Note that the cmpxchg version is not necessarily the "most efficient".
+> 
+> If the one-time initialization is expensive, e.g. if it allocates a lot of
+> memory or if takes a long time, it could be better to use the mutex version so
+> that at most one task does it.
 
-The BFD linker generates run-time relocations for z_input_len and
-z_output_len, even though they are absolute symbols.
+Sure, but I think those are far less common than just allocating a single
+thing.
 
-This is fixed for binutils-2.35 [1]. Work around this for earlier
-versions by defining two variables input_len and output_len in addition
-to the symbols, and use them via position-independent references.
+> > How about something like this ...
+> > 
+> > once.h:
+> > 
+> > static struct init_once_pointer {
+> > 	void *p;
+> > };
+> > 
+> > static inline void *once_get(struct init_once_pointer *oncep)
+> > { ... }
+> > 
+> > static inline bool once_store(struct init_once_pointer *oncep, void *p)
+> > { ... }
+> > 
+> > --- foo.c ---
+> > 
+> > struct foo *get_foo(gfp_t gfp)
+> > {
+> > 	static struct init_once_pointer my_foo;
+> > 	struct foo *foop;
+> > 
+> > 	foop = once_get(&my_foo);
+> > 	if (foop)
+> > 		return foop;
+> > 
+> > 	foop = alloc_foo(gfp);
+> > 	if (!once_store(&my_foo, foop)) {
+> > 		free_foo(foop);
+> > 		foop = once_get(&my_foo);
+> > 	}
+> > 
+> > 	return foop;
+> > }
+> > 
+> > Any kernel programmer should be able to handle that pattern.  And no mutex!
+> 
+> I don't think this version would be worthwhile.  It eliminates type safety due
+> to the use of 'void *', and doesn't actually save any lines of code.  Nor does
+> it eliminate the need to correctly implement the cmpxchg failure case, which is
+> tricky (it must free the object and get the new one) and will be rarely tested.
 
-This eliminates the last two run-time relocations in the head code and
-allows us to drop the -z noreloc-overflow flag to the linker.
+You're missing the point.  It prevents people from trying to optimise
+"can I use READ_ONCE() here, or do I need to use smp_rmb()?"  The type
+safety is provided by the get_foo() function.  I suppose somebody could
+play some games with _Generic or something, but there's really no need to.
+It's like using a list_head and casting to the container_of.
 
-Move the -pie and --no-dynamic-linker LDFLAGS to LDFLAGS_vmlinux instead
-of KBUILD_LDFLAGS. There shouldn't be anything else getting linked, but
-this is the more logical location for these flags, and modversions might
-call the linker if an EXPORT_SYMBOL is left over accidentally in one of
-the decompressors.
+> It also forces all users of the struct to use this helper function to access it.
+> That could be considered a good thing, but it's also bad because even with
+> one-time init there's still usually some sort of ordering of "initialization"
+> vs. "use".  Just taking a random example I'm familiar with, we do one-time init
+> of inode::i_crypt_info when we open an encrypted file, so we guarantee it's set
+> for all I/O to the file, where we then simply access ->i_crypt_info directly.
+> We don't want the code to read like it's initializing ->i_crypt_info in the
+> middle of ->writepages(), since that would be wrong.
 
-[1] https://sourceware.org/bugzilla/show_bug.cgi?id=25754
+Right, and I wouldn't use this pattern for that.  You can't get to
+writepages without having opened the file, so just initialising the
+pointer in open is fine.
 
-Tested-by: Nick Desaulniers <ndesaulniers@google.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
-Reviewed-by: Fangrui Song <maskray@google.com>
-Tested-by: Sedat Dilek <sedat.dilek@gmail.com>
-Signed-off-by: Arvind Sankar <nivedita@alum.mit.edu>
-Signed-off-by: Kees Cook <keescook@chromium.org>
+> An improvement might be to make once_store() take the free function as a
+> parameter so that it would handle the failure case for you:
+> 
+> struct foo *get_foo(gfp_t gfp)
+> {
+> 	static struct init_once_pointer my_foo;
+> 	struct foo *foop;
+>  
+>  	foop = once_get(&my_foo);
+>  	if (!foop) {
+> 		foop = alloc_foo(gfp);
+> 		if (foop)
+> 			once_store(&my_foo, foop, free_foo);
+
+Need to mark once_store as __must_check to avoid the bug you have here:
+
+			foop = once_store(&my_foo, foop, free_foo);
+
+Maybe we could use a macro for once_store so we could write:
+
+void *once_get(struct init_pointer_once *);
+int once_store(struct init_pointer_once *, void *);
+
+#define once_alloc(s, o_alloc, o_free) ({                               \
+        void *__p = o_alloc;                                            \
+        if (__p) {                                                      \
+                if (!once_store(s, __p)) {                              \
+                        o_free(__p);                                    \
+                        __p = once_get(s);                              \
+                }                                                       \
+        }                                                               \
+        __p;                                                            \
+})
+
 ---
- arch/x86/boot/compressed/Makefile  | 12 ++----------
- arch/x86/boot/compressed/head_32.S | 17 ++++++++---------
- arch/x86/boot/compressed/head_64.S |  4 ++--
- arch/x86/boot/compressed/mkpiggy.c |  6 ++++++
- 4 files changed, 18 insertions(+), 21 deletions(-)
 
-diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
-index 489fea16bcfb..7db0102a573d 100644
---- a/arch/x86/boot/compressed/Makefile
-+++ b/arch/x86/boot/compressed/Makefile
-@@ -51,16 +51,8 @@ UBSAN_SANITIZE :=n
- KBUILD_LDFLAGS := -m elf_$(UTS_MACHINE)
- # Compressed kernel should be built as PIE since it may be loaded at any
- # address by the bootloader.
--ifeq ($(CONFIG_X86_32),y)
--KBUILD_LDFLAGS += $(call ld-option, -pie) $(call ld-option, --no-dynamic-linker)
--else
--# To build 64-bit compressed kernel as PIE, we disable relocation
--# overflow check to avoid relocation overflow error with a new linker
--# command-line option, -z noreloc-overflow.
--KBUILD_LDFLAGS += $(shell $(LD) --help 2>&1 | grep -q "\-z noreloc-overflow" \
--	&& echo "-z noreloc-overflow -pie --no-dynamic-linker")
--endif
--LDFLAGS_vmlinux := -T
-+LDFLAGS_vmlinux := $(call ld-option, -pie) $(call ld-option, --no-dynamic-linker)
-+LDFLAGS_vmlinux += -T
- 
- hostprogs	:= mkpiggy
- HOST_EXTRACFLAGS += -I$(srctree)/tools/include
-diff --git a/arch/x86/boot/compressed/head_32.S b/arch/x86/boot/compressed/head_32.S
-index 8c1a4f5610f5..659fad53ca82 100644
---- a/arch/x86/boot/compressed/head_32.S
-+++ b/arch/x86/boot/compressed/head_32.S
-@@ -178,18 +178,17 @@ SYM_FUNC_START_LOCAL_NOALIGN(.Lrelocated)
- /*
-  * Do the extraction, and jump to the new kernel..
-  */
--				/* push arguments for extract_kernel: */
--	pushl	$z_output_len	/* decompressed length, end of relocs */
-+	/* push arguments for extract_kernel: */
- 
--	pushl	%ebp		/* output address */
--
--	pushl	$z_input_len	/* input_len */
-+	pushl	output_len@GOTOFF(%ebx)	/* decompressed length, end of relocs */
-+	pushl	%ebp			/* output address */
-+	pushl	input_len@GOTOFF(%ebx)	/* input_len */
- 	leal	input_data@GOTOFF(%ebx), %eax
--	pushl	%eax		/* input_data */
-+	pushl	%eax			/* input_data */
- 	leal	boot_heap@GOTOFF(%ebx), %eax
--	pushl	%eax		/* heap area */
--	pushl	%esi		/* real mode pointer */
--	call	extract_kernel	/* returns kernel location in %eax */
-+	pushl	%eax			/* heap area */
-+	pushl	%esi			/* real mode pointer */
-+	call	extract_kernel		/* returns kernel location in %eax */
- 	addl	$24, %esp
- 
- /*
-diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
-index 11429092c224..9e46729cf162 100644
---- a/arch/x86/boot/compressed/head_64.S
-+++ b/arch/x86/boot/compressed/head_64.S
-@@ -534,9 +534,9 @@ SYM_FUNC_START_LOCAL_NOALIGN(.Lrelocated)
- 	movq	%rsi, %rdi		/* real mode address */
- 	leaq	boot_heap(%rip), %rsi	/* malloc area for uncompression */
- 	leaq	input_data(%rip), %rdx  /* input_data */
--	movl	$z_input_len, %ecx	/* input_len */
-+	movl	input_len(%rip), %ecx	/* input_len */
- 	movq	%rbp, %r8		/* output target address */
--	movl	$z_output_len, %r9d	/* decompressed length, end of relocs */
-+	movl	output_len(%rip), %r9d	/* decompressed length, end of relocs */
- 	call	extract_kernel		/* returns kernel location in %rax */
- 	popq	%rsi
- 
-diff --git a/arch/x86/boot/compressed/mkpiggy.c b/arch/x86/boot/compressed/mkpiggy.c
-index 7e01248765b2..52aa56cdbacc 100644
---- a/arch/x86/boot/compressed/mkpiggy.c
-+++ b/arch/x86/boot/compressed/mkpiggy.c
-@@ -60,6 +60,12 @@ int main(int argc, char *argv[])
- 	printf(".incbin \"%s\"\n", argv[1]);
- 	printf("input_data_end:\n");
- 
-+	printf(".section \".rodata\",\"a\",@progbits\n");
-+	printf(".globl input_len\n");
-+	printf("input_len:\n\t.long %lu\n", ilen);
-+	printf(".globl output_len\n");
-+	printf("output_len:\n\t.long %lu\n", (unsigned long)olen);
-+
- 	retval = 0;
- bail:
- 	if (f)
--- 
-2.25.1
+struct foo *alloc_foo(gfp_t);
+void free_foo(struct foo *);
+
+struct foo *get_foo(gfp_t gfp)
+{
+        static struct init_pointer_once my_foo;
+        struct foo *foop;
+
+        foop = once_get(&my_foo);
+        if (!foop)
+                foop = once_alloc(&my_foo, alloc_foo(gfp), free_foo);
+        return foop;
+}
+
+That's pretty hard to misuse (I compile-tested it, and it works).
