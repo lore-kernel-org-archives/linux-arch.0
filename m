@@ -1,42 +1,59 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51344 "EHLO
+Return-Path: <SRS0=xaua=A5=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42810 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726231AbgGPU55 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 16:57:57 -0400
-Received: from mail-pf1-x435.google.com (mail-pf1-x435.google.com [IPv6:2607:f8b0:4864:20::435])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 040ABC08C5CE
-        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 13:57:57 -0700 (PDT)
-Received: by mail-pf1-x435.google.com with SMTP id x72so4255342pfc.6
-        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 13:57:56 -0700 (PDT)
-Date: Thu, 16 Jul 2020 13:57:54 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [patch V3 07/13] x86/ptrace: Provide pt_regs helpers for
- entry/exit
-Message-ID: <202007161357.70EF223F@keescook>
-References: <20200716182208.180916541@linutronix.de>
- <20200716185424.658427667@linutronix.de>
+        with ESMTP id S1726627AbgGROyk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Jul 2020 10:54:40 -0400
+Subject: Re: [PATCH 1/6] syscalls: use uaccess_kernel in addr_limit_user_check
+References: <20200714105505.935079-1-hch@lst.de>
+ <20200714105505.935079-2-hch@lst.de> <20200718013849.GA157764@roeck-us.net>
+ <20200718094846.GA8593@lst.de>
+From: Guenter Roeck <linux@roeck-us.net>
+Message-ID: <fe1d4a6d-e32d-6994-a08b-40134000e988@roeck-us.net>
+Date: Sat, 18 Jul 2020 07:54:37 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200716185424.658427667@linutronix.de>
+In-Reply-To: <20200718094846.GA8593@lst.de>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20200716205754.zJuPZUVlJ4ie-DLSP4ZBo-AkjXk-Qv5yUY37ewgZOKw@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200718145437.AxtVOjG3Z69kFT46bxHVGD7MK2TeB5avhmNSV7bR7aI@z>
 
-On Thu, Jul 16, 2020 at 08:22:15PM +0200, Thomas Gleixner wrote:
-> As a preparatory step for moving the syscall and interrupt entry/exit
-> handling into generic code, provide pt_regs helpers which allow to:
+On 7/18/20 2:48 AM, Christoph Hellwig wrote:
+> On Fri, Jul 17, 2020 at 06:38:50PM -0700, Guenter Roeck wrote:
+>> Hi,
+>>
+>> On Tue, Jul 14, 2020 at 12:55:00PM +0200, Christoph Hellwig wrote:
+>>> Use the uaccess_kernel helper instead of duplicating it.
+>>>
+>>> Signed-off-by: Christoph Hellwig <hch@lst.de>
+>>
+>> This patch causes a severe hiccup with my mps2-an385 boot test.
 > 
->   - Retrieve the syscall number from pt_regs
->   - Retrieve the syscall return value from pt_regs
->   - Retrieve the interrupt state from pt_regs to check whether interrupts
->     are reenabled by return from interrupt/exception.
+> I guess that is a nommu config?
 > 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Correct.
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+> Can you try this patch?
+> 
+> diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
+> index b19c9bec1f7a63..cc7daf374a6eb6 100644
+> --- a/arch/arm/include/asm/uaccess.h
+> +++ b/arch/arm/include/asm/uaccess.h
+> @@ -263,7 +263,7 @@ extern int __put_user_8(void *, unsigned long long);
+>   */
+>  #define USER_DS			KERNEL_DS
+>  
+> -#define uaccess_kernel()	(true)
+> +#define uaccess_kernel()	(false)
+>  #define __addr_ok(addr)		((void)(addr), 1)
+>  #define __range_ok(addr, size)	((void)(addr), 0)
+>  #define get_fs()		(KERNEL_DS)
+> 
 
--- 
-Kees Cook
+With this change, the error message is gone. However, it still does not
+work. The image just hangs instead.
+
+Guenter
