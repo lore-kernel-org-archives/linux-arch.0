@@ -1,101 +1,65 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45808 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727876AbgGaXIp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:08:45 -0400
-Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 12135C0617A0
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:45 -0700 (PDT)
-Received: by mail-pg1-x542.google.com with SMTP id d4so16784262pgk.4
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:45 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input sections
-Date: Fri, 31 Jul 2020 16:07:57 -0700
-Message-ID: <20200731230820.1742553-14-keescook@chromium.org>
-In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
-References: <20200731230820.1742553-1-keescook@chromium.org>
+Return-Path: <SRS0=xaua=A5=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from netrider.rowland.org ([192.131.102.5]:56525 "HELO
+        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1728096AbgGRBZ5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 21:25:57 -0400
+Date: Fri, 17 Jul 2020 21:25:55 -0400
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Message-ID: <20200718012555.GA1168834@rowland.harvard.edu>
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+ <20200717205340.GR7625@magnolia>
+ <20200718005857.GB2183@sol.localdomain>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200718005857.GB2183@sol.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, =?UTF-8?q?F=C4=81ng-ru=C3=AC=20S=C3=B2ng?= <maskray@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200731230757.gwk4m4vJC19gagVmbE4U4YfMP8khlesvw85oy7o8mOI@z>
+To: Eric Biggers <ebiggers@kernel.org>
+Cc: "Darrick J. Wong" <darrick.wong@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200718012555.jlAJQHn25ljYeShBkBXxW5OXXfviM-ksggtrDFx73wk@z>
 
-From: Nick Desaulniers <ndesaulniers@google.com>
+On Fri, Jul 17, 2020 at 05:58:57PM -0700, Eric Biggers wrote:
+> On Fri, Jul 17, 2020 at 01:53:40PM -0700, Darrick J. Wong wrote:
+> > > +There are also cases in which the smp_load_acquire() can be replaced by
+> > > +the more lightweight READ_ONCE().  (smp_store_release() is still
+> > > +required.)  Specifically, if all initialized memory is transitively
+> > > +reachable from the pointer itself, then there is no control dependency
+> > 
+> > I don't quite understand what "transitively reachable from the pointer
+> > itself" means?  Does that describe the situation where all the objects
+> > reachable through the object that the global struct foo pointer points
+> > at are /only/ reachable via that global pointer?
+> > 
+> 
+> The intent is that "transitively reachable" means that all initialized memory
+> can be reached by dereferencing the pointer in some way, e.g. p->a->b[5]->c.
+> 
+> It could also be the case that allocating the object initializes some global or
+> static data, which isn't reachable in that way.  Access to that data would then
+> be a control dependency, which a data dependency barrier wouldn't work for.
+> 
+> It's possible I misunderstood something.  (Note the next paragraph does say that
+> using READ_ONCE() is discouraged, exactly for this reason -- it can be hard to
+> tell whether it's correct.)  Suggestions of what to write here are appreciated.
 
-Basically, consider .text.{hot|unlikely|unknown}.* part of .text, too.
+Perhaps something like this:
 
-When compiling with profiling information (collected via PGO
-instrumentations or AutoFDO sampling), Clang will separate code into
-.text.hot, .text.unlikely, or .text.unknown sections based on profiling
-information. After D79600 (clang-11), these sections will have a
-trailing `.` suffix, ie.  .text.hot., .text.unlikely., .text.unknown..
+	Specifically, if the only way to reach the initialized memory 
+	involves dereferencing the pointer itself then READ_ONCE() is 
+	sufficient.  This is because there will be an address dependency 
+	between reading the pointer and accessing the memory, which will 
+	ensure proper ordering.  But if some of the initialized memory 
+	is reachable some other way (for example, if it is global or 
+	static data) then there need not be an address dependency, 
+	merely a control dependency (checking whether the pointer is 
+	non-NULL).  Control dependencies do not always ensure ordering 
+	-- certainly not for reads, and depending on the compiler, 
+	possibly not for some writes -- and therefore a load-acquire is 
+	necessary.
 
-When using -ffunction-sections together with profiling infomation,
-either explicitly (FGKASLR) or implicitly (LTO), code may be placed in
-sections following the convention:
-.text.hot.<foo>, .text.unlikely.<bar>, .text.unknown.<baz>
-where <foo>, <bar>, and <baz> are functions.  (This produces one section
-per function; we generally try to merge these all back via linker script
-so that we don't have 50k sections).
+Perhaps this is more wordy than you want, but it does get the important 
+ideas across.
 
-For the above cases, we need to teach our linker scripts that such
-sections might exist and that we'd explicitly like them grouped
-together, otherwise we can wind up with code outside of the
-_stext/_etext boundaries that might not be mapped properly for some
-architectures, resulting in boot failures.
-
-If the linker script is not told about possible input sections, then
-where the section is placed as output is a heuristic-laiden mess that's
-non-portable between linkers (ie. BFD and LLD), and has resulted in many
-hard to debug bugs.  Kees Cook is working on cleaning this up by adding
---orphan-handling=warn linker flag used in ARCH=powerpc to additional
-architectures. In the case of linker scripts, borrowing from the Zen of
-Python: explicit is better than implicit.
-
-Also, ld.bfd's internal linker script considers .text.hot AND
-.text.hot.* to be part of .text, as well as .text.unlikely and
-.text.unlikely.*. I didn't see support for .text.unknown.*, and didn't
-see Clang producing such code in our kernel builds, but I see code in
-LLVM that can produce such section names if profiling information is
-missing. That may point to a larger issue with generating or collecting
-profiles, but I would much rather be safe and explicit than have to
-debug yet another issue related to orphan section placement.
-
-Reported-by: Jian Cai <jiancai@google.com>
-Suggested-by: Fāng-ruì Sòng <maskray@google.com>
-Tested-by: Luis Lozano <llozano@google.com>
-Tested-by: Manoj Gupta <manojgupta@google.com>
-Acked-by: Kees Cook <keescook@chromium.org>
-Cc: stable@vger.kernel.org
-Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=add44f8d5c5c05e08b11e033127a744d61c26aee
-Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=1de778ed23ce7492c523d5850c6c6dbb34152655
-Link: https://reviews.llvm.org/D79600
-Link: https://bugs.chromium.org/p/chromium/issues/detail?id=1084760
-Debugged-by: Luis Lozano <llozano@google.com>
-Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- include/asm-generic/vmlinux.lds.h | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 2593957f6e8b..af5211ca857c 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -561,7 +561,10 @@
-  */
- #define TEXT_TEXT							\
- 		ALIGN_FUNCTION();					\
--		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
-+		*(.text.hot .text.hot.*)				\
-+		*(TEXT_MAIN .text.fixup)				\
-+		*(.text.unlikely .text.unlikely.*)			\
-+		*(.text.unknown .text.unknown.*)			\
- 		NOINSTR_TEXT						\
- 		*(.text..refcount)					\
- 		*(.ref.text)						\
--- 
-2.25.1
+Alan Stern
