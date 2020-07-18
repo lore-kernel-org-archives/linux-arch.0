@@ -1,47 +1,31 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 1/6] syscalls: use uaccess_kernel in
- addr_limit_user_check
-Date: Sat, 18 Jul 2020 11:48:46 +0200
-Message-ID: <20200718094846.GA8593@lst.de>
-References: <20200714105505.935079-1-hch@lst.de> <20200714105505.935079-2-hch@lst.de> <20200718013849.GA157764@roeck-us.net>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Date: Sat, 18 Jul 2020 10:08:11 -0400
+Message-ID: <20200718140811.GA1179836@rowland.harvard.edu>
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+ <20200718014204.GN5369@dread.disaster.area>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:41559 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726262AbgGRJsu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 18 Jul 2020 05:48:50 -0400
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200718013849.GA157764@roeck-us.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: Christoph Hellwig <hch@lst.de>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20200718014204.GN5369@dread.disaster.area>
+Sender: linux-fsdevel-owner@vger.kernel.org
+To: Dave Chinner <david@fromorbit.com>
+Cc: Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 17, 2020 at 06:38:50PM -0700, Guenter Roeck wrote:
-> Hi,
-> 
-> On Tue, Jul 14, 2020 at 12:55:00PM +0200, Christoph Hellwig wrote:
-> > Use the uaccess_kernel helper instead of duplicating it.
-> > 
-> > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> 
-> This patch causes a severe hiccup with my mps2-an385 boot test.
+> This is one of the reasons that the LKMM documetnation is so damn
+> difficult to read and understand: just understanding the vocabulary
+> it uses requires a huge learning curve, and it's not defined
+> anywhere. Understanding the syntax of examples requires a huge
+> learning curve, because it's not defined anywhere. 
 
-I guess that is a nommu config?
+Have you seen tools/memory-model/Documentation/explanation.txt?  That
+file was specifically written for non-experts to help them overcome the
+learning curve.  It tries to define the vocabulary as terms are
+introduced and to avoid using obscure syntax.
 
-Can you try this patch?
+If you think it needs improvement and can give some specific details
+about where it falls short, I would like to hear them.
 
-diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
-index b19c9bec1f7a63..cc7daf374a6eb6 100644
---- a/arch/arm/include/asm/uaccess.h
-+++ b/arch/arm/include/asm/uaccess.h
-@@ -263,7 +263,7 @@ extern int __put_user_8(void *, unsigned long long);
-  */
- #define USER_DS			KERNEL_DS
- 
--#define uaccess_kernel()	(true)
-+#define uaccess_kernel()	(false)
- #define __addr_ok(addr)		((void)(addr), 1)
- #define __range_ok(addr, size)	((void)(addr), 0)
- #define get_fs()		(KERNEL_DS)
+Alan Stern
