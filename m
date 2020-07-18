@@ -1,205 +1,84 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53930 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726959AbgGQGYT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:19 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 08/22] netfilter/ip_tables: clean up compat {get,set}sockopt handling
-Date: Fri, 17 Jul 2020 08:23:17 +0200
-Message-ID: <20200717062331.691152-9-hch@lst.de>
-In-Reply-To: <20200717062331.691152-1-hch@lst.de>
-References: <20200717062331.691152-1-hch@lst.de>
+Return-Path: <SRS0=xaua=A5=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:53624 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726665AbgGRCAM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Jul 2020 22:00:12 -0400
+Date: Fri, 17 Jul 2020 19:00:09 -0700
+From: Eric Biggers <ebiggers@kernel.org>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Message-ID: <20200718020009.GE2183@sol.localdomain>
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+ <20200717205340.GR7625@magnolia>
+ <20200718005857.GB2183@sol.localdomain>
+ <20200718012555.GA1168834@rowland.harvard.edu>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200718012555.GA1168834@rowland.harvard.edu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
-Message-ID: <20200717062317.G6QemTKhyopUL1x5Hg5LJRa1ZFZ_RW0AMjwQPiFIe-w@z>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: "Darrick J. Wong" <darrick.wong@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200718020009._x2iatg1PJYu1IDHAqUheqbdzUP748cLGSA-JPcLxAI@z>
 
-Merge the native and compat {get,set}sockopt handlers using
-in_compat_syscall().
+On Fri, Jul 17, 2020 at 09:25:55PM -0400, Alan Stern wrote:
+> On Fri, Jul 17, 2020 at 05:58:57PM -0700, Eric Biggers wrote:
+> > On Fri, Jul 17, 2020 at 01:53:40PM -0700, Darrick J. Wong wrote:
+> > > > +There are also cases in which the smp_load_acquire() can be replaced by
+> > > > +the more lightweight READ_ONCE().  (smp_store_release() is still
+> > > > +required.)  Specifically, if all initialized memory is transitively
+> > > > +reachable from the pointer itself, then there is no control dependency
+> > > 
+> > > I don't quite understand what "transitively reachable from the pointer
+> > > itself" means?  Does that describe the situation where all the objects
+> > > reachable through the object that the global struct foo pointer points
+> > > at are /only/ reachable via that global pointer?
+> > > 
+> > 
+> > The intent is that "transitively reachable" means that all initialized memory
+> > can be reached by dereferencing the pointer in some way, e.g. p->a->b[5]->c.
+> > 
+> > It could also be the case that allocating the object initializes some global or
+> > static data, which isn't reachable in that way.  Access to that data would then
+> > be a control dependency, which a data dependency barrier wouldn't work for.
+> > 
+> > It's possible I misunderstood something.  (Note the next paragraph does say that
+> > using READ_ONCE() is discouraged, exactly for this reason -- it can be hard to
+> > tell whether it's correct.)  Suggestions of what to write here are appreciated.
+> 
+> Perhaps something like this:
+> 
+> 	Specifically, if the only way to reach the initialized memory 
+> 	involves dereferencing the pointer itself then READ_ONCE() is 
+> 	sufficient.  This is because there will be an address dependency 
+> 	between reading the pointer and accessing the memory, which will 
+> 	ensure proper ordering.  But if some of the initialized memory 
+> 	is reachable some other way (for example, if it is global or 
+> 	static data) then there need not be an address dependency, 
+> 	merely a control dependency (checking whether the pointer is 
+> 	non-NULL).  Control dependencies do not always ensure ordering 
+> 	-- certainly not for reads, and depending on the compiler, 
+> 	possibly not for some writes -- and therefore a load-acquire is 
+> 	necessary.
+> 
+> Perhaps this is more wordy than you want, but it does get the important 
+> ideas across.
+> 
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- net/ipv4/netfilter/ip_tables.c | 86 +++++++++-------------------------
- 1 file changed, 21 insertions(+), 65 deletions(-)
+How about:
 
-diff --git a/net/ipv4/netfilter/ip_tables.c b/net/ipv4/netfilter/ip_tables.c
-index 5bf9fa06aee0be..fbfad38f397949 100644
---- a/net/ipv4/netfilter/ip_tables.c
-+++ b/net/ipv4/netfilter/ip_tables.c
-@@ -944,8 +944,7 @@ static int compat_table_info(const struct xt_table_info *info,
- }
- #endif
- 
--static int get_info(struct net *net, void __user *user,
--		    const int *len, int compat)
-+static int get_info(struct net *net, void __user *user, const int *len)
- {
- 	char name[XT_TABLE_MAXNAMELEN];
- 	struct xt_table *t;
-@@ -959,7 +958,7 @@ static int get_info(struct net *net, void __user *user,
- 
- 	name[XT_TABLE_MAXNAMELEN-1] = '\0';
- #ifdef CONFIG_COMPAT
--	if (compat)
-+	if (in_compat_syscall())
- 		xt_compat_lock(AF_INET);
- #endif
- 	t = xt_request_find_table_lock(net, AF_INET, name);
-@@ -969,7 +968,7 @@ static int get_info(struct net *net, void __user *user,
- #ifdef CONFIG_COMPAT
- 		struct xt_table_info tmp;
- 
--		if (compat) {
-+		if (in_compat_syscall()) {
- 			ret = compat_table_info(private, &tmp);
- 			xt_compat_flush_offsets(AF_INET);
- 			private = &tmp;
-@@ -995,7 +994,7 @@ static int get_info(struct net *net, void __user *user,
- 	} else
- 		ret = PTR_ERR(t);
- #ifdef CONFIG_COMPAT
--	if (compat)
-+	if (in_compat_syscall())
- 		xt_compat_unlock(AF_INET);
- #endif
- 	return ret;
-@@ -1153,7 +1152,7 @@ do_replace(struct net *net, const void __user *user, unsigned int len)
- 
- static int
- do_add_counters(struct net *net, const void __user *user,
--		unsigned int len, int compat)
-+		unsigned int len)
- {
- 	unsigned int i;
- 	struct xt_counters_info tmp;
-@@ -1164,7 +1163,8 @@ do_add_counters(struct net *net, const void __user *user,
- 	struct ipt_entry *iter;
- 	unsigned int addend;
- 
--	paddc = xt_copy_counters_from_user(user, len, &tmp, compat);
-+	paddc = xt_copy_counters_from_user(user, len, &tmp,
-+					   in_compat_syscall());
- 	if (IS_ERR(paddc))
- 		return PTR_ERR(paddc);
- 
-@@ -1534,31 +1534,6 @@ compat_do_replace(struct net *net, void __user *user, unsigned int len)
- 	return ret;
- }
- 
--static int
--compat_do_ipt_set_ctl(struct sock *sk,	int cmd, void __user *user,
--		      unsigned int len)
--{
--	int ret;
--
--	if (!ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN))
--		return -EPERM;
--
--	switch (cmd) {
--	case IPT_SO_SET_REPLACE:
--		ret = compat_do_replace(sock_net(sk), user, len);
--		break;
--
--	case IPT_SO_SET_ADD_COUNTERS:
--		ret = do_add_counters(sock_net(sk), user, len, 1);
--		break;
--
--	default:
--		ret = -EINVAL;
--	}
--
--	return ret;
--}
--
- struct compat_ipt_get_entries {
- 	char name[XT_TABLE_MAXNAMELEN];
- 	compat_uint_t size;
-@@ -1634,29 +1609,6 @@ compat_get_entries(struct net *net, struct compat_ipt_get_entries __user *uptr,
- 	xt_compat_unlock(AF_INET);
- 	return ret;
- }
--
--static int do_ipt_get_ctl(struct sock *, int, void __user *, int *);
--
--static int
--compat_do_ipt_get_ctl(struct sock *sk, int cmd, void __user *user, int *len)
--{
--	int ret;
--
--	if (!ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN))
--		return -EPERM;
--
--	switch (cmd) {
--	case IPT_SO_GET_INFO:
--		ret = get_info(sock_net(sk), user, len, 1);
--		break;
--	case IPT_SO_GET_ENTRIES:
--		ret = compat_get_entries(sock_net(sk), user, len);
--		break;
--	default:
--		ret = do_ipt_get_ctl(sk, cmd, user, len);
--	}
--	return ret;
--}
- #endif
- 
- static int
-@@ -1669,11 +1621,16 @@ do_ipt_set_ctl(struct sock *sk, int cmd, void __user *user, unsigned int len)
- 
- 	switch (cmd) {
- 	case IPT_SO_SET_REPLACE:
--		ret = do_replace(sock_net(sk), user, len);
-+#ifdef CONFIG_COMPAT
-+		if (in_compat_syscall())
-+			ret = compat_do_replace(sock_net(sk), user, len);
-+		else
-+#endif
-+			ret = do_replace(sock_net(sk), user, len);
- 		break;
- 
- 	case IPT_SO_SET_ADD_COUNTERS:
--		ret = do_add_counters(sock_net(sk), user, len, 0);
-+		ret = do_add_counters(sock_net(sk), user, len);
- 		break;
- 
- 	default:
-@@ -1693,11 +1650,16 @@ do_ipt_get_ctl(struct sock *sk, int cmd, void __user *user, int *len)
- 
- 	switch (cmd) {
- 	case IPT_SO_GET_INFO:
--		ret = get_info(sock_net(sk), user, len, 0);
-+		ret = get_info(sock_net(sk), user, len);
- 		break;
- 
- 	case IPT_SO_GET_ENTRIES:
--		ret = get_entries(sock_net(sk), user, len);
-+#ifdef CONFIG_COMPAT
-+		if (in_compat_syscall())
-+			ret = compat_get_entries(sock_net(sk), user, len);
-+		else
-+#endif
-+			ret = get_entries(sock_net(sk), user, len);
- 		break;
- 
- 	case IPT_SO_GET_REVISION_MATCH:
-@@ -1886,15 +1848,9 @@ static struct nf_sockopt_ops ipt_sockopts = {
- 	.set_optmin	= IPT_BASE_CTL,
- 	.set_optmax	= IPT_SO_SET_MAX+1,
- 	.set		= do_ipt_set_ctl,
--#ifdef CONFIG_COMPAT
--	.compat_set	= compat_do_ipt_set_ctl,
--#endif
- 	.get_optmin	= IPT_BASE_CTL,
- 	.get_optmax	= IPT_SO_GET_MAX+1,
- 	.get		= do_ipt_get_ctl,
--#ifdef CONFIG_COMPAT
--	.compat_get	= compat_do_ipt_get_ctl,
--#endif
- 	.owner		= THIS_MODULE,
- };
- 
--- 
-2.27.0
+	There are also cases in which the smp_load_acquire() can be replaced by
+	the more lightweight READ_ONCE().  (smp_store_release() is still
+	required.)  Specifically, if the only way to reach the initialized
+	memory involves dereferencing the pointer itself, then the data
+	dependency barrier provided by READ_ONCE() is sufficient.  However, if
+	some of the initialized memory is reachable some other way (for example,
+	if it is global or static data) then there need not be an address
+	dependency, merely a control dependency (checking whether the pointer is
+	non-NULL).  READ_ONCE() is *not* sufficient in that case.
+
+	The optimization of replacing smp_load_acquire() with READ_ONCE() is
+	discouraged for nontrivial data structures, since it can be difficult to
+	determine if it is correct.  In particular, for complex data structures
+	the correctness of the READ_ONCE() optimization may depend on internal
+	implementation details of other kernel subsystems.
