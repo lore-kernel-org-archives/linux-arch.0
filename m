@@ -1,48 +1,54 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [patch V3 01/13] entry: Provide generic syscall entry functionality
-Date: Sat, 18 Jul 2020 07:41:09 -0700
-Message-ID: <CALCETrU-z_73BsKwNq0fTDEg7tVicd=jOEaq-6LnH24uNWShDg@mail.gmail.com>
-References: <20200716182208.180916541@linutronix.de> <20200716185424.011950288@linutronix.de>
- <202007161336.B993ED938@keescook> <87d04vt98w.fsf@nanos.tec.linutronix.de>
- <202007171045.FB4A586F1D@keescook> <87mu3yq6sf.fsf@nanos.tec.linutronix.de>
- <CALCETrXz_vEySQJ=f3MTPG9XjZS7U0P-diJE9j_+0KRa_Kie=Q@mail.gmail.com> <875zakq56t.fsf@nanos.tec.linutronix.de>
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH 1/6] syscalls: use uaccess_kernel in addr_limit_user_check
+Date: Sat, 18 Jul 2020 07:54:37 -0700
+Message-ID: <fe1d4a6d-e32d-6994-a08b-40134000e988@roeck-us.net>
+References: <20200714105505.935079-1-hch@lst.de>
+ <20200714105505.935079-2-hch@lst.de> <20200718013849.GA157764@roeck-us.net>
+ <20200718094846.GA8593@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <875zakq56t.fsf@nanos.tec.linutronix.de>
+In-Reply-To: <20200718094846.GA8593@lst.de>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, Gabriel Krisman Bertazi <krisman@collabora.com>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jul 18, 2020 at 7:16 AM Thomas Gleixner <tglx@linutronix.de> wrote:
->
-> Andy Lutomirski <luto@kernel.org> writes:
-> > On Fri, Jul 17, 2020 at 12:29 PM Thomas Gleixner <tglx@linutronix.de> wrote:
-> >> The alternative is to play nasty games with TIF_IA32, TIF_ADDR32 and
-> >> TIF_X32 to free up bits for 32bit and make the flags field 64 bit on 64
-> >> bit kernels, but I prefer to do the above seperation.
-> >
-> > I'm all for cleaning it up, but I don't think any nasty games would be
-> > needed regardless.  IMO at least the following flags are nonsense and
-> > don't belong in TIF_anything at all:
-> >
-> > TIF_IA32, TIF_X32: can probably be deleted.  Someone would just need
-> > to finish the work.
-> > TIF_ADDR32: also probably removable, but I'm less confident.
-> > TIF_FORCED_TF: This is purely a ptrace artifact and could easily go
-> > somewhere else entirely.
-> >
-> > So getting those five bits back would be straightforward.
-> >
-> > FWIW, TIF_USER_RETURN_NOTIFY is a bit of an odd duck: it's an
-> > entry/exit word *and* a context switch word.  The latter is because
-> > it's logically a per-cpu flag, not a per-task flag, and the context
-> > switch code moves it around so it's always set on the running task.
->
-> Gah, I missed the context switch thing of that. That stuff is hideous.
+On 7/18/20 2:48 AM, Christoph Hellwig wrote:
+> On Fri, Jul 17, 2020 at 06:38:50PM -0700, Guenter Roeck wrote:
+>> Hi,
+>>
+>> On Tue, Jul 14, 2020 at 12:55:00PM +0200, Christoph Hellwig wrote:
+>>> Use the uaccess_kernel helper instead of duplicating it.
+>>>
+>>> Signed-off-by: Christoph Hellwig <hch@lst.de>
+>>
+>> This patch causes a severe hiccup with my mps2-an385 boot test.
+> 
+> I guess that is a nommu config?
+> 
+Correct.
 
-It's also delightful because anything that screws up that dance (such
-as failure to do the exit-to-usermode path exactly right) likely
-results in an insta-root-hole.  If we fail to run user return
-notifiers, we can run user code with incorrect syscall MSRs, etc.
+> Can you try this patch?
+> 
+> diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
+> index b19c9bec1f7a63..cc7daf374a6eb6 100644
+> --- a/arch/arm/include/asm/uaccess.h
+> +++ b/arch/arm/include/asm/uaccess.h
+> @@ -263,7 +263,7 @@ extern int __put_user_8(void *, unsigned long long);
+>   */
+>  #define USER_DS			KERNEL_DS
+>  
+> -#define uaccess_kernel()	(true)
+> +#define uaccess_kernel()	(false)
+>  #define __addr_ok(addr)		((void)(addr), 1)
+>  #define __range_ok(addr, size)	((void)(addr), 0)
+>  #define get_fs()		(KERNEL_DS)
+> 
+
+With this change, the error message is gone. However, it still does not
+work. The image just hangs instead.
+
+Guenter
