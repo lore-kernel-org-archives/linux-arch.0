@@ -1,54 +1,86 @@
-From: Guenter Roeck <linux@roeck-us.net>
-Subject: Re: [PATCH 1/6] syscalls: use uaccess_kernel in addr_limit_user_check
-Date: Sat, 18 Jul 2020 07:54:37 -0700
-Message-ID: <fe1d4a6d-e32d-6994-a08b-40134000e988@roeck-us.net>
-References: <20200714105505.935079-1-hch@lst.de>
- <20200714105505.935079-2-hch@lst.de> <20200718013849.GA157764@roeck-us.net>
- <20200718094846.GA8593@lst.de>
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: [RFC] raw_copy_from_user() semantics
+Date: Sun, 19 Jul 2020 04:17:33 +0100
+Message-ID: <20200719031733.GI2786714@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200718094846.GA8593@lst.de>
-Content-Language: en-US
+Content-Disposition: inline
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 7/18/20 2:48 AM, Christoph Hellwig wrote:
-> On Fri, Jul 17, 2020 at 06:38:50PM -0700, Guenter Roeck wrote:
->> Hi,
->>
->> On Tue, Jul 14, 2020 at 12:55:00PM +0200, Christoph Hellwig wrote:
->>> Use the uaccess_kernel helper instead of duplicating it.
->>>
->>> Signed-off-by: Christoph Hellwig <hch@lst.de>
->>
->> This patch causes a severe hiccup with my mps2-an385 boot test.
-> 
-> I guess that is a nommu config?
-> 
-Correct.
+	Back in 2017 I'd made a bogus promise regarding raw_copy_from_user().
+ Namely, that in case of short copy it will copy at least something unless
+nothing could've been read at all.
 
-> Can you try this patch?
-> 
-> diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
-> index b19c9bec1f7a63..cc7daf374a6eb6 100644
-> --- a/arch/arm/include/asm/uaccess.h
-> +++ b/arch/arm/include/asm/uaccess.h
-> @@ -263,7 +263,7 @@ extern int __put_user_8(void *, unsigned long long);
->   */
->  #define USER_DS			KERNEL_DS
->  
-> -#define uaccess_kernel()	(true)
-> +#define uaccess_kernel()	(false)
->  #define __addr_ok(addr)		((void)(addr), 1)
->  #define __range_ok(addr, size)	((void)(addr), 0)
->  #define get_fs()		(KERNEL_DS)
-> 
+	Such property could've been used by code that would want to squeeze
+every byte, by doing copy_from_user() in a loop, advancing the source and
+destination by the amount copied until we stop getting any progress.
 
-With this change, the error message is gone. However, it still does not
-work. The image just hangs instead.
+	There are two problems with that.  First of all, the promise was
+bogus - there are architectures where it is simply not true.  E.g. ppc
+(or alpha, or sparc, or...)  can have copy_from_user() called with source
+one word prior to an unmapped page, fetch that word, fail to fetch the next
+one and bugger off without doing any stores.
 
-Guenter
+	So any byte-squeezing loop of that sort would break on a bunch
+of architectures.  Another problem is that we simply don't have a lot
+of such loops.	Looking through the mainline kernel has found only two
+such beasts - one in vcs_write() and another in iomap_dio_inline_actor().
+Both are in write(2) and write(2) has never made any warranties regarding
+the situation when a part of buffer we want to write is unreadable.
+In particular, it does *not* squeeze every last byte out - not for
+regular files on local filesystems, not for NFS, not for pipes, not for
+sockets, etc.
+
+	E.g. in case of generic_perform_write() we treat "nothing has
+been copied" as "try to fault in, fail if that's not possible, retry the
+attempt to copy otherwise"; we have to, since we are doing the copying
+with pagefaults disabled, so a failure to copy anything may be simply
+due to a page evicted by memory pressure.  And if we have an evicted page
+followed by genuinely unreadable one, we can very well have fault-in fail
+(and write stop) while we still have a couple of kilobytes worth of data
+yet to be copied from the evicted page.
+
+	We could try to make the promise true; that would mean messing
+with a lot of unpleasant asm code (in exception handlers, at that) and
+I don't believe it's worth the bother.  We could add a "squeeze every
+last byte" helper, but I don't see any valid users for it right now.
+
+	BTW, "do copy_from_user() in a loop" is not a good way to do such
+helper anyway - if we stop copying on a fault and lose some data already
+fetched, that data is not going to be more than a few registers worth,
+so it's better to have this helper do a byte-by-byte get_user() loop
+for dealing with that case.
+
+	IMO we should simply remove the bogus promise, document the real
+situation and if somebody needs the "squeeze every last byte" helper,
+let them say so.  Audit of the current mainline shows only two places
+that might be trying something like that and AFAICS both are accidental.
+
+	Does anybody object against the following?
+
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index 7bcadca22100..083fda6aa384 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -30,10 +30,11 @@
+  * starting at from.  All data past to + size - N must be left unmodified.
+  *
+  * If copying succeeds, the return value must be 0.  If some data cannot be
+- * fetched, it is permitted to copy less than had been fetched; the only
+- * hard requirement is that not storing anything at all (i.e. returning size)
+- * should happen only when nothing could be copied.  In other words, you don't
+- * have to squeeze as much as possible - it is allowed, but not necessary.
++ * fetched, it is permitted to copy less than had been fetched.  In other
++ * words, you don't have to squeeze as much as possible - it is allowed, but
++ * not necessary.  In particular, it is possible to have some bytes fetched
++ * and nothing copied, so do _not_ assume that doing copies until we get to
++ * "nothing copied" will copy every byte that can be fetched.
+  *
+  * For raw_copy_from_user() to always points to kernel memory and no faults
+  * on store should happen.  Interpretation of from is affected by set_fs().
