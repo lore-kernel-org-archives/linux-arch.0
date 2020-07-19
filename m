@@ -1,146 +1,91 @@
-Return-Path: <SRS0=4doj=BL=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43954 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728375AbgHABPC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 Jul 2020 21:15:02 -0400
-From: guoren@kernel.org
-Subject: [PATCH 13/13] csky: Add context tracking support
-Date: Sat,  1 Aug 2020 01:14:13 +0000
-Message-ID: <1596244453-98575-14-git-send-email-guoren@kernel.org>
-In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
-References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
+Return-Path: <SRS0=fRWW=A6=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43370 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726463AbgGSDRg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Jul 2020 23:17:36 -0400
+Date: Sun, 19 Jul 2020 04:17:33 +0100
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: [RFC] raw_copy_from_user() semantics
+Message-ID: <20200719031733.GI2786714@ZenIV.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: guoren@kernel.org, arnd@arndb.de
-Cc: linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>, Greentime Hu <greentime.hu@sifive.com>
-Message-ID: <20200801011413.FrUvjxT95Jo8zuF2GjLDnbBI47TSauPzoBLe4dwemYo@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200719031733.EqBkVrdS4zKcoClPYNukdnq-bwr6c2OpyBMwFsw9kdw@z>
 
-From: Guo Ren <guoren@linux.alibaba.com>
+	Back in 2017 I'd made a bogus promise regarding raw_copy_from_user().
+ Namely, that in case of short copy it will copy at least something unless
+nothing could've been read at all.
 
-This patch support context tracking with no hz full.
+	Such property could've been used by code that would want to squeeze
+every byte, by doing copy_from_user() in a loop, advancing the source and
+destination by the amount copied until we stop getting any progress.
 
-Here is the test result with dynticks-testing (see tick_stop):
+	There are two problems with that.  First of all, the promise was
+bogus - there are architectures where it is simply not true.  E.g. ppc
+(or alpha, or sparc, or...)  can have copy_from_user() called with source
+one word prior to an unmapped page, fetch that word, fail to fetch the next
+one and bugger off without doing any stores.
 
- cat /sys/kernel/debug/tracing/per_cpu/cpu0/trace
- tracer: nop
+	So any byte-squeezing loop of that sort would break on a bunch
+of architectures.  Another problem is that we simply don't have a lot
+of such loops.	Looking through the mainline kernel has found only two
+such beasts - one in vcs_write() and another in iomap_dio_inline_actor().
+Both are in write(2) and write(2) has never made any warranties regarding
+the situation when a part of buffer we want to write is unreadable.
+In particular, it does *not* squeeze every last byte out - not for
+regular files on local filesystems, not for NFS, not for pipes, not for
+sockets, etc.
 
- entries-in-buffer/entries-written: 356/356   #P:1
+	E.g. in case of generic_perform_write() we treat "nothing has
+been copied" as "try to fault in, fail if that's not possible, retry the
+attempt to copy otherwise"; we have to, since we are doing the copying
+with pagefaults disabled, so a failure to copy anything may be simply
+due to a page evicted by memory pressure.  And if we have an evicted page
+followed by genuinely unreadable one, we can very well have fault-in fail
+(and write stop) while we still have a couple of kilobytes worth of data
+yet to be copied from the evicted page.
 
-                              _-----=> irqs-off
-                             / _----=> need-resched
-                            | / _---=> hardirq/softirq
-                            || / _--=> preempt-depth
-                            ||| /     delay
-           TASK-PID   CPU#  ||||    TIMESTAMP  FUNCTION
-              | |       |   ||||       |         |
-...
-          sleep-192   [000] d.h.   167.088270: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=166436355700
-          sleep-192   [000] d.h.   167.092279: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=166440365700
-         <idle>-0     [000] d.h2   167.096492: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=166444578400
-         <idle>-0     [000] d..1   167.097876: tick_stop: success=1 dependency=NONE
-                                               ^^^^^^^^^
-         <idle>-0     [000] d.h1   168.818206: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=168166280900
-   kworker/u2:0-7     [000] ....   168.821760: workqueue_execute_start: work struct (ptrval): function wb_workfn
-   kworker/u2:0-7     [000] d.h1   168.824464: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=168172547100
-    kworker/0:1-18    [000] ....   168.825053: workqueue_execute_start: work struct (ptrval): function vmstat_update
-    kworker/0:1-18    [000] ....   168.825238: workqueue_execute_start: work struct (ptrval): function vmstat_shepherd
-    kworker/0:1-18    [000] ....   168.825516: workqueue_execute_start: work struct (ptrval): function neigh_periodic_work
-         <idle>-0     [000] d..1   168.826121: tick_stop: success=1 dependency=NONE
-   kworker/u2:0-7     [000] ....   169.377327: workqueue_execute_start: work struct (ptrval): function flush_to_ldisc
-         <idle>-0     [000] d..1   169.379832: tick_stop: success=1 dependency=NONE
-   kworker/u2:0-7     [000] ....   169.607935: workqueue_execute_start: work struct (ptrval): function flush_to_ldisc
-   kworker/u2:0-7     [000] d.h1   169.608148: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=168956235500
-         <idle>-0     [000] d..1   169.608654: tick_stop: success=1 dependency=NONE
+	We could try to make the promise true; that would mean messing
+with a lot of unpleasant asm code (in exception handlers, at that) and
+I don't believe it's worth the bother.  We could add a "squeeze every
+last byte" helper, but I don't see any valid users for it right now.
 
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Cc: Greentime Hu <greentime.hu@sifive.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
+	BTW, "do copy_from_user() in a loop" is not a good way to do such
+helper anyway - if we stop copying on a fault and lose some data already
+fetched, that data is not going to be more than a few registers worth,
+so it's better to have this helper do a byte-by-byte get_user() loop
+for dealing with that case.
+
+	IMO we should simply remove the bogus promise, document the real
+situation and if somebody needs the "squeeze every last byte" helper,
+let them say so.  Audit of the current mainline shows only two places
+that might be trying something like that and AFAICS both are accidental.
+
+	Does anybody object against the following?
+
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/csky/Kconfig        |  2 ++
- arch/csky/kernel/entry.S | 23 +++++++++++++++++++++++
- 2 files changed, 25 insertions(+)
-
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index ad98b93..af23873 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -42,6 +42,8 @@ config CSKY
- 	select HAVE_ARCH_MMAP_RND_BITS
- 	select HAVE_ARCH_SECCOMP_FILTER
- 	select HAVE_COPY_THREAD_TLS
-+	select HAVE_CONTEXT_TRACKING
-+	select HAVE_VIRT_CPU_ACCOUNTING_GEN
- 	select HAVE_DEBUG_BUGVERBOSE
- 	select HAVE_DYNAMIC_FTRACE
- 	select HAVE_DYNAMIC_FTRACE_WITH_REGS
-diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
-index efd2e69..5936391 100644
---- a/arch/csky/kernel/entry.S
-+++ b/arch/csky/kernel/entry.S
-@@ -23,6 +23,22 @@
- #endif
- .endm
- 
-+.macro	context_tracking
-+	mfcr	a0, epsr
-+	btsti	a0, 31
-+	bt	1f
-+	jbsr	context_tracking_user_exit
-+	ldw	a0, (sp, LSAVE_A0)
-+	ldw	a1, (sp, LSAVE_A1)
-+	ldw	a2, (sp, LSAVE_A2)
-+	ldw	a3, (sp, LSAVE_A3)
-+#if defined(__CSKYABIV1__)
-+	ldw	r6, (sp, LSAVE_A4)
-+	ldw	r7, (sp, LSAVE_A5)
-+#endif
-+1:
-+.endm
-+
- .macro tlbop_begin name, val0, val1, val2
- ENTRY(csky_\name)
- 	mtcr    a3, ss2
-@@ -103,6 +119,7 @@ ENTRY(csky_\name)
- .endm
- .macro tlbop_end is_write
- 	zero_fp
-+	context_tracking
- 	RD_MEH	a2
- 	psrset  ee, ie
- 	mov     a0, sp
-@@ -128,6 +145,7 @@ tlbop_end 1
- ENTRY(csky_systemcall)
- 	SAVE_ALL TRAP0_SIZE
- 	zero_fp
-+	context_tracking
- 	psrset  ee, ie
- 
- 	lrw     r9, __NR_syscalls
-@@ -237,6 +255,9 @@ ret_from_exception:
- 	and	r10, r9
- 	cmpnei	r10, 0
- 	bt	exit_work
-+#ifdef CONFIG_CONTEXT_TRACKING
-+	jbsr	context_tracking_user_enter
-+#endif
- 1:
- #ifdef CONFIG_PREEMPTION
- 	mov	r9, sp
-@@ -277,6 +298,7 @@ work_resched:
- ENTRY(csky_trap)
- 	SAVE_ALL 0
- 	zero_fp
-+	context_tracking
- 	psrset	ee
- 	mov	a0, sp                 /* Push Stack pointer arg */
- 	jbsr	trap_c                 /* Call C-level trap handler */
-@@ -311,6 +333,7 @@ ENTRY(csky_get_tls)
- ENTRY(csky_irq)
- 	SAVE_ALL 0
- 	zero_fp
-+	context_tracking
- 	psrset	ee
- 
- #ifdef CONFIG_TRACE_IRQFLAGS
--- 
-2.7.4
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index 7bcadca22100..083fda6aa384 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -30,10 +30,11 @@
+  * starting at from.  All data past to + size - N must be left unmodified.
+  *
+  * If copying succeeds, the return value must be 0.  If some data cannot be
+- * fetched, it is permitted to copy less than had been fetched; the only
+- * hard requirement is that not storing anything at all (i.e. returning size)
+- * should happen only when nothing could be copied.  In other words, you don't
+- * have to squeeze as much as possible - it is allowed, but not necessary.
++ * fetched, it is permitted to copy less than had been fetched.  In other
++ * words, you don't have to squeeze as much as possible - it is allowed, but
++ * not necessary.  In particular, it is possible to have some bytes fetched
++ * and nothing copied, so do _not_ assume that doing copies until we get to
++ * "nothing copied" will copy every byte that can be fetched.
+  *
+  * For raw_copy_from_user() to always points to kernel memory and no faults
+  * on store should happen.  Interpretation of from is affected by set_fs().
