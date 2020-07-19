@@ -1,70 +1,40 @@
-Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35244 "EHLO
+Return-Path: <SRS0=fRWW=A6=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50874 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726753AbgGXNOg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 09:14:36 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v4 0/6] powerpc: queued spinlocks and rwlocks
-Date: Fri, 24 Jul 2020 23:14:17 +1000
-Message-ID: <20200724131423.1362108-1-npiggin@gmail.com>
+        with ESMTP id S1725836AbgGSKRN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 19 Jul 2020 06:17:13 -0400
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch V3 01/13] entry: Provide generic syscall entry functionality
+In-Reply-To: <CALCETrU-z_73BsKwNq0fTDEg7tVicd=jOEaq-6LnH24uNWShDg@mail.gmail.com>
+References: <20200716182208.180916541@linutronix.de> <20200716185424.011950288@linutronix.de> <202007161336.B993ED938@keescook> <87d04vt98w.fsf@nanos.tec.linutronix.de> <202007171045.FB4A586F1D@keescook> <87mu3yq6sf.fsf@nanos.tec.linutronix.de> <CALCETrXz_vEySQJ=f3MTPG9XjZS7U0P-diJE9j_+0KRa_Kie=Q@mail.gmail.com> <875zakq56t.fsf@nanos.tec.linutronix.de> <CALCETrU-z_73BsKwNq0fTDEg7tVicd=jOEaq-6LnH24uNWShDg@mail.gmail.com>
+Date: Sun, 19 Jul 2020 12:17:07 +0200
+Message-ID: <87v9ijollo.fsf@nanos.tec.linutronix.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, =?UTF-8?q?Michal=20Such=C3=A1nek?= <msuchanek@suse.de>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200724131417.z9vsB9fGlbK4ZQpGXfKJwQEZh4ddnitPi-oLZGzjvUQ@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, Gabriel Krisman Bertazi <krisman@collabora.com>
+Message-ID: <20200719101707.YWLZzz1A5NqhTT2Uk_fBA8ZjPTaXjipshVOOt7A7Rhk@z>
 
-Updated with everybody's feedback (thanks all), and more performance
-results.
+Andy Lutomirski <luto@kernel.org> writes:
+> On Sat, Jul 18, 2020 at 7:16 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+>> Andy Lutomirski <luto@kernel.org> writes:
+>> > FWIW, TIF_USER_RETURN_NOTIFY is a bit of an odd duck: it's an
+>> > entry/exit word *and* a context switch word.  The latter is because
+>> > it's logically a per-cpu flag, not a per-task flag, and the context
+>> > switch code moves it around so it's always set on the running task.
+>>
+>> Gah, I missed the context switch thing of that. That stuff is hideous.
+>
+> It's also delightful because anything that screws up that dance (such
+> as failure to do the exit-to-usermode path exactly right) likely
+> results in an insta-root-hole.  If we fail to run user return
+> notifiers, we can run user code with incorrect syscall MSRs, etc.
 
-What I've found is I might have been measuring the worst load point for
-the paravirt case, and by looking at a range of loads it's clear that
-queued spinlocks are overall better even on PV, doubly so when you look
-at the generally much improved worst case latencies.
-
-I have defaulted it to N even though I'm less concerned about the PV
-numbers now, just because I think it needs more stress testing. But
-it's very nicely selectable so should be low risk to include.
-
-All in all this is a very cool technology and great results especially
-on the big systems but even on smaller ones there are nice gains. Thanks
-Waiman and everyone who developed it.
+Looking at it deeper, having that thing in the loop is a pointless
+exercise. This really wants to be done _after_ the loop.
 
 Thanks,
-Nick
 
-Nicholas Piggin (6):
-  powerpc/pseries: move some PAPR paravirt functions to their own file
-  powerpc: move spinlock implementation to simple_spinlock
-  powerpc/64s: implement queued spinlocks and rwlocks
-  powerpc/pseries: implement paravirt qspinlocks for SPLPAR
-  powerpc/qspinlock: optimised atomic_try_cmpxchg_lock that adds the
-    lock hint
-  powerpc: implement smp_cond_load_relaxed
-
- arch/powerpc/Kconfig                          |  15 +
- arch/powerpc/include/asm/Kbuild               |   1 +
- arch/powerpc/include/asm/atomic.h             |  28 ++
- arch/powerpc/include/asm/barrier.h            |  14 +
- arch/powerpc/include/asm/paravirt.h           |  87 +++++
- arch/powerpc/include/asm/qspinlock.h          |  91 ++++++
- arch/powerpc/include/asm/qspinlock_paravirt.h |   7 +
- arch/powerpc/include/asm/simple_spinlock.h    | 288 ++++++++++++++++
- .../include/asm/simple_spinlock_types.h       |  21 ++
- arch/powerpc/include/asm/spinlock.h           | 308 +-----------------
- arch/powerpc/include/asm/spinlock_types.h     |  17 +-
- arch/powerpc/lib/Makefile                     |   3 +
- arch/powerpc/lib/locks.c                      |  12 +-
- arch/powerpc/platforms/pseries/Kconfig        |   9 +-
- arch/powerpc/platforms/pseries/setup.c        |   4 +-
- include/asm-generic/qspinlock.h               |   4 +
- 16 files changed, 588 insertions(+), 321 deletions(-)
- create mode 100644 arch/powerpc/include/asm/paravirt.h
- create mode 100644 arch/powerpc/include/asm/qspinlock.h
- create mode 100644 arch/powerpc/include/asm/qspinlock_paravirt.h
- create mode 100644 arch/powerpc/include/asm/simple_spinlock.h
- create mode 100644 arch/powerpc/include/asm/simple_spinlock_types.h
-
--- 
-2.23.0
+        tglx
