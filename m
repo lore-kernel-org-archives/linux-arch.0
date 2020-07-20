@@ -1,56 +1,298 @@
-From: Peter Maydell <peter.maydell@linaro.org>
-Subject: Re: [PATCH 1/6] syscalls: use uaccess_kernel in addr_limit_user_check
-Date: Mon, 20 Jul 2020 16:28:35 +0100
-Message-ID: <CAFEAcA8=O6TbxYwmRwZJbcqFKi364=ueV_TsTu_84M5WFVtD8g@mail.gmail.com>
-References: <20200714105505.935079-1-hch@lst.de> <20200714105505.935079-2-hch@lst.de>
- <20200718013849.GA157764@roeck-us.net> <20200718094846.GA8593@lst.de>
- <fe1d4a6d-e32d-6994-a08b-40134000e988@roeck-us.net> <20200720100104.GA20196@lst.de>
- <c6099697-5ccd-22b4-f5cb-cbe1c14644a9@roeck-us.net>
+From: Kevin Brodsky <kevin.brodsky@arm.com>
+Subject: Re: [PATCH v7 18/29] arm64: mte: Allow user control of the tag check
+ mode via prctl()
+Date: Mon, 20 Jul 2020 16:30:35 +0100
+Message-ID: <e9feb87e-41a8-17e6-eeba-4038da3bdde2@arm.com>
+References: <20200715170844.30064-1-catalin.marinas@arm.com>
+ <20200715170844.30064-19-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37308 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726437AbgGTP2r (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jul 2020 11:28:47 -0400
-Received: from mail-ot1-x344.google.com (mail-ot1-x344.google.com [IPv6:2607:f8b0:4864:20::344])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E4B62C0619D2
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jul 2020 08:28:46 -0700 (PDT)
-Received: by mail-ot1-x344.google.com with SMTP id h1so12500158otq.12
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jul 2020 08:28:46 -0700 (PDT)
-In-Reply-To: <c6099697-5ccd-22b4-f5cb-cbe1c14644a9@roeck-us.net>
+Received: from foss.arm.com ([217.140.110.172]:55024 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726012AbgGTPcB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Jul 2020 11:32:01 -0400
+In-Reply-To: <20200715170844.30064-19-catalin.marinas@arm.com>
+Content-Language: en-GB
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, lkml - Kernel Mailing List <linux-kernel@vger.kernel.org>, Vladimir Murzin <vladimir.murzin@arm.com>, arm-mail-list <linux-arm-kernel@lists.infradead.org>
+To: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
 
-On Mon, 20 Jul 2020 at 15:55, Guenter Roeck <linux@roeck-us.net> wrote:
-> Ah, sorry, you can't use the upstream version of qemu to test mps2-an385
-> Linux images. You'll have to use a version from https://github.com/groeck/qemu.
-> I'd recommend to use the v5.0.0-local branch.
+On 15/07/2020 18:08, Catalin Marinas wrote:
+> By default, even if PROT_MTE is set on a memory range, there is no tag
+> check fault reporting (SIGSEGV). Introduce a set of option to the
+> exiting prctl(PR_SET_TAGGED_ADDR_CTRL) to allow user control of the tag
+> check fault mode:
 >
-> I had to make some changes to qemu to be able to boot mps2-an385.
-> I tried to submit those changes into upstream qemu, but that was
-> rejected because, as I was told, the qemu implementation
-> would no longer reflect the real hardware with those changes in
-> place.
+>    PR_MTE_TCF_NONE  - no reporting (default)
+>    PR_MTE_TCF_SYNC  - synchronous tag check fault reporting
+>    PR_MTE_TCF_ASYNC - asynchronous tag check fault reporting
+>
+> These options translate into the corresponding SCTLR_EL1.TCF0 bitfield,
+> context-switched by the kernel. Note that uaccess done by the kernel is
+> not checked and cannot be configured by the user.
+>
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> ---
+>
+> Notes:
+>      v3:
+>      - Use SCTLR_EL1_TCF0_NONE instead of 0 for consistency.
+>      - Move mte_thread_switch() in this patch from an earlier one. In
+>        addition, it is called after the dsb() in __switch_to() so that any
+>        asynchronous tag check faults have been registered in the TFSR_EL1
+>        registers (to be added with the in-kernel MTE support.
+>      
+>      v2:
+>      - Handle SCTLR_EL1_TCF0_NONE explicitly for consistency with PR_MTE_TCF_NONE.
+>      - Fix SCTLR_EL1 register setting in flush_mte_state() (thanks to Peter
+>        Collingbourne).
+>      - Added ISB to update_sctlr_el1_tcf0() since, with the latest
+>        architecture update/fix, the TCF0 field is used by the uaccess
+>        routines.
+>
+>   arch/arm64/include/asm/mte.h       | 14 ++++++
+>   arch/arm64/include/asm/processor.h |  3 ++
+>   arch/arm64/kernel/mte.c            | 77 ++++++++++++++++++++++++++++++
+>   arch/arm64/kernel/process.c        | 26 ++++++++--
+>   include/uapi/linux/prctl.h         |  6 +++
+>   5 files changed, 123 insertions(+), 3 deletions(-)
+>
+> diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
+> index b2577eee62c2..df2efbc9f8f1 100644
+> --- a/arch/arm64/include/asm/mte.h
+> +++ b/arch/arm64/include/asm/mte.h
+> @@ -21,6 +21,9 @@ void mte_clear_page_tags(void *addr);
+>   void mte_sync_tags(pte_t *ptep, pte_t pte);
+>   void mte_copy_page_tags(void *kto, const void *kfrom);
+>   void flush_mte_state(void);
+> +void mte_thread_switch(struct task_struct *next);
+> +long set_mte_ctrl(unsigned long arg);
+> +long get_mte_ctrl(void);
+>   
+>   #else
+>   
+> @@ -36,6 +39,17 @@ static inline void mte_copy_page_tags(void *kto, const void *kfrom)
+>   static inline void flush_mte_state(void)
+>   {
+>   }
+> +static inline void mte_thread_switch(struct task_struct *next)
+> +{
+> +}
+> +static inline long set_mte_ctrl(unsigned long arg)
+> +{
+> +	return 0;
+> +}
+> +static inline long get_mte_ctrl(void)
+> +{
+> +	return 0;
+> +}
+>   
+>   #endif
+>   
+> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+> index 240fe5e5b720..80e7f0573309 100644
+> --- a/arch/arm64/include/asm/processor.h
+> +++ b/arch/arm64/include/asm/processor.h
+> @@ -151,6 +151,9 @@ struct thread_struct {
+>   	struct ptrauth_keys_user	keys_user;
+>   	struct ptrauth_keys_kernel	keys_kernel;
+>   #endif
+> +#ifdef CONFIG_ARM64_MTE
+> +	u64			sctlr_tcf0;
+> +#endif
+>   };
+>   
+>   static inline void arch_thread_struct_whitelist(unsigned long *offset,
+> diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
+> index 5f54fd140610..375483a1f573 100644
+> --- a/arch/arm64/kernel/mte.c
+> +++ b/arch/arm64/kernel/mte.c
+> @@ -5,6 +5,8 @@
+>   
+>   #include <linux/bitops.h>
+>   #include <linux/mm.h>
+> +#include <linux/prctl.h>
+> +#include <linux/sched.h>
+>   #include <linux/string.h>
+>   #include <linux/thread_info.h>
+>   
+> @@ -49,6 +51,26 @@ int memcmp_pages(struct page *page1, struct page *page2)
+>   	return ret;
+>   }
+>   
+> +static void update_sctlr_el1_tcf0(u64 tcf0)
+> +{
+> +	/* ISB required for the kernel uaccess routines */
+> +	sysreg_clear_set(sctlr_el1, SCTLR_EL1_TCF0_MASK, tcf0);
+> +	isb();
+> +}
+> +
+> +static void set_sctlr_el1_tcf0(u64 tcf0)
+> +{
+> +	/*
+> +	 * mte_thread_switch() checks current->thread.sctlr_tcf0 as an
+> +	 * optimisation. Disable preemption so that it does not see
+> +	 * the variable update before the SCTLR_EL1.TCF0 one.
+> +	 */
+> +	preempt_disable();
+> +	current->thread.sctlr_tcf0 = tcf0;
+> +	update_sctlr_el1_tcf0(tcf0);
+> +	preempt_enable();
+> +}
+> +
+>   void flush_mte_state(void)
+>   {
+>   	if (!system_supports_mte())
+> @@ -58,4 +80,59 @@ void flush_mte_state(void)
+>   	dsb(ish);
+>   	write_sysreg_s(0, SYS_TFSRE0_EL1);
+>   	clear_thread_flag(TIF_MTE_ASYNC_FAULT);
+> +	/* disable tag checking */
+> +	set_sctlr_el1_tcf0(SCTLR_EL1_TCF0_NONE);
+> +}
+> +
+> +void mte_thread_switch(struct task_struct *next)
+> +{
+> +	if (!system_supports_mte())
+> +		return;
+> +
+> +	/* avoid expensive SCTLR_EL1 accesses if no change */
+> +	if (current->thread.sctlr_tcf0 != next->thread.sctlr_tcf0)
 
-Yes; the rationale is that if you wanted to boot a kernel
-on an actual MPS2 board you'd need a bit of guest code to
-start it up (and to bundle the initrd/dtb in with it), so
-since you need to write that code anyway you could use it for
-booting the kernel in QEMU too.
+I think this could be improved by checking whether `next` is a kernel thread, in 
+which case thread.sctlr_tcf0 is 0 but there is no point in setting SCTLR_EL1.TCF0, 
+since there should not be any access via TTBR0.
 
-I appreciate that this is awkward for kernel developers (and
-perhaps for some other users too), but QEMU's handling of
--kernel and built-in-bootloader code is already a morass of
-special cases and do-what-I-mean behaviour that I'm not
-enthusiastic about further complicating :-)
+Kevin
 
-(https://lists.gnu.org/archive/html/qemu-arm/2018-06/msg00393.html
-has the archive of our original discussion on the point, for
-other readers of this post interested in further context and
-discussion.)
-
-thanks
--- PMM
+> +		update_sctlr_el1_tcf0(next->thread.sctlr_tcf0);
+> +}
+> +
+> +long set_mte_ctrl(unsigned long arg)
+> +{
+> +	u64 tcf0;
+> +
+> +	if (!system_supports_mte())
+> +		return 0;
+> +
+> +	switch (arg & PR_MTE_TCF_MASK) {
+> +	case PR_MTE_TCF_NONE:
+> +		tcf0 = SCTLR_EL1_TCF0_NONE;
+> +		break;
+> +	case PR_MTE_TCF_SYNC:
+> +		tcf0 = SCTLR_EL1_TCF0_SYNC;
+> +		break;
+> +	case PR_MTE_TCF_ASYNC:
+> +		tcf0 = SCTLR_EL1_TCF0_ASYNC;
+> +		break;
+> +	default:
+> +		return -EINVAL;
+> +	}
+> +
+> +	set_sctlr_el1_tcf0(tcf0);
+> +
+> +	return 0;
+> +}
+> +
+> +long get_mte_ctrl(void)
+> +{
+> +	if (!system_supports_mte())
+> +		return 0;
+> +
+> +	switch (current->thread.sctlr_tcf0) {
+> +	case SCTLR_EL1_TCF0_NONE:
+> +		return PR_MTE_TCF_NONE;
+> +	case SCTLR_EL1_TCF0_SYNC:
+> +		return PR_MTE_TCF_SYNC;
+> +	case SCTLR_EL1_TCF0_ASYNC:
+> +		return PR_MTE_TCF_ASYNC;
+> +	}
+> +
+> +	return 0;
+>   }
+> diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+> index 695705d1f8e5..d19ce8053a03 100644
+> --- a/arch/arm64/kernel/process.c
+> +++ b/arch/arm64/kernel/process.c
+> @@ -544,6 +544,13 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
+>   	 */
+>   	dsb(ish);
+>   
+> +	/*
+> +	 * MTE thread switching must happen after the DSB above to ensure that
+> +	 * any asynchronous tag check faults have been logged in the TFSR*_EL1
+> +	 * registers.
+> +	 */
+> +	mte_thread_switch(next);
+> +
+>   	/* the actual thread switch */
+>   	last = cpu_switch_to(prev, next);
+>   
+> @@ -603,9 +610,15 @@ static unsigned int tagged_addr_disabled;
+>   
+>   long set_tagged_addr_ctrl(unsigned long arg)
+>   {
+> +	unsigned long valid_mask = PR_TAGGED_ADDR_ENABLE;
+> +
+>   	if (is_compat_task())
+>   		return -EINVAL;
+> -	if (arg & ~PR_TAGGED_ADDR_ENABLE)
+> +
+> +	if (system_supports_mte())
+> +		valid_mask |= PR_MTE_TCF_MASK;
+> +
+> +	if (arg & ~valid_mask)
+>   		return -EINVAL;
+>   
+>   	/*
+> @@ -615,6 +628,9 @@ long set_tagged_addr_ctrl(unsigned long arg)
+>   	if (arg & PR_TAGGED_ADDR_ENABLE && tagged_addr_disabled)
+>   		return -EINVAL;
+>   
+> +	if (set_mte_ctrl(arg) != 0)
+> +		return -EINVAL;
+> +
+>   	update_thread_flag(TIF_TAGGED_ADDR, arg & PR_TAGGED_ADDR_ENABLE);
+>   
+>   	return 0;
+> @@ -622,13 +638,17 @@ long set_tagged_addr_ctrl(unsigned long arg)
+>   
+>   long get_tagged_addr_ctrl(void)
+>   {
+> +	long ret = 0;
+> +
+>   	if (is_compat_task())
+>   		return -EINVAL;
+>   
+>   	if (test_thread_flag(TIF_TAGGED_ADDR))
+> -		return PR_TAGGED_ADDR_ENABLE;
+> +		ret = PR_TAGGED_ADDR_ENABLE;
+>   
+> -	return 0;
+> +	ret |= get_mte_ctrl();
+> +
+> +	return ret;
+>   }
+>   
+>   /*
+> diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
+> index 07b4f8131e36..2390ab324afa 100644
+> --- a/include/uapi/linux/prctl.h
+> +++ b/include/uapi/linux/prctl.h
+> @@ -233,6 +233,12 @@ struct prctl_mm_map {
+>   #define PR_SET_TAGGED_ADDR_CTRL		55
+>   #define PR_GET_TAGGED_ADDR_CTRL		56
+>   # define PR_TAGGED_ADDR_ENABLE		(1UL << 0)
+> +/* MTE tag check fault modes */
+> +# define PR_MTE_TCF_SHIFT		1
+> +# define PR_MTE_TCF_NONE		(0UL << PR_MTE_TCF_SHIFT)
+> +# define PR_MTE_TCF_SYNC		(1UL << PR_MTE_TCF_SHIFT)
+> +# define PR_MTE_TCF_ASYNC		(2UL << PR_MTE_TCF_SHIFT)
+> +# define PR_MTE_TCF_MASK		(3UL << PR_MTE_TCF_SHIFT)
+>   
+>   /* Control reclaim behavior when allocating memory */
+>   #define PR_SET_IO_FLUSHER		57
