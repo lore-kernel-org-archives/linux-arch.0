@@ -1,32 +1,33 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Date: Mon, 20 Jul 2020 12:12:36 -0400
-Message-ID: <20200720161236.GF1228057@rowland.harvard.edu>
-References: <20200717044427.68747-1-ebiggers@kernel.org>
- <20200718014204.GN5369@dread.disaster.area>
- <20200718140811.GA1179836@rowland.harvard.edu>
- <20200720013320.GP5369@dread.disaster.area>
- <20200720145211.GC1228057@rowland.harvard.edu>
- <20200720153911.GX12769@casper.infradead.org>
+From: Jens Axboe <axboe@kernel.dk>
+Subject: Re: io_uring vs in_compat_syscall()
+Date: Mon, 20 Jul 2020 10:36:40 -0600
+Message-ID: <ceb21006-26d0-b216-84a9-5da0b89b5fbf@kernel.dk>
+References: <20200720061046.GA10678@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200720153911.GX12769@casper.infradead.org>
+In-Reply-To: <20200720061046.GA10678@lst.de>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Dave Chinner <david@fromorbit.com>, Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 20, 2020 at 04:39:11PM +0100, Matthew Wilcox wrote:
-> Honestly, even the term "release semantics" trips me up _every_ time.
-> It's a barrier to understanding because I have to translate it into "Oh,
-> he means it's like an unlock".  Why can't you just say "unlock semantics"?
+On 7/20/20 12:10 AM, Christoph Hellwig wrote:
+> Hi Jens,
+> 
+> I just found a (so far theoretical) issue with the io_uring submission
+> offloading to workqueues or threads.  We have lots of places using
+> in_compat_syscall() to check if a syscall needs compat treatmenet.
+> While the biggest users is iocttl(), we also have a fair amount of
+> places using in_compat_task() in read and write methods, and these
+> will not do the wrong thing when used with io_uring under certain
+> conditions.  I'm not sure how to best fix this, except for making sure
+> in_compat_syscall() returns true one way or another for these cases.
 
-It's not as bad as all that; people do talk about acquiring and 
-releasing locks, and presumably you don't have any trouble understanding 
-those terms.  In fact this usage is quite common -- and I believe it's 
-where the names "acquire semantics" and "release semantics" came from 
-originally.
+We can probably propagate this information in the io_kiocb via a flag,
+and have the io-wq worker set TS_COMPAT if that's the case.
 
-Alan Stern
+-- 
+Jens Axboe
