@@ -1,16 +1,20 @@
 From: Sasha Levin <sashal@kernel.org>
-Subject: [PATCH AUTOSEL 5.7 36/40] asm-generic/mmiowb: Allow mmiowb_set_pending() when preemptible()
-Date: Mon, 20 Jul 2020 17:37:11 -0400
-Message-ID: <20200720213715.406997-36-sashal@kernel.org>
-References: <20200720213715.406997-1-sashal@kernel.org>
+Subject: [PATCH AUTOSEL 5.4 31/34] asm-generic/mmiowb: Allow mmiowb_set_pending() when preemptible()
+Date: Mon, 20 Jul 2020 17:38:04 -0400
+Message-ID: <20200720213807.407380-31-sashal@kernel.org>
+References: <20200720213807.407380-1-sashal@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <20200720213715.406997-1-sashal@kernel.org>
-Sender: stable-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:57566 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728242AbgGTViq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Jul 2020 17:38:46 -0400
+In-Reply-To: <20200720213807.407380-1-sashal@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
 Cc: Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Paul Walmsley <paul.walmsley@sifive.com>, Guo Ren <guoren@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Palmer Dabbelt <palmer@dabbelt.com>, Emil Renner Berthing <kernel@esmil.dk>, Palmer Dabbelt <palmerdabbelt@google.com>, Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
 
 From: Will Deacon <will@kernel.org>
 
