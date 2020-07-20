@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: [PATCH 1/6] mm: add definition of PMD_PAGE_ORDER
-Date: Mon, 20 Jul 2020 12:24:30 +0300
-Message-ID: <20200720092435.17469-2-rppt@kernel.org>
+Subject: [PATCH 2/6] mmap: make mlock_future_check() global
+Date: Mon, 20 Jul 2020 12:24:31 +0300
+Message-ID: <20200720092435.17469-3-rppt@kernel.org>
 References: <20200720092435.17469-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -14,82 +14,43 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
 
-The definition of PMD_PAGE_ORDER denoting the number of base pages in the
-second-level leaf page is already used by DAX and maybe handy in other
-cases as well.
-
-Several architectures already have definition of PMD_ORDER as the size of
-second level page table, so to avoid conflict with these definitions use
-PMD_PAGE_ORDER name and update DAX respectively.
+It will be used by the upcoming secret memory implementation.
 
 Signed-off-by: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
 ---
- fs/dax.c                | 10 +++++-----
- include/linux/pgtable.h |  3 +++
- 2 files changed, 8 insertions(+), 5 deletions(-)
+ mm/internal.h | 3 +++
+ mm/mmap.c     | 5 ++---
+ 2 files changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/fs/dax.c b/fs/dax.c
-index 11b16729b86f..b91d8c8dda45 100644
---- a/fs/dax.c
-+++ b/fs/dax.c
-@@ -50,7 +50,7 @@ static inline unsigned int pe_order(enum page_entry_size pe_size)
- #define PG_PMD_NR	(PMD_SIZE >> PAGE_SHIFT)
+diff --git a/mm/internal.h b/mm/internal.h
+index 9886db20d94f..af0a92f8f6bc 100644
+--- a/mm/internal.h
++++ b/mm/internal.h
+@@ -349,6 +349,9 @@ static inline void munlock_vma_pages_all(struct vm_area_struct *vma)
+ extern void mlock_vma_page(struct page *page);
+ extern unsigned int munlock_vma_page(struct page *page);
  
- /* The order of a PMD entry */
--#define PMD_ORDER	(PMD_SHIFT - PAGE_SHIFT)
-+#define PMD_PAGE_ORDER	(PMD_SHIFT - PAGE_SHIFT)
- 
- static wait_queue_head_t wait_table[DAX_WAIT_TABLE_ENTRIES];
- 
-@@ -98,7 +98,7 @@ static bool dax_is_locked(void *entry)
- static unsigned int dax_entry_order(void *entry)
- {
- 	if (xa_to_value(entry) & DAX_PMD)
--		return PMD_ORDER;
-+		return PMD_PAGE_ORDER;
- 	return 0;
- }
- 
-@@ -1456,7 +1456,7 @@ static vm_fault_t dax_iomap_pmd_fault(struct vm_fault *vmf, pfn_t *pfnp,
- {
- 	struct vm_area_struct *vma = vmf->vma;
- 	struct address_space *mapping = vma->vm_file->f_mapping;
--	XA_STATE_ORDER(xas, &mapping->i_pages, vmf->pgoff, PMD_ORDER);
-+	XA_STATE_ORDER(xas, &mapping->i_pages, vmf->pgoff, PMD_PAGE_ORDER);
- 	unsigned long pmd_addr = vmf->address & PMD_MASK;
- 	bool write = vmf->flags & FAULT_FLAG_WRITE;
- 	bool sync;
-@@ -1515,7 +1515,7 @@ static vm_fault_t dax_iomap_pmd_fault(struct vm_fault *vmf, pfn_t *pfnp,
- 	 * entry is already in the array, for instance), it will return
- 	 * VM_FAULT_FALLBACK.
- 	 */
--	entry = grab_mapping_entry(&xas, mapping, PMD_ORDER);
-+	entry = grab_mapping_entry(&xas, mapping, PMD_PAGE_ORDER);
- 	if (xa_is_internal(entry)) {
- 		result = xa_to_internal(entry);
- 		goto fallback;
-@@ -1681,7 +1681,7 @@ dax_insert_pfn_mkwrite(struct vm_fault *vmf, pfn_t pfn, unsigned int order)
- 	if (order == 0)
- 		ret = vmf_insert_mixed_mkwrite(vmf->vma, vmf->address, pfn);
- #ifdef CONFIG_FS_DAX_PMD
--	else if (order == PMD_ORDER)
-+	else if (order == PMD_PAGE_ORDER)
- 		ret = vmf_insert_pfn_pmd(vmf, pfn, FAULT_FLAG_WRITE);
- #endif
- 	else
-diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
-index 56c1e8eb7bb0..79f8443609e7 100644
---- a/include/linux/pgtable.h
-+++ b/include/linux/pgtable.h
-@@ -28,6 +28,9 @@
- #define USER_PGTABLES_CEILING	0UL
- #endif
- 
-+/* Number of base pages in a second level leaf page */
-+#define PMD_PAGE_ORDER	(PMD_SHIFT - PAGE_SHIFT)
++extern int mlock_future_check(struct mm_struct *mm, unsigned long flags,
++			      unsigned long len);
 +
  /*
-  * A page table page can be thought of an array like this: pXd_t[PTRS_PER_PxD]
-  *
+  * Clear the page's PageMlocked().  This can be useful in a situation where
+  * we want to unconditionally remove a page from the pagecache -- e.g.,
+diff --git a/mm/mmap.c b/mm/mmap.c
+index 59a4682ebf3f..4dd40a4fedfb 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1310,9 +1310,8 @@ static inline unsigned long round_hint_to_min(unsigned long hint)
+ 	return hint;
+ }
+ 
+-static inline int mlock_future_check(struct mm_struct *mm,
+-				     unsigned long flags,
+-				     unsigned long len)
++int mlock_future_check(struct mm_struct *mm, unsigned long flags,
++		       unsigned long len)
+ {
+ 	unsigned long locked, lock_limit;
+ 
 -- 
 2.26.2
