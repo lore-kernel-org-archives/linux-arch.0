@@ -1,60 +1,87 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: io_uring vs in_compat_syscall()
-Date: Mon, 20 Jul 2020 10:28:55 -0700
-Message-ID: <8987E376-6B13-4798-BDBA-616A457447CF@amacapital.net>
-References: <b754dad5-ee85-8a2f-f41a-8bdc56de42e8@kernel.dk>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <b754dad5-ee85-8a2f-f41a-8bdc56de42e8@kernel.dk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jens Axboe <axboe@kernel.dk>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 3/6] mm: introduce secretmemfd system call to create
+ "secret" memory areas
+Date: Mon, 20 Jul 2020 20:46:50 +0300
+Message-ID: <20200720174650.GD8593@kernel.org>
+References: <20200720092435.17469-1-rppt@kernel.org>
+ <20200720092435.17469-4-rppt@kernel.org>
+ <CAK8P3a0NyvRMqH7X0YNO5E6DGtvZXD5ZcD6Y6n7AkocufkMnHA@mail.gmail.com>
+ <20200720142053.GC8593@kernel.org>
+ <CAK8P3a07jAec4hKyNMcha032TT6OXjYHaZZ4Za9ncDsvapeg8Q@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:48018 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1732122AbgGTRrG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Jul 2020 13:47:06 -0400
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a07jAec4hKyNMcha032TT6OXjYHaZZ4Za9ncDsvapeg8Q@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Christopher Lameter <cl@linux.com>, Dan Williams <dan.j.williams@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Elena Reshetova <elena.reshetova@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>, Ingo Molnar <mingo@redhat.com>, James Bottomley <jejb@linux.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <paul.walmsley@sifive.com>
 
+On Mon, Jul 20, 2020 at 04:34:12PM +0200, Arnd Bergmann wrote:
+> On Mon, Jul 20, 2020 at 4:21 PM Mike Rapoport <rppt@kernel.org> wrote:
+> > On Mon, Jul 20, 2020 at 01:30:13PM +0200, Arnd Bergmann wrote:
+> > > On Mon, Jul 20, 2020 at 11:25 AM Mike Rapoport <rppt@kernel.org> wrote:
+> > > >
+> > > > From: Mike Rapoport <rppt@linux.ibm.com>
+> > > >
+> > > > Introduce "secretmemfd" system call with the ability to create memory areas
+> > > > visible only in the context of the owning process and not mapped not only
+> > > > to other processes but in the kernel page tables as well.
+> > > >
+> > > > The user will create a file descriptor using the secretmemfd system call
+> > > > where flags supplied as a parameter to this system call will define the
+> > > > desired protection mode for the memory associated with that file
+> > > > descriptor. Currently there are two protection modes:
+> > > >
+> > > > * exclusive - the memory area is unmapped from the kernel direct map and it
+> > > >               is present only in the page tables of the owning mm.
+> > > > * uncached  - the memory area is present only in the page tables of the
+> > > >               owning mm and it is mapped there as uncached.
+> > > >
+> > > > For instance, the following example will create an uncached mapping (error
+> > > > handling is omitted):
+> > > >
+> > > >         fd = secretmemfd(SECRETMEM_UNCACHED);
+> > > >         ftruncate(fd, MAP_SIZE);
+> > > >         ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED,
+> > > >                    fd, 0);
+> > > >
+> > > > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> > >
+> > > I wonder if this should be more closely related to dmabuf file
+> > > descriptors, which
+> > > are already used for a similar purpose: sharing access to secret memory areas
+> > > that are not visible to the OS but can be shared with hardware through device
+> > > drivers that can import a dmabuf file descriptor.
+> >
+> > TBH, I didn't think about dmabuf, but my undestanding is that is this
+> > case memory areas are not visible to the OS because they are on device
+> > memory rather than normal RAM and when dmabuf is backed by the normal
+> > RAM, the memory is visible to the OS.
+> 
+> No, dmabuf is normally about normal RAM that is shared between multiple
+> devices, the idea is that you can have one driver allocate a buffer in RAM
+> and export it to user space through a file descriptor. The application can then
+> go and mmap() it or pass it into one or more other drivers.
+> 
+> This can be used e.g. for sharing a buffer between a video codec and the
+> gpu, or between a crypto engine and another device that accesses
+> unencrypted data while software can only observe the encrypted version.
 
+For our usecase sharing is optional from one side and there are no
+devices involved from the other.
 
-> On Jul 20, 2020, at 10:02 AM, Jens Axboe <axboe@kernel.dk> wrote:
->=20
-> =EF=BB=BFOn 7/20/20 10:58 AM, Andy Lutomirski wrote:
->>=20
->>>> On Jul 20, 2020, at 9:37 AM, Jens Axboe <axboe@kernel.dk> wrote:
->>>=20
->>> =EF=BB=BFOn 7/20/20 12:10 AM, Christoph Hellwig wrote:
->>>> Hi Jens,
->>>>=20
->>>> I just found a (so far theoretical) issue with the io_uring submission
->>>> offloading to workqueues or threads.  We have lots of places using
->>>> in_compat_syscall() to check if a syscall needs compat treatmenet.
->>>> While the biggest users is iocttl(), we also have a fair amount of
->>>> places using in_compat_task() in read and write methods, and these
->>>> will not do the wrong thing when used with io_uring under certain
->>>> conditions.  I'm not sure how to best fix this, except for making sure
->>>> in_compat_syscall() returns true one way or another for these cases.
->>>=20
->>> We can probably propagate this information in the io_kiocb via a flag,
->>> and have the io-wq worker set TS_COMPAT if that's the case.
->>>=20
->>=20
->> Is TS_COMPAT actually a cross-arch concept for which this is safe?
->> Having a real arch helper for =E2=80=9Cset the current syscall arch for t=
-he
->> current kernel thread=E2=80=9D seems more sensible to me.=20
->=20
-> Sure, I'd consider that implementation detail for the actual patch(es)
-> for this issue.
+As James pointed out, there is no match for the userspace API and if
+there will emerge a usacase that requires integration of secretmem with
+dma-buf, we'll deal with it then.
 
-There=E2=80=99s a corner case, though: doesn=E2=80=99t io_uring submission f=
-requently do the work synchronously in the context of the calling thread?  I=
-f so, can a thread do a 64-bit submit with 32-bit work or vice versa?
+>        Arnd
 
-Sometimes I think that in_compat_syscall() should have a mode in which calli=
-ng it warns (e.g. not actually in a syscall when doing things in io_uring). =
- And the relevant operations should be properly wired up to avoid global sta=
-te like this.
-
->=20
-> --=20
-> Jens Axboe
->=20
+-- 
+Sincerely yours,
+Mike.
