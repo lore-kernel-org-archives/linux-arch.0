@@ -1,133 +1,191 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
- membarrier_mm_sync_core_before_usermode
-Date: Mon, 20 Jul 2020 12:46:30 -0400 (EDT)
-Message-ID: <2055788870.20749.1595263590675.JavaMail.zimbra@efficios.com>
-References: <1594868476.6k5kvx8684.astroid@bobo.none> <EFAD6E2F-EC08-4EB3-9ECC-2A963C023FC5@amacapital.net> <20200716085032.GO10769@hirez.programming.kicks-ass.net> <1594892300.mxnq3b9a77.astroid@bobo.none> <20200716110038.GA119549@hirez.programming.kicks-ass.net> <1594906688.ikv6r4gznx.astroid@bobo.none> <1314561373.18530.1594993363050.JavaMail.zimbra@efficios.com> <1595213677.kxru89dqy2.astroid@bobo.none>
+From: "Darrick J. Wong" <darrick.wong@oracle.com>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Date: Mon, 20 Jul 2020 08:37:31 -0700
+Message-ID: <20200720153731.GB7597@magnolia>
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+ <20200718014204.GN5369@dread.disaster.area>
+ <20200718140811.GA1179836@rowland.harvard.edu>
+ <20200720013320.GP5369@dread.disaster.area>
+ <20200720145211.GC1228057@rowland.harvard.edu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1595213677.kxru89dqy2.astroid@bobo.none>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, x86 <x86@kernel.org>, Jens Axboe <axboe@kernel.dk>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200720145211.GC1228057@rowland.harvard.edu>
+Sender: linux-fsdevel-owner@vger.kernel.org
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: Dave Chinner <david@fromorbit.com>, Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
------ On Jul 19, 2020, at 11:03 PM, Nicholas Piggin npiggin@gmail.com wrote:
-
-> Excerpts from Mathieu Desnoyers's message of July 17, 2020 11:42 pm:
->> ----- On Jul 16, 2020, at 7:26 PM, Nicholas Piggin npiggin@gmail.com wrote:
->> [...]
->>> 
->>> membarrier does replace barrier instructions on remote CPUs, which do
->>> order accesses performed by the kernel on the user address space. So
->>> membarrier should too I guess.
->>> 
->>> Normal process context accesses like read(2) will do so because they
->>> don't get filtered out from IPIs, but kernel threads using the mm may
->>> not.
->> 
->> But it should not be an issue, because membarrier's ordering is only with
->> respect
->> to submit and completion of io_uring requests, which are performed through
->> system calls from the context of user-space threads, which are called from the
->> right mm.
+On Mon, Jul 20, 2020 at 10:52:11AM -0400, Alan Stern wrote:
+> On Mon, Jul 20, 2020 at 11:33:20AM +1000, Dave Chinner wrote:
+> > On Sat, Jul 18, 2020 at 10:08:11AM -0400, Alan Stern wrote:
+> > > > This is one of the reasons that the LKMM documetnation is so damn
+> > > > difficult to read and understand: just understanding the vocabulary
+> > > > it uses requires a huge learning curve, and it's not defined
+> > > > anywhere. Understanding the syntax of examples requires a huge
+> > > > learning curve, because it's not defined anywhere. 
+> > > 
+> > > Have you seen tools/memory-model/Documentation/explanation.txt?
+> > 
+> > <raises eyebrow>
+> > 
+> > Well, yes. Several times. I look at it almost daily, but that
+> > doesn't mean it's approachable, easy to read or even -that I
+> > understand what large parts of it say-. IOWs, that's one of the 
+> > problematic documents that I've been saying have a huge learning
+> > curve.
 > 
-> Is that true? Can io completions be written into an address space via a
-> kernel thread? I don't know the io_uring code well but it looks like
-> that's asynchonously using the user mm context.
+> Can you be more specific?  For example, exactly where does it start to 
+> become unapproachable or difficult to read?
+> 
+> Don't forget that this document was meant to help mitigate the LKMM's 
+> learning curve.  If it isn't successful, I want to improve it.
+> 
+> > So, if I say "the LKMM documentation", I mean -all- of the
+> > documentation, not just some tiny subset of it. I've read it all,
+> > I've even installed herd7 so I can run the litmus tests to see if
+> > that helps me understand the documentation better.
+> > 
+> > That only increased the WTF factor because the documentation of that
+> > stuff is far, far more impenetrable than the LKMM documentation.  If
+> > the LKMM learnign curve is near vertical, then the stuff in the
+> > herd7 tools is an -overhang-. And I most certainly can't climb
+> > that....
+> 
+> I can't argue with that.  Really understanding herd7 does require a 
+> pretty extensive background in the field.
+> 
+> > /me idly wonders if you recognise that your comment is, yet again, a
+> > classic demonstration of the behaviour the "curse of knowledge"
+> > cognitive bias describes.
+> 
+> Not at all.  I think you are confusing several different things.
+> 
+> For one, at a purely literal level my comment could not possibly be 
+> taken as a demonstration of "curse of knowledge" behavior, because it 
+> was a simple question: Have you seen explanation.txt?  Nothing obscure 
+> or outré about that.
+> 
+> For another, you appear to be confusing the LKMM with the kernel's API, 
+> and reference documents with programming guides (or recipes).  I'm sure 
+> that you aren't doing this deliberately and are well aware of these 
+> distinctions, but that's the impression your email leaves.
+> 
+> > > That
+> > > file was specifically written for non-experts to help them overcome the
+> > > learning curve.  It tries to define the vocabulary as terms are
+> > > introduced and to avoid using obscure syntax.
+> > 
+> > It tries to teach people about what a memory model is at the same
+> > time it tries to define the LKMM. What it doesn't do at all is
+> > teach people how to write safe code.
+> 
+> Of course it doesn't.  It was never meant to.  You can see this right in 
+> the filename "explanation.txt"; its purpose is to explain the LKMM.  
+> Nobody ever claimed it teaches how to write safe code or how to use the 
+> kernel's concurrent-programming API.  Those things belong in a separate 
+> document, such as recipes.txt.
+> 
+> >  People want to write safe code,
+> > not become "memory model experts".
+> 
+> Speak for yourself.  I personally want both, and no doubt there are 
+> others who feel the same way.
 
-Indeed, the io completion appears to be signaled asynchronously between kernel
-and user-space. Therefore, both kernel and userspace code need to have proper
-memory barriers in place to signal completion, otherwise user-space could read
-garbage after it notices completion of a read.
+Ok then.  I'm a lazy a***** maintainer who wants to write safe code
+without first having to understand the memory models of *multiple CPU
+architectures*, and I'm perfectly fine with accepting the smallest
+common featureset across those CPUs so that I can think as little as
+possible about things outside my area of expertise.
 
-I did not review the entire io_uring implementation, but the publish side
-for completion appears to be:
+Willy's proposed API looks good enough for me, and if that's all I ever
+have to know, I'm good with that.  Eric's proposed recipes patch is a
+decent breadcrumb should I ever desire to know more.  I don't expect
+I'll read the LKMM, just like I don't expect any of the rest of you will
+read the XFS internals book.
 
-static void __io_commit_cqring(struct io_ring_ctx *ctx)
-{
-        struct io_rings *rings = ctx->rings;
+(Well, ok, I imagine Dave has...)
 
-        /* order cqe stores with ring update */
-        smp_store_release(&rings->cq.tail, ctx->cached_cq_tail);
-
-        if (wq_has_sleeper(&ctx->cq_wait)) {
-                wake_up_interruptible(&ctx->cq_wait);
-                kill_fasync(&ctx->cq_fasync, SIGIO, POLL_IN);
-        }
-}
-
-The store-release on tail should be paired with a load_acquire on the
-reader-side (it's called "read_barrier()" in the code):
-
-tools/io_uring/queue.c:
-
-static int __io_uring_get_cqe(struct io_uring *ring,
-                              struct io_uring_cqe **cqe_ptr, int wait)
-{
-        struct io_uring_cq *cq = &ring->cq;
-        const unsigned mask = *cq->kring_mask;
-        unsigned head;
-        int ret;
-
-        *cqe_ptr = NULL;
-        head = *cq->khead;
-        do {
-                /*
-                 * It's necessary to use a read_barrier() before reading
-                 * the CQ tail, since the kernel updates it locklessly. The
-                 * kernel has the matching store barrier for the update. The
-                 * kernel also ensures that previous stores to CQEs are ordered
-                 * with the tail update.
-                 */
-                read_barrier();
-                if (head != *cq->ktail) {
-                        *cqe_ptr = &cq->cqes[head & mask];
-                        break;
-                }
-                if (!wait)
-                        break;
-                ret = io_uring_enter(ring->ring_fd, 0, 1,
-                                        IORING_ENTER_GETEVENTS, NULL);
-                if (ret < 0)
-                        return -errno;
-        } while (1);
-
-        return 0;
-}
-
-So as far as membarrier memory ordering dependencies are concerned, it relies
-on the store-release/load-acquire dependency chain in the completion queue to
-order against anything that was done prior to the completed requests.
-
-What is in-flight while the requests are being serviced provides no memory
-ordering guarantee whatsoever.
-
-> How about other memory accesses via kthread_use_mm? Presumably there is
-> still ordering requirement there for membarrier,
-
-Please provide an example case with memory accesses via kthread_use_mm where
-ordering matters to support your concern.
-
-> so I really think
-> it's a fragile interface with no real way for the user to know how
-> kernel threads may use its mm for any particular reason, so membarrier
-> should synchronize all possible kernel users as well.
-
-I strongly doubt so, but perhaps something should be clarified in the documentation
-if you have that feeling.
-
-Thanks,
-
-Mathieu
+--D
 
 > 
-> Thanks,
-> Nick
-
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+> > Memory models are -your expertise- but they aren't mine. My
+> > expertise is filesystems: I don't care about the nitty gritty
+> > details of memory models, I just want to be able to write lockless
+> > algorithms correctly. Which, I might point out, I've been doing for
+> > well over a decade...
+> 
+> That's perfectly fine; I understand completely.  But your criticism is 
+> misplaced: It should be applied to recipes.txt, not to explanation.txt.
+> 
+> And remember: It was _you_ who claimed: "just understanding the 
+> vocabulary [the LKMM] uses requires a huge learning curve, and it's not 
+> defined anywhere".  explanation.txt shows that this statement is at 
+> least partly wrong.  Besides, given that you don't care about the nitty 
+> gritty details of memory models in any case, why are you complaining 
+> that understanding the LKMM is so hard?
+> 
+> My impression is that you really want to complain about the inadequate 
+> quality of recipes.txt as a programmers' guide.  Fine, but don't extend 
+> that to a blanket condemnation of all the LKMM documentation.
+> 
+> > > If you think it needs improvement and can give some specific
+> > > details about where it falls short, I would like to hear them.
+> > 
+> > Haven't you understood anything I've been saying? That developers
+> > don't care about how the theory behind the memory model  or how it
+> > works - we just want to be able to write safe code.
+> 
+> Again, speak for yourself.
+> 
+> >  And to do that
+> > quickly and efficiently. The "make the documentation more complex"
+> > response is the wrong direction. Please *dumb it down* to the most
+> > basic, simplest, common concurrency patterns that programmers use
+> > and then write APIs to do those things that *hide the memory model
+> > for the programmer*.
+> > 
+> > Adding documentation about all the possible things you could do,
+> > all the optimisations you could make, all the intricate, subtle
+> > variations you can use, etc is not helpful. It might be interesting
+> > to you, but I just want -somethign that works- and not have to
+> > understand the LKMM to get stuff done.
+> 
+> In principle, both can be included in the same document.  Say, with the 
+> more in-depth discussions relegated to specially marked-off sections 
+> that readers are invited to skip if they aren't interested.
+> 
+> > Example: I know how smp_load_acquire() works. I know that I can
+> > expect the same behavioural semantics from smp_cond_load_acquire().
+> > But I don't care how the implementation of smp_cond_load_acquire()
+> > is optimised to minimise ordering barriers as it spins. That sort of
+> > optimisation is your job, not mine - I just want a function that
+> > will spin safely until a specific value is seen and then return with
+> > acquire semantics on the successful load.....
+> > 
+> > Can you see the difference between "understanding the LKMM
+> > documenation" vs "using a well defined API that provides commonly
+> > used functionality" to write correct, optimal code that needs to
+> > spin waiting for some other context to update a variable?
+> 
+> Certainly I can.  Can't _you_ see the difference between a document that 
+> helps people "understand the LKMM" and one that demonstrates "using a 
+> well defined API that provides commonly used functionality"?
+> 
+> > That's the problem the LKMM documentation fails to address. It is
+> > written to explain the theory behind the LKMM rather than provide
+> > developers with pointers to the templates and APIs that implement
+> > the lockless co-ordination functionality they want to use....
+> 
+> That's the difference between a reference document and a programmers' 
+> guide.  Grousing that one isn't the other is futile.
+> 
+> On the other hand, pointing out specific areas of improvement for a 
+> document that was meant to be a programmers' guide can be very helpful. 
+> You may not be inclined to spend any time editing recipes.txt, but 
+> perhaps you could point out a few of the specific areas most in need of 
+> work?
+> 
+> Alan Stern
