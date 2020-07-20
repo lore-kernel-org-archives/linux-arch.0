@@ -1,52 +1,51 @@
 Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:47608 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731607AbgGTPyt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Jul 2020 11:54:49 -0400
-Date: Mon, 20 Jul 2020 17:54:41 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 0/6] arm: don't call addr_limit_user_check for nommu
-Message-ID: <20200720155441.GA13067@lst.de>
-References: <20200714105505.935079-1-hch@lst.de>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:50906 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726225AbgGTCCS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 19 Jul 2020 22:02:18 -0400
+Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
+References: <20200413125303.423864-1-npiggin@gmail.com>
+ <20200413125303.423864-5-npiggin@gmail.com>
+From: Zefan Li <lizefan@huawei.com>
+Message-ID: <0e43e743-7c78-fb86-6c36-f42e6184d32c@huawei.com>
+Date: Mon, 20 Jul 2020 10:02:13 +0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200714105505.935079-1-hch@lst.de>
+In-Reply-To: <20200413125303.423864-5-npiggin@gmail.com>
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200720155441.xxwvqv5F0ENsdN8bzTEm25-yNBiz42Grr9rMAgqxz1g@z>
+To: Nicholas Piggin <npiggin@gmail.com>, linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20200720020213.pDgVfbEXxOk4uEFx4MzWTzekWDTPEuvMmwJ6rPU5wAw@z>
 
-On arm nommu kernel use the same constant for USER_DS and KERNEL_DS,
-and seqment_eq always returns false.  With the current check in
-addr_limit_user_check that works by accident, but when replacing
-seqment_eq with uaccess_kerne it will fail.  Just remove the not
-needed check entirely.
+> +static int vmap_pages_range_noflush(unsigned long start, unsigned long end,
+> +				    pgprot_t prot, struct page **pages,
+> +				    unsigned int page_shift)
+> +{
+> +	if (page_shift == PAGE_SIZE) {
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reported-by: Guenter Roeck <linux@roeck-us.net>
----
+Is this a typo of PAGE_SHIFT?
 
-Andrew: this should preferably go before the other patches in this
-series.
-
- arch/arm/kernel/signal.c | 2 ++
- 1 file changed, 2 insertions(+)
-
-diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
-index ab2568996ddb0c..c9dc912b83f012 100644
---- a/arch/arm/kernel/signal.c
-+++ b/arch/arm/kernel/signal.c
-@@ -713,7 +713,9 @@ struct page *get_signal_page(void)
- /* Defer to generic check */
- asmlinkage void addr_limit_check_failed(void)
- {
-+#ifdef CONFIG_MMU
- 	addr_limit_user_check();
-+#endif
- }
- 
- #ifdef CONFIG_DEBUG_RSEQ
--- 
-2.27.0
+> +		return vmap_small_pages_range_noflush(start, end, prot, pages);
+> +	} else {
+> +		unsigned long addr = start;
+> +		unsigned int i, nr = (end - start) >> page_shift;
+> +
+> +		for (i = 0; i < nr; i++) {
+> +			int err;
+> +
+> +			err = vmap_range_noflush(addr,
+> +					addr + (1UL << page_shift),
+> +					__pa(page_address(pages[i])), prot,
+> +					page_shift);
+> +			if (err)
+> +				return err;
+> +
+> +			addr += 1UL << page_shift;
+> +		}
+> +
+> +		return 0;
+> +	}
+> +}
+> +
