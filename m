@@ -1,81 +1,92 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga18.intel.com ([134.134.136.126]:1883 "EHLO mga18.intel.com"
+Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:39498 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726938AbgGQRAx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Jul 2020 13:00:53 -0400
-From: Kristen Carlson Accardi <kristen@linux.intel.com>
-Subject: [PATCH v4 05/10] x86: Make sure _etext includes function sections
-Date: Fri, 17 Jul 2020 10:00:02 -0700
-Message-ID: <20200717170008.5949-6-kristen@linux.intel.com>
-In-Reply-To: <20200717170008.5949-1-kristen@linux.intel.com>
-References: <20200717170008.5949-1-kristen@linux.intel.com>
+        id S1732463AbgGTQEf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Jul 2020 12:04:35 -0400
+Date: Mon, 20 Jul 2020 09:04:34 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Message-ID: <20200720160433.GQ9247@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+ <20200718014204.GN5369@dread.disaster.area>
+ <20200718140811.GA1179836@rowland.harvard.edu>
+ <20200720013320.GP5369@dread.disaster.area>
+ <20200720145211.GC1228057@rowland.harvard.edu>
+ <20200720153911.GX12769@casper.infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200720153911.GX12769@casper.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: keescook@chromium.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: arjan@linux.intel.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, rick.p.edgecombe@intel.com, Kristen Carlson Accardi <kristen@linux.intel.com>, Tony Luck <tony.luck@intel.com>, linux-arch@vger.kernel.org
-Message-ID: <20200717170002.tHthxsoRbFL5BLuWpQV7tWg8gkkdmNGuNWwo_032cMo@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Alan Stern <stern@rowland.harvard.edu>, Dave Chinner <david@fromorbit.com>, Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200720160434.BZ-c3cbkQGLWGknMjq9zFZ1LDWx90xunY3gRXg256JA@z>
 
-When using -ffunction-sections to place each function in
-it's own text section so it can be randomized at load time, the
-linker considers these .text.* sections "orphaned sections", and
-will place them after the first similar section (.text). In order
-to accurately represent the end of the text section and the
-orphaned sections, _etext must be moved so that it is after both
-.text and .text.* The text size must also be calculated to
-include .text AND .text.*
+On Mon, Jul 20, 2020 at 04:39:11PM +0100, Matthew Wilcox wrote:
+> On Mon, Jul 20, 2020 at 10:52:11AM -0400, Alan Stern wrote:
+> > On Mon, Jul 20, 2020 at 11:33:20AM +1000, Dave Chinner wrote:
+> > > On Sat, Jul 18, 2020 at 10:08:11AM -0400, Alan Stern wrote:
+> > > > > This is one of the reasons that the LKMM documetnation is so damn
+> > > > > difficult to read and understand: just understanding the vocabulary
+> > > > > it uses requires a huge learning curve, and it's not defined
+> > > > > anywhere. Understanding the syntax of examples requires a huge
+> > > > > learning curve, because it's not defined anywhere. 
+> > > > 
+> > > > Have you seen tools/memory-model/Documentation/explanation.txt?
+> > > 
+> > > <raises eyebrow>
+> > > 
+> > > Well, yes. Several times. I look at it almost daily, but that
+> > > doesn't mean it's approachable, easy to read or even -that I
+> > > understand what large parts of it say-. IOWs, that's one of the 
+> > > problematic documents that I've been saying have a huge learning
+> > > curve.
+> > 
+> > Can you be more specific?  For example, exactly where does it start to 
+> > become unapproachable or difficult to read?
+> > 
+> > Don't forget that this document was meant to help mitigate the LKMM's 
+> > learning curve.  If it isn't successful, I want to improve it.
+> 
+> I can't speak for Dave, but the introduction to that documentation makes
+> it clear to me that it's not the document I want to read.
+> 
+> : This document describes the ideas underlying the LKMM.  It is meant
+> : for people who want to understand how the model was designed.  It does
+> : not go into the details of the code in the .bell and .cat files;
+> : rather, it explains in English what the code expresses symbolically.
+> 
+> I don't want to know how the model was designed.  I want to write a
+> device driver, or filesystem, or whatever.
+> 
+> Honestly, even the term "release semantics" trips me up _every_ time.
+> It's a barrier to understanding because I have to translate it into "Oh,
+> he means it's like an unlock".  Why can't you just say "unlock semantics"?
 
-Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
-Reviewed-by: Tony Luck <tony.luck@intel.com>
-Tested-by: Tony Luck <tony.luck@intel.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/kernel/vmlinux.lds.S     | 17 +++++++++++++++--
- include/asm-generic/vmlinux.lds.h |  2 +-
- 2 files changed, 16 insertions(+), 3 deletions(-)
+One way to think of it is "release" as in "release a lock".
 
-diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-index 3bfc8dd8a43d..e8da7eeb4d8d 100644
---- a/arch/x86/kernel/vmlinux.lds.S
-+++ b/arch/x86/kernel/vmlinux.lds.S
-@@ -146,9 +146,22 @@ SECTIONS
- #endif
- 	} :text =0xcccc
- 
--	/* End of text section, which should occupy whole number of pages */
--	_etext = .;
-+	/*
-+	 * -ffunction-sections creates .text.* sections, which are considered
-+	 * "orphan sections" and added after the first similar section (.text).
-+	 * Placing this ALIGN statement before _etext causes the address of
-+	 * _etext to be below that of all the .text.* orphaned sections
-+	 */
- 	. = ALIGN(PAGE_SIZE);
-+	_etext = .;
-+
-+	/*
-+	 * the size of the .text section is used to calculate the address
-+	 * range for orc lookups. If we just use SIZEOF(.text), we will
-+	 * miss all the .text.* sections. Calculate the size using _etext
-+	 * and _stext and save the value for later.
-+	 */
-+	text_size = _etext - _stext;
- 
- 	X86_ALIGN_RODATA_BEGIN
- 	RO_DATA(PAGE_SIZE)
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index a5552cf28d5d..34eab6513fdc 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -835,7 +835,7 @@
- 	. = ALIGN(4);							\
- 	.orc_lookup : AT(ADDR(.orc_lookup) - LOAD_OFFSET) {		\
- 		orc_lookup = .;						\
--		. += (((SIZEOF(.text) + LOOKUP_BLOCK_SIZE - 1) /	\
-+		. += (((text_size + LOOKUP_BLOCK_SIZE - 1) /	\
- 			LOOKUP_BLOCK_SIZE) + 1) * 4;			\
- 		orc_lookup_end = .;					\
- 	}
--- 
-2.20.1
+But to answer your question:
+
+1.	The rest of the industry settled on "release" for that form
+	of atomics a very long time ago.  Yes, we could insist on
+	Linux-kernel exceptionalism, but that doesn't seem consistent
+	with the large number of people coming into the kernel, even if
+	only briefly.
+
+2.	If we were to say "unlock" instead of "release", consistency
+	would demand that we also say "lock" instead of "acquire".
+	But "lock" is subtlely different than "acquire", and there is
+	a history of people requesting further divergence.
+
+3.	At least one architecture has started using GCC intrinsics
+	to implement atomics.  I would expect more to follow.  And
+	the GCC intrinsics say "_release".
+
+4.	More cynically (and I do not bleach my hair, so yes, I do have the
+	hair color for it), the Linux kernel community is sufficiently
+	creative in its (ab)use of whatever tools happen to be lying
+	around that any name will become misleading over time in any case.
+
+							Thanx, Paul
