@@ -1,77 +1,70 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45816 "EHLO
+Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55848 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727898AbgGaXIq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:08:46 -0400
-Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6D5A2C0617A5
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:46 -0700 (PDT)
-Received: by mail-pl1-x644.google.com with SMTP id o1so18117035plk.1
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:46 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 30/36] x86/build: Assert for unwanted sections
-Date: Fri, 31 Jul 2020 16:08:14 -0700
-Message-ID: <20200731230820.1742553-31-keescook@chromium.org>
-In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
-References: <20200731230820.1742553-1-keescook@chromium.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        with ESMTP id S1729686AbgGTR26 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jul 2020 13:28:58 -0400
+Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 34FD1C0619D5
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jul 2020 10:28:58 -0700 (PDT)
+Received: by mail-pg1-x542.google.com with SMTP id p3so10610880pgh.3
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jul 2020 10:28:58 -0700 (PDT)
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+From: Andy Lutomirski <luto@amacapital.net>
+Mime-Version: 1.0 (1.0)
+Subject: Re: io_uring vs in_compat_syscall()
+Date: Mon, 20 Jul 2020 10:28:55 -0700
+Message-ID: <8987E376-6B13-4798-BDBA-616A457447CF@amacapital.net>
+References: <b754dad5-ee85-8a2f-f41a-8bdc56de42e8@kernel.dk>
+In-Reply-To: <b754dad5-ee85-8a2f-f41a-8bdc56de42e8@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200731230814.e1_nP3M8HWEOSJU1bv8CKBeUCrBqL5Eio7iFfa5SFy0@z>
+To: Jens Axboe <axboe@kernel.dk>
+Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org
+Message-ID: <20200720172855.w9FQJbtoNXAj-ZHNdbycDWJe-AMFVP3m2UN0t0lS7bw@z>
 
-In preparation for warning on orphan sections, enforce other
-expected-to-be-zero-sized sections (since discarding them might hide
-problems with them suddenly gaining unexpected entries).
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/kernel/vmlinux.lds.S | 24 ++++++++++++++++++++++++
- 1 file changed, 24 insertions(+)
 
-diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-index 7faffe7414d6..d8792f9c536f 100644
---- a/arch/x86/kernel/vmlinux.lds.S
-+++ b/arch/x86/kernel/vmlinux.lds.S
-@@ -415,6 +415,15 @@ SECTIONS
- 
- 	DISCARDS
- 
-+	/*
-+	 * Sections that should stay zero sized, which is safer to
-+	 * explicitly check instead of blindly discarding.
-+	 */
-+	.got (NOLOAD) : {
-+		*(.got) *(.igot.*)
-+	}
-+	ASSERT(SIZEOF(.got) == 0, "Unexpected GOT entries detected!")
-+
- 	/*
- 	 * Make sure that the .got.plt is either completely empty or it
- 	 * contains only the lazy dispatch entries.
-@@ -427,6 +436,21 @@ SECTIONS
- 	       SIZEOF(.got.plt) == 0xc,
- #endif
- 	       "Unexpected GOT/PLT entries detected!")
-+
-+	.plt (NOLOAD) : {
-+		*(.plt) *(.plt.*) *(.iplt)
-+	}
-+	ASSERT(SIZEOF(.plt) == 0, "Unexpected run-time procedure linkages detected!")
-+
-+	/* ld.lld does not like .rel* sections being made "NOLOAD". */
-+	.rel.dyn : {
-+		*(.rel.*) *(.rel_*)
-+	}
-+	ASSERT(SIZEOF(.rel.dyn) == 0, "Unexpected run-time relocations (.rel) detected!")
-+	.rela.dyn : {
-+		*(.rela.*) *(.rela_*)
-+	}
-+	ASSERT(SIZEOF(.rela.dyn) == 0, "Unexpected run-time relocations (.rela) detected!")
- }
- 
- #ifdef CONFIG_X86_32
--- 
-2.25.1
+> On Jul 20, 2020, at 10:02 AM, Jens Axboe <axboe@kernel.dk> wrote:
+>=20
+> =EF=BB=BFOn 7/20/20 10:58 AM, Andy Lutomirski wrote:
+>>=20
+>>>> On Jul 20, 2020, at 9:37 AM, Jens Axboe <axboe@kernel.dk> wrote:
+>>>=20
+>>> =EF=BB=BFOn 7/20/20 12:10 AM, Christoph Hellwig wrote:
+>>>> Hi Jens,
+>>>>=20
+>>>> I just found a (so far theoretical) issue with the io_uring submission
+>>>> offloading to workqueues or threads.  We have lots of places using
+>>>> in_compat_syscall() to check if a syscall needs compat treatmenet.
+>>>> While the biggest users is iocttl(), we also have a fair amount of
+>>>> places using in_compat_task() in read and write methods, and these
+>>>> will not do the wrong thing when used with io_uring under certain
+>>>> conditions.  I'm not sure how to best fix this, except for making sure
+>>>> in_compat_syscall() returns true one way or another for these cases.
+>>>=20
+>>> We can probably propagate this information in the io_kiocb via a flag,
+>>> and have the io-wq worker set TS_COMPAT if that's the case.
+>>>=20
+>>=20
+>> Is TS_COMPAT actually a cross-arch concept for which this is safe?
+>> Having a real arch helper for =E2=80=9Cset the current syscall arch for t=
+he
+>> current kernel thread=E2=80=9D seems more sensible to me.=20
+>=20
+> Sure, I'd consider that implementation detail for the actual patch(es)
+> for this issue.
+
+There=E2=80=99s a corner case, though: doesn=E2=80=99t io_uring submission f=
+requently do the work synchronously in the context of the calling thread?  I=
+f so, can a thread do a 64-bit submit with 32-bit work or vice versa?
+
+Sometimes I think that in_compat_syscall() should have a mode in which calli=
+ng it warns (e.g. not actually in a syscall when doing things in io_uring). =
+ And the relevant operations should be properly wired up to avoid global sta=
+te like this.
+
+>=20
+> --=20
+> Jens Axboe
+>=20
