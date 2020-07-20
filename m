@@ -1,43 +1,88 @@
-Return-Path: <SRS0=4doj=BL=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43872 "EHLO mail.kernel.org"
+Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:48018 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728296AbgHABOy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 Jul 2020 21:14:54 -0400
-From: guoren@kernel.org
-Subject: [PATCH 09/13] csky: Set CONFIG_NR_CPU 4 as default
-Date: Sat,  1 Aug 2020 01:14:09 +0000
-Message-ID: <1596244453-98575-10-git-send-email-guoren@kernel.org>
-In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
-References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
+        id S1732122AbgGTRrG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Jul 2020 13:47:06 -0400
+Date: Mon, 20 Jul 2020 20:46:50 +0300
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 3/6] mm: introduce secretmemfd system call to create
+ "secret" memory areas
+Message-ID: <20200720174650.GD8593@kernel.org>
+References: <20200720092435.17469-1-rppt@kernel.org>
+ <20200720092435.17469-4-rppt@kernel.org>
+ <CAK8P3a0NyvRMqH7X0YNO5E6DGtvZXD5ZcD6Y6n7AkocufkMnHA@mail.gmail.com>
+ <20200720142053.GC8593@kernel.org>
+ <CAK8P3a07jAec4hKyNMcha032TT6OXjYHaZZ4Za9ncDsvapeg8Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a07jAec4hKyNMcha032TT6OXjYHaZZ4Za9ncDsvapeg8Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: guoren@kernel.org, arnd@arndb.de
-Cc: linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
-Message-ID: <20200801011409.HX4jbUgcc_rzd99Fqe2O2a2GvQzDOx0I6E4L5yrn9wA@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Christopher Lameter <cl@linux.com>, Dan Williams <dan.j.williams@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Elena Reshetova <elena.reshetova@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>, Ingo Molnar <mingo@redhat.com>, James Bottomley <jejb@linux.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <paul.walmsley@sifive.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-nvdimm@lists.01.org, linux-riscv <linux-riscv@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, linaro-mm-sig@lists.linaro.org, Sumit Semwal <sumit.semwal@linaro.org>
+Message-ID: <20200720174650.Yn3SEH8-XmXyM89lzlVS13VgziJTiHfG90a9ytuyNaU@z>
 
-From: Guo Ren <guoren@linux.alibaba.com>
+On Mon, Jul 20, 2020 at 04:34:12PM +0200, Arnd Bergmann wrote:
+> On Mon, Jul 20, 2020 at 4:21 PM Mike Rapoport <rppt@kernel.org> wrote:
+> > On Mon, Jul 20, 2020 at 01:30:13PM +0200, Arnd Bergmann wrote:
+> > > On Mon, Jul 20, 2020 at 11:25 AM Mike Rapoport <rppt@kernel.org> wrote:
+> > > >
+> > > > From: Mike Rapoport <rppt@linux.ibm.com>
+> > > >
+> > > > Introduce "secretmemfd" system call with the ability to create memory areas
+> > > > visible only in the context of the owning process and not mapped not only
+> > > > to other processes but in the kernel page tables as well.
+> > > >
+> > > > The user will create a file descriptor using the secretmemfd system call
+> > > > where flags supplied as a parameter to this system call will define the
+> > > > desired protection mode for the memory associated with that file
+> > > > descriptor. Currently there are two protection modes:
+> > > >
+> > > > * exclusive - the memory area is unmapped from the kernel direct map and it
+> > > >               is present only in the page tables of the owning mm.
+> > > > * uncached  - the memory area is present only in the page tables of the
+> > > >               owning mm and it is mapped there as uncached.
+> > > >
+> > > > For instance, the following example will create an uncached mapping (error
+> > > > handling is omitted):
+> > > >
+> > > >         fd = secretmemfd(SECRETMEM_UNCACHED);
+> > > >         ftruncate(fd, MAP_SIZE);
+> > > >         ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED,
+> > > >                    fd, 0);
+> > > >
+> > > > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> > >
+> > > I wonder if this should be more closely related to dmabuf file
+> > > descriptors, which
+> > > are already used for a similar purpose: sharing access to secret memory areas
+> > > that are not visible to the OS but can be shared with hardware through device
+> > > drivers that can import a dmabuf file descriptor.
+> >
+> > TBH, I didn't think about dmabuf, but my undestanding is that is this
+> > case memory areas are not visible to the OS because they are on device
+> > memory rather than normal RAM and when dmabuf is backed by the normal
+> > RAM, the memory is visible to the OS.
+> 
+> No, dmabuf is normally about normal RAM that is shared between multiple
+> devices, the idea is that you can have one driver allocate a buffer in RAM
+> and export it to user space through a file descriptor. The application can then
+> go and mmap() it or pass it into one or more other drivers.
+> 
+> This can be used e.g. for sharing a buffer between a video codec and the
+> gpu, or between a crypto engine and another device that accesses
+> unencrypted data while software can only observe the encrypted version.
 
-The C860 processors support 4 cores smp for maximum, so set NR_CPU
-to 4 as default
+For our usecase sharing is optional from one side and there are no
+devices involved from the other.
 
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
----
- arch/csky/Kconfig | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+As James pointed out, there is no match for the userspace API and if
+there will emerge a usacase that requires integration of secretmem with
+dma-buf, we'll deal with it then.
 
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index fd92d73..ad98b93 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -279,7 +279,7 @@ config NR_CPUS
- 	int "Maximum number of CPUs (2-32)"
- 	range 2 32
- 	depends on SMP
--	default "2"
-+	default "4"
- 
- config HIGHMEM
- 	bool "High Memory Support"
+>        Arnd
+
 -- 
-2.7.4
+Sincerely yours,
+Mike.
