@@ -1,132 +1,93 @@
-From: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH v3 0/2] prctl.2 man page updates for Linux 5.6
-Date: Mon, 20 Jul 2020 23:31:16 +0200
-Message-ID: <CAKgNAkggayFEjHgPNu1HzvXGfSDoCq=Y-Ni4iv=RBYk2Eb6U1Q@mail.gmail.com>
-References: <1593020162-9365-1-git-send-email-Dave.Martin@arm.com>
- <c17e330c-69f7-da7a-feae-cb8b8f5d7ea0@gmail.com> <20200720165205.GI30452@arm.com>
-Reply-To: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
+From: Sasha Levin <sashal@kernel.org>
+Subject: [PATCH AUTOSEL 5.7 36/40] asm-generic/mmiowb: Allow mmiowb_set_pending() when preemptible()
+Date: Mon, 20 Jul 2020 17:37:11 -0400
+Message-ID: <20200720213715.406997-36-sashal@kernel.org>
+References: <20200720213715.406997-1-sashal@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200720165205.GI30452-5wv7dgnIgG8@public.gmane.org>
-Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Cc: linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-man <linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>, Will Deacon <will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Content-Transfer-Encoding: 8bit
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20200720213715.406997-1-sashal@kernel.org>
+Sender: stable-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
+Cc: Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Paul Walmsley <paul.walmsley@sifive.com>, Guo Ren <guoren@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Palmer Dabbelt <palmer@dabbelt.com>, Emil Renner Berthing <kernel@esmil.dk>, Palmer Dabbelt <palmerdabbelt@google.com>, Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Hello Dave,
+From: Will Deacon <will@kernel.org>
 
-TL;DR: don't worry about the small stuff; I'm happy to do the minor
-edits given the high quality of your patches.
+[ Upstream commit bd024e82e4cd95c7f1a475a55f99871936c2b2db ]
 
-On Mon, 20 Jul 2020 at 18:52, Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org> wrote:
->
-> On Mon, Jun 29, 2020 at 01:52:24PM +0200, Michael Kerrisk (man-pages) wrote:
-> > Hi Dave,
-> >
-> > On 6/24/20 7:36 PM, Dave Martin wrote:
-> > > A bunch of updates to the prctl(2) man page to fill in missing
-> > > prctls (mostly) up to Linux 5.6 (along with a few other tweaks and
-> > > fixes).
-> > >
-> > > Patches from the v2 series [1] that have been applied or rejected
-> > > already have been dropped.
-> > >
-> > > All that remain here now are the SVE and tagged address ABI controls
-> > > for arm64.
-> > >
-> > >
-> > >
-> > > [1] https://lore.kernel.org/linux-man/1590614258-24728-1-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org/
-> > >
-> > >
-> > > Dave Martin (2):
-> > >   prctl.2: Add SVE prctls (arm64)
-> > >   prctl.2: Add tagged address ABI control prctls (arm64)
-> > >
-> > >  man2/prctl.2 | 331 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-> > >  1 file changed, 331 insertions(+)
-> > Thanks. I've pushed these changes to master now.
->
-> Thanks -- btw I finally got around to reviewing master, and noted a few
-> editorial changes that man-pages(7) does not make any statement about:
->
-> "arg1, arg2, and arg3"
->
->         Do you strictly prefer the command before "and" here?
->
->         Conventionally, the final comma would typically be omitted in
->         prose, except where the list members are complex enough that the
->         command is required to assist parsing.  However, lists of formal
->         arguments are not quite vanilla prose.
+Although mmiowb() is concerned only with serialising MMIO writes occuring
+in contexts where a spinlock is held, the call to mmiowb_set_pending()
+from the MMIO write accessors can occur in preemptible contexts, such
+as during driver probe() functions where ordering between CPUs is not
+usually a concern, assuming that the task migration path provides the
+necessary ordering guarantees.
 
-There are two camps wrt that comma. I prefer the so-called Oxford
-comma convention, as shown above. man-pages uses it generally.
+Unfortunately, the default implementation of mmiowb_set_pending() is not
+preempt-safe, as it makes use of a a per-cpu variable to track its
+internal state. This has been reported to generate the following splat
+on riscv:
 
-> "Providing that" -> "Provided that"
->
->         Any particular rationale here?
+ | BUG: using smp_processor_id() in preemptible [00000000] code: swapper/0/1
+ | caller is regmap_mmio_write32le+0x1c/0x46
+ | CPU: 3 PID: 1 Comm: swapper/0 Not tainted 5.8.0-rc3-hfu+ #1
+ | Call Trace:
+ |  walk_stackframe+0x0/0x7a
+ |  dump_stack+0x6e/0x88
+ |  regmap_mmio_write32le+0x18/0x46
+ |  check_preemption_disabled+0xa4/0xaa
+ |  regmap_mmio_write32le+0x18/0x46
+ |  regmap_mmio_write+0x26/0x44
+ |  regmap_write+0x28/0x48
+ |  sifive_gpio_probe+0xc0/0x1da
 
-Either would be fine; the past tense is just slightly better, to my ear.
+Although it's possible to fix the driver in this case, other splats have
+been seen from other drivers, including the infamous 8250 UART, and so
+it's better to address this problem in the mmiowb core itself.
 
-> "error EFOO" -> "the error EFOO"
->
->         Is this a rule, in general?
+Fix mmiowb_set_pending() by using the raw_cpu_ptr() to get at the mmiowb
+state and then only updating the 'mmiowb_pending' field if we are not
+preemptible (i.e. we have a non-zero nesting count).
 
-I think the change that you refer to was actually: "with EFOO" to
-"with the error EFOO". The former is just a little too brief, to my
-ear.
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Guo Ren <guoren@kernel.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Reported-by: Palmer Dabbelt <palmer@dabbelt.com>
+Reported-by: Emil Renner Berthing <kernel@esmil.dk>
+Tested-by: Emil Renner Berthing <kernel@esmil.dk>
+Reviewed-by: Palmer Dabbelt <palmerdabbelt@google.com>
+Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
+Link: https://lore.kernel.org/r/20200716112816.7356-1-will@kernel.org
+Signed-off-by: Will Deacon <will@kernel.org>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+---
+ include/asm-generic/mmiowb.h | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-> .IP \(bu 2
->
->         I assumed that specifying an explicit indentation amount would
->         be fragile.  Going with the default behaviour also tends to
->         result in a more consistent appearance.  Do you have any
->         recommandations in this area?
->
->         Do you have rules about the order to use bullet symbols?  I tend
->         to avoid \(bu if possible, since while it's "correct", nroff can
->         render it nastily as an unadorned letter "o" (e.g., with -Tascii
->         or LC_CTYPE=C).  This is particlarly annoying if the indent is
->         <= 2, since then the "o" tends to be visually swallowed by the
->         following text (i.e., to a casual glance it looks like a word,
->         particlarly if the following text is not capitalised).  Perhaps
->         this is a bad glyph substitution decision in nroff rather than
->         something that should be fixed in the man-pages source, but the
->         man-pages source may be easier to fix...
->
->         There is already inconsistency here: there are may top-level
->         lists using ".IP *" in prctl.2, and plenty of places where the
->         default indentation is used.
-
-I must admit that I'm in the process of rethinking bulleted lists, and
-I have not come to a conclusion (and that's why nothing is said in
-man-pages(7), and also why there is currently inconsistency).
-
-Using .IP with the default indent (8n) results in a very deep indent
-between the glyph and the text, so it's not my preference.
-
-Your note about the poor rendering with "-Tascii" is interesting.
-Perhaps ".IP \(bu 3" may be better. But, I really do not know: do
-people really render with "-Tascii" these days?
-
-> Should any of these be written up in man-pages(7), or is there a checker
-> than can detect them?
-
-Perhaps man-pages should say something about the Oxford comma.
-
-> I wan't to minimise the amount of tweaking you have to do when merging
-> patches.
-
-If every patch that I received was of the same quality as yours are,
-my life would be much easier. The tweaks are minimal work on my part.
-Don't worry. Just send me more patches :-).
-
-Cheers,
-
-Michael
-
+diff --git a/include/asm-generic/mmiowb.h b/include/asm-generic/mmiowb.h
+index 9439ff037b2d1..5698fca3bf560 100644
+--- a/include/asm-generic/mmiowb.h
++++ b/include/asm-generic/mmiowb.h
+@@ -27,7 +27,7 @@
+ #include <asm/smp.h>
+ 
+ DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
+-#define __mmiowb_state()	this_cpu_ptr(&__mmiowb_state)
++#define __mmiowb_state()	raw_cpu_ptr(&__mmiowb_state)
+ #else
+ #define __mmiowb_state()	arch_mmiowb_state()
+ #endif	/* arch_mmiowb_state */
+@@ -35,7 +35,9 @@ DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
+ static inline void mmiowb_set_pending(void)
+ {
+ 	struct mmiowb_state *ms = __mmiowb_state();
+-	ms->mmiowb_pending = ms->nesting_count;
++
++	if (likely(ms->nesting_count))
++		ms->mmiowb_pending = ms->nesting_count;
+ }
+ 
+ static inline void mmiowb_spin_lock(void)
 -- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+2.25.1
