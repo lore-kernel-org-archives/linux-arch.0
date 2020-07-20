@@ -1,53 +1,56 @@
-From: Guenter Roeck <linux@roeck-us.net>
+From: Peter Maydell <peter.maydell@linaro.org>
 Subject: Re: [PATCH 1/6] syscalls: use uaccess_kernel in addr_limit_user_check
-Date: Mon, 20 Jul 2020 07:55:43 -0700
-Message-ID: <c6099697-5ccd-22b4-f5cb-cbe1c14644a9@roeck-us.net>
-References: <20200714105505.935079-1-hch@lst.de>
- <20200714105505.935079-2-hch@lst.de> <20200718013849.GA157764@roeck-us.net>
- <20200718094846.GA8593@lst.de>
- <fe1d4a6d-e32d-6994-a08b-40134000e988@roeck-us.net>
- <20200720100104.GA20196@lst.de>
+Date: Mon, 20 Jul 2020 16:28:35 +0100
+Message-ID: <CAFEAcA8=O6TbxYwmRwZJbcqFKi364=ueV_TsTu_84M5WFVtD8g@mail.gmail.com>
+References: <20200714105505.935079-1-hch@lst.de> <20200714105505.935079-2-hch@lst.de>
+ <20200718013849.GA157764@roeck-us.net> <20200718094846.GA8593@lst.de>
+ <fe1d4a6d-e32d-6994-a08b-40134000e988@roeck-us.net> <20200720100104.GA20196@lst.de>
+ <c6099697-5ccd-22b4-f5cb-cbe1c14644a9@roeck-us.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60410 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37308 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726506AbgGTOzp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jul 2020 10:55:45 -0400
-In-Reply-To: <20200720100104.GA20196@lst.de>
-Content-Language: en-US
+        with ESMTP id S1726437AbgGTP2r (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jul 2020 11:28:47 -0400
+Received: from mail-ot1-x344.google.com (mail-ot1-x344.google.com [IPv6:2607:f8b0:4864:20::344])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E4B62C0619D2
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jul 2020 08:28:46 -0700 (PDT)
+Received: by mail-ot1-x344.google.com with SMTP id h1so12500158otq.12
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jul 2020 08:28:46 -0700 (PDT)
+In-Reply-To: <c6099697-5ccd-22b4-f5cb-cbe1c14644a9@roeck-us.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Vladimir Murzin <vladimir.murzin@arm.com>, linux-arm-kernel@lists.infradead.org, Peter Maydell <peter.maydell@linaro.org>
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, lkml - Kernel Mailing List <linux-kernel@vger.kernel.org>, Vladimir Murzin <vladimir.murzin@arm.com>, arm-mail-list <linux-arm-kernel@lists.infradead.org>
 
-On 7/20/20 3:01 AM, Christoph Hellwig wrote:
-> To try to reproduce your report I built a mps2_defconfig kernel
-> and then run the qemu command line manually extraced from your
-> script below, using a mainline qemu built for arm-softmmu, but it
-> crashes with the following message even for the baseline kernel.
-> 
-> qemu: fatal: Lockup: can't escalate 3 to HardFault (current priority -1)
-> 
-> R00=00000000 R01=00000000 R02=00000000 R03=00000000
-> R04=00000000 R05=00000000 R06=00000000 R07=00000000
-> R08=00000000 R09=00000000 R10=00000000 R11=00000000
-> R12=00000000 R13=ffffffe0 R14=fffffff9 R15=00000000
-> XPSR=40000003 -Z-- A handler
-> FPSCR: 00000000
-> 
-> Does anyone have an idea what this means?
-> 
+On Mon, 20 Jul 2020 at 15:55, Guenter Roeck <linux@roeck-us.net> wrote:
+> Ah, sorry, you can't use the upstream version of qemu to test mps2-an385
+> Linux images. You'll have to use a version from https://github.com/groeck/qemu.
+> I'd recommend to use the v5.0.0-local branch.
+>
+> I had to make some changes to qemu to be able to boot mps2-an385.
+> I tried to submit those changes into upstream qemu, but that was
+> rejected because, as I was told, the qemu implementation
+> would no longer reflect the real hardware with those changes in
+> place.
 
-Ah, sorry, you can't use the upstream version of qemu to test mps2-an385
-Linux images. You'll have to use a version from https://github.com/groeck/qemu.
-I'd recommend to use the v5.0.0-local branch.
+Yes; the rationale is that if you wanted to boot a kernel
+on an actual MPS2 board you'd need a bit of guest code to
+start it up (and to bundle the initrd/dtb in with it), so
+since you need to write that code anyway you could use it for
+booting the kernel in QEMU too.
 
-I had to make some changes to qemu to be able to boot mps2-an385.
-I tried to submit those changes into upstream qemu, but that was
-rejected because, as I was told, the qemu implementation
-would no longer reflect the real hardware with those changes in
-place.
+I appreciate that this is awkward for kernel developers (and
+perhaps for some other users too), but QEMU's handling of
+-kernel and built-in-bootloader code is already a morass of
+special cases and do-what-I-mean behaviour that I'm not
+enthusiastic about further complicating :-)
 
-Guenter
+(https://lists.gnu.org/archive/html/qemu-arm/2018-06/msg00393.html
+has the archive of our original discussion on the point, for
+other readers of this post interested in further context and
+discussion.)
+
+thanks
+-- PMM
