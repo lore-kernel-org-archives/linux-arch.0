@@ -1,46 +1,82 @@
-From: Zefan Li <lizefan@huawei.com>
-Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
-Date: Mon, 20 Jul 2020 10:02:13 +0800
-Message-ID: <0e43e743-7c78-fb86-6c36-f42e6184d32c@huawei.com>
-References: <20200413125303.423864-1-npiggin@gmail.com>
- <20200413125303.423864-5-npiggin@gmail.com>
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Date: Mon, 20 Jul 2020 12:07:31 +1000
+Message-ID: <20200720020731.GQ5369@dread.disaster.area>
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+ <20200717174750.GQ12769@casper.infradead.org>
+ <20200718013839.GD2183@sol.localdomain>
+ <20200718021304.GS12769@casper.infradead.org>
+ <20200718052818.GF2183@sol.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200413125303.423864-5-npiggin@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>, linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail110.syd.optusnet.com.au ([211.29.132.97]:42707 "EHLO
+        mail110.syd.optusnet.com.au" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726225AbgGTCHi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 19 Jul 2020 22:07:38 -0400
+Content-Disposition: inline
+In-Reply-To: <20200718052818.GF2183@sol.localdomain>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Eric Biggers <ebiggers@kernel.org>
+Cc: Matthew Wilcox <willy@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
 
-> +static int vmap_pages_range_noflush(unsigned long start, unsigned long end,
-> +				    pgprot_t prot, struct page **pages,
-> +				    unsigned int page_shift)
-> +{
-> +	if (page_shift == PAGE_SIZE) {
+On Fri, Jul 17, 2020 at 10:28:18PM -0700, Eric Biggers wrote:
+> What do people think about the following instead?  (Not proofread / tested yet,
+> so please comment on the high-level approach, not minor mistakes :-) )
 
-Is this a typo of PAGE_SHIFT?
+No huge long macros, please.
 
-> +		return vmap_small_pages_range_noflush(start, end, prot, pages);
-> +	} else {
-> +		unsigned long addr = start;
-> +		unsigned int i, nr = (end - start) >> page_shift;
-> +
-> +		for (i = 0; i < nr; i++) {
-> +			int err;
-> +
-> +			err = vmap_range_noflush(addr,
-> +					addr + (1UL << page_shift),
-> +					__pa(page_address(pages[i])), prot,
-> +					page_shift);
-> +			if (err)
-> +				return err;
-> +
-> +			addr += 1UL << page_shift;
-> +		}
-> +
-> +		return 0;
-> +	}
-> +}
-> +
+We don't accept people writing long complex static inline functions,
+so for the same reasons it is not acceptable to write long complex
+macros.  Especially ones that use variable arguments and embed
+invisible locking within them.
+
+The whole serialisation/atomic/ordering APIs have fallen badly off
+the macro cliff, to the point where finding out something as simple
+as the order of parameters passed to cmpxchg and what semantics it
+provides requires macro-spelunking 5 layers deep to find the generic
+implementation function that contains a comment describing what it
+does....
+
+That's yet another barrier to understanding what all the different
+synchronisation primitives do.
+
+....
+
+> In the fs/direct-io.c case we'd use:
+> 
+> int sb_init_dio_done_wq(struct super_block *sb)
+> {
+> 	static DEFINE_MUTEX(sb_init_dio_done_mutex);
+> 
+> 	return INIT_ONCE_PTR(&sb->s_dio_done_wq, &sb_init_dio_done_mutex,
+> 			     alloc_workqueue,
+> 			     "dio/%s", WQ_MEM_RECLAIM, 0, sb->s_id);
+> }
+
+Yeah, that's pretty horrible...
+
+I *much* prefer an API like Willy's suggested to somethign like
+this. Just because you can hide all sorts of stuff in macros doesn't
+mean you should.
+
+> The only part I really don't like is the way arguments are passed to the
+> alloc_func.  We could also make it work like the following, though it would
+> break the usual rules since it looks like the function call is always executed,
+> but it's not:
+> 
+> 	return INIT_ONCE_PTR(&sb->s_dio_done_wq, &sb_init_dio_done_mutex,
+> 			     alloc_workqueue("dio/%s", WQ_MEM_RECLAIM, 0,
+> 					     sb->s_id));
+
+Yeah, that's even worse. Code that does not do what it looks like it
+should needs to be nuked from orbit.
+
+Cheers,
+
+Dave.
+-- 
+Dave Chinner
+david@fromorbit.com
