@@ -1,21 +1,20 @@
-From: "Darrick J. Wong" <darrick.wong@oracle.com>
+From: Matthew Wilcox <willy@infradead.org>
 Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Date: Mon, 20 Jul 2020 08:37:31 -0700
-Message-ID: <20200720153731.GB7597@magnolia>
+Date: Mon, 20 Jul 2020 16:39:11 +0100
+Message-ID: <20200720153911.GX12769@casper.infradead.org>
 References: <20200717044427.68747-1-ebiggers@kernel.org>
  <20200718014204.GN5369@dread.disaster.area>
  <20200718140811.GA1179836@rowland.harvard.edu>
  <20200720013320.GP5369@dread.disaster.area>
  <20200720145211.GC1228057@rowland.harvard.edu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-fsdevel-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <20200720145211.GC1228057@rowland.harvard.edu>
 Sender: linux-fsdevel-owner@vger.kernel.org
 To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Dave Chinner <david@fromorbit.com>, Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+Cc: Dave Chinner <david@fromorbit.com>, Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
 On Mon, Jul 20, 2020 at 10:52:11AM -0400, Alan Stern wrote:
@@ -42,150 +41,18 @@ On Mon, Jul 20, 2020 at 10:52:11AM -0400, Alan Stern wrote:
 > 
 > Don't forget that this document was meant to help mitigate the LKMM's 
 > learning curve.  If it isn't successful, I want to improve it.
-> 
-> > So, if I say "the LKMM documentation", I mean -all- of the
-> > documentation, not just some tiny subset of it. I've read it all,
-> > I've even installed herd7 so I can run the litmus tests to see if
-> > that helps me understand the documentation better.
-> > 
-> > That only increased the WTF factor because the documentation of that
-> > stuff is far, far more impenetrable than the LKMM documentation.  If
-> > the LKMM learnign curve is near vertical, then the stuff in the
-> > herd7 tools is an -overhang-. And I most certainly can't climb
-> > that....
-> 
-> I can't argue with that.  Really understanding herd7 does require a 
-> pretty extensive background in the field.
-> 
-> > /me idly wonders if you recognise that your comment is, yet again, a
-> > classic demonstration of the behaviour the "curse of knowledge"
-> > cognitive bias describes.
-> 
-> Not at all.  I think you are confusing several different things.
-> 
-> For one, at a purely literal level my comment could not possibly be 
-> taken as a demonstration of "curse of knowledge" behavior, because it 
-> was a simple question: Have you seen explanation.txt?  Nothing obscure 
-> or outré about that.
-> 
-> For another, you appear to be confusing the LKMM with the kernel's API, 
-> and reference documents with programming guides (or recipes).  I'm sure 
-> that you aren't doing this deliberately and are well aware of these 
-> distinctions, but that's the impression your email leaves.
-> 
-> > > That
-> > > file was specifically written for non-experts to help them overcome the
-> > > learning curve.  It tries to define the vocabulary as terms are
-> > > introduced and to avoid using obscure syntax.
-> > 
-> > It tries to teach people about what a memory model is at the same
-> > time it tries to define the LKMM. What it doesn't do at all is
-> > teach people how to write safe code.
-> 
-> Of course it doesn't.  It was never meant to.  You can see this right in 
-> the filename "explanation.txt"; its purpose is to explain the LKMM.  
-> Nobody ever claimed it teaches how to write safe code or how to use the 
-> kernel's concurrent-programming API.  Those things belong in a separate 
-> document, such as recipes.txt.
-> 
-> >  People want to write safe code,
-> > not become "memory model experts".
-> 
-> Speak for yourself.  I personally want both, and no doubt there are 
-> others who feel the same way.
 
-Ok then.  I'm a lazy a***** maintainer who wants to write safe code
-without first having to understand the memory models of *multiple CPU
-architectures*, and I'm perfectly fine with accepting the smallest
-common featureset across those CPUs so that I can think as little as
-possible about things outside my area of expertise.
+I can't speak for Dave, but the introduction to that documentation makes
+it clear to me that it's not the document I want to read.
 
-Willy's proposed API looks good enough for me, and if that's all I ever
-have to know, I'm good with that.  Eric's proposed recipes patch is a
-decent breadcrumb should I ever desire to know more.  I don't expect
-I'll read the LKMM, just like I don't expect any of the rest of you will
-read the XFS internals book.
+: This document describes the ideas underlying the LKMM.  It is meant
+: for people who want to understand how the model was designed.  It does
+: not go into the details of the code in the .bell and .cat files;
+: rather, it explains in English what the code expresses symbolically.
 
-(Well, ok, I imagine Dave has...)
+I don't want to know how the model was designed.  I want to write a
+device driver, or filesystem, or whatever.
 
---D
-
-> 
-> > Memory models are -your expertise- but they aren't mine. My
-> > expertise is filesystems: I don't care about the nitty gritty
-> > details of memory models, I just want to be able to write lockless
-> > algorithms correctly. Which, I might point out, I've been doing for
-> > well over a decade...
-> 
-> That's perfectly fine; I understand completely.  But your criticism is 
-> misplaced: It should be applied to recipes.txt, not to explanation.txt.
-> 
-> And remember: It was _you_ who claimed: "just understanding the 
-> vocabulary [the LKMM] uses requires a huge learning curve, and it's not 
-> defined anywhere".  explanation.txt shows that this statement is at 
-> least partly wrong.  Besides, given that you don't care about the nitty 
-> gritty details of memory models in any case, why are you complaining 
-> that understanding the LKMM is so hard?
-> 
-> My impression is that you really want to complain about the inadequate 
-> quality of recipes.txt as a programmers' guide.  Fine, but don't extend 
-> that to a blanket condemnation of all the LKMM documentation.
-> 
-> > > If you think it needs improvement and can give some specific
-> > > details about where it falls short, I would like to hear them.
-> > 
-> > Haven't you understood anything I've been saying? That developers
-> > don't care about how the theory behind the memory model  or how it
-> > works - we just want to be able to write safe code.
-> 
-> Again, speak for yourself.
-> 
-> >  And to do that
-> > quickly and efficiently. The "make the documentation more complex"
-> > response is the wrong direction. Please *dumb it down* to the most
-> > basic, simplest, common concurrency patterns that programmers use
-> > and then write APIs to do those things that *hide the memory model
-> > for the programmer*.
-> > 
-> > Adding documentation about all the possible things you could do,
-> > all the optimisations you could make, all the intricate, subtle
-> > variations you can use, etc is not helpful. It might be interesting
-> > to you, but I just want -somethign that works- and not have to
-> > understand the LKMM to get stuff done.
-> 
-> In principle, both can be included in the same document.  Say, with the 
-> more in-depth discussions relegated to specially marked-off sections 
-> that readers are invited to skip if they aren't interested.
-> 
-> > Example: I know how smp_load_acquire() works. I know that I can
-> > expect the same behavioural semantics from smp_cond_load_acquire().
-> > But I don't care how the implementation of smp_cond_load_acquire()
-> > is optimised to minimise ordering barriers as it spins. That sort of
-> > optimisation is your job, not mine - I just want a function that
-> > will spin safely until a specific value is seen and then return with
-> > acquire semantics on the successful load.....
-> > 
-> > Can you see the difference between "understanding the LKMM
-> > documenation" vs "using a well defined API that provides commonly
-> > used functionality" to write correct, optimal code that needs to
-> > spin waiting for some other context to update a variable?
-> 
-> Certainly I can.  Can't _you_ see the difference between a document that 
-> helps people "understand the LKMM" and one that demonstrates "using a 
-> well defined API that provides commonly used functionality"?
-> 
-> > That's the problem the LKMM documentation fails to address. It is
-> > written to explain the theory behind the LKMM rather than provide
-> > developers with pointers to the templates and APIs that implement
-> > the lockless co-ordination functionality they want to use....
-> 
-> That's the difference between a reference document and a programmers' 
-> guide.  Grousing that one isn't the other is futile.
-> 
-> On the other hand, pointing out specific areas of improvement for a 
-> document that was meant to be a programmers' guide can be very helpful. 
-> You may not be inclined to spend any time editing recipes.txt, but 
-> perhaps you could point out a few of the specific areas most in need of 
-> work?
-> 
-> Alan Stern
+Honestly, even the term "release semantics" trips me up _every_ time.
+It's a barrier to understanding because I have to translate it into "Oh,
+he means it's like an unlock".  Why can't you just say "unlock semantics"?
