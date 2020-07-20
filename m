@@ -1,23 +1,112 @@
-From: David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
-Subject: Re: sockopt cleanups
-Date: Sun, 19 Jul 2020 18:16:59 -0700 (PDT)
-Message-ID: <20200719.181659.1807927650741641565.davem@davemloft.net>
-References: <20200717062331.691152-1-hch@lst.de>
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Date: Mon, 20 Jul 2020 11:33:20 +1000
+Message-ID: <20200720013320.GP5369@dread.disaster.area>
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+ <20200718014204.GN5369@dread.disaster.area>
+ <20200718140811.GA1179836@rowland.harvard.edu>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-bluetooth-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200717062331.691152-1-hch-jcswGhMUV9g@public.gmane.org>
-Sender: linux-bluetooth-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: hch-jcswGhMUV9g@public.gmane.org
-Cc: ast-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, daniel-FeC+5ew28dpmcu3hnIyYJQ@public.gmane.org, 3chas3-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, pablo-Cap9r6Oaw4JrovVCs/uTlw@public.gmane.org, kadlec-Cap9r6Oaw4JrovVCs/uTlw@public.gmane.org, fw-HFFVJYpyMKqzQB+pC5nmwQ@public.gmane.org, kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org, yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netfilter-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-bluetooth-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, bridge-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-can-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dccp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-wpan-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mptcp-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail110.syd.optusnet.com.au ([211.29.132.97]:34269 "EHLO
+        mail110.syd.optusnet.com.au" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726225AbgGTBd2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 19 Jul 2020 21:33:28 -0400
+Content-Disposition: inline
+In-Reply-To: <20200718140811.GA1179836@rowland.harvard.edu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
 
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Date: Fri, 17 Jul 2020 08:23:09 +0200
+On Sat, Jul 18, 2020 at 10:08:11AM -0400, Alan Stern wrote:
+> > This is one of the reasons that the LKMM documetnation is so damn
+> > difficult to read and understand: just understanding the vocabulary
+> > it uses requires a huge learning curve, and it's not defined
+> > anywhere. Understanding the syntax of examples requires a huge
+> > learning curve, because it's not defined anywhere. 
+> 
+> Have you seen tools/memory-model/Documentation/explanation.txt?
 
-> this series cleans up various lose ends in the sockopt code, most
-> importantly removing the compat_{get,set}sockopt infrastructure in favor
-> of just using in_compat_syscall() in the few places that care.
+<raises eyebrow>
 
-Series applied to net-next, thanks.
+Well, yes. Several times. I look at it almost daily, but that
+doesn't mean it's approachable, easy to read or even -that I
+understand what large parts of it say-. IOWs, that's one of the 
+problematic documents that I've been saying have a huge learning
+curve.
+
+So, if I say "the LKMM documentation", I mean -all- of the
+documentation, not just some tiny subset of it. I've read it all,
+I've even installed herd7 so I can run the litmus tests to see if
+that helps me understand the documentation better.
+
+That only increased the WTF factor because the documentation of that
+stuff is far, far more impenetrable than the LKMM documentation.  If
+the LKMM learnign curve is near vertical, then the stuff in the
+herd7 tools is an -overhang-. And I most certainly can't climb
+that....
+
+/me idly wonders if you recognise that your comment is, yet again, a
+classic demonstration of the behaviour the "curse of knowledge"
+cognitive bias describes.
+
+> That
+> file was specifically written for non-experts to help them overcome the
+> learning curve.  It tries to define the vocabulary as terms are
+> introduced and to avoid using obscure syntax.
+
+It tries to teach people about what a memory model is at the same
+time it tries to define the LKMM. What it doesn't do at all is
+teach people how to write safe code. People want to write safe code,
+not become "memory model experts".
+
+Memory models are -your expertise- but they aren't mine. My
+expertise is filesystems: I don't care about the nitty gritty
+details of memory models, I just want to be able to write lockless
+algorithms correctly. Which, I might point out, I've been doing for
+well over a decade...
+
+> If you think it needs improvement and can give some specific
+> details about where it falls short, I would like to hear them.
+
+Haven't you understood anything I've been saying? That developers
+don't care about how the theory behind the memory model  or how it
+works - we just want to be able to write safe code. And to do that
+quickly and efficiently. The "make the documentation more complex"
+response is the wrong direction. Please *dumb it down* to the most
+basic, simplest, common concurrency patterns that programmers use
+and then write APIs to do those things that *hide the memory model
+for the programmer*.
+
+Adding documentation about all the possible things you could do,
+all the optimisations you could make, all the intricate, subtle
+variations you can use, etc is not helpful. It might be interesting
+to you, but I just want -somethign that works- and not have to
+understand the LKMM to get stuff done.
+
+Example: I know how smp_load_acquire() works. I know that I can
+expect the same behavioural semantics from smp_cond_load_acquire().
+But I don't care how the implementation of smp_cond_load_acquire()
+is optimised to minimise ordering barriers as it spins. That sort of
+optimisation is your job, not mine - I just want a function that
+will spin safely until a specific value is seen and then return with
+acquire semantics on the successful load.....
+
+Can you see the difference between "understanding the LKMM
+documenation" vs "using a well defined API that provides commonly
+used functionality" to write correct, optimal code that needs to
+spin waiting for some other context to update a variable?
+
+That's the problem the LKMM documentation fails to address. It is
+written to explain the theory behind the LKMM rather than provide
+developers with pointers to the templates and APIs that implement
+the lockless co-ordination functionality they want to use....
+
+Cheers,
+
+Dave.
+-- 
+Dave Chinner
+david@fromorbit.com
