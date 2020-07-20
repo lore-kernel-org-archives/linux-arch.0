@@ -1,67 +1,132 @@
-Return-Path: <SRS0=D/pI=BF=kvack.org=owner-linux-mm@kernel.org>
-Date: Sun, 26 Jul 2020 10:32:06 +0200
-From: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-Subject: Re: [PATCH v2 1/2] MIPS: Set page access bit with pgprot on
- platforms with RIXI
-Message-ID: <20200726083206.GE5032@alpha.franken.de>
-References: <1591416169-26666-1-git-send-email-maobibo@loongson.cn>
+Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57726 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728058AbgGTLgW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jul 2020 07:36:22 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH] arch, net: remove the last csum_partial_copy() leftovers
+Date: Mon, 20 Jul 2020 13:36:09 +0200
+Message-ID: <20200720113609.177259-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1591416169-26666-1-git-send-email-maobibo@loongson.cn>
-Sender: owner-linux-mm@kvack.org
-To: Bibo Mao <maobibo@loongson.cn>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200726083206.GfQnwzFMuZT87Lu0dJjN6n06HMvftF12QJPx4A0oIF0@z>
+To: msalter@redhat.com, jacquiot.aurelien@gmail.com, ley.foon.tan@intel.com, arnd@arndb.de
+Cc: linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org
+Message-ID: <20200720113609.tzW6_fkV9tM8E4jX-mGDCO5ZamnDmU7BF7JV0Fqbrp0@z>
 
-On Sat, Jun 06, 2020 at 12:02:48PM +0800, Bibo Mao wrote:
-> @@ -158,23 +158,23 @@ void __update_cache(unsigned long address, pte_t pte)
->  static inline void setup_protection_map(void)
->  {
->  	if (cpu_has_rixi) {
-> -		protection_map[0]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
-> -		protection_map[1]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
-> -		protection_map[2]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
-> -		protection_map[3]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
-> -		protection_map[4]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -		protection_map[5]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -		protection_map[6]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -		protection_map[7]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -
-> -		protection_map[8]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
-> -		protection_map[9]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
-> -		protection_map[10] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE | _PAGE_NO_READ);
-> -		protection_map[11] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE);
-> -		protection_map[12] = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -		protection_map[13] = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -		protection_map[14] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_WRITE);
-> -		protection_map[15] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_WRITE);
-> +		protection_map[0]  = __pgprot(__PC | __PP | __NX | __NR);
-> +		protection_map[1]  = __pgprot(__PC | __PP | __NX | ___R);
-> +		protection_map[2]  = __pgprot(__PC | __PP | __NX | __NR);
-> +		protection_map[3]  = __pgprot(__PC | __PP | __NX | ___R);
-> +		protection_map[4]  = __pgprot(__PC | __PP | ___R);
-> +		protection_map[5]  = __pgprot(__PC | __PP | ___R);
-> +		protection_map[6]  = __pgprot(__PC | __PP | ___R);
-> +		protection_map[7]  = __pgprot(__PC | __PP | ___R);
-> +
-> +		protection_map[8]  = __pgprot(__PC | __PP | __NX | __NR);
-> +		protection_map[9]  = __pgprot(__PC | __PP | __NX | ___R);
-> +		protection_map[10] = __pgprot(__PC | __PP | __NX | ___W | __NR);
-> +		protection_map[11] = __pgprot(__PC | __PP | __NX | ___W | ___R);
-> +		protection_map[12] = __pgprot(__PC | __PP | ___R);
-> +		protection_map[13] = __pgprot(__PC | __PP | ___R);
-> +		protection_map[14] = __pgprot(__PC | __PP | ___W | ___R);
-> +		protection_map[15] = __pgprot(__PC | __PP | ___W | ___R);
+Most of the tree only uses and implements csum_partial_copy_nocheck,
+but the c6x and lib/checksum.c implement a csum_partial_copy that
+isn't used anywere except to define csum_partial_copy.  Get rid of
+this pointless alias.
 
-you are doing two steps in one go, so it's not obvious you are not only
-using some macros, but also changing semantics. And while there are already
-really long lines, please leave it that way and only do the access bit
-change.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/c6x/lib/checksum.c           | 2 +-
+ arch/c6x/lib/csum_64plus.S        | 8 ++++----
+ arch/nios2/include/asm/checksum.h | 5 ++---
+ include/asm-generic/checksum.h    | 6 ++----
+ lib/checksum.c                    | 4 ++--
+ 5 files changed, 11 insertions(+), 14 deletions(-)
 
-Thomas.
-
+diff --git a/arch/c6x/lib/checksum.c b/arch/c6x/lib/checksum.c
+index 335ca490080847..dff2e2ec6e6472 100644
+--- a/arch/c6x/lib/checksum.c
++++ b/arch/c6x/lib/checksum.c
+@@ -6,6 +6,6 @@
+ 
+ /* These are from csum_64plus.S */
+ EXPORT_SYMBOL(csum_partial);
+-EXPORT_SYMBOL(csum_partial_copy);
++EXPORT_SYMBOL(csum_partial_copy_nocheck);
+ EXPORT_SYMBOL(ip_compute_csum);
+ EXPORT_SYMBOL(ip_fast_csum);
+diff --git a/arch/c6x/lib/csum_64plus.S b/arch/c6x/lib/csum_64plus.S
+index 8e625a30fd435a..9c07127485d165 100644
+--- a/arch/c6x/lib/csum_64plus.S
++++ b/arch/c6x/lib/csum_64plus.S
+@@ -10,8 +10,8 @@
+ #include <linux/linkage.h>
+ 
+ ;
+-;unsigned int csum_partial_copy(const char *src, char * dst,
+-;				int len, int sum)
++;unsigned int csum_partial_copy_nocheck(const char *src, char * dst,
++;					int len, int sum)
+ ;
+ ; A4:	src
+ ; B4:	dst
+@@ -21,7 +21,7 @@
+ ;
+ 
+ 	.text
+-ENTRY(csum_partial_copy)
++ENTRY(csum_partial_copy_nocheck)
+ 	MVC	.S2	ILC,B30
+ 
+ 	MV	.D1X	B6,A31		; given csum
+@@ -149,7 +149,7 @@ L10:	ADD	.D1	A31,A9,A9
+ 
+ 	BNOP	.S2	B3,4
+ 	MVC	.S2	B30,ILC
+-ENDPROC(csum_partial_copy)
++ENDPROC(csum_partial_copy_nocheck)
+ 
+ ;
+ ;unsigned short
+diff --git a/arch/nios2/include/asm/checksum.h b/arch/nios2/include/asm/checksum.h
+index ec39698d3beac8..b4316c361729f0 100644
+--- a/arch/nios2/include/asm/checksum.h
++++ b/arch/nios2/include/asm/checksum.h
+@@ -12,10 +12,9 @@
+ 
+ /* Take these from lib/checksum.c */
+ extern __wsum csum_partial(const void *buff, int len, __wsum sum);
+-extern __wsum csum_partial_copy(const void *src, void *dst, int len,
++__wsum csum_partial_copy_nocheck(const void *src, void *dst, int len,
+ 				__wsum sum);
+-#define csum_partial_copy_nocheck(src, dst, len, sum)	\
+-	csum_partial_copy((src), (dst), (len), (sum))
++#define csum_partial_copy_nocheck csum_partial_copy_nocheck
+ 
+ extern __sum16 ip_fast_csum(const void *iph, unsigned int ihl);
+ extern __sum16 ip_compute_csum(const void *buff, int len);
+diff --git a/include/asm-generic/checksum.h b/include/asm-generic/checksum.h
+index 5a80f8e543008a..cd8b75aa770d00 100644
+--- a/include/asm-generic/checksum.h
++++ b/include/asm-generic/checksum.h
+@@ -23,11 +23,9 @@ extern __wsum csum_partial(const void *buff, int len, __wsum sum);
+  * here even more important to align src and dst on a 32-bit (or even
+  * better 64-bit) boundary
+  */
+-extern __wsum csum_partial_copy(const void *src, void *dst, int len, __wsum sum);
+-
+ #ifndef csum_partial_copy_nocheck
+-#define csum_partial_copy_nocheck(src, dst, len, sum)	\
+-	csum_partial_copy((src), (dst), (len), (sum))
++__wsum csum_partial_copy_nocheck(const void *src, void *dst, int len,
++		__wsum sum);
+ #endif
+ 
+ #ifndef ip_fast_csum
+diff --git a/lib/checksum.c b/lib/checksum.c
+index 7ac65a0000ff09..c7861e84c5261a 100644
+--- a/lib/checksum.c
++++ b/lib/checksum.c
+@@ -149,12 +149,12 @@ EXPORT_SYMBOL(ip_compute_csum);
+  * copy from ds while checksumming, otherwise like csum_partial
+  */
+ __wsum
+-csum_partial_copy(const void *src, void *dst, int len, __wsum sum)
++csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
+ {
+ 	memcpy(dst, src, len);
+ 	return csum_partial(dst, len, sum);
+ }
+-EXPORT_SYMBOL(csum_partial_copy);
++EXPORT_SYMBOL(csum_partial_copy_nocheck);
+ 
+ #ifndef csum_tcpudp_nofold
+ static inline u32 from64to32(u64 x)
 -- 
-Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
-good idea.                                                [ RFC1925, 2.3 ]
+2.27.0
