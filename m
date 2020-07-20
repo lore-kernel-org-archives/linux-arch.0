@@ -1,50 +1,52 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50674 "EHLO mail.kernel.org"
+Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from verein.lst.de ([213.95.11.211]:47608 "EHLO verein.lst.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726666AbgGVR6k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jul 2020 13:58:40 -0400
-Date: Wed, 22 Jul 2020 13:58:36 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
-Message-ID: <20200722135829.7ca6fbc5@oasis.local.home>
-In-Reply-To: <CABCJKucDrS9wNZLjtmN5qMbZBTHLvB1Z7WqTwT3b11-K4kNcyg@mail.gmail.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
-        <20200624203200.78870-5-samitolvanen@google.com>
-        <20200624212737.GV4817@hirez.programming.kicks-ass.net>
-        <20200624214530.GA120457@google.com>
-        <20200625074530.GW4817@hirez.programming.kicks-ass.net>
-        <20200625161503.GB173089@google.com>
-        <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
-        <20200625224042.GA169781@google.com>
-        <20200626112931.GF4817@hirez.programming.kicks-ass.net>
-        <CABCJKucSM7gqWmUtiBPbr208wB0pc25afJXc6yBQzJDZf4LSWA@mail.gmail.com>
-        <20200717133645.7816c0b6@oasis.local.home>
-        <CABCJKuda0AFCZ-1J2NTLc-M0xax007a9u-fzOoxmU2z60jvzbA@mail.gmail.com>
-        <20200717140545.6f008208@oasis.local.home>
-        <CABCJKucDrS9wNZLjtmN5qMbZBTHLvB1Z7WqTwT3b11-K4kNcyg@mail.gmail.com>
+        id S1731607AbgGTPyt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Jul 2020 11:54:49 -0400
+Date: Mon, 20 Jul 2020 17:54:41 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 0/6] arm: don't call addr_limit_user_check for nommu
+Message-ID: <20200720155441.GA13067@lst.de>
+References: <20200714105505.935079-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200714105505.935079-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>
-Message-ID: <20200722175836.mfspmg8h6goxxVjGvOddo_uviG6FIaW2J96Aidbd6lc@z>
+To: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200720155441.xxwvqv5F0ENsdN8bzTEm25-yNBiz42Grr9rMAgqxz1g@z>
 
-On Mon, 20 Jul 2020 09:52:37 -0700
-Sami Tolvanen <samitolvanen@google.com> wrote:
+On arm nommu kernel use the same constant for USER_DS and KERNEL_DS,
+and seqment_eq always returns false.  With the current check in
+addr_limit_user_check that works by accident, but when replacing
+seqment_eq with uaccess_kerne it will fail.  Just remove the not
+needed check entirely.
 
-> > Does x86 have a way to differentiate between the two that record mcount
-> > can check?  
-> 
-> I'm not sure if looking at the relocation alone is sufficient on x86,
-> we might also have to decode the instruction, which is what objtool
-> does. Did you have any thoughts on Peter's patch, or my initial
-> suggestion, which adds a __nomcount attribute to affected functions?
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Reported-by: Guenter Roeck <linux@roeck-us.net>
+---
 
-There's a lot of code in this thread. Can you give me the message-id of
-Peter's patch in question.
+Andrew: this should preferably go before the other patches in this
+series.
 
-Thanks,
+ arch/arm/kernel/signal.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
--- Steve
+diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
+index ab2568996ddb0c..c9dc912b83f012 100644
+--- a/arch/arm/kernel/signal.c
++++ b/arch/arm/kernel/signal.c
+@@ -713,7 +713,9 @@ struct page *get_signal_page(void)
+ /* Defer to generic check */
+ asmlinkage void addr_limit_check_failed(void)
+ {
++#ifdef CONFIG_MMU
+ 	addr_limit_user_check();
++#endif
+ }
+ 
+ #ifdef CONFIG_DEBUG_RSEQ
+-- 
+2.27.0
