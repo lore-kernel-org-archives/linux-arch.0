@@ -1,81 +1,235 @@
-Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 04/24] arm: use asm-generic/mmu_context.h for no-op implementations
-Date: Tue, 28 Jul 2020 13:33:45 +1000
-Message-ID: <20200728033405.78469-5-npiggin@gmail.com>
-In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
-References: <20200728033405.78469-1-npiggin@gmail.com>
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51334 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729615AbgGULIk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:40 -0400
+Message-ID: <20200721110808.671110583@linutronix.de>
+Date: Tue, 21 Jul 2020 12:57:10 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V4 04/15] entry: Provide generic interrupt entry/exit code
+References: <20200721105706.030914876@linutronix.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=UTF-8
+Content-transfer-encoding: 8-bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200728033345.eM56UUcYYqfCJisFm4IZ1C4y3-R8XPaCvfLVOGvt6Qs@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
+Message-ID: <20200721105710.1Nctn3fzdDYw1vpS6DUTk9Z4s9EuBZRpbHu7j6zXseA@z>
 
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: linux-arm-kernel@lists.infradead.org
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+
+Like the syscall entry/exit code interrupt/exception entry after the real
+low level ASM bits should not be different accross architectures.
+
+Provide a generic version based on the x86 code.
+
+irqentry_enter() is called after the low level entry code and
+irqentry_exit() must be invoked right before returning to the low level
+code which just contains the actual return logic. The code before
+irqentry_enter() and irqentry_exit() must not be instrumented. Code after
+irqentry_enter() and before irqentry_exit() can be instrumented.
+
+irqentry_enter() invokes irqentry_enter_from_user_mode() if the
+interrupt/exception came from user mode. If if entered from kernel mode it
+handles the kernel mode variant of establishing state for lockdep, RCU and
+tracing depending on the kernel context it interrupted (idle, non-idle).
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/arm/include/asm/mmu_context.h | 26 +++-----------------------
- 1 file changed, 3 insertions(+), 23 deletions(-)
+ include/linux/entry-common.h |   62 ++++++++++++++++++++++
+ kernel/entry/common.c        |  117 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 179 insertions(+)
 
-diff --git a/arch/arm/include/asm/mmu_context.h b/arch/arm/include/asm/mm=
-u_context.h
-index f99ed524fe41..84e58956fcab 100644
---- a/arch/arm/include/asm/mmu_context.h
-+++ b/arch/arm/include/asm/mmu_context.h
-@@ -26,6 +26,8 @@ void __check_vmalloc_seq(struct mm_struct *mm);
- #ifdef CONFIG_CPU_HAS_ASID
-=20
- void check_and_switch_context(struct mm_struct *mm, struct task_struct *=
-tsk);
+--- a/include/linux/entry-common.h
++++ b/include/linux/entry-common.h
+@@ -307,4 +307,66 @@ void irqentry_enter_from_user_mode(struc
+  */
+ void irqentry_exit_to_user_mode(struct pt_regs *regs);
+ 
++#ifndef irqentry_state
++typedef struct irqentry_state {
++	bool	exit_rcu;
++} irqentry_state_t;
++#endif
 +
-+#define init_new_context init_new_context
- static inline int
- init_new_context(struct task_struct *tsk, struct mm_struct *mm)
- {
-@@ -92,32 +94,10 @@ static inline void finish_arch_post_lock_switch(void)
-=20
- #endif	/* CONFIG_MMU */
-=20
--static inline int
--init_new_context(struct task_struct *tsk, struct mm_struct *mm)
--{
--	return 0;
--}
--
--
- #endif	/* CONFIG_CPU_HAS_ASID */
-=20
--#define destroy_context(mm)		do { } while(0)
- #define activate_mm(prev,next)		switch_mm(prev, next, NULL)
-=20
--/*
-- * This is called when "tsk" is about to enter lazy TLB mode.
-- *
-- * mm:  describes the currently active mm context
-- * tsk: task which is entering lazy tlb
-- * cpu: cpu number which is entering lazy tlb
-- *
-- * tsk->mm will be NULL
-- */
--static inline void
--enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
--{
--}
--
- /*
-  * This is the actual mm switch as far as the scheduler
-  * is concerned.  No registers are touched.  We avoid
-@@ -149,6 +129,6 @@ switch_mm(struct mm_struct *prev, struct mm_struct *n=
-ext,
++/**
++ * irqentry_enter - Handle state tracking on ordinary interrupt entries
++ * @regs:	Pointer to pt_regs of interrupted context
++ *
++ * Invokes:
++ *  - lockdep irqflag state tracking as low level ASM entry disabled
++ *    interrupts.
++ *
++ *  - Context tracking if the exception hit user mode.
++ *
++ *  - The hardirq tracer to keep the state consistent as low level ASM
++ *    entry disabled interrupts.
++ *
++ * As a precondition, this requires that the entry came from user mode,
++ * idle, or a kernel context in which RCU is watching.
++ *
++ * For kernel mode entries RCU handling is done conditional. If RCU is
++ * watching then the only RCU requirement is to check whether the tick has
++ * to be restarted. If RCU is not watching then rcu_irq_enter() has to be
++ * invoked on entry and rcu_irq_exit() on exit.
++ *
++ * Avoiding the rcu_irq_enter/exit() calls is an optimization but also
++ * solves the problem of kernel mode pagefaults which can schedule, which
++ * is not possible after invoking rcu_irq_enter() without undoing it.
++ *
++ * For user mode entries irqentry_enter_from_user_mode() is invoked to
++ * establish the proper context for NOHZ_FULL. Otherwise scheduling on exit
++ * would not be possible.
++ *
++ * Returns: An opaque object that must be passed to idtentry_exit()
++ */
++irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs);
++
++/**
++ * irqentry_exit_cond_resched - Conditionally reschedule on return from interrupt
++ *
++ * Conditional reschedule with additional sanity checks.
++ */
++void irqentry_exit_cond_resched(void);
++
++/**
++ * irqentry_exit - Handle return from exception that used irqentry_enter()
++ * @regs:	Pointer to pt_regs (exception entry regs)
++ * @state:	Return value from matching call to irqentry_enter()
++ *
++ * Depending on the return target (kernel/user) this runs the necessary
++ * preemption and work checks if possible and reguired and returns to
++ * the caller with interrupts disabled and no further work pending.
++ *
++ * This is the last action before returning to the low level ASM code which
++ * just needs to return to the appropriate context.
++ *
++ * Counterpart to irqentry_enter().
++ */
++void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state);
++
  #endif
+--- a/kernel/entry/common.c
++++ b/kernel/entry/common.c
+@@ -255,3 +255,120 @@ noinstr void irqentry_exit_to_user_mode(
+ 	instrumentation_end();
+ 	exit_to_user_mode();
  }
-=20
--#define deactivate_mm(tsk,mm)	do { } while (0)
-+#include <asm-generic/mmu_context.h>
-=20
- #endif
---=20
-2.23.0
++
++irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs)
++{
++	irqentry_state_t ret = {
++		.exit_rcu = false,
++	};
++
++	if (user_mode(regs)) {
++		irqentry_enter_from_user_mode(regs);
++		return ret;
++	}
++
++	/*
++	 * If this entry hit the idle task invoke rcu_irq_enter() whether
++	 * RCU is watching or not.
++	 *
++	 * Interupts can nest when the first interrupt invokes softirq
++	 * processing on return which enables interrupts.
++	 *
++	 * Scheduler ticks in the idle task can mark quiescent state and
++	 * terminate a grace period, if and only if the timer interrupt is
++	 * not nested into another interrupt.
++	 *
++	 * Checking for __rcu_is_watching() here would prevent the nesting
++	 * interrupt to invoke rcu_irq_enter(). If that nested interrupt is
++	 * the tick then rcu_flavor_sched_clock_irq() would wrongfully
++	 * assume that it is the first interupt and eventually claim
++	 * quiescient state and end grace periods prematurely.
++	 *
++	 * Unconditionally invoke rcu_irq_enter() so RCU state stays
++	 * consistent.
++	 *
++	 * TINY_RCU does not support EQS, so let the compiler eliminate
++	 * this part when enabled.
++	 */
++	if (!IS_ENABLED(CONFIG_TINY_RCU) && is_idle_task(current)) {
++		/*
++		 * If RCU is not watching then the same careful
++		 * sequence vs. lockdep and tracing is required
++		 * as in irq_enter_from_user_mode().
++		 */
++		lockdep_hardirqs_off(CALLER_ADDR0);
++		rcu_irq_enter();
++		instrumentation_begin();
++		trace_hardirqs_off_finish();
++		instrumentation_end();
++
++		ret.exit_rcu = true;
++		return ret;
++	}
++
++	/*
++	 * If RCU is watching then RCU only wants to check whether it needs
++	 * to restart the tick in NOHZ mode. rcu_irq_enter_check_tick()
++	 * already contains a warning when RCU is not watching, so no point
++	 * in having another one here.
++	 */
++	instrumentation_begin();
++	rcu_irq_enter_check_tick();
++	/* Use the combo lockdep/tracing function */
++	trace_hardirqs_off();
++	instrumentation_end();
++
++	return ret;
++}
++
++void irqentry_exit_cond_resched(void)
++{
++	if (!preempt_count()) {
++		/* Sanity check RCU and thread stack */
++		rcu_irq_exit_check_preempt();
++		if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
++			WARN_ON_ONCE(!on_thread_stack());
++		if (need_resched())
++			preempt_schedule_irq();
++	}
++}
++
++void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state)
++{
++	lockdep_assert_irqs_disabled();
++
++	/* Check whether this returns to user mode */
++	if (user_mode(regs)) {
++		irqentry_exit_to_user_mode(regs);
++	} else if (!regs_irqs_disabled(regs)) {
++		/*
++		 * If RCU was not watching on entry this needs to be done
++		 * carefully and needs the same ordering of lockdep/tracing
++		 * and RCU as the return to user mode path.
++		 */
++		if (state.exit_rcu) {
++			instrumentation_begin();
++			/* Tell the tracer that IRET will enable interrupts */
++			trace_hardirqs_on_prepare();
++			lockdep_hardirqs_on_prepare(CALLER_ADDR0);
++			instrumentation_end();
++			rcu_irq_exit();
++			lockdep_hardirqs_on(CALLER_ADDR0);
++			return;
++		}
++
++		instrumentation_begin();
++		if (IS_ENABLED(CONFIG_PREEMPTION))
++			irqentry_exit_cond_resched();
++		/* Covers both tracing and lockdep */
++		trace_hardirqs_on();
++		instrumentation_end();
++	} else {
++		/*
++		 * IRQ flags state is correct already. Just tell RCU if it
++		 * was not watching on entry.
++		 */
++		if (state.exit_rcu)
++			rcu_irq_exit();
++	}
++}
