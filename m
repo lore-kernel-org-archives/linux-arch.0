@@ -1,48 +1,97 @@
-Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <20200717111349.883694582@infradead.org>
-Date: Fri, 17 Jul 2020 13:10:14 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v2 09/11] nds32/tlb: Fix __p*_free_tlb()
-References: <20200717111005.024867618@infradead.org>
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.efficios.com ([167.114.26.124]:53232 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726687AbgGUNMA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 09:12:00 -0400
+Date: Tue, 21 Jul 2020 09:11:58 -0400 (EDT)
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Message-ID: <470490605.22057.1595337118562.JavaMail.zimbra@efficios.com>
+In-Reply-To: <1595324577.x3bf55tpgu.astroid@bobo.none>
+References: <1594868476.6k5kvx8684.astroid@bobo.none> <1594892300.mxnq3b9a77.astroid@bobo.none> <20200716110038.GA119549@hirez.programming.kicks-ass.net> <1594906688.ikv6r4gznx.astroid@bobo.none> <1314561373.18530.1594993363050.JavaMail.zimbra@efficios.com> <1595213677.kxru89dqy2.astroid@bobo.none> <2055788870.20749.1595263590675.JavaMail.zimbra@efficios.com> <1595324577.x3bf55tpgu.astroid@bobo.none>
+Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
+ membarrier_mm_sync_core_before_usermode
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200717111014.KowqPgb_aLEBjt_WQnrMBBNzv7dLsQMWkQps3WNPMaI@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, Jens Axboe <axboe@kernel.dk>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, x86 <x86@kernel.org>
+Message-ID: <20200721131158.nvW--CRQRGk7txtFjMRMJjQ0S4GOORbliBGcUKpAFYQ@z>
 
-Just like regular pages, page directories need to observe the
-following order:
+----- On Jul 21, 2020, at 6:04 AM, Nicholas Piggin npiggin@gmail.com wrote:
 
- 1) unhook
- 2) TLB invalidate
- 3) free
+> Excerpts from Mathieu Desnoyers's message of July 21, 2020 2:46 am:
+[...]
+> 
+> Yeah you're probably right in this case I think. Quite likely most kernel
+> tasks that asynchronously write to user memory would at least have some
+> kind of producer-consumer barriers.
+> 
+> But is that restriction of all async modifications documented and enforced
+> anywhere?
+> 
+>>> How about other memory accesses via kthread_use_mm? Presumably there is
+>>> still ordering requirement there for membarrier,
+>> 
+>> Please provide an example case with memory accesses via kthread_use_mm where
+>> ordering matters to support your concern.
+> 
+> I think the concern Andy raised with io_uring was less a specific
+> problem he saw and more a general concern that we have these memory
+> accesses which are not synchronized with membarrier.
+> 
+>>> so I really think
+>>> it's a fragile interface with no real way for the user to know how
+>>> kernel threads may use its mm for any particular reason, so membarrier
+>>> should synchronize all possible kernel users as well.
+>> 
+>> I strongly doubt so, but perhaps something should be clarified in the
+>> documentation
+>> if you have that feeling.
+> 
+> I'd rather go the other way and say if you have reasoning or numbers for
+> why PF_KTHREAD is an important optimisation above rq->curr == rq->idle
+> then we could think about keeping this subtlety with appropriate
+> documentation added, otherwise we can just kill it and remove all doubt.
+> 
+> That being said, the x86 sync core gap that I imagined could be fixed
+> by changing to rq->curr == rq->idle test does not actually exist because
+> the global membarrier does not have a sync core option. So fixing the
+> exit_lazy_tlb points that this series does *should* fix that. So
+> PF_KTHREAD may be less problematic than I thought from implementation
+> point of view, only semantics.
 
-to ensure it is safe against concurrent accesses.
+Today, the membarrier global expedited command explicitly skips kernel threads,
+but it happens that membarrier private expedited considers those with the
+same mm as target for the IPI.
 
-Even though NDS32 is UP only, we still need to observe this order
-because mmu_gather is preemptible.
+So we already implement a semantic which differs between private and global
+expedited membarriers. This can be explained in part by the fact that
+kthread_use_mm was introduced after 4.16, where the most recent membarrier
+commands where introduced. It seems that the effect on membarrier was not
+considered when kthread_use_mm was introduced.
 
-NDS32 does not in fact have PMDs.
+Looking at membarrier(2) documentation, it states that IPIs are only sent to
+threads belonging to the same process as the calling thread. If my understanding
+of the notion of process is correct, this should rule out sending the IPI to
+kernel threads, given they are not "part" of the same process, only borrowing
+the mm. But I agree that the distinction is moot, and should be clarified.
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/nds32/include/asm/tlb.h |    7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+Without a clear use-case to justify adding a constraint on membarrier, I am
+tempted to simply clarify documentation of current membarrier commands,
+stating clearly that they are not guaranteed to affect kernel threads. Then,
+if we have a compelling use-case to implement a different behavior which covers
+kthreads, this could be added consistently across membarrier commands with a
+flag (or by adding new commands).
 
---- a/arch/nds32/include/asm/tlb.h
-+++ b/arch/nds32/include/asm/tlb.h
-@@ -6,6 +6,11 @@
- 
- #include <asm-generic/tlb.h>
- 
--#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
-+#define __pte_free_tlb(tlb, pte, address)	\
-+do {						\
-+	pgtable_pte_page_dtor(pte);		\
-+	tlb_remove_table((tlb), (pte));		\
-+} while (0)
-+
- 
- #endif
+Does this approach make sense ?
+
+Thanks,
+
+Mathieu
+
+-- 
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
