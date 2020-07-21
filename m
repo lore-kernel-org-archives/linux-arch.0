@@ -1,34 +1,40 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [patch V4 14/15] x86/entry: Cleanup idtentry_enter/exit
-Date: Tue, 21 Jul 2020 14:48:53 -0700
-Message-ID: <202007211448.9BB6C2E8B5@keescook>
-References: <20200721105706.030914876@linutronix.de>
- <20200721110809.747620036@linutronix.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38470 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728456AbgGUVs4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 17:48:56 -0400
-Received: from mail-pf1-x42d.google.com (mail-pf1-x42d.google.com [IPv6:2607:f8b0:4864:20::42d])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1F95CC0619DB
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:48:56 -0700 (PDT)
-Received: by mail-pf1-x42d.google.com with SMTP id a14so101829pfi.2
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:48:56 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20200721110809.747620036@linutronix.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: [PATCH 3/6] riscv: include <asm/pgtable.h> in <asm/uaccess.h>
+Date: Tue, 21 Jul 2020 16:02:05 -0700 (PDT)
+Message-ID: <mhng-2e6d1568-076d-40fc-988a-9d035d54af79@palmerdabbelt-glaptop1>
+References: <20200710135706.537715-4-hch@lst.de>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200710135706.537715-4-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: nickhu@andestech.com, green.hu@gmail.com, deanbo422@gmail.com, Paul Walmsley <paul.walmsley@sifive.com>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 21, 2020 at 12:57:20PM +0200, Thomas Gleixner wrote:
-> Remove the temporary defines and fixup all references.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+On Fri, 10 Jul 2020 06:57:03 PDT (-0700), Christoph Hellwig wrote:
+> To ensure TASK_SIZE is defined for USER_DS.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/riscv/include/asm/uaccess.h | 2 ++
+>  1 file changed, 2 insertions(+)
+>
+> diff --git a/arch/riscv/include/asm/uaccess.h b/arch/riscv/include/asm/uaccess.h
+> index 8ce9d607b53dce..22de922d6ecb2f 100644
+> --- a/arch/riscv/include/asm/uaccess.h
+> +++ b/arch/riscv/include/asm/uaccess.h
+> @@ -8,6 +8,8 @@
+>  #ifndef _ASM_RISCV_UACCESS_H
+>  #define _ASM_RISCV_UACCESS_H
+>
+> +#include <asm/pgtable.h>		/* for TASK_SIZE */
+> +
+>  /*
+>   * User space memory access functions
+>   */
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
 
--- 
-Kees Cook
+Thanks!
