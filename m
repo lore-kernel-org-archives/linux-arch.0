@@ -1,118 +1,131 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47336 "EHLO
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53526 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727933AbgGaXSU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:18:20 -0400
-Received: from mail-pg1-x541.google.com (mail-pg1-x541.google.com [IPv6:2607:f8b0:4864:20::541])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6C25EC0617A4
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:18:20 -0700 (PDT)
-Received: by mail-pg1-x541.google.com with SMTP id j19so16783069pgm.11
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:18:20 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 22/36] arm/build: Refactor linker script headers
-Date: Fri, 31 Jul 2020 16:08:06 -0700
-Message-ID: <20200731230820.1742553-23-keescook@chromium.org>
-In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
-References: <20200731230820.1742553-1-keescook@chromium.org>
+        with ESMTP id S1730639AbgGUUZv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 16:25:51 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 08/18] m68k: get rid of zeroing destination on error in csum_and_copy_from_user()
+Date: Tue, 21 Jul 2020 21:25:39 +0100
+Message-ID: <20200721202549.4150745-8-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
+References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
+ <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200731230806.hZMERm9ZIh-f4P8KxmzZOaekNUCGIkSLH3Ox_IjmTOU@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200721202539.gamxij7JV-30oye2FaR4OTnfOSvApyouOQivh8lFOJE@z>
 
-In preparation for adding --orphan-handling=warn, refactor the linker
-script header includes, and extract common macros.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/arm/{kernel => include/asm}/vmlinux.lds.h | 13 ++++++++-----
- arch/arm/kernel/vmlinux-xip.lds.S              |  4 +---
- arch/arm/kernel/vmlinux.lds.S                  |  4 +---
- 3 files changed, 10 insertions(+), 11 deletions(-)
- rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (96%)
+ arch/m68k/lib/checksum.c | 79 +++++++++---------------------------------------
+ 1 file changed, 15 insertions(+), 64 deletions(-)
 
-diff --git a/arch/arm/kernel/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
-similarity index 96%
-rename from arch/arm/kernel/vmlinux.lds.h
-rename to arch/arm/include/asm/vmlinux.lds.h
-index 381a8e105fa5..a08f4301b718 100644
---- a/arch/arm/kernel/vmlinux.lds.h
-+++ b/arch/arm/include/asm/vmlinux.lds.h
-@@ -1,4 +1,5 @@
- /* SPDX-License-Identifier: GPL-2.0 */
-+#include <asm-generic/vmlinux.lds.h>
+diff --git a/arch/m68k/lib/checksum.c b/arch/m68k/lib/checksum.c
+index 3aeca261f622..7e6afeae6217 100644
+--- a/arch/m68k/lib/checksum.c
++++ b/arch/m68k/lib/checksum.c
+@@ -236,82 +236,33 @@ csum_and_copy_from_user(const void __user *src, void *dst, int len)
+ 		"clrl %5\n\t"
+ 		"addxl %5,%0\n\t"	/* add X bit */
+ 	     "7:\t"
+-		"clrl %5\n"		/* no error - clear return value */
+-	     "8:\n"
+ 		".section .fixup,\"ax\"\n"
+ 		".even\n"
+-		/* If any exception occurs zero out the rest.
+-		   Similarities with the code above are intentional :-) */
++		/* If any exception occurs, return 0 */
+ 	     "90:\t"
+-		"clrw %3@+\n\t"
+-		"movel %1,%4\n\t"
+-		"lsrl #5,%1\n\t"
+-		"jeq 1f\n\t"
+-		"subql #1,%1\n"
+-	     "91:\t"
+-		"clrl %3@+\n"
+-	     "92:\t"
+-		"clrl %3@+\n"
+-	     "93:\t"
+-		"clrl %3@+\n"
+-	     "94:\t"
+-		"clrl %3@+\n"
+-	     "95:\t"
+-		"clrl %3@+\n"
+-	     "96:\t"
+-		"clrl %3@+\n"
+-	     "97:\t"
+-		"clrl %3@+\n"
+-	     "98:\t"
+-		"clrl %3@+\n\t"
+-		"dbra %1,91b\n\t"
+-		"clrw %1\n\t"
+-		"subql #1,%1\n\t"
+-		"jcc 91b\n"
+-	     "1:\t"
+-		"movel %4,%1\n\t"
+-		"andw #0x1c,%4\n\t"
+-		"jeq 1f\n\t"
+-		"lsrw #2,%4\n\t"
+-		"subqw #1,%4\n"
+-	     "99:\t"
+-		"clrl %3@+\n\t"
+-		"dbra %4,99b\n\t"
+-	     "1:\t"
+-		"andw #3,%1\n\t"
+-		"jeq 9f\n"
+-	     "100:\t"
+-		"clrw %3@+\n\t"
+-		"tstw %1\n\t"
+-		"jeq 9f\n"
+-	     "101:\t"
+-		"clrb %3@+\n"
+-	     "9:\t"
+-#define STR(X) STR1(X)
+-#define STR1(X) #X
+-		"moveq #-" STR(EFAULT) ",%5\n\t"
+-		"jra 8b\n"
++		"clrl %0\n"
++		"jra 7b\n"
+ 		".previous\n"
+ 		".section __ex_table,\"a\"\n"
+ 		".long 10b,90b\n"
+-		".long 11b,91b\n"
+-		".long 12b,92b\n"
+-		".long 13b,93b\n"
+-		".long 14b,94b\n"
+-		".long 15b,95b\n"
+-		".long 16b,96b\n"
+-		".long 17b,97b\n"
+-		".long 18b,98b\n"
+-		".long 19b,99b\n"
+-		".long 20b,100b\n"
+-		".long 21b,101b\n"
++		".long 11b,90b\n"
++		".long 12b,90b\n"
++		".long 13b,90b\n"
++		".long 14b,90b\n"
++		".long 15b,90b\n"
++		".long 16b,90b\n"
++		".long 17b,90b\n"
++		".long 18b,90b\n"
++		".long 19b,90b\n"
++		".long 20b,90b\n"
++		".long 21b,90b\n"
+ 		".previous"
+ 		: "=d" (sum), "=d" (len), "=a" (src), "=a" (dst),
+ 		  "=&d" (tmp1), "=d" (tmp2)
+ 		: "0" (sum), "1" (len), "2" (src), "3" (dst)
+ 	    );
  
- #ifdef CONFIG_HOTPLUG_CPU
- #define ARM_CPU_DISCARD(x)
-@@ -49,8 +50,12 @@
- 		EXIT_CALL						\
- 		ARM_MMU_DISCARD(*(.text.fixup))				\
- 		ARM_MMU_DISCARD(*(__ex_table))				\
--		*(.discard)						\
--		*(.discard.*)
-+		COMMON_DISCARDS
-+
-+#define ARM_STUBS_TEXT							\
-+		*(.gnu.warning)						\
-+		*(.glue_7)						\
-+		*(.glue_7t)
+-	return tmp2 ? 0 : sum;
++	return sum;
+ }
  
- #define ARM_TEXT							\
- 		IDMAP_TEXT						\
-@@ -64,9 +69,7 @@
- 		CPUIDLE_TEXT						\
- 		LOCK_TEXT						\
- 		KPROBES_TEXT						\
--		*(.gnu.warning)						\
--		*(.glue_7)						\
--		*(.glue_7t)						\
-+		ARM_STUBS_TEXT						\
- 		. = ALIGN(4);						\
- 		*(.got)			/* Global offset table */	\
- 		ARM_CPU_KEEP(PROC_INFO)
-diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
-index 3d4e88f08196..904c31fa20ed 100644
---- a/arch/arm/kernel/vmlinux-xip.lds.S
-+++ b/arch/arm/kernel/vmlinux-xip.lds.S
-@@ -9,15 +9,13 @@
- 
- #include <linux/sizes.h>
- 
--#include <asm-generic/vmlinux.lds.h>
-+#include <asm/vmlinux.lds.h>
- #include <asm/cache.h>
- #include <asm/thread_info.h>
- #include <asm/memory.h>
- #include <asm/mpu.h>
- #include <asm/page.h>
- 
--#include "vmlinux.lds.h"
--
- OUTPUT_ARCH(arm)
- ENTRY(stext)
- 
-diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
-index 5592f14b7e35..bb950c896a67 100644
---- a/arch/arm/kernel/vmlinux.lds.S
-+++ b/arch/arm/kernel/vmlinux.lds.S
-@@ -9,15 +9,13 @@
- #else
- 
- #include <linux/pgtable.h>
--#include <asm-generic/vmlinux.lds.h>
-+#include <asm/vmlinux.lds.h>
- #include <asm/cache.h>
- #include <asm/thread_info.h>
- #include <asm/memory.h>
- #include <asm/mpu.h>
- #include <asm/page.h>
- 
--#include "vmlinux.lds.h"
--
- OUTPUT_ARCH(arm)
- ENTRY(stext)
- 
+ EXPORT_SYMBOL(csum_and_copy_from_user);
 -- 
-2.25.1
+2.11.0
