@@ -1,115 +1,71 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V4 06/15] x86/entry: Consolidate check_user_regs()
-Date: Tue, 21 Jul 2020 12:57:12 +0200
-Message-ID: <20200721110808.889765456@linutronix.de>
+Subject: [patch V4 08/15] x86/entry: Move user return notifier out of loop
+Date: Tue, 21 Jul 2020 12:57:14 +0200
+Message-ID: <20200721110809.106972388@linutronix.de>
 References: <20200721105706.030914876@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8-bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51342 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729633AbgGULIn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:43 -0400
+Received: from Galois.linutronix.de ([193.142.43.55]:37356 "EHLO
+        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729637AbgGULIp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:45 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+Guests and user space share certain MSRs. KVM sets these MSRs to guest
+values once and does not set them back to user space values on every VM
+exit to spare the costly MSR operations.
 
-The user register sanity check is sprinkled all over the place. Move it
-into enter_from_user_mode().
+User return notifiers ensure that these MSRs are set back to the correct
+values before returning to user space in exit_to_usermode_loop().
+
+There is no reason to evaluate the TIF flag indicating that user return
+notifiers need to be invoked in the loop. The important point is that they
+are invoked before returning to user space.
+
+Move the invocation out of the loop into the section which does the last
+preperatory steps before returning to user space. That section is not
+preemptible and runs with interrupts disabled until the actual return.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/entry/common.c |   24 +++++++++---------------
- 1 file changed, 9 insertions(+), 15 deletions(-)
+V4: New patch
+---
+ arch/x86/entry/common.c |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
 --- a/arch/x86/entry/common.c
 +++ b/arch/x86/entry/common.c
-@@ -82,10 +82,11 @@ static noinstr void check_user_regs(stru
-  * 2) Invoke context tracking if enabled to reactivate RCU
-  * 3) Trace interrupts off state
-  */
--static noinstr void enter_from_user_mode(void)
-+static noinstr void enter_from_user_mode(struct pt_regs *regs)
- {
- 	enum ctx_state state = ct_state();
+@@ -208,7 +208,7 @@ static long syscall_trace_enter(struct p
  
-+	check_user_regs(regs);
- 	lockdep_hardirqs_off(CALLER_ADDR0);
- 	user_exit_irqoff();
+ #define EXIT_TO_USERMODE_LOOP_FLAGS				\
+ 	(_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_UPROBE |	\
+-	 _TIF_NEED_RESCHED | _TIF_USER_RETURN_NOTIFY | _TIF_PATCH_PENDING)
++	 _TIF_NEED_RESCHED | _TIF_PATCH_PENDING)
  
-@@ -95,8 +96,9 @@ static noinstr void enter_from_user_mode
- 	instrumentation_end();
- }
- #else
--static __always_inline void enter_from_user_mode(void)
-+static __always_inline void enter_from_user_mode(struct pt_regs *regs)
+ static void exit_to_usermode_loop(struct pt_regs *regs, u32 cached_flags)
  {
-+	check_user_regs(regs);
- 	lockdep_hardirqs_off(CALLER_ADDR0);
- 	instrumentation_begin();
- 	trace_hardirqs_off_finish();
-@@ -369,9 +371,7 @@ static void __syscall_return_slowpath(st
- {
- 	struct thread_info *ti;
+@@ -242,9 +242,6 @@ static void exit_to_usermode_loop(struct
+ 			rseq_handle_notify_resume(NULL, regs);
+ 		}
  
--	check_user_regs(regs);
+-		if (cached_flags & _TIF_USER_RETURN_NOTIFY)
+-			fire_user_return_notifiers();
 -
--	enter_from_user_mode();
-+	enter_from_user_mode(regs);
- 	instrumentation_begin();
+ 		/* Disable IRQs and retry */
+ 		local_irq_disable();
  
- 	local_irq_enable();
-@@ -434,9 +434,7 @@ static void do_syscall_32_irqs_on(struct
- /* Handles int $0x80 */
- __visible noinstr void do_int80_syscall_32(struct pt_regs *regs)
- {
--	check_user_regs(regs);
--
--	enter_from_user_mode();
-+	enter_from_user_mode(regs);
- 	instrumentation_begin();
+@@ -273,6 +270,9 @@ static void __prepare_exit_to_usermode(s
+ 	/* Reload ti->flags; we may have rescheduled above. */
+ 	cached_flags = READ_ONCE(ti->flags);
  
- 	local_irq_enable();
-@@ -487,8 +485,6 @@ static bool __do_fast_syscall_32(struct
- 					vdso_image_32.sym_int80_landing_pad;
- 	bool success;
++	if (cached_flags & _TIF_USER_RETURN_NOTIFY)
++		fire_user_return_notifiers();
++
+ 	if (unlikely(cached_flags & _TIF_IO_BITMAP))
+ 		tss_update_io_bitmap();
  
--	check_user_regs(regs);
--
- 	/*
- 	 * SYSENTER loses EIP, and even SYSCALL32 needs us to skip forward
- 	 * so that 'regs->ip -= 2' lands back on an int $0x80 instruction.
-@@ -496,7 +492,7 @@ static bool __do_fast_syscall_32(struct
- 	 */
- 	regs->ip = landing_pad;
- 
--	enter_from_user_mode();
-+	enter_from_user_mode(regs);
- 	instrumentation_begin();
- 
- 	local_irq_enable();
-@@ -599,8 +595,7 @@ idtentry_state_t noinstr idtentry_enter(
- 	};
- 
- 	if (user_mode(regs)) {
--		check_user_regs(regs);
--		enter_from_user_mode();
-+		enter_from_user_mode(regs);
- 		return ret;
- 	}
- 
-@@ -733,8 +728,7 @@ void noinstr idtentry_exit(struct pt_reg
-  */
- void noinstr idtentry_enter_user(struct pt_regs *regs)
- {
--	check_user_regs(regs);
--	enter_from_user_mode();
-+	enter_from_user_mode(regs);
- }
- 
- /**
