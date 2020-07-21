@@ -1,39 +1,39 @@
-From: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: Re: io_uring vs in_compat_syscall()
-Date: Tue, 21 Jul 2020 10:25:24 -0700
-Message-ID: <CALCETrWMQpKe7jqw2t39yn4HgGhGTSEFGK6MPR4wPs=tBBhjbg@mail.gmail.com>
-References: <b754dad5-ee85-8a2f-f41a-8bdc56de42e8@kernel.dk>
- <8987E376-6B13-4798-BDBA-616A457447CF@amacapital.net> <20200721070709.GB11432@lst.de>
- <CALCETrXWZBXZuCeRYvYY8AWG51e_P3bOeNeqc8zXPLOTDTHY0g@mail.gmail.com> <20200721143412.GA8099@lst.de>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH] x86, vmlinux.lds: Page-Align end of ..page_aligned
+ sections
+Date: Tue, 21 Jul 2020 11:44:07 -0700
+Message-ID: <202007211143.AC36D096@keescook>
+References: <20200721093448.10417-1-joro@8bytes.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200721143412.GA8099-jcswGhMUV9g@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Cc: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jens Axboe <axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, io-uring-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37638 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727115AbgGUSoJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 14:44:09 -0400
+Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8AEDEC0619DA
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 11:44:09 -0700 (PDT)
+Received: by mail-pj1-x1043.google.com with SMTP id cv18so1755463pjb.1
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 11:44:09 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <20200721093448.10417-1-joro@8bytes.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Joerg Roedel <joro@8bytes.org>
+Cc: x86@kernel.org, hpa@zytor.com, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <hca@linux.ibm.com>, Joerg Roedel <jroedel@suse.de>, Bob Haarman <inglorion@google.com>, hjl.tools@gmail.com, Arvind Sankar <nivedita@alum.mit.edu>, Dmitry Safonov <0x7f454c46@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, Jul 21, 2020 at 7:34 AM Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org> wrote:
->
-> On Tue, Jul 21, 2020 at 07:31:02AM -0700, Andy Lutomirski wrote:
-> > > What do you mean with "properly wired up".  Do you really want to spread
-> > > ->compat_foo methods everywhere, including read and write?  I found
-> > > in_compat_syscall() a lot small and easier to maintain than all the
-> > > separate compat cruft.
-> >
-> > I was imagining using a flag.  Some of the net code uses
-> > MSG_CMSG_COMPAT for this purpose.
->
-> Killing that nightmarish monster is what actually got me into looking
-> io_uring and starting this thread.
+On Tue, Jul 21, 2020 at 11:34:48AM +0200, Joerg Roedel wrote:
+> From: Joerg Roedel <jroedel@suse.de>
+> 
+> Align the end of the .bss..page_aligned and .data..page_aligned section
+> on page-size too. Otherwise the linker might place other objects on the
+> page of the last ..page_aligned object. This is inconsistent with other
+> objects in those sections, which all have their own page.
 
-I agree that MSG_CMSG_COMPAT is nasty, but I think the concept is
-sound -- rather than tracking whether we're compat by using a
-different function or a per-thread variable, actually explicitly
-tracking the mode seems sensible.
+What problem was actually encountered? (i.e. why is it a problem for the
+other data to be in the page of the page-aligned data? shouldn't those
+data have their own, separate, alignment hint?)
 
-If we're going to play in_compat_syscall() games, let's please make
-io_uring_enter() return -EINVAL if in_compat_syscall() != ctx->compat.
-
---Andy
+-- 
+Kees Cook
