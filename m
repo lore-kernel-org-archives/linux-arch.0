@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 10/18] i386: propagate the calling conventions change down to csum_partial_copy_generic()
-Date: Tue, 21 Jul 2020 21:25:41 +0100
-Message-ID: <20200721202549.4150745-10-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 18/18] ppc: propagate the calling conventions change down to csum_partial_copy_generic()
+Date: Tue, 21 Jul 2020 21:25:49 +0100
+Message-ID: <20200721202549.4150745-18-viro@ZenIV.linux.org.uk>
 References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
  <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
@@ -15,315 +15,307 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-... and don't bother zeroing destination on error
+... and get rid of the pointless fallback in the wrappers.  On error it used
+to zero the unwritten area and calculate the csum of the entire thing.  Not
+wanting to do it in assembler part had been very reasonable; doing that in
+the first place, OTOH...  In case of an error the caller discards the data
+we'd copied, along with whatever checksum it might've had.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/x86/include/asm/checksum_32.h |  18 ++----
- arch/x86/lib/checksum_32.S         | 117 +++++++++++++------------------------
- 2 files changed, 47 insertions(+), 88 deletions(-)
+ arch/powerpc/include/asm/checksum.h  |  6 +--
+ arch/powerpc/lib/checksum_32.S       | 74 +++++++++++++-----------------------
+ arch/powerpc/lib/checksum_64.S       | 37 ++++++------------
+ arch/powerpc/lib/checksum_wrappers.c | 32 +++-------------
+ 4 files changed, 46 insertions(+), 103 deletions(-)
 
-diff --git a/arch/x86/include/asm/checksum_32.h b/arch/x86/include/asm/checksum_32.h
-index 5948cde9e4ad..17da95387997 100644
---- a/arch/x86/include/asm/checksum_32.h
-+++ b/arch/x86/include/asm/checksum_32.h
-@@ -27,9 +27,7 @@ asmlinkage __wsum csum_partial(const void *buff, int len, __wsum sum);
-  * better 64-bit) boundary
+diff --git a/arch/powerpc/include/asm/checksum.h b/arch/powerpc/include/asm/checksum.h
+index 97343e1a7d1c..fd0e4d1356a2 100644
+--- a/arch/powerpc/include/asm/checksum.h
++++ b/arch/powerpc/include/asm/checksum.h
+@@ -18,9 +18,7 @@
+  * Like csum_partial, this must be called with even lengths,
+  * except for the last fragment.
   */
+-extern __wsum csum_partial_copy_generic(const void *src, void *dst,
+-					      int len, __wsum sum,
+-					      int *src_err, int *dst_err);
++extern __wsum csum_partial_copy_generic(const void *src, void *dst, int len);
  
--asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
--					    int len, __wsum sum,
--					    int *src_err_ptr, int *dst_err_ptr);
-+asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst, int len);
+ #define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
+ extern __wsum csum_and_copy_from_user(const void __user *src, void *dst,
+@@ -30,7 +28,7 @@ extern __wsum csum_and_copy_to_user(const void *src, void __user *dst,
+ 				    int len);
+ 
+ #define csum_partial_copy_nocheck(src, dst, len)   \
+-        csum_partial_copy_generic((src), (dst), (len), 0, NULL, NULL)
++        csum_partial_copy_generic((src), (dst), (len))
+ 
  
  /*
-  *	Note: when you get a NULL pointer exception here this means someone
-@@ -40,23 +38,21 @@ asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
-  */
- static inline __wsum csum_partial_copy_nocheck(const void *src, void *dst, int len)
- {
--	return csum_partial_copy_generic(src, dst, len, 0, NULL, NULL);
-+	return csum_partial_copy_generic(src, dst, len);
- }
+diff --git a/arch/powerpc/lib/checksum_32.S b/arch/powerpc/lib/checksum_32.S
+index ecd150dc3ed9..ec5cd2dede35 100644
+--- a/arch/powerpc/lib/checksum_32.S
++++ b/arch/powerpc/lib/checksum_32.S
+@@ -78,12 +78,10 @@ EXPORT_SYMBOL(__csum_partial)
  
- static inline __wsum csum_and_copy_from_user(const void __user *src,
- 					     void *dst, int len)
+ /*
+  * Computes the checksum of a memory block at src, length len,
+- * and adds in "sum" (32-bit), while copying the block to dst.
+- * If an access exception occurs on src or dst, it stores -EFAULT
+- * to *src_err or *dst_err respectively, and (for an error on
+- * src) zeroes the rest of dst.
++ * and adds in 0xffffffff, while copying the block to dst.
++ * If an access exception occurs it returns zero.
+  *
+- * csum_partial_copy_generic(src, dst, len, sum, src_err, dst_err)
++ * csum_partial_copy_generic(src, dst, len)
+  */
+ #define CSUM_COPY_16_BYTES_WITHEX(n)	\
+ 8 ## n ## 0:			\
+@@ -108,14 +106,14 @@ EXPORT_SYMBOL(__csum_partial)
+ 	adde	r12,r12,r10
+ 
+ #define CSUM_COPY_16_BYTES_EXCODE(n)		\
+-	EX_TABLE(8 ## n ## 0b, src_error);	\
+-	EX_TABLE(8 ## n ## 1b, src_error);	\
+-	EX_TABLE(8 ## n ## 2b, src_error);	\
+-	EX_TABLE(8 ## n ## 3b, src_error);	\
+-	EX_TABLE(8 ## n ## 4b, dst_error);	\
+-	EX_TABLE(8 ## n ## 5b, dst_error);	\
+-	EX_TABLE(8 ## n ## 6b, dst_error);	\
+-	EX_TABLE(8 ## n ## 7b, dst_error);
++	EX_TABLE(8 ## n ## 0b, fault);	\
++	EX_TABLE(8 ## n ## 1b, fault);	\
++	EX_TABLE(8 ## n ## 2b, fault);	\
++	EX_TABLE(8 ## n ## 3b, fault);	\
++	EX_TABLE(8 ## n ## 4b, fault);	\
++	EX_TABLE(8 ## n ## 5b, fault);	\
++	EX_TABLE(8 ## n ## 6b, fault);	\
++	EX_TABLE(8 ## n ## 7b, fault);
+ 
+ 	.text
+ 	.stabs	"arch/powerpc/lib/",N_SO,0,0,0f
+@@ -127,11 +125,8 @@ LG_CACHELINE_BYTES = L1_CACHE_SHIFT
+ CACHELINE_MASK = (L1_CACHE_BYTES-1)
+ 
+ _GLOBAL(csum_partial_copy_generic)
+-	stwu	r1,-16(r1)
+-	stw	r7,12(r1)
+-	stw	r8,8(r1)
+-
+-	addic	r12,r6,0
++	li	r12,-1
++	addic	r0,r0,0			/* clear carry */
+ 	addi	r6,r4,-4
+ 	neg	r0,r4
+ 	addi	r4,r3,-4
+@@ -246,34 +241,19 @@ _GLOBAL(csum_partial_copy_generic)
+ 	rlwinm	r3,r3,8,0,31	/* odd destination address: rotate one byte */
+ 	blr
+ 
+-/* read fault */
+-src_error:
+-	lwz	r7,12(r1)
+-	addi	r1,r1,16
+-	cmpwi	cr0,r7,0
+-	beqlr
+-	li	r0,-EFAULT
+-	stw	r0,0(r7)
+-	blr
+-/* write fault */
+-dst_error:
+-	lwz	r8,8(r1)
+-	addi	r1,r1,16
+-	cmpwi	cr0,r8,0
+-	beqlr
+-	li	r0,-EFAULT
+-	stw	r0,0(r8)
++fault:
++	li	r3,0
+ 	blr
+ 
+-	EX_TABLE(70b, src_error);
+-	EX_TABLE(71b, dst_error);
+-	EX_TABLE(72b, src_error);
+-	EX_TABLE(73b, dst_error);
+-	EX_TABLE(54b, dst_error);
++	EX_TABLE(70b, fault);
++	EX_TABLE(71b, fault);
++	EX_TABLE(72b, fault);
++	EX_TABLE(73b, fault);
++	EX_TABLE(54b, fault);
+ 
+ /*
+  * this stuff handles faults in the cacheline loop and branches to either
+- * src_error (if in read part) or dst_error (if in write part)
++ * fault (if in read part) or fault (if in write part)
+  */
+ 	CSUM_COPY_16_BYTES_EXCODE(0)
+ #if L1_CACHE_BYTES >= 32
+@@ -290,12 +270,12 @@ dst_error:
+ #endif
+ #endif
+ 
+-	EX_TABLE(30b, src_error);
+-	EX_TABLE(31b, dst_error);
+-	EX_TABLE(40b, src_error);
+-	EX_TABLE(41b, dst_error);
+-	EX_TABLE(50b, src_error);
+-	EX_TABLE(51b, dst_error);
++	EX_TABLE(30b, fault);
++	EX_TABLE(31b, fault);
++	EX_TABLE(40b, fault);
++	EX_TABLE(41b, fault);
++	EX_TABLE(50b, fault);
++	EX_TABLE(51b, fault);
+ 
+ EXPORT_SYMBOL(csum_partial_copy_generic)
+ 
+diff --git a/arch/powerpc/lib/checksum_64.S b/arch/powerpc/lib/checksum_64.S
+index 514978f908d4..98ff51bd2f7d 100644
+--- a/arch/powerpc/lib/checksum_64.S
++++ b/arch/powerpc/lib/checksum_64.S
+@@ -182,34 +182,33 @@ EXPORT_SYMBOL(__csum_partial)
+ 
+ 	.macro srcnr
+ 100:
+-	EX_TABLE(100b,.Lsrc_error_nr)
++	EX_TABLE(100b,.Lerror_nr)
+ 	.endm
+ 
+ 	.macro source
+ 150:
+-	EX_TABLE(150b,.Lsrc_error)
++	EX_TABLE(150b,.Lerror)
+ 	.endm
+ 
+ 	.macro dstnr
+ 200:
+-	EX_TABLE(200b,.Ldest_error_nr)
++	EX_TABLE(200b,.Lerror_nr)
+ 	.endm
+ 
+ 	.macro dest
+ 250:
+-	EX_TABLE(250b,.Ldest_error)
++	EX_TABLE(250b,.Lerror)
+ 	.endm
+ 
+ /*
+  * Computes the checksum of a memory block at src, length len,
+- * and adds in "sum" (32-bit), while copying the block to dst.
+- * If an access exception occurs on src or dst, it stores -EFAULT
+- * to *src_err or *dst_err respectively. The caller must take any action
+- * required in this case (zeroing memory, recalculating partial checksum etc).
++ * and adds in 0xffffffff (32-bit), while copying the block to dst.
++ * If an access exception occurs, it returns 0.
+  *
+- * csum_partial_copy_generic(r3=src, r4=dst, r5=len, r6=sum, r7=src_err, r8=dst_err)
++ * csum_partial_copy_generic(r3=src, r4=dst, r5=len)
+  */
+ _GLOBAL(csum_partial_copy_generic)
++	li	r6,-1
+ 	addic	r0,r6,0			/* clear carry */
+ 
+ 	srdi.	r6,r5,3			/* less than 8 bytes? */
+@@ -401,29 +400,15 @@ dstnr;	stb	r6,0(r4)
+ 	srdi	r3,r3,32
+ 	blr
+ 
+-.Lsrc_error:
++.Lerror:
+ 	ld	r14,STK_REG(R14)(r1)
+ 	ld	r15,STK_REG(R15)(r1)
+ 	ld	r16,STK_REG(R16)(r1)
+ 	addi	r1,r1,STACKFRAMESIZE
+-.Lsrc_error_nr:
+-	cmpdi	0,r7,0
+-	beqlr
+-	li	r6,-EFAULT
+-	stw	r6,0(r7)
++.Lerror_nr:
++	li	r3,0
+ 	blr
+ 
+-.Ldest_error:
+-	ld	r14,STK_REG(R14)(r1)
+-	ld	r15,STK_REG(R15)(r1)
+-	ld	r16,STK_REG(R16)(r1)
+-	addi	r1,r1,STACKFRAMESIZE
+-.Ldest_error_nr:
+-	cmpdi	0,r8,0
+-	beqlr
+-	li	r6,-EFAULT
+-	stw	r6,0(r8)
+-	blr
+ EXPORT_SYMBOL(csum_partial_copy_generic)
+ 
+ /*
+diff --git a/arch/powerpc/lib/checksum_wrappers.c b/arch/powerpc/lib/checksum_wrappers.c
+index b1faa82dd8af..b895166afc82 100644
+--- a/arch/powerpc/lib/checksum_wrappers.c
++++ b/arch/powerpc/lib/checksum_wrappers.c
+@@ -14,8 +14,7 @@
+ __wsum csum_and_copy_from_user(const void __user *src, void *dst,
+ 			       int len)
  {
- 	__wsum ret;
+-	unsigned int csum;
 -	int err = 0;
++	__wsum csum;
  
  	might_sleep();
- 	if (!user_access_begin(src, len))
- 		return 0;
--	ret = csum_partial_copy_generic((__force void *)src, dst,
--					len, ~0U, &err, NULL);
-+	ret = csum_partial_copy_generic((__force void *)src, dst, len);
- 	user_access_end();
  
--	return err ? 0 : ret;
-+	return ret;
+@@ -24,27 +23,16 @@ __wsum csum_and_copy_from_user(const void __user *src, void *dst,
+ 
+ 	allow_read_from_user(src, len);
+ 
+-	csum = csum_partial_copy_generic((void __force *)src, dst,
+-					 len, ~0U, &err, NULL);
+-
+-	if (unlikely(err)) {
+-		int missing = __copy_from_user(dst, src, len);
+-
+-		if (missing)
+-			csum = 0;
+-		else
+-			csum = csum_partial(dst, len, ~0U);
+-	}
++	csum = csum_partial_copy_generic((void __force *)src, dst, len);
+ 
+ 	prevent_read_from_user(src, len);
+-	return (__force __wsum)csum;
++	return csum;
  }
+ EXPORT_SYMBOL(csum_and_copy_from_user);
  
- /*
-@@ -177,16 +173,14 @@ static inline __wsum csum_and_copy_to_user(const void *src,
- 					   int len)
+ __wsum csum_and_copy_to_user(const void *src, void __user *dst, int len)
  {
- 	__wsum ret;
+-	unsigned int csum;
 -	int err = 0;
++	__wsum csum;
  
  	might_sleep();
- 	if (!user_access_begin(dst, len))
- 		return 0;
+ 	if (unlikely(!access_ok(dst, len)))
+@@ -52,17 +40,9 @@ __wsum csum_and_copy_to_user(const void *src, void __user *dst, int len)
  
--	ret = csum_partial_copy_generic(src, (__force void *)dst,
--					len, ~0U, NULL, &err);
-+	ret = csum_partial_copy_generic(src, (__force void *)dst, len);
- 	user_access_end();
--	return err ? 0 : ret;
-+	return ret;
+ 	allow_write_to_user(dst, len);
+ 
+-	csum = csum_partial_copy_generic(src, (void __force *)dst,
+-					 len, ~0U, NULL, &err);
+-
+-	if (unlikely(err)) {
+-		csum = csum_partial(src, len, ~0U);
+-
+-		if (copy_to_user(dst, src, len))
+-			csum = 0;
+-	}
++	csum = csum_partial_copy_generic(src, (void __force *)dst, len);
+ 
+ 	prevent_write_to_user(dst, len);
+-	return (__force __wsum)csum;
++	return csum;
  }
- 
- #endif /* _ASM_X86_CHECKSUM_32_H */
-diff --git a/arch/x86/lib/checksum_32.S b/arch/x86/lib/checksum_32.S
-index d1d768912368..4304320e51f4 100644
---- a/arch/x86/lib/checksum_32.S
-+++ b/arch/x86/lib/checksum_32.S
-@@ -253,28 +253,17 @@ EXPORT_SYMBOL(csum_partial)
- 
- /*
- unsigned int csum_partial_copy_generic (const char *src, char *dst,
--				  int len, int sum, int *src_err_ptr, int *dst_err_ptr)
-+				  int len)
-  */ 
- 
- /*
-  * Copy from ds while checksumming, otherwise like csum_partial
-- *
-- * The macros SRC and DST specify the type of access for the instruction.
-- * thus we can call a custom exception handler for all access types.
-- *
-- * FIXME: could someone double-check whether I haven't mixed up some SRC and
-- *	  DST definitions? It's damn hard to trigger all cases.  I hope I got
-- *	  them all but there's no guarantee.
-  */
- 
--#define SRC(y...)			\
-+#define EXC(y...)			\
- 	9999: y;			\
- 	_ASM_EXTABLE_UA(9999b, 6001f)
- 
--#define DST(y...)			\
--	9999: y;			\
--	_ASM_EXTABLE_UA(9999b, 6002f)
--
- #ifndef CONFIG_X86_USE_PPRO_CHECKSUM
- 
- #define ARGBASE 16		
-@@ -285,20 +274,20 @@ SYM_FUNC_START(csum_partial_copy_generic)
- 	pushl %edi
- 	pushl %esi
- 	pushl %ebx
--	movl ARGBASE+16(%esp),%eax	# sum
- 	movl ARGBASE+12(%esp),%ecx	# len
- 	movl ARGBASE+4(%esp),%esi	# src
- 	movl ARGBASE+8(%esp),%edi	# dst
- 
-+	movl $-1, %eax			# sum
- 	testl $2, %edi			# Check alignment. 
- 	jz 2f				# Jump if alignment is ok.
- 	subl $2, %ecx			# Alignment uses up two bytes.
- 	jae 1f				# Jump if we had at least two bytes.
- 	addl $2, %ecx			# ecx was < 2.  Deal with it.
- 	jmp 4f
--SRC(1:	movw (%esi), %bx	)
-+EXC(1:	movw (%esi), %bx	)
- 	addl $2, %esi
--DST(	movw %bx, (%edi)	)
-+EXC(	movw %bx, (%edi)	)
- 	addl $2, %edi
- 	addw %bx, %ax	
- 	adcl $0, %eax
-@@ -306,34 +295,34 @@ DST(	movw %bx, (%edi)	)
- 	movl %ecx, FP(%esp)
- 	shrl $5, %ecx
- 	jz 2f
--	testl %esi, %esi
--SRC(1:	movl (%esi), %ebx	)
--SRC(	movl 4(%esi), %edx	)
-+	testl %esi, %esi		# what's wrong with clc?
-+EXC(1:	movl (%esi), %ebx	)
-+EXC(	movl 4(%esi), %edx	)
- 	adcl %ebx, %eax
--DST(	movl %ebx, (%edi)	)
-+EXC(	movl %ebx, (%edi)	)
- 	adcl %edx, %eax
--DST(	movl %edx, 4(%edi)	)
-+EXC(	movl %edx, 4(%edi)	)
- 
--SRC(	movl 8(%esi), %ebx	)
--SRC(	movl 12(%esi), %edx	)
-+EXC(	movl 8(%esi), %ebx	)
-+EXC(	movl 12(%esi), %edx	)
- 	adcl %ebx, %eax
--DST(	movl %ebx, 8(%edi)	)
-+EXC(	movl %ebx, 8(%edi)	)
- 	adcl %edx, %eax
--DST(	movl %edx, 12(%edi)	)
-+EXC(	movl %edx, 12(%edi)	)
- 
--SRC(	movl 16(%esi), %ebx 	)
--SRC(	movl 20(%esi), %edx	)
-+EXC(	movl 16(%esi), %ebx 	)
-+EXC(	movl 20(%esi), %edx	)
- 	adcl %ebx, %eax
--DST(	movl %ebx, 16(%edi)	)
-+EXC(	movl %ebx, 16(%edi)	)
- 	adcl %edx, %eax
--DST(	movl %edx, 20(%edi)	)
-+EXC(	movl %edx, 20(%edi)	)
- 
--SRC(	movl 24(%esi), %ebx	)
--SRC(	movl 28(%esi), %edx	)
-+EXC(	movl 24(%esi), %ebx	)
-+EXC(	movl 28(%esi), %edx	)
- 	adcl %ebx, %eax
--DST(	movl %ebx, 24(%edi)	)
-+EXC(	movl %ebx, 24(%edi)	)
- 	adcl %edx, %eax
--DST(	movl %edx, 28(%edi)	)
-+EXC(	movl %edx, 28(%edi)	)
- 
- 	lea 32(%esi), %esi
- 	lea 32(%edi), %edi
-@@ -345,9 +334,9 @@ DST(	movl %edx, 28(%edi)	)
- 	andl $0x1c, %edx
- 	je 4f
- 	shrl $2, %edx			# This clears CF
--SRC(3:	movl (%esi), %ebx	)
-+EXC(3:	movl (%esi), %ebx	)
- 	adcl %ebx, %eax
--DST(	movl %ebx, (%edi)	)
-+EXC(	movl %ebx, (%edi)	)
- 	lea 4(%esi), %esi
- 	lea 4(%edi), %edi
- 	dec %edx
-@@ -357,39 +346,24 @@ DST(	movl %ebx, (%edi)	)
- 	jz 7f
- 	cmpl $2, %ecx
- 	jb 5f
--SRC(	movw (%esi), %cx	)
-+EXC(	movw (%esi), %cx	)
- 	leal 2(%esi), %esi
--DST(	movw %cx, (%edi)	)
-+EXC(	movw %cx, (%edi)	)
- 	leal 2(%edi), %edi
- 	je 6f
- 	shll $16,%ecx
--SRC(5:	movb (%esi), %cl	)
--DST(	movb %cl, (%edi)	)
-+EXC(5:	movb (%esi), %cl	)
-+EXC(	movb %cl, (%edi)	)
- 6:	addl %ecx, %eax
- 	adcl $0, %eax
- 7:
--5000:
- 
- # Exception handler:
- .section .fixup, "ax"							
- 
- 6001:
--	movl ARGBASE+20(%esp), %ebx	# src_err_ptr
--	movl $-EFAULT, (%ebx)
--
--	# zero the complete destination - computing the rest
--	# is too much work 
--	movl ARGBASE+8(%esp), %edi	# dst
--	movl ARGBASE+12(%esp), %ecx	# len
--	xorl %eax,%eax
--	rep ; stosb
--
--	jmp 5000b
--
--6002:
--	movl ARGBASE+24(%esp), %ebx	# dst_err_ptr
--	movl $-EFAULT,(%ebx)
--	jmp 5000b
-+	xorl %eax, %eax
-+	jmp 7b
- 
- .previous
- 
-@@ -405,14 +379,14 @@ SYM_FUNC_END(csum_partial_copy_generic)
- /* Version for PentiumII/PPro */
- 
- #define ROUND1(x) \
--	SRC(movl x(%esi), %ebx	)	;	\
-+	EXC(movl x(%esi), %ebx	)	;	\
- 	addl %ebx, %eax			;	\
--	DST(movl %ebx, x(%edi)	)	; 
-+	EXC(movl %ebx, x(%edi)	)	;
- 
- #define ROUND(x) \
--	SRC(movl x(%esi), %ebx	)	;	\
-+	EXC(movl x(%esi), %ebx	)	;	\
- 	adcl %ebx, %eax			;	\
--	DST(movl %ebx, x(%edi)	)	;
-+	EXC(movl %ebx, x(%edi)	)	;
- 
- #define ARGBASE 12
- 		
-@@ -423,7 +397,7 @@ SYM_FUNC_START(csum_partial_copy_generic)
- 	movl ARGBASE+4(%esp),%esi	#src
- 	movl ARGBASE+8(%esp),%edi	#dst	
- 	movl ARGBASE+12(%esp),%ecx	#len
--	movl ARGBASE+16(%esp),%eax	#sum
-+	movl $-1, %eax			#sum
- #	movl %ecx, %edx  
- 	movl %ecx, %ebx  
- 	movl %esi, %edx
-@@ -439,7 +413,7 @@ SYM_FUNC_START(csum_partial_copy_generic)
- 	JMP_NOSPEC ebx
- 1:	addl $64,%esi
- 	addl $64,%edi 
--	SRC(movb -32(%edx),%bl)	; SRC(movb (%edx),%bl)
-+	EXC(movb -32(%edx),%bl)	; EXC(movb (%edx),%bl)
- 	ROUND1(-64) ROUND(-60) ROUND(-56) ROUND(-52)	
- 	ROUND (-48) ROUND(-44) ROUND(-40) ROUND(-36)	
- 	ROUND (-32) ROUND(-28) ROUND(-24) ROUND(-20)	
-@@ -453,29 +427,20 @@ SYM_FUNC_START(csum_partial_copy_generic)
- 	jz 7f
- 	cmpl $2, %edx
- 	jb 5f
--SRC(	movw (%esi), %dx         )
-+EXC(	movw (%esi), %dx         )
- 	leal 2(%esi), %esi
--DST(	movw %dx, (%edi)         )
-+EXC(	movw %dx, (%edi)         )
- 	leal 2(%edi), %edi
- 	je 6f
- 	shll $16,%edx
- 5:
--SRC(	movb (%esi), %dl         )
--DST(	movb %dl, (%edi)         )
-+EXC(	movb (%esi), %dl         )
-+EXC(	movb %dl, (%edi)         )
- 6:	addl %edx, %eax
- 	adcl $0, %eax
- 7:
- .section .fixup, "ax"
--6001:	movl	ARGBASE+20(%esp), %ebx	# src_err_ptr	
--	movl $-EFAULT, (%ebx)
--	# zero the complete destination (computing the rest is too much work)
--	movl ARGBASE+8(%esp),%edi	# dst
--	movl ARGBASE+12(%esp),%ecx	# len
--	xorl %eax,%eax
--	rep; stosb
--	jmp 7b
--6002:	movl ARGBASE+24(%esp), %ebx	# dst_err_ptr
--	movl $-EFAULT, (%ebx)
-+6001:	xorl %eax, %eax
- 	jmp  7b			
- .previous				
- 
+ EXPORT_SYMBOL(csum_and_copy_to_user);
 -- 
 2.11.0
