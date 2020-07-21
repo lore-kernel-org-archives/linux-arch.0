@@ -1,94 +1,199 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46642 "EHLO
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51344 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726232AbgGQRrz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 13:47:55 -0400
-Date: Fri, 17 Jul 2020 18:47:50 +0100
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Message-ID: <20200717174750.GQ12769@casper.infradead.org>
-References: <20200717044427.68747-1-ebiggers@kernel.org>
+        with ESMTP id S1729646AbgGULIo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:44 -0400
+Message-ID: <20200721110808.999191026@linutronix.de>
+Date: Tue, 21 Jul 2020 12:57:13 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V4 07/15] x86/entry: Consolidate 32/64 bit syscall entry
+References: <20200721105706.030914876@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200717044427.68747-1-ebiggers@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-transfer-encoding: 8-bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Biggers <ebiggers@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200717174750.n2DBhN8FoQF-H78eUIJO3YWc_GR4cPjzqbfCTqDEviQ@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
+Message-ID: <20200721105713.LIPXz3mKW0dFT35ZjaG6UymJalN-j6PlfYPQOoC30gI@z>
 
-On Thu, Jul 16, 2020 at 09:44:27PM -0700, Eric Biggers wrote:
-> +If that doesn't apply, you'll have to implement one-time init yourself.
-> +
-> +The simplest implementation just uses a mutex and an 'inited' flag.
-> +This implementation should be used where feasible:
+From: Thomas Gleixner <tglx@linutronix.de>
 
-I think some syntactic sugar should make it feasible for normal people
-to implement the most efficient version of this just like they use locks.
+64bit and 32bit entry code have the same open coded syscall entry handling
+after the bitwidth specific bits.
 
-> +For the single-pointer case, a further optimized implementation
-> +eliminates the mutex and instead uses compare-and-exchange:
-> +
-> +	static struct foo *foo;
-> +
-> +	int init_foo_if_needed(void)
-> +	{
-> +		struct foo *p;
-> +
-> +		/* pairs with successful cmpxchg_release() below */
-> +		if (smp_load_acquire(&foo))
-> +			return 0;
-> +
-> +		p = alloc_foo();
-> +		if (!p)
-> +			return -ENOMEM;
-> +
-> +		/* on success, pairs with smp_load_acquire() above and below */
-> +		if (cmpxchg_release(&foo, NULL, p) != NULL) {
+Move it to a helper function and share the code.
 
-Why do we have cmpxchg_release() anyway?  Under what circumstances is
-cmpxchg() useful _without_ having release semantics?
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/x86/entry/common.c |   93 +++++++++++++++++++++---------------------------
+ 1 file changed, 41 insertions(+), 52 deletions(-)
 
-> +			free_foo(p);
-> +			/* pairs with successful cmpxchg_release() above */
-> +			smp_load_acquire(&foo);
-> +		}
-> +		return 0;
-> +	}
-
-How about something like this ...
-
-once.h:
-
-static struct init_once_pointer {
-	void *p;
-};
-
-static inline void *once_get(struct init_once_pointer *oncep)
-{ ... }
-
-static inline bool once_store(struct init_once_pointer *oncep, void *p)
-{ ... }
-
---- foo.c ---
-
-struct foo *get_foo(gfp_t gfp)
-{
-	static struct init_once_pointer my_foo;
-	struct foo *foop;
-
-	foop = once_get(&my_foo);
-	if (foop)
-		return foop;
-
-	foop = alloc_foo(gfp);
-	if (!once_store(&my_foo, foop)) {
-		free_foo(foop);
-		foop = once_get(&my_foo);
-	}
-
-	return foop;
-}
-
-Any kernel programmer should be able to handle that pattern.  And no mutex!
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -366,8 +366,7 @@ static void __syscall_return_slowpath(st
+ 	exit_to_user_mode();
+ }
+ 
+-#ifdef CONFIG_X86_64
+-__visible noinstr void do_syscall_64(unsigned long nr, struct pt_regs *regs)
++static noinstr long syscall_enter(struct pt_regs *regs, unsigned long nr)
+ {
+ 	struct thread_info *ti;
+ 
+@@ -379,6 +378,16 @@ static void __syscall_return_slowpath(st
+ 	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY)
+ 		nr = syscall_trace_enter(regs);
+ 
++	instrumentation_end();
++	return nr;
++}
++
++#ifdef CONFIG_X86_64
++__visible noinstr void do_syscall_64(unsigned long nr, struct pt_regs *regs)
++{
++	nr = syscall_enter(regs, nr);
++
++	instrumentation_begin();
+ 	if (likely(nr < NR_syscalls)) {
+ 		nr = array_index_nospec(nr, NR_syscalls);
+ 		regs->ax = sys_call_table[nr](regs);
+@@ -390,64 +399,53 @@ static void __syscall_return_slowpath(st
+ 		regs->ax = x32_sys_call_table[nr](regs);
+ #endif
+ 	}
+-	__syscall_return_slowpath(regs);
+-
+ 	instrumentation_end();
+-	exit_to_user_mode();
++	syscall_return_slowpath(regs);
+ }
+ #endif
+ 
+ #if defined(CONFIG_X86_32) || defined(CONFIG_IA32_EMULATION)
++static __always_inline unsigned int syscall_32_enter(struct pt_regs *regs)
++{
++	if (IS_ENABLED(CONFIG_IA32_EMULATION))
++		current_thread_info()->status |= TS_COMPAT;
++	/*
++	 * Subtlety here: if ptrace pokes something larger than 2^32-1 into
++	 * orig_ax, the unsigned int return value truncates it.  This may
++	 * or may not be necessary, but it matches the old asm behavior.
++	 */
++	return syscall_enter(regs, (unsigned int)regs->orig_ax);
++}
++
+ /*
+- * Does a 32-bit syscall.  Called with IRQs on in CONTEXT_KERNEL.  Does
+- * all entry and exit work and returns with IRQs off.  This function is
+- * extremely hot in workloads that use it, and it's usually called from
+- * do_fast_syscall_32, so forcibly inline it to improve performance.
++ * Invoke a 32-bit syscall.  Called with IRQs on in CONTEXT_KERNEL.
+  */
+-static void do_syscall_32_irqs_on(struct pt_regs *regs)
++static __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs,
++						  unsigned int nr)
+ {
+-	struct thread_info *ti = current_thread_info();
+-	unsigned int nr = (unsigned int)regs->orig_ax;
+-
+-#ifdef CONFIG_IA32_EMULATION
+-	ti->status |= TS_COMPAT;
+-#endif
+-
+-	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY) {
+-		/*
+-		 * Subtlety here: if ptrace pokes something larger than
+-		 * 2^32-1 into orig_ax, this truncates it.  This may or
+-		 * may not be necessary, but it matches the old asm
+-		 * behavior.
+-		 */
+-		nr = syscall_trace_enter(regs);
+-	}
+-
+ 	if (likely(nr < IA32_NR_syscalls)) {
++		instrumentation_begin();
+ 		nr = array_index_nospec(nr, IA32_NR_syscalls);
+ 		regs->ax = ia32_sys_call_table[nr](regs);
++		instrumentation_end();
+ 	}
+-
+-	__syscall_return_slowpath(regs);
+ }
+ 
+ /* Handles int $0x80 */
+ __visible noinstr void do_int80_syscall_32(struct pt_regs *regs)
+ {
+-	enter_from_user_mode(regs);
+-	instrumentation_begin();
+-
+-	local_irq_enable();
+-	do_syscall_32_irqs_on(regs);
++	unsigned int nr = syscall_32_enter(regs);
+ 
+-	instrumentation_end();
+-	exit_to_user_mode();
++	do_syscall_32_irqs_on(regs, nr);
++	syscall_return_slowpath(regs);
+ }
+ 
+-static bool __do_fast_syscall_32(struct pt_regs *regs)
++static noinstr bool __do_fast_syscall_32(struct pt_regs *regs)
+ {
++	unsigned int nr	= syscall_32_enter(regs);
+ 	int res;
+ 
++	instrumentation_begin();
+ 	/* Fetch EBP from where the vDSO stashed it. */
+ 	if (IS_ENABLED(CONFIG_X86_64)) {
+ 		/*
+@@ -460,17 +458,18 @@ static bool __do_fast_syscall_32(struct
+ 		res = get_user(*(u32 *)&regs->bp,
+ 		       (u32 __user __force *)(unsigned long)(u32)regs->sp);
+ 	}
++	instrumentation_end();
+ 
+ 	if (res) {
+ 		/* User code screwed up. */
+ 		regs->ax = -EFAULT;
+-		local_irq_disable();
+-		__prepare_exit_to_usermode(regs);
++		syscall_return_slowpath(regs);
+ 		return false;
+ 	}
+ 
+ 	/* Now this is just like a normal syscall. */
+-	do_syscall_32_irqs_on(regs);
++	do_syscall_32_irqs_on(regs, nr);
++	syscall_return_slowpath(regs);
+ 	return true;
+ }
+ 
+@@ -483,7 +482,6 @@ static bool __do_fast_syscall_32(struct
+ 	 */
+ 	unsigned long landing_pad = (unsigned long)current->mm->context.vdso +
+ 					vdso_image_32.sym_int80_landing_pad;
+-	bool success;
+ 
+ 	/*
+ 	 * SYSENTER loses EIP, and even SYSCALL32 needs us to skip forward
+@@ -492,17 +490,8 @@ static bool __do_fast_syscall_32(struct
+ 	 */
+ 	regs->ip = landing_pad;
+ 
+-	enter_from_user_mode(regs);
+-	instrumentation_begin();
+-
+-	local_irq_enable();
+-	success = __do_fast_syscall_32(regs);
+-
+-	instrumentation_end();
+-	exit_to_user_mode();
+-
+-	/* If it failed, keep it simple: use IRET. */
+-	if (!success)
++	/* Invoke the syscall. If it failed, keep it simple: use IRET. */
++	if (!__do_fast_syscall_32(regs))
+ 		return 0;
+ 
+ #ifdef CONFIG_X86_64
