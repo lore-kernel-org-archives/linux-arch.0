@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 14/18] mips: propagate the calling convention change down into __csum_partial_copy_..._user()
-Date: Tue, 21 Jul 2020 21:25:45 +0100
-Message-ID: <20200721202549.4150745-14-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 11/18] sparc32: propagate the calling conventions change down to __csum_partial_copy_sparc_generic()
+Date: Tue, 21 Jul 2020 21:25:42 +0100
+Message-ID: <20200721202549.4150745-11-viro@ZenIV.linux.org.uk>
 References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
  <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
@@ -15,516 +15,467 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-and turn the exception handlers into simply returning 0, which
-simplifies the hell out of things in csum_partial.S
+... and get rid of zeroing the target, etc. on fault.
+All exception handlers merge into one; moreover, since we are not
+calling lookup_fault() anymore, we don't need the magic with passing
+arguments for it from the page fault handler.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/mips/include/asm/checksum.h |  26 +---
- arch/mips/lib/csum_partial.S     | 258 +++++++++++++--------------------------
- 2 files changed, 89 insertions(+), 195 deletions(-)
+ arch/sparc/include/asm/checksum_32.h |  49 +--------
+ arch/sparc/lib/checksum_32.S         | 202 +++++++----------------------------
+ arch/sparc/mm/fault_32.c             |   6 +-
+ 3 files changed, 44 insertions(+), 213 deletions(-)
 
-diff --git a/arch/mips/include/asm/checksum.h b/arch/mips/include/asm/checksum.h
-index bf02d2d3869f..66a86a33339a 100644
---- a/arch/mips/include/asm/checksum.h
-+++ b/arch/mips/include/asm/checksum.h
-@@ -34,25 +34,17 @@
-  */
- __wsum csum_partial(const void *buff, int len, __wsum sum);
+diff --git a/arch/sparc/include/asm/checksum_32.h b/arch/sparc/include/asm/checksum_32.h
+index b5873b7b7bf0..d55e480172a6 100644
+--- a/arch/sparc/include/asm/checksum_32.h
++++ b/arch/sparc/include/asm/checksum_32.h
+@@ -50,9 +50,9 @@ csum_partial_copy_nocheck(const void *src, void *dst, int len)
  
--__wsum __csum_partial_copy_from_user(const void *src, void *dst,
--				     int len, __wsum sum, int *err_ptr);
--__wsum __csum_partial_copy_to_user(const void *src, void *dst,
--				   int len, __wsum sum, int *err_ptr);
-+__wsum __csum_partial_copy_from_user(const void __user *src, void *dst, int len);
-+__wsum __csum_partial_copy_to_user(const void *src, void __user *dst, int len);
+ 	__asm__ __volatile__ (
+ 		"call __csum_partial_copy_sparc_generic\n\t"
+-		" mov %6, %%g7\n"
++		" mov -1, %%g7\n"
+ 	: "=&r" (ret), "=&r" (d), "=&r" (l)
+-	: "0" (ret), "1" (d), "2" (l), "r" (0)
++	: "0" (ret), "1" (d), "2" (l)
+ 	: "o2", "o3", "o4", "o5", "o7",
+ 	  "g2", "g3", "g4", "g5", "g7",
+ 	  "memory", "cc");
+@@ -61,29 +61,10 @@ csum_partial_copy_nocheck(const void *src, void *dst, int len)
  
- #define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
- static inline
- __wsum csum_and_copy_from_user(const void __user *src, void *dst, int len)
- {
--	__wsum sum = ~0U;
+ static inline __wsum
+ csum_and_copy_from_user(const void __user *src, void *dst, int len)
+-  {
+-	register unsigned long ret asm("o0") = (unsigned long)src;
+-	register char *d asm("o1") = dst;
+-	register int l asm("g1") = len;
+-	register __wsum s asm("g7") = ~0U;
 -	int err = 0;
 -
- 	might_fault();
--
- 	if (!access_ok(src, len))
++{
+ 	if (unlikely(!access_ok(src, len)))
  		return 0;
--	sum = __csum_partial_copy_from_user((__force void *)src, dst,
--						     len, sum, &err);
--	return err ? 0 : sum;
-+	return __csum_partial_copy_from_user(src, dst, len);
+-
+-	__asm__ __volatile__ (
+-	".section __ex_table,#alloc\n\t"
+-	".align 4\n\t"
+-	".word 1f,2\n\t"
+-	".previous\n"
+-	"1:\n\t"
+-	"call __csum_partial_copy_sparc_generic\n\t"
+-	" st %8, [%%sp + 64]\n"
+-	: "=&r" (ret), "=&r" (d), "=&r" (l), "=&r" (s)
+-	: "0" (ret), "1" (d), "2" (l), "3" (s), "r" (&err)
+-	: "o2", "o3", "o4", "o5", "o7", "g2", "g3", "g4", "g5",
+-	  "cc", "memory");
+-	return err ? 0 : (__force __wsum)ret;
++	return csum_partial_copy_nocheck((__force void *)src, dst, len);
  }
  
- /*
-@@ -62,26 +54,20 @@ __wsum csum_and_copy_from_user(const void __user *src, void *dst, int len)
- static inline
- __wsum csum_and_copy_to_user(const void *src, void __user *dst, int len)
+ #define HAVE_CSUM_COPY_USER
+@@ -91,29 +72,9 @@ csum_and_copy_from_user(const void __user *src, void *dst, int len)
+ static inline __wsum
+ csum_and_copy_to_user(const void *src, void __user *dst, int len)
  {
+-	register unsigned long ret asm("o0") = (unsigned long)src;
+-	register char __user *d asm("o1") = dst;
+-	register int l asm("g1") = len;
+-	register __wsum s asm("g7") = ~0U;
 -	int err = 0;
--	__wsum sum = ~0U;
 -
- 	might_fault();
  	if (!access_ok(dst, len))
  		return 0;
--	sum = __csum_partial_copy_to_user(src,
--					   (__force void *)dst,
--					   len, sum, &err);
--	return err ? 0 : sum;
-+	return __csum_partial_copy_to_user(src, dst, len);
- }
- 
- /*
-  * the same as csum_partial, but copies from user space (but on MIPS
-  * we have just one address space, so this is identical to the above)
-  */
--__wsum __csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum);
-+__wsum __csum_partial_copy_nocheck(const void *src, void *dst, int len);
- static inline __wsum csum_partial_copy_nocheck(const void *src, void *dst, int len)
- {
--	return __csum_partial_copy_nocheck(src, dst, len, 0);
-+	return __csum_partial_copy_nocheck(src, dst, len);
- }
- #define csum_partial_copy_nocheck csum_partial_copy_nocheck
- 
-diff --git a/arch/mips/lib/csum_partial.S b/arch/mips/lib/csum_partial.S
-index 983e909c2052..a46db0807195 100644
---- a/arch/mips/lib/csum_partial.S
-+++ b/arch/mips/lib/csum_partial.S
-@@ -308,8 +308,8 @@ EXPORT_SYMBOL(csum_partial)
- /*
-  * checksum and copy routines based on memcpy.S
-  *
-- *	csum_partial_copy_nocheck(src, dst, len, sum)
-- *	__csum_partial_copy_kernel(src, dst, len, sum, errp)
-+ *	csum_partial_copy_nocheck(src, dst, len)
-+ *	__csum_partial_copy_kernel(src, dst, len)
-  *
-  * See "Spec" in memcpy.S for details.	Unlike __copy_user, all
-  * function in this file use the standard calling convention.
-@@ -318,26 +318,11 @@ EXPORT_SYMBOL(csum_partial)
- #define src a0
- #define dst a1
- #define len a2
--#define psum a3
- #define sum v0
- #define odd t8
--#define errptr t9
- 
- /*
-- * The exception handler for loads requires that:
-- *  1- AT contain the address of the byte just past the end of the source
-- *     of the copy,
-- *  2- src_entry <= src < AT, and
-- *  3- (dst - src) == (dst_entry - src_entry),
-- * The _entry suffix denotes values when __copy_user was called.
-- *
-- * (1) is set up up by __csum_partial_copy_from_user and maintained by
-- *	not writing AT in __csum_partial_copy
-- * (2) is met by incrementing src by the number of bytes copied
-- * (3) is met by not doing loads between a pair of increments of dst and src
-- *
-- * The exception handlers for stores stores -EFAULT to errptr and return.
-- * These handlers do not need to overwrite any data.
-+ * All exception handlers simply return 0.
-  */
- 
- /* Instruction type */
-@@ -358,11 +343,11 @@ EXPORT_SYMBOL(csum_partial)
-  * addr    : Address
-  * handler : Exception handler
-  */
--#define EXC(insn, type, reg, addr, handler)	\
-+#define EXC(insn, type, reg, addr)		\
- 	.if \mode == LEGACY_MODE;		\
- 9:		insn reg, addr;			\
- 		.section __ex_table,"a";	\
--		PTR	9b, handler;		\
-+		PTR	9b, .L_exc;		\
- 		.previous;			\
- 	/* This is enabled in EVA mode */	\
- 	.else;					\
-@@ -371,7 +356,7 @@ EXPORT_SYMBOL(csum_partial)
- 		    ((\to == USEROP) && (type == ST_INSN));	\
- 9:			__BUILD_EVA_INSN(insn##e, reg, addr);	\
- 			.section __ex_table,"a";		\
--			PTR	9b, handler;			\
-+			PTR	9b, .L_exc;			\
- 			.previous;				\
- 		.else;						\
- 			/* EVA without exception */		\
-@@ -384,14 +369,14 @@ EXPORT_SYMBOL(csum_partial)
- #ifdef USE_DOUBLE
- 
- #define LOADK	ld /* No exception */
--#define LOAD(reg, addr, handler)	EXC(ld, LD_INSN, reg, addr, handler)
--#define LOADBU(reg, addr, handler)	EXC(lbu, LD_INSN, reg, addr, handler)
--#define LOADL(reg, addr, handler)	EXC(ldl, LD_INSN, reg, addr, handler)
--#define LOADR(reg, addr, handler)	EXC(ldr, LD_INSN, reg, addr, handler)
--#define STOREB(reg, addr, handler)	EXC(sb, ST_INSN, reg, addr, handler)
--#define STOREL(reg, addr, handler)	EXC(sdl, ST_INSN, reg, addr, handler)
--#define STORER(reg, addr, handler)	EXC(sdr, ST_INSN, reg, addr, handler)
--#define STORE(reg, addr, handler)	EXC(sd, ST_INSN, reg, addr, handler)
-+#define LOAD(reg, addr)		EXC(ld, LD_INSN, reg, addr)
-+#define LOADBU(reg, addr)	EXC(lbu, LD_INSN, reg, addr)
-+#define LOADL(reg, addr)	EXC(ldl, LD_INSN, reg, addr)
-+#define LOADR(reg, addr)	EXC(ldr, LD_INSN, reg, addr)
-+#define STOREB(reg, addr)	EXC(sb, ST_INSN, reg, addr)
-+#define STOREL(reg, addr)	EXC(sdl, ST_INSN, reg, addr)
-+#define STORER(reg, addr)	EXC(sdr, ST_INSN, reg, addr)
-+#define STORE(reg, addr)	EXC(sd, ST_INSN, reg, addr)
- #define ADD    daddu
- #define SUB    dsubu
- #define SRL    dsrl
-@@ -404,14 +389,14 @@ EXPORT_SYMBOL(csum_partial)
- #else
- 
- #define LOADK	lw /* No exception */
--#define LOAD(reg, addr, handler)	EXC(lw, LD_INSN, reg, addr, handler)
--#define LOADBU(reg, addr, handler)	EXC(lbu, LD_INSN, reg, addr, handler)
--#define LOADL(reg, addr, handler)	EXC(lwl, LD_INSN, reg, addr, handler)
--#define LOADR(reg, addr, handler)	EXC(lwr, LD_INSN, reg, addr, handler)
--#define STOREB(reg, addr, handler)	EXC(sb, ST_INSN, reg, addr, handler)
--#define STOREL(reg, addr, handler)	EXC(swl, ST_INSN, reg, addr, handler)
--#define STORER(reg, addr, handler)	EXC(swr, ST_INSN, reg, addr, handler)
--#define STORE(reg, addr, handler)	EXC(sw, ST_INSN, reg, addr, handler)
-+#define LOAD(reg, addr)		EXC(lw, LD_INSN, reg, addr)
-+#define LOADBU(reg, addr)	EXC(lbu, LD_INSN, reg, addr)
-+#define LOADL(reg, addr)	EXC(lwl, LD_INSN, reg, addr)
-+#define LOADR(reg, addr)	EXC(lwr, LD_INSN, reg, addr)
-+#define STOREB(reg, addr)	EXC(sb, ST_INSN, reg, addr)
-+#define STOREL(reg, addr)	EXC(swl, ST_INSN, reg, addr)
-+#define STORER(reg, addr)	EXC(swr, ST_INSN, reg, addr)
-+#define STORE(reg, addr)	EXC(sw, ST_INSN, reg, addr)
- #define ADD    addu
- #define SUB    subu
- #define SRL    srl
-@@ -450,22 +435,9 @@ EXPORT_SYMBOL(csum_partial)
- 	.set	at=v1
- #endif
- 
--	.macro __BUILD_CSUM_PARTIAL_COPY_USER mode, from, to, __nocheck
-+	.macro __BUILD_CSUM_PARTIAL_COPY_USER mode, from, to
- 
--	PTR_ADDU	AT, src, len	/* See (1) above. */
--	/* initialize __nocheck if this the first time we execute this
--	 * macro
--	 */
--#ifdef CONFIG_64BIT
--	move	errptr, a4
--#else
--	lw	errptr, 16(sp)
--#endif
--	.if \__nocheck == 1
--	FEXPORT(__csum_partial_copy_nocheck)
--	EXPORT_SYMBOL(__csum_partial_copy_nocheck)
--	.endif
--	move	sum, zero
-+	li	sum, -1
- 	move	odd, zero
- 	/*
- 	 * Note: dst & src may be unaligned, len may be 0
-@@ -497,31 +469,31 @@ EXPORT_SYMBOL(csum_partial)
- 	SUB	len, 8*NBYTES		# subtract here for bgez loop
- 	.align	4
- 1:
--	LOAD(t0, UNIT(0)(src), .Ll_exc\@)
--	LOAD(t1, UNIT(1)(src), .Ll_exc_copy\@)
--	LOAD(t2, UNIT(2)(src), .Ll_exc_copy\@)
--	LOAD(t3, UNIT(3)(src), .Ll_exc_copy\@)
--	LOAD(t4, UNIT(4)(src), .Ll_exc_copy\@)
--	LOAD(t5, UNIT(5)(src), .Ll_exc_copy\@)
--	LOAD(t6, UNIT(6)(src), .Ll_exc_copy\@)
--	LOAD(t7, UNIT(7)(src), .Ll_exc_copy\@)
-+	LOAD(t0, UNIT(0)(src))
-+	LOAD(t1, UNIT(1)(src))
-+	LOAD(t2, UNIT(2)(src))
-+	LOAD(t3, UNIT(3)(src))
-+	LOAD(t4, UNIT(4)(src))
-+	LOAD(t5, UNIT(5)(src))
-+	LOAD(t6, UNIT(6)(src))
-+	LOAD(t7, UNIT(7)(src))
- 	SUB	len, len, 8*NBYTES
- 	ADD	src, src, 8*NBYTES
--	STORE(t0, UNIT(0)(dst),	.Ls_exc\@)
-+	STORE(t0, UNIT(0)(dst))
- 	ADDC(t0, t1)
--	STORE(t1, UNIT(1)(dst),	.Ls_exc\@)
-+	STORE(t1, UNIT(1)(dst))
- 	ADDC(sum, t0)
--	STORE(t2, UNIT(2)(dst),	.Ls_exc\@)
-+	STORE(t2, UNIT(2)(dst))
- 	ADDC(t2, t3)
--	STORE(t3, UNIT(3)(dst),	.Ls_exc\@)
-+	STORE(t3, UNIT(3)(dst))
- 	ADDC(sum, t2)
--	STORE(t4, UNIT(4)(dst),	.Ls_exc\@)
-+	STORE(t4, UNIT(4)(dst))
- 	ADDC(t4, t5)
--	STORE(t5, UNIT(5)(dst),	.Ls_exc\@)
-+	STORE(t5, UNIT(5)(dst))
- 	ADDC(sum, t4)
--	STORE(t6, UNIT(6)(dst),	.Ls_exc\@)
-+	STORE(t6, UNIT(6)(dst))
- 	ADDC(t6, t7)
--	STORE(t7, UNIT(7)(dst),	.Ls_exc\@)
-+	STORE(t7, UNIT(7)(dst))
- 	ADDC(sum, t6)
- 	.set	reorder				/* DADDI_WAR */
- 	ADD	dst, dst, 8*NBYTES
-@@ -541,19 +513,19 @@ EXPORT_SYMBOL(csum_partial)
- 	/*
- 	 * len >= 4*NBYTES
- 	 */
--	LOAD(t0, UNIT(0)(src), .Ll_exc\@)
--	LOAD(t1, UNIT(1)(src), .Ll_exc_copy\@)
--	LOAD(t2, UNIT(2)(src), .Ll_exc_copy\@)
--	LOAD(t3, UNIT(3)(src), .Ll_exc_copy\@)
-+	LOAD(t0, UNIT(0)(src))
-+	LOAD(t1, UNIT(1)(src))
-+	LOAD(t2, UNIT(2)(src))
-+	LOAD(t3, UNIT(3)(src))
- 	SUB	len, len, 4*NBYTES
- 	ADD	src, src, 4*NBYTES
--	STORE(t0, UNIT(0)(dst),	.Ls_exc\@)
-+	STORE(t0, UNIT(0)(dst))
- 	ADDC(t0, t1)
--	STORE(t1, UNIT(1)(dst),	.Ls_exc\@)
-+	STORE(t1, UNIT(1)(dst))
- 	ADDC(sum, t0)
--	STORE(t2, UNIT(2)(dst),	.Ls_exc\@)
-+	STORE(t2, UNIT(2)(dst))
- 	ADDC(t2, t3)
--	STORE(t3, UNIT(3)(dst),	.Ls_exc\@)
-+	STORE(t3, UNIT(3)(dst))
- 	ADDC(sum, t2)
- 	.set	reorder				/* DADDI_WAR */
- 	ADD	dst, dst, 4*NBYTES
-@@ -566,10 +538,10 @@ EXPORT_SYMBOL(csum_partial)
- 	beq	rem, len, .Lcopy_bytes\@
- 	 nop
- 1:
--	LOAD(t0, 0(src), .Ll_exc\@)
-+	LOAD(t0, 0(src))
- 	ADD	src, src, NBYTES
- 	SUB	len, len, NBYTES
--	STORE(t0, 0(dst), .Ls_exc\@)
-+	STORE(t0, 0(dst))
- 	ADDC(sum, t0)
- 	.set	reorder				/* DADDI_WAR */
- 	ADD	dst, dst, NBYTES
-@@ -592,10 +564,10 @@ EXPORT_SYMBOL(csum_partial)
- 	 ADD	t1, dst, len	# t1 is just past last byte of dst
- 	li	bits, 8*NBYTES
- 	SLL	rem, len, 3	# rem = number of bits to keep
--	LOAD(t0, 0(src), .Ll_exc\@)
-+	LOAD(t0, 0(src))
- 	SUB	bits, bits, rem # bits = number of bits to discard
- 	SHIFT_DISCARD t0, t0, bits
--	STREST(t0, -1(t1), .Ls_exc\@)
-+	STREST(t0, -1(t1))
- 	SHIFT_DISCARD_REVERT t0, t0, bits
- 	.set reorder
- 	ADDC(sum, t0)
-@@ -612,12 +584,12 @@ EXPORT_SYMBOL(csum_partial)
- 	 * Set match = (src and dst have same alignment)
- 	 */
- #define match rem
--	LDFIRST(t3, FIRST(0)(src), .Ll_exc\@)
-+	LDFIRST(t3, FIRST(0)(src))
- 	ADD	t2, zero, NBYTES
--	LDREST(t3, REST(0)(src), .Ll_exc_copy\@)
-+	LDREST(t3, REST(0)(src))
- 	SUB	t2, t2, t1	# t2 = number of bytes copied
- 	xor	match, t0, t1
--	STFIRST(t3, FIRST(0)(dst), .Ls_exc\@)
-+	STFIRST(t3, FIRST(0)(dst))
- 	SLL	t4, t1, 3		# t4 = number of bits to discard
- 	SHIFT_DISCARD t3, t3, t4
- 	/* no SHIFT_DISCARD_REVERT to handle odd buffer properly */
-@@ -639,26 +611,26 @@ EXPORT_SYMBOL(csum_partial)
-  * It's OK to load FIRST(N+1) before REST(N) because the two addresses
-  * are to the same unit (unless src is aligned, but it's not).
-  */
--	LDFIRST(t0, FIRST(0)(src), .Ll_exc\@)
--	LDFIRST(t1, FIRST(1)(src), .Ll_exc_copy\@)
-+	LDFIRST(t0, FIRST(0)(src))
-+	LDFIRST(t1, FIRST(1)(src))
- 	SUB	len, len, 4*NBYTES
--	LDREST(t0, REST(0)(src), .Ll_exc_copy\@)
--	LDREST(t1, REST(1)(src), .Ll_exc_copy\@)
--	LDFIRST(t2, FIRST(2)(src), .Ll_exc_copy\@)
--	LDFIRST(t3, FIRST(3)(src), .Ll_exc_copy\@)
--	LDREST(t2, REST(2)(src), .Ll_exc_copy\@)
--	LDREST(t3, REST(3)(src), .Ll_exc_copy\@)
-+	LDREST(t0, REST(0)(src))
-+	LDREST(t1, REST(1)(src))
-+	LDFIRST(t2, FIRST(2)(src))
-+	LDFIRST(t3, FIRST(3)(src))
-+	LDREST(t2, REST(2)(src))
-+	LDREST(t3, REST(3)(src))
- 	ADD	src, src, 4*NBYTES
- #ifdef CONFIG_CPU_SB1
- 	nop				# improves slotting
- #endif
--	STORE(t0, UNIT(0)(dst),	.Ls_exc\@)
-+	STORE(t0, UNIT(0)(dst))
- 	ADDC(t0, t1)
--	STORE(t1, UNIT(1)(dst),	.Ls_exc\@)
-+	STORE(t1, UNIT(1)(dst))
- 	ADDC(sum, t0)
--	STORE(t2, UNIT(2)(dst),	.Ls_exc\@)
-+	STORE(t2, UNIT(2)(dst))
- 	ADDC(t2, t3)
--	STORE(t3, UNIT(3)(dst),	.Ls_exc\@)
-+	STORE(t3, UNIT(3)(dst))
- 	ADDC(sum, t2)
- 	.set	reorder				/* DADDI_WAR */
- 	ADD	dst, dst, 4*NBYTES
-@@ -671,11 +643,11 @@ EXPORT_SYMBOL(csum_partial)
- 	beq	rem, len, .Lcopy_bytes\@
- 	 nop
- 1:
--	LDFIRST(t0, FIRST(0)(src), .Ll_exc\@)
--	LDREST(t0, REST(0)(src), .Ll_exc_copy\@)
-+	LDFIRST(t0, FIRST(0)(src))
-+	LDREST(t0, REST(0)(src))
- 	ADD	src, src, NBYTES
- 	SUB	len, len, NBYTES
--	STORE(t0, 0(dst), .Ls_exc\@)
-+	STORE(t0, 0(dst))
- 	ADDC(sum, t0)
- 	.set	reorder				/* DADDI_WAR */
- 	ADD	dst, dst, NBYTES
-@@ -696,11 +668,10 @@ EXPORT_SYMBOL(csum_partial)
- #endif
- 	move	t2, zero	# partial word
- 	li	t3, SHIFT_START # shift
--/* use .Ll_exc_copy here to return correct sum on fault */
- #define COPY_BYTE(N)			\
--	LOADBU(t0, N(src), .Ll_exc_copy\@);	\
-+	LOADBU(t0, N(src));		\
- 	SUB	len, len, 1;		\
--	STOREB(t0, N(dst), .Ls_exc\@);	\
-+	STOREB(t0, N(dst));		\
- 	SLLV	t0, t0, t3;		\
- 	addu	t3, SHIFT_INC;		\
- 	beqz	len, .Lcopy_bytes_done\@; \
-@@ -714,9 +685,9 @@ EXPORT_SYMBOL(csum_partial)
- 	COPY_BYTE(4)
- 	COPY_BYTE(5)
- #endif
--	LOADBU(t0, NBYTES-2(src), .Ll_exc_copy\@)
-+	LOADBU(t0, NBYTES-2(src))
- 	SUB	len, len, 1
--	STOREB(t0, NBYTES-2(dst), .Ls_exc\@)
-+	STOREB(t0, NBYTES-2(dst))
- 	SLLV	t0, t0, t3
- 	or	t2, t0
- .Lcopy_bytes_done\@:
-@@ -753,94 +724,31 @@ EXPORT_SYMBOL(csum_partial)
- #endif
- 	.set	pop
- 	.set reorder
--	ADDC32(sum, psum)
- 	jr	ra
- 	.set noreorder
-+	.endm
- 
--.Ll_exc_copy\@:
--	/*
--	 * Copy bytes from src until faulting load address (or until a
--	 * lb faults)
--	 *
--	 * When reached by a faulting LDFIRST/LDREST, THREAD_BUADDR($28)
--	 * may be more than a byte beyond the last address.
--	 * Hence, the lb below may get an exception.
--	 *
--	 * Assumes src < THREAD_BUADDR($28)
--	 */
--	LOADK	t0, TI_TASK($28)
--	 li	t2, SHIFT_START
--	LOADK	t0, THREAD_BUADDR(t0)
--1:
--	LOADBU(t1, 0(src), .Ll_exc\@)
--	ADD	src, src, 1
--	sb	t1, 0(dst)	# can't fault -- we're copy_from_user
--	SLLV	t1, t1, t2
--	addu	t2, SHIFT_INC
--	ADDC(sum, t1)
--	.set	reorder				/* DADDI_WAR */
--	ADD	dst, dst, 1
--	bne	src, t0, 1b
--	.set	noreorder
--.Ll_exc\@:
--	LOADK	t0, TI_TASK($28)
--	 nop
--	LOADK	t0, THREAD_BUADDR(t0)	# t0 is just past last good address
--	 nop
--	SUB	len, AT, t0		# len number of uncopied bytes
--	/*
--	 * Here's where we rely on src and dst being incremented in tandem,
--	 *   See (3) above.
--	 * dst += (fault addr - src) to put dst at first byte to clear
--	 */
--	ADD	dst, t0			# compute start address in a1
--	SUB	dst, src
--	/*
--	 * Clear len bytes starting at dst.  Can't call __bzero because it
--	 * might modify len.  An inefficient loop for these rare times...
--	 */
--	.set	reorder				/* DADDI_WAR */
--	SUB	src, len, 1
--	beqz	len, .Ldone\@
--	.set	noreorder
--1:	sb	zero, 0(dst)
--	ADD	dst, dst, 1
--	.set	push
--	.set	noat
--#ifndef CONFIG_CPU_DADDI_WORKAROUNDS
--	bnez	src, 1b
--	 SUB	src, src, 1
--#else
--	li	v1, 1
--	bnez	src, 1b
--	 SUB	src, src, v1
--#endif
--	li	v1, -EFAULT
--	b	.Ldone\@
--	 sw	v1, (errptr)
 -
--.Ls_exc\@:
--	li	v0, -1 /* invalid checksum */
--	li	v1, -EFAULT
-+	.set noreorder
-+.L_exc:
- 	jr	ra
--	 sw	v1, (errptr)
--	.set	pop
--	.endm
-+	 li	v0, 0
+-	__asm__ __volatile__ (
+-	".section __ex_table,#alloc\n\t"
+-	".align 4\n\t"
+-	".word 1f,1\n\t"
+-	".previous\n"
+-	"1:\n\t"
+-	"call __csum_partial_copy_sparc_generic\n\t"
+-	" st %8, [%%sp + 64]\n"
+-	: "=&r" (ret), "=&r" (d), "=&r" (l), "=&r" (s)
+-	: "0" (ret), "1" (d), "2" (l), "3" (s), "r" (&err)
+-	: "o2", "o3", "o4", "o5", "o7",
+-	  "g2", "g3", "g4", "g5",
+-	  "cc", "memory");
+-	return err ? 0 : (__force __wsum)ret;
++	return csum_partial_copy_nocheck(src, (__force void *)dst, len);
+ }
  
-+FEXPORT(__csum_partial_copy_nocheck)
-+EXPORT_SYMBOL(__csum_partial_copy_nocheck)
- #ifndef CONFIG_EVA
- FEXPORT(__csum_partial_copy_to_user)
- EXPORT_SYMBOL(__csum_partial_copy_to_user)
- FEXPORT(__csum_partial_copy_from_user)
- EXPORT_SYMBOL(__csum_partial_copy_from_user)
+ /* ihl is always 5 or greater, almost always is 5, and iph is word aligned
+diff --git a/arch/sparc/lib/checksum_32.S b/arch/sparc/lib/checksum_32.S
+index 6a5469c97246..7488d130faf7 100644
+--- a/arch/sparc/lib/checksum_32.S
++++ b/arch/sparc/lib/checksum_32.S
+@@ -144,44 +144,21 @@ cpte:	bne	csum_partial_end_cruft			! yep, handle it
+ cpout:	retl						! get outta here
+ 	 mov	%o2, %o0				! return computed csum
+ 
+-	.globl __csum_partial_copy_start, __csum_partial_copy_end
+-__csum_partial_copy_start:
+-
+ /* Work around cpp -rob */
+ #define ALLOC #alloc
+ #define EXECINSTR #execinstr
+-#define EX(x,y,a,b)				\
+-98:     x,y;                                    \
+-        .section .fixup,ALLOC,EXECINSTR;	\
+-        .align  4;                              \
+-99:     ba 30f;                                 \
+-         a, b, %o3;                             \
+-        .section __ex_table,ALLOC;		\
+-        .align  4;                              \
+-        .word   98b, 99b;                       \
+-        .text;                                  \
+-        .align  4
+-
+-#define EX2(x,y)				\
+-98:     x,y;                                    \
+-        .section __ex_table,ALLOC;		\
+-        .align  4;                              \
+-        .word   98b, 30f;                       \
+-        .text;                                  \
+-        .align  4
+-
+-#define EX3(x,y)				\
++#define EX(x,y)					\
+ 98:     x,y;                                    \
+         .section __ex_table,ALLOC;		\
+         .align  4;                              \
+-        .word   98b, 96f;                       \
++        .word   98b, cc_fault;                   \
+         .text;                                  \
+         .align  4
+ 
+-#define EXT(start,end,handler)			\
++#define EXT(start,end)				\
+         .section __ex_table,ALLOC;		\
+         .align  4;                              \
+-        .word   start, 0, end, handler;         \
++        .word   start, 0, end, cc_fault;         \
+         .text;                                  \
+         .align  4
+ 
+@@ -252,21 +229,21 @@ __csum_partial_copy_start:
+ cc_end_cruft:
+ 	be	1f
+ 	 andcc	%o3, 4, %g0
+-	EX(ldd	[%o0 + 0x00], %g2, and %o3, 0xf)
++	EX(ldd	[%o0 + 0x00], %g2)
+ 	add	%o1, 8, %o1
+ 	addcc	%g2, %g7, %g7
+ 	add	%o0, 8, %o0
+ 	addxcc	%g3, %g7, %g7
+-	EX2(st	%g2, [%o1 - 0x08])
++	EX(st	%g2, [%o1 - 0x08])
+ 	addx	%g0, %g7, %g7
+ 	andcc	%o3, 4, %g0
+-	EX2(st	%g3, [%o1 - 0x04])
++	EX(st	%g3, [%o1 - 0x04])
+ 1:	be	1f
+ 	 andcc	%o3, 3, %o3
+-	EX(ld	[%o0 + 0x00], %g2, add %o3, 4)
++	EX(ld	[%o0 + 0x00], %g2)
+ 	add	%o1, 4, %o1
+ 	addcc	%g2, %g7, %g7
+-	EX2(st	%g2, [%o1 - 0x04])
++	EX(st	%g2, [%o1 - 0x04])
+ 	addx	%g0, %g7, %g7
+ 	andcc	%o3, 3, %g0
+ 	add	%o0, 4, %o0
+@@ -276,14 +253,14 @@ cc_end_cruft:
+ 	 subcc	%o3, 2, %o3
+ 	b	4f
+ 	 or	%g0, %g0, %o4
+-2:	EX(lduh	[%o0 + 0x00], %o4, add %o3, 2)
++2:	EX(lduh	[%o0 + 0x00], %o4)
+ 	add	%o0, 2, %o0
+-	EX2(sth	%o4, [%o1 + 0x00])
++	EX(sth	%o4, [%o1 + 0x00])
+ 	be	6f
+ 	 add	%o1, 2, %o1
+ 	sll	%o4, 16, %o4
+-4:	EX(ldub	[%o0 + 0x00], %o5, add %g0, 1)
+-	EX2(stb	%o5, [%o1 + 0x00])
++4:	EX(ldub	[%o0 + 0x00], %o5)
++	EX(stb	%o5, [%o1 + 0x00])
+ 	sll	%o5, 8, %o5
+ 	or	%o5, %o4, %o4
+ 6:	addcc	%o4, %g7, %g7
+@@ -306,9 +283,9 @@ cc_dword_align:
+ 	 andcc	%o0, 0x2, %g0
+ 	be	1f
+ 	 andcc	%o0, 0x4, %g0
+-	EX(lduh	[%o0 + 0x00], %g4, add %g1, 0)
++	EX(lduh	[%o0 + 0x00], %g4)
+ 	sub	%g1, 2, %g1
+-	EX2(sth	%g4, [%o1 + 0x00])
++	EX(sth	%g4, [%o1 + 0x00])
+ 	add	%o0, 2, %o0
+ 	sll	%g4, 16, %g4
+ 	addcc	%g4, %g7, %g7
+@@ -322,9 +299,9 @@ cc_dword_align:
+ 	or	%g3, %g7, %g7
+ 1:	be	3f
+ 	 andcc	%g1, 0xffffff80, %g0
+-	EX(ld	[%o0 + 0x00], %g4, add %g1, 0)
++	EX(ld	[%o0 + 0x00], %g4)
+ 	sub	%g1, 4, %g1
+-	EX2(st	%g4, [%o1 + 0x00])
++	EX(st	%g4, [%o1 + 0x00])
+ 	add	%o0, 4, %o0
+ 	addcc	%g4, %g7, %g7
+ 	add	%o1, 4, %o1
+@@ -354,7 +331,7 @@ __csum_partial_copy_sparc_generic:
+ 	CSUMCOPY_BIGCHUNK(%o0,%o1,%g7,0x20,%o4,%o5,%g2,%g3,%g4,%g5,%o2,%o3)
+ 	CSUMCOPY_BIGCHUNK(%o0,%o1,%g7,0x40,%o4,%o5,%g2,%g3,%g4,%g5,%o2,%o3)
+ 	CSUMCOPY_BIGCHUNK(%o0,%o1,%g7,0x60,%o4,%o5,%g2,%g3,%g4,%g5,%o2,%o3)
+-10:	EXT(5b, 10b, 20f)		! note for exception handling
++10:	EXT(5b, 10b)			! note for exception handling
+ 	sub	%g1, 128, %g1		! detract from length
+ 	addx	%g0, %g7, %g7		! add in last carry bit
+ 	andcc	%g1, 0xffffff80, %g0	! more to csum?
+@@ -379,7 +356,7 @@ cctbl:	CSUMCOPY_LASTCHUNK(%o0,%o1,%g7,0x68,%g2,%g3,%g4,%g5)
+ 	CSUMCOPY_LASTCHUNK(%o0,%o1,%g7,0x28,%g2,%g3,%g4,%g5)
+ 	CSUMCOPY_LASTCHUNK(%o0,%o1,%g7,0x18,%g2,%g3,%g4,%g5)
+ 	CSUMCOPY_LASTCHUNK(%o0,%o1,%g7,0x08,%g2,%g3,%g4,%g5)
+-12:	EXT(cctbl, 12b, 22f)		! note for exception table handling
++12:	EXT(cctbl, 12b)			! note for exception table handling
+ 	addx	%g0, %g7, %g7
+ 	andcc	%o3, 0xf, %g0		! check for low bits set
+ ccte:	bne	cc_end_cruft		! something left, handle it out of band
+@@ -390,7 +367,7 @@ ccdbl:	CSUMCOPY_BIGCHUNK_ALIGNED(%o0,%o1,%g7,0x00,%o4,%o5,%g2,%g3,%g4,%g5,%o2,%o
+ 	CSUMCOPY_BIGCHUNK_ALIGNED(%o0,%o1,%g7,0x20,%o4,%o5,%g2,%g3,%g4,%g5,%o2,%o3)
+ 	CSUMCOPY_BIGCHUNK_ALIGNED(%o0,%o1,%g7,0x40,%o4,%o5,%g2,%g3,%g4,%g5,%o2,%o3)
+ 	CSUMCOPY_BIGCHUNK_ALIGNED(%o0,%o1,%g7,0x60,%o4,%o5,%g2,%g3,%g4,%g5,%o2,%o3)
+-11:	EXT(ccdbl, 11b, 21f)		! note for exception table handling
++11:	EXT(ccdbl, 11b)			! note for exception table handling
+ 	sub	%g1, 128, %g1		! detract from length
+ 	addx	%g0, %g7, %g7		! add in last carry bit
+ 	andcc	%g1, 0xffffff80, %g0	! more to csum?
+@@ -407,9 +384,9 @@ ccslow:	cmp	%g1, 0
+ 	be,a	1f
+ 	 srl	%g1, 1, %g4		
+ 	sub	%g1, 1, %g1	
+-	EX(ldub	[%o0], %g5, add %g1, 1)
++	EX(ldub	[%o0], %g5)
+ 	add	%o0, 1, %o0	
+-	EX2(stb	%g5, [%o1])
++	EX(stb	%g5, [%o1])
+ 	srl	%g1, 1, %g4
+ 	add	%o1, 1, %o1
+ 1:	cmp	%g4, 0		
+@@ -418,34 +395,34 @@ ccslow:	cmp	%g1, 0
+ 	andcc	%o0, 2, %g0	
+ 	be,a	1f
+ 	 srl	%g4, 1, %g4
+-	EX(lduh	[%o0], %o4, add %g1, 0)
++	EX(lduh	[%o0], %o4)
+ 	sub	%g1, 2, %g1	
+ 	srl	%o4, 8, %g2
+ 	sub	%g4, 1, %g4	
+-	EX2(stb	%g2, [%o1])
++	EX(stb	%g2, [%o1])
+ 	add	%o4, %g5, %g5
+-	EX2(stb	%o4, [%o1 + 1])
++	EX(stb	%o4, [%o1 + 1])
+ 	add	%o0, 2, %o0	
+ 	srl	%g4, 1, %g4
+ 	add	%o1, 2, %o1
+ 1:	cmp	%g4, 0		
+ 	be,a	2f
+ 	 andcc	%g1, 2, %g0
+-	EX3(ld	[%o0], %o4)
++	EX(ld	[%o0], %o4)
+ 5:	srl	%o4, 24, %g2
+ 	srl	%o4, 16, %g3
+-	EX2(stb	%g2, [%o1])
++	EX(stb	%g2, [%o1])
+ 	srl	%o4, 8, %g2
+-	EX2(stb	%g3, [%o1 + 1])
++	EX(stb	%g3, [%o1 + 1])
+ 	add	%o0, 4, %o0
+-	EX2(stb	%g2, [%o1 + 2])
++	EX(stb	%g2, [%o1 + 2])
+ 	addcc	%o4, %g5, %g5
+-	EX2(stb	%o4, [%o1 + 3])
++	EX(stb	%o4, [%o1 + 3])
+ 	addx	%g5, %g0, %g5	! I am now to lazy to optimize this (question it
+ 	add	%o1, 4, %o1	! is worthy). Maybe some day - with the sll/srl
+ 	subcc	%g4, 1, %g4	! tricks
+ 	bne,a	5b
+-	 EX3(ld	[%o0], %o4)
++	 EX(ld	[%o0], %o4)
+ 	sll	%g5, 16, %g2
+ 	srl	%g5, 16, %g5
+ 	srl	%g2, 16, %g2
+@@ -453,19 +430,19 @@ ccslow:	cmp	%g1, 0
+ 	add	%g2, %g5, %g5 
+ 2:	be,a	3f		
+ 	 andcc	%g1, 1, %g0
+-	EX(lduh	[%o0], %o4, and %g1, 3)
++	EX(lduh	[%o0], %o4)
+ 	andcc	%g1, 1, %g0
+ 	srl	%o4, 8, %g2
+ 	add	%o0, 2, %o0	
+-	EX2(stb	%g2, [%o1])
++	EX(stb	%g2, [%o1])
+ 	add	%g5, %o4, %g5
+-	EX2(stb	%o4, [%o1 + 1])
++	EX(stb	%o4, [%o1 + 1])
+ 	add	%o1, 2, %o1
+ 3:	be,a	1f		
+ 	 sll	%g5, 16, %o4
+-	EX(ldub	[%o0], %g2, add %g0, 1)
++	EX(ldub	[%o0], %g2)
+ 	sll	%g2, 8, %o4	
+-	EX2(stb	%g2, [%o1])
++	EX(stb	%g2, [%o1])
+ 	add	%g5, %o4, %g5
+ 	sll	%g5, 16, %o4
+ 1:	addcc	%o4, %g5, %g5
+@@ -481,113 +458,10 @@ ccslow:	cmp	%g1, 0
+ 4:	addcc	%g7, %g5, %g7
+ 	retl	
+ 	 addx	%g0, %g7, %o0
+-__csum_partial_copy_end:
+ 
+ /* We do these strange calculations for the csum_*_from_user case only, ie.
+  * we only bother with faults on loads... */
+ 
+-/* o2 = ((g2%20)&3)*8
+- * o3 = g1 - (g2/20)*32 - o2 */
+-20:
+-	cmp	%g2, 20
+-	blu,a	1f
+-	 and	%g2, 3, %o2
+-	sub	%g1, 32, %g1
+-	b	20b
+-	 sub	%g2, 20, %g2
+-1:
+-	sll	%o2, 3, %o2
+-	b	31f
+-	 sub	%g1, %o2, %o3
+-
+-/* o2 = (!(g2 & 15) ? 0 : (((g2 & 15) + 1) & ~1)*8)
+- * o3 = g1 - (g2/16)*32 - o2 */
+-21:
+-	andcc	%g2, 15, %o3
+-	srl	%g2, 4, %g2
+-	be,a	1f
+-	 clr	%o2
+-	add	%o3, 1, %o3
+-	and	%o3, 14, %o3
+-	sll	%o3, 3, %o2
+-1:
+-	sll	%g2, 5, %g2
+-	sub	%g1, %g2, %o3
+-	b	31f
+-	 sub	%o3, %o2, %o3
+-
+-/* o0 += (g2/10)*16 - 0x70
+- * 01 += (g2/10)*16 - 0x70
+- * o2 = (g2 % 10) ? 8 : 0
+- * o3 += 0x70 - (g2/10)*16 - o2 */
+-22:
+-	cmp	%g2, 10
+-	blu,a	1f
+-	 sub	%o0, 0x70, %o0
+-	add	%o0, 16, %o0
+-	add	%o1, 16, %o1
+-	sub	%o3, 16, %o3
+-	b	22b
+-	 sub	%g2, 10, %g2
+-1:
+-	sub	%o1, 0x70, %o1
+-	add	%o3, 0x70, %o3
+-	clr	%o2
+-	tst	%g2
+-	bne,a	1f
+-	 mov	8, %o2
+-1:
+-	b	31f
+-	 sub	%o3, %o2, %o3
+-96:
+-	and	%g1, 3, %g1
+-	sll	%g4, 2, %g4
+-	add	%g1, %g4, %o3
+-30:
+-/* %o1 is dst
+- * %o3 is # bytes to zero out
+- * %o4 is faulting address
+- * %o5 is %pc where fault occurred */
+-	clr	%o2
+-31:
+-/* %o0 is src
+- * %o1 is dst
+- * %o2 is # of bytes to copy from src to dst
+- * %o3 is # bytes to zero out
+- * %o4 is faulting address
+- * %o5 is %pc where fault occurred */
+-	save	%sp, -104, %sp
+-        mov     %i5, %o0
+-        mov     %i7, %o1
+-        mov	%i4, %o2
+-        call    lookup_fault
+-	 mov	%g7, %i4
+-	cmp	%o0, 2
+-	bne	1f	
+-	 add	%g0, -EFAULT, %i5
+-	tst	%i2
+-	be	2f
+-	 mov	%i0, %o1
+-	mov	%i1, %o0
+-5:
+-	call	memcpy
+-	 mov	%i2, %o2
+-	tst	%o0
+-	bne,a	2f
+-	 add	%i3, %i2, %i3
+-	add	%i1, %i2, %i1
+-2:
+-	mov	%i1, %o0
+-6:
+-	call	__bzero
+-	 mov	%i3, %o1
+-1:
+-	ld	[%sp + 168], %o2		! struct_ptr of parent
+-	st	%i5, [%o2]
++cc_fault:
+ 	ret
+-	 restore
+-
+-        .section __ex_table,#alloc
+-        .align 4
+-        .word 5b,2
+-	.word 6b,2
++	 clr	%o0
+diff --git a/arch/sparc/mm/fault_32.c b/arch/sparc/mm/fault_32.c
+index cfef656eda0f..1185b6169144 100644
+--- a/arch/sparc/mm/fault_32.c
++++ b/arch/sparc/mm/fault_32.c
+@@ -297,8 +297,6 @@ asmlinkage void do_sparc_fault(struct pt_regs *regs, int text_fault, int write,
+ 		if (fixup > 10) {
+ 			extern const unsigned int __memset_start[];
+ 			extern const unsigned int __memset_end[];
+-			extern const unsigned int __csum_partial_copy_start[];
+-			extern const unsigned int __csum_partial_copy_end[];
+ 
+ #ifdef DEBUG_EXCEPTIONS
+ 			printk("Exception: PC<%08lx> faddr<%08lx>\n",
+@@ -307,9 +305,7 @@ asmlinkage void do_sparc_fault(struct pt_regs *regs, int text_fault, int write,
+ 				regs->pc, fixup, g2);
  #endif
--__BUILD_CSUM_PARTIAL_COPY_USER LEGACY_MODE USEROP USEROP 1
-+__BUILD_CSUM_PARTIAL_COPY_USER LEGACY_MODE USEROP USEROP
- 
- #ifdef CONFIG_EVA
- LEAF(__csum_partial_copy_to_user)
--__BUILD_CSUM_PARTIAL_COPY_USER EVA_MODE KERNELOP USEROP 0
-+__BUILD_CSUM_PARTIAL_COPY_USER EVA_MODE KERNELOP USEROP
- END(__csum_partial_copy_to_user)
- 
- LEAF(__csum_partial_copy_from_user)
--__BUILD_CSUM_PARTIAL_COPY_USER EVA_MODE USEROP KERNELOP 0
-+__BUILD_CSUM_PARTIAL_COPY_USER EVA_MODE USEROP KERNELOP
- END(__csum_partial_copy_from_user)
- #endif
+ 			if ((regs->pc >= (unsigned long)__memset_start &&
+-			     regs->pc < (unsigned long)__memset_end) ||
+-			    (regs->pc >= (unsigned long)__csum_partial_copy_start &&
+-			     regs->pc < (unsigned long)__csum_partial_copy_end)) {
++			     regs->pc < (unsigned long)__memset_end)) {
+ 				regs->u_regs[UREG_I4] = address;
+ 				regs->u_regs[UREG_I5] = regs->pc;
+ 			}
 -- 
 2.11.0
