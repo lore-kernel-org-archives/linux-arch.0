@@ -1,52 +1,231 @@
-Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <20200717111349.825172312@infradead.org>
-Date: Fri, 17 Jul 2020 13:10:13 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v2 08/11] alpha/tlb: Fix __p*_free_tlb()
-References: <20200717111005.024867618@infradead.org>
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from Galois.linutronix.de ([193.142.43.55]:37356 "EHLO
+        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726415AbgGULIm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:42 -0400
+Message-ID: <20200721110808.780082657@linutronix.de>
+Date: Tue, 21 Jul 2020 12:57:11 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V4 05/15] entry: Provide infrastructure for work before
+ exiting to guest mode
+References: <20200721105706.030914876@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
+Content-transfer-encoding: 8-bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200717111013.eAVRQQkwFpdZGV_PTYhh6iqSi7b6I45_QPZMZOSuLBc@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
+Message-ID: <20200721105711.cUhzNOw_bxfn3pccsH8kdIJdgCEOTMl7PwZbF5ezF4w@z>
 
-Just like regular pages, page directories need to observe the
-following order:
+From: Thomas Gleixner <tglx@linutronix.de>
 
- 1) unhook
- 2) TLB invalidate
- 3) free
+Entering a guest is similar to exiting to user space. Pending work like
+handling signals, rescheduling, task work etc. needs to be handled before
+that.
 
-to ensure it is safe against concurrent accesses.
+Provide generic infrastructure to avoid duplication of the same handling
+code all over the place.
 
-Since Alpha has page based PMDs, no software walkers and IPI based TLB
-invalidation, it can use the simple tlb_remove_page() based freeer.
+The exit to guest mode handling is different from the exit to usermode
+handling, e.g. vs. rseq and live patching, so a separate function is used.
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+The initial list of work items handled is:
+
+    TIF_SIGPENDING, TIF_NEED_RESCHED, TIF_NOTIFY_RESUME
+
+Architecture specific TIF flags can be added via defines in the
+architecture specific include files.
+
+The calling convention is also different from the syscall/interrupt entry
+functions as KVM invokes this from the outer vcpu_run() loop with
+interrupts and preemption disabled. To prevent missing a pending work item
+it invokes a check for pending TIF work from interrupt disabled code right
+before exiting to guest mode. The lockdep, RCU and tracing state handling
+is also done directly around the switch to and from guest mode.
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/alpha/include/asm/tlb.h |   13 +++++++++++--
- 1 file changed, 11 insertions(+), 2 deletions(-)
+V3: Reworked and simplified version adopted to recent X86 and KVM changes
+    
+V2: Moved KVM specific functions to kvm (Paolo)
+    Added lockdep assert (Andy)
+    Dropped live patching from enter guest mode work (Miroslav)
+---
+ include/linux/entry-kvm.h |   80 ++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/kvm_host.h  |    8 ++++
+ kernel/entry/Makefile     |    3 +
+ kernel/entry/kvm.c        |   51 +++++++++++++++++++++++++++++
+ virt/kvm/Kconfig          |    3 +
+ 5 files changed, 144 insertions(+), 1 deletion(-)
 
---- a/arch/alpha/include/asm/tlb.h
-+++ b/arch/alpha/include/asm/tlb.h
-@@ -4,7 +4,16 @@
- 
- #include <asm-generic/tlb.h>
- 
--#define __pte_free_tlb(tlb, pte, address)		pte_free((tlb)->mm, pte)
--#define __pmd_free_tlb(tlb, pmd, address)		pmd_free((tlb)->mm, pmd)
-+extern void ___pte_free_tlb(struct mmu_gather *tlb, pte_t *pte);
-+extern void ___pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd);
+--- /dev/null
++++ b/include/linux/entry-kvm.h
+@@ -0,0 +1,80 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __LINUX_ENTRYKVM_H
++#define __LINUX_ENTRYKVM_H
 +
-+#define __pte_free_tlb(tlb, pte, address)	\
-+do {						\
-+	pgtable_pte_page_dtor(pte);		\
-+	tlb_remove_table((tlb), (pte));		\
-+} while (0)
++#include <linux/entry-common.h>
 +
-+#define __pmd_free_tlb(tlb, pmd, address)	\
-+	tlb_remove_table((tlb), virt_to_page(pmd))
-  
++/* Exit to guest mode work */
++#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
++
++#ifndef ARCH_EXIT_TO_GUEST_MODE_WORK
++# define ARCH_EXIT_TO_GUEST_MODE_WORK	(0)
++#endif
++
++#define EXIT_TO_GUEST_MODE_WORK					\
++	(_TIF_NEED_RESCHED | _TIF_SIGPENDING |			\
++	 _TIF_NOTIFY_RESUME | ARCH_EXIT_TO_GUEST_MODE_WORK)
++
++struct kvm_vcpu;
++
++/**
++ * arch_exit_to_guest_mode_work - Architecture specific exit to guest mode
++ *				  work function.
++ * @vcpu:	Pointer to current's VCPU data
++ * @ti_work:	Cached TIF flags gathered in exit_to_guest_mode()
++ *
++ * Invoked from exit_to_guest_mode_work(). Defaults to NOOP. Can be
++ * replaced by architecture specific code.
++ */
++static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
++					      unsigned long ti_work);
++
++#ifndef arch_exit_to_guest_mode_work
++static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
++					       unsigned long ti_work)
++{
++	return 0;
++}
++#endif
++
++/**
++ * exit_to_guest_mode - Check and handle pending work which needs to be
++ *			handled before returning to guest mode
++ * @vcpu:	Pointer to current's VCPU data
++ *
++ * Returns: 0 or an error code
++ */
++int exit_to_guest_mode(struct kvm_vcpu *vcpu);
++
++/**
++ * __exit_to_guest_mode_work_pending - Check if work is pending
++ *
++ * Returns: True if work pending, False otherwise.
++ *
++ * Bare variant of exit_to_guest_mode_work_pending(). Can be called from
++ * interrupt enabled code for racy quick checks with care.
++ */
++static inline bool __exit_to_guest_mode_work_pending(void)
++{
++	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
++
++	return !!(ti_work & EXIT_TO_GUEST_MODE_WORK);
++}
++
++/**
++ * exit_to_guest_mode_work_pending - Check if work is pending which needs to be
++ *				     handled before returning to guest mode
++ *
++ * Returns: True if work pending, False otherwise.
++ *
++ * Has to be invoked with interrupts disabled before the transition to
++ * guest mode.
++ */
++static inline bool exit_to_guest_mode_work_pending(void)
++{
++	lockdep_assert_irqs_disabled();
++	return __exit_to_guest_mode_work_pending();
++}
++#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
++
++#endif
+
+--- a/include/linux/kvm_host.h
++++ b/include/linux/kvm_host.h
+@@ -1439,4 +1439,12 @@ int kvm_vm_create_worker_thread(struct k
+ 				uintptr_t data, const char *name,
+ 				struct task_struct **thread_ptr);
+ 
++#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
++static inline void kvm_handle_signal_exit(struct kvm_vcpu *vcpu)
++{
++	vcpu->run->exit_reason = KVM_EXIT_INTR;
++	vcpu->stat.signal_exits++;
++}
++#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
++
  #endif
+--- a/kernel/entry/Makefile
++++ b/kernel/entry/Makefile
+@@ -1,3 +1,4 @@
+ # SPDX-License-Identifier: GPL-2.0
+ 
+-obj-$(CONFIG_GENERIC_ENTRY) += common.o
++obj-$(CONFIG_GENERIC_ENTRY) 		+= common.o
++obj-$(CONFIG_KVM_EXIT_TO_GUEST_WORK)	+= kvm.o
+--- /dev/null
++++ b/kernel/entry/kvm.c
+@@ -0,0 +1,51 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <linux/entry-kvm.h>
++#include <linux/kvm_host.h>
++
++static int exit_to_guest_mode_work(struct kvm_vcpu *vcpu, unsigned long ti_work)
++{
++	do {
++		int ret;
++
++		if (ti_work & _TIF_SIGPENDING) {
++			kvm_handle_signal_exit(vcpu);
++			return -EINTR;
++		}
++
++		if (ti_work & _TIF_NEED_RESCHED)
++			schedule();
++
++		if (ti_work & _TIF_NOTIFY_RESUME) {
++			clear_thread_flag(TIF_NOTIFY_RESUME);
++			tracehook_notify_resume(NULL);
++		}
++
++		ret = arch_exit_to_guest_mode_work(vcpu, ti_work);
++		if (ret)
++			return ret;
++
++		ti_work = READ_ONCE(current_thread_info()->flags);
++	} while (ti_work & EXIT_TO_GUEST_MODE_WORK || need_resched());
++	return 0;
++}
++
++int exit_to_guest_mode(struct kvm_vcpu *vcpu)
++{
++	unsigned long ti_work;
++
++	/*
++	 * This is invoked from the outer guest loop with interrupts and
++	 * preemption enabled.
++	 *
++	 * KVM invokes exit_to_guest_mode_work_pending() with interrupts
++	 * disabled in the inner loop before going into guest mode. No need
++	 * to disable interrupts here.
++	 */
++	ti_work = READ_ONCE(current_thread_info()->flags);
++	if (!(ti_work & EXIT_TO_GUEST_MODE_WORK))
++		return 0;
++
++	return exit_to_guest_mode_work(vcpu, ti_work);
++}
++EXPORT_SYMBOL_GPL(exit_to_guest_mode);
+--- a/virt/kvm/Kconfig
++++ b/virt/kvm/Kconfig
+@@ -60,3 +60,6 @@ config HAVE_KVM_VCPU_RUN_PID_CHANGE
+ 
+ config HAVE_KVM_NO_POLL
+        bool
++
++config KVM_EXIT_TO_GUEST_WORK
++       bool
