@@ -1,27 +1,79 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH] arch, net: remove the last csum_partial_copy()
- leftovers
-Date: Mon, 20 Jul 2020 17:45:52 -0700 (PDT)
-Message-ID: <20200720.174552.1199692153657012436.davem@davemloft.net>
-References: <20200720113609.177259-1-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200720113609.177259-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: hch@lst.de
-Cc: msalter@redhat.com, jacquiot.aurelien@gmail.com, ley.foon.tan@intel.com, arnd@arndb.de, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
-
 From: Christoph Hellwig <hch@lst.de>
-Date: Mon, 20 Jul 2020 13:36:09 +0200
+Subject: Re: [PATCH 1/6] syscalls: use uaccess_kernel in
+ addr_limit_user_check
+Date: Tue, 21 Jul 2020 06:58:34 +0200
+Message-ID: <20200721045834.GA9613@lst.de>
+References: <20200714105505.935079-1-hch@lst.de> <20200714105505.935079-2-hch@lst.de> <20200718013849.GA157764@roeck-us.net> <20200718094846.GA8593@lst.de> <20200720221046.GA86726@roeck-us.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from verein.lst.de ([213.95.11.211]:50449 "EHLO verein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725294AbgGUE6j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Jul 2020 00:58:39 -0400
+Content-Disposition: inline
+In-Reply-To: <20200720221046.GA86726@roeck-us.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: Christoph Hellwig <hch@lst.de>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-> Most of the tree only uses and implements csum_partial_copy_nocheck,
-> but the c6x and lib/checksum.c implement a csum_partial_copy that
-> isn't used anywere except to define csum_partial_copy.  Get rid of
-> this pointless alias.
+On Mon, Jul 20, 2020 at 03:10:46PM -0700, Guenter Roeck wrote:
+> I had another look into the code. Right after this patch, I see
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> #define uaccess_kernel() segment_eq(get_fs(), KERNEL_DS)
+> 
+> Yet, this patch is:
+> 
+> -       if (CHECK_DATA_CORRUPTION(!segment_eq(get_fs(), USER_DS),
+> +       if (CHECK_DATA_CORRUPTION(uaccess_kernel(),
+> 
+> So there is a negation in the condition. Indeed, the following change
+> on top of next-20200720 fixes the problem for mps2-an385.
+> 
+> -       if (CHECK_DATA_CORRUPTION(uaccess_kernel(),
+> +       if (CHECK_DATA_CORRUPTION(!uaccess_kernel(),
+> 
+> How does this work anywhere ?
 
-I'll apply this to net-next, thanks.
+No, that is the wrong check - we want to make sure the address
+space override doesn't leak to userspace.  The problem is that
+armnommu (and m68knommu, but that doesn't call the offending
+function) pretends to not have a kernel address space, which doesn't
+really work.  Here is the fix I sent out yesterday, which I should
+have Cc'ed you on, sorry:
+
+---
+From 2bb889b2d99a2d978e90640ade8fe02359287092 Mon Sep 17 00:00:00 2001
+From: Christoph Hellwig <hch@lst.de>
+Date: Mon, 20 Jul 2020 17:46:50 +0200
+Subject: arm: don't call addr_limit_user_check for nommu
+
+On arm nommu kernel use the same constant for USER_DS and KERNEL_DS,
+and seqment_eq always returns false.  With the current check in
+addr_limit_user_check that works by accident, but when replacing
+seqment_eq with uaccess_kerne it will fail.  Just remove the not
+needed check entirely.
+
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Reported-by: Guenter Roeck <linux@roeck-us.net>
+---
+ arch/arm/kernel/signal.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
+index ab2568996ddb0c..c9dc912b83f012 100644
+--- a/arch/arm/kernel/signal.c
++++ b/arch/arm/kernel/signal.c
+@@ -713,7 +713,9 @@ struct page *get_signal_page(void)
+ /* Defer to generic check */
+ asmlinkage void addr_limit_check_failed(void)
+ {
++#ifdef CONFIG_MMU
+ 	addr_limit_user_check();
++#endif
+ }
+ 
+ #ifdef CONFIG_DEBUG_RSEQ
+-- 
+2.27.0
