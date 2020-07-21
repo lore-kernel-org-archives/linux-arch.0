@@ -1,230 +1,72 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V4 04/15] entry: Provide generic interrupt entry/exit code
-Date: Tue, 21 Jul 2020 12:57:10 +0200
-Message-ID: <20200721110808.671110583@linutronix.de>
-References: <20200721105706.030914876@linutronix.de>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
+Date: Tue, 21 Jul 2020 21:20:09 +1000
+Message-ID: <1595329799.y24rka8cv4.astroid@bobo.none>
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+        <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
+        <1594101082.hfq9x5yact.astroid@bobo.none>
+        <20200708084106.GE597537@hirez.programming.kicks-ass.net>
+        <a9834278-25bf-90e9-10f2-cd10e5407ff6@redhat.com>
+        <20200709083113.GI597537@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8-bit
-Return-path: <kvm-owner@vger.kernel.org>
-Sender: kvm-owner@vger.kernel.org
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53174 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729514AbgGULUS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:20:18 -0400
+In-Reply-To: <20200709083113.GI597537@hirez.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+Excerpts from Peter Zijlstra's message of July 9, 2020 6:31 pm:
+> On Wed, Jul 08, 2020 at 07:54:34PM -0400, Waiman Long wrote:
+>> On 7/8/20 4:41 AM, Peter Zijlstra wrote:
+>> > On Tue, Jul 07, 2020 at 03:57:06PM +1000, Nicholas Piggin wrote:
+>> > > Yes, powerpc could certainly get more performance out of the slow
+>> > > paths, and then there are a few parameters to tune.
+>> > Can you clarify? The slow path is already in use on ARM64 which is wea=
+k,
+>> > so I doubt there's superfluous serialization present. And Will spend a
+>> > fair amount of time on making that thing guarantee forward progressm, =
+so
+>> > there just isn't too much room to play.
+>> >=20
+>> > > We don't have a good alternate patching for function calls yet, but
+>> > > that would be something to do for native vs pv.
+>> > Going by your jump_label implementation, support for static_call shoul=
+d
+>> > be fairly straight forward too, no?
+>> >=20
+>> >    https://lkml.kernel.org/r/20200624153024.794671356@infradead.org
+>> >=20
+>> Speaking of static_call, I am also looking forward to it. Do you have an
+>> idea when that will be merged?
+>=20
+> 0day had one crash on the last round, I think Steve send a fix for that
+> last night and I'll go look at it.
+>=20
+> That said, the last posting got 0 feedback, so either everybody is
+> really happy with it, or not interested. So let us know in the thread,
+> with some review feedback.
+>=20
+> Once I get through enough of the inbox to actually find the fix and test
+> it, I'll also update the thread, and maybe threaten to merge it if
+> everybody stays silent :-)
 
-Like the syscall entry/exit code interrupt/exception entry after the real
-low level ASM bits should not be different accross architectures.
+I'd like to use it in powerpc. We have code now for example that patches=20
+a branch immediately at the top of memcpy which branches to a different=20
+version of the function. pv queued spinlock selection obviously, and
+there's a bunch of platform ops struct things that get filled in at boot=20
+time, etc.
 
-Provide a generic version based on the x86 code.
+So +1 here if you can get them through. I'm not 100% sure we can do
+it with existing toolchain and no ugly hacks, but there's no way to
+structure things that can get around that AFAIKS. We'd eventually
+use it though, I'd say.
 
-irqentry_enter() is called after the low level entry code and
-irqentry_exit() must be invoked right before returning to the low level
-code which just contains the actual return logic. The code before
-irqentry_enter() and irqentry_exit() must not be instrumented. Code after
-irqentry_enter() and before irqentry_exit() can be instrumented.
-
-irqentry_enter() invokes irqentry_enter_from_user_mode() if the
-interrupt/exception came from user mode. If if entered from kernel mode it
-handles the kernel mode variant of establishing state for lockdep, RCU and
-tracing depending on the kernel context it interrupted (idle, non-idle).
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- include/linux/entry-common.h |   62 ++++++++++++++++++++++
- kernel/entry/common.c        |  117 +++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 179 insertions(+)
-
---- a/include/linux/entry-common.h
-+++ b/include/linux/entry-common.h
-@@ -307,4 +307,66 @@ void irqentry_enter_from_user_mode(struc
-  */
- void irqentry_exit_to_user_mode(struct pt_regs *regs);
- 
-+#ifndef irqentry_state
-+typedef struct irqentry_state {
-+	bool	exit_rcu;
-+} irqentry_state_t;
-+#endif
-+
-+/**
-+ * irqentry_enter - Handle state tracking on ordinary interrupt entries
-+ * @regs:	Pointer to pt_regs of interrupted context
-+ *
-+ * Invokes:
-+ *  - lockdep irqflag state tracking as low level ASM entry disabled
-+ *    interrupts.
-+ *
-+ *  - Context tracking if the exception hit user mode.
-+ *
-+ *  - The hardirq tracer to keep the state consistent as low level ASM
-+ *    entry disabled interrupts.
-+ *
-+ * As a precondition, this requires that the entry came from user mode,
-+ * idle, or a kernel context in which RCU is watching.
-+ *
-+ * For kernel mode entries RCU handling is done conditional. If RCU is
-+ * watching then the only RCU requirement is to check whether the tick has
-+ * to be restarted. If RCU is not watching then rcu_irq_enter() has to be
-+ * invoked on entry and rcu_irq_exit() on exit.
-+ *
-+ * Avoiding the rcu_irq_enter/exit() calls is an optimization but also
-+ * solves the problem of kernel mode pagefaults which can schedule, which
-+ * is not possible after invoking rcu_irq_enter() without undoing it.
-+ *
-+ * For user mode entries irqentry_enter_from_user_mode() is invoked to
-+ * establish the proper context for NOHZ_FULL. Otherwise scheduling on exit
-+ * would not be possible.
-+ *
-+ * Returns: An opaque object that must be passed to idtentry_exit()
-+ */
-+irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs);
-+
-+/**
-+ * irqentry_exit_cond_resched - Conditionally reschedule on return from interrupt
-+ *
-+ * Conditional reschedule with additional sanity checks.
-+ */
-+void irqentry_exit_cond_resched(void);
-+
-+/**
-+ * irqentry_exit - Handle return from exception that used irqentry_enter()
-+ * @regs:	Pointer to pt_regs (exception entry regs)
-+ * @state:	Return value from matching call to irqentry_enter()
-+ *
-+ * Depending on the return target (kernel/user) this runs the necessary
-+ * preemption and work checks if possible and reguired and returns to
-+ * the caller with interrupts disabled and no further work pending.
-+ *
-+ * This is the last action before returning to the low level ASM code which
-+ * just needs to return to the appropriate context.
-+ *
-+ * Counterpart to irqentry_enter().
-+ */
-+void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state);
-+
- #endif
---- a/kernel/entry/common.c
-+++ b/kernel/entry/common.c
-@@ -255,3 +255,120 @@ noinstr void irqentry_exit_to_user_mode(
- 	instrumentation_end();
- 	exit_to_user_mode();
- }
-+
-+irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs)
-+{
-+	irqentry_state_t ret = {
-+		.exit_rcu = false,
-+	};
-+
-+	if (user_mode(regs)) {
-+		irqentry_enter_from_user_mode(regs);
-+		return ret;
-+	}
-+
-+	/*
-+	 * If this entry hit the idle task invoke rcu_irq_enter() whether
-+	 * RCU is watching or not.
-+	 *
-+	 * Interupts can nest when the first interrupt invokes softirq
-+	 * processing on return which enables interrupts.
-+	 *
-+	 * Scheduler ticks in the idle task can mark quiescent state and
-+	 * terminate a grace period, if and only if the timer interrupt is
-+	 * not nested into another interrupt.
-+	 *
-+	 * Checking for __rcu_is_watching() here would prevent the nesting
-+	 * interrupt to invoke rcu_irq_enter(). If that nested interrupt is
-+	 * the tick then rcu_flavor_sched_clock_irq() would wrongfully
-+	 * assume that it is the first interupt and eventually claim
-+	 * quiescient state and end grace periods prematurely.
-+	 *
-+	 * Unconditionally invoke rcu_irq_enter() so RCU state stays
-+	 * consistent.
-+	 *
-+	 * TINY_RCU does not support EQS, so let the compiler eliminate
-+	 * this part when enabled.
-+	 */
-+	if (!IS_ENABLED(CONFIG_TINY_RCU) && is_idle_task(current)) {
-+		/*
-+		 * If RCU is not watching then the same careful
-+		 * sequence vs. lockdep and tracing is required
-+		 * as in irq_enter_from_user_mode().
-+		 */
-+		lockdep_hardirqs_off(CALLER_ADDR0);
-+		rcu_irq_enter();
-+		instrumentation_begin();
-+		trace_hardirqs_off_finish();
-+		instrumentation_end();
-+
-+		ret.exit_rcu = true;
-+		return ret;
-+	}
-+
-+	/*
-+	 * If RCU is watching then RCU only wants to check whether it needs
-+	 * to restart the tick in NOHZ mode. rcu_irq_enter_check_tick()
-+	 * already contains a warning when RCU is not watching, so no point
-+	 * in having another one here.
-+	 */
-+	instrumentation_begin();
-+	rcu_irq_enter_check_tick();
-+	/* Use the combo lockdep/tracing function */
-+	trace_hardirqs_off();
-+	instrumentation_end();
-+
-+	return ret;
-+}
-+
-+void irqentry_exit_cond_resched(void)
-+{
-+	if (!preempt_count()) {
-+		/* Sanity check RCU and thread stack */
-+		rcu_irq_exit_check_preempt();
-+		if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
-+			WARN_ON_ONCE(!on_thread_stack());
-+		if (need_resched())
-+			preempt_schedule_irq();
-+	}
-+}
-+
-+void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state)
-+{
-+	lockdep_assert_irqs_disabled();
-+
-+	/* Check whether this returns to user mode */
-+	if (user_mode(regs)) {
-+		irqentry_exit_to_user_mode(regs);
-+	} else if (!regs_irqs_disabled(regs)) {
-+		/*
-+		 * If RCU was not watching on entry this needs to be done
-+		 * carefully and needs the same ordering of lockdep/tracing
-+		 * and RCU as the return to user mode path.
-+		 */
-+		if (state.exit_rcu) {
-+			instrumentation_begin();
-+			/* Tell the tracer that IRET will enable interrupts */
-+			trace_hardirqs_on_prepare();
-+			lockdep_hardirqs_on_prepare(CALLER_ADDR0);
-+			instrumentation_end();
-+			rcu_irq_exit();
-+			lockdep_hardirqs_on(CALLER_ADDR0);
-+			return;
-+		}
-+
-+		instrumentation_begin();
-+		if (IS_ENABLED(CONFIG_PREEMPTION))
-+			irqentry_exit_cond_resched();
-+		/* Covers both tracing and lockdep */
-+		trace_hardirqs_on();
-+		instrumentation_end();
-+	} else {
-+		/*
-+		 * IRQ flags state is correct already. Just tell RCU if it
-+		 * was not watching on entry.
-+		 */
-+		if (state.exit_rcu)
-+			rcu_irq_exit();
-+	}
-+}
+Thanks,
+Nick
