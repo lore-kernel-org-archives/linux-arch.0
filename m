@@ -1,7 +1,7 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V4 14/15] x86/entry: Cleanup idtentry_enter/exit
-Date: Tue, 21 Jul 2020 12:57:20 +0200
-Message-ID: <20200721110809.747620036@linutronix.de>
+Subject: [patch V4 11/15] x86/entry: Use generic syscall exit functionality
+Date: Tue, 21 Jul 2020 12:57:17 +0200
+Message-ID: <20200721110809.432210708@linutronix.de>
 References: <20200721105706.030914876@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -12,243 +12,424 @@ To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
 List-Id: linux-arch.vger.kernel.org
 
-Remove the temporary defines and fixup all references.
+Replace the x86 variant with the generic version. Provide the relevant
+architecture specific helper functions and defines.
+
+Use a temporary define for idtentry_exit_user which will be cleaned up
+seperately.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/entry/common.c         |    6 +++---
- arch/x86/include/asm/idtentry.h |   33 ++++++++++++++-------------------
- arch/x86/kernel/kvm.c           |    6 +++---
- arch/x86/kernel/traps.c         |    6 +++---
- arch/x86/mm/fault.c             |    6 +++---
- 5 files changed, 26 insertions(+), 31 deletions(-)
+V4: Drop a pointless define
+    Adjust to moved TIF_USER_RETURN_NOTIFY handling
+    Bring back I/O bitmap handling
+---
+ arch/x86/entry/common.c             |  221 ------------------------------------
+ arch/x86/entry/entry_32.S           |    2 
+ arch/x86/entry/entry_64.S           |    2 
+ arch/x86/include/asm/entry-common.h |   44 +++++++
+ arch/x86/include/asm/idtentry.h     |    3 
+ arch/x86/include/asm/signal.h       |    1 
+ arch/x86/kernel/signal.c            |    3 
+ 7 files changed, 54 insertions(+), 222 deletions(-)
 
 --- a/arch/x86/entry/common.c
 +++ b/arch/x86/entry/common.c
-@@ -248,9 +248,9 @@ static void __xen_pv_evtchn_do_upcall(vo
- {
- 	struct pt_regs *old_regs;
- 	bool inhcall;
--	idtentry_state_t state;
-+	irqentry_state_t state;
+@@ -15,15 +15,8 @@
+ #include <linux/smp.h>
+ #include <linux/errno.h>
+ #include <linux/ptrace.h>
+-#include <linux/tracehook.h>
+-#include <linux/audit.h>
+-#include <linux/signal.h>
+ #include <linux/export.h>
+-#include <linux/context_tracking.h>
+-#include <linux/user-return-notifier.h>
+ #include <linux/nospec.h>
+-#include <linux/uprobes.h>
+-#include <linux/livepatch.h>
+ #include <linux/syscalls.h>
+ #include <linux/uaccess.h>
  
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 	old_regs = set_irq_regs(regs);
- 
- 	instrumentation_begin();
-@@ -266,7 +266,7 @@ static void __xen_pv_evtchn_do_upcall(vo
- 		instrumentation_end();
- 		restore_inhcall(inhcall);
- 	} else {
--		idtentry_exit(regs, state);
-+		irqentry_exit(regs, state);
- 	}
- }
- #endif /* CONFIG_XEN_PV */
---- a/arch/x86/include/asm/idtentry.h
-+++ b/arch/x86/include/asm/idtentry.h
-@@ -11,11 +11,6 @@
- 
+@@ -42,191 +35,6 @@
+ #include <asm/syscall.h>
  #include <asm/irq_stack.h>
  
--/* Temporary defines */
--typedef irqentry_state_t idtentry_state_t;
--#define idtentry_enter irqentry_enter
--#define idtentry_exit irqentry_exit
+-#include <trace/events/syscalls.h>
 -
- /**
-  * DECLARE_IDTENTRY - Declare functions for simple IDT entry points
-  *		      No error code pushed by hardware
-@@ -45,8 +40,8 @@ typedef irqentry_state_t idtentry_state_
-  * The macro is written so it acts as function definition. Append the
-  * body with a pair of curly brackets.
-  *
-- * idtentry_enter() contains common code which has to be invoked before
-- * arbitrary code in the body. idtentry_exit() contains common code
-+ * irqentry_enter() contains common code which has to be invoked before
-+ * arbitrary code in the body. irqentry_exit() contains common code
-  * which has to run before returning to the low level assembly code.
-  */
- #define DEFINE_IDTENTRY(func)						\
-@@ -54,12 +49,12 @@ static __always_inline void __##func(str
- 									\
- __visible noinstr void func(struct pt_regs *regs)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	__##func (regs);						\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs)
-@@ -101,12 +96,12 @@ static __always_inline void __##func(str
- __visible noinstr void func(struct pt_regs *regs,			\
- 			    unsigned long error_code)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	__##func (regs, error_code);					\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs,		\
-@@ -161,7 +156,7 @@ static __always_inline void __##func(str
-  * body with a pair of curly brackets.
-  *
-  * Contrary to DEFINE_IDTENTRY_ERRORCODE() this does not invoke the
-- * idtentry_enter/exit() helpers before and after the body invocation. This
-+ * irqentry_enter/exit() helpers before and after the body invocation. This
-  * needs to be done in the body itself if applicable. Use if extra work
-  * is required before the enter/exit() helpers are invoked.
-  */
-@@ -197,7 +192,7 @@ static __always_inline void __##func(str
- __visible noinstr void func(struct pt_regs *regs,			\
- 			    unsigned long error_code)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	irq_enter_rcu();						\
-@@ -205,7 +200,7 @@ static __always_inline void __##func(str
- 	__##func (regs, (u8)error_code);				\
- 	irq_exit_rcu();							\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs, u8 vector)
-@@ -229,7 +224,7 @@ static __always_inline void __##func(str
-  * DEFINE_IDTENTRY_SYSVEC - Emit code for system vector IDT entry points
-  * @func:	Function name of the entry point
-  *
-- * idtentry_enter/exit() and irq_enter/exit_rcu() are invoked before the
-+ * irqentry_enter/exit() and irq_enter/exit_rcu() are invoked before the
-  * function body. KVM L1D flush request is set.
-  *
-  * Runs the function on the interrupt stack if the entry hit kernel mode
-@@ -239,7 +234,7 @@ static void __##func(struct pt_regs *reg
- 									\
- __visible noinstr void func(struct pt_regs *regs)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	irq_enter_rcu();						\
-@@ -247,7 +242,7 @@ static void __##func(struct pt_regs *reg
- 	run_on_irqstack_cond(__##func, regs, regs);			\
- 	irq_exit_rcu();							\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static noinline void __##func(struct pt_regs *regs)
-@@ -268,7 +263,7 @@ static __always_inline void __##func(str
- 									\
- __visible noinstr void func(struct pt_regs *regs)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	__irq_enter_raw();						\
-@@ -276,7 +271,7 @@ static __always_inline void __##func(str
- 	__##func (regs);						\
- 	__irq_exit_raw();						\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs)
---- a/arch/x86/kernel/kvm.c
-+++ b/arch/x86/kernel/kvm.c
-@@ -233,7 +233,7 @@ EXPORT_SYMBOL_GPL(kvm_read_and_reset_apf
- noinstr bool __kvm_handle_async_pf(struct pt_regs *regs, u32 token)
+-/**
+- * exit_to_user_mode - Fixup state when exiting to user mode
+- *
+- * Syscall exit enables interrupts, but the kernel state is interrupts
+- * disabled when this is invoked. Also tell RCU about it.
+- *
+- * 1) Trace interrupts on state
+- * 2) Invoke context tracking if enabled to adjust RCU state
+- * 3) Clear CPU buffers if CPU is affected by MDS and the migitation is on.
+- * 4) Tell lockdep that interrupts are enabled
+- */
+-static __always_inline void exit_to_user_mode(void)
+-{
+-	instrumentation_begin();
+-	trace_hardirqs_on_prepare();
+-	lockdep_hardirqs_on_prepare(CALLER_ADDR0);
+-	instrumentation_end();
+-
+-	user_enter_irqoff();
+-	mds_user_clear_cpu_buffers();
+-	lockdep_hardirqs_on(CALLER_ADDR0);
+-}
+-
+-#define EXIT_TO_USERMODE_LOOP_FLAGS				\
+-	(_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_UPROBE |	\
+-	 _TIF_NEED_RESCHED | _TIF_PATCH_PENDING)
+-
+-static void exit_to_usermode_loop(struct pt_regs *regs, u32 cached_flags)
+-{
+-	/*
+-	 * In order to return to user mode, we need to have IRQs off with
+-	 * none of EXIT_TO_USERMODE_LOOP_FLAGS set.  Several of these flags
+-	 * can be set at any time on preemptible kernels if we have IRQs on,
+-	 * so we need to loop.  Disabling preemption wouldn't help: doing the
+-	 * work to clear some of the flags can sleep.
+-	 */
+-	while (true) {
+-		/* We have work to do. */
+-		local_irq_enable();
+-
+-		if (cached_flags & _TIF_NEED_RESCHED)
+-			schedule();
+-
+-		if (cached_flags & _TIF_UPROBE)
+-			uprobe_notify_resume(regs);
+-
+-		if (cached_flags & _TIF_PATCH_PENDING)
+-			klp_update_patch_state(current);
+-
+-		/* deal with pending signal delivery */
+-		if (cached_flags & _TIF_SIGPENDING)
+-			do_signal(regs);
+-
+-		if (cached_flags & _TIF_NOTIFY_RESUME) {
+-			clear_thread_flag(TIF_NOTIFY_RESUME);
+-			tracehook_notify_resume(regs);
+-			rseq_handle_notify_resume(NULL, regs);
+-		}
+-
+-		/* Disable IRQs and retry */
+-		local_irq_disable();
+-
+-		cached_flags = READ_ONCE(current_thread_info()->flags);
+-
+-		if (!(cached_flags & EXIT_TO_USERMODE_LOOP_FLAGS))
+-			break;
+-	}
+-}
+-
+-static void __prepare_exit_to_usermode(struct pt_regs *regs)
+-{
+-	struct thread_info *ti = current_thread_info();
+-	u32 cached_flags;
+-
+-	addr_limit_user_check();
+-
+-	lockdep_assert_irqs_disabled();
+-	lockdep_sys_exit();
+-
+-	cached_flags = READ_ONCE(ti->flags);
+-
+-	if (unlikely(cached_flags & EXIT_TO_USERMODE_LOOP_FLAGS))
+-		exit_to_usermode_loop(regs, cached_flags);
+-
+-	/* Reload ti->flags; we may have rescheduled above. */
+-	cached_flags = READ_ONCE(ti->flags);
+-
+-	if (cached_flags & _TIF_USER_RETURN_NOTIFY)
+-		fire_user_return_notifiers();
+-
+-	if (unlikely(cached_flags & _TIF_IO_BITMAP))
+-		tss_update_io_bitmap();
+-
+-	fpregs_assert_state_consistent();
+-	if (unlikely(cached_flags & _TIF_NEED_FPU_LOAD))
+-		switch_fpu_return();
+-
+-#ifdef CONFIG_COMPAT
+-	/*
+-	 * Compat syscalls set TS_COMPAT.  Make sure we clear it before
+-	 * returning to user mode.  We need to clear it *after* signal
+-	 * handling, because syscall restart has a fixup for compat
+-	 * syscalls.  The fixup is exercised by the ptrace_syscall_32
+-	 * selftest.
+-	 *
+-	 * We also need to clear TS_REGS_POKED_I386: the 32-bit tracer
+-	 * special case only applies after poking regs and before the
+-	 * very next return to user mode.
+-	 */
+-	ti->status &= ~(TS_COMPAT|TS_I386_REGS_POKED);
+-#endif
+-}
+-
+-static noinstr void prepare_exit_to_usermode(struct pt_regs *regs)
+-{
+-	instrumentation_begin();
+-	__prepare_exit_to_usermode(regs);
+-	instrumentation_end();
+-	exit_to_user_mode();
+-}
+-
+-#define SYSCALL_EXIT_WORK_FLAGS				\
+-	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT |	\
+-	 _TIF_SINGLESTEP | _TIF_SYSCALL_TRACEPOINT)
+-
+-static void syscall_slow_exit_work(struct pt_regs *regs, u32 cached_flags)
+-{
+-	bool step;
+-
+-	audit_syscall_exit(regs);
+-
+-	if (cached_flags & _TIF_SYSCALL_TRACEPOINT)
+-		trace_sys_exit(regs, regs->ax);
+-
+-	/*
+-	 * If TIF_SYSCALL_EMU is set, we only get here because of
+-	 * TIF_SINGLESTEP (i.e. this is PTRACE_SYSEMU_SINGLESTEP).
+-	 * We already reported this syscall instruction in
+-	 * syscall_trace_enter().
+-	 */
+-	step = unlikely(
+-		(cached_flags & (_TIF_SINGLESTEP | _TIF_SYSCALL_EMU))
+-		== _TIF_SINGLESTEP);
+-	if (step || cached_flags & _TIF_SYSCALL_TRACE)
+-		tracehook_report_syscall_exit(regs, step);
+-}
+-
+-static void __syscall_return_slowpath(struct pt_regs *regs)
+-{
+-	struct thread_info *ti = current_thread_info();
+-	u32 cached_flags = READ_ONCE(ti->flags);
+-
+-	CT_WARN_ON(ct_state() != CONTEXT_KERNEL);
+-
+-	if (IS_ENABLED(CONFIG_PROVE_LOCKING) &&
+-	    WARN(irqs_disabled(), "syscall %ld left IRQs disabled", regs->orig_ax))
+-		local_irq_enable();
+-
+-	rseq_syscall(regs);
+-
+-	/*
+-	 * First do one-time work.  If these work items are enabled, we
+-	 * want to run them exactly once per syscall exit with IRQs on.
+-	 */
+-	if (unlikely(cached_flags & SYSCALL_EXIT_WORK_FLAGS))
+-		syscall_slow_exit_work(regs, cached_flags);
+-
+-	local_irq_disable();
+-	__prepare_exit_to_usermode(regs);
+-}
+-
+-/*
+- * Called with IRQs on and fully valid regs.  Returns with IRQs off in a
+- * state such that we can immediately switch to user mode.
+- */
+-__visible noinstr void syscall_return_slowpath(struct pt_regs *regs)
+-{
+-	instrumentation_begin();
+-	__syscall_return_slowpath(regs);
+-	instrumentation_end();
+-	exit_to_user_mode();
+-}
+-
+ #ifdef CONFIG_X86_64
+ __visible noinstr void do_syscall_64(unsigned long nr, struct pt_regs *regs)
  {
- 	u32 reason = kvm_read_and_reset_apf_flags();
--	idtentry_state_t state;
-+	irqentry_state_t state;
+@@ -245,7 +53,7 @@ static void __syscall_return_slowpath(st
+ #endif
+ 	}
+ 	instrumentation_end();
+-	syscall_return_slowpath(regs);
++	syscall_exit_to_user_mode(regs);
+ }
+ #endif
  
- 	switch (reason) {
- 	case KVM_PV_REASON_PAGE_NOT_PRESENT:
-@@ -243,7 +243,7 @@ noinstr bool __kvm_handle_async_pf(struc
+@@ -284,7 +92,7 @@ static __always_inline void do_syscall_3
+ 	unsigned int nr = syscall_32_enter(regs);
+ 
+ 	do_syscall_32_irqs_on(regs, nr);
+-	syscall_return_slowpath(regs);
++	syscall_exit_to_user_mode(regs);
+ }
+ 
+ static noinstr bool __do_fast_syscall_32(struct pt_regs *regs)
+@@ -310,13 +118,13 @@ static noinstr bool __do_fast_syscall_32
+ 	if (res) {
+ 		/* User code screwed up. */
+ 		regs->ax = -EFAULT;
+-		syscall_return_slowpath(regs);
++		syscall_exit_to_user_mode(regs);
  		return false;
  	}
  
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 	instrumentation_begin();
- 
- 	/*
-@@ -264,7 +264,7 @@ noinstr bool __kvm_handle_async_pf(struc
- 	}
- 
- 	instrumentation_end();
--	idtentry_exit(regs, state);
-+	irqentry_exit(regs, state);
+ 	/* Now this is just like a normal syscall. */
+ 	do_syscall_32_irqs_on(regs, nr);
+-	syscall_return_slowpath(regs);
++	syscall_exit_to_user_mode(regs);
  	return true;
  }
  
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -245,7 +245,7 @@ static noinstr bool handle_bug(struct pt
+@@ -524,7 +332,7 @@ void noinstr idtentry_exit(struct pt_reg
  
- DEFINE_IDTENTRY_RAW(exc_invalid_op)
- {
--	idtentry_state_t state;
-+	irqentry_state_t state;
- 
- 	/*
- 	 * We use UD2 as a short encoding for 'CALL __WARN', as such
-@@ -255,11 +255,11 @@ DEFINE_IDTENTRY_RAW(exc_invalid_op)
- 	if (!user_mode(regs) && handle_bug(regs))
- 		return;
- 
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 	instrumentation_begin();
- 	handle_invalid_op(regs);
- 	instrumentation_end();
--	idtentry_exit(regs, state);
-+	irqentry_exit(regs, state);
+ 	/* Check whether this returns to user mode */
+ 	if (user_mode(regs)) {
+-		prepare_exit_to_usermode(regs);
++		irqentry_exit_to_user_mode(regs);
+ 	} else if (regs->flags & X86_EFLAGS_IF) {
+ 		/*
+ 		 * If RCU was not watching on entry this needs to be done
+@@ -555,25 +363,6 @@ void noinstr idtentry_exit(struct pt_reg
+ 	}
  }
  
- DEFINE_IDTENTRY(exc_coproc_segment_overrun)
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -1377,7 +1377,7 @@ handle_page_fault(struct pt_regs *regs,
- DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_fault)
+-/**
+- * idtentry_exit_user - Handle return from exception to user mode
+- * @regs:	Pointer to pt_regs (exception entry regs)
+- *
+- * Runs the necessary preemption and work checks and returns to the caller
+- * with interrupts disabled and no further work pending.
+- *
+- * This is the last action before returning to the low level ASM code which
+- * just needs to return to the appropriate context.
+- *
+- * Counterpart to idtentry_enter_user().
+- */
+-void noinstr idtentry_exit_user(struct pt_regs *regs)
+-{
+-	lockdep_assert_irqs_disabled();
+-
+-	prepare_exit_to_usermode(regs);
+-}
+-
+ #ifdef CONFIG_XEN_PV
+ #ifndef CONFIG_PREEMPTION
+ /*
+--- a/arch/x86/entry/entry_32.S
++++ b/arch/x86/entry/entry_32.S
+@@ -846,7 +846,7 @@ SYM_CODE_START(ret_from_fork)
+ 2:
+ 	/* When we fork, we trace the syscall return in the child, too. */
+ 	movl    %esp, %eax
+-	call    syscall_return_slowpath
++	call    syscall_exit_to_user_mode
+ 	jmp     .Lsyscall_32_done
+ 
+ 	/* kernel thread */
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -283,7 +283,7 @@ SYM_CODE_START(ret_from_fork)
+ 2:
+ 	UNWIND_HINT_REGS
+ 	movq	%rsp, %rdi
+-	call	syscall_return_slowpath	/* returns with IRQs disabled */
++	call	syscall_exit_to_user_mode	/* returns with IRQs disabled */
+ 	jmp	swapgs_restore_regs_and_return_to_usermode
+ 
+ 1:
+--- a/arch/x86/include/asm/entry-common.h
++++ b/arch/x86/include/asm/entry-common.h
+@@ -2,6 +2,12 @@
+ #ifndef _ASM_X86_ENTRY_COMMON_H
+ #define _ASM_X86_ENTRY_COMMON_H
+ 
++#include <linux/user-return-notifier.h>
++
++#include <asm/nospec-branch.h>
++#include <asm/io_bitmap.h>
++#include <asm/fpu/api.h>
++
+ /* Check that the stack and regs on entry from user mode are sane. */
+ static __always_inline void arch_check_user_regs(struct pt_regs *regs)
  {
- 	unsigned long address = read_cr2();
--	idtentry_state_t state;
-+	irqentry_state_t state;
- 
- 	prefetchw(&current->mm->mmap_lock);
- 
-@@ -1412,11 +1412,11 @@ DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_f
- 	 * code reenabled RCU to avoid subsequent wreckage which helps
- 	 * debugability.
- 	 */
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 
- 	instrumentation_begin();
- 	handle_page_fault(regs, error_code, address);
- 	instrumentation_end();
- 
--	idtentry_exit(regs, state);
-+	irqentry_exit(regs, state);
+@@ -29,4 +35,42 @@ static __always_inline void arch_check_u
  }
+ #define arch_check_user_regs arch_check_user_regs
+ 
++#define ARCH_SYSCALL_EXIT_WORK		(_TIF_SINGLESTEP)
++
++static inline void arch_exit_to_user_mode_prepare(struct pt_regs *regs,
++						  unsigned long ti_work)
++{
++	if (ti_work & _TIF_USER_RETURN_NOTIFY)
++		fire_user_return_notifiers();
++
++	if (unlikely(ti_work & _TIF_IO_BITMAP))
++		tss_update_io_bitmap();
++
++	fpregs_assert_state_consistent();
++	if (unlikely(ti_work & _TIF_NEED_FPU_LOAD))
++		switch_fpu_return();
++
++#ifdef CONFIG_COMPAT
++	/*
++	 * Compat syscalls set TS_COMPAT.  Make sure we clear it before
++	 * returning to user mode.  We need to clear it *after* signal
++	 * handling, because syscall restart has a fixup for compat
++	 * syscalls.  The fixup is exercised by the ptrace_syscall_32
++	 * selftest.
++	 *
++	 * We also need to clear TS_REGS_POKED_I386: the 32-bit tracer
++	 * special case only applies after poking regs and before the
++	 * very next return to user mode.
++	 */
++	current_thread_info()->status &= ~(TS_COMPAT | TS_I386_REGS_POKED);
++#endif
++}
++#define arch_exit_to_user_mode_prepare arch_exit_to_user_mode_prepare
++
++static __always_inline void arch_exit_to_user_mode(void)
++{
++	mds_user_clear_cpu_buffers();
++}
++#define arch_exit_to_user_mode arch_exit_to_user_mode
++
+ #endif
+--- a/arch/x86/include/asm/idtentry.h
++++ b/arch/x86/include/asm/idtentry.h
+@@ -13,8 +13,7 @@
+ 
+ /* Temporary define */
+ #define idtentry_enter_user	irqentry_enter_from_user_mode
+-
+-void idtentry_exit_user(struct pt_regs *regs);
++#define idtentry_exit_user	irqentry_exit_to_user_mode
+ 
+ typedef struct idtentry_state {
+ 	bool exit_rcu;
+--- a/arch/x86/include/asm/signal.h
++++ b/arch/x86/include/asm/signal.h
+@@ -35,7 +35,6 @@ typedef sigset_t compat_sigset_t;
+ #endif /* __ASSEMBLY__ */
+ #include <uapi/asm/signal.h>
+ #ifndef __ASSEMBLY__
+-extern void do_signal(struct pt_regs *regs);
+ 
+ #define __ARCH_HAS_SA_RESTORER
+ 
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -25,6 +25,7 @@
+ #include <linux/user-return-notifier.h>
+ #include <linux/uprobes.h>
+ #include <linux/context_tracking.h>
++#include <linux/entry-common.h>
+ #include <linux/syscalls.h>
+ 
+ #include <asm/processor.h>
+@@ -803,7 +804,7 @@ static inline unsigned long get_nr_resta
+  * want to handle. Thus you cannot kill init even with a SIGKILL even by
+  * mistake.
+  */
+-void do_signal(struct pt_regs *regs)
++void arch_do_signal(struct pt_regs *regs)
+ {
+ 	struct ksignal ksig;
+ 
