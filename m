@@ -1,54 +1,40 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34778 "EHLO
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38306 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726539AbgGVSmG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 14:42:06 -0400
-Date: Wed, 22 Jul 2020 20:41:37 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
-Message-ID: <20200722184137.GP10769@hirez.programming.kicks-ass.net>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-5-samitolvanen@google.com>
- <20200624212737.GV4817@hirez.programming.kicks-ass.net>
- <20200624214530.GA120457@google.com>
- <20200625074530.GW4817@hirez.programming.kicks-ass.net>
- <20200625161503.GB173089@google.com>
- <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
- <20200625224042.GA169781@google.com>
- <20200626112931.GF4817@hirez.programming.kicks-ass.net>
- <20200722135542.41127cc4@oasis.local.home>
+        with ESMTP id S1727971AbgGUVr6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 17:47:58 -0400
+Received: from mail-pj1-x1044.google.com (mail-pj1-x1044.google.com [IPv6:2607:f8b0:4864:20::1044])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6B86CC0619DC
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:47:58 -0700 (PDT)
+Received: by mail-pj1-x1044.google.com with SMTP id f16so84757pjt.0
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:47:58 -0700 (PDT)
+Date: Tue, 21 Jul 2020 14:47:56 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [patch V4 11/15] x86/entry: Use generic syscall exit
+ functionality
+Message-ID: <202007211447.8F89234@keescook>
+References: <20200721105706.030914876@linutronix.de>
+ <20200721110809.432210708@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200722135542.41127cc4@oasis.local.home>
+In-Reply-To: <20200721110809.432210708@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>, mhelsley@vmware.com
-Message-ID: <20200722184137.uoWwIhFAYStRfJcgJjaP3YicdaMzMBuxmPOjkNkcVYM@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
+Message-ID: <20200721214756.oclFze22RAUGSSXxZQTMw6oRfakPcuNHq4lsa0FZuuc@z>
 
-On Wed, Jul 22, 2020 at 01:55:42PM -0400, Steven Rostedt wrote:
-
-> > Ha! it is trying to convert the "CALL __fentry__" into a NOP and not
-> > finding the CALL -- because objtool already made it a NOP...
-> > 
-> > Weird, I thought recordmcount would also write NOPs, it certainly has
-> > code for that. I suppose we can use CC_USING_NOP_MCOUNT to avoid those,
-> > but I'd rather Steve explain this before I wreck things further.
+On Tue, Jul 21, 2020 at 12:57:17PM +0200, Thomas Gleixner wrote:
+> Replace the x86 variant with the generic version. Provide the relevant
+> architecture specific helper functions and defines.
 > 
-> The reason for not having recordmcount insert all the nops, is because
-> x86 has more than one optimal nop which is determined by the machine it
-> runs on, and not at compile time. So we figured just updated it then.
+> Use a temporary define for idtentry_exit_user which will be cleaned up
+> seperately.
 > 
-> We can change it to be a nop on boot, and just modify it if it's not
-> the optimal nop already. 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 
-Right, I throught that's what we'd be doing already, anyway:
+Acked-by: Kees Cook <keescook@chromium.org>
 
-> That said, Andi Kleen added an option to gcc called -mnop-mcount which
-> will have gcc do both create the mcount section and convert the calls
-> into nops. When doing so, it defines CC_USING_NOP_MCOUNT which will
-> tell ftrace to expect the calls to already be converted.
-
-That seems like the much easier solution, then we can forget about
-recordmcount / objtool entirely for this.
+-- 
+Kees Cook
