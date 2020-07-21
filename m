@@ -1,49 +1,56 @@
 From: Marco Elver <elver@google.com>
-Subject: [PATCH 2/8] objtool, kcsan: Add __tsan_read_write to uaccess whitelist
-Date: Tue, 21 Jul 2020 12:30:10 +0200
-Message-ID: <20200721103016.3287832-3-elver@google.com>
+Subject: [PATCH 3/8] kcsan: Skew delay to be longer for certain access types
+Date: Tue, 21 Jul 2020 12:30:11 +0200
+Message-ID: <20200721103016.3287832-4-elver@google.com>
 References: <20200721103016.3287832-1-elver@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45440 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729164AbgGUKag (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 06:30:36 -0400
-Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2A96CC061794
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:36 -0700 (PDT)
-Received: by mail-yb1-xb49.google.com with SMTP id e81so25057470ybb.3
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:36 -0700 (PDT)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200721103016.3287832-1-elver@google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: elver@google.com, paulmck@kernel.org
 Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Adds the new __tsan_read_write compound instrumentation to objtool's
-uaccess whitelist.
+For compound instrumentation and assert accesses, skew the watchpoint
+delay to be longer. We still shouldn't exceed the maximum delays, but it
+is safe to skew the delay for these accesses.
 
 Signed-off-by: Marco Elver <elver@google.com>
 ---
- tools/objtool/check.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ kernel/kcsan/core.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
-diff --git a/tools/objtool/check.c b/tools/objtool/check.c
-index 63d8b630c67a..38d82e705c93 100644
---- a/tools/objtool/check.c
-+++ b/tools/objtool/check.c
-@@ -528,6 +528,11 @@ static const char *uaccess_safe_builtin[] = {
- 	"__tsan_write4",
- 	"__tsan_write8",
- 	"__tsan_write16",
-+	"__tsan_read_write1",
-+	"__tsan_read_write2",
-+	"__tsan_read_write4",
-+	"__tsan_read_write8",
-+	"__tsan_read_write16",
- 	"__tsan_atomic8_load",
- 	"__tsan_atomic16_load",
- 	"__tsan_atomic32_load",
+diff --git a/kernel/kcsan/core.c b/kernel/kcsan/core.c
+index fb52de2facf3..4633baebf84e 100644
+--- a/kernel/kcsan/core.c
++++ b/kernel/kcsan/core.c
+@@ -283,11 +283,15 @@ static __always_inline bool kcsan_is_enabled(void)
+ 	return READ_ONCE(kcsan_enabled) && get_ctx()->disable_count == 0;
+ }
+ 
+-static inline unsigned int get_delay(void)
++static inline unsigned int get_delay(int type)
+ {
+ 	unsigned int delay = in_task() ? kcsan_udelay_task : kcsan_udelay_interrupt;
++	/* For certain access types, skew the random delay to be longer. */
++	unsigned int skew_delay_order =
++		(type & (KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_ASSERT)) ? 1 : 0;
++
+ 	return delay - (IS_ENABLED(CONFIG_KCSAN_DELAY_RANDOMIZE) ?
+-				prandom_u32_max(delay) :
++				prandom_u32_max(delay >> skew_delay_order) :
+ 				0);
+ }
+ 
+@@ -449,7 +453,7 @@ kcsan_setup_watchpoint(const volatile void *ptr, size_t size, int type)
+ 	 * Delay this thread, to increase probability of observing a racy
+ 	 * conflicting access.
+ 	 */
+-	udelay(get_delay());
++	udelay(get_delay(type));
+ 
+ 	/*
+ 	 * Re-read value, and check if it is as expected; if not, we infer a
 -- 
 2.28.0.rc0.105.gf9edc3c819-goog
