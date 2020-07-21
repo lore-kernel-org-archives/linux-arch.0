@@ -1,70 +1,32 @@
-Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 28 Jul 2020 12:54:10 +0200
-From: peterz@infradead.org
-Subject: Re: [PATCH 23/24] x86: use asm-generic/mmu_context.h for no-op
- implementations
-Message-ID: <20200728105410.GU119549@hirez.programming.kicks-ass.net>
-References: <20200728033405.78469-1-npiggin@gmail.com>
- <20200728033405.78469-24-npiggin@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200728033405.78469-24-npiggin@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38274 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726390AbgGUApx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jul 2020 20:45:53 -0400
+Date: Mon, 20 Jul 2020 17:45:52 -0700 (PDT)
+Message-ID: <20200720.174552.1199692153657012436.davem@davemloft.net>
+Subject: Re: [PATCH] arch, net: remove the last csum_partial_copy()
+ leftovers
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20200720113609.177259-1-hch@lst.de>
+References: <20200720113609.177259-1-hch@lst.de>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200728105410.hEcI8SCgORqii4885OptWUj579flgeG76XYGtcOfFas@z>
+To: hch@lst.de
+Cc: msalter@redhat.com, jacquiot.aurelien@gmail.com, ley.foon.tan@intel.com, arnd@arndb.de, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org
+Message-ID: <20200721004552.zrkrGSTAktQsG9bBE2UFu3M0AkUX4b7cDKvojoEHVV4@z>
 
-On Tue, Jul 28, 2020 at 01:34:04PM +1000, Nicholas Piggin wrote:
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Borislav Petkov <bp@alien8.de>
-> Cc: x86@kernel.org
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+From: Christoph Hellwig <hch@lst.de>
+Date: Mon, 20 Jul 2020 13:36:09 +0200
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-
-> ---
->  arch/x86/include/asm/mmu_context.h | 6 ++++++
->  1 file changed, 6 insertions(+)
+> Most of the tree only uses and implements csum_partial_copy_nocheck,
+> but the c6x and lib/checksum.c implement a csum_partial_copy that
+> isn't used anywere except to define csum_partial_copy.  Get rid of
+> this pointless alias.
 > 
-> diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
-> index 47562147e70b..255750548433 100644
-> --- a/arch/x86/include/asm/mmu_context.h
-> +++ b/arch/x86/include/asm/mmu_context.h
-> @@ -92,12 +92,14 @@ static inline void switch_ldt(struct mm_struct *prev, struct mm_struct *next)
->  }
->  #endif
->  
-> +#define enter_lazy_tlb enter_lazy_tlb
->  extern void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk);
->  
->  /*
->   * Init a new mm.  Used on mm copies, like at fork()
->   * and on mm's that are brand-new, like at execve().
->   */
-> +#define init_new_context init_new_context
->  static inline int init_new_context(struct task_struct *tsk,
->  				   struct mm_struct *mm)
->  {
-> @@ -117,6 +119,8 @@ static inline int init_new_context(struct task_struct *tsk,
->  	init_new_context_ldt(mm);
->  	return 0;
->  }
-> +
-> +#define destroy_context destroy_context
->  static inline void destroy_context(struct mm_struct *mm)
->  {
->  	destroy_context_ldt(mm);
-> @@ -215,4 +219,6 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
->  
->  unsigned long __get_current_cr3_fast(void);
->  
-> +#include <asm-generic/mmu_context.h>
-> +
->  #endif /* _ASM_X86_MMU_CONTEXT_H */
-> -- 
-> 2.23.0
-> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+
+I'll apply this to net-next, thanks.
