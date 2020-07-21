@@ -1,138 +1,365 @@
-Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.efficios.com ([167.114.26.124]:40442 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729732AbgGTQqc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jul 2020 12:46:32 -0400
-Date: Mon, 20 Jul 2020 12:46:30 -0400 (EDT)
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Message-ID: <2055788870.20749.1595263590675.JavaMail.zimbra@efficios.com>
-In-Reply-To: <1595213677.kxru89dqy2.astroid@bobo.none>
-References: <1594868476.6k5kvx8684.astroid@bobo.none> <EFAD6E2F-EC08-4EB3-9ECC-2A963C023FC5@amacapital.net> <20200716085032.GO10769@hirez.programming.kicks-ass.net> <1594892300.mxnq3b9a77.astroid@bobo.none> <20200716110038.GA119549@hirez.programming.kicks-ass.net> <1594906688.ikv6r4gznx.astroid@bobo.none> <1314561373.18530.1594993363050.JavaMail.zimbra@efficios.com> <1595213677.kxru89dqy2.astroid@bobo.none>
-Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
- membarrier_mm_sync_core_before_usermode
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53540 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730929AbgGUUZy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 16:25:54 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 17/18] amd64: switch csum_partial_copy_generic() to new calling conventions
+Date: Tue, 21 Jul 2020 21:25:48 +0100
+Message-ID: <20200721202549.4150745-17-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
+References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
+ <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, x86 <x86@kernel.org>, Jens Axboe <axboe@kernel.dk>
-Message-ID: <20200720164630.58G9oHRKCFA8Ve6yxArlPBh-aRbNdpptNfflUk2VqGw@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200721202548.B3YBQijrANPrwOFaPFd5ugAscX5DMywtym8luABTiUQ@z>
 
------ On Jul 19, 2020, at 11:03 PM, Nicholas Piggin npiggin@gmail.com wrote:
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-> Excerpts from Mathieu Desnoyers's message of July 17, 2020 11:42 pm:
->> ----- On Jul 16, 2020, at 7:26 PM, Nicholas Piggin npiggin@gmail.com wrote:
->> [...]
->>> 
->>> membarrier does replace barrier instructions on remote CPUs, which do
->>> order accesses performed by the kernel on the user address space. So
->>> membarrier should too I guess.
->>> 
->>> Normal process context accesses like read(2) will do so because they
->>> don't get filtered out from IPIs, but kernel threads using the mm may
->>> not.
->> 
->> But it should not be an issue, because membarrier's ordering is only with
->> respect
->> to submit and completion of io_uring requests, which are performed through
->> system calls from the context of user-space threads, which are called from the
->> right mm.
-> 
-> Is that true? Can io completions be written into an address space via a
-> kernel thread? I don't know the io_uring code well but it looks like
-> that's asynchonously using the user mm context.
+... and fold handling of misaligned case into it.
 
-Indeed, the io completion appears to be signaled asynchronously between kernel
-and user-space. Therefore, both kernel and userspace code need to have proper
-memory barriers in place to signal completion, otherwise user-space could read
-garbage after it notices completion of a read.
+Implementation note: we stash the "will we need to rol8 the sum in the end"
+flag into the MSB of %rcx (the lower 32 bits are used for length); the rest
+is pretty straightforward.
 
-I did not review the entire io_uring implementation, but the publish side
-for completion appears to be:
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/x86/include/asm/checksum_64.h |   5 +-
+ arch/x86/lib/csum-copy_64.S        | 140 ++++++++++++++++++++++---------------
+ arch/x86/lib/csum-wrappers_64.c    |  72 +++----------------
+ 3 files changed, 94 insertions(+), 123 deletions(-)
 
-static void __io_commit_cqring(struct io_ring_ctx *ctx)
-{
-        struct io_rings *rings = ctx->rings;
-
-        /* order cqe stores with ring update */
-        smp_store_release(&rings->cq.tail, ctx->cached_cq_tail);
-
-        if (wq_has_sleeper(&ctx->cq_wait)) {
-                wake_up_interruptible(&ctx->cq_wait);
-                kill_fasync(&ctx->cq_fasync, SIGIO, POLL_IN);
-        }
-}
-
-The store-release on tail should be paired with a load_acquire on the
-reader-side (it's called "read_barrier()" in the code):
-
-tools/io_uring/queue.c:
-
-static int __io_uring_get_cqe(struct io_uring *ring,
-                              struct io_uring_cqe **cqe_ptr, int wait)
-{
-        struct io_uring_cq *cq = &ring->cq;
-        const unsigned mask = *cq->kring_mask;
-        unsigned head;
-        int ret;
-
-        *cqe_ptr = NULL;
-        head = *cq->khead;
-        do {
-                /*
-                 * It's necessary to use a read_barrier() before reading
-                 * the CQ tail, since the kernel updates it locklessly. The
-                 * kernel has the matching store barrier for the update. The
-                 * kernel also ensures that previous stores to CQEs are ordered
-                 * with the tail update.
-                 */
-                read_barrier();
-                if (head != *cq->ktail) {
-                        *cqe_ptr = &cq->cqes[head & mask];
-                        break;
-                }
-                if (!wait)
-                        break;
-                ret = io_uring_enter(ring->ring_fd, 0, 1,
-                                        IORING_ENTER_GETEVENTS, NULL);
-                if (ret < 0)
-                        return -errno;
-        } while (1);
-
-        return 0;
-}
-
-So as far as membarrier memory ordering dependencies are concerned, it relies
-on the store-release/load-acquire dependency chain in the completion queue to
-order against anything that was done prior to the completed requests.
-
-What is in-flight while the requests are being serviced provides no memory
-ordering guarantee whatsoever.
-
-> How about other memory accesses via kthread_use_mm? Presumably there is
-> still ordering requirement there for membarrier,
-
-Please provide an example case with memory accesses via kthread_use_mm where
-ordering matters to support your concern.
-
-> so I really think
-> it's a fragile interface with no real way for the user to know how
-> kernel threads may use its mm for any particular reason, so membarrier
-> should synchronize all possible kernel users as well.
-
-I strongly doubt so, but perhaps something should be clarified in the documentation
-if you have that feeling.
-
-Thanks,
-
-Mathieu
-
-> 
-> Thanks,
-> Nick
-
+diff --git a/arch/x86/include/asm/checksum_64.h b/arch/x86/include/asm/checksum_64.h
+index 9af3aed54c6b..407beebadaf4 100644
+--- a/arch/x86/include/asm/checksum_64.h
++++ b/arch/x86/include/asm/checksum_64.h
+@@ -130,10 +130,7 @@ static inline __sum16 csum_tcpudp_magic(__be32 saddr, __be32 daddr,
+ extern __wsum csum_partial(const void *buff, int len, __wsum sum);
+ 
+ /* Do not call this directly. Use the wrappers below */
+-extern __visible __wsum csum_partial_copy_generic(const void *src, const void *dst,
+-					int len, __wsum sum,
+-					int *src_err_ptr, int *dst_err_ptr);
+-
++extern __visible __wsum csum_partial_copy_generic(const void *src, void *dst, int len);
+ 
+ extern __wsum csum_and_copy_from_user(const void __user *src, void *dst, int len);
+ extern __wsum csum_and_copy_to_user(const void *src, void __user *dst, int len);
+diff --git a/arch/x86/lib/csum-copy_64.S b/arch/x86/lib/csum-copy_64.S
+index 3394a8ff7fd0..1fbd8ee9642d 100644
+--- a/arch/x86/lib/csum-copy_64.S
++++ b/arch/x86/lib/csum-copy_64.S
+@@ -18,9 +18,6 @@
+  * rdi  source
+  * rsi  destination
+  * edx  len (32bit)
+- * ecx  sum (32bit)
+- * r8   src_err_ptr (int)
+- * r9   dst_err_ptr (int)
+  *
+  * Output
+  * eax  64bit sum. undefined in case of exception.
+@@ -31,44 +28,32 @@
+ 
+ 	.macro source
+ 10:
+-	_ASM_EXTABLE_UA(10b, .Lbad_source)
++	_ASM_EXTABLE_UA(10b, .Lfault)
+ 	.endm
+ 
+ 	.macro dest
+ 20:
+-	_ASM_EXTABLE_UA(20b, .Lbad_dest)
++	_ASM_EXTABLE_UA(20b, .Lfault)
+ 	.endm
+ 
+-	/*
+-	 * No _ASM_EXTABLE_UA; this is used for intentional prefetch on a
+-	 * potentially unmapped kernel address.
+-	 */
+-	.macro ignore L=.Lignore
+-30:
+-	_ASM_EXTABLE(30b, \L)
+-	.endm
+-
+-
+ SYM_FUNC_START(csum_partial_copy_generic)
+-	cmpl	$3*64, %edx
+-	jle	.Lignore
+-
+-.Lignore:
+-	subq  $7*8, %rsp
+-	movq  %rbx, 2*8(%rsp)
+-	movq  %r12, 3*8(%rsp)
+-	movq  %r14, 4*8(%rsp)
+-	movq  %r13, 5*8(%rsp)
+-	movq  %r15, 6*8(%rsp)
++	subq  $5*8, %rsp
++	movq  %rbx, 0*8(%rsp)
++	movq  %r12, 1*8(%rsp)
++	movq  %r14, 2*8(%rsp)
++	movq  %r13, 3*8(%rsp)
++	movq  %r15, 4*8(%rsp)
+ 
+-	movq  %r8, (%rsp)
+-	movq  %r9, 1*8(%rsp)
+-
+-	movl  %ecx, %eax
++	movl  $-1, %eax
++	xorl  %r9d, %r9d
+ 	movl  %edx, %ecx
++	cmpl  $8, %ecx
++	jb    .Lshort
+ 
+-	xorl  %r9d, %r9d
+-	movq  %rcx, %r12
++	testb  $7, %sil
++	jne   .Lunaligned
++.Laligned:
++	movl  %ecx, %r12d
+ 
+ 	shrq  $6, %r12
+ 	jz	.Lhandle_tail       /* < 64 */
+@@ -99,7 +84,12 @@ SYM_FUNC_START(csum_partial_copy_generic)
+ 	source
+ 	movq  56(%rdi), %r13
+ 
+-	ignore 2f
++30:
++	/*
++	 * No _ASM_EXTABLE_UA; this is used for intentional prefetch on a
++	 * potentially unmapped kernel address.
++	 */
++	_ASM_EXTABLE(30b, 2f)
+ 	prefetcht0 5*64(%rdi)
+ 2:
+ 	adcq  %rbx, %rax
+@@ -131,8 +121,6 @@ SYM_FUNC_START(csum_partial_copy_generic)
+ 	dest
+ 	movq %r13, 56(%rsi)
+ 
+-3:
+-
+ 	leaq 64(%rdi), %rdi
+ 	leaq 64(%rsi), %rsi
+ 
+@@ -142,8 +130,8 @@ SYM_FUNC_START(csum_partial_copy_generic)
+ 
+ 	/* do last up to 56 bytes */
+ .Lhandle_tail:
+-	/* ecx:	count */
+-	movl %ecx, %r10d
++	/* ecx:	count, rcx.63: the end result needs to be rol8 */
++	movq %rcx, %r10
+ 	andl $63, %ecx
+ 	shrl $3, %ecx
+ 	jz	.Lfold
+@@ -172,6 +160,7 @@ SYM_FUNC_START(csum_partial_copy_generic)
+ .Lhandle_7:
+ 	movl %r10d, %ecx
+ 	andl $7, %ecx
++.L1:				/* .Lshort rejoins the common path here */
+ 	shrl $1, %ecx
+ 	jz   .Lhandle_1
+ 	movl $2, %edx
+@@ -203,26 +192,65 @@ SYM_FUNC_START(csum_partial_copy_generic)
+ 	adcl %r9d, %eax		/* carry */
+ 
+ .Lende:
+-	movq 2*8(%rsp), %rbx
+-	movq 3*8(%rsp), %r12
+-	movq 4*8(%rsp), %r14
+-	movq 5*8(%rsp), %r13
+-	movq 6*8(%rsp), %r15
+-	addq $7*8, %rsp
++	testq %r10, %r10
++	js  .Lwas_odd
++.Lout:
++	movq 0*8(%rsp), %rbx
++	movq 1*8(%rsp), %r12
++	movq 2*8(%rsp), %r14
++	movq 3*8(%rsp), %r13
++	movq 4*8(%rsp), %r15
++	addq $5*8, %rsp
+ 	ret
++.Lshort:
++	movl %ecx, %r10d
++	jmp  .L1
++.Lunaligned:
++	xorl %ebx, %ebx
++	testb $1, %sil
++	jne  .Lodd
++1:	testb $2, %sil
++	je   2f
++	source
++	movw (%rdi), %bx
++	dest
++	movw %bx, (%rsi)
++	leaq 2(%rdi), %rdi
++	subq $2, %rcx
++	leaq 2(%rsi), %rsi
++	addq %rbx, %rax
++2:	testb $4, %sil
++	je .Laligned
++	source
++	movl (%rdi), %ebx
++	dest
++	movl %ebx, (%rsi)
++	leaq 4(%rdi), %rdi
++	subq $4, %rcx
++	leaq 4(%rsi), %rsi
++	addq %rbx, %rax
++	jmp .Laligned
++
++.Lodd:
++	source
++	movb (%rdi), %bl
++	dest
++	movb %bl, (%rsi)
++	leaq 1(%rdi), %rdi
++	leaq 1(%rsi), %rsi
++	/* decrement, set MSB */
++	leaq -1(%rcx, %rcx), %rcx
++	rorq $1, %rcx
++	shll $8, %ebx
++	addq %rbx, %rax
++	jmp 1b
++
++.Lwas_odd:
++	roll $8, %eax
++	jmp .Lout
+ 
+-	/* Exception handlers. Very simple, zeroing is done in the wrappers */
+-.Lbad_source:
+-	movq (%rsp), %rax
+-	testq %rax, %rax
+-	jz   .Lende
+-	movl $-EFAULT, (%rax)
+-	jmp  .Lende
+-
+-.Lbad_dest:
+-	movq 8(%rsp), %rax
+-	testq %rax, %rax
+-	jz   .Lende
+-	movl $-EFAULT, (%rax)
+-	jmp .Lende
++	/* Exception: just return 0 */
++.Lfault:
++	xorl %eax, %eax
++	jmp  .Lout
+ SYM_FUNC_END(csum_partial_copy_generic)
+diff --git a/arch/x86/lib/csum-wrappers_64.c b/arch/x86/lib/csum-wrappers_64.c
+index ae2fb87e2274..189344924a2b 100644
+--- a/arch/x86/lib/csum-wrappers_64.c
++++ b/arch/x86/lib/csum-wrappers_64.c
+@@ -21,49 +21,16 @@
+  * src and dst are best aligned to 64bits.
+  */
+ __wsum
+-csum_and_copy_from_user(const void __user *src, void *dst,
+-			    int len)
++csum_and_copy_from_user(const void __user *src, void *dst, int len)
+ {
+-	int err = 0;
+-	__wsum isum = ~0U;
++	__wsum sum;
+ 
+ 	might_sleep();
+-
+ 	if (!user_access_begin(src, len))
+ 		return 0;
+-
+-	/*
+-	 * Why 6, not 7? To handle odd addresses aligned we
+-	 * would need to do considerable complications to fix the
+-	 * checksum which is defined as an 16bit accumulator. The
+-	 * fix alignment code is primarily for performance
+-	 * compatibility with 32bit and that will handle odd
+-	 * addresses slowly too.
+-	 */
+-	if (unlikely((unsigned long)src & 6)) {
+-		while (((unsigned long)src & 6) && len >= 2) {
+-			__u16 val16;
+-
+-			unsafe_get_user(val16, (const __u16 __user *)src, out);
+-
+-			*(__u16 *)dst = val16;
+-			isum = (__force __wsum)add32_with_carry(
+-					(__force unsigned)isum, val16);
+-			src += 2;
+-			dst += 2;
+-			len -= 2;
+-		}
+-	}
+-	isum = csum_partial_copy_generic((__force const void *)src,
+-				dst, len, isum, &err, NULL);
+-	user_access_end();
+-	if (unlikely(err))
+-		isum = 0;
+-	return isum;
+-
+-out:
++	sum = csum_partial_copy_generic((__force const void *)src, dst, len);
+ 	user_access_end();
+-	return 0;
++	return sum;
+ }
+ EXPORT_SYMBOL(csum_and_copy_from_user);
+ 
+@@ -79,37 +46,16 @@ EXPORT_SYMBOL(csum_and_copy_from_user);
+  * src and dst are best aligned to 64bits.
+  */
+ __wsum
+-csum_and_copy_to_user(const void *src, void __user *dst,
+-			  int len)
++csum_and_copy_to_user(const void *src, void __user *dst, int len)
+ {
+-	__wsum ret, isum = ~0U;
+-	int err = 0;
++	__wsum sum;
+ 
+ 	might_sleep();
+-
+ 	if (!user_access_begin(dst, len))
+ 		return 0;
+-
+-	if (unlikely((unsigned long)dst & 6)) {
+-		while (((unsigned long)dst & 6) && len >= 2) {
+-			__u16 val16 = *(__u16 *)src;
+-
+-			isum = (__force __wsum)add32_with_carry(
+-					(__force unsigned)isum, val16);
+-			unsafe_put_user(val16, (__u16 __user *)dst, out);
+-			src += 2;
+-			dst += 2;
+-			len -= 2;
+-		}
+-	}
+-
+-	ret = csum_partial_copy_generic(src, (void __force *)dst,
+-					len, isum, NULL, &err);
+-	user_access_end();
+-	return err ? 0 : ret;
+-out:
++	sum = csum_partial_copy_generic(src, (void __force *)dst, len);
+ 	user_access_end();
+-	return 0;
++	return sum;
+ }
+ EXPORT_SYMBOL(csum_and_copy_to_user);
+ 
+@@ -125,7 +71,7 @@ EXPORT_SYMBOL(csum_and_copy_to_user);
+ __wsum
+ csum_partial_copy_nocheck(const void *src, void *dst, int len)
+ {
+-	return csum_partial_copy_generic(src, dst, len, 0, NULL, NULL);
++	return csum_partial_copy_generic(src, dst, len);
+ }
+ EXPORT_SYMBOL(csum_partial_copy_nocheck);
+ 
 -- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+2.11.0
