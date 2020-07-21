@@ -1,86 +1,75 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [patch V4 02/15] entry: Provide generic syscall entry
- functionality
-Date: Tue, 21 Jul 2020 14:38:16 -0700
-Message-ID: <202007211426.B40A7A7BD@keescook>
+Subject: Re: [patch V4 10/15] x86/entry: Use generic syscall entry function
+Date: Tue, 21 Jul 2020 14:47:17 -0700
+Message-ID: <202007211440.BEF76E2@keescook>
 References: <20200721105706.030914876@linutronix.de>
- <20200721110808.455350746@linutronix.de>
+ <20200721110809.325060396@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200721110808.455350746@linutronix.de>
+In-Reply-To: <20200721110809.325060396@linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>
 Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 21, 2020 at 12:57:08PM +0200, Thomas Gleixner wrote:
-> On syscall entry certain work needs to be done:
+On Tue, Jul 21, 2020 at 12:57:16PM +0200, Thomas Gleixner wrote:
+> Replace the syscall entry work handling with the generic version. Provide
+> the necessary helper inlines to handle the real architecture specific
+> parts, e.g. ptrace.
 > 
->    - Establish state (lockdep, context tracking, tracing)
->    - Conditional work (ptrace, seccomp, audit...)
-> 
-> This code is needlessly duplicated and  different in all
-> architectures.
-> 
-> Provide a generic version based on the x86 implementation which has all the
-> RCU and instrumentation bits right.
-> 
-> As interrupt/exception entry from user space needs parts of the same
-> functionality, provide a function for this as well.
-> 
-> syscall_enter_from_user_mode() and irqentry_enter_from_user_mode() must be
-> called right after the low level ASM entry. The calling code must be
-> non-instrumentable. After the functions returns state is correct and the
-> subsequent functions can be instrumented.
+> Use a temporary define for idtentry_enter_user which will be cleaned up
+> seperately.
 > 
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 
-Acked-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-With one suggestion...
+Though, notes and a comment below...
 
-> [...]
-> --- /dev/null
-> +++ b/kernel/entry/common.c
-> @@ -0,0 +1,88 @@
-> [...]
-> +static inline void syscall_enter_audit(struct pt_regs *regs, long syscall)
+> +/* Check that the stack and regs on entry from user mode are sane. */
+> +static __always_inline void arch_check_user_regs(struct pt_regs *regs)
 > +{
-> +	if (unlikely(audit_context())) {
-> +		unsigned long args[6];
+> +	if (IS_ENABLED(CONFIG_DEBUG_ENTRY)) {
+> +		/*
+> +		 * Make sure that the entry code gave us a sensible EFLAGS
+> +		 * register.  Native because we want to check the actual CPU
+> +		 * state, not the interrupt state as imagined by Xen.
+> +		 */
+> +		unsigned long flags = native_save_fl();
+> +		WARN_ON_ONCE(flags & (X86_EFLAGS_AC | X86_EFLAGS_DF |
+> +				      X86_EFLAGS_NT));
+
+push, pop, bit test
+
 > +
-> +		syscall_get_arguments(current, regs, args);
-> +		audit_syscall_entry(syscall, args[0], args[1], args[2], args[3]);
+> +		/* We think we came from user mode. Make sure pt_regs agrees. */
+> +		WARN_ON_ONCE(!user_mode(regs));
+
+memory deref, bit test
+
+> +
+> +		/*
+> +		 * All entries from user mode (except #DF) should be on the
+> +		 * normal thread stack and should have user pt_regs in the
+> +		 * correct location.
+> +		 */
+> +		WARN_ON_ONCE(!on_thread_stack());
+
+per-cpu deref, subtract, test
+
+> +		WARN_ON_ONCE(regs != task_pt_regs(current));
+
+memory deref, test
+
 > +	}
 > +}
 
-One thing I noticed while doing syscall entry timings for the kernel
-stack base offset randomization was that the stack protector was being
-needlessly enabled in certain paths (seccomp, audit) due to seeing a
-register array being declared on the stack. As part of that series I
-suggested down-grading the stack protector. Since then, Peter's changes
-entirely disabled the stack protector on the entry code, which I
-grudgingly accept (I'd rather have a way to mark a variable as "ignore
-this for stack protector detection", but ... there isn't, so fine.)
-
-> [...]
-> --- /dev/null
-> +++ b/kernel/entry/Makefile
-> @@ -0,0 +1,3 @@
-> +# SPDX-License-Identifier: GPL-2.0
-> +
-> +obj-$(CONFIG_GENERIC_ENTRY) += common.o
-
-But, my point is, let's avoid tripping over this again, and retain the
-disabling here:
-
-CFLAGS_common.o += -fno-stack-protector
-
-I can add this again later, but it'd be nice if it was done here to
-avoid gaining back the TIF_WORK stack protector overhead penalty (which
-we're free of in v5.8 for the first time). ;)
+This doesn't look very expensive, and they certain indicate really bad
+conditions. Does this need to be behind a CONFIG? (Whatever the answer,
+we can probably make those changes in a later series -- some of these
+also look not arch-specific...)
 
 -- 
 Kees Cook
