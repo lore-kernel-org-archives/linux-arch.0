@@ -1,76 +1,110 @@
-Return-Path: <SRS0=5OOM=BG=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:44192 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726800AbgG0QBM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Jul 2020 12:01:12 -0400
-Date: Mon, 27 Jul 2020 09:01:11 -0700
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Message-ID: <20200727160111.GH9247@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: <20200717044427.68747-1-ebiggers@kernel.org>
- <20200717174750.GQ12769@casper.infradead.org>
- <20200718013839.GD2183@sol.localdomain>
- <20200718021304.GS12769@casper.infradead.org>
- <20200718052818.GF2183@sol.localdomain>
- <20200727151746.GC1468275@rowland.harvard.edu>
- <20200727152827.GM23808@casper.infradead.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200727152827.GM23808@casper.infradead.org>
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45496 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729275AbgGUKas (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 06:30:48 -0400
+Received: from mail-wm1-x34a.google.com (mail-wm1-x34a.google.com [IPv6:2a00:1450:4864:20::34a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7FD8FC0619D9
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:48 -0700 (PDT)
+Received: by mail-wm1-x34a.google.com with SMTP id f74so887821wmf.1
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:48 -0700 (PDT)
+Date: Tue, 21 Jul 2020 12:30:15 +0200
+In-Reply-To: <20200721103016.3287832-1-elver@google.com>
+Message-ID: <20200721103016.3287832-8-elver@google.com>
+Mime-Version: 1.0
+References: <20200721103016.3287832-1-elver@google.com>
+Subject: [PATCH 7/8] asm-generic/bitops: Use instrument_read_write() where appropriate
+From: Marco Elver <elver@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Alan Stern <stern@rowland.harvard.edu>, Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200727160111.hCtRyPL1SO6djNlo2GC27tmZ7QO_j3_63Lo2BJSBy2Y@z>
+To: elver@google.com, paulmck@kernel.org
+Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200721103015.F9pSXY7Gaw563fzDBSnbvCYVgrl46LJMFclprlXTALs@z>
 
-On Mon, Jul 27, 2020 at 04:28:27PM +0100, Matthew Wilcox wrote:
-> On Mon, Jul 27, 2020 at 11:17:46AM -0400, Alan Stern wrote:
-> > Given a type "T", an object x of type pointer-to-T, and a function
-> > "func" that takes various arguments and returns a pointer-to-T, the
-> > accepted API for calling func once would be to create once_func() as
-> > follows:
-> > 
-> > T *once_func(T **ppt, args...)
-> > {
-> > 	static DEFINE_MUTEX(mut);
-> > 	T *p;
-> > 
-> > 	p = smp_load_acquire(ppt);	/* Mild optimization */
-> > 	if (p)
-> > 		return p;
-> > 
-> > 	mutex_lock(mut);
-> > 	p = smp_load_acquire(ppt);
-> > 	if (!p) {
-> > 		p = func(args...);
-> > 		if (!IS_ERR_OR_NULL(p))
-> > 			smp_store_release(ppt, p);
-> > 	}
-> > 	mutex_unlock(mut);
-> > 	return p;
-> > }
-> > 
-> > Users then would have to call once_func(&x, args...) and check the
-> > result.  Different x objects would constitute different "once"
-> > domains.
-> [...]
-> > In fact, the only drawback I can think of is that because this relies
-> > on a single mutex for all the different possible x's, it might lead to
-> > locking conflicts (if func had to call once_func() recursively, for
-> > example).  In most reasonable situations such conflicts would not
-> > arise.
-> 
-> Another drawback for this approach relative to my get_foo() approach
-> upthread is that, because we don't have compiler support, there's no
-> enforcement that accesses to 'x' go through once_func().  My approach
-> wraps accesses in a deliberately-opaque struct so you have to write
-> some really ugly code to get at the raw value, and it's just easier to
-> call get_foo().
+Use the new instrument_read_write() where appropriate.
 
-Could ACCESS_PRIVATE() help in this case?  This relies on sparse rather
-than the compiler, but some of the testing services do run sparse
-regularly.
+Signed-off-by: Marco Elver <elver@google.com>
+---
+ include/asm-generic/bitops/instrumented-atomic.h     | 6 +++---
+ include/asm-generic/bitops/instrumented-lock.h       | 2 +-
+ include/asm-generic/bitops/instrumented-non-atomic.h | 6 +++---
+ 3 files changed, 7 insertions(+), 7 deletions(-)
 
-							Thanx, Paul
+diff --git a/include/asm-generic/bitops/instrumented-atomic.h b/include/asm-generic/bitops/instrumented-atomic.h
+index fb2cb33a4013..81915dcd4b4e 100644
+--- a/include/asm-generic/bitops/instrumented-atomic.h
++++ b/include/asm-generic/bitops/instrumented-atomic.h
+@@ -67,7 +67,7 @@ static inline void change_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
+ {
+-	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_set_bit(nr, addr);
+ }
+ 
+@@ -80,7 +80,7 @@ static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
+ {
+-	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_clear_bit(nr, addr);
+ }
+ 
+@@ -93,7 +93,7 @@ static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
+ {
+-	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_change_bit(nr, addr);
+ }
+ 
+diff --git a/include/asm-generic/bitops/instrumented-lock.h b/include/asm-generic/bitops/instrumented-lock.h
+index b9bec468ae03..75ef606f7145 100644
+--- a/include/asm-generic/bitops/instrumented-lock.h
++++ b/include/asm-generic/bitops/instrumented-lock.h
+@@ -52,7 +52,7 @@ static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
+  */
+ static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
+ {
+-	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_set_bit_lock(nr, addr);
+ }
+ 
+diff --git a/include/asm-generic/bitops/instrumented-non-atomic.h b/include/asm-generic/bitops/instrumented-non-atomic.h
+index 20f788a25ef9..f86234c7c10c 100644
+--- a/include/asm-generic/bitops/instrumented-non-atomic.h
++++ b/include/asm-generic/bitops/instrumented-non-atomic.h
+@@ -68,7 +68,7 @@ static inline void __change_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
+ {
+-	instrument_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_set_bit(nr, addr);
+ }
+ 
+@@ -82,7 +82,7 @@ static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
+ {
+-	instrument_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_clear_bit(nr, addr);
+ }
+ 
+@@ -96,7 +96,7 @@ static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
+ {
+-	instrument_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_change_bit(nr, addr);
+ }
+ 
+-- 
+2.28.0.rc0.105.gf9edc3c819-goog
