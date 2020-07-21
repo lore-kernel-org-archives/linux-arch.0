@@ -1,205 +1,225 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
-Date: Tue, 21 Jul 2020 21:08:47 +1000
-Message-ID: <1595327263.lk78cqolxm.astroid@bobo.none>
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
- <1594101082.hfq9x5yact.astroid@bobo.none>
- <20200708084106.GE597537@hirez.programming.kicks-ass.net>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V4 13/15] x86/entry: Use generic interrupt entry/exit code
+Date: Tue, 21 Jul 2020 12:57:19 +0200
+Message-ID: <20200721110809.639906321@linutronix.de>
+References: <20200721105706.030914876@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20200708084106.GE597537@hirez.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
- <mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
- <mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-Sender: "Virtualization" <virtualization-bounces@lists.linux-foundation.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8-bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
 List-Id: linux-arch.vger.kernel.org
 
-Excerpts from Peter Zijlstra's message of July 8, 2020 6:41 pm:
-> On Tue, Jul 07, 2020 at 03:57:06PM +1000, Nicholas Piggin wrote:
->> Yes, powerpc could certainly get more performance out of the slow
->> paths, and then there are a few parameters to tune.
-> 
+Replace the x86 code with the generic variant. Use temporary defines for
+idtentry_* which will be cleaned up in the next step.
 
-Sorry for the delay, got bogged down and distracted by other things :(
-
-> Can you clarify? The slow path is already in use on ARM64 which is weak,
-> so I doubt there's superfluous serialization present. And Will spend a
-> fair amount of time on making that thing guarantee forward progressm, so
-> there just isn't too much room to play.
-
-Sure, the way the pending not-queued slowpath (which I guess is the
-medium-path) is implemented is just poorly structured for LL/SC. It
-has one more atomic than necessary (queued_fetch_set_pending_acquire),
-and a lot of branches in suboptimal order.
-
-Attached patch (completely untested just compiled and looked at asm
-so far) is a way we can fix this on powerpc I think. It's actually
-very little generic code change which is good, duplicated medium-path
-logic unfortunately but that's no worse than something like x86
-really.
-
->> We don't have a good alternate patching for function calls yet, but
->> that would be something to do for native vs pv.
-> 
-> Going by your jump_label implementation, support for static_call should
-> be fairly straight forward too, no?
-> 
->   https://lkml.kernel.org/r/20200624153024.794671356@infradead.org
-
-Nice, yeah it should be. I've wanted this for ages!
-
-powerpc is kind of annoying to implement that with limited call range,
-Hmm, not sure if we'd need a new linker feature to support it. We'd
-provide call site patch space for indirect branches for those out of
-range of direct call, so that should work fine. The trick would be 
-patching in the TOC lookup for the function... should be doable somehow.
-
-Thanks,
-Nick
-
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
+ arch/x86/entry/common.c         |  167 ----------------------------------------
+ arch/x86/include/asm/idtentry.h |   10 --
+ 2 files changed, 5 insertions(+), 172 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include/asm/qspinlock.h
-index b752d34517b3..26d8766a1106 100644
---- a/arch/powerpc/include/asm/qspinlock.h
-+++ b/arch/powerpc/include/asm/qspinlock.h
-@@ -31,16 +31,57 @@ static inline void queued_spin_unlock(struct qspinlock *lock)
- 
- #else
- extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
-+extern void queued_spin_lock_slowpath_queue(struct qspinlock *lock);
- #endif
- 
- static __always_inline void queued_spin_lock(struct qspinlock *lock)
- {
--	u32 val = 0;
--
--	if (likely(atomic_try_cmpxchg_lock(&lock->val, &val, _Q_LOCKED_VAL)))
-+	atomic_t *a = &lock->val;
-+	u32 val;
-+
-+again:
-+	asm volatile(
-+"1:\t"	PPC_LWARX(%0,0,%1,1) "	# queued_spin_lock			\n"
-+	: "=&r" (val)
-+	: "r" (&a->counter)
-+	: "memory");
-+
-+	if (likely(val == 0)) {
-+		asm_volatile_goto(
-+	"	stwcx.	%0,0,%1							\n"
-+	"	bne-	%l[again]						\n"
-+	"\t"	PPC_ACQUIRE_BARRIER "						\n"
-+		:
-+		: "r"(_Q_LOCKED_VAL), "r" (&a->counter)
-+		: "cr0", "memory"
-+		: again );
- 		return;
--
--	queued_spin_lock_slowpath(lock, val);
-+	}
-+
-+	if (likely(val == _Q_LOCKED_VAL)) {
-+		asm_volatile_goto(
-+	"	stwcx.	%0,0,%1							\n"
-+	"	bne-	%l[again]						\n"
-+		:
-+		: "r"(_Q_LOCKED_VAL | _Q_PENDING_VAL), "r" (&a->counter)
-+		: "cr0", "memory"
-+		: again );
-+
-+		atomic_cond_read_acquire(a, !(VAL & _Q_LOCKED_MASK));
-+//		clear_pending_set_locked(lock);
-+		WRITE_ONCE(lock->locked_pending, _Q_LOCKED_VAL);
-+//		lockevent_inc(lock_pending);
-+		return;
-+	}
-+
-+	if (val == _Q_PENDING_VAL) {
-+		int cnt = _Q_PENDING_LOOPS;
-+		val = atomic_cond_read_relaxed(a,
-+					       (VAL != _Q_PENDING_VAL) || !cnt--);
-+		if (!(val & ~_Q_LOCKED_MASK))
-+			goto again;
-+        }
-+	queued_spin_lock_slowpath_queue(lock);
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -198,171 +198,6 @@ SYSCALL_DEFINE0(ni_syscall)
+ 	return -ENOSYS;
  }
- #define queued_spin_lock queued_spin_lock
  
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index b9515fcc9b29..ebcc6f5d99d5 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -287,10 +287,14 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
- 
- #ifdef CONFIG_PARAVIRT_SPINLOCKS
- #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
-+#define queued_spin_lock_slowpath_queue	native_queued_spin_lock_slowpath_queue
- #endif
- 
- #endif /* _GEN_PV_LOCK_SLOWPATH */
- 
-+void queued_spin_lock_slowpath_queue(struct qspinlock *lock);
-+static void __queued_spin_lock_slowpath_queue(struct qspinlock *lock);
-+
- /**
-  * queued_spin_lock_slowpath - acquire the queued spinlock
-  * @lock: Pointer to queued spinlock structure
-@@ -314,12 +318,6 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
-  */
- void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- {
--	struct mcs_spinlock *prev, *next, *node;
--	u32 old, tail;
--	int idx;
+-/**
+- * idtentry_enter - Handle state tracking on ordinary idtentries
+- * @regs:	Pointer to pt_regs of interrupted context
+- *
+- * Invokes:
+- *  - lockdep irqflag state tracking as low level ASM entry disabled
+- *    interrupts.
+- *
+- *  - Context tracking if the exception hit user mode.
+- *
+- *  - The hardirq tracer to keep the state consistent as low level ASM
+- *    entry disabled interrupts.
+- *
+- * As a precondition, this requires that the entry came from user mode,
+- * idle, or a kernel context in which RCU is watching.
+- *
+- * For kernel mode entries RCU handling is done conditional. If RCU is
+- * watching then the only RCU requirement is to check whether the tick has
+- * to be restarted. If RCU is not watching then rcu_irq_enter() has to be
+- * invoked on entry and rcu_irq_exit() on exit.
+- *
+- * Avoiding the rcu_irq_enter/exit() calls is an optimization but also
+- * solves the problem of kernel mode pagefaults which can schedule, which
+- * is not possible after invoking rcu_irq_enter() without undoing it.
+- *
+- * For user mode entries irqentry_enter_from_user_mode() must be invoked to
+- * establish the proper context for NOHZ_FULL. Otherwise scheduling on exit
+- * would not be possible.
+- *
+- * Returns: An opaque object that must be passed to idtentry_exit()
+- *
+- * The return value must be fed into the state argument of
+- * idtentry_exit().
+- */
+-idtentry_state_t noinstr idtentry_enter(struct pt_regs *regs)
+-{
+-	idtentry_state_t ret = {
+-		.exit_rcu = false,
+-	};
 -
--	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+-	if (user_mode(regs)) {
+-		irqentry_enter_from_user_mode(regs);
+-		return ret;
+-	}
 -
- 	if (pv_enabled())
- 		goto pv_queue;
- 
-@@ -397,6 +395,26 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- queue:
- 	lockevent_inc(lock_slowpath);
- pv_queue:
-+	__queued_spin_lock_slowpath_queue(lock);
-+}
-+EXPORT_SYMBOL(queued_spin_lock_slowpath);
-+
-+void queued_spin_lock_slowpath_queue(struct qspinlock *lock)
-+{
-+	lockevent_inc(lock_slowpath);
-+	__queued_spin_lock_slowpath_queue(lock);
-+}
-+EXPORT_SYMBOL(queued_spin_lock_slowpath_queue);
-+
-+static void __queued_spin_lock_slowpath_queue(struct qspinlock *lock)
-+{
-+	struct mcs_spinlock *prev, *next, *node;
-+	u32 old, tail;
-+	u32 val;
-+	int idx;
-+
-+	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
-+
- 	node = this_cpu_ptr(&qnodes[0].mcs);
- 	idx = node->count++;
- 	tail = encode_tail(smp_processor_id(), idx);
-@@ -559,7 +577,6 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 */
- 	__this_cpu_dec(qnodes[0].mcs.count);
- }
--EXPORT_SYMBOL(queued_spin_lock_slowpath);
- 
+-	/*
+-	 * If this entry hit the idle task invoke rcu_irq_enter() whether
+-	 * RCU is watching or not.
+-	 *
+-	 * Interupts can nest when the first interrupt invokes softirq
+-	 * processing on return which enables interrupts.
+-	 *
+-	 * Scheduler ticks in the idle task can mark quiescent state and
+-	 * terminate a grace period, if and only if the timer interrupt is
+-	 * not nested into another interrupt.
+-	 *
+-	 * Checking for __rcu_is_watching() here would prevent the nesting
+-	 * interrupt to invoke rcu_irq_enter(). If that nested interrupt is
+-	 * the tick then rcu_flavor_sched_clock_irq() would wrongfully
+-	 * assume that it is the first interupt and eventually claim
+-	 * quiescient state and end grace periods prematurely.
+-	 *
+-	 * Unconditionally invoke rcu_irq_enter() so RCU state stays
+-	 * consistent.
+-	 *
+-	 * TINY_RCU does not support EQS, so let the compiler eliminate
+-	 * this part when enabled.
+-	 */
+-	if (!IS_ENABLED(CONFIG_TINY_RCU) && is_idle_task(current)) {
+-		/*
+-		 * If RCU is not watching then the same careful
+-		 * sequence vs. lockdep and tracing is required
+-		 * as in irqentry_enter_from_user_mode().
+-		 */
+-		lockdep_hardirqs_off(CALLER_ADDR0);
+-		rcu_irq_enter();
+-		instrumentation_begin();
+-		trace_hardirqs_off_finish();
+-		instrumentation_end();
+-
+-		ret.exit_rcu = true;
+-		return ret;
+-	}
+-
+-	/*
+-	 * If RCU is watching then RCU only wants to check whether it needs
+-	 * to restart the tick in NOHZ mode. rcu_irq_enter_check_tick()
+-	 * already contains a warning when RCU is not watching, so no point
+-	 * in having another one here.
+-	 */
+-	instrumentation_begin();
+-	rcu_irq_enter_check_tick();
+-	/* Use the combo lockdep/tracing function */
+-	trace_hardirqs_off();
+-	instrumentation_end();
+-
+-	return ret;
+-}
+-
+-static void idtentry_exit_cond_resched(struct pt_regs *regs, bool may_sched)
+-{
+-	if (may_sched && !preempt_count()) {
+-		/* Sanity check RCU and thread stack */
+-		rcu_irq_exit_check_preempt();
+-		if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
+-			WARN_ON_ONCE(!on_thread_stack());
+-		if (need_resched())
+-			preempt_schedule_irq();
+-	}
+-	/* Covers both tracing and lockdep */
+-	trace_hardirqs_on();
+-}
+-
+-/**
+- * idtentry_exit - Handle return from exception that used idtentry_enter()
+- * @regs:	Pointer to pt_regs (exception entry regs)
+- * @state:	Return value from matching call to idtentry_enter()
+- *
+- * Depending on the return target (kernel/user) this runs the necessary
+- * preemption and work checks if possible and reguired and returns to
+- * the caller with interrupts disabled and no further work pending.
+- *
+- * This is the last action before returning to the low level ASM code which
+- * just needs to return to the appropriate context.
+- *
+- * Counterpart to idtentry_enter(). The return value of the entry
+- * function must be fed into the @state argument.
+- */
+-void noinstr idtentry_exit(struct pt_regs *regs, idtentry_state_t state)
+-{
+-	lockdep_assert_irqs_disabled();
+-
+-	/* Check whether this returns to user mode */
+-	if (user_mode(regs)) {
+-		irqentry_exit_to_user_mode(regs);
+-	} else if (regs->flags & X86_EFLAGS_IF) {
+-		/*
+-		 * If RCU was not watching on entry this needs to be done
+-		 * carefully and needs the same ordering of lockdep/tracing
+-		 * and RCU as the return to user mode path.
+-		 */
+-		if (state.exit_rcu) {
+-			instrumentation_begin();
+-			/* Tell the tracer that IRET will enable interrupts */
+-			trace_hardirqs_on_prepare();
+-			lockdep_hardirqs_on_prepare(CALLER_ADDR0);
+-			instrumentation_end();
+-			rcu_irq_exit();
+-			lockdep_hardirqs_on(CALLER_ADDR0);
+-			return;
+-		}
+-
+-		instrumentation_begin();
+-		idtentry_exit_cond_resched(regs, IS_ENABLED(CONFIG_PREEMPTION));
+-		instrumentation_end();
+-	} else {
+-		/*
+-		 * IRQ flags state is correct already. Just tell RCU if it
+-		 * was not watching on entry.
+-		 */
+-		if (state.exit_rcu)
+-			rcu_irq_exit();
+-	}
+-}
+-
+ #ifdef CONFIG_XEN_PV
+ #ifndef CONFIG_PREEMPTION
  /*
-  * Generate the paravirt code for queued_spin_unlock_slowpath().
+@@ -427,7 +262,7 @@ static void __xen_pv_evtchn_do_upcall(vo
+ 	inhcall = get_and_clear_inhcall();
+ 	if (inhcall && !WARN_ON_ONCE(state.exit_rcu)) {
+ 		instrumentation_begin();
+-		idtentry_exit_cond_resched(regs, true);
++		irqentry_exit_cond_resched();
+ 		instrumentation_end();
+ 		restore_inhcall(inhcall);
+ 	} else {
+--- a/arch/x86/include/asm/idtentry.h
++++ b/arch/x86/include/asm/idtentry.h
+@@ -11,12 +11,10 @@
+ 
+ #include <asm/irq_stack.h>
+ 
+-typedef struct idtentry_state {
+-	bool exit_rcu;
+-} idtentry_state_t;
+-
+-idtentry_state_t idtentry_enter(struct pt_regs *regs);
+-void idtentry_exit(struct pt_regs *regs, idtentry_state_t state);
++/* Temporary defines */
++typedef irqentry_state_t idtentry_state_t;
++#define idtentry_enter irqentry_enter
++#define idtentry_exit irqentry_exit
+ 
+ /**
+  * DECLARE_IDTENTRY - Declare functions for simple IDT entry points
