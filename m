@@ -1,98 +1,94 @@
-From: Marco Elver <elver@google.com>
-Subject: [PATCH 4/8] kcsan: Add missing CONFIG_KCSAN_IGNORE_ATOMICS checks
-Date: Tue, 21 Jul 2020 12:30:12 +0200
-Message-ID: <20200721103016.3287832-5-elver@google.com>
-References: <20200721103016.3287832-1-elver@google.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Subject: Re: [PATCH 3/6] mm: introduce secretmemfd system call to create
+ "secret" memory areas
+Date: Tue, 21 Jul 2020 12:59:22 +0200
+Message-ID: <CAKgNAkgdOZXsVVkYveqnjODOr_cHYWiRssw2Tu1dZEBd+GnOnA@mail.gmail.com>
+References: <20200720092435.17469-1-rppt@kernel.org> <20200720092435.17469-4-rppt@kernel.org>
+Reply-To: mtk.manpages@gmail.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45464 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49898 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729161AbgGUKam (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 06:30:42 -0400
-Received: from mail-wr1-x44a.google.com (mail-wr1-x44a.google.com [IPv6:2a00:1450:4864:20::44a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A5837C0619DC
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:41 -0700 (PDT)
-Received: by mail-wr1-x44a.google.com with SMTP id 89so12894261wrr.15
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:41 -0700 (PDT)
-In-Reply-To: <20200721103016.3287832-1-elver@google.com>
+        with ESMTP id S1726611AbgGUK7e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 06:59:34 -0400
+In-Reply-To: <20200720092435.17469-4-rppt@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com, paulmck@kernel.org
-Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Mike Rapoport <rppt@kernel.org>
+Cc: lkml <linux-kernel@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Christopher Lameter <cl@linux.com>, Dan Williams <dan.j.williams@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Elena Reshetova <elena.reshetova@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>, Ingo Molnar <mingo@redhat.com>, James Bottomley <jejb@linux.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <paul.walmsley@sifive.com>
 
-Add missing CONFIG_KCSAN_IGNORE_ATOMICS checks for the builtin atomics
-instrumentation.
+Hi Mike,
 
-Signed-off-by: Marco Elver <elver@google.com>
----
-Added to this series, as it would otherwise cause patch conflicts.
----
- kernel/kcsan/core.c | 25 +++++++++++++++++--------
- 1 file changed, 17 insertions(+), 8 deletions(-)
+On Mon, 20 Jul 2020 at 11:26, Mike Rapoport <rppt@kernel.org> wrote:
+>
+> From: Mike Rapoport <rppt@linux.ibm.com>
+>
+> Introduce "secretmemfd" system call with the ability to create memory areas
+> visible only in the context of the owning process and not mapped not only
+> to other processes but in the kernel page tables as well.
+>
+> The user will create a file descriptor using the secretmemfd system call
 
-diff --git a/kernel/kcsan/core.c b/kernel/kcsan/core.c
-index 4633baebf84e..f53524ea0292 100644
---- a/kernel/kcsan/core.c
-+++ b/kernel/kcsan/core.c
-@@ -892,14 +892,17 @@ EXPORT_SYMBOL(__tsan_init);
- 	u##bits __tsan_atomic##bits##_load(const u##bits *ptr, int memorder);                      \
- 	u##bits __tsan_atomic##bits##_load(const u##bits *ptr, int memorder)                       \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_ATOMIC);                      \
-+		if (!IS_ENABLED(CONFIG_KCSAN_IGNORE_ATOMICS))                                      \
-+			check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_ATOMIC);              \
- 		return __atomic_load_n(ptr, memorder);                                             \
- 	}                                                                                          \
- 	EXPORT_SYMBOL(__tsan_atomic##bits##_load);                                                 \
- 	void __tsan_atomic##bits##_store(u##bits *ptr, u##bits v, int memorder);                   \
- 	void __tsan_atomic##bits##_store(u##bits *ptr, u##bits v, int memorder)                    \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC); \
-+		if (!IS_ENABLED(CONFIG_KCSAN_IGNORE_ATOMICS))                                      \
-+			check_access(ptr, bits / BITS_PER_BYTE,                                    \
-+				     KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);                    \
- 		__atomic_store_n(ptr, v, memorder);                                                \
- 	}                                                                                          \
- 	EXPORT_SYMBOL(__tsan_atomic##bits##_store)
-@@ -908,8 +911,10 @@ EXPORT_SYMBOL(__tsan_init);
- 	u##bits __tsan_atomic##bits##_##op(u##bits *ptr, u##bits v, int memorder);                 \
- 	u##bits __tsan_atomic##bits##_##op(u##bits *ptr, u##bits v, int memorder)                  \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE,                                            \
--			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
-+		if (!IS_ENABLED(CONFIG_KCSAN_IGNORE_ATOMICS))                                      \
-+			check_access(ptr, bits / BITS_PER_BYTE,                                    \
-+				     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE |                  \
-+					     KCSAN_ACCESS_ATOMIC);                                 \
- 		return __atomic_##op##suffix(ptr, v, memorder);                                    \
- 	}                                                                                          \
- 	EXPORT_SYMBOL(__tsan_atomic##bits##_##op)
-@@ -937,8 +942,10 @@ EXPORT_SYMBOL(__tsan_init);
- 	int __tsan_atomic##bits##_compare_exchange_##strength(u##bits *ptr, u##bits *exp,          \
- 							      u##bits val, int mo, int fail_mo)    \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE,                                            \
--			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
-+		if (!IS_ENABLED(CONFIG_KCSAN_IGNORE_ATOMICS))                                      \
-+			check_access(ptr, bits / BITS_PER_BYTE,                                    \
-+				     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE |                  \
-+					     KCSAN_ACCESS_ATOMIC);                                 \
- 		return __atomic_compare_exchange_n(ptr, exp, val, weak, mo, fail_mo);              \
- 	}                                                                                          \
- 	EXPORT_SYMBOL(__tsan_atomic##bits##_compare_exchange_##strength)
-@@ -949,8 +956,10 @@ EXPORT_SYMBOL(__tsan_init);
- 	u##bits __tsan_atomic##bits##_compare_exchange_val(u##bits *ptr, u##bits exp, u##bits val, \
- 							   int mo, int fail_mo)                    \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE,                                            \
--			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
-+		if (!IS_ENABLED(CONFIG_KCSAN_IGNORE_ATOMICS))                                      \
-+			check_access(ptr, bits / BITS_PER_BYTE,                                    \
-+				     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE |                  \
-+					     KCSAN_ACCESS_ATOMIC);                                 \
- 		__atomic_compare_exchange_n(ptr, &exp, val, 0, mo, fail_mo);                       \
- 		return exp;                                                                        \
- 	}                                                                                          \
+Without wanting to start a bikeshed discussion, the more common
+convention in recently added system calls is to use an underscore in
+names that consist of multiple clearly distinct words. See many
+examples in  https://man7.org/linux/man-pages/man2/syscalls.2.html.
+
+Thus, I'd suggest at least secret_memfd().
+
+Also, I wonder whether memfd_secret() might not be even better.
+There's plenty of precedent for the naming style where related APIs
+share a common prefix [1].
+
+Thanks,
+
+Michael
+
+[1] Some examples:
+
+       epoll_create(2)
+       epoll_create1(2)
+       epoll_ctl(2)
+       epoll_pwait(2)
+       epoll_wait(2)
+
+       mq_getsetattr(2)
+       mq_notify(2)
+       mq_open(2)
+       mq_timedreceive(2)
+       mq_timedsend(2)
+       mq_unlink(2)
+
+       sched_get_affinity(2)
+       sched_get_priority_max(2)
+       sched_get_priority_min(2)
+       sched_getaffinity(2)
+       sched_getattr(2)
+       sched_getparam(2)
+       sched_getscheduler(2)
+       sched_rr_get_interval(2)
+       sched_set_affinity(2)
+       sched_setaffinity(2)
+       sched_setattr(2)
+       sched_setparam(2)
+       sched_setscheduler(2)
+       sched_yield(2)
+
+       timer_create(2)
+       timer_delete(2)
+       timer_getoverrun(2)
+       timer_gettime(2)
+       timer_settime(2)
+
+       timerfd_create(2)
+       timerfd_gettime(2)
+       timerfd_settime(2)
+
+
+
+
 -- 
-2.28.0.rc0.105.gf9edc3c819-goog
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
