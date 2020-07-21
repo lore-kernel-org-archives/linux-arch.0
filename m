@@ -1,51 +1,100 @@
-Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:50906 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726225AbgGTCCS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 19 Jul 2020 22:02:18 -0400
-Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
-References: <20200413125303.423864-1-npiggin@gmail.com>
- <20200413125303.423864-5-npiggin@gmail.com>
-From: Zefan Li <lizefan@huawei.com>
-Message-ID: <0e43e743-7c78-fb86-6c36-f42e6184d32c@huawei.com>
-Date: Mon, 20 Jul 2020 10:02:13 +0800
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from Galois.linutronix.de ([193.142.43.55]:37508 "EHLO
+        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729673AbgGULIv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:51 -0400
+Message-ID: <20200721110809.531305010@linutronix.de>
+Date: Tue, 21 Jul 2020 12:57:18 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V4 12/15] x86/entry: Cleanup idtentry_entry/exit_user
+References: <20200721105706.030914876@linutronix.de>
 MIME-Version: 1.0
-In-Reply-To: <20200413125303.423864-5-npiggin@gmail.com>
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-transfer-encoding: 8-bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>, linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20200720020213.pDgVfbEXxOk4uEFx4MzWTzekWDTPEuvMmwJ6rPU5wAw@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
+Message-ID: <20200721105718.LALrOHyLal82NPFuukpVL_sk017fCk3Lmr1xKVl14YI@z>
 
-> +static int vmap_pages_range_noflush(unsigned long start, unsigned long end,
-> +				    pgprot_t prot, struct page **pages,
-> +				    unsigned int page_shift)
-> +{
-> +	if (page_shift == PAGE_SIZE) {
+Cleanup the temporary defines and use irqentry_ instead of idtentry_.
 
-Is this a typo of PAGE_SHIFT?
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/x86/include/asm/idtentry.h |    4 ----
+ arch/x86/kernel/cpu/mce/core.c  |    4 ++--
+ arch/x86/kernel/traps.c         |   18 +++++++++---------
+ 3 files changed, 11 insertions(+), 15 deletions(-)
 
-> +		return vmap_small_pages_range_noflush(start, end, prot, pages);
-> +	} else {
-> +		unsigned long addr = start;
-> +		unsigned int i, nr = (end - start) >> page_shift;
-> +
-> +		for (i = 0; i < nr; i++) {
-> +			int err;
-> +
-> +			err = vmap_range_noflush(addr,
-> +					addr + (1UL << page_shift),
-> +					__pa(page_address(pages[i])), prot,
-> +					page_shift);
-> +			if (err)
-> +				return err;
-> +
-> +			addr += 1UL << page_shift;
-> +		}
-> +
-> +		return 0;
-> +	}
-> +}
-> +
+--- a/arch/x86/include/asm/idtentry.h
++++ b/arch/x86/include/asm/idtentry.h
+@@ -11,10 +11,6 @@
+ 
+ #include <asm/irq_stack.h>
+ 
+-/* Temporary define */
+-#define idtentry_enter_user	irqentry_enter_from_user_mode
+-#define idtentry_exit_user	irqentry_exit_to_user_mode
+-
+ typedef struct idtentry_state {
+ 	bool exit_rcu;
+ } idtentry_state_t;
+--- a/arch/x86/kernel/cpu/mce/core.c
++++ b/arch/x86/kernel/cpu/mce/core.c
+@@ -1927,11 +1927,11 @@ static __always_inline void exc_machine_
+ 
+ static __always_inline void exc_machine_check_user(struct pt_regs *regs)
+ {
+-	idtentry_enter_user(regs);
++	irqentry_enter_from_user_mode(regs);
+ 	instrumentation_begin();
+ 	machine_check_vector(regs);
+ 	instrumentation_end();
+-	idtentry_exit_user(regs);
++	irqentry_exit_to_user_mode(regs);
+ }
+ 
+ #ifdef CONFIG_X86_64
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -638,18 +638,18 @@ DEFINE_IDTENTRY_RAW(exc_int3)
+ 		return;
+ 
+ 	/*
+-	 * idtentry_enter_user() uses static_branch_{,un}likely() and therefore
+-	 * can trigger INT3, hence poke_int3_handler() must be done
+-	 * before. If the entry came from kernel mode, then use nmi_enter()
+-	 * because the INT3 could have been hit in any context including
+-	 * NMI.
++	 * irqentry_enter_from_user_mode() uses static_branch_{,un}likely()
++	 * and therefore can trigger INT3, hence poke_int3_handler() must
++	 * be done before. If the entry came from kernel mode, then use
++	 * nmi_enter() because the INT3 could have been hit in any context
++	 * including NMI.
+ 	 */
+ 	if (user_mode(regs)) {
+-		idtentry_enter_user(regs);
++		irqentry_enter_from_user_mode(regs);
+ 		instrumentation_begin();
+ 		do_int3_user(regs);
+ 		instrumentation_end();
+-		idtentry_exit_user(regs);
++		irqentry_exit_to_user_mode(regs);
+ 	} else {
+ 		nmi_enter();
+ 		instrumentation_begin();
+@@ -901,12 +901,12 @@ static __always_inline void exc_debug_us
+ 	 */
+ 	WARN_ON_ONCE(!user_mode(regs));
+ 
+-	idtentry_enter_user(regs);
++	irqentry_enter_from_user_mode(regs);
+ 	instrumentation_begin();
+ 
+ 	handle_debug(regs, dr6, true);
+ 	instrumentation_end();
+-	idtentry_exit_user(regs);
++	irqentry_exit_to_user_mode(regs);
+ }
+ 
+ #ifdef CONFIG_X86_64
