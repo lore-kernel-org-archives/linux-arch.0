@@ -1,63 +1,85 @@
-Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38904 "EHLO
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52644 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729363AbgGTPjS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jul 2020 11:39:18 -0400
-Date: Mon, 20 Jul 2020 16:39:11 +0100
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Message-ID: <20200720153911.GX12769@casper.infradead.org>
-References: <20200717044427.68747-1-ebiggers@kernel.org>
- <20200718014204.GN5369@dread.disaster.area>
- <20200718140811.GA1179836@rowland.harvard.edu>
- <20200720013320.GP5369@dread.disaster.area>
- <20200720145211.GC1228057@rowland.harvard.edu>
+        with ESMTP id S1726412AbgGUOTJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 10:19:09 -0400
+Date: Tue, 21 Jul 2020 16:18:59 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 8/8] locking/atomics: Use read-write instrumentation for
+ atomic RMWs
+Message-ID: <20200721141859.GC10769@hirez.programming.kicks-ass.net>
+References: <20200721103016.3287832-1-elver@google.com>
+ <20200721103016.3287832-9-elver@google.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200720145211.GC1228057@rowland.harvard.edu>
+In-Reply-To: <20200721103016.3287832-9-elver@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Dave Chinner <david@fromorbit.com>, Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200720153911.1vX7EiTdusYcROJNay00W8EjupGi56OwzlRrrJKcDFY@z>
+To: Marco Elver <elver@google.com>
+Cc: paulmck@kernel.org, will@kernel.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200721141859.ghxo3GV1t_eGlDP-N12bOvtPvSt5Lq0-iZusVsx1s1I@z>
 
-On Mon, Jul 20, 2020 at 10:52:11AM -0400, Alan Stern wrote:
-> On Mon, Jul 20, 2020 at 11:33:20AM +1000, Dave Chinner wrote:
-> > On Sat, Jul 18, 2020 at 10:08:11AM -0400, Alan Stern wrote:
-> > > > This is one of the reasons that the LKMM documetnation is so damn
-> > > > difficult to read and understand: just understanding the vocabulary
-> > > > it uses requires a huge learning curve, and it's not defined
-> > > > anywhere. Understanding the syntax of examples requires a huge
-> > > > learning curve, because it's not defined anywhere. 
-> > > 
-> > > Have you seen tools/memory-model/Documentation/explanation.txt?
-> > 
-> > <raises eyebrow>
-> > 
-> > Well, yes. Several times. I look at it almost daily, but that
-> > doesn't mean it's approachable, easy to read or even -that I
-> > understand what large parts of it say-. IOWs, that's one of the 
-> > problematic documents that I've been saying have a huge learning
-> > curve.
+On Tue, Jul 21, 2020 at 12:30:16PM +0200, Marco Elver wrote:
+
+> diff --git a/scripts/atomic/gen-atomic-instrumented.sh b/scripts/atomic/gen-atomic-instrumented.sh
+> index 6afadf73da17..5cdcce703660 100755
+> --- a/scripts/atomic/gen-atomic-instrumented.sh
+> +++ b/scripts/atomic/gen-atomic-instrumented.sh
+> @@ -5,9 +5,10 @@ ATOMICDIR=$(dirname $0)
+>  
+>  . ${ATOMICDIR}/atomic-tbl.sh
+>  
+> -#gen_param_check(arg)
+> +#gen_param_check(meta, arg)
+>  gen_param_check()
+>  {
+> +	local meta="$1"; shift
+>  	local arg="$1"; shift
+>  	local type="${arg%%:*}"
+>  	local name="$(gen_param_name "${arg}")"
+> @@ -17,17 +18,24 @@ gen_param_check()
+>  	i) return;;
+>  	esac
+>  
+> -	# We don't write to constant parameters
+> -	[ ${type#c} != ${type} ] && rw="read"
+> +	if [ ${type#c} != ${type} ]; then
+> +		# We don't write to constant parameters
+> +		rw="read"
+> +	elif [ "${meta}" != "s" ]; then
+> +		# Atomic RMW
+> +		rw="read_write"
+> +	fi
+
+If we have meta, should we then not be consistent and use it for read
+too? Mark?
+
+>  
+>  	printf "\tinstrument_atomic_${rw}(${name}, sizeof(*${name}));\n"
+>  }
+>  
+> -#gen_param_check(arg...)
+> +#gen_params_checks(meta, arg...)
+>  gen_params_checks()
+>  {
+> +	local meta="$1"; shift
+> +
+>  	while [ "$#" -gt 0 ]; do
+> -		gen_param_check "$1"
+> +		gen_param_check "$meta" "$1"
+>  		shift;
+>  	done
+>  }
+> @@ -77,7 +85,7 @@ gen_proto_order_variant()
+>  
+>  	local ret="$(gen_ret_type "${meta}" "${int}")"
+>  	local params="$(gen_params "${int}" "${atomic}" "$@")"
+> -	local checks="$(gen_params_checks "$@")"
+> +	local checks="$(gen_params_checks "${meta}" "$@")"
+>  	local args="$(gen_args "$@")"
+>  	local retstmt="$(gen_ret_stmt "${meta}")"
+>  
+> -- 
+> 2.28.0.rc0.105.gf9edc3c819-goog
 > 
-> Can you be more specific?  For example, exactly where does it start to 
-> become unapproachable or difficult to read?
-> 
-> Don't forget that this document was meant to help mitigate the LKMM's 
-> learning curve.  If it isn't successful, I want to improve it.
-
-I can't speak for Dave, but the introduction to that documentation makes
-it clear to me that it's not the document I want to read.
-
-: This document describes the ideas underlying the LKMM.  It is meant
-: for people who want to understand how the model was designed.  It does
-: not go into the details of the code in the .bell and .cat files;
-: rather, it explains in English what the code expresses symbolically.
-
-I don't want to know how the model was designed.  I want to write a
-device driver, or filesystem, or whatever.
-
-Honestly, even the term "release semantics" trips me up _every_ time.
-It's a barrier to understanding because I have to translate it into "Oh,
-he means it's like an unlock".  Why can't you just say "unlock semantics"?
