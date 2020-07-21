@@ -1,75 +1,51 @@
-Return-Path: <SRS0=9Vx7=A3=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 16 Jul 2020 13:00:38 +0200
-From: peterz@infradead.org
-Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
- membarrier_mm_sync_core_before_usermode
-Message-ID: <20200716110038.GA119549@hirez.programming.kicks-ass.net>
-References: <1594868476.6k5kvx8684.astroid@bobo.none>
- <EFAD6E2F-EC08-4EB3-9ECC-2A963C023FC5@amacapital.net>
- <20200716085032.GO10769@hirez.programming.kicks-ass.net>
- <1594892300.mxnq3b9a77.astroid@bobo.none>
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:59006 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729107AbgGURZh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Jul 2020 13:25:37 -0400
+Received: from mail-wr1-f43.google.com (mail-wr1-f43.google.com [209.85.221.43])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 1B01A22BEF
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 17:25:37 +0000 (UTC)
+Received: by mail-wr1-f43.google.com with SMTP id z2so22017089wrp.2
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 10:25:37 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <1594892300.mxnq3b9a77.astroid@bobo.none>
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, x86 <x86@kernel.org>
+References: <b754dad5-ee85-8a2f-f41a-8bdc56de42e8@kernel.dk>
+ <8987E376-6B13-4798-BDBA-616A457447CF@amacapital.net> <20200721070709.GB11432@lst.de>
+ <CALCETrXWZBXZuCeRYvYY8AWG51e_P3bOeNeqc8zXPLOTDTHY0g@mail.gmail.com> <20200721143412.GA8099@lst.de>
+In-Reply-To: <20200721143412.GA8099@lst.de>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Tue, 21 Jul 2020 10:25:24 -0700
+Message-ID: <CALCETrWMQpKe7jqw2t39yn4HgGhGTSEFGK6MPR4wPs=tBBhjbg@mail.gmail.com>
+Subject: Re: io_uring vs in_compat_syscall()
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200716110038.5uDwm_kN0kVMb_a6QdUO6ps0tkfMCqyIRvmoeNxpEPE@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andy Lutomirski <luto@kernel.org>, Jens Axboe <axboe@kernel.dk>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, io-uring@vger.kernel.org
+Message-ID: <20200721172524.FDAF2Wds9PkCA6xIKNmfUaomtrAqx8t_oFvVY9Y-xz0@z>
 
-On Thu, Jul 16, 2020 at 08:03:36PM +1000, Nicholas Piggin wrote:
-> Excerpts from Peter Zijlstra's message of July 16, 2020 6:50 pm:
-> > On Wed, Jul 15, 2020 at 10:18:20PM -0700, Andy Lutomirski wrote:
-> >> > On Jul 15, 2020, at 9:15 PM, Nicholas Piggin <npiggin@gmail.com> w=
-rote:
+On Tue, Jul 21, 2020 at 7:34 AM Christoph Hellwig <hch@lst.de> wrote:
+>
+> On Tue, Jul 21, 2020 at 07:31:02AM -0700, Andy Lutomirski wrote:
+> > > What do you mean with "properly wired up".  Do you really want to spread
+> > > ->compat_foo methods everywhere, including read and write?  I found
+> > > in_compat_syscall() a lot small and easier to maintain than all the
+> > > separate compat cruft.
+> >
+> > I was imagining using a flag.  Some of the net code uses
+> > MSG_CMSG_COMPAT for this purpose.
+>
+> Killing that nightmarish monster is what actually got me into looking
+> io_uring and starting this thread.
 
-> >> But I=E2=80=99m wondering if all this deferred sync stuff is wrong. =
-In the
-> >> brave new world of io_uring and such, perhaps kernel access matter
-> >> too.  Heck, even:
-> >=20
-> > IIRC the membarrier SYNC_CORE use-case is about user-space
-> > self-modifying code.
-> >=20
-> > Userspace re-uses a text address and needs to SYNC_CORE before it can=
- be
-> > sure the old text is forgotten. Nothing the kernel does matters there=
-.
-> >=20
-> > I suppose the manpage could be more clear there.
->=20
-> True, but memory ordering of kernel stores from kernel threads for
-> regular mem barrier is the concern here.
->=20
-> Does io_uring update completion queue from kernel thread or interrupt,
-> for example? If it does, then membarrier will not order such stores
-> with user memory accesses.
+I agree that MSG_CMSG_COMPAT is nasty, but I think the concept is
+sound -- rather than tracking whether we're compat by using a
+different function or a per-thread variable, actually explicitly
+tracking the mode seems sensible.
 
-So we're talking about regular membarrier() then? Not the SYNC_CORE
-variant per-se.
+If we're going to play in_compat_syscall() games, let's please make
+io_uring_enter() return -EINVAL if in_compat_syscall() != ctx->compat.
 
-Even there, I'll argue we don't care, but perhaps Mathieu has a
-different opinion. All we care about is that all other threads (or CPUs
-for GLOBAL) observe an smp_mb() before it returns.
-
-Any serialization against whatever those other threads/CPUs are running
-at the instant of the syscall is external to the syscall, we make no
-gauarantees about that. That is, we can fundamentally not say what
-another CPU is executing concurrently. Nor should we want to.
-
-So if you feel that your membarrier() ought to serialize against remote
-execution, you need to arrange a quiecent state on the remote side
-yourself.
-
-Now, normally membarrier() is used to implement userspace RCU like
-things, and there all that matters is that the remote CPUs observe the
-beginngin of the new grace-period, ie counter flip, and we observe their
-read-side critical sections, or smething like that, it's been a while
-since I looked at all that.
-
-It's always been the case that concurrent syscalls could change user
-memory, io_uring doesn't change that, it just makes it even less well
-defined when that would happen. If you want to serialize against that,
-you need to arrange that externally.
+--Andy
