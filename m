@@ -1,66 +1,347 @@
-Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:17374 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726632AbgGWQUL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jul 2020 12:20:11 -0400
-From: Alex Belits <abelits@marvell.com>
-Subject: Re: [EXT] Re: [PATCH v4 00/13] "Task_isolation" mode
-Date: Thu, 23 Jul 2020 16:19:16 +0000
-Message-ID: <c326dd17cab3a43e3e500636005e14b9c315d6cf.camel@marvell.com>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-         <87imeextf3.fsf@nanos.tec.linutronix.de>
-         <20200723142902.GT5523@worktop.programming.kicks-ass.net>
-         <670609a91be23ebb4f179850601439fbed844479.camel@marvell.com>
-         <20200723154820.GA709@worktop.programming.kicks-ass.net>
-In-Reply-To: <20200723154820.GA709@worktop.programming.kicks-ass.net>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <EA32F048CCD89743A1D51F632B9A7DED@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53518 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730434AbgGUUZv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 16:25:51 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 06/18] alpha: propagate the calling convention changes down to csum_partial_copy.c helpers
+Date: Tue, 21 Jul 2020 21:25:37 +0100
+Message-ID: <20200721202549.4150745-6-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
+References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
+ <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "tglx@linutronix.de" <tglx@linutronix.de>, "peterz@infradead.org" <peterz@infradead.org>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "frederic@kernel.org" <frederic@kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Message-ID: <20200723161916.WzLG0lelS8F9HBWPxyWMXl0o3P_cvZcibOTbjQ-lEsE@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200721202537.aVS8NIn1-vrtT9yDlDCDXWhlk3jVNkWM0DfjkQjKnWY@z>
 
-DQpPbiBUaHUsIDIwMjAtMDctMjMgYXQgMTc6NDggKzAyMDAsIFBldGVyIFppamxzdHJhIHdyb3Rl
-Og0KPiBPbiBUaHUsIEp1bCAyMywgMjAyMCBhdCAwMzo0MTo0NlBNICswMDAwLCBBbGV4IEJlbGl0
-cyB3cm90ZToNCj4gPiBPbiBUaHUsIDIwMjAtMDctMjMgYXQgMTY6MjkgKzAyMDAsIFBldGVyIFpp
-amxzdHJhIHdyb3RlOg0KPiA+ID4gLg0KPiA+ID4gDQo+ID4gPiBUaGlzLi4gYXMgcHJlc2VudGVk
-IGl0IGlzIGFuIGFic29sdXRlbHkgdW5yZXZpZXdhYmxlIHBpbGUgb2YNCj4gPiA+IGp1bmsuIEl0
-DQo+ID4gPiBwcmVzZW50cyBjb2RlIHdpdG91dCBhbnkgY29oZXJlbnQgcHJvYmxlbSBkZXNjcmlw
-dGlvbiBhbmQNCj4gPiA+IGFuYWx5c2lzLg0KPiA+ID4gQW5kDQo+ID4gPiB0aGUgcGF0Y2hlcyBh
-cmUgbm90IHNwbGl0IHNhbmVseSBlaXRoZXIuDQo+ID4gDQo+ID4gVGhlcmUgaXMgYSBtb3JlIGNv
-bXBsZXRlIGFuZCBzbGlnaHRseSBvdXRkYXRlZCBkZXNjcmlwdGlvbiBpbiB0aGUNCj4gPiBwcmV2
-aW91cyB2ZXJzaW9uIG9mIHRoZSBwYXRjaCBhdCANCj4gPiBodHRwczovL3VybGRlZmVuc2UucHJv
-b2Zwb2ludC5jb20vdjIvdXJsP3U9aHR0cHMtM0FfX2xvcmUua2VybmVsLm9yZ19sa21sXzA3YzI1
-YzI0NmM1NTAxMjk4MWVjMDI5NmVlZTIzZTY4YzcxOTMzM2EuY2FtZWwtNDBtYXJ2ZWxsLmNvbV8m
-ZD1Ed0lCQWcmYz1uS2pXZWMyYjZSMG1PeVBhejd4dGZRJnI9MXFndk9uWGZrM1pISkEzcDdSSWI2
-TkZxczRTUFBEeVBJX1Bjd05GcDhLWSZtPXNoazlhNUZEd2t0T1p5c1NiRklqeG1nVWctSVB5dzJV
-a2JWQUhHQmhOVjAmcz1GRlphai1LYW53cUVpWFlDZGpkOTZKT2dQX0dBT25hbnBrdzZiQnZOcks0
-JmU9IA0KPiANCj4gTm90IHRoZSBwb2ludCwgeW91J3JlIG1peGluZyBmYXIgdG9vIG1hbnkgdGhp
-bmdzIGluIG9uZSBnby4gWW91IGFsc28NCj4gaGF2ZSB0aGUgcGF0Y2hlcyBzcGxpdCBsaWtlICdn
-ZW5lcmljIC8gYXJjaC0xIC8gYXJjaC0yJyB3aGljaCBpcw0KPiB3cm9uZw0KPiBwZXIgZGVmaW5p
-dGlvbiwgYXMgcGF0Y2hlcyBzaG91bGQgYmUgc3BsaXQgcGVyIGNoYW5nZSBhbmQgbm90IGNhcmUN
-Cj4gYWJvdXQNCj4gc2lseSBib3VuZGFyaWVzLg0KDQpUaGlzIGZvbGxvd3MgdGhlIG9yaWdpbmFs
-IHBhdGNoIGJ5IENocmlzIE1ldGNhbGYuIFRoZXJlIGlzIGEgcmVhc29uIGZvcg0KdGhhdCAtLSBw
-ZXItYXJjaGl0ZWN0dXJlIGNoYW5nZXMgYXJlIGluZGVwZW5kZW50IGZyb20gZWFjaCBvdGhlciBh
-bmQNCmFmZmVjdCBub3QganVzdCBjb2RlIGJ1dCBmdW5jdGlvbmFsaXR5IHRoYXQgd2FzIGltcGxl
-bWVudGVkIHBlci0NCmFyY2hpdGVjdHVyZS4gVG8gc3VwcG9ydCBtb3JlIGFyY2hpdGVjdHVyZXMs
-IGl0IHdpbGwgYmUgbmVjZXNzYXJ5IHRvIGRvDQppdCBzZXBhcmF0ZWx5IGZvciBlYWNoLCBhbmQg
-bWFyayB0aGVtIHN1cHBvcnRlZCB3aXRoDQpIQVZFX0FSQ0hfVEFTS19JU09MQVRJT04uIEhhdmlu
-ZyBvbmx5IHNvbWUgYXJjaGl0ZWN0dXJlcyBzdXBwb3J0ZWQgZG9lcw0Kbm90IGJyZWFrIGFueXRo
-aW5nIGZvciB0aGUgcmVzdCAtLSBhcmNoaXRlY3R1cmVzIHRoYXQgYXJlIG5vdCBjb3ZlcmVkLA0K
-d291bGQgbm90IGhhdmUgdGhpcyBmdW5jdGlvbmFsaXR5Lg0KDQo+IA0KPiBBbHNvLCBpZiB5b3Ug
-d2FudCBnZW5lcmljIGVudHJ5IGNvZGUsIHRoZXJlJ3MgcGF0Y2hlcyBmb3IgdGhhdCBoZXJlOg0K
-PiANCj4gICANCj4gaHR0cHM6Ly91cmxkZWZlbnNlLnByb29mcG9pbnQuY29tL3YyL3VybD91PWh0
-dHBzLTNBX19sa21sLmtlcm5lbC5vcmdfcl8yMDIwMDcyMjIxNTk1NC40NjQyODE5MzAtNDBsaW51
-dHJvbml4LmRlJmQ9RHdJQkFnJmM9bktqV2VjMmI2UjBtT3lQYXo3eHRmUSZyPTFxZ3ZPblhmazNa
-SEpBM3A3UkliNk5GcXM0U1BQRHlQSV9QY3dORnA4S1kmbT1zaGs5YTVGRHdrdE9aeXNTYkZJanht
-Z1VnLUlQeXcyVWtiVkFIR0JoTlYwJnM9blpYSXZpWTdydmEzMUt2UGdTVm5UYWN3Rk5ic21rZFcw
-THhTVGZZU2lxZyZlPQ0KPiAgDQo+IA0KPiANCg0KVGhhdCBsb29rcyB1c2VmdWwuIFdoeSBkaWRu
-J3QgVGhvbWFzIEdsZWl4bmVyIG1lbnRpb24gaXQgaW4gaGlzDQpjcml0aWNpc20gb2YgbXkgYXBw
-cm9hY2ggaWYgaGUgYWxyZWFkeSBzb2x2ZWQgdGhhdCBleGFjdCBwcm9ibGVtLCBhdA0KbGVhc3Qg
-Zm9yIHg4Nj8NCg0KLS0gDQpBbGV4DQo=
+From: Al Viro <viro@zeniv.linux.org.uk>
+
+get rid of set_fs() in csum_partial_copy_nocheck(), while we are at it -
+just take the part of csum_and_copy_from_user() sans the access_ok() check
+into a helper function and have csum_partial_copy_nocheck() call that.
+
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/alpha/lib/csum_partial_copy.c | 157 ++++++++++++++++---------------------
+ 1 file changed, 69 insertions(+), 88 deletions(-)
+
+diff --git a/arch/alpha/lib/csum_partial_copy.c b/arch/alpha/lib/csum_partial_copy.c
+index 3c0e89c39ddb..dc68efbe9367 100644
+--- a/arch/alpha/lib/csum_partial_copy.c
++++ b/arch/alpha/lib/csum_partial_copy.c
+@@ -39,12 +39,11 @@ __asm__ __volatile__("insql %1,%2,%0":"=r" (z):"r" (x),"r" (y))
+ #define insqh(x,y,z) \
+ __asm__ __volatile__("insqh %1,%2,%0":"=r" (z):"r" (x),"r" (y))
+ 
+-
+-#define __get_user_u(x,ptr)				\
++#define __get_word(insn,x,ptr)				\
+ ({							\
+ 	long __guu_err;					\
+ 	__asm__ __volatile__(				\
+-	"1:	ldq_u %0,%2\n"				\
++	"1:	"#insn" %0,%2\n"			\
+ 	"2:\n"						\
+ 	EXC(1b,2b,%0,%1)				\
+ 		: "=r"(x), "=r"(__guu_err)		\
+@@ -52,19 +51,6 @@ __asm__ __volatile__("insqh %1,%2,%0":"=r" (z):"r" (x),"r" (y))
+ 	__guu_err;					\
+ })
+ 
+-#define __put_user_u(x,ptr)				\
+-({							\
+-	long __puu_err;					\
+-	__asm__ __volatile__(				\
+-	"1:	stq_u %2,%1\n"				\
+-	"2:\n"						\
+-	EXC(1b,2b,$31,%0)				\
+-		: "=r"(__puu_err)			\
+-		: "m"(__m(addr)), "rJ"(x), "0"(0));	\
+-	__puu_err;					\
+-})
+-
+-
+ static inline unsigned short from64to16(unsigned long x)
+ {
+ 	/* Using extract instructions is a bit more efficient
+@@ -95,15 +81,15 @@ static inline unsigned short from64to16(unsigned long x)
+  */
+ static inline unsigned long
+ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
+-			 long len, unsigned long checksum,
+-			 int *errp)
++			 long len)
+ {
++	unsigned long checksum = ~0U;
+ 	unsigned long carry = 0;
+-	int err = 0;
+ 
+ 	while (len >= 0) {
+ 		unsigned long word;
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		checksum += carry;
+ 		src++;
+ 		checksum += word;
+@@ -116,7 +102,8 @@ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
+ 	checksum += carry;
+ 	if (len) {
+ 		unsigned long word, tmp;
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		tmp = *dst;
+ 		mskql(word, len, word);
+ 		checksum += word;
+@@ -125,7 +112,6 @@ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
+ 		*dst = word | tmp;
+ 		checksum += carry;
+ 	}
+-	if (err && errp) *errp = err;
+ 	return checksum;
+ }
+ 
+@@ -137,20 +123,21 @@ static inline unsigned long
+ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
+ 			      unsigned long *dst,
+ 			      unsigned long soff,
+-			      long len, unsigned long checksum,
+-			      int *errp)
++			      long len)
+ {
+ 	unsigned long first;
+ 	unsigned long word, carry;
+ 	unsigned long lastsrc = 7+len+(unsigned long)src;
+-	int err = 0;
++	unsigned long checksum = ~0U;
+ 
+-	err |= __get_user_u(first,src);
++	if (__get_word(ldq_u, first,src))
++		return 0;
+ 	carry = 0;
+ 	while (len >= 0) {
+ 		unsigned long second;
+ 
+-		err |= __get_user_u(second, src+1);
++		if (__get_word(ldq_u, second, src+1))
++			return 0;
+ 		extql(first, soff, word);
+ 		len -= 8;
+ 		src++;
+@@ -168,7 +155,8 @@ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
+ 	if (len) {
+ 		unsigned long tmp;
+ 		unsigned long second;
+-		err |= __get_user_u(second, lastsrc);
++		if (__get_word(ldq_u, second, lastsrc))
++			return 0;
+ 		tmp = *dst;
+ 		extql(first, soff, word);
+ 		extqh(second, soff, first);
+@@ -180,7 +168,6 @@ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
+ 		*dst = word | tmp;
+ 		checksum += carry;
+ 	}
+-	if (err && errp) *errp = err;
+ 	return checksum;
+ }
+ 
+@@ -191,18 +178,18 @@ static inline unsigned long
+ csum_partial_cfu_src_aligned(const unsigned long __user *src,
+ 			     unsigned long *dst,
+ 			     unsigned long doff,
+-			     long len, unsigned long checksum,
+-			     unsigned long partial_dest,
+-			     int *errp)
++			     long len,
++			     unsigned long partial_dest)
+ {
+ 	unsigned long carry = 0;
+ 	unsigned long word;
+ 	unsigned long second_dest;
+-	int err = 0;
++	unsigned long checksum = ~0U;
+ 
+ 	mskql(partial_dest, doff, partial_dest);
+ 	while (len >= 0) {
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		len -= 8;
+ 		insql(word, doff, second_dest);
+ 		checksum += carry;
+@@ -216,7 +203,8 @@ csum_partial_cfu_src_aligned(const unsigned long __user *src,
+ 	len += 8;
+ 	if (len) {
+ 		checksum += carry;
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		mskql(word, len, word);
+ 		len -= 8;
+ 		checksum += word;
+@@ -237,7 +225,6 @@ csum_partial_cfu_src_aligned(const unsigned long __user *src,
+ 	stq_u(partial_dest | second_dest, dst);
+ out:
+ 	checksum += carry;
+-	if (err && errp) *errp = err;
+ 	return checksum;
+ }
+ 
+@@ -249,23 +236,23 @@ static inline unsigned long
+ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 			   unsigned long * dst,
+ 			   unsigned long soff, unsigned long doff,
+-			   long len, unsigned long checksum,
+-			   unsigned long partial_dest,
+-			   int *errp)
++			   long len, unsigned long partial_dest)
+ {
+ 	unsigned long carry = 0;
+ 	unsigned long first;
+ 	unsigned long lastsrc;
+-	int err = 0;
++	unsigned long checksum = ~0U;
+ 
+-	err |= __get_user_u(first, src);
++	if (__get_word(ldq_u, first, src))
++		return 0;
+ 	lastsrc = 7+len+(unsigned long)src;
+ 	mskql(partial_dest, doff, partial_dest);
+ 	while (len >= 0) {
+ 		unsigned long second, word;
+ 		unsigned long second_dest;
+ 
+-		err |= __get_user_u(second, src+1);
++		if (__get_word(ldq_u, second, src+1))
++			return 0;
+ 		extql(first, soff, word);
+ 		checksum += carry;
+ 		len -= 8;
+@@ -286,7 +273,8 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 		unsigned long second, word;
+ 		unsigned long second_dest;
+ 
+-		err |= __get_user_u(second, lastsrc);
++		if (__get_word(ldq_u, second, lastsrc))
++			return 0;
+ 		extql(first, soff, word);
+ 		extqh(second, soff, first);
+ 		word |= first;
+@@ -307,7 +295,8 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 		unsigned long second, word;
+ 		unsigned long second_dest;
+ 
+-		err |= __get_user_u(second, lastsrc);
++		if (__get_word(ldq_u, second, lastsrc))
++			return 0;
+ 		extql(first, soff, word);
+ 		extqh(second, soff, first);
+ 		word |= first;
+@@ -320,63 +309,55 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 		stq_u(partial_dest | word | second_dest, dst);
+ 		checksum += carry;
+ 	}
+-	if (err && errp) *errp = err;
+ 	return checksum;
+ }
+ 
+-__wsum
+-csum_and_copy_from_user(const void __user *src, void *dst, int len)
++static __wsum __csum_and_copy(const void __user *src, void *dst, int len)
+ {
+-	unsigned long checksum = ~0U;
+ 	unsigned long soff = 7 & (unsigned long) src;
+ 	unsigned long doff = 7 & (unsigned long) dst;
+-	int err = 0;
+-
+-	if (len) {
+-		if (!access_ok(src, len))
+-			return 0;
+-		if (!doff) {
+-			if (!soff)
+-				checksum = csum_partial_cfu_aligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					len-8, checksum, &err);
+-			else
+-				checksum = csum_partial_cfu_dest_aligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					soff, len-8, checksum, &err);
+-		} else {
+-			unsigned long partial_dest;
+-			ldq_u(partial_dest, dst);
+-			if (!soff)
+-				checksum = csum_partial_cfu_src_aligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					doff, len-8, checksum,
+-					partial_dest, &err);
+-			else
+-				checksum = csum_partial_cfu_unaligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					soff, doff, len-8, checksum,
+-					partial_dest, &err);
+-		}
+-		checksum = err ? 0 : from64to16 (checksum);
++	unsigned long checksum;
++
++	if (!doff) {
++		if (!soff)
++			checksum = csum_partial_cfu_aligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst, len-8);
++		else
++			checksum = csum_partial_cfu_dest_aligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst,
++				soff, len-8);
++	} else {
++		unsigned long partial_dest;
++		ldq_u(partial_dest, dst);
++		if (!soff)
++			checksum = csum_partial_cfu_src_aligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst,
++				doff, len-8, partial_dest);
++		else
++			checksum = csum_partial_cfu_unaligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst,
++				soff, doff, len-8, partial_dest);
+ 	}
+-	return (__force __wsum)checksum;
++	return (__force __wsum)from64to16 (checksum);
++}
++
++__wsum
++csum_and_copy_from_user(const void __user *src, void *dst, int len)
++{
++	if (!access_ok(src, len))
++		return 0;
++	return __csum_and_copy(src, dst, len);
+ }
+ EXPORT_SYMBOL(csum_and_copy_from_user);
+ 
+ __wsum
+ csum_partial_copy_nocheck(const void *src, void *dst, int len)
+ {
+-	__wsum checksum;
+-	mm_segment_t oldfs = get_fs();
+-	set_fs(KERNEL_DS);
+-	checksum = csum_and_copy_from_user((__force const void __user *)src,
++	return __csum_and_copy((__force const void __user *)src,
+ 						dst, len);
+-	set_fs(oldfs);
+-	return checksum;
+ }
+ EXPORT_SYMBOL(csum_partial_copy_nocheck);
+-- 
+2.11.0
