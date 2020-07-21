@@ -1,74 +1,49 @@
-Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 11/24] mips: use asm-generic/mmu_context.h for no-op implementations
-Date: Tue, 28 Jul 2020 13:33:52 +1000
-Message-ID: <20200728033405.78469-12-npiggin@gmail.com>
-In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
-References: <20200728033405.78469-1-npiggin@gmail.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, linux-mips@vger.kernel.org
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49758 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731288AbgGUXCI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 19:02:08 -0400
+Received: from mail-pl1-x641.google.com (mail-pl1-x641.google.com [IPv6:2607:f8b0:4864:20::641])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 35BDFC0619DB
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 16:02:07 -0700 (PDT)
+Received: by mail-pl1-x641.google.com with SMTP id d1so17072plr.8
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 16:02:07 -0700 (PDT)
+Date: Tue, 21 Jul 2020 16:02:05 -0700 (PDT)
+Subject: Re: [PATCH 3/6] riscv: include <asm/pgtable.h> in <asm/uaccess.h>
+In-Reply-To: <20200710135706.537715-4-hch@lst.de>
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Message-ID: <mhng-2e6d1568-076d-40fc-988a-9d035d54af79@palmerdabbelt-glaptop1>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200728033352.UBx0r21kc2yNgpcCd_PQk9tmRKc90vHboSFGwkOMsT0@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: nickhu@andestech.com, green.hu@gmail.com, deanbo422@gmail.com, Paul Walmsley <paul.walmsley@sifive.com>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200721230205.Fjmo3oOzPdOabEBezsExruUw4LUJNy5ZhxBDEouyBNc@z>
 
-Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-Cc: linux-mips@vger.kernel.org
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/mips/include/asm/mmu_context.h | 11 ++++-------
- 1 file changed, 4 insertions(+), 7 deletions(-)
+On Fri, 10 Jul 2020 06:57:03 PDT (-0700), Christoph Hellwig wrote:
+> To ensure TASK_SIZE is defined for USER_DS.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/riscv/include/asm/uaccess.h | 2 ++
+>  1 file changed, 2 insertions(+)
+>
+> diff --git a/arch/riscv/include/asm/uaccess.h b/arch/riscv/include/asm/uaccess.h
+> index 8ce9d607b53dce..22de922d6ecb2f 100644
+> --- a/arch/riscv/include/asm/uaccess.h
+> +++ b/arch/riscv/include/asm/uaccess.h
+> @@ -8,6 +8,8 @@
+>  #ifndef _ASM_RISCV_UACCESS_H
+>  #define _ASM_RISCV_UACCESS_H
+>
+> +#include <asm/pgtable.h>		/* for TASK_SIZE */
+> +
+>  /*
+>   * User space memory access functions
+>   */
 
-diff --git a/arch/mips/include/asm/mmu_context.h b/arch/mips/include/asm/=
-mmu_context.h
-index cddead91acd4..ed9f2d748f63 100644
---- a/arch/mips/include/asm/mmu_context.h
-+++ b/arch/mips/include/asm/mmu_context.h
-@@ -124,10 +124,6 @@ static inline void set_cpu_context(unsigned int cpu,
- #define cpu_asid(cpu, mm) \
- 	(cpu_context((cpu), (mm)) & cpu_asid_mask(&cpu_data[cpu]))
-=20
--static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_stru=
-ct *tsk)
--{
--}
--
- extern void get_new_mmu_context(struct mm_struct *mm);
- extern void check_mmu_context(struct mm_struct *mm);
- extern void check_switch_mmu_context(struct mm_struct *mm);
-@@ -136,6 +132,7 @@ extern void check_switch_mmu_context(struct mm_struct=
- *mm);
-  * Initialize the context related info for a new mm_struct
-  * instance.
-  */
-+#define init_new_context init_new_context
- static inline int
- init_new_context(struct task_struct *tsk, struct mm_struct *mm)
- {
-@@ -180,14 +177,12 @@ static inline void switch_mm(struct mm_struct *prev=
-, struct mm_struct *next,
-  * Destroy context related info for an mm_struct that is about
-  * to be put to rest.
-  */
-+#define destroy_context destroy_context
- static inline void destroy_context(struct mm_struct *mm)
- {
- 	dsemul_mm_cleanup(mm);
- }
-=20
--#define activate_mm(prev, next)	switch_mm(prev, next, current)
--#define deactivate_mm(tsk, mm)	do { } while (0)
--
- static inline void
- drop_mmu_context(struct mm_struct *mm)
- {
-@@ -237,4 +232,6 @@ drop_mmu_context(struct mm_struct *mm)
- 	local_irq_restore(flags);
- }
-=20
-+#include <asm-generic/mmu_context.h>
-+
- #endif /* _ASM_MMU_CONTEXT_H */
---=20
-2.23.0
+Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
+
+Thanks!
