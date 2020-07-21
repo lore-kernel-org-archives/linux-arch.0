@@ -1,7 +1,8 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V4 07/15] x86/entry: Consolidate 32/64 bit syscall entry
-Date: Tue, 21 Jul 2020 12:57:13 +0200
-Message-ID: <20200721110808.999191026@linutronix.de>
+Subject: [patch V4 05/15] entry: Provide infrastructure for work before
+ exiting to guest mode
+Date: Tue, 21 Jul 2020 12:57:11 +0200
+Message-ID: <20200721110808.780082657@linutronix.de>
 References: <20200721105706.030914876@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -14,181 +15,212 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Thomas Gleixner <tglx@linutronix.de>
 
-64bit and 32bit entry code have the same open coded syscall entry handling
-after the bitwidth specific bits.
+Entering a guest is similar to exiting to user space. Pending work like
+handling signals, rescheduling, task work etc. needs to be handled before
+that.
 
-Move it to a helper function and share the code.
+Provide generic infrastructure to avoid duplication of the same handling
+code all over the place.
+
+The exit to guest mode handling is different from the exit to usermode
+handling, e.g. vs. rseq and live patching, so a separate function is used.
+
+The initial list of work items handled is:
+
+    TIF_SIGPENDING, TIF_NEED_RESCHED, TIF_NOTIFY_RESUME
+
+Architecture specific TIF flags can be added via defines in the
+architecture specific include files.
+
+The calling convention is also different from the syscall/interrupt entry
+functions as KVM invokes this from the outer vcpu_run() loop with
+interrupts and preemption disabled. To prevent missing a pending work item
+it invokes a check for pending TIF work from interrupt disabled code right
+before exiting to guest mode. The lockdep, RCU and tracing state handling
+is also done directly around the switch to and from guest mode.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/entry/common.c |   93 +++++++++++++++++++++---------------------------
- 1 file changed, 41 insertions(+), 52 deletions(-)
+V3: Reworked and simplified version adopted to recent X86 and KVM changes
+    
+V2: Moved KVM specific functions to kvm (Paolo)
+    Added lockdep assert (Andy)
+    Dropped live patching from enter guest mode work (Miroslav)
+---
+ include/linux/entry-kvm.h |   80 ++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/kvm_host.h  |    8 ++++
+ kernel/entry/Makefile     |    3 +
+ kernel/entry/kvm.c        |   51 +++++++++++++++++++++++++++++
+ virt/kvm/Kconfig          |    3 +
+ 5 files changed, 144 insertions(+), 1 deletion(-)
 
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -366,8 +366,7 @@ static void __syscall_return_slowpath(st
- 	exit_to_user_mode();
- }
- 
--#ifdef CONFIG_X86_64
--__visible noinstr void do_syscall_64(unsigned long nr, struct pt_regs *regs)
-+static noinstr long syscall_enter(struct pt_regs *regs, unsigned long nr)
- {
- 	struct thread_info *ti;
- 
-@@ -379,6 +378,16 @@ static void __syscall_return_slowpath(st
- 	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY)
- 		nr = syscall_trace_enter(regs);
- 
-+	instrumentation_end();
-+	return nr;
+--- /dev/null
++++ b/include/linux/entry-kvm.h
+@@ -0,0 +1,80 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __LINUX_ENTRYKVM_H
++#define __LINUX_ENTRYKVM_H
++
++#include <linux/entry-common.h>
++
++/* Exit to guest mode work */
++#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
++
++#ifndef ARCH_EXIT_TO_GUEST_MODE_WORK
++# define ARCH_EXIT_TO_GUEST_MODE_WORK	(0)
++#endif
++
++#define EXIT_TO_GUEST_MODE_WORK					\
++	(_TIF_NEED_RESCHED | _TIF_SIGPENDING |			\
++	 _TIF_NOTIFY_RESUME | ARCH_EXIT_TO_GUEST_MODE_WORK)
++
++struct kvm_vcpu;
++
++/**
++ * arch_exit_to_guest_mode_work - Architecture specific exit to guest mode
++ *				  work function.
++ * @vcpu:	Pointer to current's VCPU data
++ * @ti_work:	Cached TIF flags gathered in exit_to_guest_mode()
++ *
++ * Invoked from exit_to_guest_mode_work(). Defaults to NOOP. Can be
++ * replaced by architecture specific code.
++ */
++static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
++					      unsigned long ti_work);
++
++#ifndef arch_exit_to_guest_mode_work
++static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
++					       unsigned long ti_work)
++{
++	return 0;
++}
++#endif
++
++/**
++ * exit_to_guest_mode - Check and handle pending work which needs to be
++ *			handled before returning to guest mode
++ * @vcpu:	Pointer to current's VCPU data
++ *
++ * Returns: 0 or an error code
++ */
++int exit_to_guest_mode(struct kvm_vcpu *vcpu);
++
++/**
++ * __exit_to_guest_mode_work_pending - Check if work is pending
++ *
++ * Returns: True if work pending, False otherwise.
++ *
++ * Bare variant of exit_to_guest_mode_work_pending(). Can be called from
++ * interrupt enabled code for racy quick checks with care.
++ */
++static inline bool __exit_to_guest_mode_work_pending(void)
++{
++	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
++
++	return !!(ti_work & EXIT_TO_GUEST_MODE_WORK);
 +}
 +
-+#ifdef CONFIG_X86_64
-+__visible noinstr void do_syscall_64(unsigned long nr, struct pt_regs *regs)
++/**
++ * exit_to_guest_mode_work_pending - Check if work is pending which needs to be
++ *				     handled before returning to guest mode
++ *
++ * Returns: True if work pending, False otherwise.
++ *
++ * Has to be invoked with interrupts disabled before the transition to
++ * guest mode.
++ */
++static inline bool exit_to_guest_mode_work_pending(void)
 +{
-+	nr = syscall_enter(regs, nr);
++	lockdep_assert_irqs_disabled();
++	return __exit_to_guest_mode_work_pending();
++}
++#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
 +
-+	instrumentation_begin();
- 	if (likely(nr < NR_syscalls)) {
- 		nr = array_index_nospec(nr, NR_syscalls);
- 		regs->ax = sys_call_table[nr](regs);
-@@ -390,64 +399,53 @@ static void __syscall_return_slowpath(st
- 		regs->ax = x32_sys_call_table[nr](regs);
- #endif
- 	}
--	__syscall_return_slowpath(regs);
--
- 	instrumentation_end();
--	exit_to_user_mode();
-+	syscall_return_slowpath(regs);
- }
- #endif
++#endif
+
+--- a/include/linux/kvm_host.h
++++ b/include/linux/kvm_host.h
+@@ -1439,4 +1439,12 @@ int kvm_vm_create_worker_thread(struct k
+ 				uintptr_t data, const char *name,
+ 				struct task_struct **thread_ptr);
  
- #if defined(CONFIG_X86_32) || defined(CONFIG_IA32_EMULATION)
-+static __always_inline unsigned int syscall_32_enter(struct pt_regs *regs)
++#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
++static inline void kvm_handle_signal_exit(struct kvm_vcpu *vcpu)
 +{
-+	if (IS_ENABLED(CONFIG_IA32_EMULATION))
-+		current_thread_info()->status |= TS_COMPAT;
++	vcpu->run->exit_reason = KVM_EXIT_INTR;
++	vcpu->stat.signal_exits++;
++}
++#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
++
+ #endif
+--- a/kernel/entry/Makefile
++++ b/kernel/entry/Makefile
+@@ -1,3 +1,4 @@
+ # SPDX-License-Identifier: GPL-2.0
+ 
+-obj-$(CONFIG_GENERIC_ENTRY) += common.o
++obj-$(CONFIG_GENERIC_ENTRY) 		+= common.o
++obj-$(CONFIG_KVM_EXIT_TO_GUEST_WORK)	+= kvm.o
+--- /dev/null
++++ b/kernel/entry/kvm.c
+@@ -0,0 +1,51 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <linux/entry-kvm.h>
++#include <linux/kvm_host.h>
++
++static int exit_to_guest_mode_work(struct kvm_vcpu *vcpu, unsigned long ti_work)
++{
++	do {
++		int ret;
++
++		if (ti_work & _TIF_SIGPENDING) {
++			kvm_handle_signal_exit(vcpu);
++			return -EINTR;
++		}
++
++		if (ti_work & _TIF_NEED_RESCHED)
++			schedule();
++
++		if (ti_work & _TIF_NOTIFY_RESUME) {
++			clear_thread_flag(TIF_NOTIFY_RESUME);
++			tracehook_notify_resume(NULL);
++		}
++
++		ret = arch_exit_to_guest_mode_work(vcpu, ti_work);
++		if (ret)
++			return ret;
++
++		ti_work = READ_ONCE(current_thread_info()->flags);
++	} while (ti_work & EXIT_TO_GUEST_MODE_WORK || need_resched());
++	return 0;
++}
++
++int exit_to_guest_mode(struct kvm_vcpu *vcpu)
++{
++	unsigned long ti_work;
++
 +	/*
-+	 * Subtlety here: if ptrace pokes something larger than 2^32-1 into
-+	 * orig_ax, the unsigned int return value truncates it.  This may
-+	 * or may not be necessary, but it matches the old asm behavior.
++	 * This is invoked from the outer guest loop with interrupts and
++	 * preemption enabled.
++	 *
++	 * KVM invokes exit_to_guest_mode_work_pending() with interrupts
++	 * disabled in the inner loop before going into guest mode. No need
++	 * to disable interrupts here.
 +	 */
-+	return syscall_enter(regs, (unsigned int)regs->orig_ax);
-+}
++	ti_work = READ_ONCE(current_thread_info()->flags);
++	if (!(ti_work & EXIT_TO_GUEST_MODE_WORK))
++		return 0;
 +
- /*
-- * Does a 32-bit syscall.  Called with IRQs on in CONTEXT_KERNEL.  Does
-- * all entry and exit work and returns with IRQs off.  This function is
-- * extremely hot in workloads that use it, and it's usually called from
-- * do_fast_syscall_32, so forcibly inline it to improve performance.
-+ * Invoke a 32-bit syscall.  Called with IRQs on in CONTEXT_KERNEL.
-  */
--static void do_syscall_32_irqs_on(struct pt_regs *regs)
-+static __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs,
-+						  unsigned int nr)
- {
--	struct thread_info *ti = current_thread_info();
--	unsigned int nr = (unsigned int)regs->orig_ax;
--
--#ifdef CONFIG_IA32_EMULATION
--	ti->status |= TS_COMPAT;
--#endif
--
--	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY) {
--		/*
--		 * Subtlety here: if ptrace pokes something larger than
--		 * 2^32-1 into orig_ax, this truncates it.  This may or
--		 * may not be necessary, but it matches the old asm
--		 * behavior.
--		 */
--		nr = syscall_trace_enter(regs);
--	}
--
- 	if (likely(nr < IA32_NR_syscalls)) {
-+		instrumentation_begin();
- 		nr = array_index_nospec(nr, IA32_NR_syscalls);
- 		regs->ax = ia32_sys_call_table[nr](regs);
-+		instrumentation_end();
- 	}
--
--	__syscall_return_slowpath(regs);
- }
++	return exit_to_guest_mode_work(vcpu, ti_work);
++}
++EXPORT_SYMBOL_GPL(exit_to_guest_mode);
+--- a/virt/kvm/Kconfig
++++ b/virt/kvm/Kconfig
+@@ -60,3 +60,6 @@ config HAVE_KVM_VCPU_RUN_PID_CHANGE
  
- /* Handles int $0x80 */
- __visible noinstr void do_int80_syscall_32(struct pt_regs *regs)
- {
--	enter_from_user_mode(regs);
--	instrumentation_begin();
--
--	local_irq_enable();
--	do_syscall_32_irqs_on(regs);
-+	unsigned int nr = syscall_32_enter(regs);
- 
--	instrumentation_end();
--	exit_to_user_mode();
-+	do_syscall_32_irqs_on(regs, nr);
-+	syscall_return_slowpath(regs);
- }
- 
--static bool __do_fast_syscall_32(struct pt_regs *regs)
-+static noinstr bool __do_fast_syscall_32(struct pt_regs *regs)
- {
-+	unsigned int nr	= syscall_32_enter(regs);
- 	int res;
- 
-+	instrumentation_begin();
- 	/* Fetch EBP from where the vDSO stashed it. */
- 	if (IS_ENABLED(CONFIG_X86_64)) {
- 		/*
-@@ -460,17 +458,18 @@ static bool __do_fast_syscall_32(struct
- 		res = get_user(*(u32 *)&regs->bp,
- 		       (u32 __user __force *)(unsigned long)(u32)regs->sp);
- 	}
-+	instrumentation_end();
- 
- 	if (res) {
- 		/* User code screwed up. */
- 		regs->ax = -EFAULT;
--		local_irq_disable();
--		__prepare_exit_to_usermode(regs);
-+		syscall_return_slowpath(regs);
- 		return false;
- 	}
- 
- 	/* Now this is just like a normal syscall. */
--	do_syscall_32_irqs_on(regs);
-+	do_syscall_32_irqs_on(regs, nr);
-+	syscall_return_slowpath(regs);
- 	return true;
- }
- 
-@@ -483,7 +482,6 @@ static bool __do_fast_syscall_32(struct
- 	 */
- 	unsigned long landing_pad = (unsigned long)current->mm->context.vdso +
- 					vdso_image_32.sym_int80_landing_pad;
--	bool success;
- 
- 	/*
- 	 * SYSENTER loses EIP, and even SYSCALL32 needs us to skip forward
-@@ -492,17 +490,8 @@ static bool __do_fast_syscall_32(struct
- 	 */
- 	regs->ip = landing_pad;
- 
--	enter_from_user_mode(regs);
--	instrumentation_begin();
--
--	local_irq_enable();
--	success = __do_fast_syscall_32(regs);
--
--	instrumentation_end();
--	exit_to_user_mode();
--
--	/* If it failed, keep it simple: use IRET. */
--	if (!success)
-+	/* Invoke the syscall. If it failed, keep it simple: use IRET. */
-+	if (!__do_fast_syscall_32(regs))
- 		return 0;
- 
- #ifdef CONFIG_X86_64
+ config HAVE_KVM_NO_POLL
+        bool
++
++config KVM_EXIT_TO_GUEST_WORK
++       bool
