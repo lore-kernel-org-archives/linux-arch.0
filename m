@@ -1,145 +1,85 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59298 "EHLO
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38204 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733282AbgGaMWM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 08:22:12 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 1/3] compat: lift compat_s64 and compat_u64 to <asm-generic/compat.h>
-Date: Fri, 31 Jul 2020 14:22:00 +0200
-Message-ID: <20200731122202.213333-2-hch@lst.de>
-In-Reply-To: <20200731122202.213333-1-hch@lst.de>
-References: <20200731122202.213333-1-hch@lst.de>
+        with ESMTP id S1727113AbgGUVrU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 17:47:20 -0400
+Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0F165C0619DC
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:47:19 -0700 (PDT)
+Received: by mail-pj1-x1041.google.com with SMTP id cv18so1934700pjb.1
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:47:19 -0700 (PDT)
+Date: Tue, 21 Jul 2020 14:47:17 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [patch V4 10/15] x86/entry: Use generic syscall entry function
+Message-ID: <202007211440.BEF76E2@keescook>
+References: <20200721105706.030914876@linutronix.de>
+ <20200721110809.325060396@linutronix.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200721110809.325060396@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, Jan Kara <jack@suse.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200731122200.AfhWklNj3bPQOtFRVqIO7KPOx6SKjzOgCs23M4-h5-w@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
+Message-ID: <20200721214717.d0E_yDZ0nJrD-0Yp--oSVE3s-k5h8F6r_GbKN0v7kQw@z>
 
-lift the compat_s64 and compat_u64 definitions into common code using the
-COMPAT_FOR_U64_ALIGNMENT symbol for the x86 special case.
+On Tue, Jul 21, 2020 at 12:57:16PM +0200, Thomas Gleixner wrote:
+> Replace the syscall entry work handling with the generic version. Provide
+> the necessary helper inlines to handle the real architecture specific
+> parts, e.g. ptrace.
+> 
+> Use a temporary define for idtentry_enter_user which will be cleaned up
+> seperately.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/arm64/include/asm/compat.h   | 2 --
- arch/mips/include/asm/compat.h    | 2 --
- arch/parisc/include/asm/compat.h  | 2 --
- arch/powerpc/include/asm/compat.h | 2 --
- arch/s390/include/asm/compat.h    | 2 --
- arch/sparc/include/asm/compat.h   | 3 +--
- arch/x86/include/asm/compat.h     | 2 --
- include/asm-generic/compat.h      | 8 ++++++++
- 8 files changed, 9 insertions(+), 14 deletions(-)
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-diff --git a/arch/arm64/include/asm/compat.h b/arch/arm64/include/asm/compat.h
-index 935d2aa231bf06..23a9fb73c04ff8 100644
---- a/arch/arm64/include/asm/compat.h
-+++ b/arch/arm64/include/asm/compat.h
-@@ -35,8 +35,6 @@ typedef s32		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s64		compat_s64;
--typedef u64		compat_u64;
- 
- struct compat_stat {
- #ifdef __AARCH64EB__
-diff --git a/arch/mips/include/asm/compat.h b/arch/mips/include/asm/compat.h
-index 255afcdd79c94b..65975712a22dcf 100644
---- a/arch/mips/include/asm/compat.h
-+++ b/arch/mips/include/asm/compat.h
-@@ -26,8 +26,6 @@ typedef s32		compat_caddr_t;
- typedef struct {
- 	s32	val[2];
- } compat_fsid_t;
--typedef s64		compat_s64;
--typedef u64		compat_u64;
- 
- struct compat_stat {
- 	compat_dev_t	st_dev;
-diff --git a/arch/parisc/include/asm/compat.h b/arch/parisc/include/asm/compat.h
-index 2f4f66a3bac079..8f33085ff1bd88 100644
---- a/arch/parisc/include/asm/compat.h
-+++ b/arch/parisc/include/asm/compat.h
-@@ -22,8 +22,6 @@ typedef u32	compat_dev_t;
- typedef u16	compat_nlink_t;
- typedef u16	compat_ipc_pid_t;
- typedef u32	compat_caddr_t;
--typedef s64	compat_s64;
--typedef u64	compat_u64;
- 
- struct compat_stat {
- 	compat_dev_t		st_dev;	/* dev_t is 32 bits on parisc */
-diff --git a/arch/powerpc/include/asm/compat.h b/arch/powerpc/include/asm/compat.h
-index 3e3cdfaa76c6a5..9191fc29e6ed11 100644
---- a/arch/powerpc/include/asm/compat.h
-+++ b/arch/powerpc/include/asm/compat.h
-@@ -27,8 +27,6 @@ typedef s16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s64		compat_s64;
--typedef u64		compat_u64;
- 
- struct compat_stat {
- 	compat_dev_t	st_dev;
-diff --git a/arch/s390/include/asm/compat.h b/arch/s390/include/asm/compat.h
-index 9547cd5d6cdc21..ea5b9c34b7be5b 100644
---- a/arch/s390/include/asm/compat.h
-+++ b/arch/s390/include/asm/compat.h
-@@ -63,8 +63,6 @@ typedef u16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s64		compat_s64;
--typedef u64		compat_u64;
- 
- typedef struct {
- 	u32 mask;
-diff --git a/arch/sparc/include/asm/compat.h b/arch/sparc/include/asm/compat.h
-index 40a267b3bd5208..b85842cda99fe0 100644
---- a/arch/sparc/include/asm/compat.h
-+++ b/arch/sparc/include/asm/compat.h
-@@ -21,8 +21,7 @@ typedef s16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s64		compat_s64;
--typedef u64		compat_u64;
-+
- struct compat_stat {
- 	compat_dev_t	st_dev;
- 	compat_ino_t	st_ino;
-diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
-index d4edf281fff49d..bf547701f41f87 100644
---- a/arch/x86/include/asm/compat.h
-+++ b/arch/x86/include/asm/compat.h
-@@ -27,8 +27,6 @@ typedef u16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s64 __attribute__((aligned(4))) compat_s64;
--typedef u64 __attribute__((aligned(4))) compat_u64;
- 
- struct compat_stat {
- 	compat_dev_t	st_dev;
-diff --git a/include/asm-generic/compat.h b/include/asm-generic/compat.h
-index a86f65bffab8d0..30f7b18a36f939 100644
---- a/include/asm-generic/compat.h
-+++ b/include/asm-generic/compat.h
-@@ -22,4 +22,12 @@ typedef u32 compat_ulong_t;
- typedef u32 compat_uptr_t;
- typedef u32 compat_aio_context_t;
- 
-+#ifdef CONFIG_COMPAT_FOR_U64_ALIGNMENT
-+typedef s64 __attribute__((aligned(4))) compat_s64;
-+typedef u64 __attribute__((aligned(4))) compat_u64;
-+#else
-+typedef s64 compat_s64;
-+typedef u64 compat_u64;
-+#endif
-+
- #endif
+Though, notes and a comment below...
+
+> +/* Check that the stack and regs on entry from user mode are sane. */
+> +static __always_inline void arch_check_user_regs(struct pt_regs *regs)
+> +{
+> +	if (IS_ENABLED(CONFIG_DEBUG_ENTRY)) {
+> +		/*
+> +		 * Make sure that the entry code gave us a sensible EFLAGS
+> +		 * register.  Native because we want to check the actual CPU
+> +		 * state, not the interrupt state as imagined by Xen.
+> +		 */
+> +		unsigned long flags = native_save_fl();
+> +		WARN_ON_ONCE(flags & (X86_EFLAGS_AC | X86_EFLAGS_DF |
+> +				      X86_EFLAGS_NT));
+
+push, pop, bit test
+
+> +
+> +		/* We think we came from user mode. Make sure pt_regs agrees. */
+> +		WARN_ON_ONCE(!user_mode(regs));
+
+memory deref, bit test
+
+> +
+> +		/*
+> +		 * All entries from user mode (except #DF) should be on the
+> +		 * normal thread stack and should have user pt_regs in the
+> +		 * correct location.
+> +		 */
+> +		WARN_ON_ONCE(!on_thread_stack());
+
+per-cpu deref, subtract, test
+
+> +		WARN_ON_ONCE(regs != task_pt_regs(current));
+
+memory deref, test
+
+> +	}
+> +}
+
+This doesn't look very expensive, and they certain indicate really bad
+conditions. Does this need to be behind a CONFIG? (Whatever the answer,
+we can probably make those changes in a later series -- some of these
+also look not arch-specific...)
+
 -- 
-2.27.0
+Kees Cook
