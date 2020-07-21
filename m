@@ -1,164 +1,45 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53950 "EHLO
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33414 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727058AbgGQGYZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:25 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 11/22] netfilter: remove the compat_{get,set} methods
-Date: Fri, 17 Jul 2020 08:23:20 +0200
-Message-ID: <20200717062331.691152-12-hch@lst.de>
-In-Reply-To: <20200717062331.691152-1-hch@lst.de>
-References: <20200717062331.691152-1-hch@lst.de>
+        with ESMTP id S1731466AbgGUVRM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 17:17:12 -0400
+Received: from mail-lj1-x241.google.com (mail-lj1-x241.google.com [IPv6:2a00:1450:4864:20::241])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BC3D1C0619DC
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:17:11 -0700 (PDT)
+Received: by mail-lj1-x241.google.com with SMTP id f5so198464ljj.10
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:17:11 -0700 (PDT)
+Received: from mail-lf1-f53.google.com (mail-lf1-f53.google.com. [209.85.167.53])
+        by smtp.gmail.com with ESMTPSA id o1sm5082367ljj.82.2020.07.21.14.17.07
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 21 Jul 2020 14:17:08 -0700 (PDT)
+Received: by mail-lf1-f53.google.com with SMTP id k13so134537lfo.0
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:17:07 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200721202425.GA2786714@ZenIV.linux.org.uk> <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
+ <20200721202549.4150745-4-viro@ZenIV.linux.org.uk> <CAHk-=wiYS3sHp9bvRn3KmkFKnK-Pb0ksL+-gRRHLK_ZjJqQf=w@mail.gmail.com>
+ <CAHk-=wg4DXWjV0sHAk+5QGvkNqckJTBLLcse_U=AknqEf8r3pw@mail.gmail.com> <20200721211118.GB2786714@ZenIV.linux.org.uk>
+In-Reply-To: <20200721211118.GB2786714@ZenIV.linux.org.uk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 21 Jul 2020 14:16:51 -0700
+Message-ID: <CAHk-=wh59vJmaH_jWWxpr97XdQfUpOTJgMEA11qzvMwJFjB0VQ@mail.gmail.com>
+Subject: Re: [PATCH 04/18] csum_and_copy_..._user(): pass 0xffffffff instead
+ of 0 as initial sum
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
-Message-ID: <20200717062320.TyiL_ELkjBH4sBYHFkSMW9x_hx_WsQ5OH2PGc5j49v4@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200721211651.7VfL8PkASozWpBdvo9WKyDZDTs5nm6R8F00YWrR1Zns@z>
 
-All instances handle compat sockopts via in_compat_syscall() now, so
-remove the compat_{get,set} methods as well as the
-compat_nf_{get,set}sockopt wrappers.
+On Tue, Jul 21, 2020 at 2:11 PM Al Viro <viro@zeniv.linux.org.uk> wrote:
+>
+> > > But I didn't check. Maybe we don't have anything that stupid in the kernel.
+>
+> I did.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- include/linux/netfilter.h  | 14 -------------
- net/ipv4/ip_sockglue.c     |  5 ++---
- net/ipv6/ipv6_sockglue.c   |  5 ++---
- net/netfilter/nf_sockopt.c | 42 --------------------------------------
- 4 files changed, 4 insertions(+), 62 deletions(-)
+So then the commit message really should have said so, I feel. That
+would have avoided the whole worry, and made it clear that it's not an
+issue.
 
-diff --git a/include/linux/netfilter.h b/include/linux/netfilter.h
-index eb312e7ca36ee5..711b4d4486f042 100644
---- a/include/linux/netfilter.h
-+++ b/include/linux/netfilter.h
-@@ -164,17 +164,9 @@ struct nf_sockopt_ops {
- 	int set_optmin;
- 	int set_optmax;
- 	int (*set)(struct sock *sk, int optval, void __user *user, unsigned int len);
--#ifdef CONFIG_COMPAT
--	int (*compat_set)(struct sock *sk, int optval,
--			void __user *user, unsigned int len);
--#endif
- 	int get_optmin;
- 	int get_optmax;
- 	int (*get)(struct sock *sk, int optval, void __user *user, int *len);
--#ifdef CONFIG_COMPAT
--	int (*compat_get)(struct sock *sk, int optval,
--			void __user *user, int *len);
--#endif
- 	/* Use the module struct to lock set/get code in place */
- 	struct module *owner;
- };
-@@ -350,12 +342,6 @@ int nf_setsockopt(struct sock *sk, u_int8_t pf, int optval, char __user *opt,
- 		  unsigned int len);
- int nf_getsockopt(struct sock *sk, u_int8_t pf, int optval, char __user *opt,
- 		  int *len);
--#ifdef CONFIG_COMPAT
--int compat_nf_setsockopt(struct sock *sk, u_int8_t pf, int optval,
--		char __user *opt, unsigned int len);
--int compat_nf_getsockopt(struct sock *sk, u_int8_t pf, int optval,
--		char __user *opt, int *len);
--#endif
- 
- struct flowi;
- struct nf_queue_entry;
-diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
-index 84ec3703c90916..95f4248c6fc5ed 100644
---- a/net/ipv4/ip_sockglue.c
-+++ b/net/ipv4/ip_sockglue.c
-@@ -1446,8 +1446,7 @@ int compat_ip_setsockopt(struct sock *sk, int level, int optname,
- 			optname != IP_IPSEC_POLICY &&
- 			optname != IP_XFRM_POLICY &&
- 			!ip_mroute_opt(optname))
--		err = compat_nf_setsockopt(sk, PF_INET, optname, optval,
--					   optlen);
-+		err = nf_setsockopt(sk, PF_INET, optname, optval, optlen);
- #endif
- 	return err;
- }
-@@ -1821,7 +1820,7 @@ int compat_ip_getsockopt(struct sock *sk, int level, int optname,
- 		if (get_user(len, optlen))
- 			return -EFAULT;
- 
--		err = compat_nf_getsockopt(sk, PF_INET, optname, optval, &len);
-+		err = nf_getsockopt(sk, PF_INET, optname, optval, &len);
- 		if (err >= 0)
- 			err = put_user(len, optlen);
- 		return err;
-diff --git a/net/ipv6/ipv6_sockglue.c b/net/ipv6/ipv6_sockglue.c
-index 6ab44ec2c369da..6adfbdcb7979bd 100644
---- a/net/ipv6/ipv6_sockglue.c
-+++ b/net/ipv6/ipv6_sockglue.c
-@@ -1030,8 +1030,7 @@ int compat_ipv6_setsockopt(struct sock *sk, int level, int optname,
- 	/* we need to exclude all possible ENOPROTOOPTs except default case */
- 	if (err == -ENOPROTOOPT && optname != IPV6_IPSEC_POLICY &&
- 	    optname != IPV6_XFRM_POLICY)
--		err = compat_nf_setsockopt(sk, PF_INET6, optname, optval,
--					   optlen);
-+		err = nf_setsockopt(sk, PF_INET6, optname, optval, optlen);
- #endif
- 	return err;
- }
-@@ -1531,7 +1530,7 @@ int compat_ipv6_getsockopt(struct sock *sk, int level, int optname,
- 		if (get_user(len, optlen))
- 			return -EFAULT;
- 
--		err = compat_nf_getsockopt(sk, PF_INET6, optname, optval, &len);
-+		err = nf_getsockopt(sk, PF_INET6, optname, optval, &len);
- 		if (err >= 0)
- 			err = put_user(len, optlen);
- 	}
-diff --git a/net/netfilter/nf_sockopt.c b/net/netfilter/nf_sockopt.c
-index 46cb3786e0ec5c..02870993d335c9 100644
---- a/net/netfilter/nf_sockopt.c
-+++ b/net/netfilter/nf_sockopt.c
-@@ -122,45 +122,3 @@ int nf_getsockopt(struct sock *sk, u_int8_t pf, int val, char __user *opt,
- 	return nf_sockopt(sk, pf, val, opt, len, 1);
- }
- EXPORT_SYMBOL(nf_getsockopt);
--
--#ifdef CONFIG_COMPAT
--static int compat_nf_sockopt(struct sock *sk, u_int8_t pf, int val,
--			     char __user *opt, int *len, int get)
--{
--	struct nf_sockopt_ops *ops;
--	int ret;
--
--	ops = nf_sockopt_find(sk, pf, val, get);
--	if (IS_ERR(ops))
--		return PTR_ERR(ops);
--
--	if (get) {
--		if (ops->compat_get)
--			ret = ops->compat_get(sk, val, opt, len);
--		else
--			ret = ops->get(sk, val, opt, len);
--	} else {
--		if (ops->compat_set)
--			ret = ops->compat_set(sk, val, opt, *len);
--		else
--			ret = ops->set(sk, val, opt, *len);
--	}
--
--	module_put(ops->owner);
--	return ret;
--}
--
--int compat_nf_setsockopt(struct sock *sk, u_int8_t pf,
--		int val, char __user *opt, unsigned int len)
--{
--	return compat_nf_sockopt(sk, pf, val, opt, &len, 0);
--}
--EXPORT_SYMBOL(compat_nf_setsockopt);
--
--int compat_nf_getsockopt(struct sock *sk, u_int8_t pf,
--		int val, char __user *opt, int *len)
--{
--	return compat_nf_sockopt(sk, pf, val, opt, len, 1);
--}
--EXPORT_SYMBOL(compat_nf_getsockopt);
--#endif
--- 
-2.27.0
+                Linus
