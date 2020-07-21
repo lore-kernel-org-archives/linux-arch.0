@@ -1,158 +1,301 @@
-Return-Path: <SRS0=1VFR=BJ=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 30 Jul 2020 23:44:09 +0300
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH v2 3/7] mm: introduce memfd_secret system call to create
- "secret" memory areas
-Message-ID: <20200730204409.GB534153@kernel.org>
-References: <20200727162935.31714-1-rppt@kernel.org>
- <20200727162935.31714-4-rppt@kernel.org>
- <20200730162209.GB3128@gaia>
+Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from Galois.linutronix.de ([193.142.43.55]:37356 "EHLO
+        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727103AbgGULIj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:39 -0400
+Message-ID: <20200721110808.455350746@linutronix.de>
+Date: Tue, 21 Jul 2020 12:57:08 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V4 02/15] entry: Provide generic syscall entry functionality
+References: <20200721105706.030914876@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200730162209.GB3128@gaia>
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Christopher Lameter <cl@linux.com>, Dan Williams <dan.j.williams@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Elena Reshetova <elena.reshetova@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>, Ingo Molnar <mingo@redhat.com>, James Bottomley <jejb@linux.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <paul.walmsley@sifive.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org, x86@kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-transfer-encoding: 8-bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200730204409.KK94l3j8OnRHtqAgs8hlB6VZHU3qSfVbTMVP7U2yURo@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
+Message-ID: <20200721105708.KbvlmXVWepFgoc8IPjE_064iEM83gLmrPVavbFIhbM4@z>
 
-On Thu, Jul 30, 2020 at 05:22:10PM +0100, Catalin Marinas wrote:
-> Hi Mike,
-> 
-> On Mon, Jul 27, 2020 at 07:29:31PM +0300, Mike Rapoport wrote:
-> > For instance, the following example will create an uncached mapping (error
-> > handling is omitted):
-> > 
-> > 	fd = memfd_secret(SECRETMEM_UNCACHED);
-> > 	ftruncate(fd, MAP_SIZE);
-> > 	ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-> [...]
-> > +static struct page *secretmem_alloc_page(gfp_t gfp)
-> > +{
-> > +	/*
-> > +	 * FIXME: use a cache of large pages to reduce the direct map
-> > +	 * fragmentation
-> > +	 */
-> > +	return alloc_page(gfp);
-> > +}
-> > +
-> > +static vm_fault_t secretmem_fault(struct vm_fault *vmf)
-> > +{
-> > +	struct address_space *mapping = vmf->vma->vm_file->f_mapping;
-> > +	struct inode *inode = file_inode(vmf->vma->vm_file);
-> > +	pgoff_t offset = vmf->pgoff;
-> > +	unsigned long addr;
-> > +	struct page *page;
-> > +	int ret = 0;
-> > +
-> > +	if (((loff_t)vmf->pgoff << PAGE_SHIFT) >= i_size_read(inode))
-> > +		return vmf_error(-EINVAL);
-> > +
-> > +	page = find_get_entry(mapping, offset);
-> > +	if (!page) {
-> > +		page = secretmem_alloc_page(vmf->gfp_mask);
-> > +		if (!page)
-> > +			return vmf_error(-ENOMEM);
-> > +
-> > +		ret = add_to_page_cache(page, mapping, offset, vmf->gfp_mask);
-> > +		if (unlikely(ret))
-> > +			goto err_put_page;
-> > +
-> > +		ret = set_direct_map_invalid_noflush(page);
-> > +		if (ret)
-> > +			goto err_del_page_cache;
-> > +
-> > +		addr = (unsigned long)page_address(page);
-> > +		flush_tlb_kernel_range(addr, addr + PAGE_SIZE);
-> > +
-> > +		__SetPageUptodate(page);
-> > +
-> > +		ret = VM_FAULT_LOCKED;
-> > +	}
-> > +
-> > +	vmf->page = page;
-> > +	return ret;
-> > +
-> > +err_del_page_cache:
-> > +	delete_from_page_cache(page);
-> > +err_put_page:
-> > +	put_page(page);
-> > +	return vmf_error(ret);
-> > +}
-> > +
-> > +static const struct vm_operations_struct secretmem_vm_ops = {
-> > +	.fault = secretmem_fault,
-> > +};
-> > +
-> > +static int secretmem_mmap(struct file *file, struct vm_area_struct *vma)
-> > +{
-> > +	struct secretmem_ctx *ctx = file->private_data;
-> > +	unsigned long mode = ctx->mode;
-> > +	unsigned long len = vma->vm_end - vma->vm_start;
-> > +
-> > +	if (!mode)
-> > +		return -EINVAL;
-> > +
-> > +	if ((vma->vm_flags & (VM_SHARED | VM_MAYSHARE)) == 0)
-> > +		return -EINVAL;
-> > +
-> > +	if (mlock_future_check(vma->vm_mm, vma->vm_flags | VM_LOCKED, len))
-> > +		return -EAGAIN;
-> > +
-> > +	switch (mode) {
-> > +	case SECRETMEM_UNCACHED:
-> > +		vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-> > +		fallthrough;
-> > +	case SECRETMEM_EXCLUSIVE:
-> > +		vma->vm_ops = &secretmem_vm_ops;
-> > +		break;
-> > +	default:
-> > +		return -EINVAL;
-> > +	}
-> > +
-> > +	vma->vm_flags |= VM_LOCKED;
-> > +
-> > +	return 0;
-> > +}
-> 
-> I think the uncached mapping is not the right thing for arm/arm64. First
-> of all, pgprot_noncached() gives us Strongly Ordered (Device memory)
-> semantics together with not allowing unaligned accesses. I suspect the
-> semantics are different on x86.
+On syscall entry certain work needs to be done:
+
+   - Establish state (lockdep, context tracking, tracing)
+   - Conditional work (ptrace, seccomp, audit...)
+
+This code is needlessly duplicated and  different in all
+architectures.
+
+Provide a generic version based on the x86 implementation which has all the
+RCU and instrumentation bits right.
+
+As interrupt/exception entry from user space needs parts of the same
+functionality, provide a function for this as well.
+
+syscall_enter_from_user_mode() and irqentry_enter_from_user_mode() must be
+called right after the low level ASM entry. The calling code must be
+non-instrumentable. After the functions returns state is correct and the
+subsequent functions can be instrumented.
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+V4: Remove the architecture wrappers for seccomp and audit and use
+    the generic code (Kees)
+
+    Fix TIF_SYSCALL_AUDIT dummy define and remove TIF_SYSCALL_TRACE as it's
+    defined in all architectures.
+
+V3: Adapt to noinstr changes. Add interrupt/exception entry function.
+
+V2: Fix function documentation (Mike)
+    Add comment about return value (Andy)
+---
+ arch/Kconfig                 |    3 +
+ include/linux/entry-common.h |  121 +++++++++++++++++++++++++++++++++++++++++++
+ kernel/Makefile              |    1 
+ kernel/entry/Makefile        |    3 +
+ kernel/entry/common.c        |   88 +++++++++++++++++++++++++++++++
+ 5 files changed, 216 insertions(+)
+
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -27,6 +27,9 @@ config HAVE_IMA_KEXEC
+ config HOTPLUG_SMT
+ 	bool
  
-Hmm, on x86 it's also Strongly Ordered, but I didn't find any alignment
-restrictions. Is there a mode for arm64 that can provide similar
-semantics?
-
-Would it make sence to use something like
-
-#define pgprot_uncached(prot) \
-	__pgprot_modify(prot, PTE_ATTRINDX_MASK, \
-			PTE_ATTRINDX(MT_NORMAL_NC) | PTE_PXN)
-
-or is it too weak?
-
-> The second, more serious problem, is that I can't find any place where
-> the caches are flushed for the page mapped on fault. When a page is
-> allocated, assuming GFP_ZERO, only the caches are guaranteed to be
-> zeroed. Exposing this subsequently to user space as uncached would allow
-> the user to read stale data prior to zeroing. The arm64
-> set_direct_map_default_noflush() doesn't do any cache maintenance.
-
-Well, the idea of uncached mappings came from Elena [1] to prevent
-possibility of side channels that leak user space memory. So I think
-even without cache flushing after the allocation, user space is
-protected as all its memory accesses bypass cache so even after the page
-is freed there won't be stale data in the cache.
-
-I think that it makes sense to limit SECRETMEM_UNCACHED only for
-architectures that define an appropriate protection, e.g.
-pgprot_uncahced(). For x86 it can be aliased to pgprot_noncached() and
-other architecures can define their versions.
-
-[1] https://lore.kernel.org/lkml/2236FBA76BA1254E88B949DDB74E612BA4EEC0CE@IRSMSX102.ger.corp.intel.com/
-
--- 
-Sincerely yours,
-Mike.
++config GENERIC_ENTRY
++       bool
++
+ config OPROFILE
+ 	tristate "OProfile system profiling"
+ 	depends on PROFILING
+--- /dev/null
++++ b/include/linux/entry-common.h
+@@ -0,0 +1,121 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __LINUX_ENTRYCOMMON_H
++#define __LINUX_ENTRYCOMMON_H
++
++#include <linux/tracehook.h>
++#include <linux/syscalls.h>
++#include <linux/seccomp.h>
++#include <linux/sched.h>
++
++#include <asm/entry-common.h>
++
++/*
++ * Define dummy _TIF work flags if not defined by the architecture or for
++ * disabled functionality.
++ */
++#ifndef _TIF_SYSCALL_EMU
++# define _TIF_SYSCALL_EMU		(0)
++#endif
++
++#ifndef _TIF_SYSCALL_TRACEPOINT
++# define _TIF_SYSCALL_TRACEPOINT	(0)
++#endif
++
++#ifndef _TIF_SECCOMP
++# define _TIF_SECCOMP			(0)
++#endif
++
++#ifndef _TIF_SYSCALL_AUDIT
++# define _TIF_SYSCALL_AUDIT		(0)
++#endif
++
++/*
++ * TIF flags handled in syscall_enter_from_usermode()
++ */
++#ifndef ARCH_SYSCALL_ENTER_WORK
++# define ARCH_SYSCALL_ENTER_WORK	(0)
++#endif
++
++#define SYSCALL_ENTER_WORK						\
++	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | TIF_SECCOMP |	\
++	 _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_EMU |			\
++	 ARCH_SYSCALL_ENTER_WORK)
++
++/**
++ * arch_check_user_regs - Architecture specific sanity check for user mode regs
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Defaults to an empty implementation. Can be replaced by architecture
++ * specific code.
++ *
++ * Invoked from syscall_enter_from_user_mode() in the non-instrumentable
++ * section. Use __always_inline so the compiler cannot push it out of line
++ * and make it instrumentable.
++ */
++static __always_inline void arch_check_user_regs(struct pt_regs *regs);
++
++#ifndef arch_check_user_regs
++static __always_inline void arch_check_user_regs(struct pt_regs *regs) {}
++#endif
++
++/**
++ * arch_syscall_enter_tracehook - Wrapper around tracehook_report_syscall_entry()
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Returns: 0 on success or an error code to skip the syscall.
++ *
++ * Defaults to tracehook_report_syscall_entry(). Can be replaced by
++ * architecture specific code.
++ *
++ * Invoked from syscall_enter_from_user_mode()
++ */
++static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs);
++
++#ifndef arch_syscall_enter_tracehook
++static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs)
++{
++	return tracehook_report_syscall_entry(regs);
++}
++#endif
++
++/**
++ * syscall_enter_from_user_mode - Check and handle work before invoking
++ *				 a syscall
++ * @regs:	Pointer to currents pt_regs
++ * @syscall:	The syscall number
++ *
++ * Invoked from architecture specific syscall entry code with interrupts
++ * disabled. The calling code has to be non-instrumentable. When the
++ * function returns all state is correct and the subsequent functions can be
++ * instrumented.
++ *
++ * Returns: The original or a modified syscall number
++ *
++ * If the returned syscall number is -1 then the syscall should be
++ * skipped. In this case the caller may invoke syscall_set_error() or
++ * syscall_set_return_value() first.  If neither of those are called and -1
++ * is returned, then the syscall will fail with ENOSYS.
++ *
++ * The following functionality is handled here:
++ *
++ *  1) Establish state (lockdep, RCU (context tracking), tracing)
++ *  2) TIF flag dependent invocations of arch_syscall_enter_tracehook(),
++ *     __secure_computing(), trace_sys_enter()
++ *  3) Invocation of audit_syscall_entry()
++ */
++long syscall_enter_from_user_mode(struct pt_regs *regs, long syscall);
++
++/**
++ * irqentry_enter_from_user_mode - Establish state before invoking the irq handler
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Invoked from architecture specific entry code with interrupts disabled.
++ * Can only be called when the interrupt entry came from user mode. The
++ * calling code must be non-instrumentable.  When the function returns all
++ * state is correct and the subsequent functions can be instrumented.
++ *
++ * The function establishes state (lockdep, RCU (context tracking), tracing)
++ */
++void irqentry_enter_from_user_mode(struct pt_regs *regs);
++
++#endif
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -48,6 +48,7 @@ obj-y += irq/
+ obj-y += rcu/
+ obj-y += livepatch/
+ obj-y += dma/
++obj-y += entry/
+ 
+ obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o
+ obj-$(CONFIG_FREEZER) += freezer.o
+--- /dev/null
++++ b/kernel/entry/Makefile
+@@ -0,0 +1,3 @@
++# SPDX-License-Identifier: GPL-2.0
++
++obj-$(CONFIG_GENERIC_ENTRY) += common.o
+--- /dev/null
++++ b/kernel/entry/common.c
+@@ -0,0 +1,88 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <linux/context_tracking.h>
++#include <linux/entry-common.h>
++
++#define CREATE_TRACE_POINTS
++#include <trace/events/syscalls.h>
++
++/**
++ * enter_from_user_mode - Establish state when coming from user mode
++ *
++ * Syscall/interrupt entry disables interrupts, but user mode is traced as
++ * interrupts enabled. Also with NO_HZ_FULL RCU might be idle.
++ *
++ * 1) Tell lockdep that interrupts are disabled
++ * 2) Invoke context tracking if enabled to reactivate RCU
++ * 3) Trace interrupts off state
++ */
++static __always_inline void enter_from_user_mode(struct pt_regs *regs)
++{
++	arch_check_user_regs(regs);
++	lockdep_hardirqs_off(CALLER_ADDR0);
++
++	CT_WARN_ON(ct_state() != CONTEXT_USER);
++	user_exit_irqoff();
++
++	instrumentation_begin();
++	trace_hardirqs_off_finish();
++	instrumentation_end();
++}
++
++static inline void syscall_enter_audit(struct pt_regs *regs, long syscall)
++{
++	if (unlikely(audit_context())) {
++		unsigned long args[6];
++
++		syscall_get_arguments(current, regs, args);
++		audit_syscall_entry(syscall, args[0], args[1], args[2], args[3]);
++	}
++}
++
++static long syscall_trace_enter(struct pt_regs *regs, long syscall,
++				unsigned long ti_work)
++{
++	long ret = 0;
++
++	/* Handle ptrace */
++	if (ti_work & (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU)) {
++		ret = arch_syscall_enter_tracehook(regs);
++		if (ret || (ti_work & _TIF_SYSCALL_EMU))
++			return -1L;
++	}
++
++	/* Do seccomp after ptrace, to catch any tracer changes. */
++	if (ti_work & _TIF_SECCOMP) {
++		ret = __secure_computing(NULL);
++		if (ret == -1L)
++			return ret;
++	}
++
++	if (unlikely(ti_work & _TIF_SYSCALL_TRACEPOINT))
++		trace_sys_enter(regs, syscall);
++
++	syscall_enter_audit(regs, syscall);
++
++	return ret ? : syscall;
++}
++
++noinstr long syscall_enter_from_user_mode(struct pt_regs *regs, long syscall)
++{
++	unsigned long ti_work;
++
++	enter_from_user_mode(regs);
++	instrumentation_begin();
++
++	local_irq_enable();
++	ti_work = READ_ONCE(current_thread_info()->flags);
++	if (ti_work & SYSCALL_ENTER_WORK)
++		syscall = syscall_trace_enter(regs, syscall, ti_work);
++	instrumentation_end();
++
++	return syscall;
++}
++
++noinstr void irqentry_enter_from_user_mode(struct pt_regs *regs)
++{
++	enter_from_user_mode(regs);
++}
