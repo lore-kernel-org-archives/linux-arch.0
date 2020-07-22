@@ -1,259 +1,104 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51370 "EHLO
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44880 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729637AbgGULIw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:52 -0400
-Message-ID: <20200721110809.747620036@linutronix.de>
-Date: Tue, 21 Jul 2020 12:57:20 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V4 14/15] x86/entry: Cleanup idtentry_enter/exit
-References: <20200721105706.030914876@linutronix.de>
+        with ESMTP id S1731286AbgGVQpQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 12:45:16 -0400
+Received: from mail-wr1-x441.google.com (mail-wr1-x441.google.com [IPv6:2a00:1450:4864:20::441])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5C504C0619DC
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:16 -0700 (PDT)
+Received: by mail-wr1-x441.google.com with SMTP id f18so2576809wrs.0
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:16 -0700 (PDT)
+From: David Brazdil <dbrazdil@google.com>
+Subject: [PATCH 9/9] kvm: arm64: Remove unnecessary hyp mappings
+Date: Wed, 22 Jul 2020 17:44:24 +0100
+Message-ID: <20200722164424.42225-10-dbrazdil@google.com>
+In-Reply-To: <20200722164424.42225-1-dbrazdil@google.com>
+References: <20200722164424.42225-1-dbrazdil@google.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200721105720.vj_RYxFUkJPGDT8Hl_kEfgZgwvrYkN-lZEM_amZFH-g@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, kernel-team@google.com, David Brazdil <dbrazdil@google.com>
+Message-ID: <20200722164424.6jpL4tkerMPEdB88mK5SNuwKEUuqJwzIGs8n5PqXffw@z>
 
-Remove the temporary defines and fixup all references.
+With all nVHE per-CPU variables being part of the hyp per-CPU region,
+mapping them individual is not necessary any longer. They are mapped to hyp
+as part of the overall per-CPU region.
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: David Brazdil <dbrazdil@google.com>
 ---
- arch/x86/entry/common.c         |    6 +++---
- arch/x86/include/asm/idtentry.h |   33 ++++++++++++++-------------------
- arch/x86/kernel/kvm.c           |    6 +++---
- arch/x86/kernel/traps.c         |    6 +++---
- arch/x86/mm/fault.c             |    6 +++---
- 5 files changed, 26 insertions(+), 31 deletions(-)
+ arch/arm64/include/asm/kvm_mmu.h | 25 +++++++------------------
+ arch/arm64/kvm/arm.c             | 17 +----------------
+ 2 files changed, 8 insertions(+), 34 deletions(-)
 
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -248,9 +248,9 @@ static void __xen_pv_evtchn_do_upcall(vo
+diff --git a/arch/arm64/include/asm/kvm_mmu.h b/arch/arm64/include/asm/kvm_mmu.h
+index e9e5875274cb..1a66089cf4f4 100644
+--- a/arch/arm64/include/asm/kvm_mmu.h
++++ b/arch/arm64/include/asm/kvm_mmu.h
+@@ -531,28 +531,17 @@ static inline int kvm_map_vectors(void)
+ DECLARE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
+ DECLARE_KVM_NVHE_PER_CPU(u64, arm64_ssbd_callback_required);
+ 
+-static inline int hyp_init_aux_data(void)
++static inline void hyp_init_aux_data(void)
  {
- 	struct pt_regs *old_regs;
- 	bool inhcall;
--	idtentry_state_t state;
-+	irqentry_state_t state;
+-	int cpu, err;
++	int cpu;
  
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 	old_regs = set_irq_regs(regs);
- 
- 	instrumentation_begin();
-@@ -266,7 +266,7 @@ static void __xen_pv_evtchn_do_upcall(vo
- 		instrumentation_end();
- 		restore_inhcall(inhcall);
- 	} else {
--		idtentry_exit(regs, state);
-+		irqentry_exit(regs, state);
- 	}
- }
- #endif /* CONFIG_XEN_PV */
---- a/arch/x86/include/asm/idtentry.h
-+++ b/arch/x86/include/asm/idtentry.h
-@@ -11,11 +11,6 @@
- 
- #include <asm/irq_stack.h>
- 
--/* Temporary defines */
--typedef irqentry_state_t idtentry_state_t;
--#define idtentry_enter irqentry_enter
--#define idtentry_exit irqentry_exit
+-	for_each_possible_cpu(cpu) {
+-		u64 *ptr;
 -
- /**
-  * DECLARE_IDTENTRY - Declare functions for simple IDT entry points
-  *		      No error code pushed by hardware
-@@ -45,8 +40,8 @@ typedef irqentry_state_t idtentry_state_
-  * The macro is written so it acts as function definition. Append the
-  * body with a pair of curly brackets.
-  *
-- * idtentry_enter() contains common code which has to be invoked before
-- * arbitrary code in the body. idtentry_exit() contains common code
-+ * irqentry_enter() contains common code which has to be invoked before
-+ * arbitrary code in the body. irqentry_exit() contains common code
-  * which has to run before returning to the low level assembly code.
-  */
- #define DEFINE_IDTENTRY(func)						\
-@@ -54,12 +49,12 @@ static __always_inline void __##func(str
- 									\
- __visible noinstr void func(struct pt_regs *regs)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	__##func (regs);						\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs)
-@@ -101,12 +96,12 @@ static __always_inline void __##func(str
- __visible noinstr void func(struct pt_regs *regs,			\
- 			    unsigned long error_code)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	__##func (regs, error_code);					\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs,		\
-@@ -161,7 +156,7 @@ static __always_inline void __##func(str
-  * body with a pair of curly brackets.
-  *
-  * Contrary to DEFINE_IDTENTRY_ERRORCODE() this does not invoke the
-- * idtentry_enter/exit() helpers before and after the body invocation. This
-+ * irqentry_enter/exit() helpers before and after the body invocation. This
-  * needs to be done in the body itself if applicable. Use if extra work
-  * is required before the enter/exit() helpers are invoked.
-  */
-@@ -197,7 +192,7 @@ static __always_inline void __##func(str
- __visible noinstr void func(struct pt_regs *regs,			\
- 			    unsigned long error_code)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	irq_enter_rcu();						\
-@@ -205,7 +200,7 @@ static __always_inline void __##func(str
- 	__##func (regs, (u8)error_code);				\
- 	irq_exit_rcu();							\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs, u8 vector)
-@@ -229,7 +224,7 @@ static __always_inline void __##func(str
-  * DEFINE_IDTENTRY_SYSVEC - Emit code for system vector IDT entry points
-  * @func:	Function name of the entry point
-  *
-- * idtentry_enter/exit() and irq_enter/exit_rcu() are invoked before the
-+ * irqentry_enter/exit() and irq_enter/exit_rcu() are invoked before the
-  * function body. KVM L1D flush request is set.
-  *
-  * Runs the function on the interrupt stack if the entry hit kernel mode
-@@ -239,7 +234,7 @@ static void __##func(struct pt_regs *reg
- 									\
- __visible noinstr void func(struct pt_regs *regs)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	irq_enter_rcu();						\
-@@ -247,7 +242,7 @@ static void __##func(struct pt_regs *reg
- 	run_on_irqstack_cond(__##func, regs, regs);			\
- 	irq_exit_rcu();							\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static noinline void __##func(struct pt_regs *regs)
-@@ -268,7 +263,7 @@ static __always_inline void __##func(str
- 									\
- __visible noinstr void func(struct pt_regs *regs)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	__irq_enter_raw();						\
-@@ -276,7 +271,7 @@ static __always_inline void __##func(str
- 	__##func (regs);						\
- 	__irq_exit_raw();						\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs)
---- a/arch/x86/kernel/kvm.c
-+++ b/arch/x86/kernel/kvm.c
-@@ -233,7 +233,7 @@ EXPORT_SYMBOL_GPL(kvm_read_and_reset_apf
- noinstr bool __kvm_handle_async_pf(struct pt_regs *regs, u32 token)
- {
- 	u32 reason = kvm_read_and_reset_apf_flags();
--	idtentry_state_t state;
-+	irqentry_state_t state;
+-		ptr = per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu);
+-		err = create_hyp_mappings(ptr, ptr + 1, PAGE_HYP);
+-		if (err)
+-			return err;
+-
+-		/* Copy value from kernel to hyp. */
+-		*ptr = per_cpu(arm64_ssbd_callback_required, cpu);
+-	}
+-	return 0;
++	/* Copy arm64_ssbd_callback_required values from kernel to hyp. */
++	for_each_possible_cpu(cpu)
++		*(per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu)) =
++			per_cpu(arm64_ssbd_callback_required, cpu);
+ }
+ #else
+-static inline int hyp_init_aux_data(void)
+-{
+-	return 0;
+-}
++static inline void hyp_init_aux_data(void) {}
+ #endif
  
- 	switch (reason) {
- 	case KVM_PV_REASON_PAGE_NOT_PRESENT:
-@@ -243,7 +243,7 @@ noinstr bool __kvm_handle_async_pf(struc
- 		return false;
+ #define kvm_phys_to_vttbr(addr)		phys_to_ttbr(addr)
+diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
+index bbbc5c1519a9..f2e537d99d2b 100644
+--- a/arch/arm64/kvm/arm.c
++++ b/arch/arm64/kvm/arm.c
+@@ -1628,22 +1628,7 @@ static int init_hyp_mode(void)
+ 		}
  	}
  
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 	instrumentation_begin();
+-	for_each_possible_cpu(cpu) {
+-		kvm_host_data_t *cpu_data;
+-
+-		cpu_data = per_cpu_ptr_hyp(kvm_host_data, cpu);
+-		err = create_hyp_mappings(cpu_data, cpu_data + 1, PAGE_HYP);
+-
+-		if (err) {
+-			kvm_err("Cannot map host CPU state: %d\n", err);
+-			goto out_err;
+-		}
+-	}
+-
+-	err = hyp_init_aux_data();
+-	if (err)
+-		kvm_err("Cannot map host auxiliary data: %d\n", err);
+-
++	hyp_init_aux_data();
+ 	return 0;
  
- 	/*
-@@ -264,7 +264,7 @@ noinstr bool __kvm_handle_async_pf(struc
- 	}
- 
- 	instrumentation_end();
--	idtentry_exit(regs, state);
-+	irqentry_exit(regs, state);
- 	return true;
- }
- 
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -245,7 +245,7 @@ static noinstr bool handle_bug(struct pt
- 
- DEFINE_IDTENTRY_RAW(exc_invalid_op)
- {
--	idtentry_state_t state;
-+	irqentry_state_t state;
- 
- 	/*
- 	 * We use UD2 as a short encoding for 'CALL __WARN', as such
-@@ -255,11 +255,11 @@ DEFINE_IDTENTRY_RAW(exc_invalid_op)
- 	if (!user_mode(regs) && handle_bug(regs))
- 		return;
- 
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 	instrumentation_begin();
- 	handle_invalid_op(regs);
- 	instrumentation_end();
--	idtentry_exit(regs, state);
-+	irqentry_exit(regs, state);
- }
- 
- DEFINE_IDTENTRY(exc_coproc_segment_overrun)
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -1377,7 +1377,7 @@ handle_page_fault(struct pt_regs *regs,
- DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_fault)
- {
- 	unsigned long address = read_cr2();
--	idtentry_state_t state;
-+	irqentry_state_t state;
- 
- 	prefetchw(&current->mm->mmap_lock);
- 
-@@ -1412,11 +1412,11 @@ DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_f
- 	 * code reenabled RCU to avoid subsequent wreckage which helps
- 	 * debugability.
- 	 */
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 
- 	instrumentation_begin();
- 	handle_page_fault(regs, error_code, address);
- 	instrumentation_end();
- 
--	idtentry_exit(regs, state);
-+	irqentry_exit(regs, state);
- }
+ out_err:
+-- 
+2.27.0
