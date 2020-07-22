@@ -1,55 +1,256 @@
-Return-Path: <SRS0=fRWW=A6=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41280 "EHLO
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44876 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726156AbgGSPZI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 19 Jul 2020 11:25:08 -0400
-Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C67E6C0619D5
-        for <linux-arch@vger.kernel.org>; Sun, 19 Jul 2020 08:25:08 -0700 (PDT)
-Received: by mail-pg1-x542.google.com with SMTP id p3so9138916pgh.3
-        for <linux-arch@vger.kernel.org>; Sun, 19 Jul 2020 08:25:08 -0700 (PDT)
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-From: Andy Lutomirski <luto@amacapital.net>
-Mime-Version: 1.0 (1.0)
-Subject: Re: [patch V3 01/13] entry: Provide generic syscall entry functionality
-Date: Sun, 19 Jul 2020 08:25:05 -0700
-Message-ID: <A790AF9D-3BF7-4FEE-9E29-7C13FA3FE0C3@amacapital.net>
-References: <87v9ijollo.fsf@nanos.tec.linutronix.de>
-In-Reply-To: <87v9ijollo.fsf@nanos.tec.linutronix.de>
+        with ESMTP id S1731195AbgGVQpP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 12:45:15 -0400
+Received: from mail-wm1-x343.google.com (mail-wm1-x343.google.com [IPv6:2a00:1450:4864:20::343])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B2CBAC0619E0
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:14 -0700 (PDT)
+Received: by mail-wm1-x343.google.com with SMTP id f139so2619177wmf.5
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:14 -0700 (PDT)
+From: David Brazdil <dbrazdil@google.com>
+Subject: [PATCH 8/9] kvm: arm64: Set up hyp percpu data for nVHE
+Date: Wed, 22 Jul 2020 17:44:23 +0100
+Message-ID: <20200722164424.42225-9-dbrazdil@google.com>
+In-Reply-To: <20200722164424.42225-1-dbrazdil@google.com>
+References: <20200722164424.42225-1-dbrazdil@google.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <Mark.Rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200719152505.k45smq3_d8lD9QWOD4dQPea6J-_CIPJm6WjfbBl487Q@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, kernel-team@google.com, David Brazdil <dbrazdil@google.com>
+Message-ID: <20200722164423.9x_a6hKtNdRcm-BmqWG-U_2iNxpATwDdXK4VNL-KGLE@z>
 
+Add hyp percpu section to linker script and rename the corresponding ELF
+sections of hyp/nvhe object files. This moves all nVHE-specific percpu
+variables to the new hyp percpu section.
 
+Allocate sufficient amount of memory for all percpu hyp regions at global KVM
+init time, and create corresponding hyp mappings.
 
-> On Jul 19, 2020, at 3:17 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
->=20
-> =EF=BB=BFAndy Lutomirski <luto@kernel.org> writes:
->>> On Sat, Jul 18, 2020 at 7:16 AM Thomas Gleixner <tglx@linutronix.de> wro=
-te:
->>> Andy Lutomirski <luto@kernel.org> writes:
->>>> FWIW, TIF_USER_RETURN_NOTIFY is a bit of an odd duck: it's an
->>>> entry/exit word *and* a context switch word.  The latter is because
->>>> it's logically a per-cpu flag, not a per-task flag, and the context
->>>> switch code moves it around so it's always set on the running task.
->>>=20
->>> Gah, I missed the context switch thing of that. That stuff is hideous.
->>=20
->> It's also delightful because anything that screws up that dance (such
->> as failure to do the exit-to-usermode path exactly right) likely
->> results in an insta-root-hole.  If we fail to run user return
->> notifiers, we can run user code with incorrect syscall MSRs, etc.
->=20
-> Looking at it deeper, having that thing in the loop is a pointless
-> exercise. This really wants to be done _after_ the loop.
->=20
+The base addresses of hyp percpu regions are kept in a dynamically allocated
+array in the kernel.
 
-As long as we=E2=80=99re confident that nothing after the loop can set the f=
-lag again.
+Add NULL checks in PMU event-reset code as it may run before KVM memory is
+initialized.
 
-> Thanks,
->=20
->        tglx
+Signed-off-by: David Brazdil <dbrazdil@google.com>
+---
+ arch/arm64/include/asm/kvm_asm.h  | 19 +++++++++--
+ arch/arm64/include/asm/sections.h |  1 +
+ arch/arm64/kernel/vmlinux.lds.S   | 10 ++++++
+ arch/arm64/kvm/arm.c              | 55 +++++++++++++++++++++++++++++--
+ arch/arm64/kvm/hyp/nvhe/Makefile  |  2 ++
+ arch/arm64/kvm/pmu.c              |  5 ++-
+ 6 files changed, 86 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm64/include/asm/kvm_asm.h b/arch/arm64/include/asm/kvm_asm.h
+index 3d69cab873e4..22e63e651702 100644
+--- a/arch/arm64/include/asm/kvm_asm.h
++++ b/arch/arm64/include/asm/kvm_asm.h
+@@ -72,8 +72,23 @@
+ #define CHOOSE_VHE_SYM(sym)	sym
+ #define CHOOSE_NVHE_SYM(sym)	kvm_nvhe_sym(sym)
+ 
+-#define this_cpu_ptr_nvhe(sym)		this_cpu_ptr(&kvm_nvhe_sym(sym))
+-#define per_cpu_ptr_nvhe(sym, cpu)	per_cpu_ptr(&kvm_nvhe_sym(sym), cpu)
++/* Array of percpu base addresses. Length of the array is nr_cpu_ids. */
++extern unsigned long *kvm_arm_hyp_percpu_base;
++
++/*
++ * Compute pointer to a symbol defined in nVHE percpu region.
++ * Returns NULL if percpu memory has not been allocated yet.
++ */
++#define this_cpu_ptr_nvhe(sym)	per_cpu_ptr_nvhe(sym, smp_processor_id())
++#define per_cpu_ptr_nvhe(sym, cpu)					\
++	({								\
++		unsigned long base, off;				\
++		base = kvm_arm_hyp_percpu_base				\
++			? kvm_arm_hyp_percpu_base[cpu] : 0;		\
++		off = (unsigned long)&kvm_nvhe_sym(sym) -		\
++		      (unsigned long)&kvm_nvhe_sym(__per_cpu_start);	\
++		base ? (typeof(kvm_nvhe_sym(sym))*)(base + off) : NULL;	\
++	})
+ 
+ #ifndef __KVM_NVHE_HYPERVISOR__
+ /*
+diff --git a/arch/arm64/include/asm/sections.h b/arch/arm64/include/asm/sections.h
+index 3994169985ef..5062553a6847 100644
+--- a/arch/arm64/include/asm/sections.h
++++ b/arch/arm64/include/asm/sections.h
+@@ -18,5 +18,6 @@ extern char __exittext_begin[], __exittext_end[];
+ extern char __irqentry_text_start[], __irqentry_text_end[];
+ extern char __mmuoff_data_start[], __mmuoff_data_end[];
+ extern char __entry_tramp_text_start[], __entry_tramp_text_end[];
++extern char __kvm_nvhe___per_cpu_start[], __kvm_nvhe___per_cpu_end[];
+ 
+ #endif /* __ASM_SECTIONS_H */
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index 6827da7f3aa5..c678615ccd6d 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -16,6 +16,9 @@
+ 
+ #include "image.h"
+ 
++#define __CONCAT3(x, y, z) x ## y ## z
++#define CONCAT3(x, y, z) __CONCAT3(x, y, z)
++
+ OUTPUT_ARCH(aarch64)
+ ENTRY(_text)
+ 
+@@ -187,6 +190,13 @@ SECTIONS
+ 
+ 	PERCPU_SECTION(L1_CACHE_BYTES)
+ 
++	/* KVM nVHE per-cpu section */
++	#undef PERCPU_SECTION_NAME
++	#undef PERCPU_SYMBOL_NAME
++	#define PERCPU_SECTION_NAME(suffix)	CONCAT3(.hyp, PERCPU_SECTION_BASE_NAME, suffix)
++	#define PERCPU_SYMBOL_NAME(name)	__kvm_nvhe_ ## name
++	PERCPU_SECTION(L1_CACHE_BYTES)
++
+ 	.rela.dyn : ALIGN(8) {
+ 		*(.rela .rela*)
+ 	}
+diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
+index dc557b380c87..bbbc5c1519a9 100644
+--- a/arch/arm64/kvm/arm.c
++++ b/arch/arm64/kvm/arm.c
+@@ -47,6 +47,7 @@ __asm__(".arch_extension	virt");
+ #endif
+ 
+ static DEFINE_PER_CPU(unsigned long, kvm_arm_hyp_stack_page);
++unsigned long *kvm_arm_hyp_percpu_base;
+ 
+ /* The VMID used in the VTTBR */
+ static atomic64_t kvm_vmid_gen = ATOMIC64_INIT(1);
+@@ -1253,6 +1254,15 @@ long kvm_arch_vm_ioctl(struct file *filp,
+ 	}
+ }
+ 
++#define kvm_hyp_percpu_base(cpu)	((unsigned long)per_cpu_ptr_nvhe(__per_cpu_start, cpu))
++#define kvm_hyp_percpu_array_size	(nr_cpu_ids * sizeof(*kvm_arm_hyp_percpu_base))
++#define kvm_hyp_percpu_array_order	(get_order(kvm_hyp_percpu_array_size))
++#define kvm_hyp_percpu_begin		CHOOSE_NVHE_SYM(__per_cpu_start)
++#define kvm_hyp_percpu_size		((unsigned long)CHOOSE_NVHE_SYM(__per_cpu_end) - \
++					 (unsigned long)CHOOSE_NVHE_SYM(__per_cpu_start))
++#define kvm_hyp_percpu_order		(kvm_hyp_percpu_size \
++						? get_order(kvm_hyp_percpu_size) : 0)
++
+ static void cpu_init_hyp_mode(void)
+ {
+ 	phys_addr_t pgd_ptr;
+@@ -1268,8 +1278,8 @@ static void cpu_init_hyp_mode(void)
+ 	 * kernel's mapping to the linear mapping, and store it in tpidr_el2
+ 	 * so that we can use adr_l to access per-cpu variables in EL2.
+ 	 */
+-	tpidr_el2 = ((unsigned long)this_cpu_ptr(&kvm_host_data) -
+-		     (unsigned long)kvm_ksym_ref(&kvm_host_data));
++	tpidr_el2 = (unsigned long)this_cpu_ptr_nvhe(__per_cpu_start) -
++		    (unsigned long)kvm_ksym_ref(kvm_hyp_percpu_begin);
+ 
+ 	pgd_ptr = kvm_mmu_get_httbr();
+ 	hyp_stack_ptr = __this_cpu_read(kvm_arm_hyp_stack_page) + PAGE_SIZE;
+@@ -1501,8 +1511,11 @@ static void teardown_hyp_mode(void)
+ 	int cpu;
+ 
+ 	free_hyp_pgds();
+-	for_each_possible_cpu(cpu)
++	for_each_possible_cpu(cpu) {
+ 		free_hyp_page(per_cpu(kvm_arm_hyp_stack_page, cpu));
++		free_hyp_pages(kvm_hyp_percpu_base(cpu), kvm_hyp_percpu_order);
++	}
++	free_hyp_pages((unsigned long)kvm_arm_hyp_percpu_base, kvm_hyp_percpu_array_order);
+ }
+ 
+ /**
+@@ -1535,6 +1548,28 @@ static int init_hyp_mode(void)
+ 		per_cpu(kvm_arm_hyp_stack_page, cpu) = stack_page;
+ 	}
+ 
++	/*
++	 * Allocate and initialize pages for Hypervisor-mode percpu regions.
++	 */
++	kvm_arm_hyp_percpu_base = (unsigned long*)alloc_hyp_pages(
++			GFP_KERNEL | __GFP_ZERO, kvm_hyp_percpu_array_order);
++	if (!kvm_arm_hyp_percpu_base) {
++		err = -ENOMEM;
++		goto out_err;
++	}
++	for_each_possible_cpu(cpu) {
++		unsigned long percpu_base;
++
++		percpu_base = alloc_hyp_pages(GFP_KERNEL, kvm_hyp_percpu_order);
++		if (!percpu_base) {
++			err = -ENOMEM;
++			goto out_err;
++		}
++
++		memcpy((void*)percpu_base, kvm_hyp_percpu_begin, kvm_hyp_percpu_size);
++		kvm_arm_hyp_percpu_base[cpu] = percpu_base;
++	}
++
+ 	/*
+ 	 * Map the Hyp-code called directly from the host
+ 	 */
+@@ -1579,6 +1614,20 @@ static int init_hyp_mode(void)
+ 		}
+ 	}
+ 
++	/*
++	 * Map Hyp percpu pages
++	 */
++	for_each_possible_cpu(cpu) {
++		char *percpu_begin = (char *)kvm_arm_hyp_percpu_base[cpu];
++		char *percpu_end = percpu_begin + PAGE_ALIGN(kvm_hyp_percpu_size);
++		err = create_hyp_mappings(percpu_begin, percpu_end, PAGE_HYP);
++
++		if (err) {
++			kvm_err("Cannot map hyp percpu region\n");
++			goto out_err;
++		}
++	}
++
+ 	for_each_possible_cpu(cpu) {
+ 		kvm_host_data_t *cpu_data;
+ 
+diff --git a/arch/arm64/kvm/hyp/nvhe/Makefile b/arch/arm64/kvm/hyp/nvhe/Makefile
+index 0b34414557d6..1d415698e60e 100644
+--- a/arch/arm64/kvm/hyp/nvhe/Makefile
++++ b/arch/arm64/kvm/hyp/nvhe/Makefile
+@@ -23,6 +23,8 @@ $(obj)/%.hyp.o: $(obj)/%.hyp.tmp.o FORCE
+ quiet_cmd_hypcopy = HYPCOPY $@
+       cmd_hypcopy = $(OBJCOPY)	--prefix-symbols=__kvm_nvhe_		\
+ 				--rename-section=.text=.hyp.text	\
++				--rename-section=.data..percpu=.hyp.data..percpu \
++				--rename-section=.data..percpu..read_mostly=.hyp.data..percpu..read_mostly \
+ 				$< $@
+ 
+ # Remove ftrace and Shadow Call Stack CFLAGS.
+diff --git a/arch/arm64/kvm/pmu.c b/arch/arm64/kvm/pmu.c
+index 717941910723..b4c8302f0798 100644
+--- a/arch/arm64/kvm/pmu.c
++++ b/arch/arm64/kvm/pmu.c
+@@ -33,7 +33,7 @@ void kvm_set_pmu_events(u32 set, struct perf_event_attr *attr)
+ {
+ 	struct kvm_host_data *ctx = this_cpu_ptr_hyp(kvm_host_data);
+ 
+-	if (!kvm_pmu_switch_needed(attr))
++	if (!ctx || !kvm_pmu_switch_needed(attr))
+ 		return;
+ 
+ 	if (!attr->exclude_host)
+@@ -49,6 +49,9 @@ void kvm_clr_pmu_events(u32 clr)
+ {
+ 	struct kvm_host_data *ctx = this_cpu_ptr_hyp(kvm_host_data);
+ 
++	if (!ctx)
++		return;
++
+ 	ctx->pmu_events.events_host &= ~clr;
+ 	ctx->pmu_events.events_guest &= ~clr;
+ }
+-- 
+2.27.0
