@@ -1,384 +1,53 @@
 Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:52552 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733043AbgGVWLh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:37 -0400
-Message-ID: <20200722220520.376213694@linutronix.de>
-Date: Thu, 23 Jul 2020 00:00:04 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V5 10/15] x86/entry: Use generic syscall entry function
-References: <20200722215954.464281930@linutronix.de>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47478 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732777AbgGVUDZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 16:03:25 -0400
+Received: from mail-ej1-x643.google.com (mail-ej1-x643.google.com [IPv6:2a00:1450:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D2A66C0619E3
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 13:03:24 -0700 (PDT)
+Received: by mail-ej1-x643.google.com with SMTP id br7so3618696ejb.5
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 13:03:24 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624203200.78870-5-samitolvanen@google.com> <20200624212737.GV4817@hirez.programming.kicks-ass.net>
+ <20200624214530.GA120457@google.com> <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+ <20200625161503.GB173089@google.com> <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
+ <20200625224042.GA169781@google.com> <20200626112931.GF4817@hirez.programming.kicks-ass.net>
+ <20200722135542.41127cc4@oasis.local.home> <20200722184137.GP10769@hirez.programming.kicks-ass.net>
+ <20200722150943.53046592@oasis.local.home>
+In-Reply-To: <20200722150943.53046592@oasis.local.home>
+From: Sami Tolvanen <samitolvanen@google.com>
+Date: Wed, 22 Jul 2020 13:03:12 -0700
+Message-ID: <CABCJKufW8rYG-R7b=ad8E5oRd+1xrVknWcTd2VFuvE7=SPtoTA@mail.gmail.com>
+Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
-Message-ID: <20200722220004.DP3l11Jb7_1o16ADxHO_6t73MHqYG-0uGQggnK5vB4o@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>
+Message-ID: <20200722200312.UMQyMhEAczxWyCTaNeWEZzwkfvATbsRvFrhUygm7D44@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+On Wed, Jul 22, 2020 at 12:09 PM Steven Rostedt <rostedt@goodmis.org> wrote:
+>
+> On Wed, 22 Jul 2020 20:41:37 +0200
+> Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> > > That said, Andi Kleen added an option to gcc called -mnop-mcount which
+> > > will have gcc do both create the mcount section and convert the calls
+> > > into nops. When doing so, it defines CC_USING_NOP_MCOUNT which will
+> > > tell ftrace to expect the calls to already be converted.
+> >
+> > That seems like the much easier solution, then we can forget about
+> > recordmcount / objtool entirely for this.
+>
+> Of course that was only for some gcc compilers, and I'm not sure if
+> clang can do this.
+>
+> Or do you just see all compilers doing this in the future, and not
+> worrying about record-mcount at all, and bothering with objtool?
 
-Replace the syscall entry work handling with the generic version. Provide
-the necessary helper inlines to handle the real architecture specific
-parts, e.g. ptrace.
+Clang appears to only support -mrecord-mcount and -mnop-mcount for
+s390, so we still need recordmcount / objtool for x86.
 
-Use a temporary define for idtentry_enter_user which will be cleaned up
-seperately.
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-
----
-V4: Drop the seccomp/audit wrappers as they are not longer required (Kees)
-
-V3: Adapt to the noinstr changes
----
- arch/x86/Kconfig                    |    1 
- arch/x86/entry/common.c             |  181 +-----------------------------------
- arch/x86/include/asm/entry-common.h |   32 ++++++
- arch/x86/include/asm/idtentry.h     |    5 
- arch/x86/include/asm/thread_info.h  |    5 
- 5 files changed, 45 insertions(+), 179 deletions(-)
-
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -115,6 +115,7 @@ config X86
- 	select GENERIC_CPU_AUTOPROBE
- 	select GENERIC_CPU_VULNERABILITIES
- 	select GENERIC_EARLY_IOREMAP
-+	select GENERIC_ENTRY
- 	select GENERIC_FIND_FIRST_BIT
- 	select GENERIC_IOMAP
- 	select GENERIC_IRQ_EFFECTIVE_AFF_MASK	if SMP
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -10,13 +10,13 @@
- #include <linux/kernel.h>
- #include <linux/sched.h>
- #include <linux/sched/task_stack.h>
-+#include <linux/entry-common.h>
- #include <linux/mm.h>
- #include <linux/smp.h>
- #include <linux/errno.h>
- #include <linux/ptrace.h>
- #include <linux/tracehook.h>
- #include <linux/audit.h>
--#include <linux/seccomp.h>
- #include <linux/signal.h>
- #include <linux/export.h>
- #include <linux/context_tracking.h>
-@@ -42,70 +42,8 @@
- #include <asm/syscall.h>
- #include <asm/irq_stack.h>
- 
--#define CREATE_TRACE_POINTS
- #include <trace/events/syscalls.h>
- 
--/* Check that the stack and regs on entry from user mode are sane. */
--static noinstr void check_user_regs(struct pt_regs *regs)
--{
--	if (IS_ENABLED(CONFIG_DEBUG_ENTRY)) {
--		/*
--		 * Make sure that the entry code gave us a sensible EFLAGS
--		 * register.  Native because we want to check the actual CPU
--		 * state, not the interrupt state as imagined by Xen.
--		 */
--		unsigned long flags = native_save_fl();
--		WARN_ON_ONCE(flags & (X86_EFLAGS_AC | X86_EFLAGS_DF |
--				      X86_EFLAGS_NT));
--
--		/* We think we came from user mode. Make sure pt_regs agrees. */
--		WARN_ON_ONCE(!user_mode(regs));
--
--		/*
--		 * All entries from user mode (except #DF) should be on the
--		 * normal thread stack and should have user pt_regs in the
--		 * correct location.
--		 */
--		WARN_ON_ONCE(!on_thread_stack());
--		WARN_ON_ONCE(regs != task_pt_regs(current));
--	}
--}
--
--#ifdef CONFIG_CONTEXT_TRACKING
--/**
-- * enter_from_user_mode - Establish state when coming from user mode
-- *
-- * Syscall entry disables interrupts, but user mode is traced as interrupts
-- * enabled. Also with NO_HZ_FULL RCU might be idle.
-- *
-- * 1) Tell lockdep that interrupts are disabled
-- * 2) Invoke context tracking if enabled to reactivate RCU
-- * 3) Trace interrupts off state
-- */
--static noinstr void enter_from_user_mode(struct pt_regs *regs)
--{
--	enum ctx_state state = ct_state();
--
--	check_user_regs(regs);
--	lockdep_hardirqs_off(CALLER_ADDR0);
--	user_exit_irqoff();
--
--	instrumentation_begin();
--	CT_WARN_ON(state != CONTEXT_USER);
--	trace_hardirqs_off_finish();
--	instrumentation_end();
--}
--#else
--static __always_inline void enter_from_user_mode(struct pt_regs *regs)
--{
--	check_user_regs(regs);
--	lockdep_hardirqs_off(CALLER_ADDR0);
--	instrumentation_begin();
--	trace_hardirqs_off_finish();
--	instrumentation_end();
--}
--#endif
--
- /**
-  * exit_to_user_mode - Fixup state when exiting to user mode
-  *
-@@ -129,83 +67,6 @@ static __always_inline void exit_to_user
- 	lockdep_hardirqs_on(CALLER_ADDR0);
- }
- 
--static void do_audit_syscall_entry(struct pt_regs *regs, u32 arch)
--{
--#ifdef CONFIG_X86_64
--	if (arch == AUDIT_ARCH_X86_64) {
--		audit_syscall_entry(regs->orig_ax, regs->di,
--				    regs->si, regs->dx, regs->r10);
--	} else
--#endif
--	{
--		audit_syscall_entry(regs->orig_ax, regs->bx,
--				    regs->cx, regs->dx, regs->si);
--	}
--}
--
--/*
-- * Returns the syscall nr to run (which should match regs->orig_ax) or -1
-- * to skip the syscall.
-- */
--static long syscall_trace_enter(struct pt_regs *regs)
--{
--	u32 arch = in_ia32_syscall() ? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
--
--	struct thread_info *ti = current_thread_info();
--	unsigned long ret = 0;
--	u32 work;
--
--	work = READ_ONCE(ti->flags);
--
--	if (work & (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU)) {
--		ret = tracehook_report_syscall_entry(regs);
--		if (ret || (work & _TIF_SYSCALL_EMU))
--			return -1L;
--	}
--
--#ifdef CONFIG_SECCOMP
--	/*
--	 * Do seccomp after ptrace, to catch any tracer changes.
--	 */
--	if (work & _TIF_SECCOMP) {
--		struct seccomp_data sd;
--
--		sd.arch = arch;
--		sd.nr = regs->orig_ax;
--		sd.instruction_pointer = regs->ip;
--#ifdef CONFIG_X86_64
--		if (arch == AUDIT_ARCH_X86_64) {
--			sd.args[0] = regs->di;
--			sd.args[1] = regs->si;
--			sd.args[2] = regs->dx;
--			sd.args[3] = regs->r10;
--			sd.args[4] = regs->r8;
--			sd.args[5] = regs->r9;
--		} else
--#endif
--		{
--			sd.args[0] = regs->bx;
--			sd.args[1] = regs->cx;
--			sd.args[2] = regs->dx;
--			sd.args[3] = regs->si;
--			sd.args[4] = regs->di;
--			sd.args[5] = regs->bp;
--		}
--
--		ret = __secure_computing(&sd);
--		if (ret == -1)
--			return ret;
--	}
--#endif
--
--	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
--		trace_sys_enter(regs, regs->orig_ax);
--
--	do_audit_syscall_entry(regs, arch);
--
--	return ret ?: regs->orig_ax;
--}
--
- #define EXIT_TO_USERMODE_LOOP_FLAGS				\
- 	(_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_UPROBE |	\
- 	 _TIF_NEED_RESCHED | _TIF_PATCH_PENDING)
-@@ -366,26 +227,10 @@ static void __syscall_return_slowpath(st
- 	exit_to_user_mode();
- }
- 
--static noinstr long syscall_enter(struct pt_regs *regs, unsigned long nr)
--{
--	struct thread_info *ti;
--
--	enter_from_user_mode(regs);
--	instrumentation_begin();
--
--	local_irq_enable();
--	ti = current_thread_info();
--	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY)
--		nr = syscall_trace_enter(regs);
--
--	instrumentation_end();
--	return nr;
--}
--
- #ifdef CONFIG_X86_64
- __visible noinstr void do_syscall_64(unsigned long nr, struct pt_regs *regs)
- {
--	nr = syscall_enter(regs, nr);
-+	nr = syscall_enter_from_user_mode(regs, nr);
- 
- 	instrumentation_begin();
- 	if (likely(nr < NR_syscalls)) {
-@@ -407,6 +252,8 @@ static noinstr long syscall_enter(struct
- #if defined(CONFIG_X86_32) || defined(CONFIG_IA32_EMULATION)
- static __always_inline unsigned int syscall_32_enter(struct pt_regs *regs)
- {
-+	unsigned int nr = (unsigned int)regs->orig_ax;
-+
- 	if (IS_ENABLED(CONFIG_IA32_EMULATION))
- 		current_thread_info()->status |= TS_COMPAT;
- 	/*
-@@ -414,7 +261,7 @@ static __always_inline unsigned int sysc
- 	 * orig_ax, the unsigned int return value truncates it.  This may
- 	 * or may not be necessary, but it matches the old asm behavior.
- 	 */
--	return syscall_enter(regs, (unsigned int)regs->orig_ax);
-+	return (unsigned int)syscall_enter_from_user_mode(regs, nr);
- }
- 
- /*
-@@ -568,7 +415,7 @@ SYSCALL_DEFINE0(ni_syscall)
-  * solves the problem of kernel mode pagefaults which can schedule, which
-  * is not possible after invoking rcu_irq_enter() without undoing it.
-  *
-- * For user mode entries enter_from_user_mode() must be invoked to
-+ * For user mode entries irqentry_enter_from_user_mode() must be invoked to
-  * establish the proper context for NOHZ_FULL. Otherwise scheduling on exit
-  * would not be possible.
-  *
-@@ -584,7 +431,7 @@ idtentry_state_t noinstr idtentry_enter(
- 	};
- 
- 	if (user_mode(regs)) {
--		enter_from_user_mode(regs);
-+		irqentry_enter_from_user_mode(regs);
- 		return ret;
- 	}
- 
-@@ -615,7 +462,7 @@ idtentry_state_t noinstr idtentry_enter(
- 		/*
- 		 * If RCU is not watching then the same careful
- 		 * sequence vs. lockdep and tracing is required
--		 * as in enter_from_user_mode().
-+		 * as in irqentry_enter_from_user_mode().
- 		 */
- 		lockdep_hardirqs_off(CALLER_ADDR0);
- 		rcu_irq_enter();
-@@ -709,18 +556,6 @@ void noinstr idtentry_exit(struct pt_reg
- }
- 
- /**
-- * idtentry_enter_user - Handle state tracking on idtentry from user mode
-- * @regs:	Pointer to pt_regs of interrupted context
-- *
-- * Invokes enter_from_user_mode() to establish the proper context for
-- * NOHZ_FULL. Otherwise scheduling on exit would not be possible.
-- */
--void noinstr idtentry_enter_user(struct pt_regs *regs)
--{
--	enter_from_user_mode(regs);
--}
--
--/**
-  * idtentry_exit_user - Handle return from exception to user mode
-  * @regs:	Pointer to pt_regs (exception entry regs)
-  *
---- /dev/null
-+++ b/arch/x86/include/asm/entry-common.h
-@@ -0,0 +1,32 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+#ifndef _ASM_X86_ENTRY_COMMON_H
-+#define _ASM_X86_ENTRY_COMMON_H
-+
-+/* Check that the stack and regs on entry from user mode are sane. */
-+static __always_inline void arch_check_user_regs(struct pt_regs *regs)
-+{
-+	if (IS_ENABLED(CONFIG_DEBUG_ENTRY)) {
-+		/*
-+		 * Make sure that the entry code gave us a sensible EFLAGS
-+		 * register.  Native because we want to check the actual CPU
-+		 * state, not the interrupt state as imagined by Xen.
-+		 */
-+		unsigned long flags = native_save_fl();
-+		WARN_ON_ONCE(flags & (X86_EFLAGS_AC | X86_EFLAGS_DF |
-+				      X86_EFLAGS_NT));
-+
-+		/* We think we came from user mode. Make sure pt_regs agrees. */
-+		WARN_ON_ONCE(!user_mode(regs));
-+
-+		/*
-+		 * All entries from user mode (except #DF) should be on the
-+		 * normal thread stack and should have user pt_regs in the
-+		 * correct location.
-+		 */
-+		WARN_ON_ONCE(!on_thread_stack());
-+		WARN_ON_ONCE(regs != task_pt_regs(current));
-+	}
-+}
-+#define arch_check_user_regs arch_check_user_regs
-+
-+#endif
---- a/arch/x86/include/asm/idtentry.h
-+++ b/arch/x86/include/asm/idtentry.h
-@@ -6,11 +6,14 @@
- #include <asm/trapnr.h>
- 
- #ifndef __ASSEMBLY__
-+#include <linux/entry-common.h>
- #include <linux/hardirq.h>
- 
- #include <asm/irq_stack.h>
- 
--void idtentry_enter_user(struct pt_regs *regs);
-+/* Temporary define */
-+#define idtentry_enter_user	irqentry_enter_from_user_mode
-+
- void idtentry_exit_user(struct pt_regs *regs);
- 
- typedef struct idtentry_state {
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -133,11 +133,6 @@ struct thread_info {
- #define _TIF_X32		(1 << TIF_X32)
- #define _TIF_FSCHECK		(1 << TIF_FSCHECK)
- 
--/* Work to do before invoking the actual syscall. */
--#define _TIF_WORK_SYSCALL_ENTRY	\
--	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU | _TIF_SYSCALL_AUDIT |	\
--	 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT)
--
- /* flags to check in __switch_to() */
- #define _TIF_WORK_CTXSW_BASE					\
- 	(_TIF_NOCPUID | _TIF_NOTSC | _TIF_BLOCKSTEP |		\
+Sami
