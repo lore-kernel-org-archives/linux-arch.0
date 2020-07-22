@@ -1,75 +1,115 @@
-Return-Path: <SRS0=fzKJ=BE=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43644 "EHLO
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44848 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726904AbgGYR0t (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jul 2020 13:26:49 -0400
-Date: Sat, 25 Jul 2020 19:26:30 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks
- for SPLPAR
-Message-ID: <20200725172630.GF10769@hirez.programming.kicks-ass.net>
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <20200706043540.1563616-6-npiggin@gmail.com>
- <874kqhvu1v.fsf@mpe.ellerman.id.au>
- <8265d782-4e50-a9b2-a908-0cb588ffa09c@redhat.com>
- <20200723140011.GR5523@worktop.programming.kicks-ass.net>
- <845de183-56f5-2958-3159-faa131d46401@redhat.com>
- <20200723184759.GS119549@hirez.programming.kicks-ass.net>
- <20200724081647.GA16642@willie-the-truck>
- <8532332b-85dd-661b-cf72-81a8ceb70747@redhat.com>
+        with ESMTP id S1731120AbgGVQpJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 12:45:09 -0400
+Received: from mail-wm1-x344.google.com (mail-wm1-x344.google.com [IPv6:2a00:1450:4864:20::344])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7C5CAC0619E1
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:09 -0700 (PDT)
+Received: by mail-wm1-x344.google.com with SMTP id f18so2628091wml.3
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:09 -0700 (PDT)
+From: David Brazdil <dbrazdil@google.com>
+Subject: [PATCH 5/9] kvm: arm64: Duplicate arm64_ssbd_callback_required for nVHE hyp
+Date: Wed, 22 Jul 2020 17:44:20 +0100
+Message-ID: <20200722164424.42225-6-dbrazdil@google.com>
+In-Reply-To: <20200722164424.42225-1-dbrazdil@google.com>
+References: <20200722164424.42225-1-dbrazdil@google.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <8532332b-85dd-661b-cf72-81a8ceb70747@redhat.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200725172630.k__13QM_GXh16TyBCR3YUYbYS-ATPd0KhlglFv3aNuM@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, kernel-team@google.com, David Brazdil <dbrazdil@google.com>
+Message-ID: <20200722164420.IsawoEmPS6kV-ATSiZnbdqwYPFr6FKgqYYlo68OCxJ8@z>
 
-On Fri, Jul 24, 2020 at 03:10:59PM -0400, Waiman Long wrote:
-> On 7/24/20 4:16 AM, Will Deacon wrote:
-> > On Thu, Jul 23, 2020 at 08:47:59PM +0200, peterz@infradead.org wrote:
-> > > On Thu, Jul 23, 2020 at 02:32:36PM -0400, Waiman Long wrote:
-> > > > BTW, do you have any comment on my v2 lock holder cpu info qspinlock patch?
-> > > > I will have to update the patch to fix the reported 0-day test problem, but
-> > > > I want to collect other feedback before sending out v3.
-> > > I want to say I hate it all, it adds instructions to a path we spend an
-> > > aweful lot of time optimizing without really getting anything back for
-> > > it.
-> > > 
-> > > Will, how do you feel about it?
-> > I can see it potentially being useful for debugging, but I hate the
-> > limitation to 256 CPUs. Even arm64 is hitting that now.
-> 
-> After thinking more about that, I think we can use all the remaining bits in
-> the 16-bit locked_pending. Reserving 1 bit for locked and 1 bit for pending,
-> there are 14 bits left. So as long as NR_CPUS < 16k (requirement for 16-bit
-> locked_pending), we can put all possible cpu numbers into the lock. We can
-> also just use smp_processor_id() without additional percpu data.
+Hyp keeps track of which cores require SSBD callback by accessing a
+kernel-proper global variable. Create an nVHE symbol of the same name
+and copy the value from kernel proper to nVHE at KVM init time.
 
-That sounds horrific, wouldn't that destroy the whole point of using a
-byte for pending?
+Done in preparation for separating percpu memory owned by kernel
+proper and nVHE.
 
-> > Also, you're talking ~1% gains here. I think our collective time would
-> > be better spent off reviewing the CNA series and trying to make it more
-> > deterministic.
-> 
-> I thought you guys are not interested in CNA. I do want to get CNA merged,
-> if possible. Let review the current version again and see if there are ways
-> we can further improve it.
+Signed-off-by: David Brazdil <dbrazdil@google.com>
+---
+ arch/arm64/include/asm/kvm_mmu.h | 10 +++++++---
+ arch/arm64/kernel/image-vars.h   |  1 -
+ arch/arm64/kvm/arm.c             |  2 +-
+ arch/arm64/kvm/hyp/nvhe/switch.c |  3 +++
+ 4 files changed, 11 insertions(+), 5 deletions(-)
 
-It's not a lack of interrest. We were struggling with the fairness
-issues and the complexity of the thing. I forgot the current state of
-matters, but at one point UNLOCK was O(n) in waiters, which is, of
-course, 'unfortunate'.
-
-I'll have to look up whatever notes remain, but the basic idea of
-keeping remote nodes on a secondary list is obviously breaking all sorts
-of fairness. After that they pile on a bunch of hacks to fix the worst
-of them, but it feels exactly like that, a bunch of hacks.
-
-One of the things I suppose we ought to do is see if some of the ideas
-of phase-fair locks can be applied to this.
-
-That coupled with a chronic lack of time for anything :-(
+diff --git a/arch/arm64/include/asm/kvm_mmu.h b/arch/arm64/include/asm/kvm_mmu.h
+index 22157ded04ca..e9e5875274cb 100644
+--- a/arch/arm64/include/asm/kvm_mmu.h
++++ b/arch/arm64/include/asm/kvm_mmu.h
+@@ -529,23 +529,27 @@ static inline int kvm_map_vectors(void)
+ 
+ #ifdef CONFIG_ARM64_SSBD
+ DECLARE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
++DECLARE_KVM_NVHE_PER_CPU(u64, arm64_ssbd_callback_required);
+ 
+-static inline int hyp_map_aux_data(void)
++static inline int hyp_init_aux_data(void)
+ {
+ 	int cpu, err;
+ 
+ 	for_each_possible_cpu(cpu) {
+ 		u64 *ptr;
+ 
+-		ptr = per_cpu_ptr(&arm64_ssbd_callback_required, cpu);
++		ptr = per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu);
+ 		err = create_hyp_mappings(ptr, ptr + 1, PAGE_HYP);
+ 		if (err)
+ 			return err;
++
++		/* Copy value from kernel to hyp. */
++		*ptr = per_cpu(arm64_ssbd_callback_required, cpu);
+ 	}
+ 	return 0;
+ }
+ #else
+-static inline int hyp_map_aux_data(void)
++static inline int hyp_init_aux_data(void)
+ {
+ 	return 0;
+ }
+diff --git a/arch/arm64/kernel/image-vars.h b/arch/arm64/kernel/image-vars.h
+index 9e897c500237..034cf21e67ce 100644
+--- a/arch/arm64/kernel/image-vars.h
++++ b/arch/arm64/kernel/image-vars.h
+@@ -69,7 +69,6 @@ KVM_NVHE_ALIAS(kvm_patch_vector_branch);
+ KVM_NVHE_ALIAS(kvm_update_va_mask);
+ 
+ /* Global kernel state accessed by nVHE hyp code. */
+-KVM_NVHE_ALIAS(arm64_ssbd_callback_required);
+ KVM_NVHE_ALIAS(kvm_host_data);
+ KVM_NVHE_ALIAS(kvm_vgic_global_state);
+ 
+diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
+index 98f05bdac3c1..a53e87305fa0 100644
+--- a/arch/arm64/kvm/arm.c
++++ b/arch/arm64/kvm/arm.c
+@@ -1547,7 +1547,7 @@ static int init_hyp_mode(void)
+ 		}
+ 	}
+ 
+-	err = hyp_map_aux_data();
++	err = hyp_init_aux_data();
+ 	if (err)
+ 		kvm_err("Cannot map host auxiliary data: %d\n", err);
+ 
+diff --git a/arch/arm64/kvm/hyp/nvhe/switch.c b/arch/arm64/kvm/hyp/nvhe/switch.c
+index ddb602ffb022..8c2bd04df813 100644
+--- a/arch/arm64/kvm/hyp/nvhe/switch.c
++++ b/arch/arm64/kvm/hyp/nvhe/switch.c
+@@ -27,6 +27,9 @@
+ #include <asm/processor.h>
+ #include <asm/thread_info.h>
+ 
++/* Non-VHE copy of the kernel symbol. */
++DEFINE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
++
+ static void __activate_traps(struct kvm_vcpu *vcpu)
+ {
+ 	u64 val;
+-- 
+2.27.0
