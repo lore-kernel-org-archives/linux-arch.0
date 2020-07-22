@@ -1,16 +1,16 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V5 07/15] x86/entry: Consolidate 32/64 bit syscall entry
-Date: Thu, 23 Jul 2020 00:00:01 +0200
-Message-ID: <20200722220520.051234096@linutronix.de>
+Subject: [patch V5 15/15] x86/kvm: Use generic xfer to guest work function
+Date: Thu, 23 Jul 2020 00:00:09 +0200
+Message-ID: <20200722220520.979724969@linutronix.de>
 References: <20200722215954.464281930@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8-bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:52590 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733122AbgGVWLe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:34 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39180 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1733190AbgGVWLn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:43 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
@@ -18,182 +18,97 @@ Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, A
 
 From: Thomas Gleixner <tglx@linutronix.de>
 
-64bit and 32bit entry code have the same open coded syscall entry handling
-after the bitwidth specific bits.
+Use the generic infrastructure to check for and handle pending work before
+transitioning into guest mode.
 
-Move it to a helper function and share the code.
+This now handles TIF_NOTIFY_RESUME as well which was ignored so
+far. Handling it is important as this covers task work and task work will
+be used to offload the heavy lifting of POSIX CPU timers to thread context.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-
 ---
- arch/x86/entry/common.c |   93 +++++++++++++++++++++---------------------------
- 1 file changed, 41 insertions(+), 52 deletions(-)
+V5: Rename exit -> xfer
+---
+ arch/x86/kvm/Kconfig   |    1 +
+ arch/x86/kvm/vmx/vmx.c |   11 +++++------
+ arch/x86/kvm/x86.c     |   15 ++++++---------
+ 3 files changed, 12 insertions(+), 15 deletions(-)
 
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -366,8 +366,7 @@ static void __syscall_return_slowpath(st
- 	exit_to_user_mode();
- }
+--- a/arch/x86/kvm/Kconfig
++++ b/arch/x86/kvm/Kconfig
+@@ -42,6 +42,7 @@ config KVM
+ 	select HAVE_KVM_MSI
+ 	select HAVE_KVM_CPU_RELAX_INTERCEPT
+ 	select HAVE_KVM_NO_POLL
++	select KVM_XFER_TO_GUEST_WORK
+ 	select KVM_GENERIC_DIRTYLOG_READ_PROTECT
+ 	select KVM_VFIO
+ 	select SRCU
+--- a/arch/x86/kvm/vmx/vmx.c
++++ b/arch/x86/kvm/vmx/vmx.c
+@@ -27,6 +27,7 @@
+ #include <linux/slab.h>
+ #include <linux/tboot.h>
+ #include <linux/trace_events.h>
++#include <linux/entry-kvm.h>
  
--#ifdef CONFIG_X86_64
--__visible noinstr void do_syscall_64(unsigned long nr, struct pt_regs *regs)
-+static noinstr long syscall_enter(struct pt_regs *regs, unsigned long nr)
- {
- 	struct thread_info *ti;
+ #include <asm/apic.h>
+ #include <asm/asm.h>
+@@ -5376,14 +5377,12 @@ static int handle_invalid_guest_state(st
+ 		}
  
-@@ -379,6 +378,16 @@ static void __syscall_return_slowpath(st
- 	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY)
- 		nr = syscall_trace_enter(regs);
- 
-+	instrumentation_end();
-+	return nr;
-+}
-+
-+#ifdef CONFIG_X86_64
-+__visible noinstr void do_syscall_64(unsigned long nr, struct pt_regs *regs)
-+{
-+	nr = syscall_enter(regs, nr);
-+
-+	instrumentation_begin();
- 	if (likely(nr < NR_syscalls)) {
- 		nr = array_index_nospec(nr, NR_syscalls);
- 		regs->ax = sys_call_table[nr](regs);
-@@ -390,64 +399,53 @@ static void __syscall_return_slowpath(st
- 		regs->ax = x32_sys_call_table[nr](regs);
- #endif
- 	}
--	__syscall_return_slowpath(regs);
--
- 	instrumentation_end();
--	exit_to_user_mode();
-+	syscall_return_slowpath(regs);
- }
- #endif
- 
- #if defined(CONFIG_X86_32) || defined(CONFIG_IA32_EMULATION)
-+static __always_inline unsigned int syscall_32_enter(struct pt_regs *regs)
-+{
-+	if (IS_ENABLED(CONFIG_IA32_EMULATION))
-+		current_thread_info()->status |= TS_COMPAT;
-+	/*
-+	 * Subtlety here: if ptrace pokes something larger than 2^32-1 into
-+	 * orig_ax, the unsigned int return value truncates it.  This may
-+	 * or may not be necessary, but it matches the old asm behavior.
-+	 */
-+	return syscall_enter(regs, (unsigned int)regs->orig_ax);
-+}
-+
- /*
-- * Does a 32-bit syscall.  Called with IRQs on in CONTEXT_KERNEL.  Does
-- * all entry and exit work and returns with IRQs off.  This function is
-- * extremely hot in workloads that use it, and it's usually called from
-- * do_fast_syscall_32, so forcibly inline it to improve performance.
-+ * Invoke a 32-bit syscall.  Called with IRQs on in CONTEXT_KERNEL.
-  */
--static void do_syscall_32_irqs_on(struct pt_regs *regs)
-+static __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs,
-+						  unsigned int nr)
- {
--	struct thread_info *ti = current_thread_info();
--	unsigned int nr = (unsigned int)regs->orig_ax;
--
--#ifdef CONFIG_IA32_EMULATION
--	ti->status |= TS_COMPAT;
--#endif
--
--	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY) {
--		/*
--		 * Subtlety here: if ptrace pokes something larger than
--		 * 2^32-1 into orig_ax, this truncates it.  This may or
--		 * may not be necessary, but it matches the old asm
--		 * behavior.
--		 */
--		nr = syscall_trace_enter(regs);
--	}
--
- 	if (likely(nr < IA32_NR_syscalls)) {
-+		instrumentation_begin();
- 		nr = array_index_nospec(nr, IA32_NR_syscalls);
- 		regs->ax = ia32_sys_call_table[nr](regs);
-+		instrumentation_end();
- 	}
--
--	__syscall_return_slowpath(regs);
- }
- 
- /* Handles int $0x80 */
- __visible noinstr void do_int80_syscall_32(struct pt_regs *regs)
- {
--	enter_from_user_mode(regs);
--	instrumentation_begin();
--
--	local_irq_enable();
--	do_syscall_32_irqs_on(regs);
-+	unsigned int nr = syscall_32_enter(regs);
- 
--	instrumentation_end();
--	exit_to_user_mode();
-+	do_syscall_32_irqs_on(regs, nr);
-+	syscall_return_slowpath(regs);
- }
- 
--static bool __do_fast_syscall_32(struct pt_regs *regs)
-+static noinstr bool __do_fast_syscall_32(struct pt_regs *regs)
- {
-+	unsigned int nr	= syscall_32_enter(regs);
- 	int res;
- 
-+	instrumentation_begin();
- 	/* Fetch EBP from where the vDSO stashed it. */
- 	if (IS_ENABLED(CONFIG_X86_64)) {
  		/*
-@@ -460,17 +458,18 @@ static bool __do_fast_syscall_32(struct
- 		res = get_user(*(u32 *)&regs->bp,
- 		       (u32 __user __force *)(unsigned long)(u32)regs->sp);
+-		 * Note, return 1 and not 0, vcpu_run() is responsible for
+-		 * morphing the pending signal into the proper return code.
++		 * Note, return 1 and not 0, vcpu_run() will invoke
++		 * xfer_to_guest_mode() which will create a proper return
++		 * code.
+ 		 */
+-		if (signal_pending(current))
++		if (__xfer_to_guest_mode_work_pending())
+ 			return 1;
+-
+-		if (need_resched())
+-			schedule();
  	}
-+	instrumentation_end();
  
- 	if (res) {
- 		/* User code screwed up. */
- 		regs->ax = -EFAULT;
--		local_irq_disable();
--		__prepare_exit_to_usermode(regs);
-+		syscall_return_slowpath(regs);
- 		return false;
- 	}
+ 	return 1;
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -56,6 +56,7 @@
+ #include <linux/sched/stat.h>
+ #include <linux/sched/isolation.h>
+ #include <linux/mem_encrypt.h>
++#include <linux/entry-kvm.h>
  
- 	/* Now this is just like a normal syscall. */
--	do_syscall_32_irqs_on(regs);
-+	do_syscall_32_irqs_on(regs, nr);
-+	syscall_return_slowpath(regs);
- 	return true;
+ #include <trace/events/kvm.h>
+ 
+@@ -1585,7 +1586,7 @@ EXPORT_SYMBOL_GPL(kvm_emulate_wrmsr);
+ bool kvm_vcpu_exit_request(struct kvm_vcpu *vcpu)
+ {
+ 	return vcpu->mode == EXITING_GUEST_MODE || kvm_request_pending(vcpu) ||
+-		need_resched() || signal_pending(current);
++		xfer_to_guest_mode_work_pending();
  }
+ EXPORT_SYMBOL_GPL(kvm_vcpu_exit_request);
  
-@@ -483,7 +482,6 @@ static bool __do_fast_syscall_32(struct
- 	 */
- 	unsigned long landing_pad = (unsigned long)current->mm->context.vdso +
- 					vdso_image_32.sym_int80_landing_pad;
--	bool success;
+@@ -8676,15 +8677,11 @@ static int vcpu_run(struct kvm_vcpu *vcp
+ 			break;
+ 		}
  
- 	/*
- 	 * SYSENTER loses EIP, and even SYSCALL32 needs us to skip forward
-@@ -492,17 +490,8 @@ static bool __do_fast_syscall_32(struct
- 	 */
- 	regs->ip = landing_pad;
- 
--	enter_from_user_mode(regs);
--	instrumentation_begin();
--
--	local_irq_enable();
--	success = __do_fast_syscall_32(regs);
--
--	instrumentation_end();
--	exit_to_user_mode();
--
--	/* If it failed, keep it simple: use IRET. */
--	if (!success)
-+	/* Invoke the syscall. If it failed, keep it simple: use IRET. */
-+	if (!__do_fast_syscall_32(regs))
- 		return 0;
- 
- #ifdef CONFIG_X86_64
+-		if (signal_pending(current)) {
+-			r = -EINTR;
+-			vcpu->run->exit_reason = KVM_EXIT_INTR;
+-			++vcpu->stat.signal_exits;
+-			break;
+-		}
+-		if (need_resched()) {
++		if (xfer_to_guest_mode_work_pending()) {
+ 			srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+-			cond_resched();
++			r = xfer_to_guest_mode(vcpu);
++			if (r)
++				return r;
+ 			vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
+ 		}
+ 	}
