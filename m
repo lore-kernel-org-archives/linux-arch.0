@@ -1,84 +1,115 @@
 From: David Brazdil <dbrazdil@google.com>
-Subject: [PATCH 4/9] kvm: arm64: Add helpers for accessing nVHE hyp per-cpu vars
-Date: Wed, 22 Jul 2020 17:44:19 +0100
-Message-ID: <20200722164424.42225-5-dbrazdil@google.com>
+Subject: [PATCH 5/9] kvm: arm64: Duplicate arm64_ssbd_callback_required for
+ nVHE hyp
+Date: Wed, 22 Jul 2020 17:44:20 +0100
+Message-ID: <20200722164424.42225-6-dbrazdil@google.com>
 References: <20200722164424.42225-1-dbrazdil@google.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44842 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731025AbgGVQpI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 12:45:08 -0400
-Received: from mail-wr1-x441.google.com (mail-wr1-x441.google.com [IPv6:2a00:1450:4864:20::441])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C4936C0619E0
-        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:07 -0700 (PDT)
-Received: by mail-wr1-x441.google.com with SMTP id s10so2533570wrw.12
-        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:07 -0700 (PDT)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
 In-Reply-To: <20200722164424.42225-1-dbrazdil@google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, kernel-team@google.com, David Brazdil <dbrazdil@google.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel-team@google.com, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-Defining a per-CPU variable in hyp/nvhe will result in its name being prefixed
-with __kvm_nvhe_. Add helpers for declaring these variables in kernel proper
-and accessing them with this_cpu_ptr and per_cpu_ptr.
+Hyp keeps track of which cores require SSBD callback by accessing a
+kernel-proper global variable. Create an nVHE symbol of the same name
+and copy the value from kernel proper to nVHE at KVM init time.
+
+Done in preparation for separating percpu memory owned by kernel
+proper and nVHE.
 
 Signed-off-by: David Brazdil <dbrazdil@google.com>
 ---
- arch/arm64/include/asm/kvm_asm.h | 25 +++++++++++++++++++++++--
- 1 file changed, 23 insertions(+), 2 deletions(-)
+ arch/arm64/include/asm/kvm_mmu.h | 10 +++++++---
+ arch/arm64/kernel/image-vars.h   |  1 -
+ arch/arm64/kvm/arm.c             |  2 +-
+ arch/arm64/kvm/hyp/nvhe/switch.c |  3 +++
+ 4 files changed, 11 insertions(+), 5 deletions(-)
 
-diff --git a/arch/arm64/include/asm/kvm_asm.h b/arch/arm64/include/asm/kvm_asm.h
-index bbd14e205aba..3d69cab873e4 100644
---- a/arch/arm64/include/asm/kvm_asm.h
-+++ b/arch/arm64/include/asm/kvm_asm.h
-@@ -60,9 +60,21 @@
- 	DECLARE_KVM_VHE_SYM(sym);		\
- 	DECLARE_KVM_NVHE_SYM(sym)
+diff --git a/arch/arm64/include/asm/kvm_mmu.h b/arch/arm64/include/asm/kvm_mmu.h
+index 22157ded04ca..e9e5875274cb 100644
+--- a/arch/arm64/include/asm/kvm_mmu.h
++++ b/arch/arm64/include/asm/kvm_mmu.h
+@@ -529,23 +529,27 @@ static inline int kvm_map_vectors(void)
  
-+#define DECLARE_KVM_VHE_PER_CPU(type, sym)	\
-+	DECLARE_PER_CPU(type, sym)
-+#define DECLARE_KVM_NVHE_PER_CPU(type, sym)	\
-+	DECLARE_PER_CPU(type, kvm_nvhe_sym(sym))
-+
-+#define DECLARE_KVM_HYP_PER_CPU(type, sym)	\
-+	DECLARE_KVM_VHE_PER_CPU(type, sym);	\
-+	DECLARE_KVM_NVHE_PER_CPU(type, sym)
-+
- #define CHOOSE_VHE_SYM(sym)	sym
- #define CHOOSE_NVHE_SYM(sym)	kvm_nvhe_sym(sym)
+ #ifdef CONFIG_ARM64_SSBD
+ DECLARE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
++DECLARE_KVM_NVHE_PER_CPU(u64, arm64_ssbd_callback_required);
  
-+#define this_cpu_ptr_nvhe(sym)		this_cpu_ptr(&kvm_nvhe_sym(sym))
-+#define per_cpu_ptr_nvhe(sym, cpu)	per_cpu_ptr(&kvm_nvhe_sym(sym), cpu)
+-static inline int hyp_map_aux_data(void)
++static inline int hyp_init_aux_data(void)
+ {
+ 	int cpu, err;
+ 
+ 	for_each_possible_cpu(cpu) {
+ 		u64 *ptr;
+ 
+-		ptr = per_cpu_ptr(&arm64_ssbd_callback_required, cpu);
++		ptr = per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu);
+ 		err = create_hyp_mappings(ptr, ptr + 1, PAGE_HYP);
+ 		if (err)
+ 			return err;
 +
- #ifndef __KVM_NVHE_HYPERVISOR__
- /*
-  * BIG FAT WARNINGS:
-@@ -75,12 +87,21 @@
-  * - Don't let the nVHE hypervisor have access to this, as it will
-  *   pick the *wrong* symbol (yes, it runs at EL2...).
-  */
--#define CHOOSE_HYP_SYM(sym)	(is_kernel_in_hyp_mode() ? CHOOSE_VHE_SYM(sym) \
-+#define CHOOSE_HYP_SYM(sym)		(is_kernel_in_hyp_mode()	\
-+					   ? CHOOSE_VHE_SYM(sym)	\
- 					   : CHOOSE_NVHE_SYM(sym))
-+#define this_cpu_ptr_hyp(sym)		(is_kernel_in_hyp_mode()	\
-+					   ? this_cpu_ptr(&sym)		\
-+					   : this_cpu_ptr_nvhe(sym))
-+#define per_cpu_ptr_hyp(sym, cpu)	(is_kernel_in_hyp_mode()	\
-+					   ? per_cpu_ptr(&sym, cpu)	\
-+					   : per_cpu_ptr_nvhe(sym, cpu))
++		/* Copy value from kernel to hyp. */
++		*ptr = per_cpu(arm64_ssbd_callback_required, cpu);
+ 	}
+ 	return 0;
+ }
  #else
- /* The nVHE hypervisor shouldn't even try to access anything */
- extern void *__nvhe_undefined_symbol;
--#define CHOOSE_HYP_SYM(sym)	__nvhe_undefined_symbol
-+#define CHOOSE_HYP_SYM(sym)		__nvhe_undefined_symbol
-+#define this_cpu_ptr_hyp(sym)		&__nvhe_undefined_symbol
-+#define per_cpu_ptr_hyp(sym, cpu)	&__nvhe_undefined_symbol
- #endif
+-static inline int hyp_map_aux_data(void)
++static inline int hyp_init_aux_data(void)
+ {
+ 	return 0;
+ }
+diff --git a/arch/arm64/kernel/image-vars.h b/arch/arm64/kernel/image-vars.h
+index 9e897c500237..034cf21e67ce 100644
+--- a/arch/arm64/kernel/image-vars.h
++++ b/arch/arm64/kernel/image-vars.h
+@@ -69,7 +69,6 @@ KVM_NVHE_ALIAS(kvm_patch_vector_branch);
+ KVM_NVHE_ALIAS(kvm_update_va_mask);
  
- /* Translate a kernel address @ptr into its equivalent linear mapping */
+ /* Global kernel state accessed by nVHE hyp code. */
+-KVM_NVHE_ALIAS(arm64_ssbd_callback_required);
+ KVM_NVHE_ALIAS(kvm_host_data);
+ KVM_NVHE_ALIAS(kvm_vgic_global_state);
+ 
+diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
+index 98f05bdac3c1..a53e87305fa0 100644
+--- a/arch/arm64/kvm/arm.c
++++ b/arch/arm64/kvm/arm.c
+@@ -1547,7 +1547,7 @@ static int init_hyp_mode(void)
+ 		}
+ 	}
+ 
+-	err = hyp_map_aux_data();
++	err = hyp_init_aux_data();
+ 	if (err)
+ 		kvm_err("Cannot map host auxiliary data: %d\n", err);
+ 
+diff --git a/arch/arm64/kvm/hyp/nvhe/switch.c b/arch/arm64/kvm/hyp/nvhe/switch.c
+index ddb602ffb022..8c2bd04df813 100644
+--- a/arch/arm64/kvm/hyp/nvhe/switch.c
++++ b/arch/arm64/kvm/hyp/nvhe/switch.c
+@@ -27,6 +27,9 @@
+ #include <asm/processor.h>
+ #include <asm/thread_info.h>
+ 
++/* Non-VHE copy of the kernel symbol. */
++DEFINE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
++
+ static void __activate_traps(struct kvm_vcpu *vcpu)
+ {
+ 	u64 val;
 -- 
 2.27.0
