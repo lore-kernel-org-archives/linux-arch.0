@@ -1,48 +1,41 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: Re: io_uring vs in_compat_syscall()
-Date: Wed, 22 Jul 2020 08:30:50 +0200
-Message-ID: <20200722063050.GA24968@lst.de>
-References: <b754dad5-ee85-8a2f-f41a-8bdc56de42e8@kernel.dk> <8987E376-6B13-4798-BDBA-616A457447CF@amacapital.net> <20200721070709.GB11432@lst.de> <CALCETrXWZBXZuCeRYvYY8AWG51e_P3bOeNeqc8zXPLOTDTHY0g@mail.gmail.com> <20200721143412.GA8099@lst.de> <CALCETrWMQpKe7jqw2t39yn4HgGhGTSEFGK6MPR4wPs=tBBhjbg@mail.gmail.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch V4 02/15] entry: Provide generic syscall entry functionality
+Date: Wed, 22 Jul 2020 09:34:51 +0200
+Message-ID: <87o8o82eas.fsf@nanos.tec.linutronix.de>
+References: <20200721105706.030914876@linutronix.de> <20200721110808.455350746@linutronix.de> <202007211426.B40A7A7BD@keescook>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <CALCETrWMQpKe7jqw2t39yn4HgGhGTSEFGK6MPR4wPs=tBBhjbg-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Jens Axboe <axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, io-uring-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43874 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727096AbgGVHez (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 03:34:55 -0400
+In-Reply-To: <202007211426.B40A7A7BD@keescook>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
 
-On Tue, Jul 21, 2020 at 10:25:24AM -0700, Andy Lutomirski wrote:
-> On Tue, Jul 21, 2020 at 7:34 AM Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org> wrote:
-> >
-> > On Tue, Jul 21, 2020 at 07:31:02AM -0700, Andy Lutomirski wrote:
-> > > > What do you mean with "properly wired up".  Do you really want to spread
-> > > > ->compat_foo methods everywhere, including read and write?  I found
-> > > > in_compat_syscall() a lot small and easier to maintain than all the
-> > > > separate compat cruft.
-> > >
-> > > I was imagining using a flag.  Some of the net code uses
-> > > MSG_CMSG_COMPAT for this purpose.
-> >
-> > Killing that nightmarish monster is what actually got me into looking
-> > io_uring and starting this thread.
-> 
-> I agree that MSG_CMSG_COMPAT is nasty, but I think the concept is
-> sound -- rather than tracking whether we're compat by using a
-> different function or a per-thread variable, actually explicitly
-> tracking the mode seems sensible.
+Kees Cook <keescook@chromium.org> writes:
+> On Tue, Jul 21, 2020 at 12:57:08PM +0200, Thomas Gleixner wrote:
+>> --- /dev/null
+>> +++ b/kernel/entry/Makefile
+>> @@ -0,0 +1,3 @@
+>> +# SPDX-License-Identifier: GPL-2.0
+>> +
+>> +obj-$(CONFIG_GENERIC_ENTRY) += common.o
+>
+> But, my point is, let's avoid tripping over this again, and retain the
+> disabling here:
+>
+> CFLAGS_common.o += -fno-stack-protector
+>
+> I can add this again later, but it'd be nice if it was done here to
+> avoid gaining back the TIF_WORK stack protector overhead penalty (which
+> we're free of in v5.8 for the first time). ;)
 
-I very strongly disagree.  Two recent projects I did was to remove
-the compat_exec mess, and the compat get/setsockopt mess, and each
-time it removed hundreds of lines of code duplicating native
-functionality, often in slightly broken ways.  We need a generic
-out of band way to transfer the information down and just check in
-in a few strategic places, and in_compat_syscall() does the right
-thing for that.
+Duh, yes. I completely forgot about that.
 
-> If we're going to play in_compat_syscall() games, let's please make
-> io_uring_enter() return -EINVAL if in_compat_syscall() != ctx->compat.
+Thanks for spotting it!
 
-That sounds like a plan, but still doesn't help with submissions from
-the offload WQ or the sqpoll thread.
+       tglx
