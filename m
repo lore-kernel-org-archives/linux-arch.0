@@ -1,16 +1,16 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V5 15/15] x86/kvm: Use generic xfer to guest work function
-Date: Thu, 23 Jul 2020 00:00:09 +0200
-Message-ID: <20200722220520.979724969@linutronix.de>
+Subject: [patch V5 14/15] x86/entry: Cleanup idtentry_enter/exit
+Date: Thu, 23 Jul 2020 00:00:08 +0200
+Message-ID: <20200722220520.855839271@linutronix.de>
 References: <20200722215954.464281930@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8-bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39180 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733190AbgGVWLn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:43 -0400
+Received: from Galois.linutronix.de ([193.142.43.55]:52552 "EHLO
+        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1733150AbgGVWLm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:42 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
@@ -18,97 +18,245 @@ Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, A
 
 From: Thomas Gleixner <tglx@linutronix.de>
 
-Use the generic infrastructure to check for and handle pending work before
-transitioning into guest mode.
-
-This now handles TIF_NOTIFY_RESUME as well which was ignored so
-far. Handling it is important as this covers task work and task work will
-be used to offload the heavy lifting of POSIX CPU timers to thread context.
+Remove the temporary defines and fixup all references.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
-V5: Rename exit -> xfer
----
- arch/x86/kvm/Kconfig   |    1 +
- arch/x86/kvm/vmx/vmx.c |   11 +++++------
- arch/x86/kvm/x86.c     |   15 ++++++---------
- 3 files changed, 12 insertions(+), 15 deletions(-)
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
---- a/arch/x86/kvm/Kconfig
-+++ b/arch/x86/kvm/Kconfig
-@@ -42,6 +42,7 @@ config KVM
- 	select HAVE_KVM_MSI
- 	select HAVE_KVM_CPU_RELAX_INTERCEPT
- 	select HAVE_KVM_NO_POLL
-+	select KVM_XFER_TO_GUEST_WORK
- 	select KVM_GENERIC_DIRTYLOG_READ_PROTECT
- 	select KVM_VFIO
- 	select SRCU
---- a/arch/x86/kvm/vmx/vmx.c
-+++ b/arch/x86/kvm/vmx/vmx.c
-@@ -27,6 +27,7 @@
- #include <linux/slab.h>
- #include <linux/tboot.h>
- #include <linux/trace_events.h>
-+#include <linux/entry-kvm.h>
- 
- #include <asm/apic.h>
- #include <asm/asm.h>
-@@ -5376,14 +5377,12 @@ static int handle_invalid_guest_state(st
- 		}
- 
- 		/*
--		 * Note, return 1 and not 0, vcpu_run() is responsible for
--		 * morphing the pending signal into the proper return code.
-+		 * Note, return 1 and not 0, vcpu_run() will invoke
-+		 * xfer_to_guest_mode() which will create a proper return
-+		 * code.
- 		 */
--		if (signal_pending(current))
-+		if (__xfer_to_guest_mode_work_pending())
- 			return 1;
--
--		if (need_resched())
--			schedule();
- 	}
- 
- 	return 1;
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -56,6 +56,7 @@
- #include <linux/sched/stat.h>
- #include <linux/sched/isolation.h>
- #include <linux/mem_encrypt.h>
-+#include <linux/entry-kvm.h>
- 
- #include <trace/events/kvm.h>
- 
-@@ -1585,7 +1586,7 @@ EXPORT_SYMBOL_GPL(kvm_emulate_wrmsr);
- bool kvm_vcpu_exit_request(struct kvm_vcpu *vcpu)
+---
+ arch/x86/entry/common.c         |    6 +++---
+ arch/x86/include/asm/idtentry.h |   33 ++++++++++++++-------------------
+ arch/x86/kernel/kvm.c           |    6 +++---
+ arch/x86/kernel/traps.c         |    6 +++---
+ arch/x86/mm/fault.c             |    6 +++---
+ 5 files changed, 26 insertions(+), 31 deletions(-)
+
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -248,9 +248,9 @@ static void __xen_pv_evtchn_do_upcall(vo
  {
- 	return vcpu->mode == EXITING_GUEST_MODE || kvm_request_pending(vcpu) ||
--		need_resched() || signal_pending(current);
-+		xfer_to_guest_mode_work_pending();
- }
- EXPORT_SYMBOL_GPL(kvm_vcpu_exit_request);
+ 	struct pt_regs *old_regs;
+ 	bool inhcall;
+-	idtentry_state_t state;
++	irqentry_state_t state;
  
-@@ -8676,15 +8677,11 @@ static int vcpu_run(struct kvm_vcpu *vcp
- 			break;
- 		}
+-	state = idtentry_enter(regs);
++	state = irqentry_enter(regs);
+ 	old_regs = set_irq_regs(regs);
  
--		if (signal_pending(current)) {
--			r = -EINTR;
--			vcpu->run->exit_reason = KVM_EXIT_INTR;
--			++vcpu->stat.signal_exits;
--			break;
--		}
--		if (need_resched()) {
-+		if (xfer_to_guest_mode_work_pending()) {
- 			srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
--			cond_resched();
-+			r = xfer_to_guest_mode(vcpu);
-+			if (r)
-+				return r;
- 			vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
- 		}
+ 	instrumentation_begin();
+@@ -266,7 +266,7 @@ static void __xen_pv_evtchn_do_upcall(vo
+ 		instrumentation_end();
+ 		restore_inhcall(inhcall);
+ 	} else {
+-		idtentry_exit(regs, state);
++		irqentry_exit(regs, state);
  	}
+ }
+ #endif /* CONFIG_XEN_PV */
+--- a/arch/x86/include/asm/idtentry.h
++++ b/arch/x86/include/asm/idtentry.h
+@@ -11,11 +11,6 @@
+ 
+ #include <asm/irq_stack.h>
+ 
+-/* Temporary defines */
+-typedef irqentry_state_t idtentry_state_t;
+-#define idtentry_enter irqentry_enter
+-#define idtentry_exit irqentry_exit
+-
+ /**
+  * DECLARE_IDTENTRY - Declare functions for simple IDT entry points
+  *		      No error code pushed by hardware
+@@ -45,8 +40,8 @@ typedef irqentry_state_t idtentry_state_
+  * The macro is written so it acts as function definition. Append the
+  * body with a pair of curly brackets.
+  *
+- * idtentry_enter() contains common code which has to be invoked before
+- * arbitrary code in the body. idtentry_exit() contains common code
++ * irqentry_enter() contains common code which has to be invoked before
++ * arbitrary code in the body. irqentry_exit() contains common code
+  * which has to run before returning to the low level assembly code.
+  */
+ #define DEFINE_IDTENTRY(func)						\
+@@ -54,12 +49,12 @@ static __always_inline void __##func(str
+ 									\
+ __visible noinstr void func(struct pt_regs *regs)			\
+ {									\
+-	idtentry_state_t state = idtentry_enter(regs);			\
++	irqentry_state_t state = irqentry_enter(regs);			\
+ 									\
+ 	instrumentation_begin();					\
+ 	__##func (regs);						\
+ 	instrumentation_end();						\
+-	idtentry_exit(regs, state);					\
++	irqentry_exit(regs, state);					\
+ }									\
+ 									\
+ static __always_inline void __##func(struct pt_regs *regs)
+@@ -101,12 +96,12 @@ static __always_inline void __##func(str
+ __visible noinstr void func(struct pt_regs *regs,			\
+ 			    unsigned long error_code)			\
+ {									\
+-	idtentry_state_t state = idtentry_enter(regs);			\
++	irqentry_state_t state = irqentry_enter(regs);			\
+ 									\
+ 	instrumentation_begin();					\
+ 	__##func (regs, error_code);					\
+ 	instrumentation_end();						\
+-	idtentry_exit(regs, state);					\
++	irqentry_exit(regs, state);					\
+ }									\
+ 									\
+ static __always_inline void __##func(struct pt_regs *regs,		\
+@@ -161,7 +156,7 @@ static __always_inline void __##func(str
+  * body with a pair of curly brackets.
+  *
+  * Contrary to DEFINE_IDTENTRY_ERRORCODE() this does not invoke the
+- * idtentry_enter/exit() helpers before and after the body invocation. This
++ * irqentry_enter/exit() helpers before and after the body invocation. This
+  * needs to be done in the body itself if applicable. Use if extra work
+  * is required before the enter/exit() helpers are invoked.
+  */
+@@ -197,7 +192,7 @@ static __always_inline void __##func(str
+ __visible noinstr void func(struct pt_regs *regs,			\
+ 			    unsigned long error_code)			\
+ {									\
+-	idtentry_state_t state = idtentry_enter(regs);			\
++	irqentry_state_t state = irqentry_enter(regs);			\
+ 									\
+ 	instrumentation_begin();					\
+ 	irq_enter_rcu();						\
+@@ -205,7 +200,7 @@ static __always_inline void __##func(str
+ 	__##func (regs, (u8)error_code);				\
+ 	irq_exit_rcu();							\
+ 	instrumentation_end();						\
+-	idtentry_exit(regs, state);					\
++	irqentry_exit(regs, state);					\
+ }									\
+ 									\
+ static __always_inline void __##func(struct pt_regs *regs, u8 vector)
+@@ -229,7 +224,7 @@ static __always_inline void __##func(str
+  * DEFINE_IDTENTRY_SYSVEC - Emit code for system vector IDT entry points
+  * @func:	Function name of the entry point
+  *
+- * idtentry_enter/exit() and irq_enter/exit_rcu() are invoked before the
++ * irqentry_enter/exit() and irq_enter/exit_rcu() are invoked before the
+  * function body. KVM L1D flush request is set.
+  *
+  * Runs the function on the interrupt stack if the entry hit kernel mode
+@@ -239,7 +234,7 @@ static void __##func(struct pt_regs *reg
+ 									\
+ __visible noinstr void func(struct pt_regs *regs)			\
+ {									\
+-	idtentry_state_t state = idtentry_enter(regs);			\
++	irqentry_state_t state = irqentry_enter(regs);			\
+ 									\
+ 	instrumentation_begin();					\
+ 	irq_enter_rcu();						\
+@@ -247,7 +242,7 @@ static void __##func(struct pt_regs *reg
+ 	run_on_irqstack_cond(__##func, regs, regs);			\
+ 	irq_exit_rcu();							\
+ 	instrumentation_end();						\
+-	idtentry_exit(regs, state);					\
++	irqentry_exit(regs, state);					\
+ }									\
+ 									\
+ static noinline void __##func(struct pt_regs *regs)
+@@ -268,7 +263,7 @@ static __always_inline void __##func(str
+ 									\
+ __visible noinstr void func(struct pt_regs *regs)			\
+ {									\
+-	idtentry_state_t state = idtentry_enter(regs);			\
++	irqentry_state_t state = irqentry_enter(regs);			\
+ 									\
+ 	instrumentation_begin();					\
+ 	__irq_enter_raw();						\
+@@ -276,7 +271,7 @@ static __always_inline void __##func(str
+ 	__##func (regs);						\
+ 	__irq_exit_raw();						\
+ 	instrumentation_end();						\
+-	idtentry_exit(regs, state);					\
++	irqentry_exit(regs, state);					\
+ }									\
+ 									\
+ static __always_inline void __##func(struct pt_regs *regs)
+--- a/arch/x86/kernel/kvm.c
++++ b/arch/x86/kernel/kvm.c
+@@ -233,7 +233,7 @@ EXPORT_SYMBOL_GPL(kvm_read_and_reset_apf
+ noinstr bool __kvm_handle_async_pf(struct pt_regs *regs, u32 token)
+ {
+ 	u32 reason = kvm_read_and_reset_apf_flags();
+-	idtentry_state_t state;
++	irqentry_state_t state;
+ 
+ 	switch (reason) {
+ 	case KVM_PV_REASON_PAGE_NOT_PRESENT:
+@@ -243,7 +243,7 @@ noinstr bool __kvm_handle_async_pf(struc
+ 		return false;
+ 	}
+ 
+-	state = idtentry_enter(regs);
++	state = irqentry_enter(regs);
+ 	instrumentation_begin();
+ 
+ 	/*
+@@ -264,7 +264,7 @@ noinstr bool __kvm_handle_async_pf(struc
+ 	}
+ 
+ 	instrumentation_end();
+-	idtentry_exit(regs, state);
++	irqentry_exit(regs, state);
+ 	return true;
+ }
+ 
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -245,7 +245,7 @@ static noinstr bool handle_bug(struct pt
+ 
+ DEFINE_IDTENTRY_RAW(exc_invalid_op)
+ {
+-	idtentry_state_t state;
++	irqentry_state_t state;
+ 
+ 	/*
+ 	 * We use UD2 as a short encoding for 'CALL __WARN', as such
+@@ -255,11 +255,11 @@ DEFINE_IDTENTRY_RAW(exc_invalid_op)
+ 	if (!user_mode(regs) && handle_bug(regs))
+ 		return;
+ 
+-	state = idtentry_enter(regs);
++	state = irqentry_enter(regs);
+ 	instrumentation_begin();
+ 	handle_invalid_op(regs);
+ 	instrumentation_end();
+-	idtentry_exit(regs, state);
++	irqentry_exit(regs, state);
+ }
+ 
+ DEFINE_IDTENTRY(exc_coproc_segment_overrun)
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -1377,7 +1377,7 @@ handle_page_fault(struct pt_regs *regs,
+ DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_fault)
+ {
+ 	unsigned long address = read_cr2();
+-	idtentry_state_t state;
++	irqentry_state_t state;
+ 
+ 	prefetchw(&current->mm->mmap_lock);
+ 
+@@ -1412,11 +1412,11 @@ DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_f
+ 	 * code reenabled RCU to avoid subsequent wreckage which helps
+ 	 * debugability.
+ 	 */
+-	state = idtentry_enter(regs);
++	state = irqentry_enter(regs);
+ 
+ 	instrumentation_begin();
+ 	handle_page_fault(regs, error_code, address);
+ 	instrumentation_end();
+ 
+-	idtentry_exit(regs, state);
++	irqentry_exit(regs, state);
+ }
