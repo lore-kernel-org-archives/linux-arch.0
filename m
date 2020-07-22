@@ -1,66 +1,60 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [RFC] raw_copy_from_user() semantics
-Date: Wed, 22 Jul 2020 13:14:21 +0000
-Message-ID: <8fde1b9044a34ff59eb5ff3dafbf2b97@AcuMS.aculab.com>
-References: <20200719031733.GI2786714@ZenIV.linux.org.uk>
- <CAHk-=wi7f5vG+s=aFsskzcTRs+f7MVHK9yJFZtUEfndy6ScKRQ@mail.gmail.com>
- <CAHk-=wirA7zJJB17KJPCE-V9pKwn8VKxXTeiaM+F+Sa1Xd2SWA@mail.gmail.com>
- <20200722113707.GC27540@gaia>
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [PATCH 04/18] csum_and_copy_..._user(): pass 0xffffffff instead
+ of 0 as initial sum
+Date: Wed, 22 Jul 2020 15:42:13 +0100
+Message-ID: <20200722144213.GE2786714@ZenIV.linux.org.uk>
+References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
+ <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
+ <20200721202549.4150745-4-viro@ZenIV.linux.org.uk>
+ <2d85ebb8ea2248c8a14f038a0c60297e@AcuMS.aculab.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200722113707.GC27540@gaia>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: 'Catalin Marinas' <catalin.marinas@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53868 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732391AbgGVOmV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 10:42:21 -0400
+Content-Disposition: inline
+In-Reply-To: <2d85ebb8ea2248c8a14f038a0c60297e@AcuMS.aculab.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Laight <David.Laight@aculab.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-From: Catalin Marinas
-> Sent: 22 July 2020 12:37
+On Wed, Jul 22, 2020 at 09:27:32AM +0000, David Laight wrote:
+> From: Al Viro
+> > Sent: 21 July 2020 21:26
+> > Preparation for the change of calling conventions; right now all
+> > callers pass 0 as initial sum.  Passing 0xffffffff instead yields
+> > the values comparable mod 0xffff and guarantees that 0 will not
+> > be returned on success.
+> > 
+> > Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+> > ---
+> >  lib/iov_iter.c | 6 +++---
+> >  1 file changed, 3 insertions(+), 3 deletions(-)
+> > 
+> > diff --git a/lib/iov_iter.c b/lib/iov_iter.c
+> > index 7405922caaec..d5b7e204fea6 100644
+> > --- a/lib/iov_iter.c
+> > +++ b/lib/iov_iter.c
+> > @@ -1451,7 +1451,7 @@ size_t csum_and_copy_from_iter(void *addr, size_t bytes, __wsum *csum,
+> >  		int err = 0;
+> >  		next = csum_and_copy_from_user(v.iov_base,
+> >  					       (to += v.iov_len) - v.iov_len,
+> > -					       v.iov_len, 0, &err);
+> > +					       v.iov_len, ~0U, &err);
+> >  		if (!err) {
+> >  			sum = csum_block_add(sum, next, off);
+> >  			off += v.iov_len;
 > 
-> On Sun, Jul 19, 2020 at 12:34:11PM -0700, Linus Torvalds wrote:
-> > On Sun, Jul 19, 2020 at 12:28 PM Linus Torvalds
-> > <torvalds@linux-foundation.org> wrote:
-> > > I think we should try to get rid of the exact semantics.
-> >
-> > Side note: I think one of the historical reasons for the exact
-> > semantics was that we used to do things like the mount option copying
-> > with a "copy_from_user()" iirc.
-> >
-> > And that could take a fault at the end of the stack etc, because
-> > "copy_mount_options()" is nasty and doesn't get a size, and just
-> > copies "up to 4kB" of data.
-> >
-> > It's a mistake in the interface, but it is what it is. But we've
-> > always handled the inexact count there anyway by originally doing byte
-> > accesses, and at some point you optimized it to just look at where
-> > page boundaries might be..
-> 
-> And we may have to change this again since, with arm64 MTE, the page
-> boundary check is insufficient:
-> 
-> https://lore.kernel.org/linux-fsdevel/20200715170844.30064-25-catalin.marinas@arm.com/
-> 
-> While currently the fault path is unlikely to trigger, with MTE in user
-> space it's a lot more likely since the buffer (e.g. a string) is
-> normally less than 4K and the adjacent addresses would have a different
-> colour.
-> 
-> I looked (though briefly) into passing the copy_from_user() problem to
-> filesystems that would presumably know better how much to copy. In most
-> cases the options are string, so something like strncpy_from_user()
-> would work. For mount options as binary blobs (IIUC btrfs) maybe the fs
-> has a better way to figure out how much to copy.
+> Can't you remove the csum_block_add() by passing the
+> old 'sum' in instead of the ~0U ?
+> You'll need to keep track of whether the buffer fragment
+> is odd/even aligned.
+> After an odd length fragment a bswap32() or 8 bit rotate will
+> fix things (and maybe one right at the end).
 
-What about changing the mount code to loop calling get_user()
-to read aligned words until failure?
-Mount is fairly uncommon and the extra cost is probably small compared
-to the rest of doing a mount.
-
-	David
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+And the benefit of that would be...?  It wouldn't be any simpler,
+it almost certainly would not even be a valid microoptimization
+(nevermind that this is an arch-independent code)...
