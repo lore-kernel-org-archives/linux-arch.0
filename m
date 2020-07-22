@@ -1,35 +1,112 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V5 00/15] entry, x86, kvm: Generic entry/exit functionality
- for host and guest
-Date: Wed, 22 Jul 2020 23:59:54 +0200
-Message-ID: <20200722215954.464281930@linutronix.de>
+Subject: [patch V5 06/15] x86/entry: Consolidate check_user_regs()
+Date: Thu, 23 Jul 2020 00:00:00 +0200
+Message-ID: <20200722220519.943016204@linutronix.de>
+References: <20200722215954.464281930@linutronix.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8-bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <kvm-owner@vger.kernel.org>
+Sender: kvm-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-This is the 5th version of generic entry/exit functionality for host and
-guest.
+From: Thomas Gleixner <tglx@linutronix.de>
 
-The 4th version is available here:
+The user register sanity check is sprinkled all over the place. Move it
+into enter_from_user_mode().
 
-    https://lore.kernel.org/r/20200721105706.030914876@linutronix.de
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-Changes vs. V4:
+---
+ arch/x86/entry/common.c |   24 +++++++++---------------
+ 1 file changed, 9 insertions(+), 15 deletions(-)
 
-  - Add the missing instrumentation prevetions to the entry Makefile (Kees)
-  - Rename exit_to_guest to xfer_to_guest (Sean)
-
-The patches depend on:
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git x86/entry
-
-The lot is also available from git:
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/tglx/devel.git x86/entry
-
-Thanks,
-
-	tglx
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -82,10 +82,11 @@ static noinstr void check_user_regs(stru
+  * 2) Invoke context tracking if enabled to reactivate RCU
+  * 3) Trace interrupts off state
+  */
+-static noinstr void enter_from_user_mode(void)
++static noinstr void enter_from_user_mode(struct pt_regs *regs)
+ {
+ 	enum ctx_state state = ct_state();
+ 
++	check_user_regs(regs);
+ 	lockdep_hardirqs_off(CALLER_ADDR0);
+ 	user_exit_irqoff();
+ 
+@@ -95,8 +96,9 @@ static noinstr void enter_from_user_mode
+ 	instrumentation_end();
+ }
+ #else
+-static __always_inline void enter_from_user_mode(void)
++static __always_inline void enter_from_user_mode(struct pt_regs *regs)
+ {
++	check_user_regs(regs);
+ 	lockdep_hardirqs_off(CALLER_ADDR0);
+ 	instrumentation_begin();
+ 	trace_hardirqs_off_finish();
+@@ -369,9 +371,7 @@ static void __syscall_return_slowpath(st
+ {
+ 	struct thread_info *ti;
+ 
+-	check_user_regs(regs);
+-
+-	enter_from_user_mode();
++	enter_from_user_mode(regs);
+ 	instrumentation_begin();
+ 
+ 	local_irq_enable();
+@@ -434,9 +434,7 @@ static void do_syscall_32_irqs_on(struct
+ /* Handles int $0x80 */
+ __visible noinstr void do_int80_syscall_32(struct pt_regs *regs)
+ {
+-	check_user_regs(regs);
+-
+-	enter_from_user_mode();
++	enter_from_user_mode(regs);
+ 	instrumentation_begin();
+ 
+ 	local_irq_enable();
+@@ -487,8 +485,6 @@ static bool __do_fast_syscall_32(struct
+ 					vdso_image_32.sym_int80_landing_pad;
+ 	bool success;
+ 
+-	check_user_regs(regs);
+-
+ 	/*
+ 	 * SYSENTER loses EIP, and even SYSCALL32 needs us to skip forward
+ 	 * so that 'regs->ip -= 2' lands back on an int $0x80 instruction.
+@@ -496,7 +492,7 @@ static bool __do_fast_syscall_32(struct
+ 	 */
+ 	regs->ip = landing_pad;
+ 
+-	enter_from_user_mode();
++	enter_from_user_mode(regs);
+ 	instrumentation_begin();
+ 
+ 	local_irq_enable();
+@@ -599,8 +595,7 @@ idtentry_state_t noinstr idtentry_enter(
+ 	};
+ 
+ 	if (user_mode(regs)) {
+-		check_user_regs(regs);
+-		enter_from_user_mode();
++		enter_from_user_mode(regs);
+ 		return ret;
+ 	}
+ 
+@@ -733,8 +728,7 @@ void noinstr idtentry_exit(struct pt_reg
+  */
+ void noinstr idtentry_enter_user(struct pt_regs *regs)
+ {
+-	check_user_regs(regs);
+-	enter_from_user_mode();
++	enter_from_user_mode(regs);
+ }
+ 
+ /**
