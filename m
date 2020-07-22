@@ -1,59 +1,53 @@
-Return-Path: <SRS0=xaua=A5=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42810 "EHLO
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57644 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726627AbgGROyk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Jul 2020 10:54:40 -0400
-Subject: Re: [PATCH 1/6] syscalls: use uaccess_kernel in addr_limit_user_check
-References: <20200714105505.935079-1-hch@lst.de>
- <20200714105505.935079-2-hch@lst.de> <20200718013849.GA157764@roeck-us.net>
- <20200718094846.GA8593@lst.de>
-From: Guenter Roeck <linux@roeck-us.net>
-Message-ID: <fe1d4a6d-e32d-6994-a08b-40134000e988@roeck-us.net>
-Date: Sat, 18 Jul 2020 07:54:37 -0700
+        with ESMTP id S1726649AbgGVSH1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 14:07:27 -0400
+Received: from mail-ed1-x542.google.com (mail-ed1-x542.google.com [IPv6:2a00:1450:4864:20::542])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0ACADC0619E1
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 11:07:27 -0700 (PDT)
+Received: by mail-ed1-x542.google.com with SMTP id g20so2359659edm.4
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 11:07:26 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20200718094846.GA8593@lst.de>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624203200.78870-5-samitolvanen@google.com> <20200624212737.GV4817@hirez.programming.kicks-ass.net>
+ <20200624214530.GA120457@google.com> <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+ <20200625161503.GB173089@google.com> <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
+ <20200625224042.GA169781@google.com> <20200626112931.GF4817@hirez.programming.kicks-ass.net>
+ <CABCJKucSM7gqWmUtiBPbr208wB0pc25afJXc6yBQzJDZf4LSWA@mail.gmail.com>
+ <20200717133645.7816c0b6@oasis.local.home> <CABCJKuda0AFCZ-1J2NTLc-M0xax007a9u-fzOoxmU2z60jvzbA@mail.gmail.com>
+ <20200717140545.6f008208@oasis.local.home> <CABCJKucDrS9wNZLjtmN5qMbZBTHLvB1Z7WqTwT3b11-K4kNcyg@mail.gmail.com>
+ <20200722135829.7ca6fbc5@oasis.local.home>
+In-Reply-To: <20200722135829.7ca6fbc5@oasis.local.home>
+From: Sami Tolvanen <samitolvanen@google.com>
+Date: Wed, 22 Jul 2020 11:07:13 -0700
+Message-ID: <CABCJKucn5o+PgMnKwHOGRnhTdVk9Dnd2QZwy54wXYwQYNUNjBw@mail.gmail.com>
+Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200718145437.AxtVOjG3Z69kFT46bxHVGD7MK2TeB5avhmNSV7bR7aI@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>
+Message-ID: <20200722180713.BJaQ6EJFkmH8R8dcfwrYrNLBeKTnHW9XG7GRDUss6FU@z>
 
-On 7/18/20 2:48 AM, Christoph Hellwig wrote:
-> On Fri, Jul 17, 2020 at 06:38:50PM -0700, Guenter Roeck wrote:
->> Hi,
->>
->> On Tue, Jul 14, 2020 at 12:55:00PM +0200, Christoph Hellwig wrote:
->>> Use the uaccess_kernel helper instead of duplicating it.
->>>
->>> Signed-off-by: Christoph Hellwig <hch@lst.de>
->>
->> This patch causes a severe hiccup with my mps2-an385 boot test.
-> 
-> I guess that is a nommu config?
-> 
-Correct.
+On Wed, Jul 22, 2020 at 10:58 AM Steven Rostedt <rostedt@goodmis.org> wrote:
+>
+> On Mon, 20 Jul 2020 09:52:37 -0700
+> Sami Tolvanen <samitolvanen@google.com> wrote:
+>
+> > > Does x86 have a way to differentiate between the two that record mcount
+> > > can check?
+> >
+> > I'm not sure if looking at the relocation alone is sufficient on x86,
+> > we might also have to decode the instruction, which is what objtool
+> > does. Did you have any thoughts on Peter's patch, or my initial
+> > suggestion, which adds a __nomcount attribute to affected functions?
+>
+> There's a lot of code in this thread. Can you give me the message-id of
+> Peter's patch in question.
 
-> Can you try this patch?
-> 
-> diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
-> index b19c9bec1f7a63..cc7daf374a6eb6 100644
-> --- a/arch/arm/include/asm/uaccess.h
-> +++ b/arch/arm/include/asm/uaccess.h
-> @@ -263,7 +263,7 @@ extern int __put_user_8(void *, unsigned long long);
->   */
->  #define USER_DS			KERNEL_DS
->  
-> -#define uaccess_kernel()	(true)
-> +#define uaccess_kernel()	(false)
->  #define __addr_ok(addr)		((void)(addr), 1)
->  #define __range_ok(addr, size)	((void)(addr), 0)
->  #define get_fs()		(KERNEL_DS)
-> 
+Sure, I was referring to the objtool patch in this message:
 
-With this change, the error message is gone. However, it still does not
-work. The image just hangs instead.
+https://lore.kernel.org/lkml/20200625200235.GQ4781@hirez.programming.kicks-ass.net/
 
-Guenter
+Sami
