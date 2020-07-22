@@ -1,125 +1,103 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53952 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727065AbgGQGYZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:25 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 12/22] netfilter: remove the compat argument to xt_copy_counters_from_user
-Date: Fri, 17 Jul 2020 08:23:21 +0200
-Message-ID: <20200717062331.691152-13-hch@lst.de>
-In-Reply-To: <20200717062331.691152-1-hch@lst.de>
-References: <20200717062331.691152-1-hch@lst.de>
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:49102 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726535AbgGVRzq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jul 2020 13:55:46 -0400
+Date: Wed, 22 Jul 2020 13:55:42 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
+Message-ID: <20200722135542.41127cc4@oasis.local.home>
+In-Reply-To: <20200626112931.GF4817@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+        <20200624203200.78870-5-samitolvanen@google.com>
+        <20200624212737.GV4817@hirez.programming.kicks-ass.net>
+        <20200624214530.GA120457@google.com>
+        <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+        <20200625161503.GB173089@google.com>
+        <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
+        <20200625224042.GA169781@google.com>
+        <20200626112931.GF4817@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
-Message-ID: <20200717062321.KgKFYVySHj9gYxqj1b9xHs1MRaYmwm5vr68z-5IFHQI@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>, mhelsley@vmware.com
+Message-ID: <20200722175542.MDdYq5k5dSJGOHXTMhDV3t6erlbE_qVgZw4U1GdR5_s@z>
 
-Lift the in_compat_syscall() from the callers instead.
+On Fri, 26 Jun 2020 13:29:31 +0200
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- include/linux/netfilter/x_tables.h | 2 +-
- net/ipv4/netfilter/arp_tables.c    | 3 +--
- net/ipv4/netfilter/ip_tables.c     | 3 +--
- net/ipv6/netfilter/ip6_tables.c    | 3 +--
- net/netfilter/x_tables.c           | 9 ++++-----
- 5 files changed, 8 insertions(+), 12 deletions(-)
+> On Thu, Jun 25, 2020 at 03:40:42PM -0700, Sami Tolvanen wrote:
+> 
+> > > Not boot tested, but it generates the required sections and they look
+> > > more or less as expected, ymmv.  
+> 
+> > > diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> > > index a291823f3f26..189575c12434 100644
+> > > --- a/arch/x86/Kconfig
+> > > +++ b/arch/x86/Kconfig
+> > > @@ -174,7 +174,6 @@ config X86
+> > >  	select HAVE_EXIT_THREAD
+> > >  	select HAVE_FAST_GUP
+> > >  	select HAVE_FENTRY			if X86_64 || DYNAMIC_FTRACE
+> > > -	select HAVE_FTRACE_MCOUNT_RECORD
+> > >  	select HAVE_FUNCTION_GRAPH_TRACER
+> > >  	select HAVE_FUNCTION_TRACER
+> > >  	select HAVE_GCC_PLUGINS  
+> > 
+> > This breaks DYNAMIC_FTRACE according to kernel/trace/ftrace.c:
+> > 
+> >   #ifndef CONFIG_FTRACE_MCOUNT_RECORD
+> >   # error Dynamic ftrace depends on MCOUNT_RECORD
+> >   #endif
+> > 
+> > And the build errors after that seem to confirm this. It looks like we might
+> > need another flag to skip recordmcount.  
+> 
+> Hurm, Steve, how you want to do that?
 
-diff --git a/include/linux/netfilter/x_tables.h b/include/linux/netfilter/x_tables.h
-index 5da88451853b28..b8b943ee7b8b66 100644
---- a/include/linux/netfilter/x_tables.h
-+++ b/include/linux/netfilter/x_tables.h
-@@ -302,7 +302,7 @@ int xt_data_to_user(void __user *dst, const void *src,
- 		    int usersize, int size, int aligned_size);
- 
- void *xt_copy_counters_from_user(const void __user *user, unsigned int len,
--				 struct xt_counters_info *info, bool compat);
-+				 struct xt_counters_info *info);
- struct xt_counters *xt_counters_alloc(unsigned int counters);
- 
- struct xt_table *xt_register_table(struct net *net,
-diff --git a/net/ipv4/netfilter/arp_tables.c b/net/ipv4/netfilter/arp_tables.c
-index 15807fb4a65f3e..2c8a4dad39d748 100644
---- a/net/ipv4/netfilter/arp_tables.c
-+++ b/net/ipv4/netfilter/arp_tables.c
-@@ -1008,8 +1008,7 @@ static int do_add_counters(struct net *net, const void __user *user,
- 	struct arpt_entry *iter;
- 	unsigned int addend;
- 
--	paddc = xt_copy_counters_from_user(user, len, &tmp,
--					   in_compat_syscall());
-+	paddc = xt_copy_counters_from_user(user, len, &tmp);
- 	if (IS_ERR(paddc))
- 		return PTR_ERR(paddc);
- 
-diff --git a/net/ipv4/netfilter/ip_tables.c b/net/ipv4/netfilter/ip_tables.c
-index fbfad38f397949..161901dd1cae7f 100644
---- a/net/ipv4/netfilter/ip_tables.c
-+++ b/net/ipv4/netfilter/ip_tables.c
-@@ -1163,8 +1163,7 @@ do_add_counters(struct net *net, const void __user *user,
- 	struct ipt_entry *iter;
- 	unsigned int addend;
- 
--	paddc = xt_copy_counters_from_user(user, len, &tmp,
--					   in_compat_syscall());
-+	paddc = xt_copy_counters_from_user(user, len, &tmp);
- 	if (IS_ERR(paddc))
- 		return PTR_ERR(paddc);
- 
-diff --git a/net/ipv6/netfilter/ip6_tables.c b/net/ipv6/netfilter/ip6_tables.c
-index 96c48e91e6c7f7..fd1f8f93123188 100644
---- a/net/ipv6/netfilter/ip6_tables.c
-+++ b/net/ipv6/netfilter/ip6_tables.c
-@@ -1179,8 +1179,7 @@ do_add_counters(struct net *net, const void __user *user, unsigned int len)
- 	struct ip6t_entry *iter;
- 	unsigned int addend;
- 
--	paddc = xt_copy_counters_from_user(user, len, &tmp,
--					   in_compat_syscall());
-+	paddc = xt_copy_counters_from_user(user, len, &tmp);
- 	if (IS_ERR(paddc))
- 		return PTR_ERR(paddc);
- 	t = xt_find_table_lock(net, AF_INET6, tmp.name);
-diff --git a/net/netfilter/x_tables.c b/net/netfilter/x_tables.c
-index 99a468be4a59fb..32bab45af7e415 100644
---- a/net/netfilter/x_tables.c
-+++ b/net/netfilter/x_tables.c
-@@ -1033,15 +1033,14 @@ EXPORT_SYMBOL_GPL(xt_check_target);
-  * @user: src pointer to userspace memory
-  * @len: alleged size of userspace memory
-  * @info: where to store the xt_counters_info metadata
-- * @compat: true if we setsockopt call is done by 32bit task on 64bit kernel
-  *
-  * Copies counter meta data from @user and stores it in @info.
-  *
-  * vmallocs memory to hold the counters, then copies the counter data
-  * from @user to the new memory and returns a pointer to it.
-  *
-- * If @compat is true, @info gets converted automatically to the 64bit
-- * representation.
-+ * If called from a compat syscall, @info gets converted automatically to the
-+ * 64bit representation.
-  *
-  * The metadata associated with the counters is stored in @info.
-  *
-@@ -1049,13 +1048,13 @@ EXPORT_SYMBOL_GPL(xt_check_target);
-  * If IS_ERR is false, caller has to vfree the pointer.
-  */
- void *xt_copy_counters_from_user(const void __user *user, unsigned int len,
--				 struct xt_counters_info *info, bool compat)
-+				 struct xt_counters_info *info)
- {
- 	void *mem;
- 	u64 size;
- 
- #ifdef CONFIG_COMPAT
--	if (compat) {
-+	if (in_compat_syscall()) {
- 		/* structures only differ in size due to alignment */
- 		struct compat_xt_counters_info compat_tmp;
- 
--- 
-2.27.0
+That was added when we removed that dangerous daemon that did the
+updates, and was added to make sure it didn't come back.
+
+We can probably just get rid of it.
+
+
+> 
+> > Anyway, since objtool is run before recordmcount, I just left this unchanged
+> > for testing and ignored the recordmcount warnings about __mcount_loc already
+> > existing. Something is a bit off still though, I see this at boot:
+> > 
+> >   ------------[ ftrace bug ]------------
+> >   ftrace failed to modify
+> >   [<ffffffff81000660>] __tracepoint_iter_initcall_level+0x0/0x40
+> >    actual:   0f:1f:44:00:00
+> >   Initializing ftrace call sites
+> >   ftrace record flags: 0
+> >    (0)
+> >    expected tramp: ffffffff81056500
+> >   ------------[ cut here ]------------
+> > 
+> > Otherwise, this looks pretty good.  
+> 
+> Ha! it is trying to convert the "CALL __fentry__" into a NOP and not
+> finding the CALL -- because objtool already made it a NOP...
+> 
+> Weird, I thought recordmcount would also write NOPs, it certainly has
+> code for that. I suppose we can use CC_USING_NOP_MCOUNT to avoid those,
+> but I'd rather Steve explain this before I wreck things further.
+
+The reason for not having recordmcount insert all the nops, is because
+x86 has more than one optimal nop which is determined by the machine it
+runs on, and not at compile time. So we figured just updated it then.
+
+We can change it to be a nop on boot, and just modify it if it's not
+the optimal nop already. 
+
+That said, Andi Kleen added an option to gcc called -mnop-mcount which
+will have gcc do both create the mcount section and convert the calls
+into nops. When doing so, it defines CC_USING_NOP_MCOUNT which will
+tell ftrace to expect the calls to already be converted.
+
+-- Steve
