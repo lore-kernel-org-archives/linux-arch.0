@@ -1,39 +1,49 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch V4 10/15] x86/entry: Use generic syscall entry function
-Date: Wed, 22 Jul 2020 20:25:55 +0200
-Message-ID: <87wo2vz9sc.fsf@nanos.tec.linutronix.de>
-References: <20200721105706.030914876@linutronix.de> <20200721110809.325060396@linutronix.de> <202007211440.BEF76E2@keescook>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
+Date: Wed, 22 Jul 2020 20:41:37 +0200
+Message-ID: <20200722184137.GP10769@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624203200.78870-5-samitolvanen@google.com>
+ <20200624212737.GV4817@hirez.programming.kicks-ass.net>
+ <20200624214530.GA120457@google.com>
+ <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+ <20200625161503.GB173089@google.com>
+ <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
+ <20200625224042.GA169781@google.com>
+ <20200626112931.GF4817@hirez.programming.kicks-ass.net>
+ <20200722135542.41127cc4@oasis.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:51176 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726462AbgGVSZ6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 14:25:58 -0400
-In-Reply-To: <202007211440.BEF76E2@keescook>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-pci-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200722135542.41127cc4@oasis.local.home>
+Sender: linux-pci-owner@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>, mhelsley@vmware.com
+List-Id: linux-arch.vger.kernel.org
 
-Kees,
+On Wed, Jul 22, 2020 at 01:55:42PM -0400, Steven Rostedt wrote:
 
-Kees Cook <keescook@chromium.org> writes:
-> On Tue, Jul 21, 2020 at 12:57:16PM +0200, Thomas Gleixner wrote:
->
-> This doesn't look very expensive, and they certain indicate really bad
-> conditions. Does this need to be behind a CONFIG? (Whatever the answer,
-> we can probably make those changes in a later series -- some of these
-> also look not arch-specific...)
+> > Ha! it is trying to convert the "CALL __fentry__" into a NOP and not
+> > finding the CALL -- because objtool already made it a NOP...
+> > 
+> > Weird, I thought recordmcount would also write NOPs, it certainly has
+> > code for that. I suppose we can use CC_USING_NOP_MCOUNT to avoid those,
+> > but I'd rather Steve explain this before I wreck things further.
+> 
+> The reason for not having recordmcount insert all the nops, is because
+> x86 has more than one optimal nop which is determined by the machine it
+> runs on, and not at compile time. So we figured just updated it then.
+> 
+> We can change it to be a nop on boot, and just modify it if it's not
+> the optimal nop already. 
 
-The most expensive part is native_save_flags(). The extra branches could
-be visible in benchmarks, but its a good question whether this should be
-just enabled.
+Right, I throught that's what we'd be doing already, anyway:
 
-I just keep it as is for now as I would need to make the flags and the
-on_thread_stack() part x86 specific anyway, but yes we can revisit that
-once we agreed on the general direction of this.
+> That said, Andi Kleen added an option to gcc called -mnop-mcount which
+> will have gcc do both create the mcount section and convert the calls
+> into nops. When doing so, it defines CC_USING_NOP_MCOUNT which will
+> tell ftrace to expect the calls to already be converted.
 
-Thanks,
-
-        tglx
+That seems like the much easier solution, then we can forget about
+recordmcount / objtool entirely for this.
