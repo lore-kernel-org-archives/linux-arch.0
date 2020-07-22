@@ -1,55 +1,50 @@
-Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <20200717111349.942447764@infradead.org>
-Date: Fri, 17 Jul 2020 13:10:15 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v2 10/11] riscv/tlb: Fix __p*_free_tlb()
-References: <20200717111005.024867618@infradead.org>
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:50674 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726666AbgGVR6k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jul 2020 13:58:40 -0400
+Date: Wed, 22 Jul 2020 13:58:36 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
+Message-ID: <20200722135829.7ca6fbc5@oasis.local.home>
+In-Reply-To: <CABCJKucDrS9wNZLjtmN5qMbZBTHLvB1Z7WqTwT3b11-K4kNcyg@mail.gmail.com>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+        <20200624203200.78870-5-samitolvanen@google.com>
+        <20200624212737.GV4817@hirez.programming.kicks-ass.net>
+        <20200624214530.GA120457@google.com>
+        <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+        <20200625161503.GB173089@google.com>
+        <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
+        <20200625224042.GA169781@google.com>
+        <20200626112931.GF4817@hirez.programming.kicks-ass.net>
+        <CABCJKucSM7gqWmUtiBPbr208wB0pc25afJXc6yBQzJDZf4LSWA@mail.gmail.com>
+        <20200717133645.7816c0b6@oasis.local.home>
+        <CABCJKuda0AFCZ-1J2NTLc-M0xax007a9u-fzOoxmU2z60jvzbA@mail.gmail.com>
+        <20200717140545.6f008208@oasis.local.home>
+        <CABCJKucDrS9wNZLjtmN5qMbZBTHLvB1Z7WqTwT3b11-K4kNcyg@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200717111015.tGA7GK5P9cPzqywL1Wk565huSfCE9Xsw3zvzRCqr9qo@z>
+To: Sami Tolvanen <samitolvanen@google.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>
+Message-ID: <20200722175836.mfspmg8h6goxxVjGvOddo_uviG6FIaW2J96Aidbd6lc@z>
 
-Just like regular pages, page directories need to observe the
-following order:
+On Mon, 20 Jul 2020 09:52:37 -0700
+Sami Tolvanen <samitolvanen@google.com> wrote:
 
- 1) unhook
- 2) TLB invalidate
- 3) free
+> > Does x86 have a way to differentiate between the two that record mcount
+> > can check?  
+> 
+> I'm not sure if looking at the relocation alone is sufficient on x86,
+> we might also have to decode the instruction, which is what objtool
+> does. Did you have any thoughts on Peter's patch, or my initial
+> suggestion, which adds a __nomcount attribute to affected functions?
 
-to ensure it is safe against concurrent accesses.
+There's a lot of code in this thread. Can you give me the message-id of
+Peter's patch in question.
 
-Since RISC-V has page based PMDs, no software walkers and IPI based
-TLB invalidation, it can use the simple tlb_remove_page() based
-freeer.
+Thanks,
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/riscv/include/asm/pgalloc.h |   11 ++++++-----
- 1 file changed, 6 insertions(+), 5 deletions(-)
-
---- a/arch/riscv/include/asm/pgalloc.h
-+++ b/arch/riscv/include/asm/pgalloc.h
-@@ -73,14 +73,15 @@ static inline void pmd_free(struct mm_st
- 	free_page((unsigned long)pmd);
- }
- 
--#define __pmd_free_tlb(tlb, pmd, addr)  pmd_free((tlb)->mm, pmd)
-+#define __pmd_free_tlb(tlb, pmd, addr)	\
-+	tlb_remove_table((tlb), virt_to_page(pmd))
- 
- #endif /* __PAGETABLE_PMD_FOLDED */
- 
--#define __pte_free_tlb(tlb, pte, buf)   \
--do {                                    \
--	pgtable_pte_page_dtor(pte);     \
--	tlb_remove_page((tlb), pte);    \
-+#define __pte_free_tlb(tlb, pte, buf)	\
-+do {					\
-+	pgtable_pte_page_dtor(pte);	\
-+	tlb_remove_table((tlb), (pte));	\
- } while (0)
- #endif /* CONFIG_MMU */
- 
+-- Steve
