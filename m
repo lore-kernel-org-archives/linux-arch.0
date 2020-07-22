@@ -1,47 +1,72 @@
-Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:42587 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1726455AbgGWTEW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 15:04:22 -0400
-Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks for
- SPLPAR
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <20200706043540.1563616-6-npiggin@gmail.com>
- <874kqhvu1v.fsf@mpe.ellerman.id.au>
- <8265d782-4e50-a9b2-a908-0cb588ffa09c@redhat.com>
- <20200723140011.GR5523@worktop.programming.kicks-ass.net>
- <845de183-56f5-2958-3159-faa131d46401@redhat.com>
- <20200723184759.GS119549@hirez.programming.kicks-ass.net>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <6d6279ad-7432-63c1-14c3-18c4cff30bf8@redhat.com>
-Date: Thu, 23 Jul 2020 15:04:13 -0400
-MIME-Version: 1.0
-In-Reply-To: <20200723184759.GS119549@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from eu-smtp-delivery-151.mimecast.com ([207.82.80.151]:21295 "EHLO
+        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1725878AbgGVNO1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jul 2020 09:14:27 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [RFC] raw_copy_from_user() semantics
+Date: Wed, 22 Jul 2020 13:14:21 +0000
+Message-ID: <8fde1b9044a34ff59eb5ff3dafbf2b97@AcuMS.aculab.com>
+References: <20200719031733.GI2786714@ZenIV.linux.org.uk>
+ <CAHk-=wi7f5vG+s=aFsskzcTRs+f7MVHK9yJFZtUEfndy6ScKRQ@mail.gmail.com>
+ <CAHk-=wirA7zJJB17KJPCE-V9pKwn8VKxXTeiaM+F+Sa1Xd2SWA@mail.gmail.com>
+ <20200722113707.GC27540@gaia>
+In-Reply-To: <20200722113707.GC27540@gaia>
 Content-Language: en-US
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200723190413.uyF4C0b6Cjd2AKLFzMSm4NcDjz_ClWuDvh6vP0MzrKc@z>
+To: 'Catalin Marinas' <catalin.marinas@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20200722131421.asmiSmmT5puaXny7H0XB3dQ2J8B5nKUJu4KAuGw94WI@z>
 
-On 7/23/20 2:47 PM, peterz@infradead.org wrote:
-> On Thu, Jul 23, 2020 at 02:32:36PM -0400, Waiman Long wrote:
->> BTW, do you have any comment on my v2 lock holder cpu info qspinlock patch?
->> I will have to update the patch to fix the reported 0-day test problem, but
->> I want to collect other feedback before sending out v3.
-> I want to say I hate it all, it adds instructions to a path we spend an
-> aweful lot of time optimizing without really getting anything back for
-> it.
+From: Catalin Marinas
+> Sent: 22 July 2020 12:37
+> 
+> On Sun, Jul 19, 2020 at 12:34:11PM -0700, Linus Torvalds wrote:
+> > On Sun, Jul 19, 2020 at 12:28 PM Linus Torvalds
+> > <torvalds@linux-foundation.org> wrote:
+> > > I think we should try to get rid of the exact semantics.
+> >
+> > Side note: I think one of the historical reasons for the exact
+> > semantics was that we used to do things like the mount option copying
+> > with a "copy_from_user()" iirc.
+> >
+> > And that could take a fault at the end of the stack etc, because
+> > "copy_mount_options()" is nasty and doesn't get a size, and just
+> > copies "up to 4kB" of data.
+> >
+> > It's a mistake in the interface, but it is what it is. But we've
+> > always handled the inexact count there anyway by originally doing byte
+> > accesses, and at some point you optimized it to just look at where
+> > page boundaries might be..
+> 
+> And we may have to change this again since, with arm64 MTE, the page
+> boundary check is insufficient:
+> 
+> https://lore.kernel.org/linux-fsdevel/20200715170844.30064-25-catalin.marinas@arm.com/
+> 
+> While currently the fault path is unlikely to trigger, with MTE in user
+> space it's a lot more likely since the buffer (e.g. a string) is
+> normally less than 4K and the adjacent addresses would have a different
+> colour.
+> 
+> I looked (though briefly) into passing the copy_from_user() problem to
+> filesystems that would presumably know better how much to copy. In most
+> cases the options are string, so something like strncpy_from_user()
+> would work. For mount options as binary blobs (IIUC btrfs) maybe the fs
+> has a better way to figure out how much to copy.
 
-It does add some extra instruction that may slow it down slightly, but I 
-don't agree that it gives nothing back. The cpu lock holder information 
-can be useful in analyzing crash dumps and in some debugging situation. 
-I think it can be useful in RHEL for this readon. How about an x86 
-config option to allow distros to decide if they want to have it 
-enabled? I will make sure that it will have no performance degradation 
-if the option is not enabled.
+What about changing the mount code to loop calling get_user()
+to read aligned words until failure?
+Mount is fairly uncommon and the extra cost is probably small compared
+to the rest of doing a mount.
 
-Cheers,
-Longman
+	David
+
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
