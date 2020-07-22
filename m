@@ -1,96 +1,40 @@
-Return-Path: <SRS0=5OOM=BG=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from userp2130.oracle.com ([156.151.31.86]:59392 "EHLO
-        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729403AbgG0RH7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2020 13:07:59 -0400
-From: Anthony Yznaga <anthony.yznaga@oracle.com>
-Subject: [RFC PATCH 5/5] mm: introduce MADV_DOEXEC
-Date: Mon, 27 Jul 2020 10:11:27 -0700
-Message-ID: <1595869887-23307-6-git-send-email-anthony.yznaga@oracle.com>
-In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
-References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58908 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726841AbgGVSP1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 14:15:27 -0400
+Received: from mail-ed1-x543.google.com (mail-ed1-x543.google.com [IPv6:2a00:1450:4864:20::543])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 963E8C0619E1
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 11:15:27 -0700 (PDT)
+Received: by mail-ed1-x543.google.com with SMTP id bm28so2380216edb.2
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 11:15:27 -0700 (PDT)
+MIME-Version: 1.0
+References: <20200624203200.78870-12-samitolvanen@google.com> <20200717202620.GA768846@bjorn-Precision-5520>
+In-Reply-To: <20200717202620.GA768846@bjorn-Precision-5520>
+From: Sami Tolvanen <samitolvanen@google.com>
+Date: Wed, 22 Jul 2020 11:15:14 -0700
+Message-ID: <CABCJKudTCwt3J19u8Em493a3Z9J2SD+imtVZTpz5cPv7Wza5iQ@mail.gmail.com>
+Subject: Re: [PATCH 11/22] pci: lto: fix PREL32 relocations
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
-Message-ID: <20200727171127.qhaNevvihR6HGk1WpCBzoDa84ebGd1zG4c-_oMDUN8E@z>
+To: Bjorn Helgaas <helgaas@kernel.org>
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>
+Message-ID: <20200722181514.c7ExTWGWE6ESr5LlgdRp3oseu-_L14WdTx7976JRDvg@z>
 
-madvise MADV_DOEXEC preserves a memory range across exec.  Initially
-only supported for non-executable, non-stack, anonymous memory.
-MADV_DONTEXEC reverts the effect of a previous MADV_DOXEXEC call and
-undoes the preservation of the range.  After a successful exec call,
-the behavior of all ranges reverts to MADV_DONTEXEC.
+Hi Bjorn,
 
-Signed-off-by: Steve Sistare <steven.sistare@oracle.com>
-Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
----
- include/uapi/asm-generic/mman-common.h |  3 +++
- mm/madvise.c                           | 25 +++++++++++++++++++++++++
- 2 files changed, 28 insertions(+)
+On Fri, Jul 17, 2020 at 1:26 PM Bjorn Helgaas <helgaas@kernel.org> wrote:
+>
+> OK by me, but please update the subject to match convention:
+>
+>   PCI: Fix PREL32 relocations for LTO
+>
+> and include a hint in the commit log about what LTO is.  At least
+> expand the initialism once.  Googling for "LTO" isn't very useful.
+>
+>   With Clang's Link Time Optimization (LTO), the compiler ... ?
 
-diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-index f94f65d429be..7c5f616b28f7 100644
---- a/include/uapi/asm-generic/mman-common.h
-+++ b/include/uapi/asm-generic/mman-common.h
-@@ -72,6 +72,9 @@
- #define MADV_COLD	20		/* deactivate these pages */
- #define MADV_PAGEOUT	21		/* reclaim these pages */
- 
-+#define MADV_DOEXEC	22		/* do inherit across exec */
-+#define MADV_DONTEXEC	23		/* don't inherit across exec */
-+
- /* compatibility flags */
- #define MAP_FILE	0
- 
-diff --git a/mm/madvise.c b/mm/madvise.c
-index dd1d43cf026d..b447fa748649 100644
---- a/mm/madvise.c
-+++ b/mm/madvise.c
-@@ -103,6 +103,26 @@ static long madvise_behavior(struct vm_area_struct *vma,
- 	case MADV_KEEPONFORK:
- 		new_flags &= ~VM_WIPEONFORK;
- 		break;
-+	case MADV_DOEXEC:
-+		/*
-+		 * MADV_DOEXEC is only supported on private, non-executable,
-+		 * non-stack anonymous memory and if the VM_EXEC_KEEP flag
-+		 * is available.
-+		 */
-+		if (!VM_EXEC_KEEP || vma->vm_file || vma->vm_flags & (VM_EXEC|VM_SHARED|VM_STACK)) {
-+			error = -EINVAL;
-+			goto out;
-+		}
-+		new_flags |= (new_flags & ~VM_MAYEXEC) | VM_EXEC_KEEP;
-+		break;
-+	case MADV_DONTEXEC:
-+		if (!VM_EXEC_KEEP) {
-+			error = -EINVAL;
-+			goto out;
-+		}
-+		if (new_flags & VM_EXEC_KEEP)
-+			new_flags |= (new_flags & ~VM_EXEC_KEEP) | VM_MAYEXEC;
-+		break;
- 	case MADV_DONTDUMP:
- 		new_flags |= VM_DONTDUMP;
- 		break;
-@@ -983,6 +1003,8 @@ static int madvise_inject_error(int behavior,
- 	case MADV_SOFT_OFFLINE:
- 	case MADV_HWPOISON:
- #endif
-+	case MADV_DOEXEC:
-+	case MADV_DONTEXEC:
- 		return true;
- 
- 	default:
-@@ -1037,6 +1059,9 @@ static int madvise_inject_error(int behavior,
-  *  MADV_DONTDUMP - the application wants to prevent pages in the given range
-  *		from being included in its core dump.
-  *  MADV_DODUMP - cancel MADV_DONTDUMP: no longer exclude from core dump.
-+ *  MADV_DOEXEC - On exec, preserve and duplicate this area in the new process
-+ *		  if the new process allows it.
-+ *  MADV_DONTEXEC - Undo the effect of MADV_DOEXEC.
-  *
-  * return values:
-  *  zero    - success
--- 
-1.8.3.1
+Sure, I'll change this in the next version. Thanks for taking a look!
+
+Sami
