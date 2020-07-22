@@ -1,281 +1,315 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53900 "EHLO
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39134 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726166AbgGQGYK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:10 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 04/22] net: simplify cBPF setsockopt compat handling
-Date: Fri, 17 Jul 2020 08:23:13 +0200
-Message-ID: <20200717062331.691152-5-hch@lst.de>
-In-Reply-To: <20200717062331.691152-1-hch@lst.de>
-References: <20200717062331.691152-1-hch@lst.de>
+        with ESMTP id S1733052AbgGVWL1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:27 -0400
+Message-ID: <20200722220519.513463269@linutronix.de>
+Date: Wed, 22 Jul 2020 23:59:56 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V5 02/15] entry: Provide generic syscall entry functionality
+References: <20200722215954.464281930@linutronix.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
+Content-transfer-encoding: 8-bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
-Message-ID: <20200717062313.SdnyV-v2EUQ9zEN1xU6LLaUg_nd4CvXwmNyh8jI46ic@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
+Message-ID: <20200722215956.TqkfEA4DwAICAHDLhx4nmFaD_VkXxxOslTTXsxWPk6E@z>
 
-Add a helper that copies either a native or compat bpf_fprog from
-userspace after verifying the length, and remove the compat setsockopt
-handlers that now aren't required.
+From: Thomas Gleixner <tglx@linutronix.de>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+On syscall entry certain work needs to be done:
+
+   - Establish state (lockdep, context tracking, tracing)
+   - Conditional work (ptrace, seccomp, audit...)
+
+This code is needlessly duplicated and  different in all
+architectures.
+
+Provide a generic version based on the x86 implementation which has all the
+RCU and instrumentation bits right.
+
+As interrupt/exception entry from user space needs parts of the same
+functionality, provide a function for this as well.
+
+syscall_enter_from_user_mode() and irqentry_enter_from_user_mode() must be
+called right after the low level ASM entry. The calling code must be
+non-instrumentable. After the functions returns state is correct and the
+subsequent functions can be instrumented.
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Acked-by: Kees Cook <keescook@chromium.org>
 ---
- include/linux/filter.h |  4 ++--
- include/net/compat.h   |  1 -
- net/compat.c           | 45 +-----------------------------------------
- net/core/filter.c      | 23 +++++++++++++++++++++
- net/core/sock.c        | 30 ++++++++++------------------
- net/packet/af_packet.c | 33 ++++---------------------------
- 6 files changed, 40 insertions(+), 96 deletions(-)
+V5: Add the missing protections against sanitizers and other goodies
 
-diff --git a/include/linux/filter.h b/include/linux/filter.h
-index 0b0144752d780a..4d049c8e1fbeaa 100644
---- a/include/linux/filter.h
-+++ b/include/linux/filter.h
-@@ -502,13 +502,11 @@ static inline bool insn_is_zext(const struct bpf_insn *insn)
- 		offsetof(TYPE, MEMBER);						\
- 	})
+V4: Remove the architecture wrappers for seccomp and audit and use
+    the generic code (Kees)
+
+    Fix TIF_SYSCALL_AUDIT dummy define and remove TIF_SYSCALL_TRACE as it's
+    defined in all architectures.
+
+V3: Adapt to noinstr changes. Add interrupt/exception entry function.
+
+V2: Fix function documentation (Mike)
+    Add comment about return value (Andy)
+---
+ arch/Kconfig                 |    3 +
+ include/linux/entry-common.h |  121 +++++++++++++++++++++++++++++++++++++++++++
+ kernel/Makefile              |    1 
+ kernel/entry/Makefile        |   12 ++++
+ kernel/entry/common.c        |   88 +++++++++++++++++++++++++++++++
+ 5 files changed, 225 insertions(+)
+
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -27,6 +27,9 @@ config HAVE_IMA_KEXEC
+ config HOTPLUG_SMT
+ 	bool
  
--#ifdef CONFIG_COMPAT
- /* A struct sock_filter is architecture independent. */
- struct compat_sock_fprog {
- 	u16		len;
- 	compat_uptr_t	filter;	/* struct sock_filter * */
- };
--#endif
- 
- struct sock_fprog_kern {
- 	u16			len;
-@@ -1278,4 +1276,6 @@ struct bpf_sockopt_kern {
- 	s32		retval;
- };
- 
-+int copy_bpf_fprog_from_user(struct sock_fprog *dst, void __user *src, int len);
++config GENERIC_ENTRY
++       bool
 +
- #endif /* __LINUX_FILTER_H__ */
-diff --git a/include/net/compat.h b/include/net/compat.h
-index f241666117d88c..745db0d605b62b 100644
---- a/include/net/compat.h
-+++ b/include/net/compat.h
-@@ -61,7 +61,6 @@ int __get_compat_msghdr(struct msghdr *kmsg, struct compat_msghdr __user *umsg,
- 			compat_size_t *len);
- int get_compat_msghdr(struct msghdr *, struct compat_msghdr __user *,
- 		      struct sockaddr __user **, struct iovec **);
--struct sock_fprog __user *get_compat_bpf_fprog(char __user *optval);
- int put_cmsg_compat(struct msghdr*, int, int, int, void *);
- 
- int cmsghdr_from_user_compat_to_kern(struct msghdr *, struct sock *,
-diff --git a/net/compat.c b/net/compat.c
-index 5e3041a2c37d4d..3e6c2c5ff2609c 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -335,49 +335,6 @@ void scm_detach_fds_compat(struct msghdr *kmsg, struct scm_cookie *scm)
- 	__scm_destroy(scm);
- }
- 
--/* allocate a 64-bit sock_fprog on the user stack for duration of syscall. */
--struct sock_fprog __user *get_compat_bpf_fprog(char __user *optval)
--{
--	struct compat_sock_fprog __user *fprog32 = (struct compat_sock_fprog __user *)optval;
--	struct sock_fprog __user *kfprog = compat_alloc_user_space(sizeof(struct sock_fprog));
--	struct compat_sock_fprog f32;
--	struct sock_fprog f;
--
--	if (copy_from_user(&f32, fprog32, sizeof(*fprog32)))
--		return NULL;
--	memset(&f, 0, sizeof(f));
--	f.len = f32.len;
--	f.filter = compat_ptr(f32.filter);
--	if (copy_to_user(kfprog, &f, sizeof(struct sock_fprog)))
--		return NULL;
--
--	return kfprog;
--}
--EXPORT_SYMBOL_GPL(get_compat_bpf_fprog);
--
--static int do_set_attach_filter(struct socket *sock, int level, int optname,
--				char __user *optval, unsigned int optlen)
--{
--	struct sock_fprog __user *kfprog;
--
--	kfprog = get_compat_bpf_fprog(optval);
--	if (!kfprog)
--		return -EFAULT;
--
--	return sock_setsockopt(sock, level, optname, (char __user *)kfprog,
--			      sizeof(struct sock_fprog));
--}
--
--static int compat_sock_setsockopt(struct socket *sock, int level, int optname,
--				char __user *optval, unsigned int optlen)
--{
--	if (optname == SO_ATTACH_FILTER ||
--	    optname == SO_ATTACH_REUSEPORT_CBPF)
--		return do_set_attach_filter(sock, level, optname,
--					    optval, optlen);
--	return sock_setsockopt(sock, level, optname, optval, optlen);
--}
--
- static int __compat_sys_setsockopt(int fd, int level, int optname,
- 				   char __user *optval, unsigned int optlen)
- {
-@@ -396,7 +353,7 @@ static int __compat_sys_setsockopt(int fd, int level, int optname,
- 		}
- 
- 		if (level == SOL_SOCKET)
--			err = compat_sock_setsockopt(sock, level,
-+			err = sock_setsockopt(sock, level,
- 					optname, optval, optlen);
- 		else if (sock->ops->compat_setsockopt)
- 			err = sock->ops->compat_setsockopt(sock, level,
-diff --git a/net/core/filter.c b/net/core/filter.c
-index bdd2382e655d85..2bf6624796d86f 100644
---- a/net/core/filter.c
-+++ b/net/core/filter.c
-@@ -77,6 +77,29 @@
- #include <net/transp_v6.h>
- #include <linux/btf_ids.h>
- 
-+int copy_bpf_fprog_from_user(struct sock_fprog *dst, void __user *src, int len)
+ config OPROFILE
+ 	tristate "OProfile system profiling"
+ 	depends on PROFILING
+--- /dev/null
++++ b/include/linux/entry-common.h
+@@ -0,0 +1,121 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __LINUX_ENTRYCOMMON_H
++#define __LINUX_ENTRYCOMMON_H
++
++#include <linux/tracehook.h>
++#include <linux/syscalls.h>
++#include <linux/seccomp.h>
++#include <linux/sched.h>
++
++#include <asm/entry-common.h>
++
++/*
++ * Define dummy _TIF work flags if not defined by the architecture or for
++ * disabled functionality.
++ */
++#ifndef _TIF_SYSCALL_EMU
++# define _TIF_SYSCALL_EMU		(0)
++#endif
++
++#ifndef _TIF_SYSCALL_TRACEPOINT
++# define _TIF_SYSCALL_TRACEPOINT	(0)
++#endif
++
++#ifndef _TIF_SECCOMP
++# define _TIF_SECCOMP			(0)
++#endif
++
++#ifndef _TIF_SYSCALL_AUDIT
++# define _TIF_SYSCALL_AUDIT		(0)
++#endif
++
++/*
++ * TIF flags handled in syscall_enter_from_usermode()
++ */
++#ifndef ARCH_SYSCALL_ENTER_WORK
++# define ARCH_SYSCALL_ENTER_WORK	(0)
++#endif
++
++#define SYSCALL_ENTER_WORK						\
++	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | TIF_SECCOMP |	\
++	 _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_EMU |			\
++	 ARCH_SYSCALL_ENTER_WORK)
++
++/**
++ * arch_check_user_regs - Architecture specific sanity check for user mode regs
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Defaults to an empty implementation. Can be replaced by architecture
++ * specific code.
++ *
++ * Invoked from syscall_enter_from_user_mode() in the non-instrumentable
++ * section. Use __always_inline so the compiler cannot push it out of line
++ * and make it instrumentable.
++ */
++static __always_inline void arch_check_user_regs(struct pt_regs *regs);
++
++#ifndef arch_check_user_regs
++static __always_inline void arch_check_user_regs(struct pt_regs *regs) {}
++#endif
++
++/**
++ * arch_syscall_enter_tracehook - Wrapper around tracehook_report_syscall_entry()
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Returns: 0 on success or an error code to skip the syscall.
++ *
++ * Defaults to tracehook_report_syscall_entry(). Can be replaced by
++ * architecture specific code.
++ *
++ * Invoked from syscall_enter_from_user_mode()
++ */
++static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs);
++
++#ifndef arch_syscall_enter_tracehook
++static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs)
 +{
-+	if (in_compat_syscall()) {
-+		struct compat_sock_fprog f32;
-+
-+		if (len != sizeof(f32))
-+			return -EINVAL;
-+		if (copy_from_user(&f32, src, sizeof(f32)))
-+			return -EFAULT;
-+		memset(dst, 0, sizeof(*dst));
-+		dst->len = f32.len;
-+		dst->filter = compat_ptr(f32.filter);
-+	} else {
-+		if (len != sizeof(*dst))
-+			return -EINVAL;
-+		if (copy_from_user(dst, src, sizeof(*dst)))
-+			return -EFAULT;
-+	}
-+
-+	return 0;
++	return tracehook_report_syscall_entry(regs);
 +}
-+EXPORT_SYMBOL_GPL(copy_bpf_fprog_from_user);
++#endif
 +
- /**
-  *	sk_filter_trim_cap - run a packet through a socket filter
-  *	@sk: sock associated with &sk_buff
-diff --git a/net/core/sock.c b/net/core/sock.c
-index 11d6f77dd56207..e085df79482520 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -1059,19 +1059,14 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
- 		ret = sock_set_timeout(&sk->sk_sndtimeo, optval, optlen, optname == SO_SNDTIMEO_OLD);
- 		break;
- 
--	case SO_ATTACH_FILTER:
--		ret = -EINVAL;
--		if (optlen == sizeof(struct sock_fprog)) {
--			struct sock_fprog fprog;
--
--			ret = -EFAULT;
--			if (copy_from_user(&fprog, optval, sizeof(fprog)))
--				break;
-+	case SO_ATTACH_FILTER: {
-+		struct sock_fprog fprog;
- 
-+		ret = copy_bpf_fprog_from_user(&fprog, optval, optlen);
-+		if (!ret)
- 			ret = sk_attach_filter(&fprog, sk);
--		}
- 		break;
--
-+	}
- 	case SO_ATTACH_BPF:
- 		ret = -EINVAL;
- 		if (optlen == sizeof(u32)) {
-@@ -1085,19 +1080,14 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
- 		}
- 		break;
- 
--	case SO_ATTACH_REUSEPORT_CBPF:
--		ret = -EINVAL;
--		if (optlen == sizeof(struct sock_fprog)) {
--			struct sock_fprog fprog;
--
--			ret = -EFAULT;
--			if (copy_from_user(&fprog, optval, sizeof(fprog)))
--				break;
-+	case SO_ATTACH_REUSEPORT_CBPF: {
-+		struct sock_fprog fprog;
- 
-+		ret = copy_bpf_fprog_from_user(&fprog, optval, optlen);
-+		if (!ret)
- 			ret = sk_reuseport_attach_filter(&fprog, sk);
--		}
- 		break;
--
-+	}
- 	case SO_ATTACH_REUSEPORT_EBPF:
- 		ret = -EINVAL;
- 		if (optlen == sizeof(u32)) {
-diff --git a/net/packet/af_packet.c b/net/packet/af_packet.c
-index 781fee93b7d5e3..35aee9e980536d 100644
---- a/net/packet/af_packet.c
-+++ b/net/packet/af_packet.c
-@@ -1545,10 +1545,10 @@ static int fanout_set_data_cbpf(struct packet_sock *po, char __user *data,
- 
- 	if (sock_flag(&po->sk, SOCK_FILTER_LOCKED))
- 		return -EPERM;
--	if (len != sizeof(fprog))
--		return -EINVAL;
--	if (copy_from_user(&fprog, data, len))
--		return -EFAULT;
++/**
++ * syscall_enter_from_user_mode - Check and handle work before invoking
++ *				 a syscall
++ * @regs:	Pointer to currents pt_regs
++ * @syscall:	The syscall number
++ *
++ * Invoked from architecture specific syscall entry code with interrupts
++ * disabled. The calling code has to be non-instrumentable. When the
++ * function returns all state is correct and the subsequent functions can be
++ * instrumented.
++ *
++ * Returns: The original or a modified syscall number
++ *
++ * If the returned syscall number is -1 then the syscall should be
++ * skipped. In this case the caller may invoke syscall_set_error() or
++ * syscall_set_return_value() first.  If neither of those are called and -1
++ * is returned, then the syscall will fail with ENOSYS.
++ *
++ * The following functionality is handled here:
++ *
++ *  1) Establish state (lockdep, RCU (context tracking), tracing)
++ *  2) TIF flag dependent invocations of arch_syscall_enter_tracehook(),
++ *     __secure_computing(), trace_sys_enter()
++ *  3) Invocation of audit_syscall_entry()
++ */
++long syscall_enter_from_user_mode(struct pt_regs *regs, long syscall);
 +
-+	ret = copy_bpf_fprog_from_user(&fprog, data, len);
-+	if (ret)
-+		return ret;
++/**
++ * irqentry_enter_from_user_mode - Establish state before invoking the irq handler
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Invoked from architecture specific entry code with interrupts disabled.
++ * Can only be called when the interrupt entry came from user mode. The
++ * calling code must be non-instrumentable.  When the function returns all
++ * state is correct and the subsequent functions can be instrumented.
++ *
++ * The function establishes state (lockdep, RCU (context tracking), tracing)
++ */
++void irqentry_enter_from_user_mode(struct pt_regs *regs);
++
++#endif
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -48,6 +48,7 @@ obj-y += irq/
+ obj-y += rcu/
+ obj-y += livepatch/
+ obj-y += dma/
++obj-y += entry/
  
- 	ret = bpf_prog_create_from_user(&new, &fprog, NULL, false);
- 	if (ret)
-@@ -4040,28 +4040,6 @@ static int packet_getsockopt(struct socket *sock, int level, int optname,
- 	return 0;
- }
- 
--
--#ifdef CONFIG_COMPAT
--static int compat_packet_setsockopt(struct socket *sock, int level, int optname,
--				    char __user *optval, unsigned int optlen)
--{
--	struct packet_sock *po = pkt_sk(sock->sk);
--
--	if (level != SOL_PACKET)
--		return -ENOPROTOOPT;
--
--	if (optname == PACKET_FANOUT_DATA &&
--	    po->fanout && po->fanout->type == PACKET_FANOUT_CBPF) {
--		optval = (char __user *)get_compat_bpf_fprog(optval);
--		if (!optval)
--			return -EFAULT;
--		optlen = sizeof(struct sock_fprog);
--	}
--
--	return packet_setsockopt(sock, level, optname, optval, optlen);
--}
--#endif
--
- static int packet_notifier(struct notifier_block *this,
- 			   unsigned long msg, void *ptr)
- {
-@@ -4549,9 +4527,6 @@ static const struct proto_ops packet_ops = {
- 	.shutdown =	sock_no_shutdown,
- 	.setsockopt =	packet_setsockopt,
- 	.getsockopt =	packet_getsockopt,
--#ifdef CONFIG_COMPAT
--	.compat_setsockopt = compat_packet_setsockopt,
--#endif
- 	.sendmsg =	packet_sendmsg,
- 	.recvmsg =	packet_recvmsg,
- 	.mmap =		packet_mmap,
--- 
-2.27.0
+ obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o
+ obj-$(CONFIG_FREEZER) += freezer.o
+--- /dev/null
++++ b/kernel/entry/Makefile
+@@ -0,0 +1,12 @@
++# SPDX-License-Identifier: GPL-2.0
++
++# Prevent the noinstr section from being pestered by sanitizer and other goodies
++# as long as these things cannot be disabled per function.
++KASAN_SANITIZE := n
++UBSAN_SANITIZE := n
++KCOV_INSTRUMENT := n
++
++CFLAGS_REMOVE_common.o	 = -fstack-protector -fstack-protector-strong
++CFLAGS_common.o		+= -fno-stack-protector
++
++obj-$(CONFIG_GENERIC_ENTRY) += common.o
+--- /dev/null
++++ b/kernel/entry/common.c
+@@ -0,0 +1,88 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <linux/context_tracking.h>
++#include <linux/entry-common.h>
++
++#define CREATE_TRACE_POINTS
++#include <trace/events/syscalls.h>
++
++/**
++ * enter_from_user_mode - Establish state when coming from user mode
++ *
++ * Syscall/interrupt entry disables interrupts, but user mode is traced as
++ * interrupts enabled. Also with NO_HZ_FULL RCU might be idle.
++ *
++ * 1) Tell lockdep that interrupts are disabled
++ * 2) Invoke context tracking if enabled to reactivate RCU
++ * 3) Trace interrupts off state
++ */
++static __always_inline void enter_from_user_mode(struct pt_regs *regs)
++{
++	arch_check_user_regs(regs);
++	lockdep_hardirqs_off(CALLER_ADDR0);
++
++	CT_WARN_ON(ct_state() != CONTEXT_USER);
++	user_exit_irqoff();
++
++	instrumentation_begin();
++	trace_hardirqs_off_finish();
++	instrumentation_end();
++}
++
++static inline void syscall_enter_audit(struct pt_regs *regs, long syscall)
++{
++	if (unlikely(audit_context())) {
++		unsigned long args[6];
++
++		syscall_get_arguments(current, regs, args);
++		audit_syscall_entry(syscall, args[0], args[1], args[2], args[3]);
++	}
++}
++
++static long syscall_trace_enter(struct pt_regs *regs, long syscall,
++				unsigned long ti_work)
++{
++	long ret = 0;
++
++	/* Handle ptrace */
++	if (ti_work & (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU)) {
++		ret = arch_syscall_enter_tracehook(regs);
++		if (ret || (ti_work & _TIF_SYSCALL_EMU))
++			return -1L;
++	}
++
++	/* Do seccomp after ptrace, to catch any tracer changes. */
++	if (ti_work & _TIF_SECCOMP) {
++		ret = __secure_computing(NULL);
++		if (ret == -1L)
++			return ret;
++	}
++
++	if (unlikely(ti_work & _TIF_SYSCALL_TRACEPOINT))
++		trace_sys_enter(regs, syscall);
++
++	syscall_enter_audit(regs, syscall);
++
++	return ret ? : syscall;
++}
++
++noinstr long syscall_enter_from_user_mode(struct pt_regs *regs, long syscall)
++{
++	unsigned long ti_work;
++
++	enter_from_user_mode(regs);
++	instrumentation_begin();
++
++	local_irq_enable();
++	ti_work = READ_ONCE(current_thread_info()->flags);
++	if (ti_work & SYSCALL_ENTER_WORK)
++		syscall = syscall_trace_enter(regs, syscall, ti_work);
++	instrumentation_end();
++
++	return syscall;
++}
++
++noinstr void irqentry_enter_from_user_mode(struct pt_regs *regs)
++{
++	enter_from_user_mode(regs);
++}
