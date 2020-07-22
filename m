@@ -1,88 +1,104 @@
-Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:48018 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732122AbgGTRrG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Jul 2020 13:47:06 -0400
-Date: Mon, 20 Jul 2020 20:46:50 +0300
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 3/6] mm: introduce secretmemfd system call to create
- "secret" memory areas
-Message-ID: <20200720174650.GD8593@kernel.org>
-References: <20200720092435.17469-1-rppt@kernel.org>
- <20200720092435.17469-4-rppt@kernel.org>
- <CAK8P3a0NyvRMqH7X0YNO5E6DGtvZXD5ZcD6Y6n7AkocufkMnHA@mail.gmail.com>
- <20200720142053.GC8593@kernel.org>
- <CAK8P3a07jAec4hKyNMcha032TT6OXjYHaZZ4Za9ncDsvapeg8Q@mail.gmail.com>
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from Galois.linutronix.de ([193.142.43.55]:52622 "EHLO
+        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1733151AbgGVWLj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:39 -0400
+Message-ID: <20200722220520.602603691@linutronix.de>
+Date: Thu, 23 Jul 2020 00:00:06 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V5 12/15] x86/entry: Cleanup idtentry_entry/exit_user
+References: <20200722215954.464281930@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a07jAec4hKyNMcha032TT6OXjYHaZZ4Za9ncDsvapeg8Q@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-transfer-encoding: 8-bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Christopher Lameter <cl@linux.com>, Dan Williams <dan.j.williams@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Elena Reshetova <elena.reshetova@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>, Ingo Molnar <mingo@redhat.com>, James Bottomley <jejb@linux.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <paul.walmsley@sifive.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-nvdimm@lists.01.org, linux-riscv <linux-riscv@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, linaro-mm-sig@lists.linaro.org, Sumit Semwal <sumit.semwal@linaro.org>
-Message-ID: <20200720174650.Yn3SEH8-XmXyM89lzlVS13VgziJTiHfG90a9ytuyNaU@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
+Message-ID: <20200722220006.OaU8TW9az9wOdFaX9nC_321TaTM8uJnavYglUIrNQmA@z>
 
-On Mon, Jul 20, 2020 at 04:34:12PM +0200, Arnd Bergmann wrote:
-> On Mon, Jul 20, 2020 at 4:21 PM Mike Rapoport <rppt@kernel.org> wrote:
-> > On Mon, Jul 20, 2020 at 01:30:13PM +0200, Arnd Bergmann wrote:
-> > > On Mon, Jul 20, 2020 at 11:25 AM Mike Rapoport <rppt@kernel.org> wrote:
-> > > >
-> > > > From: Mike Rapoport <rppt@linux.ibm.com>
-> > > >
-> > > > Introduce "secretmemfd" system call with the ability to create memory areas
-> > > > visible only in the context of the owning process and not mapped not only
-> > > > to other processes but in the kernel page tables as well.
-> > > >
-> > > > The user will create a file descriptor using the secretmemfd system call
-> > > > where flags supplied as a parameter to this system call will define the
-> > > > desired protection mode for the memory associated with that file
-> > > > descriptor. Currently there are two protection modes:
-> > > >
-> > > > * exclusive - the memory area is unmapped from the kernel direct map and it
-> > > >               is present only in the page tables of the owning mm.
-> > > > * uncached  - the memory area is present only in the page tables of the
-> > > >               owning mm and it is mapped there as uncached.
-> > > >
-> > > > For instance, the following example will create an uncached mapping (error
-> > > > handling is omitted):
-> > > >
-> > > >         fd = secretmemfd(SECRETMEM_UNCACHED);
-> > > >         ftruncate(fd, MAP_SIZE);
-> > > >         ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED,
-> > > >                    fd, 0);
-> > > >
-> > > > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > >
-> > > I wonder if this should be more closely related to dmabuf file
-> > > descriptors, which
-> > > are already used for a similar purpose: sharing access to secret memory areas
-> > > that are not visible to the OS but can be shared with hardware through device
-> > > drivers that can import a dmabuf file descriptor.
-> >
-> > TBH, I didn't think about dmabuf, but my undestanding is that is this
-> > case memory areas are not visible to the OS because they are on device
-> > memory rather than normal RAM and when dmabuf is backed by the normal
-> > RAM, the memory is visible to the OS.
-> 
-> No, dmabuf is normally about normal RAM that is shared between multiple
-> devices, the idea is that you can have one driver allocate a buffer in RAM
-> and export it to user space through a file descriptor. The application can then
-> go and mmap() it or pass it into one or more other drivers.
-> 
-> This can be used e.g. for sharing a buffer between a video codec and the
-> gpu, or between a crypto engine and another device that accesses
-> unencrypted data while software can only observe the encrypted version.
+From: Thomas Gleixner <tglx@linutronix.de>
 
-For our usecase sharing is optional from one side and there are no
-devices involved from the other.
+Cleanup the temporary defines and use irqentry_ instead of idtentry_.
 
-As James pointed out, there is no match for the userspace API and if
-there will emerge a usacase that requires integration of secretmem with
-dma-buf, we'll deal with it then.
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
->        Arnd
+---
+ arch/x86/include/asm/idtentry.h |    4 ----
+ arch/x86/kernel/cpu/mce/core.c  |    4 ++--
+ arch/x86/kernel/traps.c         |   18 +++++++++---------
+ 3 files changed, 11 insertions(+), 15 deletions(-)
 
--- 
-Sincerely yours,
-Mike.
+--- a/arch/x86/include/asm/idtentry.h
++++ b/arch/x86/include/asm/idtentry.h
+@@ -11,10 +11,6 @@
+ 
+ #include <asm/irq_stack.h>
+ 
+-/* Temporary define */
+-#define idtentry_enter_user	irqentry_enter_from_user_mode
+-#define idtentry_exit_user	irqentry_exit_to_user_mode
+-
+ typedef struct idtentry_state {
+ 	bool exit_rcu;
+ } idtentry_state_t;
+--- a/arch/x86/kernel/cpu/mce/core.c
++++ b/arch/x86/kernel/cpu/mce/core.c
+@@ -1927,11 +1927,11 @@ static __always_inline void exc_machine_
+ 
+ static __always_inline void exc_machine_check_user(struct pt_regs *regs)
+ {
+-	idtentry_enter_user(regs);
++	irqentry_enter_from_user_mode(regs);
+ 	instrumentation_begin();
+ 	machine_check_vector(regs);
+ 	instrumentation_end();
+-	idtentry_exit_user(regs);
++	irqentry_exit_to_user_mode(regs);
+ }
+ 
+ #ifdef CONFIG_X86_64
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -638,18 +638,18 @@ DEFINE_IDTENTRY_RAW(exc_int3)
+ 		return;
+ 
+ 	/*
+-	 * idtentry_enter_user() uses static_branch_{,un}likely() and therefore
+-	 * can trigger INT3, hence poke_int3_handler() must be done
+-	 * before. If the entry came from kernel mode, then use nmi_enter()
+-	 * because the INT3 could have been hit in any context including
+-	 * NMI.
++	 * irqentry_enter_from_user_mode() uses static_branch_{,un}likely()
++	 * and therefore can trigger INT3, hence poke_int3_handler() must
++	 * be done before. If the entry came from kernel mode, then use
++	 * nmi_enter() because the INT3 could have been hit in any context
++	 * including NMI.
+ 	 */
+ 	if (user_mode(regs)) {
+-		idtentry_enter_user(regs);
++		irqentry_enter_from_user_mode(regs);
+ 		instrumentation_begin();
+ 		do_int3_user(regs);
+ 		instrumentation_end();
+-		idtentry_exit_user(regs);
++		irqentry_exit_to_user_mode(regs);
+ 	} else {
+ 		nmi_enter();
+ 		instrumentation_begin();
+@@ -901,12 +901,12 @@ static __always_inline void exc_debug_us
+ 	 */
+ 	WARN_ON_ONCE(!user_mode(regs));
+ 
+-	idtentry_enter_user(regs);
++	irqentry_enter_from_user_mode(regs);
+ 	instrumentation_begin();
+ 
+ 	handle_debug(regs, dr6, true);
+ 	instrumentation_end();
+-	idtentry_exit_user(regs);
++	irqentry_exit_to_user_mode(regs);
+ }
+ 
+ #ifdef CONFIG_X86_64
