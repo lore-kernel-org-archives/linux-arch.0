@@ -1,51 +1,52 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: [PATCH v7 18/29] arm64: mte: Allow user control of the tag check
  mode via prctl()
-Date: Wed, 22 Jul 2020 11:28:47 +0100
-Message-ID: <20200722102845.GA27540@gaia>
+Date: Wed, 22 Jul 2020 12:09:51 +0100
+Message-ID: <20200722110950.GB27540@gaia>
 References: <20200715170844.30064-1-catalin.marinas@arm.com>
  <20200715170844.30064-19-catalin.marinas@arm.com>
  <e9feb87e-41a8-17e6-eeba-4038da3bdde2@arm.com>
- <20200720170050.GJ30452@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42866 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:60338 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730417AbgGVK2v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jul 2020 06:28:51 -0400
+        id S1726161AbgGVLJz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jul 2020 07:09:55 -0400
 Content-Disposition: inline
-In-Reply-To: <20200720170050.GJ30452@arm.com>
+In-Reply-To: <e9feb87e-41a8-17e6-eeba-4038da3bdde2@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Kevin Brodsky <kevin.brodsky@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
+To: Kevin Brodsky <kevin.brodsky@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
 
-On Mon, Jul 20, 2020 at 06:00:50PM +0100, Dave P Martin wrote:
-> On Mon, Jul 20, 2020 at 04:30:35PM +0100, Kevin Brodsky wrote:
-> > On 15/07/2020 18:08, Catalin Marinas wrote:
-> > >+void mte_thread_switch(struct task_struct *next)
-> > >+{
-> > >+	if (!system_supports_mte())
-> > >+		return;
-> > >+
-> > >+	/* avoid expensive SCTLR_EL1 accesses if no change */
-> > >+	if (current->thread.sctlr_tcf0 != next->thread.sctlr_tcf0)
-> > 
-> > I think this could be improved by checking whether `next` is a kernel
-> > thread, in which case thread.sctlr_tcf0 is 0 but there is no point in
-> > setting SCTLR_EL1.TCF0, since there should not be any access via TTBR0.
+On Mon, Jul 20, 2020 at 04:30:35PM +0100, Kevin Brodsky wrote:
+> On 15/07/2020 18:08, Catalin Marinas wrote:
+> > +void mte_thread_switch(struct task_struct *next)
+> > +{
+> > +	if (!system_supports_mte())
+> > +		return;
+> > +
+> > +	/* avoid expensive SCTLR_EL1 accesses if no change */
+> > +	if (current->thread.sctlr_tcf0 != next->thread.sctlr_tcf0)
 > 
-> Out of interest, do we have a nice way of testing for a kernel thread
-> now?
-> 
-> I remember fpsimd_thread_switch() used to check for task->mm, but we
-> seem to have got rid of that at some point.  set_mm() can defeat this,
-> and anyway the heavy lifting for FPSIMD is now deferred until returning
-> to userspace.
+> I think this could be improved by checking whether `next` is a kernel
+> thread, in which case thread.sctlr_tcf0 is 0 but there is no point in
+> setting SCTLR_EL1.TCF0, since there should not be any access via TTBR0.
 
-I think a better way is (current->flags & PF_KTHREAD). kthread_use_mm()
-indeed changes current->mm.
+It's not about kernel or user thread here. kthread_use_mm() (just
+use_mm() in older kernels) would set an mm on a kernel thread,
+temporarily making it behave as a user one. Since the sctlr_tcf0 is per
+thread, not per mm, we need to switch to the default TCF0 for kthreads
+so that user accesses (if use_mm() is called) don't generate any tag
+check faults. Note that switch_mm() does not touch TCF0.
+
+If we did allow a global, per-mm TCF0 setting, such kthreads could only
+handle synchronous faults and no SIGSEGV generated (as we do with
+copy_{from,to}_user() for normal threads).
+
+If we want to revisit per-thread vs per-mm TCF0 setting, now is the
+time.
 
 -- 
 Catalin
