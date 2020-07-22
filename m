@@ -1,84 +1,61 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59626 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387521AbgGaP1t (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 11:27:49 -0400
-Date: Fri, 31 Jul 2020 16:27:36 +0100
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-Message-ID: <20200731152736.GP23808@casper.infradead.org>
-References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
- <20200730152250.GG23808@casper.infradead.org>
- <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
- <20200730171251.GI23808@casper.infradead.org>
- <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
- <20200730174956.GK23808@casper.infradead.org>
- <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
- <87y2n03brx.fsf@x220.int.ebiederm.org>
- <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:26294 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1728405AbgGVOrv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jul 2020 10:47:51 -0400
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH v4 01/13] task_isolation: vmstat: add quiet_vmstat_sync
+ function
+Date: Wed, 22 Jul 2020 14:47:11 +0000
+Message-ID: <f98f80b3da7e0b8c2b8719c33516e034e47b1807.camel@marvell.com>
+References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
+In-Reply-To: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <71C0964DB92C2640A8A3A33709BD1768@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Sistare <steven.sistare@oracle.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
-Message-ID: <20200731152736.ZPDC1ROW5n2ESMmr-jBbA8FVzlFIqw_GjUh7iRqKc-4@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Message-ID: <20200722144711.bIN-b_qxkKYKSRBTmhIIvHTuODHEhUAf7hschG6hFeM@z>
 
-On Fri, Jul 31, 2020 at 10:57:44AM -0400, Steven Sistare wrote:
-> Matthews sileby/mshare proposal has the same issue.  If a process opts-in
-> and mmap's an address in the shared region, then content becomes mapped at
-> a VA that was known to the pre-fork or pre-exec process.  Trust must still
-> be established.
-
-It's up to the recipient whether they try to map it at the same address
-or at a fresh address.  The intended use case is a "semi-shared" address
-space between two processes (ie partway between a threaded, fully-shared
-address space and a forked un-shared address space), in which case
-there's a certain amount of trust and cooperation between the processes.
-
-Your preservation-across-exec use-case might or might not need the
-VMA to be mapped at the same address.  I don't know whether qemu stores
-pointers in this VMA which are absolute within the qemu address space.
-If it's just the emulated process's address space, then everything will
-be absolute within its own address space and everything will be opaque
-to qemu.  If qemu is storing its own pointers in it, then it has to be
-mapped at the same address.
-
-> > Here is another suggestion.
-> > 
-> > Have a very simple program that does:
-> > 
-> > 	for (;;) {
-> > 		handle = dlopen("/my/real/program");
-> > 		real_main = dlsym(handle, "main");
-> > 		real_main(argc, argv, envp);
-> > 		dlclose(handle);
-> > 	}
-> > 
-> > With whatever obvious adjustments are needed to fit your usecase.
-> > 
-> > That should give the same level of functionality, be portable to all
-> > unices, and not require you to duplicate code.  It belive it limits you
-> > to not upgrading libc, or librt but that is a comparatively small
-> > limitation.
-> > 
-> > 
-> > Given that in general the interesting work is done in userspace and that
-> > userspace has provided an interface for reusing that work already.
-> > I don't see the justification for adding anything to exec at this point. 
-> 
-> Thanks for the suggestion.  That is clever, and would make a fun project,
-> but I would not trust it for production.  These few lines are just
-> the first of many that it would take to reset the environment to the
-> well-defined post-exec initial conditions that all executables expect,
-> and incrementally tearing down state will be prone to bugs.  Getting a
-> clean slate from a kernel exec is a much more reliable design.  The use
-> case is creating long-lived apps that never go down, and the simplest
-> implementation will have the fewest bugs and is the best.  MADV_DOEXEC is
-> simple, and does not even require a new system call, and the kernel already
-> knows how to exec without bugs.
-
-It's a net increase of 200 lines of kernel code.  If 4 lines of userspace
-code removes 200 lines of kernel code, I think I know which I prefer ...
+SW4gY29tbWl0IGYwMWYxN2QzNzA1YiAoIm1tLCB2bXN0YXQ6IG1ha2UgcXVpZXRfdm1zdGF0IGxp
+Z2h0ZXIiKQ0KdGhlIHF1aWV0X3Ztc3RhdCgpIGZ1bmN0aW9uIGJlY2FtZSBhc3luY2hyb25vdXMs
+IGluIHRoZSBzZW5zZSB0aGF0DQp0aGUgdm1zdGF0IHdvcmsgd2FzIHN0aWxsIHNjaGVkdWxlZCB0
+byBydW4gb24gdGhlIGNvcmUgd2hlbiB0aGUNCmZ1bmN0aW9uIHJldHVybmVkLiAgRm9yIHRhc2sg
+aXNvbGF0aW9uLCB3ZSBuZWVkIGEgc3luY2hyb25vdXMNCnZlcnNpb24gb2YgdGhlIGZ1bmN0aW9u
+IHRoYXQgZ3VhcmFudGVlcyB0aGF0IHRoZSB2bXN0YXQgd29ya2VyDQp3aWxsIG5vdCBydW4gb24g
+dGhlIGNvcmUgb24gcmV0dXJuIGZyb20gdGhlIGZ1bmN0aW9uLiAgQWRkIGENCnF1aWV0X3Ztc3Rh
+dF9zeW5jKCkgZnVuY3Rpb24gd2l0aCB0aGF0IHNlbWFudGljLg0KDQpTaWduZWQtb2ZmLWJ5OiBD
+aHJpcyBNZXRjYWxmIDxjbWV0Y2FsZkBtZWxsYW5veC5jb20+DQpTaWduZWQtb2ZmLWJ5OiBBbGV4
+IEJlbGl0cyA8YWJlbGl0c0BtYXJ2ZWxsLmNvbT4NCi0tLQ0KIGluY2x1ZGUvbGludXgvdm1zdGF0
+LmggfCAyICsrDQogbW0vdm1zdGF0LmMgICAgICAgICAgICB8IDkgKysrKysrKysrDQogMiBmaWxl
+cyBjaGFuZ2VkLCAxMSBpbnNlcnRpb25zKCspDQoNCmRpZmYgLS1naXQgYS9pbmNsdWRlL2xpbnV4
+L3Ztc3RhdC5oIGIvaW5jbHVkZS9saW51eC92bXN0YXQuaA0KaW5kZXggYWE5NjEwODhjNTUxLi5k
+ZWQxNmRmZDIxZmEgMTAwNjQ0DQotLS0gYS9pbmNsdWRlL2xpbnV4L3Ztc3RhdC5oDQorKysgYi9p
+bmNsdWRlL2xpbnV4L3Ztc3RhdC5oDQpAQCAtMjcyLDYgKzI3Miw3IEBAIGV4dGVybiB2b2lkIF9f
+ZGVjX3pvbmVfc3RhdGUoc3RydWN0IHpvbmUgKiwgZW51bQ0Kem9uZV9zdGF0X2l0ZW0pOw0KIGV4
+dGVybiB2b2lkIF9fZGVjX25vZGVfc3RhdGUoc3RydWN0IHBnbGlzdF9kYXRhICosIGVudW0NCm5v
+ZGVfc3RhdF9pdGVtKTsNCiANCiB2b2lkIHF1aWV0X3Ztc3RhdCh2b2lkKTsNCit2b2lkIHF1aWV0
+X3Ztc3RhdF9zeW5jKHZvaWQpOw0KIHZvaWQgY3B1X3ZtX3N0YXRzX2ZvbGQoaW50IGNwdSk7DQog
+dm9pZCByZWZyZXNoX3pvbmVfc3RhdF90aHJlc2hvbGRzKHZvaWQpOw0KIA0KQEAgLTM3NCw2ICsz
+NzUsNyBAQCBzdGF0aWMgaW5saW5lIHZvaWQgX19kZWNfbm9kZV9wYWdlX3N0YXRlKHN0cnVjdA0K
+cGFnZSAqcGFnZSwNCiBzdGF0aWMgaW5saW5lIHZvaWQgcmVmcmVzaF96b25lX3N0YXRfdGhyZXNo
+b2xkcyh2b2lkKSB7IH0NCiBzdGF0aWMgaW5saW5lIHZvaWQgY3B1X3ZtX3N0YXRzX2ZvbGQoaW50
+IGNwdSkgeyB9DQogc3RhdGljIGlubGluZSB2b2lkIHF1aWV0X3Ztc3RhdCh2b2lkKSB7IH0NCitz
+dGF0aWMgaW5saW5lIHZvaWQgcXVpZXRfdm1zdGF0X3N5bmModm9pZCkgeyB9DQogDQogc3RhdGlj
+IGlubGluZSB2b2lkIGRyYWluX3pvbmVzdGF0KHN0cnVjdCB6b25lICp6b25lLA0KIAkJCXN0cnVj
+dCBwZXJfY3B1X3BhZ2VzZXQgKnBzZXQpIHsgfQ0KZGlmZiAtLWdpdCBhL21tL3Ztc3RhdC5jIGIv
+bW0vdm1zdGF0LmMNCmluZGV4IDNmYjIzYTIxZjZkZC4uOTM1MzRmODUzN2NhIDEwMDY0NA0KLS0t
+IGEvbW0vdm1zdGF0LmMNCisrKyBiL21tL3Ztc3RhdC5jDQpAQCAtMTg4OSw2ICsxODg5LDE1IEBA
+IHZvaWQgcXVpZXRfdm1zdGF0KHZvaWQpDQogCXJlZnJlc2hfY3B1X3ZtX3N0YXRzKGZhbHNlKTsN
+CiB9DQogDQorLyoNCisgKiBTeW5jaHJvbm91c2x5IHF1aWV0IHZtc3RhdCBzbyB0aGUgd29yayBp
+cyBndWFyYW50ZWVkIG5vdCB0byBydW4gb24NCnJldHVybi4NCisgKi8NCit2b2lkIHF1aWV0X3Zt
+c3RhdF9zeW5jKHZvaWQpDQorew0KKwljYW5jZWxfZGVsYXllZF93b3JrX3N5bmModGhpc19jcHVf
+cHRyKCZ2bXN0YXRfd29yaykpOw0KKwlyZWZyZXNoX2NwdV92bV9zdGF0cyhmYWxzZSk7DQorfQ0K
+Kw0KIC8qDQogICogU2hlcGhlcmQgd29ya2VyIHRocmVhZCB0aGF0IGNoZWNrcyB0aGUNCiAgKiBk
+aWZmZXJlbnRpYWxzIG9mIHByb2Nlc3NvcnMgdGhhdCBoYXZlIHRoZWlyIHdvcmtlcg0KLS0gDQoy
+LjI2LjINCg0K
