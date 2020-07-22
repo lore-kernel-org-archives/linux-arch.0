@@ -1,72 +1,42 @@
-Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 19/24] sh: use asm-generic/mmu_context.h for no-op implementations
-Date: Tue, 28 Jul 2020 13:34:00 +1000
-Message-ID: <20200728033405.78469-20-npiggin@gmail.com>
-In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
-References: <20200728033405.78469-1-npiggin@gmail.com>
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46992 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726506AbgGVHzF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 03:55:05 -0400
+Date: Wed, 22 Jul 2020 09:54:55 +0200
+From: peterz@infradead.org
+Subject: Re: [patch V4 02/15] entry: Provide generic syscall entry
+ functionality
+Message-ID: <20200722075455.GQ119549@hirez.programming.kicks-ass.net>
+References: <20200721105706.030914876@linutronix.de>
+ <20200721110808.455350746@linutronix.de>
+ <202007211426.B40A7A7BD@keescook>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <202007211426.B40A7A7BD@keescook>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200728033400.C1CEHlTVUnF3YAzLEe4g_nKsxvXJt_2yHATbIK-M0WM@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
+Message-ID: <20200722075455.jnNA9bDwnxS1mOpUCBfUomwPGlUWDmXFzK--3jiqAdk@z>
 
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: linux-sh@vger.kernel.org
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/sh/include/asm/mmu_context.h    | 5 ++---
- arch/sh/include/asm/mmu_context_32.h | 9 ---------
- 2 files changed, 2 insertions(+), 12 deletions(-)
+On Tue, Jul 21, 2020 at 02:38:16PM -0700, Kees Cook wrote:
+> One thing I noticed while doing syscall entry timings for the kernel
+> stack base offset randomization was that the stack protector was being
+> needlessly enabled in certain paths (seccomp, audit) due to seeing a
+> register array being declared on the stack. As part of that series I
+> suggested down-grading the stack protector. Since then, Peter's changes
+> entirely disabled the stack protector on the entry code, which I
+> grudgingly accept (I'd rather have a way to mark a variable as "ignore
+> this for stack protector detection", but ... there isn't, so fine.)
 
-diff --git a/arch/sh/include/asm/mmu_context.h b/arch/sh/include/asm/mmu_=
-context.h
-index 9470d17c71c2..ce40147d4a7d 100644
---- a/arch/sh/include/asm/mmu_context.h
-+++ b/arch/sh/include/asm/mmu_context.h
-@@ -85,6 +85,7 @@ static inline void get_mmu_context(struct mm_struct *mm=
-, unsigned int cpu)
-  * Initialize the context related info for a new mm_struct
-  * instance.
-  */
-+#define init_new_context init_new_context
- static inline int init_new_context(struct task_struct *tsk,
- 				   struct mm_struct *mm)
- {
-@@ -121,9 +122,7 @@ static inline void switch_mm(struct mm_struct *prev,
- 			activate_context(next, cpu);
- }
-=20
--#define activate_mm(prev, next)		switch_mm((prev),(next),NULL)
--#define deactivate_mm(tsk,mm)		do { } while (0)
--#define enter_lazy_tlb(mm,tsk)		do { } while (0)
-+#include <asm-generic/mmu_context.h>
-=20
- #else
-=20
-diff --git a/arch/sh/include/asm/mmu_context_32.h b/arch/sh/include/asm/m=
-mu_context_32.h
-index 71bf12ef1f65..bc5034fa6249 100644
---- a/arch/sh/include/asm/mmu_context_32.h
-+++ b/arch/sh/include/asm/mmu_context_32.h
-@@ -2,15 +2,6 @@
- #ifndef __ASM_SH_MMU_CONTEXT_32_H
- #define __ASM_SH_MMU_CONTEXT_32_H
-=20
--/*
-- * Destroy context related info for an mm_struct that is about
-- * to be put to rest.
-- */
--static inline void destroy_context(struct mm_struct *mm)
--{
--	/* Do nothing */
--}
--
- #ifdef CONFIG_CPU_HAS_PTEAEX
- static inline void set_asid(unsigned long asid)
- {
---=20
-2.23.0
+I don't think I'd like to have that per variable, but a function
+attribute to disable stack protector would be awesome, except our
+GCC-besties forgot to create that function attribute :-(
+
+If/when we get such a function attribute, we can add it to noinstr.
+
+Also see this here:
+
+  https://lkml.kernel.org/r/20200314164451.346497-1-slyfox@gentoo.org
