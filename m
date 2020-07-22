@@ -1,102 +1,53 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33054 "EHLO
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55594 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726986AbgGPTAD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:00:03 -0400
-Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 48420C061755
-        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 12:00:03 -0700 (PDT)
-Received: by mail-pj1-x1041.google.com with SMTP id mn17so5263438pjb.4
-        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 12:00:03 -0700 (PDT)
-Date: Thu, 16 Jul 2020 12:00:01 -0700 (PDT)
-Subject: Re: [PATCH] asm-generic/mmiowb: Allow mmiowb_set_pending() when preemptible()
-In-Reply-To: <20200716112816.7356-1-will@kernel.org>
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <mhng-6528b0ae-d92c-41b2-b0fd-3be58c80f280@palmerdabbelt-glaptop1>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+        with ESMTP id S1729198AbgGVX4u (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 19:56:50 -0400
+Date: Thu, 23 Jul 2020 01:56:20 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
+Message-ID: <20200722235620.GR10769@hirez.programming.kicks-ass.net>
+References: <20200624212737.GV4817@hirez.programming.kicks-ass.net>
+ <20200624214530.GA120457@google.com>
+ <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+ <20200625161503.GB173089@google.com>
+ <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
+ <20200625224042.GA169781@google.com>
+ <20200626112931.GF4817@hirez.programming.kicks-ass.net>
+ <20200722135542.41127cc4@oasis.local.home>
+ <20200722184137.GP10769@hirez.programming.kicks-ass.net>
+ <20200722150943.53046592@oasis.local.home>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200722150943.53046592@oasis.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: linux-kernel@vger.kernel.org, kernel-team@android.com, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, will@kernel.org, Arnd Bergmann <arnd@arndb.de>, Paul Walmsley <paul.walmsley@sifive.com>, guoren@kernel.org, mpe@ellerman.id.au
-Message-ID: <20200716190001.9-4ZRhFW7C7G89oZnKvtYQfkm06qhKqR8fkTaK8SCbM@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
+Message-ID: <20200722235620.Ny9F-7ZUw5HVugTmheANejBwCKXT0-aSKfjl0dWZwHA@z>
 
-On Thu, 16 Jul 2020 04:28:16 PDT (-0700), will@kernel.org wrote:
-> Although mmiowb() is concerned only with serialising MMIO writes occuring
-> in contexts where a spinlock is held, the call to mmiowb_set_pending()
-> from the MMIO write accessors can occur in preemptible contexts, such
-> as during driver probe() functions where ordering between CPUs is not
-> usually a concern, assuming that the task migration path provides the
-> necessary ordering guarantees.
->
-> Unfortunately, the default implementation of mmiowb_set_pending() is not
-> preempt-safe, as it makes use of a a per-cpu variable to track its
-> internal state. This has been reported to generate the following splat
-> on riscv:
->
->  | BUG: using smp_processor_id() in preemptible [00000000] code: swapper/0/1
->  | caller is regmap_mmio_write32le+0x1c/0x46
->  | CPU: 3 PID: 1 Comm: swapper/0 Not tainted 5.8.0-rc3-hfu+ #1
->  | Call Trace:
->  |  walk_stackframe+0x0/0x7a
->  |  dump_stack+0x6e/0x88
->  |  regmap_mmio_write32le+0x18/0x46
->  |  check_preemption_disabled+0xa4/0xaa
->  |  regmap_mmio_write32le+0x18/0x46
->  |  regmap_mmio_write+0x26/0x44
->  |  regmap_write+0x28/0x48
->  |  sifive_gpio_probe+0xc0/0x1da
->
-> Although it's possible to fix the driver in this case, other splats have
-> been seen from other drivers, including the infamous 8250 UART, and so
-> it's better to address this problem in the mmiowb core itself.
->
-> Fix mmiowb_set_pending() by using the raw_cpu_ptr() to get at the mmiowb
-> state and then only updating the 'mmiowb_pending' field if we are not
-> preemptible (i.e. we have a non-zero nesting count).
->
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Paul Walmsley <paul.walmsley@sifive.com>
-> Cc: Guo Ren <guoren@kernel.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Reported-by: Palmer Dabbelt <palmer@dabbelt.com>
-> Signed-off-by: Will Deacon <will@kernel.org>
-> ---
->
-> I can queue this in the arm64 tree as a fix, as I already have some other
-> fixes targetting -rc6.
->
->  include/asm-generic/mmiowb.h | 6 ++++--
->  1 file changed, 4 insertions(+), 2 deletions(-)
->
-> diff --git a/include/asm-generic/mmiowb.h b/include/asm-generic/mmiowb.h
-> index 9439ff037b2d..5698fca3bf56 100644
-> --- a/include/asm-generic/mmiowb.h
-> +++ b/include/asm-generic/mmiowb.h
-> @@ -27,7 +27,7 @@
->  #include <asm/smp.h>
->
->  DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
-> -#define __mmiowb_state()	this_cpu_ptr(&__mmiowb_state)
-> +#define __mmiowb_state()	raw_cpu_ptr(&__mmiowb_state)
->  #else
->  #define __mmiowb_state()	arch_mmiowb_state()
->  #endif	/* arch_mmiowb_state */
-> @@ -35,7 +35,9 @@ DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
->  static inline void mmiowb_set_pending(void)
->  {
->  	struct mmiowb_state *ms = __mmiowb_state();
-> -	ms->mmiowb_pending = ms->nesting_count;
-> +
-> +	if (likely(ms->nesting_count))
-> +		ms->mmiowb_pending = ms->nesting_count;
->  }
->
->  static inline void mmiowb_spin_lock(void)
+On Wed, Jul 22, 2020 at 03:09:43PM -0400, Steven Rostedt wrote:
+> On Wed, 22 Jul 2020 20:41:37 +0200
+> Peter Zijlstra <peterz@infradead.org> wrote:
+> 
+> > > That said, Andi Kleen added an option to gcc called -mnop-mcount which
+> > > will have gcc do both create the mcount section and convert the calls
+> > > into nops. When doing so, it defines CC_USING_NOP_MCOUNT which will
+> > > tell ftrace to expect the calls to already be converted.  
+> > 
+> > That seems like the much easier solution, then we can forget about
+> > recordmcount / objtool entirely for this.
+> 
+> Of course that was only for some gcc compilers, and I'm not sure if
+> clang can do this.
+> 
+> Or do you just see all compilers doing this in the future, and not
+> worrying about record-mcount at all, and bothering with objtool?
 
-Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
-Reviewed-by: Palmer Dabbelt <palmerdabbelt@google.com>
+I got the GCC version wrong :/ Both -mnop-mcount and -mrecord-mcount
+landed in GCC-5, where our minimum GCC is now at 4.9.
 
-The arm64 tree works for me.
-
-Thanks!
+Anyway, what do you prefer, I suppose I can make objtool whatever we
+need, that patch is trivial. Simply recording the sites and not
+rewriting them should be simple enough.
