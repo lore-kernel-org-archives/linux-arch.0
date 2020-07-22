@@ -1,65 +1,44 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53532 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730818AbgGUUZw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 16:25:52 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 13/18] mips: __csum_partial_copy_kernel() has no users left
-Date: Tue, 21 Jul 2020 21:25:44 +0100
-Message-ID: <20200721202549.4150745-13-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
-References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
- <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:13780 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1730465AbgGVPAZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jul 2020 11:00:25 -0400
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH 13/13] task_isolation: kick_all_cpus_sync: don't kick isolated
+ cpus
+Date: Wed, 22 Jul 2020 14:59:55 +0000
+Message-ID: <5d0088ffd762b266124dfa5da9bcef0d9ddbae96.camel@marvell.com>
+References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
+In-Reply-To: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <7BED713CFA78E1408C46F0C24DF285EE@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200721202544.7Vk8I0klxG_1TAIwDIKnzmMvq0Q4xNQjGbmlmb4_V4Q@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Message-ID: <20200722145955.cDaUaqJeVSLpnAR3CbQOpyJ9x1bDO1k3qSvKReBCCLg@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
-
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/mips/include/asm/checksum.h | 3 ---
- arch/mips/lib/csum_partial.S     | 3 ---
- 2 files changed, 6 deletions(-)
-
-diff --git a/arch/mips/include/asm/checksum.h b/arch/mips/include/asm/checksum.h
-index 7a5c97c5d705..bf02d2d3869f 100644
---- a/arch/mips/include/asm/checksum.h
-+++ b/arch/mips/include/asm/checksum.h
-@@ -34,9 +34,6 @@
-  */
- __wsum csum_partial(const void *buff, int len, __wsum sum);
- 
--__wsum __csum_partial_copy_kernel(const void *src, void *dst,
--				  int len, __wsum sum, int *err_ptr);
--
- __wsum __csum_partial_copy_from_user(const void *src, void *dst,
- 				     int len, __wsum sum, int *err_ptr);
- __wsum __csum_partial_copy_to_user(const void *src, void *dst,
-diff --git a/arch/mips/lib/csum_partial.S b/arch/mips/lib/csum_partial.S
-index 8d70855b0914..983e909c2052 100644
---- a/arch/mips/lib/csum_partial.S
-+++ b/arch/mips/lib/csum_partial.S
-@@ -827,8 +827,6 @@ EXPORT_SYMBOL(csum_partial)
- 	.set	pop
- 	.endm
- 
--LEAF(__csum_partial_copy_kernel)
--EXPORT_SYMBOL(__csum_partial_copy_kernel)
- #ifndef CONFIG_EVA
- FEXPORT(__csum_partial_copy_to_user)
- EXPORT_SYMBOL(__csum_partial_copy_to_user)
-@@ -836,7 +834,6 @@ FEXPORT(__csum_partial_copy_from_user)
- EXPORT_SYMBOL(__csum_partial_copy_from_user)
- #endif
- __BUILD_CSUM_PARTIAL_COPY_USER LEGACY_MODE USEROP USEROP 1
--END(__csum_partial_copy_kernel)
- 
- #ifdef CONFIG_EVA
- LEAF(__csum_partial_copy_to_user)
--- 
-2.11.0
+RnJvbTogWXVyaSBOb3JvdiA8eW5vcm92QG1hcnZlbGwuY29tPg0KDQpNYWtlIHN1cmUgdGhhdCBr
+aWNrX2FsbF9jcHVzX3N5bmMoKSBkb2VzIG5vdCBjYWxsIENQVXMgdGhhdCBhcmUgcnVubmluZw0K
+aXNvbGF0ZWQgdGFza3MuDQoNClNpZ25lZC1vZmYtYnk6IFl1cmkgTm9yb3YgPHlub3JvdkBtYXJ2
+ZWxsLmNvbT4NClthYmVsaXRzQG1hcnZlbGwuY29tOiB1c2Ugc2FmZSB0YXNrX2lzb2xhdGlvbl9j
+cHVtYXNrKCkgaW1wbGVtZW50YXRpb25dDQpTaWduZWQtb2ZmLWJ5OiBBbGV4IEJlbGl0cyA8YWJl
+bGl0c0BtYXJ2ZWxsLmNvbT4NCi0tLQ0KIGtlcm5lbC9zbXAuYyB8IDE0ICsrKysrKysrKysrKyst
+DQogMSBmaWxlIGNoYW5nZWQsIDEzIGluc2VydGlvbnMoKyksIDEgZGVsZXRpb24oLSkNCg0KZGlm
+ZiAtLWdpdCBhL2tlcm5lbC9zbXAuYyBiL2tlcm5lbC9zbXAuYw0KaW5kZXggNmE2ODQ5NzgzOTQ4
+Li5mZjBkOTVkYjMzYjMgMTAwNjQ0DQotLS0gYS9rZXJuZWwvc21wLmMNCisrKyBiL2tlcm5lbC9z
+bXAuYw0KQEAgLTgwMyw5ICs4MDMsMjEgQEAgc3RhdGljIHZvaWQgZG9fbm90aGluZyh2b2lkICp1
+bnVzZWQpDQogICovDQogdm9pZCBraWNrX2FsbF9jcHVzX3N5bmModm9pZCkNCiB7DQorCXN0cnVj
+dCBjcHVtYXNrIG1hc2s7DQorDQogCS8qIE1ha2Ugc3VyZSB0aGUgY2hhbmdlIGlzIHZpc2libGUg
+YmVmb3JlIHdlIGtpY2sgdGhlIGNwdXMgKi8NCiAJc21wX21iKCk7DQotCXNtcF9jYWxsX2Z1bmN0
+aW9uKGRvX25vdGhpbmcsIE5VTEwsIDEpOw0KKw0KKwlwcmVlbXB0X2Rpc2FibGUoKTsNCisjaWZk
+ZWYgQ09ORklHX1RBU0tfSVNPTEFUSU9ODQorCWNwdW1hc2tfY2xlYXIoJm1hc2spOw0KKwl0YXNr
+X2lzb2xhdGlvbl9jcHVtYXNrKCZtYXNrKTsNCisJY3B1bWFza19jb21wbGVtZW50KCZtYXNrLCAm
+bWFzayk7DQorI2Vsc2UNCisJY3B1bWFza19zZXRhbGwoJm1hc2spOw0KKyNlbmRpZg0KKwlzbXBf
+Y2FsbF9mdW5jdGlvbl9tYW55KCZtYXNrLCBkb19ub3RoaW5nLCBOVUxMLCAxKTsNCisJcHJlZW1w
+dF9lbmFibGUoKTsNCiB9DQogRVhQT1JUX1NZTUJPTF9HUEwoa2lja19hbGxfY3B1c19zeW5jKTsN
+CiANCi0tIA0KMi4yNi4yDQoNCg==
