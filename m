@@ -1,62 +1,55 @@
 From: David Laight <David.Laight@ACULAB.COM>
 Subject: RE: [PATCH 04/18] csum_and_copy_..._user(): pass 0xffffffff instead
  of 0 as initial sum
-Date: Wed, 22 Jul 2020 09:27:32 +0000
-Message-ID: <2d85ebb8ea2248c8a14f038a0c60297e@AcuMS.aculab.com>
+Date: Wed, 22 Jul 2020 09:45:23 +0000
+Message-ID: <773d830b89814ab8a92dc892ec6e65e2@AcuMS.aculab.com>
 References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
  <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
  <20200721202549.4150745-4-viro@ZenIV.linux.org.uk>
+ <CAHk-=wiYS3sHp9bvRn3KmkFKnK-Pb0ksL+-gRRHLK_ZjJqQf=w@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from eu-smtp-delivery-151.mimecast.com ([185.58.86.151]:24819 "EHLO
+Received: from eu-smtp-delivery-151.mimecast.com ([207.82.80.151]:25919 "EHLO
         eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726153AbgGVJ1h (ORCPT
+        by vger.kernel.org with ESMTP id S1729025AbgGVJp1 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jul 2020 05:27:37 -0400
-In-Reply-To: <20200721202549.4150745-4-viro@ZenIV.linux.org.uk>
+        Wed, 22 Jul 2020 05:45:27 -0400
+In-Reply-To: <CAHk-=wiYS3sHp9bvRn3KmkFKnK-Pb0ksL+-gRRHLK_ZjJqQf=w@mail.gmail.com>
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Al Viro' <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: 'Linus Torvalds' <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-From: Al Viro
-> Sent: 21 July 2020 21:26
-> Preparation for the change of calling conventions; right now all
-> callers pass 0 as initial sum.  Passing 0xffffffff instead yields
-> the values comparable mod 0xffff and guarantees that 0 will not
-> be returned on success.
-> 
-> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
-> ---
->  lib/iov_iter.c | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
-> 
-> diff --git a/lib/iov_iter.c b/lib/iov_iter.c
-> index 7405922caaec..d5b7e204fea6 100644
-> --- a/lib/iov_iter.c
-> +++ b/lib/iov_iter.c
-> @@ -1451,7 +1451,7 @@ size_t csum_and_copy_from_iter(void *addr, size_t bytes, __wsum *csum,
->  		int err = 0;
->  		next = csum_and_copy_from_user(v.iov_base,
->  					       (to += v.iov_len) - v.iov_len,
-> -					       v.iov_len, 0, &err);
-> +					       v.iov_len, ~0U, &err);
->  		if (!err) {
->  			sum = csum_block_add(sum, next, off);
->  			off += v.iov_len;
-
-Can't you remove the csum_block_add() by passing the
-old 'sum' in instead of the ~0U ?
-You'll need to keep track of whether the buffer fragment
-is odd/even aligned.
-After an odd length fragment a bswap32() or 8 bit rotate will
-fix things (and maybe one right at the end).
-
-	David
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+RnJvbTogTGludXMgVG9ydmFsZHMNCj4gU2VudDogMjEgSnVseSAyMDIwIDIxOjU1DQo+IE9uIFR1
+ZSwgSnVsIDIxLCAyMDIwIGF0IDE6MjUgUE0gQWwgVmlybyA8dmlyb0B6ZW5pdi5saW51eC5vcmcu
+dWs+IHdyb3RlOg0KPiA+DQo+ID4gUHJlcGFyYXRpb24gZm9yIHRoZSBjaGFuZ2Ugb2YgY2FsbGlu
+ZyBjb252ZW50aW9uczsgcmlnaHQgbm93IGFsbA0KPiA+IGNhbGxlcnMgcGFzcyAwIGFzIGluaXRp
+YWwgc3VtLiAgUGFzc2luZyAweGZmZmZmZmZmIGluc3RlYWQgeWllbGRzDQo+ID4gdGhlIHZhbHVl
+cyBjb21wYXJhYmxlIG1vZCAweGZmZmYgYW5kIGd1YXJhbnRlZXMgdGhhdCAwIHdpbGwgbm90DQo+
+ID4gYmUgcmV0dXJuZWQgb24gc3VjY2Vzcy4NCj4gDQo+IFRoaXMgc2VlbXMgZGFuZ2Vyb3VzIHRv
+IG1lLg0KPiANCj4gTWF5YmUgc29tZSBpbXBsZW1lbnRhdGlvbiBkZXBlbmRzIG9uIHRoZSBmYWN0
+IHRoYXQgdGhleSBhY3R1YWxseSBkbw0KPiB0aGUgY3N1bSAxNiBiaXRzIGF0IGEgdGltZSwgYW5k
+IG5ldmVyIHNlZSBhbiBvdmVyZmxvdyBpbiAiaW50IiwNCj4gYmVjYXVzZSB0aGV5IGtlZXAgZm9s
+ZGluZyB0aGluZ3MuDQo+IA0KPiBZb3Ugbm93IGJyZWFrIHRoYXQgYXNzdW1wdGlvbiwgYW5kIGdp
+dmUgaXQgYW4gaW5pdGlhbCB2YWx1ZSB0aGF0IHRoZQ0KPiBjc3VtIGNvZGUgaXRzZWxmIHdvdWxk
+IG5ldmVyIGdlbmVyYXRlLCBhbmQgd291bGRuJ3QgaGFuZGxlIHJpZ2h0Lg0KPiANCj4gQnV0IEkg
+ZGlkbid0IGNoZWNrLiBNYXliZSB3ZSBkb24ndCBoYXZlIGFueXRoaW5nIHRoYXQgc3R1cGlkIGlu
+IHRoZSBrZXJuZWwuDQoNCkl0IGlzbid0IG5lY2Vzc2FyaWx5IHN0dXBpZCA6LSkNCkEgNjRiaXQg
+c3VtIGNhbiBiZSByZWR1Y2VkIHRvIDE2Yml0cyB1c2luZyBzaGlmdHMgYW5kIGFkZHMNCihhcyB1
+cyB1c3VhbGx5IGRvbmUpIG9mIHVzaW5nICdzdW0gJSAweGZmZmYnLg0KUHJvdmlkZWQgdGhlIGNv
+bXBpbGVyIHVzZXMgJ211bHRpcGx5IGJ5IHJlY2lwcm9jYWwnIHRoZSBjb2RlDQppc24ndCB0aGF0
+IGJhZCAtIGl0IG1pZ2h0IGV2ZW4gYmUgZGlmZmljdWx0IHRvIHNheSB3aGljaCBpcyBmYXN0ZXIu
+DQpIb3dldmVyIHRoYXQgbWFrZXMgdGhlIG91dHB1dCBkb21haW4gMC4uZmZmZSBub3QgMS4uZmZm
+Zi4NCg0KVGhlIGNoZWNrc3VtIGdlbmVyYXRpb24gY29kZSByZWFsbHkgbmVlZHMgdG8ga25vdyB3
+aGljaCBpcyB1c2VkLg0KU28gaXQgaXMgYmVzdCBuZXZlciB0byB1c2UgdGhlICUgdmVyc2lvbi4N
+CklmIHRoZSBzdW0gaXMga25vd24gdG8gYmUgMS4uMHhmZmZmIHRoZW4gYWZ0ZXIgaW52ZXJzaW9u
+IGl0IGlzDQowLi5mZmZlIGJ1dCB0aGUgcmVxdWlyZWQgZG9tYWluIGlzIDEuLmZmZmYuDQpUaGlz
+IGNhbiBiZSBmaXhlZCBieSBhZGRpbmcgMSAtIHByb3ZpZGVkIGEgY29tcGVuc2F0aW5nIDEgaXMN
+CmFkZGVkIGluIGJlZm9yZSB0aGUgaW52ZXJzaW9uLg0KVGhlIGVhc3kgcGxhY2UgdG8gZG8gdGhp
+cyBpcyB0byBmZWVkIDEgKG5vdCAwIG9yIH4wKSBpbnRvIHRoZQ0KZmlyc3QgY2hlY2tzdW0gYmxv
+Y2suDQoNCglEYXZpZA0KDQotDQpSZWdpc3RlcmVkIEFkZHJlc3MgTGFrZXNpZGUsIEJyYW1sZXkg
+Um9hZCwgTW91bnQgRmFybSwgTWlsdG9uIEtleW5lcywgTUsxIDFQVCwgVUsNClJlZ2lzdHJhdGlv
+biBObzogMTM5NzM4NiAoV2FsZXMpDQo=
