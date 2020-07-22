@@ -1,94 +1,74 @@
-From: David Brazdil <dbrazdil@google.com>
-Subject: [PATCH 9/9] kvm: arm64: Remove unnecessary hyp mappings
-Date: Wed, 22 Jul 2020 17:44:24 +0100
-Message-ID: <20200722164424.42225-10-dbrazdil@google.com>
-References: <20200722164424.42225-1-dbrazdil@google.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC] raw_copy_from_user() semantics
+Date: Wed, 22 Jul 2020 17:53:47 +0100
+Message-ID: <20200722165346.GB4069@gaia>
+References: <20200719031733.GI2786714@ZenIV.linux.org.uk>
+ <CAHk-=wi7f5vG+s=aFsskzcTRs+f7MVHK9yJFZtUEfndy6ScKRQ@mail.gmail.com>
+ <CAHk-=wirA7zJJB17KJPCE-V9pKwn8VKxXTeiaM+F+Sa1Xd2SWA@mail.gmail.com>
+ <20200722113707.GC27540@gaia>
+ <8fde1b9044a34ff59eb5ff3dafbf2b97@AcuMS.aculab.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200722164424.42225-1-dbrazdil@google.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, kernel-team@google.com, David Brazdil <dbrazdil@google.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:56252 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726649AbgGVQxv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jul 2020 12:53:51 -0400
+Content-Disposition: inline
+In-Reply-To: <8fde1b9044a34ff59eb5ff3dafbf2b97@AcuMS.aculab.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-With all nVHE per-CPU variables being part of the hyp per-CPU region,
-mapping them individual is not necessary any longer. They are mapped to hyp
-as part of the overall per-CPU region.
+On Wed, Jul 22, 2020 at 01:14:21PM +0000, David Laight wrote:
+> From: Catalin Marinas
+> > Sent: 22 July 2020 12:37
+> > On Sun, Jul 19, 2020 at 12:34:11PM -0700, Linus Torvalds wrote:
+> > > On Sun, Jul 19, 2020 at 12:28 PM Linus Torvalds
+> > > <torvalds@linux-foundation.org> wrote:
+> > > > I think we should try to get rid of the exact semantics.
+> > >
+> > > Side note: I think one of the historical reasons for the exact
+> > > semantics was that we used to do things like the mount option copying
+> > > with a "copy_from_user()" iirc.
+> > >
+> > > And that could take a fault at the end of the stack etc, because
+> > > "copy_mount_options()" is nasty and doesn't get a size, and just
+> > > copies "up to 4kB" of data.
+> > >
+> > > It's a mistake in the interface, but it is what it is. But we've
+> > > always handled the inexact count there anyway by originally doing byte
+> > > accesses, and at some point you optimized it to just look at where
+> > > page boundaries might be..
+> > 
+> > And we may have to change this again since, with arm64 MTE, the page
+> > boundary check is insufficient:
+> > 
+> > https://lore.kernel.org/linux-fsdevel/20200715170844.30064-25-catalin.marinas@arm.com/
+> > 
+> > While currently the fault path is unlikely to trigger, with MTE in user
+> > space it's a lot more likely since the buffer (e.g. a string) is
+> > normally less than 4K and the adjacent addresses would have a different
+> > colour.
+> > 
+> > I looked (though briefly) into passing the copy_from_user() problem to
+> > filesystems that would presumably know better how much to copy. In most
+> > cases the options are string, so something like strncpy_from_user()
+> > would work. For mount options as binary blobs (IIUC btrfs) maybe the fs
+> > has a better way to figure out how much to copy.
+> 
+> What about changing the mount code to loop calling get_user()
+> to read aligned words until failure?
+> Mount is fairly uncommon and the extra cost is probably small compared
+> to the rest of doing a mount.
 
-Signed-off-by: David Brazdil <dbrazdil@google.com>
----
- arch/arm64/include/asm/kvm_mmu.h | 25 +++++++------------------
- arch/arm64/kvm/arm.c             | 17 +----------------
- 2 files changed, 8 insertions(+), 34 deletions(-)
+Before commit 12efec560274 ("saner copy_mount_options()"), it was using
+single-byte get_user(). That could have been optimised for aligned words
+reading but I don't really think it's worth the hassle. Since the source
+and destination don't have the same alignment and some architecture
+don't support unaligned accesses (for storing to the kernel buffer), it
+would just make this function unnecessarily complicated.
 
-diff --git a/arch/arm64/include/asm/kvm_mmu.h b/arch/arm64/include/asm/kvm_mmu.h
-index e9e5875274cb..1a66089cf4f4 100644
---- a/arch/arm64/include/asm/kvm_mmu.h
-+++ b/arch/arm64/include/asm/kvm_mmu.h
-@@ -531,28 +531,17 @@ static inline int kvm_map_vectors(void)
- DECLARE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
- DECLARE_KVM_NVHE_PER_CPU(u64, arm64_ssbd_callback_required);
- 
--static inline int hyp_init_aux_data(void)
-+static inline void hyp_init_aux_data(void)
- {
--	int cpu, err;
-+	int cpu;
- 
--	for_each_possible_cpu(cpu) {
--		u64 *ptr;
--
--		ptr = per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu);
--		err = create_hyp_mappings(ptr, ptr + 1, PAGE_HYP);
--		if (err)
--			return err;
--
--		/* Copy value from kernel to hyp. */
--		*ptr = per_cpu(arm64_ssbd_callback_required, cpu);
--	}
--	return 0;
-+	/* Copy arm64_ssbd_callback_required values from kernel to hyp. */
-+	for_each_possible_cpu(cpu)
-+		*(per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu)) =
-+			per_cpu(arm64_ssbd_callback_required, cpu);
- }
- #else
--static inline int hyp_init_aux_data(void)
--{
--	return 0;
--}
-+static inline void hyp_init_aux_data(void) {}
- #endif
- 
- #define kvm_phys_to_vttbr(addr)		phys_to_ttbr(addr)
-diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
-index bbbc5c1519a9..f2e537d99d2b 100644
---- a/arch/arm64/kvm/arm.c
-+++ b/arch/arm64/kvm/arm.c
-@@ -1628,22 +1628,7 @@ static int init_hyp_mode(void)
- 		}
- 	}
- 
--	for_each_possible_cpu(cpu) {
--		kvm_host_data_t *cpu_data;
--
--		cpu_data = per_cpu_ptr_hyp(kvm_host_data, cpu);
--		err = create_hyp_mappings(cpu_data, cpu_data + 1, PAGE_HYP);
--
--		if (err) {
--			kvm_err("Cannot map host CPU state: %d\n", err);
--			goto out_err;
--		}
--	}
--
--	err = hyp_init_aux_data();
--	if (err)
--		kvm_err("Cannot map host auxiliary data: %d\n", err);
--
-+	hyp_init_aux_data();
- 	return 0;
- 
- out_err:
 -- 
-2.27.0
+Catalin
