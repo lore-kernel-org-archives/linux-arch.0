@@ -1,51 +1,48 @@
-Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 06/24] csky: use asm-generic/mmu_context.h for no-op implementations
-Date: Tue, 28 Jul 2020 13:33:47 +1000
-Message-ID: <20200728033405.78469-7-npiggin@gmail.com>
-In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
-References: <20200728033405.78469-1-npiggin@gmail.com>
+Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:53230 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726157AbgGVTJq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jul 2020 15:09:46 -0400
+Date: Wed, 22 Jul 2020 15:09:43 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
+Message-ID: <20200722150943.53046592@oasis.local.home>
+In-Reply-To: <20200722184137.GP10769@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+        <20200624203200.78870-5-samitolvanen@google.com>
+        <20200624212737.GV4817@hirez.programming.kicks-ass.net>
+        <20200624214530.GA120457@google.com>
+        <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+        <20200625161503.GB173089@google.com>
+        <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
+        <20200625224042.GA169781@google.com>
+        <20200626112931.GF4817@hirez.programming.kicks-ass.net>
+        <20200722135542.41127cc4@oasis.local.home>
+        <20200722184137.GP10769@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200728033347.nd3WNXfRYh3hXGBs9LjbFoGD6cSHJqH3gE2x9WGbinc@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
+Message-ID: <20200722190943.fK1aGe-YBkp7vcpFQKy3pGb8HBrHmIXfIXCT3WjtsaQ@z>
 
-Cc: Guo Ren <guoren@kernel.org>
-Cc: linux-csky@vger.kernel.org
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/csky/include/asm/mmu_context.h | 8 +++-----
- 1 file changed, 3 insertions(+), 5 deletions(-)
+On Wed, 22 Jul 2020 20:41:37 +0200
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-diff --git a/arch/csky/include/asm/mmu_context.h b/arch/csky/include/asm/=
-mmu_context.h
-index abdf1f1cb6ec..b227d29393a8 100644
---- a/arch/csky/include/asm/mmu_context.h
-+++ b/arch/csky/include/asm/mmu_context.h
-@@ -24,11 +24,6 @@
- #define cpu_asid(mm)		(atomic64_read(&mm->context.asid) & ASID_MASK)
-=20
- #define init_new_context(tsk,mm)	({ atomic64_set(&(mm)->context.asid, 0)=
-; 0; })
--#define activate_mm(prev,next)		switch_mm(prev, next, current)
--
--#define destroy_context(mm)		do {} while (0)
--#define enter_lazy_tlb(mm, tsk)		do {} while (0)
--#define deactivate_mm(tsk, mm)		do {} while (0)
-=20
- void check_and_switch_context(struct mm_struct *mm, unsigned int cpu);
-=20
-@@ -46,4 +41,7 @@ switch_mm(struct mm_struct *prev, struct mm_struct *nex=
-t,
-=20
- 	flush_icache_deferred(next);
- }
-+
-+#include <asm-generic/mmu_context.h>
-+
- #endif /* __ASM_CSKY_MMU_CONTEXT_H */
---=20
-2.23.0
+> > That said, Andi Kleen added an option to gcc called -mnop-mcount which
+> > will have gcc do both create the mcount section and convert the calls
+> > into nops. When doing so, it defines CC_USING_NOP_MCOUNT which will
+> > tell ftrace to expect the calls to already be converted.  
+> 
+> That seems like the much easier solution, then we can forget about
+> recordmcount / objtool entirely for this.
+
+Of course that was only for some gcc compilers, and I'm not sure if
+clang can do this.
+
+Or do you just see all compilers doing this in the future, and not
+worrying about record-mcount at all, and bothering with objtool?
+
+-- Steve
