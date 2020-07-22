@@ -1,17 +1,16 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V5 05/15] entry: Provide infrastructure for work before
- transitioning to guest mode
-Date: Wed, 22 Jul 2020 23:59:59 +0200
-Message-ID: <20200722220519.833296398@linutronix.de>
+Subject: [patch V5 03/15] entry: Provide generic syscall exit function
+Date: Wed, 22 Jul 2020 23:59:57 +0200
+Message-ID: <20200722220519.613977173@linutronix.de>
 References: <20200722215954.464281930@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8-bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:52552 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:52524 "EHLO
         galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730938AbgGVWLb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:31 -0400
+        with ESMTP id S1733051AbgGVWL3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:29 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
@@ -19,214 +18,444 @@ Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, A
 
 From: Thomas Gleixner <tglx@linutronix.de>
 
-Entering a guest is similar to exiting to user space. Pending work like
-handling signals, rescheduling, task work etc. needs to be handled before
-that.
+Like syscall entry all architectures have similar and pointlessly different
+code to handle pending work before returning from a syscall to user space.
 
-Provide generic infrastructure to avoid duplication of the same handling
-code all over the place.
+  1) One-time syscall exit work:
+      - rseq syscall exit
+      - audit
+      - syscall tracing
+      - tracehook (single stepping)
 
-The transfer to guest mode handling is different from the exit to usermode
-handling, e.g. vs. rseq and live patching, so a separate function is used.
+  2) Preparatory work
+      - Exit to user mode loop (common TIF handling).
+      - Architecture specific one time work arch_exit_to_user_mode_prepare()
+      - Address limit and lockdep checks
+     
+  3) Final transition (lockdep, tracing, context tracking, RCU). Invokes
+     arch_exit_to_user_mode() to handle e.g. speculation mitigations
 
-The initial list of work items handled is:
+Provide a generic version based on the x86 code which has all the RCU and
+instrumentation protections right.
 
-    TIF_SIGPENDING, TIF_NEED_RESCHED, TIF_NOTIFY_RESUME
+Provide a variant for interrupt return to user mode as well which shares
+the above #2 and #3 work items.
 
-Architecture specific TIF flags can be added via defines in the
-architecture specific include files.
-
-The calling convention is also different from the syscall/interrupt entry
-functions as KVM invokes this from the outer vcpu_run() loop with
-interrupts and preemption enabled. To prevent missing a pending work item
-it invokes a check for pending TIF work from interrupt disabled code right
-before transitioning to guest mode. The lockdep, RCU and tracing state
-handling is also done directly around the switch to and from guest mode.
+After syscall_exit_to_user_mode() and irqentry_exit_to_user_mode() the
+architecture code just has to return to user space. The code after
+returning from these functions must not be instrumented.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
-V5: Rename exit -> xfer (Sean)
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-V3: Reworked and simplified version adopted to recent X86 and KVM changes
-    
-V2: Moved KVM specific functions to kvm (Paolo)
-    Added lockdep assert (Andy)
-    Dropped live patching from enter guest mode work (Miroslav)
 ---
- include/linux/entry-kvm.h |   80 ++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/kvm_host.h  |    8 ++++
- kernel/entry/Makefile     |    3 +
- kernel/entry/kvm.c        |   51 +++++++++++++++++++++++++++++
- virt/kvm/Kconfig          |    3 +
- 5 files changed, 144 insertions(+), 1 deletion(-)
+V4: Remove _TIF_NOTIFY_RESUME dummy define as it is defined by all architectures
+    Remove the return value helper and use the existing regs_return_value()
+---
+ include/linux/entry-common.h |  189 +++++++++++++++++++++++++++++++++++++++++++
+ kernel/entry/common.c        |  169 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 358 insertions(+)
 
---- /dev/null
-+++ b/include/linux/entry-kvm.h
-@@ -0,0 +1,80 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __LINUX_ENTRYKVM_H
-+#define __LINUX_ENTRYKVM_H
-+
-+#include <linux/entry-common.h>
-+
-+/* Transfer to guest mode work */
-+#ifdef CONFIG_KVM_XFER_TO_GUEST_WORK
-+
-+#ifndef ARCH_XFER_TO_GUEST_MODE_WORK
-+# define ARCH_XFER_TO_GUEST_MODE_WORK	(0)
+--- a/include/linux/entry-common.h
++++ b/include/linux/entry-common.h
+@@ -29,6 +29,14 @@
+ # define _TIF_SYSCALL_AUDIT		(0)
+ #endif
+ 
++#ifndef _TIF_PATCH_PENDING
++# define _TIF_PATCH_PENDING		(0)
 +#endif
 +
-+#define XFER_TO_GUEST_MODE_WORK					\
-+	(_TIF_NEED_RESCHED | _TIF_SIGPENDING |			\
-+	 _TIF_NOTIFY_RESUME | ARCH_XFER_TO_GUEST_MODE_WORK)
++#ifndef _TIF_UPROBE
++# define _TIF_UPROBE			(0)
++#endif
 +
-+struct kvm_vcpu;
+ /*
+  * TIF flags handled in syscall_enter_from_usermode()
+  */
+@@ -41,6 +49,29 @@
+ 	 _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_EMU |			\
+ 	 ARCH_SYSCALL_ENTER_WORK)
+ 
++/*
++ * TIF flags handled in syscall_exit_to_user_mode()
++ */
++#ifndef ARCH_SYSCALL_EXIT_WORK
++# define ARCH_SYSCALL_EXIT_WORK		(0)
++#endif
++
++#define SYSCALL_EXIT_WORK						\
++	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT |			\
++	 _TIF_SYSCALL_TRACEPOINT | ARCH_SYSCALL_EXIT_WORK)
++
++/*
++ * TIF flags handled in exit_to_user_mode_loop()
++ */
++#ifndef ARCH_EXIT_TO_USER_MODE_WORK
++# define ARCH_EXIT_TO_USER_MODE_WORK		(0)
++#endif
++
++#define EXIT_TO_USER_MODE_WORK						\
++	(_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_UPROBE |		\
++	 _TIF_NEED_RESCHED | _TIF_PATCH_PENDING |			\
++	 ARCH_EXIT_TO_USER_MODE_WORK)
++
+ /**
+  * arch_check_user_regs - Architecture specific sanity check for user mode regs
+  * @regs:	Pointer to currents pt_regs
+@@ -106,6 +137,149 @@ static inline __must_check int arch_sysc
+ long syscall_enter_from_user_mode(struct pt_regs *regs, long syscall);
+ 
+ /**
++ * local_irq_enable_exit_to_user - Exit to user variant of local_irq_enable()
++ * @ti_work:	Cached TIF flags gathered with interrupts disabled
++ *
++ * Defaults to local_irq_enable(). Can be supplied by architecture specific
++ * code.
++ */
++static inline void local_irq_enable_exit_to_user(unsigned long ti_work);
++
++#ifndef local_irq_enable_exit_to_user
++static inline void local_irq_enable_exit_to_user(unsigned long ti_work)
++{
++	local_irq_enable();
++}
++#endif
 +
 +/**
-+ * arch_xfer_to_guest_mode_work - Architecture specific xfer to guest mode
-+ *				  work function.
-+ * @vcpu:	Pointer to current's VCPU data
-+ * @ti_work:	Cached TIF flags gathered in xfer_to_guest_mode()
++ * local_irq_disable_exit_to_user - Exit to user variant of local_irq_disable()
 + *
-+ * Invoked from xfer_to_guest_mode_work(). Defaults to NOOP. Can be
-+ * replaced by architecture specific code.
++ * Defaults to local_irq_disable(). Can be supplied by architecture specific
++ * code.
 + */
-+static inline int arch_xfer_to_guest_mode_work(struct kvm_vcpu *vcpu,
-+					      unsigned long ti_work);
++static inline void local_irq_disable_exit_to_user(void);
 +
-+#ifndef arch_xfer_to_guest_mode_work
-+static inline int arch_xfer_to_guest_mode_work(struct kvm_vcpu *vcpu,
++#ifndef local_irq_disable_exit_to_user
++static inline void local_irq_disable_exit_to_user(void)
++{
++	local_irq_disable();
++}
++#endif
++
++/**
++ * arch_exit_to_user_mode_work - Architecture specific TIF work for exit
++ *				 to user mode.
++ * @regs:	Pointer to currents pt_regs
++ * @ti_work:	Cached TIF flags gathered with interrupts disabled
++ *
++ * Invoked from exit_to_user_mode_loop() with interrupt enabled
++ *
++ * Defaults to NOOP. Can be supplied by architecture specific code.
++ */
++static inline void arch_exit_to_user_mode_work(struct pt_regs *regs,
++					       unsigned long ti_work);
++
++#ifndef arch_exit_to_user_mode_work
++static inline void arch_exit_to_user_mode_work(struct pt_regs *regs,
 +					       unsigned long ti_work)
 +{
-+	return 0;
 +}
 +#endif
 +
 +/**
-+ * xfer_to_guest_mode - Check and handle pending work which needs to be
-+ *			handled before returning to guest mode
-+ * @vcpu:	Pointer to current's VCPU data
++ * arch_exit_to_user_mode_prepare - Architecture specific preparation for
++ *				    exit to user mode.
++ * @regs:	Pointer to currents pt_regs
++ * @ti_work:	Cached TIF flags gathered with interrupts disabled
 + *
-+ * Returns: 0 or an error code
++ * Invoked from exit_to_user_mode_prepare() with interrupt disabled as the last
++ * function before return. Defaults to NOOP.
 + */
-+int xfer_to_guest_mode(struct kvm_vcpu *vcpu);
++static inline void arch_exit_to_user_mode_prepare(struct pt_regs *regs,
++						  unsigned long ti_work);
 +
-+/**
-+ * __xfer_to_guest_mode_work_pending - Check if work is pending
-+ *
-+ * Returns: True if work pending, False otherwise.
-+ *
-+ * Bare variant of xfer_to_guest_mode_work_pending(). Can be called from
-+ * interrupt enabled code for racy quick checks with care.
-+ */
-+static inline bool __xfer_to_guest_mode_work_pending(void)
++#ifndef arch_exit_to_user_mode_prepare
++static inline void arch_exit_to_user_mode_prepare(struct pt_regs *regs,
++						  unsigned long ti_work)
 +{
-+	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-+
-+	return !!(ti_work & XFER_TO_GUEST_MODE_WORK);
 +}
-+
-+/**
-+ * xfer_to_guest_mode_work_pending - Check if work is pending which needs to be
-+ *				     handled before returning to guest mode
-+ *
-+ * Returns: True if work pending, False otherwise.
-+ *
-+ * Has to be invoked with interrupts disabled before the transition to
-+ * guest mode.
-+ */
-+static inline bool xfer_to_guest_mode_work_pending(void)
-+{
-+	lockdep_assert_irqs_disabled();
-+	return __xfer_to_guest_mode_work_pending();
-+}
-+#endif /* CONFIG_KVM_XFER_TO_GUEST_WORK */
-+
 +#endif
---- a/include/linux/kvm_host.h
-+++ b/include/linux/kvm_host.h
-@@ -1439,4 +1439,12 @@ int kvm_vm_create_worker_thread(struct k
- 				uintptr_t data, const char *name,
- 				struct task_struct **thread_ptr);
++
++/**
++ * arch_exit_to_user_mode - Architecture specific final work before
++ *			    exit to user mode.
++ *
++ * Invoked from exit_to_user_mode() with interrupt disabled as the last
++ * function before return. Defaults to NOOP.
++ *
++ * This needs to be __always_inline because it is non-instrumentable code
++ * invoked after context tracking switched to user mode.
++ *
++ * An architecture implementation must not do anything complex, no locking
++ * etc. The main purpose is for speculation mitigations.
++ */
++static __always_inline void arch_exit_to_user_mode(void);
++
++#ifndef arch_exit_to_user_mode
++static __always_inline void arch_exit_to_user_mode(void) { }
++#endif
++
++/**
++ * arch_do_signal -  Architecture specific signal delivery function
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Invoked from exit_to_user_mode_loop().
++ */
++void arch_do_signal(struct pt_regs *regs);
++
++/**
++ * arch_syscall_exit_tracehook - Wrapper around tracehook_report_syscall_exit()
++ * @regs:	Pointer to currents pt_regs
++ * @step:	Indicator for single step
++ *
++ * Defaults to tracehook_report_syscall_exit(). Can be replaced by
++ * architecture specific code.
++ *
++ * Invoked from syscall_exit_to_user_mode()
++ */
++static inline void arch_syscall_exit_tracehook(struct pt_regs *regs, bool step);
++
++#ifndef arch_syscall_exit_tracehook
++static inline void arch_syscall_exit_tracehook(struct pt_regs *regs, bool step)
++{
++	tracehook_report_syscall_exit(regs, step);
++}
++#endif
++
++/**
++ * syscall_exit_to_user_mode - Handle work before returning to user mode
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Invoked with interrupts enabled and fully valid regs. Returns with all
++ * work handled, interrupts disabled such that the caller can immediately
++ * switch to user mode. Called from architecture specific syscall and ret
++ * from fork code.
++ *
++ * The call order is:
++ *  1) One-time syscall exit work:
++ *	- rseq syscall exit
++ *      - audit
++ *	- syscall tracing
++ *	- tracehook (single stepping)
++ *
++ *  2) Preparatory work
++ *	- Exit to user mode loop (common TIF handling). Invokes
++ *	  arch_exit_to_user_mode_work() for architecture specific TIF work
++ *	- Architecture specific one time work arch_exit_to_user_mode_prepare()
++ *	- Address limit and lockdep checks
++ *
++ *  3) Final transition (lockdep, tracing, context tracking, RCU). Invokes
++ *     arch_exit_to_user_mode() to handle e.g. speculation mitigations
++ */
++void syscall_exit_to_user_mode(struct pt_regs *regs);
++
++/**
+  * irqentry_enter_from_user_mode - Establish state before invoking the irq handler
+  * @regs:	Pointer to currents pt_regs
+  *
+@@ -118,4 +292,19 @@ long syscall_enter_from_user_mode(struct
+  */
+ void irqentry_enter_from_user_mode(struct pt_regs *regs);
  
-+#ifdef CONFIG_KVM_XFER_TO_GUEST_WORK
-+static inline void kvm_handle_signal_exit(struct kvm_vcpu *vcpu)
-+{
-+	vcpu->run->exit_reason = KVM_EXIT_INTR;
-+	vcpu->stat.signal_exits++;
-+}
-+#endif /* CONFIG_KVM_XFER_TO_GUEST_WORK */
++/**
++ * irqentry_exit_to_user_mode - Interrupt exit work
++ * @regs:	Pointer to current's pt_regs
++ *
++ * Invoked with interrupts disbled and fully valid regs. Returns with all
++ * work handled, interrupts disabled such that the caller can immediately
++ * switch to user mode. Called from architecture specific interrupt
++ * handling code.
++ *
++ * The call order is #2 and #3 as described in syscall_exit_to_user_mode().
++ * Interrupt exit is not invoking #1 which is the syscall specific one time
++ * work.
++ */
++void irqentry_exit_to_user_mode(struct pt_regs *regs);
 +
  #endif
---- a/kernel/entry/Makefile
-+++ b/kernel/entry/Makefile
-@@ -9,4 +9,5 @@ KCOV_INSTRUMENT := n
- CFLAGS_REMOVE_common.o	 = -fstack-protector -fstack-protector-strong
- CFLAGS_common.o		+= -fno-stack-protector
+--- a/kernel/entry/common.c
++++ b/kernel/entry/common.c
+@@ -2,6 +2,8 @@
  
--obj-$(CONFIG_GENERIC_ENTRY) += common.o
-+obj-$(CONFIG_GENERIC_ENTRY) 		+= common.o
-+obj-$(CONFIG_KVM_XFER_TO_GUEST_WORK)	+= kvm.o
---- /dev/null
-+++ b/kernel/entry/kvm.c
-@@ -0,0 +1,51 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+#include <linux/entry-kvm.h>
-+#include <linux/kvm_host.h>
-+
-+static int xfer_to_guest_mode_work(struct kvm_vcpu *vcpu, unsigned long ti_work)
+ #include <linux/context_tracking.h>
+ #include <linux/entry-common.h>
++#include <linux/livepatch.h>
++#include <linux/audit.h>
+ 
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/syscalls.h>
+@@ -82,7 +84,174 @@ noinstr long syscall_enter_from_user_mod
+ 	return syscall;
+ }
+ 
++/**
++ * exit_to_user_mode - Fixup state when exiting to user mode
++ *
++ * Syscall/interupt exit enables interrupts, but the kernel state is
++ * interrupts disabled when this is invoked. Also tell RCU about it.
++ *
++ * 1) Trace interrupts on state
++ * 2) Invoke context tracking if enabled to adjust RCU state
++ * 3) Invoke architecture specific last minute exit code, e.g. speculation
++ *    mitigations, etc.
++ * 4) Tell lockdep that interrupts are enabled
++ */
++static __always_inline void exit_to_user_mode(void)
 +{
-+	do {
-+		int ret;
++	instrumentation_begin();
++	trace_hardirqs_on_prepare();
++	lockdep_hardirqs_on_prepare(CALLER_ADDR0);
++	instrumentation_end();
 +
-+		if (ti_work & _TIF_SIGPENDING) {
-+			kvm_handle_signal_exit(vcpu);
-+			return -EINTR;
-+		}
++	user_enter_irqoff();
++	arch_exit_to_user_mode();
++	lockdep_hardirqs_on(CALLER_ADDR0);
++}
++
++/* Workaround to allow gradual conversion of architecture code */
++void __weak arch_do_signal(struct pt_regs *regs) { }
++
++static unsigned long exit_to_user_mode_loop(struct pt_regs *regs,
++					    unsigned long ti_work)
++{
++	/*
++	 * Before returning to user space ensure that all pending work
++	 * items have been completed.
++	 */
++	while (ti_work & EXIT_TO_USER_MODE_WORK) {
++
++		local_irq_enable_exit_to_user(ti_work);
 +
 +		if (ti_work & _TIF_NEED_RESCHED)
 +			schedule();
 +
++		if (ti_work & _TIF_UPROBE)
++			uprobe_notify_resume(regs);
++
++		if (ti_work & _TIF_PATCH_PENDING)
++			klp_update_patch_state(current);
++
++		if (ti_work & _TIF_SIGPENDING)
++			arch_do_signal(regs);
++
 +		if (ti_work & _TIF_NOTIFY_RESUME) {
 +			clear_thread_flag(TIF_NOTIFY_RESUME);
-+			tracehook_notify_resume(NULL);
++			tracehook_notify_resume(regs);
++			rseq_handle_notify_resume(NULL, regs);
 +		}
 +
-+		ret = arch_xfer_to_guest_mode_work(vcpu, ti_work);
-+		if (ret)
-+			return ret;
++		/* Architecture specific TIF work */
++		arch_exit_to_user_mode_work(regs, ti_work);
 +
++		/*
++		 * Disable interrupts and reevaluate the work flags as they
++		 * might have changed while interrupts and preemption was
++		 * enabled above.
++		 */
++		local_irq_disable_exit_to_user();
 +		ti_work = READ_ONCE(current_thread_info()->flags);
-+	} while (ti_work & XFER_TO_GUEST_MODE_WORK || need_resched());
-+	return 0;
++	}
++
++	/* Return the latest work state for arch_exit_to_user_mode() */
++	return ti_work;
 +}
 +
-+int xfer_to_guest_mode(struct kvm_vcpu *vcpu)
++static void exit_to_user_mode_prepare(struct pt_regs *regs)
 +{
-+	unsigned long ti_work;
++	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
++
++	lockdep_assert_irqs_disabled();
++
++	if (unlikely(ti_work & EXIT_TO_USER_MODE_WORK))
++		ti_work = exit_to_user_mode_loop(regs, ti_work);
++
++	arch_exit_to_user_mode_prepare(regs, ti_work);
++
++	/* Ensure that the address limit is intact and no locks are held */
++	addr_limit_user_check();
++	lockdep_assert_irqs_disabled();
++	lockdep_sys_exit();
++}
++
++#ifndef _TIF_SINGLESTEP
++static inline bool report_single_step(unsigned long ti_work)
++{
++	return false;
++}
++#else
++/*
++ * If TIF_SYSCALL_EMU is set, then the only reason to report is when
++ * TIF_SINGLESTEP is set (i.e. PTRACE_SYSEMU_SINGLESTEP).  This syscall
++ * instruction has been already reported in syscall_enter_from_usermode().
++ */
++#define SYSEMU_STEP	(_TIF_SINGLESTEP | _TIF_SYSCALL_EMU)
++
++static inline bool report_single_step(unsigned long ti_work)
++{
++	return (ti_work & SYSEMU_STEP) == _TIF_SINGLESTEP;
++}
++#endif
++
++static void syscall_exit_work(struct pt_regs *regs, unsigned long ti_work)
++{
++	bool step;
++
++	audit_syscall_exit(regs);
++
++	if (ti_work & _TIF_SYSCALL_TRACEPOINT)
++		trace_sys_exit(regs, syscall_get_return_value(current, regs));
++
++	step = report_single_step(ti_work);
++	if (step || ti_work & _TIF_SYSCALL_TRACE)
++		arch_syscall_exit_tracehook(regs, step);
++}
++
++/*
++ * Syscall specific exit to user mode preparation. Runs with interrupts
++ * enabled.
++ */
++static void syscall_exit_to_user_mode_prepare(struct pt_regs *regs)
++{
++	u32 cached_flags = READ_ONCE(current_thread_info()->flags);
++	unsigned long nr = syscall_get_nr(current, regs);
++
++	CT_WARN_ON(ct_state() != CONTEXT_KERNEL);
++
++	if (IS_ENABLED(CONFIG_PROVE_LOCKING)) {
++		if (WARN(irqs_disabled(), "syscall %lu left IRQs disabled", nr))
++			local_irq_enable();
++	}
++
++	rseq_syscall(regs);
 +
 +	/*
-+	 * This is invoked from the outer guest loop with interrupts and
-+	 * preemption enabled.
-+	 *
-+	 * KVM invokes xfer_to_guest_mode_work_pending() with interrupts
-+	 * disabled in the inner loop before going into guest mode. No need
-+	 * to disable interrupts here.
++	 * Do one-time syscall specific work. If these work items are
++	 * enabled, we want to run them exactly once per syscall exit with
++	 * interrupts enabled.
 +	 */
-+	ti_work = READ_ONCE(current_thread_info()->flags);
-+	if (!(ti_work & XFER_TO_GUEST_MODE_WORK))
-+		return 0;
-+
-+	return xfer_to_guest_mode_work(vcpu, ti_work);
++	if (unlikely(cached_flags & SYSCALL_EXIT_WORK))
++		syscall_exit_work(regs, cached_flags);
 +}
-+EXPORT_SYMBOL_GPL(xfer_to_guest_mode);
---- a/virt/kvm/Kconfig
-+++ b/virt/kvm/Kconfig
-@@ -60,3 +60,6 @@ config HAVE_KVM_VCPU_RUN_PID_CHANGE
- 
- config HAVE_KVM_NO_POLL
-        bool
 +
-+config KVM_XFER_TO_GUEST_WORK
-+       bool
++__visible noinstr void syscall_exit_to_user_mode(struct pt_regs *regs)
++{
++	instrumentation_begin();
++	syscall_exit_to_user_mode_prepare(regs);
++	local_irq_disable_exit_to_user();
++	exit_to_user_mode_prepare(regs);
++	instrumentation_end();
++	exit_to_user_mode();
++}
++
+ noinstr void irqentry_enter_from_user_mode(struct pt_regs *regs)
+ {
+ 	enter_from_user_mode(regs);
+ }
++
++noinstr void irqentry_exit_to_user_mode(struct pt_regs *regs)
++{
++	instrumentation_begin();
++	exit_to_user_mode_prepare(regs);
++	instrumentation_end();
++	exit_to_user_mode();
++}
