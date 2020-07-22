@@ -1,55 +1,104 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH 04/18] csum_and_copy_..._user(): pass 0xffffffff instead
- of 0 as initial sum
-Date: Wed, 22 Jul 2020 09:45:23 +0000
-Message-ID: <773d830b89814ab8a92dc892ec6e65e2@AcuMS.aculab.com>
-References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
- <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
- <20200721202549.4150745-4-viro@ZenIV.linux.org.uk>
- <CAHk-=wiYS3sHp9bvRn3KmkFKnK-Pb0ksL+-gRRHLK_ZjJqQf=w@mail.gmail.com>
+From: Marco Elver <elver@google.com>
+Subject: Re: [PATCH 8/8] locking/atomics: Use read-write instrumentation for
+ atomic RMWs
+Date: Wed, 22 Jul 2020 12:11:18 +0200
+Message-ID: <CANpmjNM6C6QtrtLhRkbmfc3jLqYaQOvvM_vKA6UyrkWadkdzNQ@mail.gmail.com>
+References: <20200721103016.3287832-1-elver@google.com> <20200721103016.3287832-9-elver@google.com>
+ <20200721141859.GC10769@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from eu-smtp-delivery-151.mimecast.com ([207.82.80.151]:25919 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729025AbgGVJp1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jul 2020 05:45:27 -0400
-In-Reply-To: <CAHk-=wiYS3sHp9bvRn3KmkFKnK-Pb0ksL+-gRRHLK_ZjJqQf=w@mail.gmail.com>
-Content-Language: en-US
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39912 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728503AbgGVKLa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 06:11:30 -0400
+Received: from mail-oi1-x241.google.com (mail-oi1-x241.google.com [IPv6:2607:f8b0:4864:20::241])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7EBDEC0619DE
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 03:11:30 -0700 (PDT)
+Received: by mail-oi1-x241.google.com with SMTP id j11so1358213oiw.12
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 03:11:30 -0700 (PDT)
+In-Reply-To: <20200721141859.GC10769@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Linus Torvalds' <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-RnJvbTogTGludXMgVG9ydmFsZHMNCj4gU2VudDogMjEgSnVseSAyMDIwIDIxOjU1DQo+IE9uIFR1
-ZSwgSnVsIDIxLCAyMDIwIGF0IDE6MjUgUE0gQWwgVmlybyA8dmlyb0B6ZW5pdi5saW51eC5vcmcu
-dWs+IHdyb3RlOg0KPiA+DQo+ID4gUHJlcGFyYXRpb24gZm9yIHRoZSBjaGFuZ2Ugb2YgY2FsbGlu
-ZyBjb252ZW50aW9uczsgcmlnaHQgbm93IGFsbA0KPiA+IGNhbGxlcnMgcGFzcyAwIGFzIGluaXRp
-YWwgc3VtLiAgUGFzc2luZyAweGZmZmZmZmZmIGluc3RlYWQgeWllbGRzDQo+ID4gdGhlIHZhbHVl
-cyBjb21wYXJhYmxlIG1vZCAweGZmZmYgYW5kIGd1YXJhbnRlZXMgdGhhdCAwIHdpbGwgbm90DQo+
-ID4gYmUgcmV0dXJuZWQgb24gc3VjY2Vzcy4NCj4gDQo+IFRoaXMgc2VlbXMgZGFuZ2Vyb3VzIHRv
-IG1lLg0KPiANCj4gTWF5YmUgc29tZSBpbXBsZW1lbnRhdGlvbiBkZXBlbmRzIG9uIHRoZSBmYWN0
-IHRoYXQgdGhleSBhY3R1YWxseSBkbw0KPiB0aGUgY3N1bSAxNiBiaXRzIGF0IGEgdGltZSwgYW5k
-IG5ldmVyIHNlZSBhbiBvdmVyZmxvdyBpbiAiaW50IiwNCj4gYmVjYXVzZSB0aGV5IGtlZXAgZm9s
-ZGluZyB0aGluZ3MuDQo+IA0KPiBZb3Ugbm93IGJyZWFrIHRoYXQgYXNzdW1wdGlvbiwgYW5kIGdp
-dmUgaXQgYW4gaW5pdGlhbCB2YWx1ZSB0aGF0IHRoZQ0KPiBjc3VtIGNvZGUgaXRzZWxmIHdvdWxk
-IG5ldmVyIGdlbmVyYXRlLCBhbmQgd291bGRuJ3QgaGFuZGxlIHJpZ2h0Lg0KPiANCj4gQnV0IEkg
-ZGlkbid0IGNoZWNrLiBNYXliZSB3ZSBkb24ndCBoYXZlIGFueXRoaW5nIHRoYXQgc3R1cGlkIGlu
-IHRoZSBrZXJuZWwuDQoNCkl0IGlzbid0IG5lY2Vzc2FyaWx5IHN0dXBpZCA6LSkNCkEgNjRiaXQg
-c3VtIGNhbiBiZSByZWR1Y2VkIHRvIDE2Yml0cyB1c2luZyBzaGlmdHMgYW5kIGFkZHMNCihhcyB1
-cyB1c3VhbGx5IGRvbmUpIG9mIHVzaW5nICdzdW0gJSAweGZmZmYnLg0KUHJvdmlkZWQgdGhlIGNv
-bXBpbGVyIHVzZXMgJ211bHRpcGx5IGJ5IHJlY2lwcm9jYWwnIHRoZSBjb2RlDQppc24ndCB0aGF0
-IGJhZCAtIGl0IG1pZ2h0IGV2ZW4gYmUgZGlmZmljdWx0IHRvIHNheSB3aGljaCBpcyBmYXN0ZXIu
-DQpIb3dldmVyIHRoYXQgbWFrZXMgdGhlIG91dHB1dCBkb21haW4gMC4uZmZmZSBub3QgMS4uZmZm
-Zi4NCg0KVGhlIGNoZWNrc3VtIGdlbmVyYXRpb24gY29kZSByZWFsbHkgbmVlZHMgdG8ga25vdyB3
-aGljaCBpcyB1c2VkLg0KU28gaXQgaXMgYmVzdCBuZXZlciB0byB1c2UgdGhlICUgdmVyc2lvbi4N
-CklmIHRoZSBzdW0gaXMga25vd24gdG8gYmUgMS4uMHhmZmZmIHRoZW4gYWZ0ZXIgaW52ZXJzaW9u
-IGl0IGlzDQowLi5mZmZlIGJ1dCB0aGUgcmVxdWlyZWQgZG9tYWluIGlzIDEuLmZmZmYuDQpUaGlz
-IGNhbiBiZSBmaXhlZCBieSBhZGRpbmcgMSAtIHByb3ZpZGVkIGEgY29tcGVuc2F0aW5nIDEgaXMN
-CmFkZGVkIGluIGJlZm9yZSB0aGUgaW52ZXJzaW9uLg0KVGhlIGVhc3kgcGxhY2UgdG8gZG8gdGhp
-cyBpcyB0byBmZWVkIDEgKG5vdCAwIG9yIH4wKSBpbnRvIHRoZQ0KZmlyc3QgY2hlY2tzdW0gYmxv
-Y2suDQoNCglEYXZpZA0KDQotDQpSZWdpc3RlcmVkIEFkZHJlc3MgTGFrZXNpZGUsIEJyYW1sZXkg
-Um9hZCwgTW91bnQgRmFybSwgTWlsdG9uIEtleW5lcywgTUsxIDFQVCwgVUsNClJlZ2lzdHJhdGlv
-biBObzogMTM5NzM4NiAoV2FsZXMpDQo=
+On Tue, 21 Jul 2020 at 16:19, Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> On Tue, Jul 21, 2020 at 12:30:16PM +0200, Marco Elver wrote:
+>
+> > diff --git a/scripts/atomic/gen-atomic-instrumented.sh b/scripts/atomic/gen-atomic-instrumented.sh
+> > index 6afadf73da17..5cdcce703660 100755
+> > --- a/scripts/atomic/gen-atomic-instrumented.sh
+> > +++ b/scripts/atomic/gen-atomic-instrumented.sh
+> > @@ -5,9 +5,10 @@ ATOMICDIR=$(dirname $0)
+> >
+> >  . ${ATOMICDIR}/atomic-tbl.sh
+> >
+> > -#gen_param_check(arg)
+> > +#gen_param_check(meta, arg)
+> >  gen_param_check()
+> >  {
+> > +     local meta="$1"; shift
+> >       local arg="$1"; shift
+> >       local type="${arg%%:*}"
+> >       local name="$(gen_param_name "${arg}")"
+> > @@ -17,17 +18,24 @@ gen_param_check()
+> >       i) return;;
+> >       esac
+> >
+> > -     # We don't write to constant parameters
+> > -     [ ${type#c} != ${type} ] && rw="read"
+> > +     if [ ${type#c} != ${type} ]; then
+> > +             # We don't write to constant parameters
+> > +             rw="read"
+> > +     elif [ "${meta}" != "s" ]; then
+> > +             # Atomic RMW
+> > +             rw="read_write"
+> > +     fi
+>
+> If we have meta, should we then not be consistent and use it for read
+> too? Mark?
+
+gen_param_check seems to want to generate an 'instrument_' check per
+pointer argument. So if we have 1 argument that is a constant pointer,
+and one that isn't, it should generate different instrumentation for
+each. By checking the argument type, we get that behaviour. Although
+we are making the assumption that if meta indicates it's not a 's'tore
+(with void return), it's always a read-write access on all non-const
+pointers.
+
+Switching over to checking only meta would always generate the same
+'instrument_' call for each argument. Although right now that would
+seem to work because we don't yet have an atomic that accepts a
+constant pointer and a non-const one.
+
+Preferences?
+
+> >       printf "\tinstrument_atomic_${rw}(${name}, sizeof(*${name}));\n"
+> >  }
+> >
+> > -#gen_param_check(arg...)
+> > +#gen_params_checks(meta, arg...)
+> >  gen_params_checks()
+> >  {
+> > +     local meta="$1"; shift
+> > +
+> >       while [ "$#" -gt 0 ]; do
+> > -             gen_param_check "$1"
+> > +             gen_param_check "$meta" "$1"
+> >               shift;
+> >       done
+> >  }
+> > @@ -77,7 +85,7 @@ gen_proto_order_variant()
+> >
+> >       local ret="$(gen_ret_type "${meta}" "${int}")"
+> >       local params="$(gen_params "${int}" "${atomic}" "$@")"
+> > -     local checks="$(gen_params_checks "$@")"
+> > +     local checks="$(gen_params_checks "${meta}" "$@")"
+> >       local args="$(gen_args "$@")"
+> >       local retstmt="$(gen_ret_stmt "${meta}")"
+> >
+> > --
+> > 2.28.0.rc0.105.gf9edc3c819-goog
+> >
