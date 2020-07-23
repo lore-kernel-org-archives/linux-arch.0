@@ -1,100 +1,65 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH 04/18] csum_and_copy_..._user(): pass 0xffffffff instead
- of 0 as initial sum
-Date: Thu, 23 Jul 2020 15:53:42 +0100
-Message-ID: <20200723145342.GH2786714@ZenIV.linux.org.uk>
-References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
- <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
- <20200721202549.4150745-4-viro@ZenIV.linux.org.uk>
- <2d85ebb8ea2248c8a14f038a0c60297e@AcuMS.aculab.com>
- <20200722144213.GE2786714@ZenIV.linux.org.uk>
- <4e03cce8ed184d40bb0ea40fd3d51000@AcuMS.aculab.com>
- <20200722155452.GF2786714@ZenIV.linux.org.uk>
- <a55679c8d4dc4fb08d1e1782b5fc572c@AcuMS.aculab.com>
- <20200722173903.GG2786714@ZenIV.linux.org.uk>
- <02938acd78fd40beb02ffc5a1b803d85@AcuMS.aculab.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 1/2] lockdep: improve current->(hard|soft)irqs_enabled
+ synchronisation with actual irq state
+Date: Thu, 23 Jul 2020 16:59:04 +0200
+Message-ID: <20200723145904.GU5523@worktop.programming.kicks-ass.net>
+References: <20200723105615.1268126-1-npiggin@gmail.com>
+ <20200723114010.GO5523@worktop.programming.kicks-ass.net>
+ <1595506730.3mvrxktem5.astroid@bobo.none>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53074 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53912 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726761AbgGWOxt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 10:53:49 -0400
+        with ESMTP id S1727885AbgGWO7N (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 10:59:13 -0400
 Content-Disposition: inline
-In-Reply-To: <02938acd78fd40beb02ffc5a1b803d85@AcuMS.aculab.com>
+In-Reply-To: <1595506730.3mvrxktem5.astroid@bobo.none>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Laight <David.Laight@aculab.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Alexey Kardashevskiy <aik@ozlabs.ru>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>
 
-On Thu, Jul 23, 2020 at 01:54:47PM +0000, David Laight wrote:
-> From: Al Viro
-> > Sent: 22 July 2020 18:39
-> > I would love to see your patch, anyway, along with the testcases and performance
-> > comparison.
+On Thu, Jul 23, 2020 at 11:11:03PM +1000, Nicholas Piggin wrote:
+> Excerpts from Peter Zijlstra's message of July 23, 2020 9:40 pm:
+> > On Thu, Jul 23, 2020 at 08:56:14PM +1000, Nicholas Piggin wrote:
+> > 
+> >> diff --git a/arch/powerpc/include/asm/hw_irq.h b/arch/powerpc/include/asm/hw_irq.h
+> >> index 3a0db7b0b46e..35060be09073 100644
+> >> --- a/arch/powerpc/include/asm/hw_irq.h
+> >> +++ b/arch/powerpc/include/asm/hw_irq.h
+> >> @@ -200,17 +200,14 @@ static inline bool arch_irqs_disabled(void)
+> >>  #define powerpc_local_irq_pmu_save(flags)			\
+> >>  	 do {							\
+> >>  		raw_local_irq_pmu_save(flags);			\
+> >> -		trace_hardirqs_off();				\
+> >> +		if (!raw_irqs_disabled_flags(flags))		\
+> >> +			trace_hardirqs_off();			\
+> >>  	} while(0)
+> >>  #define powerpc_local_irq_pmu_restore(flags)			\
+> >>  	do {							\
+> >> -		if (raw_irqs_disabled_flags(flags)) {		\
+> >> -			raw_local_irq_pmu_restore(flags);	\
+> >> -			trace_hardirqs_off();			\
+> >> -		} else {					\
+> >> +		if (!raw_irqs_disabled_flags(flags))		\
+> >>  			trace_hardirqs_on();			\
+> >> -			raw_local_irq_pmu_restore(flags);	\
+> >> -		}						\
+> >> +		raw_local_irq_pmu_restore(flags);		\
+> >>  	} while(0)
+> > 
+> > You shouldn't be calling lockdep from NMI context!
 > 
-> See attached program.
-> Compile and run (as root): csum_iov 1
-> 
-> Unpatched (as shipped) 16 vectors of 1 byte take ~430 clocks on my haswell cpu.
-> With dsl_patch defined they take ~393.
-> 
-> The maximum throughput is ~1.16 clocks/word for 16 vectors of 1k.
-> For longer vectors the data gets lost from the cache between the iterations.
-> 
-> On an older Ivy Bridge cpu it never goes faster than 2 clocks/word.
-> (Due to the implementation of ADC.)
-> 
-> The absolute limit is 1 clock/word - limited by the memory write.
-> I suspect that is achievable on Haswell with much less loop unrolling.
-> 
-> I had to replace the ror32() with __builtin_bswap32().
-> The kernel object do contain the 'ror' instruction - even though I
-> didn't find the asm for it.
+> After this patch it doesn't.
 
-First of all,
-;  git grep -n -w ror32|grep '\.h:'
-include/linux/bitops.h:109: * ror32 - rotate a 32-bit value right
-include/linux/bitops.h:113:static inline __u32 ror32(__u32 word, unsigned int shift)
-include/net/checksum.h:81:              sum = ror32(sum, 8);
-; grep -A3 ror32 include/linux/bitops.h 
- * ror32 - rotate a 32-bit value right
- * @word: value to rotate
- * @shift: bits to roll
- */
-static inline __u32 ror32(__u32 word, unsigned int shift)
-{
-        return (word >> (shift & 31)) | (word << ((-shift) & 31));
-}
-; cat >/tmp/a.c <<'EOF'
-unsigned f(unsigned n)
-{
-        return (n >> 8) | (n << 24);
-}
-EOF
-; gcc -c -O2 /tmp/a.c -o /tmp/a.o
-; objdump /tmp/a.o
-/tmp/a.o:     file format elf64-x86-64
+You sure, trace_hardirqs_{on,off}() calls into lockdep. (FWIW they're
+also broken vs entry ordering, but that's another story).
 
+> trace_hardirqs_on/off implementation appears to expect to be called in NMI 
+> context though, for some reason.
 
-Disassembly of section .text:
+Hurpm, not sure.. I'll have to go grep arch code now :/ The generic NMI
+code didn't touch that stuff.
 
-0000000000000000 <f>:
-   0:   89 f8                   mov    %edi,%eax
-   2:   c1 c8 08                ror    $0x8,%eax
-   5:   c3                      retq   
-;
-which ought to cover _that_ question.  Takes a couple of minutes, but that's
-a trivial side issue.
-
-Said that, what you've printed for 1-byte segments (and that's going to be
-seriously affected by the setup costs in csum-copy.S, sensitive to calling
-convention changes) is time to run the 16-iteration loop divided by 1 * 16 / 8;
-IOW, your difference for 16 iterations here is 37*2 = 74 cycles.  With
-per-iteration diff being a bit under 5 cycles.  Which is not implausible,
-but
-	1) extrapolating to other compiler versions, flags, etc. is not obvious
-	2) the effects of calling convention changes need to be taken into account
-	3) for copying to/from userland the effects of calling convention changes
-are be even larger, and kernel is certainly not going to issue kvec iters of _that_
-sort, TYVM.
+Argh, yes, there might be broken there... damn! I'll go frob around.
