@@ -1,53 +1,66 @@
-Return-Path: <SRS0=fRWW=A6=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50110 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726093AbgGST2d (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 19 Jul 2020 15:28:33 -0400
-Received: from mail-lf1-x142.google.com (mail-lf1-x142.google.com [IPv6:2a00:1450:4864:20::142])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1C9E6C0619D4
-        for <linux-arch@vger.kernel.org>; Sun, 19 Jul 2020 12:28:33 -0700 (PDT)
-Received: by mail-lf1-x142.google.com with SMTP id u12so8609753lff.2
-        for <linux-arch@vger.kernel.org>; Sun, 19 Jul 2020 12:28:32 -0700 (PDT)
-Received: from mail-lj1-f181.google.com (mail-lj1-f181.google.com. [209.85.208.181])
-        by smtp.gmail.com with ESMTPSA id i24sm3305532lfg.83.2020.07.19.12.28.29
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sun, 19 Jul 2020 12:28:30 -0700 (PDT)
-Received: by mail-lj1-f181.google.com with SMTP id r19so17886721ljn.12
-        for <linux-arch@vger.kernel.org>; Sun, 19 Jul 2020 12:28:29 -0700 (PDT)
+Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:17374 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726632AbgGWQUL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jul 2020 12:20:11 -0400
+From: Alex Belits <abelits@marvell.com>
+Subject: Re: [EXT] Re: [PATCH v4 00/13] "Task_isolation" mode
+Date: Thu, 23 Jul 2020 16:19:16 +0000
+Message-ID: <c326dd17cab3a43e3e500636005e14b9c315d6cf.camel@marvell.com>
+References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
+         <87imeextf3.fsf@nanos.tec.linutronix.de>
+         <20200723142902.GT5523@worktop.programming.kicks-ass.net>
+         <670609a91be23ebb4f179850601439fbed844479.camel@marvell.com>
+         <20200723154820.GA709@worktop.programming.kicks-ass.net>
+In-Reply-To: <20200723154820.GA709@worktop.programming.kicks-ass.net>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <EA32F048CCD89743A1D51F632B9A7DED@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-References: <20200719031733.GI2786714@ZenIV.linux.org.uk>
-In-Reply-To: <20200719031733.GI2786714@ZenIV.linux.org.uk>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Sun, 19 Jul 2020 12:28:13 -0700
-Message-ID: <CAHk-=wi7f5vG+s=aFsskzcTRs+f7MVHK9yJFZtUEfndy6ScKRQ@mail.gmail.com>
-Subject: Re: [RFC] raw_copy_from_user() semantics
-Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20200719192813.mdlsd4F5T1ysSAmQvpW5KoRflBNh1zj_RbM5D7aa3KM@z>
+To: "tglx@linutronix.de" <tglx@linutronix.de>, "peterz@infradead.org" <peterz@infradead.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "frederic@kernel.org" <frederic@kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Message-ID: <20200723161916.WzLG0lelS8F9HBWPxyWMXl0o3P_cvZcibOTbjQ-lEsE@z>
 
-On Sat, Jul 18, 2020 at 8:17 PM Al Viro <viro@zeniv.linux.org.uk> wrote:
->
->         So any byte-squeezing loop of that sort would break on a bunch
-> of architectures.
-
-I think we should try to get rid of the exact semantics.
-
-If "copy_from/to_user()" takes a fault because it does a
-larger-than-byte access (and with unrolling, it could be a _lot_
-larger than one byte: x86 dcurrently has that "generic" case that
-isn't used very much, but it unrolls 8-byte accesses 8 times, so it
-does a 64-byte block that we could just say "if any fo those didn't
-work, then you're done), then the copy failed. The exact number of
-bytes we _could_ have copied is not important.
-
-So we could simplify the x86 end condition too and remove all the
-"handle_tail" complexity.
-
-                  Linus
-
-(*) Yes, it aligns things to 64-byte boundaries too, but only for the
-write side, not the read side.
+DQpPbiBUaHUsIDIwMjAtMDctMjMgYXQgMTc6NDggKzAyMDAsIFBldGVyIFppamxzdHJhIHdyb3Rl
+Og0KPiBPbiBUaHUsIEp1bCAyMywgMjAyMCBhdCAwMzo0MTo0NlBNICswMDAwLCBBbGV4IEJlbGl0
+cyB3cm90ZToNCj4gPiBPbiBUaHUsIDIwMjAtMDctMjMgYXQgMTY6MjkgKzAyMDAsIFBldGVyIFpp
+amxzdHJhIHdyb3RlOg0KPiA+ID4gLg0KPiA+ID4gDQo+ID4gPiBUaGlzLi4gYXMgcHJlc2VudGVk
+IGl0IGlzIGFuIGFic29sdXRlbHkgdW5yZXZpZXdhYmxlIHBpbGUgb2YNCj4gPiA+IGp1bmsuIEl0
+DQo+ID4gPiBwcmVzZW50cyBjb2RlIHdpdG91dCBhbnkgY29oZXJlbnQgcHJvYmxlbSBkZXNjcmlw
+dGlvbiBhbmQNCj4gPiA+IGFuYWx5c2lzLg0KPiA+ID4gQW5kDQo+ID4gPiB0aGUgcGF0Y2hlcyBh
+cmUgbm90IHNwbGl0IHNhbmVseSBlaXRoZXIuDQo+ID4gDQo+ID4gVGhlcmUgaXMgYSBtb3JlIGNv
+bXBsZXRlIGFuZCBzbGlnaHRseSBvdXRkYXRlZCBkZXNjcmlwdGlvbiBpbiB0aGUNCj4gPiBwcmV2
+aW91cyB2ZXJzaW9uIG9mIHRoZSBwYXRjaCBhdCANCj4gPiBodHRwczovL3VybGRlZmVuc2UucHJv
+b2Zwb2ludC5jb20vdjIvdXJsP3U9aHR0cHMtM0FfX2xvcmUua2VybmVsLm9yZ19sa21sXzA3YzI1
+YzI0NmM1NTAxMjk4MWVjMDI5NmVlZTIzZTY4YzcxOTMzM2EuY2FtZWwtNDBtYXJ2ZWxsLmNvbV8m
+ZD1Ed0lCQWcmYz1uS2pXZWMyYjZSMG1PeVBhejd4dGZRJnI9MXFndk9uWGZrM1pISkEzcDdSSWI2
+TkZxczRTUFBEeVBJX1Bjd05GcDhLWSZtPXNoazlhNUZEd2t0T1p5c1NiRklqeG1nVWctSVB5dzJV
+a2JWQUhHQmhOVjAmcz1GRlphai1LYW53cUVpWFlDZGpkOTZKT2dQX0dBT25hbnBrdzZiQnZOcks0
+JmU9IA0KPiANCj4gTm90IHRoZSBwb2ludCwgeW91J3JlIG1peGluZyBmYXIgdG9vIG1hbnkgdGhp
+bmdzIGluIG9uZSBnby4gWW91IGFsc28NCj4gaGF2ZSB0aGUgcGF0Y2hlcyBzcGxpdCBsaWtlICdn
+ZW5lcmljIC8gYXJjaC0xIC8gYXJjaC0yJyB3aGljaCBpcw0KPiB3cm9uZw0KPiBwZXIgZGVmaW5p
+dGlvbiwgYXMgcGF0Y2hlcyBzaG91bGQgYmUgc3BsaXQgcGVyIGNoYW5nZSBhbmQgbm90IGNhcmUN
+Cj4gYWJvdXQNCj4gc2lseSBib3VuZGFyaWVzLg0KDQpUaGlzIGZvbGxvd3MgdGhlIG9yaWdpbmFs
+IHBhdGNoIGJ5IENocmlzIE1ldGNhbGYuIFRoZXJlIGlzIGEgcmVhc29uIGZvcg0KdGhhdCAtLSBw
+ZXItYXJjaGl0ZWN0dXJlIGNoYW5nZXMgYXJlIGluZGVwZW5kZW50IGZyb20gZWFjaCBvdGhlciBh
+bmQNCmFmZmVjdCBub3QganVzdCBjb2RlIGJ1dCBmdW5jdGlvbmFsaXR5IHRoYXQgd2FzIGltcGxl
+bWVudGVkIHBlci0NCmFyY2hpdGVjdHVyZS4gVG8gc3VwcG9ydCBtb3JlIGFyY2hpdGVjdHVyZXMs
+IGl0IHdpbGwgYmUgbmVjZXNzYXJ5IHRvIGRvDQppdCBzZXBhcmF0ZWx5IGZvciBlYWNoLCBhbmQg
+bWFyayB0aGVtIHN1cHBvcnRlZCB3aXRoDQpIQVZFX0FSQ0hfVEFTS19JU09MQVRJT04uIEhhdmlu
+ZyBvbmx5IHNvbWUgYXJjaGl0ZWN0dXJlcyBzdXBwb3J0ZWQgZG9lcw0Kbm90IGJyZWFrIGFueXRo
+aW5nIGZvciB0aGUgcmVzdCAtLSBhcmNoaXRlY3R1cmVzIHRoYXQgYXJlIG5vdCBjb3ZlcmVkLA0K
+d291bGQgbm90IGhhdmUgdGhpcyBmdW5jdGlvbmFsaXR5Lg0KDQo+IA0KPiBBbHNvLCBpZiB5b3Ug
+d2FudCBnZW5lcmljIGVudHJ5IGNvZGUsIHRoZXJlJ3MgcGF0Y2hlcyBmb3IgdGhhdCBoZXJlOg0K
+PiANCj4gICANCj4gaHR0cHM6Ly91cmxkZWZlbnNlLnByb29mcG9pbnQuY29tL3YyL3VybD91PWh0
+dHBzLTNBX19sa21sLmtlcm5lbC5vcmdfcl8yMDIwMDcyMjIxNTk1NC40NjQyODE5MzAtNDBsaW51
+dHJvbml4LmRlJmQ9RHdJQkFnJmM9bktqV2VjMmI2UjBtT3lQYXo3eHRmUSZyPTFxZ3ZPblhmazNa
+SEpBM3A3UkliNk5GcXM0U1BQRHlQSV9QY3dORnA4S1kmbT1zaGs5YTVGRHdrdE9aeXNTYkZJanht
+Z1VnLUlQeXcyVWtiVkFIR0JoTlYwJnM9blpYSXZpWTdydmEzMUt2UGdTVm5UYWN3Rk5ic21rZFcw
+THhTVGZZU2lxZyZlPQ0KPiAgDQo+IA0KPiANCg0KVGhhdCBsb29rcyB1c2VmdWwuIFdoeSBkaWRu
+J3QgVGhvbWFzIEdsZWl4bmVyIG1lbnRpb24gaXQgaW4gaGlzDQpjcml0aWNpc20gb2YgbXkgYXBw
+cm9hY2ggaWYgaGUgYWxyZWFkeSBzb2x2ZWQgdGhhdCBleGFjdCBwcm9ibGVtLCBhdA0KbGVhc3Qg
+Zm9yIHg4Nj8NCg0KLS0gDQpBbGV4DQo=
