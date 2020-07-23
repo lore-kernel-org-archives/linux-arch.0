@@ -1,126 +1,77 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45780 "EHLO
+Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37164 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727100AbgGaXIj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:08:39 -0400
-Received: from mail-pf1-x42c.google.com (mail-pf1-x42c.google.com [IPv6:2607:f8b0:4864:20::42c])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 48321C061757
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:39 -0700 (PDT)
-Received: by mail-pf1-x42c.google.com with SMTP id l2so8848353pff.0
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:39 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 07/36] x86/boot: Check that there are no run-time relocations
-Date: Fri, 31 Jul 2020 16:07:51 -0700
-Message-ID: <20200731230820.1742553-8-keescook@chromium.org>
-In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
-References: <20200731230820.1742553-1-keescook@chromium.org>
+        with ESMTP id S1727859AbgGWNLK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 09:11:10 -0400
+Date: Thu, 23 Jul 2020 23:11:03 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 1/2] lockdep: improve current->(hard|soft)irqs_enabled
+ synchronisation with actual irq state
+References: <20200723105615.1268126-1-npiggin@gmail.com>
+        <20200723114010.GO5523@worktop.programming.kicks-ass.net>
+In-Reply-To: <20200723114010.GO5523@worktop.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Message-ID: <1595506730.3mvrxktem5.astroid@bobo.none>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Ard Biesheuvel <ardb@kernel.org>, Fangrui Song <maskray@google.com>, Sedat Dilek <sedat.dilek@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200731230751.qetrEaFL1Zy-cOLj11Lzf4l6ccHLVXER3KbAzKMezAk@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Alexey Kardashevskiy <aik@ozlabs.ru>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200723131103.-SvThe4PFX6IAdo3Ye9sbLr66Nr-CiBgd_afT9IidHk@z>
 
-From: Arvind Sankar <nivedita@alum.mit.edu>
+Excerpts from Peter Zijlstra's message of July 23, 2020 9:40 pm:
+> On Thu, Jul 23, 2020 at 08:56:14PM +1000, Nicholas Piggin wrote:
+>=20
+>> diff --git a/arch/powerpc/include/asm/hw_irq.h b/arch/powerpc/include/as=
+m/hw_irq.h
+>> index 3a0db7b0b46e..35060be09073 100644
+>> --- a/arch/powerpc/include/asm/hw_irq.h
+>> +++ b/arch/powerpc/include/asm/hw_irq.h
+>> @@ -200,17 +200,14 @@ static inline bool arch_irqs_disabled(void)
+>>  #define powerpc_local_irq_pmu_save(flags)			\
+>>  	 do {							\
+>>  		raw_local_irq_pmu_save(flags);			\
+>> -		trace_hardirqs_off();				\
+>> +		if (!raw_irqs_disabled_flags(flags))		\
+>> +			trace_hardirqs_off();			\
+>>  	} while(0)
+>>  #define powerpc_local_irq_pmu_restore(flags)			\
+>>  	do {							\
+>> -		if (raw_irqs_disabled_flags(flags)) {		\
+>> -			raw_local_irq_pmu_restore(flags);	\
+>> -			trace_hardirqs_off();			\
+>> -		} else {					\
+>> +		if (!raw_irqs_disabled_flags(flags))		\
+>>  			trace_hardirqs_on();			\
+>> -			raw_local_irq_pmu_restore(flags);	\
+>> -		}						\
+>> +		raw_local_irq_pmu_restore(flags);		\
+>>  	} while(0)
+>=20
+> You shouldn't be calling lockdep from NMI context!
 
-Add a linker script check that there are no run-time relocations, and
-remove the old one that tries to check via looking for specially-named
-sections in the object files.
+After this patch it doesn't.
 
-Drop the tests for -fPIE compiler option and -pie linker option, as they
-are available in all supported gcc and binutils versions (as well as
-clang and lld).
+trace_hardirqs_on/off implementation appears to expect to be called in NMI=20
+context though, for some reason.
 
-Tested-by: Nick Desaulniers <ndesaulniers@google.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
-Reviewed-by: Fangrui Song <maskray@google.com>
-Reviewed-by: Sedat Dilek <sedat.dilek@gmail.com>
-Tested-by: Sedat Dilek <sedat.dilek@gmail.com>
-Signed-off-by: Arvind Sankar <nivedita@alum.mit.edu>
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/boot/compressed/Makefile      | 28 +++-----------------------
- arch/x86/boot/compressed/vmlinux.lds.S |  8 ++++++++
- 2 files changed, 11 insertions(+), 25 deletions(-)
+> That is, I recently
+> added suport for that on x86:
+>=20
+>   https://lkml.kernel.org/r/20200623083721.155449112@infradead.org
+>   https://lkml.kernel.org/r/20200623083721.216740948@infradead.org
+>=20
+> But you need to be very careful on how you order things, as you can see
+> the above relies on preempt_count() already having been incremented with
+> NMI_MASK.
 
-diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
-index 7db0102a573d..96d53e300ab6 100644
---- a/arch/x86/boot/compressed/Makefile
-+++ b/arch/x86/boot/compressed/Makefile
-@@ -29,7 +29,7 @@ targets := vmlinux vmlinux.bin vmlinux.bin.gz vmlinux.bin.bz2 vmlinux.bin.lzma \
- 	vmlinux.bin.xz vmlinux.bin.lzo vmlinux.bin.lz4
- 
- KBUILD_CFLAGS := -m$(BITS) -O2
--KBUILD_CFLAGS += -fno-strict-aliasing $(call cc-option, -fPIE, -fPIC)
-+KBUILD_CFLAGS += -fno-strict-aliasing -fPIE
- KBUILD_CFLAGS += -DDISABLE_BRANCH_PROFILING
- cflags-$(CONFIG_X86_32) := -march=i386
- cflags-$(CONFIG_X86_64) := -mcmodel=small
-@@ -51,7 +51,7 @@ UBSAN_SANITIZE :=n
- KBUILD_LDFLAGS := -m elf_$(UTS_MACHINE)
- # Compressed kernel should be built as PIE since it may be loaded at any
- # address by the bootloader.
--LDFLAGS_vmlinux := $(call ld-option, -pie) $(call ld-option, --no-dynamic-linker)
-+LDFLAGS_vmlinux := -pie $(call ld-option, --no-dynamic-linker)
- LDFLAGS_vmlinux += -T
- 
- hostprogs	:= mkpiggy
-@@ -86,30 +86,8 @@ vmlinux-objs-$(CONFIG_ACPI) += $(obj)/acpi.o
- vmlinux-objs-$(CONFIG_EFI_MIXED) += $(obj)/efi_thunk_$(BITS).o
- efi-obj-$(CONFIG_EFI_STUB) = $(objtree)/drivers/firmware/efi/libstub/lib.a
- 
--# The compressed kernel is built with -fPIC/-fPIE so that a boot loader
--# can place it anywhere in memory and it will still run. However, since
--# it is executed as-is without any ELF relocation processing performed
--# (and has already had all relocation sections stripped from the binary),
--# none of the code can use data relocations (e.g. static assignments of
--# pointer values), since they will be meaningless at runtime. This check
--# will refuse to link the vmlinux if any of these relocations are found.
--quiet_cmd_check_data_rel = DATAREL $@
--define cmd_check_data_rel
--	for obj in $(filter %.o,$^); do \
--		$(READELF) -S $$obj | grep -qF .rel.local && { \
--			echo "error: $$obj has data relocations!" >&2; \
--			exit 1; \
--		} || true; \
--	done
--endef
--
--# We need to run two commands under "if_changed", so merge them into a
--# single invocation.
--quiet_cmd_check-and-link-vmlinux = LD      $@
--      cmd_check-and-link-vmlinux = $(cmd_check_data_rel); $(cmd_ld)
--
- $(obj)/vmlinux: $(vmlinux-objs-y) $(efi-obj-y) FORCE
--	$(call if_changed,check-and-link-vmlinux)
-+	$(call if_changed,ld)
- 
- OBJCOPYFLAGS_vmlinux.bin :=  -R .comment -S
- $(obj)/vmlinux.bin: vmlinux FORCE
-diff --git a/arch/x86/boot/compressed/vmlinux.lds.S b/arch/x86/boot/compressed/vmlinux.lds.S
-index a4a4a59a2628..29df99b6cc64 100644
---- a/arch/x86/boot/compressed/vmlinux.lds.S
-+++ b/arch/x86/boot/compressed/vmlinux.lds.S
-@@ -42,6 +42,12 @@ SECTIONS
- 		*(.rodata.*)
- 		_erodata = . ;
- 	}
-+	.rel.dyn : {
-+		*(.rel.*)
-+	}
-+	.rela.dyn : {
-+		*(.rela.*)
-+	}
- 	.got : {
- 		*(.got)
- 	}
-@@ -85,3 +91,5 @@ ASSERT(SIZEOF(.got.plt) == 0 || SIZEOF(.got.plt) == 0x18, "Unexpected GOT/PLT en
- #else
- ASSERT(SIZEOF(.got.plt) == 0 || SIZEOF(.got.plt) == 0xc, "Unexpected GOT/PLT entries detected!")
- #endif
-+
-+ASSERT(SIZEOF(.rel.dyn) == 0 && SIZEOF(.rela.dyn) == 0, "Unexpected run-time relocations detected!")
--- 
-2.25.1
+Hmm. My patch seems simpler.
+
+I don't know this stuff very well, I don't really understand what your patc=
+h=20
+enables for x86 but at least it shouldn't be incompatible with this one=20
+AFAIKS.
+
+Thanks,
+Nick
