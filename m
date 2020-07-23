@@ -1,47 +1,192 @@
 Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33488 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40112 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727108AbgGWPto (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 11:49:44 -0400
-Date: Thu, 23 Jul 2020 17:49:33 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 00/13] "Task_isolation" mode
-Message-ID: <20200723154933.GB709@worktop.programming.kicks-ass.net>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
- <87imeextf3.fsf@nanos.tec.linutronix.de>
- <831e023422aa0e4cb3da37ceef6fdcd5bc854682.camel@marvell.com>
+        with ESMTP id S1726521AbgGWNaQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 09:30:16 -0400
+Date: Thu, 23 Jul 2020 23:30:09 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+        <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
+        <1594101082.hfq9x5yact.astroid@bobo.none>
+        <20200708084106.GE597537@hirez.programming.kicks-ass.net>
+        <1595327263.lk78cqolxm.astroid@bobo.none>
+        <eaabf501-80fe-dd15-c03c-f75ce4f75877@redhat.com>
+In-Reply-To: <eaabf501-80fe-dd15-c03c-f75ce4f75877@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <831e023422aa0e4cb3da37ceef6fdcd5bc854682.camel@marvell.com>
+Message-ID: <1595510571.u39qfc8d1o.astroid@bobo.none>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Belits <abelits@marvell.com>
-Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "mingo@kernel.org" <mingo@kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Message-ID: <20200723154933.B4iR-KsH03TWSrmBts0qtkaqjiYWFBgl6wzRouiGoXw@z>
+To: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
+Message-ID: <20200723133009.4792p3fLfARfsek3CGVdZ7wLxsomVh1jJSjTJ4JnAao@z>
 
-On Thu, Jul 23, 2020 at 03:18:42PM +0000, Alex Belits wrote:
-> On Thu, 2020-07-23 at 15:17 +0200, Thomas Gleixner wrote:
-> > 
-> > Without going into details of the individual patches, let me give you a
-> > high level view of this series:
-> > 
-> >   1) Entry code handling:
-> > 
-> >      That's completely broken vs. the careful ordering and instrumentation
-> >      protection of the entry code. You can't just slap stuff randomly
-> >      into places which you think are safe w/o actually trying to understand
-> >      why this code is ordered in the way it is.
-> > 
-> >      This clearly was never built and tested with any of the relevant
-> >      debug options enabled. Both build and boot would have told you.
-> 
-> This is intended to avoid a race condition when entry or exit from isolation
-> happens at the same time as an event that requires synchronization. The idea
-> is, it is possible to insulate the core from all events while it is running
-> isolated task in userspace, it will receive those calls normally after
-> breaking isolation and entering kernel, and it will synchronize itself on
-> kernel entry.
+Excerpts from Waiman Long's message of July 22, 2020 12:36 am:
+> On 7/21/20 7:08 AM, Nicholas Piggin wrote:
+>> diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include=
+/asm/qspinlock.h
+>> index b752d34517b3..26d8766a1106 100644
+>> --- a/arch/powerpc/include/asm/qspinlock.h
+>> +++ b/arch/powerpc/include/asm/qspinlock.h
+>> @@ -31,16 +31,57 @@ static inline void queued_spin_unlock(struct qspinlo=
+ck *lock)
+>>  =20
+>>   #else
+>>   extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)=
+;
+>> +extern void queued_spin_lock_slowpath_queue(struct qspinlock *lock);
+>>   #endif
+>>  =20
+>>   static __always_inline void queued_spin_lock(struct qspinlock *lock)
+>>   {
+>> -	u32 val =3D 0;
+>> -
+>> -	if (likely(atomic_try_cmpxchg_lock(&lock->val, &val, _Q_LOCKED_VAL)))
+>> +	atomic_t *a =3D &lock->val;
+>> +	u32 val;
+>> +
+>> +again:
+>> +	asm volatile(
+>> +"1:\t"	PPC_LWARX(%0,0,%1,1) "	# queued_spin_lock			\n"
+>> +	: "=3D&r" (val)
+>> +	: "r" (&a->counter)
+>> +	: "memory");
+>> +
+>> +	if (likely(val =3D=3D 0)) {
+>> +		asm_volatile_goto(
+>> +	"	stwcx.	%0,0,%1							\n"
+>> +	"	bne-	%l[again]						\n"
+>> +	"\t"	PPC_ACQUIRE_BARRIER "						\n"
+>> +		:
+>> +		: "r"(_Q_LOCKED_VAL), "r" (&a->counter)
+>> +		: "cr0", "memory"
+>> +		: again );
+>>   		return;
+>> -
+>> -	queued_spin_lock_slowpath(lock, val);
+>> +	}
+>> +
+>> +	if (likely(val =3D=3D _Q_LOCKED_VAL)) {
+>> +		asm_volatile_goto(
+>> +	"	stwcx.	%0,0,%1							\n"
+>> +	"	bne-	%l[again]						\n"
+>> +		:
+>> +		: "r"(_Q_LOCKED_VAL | _Q_PENDING_VAL), "r" (&a->counter)
+>> +		: "cr0", "memory"
+>> +		: again );
+>> +
+>> +		atomic_cond_read_acquire(a, !(VAL & _Q_LOCKED_MASK));
+>> +//		clear_pending_set_locked(lock);
+>> +		WRITE_ONCE(lock->locked_pending, _Q_LOCKED_VAL);
+>> +//		lockevent_inc(lock_pending);
+>> +		return;
+>> +	}
+>> +
+>> +	if (val =3D=3D _Q_PENDING_VAL) {
+>> +		int cnt =3D _Q_PENDING_LOOPS;
+>> +		val =3D atomic_cond_read_relaxed(a,
+>> +					       (VAL !=3D _Q_PENDING_VAL) || !cnt--);
+>> +		if (!(val & ~_Q_LOCKED_MASK))
+>> +			goto again;
+>> +        }
+>> +	queued_spin_lock_slowpath_queue(lock);
+>>   }
+>>   #define queued_spin_lock queued_spin_lock
+>>  =20
+>=20
+> I am fine with the arch code override some part of the generic code.
 
-'What does noinstr mean? and why do we have it" -- don't dare touch the
-entry code until you can answer that.
+Cool.
+
+>> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+>> index b9515fcc9b29..ebcc6f5d99d5 100644
+>> --- a/kernel/locking/qspinlock.c
+>> +++ b/kernel/locking/qspinlock.c
+>> @@ -287,10 +287,14 @@ static __always_inline u32  __pv_wait_head_or_lock=
+(struct qspinlock *lock,
+>>  =20
+>>   #ifdef CONFIG_PARAVIRT_SPINLOCKS
+>>   #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
+>> +#define queued_spin_lock_slowpath_queue	native_queued_spin_lock_slowpat=
+h_queue
+>>   #endif
+>>  =20
+>>   #endif /* _GEN_PV_LOCK_SLOWPATH */
+>>  =20
+>> +void queued_spin_lock_slowpath_queue(struct qspinlock *lock);
+>> +static void __queued_spin_lock_slowpath_queue(struct qspinlock *lock);
+>> +
+>>   /**
+>>    * queued_spin_lock_slowpath - acquire the queued spinlock
+>>    * @lock: Pointer to queued spinlock structure
+>> @@ -314,12 +318,6 @@ static __always_inline u32  __pv_wait_head_or_lock(=
+struct qspinlock *lock,
+>>    */
+>>   void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>>   {
+>> -	struct mcs_spinlock *prev, *next, *node;
+>> -	u32 old, tail;
+>> -	int idx;
+>> -
+>> -	BUILD_BUG_ON(CONFIG_NR_CPUS >=3D (1U << _Q_TAIL_CPU_BITS));
+>> -
+>>   	if (pv_enabled())
+>>   		goto pv_queue;
+>>  =20
+>> @@ -397,6 +395,26 @@ void queued_spin_lock_slowpath(struct qspinlock *lo=
+ck, u32 val)
+>>   queue:
+>>   	lockevent_inc(lock_slowpath);
+>>   pv_queue:
+>> +	__queued_spin_lock_slowpath_queue(lock);
+>> +}
+>> +EXPORT_SYMBOL(queued_spin_lock_slowpath);
+>> +
+>> +void queued_spin_lock_slowpath_queue(struct qspinlock *lock)
+>> +{
+>> +	lockevent_inc(lock_slowpath);
+>> +	__queued_spin_lock_slowpath_queue(lock);
+>> +}
+>> +EXPORT_SYMBOL(queued_spin_lock_slowpath_queue);
+>> +
+>> +static void __queued_spin_lock_slowpath_queue(struct qspinlock *lock)
+>> +{
+>> +	struct mcs_spinlock *prev, *next, *node;
+>> +	u32 old, tail;
+>> +	u32 val;
+>> +	int idx;
+>> +
+>> +	BUILD_BUG_ON(CONFIG_NR_CPUS >=3D (1U << _Q_TAIL_CPU_BITS));
+>> +
+>>   	node =3D this_cpu_ptr(&qnodes[0].mcs);
+>>   	idx =3D node->count++;
+>>   	tail =3D encode_tail(smp_processor_id(), idx);
+>> @@ -559,7 +577,6 @@ void queued_spin_lock_slowpath(struct qspinlock *loc=
+k, u32 val)
+>>   	 */
+>>   	__this_cpu_dec(qnodes[0].mcs.count);
+>>   }
+>> -EXPORT_SYMBOL(queued_spin_lock_slowpath);
+>>  =20
+>>   /*
+>>    * Generate the paravirt code for queued_spin_unlock_slowpath().
+>>
+> I would prefer to extract out the pending bit handling code out into a=20
+> separate helper function which can be overridden by the arch code=20
+> instead of breaking the slowpath into 2 pieces.
+
+You mean have the arch provide a queued_spin_lock_slowpath_pending=20
+function that the slow path calls?
+
+I would actually prefer the pending handling can be made inline in
+the queued_spin_lock function, especially with out-of-line locks it=20
+makes sense to put it there.
+
+We could ifdef out queued_spin_lock_slowpath_queue if it's not used,
+then __queued_spin_lock_slowpath_queue would be inlined into the
+caller so there would be no split?
+
+Thanks,
+Nick
