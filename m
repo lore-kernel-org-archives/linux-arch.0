@@ -1,40 +1,42 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [EXT] Re: [PATCH v4 00/13] "Task_isolation" mode
-Date: Thu, 23 Jul 2020 17:48:20 +0200
-Message-ID: <20200723154820.GA709@worktop.programming.kicks-ass.net>
+From: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Subject: Re: [PATCH v4 00/13] "Task_isolation" mode
+Date: Thu, 23 Jul 2020 17:49:33 +0200
+Message-ID: <20200723154933.GB709@worktop.programming.kicks-ass.net>
 References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
  <87imeextf3.fsf@nanos.tec.linutronix.de>
- <20200723142902.GT5523@worktop.programming.kicks-ass.net>
- <670609a91be23ebb4f179850601439fbed844479.camel@marvell.com>
+ <831e023422aa0e4cb3da37ceef6fdcd5bc854682.camel@marvell.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <netdev-owner@vger.kernel.org>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <670609a91be23ebb4f179850601439fbed844479.camel@marvell.com>
-Sender: netdev-owner@vger.kernel.org
-To: Alex Belits <abelits@marvell.com>
-Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@kernel.org" <mingo@kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "frederic@kernel.org" <frederic@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+In-Reply-To: <831e023422aa0e4cb3da37ceef6fdcd5bc854682.camel-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Alex Belits <abelits-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>
+Cc: "tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org" <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "frederic-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <frederic-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org" <rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org>, "mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Prasun Kapoor <pkapoor-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>, "linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "catalin.marinas-5wv7dgnIgG8@public.gmane.org" <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, "will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 23, 2020 at 03:41:46PM +0000, Alex Belits wrote:
-> 
-> On Thu, 2020-07-23 at 16:29 +0200, Peter Zijlstra wrote:
-> > .
+On Thu, Jul 23, 2020 at 03:18:42PM +0000, Alex Belits wrote:
+> On Thu, 2020-07-23 at 15:17 +0200, Thomas Gleixner wrote:
 > > 
-> > This.. as presented it is an absolutely unreviewable pile of junk. It
-> > presents code witout any coherent problem description and analysis.
-> > And
-> > the patches are not split sanely either.
+> > Without going into details of the individual patches, let me give you a
+> > high level view of this series:
+> > 
+> >   1) Entry code handling:
+> > 
+> >      That's completely broken vs. the careful ordering and instrumentation
+> >      protection of the entry code. You can't just slap stuff randomly
+> >      into places which you think are safe w/o actually trying to understand
+> >      why this code is ordered in the way it is.
+> > 
+> >      This clearly was never built and tested with any of the relevant
+> >      debug options enabled. Both build and boot would have told you.
 > 
-> There is a more complete and slightly outdated description in the
-> previous version of the patch at 
-> https://lore.kernel.org/lkml/07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com/
+> This is intended to avoid a race condition when entry or exit from isolation
+> happens at the same time as an event that requires synchronization. The idea
+> is, it is possible to insulate the core from all events while it is running
+> isolated task in userspace, it will receive those calls normally after
+> breaking isolation and entering kernel, and it will synchronize itself on
+> kernel entry.
 
-Not the point, you're mixing far too many things in one go. You also
-have the patches split like 'generic / arch-1 / arch-2' which is wrong
-per definition, as patches should be split per change and not care about
-sily boundaries.
-
-Also, if you want generic entry code, there's patches for that here:
-
-  https://lkml.kernel.org/r/20200722215954.464281930@linutronix.de
+'What does noinstr mean? and why do we have it" -- don't dare touch the
+entry code until you can answer that.
