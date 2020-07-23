@@ -1,84 +1,73 @@
-Return-Path: <SRS0=xaua=A5=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:53624 "EHLO mail.kernel.org"
+Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga04.intel.com ([192.55.52.120]:10382 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726665AbgGRCAM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Jul 2020 22:00:12 -0400
-Date: Fri, 17 Jul 2020 19:00:09 -0700
-From: Eric Biggers <ebiggers@kernel.org>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Message-ID: <20200718020009.GE2183@sol.localdomain>
-References: <20200717044427.68747-1-ebiggers@kernel.org>
- <20200717205340.GR7625@magnolia>
- <20200718005857.GB2183@sol.localdomain>
- <20200718012555.GA1168834@rowland.harvard.edu>
+        id S1726621AbgGWQKl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jul 2020 12:10:41 -0400
+Date: Thu, 23 Jul 2020 09:10:39 -0700
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: Re: [PATCH v10 03/26] x86/fpu/xstate: Introduce CET MSR XSAVES
+ supervisor states
+Message-ID: <20200723161039.GE21891@linux.intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+ <20200429220732.31602-4-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200718012555.GA1168834@rowland.harvard.edu>
+In-Reply-To: <20200429220732.31602-4-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: "Darrick J. Wong" <darrick.wong@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200718020009._x2iatg1PJYu1IDHAqUheqbdzUP748cLGSA-JPcLxAI@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Message-ID: <20200723161039.U0ArGOlkfzzzKnuCEWsVNM1fbISa3QganMhDG72TpCQ@z>
 
-On Fri, Jul 17, 2020 at 09:25:55PM -0400, Alan Stern wrote:
-> On Fri, Jul 17, 2020 at 05:58:57PM -0700, Eric Biggers wrote:
-> > On Fri, Jul 17, 2020 at 01:53:40PM -0700, Darrick J. Wong wrote:
-> > > > +There are also cases in which the smp_load_acquire() can be replaced by
-> > > > +the more lightweight READ_ONCE().  (smp_store_release() is still
-> > > > +required.)  Specifically, if all initialized memory is transitively
-> > > > +reachable from the pointer itself, then there is no control dependency
-> > > 
-> > > I don't quite understand what "transitively reachable from the pointer
-> > > itself" means?  Does that describe the situation where all the objects
-> > > reachable through the object that the global struct foo pointer points
-> > > at are /only/ reachable via that global pointer?
-> > > 
-> > 
-> > The intent is that "transitively reachable" means that all initialized memory
-> > can be reached by dereferencing the pointer in some way, e.g. p->a->b[5]->c.
-> > 
-> > It could also be the case that allocating the object initializes some global or
-> > static data, which isn't reachable in that way.  Access to that data would then
-> > be a control dependency, which a data dependency barrier wouldn't work for.
-> > 
-> > It's possible I misunderstood something.  (Note the next paragraph does say that
-> > using READ_ONCE() is discouraged, exactly for this reason -- it can be hard to
-> > tell whether it's correct.)  Suggestions of what to write here are appreciated.
-> 
-> Perhaps something like this:
-> 
-> 	Specifically, if the only way to reach the initialized memory 
-> 	involves dereferencing the pointer itself then READ_ONCE() is 
-> 	sufficient.  This is because there will be an address dependency 
-> 	between reading the pointer and accessing the memory, which will 
-> 	ensure proper ordering.  But if some of the initialized memory 
-> 	is reachable some other way (for example, if it is global or 
-> 	static data) then there need not be an address dependency, 
-> 	merely a control dependency (checking whether the pointer is 
-> 	non-NULL).  Control dependencies do not always ensure ordering 
-> 	-- certainly not for reads, and depending on the compiler, 
-> 	possibly not for some writes -- and therefore a load-acquire is 
-> 	necessary.
-> 
-> Perhaps this is more wordy than you want, but it does get the important 
-> ideas across.
-> 
+On Wed, Apr 29, 2020 at 03:07:09PM -0700, Yu-cheng Yu wrote:
+> diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
+> index 12c9684d59ba..47f603729543 100644
+> --- a/arch/x86/include/asm/msr-index.h
+> +++ b/arch/x86/include/asm/msr-index.h
+> @@ -885,4 +885,22 @@
+>  #define MSR_VM_IGNNE                    0xc0010115
+>  #define MSR_VM_HSAVE_PA                 0xc0010117
+>  
+> +/* Control-flow Enforcement Technology MSRs */
+> +#define MSR_IA32_U_CET		0x6a0 /* user mode cet setting */
+> +#define MSR_IA32_S_CET		0x6a2 /* kernel mode cet setting */
+> +#define MSR_IA32_PL0_SSP	0x6a4 /* kernel shstk pointer */
+> +#define MSR_IA32_PL1_SSP	0x6a5 /* ring-1 shstk pointer */
+> +#define MSR_IA32_PL2_SSP	0x6a6 /* ring-2 shstk pointer */
+> +#define MSR_IA32_PL3_SSP	0x6a7 /* user shstk pointer */
+> +#define MSR_IA32_INT_SSP_TAB	0x6a8 /* exception shstk table */
+> +
+> +/* MSR_IA32_U_CET and MSR_IA32_S_CET bits */
+> +#define MSR_IA32_CET_SHSTK_EN		0x0000000000000001ULL
 
-How about:
+Can we drop the MSR_IA32 prefix for the individual bits?  Mostly to yield
+shorter line lengths, but also because it's more or less redundant info,
+and in some ways unhelpful as it's hard to quickly differentiate between
+"this is an MSR index" and "this is a bit/mask for an MSR".
 
-	There are also cases in which the smp_load_acquire() can be replaced by
-	the more lightweight READ_ONCE().  (smp_store_release() is still
-	required.)  Specifically, if the only way to reach the initialized
-	memory involves dereferencing the pointer itself, then the data
-	dependency barrier provided by READ_ONCE() is sufficient.  However, if
-	some of the initialized memory is reachable some other way (for example,
-	if it is global or static data) then there need not be an address
-	dependency, merely a control dependency (checking whether the pointer is
-	non-NULL).  READ_ONCE() is *not* sufficient in that case.
+My vote would also be to use BIT() or BIT_ULL().  The SDM defines the flags
+by their (decimal) bit number.  Manually converting the bits to masks makes
+it difficult to check for correctness.
 
-	The optimization of replacing smp_load_acquire() with READ_ONCE() is
-	discouraged for nontrivial data structures, since it can be difficult to
-	determine if it is correct.  In particular, for complex data structures
-	the correctness of the READ_ONCE() optimization may depend on internal
-	implementation details of other kernel subsystems.
+E.g.
+
+#define CET_SHSTK_EN		BIT(0)
+#define CET_WRSS_EN		BIT(1)
+#define CET_ENDBR_EN		BIT(2)
+#define CET_LEG_IW_EN		BIT(3)
+#define CET_NO_TRACK_EN		BIT(4)
+#define CET_WAIT_ENDBR		BIT(5)
+
+> +#define MSR_IA32_CET_WRSS_EN		0x0000000000000002ULL
+> +#define MSR_IA32_CET_ENDBR_EN		0x0000000000000004ULL
+> +#define MSR_IA32_CET_LEG_IW_EN		0x0000000000000008ULL
+> +#define MSR_IA32_CET_NO_TRACK_EN	0x0000000000000010ULL
+> +#define MSR_IA32_CET_WAIT_ENDBR	0x00000000000000800UL
+> +#define MSR_IA32_CET_BITMAP_MASK	0xfffffffffffff000ULL
+
+This particular define, the so called BITMAP_MASK, is no longer used in the
+IBT series.  IMO it'd be better off dropping this mask as it's not clear
+from the name that this is really nothing more than a mask for a virtual
+address, e.g. at first glance (for someone without CET knowledge) it looks
+like bits 63:12 hold a bitmap as opposed to holding a pointer to a bitmap.
