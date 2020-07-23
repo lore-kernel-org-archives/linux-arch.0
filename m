@@ -1,192 +1,52 @@
-Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40112 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726521AbgGWNaQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 09:30:16 -0400
-Date: Thu, 23 Jul 2020 23:30:09 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
-References: <20200706043540.1563616-1-npiggin@gmail.com>
-        <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
-        <1594101082.hfq9x5yact.astroid@bobo.none>
-        <20200708084106.GE597537@hirez.programming.kicks-ass.net>
-        <1595327263.lk78cqolxm.astroid@bobo.none>
-        <eaabf501-80fe-dd15-c03c-f75ce4f75877@redhat.com>
-In-Reply-To: <eaabf501-80fe-dd15-c03c-f75ce4f75877@redhat.com>
+Return-Path: <SRS0=WlwM=BC=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Thu, 23 Jul 2020 09:56:49 -0700
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
+Message-ID: <20200723165649.GG21891@linux.intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+ <20200723162531.GF21891@linux.intel.com>
+ <2e9806a3-7485-a0d0-b63d-f112fcff954c@intel.com>
 MIME-Version: 1.0
-Message-ID: <1595510571.u39qfc8d1o.astroid@bobo.none>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <2e9806a3-7485-a0d0-b63d-f112fcff954c@intel.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
-Message-ID: <20200723133009.4792p3fLfARfsek3CGVdZ7wLxsomVh1jJSjTJ4JnAao@z>
+Message-ID: <20200723165649.zIGnAa1JS5BhoEsN96jlLlDgZWq8bSLyUsyPeIfbfXQ@z>
 
-Excerpts from Waiman Long's message of July 22, 2020 12:36 am:
-> On 7/21/20 7:08 AM, Nicholas Piggin wrote:
->> diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include=
-/asm/qspinlock.h
->> index b752d34517b3..26d8766a1106 100644
->> --- a/arch/powerpc/include/asm/qspinlock.h
->> +++ b/arch/powerpc/include/asm/qspinlock.h
->> @@ -31,16 +31,57 @@ static inline void queued_spin_unlock(struct qspinlo=
-ck *lock)
->>  =20
->>   #else
->>   extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)=
-;
->> +extern void queued_spin_lock_slowpath_queue(struct qspinlock *lock);
->>   #endif
->>  =20
->>   static __always_inline void queued_spin_lock(struct qspinlock *lock)
->>   {
->> -	u32 val =3D 0;
->> -
->> -	if (likely(atomic_try_cmpxchg_lock(&lock->val, &val, _Q_LOCKED_VAL)))
->> +	atomic_t *a =3D &lock->val;
->> +	u32 val;
->> +
->> +again:
->> +	asm volatile(
->> +"1:\t"	PPC_LWARX(%0,0,%1,1) "	# queued_spin_lock			\n"
->> +	: "=3D&r" (val)
->> +	: "r" (&a->counter)
->> +	: "memory");
->> +
->> +	if (likely(val =3D=3D 0)) {
->> +		asm_volatile_goto(
->> +	"	stwcx.	%0,0,%1							\n"
->> +	"	bne-	%l[again]						\n"
->> +	"\t"	PPC_ACQUIRE_BARRIER "						\n"
->> +		:
->> +		: "r"(_Q_LOCKED_VAL), "r" (&a->counter)
->> +		: "cr0", "memory"
->> +		: again );
->>   		return;
->> -
->> -	queued_spin_lock_slowpath(lock, val);
->> +	}
->> +
->> +	if (likely(val =3D=3D _Q_LOCKED_VAL)) {
->> +		asm_volatile_goto(
->> +	"	stwcx.	%0,0,%1							\n"
->> +	"	bne-	%l[again]						\n"
->> +		:
->> +		: "r"(_Q_LOCKED_VAL | _Q_PENDING_VAL), "r" (&a->counter)
->> +		: "cr0", "memory"
->> +		: again );
->> +
->> +		atomic_cond_read_acquire(a, !(VAL & _Q_LOCKED_MASK));
->> +//		clear_pending_set_locked(lock);
->> +		WRITE_ONCE(lock->locked_pending, _Q_LOCKED_VAL);
->> +//		lockevent_inc(lock_pending);
->> +		return;
->> +	}
->> +
->> +	if (val =3D=3D _Q_PENDING_VAL) {
->> +		int cnt =3D _Q_PENDING_LOOPS;
->> +		val =3D atomic_cond_read_relaxed(a,
->> +					       (VAL !=3D _Q_PENDING_VAL) || !cnt--);
->> +		if (!(val & ~_Q_LOCKED_MASK))
->> +			goto again;
->> +        }
->> +	queued_spin_lock_slowpath_queue(lock);
->>   }
->>   #define queued_spin_lock queued_spin_lock
->>  =20
->=20
-> I am fine with the arch code override some part of the generic code.
+On Thu, Jul 23, 2020 at 09:41:37AM -0700, Dave Hansen wrote:
+> On 7/23/20 9:25 AM, Sean Christopherson wrote:
+> > How would people feel about taking the above two patches (02 and 03 in the
+> > series) through the KVM tree to enable KVM virtualization of CET before the
+> > kernel itself gains CET support?  I.e. add the MSR and feature bits, along
+> > with the XSAVES context switching.  The feature definitons could use "" to
+> > suppress displaying them in /proc/cpuinfo to avoid falsely advertising CET
+> > to userspace.
+> > 
+> > AIUI, there are ABI issues that need to be sorted out, and that is likely
+> > going to drag on for some time. 
+> > 
+> > Is this a "hell no" sort of idea, or something that would be feasible if we
+> > can show that there are no negative impacts to the kernel?
+> 
+> Negative impacts like bloating every task->fpu with XSAVE state that
+> will never get used? ;)
 
-Cool.
+Gah, should have qualified that with "meaningful or measurable negative
+impacts".  E.g. the extra 40 bytes for CET XSAVE state seems like it would
+be acceptable overhead, but noticeably increasing the latency of XSAVES
+and/or XRSTORS would not be acceptable.
 
->> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
->> index b9515fcc9b29..ebcc6f5d99d5 100644
->> --- a/kernel/locking/qspinlock.c
->> +++ b/kernel/locking/qspinlock.c
->> @@ -287,10 +287,14 @@ static __always_inline u32  __pv_wait_head_or_lock=
-(struct qspinlock *lock,
->>  =20
->>   #ifdef CONFIG_PARAVIRT_SPINLOCKS
->>   #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
->> +#define queued_spin_lock_slowpath_queue	native_queued_spin_lock_slowpat=
-h_queue
->>   #endif
->>  =20
->>   #endif /* _GEN_PV_LOCK_SLOWPATH */
->>  =20
->> +void queued_spin_lock_slowpath_queue(struct qspinlock *lock);
->> +static void __queued_spin_lock_slowpath_queue(struct qspinlock *lock);
->> +
->>   /**
->>    * queued_spin_lock_slowpath - acquire the queued spinlock
->>    * @lock: Pointer to queued spinlock structure
->> @@ -314,12 +318,6 @@ static __always_inline u32  __pv_wait_head_or_lock(=
-struct qspinlock *lock,
->>    */
->>   void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
->>   {
->> -	struct mcs_spinlock *prev, *next, *node;
->> -	u32 old, tail;
->> -	int idx;
->> -
->> -	BUILD_BUG_ON(CONFIG_NR_CPUS >=3D (1U << _Q_TAIL_CPU_BITS));
->> -
->>   	if (pv_enabled())
->>   		goto pv_queue;
->>  =20
->> @@ -397,6 +395,26 @@ void queued_spin_lock_slowpath(struct qspinlock *lo=
-ck, u32 val)
->>   queue:
->>   	lockevent_inc(lock_slowpath);
->>   pv_queue:
->> +	__queued_spin_lock_slowpath_queue(lock);
->> +}
->> +EXPORT_SYMBOL(queued_spin_lock_slowpath);
->> +
->> +void queued_spin_lock_slowpath_queue(struct qspinlock *lock)
->> +{
->> +	lockevent_inc(lock_slowpath);
->> +	__queued_spin_lock_slowpath_queue(lock);
->> +}
->> +EXPORT_SYMBOL(queued_spin_lock_slowpath_queue);
->> +
->> +static void __queued_spin_lock_slowpath_queue(struct qspinlock *lock)
->> +{
->> +	struct mcs_spinlock *prev, *next, *node;
->> +	u32 old, tail;
->> +	u32 val;
->> +	int idx;
->> +
->> +	BUILD_BUG_ON(CONFIG_NR_CPUS >=3D (1U << _Q_TAIL_CPU_BITS));
->> +
->>   	node =3D this_cpu_ptr(&qnodes[0].mcs);
->>   	idx =3D node->count++;
->>   	tail =3D encode_tail(smp_processor_id(), idx);
->> @@ -559,7 +577,6 @@ void queued_spin_lock_slowpath(struct qspinlock *loc=
-k, u32 val)
->>   	 */
->>   	__this_cpu_dec(qnodes[0].mcs.count);
->>   }
->> -EXPORT_SYMBOL(queued_spin_lock_slowpath);
->>  =20
->>   /*
->>    * Generate the paravirt code for queued_spin_unlock_slowpath().
->>
-> I would prefer to extract out the pending bit handling code out into a=20
-> separate helper function which can be overridden by the arch code=20
-> instead of breaking the slowpath into 2 pieces.
+> I thought KVM had its own vcpu->arch.guest_fpu buffers which mirrored
+> the size and format of task->fpu.  Can we have KVM support today without
+> task->fpu support?  I see some XSS munging in the KVM code so I think
+> this might be *possible*, but I don't see all of the plumbing that would
+> make it actually work.
 
-You mean have the arch provide a queued_spin_lock_slowpath_pending=20
-function that the slow path calls?
-
-I would actually prefer the pending handling can be made inline in
-the queued_spin_lock function, especially with out-of-line locks it=20
-makes sense to put it there.
-
-We could ifdef out queued_spin_lock_slowpath_queue if it's not used,
-then __queued_spin_lock_slowpath_queue would be inlined into the
-caller so there would be no split?
-
-Thanks,
-Nick
+It'd be possible, but long term I don't think it's a good idea for KVM to
+diverge from the kernel's FPU support, i.e. fully converting KVM to it's own
+implementation will likely lead to pain and maintenance problems.  Without
+fully converting KVM to a custom implementation, adding one off support for
+CET would be a massive hack job.
