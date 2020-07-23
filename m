@@ -1,204 +1,55 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53926 "EHLO
+Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60442 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726113AbgGQGYR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:17 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 07/22] netfilter/arp_tables: clean up compat {get,set}sockopt handling
-Date: Fri, 17 Jul 2020 08:23:16 +0200
-Message-ID: <20200717062331.691152-8-hch@lst.de>
-In-Reply-To: <20200717062331.691152-1-hch@lst.de>
-References: <20200717062331.691152-1-hch@lst.de>
+        with ESMTP id S1726115AbgGWVo0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 17:44:26 -0400
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v4 00/13] "Task_isolation" mode
+In-Reply-To: <3ff1383e669b543462737b0d12c0d1fb7d409e3e.camel@marvell.com>
+References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com> <87imeextf3.fsf@nanos.tec.linutronix.de> <831e023422aa0e4cb3da37ceef6fdcd5bc854682.camel@marvell.com> <20200723154933.GB709@worktop.programming.kicks-ass.net> <3ff1383e669b543462737b0d12c0d1fb7d409e3e.camel@marvell.com>
+Date: Thu, 23 Jul 2020 23:44:24 +0200
+Message-ID: <877dutx5xj.fsf@nanos.tec.linutronix.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
-Message-ID: <20200717062316.M_itVfsTPh89NWA6YZAAu_btgeKYFCiYmgephavfFfU@z>
+To: Alex Belits <abelits@marvell.com>, "peterz@infradead.org" <peterz@infradead.org>
+Cc: "davem@davemloft.net" <davem@davemloft.net>, Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "frederic@kernel.org" <frederic@kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20200723214424.RyaCx-G_JK1-U1uwsSRVPusjbnq1AHT6kJ1mfZ_p9K8@z>
 
-Merge the native and compat {get,set}sockopt handlers using
-in_compat_syscall().
+Alex Belits <abelits@marvell.com> writes:
+> On Thu, 2020-07-23 at 17:49 +0200, Peter Zijlstra wrote:
+>> 
+>> 'What does noinstr mean? and why do we have it" -- don't dare touch
+>> the
+>> entry code until you can answer that.
+>
+> noinstr disables instrumentation, so there would not be calls and
+> dependencies on other parts of the kernel when it's not yet safe to
+> call them. Relevant functions already have it, and I add an inline call
+> to perform flags update and synchronization. Unless something else is
+> involved, those operations are safe, so I am not adding anything that
+> can break those.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- net/ipv4/netfilter/arp_tables.c | 85 ++++++++-------------------------
- 1 file changed, 21 insertions(+), 64 deletions(-)
+Sure.
 
-diff --git a/net/ipv4/netfilter/arp_tables.c b/net/ipv4/netfilter/arp_tables.c
-index b167f4a5b68453..15807fb4a65f3e 100644
---- a/net/ipv4/netfilter/arp_tables.c
-+++ b/net/ipv4/netfilter/arp_tables.c
-@@ -787,8 +787,7 @@ static int compat_table_info(const struct xt_table_info *info,
- }
- #endif
- 
--static int get_info(struct net *net, void __user *user,
--		    const int *len, int compat)
-+static int get_info(struct net *net, void __user *user, const int *len)
- {
- 	char name[XT_TABLE_MAXNAMELEN];
- 	struct xt_table *t;
-@@ -802,7 +801,7 @@ static int get_info(struct net *net, void __user *user,
- 
- 	name[XT_TABLE_MAXNAMELEN-1] = '\0';
- #ifdef CONFIG_COMPAT
--	if (compat)
-+	if (in_compat_syscall())
- 		xt_compat_lock(NFPROTO_ARP);
- #endif
- 	t = xt_request_find_table_lock(net, NFPROTO_ARP, name);
-@@ -812,7 +811,7 @@ static int get_info(struct net *net, void __user *user,
- #ifdef CONFIG_COMPAT
- 		struct xt_table_info tmp;
- 
--		if (compat) {
-+		if (in_compat_syscall()) {
- 			ret = compat_table_info(private, &tmp);
- 			xt_compat_flush_offsets(NFPROTO_ARP);
- 			private = &tmp;
-@@ -837,7 +836,7 @@ static int get_info(struct net *net, void __user *user,
- 	} else
- 		ret = PTR_ERR(t);
- #ifdef CONFIG_COMPAT
--	if (compat)
-+	if (in_compat_syscall())
- 		xt_compat_unlock(NFPROTO_ARP);
- #endif
- 	return ret;
-@@ -998,7 +997,7 @@ static int do_replace(struct net *net, const void __user *user,
- }
- 
- static int do_add_counters(struct net *net, const void __user *user,
--			   unsigned int len, int compat)
-+			   unsigned int len)
- {
- 	unsigned int i;
- 	struct xt_counters_info tmp;
-@@ -1009,7 +1008,8 @@ static int do_add_counters(struct net *net, const void __user *user,
- 	struct arpt_entry *iter;
- 	unsigned int addend;
- 
--	paddc = xt_copy_counters_from_user(user, len, &tmp, compat);
-+	paddc = xt_copy_counters_from_user(user, len, &tmp,
-+					   in_compat_syscall());
- 	if (IS_ERR(paddc))
- 		return PTR_ERR(paddc);
- 
-@@ -1294,30 +1294,6 @@ static int compat_do_replace(struct net *net, void __user *user,
- 	return ret;
- }
- 
--static int compat_do_arpt_set_ctl(struct sock *sk, int cmd, void __user *user,
--				  unsigned int len)
--{
--	int ret;
--
--	if (!ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN))
--		return -EPERM;
--
--	switch (cmd) {
--	case ARPT_SO_SET_REPLACE:
--		ret = compat_do_replace(sock_net(sk), user, len);
--		break;
--
--	case ARPT_SO_SET_ADD_COUNTERS:
--		ret = do_add_counters(sock_net(sk), user, len, 1);
--		break;
--
--	default:
--		ret = -EINVAL;
--	}
--
--	return ret;
--}
--
- static int compat_copy_entry_to_user(struct arpt_entry *e, void __user **dstptr,
- 				     compat_uint_t *size,
- 				     struct xt_counters *counters,
-@@ -1425,29 +1401,6 @@ static int compat_get_entries(struct net *net,
- 	xt_compat_unlock(NFPROTO_ARP);
- 	return ret;
- }
--
--static int do_arpt_get_ctl(struct sock *, int, void __user *, int *);
--
--static int compat_do_arpt_get_ctl(struct sock *sk, int cmd, void __user *user,
--				  int *len)
--{
--	int ret;
--
--	if (!ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN))
--		return -EPERM;
--
--	switch (cmd) {
--	case ARPT_SO_GET_INFO:
--		ret = get_info(sock_net(sk), user, len, 1);
--		break;
--	case ARPT_SO_GET_ENTRIES:
--		ret = compat_get_entries(sock_net(sk), user, len);
--		break;
--	default:
--		ret = do_arpt_get_ctl(sk, cmd, user, len);
--	}
--	return ret;
--}
- #endif
- 
- static int do_arpt_set_ctl(struct sock *sk, int cmd, void __user *user, unsigned int len)
-@@ -1459,11 +1412,16 @@ static int do_arpt_set_ctl(struct sock *sk, int cmd, void __user *user, unsigned
- 
- 	switch (cmd) {
- 	case ARPT_SO_SET_REPLACE:
--		ret = do_replace(sock_net(sk), user, len);
-+#ifdef CONFIG_COMPAT
-+		if (in_compat_syscall())
-+			ret = compat_do_replace(sock_net(sk), user, len);
-+		else
-+#endif
-+			ret = do_replace(sock_net(sk), user, len);
- 		break;
- 
- 	case ARPT_SO_SET_ADD_COUNTERS:
--		ret = do_add_counters(sock_net(sk), user, len, 0);
-+		ret = do_add_counters(sock_net(sk), user, len);
- 		break;
- 
- 	default:
-@@ -1482,11 +1440,16 @@ static int do_arpt_get_ctl(struct sock *sk, int cmd, void __user *user, int *len
- 
- 	switch (cmd) {
- 	case ARPT_SO_GET_INFO:
--		ret = get_info(sock_net(sk), user, len, 0);
-+		ret = get_info(sock_net(sk), user, len);
- 		break;
- 
- 	case ARPT_SO_GET_ENTRIES:
--		ret = get_entries(sock_net(sk), user, len);
-+#ifdef CONFIG_COMPAT
-+		if (in_compat_syscall())
-+			ret = compat_get_entries(sock_net(sk), user, len);
-+		else
-+#endif
-+			ret = get_entries(sock_net(sk), user, len);
- 		break;
- 
- 	case ARPT_SO_GET_REVISION_TARGET: {
-@@ -1610,15 +1573,9 @@ static struct nf_sockopt_ops arpt_sockopts = {
- 	.set_optmin	= ARPT_BASE_CTL,
- 	.set_optmax	= ARPT_SO_SET_MAX+1,
- 	.set		= do_arpt_set_ctl,
--#ifdef CONFIG_COMPAT
--	.compat_set	= compat_do_arpt_set_ctl,
--#endif
- 	.get_optmin	= ARPT_BASE_CTL,
- 	.get_optmax	= ARPT_SO_GET_MAX+1,
- 	.get		= do_arpt_get_ctl,
--#ifdef CONFIG_COMPAT
--	.compat_get	= compat_do_arpt_get_ctl,
--#endif
- 	.owner		= THIS_MODULE,
- };
- 
--- 
-2.27.0
+ 1) That inline function can be put out of line by the compiler and
+    placed into the regular text section which makes it subject to
+    instrumentation
+
+ 2) That inline function invokes local_irq_save() which is subject to
+    instrumentation _before_ the entry state for the instrumentation
+    mechanisms is established.
+
+ 3) That inline function invokes sync_core() before important state has
+    been established, which is especially interesting in NMI like
+    exceptions.
+
+As you clearly documented why all of the above is safe and does not
+cause any problems, it's just me and Peter being silly, right?
+
+Try again.
+
+Thanks,
+
+        tglx
