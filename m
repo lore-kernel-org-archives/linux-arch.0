@@ -1,50 +1,80 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v4 00/13] "Task_isolation" mode
-Date: Thu, 23 Jul 2020 23:44:24 +0200
-Message-ID: <877dutx5xj.fsf@nanos.tec.linutronix.de>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com> <87imeextf3.fsf@nanos.tec.linutronix.de> <831e023422aa0e4cb3da37ceef6fdcd5bc854682.camel@marvell.com> <20200723154933.GB709@worktop.programming.kicks-ass.net> <3ff1383e669b543462737b0d12c0d1fb7d409e3e.camel@marvell.com>
+From: Waiman Long <longman@redhat.com>
+Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks for
+ SPLPAR
+Date: Thu, 23 Jul 2020 17:58:43 -0400
+Message-ID: <4fbe47a5-dbc9-427a-5b21-b31b37bc751a@redhat.com>
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+ <20200706043540.1563616-6-npiggin@gmail.com>
+ <874kqhvu1v.fsf@mpe.ellerman.id.au>
+ <8265d782-4e50-a9b2-a908-0cb588ffa09c@redhat.com>
+ <20200723140011.GR5523@worktop.programming.kicks-ass.net>
+ <845de183-56f5-2958-3159-faa131d46401@redhat.com>
+ <20200723184759.GS119549@hirez.programming.kicks-ass.net>
+ <6d6279ad-7432-63c1-14c3-18c4cff30bf8@redhat.com>
+ <20200723195855.GU119549@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <3ff1383e669b543462737b0d12c0d1fb7d409e3e.camel@marvell.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alex Belits <abelits@marvell.com>, "peterz@infradead.org" <peterz@infradead.org>
-Cc: "davem@davemloft.net" <davem@davemloft.net>, Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "frederic@kernel.org" <frederic@kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:27587 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1726368AbgGWV6v (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 17:58:51 -0400
+In-Reply-To: <20200723195855.GU119549@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: peterz@infradead.org
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
 
-Alex Belits <abelits@marvell.com> writes:
-> On Thu, 2020-07-23 at 17:49 +0200, Peter Zijlstra wrote:
->> 
->> 'What does noinstr mean? and why do we have it" -- don't dare touch
->> the
->> entry code until you can answer that.
+On 7/23/20 3:58 PM, peterz@infradead.org wrote:
+> On Thu, Jul 23, 2020 at 03:04:13PM -0400, Waiman Long wrote:
+>> On 7/23/20 2:47 PM, peterz@infradead.org wrote:
+>>> On Thu, Jul 23, 2020 at 02:32:36PM -0400, Waiman Long wrote:
+>>>> BTW, do you have any comment on my v2 lock holder cpu info qspinlock patch?
+>>>> I will have to update the patch to fix the reported 0-day test problem, but
+>>>> I want to collect other feedback before sending out v3.
+>>> I want to say I hate it all, it adds instructions to a path we spend an
+>>> aweful lot of time optimizing without really getting anything back for
+>>> it.
+>> It does add some extra instruction that may slow it down slightly, but I
+>> don't agree that it gives nothing back. The cpu lock holder information can
+>> be useful in analyzing crash dumps and in some debugging situation. I think
+>> it can be useful in RHEL for this readon. How about an x86 config option to
+>> allow distros to decide if they want to have it enabled? I will make sure
+>> that it will have no performance degradation if the option is not enabled.
+> Config knobs suck too; they create a maintenance burden (we get to make
+> sure all the permutations works/build/etc..) and effectively nobody uses
+> them, since world+dog uses what distros pick.
 >
-> noinstr disables instrumentation, so there would not be calls and
-> dependencies on other parts of the kernel when it's not yet safe to
-> call them. Relevant functions already have it, and I add an inline call
-> to perform flags update and synchronization. Unless something else is
-> involved, those operations are safe, so I am not adding anything that
-> can break those.
+> Anyway, instead of adding a second per-cpu variable, can you see how
+> horrible something like this is:
+>
+> unsigned char adds(unsigned char var, unsigned char val)
+> {
+> 	unsigned short sat = 0xff, tmp = var;
+>
+> 	asm ("addb	%[val], %b[var];"
+> 	     "cmovc	%[sat], %[var];"
+> 	     : [var] "+r" (tmp)
+> 	     : [val] "ir" (val), [sat] "r" (sat)
+> 	     );
+>
+> 	return tmp;
+> }
+>
+> Another thing to try is, instead of threading that lockval throughout
+> the thing, simply:
+>
+> #define _Q_LOCKED_VAL	this_cpu_read_stable(cpu_sat)
+>
+> or combined with the above
+>
+> #define _Q_LOCKED_VAL	adds(this_cpu_read_stable(cpu_number), 2)
+>
+> and see if the compiler really makes a mess of things.
+>
+Thanks for the suggestion. I will try that out.
 
-Sure.
-
- 1) That inline function can be put out of line by the compiler and
-    placed into the regular text section which makes it subject to
-    instrumentation
-
- 2) That inline function invokes local_irq_save() which is subject to
-    instrumentation _before_ the entry state for the instrumentation
-    mechanisms is established.
-
- 3) That inline function invokes sync_core() before important state has
-    been established, which is especially interesting in NMI like
-    exceptions.
-
-As you clearly documented why all of the above is safe and does not
-cause any problems, it's just me and Peter being silly, right?
-
-Try again.
-
-Thanks,
-
-        tglx
+Cheers,
+Longman
