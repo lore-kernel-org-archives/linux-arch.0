@@ -1,60 +1,79 @@
-From: Alex Belits <abelits@marvell.com>
-Subject: Re: [EXT] Re: [PATCH v4 00/13] "Task_isolation" mode
-Date: Thu, 23 Jul 2020 16:19:16 +0000
-Message-ID: <c326dd17cab3a43e3e500636005e14b9c315d6cf.camel@marvell.com>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-         <87imeextf3.fsf@nanos.tec.linutronix.de>
-         <20200723142902.GT5523@worktop.programming.kicks-ass.net>
-         <670609a91be23ebb4f179850601439fbed844479.camel@marvell.com>
-         <20200723154820.GA709@worktop.programming.kicks-ass.net>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 1/2] lockdep: improve current->(hard|soft)irqs_enabled
+ synchronisation with actual irq state
+Date: Fri, 24 Jul 2020 02:20:20 +1000
+Message-ID: <1595520766.9z4077xel7.astroid@bobo.none>
+References: <20200723105615.1268126-1-npiggin@gmail.com>
+        <20200723114010.GO5523@worktop.programming.kicks-ass.net>
+        <1595506730.3mvrxktem5.astroid@bobo.none>
+        <20200723145904.GU5523@worktop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200723154820.GA709@worktop.programming.kicks-ass.net>
-Content-Language: en-US
-Content-ID: <EA32F048CCD89743A1D51F632B9A7DED@namprd18.prod.outlook.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "tglx@linutronix.de" <tglx@linutronix.de>, "peterz@infradead.org" <peterz@infradead.org>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "frederic@kernel.org" <frederic@kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38268 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726632AbgGWQU1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 12:20:27 -0400
+In-Reply-To: <20200723145904.GU5523@worktop.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Alexey Kardashevskiy <aik@ozlabs.ru>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>
 
-DQpPbiBUaHUsIDIwMjAtMDctMjMgYXQgMTc6NDggKzAyMDAsIFBldGVyIFppamxzdHJhIHdyb3Rl
-Og0KPiBPbiBUaHUsIEp1bCAyMywgMjAyMCBhdCAwMzo0MTo0NlBNICswMDAwLCBBbGV4IEJlbGl0
-cyB3cm90ZToNCj4gPiBPbiBUaHUsIDIwMjAtMDctMjMgYXQgMTY6MjkgKzAyMDAsIFBldGVyIFpp
-amxzdHJhIHdyb3RlOg0KPiA+ID4gLg0KPiA+ID4gDQo+ID4gPiBUaGlzLi4gYXMgcHJlc2VudGVk
-IGl0IGlzIGFuIGFic29sdXRlbHkgdW5yZXZpZXdhYmxlIHBpbGUgb2YNCj4gPiA+IGp1bmsuIEl0
-DQo+ID4gPiBwcmVzZW50cyBjb2RlIHdpdG91dCBhbnkgY29oZXJlbnQgcHJvYmxlbSBkZXNjcmlw
-dGlvbiBhbmQNCj4gPiA+IGFuYWx5c2lzLg0KPiA+ID4gQW5kDQo+ID4gPiB0aGUgcGF0Y2hlcyBh
-cmUgbm90IHNwbGl0IHNhbmVseSBlaXRoZXIuDQo+ID4gDQo+ID4gVGhlcmUgaXMgYSBtb3JlIGNv
-bXBsZXRlIGFuZCBzbGlnaHRseSBvdXRkYXRlZCBkZXNjcmlwdGlvbiBpbiB0aGUNCj4gPiBwcmV2
-aW91cyB2ZXJzaW9uIG9mIHRoZSBwYXRjaCBhdCANCj4gPiBodHRwczovL3VybGRlZmVuc2UucHJv
-b2Zwb2ludC5jb20vdjIvdXJsP3U9aHR0cHMtM0FfX2xvcmUua2VybmVsLm9yZ19sa21sXzA3YzI1
-YzI0NmM1NTAxMjk4MWVjMDI5NmVlZTIzZTY4YzcxOTMzM2EuY2FtZWwtNDBtYXJ2ZWxsLmNvbV8m
-ZD1Ed0lCQWcmYz1uS2pXZWMyYjZSMG1PeVBhejd4dGZRJnI9MXFndk9uWGZrM1pISkEzcDdSSWI2
-TkZxczRTUFBEeVBJX1Bjd05GcDhLWSZtPXNoazlhNUZEd2t0T1p5c1NiRklqeG1nVWctSVB5dzJV
-a2JWQUhHQmhOVjAmcz1GRlphai1LYW53cUVpWFlDZGpkOTZKT2dQX0dBT25hbnBrdzZiQnZOcks0
-JmU9IA0KPiANCj4gTm90IHRoZSBwb2ludCwgeW91J3JlIG1peGluZyBmYXIgdG9vIG1hbnkgdGhp
-bmdzIGluIG9uZSBnby4gWW91IGFsc28NCj4gaGF2ZSB0aGUgcGF0Y2hlcyBzcGxpdCBsaWtlICdn
-ZW5lcmljIC8gYXJjaC0xIC8gYXJjaC0yJyB3aGljaCBpcw0KPiB3cm9uZw0KPiBwZXIgZGVmaW5p
-dGlvbiwgYXMgcGF0Y2hlcyBzaG91bGQgYmUgc3BsaXQgcGVyIGNoYW5nZSBhbmQgbm90IGNhcmUN
-Cj4gYWJvdXQNCj4gc2lseSBib3VuZGFyaWVzLg0KDQpUaGlzIGZvbGxvd3MgdGhlIG9yaWdpbmFs
-IHBhdGNoIGJ5IENocmlzIE1ldGNhbGYuIFRoZXJlIGlzIGEgcmVhc29uIGZvcg0KdGhhdCAtLSBw
-ZXItYXJjaGl0ZWN0dXJlIGNoYW5nZXMgYXJlIGluZGVwZW5kZW50IGZyb20gZWFjaCBvdGhlciBh
-bmQNCmFmZmVjdCBub3QganVzdCBjb2RlIGJ1dCBmdW5jdGlvbmFsaXR5IHRoYXQgd2FzIGltcGxl
-bWVudGVkIHBlci0NCmFyY2hpdGVjdHVyZS4gVG8gc3VwcG9ydCBtb3JlIGFyY2hpdGVjdHVyZXMs
-IGl0IHdpbGwgYmUgbmVjZXNzYXJ5IHRvIGRvDQppdCBzZXBhcmF0ZWx5IGZvciBlYWNoLCBhbmQg
-bWFyayB0aGVtIHN1cHBvcnRlZCB3aXRoDQpIQVZFX0FSQ0hfVEFTS19JU09MQVRJT04uIEhhdmlu
-ZyBvbmx5IHNvbWUgYXJjaGl0ZWN0dXJlcyBzdXBwb3J0ZWQgZG9lcw0Kbm90IGJyZWFrIGFueXRo
-aW5nIGZvciB0aGUgcmVzdCAtLSBhcmNoaXRlY3R1cmVzIHRoYXQgYXJlIG5vdCBjb3ZlcmVkLA0K
-d291bGQgbm90IGhhdmUgdGhpcyBmdW5jdGlvbmFsaXR5Lg0KDQo+IA0KPiBBbHNvLCBpZiB5b3Ug
-d2FudCBnZW5lcmljIGVudHJ5IGNvZGUsIHRoZXJlJ3MgcGF0Y2hlcyBmb3IgdGhhdCBoZXJlOg0K
-PiANCj4gICANCj4gaHR0cHM6Ly91cmxkZWZlbnNlLnByb29mcG9pbnQuY29tL3YyL3VybD91PWh0
-dHBzLTNBX19sa21sLmtlcm5lbC5vcmdfcl8yMDIwMDcyMjIxNTk1NC40NjQyODE5MzAtNDBsaW51
-dHJvbml4LmRlJmQ9RHdJQkFnJmM9bktqV2VjMmI2UjBtT3lQYXo3eHRmUSZyPTFxZ3ZPblhmazNa
-SEpBM3A3UkliNk5GcXM0U1BQRHlQSV9QY3dORnA4S1kmbT1zaGs5YTVGRHdrdE9aeXNTYkZJanht
-Z1VnLUlQeXcyVWtiVkFIR0JoTlYwJnM9blpYSXZpWTdydmEzMUt2UGdTVm5UYWN3Rk5ic21rZFcw
-THhTVGZZU2lxZyZlPQ0KPiAgDQo+IA0KPiANCg0KVGhhdCBsb29rcyB1c2VmdWwuIFdoeSBkaWRu
-J3QgVGhvbWFzIEdsZWl4bmVyIG1lbnRpb24gaXQgaW4gaGlzDQpjcml0aWNpc20gb2YgbXkgYXBw
-cm9hY2ggaWYgaGUgYWxyZWFkeSBzb2x2ZWQgdGhhdCBleGFjdCBwcm9ibGVtLCBhdA0KbGVhc3Qg
-Zm9yIHg4Nj8NCg0KLS0gDQpBbGV4DQo=
+Excerpts from Peter Zijlstra's message of July 24, 2020 12:59 am:
+> On Thu, Jul 23, 2020 at 11:11:03PM +1000, Nicholas Piggin wrote:
+>> Excerpts from Peter Zijlstra's message of July 23, 2020 9:40 pm:
+>> > On Thu, Jul 23, 2020 at 08:56:14PM +1000, Nicholas Piggin wrote:
+>> >=20
+>> >> diff --git a/arch/powerpc/include/asm/hw_irq.h b/arch/powerpc/include=
+/asm/hw_irq.h
+>> >> index 3a0db7b0b46e..35060be09073 100644
+>> >> --- a/arch/powerpc/include/asm/hw_irq.h
+>> >> +++ b/arch/powerpc/include/asm/hw_irq.h
+>> >> @@ -200,17 +200,14 @@ static inline bool arch_irqs_disabled(void)
+>> >>  #define powerpc_local_irq_pmu_save(flags)			\
+>> >>  	 do {							\
+>> >>  		raw_local_irq_pmu_save(flags);			\
+>> >> -		trace_hardirqs_off();				\
+>> >> +		if (!raw_irqs_disabled_flags(flags))		\
+>> >> +			trace_hardirqs_off();			\
+>> >>  	} while(0)
+>> >>  #define powerpc_local_irq_pmu_restore(flags)			\
+>> >>  	do {							\
+>> >> -		if (raw_irqs_disabled_flags(flags)) {		\
+>> >> -			raw_local_irq_pmu_restore(flags);	\
+>> >> -			trace_hardirqs_off();			\
+>> >> -		} else {					\
+>> >> +		if (!raw_irqs_disabled_flags(flags))		\
+>> >>  			trace_hardirqs_on();			\
+>> >> -			raw_local_irq_pmu_restore(flags);	\
+>> >> -		}						\
+>> >> +		raw_local_irq_pmu_restore(flags);		\
+>> >>  	} while(0)
+>> >=20
+>> > You shouldn't be calling lockdep from NMI context!
+>>=20
+>> After this patch it doesn't.
+>=20
+> You sure, trace_hardirqs_{on,off}() calls into lockdep.
+
+At least for irq enable/disable functions yes. NMI runs with
+interrupts disabled so these will never call trace_hardirqs_on/off
+after this patch.
+
+> (FWIW they're
+> also broken vs entry ordering, but that's another story).
+>=20
+>> trace_hardirqs_on/off implementation appears to expect to be called in N=
+MI=20
+>> context though, for some reason.
+>=20
+> Hurpm, not sure.. I'll have to go grep arch code now :/ The generic NMI
+> code didn't touch that stuff.
+>=20
+> Argh, yes, there might be broken there... damn! I'll go frob around.
+>=20
+
+Thanks,
+Nick
