@@ -1,274 +1,82 @@
-Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35326 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726643AbgGXNPB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 09:15:01 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v4 4/6] powerpc/pseries: implement paravirt qspinlocks for SPLPAR
-Date: Fri, 24 Jul 2020 23:14:21 +1000
-Message-ID: <20200724131423.1362108-5-npiggin@gmail.com>
-In-Reply-To: <20200724131423.1362108-1-npiggin@gmail.com>
-References: <20200724131423.1362108-1-npiggin@gmail.com>
+Return-Path: <SRS0=WlwM=BC=vger.kernel.org=linux-doc-owner@kernel.org>
+Message-ID: <2590914945c04d7758f54a9c51dfc6b82924b4e6.camel@intel.com>
+Subject: Re: [PATCH v10 03/26] x86/fpu/xstate: Introduce CET MSR XSAVES
+ supervisor states
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 23 Jul 2020 09:21:16 -0700
+In-Reply-To: <20200723161039.GE21891@linux.intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200429220732.31602-4-yu-cheng.yu@intel.com>
+         <20200723161039.GE21891@linux.intel.com>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Sean Christopherson <sean.j.christopherson@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, =?UTF-8?q?Michal=20Such=C3=A1nek?= <msuchanek@suse.de>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200724131421.Doujr1NS3q7TPPYejsiUKJ6SXBQWFCNG4z-SZpZTIQI@z>
+Message-ID: <20200723162116.2rOoiqGBnhFfzLcdKOJSIYtW0qQZ0nSxWbvXJGSpXMg@z>
 
-This implements the generic paravirt qspinlocks using H_PROD and H_CONFER to
-kick and wait.
+On Thu, 2020-07-23 at 09:10 -0700, Sean Christopherson wrote:
+> On Wed, Apr 29, 2020 at 03:07:09PM -0700, Yu-cheng Yu wrote:
+> > diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
+> > index 12c9684d59ba..47f603729543 100644
+> > --- a/arch/x86/include/asm/msr-index.h
+> > +++ b/arch/x86/include/asm/msr-index.h
+> > @@ -885,4 +885,22 @@
+> >  #define MSR_VM_IGNNE                    0xc0010115
+> >  #define MSR_VM_HSAVE_PA                 0xc0010117
+> >  
+> > +/* Control-flow Enforcement Technology MSRs */
+> > +#define MSR_IA32_U_CET		0x6a0 /* user mode cet setting */
+> > +#define MSR_IA32_S_CET		0x6a2 /* kernel mode cet setting */
+> > +#define MSR_IA32_PL0_SSP	0x6a4 /* kernel shstk pointer */
+> > +#define MSR_IA32_PL1_SSP	0x6a5 /* ring-1 shstk pointer */
+> > +#define MSR_IA32_PL2_SSP	0x6a6 /* ring-2 shstk pointer */
+> > +#define MSR_IA32_PL3_SSP	0x6a7 /* user shstk pointer */
+> > +#define MSR_IA32_INT_SSP_TAB	0x6a8 /* exception shstk table */
+> > +
+> > +/* MSR_IA32_U_CET and MSR_IA32_S_CET bits */
+> > +#define MSR_IA32_CET_SHSTK_EN		0x0000000000000001ULL
+> 
+> Can we drop the MSR_IA32 prefix for the individual bits?  Mostly to yield
+> shorter line lengths, but also because it's more or less redundant info,
+> and in some ways unhelpful as it's hard to quickly differentiate between
+> "this is an MSR index" and "this is a bit/mask for an MSR".
 
-This uses an un-directed yield to any CPU rather than the directed yield to
-a pre-empted lock holder that paravirtualised simple spinlocks use, that
-requires no kick hcall. This is something that could be investigated and
-improved in future.
+Agree!
 
-Performance results can be found in the commit which added queued spinlocks.
+> 
+> My vote would also be to use BIT() or BIT_ULL().  The SDM defines the flags
+> by their (decimal) bit number.  Manually converting the bits to masks makes
+> it difficult to check for correctness.
+> 
+> E.g.
+> 
+> #define CET_SHSTK_EN		BIT(0)
+> #define CET_WRSS_EN		BIT(1)
+> #define CET_ENDBR_EN		BIT(2)
+> #define CET_LEG_IW_EN		BIT(3)
+> #define CET_NO_TRACK_EN		BIT(4)
+> #define CET_WAIT_ENDBR		BIT(5)
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Acked-by: Waiman Long <longman@redhat.com>
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/powerpc/include/asm/paravirt.h           | 28 ++++++++
- arch/powerpc/include/asm/qspinlock.h          | 66 +++++++++++++++++++
- arch/powerpc/include/asm/qspinlock_paravirt.h |  7 ++
- arch/powerpc/include/asm/spinlock.h           |  4 ++
- arch/powerpc/platforms/pseries/Kconfig        |  9 ++-
- arch/powerpc/platforms/pseries/setup.c        |  4 +-
- include/asm-generic/qspinlock.h               |  2 +
- 7 files changed, 118 insertions(+), 2 deletions(-)
- create mode 100644 arch/powerpc/include/asm/qspinlock_paravirt.h
+I will change them.
 
-diff --git a/arch/powerpc/include/asm/paravirt.h b/arch/powerpc/include/asm/paravirt.h
-index 339e8533464b..21e5f29ca251 100644
---- a/arch/powerpc/include/asm/paravirt.h
-+++ b/arch/powerpc/include/asm/paravirt.h
-@@ -28,6 +28,16 @@ static inline void yield_to_preempted(int cpu, u32 yield_count)
- {
- 	plpar_hcall_norets(H_CONFER, get_hard_smp_processor_id(cpu), yield_count);
- }
-+
-+static inline void prod_cpu(int cpu)
-+{
-+	plpar_hcall_norets(H_PROD, get_hard_smp_processor_id(cpu));
-+}
-+
-+static inline void yield_to_any(void)
-+{
-+	plpar_hcall_norets(H_CONFER, -1, 0);
-+}
- #else
- static inline bool is_shared_processor(void)
- {
-@@ -44,6 +54,19 @@ static inline void yield_to_preempted(int cpu, u32 yield_count)
- {
- 	___bad_yield_to_preempted(); /* This would be a bug */
- }
-+
-+extern void ___bad_yield_to_any(void);
-+static inline void yield_to_any(void)
-+{
-+	___bad_yield_to_any(); /* This would be a bug */
-+}
-+
-+extern void ___bad_prod_cpu(void);
-+static inline void prod_cpu(int cpu)
-+{
-+	___bad_prod_cpu(); /* This would be a bug */
-+}
-+
- #endif
- 
- #define vcpu_is_preempted vcpu_is_preempted
-@@ -56,4 +79,9 @@ static inline bool vcpu_is_preempted(int cpu)
- 	return false;
- }
- 
-+static inline bool pv_is_native_spin_unlock(void)
-+{
-+     return !is_shared_processor();
-+}
-+
- #endif /* _ASM_POWERPC_PARAVIRT_H */
-diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include/asm/qspinlock.h
-index c49e33e24edd..f5066f00a08c 100644
---- a/arch/powerpc/include/asm/qspinlock.h
-+++ b/arch/powerpc/include/asm/qspinlock.h
-@@ -3,9 +3,47 @@
- #define _ASM_POWERPC_QSPINLOCK_H
- 
- #include <asm-generic/qspinlock_types.h>
-+#include <asm/paravirt.h>
- 
- #define _Q_PENDING_LOOPS	(1 << 9) /* not tuned */
- 
-+#ifdef CONFIG_PARAVIRT_SPINLOCKS
-+extern void native_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
-+extern void __pv_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
-+extern void __pv_queued_spin_unlock(struct qspinlock *lock);
-+
-+static __always_inline void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
-+{
-+	if (!is_shared_processor())
-+		native_queued_spin_lock_slowpath(lock, val);
-+	else
-+		__pv_queued_spin_lock_slowpath(lock, val);
-+}
-+
-+#define queued_spin_unlock queued_spin_unlock
-+static inline void queued_spin_unlock(struct qspinlock *lock)
-+{
-+	if (!is_shared_processor())
-+		smp_store_release(&lock->locked, 0);
-+	else
-+		__pv_queued_spin_unlock(lock);
-+}
-+
-+#else
-+extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
-+#endif
-+
-+static __always_inline void queued_spin_lock(struct qspinlock *lock)
-+{
-+	u32 val = 0;
-+
-+	if (likely(atomic_try_cmpxchg_acquire(&lock->val, &val, _Q_LOCKED_VAL)))
-+		return;
-+
-+	queued_spin_lock_slowpath(lock, val);
-+}
-+#define queued_spin_lock queued_spin_lock
-+
- #define smp_mb__after_spinlock()   smp_mb()
- 
- static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
-@@ -20,6 +58,34 @@ static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
- }
- #define queued_spin_is_locked queued_spin_is_locked
- 
-+#ifdef CONFIG_PARAVIRT_SPINLOCKS
-+#define SPIN_THRESHOLD (1<<15) /* not tuned */
-+
-+static __always_inline void pv_wait(u8 *ptr, u8 val)
-+{
-+	if (*ptr != val)
-+		return;
-+	yield_to_any();
-+	/*
-+	 * We could pass in a CPU here if waiting in the queue and yield to
-+	 * the previous CPU in the queue.
-+	 */
-+}
-+
-+static __always_inline void pv_kick(int cpu)
-+{
-+	prod_cpu(cpu);
-+}
-+
-+extern void __pv_init_lock_hash(void);
-+
-+static inline void pv_spinlocks_init(void)
-+{
-+	__pv_init_lock_hash();
-+}
-+
-+#endif
-+
- #include <asm-generic/qspinlock.h>
- 
- #endif /* _ASM_POWERPC_QSPINLOCK_H */
-diff --git a/arch/powerpc/include/asm/qspinlock_paravirt.h b/arch/powerpc/include/asm/qspinlock_paravirt.h
-new file mode 100644
-index 000000000000..6b60e7736a47
---- /dev/null
-+++ b/arch/powerpc/include/asm/qspinlock_paravirt.h
-@@ -0,0 +1,7 @@
-+/* SPDX-License-Identifier: GPL-2.0-or-later */
-+#ifndef _ASM_POWERPC_QSPINLOCK_PARAVIRT_H
-+#define _ASM_POWERPC_QSPINLOCK_PARAVIRT_H
-+
-+EXPORT_SYMBOL(__pv_queued_spin_unlock);
-+
-+#endif /* _ASM_POWERPC_QSPINLOCK_PARAVIRT_H */
-diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
-index 434615f1d761..6ec72282888d 100644
---- a/arch/powerpc/include/asm/spinlock.h
-+++ b/arch/powerpc/include/asm/spinlock.h
-@@ -10,5 +10,9 @@
- #include <asm/simple_spinlock.h>
- #endif
- 
-+#ifndef CONFIG_PARAVIRT_SPINLOCKS
-+static inline void pv_spinlocks_init(void) { }
-+#endif
-+
- #endif /* __KERNEL__ */
- #endif /* __ASM_SPINLOCK_H */
-diff --git a/arch/powerpc/platforms/pseries/Kconfig b/arch/powerpc/platforms/pseries/Kconfig
-index 24c18362e5ea..5e037df2a3a1 100644
---- a/arch/powerpc/platforms/pseries/Kconfig
-+++ b/arch/powerpc/platforms/pseries/Kconfig
-@@ -25,15 +25,22 @@ config PPC_PSERIES
- 	select SWIOTLB
- 	default y
- 
-+config PARAVIRT_SPINLOCKS
-+	bool
-+
- config PPC_SPLPAR
--	depends on PPC_PSERIES
- 	bool "Support for shared-processor logical partitions"
-+	depends on PPC_PSERIES
-+	select PARAVIRT_SPINLOCKS if PPC_QUEUED_SPINLOCKS
-+	default y
- 	help
- 	  Enabling this option will make the kernel run more efficiently
- 	  on logically-partitioned pSeries systems which use shared
- 	  processors, that is, which share physical processors between
- 	  two or more partitions.
- 
-+	  Say Y if you are unsure.
-+
- config DTL
- 	bool "Dispatch Trace Log"
- 	depends on PPC_SPLPAR && DEBUG_FS
-diff --git a/arch/powerpc/platforms/pseries/setup.c b/arch/powerpc/platforms/pseries/setup.c
-index 2db8469e475f..fa847d1f9d54 100644
---- a/arch/powerpc/platforms/pseries/setup.c
-+++ b/arch/powerpc/platforms/pseries/setup.c
-@@ -771,8 +771,10 @@ static void __init pSeries_setup_arch(void)
- 	if (firmware_has_feature(FW_FEATURE_LPAR)) {
- 		vpa_init(boot_cpuid);
- 
--		if (lppaca_shared_proc(get_lppaca()))
-+		if (lppaca_shared_proc(get_lppaca())) {
- 			static_branch_enable(&shared_processor);
-+			pv_spinlocks_init();
-+		}
- 
- 		ppc_md.power_save = pseries_lpar_idle;
- 		ppc_md.enable_pmcs = pseries_lpar_enable_pmcs;
-diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-index fb0a814d4395..38ca14e79a86 100644
---- a/include/asm-generic/qspinlock.h
-+++ b/include/asm-generic/qspinlock.h
-@@ -69,6 +69,7 @@ static __always_inline int queued_spin_trylock(struct qspinlock *lock)
- 
- extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
- 
-+#ifndef queued_spin_lock
- /**
-  * queued_spin_lock - acquire a queued spinlock
-  * @lock: Pointer to queued spinlock structure
-@@ -82,6 +83,7 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
- 
- 	queued_spin_lock_slowpath(lock, val);
- }
-+#endif
- 
- #ifndef queued_spin_unlock
- /**
--- 
-2.23.0
+> 
+> > +#define MSR_IA32_CET_WRSS_EN		0x0000000000000002ULL
+> > +#define MSR_IA32_CET_ENDBR_EN		0x0000000000000004ULL
+> > +#define MSR_IA32_CET_LEG_IW_EN		0x0000000000000008ULL
+> > +#define MSR_IA32_CET_NO_TRACK_EN	0x0000000000000010ULL
+> > +#define MSR_IA32_CET_WAIT_ENDBR	0x00000000000000800UL
+> > +#define MSR_IA32_CET_BITMAP_MASK	0xfffffffffffff000ULL
+> 
+> This particular define, the so called BITMAP_MASK, is no longer used in the
+> IBT series.  IMO it'd be better off dropping this mask as it's not clear
+> from the name that this is really nothing more than a mask for a virtual
+> address, e.g. at first glance (for someone without CET knowledge) it looks
+> like bits 63:12 hold a bitmap as opposed to holding a pointer to a bitmap.
+
+I will remove this.
+
+Thanks,
+Yu-cheng
