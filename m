@@ -1,39 +1,50 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 00/13] "Task_isolation" mode
-Date: Thu, 23 Jul 2020 16:26:23 +0200
-Message-ID: <20200723142623.GS5523@worktop.programming.kicks-ass.net>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
- <87imeextf3.fsf@nanos.tec.linutronix.de>
+From: Waiman Long <longman@redhat.com>
+Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
+Date: Thu, 23 Jul 2020 10:29:05 -0400
+Message-ID: <af825bce-ecf3-66e4-ad63-a844dbd2e775@redhat.com>
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+ <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
+ <1594101082.hfq9x5yact.astroid@bobo.none>
+ <20200708084106.GE597537@hirez.programming.kicks-ass.net>
+ <1595327263.lk78cqolxm.astroid@bobo.none>
+ <eaabf501-80fe-dd15-c03c-f75ce4f75877@redhat.com>
+ <1595510571.u39qfc8d1o.astroid@bobo.none>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48840 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726089AbgGWO0g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 10:26:36 -0400
-Content-Disposition: inline
-In-Reply-To: <87imeextf3.fsf@nanos.tec.linutronix.de>
+Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:49106 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1728966AbgGWO3O (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 10:29:14 -0400
+In-Reply-To: <1595510571.u39qfc8d1o.astroid@bobo.none>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Alex Belits <abelits@marvell.com>, "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+To: Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
 
-On Thu, Jul 23, 2020 at 03:17:04PM +0200, Thomas Gleixner wrote:
+On 7/23/20 9:30 AM, Nicholas Piggin wrote:
+>> I would prefer to extract out the pending bit handling code out into a
+>> separate helper function which can be overridden by the arch code
+>> instead of breaking the slowpath into 2 pieces.
+> You mean have the arch provide a queued_spin_lock_slowpath_pending
+> function that the slow path calls?
+>
+> I would actually prefer the pending handling can be made inline in
+> the queued_spin_lock function, especially with out-of-line locks it
+> makes sense to put it there.
+>
+> We could ifdef out queued_spin_lock_slowpath_queue if it's not used,
+> then __queued_spin_lock_slowpath_queue would be inlined into the
+> caller so there would be no split?
 
->   2) Instruction synchronization
-> 
->      Trying to do instruction synchronization delayed is a clear recipe
->      for hard to diagnose failures. Just because it blew not up in your
->      face does not make it correct in any way. It's broken by design and
->      violates _all_ rules of safe instruction patching and introduces a
->      complete trainwreck in x86 NMI processing.
-> 
->      If you really think that this is correct, then please have at least
->      the courtesy to come up with a detailed and precise argumentation
->      why this is a valid approach.
-> 
->      While writing that up you surely will find out why it is not.
+The pending code is an optimization for lightly contended locks. That is 
+why I think it is appropriate to extract it into a helper function and 
+mark it as such.
 
-So delaying the sync_core() IPIs for kernel text patching _might_ be
-possible, but it very much wants to be a separate patchset and not
-something hidden inside a 'gem' like this.
+You can certainly put the code in the arch's spin_lock code, you just 
+has to override the generic pending code by a null function.
+
+Cheers,
+Longman
