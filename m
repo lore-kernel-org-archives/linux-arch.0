@@ -1,71 +1,40 @@
-Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:48780 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726759AbgGTOVK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Jul 2020 10:21:10 -0400
-Date: Mon, 20 Jul 2020 17:20:53 +0300
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 3/6] mm: introduce secretmemfd system call to create
- "secret" memory areas
-Message-ID: <20200720142053.GC8593@kernel.org>
-References: <20200720092435.17469-1-rppt@kernel.org>
- <20200720092435.17469-4-rppt@kernel.org>
- <CAK8P3a0NyvRMqH7X0YNO5E6DGtvZXD5ZcD6Y6n7AkocufkMnHA@mail.gmail.com>
+Return-Path: <SRS0=WlwM=BC=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+ <20200723162531.GF21891@linux.intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <2e9806a3-7485-a0d0-b63d-f112fcff954c@intel.com>
+Date: Thu, 23 Jul 2020 09:41:37 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a0NyvRMqH7X0YNO5E6DGtvZXD5ZcD6Y6n7AkocufkMnHA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200723162531.GF21891@linux.intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Sean Christopherson <sean.j.christopherson@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Christopher Lameter <cl@linux.com>, Dan Williams <dan.j.williams@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Elena Reshetova <elena.reshetova@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>, Ingo Molnar <mingo@redhat.com>, James Bottomley <jejb@linux.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <paul.walmsley@sifive.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-nvdimm@lists.01.org, linux-riscv <linux-riscv@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, linaro-mm-sig@lists.linaro.org, Sumit Semwal <sumit.semwal@linaro.org>
-Message-ID: <20200720142053.K81lUznjr1ciUKJVr6DAi-pR1Hv2sba-6We6wlH4S_g@z>
+Message-ID: <20200723164137.ZJ76D8EZETKOgyAN9EBrExOrTIg3UzTr5BkeaIH1Zac@z>
 
-On Mon, Jul 20, 2020 at 01:30:13PM +0200, Arnd Bergmann wrote:
-> On Mon, Jul 20, 2020 at 11:25 AM Mike Rapoport <rppt@kernel.org> wrote:
-> >
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> >
-> > Introduce "secretmemfd" system call with the ability to create memory areas
-> > visible only in the context of the owning process and not mapped not only
-> > to other processes but in the kernel page tables as well.
-> >
-> > The user will create a file descriptor using the secretmemfd system call
-> > where flags supplied as a parameter to this system call will define the
-> > desired protection mode for the memory associated with that file
-> > descriptor. Currently there are two protection modes:
-> >
-> > * exclusive - the memory area is unmapped from the kernel direct map and it
-> >               is present only in the page tables of the owning mm.
-> > * uncached  - the memory area is present only in the page tables of the
-> >               owning mm and it is mapped there as uncached.
-> >
-> > For instance, the following example will create an uncached mapping (error
-> > handling is omitted):
-> >
-> >         fd = secretmemfd(SECRETMEM_UNCACHED);
-> >         ftruncate(fd, MAP_SIZE);
-> >         ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED,
-> >                    fd, 0);
-> >
-> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+On 7/23/20 9:25 AM, Sean Christopherson wrote:
+> How would people feel about taking the above two patches (02 and 03 in the
+> series) through the KVM tree to enable KVM virtualization of CET before the
+> kernel itself gains CET support?  I.e. add the MSR and feature bits, along
+> with the XSAVES context switching.  The feature definitons could use "" to
+> suppress displaying them in /proc/cpuinfo to avoid falsely advertising CET
+> to userspace.
 > 
-> I wonder if this should be more closely related to dmabuf file
-> descriptors, which
-> are already used for a similar purpose: sharing access to secret memory areas
-> that are not visible to the OS but can be shared with hardware through device
-> drivers that can import a dmabuf file descriptor.
+> AIUI, there are ABI issues that need to be sorted out, and that is likely
+> going to drag on for some time. 
+> 
+> Is this a "hell no" sort of idea, or something that would be feasible if we
+> can show that there are no negative impacts to the kernel?
 
-TBH, I didn't think about dmabuf, but my undestanding is that is this
-case memory areas are not visible to the OS because they are on device
-memory rather than normal RAM and when dmabuf is backed by the normal
-RAM, the memory is visible to the OS.
+Negative impacts like bloating every task->fpu with XSAVE state that
+will never get used? ;)
 
-Did I miss anything?
-
-
->       Arnd
-
--- 
-Sincerely yours,
-Mike.
+I thought KVM had its own vcpu->arch.guest_fpu buffers which mirrored
+the size and format of task->fpu.  Can we have KVM support today without
+task->fpu support?  I see some XSS munging in the KVM code so I think
+this might be *possible*, but I don't see all of the plumbing that would
+make it actually work.
