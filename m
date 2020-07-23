@@ -1,39 +1,54 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:60146 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1729642AbgGVOwg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jul 2020 10:52:36 -0400
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH v4 05/13] task_isolation: Add xen-specific hook
-Date: Wed, 22 Jul 2020 14:51:55 +0000
-Message-ID: <f1de0a5f9b0ad9305030b452e9fdc5b39c7e54b4.camel@marvell.com>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-In-Reply-To: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <B5764F27D073494DB2469C0D85F3B1A2@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37016 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726621AbgGWQM2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 12:12:28 -0400
+Date: Fri, 24 Jul 2020 02:12:21 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+        <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
+        <1594101082.hfq9x5yact.astroid@bobo.none>
+        <20200708084106.GE597537@hirez.programming.kicks-ass.net>
+        <1595327263.lk78cqolxm.astroid@bobo.none>
+        <eaabf501-80fe-dd15-c03c-f75ce4f75877@redhat.com>
+        <1595510571.u39qfc8d1o.astroid@bobo.none>
+        <af825bce-ecf3-66e4-ad63-a844dbd2e775@redhat.com>
+In-Reply-To: <af825bce-ecf3-66e4-ad63-a844dbd2e775@redhat.com>
 MIME-Version: 1.0
+Message-ID: <1595520724.nzha5zvbid.astroid@bobo.none>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Message-ID: <20200722145155.cXOkUIKVZZsXgGhXp4okJDVMEPegIV1QBiVlbpSAwnw@z>
+To: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
+Message-ID: <20200723161221.GPnu9_Z9DMDSsYh1GEsdeWkx8FXRJX_0tJ9Fe2VIL4I@z>
 
-eGVuX2V2dGNobl9kb191cGNhbGwoKSBzaG91bGQgY2FsbCB0YXNrX2lzb2xhdGlvbl9rZXJuZWxf
-ZW50ZXIoKQ0KdG8gaW5kaWNhdGUgdGhhdCBpc29sYXRpb24gaXMgYnJva2VuIGFuZCBwZXJmb3Jt
-IHN5bmNocm9uaXphdGlvbi4NCg0KU2lnbmVkLW9mZi1ieTogQWxleCBCZWxpdHMgPGFiZWxpdHNA
-bWFydmVsbC5jb20+DQotLS0NCiBkcml2ZXJzL3hlbi9ldmVudHMvZXZlbnRzX2Jhc2UuYyB8IDMg
-KysrDQogMSBmaWxlIGNoYW5nZWQsIDMgaW5zZXJ0aW9ucygrKQ0KDQpkaWZmIC0tZ2l0IGEvZHJp
-dmVycy94ZW4vZXZlbnRzL2V2ZW50c19iYXNlLmMgYi9kcml2ZXJzL3hlbi9ldmVudHMvZXZlbnRz
-X2Jhc2UuYw0KaW5kZXggMTQwYzdiZjMzYTk4Li40YzE2Y2Q1OGYzNmIgMTAwNjQ0DQotLS0gYS9k
-cml2ZXJzL3hlbi9ldmVudHMvZXZlbnRzX2Jhc2UuYw0KKysrIGIvZHJpdmVycy94ZW4vZXZlbnRz
-L2V2ZW50c19iYXNlLmMNCkBAIC0zMyw2ICszMyw3IEBADQogI2luY2x1ZGUgPGxpbnV4L3NsYWIu
-aD4NCiAjaW5jbHVkZSA8bGludXgvaXJxbnIuaD4NCiAjaW5jbHVkZSA8bGludXgvcGNpLmg+DQor
-I2luY2x1ZGUgPGxpbnV4L2lzb2xhdGlvbi5oPg0KIA0KICNpZmRlZiBDT05GSUdfWDg2DQogI2lu
-Y2x1ZGUgPGFzbS9kZXNjLmg+DQpAQCAtMTIzNiw2ICsxMjM3LDggQEAgdm9pZCB4ZW5fZXZ0Y2hu
-X2RvX3VwY2FsbChzdHJ1Y3QgcHRfcmVncyAqcmVncykNCiB7DQogCXN0cnVjdCBwdF9yZWdzICpv
-bGRfcmVncyA9IHNldF9pcnFfcmVncyhyZWdzKTsNCiANCisJdGFza19pc29sYXRpb25fa2VybmVs
-X2VudGVyKCk7DQorDQogCWlycV9lbnRlcigpOw0KIA0KIAlfX3hlbl9ldnRjaG5fZG9fdXBjYWxs
-KCk7DQotLSANCjIuMjYuMg0KDQo=
+Excerpts from Waiman Long's message of July 24, 2020 12:29 am:
+> On 7/23/20 9:30 AM, Nicholas Piggin wrote:
+>>> I would prefer to extract out the pending bit handling code out into a
+>>> separate helper function which can be overridden by the arch code
+>>> instead of breaking the slowpath into 2 pieces.
+>> You mean have the arch provide a queued_spin_lock_slowpath_pending
+>> function that the slow path calls?
+>>
+>> I would actually prefer the pending handling can be made inline in
+>> the queued_spin_lock function, especially with out-of-line locks it
+>> makes sense to put it there.
+>>
+>> We could ifdef out queued_spin_lock_slowpath_queue if it's not used,
+>> then __queued_spin_lock_slowpath_queue would be inlined into the
+>> caller so there would be no split?
+>=20
+> The pending code is an optimization for lightly contended locks. That is=20
+> why I think it is appropriate to extract it into a helper function and=20
+> mark it as such.
+>=20
+> You can certainly put the code in the arch's spin_lock code, you just=20
+> has to override the generic pending code by a null function.
+
+I see what you mean. I guess that would work fine.
+
+Thanks,
+Nick
