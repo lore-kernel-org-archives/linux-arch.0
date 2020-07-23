@@ -1,154 +1,45 @@
-Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34290 "EHLO
+Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33308 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728521AbgGXQIR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 12:08:17 -0400
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v4 00/13] "Task_isolation" mode
-In-Reply-To: <851ee54e8317cd186338a76a045f738476144fcc.camel@marvell.com>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com> <87imeextf3.fsf@nanos.tec.linutronix.de> <831e023422aa0e4cb3da37ceef6fdcd5bc854682.camel@marvell.com> <20200723154933.GB709@worktop.programming.kicks-ass.net> <3ff1383e669b543462737b0d12c0d1fb7d409e3e.camel@marvell.com> <877dutx5xj.fsf@nanos.tec.linutronix.de> <851ee54e8317cd186338a76a045f738476144fcc.camel@marvell.com>
-Date: Fri, 24 Jul 2020 18:08:13 +0200
-Message-ID: <87mu3ouc9e.fsf@nanos.tec.linutronix.de>
+        with ESMTP id S1727108AbgGWPsd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 11:48:33 -0400
+Date: Thu, 23 Jul 2020 17:48:20 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [EXT] Re: [PATCH v4 00/13] "Task_isolation" mode
+Message-ID: <20200723154820.GA709@worktop.programming.kicks-ass.net>
+References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
+ <87imeextf3.fsf@nanos.tec.linutronix.de>
+ <20200723142902.GT5523@worktop.programming.kicks-ass.net>
+ <670609a91be23ebb4f179850601439fbed844479.camel@marvell.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <670609a91be23ebb4f179850601439fbed844479.camel@marvell.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Belits <abelits@marvell.com>, "peterz@infradead.org" <peterz@infradead.org>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "frederic@kernel.org" <frederic@kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Message-ID: <20200724160813._yQacSeDrmTjMq7tCjX7BkqPHlJSJpYC5rAu_pN2IZk@z>
+To: Alex Belits <abelits@marvell.com>
+Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@kernel.org" <mingo@kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "frederic@kernel.org" <frederic@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20200723154820.MMWW1reANC8F5wem4jT18NR3AStncJPYGMwIzuykTkA@z>
 
-Alex,
+On Thu, Jul 23, 2020 at 03:41:46PM +0000, Alex Belits wrote:
+> 
+> On Thu, 2020-07-23 at 16:29 +0200, Peter Zijlstra wrote:
+> > .
+> > 
+> > This.. as presented it is an absolutely unreviewable pile of junk. It
+> > presents code witout any coherent problem description and analysis.
+> > And
+> > the patches are not split sanely either.
+> 
+> There is a more complete and slightly outdated description in the
+> previous version of the patch at 
+> https://lore.kernel.org/lkml/07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com/
 
-Alex Belits <abelits@marvell.com> writes:
-> On Thu, 2020-07-23 at 23:44 +0200, Thomas Gleixner wrote:
->>  1) That inline function can be put out of line by the compiler and
->>     placed into the regular text section which makes it subject to
->>     instrumentation
->> 
->>  2) That inline function invokes local_irq_save() which is subject to
->>     instrumentation _before_ the entry state for the instrumentation
->>     mechanisms is established.
->> 
->>  3) That inline function invokes sync_core() before important state
->> has
->>     been established, which is especially interesting in NMI like
->>     exceptions.
->> 
->> As you clearly documented why all of the above is safe and does not
->> cause any problems, it's just me and Peter being silly, right?
->> 
->> Try again.
->
-> I don't think, accusations and mockery are really necessary here.
+Not the point, you're mixing far too many things in one go. You also
+have the patches split like 'generic / arch-1 / arch-2' which is wrong
+per definition, as patches should be split per change and not care about
+sily boundaries.
 
-Let's get some context to this.
+Also, if you want generic entry code, there's patches for that here:
 
-  I told you in my first mail, that this breaks noinstr and that
-  building with full debug would have told you.
-
-  Peter gave you a clear hint where to look.
-
-Now it might be expected that you investigate that or at least ask
-questions before making the bold claim:
-
->> > Unless something else is involved, those operations are safe, so I
->> > am not adding anything that can break those.
-
-Surely I could have avoided the snide remark, but after you demonstrably
-ignored technically valid concerns and suggestions in your other reply,
-I was surely not in the mood to be overly careful in my choice of words.
-
-> The result of this may be not a "design" per se, but an understanding
-> of how things are implemented, and what rules are being followed, so I
-> could add my code in a manner consistent with what is done, and
-> document the whole thing.
-
-Every other big and technically complex project which has to change the
-very inner workings of the kernel started the same way. I'm not aware of
-any of them getting accepted as is or in a big code dump.
-
-What you have now qualifies as proof of concept and the big challenge is
-to turn it into something which is acceptable and maintainable.
-
-You talk in great length about how inconsistent stuff is all over the
-place. Yes, it is indeed. You even call that inconsistency an existing
-design:
-
-> My patches reflect what is already in code and in its design.
-
-I agree that you just work with the code as is, but you might have
-noticed that quite some of this stuff is clearly not designed at all or
-designed badly.
-
-The solution is not to pile on top of the inconsistency, the solution is
-to make it consistent in the first place.
-
-You are surely going to say, that's beyond the scope of your project. I
-can tell you that it is in the scope of your project simply because just
-proliferating the status quo and piling new stuff on top is not an
-option. And no, there are no people waiting in a row to mop up after
-you either.
-
-Quite some of the big technology projects have spent and still spend
-considerable amount of time to do exactly this kind of consolidation
-work upfront in order to make their features acceptable in a
-maintainable form.
-
-All of these projects have been merged or are still being merged
-piecewise in reviewable chunks.
-
-We are talking about intrusive technology which requires a very careful
-integration to prevent it from becoming a roadblock or a maintenaince
-headache. The approach and implementation has to be _agreed_ on by the
-involved parties, i.e. submitters, reviewers and maintainers.
-
-> While I understand that this is an unusual feature and by its nature
-> it affects kernel in multiple places, it does not deserve to be called
-> a "mess" and other synonyms of "mess".
-
-The feature is perfectly fine and I completely understand why you want
-it. Guess who started to lay the grounds for NOHZ_FULL more than a
-decade ago and why?
-
-The implementation is not acceptable on technical grounds,
-maintainability reasons, lack of design and proper consolidated
-integration.
-
-> Another issue that you have asked me to defend is the existence and
-> scope of task isolation itself.
-
-I have not asked you to defend the existance. I asked you for coherent
-explanations how the implementation works and why the chosen approach is
-correct and valid. That's a completely different thing.
-
-> It's an attempt to introduce a feature that turns Linux userspace into
-> superior replacement of RTOS.....
-
-Can you please spare me the advertising and marketing? I'm very well
-aware what an RTOS is and I'm also very well aware that there is no such
-thing like a 'superior replacement' for RTOS in general.
-
-If your view of RTOS is limited to this particular feature, then I have
-to tell you that this particular feature is only useful for a very small
-portion of the overall RTOS use cases.
-
-> However most definitely this is not a "mess", and it I do not believe
-> that I have to defend the validity of this direction of development, or
-> be accused of general incompetence every time someone finds a
-> frustrating mistake in my code.
-
-Nobody accuses you of incompetence, but you will have to defend the
-validity of your approach and implementation and accept that things
-might not be as shiny as you think they are. That's not hostility,
-that's just how Linux kernel development works whether you like it or
-not. 
-
-I surely can understand your frustration over my view of this series,
-but you might have noticed that aside of criticism I gave you very clear
-technical arguments and suggestions how to proceed.
-
-It's your decision what you make of that.
-
-Thanks,
-
-        tglx
+  https://lkml.kernel.org/r/20200722215954.464281930@linutronix.de
