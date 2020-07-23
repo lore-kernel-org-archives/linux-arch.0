@@ -1,61 +1,47 @@
-Return-Path: <SRS0=fzKJ=BE=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:28765 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1726593AbgGYDDH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 23:03:07 -0400
-Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks for
- SPLPAR
-From: Waiman Long <longman@redhat.com>
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <20200706043540.1563616-6-npiggin@gmail.com>
- <874kqhvu1v.fsf@mpe.ellerman.id.au>
- <8265d782-4e50-a9b2-a908-0cb588ffa09c@redhat.com>
- <20200723140011.GR5523@worktop.programming.kicks-ass.net>
- <845de183-56f5-2958-3159-faa131d46401@redhat.com>
- <20200723184759.GS119549@hirez.programming.kicks-ass.net>
- <20200724081647.GA16642@willie-the-truck>
- <8532332b-85dd-661b-cf72-81a8ceb70747@redhat.com>
-Message-ID: <ccf0c6a6-b7c3-8909-cc8f-0c5e7434c372@redhat.com>
-Date: Fri, 24 Jul 2020 23:02:58 -0400
+Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga05.intel.com ([192.55.52.43]:65237 "EHLO mga05.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726632AbgGWQZh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jul 2020 12:25:37 -0400
+Date: Thu, 23 Jul 2020 09:25:31 -0700
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
+Message-ID: <20200723162531.GF21891@linux.intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <8532332b-85dd-661b-cf72-81a8ceb70747@redhat.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>, peterz@infradead.org
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200725030258.0s7dsjo1EV1WQzyZZflPrVqwGp1ZAYbELmjNseqUv4g@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Message-ID: <20200723162531.RedtLtM8Yzct9ahrbLY2us03bBoZPiIEsTFU8pXt5aQ@z>
 
-On 7/24/20 3:10 PM, Waiman Long wrote:
-> On 7/24/20 4:16 AM, Will Deacon wrote:
->> On Thu, Jul 23, 2020 at 08:47:59PM +0200, peterz@infradead.org wrote:
->>> On Thu, Jul 23, 2020 at 02:32:36PM -0400, Waiman Long wrote:
->>>> BTW, do you have any comment on my v2 lock holder cpu info 
->>>> qspinlock patch?
->>>> I will have to update the patch to fix the reported 0-day test 
->>>> problem, but
->>>> I want to collect other feedback before sending out v3.
->>> I want to say I hate it all, it adds instructions to a path we spend an
->>> aweful lot of time optimizing without really getting anything back for
->>> it.
->>>
->>> Will, how do you feel about it?
->> I can see it potentially being useful for debugging, but I hate the
->> limitation to 256 CPUs. Even arm64 is hitting that now.
->
-> After thinking more about that, I think we can use all the remaining 
-> bits in the 16-bit locked_pending. Reserving 1 bit for locked and 1 
-> bit for pending, there are 14 bits left. So as long as NR_CPUS < 16k 
-> (requirement for 16-bit locked_pending), we can put all possible cpu 
-> numbers into the lock. We can also just use smp_processor_id() without 
-> additional percpu data. 
+On Wed, Apr 29, 2020 at 03:07:06PM -0700, Yu-cheng Yu wrote:
+> Control-flow Enforcement (CET) is a new Intel processor feature that blocks
+> return/jump-oriented programming attacks.  Details can be found in "Intel
+> 64 and IA-32 Architectures Software Developer's Manual" [1].
+> 
+> This series depends on the XSAVES supervisor state series that was split
+> out and submitted earlier [2].
 
-Sorry, that doesn't work. The extra bits in the pending byte won't get 
-cleared on unlock. That will have noticeable performance impact. 
-Clearing the pending byte on unlock will cause other performance 
-problem. So I guess we will have to limit the cpu number in the locked byte.
+...
 
-Regards,
-Longman
+> Yu-cheng Yu (25):
+>   x86/cpufeatures: Add CET CPU feature flags for Control-flow
+>     Enforcement Technology (CET)
+>   x86/fpu/xstate: Introduce CET MSR XSAVES supervisor states
+
+How would people feel about taking the above two patches (02 and 03 in the
+series) through the KVM tree to enable KVM virtualization of CET before the
+kernel itself gains CET support?  I.e. add the MSR and feature bits, along
+with the XSAVES context switching.  The feature definitons could use "" to
+suppress displaying them in /proc/cpuinfo to avoid falsely advertising CET
+to userspace.
+
+AIUI, there are ABI issues that need to be sorted out, and that is likely
+going to drag on for some time. 
+
+Is this a "hell no" sort of idea, or something that would be feasible if we
+can show that there are no negative impacts to the kernel?
