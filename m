@@ -1,76 +1,47 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53890 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726656AbgGQGYK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:10 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 03/22] net: streamline __sys_getsockopt
-Date: Fri, 17 Jul 2020 08:23:12 +0200
-Message-ID: <20200717062331.691152-4-hch@lst.de>
-In-Reply-To: <20200717062331.691152-1-hch@lst.de>
-References: <20200717062331.691152-1-hch@lst.de>
+Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:42587 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1726455AbgGWTEW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 15:04:22 -0400
+Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks for
+ SPLPAR
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+ <20200706043540.1563616-6-npiggin@gmail.com>
+ <874kqhvu1v.fsf@mpe.ellerman.id.au>
+ <8265d782-4e50-a9b2-a908-0cb588ffa09c@redhat.com>
+ <20200723140011.GR5523@worktop.programming.kicks-ass.net>
+ <845de183-56f5-2958-3159-faa131d46401@redhat.com>
+ <20200723184759.GS119549@hirez.programming.kicks-ass.net>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <6d6279ad-7432-63c1-14c3-18c4cff30bf8@redhat.com>
+Date: Thu, 23 Jul 2020 15:04:13 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200723184759.GS119549@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
-Message-ID: <20200717062312.0Gki7OTOosjRlDAU_M0C4ozRIxplk1ncVk1Hx6vQmUc@z>
+To: peterz@infradead.org
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200723190413.uyF4C0b6Cjd2AKLFzMSm4NcDjz_ClWuDvh6vP0MzrKc@z>
 
-Return early when sockfd_lookup_light fails to reduce a level of
-indentation for most of the function body.
+On 7/23/20 2:47 PM, peterz@infradead.org wrote:
+> On Thu, Jul 23, 2020 at 02:32:36PM -0400, Waiman Long wrote:
+>> BTW, do you have any comment on my v2 lock holder cpu info qspinlock patch?
+>> I will have to update the patch to fix the reported 0-day test problem, but
+>> I want to collect other feedback before sending out v3.
+> I want to say I hate it all, it adds instructions to a path we spend an
+> aweful lot of time optimizing without really getting anything back for
+> it.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- net/socket.c | 31 ++++++++++++++-----------------
- 1 file changed, 14 insertions(+), 17 deletions(-)
+It does add some extra instruction that may slow it down slightly, but I 
+don't agree that it gives nothing back. The cpu lock holder information 
+can be useful in analyzing crash dumps and in some debugging situation. 
+I think it can be useful in RHEL for this readon. How about an x86 
+config option to allow distros to decide if they want to have it 
+enabled? I will make sure that it will have no performance degradation 
+if the option is not enabled.
 
-diff --git a/net/socket.c b/net/socket.c
-index 49a6daf0293b83..b79376b17b45b7 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -2163,28 +2163,25 @@ static int __sys_getsockopt(int fd, int level, int optname,
- 	int max_optlen;
- 
- 	sock = sockfd_lookup_light(fd, &err, &fput_needed);
--	if (sock != NULL) {
--		err = security_socket_getsockopt(sock, level, optname);
--		if (err)
--			goto out_put;
-+	if (!sock)
-+		return err;
- 
--		max_optlen = BPF_CGROUP_GETSOCKOPT_MAX_OPTLEN(optlen);
-+	err = security_socket_getsockopt(sock, level, optname);
-+	if (err)
-+		goto out_put;
- 
--		if (level == SOL_SOCKET)
--			err =
--			    sock_getsockopt(sock, level, optname, optval,
-+	max_optlen = BPF_CGROUP_GETSOCKOPT_MAX_OPTLEN(optlen);
-+
-+	if (level == SOL_SOCKET)
-+		err = sock_getsockopt(sock, level, optname, optval, optlen);
-+	else
-+		err = sock->ops->getsockopt(sock, level, optname, optval,
- 					    optlen);
--		else
--			err =
--			    sock->ops->getsockopt(sock, level, optname, optval,
--						  optlen);
- 
--		err = BPF_CGROUP_RUN_PROG_GETSOCKOPT(sock->sk, level, optname,
--						     optval, optlen,
--						     max_optlen, err);
-+	err = BPF_CGROUP_RUN_PROG_GETSOCKOPT(sock->sk, level, optname, optval,
-+					     optlen, max_optlen, err);
- out_put:
--		fput_light(sock->file, fput_needed);
--	}
-+	fput_light(sock->file, fput_needed);
- 	return err;
- }
- 
--- 
-2.27.0
+Cheers,
+Longman
