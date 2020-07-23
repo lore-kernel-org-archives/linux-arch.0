@@ -1,42 +1,39 @@
-From: Sean Christopherson <sean.j.christopherson-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+From: Dave Hansen <dave.hansen@intel.com>
 Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
-Date: Thu, 23 Jul 2020 09:25:31 -0700
-Message-ID: <20200723162531.GF21891@linux.intel.com>
+Date: Thu, 23 Jul 2020 09:41:37 -0700
+Message-ID: <2e9806a3-7485-a0d0-b63d-f112fcff954c@intel.com>
 References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+ <20200723162531.GF21891@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20200429220732.31602-1-yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Yu-cheng Yu <yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Cc: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Balbir Singh <bsingharora-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Cyrill Gorcunov <gorcunov-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Eugene Syromiatnikov <esyr-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H.J. Lu" <hjl.tools-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Mike Kravetz <mike.kravetz-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Nadav Amit <nadav.amit-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20200723162531.GF21891@linux.intel.com>
+Content-Language: en-US
+Sender: linux-doc-owner@vger.kernel.org
+To: Sean Christopherson <sean.j.christopherson@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 29, 2020 at 03:07:06PM -0700, Yu-cheng Yu wrote:
-> Control-flow Enforcement (CET) is a new Intel processor feature that blocks
-> return/jump-oriented programming attacks.  Details can be found in "Intel
-> 64 and IA-32 Architectures Software Developer's Manual" [1].
+On 7/23/20 9:25 AM, Sean Christopherson wrote:
+> How would people feel about taking the above two patches (02 and 03 in the
+> series) through the KVM tree to enable KVM virtualization of CET before the
+> kernel itself gains CET support?  I.e. add the MSR and feature bits, along
+> with the XSAVES context switching.  The feature definitons could use "" to
+> suppress displaying them in /proc/cpuinfo to avoid falsely advertising CET
+> to userspace.
 > 
-> This series depends on the XSAVES supervisor state series that was split
-> out and submitted earlier [2].
+> AIUI, there are ABI issues that need to be sorted out, and that is likely
+> going to drag on for some time. 
+> 
+> Is this a "hell no" sort of idea, or something that would be feasible if we
+> can show that there are no negative impacts to the kernel?
 
-...
+Negative impacts like bloating every task->fpu with XSAVE state that
+will never get used? ;)
 
-> Yu-cheng Yu (25):
->   x86/cpufeatures: Add CET CPU feature flags for Control-flow
->     Enforcement Technology (CET)
->   x86/fpu/xstate: Introduce CET MSR XSAVES supervisor states
-
-How would people feel about taking the above two patches (02 and 03 in the
-series) through the KVM tree to enable KVM virtualization of CET before the
-kernel itself gains CET support?  I.e. add the MSR and feature bits, along
-with the XSAVES context switching.  The feature definitons could use "" to
-suppress displaying them in /proc/cpuinfo to avoid falsely advertising CET
-to userspace.
-
-AIUI, there are ABI issues that need to be sorted out, and that is likely
-going to drag on for some time. 
-
-Is this a "hell no" sort of idea, or something that would be feasible if we
-can show that there are no negative impacts to the kernel?
+I thought KVM had its own vcpu->arch.guest_fpu buffers which mirrored
+the size and format of task->fpu.  Can we have KVM support today without
+task->fpu support?  I see some XSS munging in the KVM code so I think
+this might be *possible*, but I don't see all of the plumbing that would
+make it actually work.
