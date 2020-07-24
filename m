@@ -1,236 +1,347 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39140 "EHLO
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38226 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733097AbgGVWL3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:29 -0400
-Message-ID: <20200722220519.723703209@linutronix.de>
-Date: Wed, 22 Jul 2020 23:59:58 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V5 04/15] entry: Provide generic interrupt entry/exit code
-References: <20200722215954.464281930@linutronix.de>
+        with ESMTP id S1726781AbgGXBZs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 21:25:48 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 08/20] alpha: propagate the calling convention changes down to csum_partial_copy.c helpers
+Date: Fri, 24 Jul 2020 02:25:34 +0100
+Message-ID: <20200724012546.302155-8-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
+References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
+ <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
-Message-ID: <20200722215958.kxD31Dj5I-mp4UqpKhov0BpOSH3Ws7SJVDBU1rVp5LI@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200724012534.wXpONbV2urzhAqQLXCjLA66SAsoiC2C1UNEdDTultK0@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-Like the syscall entry/exit code interrupt/exception entry after the real
-low level ASM bits should not be different accross architectures.
+get rid of set_fs() in csum_partial_copy_nocheck(), while we are at it -
+just take the part of csum_and_copy_from_user() sans the access_ok() check
+into a helper function and have csum_partial_copy_nocheck() call that.
 
-Provide a generic version based on the x86 code.
-
-irqentry_enter() is called after the low level entry code and
-irqentry_exit() must be invoked right before returning to the low level
-code which just contains the actual return logic. The code before
-irqentry_enter() and irqentry_exit() must not be instrumented. Code after
-irqentry_enter() and before irqentry_exit() can be instrumented.
-
-irqentry_enter() invokes irqentry_enter_from_user_mode() if the
-interrupt/exception came from user mode. If if entered from kernel mode it
-handles the kernel mode variant of establishing state for lockdep, RCU and
-tracing depending on the kernel context it interrupted (idle, non-idle).
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- include/linux/entry-common.h |   62 ++++++++++++++++++++++
- kernel/entry/common.c        |  117 +++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 179 insertions(+)
+ arch/alpha/lib/csum_partial_copy.c | 157 ++++++++++++++++---------------------
+ 1 file changed, 69 insertions(+), 88 deletions(-)
 
---- a/include/linux/entry-common.h
-+++ b/include/linux/entry-common.h
-@@ -307,4 +307,66 @@ void irqentry_enter_from_user_mode(struc
-  */
- void irqentry_exit_to_user_mode(struct pt_regs *regs);
+diff --git a/arch/alpha/lib/csum_partial_copy.c b/arch/alpha/lib/csum_partial_copy.c
+index 3c0e89c39ddb..dc68efbe9367 100644
+--- a/arch/alpha/lib/csum_partial_copy.c
++++ b/arch/alpha/lib/csum_partial_copy.c
+@@ -39,12 +39,11 @@ __asm__ __volatile__("insql %1,%2,%0":"=r" (z):"r" (x),"r" (y))
+ #define insqh(x,y,z) \
+ __asm__ __volatile__("insqh %1,%2,%0":"=r" (z):"r" (x),"r" (y))
  
-+#ifndef irqentry_state
-+typedef struct irqentry_state {
-+	bool	exit_rcu;
-+} irqentry_state_t;
-+#endif
-+
-+/**
-+ * irqentry_enter - Handle state tracking on ordinary interrupt entries
-+ * @regs:	Pointer to pt_regs of interrupted context
-+ *
-+ * Invokes:
-+ *  - lockdep irqflag state tracking as low level ASM entry disabled
-+ *    interrupts.
-+ *
-+ *  - Context tracking if the exception hit user mode.
-+ *
-+ *  - The hardirq tracer to keep the state consistent as low level ASM
-+ *    entry disabled interrupts.
-+ *
-+ * As a precondition, this requires that the entry came from user mode,
-+ * idle, or a kernel context in which RCU is watching.
-+ *
-+ * For kernel mode entries RCU handling is done conditional. If RCU is
-+ * watching then the only RCU requirement is to check whether the tick has
-+ * to be restarted. If RCU is not watching then rcu_irq_enter() has to be
-+ * invoked on entry and rcu_irq_exit() on exit.
-+ *
-+ * Avoiding the rcu_irq_enter/exit() calls is an optimization but also
-+ * solves the problem of kernel mode pagefaults which can schedule, which
-+ * is not possible after invoking rcu_irq_enter() without undoing it.
-+ *
-+ * For user mode entries irqentry_enter_from_user_mode() is invoked to
-+ * establish the proper context for NOHZ_FULL. Otherwise scheduling on exit
-+ * would not be possible.
-+ *
-+ * Returns: An opaque object that must be passed to idtentry_exit()
-+ */
-+irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs);
-+
-+/**
-+ * irqentry_exit_cond_resched - Conditionally reschedule on return from interrupt
-+ *
-+ * Conditional reschedule with additional sanity checks.
-+ */
-+void irqentry_exit_cond_resched(void);
-+
-+/**
-+ * irqentry_exit - Handle return from exception that used irqentry_enter()
-+ * @regs:	Pointer to pt_regs (exception entry regs)
-+ * @state:	Return value from matching call to irqentry_enter()
-+ *
-+ * Depending on the return target (kernel/user) this runs the necessary
-+ * preemption and work checks if possible and reguired and returns to
-+ * the caller with interrupts disabled and no further work pending.
-+ *
-+ * This is the last action before returning to the low level ASM code which
-+ * just needs to return to the appropriate context.
-+ *
-+ * Counterpart to irqentry_enter().
-+ */
-+void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state);
-+
- #endif
---- a/kernel/entry/common.c
-+++ b/kernel/entry/common.c
-@@ -255,3 +255,120 @@ noinstr void irqentry_exit_to_user_mode(
- 	instrumentation_end();
- 	exit_to_user_mode();
+-
+-#define __get_user_u(x,ptr)				\
++#define __get_word(insn,x,ptr)				\
+ ({							\
+ 	long __guu_err;					\
+ 	__asm__ __volatile__(				\
+-	"1:	ldq_u %0,%2\n"				\
++	"1:	"#insn" %0,%2\n"			\
+ 	"2:\n"						\
+ 	EXC(1b,2b,%0,%1)				\
+ 		: "=r"(x), "=r"(__guu_err)		\
+@@ -52,19 +51,6 @@ __asm__ __volatile__("insqh %1,%2,%0":"=r" (z):"r" (x),"r" (y))
+ 	__guu_err;					\
+ })
+ 
+-#define __put_user_u(x,ptr)				\
+-({							\
+-	long __puu_err;					\
+-	__asm__ __volatile__(				\
+-	"1:	stq_u %2,%1\n"				\
+-	"2:\n"						\
+-	EXC(1b,2b,$31,%0)				\
+-		: "=r"(__puu_err)			\
+-		: "m"(__m(addr)), "rJ"(x), "0"(0));	\
+-	__puu_err;					\
+-})
+-
+-
+ static inline unsigned short from64to16(unsigned long x)
+ {
+ 	/* Using extract instructions is a bit more efficient
+@@ -95,15 +81,15 @@ static inline unsigned short from64to16(unsigned long x)
+  */
+ static inline unsigned long
+ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
+-			 long len, unsigned long checksum,
+-			 int *errp)
++			 long len)
+ {
++	unsigned long checksum = ~0U;
+ 	unsigned long carry = 0;
+-	int err = 0;
+ 
+ 	while (len >= 0) {
+ 		unsigned long word;
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		checksum += carry;
+ 		src++;
+ 		checksum += word;
+@@ -116,7 +102,8 @@ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
+ 	checksum += carry;
+ 	if (len) {
+ 		unsigned long word, tmp;
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		tmp = *dst;
+ 		mskql(word, len, word);
+ 		checksum += word;
+@@ -125,7 +112,6 @@ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
+ 		*dst = word | tmp;
+ 		checksum += carry;
+ 	}
+-	if (err && errp) *errp = err;
+ 	return checksum;
  }
+ 
+@@ -137,20 +123,21 @@ static inline unsigned long
+ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
+ 			      unsigned long *dst,
+ 			      unsigned long soff,
+-			      long len, unsigned long checksum,
+-			      int *errp)
++			      long len)
+ {
+ 	unsigned long first;
+ 	unsigned long word, carry;
+ 	unsigned long lastsrc = 7+len+(unsigned long)src;
+-	int err = 0;
++	unsigned long checksum = ~0U;
+ 
+-	err |= __get_user_u(first,src);
++	if (__get_word(ldq_u, first,src))
++		return 0;
+ 	carry = 0;
+ 	while (len >= 0) {
+ 		unsigned long second;
+ 
+-		err |= __get_user_u(second, src+1);
++		if (__get_word(ldq_u, second, src+1))
++			return 0;
+ 		extql(first, soff, word);
+ 		len -= 8;
+ 		src++;
+@@ -168,7 +155,8 @@ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
+ 	if (len) {
+ 		unsigned long tmp;
+ 		unsigned long second;
+-		err |= __get_user_u(second, lastsrc);
++		if (__get_word(ldq_u, second, lastsrc))
++			return 0;
+ 		tmp = *dst;
+ 		extql(first, soff, word);
+ 		extqh(second, soff, first);
+@@ -180,7 +168,6 @@ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
+ 		*dst = word | tmp;
+ 		checksum += carry;
+ 	}
+-	if (err && errp) *errp = err;
+ 	return checksum;
+ }
+ 
+@@ -191,18 +178,18 @@ static inline unsigned long
+ csum_partial_cfu_src_aligned(const unsigned long __user *src,
+ 			     unsigned long *dst,
+ 			     unsigned long doff,
+-			     long len, unsigned long checksum,
+-			     unsigned long partial_dest,
+-			     int *errp)
++			     long len,
++			     unsigned long partial_dest)
+ {
+ 	unsigned long carry = 0;
+ 	unsigned long word;
+ 	unsigned long second_dest;
+-	int err = 0;
++	unsigned long checksum = ~0U;
+ 
+ 	mskql(partial_dest, doff, partial_dest);
+ 	while (len >= 0) {
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		len -= 8;
+ 		insql(word, doff, second_dest);
+ 		checksum += carry;
+@@ -216,7 +203,8 @@ csum_partial_cfu_src_aligned(const unsigned long __user *src,
+ 	len += 8;
+ 	if (len) {
+ 		checksum += carry;
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		mskql(word, len, word);
+ 		len -= 8;
+ 		checksum += word;
+@@ -237,7 +225,6 @@ csum_partial_cfu_src_aligned(const unsigned long __user *src,
+ 	stq_u(partial_dest | second_dest, dst);
+ out:
+ 	checksum += carry;
+-	if (err && errp) *errp = err;
+ 	return checksum;
+ }
+ 
+@@ -249,23 +236,23 @@ static inline unsigned long
+ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 			   unsigned long * dst,
+ 			   unsigned long soff, unsigned long doff,
+-			   long len, unsigned long checksum,
+-			   unsigned long partial_dest,
+-			   int *errp)
++			   long len, unsigned long partial_dest)
+ {
+ 	unsigned long carry = 0;
+ 	unsigned long first;
+ 	unsigned long lastsrc;
+-	int err = 0;
++	unsigned long checksum = ~0U;
+ 
+-	err |= __get_user_u(first, src);
++	if (__get_word(ldq_u, first, src))
++		return 0;
+ 	lastsrc = 7+len+(unsigned long)src;
+ 	mskql(partial_dest, doff, partial_dest);
+ 	while (len >= 0) {
+ 		unsigned long second, word;
+ 		unsigned long second_dest;
+ 
+-		err |= __get_user_u(second, src+1);
++		if (__get_word(ldq_u, second, src+1))
++			return 0;
+ 		extql(first, soff, word);
+ 		checksum += carry;
+ 		len -= 8;
+@@ -286,7 +273,8 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 		unsigned long second, word;
+ 		unsigned long second_dest;
+ 
+-		err |= __get_user_u(second, lastsrc);
++		if (__get_word(ldq_u, second, lastsrc))
++			return 0;
+ 		extql(first, soff, word);
+ 		extqh(second, soff, first);
+ 		word |= first;
+@@ -307,7 +295,8 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 		unsigned long second, word;
+ 		unsigned long second_dest;
+ 
+-		err |= __get_user_u(second, lastsrc);
++		if (__get_word(ldq_u, second, lastsrc))
++			return 0;
+ 		extql(first, soff, word);
+ 		extqh(second, soff, first);
+ 		word |= first;
+@@ -320,63 +309,55 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 		stq_u(partial_dest | word | second_dest, dst);
+ 		checksum += carry;
+ 	}
+-	if (err && errp) *errp = err;
+ 	return checksum;
+ }
+ 
+-__wsum
+-csum_and_copy_from_user(const void __user *src, void *dst, int len)
++static __wsum __csum_and_copy(const void __user *src, void *dst, int len)
+ {
+-	unsigned long checksum = ~0U;
+ 	unsigned long soff = 7 & (unsigned long) src;
+ 	unsigned long doff = 7 & (unsigned long) dst;
+-	int err = 0;
+-
+-	if (len) {
+-		if (!access_ok(src, len))
+-			return 0;
+-		if (!doff) {
+-			if (!soff)
+-				checksum = csum_partial_cfu_aligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					len-8, checksum, &err);
+-			else
+-				checksum = csum_partial_cfu_dest_aligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					soff, len-8, checksum, &err);
+-		} else {
+-			unsigned long partial_dest;
+-			ldq_u(partial_dest, dst);
+-			if (!soff)
+-				checksum = csum_partial_cfu_src_aligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					doff, len-8, checksum,
+-					partial_dest, &err);
+-			else
+-				checksum = csum_partial_cfu_unaligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					soff, doff, len-8, checksum,
+-					partial_dest, &err);
+-		}
+-		checksum = err ? 0 : from64to16 (checksum);
++	unsigned long checksum;
 +
-+irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs)
-+{
-+	irqentry_state_t ret = {
-+		.exit_rcu = false,
-+	};
-+
-+	if (user_mode(regs)) {
-+		irqentry_enter_from_user_mode(regs);
-+		return ret;
-+	}
-+
-+	/*
-+	 * If this entry hit the idle task invoke rcu_irq_enter() whether
-+	 * RCU is watching or not.
-+	 *
-+	 * Interupts can nest when the first interrupt invokes softirq
-+	 * processing on return which enables interrupts.
-+	 *
-+	 * Scheduler ticks in the idle task can mark quiescent state and
-+	 * terminate a grace period, if and only if the timer interrupt is
-+	 * not nested into another interrupt.
-+	 *
-+	 * Checking for __rcu_is_watching() here would prevent the nesting
-+	 * interrupt to invoke rcu_irq_enter(). If that nested interrupt is
-+	 * the tick then rcu_flavor_sched_clock_irq() would wrongfully
-+	 * assume that it is the first interupt and eventually claim
-+	 * quiescient state and end grace periods prematurely.
-+	 *
-+	 * Unconditionally invoke rcu_irq_enter() so RCU state stays
-+	 * consistent.
-+	 *
-+	 * TINY_RCU does not support EQS, so let the compiler eliminate
-+	 * this part when enabled.
-+	 */
-+	if (!IS_ENABLED(CONFIG_TINY_RCU) && is_idle_task(current)) {
-+		/*
-+		 * If RCU is not watching then the same careful
-+		 * sequence vs. lockdep and tracing is required
-+		 * as in irq_enter_from_user_mode().
-+		 */
-+		lockdep_hardirqs_off(CALLER_ADDR0);
-+		rcu_irq_enter();
-+		instrumentation_begin();
-+		trace_hardirqs_off_finish();
-+		instrumentation_end();
-+
-+		ret.exit_rcu = true;
-+		return ret;
-+	}
-+
-+	/*
-+	 * If RCU is watching then RCU only wants to check whether it needs
-+	 * to restart the tick in NOHZ mode. rcu_irq_enter_check_tick()
-+	 * already contains a warning when RCU is not watching, so no point
-+	 * in having another one here.
-+	 */
-+	instrumentation_begin();
-+	rcu_irq_enter_check_tick();
-+	/* Use the combo lockdep/tracing function */
-+	trace_hardirqs_off();
-+	instrumentation_end();
-+
-+	return ret;
-+}
-+
-+void irqentry_exit_cond_resched(void)
-+{
-+	if (!preempt_count()) {
-+		/* Sanity check RCU and thread stack */
-+		rcu_irq_exit_check_preempt();
-+		if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
-+			WARN_ON_ONCE(!on_thread_stack());
-+		if (need_resched())
-+			preempt_schedule_irq();
-+	}
-+}
-+
-+void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state)
-+{
-+	lockdep_assert_irqs_disabled();
-+
-+	/* Check whether this returns to user mode */
-+	if (user_mode(regs)) {
-+		irqentry_exit_to_user_mode(regs);
-+	} else if (!regs_irqs_disabled(regs)) {
-+		/*
-+		 * If RCU was not watching on entry this needs to be done
-+		 * carefully and needs the same ordering of lockdep/tracing
-+		 * and RCU as the return to user mode path.
-+		 */
-+		if (state.exit_rcu) {
-+			instrumentation_begin();
-+			/* Tell the tracer that IRET will enable interrupts */
-+			trace_hardirqs_on_prepare();
-+			lockdep_hardirqs_on_prepare(CALLER_ADDR0);
-+			instrumentation_end();
-+			rcu_irq_exit();
-+			lockdep_hardirqs_on(CALLER_ADDR0);
-+			return;
-+		}
-+
-+		instrumentation_begin();
-+		if (IS_ENABLED(CONFIG_PREEMPTION))
-+			irqentry_exit_cond_resched();
-+		/* Covers both tracing and lockdep */
-+		trace_hardirqs_on();
-+		instrumentation_end();
++	if (!doff) {
++		if (!soff)
++			checksum = csum_partial_cfu_aligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst, len-8);
++		else
++			checksum = csum_partial_cfu_dest_aligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst,
++				soff, len-8);
 +	} else {
-+		/*
-+		 * IRQ flags state is correct already. Just tell RCU if it
-+		 * was not watching on entry.
-+		 */
-+		if (state.exit_rcu)
-+			rcu_irq_exit();
-+	}
++		unsigned long partial_dest;
++		ldq_u(partial_dest, dst);
++		if (!soff)
++			checksum = csum_partial_cfu_src_aligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst,
++				doff, len-8, partial_dest);
++		else
++			checksum = csum_partial_cfu_unaligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst,
++				soff, doff, len-8, partial_dest);
+ 	}
+-	return (__force __wsum)checksum;
++	return (__force __wsum)from64to16 (checksum);
 +}
++
++__wsum
++csum_and_copy_from_user(const void __user *src, void *dst, int len)
++{
++	if (!access_ok(src, len))
++		return 0;
++	return __csum_and_copy(src, dst, len);
+ }
+ EXPORT_SYMBOL(csum_and_copy_from_user);
+ 
+ __wsum
+ csum_partial_copy_nocheck(const void *src, void *dst, int len)
+ {
+-	__wsum checksum;
+-	mm_segment_t oldfs = get_fs();
+-	set_fs(KERNEL_DS);
+-	checksum = csum_and_copy_from_user((__force const void __user *)src,
++	return __csum_and_copy((__force const void __user *)src,
+ 						dst, len);
+-	set_fs(oldfs);
+-	return checksum;
+ }
+ EXPORT_SYMBOL(csum_partial_copy_nocheck);
+-- 
+2.11.0
