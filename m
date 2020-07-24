@@ -1,51 +1,54 @@
-Return-Path: <SRS0=4doj=BL=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43608 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728152AbgHABOp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 Jul 2020 21:14:45 -0400
-From: guoren@kernel.org
-Subject: [PATCH 04/13] csky: Fixup duplicated restore sp in RESTORE_REGS_FTRACE
-Date: Sat,  1 Aug 2020 01:14:04 +0000
-Message-ID: <1596244453-98575-5-git-send-email-guoren@kernel.org>
-In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
-References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35360 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726643AbgGXNPN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 09:15:13 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH v4 6/6] powerpc: implement smp_cond_load_relaxed
+Date: Fri, 24 Jul 2020 23:14:23 +1000
+Message-ID: <20200724131423.1362108-7-npiggin@gmail.com>
+In-Reply-To: <20200724131423.1362108-1-npiggin@gmail.com>
+References: <20200724131423.1362108-1-npiggin@gmail.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: guoren@kernel.org, arnd@arndb.de
-Cc: linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
-Message-ID: <20200801011404.JyIovGrzcJZdBfEWZ17GI58TrZkLNZ80dykKnMqKtJ0@z>
+To: linuxppc-dev@lists.ozlabs.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, =?UTF-8?q?Michal=20Such=C3=A1nek?= <msuchanek@suse.de>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200724131423.vLgRNufidJDEIKTXl1Kqf-C6LTg1uGhzjIc3taEct2s@z>
 
-From: Guo Ren <guoren@linux.alibaba.com>
+This implements smp_cond_load_relaed with the slowpath busy loop using the
+preferred SMT priority pattern.
 
-There is no user return for RESTORE_REGS_FTRACE, so it's no need to
-save sp into ss0 as RESTORE_REGS_ALL.
-
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/csky/abiv2/inc/abi/entry.h | 3 ---
- 1 file changed, 3 deletions(-)
+ arch/powerpc/include/asm/barrier.h | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
 
-diff --git a/arch/csky/abiv2/inc/abi/entry.h b/arch/csky/abiv2/inc/abi/entry.h
-index 4fdd6c1..bedcc6f 100644
---- a/arch/csky/abiv2/inc/abi/entry.h
-+++ b/arch/csky/abiv2/inc/abi/entry.h
-@@ -136,8 +136,6 @@
+diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
+index 123adcefd40f..9b4671d38674 100644
+--- a/arch/powerpc/include/asm/barrier.h
++++ b/arch/powerpc/include/asm/barrier.h
+@@ -76,6 +76,20 @@ do {									\
+ 	___p1;								\
+ })
  
- .macro	RESTORE_REGS_FTRACE
- 	ldw	tls, (sp, 0)
--	ldw	a0, (sp, 16)
--	mtcr	a0, ss0
- 
- #ifdef CONFIG_CPU_HAS_HILO
- 	ldw	a0, (sp, 140)
-@@ -158,7 +156,6 @@
- 	addi    sp, 40
- 	ldm     r16-r30, (sp)
- 	addi    sp, 72
--	mfcr	sp, ss0
- .endm
- 
- .macro SAVE_SWITCH_STACK
++#define smp_cond_load_relaxed(ptr, cond_expr) ({		\
++	typeof(ptr) __PTR = (ptr);				\
++	__unqual_scalar_typeof(*ptr) VAL;			\
++	VAL = READ_ONCE(*__PTR);				\
++	if (unlikely(!(cond_expr))) {				\
++		spin_begin();					\
++		do {						\
++			VAL = READ_ONCE(*__PTR);		\
++		} while (!(cond_expr));				\
++		spin_end();					\
++	}							\
++	(typeof(*ptr))VAL;					\
++})
++
+ #ifdef CONFIG_PPC_BOOK3S_64
+ #define NOSPEC_BARRIER_SLOT   nop
+ #elif defined(CONFIG_PPC_FSL_BOOK3E)
 -- 
-2.7.4
+2.23.0
