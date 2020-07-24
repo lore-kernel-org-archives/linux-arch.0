@@ -1,54 +1,31 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [patch V5 13/15] x86/entry: Use generic interrupt entry/exit code
-Date: Fri, 24 Jul 2020 16:28:48 +0200
-Message-ID: <20200724142848.GB651711@gmail.com>
-References: <20200722215954.464281930@linutronix.de>
- <20200722220520.711492752@linutronix.de>
+From: "CHRISTOPHER WANG" <christopherwang36@gmail.com>
+Subject: INVESTMENT
+Date: Fri, 24 Jul 2020 08:23:40 -0700
+Message-ID: <WIN-DAONO245HJF1sXi008ef8fb__18823.2192582049$1595604576$gmane$org@WIN-DAONO245HJF>
+Reply-To: <christopherwang36@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+        charset="Windows-1251"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46874 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726317AbgGXO2w (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 10:28:52 -0400
-Content-Disposition: inline
-In-Reply-To: <20200722220520.711492752@linutronix.de>
+Received: from [125.140.134.231] ([125.140.134.231]:53505 "EHLO
+        WIN-DAONO245HJF" rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1726643AbgGXP3Y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 11:29:24 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
 
 
-* Thomas Gleixner <tglx@linutronix.de> wrote:
 
-> From: Thomas Gleixner <tglx@linutronix.de>
-> 
-> Replace the x86 code with the generic variant. Use temporary defines for
-> idtentry_* which will be cleaned up in the next step.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Good day,
 
-There was a comment that still referenced the old x86-specific API 
-names - the patch below updates them.
+You were recommended by a mutual associate. I write you regarding an investment of bearer bonds I made on behalf of a client. 
 
-Thanks,
-
-	Ingo
-
-====
- arch/x86/include/asm/idtentry.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/x86/include/asm/idtentry.h b/arch/x86/include/asm/idtentry.h
-index 73eb277e63ab..a9fb57f06d39 100644
---- a/arch/x86/include/asm/idtentry.h
-+++ b/arch/x86/include/asm/idtentry.h
-@@ -128,7 +128,7 @@ static __always_inline void __##func(struct pt_regs *regs,		\
-  * body with a pair of curly brackets.
-  *
-  * Contrary to DEFINE_IDTENTRY() this does not invoke the
-- * idtentry_enter/exit() helpers before and after the body invocation. This
-+ * irqentry_enter/exit() helpers before and after the body invocation. This
-  * needs to be done in the body itself if applicable. Use if extra work
-  * is required before the enter/exit() helpers are invoked.
-  */
+       The investment was made in 2009 and has been under my management. The said investor is deceased. The window is now available to assign these bonds to any name or company of my choice. I have all the necessary information to achieve this within 10 banking days.
+      
+       The total value of the bond is 100million pounds sterling, in a million pound denominations.
+      
+        If you can handle this, do contact me at your earliest convenience via my email christopherwang36@gmail.com
+So we can discuss the final details Thank you.
+ 
+Mr CHRISTOPHER WANG
