@@ -1,106 +1,74 @@
 From: Marco Elver <elver@google.com>
-Subject: [PATCH v2 4/8] kcsan: Add missing CONFIG_KCSAN_IGNORE_ATOMICS checks
-Date: Fri, 24 Jul 2020 09:00:04 +0200
-Message-ID: <20200724070008.1389205-5-elver@google.com>
+Subject: [PATCH v2 3/8] kcsan: Skew delay to be longer for certain access types
+Date: Fri, 24 Jul 2020 09:00:03 +0200
+Message-ID: <20200724070008.1389205-4-elver@google.com>
 References: <20200724070008.1389205-1-elver@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33486 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726962AbgGXHAc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 03:00:32 -0400
-Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 56A3AC0619D3
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:32 -0700 (PDT)
-Received: by mail-yb1-xb4a.google.com with SMTP id k75so9278909ybf.19
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:32 -0700 (PDT)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200724070008.1389205-1-elver@google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: elver@google.com, paulmck@kernel.org
 Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Add missing CONFIG_KCSAN_IGNORE_ATOMICS checks for the builtin atomics
-instrumentation.
+For compound instrumentation and assert accesses, skew the watchpoint
+delay to be longer if randomized. This is useful to improve race
+detection for such accesses.
+
+For compound accesses we should increase the delay as we've aggregated
+both read and write instrumentation. By giving up 1 call into the
+runtime, we're less likely to set up a watchpoint and thus less likely
+to detect a race. We can balance this by increasing the watchpoint
+delay.
+
+For assert accesses, we know these are of increased interest, and we
+wish to increase our chances of detecting races for such checks.
+
+Note that, kcsan_udelay_{task,interrupt} define the upper bound delays.
+When randomized, delays are uniformly distributed between [0, delay].
+Skewing the delay does not break this promise as long as the defined
+upper bounds are still adhered to. The current skew results in delays
+uniformly distributed between [delay/2, delay].
 
 Signed-off-by: Marco Elver <elver@google.com>
 ---
 v2:
-* Add {} for readability.
-
-Added to this series, as it would otherwise cause patch conflicts.
+* Commit message rewording.
 ---
- kernel/kcsan/core.c | 30 ++++++++++++++++++++++--------
- 1 file changed, 22 insertions(+), 8 deletions(-)
+ kernel/kcsan/core.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
 diff --git a/kernel/kcsan/core.c b/kernel/kcsan/core.c
-index 4633baebf84e..e43a55643e00 100644
+index fb52de2facf3..4633baebf84e 100644
 --- a/kernel/kcsan/core.c
 +++ b/kernel/kcsan/core.c
-@@ -892,14 +892,19 @@ EXPORT_SYMBOL(__tsan_init);
- 	u##bits __tsan_atomic##bits##_load(const u##bits *ptr, int memorder);                      \
- 	u##bits __tsan_atomic##bits##_load(const u##bits *ptr, int memorder)                       \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_ATOMIC);                      \
-+		if (!IS_ENABLED(CONFIG_KCSAN_IGNORE_ATOMICS)) {                                    \
-+			check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_ATOMIC);              \
-+		}                                                                                  \
- 		return __atomic_load_n(ptr, memorder);                                             \
- 	}                                                                                          \
- 	EXPORT_SYMBOL(__tsan_atomic##bits##_load);                                                 \
- 	void __tsan_atomic##bits##_store(u##bits *ptr, u##bits v, int memorder);                   \
- 	void __tsan_atomic##bits##_store(u##bits *ptr, u##bits v, int memorder)                    \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC); \
-+		if (!IS_ENABLED(CONFIG_KCSAN_IGNORE_ATOMICS)) {                                    \
-+			check_access(ptr, bits / BITS_PER_BYTE,                                    \
-+				     KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);                    \
-+		}                                                                                  \
- 		__atomic_store_n(ptr, v, memorder);                                                \
- 	}                                                                                          \
- 	EXPORT_SYMBOL(__tsan_atomic##bits##_store)
-@@ -908,8 +913,11 @@ EXPORT_SYMBOL(__tsan_init);
- 	u##bits __tsan_atomic##bits##_##op(u##bits *ptr, u##bits v, int memorder);                 \
- 	u##bits __tsan_atomic##bits##_##op(u##bits *ptr, u##bits v, int memorder)                  \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE,                                            \
--			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
-+		if (!IS_ENABLED(CONFIG_KCSAN_IGNORE_ATOMICS)) {                                    \
-+			check_access(ptr, bits / BITS_PER_BYTE,                                    \
-+				     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE |                  \
-+					     KCSAN_ACCESS_ATOMIC);                                 \
-+		}                                                                                  \
- 		return __atomic_##op##suffix(ptr, v, memorder);                                    \
- 	}                                                                                          \
- 	EXPORT_SYMBOL(__tsan_atomic##bits##_##op)
-@@ -937,8 +945,11 @@ EXPORT_SYMBOL(__tsan_init);
- 	int __tsan_atomic##bits##_compare_exchange_##strength(u##bits *ptr, u##bits *exp,          \
- 							      u##bits val, int mo, int fail_mo)    \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE,                                            \
--			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
-+		if (!IS_ENABLED(CONFIG_KCSAN_IGNORE_ATOMICS)) {                                    \
-+			check_access(ptr, bits / BITS_PER_BYTE,                                    \
-+				     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE |                  \
-+					     KCSAN_ACCESS_ATOMIC);                                 \
-+		}                                                                                  \
- 		return __atomic_compare_exchange_n(ptr, exp, val, weak, mo, fail_mo);              \
- 	}                                                                                          \
- 	EXPORT_SYMBOL(__tsan_atomic##bits##_compare_exchange_##strength)
-@@ -949,8 +960,11 @@ EXPORT_SYMBOL(__tsan_init);
- 	u##bits __tsan_atomic##bits##_compare_exchange_val(u##bits *ptr, u##bits exp, u##bits val, \
- 							   int mo, int fail_mo)                    \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE,                                            \
--			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
-+		if (!IS_ENABLED(CONFIG_KCSAN_IGNORE_ATOMICS)) {                                    \
-+			check_access(ptr, bits / BITS_PER_BYTE,                                    \
-+				     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE |                  \
-+					     KCSAN_ACCESS_ATOMIC);                                 \
-+		}                                                                                  \
- 		__atomic_compare_exchange_n(ptr, &exp, val, 0, mo, fail_mo);                       \
- 		return exp;                                                                        \
- 	}                                                                                          \
+@@ -283,11 +283,15 @@ static __always_inline bool kcsan_is_enabled(void)
+ 	return READ_ONCE(kcsan_enabled) && get_ctx()->disable_count == 0;
+ }
+ 
+-static inline unsigned int get_delay(void)
++static inline unsigned int get_delay(int type)
+ {
+ 	unsigned int delay = in_task() ? kcsan_udelay_task : kcsan_udelay_interrupt;
++	/* For certain access types, skew the random delay to be longer. */
++	unsigned int skew_delay_order =
++		(type & (KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_ASSERT)) ? 1 : 0;
++
+ 	return delay - (IS_ENABLED(CONFIG_KCSAN_DELAY_RANDOMIZE) ?
+-				prandom_u32_max(delay) :
++				prandom_u32_max(delay >> skew_delay_order) :
+ 				0);
+ }
+ 
+@@ -449,7 +453,7 @@ kcsan_setup_watchpoint(const volatile void *ptr, size_t size, int type)
+ 	 * Delay this thread, to increase probability of observing a racy
+ 	 * conflicting access.
+ 	 */
+-	udelay(get_delay());
++	udelay(get_delay(type));
+ 
+ 	/*
+ 	 * Re-read value, and check if it is as expected; if not, we infer a
 -- 
 2.28.0.rc0.142.g3c755180ce-goog
