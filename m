@@ -1,65 +1,274 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53514 "EHLO
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35326 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730281AbgGUUZv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 16:25:51 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 04/18] csum_and_copy_..._user(): pass 0xffffffff instead of 0 as initial sum
-Date: Tue, 21 Jul 2020 21:25:35 +0100
-Message-ID: <20200721202549.4150745-4-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
-References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
- <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
+        with ESMTP id S1726643AbgGXNPB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 09:15:01 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH v4 4/6] powerpc/pseries: implement paravirt qspinlocks for SPLPAR
+Date: Fri, 24 Jul 2020 23:14:21 +1000
+Message-ID: <20200724131423.1362108-5-npiggin@gmail.com>
+In-Reply-To: <20200724131423.1362108-1-npiggin@gmail.com>
+References: <20200724131423.1362108-1-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200721202535.gv2g8we31og9rSHY2TR9J6Si0JtMW8IBmXL5cnOyD3g@z>
+To: linuxppc-dev@lists.ozlabs.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, =?UTF-8?q?Michal=20Such=C3=A1nek?= <msuchanek@suse.de>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200724131421.Doujr1NS3q7TPPYejsiUKJ6SXBQWFCNG4z-SZpZTIQI@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+This implements the generic paravirt qspinlocks using H_PROD and H_CONFER to
+kick and wait.
 
-Preparation for the change of calling conventions; right now all
-callers pass 0 as initial sum.  Passing 0xffffffff instead yields
-the values comparable mod 0xffff and guarantees that 0 will not
-be returned on success.
+This uses an un-directed yield to any CPU rather than the directed yield to
+a pre-empted lock holder that paravirtualised simple spinlocks use, that
+requires no kick hcall. This is something that could be investigated and
+improved in future.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+Performance results can be found in the commit which added queued spinlocks.
+
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Acked-by: Waiman Long <longman@redhat.com>
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- lib/iov_iter.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/powerpc/include/asm/paravirt.h           | 28 ++++++++
+ arch/powerpc/include/asm/qspinlock.h          | 66 +++++++++++++++++++
+ arch/powerpc/include/asm/qspinlock_paravirt.h |  7 ++
+ arch/powerpc/include/asm/spinlock.h           |  4 ++
+ arch/powerpc/platforms/pseries/Kconfig        |  9 ++-
+ arch/powerpc/platforms/pseries/setup.c        |  4 +-
+ include/asm-generic/qspinlock.h               |  2 +
+ 7 files changed, 118 insertions(+), 2 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/qspinlock_paravirt.h
 
-diff --git a/lib/iov_iter.c b/lib/iov_iter.c
-index 7405922caaec..d5b7e204fea6 100644
---- a/lib/iov_iter.c
-+++ b/lib/iov_iter.c
-@@ -1451,7 +1451,7 @@ size_t csum_and_copy_from_iter(void *addr, size_t bytes, __wsum *csum,
- 		int err = 0;
- 		next = csum_and_copy_from_user(v.iov_base,
- 					       (to += v.iov_len) - v.iov_len,
--					       v.iov_len, 0, &err);
-+					       v.iov_len, ~0U, &err);
- 		if (!err) {
- 			sum = csum_block_add(sum, next, off);
- 			off += v.iov_len;
-@@ -1493,7 +1493,7 @@ bool csum_and_copy_from_iter_full(void *addr, size_t bytes, __wsum *csum,
- 		int err = 0;
- 		next = csum_and_copy_from_user(v.iov_base,
- 					       (to += v.iov_len) - v.iov_len,
--					       v.iov_len, 0, &err);
-+					       v.iov_len, ~0U, &err);
- 		if (err)
- 			return false;
- 		sum = csum_block_add(sum, next, off);
-@@ -1539,7 +1539,7 @@ size_t csum_and_copy_to_iter(const void *addr, size_t bytes, void *csump,
- 		int err = 0;
- 		next = csum_and_copy_to_user((from += v.iov_len) - v.iov_len,
- 					     v.iov_base,
--					     v.iov_len, 0, &err);
-+					     v.iov_len, ~0U, &err);
- 		if (!err) {
- 			sum = csum_block_add(sum, next, off);
- 			off += v.iov_len;
+diff --git a/arch/powerpc/include/asm/paravirt.h b/arch/powerpc/include/asm/paravirt.h
+index 339e8533464b..21e5f29ca251 100644
+--- a/arch/powerpc/include/asm/paravirt.h
++++ b/arch/powerpc/include/asm/paravirt.h
+@@ -28,6 +28,16 @@ static inline void yield_to_preempted(int cpu, u32 yield_count)
+ {
+ 	plpar_hcall_norets(H_CONFER, get_hard_smp_processor_id(cpu), yield_count);
+ }
++
++static inline void prod_cpu(int cpu)
++{
++	plpar_hcall_norets(H_PROD, get_hard_smp_processor_id(cpu));
++}
++
++static inline void yield_to_any(void)
++{
++	plpar_hcall_norets(H_CONFER, -1, 0);
++}
+ #else
+ static inline bool is_shared_processor(void)
+ {
+@@ -44,6 +54,19 @@ static inline void yield_to_preempted(int cpu, u32 yield_count)
+ {
+ 	___bad_yield_to_preempted(); /* This would be a bug */
+ }
++
++extern void ___bad_yield_to_any(void);
++static inline void yield_to_any(void)
++{
++	___bad_yield_to_any(); /* This would be a bug */
++}
++
++extern void ___bad_prod_cpu(void);
++static inline void prod_cpu(int cpu)
++{
++	___bad_prod_cpu(); /* This would be a bug */
++}
++
+ #endif
+ 
+ #define vcpu_is_preempted vcpu_is_preempted
+@@ -56,4 +79,9 @@ static inline bool vcpu_is_preempted(int cpu)
+ 	return false;
+ }
+ 
++static inline bool pv_is_native_spin_unlock(void)
++{
++     return !is_shared_processor();
++}
++
+ #endif /* _ASM_POWERPC_PARAVIRT_H */
+diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include/asm/qspinlock.h
+index c49e33e24edd..f5066f00a08c 100644
+--- a/arch/powerpc/include/asm/qspinlock.h
++++ b/arch/powerpc/include/asm/qspinlock.h
+@@ -3,9 +3,47 @@
+ #define _ASM_POWERPC_QSPINLOCK_H
+ 
+ #include <asm-generic/qspinlock_types.h>
++#include <asm/paravirt.h>
+ 
+ #define _Q_PENDING_LOOPS	(1 << 9) /* not tuned */
+ 
++#ifdef CONFIG_PARAVIRT_SPINLOCKS
++extern void native_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
++extern void __pv_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
++extern void __pv_queued_spin_unlock(struct qspinlock *lock);
++
++static __always_inline void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
++{
++	if (!is_shared_processor())
++		native_queued_spin_lock_slowpath(lock, val);
++	else
++		__pv_queued_spin_lock_slowpath(lock, val);
++}
++
++#define queued_spin_unlock queued_spin_unlock
++static inline void queued_spin_unlock(struct qspinlock *lock)
++{
++	if (!is_shared_processor())
++		smp_store_release(&lock->locked, 0);
++	else
++		__pv_queued_spin_unlock(lock);
++}
++
++#else
++extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
++#endif
++
++static __always_inline void queued_spin_lock(struct qspinlock *lock)
++{
++	u32 val = 0;
++
++	if (likely(atomic_try_cmpxchg_acquire(&lock->val, &val, _Q_LOCKED_VAL)))
++		return;
++
++	queued_spin_lock_slowpath(lock, val);
++}
++#define queued_spin_lock queued_spin_lock
++
+ #define smp_mb__after_spinlock()   smp_mb()
+ 
+ static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
+@@ -20,6 +58,34 @@ static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
+ }
+ #define queued_spin_is_locked queued_spin_is_locked
+ 
++#ifdef CONFIG_PARAVIRT_SPINLOCKS
++#define SPIN_THRESHOLD (1<<15) /* not tuned */
++
++static __always_inline void pv_wait(u8 *ptr, u8 val)
++{
++	if (*ptr != val)
++		return;
++	yield_to_any();
++	/*
++	 * We could pass in a CPU here if waiting in the queue and yield to
++	 * the previous CPU in the queue.
++	 */
++}
++
++static __always_inline void pv_kick(int cpu)
++{
++	prod_cpu(cpu);
++}
++
++extern void __pv_init_lock_hash(void);
++
++static inline void pv_spinlocks_init(void)
++{
++	__pv_init_lock_hash();
++}
++
++#endif
++
+ #include <asm-generic/qspinlock.h>
+ 
+ #endif /* _ASM_POWERPC_QSPINLOCK_H */
+diff --git a/arch/powerpc/include/asm/qspinlock_paravirt.h b/arch/powerpc/include/asm/qspinlock_paravirt.h
+new file mode 100644
+index 000000000000..6b60e7736a47
+--- /dev/null
++++ b/arch/powerpc/include/asm/qspinlock_paravirt.h
+@@ -0,0 +1,7 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++#ifndef _ASM_POWERPC_QSPINLOCK_PARAVIRT_H
++#define _ASM_POWERPC_QSPINLOCK_PARAVIRT_H
++
++EXPORT_SYMBOL(__pv_queued_spin_unlock);
++
++#endif /* _ASM_POWERPC_QSPINLOCK_PARAVIRT_H */
+diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
+index 434615f1d761..6ec72282888d 100644
+--- a/arch/powerpc/include/asm/spinlock.h
++++ b/arch/powerpc/include/asm/spinlock.h
+@@ -10,5 +10,9 @@
+ #include <asm/simple_spinlock.h>
+ #endif
+ 
++#ifndef CONFIG_PARAVIRT_SPINLOCKS
++static inline void pv_spinlocks_init(void) { }
++#endif
++
+ #endif /* __KERNEL__ */
+ #endif /* __ASM_SPINLOCK_H */
+diff --git a/arch/powerpc/platforms/pseries/Kconfig b/arch/powerpc/platforms/pseries/Kconfig
+index 24c18362e5ea..5e037df2a3a1 100644
+--- a/arch/powerpc/platforms/pseries/Kconfig
++++ b/arch/powerpc/platforms/pseries/Kconfig
+@@ -25,15 +25,22 @@ config PPC_PSERIES
+ 	select SWIOTLB
+ 	default y
+ 
++config PARAVIRT_SPINLOCKS
++	bool
++
+ config PPC_SPLPAR
+-	depends on PPC_PSERIES
+ 	bool "Support for shared-processor logical partitions"
++	depends on PPC_PSERIES
++	select PARAVIRT_SPINLOCKS if PPC_QUEUED_SPINLOCKS
++	default y
+ 	help
+ 	  Enabling this option will make the kernel run more efficiently
+ 	  on logically-partitioned pSeries systems which use shared
+ 	  processors, that is, which share physical processors between
+ 	  two or more partitions.
+ 
++	  Say Y if you are unsure.
++
+ config DTL
+ 	bool "Dispatch Trace Log"
+ 	depends on PPC_SPLPAR && DEBUG_FS
+diff --git a/arch/powerpc/platforms/pseries/setup.c b/arch/powerpc/platforms/pseries/setup.c
+index 2db8469e475f..fa847d1f9d54 100644
+--- a/arch/powerpc/platforms/pseries/setup.c
++++ b/arch/powerpc/platforms/pseries/setup.c
+@@ -771,8 +771,10 @@ static void __init pSeries_setup_arch(void)
+ 	if (firmware_has_feature(FW_FEATURE_LPAR)) {
+ 		vpa_init(boot_cpuid);
+ 
+-		if (lppaca_shared_proc(get_lppaca()))
++		if (lppaca_shared_proc(get_lppaca())) {
+ 			static_branch_enable(&shared_processor);
++			pv_spinlocks_init();
++		}
+ 
+ 		ppc_md.power_save = pseries_lpar_idle;
+ 		ppc_md.enable_pmcs = pseries_lpar_enable_pmcs;
+diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
+index fb0a814d4395..38ca14e79a86 100644
+--- a/include/asm-generic/qspinlock.h
++++ b/include/asm-generic/qspinlock.h
+@@ -69,6 +69,7 @@ static __always_inline int queued_spin_trylock(struct qspinlock *lock)
+ 
+ extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+ 
++#ifndef queued_spin_lock
+ /**
+  * queued_spin_lock - acquire a queued spinlock
+  * @lock: Pointer to queued spinlock structure
+@@ -82,6 +83,7 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
+ 
+ 	queued_spin_lock_slowpath(lock, val);
+ }
++#endif
+ 
+ #ifndef queued_spin_unlock
+ /**
 -- 
-2.11.0
+2.23.0
