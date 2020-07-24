@@ -1,146 +1,65 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:38516 "EHLO mga12.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726938AbgGQRAq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Jul 2020 13:00:46 -0400
-From: Kristen Carlson Accardi <kristen@linux.intel.com>
-Subject: [PATCH v4 04/10] x86: Makefile: Add build and config option for CONFIG_FG_KASLR
-Date: Fri, 17 Jul 2020 10:00:01 -0700
-Message-ID: <20200717170008.5949-5-kristen@linux.intel.com>
-In-Reply-To: <20200717170008.5949-1-kristen@linux.intel.com>
-References: <20200717170008.5949-1-kristen@linux.intel.com>
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38248 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726980AbgGXBZx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 21:25:53 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 15/20] mips: __csum_partial_copy_kernel() has no users left
+Date: Fri, 24 Jul 2020 02:25:41 +0100
+Message-ID: <20200724012546.302155-15-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
+References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
+ <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: keescook@chromium.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: arjan@linux.intel.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, rick.p.edgecombe@intel.com, Kristen Carlson Accardi <kristen@linux.intel.com>, Tony Luck <tony.luck@intel.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200717170001.VD0_90EFN-jCe4kVV4Ih-CC5LvNSucpSEF6FoSTxg-o@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200724012541.hj6xFfzeJ4oIquOTdLf2GGgzValirXaOK6-khDuSTvs@z>
 
-Allow user to select CONFIG_FG_KASLR if dependencies are met. Change
-the make file to build with -ffunction-sections if CONFIG_FG_KASLR.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-While the only architecture that supports CONFIG_FG_KASLR does not
-currently enable HAVE_LD_DEAD_CODE_DATA_ELIMINATION, make sure these
-2 features play nicely together for the future by ensuring that if
-CONFIG_LD_DEAD_CODE_DATA_ELIMINATION is selected when used with
-CONFIG_FG_KASLR the function sections will not be consolidated back
-into .text. Thanks to Kees Cook for the dead code elimination changes.
-
-Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
-Reviewed-by: Tony Luck <tony.luck@intel.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Tested-by: Tony Luck <tony.luck@intel.com>
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- Makefile                          |  6 +++++-
- arch/x86/Kconfig                  |  4 ++++
- include/asm-generic/vmlinux.lds.h | 16 ++++++++++++++--
- init/Kconfig                      | 14 ++++++++++++++
- 4 files changed, 37 insertions(+), 3 deletions(-)
+ arch/mips/include/asm/checksum.h | 3 ---
+ arch/mips/lib/csum_partial.S     | 3 ---
+ 2 files changed, 6 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index 0b5f8538bde5..66427b12de53 100644
---- a/Makefile
-+++ b/Makefile
-@@ -872,7 +872,7 @@ KBUILD_CFLAGS += $(call cc-option, -fno-inline-functions-called-once)
- endif
- 
- ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
--KBUILD_CFLAGS_KERNEL += -ffunction-sections -fdata-sections
-+KBUILD_CFLAGS_KERNEL += -fdata-sections
- LDFLAGS_vmlinux += --gc-sections
- endif
- 
-@@ -880,6 +880,10 @@ ifdef CONFIG_LIVEPATCH
- KBUILD_CFLAGS += $(call cc-option, -flive-patching=inline-clone)
- endif
- 
-+ifneq ($(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION)$(CONFIG_FG_KASLR),)
-+KBUILD_CFLAGS += -ffunction-sections
-+endif
-+
- ifdef CONFIG_SHADOW_CALL_STACK
- CC_FLAGS_SCS	:= -fsanitize=shadow-call-stack
- KBUILD_CFLAGS	+= $(CC_FLAGS_SCS)
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 883da0abf779..e7a2db3e270d 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -372,6 +372,10 @@ config CC_HAS_SANE_STACKPROTECTOR
- 	   We have to make sure stack protector is unconditionally disabled if
- 	   the compiler produces broken code.
- 
-+config ARCH_HAS_FG_KASLR
-+	def_bool y
-+	depends on RANDOMIZE_BASE && X86_64
-+
- menu "Processor type and features"
- 
- config ZONE_DMA
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index db600ef218d7..a5552cf28d5d 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -93,14 +93,12 @@
-  * sections to be brought in with rodata.
+diff --git a/arch/mips/include/asm/checksum.h b/arch/mips/include/asm/checksum.h
+index 5cf4ce11c821..a8ff9c306363 100644
+--- a/arch/mips/include/asm/checksum.h
++++ b/arch/mips/include/asm/checksum.h
+@@ -34,9 +34,6 @@
   */
- #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
--#define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
- #define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX*
- #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
- #define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]*
- #define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
- #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
- #else
--#define TEXT_MAIN .text
- #define DATA_MAIN .data
- #define SDATA_MAIN .sdata
- #define RODATA_MAIN .rodata
-@@ -108,6 +106,20 @@
- #define SBSS_MAIN .sbss
+ __wsum csum_partial(const void *buff, int len, __wsum sum);
+ 
+-__wsum __csum_partial_copy_kernel(const void *src, void *dst,
+-				  int len, __wsum sum, int *err_ptr);
+-
+ __wsum __csum_partial_copy_from_user(const void *src, void *dst,
+ 				     int len, __wsum sum, int *err_ptr);
+ __wsum __csum_partial_copy_to_user(const void *src, void *dst,
+diff --git a/arch/mips/lib/csum_partial.S b/arch/mips/lib/csum_partial.S
+index 8d70855b0914..983e909c2052 100644
+--- a/arch/mips/lib/csum_partial.S
++++ b/arch/mips/lib/csum_partial.S
+@@ -827,8 +827,6 @@ EXPORT_SYMBOL(csum_partial)
+ 	.set	pop
+ 	.endm
+ 
+-LEAF(__csum_partial_copy_kernel)
+-EXPORT_SYMBOL(__csum_partial_copy_kernel)
+ #ifndef CONFIG_EVA
+ FEXPORT(__csum_partial_copy_to_user)
+ EXPORT_SYMBOL(__csum_partial_copy_to_user)
+@@ -836,7 +834,6 @@ FEXPORT(__csum_partial_copy_from_user)
+ EXPORT_SYMBOL(__csum_partial_copy_from_user)
  #endif
+ __BUILD_CSUM_PARTIAL_COPY_USER LEGACY_MODE USEROP USEROP 1
+-END(__csum_partial_copy_kernel)
  
-+/*
-+ * Both LD_DEAD_CODE_DATA_ELIMINATION and CONFIG_FG_KASLR options enable
-+ * -ffunction-sections, which produces separately named .text sections. In
-+ * the case of CONFIG_FG_KASLR, they need to stay distict so they can be
-+ * separately randomized. Without CONFIG_FG_KASLR, the separate .text
-+ * sections can be collected back into a common section, which makes the
-+ * resulting image slightly smaller
-+ */
-+#if defined(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION) && !defined(CONFIG_FG_KASLR)
-+#define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
-+#else
-+#define TEXT_MAIN .text
-+#endif
-+
- /*
-  * Align to a 32 byte boundary equal to the
-  * alignment gcc 4.5 uses for a struct
-diff --git a/init/Kconfig b/init/Kconfig
-index 0498af567f70..82f042a1062f 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1990,6 +1990,20 @@ config PROFILING
- config TRACEPOINTS
- 	bool
- 
-+config FG_KASLR
-+	bool "Function Granular Kernel Address Space Layout Randomization"
-+	depends on $(cc-option, -ffunction-sections)
-+	depends on ARCH_HAS_FG_KASLR
-+	default n
-+	help
-+	  This option improves the randomness of the kernel text
-+	  over basic Kernel Address Space Layout Randomization (KASLR)
-+	  by reordering the kernel text at boot time. This feature
-+	  uses information generated at compile time to re-layout the
-+	  kernel text section at boot time at function level granularity.
-+
-+	  If unsure, say N.
-+
- endmenu		# General setup
- 
- source "arch/Kconfig"
+ #ifdef CONFIG_EVA
+ LEAF(__csum_partial_copy_to_user)
 -- 
-2.20.1
+2.11.0
