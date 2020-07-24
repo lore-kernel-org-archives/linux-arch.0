@@ -1,159 +1,154 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:39462 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729642AbgGVOw3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jul 2020 10:52:29 -0400
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH v4 04/13] task_isolation: Add task isolation hooks to
- arch-independent code
-Date: Wed, 22 Jul 2020 14:51:04 +0000
-Message-ID: <5f7a1619df6139e53d744b3755838bbe83ffa96c.camel@marvell.com>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-In-Reply-To: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <F7EC8568716DB645A720BCE938C704E6@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34290 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728521AbgGXQIR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 12:08:17 -0400
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v4 00/13] "Task_isolation" mode
+In-Reply-To: <851ee54e8317cd186338a76a045f738476144fcc.camel@marvell.com>
+References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com> <87imeextf3.fsf@nanos.tec.linutronix.de> <831e023422aa0e4cb3da37ceef6fdcd5bc854682.camel@marvell.com> <20200723154933.GB709@worktop.programming.kicks-ass.net> <3ff1383e669b543462737b0d12c0d1fb7d409e3e.camel@marvell.com> <877dutx5xj.fsf@nanos.tec.linutronix.de> <851ee54e8317cd186338a76a045f738476144fcc.camel@marvell.com>
+Date: Fri, 24 Jul 2020 18:08:13 +0200
+Message-ID: <87mu3ouc9e.fsf@nanos.tec.linutronix.de>
 MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Message-ID: <20200722145104.O285Gp4KUV8hsF_VpjXr-Vpk8LpBEU4ovP1Md5LqjOI@z>
+To: Alex Belits <abelits@marvell.com>, "peterz@infradead.org" <peterz@infradead.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "frederic@kernel.org" <frederic@kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Message-ID: <20200724160813._yQacSeDrmTjMq7tCjX7BkqPHlJSJpYC5rAu_pN2IZk@z>
 
-VGhpcyBjb21taXQgYWRkcyB0YXNrIGlzb2xhdGlvbiBob29rcyBhcyBmb2xsb3dzOg0KDQotIF9f
-aGFuZGxlX2RvbWFpbl9pcnEoKSBhbmQgaGFuZGxlX2RvbWFpbl9ubWkoKSBnZW5lcmF0ZSBhbg0K
-ICBpc29sYXRpb24gd2FybmluZyBmb3IgdGhlIGxvY2FsIHRhc2sNCg0KLSBpcnFfd29ya19xdWV1
-ZV9vbigpIGdlbmVyYXRlcyBhbiBpc29sYXRpb24gd2FybmluZyBmb3IgdGhlIHJlbW90ZQ0KICB0
-YXNrIGJlaW5nIGludGVycnVwdGVkIGZvciBpcnFfd29yayAodGhyb3VnaA0KICBfX3NtcF9jYWxs
-X3NpbmdsZV9xdWV1ZSgpKQ0KDQotIGdlbmVyaWNfZXhlY19zaW5nbGUoKSBnZW5lcmF0ZXMgYSBy
-ZW1vdGUgaXNvbGF0aW9uIHdhcm5pbmcgZm9yDQogIHRoZSByZW1vdGUgY3B1IGJlaW5nIElQSSdk
-ICh0aHJvdWdoIF9fc21wX2NhbGxfc2luZ2xlX3F1ZXVlKCkpDQoNCi0gc21wX2NhbGxfZnVuY3Rp
-b25fbWFueSgpIGdlbmVyYXRlcyBhIHJlbW90ZSBpc29sYXRpb24gd2FybmluZyBmb3INCiAgdGhl
-IHNldCBvZiByZW1vdGUgY3B1cyBiZWluZyBJUEknZCAodGhyb3VnaA0KICBzbXBfY2FsbF9mdW5j
-dGlvbl9tYW55X2NvbmQoKSkNCg0KLSBvbl9lYWNoX2NwdV9jb25kX21hc2soKSBnZW5lcmF0ZXMg
-YSByZW1vdGUgaXNvbGF0aW9uIHdhcm5pbmcgZm9yDQogIHRoZSBzZXQgb2YgcmVtb3RlIGNwdXMg
-YmVpbmcgSVBJJ2QgKHRocm91Z2gNCiAgc21wX2NhbGxfZnVuY3Rpb25fbWFueV9jb25kKCkpDQoN
-Ci0gX190dHd1X3F1ZXVlX3dha2VsaXN0KCkgZ2VuZXJhdGVzIGEgcmVtb3RlIGlzb2xhdGlvbiB3
-YXJuaW5nIGZvcg0KICB0aGUgcmVtb3RlIGNwdSBiZWluZyBJUEknZCAodGhyb3VnaCBfX3NtcF9j
-YWxsX3NpbmdsZV9xdWV1ZSgpKQ0KDQotIG5taV9lbnRlcigpLCBfX2NvbnRleHRfdHJhY2tpbmdf
-ZXhpdCgpLCBfX2hhbmRsZV9kb21haW5faXJxKCksDQogIGhhbmRsZV9kb21haW5fbm1pKCkgYW5k
-IHNjaGVkdWxlcl9pcGkoKSBjbGVhciBsb3ctbGV2ZWwgZmxhZ3MgYW5kDQogIHN5bmNocm9uaXpl
-IENQVXMgYnkgY2FsbGluZyB0YXNrX2lzb2xhdGlvbl9rZXJuZWxfZW50ZXIoKQ0KDQpDYWxscyB0
-byB0YXNrX2lzb2xhdGlvbl9yZW1vdGUoKSBvciB0YXNrX2lzb2xhdGlvbl9pbnRlcnJ1cHQoKSBj
-YW4NCmJlIHBsYWNlZCBpbiB0aGUgcGxhdGZvcm0taW5kZXBlbmRlbnQgY29kZSBsaWtlIHRoaXMg
-d2hlbiBkb2luZyBzbw0KcmVzdWx0cyBpbiBmZXdlciBsaW5lcyBvZiBjb2RlIGNoYW5nZXMsIGFz
-IGZvciBleGFtcGxlIGlzIHRydWUgb2YNCnRoZSB1c2VycyBvZiB0aGUgYXJjaF9zZW5kX2NhbGxf
-ZnVuY3Rpb25fKigpIEFQSXMuIE9yLCB0aGV5IGNhbiBiZQ0KcGxhY2VkIGluIHRoZSBwZXItYXJj
-aGl0ZWN0dXJlIGNvZGUgd2hlbiB0aGVyZSBhcmUgbWFueSBjYWxsZXJzLA0KYXMgZm9yIGV4YW1w
-bGUgaXMgdHJ1ZSBvZiB0aGUgc21wX3NlbmRfcmVzY2hlZHVsZSgpIGNhbGwuDQoNCkEgZnVydGhl
-ciBjbGVhbnVwIG1pZ2h0IGJlIHRvIGNyZWF0ZSBhbiBpbnRlcm1lZGlhdGUgbGF5ZXIsIHNvIHRo
-YXQNCmZvciBleGFtcGxlIHNtcF9zZW5kX3Jlc2NoZWR1bGUoKSBpcyBhIHNpbmdsZSBnZW5lcmlj
-IGZ1bmN0aW9uIHRoYXQNCmp1c3QgY2FsbHMgYXJjaF9zbXBfc2VuZF9yZXNjaGVkdWxlKCksIGFs
-bG93aW5nIGdlbmVyaWMgY29kZSB0byBiZQ0KY2FsbGVkIGV2ZXJ5IHRpbWUgc21wX3NlbmRfcmVz
-Y2hlZHVsZSgpIGlzIGludm9rZWQuIEJ1dCBmb3Igbm93LCB3ZQ0KanVzdCB1cGRhdGUgZWl0aGVy
-IGNhbGxlcnMgb3IgY2FsbGVlcyBhcyBtYWtlcyBtb3N0IHNlbnNlLg0KDQpDYWxscyB0byB0YXNr
-X2lzb2xhdGlvbl9rZXJuZWxfZW50ZXIoKSBhcmUgaW50ZW5kZWQgZm9yIGVhcmx5DQprZXJuZWwg
-ZW50cnkgY29kZS4gVGhleSBtYXkgYmUgY2FsbGVkIGluIHBsYXRmb3JtLWluZGVwZW5kZW50IG9y
-DQpwbGF0Zm9ybS1zcGVjaWZpYyBjb2RlLg0KDQpJdCBtYXkgYmUgcG9zc2libGUgdG8gY2xlYW4g
-dXAgbG93LWxldmVsIGVudHJ5IGNvZGUgYW5kIHNvbWVob3cNCm9yZ2FuaXplIGNhbGxzIHRvIHRh
-c2tfaXNvbGF0aW9uX2tlcm5lbF9lbnRlcigpIHRvIGF2b2lkIG11bHRpcGxlDQpwZXItYXJjaGl0
-ZWN0dXJlIG9yIGRyaXZlci1zcGVjaWZpYyBjYWxscyB0byBpdC4gUkNVIGluaXRpYWxpemF0aW9u
-DQptYXkgYmUgYSBnb29kIHJlZmVyZW5jZSBwb2ludCBmb3IgdGhvc2UgcGxhY2VzIGluIGtlcm5l
-bA0KKHRhc2tfaXNvbGF0aW9uX2tlcm5lbF9lbnRlcigpIHNob3VsZCBwcmVjZWRlIGl0KSwgaG93
-ZXZlciByaWdodCBub3cNCml0IGlzIG5vdCB1bmlmaWVkIGJldHdlZW4gYXJjaGl0ZWN0dXJlcy4N
-Cg0KU2lnbmVkLW9mZi1ieTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPg0K
-W2FiZWxpdHNAbWFydmVsbC5jb206IGFkYXB0ZWQgZm9yIGtlcm5lbCA1LjgsIGFkZGVkIGxvdy1s
-ZXZlbCBmbGFncyBoYW5kbGluZ10NClNpZ25lZC1vZmYtYnk6IEFsZXggQmVsaXRzIDxhYmVsaXRz
-QG1hcnZlbGwuY29tPg0KLS0tDQogaW5jbHVkZS9saW51eC9oYXJkaXJxLmggICB8ICAyICsrDQog
-aW5jbHVkZS9saW51eC9zY2hlZC5oICAgICB8ICAyICsrDQoga2VybmVsL2NvbnRleHRfdHJhY2tp
-bmcuYyB8ICA0ICsrKysNCiBrZXJuZWwvaXJxL2lycWRlc2MuYyAgICAgIHwgMTMgKysrKysrKysr
-KysrKw0KIGtlcm5lbC9zbXAuYyAgICAgICAgICAgICAgfCAgNiArKysrKy0NCiA1IGZpbGVzIGNo
-YW5nZWQsIDI2IGluc2VydGlvbnMoKyksIDEgZGVsZXRpb24oLSkNCg0KZGlmZiAtLWdpdCBhL2lu
-Y2x1ZGUvbGludXgvaGFyZGlycS5oIGIvaW5jbHVkZS9saW51eC9oYXJkaXJxLmgNCmluZGV4IDAz
-YzlmZWNlN2Q0My4uNWFhYjFkMGE1ODBlIDEwMDY0NA0KLS0tIGEvaW5jbHVkZS9saW51eC9oYXJk
-aXJxLmgNCisrKyBiL2luY2x1ZGUvbGludXgvaGFyZGlycS5oDQpAQCAtNyw2ICs3LDcgQEANCiAj
-aW5jbHVkZSA8bGludXgvbG9ja2RlcC5oPg0KICNpbmNsdWRlIDxsaW51eC9mdHJhY2VfaXJxLmg+
-DQogI2luY2x1ZGUgPGxpbnV4L3Z0aW1lLmg+DQorI2luY2x1ZGUgPGxpbnV4L2lzb2xhdGlvbi5o
-Pg0KICNpbmNsdWRlIDxhc20vaGFyZGlycS5oPg0KIA0KIGV4dGVybiB2b2lkIHN5bmNocm9uaXpl
-X2lycSh1bnNpZ25lZCBpbnQgaXJxKTsNCkBAIC0xMTQsNiArMTE1LDcgQEAgZXh0ZXJuIHZvaWQg
-cmN1X25taV9leGl0KHZvaWQpOw0KICNkZWZpbmUgbm1pX2VudGVyKCkJCQkJCQlcDQogCWRvIHsJ
-CQkJCQkJXA0KIAkJYXJjaF9ubWlfZW50ZXIoKTsJCQkJXA0KKwkJdGFza19pc29sYXRpb25fa2Vy
-bmVsX2VudGVyKCk7CQkJXA0KIAkJcHJpbnRrX25taV9lbnRlcigpOwkJCQlcDQogCQlsb2NrZGVw
-X29mZigpOwkJCQkJXA0KIAkJQlVHX09OKGluX25taSgpID09IE5NSV9NQVNLKTsJCQlcDQpkaWZm
-IC0tZ2l0IGEvaW5jbHVkZS9saW51eC9zY2hlZC5oIGIvaW5jbHVkZS9saW51eC9zY2hlZC5oDQpp
-bmRleCA3ZmI3YmIzZmRkYWEuLmNhY2ZhNDE1ZGM1OSAxMDA2NDQNCi0tLSBhL2luY2x1ZGUvbGlu
-dXgvc2NoZWQuaA0KKysrIGIvaW5jbHVkZS9saW51eC9zY2hlZC5oDQpAQCAtMzIsNiArMzIsNyBA
-QA0KICNpbmNsdWRlIDxsaW51eC9wb3NpeC10aW1lcnMuaD4NCiAjaW5jbHVkZSA8bGludXgvcnNl
-cS5oPg0KICNpbmNsdWRlIDxsaW51eC9rY3Nhbi5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRp
-b24uaD4NCiANCiAvKiB0YXNrX3N0cnVjdCBtZW1iZXIgcHJlZGVjbGFyYXRpb25zIChzb3J0ZWQg
-YWxwaGFiZXRpY2FsbHkpOiAqLw0KIHN0cnVjdCBhdWRpdF9jb250ZXh0Ow0KQEAgLTE3NDMsNiAr
-MTc0NCw3IEBAIGV4dGVybiBjaGFyICpfX2dldF90YXNrX2NvbW0oY2hhciAqdG8sIHNpemVfdCBs
-ZW4sIHN0cnVjdCB0YXNrX3N0cnVjdCAqdHNrKTsNCiAjaWZkZWYgQ09ORklHX1NNUA0KIHN0YXRp
-YyBfX2Fsd2F5c19pbmxpbmUgdm9pZCBzY2hlZHVsZXJfaXBpKHZvaWQpDQogew0KKwl0YXNrX2lz
-b2xhdGlvbl9rZXJuZWxfZW50ZXIoKTsNCiAJLyoNCiAJICogRm9sZCBUSUZfTkVFRF9SRVNDSEVE
-IGludG8gdGhlIHByZWVtcHRfY291bnQ7IGFueWJvZHkgc2V0dGluZw0KIAkgKiBUSUZfTkVFRF9S
-RVNDSEVEIHJlbW90ZWx5IChmb3IgdGhlIGZpcnN0IHRpbWUpIHdpbGwgYWxzbyBzZW5kDQpkaWZm
-IC0tZ2l0IGEva2VybmVsL2NvbnRleHRfdHJhY2tpbmcuYyBiL2tlcm5lbC9jb250ZXh0X3RyYWNr
-aW5nLmMNCmluZGV4IDM2YTk4YzQ4YWVkYy4uNDgxYTcyMmRkYmNlIDEwMDY0NA0KLS0tIGEva2Vy
-bmVsL2NvbnRleHRfdHJhY2tpbmcuYw0KKysrIGIva2VybmVsL2NvbnRleHRfdHJhY2tpbmcuYw0K
-QEAgLTIxLDYgKzIxLDcgQEANCiAjaW5jbHVkZSA8bGludXgvaGFyZGlycS5oPg0KICNpbmNsdWRl
-IDxsaW51eC9leHBvcnQuaD4NCiAjaW5jbHVkZSA8bGludXgva3Byb2Jlcy5oPg0KKyNpbmNsdWRl
-IDxsaW51eC9pc29sYXRpb24uaD4NCiANCiAjZGVmaW5lIENSRUFURV9UUkFDRV9QT0lOVFMNCiAj
-aW5jbHVkZSA8dHJhY2UvZXZlbnRzL2NvbnRleHRfdHJhY2tpbmcuaD4NCkBAIC0xNDgsNiArMTQ5
-LDggQEAgdm9pZCBub2luc3RyIF9fY29udGV4dF90cmFja2luZ19leGl0KGVudW0gY3R4X3N0YXRl
-IHN0YXRlKQ0KIAlpZiAoIWNvbnRleHRfdHJhY2tpbmdfcmVjdXJzaW9uX2VudGVyKCkpDQogCQly
-ZXR1cm47DQogDQorCXRhc2tfaXNvbGF0aW9uX2tlcm5lbF9lbnRlcigpOw0KKw0KIAlpZiAoX190
-aGlzX2NwdV9yZWFkKGNvbnRleHRfdHJhY2tpbmcuc3RhdGUpID09IHN0YXRlKSB7DQogCQlpZiAo
-X190aGlzX2NwdV9yZWFkKGNvbnRleHRfdHJhY2tpbmcuYWN0aXZlKSkgew0KIAkJCS8qDQpAQCAt
-MTU5LDYgKzE2Miw3IEBAIHZvaWQgbm9pbnN0ciBfX2NvbnRleHRfdHJhY2tpbmdfZXhpdChlbnVt
-IGN0eF9zdGF0ZSBzdGF0ZSkNCiAJCQkJaW5zdHJ1bWVudGF0aW9uX2JlZ2luKCk7DQogCQkJCXZ0
-aW1lX3VzZXJfZXhpdChjdXJyZW50KTsNCiAJCQkJdHJhY2VfdXNlcl9leGl0KDApOw0KKwkJCQl0
-YXNrX2lzb2xhdGlvbl91c2VyX2V4aXQoKTsNCiAJCQkJaW5zdHJ1bWVudGF0aW9uX2VuZCgpOw0K
-IAkJCX0NCiAJCX0NCmRpZmYgLS1naXQgYS9rZXJuZWwvaXJxL2lycWRlc2MuYyBiL2tlcm5lbC9p
-cnEvaXJxZGVzYy5jDQppbmRleCAxYTc3MjM2MDQzOTkuLmIzNTFhYWM3NzMyZiAxMDA2NDQNCi0t
-LSBhL2tlcm5lbC9pcnEvaXJxZGVzYy5jDQorKysgYi9rZXJuZWwvaXJxL2lycWRlc2MuYw0KQEAg
-LTE2LDYgKzE2LDcgQEANCiAjaW5jbHVkZSA8bGludXgvYml0bWFwLmg+DQogI2luY2x1ZGUgPGxp
-bnV4L2lycWRvbWFpbi5oPg0KICNpbmNsdWRlIDxsaW51eC9zeXNmcy5oPg0KKyNpbmNsdWRlIDxs
-aW51eC9pc29sYXRpb24uaD4NCiANCiAjaW5jbHVkZSAiaW50ZXJuYWxzLmgiDQogDQpAQCAtNjY5
-LDYgKzY3MCw4IEBAIGludCBfX2hhbmRsZV9kb21haW5faXJxKHN0cnVjdCBpcnFfZG9tYWluICpk
-b21haW4sIHVuc2lnbmVkIGludCBod2lycSwNCiAJdW5zaWduZWQgaW50IGlycSA9IGh3aXJxOw0K
-IAlpbnQgcmV0ID0gMDsNCiANCisJdGFza19pc29sYXRpb25fa2VybmVsX2VudGVyKCk7DQorDQog
-CWlycV9lbnRlcigpOw0KIA0KICNpZmRlZiBDT05GSUdfSVJRX0RPTUFJTg0KQEAgLTY3Niw2ICs2
-NzksMTAgQEAgaW50IF9faGFuZGxlX2RvbWFpbl9pcnEoc3RydWN0IGlycV9kb21haW4gKmRvbWFp
-biwgdW5zaWduZWQgaW50IGh3aXJxLA0KIAkJaXJxID0gaXJxX2ZpbmRfbWFwcGluZyhkb21haW4s
-IGh3aXJxKTsNCiAjZW5kaWYNCiANCisJdGFza19pc29sYXRpb25faW50ZXJydXB0KChpcnEgPT0g
-aHdpcnEpID8NCisJCQkJICJpcnEgJWQgKCVzKSIgOiAiaXJxICVkICglcyBod2lycSAlZCkiLA0K
-KwkJCQkgaXJxLCBkb21haW4gPyBkb21haW4tPm5hbWUgOiAiIiwgaHdpcnEpOw0KKw0KIAkvKg0K
-IAkgKiBTb21lIGhhcmR3YXJlIGdpdmVzIHJhbmRvbWx5IHdyb25nIGludGVycnVwdHMuICBSYXRo
-ZXINCiAJICogdGhhbiBjcmFzaGluZywgZG8gc29tZXRoaW5nIHNlbnNpYmxlLg0KQEAgLTcxMCw2
-ICs3MTcsOCBAQCBpbnQgaGFuZGxlX2RvbWFpbl9ubWkoc3RydWN0IGlycV9kb21haW4gKmRvbWFp
-biwgdW5zaWduZWQgaW50IGh3aXJxLA0KIAl1bnNpZ25lZCBpbnQgaXJxOw0KIAlpbnQgcmV0ID0g
-MDsNCiANCisJdGFza19pc29sYXRpb25fa2VybmVsX2VudGVyKCk7DQorDQogCS8qDQogCSAqIE5N
-SSBjb250ZXh0IG5lZWRzIHRvIGJlIHNldHVwIGVhcmxpZXIgaW4gb3JkZXIgdG8gZGVhbCB3aXRo
-IHRyYWNpbmcuDQogCSAqLw0KQEAgLTcxNyw2ICs3MjYsMTAgQEAgaW50IGhhbmRsZV9kb21haW5f
-bm1pKHN0cnVjdCBpcnFfZG9tYWluICpkb21haW4sIHVuc2lnbmVkIGludCBod2lycSwNCiANCiAJ
-aXJxID0gaXJxX2ZpbmRfbWFwcGluZyhkb21haW4sIGh3aXJxKTsNCiANCisJdGFza19pc29sYXRp
-b25faW50ZXJydXB0KChpcnEgPT0gaHdpcnEpID8NCisJCQkJICJOTUkgaXJxICVkICglcykiIDog
-Ik5NSSBpcnEgJWQgKCVzIGh3aXJxICVkKSIsDQorCQkJCSBpcnEsIGRvbWFpbiA/IGRvbWFpbi0+
-bmFtZSA6ICIiLCBod2lycSk7DQorDQogCS8qDQogCSAqIGFja19iYWRfaXJxIGlzIG5vdCBOTUkt
-c2FmZSwganVzdCByZXBvcnQNCiAJICogYW4gaW52YWxpZCBpbnRlcnJ1cHQuDQpkaWZmIC0tZ2l0
-IGEva2VybmVsL3NtcC5jIGIva2VybmVsL3NtcC5jDQppbmRleCBhYTE3ZWVkZmY1YmUuLjZhNjg0
-OTc4Mzk0OCAxMDA2NDQNCi0tLSBhL2tlcm5lbC9zbXAuYw0KKysrIGIva2VybmVsL3NtcC5jDQpA
-QCAtMjAsNiArMjAsNyBAQA0KICNpbmNsdWRlIDxsaW51eC9zY2hlZC5oPg0KICNpbmNsdWRlIDxs
-aW51eC9zY2hlZC9pZGxlLmg+DQogI2luY2x1ZGUgPGxpbnV4L2h5cGVydmlzb3IuaD4NCisjaW5j
-bHVkZSA8bGludXgvaXNvbGF0aW9uLmg+DQogDQogI2luY2x1ZGUgInNtcGJvb3QuaCINCiAjaW5j
-bHVkZSAic2NoZWQvc21wLmgiDQpAQCAtMTQ2LDggKzE0NywxMCBAQCB2b2lkIF9fc21wX2NhbGxf
-c2luZ2xlX3F1ZXVlKGludCBjcHUsIHN0cnVjdCBsbGlzdF9ub2RlICpub2RlKQ0KIAkgKiBsb2Nr
-aW5nIGFuZCBiYXJyaWVyIHByaW1pdGl2ZXMuIEdlbmVyaWMgY29kZSBpc24ndCByZWFsbHkNCiAJ
-ICogZXF1aXBwZWQgdG8gZG8gdGhlIHJpZ2h0IHRoaW5nLi4uDQogCSAqLw0KLQlpZiAobGxpc3Rf
-YWRkKG5vZGUsICZwZXJfY3B1KGNhbGxfc2luZ2xlX3F1ZXVlLCBjcHUpKSkNCisJaWYgKGxsaXN0
-X2FkZChub2RlLCAmcGVyX2NwdShjYWxsX3NpbmdsZV9xdWV1ZSwgY3B1KSkpIHsNCisJCXRhc2tf
-aXNvbGF0aW9uX3JlbW90ZShjcHUsICJJUEkgZnVuY3Rpb24iKTsNCiAJCXNlbmRfY2FsbF9mdW5j
-dGlvbl9zaW5nbGVfaXBpKGNwdSk7DQorCX0NCiB9DQogDQogLyoNCkBAIC01NDUsNiArNTQ4LDcg
-QEAgc3RhdGljIHZvaWQgc21wX2NhbGxfZnVuY3Rpb25fbWFueV9jb25kKGNvbnN0IHN0cnVjdCBj
-cHVtYXNrICptYXNrLA0KIAl9DQogDQogCS8qIFNlbmQgYSBtZXNzYWdlIHRvIGFsbCBDUFVzIGlu
-IHRoZSBtYXAgKi8NCisJdGFza19pc29sYXRpb25fcmVtb3RlX2NwdW1hc2soY2ZkLT5jcHVtYXNr
-X2lwaSwgIklQSSBmdW5jdGlvbiIpOw0KIAlhcmNoX3NlbmRfY2FsbF9mdW5jdGlvbl9pcGlfbWFz
-ayhjZmQtPmNwdW1hc2tfaXBpKTsNCiANCiAJaWYgKHdhaXQpIHsNCi0tIA0KMi4yNi4yDQoNCg==
+Alex,
+
+Alex Belits <abelits@marvell.com> writes:
+> On Thu, 2020-07-23 at 23:44 +0200, Thomas Gleixner wrote:
+>>  1) That inline function can be put out of line by the compiler and
+>>     placed into the regular text section which makes it subject to
+>>     instrumentation
+>> 
+>>  2) That inline function invokes local_irq_save() which is subject to
+>>     instrumentation _before_ the entry state for the instrumentation
+>>     mechanisms is established.
+>> 
+>>  3) That inline function invokes sync_core() before important state
+>> has
+>>     been established, which is especially interesting in NMI like
+>>     exceptions.
+>> 
+>> As you clearly documented why all of the above is safe and does not
+>> cause any problems, it's just me and Peter being silly, right?
+>> 
+>> Try again.
+>
+> I don't think, accusations and mockery are really necessary here.
+
+Let's get some context to this.
+
+  I told you in my first mail, that this breaks noinstr and that
+  building with full debug would have told you.
+
+  Peter gave you a clear hint where to look.
+
+Now it might be expected that you investigate that or at least ask
+questions before making the bold claim:
+
+>> > Unless something else is involved, those operations are safe, so I
+>> > am not adding anything that can break those.
+
+Surely I could have avoided the snide remark, but after you demonstrably
+ignored technically valid concerns and suggestions in your other reply,
+I was surely not in the mood to be overly careful in my choice of words.
+
+> The result of this may be not a "design" per se, but an understanding
+> of how things are implemented, and what rules are being followed, so I
+> could add my code in a manner consistent with what is done, and
+> document the whole thing.
+
+Every other big and technically complex project which has to change the
+very inner workings of the kernel started the same way. I'm not aware of
+any of them getting accepted as is or in a big code dump.
+
+What you have now qualifies as proof of concept and the big challenge is
+to turn it into something which is acceptable and maintainable.
+
+You talk in great length about how inconsistent stuff is all over the
+place. Yes, it is indeed. You even call that inconsistency an existing
+design:
+
+> My patches reflect what is already in code and in its design.
+
+I agree that you just work with the code as is, but you might have
+noticed that quite some of this stuff is clearly not designed at all or
+designed badly.
+
+The solution is not to pile on top of the inconsistency, the solution is
+to make it consistent in the first place.
+
+You are surely going to say, that's beyond the scope of your project. I
+can tell you that it is in the scope of your project simply because just
+proliferating the status quo and piling new stuff on top is not an
+option. And no, there are no people waiting in a row to mop up after
+you either.
+
+Quite some of the big technology projects have spent and still spend
+considerable amount of time to do exactly this kind of consolidation
+work upfront in order to make their features acceptable in a
+maintainable form.
+
+All of these projects have been merged or are still being merged
+piecewise in reviewable chunks.
+
+We are talking about intrusive technology which requires a very careful
+integration to prevent it from becoming a roadblock or a maintenaince
+headache. The approach and implementation has to be _agreed_ on by the
+involved parties, i.e. submitters, reviewers and maintainers.
+
+> While I understand that this is an unusual feature and by its nature
+> it affects kernel in multiple places, it does not deserve to be called
+> a "mess" and other synonyms of "mess".
+
+The feature is perfectly fine and I completely understand why you want
+it. Guess who started to lay the grounds for NOHZ_FULL more than a
+decade ago and why?
+
+The implementation is not acceptable on technical grounds,
+maintainability reasons, lack of design and proper consolidated
+integration.
+
+> Another issue that you have asked me to defend is the existence and
+> scope of task isolation itself.
+
+I have not asked you to defend the existance. I asked you for coherent
+explanations how the implementation works and why the chosen approach is
+correct and valid. That's a completely different thing.
+
+> It's an attempt to introduce a feature that turns Linux userspace into
+> superior replacement of RTOS.....
+
+Can you please spare me the advertising and marketing? I'm very well
+aware what an RTOS is and I'm also very well aware that there is no such
+thing like a 'superior replacement' for RTOS in general.
+
+If your view of RTOS is limited to this particular feature, then I have
+to tell you that this particular feature is only useful for a very small
+portion of the overall RTOS use cases.
+
+> However most definitely this is not a "mess", and it I do not believe
+> that I have to defend the validity of this direction of development, or
+> be accused of general incompetence every time someone finds a
+> frustrating mistake in my code.
+
+Nobody accuses you of incompetence, but you will have to defend the
+validity of your approach and implementation and accept that things
+might not be as shiny as you think they are. That's not hostility,
+that's just how Linux kernel development works whether you like it or
+not. 
+
+I surely can understand your frustration over my view of this series,
+but you might have noticed that aside of criticism I gave you very clear
+technical arguments and suggestions how to proceed.
+
+It's your decision what you make of that.
+
+Thanks,
+
+        tglx
