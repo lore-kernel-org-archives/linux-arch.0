@@ -1,49 +1,29 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v4 6/6] powerpc: implement smp_cond_load_relaxed
-Date: Fri, 24 Jul 2020 23:14:23 +1000
-Message-ID: <20200724131423.1362108-7-npiggin@gmail.com>
-References: <20200724131423.1362108-1-npiggin@gmail.com>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <kvm-ppc-owner@vger.kernel.org>
-In-Reply-To: <20200724131423.1362108-1-npiggin@gmail.com>
-Sender: kvm-ppc-owner@vger.kernel.org
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, =?UTF-8?q?Michal=20Such=C3=A1nek?= <msuchanek@suse.de>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Michael Ellerman <patch-notifications@ellerman.id.au>
+Subject: Re: [PATCH v3] powerpc: select ARCH_HAS_MEMBARRIER_SYNC_CORE
+Date: Fri, 24 Jul 2020 23:25:12 +1000 (AEST)
+Message-ID: <159559697191.1657499.15398729679167946534.b4-ty@ellerman.id.au>
+References: <20200716013522.338318-1-npiggin@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36920 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726824AbgGXNZO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 09:25:14 -0400
+Received: from ozlabs.org (bilbo.ozlabs.org [IPv6:2401:3900:2:1::2])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 032F8C0619D3
+        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 06:25:14 -0700 (PDT)
+In-Reply-To: <20200716013522.338318-1-npiggin@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linuxppc-dev@lists.ozlabs.org, Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Andreas Schwab <schwab@linux-m68k.org>
 
-This implements smp_cond_load_relaed with the slowpath busy loop using the
-preferred SMT priority pattern.
+On Thu, 16 Jul 2020 11:35:22 +1000, Nicholas Piggin wrote:
+> powerpc return from interrupt and return from system call sequences are
+> context synchronising.
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/powerpc/include/asm/barrier.h | 14 ++++++++++++++
- 1 file changed, 14 insertions(+)
+Applied to powerpc/next.
 
-diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
-index 123adcefd40f..9b4671d38674 100644
---- a/arch/powerpc/include/asm/barrier.h
-+++ b/arch/powerpc/include/asm/barrier.h
-@@ -76,6 +76,20 @@ do {									\
- 	___p1;								\
- })
- 
-+#define smp_cond_load_relaxed(ptr, cond_expr) ({		\
-+	typeof(ptr) __PTR = (ptr);				\
-+	__unqual_scalar_typeof(*ptr) VAL;			\
-+	VAL = READ_ONCE(*__PTR);				\
-+	if (unlikely(!(cond_expr))) {				\
-+		spin_begin();					\
-+		do {						\
-+			VAL = READ_ONCE(*__PTR);		\
-+		} while (!(cond_expr));				\
-+		spin_end();					\
-+	}							\
-+	(typeof(*ptr))VAL;					\
-+})
-+
- #ifdef CONFIG_PPC_BOOK3S_64
- #define NOSPEC_BARRIER_SLOT   nop
- #elif defined(CONFIG_PPC_FSL_BOOK3E)
--- 
-2.23.0
+[1/1] powerpc: Select ARCH_HAS_MEMBARRIER_SYNC_CORE
+      https://git.kernel.org/powerpc/c/2384b36f9156c3b815a5ce5f694edc5054ab7625
+
+cheers
