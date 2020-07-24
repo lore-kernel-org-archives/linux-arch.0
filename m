@@ -1,448 +1,342 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH v2 04/20] unify generic instances of csum_partial_copy_nocheck()
-Date: Fri, 24 Jul 2020 02:25:30 +0100
-Message-ID: <20200724012546.302155-4-viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 08/20] alpha: propagate the calling convention changes down to csum_partial_copy.c helpers
+Date: Fri, 24 Jul 2020 02:25:34 +0100
+Message-ID: <20200724012546.302155-8-viro@ZenIV.linux.org.uk>
 References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
  <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38220 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726740AbgGXBZs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 21:25:48 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-quite a few architectures have the same csum_partial_copy_nocheck() -
-simply memcpy() the data and then return the csum of the copy.
-
-hexagon, parisc, ia64, s390, um: explicitly spelled out that way.
-
-arc, arm64, csky, h8300, m68k/nommu, microblaze, mips/GENERIC_CSUM, nds32,
-nios2, openrisc, riscv, unicore32: end up picking the same thing spelled
-out in lib/checksum.h (with varying amounts of perversions along the way).
-
-everybody else (alpha, arm, c6x, m68k/mmu, mips/!GENERIC_CSUM, powerpc,
-sh, sparc, x86, xtensa) have non-generic variants.  For all except c6x
-the declaration is in their asm/checksum.h.  c6x uses the wrapper
-from asm-generic/checksum.h that would normally lead to the lib/checksum.h
-instance, but in case of c6x we end up using an asm function from arch/c6x
-instead.
-
-Screw that mess - have architectures with private instances define
-_HAVE_ARCH_CSUM_AND_COPY in their asm/checksum.h and have the default
-one right in net/checksum.h conditional on _HAVE_ARCH_CSUM_AND_COPY
-*not* defined.
+get rid of set_fs() in csum_partial_copy_nocheck(), while we are at it -
+just take the part of csum_and_copy_from_user() sans the access_ok() check
+into a helper function and have csum_partial_copy_nocheck() call that.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/alpha/include/asm/checksum.h   |  1 +
- arch/arm/include/asm/checksum.h     |  1 +
- arch/c6x/include/asm/checksum.h     |  6 ++++++
- arch/hexagon/include/asm/checksum.h | 11 -----------
- arch/hexagon/lib/checksum.c         | 11 -----------
- arch/ia64/include/asm/checksum.h    |  3 ---
- arch/ia64/lib/csum_partial_copy.c   | 15 ---------------
- arch/m68k/include/asm/checksum.h    |  1 +
- arch/mips/include/asm/checksum.h    |  2 +-
- arch/nios2/include/asm/checksum.h   |  5 -----
- arch/parisc/include/asm/checksum.h  |  8 --------
- arch/parisc/lib/checksum.c          | 17 -----------------
- arch/powerpc/include/asm/checksum.h |  1 +
- arch/s390/include/asm/checksum.h    |  7 -------
- arch/sh/include/asm/checksum_32.h   |  1 +
- arch/sparc/include/asm/checksum.h   |  1 +
- arch/x86/include/asm/checksum.h     |  1 +
- arch/x86/um/asm/checksum.h          | 16 ----------------
- arch/xtensa/include/asm/checksum.h  |  1 +
- include/asm-generic/checksum.h      | 14 --------------
- include/net/checksum.h              |  9 +++++++++
- lib/checksum.c                      | 11 -----------
- 22 files changed, 24 insertions(+), 119 deletions(-)
+ arch/alpha/lib/csum_partial_copy.c | 157 ++++++++++++++++---------------------
+ 1 file changed, 69 insertions(+), 88 deletions(-)
 
-diff --git a/arch/alpha/include/asm/checksum.h b/arch/alpha/include/asm/checksum.h
-index 0eac81624d01..7e8e4fa4362d 100644
---- a/arch/alpha/include/asm/checksum.h
-+++ b/arch/alpha/include/asm/checksum.h
-@@ -42,6 +42,7 @@ extern __wsum csum_partial(const void *buff, int len, __wsum sum);
-  * better 64-bit) boundary
+diff --git a/arch/alpha/lib/csum_partial_copy.c b/arch/alpha/lib/csum_partial_copy.c
+index 3c0e89c39ddb..dc68efbe9367 100644
+--- a/arch/alpha/lib/csum_partial_copy.c
++++ b/arch/alpha/lib/csum_partial_copy.c
+@@ -39,12 +39,11 @@ __asm__ __volatile__("insql %1,%2,%0":"=r" (z):"r" (x),"r" (y))
+ #define insqh(x,y,z) \
+ __asm__ __volatile__("insqh %1,%2,%0":"=r" (z):"r" (x),"r" (y))
+ 
+-
+-#define __get_user_u(x,ptr)				\
++#define __get_word(insn,x,ptr)				\
+ ({							\
+ 	long __guu_err;					\
+ 	__asm__ __volatile__(				\
+-	"1:	ldq_u %0,%2\n"				\
++	"1:	"#insn" %0,%2\n"			\
+ 	"2:\n"						\
+ 	EXC(1b,2b,%0,%1)				\
+ 		: "=r"(x), "=r"(__guu_err)		\
+@@ -52,19 +51,6 @@ __asm__ __volatile__("insqh %1,%2,%0":"=r" (z):"r" (x),"r" (y))
+ 	__guu_err;					\
+ })
+ 
+-#define __put_user_u(x,ptr)				\
+-({							\
+-	long __puu_err;					\
+-	__asm__ __volatile__(				\
+-	"1:	stq_u %2,%1\n"				\
+-	"2:\n"						\
+-	EXC(1b,2b,$31,%0)				\
+-		: "=r"(__puu_err)			\
+-		: "m"(__m(addr)), "rJ"(x), "0"(0));	\
+-	__puu_err;					\
+-})
+-
+-
+ static inline unsigned short from64to16(unsigned long x)
+ {
+ 	/* Using extract instructions is a bit more efficient
+@@ -95,15 +81,15 @@ static inline unsigned short from64to16(unsigned long x)
   */
- #define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
-+#define _HAVE_ARCH_CSUM_AND_COPY
- __wsum csum_and_copy_from_user(const void __user *src, void *dst, int len, __wsum sum, int *errp);
+ static inline unsigned long
+ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
+-			 long len, unsigned long checksum,
+-			 int *errp)
++			 long len)
+ {
++	unsigned long checksum = ~0U;
+ 	unsigned long carry = 0;
+-	int err = 0;
  
- __wsum csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum);
-diff --git a/arch/arm/include/asm/checksum.h b/arch/arm/include/asm/checksum.h
-index ed6073fee338..53f769508540 100644
---- a/arch/arm/include/asm/checksum.h
-+++ b/arch/arm/include/asm/checksum.h
-@@ -41,6 +41,7 @@ __wsum
- csum_partial_copy_from_user(const void __user *src, void *dst, int len, __wsum sum, int *err_ptr);
- 
- #define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
-+#define _HAVE_ARCH_CSUM_AND_COPY
- static inline
- __wsum csum_and_copy_from_user (const void __user *src, void *dst,
- 				      int len, __wsum sum, int *err_ptr)
-diff --git a/arch/c6x/include/asm/checksum.h b/arch/c6x/include/asm/checksum.h
-index 36770b8308d9..facdd636af85 100644
---- a/arch/c6x/include/asm/checksum.h
-+++ b/arch/c6x/include/asm/checksum.h
-@@ -26,6 +26,12 @@ csum_tcpudp_nofold(__be32 saddr, __be32 daddr, __u32 len,
+ 	while (len >= 0) {
+ 		unsigned long word;
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		checksum += carry;
+ 		src++;
+ 		checksum += word;
+@@ -116,7 +102,8 @@ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
+ 	checksum += carry;
+ 	if (len) {
+ 		unsigned long word, tmp;
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		tmp = *dst;
+ 		mskql(word, len, word);
+ 		checksum += word;
+@@ -125,7 +112,6 @@ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
+ 		*dst = word | tmp;
+ 		checksum += carry;
+ 	}
+-	if (err && errp) *errp = err;
+ 	return checksum;
  }
- #define csum_tcpudp_nofold csum_tcpudp_nofold
  
-+extern __wsum csum_partial_copy(const void *src, void *dst, int len, __wsum sum);
-+
-+#define _HAVE_ARCH_CSUM_AND_COPY
-+#define csum_partial_copy_nocheck(src, dst, len, sum)  \
-+	csum_partial_copy((src), (dst), (len), (sum))
-+
- #include <asm-generic/checksum.h>
+@@ -137,20 +123,21 @@ static inline unsigned long
+ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
+ 			      unsigned long *dst,
+ 			      unsigned long soff,
+-			      long len, unsigned long checksum,
+-			      int *errp)
++			      long len)
+ {
+ 	unsigned long first;
+ 	unsigned long word, carry;
+ 	unsigned long lastsrc = 7+len+(unsigned long)src;
+-	int err = 0;
++	unsigned long checksum = ~0U;
  
- #endif /* _ASM_C6X_CHECKSUM_H */
-diff --git a/arch/hexagon/include/asm/checksum.h b/arch/hexagon/include/asm/checksum.h
-index a5c42f4614c1..4bc6ad96c4c5 100644
---- a/arch/hexagon/include/asm/checksum.h
-+++ b/arch/hexagon/include/asm/checksum.h
-@@ -10,17 +10,6 @@
- unsigned int do_csum(const void *voidptr, int len);
+-	err |= __get_user_u(first,src);
++	if (__get_word(ldq_u, first,src))
++		return 0;
+ 	carry = 0;
+ 	while (len >= 0) {
+ 		unsigned long second;
  
- /*
-- * the same as csum_partial, but copies from src while it
-- * checksums
-- *
-- * here even more important to align src and dst on a 32-bit (or even
-- * better 64-bit) boundary
-- */
--#define csum_partial_copy_nocheck csum_partial_copy_nocheck
--__wsum csum_partial_copy_nocheck(const void *src, void *dst,
--					int len, __wsum sum);
--
--/*
-  * computes the checksum of the TCP/UDP pseudo-header
-  * returns a 16-bit checksum, already complemented
-  */
-diff --git a/arch/hexagon/lib/checksum.c b/arch/hexagon/lib/checksum.c
-index c4a6b72d97de..ba50822a0800 100644
---- a/arch/hexagon/lib/checksum.c
-+++ b/arch/hexagon/lib/checksum.c
-@@ -176,14 +176,3 @@ unsigned int do_csum(const void *voidptr, int len)
- 
- 	return 0xFFFF & sum0;
+-		err |= __get_user_u(second, src+1);
++		if (__get_word(ldq_u, second, src+1))
++			return 0;
+ 		extql(first, soff, word);
+ 		len -= 8;
+ 		src++;
+@@ -168,7 +155,8 @@ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
+ 	if (len) {
+ 		unsigned long tmp;
+ 		unsigned long second;
+-		err |= __get_user_u(second, lastsrc);
++		if (__get_word(ldq_u, second, lastsrc))
++			return 0;
+ 		tmp = *dst;
+ 		extql(first, soff, word);
+ 		extqh(second, soff, first);
+@@ -180,7 +168,6 @@ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
+ 		*dst = word | tmp;
+ 		checksum += carry;
+ 	}
+-	if (err && errp) *errp = err;
+ 	return checksum;
  }
--
--/*
-- * copy from ds while checksumming, otherwise like csum_partial
-- */
--__wsum
--csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
--{
--	memcpy(dst, src, len);
--	return csum_partial(dst, len, sum);
--}
--EXPORT_SYMBOL(csum_partial_copy_nocheck);
-diff --git a/arch/ia64/include/asm/checksum.h b/arch/ia64/include/asm/checksum.h
-index 2a1c64629cdc..f3026213aa32 100644
---- a/arch/ia64/include/asm/checksum.h
-+++ b/arch/ia64/include/asm/checksum.h
-@@ -37,9 +37,6 @@ extern __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
-  */
- extern __wsum csum_partial(const void *buff, int len, __wsum sum);
  
--extern __wsum csum_partial_copy_nocheck(const void *src, void *dst,
--					       int len, __wsum sum);
--
- /*
-  * This routine is used for miscellaneous IP-like checksums, mainly in
-  * icmp.c
-diff --git a/arch/ia64/lib/csum_partial_copy.c b/arch/ia64/lib/csum_partial_copy.c
-index 6e82e0be8040..917e3138b277 100644
---- a/arch/ia64/lib/csum_partial_copy.c
-+++ b/arch/ia64/lib/csum_partial_copy.c
-@@ -96,18 +96,3 @@ unsigned long do_csum_c(const unsigned char * buff, int len, unsigned int psum)
+@@ -191,18 +178,18 @@ static inline unsigned long
+ csum_partial_cfu_src_aligned(const unsigned long __user *src,
+ 			     unsigned long *dst,
+ 			     unsigned long doff,
+-			     long len, unsigned long checksum,
+-			     unsigned long partial_dest,
+-			     int *errp)
++			     long len,
++			     unsigned long partial_dest)
+ {
+ 	unsigned long carry = 0;
+ 	unsigned long word;
+ 	unsigned long second_dest;
+-	int err = 0;
++	unsigned long checksum = ~0U;
+ 
+ 	mskql(partial_dest, doff, partial_dest);
+ 	while (len >= 0) {
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		len -= 8;
+ 		insql(word, doff, second_dest);
+ 		checksum += carry;
+@@ -216,7 +203,8 @@ csum_partial_cfu_src_aligned(const unsigned long __user *src,
+ 	len += 8;
+ 	if (len) {
+ 		checksum += carry;
+-		err |= __get_user(word, src);
++		if (__get_word(ldq, word, src))
++			return 0;
+ 		mskql(word, len, word);
+ 		len -= 8;
+ 		checksum += word;
+@@ -237,7 +225,6 @@ csum_partial_cfu_src_aligned(const unsigned long __user *src,
+ 	stq_u(partial_dest | second_dest, dst);
  out:
- 	return result;
+ 	checksum += carry;
+-	if (err && errp) *errp = err;
+ 	return checksum;
  }
--
--/*
-- * XXX Fixme
-- *
-- * This is very ugly but temporary. THIS NEEDS SERIOUS ENHANCEMENTS.
-- * But it's very tricky to get right even in C.
-- */
+ 
+@@ -249,23 +236,23 @@ static inline unsigned long
+ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 			   unsigned long * dst,
+ 			   unsigned long soff, unsigned long doff,
+-			   long len, unsigned long checksum,
+-			   unsigned long partial_dest,
+-			   int *errp)
++			   long len, unsigned long partial_dest)
+ {
+ 	unsigned long carry = 0;
+ 	unsigned long first;
+ 	unsigned long lastsrc;
+-	int err = 0;
++	unsigned long checksum = ~0U;
+ 
+-	err |= __get_user_u(first, src);
++	if (__get_word(ldq_u, first, src))
++		return 0;
+ 	lastsrc = 7+len+(unsigned long)src;
+ 	mskql(partial_dest, doff, partial_dest);
+ 	while (len >= 0) {
+ 		unsigned long second, word;
+ 		unsigned long second_dest;
+ 
+-		err |= __get_user_u(second, src+1);
++		if (__get_word(ldq_u, second, src+1))
++			return 0;
+ 		extql(first, soff, word);
+ 		checksum += carry;
+ 		len -= 8;
+@@ -286,7 +273,8 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 		unsigned long second, word;
+ 		unsigned long second_dest;
+ 
+-		err |= __get_user_u(second, lastsrc);
++		if (__get_word(ldq_u, second, lastsrc))
++			return 0;
+ 		extql(first, soff, word);
+ 		extqh(second, soff, first);
+ 		word |= first;
+@@ -307,7 +295,8 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 		unsigned long second, word;
+ 		unsigned long second_dest;
+ 
+-		err |= __get_user_u(second, lastsrc);
++		if (__get_word(ldq_u, second, lastsrc))
++			return 0;
+ 		extql(first, soff, word);
+ 		extqh(second, soff, first);
+ 		word |= first;
+@@ -320,63 +309,55 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
+ 		stq_u(partial_dest | word | second_dest, dst);
+ 		checksum += carry;
+ 	}
+-	if (err && errp) *errp = err;
+ 	return checksum;
+ }
+ 
 -__wsum
--csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
--{
--	memcpy(dst, src, len);
--	return csum_partial(dst, len, sum);
--}
+-csum_and_copy_from_user(const void __user *src, void *dst, int len)
++static __wsum __csum_and_copy(const void __user *src, void *dst, int len)
+ {
+-	unsigned long checksum = ~0U;
+ 	unsigned long soff = 7 & (unsigned long) src;
+ 	unsigned long doff = 7 & (unsigned long) dst;
+-	int err = 0;
 -
--EXPORT_SYMBOL(csum_partial_copy_nocheck);
-diff --git a/arch/m68k/include/asm/checksum.h b/arch/m68k/include/asm/checksum.h
-index 3f2c15d6f18c..ab16881d84cb 100644
---- a/arch/m68k/include/asm/checksum.h
-+++ b/arch/m68k/include/asm/checksum.h
-@@ -31,6 +31,7 @@ __wsum csum_partial(const void *buff, int len, __wsum sum);
-  */
- 
- #define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
-+#define _HAVE_ARCH_CSUM_AND_COPY
- extern __wsum csum_and_copy_from_user(const void __user *src,
- 						void *dst,
- 						int len, __wsum sum,
-diff --git a/arch/mips/include/asm/checksum.h b/arch/mips/include/asm/checksum.h
-index dcebaaf8c862..b771621ec3c5 100644
---- a/arch/mips/include/asm/checksum.h
-+++ b/arch/mips/include/asm/checksum.h
-@@ -101,9 +101,9 @@ __wsum csum_and_copy_to_user(const void *src, void __user *dst, int len,
-  * the same as csum_partial, but copies from user space (but on MIPS
-  * we have just one address space, so this is identical to the above)
-  */
-+#define _HAVE_ARCH_CSUM_AND_COPY
- __wsum csum_partial_copy_nocheck(const void *src, void *dst,
- 				       int len, __wsum sum);
--#define csum_partial_copy_nocheck csum_partial_copy_nocheck
- 
- /*
-  *	Fold a partial checksum without adding pseudo headers
-diff --git a/arch/nios2/include/asm/checksum.h b/arch/nios2/include/asm/checksum.h
-index ec39698d3bea..69004e07a1ba 100644
---- a/arch/nios2/include/asm/checksum.h
-+++ b/arch/nios2/include/asm/checksum.h
-@@ -12,11 +12,6 @@
- 
- /* Take these from lib/checksum.c */
- extern __wsum csum_partial(const void *buff, int len, __wsum sum);
--extern __wsum csum_partial_copy(const void *src, void *dst, int len,
--				__wsum sum);
--#define csum_partial_copy_nocheck(src, dst, len, sum)	\
--	csum_partial_copy((src), (dst), (len), (sum))
--
- extern __sum16 ip_fast_csum(const void *iph, unsigned int ihl);
- extern __sum16 ip_compute_csum(const void *buff, int len);
- 
-diff --git a/arch/parisc/include/asm/checksum.h b/arch/parisc/include/asm/checksum.h
-index fe8c63b2d2c3..522cd574c068 100644
---- a/arch/parisc/include/asm/checksum.h
-+++ b/arch/parisc/include/asm/checksum.h
-@@ -19,14 +19,6 @@
- extern __wsum csum_partial(const void *, int, __wsum);
- 
- /*
-- * The same as csum_partial, but copies from src while it checksums.
-- *
-- * Here even more important to align src and dst on a 32-bit (or even
-- * better 64-bit) boundary
-- */
--extern __wsum csum_partial_copy_nocheck(const void *, void *, int, __wsum);
--
--/*
-  *	Optimized for IP headers, which always checksum on 4 octet boundaries.
-  *
-  *	Written by Randolph Chung <tausq@debian.org>, and then mucked with by
-diff --git a/arch/parisc/lib/checksum.c b/arch/parisc/lib/checksum.c
-index c6f161583549..4818f3db84a5 100644
---- a/arch/parisc/lib/checksum.c
-+++ b/arch/parisc/lib/checksum.c
-@@ -106,20 +106,3 @@ __wsum csum_partial(const void *buff, int len, __wsum sum)
- }
- 
- EXPORT_SYMBOL(csum_partial);
--
--/*
-- * copy while checksumming, otherwise like csum_partial
-- */
--__wsum csum_partial_copy_nocheck(const void *src, void *dst,
--				       int len, __wsum sum)
--{
--	/*
--	 * It's 2:30 am and I don't feel like doing it real ...
--	 * This is lots slower than the real thing (tm)
--	 */
--	sum = csum_partial(src, len, sum);
--	memcpy(dst, src, len);
--
--	return sum;
--}
--EXPORT_SYMBOL(csum_partial_copy_nocheck);
-diff --git a/arch/powerpc/include/asm/checksum.h b/arch/powerpc/include/asm/checksum.h
-index 9cce06194dcc..d75fc5bf8f37 100644
---- a/arch/powerpc/include/asm/checksum.h
-+++ b/arch/powerpc/include/asm/checksum.h
-@@ -29,6 +29,7 @@ extern __wsum csum_and_copy_from_user(const void __user *src, void *dst,
- extern __wsum csum_and_copy_to_user(const void *src, void __user *dst,
- 				    int len, __wsum sum, int *err_ptr);
- 
-+#define _HAVE_ARCH_CSUM_AND_COPY
- #define csum_partial_copy_nocheck(src, dst, len, sum)   \
-         csum_partial_copy_generic((src), (dst), (len), (sum), NULL, NULL)
- 
-diff --git a/arch/s390/include/asm/checksum.h b/arch/s390/include/asm/checksum.h
-index 6d01c96aeb5c..6813bfa1eeb7 100644
---- a/arch/s390/include/asm/checksum.h
-+++ b/arch/s390/include/asm/checksum.h
-@@ -39,13 +39,6 @@ csum_partial(const void *buff, int len, __wsum sum)
- 	return sum;
- }
- 
--static inline __wsum
--csum_partial_copy_nocheck (const void *src, void *dst, int len, __wsum sum)
--{
--        memcpy(dst,src,len);
--	return csum_partial(dst, len, sum);
--}
--
- /*
-  *      Fold a partial checksum without adding pseudo headers
-  */
-diff --git a/arch/sh/include/asm/checksum_32.h b/arch/sh/include/asm/checksum_32.h
-index 91571a42e44e..87269642d78d 100644
---- a/arch/sh/include/asm/checksum_32.h
-+++ b/arch/sh/include/asm/checksum_32.h
-@@ -34,6 +34,7 @@ asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
- 					    int len, __wsum sum,
- 					    int *src_err_ptr, int *dst_err_ptr);
- 
-+#define _HAVE_ARCH_CSUM_AND_COPY
- /*
-  *	Note: when you get a NULL pointer exception here this means someone
-  *	passed in an incorrect kernel address to one of these functions.
-diff --git a/arch/sparc/include/asm/checksum.h b/arch/sparc/include/asm/checksum.h
-index a6256cb6fc5c..deb4fe5aeafd 100644
---- a/arch/sparc/include/asm/checksum.h
-+++ b/arch/sparc/include/asm/checksum.h
-@@ -1,6 +1,7 @@
- /* SPDX-License-Identifier: GPL-2.0 */
- #ifndef ___ASM_SPARC_CHECKSUM_H
- #define ___ASM_SPARC_CHECKSUM_H
-+#define _HAVE_ARCH_CSUM_AND_COPY
- #define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
- #if defined(__sparc__) && defined(__arch64__)
- #include <asm/checksum_64.h>
-diff --git a/arch/x86/include/asm/checksum.h b/arch/x86/include/asm/checksum.h
-index 0ada98d5d09f..bca625a60186 100644
---- a/arch/x86/include/asm/checksum.h
-+++ b/arch/x86/include/asm/checksum.h
-@@ -1,6 +1,7 @@
- /* SPDX-License-Identifier: GPL-2.0 */
- #define  _HAVE_ARCH_COPY_AND_CSUM_FROM_USER 1
- #define HAVE_CSUM_COPY_USER
-+#define _HAVE_ARCH_CSUM_AND_COPY
- #ifdef CONFIG_X86_32
- # include <asm/checksum_32.h>
- #else
-diff --git a/arch/x86/um/asm/checksum.h b/arch/x86/um/asm/checksum.h
-index ff6bba2c8ab6..b07824500363 100644
---- a/arch/x86/um/asm/checksum.h
-+++ b/arch/x86/um/asm/checksum.h
-@@ -20,22 +20,6 @@
-  */
- extern __wsum csum_partial(const void *buff, int len, __wsum sum);
- 
--/*
-- *	Note: when you get a NULL pointer exception here this means someone
-- *	passed in an incorrect kernel address to one of these functions.
-- *
-- *	If you use these functions directly please don't forget the
-- *	access_ok().
-- */
--
--static __inline__
--__wsum csum_partial_copy_nocheck(const void *src, void *dst,
--				       int len, __wsum sum)
--{
--	memcpy(dst, src, len);
--	return csum_partial(dst, len, sum);
--}
--
- /**
-  * csum_fold - Fold and invert a 32bit checksum.
-  * sum: 32bit unfolded sum
-diff --git a/arch/xtensa/include/asm/checksum.h b/arch/xtensa/include/asm/checksum.h
-index 243a5fe79d3c..0c879099977f 100644
---- a/arch/xtensa/include/asm/checksum.h
-+++ b/arch/xtensa/include/asm/checksum.h
-@@ -41,6 +41,7 @@ asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
- 					    int len, __wsum sum,
- 					    int *src_err_ptr, int *dst_err_ptr);
- 
-+#define _HAVE_ARCH_CSUM_AND_COPY
- /*
-  *	Note: when you get a NULL pointer exception here this means someone
-  *	passed in an incorrect kernel address to one of these functions.
-diff --git a/include/asm-generic/checksum.h b/include/asm-generic/checksum.h
-index 5a80f8e54300..43e18db89c14 100644
---- a/include/asm-generic/checksum.h
-+++ b/include/asm-generic/checksum.h
-@@ -16,20 +16,6 @@
-  */
- extern __wsum csum_partial(const void *buff, int len, __wsum sum);
- 
--/*
-- * the same as csum_partial, but copies from src while it
-- * checksums
-- *
-- * here even more important to align src and dst on a 32-bit (or even
-- * better 64-bit) boundary
-- */
--extern __wsum csum_partial_copy(const void *src, void *dst, int len, __wsum sum);
--
--#ifndef csum_partial_copy_nocheck
--#define csum_partial_copy_nocheck(src, dst, len, sum)	\
--	csum_partial_copy((src), (dst), (len), (sum))
--#endif
--
- #ifndef ip_fast_csum
- /*
-  * This is a version of ip_compute_csum() optimized for IP headers,
-diff --git a/include/net/checksum.h b/include/net/checksum.h
-index 46754ba9d7b7..db9d02b5f88a 100644
---- a/include/net/checksum.h
-+++ b/include/net/checksum.h
-@@ -47,6 +47,15 @@ static __inline__ __wsum csum_and_copy_to_user
- }
- #endif
- 
-+#ifndef _HAVE_ARCH_CSUM_AND_COPY
-+static inline __wsum
-+csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
-+{
-+	memcpy(dst, src, len);
-+	return csum_partial(dst, len, sum);
-+}
-+#endif
+-	if (len) {
+-		if (!access_ok(src, len))
+-			return 0;
+-		if (!doff) {
+-			if (!soff)
+-				checksum = csum_partial_cfu_aligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					len-8, checksum, &err);
+-			else
+-				checksum = csum_partial_cfu_dest_aligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					soff, len-8, checksum, &err);
+-		} else {
+-			unsigned long partial_dest;
+-			ldq_u(partial_dest, dst);
+-			if (!soff)
+-				checksum = csum_partial_cfu_src_aligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					doff, len-8, checksum,
+-					partial_dest, &err);
+-			else
+-				checksum = csum_partial_cfu_unaligned(
+-					(const unsigned long __user *) src,
+-					(unsigned long *) dst,
+-					soff, doff, len-8, checksum,
+-					partial_dest, &err);
+-		}
+-		checksum = err ? 0 : from64to16 (checksum);
++	unsigned long checksum;
 +
- #ifndef HAVE_ARCH_CSUM_ADD
- static inline __wsum csum_add(__wsum csum, __wsum addend)
- {
-diff --git a/lib/checksum.c b/lib/checksum.c
-index 7ac65a0000ff..6860d6b05a17 100644
---- a/lib/checksum.c
-+++ b/lib/checksum.c
-@@ -145,17 +145,6 @@ __sum16 ip_compute_csum(const void *buff, int len)
++	if (!doff) {
++		if (!soff)
++			checksum = csum_partial_cfu_aligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst, len-8);
++		else
++			checksum = csum_partial_cfu_dest_aligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst,
++				soff, len-8);
++	} else {
++		unsigned long partial_dest;
++		ldq_u(partial_dest, dst);
++		if (!soff)
++			checksum = csum_partial_cfu_src_aligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst,
++				doff, len-8, partial_dest);
++		else
++			checksum = csum_partial_cfu_unaligned(
++				(const unsigned long __user *) src,
++				(unsigned long *) dst,
++				soff, doff, len-8, partial_dest);
+ 	}
+-	return (__force __wsum)checksum;
++	return (__force __wsum)from64to16 (checksum);
++}
++
++__wsum
++csum_and_copy_from_user(const void __user *src, void *dst, int len)
++{
++	if (!access_ok(src, len))
++		return 0;
++	return __csum_and_copy(src, dst, len);
  }
- EXPORT_SYMBOL(ip_compute_csum);
+ EXPORT_SYMBOL(csum_and_copy_from_user);
  
--/*
-- * copy from ds while checksumming, otherwise like csum_partial
-- */
--__wsum
--csum_partial_copy(const void *src, void *dst, int len, __wsum sum)
--{
--	memcpy(dst, src, len);
--	return csum_partial(dst, len, sum);
--}
--EXPORT_SYMBOL(csum_partial_copy);
--
- #ifndef csum_tcpudp_nofold
- static inline u32 from64to32(u64 x)
+ __wsum
+ csum_partial_copy_nocheck(const void *src, void *dst, int len)
  {
+-	__wsum checksum;
+-	mm_segment_t oldfs = get_fs();
+-	set_fs(KERNEL_DS);
+-	checksum = csum_and_copy_from_user((__force const void __user *)src,
++	return __csum_and_copy((__force const void __user *)src,
+ 						dst, len);
+-	set_fs(oldfs);
+-	return checksum;
+ }
+ EXPORT_SYMBOL(csum_partial_copy_nocheck);
 -- 
 2.11.0
