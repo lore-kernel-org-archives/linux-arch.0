@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH v2 17/20] xtensa: propagate the calling conventions change down into csum_partial_copy_generic()
-Date: Fri, 24 Jul 2020 02:25:43 +0100
-Message-ID: <20200724012546.302155-17-viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 19/20] amd64: switch csum_partial_copy_generic() to new calling conventions
+Date: Fri, 24 Jul 2020 02:25:45 +0100
+Message-ID: <20200724012546.302155-19-viro@ZenIV.linux.org.uk>
 References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
  <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
@@ -15,217 +15,346 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-turn the exception handlers into returning 0.
+... and fold handling of misaligned case into it.
 
-Reviewed-by: Max Filippov <jcmvbkbc@gmail.com>
-Tested-by: Max Filippov <jcmvbkbc@gmail.com>
+Implementation note: we stash the "will we need to rol8 the sum in the end"
+flag into the MSB of %rcx (the lower 32 bits are used for length); the rest
+is pretty straightforward.
+
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/xtensa/include/asm/checksum.h | 20 +++---------
- arch/xtensa/lib/checksum.S         | 67 +++++++++-----------------------------
- 2 files changed, 19 insertions(+), 68 deletions(-)
+ arch/x86/include/asm/checksum_64.h |   5 +-
+ arch/x86/lib/csum-copy_64.S        | 140 ++++++++++++++++++++++---------------
+ arch/x86/lib/csum-wrappers_64.c    |  72 +++----------------
+ 3 files changed, 94 insertions(+), 123 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/checksum.h b/arch/xtensa/include/asm/checksum.h
-index fe78fba7bd64..44ec1d0b2a35 100644
---- a/arch/xtensa/include/asm/checksum.h
-+++ b/arch/xtensa/include/asm/checksum.h
-@@ -37,9 +37,7 @@ asmlinkage __wsum csum_partial(const void *buff, int len, __wsum sum);
-  * better 64-bit) boundary
+diff --git a/arch/x86/include/asm/checksum_64.h b/arch/x86/include/asm/checksum_64.h
+index 9af3aed54c6b..407beebadaf4 100644
+--- a/arch/x86/include/asm/checksum_64.h
++++ b/arch/x86/include/asm/checksum_64.h
+@@ -130,10 +130,7 @@ static inline __sum16 csum_tcpudp_magic(__be32 saddr, __be32 daddr,
+ extern __wsum csum_partial(const void *buff, int len, __wsum sum);
+ 
+ /* Do not call this directly. Use the wrappers below */
+-extern __visible __wsum csum_partial_copy_generic(const void *src, const void *dst,
+-					int len, __wsum sum,
+-					int *src_err_ptr, int *dst_err_ptr);
+-
++extern __visible __wsum csum_partial_copy_generic(const void *src, void *dst, int len);
+ 
+ extern __wsum csum_and_copy_from_user(const void __user *src, void *dst, int len);
+ extern __wsum csum_and_copy_to_user(const void *src, void __user *dst, int len);
+diff --git a/arch/x86/lib/csum-copy_64.S b/arch/x86/lib/csum-copy_64.S
+index 3394a8ff7fd0..1fbd8ee9642d 100644
+--- a/arch/x86/lib/csum-copy_64.S
++++ b/arch/x86/lib/csum-copy_64.S
+@@ -18,9 +18,6 @@
+  * rdi  source
+  * rsi  destination
+  * edx  len (32bit)
+- * ecx  sum (32bit)
+- * r8   src_err_ptr (int)
+- * r9   dst_err_ptr (int)
+  *
+  * Output
+  * eax  64bit sum. undefined in case of exception.
+@@ -31,44 +28,32 @@
+ 
+ 	.macro source
+ 10:
+-	_ASM_EXTABLE_UA(10b, .Lbad_source)
++	_ASM_EXTABLE_UA(10b, .Lfault)
+ 	.endm
+ 
+ 	.macro dest
+ 20:
+-	_ASM_EXTABLE_UA(20b, .Lbad_dest)
++	_ASM_EXTABLE_UA(20b, .Lfault)
+ 	.endm
+ 
+-	/*
+-	 * No _ASM_EXTABLE_UA; this is used for intentional prefetch on a
+-	 * potentially unmapped kernel address.
+-	 */
+-	.macro ignore L=.Lignore
+-30:
+-	_ASM_EXTABLE(30b, \L)
+-	.endm
+-
+-
+ SYM_FUNC_START(csum_partial_copy_generic)
+-	cmpl	$3*64, %edx
+-	jle	.Lignore
+-
+-.Lignore:
+-	subq  $7*8, %rsp
+-	movq  %rbx, 2*8(%rsp)
+-	movq  %r12, 3*8(%rsp)
+-	movq  %r14, 4*8(%rsp)
+-	movq  %r13, 5*8(%rsp)
+-	movq  %r15, 6*8(%rsp)
++	subq  $5*8, %rsp
++	movq  %rbx, 0*8(%rsp)
++	movq  %r12, 1*8(%rsp)
++	movq  %r14, 2*8(%rsp)
++	movq  %r13, 3*8(%rsp)
++	movq  %r15, 4*8(%rsp)
+ 
+-	movq  %r8, (%rsp)
+-	movq  %r9, 1*8(%rsp)
+-
+-	movl  %ecx, %eax
++	movl  $-1, %eax
++	xorl  %r9d, %r9d
+ 	movl  %edx, %ecx
++	cmpl  $8, %ecx
++	jb    .Lshort
+ 
+-	xorl  %r9d, %r9d
+-	movq  %rcx, %r12
++	testb  $7, %sil
++	jne   .Lunaligned
++.Laligned:
++	movl  %ecx, %r12d
+ 
+ 	shrq  $6, %r12
+ 	jz	.Lhandle_tail       /* < 64 */
+@@ -99,7 +84,12 @@ SYM_FUNC_START(csum_partial_copy_generic)
+ 	source
+ 	movq  56(%rdi), %r13
+ 
+-	ignore 2f
++30:
++	/*
++	 * No _ASM_EXTABLE_UA; this is used for intentional prefetch on a
++	 * potentially unmapped kernel address.
++	 */
++	_ASM_EXTABLE(30b, 2f)
+ 	prefetcht0 5*64(%rdi)
+ 2:
+ 	adcq  %rbx, %rax
+@@ -131,8 +121,6 @@ SYM_FUNC_START(csum_partial_copy_generic)
+ 	dest
+ 	movq %r13, 56(%rsi)
+ 
+-3:
+-
+ 	leaq 64(%rdi), %rdi
+ 	leaq 64(%rsi), %rsi
+ 
+@@ -142,8 +130,8 @@ SYM_FUNC_START(csum_partial_copy_generic)
+ 
+ 	/* do last up to 56 bytes */
+ .Lhandle_tail:
+-	/* ecx:	count */
+-	movl %ecx, %r10d
++	/* ecx:	count, rcx.63: the end result needs to be rol8 */
++	movq %rcx, %r10
+ 	andl $63, %ecx
+ 	shrl $3, %ecx
+ 	jz	.Lfold
+@@ -172,6 +160,7 @@ SYM_FUNC_START(csum_partial_copy_generic)
+ .Lhandle_7:
+ 	movl %r10d, %ecx
+ 	andl $7, %ecx
++.L1:				/* .Lshort rejoins the common path here */
+ 	shrl $1, %ecx
+ 	jz   .Lhandle_1
+ 	movl $2, %edx
+@@ -203,26 +192,65 @@ SYM_FUNC_START(csum_partial_copy_generic)
+ 	adcl %r9d, %eax		/* carry */
+ 
+ .Lende:
+-	movq 2*8(%rsp), %rbx
+-	movq 3*8(%rsp), %r12
+-	movq 4*8(%rsp), %r14
+-	movq 5*8(%rsp), %r13
+-	movq 6*8(%rsp), %r15
+-	addq $7*8, %rsp
++	testq %r10, %r10
++	js  .Lwas_odd
++.Lout:
++	movq 0*8(%rsp), %rbx
++	movq 1*8(%rsp), %r12
++	movq 2*8(%rsp), %r14
++	movq 3*8(%rsp), %r13
++	movq 4*8(%rsp), %r15
++	addq $5*8, %rsp
+ 	ret
++.Lshort:
++	movl %ecx, %r10d
++	jmp  .L1
++.Lunaligned:
++	xorl %ebx, %ebx
++	testb $1, %sil
++	jne  .Lodd
++1:	testb $2, %sil
++	je   2f
++	source
++	movw (%rdi), %bx
++	dest
++	movw %bx, (%rsi)
++	leaq 2(%rdi), %rdi
++	subq $2, %rcx
++	leaq 2(%rsi), %rsi
++	addq %rbx, %rax
++2:	testb $4, %sil
++	je .Laligned
++	source
++	movl (%rdi), %ebx
++	dest
++	movl %ebx, (%rsi)
++	leaq 4(%rdi), %rdi
++	subq $4, %rcx
++	leaq 4(%rsi), %rsi
++	addq %rbx, %rax
++	jmp .Laligned
++
++.Lodd:
++	source
++	movb (%rdi), %bl
++	dest
++	movb %bl, (%rsi)
++	leaq 1(%rdi), %rdi
++	leaq 1(%rsi), %rsi
++	/* decrement, set MSB */
++	leaq -1(%rcx, %rcx), %rcx
++	rorq $1, %rcx
++	shll $8, %ebx
++	addq %rbx, %rax
++	jmp 1b
++
++.Lwas_odd:
++	roll $8, %eax
++	jmp .Lout
+ 
+-	/* Exception handlers. Very simple, zeroing is done in the wrappers */
+-.Lbad_source:
+-	movq (%rsp), %rax
+-	testq %rax, %rax
+-	jz   .Lende
+-	movl $-EFAULT, (%rax)
+-	jmp  .Lende
+-
+-.Lbad_dest:
+-	movq 8(%rsp), %rax
+-	testq %rax, %rax
+-	jz   .Lende
+-	movl $-EFAULT, (%rax)
+-	jmp .Lende
++	/* Exception: just return 0 */
++.Lfault:
++	xorl %eax, %eax
++	jmp  .Lout
+ SYM_FUNC_END(csum_partial_copy_generic)
+diff --git a/arch/x86/lib/csum-wrappers_64.c b/arch/x86/lib/csum-wrappers_64.c
+index ae2fb87e2274..189344924a2b 100644
+--- a/arch/x86/lib/csum-wrappers_64.c
++++ b/arch/x86/lib/csum-wrappers_64.c
+@@ -21,49 +21,16 @@
+  * src and dst are best aligned to 64bits.
   */
+ __wsum
+-csum_and_copy_from_user(const void __user *src, void *dst,
+-			    int len)
++csum_and_copy_from_user(const void __user *src, void *dst, int len)
+ {
+-	int err = 0;
+-	__wsum isum = ~0U;
++	__wsum sum;
  
--asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
--					    int len, __wsum sum,
--					    int *src_err_ptr, int *dst_err_ptr);
-+asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst, int len);
+ 	might_sleep();
+-
+ 	if (!user_access_begin(src, len))
+ 		return 0;
+-
+-	/*
+-	 * Why 6, not 7? To handle odd addresses aligned we
+-	 * would need to do considerable complications to fix the
+-	 * checksum which is defined as an 16bit accumulator. The
+-	 * fix alignment code is primarily for performance
+-	 * compatibility with 32bit and that will handle odd
+-	 * addresses slowly too.
+-	 */
+-	if (unlikely((unsigned long)src & 6)) {
+-		while (((unsigned long)src & 6) && len >= 2) {
+-			__u16 val16;
+-
+-			unsafe_get_user(val16, (const __u16 __user *)src, out);
+-
+-			*(__u16 *)dst = val16;
+-			isum = (__force __wsum)add32_with_carry(
+-					(__force unsigned)isum, val16);
+-			src += 2;
+-			dst += 2;
+-			len -= 2;
+-		}
+-	}
+-	isum = csum_partial_copy_generic((__force const void *)src,
+-				dst, len, isum, &err, NULL);
+-	user_access_end();
+-	if (unlikely(err))
+-		isum = 0;
+-	return isum;
+-
+-out:
++	sum = csum_partial_copy_generic((__force const void *)src, dst, len);
+ 	user_access_end();
+-	return 0;
++	return sum;
+ }
+ EXPORT_SYMBOL(csum_and_copy_from_user);
  
- #define _HAVE_ARCH_CSUM_AND_COPY
- /*
-@@ -49,7 +47,7 @@ asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
- static inline
- __wsum csum_partial_copy_nocheck(const void *src, void *dst, int len)
+@@ -79,37 +46,16 @@ EXPORT_SYMBOL(csum_and_copy_from_user);
+  * src and dst are best aligned to 64bits.
+  */
+ __wsum
+-csum_and_copy_to_user(const void *src, void __user *dst,
+-			  int len)
++csum_and_copy_to_user(const void *src, void __user *dst, int len)
+ {
+-	__wsum ret, isum = ~0U;
+-	int err = 0;
++	__wsum sum;
+ 
+ 	might_sleep();
+-
+ 	if (!user_access_begin(dst, len))
+ 		return 0;
+-
+-	if (unlikely((unsigned long)dst & 6)) {
+-		while (((unsigned long)dst & 6) && len >= 2) {
+-			__u16 val16 = *(__u16 *)src;
+-
+-			isum = (__force __wsum)add32_with_carry(
+-					(__force unsigned)isum, val16);
+-			unsafe_put_user(val16, (__u16 __user *)dst, out);
+-			src += 2;
+-			dst += 2;
+-			len -= 2;
+-		}
+-	}
+-
+-	ret = csum_partial_copy_generic(src, (void __force *)dst,
+-					len, isum, NULL, &err);
+-	user_access_end();
+-	return err ? 0 : ret;
+-out:
++	sum = csum_partial_copy_generic(src, (void __force *)dst, len);
+ 	user_access_end();
+-	return 0;
++	return sum;
+ }
+ EXPORT_SYMBOL(csum_and_copy_to_user);
+ 
+@@ -125,7 +71,7 @@ EXPORT_SYMBOL(csum_and_copy_to_user);
+ __wsum
+ csum_partial_copy_nocheck(const void *src, void *dst, int len)
  {
 -	return csum_partial_copy_generic(src, dst, len, 0, NULL, NULL);
 +	return csum_partial_copy_generic(src, dst, len);
  }
- 
- #define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
-@@ -57,14 +55,9 @@ static inline
- __wsum csum_and_copy_from_user(const void __user *src, void *dst,
- 				   int len)
- {
--	int err = 0;
--
- 	if (!access_ok(src, len))
- 		return 0;
--
--	sum = csum_partial_copy_generic((__force const void *)src, dst,
--					len, ~0U, &err, NULL);
--	return err ? 0 : sum;
-+	return csum_partial_copy_generic((__force const void *)src, dst, len);
- }
- 
- /*
-@@ -247,13 +240,8 @@ static __inline__ __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
- static __inline__ __wsum csum_and_copy_to_user(const void *src,
- 					       void __user *dst, int len)
- {
--	int err = 0;
--	__wsum sum = ~0U;
--
- 	if (!access_ok(dst, len))
- 		return 0;
--
--	sum = csum_partial_copy_generic(src,dst,len,sum,NULL,&err);
--	return err ? 0 : sum;
-+	return csum_partial_copy_generic(src, (__force void *)dst, len);
- }
- #endif
-diff --git a/arch/xtensa/lib/checksum.S b/arch/xtensa/lib/checksum.S
-index 4cb9ca58d9ad..cf1bed1a5bd6 100644
---- a/arch/xtensa/lib/checksum.S
-+++ b/arch/xtensa/lib/checksum.S
-@@ -175,19 +175,14 @@ ENDPROC(csum_partial)
-  */
- 
- /*
--unsigned int csum_partial_copy_generic (const char *src, char *dst, int len,
--					int sum, int *src_err_ptr, int *dst_err_ptr)
-+unsigned int csum_partial_copy_generic (const char *src, char *dst, int len)
- 	a2  = src
- 	a3  = dst
- 	a4  = len
- 	a5  = sum
--	a6  = src_err_ptr
--	a7  = dst_err_ptr
- 	a8  = temp
- 	a9  = temp
- 	a10 = temp
--	a11 = original len for exception handling
--	a12 = original dst for exception handling
- 
-     This function is optimized for 4-byte aligned addresses.  Other
-     alignments work, but not nearly as efficiently.
-@@ -196,8 +191,7 @@ unsigned int csum_partial_copy_generic (const char *src, char *dst, int len,
- ENTRY(csum_partial_copy_generic)
- 
- 	abi_entry_default
--	mov	a12, a3
--	mov	a11, a4
-+	movi	a5, -1
- 	or	a10, a2, a3
- 
- 	/* We optimize the following alignment tests for the 4-byte
-@@ -228,26 +222,26 @@ ENTRY(csum_partial_copy_generic)
- #endif
- EX(10f)	l32i	a9, a2, 0
- EX(10f)	l32i	a8, a2, 4
--EX(11f)	s32i	a9, a3, 0
--EX(11f)	s32i	a8, a3, 4
-+EX(10f)	s32i	a9, a3, 0
-+EX(10f)	s32i	a8, a3, 4
- 	ONES_ADD(a5, a9)
- 	ONES_ADD(a5, a8)
- EX(10f)	l32i	a9, a2, 8
- EX(10f)	l32i	a8, a2, 12
--EX(11f)	s32i	a9, a3, 8
--EX(11f)	s32i	a8, a3, 12
-+EX(10f)	s32i	a9, a3, 8
-+EX(10f)	s32i	a8, a3, 12
- 	ONES_ADD(a5, a9)
- 	ONES_ADD(a5, a8)
- EX(10f)	l32i	a9, a2, 16
- EX(10f)	l32i	a8, a2, 20
--EX(11f)	s32i	a9, a3, 16
--EX(11f)	s32i	a8, a3, 20
-+EX(10f)	s32i	a9, a3, 16
-+EX(10f)	s32i	a8, a3, 20
- 	ONES_ADD(a5, a9)
- 	ONES_ADD(a5, a8)
- EX(10f)	l32i	a9, a2, 24
- EX(10f)	l32i	a8, a2, 28
--EX(11f)	s32i	a9, a3, 24
--EX(11f)	s32i	a8, a3, 28
-+EX(10f)	s32i	a9, a3, 24
-+EX(10f)	s32i	a8, a3, 28
- 	ONES_ADD(a5, a9)
- 	ONES_ADD(a5, a8)
- 	addi	a2, a2, 32
-@@ -267,7 +261,7 @@ EX(11f)	s32i	a8, a3, 28
- .Loop6:
- #endif
- EX(10f)	l32i	a9, a2, 0
--EX(11f)	s32i	a9, a3, 0
-+EX(10f)	s32i	a9, a3, 0
- 	ONES_ADD(a5, a9)
- 	addi	a2, a2, 4
- 	addi	a3, a3, 4
-@@ -298,7 +292,7 @@ EX(11f)	s32i	a9, a3, 0
- .Loop7:
- #endif
- EX(10f)	l16ui	a9, a2, 0
--EX(11f)	s16i	a9, a3, 0
-+EX(10f)	s16i	a9, a3, 0
- 	ONES_ADD(a5, a9)
- 	addi	a2, a2, 2
- 	addi	a3, a3, 2
-@@ -309,7 +303,7 @@ EX(11f)	s16i	a9, a3, 0
- 	/* This section processes a possible trailing odd byte. */
- 	_bbci.l	a4, 0, 8f	/* 1-byte chunk */
- EX(10f)	l8ui	a9, a2, 0
--EX(11f)	s8i	a9, a3, 0
-+EX(10f)	s8i	a9, a3, 0
- #ifdef __XTENSA_EB__
- 	slli	a9, a9, 8	/* shift byte to bits 8..15 */
- #endif
-@@ -334,8 +328,8 @@ EX(11f)	s8i	a9, a3, 0
- #endif
- EX(10f)	l8ui	a9, a2, 0
- EX(10f)	l8ui	a8, a2, 1
--EX(11f)	s8i	a9, a3, 0
--EX(11f)	s8i	a8, a3, 1
-+EX(10f)	s8i	a9, a3, 0
-+EX(10f)	s8i	a8, a3, 1
- #ifdef __XTENSA_EB__
- 	slli	a9, a9, 8	/* combine into a single 16-bit value */
- #else				/* for checksum computation */
-@@ -356,38 +350,7 @@ ENDPROC(csum_partial_copy_generic)
- 
- # Exception handler:
- .section .fixup, "ax"
--/*
--	a6  = src_err_ptr
--	a7  = dst_err_ptr
--	a11 = original len for exception handling
--	a12 = original dst for exception handling
--*/
--
- 10:
--	_movi	a2, -EFAULT
--	s32i	a2, a6, 0	/* src_err_ptr */
--
--	# clear the complete destination - computing the rest
--	# is too much work
--	movi	a2, 0
--#if XCHAL_HAVE_LOOPS
--	loopgtz	a11, 2f
--#else
--	beqz	a11, 2f
--	add	a11, a11, a12	/* a11 = ending address */
--.Leloop:
--#endif
--	s8i	a2, a12, 0
--	addi	a12, a12, 1
--#if !XCHAL_HAVE_LOOPS
--	blt	a12, a11, .Leloop
--#endif
--2:
--	abi_ret_default
--
--11:
--	movi	a2, -EFAULT
--	s32i	a2, a7, 0	/* dst_err_ptr */
- 	movi	a2, 0
- 	abi_ret_default
+ EXPORT_SYMBOL(csum_partial_copy_nocheck);
  
 -- 
 2.11.0
