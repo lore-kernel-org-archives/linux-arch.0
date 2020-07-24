@@ -1,110 +1,50 @@
-From: Athira Rajeev <atrajeev@linux.vnet.ibm.com>
-Subject: Re: [PATCH 1/2] lockdep: improve current->(hard|soft)irqs_enabled
- synchronisation with actual irq state
-Date: Fri, 24 Jul 2020 11:46:26 +0530
-Message-ID: <6BAF6D26-A316-4F0A-AF10-5E43B2C09B90@linux.vnet.ibm.com>
-References: <20200723105615.1268126-1-npiggin@gmail.com>
- <20200723114010.GO5523@worktop.programming.kicks-ass.net>
- <1595506730.3mvrxktem5.astroid@bobo.none>
- <1884dcea-9ecd-a1f3-21bb-213c655e2480@ozlabs.ru>
-Mime-Version: 1.0 (Mac OS X Mail 13.4 \(3608.80.23.2.2\))
-Content-Type: text/plain;
-        charset=utf-8
-Content-Transfer-Encoding: 8BIT
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH v2 04/20] unify generic instances of
+ csum_partial_copy_nocheck()
+Date: Fri, 24 Jul 2020 07:41:17 +0100
+Message-ID: <20200724064117.GA10522@infradead.org>
+References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
+ <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
+ <20200724012546.302155-4-viro@ZenIV.linux.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:38160 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726178AbgGXGQu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Jul 2020 02:16:50 -0400
-In-Reply-To: <1884dcea-9ecd-a1f3-21bb-213c655e2480@ozlabs.ru>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58710 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726567AbgGXGlU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 02:41:20 -0400
+Content-Disposition: inline
+In-Reply-To: <20200724012546.302155-4-viro@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Kardashevskiy <aik@ozlabs.ru>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Ingo Molnar <mingo@redhat.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
+On Fri, Jul 24, 2020 at 02:25:30AM +0100, Al Viro wrote:
+> From: Al Viro <viro@zeniv.linux.org.uk>
+> 
+> quite a few architectures have the same csum_partial_copy_nocheck() -
+> simply memcpy() the data and then return the csum of the copy.
+> 
+> hexagon, parisc, ia64, s390, um: explicitly spelled out that way.
+> 
+> arc, arm64, csky, h8300, m68k/nommu, microblaze, mips/GENERIC_CSUM, nds32,
+> nios2, openrisc, riscv, unicore32: end up picking the same thing spelled
+> out in lib/checksum.h (with varying amounts of perversions along the way).
+> 
+> everybody else (alpha, arm, c6x, m68k/mmu, mips/!GENERIC_CSUM, powerpc,
+> sh, sparc, x86, xtensa) have non-generic variants.  For all except c6x
+> the declaration is in their asm/checksum.h.  c6x uses the wrapper
+> from asm-generic/checksum.h that would normally lead to the lib/checksum.h
+> instance, but in case of c6x we end up using an asm function from arch/c6x
+> instead.
+> 
+> Screw that mess - have architectures with private instances define
+> _HAVE_ARCH_CSUM_AND_COPY in their asm/checksum.h and have the default
+> one right in net/checksum.h conditional on _HAVE_ARCH_CSUM_AND_COPY
+> *not* defined.
 
+net-next has a patch from me killing off csum_and_copy_from_user
+already:
 
-> On 24-Jul-2020, at 9:46 AM, Alexey Kardashevskiy <aik@ozlabs.ru> wrote:
-> 
-> 
-> 
-> On 23/07/2020 23:11, Nicholas Piggin wrote:
->> Excerpts from Peter Zijlstra's message of July 23, 2020 9:40 pm:
->>> On Thu, Jul 23, 2020 at 08:56:14PM +1000, Nicholas Piggin wrote:
->>> 
->>>> diff --git a/arch/powerpc/include/asm/hw_irq.h b/arch/powerpc/include/asm/hw_irq.h
->>>> index 3a0db7b0b46e..35060be09073 100644
->>>> --- a/arch/powerpc/include/asm/hw_irq.h
->>>> +++ b/arch/powerpc/include/asm/hw_irq.h
->>>> @@ -200,17 +200,14 @@ static inline bool arch_irqs_disabled(void)
->>>> #define powerpc_local_irq_pmu_save(flags)			\
->>>> 	 do {							\
->>>> 		raw_local_irq_pmu_save(flags);			\
->>>> -		trace_hardirqs_off();				\
->>>> +		if (!raw_irqs_disabled_flags(flags))		\
->>>> +			trace_hardirqs_off();			\
->>>> 	} while(0)
->>>> #define powerpc_local_irq_pmu_restore(flags)			\
->>>> 	do {							\
->>>> -		if (raw_irqs_disabled_flags(flags)) {		\
->>>> -			raw_local_irq_pmu_restore(flags);	\
->>>> -			trace_hardirqs_off();			\
->>>> -		} else {					\
->>>> +		if (!raw_irqs_disabled_flags(flags))		\
->>>> 			trace_hardirqs_on();			\
->>>> -			raw_local_irq_pmu_restore(flags);	\
->>>> -		}						\
->>>> +		raw_local_irq_pmu_restore(flags);		\
->>>> 	} while(0)
->>> 
->>> You shouldn't be calling lockdep from NMI context!
->> 
->> After this patch it doesn't.
->> 
->> trace_hardirqs_on/off implementation appears to expect to be called in NMI 
->> context though, for some reason.
->> 
->>> That is, I recently
->>> added suport for that on x86:
->>> 
->>>  https://lkml.kernel.org/r/20200623083721.155449112@infradead.org
->>>  https://lkml.kernel.org/r/20200623083721.216740948@infradead.org
->>> 
->>> But you need to be very careful on how you order things, as you can see
->>> the above relies on preempt_count() already having been incremented with
->>> NMI_MASK.
->> 
->> Hmm. My patch seems simpler.
-> 
-> And your patches fix my error while Peter's do not:
-> 
-> 
-> IRQs not enabled as expected
-> WARNING: CPU: 0 PID: 1377 at /home/aik/p/kernel/kernel/softirq.c:169
-> __local_bh_enable_ip+0x118/0x190
-
-Hi Nicholas, Alexey
-
-I was able to reproduce the warning which Alexey reported using perf_fuzzer test suite. 
-With the patch provided by Nick, I don’t see the issue anymore. This patch fixes the
-warnings I got with perf fuzzer run.
-
-Thanks Nick for the fix. 
-
-Tested-by: Athira Rajeev<atrajeev@linux.ibm.com>
-
-
-> 
-> 
->> 
->> I don't know this stuff very well, I don't really understand what your patch 
->> enables for x86 but at least it shouldn't be incompatible with this one 
->> AFAIKS.
->> 
->> Thanks,
->> Nick
->> 
-> 
-> -- 
-> Alexey
+https://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next.git/commit/?id=f1bfd71c8662f20d53e71ef4e18bfb0e5677c27f
