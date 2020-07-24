@@ -1,169 +1,240 @@
-Return-Path: <SRS0=LHd7=BG=kvack.org=owner-linux-mm@kernel.org>
-From: Anthony Yznaga <anthony.yznaga@oracle.com>
-Subject: [RFC PATCH 1/5] elf: reintroduce using MAP_FIXED_NOREPLACE for elf executable mappings
-Date: Mon, 27 Jul 2020 10:11:23 -0700
-Message-ID: <1595869887-23307-2-git-send-email-anthony.yznaga@oracle.com>
-In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
-References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33462 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725942AbgGXHA0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 03:00:26 -0400
+Received: from mail-qt1-x849.google.com (mail-qt1-x849.google.com [IPv6:2607:f8b0:4864:20::849])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 69EB2C0619E4
+        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:25 -0700 (PDT)
+Received: by mail-qt1-x849.google.com with SMTP id u17so2770718qtq.13
+        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:25 -0700 (PDT)
+Date: Fri, 24 Jul 2020 09:00:01 +0200
+In-Reply-To: <20200724070008.1389205-1-elver@google.com>
+Message-ID: <20200724070008.1389205-2-elver@google.com>
+Mime-Version: 1.0
+References: <20200724070008.1389205-1-elver@google.com>
+Subject: [PATCH v2 1/8] kcsan: Support compounded read-write instrumentation
+From: Marco Elver <elver@google.com>
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200727171123.WQGxVepQhSnRUDsSQCOFJJ3clcjx_efrhUggUwrAZuQ@z>
+To: elver@google.com, paulmck@kernel.org
+Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200724070001.jNxPw_GEcUB7_IBWAGN0EbiH-Y89-d18wSngQETR428@z>
 
-Commit b212921b13bd ("elf: don't use MAP_FIXED_NOREPLACE for elf
-executable mappings") reverted back to using MAP_FIXED to map elf load
-segments because it was found that the load segments in some binaries
-overlap and can cause MAP_FIXED_NOREPLACE to fail.  The original intent
-of MAP_FIXED_NOREPLACE was to prevent the silent clobbering of an
-existing mapping (e.g. the stack) by the elf image.  To achieve this,
-expand on the logic used when loading ET_DYN binaries which calculates a
-total size for the image when the first segment is mapped, maps the
-entire image, and then unmaps the remainder before remaining segments
-are mapped.  Apply this to ET_EXEC binaries as well as ET_DYN binaries
-as is done now, and for both ET_EXEC and ET_DYN+INTERP use
-MAP_FIXED_NOREPLACE for the initial total size mapping and MAP_FIXED for
-remaining mappings.  For ET_DYN w/out INTERP, continue to map at a
-system-selected address in the mmap region.
+Add support for compounded read-write instrumentation if supported by
+the compiler. Adds the necessary instrumentation functions, and a new
+type which is used to generate a more descriptive report.
 
-Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
+Furthermore, such compounded memory access instrumentation is excluded
+from the "assume aligned writes up to word size are atomic" rule,
+because we cannot assume that the compiler emits code that is atomic for
+compound ops.
+
+LLVM/Clang added support for the feature in:
+https://github.com/llvm/llvm-project/commit/785d41a261d136b64ab6c15c5d35f2adc5ad53e3
+
+The new instrumentation is emitted for sets of memory accesses in the
+same basic block to the same address with at least one read appearing
+before a write. These typically result from compound operations such as
+++, --, +=, -=, |=, &=, etc. but also equivalent forms such as "var =
+var + 1". Where the compiler determines that it is equivalent to emit a
+call to a single __tsan_read_write instead of separate __tsan_read and
+__tsan_write, we can then benefit from improved performance and better
+reporting for such access patterns.
+
+The new reports now show that the ops are both reads and writes, for
+example:
+
+	read-write to 0xffffffff90548a38 of 8 bytes by task 143 on cpu 3:
+	 test_kernel_rmw_array+0x45/0xa0
+	 access_thread+0x71/0xb0
+	 kthread+0x21e/0x240
+	 ret_from_fork+0x22/0x30
+
+	read-write to 0xffffffff90548a38 of 8 bytes by task 144 on cpu 2:
+	 test_kernel_rmw_array+0x45/0xa0
+	 access_thread+0x71/0xb0
+	 kthread+0x21e/0x240
+	 ret_from_fork+0x22/0x30
+
+Signed-off-by: Marco Elver <elver@google.com>
 ---
- fs/binfmt_elf.c | 112 ++++++++++++++++++++++++++++++++------------------------
- 1 file changed, 64 insertions(+), 48 deletions(-)
+ include/linux/kcsan-checks.h | 45 ++++++++++++++++++++++++------------
+ kernel/kcsan/core.c          | 23 ++++++++++++++----
+ kernel/kcsan/report.c        |  4 ++++
+ scripts/Makefile.kcsan       |  2 +-
+ 4 files changed, 53 insertions(+), 21 deletions(-)
 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 9fe3b51c116a..6445a6dbdb1d 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -1046,58 +1046,25 @@ static int load_elf_binary(struct linux_binprm *bprm)
+diff --git a/include/linux/kcsan-checks.h b/include/linux/kcsan-checks.h
+index 7b0b9c44f5f3..ab23b38ad93d 100644
+--- a/include/linux/kcsan-checks.h
++++ b/include/linux/kcsan-checks.h
+@@ -7,19 +7,13 @@
+ #include <linux/compiler_attributes.h>
+ #include <linux/types.h>
  
- 		vaddr = elf_ppnt->p_vaddr;
- 		/*
--		 * If we are loading ET_EXEC or we have already performed
--		 * the ET_DYN load_addr calculations, proceed normally.
-+		 * Map remaining segments with MAP_FIXED once the first
-+		 * total size mapping has been done.
- 		 */
--		if (elf_ex->e_type == ET_EXEC || load_addr_set) {
-+		if (load_addr_set) {
- 			elf_flags |= MAP_FIXED;
--		} else if (elf_ex->e_type == ET_DYN) {
--			/*
--			 * This logic is run once for the first LOAD Program
--			 * Header for ET_DYN binaries to calculate the
--			 * randomization (load_bias) for all the LOAD
--			 * Program Headers, and to calculate the entire
--			 * size of the ELF mapping (total_size). (Note that
--			 * load_addr_set is set to true later once the
--			 * initial mapping is performed.)
--			 *
--			 * There are effectively two types of ET_DYN
--			 * binaries: programs (i.e. PIE: ET_DYN with INTERP)
--			 * and loaders (ET_DYN without INTERP, since they
--			 * _are_ the ELF interpreter). The loaders must
--			 * be loaded away from programs since the program
--			 * may otherwise collide with the loader (especially
--			 * for ET_EXEC which does not have a randomized
--			 * position). For example to handle invocations of
--			 * "./ld.so someprog" to test out a new version of
--			 * the loader, the subsequent program that the
--			 * loader loads must avoid the loader itself, so
--			 * they cannot share the same load range. Sufficient
--			 * room for the brk must be allocated with the
--			 * loader as well, since brk must be available with
--			 * the loader.
--			 *
--			 * Therefore, programs are loaded offset from
--			 * ELF_ET_DYN_BASE and loaders are loaded into the
--			 * independently randomized mmap region (0 load_bias
--			 * without MAP_FIXED).
--			 */
--			if (interpreter) {
--				load_bias = ELF_ET_DYN_BASE;
--				if (current->flags & PF_RANDOMIZE)
--					load_bias += arch_mmap_rnd();
--				elf_flags |= MAP_FIXED;
--			} else
--				load_bias = 0;
--
-+		} else {
- 			/*
--			 * Since load_bias is used for all subsequent loading
--			 * calculations, we must lower it by the first vaddr
--			 * so that the remaining calculations based on the
--			 * ELF vaddrs will be correctly offset. The result
--			 * is then page aligned.
-+			 * To ensure loading does not continue if an ELF
-+			 * LOAD segment overlaps an existing mapping (e.g.
-+			 * the stack), for the first LOAD Program Header
-+			 * calculate the the entire size of the ELF mapping
-+			 * and map it with MAP_FIXED_NOREPLACE. On success,
-+			 * the remainder will be unmapped and subsequent
-+			 * LOAD segments mapped with MAP_FIXED rather than
-+			 * MAP_FIXED_NOREPLACE because some binaries may
-+			 * have overlapping segments that would cause the
-+			 * mmap to fail.
- 			 */
--			load_bias = ELF_PAGESTART(load_bias - vaddr);
-+			elf_flags |= MAP_FIXED_NOREPLACE;
+-/*
+- * ACCESS TYPE MODIFIERS
+- *
+- *   <none>: normal read access;
+- *   WRITE : write access;
+- *   ATOMIC: access is atomic;
+- *   ASSERT: access is not a regular access, but an assertion;
+- *   SCOPED: access is a scoped access;
+- */
+-#define KCSAN_ACCESS_WRITE  0x1
+-#define KCSAN_ACCESS_ATOMIC 0x2
+-#define KCSAN_ACCESS_ASSERT 0x4
+-#define KCSAN_ACCESS_SCOPED 0x8
++/* Access types -- if KCSAN_ACCESS_WRITE is not set, the access is a read. */
++#define KCSAN_ACCESS_WRITE	(1 << 0) /* Access is a write. */
++#define KCSAN_ACCESS_COMPOUND	(1 << 1) /* Compounded read-write instrumentation. */
++#define KCSAN_ACCESS_ATOMIC	(1 << 2) /* Access is atomic. */
++/* The following are special, and never due to compiler instrumentation. */
++#define KCSAN_ACCESS_ASSERT	(1 << 3) /* Access is an assertion. */
++#define KCSAN_ACCESS_SCOPED	(1 << 4) /* Access is a scoped access. */
  
- 			total_size = total_mapping_size(elf_phdata,
- 							elf_ex->e_phnum);
-@@ -1105,6 +1072,55 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 				retval = -EINVAL;
- 				goto out_free_dentry;
- 			}
+ /*
+  * __kcsan_*: Always calls into the runtime when KCSAN is enabled. This may be used
+@@ -204,6 +198,15 @@ static inline void __kcsan_disable_current(void) { }
+ #define __kcsan_check_write(ptr, size)                                         \
+ 	__kcsan_check_access(ptr, size, KCSAN_ACCESS_WRITE)
+ 
++/**
++ * __kcsan_check_read_write - check regular read-write access for races
++ *
++ * @ptr: address of access
++ * @size: size of access
++ */
++#define __kcsan_check_read_write(ptr, size)                                    \
++	__kcsan_check_access(ptr, size, KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE)
 +
-+			if (elf_ex->e_type == ET_DYN) {
-+				/*
-+				 * This logic is run once for the first LOAD
-+				 * Program Header for ET_DYN binaries to
-+				 * calculate the randomization (load_bias) for
-+				 * all the LOAD Program Headers.
-+				 *
-+				 * There are effectively two types of ET_DYN
-+				 * binaries: programs (i.e. PIE: ET_DYN with
-+				 * INTERP) and loaders (ET_DYN without INTERP,
-+				 * since they _are_ the ELF interpreter). The
-+				 * loaders must be loaded away from programs
-+				 * since the program may otherwise collide with
-+				 * the loader (especially for ET_EXEC which does
-+				 * not have a randomized position). For example
-+				 * to handle invocations of "./ld.so someprog"
-+				 * to test out a new version of the loader, the
-+				 * subsequent program that the loader loads must
-+				 * avoid the loader itself, so they cannot share
-+				 * the same load range. Sufficient room for the
-+				 * brk must be allocated with the loader as
-+				 * well, since brk must be available with the
-+				 * loader.
-+				 *
-+				 * Therefore, programs are loaded offset from
-+				 * ELF_ET_DYN_BASE and loaders are loaded into
-+				 * the independently randomized mmap region
-+				 * (0 load_bias without MAP_FIXED*).
-+				 */
-+				if (interpreter) {
-+					load_bias = ELF_ET_DYN_BASE;
-+					if (current->flags & PF_RANDOMIZE)
-+						load_bias += arch_mmap_rnd();
-+				} else {
-+					load_bias = 0;
-+					elf_flags &= ~MAP_FIXED_NOREPLACE;
-+				}
-+
-+				/*
-+				 * Since load_bias is used for all subsequent
-+				 * loading calculations, we must lower it by
-+				 * the first vaddr so that the remaining
-+				 * calculations based on the ELF vaddrs will
-+				 * be correctly offset. The result is then
-+				 * page aligned.
-+				 */
-+				load_bias = ELF_PAGESTART(load_bias - vaddr);
-+			}
- 		}
+ /**
+  * kcsan_check_read - check regular read access for races
+  *
+@@ -221,18 +224,30 @@ static inline void __kcsan_disable_current(void) { }
+ #define kcsan_check_write(ptr, size)                                           \
+ 	kcsan_check_access(ptr, size, KCSAN_ACCESS_WRITE)
  
- 		error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
++/**
++ * kcsan_check_read_write - check regular read-write access for races
++ *
++ * @ptr: address of access
++ * @size: size of access
++ */
++#define kcsan_check_read_write(ptr, size)                                      \
++	kcsan_check_access(ptr, size, KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE)
++
+ /*
+  * Check for atomic accesses: if atomic accesses are not ignored, this simply
+  * aliases to kcsan_check_access(), otherwise becomes a no-op.
+  */
+ #ifdef CONFIG_KCSAN_IGNORE_ATOMICS
+-#define kcsan_check_atomic_read(...)	do { } while (0)
+-#define kcsan_check_atomic_write(...)	do { } while (0)
++#define kcsan_check_atomic_read(...)		do { } while (0)
++#define kcsan_check_atomic_write(...)		do { } while (0)
++#define kcsan_check_atomic_read_write(...)	do { } while (0)
+ #else
+ #define kcsan_check_atomic_read(ptr, size)                                     \
+ 	kcsan_check_access(ptr, size, KCSAN_ACCESS_ATOMIC)
+ #define kcsan_check_atomic_write(ptr, size)                                    \
+ 	kcsan_check_access(ptr, size, KCSAN_ACCESS_ATOMIC | KCSAN_ACCESS_WRITE)
++#define kcsan_check_atomic_read_write(ptr, size)                               \
++	kcsan_check_access(ptr, size, KCSAN_ACCESS_ATOMIC | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_COMPOUND)
+ #endif
+ 
+ /**
+diff --git a/kernel/kcsan/core.c b/kernel/kcsan/core.c
+index f8dd9b2b8068..fb52de2facf3 100644
+--- a/kernel/kcsan/core.c
++++ b/kernel/kcsan/core.c
+@@ -223,7 +223,7 @@ is_atomic(const volatile void *ptr, size_t size, int type, struct kcsan_ctx *ctx
+ 
+ 	if (IS_ENABLED(CONFIG_KCSAN_ASSUME_PLAIN_WRITES_ATOMIC) &&
+ 	    (type & KCSAN_ACCESS_WRITE) && size <= sizeof(long) &&
+-	    IS_ALIGNED((unsigned long)ptr, size))
++	    !(type & KCSAN_ACCESS_COMPOUND) && IS_ALIGNED((unsigned long)ptr, size))
+ 		return true; /* Assume aligned writes up to word size are atomic. */
+ 
+ 	if (ctx->atomic_next > 0) {
+@@ -771,7 +771,17 @@ EXPORT_SYMBOL(__kcsan_check_access);
+ 	EXPORT_SYMBOL(__tsan_write##size);                                     \
+ 	void __tsan_unaligned_write##size(void *ptr)                           \
+ 		__alias(__tsan_write##size);                                   \
+-	EXPORT_SYMBOL(__tsan_unaligned_write##size)
++	EXPORT_SYMBOL(__tsan_unaligned_write##size);                           \
++	void __tsan_read_write##size(void *ptr);                               \
++	void __tsan_read_write##size(void *ptr)                                \
++	{                                                                      \
++		check_access(ptr, size,                                        \
++			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE);      \
++	}                                                                      \
++	EXPORT_SYMBOL(__tsan_read_write##size);                                \
++	void __tsan_unaligned_read_write##size(void *ptr)                      \
++		__alias(__tsan_read_write##size);                              \
++	EXPORT_SYMBOL(__tsan_unaligned_read_write##size)
+ 
+ DEFINE_TSAN_READ_WRITE(1);
+ DEFINE_TSAN_READ_WRITE(2);
+@@ -894,7 +904,8 @@ EXPORT_SYMBOL(__tsan_init);
+ 	u##bits __tsan_atomic##bits##_##op(u##bits *ptr, u##bits v, int memorder);                 \
+ 	u##bits __tsan_atomic##bits##_##op(u##bits *ptr, u##bits v, int memorder)                  \
+ 	{                                                                                          \
+-		check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC); \
++		check_access(ptr, bits / BITS_PER_BYTE,                                            \
++			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
+ 		return __atomic_##op##suffix(ptr, v, memorder);                                    \
+ 	}                                                                                          \
+ 	EXPORT_SYMBOL(__tsan_atomic##bits##_##op)
+@@ -922,7 +933,8 @@ EXPORT_SYMBOL(__tsan_init);
+ 	int __tsan_atomic##bits##_compare_exchange_##strength(u##bits *ptr, u##bits *exp,          \
+ 							      u##bits val, int mo, int fail_mo)    \
+ 	{                                                                                          \
+-		check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC); \
++		check_access(ptr, bits / BITS_PER_BYTE,                                            \
++			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
+ 		return __atomic_compare_exchange_n(ptr, exp, val, weak, mo, fail_mo);              \
+ 	}                                                                                          \
+ 	EXPORT_SYMBOL(__tsan_atomic##bits##_compare_exchange_##strength)
+@@ -933,7 +945,8 @@ EXPORT_SYMBOL(__tsan_init);
+ 	u##bits __tsan_atomic##bits##_compare_exchange_val(u##bits *ptr, u##bits exp, u##bits val, \
+ 							   int mo, int fail_mo)                    \
+ 	{                                                                                          \
+-		check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC); \
++		check_access(ptr, bits / BITS_PER_BYTE,                                            \
++			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
+ 		__atomic_compare_exchange_n(ptr, &exp, val, 0, mo, fail_mo);                       \
+ 		return exp;                                                                        \
+ 	}                                                                                          \
+diff --git a/kernel/kcsan/report.c b/kernel/kcsan/report.c
+index ac5f8345bae9..d05052c23261 100644
+--- a/kernel/kcsan/report.c
++++ b/kernel/kcsan/report.c
+@@ -228,6 +228,10 @@ static const char *get_access_type(int type)
+ 		return "write";
+ 	case KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC:
+ 		return "write (marked)";
++	case KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE:
++		return "read-write";
++	case KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC:
++		return "read-write (marked)";
+ 	case KCSAN_ACCESS_SCOPED:
+ 		return "read (scoped)";
+ 	case KCSAN_ACCESS_SCOPED | KCSAN_ACCESS_ATOMIC:
+diff --git a/scripts/Makefile.kcsan b/scripts/Makefile.kcsan
+index dd66206f4578..a20dd63dfd17 100644
+--- a/scripts/Makefile.kcsan
++++ b/scripts/Makefile.kcsan
+@@ -13,7 +13,7 @@ endif
+ # of some options does not break KCSAN nor causes false positive reports.
+ CFLAGS_KCSAN := -fsanitize=thread \
+ 	$(call cc-option,$(call cc-param,tsan-instrument-func-entry-exit=0) -fno-optimize-sibling-calls) \
+-	$(call cc-option,$(call cc-param,tsan-instrument-read-before-write=1)) \
++	$(call cc-option,$(call cc-param,tsan-compound-read-before-write=1),$(call cc-option,$(call cc-param,tsan-instrument-read-before-write=1))) \
+ 	$(call cc-param,tsan-distinguish-volatile=1)
+ 
+ endif # CONFIG_KCSAN
 -- 
-1.8.3.1
+2.28.0.rc0.142.g3c755180ce-goog
