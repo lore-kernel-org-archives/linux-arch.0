@@ -1,199 +1,188 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51344 "EHLO
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35264 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729646AbgGULIo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:44 -0400
-Message-ID: <20200721110808.999191026@linutronix.de>
-Date: Tue, 21 Jul 2020 12:57:13 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V4 07/15] x86/entry: Consolidate 32/64 bit syscall entry
-References: <20200721105706.030914876@linutronix.de>
+        with ESMTP id S1727050AbgGXNOm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 09:14:42 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH v4 1/6] powerpc/pseries: move some PAPR paravirt functions to their own file
+Date: Fri, 24 Jul 2020 23:14:18 +1000
+Message-ID: <20200724131423.1362108-2-npiggin@gmail.com>
+In-Reply-To: <20200724131423.1362108-1-npiggin@gmail.com>
+References: <20200724131423.1362108-1-npiggin@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200721105713.LIPXz3mKW0dFT35ZjaG6UymJalN-j6PlfYPQOoC30gI@z>
+To: linuxppc-dev@lists.ozlabs.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, =?UTF-8?q?Michal=20Such=C3=A1nek?= <msuchanek@suse.de>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200724131418.V_9MftuIjdBvFeNROpCYvqm_sVfn9vs98ldayOH7jKA@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+These functions will be used by queued spinlock implementation,
+and may be useful elsewhere too, so move them out of spinlock.h.
 
-64bit and 32bit entry code have the same open coded syscall entry handling
-after the bitwidth specific bits.
-
-Move it to a helper function and share the code.
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/x86/entry/common.c |   93 +++++++++++++++++++++---------------------------
- 1 file changed, 41 insertions(+), 52 deletions(-)
+ arch/powerpc/include/asm/paravirt.h | 59 +++++++++++++++++++++++++++++
+ arch/powerpc/include/asm/spinlock.h | 24 +-----------
+ arch/powerpc/lib/locks.c            | 12 +++---
+ 3 files changed, 66 insertions(+), 29 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/paravirt.h
 
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -366,8 +366,7 @@ static void __syscall_return_slowpath(st
- 	exit_to_user_mode();
- }
- 
--#ifdef CONFIG_X86_64
--__visible noinstr void do_syscall_64(unsigned long nr, struct pt_regs *regs)
-+static noinstr long syscall_enter(struct pt_regs *regs, unsigned long nr)
- {
- 	struct thread_info *ti;
- 
-@@ -379,6 +378,16 @@ static void __syscall_return_slowpath(st
- 	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY)
- 		nr = syscall_trace_enter(regs);
- 
-+	instrumentation_end();
-+	return nr;
+diff --git a/arch/powerpc/include/asm/paravirt.h b/arch/powerpc/include/asm/paravirt.h
+new file mode 100644
+index 000000000000..339e8533464b
+--- /dev/null
++++ b/arch/powerpc/include/asm/paravirt.h
+@@ -0,0 +1,59 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++#ifndef _ASM_POWERPC_PARAVIRT_H
++#define _ASM_POWERPC_PARAVIRT_H
++
++#include <linux/jump_label.h>
++#include <asm/smp.h>
++#ifdef CONFIG_PPC64
++#include <asm/paca.h>
++#include <asm/hvcall.h>
++#endif
++
++#ifdef CONFIG_PPC_SPLPAR
++DECLARE_STATIC_KEY_FALSE(shared_processor);
++
++static inline bool is_shared_processor(void)
++{
++	return static_branch_unlikely(&shared_processor);
 +}
 +
-+#ifdef CONFIG_X86_64
-+__visible noinstr void do_syscall_64(unsigned long nr, struct pt_regs *regs)
++/* If bit 0 is set, the cpu has been preempted */
++static inline u32 yield_count_of(int cpu)
 +{
-+	nr = syscall_enter(regs, nr);
-+
-+	instrumentation_begin();
- 	if (likely(nr < NR_syscalls)) {
- 		nr = array_index_nospec(nr, NR_syscalls);
- 		regs->ax = sys_call_table[nr](regs);
-@@ -390,64 +399,53 @@ static void __syscall_return_slowpath(st
- 		regs->ax = x32_sys_call_table[nr](regs);
- #endif
- 	}
--	__syscall_return_slowpath(regs);
--
- 	instrumentation_end();
--	exit_to_user_mode();
-+	syscall_return_slowpath(regs);
- }
- #endif
- 
- #if defined(CONFIG_X86_32) || defined(CONFIG_IA32_EMULATION)
-+static __always_inline unsigned int syscall_32_enter(struct pt_regs *regs)
-+{
-+	if (IS_ENABLED(CONFIG_IA32_EMULATION))
-+		current_thread_info()->status |= TS_COMPAT;
-+	/*
-+	 * Subtlety here: if ptrace pokes something larger than 2^32-1 into
-+	 * orig_ax, the unsigned int return value truncates it.  This may
-+	 * or may not be necessary, but it matches the old asm behavior.
-+	 */
-+	return syscall_enter(regs, (unsigned int)regs->orig_ax);
++	__be32 yield_count = READ_ONCE(lppaca_of(cpu).yield_count);
++	return be32_to_cpu(yield_count);
 +}
 +
- /*
-- * Does a 32-bit syscall.  Called with IRQs on in CONTEXT_KERNEL.  Does
-- * all entry and exit work and returns with IRQs off.  This function is
-- * extremely hot in workloads that use it, and it's usually called from
-- * do_fast_syscall_32, so forcibly inline it to improve performance.
-+ * Invoke a 32-bit syscall.  Called with IRQs on in CONTEXT_KERNEL.
++static inline void yield_to_preempted(int cpu, u32 yield_count)
++{
++	plpar_hcall_norets(H_CONFER, get_hard_smp_processor_id(cpu), yield_count);
++}
++#else
++static inline bool is_shared_processor(void)
++{
++	return false;
++}
++
++static inline u32 yield_count_of(int cpu)
++{
++	return 0;
++}
++
++extern void ___bad_yield_to_preempted(void);
++static inline void yield_to_preempted(int cpu, u32 yield_count)
++{
++	___bad_yield_to_preempted(); /* This would be a bug */
++}
++#endif
++
++#define vcpu_is_preempted vcpu_is_preempted
++static inline bool vcpu_is_preempted(int cpu)
++{
++	if (!is_shared_processor())
++		return false;
++	if (yield_count_of(cpu) & 1)
++		return true;
++	return false;
++}
++
++#endif /* _ASM_POWERPC_PARAVIRT_H */
+diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
+index 2d620896cdae..79be9bb10bbb 100644
+--- a/arch/powerpc/include/asm/spinlock.h
++++ b/arch/powerpc/include/asm/spinlock.h
+@@ -15,11 +15,10 @@
+  *
+  * (the type definitions are in asm/spinlock_types.h)
   */
--static void do_syscall_32_irqs_on(struct pt_regs *regs)
-+static __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs,
-+						  unsigned int nr)
- {
--	struct thread_info *ti = current_thread_info();
--	unsigned int nr = (unsigned int)regs->orig_ax;
+-#include <linux/jump_label.h>
+ #include <linux/irqflags.h>
++#include <asm/paravirt.h>
+ #ifdef CONFIG_PPC64
+ #include <asm/paca.h>
+-#include <asm/hvcall.h>
+ #endif
+ #include <asm/synch.h>
+ #include <asm/ppc-opcode.h>
+@@ -35,18 +34,6 @@
+ #define LOCK_TOKEN	1
+ #endif
+ 
+-#ifdef CONFIG_PPC_PSERIES
+-DECLARE_STATIC_KEY_FALSE(shared_processor);
 -
--#ifdef CONFIG_IA32_EMULATION
--	ti->status |= TS_COMPAT;
+-#define vcpu_is_preempted vcpu_is_preempted
+-static inline bool vcpu_is_preempted(int cpu)
+-{
+-	if (!static_branch_unlikely(&shared_processor))
+-		return false;
+-	return !!(be32_to_cpu(lppaca_of(cpu).yield_count) & 1);
+-}
 -#endif
 -
--	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY) {
--		/*
--		 * Subtlety here: if ptrace pokes something larger than
--		 * 2^32-1 into orig_ax, this truncates it.  This may or
--		 * may not be necessary, but it matches the old asm
--		 * behavior.
--		 */
--		nr = syscall_trace_enter(regs);
--	}
--
- 	if (likely(nr < IA32_NR_syscalls)) {
-+		instrumentation_begin();
- 		nr = array_index_nospec(nr, IA32_NR_syscalls);
- 		regs->ax = ia32_sys_call_table[nr](regs);
-+		instrumentation_end();
- 	}
--
--	__syscall_return_slowpath(regs);
- }
- 
- /* Handles int $0x80 */
- __visible noinstr void do_int80_syscall_32(struct pt_regs *regs)
+ static __always_inline int arch_spin_value_unlocked(arch_spinlock_t lock)
  {
--	enter_from_user_mode(regs);
--	instrumentation_begin();
+ 	return lock.slock == 0;
+@@ -110,15 +97,6 @@ static inline void splpar_spin_yield(arch_spinlock_t *lock) {};
+ static inline void splpar_rw_yield(arch_rwlock_t *lock) {};
+ #endif
+ 
+-static inline bool is_shared_processor(void)
+-{
+-#ifdef CONFIG_PPC_SPLPAR
+-	return static_branch_unlikely(&shared_processor);
+-#else
+-	return false;
+-#endif
+-}
 -
--	local_irq_enable();
--	do_syscall_32_irqs_on(regs);
-+	unsigned int nr = syscall_32_enter(regs);
- 
--	instrumentation_end();
--	exit_to_user_mode();
-+	do_syscall_32_irqs_on(regs, nr);
-+	syscall_return_slowpath(regs);
- }
- 
--static bool __do_fast_syscall_32(struct pt_regs *regs)
-+static noinstr bool __do_fast_syscall_32(struct pt_regs *regs)
+ static inline void spin_yield(arch_spinlock_t *lock)
  {
-+	unsigned int nr	= syscall_32_enter(regs);
- 	int res;
- 
-+	instrumentation_begin();
- 	/* Fetch EBP from where the vDSO stashed it. */
- 	if (IS_ENABLED(CONFIG_X86_64)) {
- 		/*
-@@ -460,17 +458,18 @@ static bool __do_fast_syscall_32(struct
- 		res = get_user(*(u32 *)&regs->bp,
- 		       (u32 __user __force *)(unsigned long)(u32)regs->sp);
- 	}
-+	instrumentation_end();
- 
- 	if (res) {
- 		/* User code screwed up. */
- 		regs->ax = -EFAULT;
--		local_irq_disable();
--		__prepare_exit_to_usermode(regs);
-+		syscall_return_slowpath(regs);
- 		return false;
- 	}
- 
- 	/* Now this is just like a normal syscall. */
--	do_syscall_32_irqs_on(regs);
-+	do_syscall_32_irqs_on(regs, nr);
-+	syscall_return_slowpath(regs);
- 	return true;
+ 	if (is_shared_processor())
+diff --git a/arch/powerpc/lib/locks.c b/arch/powerpc/lib/locks.c
+index 6440d5943c00..04165b7a163f 100644
+--- a/arch/powerpc/lib/locks.c
++++ b/arch/powerpc/lib/locks.c
+@@ -27,14 +27,14 @@ void splpar_spin_yield(arch_spinlock_t *lock)
+ 		return;
+ 	holder_cpu = lock_value & 0xffff;
+ 	BUG_ON(holder_cpu >= NR_CPUS);
+-	yield_count = be32_to_cpu(lppaca_of(holder_cpu).yield_count);
++
++	yield_count = yield_count_of(holder_cpu);
+ 	if ((yield_count & 1) == 0)
+ 		return;		/* virtual cpu is currently running */
+ 	rmb();
+ 	if (lock->slock != lock_value)
+ 		return;		/* something has changed */
+-	plpar_hcall_norets(H_CONFER,
+-		get_hard_smp_processor_id(holder_cpu), yield_count);
++	yield_to_preempted(holder_cpu, yield_count);
  }
+ EXPORT_SYMBOL_GPL(splpar_spin_yield);
  
-@@ -483,7 +482,6 @@ static bool __do_fast_syscall_32(struct
- 	 */
- 	unsigned long landing_pad = (unsigned long)current->mm->context.vdso +
- 					vdso_image_32.sym_int80_landing_pad;
--	bool success;
- 
- 	/*
- 	 * SYSENTER loses EIP, and even SYSCALL32 needs us to skip forward
-@@ -492,17 +490,8 @@ static bool __do_fast_syscall_32(struct
- 	 */
- 	regs->ip = landing_pad;
- 
--	enter_from_user_mode(regs);
--	instrumentation_begin();
--
--	local_irq_enable();
--	success = __do_fast_syscall_32(regs);
--
--	instrumentation_end();
--	exit_to_user_mode();
--
--	/* If it failed, keep it simple: use IRET. */
--	if (!success)
-+	/* Invoke the syscall. If it failed, keep it simple: use IRET. */
-+	if (!__do_fast_syscall_32(regs))
- 		return 0;
- 
- #ifdef CONFIG_X86_64
+@@ -53,13 +53,13 @@ void splpar_rw_yield(arch_rwlock_t *rw)
+ 		return;		/* no write lock at present */
+ 	holder_cpu = lock_value & 0xffff;
+ 	BUG_ON(holder_cpu >= NR_CPUS);
+-	yield_count = be32_to_cpu(lppaca_of(holder_cpu).yield_count);
++
++	yield_count = yield_count_of(holder_cpu);
+ 	if ((yield_count & 1) == 0)
+ 		return;		/* virtual cpu is currently running */
+ 	rmb();
+ 	if (rw->lock != lock_value)
+ 		return;		/* something has changed */
+-	plpar_hcall_norets(H_CONFER,
+-		get_hard_smp_processor_id(holder_cpu), yield_count);
++	yield_to_preempted(holder_cpu, yield_count);
+ }
+ #endif
+-- 
+2.23.0
