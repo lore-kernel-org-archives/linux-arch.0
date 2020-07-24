@@ -1,34 +1,24 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch V5 00/15] entry, x86, kvm: Generic entry/exit functionality for host and guest
-Date: Fri, 24 Jul 2020 22:51:38 +0200
-Message-ID: <878sf8tz51.fsf@nanos.tec.linutronix.de>
-References: <20200722215954.464281930@linutronix.de>
+From: Waiman Long <longman@redhat.com>
+Subject: Re: [PATCH v4 6/6] powerpc: implement smp_cond_load_relaxed
+Date: Fri, 24 Jul 2020 17:10:02 -0400
+Message-ID: <1d24ef18-963b-4e26-2798-68bfe1350167@redhat.com>
+References: <20200724131423.1362108-1-npiggin@gmail.com>
+ <20200724131423.1362108-7-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200722215954.464281930@linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <kvm-ppc-owner@vger.kernel.org>
+In-Reply-To: <20200724131423.1362108-7-npiggin@gmail.com>
+Content-Language: en-US
+Sender: kvm-ppc-owner@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org
+Cc: Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, =?UTF-8?Q?Michal_Such=c3=a1nek?= <msuchanek@suse.de>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Thomas Gleixner <tglx@linutronix.de> writes:
-> This is the 5th version of generic entry/exit functionality for host and
-> guest.
+On 7/24/20 9:14 AM, Nicholas Piggin wrote:
+> This implements smp_cond_load_relaed with the slowpath busy loop using the
 
-I've merged the pile in two steps. Patch 1-5, i.e. the generic code is
-here:
+Nit: "smp_cond_load_relaxed"
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git core/entry
-
-and merged this branch and patch 6-15 into
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git x86/entry
-
-core/entry is immutable and any updates, changes go on top. It's meant
-as a base for other architecture developers who want to fiddle with that
-without having to get the x86 mess as well.
-
-Thanks for all the help!
-
-       tglx
+Cheers,
+Longman
