@@ -1,59 +1,51 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:29128 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1729609AbgGPTa7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:30:59 -0400
-From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v2 0/5] x86, locking/qspinlock: Allow lock to store lock holder cpu number
-Date: Thu, 16 Jul 2020 15:29:22 -0400
-Message-ID: <20200716192927.12944-1-longman@redhat.com>
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33468 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726882AbgGXHA1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 03:00:27 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 917D0C0619D3
+        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:27 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id a185so7297316ybg.8
+        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:27 -0700 (PDT)
+Date: Fri, 24 Jul 2020 09:00:02 +0200
+In-Reply-To: <20200724070008.1389205-1-elver@google.com>
+Message-ID: <20200724070008.1389205-3-elver@google.com>
+Mime-Version: 1.0
+References: <20200724070008.1389205-1-elver@google.com>
+Subject: [PATCH v2 2/8] objtool, kcsan: Add __tsan_read_write to uaccess whitelist
+From: Marco Elver <elver@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <longman@redhat.com>
-Message-ID: <20200716192922.qwHpyJieKDrszzDhxg-RdCUEGuBiVqe5L0A7AhsPCRQ@z>
+To: elver@google.com, paulmck@kernel.org
+Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200724070002.VkPu70YS9wKMYlH_n5Zu1oI20lU9WynvESPTZQAt76Y@z>
 
-This patchset modifies the x86 qspinlock and qrwlock code to allow it to
-store the lock holder cpu number (lock writer cpu number for qrwlock)
-in the lock itself if feasible.  This lock holder cpu information is 
-useful for debugging and crash dump analysis. It may also be useful to
-architectures like PowerPC that needs the lock holder cpu number for
-better paravirtual spinlock performance.
+Adds the new __tsan_read_write compound instrumentation to objtool's
+uaccess whitelist.
 
-This capability is enabled on a per-architecture basis by defining
-the macros __cpu_number_sadd1 (for qrwlock) and __cpu_number_sadd2
-(for qspinlock). These macros define the architecture's way to get
-to a percpu saturated +1 and +2 cpu number that can be used in the
-lock byte of qspinlock and qrwlock.
+Signed-off-by: Marco Elver <elver@google.com>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ tools/objtool/check.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-This patchset enables it for the x86 architecture only. Additional
-patches can be submitted later on to enable other architectures,
-if desired.
-
-I have run some locking microbenchmark with and without this patch. I
-saw about 1% peformance degradation at low lock contention level, but
-about 1% performance gain at high lock contention level. That slight
-performance may be caused by a slight difference in the generated code
-and may not be entirely due to the access of the percpu variable. Anyway,
-that performance difference should be negligible for most real workloads.
-
-Waiman Long (5):
-  x86/smp: Add saturated +1/+2 1-byte cpu numbers
-  locking/pvqspinlock: Make pvqsinlock code easier to read
-  locking/qspinlock: Pass lock value as function argument
-  locking/qspinlock: Make qspinhlock store lock holder cpu number
-  locking/qrwlock: Make qrwlock store writer cpu number
-
- arch/x86/include/asm/qspinlock_paravirt.h | 42 +++++++++++------------
- arch/x86/include/asm/spinlock.h           |  5 +++
- arch/x86/kernel/setup_percpu.c            | 11 ++++++
- include/asm-generic/qrwlock.h             | 12 ++++++-
- include/asm-generic/qspinlock.h           | 10 ++++++
- include/asm-generic/qspinlock_types.h     |  2 +-
- kernel/locking/qrwlock.c                  | 11 +++---
- kernel/locking/qspinlock.c                | 31 ++++++++---------
- kernel/locking/qspinlock_paravirt.h       | 35 ++++++++++---------
- 9 files changed, 97 insertions(+), 62 deletions(-)
-
+diff --git a/tools/objtool/check.c b/tools/objtool/check.c
+index 63d8b630c67a..38d82e705c93 100644
+--- a/tools/objtool/check.c
++++ b/tools/objtool/check.c
+@@ -528,6 +528,11 @@ static const char *uaccess_safe_builtin[] = {
+ 	"__tsan_write4",
+ 	"__tsan_write8",
+ 	"__tsan_write16",
++	"__tsan_read_write1",
++	"__tsan_read_write2",
++	"__tsan_read_write4",
++	"__tsan_read_write8",
++	"__tsan_read_write16",
+ 	"__tsan_atomic8_load",
+ 	"__tsan_atomic16_load",
+ 	"__tsan_atomic32_load",
 -- 
-2.18.1
+2.28.0.rc0.142.g3c755180ce-goog
