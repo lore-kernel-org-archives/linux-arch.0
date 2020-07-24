@@ -1,63 +1,75 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH 2/5] powerpc: Allow 4096 bytes of stack expansion for the signal frame
-Date: Fri, 24 Jul 2020 19:20:18 +1000
-Message-ID: <87wo2tp8vh.fsf@mpe.ellerman.id.au>
-References: <20200703141327.1732550-1-mpe@ellerman.id.au> <20200703141327.1732550-2-mpe@ellerman.id.au> <87blk6tkuv.fsf@dja-thinkpad.axtens.net>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH v5 0/6] arch/x86: kprobes: Remove MODULES dependency
+Date: Fri, 24 Jul 2020 13:26:41 +0300
+Message-ID: <20200724102641.GC2831654@kernel.org>
+References: <20200724050553.1724168-1-jarkko.sakkinen@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55182 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726861AbgGXJUZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 05:20:25 -0400
-In-Reply-To: <87blk6tkuv.fsf@dja-thinkpad.axtens.net>
+Received: from mail.kernel.org ([198.145.29.99]:58582 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726520AbgGXK0v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 24 Jul 2020 06:26:51 -0400
+Content-Disposition: inline
+In-Reply-To: <20200724050553.1724168-1-jarkko.sakkinen@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Axtens <dja@axtens.net>, linuxppc-dev@ozlabs.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, hughd@google.com
+To: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, Andi Kleen <ak@linux.intel.com>, Masami Hiramatsu <mhiramat@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Russell King <linux@armlinux.org.uk>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Steven Rostedt <rostedt@goodmis.org>, Jessica Yu <jeyu@kernel.org>, linux-arch@vger.kernel.org
 
-Daniel Axtens <dja@axtens.net> writes:
-> Hi Michael,
->
-> Unfortunately, this patch doesn't completely solve the problem.
->
-> Trying the original reproducer, I'm still able to trigger the crash even
-> with this patch, although not 100% of the time. (If I turn ASLR off
-> outside of tmux it reliably crashes, if I turn ASLR off _inside_ of tmux
-> it reliably succeeds; all of this is on a serial console.)
->
-> ./foo 1241000 & sleep 1; killall -USR1 foo; echo ok
->
-> If I add some debugging information, I see that I'm getting
-> address + 4096 = 7fffffed0fa0
-> gpr1 =           7fffffed1020
->
-> So address + 4096 is 0x80 bytes below the 4k window. I haven't been able
-> to figure out why, gdb gives me a NIP in __kernel_sigtramp_rt64 but I
-> don't know what to make of that.
+(cc people whi particpaged in v2 disuccsion)
 
-Thanks for testing.
+On Fri, Jul 24, 2020 at 08:05:47AM +0300, Jarkko Sakkinen wrote:
+> Remove MODULES dependency by migrating from module_alloc() to the new
+> text_alloc() API. Essentially these changes provide preliminaries for
+> allowing to compile a static kernel with a proper tracing support.
+> 
+> The same API can be used later on in other sites that allocate space for
+> trampolines, and trivially scaled to other arch's. An arch can inform
+> with CONFIG_ARCH_HAS_TEXT_ALLOC that it's providing implementation for
+> text_alloc().
+> 
+> Cc: linux-mm@kvack.org
+> Cc: Andi Kleen <ak@linux.intel.com>
+> Cc: Masami Hiramatsu <mhiramat@kernel.org>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> 
+> v4:
+> * Squash lock_modules() patches into one.
+> * Remove fallback versions of text_alloc() and text_free(). Instead, use
+>   ARCH_HAS_TEXT_ALLOC at site when required.
+> * Use lockdep_assert_irqs_enabled() in text_free() instead of
+>   WARN_ON(in_interrupt()).
+> 
+> v3:
+> * Make text_alloc() API disjoint.
+> * Remove all the possible extra clutter not absolutely required and
+>   split into more logical pieces.
+> 
+> Jarkko Sakkinen (6):
+>   kprobes: Remove dependency to the module_mutex
+>   vmalloc: Add text_alloc() and text_free()
+>   arch/x86: Implement text_alloc() and text_free()
+>   arch/x86: kprobes: Use text_alloc() and text_free()
+>   kprobes: Use text_alloc() and text_free()
+>   kprobes: Remove CONFIG_MODULES dependency
+> 
+>  arch/Kconfig                   |  2 +-
+>  arch/x86/Kconfig               |  3 ++
+>  arch/x86/kernel/Makefile       |  1 +
+>  arch/x86/kernel/kprobes/core.c |  4 +--
+>  arch/x86/kernel/text_alloc.c   | 41 +++++++++++++++++++++++
+>  include/linux/module.h         | 32 ++++++++++++++----
+>  include/linux/vmalloc.h        | 17 ++++++++++
+>  kernel/kprobes.c               | 61 +++++++++++++++++++++++-----------
+>  kernel/trace/trace_kprobe.c    | 20 ++++++++---
+>  9 files changed, 147 insertions(+), 34 deletions(-)
+>  create mode 100644 arch/x86/kernel/text_alloc.c
+> 
+> -- 
+> 2.25.1
+> 
 
-I looked at it again this morning and it's fairly obvious when it's not
-11pm :)
-
-We need space for struct rt_sigframe as well as another 128 bytes,
-which is __SIGNAL_FRAMESIZE. It's actually mentioned in the comment
-above struct rt_sigframe.
-
-I'll send a v2.
-
-> P.S. I don't know what your policy on linking to kernel bugzilla is, but
-> if you want:
->
-> Link: https://bugzilla.kernel.org/show_bug.cgi?id=205183
-
-In general I prefer to keep things clean with just a single Link: tag
-pointing to the archive of the patch submission.
-
-That can then contain further links and other info, and has the
-advantage that people can reply to the patch submission in the future to
-add information to the thread that wasn't known at the time of the
-commit.
-
-cheers
+-- 
+Sincerely yours,
+Mike.
