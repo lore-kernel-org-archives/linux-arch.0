@@ -1,434 +1,61 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:35282 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729693AbgGPTuz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:50:55 -0400
-Message-ID: <20200716185424.765294277@linutronix.de>
-Date: Thu, 16 Jul 2020 20:22:16 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 08/13] x86/entry: Use generic syscall entry function
-References: <20200716182208.180916541@linutronix.de>
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga17.intel.com ([192.55.52.151]:59654 "EHLO mga17.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725860AbgGXEu7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 24 Jul 2020 00:50:59 -0400
+Date: Thu, 23 Jul 2020 21:50:59 -0700
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
+Message-ID: <20200724045059.GN21891@linux.intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+ <20200723162531.GF21891@linux.intel.com>
+ <2e9806a3-7485-a0d0-b63d-f112fcff954c@intel.com>
+ <20200723165649.GG21891@linux.intel.com>
+ <f38b5b34-8432-9531-01b5-d0ae924ffafe@intel.com>
+ <d15816d6172ea770b63e52443aced5607f1e35c1.camel@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <d15816d6172ea770b63e52443aced5607f1e35c1.camel@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20200716182216.UWKTMI-FDh-rvzfLKhMM0Rj27-989T45S4VWEIOznmY@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Message-ID: <20200724045059.6KF-5Rr54f8AXDSGG__1jwBTYr8I7Y_XBSqKG_IfkvM@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+On Thu, Jul 23, 2020 at 08:40:33PM -0700, Yu-cheng Yu wrote:
+> On Thu, 2020-07-23 at 11:41 -0700, Dave Hansen wrote:
+> > On 7/23/20 9:56 AM, Sean Christopherson wrote:
+> > > On Thu, Jul 23, 2020 at 09:41:37AM -0700, Dave Hansen wrote:
+> > > > On 7/23/20 9:25 AM, Sean Christopherson wrote:
+> > > > > How would people feel about taking the above two patches (02 and 03 in the
+> > > > > series) through the KVM tree to enable KVM virtualization of CET before the
+> > > > > kernel itself gains CET support?  I.e. add the MSR and feature bits, along
+> > > > > with the XSAVES context switching.  The feature definitons could use "" to
+> > > > > suppress displaying them in /proc/cpuinfo to avoid falsely advertising CET
+> > > > > to userspace.
+> > > > > 
+> > > > > AIUI, there are ABI issues that need to be sorted out, and that is likely
+> > > > > going to drag on for some time. 
+> > > > > 
+> > > > > Is this a "hell no" sort of idea, or something that would be feasible if we
+> > > > > can show that there are no negative impacts to the kernel?
+> > > > Negative impacts like bloating every task->fpu with XSAVE state that
+> > > > will never get used? ;)
+> > > Gah, should have qualified that with "meaningful or measurable negative
+> > > impacts".  E.g. the extra 40 bytes for CET XSAVE state seems like it would
+> > > be acceptable overhead, but noticeably increasing the latency of XSAVES
+> > > and/or XRSTORS would not be acceptable.
+> > 
+> > It's 40 bytes, but it's 40 bytes of just pure, unadulterated waste.  It
+> > would have no *chance* of being used.  It's also quite precisely
+> > measurable on a given system:
+> > 
+> > 	cat /proc/slabinfo | grep task_struct | awk '{print $3 * 40}'
+> 
+> If there is value in getting these two patches merged first, we can move
+> XFEATURE_MASK_CET_USER to XFEATURE_MASK_SUPERVISOR_UNSUPPORTED for now, until
+> CET is eventually merged.  That way, there is no space wasted.
 
-Replace the syscall entry work handling with the generic version. Provide
-the necessary helper inlines to handle the real architecture specific
-parts, e.g. audit and seccomp invocations.
-
-Use a temporary define for idtentry_enter_user which will be cleaned up
-seperately.
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
-V3: Adapt to the noinstr changes
----
- arch/x86/Kconfig                    |    1 
- arch/x86/entry/common.c             |  181 +-----------------------------------
- arch/x86/include/asm/entry-common.h |   86 +++++++++++++++++
- arch/x86/include/asm/idtentry.h     |    5 
- arch/x86/include/asm/thread_info.h  |    5 
- 5 files changed, 99 insertions(+), 179 deletions(-)
-
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -115,6 +115,7 @@ config X86
- 	select GENERIC_CPU_AUTOPROBE
- 	select GENERIC_CPU_VULNERABILITIES
- 	select GENERIC_EARLY_IOREMAP
-+	select GENERIC_ENTRY
- 	select GENERIC_FIND_FIRST_BIT
- 	select GENERIC_IOMAP
- 	select GENERIC_IRQ_EFFECTIVE_AFF_MASK	if SMP
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -10,13 +10,13 @@
- #include <linux/kernel.h>
- #include <linux/sched.h>
- #include <linux/sched/task_stack.h>
-+#include <linux/entry-common.h>
- #include <linux/mm.h>
- #include <linux/smp.h>
- #include <linux/errno.h>
- #include <linux/ptrace.h>
- #include <linux/tracehook.h>
- #include <linux/audit.h>
--#include <linux/seccomp.h>
- #include <linux/signal.h>
- #include <linux/export.h>
- #include <linux/context_tracking.h>
-@@ -42,70 +42,8 @@
- #include <asm/syscall.h>
- #include <asm/irq_stack.h>
- 
--#define CREATE_TRACE_POINTS
- #include <trace/events/syscalls.h>
- 
--/* Check that the stack and regs on entry from user mode are sane. */
--static noinstr void check_user_regs(struct pt_regs *regs)
--{
--	if (IS_ENABLED(CONFIG_DEBUG_ENTRY)) {
--		/*
--		 * Make sure that the entry code gave us a sensible EFLAGS
--		 * register.  Native because we want to check the actual CPU
--		 * state, not the interrupt state as imagined by Xen.
--		 */
--		unsigned long flags = native_save_fl();
--		WARN_ON_ONCE(flags & (X86_EFLAGS_AC | X86_EFLAGS_DF |
--				      X86_EFLAGS_NT));
--
--		/* We think we came from user mode. Make sure pt_regs agrees. */
--		WARN_ON_ONCE(!user_mode(regs));
--
--		/*
--		 * All entries from user mode (except #DF) should be on the
--		 * normal thread stack and should have user pt_regs in the
--		 * correct location.
--		 */
--		WARN_ON_ONCE(!on_thread_stack());
--		WARN_ON_ONCE(regs != task_pt_regs(current));
--	}
--}
--
--#ifdef CONFIG_CONTEXT_TRACKING
--/**
-- * enter_from_user_mode - Establish state when coming from user mode
-- *
-- * Syscall entry disables interrupts, but user mode is traced as interrupts
-- * enabled. Also with NO_HZ_FULL RCU might be idle.
-- *
-- * 1) Tell lockdep that interrupts are disabled
-- * 2) Invoke context tracking if enabled to reactivate RCU
-- * 3) Trace interrupts off state
-- */
--static noinstr void enter_from_user_mode(struct pt_regs *regs)
--{
--	enum ctx_state state = ct_state();
--
--	check_user_regs(regs);
--	lockdep_hardirqs_off(CALLER_ADDR0);
--	user_exit_irqoff();
--
--	instrumentation_begin();
--	CT_WARN_ON(state != CONTEXT_USER);
--	trace_hardirqs_off_finish();
--	instrumentation_end();
--}
--#else
--static __always_inline void enter_from_user_mode(struct pt_regs *regs)
--{
--	check_user_regs(regs);
--	lockdep_hardirqs_off(CALLER_ADDR0);
--	instrumentation_begin();
--	trace_hardirqs_off_finish();
--	instrumentation_end();
--}
--#endif
--
- /**
-  * exit_to_user_mode - Fixup state when exiting to user mode
-  *
-@@ -129,83 +67,6 @@ static __always_inline void exit_to_user
- 	lockdep_hardirqs_on(CALLER_ADDR0);
- }
- 
--static void do_audit_syscall_entry(struct pt_regs *regs, u32 arch)
--{
--#ifdef CONFIG_X86_64
--	if (arch == AUDIT_ARCH_X86_64) {
--		audit_syscall_entry(regs->orig_ax, regs->di,
--				    regs->si, regs->dx, regs->r10);
--	} else
--#endif
--	{
--		audit_syscall_entry(regs->orig_ax, regs->bx,
--				    regs->cx, regs->dx, regs->si);
--	}
--}
--
--/*
-- * Returns the syscall nr to run (which should match regs->orig_ax) or -1
-- * to skip the syscall.
-- */
--static long syscall_trace_enter(struct pt_regs *regs)
--{
--	u32 arch = in_ia32_syscall() ? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
--
--	struct thread_info *ti = current_thread_info();
--	unsigned long ret = 0;
--	u32 work;
--
--	work = READ_ONCE(ti->flags);
--
--	if (work & (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU)) {
--		ret = tracehook_report_syscall_entry(regs);
--		if (ret || (work & _TIF_SYSCALL_EMU))
--			return -1L;
--	}
--
--#ifdef CONFIG_SECCOMP
--	/*
--	 * Do seccomp after ptrace, to catch any tracer changes.
--	 */
--	if (work & _TIF_SECCOMP) {
--		struct seccomp_data sd;
--
--		sd.arch = arch;
--		sd.nr = regs->orig_ax;
--		sd.instruction_pointer = regs->ip;
--#ifdef CONFIG_X86_64
--		if (arch == AUDIT_ARCH_X86_64) {
--			sd.args[0] = regs->di;
--			sd.args[1] = regs->si;
--			sd.args[2] = regs->dx;
--			sd.args[3] = regs->r10;
--			sd.args[4] = regs->r8;
--			sd.args[5] = regs->r9;
--		} else
--#endif
--		{
--			sd.args[0] = regs->bx;
--			sd.args[1] = regs->cx;
--			sd.args[2] = regs->dx;
--			sd.args[3] = regs->si;
--			sd.args[4] = regs->di;
--			sd.args[5] = regs->bp;
--		}
--
--		ret = __secure_computing(&sd);
--		if (ret == -1)
--			return ret;
--	}
--#endif
--
--	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
--		trace_sys_enter(regs, regs->orig_ax);
--
--	do_audit_syscall_entry(regs, arch);
--
--	return ret ?: regs->orig_ax;
--}
--
- #define EXIT_TO_USERMODE_LOOP_FLAGS				\
- 	(_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_UPROBE |	\
- 	 _TIF_NEED_RESCHED | _TIF_USER_RETURN_NOTIFY | _TIF_PATCH_PENDING)
-@@ -366,26 +227,10 @@ static void __syscall_return_slowpath(st
- 	exit_to_user_mode();
- }
- 
--static noinstr long syscall_enter(struct pt_regs *regs, unsigned long nr)
--{
--	struct thread_info *ti;
--
--	enter_from_user_mode(regs);
--	instrumentation_begin();
--
--	local_irq_enable();
--	ti = current_thread_info();
--	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY)
--		nr = syscall_trace_enter(regs);
--
--	instrumentation_end();
--	return nr;
--}
--
- #ifdef CONFIG_X86_64
- __visible noinstr void do_syscall_64(unsigned long nr, struct pt_regs *regs)
- {
--	nr = syscall_enter(regs, nr);
-+	nr = syscall_enter_from_user_mode(regs, nr);
- 
- 	instrumentation_begin();
- 	if (likely(nr < NR_syscalls)) {
-@@ -407,6 +252,8 @@ static noinstr long syscall_enter(struct
- #if defined(CONFIG_X86_32) || defined(CONFIG_IA32_EMULATION)
- static __always_inline unsigned int syscall_32_enter(struct pt_regs *regs)
- {
-+	unsigned int nr = (unsigned int)regs->orig_ax;
-+
- 	if (IS_ENABLED(CONFIG_IA32_EMULATION))
- 		current_thread_info()->status |= TS_COMPAT;
- 	/*
-@@ -414,7 +261,7 @@ static __always_inline unsigned int sysc
- 	 * orig_ax, the unsigned int return value truncates it.  This may
- 	 * or may not be necessary, but it matches the old asm behavior.
- 	 */
--	return syscall_enter(regs, (unsigned int)regs->orig_ax);
-+	return (unsigned int)syscall_enter_from_user_mode(regs, nr);
- }
- 
- /*
-@@ -568,7 +415,7 @@ SYSCALL_DEFINE0(ni_syscall)
-  * solves the problem of kernel mode pagefaults which can schedule, which
-  * is not possible after invoking rcu_irq_enter() without undoing it.
-  *
-- * For user mode entries enter_from_user_mode() must be invoked to
-+ * For user mode entries irqentry_enter_from_user_mode() must be invoked to
-  * establish the proper context for NOHZ_FULL. Otherwise scheduling on exit
-  * would not be possible.
-  *
-@@ -584,7 +431,7 @@ idtentry_state_t noinstr idtentry_enter(
- 	};
- 
- 	if (user_mode(regs)) {
--		enter_from_user_mode(regs);
-+		irqentry_enter_from_user_mode(regs);
- 		return ret;
- 	}
- 
-@@ -615,7 +462,7 @@ idtentry_state_t noinstr idtentry_enter(
- 		/*
- 		 * If RCU is not watching then the same careful
- 		 * sequence vs. lockdep and tracing is required
--		 * as in enter_from_user_mode().
-+		 * as in irqentry_enter_from_user_mode().
- 		 */
- 		lockdep_hardirqs_off(CALLER_ADDR0);
- 		rcu_irq_enter();
-@@ -709,18 +556,6 @@ void noinstr idtentry_exit(struct pt_reg
- }
- 
- /**
-- * idtentry_enter_user - Handle state tracking on idtentry from user mode
-- * @regs:	Pointer to pt_regs of interrupted context
-- *
-- * Invokes enter_from_user_mode() to establish the proper context for
-- * NOHZ_FULL. Otherwise scheduling on exit would not be possible.
-- */
--void noinstr idtentry_enter_user(struct pt_regs *regs)
--{
--	enter_from_user_mode(regs);
--}
--
--/**
-  * idtentry_exit_user - Handle return from exception to user mode
-  * @regs:	Pointer to pt_regs (exception entry regs)
-  *
---- /dev/null
-+++ b/arch/x86/include/asm/entry-common.h
-@@ -0,0 +1,86 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+#ifndef _ASM_X86_ENTRY_COMMON_H
-+#define _ASM_X86_ENTRY_COMMON_H
-+
-+#include <linux/seccomp.h>
-+#include <linux/audit.h>
-+
-+/* Check that the stack and regs on entry from user mode are sane. */
-+static __always_inline void arch_check_user_regs(struct pt_regs *regs)
-+{
-+	if (IS_ENABLED(CONFIG_DEBUG_ENTRY)) {
-+		/*
-+		 * Make sure that the entry code gave us a sensible EFLAGS
-+		 * register.  Native because we want to check the actual CPU
-+		 * state, not the interrupt state as imagined by Xen.
-+		 */
-+		unsigned long flags = native_save_fl();
-+		WARN_ON_ONCE(flags & (X86_EFLAGS_AC | X86_EFLAGS_DF |
-+				      X86_EFLAGS_NT));
-+
-+		/* We think we came from user mode. Make sure pt_regs agrees. */
-+		WARN_ON_ONCE(!user_mode(regs));
-+
-+		/*
-+		 * All entries from user mode (except #DF) should be on the
-+		 * normal thread stack and should have user pt_regs in the
-+		 * correct location.
-+		 */
-+		WARN_ON_ONCE(!on_thread_stack());
-+		WARN_ON_ONCE(regs != task_pt_regs(current));
-+	}
-+}
-+#define arch_check_user_regs arch_check_user_regs
-+
-+static inline long arch_syscall_enter_seccomp(struct pt_regs *regs)
-+{
-+#ifdef CONFIG_SECCOMP
-+	u32 arch = in_ia32_syscall() ? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
-+	struct seccomp_data sd;
-+
-+	sd.arch = arch;
-+	sd.nr = regs->orig_ax;
-+	sd.instruction_pointer = regs->ip;
-+
-+#ifdef CONFIG_X86_64
-+	if (arch == AUDIT_ARCH_X86_64) {
-+		sd.args[0] = regs->di;
-+		sd.args[1] = regs->si;
-+		sd.args[2] = regs->dx;
-+		sd.args[3] = regs->r10;
-+		sd.args[4] = regs->r8;
-+		sd.args[5] = regs->r9;
-+	} else
-+#endif
-+	{
-+		sd.args[0] = regs->bx;
-+		sd.args[1] = regs->cx;
-+		sd.args[2] = regs->dx;
-+		sd.args[3] = regs->si;
-+		sd.args[4] = regs->di;
-+		sd.args[5] = regs->bp;
-+	}
-+
-+	return __secure_computing(&sd);
-+#else
-+	return 0;
-+#endif
-+}
-+#define arch_syscall_enter_seccomp arch_syscall_enter_seccomp
-+
-+static inline void arch_syscall_enter_audit(struct pt_regs *regs)
-+{
-+#ifdef CONFIG_X86_64
-+	if (in_ia32_syscall()) {
-+		audit_syscall_entry(regs->orig_ax, regs->di,
-+				    regs->si, regs->dx, regs->r10);
-+	} else
-+#endif
-+	{
-+		audit_syscall_entry(regs->orig_ax, regs->bx,
-+				    regs->cx, regs->dx, regs->si);
-+	}
-+}
-+#define arch_syscall_enter_audit arch_syscall_enter_audit
-+
-+#endif
---- a/arch/x86/include/asm/idtentry.h
-+++ b/arch/x86/include/asm/idtentry.h
-@@ -6,11 +6,14 @@
- #include <asm/trapnr.h>
- 
- #ifndef __ASSEMBLY__
-+#include <linux/entry-common.h>
- #include <linux/hardirq.h>
- 
- #include <asm/irq_stack.h>
- 
--void idtentry_enter_user(struct pt_regs *regs);
-+/* Temporary define */
-+#define idtentry_enter_user	irqentry_enter_from_user_mode
-+
- void idtentry_exit_user(struct pt_regs *regs);
- 
- typedef struct idtentry_state {
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -133,11 +133,6 @@ struct thread_info {
- #define _TIF_X32		(1 << TIF_X32)
- #define _TIF_FSCHECK		(1 << TIF_FSCHECK)
- 
--/* Work to do before invoking the actual syscall. */
--#define _TIF_WORK_SYSCALL_ENTRY	\
--	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU | _TIF_SYSCALL_AUDIT |	\
--	 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT)
--
- /* flags to check in __switch_to() */
- #define _TIF_WORK_CTXSW_BASE					\
- 	(_TIF_NOCPUID | _TIF_NOTSC | _TIF_BLOCKSTEP |		\
+Merging them as disabled wouldn't help, KVM needs the features enabled so
+that context switching the guest state works as expected. 
