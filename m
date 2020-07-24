@@ -1,65 +1,236 @@
-Return-Path: <SRS0=xaua=A5=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from netrider.rowland.org ([192.131.102.5]:56525 "HELO
-        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S1728096AbgGRBZ5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 21:25:57 -0400
-Date: Fri, 17 Jul 2020 21:25:55 -0400
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Message-ID: <20200718012555.GA1168834@rowland.harvard.edu>
-References: <20200717044427.68747-1-ebiggers@kernel.org>
- <20200717205340.GR7625@magnolia>
- <20200718005857.GB2183@sol.localdomain>
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38258 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726998AbgGXBZx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 21:25:53 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 17/20] xtensa: propagate the calling conventions change down into csum_partial_copy_generic()
+Date: Fri, 24 Jul 2020 02:25:43 +0100
+Message-ID: <20200724012546.302155-17-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
+References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
+ <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200718005857.GB2183@sol.localdomain>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Biggers <ebiggers@kernel.org>
-Cc: "Darrick J. Wong" <darrick.wong@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200718012555.jlAJQHn25ljYeShBkBXxW5OXXfviM-ksggtrDFx73wk@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200724012543.Jm3LmID5H7HrKlEJwi0DvwJ2JVwXQPpVYJyz_IVbv2Y@z>
 
-On Fri, Jul 17, 2020 at 05:58:57PM -0700, Eric Biggers wrote:
-> On Fri, Jul 17, 2020 at 01:53:40PM -0700, Darrick J. Wong wrote:
-> > > +There are also cases in which the smp_load_acquire() can be replaced by
-> > > +the more lightweight READ_ONCE().  (smp_store_release() is still
-> > > +required.)  Specifically, if all initialized memory is transitively
-> > > +reachable from the pointer itself, then there is no control dependency
-> > 
-> > I don't quite understand what "transitively reachable from the pointer
-> > itself" means?  Does that describe the situation where all the objects
-> > reachable through the object that the global struct foo pointer points
-> > at are /only/ reachable via that global pointer?
-> > 
-> 
-> The intent is that "transitively reachable" means that all initialized memory
-> can be reached by dereferencing the pointer in some way, e.g. p->a->b[5]->c.
-> 
-> It could also be the case that allocating the object initializes some global or
-> static data, which isn't reachable in that way.  Access to that data would then
-> be a control dependency, which a data dependency barrier wouldn't work for.
-> 
-> It's possible I misunderstood something.  (Note the next paragraph does say that
-> using READ_ONCE() is discouraged, exactly for this reason -- it can be hard to
-> tell whether it's correct.)  Suggestions of what to write here are appreciated.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-Perhaps something like this:
+turn the exception handlers into returning 0.
 
-	Specifically, if the only way to reach the initialized memory 
-	involves dereferencing the pointer itself then READ_ONCE() is 
-	sufficient.  This is because there will be an address dependency 
-	between reading the pointer and accessing the memory, which will 
-	ensure proper ordering.  But if some of the initialized memory 
-	is reachable some other way (for example, if it is global or 
-	static data) then there need not be an address dependency, 
-	merely a control dependency (checking whether the pointer is 
-	non-NULL).  Control dependencies do not always ensure ordering 
-	-- certainly not for reads, and depending on the compiler, 
-	possibly not for some writes -- and therefore a load-acquire is 
-	necessary.
+Reviewed-by: Max Filippov <jcmvbkbc@gmail.com>
+Tested-by: Max Filippov <jcmvbkbc@gmail.com>
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/xtensa/include/asm/checksum.h | 20 +++---------
+ arch/xtensa/lib/checksum.S         | 67 +++++++++-----------------------------
+ 2 files changed, 19 insertions(+), 68 deletions(-)
 
-Perhaps this is more wordy than you want, but it does get the important 
-ideas across.
-
-Alan Stern
+diff --git a/arch/xtensa/include/asm/checksum.h b/arch/xtensa/include/asm/checksum.h
+index fe78fba7bd64..44ec1d0b2a35 100644
+--- a/arch/xtensa/include/asm/checksum.h
++++ b/arch/xtensa/include/asm/checksum.h
+@@ -37,9 +37,7 @@ asmlinkage __wsum csum_partial(const void *buff, int len, __wsum sum);
+  * better 64-bit) boundary
+  */
+ 
+-asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
+-					    int len, __wsum sum,
+-					    int *src_err_ptr, int *dst_err_ptr);
++asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst, int len);
+ 
+ #define _HAVE_ARCH_CSUM_AND_COPY
+ /*
+@@ -49,7 +47,7 @@ asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
+ static inline
+ __wsum csum_partial_copy_nocheck(const void *src, void *dst, int len)
+ {
+-	return csum_partial_copy_generic(src, dst, len, 0, NULL, NULL);
++	return csum_partial_copy_generic(src, dst, len);
+ }
+ 
+ #define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
+@@ -57,14 +55,9 @@ static inline
+ __wsum csum_and_copy_from_user(const void __user *src, void *dst,
+ 				   int len)
+ {
+-	int err = 0;
+-
+ 	if (!access_ok(src, len))
+ 		return 0;
+-
+-	sum = csum_partial_copy_generic((__force const void *)src, dst,
+-					len, ~0U, &err, NULL);
+-	return err ? 0 : sum;
++	return csum_partial_copy_generic((__force const void *)src, dst, len);
+ }
+ 
+ /*
+@@ -247,13 +240,8 @@ static __inline__ __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ static __inline__ __wsum csum_and_copy_to_user(const void *src,
+ 					       void __user *dst, int len)
+ {
+-	int err = 0;
+-	__wsum sum = ~0U;
+-
+ 	if (!access_ok(dst, len))
+ 		return 0;
+-
+-	sum = csum_partial_copy_generic(src,dst,len,sum,NULL,&err);
+-	return err ? 0 : sum;
++	return csum_partial_copy_generic(src, (__force void *)dst, len);
+ }
+ #endif
+diff --git a/arch/xtensa/lib/checksum.S b/arch/xtensa/lib/checksum.S
+index 4cb9ca58d9ad..cf1bed1a5bd6 100644
+--- a/arch/xtensa/lib/checksum.S
++++ b/arch/xtensa/lib/checksum.S
+@@ -175,19 +175,14 @@ ENDPROC(csum_partial)
+  */
+ 
+ /*
+-unsigned int csum_partial_copy_generic (const char *src, char *dst, int len,
+-					int sum, int *src_err_ptr, int *dst_err_ptr)
++unsigned int csum_partial_copy_generic (const char *src, char *dst, int len)
+ 	a2  = src
+ 	a3  = dst
+ 	a4  = len
+ 	a5  = sum
+-	a6  = src_err_ptr
+-	a7  = dst_err_ptr
+ 	a8  = temp
+ 	a9  = temp
+ 	a10 = temp
+-	a11 = original len for exception handling
+-	a12 = original dst for exception handling
+ 
+     This function is optimized for 4-byte aligned addresses.  Other
+     alignments work, but not nearly as efficiently.
+@@ -196,8 +191,7 @@ unsigned int csum_partial_copy_generic (const char *src, char *dst, int len,
+ ENTRY(csum_partial_copy_generic)
+ 
+ 	abi_entry_default
+-	mov	a12, a3
+-	mov	a11, a4
++	movi	a5, -1
+ 	or	a10, a2, a3
+ 
+ 	/* We optimize the following alignment tests for the 4-byte
+@@ -228,26 +222,26 @@ ENTRY(csum_partial_copy_generic)
+ #endif
+ EX(10f)	l32i	a9, a2, 0
+ EX(10f)	l32i	a8, a2, 4
+-EX(11f)	s32i	a9, a3, 0
+-EX(11f)	s32i	a8, a3, 4
++EX(10f)	s32i	a9, a3, 0
++EX(10f)	s32i	a8, a3, 4
+ 	ONES_ADD(a5, a9)
+ 	ONES_ADD(a5, a8)
+ EX(10f)	l32i	a9, a2, 8
+ EX(10f)	l32i	a8, a2, 12
+-EX(11f)	s32i	a9, a3, 8
+-EX(11f)	s32i	a8, a3, 12
++EX(10f)	s32i	a9, a3, 8
++EX(10f)	s32i	a8, a3, 12
+ 	ONES_ADD(a5, a9)
+ 	ONES_ADD(a5, a8)
+ EX(10f)	l32i	a9, a2, 16
+ EX(10f)	l32i	a8, a2, 20
+-EX(11f)	s32i	a9, a3, 16
+-EX(11f)	s32i	a8, a3, 20
++EX(10f)	s32i	a9, a3, 16
++EX(10f)	s32i	a8, a3, 20
+ 	ONES_ADD(a5, a9)
+ 	ONES_ADD(a5, a8)
+ EX(10f)	l32i	a9, a2, 24
+ EX(10f)	l32i	a8, a2, 28
+-EX(11f)	s32i	a9, a3, 24
+-EX(11f)	s32i	a8, a3, 28
++EX(10f)	s32i	a9, a3, 24
++EX(10f)	s32i	a8, a3, 28
+ 	ONES_ADD(a5, a9)
+ 	ONES_ADD(a5, a8)
+ 	addi	a2, a2, 32
+@@ -267,7 +261,7 @@ EX(11f)	s32i	a8, a3, 28
+ .Loop6:
+ #endif
+ EX(10f)	l32i	a9, a2, 0
+-EX(11f)	s32i	a9, a3, 0
++EX(10f)	s32i	a9, a3, 0
+ 	ONES_ADD(a5, a9)
+ 	addi	a2, a2, 4
+ 	addi	a3, a3, 4
+@@ -298,7 +292,7 @@ EX(11f)	s32i	a9, a3, 0
+ .Loop7:
+ #endif
+ EX(10f)	l16ui	a9, a2, 0
+-EX(11f)	s16i	a9, a3, 0
++EX(10f)	s16i	a9, a3, 0
+ 	ONES_ADD(a5, a9)
+ 	addi	a2, a2, 2
+ 	addi	a3, a3, 2
+@@ -309,7 +303,7 @@ EX(11f)	s16i	a9, a3, 0
+ 	/* This section processes a possible trailing odd byte. */
+ 	_bbci.l	a4, 0, 8f	/* 1-byte chunk */
+ EX(10f)	l8ui	a9, a2, 0
+-EX(11f)	s8i	a9, a3, 0
++EX(10f)	s8i	a9, a3, 0
+ #ifdef __XTENSA_EB__
+ 	slli	a9, a9, 8	/* shift byte to bits 8..15 */
+ #endif
+@@ -334,8 +328,8 @@ EX(11f)	s8i	a9, a3, 0
+ #endif
+ EX(10f)	l8ui	a9, a2, 0
+ EX(10f)	l8ui	a8, a2, 1
+-EX(11f)	s8i	a9, a3, 0
+-EX(11f)	s8i	a8, a3, 1
++EX(10f)	s8i	a9, a3, 0
++EX(10f)	s8i	a8, a3, 1
+ #ifdef __XTENSA_EB__
+ 	slli	a9, a9, 8	/* combine into a single 16-bit value */
+ #else				/* for checksum computation */
+@@ -356,38 +350,7 @@ ENDPROC(csum_partial_copy_generic)
+ 
+ # Exception handler:
+ .section .fixup, "ax"
+-/*
+-	a6  = src_err_ptr
+-	a7  = dst_err_ptr
+-	a11 = original len for exception handling
+-	a12 = original dst for exception handling
+-*/
+-
+ 10:
+-	_movi	a2, -EFAULT
+-	s32i	a2, a6, 0	/* src_err_ptr */
+-
+-	# clear the complete destination - computing the rest
+-	# is too much work
+-	movi	a2, 0
+-#if XCHAL_HAVE_LOOPS
+-	loopgtz	a11, 2f
+-#else
+-	beqz	a11, 2f
+-	add	a11, a11, a12	/* a11 = ending address */
+-.Leloop:
+-#endif
+-	s8i	a2, a12, 0
+-	addi	a12, a12, 1
+-#if !XCHAL_HAVE_LOOPS
+-	blt	a12, a11, .Leloop
+-#endif
+-2:
+-	abi_ret_default
+-
+-11:
+-	movi	a2, -EFAULT
+-	s32i	a2, a7, 0	/* dst_err_ptr */
+ 	movi	a2, 0
+ 	abi_ret_default
+ 
+-- 
+2.11.0
