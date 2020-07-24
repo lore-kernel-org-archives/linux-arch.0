@@ -1,55 +1,37 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
+From: Christoph Hellwig <hch@infradead.org>
 Subject: Re: [PATCH v2 04/20] unify generic instances of
  csum_partial_copy_nocheck()
-Date: Fri, 24 Jul 2020 13:19:18 +0100
-Message-ID: <20200724121918.GL2786714@ZenIV.linux.org.uk>
+Date: Fri, 24 Jul 2020 13:23:37 +0100
+Message-ID: <20200724122337.GA23095@infradead.org>
 References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
  <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
  <20200724012546.302155-4-viro@ZenIV.linux.org.uk>
  <20200724064117.GA10522@infradead.org>
+ <20200724121918.GL2786714@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54870 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55546 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726258AbgGXMTW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 08:19:22 -0400
+        with ESMTP id S1726258AbgGXMXk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 08:23:40 -0400
 Content-Disposition: inline
-In-Reply-To: <20200724064117.GA10522@infradead.org>
+In-Reply-To: <20200724121918.GL2786714@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Christoph Hellwig <hch@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, Jul 24, 2020 at 07:41:17AM +0100, Christoph Hellwig wrote:
-> On Fri, Jul 24, 2020 at 02:25:30AM +0100, Al Viro wrote:
-> > From: Al Viro <viro@zeniv.linux.org.uk>
+On Fri, Jul 24, 2020 at 01:19:18PM +0100, Al Viro wrote:
+> > net-next has a patch from me killing off csum_and_copy_from_user
+> > already:
 > > 
-> > quite a few architectures have the same csum_partial_copy_nocheck() -
-> > simply memcpy() the data and then return the csum of the copy.
-> > 
-> > hexagon, parisc, ia64, s390, um: explicitly spelled out that way.
-> > 
-> > arc, arm64, csky, h8300, m68k/nommu, microblaze, mips/GENERIC_CSUM, nds32,
-> > nios2, openrisc, riscv, unicore32: end up picking the same thing spelled
-> > out in lib/checksum.h (with varying amounts of perversions along the way).
-> > 
-> > everybody else (alpha, arm, c6x, m68k/mmu, mips/!GENERIC_CSUM, powerpc,
-> > sh, sparc, x86, xtensa) have non-generic variants.  For all except c6x
-> > the declaration is in their asm/checksum.h.  c6x uses the wrapper
-> > from asm-generic/checksum.h that would normally lead to the lib/checksum.h
-> > instance, but in case of c6x we end up using an asm function from arch/c6x
-> > instead.
-> > 
-> > Screw that mess - have architectures with private instances define
-> > _HAVE_ARCH_CSUM_AND_COPY in their asm/checksum.h and have the default
-> > one right in net/checksum.h conditional on _HAVE_ARCH_CSUM_AND_COPY
-> > *not* defined.
+> > https://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next.git/commit/?id=f1bfd71c8662f20d53e71ef4e18bfb0e5677c27f
 > 
-> net-next has a patch from me killing off csum_and_copy_from_user
-> already:
-> 
-> https://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next.git/commit/?id=f1bfd71c8662f20d53e71ef4e18bfb0e5677c27f
+> Nothing in that patch of yours touches csum_and_copy_from_user(). what
+> are you talking about?
 
-Nothing in that patch of yours touches csum_and_copy_from_user(). what
-are you talking about?
+Sorry, I meant csum_and_copy_from_nocheck, just as in this patch.
+
+Merging your branch into the net-next tree thus will conflict in
+the nios2 and asm-geneeric/checksum.h as well as lib/checksum.c.
