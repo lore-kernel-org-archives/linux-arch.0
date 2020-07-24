@@ -1,101 +1,298 @@
-Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <20200717111349.650029395@infradead.org>
-Date: Fri, 17 Jul 2020 13:10:10 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v2 05/11] parisc/tlb: Fix __p*_free_tlb()
-References: <20200717111005.024867618@infradead.org>
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38242 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726956AbgGXBZw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 21:25:52 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 11/20] sh: propage the calling conventions change down to csum_partial_copy_generic()
+Date: Fri, 24 Jul 2020 02:25:37 +0100
+Message-ID: <20200724012546.302155-11-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
+References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
+ <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200717111010.ld9HCsBA5ln4gBHcYHyKNBcKOtGF5O0ePuwjU2pkacs@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200724012537.s0Qr2V7oTblIUUH9XRcAm0wyHOatIaAh2VJpa4w2PDY@z>
 
-Just like regular pages, page directories need to observe the
-following order:
+From: Al Viro <viro@zeniv.linux.org.uk>
 
- 1) unhook
- 2) TLB invalidate
- 3) free
+... and get rid of zeroing destination on error there.
 
-to ensure it is safe against concurrent accesses.
-
-Because PARISC has non-page-size PMDs, use a custom table freeer.
-
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/parisc/Kconfig               |    1 +
- arch/parisc/include/asm/pgalloc.h |   23 ++++++++++++++++++++---
- arch/parisc/include/asm/tlb.h     |    9 +++++----
- 3 files changed, 26 insertions(+), 7 deletions(-)
+ arch/sh/include/asm/checksum_32.h |  20 ++-----
+ arch/sh/lib/checksum.S            | 119 +++++++++++---------------------------
+ 2 files changed, 39 insertions(+), 100 deletions(-)
 
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -63,6 +63,7 @@ config PARISC
- 	select HAVE_KPROBES_ON_FTRACE
- 	select HAVE_DYNAMIC_FTRACE_WITH_REGS
- 	select HAVE_COPY_THREAD_TLS
-+	select MMU_GATHER_TABLE_FREE if PGTABLE_LEVELS >= 3
+diff --git a/arch/sh/include/asm/checksum_32.h b/arch/sh/include/asm/checksum_32.h
+index a08e8eb924ed..1a391e3a7659 100644
+--- a/arch/sh/include/asm/checksum_32.h
++++ b/arch/sh/include/asm/checksum_32.h
+@@ -30,9 +30,7 @@ asmlinkage __wsum csum_partial(const void *buff, int len, __wsum sum);
+  * better 64-bit) boundary
+  */
  
- 	help
- 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
---- a/arch/parisc/include/asm/pgalloc.h
-+++ b/arch/parisc/include/asm/pgalloc.h
-@@ -73,7 +73,7 @@ static inline pmd_t *pmd_alloc_one(struc
- 	return pmd;
- }
+-asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
+-					    int len, __wsum sum,
+-					    int *src_err_ptr, int *dst_err_ptr);
++asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst, int len);
  
--static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
-+static inline bool __pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ #define _HAVE_ARCH_CSUM_AND_COPY
+ /*
+@@ -45,21 +43,16 @@ asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
+ static inline
+ __wsum csum_partial_copy_nocheck(const void *src, void *dst, int len)
  {
- 	if (pmd_flag(*pmd) & PxD_FLAG_ATTACHED) {
- 		/*
-@@ -83,11 +83,28 @@ static inline void pmd_free(struct mm_st
- 		 * done by generic mm code.
- 		 */
- 		mm_inc_nr_pmds(mm);
--		return;
-+		return false;
- 	}
--	free_pages((unsigned long)pmd, PMD_ORDER);
-+	return true;
-+}
-+
-+static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
-+{
-+	if (__pmd_free(mm, pmd))
-+		free_pages((unsigned long)pmd, PMD_ORDER);
+-	return csum_partial_copy_generic(src, dst, len, 0, NULL, NULL);
++	return csum_partial_copy_generic(src, dst, len);
  }
  
-+static inline void __tlb_remove_table(void *table)
-+{
-+	free_pages((unsigned long)table, PMD_ORDER);
-+}
-+
-+#define __pmd_free_tlb(tlb, pmd, addr)		\
-+do {						\
-+	if (__pmd_free((tlb)->mm, (pmd)))	\
-+		tlb_remove_table((tlb), (pmd));	\
-+} while (0)
-+
- #endif
+ #define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
+ static inline
+ __wsum csum_and_copy_from_user(const void __user *src, void *dst, int len)
+ {
+-	int err = 0;
+-	__wsum sum = ~0U;
+-
+ 	if (!access_ok(src, len))
+ 		return 0;
+-	sum = csum_partial_copy_generic((__force const void *)src, dst,
+-					len, sum, &err, NULL);
+-	return err ? 0 : sum;
++	return csum_partial_copy_generic((__force const void *)src, dst, len);
+ }
  
- static inline void
---- a/arch/parisc/include/asm/tlb.h
-+++ b/arch/parisc/include/asm/tlb.h
-@@ -4,9 +4,10 @@
+ /*
+@@ -202,13 +195,8 @@ static inline __wsum csum_and_copy_to_user(const void *src,
+ 					   void __user *dst,
+ 					   int len)
+ {
+-	int err = 0;
+-	__wsum sum = ~0U;
+-
+ 	if (!access_ok(dst, len))
+ 		return 0;
+-	sum = csum_partial_copy_generic((__force const void *)src,
+-						dst, len, sum, NULL, &err);
+-	return err ? 0 : sum;
++	return csum_partial_copy_generic((__force const void *)src, dst, len);
+ }
+ #endif /* __ASM_SH_CHECKSUM_H */
+diff --git a/arch/sh/lib/checksum.S b/arch/sh/lib/checksum.S
+index 97b5c2d9fec4..3e07074e0098 100644
+--- a/arch/sh/lib/checksum.S
++++ b/arch/sh/lib/checksum.S
+@@ -173,47 +173,27 @@ ENTRY(csum_partial)
+ 	 mov	r6, r0
  
- #include <asm-generic/tlb.h>
+ /*
+-unsigned int csum_partial_copy_generic (const char *src, char *dst, int len, 
+-					int sum, int *src_err_ptr, int *dst_err_ptr)
++unsigned int csum_partial_copy_generic (const char *src, char *dst, int len)
+  */ 
  
--#if CONFIG_PGTABLE_LEVELS == 3
--#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
--#endif
--#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
-+#define __pte_free_tlb(tlb,pte,addr)			\
-+do {							\
-+	pgtable_pte_page_dtor(pte);			\
-+	tlb_remove_page((tlb), (pte));			\
-+} while (0)
+ /*
+- * Copy from ds while checksumming, otherwise like csum_partial
+- *
+- * The macros SRC and DST specify the type of access for the instruction.
+- * thus we can call a custom exception handler for all access types.
+- *
+- * FIXME: could someone double-check whether I haven't mixed up some SRC and
+- *	  DST definitions? It's damn hard to trigger all cases.  I hope I got
+- *	  them all but there's no guarantee.
++ * Copy from ds while checksumming, otherwise like csum_partial with initial
++ * sum being ~0U
+  */
  
- #endif
+-#define SRC(...)			\
++#define EXC(...)			\
+ 	9999: __VA_ARGS__ ;		\
+ 	.section __ex_table, "a";	\
+ 	.long 9999b, 6001f	;	\
+ 	.previous
+ 
+-#define DST(...)			\
+-	9999: __VA_ARGS__ ;		\
+-	.section __ex_table, "a";	\
+-	.long 9999b, 6002f	;	\
+-	.previous
+-
+ !
+ ! r4:	const char *SRC
+ ! r5:	char *DST
+ ! r6:	int LEN
+-! r7:	int SUM
+-!
+-! on stack:
+-! int *SRC_ERR_PTR
+-! int *DST_ERR_PTR
+ !
+ ENTRY(csum_partial_copy_generic)
+-	mov.l	r5,@-r15
+-	mov.l	r6,@-r15
+-
++	mov	#-1,r7
+ 	mov	#3,r0		! Check src and dest are equally aligned
+ 	mov	r4,r1
+ 	and	r0,r1
+@@ -243,11 +223,11 @@ ENTRY(csum_partial_copy_generic)
+ 	clrt
+ 	.align	2
+ 5:
+-SRC(	mov.b	@r4+,r1 	)
+-SRC(	mov.b	@r4+,r0		)
++EXC(	mov.b	@r4+,r1 	)
++EXC(	mov.b	@r4+,r0		)
+ 	extu.b	r1,r1
+-DST(	mov.b	r1,@r5		)
+-DST(	mov.b	r0,@(1,r5)	)
++EXC(	mov.b	r1,@r5		)
++EXC(	mov.b	r0,@(1,r5)	)
+ 	extu.b	r0,r0
+ 	add	#2,r5
+ 
+@@ -276,8 +256,8 @@ DST(	mov.b	r0,@(1,r5)	)
+ 	! Handle first two bytes as a special case
+ 	.align	2
+ 1:	
+-SRC(	mov.w	@r4+,r0		)
+-DST(	mov.w	r0,@r5		)
++EXC(	mov.w	@r4+,r0		)
++EXC(	mov.w	r0,@r5		)
+ 	add	#2,r5
+ 	extu.w	r0,r0
+ 	addc	r0,r7
+@@ -292,32 +272,32 @@ DST(	mov.w	r0,@r5		)
+ 	 clrt
+ 	.align	2
+ 1:	
+-SRC(	mov.l	@r4+,r0		)
+-SRC(	mov.l	@r4+,r1		)
++EXC(	mov.l	@r4+,r0		)
++EXC(	mov.l	@r4+,r1		)
+ 	addc	r0,r7
+-DST(	mov.l	r0,@r5		)
+-DST(	mov.l	r1,@(4,r5)	)
++EXC(	mov.l	r0,@r5		)
++EXC(	mov.l	r1,@(4,r5)	)
+ 	addc	r1,r7
+ 
+-SRC(	mov.l	@r4+,r0		)
+-SRC(	mov.l	@r4+,r1		)
++EXC(	mov.l	@r4+,r0		)
++EXC(	mov.l	@r4+,r1		)
+ 	addc	r0,r7
+-DST(	mov.l	r0,@(8,r5)	)
+-DST(	mov.l	r1,@(12,r5)	)
++EXC(	mov.l	r0,@(8,r5)	)
++EXC(	mov.l	r1,@(12,r5)	)
+ 	addc	r1,r7
+ 
+-SRC(	mov.l	@r4+,r0 	)
+-SRC(	mov.l	@r4+,r1		)
++EXC(	mov.l	@r4+,r0 	)
++EXC(	mov.l	@r4+,r1		)
+ 	addc	r0,r7
+-DST(	mov.l	r0,@(16,r5)	)
+-DST(	mov.l	r1,@(20,r5)	)
++EXC(	mov.l	r0,@(16,r5)	)
++EXC(	mov.l	r1,@(20,r5)	)
+ 	addc	r1,r7
+ 
+-SRC(	mov.l	@r4+,r0		)
+-SRC(	mov.l	@r4+,r1		)
++EXC(	mov.l	@r4+,r0		)
++EXC(	mov.l	@r4+,r1		)
+ 	addc	r0,r7
+-DST(	mov.l	r0,@(24,r5)	)
+-DST(	mov.l	r1,@(28,r5)	)
++EXC(	mov.l	r0,@(24,r5)	)
++EXC(	mov.l	r1,@(28,r5)	)
+ 	addc	r1,r7
+ 	add	#32,r5
+ 	movt	r0
+@@ -335,9 +315,9 @@ DST(	mov.l	r1,@(28,r5)	)
+ 	 clrt
+ 	shlr2	r6
+ 3:	
+-SRC(	mov.l	@r4+,r0	)
++EXC(	mov.l	@r4+,r0	)
+ 	addc	r0,r7
+-DST(	mov.l	r0,@r5	)
++EXC(	mov.l	r0,@r5	)
+ 	add	#4,r5
+ 	movt	r0
+ 	dt	r6
+@@ -353,8 +333,8 @@ DST(	mov.l	r0,@r5	)
+ 	mov	#2,r1
+ 	cmp/hs	r1,r6
+ 	bf	5f
+-SRC(	mov.w	@r4+,r0	)
+-DST(	mov.w	r0,@r5	)
++EXC(	mov.w	@r4+,r0	)
++EXC(	mov.w	r0,@r5	)
+ 	extu.w	r0,r0
+ 	add	#2,r5
+ 	cmp/eq	r1,r6
+@@ -363,8 +343,8 @@ DST(	mov.w	r0,@r5	)
+ 	shll16	r0
+ 	addc	r0,r7
+ 5:	
+-SRC(	mov.b	@r4+,r0	)
+-DST(	mov.b	r0,@r5	)
++EXC(	mov.b	@r4+,r0	)
++EXC(	mov.b	r0,@r5	)
+ 	extu.b	r0,r0
+ #ifndef	__LITTLE_ENDIAN__
+ 	shll8	r0
+@@ -373,42 +353,13 @@ DST(	mov.b	r0,@r5	)
+ 	mov	#0,r0
+ 	addc	r0,r7
+ 7:
+-5000:
+ 
+ # Exception handler:
+ .section .fixup, "ax"							
+ 
+ 6001:
+-	mov.l	@(8,r15),r0			! src_err_ptr
+-	mov	#-EFAULT,r1
+-	mov.l	r1,@r0
+-
+-	! zero the complete destination - computing the rest
+-	! is too much work 
+-	mov.l	@(4,r15),r5		! dst
+-	mov.l	@r15,r6			! len
+-	mov	#0,r7
+-1:	mov.b	r7,@r5
+-	dt	r6
+-	bf/s	1b
+-	 add	#1,r5
+-	mov.l	8000f,r0
+-	jmp	@r0
+-	 nop
+-	.align	2
+-8000:	.long	5000b
+-
+-6002:
+-	mov.l	@(12,r15),r0			! dst_err_ptr
+-	mov	#-EFAULT,r1
+-	mov.l	r1,@r0
+-	mov.l	8001f,r0
+-	jmp	@r0
+-	 nop
+-	.align	2
+-8001:	.long	5000b
+-
++	rts
++	 mov	#0,r0
+ .previous
+-	add	#8,r15
+ 	rts
+ 	 mov	r7,r0
+-- 
+2.11.0
