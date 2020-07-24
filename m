@@ -1,40 +1,59 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39128 "EHLO
+Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38216 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733043AbgGVWL0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:26 -0400
-Message-ID: <20200722215954.464281930@linutronix.de>
-Date: Wed, 22 Jul 2020 23:59:54 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V5 00/15] entry, x86, kvm: Generic entry/exit functionality
- for host and guest
-Content-transfer-encoding: 8-bit
+        with ESMTP id S1726730AbgGXBZs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 21:25:48 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 03/20] icmp_push_reply(): reorder adding the checksum up
+Date: Fri, 24 Jul 2020 02:25:29 +0100
+Message-ID: <20200724012546.302155-3-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
+References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
+ <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
-Message-ID: <20200722215954.VlbDwD8lnINUDS7nQ37fOABvz-Vp4hVfJ-QF-sgaDqA@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200724012529.zYK5RmDxeJ_a08SCAXaM3lzF00XpVI0l982xa9Lwci8@z>
 
-This is the 5th version of generic entry/exit functionality for host and
-guest.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-The 4th version is available here:
+do csum_partial_copy_nocheck() on the first fragment, then
+add the rest to it.  Equivalent transformation.
 
-    https://lore.kernel.org/r/20200721105706.030914876@linutronix.de
+That was the only caller of csum_partial_copy_nocheck() that
+might pass it non-zero as the last argument.
 
-Changes vs. V4:
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ net/ipv4/icmp.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-  - Add the missing instrumentation prevetions to the entry Makefile (Kees)
-  - Rename exit_to_guest to xfer_to_guest (Sean)
-
-The patches depend on:
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git x86/entry
-
-The lot is also available from git:
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/tglx/devel.git x86/entry
-
-Thanks,
-
-	tglx
+diff --git a/net/ipv4/icmp.c b/net/ipv4/icmp.c
+index 62d7a2bfc9a3..f93317157549 100644
+--- a/net/ipv4/icmp.c
++++ b/net/ipv4/icmp.c
+@@ -376,15 +376,15 @@ static void icmp_push_reply(struct icmp_bxm *icmp_param,
+ 		ip_flush_pending_frames(sk);
+ 	} else if ((skb = skb_peek(&sk->sk_write_queue)) != NULL) {
+ 		struct icmphdr *icmph = icmp_hdr(skb);
+-		__wsum csum = 0;
++		__wsum csum;
+ 		struct sk_buff *skb1;
+ 
++		csum = csum_partial_copy_nocheck((void *)&icmp_param->data,
++						 (char *)icmph,
++						 icmp_param->head_len, 0);
+ 		skb_queue_walk(&sk->sk_write_queue, skb1) {
+ 			csum = csum_add(csum, skb1->csum);
+ 		}
+-		csum = csum_partial_copy_nocheck((void *)&icmp_param->data,
+-						 (char *)icmph,
+-						 icmp_param->head_len, csum);
+ 		icmph->checksum = csum_fold(csum);
+ 		skb->ip_summed = CHECKSUM_NONE;
+ 		ip_push_pending_frames(sk, fl4);
+-- 
+2.11.0
