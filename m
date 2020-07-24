@@ -1,74 +1,109 @@
 From: Marco Elver <elver@google.com>
-Subject: [PATCH v2 3/8] kcsan: Skew delay to be longer for certain access types
-Date: Fri, 24 Jul 2020 09:00:03 +0200
-Message-ID: <20200724070008.1389205-4-elver@google.com>
+Subject: [PATCH v2 7/8] asm-generic/bitops: Use instrument_read_write() where appropriate
+Date: Fri, 24 Jul 2020 09:00:07 +0200
+Message-ID: <20200724070008.1389205-8-elver@google.com>
 References: <20200724070008.1389205-1-elver@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33524 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726997AbgGXHAk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 03:00:40 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D18B2C0619E4
+        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:39 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id k75so9279483ybf.19
+        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:39 -0700 (PDT)
 In-Reply-To: <20200724070008.1389205-1-elver@google.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: elver@google.com, paulmck@kernel.org
 Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-For compound instrumentation and assert accesses, skew the watchpoint
-delay to be longer if randomized. This is useful to improve race
-detection for such accesses.
-
-For compound accesses we should increase the delay as we've aggregated
-both read and write instrumentation. By giving up 1 call into the
-runtime, we're less likely to set up a watchpoint and thus less likely
-to detect a race. We can balance this by increasing the watchpoint
-delay.
-
-For assert accesses, we know these are of increased interest, and we
-wish to increase our chances of detecting races for such checks.
-
-Note that, kcsan_udelay_{task,interrupt} define the upper bound delays.
-When randomized, delays are uniformly distributed between [0, delay].
-Skewing the delay does not break this promise as long as the defined
-upper bounds are still adhered to. The current skew results in delays
-uniformly distributed between [delay/2, delay].
+Use the new instrument_read_write() where appropriate.
 
 Signed-off-by: Marco Elver <elver@google.com>
 ---
-v2:
-* Commit message rewording.
----
- kernel/kcsan/core.c | 10 +++++++---
- 1 file changed, 7 insertions(+), 3 deletions(-)
+ include/asm-generic/bitops/instrumented-atomic.h     | 6 +++---
+ include/asm-generic/bitops/instrumented-lock.h       | 2 +-
+ include/asm-generic/bitops/instrumented-non-atomic.h | 6 +++---
+ 3 files changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/kernel/kcsan/core.c b/kernel/kcsan/core.c
-index fb52de2facf3..4633baebf84e 100644
---- a/kernel/kcsan/core.c
-+++ b/kernel/kcsan/core.c
-@@ -283,11 +283,15 @@ static __always_inline bool kcsan_is_enabled(void)
- 	return READ_ONCE(kcsan_enabled) && get_ctx()->disable_count == 0;
- }
- 
--static inline unsigned int get_delay(void)
-+static inline unsigned int get_delay(int type)
+diff --git a/include/asm-generic/bitops/instrumented-atomic.h b/include/asm-generic/bitops/instrumented-atomic.h
+index fb2cb33a4013..81915dcd4b4e 100644
+--- a/include/asm-generic/bitops/instrumented-atomic.h
++++ b/include/asm-generic/bitops/instrumented-atomic.h
+@@ -67,7 +67,7 @@ static inline void change_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
  {
- 	unsigned int delay = in_task() ? kcsan_udelay_task : kcsan_udelay_interrupt;
-+	/* For certain access types, skew the random delay to be longer. */
-+	unsigned int skew_delay_order =
-+		(type & (KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_ASSERT)) ? 1 : 0;
-+
- 	return delay - (IS_ENABLED(CONFIG_KCSAN_DELAY_RANDOMIZE) ?
--				prandom_u32_max(delay) :
-+				prandom_u32_max(delay >> skew_delay_order) :
- 				0);
+-	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_set_bit(nr, addr);
  }
  
-@@ -449,7 +453,7 @@ kcsan_setup_watchpoint(const volatile void *ptr, size_t size, int type)
- 	 * Delay this thread, to increase probability of observing a racy
- 	 * conflicting access.
- 	 */
--	udelay(get_delay());
-+	udelay(get_delay(type));
+@@ -80,7 +80,7 @@ static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
+ {
+-	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_clear_bit(nr, addr);
+ }
  
- 	/*
- 	 * Re-read value, and check if it is as expected; if not, we infer a
+@@ -93,7 +93,7 @@ static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
+ {
+-	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_change_bit(nr, addr);
+ }
+ 
+diff --git a/include/asm-generic/bitops/instrumented-lock.h b/include/asm-generic/bitops/instrumented-lock.h
+index b9bec468ae03..75ef606f7145 100644
+--- a/include/asm-generic/bitops/instrumented-lock.h
++++ b/include/asm-generic/bitops/instrumented-lock.h
+@@ -52,7 +52,7 @@ static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
+  */
+ static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
+ {
+-	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_set_bit_lock(nr, addr);
+ }
+ 
+diff --git a/include/asm-generic/bitops/instrumented-non-atomic.h b/include/asm-generic/bitops/instrumented-non-atomic.h
+index 20f788a25ef9..f86234c7c10c 100644
+--- a/include/asm-generic/bitops/instrumented-non-atomic.h
++++ b/include/asm-generic/bitops/instrumented-non-atomic.h
+@@ -68,7 +68,7 @@ static inline void __change_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
+ {
+-	instrument_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_set_bit(nr, addr);
+ }
+ 
+@@ -82,7 +82,7 @@ static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
+ {
+-	instrument_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_clear_bit(nr, addr);
+ }
+ 
+@@ -96,7 +96,7 @@ static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
+  */
+ static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
+ {
+-	instrument_write(addr + BIT_WORD(nr), sizeof(long));
++	instrument_read_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_change_bit(nr, addr);
+ }
+ 
 -- 
 2.28.0.rc0.142.g3c755180ce-goog
