@@ -1,41 +1,67 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: [patch V5 08/15] x86/entry: Move user return notifier out of loop
-Date: Thu, 23 Jul 2020 16:41:11 -0700
-Message-ID: <20200723234111.GJ21891@linux.intel.com>
+Subject: Re: [patch V5 15/15] x86/kvm: Use generic xfer to guest work function
+Date: Thu, 23 Jul 2020 17:17:36 -0700
+Message-ID: <20200724001736.GK21891@linux.intel.com>
 References: <20200722215954.464281930@linutronix.de>
- <20200722220520.159112003@linutronix.de>
+ <20200722220520.979724969@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:33453 "EHLO mga12.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:40353 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727783AbgGWXlN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jul 2020 19:41:13 -0400
+        id S1728285AbgGXARh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jul 2020 20:17:37 -0400
 Content-Disposition: inline
-In-Reply-To: <20200722220520.159112003@linutronix.de>
+In-Reply-To: <20200722220520.979724969@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
 Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
 
-On Thu, Jul 23, 2020 at 12:00:02AM +0200, Thomas Gleixner wrote:
+On Thu, Jul 23, 2020 at 12:00:09AM +0200, Thomas Gleixner wrote:
 > From: Thomas Gleixner <tglx@linutronix.de>
 > 
-> Guests and user space share certain MSRs. KVM sets these MSRs to guest
-> values once and does not set them back to user space values on every VM
-> exit to spare the costly MSR operations.
+> Use the generic infrastructure to check for and handle pending work before
+> transitioning into guest mode.
 > 
-> User return notifiers ensure that these MSRs are set back to the correct
-> values before returning to user space in exit_to_usermode_loop().
-> 
-> There is no reason to evaluate the TIF flag indicating that user return
-> notifiers need to be invoked in the loop. The important point is that they
-> are invoked before returning to user space.
-> 
-> Move the invocation out of the loop into the section which does the last
-> preperatory steps before returning to user space. That section is not
-> preemptible and runs with interrupts disabled until the actual return.
+> This now handles TIF_NOTIFY_RESUME as well which was ignored so
+> far. Handling it is important as this covers task work and task work will
+> be used to offload the heavy lifting of POSIX CPU timers to thread context.
 > 
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> ---
+> V5: Rename exit -> xfer
+> ---
+
+One nit/question below (though it's really about patch 5).
 
 Reviewed-and-tested-by: Sean Christopherson <sean.j.christopherson@intel.com>
+
+> @@ -8676,15 +8677,11 @@ static int vcpu_run(struct kvm_vcpu *vcp
+>  			break;
+>  		}
+>  
+> -		if (signal_pending(current)) {
+> -			r = -EINTR;
+> -			vcpu->run->exit_reason = KVM_EXIT_INTR;
+> -			++vcpu->stat.signal_exits;
+> -			break;
+> -		}
+> -		if (need_resched()) {
+> +		if (xfer_to_guest_mode_work_pending()) {
+>  			srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+> -			cond_resched();
+> +			r = xfer_to_guest_mode(vcpu);
+
+Any reason not to call this xfer_to_guest_mode_work()?  Or handle_work(),
+do_work(), etc...  Without the "work" part, it looks like a function that
+should be invoked unconditionally.  It's obvious that's not the case if
+one looks at the implementation, but it's a bit confusing on the KVM side
+of things.
+
+> +			if (r)
+> +				return r;
+>  			vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
+>  		}
+>  	}
+> 
