@@ -1,42 +1,34 @@
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks
- for SPLPAR
-Date: Fri, 24 Jul 2020 09:16:48 +0100
-Message-ID: <20200724081647.GA16642@willie-the-truck>
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <20200706043540.1563616-6-npiggin@gmail.com>
- <874kqhvu1v.fsf@mpe.ellerman.id.au>
- <8265d782-4e50-a9b2-a908-0cb588ffa09c@redhat.com>
- <20200723140011.GR5523@worktop.programming.kicks-ass.net>
- <845de183-56f5-2958-3159-faa131d46401@redhat.com>
- <20200723184759.GS119549@hirez.programming.kicks-ass.net>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 0/8] kcsan: Compound read-write instrumentation
+Date: Fri, 24 Jul 2020 10:39:20 +0200
+Message-ID: <20200724083920.GV10769@hirez.programming.kicks-ass.net>
+References: <20200724070008.1389205-1-elver@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <kvm-ppc-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48822 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726591AbgGXIjd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 04:39:33 -0400
 Content-Disposition: inline
-In-Reply-To: <20200723184759.GS119549@hirez.programming.kicks-ass.net>
-Sender: kvm-ppc-owner@vger.kernel.org
-To: peterz@infradead.org
-Cc: Waiman Long <longman@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200724070008.1389205-1-elver@google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Marco Elver <elver@google.com>
+Cc: paulmck@kernel.org, will@kernel.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, Jul 23, 2020 at 08:47:59PM +0200, peterz@infradead.org wrote:
-> On Thu, Jul 23, 2020 at 02:32:36PM -0400, Waiman Long wrote:
-> > BTW, do you have any comment on my v2 lock holder cpu info qspinlock patch?
-> > I will have to update the patch to fix the reported 0-day test problem, but
-> > I want to collect other feedback before sending out v3.
-> 
-> I want to say I hate it all, it adds instructions to a path we spend an
-> aweful lot of time optimizing without really getting anything back for
-> it.
-> 
-> Will, how do you feel about it?
+On Fri, Jul 24, 2020 at 09:00:00AM +0200, Marco Elver wrote:
 
-I can see it potentially being useful for debugging, but I hate the
-limitation to 256 CPUs. Even arm64 is hitting that now.
+> Marco Elver (8):
+>   kcsan: Support compounded read-write instrumentation
+>   objtool, kcsan: Add __tsan_read_write to uaccess whitelist
+>   kcsan: Skew delay to be longer for certain access types
+>   kcsan: Add missing CONFIG_KCSAN_IGNORE_ATOMICS checks
+>   kcsan: Test support for compound instrumentation
+>   instrumented.h: Introduce read-write instrumentation hooks
+>   asm-generic/bitops: Use instrument_read_write() where appropriate
+>   locking/atomics: Use read-write instrumentation for atomic RMWs
 
-Also, you're talking ~1% gains here. I think our collective time would
-be better spent off reviewing the CNA series and trying to make it more
-deterministic.
+Looks good to me,
 
-Will
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
