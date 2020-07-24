@@ -1,51 +1,54 @@
-Return-Path: <SRS0=LHd7=BG=kvack.org=owner-linux-mm@kernel.org>
-From: Anthony Yznaga <anthony.yznaga@oracle.com>
-Subject: [RFC PATCH 0/5] madvise MADV_DOEXEC
-Date: Mon, 27 Jul 2020 10:11:22 -0700
-Message-ID: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
+Return-Path: <SRS0=Lhqp=BD=vger.kernel.org=linux-doc-owner@kernel.org>
+Message-ID: <d15816d6172ea770b63e52443aced5607f1e35c1.camel@intel.com>
+Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 23 Jul 2020 20:40:33 -0700
+In-Reply-To: <f38b5b34-8432-9531-01b5-d0ae924ffafe@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200723162531.GF21891@linux.intel.com>
+         <2e9806a3-7485-a0d0-b63d-f112fcff954c@intel.com>
+         <20200723165649.GG21891@linux.intel.com>
+         <f38b5b34-8432-9531-01b5-d0ae924ffafe@intel.com>
+Content-Type: text/plain; charset="UTF-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>, Sean Christopherson <sean.j.christopherson@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200727171122.CRd_W5kIFhG_HMoP_1TM0Q-iwFo25jVIbMaprJNq9bc@z>
+Message-ID: <20200724034033.ISYxhmyMtML99jqkjhUQIXAi0MH14ipBWOOCxdjeGvw@z>
 
-This patchset adds support for preserving an anonymous memory range across
-exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit for
-sharing memory in this manner, as opposed to re-attaching to a named shared
-memory segment, is to ensure it is mapped at the same virtual address in
-the new process as it was in the old one.  An intended use for this is to
-preserve guest memory for guests using vfio while qemu exec's an updated
-version of itself.  By ensuring the memory is preserved at a fixed address,
-vfio mappings and their associated kernel data structures can remain valid.
-In addition, for the qemu use case, qemu instances that back guest RAM with
-anonymous memory can be updated.
+On Thu, 2020-07-23 at 11:41 -0700, Dave Hansen wrote:
+> On 7/23/20 9:56 AM, Sean Christopherson wrote:
+> > On Thu, Jul 23, 2020 at 09:41:37AM -0700, Dave Hansen wrote:
+> > > On 7/23/20 9:25 AM, Sean Christopherson wrote:
+> > > > How would people feel about taking the above two patches (02 and 03 in the
+> > > > series) through the KVM tree to enable KVM virtualization of CET before the
+> > > > kernel itself gains CET support?  I.e. add the MSR and feature bits, along
+> > > > with the XSAVES context switching.  The feature definitons could use "" to
+> > > > suppress displaying them in /proc/cpuinfo to avoid falsely advertising CET
+> > > > to userspace.
+> > > > 
+> > > > AIUI, there are ABI issues that need to be sorted out, and that is likely
+> > > > going to drag on for some time. 
+> > > > 
+> > > > Is this a "hell no" sort of idea, or something that would be feasible if we
+> > > > can show that there are no negative impacts to the kernel?
+> > > Negative impacts like bloating every task->fpu with XSAVE state that
+> > > will never get used? ;)
+> > Gah, should have qualified that with "meaningful or measurable negative
+> > impacts".  E.g. the extra 40 bytes for CET XSAVE state seems like it would
+> > be acceptable overhead, but noticeably increasing the latency of XSAVES
+> > and/or XRSTORS would not be acceptable.
+> 
+> It's 40 bytes, but it's 40 bytes of just pure, unadulterated waste.  It
+> would have no *chance* of being used.  It's also quite precisely
+> measurable on a given system:
+> 
+> 	cat /proc/slabinfo | grep task_struct | awk '{print $3 * 40}'
 
-Patches 1 and 2 ensure that loading of ELF load segments does not silently
-clobber existing VMAS, and remove assumptions that the stack is the only
-VMA in the mm when the stack is set up.  Patch 1 re-introduces the use of
-MAP_FIXED_NOREPLACE to load ELF binaries that addresses the previous issues
-and could be considered on its own.
+If there is value in getting these two patches merged first, we can move
+XFEATURE_MASK_CET_USER to XFEATURE_MASK_SUPERVISOR_UNSUPPORTED for now, until
+CET is eventually merged.  That way, there is no space wasted.
 
-Patches 3, 4, and 5 introduce the feature and an opt-in method for its use
-using an ELF note.
-
-Anthony Yznaga (5):
-  elf: reintroduce using MAP_FIXED_NOREPLACE for elf executable mappings
-  mm: do not assume only the stack vma exists in setup_arg_pages()
-  mm: introduce VM_EXEC_KEEP
-  exec, elf: require opt-in for accepting preserved mem
-  mm: introduce MADV_DOEXEC
-
- arch/x86/Kconfig                       |   1 +
- fs/binfmt_elf.c                        | 196 +++++++++++++++++++++++++--------
- fs/exec.c                              |  33 +++++-
- include/linux/binfmts.h                |   7 +-
- include/linux/mm.h                     |   5 +
- include/uapi/asm-generic/mman-common.h |   3 +
- kernel/fork.c                          |   2 +-
- mm/madvise.c                           |  25 +++++
- mm/mmap.c                              |  47 ++++++++
- 9 files changed, 266 insertions(+), 53 deletions(-)
-
--- 
-1.8.3.1
+Yu-cheng
