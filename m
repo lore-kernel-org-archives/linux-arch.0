@@ -1,57 +1,97 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
-Date: Thu, 23 Jul 2020 20:40:33 -0700
-Message-ID: <d15816d6172ea770b63e52443aced5607f1e35c1.camel@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-         <20200723162531.GF21891@linux.intel.com>
-         <2e9806a3-7485-a0d0-b63d-f112fcff954c@intel.com>
-         <20200723165649.GG21891@linux.intel.com>
-         <f38b5b34-8432-9531-01b5-d0ae924ffafe@intel.com>
+From: Alexey Kardashevskiy <aik@ozlabs.ru>
+Subject: Re: [PATCH 1/2] lockdep: improve current->(hard|soft)irqs_enabled
+ synchronisation with actual irq state
+Date: Fri, 24 Jul 2020 14:16:39 +1000
+Message-ID: <1884dcea-9ecd-a1f3-21bb-213c655e2480@ozlabs.ru>
+References: <20200723105615.1268126-1-npiggin@gmail.com>
+ <20200723114010.GO5523@worktop.programming.kicks-ass.net>
+ <1595506730.3mvrxktem5.astroid@bobo.none>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:43724 "EHLO mga06.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726525AbgGXDle (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jul 2020 23:41:34 -0400
-In-Reply-To: <f38b5b34-8432-9531-01b5-d0ae924ffafe@intel.com>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36324 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725901AbgGXEQp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 00:16:45 -0400
+Received: from mail-pj1-x1044.google.com (mail-pj1-x1044.google.com [IPv6:2607:f8b0:4864:20::1044])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 59ABBC0619E3
+        for <linux-arch@vger.kernel.org>; Thu, 23 Jul 2020 21:16:45 -0700 (PDT)
+Received: by mail-pj1-x1044.google.com with SMTP id cv18so5271164pjb.1
+        for <linux-arch@vger.kernel.org>; Thu, 23 Jul 2020 21:16:45 -0700 (PDT)
+In-Reply-To: <1595506730.3mvrxktem5.astroid@bobo.none>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>, Sean Christopherson <sean.j.christopherson@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
+To: Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>
 
-On Thu, 2020-07-23 at 11:41 -0700, Dave Hansen wrote:
-> On 7/23/20 9:56 AM, Sean Christopherson wrote:
-> > On Thu, Jul 23, 2020 at 09:41:37AM -0700, Dave Hansen wrote:
-> > > On 7/23/20 9:25 AM, Sean Christopherson wrote:
-> > > > How would people feel about taking the above two patches (02 and 03 in the
-> > > > series) through the KVM tree to enable KVM virtualization of CET before the
-> > > > kernel itself gains CET support?  I.e. add the MSR and feature bits, along
-> > > > with the XSAVES context switching.  The feature definitons could use "" to
-> > > > suppress displaying them in /proc/cpuinfo to avoid falsely advertising CET
-> > > > to userspace.
-> > > > 
-> > > > AIUI, there are ABI issues that need to be sorted out, and that is likely
-> > > > going to drag on for some time. 
-> > > > 
-> > > > Is this a "hell no" sort of idea, or something that would be feasible if we
-> > > > can show that there are no negative impacts to the kernel?
-> > > Negative impacts like bloating every task->fpu with XSAVE state that
-> > > will never get used? ;)
-> > Gah, should have qualified that with "meaningful or measurable negative
-> > impacts".  E.g. the extra 40 bytes for CET XSAVE state seems like it would
-> > be acceptable overhead, but noticeably increasing the latency of XSAVES
-> > and/or XRSTORS would not be acceptable.
+
+
+On 23/07/2020 23:11, Nicholas Piggin wrote:
+> Excerpts from Peter Zijlstra's message of July 23, 2020 9:40 pm:
+>> On Thu, Jul 23, 2020 at 08:56:14PM +1000, Nicholas Piggin wrote:
+>>
+>>> diff --git a/arch/powerpc/include/asm/hw_irq.h b/arch/powerpc/include/asm/hw_irq.h
+>>> index 3a0db7b0b46e..35060be09073 100644
+>>> --- a/arch/powerpc/include/asm/hw_irq.h
+>>> +++ b/arch/powerpc/include/asm/hw_irq.h
+>>> @@ -200,17 +200,14 @@ static inline bool arch_irqs_disabled(void)
+>>>  #define powerpc_local_irq_pmu_save(flags)			\
+>>>  	 do {							\
+>>>  		raw_local_irq_pmu_save(flags);			\
+>>> -		trace_hardirqs_off();				\
+>>> +		if (!raw_irqs_disabled_flags(flags))		\
+>>> +			trace_hardirqs_off();			\
+>>>  	} while(0)
+>>>  #define powerpc_local_irq_pmu_restore(flags)			\
+>>>  	do {							\
+>>> -		if (raw_irqs_disabled_flags(flags)) {		\
+>>> -			raw_local_irq_pmu_restore(flags);	\
+>>> -			trace_hardirqs_off();			\
+>>> -		} else {					\
+>>> +		if (!raw_irqs_disabled_flags(flags))		\
+>>>  			trace_hardirqs_on();			\
+>>> -			raw_local_irq_pmu_restore(flags);	\
+>>> -		}						\
+>>> +		raw_local_irq_pmu_restore(flags);		\
+>>>  	} while(0)
+>>
+>> You shouldn't be calling lockdep from NMI context!
 > 
-> It's 40 bytes, but it's 40 bytes of just pure, unadulterated waste.  It
-> would have no *chance* of being used.  It's also quite precisely
-> measurable on a given system:
+> After this patch it doesn't.
 > 
-> 	cat /proc/slabinfo | grep task_struct | awk '{print $3 * 40}'
+> trace_hardirqs_on/off implementation appears to expect to be called in NMI 
+> context though, for some reason.
+> 
+>> That is, I recently
+>> added suport for that on x86:
+>>
+>>   https://lkml.kernel.org/r/20200623083721.155449112@infradead.org
+>>   https://lkml.kernel.org/r/20200623083721.216740948@infradead.org
+>>
+>> But you need to be very careful on how you order things, as you can see
+>> the above relies on preempt_count() already having been incremented with
+>> NMI_MASK.
+> 
+> Hmm. My patch seems simpler.
 
-If there is value in getting these two patches merged first, we can move
-XFEATURE_MASK_CET_USER to XFEATURE_MASK_SUPERVISOR_UNSUPPORTED for now, until
-CET is eventually merged.  That way, there is no space wasted.
+And your patches fix my error while Peter's do not:
 
-Yu-cheng
+
+IRQs not enabled as expected
+WARNING: CPU: 0 PID: 1377 at /home/aik/p/kernel/kernel/softirq.c:169
+__local_bh_enable_ip+0x118/0x190
+
+
+> 
+> I don't know this stuff very well, I don't really understand what your patch 
+> enables for x86 but at least it shouldn't be incompatible with this one 
+> AFAIKS.
+> 
+> Thanks,
+> Nick
+> 
+
+-- 
+Alexey
