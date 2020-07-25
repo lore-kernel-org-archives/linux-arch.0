@@ -1,69 +1,61 @@
-Return-Path: <SRS0=g7wM=BF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56654 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726998AbgGZQEK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 12:04:10 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 1/4] arm64: stop using <asm/compat.h> directly
-Date: Sun, 26 Jul 2020 18:03:58 +0200
-Message-ID: <20200726160401.311569-2-hch@lst.de>
-In-Reply-To: <20200726160401.311569-1-hch@lst.de>
-References: <20200726160401.311569-1-hch@lst.de>
+Return-Path: <SRS0=fzKJ=BE=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:28765 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1726593AbgGYDDH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 23:03:07 -0400
+Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks for
+ SPLPAR
+From: Waiman Long <longman@redhat.com>
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+ <20200706043540.1563616-6-npiggin@gmail.com>
+ <874kqhvu1v.fsf@mpe.ellerman.id.au>
+ <8265d782-4e50-a9b2-a908-0cb588ffa09c@redhat.com>
+ <20200723140011.GR5523@worktop.programming.kicks-ass.net>
+ <845de183-56f5-2958-3159-faa131d46401@redhat.com>
+ <20200723184759.GS119549@hirez.programming.kicks-ass.net>
+ <20200724081647.GA16642@willie-the-truck>
+ <8532332b-85dd-661b-cf72-81a8ceb70747@redhat.com>
+Message-ID: <ccf0c6a6-b7c3-8909-cc8f-0c5e7434c372@redhat.com>
+Date: Fri, 24 Jul 2020 23:02:58 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <8532332b-85dd-661b-cf72-81a8ceb70747@redhat.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, Jan Kara <jack@suse.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200726160358.TLW2KuWTmUENjreY8LP8S4zoe91XCCSgV6n8-YqMS7s@z>
+To: Will Deacon <will@kernel.org>, peterz@infradead.org
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200725030258.0s7dsjo1EV1WQzyZZflPrVqwGp1ZAYbELmjNseqUv4g@z>
 
-Always use <linux/compat.h> so that we can move more declarations to
-common code.  In two of the three cases the asm include was in addition
-to an existing one for <linux/compat.h> anyway.
+On 7/24/20 3:10 PM, Waiman Long wrote:
+> On 7/24/20 4:16 AM, Will Deacon wrote:
+>> On Thu, Jul 23, 2020 at 08:47:59PM +0200, peterz@infradead.org wrote:
+>>> On Thu, Jul 23, 2020 at 02:32:36PM -0400, Waiman Long wrote:
+>>>> BTW, do you have any comment on my v2 lock holder cpu info 
+>>>> qspinlock patch?
+>>>> I will have to update the patch to fix the reported 0-day test 
+>>>> problem, but
+>>>> I want to collect other feedback before sending out v3.
+>>> I want to say I hate it all, it adds instructions to a path we spend an
+>>> aweful lot of time optimizing without really getting anything back for
+>>> it.
+>>>
+>>> Will, how do you feel about it?
+>> I can see it potentially being useful for debugging, but I hate the
+>> limitation to 256 CPUs. Even arm64 is hitting that now.
+>
+> After thinking more about that, I think we can use all the remaining 
+> bits in the 16-bit locked_pending. Reserving 1 bit for locked and 1 
+> bit for pending, there are 14 bits left. So as long as NR_CPUS < 16k 
+> (requirement for 16-bit locked_pending), we can put all possible cpu 
+> numbers into the lock. We can also just use smp_processor_id() without 
+> additional percpu data. 
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/arm64/include/asm/stat.h | 2 +-
- arch/arm64/kernel/process.c   | 1 -
- arch/arm64/kernel/ptrace.c    | 1 -
- 3 files changed, 1 insertion(+), 3 deletions(-)
+Sorry, that doesn't work. The extra bits in the pending byte won't get 
+cleared on unlock. That will have noticeable performance impact. 
+Clearing the pending byte on unlock will cause other performance 
+problem. So I guess we will have to limit the cpu number in the locked byte.
 
-diff --git a/arch/arm64/include/asm/stat.h b/arch/arm64/include/asm/stat.h
-index 3b4a62f5aeb0c3..1b5ac1ef5d04cc 100644
---- a/arch/arm64/include/asm/stat.h
-+++ b/arch/arm64/include/asm/stat.h
-@@ -10,7 +10,7 @@
- #ifdef CONFIG_COMPAT
- 
- #include <linux/time.h>
--#include <asm/compat.h>
-+#include <linux/compat.h>
- 
- /*
-  * struct stat64 is needed for compat tasks only. Its definition is different
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index 6089638c7d43f4..70381900ef9b8a 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -46,7 +46,6 @@
- 
- #include <asm/alternative.h>
- #include <asm/arch_gicv3.h>
--#include <asm/compat.h>
- #include <asm/cpufeature.h>
- #include <asm/cacheflush.h>
- #include <asm/exec.h>
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 1e02e98e68dd37..0497aaea782451 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -30,7 +30,6 @@
- #include <linux/tracehook.h>
- #include <linux/elf.h>
- 
--#include <asm/compat.h>
- #include <asm/cpufeature.h>
- #include <asm/debug-monitors.h>
- #include <asm/fpsimd.h>
--- 
-2.27.0
+Regards,
+Longman
