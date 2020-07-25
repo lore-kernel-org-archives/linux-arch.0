@@ -1,118 +1,53 @@
-From: Marc Zyngier <maz@kernel.org>
-Subject: Re: [RESEND RFC PATCH v1] arm64: kvm: flush tlbs by range in
- unmap_stage2_range function
-Date: Sat, 25 Jul 2020 18:40:13 +0100
-Message-ID: <5d54c860b3b4e7a98e4d53397e6424ae@kernel.org>
-References: <20200724134315.805-1-yezhenyu2@huawei.com>
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [PATCH 04/18] csum_and_copy_..._user(): pass 0xffffffff instead
+ of 0 as initial sum
+Date: Sat, 25 Jul 2020 18:54:34 +0100
+Message-ID: <20200725175434.GP2786714@ZenIV.linux.org.uk>
+References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
+ <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
+ <20200721202549.4150745-4-viro@ZenIV.linux.org.uk>
+ <CAHk-=wiYS3sHp9bvRn3KmkFKnK-Pb0ksL+-gRRHLK_ZjJqQf=w@mail.gmail.com>
+ <CAHk-=wg4DXWjV0sHAk+5QGvkNqckJTBLLcse_U=AknqEf8r3pw@mail.gmail.com>
+ <20200721211118.GB2786714@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII;
- format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35504 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726904AbgGYRkQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 25 Jul 2020 13:40:16 -0400
-In-Reply-To: <20200724134315.805-1-yezhenyu2@huawei.com>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47892 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726727AbgGYRyh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jul 2020 13:54:37 -0400
+Content-Disposition: inline
+In-Reply-To: <20200721211118.GB2786714@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: james.morse@arm.com, julien.thierry.kdev@gmail.com, suzuki.poulose@arm.com, catalin.marinas@arm.com, will@kernel.org, steven.price@arm.com, mark.rutland@arm.com, ascull@google.com, kvm@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On 2020-07-24 14:43, Zhenyu Ye wrote:
-> Now in unmap_stage2_range(), we flush tlbs one by one just after the
-> corresponding pages cleared.  However, this may cause some performance
-> problems when the unmap range is very large (such as when the vm
-> migration rollback, this may cause vm downtime too loog).
+On Tue, Jul 21, 2020 at 10:11:18PM +0100, Al Viro wrote:
 
-You keep resending this patch, but you don't give any numbers
-that would back your assertion.
+> Theoretically - sure.  I can post the full analysis of that stuff (starting
+> with the proof that all instances of csum_partial() are OK in that respect,
+> which takes care of the default instances, then instance-by-instance
+> analysis of the rest); will need to collate the pieces, remove the actionable
+> obscenities, etc., but I have done that analysis.  Made for rather unpleasant
+> couple of weeks... ;-/
 
-> This patch moves the kvm_tlb_flush_vmid_ipa() out of loop, and
-> flush tlbs by range after other operations completed.  Because we
-> do not make new mapping for the pages here, so this doesn't violate
-> the Break-Before-Make rules.
-> 
-> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-> ---
->  arch/arm64/include/asm/kvm_asm.h |  2 ++
->  arch/arm64/kvm/hyp/tlb.c         | 36 ++++++++++++++++++++++++++++++++
->  arch/arm64/kvm/mmu.c             | 11 +++++++---
->  3 files changed, 46 insertions(+), 3 deletions(-)
-> 
-> diff --git a/arch/arm64/include/asm/kvm_asm.h 
-> b/arch/arm64/include/asm/kvm_asm.h
-> index 352aaebf4198..ef8203d3ca45 100644
-> --- a/arch/arm64/include/asm/kvm_asm.h
-> +++ b/arch/arm64/include/asm/kvm_asm.h
-> @@ -61,6 +61,8 @@ extern char __kvm_hyp_vector[];
-> 
->  extern void __kvm_flush_vm_context(void);
->  extern void __kvm_tlb_flush_vmid_ipa(struct kvm *kvm, phys_addr_t 
-> ipa);
-> +extern void __kvm_tlb_flush_vmid_range(struct kvm *kvm, phys_addr_t 
-> start,
-> +				       phys_addr_t end);
->  extern void __kvm_tlb_flush_vmid(struct kvm *kvm);
->  extern void __kvm_tlb_flush_local_vmid(struct kvm_vcpu *vcpu);
-> 
-> diff --git a/arch/arm64/kvm/hyp/tlb.c b/arch/arm64/kvm/hyp/tlb.c
-> index d063a576d511..4f4737a7e588 100644
-> --- a/arch/arm64/kvm/hyp/tlb.c
-> +++ b/arch/arm64/kvm/hyp/tlb.c
-> @@ -189,6 +189,42 @@ void __hyp_text __kvm_tlb_flush_vmid_ipa(struct
-> kvm *kvm, phys_addr_t ipa)
->  	__tlb_switch_to_host(kvm, &cxt);
->  }
-> 
-> +void __hyp_text __kvm_tlb_flush_vmid_range(struct kvm *kvm, 
-> phys_addr_t start,
-> +					   phys_addr_t end)
-> +{
-> +	struct tlb_inv_context cxt;
-> +	unsigned long addr;
-> +
-> +	start = __TLBI_VADDR(start, 0);
-> +	end = __TLBI_VADDR(end, 0);
-> +
-> +	dsb(ishst);
-> +
-> +	/* Switch to requested VMID */
-> +	kvm = kern_hyp_va(kvm);
-> +	__tlb_switch_to_guest(kvm, &cxt);
-> +
-> +	if ((end - start) >= 512 << (PAGE_SHIFT - 12)) {
-> +		__tlbi(vmalls12e1is);
+BTW, "full" in the above refers only to the cases were we do the switchover
+from initial sum 0 to initial sum ~0U (csum_and_copy_..._user() and those
+csum_partial_copy_nocheck() instances that share helpers with them).
 
-And what is this magic value based on? You don't even mention in the
-commit log that you are taking this shortcut.
+However, now that I started to write that down I went to look at other
+csum_partial_copy_nocheck() instances.  Turns out that c6x one is,
+strictly speaking, broken - it works for all initial sum values the
+kernel ever gives it, but you can come up with a combination of sum and
+data that will return the wrong value.
 
-> +		goto end;
-> +	}
-> +
-> +	for (addr = start; addr < end; addr += 1 << (PAGE_SHIFT - 12))
-> +		__tlbi(ipas2e1is, addr);
-> +
-> +	dsb(ish);
-> +	__tlbi(vmalle1is);
-> +
-> +end:
-> +	dsb(ish);
-> +	isb();
-> +
-> +	if (!has_vhe() && icache_is_vpipt())
-> +		__flush_icache_all();
-> +
-> +	__tlb_switch_to_host(kvm, &cxt);
-> +}
-> +
-
-I'm sorry, but without numbers backing this approach for a number
-of workloads and a representative set of platforms, this is
-going nowhere.
-
-Thanks,
-
-         M.
--- 
-Jazz is not dead. It just smells funny...
+The only reason we never hit it is that there's only one caller
+(gone in this series) that ever passes non-zero, and that one caller
+(icmp_push_reply()) can't get to the vulnerable values of initial sums
+since on c6x the values of csum_partial_copy_nocheck() are initial_sum +
+16bit unsigned, and initial sum in question is csum_add() of a csums of
+fragments, possibly rotated 8 bits right.  And to get overflow in that
+sucker you'd need 0xffff as the top halfword, so you'd need at least
+257 fragments, including at least one at odd offset.  Which, AFAICS,
+can't happen - all framing headers have even lengths.
