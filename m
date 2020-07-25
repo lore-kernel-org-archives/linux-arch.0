@@ -1,80 +1,118 @@
-From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks for
- SPLPAR
-Date: Sat, 25 Jul 2020 13:36:29 -0400
-Message-ID: <4db0cff6-dabb-2f1b-df66-33ce2082088b@redhat.com>
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <20200706043540.1563616-6-npiggin@gmail.com>
- <874kqhvu1v.fsf@mpe.ellerman.id.au>
- <8265d782-4e50-a9b2-a908-0cb588ffa09c@redhat.com>
- <20200723140011.GR5523@worktop.programming.kicks-ass.net>
- <845de183-56f5-2958-3159-faa131d46401@redhat.com>
- <20200723184759.GS119549@hirez.programming.kicks-ass.net>
- <20200724081647.GA16642@willie-the-truck>
- <8532332b-85dd-661b-cf72-81a8ceb70747@redhat.com>
- <20200725172630.GF10769@hirez.programming.kicks-ass.net>
+From: Marc Zyngier <maz@kernel.org>
+Subject: Re: [RESEND RFC PATCH v1] arm64: kvm: flush tlbs by range in
+ unmap_stage2_range function
+Date: Sat, 25 Jul 2020 18:40:13 +0100
+Message-ID: <5d54c860b3b4e7a98e4d53397e6424ae@kernel.org>
+References: <20200724134315.805-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset=US-ASCII;
+ format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:47794 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1726904AbgGYRgi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jul 2020 13:36:38 -0400
-In-Reply-To: <20200725172630.GF10769@hirez.programming.kicks-ass.net>
-Content-Language: en-US
+Received: from mail.kernel.org ([198.145.29.99]:35504 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726904AbgGYRkQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 25 Jul 2020 13:40:16 -0400
+In-Reply-To: <20200724134315.805-1-yezhenyu2@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: james.morse@arm.com, julien.thierry.kdev@gmail.com, suzuki.poulose@arm.com, catalin.marinas@arm.com, will@kernel.org, steven.price@arm.com, mark.rutland@arm.com, ascull@google.com, kvm@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com
 
-On 7/25/20 1:26 PM, Peter Zijlstra wrote:
-> On Fri, Jul 24, 2020 at 03:10:59PM -0400, Waiman Long wrote:
->> On 7/24/20 4:16 AM, Will Deacon wrote:
->>> On Thu, Jul 23, 2020 at 08:47:59PM +0200, peterz@infradead.org wrote:
->>>> On Thu, Jul 23, 2020 at 02:32:36PM -0400, Waiman Long wrote:
->>>>> BTW, do you have any comment on my v2 lock holder cpu info qspinlock patch?
->>>>> I will have to update the patch to fix the reported 0-day test problem, but
->>>>> I want to collect other feedback before sending out v3.
->>>> I want to say I hate it all, it adds instructions to a path we spend an
->>>> aweful lot of time optimizing without really getting anything back for
->>>> it.
->>>>
->>>> Will, how do you feel about it?
->>> I can see it potentially being useful for debugging, but I hate the
->>> limitation to 256 CPUs. Even arm64 is hitting that now.
->> After thinking more about that, I think we can use all the remaining bits in
->> the 16-bit locked_pending. Reserving 1 bit for locked and 1 bit for pending,
->> there are 14 bits left. So as long as NR_CPUS < 16k (requirement for 16-bit
->> locked_pending), we can put all possible cpu numbers into the lock. We can
->> also just use smp_processor_id() without additional percpu data.
-> That sounds horrific, wouldn't that destroy the whole point of using a
-> byte for pending?
-You are right. I realized that later on and had sent a follow-up mail to 
-correct that.
->>> Also, you're talking ~1% gains here. I think our collective time would
->>> be better spent off reviewing the CNA series and trying to make it more
->>> deterministic.
->> I thought you guys are not interested in CNA. I do want to get CNA merged,
->> if possible. Let review the current version again and see if there are ways
->> we can further improve it.
-> It's not a lack of interrest. We were struggling with the fairness
-> issues and the complexity of the thing. I forgot the current state of
-> matters, but at one point UNLOCK was O(n) in waiters, which is, of
-> course, 'unfortunate'.
->
-> I'll have to look up whatever notes remain, but the basic idea of
-> keeping remote nodes on a secondary list is obviously breaking all sorts
-> of fairness. After that they pile on a bunch of hacks to fix the worst
-> of them, but it feels exactly like that, a bunch of hacks.
->
-> One of the things I suppose we ought to do is see if some of the ideas
-> of phase-fair locks can be applied to this.
-That could be a possible solution to ensure better fairness.
->
-> That coupled with a chronic lack of time for anything :-(
->
-That is always true and I feel this way too:-)
+On 2020-07-24 14:43, Zhenyu Ye wrote:
+> Now in unmap_stage2_range(), we flush tlbs one by one just after the
+> corresponding pages cleared.  However, this may cause some performance
+> problems when the unmap range is very large (such as when the vm
+> migration rollback, this may cause vm downtime too loog).
 
-Cheers,
-Longman
+You keep resending this patch, but you don't give any numbers
+that would back your assertion.
+
+> This patch moves the kvm_tlb_flush_vmid_ipa() out of loop, and
+> flush tlbs by range after other operations completed.  Because we
+> do not make new mapping for the pages here, so this doesn't violate
+> the Break-Before-Make rules.
+> 
+> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+> ---
+>  arch/arm64/include/asm/kvm_asm.h |  2 ++
+>  arch/arm64/kvm/hyp/tlb.c         | 36 ++++++++++++++++++++++++++++++++
+>  arch/arm64/kvm/mmu.c             | 11 +++++++---
+>  3 files changed, 46 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/arm64/include/asm/kvm_asm.h 
+> b/arch/arm64/include/asm/kvm_asm.h
+> index 352aaebf4198..ef8203d3ca45 100644
+> --- a/arch/arm64/include/asm/kvm_asm.h
+> +++ b/arch/arm64/include/asm/kvm_asm.h
+> @@ -61,6 +61,8 @@ extern char __kvm_hyp_vector[];
+> 
+>  extern void __kvm_flush_vm_context(void);
+>  extern void __kvm_tlb_flush_vmid_ipa(struct kvm *kvm, phys_addr_t 
+> ipa);
+> +extern void __kvm_tlb_flush_vmid_range(struct kvm *kvm, phys_addr_t 
+> start,
+> +				       phys_addr_t end);
+>  extern void __kvm_tlb_flush_vmid(struct kvm *kvm);
+>  extern void __kvm_tlb_flush_local_vmid(struct kvm_vcpu *vcpu);
+> 
+> diff --git a/arch/arm64/kvm/hyp/tlb.c b/arch/arm64/kvm/hyp/tlb.c
+> index d063a576d511..4f4737a7e588 100644
+> --- a/arch/arm64/kvm/hyp/tlb.c
+> +++ b/arch/arm64/kvm/hyp/tlb.c
+> @@ -189,6 +189,42 @@ void __hyp_text __kvm_tlb_flush_vmid_ipa(struct
+> kvm *kvm, phys_addr_t ipa)
+>  	__tlb_switch_to_host(kvm, &cxt);
+>  }
+> 
+> +void __hyp_text __kvm_tlb_flush_vmid_range(struct kvm *kvm, 
+> phys_addr_t start,
+> +					   phys_addr_t end)
+> +{
+> +	struct tlb_inv_context cxt;
+> +	unsigned long addr;
+> +
+> +	start = __TLBI_VADDR(start, 0);
+> +	end = __TLBI_VADDR(end, 0);
+> +
+> +	dsb(ishst);
+> +
+> +	/* Switch to requested VMID */
+> +	kvm = kern_hyp_va(kvm);
+> +	__tlb_switch_to_guest(kvm, &cxt);
+> +
+> +	if ((end - start) >= 512 << (PAGE_SHIFT - 12)) {
+> +		__tlbi(vmalls12e1is);
+
+And what is this magic value based on? You don't even mention in the
+commit log that you are taking this shortcut.
+
+> +		goto end;
+> +	}
+> +
+> +	for (addr = start; addr < end; addr += 1 << (PAGE_SHIFT - 12))
+> +		__tlbi(ipas2e1is, addr);
+> +
+> +	dsb(ish);
+> +	__tlbi(vmalle1is);
+> +
+> +end:
+> +	dsb(ish);
+> +	isb();
+> +
+> +	if (!has_vhe() && icache_is_vpipt())
+> +		__flush_icache_all();
+> +
+> +	__tlb_switch_to_host(kvm, &cxt);
+> +}
+> +
+
+I'm sorry, but without numbers backing this approach for a number
+of workloads and a representative set of platforms, this is
+going nowhere.
+
+Thanks,
+
+         M.
+-- 
+Jazz is not dead. It just smells funny...
