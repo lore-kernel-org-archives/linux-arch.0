@@ -1,44 +1,75 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39130 "EHLO
+Return-Path: <SRS0=fzKJ=BE=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43644 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733042AbgGVWL0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:26 -0400
-Message-ID: <20200722220519.404974280@linutronix.de>
-Date: Wed, 22 Jul 2020 23:59:55 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V5 01/15] seccomp: Provide stub for __secure_computing()
-References: <20200722215954.464281930@linutronix.de>
+        with ESMTP id S1726904AbgGYR0t (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jul 2020 13:26:49 -0400
+Date: Sat, 25 Jul 2020 19:26:30 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks
+ for SPLPAR
+Message-ID: <20200725172630.GF10769@hirez.programming.kicks-ass.net>
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+ <20200706043540.1563616-6-npiggin@gmail.com>
+ <874kqhvu1v.fsf@mpe.ellerman.id.au>
+ <8265d782-4e50-a9b2-a908-0cb588ffa09c@redhat.com>
+ <20200723140011.GR5523@worktop.programming.kicks-ass.net>
+ <845de183-56f5-2958-3159-faa131d46401@redhat.com>
+ <20200723184759.GS119549@hirez.programming.kicks-ass.net>
+ <20200724081647.GA16642@willie-the-truck>
+ <8532332b-85dd-661b-cf72-81a8ceb70747@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <8532332b-85dd-661b-cf72-81a8ceb70747@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
-Message-ID: <20200722215955.R18JRN_72W0lp7CTO13tKTZUNK1IdjHCFGdDQtl2cqo@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200725172630.k__13QM_GXh16TyBCR3YUYbYS-ATPd0KhlglFv3aNuM@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+On Fri, Jul 24, 2020 at 03:10:59PM -0400, Waiman Long wrote:
+> On 7/24/20 4:16 AM, Will Deacon wrote:
+> > On Thu, Jul 23, 2020 at 08:47:59PM +0200, peterz@infradead.org wrote:
+> > > On Thu, Jul 23, 2020 at 02:32:36PM -0400, Waiman Long wrote:
+> > > > BTW, do you have any comment on my v2 lock holder cpu info qspinlock patch?
+> > > > I will have to update the patch to fix the reported 0-day test problem, but
+> > > > I want to collect other feedback before sending out v3.
+> > > I want to say I hate it all, it adds instructions to a path we spend an
+> > > aweful lot of time optimizing without really getting anything back for
+> > > it.
+> > > 
+> > > Will, how do you feel about it?
+> > I can see it potentially being useful for debugging, but I hate the
+> > limitation to 256 CPUs. Even arm64 is hitting that now.
+> 
+> After thinking more about that, I think we can use all the remaining bits in
+> the 16-bit locked_pending. Reserving 1 bit for locked and 1 bit for pending,
+> there are 14 bits left. So as long as NR_CPUS < 16k (requirement for 16-bit
+> locked_pending), we can put all possible cpu numbers into the lock. We can
+> also just use smp_processor_id() without additional percpu data.
 
-To avoid #ifdeffery in the upcoming generic syscall entry work code provide
-a stub for __secure_computing() as this is preferred over
-secure_computing() because the TIF flag is already evaluated.
+That sounds horrific, wouldn't that destroy the whole point of using a
+byte for pending?
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Acked-by: Kees Cook <keescook@chromium.org>
+> > Also, you're talking ~1% gains here. I think our collective time would
+> > be better spent off reviewing the CNA series and trying to make it more
+> > deterministic.
+> 
+> I thought you guys are not interested in CNA. I do want to get CNA merged,
+> if possible. Let review the current version again and see if there are ways
+> we can further improve it.
 
----
-V4: New patch
----
- include/linux/seccomp.h |    1 +
- 1 file changed, 1 insertion(+)
+It's not a lack of interrest. We were struggling with the fairness
+issues and the complexity of the thing. I forgot the current state of
+matters, but at one point UNLOCK was O(n) in waiters, which is, of
+course, 'unfortunate'.
 
---- a/include/linux/seccomp.h
-+++ b/include/linux/seccomp.h
-@@ -61,6 +61,7 @@ struct seccomp_filter { };
- 
- #ifdef CONFIG_HAVE_ARCH_SECCOMP_FILTER
- static inline int secure_computing(void) { return 0; }
-+static inline int __secure_computing(void) { return 0; }
- #else
- static inline void secure_computing_strict(int this_syscall) { return; }
- #endif
+I'll have to look up whatever notes remain, but the basic idea of
+keeping remote nodes on a secondary list is obviously breaking all sorts
+of fairness. After that they pile on a bunch of hacks to fix the worst
+of them, but it feels exactly like that, a bunch of hacks.
+
+One of the things I suppose we ought to do is see if some of the ideas
+of phase-fair locks can be applied to this.
+
+That coupled with a chronic lack of time for anything :-(
