@@ -1,84 +1,54 @@
-From: peterz@infradead.org
-Subject: Re: [PATCH 1/2] lockdep: improve current->(hard|soft)irqs_enabled
- synchronisation with actual irq state
-Date: Sun, 26 Jul 2020 14:11:38 +0200
-Message-ID: <20200726121138.GC119549@hirez.programming.kicks-ass.net>
-References: <20200723105615.1268126-1-npiggin@gmail.com>
- <20200725202617.GI10769@hirez.programming.kicks-ass.net>
- <1595735694.b784cvipam.astroid@bobo.none>
+From: Stafford Horne <shorne@gmail.com>
+Subject: Re: [PATCH] io: Fix return type of _inb and _inl
+Date: Sun, 26 Jul 2020 21:53:25 +0900
+Message-ID: <20200726125325.GC80756@lianli.shorne-pla.net>
+References: <20200726031154.1012044-1-shorne@gmail.com>
+ <CAHp75VciC+gqkCZ9voNKHU3hrtiOVzeWBu9_YEagpCGdTME2yg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49134 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55558 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726042AbgGZMLr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 08:11:47 -0400
+        with ESMTP id S1725848AbgGZMxd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 08:53:33 -0400
 Content-Disposition: inline
-In-Reply-To: <1595735694.b784cvipam.astroid@bobo.none>
+In-Reply-To: <CAHp75VciC+gqkCZ9voNKHU3hrtiOVzeWBu9_YEagpCGdTME2yg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Alexey Kardashevskiy <aik@ozlabs.ru>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>
+To: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Wei Xu <xuwei5@hisilicon.com>, John Garry <john.garry@huawei.com>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Sun, Jul 26, 2020 at 02:14:34PM +1000, Nicholas Piggin wrote:
-> Excerpts from Peter Zijlstra's message of July 26, 2020 6:26 am:
-
-> > Which is 'funny' when it interleaves like:
-> > 
-> > 	local_irq_disable();
-> > 	...
-> > 	local_irq_enable()
-> > 	  trace_hardirqs_on();
-> > 	  <NMI/>
-> > 	  raw_local_irq_enable();
-> > 
-> > Because then it will undo the trace_hardirqs_on() we just did. With the
-> > result that both tracing and lockdep will see a hardirqs-disable without
-> > a matching enable, while the hardware state is enabled.
+On Sun, Jul 26, 2020 at 12:00:37PM +0300, Andy Shevchenko wrote:
+> On Sun, Jul 26, 2020 at 6:14 AM Stafford Horne <shorne@gmail.com> wrote:
+> >
+> > The return type of functions _inb, _inw and _inl are all u16 which looks
+> > wrong.  This patch makes them u8, u16 and u32 respectively.
+> >
+> > The original commit text for these does not indicate that these should
+> > be all forced to u16.
 > 
-> Seems like an arch problem -- why not disable if it was enabled only?
-> I guess the local_irq tracing calls are a mess so maybe they copied 
-> those.
-
-Because, as I wrote earlier, then we can miss updating software state.
-So your proposal has:
-
-	raw_local_irq_disable()
-	<NMI>
-	  if (!arch_irqs_disabled(regs->flags) // false
-	    trace_hardirqs_off();
-
-	  // tracing/lockdep still think IRQs are enabled
-	  // hardware IRQ state is disabled.
-
-With the current code we have:
-
-	local_irq_enable()
-	  trace_hardirqs_on();
-	  <NMI>
-	    trace_hardirqs_off();
-	    ...
-	    if (!arch_irqs_disabled(regs->flags)) // false
-	      trace_hardirqs_on();
-	  </NMI>
-	  // and now the NMI disabled software state again
-	  // while we're about to enable the hardware state
-	  raw_local_irq_enable();
-
-> > Which is exactly the state Alexey seems to have ran into.
+> Is it in alight with all architectures? that support this interface natively?
 > 
-> No his was what I said, the interruptee's trace_hardirqs_on() in
-> local_irq_enable getting lost because the NMI's local_irq_disable
-> always disables, but the enable doesn't re-enable.
+> (Return value is arch-dependent AFAIU, so it might actually return
+> 16-bit for byte read, but I agree that this is weird for 32-bit value.
+> I think you have elaborate more in the commit message)
 
-That's _exactly_ the case above. It doesn't re-enable because hardirqs
-are actually still disabled. You _cannot_ rely on hardirq state for
-NMIs, that'll get you wrong state.
+Well, this is the generic io code,  at least these api's appear to not be different
+for each architecture.  The output read by the architecture dependant code i.e.
+__raw_readb() below is getting is placed into a u8.  So I think the output of
+the function will be u8.
 
-> It's all just weird asymmetrical special case hacks AFAIKS, the
-> code should just be symmetric and lockdep handle it's own weirdness.
+static inline u8 _inb(unsigned long addr)
+{
+	u8 val;
 
-It's for non-maskable exceptions/interrupts, because there the hardware
-and software state changes non-atomically. For maskable interrupts doing
-the software state transitions inside the disabled region makes perfect
-sense, because that keeps it atomic.
+	__io_pbr();
+	val = __raw_readb(PCI_IOBASE + addr);
+	__io_par(val);
+	return val;
+}
+
+I can expand the commit text, but I would like to get some comments from the
+original author to confirm if this is an issue.
+
+-Stafford
