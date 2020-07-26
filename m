@@ -1,110 +1,49 @@
-Return-Path: <SRS0=4doj=BL=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51862 "EHLO
+Return-Path: <SRS0=g7wM=BF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56642 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727047AbgHACx3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 22:53:29 -0400
-From: Arvind Sankar <nivedita@alum.mit.edu>
-Date: Fri, 31 Jul 2020 22:53:25 -0400
-Subject: Re: [PATCH v5 32/36] x86/boot/compressed: Reorganize zero-size
- section asserts
-Message-ID: <20200801025325.GA2800311@rani.riverdale.lan>
-References: <20200731230820.1742553-1-keescook@chromium.org>
- <20200731230820.1742553-33-keescook@chromium.org>
- <20200801014755.GA2700342@rani.riverdale.lan>
+        with ESMTP id S1726998AbgGZQEH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 12:04:07 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: improve compat handling for the i386 u64 alignment quirk
+Date: Sun, 26 Jul 2020 18:03:57 +0200
+Message-ID: <20200726160401.311569-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200801014755.GA2700342@rani.riverdale.lan>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arvind Sankar <nivedita@alum.mit.edu>
-Cc: Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200801025325.HhsO9X6xM4vX2ApzVbTjofgSCEgZsSiQqruwmuJm6mY@z>
+To: x86@kernel.org, Jan Kara <jack@suse.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200726160357.CqKn8q4S7hDGssiKRRlmM84M0UBG1-MO4T-gRruLtWc@z>
 
-On Fri, Jul 31, 2020 at 09:47:55PM -0400, Arvind Sankar wrote:
-> On Fri, Jul 31, 2020 at 04:08:16PM -0700, Kees Cook wrote:
-> > For readability, move the zero-sized sections to the end after DISCARDS
-> > and mark them NOLOAD for good measure.
-> > 
-> > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > ---
-> >  arch/x86/boot/compressed/vmlinux.lds.S | 42 +++++++++++++++-----------
-> >  1 file changed, 25 insertions(+), 17 deletions(-)
-> > 
-> > diff --git a/arch/x86/boot/compressed/vmlinux.lds.S b/arch/x86/boot/compressed/vmlinux.lds.S
-> > index 3c2ee9a5bf43..42dea70a5091 100644
-> > --- a/arch/x86/boot/compressed/vmlinux.lds.S
-> > +++ b/arch/x86/boot/compressed/vmlinux.lds.S
-> > @@ -42,18 +42,16 @@ SECTIONS
-> >  		*(.rodata.*)
-> >  		_erodata = . ;
-> >  	}
-> > -	.rel.dyn : {
-> > -		*(.rel.*)
-> > -	}
-> > -	.rela.dyn : {
-> > -		*(.rela.*)
-> > -	}
-> > -	.got : {
-> > -		*(.got)
-> > -	}
-> >  	.got.plt : {
-> >  		*(.got.plt)
-> >  	}
-> > +	ASSERT(SIZEOF(.got.plt) == 0 ||
-> > +#ifdef CONFIG_X86_64
-> > +	       SIZEOF(.got.plt) == 0x18,
-> > +#else
-> > +	       SIZEOF(.got.plt) == 0xc,
-> > +#endif
-> > +	       "Unexpected GOT/PLT entries detected!")
-> >  
-> >  	.data :	{
-> >  		_data = . ;
-> > @@ -85,13 +83,23 @@ SECTIONS
-> >  	ELF_DETAILS
-> >  
-> >  	DISCARDS
-> > -}
-> >  
-> > -ASSERT(SIZEOF(.got) == 0, "Unexpected GOT entries detected!")
-> > -#ifdef CONFIG_X86_64
-> > -ASSERT(SIZEOF(.got.plt) == 0 || SIZEOF(.got.plt) == 0x18, "Unexpected GOT/PLT entries detected!")
-> > -#else
-> > -ASSERT(SIZEOF(.got.plt) == 0 || SIZEOF(.got.plt) == 0xc, "Unexpected GOT/PLT entries detected!")
-> > -#endif
-> > +	/*
-> > +	 * Sections that should stay zero sized, which is safer to
-> > +	 * explicitly check instead of blindly discarding.
-> > +	 */
-> > +	.got (NOLOAD) : {
-> > +		*(.got)
-> > +	}
-> > +	ASSERT(SIZEOF(.got) == 0, "Unexpected GOT entries detected!")
-> >  
-> > -ASSERT(SIZEOF(.rel.dyn) == 0 && SIZEOF(.rela.dyn) == 0, "Unexpected run-time relocations detected!")
-> > +	/* ld.lld does not like .rel* sections being made "NOLOAD". */
-> > +	.rel.dyn : {
-> > +		*(.rel.*)
-> > +	}
-> > +	ASSERT(SIZEOF(.rel.dyn) == 0, "Unexpected run-time relocations (.rel) detected!")
-> > +	.rela.dyn : {
-> > +		*(.rela.*)
-> > +	}
-> > +	ASSERT(SIZEOF(.rela.dyn) == 0, "Unexpected run-time relocations (.rela) detected!")
-> > +}
-> > -- 
-> > 2.25.1
-> > 
-> 
-> There's no point in marking zero-size sections NOLOAD -- if the ASSERT's
-> passed, they won't be present in the file at all anyway.
-> 
-> The only section for which there might be a point is .got.plt, which is
-> non-empty on 32-bit, and only if it is first moved to the end. That
-> saves a few bytes.
+Hi all,
 
-Btw, you should move .got.plt also to the end anyway for readability,
-it's unused even if non-empty. And with the ASSERT being placed
-immediately after it, it's even more distracting from the actual section
-layout.
+the i386 ABI is a little special in that it uses less than natural
+alignment for 64-bit integer types (u64 and s64), and a significant
+amount of our compat handlers deals with just that.  Unfortunately
+there is no good way to check for this specific quirk at runtime,
+similar how in_compat_syscall() checks for a compat syscall.  This
+series adds such a check, and then uses the quota code as an example
+of how this improves the compat handling.  I have a few other places
+in mind where this will also be useful going forward.
+
+Diffstat:
+ b/arch/arm64/include/asm/compat.h        |    2 
+ b/arch/arm64/include/asm/stat.h          |    2 
+ b/arch/arm64/kernel/process.c            |    1 
+ b/arch/arm64/kernel/ptrace.c             |    1 
+ b/arch/mips/include/asm/compat.h         |    2 
+ b/arch/parisc/include/asm/compat.h       |    2 
+ b/arch/powerpc/include/asm/compat.h      |    2 
+ b/arch/s390/include/asm/compat.h         |    2 
+ b/arch/sparc/include/asm/compat.h        |    3 
+ b/arch/x86/entry/syscalls/syscall_32.tbl |    2 
+ b/arch/x86/include/asm/compat.h          |    3 
+ b/fs/quota/Kconfig                       |    5 -
+ b/fs/quota/Makefile                      |    1 
+ b/fs/quota/compat.h                      |   34 ++++++++
+ b/fs/quota/quota.c                       |   73 +++++++++++++++---
+ b/include/linux/compat.h                 |   17 ++++
+ b/include/linux/quotaops.h               |    3 
+ b/kernel/sys_ni.c                        |    1 
+ fs/quota/compat.c                        |  120 -------------------------------
+ 19 files changed, 114 insertions(+), 162 deletions(-)
