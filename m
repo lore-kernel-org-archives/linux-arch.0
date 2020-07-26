@@ -1,83 +1,63 @@
-Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 10/24] microblaze: use asm-generic/mmu_context.h for no-op implementations
-Date: Tue, 28 Jul 2020 13:33:51 +1000
-Message-ID: <20200728033405.78469-11-npiggin@gmail.com>
-In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
-References: <20200728033405.78469-1-npiggin@gmail.com>
+Return-Path: <SRS0=g7wM=BF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56670 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727852AbgGZQEO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 12:04:14 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 3/4] compat: add a compat_need_64bit_alignment_fixup() helper
+Date: Sun, 26 Jul 2020 18:04:00 +0200
+Message-ID: <20200726160401.311569-4-hch@lst.de>
+In-Reply-To: <20200726160401.311569-1-hch@lst.de>
+References: <20200726160401.311569-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Michal Simek <monstr@monstr.eu>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200728033351.kdElfefVxrurXHvIl319disE46fFttnAwG4TcJ-3gFI@z>
+To: x86@kernel.org, Jan Kara <jack@suse.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200726160400.O79aB-Oc2Pop4gIF1UBs9rVTO4puLgt01DU6L6MUIAE@z>
 
-Cc: Michal Simek <monstr@monstr.eu>
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+Add a helper to check if the calling syscall needs a fixup for
+non-natural 64-bit type alignment in the compat ABI.  This will only
+return true for i386 syscalls on x86_64.
+
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/microblaze/include/asm/mmu_context_mm.h | 8 ++++----
- arch/microblaze/include/asm/processor.h      | 3 ---
- 2 files changed, 4 insertions(+), 7 deletions(-)
+ arch/x86/include/asm/compat.h | 1 +
+ include/linux/compat.h        | 9 +++++++++
+ 2 files changed, 10 insertions(+)
 
-diff --git a/arch/microblaze/include/asm/mmu_context_mm.h b/arch/microbla=
-ze/include/asm/mmu_context_mm.h
-index a1c7dd48454c..c2c77f708455 100644
---- a/arch/microblaze/include/asm/mmu_context_mm.h
-+++ b/arch/microblaze/include/asm/mmu_context_mm.h
-@@ -33,10 +33,6 @@
-    to represent all kernel pages as shared among all contexts.
-  */
-=20
--static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_stru=
-ct *tsk)
--{
--}
--
- # define NO_CONTEXT	256
- # define LAST_CONTEXT	255
- # define FIRST_CONTEXT	1
-@@ -105,6 +101,7 @@ static inline void get_mmu_context(struct mm_struct *=
-mm)
- /*
-  * We're finished using the context for an address space.
-  */
-+#define destroy_context destroy_context
- static inline void destroy_context(struct mm_struct *mm)
- {
- 	if (mm->context !=3D NO_CONTEXT) {
-@@ -126,6 +123,7 @@ static inline void switch_mm(struct mm_struct *prev, =
-struct mm_struct *next,
-  * After we have set current->mm to a new value, this activates
-  * the context for the new mm so we see the new mappings.
-  */
-+#define activate_mm activate_mm
- static inline void activate_mm(struct mm_struct *active_mm,
- 			struct mm_struct *mm)
- {
-@@ -136,5 +134,7 @@ static inline void activate_mm(struct mm_struct *acti=
-ve_mm,
-=20
- extern void mmu_context_init(void);
-=20
-+#include <asm-generic/mmu_context.h>
+diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
+index bf547701f41f87..0e327a01f50fbb 100644
+--- a/arch/x86/include/asm/compat.h
++++ b/arch/x86/include/asm/compat.h
+@@ -209,6 +209,7 @@ static inline bool in_compat_syscall(void)
+ 	return in_32bit_syscall();
+ }
+ #define in_compat_syscall in_compat_syscall	/* override the generic impl */
++#define compat_need_64bit_alignment_fixup in_ia32_syscall
+ #endif
+ 
+ struct compat_siginfo;
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index c22a7f1d253b87..afdd44ba3a8869 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -945,6 +945,15 @@ static inline bool in_compat_syscall(void) { return false; }
+ 
+ #endif /* CONFIG_COMPAT */
+ 
++/*
++ * Some legacy ABIs like the i386 one use less than natural alignment for 64-bit
++ * types, and will need special compat treatment for that.  Most architectures
++ * don't need that special handling even for compat syscalls.
++ */
++#ifndef compat_need_64bit_alignment_fixup
++#define compat_need_64bit_alignment_fixup()		false
++#endif
 +
- # endif /* __KERNEL__ */
- #endif /* _ASM_MICROBLAZE_MMU_CONTEXT_H */
-diff --git a/arch/microblaze/include/asm/processor.h b/arch/microblaze/in=
-clude/asm/processor.h
-index 1ff5a82b76b6..616211871a6e 100644
---- a/arch/microblaze/include/asm/processor.h
-+++ b/arch/microblaze/include/asm/processor.h
-@@ -122,9 +122,6 @@ unsigned long get_wchan(struct task_struct *p);
- #  define KSTK_EIP(task)	(task_pc(task))
- #  define KSTK_ESP(task)	(task_sp(task))
-=20
--/* FIXME */
--#  define deactivate_mm(tsk, mm)	do { } while (0)
--
- #  define STACK_TOP	TASK_SIZE
- #  define STACK_TOP_MAX	STACK_TOP
-=20
---=20
-2.23.0
+ /*
+  * A pointer passed in from user mode. This should not
+  * be used for syscall parameters, just declare them
+-- 
+2.27.0
