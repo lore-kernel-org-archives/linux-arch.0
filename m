@@ -1,40 +1,38 @@
-Return-Path: <SRS0=WlwM=BC=vger.kernel.org=linux-doc-owner@kernel.org>
-Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
- <20200723162531.GF21891@linux.intel.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <2e9806a3-7485-a0d0-b63d-f112fcff954c@intel.com>
-Date: Thu, 23 Jul 2020 09:41:37 -0700
+Return-Path: <SRS0=g7wM=BF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59442 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726112AbgGZHLf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 03:11:35 -0400
+Date: Sun, 26 Jul 2020 08:11:32 +0100
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH v2 04/20] unify generic instances of
+ csum_partial_copy_nocheck()
+Message-ID: <20200726071132.GA8862@infradead.org>
+References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
+ <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
+ <20200724012546.302155-4-viro@ZenIV.linux.org.uk>
+ <20200724064117.GA10522@infradead.org>
+ <20200724121918.GL2786714@ZenIV.linux.org.uk>
+ <20200724122337.GA23095@infradead.org>
+ <20200724123040.GM2786714@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-In-Reply-To: <20200723162531.GF21891@linux.intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Sean Christopherson <sean.j.christopherson@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200724123040.GM2786714@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200723164137.ZJ76D8EZETKOgyAN9EBrExOrTIg3UzTr5BkeaIH1Zac@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Christoph Hellwig <hch@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200726071132.bcFqNV1ZLL5K9_F5gCvLf_dDb1Hn0n7qj0drtSHyZV8@z>
 
-On 7/23/20 9:25 AM, Sean Christopherson wrote:
-> How would people feel about taking the above two patches (02 and 03 in the
-> series) through the KVM tree to enable KVM virtualization of CET before the
-> kernel itself gains CET support?  I.e. add the MSR and feature bits, along
-> with the XSAVES context switching.  The feature definitons could use "" to
-> suppress displaying them in /proc/cpuinfo to avoid falsely advertising CET
-> to userspace.
+On Fri, Jul 24, 2020 at 01:30:40PM +0100, Al Viro wrote:
+> > Sorry, I meant csum_and_copy_from_nocheck, just as in this patch.
+> > 
+> > Merging your branch into the net-next tree thus will conflict in
+> > the nios2 and asm-geneeric/checksum.h as well as lib/checksum.c.
 > 
-> AIUI, there are ABI issues that need to be sorted out, and that is likely
-> going to drag on for some time. 
-> 
-> Is this a "hell no" sort of idea, or something that would be feasible if we
-> can show that there are no negative impacts to the kernel?
+> Noted, but that asm-generic/checksum.h conflict will be "massage
+> in net-next/outright removal in this branch"; the same goes for
+> lib/checksum.c and nios2.  It's c6x that is unpleasant in that respect...
 
-Negative impacts like bloating every task->fpu with XSAVE state that
-will never get used? ;)
-
-I thought KVM had its own vcpu->arch.guest_fpu buffers which mirrored
-the size and format of task->fpu.  Can we have KVM support today without
-task->fpu support?  I see some XSS munging in the KVM code so I think
-this might be *possible*, but I don't see all of the plumbing that would
-make it actually work.
+What about just rebasing your branch on the net-next tree?
