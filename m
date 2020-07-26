@@ -1,41 +1,53 @@
-From: Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>
-Subject: Re: [PATCH 4/4] quota: simplify the quotactl compat handling
-Date: Sun, 26 Jul 2020 17:37:11 +0100
-Message-ID: <20200726163711.GU2786714@ZenIV.linux.org.uk>
-References: <20200726160401.311569-1-hch@lst.de>
- <20200726160401.311569-5-hch@lst.de>
- <20200726163214.GS2786714@ZenIV.linux.org.uk>
- <20200726163422.GA24657@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20200726163422.GA24657-jcswGhMUV9g@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Cc: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Jan Kara <jack-IBi9RG/b67k@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: [PATCH 4/6] arch, mm: wire up secretmemfd system call were relevant
+Date: Sun, 26 Jul 2020 10:44:48 -0700 (PDT)
+Message-ID: <mhng-ffb01b1d-16c2-4998-8434-99f1cae575bd@palmerdabbelt-glaptop1>
+References: <20200720092435.17469-5-rppt@kernel.org>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43930 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727060AbgGZRou (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 13:44:50 -0400
+Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4CFE0C0619D5
+        for <linux-arch@vger.kernel.org>; Sun, 26 Jul 2020 10:44:50 -0700 (PDT)
+Received: by mail-pg1-x543.google.com with SMTP id k27so8126229pgm.2
+        for <linux-arch@vger.kernel.org>; Sun, 26 Jul 2020 10:44:50 -0700 (PDT)
+In-Reply-To: <20200720092435.17469-5-rppt@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+Cc: linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, luto@kernel.org, Arnd Bergmann <arnd@arndb.de>, bp@alien8.de, catalin.marinas@arm.com, cl@linux.com, dan.j.williams@intel.com, dave.hansen@linux.intel.com, elena.reshetova@intel.com, hpa@zytor.com, idan.yaniv@ibm.com, mingo@redhat.com, jejb@linux.ibm.com, kirill@shutemov.name, willy@infradead.org, rppt@linux.ibm.com, rppt@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, peterz@infradead.org, tglx@linutronix.de, tycho@tycho.ws, will@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org, x86@kernel.org
 
-On Sun, Jul 26, 2020 at 06:34:22PM +0200, Christoph Hellwig wrote:
-> On Sun, Jul 26, 2020 at 05:32:14PM +0100, Al Viro wrote:
-> > > +static int compat_copy_fs_qfilestat(struct compat_fs_qfilestat __user *to,
-> > > +		struct fs_qfilestat *from)
-> > > +{
-> > > +	if (copy_to_user(to, from, sizeof(*to)) ||
-> > > +	    put_user(from->qfs_nextents, &to->qfs_nextents))
-> > > +		return -EFAULT;
-> > > +	return 0;
-> > > +}
-> > 
-> > do we have any need of that put_user()?  Note that you don't even call
-> > that thing unless compat_need_64bit_alignment_fixup() is true.  And AFAICS
-> > all such cases are little-endian...
-> 
-> The main reason it is there is to preserve the previous semantics.
-> And no, I don't think we actually need it on x86.  But what if some
-> poor souls adds a BE version that needs this?  E.g. arm oabi has similar
-> weird alignment, and now imagine someone adding arm64 compat code for
-> that..
+On Mon, 20 Jul 2020 02:24:33 PDT (-0700), rppt@kernel.org wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
+>
+> Wire up secretmemfd system call on architectures that define
+> ARCH_HAS_SET_DIRECT_MAP, namely arm64, risc-v and x86.
+>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+>  arch/arm64/include/asm/unistd32.h      | 2 ++
+>  arch/arm64/include/uapi/asm/unistd.h   | 1 +
+>  arch/riscv/include/asm/unistd.h        | 1 +
+>  arch/x86/entry/syscalls/syscall_32.tbl | 1 +
+>  arch/x86/entry/syscalls/syscall_64.tbl | 1 +
+>  include/linux/syscalls.h               | 1 +
+>  include/uapi/asm-generic/unistd.h      | 7 ++++++-
+>  7 files changed, 13 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/riscv/include/asm/unistd.h b/arch/riscv/include/asm/unistd.h
+> index 977ee6181dab..9e47d9aed5eb 100644
+> --- a/arch/riscv/include/asm/unistd.h
+> +++ b/arch/riscv/include/asm/unistd.h
+> @@ -9,6 +9,7 @@
+>   */
+>
+>  #define __ARCH_WANT_SYS_CLONE
+> +#define __ARCH_WANT_SECRETMEMFD
+>
+>  #include <uapi/asm/unistd.h>
 
-I'd probably add /* just in case some poor sod fucks up the same way for big-endian biarch */
-next to that put_user(), then ;-)
+Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
