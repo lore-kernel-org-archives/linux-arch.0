@@ -1,35 +1,46 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38402 "EHLO
+Return-Path: <SRS0=g7wM=BF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33596 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727850AbgGUVsb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 17:48:31 -0400
-Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B976AC0619DC
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:48:31 -0700 (PDT)
-Received: by mail-pj1-x1041.google.com with SMTP id a9so75777pjd.3
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:48:31 -0700 (PDT)
-Date: Tue, 21 Jul 2020 14:48:29 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [patch V4 12/15] x86/entry: Cleanup idtentry_entry/exit_user
-Message-ID: <202007211448.A8AFA81@keescook>
-References: <20200721105706.030914876@linutronix.de>
- <20200721110809.531305010@linutronix.de>
+        with ESMTP id S1725949AbgGZQhQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 12:37:16 -0400
+Date: Sun, 26 Jul 2020 17:37:11 +0100
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [PATCH 4/4] quota: simplify the quotactl compat handling
+Message-ID: <20200726163711.GU2786714@ZenIV.linux.org.uk>
+References: <20200726160401.311569-1-hch@lst.de>
+ <20200726160401.311569-5-hch@lst.de>
+ <20200726163214.GS2786714@ZenIV.linux.org.uk>
+ <20200726163422.GA24657@lst.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200721110809.531305010@linutronix.de>
+In-Reply-To: <20200726163422.GA24657@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200721214829.zy989CLqE096IJRQTJgVKDtorWRCdDDaS-OoBfTjczc@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: x86@kernel.org, Jan Kara <jack@suse.com>, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200726163711.5W9zroViDKdVE1tf9vNkOqvKJYpBgcnOrfpuOy7uC7M@z>
 
-On Tue, Jul 21, 2020 at 12:57:18PM +0200, Thomas Gleixner wrote:
-> Cleanup the temporary defines and use irqentry_ instead of idtentry_.
+On Sun, Jul 26, 2020 at 06:34:22PM +0200, Christoph Hellwig wrote:
+> On Sun, Jul 26, 2020 at 05:32:14PM +0100, Al Viro wrote:
+> > > +static int compat_copy_fs_qfilestat(struct compat_fs_qfilestat __user *to,
+> > > +		struct fs_qfilestat *from)
+> > > +{
+> > > +	if (copy_to_user(to, from, sizeof(*to)) ||
+> > > +	    put_user(from->qfs_nextents, &to->qfs_nextents))
+> > > +		return -EFAULT;
+> > > +	return 0;
+> > > +}
+> > 
+> > do we have any need of that put_user()?  Note that you don't even call
+> > that thing unless compat_need_64bit_alignment_fixup() is true.  And AFAICS
+> > all such cases are little-endian...
 > 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> The main reason it is there is to preserve the previous semantics.
+> And no, I don't think we actually need it on x86.  But what if some
+> poor souls adds a BE version that needs this?  E.g. arm oabi has similar
+> weird alignment, and now imagine someone adding arm64 compat code for
+> that..
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
-
--- 
-Kees Cook
+I'd probably add /* just in case some poor sod fucks up the same way for big-endian biarch */
+next to that put_user(), then ;-)
