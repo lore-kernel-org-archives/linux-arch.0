@@ -1,101 +1,69 @@
-Return-Path: <SRS0=Pkkz=BK=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
- <20200730152250.GG23808@casper.infradead.org>
- <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
- <20200730171251.GI23808@casper.infradead.org>
- <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
- <20200730174956.GK23808@casper.infradead.org>
- <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
- <87y2n03brx.fsf@x220.int.ebiederm.org>
- <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
- <20200731152736.GP23808@casper.infradead.org>
-From: Steven Sistare <steven.sistare@oracle.com>
-Message-ID: <9ba26063-0098-e796-9431-8c1d0c076ffc@oracle.com>
-Date: Fri, 31 Jul 2020 12:11:52 -0400
+Return-Path: <SRS0=g7wM=BF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56654 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726998AbgGZQEK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 12:04:10 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 1/4] arm64: stop using <asm/compat.h> directly
+Date: Sun, 26 Jul 2020 18:03:58 +0200
+Message-ID: <20200726160401.311569-2-hch@lst.de>
+In-Reply-To: <20200726160401.311569-1-hch@lst.de>
+References: <20200726160401.311569-1-hch@lst.de>
 MIME-Version: 1.0
-In-Reply-To: <20200731152736.GP23808@casper.infradead.org>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200731161152.gmIAIyntMIwakzR_ZTlLVjO5VJRIZz2nYy2sWmjLRoc@z>
+To: x86@kernel.org, Jan Kara <jack@suse.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200726160358.TLW2KuWTmUENjreY8LP8S4zoe91XCCSgV6n8-YqMS7s@z>
 
-On 7/31/2020 11:27 AM, Matthew Wilcox wrote:
-> On Fri, Jul 31, 2020 at 10:57:44AM -0400, Steven Sistare wrote:
->> Matthews sileby/mshare proposal has the same issue.  If a process opts-in
->> and mmap's an address in the shared region, then content becomes mapped at
->> a VA that was known to the pre-fork or pre-exec process.  Trust must still
->> be established.
-> 
-> It's up to the recipient whether they try to map it at the same address
-> or at a fresh address.  The intended use case is a "semi-shared" address
-> space between two processes (ie partway between a threaded, fully-shared
-> address space and a forked un-shared address space), in which case
-> there's a certain amount of trust and cooperation between the processes.
+Always use <linux/compat.h> so that we can move more declarations to
+common code.  In two of the three cases the asm include was in addition
+to an existing one for <linux/compat.h> anyway.
 
-Understood, but if the recipient does map at any of the same, which is the whole
-point because you want to share the page table.  The trust relationship is no
-different than for the live update case.  
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/arm64/include/asm/stat.h | 2 +-
+ arch/arm64/kernel/process.c   | 1 -
+ arch/arm64/kernel/ptrace.c    | 1 -
+ 3 files changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/arch/arm64/include/asm/stat.h b/arch/arm64/include/asm/stat.h
+index 3b4a62f5aeb0c3..1b5ac1ef5d04cc 100644
+--- a/arch/arm64/include/asm/stat.h
++++ b/arch/arm64/include/asm/stat.h
+@@ -10,7 +10,7 @@
+ #ifdef CONFIG_COMPAT
  
-> Your preservation-across-exec use-case might or might not need the
-> VMA to be mapped at the same address.  
-
-It does.  qemu registers memory with vfio which remembers the va's in kernel
-metadata for the device.
-
-> I don't know whether qemu stores
-> pointers in this VMA which are absolute within the qemu address space.
-> If it's just the emulated process's address space, then everything will
-> be absolute within its own address space and everything will be opaque
-> to qemu.  If qemu is storing its own pointers in it, then it has to be
-> mapped at the same address.
-
-qemu does not do the latter but that could be a nice way for apps to use
-preserved memory.
-
->>> Here is another suggestion.
->>>
->>> Have a very simple program that does:
->>>
->>> 	for (;;) {
->>> 		handle = dlopen("/my/real/program");
->>> 		real_main = dlsym(handle, "main");
->>> 		real_main(argc, argv, envp);
->>> 		dlclose(handle);
->>> 	}
->>>
->>> With whatever obvious adjustments are needed to fit your usecase.
->>>
->>> That should give the same level of functionality, be portable to all
->>> unices, and not require you to duplicate code.  It belive it limits you
->>> to not upgrading libc, or librt but that is a comparatively small
->>> limitation.
->>>
->>>
->>> Given that in general the interesting work is done in userspace and that
->>> userspace has provided an interface for reusing that work already.
->>> I don't see the justification for adding anything to exec at this point. 
->>
->> Thanks for the suggestion.  That is clever, and would make a fun project,
->> but I would not trust it for production.  These few lines are just
->> the first of many that it would take to reset the environment to the
->> well-defined post-exec initial conditions that all executables expect,
->> and incrementally tearing down state will be prone to bugs.  Getting a
->> clean slate from a kernel exec is a much more reliable design.  The use
->> case is creating long-lived apps that never go down, and the simplest
->> implementation will have the fewest bugs and is the best.  MADV_DOEXEC is
->> simple, and does not even require a new system call, and the kernel already
->> knows how to exec without bugs.
-> 
-> It's a net increase of 200 lines of kernel code.  If 4 lines of userspace
-> code removes 200 lines of kernel code, I think I know which I prefer ...
-
-It will be *far* more than 4 lines.
-Much of the 200 lines is mostly for the elf opt in, and much of the elf code is from
-anthony reviving an earlier patch that use MAP_FIXED_NOREPLACE during segment setup.
-
-- Steve
+ #include <linux/time.h>
+-#include <asm/compat.h>
++#include <linux/compat.h>
+ 
+ /*
+  * struct stat64 is needed for compat tasks only. Its definition is different
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index 6089638c7d43f4..70381900ef9b8a 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -46,7 +46,6 @@
+ 
+ #include <asm/alternative.h>
+ #include <asm/arch_gicv3.h>
+-#include <asm/compat.h>
+ #include <asm/cpufeature.h>
+ #include <asm/cacheflush.h>
+ #include <asm/exec.h>
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index 1e02e98e68dd37..0497aaea782451 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -30,7 +30,6 @@
+ #include <linux/tracehook.h>
+ #include <linux/elf.h>
+ 
+-#include <asm/compat.h>
+ #include <asm/cpufeature.h>
+ #include <asm/debug-monitors.h>
+ #include <asm/fpsimd.h>
+-- 
+2.27.0
