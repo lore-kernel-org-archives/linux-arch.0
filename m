@@ -1,66 +1,35 @@
-From: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-Subject: Re: [PATCH v2 1/2] MIPS: Set page access bit with pgprot on
- platforms with RIXI
-Date: Sun, 26 Jul 2020 10:32:06 +0200
-Message-ID: <20200726083206.GE5032@alpha.franken.de>
-References: <1591416169-26666-1-git-send-email-maobibo@loongson.cn>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Subject: Re: [PATCH] io: Fix return type of _inb and _inl
+Date: Sun, 26 Jul 2020 12:00:37 +0300
+Message-ID: <CAHp75VciC+gqkCZ9voNKHU3hrtiOVzeWBu9_YEagpCGdTME2yg@mail.gmail.com>
+References: <20200726031154.1012044-1-shorne@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1591416169-26666-1-git-send-email-maobibo@loongson.cn>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Bibo Mao <maobibo@loongson.cn>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47986 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725794AbgGZJAy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 05:00:54 -0400
+In-Reply-To: <20200726031154.1012044-1-shorne@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Stafford Horne <shorne@gmail.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Wei Xu <xuwei5@hisilicon.com>, John Garry <john.garry@huawei.com>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Sat, Jun 06, 2020 at 12:02:48PM +0800, Bibo Mao wrote:
-> @@ -158,23 +158,23 @@ void __update_cache(unsigned long address, pte_t pte)
->  static inline void setup_protection_map(void)
->  {
->  	if (cpu_has_rixi) {
-> -		protection_map[0]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
-> -		protection_map[1]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
-> -		protection_map[2]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
-> -		protection_map[3]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
-> -		protection_map[4]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -		protection_map[5]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -		protection_map[6]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -		protection_map[7]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -
-> -		protection_map[8]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
-> -		protection_map[9]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
-> -		protection_map[10] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE | _PAGE_NO_READ);
-> -		protection_map[11] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE);
-> -		protection_map[12] = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -		protection_map[13] = __pgprot(_page_cachable_default | _PAGE_PRESENT);
-> -		protection_map[14] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_WRITE);
-> -		protection_map[15] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_WRITE);
-> +		protection_map[0]  = __pgprot(__PC | __PP | __NX | __NR);
-> +		protection_map[1]  = __pgprot(__PC | __PP | __NX | ___R);
-> +		protection_map[2]  = __pgprot(__PC | __PP | __NX | __NR);
-> +		protection_map[3]  = __pgprot(__PC | __PP | __NX | ___R);
-> +		protection_map[4]  = __pgprot(__PC | __PP | ___R);
-> +		protection_map[5]  = __pgprot(__PC | __PP | ___R);
-> +		protection_map[6]  = __pgprot(__PC | __PP | ___R);
-> +		protection_map[7]  = __pgprot(__PC | __PP | ___R);
-> +
-> +		protection_map[8]  = __pgprot(__PC | __PP | __NX | __NR);
-> +		protection_map[9]  = __pgprot(__PC | __PP | __NX | ___R);
-> +		protection_map[10] = __pgprot(__PC | __PP | __NX | ___W | __NR);
-> +		protection_map[11] = __pgprot(__PC | __PP | __NX | ___W | ___R);
-> +		protection_map[12] = __pgprot(__PC | __PP | ___R);
-> +		protection_map[13] = __pgprot(__PC | __PP | ___R);
-> +		protection_map[14] = __pgprot(__PC | __PP | ___W | ___R);
-> +		protection_map[15] = __pgprot(__PC | __PP | ___W | ___R);
+On Sun, Jul 26, 2020 at 6:14 AM Stafford Horne <shorne@gmail.com> wrote:
+>
+> The return type of functions _inb, _inw and _inl are all u16 which looks
+> wrong.  This patch makes them u8, u16 and u32 respectively.
+>
+> The original commit text for these does not indicate that these should
+> be all forced to u16.
 
-you are doing two steps in one go, so it's not obvious you are not only
-using some macros, but also changing semantics. And while there are already
-really long lines, please leave it that way and only do the access bit
-change.
+Is it in alight with all architectures? that support this interface natively?
 
-Thomas.
+(Return value is arch-dependent AFAIU, so it might actually return
+16-bit for byte read, but I agree that this is weird for 32-bit value.
+I think you have elaborate more in the commit message)
 
 -- 
-Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
-good idea.                                                [ RFC1925, 2.3 ]
+With Best Regards,
+Andy Shevchenko
