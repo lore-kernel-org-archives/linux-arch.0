@@ -1,54 +1,44 @@
-From: Stafford Horne <shorne@gmail.com>
-Subject: Re: [PATCH] io: Fix return type of _inb and _inl
-Date: Sun, 26 Jul 2020 21:53:25 +0900
-Message-ID: <20200726125325.GC80756@lianli.shorne-pla.net>
-References: <20200726031154.1012044-1-shorne@gmail.com>
- <CAHp75VciC+gqkCZ9voNKHU3hrtiOVzeWBu9_YEagpCGdTME2yg@mail.gmail.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: improve compat handling for the i386 u64 alignment quirk
+Date: Sun, 26 Jul 2020 18:03:57 +0200
+Message-ID: <20200726160401.311569-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55558 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725848AbgGZMxd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 08:53:33 -0400
-Content-Disposition: inline
-In-Reply-To: <CAHp75VciC+gqkCZ9voNKHU3hrtiOVzeWBu9_YEagpCGdTME2yg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Wei Xu <xuwei5@hisilicon.com>, John Garry <john.garry@huawei.com>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: x86@kernel.org, Jan Kara <jack@suse.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jul 26, 2020 at 12:00:37PM +0300, Andy Shevchenko wrote:
-> On Sun, Jul 26, 2020 at 6:14 AM Stafford Horne <shorne@gmail.com> wrote:
-> >
-> > The return type of functions _inb, _inw and _inl are all u16 which looks
-> > wrong.  This patch makes them u8, u16 and u32 respectively.
-> >
-> > The original commit text for these does not indicate that these should
-> > be all forced to u16.
-> 
-> Is it in alight with all architectures? that support this interface natively?
-> 
-> (Return value is arch-dependent AFAIU, so it might actually return
-> 16-bit for byte read, but I agree that this is weird for 32-bit value.
-> I think you have elaborate more in the commit message)
+Hi all,
 
-Well, this is the generic io code,  at least these api's appear to not be different
-for each architecture.  The output read by the architecture dependant code i.e.
-__raw_readb() below is getting is placed into a u8.  So I think the output of
-the function will be u8.
+the i386 ABI is a little special in that it uses less than natural
+alignment for 64-bit integer types (u64 and s64), and a significant
+amount of our compat handlers deals with just that.  Unfortunately
+there is no good way to check for this specific quirk at runtime,
+similar how in_compat_syscall() checks for a compat syscall.  This
+series adds such a check, and then uses the quota code as an example
+of how this improves the compat handling.  I have a few other places
+in mind where this will also be useful going forward.
 
-static inline u8 _inb(unsigned long addr)
-{
-	u8 val;
-
-	__io_pbr();
-	val = __raw_readb(PCI_IOBASE + addr);
-	__io_par(val);
-	return val;
-}
-
-I can expand the commit text, but I would like to get some comments from the
-original author to confirm if this is an issue.
-
--Stafford
+Diffstat:
+ b/arch/arm64/include/asm/compat.h        |    2 
+ b/arch/arm64/include/asm/stat.h          |    2 
+ b/arch/arm64/kernel/process.c            |    1 
+ b/arch/arm64/kernel/ptrace.c             |    1 
+ b/arch/mips/include/asm/compat.h         |    2 
+ b/arch/parisc/include/asm/compat.h       |    2 
+ b/arch/powerpc/include/asm/compat.h      |    2 
+ b/arch/s390/include/asm/compat.h         |    2 
+ b/arch/sparc/include/asm/compat.h        |    3 
+ b/arch/x86/entry/syscalls/syscall_32.tbl |    2 
+ b/arch/x86/include/asm/compat.h          |    3 
+ b/fs/quota/Kconfig                       |    5 -
+ b/fs/quota/Makefile                      |    1 
+ b/fs/quota/compat.h                      |   34 ++++++++
+ b/fs/quota/quota.c                       |   73 +++++++++++++++---
+ b/include/linux/compat.h                 |   17 ++++
+ b/include/linux/quotaops.h               |    3 
+ b/kernel/sys_ni.c                        |    1 
+ fs/quota/compat.c                        |  120 -------------------------------
+ 19 files changed, 114 insertions(+), 162 deletions(-)
