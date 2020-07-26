@@ -1,107 +1,66 @@
-From: Alexey Kardashevskiy <aik@ozlabs.ru>
-Subject: Re: [PATCH 1/2] lockdep: improve current->(hard|soft)irqs_enabled
- synchronisation with actual irq state
-Date: Sun, 26 Jul 2020 17:40:10 +1000
-Message-ID: <600a08a0-4b33-03a5-4749-bda8fa1e572d@ozlabs.ru>
-References: <20200723105615.1268126-1-npiggin@gmail.com>
- <20200723114010.GO5523@worktop.programming.kicks-ass.net>
- <1595506730.3mvrxktem5.astroid@bobo.none>
- <1884dcea-9ecd-a1f3-21bb-213c655e2480@ozlabs.ru>
- <1595568105.4eodjnxzwp.astroid@bobo.none>
+From: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+Subject: Re: [PATCH v2 1/2] MIPS: Set page access bit with pgprot on
+ platforms with RIXI
+Date: Sun, 26 Jul 2020 10:32:06 +0200
+Message-ID: <20200726083206.GE5032@alpha.franken.de>
+References: <1591416169-26666-1-git-send-email-maobibo@loongson.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35622 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725848AbgGZHkS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 03:40:18 -0400
-Received: from mail-pg1-x541.google.com (mail-pg1-x541.google.com [IPv6:2607:f8b0:4864:20::541])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1D4F7C0619D4
-        for <linux-arch@vger.kernel.org>; Sun, 26 Jul 2020 00:40:18 -0700 (PDT)
-Received: by mail-pg1-x541.google.com with SMTP id t6so7689265pgq.1
-        for <linux-arch@vger.kernel.org>; Sun, 26 Jul 2020 00:40:18 -0700 (PDT)
-In-Reply-To: <1595568105.4eodjnxzwp.astroid@bobo.none>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1591416169-26666-1-git-send-email-maobibo@loongson.cn>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Bibo Mao <maobibo@loongson.cn>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
+On Sat, Jun 06, 2020 at 12:02:48PM +0800, Bibo Mao wrote:
+> @@ -158,23 +158,23 @@ void __update_cache(unsigned long address, pte_t pte)
+>  static inline void setup_protection_map(void)
+>  {
+>  	if (cpu_has_rixi) {
+> -		protection_map[0]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
+> -		protection_map[1]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
+> -		protection_map[2]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
+> -		protection_map[3]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
+> -		protection_map[4]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+> -		protection_map[5]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+> -		protection_map[6]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+> -		protection_map[7]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+> -
+> -		protection_map[8]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
+> -		protection_map[9]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
+> -		protection_map[10] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE | _PAGE_NO_READ);
+> -		protection_map[11] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE);
+> -		protection_map[12] = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+> -		protection_map[13] = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+> -		protection_map[14] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_WRITE);
+> -		protection_map[15] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_WRITE);
+> +		protection_map[0]  = __pgprot(__PC | __PP | __NX | __NR);
+> +		protection_map[1]  = __pgprot(__PC | __PP | __NX | ___R);
+> +		protection_map[2]  = __pgprot(__PC | __PP | __NX | __NR);
+> +		protection_map[3]  = __pgprot(__PC | __PP | __NX | ___R);
+> +		protection_map[4]  = __pgprot(__PC | __PP | ___R);
+> +		protection_map[5]  = __pgprot(__PC | __PP | ___R);
+> +		protection_map[6]  = __pgprot(__PC | __PP | ___R);
+> +		protection_map[7]  = __pgprot(__PC | __PP | ___R);
+> +
+> +		protection_map[8]  = __pgprot(__PC | __PP | __NX | __NR);
+> +		protection_map[9]  = __pgprot(__PC | __PP | __NX | ___R);
+> +		protection_map[10] = __pgprot(__PC | __PP | __NX | ___W | __NR);
+> +		protection_map[11] = __pgprot(__PC | __PP | __NX | ___W | ___R);
+> +		protection_map[12] = __pgprot(__PC | __PP | ___R);
+> +		protection_map[13] = __pgprot(__PC | __PP | ___R);
+> +		protection_map[14] = __pgprot(__PC | __PP | ___W | ___R);
+> +		protection_map[15] = __pgprot(__PC | __PP | ___W | ___R);
 
+you are doing two steps in one go, so it's not obvious you are not only
+using some macros, but also changing semantics. And while there are already
+really long lines, please leave it that way and only do the access bit
+change.
 
-On 24/07/2020 15:59, Nicholas Piggin wrote:
-> Excerpts from Alexey Kardashevskiy's message of July 24, 2020 2:16 pm:
->>
->>
->> On 23/07/2020 23:11, Nicholas Piggin wrote:
->>> Excerpts from Peter Zijlstra's message of July 23, 2020 9:40 pm:
->>>> On Thu, Jul 23, 2020 at 08:56:14PM +1000, Nicholas Piggin wrote:
->>>>
->>>>> diff --git a/arch/powerpc/include/asm/hw_irq.h b/arch/powerpc/include/asm/hw_irq.h
->>>>> index 3a0db7b0b46e..35060be09073 100644
->>>>> --- a/arch/powerpc/include/asm/hw_irq.h
->>>>> +++ b/arch/powerpc/include/asm/hw_irq.h
->>>>> @@ -200,17 +200,14 @@ static inline bool arch_irqs_disabled(void)
->>>>>  #define powerpc_local_irq_pmu_save(flags)			\
->>>>>  	 do {							\
->>>>>  		raw_local_irq_pmu_save(flags);			\
->>>>> -		trace_hardirqs_off();				\
->>>>> +		if (!raw_irqs_disabled_flags(flags))		\
->>>>> +			trace_hardirqs_off();			\
->>>>>  	} while(0)
->>>>>  #define powerpc_local_irq_pmu_restore(flags)			\
->>>>>  	do {							\
->>>>> -		if (raw_irqs_disabled_flags(flags)) {		\
->>>>> -			raw_local_irq_pmu_restore(flags);	\
->>>>> -			trace_hardirqs_off();			\
->>>>> -		} else {					\
->>>>> +		if (!raw_irqs_disabled_flags(flags))		\
->>>>>  			trace_hardirqs_on();			\
->>>>> -			raw_local_irq_pmu_restore(flags);	\
->>>>> -		}						\
->>>>> +		raw_local_irq_pmu_restore(flags);		\
->>>>>  	} while(0)
->>>>
->>>> You shouldn't be calling lockdep from NMI context!
->>>
->>> After this patch it doesn't.
->>>
->>> trace_hardirqs_on/off implementation appears to expect to be called in NMI 
->>> context though, for some reason.
->>>
->>>> That is, I recently
->>>> added suport for that on x86:
->>>>
->>>>   https://lkml.kernel.org/r/20200623083721.155449112@infradead.org
->>>>   https://lkml.kernel.org/r/20200623083721.216740948@infradead.org
->>>>
->>>> But you need to be very careful on how you order things, as you can see
->>>> the above relies on preempt_count() already having been incremented with
->>>> NMI_MASK.
->>>
->>> Hmm. My patch seems simpler.
->>
->> And your patches fix my error while Peter's do not:
->>
->>
->> IRQs not enabled as expected
->> WARNING: CPU: 0 PID: 1377 at /home/aik/p/kernel/kernel/softirq.c:169
->> __local_bh_enable_ip+0x118/0x190
-> 
-> I think they would have needed some powerpc bits as well. 
-
-True, there is quite a lot to repeat of what x86 does, I was in a hurry
-and did not think it through :)
-
-> But I don't
-> see a reason we can't merge my patches, at least they fix this case and
-> don't seem to make things worse in any way.
-
-True. Or we could keep these lockdep_stats::redundant_softirqs_on/etc
-and make powerpc_local_irq_pmu_restore()/local_irq_restore() call
-trace_hardirqs_on() always and let lockdep do reference counting, may be?
-
+Thomas.
 
 -- 
-Alexey
+Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
+good idea.                                                [ RFC1925, 2.3 ]
