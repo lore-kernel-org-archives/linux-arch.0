@@ -1,79 +1,62 @@
-From: Alan Stern <stern@rowland.harvard.edu>
+From: Matthew Wilcox <willy@infradead.org>
 Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Date: Mon, 27 Jul 2020 11:17:46 -0400
-Message-ID: <20200727151746.GC1468275@rowland.harvard.edu>
+Date: Mon, 27 Jul 2020 16:28:27 +0100
+Message-ID: <20200727152827.GM23808@casper.infradead.org>
 References: <20200717044427.68747-1-ebiggers@kernel.org>
  <20200717174750.GQ12769@casper.infradead.org>
  <20200718013839.GD2183@sol.localdomain>
  <20200718021304.GS12769@casper.infradead.org>
  <20200718052818.GF2183@sol.localdomain>
+ <20200727151746.GC1468275@rowland.harvard.edu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200718052818.GF2183@sol.localdomain>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: Eric Biggers <ebiggers@kernel.org>
-Cc: Matthew Wilcox <willy@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+In-Reply-To: <20200727151746.GC1468275@rowland.harvard.edu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 17, 2020 at 10:28:18PM -0700, Eric Biggers wrote:
-> I'm still not sure this is the best API.
+On Mon, Jul 27, 2020 at 11:17:46AM -0400, Alan Stern wrote:
+> Given a type "T", an object x of type pointer-to-T, and a function
+> "func" that takes various arguments and returns a pointer-to-T, the
+> accepted API for calling func once would be to create once_func() as
+> follows:
+> 
+> T *once_func(T **ppt, args...)
+> {
+> 	static DEFINE_MUTEX(mut);
+> 	T *p;
+> 
+> 	p = smp_load_acquire(ppt);	/* Mild optimization */
+> 	if (p)
+> 		return p;
+> 
+> 	mutex_lock(mut);
+> 	p = smp_load_acquire(ppt);
+> 	if (!p) {
+> 		p = func(args...);
+> 		if (!IS_ERR_OR_NULL(p))
+> 			smp_store_release(ppt, p);
+> 	}
+> 	mutex_unlock(mut);
+> 	return p;
+> }
+> 
+> Users then would have to call once_func(&x, args...) and check the
+> result.  Different x objects would constitute different "once"
+> domains.
+[...]
+> In fact, the only drawback I can think of is that because this relies
+> on a single mutex for all the different possible x's, it might lead to
+> locking conflicts (if func had to call once_func() recursively, for
+> example).  In most reasonable situations such conflicts would not
+> arise.
 
-I cast my vote for something along the following lines.  It's simple,
-easily understood and easily used.  The approach has two variants: One
-that returns an integer and one that returns a pointer.  I'll use the
-pointer variant to illustrate.
-
-Given a type "T", an object x of type pointer-to-T, and a function
-"func" that takes various arguments and returns a pointer-to-T, the
-accepted API for calling func once would be to create once_func() as
-follows:
-
-T *once_func(T **ppt, args...)
-{
-	static DEFINE_MUTEX(mut);
-	T *p;
-
-	p = smp_load_acquire(ppt);	/* Mild optimization */
-	if (p)
-		return p;
-
-	mutex_lock(mut);
-	p = smp_load_acquire(ppt);
-	if (!p) {
-		p = func(args...);
-		if (!IS_ERR_OR_NULL(p))
-			smp_store_release(ppt, p);
-	}
-	mutex_unlock(mut);
-	return p;
-}
-
-Users then would have to call once_func(&x, args...) and check the
-result.  Different x objects would constitute different "once"
-domains.
-
-(In the integer variant, x, p and the return type of func are all int,
-and ppt is an int *.  Everything else is the same.  This variant would
-be used in cases where you're not allocating anything, you're doing
-some other sort of initialization only once.)
-
-While this would be a perfectly good recipe in itself, the whole thing
-can be made much simpler for users by creating a MAKE_ONCE_FUNC macro
-which would generate once_func given the type T, the name "func", and
-the args.  The result is type-safe.
-
-IMO the fact that once_func() is not inline is an advantage, not a
-drawback.  Yes, it doesn't actually do any allocation or anything like
-that -- the idea is that once_func's purpose is merely to ensure that
-func is successfully called only once.  Any memory allocation or other
-stuff of that sort should be handled by func.
-
-In fact, the only drawback I can think of is that because this relies
-on a single mutex for all the different possible x's, it might lead to
-locking conflicts (if func had to call once_func() recursively, for
-example).  In most reasonable situations such conflicts would not
-arise.
-
-Alan Stern
+Another drawback for this approach relative to my get_foo() approach
+upthread is that, because we don't have compiler support, there's no
+enforcement that accesses to 'x' go through once_func().  My approach
+wraps accesses in a deliberately-opaque struct so you have to write
+some really ugly code to get at the raw value, and it's just easier to
+call get_foo().
