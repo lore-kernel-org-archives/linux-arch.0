@@ -1,97 +1,93 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.efficios.com ([167.114.26.124]:53232 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726687AbgGUNMA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 09:12:00 -0400
-Date: Tue, 21 Jul 2020 09:11:58 -0400 (EDT)
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Message-ID: <470490605.22057.1595337118562.JavaMail.zimbra@efficios.com>
-In-Reply-To: <1595324577.x3bf55tpgu.astroid@bobo.none>
-References: <1594868476.6k5kvx8684.astroid@bobo.none> <1594892300.mxnq3b9a77.astroid@bobo.none> <20200716110038.GA119549@hirez.programming.kicks-ass.net> <1594906688.ikv6r4gznx.astroid@bobo.none> <1314561373.18530.1594993363050.JavaMail.zimbra@efficios.com> <1595213677.kxru89dqy2.astroid@bobo.none> <2055788870.20749.1595263590675.JavaMail.zimbra@efficios.com> <1595324577.x3bf55tpgu.astroid@bobo.none>
-Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
- membarrier_mm_sync_core_before_usermode
+Return-Path: <SRS0=5OOM=BG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:46178 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728045AbgG0RMh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Jul 2020 13:12:37 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 8bit
+Date: Mon, 27 Jul 2020 18:12:34 +0100
+From: Marc Zyngier <maz@kernel.org>
+Subject: Re: [RESEND RFC PATCH v1] arm64: kvm: flush tlbs by range in
+ unmap_stage2_range function
+In-Reply-To: <f74277fd-5af2-c46f-169f-c15a321165cd@huawei.com>
+References: <20200724134315.805-1-yezhenyu2@huawei.com>
+ <5d54c860b3b4e7a98e4d53397e6424ae@kernel.org>
+ <f74277fd-5af2-c46f-169f-c15a321165cd@huawei.com>
+Message-ID: <fb4756b58892fbc2022cf1f5b9320c27@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, Jens Axboe <axboe@kernel.dk>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, x86 <x86@kernel.org>
-Message-ID: <20200721131158.nvW--CRQRGk7txtFjMRMJjQ0S4GOORbliBGcUKpAFYQ@z>
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: james.morse@arm.com, julien.thierry.kdev@gmail.com, suzuki.poulose@arm.com, catalin.marinas@arm.com, will@kernel.org, steven.price@arm.com, mark.rutland@arm.com, ascull@google.com, kvm@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com
+Message-ID: <20200727171234.AIwJCxjIAN7XnIezLtvk-Ek7IBI_Xo2mDgutcEuqNls@z>
 
------ On Jul 21, 2020, at 6:04 AM, Nicholas Piggin npiggin@gmail.com wrote:
+Zhenyu,
 
-> Excerpts from Mathieu Desnoyers's message of July 21, 2020 2:46 am:
-[...]
+On 2020-07-27 15:51, Zhenyu Ye wrote:
+> Hi Marc,
 > 
-> Yeah you're probably right in this case I think. Quite likely most kernel
-> tasks that asynchronously write to user memory would at least have some
-> kind of producer-consumer barriers.
-> 
-> But is that restriction of all async modifications documented and enforced
-> anywhere?
-> 
->>> How about other memory accesses via kthread_use_mm? Presumably there is
->>> still ordering requirement there for membarrier,
+> On 2020/7/26 1:40, Marc Zyngier wrote:
+>> On 2020-07-24 14:43, Zhenyu Ye wrote:
+>>> Now in unmap_stage2_range(), we flush tlbs one by one just after the
+>>> corresponding pages cleared.  However, this may cause some 
+>>> performance
+>>> problems when the unmap range is very large (such as when the vm
+>>> migration rollback, this may cause vm downtime too loog).
 >> 
->> Please provide an example case with memory accesses via kthread_use_mm where
->> ordering matters to support your concern.
+>> You keep resending this patch, but you don't give any numbers
+>> that would back your assertion.
 > 
-> I think the concern Andy raised with io_uring was less a specific
-> problem he saw and more a general concern that we have these memory
-> accesses which are not synchronized with membarrier.
+> I have tested the downtime of vm migration rollback on arm64, and found
+> the downtime could even take up to 7s.  Then I traced the cost of
+> unmap_stage2_range() and found it could take a maximum of 1.2s.  The
+> vm configuration is as follows (with high memory pressure, the dirty
+> rate is about 500MB/s):
 > 
->>> so I really think
->>> it's a fragile interface with no real way for the user to know how
->>> kernel threads may use its mm for any particular reason, so membarrier
->>> should synchronize all possible kernel users as well.
+>   <memory unit='GiB'>192</memory>
+>   <vcpu placement='static'>48</vcpu>
+>   <memoryBacking>
+>     <hugepages>
+>       <page size='1' unit='GiB' nodeset='0'/>
+>     </hugepages>
+>   </memoryBacking>
+
+This means nothing to me, I'm afraid.
+
+> 
+> After this patch applied, the cost of unmap_stage2_range() can reduce 
+> to
+> 16ms, and VM downtime can be less than 1s.
+> 
+> The following figure shows a clear comparison:
+> 
+> 	      |	vm downtime  |	cost of unmap_stage2_range()
+> --------------+--------------+----------------------------------
+> before change |		7s   |		1200 ms
+> after  change |		1s   |		  16 ms
+> --------------+--------------+----------------------------------
+
+I don't see how you turn a 1.184s reduction into a 6s gain.
+Surely there is more to it than what you posted.
+
+>>> +
+>>> +    if ((end - start) >= 512 << (PAGE_SHIFT - 12)) {
+>>> +        __tlbi(vmalls12e1is);
 >> 
->> I strongly doubt so, but perhaps something should be clarified in the
->> documentation
->> if you have that feeling.
+>> And what is this magic value based on? You don't even mention in the
+>> commit log that you are taking this shortcut.
+>> 
 > 
-> I'd rather go the other way and say if you have reasoning or numbers for
-> why PF_KTHREAD is an important optimisation above rq->curr == rq->idle
-> then we could think about keeping this subtlety with appropriate
-> documentation added, otherwise we can just kill it and remove all doubt.
 > 
-> That being said, the x86 sync core gap that I imagined could be fixed
-> by changing to rq->curr == rq->idle test does not actually exist because
-> the global membarrier does not have a sync core option. So fixing the
-> exit_lazy_tlb points that this series does *should* fix that. So
-> PF_KTHREAD may be less problematic than I thought from implementation
-> point of view, only semantics.
+> If the page num is bigger than 512, flush all tlbs of this vm to avoid
+> soft lock-ups on large TLB flushing ranges.  Just like what the
+> flush_tlb_range() does.
 
-Today, the membarrier global expedited command explicitly skips kernel threads,
-but it happens that membarrier private expedited considers those with the
-same mm as target for the IPI.
-
-So we already implement a semantic which differs between private and global
-expedited membarriers. This can be explained in part by the fact that
-kthread_use_mm was introduced after 4.16, where the most recent membarrier
-commands where introduced. It seems that the effect on membarrier was not
-considered when kthread_use_mm was introduced.
-
-Looking at membarrier(2) documentation, it states that IPIs are only sent to
-threads belonging to the same process as the calling thread. If my understanding
-of the notion of process is correct, this should rule out sending the IPI to
-kernel threads, given they are not "part" of the same process, only borrowing
-the mm. But I agree that the distinction is moot, and should be clarified.
-
-Without a clear use-case to justify adding a constraint on membarrier, I am
-tempted to simply clarify documentation of current membarrier commands,
-stating clearly that they are not guaranteed to affect kernel threads. Then,
-if we have a compelling use-case to implement a different behavior which covers
-kthreads, this could be added consistently across membarrier commands with a
-flag (or by adding new commands).
-
-Does this approach make sense ?
+I'm not sure this is applicable here, and it doesn't mean
+this is as good on other systems.
 
 Thanks,
 
-Mathieu
-
+         M.
 -- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+Jazz is not dead. It just smells funny...
