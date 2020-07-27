@@ -1,87 +1,96 @@
-Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33512 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726987AbgGXHAi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 03:00:38 -0400
-Received: from mail-wr1-x44a.google.com (mail-wr1-x44a.google.com [IPv6:2a00:1450:4864:20::44a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 44B0DC0619E7
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:38 -0700 (PDT)
-Received: by mail-wr1-x44a.google.com with SMTP id t3so845346wrr.5
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:38 -0700 (PDT)
-Date: Fri, 24 Jul 2020 09:00:06 +0200
-In-Reply-To: <20200724070008.1389205-1-elver@google.com>
-Message-ID: <20200724070008.1389205-7-elver@google.com>
-Mime-Version: 1.0
-References: <20200724070008.1389205-1-elver@google.com>
-Subject: [PATCH v2 6/8] instrumented.h: Introduce read-write instrumentation hooks
-From: Marco Elver <elver@google.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=5OOM=BG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from userp2130.oracle.com ([156.151.31.86]:59392 "EHLO
+        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729403AbgG0RH7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2020 13:07:59 -0400
+From: Anthony Yznaga <anthony.yznaga@oracle.com>
+Subject: [RFC PATCH 5/5] mm: introduce MADV_DOEXEC
+Date: Mon, 27 Jul 2020 10:11:27 -0700
+Message-ID: <1595869887-23307-6-git-send-email-anthony.yznaga@oracle.com>
+In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com, paulmck@kernel.org
-Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200724070006.USUYyIlAyIMG9vzVXGr1gwbeZrmImp1seadrmWoo_N8@z>
+To: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
+Message-ID: <20200727171127.qhaNevvihR6HGk1WpCBzoDa84ebGd1zG4c-_oMDUN8E@z>
 
-Introduce read-write instrumentation hooks, to more precisely denote an
-operation's behaviour.
+madvise MADV_DOEXEC preserves a memory range across exec.  Initially
+only supported for non-executable, non-stack, anonymous memory.
+MADV_DONTEXEC reverts the effect of a previous MADV_DOXEXEC call and
+undoes the preservation of the range.  After a successful exec call,
+the behavior of all ranges reverts to MADV_DONTEXEC.
 
-KCSAN is able to distinguish compound instrumentation, and with the new
-instrumentation we then benefit from improved reporting. More
-importantly, read-write compound operations should not implicitly be
-treated as atomic, if they aren't actually atomic.
-
-Signed-off-by: Marco Elver <elver@google.com>
+Signed-off-by: Steve Sistare <steven.sistare@oracle.com>
+Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
 ---
- include/linux/instrumented.h | 30 ++++++++++++++++++++++++++++++
- 1 file changed, 30 insertions(+)
+ include/uapi/asm-generic/mman-common.h |  3 +++
+ mm/madvise.c                           | 25 +++++++++++++++++++++++++
+ 2 files changed, 28 insertions(+)
 
-diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
-index 43e6ea591975..42faebbaa202 100644
---- a/include/linux/instrumented.h
-+++ b/include/linux/instrumented.h
-@@ -42,6 +42,21 @@ static __always_inline void instrument_write(const volatile void *v, size_t size
- 	kcsan_check_write(v, size);
- }
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index f94f65d429be..7c5f616b28f7 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -72,6 +72,9 @@
+ #define MADV_COLD	20		/* deactivate these pages */
+ #define MADV_PAGEOUT	21		/* reclaim these pages */
  
-+/**
-+ * instrument_read_write - instrument regular read-write access
-+ *
-+ * Instrument a regular write access. The instrumentation should be inserted
-+ * before the actual write happens.
-+ *
-+ * @ptr address of access
-+ * @size size of access
-+ */
-+static __always_inline void instrument_read_write(const volatile void *v, size_t size)
-+{
-+	kasan_check_write(v, size);
-+	kcsan_check_read_write(v, size);
-+}
++#define MADV_DOEXEC	22		/* do inherit across exec */
++#define MADV_DONTEXEC	23		/* don't inherit across exec */
 +
- /**
-  * instrument_atomic_read - instrument atomic read access
-  *
-@@ -72,6 +87,21 @@ static __always_inline void instrument_atomic_write(const volatile void *v, size
- 	kcsan_check_atomic_write(v, size);
- }
+ /* compatibility flags */
+ #define MAP_FILE	0
  
-+/**
-+ * instrument_atomic_read_write - instrument atomic read-write access
-+ *
-+ * Instrument an atomic read-write access. The instrumentation should be
-+ * inserted before the actual write happens.
-+ *
-+ * @ptr address of access
-+ * @size size of access
-+ */
-+static __always_inline void instrument_atomic_read_write(const volatile void *v, size_t size)
-+{
-+	kasan_check_write(v, size);
-+	kcsan_check_atomic_read_write(v, size);
-+}
-+
- /**
-  * instrument_copy_to_user - instrument reads of copy_to_user
+diff --git a/mm/madvise.c b/mm/madvise.c
+index dd1d43cf026d..b447fa748649 100644
+--- a/mm/madvise.c
++++ b/mm/madvise.c
+@@ -103,6 +103,26 @@ static long madvise_behavior(struct vm_area_struct *vma,
+ 	case MADV_KEEPONFORK:
+ 		new_flags &= ~VM_WIPEONFORK;
+ 		break;
++	case MADV_DOEXEC:
++		/*
++		 * MADV_DOEXEC is only supported on private, non-executable,
++		 * non-stack anonymous memory and if the VM_EXEC_KEEP flag
++		 * is available.
++		 */
++		if (!VM_EXEC_KEEP || vma->vm_file || vma->vm_flags & (VM_EXEC|VM_SHARED|VM_STACK)) {
++			error = -EINVAL;
++			goto out;
++		}
++		new_flags |= (new_flags & ~VM_MAYEXEC) | VM_EXEC_KEEP;
++		break;
++	case MADV_DONTEXEC:
++		if (!VM_EXEC_KEEP) {
++			error = -EINVAL;
++			goto out;
++		}
++		if (new_flags & VM_EXEC_KEEP)
++			new_flags |= (new_flags & ~VM_EXEC_KEEP) | VM_MAYEXEC;
++		break;
+ 	case MADV_DONTDUMP:
+ 		new_flags |= VM_DONTDUMP;
+ 		break;
+@@ -983,6 +1003,8 @@ static int madvise_inject_error(int behavior,
+ 	case MADV_SOFT_OFFLINE:
+ 	case MADV_HWPOISON:
+ #endif
++	case MADV_DOEXEC:
++	case MADV_DONTEXEC:
+ 		return true;
+ 
+ 	default:
+@@ -1037,6 +1059,9 @@ static int madvise_inject_error(int behavior,
+  *  MADV_DONTDUMP - the application wants to prevent pages in the given range
+  *		from being included in its core dump.
+  *  MADV_DODUMP - cancel MADV_DONTDUMP: no longer exclude from core dump.
++ *  MADV_DOEXEC - On exec, preserve and duplicate this area in the new process
++ *		  if the new process allows it.
++ *  MADV_DONTEXEC - Undo the effect of MADV_DOEXEC.
   *
+  * return values:
+  *  zero    - success
 -- 
-2.28.0.rc0.142.g3c755180ce-goog
+1.8.3.1
