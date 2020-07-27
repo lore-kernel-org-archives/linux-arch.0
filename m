@@ -1,196 +1,125 @@
-From: Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: [PATCH v2 5/7] mm: secretmem: use PMD-size pages to amortize direct map fragmentation
-Date: Mon, 27 Jul 2020 19:29:33 +0300
-Message-ID: <20200727162935.31714-6-rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 6/7] mm: secretmem: add ability to reserve memory at boot
+Date: Mon, 27 Jul 2020 19:29:34 +0300
+Message-ID: <20200727162935.31714-7-rppt@kernel.org>
 References: <20200727162935.31714-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200727162935.31714-1-rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Christopher Lameter <cl-vYTEC60ixJUAvxtiuMwx3w@public.gmane.org>, Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Elena Reshetova <elena.reshetova-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Idan Yaniv <idan.yaniv-qyM6JfAXOaQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, James Bottomley <jejb-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, "Kirill A. Shutemov" <kirill-oKw7cIdHH8eLwutG50LtGA@public.gmane.org>, Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:59508 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1732177AbgG0Qaj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Jul 2020 12:30:39 -0400
+In-Reply-To: <20200727162935.31714-1-rppt@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Christopher Lameter <cl@linux.com>, Dan Williams <dan.j.williams@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Elena Reshetova <elena.reshetova@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>, Ingo Molnar <mingo@redhat.com>, James Bottomley <jejb@linux.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Mike Rapoport <rppt@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Palmer Dabbelt <palmer@dabbelt.com>
 
-From: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-Removing a PAGE_SIZE page from the direct map every time such page is
-allocated for a secret memory mapping will cause severe fragmentation of
-the direct map. This fragmentation can be reduced by using PMD-size pages
-as a pool for small pages for secret memory mappings.
+Taking pages out from the direct map and bringing them back may create
+undesired fragmentation and usage of the smaller pages in the direct
+mapping of the physical memory.
 
-Add a gen_pool per secretmem inode and lazily populate this pool with
-PMD-size pages.
+This can be avoided if a significantly large area of the physical memory
+would be reserved for secretmem purposes at boot time.
 
-Signed-off-by: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
+Add ability to reserve physical memory for secretmem at boot time using
+"secretmem" kernel parameter and then use that reserved memory as a global
+pool for secret memory needs.
+
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- mm/secretmem.c | 107 ++++++++++++++++++++++++++++++++++++++++---------
- 1 file changed, 88 insertions(+), 19 deletions(-)
+ mm/secretmem.c | 134 ++++++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 126 insertions(+), 8 deletions(-)
 
 diff --git a/mm/secretmem.c b/mm/secretmem.c
-index 9d29f3e1c49d..da609701e10e 100644
+index da609701e10e..35616e3982a4 100644
 --- a/mm/secretmem.c
 +++ b/mm/secretmem.c
-@@ -6,6 +6,7 @@
- #include <linux/bitops.h>
- #include <linux/printk.h>
+@@ -8,6 +8,7 @@
  #include <linux/pagemap.h>
-+#include <linux/genalloc.h>
+ #include <linux/genalloc.h>
  #include <linux/syscalls.h>
++#include <linux/memblock.h>
  #include <linux/pseudo_fs.h>
  #include <linux/set_memory.h>
-@@ -25,24 +26,66 @@
- #define SECRETMEM_FLAGS_MASK	SECRETMEM_MODE_MASK
- 
- struct secretmem_ctx {
-+	struct gen_pool *pool;
+ #include <linux/sched/signal.h>
+@@ -30,6 +31,39 @@ struct secretmem_ctx {
  	unsigned int mode;
  };
  
--static struct page *secretmem_alloc_page(gfp_t gfp)
-+static int secretmem_pool_increase(struct secretmem_ctx *ctx, gfp_t gfp)
- {
--	/*
--	 * FIXME: use a cache of large pages to reduce the direct map
--	 * fragmentation
--	 */
--	return alloc_page(gfp);
-+	unsigned long nr_pages = (1 << PMD_PAGE_ORDER);
-+	struct gen_pool *pool = ctx->pool;
-+	unsigned long addr;
-+	struct page *page;
-+	int err;
++struct secretmem_pool {
++	struct gen_pool *pool;
++	unsigned long reserved_size;
++	void *reserved;
++};
 +
-+	page = alloc_pages(gfp, PMD_PAGE_ORDER);
-+	if (!page)
-+		return -ENOMEM;
++static struct secretmem_pool secretmem_pool;
 +
-+	addr = (unsigned long)page_address(page);
-+	split_page(page, PMD_PAGE_ORDER);
-+
-+	err = gen_pool_add(pool, addr, PMD_SIZE, NUMA_NO_NODE);
-+	if (err) {
-+		__free_pages(page, PMD_PAGE_ORDER);
-+		return err;
-+	}
-+
-+	__kernel_map_pages(page, nr_pages, 0);
-+
-+	return 0;
-+}
-+
-+static struct page *secretmem_alloc_page(struct secretmem_ctx *ctx,
-+					 gfp_t gfp)
++static struct page *secretmem_alloc_huge_page(gfp_t gfp)
 +{
-+	struct gen_pool *pool = ctx->pool;
-+	unsigned long addr;
-+	struct page *page;
-+	int err;
++	struct gen_pool *pool = secretmem_pool.pool;
++	unsigned long addr = 0;
++	struct page *page = NULL;
 +
-+	if (gen_pool_avail(pool) < PAGE_SIZE) {
-+		err = secretmem_pool_increase(ctx, gfp);
-+		if (err)
++	if (pool) {
++		if (gen_pool_avail(pool) < PMD_SIZE)
 +			return NULL;
++
++		addr = gen_pool_alloc(pool, PMD_SIZE);
++		if (!addr)
++			return NULL;
++
++		page = virt_to_page(addr);
++	} else {
++		page = alloc_pages(gfp, PMD_PAGE_ORDER);
++
++		if (page)
++			split_page(page, PMD_PAGE_ORDER);
 +	}
-+
-+	addr = gen_pool_alloc(pool, PAGE_SIZE);
-+	if (!addr)
-+		return NULL;
-+
-+	page = virt_to_page(addr);
-+	get_page(page);
 +
 +	return page;
- }
- 
- static vm_fault_t secretmem_fault(struct vm_fault *vmf)
++}
++
+ static int secretmem_pool_increase(struct secretmem_ctx *ctx, gfp_t gfp)
  {
-+	struct secretmem_ctx *ctx = vmf->vma->vm_file->private_data;
- 	struct address_space *mapping = vmf->vma->vm_file->f_mapping;
- 	struct inode *inode = file_inode(vmf->vma->vm_file);
- 	pgoff_t offset = vmf->pgoff;
--	unsigned long addr;
+ 	unsigned long nr_pages = (1 << PMD_PAGE_ORDER);
+@@ -38,12 +72,11 @@ static int secretmem_pool_increase(struct secretmem_ctx *ctx, gfp_t gfp)
  	struct page *page;
- 	int ret = 0;
+ 	int err;
  
-@@ -51,7 +94,7 @@ static vm_fault_t secretmem_fault(struct vm_fault *vmf)
+-	page = alloc_pages(gfp, PMD_PAGE_ORDER);
++	page = secretmem_alloc_huge_page(gfp);
+ 	if (!page)
+ 		return -ENOMEM;
  
- 	page = find_get_entry(mapping, offset);
- 	if (!page) {
--		page = secretmem_alloc_page(vmf->gfp_mask);
-+		page = secretmem_alloc_page(ctx, vmf->gfp_mask);
- 		if (!page)
- 			return vmf_error(-ENOMEM);
+ 	addr = (unsigned long)page_address(page);
+-	split_page(page, PMD_PAGE_ORDER);
  
-@@ -59,14 +102,8 @@ static vm_fault_t secretmem_fault(struct vm_fault *vmf)
- 		if (unlikely(ret))
- 			goto err_put_page;
- 
--		ret = set_direct_map_invalid_noflush(page);
--		if (ret)
--			goto err_del_page_cache;
--
--		addr = (unsigned long)page_address(page);
--		flush_tlb_kernel_range(addr, addr + PAGE_SIZE);
--
- 		__SetPageUptodate(page);
-+		set_page_private(page, (unsigned long)ctx);
- 
- 		ret = VM_FAULT_LOCKED;
- 	}
-@@ -74,8 +111,6 @@ static vm_fault_t secretmem_fault(struct vm_fault *vmf)
- 	vmf->page = page;
- 	return ret;
- 
--err_del_page_cache:
--	delete_from_page_cache(page);
- err_put_page:
- 	put_page(page);
- 	return vmf_error(ret);
-@@ -134,7 +169,11 @@ static int secretmem_migratepage(struct address_space *mapping,
- 
- static void secretmem_freepage(struct page *page)
- {
--	set_direct_map_default_noflush(page);
-+	unsigned long addr = (unsigned long)page_address(page);
-+	struct secretmem_ctx *ctx = (struct secretmem_ctx *)page_private(page);
-+	struct gen_pool *pool = ctx->pool;
-+
-+	gen_pool_free(pool, addr, PAGE_SIZE);
+ 	err = gen_pool_add(pool, addr, PMD_SIZE, NUMA_NO_NODE);
+ 	if (err) {
+@@ -269,11 +302,13 @@ SYSCALL_DEFINE1(memfd_secret, unsigned long, flags)
+ 	return err;
  }
  
- static const struct address_space_operations secretmem_aops = {
-@@ -159,13 +198,18 @@ static struct file *secretmem_file_create(unsigned long flags)
- 	if (!ctx)
- 		goto err_free_inode;
- 
-+	ctx->pool = gen_pool_create(PAGE_SHIFT, NUMA_NO_NODE);
-+	if (!ctx->pool)
-+		goto err_free_ctx;
+-static void secretmem_cleanup_chunk(struct gen_pool *pool,
+-				    struct gen_pool_chunk *chunk, void *data)
++static void secretmem_recycle_range(unsigned long start, unsigned long end)
++{
++	gen_pool_free(secretmem_pool.pool, start, PMD_SIZE);
++}
 +
- 	file = alloc_file_pseudo(inode, secretmem_mnt, "secretmem",
- 				 O_RDWR, &secretmem_fops);
- 	if (IS_ERR(file))
--		goto err_free_ctx;
-+		goto err_free_pool;
++static void secretmem_release_range(unsigned long start, unsigned long end)
+ {
+-	unsigned long start = chunk->start_addr;
+-	unsigned long end = chunk->end_addr;
+ 	unsigned long nr_pages, addr;
  
- 	mapping_set_unevictable(inode->i_mapping);
- 
-+	inode->i_private = ctx;
- 	inode->i_mapping->private_data = ctx;
- 	inode->i_mapping->a_ops = &secretmem_aops;
- 
-@@ -179,6 +223,8 @@ static struct file *secretmem_file_create(unsigned long flags)
- 
- 	return file;
- 
-+err_free_pool:
-+	gen_pool_destroy(ctx->pool);
- err_free_ctx:
- 	kfree(ctx);
- err_free_inode:
-@@ -223,11 +269,34 @@ SYSCALL_DEFINE1(memfd_secret, unsigned long, flags)
- 	return err;
+ 	nr_pages = (end - start + 1) / PAGE_SIZE;
+@@ -283,6 +318,18 @@ static void secretmem_cleanup_chunk(struct gen_pool *pool,
+ 		put_page(virt_to_page(addr));
  }
  
 +static void secretmem_cleanup_chunk(struct gen_pool *pool,
@@ -198,31 +127,103 @@ index 9d29f3e1c49d..da609701e10e 100644
 +{
 +	unsigned long start = chunk->start_addr;
 +	unsigned long end = chunk->end_addr;
-+	unsigned long nr_pages, addr;
 +
-+	nr_pages = (end - start + 1) / PAGE_SIZE;
-+	__kernel_map_pages(virt_to_page(start), nr_pages, 1);
-+
-+	for (addr = start; addr < end; addr += PAGE_SIZE)
-+		put_page(virt_to_page(addr));
++	if (secretmem_pool.pool)
++		secretmem_recycle_range(start, end);
++	else
++		secretmem_release_range(start, end);
 +}
 +
-+static void secretmem_cleanup_pool(struct secretmem_ctx *ctx)
-+{
-+	struct gen_pool *pool = ctx->pool;
-+
-+	gen_pool_for_each_chunk(pool, secretmem_cleanup_chunk, ctx);
-+	gen_pool_destroy(pool);
-+}
-+
- static void secretmem_evict_inode(struct inode *inode)
+ static void secretmem_cleanup_pool(struct secretmem_ctx *ctx)
  {
- 	struct secretmem_ctx *ctx = inode->i_private;
+ 	struct gen_pool *pool = ctx->pool;
+@@ -322,14 +369,85 @@ static struct file_system_type secretmem_fs = {
+ 	.kill_sb	= kill_anon_super,
+ };
  
- 	truncate_inode_pages_final(&inode->i_data);
-+	secretmem_cleanup_pool(ctx);
- 	clear_inode(inode);
- 	kfree(ctx);
++static int secretmem_reserved_mem_init(void)
++{
++	struct gen_pool *pool;
++	struct page *page;
++	void *addr;
++	int err;
++
++	if (!secretmem_pool.reserved)
++		return 0;
++
++	pool = gen_pool_create(PMD_SHIFT, NUMA_NO_NODE);
++	if (!pool)
++		return -ENOMEM;
++
++	err = gen_pool_add(pool, (unsigned long)secretmem_pool.reserved,
++			   secretmem_pool.reserved_size, NUMA_NO_NODE);
++	if (err)
++		goto err_destroy_pool;
++
++	for (addr = secretmem_pool.reserved;
++	     addr < secretmem_pool.reserved + secretmem_pool.reserved_size;
++	     addr += PAGE_SIZE) {
++		page = virt_to_page(addr);
++		__ClearPageReserved(page);
++		set_page_count(page, 1);
++	}
++
++	secretmem_pool.pool = pool;
++	page = virt_to_page(secretmem_pool.reserved);
++	__kernel_map_pages(page, secretmem_pool.reserved_size / PAGE_SIZE, 0);
++	return 0;
++
++err_destroy_pool:
++	gen_pool_destroy(pool);
++	return err;
++}
++
+ static int secretmem_init(void)
+ {
+-	int ret = 0;
++	int ret;
++
++	ret = secretmem_reserved_mem_init();
++	if (ret)
++		return ret;
+ 
+ 	secretmem_mnt = kern_mount(&secretmem_fs);
+-	if (IS_ERR(secretmem_mnt))
++	if (IS_ERR(secretmem_mnt)) {
++		gen_pool_destroy(secretmem_pool.pool);
+ 		ret = PTR_ERR(secretmem_mnt);
++	}
+ 
+ 	return ret;
  }
+ fs_initcall(secretmem_init);
++
++static int __init secretmem_setup(char *str)
++{
++	phys_addr_t align = PMD_SIZE;
++	unsigned long reserved_size;
++	void *reserved;
++
++	reserved_size = memparse(str, NULL);
++	if (!reserved_size)
++		return 0;
++
++	if (reserved_size * 2 > PUD_SIZE)
++		align = PUD_SIZE;
++
++	reserved = memblock_alloc(reserved_size, align);
++	if (!reserved) {
++		pr_err("failed to reserve %lu bytes\n", secretmem_pool.reserved_size);
++		return 0;
++	}
++
++	secretmem_pool.reserved_size = reserved_size;
++	secretmem_pool.reserved = reserved;
++
++	pr_info("reserved %luM\n", reserved_size >> 20);
++
++	return 1;
++}
++__setup("secretmem=", secretmem_setup);
 -- 
 2.26.2
