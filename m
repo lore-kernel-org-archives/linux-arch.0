@@ -1,115 +1,147 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44848 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731120AbgGVQpJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 12:45:09 -0400
-Received: from mail-wm1-x344.google.com (mail-wm1-x344.google.com [IPv6:2a00:1450:4864:20::344])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7C5CAC0619E1
-        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:09 -0700 (PDT)
-Received: by mail-wm1-x344.google.com with SMTP id f18so2628091wml.3
-        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:09 -0700 (PDT)
-From: David Brazdil <dbrazdil@google.com>
-Subject: [PATCH 5/9] kvm: arm64: Duplicate arm64_ssbd_callback_required for nVHE hyp
-Date: Wed, 22 Jul 2020 17:44:20 +0100
-Message-ID: <20200722164424.42225-6-dbrazdil@google.com>
-In-Reply-To: <20200722164424.42225-1-dbrazdil@google.com>
-References: <20200722164424.42225-1-dbrazdil@google.com>
+Return-Path: <SRS0=5OOM=BG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from netrider.rowland.org ([192.131.102.5]:56457 "HELO
+        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1728214AbgG0TNs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2020 15:13:48 -0400
+Date: Mon, 27 Jul 2020 15:13:47 -0400
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Message-ID: <20200727191347.GA1477670@rowland.harvard.edu>
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+ <20200717174750.GQ12769@casper.infradead.org>
+ <20200718013839.GD2183@sol.localdomain>
+ <20200718021304.GS12769@casper.infradead.org>
+ <20200718052818.GF2183@sol.localdomain>
+ <20200727151746.GC1468275@rowland.harvard.edu>
+ <20200727152827.GM23808@casper.infradead.org>
+ <20200727163149.GD1468275@rowland.harvard.edu>
+ <20200727165917.GN23808@casper.infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200727165917.GN23808@casper.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, kernel-team@google.com, David Brazdil <dbrazdil@google.com>
-Message-ID: <20200722164420.IsawoEmPS6kV-ATSiZnbdqwYPFr6FKgqYYlo68OCxJ8@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200727191347._W7LnFq--NoEQWqvoxZZ2C7mlRyOtpGthrGZjW3dFUw@z>
 
-Hyp keeps track of which cores require SSBD callback by accessing a
-kernel-proper global variable. Create an nVHE symbol of the same name
-and copy the value from kernel proper to nVHE at KVM init time.
+On Mon, Jul 27, 2020 at 05:59:17PM +0100, Matthew Wilcox wrote:
+> On Mon, Jul 27, 2020 at 12:31:49PM -0400, Alan Stern wrote:
+> > On Mon, Jul 27, 2020 at 04:28:27PM +0100, Matthew Wilcox wrote:
+> > > On Mon, Jul 27, 2020 at 11:17:46AM -0400, Alan Stern wrote:
+> > > > Given a type "T", an object x of type pointer-to-T, and a function
+> > > > "func" that takes various arguments and returns a pointer-to-T, the
+> > > > accepted API for calling func once would be to create once_func() as
+> > > > follows:
+> > > > 
+> > > > T *once_func(T **ppt, args...)
+> > > > {
+> > > > 	static DEFINE_MUTEX(mut);
+> > > > 	T *p;
+> > > > 
+> > > > 	p = smp_load_acquire(ppt);	/* Mild optimization */
+> > > > 	if (p)
+> > > > 		return p;
+> > > > 
+> > > > 	mutex_lock(mut);
+> > > > 	p = smp_load_acquire(ppt);
+> > > > 	if (!p) {
+> > > > 		p = func(args...);
+> > > > 		if (!IS_ERR_OR_NULL(p))
+> > > > 			smp_store_release(ppt, p);
+> > > > 	}
+> > > > 	mutex_unlock(mut);
+> > > > 	return p;
+> > > > }
+> > > > 
+> > > > Users then would have to call once_func(&x, args...) and check the
+> > > > result.  Different x objects would constitute different "once"
+> > > > domains.
+> > > [...]
+> > > > In fact, the only drawback I can think of is that because this relies
+> > > > on a single mutex for all the different possible x's, it might lead to
+> > > > locking conflicts (if func had to call once_func() recursively, for
+> > > > example).  In most reasonable situations such conflicts would not
+> > > > arise.
+> > > 
+> > > Another drawback for this approach relative to my get_foo() approach
+> > > upthread is that, because we don't have compiler support, there's no
+> > > enforcement that accesses to 'x' go through once_func().  My approach
+> > > wraps accesses in a deliberately-opaque struct so you have to write
+> > > some really ugly code to get at the raw value, and it's just easier to
+> > > call get_foo().
+> > 
+> > Something like that could be included in once_func too.  It's relatively 
+> > tangential to the main point I was making, which was to settle on an 
+> > overall API and discuss how it should be described in recipes.txt.
+> 
+> Then I think you're trying to describe something which is too complicated
+> because it's overly general.  I don't think device drivers should contain
+> "smp_load_acquire" and "smp_store_release".  Most device driver authors
+> struggle with spinlocks and mutexes.
 
-Done in preparation for separating percpu memory owned by kernel
-proper and nVHE.
+Then I didn't explain my proposal clearly enough.  It doesn't require 
+device driver authors to know anything about smp_load_acquire, 
+smp_store_release, spinlocks, or mutexes.
 
-Signed-off-by: David Brazdil <dbrazdil@google.com>
----
- arch/arm64/include/asm/kvm_mmu.h | 10 +++++++---
- arch/arm64/kernel/image-vars.h   |  1 -
- arch/arm64/kvm/arm.c             |  2 +-
- arch/arm64/kvm/hyp/nvhe/switch.c |  3 +++
- 4 files changed, 11 insertions(+), 5 deletions(-)
+Suppose an author wants to allocate and initialize a struct foo exactly 
+once.  Then the driver code would contain something like this:
 
-diff --git a/arch/arm64/include/asm/kvm_mmu.h b/arch/arm64/include/asm/kvm_mmu.h
-index 22157ded04ca..e9e5875274cb 100644
---- a/arch/arm64/include/asm/kvm_mmu.h
-+++ b/arch/arm64/include/asm/kvm_mmu.h
-@@ -529,23 +529,27 @@ static inline int kvm_map_vectors(void)
- 
- #ifdef CONFIG_ARM64_SSBD
- DECLARE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
-+DECLARE_KVM_NVHE_PER_CPU(u64, arm64_ssbd_callback_required);
- 
--static inline int hyp_map_aux_data(void)
-+static inline int hyp_init_aux_data(void)
- {
- 	int cpu, err;
- 
- 	for_each_possible_cpu(cpu) {
- 		u64 *ptr;
- 
--		ptr = per_cpu_ptr(&arm64_ssbd_callback_required, cpu);
-+		ptr = per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu);
- 		err = create_hyp_mappings(ptr, ptr + 1, PAGE_HYP);
- 		if (err)
- 			return err;
-+
-+		/* Copy value from kernel to hyp. */
-+		*ptr = per_cpu(arm64_ssbd_callback_required, cpu);
- 	}
- 	return 0;
- }
- #else
--static inline int hyp_map_aux_data(void)
-+static inline int hyp_init_aux_data(void)
- {
- 	return 0;
- }
-diff --git a/arch/arm64/kernel/image-vars.h b/arch/arm64/kernel/image-vars.h
-index 9e897c500237..034cf21e67ce 100644
---- a/arch/arm64/kernel/image-vars.h
-+++ b/arch/arm64/kernel/image-vars.h
-@@ -69,7 +69,6 @@ KVM_NVHE_ALIAS(kvm_patch_vector_branch);
- KVM_NVHE_ALIAS(kvm_update_va_mask);
- 
- /* Global kernel state accessed by nVHE hyp code. */
--KVM_NVHE_ALIAS(arm64_ssbd_callback_required);
- KVM_NVHE_ALIAS(kvm_host_data);
- KVM_NVHE_ALIAS(kvm_vgic_global_state);
- 
-diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
-index 98f05bdac3c1..a53e87305fa0 100644
---- a/arch/arm64/kvm/arm.c
-+++ b/arch/arm64/kvm/arm.c
-@@ -1547,7 +1547,7 @@ static int init_hyp_mode(void)
- 		}
- 	}
- 
--	err = hyp_map_aux_data();
-+	err = hyp_init_aux_data();
- 	if (err)
- 		kvm_err("Cannot map host auxiliary data: %d\n", err);
- 
-diff --git a/arch/arm64/kvm/hyp/nvhe/switch.c b/arch/arm64/kvm/hyp/nvhe/switch.c
-index ddb602ffb022..8c2bd04df813 100644
---- a/arch/arm64/kvm/hyp/nvhe/switch.c
-+++ b/arch/arm64/kvm/hyp/nvhe/switch.c
-@@ -27,6 +27,9 @@
- #include <asm/processor.h>
- #include <asm/thread_info.h>
- 
-+/* Non-VHE copy of the kernel symbol. */
-+DEFINE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
-+
- static void __activate_traps(struct kvm_vcpu *vcpu)
- {
- 	u64 val;
--- 
-2.27.0
+struct foo *foop;
+
+static struct foo *alloc_foo(gfp_t gfp)
+{
+	... allocate and initialize ...
+}
+
+MAKE_ONCE_FUNC(struct foo, alloc_foo, (gfp_t gfp), (gfp))
+
+The code to use it is:
+
+	struct foo *p = once_alloc_foo(&foop, GFP_KERNEL);
+
+If you don't like the global pointer, encapsulate it as follows:
+
+struct foo *get_foo(grp_t gfp)
+{
+	static struct foo *foop;
+
+	return once_alloc_foo(&foop, gfp);
+}
+
+and have users call get_foo instead of once_alloc_foo.
+
+It's hard to imagine this getting much simpler.
+
+> The once_get() / once_store() API:
+> 
+> struct foo *get_foo(gfp_t gfp)
+> {
+> 	static struct once_pointer my_foo;
+> 	struct foo *foop;
+> 
+> 	foop = once_get(&my_foo);
+> 	if (foop)
+> 		return foop;
+> 
+> 	foop = alloc_foo(gfp);
+> 	if (foop && !once_store(&my_foo, foop)) {
+> 		free_foo(foop);
+> 		foop = once_get(&my_foo);
+> 	}
+> 
+> 	return foop;
+> }
+> 
+> is easy to understand.  There's no need to talk about acquire and release
+> semantics, barriers, reordering, ... it all just works in the obvious way
+> that it's written.
+
+The MAKE_ONCE_FUNC API is just as easy to understand and requires less 
+boilerplate.  It's type-safe whereas your once_pointer structures 
+aren't.  And it's more general, in the sense that it provides a way to 
+call a function only once, as opposed to a way to store a pointer only 
+once.
+
+Alan Stern
