@@ -1,216 +1,169 @@
-Return-Path: <SRS0=xaua=A5=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail109.syd.optusnet.com.au ([211.29.132.80]:48019 "EHLO
-        mail109.syd.optusnet.com.au" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726665AbgGRCMR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Jul 2020 22:12:17 -0400
-Date: Sat, 18 Jul 2020 11:42:04 +1000
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Message-ID: <20200718014204.GN5369@dread.disaster.area>
-References: <20200717044427.68747-1-ebiggers@kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200717044427.68747-1-ebiggers@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=LHd7=BG=kvack.org=owner-linux-mm@kernel.org>
+From: Anthony Yznaga <anthony.yznaga@oracle.com>
+Subject: [RFC PATCH 1/5] elf: reintroduce using MAP_FIXED_NOREPLACE for elf executable mappings
+Date: Mon, 27 Jul 2020 10:11:23 -0700
+Message-ID: <1595869887-23307-2-git-send-email-anthony.yznaga@oracle.com>
+In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Biggers <ebiggers@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200718014204.Rsss9dKuRW5d-M1h_EWveF87ofmwhKnpumE1B6Mv8a0@z>
+Message-ID: <20200727171123.WQGxVepQhSnRUDsSQCOFJJ3clcjx_efrhUggUwrAZuQ@z>
 
-On Thu, Jul 16, 2020 at 09:44:27PM -0700, Eric Biggers wrote:
-> From: Eric Biggers <ebiggers@google.com>
-> 
-> The "one-time init" pattern is implemented incorrectly in various places
-> in the kernel.  And when people do try to implement it correctly, it is
-> unclear what to use.  Try to give some proper guidance.
-> 
-> This is motivated by the discussion at
-> https://lkml.kernel.org/linux-fsdevel/20200713033330.205104-1-ebiggers@kernel.org/T/#u
-> regarding fixing the initialization of super_block::s_dio_done_wq.
+Commit b212921b13bd ("elf: don't use MAP_FIXED_NOREPLACE for elf
+executable mappings") reverted back to using MAP_FIXED to map elf load
+segments because it was found that the load segments in some binaries
+overlap and can cause MAP_FIXED_NOREPLACE to fail.  The original intent
+of MAP_FIXED_NOREPLACE was to prevent the silent clobbering of an
+existing mapping (e.g. the stack) by the elf image.  To achieve this,
+expand on the logic used when loading ET_DYN binaries which calculates a
+total size for the image when the first segment is mapped, maps the
+entire image, and then unmaps the remainder before remaining segments
+are mapped.  Apply this to ET_EXEC binaries as well as ET_DYN binaries
+as is done now, and for both ET_EXEC and ET_DYN+INTERP use
+MAP_FIXED_NOREPLACE for the initial total size mapping and MAP_FIXED for
+remaining mappings.  For ET_DYN w/out INTERP, continue to map at a
+system-selected address in the mmap region.
 
-You're still using words that the target audience of the
-documentation will not understand.
+Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
+---
+ fs/binfmt_elf.c | 112 ++++++++++++++++++++++++++++++++------------------------
+ 1 file changed, 64 insertions(+), 48 deletions(-)
 
-This is known as the "curse of knowledge" cognative bias, where
-subject matter experts try to explain something to non-experts using
-terms only subject matter experts understand....
-
-This is one of the reasons that the LKMM documetnation is so damn
-difficult to read and understand: just understanding the vocabulary
-it uses requires a huge learning curve, and it's not defined
-anywhere. Understanding the syntax of examples requires a huge
-learning curve, because it's not defined anywhere. 
-
-Recipes are *not useful* if you need to understand the LKMM
-documenation to select the correct recipe to use. Recipes are not
-useful if you say "here's 5 different variations of the same thing,
-up to you to understand which one you need to use". Recipes are not
-useful if changes in other code can silently break the recipe that
-was selected by the user by carefully considering the most optimal
-variant at the time they selected it.
-
-i.e. Recipes are not for experts who understand the LKMM - recipes
-are for developers who don't really understand how the LKMM all
-works and just want a single, solid, reliable pattern they can use
-just about everywhere for that specific operation.
-
-Performance and optimisation doesn't even enter the picture here -
-we need to provide a simple, easy to use and understand pattern that
-just works. We need to stop making this harder than it should be.
-
-So....
-
-> Cc: Nicholas Piggin <npiggin@gmail.com>
-> Cc: Paul E. McKenney <paulmck@kernel.org>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Will Deacon <will@kernel.org>
-> Signed-off-by: Eric Biggers <ebiggers@google.com>
-> ---
->  tools/memory-model/Documentation/recipes.txt | 151 +++++++++++++++++++
->  1 file changed, 151 insertions(+)
-> 
-> diff --git a/tools/memory-model/Documentation/recipes.txt b/tools/memory-model/Documentation/recipes.txt
-> index 7fe8d7aa3029..04beb06dbfc7 100644
-> --- a/tools/memory-model/Documentation/recipes.txt
-> +++ b/tools/memory-model/Documentation/recipes.txt
-> @@ -519,6 +519,157 @@ CPU1 puts the waiting task to sleep and CPU0 fails to wake it up.
->  
->  Note that use of locking can greatly simplify this pattern.
->  
-> +One-time init
-> +-------------
-> +
-> +The "one-time init" pattern is when multiple tasks can race to
-> +initialize the same data structure(s) on first use.
-> +
-> +In many cases, it's best to just avoid the need for this by simply
-> +initializing the data ahead of time.
-> +
-> +But in cases where the data would often go unused, one-time init can be
-> +appropriate to avoid wasting kernel resources.  It can also be
-> +appropriate if the initialization has other prerequisites which preclude
-> +it being done ahead of time.
-> +
-> +First, consider if your data has (a) global or static scope, (b) can be
-> +initialized from atomic context, and (c) cannot fail to be initialized.
-> +If all of those apply, just use DO_ONCE() from <linux/once.h>:
-> +
-> +	DO_ONCE(func);
-> +
-> +If that doesn't apply, you'll have to implement one-time init yourself.
-> +
-> +The simplest implementation just uses a mutex and an 'inited' flag.
-> +This implementation should be used where feasible:
-> +
-> +	static bool foo_inited;
-> +	static DEFINE_MUTEX(foo_init_mutex);
-> +
-> +	int init_foo_if_needed(void)
-> +	{
-> +		int err = 0;
-> +
-> +		mutex_lock(&foo_init_mutex);
-> +		if (!foo_inited) {
-> +			err = init_foo();
-> +			if (err == 0)
-> +				foo_inited = true;
-> +		}
-> +		mutex_unlock(&foo_init_mutex);
-> +		return err;
-> +	}
-> +
-> +The above example uses static variables, but this solution also works
-> +for initializing something that is part of another data structure.  The
-> +mutex may still be static.
-
-All good up to here - people will see this and understand that this
-is the pattern they want to use, and DO_ONCE() is a great, simple
-API that is easy to use.
-
-What needs to follow is a canonical example of how to do it
-locklessly and efficiently, without describing conditional use of it
-using words like "initialised memory is transitively reachable" (I
-don't know WTF that means!).  Don't discuss potential optimisations,
-control flow/data dependencies, etc, because failing to understand
-those details are the reason people are looking for a simple recipe
-that does what they need in the first place ("curse of knowledge").
-
-However, I think the whole problem around code like this is that it
-is being open-coded and that is the reason people get it wrong.
-Hence I agree with Willy that this needs to be wrapped in a simple,
-easy to use and hard to get wrong APIs for the patterns we expect to
-see people use.
-
-And the recipes should doucment the use of that API for the
-init-once pattern, not try to teach people how to open-code their
-own init-once pattern that they will continue to screw up....
-
-As a result, I think the examples should document correct use of the
-API for the two main variants it would be used for. The first
-variant has an external "inited" flag that handles multiple
-structure initialisations, and the second variant handles allocation
-and initialisation of a single structure that is stored and accessed
-by a single location.
-
-Work out an API to do these things correctly, then write the recipes
-to use them. Then people like yourself can argue all day and night
-on how to best optimise them, and people like myself can just ignore
-that all knowing that my init_once() call will always do the right
-thing.
-
-> +For the single-pointer case, a further optimized implementation
-> +eliminates the mutex and instead uses compare-and-exchange:
-> +
-> +	static struct foo *foo;
-> +
-> +	int init_foo_if_needed(void)
-> +	{
-> +		struct foo *p;
-> +
-> +		/* pairs with successful cmpxchg_release() below */
-> +		if (smp_load_acquire(&foo))
-> +			return 0;
-> +
-> +		p = alloc_foo();
-> +		if (!p)
-> +			return -ENOMEM;
-> +
-> +		/* on success, pairs with smp_load_acquire() above and below */
-> +		if (cmpxchg_release(&foo, NULL, p) != NULL) {
-> +			free_foo(p);
-> +			/* pairs with successful cmpxchg_release() above */
-> +			smp_load_acquire(&foo);
-
-This is the failure path, not the success. So it describing it as
-pairing with "successful cmpxchg_release() above" when the code that
-is executing is in the path where  the cmpxchg_release() above -just
-failed- doesn't help anyone understand exactly what it is pairing
-with.
-
-This is why I said in that other thread "just saying 'pairs with
-<foo>' is not sufficient to explain to the reader exactly what the
-memory barrier is doing. You needed two full paragraphs to explain
-why this was put here and that, to me, indicate the example and
-expected use case is wrong.
-
-But even then, I think this example is incorrect and doesn't fit the
-patterns people might expect. That is, if this init function
--returned foo for the caller to use-, then the smp_load_acquire() on
-failure is necessary to ensure the initialisation done by the racing
-context is correct seen. But this function doesn't return foo, and
-so the smp_load_acquire() is required in whatever context is trying
-to access the contents of foo, not the init function.
-
-Hence I think this example is likely incorrect and will lead to bugs
-because it does not, in any way, indicate that
-smp_load_acquire(&foo) must always be used in the contexts where foo
-may accessed before (or during) the init function has been run...
-
-Cheers,
-
-Dave.
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 9fe3b51c116a..6445a6dbdb1d 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -1046,58 +1046,25 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 
+ 		vaddr = elf_ppnt->p_vaddr;
+ 		/*
+-		 * If we are loading ET_EXEC or we have already performed
+-		 * the ET_DYN load_addr calculations, proceed normally.
++		 * Map remaining segments with MAP_FIXED once the first
++		 * total size mapping has been done.
+ 		 */
+-		if (elf_ex->e_type == ET_EXEC || load_addr_set) {
++		if (load_addr_set) {
+ 			elf_flags |= MAP_FIXED;
+-		} else if (elf_ex->e_type == ET_DYN) {
+-			/*
+-			 * This logic is run once for the first LOAD Program
+-			 * Header for ET_DYN binaries to calculate the
+-			 * randomization (load_bias) for all the LOAD
+-			 * Program Headers, and to calculate the entire
+-			 * size of the ELF mapping (total_size). (Note that
+-			 * load_addr_set is set to true later once the
+-			 * initial mapping is performed.)
+-			 *
+-			 * There are effectively two types of ET_DYN
+-			 * binaries: programs (i.e. PIE: ET_DYN with INTERP)
+-			 * and loaders (ET_DYN without INTERP, since they
+-			 * _are_ the ELF interpreter). The loaders must
+-			 * be loaded away from programs since the program
+-			 * may otherwise collide with the loader (especially
+-			 * for ET_EXEC which does not have a randomized
+-			 * position). For example to handle invocations of
+-			 * "./ld.so someprog" to test out a new version of
+-			 * the loader, the subsequent program that the
+-			 * loader loads must avoid the loader itself, so
+-			 * they cannot share the same load range. Sufficient
+-			 * room for the brk must be allocated with the
+-			 * loader as well, since brk must be available with
+-			 * the loader.
+-			 *
+-			 * Therefore, programs are loaded offset from
+-			 * ELF_ET_DYN_BASE and loaders are loaded into the
+-			 * independently randomized mmap region (0 load_bias
+-			 * without MAP_FIXED).
+-			 */
+-			if (interpreter) {
+-				load_bias = ELF_ET_DYN_BASE;
+-				if (current->flags & PF_RANDOMIZE)
+-					load_bias += arch_mmap_rnd();
+-				elf_flags |= MAP_FIXED;
+-			} else
+-				load_bias = 0;
+-
++		} else {
+ 			/*
+-			 * Since load_bias is used for all subsequent loading
+-			 * calculations, we must lower it by the first vaddr
+-			 * so that the remaining calculations based on the
+-			 * ELF vaddrs will be correctly offset. The result
+-			 * is then page aligned.
++			 * To ensure loading does not continue if an ELF
++			 * LOAD segment overlaps an existing mapping (e.g.
++			 * the stack), for the first LOAD Program Header
++			 * calculate the the entire size of the ELF mapping
++			 * and map it with MAP_FIXED_NOREPLACE. On success,
++			 * the remainder will be unmapped and subsequent
++			 * LOAD segments mapped with MAP_FIXED rather than
++			 * MAP_FIXED_NOREPLACE because some binaries may
++			 * have overlapping segments that would cause the
++			 * mmap to fail.
+ 			 */
+-			load_bias = ELF_PAGESTART(load_bias - vaddr);
++			elf_flags |= MAP_FIXED_NOREPLACE;
+ 
+ 			total_size = total_mapping_size(elf_phdata,
+ 							elf_ex->e_phnum);
+@@ -1105,6 +1072,55 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 				retval = -EINVAL;
+ 				goto out_free_dentry;
+ 			}
++
++			if (elf_ex->e_type == ET_DYN) {
++				/*
++				 * This logic is run once for the first LOAD
++				 * Program Header for ET_DYN binaries to
++				 * calculate the randomization (load_bias) for
++				 * all the LOAD Program Headers.
++				 *
++				 * There are effectively two types of ET_DYN
++				 * binaries: programs (i.e. PIE: ET_DYN with
++				 * INTERP) and loaders (ET_DYN without INTERP,
++				 * since they _are_ the ELF interpreter). The
++				 * loaders must be loaded away from programs
++				 * since the program may otherwise collide with
++				 * the loader (especially for ET_EXEC which does
++				 * not have a randomized position). For example
++				 * to handle invocations of "./ld.so someprog"
++				 * to test out a new version of the loader, the
++				 * subsequent program that the loader loads must
++				 * avoid the loader itself, so they cannot share
++				 * the same load range. Sufficient room for the
++				 * brk must be allocated with the loader as
++				 * well, since brk must be available with the
++				 * loader.
++				 *
++				 * Therefore, programs are loaded offset from
++				 * ELF_ET_DYN_BASE and loaders are loaded into
++				 * the independently randomized mmap region
++				 * (0 load_bias without MAP_FIXED*).
++				 */
++				if (interpreter) {
++					load_bias = ELF_ET_DYN_BASE;
++					if (current->flags & PF_RANDOMIZE)
++						load_bias += arch_mmap_rnd();
++				} else {
++					load_bias = 0;
++					elf_flags &= ~MAP_FIXED_NOREPLACE;
++				}
++
++				/*
++				 * Since load_bias is used for all subsequent
++				 * loading calculations, we must lower it by
++				 * the first vaddr so that the remaining
++				 * calculations based on the ELF vaddrs will
++				 * be correctly offset. The result is then
++				 * page aligned.
++				 */
++				load_bias = ELF_PAGESTART(load_bias - vaddr);
++			}
+ 		}
+ 
+ 		error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
 -- 
-Dave Chinner
-david@fromorbit.com
+1.8.3.1
