@@ -1,188 +1,97 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53966 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727120AbgGQGY2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:28 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 14/22] net/ipv4: factor out MCAST_MSFILTER getsockopt helpers
-Date: Fri, 17 Jul 2020 08:23:23 +0200
-Message-ID: <20200717062331.691152-15-hch@lst.de>
-In-Reply-To: <20200717062331.691152-1-hch@lst.de>
-References: <20200717062331.691152-1-hch@lst.de>
+Return-Path: <SRS0=LHd7=BG=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+ <87pn8glwd2.fsf@x220.int.ebiederm.org>
+From: Steven Sistare <steven.sistare@oracle.com>
+Message-ID: <28125570-4129-bcba-099b-f90481cfbfe8@oracle.com>
+Date: Mon, 27 Jul 2020 14:00:17 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <87pn8glwd2.fsf@x220.int.ebiederm.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
 List-ID: <linux-arch.vger.kernel.org>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
-Message-ID: <20200717062323.Yi-kwyDojA_ZLuf6wscQBO2bz5C9lFrG3YOnyfSbiIU@z>
+Message-ID: <20200727180017.1QK50smw-UxdvLvU8wI9lLC2b5hdQIir5MMdDvXgtpo@z>
 
-Factor out one helper each for getting the native and compat
-version of the MCAST_MSFILTER option.
+On 7/27/2020 1:07 PM, ebiederm@xmission.com wrote:
+> Anthony Yznaga <anthony.yznaga@oracle.com> writes:
+> 
+>> This patchset adds support for preserving an anonymous memory range across
+>> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit for
+>> sharing memory in this manner, as opposed to re-attaching to a named shared
+>> memory segment, is to ensure it is mapped at the same virtual address in
+>> the new process as it was in the old one.  An intended use for this is to
+>> preserve guest memory for guests using vfio while qemu exec's an updated
+>> version of itself.  By ensuring the memory is preserved at a fixed address,
+>> vfio mappings and their associated kernel data structures can remain valid.
+>> In addition, for the qemu use case, qemu instances that back guest RAM with
+>> anonymous memory can be updated.
+> 
+> What is wrong with using a file descriptor to a possibly deleted file
+> and re-mmaping it?
+> 
+> There is already MAP_FIXED that allows you to ensure you have the same
+> address.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- net/ipv4/ip_sockglue.c | 131 ++++++++++++++++++++++-------------------
- 1 file changed, 70 insertions(+), 61 deletions(-)
+MAP_FIXED blows away any existing mapping in that range, which is not the 
+desired behavior.  We want to preserve the previously created mapping at
+the same VA and co-exist with other mappings created by the new process.
+There is no way to guarantee availability of a VA post-exec.
 
-diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
-index 95f4248c6fc5ed..70d32c9476a2e3 100644
---- a/net/ipv4/ip_sockglue.c
-+++ b/net/ipv4/ip_sockglue.c
-@@ -1468,6 +1468,74 @@ static bool getsockopt_needs_rtnl(int optname)
- 	return false;
- }
- 
-+static int ip_get_mcast_msfilter(struct sock *sk, void __user *optval,
-+		int __user *optlen, int len)
-+{
-+	const int size0 = offsetof(struct group_filter, gf_slist);
-+	struct group_filter __user *p = optval;
-+	struct group_filter gsf;
-+	int num;
-+	int err;
-+
-+	if (len < size0)
-+		return -EINVAL;
-+	if (copy_from_user(&gsf, p, size0))
-+		return -EFAULT;
-+
-+	num = gsf.gf_numsrc;
-+	err = ip_mc_gsfget(sk, &gsf, p->gf_slist);
-+	if (err)
-+		return err;
-+	if (gsf.gf_numsrc < num)
-+		num = gsf.gf_numsrc;
-+	if (put_user(GROUP_FILTER_SIZE(num), optlen) ||
-+	    copy_to_user(p, &gsf, size0))
-+		return -EFAULT;
-+	return 0;
-+}
-+
-+#ifdef CONFIG_COMPAT
-+static int compat_ip_get_mcast_msfilter(struct sock *sk, void __user *optval,
-+		int __user *optlen)
-+{
-+	const int size0 = offsetof(struct compat_group_filter, gf_slist);
-+	struct compat_group_filter __user *p = optval;
-+	struct compat_group_filter gf32;
-+	struct group_filter gf;
-+	int len, err;
-+	int num;
-+
-+	if (get_user(len, optlen))
-+		return -EFAULT;
-+	if (len < size0)
-+		return -EINVAL;
-+
-+	if (copy_from_user(&gf32, p, size0))
-+		return -EFAULT;
-+
-+	gf.gf_interface = gf32.gf_interface;
-+	gf.gf_fmode = gf32.gf_fmode;
-+	num = gf.gf_numsrc = gf32.gf_numsrc;
-+	gf.gf_group = gf32.gf_group;
-+
-+	rtnl_lock();
-+	lock_sock(sk);
-+	err = ip_mc_gsfget(sk, &gf, p->gf_slist);
-+	release_sock(sk);
-+	rtnl_unlock();
-+	if (err)
-+		return err;
-+	if (gf.gf_numsrc < num)
-+		num = gf.gf_numsrc;
-+	len = GROUP_FILTER_SIZE(num) - (sizeof(gf) - sizeof(gf32));
-+	if (put_user(len, optlen) ||
-+	    put_user(gf.gf_fmode, &p->gf_fmode) ||
-+	    put_user(gf.gf_numsrc, &p->gf_numsrc))
-+		return -EFAULT;
-+	return 0;
-+}
-+#endif
-+
- static int do_ip_getsockopt(struct sock *sk, int level, int optname,
- 			    char __user *optval, int __user *optlen, unsigned int flags)
- {
-@@ -1626,31 +1694,8 @@ static int do_ip_getsockopt(struct sock *sk, int level, int optname,
- 		goto out;
- 	}
- 	case MCAST_MSFILTER:
--	{
--		struct group_filter __user *p = (void __user *)optval;
--		struct group_filter gsf;
--		const int size0 = offsetof(struct group_filter, gf_slist);
--		int num;
--
--		if (len < size0) {
--			err = -EINVAL;
--			goto out;
--		}
--		if (copy_from_user(&gsf, p, size0)) {
--			err = -EFAULT;
--			goto out;
--		}
--		num = gsf.gf_numsrc;
--		err = ip_mc_gsfget(sk, &gsf, p->gf_slist);
--		if (err)
--			goto out;
--		if (gsf.gf_numsrc < num)
--			num = gsf.gf_numsrc;
--		if (put_user(GROUP_FILTER_SIZE(num), optlen) ||
--		    copy_to_user(p, &gsf, size0))
--			err = -EFAULT;
-+		err = ip_get_mcast_msfilter(sk, optval, optlen, len);
- 		goto out;
--	}
- 	case IP_MULTICAST_ALL:
- 		val = inet->mc_all;
- 		break;
-@@ -1762,45 +1807,9 @@ int compat_ip_getsockopt(struct sock *sk, int level, int optname,
- 	int err;
- 
- 	if (optname == MCAST_MSFILTER) {
--		const int size0 = offsetof(struct compat_group_filter, gf_slist);
--		struct compat_group_filter __user *p = (void __user *)optval;
--		struct compat_group_filter gf32;
--		struct group_filter gf;
--		int ulen, err;
--		int num;
--
- 		if (level != SOL_IP)
- 			return -EOPNOTSUPP;
--
--		if (get_user(ulen, optlen))
--			return -EFAULT;
--
--		if (ulen < size0)
--			return -EINVAL;
--
--		if (copy_from_user(&gf32, p, size0))
--			return -EFAULT;
--
--		gf.gf_interface = gf32.gf_interface;
--		gf.gf_fmode = gf32.gf_fmode;
--		num = gf.gf_numsrc = gf32.gf_numsrc;
--		gf.gf_group = gf32.gf_group;
--
--		rtnl_lock();
--		lock_sock(sk);
--		err = ip_mc_gsfget(sk, &gf, p->gf_slist);
--		release_sock(sk);
--		rtnl_unlock();
--		if (err)
--			return err;
--		if (gf.gf_numsrc < num)
--			num = gf.gf_numsrc;
--		ulen = GROUP_FILTER_SIZE(num) - (sizeof(gf) - sizeof(gf32));
--		if (put_user(ulen, optlen) ||
--		    put_user(gf.gf_fmode, &p->gf_fmode) ||
--		    put_user(gf.gf_numsrc, &p->gf_numsrc))
--			return -EFAULT;
--		return 0;
-+		return compat_ip_get_mcast_msfilter(sk, optval, optlen);
- 	}
- 
- 	err = do_ip_getsockopt(sk, level, optname, optval, optlen,
--- 
-2.27.0
+> I think all it would take would be a small protocol from one version
+> to the next to say map file descriptor #N and address #A.  Something
+> easily passed on the command line.
+> 
+> There is just enough complexity in exec currently that our
+> implementation of exec is already teetering.  So if we could use
+> existing mechanisms it would be good.
+> 
+> And I don't see why this version of sharing a mmap area would be
+> particularly general.  I do imagine that being able to force a
+> mmap area into a setuid executable would be a fun attack vector.
+
+Any mmap(MAP_ANON) segment can be preserved.  That is very general, and is 
+the case we need to support to upgrade legacy applications that are already
+running (such as qemu) -- we cannot recode them before they are updated.
+
+> Perhaps I missed this in my skim of these patches but I did not see
+> anything that guarded this feature against an exec that changes an
+> applications privileges.
+
+The ELF opt-in flag must be set, so only selected executables will accept
+incoming mappings.  The exec() code verifies that the preserved mappings 
+do not overlap or become adjacent to text or stack, so it is not possible for
+example for an attacker to cause stack underflow or overflow to access injected
+content.  A gadget invoked by some other attack could access the preserved content.
+
+- Steve
+
+>> Patches 1 and 2 ensure that loading of ELF load segments does not silently
+>> clobber existing VMAS, and remove assumptions that the stack is the only
+>> VMA in the mm when the stack is set up.  Patch 1 re-introduces the use of
+>> MAP_FIXED_NOREPLACE to load ELF binaries that addresses the previous issues
+>> and could be considered on its own.
+>>
+>> Patches 3, 4, and 5 introduce the feature and an opt-in method for its use
+>> using an ELF note.
+>>
+>> Anthony Yznaga (5):
+>>   elf: reintroduce using MAP_FIXED_NOREPLACE for elf executable mappings
+>>   mm: do not assume only the stack vma exists in setup_arg_pages()
+>>   mm: introduce VM_EXEC_KEEP
+>>   exec, elf: require opt-in for accepting preserved mem
+>>   mm: introduce MADV_DOEXEC
+>>
+>>  arch/x86/Kconfig                       |   1 +
+>>  fs/binfmt_elf.c                        | 196 +++++++++++++++++++++++++--------
+>>  fs/exec.c                              |  33 +++++-
+>>  include/linux/binfmts.h                |   7 +-
+>>  include/linux/mm.h                     |   5 +
+>>  include/uapi/asm-generic/mman-common.h |   3 +
+>>  kernel/fork.c                          |   2 +-
+>>  mm/madvise.c                           |  25 +++++
+>>  mm/mmap.c                              |  47 ++++++++
+>>  9 files changed, 266 insertions(+), 53 deletions(-)
