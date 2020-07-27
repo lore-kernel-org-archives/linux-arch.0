@@ -1,88 +1,25 @@
-From: Marc Zyngier <maz@kernel.org>
-Subject: Re: [RESEND RFC PATCH v1] arm64: kvm: flush tlbs by range in
- unmap_stage2_range function
-Date: Mon, 27 Jul 2020 18:12:34 +0100
-Message-ID: <fb4756b58892fbc2022cf1f5b9320c27@kernel.org>
-References: <20200724134315.805-1-yezhenyu2@huawei.com>
- <5d54c860b3b4e7a98e4d53397e6424ae@kernel.org>
- <f74277fd-5af2-c46f-169f-c15a321165cd@huawei.com>
+From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Subject: Re: [PATCH v2 4/7] arch, mm: wire up memfd_secret system call were relevant
+Date: Mon, 27 Jul 2020 19:25:20 +0200
+Message-ID: <CAK8P3a3Lbjdx_43-b0i1FXEfqaNPbaoXLraa2WikfPHrOZ6Kog@mail.gmail.com>
+References: <20200727162935.31714-1-rppt@kernel.org> <20200727162935.31714-5-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
- format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <f74277fd-5af2-c46f-169f-c15a321165cd@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: james.morse@arm.com, julien.thierry.kdev@gmail.com, suzuki.poulose@arm.com, catalin.marinas@arm.com, will@kernel.org, steven.price@arm.com, mark.rutland@arm.com, ascull@google.com, kvm@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20200727162935.31714-5-rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Christopher Lameter <cl-vYTEC60ixJUAvxtiuMwx3w@public.gmane.org>, Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Elena Reshetova <elena.reshetova-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Idan Yaniv <idan.yaniv-qyM6JfAXOaQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, James Bottomley <jejb-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, "Kirill A. Shutemov" <kirill-oKw7cIdHH8eLwutG50LtGA@public.gmane.org>, Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-Zhenyu,
+On Mon, Jul 27, 2020 at 6:30 PM Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org> wrote:
+>
+> From: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
+>
+> Wire up memfd_secret system call on architectures that define
+> ARCH_HAS_SET_DIRECT_MAP, namely arm64, risc-v and x86.
+>
+> Signed-off-by: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
+> Acked-by: Palmer Dabbelt <palmerdabbelt-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
 
-On 2020-07-27 15:51, Zhenyu Ye wrote:
-> Hi Marc,
-> 
-> On 2020/7/26 1:40, Marc Zyngier wrote:
->> On 2020-07-24 14:43, Zhenyu Ye wrote:
->>> Now in unmap_stage2_range(), we flush tlbs one by one just after the
->>> corresponding pages cleared.  However, this may cause some 
->>> performance
->>> problems when the unmap range is very large (such as when the vm
->>> migration rollback, this may cause vm downtime too loog).
->> 
->> You keep resending this patch, but you don't give any numbers
->> that would back your assertion.
-> 
-> I have tested the downtime of vm migration rollback on arm64, and found
-> the downtime could even take up to 7s.  Then I traced the cost of
-> unmap_stage2_range() and found it could take a maximum of 1.2s.  The
-> vm configuration is as follows (with high memory pressure, the dirty
-> rate is about 500MB/s):
-> 
->   <memory unit='GiB'>192</memory>
->   <vcpu placement='static'>48</vcpu>
->   <memoryBacking>
->     <hugepages>
->       <page size='1' unit='GiB' nodeset='0'/>
->     </hugepages>
->   </memoryBacking>
-
-This means nothing to me, I'm afraid.
-
-> 
-> After this patch applied, the cost of unmap_stage2_range() can reduce 
-> to
-> 16ms, and VM downtime can be less than 1s.
-> 
-> The following figure shows a clear comparison:
-> 
-> 	      |	vm downtime  |	cost of unmap_stage2_range()
-> --------------+--------------+----------------------------------
-> before change |		7s   |		1200 ms
-> after  change |		1s   |		  16 ms
-> --------------+--------------+----------------------------------
-
-I don't see how you turn a 1.184s reduction into a 6s gain.
-Surely there is more to it than what you posted.
-
->>> +
->>> +    if ((end - start) >= 512 << (PAGE_SHIFT - 12)) {
->>> +        __tlbi(vmalls12e1is);
->> 
->> And what is this magic value based on? You don't even mention in the
->> commit log that you are taking this shortcut.
->> 
-> 
-> 
-> If the page num is bigger than 512, flush all tlbs of this vm to avoid
-> soft lock-ups on large TLB flushing ranges.  Just like what the
-> flush_tlb_range() does.
-
-I'm not sure this is applicable here, and it doesn't mean
-this is as good on other systems.
-
-Thanks,
-
-         M.
--- 
-Jazz is not dead. It just smells funny...
+Acked-by: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
