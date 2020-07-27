@@ -1,47 +1,81 @@
-Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50670 "EHLO mail.kernel.org"
+Return-Path: <SRS0=5OOM=BG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:44646 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726437AbgGXIQx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Jul 2020 04:16:53 -0400
-Date: Fri, 24 Jul 2020 09:16:48 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks
- for SPLPAR
-Message-ID: <20200724081647.GA16642@willie-the-truck>
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <20200706043540.1563616-6-npiggin@gmail.com>
- <874kqhvu1v.fsf@mpe.ellerman.id.au>
- <8265d782-4e50-a9b2-a908-0cb588ffa09c@redhat.com>
- <20200723140011.GR5523@worktop.programming.kicks-ass.net>
- <845de183-56f5-2958-3159-faa131d46401@redhat.com>
- <20200723184759.GS119549@hirez.programming.kicks-ass.net>
+        id S1726171AbgG0WhP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Jul 2020 18:37:15 -0400
+Received: from mail-wr1-f50.google.com (mail-wr1-f50.google.com [209.85.221.50])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 65ED820838
+        for <linux-arch@vger.kernel.org>; Mon, 27 Jul 2020 22:37:14 +0000 (UTC)
+Received: by mail-wr1-f50.google.com with SMTP id r2so11301985wrs.8
+        for <linux-arch@vger.kernel.org>; Mon, 27 Jul 2020 15:37:14 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200723184759.GS119549@hirez.programming.kicks-ass.net>
+References: <20200721105706.030914876@linutronix.de> <20200721110808.562407874@linutronix.de>
+In-Reply-To: <20200721110808.562407874@linutronix.de>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Mon, 27 Jul 2020 15:37:01 -0700
+Message-ID: <CALCETrVwrQ6oCxwEraxLF8ia8P8HUR2czrfqYtgQEdm8DM=RLQ@mail.gmail.com>
+Subject: Re: [patch V4 03/15] entry: Provide generic syscall exit function
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: Waiman Long <longman@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200724081648._yjeS6L27IfaD_uzUIBeN7mVLXdZ6PiC6GZTvFAuy68@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, Gabriel Krisman Bertazi <krisman@collabora.com>
+Message-ID: <20200727223701.1zs8etPlLKlGnTBlEu_JM9gCCH8GL0j3bAAnNgg_va0@z>
 
-On Thu, Jul 23, 2020 at 08:47:59PM +0200, peterz@infradead.org wrote:
-> On Thu, Jul 23, 2020 at 02:32:36PM -0400, Waiman Long wrote:
-> > BTW, do you have any comment on my v2 lock holder cpu info qspinlock patch?
-> > I will have to update the patch to fix the reported 0-day test problem, but
-> > I want to collect other feedback before sending out v3.
-> 
-> I want to say I hate it all, it adds instructions to a path we spend an
-> aweful lot of time optimizing without really getting anything back for
-> it.
-> 
-> Will, how do you feel about it?
+On Tue, Jul 21, 2020 at 4:08 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+>
+> Like syscall entry all architectures have similar and pointlessly different
+> code to handle pending work before returning from a syscall to user space.
+>
+>   1) One-time syscall exit work:
+>       - rseq syscall exit
+>       - audit
+>       - syscall tracing
+>       - tracehook (single stepping)
+>
+>   2) Preparatory work
+>       - Exit to user mode loop (common TIF handling).
+>       - Architecture specific one time work arch_exit_to_user_mode_prepare()
+>       - Address limit and lockdep checks
+>
+>   3) Final transition (lockdep, tracing, context tracking, RCU). Invokes
+>      arch_exit_to_user_mode() to handle e.g. speculation mitigations
+>
+> Provide a generic version based on the x86 code which has all the RCU and
+> instrumentation protections right.
+>
+> Provide a variant for interrupt return to user mode as well which shares
+> the above #2 and #3 work items.
 
-I can see it potentially being useful for debugging, but I hate the
-limitation to 256 CPUs. Even arm64 is hitting that now.
+I still don't love making the syscall exit path also do the
+non-syscall stuff.  Do you like my suggestion of instead having a
+generic function to do the syscall complete with all the entry and
+exit stuff?
 
-Also, you're talking ~1% gains here. I think our collective time would
-be better spent off reviewing the CNA series and trying to make it more
-deterministic.
+The singlestep handling is a mess.  I'm not convinced that x86 does
+this sensibly.  Right now, I *think* we are quite likely to not send
+SIGTRAP on the way out of syscalls if TF is set, and we'll actually
+execute one more user instruction before sending the signal.  One
+might reasonably debate whether this is a bug, but we should probably
+figure it out at some point.
 
-Will
+That latter bit is relevant to your patch because the fix might end up
+being something like this:
+
+void do_syscall_64(...)
+{
+  unsigned long orig_flags;
+  idtentry_enter();
+  instrumentation_begin();
+  generic_do_syscall(regs, regs->orig_ax, AUDIT_ARCH_X86_64);
+  if (unlikely(orig_flags & regs->flags & X86_EFLAGS_TF))
+    raise SIGTRAP -- pretend we got #DB.
+  instrumentation_end();
+  idtentry_exit(); <-- signal is delivered here
+}
+
+That logic is probably all kinds of buggy, but the point is that the
+special handling probably wants to be done between the generic syscall
+code and the exit code.
