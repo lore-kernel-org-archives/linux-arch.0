@@ -1,80 +1,76 @@
-Return-Path: <SRS0=JYYx=A2=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga05-in.huawei.com ([45.249.212.191]:7753 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1728883AbgGOHUF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Jul 2020 03:20:05 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v3 2/3] arm64: enable tlbi range instructions
-Date: Wed, 15 Jul 2020 15:19:44 +0800
-Message-ID: <20200715071945.897-3-yezhenyu2@huawei.com>
-In-Reply-To: <20200715071945.897-1-yezhenyu2@huawei.com>
-References: <20200715071945.897-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=5OOM=BG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:44192 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726800AbgG0QBM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Jul 2020 12:01:12 -0400
+Date: Mon, 27 Jul 2020 09:01:11 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Message-ID: <20200727160111.GH9247@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+ <20200717174750.GQ12769@casper.infradead.org>
+ <20200718013839.GD2183@sol.localdomain>
+ <20200718021304.GS12769@casper.infradead.org>
+ <20200718052818.GF2183@sol.localdomain>
+ <20200727151746.GC1468275@rowland.harvard.edu>
+ <20200727152827.GM23808@casper.infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200727152827.GM23808@casper.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200715071944.rQvhBB3lpS0bgGxXNHJuXDjIozZfTShmluyyQ2m6FAQ@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Alan Stern <stern@rowland.harvard.edu>, Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200727160111.hCtRyPL1SO6djNlo2GC27tmZ7QO_j3_63Lo2BJSBy2Y@z>
 
-TLBI RANGE feature instoduces new assembly instructions and only
-support by binutils >= 2.30.  Add necessary Kconfig logic to allow
-this to be enabled and pass '-march=armv8.4-a' to KBUILD_CFLAGS.
+On Mon, Jul 27, 2020 at 04:28:27PM +0100, Matthew Wilcox wrote:
+> On Mon, Jul 27, 2020 at 11:17:46AM -0400, Alan Stern wrote:
+> > Given a type "T", an object x of type pointer-to-T, and a function
+> > "func" that takes various arguments and returns a pointer-to-T, the
+> > accepted API for calling func once would be to create once_func() as
+> > follows:
+> > 
+> > T *once_func(T **ppt, args...)
+> > {
+> > 	static DEFINE_MUTEX(mut);
+> > 	T *p;
+> > 
+> > 	p = smp_load_acquire(ppt);	/* Mild optimization */
+> > 	if (p)
+> > 		return p;
+> > 
+> > 	mutex_lock(mut);
+> > 	p = smp_load_acquire(ppt);
+> > 	if (!p) {
+> > 		p = func(args...);
+> > 		if (!IS_ERR_OR_NULL(p))
+> > 			smp_store_release(ppt, p);
+> > 	}
+> > 	mutex_unlock(mut);
+> > 	return p;
+> > }
+> > 
+> > Users then would have to call once_func(&x, args...) and check the
+> > result.  Different x objects would constitute different "once"
+> > domains.
+> [...]
+> > In fact, the only drawback I can think of is that because this relies
+> > on a single mutex for all the different possible x's, it might lead to
+> > locking conflicts (if func had to call once_func() recursively, for
+> > example).  In most reasonable situations such conflicts would not
+> > arise.
+> 
+> Another drawback for this approach relative to my get_foo() approach
+> upthread is that, because we don't have compiler support, there's no
+> enforcement that accesses to 'x' go through once_func().  My approach
+> wraps accesses in a deliberately-opaque struct so you have to write
+> some really ugly code to get at the raw value, and it's just easier to
+> call get_foo().
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/Kconfig  | 14 ++++++++++++++
- arch/arm64/Makefile |  7 +++++++
- 2 files changed, 21 insertions(+)
+Could ACCESS_PRIVATE() help in this case?  This relies on sparse rather
+than the compiler, but some of the testing services do run sparse
+regularly.
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 66dc41fd49f2..e385361f8137 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -1596,6 +1596,20 @@ config ARM64_AMU_EXTN
- 	  correctly reflect reality. Most commonly, the value read will be 0,
- 	  indicating that the counter is not enabled.
- 
-+config ARM64_TLB_RANGE
-+	bool "Enable support for tlbi range feature"
-+	default y
-+	depends on AS_HAS_ARMV8_4
-+	help
-+	  ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-+	  range of input addresses.
-+
-+	  The feature introduces new assembly instructions, and they were
-+	  support when binutils >= 2.30.
-+
-+config AS_HAS_ARMV8_4
-+	def_bool $(cc-option, -Wa$(comma)-march=armv8.4-a)
-+
- endmenu
- 
- menu "ARMv8.5 architectural features"
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-index a0d94d063fa8..4e823b97c92e 100644
---- a/arch/arm64/Makefile
-+++ b/arch/arm64/Makefile
-@@ -82,11 +82,18 @@ endif
- # compiler to generate them and consequently to break the single image contract
- # we pass it only to the assembler. This option is utilized only in case of non
- # integrated assemblers.
-+ifneq ($(CONFIG_AS_HAS_ARMV8_4), y)
- branch-prot-flags-$(CONFIG_AS_HAS_PAC) += -Wa,-march=armv8.3-a
- endif
-+endif
- 
- KBUILD_CFLAGS += $(branch-prot-flags-y)
- 
-+ifeq ($(CONFIG_AS_HAS_ARMV8_4), y)
-+# make sure to pass the newest target architecture to -march.
-+KBUILD_CFLAGS	+= -Wa,-march=armv8.4-a
-+endif
-+
- ifeq ($(CONFIG_SHADOW_CALL_STACK), y)
- KBUILD_CFLAGS	+= -ffixed-x18
- endif
--- 
-2.19.1
+							Thanx, Paul
