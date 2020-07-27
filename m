@@ -1,15 +1,15 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 6/7] mm: secretmem: add ability to reserve memory at boot
-Date: Mon, 27 Jul 2020 19:29:34 +0300
-Message-ID: <20200727162935.31714-7-rppt@kernel.org>
+Subject: [PATCH v2 7/7] mm: secretmem: add ability to reserve memory at boot
+Date: Mon, 27 Jul 2020 19:29:35 +0300
+Message-ID: <20200727162935.31714-8-rppt@kernel.org>
 References: <20200727162935.31714-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:59508 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:59694 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732177AbgG0Qaj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Jul 2020 12:30:39 -0400
+        id S1729573AbgG0Qar (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Jul 2020 12:30:47 -0400
 In-Reply-To: <20200727162935.31714-1-rppt@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -31,199 +31,23 @@ pool for secret memory needs.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- mm/secretmem.c | 134 ++++++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 126 insertions(+), 8 deletions(-)
+ Documentation/admin-guide/kernel-parameters.txt | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/mm/secretmem.c b/mm/secretmem.c
-index da609701e10e..35616e3982a4 100644
---- a/mm/secretmem.c
-+++ b/mm/secretmem.c
-@@ -8,6 +8,7 @@
- #include <linux/pagemap.h>
- #include <linux/genalloc.h>
- #include <linux/syscalls.h>
-+#include <linux/memblock.h>
- #include <linux/pseudo_fs.h>
- #include <linux/set_memory.h>
- #include <linux/sched/signal.h>
-@@ -30,6 +31,39 @@ struct secretmem_ctx {
- 	unsigned int mode;
- };
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index fb95fad81c79..6f3c2f28160f 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -4548,6 +4548,10 @@
+ 			Format: integer between 0 and 10
+ 			Default is 0.
  
-+struct secretmem_pool {
-+	struct gen_pool *pool;
-+	unsigned long reserved_size;
-+	void *reserved;
-+};
++	secretmem=n[KMG]
++			[KNL,BOOT] Reserve specified amount of memory to
++			back mappings of secret memory.
 +
-+static struct secretmem_pool secretmem_pool;
-+
-+static struct page *secretmem_alloc_huge_page(gfp_t gfp)
-+{
-+	struct gen_pool *pool = secretmem_pool.pool;
-+	unsigned long addr = 0;
-+	struct page *page = NULL;
-+
-+	if (pool) {
-+		if (gen_pool_avail(pool) < PMD_SIZE)
-+			return NULL;
-+
-+		addr = gen_pool_alloc(pool, PMD_SIZE);
-+		if (!addr)
-+			return NULL;
-+
-+		page = virt_to_page(addr);
-+	} else {
-+		page = alloc_pages(gfp, PMD_PAGE_ORDER);
-+
-+		if (page)
-+			split_page(page, PMD_PAGE_ORDER);
-+	}
-+
-+	return page;
-+}
-+
- static int secretmem_pool_increase(struct secretmem_ctx *ctx, gfp_t gfp)
- {
- 	unsigned long nr_pages = (1 << PMD_PAGE_ORDER);
-@@ -38,12 +72,11 @@ static int secretmem_pool_increase(struct secretmem_ctx *ctx, gfp_t gfp)
- 	struct page *page;
- 	int err;
- 
--	page = alloc_pages(gfp, PMD_PAGE_ORDER);
-+	page = secretmem_alloc_huge_page(gfp);
- 	if (!page)
- 		return -ENOMEM;
- 
- 	addr = (unsigned long)page_address(page);
--	split_page(page, PMD_PAGE_ORDER);
- 
- 	err = gen_pool_add(pool, addr, PMD_SIZE, NUMA_NO_NODE);
- 	if (err) {
-@@ -269,11 +302,13 @@ SYSCALL_DEFINE1(memfd_secret, unsigned long, flags)
- 	return err;
- }
- 
--static void secretmem_cleanup_chunk(struct gen_pool *pool,
--				    struct gen_pool_chunk *chunk, void *data)
-+static void secretmem_recycle_range(unsigned long start, unsigned long end)
-+{
-+	gen_pool_free(secretmem_pool.pool, start, PMD_SIZE);
-+}
-+
-+static void secretmem_release_range(unsigned long start, unsigned long end)
- {
--	unsigned long start = chunk->start_addr;
--	unsigned long end = chunk->end_addr;
- 	unsigned long nr_pages, addr;
- 
- 	nr_pages = (end - start + 1) / PAGE_SIZE;
-@@ -283,6 +318,18 @@ static void secretmem_cleanup_chunk(struct gen_pool *pool,
- 		put_page(virt_to_page(addr));
- }
- 
-+static void secretmem_cleanup_chunk(struct gen_pool *pool,
-+				    struct gen_pool_chunk *chunk, void *data)
-+{
-+	unsigned long start = chunk->start_addr;
-+	unsigned long end = chunk->end_addr;
-+
-+	if (secretmem_pool.pool)
-+		secretmem_recycle_range(start, end);
-+	else
-+		secretmem_release_range(start, end);
-+}
-+
- static void secretmem_cleanup_pool(struct secretmem_ctx *ctx)
- {
- 	struct gen_pool *pool = ctx->pool;
-@@ -322,14 +369,85 @@ static struct file_system_type secretmem_fs = {
- 	.kill_sb	= kill_anon_super,
- };
- 
-+static int secretmem_reserved_mem_init(void)
-+{
-+	struct gen_pool *pool;
-+	struct page *page;
-+	void *addr;
-+	int err;
-+
-+	if (!secretmem_pool.reserved)
-+		return 0;
-+
-+	pool = gen_pool_create(PMD_SHIFT, NUMA_NO_NODE);
-+	if (!pool)
-+		return -ENOMEM;
-+
-+	err = gen_pool_add(pool, (unsigned long)secretmem_pool.reserved,
-+			   secretmem_pool.reserved_size, NUMA_NO_NODE);
-+	if (err)
-+		goto err_destroy_pool;
-+
-+	for (addr = secretmem_pool.reserved;
-+	     addr < secretmem_pool.reserved + secretmem_pool.reserved_size;
-+	     addr += PAGE_SIZE) {
-+		page = virt_to_page(addr);
-+		__ClearPageReserved(page);
-+		set_page_count(page, 1);
-+	}
-+
-+	secretmem_pool.pool = pool;
-+	page = virt_to_page(secretmem_pool.reserved);
-+	__kernel_map_pages(page, secretmem_pool.reserved_size / PAGE_SIZE, 0);
-+	return 0;
-+
-+err_destroy_pool:
-+	gen_pool_destroy(pool);
-+	return err;
-+}
-+
- static int secretmem_init(void)
- {
--	int ret = 0;
-+	int ret;
-+
-+	ret = secretmem_reserved_mem_init();
-+	if (ret)
-+		return ret;
- 
- 	secretmem_mnt = kern_mount(&secretmem_fs);
--	if (IS_ERR(secretmem_mnt))
-+	if (IS_ERR(secretmem_mnt)) {
-+		gen_pool_destroy(secretmem_pool.pool);
- 		ret = PTR_ERR(secretmem_mnt);
-+	}
- 
- 	return ret;
- }
- fs_initcall(secretmem_init);
-+
-+static int __init secretmem_setup(char *str)
-+{
-+	phys_addr_t align = PMD_SIZE;
-+	unsigned long reserved_size;
-+	void *reserved;
-+
-+	reserved_size = memparse(str, NULL);
-+	if (!reserved_size)
-+		return 0;
-+
-+	if (reserved_size * 2 > PUD_SIZE)
-+		align = PUD_SIZE;
-+
-+	reserved = memblock_alloc(reserved_size, align);
-+	if (!reserved) {
-+		pr_err("failed to reserve %lu bytes\n", secretmem_pool.reserved_size);
-+		return 0;
-+	}
-+
-+	secretmem_pool.reserved_size = reserved_size;
-+	secretmem_pool.reserved = reserved;
-+
-+	pr_info("reserved %luM\n", reserved_size >> 20);
-+
-+	return 1;
-+}
-+__setup("secretmem=", secretmem_setup);
+ 	skew_tick=	[KNL] Offset the periodic timer tick per cpu to mitigate
+ 			xtime_lock contention on larger systems, and/or RCU lock
+ 			contention on all systems with CONFIG_MAXSMP set.
 -- 
 2.26.2
