@@ -1,61 +1,88 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH v2 7/7] mm: secretmem: add ability to reserve memory at
- boot
-Date: Mon, 27 Jul 2020 20:11:02 +0300
-Message-ID: <20200727171102.GA3655207@kernel.org>
-References: <20200727162935.31714-1-rppt@kernel.org>
- <20200727162935.31714-8-rppt@kernel.org>
+From: Marc Zyngier <maz@kernel.org>
+Subject: Re: [RESEND RFC PATCH v1] arm64: kvm: flush tlbs by range in
+ unmap_stage2_range function
+Date: Mon, 27 Jul 2020 18:12:34 +0100
+Message-ID: <fb4756b58892fbc2022cf1f5b9320c27@kernel.org>
+References: <20200724134315.805-1-yezhenyu2@huawei.com>
+ <5d54c860b3b4e7a98e4d53397e6424ae@kernel.org>
+ <f74277fd-5af2-c46f-169f-c15a321165cd@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200727162935.31714-8-rppt@kernel.org>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Christopher Lameter <cl@linux.com>, Dan Williams <dan.j.williams@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Elena Reshetova <elena.reshetova@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>, Ingo Molnar <mingo@redhat.com>, James Bottomley <jejb@linux.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <paul.walmsley@sifiv>
+Content-Type: text/plain; charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <f74277fd-5af2-c46f-169f-c15a321165cd@huawei.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: james.morse@arm.com, julien.thierry.kdev@gmail.com, suzuki.poulose@arm.com, catalin.marinas@arm.com, will@kernel.org, steven.price@arm.com, mark.rutland@arm.com, ascull@google.com, kvm@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com
 List-Id: linux-arch.vger.kernel.org
 
-Oops, something went wrong with the rebase, this should have been
-squashed into the previous patch...
+Zhenyu,
 
-On Mon, Jul 27, 2020 at 07:29:35PM +0300, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
+On 2020-07-27 15:51, Zhenyu Ye wrote:
+> Hi Marc,
 > 
-> Taking pages out from the direct map and bringing them back may create
-> undesired fragmentation and usage of the smaller pages in the direct
-> mapping of the physical memory.
+> On 2020/7/26 1:40, Marc Zyngier wrote:
+>> On 2020-07-24 14:43, Zhenyu Ye wrote:
+>>> Now in unmap_stage2_range(), we flush tlbs one by one just after the
+>>> corresponding pages cleared.  However, this may cause some 
+>>> performance
+>>> problems when the unmap range is very large (such as when the vm
+>>> migration rollback, this may cause vm downtime too loog).
+>> 
+>> You keep resending this patch, but you don't give any numbers
+>> that would back your assertion.
 > 
-> This can be avoided if a significantly large area of the physical memory
-> would be reserved for secretmem purposes at boot time.
+> I have tested the downtime of vm migration rollback on arm64, and found
+> the downtime could even take up to 7s.  Then I traced the cost of
+> unmap_stage2_range() and found it could take a maximum of 1.2s.  The
+> vm configuration is as follows (with high memory pressure, the dirty
+> rate is about 500MB/s):
 > 
-> Add ability to reserve physical memory for secretmem at boot time using
-> "secretmem" kernel parameter and then use that reserved memory as a global
-> pool for secret memory needs.
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> ---
->  Documentation/admin-guide/kernel-parameters.txt | 4 ++++
->  1 file changed, 4 insertions(+)
-> 
-> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-> index fb95fad81c79..6f3c2f28160f 100644
-> --- a/Documentation/admin-guide/kernel-parameters.txt
-> +++ b/Documentation/admin-guide/kernel-parameters.txt
-> @@ -4548,6 +4548,10 @@
->  			Format: integer between 0 and 10
->  			Default is 0.
->  
-> +	secretmem=n[KMG]
-> +			[KNL,BOOT] Reserve specified amount of memory to
-> +			back mappings of secret memory.
-> +
->  	skew_tick=	[KNL] Offset the periodic timer tick per cpu to mitigate
->  			xtime_lock contention on larger systems, and/or RCU lock
->  			contention on all systems with CONFIG_MAXSMP set.
-> -- 
-> 2.26.2
-> 
+>   <memory unit='GiB'>192</memory>
+>   <vcpu placement='static'>48</vcpu>
+>   <memoryBacking>
+>     <hugepages>
+>       <page size='1' unit='GiB' nodeset='0'/>
+>     </hugepages>
+>   </memoryBacking>
 
+This means nothing to me, I'm afraid.
+
+> 
+> After this patch applied, the cost of unmap_stage2_range() can reduce 
+> to
+> 16ms, and VM downtime can be less than 1s.
+> 
+> The following figure shows a clear comparison:
+> 
+> 	      |	vm downtime  |	cost of unmap_stage2_range()
+> --------------+--------------+----------------------------------
+> before change |		7s   |		1200 ms
+> after  change |		1s   |		  16 ms
+> --------------+--------------+----------------------------------
+
+I don't see how you turn a 1.184s reduction into a 6s gain.
+Surely there is more to it than what you posted.
+
+>>> +
+>>> +    if ((end - start) >= 512 << (PAGE_SHIFT - 12)) {
+>>> +        __tlbi(vmalls12e1is);
+>> 
+>> And what is this magic value based on? You don't even mention in the
+>> commit log that you are taking this shortcut.
+>> 
+> 
+> 
+> If the page num is bigger than 512, flush all tlbs of this vm to avoid
+> soft lock-ups on large TLB flushing ranges.  Just like what the
+> flush_tlb_range() does.
+
+I'm not sure this is applicable here, and it doesn't mean
+this is as good on other systems.
+
+Thanks,
+
+         M.
 -- 
-Sincerely yours,
-Mike.
+Jazz is not dead. It just smells funny...
