@@ -1,123 +1,69 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [patch V3 01/13] entry: Provide generic syscall entry functionality
-Date: Mon, 27 Jul 2020 15:28:40 -0700
-Message-ID: <CALCETrW_CrpYnBWipDQkznRakbb2FnayiN4PLWH7Mid5-ryBYw@mail.gmail.com>
-References: <20200716182208.180916541@linutronix.de> <20200716185424.011950288@linutronix.de>
+Subject: Re: [patch V4 03/15] entry: Provide generic syscall exit function
+Date: Mon, 27 Jul 2020 15:37:01 -0700
+Message-ID: <CALCETrVwrQ6oCxwEraxLF8ia8P8HUR2czrfqYtgQEdm8DM=RLQ@mail.gmail.com>
+References: <20200721105706.030914876@linutronix.de> <20200721110808.562407874@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <kvm-owner@vger.kernel.org>
-In-Reply-To: <20200716185424.011950288@linutronix.de>
-Sender: kvm-owner@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200721110808.562407874@linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, Gabriel Krisman Bertazi <krisman@collabora.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 16, 2020 at 12:50 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+On Tue, Jul 21, 2020 at 4:08 AM Thomas Gleixner <tglx@linutronix.de> wrote:
 >
-> From: Thomas Gleixner <tglx@linutronix.de>
+> Like syscall entry all architectures have similar and pointlessly different
+> code to handle pending work before returning from a syscall to user space.
 >
-> On syscall entry certain work needs to be done:
+>   1) One-time syscall exit work:
+>       - rseq syscall exit
+>       - audit
+>       - syscall tracing
+>       - tracehook (single stepping)
 >
->    - Establish state (lockdep, context tracking, tracing)
->    - Conditional work (ptrace, seccomp, audit...)
+>   2) Preparatory work
+>       - Exit to user mode loop (common TIF handling).
+>       - Architecture specific one time work arch_exit_to_user_mode_prepare()
+>       - Address limit and lockdep checks
 >
-> This code is needlessly duplicated and  different in all
-> architectures.
+>   3) Final transition (lockdep, tracing, context tracking, RCU). Invokes
+>      arch_exit_to_user_mode() to handle e.g. speculation mitigations
 >
-> +
-> +/**
-> + * arch_syscall_enter_seccomp - Architecture specific seccomp invocation
-> + * @regs:      Pointer to currents pt_regs
-> + *
-> + * Returns: The original or a modified syscall number
-> + *
-> + * Invoked from syscall_enter_from_user_mode(). Can be replaced by
-> + * architecture specific code.
-> + */
-> +static inline long arch_syscall_enter_seccomp(struct pt_regs *regs);
+> Provide a generic version based on the x86 code which has all the RCU and
+> instrumentation protections right.
+>
+> Provide a variant for interrupt return to user mode as well which shares
+> the above #2 and #3 work items.
 
-Ick.  I'd rather see arch_populate_seccomp_data() and kill this hook.
-But we can clean this up later.
+I still don't love making the syscall exit path also do the
+non-syscall stuff.  Do you like my suggestion of instead having a
+generic function to do the syscall complete with all the entry and
+exit stuff?
 
-> +/**
-> + * arch_syscall_enter_audit - Architecture specific audit invocation
-> + * @regs:      Pointer to currents pt_regs
-> + *
-> + * Invoked from syscall_enter_from_user_mode(). Must be replaced by
-> + * architecture specific code if the architecture supports audit.
-> + */
-> +static inline void arch_syscall_enter_audit(struct pt_regs *regs);
-> +
+The singlestep handling is a mess.  I'm not convinced that x86 does
+this sensibly.  Right now, I *think* we are quite likely to not send
+SIGTRAP on the way out of syscalls if TF is set, and we'll actually
+execute one more user instruction before sending the signal.  One
+might reasonably debate whether this is a bug, but we should probably
+figure it out at some point.
 
-Let's pass u32 arch here.
+That latter bit is relevant to your patch because the fix might end up
+being something like this:
 
-> +/**
-> + * syscall_enter_from_user_mode - Check and handle work before invoking
-> + *                              a syscall
-> + * @regs:      Pointer to currents pt_regs
-> + * @syscall:   The syscall number
-> + *
-> + * Invoked from architecture specific syscall entry code with interrupts
-> + * disabled. The calling code has to be non-instrumentable. When the
-> + * function returns all state is correct and the subsequent functions can be
-> + * instrumented.
-> + *
-> + * Returns: The original or a modified syscall number
-> + *
-> + * If the returned syscall number is -1 then the syscall should be
-> + * skipped. In this case the caller may invoke syscall_set_error() or
-> + * syscall_set_return_value() first.  If neither of those are called and -1
-> + * is returned, then the syscall will fail with ENOSYS.
-> + *
-> + * The following functionality is handled here:
-> + *
-> + *  1) Establish state (lockdep, RCU (context tracking), tracing)
-> + *  2) TIF flag dependent invocations of arch_syscall_enter_tracehook(),
-> + *     arch_syscall_enter_seccomp(), trace_sys_enter()
-> + *  3) Invocation of arch_syscall_enter_audit()
-> + */
-> +long syscall_enter_from_user_mode(struct pt_regs *regs, long syscall);
+void do_syscall_64(...)
+{
+  unsigned long orig_flags;
+  idtentry_enter();
+  instrumentation_begin();
+  generic_do_syscall(regs, regs->orig_ax, AUDIT_ARCH_X86_64);
+  if (unlikely(orig_flags & regs->flags & X86_EFLAGS_TF))
+    raise SIGTRAP -- pretend we got #DB.
+  instrumentation_end();
+  idtentry_exit(); <-- signal is delivered here
+}
 
-This should IMO also take u32 arch.
-
-I'm also uneasy about having this do the idtentry/irqentry stuff as
-well as the syscall stuff.  Is there a particular reason you did it
-this way instead of having callers do:
-
-idtentry_enter();
-instrumentation_begin();
-syscall_enter_from_user_mode();
-
-FWIW, I think we could make this even better -- couldn't this get
-folded together with syscall *exit* and become:
-
-idtentry_enter();
-instrumentation_begin();
-generic_syscall();
-instrumentation_end();
-idtentry_exit();
-
-and generic_syscall() would call arch_dispatch_syscall(regs, arch, syscall_nr);
-
-
-
-> +
-> +/**
-> + * irqentry_enter_from_user_mode - Establish state before invoking the irq handler
-> + * @regs:      Pointer to currents pt_regs
-> + *
-> + * Invoked from architecture specific entry code with interrupts disabled.
-> + * Can only be called when the interrupt entry came from user mode. The
-> + * calling code must be non-instrumentable.  When the function returns all
-> + * state is correct and the subsequent functions can be instrumented.
-> + *
-> + * The function establishes state (lockdep, RCU (context tracking), tracing)
-> + */
-> +void irqentry_enter_from_user_mode(struct pt_regs *regs);
-
-Unless the rest of the series works differently from what I expect, I
-don't love this name.  How about normal_entry_from_user_mode() or
-ordinary_entry_from_user_mode()?  After all, this seems to cover IRQ,
-all the non-horrible exceptions, and (internally) syscalls.
-
---Andy
+That logic is probably all kinds of buggy, but the point is that the
+special handling probably wants to be done between the generic syscall
+code and the exit code.
