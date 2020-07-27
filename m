@@ -1,53 +1,74 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 7/7] mm: secretmem: add ability to reserve memory at boot
-Date: Mon, 27 Jul 2020 19:29:35 +0300
-Message-ID: <20200727162935.31714-8-rppt@kernel.org>
-References: <20200727162935.31714-1-rppt@kernel.org>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Date: Mon, 27 Jul 2020 12:31:49 -0400
+Message-ID: <20200727163149.GD1468275@rowland.harvard.edu>
+References: <20200717044427.68747-1-ebiggers@kernel.org>
+ <20200717174750.GQ12769@casper.infradead.org>
+ <20200718013839.GD2183@sol.localdomain>
+ <20200718021304.GS12769@casper.infradead.org>
+ <20200718052818.GF2183@sol.localdomain>
+ <20200727151746.GC1468275@rowland.harvard.edu>
+ <20200727152827.GM23808@casper.infradead.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:59694 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729573AbgG0Qar (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Jul 2020 12:30:47 -0400
-In-Reply-To: <20200727162935.31714-1-rppt@kernel.org>
+Received: from netrider.rowland.org ([192.131.102.5]:56497 "HELO
+        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1731013AbgG0Qbu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2020 12:31:50 -0400
+Content-Disposition: inline
+In-Reply-To: <20200727152827.GM23808@casper.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Christopher Lameter <cl@linux.com>, Dan Williams <dan.j.williams@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Elena Reshetova <elena.reshetova@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>, Ingo Molnar <mingo@redhat.com>, James Bottomley <jejb@linux.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Mike Rapoport <rppt@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Palmer Dabbelt <palmer@dabbelt.com>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On Mon, Jul 27, 2020 at 04:28:27PM +0100, Matthew Wilcox wrote:
+> On Mon, Jul 27, 2020 at 11:17:46AM -0400, Alan Stern wrote:
+> > Given a type "T", an object x of type pointer-to-T, and a function
+> > "func" that takes various arguments and returns a pointer-to-T, the
+> > accepted API for calling func once would be to create once_func() as
+> > follows:
+> > 
+> > T *once_func(T **ppt, args...)
+> > {
+> > 	static DEFINE_MUTEX(mut);
+> > 	T *p;
+> > 
+> > 	p = smp_load_acquire(ppt);	/* Mild optimization */
+> > 	if (p)
+> > 		return p;
+> > 
+> > 	mutex_lock(mut);
+> > 	p = smp_load_acquire(ppt);
+> > 	if (!p) {
+> > 		p = func(args...);
+> > 		if (!IS_ERR_OR_NULL(p))
+> > 			smp_store_release(ppt, p);
+> > 	}
+> > 	mutex_unlock(mut);
+> > 	return p;
+> > }
+> > 
+> > Users then would have to call once_func(&x, args...) and check the
+> > result.  Different x objects would constitute different "once"
+> > domains.
+> [...]
+> > In fact, the only drawback I can think of is that because this relies
+> > on a single mutex for all the different possible x's, it might lead to
+> > locking conflicts (if func had to call once_func() recursively, for
+> > example).  In most reasonable situations such conflicts would not
+> > arise.
+> 
+> Another drawback for this approach relative to my get_foo() approach
+> upthread is that, because we don't have compiler support, there's no
+> enforcement that accesses to 'x' go through once_func().  My approach
+> wraps accesses in a deliberately-opaque struct so you have to write
+> some really ugly code to get at the raw value, and it's just easier to
+> call get_foo().
 
-Taking pages out from the direct map and bringing them back may create
-undesired fragmentation and usage of the smaller pages in the direct
-mapping of the physical memory.
+Something like that could be included in once_func too.  It's relatively 
+tangential to the main point I was making, which was to settle on an 
+overall API and discuss how it should be described in recipes.txt.
 
-This can be avoided if a significantly large area of the physical memory
-would be reserved for secretmem purposes at boot time.
-
-Add ability to reserve physical memory for secretmem at boot time using
-"secretmem" kernel parameter and then use that reserved memory as a global
-pool for secret memory needs.
-
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- Documentation/admin-guide/kernel-parameters.txt | 4 ++++
- 1 file changed, 4 insertions(+)
-
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index fb95fad81c79..6f3c2f28160f 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -4548,6 +4548,10 @@
- 			Format: integer between 0 and 10
- 			Default is 0.
- 
-+	secretmem=n[KMG]
-+			[KNL,BOOT] Reserve specified amount of memory to
-+			back mappings of secret memory.
-+
- 	skew_tick=	[KNL] Offset the periodic timer tick per cpu to mitigate
- 			xtime_lock contention on larger systems, and/or RCU lock
- 			contention on all systems with CONFIG_MAXSMP set.
--- 
-2.26.2
+Alan Stern
