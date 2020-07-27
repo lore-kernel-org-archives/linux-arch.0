@@ -1,91 +1,83 @@
-From: Anthony Yznaga <anthony.yznaga@oracle.com>
-Subject: [RFC PATCH 5/5] mm: introduce MADV_DOEXEC
-Date: Mon, 27 Jul 2020 10:11:27 -0700
-Message-ID: <1595869887-23307-6-git-send-email-anthony.yznaga@oracle.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+Date: Mon, 27 Jul 2020 12:07:53 -0500
+Message-ID: <87pn8glwd2.fsf@x220.int.ebiederm.org>
 References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from out03.mta.xmission.com ([166.70.13.233]:49706 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728712AbgG0RLQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2020 13:11:16 -0400
 In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
-List-Id: linux-arch.vger.kernel.org
+        (Anthony Yznaga's message of "Mon, 27 Jul 2020 10:11:22 -0700")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Anthony Yznaga <anthony.yznaga@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
 
-madvise MADV_DOEXEC preserves a memory range across exec.  Initially
-only supported for non-executable, non-stack, anonymous memory.
-MADV_DONTEXEC reverts the effect of a previous MADV_DOXEXEC call and
-undoes the preservation of the range.  After a successful exec call,
-the behavior of all ranges reverts to MADV_DONTEXEC.
+Anthony Yznaga <anthony.yznaga@oracle.com> writes:
 
-Signed-off-by: Steve Sistare <steven.sistare@oracle.com>
-Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
----
- include/uapi/asm-generic/mman-common.h |  3 +++
- mm/madvise.c                           | 25 +++++++++++++++++++++++++
- 2 files changed, 28 insertions(+)
+> This patchset adds support for preserving an anonymous memory range across
+> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit for
+> sharing memory in this manner, as opposed to re-attaching to a named shared
+> memory segment, is to ensure it is mapped at the same virtual address in
+> the new process as it was in the old one.  An intended use for this is to
+> preserve guest memory for guests using vfio while qemu exec's an updated
+> version of itself.  By ensuring the memory is preserved at a fixed address,
+> vfio mappings and their associated kernel data structures can remain valid.
+> In addition, for the qemu use case, qemu instances that back guest RAM with
+> anonymous memory can be updated.
 
-diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-index f94f65d429be..7c5f616b28f7 100644
---- a/include/uapi/asm-generic/mman-common.h
-+++ b/include/uapi/asm-generic/mman-common.h
-@@ -72,6 +72,9 @@
- #define MADV_COLD	20		/* deactivate these pages */
- #define MADV_PAGEOUT	21		/* reclaim these pages */
- 
-+#define MADV_DOEXEC	22		/* do inherit across exec */
-+#define MADV_DONTEXEC	23		/* don't inherit across exec */
-+
- /* compatibility flags */
- #define MAP_FILE	0
- 
-diff --git a/mm/madvise.c b/mm/madvise.c
-index dd1d43cf026d..b447fa748649 100644
---- a/mm/madvise.c
-+++ b/mm/madvise.c
-@@ -103,6 +103,26 @@ static long madvise_behavior(struct vm_area_struct *vma,
- 	case MADV_KEEPONFORK:
- 		new_flags &= ~VM_WIPEONFORK;
- 		break;
-+	case MADV_DOEXEC:
-+		/*
-+		 * MADV_DOEXEC is only supported on private, non-executable,
-+		 * non-stack anonymous memory and if the VM_EXEC_KEEP flag
-+		 * is available.
-+		 */
-+		if (!VM_EXEC_KEEP || vma->vm_file || vma->vm_flags & (VM_EXEC|VM_SHARED|VM_STACK)) {
-+			error = -EINVAL;
-+			goto out;
-+		}
-+		new_flags |= (new_flags & ~VM_MAYEXEC) | VM_EXEC_KEEP;
-+		break;
-+	case MADV_DONTEXEC:
-+		if (!VM_EXEC_KEEP) {
-+			error = -EINVAL;
-+			goto out;
-+		}
-+		if (new_flags & VM_EXEC_KEEP)
-+			new_flags |= (new_flags & ~VM_EXEC_KEEP) | VM_MAYEXEC;
-+		break;
- 	case MADV_DONTDUMP:
- 		new_flags |= VM_DONTDUMP;
- 		break;
-@@ -983,6 +1003,8 @@ static int madvise_inject_error(int behavior,
- 	case MADV_SOFT_OFFLINE:
- 	case MADV_HWPOISON:
- #endif
-+	case MADV_DOEXEC:
-+	case MADV_DONTEXEC:
- 		return true;
- 
- 	default:
-@@ -1037,6 +1059,9 @@ static int madvise_inject_error(int behavior,
-  *  MADV_DONTDUMP - the application wants to prevent pages in the given range
-  *		from being included in its core dump.
-  *  MADV_DODUMP - cancel MADV_DONTDUMP: no longer exclude from core dump.
-+ *  MADV_DOEXEC - On exec, preserve and duplicate this area in the new process
-+ *		  if the new process allows it.
-+ *  MADV_DONTEXEC - Undo the effect of MADV_DOEXEC.
-  *
-  * return values:
-  *  zero    - success
--- 
-1.8.3.1
+What is wrong with using a file descriptor to a possibly deleted file
+and re-mmaping it?
+
+There is already MAP_FIXED that allows you to ensure you have the same
+address.
+
+I think all it would take would be a small protocol from one version
+to the next to say map file descriptor #N and address #A.  Something
+easily passed on the command line.
+
+There is just enough complexity in exec currently that our
+implementation of exec is already teetering.  So if we could use
+existing mechanisms it would be good.
+
+And I don't see why this version of sharing a mmap area would be
+particularly general.  I do imagine that being able to force a
+mmap area into a setuid executable would be a fun attack vector.
+
+Perhaps I missed this in my skim of these patches but I did not see
+anything that guarded this feature against an exec that changes an
+applications privileges.
+
+Eric
+
+
+> Patches 1 and 2 ensure that loading of ELF load segments does not silently
+> clobber existing VMAS, and remove assumptions that the stack is the only
+> VMA in the mm when the stack is set up.  Patch 1 re-introduces the use of
+> MAP_FIXED_NOREPLACE to load ELF binaries that addresses the previous issues
+> and could be considered on its own.
+>
+> Patches 3, 4, and 5 introduce the feature and an opt-in method for its use
+> using an ELF note.
+>
+> Anthony Yznaga (5):
+>   elf: reintroduce using MAP_FIXED_NOREPLACE for elf executable mappings
+>   mm: do not assume only the stack vma exists in setup_arg_pages()
+>   mm: introduce VM_EXEC_KEEP
+>   exec, elf: require opt-in for accepting preserved mem
+>   mm: introduce MADV_DOEXEC
+>
+>  arch/x86/Kconfig                       |   1 +
+>  fs/binfmt_elf.c                        | 196 +++++++++++++++++++++++++--------
+>  fs/exec.c                              |  33 +++++-
+>  include/linux/binfmts.h                |   7 +-
+>  include/linux/mm.h                     |   5 +
+>  include/uapi/asm-generic/mman-common.h |   3 +
+>  kernel/fork.c                          |   2 +-
+>  mm/madvise.c                           |  25 +++++
+>  mm/mmap.c                              |  47 ++++++++
+>  9 files changed, 266 insertions(+), 53 deletions(-)
