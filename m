@@ -1,96 +1,204 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:41176 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1730465AbgGVO7q (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jul 2020 10:59:46 -0400
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH v4 12/13] task_isolation: ringbuffer: don't interrupt CPUs
- running isolated tasks on buffer resize
-Date: Wed, 22 Jul 2020 14:59:13 +0000
-Message-ID: <041a4c844b4a0f69aba6df4686e1952dd0f91931.camel@marvell.com>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-In-Reply-To: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <5763AE40EEE4674CB00A185A60CF3731@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
-MIME-Version: 1.0
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=LHd7=BG=kvack.org=owner-linux-mm@kernel.org>
+From: Anthony Yznaga <anthony.yznaga@oracle.com>
+Subject: [RFC PATCH 4/5] exec, elf: require opt-in for accepting preserved mem
+Date: Mon, 27 Jul 2020 10:11:26 -0700
+Message-ID: <1595869887-23307-5-git-send-email-anthony.yznaga@oracle.com>
+In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Message-ID: <20200722145913.BKu42i9vhgsu97X7TASxRVVPk7SJOFiOeys1Kx2mYd0@z>
+Message-ID: <20200727171126.IHjjk3LrW16U7YRMb-Yq7mlxGwTFCVH0hRmHirsIb-Y@z>
 
-RnJvbTogWXVyaSBOb3JvdiA8eW5vcm92QG1hcnZlbGwuY29tPg0KDQpDUFVzIHJ1bm5pbmcgaXNv
-bGF0ZWQgdGFza3MgYXJlIGluIHVzZXJzcGFjZSwgc28gdGhleSBkb24ndCBoYXZlIHRvDQpwZXJm
-b3JtIHJpbmcgYnVmZmVyIHVwZGF0ZXMgaW1tZWRpYXRlbHkuIElmIHJpbmdfYnVmZmVyX3Jlc2l6
-ZSgpDQpzY2hlZHVsZXMgdGhlIHVwZGF0ZSBvbiB0aG9zZSBDUFVzLCBpc29sYXRpb24gaXMgYnJv
-a2VuLiBUbyBwcmV2ZW50DQp0aGF0LCB1cGRhdGVzIGZvciBDUFVzIHJ1bm5pbmcgaXNvbGF0ZWQg
-dGFza3MgYXJlIHBlcmZvcm1lZCBsb2NhbGx5LA0KbGlrZSBmb3Igb2ZmbGluZSBDUFVzLg0KDQpB
-IHJhY2UgY29uZGl0aW9uIGJldHdlZW4gdGhpcyB1cGRhdGUgYW5kIGlzb2xhdGlvbiBicmVha2lu
-ZyBpcyBhdm9pZGVkDQphdCB0aGUgY29zdCBvZiBkaXNhYmxpbmcgcGVyX2NwdSBidWZmZXIgd3Jp
-dGluZyBmb3IgdGhlIHRpbWUgb2YgdXBkYXRlDQp3aGVuIGl0IGNvaW5jaWRlcyB3aXRoIGlzb2xh
-dGlvbiBicmVha2luZy4NCg0KU2lnbmVkLW9mZi1ieTogWXVyaSBOb3JvdiA8eW5vcm92QG1hcnZl
-bGwuY29tPg0KW2FiZWxpdHNAbWFydmVsbC5jb206IHVwZGF0ZWQgdG8gcHJldmVudCByYWNlIHdp
-dGggaXNvbGF0aW9uIGJyZWFraW5nXQ0KU2lnbmVkLW9mZi1ieTogQWxleCBCZWxpdHMgPGFiZWxp
-dHNAbWFydmVsbC5jb20+DQotLS0NCiBrZXJuZWwvdHJhY2UvcmluZ19idWZmZXIuYyB8IDYzICsr
-KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKystLS0tDQogMSBmaWxlIGNoYW5nZWQsIDU3
-IGluc2VydGlvbnMoKyksIDYgZGVsZXRpb25zKC0pDQoNCmRpZmYgLS1naXQgYS9rZXJuZWwvdHJh
-Y2UvcmluZ19idWZmZXIuYyBiL2tlcm5lbC90cmFjZS9yaW5nX2J1ZmZlci5jDQppbmRleCAwMDg2
-N2ZmODI0MTIuLjIyZDQ3MzFmMGRlZiAxMDA2NDQNCi0tLSBhL2tlcm5lbC90cmFjZS9yaW5nX2J1
-ZmZlci5jDQorKysgYi9rZXJuZWwvdHJhY2UvcmluZ19idWZmZXIuYw0KQEAgLTIxLDYgKzIxLDcg
-QEANCiAjaW5jbHVkZSA8bGludXgvZGVsYXkuaD4NCiAjaW5jbHVkZSA8bGludXgvc2xhYi5oPg0K
-ICNpbmNsdWRlIDxsaW51eC9pbml0Lmg+DQorI2luY2x1ZGUgPGxpbnV4L2lzb2xhdGlvbi5oPg0K
-ICNpbmNsdWRlIDxsaW51eC9oYXNoLmg+DQogI2luY2x1ZGUgPGxpbnV4L2xpc3QuaD4NCiAjaW5j
-bHVkZSA8bGludXgvY3B1Lmg+DQpAQCAtMTcwNSw2ICsxNzA2LDM4IEBAIHN0YXRpYyB2b2lkIHVw
-ZGF0ZV9wYWdlc19oYW5kbGVyKHN0cnVjdCB3b3JrX3N0cnVjdCAqd29yaykNCiAJY29tcGxldGUo
-JmNwdV9idWZmZXItPnVwZGF0ZV9kb25lKTsNCiB9DQogDQorc3RhdGljIGJvb2wgdXBkYXRlX2lm
-X2lzb2xhdGVkKHN0cnVjdCByaW5nX2J1ZmZlcl9wZXJfY3B1ICpjcHVfYnVmZmVyLA0KKwkJCSAg
-ICAgICBpbnQgY3B1KQ0KK3sNCisJYm9vbCBydiA9IGZhbHNlOw0KKw0KKwlzbXBfcm1iKCk7DQor
-CWlmICh0YXNrX2lzb2xhdGlvbl9vbl9jcHUoY3B1KSkgew0KKwkJLyoNCisJCSAqIENQVSBpcyBy
-dW5uaW5nIGlzb2xhdGVkIHRhc2suIFNpbmNlIGl0IG1heSBsb3NlDQorCQkgKiBpc29sYXRpb24g
-YW5kIHJlLWVudGVyIGtlcm5lbCBzaW11bHRhbmVvdXNseSB3aXRoDQorCQkgKiB0aGlzIHVwZGF0
-ZSwgZGlzYWJsZSByZWNvcmRpbmcgdW50aWwgaXQncyBkb25lLg0KKwkJICovDQorCQlhdG9taWNf
-aW5jKCZjcHVfYnVmZmVyLT5yZWNvcmRfZGlzYWJsZWQpOw0KKwkJLyogTWFrZSBzdXJlLCB1cGRh
-dGUgaXMgZG9uZSwgYW5kIGlzb2xhdGlvbiBzdGF0ZSBpcyBjdXJyZW50ICovDQorCQlzbXBfbWIo
-KTsNCisJCWlmICh0YXNrX2lzb2xhdGlvbl9vbl9jcHUoY3B1KSkgew0KKwkJCS8qDQorCQkJICog
-SWYgQ1BVIGlzIHN0aWxsIHJ1bm5pbmcgaXNvbGF0ZWQgdGFzaywgd2UNCisJCQkgKiBjYW4gYmUg
-c3VyZSB0aGF0IGJyZWFraW5nIGlzb2xhdGlvbiB3aWxsDQorCQkJICogaGFwcGVuIHdoaWxlIHJl
-Y29yZGluZyBpcyBkaXNhYmxlZCwgYW5kIENQVQ0KKwkJCSAqIHdpbGwgbm90IHRvdWNoIHRoaXMg
-YnVmZmVyIHVudGlsIHRoZSB1cGRhdGUNCisJCQkgKiBpcyBkb25lLg0KKwkJCSAqLw0KKwkJCXJi
-X3VwZGF0ZV9wYWdlcyhjcHVfYnVmZmVyKTsNCisJCQljcHVfYnVmZmVyLT5ucl9wYWdlc190b191
-cGRhdGUgPSAwOw0KKwkJCXJ2ID0gdHJ1ZTsNCisJCX0NCisJCWF0b21pY19kZWMoJmNwdV9idWZm
-ZXItPnJlY29yZF9kaXNhYmxlZCk7DQorCX0NCisJcmV0dXJuIHJ2Ow0KK30NCisNCiAvKioNCiAg
-KiByaW5nX2J1ZmZlcl9yZXNpemUgLSByZXNpemUgdGhlIHJpbmcgYnVmZmVyDQogICogQGJ1ZmZl
-cjogdGhlIGJ1ZmZlciB0byByZXNpemUuDQpAQCAtMTc5NCwxMyArMTgyNywyMiBAQCBpbnQgcmlu
-Z19idWZmZXJfcmVzaXplKHN0cnVjdCB0cmFjZV9idWZmZXIgKmJ1ZmZlciwgdW5zaWduZWQgbG9u
-ZyBzaXplLA0KIAkJCWlmICghY3B1X2J1ZmZlci0+bnJfcGFnZXNfdG9fdXBkYXRlKQ0KIAkJCQlj
-b250aW51ZTsNCiANCi0JCQkvKiBDYW4ndCBydW4gc29tZXRoaW5nIG9uIGFuIG9mZmxpbmUgQ1BV
-LiAqLw0KKwkJCS8qDQorCQkJICogQ2FuJ3QgcnVuIHNvbWV0aGluZyBvbiBhbiBvZmZsaW5lIENQ
-VS4NCisJCQkgKg0KKwkJCSAqIENQVXMgcnVubmluZyBpc29sYXRlZCB0YXNrcyBkb24ndCBoYXZl
-IHRvDQorCQkJICogdXBkYXRlIHJpbmcgYnVmZmVycyB1bnRpbCB0aGV5IGV4aXQNCisJCQkgKiBp
-c29sYXRpb24gYmVjYXVzZSB0aGV5IGFyZSBpbg0KKwkJCSAqIHVzZXJzcGFjZS4gVXNlIHRoZSBw
-cm9jZWR1cmUgdGhhdCBwcmV2ZW50cw0KKwkJCSAqIHJhY2UgY29uZGl0aW9uIHdpdGggaXNvbGF0
-aW9uIGJyZWFraW5nLg0KKwkJCSAqLw0KIAkJCWlmICghY3B1X29ubGluZShjcHUpKSB7DQogCQkJ
-CXJiX3VwZGF0ZV9wYWdlcyhjcHVfYnVmZmVyKTsNCiAJCQkJY3B1X2J1ZmZlci0+bnJfcGFnZXNf
-dG9fdXBkYXRlID0gMDsNCiAJCQl9IGVsc2Ugew0KLQkJCQlzY2hlZHVsZV93b3JrX29uKGNwdSwN
-Ci0JCQkJCQkmY3B1X2J1ZmZlci0+dXBkYXRlX3BhZ2VzX3dvcmspOw0KKwkJCQlpZiAoIXVwZGF0
-ZV9pZl9pc29sYXRlZChjcHVfYnVmZmVyLCBjcHUpKQ0KKwkJCQkJc2NoZWR1bGVfd29ya19vbihj
-cHUsDQorCQkJCQkmY3B1X2J1ZmZlci0+dXBkYXRlX3BhZ2VzX3dvcmspOw0KIAkJCX0NCiAJCX0N
-CiANCkBAIC0xODQ5LDEzICsxODkxLDIyIEBAIGludCByaW5nX2J1ZmZlcl9yZXNpemUoc3RydWN0
-IHRyYWNlX2J1ZmZlciAqYnVmZmVyLCB1bnNpZ25lZCBsb25nIHNpemUsDQogDQogCQlnZXRfb25s
-aW5lX2NwdXMoKTsNCiANCi0JCS8qIENhbid0IHJ1biBzb21ldGhpbmcgb24gYW4gb2ZmbGluZSBD
-UFUuICovDQorCQkvKg0KKwkJICogQ2FuJ3QgcnVuIHNvbWV0aGluZyBvbiBhbiBvZmZsaW5lIENQ
-VS4NCisJCSAqDQorCQkgKiBDUFVzIHJ1bm5pbmcgaXNvbGF0ZWQgdGFza3MgZG9uJ3QgaGF2ZSB0
-byB1cGRhdGUNCisJCSAqIHJpbmcgYnVmZmVycyB1bnRpbCB0aGV5IGV4aXQgaXNvbGF0aW9uIGJl
-Y2F1c2UgdGhleQ0KKwkJICogYXJlIGluIHVzZXJzcGFjZS4gVXNlIHRoZSBwcm9jZWR1cmUgdGhh
-dCBwcmV2ZW50cw0KKwkJICogcmFjZSBjb25kaXRpb24gd2l0aCBpc29sYXRpb24gYnJlYWtpbmcu
-DQorCQkgKi8NCiAJCWlmICghY3B1X29ubGluZShjcHVfaWQpKQ0KIAkJCXJiX3VwZGF0ZV9wYWdl
-cyhjcHVfYnVmZmVyKTsNCiAJCWVsc2Ugew0KLQkJCXNjaGVkdWxlX3dvcmtfb24oY3B1X2lkLA0K
-KwkJCWlmICghdXBkYXRlX2lmX2lzb2xhdGVkKGNwdV9idWZmZXIsIGNwdV9pZCkpDQorCQkJCXNj
-aGVkdWxlX3dvcmtfb24oY3B1X2lkLA0KIAkJCQkJICZjcHVfYnVmZmVyLT51cGRhdGVfcGFnZXNf
-d29yayk7DQotCQkJd2FpdF9mb3JfY29tcGxldGlvbigmY3B1X2J1ZmZlci0+dXBkYXRlX2RvbmUp
-Ow0KKwkJCQl3YWl0X2Zvcl9jb21wbGV0aW9uKCZjcHVfYnVmZmVyLT51cGRhdGVfZG9uZSk7DQor
-CQkJfQ0KIAkJfQ0KIA0KIAkJY3B1X2J1ZmZlci0+bnJfcGFnZXNfdG9fdXBkYXRlID0gMDsNCi0t
-IA0KMi4yNi4yDQoNCg==
+Don't copy preserved VMAs to the binary being exec'd unless the binary has
+a "preserved-mem-ok" ELF note.
+
+Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
+---
+ fs/binfmt_elf.c         | 84 +++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/exec.c               | 17 +++++-----
+ include/linux/binfmts.h |  7 ++++-
+ 3 files changed, 100 insertions(+), 8 deletions(-)
+
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 6445a6dbdb1d..46248b7b0a75 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -683,6 +683,81 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
+ 	return error;
+ }
+ 
++#define NOTES_SZ			SZ_1K
++#define PRESERVED_MEM_OK_STRING		"preserved-mem-ok"
++#define SZ_PRESERVED_MEM_OK_STRING	sizeof(PRESERVED_MEM_OK_STRING)
++
++static int parse_elf_note(struct linux_binprm *bprm, const char *data, size_t *off, size_t datasz)
++{
++	const struct elf_note *nhdr;
++	const char *name;
++	size_t o;
++
++	o = *off;
++	datasz -= o;
++
++	if (datasz < sizeof(*nhdr))
++		return -ENOEXEC;
++
++	nhdr = (const struct elf_note *)(data + o);
++	o += sizeof(*nhdr);
++	datasz -= sizeof(*nhdr);
++
++	/*
++	 * Currently only the preserved-mem-ok elf note is of interest.
++	 */
++	if (nhdr->n_type != 0x07c1feed)
++		goto next;
++
++	if (nhdr->n_namesz > SZ_PRESERVED_MEM_OK_STRING)
++		return -ENOEXEC;
++
++	name =  data + o;
++	if (datasz < SZ_PRESERVED_MEM_OK_STRING ||
++	    strncmp(name, PRESERVED_MEM_OK_STRING, SZ_PRESERVED_MEM_OK_STRING))
++		return -ENOEXEC;
++
++	bprm->accepts_preserved_mem = 1;
++
++next:
++	o += roundup(nhdr->n_namesz, 4) + roundup(nhdr->n_descsz, 4);
++	*off = o;
++
++	return 0;
++}
++
++static int parse_elf_notes(struct linux_binprm *bprm, struct elf_phdr *phdr)
++{
++	char *notes;
++	size_t notes_sz;
++	size_t off = 0;
++	int ret;
++
++	if (!phdr)
++		return 0;
++
++	notes_sz = phdr->p_filesz;
++	if ((notes_sz > NOTES_SZ) || (notes_sz < sizeof(struct elf_note)))
++		return -ENOEXEC;
++
++	notes = kvmalloc(notes_sz, GFP_KERNEL);
++	if (!notes)
++		return -ENOMEM;
++
++	ret = elf_read(bprm->file, notes, notes_sz, phdr->p_offset);
++	if (ret < 0)
++		goto out;
++
++	while (off < notes_sz) {
++		ret = parse_elf_note(bprm, notes, &off, notes_sz);
++		if (ret)
++			break;
++	}
++out:
++	kvfree(notes);
++	return ret;
++}
++
+ /*
+  * These are the functions used to load ELF style executables and shared
+  * libraries.  There is no binary dependent code anywhere else.
+@@ -801,6 +876,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	unsigned long error;
+ 	struct elf_phdr *elf_ppnt, *elf_phdata, *interp_elf_phdata = NULL;
+ 	struct elf_phdr *elf_property_phdata = NULL;
++	struct elf_phdr *elf_notes_phdata = NULL;
+ 	unsigned long elf_bss, elf_brk;
+ 	int bss_prot = 0;
+ 	int retval, i;
+@@ -909,6 +985,10 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 				executable_stack = EXSTACK_DISABLE_X;
+ 			break;
+ 
++		case PT_NOTE:
++			elf_notes_phdata = elf_ppnt;
++			break;
++
+ 		case PT_LOPROC ... PT_HIPROC:
+ 			retval = arch_elf_pt_proc(elf_ex, elf_ppnt,
+ 						  bprm->file, false,
+@@ -970,6 +1050,10 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	if (retval)
+ 		goto out_free_dentry;
+ 
++	retval = parse_elf_notes(bprm, elf_notes_phdata);
++	if (retval)
++		goto out_free_dentry;
++
+ 	/* Flush all traces of the currently running executable */
+ 	retval = begin_new_exec(bprm);
+ 	if (retval)
+diff --git a/fs/exec.c b/fs/exec.c
+index 1de09c4eef00..b2b046fec1f8 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1088,10 +1088,11 @@ static int vma_dup_some(struct mm_struct *old_mm, struct mm_struct *new_mm)
+  * On success, this function returns with the mutex
+  * exec_update_mutex locked.
+  */
+-static int exec_mmap(struct mm_struct *mm)
++static int exec_mmap(struct linux_binprm *bprm)
+ {
+ 	struct task_struct *tsk;
+ 	struct mm_struct *old_mm, *active_mm;
++	struct mm_struct *mm = bprm->mm;
+ 	int ret;
+ 
+ 	/* Notify parent that we're no longer interested in the old VM */
+@@ -1118,11 +1119,13 @@ static int exec_mmap(struct mm_struct *mm)
+ 			mutex_unlock(&tsk->signal->exec_update_mutex);
+ 			return -EINTR;
+ 		}
+-		ret = vma_dup_some(old_mm, mm);
+-		if (ret) {
+-			mmap_read_unlock(old_mm);
+-			mutex_unlock(&tsk->signal->exec_update_mutex);
+-			return ret;
++		if (bprm->accepts_preserved_mem) {
++			ret = vma_dup_some(old_mm, mm);
++			if (ret) {
++				mmap_read_unlock(old_mm);
++				mutex_unlock(&tsk->signal->exec_update_mutex);
++				return ret;
++			}
+ 		}
+ 	}
+ 
+@@ -1386,7 +1389,7 @@ int begin_new_exec(struct linux_binprm * bprm)
+ 	 * Release all of the old mmap stuff
+ 	 */
+ 	acct_arg_size(bprm, 0);
+-	retval = exec_mmap(bprm->mm);
++	retval = exec_mmap(bprm);
+ 	if (retval)
+ 		goto out;
+ 
+diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
+index 4a20b7517dd0..6a66589454c8 100644
+--- a/include/linux/binfmts.h
++++ b/include/linux/binfmts.h
+@@ -41,7 +41,12 @@ struct linux_binprm {
+ 		 * Set when errors can no longer be returned to the
+ 		 * original userspace.
+ 		 */
+-		point_of_no_return:1;
++		point_of_no_return:1,
++		/*
++		 * Set if the binary being exec'd will accept memory marked
++		 * for preservation by the outgoing process.
++		 */
++		accepts_preserved_mem:1;
+ #ifdef __alpha__
+ 	unsigned int taso:1;
+ #endif
+-- 
+1.8.3.1
