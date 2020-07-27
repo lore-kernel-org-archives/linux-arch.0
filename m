@@ -1,42 +1,36 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH v2 04/20] unify generic instances of
- csum_partial_copy_nocheck()
-Date: Mon, 27 Jul 2020 04:58:14 +0100
-Message-ID: <20200727035814.GA794331@ZenIV.linux.org.uk>
-References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
- <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
- <20200724012546.302155-4-viro@ZenIV.linux.org.uk>
- <20200724064117.GA10522@infradead.org>
- <20200724121918.GL2786714@ZenIV.linux.org.uk>
- <20200724122337.GA23095@infradead.org>
- <20200724123040.GM2786714@ZenIV.linux.org.uk>
- <20200726071132.GA8862@infradead.org>
+From: "Mrs.Pamela Griffin Wells" <www@colaboradorpj.org.br>
+Subject: from the Hospital
+Date: Sun, 26 Jul 2020 17:15:35 -0700
+Message-ID: <20200727001542.5F06B20AAB5@mail.colaboradorpj.org.br>
+Reply-To: pamgells@yahoo.co.jp
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53282 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726676AbgG0D6R (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 23:58:17 -0400
-Content-Disposition: inline
-In-Reply-To: <20200726071132.GA8862@infradead.org>
+Received: from mail.colaboradorpj.org.br ([189.44.90.5]:4667 "EHLO
+        mail.colaboradorpj.org.br" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726140AbgG0Fnc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2020 01:43:32 -0400
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Recipients <www@colaboradorpj.org.br>
 
-On Sun, Jul 26, 2020 at 08:11:32AM +0100, Christoph Hellwig wrote:
-> On Fri, Jul 24, 2020 at 01:30:40PM +0100, Al Viro wrote:
-> > > Sorry, I meant csum_and_copy_from_nocheck, just as in this patch.
-> > > 
-> > > Merging your branch into the net-next tree thus will conflict in
-> > > the nios2 and asm-geneeric/checksum.h as well as lib/checksum.c.
-> > 
-> > Noted, but that asm-generic/checksum.h conflict will be "massage
-> > in net-next/outright removal in this branch"; the same goes for
-> > lib/checksum.c and nios2.  It's c6x that is unpleasant in that respect...
-> 
-> What about just rebasing your branch on the net-next tree?
+Greetings My Beloved,
+My name is Mrs.Pamela Griffin Wells. I am a cancer patient who had
+decided to donate what I have to you. I am 59 years old and I was 
+diagnosed of cancer disease for about 2 years ago. I lost my husband 
+and was all left alone because I had no child.
 
-For now I've just cherry-picked your commit in there.  net-next interaction
-there is minimal; most of the PITA (and potential breakage) is in arch/*...
+I have no family and I'm going to go for an operation any moment from 
+now, and I pray that if it pleases God,that I may survive the 
+operation I have decided to WILL / DONATE the sum of
+(Eight million five hundred thousand United States dollars) for the 
+work of the Lord and charity purposes.
+
+Currently, I have informed my attorney of my decision in
+WILLING this fund to you. Please respond immediately so that I will provide your with further details on how to receive this fund.
+
+Thank you and God bless you.
+
+Mrs. Pamela Griffin Wells.
