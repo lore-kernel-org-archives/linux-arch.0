@@ -1,39 +1,75 @@
-Return-Path: <SRS0=g7wM=BF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:40876 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725949AbgGZQe0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 26 Jul 2020 12:34:26 -0400
-Date: Sun, 26 Jul 2020 18:34:22 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 4/4] quota: simplify the quotactl compat handling
-Message-ID: <20200726163422.GA24657@lst.de>
-References: <20200726160401.311569-1-hch@lst.de> <20200726160401.311569-5-hch@lst.de> <20200726163214.GS2786714@ZenIV.linux.org.uk>
+Return-Path: <SRS0=5OOM=BG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga04-in.huawei.com ([45.249.212.190]:8830 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727032AbgG0Ovz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Jul 2020 10:51:55 -0400
+Subject: Re: [RESEND RFC PATCH v1] arm64: kvm: flush tlbs by range in
+ unmap_stage2_range function
+References: <20200724134315.805-1-yezhenyu2@huawei.com>
+ <5d54c860b3b4e7a98e4d53397e6424ae@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Message-ID: <f74277fd-5af2-c46f-169f-c15a321165cd@huawei.com>
+Date: Mon, 27 Jul 2020 22:51:41 +0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200726163214.GS2786714@ZenIV.linux.org.uk>
+In-Reply-To: <5d54c860b3b4e7a98e4d53397e6424ae@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Christoph Hellwig <hch@lst.de>, x86@kernel.org, Jan Kara <jack@suse.com>, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200726163422.Im7o1OR_YovZKHKiSMoRo3RpV_87_snUu-3VajctAJU@z>
+To: Marc Zyngier <maz@kernel.org>
+Cc: james.morse@arm.com, julien.thierry.kdev@gmail.com, suzuki.poulose@arm.com, catalin.marinas@arm.com, will@kernel.org, steven.price@arm.com, mark.rutland@arm.com, ascull@google.com, kvm@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com
+Message-ID: <20200727145141.uif4oX3fkb7QIIhcTz-_YZXlQFjAAwAI36lqCEf9oYo@z>
 
-On Sun, Jul 26, 2020 at 05:32:14PM +0100, Al Viro wrote:
-> > +static int compat_copy_fs_qfilestat(struct compat_fs_qfilestat __user *to,
-> > +		struct fs_qfilestat *from)
-> > +{
-> > +	if (copy_to_user(to, from, sizeof(*to)) ||
-> > +	    put_user(from->qfs_nextents, &to->qfs_nextents))
-> > +		return -EFAULT;
-> > +	return 0;
-> > +}
+Hi Marc,
+
+On 2020/7/26 1:40, Marc Zyngier wrote:
+> On 2020-07-24 14:43, Zhenyu Ye wrote:
+>> Now in unmap_stage2_range(), we flush tlbs one by one just after the
+>> corresponding pages cleared.  However, this may cause some performance
+>> problems when the unmap range is very large (such as when the vm
+>> migration rollback, this may cause vm downtime too loog).
 > 
-> do we have any need of that put_user()?  Note that you don't even call
-> that thing unless compat_need_64bit_alignment_fixup() is true.  And AFAICS
-> all such cases are little-endian...
+> You keep resending this patch, but you don't give any numbers
+> that would back your assertion.
 
-The main reason it is there is to preserve the previous semantics.
-And no, I don't think we actually need it on x86.  But what if some
-poor souls adds a BE version that needs this?  E.g. arm oabi has similar
-weird alignment, and now imagine someone adding arm64 compat code for
-that..
+I have tested the downtime of vm migration rollback on arm64, and found
+the downtime could even take up to 7s.  Then I traced the cost of
+unmap_stage2_range() and found it could take a maximum of 1.2s.  The
+vm configuration is as follows (with high memory pressure, the dirty
+rate is about 500MB/s):
+
+  <memory unit='GiB'>192</memory>
+  <vcpu placement='static'>48</vcpu>
+  <memoryBacking>
+    <hugepages>
+      <page size='1' unit='GiB' nodeset='0'/>
+    </hugepages>
+  </memoryBacking>
+
+After this patch applied, the cost of unmap_stage2_range() can reduce to
+16ms, and VM downtime can be less than 1s.
+
+The following figure shows a clear comparison:
+
+	      |	vm downtime  |	cost of unmap_stage2_range()
+--------------+--------------+----------------------------------
+before change |		7s   |		1200 ms
+after  change |		1s   |		  16 ms
+--------------+--------------+----------------------------------
+
+>> +
+>> +    if ((end - start) >= 512 << (PAGE_SHIFT - 12)) {
+>> +        __tlbi(vmalls12e1is);
+> 
+> And what is this magic value based on? You don't even mention in the
+> commit log that you are taking this shortcut.
+> 
+
+
+If the page num is bigger than 512, flush all tlbs of this vm to avoid
+soft lock-ups on large TLB flushing ranges.  Just like what the
+flush_tlb_range() does.
+
+
+Thanks,
+Zhenyu
