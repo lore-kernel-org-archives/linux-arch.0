@@ -1,57 +1,74 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Date: Mon, 27 Jul 2020 13:51:37 +0100
-Message-ID: <20200727125137.GK23808@casper.infradead.org>
-References: <20200717044427.68747-1-ebiggers@kernel.org>
- <20200717174750.GQ12769@casper.infradead.org>
- <20200717175138.GB1156312@rowland.harvard.edu>
- <20200718010247.GC2183@sol.localdomain>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH] lockdep: Fix TRACE_IRQFLAGS vs NMIs
+Date: Mon, 27 Jul 2020 15:17:31 +0200
+Message-ID: <20200727131731.GB105139@gmail.com>
+References: <20200727124852.GK119549@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50858 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54856 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728467AbgG0Mvn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2020 08:51:43 -0400
+        with ESMTP id S1728147AbgG0NRf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2020 09:17:35 -0400
 Content-Disposition: inline
-In-Reply-To: <20200718010247.GC2183@sol.localdomain>
+In-Reply-To: <20200727124852.GK119549@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Biggers <ebiggers@kernel.org>
-Cc: Alan Stern <stern@rowland.harvard.edu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+To: peterz@infradead.org
+Cc: Will Deacon <will@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, npiggin@gmail.com, x86@kernel.org, linux-sh@vger.kernel.org, borntraeger@de.ibm.com, jcmvbkbc@gmail.com
 
-On Fri, Jul 17, 2020 at 06:02:47PM -0700, Eric Biggers wrote:
-> On Fri, Jul 17, 2020 at 01:51:38PM -0400, Alan Stern wrote:
-> > On Fri, Jul 17, 2020 at 06:47:50PM +0100, Matthew Wilcox wrote:
-> > > On Thu, Jul 16, 2020 at 09:44:27PM -0700, Eric Biggers wrote:
-> > ...
-> > > > +		/* on success, pairs with smp_load_acquire() above and below */
-> > > > +		if (cmpxchg_release(&foo, NULL, p) != NULL) {
-> > > 
-> > > Why do we have cmpxchg_release() anyway?  Under what circumstances is
-> > > cmpxchg() useful _without_ having release semantics?
-> > 
-> > To answer just the last question: cmpxchg() is useful for lock 
-> > acquisition, in which case it needs to have acquire semantics rather 
-> > than release semantics.
-> > 
+
+* peterz@infradead.org <peterz@infradead.org> wrote:
+
 > 
-> To clarify, there are 4 versions of cmpxchg:
+> Prior to commit 859d069ee1dd ("lockdep: Prepare for NMI IRQ state
+> tracking") IRQ state tracking was disabled in NMIs due to nmi_enter()
+> doing lockdep_off() -- with the obvious requirement that NMI entry
+> call nmi_enter() before trace_hardirqs_off().
 > 
-> 	cmpxchg(): does ACQUIRE and RELEASE (on success)
-> 	cmpxchg_acquire(): does ACQUIRE only (on success)
-> 	cmpxchg_release(): does RELEASE only (on success)
-> 	cmpxchg_relaxed(): no barriers
+> [ afaict, PowerPC and SH violate this order on their NMI entry ]
 > 
-> The problem here is that here we need RELEASE on success and ACQUIRE on failure.
-> But no version guarantees any barrier on failure.
+> However, that commit explicitly changed lockdep_hardirqs_*() to ignore
+> lockdep_off() and breaks every architecture that has irq-tracing in
+> it's NMI entry that hasn't been fixed up (x86 being the only fixed one
+> at this point).
+> 
+> The reason for this change is that by ignoring lockdep_off() we can:
+> 
+>   - get rid of 'current->lockdep_recursion' in lockdep_assert_irqs*()
+>     which was going to to give header-recursion issues with the
+>     seqlock rework.
+> 
+>   - allow these lockdep_assert_*() macros to function in NMI context.
+> 
+> Restore the previous state of things and allow an architecture to
+> opt-in to the NMI IRQ tracking support, however instead of relying on
+> lockdep_off(), rely on in_nmi(), both are part of nmi_enter() and so
+> over-all entry ordering doesn't need to change.
+> 
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  arch/x86/Kconfig.debug   |    3 +++
+>  kernel/locking/lockdep.c |    8 +++++++-
+>  lib/Kconfig.debug        |    6 ++++++
+>  3 files changed, 16 insertions(+), 1 deletion(-)
 
-Why not?  Do CPU designers not do load-linked-with-acquire-semantics?
-Or is it our fault for not using the appropriate instruction?
+Tree management side note: to apply this I've created a new 
+tip:locking/nmi branch, which is based off the existing NMI vs. IRQ 
+tracing commits included in locking/core:
 
-> So as far as I can tell, the best we can do is use cmpxchg_release() (or
-> cmpxchg() which would be stronger but unnecessary), followed by a separate
-> ACQUIRE on failure.
+ed00495333cc: ("locking/lockdep: Fix TRACE_IRQFLAGS vs. NMIs")
+ba1f2b2eaa2a: ("x86/entry: Fix NMI vs IRQ state tracking")
+859d069ee1dd: ("lockdep: Prepare for NMI IRQ state tracking")
+248591f5d257: ("kcsan: Make KCSAN compatible with new IRQ state tracking")
+e1bcad609f5a: ("Merge branch 'tip/x86/entry'")
+b037b09b9058: ("x86/entry: Rename idtentry_enter/exit_cond_rcu() to idtentry_enter/exit()")
+dcb7fd82c75e: ("Linux 5.8-rc4")
 
-OK, but that detail needs to be hidden behind a higher level primitive,
-not exposed to device driver writers.
+This locking/nmi branch can then be merged into irq/entry (there's a 
+bunch of conflicts between them), without coupling all of v5.9's 
+locking changes to Thomas's generic entry work.
+
+Thanks,
+
+	Ingo
