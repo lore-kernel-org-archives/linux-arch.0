@@ -1,48 +1,60 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:37466 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729655AbgGULIr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:47 -0400
-Message-ID: <20200721110809.215553545@linutronix.de>
-Date: Tue, 21 Jul 2020 12:57:15 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V4 09/15] x86/ptrace: Provide pt_regs helper for entry/exit
-References: <20200721105706.030914876@linutronix.de>
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
-Sender: linux-arch-owner@vger.kernel.org
+References: <20200728033405.78469-1-npiggin@gmail.com> <20200728033405.78469-7-npiggin@gmail.com>
+In-Reply-To: <20200728033405.78469-7-npiggin@gmail.com>
+From: Guo Ren <guoren@kernel.org>
+Date: Tue, 28 Jul 2020 12:09:58 +0800
+Message-ID: <CAJF2gTT-SmgFjyU5H75=xYihwKK5tSggGXP=D_4am06-wdLM4w@mail.gmail.com>
+Subject: Re: [PATCH 06/24] csky: use asm-generic/mmu_context.h for no-op implementations
+Content-Type: text/plain; charset="UTF-8"
+Sender: owner-linux-mm@kvack.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-csky@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200721105715.Qaxr_5cQBEKGhEPrbIPv1g17HgKb8SlF_5P-5ocjEWI@z>
+Message-ID: <20200728040958.lMjFgIOvLZOrFZVJMxpGKaIN6w3l0Cnnun37eqJAju8@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+Acked-by: Guo Ren <guoren@kernel.org>
 
-As a preparatory step for moving the syscall and interrupt entry/exit
-handling into generic code, provide a pt_regs helper which retrieves the
-interrupt state from pt_regs. This is required to check whether interrupts
-are reenabled by return from interrupt/exception.
+On Tue, Jul 28, 2020 at 11:34 AM Nicholas Piggin <npiggin@gmail.com> wrote:
+>
+> Cc: Guo Ren <guoren@kernel.org>
+> Cc: linux-csky@vger.kernel.org
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
+>  arch/csky/include/asm/mmu_context.h | 8 +++-----
+>  1 file changed, 3 insertions(+), 5 deletions(-)
+>
+> diff --git a/arch/csky/include/asm/mmu_context.h b/arch/csky/include/asm/mmu_context.h
+> index abdf1f1cb6ec..b227d29393a8 100644
+> --- a/arch/csky/include/asm/mmu_context.h
+> +++ b/arch/csky/include/asm/mmu_context.h
+> @@ -24,11 +24,6 @@
+>  #define cpu_asid(mm)           (atomic64_read(&mm->context.asid) & ASID_MASK)
+>
+>  #define init_new_context(tsk,mm)       ({ atomic64_set(&(mm)->context.asid, 0); 0; })
+> -#define activate_mm(prev,next)         switch_mm(prev, next, current)
+> -
+> -#define destroy_context(mm)            do {} while (0)
+> -#define enter_lazy_tlb(mm, tsk)                do {} while (0)
+> -#define deactivate_mm(tsk, mm)         do {} while (0)
+>
+>  void check_and_switch_context(struct mm_struct *mm, unsigned int cpu);
+>
+> @@ -46,4 +41,7 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
+>
+>         flush_icache_deferred(next);
+>  }
+> +
+> +#include <asm-generic/mmu_context.h>
+> +
+>  #endif /* __ASM_CSKY_MMU_CONTEXT_H */
+> --
+> 2.23.0
+>
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
-V4: Remove the syscall nr and return value helpers as they alredy exist
----
- arch/x86/include/asm/ptrace.h |    5 +++++
- 1 file changed, 5 insertions(+)
 
---- a/arch/x86/include/asm/ptrace.h
-+++ b/arch/x86/include/asm/ptrace.h
-@@ -209,6 +209,11 @@ static inline void user_stack_pointer_se
- 	regs->sp = val;
- }
- 
-+static __always_inline bool regs_irqs_disabled(struct pt_regs *regs)
-+{
-+	return !(regs->flags & X86_EFLAGS_IF);
-+}
-+
- /* Query offset/name of register from its name/offset */
- extern int regs_query_register_offset(const char *name);
- extern const char *regs_query_register_name(unsigned int offset);
+-- 
+Best Regards
+ Guo Ren
+
+ML: https://lore.kernel.org/linux-csky/
