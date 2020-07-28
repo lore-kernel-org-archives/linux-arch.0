@@ -1,40 +1,132 @@
-Return-Path: <SRS0=fRWW=A6=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50874 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725836AbgGSKRN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 19 Jul 2020 06:17:13 -0400
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch V3 01/13] entry: Provide generic syscall entry functionality
-In-Reply-To: <CALCETrU-z_73BsKwNq0fTDEg7tVicd=jOEaq-6LnH24uNWShDg@mail.gmail.com>
-References: <20200716182208.180916541@linutronix.de> <20200716185424.011950288@linutronix.de> <202007161336.B993ED938@keescook> <87d04vt98w.fsf@nanos.tec.linutronix.de> <202007171045.FB4A586F1D@keescook> <87mu3yq6sf.fsf@nanos.tec.linutronix.de> <CALCETrXz_vEySQJ=f3MTPG9XjZS7U0P-diJE9j_+0KRa_Kie=Q@mail.gmail.com> <875zakq56t.fsf@nanos.tec.linutronix.de> <CALCETrU-z_73BsKwNq0fTDEg7tVicd=jOEaq-6LnH24uNWShDg@mail.gmail.com>
-Date: Sun, 19 Jul 2020 12:17:07 +0200
-Message-ID: <87v9ijollo.fsf@nanos.tec.linutronix.de>
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH 5/5] mm: introduce MADV_DOEXEC
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+ <1595869887-23307-6-git-send-email-anthony.yznaga@oracle.com>
+ <743a51db-dc27-c49c-9c65-ac164f5283ba@virtuozzo.com>
+From: Steven Sistare <steven.sistare@oracle.com>
+Message-ID: <bd50a6f0-670e-6bd3-13f1-c7a96e56a9bb@oracle.com>
+Date: Tue, 28 Jul 2020 10:06:05 -0400
 MIME-Version: 1.0
-Content-Type: text/plain
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <743a51db-dc27-c49c-9c65-ac164f5283ba@virtuozzo.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Kirill Tkhai <ktkhai@virtuozzo.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200719101707.YWLZzz1A5NqhTT2Uk_fBA8ZjPTaXjipshVOOt7A7Rhk@z>
+Message-ID: <20200728140605.dVk5HgWXcmsuJu83xB9KSyWqmmH9VIffLoMX70hDlsA@z>
 
-Andy Lutomirski <luto@kernel.org> writes:
-> On Sat, Jul 18, 2020 at 7:16 AM Thomas Gleixner <tglx@linutronix.de> wrote:
->> Andy Lutomirski <luto@kernel.org> writes:
->> > FWIW, TIF_USER_RETURN_NOTIFY is a bit of an odd duck: it's an
->> > entry/exit word *and* a context switch word.  The latter is because
->> > it's logically a per-cpu flag, not a per-task flag, and the context
->> > switch code moves it around so it's always set on the running task.
+On 7/28/2020 9:22 AM, Kirill Tkhai wrote:
+> On 27.07.2020 20:11, Anthony Yznaga wrote:
+>> madvise MADV_DOEXEC preserves a memory range across exec.  Initially
+>> only supported for non-executable, non-stack, anonymous memory.
+>> MADV_DONTEXEC reverts the effect of a previous MADV_DOXEXEC call and
+>> undoes the preservation of the range.  After a successful exec call,
+>> the behavior of all ranges reverts to MADV_DONTEXEC.
 >>
->> Gah, I missed the context switch thing of that. That stuff is hideous.
->
-> It's also delightful because anything that screws up that dance (such
-> as failure to do the exit-to-usermode path exactly right) likely
-> results in an insta-root-hole.  If we fail to run user return
-> notifiers, we can run user code with incorrect syscall MSRs, etc.
+>> Signed-off-by: Steve Sistare <steven.sistare@oracle.com>
+>> Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
+>> ---
+>>  include/uapi/asm-generic/mman-common.h |  3 +++
+>>  mm/madvise.c                           | 25 +++++++++++++++++++++++++
+>>  2 files changed, 28 insertions(+)
+>>
+>> diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+>> index f94f65d429be..7c5f616b28f7 100644
+>> --- a/include/uapi/asm-generic/mman-common.h
+>> +++ b/include/uapi/asm-generic/mman-common.h
+>> @@ -72,6 +72,9 @@
+>>  #define MADV_COLD	20		/* deactivate these pages */
+>>  #define MADV_PAGEOUT	21		/* reclaim these pages */
+>>  
+>> +#define MADV_DOEXEC	22		/* do inherit across exec */
+>> +#define MADV_DONTEXEC	23		/* don't inherit across exec */
+>> +
+>>  /* compatibility flags */
+>>  #define MAP_FILE	0
+>>  
+>> diff --git a/mm/madvise.c b/mm/madvise.c
+>> index dd1d43cf026d..b447fa748649 100644
+>> --- a/mm/madvise.c
+>> +++ b/mm/madvise.c
+>> @@ -103,6 +103,26 @@ static long madvise_behavior(struct vm_area_struct *vma,
+>>  	case MADV_KEEPONFORK:
+>>  		new_flags &= ~VM_WIPEONFORK;
+>>  		break;
+>> +	case MADV_DOEXEC:
+> 
+> For me MADV_KEEPONEXEC sounds better as it's symmetric to MADV_KEEPONFORK.
 
-Looking at it deeper, having that thing in the loop is a pointless
-exercise. This really wants to be done _after_ the loop.
+We chose MADV_DOEXEC and MADV_DONTEXEC to match the precedent set by:
 
-Thanks,
+#define MADV_DONTFORK   10              /* don't inherit across fork */
 
-        tglx
+
+#define MADV_DOFORK     11              /* do inherit across fork */
+
+
+I do like "keep" as a concise description of the operation.  KEEPONFORK is not a perfect 
+analog because its opposite is wipe ...
+
+#define MADV_WIPEONFORK 18              /* Zero memory on fork, child only */
+#define MADV_KEEPONFORK 19              /* Undo MADV_WIPEONFORK */
+
+... but if folks are ok with that then IMO these are all good choices:
+
+MADV_KEEPONEXEC
+MADV_DROPONEXEC
+
+MADV_KEEPEXEC    (shorter)
+MADV_DROPEXEC 
+
+MADV_KEEP_EXEC   (more legible, but no existing MADV names use 2nd underscores)
+MADV_DROP_EXEC
+
+Whatever folks like best.
+
+- Steve
+
+>> +		/*
+>> +		 * MADV_DOEXEC is only supported on private, non-executable,
+>> +		 * non-stack anonymous memory and if the VM_EXEC_KEEP flag
+>> +		 * is available.
+>> +		 */
+>> +		if (!VM_EXEC_KEEP || vma->vm_file || vma->vm_flags & (VM_EXEC|VM_SHARED|VM_STACK)) {
+>> +			error = -EINVAL;
+>> +			goto out;
+>> +		}
+>> +		new_flags |= (new_flags & ~VM_MAYEXEC) | VM_EXEC_KEEP;
+>> +		break;
+>> +	case MADV_DONTEXEC:
+>> +		if (!VM_EXEC_KEEP) {
+>> +			error = -EINVAL;
+>> +			goto out;
+>> +		}
+>> +		if (new_flags & VM_EXEC_KEEP)
+>> +			new_flags |= (new_flags & ~VM_EXEC_KEEP) | VM_MAYEXEC;
+>> +		break;
+>>  	case MADV_DONTDUMP:
+>>  		new_flags |= VM_DONTDUMP;
+>>  		break;
+>> @@ -983,6 +1003,8 @@ static int madvise_inject_error(int behavior,
+>>  	case MADV_SOFT_OFFLINE:
+>>  	case MADV_HWPOISON:
+>>  #endif
+>> +	case MADV_DOEXEC:
+>> +	case MADV_DONTEXEC:
+>>  		return true;
+>>  
+>>  	default:
+>> @@ -1037,6 +1059,9 @@ static int madvise_inject_error(int behavior,
+>>   *  MADV_DONTDUMP - the application wants to prevent pages in the given range
+>>   *		from being included in its core dump.
+>>   *  MADV_DODUMP - cancel MADV_DONTDUMP: no longer exclude from core dump.
+>> + *  MADV_DOEXEC - On exec, preserve and duplicate this area in the new process
+>> + *		  if the new process allows it.
+>> + *  MADV_DONTEXEC - Undo the effect of MADV_DOEXEC.
+>>   *
+>>   * return values:
+>>   *  zero    - success
+>>
+> 
