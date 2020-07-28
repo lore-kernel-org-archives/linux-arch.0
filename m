@@ -1,75 +1,51 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51316 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727103AbgGULIg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:36 -0400
-Message-ID: <20200721105706.030914876@linutronix.de>
-Date: Tue, 21 Jul 2020 12:57:06 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V4 00/15] entry, x86, kvm: Generic entry/exit functionality
- for host and guest
-Content-transfer-encoding: 8-bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+ <1764B08C-CC1E-4636-944A-DB95B81C7A8E@amacapital.net>
+From: Steven Sistare <steven.sistare@oracle.com>
+Message-ID: <54599ed9-99f1-378e-bccf-ba41ef1f8217@oracle.com>
+Date: Tue, 28 Jul 2020 10:30:41 -0400
+MIME-Version: 1.0
+In-Reply-To: <1764B08C-CC1E-4636-944A-DB95B81C7A8E@amacapital.net>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andy Lutomirski <luto@amacapital.net>, Anthony Yznaga <anthony.yznaga@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200721105706.-Nrgpkd9pLLF7S5zpTp2YpN0o2fIxX90TEAlQ3XNOQs@z>
+Message-ID: <20200728143041.yio2HtJ2X0ot46R1Nm-Zm_aHSBS4WVcG20goV_Dv528@z>
 
-This is the 4rd version of generic entry/exit functionality for host and
-guest.
+On 7/28/2020 10:23 AM, Andy Lutomirski wrote:
+>> On Jul 27, 2020, at 10:02 AM, Anthony Yznaga <anthony.yznaga@oracle.co=
+m> wrote:
+>>
+>> =EF=BB=BFThis patchset adds support for preserving an anonymous memory=
+ range across
+>> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit=
+ for
+>> sharing memory in this manner, as opposed to re-attaching to a named s=
+hared
+>> memory segment, is to ensure it is mapped at the same virtual address =
+in
+>> the new process as it was in the old one.  An intended use for this is=
+ to
+>> preserve guest memory for guests using vfio while qemu exec's an updat=
+ed
+>> version of itself.  By ensuring the memory is preserved at a fixed add=
+ress,
+>> vfio mappings and their associated kernel data structures can remain v=
+alid.
+>> In addition, for the qemu use case, qemu instances that back guest RAM=
+ with
+>> anonymous memory can be updated.
+>=20
+> This will be an amazing attack surface. Perhaps use of this flag should=
+ require no_new_privs?  Arguably it should also require a special flag to=
+ execve() to honor it.  Otherwise library helpers that do vfork()+exec() =
+or posix_spawn() could be quite surprised.
 
-The 3rd version is available here:
+Preservation is disabled across fork, so fork/exec combo's are not affect=
+ed.  We forgot to document that.
 
-    https://lore.kernel.org/r/20200716182208.180916541@linutronix.de
-
-Changes vs. V3:
-
-  - Drop the architecture wrappers for seccomp and audit (Kees)
-  - Move the user return notifier out of the loop
-  - Bring I/O bitmap handling back
-  - Use the existing helpers to get syscall number and return value
-  - Drop dummy defines for SYSCALL_TRACE and NOTIFY_RESUME as all
-    architectures define them
-  - Fix TIF_SYSCALL_AUDIT dummy define
-  - Adjust comments
-
-The patches depend on:
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git x86/entry
-
-The lot is also available from git:
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/tglx/devel.git x86/entry
-
-Thanks,
-
-	tglx
----
- arch/Kconfig                        |    3 
- arch/x86/Kconfig                    |    1 
- arch/x86/entry/common.c             |  632 ++----------------------------------
- arch/x86/entry/entry_32.S           |    2 
- arch/x86/entry/entry_64.S           |    2 
- arch/x86/include/asm/entry-common.h |   76 ++++
- arch/x86/include/asm/idtentry.h     |   39 --
- arch/x86/include/asm/ptrace.h       |    5 
- arch/x86/include/asm/signal.h       |    1 
- arch/x86/include/asm/thread_info.h  |    5 
- arch/x86/kernel/cpu/mce/core.c      |    4 
- arch/x86/kernel/kvm.c               |    6 
- arch/x86/kernel/signal.c            |    3 
- arch/x86/kernel/traps.c             |   24 -
- arch/x86/kvm/Kconfig                |    1 
- arch/x86/kvm/vmx/vmx.c              |   11 
- arch/x86/kvm/x86.c                  |   15 
- arch/x86/mm/fault.c                 |    6 
- include/linux/entry-common.h        |  372 +++++++++++++++++++++
- include/linux/entry-kvm.h           |   80 ++++
- include/linux/kvm_host.h            |    8 
- include/linux/seccomp.h             |    1 
- kernel/Makefile                     |    1 
- kernel/entry/Makefile               |    4 
- kernel/entry/common.c               |  374 +++++++++++++++++++++
- kernel/entry/kvm.c                  |   51 ++
- virt/kvm/Kconfig                    |    3 
- 27 files changed, 1067 insertions(+), 663 deletions(-)
+- Steve
