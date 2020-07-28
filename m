@@ -1,82 +1,70 @@
-Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35344 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726643AbgGXNPH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 09:15:07 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v4 5/6] powerpc/qspinlock: optimised atomic_try_cmpxchg_lock that adds the lock hint
-Date: Fri, 24 Jul 2020 23:14:22 +1000
-Message-ID: <20200724131423.1362108-6-npiggin@gmail.com>
-In-Reply-To: <20200724131423.1362108-1-npiggin@gmail.com>
-References: <20200724131423.1362108-1-npiggin@gmail.com>
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
+Date: Tue, 28 Jul 2020 12:54:10 +0200
+From: peterz@infradead.org
+Subject: Re: [PATCH 23/24] x86: use asm-generic/mmu_context.h for no-op
+ implementations
+Message-ID: <20200728105410.GU119549@hirez.programming.kicks-ass.net>
+References: <20200728033405.78469-1-npiggin@gmail.com>
+ <20200728033405.78469-24-npiggin@gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200728033405.78469-24-npiggin@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, =?UTF-8?q?Michal=20Such=C3=A1nek?= <msuchanek@suse.de>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200724131422.5Qv6KsNiRNtODZUdPGFA3yG-lcGGBu6NETpnIug45n0@z>
+Message-ID: <20200728105410.hEcI8SCgORqii4885OptWUj579flgeG76XYGtcOfFas@z>
 
-This brings the behaviour of the uncontended fast path back to roughly
-equivalent to simple spinlocks -- a single atomic op with lock hint.
+On Tue, Jul 28, 2020 at 01:34:04PM +1000, Nicholas Piggin wrote:
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Borislav Petkov <bp@alien8.de>
+> Cc: x86@kernel.org
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/powerpc/include/asm/atomic.h    | 28 ++++++++++++++++++++++++++++
- arch/powerpc/include/asm/qspinlock.h |  2 +-
- 2 files changed, 29 insertions(+), 1 deletion(-)
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
-diff --git a/arch/powerpc/include/asm/atomic.h b/arch/powerpc/include/asm/atomic.h
-index 498785ffc25f..f6a3d145ffb7 100644
---- a/arch/powerpc/include/asm/atomic.h
-+++ b/arch/powerpc/include/asm/atomic.h
-@@ -193,6 +193,34 @@ static __inline__ int atomic_dec_return_relaxed(atomic_t *v)
- #define atomic_xchg(v, new) (xchg(&((v)->counter), new))
- #define atomic_xchg_relaxed(v, new) xchg_relaxed(&((v)->counter), (new))
- 
-+/*
-+ * Don't want to override the generic atomic_try_cmpxchg_acquire, because
-+ * we add a lock hint to the lwarx, which may not be wanted for the
-+ * _acquire case (and is not used by the other _acquire variants so it
-+ * would be a surprise).
-+ */
-+static __always_inline bool
-+atomic_try_cmpxchg_lock(atomic_t *v, int *old, int new)
-+{
-+	int r, o = *old;
-+
-+	__asm__ __volatile__ (
-+"1:\t"	PPC_LWARX(%0,0,%2,1) "	# atomic_try_cmpxchg_acquire	\n"
-+"	cmpw	0,%0,%3							\n"
-+"	bne-	2f							\n"
-+"	stwcx.	%4,0,%2							\n"
-+"	bne-	1b							\n"
-+"\t"	PPC_ACQUIRE_BARRIER "						\n"
-+"2:									\n"
-+	: "=&r" (r), "+m" (v->counter)
-+	: "r" (&v->counter), "r" (o), "r" (new)
-+	: "cr0", "memory");
-+
-+	if (unlikely(r != o))
-+		*old = r;
-+	return likely(r == o);
-+}
-+
- /**
-  * atomic_fetch_add_unless - add unless the number is a given value
-  * @v: pointer of type atomic_t
-diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include/asm/qspinlock.h
-index f5066f00a08c..b752d34517b3 100644
---- a/arch/powerpc/include/asm/qspinlock.h
-+++ b/arch/powerpc/include/asm/qspinlock.h
-@@ -37,7 +37,7 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
- {
- 	u32 val = 0;
- 
--	if (likely(atomic_try_cmpxchg_acquire(&lock->val, &val, _Q_LOCKED_VAL)))
-+	if (likely(atomic_try_cmpxchg_lock(&lock->val, &val, _Q_LOCKED_VAL)))
- 		return;
- 
- 	queued_spin_lock_slowpath(lock, val);
--- 
-2.23.0
+> ---
+>  arch/x86/include/asm/mmu_context.h | 6 ++++++
+>  1 file changed, 6 insertions(+)
+> 
+> diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+> index 47562147e70b..255750548433 100644
+> --- a/arch/x86/include/asm/mmu_context.h
+> +++ b/arch/x86/include/asm/mmu_context.h
+> @@ -92,12 +92,14 @@ static inline void switch_ldt(struct mm_struct *prev, struct mm_struct *next)
+>  }
+>  #endif
+>  
+> +#define enter_lazy_tlb enter_lazy_tlb
+>  extern void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk);
+>  
+>  /*
+>   * Init a new mm.  Used on mm copies, like at fork()
+>   * and on mm's that are brand-new, like at execve().
+>   */
+> +#define init_new_context init_new_context
+>  static inline int init_new_context(struct task_struct *tsk,
+>  				   struct mm_struct *mm)
+>  {
+> @@ -117,6 +119,8 @@ static inline int init_new_context(struct task_struct *tsk,
+>  	init_new_context_ldt(mm);
+>  	return 0;
+>  }
+> +
+> +#define destroy_context destroy_context
+>  static inline void destroy_context(struct mm_struct *mm)
+>  {
+>  	destroy_context_ldt(mm);
+> @@ -215,4 +219,6 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+>  
+>  unsigned long __get_current_cr3_fast(void);
+>  
+> +#include <asm-generic/mmu_context.h>
+> +
+>  #endif /* _ASM_X86_MMU_CONTEXT_H */
+> -- 
+> 2.23.0
+> 
