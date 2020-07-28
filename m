@@ -1,81 +1,64 @@
-From: kernel test robot <lkp@intel.com>
-Subject: [asm-generic:asm-generic] BUILD SUCCESS
- 214ba3584b2e2c57536fa8aed52521ac59c5b448
-Date: Wed, 29 Jul 2020 00:59:17 +0800
-Message-ID: <5f205965.c7HQlfcGwa+HPe4A%lkp@intel.com>
+From: Anthony Yznaga <anthony.yznaga@oracle.com>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+Date: Tue, 28 Jul 2020 10:28:07 -0700
+Message-ID: <e6699d15-8c86-8f9a-b840-7c3872e3ec8c@oracle.com>
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+ <46891e3b-ca08-197d-935f-fa0a52a60051@virtuozzo.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:37284 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731523AbgG1Q7z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Jul 2020 12:59:55 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <46891e3b-ca08-197d-935f-fa0a52a60051@virtuozzo.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kirill Tkhai <ktkhai@virtuozzo.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
+List-Id: linux-arch.vger.kernel.org
 
-tree/branch: https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git  asm-generic
-branch HEAD: 214ba3584b2e2c57536fa8aed52521ac59c5b448  io: Fix return type of _inb and _inl
 
-elapsed time: 1746m
 
-configs tested: 48
-configs skipped: 1
+On 7/28/20 4:34 AM, Kirill Tkhai wrote:
+> On 27.07.2020 20:11, Anthony Yznaga wrote:
+>> This patchset adds support for preserving an anonymous memory range across
+>> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit for
+>> sharing memory in this manner, as opposed to re-attaching to a named shared
+>> memory segment, is to ensure it is mapped at the same virtual address in
+>> the new process as it was in the old one.  An intended use for this is to
+>> preserve guest memory for guests using vfio while qemu exec's an updated
+>> version of itself.  By ensuring the memory is preserved at a fixed address,
+> So, the goal is an update of QEMU binary without a stopping of virtual machine?
+Essentially, yes.  The VM is paused very briefly.
 
-The following configs have been built successfully.
-More configs may be tested in the coming days.
-
-arm                                 defconfig
-arm64                            allyesconfig
-arm64                               defconfig
-arm                              allyesconfig
-arm                              allmodconfig
-ia64                             allmodconfig
-ia64                                defconfig
-ia64                             allyesconfig
-m68k                             allmodconfig
-m68k                                defconfig
-m68k                             allyesconfig
-nios2                               defconfig
-arc                              allyesconfig
-nds32                             allnoconfig
-c6x                              allyesconfig
-nds32                               defconfig
-nios2                            allyesconfig
-csky                                defconfig
-alpha                               defconfig
-alpha                            allyesconfig
-xtensa                           allyesconfig
-h8300                            allyesconfig
-arc                                 defconfig
-sh                               allmodconfig
-parisc                              defconfig
-s390                             allyesconfig
-parisc                           allyesconfig
-s390                                defconfig
-i386                             allyesconfig
-sparc                            allyesconfig
-sparc                               defconfig
-i386                                defconfig
-mips                             allyesconfig
-mips                             allmodconfig
-powerpc                             defconfig
-powerpc                          allyesconfig
-powerpc                          allmodconfig
-powerpc                           allnoconfig
-riscv                            allyesconfig
-riscv                             allnoconfig
-riscv                               defconfig
-riscv                            allmodconfig
-x86_64                                   rhel
-x86_64                           allyesconfig
-x86_64                    rhel-7.6-kselftests
-x86_64                              defconfig
-x86_64                               rhel-8.3
-x86_64                                  kexec
-
----
-0-DAY CI Kernel Test Service, Intel Corporation
-https://lists.01.org/hyperkitty/list/kbuild-all@lists.01.org
+Anthony
+>
+>> vfio mappings and their associated kernel data structures can remain valid.
+>> In addition, for the qemu use case, qemu instances that back guest RAM with
+>> anonymous memory can be updated.
+>>
+>> Patches 1 and 2 ensure that loading of ELF load segments does not silently
+>> clobber existing VMAS, and remove assumptions that the stack is the only
+>> VMA in the mm when the stack is set up.  Patch 1 re-introduces the use of
+>> MAP_FIXED_NOREPLACE to load ELF binaries that addresses the previous issues
+>> and could be considered on its own.
+>>
+>> Patches 3, 4, and 5 introduce the feature and an opt-in method for its use
+>> using an ELF note.
+>>
+>> Anthony Yznaga (5):
+>>   elf: reintroduce using MAP_FIXED_NOREPLACE for elf executable mappings
+>>   mm: do not assume only the stack vma exists in setup_arg_pages()
+>>   mm: introduce VM_EXEC_KEEP
+>>   exec, elf: require opt-in for accepting preserved mem
+>>   mm: introduce MADV_DOEXEC
+>>
+>>  arch/x86/Kconfig                       |   1 +
+>>  fs/binfmt_elf.c                        | 196 +++++++++++++++++++++++++--------
+>>  fs/exec.c                              |  33 +++++-
+>>  include/linux/binfmts.h                |   7 +-
+>>  include/linux/mm.h                     |   5 +
+>>  include/uapi/asm-generic/mman-common.h |   3 +
+>>  kernel/fork.c                          |   2 +-
+>>  mm/madvise.c                           |  25 +++++
+>>  mm/mmap.c                              |  47 ++++++++
+>>  9 files changed, 266 insertions(+), 53 deletions(-)
+>>
