@@ -1,113 +1,72 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41012 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729727AbgGPTvA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:51:00 -0400
-Message-ID: <20200716185425.307587523@linutronix.de>
-Date: Thu, 16 Jul 2020 20:22:21 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 13/13] x86/kvm: Use generic exit to guest work function
-References: <20200716182208.180916541@linutronix.de>
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 19/24] sh: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 13:34:00 +1000
+Message-ID: <20200728033405.78469-20-npiggin@gmail.com>
+In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
+References: <20200728033405.78469-1-npiggin@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20200716182221.sOfaBq2_SN6HJ5x8CR1WN9DN8UkgKR-O703K-WCyHso@z>
+Message-ID: <20200728033400.C1CEHlTVUnF3YAzLEe4g_nKsxvXJt_2yHATbIK-M0WM@z>
 
-Use the generic infrastructure to check for and handle pending work before
-entering into guest mode.
-
-This now handles TIF_NOTIFY_RESUME as well which was ignored so
-far. Handling it is important as this covers task work and task work will
-be used to offload the heavy lifting of POSIX CPU timers to thread context.
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Paolo Bonzini <pbonzini@redhat.com>
-Cc: kvm@vger.kernel.org
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: linux-sh@vger.kernel.org
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/x86/kvm/Kconfig   |    1 +
- arch/x86/kvm/vmx/vmx.c |   11 +++++------
- arch/x86/kvm/x86.c     |   15 ++++++---------
- 3 files changed, 12 insertions(+), 15 deletions(-)
+ arch/sh/include/asm/mmu_context.h    | 5 ++---
+ arch/sh/include/asm/mmu_context_32.h | 9 ---------
+ 2 files changed, 2 insertions(+), 12 deletions(-)
 
---- a/arch/x86/kvm/Kconfig
-+++ b/arch/x86/kvm/Kconfig
-@@ -42,6 +42,7 @@ config KVM
- 	select HAVE_KVM_MSI
- 	select HAVE_KVM_CPU_RELAX_INTERCEPT
- 	select HAVE_KVM_NO_POLL
-+	select KVM_EXIT_TO_GUEST_WORK
- 	select KVM_GENERIC_DIRTYLOG_READ_PROTECT
- 	select KVM_VFIO
- 	select SRCU
---- a/arch/x86/kvm/vmx/vmx.c
-+++ b/arch/x86/kvm/vmx/vmx.c
-@@ -27,6 +27,7 @@
- #include <linux/slab.h>
- #include <linux/tboot.h>
- #include <linux/trace_events.h>
-+#include <linux/entry-kvm.h>
- 
- #include <asm/apic.h>
- #include <asm/asm.h>
-@@ -5376,14 +5377,12 @@ static int handle_invalid_guest_state(st
- 		}
- 
- 		/*
--		 * Note, return 1 and not 0, vcpu_run() is responsible for
--		 * morphing the pending signal into the proper return code.
-+		 * Note, return 1 and not 0, vcpu_run() will invoke
-+		 * exit_to_guest_mode() which will create a proper return
-+		 * code.
- 		 */
--		if (signal_pending(current))
-+		if (__exit_to_guest_mode_work_pending())
- 			return 1;
--
--		if (need_resched())
--			schedule();
- 	}
- 
- 	return 1;
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -56,6 +56,7 @@
- #include <linux/sched/stat.h>
- #include <linux/sched/isolation.h>
- #include <linux/mem_encrypt.h>
-+#include <linux/entry-kvm.h>
- 
- #include <trace/events/kvm.h>
- 
-@@ -1585,7 +1586,7 @@ EXPORT_SYMBOL_GPL(kvm_emulate_wrmsr);
- bool kvm_vcpu_exit_request(struct kvm_vcpu *vcpu)
+diff --git a/arch/sh/include/asm/mmu_context.h b/arch/sh/include/asm/mmu_=
+context.h
+index 9470d17c71c2..ce40147d4a7d 100644
+--- a/arch/sh/include/asm/mmu_context.h
++++ b/arch/sh/include/asm/mmu_context.h
+@@ -85,6 +85,7 @@ static inline void get_mmu_context(struct mm_struct *mm=
+, unsigned int cpu)
+  * Initialize the context related info for a new mm_struct
+  * instance.
+  */
++#define init_new_context init_new_context
+ static inline int init_new_context(struct task_struct *tsk,
+ 				   struct mm_struct *mm)
  {
- 	return vcpu->mode == EXITING_GUEST_MODE || kvm_request_pending(vcpu) ||
--		need_resched() || signal_pending(current);
-+		exit_to_guest_mode_work_pending();
+@@ -121,9 +122,7 @@ static inline void switch_mm(struct mm_struct *prev,
+ 			activate_context(next, cpu);
  }
- EXPORT_SYMBOL_GPL(kvm_vcpu_exit_request);
- 
-@@ -8676,15 +8677,11 @@ static int vcpu_run(struct kvm_vcpu *vcp
- 			break;
- 		}
- 
--		if (signal_pending(current)) {
--			r = -EINTR;
--			vcpu->run->exit_reason = KVM_EXIT_INTR;
--			++vcpu->stat.signal_exits;
--			break;
--		}
--		if (need_resched()) {
-+		if (exit_to_guest_mode_work_pending()) {
- 			srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
--			cond_resched();
-+			r = exit_to_guest_mode(vcpu);
-+			if (r)
-+				return r;
- 			vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
- 		}
- 	}
+=20
+-#define activate_mm(prev, next)		switch_mm((prev),(next),NULL)
+-#define deactivate_mm(tsk,mm)		do { } while (0)
+-#define enter_lazy_tlb(mm,tsk)		do { } while (0)
++#include <asm-generic/mmu_context.h>
+=20
+ #else
+=20
+diff --git a/arch/sh/include/asm/mmu_context_32.h b/arch/sh/include/asm/m=
+mu_context_32.h
+index 71bf12ef1f65..bc5034fa6249 100644
+--- a/arch/sh/include/asm/mmu_context_32.h
++++ b/arch/sh/include/asm/mmu_context_32.h
+@@ -2,15 +2,6 @@
+ #ifndef __ASM_SH_MMU_CONTEXT_32_H
+ #define __ASM_SH_MMU_CONTEXT_32_H
+=20
+-/*
+- * Destroy context related info for an mm_struct that is about
+- * to be put to rest.
+- */
+-static inline void destroy_context(struct mm_struct *mm)
+-{
+-	/* Do nothing */
+-}
+-
+ #ifdef CONFIG_CPU_HAS_PTEAEX
+ static inline void set_asid(unsigned long asid)
+ {
+--=20
+2.23.0
