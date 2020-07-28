@@ -1,42 +1,63 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 01/24] asm-generic: add generic versions of mmu context
- functions
-Date: Tue, 28 Jul 2020 04:01:24 +0000
-Message-ID: <12ac3789-71a5-2756-6a9e-769302c7b3c6@synopsys.com>
-References: <20200728033405.78469-1-npiggin@gmail.com>
- <20200728033405.78469-2-npiggin@gmail.com>
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [PATCH 06/24] csky: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 12:09:58 +0800
+Message-ID: <CAJF2gTT-SmgFjyU5H75=xYihwKK5tSggGXP=D_4am06-wdLM4w@mail.gmail.com>
+References: <20200728033405.78469-1-npiggin@gmail.com> <20200728033405.78469-7-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay-out1.synopsys.com ([149.117.87.133]:48386 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725919AbgG1EBa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Jul 2020 00:01:30 -0400
-In-Reply-To: <20200728033405.78469-2-npiggin@gmail.com>
-Content-Language: en-US
-Content-ID: <6B282E90BF3D1C4B9CB1389407D1C8EE@namprd12.prod.outlook.com>
+Received: from mail.kernel.org ([198.145.29.99]:35204 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726004AbgG1EKL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Jul 2020 00:10:11 -0400
+In-Reply-To: <20200728033405.78469-7-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-csky@vger.kernel.org
 
-T24gNy8yNy8yMCA4OjMzIFBNLCBOaWNob2xhcyBQaWdnaW4gd3JvdGU6DQo+IE1hbnkgb2YgdGhl
-c2UgYXJlIG5vLW9wcyBvbiBtYW55IGFyY2hpdGVjdHVyZXMsIHNvIGV4dGVuZCBtbXVfY29udGV4
-dC5oDQo+IHRvIGNvdmVyIE1NVSBhbmQgTk9NTVUsIGFuZCBzcGxpdCB0aGUgTk9NTVUgYml0cyBv
-dXQgdG8gbm9tbXVfY29udGV4dC5oDQo+IA0KDQo+IC1zdGF0aWMgaW5saW5lIHZvaWQgc3dpdGNo
-X21tKHN0cnVjdCBtbV9zdHJ1Y3QgKnByZXYsDQo+IC0JCQlzdHJ1Y3QgbW1fc3RydWN0ICpuZXh0
-LA0KPiAtCQkJc3RydWN0IHRhc2tfc3RydWN0ICp0c2spDQo+ICsvKioNCj4gKyAqIGFjdGl2YXRl
-X21tIC0gY2FsbGVkIGFmdGVyIGV4ZWMgc3dpdGNoZXMgdGhlIGN1cnJlbnQgdGFzayB0byBhIG5l
-dyBtbSwgdG8gc3dpdGNoIHRvIGl0DQo+ICsgKiBAcHJldl9tbTogcHJldmlvdXMgbW0gb2YgdGhp
-cyB0YXNrDQo+ICsgKiBAbmV4dF9tbTogbmV3IG1tDQo+ICsgKi8NCj4gKyNpZm5kZWYgYWN0aXZh
-dGVfbW0NCj4gK3N0YXRpYyBpbmxpbmUgdm9pZCBhY3RpdmF0ZV9tbShzdHJ1Y3QgbW1fc3RydWN0
-ICpwcmV2X21tLA0KPiArCQkJICAgICAgIHN0cnVjdCBtbV9zdHJ1Y3QgKm5leHRfbW0pDQo+ICB7
-DQo+ICsJc3dpdGNoX21tKHByZXZfbW0sIG5leHRfbW0sIGN1cnJlbnQpOw0KPiAgfQ0KPiArI2Vu
-ZGlmDQoNCklzIGFjdGl2YXRlX21tKCkgcmVhbGx5IG5lZWRlZCBub3cuIEl0IHNlZW1zIG1vc3Qg
-YXJjaGVzIGhhdmUNCiAgIGFjdGl2YXRlX21tKHAsIG4pIC0+IHN3aXRjaF9tbShwLCBuLCBOVUxM
-KQ0KDQpBbmQgaWYgd2UgYXJlIHBhc3NpbmcgY3VycmVudCwgdGhhdCBjYW4gYmUgcHVzaGVkIGlu
-c2lkZSBzd2l0Y2hfbW0oKQ0KDQo+ICANCj4gLXN0YXRpYyBpbmxpbmUgdm9pZCBhY3RpdmF0ZV9t
-bShzdHJ1Y3QgbW1fc3RydWN0ICpwcmV2X21tLA0KPiAtCQkJICAgICAgIHN0cnVjdCBtbV9zdHJ1
-Y3QgKm5leHRfbW0pDQo=
+Acked-by: Guo Ren <guoren@kernel.org>
+
+On Tue, Jul 28, 2020 at 11:34 AM Nicholas Piggin <npiggin@gmail.com> wrote:
+>
+> Cc: Guo Ren <guoren@kernel.org>
+> Cc: linux-csky@vger.kernel.org
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
+>  arch/csky/include/asm/mmu_context.h | 8 +++-----
+>  1 file changed, 3 insertions(+), 5 deletions(-)
+>
+> diff --git a/arch/csky/include/asm/mmu_context.h b/arch/csky/include/asm/mmu_context.h
+> index abdf1f1cb6ec..b227d29393a8 100644
+> --- a/arch/csky/include/asm/mmu_context.h
+> +++ b/arch/csky/include/asm/mmu_context.h
+> @@ -24,11 +24,6 @@
+>  #define cpu_asid(mm)           (atomic64_read(&mm->context.asid) & ASID_MASK)
+>
+>  #define init_new_context(tsk,mm)       ({ atomic64_set(&(mm)->context.asid, 0); 0; })
+> -#define activate_mm(prev,next)         switch_mm(prev, next, current)
+> -
+> -#define destroy_context(mm)            do {} while (0)
+> -#define enter_lazy_tlb(mm, tsk)                do {} while (0)
+> -#define deactivate_mm(tsk, mm)         do {} while (0)
+>
+>  void check_and_switch_context(struct mm_struct *mm, unsigned int cpu);
+>
+> @@ -46,4 +41,7 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
+>
+>         flush_icache_deferred(next);
+>  }
+> +
+> +#include <asm-generic/mmu_context.h>
+> +
+>  #endif /* __ASM_CSKY_MMU_CONTEXT_H */
+> --
+> 2.23.0
+>
+
+
+-- 
+Best Regards
+ Guo Ren
+
+ML: https://lore.kernel.org/linux-csky/
