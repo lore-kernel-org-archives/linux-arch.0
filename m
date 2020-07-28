@@ -1,45 +1,113 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33414 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731466AbgGUVRM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 17:17:12 -0400
-Received: from mail-lj1-x241.google.com (mail-lj1-x241.google.com [IPv6:2a00:1450:4864:20::241])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BC3D1C0619DC
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:17:11 -0700 (PDT)
-Received: by mail-lj1-x241.google.com with SMTP id f5so198464ljj.10
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:17:11 -0700 (PDT)
-Received: from mail-lf1-f53.google.com (mail-lf1-f53.google.com. [209.85.167.53])
-        by smtp.gmail.com with ESMTPSA id o1sm5082367ljj.82.2020.07.21.14.17.07
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 21 Jul 2020 14:17:08 -0700 (PDT)
-Received: by mail-lf1-f53.google.com with SMTP id k13so134537lfo.0
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:17:07 -0700 (PDT)
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 20/24] sparc: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 13:34:01 +1000
+Message-ID: <20200728033405.78469-21-npiggin@gmail.com>
+In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
+References: <20200728033405.78469-1-npiggin@gmail.com>
 MIME-Version: 1.0
-References: <20200721202425.GA2786714@ZenIV.linux.org.uk> <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
- <20200721202549.4150745-4-viro@ZenIV.linux.org.uk> <CAHk-=wiYS3sHp9bvRn3KmkFKnK-Pb0ksL+-gRRHLK_ZjJqQf=w@mail.gmail.com>
- <CAHk-=wg4DXWjV0sHAk+5QGvkNqckJTBLLcse_U=AknqEf8r3pw@mail.gmail.com> <20200721211118.GB2786714@ZenIV.linux.org.uk>
-In-Reply-To: <20200721211118.GB2786714@ZenIV.linux.org.uk>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 21 Jul 2020 14:16:51 -0700
-Message-ID: <CAHk-=wh59vJmaH_jWWxpr97XdQfUpOTJgMEA11qzvMwJFjB0VQ@mail.gmail.com>
-Subject: Re: [PATCH 04/18] csum_and_copy_..._user(): pass 0xffffffff instead
- of 0 as initial sum
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200721211651.7VfL8PkASozWpBdvo9WKyDZDTs5nm6R8F00YWrR1Zns@z>
+Message-ID: <20200728033401.Z_73dGJKt8Pb9Zg1IGvFK3ucnnx6CrRmxnMvnnAniTE@z>
 
-On Tue, Jul 21, 2020 at 2:11 PM Al Viro <viro@zeniv.linux.org.uk> wrote:
->
-> > > But I didn't check. Maybe we don't have anything that stupid in the kernel.
->
-> I did.
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/sparc/include/asm/mmu_context_32.h | 10 ++++------
+ arch/sparc/include/asm/mmu_context_64.h | 10 +++++-----
+ 2 files changed, 9 insertions(+), 11 deletions(-)
 
-So then the commit message really should have said so, I feel. That
-would have avoided the whole worry, and made it clear that it's not an
-issue.
-
-                Linus
+diff --git a/arch/sparc/include/asm/mmu_context_32.h b/arch/sparc/include=
+/asm/mmu_context_32.h
+index 7ddcb8badf70..509043f81560 100644
+--- a/arch/sparc/include/asm/mmu_context_32.h
++++ b/arch/sparc/include/asm/mmu_context_32.h
+@@ -6,13 +6,10 @@
+=20
+ #include <asm-generic/mm_hooks.h>
+=20
+-static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_stru=
+ct *tsk)
+-{
+-}
+-
+ /* Initialize a new mmu context.  This is invoked when a new
+  * address space instance (unique or shared) is instantiated.
+  */
++#define init_new_context init_new_context
+ int init_new_context(struct task_struct *tsk, struct mm_struct *mm);
+=20
+ /* Destroy a dead context.  This occurs when mmput drops the
+@@ -20,17 +17,18 @@ int init_new_context(struct task_struct *tsk, struct =
+mm_struct *mm);
+  * all the page tables have been flushed.  Our job is to destroy
+  * any remaining processor-specific state.
+  */
++#define destroy_context destroy_context
+ void destroy_context(struct mm_struct *mm);
+=20
+ /* Switch the current MM context. */
+ void switch_mm(struct mm_struct *old_mm, struct mm_struct *mm,
+ 	       struct task_struct *tsk);
+=20
+-#define deactivate_mm(tsk,mm)	do { } while (0)
+-
+ /* Activate a new MM instance for the current task. */
+ #define activate_mm(active_mm, mm) switch_mm((active_mm), (mm), NULL)
+=20
++#include <asm-generic/mmu_context.h>
++
+ #endif /* !(__ASSEMBLY__) */
+=20
+ #endif /* !(__SPARC_MMU_CONTEXT_H) */
+diff --git a/arch/sparc/include/asm/mmu_context_64.h b/arch/sparc/include=
+/asm/mmu_context_64.h
+index 312fcee8df2b..7a8380c63aab 100644
+--- a/arch/sparc/include/asm/mmu_context_64.h
++++ b/arch/sparc/include/asm/mmu_context_64.h
+@@ -16,17 +16,16 @@
+ #include <asm-generic/mm_hooks.h>
+ #include <asm/percpu.h>
+=20
+-static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_stru=
+ct *tsk)
+-{
+-}
+-
+ extern spinlock_t ctx_alloc_lock;
+ extern unsigned long tlb_context_cache;
+ extern unsigned long mmu_context_bmap[];
+=20
+ DECLARE_PER_CPU(struct mm_struct *, per_cpu_secondary_mm);
+ void get_new_mmu_context(struct mm_struct *mm);
++
++#define init_new_context init_new_context
+ int init_new_context(struct task_struct *tsk, struct mm_struct *mm);
++#define destroy_context destroy_context
+ void destroy_context(struct mm_struct *mm);
+=20
+ void __tsb_context_switch(unsigned long pgd_pa,
+@@ -136,7 +135,6 @@ static inline void switch_mm(struct mm_struct *old_mm=
+, struct mm_struct *mm, str
+ 	spin_unlock_irqrestore(&mm->context.lock, flags);
+ }
+=20
+-#define deactivate_mm(tsk,mm)	do { } while (0)
+ #define activate_mm(active_mm, mm) switch_mm(active_mm, mm, NULL)
+=20
+ #define  __HAVE_ARCH_START_CONTEXT_SWITCH
+@@ -187,6 +185,8 @@ static inline void finish_arch_post_lock_switch(void)
+ 	}
+ }
+=20
++#include <asm-generic/mmu_context.h>
++
+ #endif /* !(__ASSEMBLY__) */
+=20
+ #endif /* !(__SPARC64_MMU_CONTEXT_H) */
+--=20
+2.23.0
