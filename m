@@ -1,65 +1,73 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [patch 01/15] mm/memory.c: avoid access flag update TLB flush for
- retried page fault
-Date: Tue, 28 Jul 2020 20:53:23 +1000
-Message-ID: <1595932767.wga6c4yy6a.astroid@bobo.none>
-References: <20200723211432.b31831a0df3bc2cbdae31b40@linux-foundation.org>
-        <20200724041508.QlTbrHnfh%akpm@linux-foundation.org>
-        <CAHk-=wguPA=pDskR-eMMjwR5LDEaMXrqbmDbrKr0u=wV1LE4rg@mail.gmail.com>
-        <CAHk-=wh4kmU5FdT=Yy7N9wA=se=ALbrquCrOkjCMhiQnOBLvDA@mail.gmail.com>
-        <0323de82-cfbd-8506-fa9c-a702703dd654@linux.alibaba.com>
-        <20200727110512.GB25400@gaia>
-        <39560818-463f-da3a-fc9e-3a4a0a082f61@linux.alibaba.com>
-        <eb1f5cb4-7c3d-df42-f4aa-804e12df45e2@linux.alibaba.com>
-        <CAHk-=wha6f0gF1SJg96R77h0oTuc_oO7-37wD=mYGy6TyJOwbQ@mail.gmail.com>
+From: peterz@infradead.org
+Subject: Re: [PATCH 23/24] x86: use asm-generic/mmu_context.h for no-op
+ implementations
+Date: Tue, 28 Jul 2020 12:54:10 +0200
+Message-ID: <20200728105410.GU119549@hirez.programming.kicks-ass.net>
+References: <20200728033405.78469-1-npiggin@gmail.com>
+ <20200728033405.78469-24-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58734 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58862 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728588AbgG1Kxa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jul 2020 06:53:30 -0400
-In-Reply-To: <CAHk-=wha6f0gF1SJg96R77h0oTuc_oO7-37wD=mYGy6TyJOwbQ@mail.gmail.com>
+        with ESMTP id S1728782AbgG1KyU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jul 2020 06:54:20 -0400
+Content-Disposition: inline
+In-Reply-To: <20200728033405.78469-24-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Yang Shi <yang.shi@linux.alibaba.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Johannes Weiner <hannes@cmpxchg.org>, Hillf Danton <hdanton@sina.com>, Hugh Dickins <hughd@google.com>, Josef Bacik <josef@toxicpanda.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Linux-MM <linux-mm@kvack.org>, mm-commits@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Matthew Wilcox <willy@infradead.org>, Yu Xu <xuyu@linux.alibaba.com>, linuxppc-dev@lists.ozlabs.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
 
-Excerpts from Linus Torvalds's message of July 28, 2020 4:37 am:
-> [ Adding linux-arch, just to make other architectures aware of this issue=
- too.
->=20
->   We have a "flush_tlb_fix_spurious_fault()" thing to take care of the
-> "TLB may contain stale entries, we can't take the same fault over and
-> over again" situation.
->=20
->   On x86, it's a no-op, because x86 doesn't do that. x86 will re-walk
-> the page tables - or possibly just always invalidate the faulting TLB
-> entry - before taking a fault, so there can be no long-term stale
-> TLB's.
+On Tue, Jul 28, 2020 at 01:34:04PM +1000, Nicholas Piggin wrote:
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Borislav Petkov <bp@alien8.de>
+> Cc: x86@kernel.org
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 
-[snip]
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
->   It looks like powerpc people at least thought about this, and only
-> do it if there is a coprocessor. Which sounds a bit confused, but I
-> don't know the rules.
-
-I'm not sure about ppc32 and 64e, I'm almost certain they should do a=20
-local flush if anyting, and someone with a good understanding of the=20
-ISAs and CPUs might be able to nop it entirely. I agree global can't=20
-ever really make sense (except as a default because we have no generic=20
-local flush).
-
-powerpc/64s reloads translations after taking a fault, so it's fine with=20
-a nop here.
-
-The quirk is a problem with coprocessor where it's supposed to=20
-invalidate the translation after a fault but it doesn't, so we can get a=20
-read-only TLB stuck after something else does a RO->RW upgrade on the=20
-TLB. Something like that IIRC.  Coprocessors have their own MMU which=20
-lives in the nest not the core, so you need a global TLB flush to
-invalidate that thing.
-
-Thanks,
-Nick
+> ---
+>  arch/x86/include/asm/mmu_context.h | 6 ++++++
+>  1 file changed, 6 insertions(+)
+> 
+> diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+> index 47562147e70b..255750548433 100644
+> --- a/arch/x86/include/asm/mmu_context.h
+> +++ b/arch/x86/include/asm/mmu_context.h
+> @@ -92,12 +92,14 @@ static inline void switch_ldt(struct mm_struct *prev, struct mm_struct *next)
+>  }
+>  #endif
+>  
+> +#define enter_lazy_tlb enter_lazy_tlb
+>  extern void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk);
+>  
+>  /*
+>   * Init a new mm.  Used on mm copies, like at fork()
+>   * and on mm's that are brand-new, like at execve().
+>   */
+> +#define init_new_context init_new_context
+>  static inline int init_new_context(struct task_struct *tsk,
+>  				   struct mm_struct *mm)
+>  {
+> @@ -117,6 +119,8 @@ static inline int init_new_context(struct task_struct *tsk,
+>  	init_new_context_ldt(mm);
+>  	return 0;
+>  }
+> +
+> +#define destroy_context destroy_context
+>  static inline void destroy_context(struct mm_struct *mm)
+>  {
+>  	destroy_context_ldt(mm);
+> @@ -215,4 +219,6 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+>  
+>  unsigned long __get_current_cr3_fast(void);
+>  
+> +#include <asm-generic/mmu_context.h>
+> +
+>  #endif /* _ASM_X86_MMU_CONTEXT_H */
+> -- 
+> 2.23.0
+> 
