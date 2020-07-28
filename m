@@ -1,81 +1,78 @@
-Return-Path: <SRS0=5OOM=BG=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:44646 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726171AbgG0WhP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Jul 2020 18:37:15 -0400
-Received: from mail-wr1-f50.google.com (mail-wr1-f50.google.com [209.85.221.50])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 65ED820838
-        for <linux-arch@vger.kernel.org>; Mon, 27 Jul 2020 22:37:14 +0000 (UTC)
-Received: by mail-wr1-f50.google.com with SMTP id r2so11301985wrs.8
-        for <linux-arch@vger.kernel.org>; Mon, 27 Jul 2020 15:37:14 -0700 (PDT)
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 15/24] parisc: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 13:33:56 +1000
+Message-ID: <20200728033405.78469-16-npiggin@gmail.com>
+In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
+References: <20200728033405.78469-1-npiggin@gmail.com>
 MIME-Version: 1.0
-References: <20200721105706.030914876@linutronix.de> <20200721110808.562407874@linutronix.de>
-In-Reply-To: <20200721110808.562407874@linutronix.de>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Mon, 27 Jul 2020 15:37:01 -0700
-Message-ID: <CALCETrVwrQ6oCxwEraxLF8ia8P8HUR2czrfqYtgQEdm8DM=RLQ@mail.gmail.com>
-Subject: Re: [patch V4 03/15] entry: Provide generic syscall exit function
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200727223701.1zs8etPlLKlGnTBlEu_JM9gCCH8GL0j3bAAnNgg_va0@z>
+Message-ID: <20200728033356.hCFX_XcXr7dvmXY77Y4pYdyk-TT-UunFJEFiaeIH6tk@z>
 
-On Tue, Jul 21, 2020 at 4:08 AM Thomas Gleixner <tglx@linutronix.de> wrote:
->
-> Like syscall entry all architectures have similar and pointlessly different
-> code to handle pending work before returning from a syscall to user space.
->
->   1) One-time syscall exit work:
->       - rseq syscall exit
->       - audit
->       - syscall tracing
->       - tracehook (single stepping)
->
->   2) Preparatory work
->       - Exit to user mode loop (common TIF handling).
->       - Architecture specific one time work arch_exit_to_user_mode_prepare()
->       - Address limit and lockdep checks
->
->   3) Final transition (lockdep, tracing, context tracking, RCU). Invokes
->      arch_exit_to_user_mode() to handle e.g. speculation mitigations
->
-> Provide a generic version based on the x86 code which has all the RCU and
-> instrumentation protections right.
->
-> Provide a variant for interrupt return to user mode as well which shares
-> the above #2 and #3 work items.
+Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
+Cc: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/parisc/include/asm/mmu_context.h | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-I still don't love making the syscall exit path also do the
-non-syscall stuff.  Do you like my suggestion of instead having a
-generic function to do the syscall complete with all the entry and
-exit stuff?
-
-The singlestep handling is a mess.  I'm not convinced that x86 does
-this sensibly.  Right now, I *think* we are quite likely to not send
-SIGTRAP on the way out of syscalls if TF is set, and we'll actually
-execute one more user instruction before sending the signal.  One
-might reasonably debate whether this is a bug, but we should probably
-figure it out at some point.
-
-That latter bit is relevant to your patch because the fix might end up
-being something like this:
-
-void do_syscall_64(...)
-{
-  unsigned long orig_flags;
-  idtentry_enter();
-  instrumentation_begin();
-  generic_do_syscall(regs, regs->orig_ax, AUDIT_ARCH_X86_64);
-  if (unlikely(orig_flags & regs->flags & X86_EFLAGS_TF))
-    raise SIGTRAP -- pretend we got #DB.
-  instrumentation_end();
-  idtentry_exit(); <-- signal is delivered here
-}
-
-That logic is probably all kinds of buggy, but the point is that the
-special handling probably wants to be done between the generic syscall
-code and the exit code.
+diff --git a/arch/parisc/include/asm/mmu_context.h b/arch/parisc/include/=
+asm/mmu_context.h
+index 07b89c74abeb..71f8a3679b83 100644
+--- a/arch/parisc/include/asm/mmu_context.h
++++ b/arch/parisc/include/asm/mmu_context.h
+@@ -8,16 +8,13 @@
+ #include <asm/pgalloc.h>
+ #include <asm-generic/mm_hooks.h>
+=20
+-static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_stru=
+ct *tsk)
+-{
+-}
+-
+ /* on PA-RISC, we actually have enough contexts to justify an allocator
+  * for them.  prumpf */
+=20
+ extern unsigned long alloc_sid(void);
+ extern void free_sid(unsigned long);
+=20
++#define init_new_context init_new_context
+ static inline int
+ init_new_context(struct task_struct *tsk, struct mm_struct *mm)
+ {
+@@ -27,6 +24,7 @@ init_new_context(struct task_struct *tsk, struct mm_str=
+uct *mm)
+ 	return 0;
+ }
+=20
++#define destroy_context destroy_context
+ static inline void
+ destroy_context(struct mm_struct *mm)
+ {
+@@ -72,8 +70,7 @@ static inline void switch_mm(struct mm_struct *prev,
+ }
+ #define switch_mm_irqs_off switch_mm_irqs_off
+=20
+-#define deactivate_mm(tsk,mm)	do { } while (0)
+-
++#define activate_mm activate_mm
+ static inline void activate_mm(struct mm_struct *prev, struct mm_struct =
+*next)
+ {
+ 	/*
+@@ -91,4 +88,7 @@ static inline void activate_mm(struct mm_struct *prev, =
+struct mm_struct *next)
+=20
+ 	switch_mm(prev,next,current);
+ }
++
++#include <asm-generic/mmu_context.h>
++
+ #endif
+--=20
+2.23.0
