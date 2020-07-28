@@ -1,81 +1,63 @@
-From: Anthony Yznaga <anthony.yznaga@oracle.com>
-Subject: Re: [RFC PATCH 3/5] mm: introduce VM_EXEC_KEEP
-Date: Tue, 28 Jul 2020 10:44:13 -0700
-Message-ID: <7694af9d-dfb9-8c44-dc41-79f58bb14413@oracle.com>
-References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
- <1595869887-23307-4-git-send-email-anthony.yznaga@oracle.com>
- <87365bg3nx.fsf@x220.int.ebiederm.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [patch 01/15] mm/memory.c: avoid access flag update TLB flush for
+ retried page fault
+Date: Tue, 28 Jul 2020 12:02:08 -0700
+Message-ID: <CAHk-=wgrgRqeEo-YUgec7yQNkN+_+sHBP-NtCnfktCFEuPHTDQ@mail.gmail.com>
+References: <20200723211432.b31831a0df3bc2cbdae31b40@linux-foundation.org>
+ <20200724041508.QlTbrHnfh%akpm@linux-foundation.org> <CAHk-=wguPA=pDskR-eMMjwR5LDEaMXrqbmDbrKr0u=wV1LE4rg@mail.gmail.com>
+ <CAHk-=wh4kmU5FdT=Yy7N9wA=se=ALbrquCrOkjCMhiQnOBLvDA@mail.gmail.com>
+ <0323de82-cfbd-8506-fa9c-a702703dd654@linux.alibaba.com> <20200727110512.GB25400@gaia>
+ <39560818-463f-da3a-fc9e-3a4a0a082f61@linux.alibaba.com> <eb1f5cb4-7c3d-df42-f4aa-804e12df45e2@linux.alibaba.com>
+ <CAHk-=wha6f0gF1SJg96R77h0oTuc_oO7-37wD=mYGy6TyJOwbQ@mail.gmail.com> <1595932767.wga6c4yy6a.astroid@bobo.none>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87365bg3nx.fsf@x220.int.ebiederm.org>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49752 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728334AbgG1TCa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jul 2020 15:02:30 -0400
+Received: from mail-lf1-x142.google.com (mail-lf1-x142.google.com [IPv6:2a00:1450:4864:20::142])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A96DCC061794
+        for <linux-arch@vger.kernel.org>; Tue, 28 Jul 2020 12:02:29 -0700 (PDT)
+Received: by mail-lf1-x142.google.com with SMTP id j22so5699736lfm.2
+        for <linux-arch@vger.kernel.org>; Tue, 28 Jul 2020 12:02:29 -0700 (PDT)
+Received: from mail-lf1-f41.google.com (mail-lf1-f41.google.com. [209.85.167.41])
+        by smtp.gmail.com with ESMTPSA id b2sm3625182lji.63.2020.07.28.12.02.25
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 28 Jul 2020 12:02:25 -0700 (PDT)
+Received: by mail-lf1-f41.google.com with SMTP id y18so11579604lfh.11
+        for <linux-arch@vger.kernel.org>; Tue, 28 Jul 2020 12:02:25 -0700 (PDT)
+In-Reply-To: <1595932767.wga6c4yy6a.astroid@bobo.none>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Yang Shi <yang.shi@linux.alibaba.com>, Andrew Morton <akpm@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Johannes Weiner <hannes@cmpxchg.org>, Hillf Danton <hdanton@sina.com>, Hugh Dickins <hughd@google.com>, Josef Bacik <josef@toxicpanda.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Linux-MM <linux-mm@kvack.org>, mm-commits@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Matthew Wilcox <willy@infradead.org>, Yu Xu <xuyu@linux.alibaba.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
 
+On Tue, Jul 28, 2020 at 3:53 AM Nicholas Piggin <npiggin@gmail.com> wrote:
+>
+> The quirk is a problem with coprocessor where it's supposed to
+> invalidate the translation after a fault but it doesn't, so we can get a
+> read-only TLB stuck after something else does a RO->RW upgrade on the
+> TLB. Something like that IIRC.  Coprocessors have their own MMU which
+> lives in the nest not the core, so you need a global TLB flush to
+> invalidate that thing.
 
+So I assumed, but it does seem confused.
 
-On 7/28/20 6:38 AM, ebiederm@xmission.com wrote:
-> Anthony Yznaga <anthony.yznaga@oracle.com> writes:
->
->> A vma with the VM_EXEC_KEEP flag is preserved across exec.  For anonymous
->> vmas only.  For safety, overlap with fixed address VMAs created in the new
->> mm during exec (e.g. the stack and elf load segments) is not permitted and
->> will cause the exec to fail.
->> (We are studying how to guarantee there are no conflicts. Comments welcome.)
->>
->> diff --git a/fs/exec.c b/fs/exec.c
->> index 262112e5f9f8..1de09c4eef00 100644
->> --- a/fs/exec.c
->> +++ b/fs/exec.c
->> @@ -1069,6 +1069,20 @@ ssize_t read_code(struct file *file, unsigned long addr, loff_t pos, size_t len)
->>  EXPORT_SYMBOL(read_code);
->>  #endif
->>  
->> +static int vma_dup_some(struct mm_struct *old_mm, struct mm_struct *new_mm)
->> +{
->> +	struct vm_area_struct *vma;
->> +	int ret;
->> +
->> +	for (vma = old_mm->mmap; vma; vma = vma->vm_next)
->> +		if (vma->vm_flags & VM_EXEC_KEEP) {
->> +			ret = vma_dup(vma, new_mm);
->> +			if (ret)
->> +				return ret;
->> +		}
->> +	return 0;
->> +}
->> +
->>  /*
->>   * Maps the mm_struct mm into the current task struct.
->>   * On success, this function returns with the mutex
->> @@ -1104,6 +1118,12 @@ static int exec_mmap(struct mm_struct *mm)
->>  			mutex_unlock(&tsk->signal->exec_update_mutex);
->>  			return -EINTR;
->>  		}
->> +		ret = vma_dup_some(old_mm, mm);
->                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
->
-> Ouch! An unconditional loop through all of the vmas of the execing
-> process, just in case there is a VM_EXEC_KEEP vma.
->
-> I know we already walk the list in exit_mmap, but I get the feeling this
-> will slow exec down when this feature is not enabled, especially when
-> a process with a lot of vmas is calling exec.
-Patch 4 changes this to only call vma_dup_some() if the new
-binary has opted in to accepting preserved memory.
+Why? Because if there are stale translations on the co-processor,
+there's no guarantee that one of the CPU's will have them and take a
+fault.
 
-Anthony
->
->                 
->> +		if (ret) {
->> +			mmap_read_unlock(old_mm);
->> +			mutex_unlock(&tsk->signal->exec_update_mutex);
->> +			return ret;
->> +		}
->>  	}
->>  
->>  	task_lock(tsk);
+So I'm not seeing why a core CPU doing spurious TLB invalidation would
+follow from "stale TLB in the Nest".
+
+If anything, I think "we have a coprocessor that needs to never have
+stale TLB entries" would impact the _regular_ TLB invalidates (by
+update_mmu_cache()) and perhaps make those more aggressive, exactly
+because the coprocessor may not handle the fault as gracefully.
+
+I dunno. I don't know the coprocessor side well enough to judge, I'm
+just looking at it from a conceptual standpoint.
+
+          Linus
