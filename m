@@ -1,299 +1,70 @@
-From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH v10 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Tue, 28 Jul 2020 16:00:12 -0400
-Message-ID: <a4bf9541-1996-3ba2-dfe5-e734c652ac86@redhat.com>
-References: <20200403205930.1707-1-alex.kogan@oracle.com>
- <20200403205930.1707-4-alex.kogan@oracle.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [patch 01/15] mm/memory.c: avoid access flag update TLB flush for
+ retried page fault
+Date: Wed, 29 Jul 2020 08:53:48 +1000
+Message-ID: <1595974242.esf9644sf3.astroid@bobo.none>
+References: <20200723211432.b31831a0df3bc2cbdae31b40@linux-foundation.org>
+        <20200724041508.QlTbrHnfh%akpm@linux-foundation.org>
+        <CAHk-=wguPA=pDskR-eMMjwR5LDEaMXrqbmDbrKr0u=wV1LE4rg@mail.gmail.com>
+        <CAHk-=wh4kmU5FdT=Yy7N9wA=se=ALbrquCrOkjCMhiQnOBLvDA@mail.gmail.com>
+        <0323de82-cfbd-8506-fa9c-a702703dd654@linux.alibaba.com>
+        <20200727110512.GB25400@gaia>
+        <39560818-463f-da3a-fc9e-3a4a0a082f61@linux.alibaba.com>
+        <eb1f5cb4-7c3d-df42-f4aa-804e12df45e2@linux.alibaba.com>
+        <CAHk-=wha6f0gF1SJg96R77h0oTuc_oO7-37wD=mYGy6TyJOwbQ@mail.gmail.com>
+        <1595932767.wga6c4yy6a.astroid@bobo.none>
+        <CAHk-=wgrgRqeEo-YUgec7yQNkN+_+sHBP-NtCnfktCFEuPHTDQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed;
- boundary="------------370526D467942428E1F63AAA"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200403205930.1707-4-alex.kogan@oracle.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57442 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729781AbgG1Wxy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jul 2020 18:53:54 -0400
+In-Reply-To: <CAHk-=wgrgRqeEo-YUgec7yQNkN+_+sHBP-NtCnfktCFEuPHTDQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Johannes Weiner <hannes@cmpxchg.org>, Hillf Danton <hdanton@sina.com>, Hugh Dickins <hughd@google.com>, Josef Bacik <josef@toxicpanda.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, mm-commits@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Matthew Wilcox <willy@infradead.org>, Yu Xu <xuyu@linux.alibaba.com>, Yang Shi <yang.shi@linux.alibaba.com>
 
-This is a multi-part message in MIME format.
---------------370526D467942428E1F63AAA
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Excerpts from Linus Torvalds's message of July 29, 2020 5:02 am:
+> On Tue, Jul 28, 2020 at 3:53 AM Nicholas Piggin <npiggin@gmail.com> wrote=
+:
+>>
+>> The quirk is a problem with coprocessor where it's supposed to
+>> invalidate the translation after a fault but it doesn't, so we can get a
+>> read-only TLB stuck after something else does a RO->RW upgrade on the
+>> TLB. Something like that IIRC.  Coprocessors have their own MMU which
+>> lives in the nest not the core, so you need a global TLB flush to
+>> invalidate that thing.
+>=20
+> So I assumed, but it does seem confused.
+>=20
+> Why? Because if there are stale translations on the co-processor,
+> there's no guarantee that one of the CPU's will have them and take a
+> fault.
+>=20
+> So I'm not seeing why a core CPU doing spurious TLB invalidation would
+> follow from "stale TLB in the Nest".
 
-On 4/3/20 4:59 PM, Alex Kogan wrote:
-> In CNA, spinning threads are organized in two queues, a primary queue for
-> threads running on the same node as the current lock holder, and a
-> secondary queue for threads running on other nodes. After acquiring the
-> MCS lock and before acquiring the spinlock, the lock holder scans the
-> primary queue looking for a thread running on the same node (pre-scan). If
-> found (call it thread T), all threads in the primary queue between the
-> current lock holder and T are moved to the end of the secondary queue.
-> If such T is not found, we make another scan of the primary queue when
-> unlocking the MCS lock (post-scan), starting at the position where
-> pre-scan stopped. If both scans fail to find such T, the MCS lock is
-> passed to the first thread in the secondary queue. If the secondary queue
-> is empty, the lock is passed to the next thread in the primary queue.
-> For more details, see https://arxiv.org/abs/1810.05600.
->
-> Note that this variant of CNA may introduce starvation by continuously
-> passing the lock to threads running on the same node. This issue
-> will be addressed later in the series.
->
-> Enabling CNA is controlled via a new configuration option
-> (NUMA_AWARE_SPINLOCKS). By default, the CNA variant is patched in at the
-> boot time only if we run on a multi-node machine in native environment and
-> the new config is enabled. (For the time being, the patching requires
-> CONFIG_PARAVIRT_SPINLOCKS to be enabled as well. However, this should be
-> resolved once static_call() is available.) This default behavior can be
-> overridden with the new kernel boot command-line option
-> "numa_spinlock=on/off" (default is "auto").
->
-> Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-> Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
-> Reviewed-by: Waiman Long <longman@redhat.com>
-> ---
+If the nest MMU access faults, it sends an interrupt to the CPU and
+the driver tries to handle the page fault for it (I think that's how
+it works).
 
-There is also a concern that the worst case latency for a lock transfer 
-can be close to O(n) which can be quite large for large SMP systems. I 
-have a patch on top that modifies the current behavior to limit the 
-number of node scans after the lock is freed.
+> If anything, I think "we have a coprocessor that needs to never have
+> stale TLB entries" would impact the _regular_ TLB invalidates (by
+> update_mmu_cache()) and perhaps make those more aggressive, exactly
+> because the coprocessor may not handle the fault as gracefully.
 
-Cheers,
-Longman
+It could be done that way... Hmm although we do have something similar=20
+also in radix__ptep_set_access_flags for the relaxing permissions case
+so maybe this is required for not-present faults as well? I'm not=20
+actually sure now.
 
+But it's a bit weird and awkward because it's working around quirks in
+the hardware which aren't regular, not because we're _completely_=20
+confused (I hope).
 
-
---------------370526D467942428E1F63AAA
-Content-Type: text/x-patch; charset=UTF-8;
- name="0008-locking-qspinlock-Limit-CNA-node-scan-after-the-lock.patch"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment;
- filename*0="0008-locking-qspinlock-Limit-CNA-node-scan-after-the-lock.pa";
- filename*1="tch"
-
-From 1e0d1a7c1d04383367b3d7a086ef3becd2fd81d8 Mon Sep 17 00:00:00 2001
-From: Waiman Long <longman@redhat.com>
-Date: Tue, 28 Jul 2020 15:13:47 -0400
-Subject: [PATCH 8/9] locking/qspinlock: Limit CNA node scan after the lock is
- freed
-
-When there is a long list of lock waiters, the worst case scenario
-for CNA is that none of them are from the same NUMA node. All the lock
-waiters will have to be scanned to figure that out. If the lock becomes
-free early in the scanning process, it means that there will be a long
-delay between lock being freed and re-acquired after scanning the full
-list. The worst case delay is O(n) where n is the number of lock waiters
-which is limited by the number of cpus in the system.
-
-One way to limit the delay is to limit the number of nodes to be scanned
-after the lock is freed. Assuming random distribution of NUMA nodes in
-the lock waiters, the chance of not finding a lock waiter in the same
-NUMA node is ((n-1)/n)^m where n is the number of NUMA nodes and m is
-the number of lock waiters scanned. If we limit the number of scans to
-4n, for example, the chance of not finding same NUMA node lock waiter
-will be 1.4% and 1.6% for 8 and 16-socket servers respectively.
-Note that the limit applies only after the lock is freed, so the chance
-of not finding the right lock waiter is even lower.
-
-To make this possible, the lock waiter scanning and lock spinning have
-to be done at the same time. Since the lock waiter scanning won't stop
-until the lock is freed with additional look ahead, if necessary. The
-extra scanning done in cna_lock_handoff() isn't needed anymore.
-
-Signed-off-by: Waiman Long <longman@redhat.com>
----
- kernel/locking/qspinlock_cna.h | 130 +++++++++++++++++++++------------
- 1 file changed, 83 insertions(+), 47 deletions(-)
-
-diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
-index 03e8ba71a537..89a3905870ea 100644
---- a/kernel/locking/qspinlock_cna.h
-+++ b/kernel/locking/qspinlock_cna.h
-@@ -59,7 +59,7 @@ struct cna_node {
- 	u16			numa_node;
- 	u16			real_numa_node;
- 	u32			encoded_tail;	/* self */
--	u32			partial_order;	/* encoded tail or enum val */
-+	u32			order;		/* encoded tail or enum val */
- 	s32			start_time;
- };
- 
-@@ -79,6 +79,12 @@ enum {
- 	((m) + (MSEC_PER_SEC / HZ) - 1) / (MSEC_PER_SEC / HZ)
- static int intra_node_handoff_threshold __ro_after_init = MSECS_TO_JIFFIES(10);
- 
-+/*
-+ * Controls how many lookaheads for matching numa node after the lock
-+ * is freed.
-+ */
-+static int matching_node_lookahead __ro_after_init;
-+
- static inline bool intra_node_threshold_reached(struct cna_node *cn)
- {
- 	s32 current_time = (s32)jiffies;
-@@ -105,6 +111,11 @@ static void __init cna_init_nodes_per_cpu(unsigned int cpu)
- 		 */
- 		WARN_ON(cn->encoded_tail < MIN_ENCODED_TAIL);
- 	}
-+	/*
-+	 * With 4x numa-node lookahead and assuming random node distribution,
-+	 * the probability of not finding a matching node is less than 2%.
-+	 */
-+	matching_node_lookahead = 4*nr_node_ids;
- }
- 
- static int __init cna_init_nodes(void)
-@@ -262,33 +273,67 @@ static void cna_splice_tail(struct mcs_spinlock *node,
-  * of current waiters. However, the amortized complexity is close to O(1),
-  * as the immediate successor is likely to be running on the same node once
-  * threads from other nodes are moved to the secondary queue.
-+ *
-+ * Given the fact that the lock state is being monitored at the same time
-+ * and the number of additional scans after the lock is freed is limited.
-+ * This will limit the additional lock acquisition latency.
-  */
--static u32 cna_order_queue(struct mcs_spinlock *node,
--			   struct mcs_spinlock *iter)
-+static u32 cna_order_queue(struct mcs_spinlock *node, struct qspinlock *lock)
- {
--	struct cna_node *cni = (struct cna_node *)READ_ONCE(iter->next);
- 	struct cna_node *cn = (struct cna_node *)node;
--	int nid = cn->numa_node;
--	struct cna_node *last;
-+	struct cna_node *cni = cn;
-+	struct cna_node *found = NULL;
-+	int lookahead = matching_node_lookahead;
-+	bool locked = true;
- 
--	/* find any next waiter on 'our' NUMA node */
--	for (last = cn;
--		 /*
--		  * iterate as long as the current node is not priorizied and
--		  * does not run on 'our' NUMA node
--		  */
--	     cni && cni->numa_node != CNA_PRIORITY_NODE && cni->numa_node != nid;
--	     last = cni, cni = (struct cna_node *)READ_ONCE(cni->mcs.next))
--		;
-+	/*
-+	 * Find any next waiter on 'our' NUMA node while spinning on the lock
-+	 * simultaneously. Iterate as long as the current node is not
-+	 * priorizied and does not run on 'our' NUMA node, or up to
-+	 * "lockahead" nodes have been checked after the lock was freed.
-+	 */
-+	while (!found && lookahead) {
-+		if (locked) {
-+			u32 val = atomic_read(&lock->val);
-+			if (!(val & _Q_LOCKED_PENDING_MASK)) {
-+				locked = false;
-+				continue;
-+			}
-+			/*
-+			 * If we are hitting the end of the queue, use
-+			 * atomic_cond_read_relaxed() to wait until the
-+			 * lock value changes which means either the lock
-+			 * is freed or a new waiter comes.
-+			 */
-+			if (cni->encoded_tail == (val & _Q_TAIL_MASK))
-+				atomic_cond_read_relaxed(&lock->val, VAL != val);
-+		}
-+		if (!found) {
-+			found = (struct cna_node *)READ_ONCE(cni->mcs.next);
-+			if (!found && !locked)
-+				break; /* Lock is free with no more nodes to parse */
-+
-+			if (found && found->numa_node != CNA_PRIORITY_NODE
-+				  && found->numa_node != cn->numa_node) {
-+				cni = found;
-+				found = NULL;
-+			}
-+			if (!locked)
-+				lookahead--;
-+		}
-+	}
-+
-+	if (!found)
-+		return cni->encoded_tail; /* continue from here */
- 
--	if (!cni)
--		return last->encoded_tail; /* continue from here */
-+	if (found->numa_node == CNA_PRIORITY_NODE) {
-+		int nid = cn->numa_node;
- 
--	if (cni->numa_node == CNA_PRIORITY_NODE)
--		cni->numa_node = nid;	/* Inherit node id of primary queue */
-+		found->numa_node = nid;	/* Inherit node id of primary queue */
-+	}
- 
--	if (last != cn)	/* did we skip any waiters? */
--		cna_splice_tail(node, node->next, (struct mcs_spinlock *)last);
-+	if (cni != cn)	/* did we skip any waiters? */
-+		cna_splice_tail(node, node->next, (struct mcs_spinlock *)cni);
- 
- 	/*
- 	 * We return LOCAL_WAITER_FOUND here even if we stopped the scan because
-@@ -312,23 +357,23 @@ static __always_inline u32 cna_wait_head_or_lock(struct qspinlock *lock,
- 	if (!cn->start_time)
- 		cn->start_time = (s32)jiffies;
- 
--	if (!intra_node_threshold_reached(cn)) {
--		/*
--		 * We are at the head of the wait queue, no need to use
--		 * the fake NUMA node ID.
--		 */
--		if (cn->numa_node == CNA_PRIORITY_NODE)
--			cn->numa_node = cn->real_numa_node;
--
--		/*
--		 * Try and put the time otherwise spent spin waiting on
--		 * _Q_LOCKED_PENDING_MASK to use by sorting our lists.
--		 */
--		cn->partial_order = cna_order_queue(node, node);
--	} else {
--		cn->partial_order = FLUSH_SECONDARY_QUEUE;
-+	if (intra_node_threshold_reached(cn)) {
-+		cn->order = FLUSH_SECONDARY_QUEUE;
-+		goto out;
- 	}
-+	/*
-+	 * We are at the head of the wait queue, no need to use
-+	 * the fake NUMA node ID.
-+	 */
-+	if (cn->numa_node == CNA_PRIORITY_NODE)
-+		cn->numa_node = cn->real_numa_node;
- 
-+	/*
-+	 * Try and put the time otherwise spent spin waiting on
-+	 * _Q_LOCKED_PENDING_MASK to use by sorting our lists.
-+	 */
-+	cn->order = cna_order_queue(node, lock);
-+out:
- 	return 0; /* we lied; we didn't wait, go do so now */
- }
- 
-@@ -337,18 +382,9 @@ static inline void cna_lock_handoff(struct mcs_spinlock *node,
- {
- 	struct cna_node *cn = (struct cna_node *)node;
- 	u32 val = _Q_LOCKED_VAL;
--	u32 partial_order = cn->partial_order;
--
--	/*
--	 * check if a successor from the same numa node has not been found in
--	 * pre-scan, and if so, try to find it in post-scan starting from the
--	 * node where pre-scan stopped (stored in @pre_scan_result)
--	 */
--	if (partial_order >= MIN_ENCODED_TAIL)
--		partial_order =
--			cna_order_queue(node, decode_tail(partial_order));
-+	u32 order = cn->order;
- 
--	if (partial_order == LOCAL_WAITER_FOUND) {
-+	if (order == LOCAL_WAITER_FOUND) {
- 		/*
- 		 * We found a local waiter; reload @next in case we called
- 		 * cna_order_queue() above.
--- 
-2.18.1
-
-
---------------370526D467942428E1F63AAA--
+Thanks,
+Nick
