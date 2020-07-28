@@ -1,70 +1,58 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 1/2] lockdep: improve current->(hard|soft)irqs_enabled
- synchronisation with actual irq state
-Date: Tue, 28 Jul 2020 21:22:47 +1000
-Message-ID: <1595934957.l1u0ucmyps.astroid@bobo.none>
-References: <20200723105615.1268126-1-npiggin@gmail.com>
-        <20200725202617.GI10769@hirez.programming.kicks-ass.net>
-        <1595735694.b784cvipam.astroid@bobo.none>
-        <20200726121138.GC119549@hirez.programming.kicks-ass.net>
+From: Kirill Tkhai <ktkhai@virtuozzo.com>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+Date: Tue, 28 Jul 2020 14:34:37 +0300
+Message-ID: <46891e3b-ca08-197d-935f-fa0a52a60051@virtuozzo.com>
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34992 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728954AbgG1LWy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jul 2020 07:22:54 -0400
-In-Reply-To: <20200726121138.GC119549@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: Alexey Kardashevskiy <aik@ozlabs.ru>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
+List-Id: linux-arch.vger.kernel.org
 
-Excerpts from peterz@infradead.org's message of July 26, 2020 10:11 pm:
-> On Sun, Jul 26, 2020 at 02:14:34PM +1000, Nicholas Piggin wrote:
->> Excerpts from Peter Zijlstra's message of July 26, 2020 6:26 am:
->=20
->> > Which is 'funny' when it interleaves like:
->> >=20
->> > 	local_irq_disable();
->> > 	...
->> > 	local_irq_enable()
->> > 	  trace_hardirqs_on();
->> > 	  <NMI/>
->> > 	  raw_local_irq_enable();
->> >=20
->> > Because then it will undo the trace_hardirqs_on() we just did. With th=
-e
->> > result that both tracing and lockdep will see a hardirqs-disable witho=
-ut
->> > a matching enable, while the hardware state is enabled.
->>=20
->> Seems like an arch problem -- why not disable if it was enabled only?
->> I guess the local_irq tracing calls are a mess so maybe they copied=20
->> those.
->=20
-> Because, as I wrote earlier, then we can miss updating software state.
-> So your proposal has:
->=20
-> 	raw_local_irq_disable()
-> 	<NMI>
-> 	  if (!arch_irqs_disabled(regs->flags) // false
-> 	    trace_hardirqs_off();
->=20
-> 	  // tracing/lockdep still think IRQs are enabled
-> 	  // hardware IRQ state is disabled.
+On 27.07.2020 20:11, Anthony Yznaga wrote:
+> This patchset adds support for preserving an anonymous memory range across
+> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit for
+> sharing memory in this manner, as opposed to re-attaching to a named shared
+> memory segment, is to ensure it is mapped at the same virtual address in
+> the new process as it was in the old one.  An intended use for this is to
+> preserve guest memory for guests using vfio while qemu exec's an updated
+> version of itself.  By ensuring the memory is preserved at a fixed address,
 
-... and then lockdep_nmi_enter can disable IRQs if they were enabled?
+So, the goal is an update of QEMU binary without a stopping of virtual machine?
 
-The only reason it's done this way as opposed to a much simple counter=20
-increment/decrement AFAIKS is to avoid some overhead of calling=20
-trace_hardirqs_on/off (which seems a bit dubious but let's go with it).
-
-In that case the lockdep_nmi_enter code is the right spot to clean up=20
-that gap vs NMIs. I guess there's an argument that arch_nmi_enter could
-do it. I don't see the problem with fixing it up here though, this is a=20
-slow path so it doesn't matter if we have some more logic for it.
-
-Thanks,
-Nick
+> vfio mappings and their associated kernel data structures can remain valid.
+> In addition, for the qemu use case, qemu instances that back guest RAM with
+> anonymous memory can be updated.
+> 
+> Patches 1 and 2 ensure that loading of ELF load segments does not silently
+> clobber existing VMAS, and remove assumptions that the stack is the only
+> VMA in the mm when the stack is set up.  Patch 1 re-introduces the use of
+> MAP_FIXED_NOREPLACE to load ELF binaries that addresses the previous issues
+> and could be considered on its own.
+> 
+> Patches 3, 4, and 5 introduce the feature and an opt-in method for its use
+> using an ELF note.
+> 
+> Anthony Yznaga (5):
+>   elf: reintroduce using MAP_FIXED_NOREPLACE for elf executable mappings
+>   mm: do not assume only the stack vma exists in setup_arg_pages()
+>   mm: introduce VM_EXEC_KEEP
+>   exec, elf: require opt-in for accepting preserved mem
+>   mm: introduce MADV_DOEXEC
+> 
+>  arch/x86/Kconfig                       |   1 +
+>  fs/binfmt_elf.c                        | 196 +++++++++++++++++++++++++--------
+>  fs/exec.c                              |  33 +++++-
+>  include/linux/binfmts.h                |   7 +-
+>  include/linux/mm.h                     |   5 +
+>  include/uapi/asm-generic/mman-common.h |   3 +
+>  kernel/fork.c                          |   2 +-
+>  mm/madvise.c                           |  25 +++++
+>  mm/mmap.c                              |  47 ++++++++
+>  9 files changed, 266 insertions(+), 53 deletions(-)
+> 
