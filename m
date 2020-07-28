@@ -1,347 +1,89 @@
-Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38226 "EHLO
+Return-Path: <SRS0=s8+w=BH=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47346 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726781AbgGXBZs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 21:25:48 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH v2 08/20] alpha: propagate the calling convention changes down to csum_partial_copy.c helpers
-Date: Fri, 24 Jul 2020 02:25:34 +0100
-Message-ID: <20200724012546.302155-8-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
-References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
- <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
+        with ESMTP id S1727121AbgG1Deq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2020 23:34:46 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 07/24] hexagon: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 13:33:48 +1000
+Message-ID: <20200728033405.78469-8-npiggin@gmail.com>
+In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
+References: <20200728033405.78469-1-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200724012534.wXpONbV2urzhAqQLXCjLA66SAsoiC2C1UNEdDTultK0@z>
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Brian Cain <bcain@codeaurora.org>, linux-hexagon@vger.kernel.org
+Message-ID: <20200728033348.ftkpQh94mCFq_CD7vQt1re8FoOczBHGi9kg8Rl9FpP8@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
-
-get rid of set_fs() in csum_partial_copy_nocheck(), while we are at it -
-just take the part of csum_and_copy_from_user() sans the access_ok() check
-into a helper function and have csum_partial_copy_nocheck() call that.
-
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Brian Cain <bcain@codeaurora.org>
+Cc: linux-hexagon@vger.kernel.org
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/alpha/lib/csum_partial_copy.c | 157 ++++++++++++++++---------------------
- 1 file changed, 69 insertions(+), 88 deletions(-)
+ arch/hexagon/include/asm/mmu_context.h | 33 ++++----------------------
+ 1 file changed, 5 insertions(+), 28 deletions(-)
 
-diff --git a/arch/alpha/lib/csum_partial_copy.c b/arch/alpha/lib/csum_partial_copy.c
-index 3c0e89c39ddb..dc68efbe9367 100644
---- a/arch/alpha/lib/csum_partial_copy.c
-+++ b/arch/alpha/lib/csum_partial_copy.c
-@@ -39,12 +39,11 @@ __asm__ __volatile__("insql %1,%2,%0":"=r" (z):"r" (x),"r" (y))
- #define insqh(x,y,z) \
- __asm__ __volatile__("insqh %1,%2,%0":"=r" (z):"r" (x),"r" (y))
+diff --git a/arch/hexagon/include/asm/mmu_context.h b/arch/hexagon/include/asm/mmu_context.h
+index cdc4adc0300a..81947764c47d 100644
+--- a/arch/hexagon/include/asm/mmu_context.h
++++ b/arch/hexagon/include/asm/mmu_context.h
+@@ -15,39 +15,13 @@
+ #include <asm/pgalloc.h>
+ #include <asm/mem-layout.h>
  
+-static inline void destroy_context(struct mm_struct *mm)
+-{
+-}
 -
--#define __get_user_u(x,ptr)				\
-+#define __get_word(insn,x,ptr)				\
- ({							\
- 	long __guu_err;					\
- 	__asm__ __volatile__(				\
--	"1:	ldq_u %0,%2\n"				\
-+	"1:	"#insn" %0,%2\n"			\
- 	"2:\n"						\
- 	EXC(1b,2b,%0,%1)				\
- 		: "=r"(x), "=r"(__guu_err)		\
-@@ -52,19 +51,6 @@ __asm__ __volatile__("insqh %1,%2,%0":"=r" (z):"r" (x),"r" (y))
- 	__guu_err;					\
- })
- 
--#define __put_user_u(x,ptr)				\
--({							\
--	long __puu_err;					\
--	__asm__ __volatile__(				\
--	"1:	stq_u %2,%1\n"				\
--	"2:\n"						\
--	EXC(1b,2b,$31,%0)				\
--		: "=r"(__puu_err)			\
--		: "m"(__m(addr)), "rJ"(x), "0"(0));	\
--	__puu_err;					\
--})
--
--
- static inline unsigned short from64to16(unsigned long x)
- {
- 	/* Using extract instructions is a bit more efficient
-@@ -95,15 +81,15 @@ static inline unsigned short from64to16(unsigned long x)
+ /*
+  * VM port hides all TLB management, so "lazy TLB" isn't very
+  * meaningful.  Even for ports to architectures with visble TLBs,
+  * this is almost invariably a null function.
++ *
++ * mm->context is set up by pgd_alloc, so no init_new_context required.
   */
- static inline unsigned long
- csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
--			 long len, unsigned long checksum,
--			 int *errp)
-+			 long len)
- {
-+	unsigned long checksum = ~0U;
- 	unsigned long carry = 0;
--	int err = 0;
- 
- 	while (len >= 0) {
- 		unsigned long word;
--		err |= __get_user(word, src);
-+		if (__get_word(ldq, word, src))
-+			return 0;
- 		checksum += carry;
- 		src++;
- 		checksum += word;
-@@ -116,7 +102,8 @@ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
- 	checksum += carry;
- 	if (len) {
- 		unsigned long word, tmp;
--		err |= __get_user(word, src);
-+		if (__get_word(ldq, word, src))
-+			return 0;
- 		tmp = *dst;
- 		mskql(word, len, word);
- 		checksum += word;
-@@ -125,7 +112,6 @@ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
- 		*dst = word | tmp;
- 		checksum += carry;
- 	}
--	if (err && errp) *errp = err;
- 	return checksum;
- }
- 
-@@ -137,20 +123,21 @@ static inline unsigned long
- csum_partial_cfu_dest_aligned(const unsigned long __user *src,
- 			      unsigned long *dst,
- 			      unsigned long soff,
--			      long len, unsigned long checksum,
--			      int *errp)
-+			      long len)
- {
- 	unsigned long first;
- 	unsigned long word, carry;
- 	unsigned long lastsrc = 7+len+(unsigned long)src;
--	int err = 0;
-+	unsigned long checksum = ~0U;
- 
--	err |= __get_user_u(first,src);
-+	if (__get_word(ldq_u, first,src))
-+		return 0;
- 	carry = 0;
- 	while (len >= 0) {
- 		unsigned long second;
- 
--		err |= __get_user_u(second, src+1);
-+		if (__get_word(ldq_u, second, src+1))
-+			return 0;
- 		extql(first, soff, word);
- 		len -= 8;
- 		src++;
-@@ -168,7 +155,8 @@ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
- 	if (len) {
- 		unsigned long tmp;
- 		unsigned long second;
--		err |= __get_user_u(second, lastsrc);
-+		if (__get_word(ldq_u, second, lastsrc))
-+			return 0;
- 		tmp = *dst;
- 		extql(first, soff, word);
- 		extqh(second, soff, first);
-@@ -180,7 +168,6 @@ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
- 		*dst = word | tmp;
- 		checksum += carry;
- 	}
--	if (err && errp) *errp = err;
- 	return checksum;
- }
- 
-@@ -191,18 +178,18 @@ static inline unsigned long
- csum_partial_cfu_src_aligned(const unsigned long __user *src,
- 			     unsigned long *dst,
- 			     unsigned long doff,
--			     long len, unsigned long checksum,
--			     unsigned long partial_dest,
--			     int *errp)
-+			     long len,
-+			     unsigned long partial_dest)
- {
- 	unsigned long carry = 0;
- 	unsigned long word;
- 	unsigned long second_dest;
--	int err = 0;
-+	unsigned long checksum = ~0U;
- 
- 	mskql(partial_dest, doff, partial_dest);
- 	while (len >= 0) {
--		err |= __get_user(word, src);
-+		if (__get_word(ldq, word, src))
-+			return 0;
- 		len -= 8;
- 		insql(word, doff, second_dest);
- 		checksum += carry;
-@@ -216,7 +203,8 @@ csum_partial_cfu_src_aligned(const unsigned long __user *src,
- 	len += 8;
- 	if (len) {
- 		checksum += carry;
--		err |= __get_user(word, src);
-+		if (__get_word(ldq, word, src))
-+			return 0;
- 		mskql(word, len, word);
- 		len -= 8;
- 		checksum += word;
-@@ -237,7 +225,6 @@ csum_partial_cfu_src_aligned(const unsigned long __user *src,
- 	stq_u(partial_dest | second_dest, dst);
- out:
- 	checksum += carry;
--	if (err && errp) *errp = err;
- 	return checksum;
- }
- 
-@@ -249,23 +236,23 @@ static inline unsigned long
- csum_partial_cfu_unaligned(const unsigned long __user * src,
- 			   unsigned long * dst,
- 			   unsigned long soff, unsigned long doff,
--			   long len, unsigned long checksum,
--			   unsigned long partial_dest,
--			   int *errp)
-+			   long len, unsigned long partial_dest)
- {
- 	unsigned long carry = 0;
- 	unsigned long first;
- 	unsigned long lastsrc;
--	int err = 0;
-+	unsigned long checksum = ~0U;
- 
--	err |= __get_user_u(first, src);
-+	if (__get_word(ldq_u, first, src))
-+		return 0;
- 	lastsrc = 7+len+(unsigned long)src;
- 	mskql(partial_dest, doff, partial_dest);
- 	while (len >= 0) {
- 		unsigned long second, word;
- 		unsigned long second_dest;
- 
--		err |= __get_user_u(second, src+1);
-+		if (__get_word(ldq_u, second, src+1))
-+			return 0;
- 		extql(first, soff, word);
- 		checksum += carry;
- 		len -= 8;
-@@ -286,7 +273,8 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
- 		unsigned long second, word;
- 		unsigned long second_dest;
- 
--		err |= __get_user_u(second, lastsrc);
-+		if (__get_word(ldq_u, second, lastsrc))
-+			return 0;
- 		extql(first, soff, word);
- 		extqh(second, soff, first);
- 		word |= first;
-@@ -307,7 +295,8 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
- 		unsigned long second, word;
- 		unsigned long second_dest;
- 
--		err |= __get_user_u(second, lastsrc);
-+		if (__get_word(ldq_u, second, lastsrc))
-+			return 0;
- 		extql(first, soff, word);
- 		extqh(second, soff, first);
- 		word |= first;
-@@ -320,63 +309,55 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
- 		stq_u(partial_dest | word | second_dest, dst);
- 		checksum += carry;
- 	}
--	if (err && errp) *errp = err;
- 	return checksum;
- }
- 
--__wsum
--csum_and_copy_from_user(const void __user *src, void *dst, int len)
-+static __wsum __csum_and_copy(const void __user *src, void *dst, int len)
- {
--	unsigned long checksum = ~0U;
- 	unsigned long soff = 7 & (unsigned long) src;
- 	unsigned long doff = 7 & (unsigned long) dst;
--	int err = 0;
+-static inline void enter_lazy_tlb(struct mm_struct *mm,
+-	struct task_struct *tsk)
+-{
+-}
 -
--	if (len) {
--		if (!access_ok(src, len))
--			return 0;
--		if (!doff) {
--			if (!soff)
--				checksum = csum_partial_cfu_aligned(
--					(const unsigned long __user *) src,
--					(unsigned long *) dst,
--					len-8, checksum, &err);
--			else
--				checksum = csum_partial_cfu_dest_aligned(
--					(const unsigned long __user *) src,
--					(unsigned long *) dst,
--					soff, len-8, checksum, &err);
--		} else {
--			unsigned long partial_dest;
--			ldq_u(partial_dest, dst);
--			if (!soff)
--				checksum = csum_partial_cfu_src_aligned(
--					(const unsigned long __user *) src,
--					(unsigned long *) dst,
--					doff, len-8, checksum,
--					partial_dest, &err);
--			else
--				checksum = csum_partial_cfu_unaligned(
--					(const unsigned long __user *) src,
--					(unsigned long *) dst,
--					soff, doff, len-8, checksum,
--					partial_dest, &err);
--		}
--		checksum = err ? 0 : from64to16 (checksum);
-+	unsigned long checksum;
-+
-+	if (!doff) {
-+		if (!soff)
-+			checksum = csum_partial_cfu_aligned(
-+				(const unsigned long __user *) src,
-+				(unsigned long *) dst, len-8);
-+		else
-+			checksum = csum_partial_cfu_dest_aligned(
-+				(const unsigned long __user *) src,
-+				(unsigned long *) dst,
-+				soff, len-8);
-+	} else {
-+		unsigned long partial_dest;
-+		ldq_u(partial_dest, dst);
-+		if (!soff)
-+			checksum = csum_partial_cfu_src_aligned(
-+				(const unsigned long __user *) src,
-+				(unsigned long *) dst,
-+				doff, len-8, partial_dest);
-+		else
-+			checksum = csum_partial_cfu_unaligned(
-+				(const unsigned long __user *) src,
-+				(unsigned long *) dst,
-+				soff, doff, len-8, partial_dest);
- 	}
--	return (__force __wsum)checksum;
-+	return (__force __wsum)from64to16 (checksum);
-+}
-+
-+__wsum
-+csum_and_copy_from_user(const void __user *src, void *dst, int len)
-+{
-+	if (!access_ok(src, len))
-+		return 0;
-+	return __csum_and_copy(src, dst, len);
- }
- EXPORT_SYMBOL(csum_and_copy_from_user);
+-/*
+- * Architecture-specific actions, if any, for memory map deactivation.
+- */
+-static inline void deactivate_mm(struct task_struct *tsk,
+-	struct mm_struct *mm)
+-{
+-}
+-
+-/**
+- * init_new_context - initialize context related info for new mm_struct instance
+- * @tsk: pointer to a task struct
+- * @mm: pointer to a new mm struct
+- */
+-static inline int init_new_context(struct task_struct *tsk,
+-					struct mm_struct *mm)
+-{
+-	/* mm->context is set up by pgd_alloc */
+-	return 0;
+-}
  
- __wsum
- csum_partial_copy_nocheck(const void *src, void *dst, int len)
+ /*
+  *  Switch active mm context
+@@ -74,6 +48,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+ /*
+  *  Activate new memory map for task
+  */
++#define activate_mm activate_mm
+ static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
  {
--	__wsum checksum;
--	mm_segment_t oldfs = get_fs();
--	set_fs(KERNEL_DS);
--	checksum = csum_and_copy_from_user((__force const void __user *)src,
-+	return __csum_and_copy((__force const void __user *)src,
- 						dst, len);
--	set_fs(oldfs);
--	return checksum;
- }
- EXPORT_SYMBOL(csum_partial_copy_nocheck);
+ 	unsigned long flags;
+@@ -86,4 +61,6 @@ static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
+ /*  Generic hooks for arch_dup_mmap and arch_exit_mmap  */
+ #include <asm-generic/mm_hooks.h>
+ 
++#include <asm-generic/mmu_context.h>
++
+ #endif
 -- 
-2.11.0
+2.23.0
