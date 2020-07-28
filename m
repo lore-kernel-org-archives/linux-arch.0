@@ -1,50 +1,77 @@
-From: Christian Brauner <christian.brauner@ubuntu.com>
-Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-Date: Tue, 28 Jul 2020 15:40:15 +0200
-Message-ID: <20200728134015.tmjy5hy4xden2v5h@wittgenstein>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [RFC PATCH 3/5] mm: introduce VM_EXEC_KEEP
+Date: Tue, 28 Jul 2020 08:38:58 -0500
+Message-ID: <87365bg3nx.fsf@x220.int.ebiederm.org>
 References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
- <87pn8glwd2.fsf@x220.int.ebiederm.org>
- <28125570-4129-bcba-099b-f90481cfbfe8@oracle.com>
+        <1595869887-23307-4-git-send-email-anthony.yznaga@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <28125570-4129-bcba-099b-f90481cfbfe8@oracle.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Sistare <steven.sistare@oracle.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, linux-api@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from out03.mta.xmission.com ([166.70.13.233]:48638 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730069AbgG1NmN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jul 2020 09:42:13 -0400
+In-Reply-To: <1595869887-23307-4-git-send-email-anthony.yznaga@oracle.com>
+        (Anthony Yznaga's message of "Mon, 27 Jul 2020 10:11:25 -0700")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Anthony Yznaga <anthony.yznaga@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
 
-On Mon, Jul 27, 2020 at 02:00:17PM -0400, Steven Sistare wrote:
-> On 7/27/2020 1:07 PM, ebiederm@xmission.com wrote:
-> > Anthony Yznaga <anthony.yznaga@oracle.com> writes:
-> > 
-> >> This patchset adds support for preserving an anonymous memory range across
-> >> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit for
-> >> sharing memory in this manner, as opposed to re-attaching to a named shared
-> >> memory segment, is to ensure it is mapped at the same virtual address in
-> >> the new process as it was in the old one.  An intended use for this is to
-> >> preserve guest memory for guests using vfio while qemu exec's an updated
-> >> version of itself.  By ensuring the memory is preserved at a fixed address,
-> >> vfio mappings and their associated kernel data structures can remain valid.
-> >> In addition, for the qemu use case, qemu instances that back guest RAM with
-> >> anonymous memory can be updated.
-> > 
-> > What is wrong with using a file descriptor to a possibly deleted file
-> > and re-mmaping it?
-> > 
-> > There is already MAP_FIXED that allows you to ensure you have the same
-> > address.
-> 
-> MAP_FIXED blows away any existing mapping in that range, which is not the 
-> desired behavior.  We want to preserve the previously created mapping at
+Anthony Yznaga <anthony.yznaga@oracle.com> writes:
 
-There's also MAP_FIXED_NOREPLACE since v4.17 in case that helps.
+> A vma with the VM_EXEC_KEEP flag is preserved across exec.  For anonymous
+> vmas only.  For safety, overlap with fixed address VMAs created in the new
+> mm during exec (e.g. the stack and elf load segments) is not permitted and
+> will cause the exec to fail.
+> (We are studying how to guarantee there are no conflicts. Comments welcome.)
+>
 
-Note that this should really go to linux-api too. I won't argue to
-resend it since that would mean spamming everyone's inbox with the same
-thread again but in case you send a revised version, please ensure to Cc
-linux-api. The glibc folks are listening on there too.
+> diff --git a/fs/exec.c b/fs/exec.c
+> index 262112e5f9f8..1de09c4eef00 100644
+> --- a/fs/exec.c
+> +++ b/fs/exec.c
+> @@ -1069,6 +1069,20 @@ ssize_t read_code(struct file *file, unsigned long addr, loff_t pos, size_t len)
+>  EXPORT_SYMBOL(read_code);
+>  #endif
+>  
+> +static int vma_dup_some(struct mm_struct *old_mm, struct mm_struct *new_mm)
+> +{
+> +	struct vm_area_struct *vma;
+> +	int ret;
+> +
+> +	for (vma = old_mm->mmap; vma; vma = vma->vm_next)
+> +		if (vma->vm_flags & VM_EXEC_KEEP) {
+> +			ret = vma_dup(vma, new_mm);
+> +			if (ret)
+> +				return ret;
+> +		}
+> +	return 0;
+> +}
+> +
+>  /*
+>   * Maps the mm_struct mm into the current task struct.
+>   * On success, this function returns with the mutex
+> @@ -1104,6 +1118,12 @@ static int exec_mmap(struct mm_struct *mm)
+>  			mutex_unlock(&tsk->signal->exec_update_mutex);
+>  			return -EINTR;
+>  		}
+> +		ret = vma_dup_some(old_mm, mm);
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Thanks!
-Christian
+Ouch! An unconditional loop through all of the vmas of the execing
+process, just in case there is a VM_EXEC_KEEP vma.
+
+I know we already walk the list in exit_mmap, but I get the feeling this
+will slow exec down when this feature is not enabled, especially when
+a process with a lot of vmas is calling exec.
+
+                
+> +		if (ret) {
+> +			mmap_read_unlock(old_mm);
+> +			mutex_unlock(&tsk->signal->exec_update_mutex);
+> +			return ret;
+> +		}
+>  	}
+>  
+>  	task_lock(tsk);
