@@ -1,63 +1,92 @@
-From: Guo Ren <guoren@kernel.org>
-Subject: Re: [PATCH 06/24] csky: use asm-generic/mmu_context.h for no-op implementations
-Date: Tue, 28 Jul 2020 12:09:58 +0800
-Message-ID: <CAJF2gTT-SmgFjyU5H75=xYihwKK5tSggGXP=D_4am06-wdLM4w@mail.gmail.com>
-References: <20200728033405.78469-1-npiggin@gmail.com> <20200728033405.78469-7-npiggin@gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 04/24] arm: use asm-generic/mmu_context.h for no-op
+ implementations
+Date: Tue, 28 Jul 2020 04:14:18 +0000
+Message-ID: <86611bf1-13b2-65e5-50d5-b0701020cd3e@synopsys.com>
+References: <20200728033405.78469-1-npiggin@gmail.com>
+ <20200728033405.78469-5-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35204 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726004AbgG1EKL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Jul 2020 00:10:11 -0400
-In-Reply-To: <20200728033405.78469-7-npiggin@gmail.com>
+Received: from smtprelay-out1.synopsys.com ([149.117.73.133]:43420 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1725966AbgG1EO0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Jul 2020 00:14:26 -0400
+In-Reply-To: <20200728033405.78469-5-npiggin@gmail.com>
+Content-Language: en-US
+Content-ID: <C31602D99210B240A81A2567C2C2840E@namprd12.prod.outlook.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-csky@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, arcml <linux-snps-arc@lists.infradead.org>
 
-Acked-by: Guo Ren <guoren@kernel.org>
-
-On Tue, Jul 28, 2020 at 11:34 AM Nicholas Piggin <npiggin@gmail.com> wrote:
->
-> Cc: Guo Ren <guoren@kernel.org>
-> Cc: linux-csky@vger.kernel.org
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
-> ---
->  arch/csky/include/asm/mmu_context.h | 8 +++-----
->  1 file changed, 3 insertions(+), 5 deletions(-)
->
-> diff --git a/arch/csky/include/asm/mmu_context.h b/arch/csky/include/asm/mmu_context.h
-> index abdf1f1cb6ec..b227d29393a8 100644
-> --- a/arch/csky/include/asm/mmu_context.h
-> +++ b/arch/csky/include/asm/mmu_context.h
-> @@ -24,11 +24,6 @@
->  #define cpu_asid(mm)           (atomic64_read(&mm->context.asid) & ASID_MASK)
->
->  #define init_new_context(tsk,mm)       ({ atomic64_set(&(mm)->context.asid, 0); 0; })
-> -#define activate_mm(prev,next)         switch_mm(prev, next, current)
-> -
-> -#define destroy_context(mm)            do {} while (0)
-> -#define enter_lazy_tlb(mm, tsk)                do {} while (0)
-> -#define deactivate_mm(tsk, mm)         do {} while (0)
->
->  void check_and_switch_context(struct mm_struct *mm, unsigned int cpu);
->
-> @@ -46,4 +41,7 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
->
->         flush_icache_deferred(next);
->  }
-> +
-> +#include <asm-generic/mmu_context.h>
-> +
->  #endif /* __ASM_CSKY_MMU_CONTEXT_H */
-> --
-> 2.23.0
->
-
-
--- 
-Best Regards
- Guo Ren
-
-ML: https://lore.kernel.org/linux-csky/
+T24gNy8yNy8yMCA4OjMzIFBNLCBOaWNob2xhcyBQaWdnaW4gd3JvdGU6DQo+IENjOiBSdXNzZWxs
+IEtpbmcgPGxpbnV4QGFybWxpbnV4Lm9yZy51az4NCj4gQ2M6IGxpbnV4LWFybS1rZXJuZWxAbGlz
+dHMuaW5mcmFkZWFkLm9yZw0KPiBTaWduZWQtb2ZmLWJ5OiBOaWNob2xhcyBQaWdnaW4gPG5waWdn
+aW5AZ21haWwuY29tPg0KPiAtLS0NCj4gIGFyY2gvYXJtL2luY2x1ZGUvYXNtL21tdV9jb250ZXh0
+LmggfCAyNiArKystLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KPiAgMSBmaWxlIGNoYW5nZWQsIDMg
+aW5zZXJ0aW9ucygrKSwgMjMgZGVsZXRpb25zKC0pDQo+IA0KPiBkaWZmIC0tZ2l0IGEvYXJjaC9h
+cm0vaW5jbHVkZS9hc20vbW11X2NvbnRleHQuaCBiL2FyY2gvYXJtL2luY2x1ZGUvYXNtL21tdV9j
+b250ZXh0LmgNCj4gaW5kZXggZjk5ZWQ1MjRmZTQxLi44NGU1ODk1NmZjYWIgMTAwNjQ0DQo+IC0t
+LSBhL2FyY2gvYXJtL2luY2x1ZGUvYXNtL21tdV9jb250ZXh0LmgNCj4gKysrIGIvYXJjaC9hcm0v
+aW5jbHVkZS9hc20vbW11X2NvbnRleHQuaA0KPiBAQCAtMjYsNiArMjYsOCBAQCB2b2lkIF9fY2hl
+Y2tfdm1hbGxvY19zZXEoc3RydWN0IG1tX3N0cnVjdCAqbW0pOw0KPiAgI2lmZGVmIENPTkZJR19D
+UFVfSEFTX0FTSUQNCj4gIA0KPiAgdm9pZCBjaGVja19hbmRfc3dpdGNoX2NvbnRleHQoc3RydWN0
+IG1tX3N0cnVjdCAqbW0sIHN0cnVjdCB0YXNrX3N0cnVjdCAqdHNrKTsNCj4gKw0KPiArI2RlZmlu
+ZSBpbml0X25ld19jb250ZXh0IGluaXRfbmV3X2NvbnRleHQNCj4gIHN0YXRpYyBpbmxpbmUgaW50
+DQo+ICBpbml0X25ld19jb250ZXh0KHN0cnVjdCB0YXNrX3N0cnVjdCAqdHNrLCBzdHJ1Y3QgbW1f
+c3RydWN0ICptbSkNCj4gIHsNCj4gQEAgLTkyLDMyICs5NCwxMCBAQCBzdGF0aWMgaW5saW5lIHZv
+aWQgZmluaXNoX2FyY2hfcG9zdF9sb2NrX3N3aXRjaCh2b2lkKQ0KPiAgDQo+ICAjZW5kaWYJLyog
+Q09ORklHX01NVSAqLw0KPiAgDQo+IC1zdGF0aWMgaW5saW5lIGludA0KPiAtaW5pdF9uZXdfY29u
+dGV4dChzdHJ1Y3QgdGFza19zdHJ1Y3QgKnRzaywgc3RydWN0IG1tX3N0cnVjdCAqbW0pDQo+IC17
+DQo+IC0JcmV0dXJuIDA7DQo+IC19DQo+IC0NCj4gLQ0KPiAgI2VuZGlmCS8qIENPTkZJR19DUFVf
+SEFTX0FTSUQgKi8NCj4gIA0KPiAtI2RlZmluZSBkZXN0cm95X2NvbnRleHQobW0pCQlkbyB7IH0g
+d2hpbGUoMCkNCj4gICNkZWZpbmUgYWN0aXZhdGVfbW0ocHJldixuZXh0KQkJc3dpdGNoX21tKHBy
+ZXYsIG5leHQsIE5VTEwpDQoNCkFjdHVhbGx5IHRoaXMgY2FuIGFsc28gZ28gYXdheSB0b28uDQoN
+CkFSTSBzd2l0Y2hfbW0ocHJldiwgbmV4dCwgdHNrKSAtPiBjaGVja19hbmRfc3dpdGNoX2NvbnRl
+eHQobmV4dCwgdHNrKSBidXQgbGF0dGVyDQpkb2Vzbid0IHVzZSBAdHNrIGF0IGFsbC4gV2l0aCBw
+YXRjaCBiZWxvdywgeW91IGNhbiByZW1vdmUgYWJvdmUgYXMgd2VsbC4uLg0KDQotLS0tLS0tLT4N
+CkZyb20gNjcyZTBmNzhhOTQ4OTI3OTQwNTdhNWE3NTQyZDg1YjcxYzEzNjljNCBNb24gU2VwIDE3
+IDAwOjAwOjAwIDIwMDENCkZyb206IFZpbmVldCBHdXB0YSA8dmd1cHRhQHN5bm9wc3lzLmNvbT4N
+CkRhdGU6IE1vbiwgMjcgSnVsIDIwMjAgMjE6MTI6NDIgLTA3MDANClN1YmplY3Q6IFtQQVRDSF0g
+QVJNOiBtbTogY2hlY2tfYW5kX3N3aXRjaF9jb250ZXh0KCkgZG9lc24ndCB1c2UgQHRzayBhcmcN
+Cg0KU2lnbmVkLW9mZi1ieTogVmluZWV0IEd1cHRhIDx2Z3VwdGFAc3lub3BzeXMuY29tPg0KLS0t
+DQogYXJjaC9hcm0vaW5jbHVkZS9hc20vZWZpLmggICAgICAgICB8IDIgKy0NCiBhcmNoL2FybS9p
+bmNsdWRlL2FzbS9tbXVfY29udGV4dC5oIHwgNSArKy0tLQ0KIGFyY2gvYXJtL21tL2NvbnRleHQu
+YyAgICAgICAgICAgICAgfCAyICstDQogMyBmaWxlcyBjaGFuZ2VkLCA0IGluc2VydGlvbnMoKyks
+IDUgZGVsZXRpb25zKC0pDQoNCmRpZmYgLS1naXQgYS9hcmNoL2FybS9pbmNsdWRlL2FzbS9lZmku
+aCBiL2FyY2gvYXJtL2luY2x1ZGUvYXNtL2VmaS5oDQppbmRleCA1ZGNmM2M2MDExYjcuLjA5OTVi
+MzA4MTQ5ZCAxMDA2NDQNCi0tLSBhL2FyY2gvYXJtL2luY2x1ZGUvYXNtL2VmaS5oDQorKysgYi9h
+cmNoL2FybS9pbmNsdWRlL2FzbS9lZmkuaA0KQEAgLTM3LDcgKzM3LDcgQEAgaW50IGVmaV9zZXRf
+bWFwcGluZ19wZXJtaXNzaW9ucyhzdHJ1Y3QgbW1fc3RydWN0ICptbSwNCmVmaV9tZW1vcnlfZGVz
+Y190ICptZCk7DQoNCiBzdGF0aWMgaW5saW5lIHZvaWQgZWZpX3NldF9wZ2Qoc3RydWN0IG1tX3N0
+cnVjdCAqbW0pDQogew0KLQljaGVja19hbmRfc3dpdGNoX2NvbnRleHQobW0sIE5VTEwpOw0KKwlj
+aGVja19hbmRfc3dpdGNoX2NvbnRleHQobW0pOw0KIH0NCg0KIHZvaWQgZWZpX3ZpcnRtYXBfbG9h
+ZCh2b2lkKTsNCmRpZmYgLS1naXQgYS9hcmNoL2FybS9pbmNsdWRlL2FzbS9tbXVfY29udGV4dC5o
+IGIvYXJjaC9hcm0vaW5jbHVkZS9hc20vbW11X2NvbnRleHQuaA0KaW5kZXggZjk5ZWQ1MjRmZTQx
+Li5jOTYzNjBmYTM0NjYgMTAwNjQ0DQotLS0gYS9hcmNoL2FybS9pbmNsdWRlL2FzbS9tbXVfY29u
+dGV4dC5oDQorKysgYi9hcmNoL2FybS9pbmNsdWRlL2FzbS9tbXVfY29udGV4dC5oDQpAQCAtMjUs
+NyArMjUsNyBAQCB2b2lkIF9fY2hlY2tfdm1hbGxvY19zZXEoc3RydWN0IG1tX3N0cnVjdCAqbW0p
+Ow0KDQogI2lmZGVmIENPTkZJR19DUFVfSEFTX0FTSUQNCg0KLXZvaWQgY2hlY2tfYW5kX3N3aXRj
+aF9jb250ZXh0KHN0cnVjdCBtbV9zdHJ1Y3QgKm1tLCBzdHJ1Y3QgdGFza19zdHJ1Y3QgKnRzayk7
+DQordm9pZCBjaGVja19hbmRfc3dpdGNoX2NvbnRleHQoc3RydWN0IG1tX3N0cnVjdCAqbW0pOw0K
+IHN0YXRpYyBpbmxpbmUgaW50DQogaW5pdF9uZXdfY29udGV4dChzdHJ1Y3QgdGFza19zdHJ1Y3Qg
+KnRzaywgc3RydWN0IG1tX3N0cnVjdCAqbW0pDQogew0KQEAgLTQ3LDggKzQ3LDcgQEAgc3RhdGlj
+IGlubGluZSB2b2lkIGExNV9lcnJhdHVtX2dldF9jcHVtYXNrKGludCB0aGlzX2NwdSwgc3RydWN0
+DQptbV9zdHJ1Y3QgKm1tLA0KDQogI2lmZGVmIENPTkZJR19NTVUNCg0KLXN0YXRpYyBpbmxpbmUg
+dm9pZCBjaGVja19hbmRfc3dpdGNoX2NvbnRleHQoc3RydWN0IG1tX3N0cnVjdCAqbW0sDQotCQkJ
+CQkgICAgc3RydWN0IHRhc2tfc3RydWN0ICp0c2spDQorc3RhdGljIGlubGluZSB2b2lkIGNoZWNr
+X2FuZF9zd2l0Y2hfY29udGV4dChzdHJ1Y3QgbW1fc3RydWN0ICptbSkNCiB7DQogCWlmICh1bmxp
+a2VseShtbS0+Y29udGV4dC52bWFsbG9jX3NlcSAhPSBpbml0X21tLmNvbnRleHQudm1hbGxvY19z
+ZXEpKQ0KIAkJX19jaGVja192bWFsbG9jX3NlcShtbSk7DQpkaWZmIC0tZ2l0IGEvYXJjaC9hcm0v
+bW0vY29udGV4dC5jIGIvYXJjaC9hcm0vbW0vY29udGV4dC5jDQppbmRleCBiNzUyNWI0MzNmM2Uu
+Ljg2YzQxMWUxZDdjYiAxMDA2NDQNCi0tLSBhL2FyY2gvYXJtL21tL2NvbnRleHQuYw0KKysrIGIv
+YXJjaC9hcm0vbW0vY29udGV4dC5jDQpAQCAtMjM0LDcgKzIzNCw3IEBAIHN0YXRpYyB1NjQgbmV3
+X2NvbnRleHQoc3RydWN0IG1tX3N0cnVjdCAqbW0sIHVuc2lnbmVkIGludCBjcHUpDQogCXJldHVy
+biBhc2lkIHwgZ2VuZXJhdGlvbjsNCiB9DQoNCi12b2lkIGNoZWNrX2FuZF9zd2l0Y2hfY29udGV4
+dChzdHJ1Y3QgbW1fc3RydWN0ICptbSwgc3RydWN0IHRhc2tfc3RydWN0ICp0c2spDQordm9pZCBj
+aGVja19hbmRfc3dpdGNoX2NvbnRleHQoc3RydWN0IG1tX3N0cnVjdCAqbW0pDQogew0KIAl1bnNp
+Z25lZCBsb25nIGZsYWdzOw0KIAl1bnNpZ25lZCBpbnQgY3B1ID0gc21wX3Byb2Nlc3Nvcl9pZCgp
+Ow0KLS0gDQoyLjIwLjENCg0K
