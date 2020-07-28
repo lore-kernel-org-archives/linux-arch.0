@@ -1,128 +1,100 @@
-Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46290 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727068AbgGWOJz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 10:09:55 -0400
-Date: Fri, 24 Jul 2020 00:09:48 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks for
- SPLPAR
-References: <20200706043540.1563616-1-npiggin@gmail.com>
-        <20200706043540.1563616-6-npiggin@gmail.com>
-        <874kqhvu1v.fsf@mpe.ellerman.id.au>
-In-Reply-To: <874kqhvu1v.fsf@mpe.ellerman.id.au>
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH 5/5] mm: introduce MADV_DOEXEC
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+ <1595869887-23307-6-git-send-email-anthony.yznaga@oracle.com>
+From: Kirill Tkhai <ktkhai@virtuozzo.com>
+Message-ID: <743a51db-dc27-c49c-9c65-ac164f5283ba@virtuozzo.com>
+Date: Tue, 28 Jul 2020 16:22:40 +0300
 MIME-Version: 1.0
-Message-ID: <1595512823.5k2rrd4zk5.astroid@bobo.none>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <1595869887-23307-6-git-send-email-anthony.yznaga@oracle.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org, Michael Ellerman <mpe@ellerman.id.au>
-Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Waiman Long <longman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
-Message-ID: <20200723140948.-Zeh6jxpSwd8eY6OkTWNwS-nMtm_N_pFFOKM89Pm0KI@z>
+Message-ID: <20200728132240.Ptw0sPEEaTU9JFUEd4-_4bOXfm-7-L95Bh6WRY2Qdc8@z>
 
-Excerpts from Michael Ellerman's message of July 9, 2020 8:53 pm:
-> Nicholas Piggin <npiggin@gmail.com> writes:
->=20
->> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
->> ---
->>  arch/powerpc/include/asm/paravirt.h           | 28 ++++++++
->>  arch/powerpc/include/asm/qspinlock.h          | 66 +++++++++++++++++++
->>  arch/powerpc/include/asm/qspinlock_paravirt.h |  7 ++
->>  arch/powerpc/platforms/pseries/Kconfig        |  5 ++
->>  arch/powerpc/platforms/pseries/setup.c        |  6 +-
->>  include/asm-generic/qspinlock.h               |  2 +
->=20
-> Another ack?
->=20
->> diff --git a/arch/powerpc/include/asm/paravirt.h b/arch/powerpc/include/=
-asm/paravirt.h
->> index 7a8546660a63..f2d51f929cf5 100644
->> --- a/arch/powerpc/include/asm/paravirt.h
->> +++ b/arch/powerpc/include/asm/paravirt.h
->> @@ -45,6 +55,19 @@ static inline void yield_to_preempted(int cpu, u32 yi=
-eld_count)
->>  {
->>  	___bad_yield_to_preempted(); /* This would be a bug */
->>  }
->> +
->> +extern void ___bad_yield_to_any(void);
->> +static inline void yield_to_any(void)
->> +{
->> +	___bad_yield_to_any(); /* This would be a bug */
->> +}
->=20
-> Why do we do that rather than just not defining yield_to_any() at all
-> and letting the build fail on that?
->=20
-> There's a condition somewhere that we know will false at compile time
-> and drop the call before linking?
+On 27.07.2020 20:11, Anthony Yznaga wrote:
+> madvise MADV_DOEXEC preserves a memory range across exec.  Initially
+> only supported for non-executable, non-stack, anonymous memory.
+> MADV_DONTEXEC reverts the effect of a previous MADV_DOXEXEC call and
+> undoes the preservation of the range.  After a successful exec call,
+> the behavior of all ranges reverts to MADV_DONTEXEC.
+> 
+> Signed-off-by: Steve Sistare <steven.sistare@oracle.com>
+> Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
+> ---
+>  include/uapi/asm-generic/mman-common.h |  3 +++
+>  mm/madvise.c                           | 25 +++++++++++++++++++++++++
+>  2 files changed, 28 insertions(+)
+> 
+> diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+> index f94f65d429be..7c5f616b28f7 100644
+> --- a/include/uapi/asm-generic/mman-common.h
+> +++ b/include/uapi/asm-generic/mman-common.h
+> @@ -72,6 +72,9 @@
+>  #define MADV_COLD	20		/* deactivate these pages */
+>  #define MADV_PAGEOUT	21		/* reclaim these pages */
+>  
+> +#define MADV_DOEXEC	22		/* do inherit across exec */
+> +#define MADV_DONTEXEC	23		/* don't inherit across exec */
+> +
+>  /* compatibility flags */
+>  #define MAP_FILE	0
+>  
+> diff --git a/mm/madvise.c b/mm/madvise.c
+> index dd1d43cf026d..b447fa748649 100644
+> --- a/mm/madvise.c
+> +++ b/mm/madvise.c
+> @@ -103,6 +103,26 @@ static long madvise_behavior(struct vm_area_struct *vma,
+>  	case MADV_KEEPONFORK:
+>  		new_flags &= ~VM_WIPEONFORK;
+>  		break;
+> +	case MADV_DOEXEC:
 
-Mainly so you could use it in if (IS_ENABLED()) blocks, but would still
-catch the (presumably buggy) case where something calls it without the
-option set.
+For me MADV_KEEPONEXEC sounds better as it's symmetric to MADV_KEEPONFORK.
 
-I think I had it arranged a different way that was using IS_ENABLED=20
-earlier and changed it but might as well keep it this way.
-
->=20
->> diff --git a/arch/powerpc/include/asm/qspinlock_paravirt.h b/arch/powerp=
-c/include/asm/qspinlock_paravirt.h
->> new file mode 100644
->> index 000000000000..750d1b5e0202
->> --- /dev/null
->> +++ b/arch/powerpc/include/asm/qspinlock_paravirt.h
->> @@ -0,0 +1,7 @@
->> +/* SPDX-License-Identifier: GPL-2.0-or-later */
->> +#ifndef __ASM_QSPINLOCK_PARAVIRT_H
->> +#define __ASM_QSPINLOCK_PARAVIRT_H
->=20
-> _ASM_POWERPC_QSPINLOCK_PARAVIRT_H please.
->=20
->> +
->> +EXPORT_SYMBOL(__pv_queued_spin_unlock);
->=20
-> Why's that in a header? Should that (eventually) go with the generic impl=
-ementation?
-
-Yeah the qspinlock_paravirt.h header is a bit weird and only gets=20
-included into kernel/locking/qspinlock.c
-
->> diff --git a/arch/powerpc/platforms/pseries/Kconfig b/arch/powerpc/platf=
-orms/pseries/Kconfig
->> index 24c18362e5ea..756e727b383f 100644
->> --- a/arch/powerpc/platforms/pseries/Kconfig
->> +++ b/arch/powerpc/platforms/pseries/Kconfig
->> @@ -25,9 +25,14 @@ config PPC_PSERIES
->>  	select SWIOTLB
->>  	default y
->> =20
->> +config PARAVIRT_SPINLOCKS
->> +	bool
->> +	default n
->=20
-> default n is the default.
->=20
->> diff --git a/arch/powerpc/platforms/pseries/setup.c b/arch/powerpc/platf=
-orms/pseries/setup.c
->> index 2db8469e475f..747a203d9453 100644
->> --- a/arch/powerpc/platforms/pseries/setup.c
->> +++ b/arch/powerpc/platforms/pseries/setup.c
->> @@ -771,8 +771,12 @@ static void __init pSeries_setup_arch(void)
->>  	if (firmware_has_feature(FW_FEATURE_LPAR)) {
->>  		vpa_init(boot_cpuid);
->> =20
->> -		if (lppaca_shared_proc(get_lppaca()))
->> +		if (lppaca_shared_proc(get_lppaca())) {
->>  			static_branch_enable(&shared_processor);
->> +#ifdef CONFIG_PARAVIRT_SPINLOCKS
->> +			pv_spinlocks_init();
->> +#endif
->> +		}
->=20
-> We could avoid the ifdef with this I think?
-
-Yes I think so.
-
-Thanks,
-Nick
+> +		/*
+> +		 * MADV_DOEXEC is only supported on private, non-executable,
+> +		 * non-stack anonymous memory and if the VM_EXEC_KEEP flag
+> +		 * is available.
+> +		 */
+> +		if (!VM_EXEC_KEEP || vma->vm_file || vma->vm_flags & (VM_EXEC|VM_SHARED|VM_STACK)) {
+> +			error = -EINVAL;
+> +			goto out;
+> +		}
+> +		new_flags |= (new_flags & ~VM_MAYEXEC) | VM_EXEC_KEEP;
+> +		break;
+> +	case MADV_DONTEXEC:
+> +		if (!VM_EXEC_KEEP) {
+> +			error = -EINVAL;
+> +			goto out;
+> +		}
+> +		if (new_flags & VM_EXEC_KEEP)
+> +			new_flags |= (new_flags & ~VM_EXEC_KEEP) | VM_MAYEXEC;
+> +		break;
+>  	case MADV_DONTDUMP:
+>  		new_flags |= VM_DONTDUMP;
+>  		break;
+> @@ -983,6 +1003,8 @@ static int madvise_inject_error(int behavior,
+>  	case MADV_SOFT_OFFLINE:
+>  	case MADV_HWPOISON:
+>  #endif
+> +	case MADV_DOEXEC:
+> +	case MADV_DONTEXEC:
+>  		return true;
+>  
+>  	default:
+> @@ -1037,6 +1059,9 @@ static int madvise_inject_error(int behavior,
+>   *  MADV_DONTDUMP - the application wants to prevent pages in the given range
+>   *		from being included in its core dump.
+>   *  MADV_DODUMP - cancel MADV_DONTDUMP: no longer exclude from core dump.
+> + *  MADV_DOEXEC - On exec, preserve and duplicate this area in the new process
+> + *		  if the new process allows it.
+> + *  MADV_DONTEXEC - Undo the effect of MADV_DOEXEC.
+>   *
+>   * return values:
+>   *  zero    - success
+> 
