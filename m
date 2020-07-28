@@ -1,232 +1,82 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:35282 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729635AbgGPTut (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:50:49 -0400
-Message-ID: <20200716185424.333483453@linutronix.de>
-Date: Thu, 16 Jul 2020 20:22:12 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 04/13] entry: Provide infrastructure for work before
- exiting to guest mode
-References: <20200716182208.180916541@linutronix.de>
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+ <46891e3b-ca08-197d-935f-fa0a52a60051@virtuozzo.com>
+From: Anthony Yznaga <anthony.yznaga@oracle.com>
+Message-ID: <e6699d15-8c86-8f9a-b840-7c3872e3ec8c@oracle.com>
+Date: Tue, 28 Jul 2020 10:28:07 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <46891e3b-ca08-197d-935f-fa0a52a60051@virtuozzo.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Kirill Tkhai <ktkhai@virtuozzo.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20200716182212.glZbuv9YwoKAWWSCybl_mGaL9ZYXQDSUsp63Ffb-jtY@z>
+Message-ID: <20200728172807.Iy0PSfdK2ZEz4DwHUd5_Q4ftZMzy3PuqF-7KivJQ5IY@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
 
-Entering a guest is similar to exiting to user space. Pending work like
-handling signals, rescheduling, task work etc. needs to be handled before
-that.
 
-Provide generic infrastructure to avoid duplication of the same handling
-code all over the place.
+On 7/28/20 4:34 AM, Kirill Tkhai wrote:
+> On 27.07.2020 20:11, Anthony Yznaga wrote:
+>> This patchset adds support for preserving an anonymous memory range ac=
+ross
+>> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit=
+ for
+>> sharing memory in this manner, as opposed to re-attaching to a named s=
+hared
+>> memory segment, is to ensure it is mapped at the same virtual address =
+in
+>> the new process as it was in the old one.  An intended use for this is=
+ to
+>> preserve guest memory for guests using vfio while qemu exec's an updat=
+ed
+>> version of itself.  By ensuring the memory is preserved at a fixed add=
+ress,
+> So, the goal is an update of QEMU binary without a stopping of virtual =
+machine?
+Essentially, yes.=C2=A0 The VM is paused very briefly.
 
-The exit to guest mode handling is different from the exit to usermode
-handling, e.g. vs. rseq and live patching, so a separate function is used.
-
-The initial list of work items handled is:
-
-    TIF_SIGPENDING, TIF_NEED_RESCHED, TIF_NOTIFY_RESUME
-
-Architecture specific TIF flags can be added via defines in the
-architecture specific include files.
-
-The calling convention is also different from the syscall/interrupt entry
-functions as KVM invokes this from the outer vcpu_run() loop with
-interrupts and preemption disabled. To prevent missing a pending work item
-it invokes a check for pending TIF work from interrupt disabled code right
-before exiting to guest mode. The lockdep, RCU and tracing state handling
-is also done directly around the switch to and from guest mode.
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Paolo Bonzini <pbonzini@redhat.com>
-Cc: kvm@vger.kernel.org
----
-V3: Reworked and simplified version adopted to recent X86 and KVM changes
-    
-V2: Moved KVM specific functions to kvm (Paolo)
-    Added lockdep assert (Andy)
-    Dropped live patching from enter guest mode work (Miroslav)
----
- include/linux/entry-kvm.h |   80 ++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/kvm_host.h  |    8 ++++
- kernel/entry/Makefile     |    3 +
- kernel/entry/kvm.c        |   51 +++++++++++++++++++++++++++++
- virt/kvm/Kconfig          |    3 +
- 5 files changed, 144 insertions(+), 1 deletion(-)
-
---- /dev/null
-+++ b/include/linux/entry-kvm.h
-@@ -0,0 +1,80 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __LINUX_ENTRYKVM_H
-+#define __LINUX_ENTRYKVM_H
-+
-+#include <linux/entry-common.h>
-+
-+/* Exit to guest mode work */
-+#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
-+
-+#ifndef ARCH_EXIT_TO_GUEST_MODE_WORK
-+# define ARCH_EXIT_TO_GUEST_MODE_WORK	(0)
-+#endif
-+
-+#define EXIT_TO_GUEST_MODE_WORK					\
-+	(_TIF_NEED_RESCHED | _TIF_SIGPENDING |			\
-+	 _TIF_NOTIFY_RESUME | ARCH_EXIT_TO_GUEST_MODE_WORK)
-+
-+struct kvm_vcpu;
-+
-+/**
-+ * arch_exit_to_guest_mode_work - Architecture specific exit to guest mode
-+ *				  work function.
-+ * @vcpu:	Pointer to current's VCPU data
-+ * @ti_work:	Cached TIF flags gathered in exit_to_guest_mode()
-+ *
-+ * Invoked from exit_to_guest_mode_work(). Defaults to NOOP. Can be
-+ * replaced by architecture specific code.
-+ */
-+static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
-+					      unsigned long ti_work);
-+
-+#ifndef arch_exit_to_guest_mode_work
-+static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
-+					       unsigned long ti_work)
-+{
-+	return 0;
-+}
-+#endif
-+
-+/**
-+ * exit_to_guest_mode - Check and handle pending work which needs to be
-+ *			handled before returning to guest mode
-+ * @vcpu:	Pointer to current's VCPU data
-+ *
-+ * Returns: 0 or an error code
-+ */
-+int exit_to_guest_mode(struct kvm_vcpu *vcpu);
-+
-+/**
-+ * __exit_to_guest_mode_work_pending - Check if work is pending
-+ *
-+ * Returns: True if work pending, False otherwise.
-+ *
-+ * Bare variant of exit_to_guest_mode_work_pending(). Can be called from
-+ * interrupt enabled code for racy quick checks with care.
-+ */
-+static inline bool __exit_to_guest_mode_work_pending(void)
-+{
-+	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-+
-+	return !!(ti_work & EXIT_TO_GUEST_MODE_WORK);
-+}
-+
-+/**
-+ * exit_to_guest_mode_work_pending - Check if work is pending which needs to be
-+ *				     handled before returning to guest mode
-+ *
-+ * Returns: True if work pending, False otherwise.
-+ *
-+ * Has to be invoked with interrupts disabled before the transition to
-+ * guest mode.
-+ */
-+static inline bool exit_to_guest_mode_work_pending(void)
-+{
-+	lockdep_assert_irqs_disabled();
-+	return __exit_to_guest_mode_work_pending();
-+}
-+#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
-+
-+#endif
---- a/include/linux/kvm_host.h
-+++ b/include/linux/kvm_host.h
-@@ -1439,4 +1439,12 @@ int kvm_vm_create_worker_thread(struct k
- 				uintptr_t data, const char *name,
- 				struct task_struct **thread_ptr);
- 
-+#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
-+static inline void kvm_handle_signal_exit(struct kvm_vcpu *vcpu)
-+{
-+	vcpu->run->exit_reason = KVM_EXIT_INTR;
-+	vcpu->stat.signal_exits++;
-+}
-+#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
-+
- #endif
---- a/kernel/entry/Makefile
-+++ b/kernel/entry/Makefile
-@@ -1,3 +1,4 @@
- # SPDX-License-Identifier: GPL-2.0
- 
--obj-$(CONFIG_GENERIC_ENTRY) += common.o
-+obj-$(CONFIG_GENERIC_ENTRY) 		+= common.o
-+obj-$(CONFIG_KVM_EXIT_TO_GUEST_WORK)	+= kvm.o
---- /dev/null
-+++ b/kernel/entry/kvm.c
-@@ -0,0 +1,51 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+#include <linux/entry-kvm.h>
-+#include <linux/kvm_host.h>
-+
-+static int exit_to_guest_mode_work(struct kvm_vcpu *vcpu, unsigned long ti_work)
-+{
-+	do {
-+		int ret;
-+
-+		if (ti_work & _TIF_SIGPENDING) {
-+			kvm_handle_signal_exit(vcpu);
-+			return -EINTR;
-+		}
-+
-+		if (ti_work & _TIF_NEED_RESCHED)
-+			schedule();
-+
-+		if (ti_work & _TIF_NOTIFY_RESUME) {
-+			clear_thread_flag(TIF_NOTIFY_RESUME);
-+			tracehook_notify_resume(NULL);
-+		}
-+
-+		ret = arch_exit_to_guest_mode_work(vcpu, ti_work);
-+		if (ret)
-+			return ret;
-+
-+		ti_work = READ_ONCE(current_thread_info()->flags);
-+	} while (ti_work & EXIT_TO_GUEST_MODE_WORK || need_resched());
-+	return 0;
-+}
-+
-+int exit_to_guest_mode(struct kvm_vcpu *vcpu)
-+{
-+	unsigned long ti_work;
-+
-+	/*
-+	 * This is invoked from the outer guest loop with interrupts and
-+	 * preemption enabled.
-+	 *
-+	 * KVM invokes exit_to_guest_mode_work_pending() with interrupts
-+	 * disabled in the inner loop before going into guest mode. No need
-+	 * to disable interrupts here.
-+	 */
-+	ti_work = READ_ONCE(current_thread_info()->flags);
-+	if (!(ti_work & EXIT_TO_GUEST_MODE_WORK))
-+		return 0;
-+
-+	return exit_to_guest_mode_work(vcpu, ti_work);
-+}
-+EXPORT_SYMBOL_GPL(exit_to_guest_mode);
---- a/virt/kvm/Kconfig
-+++ b/virt/kvm/Kconfig
-@@ -60,3 +60,6 @@ config HAVE_KVM_VCPU_RUN_PID_CHANGE
- 
- config HAVE_KVM_NO_POLL
-        bool
-+
-+config KVM_EXIT_TO_GUEST_WORK
-+       bool
+Anthony
+>
+>> vfio mappings and their associated kernel data structures can remain v=
+alid.
+>> In addition, for the qemu use case, qemu instances that back guest RAM=
+ with
+>> anonymous memory can be updated.
+>>
+>> Patches 1 and 2 ensure that loading of ELF load segments does not sile=
+ntly
+>> clobber existing VMAS, and remove assumptions that the stack is the on=
+ly
+>> VMA in the mm when the stack is set up.  Patch 1 re-introduces the use=
+ of
+>> MAP_FIXED_NOREPLACE to load ELF binaries that addresses the previous i=
+ssues
+>> and could be considered on its own.
+>>
+>> Patches 3, 4, and 5 introduce the feature and an opt-in method for its=
+ use
+>> using an ELF note.
+>>
+>> Anthony Yznaga (5):
+>>   elf: reintroduce using MAP_FIXED_NOREPLACE for elf executable mappin=
+gs
+>>   mm: do not assume only the stack vma exists in setup_arg_pages()
+>>   mm: introduce VM_EXEC_KEEP
+>>   exec, elf: require opt-in for accepting preserved mem
+>>   mm: introduce MADV_DOEXEC
+>>
+>>  arch/x86/Kconfig                       |   1 +
+>>  fs/binfmt_elf.c                        | 196 ++++++++++++++++++++++++=
++--------
+>>  fs/exec.c                              |  33 +++++-
+>>  include/linux/binfmts.h                |   7 +-
+>>  include/linux/mm.h                     |   5 +
+>>  include/uapi/asm-generic/mman-common.h |   3 +
+>>  kernel/fork.c                          |   2 +-
+>>  mm/madvise.c                           |  25 +++++
+>>  mm/mmap.c                              |  47 ++++++++
+>>  9 files changed, 266 insertions(+), 53 deletions(-)
+>>
