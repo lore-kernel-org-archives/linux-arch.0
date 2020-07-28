@@ -1,7 +1,7 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 21/24] um: use asm-generic/mmu_context.h for no-op implementations
-Date: Tue, 28 Jul 2020 13:34:02 +1000
-Message-ID: <20200728033405.78469-22-npiggin@gmail.com>
+Subject: [PATCH 22/24] unicore32: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 13:34:03 +1000
+Message-ID: <20200728033405.78469-23-npiggin@gmail.com>
 References: <20200728033405.78469-1-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,49 +9,59 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, linux-um@lists.infradead.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <gxt@pku.edu.cn>
 List-Id: linux-arch.vger.kernel.org
 
-Cc: Jeff Dike <jdike@addtoit.com>
-Cc: Richard Weinberger <richard@nod.at>
-Cc: Anton Ivanov <anton.ivanov@cambridgegreys.com>
-Cc: linux-um@lists.infradead.org
+Cc: Guan Xuetao <gxt@pku.edu.cn>
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/um/include/asm/mmu_context.h | 12 +++++-------
- 1 file changed, 5 insertions(+), 7 deletions(-)
+ arch/unicore32/include/asm/mmu_context.h | 24 +++---------------------
+ 1 file changed, 3 insertions(+), 21 deletions(-)
 
-diff --git a/arch/um/include/asm/mmu_context.h b/arch/um/include/asm/mmu_context.h
-index 17ddd4edf875..f8a100770691 100644
---- a/arch/um/include/asm/mmu_context.h
-+++ b/arch/um/include/asm/mmu_context.h
-@@ -37,10 +37,9 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-  * end asm-generic/mm_hooks.h functions
-  */
+diff --git a/arch/unicore32/include/asm/mmu_context.h b/arch/unicore32/include/asm/mmu_context.h
+index 388c0c811c68..e1751cb5439c 100644
+--- a/arch/unicore32/include/asm/mmu_context.h
++++ b/arch/unicore32/include/asm/mmu_context.h
+@@ -18,24 +18,6 @@
+ #include <asm/cacheflush.h>
+ #include <asm/cpu-single.h>
  
--#define deactivate_mm(tsk,mm)	do { } while (0)
+-#define init_new_context(tsk, mm)	0
 -
- extern void force_flush_all(void);
- 
-+#define activate_mm activate_mm
- static inline void activate_mm(struct mm_struct *old, struct mm_struct *new)
- {
- 	/*
-@@ -66,13 +65,12 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
- 	}
- }
- 
--static inline void enter_lazy_tlb(struct mm_struct *mm, 
--				  struct task_struct *tsk)
+-#define destroy_context(mm)		do { } while (0)
+-
+-/*
+- * This is called when "tsk" is about to enter lazy TLB mode.
+- *
+- * mm:  describes the currently active mm context
+- * tsk: task which is entering lazy tlb
+- * cpu: cpu number which is entering lazy tlb
+- *
+- * tsk->mm will be NULL
+- */
+-static inline void
+-enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
 -{
 -}
 -
-+#define init_new_context init_new_context
- extern int init_new_context(struct task_struct *task, struct mm_struct *mm);
+ /*
+  * This is the actual mm switch as far as the scheduler
+  * is concerned.  No registers are touched.  We avoid
+@@ -52,9 +34,6 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
+ 		cpu_switch_mm(next->pgd, next);
+ }
  
-+#define destroy_context destroy_context
- extern void destroy_context(struct mm_struct *mm);
- 
+-#define deactivate_mm(tsk, mm)	do { } while (0)
+-#define activate_mm(prev, next)	switch_mm(prev, next, NULL)
+-
+ /*
+  * We are inserting a "fake" vma for the user-accessible vector page so
+  * gdb and friends can get to it through ptrace and /proc/<pid>/mem.
+@@ -95,4 +74,7 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 	/* by default, allow everything */
+ 	return true;
+ }
++
 +#include <asm-generic/mmu_context.h>
 +
  #endif
