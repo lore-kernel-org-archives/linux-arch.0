@@ -1,45 +1,74 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40724 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728207AbgGQICM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 04:02:12 -0400
-Received: from metis.ext.pengutronix.de (metis.ext.pengutronix.de [IPv6:2001:67c:670:201:290:27ff:fe1d:cc33])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D951AC08C5C0
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jul 2020 01:02:11 -0700 (PDT)
-Subject: Re: [PATCH 22/22] net: make ->{get,set}sockopt in proto_ops optional
-References: <20200717062331.691152-1-hch@lst.de>
- <20200717062331.691152-23-hch@lst.de>
-From: Marc Kleine-Budde <mkl@pengutronix.de>
-Message-ID: <5f88e695-d787-2191-feef-883a067788ed@pengutronix.de>
-Date: Fri, 17 Jul 2020 10:01:28 +0200
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 11/24] mips: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 13:33:52 +1000
+Message-ID: <20200728033405.78469-12-npiggin@gmail.com>
+In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
+References: <20200728033405.78469-1-npiggin@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20200717062331.691152-23-hch@lst.de>
-Content-Type: text/plain; charset=utf-8
-Content-Language: de-DE
-Content-Transfer-Encoding: 7bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, linux-mips@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, "David S. Miller" <davem@davemloft.net>
-Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
-Message-ID: <20200717080128.1ahqdJ5c7nGZ4Hbbq47am7rf0whYLlm0gdpyDQxVx8c@z>
+Message-ID: <20200728033352.UBx0r21kc2yNgpcCd_PQk9tmRKc90vHboSFGwkOMsT0@z>
 
-On 7/17/20 8:23 AM, Christoph Hellwig wrote:
-> Just check for a NULL method instead of wiring up
-> sock_no_{get,set}sockopt.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  net/can/bcm.c               |  2 --
->  net/core/sock.c             | 14 --------------
+Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+Cc: linux-mips@vger.kernel.org
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/mips/include/asm/mmu_context.h | 11 ++++-------
+ 1 file changed, 4 insertions(+), 7 deletions(-)
 
-For the CAN part:
-
-Acked-by: Marc Kleine-Budde <mkl@pengutronix.de>
-
-Marc
-
--- 
-Pengutronix e.K.                 | Marc Kleine-Budde           |
-Embedded Linux                   | https://www.pengutronix.de  |
-Vertretung West/Dortmund         | Phone: +49-231-2826-924     |
-Amtsgericht Hildesheim, HRA 2686 | Fax:   +49-5121-206917-5555 |
+diff --git a/arch/mips/include/asm/mmu_context.h b/arch/mips/include/asm/=
+mmu_context.h
+index cddead91acd4..ed9f2d748f63 100644
+--- a/arch/mips/include/asm/mmu_context.h
++++ b/arch/mips/include/asm/mmu_context.h
+@@ -124,10 +124,6 @@ static inline void set_cpu_context(unsigned int cpu,
+ #define cpu_asid(cpu, mm) \
+ 	(cpu_context((cpu), (mm)) & cpu_asid_mask(&cpu_data[cpu]))
+=20
+-static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_stru=
+ct *tsk)
+-{
+-}
+-
+ extern void get_new_mmu_context(struct mm_struct *mm);
+ extern void check_mmu_context(struct mm_struct *mm);
+ extern void check_switch_mmu_context(struct mm_struct *mm);
+@@ -136,6 +132,7 @@ extern void check_switch_mmu_context(struct mm_struct=
+ *mm);
+  * Initialize the context related info for a new mm_struct
+  * instance.
+  */
++#define init_new_context init_new_context
+ static inline int
+ init_new_context(struct task_struct *tsk, struct mm_struct *mm)
+ {
+@@ -180,14 +177,12 @@ static inline void switch_mm(struct mm_struct *prev=
+, struct mm_struct *next,
+  * Destroy context related info for an mm_struct that is about
+  * to be put to rest.
+  */
++#define destroy_context destroy_context
+ static inline void destroy_context(struct mm_struct *mm)
+ {
+ 	dsemul_mm_cleanup(mm);
+ }
+=20
+-#define activate_mm(prev, next)	switch_mm(prev, next, current)
+-#define deactivate_mm(tsk, mm)	do { } while (0)
+-
+ static inline void
+ drop_mmu_context(struct mm_struct *mm)
+ {
+@@ -237,4 +232,6 @@ drop_mmu_context(struct mm_struct *mm)
+ 	local_irq_restore(flags);
+ }
+=20
++#include <asm-generic/mmu_context.h>
++
+ #endif /* _ASM_MMU_CONTEXT_H */
+--=20
+2.23.0
