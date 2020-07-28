@@ -1,47 +1,82 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 06/24] csky: use asm-generic/mmu_context.h for no-op implementations
-Date: Tue, 28 Jul 2020 13:33:47 +1000
-Message-ID: <20200728033405.78469-7-npiggin@gmail.com>
+Subject: [PATCH 08/24] ia64: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 13:33:49 +1000
+Message-ID: <20200728033405.78469-9-npiggin@gmail.com>
 References: <20200728033405.78469-1-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-ia64-owner@vger.kernel.org>
 In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-ia64-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Cc: Guo Ren <guoren@kernel.org>
-Cc: linux-csky@vger.kernel.org
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: linux-ia64@vger.kernel.org
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/csky/include/asm/mmu_context.h | 8 +++-----
- 1 file changed, 3 insertions(+), 5 deletions(-)
+ arch/ia64/include/asm/mmu_context.h | 17 ++++-------------
+ 1 file changed, 4 insertions(+), 13 deletions(-)
 
-diff --git a/arch/csky/include/asm/mmu_context.h b/arch/csky/include/asm/mmu_context.h
-index abdf1f1cb6ec..b227d29393a8 100644
---- a/arch/csky/include/asm/mmu_context.h
-+++ b/arch/csky/include/asm/mmu_context.h
-@@ -24,11 +24,6 @@
- #define cpu_asid(mm)		(atomic64_read(&mm->context.asid) & ASID_MASK)
+diff --git a/arch/ia64/include/asm/mmu_context.h b/arch/ia64/include/asm/mmu_context.h
+index 2da0e2eb036b..87a0d5bc11ef 100644
+--- a/arch/ia64/include/asm/mmu_context.h
++++ b/arch/ia64/include/asm/mmu_context.h
+@@ -49,11 +49,6 @@ DECLARE_PER_CPU(u8, ia64_need_tlb_flush);
+ extern void mmu_context_init (void);
+ extern void wrap_mmu_context (struct mm_struct *mm);
  
- #define init_new_context(tsk,mm)	({ atomic64_set(&(mm)->context.asid, 0); 0; })
--#define activate_mm(prev,next)		switch_mm(prev, next, current)
+-static inline void
+-enter_lazy_tlb (struct mm_struct *mm, struct task_struct *tsk)
+-{
+-}
 -
--#define destroy_context(mm)		do {} while (0)
--#define enter_lazy_tlb(mm, tsk)		do {} while (0)
--#define deactivate_mm(tsk, mm)		do {} while (0)
- 
- void check_and_switch_context(struct mm_struct *mm, unsigned int cpu);
- 
-@@ -46,4 +41,7 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
- 
- 	flush_icache_deferred(next);
+ /*
+  * When the context counter wraps around all TLBs need to be flushed because
+  * an old context number might have been reused. This is signalled by the
+@@ -116,6 +111,7 @@ get_mmu_context (struct mm_struct *mm)
+  * Initialize context number to some sane value.  MM is guaranteed to be a
+  * brand-new address-space, so no TLB flushing is needed, ever.
+  */
++#define init_new_context init_new_context
+ static inline int
+ init_new_context (struct task_struct *p, struct mm_struct *mm)
+ {
+@@ -123,12 +119,6 @@ init_new_context (struct task_struct *p, struct mm_struct *mm)
+ 	return 0;
  }
-+
+ 
+-static inline void
+-destroy_context (struct mm_struct *mm)
+-{
+-	/* Nothing to do.  */
+-}
+-
+ static inline void
+ reload_context (nv_mm_context_t context)
+ {
+@@ -178,11 +168,10 @@ activate_context (struct mm_struct *mm)
+ 	} while (unlikely(context != mm->context));
+ }
+ 
+-#define deactivate_mm(tsk,mm)	do { } while (0)
+-
+ /*
+  * Switch from address space PREV to address space NEXT.
+  */
++#define activate_mm activate_mm
+ static inline void
+ activate_mm (struct mm_struct *prev, struct mm_struct *next)
+ {
+@@ -196,5 +185,7 @@ activate_mm (struct mm_struct *prev, struct mm_struct *next)
+ 
+ #define switch_mm(prev_mm,next_mm,next_task)	activate_mm(prev_mm, next_mm)
+ 
 +#include <asm-generic/mmu_context.h>
 +
- #endif /* __ASM_CSKY_MMU_CONTEXT_H */
+ # endif /* ! __ASSEMBLY__ */
+ #endif /* _ASM_IA64_MMU_CONTEXT_H */
 -- 
 2.23.0
