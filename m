@@ -1,7 +1,7 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 20/24] sparc: use asm-generic/mmu_context.h for no-op implementations
-Date: Tue, 28 Jul 2020 13:34:01 +1000
-Message-ID: <20200728033405.78469-21-npiggin@gmail.com>
+Subject: [PATCH 21/24] um: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 13:34:02 +1000
+Message-ID: <20200728033405.78469-22-npiggin@gmail.com>
 References: <20200728033405.78469-1-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,98 +9,51 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, linux-um@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: sparclinux@vger.kernel.org
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: Anton Ivanov <anton.ivanov@cambridgegreys.com>
+Cc: linux-um@lists.infradead.org
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/sparc/include/asm/mmu_context_32.h | 10 ++++------
- arch/sparc/include/asm/mmu_context_64.h | 10 +++++-----
- 2 files changed, 9 insertions(+), 11 deletions(-)
+ arch/um/include/asm/mmu_context.h | 12 +++++-------
+ 1 file changed, 5 insertions(+), 7 deletions(-)
 
-diff --git a/arch/sparc/include/asm/mmu_context_32.h b/arch/sparc/include/asm/mmu_context_32.h
-index 7ddcb8badf70..509043f81560 100644
---- a/arch/sparc/include/asm/mmu_context_32.h
-+++ b/arch/sparc/include/asm/mmu_context_32.h
-@@ -6,13 +6,10 @@
- 
- #include <asm-generic/mm_hooks.h>
- 
--static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
--{
--}
--
- /* Initialize a new mmu context.  This is invoked when a new
-  * address space instance (unique or shared) is instantiated.
+diff --git a/arch/um/include/asm/mmu_context.h b/arch/um/include/asm/mmu_context.h
+index 17ddd4edf875..f8a100770691 100644
+--- a/arch/um/include/asm/mmu_context.h
++++ b/arch/um/include/asm/mmu_context.h
+@@ -37,10 +37,9 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+  * end asm-generic/mm_hooks.h functions
   */
-+#define init_new_context init_new_context
- int init_new_context(struct task_struct *tsk, struct mm_struct *mm);
- 
- /* Destroy a dead context.  This occurs when mmput drops the
-@@ -20,17 +17,18 @@ int init_new_context(struct task_struct *tsk, struct mm_struct *mm);
-  * all the page tables have been flushed.  Our job is to destroy
-  * any remaining processor-specific state.
-  */
-+#define destroy_context destroy_context
- void destroy_context(struct mm_struct *mm);
- 
- /* Switch the current MM context. */
- void switch_mm(struct mm_struct *old_mm, struct mm_struct *mm,
- 	       struct task_struct *tsk);
  
 -#define deactivate_mm(tsk,mm)	do { } while (0)
 -
- /* Activate a new MM instance for the current task. */
- #define activate_mm(active_mm, mm) switch_mm((active_mm), (mm), NULL)
+ extern void force_flush_all(void);
  
-+#include <asm-generic/mmu_context.h>
-+
- #endif /* !(__ASSEMBLY__) */
- 
- #endif /* !(__SPARC_MMU_CONTEXT_H) */
-diff --git a/arch/sparc/include/asm/mmu_context_64.h b/arch/sparc/include/asm/mmu_context_64.h
-index 312fcee8df2b..7a8380c63aab 100644
---- a/arch/sparc/include/asm/mmu_context_64.h
-+++ b/arch/sparc/include/asm/mmu_context_64.h
-@@ -16,17 +16,16 @@
- #include <asm-generic/mm_hooks.h>
- #include <asm/percpu.h>
- 
--static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
--{
--}
--
- extern spinlock_t ctx_alloc_lock;
- extern unsigned long tlb_context_cache;
- extern unsigned long mmu_context_bmap[];
- 
- DECLARE_PER_CPU(struct mm_struct *, per_cpu_secondary_mm);
- void get_new_mmu_context(struct mm_struct *mm);
-+
-+#define init_new_context init_new_context
- int init_new_context(struct task_struct *tsk, struct mm_struct *mm);
-+#define destroy_context destroy_context
- void destroy_context(struct mm_struct *mm);
- 
- void __tsb_context_switch(unsigned long pgd_pa,
-@@ -136,7 +135,6 @@ static inline void switch_mm(struct mm_struct *old_mm, struct mm_struct *mm, str
- 	spin_unlock_irqrestore(&mm->context.lock, flags);
- }
- 
--#define deactivate_mm(tsk,mm)	do { } while (0)
- #define activate_mm(active_mm, mm) switch_mm(active_mm, mm, NULL)
- 
- #define  __HAVE_ARCH_START_CONTEXT_SWITCH
-@@ -187,6 +185,8 @@ static inline void finish_arch_post_lock_switch(void)
++#define activate_mm activate_mm
+ static inline void activate_mm(struct mm_struct *old, struct mm_struct *new)
+ {
+ 	/*
+@@ -66,13 +65,12 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
  	}
  }
  
+-static inline void enter_lazy_tlb(struct mm_struct *mm, 
+-				  struct task_struct *tsk)
+-{
+-}
+-
++#define init_new_context init_new_context
+ extern int init_new_context(struct task_struct *task, struct mm_struct *mm);
+ 
++#define destroy_context destroy_context
+ extern void destroy_context(struct mm_struct *mm);
+ 
 +#include <asm-generic/mmu_context.h>
 +
- #endif /* !(__ASSEMBLY__) */
- 
- #endif /* !(__SPARC64_MMU_CONTEXT_H) */
+ #endif
 -- 
 2.23.0
