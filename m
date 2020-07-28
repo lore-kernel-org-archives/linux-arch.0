@@ -1,7 +1,7 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 16/24] powerpc: use asm-generic/mmu_context.h for no-op implementations
-Date: Tue, 28 Jul 2020 13:33:57 +1000
-Message-ID: <20200728033405.78469-17-npiggin@gmail.com>
+Subject: [PATCH 17/24] riscv: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 13:33:58 +1000
+Message-ID: <20200728033405.78469-18-npiggin@gmail.com>
 References: <20200728033405.78469-1-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,70 +9,58 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@ozlabs.org>, linuxppc-dev@lists.ozlabs.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, linux-riscv@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@ozlabs.org>
-Cc: linuxppc-dev@lists.ozlabs.org
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: Albert Ou <aou@eecs.berkeley.edu>
+Cc: linux-riscv@lists.infradead.org
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/powerpc/include/asm/mmu_context.h | 22 +++++++---------------
- 1 file changed, 7 insertions(+), 15 deletions(-)
+ arch/riscv/include/asm/mmu_context.h | 22 ++--------------------
+ 1 file changed, 2 insertions(+), 20 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-index 1a474f6b1992..242bd987247b 100644
---- a/arch/powerpc/include/asm/mmu_context.h
-+++ b/arch/powerpc/include/asm/mmu_context.h
-@@ -14,7 +14,9 @@
- /*
-  * Most if the context management is out of line
-  */
-+#define init_new_context init_new_context
- extern int init_new_context(struct task_struct *tsk, struct mm_struct *mm);
-+#define destroy_context destroy_context
- extern void destroy_context(struct mm_struct *mm);
- #ifdef CONFIG_SPAPR_TCE_IOMMU
- struct mm_iommu_table_group_mem_t;
-@@ -237,27 +239,15 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
- }
- #define switch_mm_irqs_off switch_mm_irqs_off
+diff --git a/arch/riscv/include/asm/mmu_context.h b/arch/riscv/include/asm/mmu_context.h
+index 67c463812e2d..250defa06f3a 100644
+--- a/arch/riscv/include/asm/mmu_context.h
++++ b/arch/riscv/include/asm/mmu_context.h
+@@ -13,34 +13,16 @@
+ #include <linux/mm.h>
+ #include <linux/sched.h>
  
--
--#define deactivate_mm(tsk,mm)	do { } while (0)
--
--/*
-- * After we have set current->mm to a new value, this activates
-- * the context for the new mm so we see the new mappings.
-- */
--static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
+-static inline void enter_lazy_tlb(struct mm_struct *mm,
+-	struct task_struct *task)
 -{
--	switch_mm(prev, next, current);
 -}
 -
--/* We don't currently use enter_lazy_tlb() for anything */
-+#ifdef CONFIG_PPC_BOOK3E_64
-+#define enter_lazy_tlb enter_lazy_tlb
- static inline void enter_lazy_tlb(struct mm_struct *mm,
- 				  struct task_struct *tsk)
+-/* Initialize context-related info for a new mm_struct */
+-static inline int init_new_context(struct task_struct *task,
+-	struct mm_struct *mm)
+-{
+-	return 0;
+-}
+-
+-static inline void destroy_context(struct mm_struct *mm)
+-{
+-}
+-
+ void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+ 	struct task_struct *task);
+ 
++#define activate_mm activate_mm
+ static inline void activate_mm(struct mm_struct *prev,
+ 			       struct mm_struct *next)
  {
- 	/* 64-bit Book3E keeps track of current PGD in the PACA */
--#ifdef CONFIG_PPC_BOOK3E_64
- 	get_paca()->pgd = NULL;
--#endif
- }
-+#endif
- 
- extern void arch_exit_mmap(struct mm_struct *mm);
- 
-@@ -300,5 +290,7 @@ static inline int arch_dup_mmap(struct mm_struct *oldmm,
- 	return 0;
+ 	switch_mm(prev, next, NULL);
  }
  
+-static inline void deactivate_mm(struct task_struct *task,
+-	struct mm_struct *mm)
+-{
+-}
 +#include <asm-generic/mmu_context.h>
-+
- #endif /* __KERNEL__ */
- #endif /* __ASM_POWERPC_MMU_CONTEXT_H */
+ 
+ #endif /* _ASM_RISCV_MMU_CONTEXT_H */
 -- 
 2.23.0
