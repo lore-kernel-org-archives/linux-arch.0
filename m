@@ -1,84 +1,65 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx07-001d1705.pphosted.com ([185.132.183.11]:39118 "EHLO
-        mx07-001d1705.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726099AbgGaWlS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 Jul 2020 18:41:18 -0400
-From: "Bird, Tim" <Tim.Bird@sony.com>
-Subject: RE: [Ksummit-discuss] [TECH TOPIC] Planning code obsolescence
-Date: Fri, 31 Jul 2020 21:57:41 +0000
-Message-ID: <CY4PR13MB1175A3B5D9DE33D3A1E045A6FD4E0@CY4PR13MB1175.namprd13.prod.outlook.com>
-References: <CAK8P3a2PK_bC5=3wcWm43=y5xk-Dq5-fGPExJMnOrNfGfB1m1A@mail.gmail.com>
- <20200731212721.GC32670@localhost>
-In-Reply-To: <20200731212721.GC32670@localhost>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 05/24] arm64: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 13:33:46 +1000
+Message-ID: <20200728033405.78469-6-npiggin@gmail.com>
+In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
+References: <20200728033405.78469-1-npiggin@gmail.com>
 MIME-Version: 1.0
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "josh@joshtriplett.org" <josh@joshtriplett.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ksummit <ksummit-discuss@lists.linuxfoundation.org>
-Message-ID: <20200731215741.OQgsQp6LdqEFDvsvutd7PVu72fiPg_Jo0RCzTNNzMQw@z>
+Message-ID: <20200728033346.HbVnpPbNz8Q9sYyZu41iMUtvGghvA5iCCfvwL9FMfnA@z>
 
-> -----Original Message-----
-> From: josh@joshtriplett.org
->=20
-> On Fri, Jul 31, 2020 at 05:00:12PM +0200, Arnd Bergmann wrote:
-> > The majority of the code in the kernel deals with hardware that was mad=
-e
-> > a long time ago, and we are regularly discussing which of those bits ar=
-e
-> > still needed. In some cases (e.g. 20+ year old RISC workstation support=
-),
-> > there are hobbyists that take care of maintainership despite there bein=
-g
-> > no commercial interest. In other cases (e.g. x.25 networking) it turned
-> > out that there are very long-lived products that are actively supported
-> > on new kernels.
-> >
-> > When I removed support for eight instruction set architectures in 2018,
-> > those were the ones that no longer had any users of mainline kernels,
-> > and removing them allowed later cleanup of cross-architecture code that
-> > would have been much harder before.
-> >
-> > I propose adding a Documentation file that keeps track of any notable
-> > kernel feature that could be classified as "obsolete", and listing
-> > e.g. following properties:
-> >
-> > * Kconfig symbol controlling the feature
-> >
-> > * How long we expect to keep it as a minimum
-> >
-> > * Known use cases, or other reasons this needs to stay
-> >
-> > * Latest kernel in which it was known to have worked
-> >
-> > * Contact information for known users (mailing list, personal email)
-> >
-> > * Other features that may depend on this
-> >
-> > * Possible benefits of eventually removing it
->=20
-> We had this once, in the form of feature-removal-schedule.txt. It was,
-> itself, removed in commit 9c0ece069b32e8e122aea71aa47181c10eb85ba7.
->=20
-> I *do* think there'd be value in having policies and processes for "how
-> do we carefully remove a driver/architecture/etc we think nobody cares
-> about". That's separate from having an actual in-kernel list of "things
-> we think we can remove".
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: linux-arm-kernel@lists.infradead.org
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/arm64/include/asm/mmu_context.h | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
 
-I'm not sure the documents are the same.  I think what Arnd is proposing
-is more of a "why is this thing still here?" document.  When someone does
-research into who's still using a feature and why, that can be valuable inf=
-ormation
-to share so that future maintenance or removal decisions can be better info=
-rmed.
-
-Maybe e-mails are sufficient for this, but they'd be harder to find than so=
-mething in
-the kernel source. But that supposes that people would look at the file, wh=
-ich=20
-appears didn't happen with feature-removal-schedule.txt.
-
- -- Tim
+diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/as=
+m/mmu_context.h
+index b0bd9b55594c..0f5e351f586a 100644
+--- a/arch/arm64/include/asm/mmu_context.h
++++ b/arch/arm64/include/asm/mmu_context.h
+@@ -174,7 +174,6 @@ static inline void cpu_replace_ttbr1(pgd_t *pgdp)
+  * Setting a reserved TTBR0 or EPD0 would work, but it all gets ugly whe=
+n you
+  * take CPU migration into account.
+  */
+-#define destroy_context(mm)		do { } while(0)
+ void check_and_switch_context(struct mm_struct *mm, unsigned int cpu);
+=20
+ #define init_new_context(tsk,mm)	({ atomic64_set(&(mm)->context.id, 0); =
+0; })
+@@ -202,6 +201,7 @@ static inline void update_saved_ttbr0(struct task_str=
+uct *tsk,
+ }
+ #endif
+=20
++#define enter_lazy_tlb enter_lazy_tlb
+ static inline void
+ enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
+ {
+@@ -244,12 +244,11 @@ switch_mm(struct mm_struct *prev, struct mm_struct =
+*next,
+ 	update_saved_ttbr0(tsk, next);
+ }
+=20
+-#define deactivate_mm(tsk,mm)	do { } while (0)
+-#define activate_mm(prev,next)	switch_mm(prev, next, current)
+-
+ void verify_cpu_asid_bits(void);
+ void post_ttbr_update_workaround(void);
+=20
++#include <asm-generic/mmu_context.h>
++
+ #endif /* !__ASSEMBLY__ */
+=20
+ #endif /* !__ASM_MMU_CONTEXT_H */
+--=20
+2.23.0
