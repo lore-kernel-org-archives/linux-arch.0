@@ -1,50 +1,42 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 03/24] arc: use asm-generic/mmu_context.h for no-op
- implementations
-Date: Tue, 28 Jul 2020 03:58:25 +0000
-Message-ID: <04b9872c-e9d8-2221-0bf6-595dbd15d8eb@synopsys.com>
+Subject: Re: [PATCH 01/24] asm-generic: add generic versions of mmu context
+ functions
+Date: Tue, 28 Jul 2020 04:01:24 +0000
+Message-ID: <12ac3789-71a5-2756-6a9e-769302c7b3c6@synopsys.com>
 References: <20200728033405.78469-1-npiggin@gmail.com>
- <20200728033405.78469-4-npiggin@gmail.com>
+ <20200728033405.78469-2-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay-out1.synopsys.com ([149.117.87.133]:48292 "EHLO
+Received: from smtprelay-out1.synopsys.com ([149.117.87.133]:48386 "EHLO
         smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726814AbgG1D6g (ORCPT
+        by vger.kernel.org with ESMTP id S1725919AbgG1EBa (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Jul 2020 23:58:36 -0400
-In-Reply-To: <20200728033405.78469-4-npiggin@gmail.com>
+        Tue, 28 Jul 2020 00:01:30 -0400
+In-Reply-To: <20200728033405.78469-2-npiggin@gmail.com>
 Content-Language: en-US
-Content-ID: <D5326CEBC1A9364D90F83A08A49FA43D@namprd12.prod.outlook.com>
+Content-ID: <6B282E90BF3D1C4B9CB1389407D1C8EE@namprd12.prod.outlook.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nicholas Piggin <npiggin@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>
 
-T24gNy8yNy8yMCA4OjMzIFBNLCBOaWNob2xhcyBQaWdnaW4gd3JvdGU6DQoNCj4gIC8qDQo+IC0g
-KiBDYWxsZWQgYXQgdGhlIHRpbWUgb2YgZXhlY3ZlKCkgdG8gZ2V0IGEgbmV3IEFTSUQNCj4gLSAq
-IE5vdGUgdGhlIHN1YnRsZXR5IGhlcmU6IGdldF9uZXdfbW11X2NvbnRleHQoKSBiZWhhdmVzIGRp
-ZmZlcmVudGx5IGhlcmUNCj4gLSAqIHZzLiBpbiBzd2l0Y2hfbW0oKS4gSGVyZSBpdCBhbHdheXMg
-cmV0dXJucyBhIG5ldyBBU0lELCBiZWNhdXNlIG1tIGhhcw0KPiAtICogYW4gdW5hbGxvY2F0ZWQg
-ImluaXRpYWwiIHZhbHVlLCB3aGlsZSBpbiBsYXR0ZXIsIGl0IG1vdmVzIHRvIGEgbmV3IEFTSUQs
-DQo+IC0gKiBvbmx5IGlmIGl0IHdhcyB1bmFsbG9jYXRlZA0KPiArICogYWN0aXZhdGVfbW0gZGVm
-YXVsdHMgdG8gc3dpdGNoX21tIGFuZCBpcyBjYWxsZWQgYXQgdGhlIHRpbWUgb2YgZXhlY3ZlKCkg
-dG8NCg0KV2l0aCBhY3RpdmF0ZV9tbSgpIGRlZmluaXRpb24gYWN0dWFsbHkgZ29uZSwgcGVyaGFw
-cyBhZGQgImFjdGl2YXRlX21tKCkgY29tZXMgZnJvbQ0KZ2VuZXJpYyBjb2RlLi4uIiB0byBwcm92
-aWRlIG5leHQgcmVhZGVyIGFib3V0IHRoZSAic3B1cmlvdXMgbG9va2luZyBjb21tZW50Ig0KDQo+
-ICsgKiBnZXQgYSBuZXcgQVNJRCBOb3RlIHRoZSBzdWJ0bGV0eSBoZXJlOiBnZXRfbmV3X21tdV9j
-b250ZXh0KCkgYmVoYXZlcw0KPiArICogZGlmZmVyZW50bHkgaGVyZSB2cy4gaW4gc3dpdGNoX21t
-KCkuIEhlcmUgaXQgYWx3YXlzIHJldHVybnMgYSBuZXcgQVNJRCwNCj4gKyAqIGJlY2F1c2UgbW0g
-aGFzIGFuIHVuYWxsb2NhdGVkICJpbml0aWFsIiB2YWx1ZSwgd2hpbGUgaW4gbGF0dGVyLCBpdCBt
-b3ZlcyB0bw0KPiArICogYSBuZXcgQVNJRCwgb25seSBpZiBpdCB3YXMgdW5hbGxvY2F0ZWQNCj4g
-ICAqLw0KPiAtI2RlZmluZSBhY3RpdmF0ZV9tbShwcmV2LCBuZXh0KQkJc3dpdGNoX21tKHByZXYs
-IG5leHQsIE5VTEwpDQo+ICANCj4gIC8qIGl0IHNlZW1lZCB0aGF0IGRlYWN0aXZhdGVfbW0oICkg
-aXMgYSByZWFzb25hYmxlIHBsYWNlIHRvIGRvIGJvb2sta2VlcGluZw0KPiAgICogZm9yIHJldGly
-aW5nLW1tLiBIb3dldmVyIGRlc3Ryb3lfY29udGV4dCggKSBzdGlsbCBuZWVkcyB0byBkbyB0aGF0
-IGJlY2F1c2UNCj4gQEAgLTE2OCw4ICsxNjksNyBAQCBzdGF0aWMgaW5saW5lIHZvaWQgc3dpdGNo
-X21tKHN0cnVjdCBtbV9zdHJ1Y3QgKnByZXYsIHN0cnVjdCBtbV9zdHJ1Y3QgKm5leHQsDQo+ICAg
-KiB0aGVyZSBpcyBhIGdvb2QgY2hhbmNlIHRoYXQgdGFzayBnZXRzIHNjaGVkLW91dC9pbiwgbWFr
-aW5nIGl0J3MgQVNJRCB2YWxpZA0KPiAgICogYWdhaW4gKHRoaXMgdGVhc2VkIG1lIGZvciBhIHdo
-b2xlIGRheSkuDQo+ICAgKi8NCj4gLSNkZWZpbmUgZGVhY3RpdmF0ZV9tbSh0c2ssIG1tKSAgIGRv
-IHsgfSB3aGlsZSAoMCkNCg0Kc2FtZSBmb3IgZGVhY3RpdmF0ZV9tbSgpDQo=
+T24gNy8yNy8yMCA4OjMzIFBNLCBOaWNob2xhcyBQaWdnaW4gd3JvdGU6DQo+IE1hbnkgb2YgdGhl
+c2UgYXJlIG5vLW9wcyBvbiBtYW55IGFyY2hpdGVjdHVyZXMsIHNvIGV4dGVuZCBtbXVfY29udGV4
+dC5oDQo+IHRvIGNvdmVyIE1NVSBhbmQgTk9NTVUsIGFuZCBzcGxpdCB0aGUgTk9NTVUgYml0cyBv
+dXQgdG8gbm9tbXVfY29udGV4dC5oDQo+IA0KDQo+IC1zdGF0aWMgaW5saW5lIHZvaWQgc3dpdGNo
+X21tKHN0cnVjdCBtbV9zdHJ1Y3QgKnByZXYsDQo+IC0JCQlzdHJ1Y3QgbW1fc3RydWN0ICpuZXh0
+LA0KPiAtCQkJc3RydWN0IHRhc2tfc3RydWN0ICp0c2spDQo+ICsvKioNCj4gKyAqIGFjdGl2YXRl
+X21tIC0gY2FsbGVkIGFmdGVyIGV4ZWMgc3dpdGNoZXMgdGhlIGN1cnJlbnQgdGFzayB0byBhIG5l
+dyBtbSwgdG8gc3dpdGNoIHRvIGl0DQo+ICsgKiBAcHJldl9tbTogcHJldmlvdXMgbW0gb2YgdGhp
+cyB0YXNrDQo+ICsgKiBAbmV4dF9tbTogbmV3IG1tDQo+ICsgKi8NCj4gKyNpZm5kZWYgYWN0aXZh
+dGVfbW0NCj4gK3N0YXRpYyBpbmxpbmUgdm9pZCBhY3RpdmF0ZV9tbShzdHJ1Y3QgbW1fc3RydWN0
+ICpwcmV2X21tLA0KPiArCQkJICAgICAgIHN0cnVjdCBtbV9zdHJ1Y3QgKm5leHRfbW0pDQo+ICB7
+DQo+ICsJc3dpdGNoX21tKHByZXZfbW0sIG5leHRfbW0sIGN1cnJlbnQpOw0KPiAgfQ0KPiArI2Vu
+ZGlmDQoNCklzIGFjdGl2YXRlX21tKCkgcmVhbGx5IG5lZWRlZCBub3cuIEl0IHNlZW1zIG1vc3Qg
+YXJjaGVzIGhhdmUNCiAgIGFjdGl2YXRlX21tKHAsIG4pIC0+IHN3aXRjaF9tbShwLCBuLCBOVUxM
+KQ0KDQpBbmQgaWYgd2UgYXJlIHBhc3NpbmcgY3VycmVudCwgdGhhdCBjYW4gYmUgcHVzaGVkIGlu
+c2lkZSBzd2l0Y2hfbW0oKQ0KDQo+ICANCj4gLXN0YXRpYyBpbmxpbmUgdm9pZCBhY3RpdmF0ZV9t
+bShzdHJ1Y3QgbW1fc3RydWN0ICpwcmV2X21tLA0KPiAtCQkJICAgICAgIHN0cnVjdCBtbV9zdHJ1
+Y3QgKm5leHRfbW0pDQo=
