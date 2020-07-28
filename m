@@ -1,52 +1,90 @@
-Return-Path: <SRS0=Pkkz=BK=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-References: <20200730171251.GI23808@casper.infradead.org>
- <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
- <20200730174956.GK23808@casper.infradead.org>
- <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
- <87y2n03brx.fsf@x220.int.ebiederm.org>
- <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
- <20200731152736.GP23808@casper.infradead.org>
- <9ba26063-0098-e796-9431-8c1d0c076ffc@oracle.com>
- <20200731165649.GG24045@ziepe.ca>
- <71ddd3c1-bb59-3e63-e137-99b88ace454d@oracle.com>
- <20200731174837.GH24045@ziepe.ca>
-From: Steven Sistare <steven.sistare@oracle.com>
-Message-ID: <f4ce3f4a-bdee-ec43-986c-8e4d8b1d2ddc@oracle.com>
-Date: Fri, 31 Jul 2020 13:55:07 -0400
+Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 08/24] ia64: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 28 Jul 2020 13:33:49 +1000
+Message-ID: <20200728033405.78469-9-npiggin@gmail.com>
+In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
+References: <20200728033405.78469-1-npiggin@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20200731174837.GH24045@ziepe.ca>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Jason Gunthorpe <jgg@ziepe.ca>
-Cc: Matthew Wilcox <willy@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200731175507.rcaEG2ryc-E6RsxAqAA-XFCUSG4YV11OxwffPBWiyPo@z>
+Message-ID: <20200728033349.yPC6UpubelRxB4uBhlAPdVrDekB9NuOx-6rkzw6MmhM@z>
 
-On 7/31/2020 1:48 PM, Jason Gunthorpe wrote:
-> On Fri, Jul 31, 2020 at 01:15:34PM -0400, Steven Sistare wrote:
->> On 7/31/2020 12:56 PM, Jason Gunthorpe wrote:
->>> On Fri, Jul 31, 2020 at 12:11:52PM -0400, Steven Sistare wrote:
->>>>> Your preservation-across-exec use-case might or might not need the
->>>>> VMA to be mapped at the same address.  
->>>>
->>>> It does.  qemu registers memory with vfio which remembers the va's in kernel
->>>> metadata for the device.
->>>
->>> Once the memory is registered with vfio the VA doesn't matter, vfio
->>> will keep the iommu pointing at the same physical pages no matter
->>> where they are mapped.
->>
->> Yes, but there are other code paths that compute and use offsets between va and the
->> base va.  Mapping at a different va in the new process breaks vfio; I have tried it.
-> 
-> Maybe you could fix vfio instead of having this adventure, if vfio is
-> the only motivation.
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: linux-ia64@vger.kernel.org
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/ia64/include/asm/mmu_context.h | 17 ++++-------------
+ 1 file changed, 4 insertions(+), 13 deletions(-)
 
-Maybe.  We still need to preserve an anonymous segment, though.  MADV_DOEXEC, or mshare,
-or something else.  And I think the ability to preserve memory containing pointers to itself
-is an interesting use case, though not ours.
-
-- Steve
+diff --git a/arch/ia64/include/asm/mmu_context.h b/arch/ia64/include/asm/=
+mmu_context.h
+index 2da0e2eb036b..87a0d5bc11ef 100644
+--- a/arch/ia64/include/asm/mmu_context.h
++++ b/arch/ia64/include/asm/mmu_context.h
+@@ -49,11 +49,6 @@ DECLARE_PER_CPU(u8, ia64_need_tlb_flush);
+ extern void mmu_context_init (void);
+ extern void wrap_mmu_context (struct mm_struct *mm);
+=20
+-static inline void
+-enter_lazy_tlb (struct mm_struct *mm, struct task_struct *tsk)
+-{
+-}
+-
+ /*
+  * When the context counter wraps around all TLBs need to be flushed bec=
+ause
+  * an old context number might have been reused. This is signalled by th=
+e
+@@ -116,6 +111,7 @@ get_mmu_context (struct mm_struct *mm)
+  * Initialize context number to some sane value.  MM is guaranteed to be=
+ a
+  * brand-new address-space, so no TLB flushing is needed, ever.
+  */
++#define init_new_context init_new_context
+ static inline int
+ init_new_context (struct task_struct *p, struct mm_struct *mm)
+ {
+@@ -123,12 +119,6 @@ init_new_context (struct task_struct *p, struct mm_s=
+truct *mm)
+ 	return 0;
+ }
+=20
+-static inline void
+-destroy_context (struct mm_struct *mm)
+-{
+-	/* Nothing to do.  */
+-}
+-
+ static inline void
+ reload_context (nv_mm_context_t context)
+ {
+@@ -178,11 +168,10 @@ activate_context (struct mm_struct *mm)
+ 	} while (unlikely(context !=3D mm->context));
+ }
+=20
+-#define deactivate_mm(tsk,mm)	do { } while (0)
+-
+ /*
+  * Switch from address space PREV to address space NEXT.
+  */
++#define activate_mm activate_mm
+ static inline void
+ activate_mm (struct mm_struct *prev, struct mm_struct *next)
+ {
+@@ -196,5 +185,7 @@ activate_mm (struct mm_struct *prev, struct mm_struct=
+ *next)
+=20
+ #define switch_mm(prev_mm,next_mm,next_task)	activate_mm(prev_mm, next_m=
+m)
+=20
++#include <asm-generic/mmu_context.h>
++
+ # endif /* ! __ASSEMBLY__ */
+ #endif /* _ASM_IA64_MMU_CONTEXT_H */
+--=20
+2.23.0
