@@ -1,53 +1,92 @@
-From: "Mr.Ahmed Muzashah" <ahmedmuzashah@gmail.com>
-Subject: =?UTF-8?Q?Sch=C3=B6nen_Tag=2C?=
-Date: Wed, 29 Jul 2020 10:27:53 +0100
-Message-ID: <CAM5MUpVxQGaeW_T6AHCowTwd-kev7Ww=cyxS_SwJHhw_ZFSP7w@mail.gmail.com>
-Reply-To: mrahmedmuzashah@gmail.com
+From: Stafford Horne <shorne@gmail.com>
+Subject: Re: [PATCH 14/24] openrisc: use asm-generic/mmu_context.h for no-op
+ implementations
+Date: Wed, 29 Jul 2020 20:45:54 +0900
+Message-ID: <20200729114554.GG80756@lianli.shorne-pla.net>
+References: <20200728033405.78469-1-npiggin@gmail.com>
+ <20200728033405.78469-15-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41546 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34480 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727042AbgG2J1y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Jul 2020 05:27:54 -0400
-Received: from mail-il1-x141.google.com (mail-il1-x141.google.com [IPv6:2607:f8b0:4864:20::141])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 62737C061794
-        for <linux-arch@vger.kernel.org>; Wed, 29 Jul 2020 02:27:54 -0700 (PDT)
-Received: by mail-il1-x141.google.com with SMTP id g6so3863450ilc.7
-        for <linux-arch@vger.kernel.org>; Wed, 29 Jul 2020 02:27:54 -0700 (PDT)
+        with ESMTP id S1726353AbgG2Lp6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Jul 2020 07:45:58 -0400
+Content-Disposition: inline
+In-Reply-To: <20200728033405.78469-15-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, openrisc@lists.librecores.org
 
-Sch=C3=B6nen Tag,
+On Tue, Jul 28, 2020 at 01:33:55PM +1000, Nicholas Piggin wrote:
+> Cc: Jonas Bonn <jonas@southpole.se>
+> Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
+> Cc: Stafford Horne <shorne@gmail.com>
+> Cc: openrisc@lists.librecores.org
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
+>  arch/openrisc/include/asm/mmu_context.h | 8 +++-----
+>  arch/openrisc/mm/tlb.c                  | 2 ++
+>  2 files changed, 5 insertions(+), 5 deletions(-)
+> 
+> diff --git a/arch/openrisc/include/asm/mmu_context.h b/arch/openrisc/include/asm/mmu_context.h
+> index ced577542e29..a6702384c77d 100644
+> --- a/arch/openrisc/include/asm/mmu_context.h
+> +++ b/arch/openrisc/include/asm/mmu_context.h
+> @@ -17,13 +17,13 @@
+>  
+>  #include <asm-generic/mm_hooks.h>
+>  
+> +#define init_new_context init_new_context
+>  extern int init_new_context(struct task_struct *tsk, struct mm_struct *mm);
+> +#define destroy_context destroy_context
+>  extern void destroy_context(struct mm_struct *mm);
+>  extern void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+>  		      struct task_struct *tsk);
+>  
+> -#define deactivate_mm(tsk, mm)	do { } while (0)
+> -
+>  #define activate_mm(prev, next) switch_mm((prev), (next), NULL)
+>  
+>  /* current active pgd - this is similar to other processors pgd
+> @@ -32,8 +32,6 @@ extern void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+>  
+>  extern volatile pgd_t *current_pgd[]; /* defined in arch/openrisc/mm/fault.c */
+>  
+> -static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
+> -{
+> -}
+> +#include <asm-generic/mmu_context.h>
 
-Bitte entschuldigen Sie, dass Sie einen =C3=9Cberraschungsbrief geschrieben
-haben. Ich bin Herr Ahmed Muzashah, Account Manager bei einer
-Investmentbank hier in Burkina Faso. Ich habe ein sehr wichtiges
-Gesch=C3=A4ft, das ich mit Ihnen besprechen m=C3=B6chte. In meinem Konto is=
-t ein
-Kontoentwurf er=C3=B6ffnet Ich habe die M=C3=B6glichkeit, den verbleibenden
-Fonds (15,8 Millionen US-Dollar) von f=C3=BCnfzehn Millionen
-achthunderttausend US-Dollar eines meiner Bankkunden zu =C3=BCbertragen,
-der beim Zusammenbruch der Welt gestorben ist Handelszentrum in den
-Vereinigten Staaten am 11. September 2001.
+This looks ok.
 
-Ich m=C3=B6chte diese Mittel investieren und Sie unserer Bank f=C3=BCr dies=
-en
-Deal vorstellen. Alles, was ich ben=C3=B6tige, ist Ihre ehrliche
-Zusammenarbeit und ich garantiere Ihnen, dass dies unter einer
-legitimen Vereinbarung durchgef=C3=BChrt wird, die uns vor
-Gesetzesverst=C3=B6=C3=9Fen sch=C3=BCtzt Ich bin damit einverstanden, dass =
-40% dieses
-Geldes f=C3=BCr Sie als meinen ausl=C3=A4ndischen Partner, 50% f=C3=BCr mic=
-h und 10%
-f=C3=BCr die Schaffung der Grundlage f=C3=BCr die weniger Privilegien in Ih=
-rem
-Land bestimmt sind. Wenn Sie wirklich an meinem Vorschlag interessiert
-sind, werden weitere Einzelheiten der =C3=9Cbertragung ber=C3=BCcksichtigt =
-Sie
-werden an Sie weitergeleitet, sobald ich Ihre Bereitschaftsmail f=C3=BCr
-eine erfolgreiche =C3=9Cberweisung erhalte.
+>  #endif
+> diff --git a/arch/openrisc/mm/tlb.c b/arch/openrisc/mm/tlb.c
+> index 4b680aed8f5f..821aab4cf3be 100644
+> --- a/arch/openrisc/mm/tlb.c
+> +++ b/arch/openrisc/mm/tlb.c
+> @@ -159,6 +159,7 @@ void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+>   * instance.
+>   */
+>  
+> +#define init_new_context init_new_context
+>  int init_new_context(struct task_struct *tsk, struct mm_struct *mm)
+>  {
+>  	mm->context = NO_CONTEXT;
+> @@ -170,6 +171,7 @@ int init_new_context(struct task_struct *tsk, struct mm_struct *mm)
+>   * drops it.
+>   */
+>  
+> +#define destroy_context destroy_context
+>  void destroy_context(struct mm_struct *mm)
+>  {
+>  	flush_tlb_mm(mm);
 
-Dein,
-Mr.Ahmed Muzashah,
+I don't think we need the #define's in the .c file.  Do we?
+
+-Stafford
+
+> -- 
+> 2.23.0
+> 
