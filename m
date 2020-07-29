@@ -1,130 +1,238 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45732 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726794AbgGaXIc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:08:32 -0400
-Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CADA6C06174A
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:32 -0700 (PDT)
-Received: by mail-pl1-x644.google.com with SMTP id p1so18101003pls.4
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:32 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 02/36] x86/boot/compressed: Force hidden visibility for all symbol references
-Date: Fri, 31 Jul 2020 16:07:46 -0700
-Message-ID: <20200731230820.1742553-3-keescook@chromium.org>
-In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
-References: <20200731230820.1742553-1-keescook@chromium.org>
+Return-Path: <SRS0=zKrr=BI=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH 3/5] mm: introduce VM_EXEC_KEEP
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+ <1595869887-23307-4-git-send-email-anthony.yznaga@oracle.com>
+ <20200729135211.zodforvnv2xvdchm@box>
+From: Anthony Yznaga <anthony.yznaga@oracle.com>
+Message-ID: <a997e973-da91-ce41-1d51-cb1310a8e728@oracle.com>
+Date: Wed, 29 Jul 2020 16:20:32 -0700
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200729135211.zodforvnv2xvdchm@box>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Ard Biesheuvel <ardb@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Arvind Sankar <nivedita@alum.mit.edu>, Sedat Dilek <sedat.dilek@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200731230746.RaKDz6tZ5rmtfK0rCuvWcBUrWgDZG0-vBGoTuwhE-0A@z>
+Message-ID: <20200729232032.dEXrEe9rPGUsxgndjJQd4E7mQEZD2b0Azq11Z4i2YDI@z>
 
-From: Ard Biesheuvel <ardb@kernel.org>
 
-Eliminate all GOT entries in the decompressor binary, by forcing hidden
-visibility for all symbol references, which informs the compiler that
-such references will be resolved at link time without the need for
-allocating GOT entries.
 
-To ensure that no GOT entries will creep back in, add an assertion to
-the decompressor linker script that will fire if the .got section has
-a non-zero size.
+On 7/29/20 6:52 AM, Kirill A. Shutemov wrote:
+> On Mon, Jul 27, 2020 at 10:11:25AM -0700, Anthony Yznaga wrote:
+>> A vma with the VM_EXEC_KEEP flag is preserved across exec.  For anonym=
+ous
+>> vmas only.  For safety, overlap with fixed address VMAs created in the=
+ new
+>> mm during exec (e.g. the stack and elf load segments) is not permitted=
+ and
+>> will cause the exec to fail.
+>> (We are studying how to guarantee there are no conflicts. Comments wel=
+come.)
+>>
+>> Signed-off-by: Steve Sistare <steven.sistare@oracle.com>
+>> Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
+>> ---
+>>  arch/x86/Kconfig   |  1 +
+>>  fs/exec.c          | 20 ++++++++++++++++++++
+>>  include/linux/mm.h |  5 +++++
+>>  kernel/fork.c      |  2 +-
+>>  mm/mmap.c          | 47 +++++++++++++++++++++++++++++++++++++++++++++=
+++
+>>  5 files changed, 74 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+>> index 883da0abf779..fc36eb2f45c0 100644
+>> --- a/arch/x86/Kconfig
+>> +++ b/arch/x86/Kconfig
+>> @@ -30,6 +30,7 @@ config X86_64
+>>  	select MODULES_USE_ELF_RELA
+>>  	select NEED_DMA_MAP_STATE
+>>  	select SWIOTLB
+>> +	select ARCH_USES_HIGH_VMA_FLAGS
+>> =20
+>>  config FORCE_DYNAMIC_FTRACE
+>>  	def_bool y
+>> diff --git a/fs/exec.c b/fs/exec.c
+>> index 262112e5f9f8..1de09c4eef00 100644
+>> --- a/fs/exec.c
+>> +++ b/fs/exec.c
+>> @@ -1069,6 +1069,20 @@ ssize_t read_code(struct file *file, unsigned l=
+ong addr, loff_t pos, size_t len)
+>>  EXPORT_SYMBOL(read_code);
+>>  #endif
+>> =20
+>> +static int vma_dup_some(struct mm_struct *old_mm, struct mm_struct *n=
+ew_mm)
+>> +{
+>> +	struct vm_area_struct *vma;
+>> +	int ret;
+>> +
+>> +	for (vma =3D old_mm->mmap; vma; vma =3D vma->vm_next)
+>> +		if (vma->vm_flags & VM_EXEC_KEEP) {
+>> +			ret =3D vma_dup(vma, new_mm);
+>> +			if (ret)
+>> +				return ret;
+>> +		}
+>> +	return 0;
+>> +}
+>> +
+>>  /*
+>>   * Maps the mm_struct mm into the current task struct.
+>>   * On success, this function returns with the mutex
+>> @@ -1104,6 +1118,12 @@ static int exec_mmap(struct mm_struct *mm)
+>>  			mutex_unlock(&tsk->signal->exec_update_mutex);
+>>  			return -EINTR;
+>>  		}
+>> +		ret =3D vma_dup_some(old_mm, mm);
+>> +		if (ret) {
+>> +			mmap_read_unlock(old_mm);
+>> +			mutex_unlock(&tsk->signal->exec_update_mutex);
+>> +			return ret;
+>> +		}
+>>  	}
+>> =20
+>>  	task_lock(tsk);
+>> diff --git a/include/linux/mm.h b/include/linux/mm.h
+>> index dc7b87310c10..1c538ba77f33 100644
+>> --- a/include/linux/mm.h
+>> +++ b/include/linux/mm.h
+>> @@ -295,11 +295,15 @@ int overcommit_kbytes_handler(struct ctl_table *=
+, int, void *, size_t *,
+>>  #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectu=
+res */
+>>  #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectu=
+res */
+>>  #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectu=
+res */
+>> +#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectu=
+res */
+>>  #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+>>  #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+>>  #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+>>  #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
+>>  #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
+>> +#define VM_EXEC_KEEP	BIT(VM_HIGH_ARCH_BIT_5)	/* preserve VMA across e=
+xec */
+>> +#else
+>> +#define VM_EXEC_KEEP	VM_NONE
+>>  #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
+>> =20
+>>  #ifdef CONFIG_ARCH_HAS_PKEYS
+>> @@ -2534,6 +2538,7 @@ extern struct vm_area_struct *copy_vma(struct vm=
+_area_struct **,
+>>  	unsigned long addr, unsigned long len, pgoff_t pgoff,
+>>  	bool *need_rmap_locks);
+>>  extern void exit_mmap(struct mm_struct *);
+>> +extern int vma_dup(struct vm_area_struct *vma, struct mm_struct *mm);
+>> =20
+>>  static inline int check_data_rlimit(unsigned long rlim,
+>>  				    unsigned long new,
+>> diff --git a/kernel/fork.c b/kernel/fork.c
+>> index efc5493203ae..15ead613714f 100644
+>> --- a/kernel/fork.c
+>> +++ b/kernel/fork.c
+>> @@ -564,7 +564,7 @@ static __latent_entropy int dup_mmap(struct mm_str=
+uct *mm,
+>>  			tmp->anon_vma =3D NULL;
+>>  		} else if (anon_vma_fork(tmp, mpnt))
+>>  			goto fail_nomem_anon_vma_fork;
+>> -		tmp->vm_flags &=3D ~(VM_LOCKED | VM_LOCKONFAULT);
+>> +		tmp->vm_flags &=3D ~(VM_LOCKED | VM_LOCKONFAULT | VM_EXEC_KEEP);
+>>  		file =3D tmp->vm_file;
+>>  		if (file) {
+>>  			struct inode *inode =3D file_inode(file);
+>> diff --git a/mm/mmap.c b/mm/mmap.c
+>> index 59a4682ebf3f..be2ff53743c3 100644
+>> --- a/mm/mmap.c
+>> +++ b/mm/mmap.c
+>> @@ -3279,6 +3279,53 @@ struct vm_area_struct *copy_vma(struct vm_area_=
+struct **vmap,
+>>  	return NULL;
+>>  }
+>> =20
+>> +int vma_dup(struct vm_area_struct *old_vma, struct mm_struct *mm)
+>> +{
+>> +	unsigned long npages;
+>> +	struct mm_struct *old_mm =3D old_vma->vm_mm;
+>> +	struct vm_area_struct *vma;
+>> +	int ret =3D -ENOMEM;
+>> +
+>> +	if (WARN_ON(old_vma->vm_file || old_vma->vm_ops))
+>> +		return -EINVAL;
+>> +
+>> +	vma =3D find_vma(mm, old_vma->vm_start);
+>> +	if (vma && vma->vm_start < old_vma->vm_end)
+>> +		return -EEXIST;
+>> +
+>> +	npages =3D vma_pages(old_vma);
+>> +	mm->total_vm +=3D npages;
+> Why only total_vm? Where's exec_vm/stack_vm/data_vm?
+That was oversight.=C2=A0 Will be fixed in the next version.
 
-Signed-off-by: Ard Biesheuvel <ardb@kernel.org>
-Tested-by: Nick Desaulniers <ndesaulniers@google.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Acked-by: Arvind Sankar <nivedita@alum.mit.edu>
-Link: https://lore.kernel.org/r/20200523120021.34996-3-ardb@kernel.org
-[Arvind: move hidden.h to include/linux instead of making a copy]
-Tested-by: Sedat Dilek <sedat.dilek@gmail.com>
-Signed-off-by: Arvind Sankar <nivedita@alum.mit.edu>
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/boot/compressed/Makefile      |  1 +
- arch/x86/boot/compressed/vmlinux.lds.S |  1 +
- drivers/firmware/efi/libstub/Makefile  |  2 +-
- drivers/firmware/efi/libstub/hidden.h  |  6 ------
- include/linux/hidden.h                 | 19 +++++++++++++++++++
- 5 files changed, 22 insertions(+), 7 deletions(-)
- delete mode 100644 drivers/firmware/efi/libstub/hidden.h
- create mode 100644 include/linux/hidden.h
+>
+>> +
+>> +	vma =3D vm_area_dup(old_vma);
+>> +	if (!vma)
+>> +		goto fail_nomem;
+>> +
+>> +	ret =3D vma_dup_policy(old_vma, vma);
+>> +	if (ret)
+>> +		goto fail_nomem_policy;
+>> +
+>> +	vma->vm_mm =3D mm;
+>> +	ret =3D anon_vma_fork(vma, old_vma);
+>> +	if (ret)
+>> +		goto fail_nomem_anon_vma_fork;
+> Looks like a duplication of code form dup_mmap().
+> Any chance to get in one place?
+I looked at that, but dup_mmap() is dissimilar enough with
+the additional fork-specific code in dup_mmap() that I think
+readability would suffer.
 
-diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
-index 5a828fde7a42..489fea16bcfb 100644
---- a/arch/x86/boot/compressed/Makefile
-+++ b/arch/x86/boot/compressed/Makefile
-@@ -42,6 +42,7 @@ KBUILD_CFLAGS += $(call cc-disable-warning, gnu)
- KBUILD_CFLAGS += -Wno-pointer-sign
- KBUILD_CFLAGS += $(call cc-option,-fmacro-prefix-map=$(srctree)/=)
- KBUILD_CFLAGS += -fno-asynchronous-unwind-tables
-+KBUILD_CFLAGS += -include $(srctree)/include/linux/hidden.h
- 
- KBUILD_AFLAGS  := $(KBUILD_CFLAGS) -D__ASSEMBLY__
- GCOV_PROFILE := n
-diff --git a/arch/x86/boot/compressed/vmlinux.lds.S b/arch/x86/boot/compressed/vmlinux.lds.S
-index b17d218ccdf9..4bcc943842ab 100644
---- a/arch/x86/boot/compressed/vmlinux.lds.S
-+++ b/arch/x86/boot/compressed/vmlinux.lds.S
-@@ -81,6 +81,7 @@ SECTIONS
- 	DISCARDS
- }
- 
-+ASSERT(SIZEOF(.got) == 0, "Unexpected GOT entries detected!")
- #ifdef CONFIG_X86_64
- ASSERT(SIZEOF(.got.plt) == 0 || SIZEOF(.got.plt) == 0x18, "Unexpected GOT/PLT entries detected!")
- #else
-diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
-index 75daaf20374e..b4f8c80cc591 100644
---- a/drivers/firmware/efi/libstub/Makefile
-+++ b/drivers/firmware/efi/libstub/Makefile
-@@ -26,7 +26,7 @@ cflags-$(CONFIG_ARM)		:= $(subst $(CC_FLAGS_FTRACE),,$(KBUILD_CFLAGS)) \
- cflags-$(CONFIG_EFI_GENERIC_STUB) += -I$(srctree)/scripts/dtc/libfdt
- 
- KBUILD_CFLAGS			:= $(cflags-y) -Os -DDISABLE_BRANCH_PROFILING \
--				   -include $(srctree)/drivers/firmware/efi/libstub/hidden.h \
-+				   -include $(srctree)/include/linux/hidden.h \
- 				   -D__NO_FORTIFY \
- 				   $(call cc-option,-ffreestanding) \
- 				   $(call cc-option,-fno-stack-protector) \
-diff --git a/drivers/firmware/efi/libstub/hidden.h b/drivers/firmware/efi/libstub/hidden.h
-deleted file mode 100644
-index 3493b041f419..000000000000
---- a/drivers/firmware/efi/libstub/hidden.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--/*
-- * To prevent the compiler from emitting GOT-indirected (and thus absolute)
-- * references to any global symbols, override their visibility as 'hidden'
-- */
--#pragma GCC visibility push(hidden)
-diff --git a/include/linux/hidden.h b/include/linux/hidden.h
-new file mode 100644
-index 000000000000..49a17b6b5962
---- /dev/null
-+++ b/include/linux/hidden.h
-@@ -0,0 +1,19 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * When building position independent code with GCC using the -fPIC option,
-+ * (or even the -fPIE one on older versions), it will assume that we are
-+ * building a dynamic object (either a shared library or an executable) that
-+ * may have symbol references that can only be resolved at load time. For a
-+ * variety of reasons (ELF symbol preemption, the CoW footprint of the section
-+ * that is modified by the loader), this results in all references to symbols
-+ * with external linkage to go via entries in the Global Offset Table (GOT),
-+ * which carries absolute addresses which need to be fixed up when the
-+ * executable image is loaded at an offset which is different from its link
-+ * time offset.
-+ *
-+ * Fortunately, there is a way to inform the compiler that such symbol
-+ * references will be satisfied at link time rather than at load time, by
-+ * giving them 'hidden' visibility.
-+ */
-+
-+#pragma GCC visibility push(hidden)
--- 
-2.25.1
+>
+>> +	vma->vm_flags &=3D ~(VM_LOCKED|VM_UFFD_MISSING|VM_UFFD_WP|VM_EXEC_KE=
+EP);
+>> +	vma->vm_next =3D vma->vm_prev =3D NULL;
+> No need. vm_area_dup() takes care of it.
+Will fix.
+
+>
+>> +	vma->vm_userfaultfd_ctx =3D NULL_VM_UFFD_CTX;
+> Semantics of VM_EXEC_KEEP vs userfaultfd() deserves a detailed explanat=
+ion.
+> I feel these flags has to be mutually exclusive.
+Yes, will document this better.
+I think it's okay to mark userfaultfd-enabled memory for preservation
+as long as it is understood that memory would need to re-registered
+with userfaultfd() after exec and restore, if desired.=C2=A0 Unless there=
+'s
+a particular issue you see with this?
+
+Thanks,
+Anthony
+
+>
+>> +	if (is_vm_hugetlb_page(vma))
+>> +		reset_vma_resv_huge_pages(vma);
+>> +	__insert_vm_struct(mm, vma);
+>> +	ret =3D copy_page_range(mm, old_mm, old_vma);
+>> +	return ret;
+>> +
+>> +fail_nomem_anon_vma_fork:
+>> +	mpol_put(vma_policy(vma));
+>> +fail_nomem_policy:
+>> +	vm_area_free(vma);
+>> +fail_nomem:
+>> +	return -ENOMEM;
+>> +}
+>> +
+>>  /*
+>>   * Return true if the calling process may expand its vm space by the =
+passed
+>>   * number of pages
+>> --=20
+>> 1.8.3.1
+>>
+>>
