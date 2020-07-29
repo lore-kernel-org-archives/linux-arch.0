@@ -1,151 +1,53 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/4 v2] compat: lift compat_s64 and compat_u64 to
- <linux/compat.h>
-Date: Wed, 29 Jul 2020 08:08:30 +0200
-Message-ID: <20200729060830.GA31624@lst.de>
-References: <20200726160401.311569-1-hch@lst.de> <20200726160401.311569-3-hch@lst.de>
+From: "Mr.Ahmed Muzashah" <ahmedmuzashah@gmail.com>
+Subject: =?UTF-8?Q?Sch=C3=B6nen_Tag=2C?=
+Date: Wed, 29 Jul 2020 10:27:53 +0100
+Message-ID: <CAM5MUpVxQGaeW_T6AHCowTwd-kev7Ww=cyxS_SwJHhw_ZFSP7w@mail.gmail.com>
+Reply-To: mrahmedmuzashah@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:51057 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726286AbgG2GId (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Jul 2020 02:08:33 -0400
-Content-Disposition: inline
-In-Reply-To: <20200726160401.311569-3-hch@lst.de>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41546 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727042AbgG2J1y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Jul 2020 05:27:54 -0400
+Received: from mail-il1-x141.google.com (mail-il1-x141.google.com [IPv6:2607:f8b0:4864:20::141])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 62737C061794
+        for <linux-arch@vger.kernel.org>; Wed, 29 Jul 2020 02:27:54 -0700 (PDT)
+Received: by mail-il1-x141.google.com with SMTP id g6so3863450ilc.7
+        for <linux-arch@vger.kernel.org>; Wed, 29 Jul 2020 02:27:54 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, Jan Kara <jack@suse.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
 
-lift the compat_s64 and compat_u64 definitions into common code using the
-COMPAT_FOR_U64_ALIGNMENT symbol for the x86 special case.
+Sch=C3=B6nen Tag,
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
+Bitte entschuldigen Sie, dass Sie einen =C3=9Cberraschungsbrief geschrieben
+haben. Ich bin Herr Ahmed Muzashah, Account Manager bei einer
+Investmentbank hier in Burkina Faso. Ich habe ein sehr wichtiges
+Gesch=C3=A4ft, das ich mit Ihnen besprechen m=C3=B6chte. In meinem Konto is=
+t ein
+Kontoentwurf er=C3=B6ffnet Ich habe die M=C3=B6glichkeit, den verbleibenden
+Fonds (15,8 Millionen US-Dollar) von f=C3=BCnfzehn Millionen
+achthunderttausend US-Dollar eines meiner Bankkunden zu =C3=BCbertragen,
+der beim Zusammenbruch der Welt gestorben ist Handelszentrum in den
+Vereinigten Staaten am 11. September 2001.
 
-Changes since v1: fix a typo
+Ich m=C3=B6chte diese Mittel investieren und Sie unserer Bank f=C3=BCr dies=
+en
+Deal vorstellen. Alles, was ich ben=C3=B6tige, ist Ihre ehrliche
+Zusammenarbeit und ich garantiere Ihnen, dass dies unter einer
+legitimen Vereinbarung durchgef=C3=BChrt wird, die uns vor
+Gesetzesverst=C3=B6=C3=9Fen sch=C3=BCtzt Ich bin damit einverstanden, dass =
+40% dieses
+Geldes f=C3=BCr Sie als meinen ausl=C3=A4ndischen Partner, 50% f=C3=BCr mic=
+h und 10%
+f=C3=BCr die Schaffung der Grundlage f=C3=BCr die weniger Privilegien in Ih=
+rem
+Land bestimmt sind. Wenn Sie wirklich an meinem Vorschlag interessiert
+sind, werden weitere Einzelheiten der =C3=9Cbertragung ber=C3=BCcksichtigt =
+Sie
+werden an Sie weitergeleitet, sobald ich Ihre Bereitschaftsmail f=C3=BCr
+eine erfolgreiche =C3=9Cberweisung erhalte.
 
- arch/arm64/include/asm/compat.h   | 2 --
- arch/mips/include/asm/compat.h    | 2 --
- arch/parisc/include/asm/compat.h  | 2 --
- arch/powerpc/include/asm/compat.h | 2 --
- arch/s390/include/asm/compat.h    | 2 --
- arch/sparc/include/asm/compat.h   | 3 +--
- arch/x86/include/asm/compat.h     | 2 --
- include/linux/compat.h            | 8 ++++++++
- 8 files changed, 9 insertions(+), 14 deletions(-)
-
-diff --git a/arch/arm64/include/asm/compat.h b/arch/arm64/include/asm/compat.h
-index 935d2aa231bf06..23a9fb73c04ff8 100644
---- a/arch/arm64/include/asm/compat.h
-+++ b/arch/arm64/include/asm/compat.h
-@@ -35,8 +35,6 @@ typedef s32		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s64		compat_s64;
--typedef u64		compat_u64;
- 
- struct compat_stat {
- #ifdef __AARCH64EB__
-diff --git a/arch/mips/include/asm/compat.h b/arch/mips/include/asm/compat.h
-index 255afcdd79c94b..65975712a22dcf 100644
---- a/arch/mips/include/asm/compat.h
-+++ b/arch/mips/include/asm/compat.h
-@@ -26,8 +26,6 @@ typedef s32		compat_caddr_t;
- typedef struct {
- 	s32	val[2];
- } compat_fsid_t;
--typedef s64		compat_s64;
--typedef u64		compat_u64;
- 
- struct compat_stat {
- 	compat_dev_t	st_dev;
-diff --git a/arch/parisc/include/asm/compat.h b/arch/parisc/include/asm/compat.h
-index 2f4f66a3bac079..8f33085ff1bd88 100644
---- a/arch/parisc/include/asm/compat.h
-+++ b/arch/parisc/include/asm/compat.h
-@@ -22,8 +22,6 @@ typedef u32	compat_dev_t;
- typedef u16	compat_nlink_t;
- typedef u16	compat_ipc_pid_t;
- typedef u32	compat_caddr_t;
--typedef s64	compat_s64;
--typedef u64	compat_u64;
- 
- struct compat_stat {
- 	compat_dev_t		st_dev;	/* dev_t is 32 bits on parisc */
-diff --git a/arch/powerpc/include/asm/compat.h b/arch/powerpc/include/asm/compat.h
-index 3e3cdfaa76c6a5..9191fc29e6ed11 100644
---- a/arch/powerpc/include/asm/compat.h
-+++ b/arch/powerpc/include/asm/compat.h
-@@ -27,8 +27,6 @@ typedef s16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s64		compat_s64;
--typedef u64		compat_u64;
- 
- struct compat_stat {
- 	compat_dev_t	st_dev;
-diff --git a/arch/s390/include/asm/compat.h b/arch/s390/include/asm/compat.h
-index 9547cd5d6cdc21..ea5b9c34b7be5b 100644
---- a/arch/s390/include/asm/compat.h
-+++ b/arch/s390/include/asm/compat.h
-@@ -63,8 +63,6 @@ typedef u16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s64		compat_s64;
--typedef u64		compat_u64;
- 
- typedef struct {
- 	u32 mask;
-diff --git a/arch/sparc/include/asm/compat.h b/arch/sparc/include/asm/compat.h
-index 40a267b3bd5208..b85842cda99fe0 100644
---- a/arch/sparc/include/asm/compat.h
-+++ b/arch/sparc/include/asm/compat.h
-@@ -21,8 +21,7 @@ typedef s16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s64		compat_s64;
--typedef u64		compat_u64;
-+
- struct compat_stat {
- 	compat_dev_t	st_dev;
- 	compat_ino_t	st_ino;
-diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
-index d4edf281fff49d..bf547701f41f87 100644
---- a/arch/x86/include/asm/compat.h
-+++ b/arch/x86/include/asm/compat.h
-@@ -27,8 +27,6 @@ typedef u16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s64 __attribute__((aligned(4))) compat_s64;
--typedef u64 __attribute__((aligned(4))) compat_u64;
- 
- struct compat_stat {
- 	compat_dev_t	st_dev;
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index e90100c0de72e4..ffb641f77bb7af 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -91,6 +91,14 @@
- 	static inline long __do_compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))
- #endif /* COMPAT_SYSCALL_DEFINEx */
- 
-+#ifdef CONFIG_COMPAT_FOR_U64_ALIGNMENT
-+typedef s64 __attribute__((aligned(4))) compat_s64;
-+typedef u64 __attribute__((aligned(4))) compat_u64;
-+#else
-+typedef s64 compat_s64;
-+typedef u64 compat_u64;
-+#endif
-+
- #ifdef CONFIG_COMPAT
- 
- #ifndef compat_user_stack_pointer
--- 
-2.27.0
+Dein,
+Mr.Ahmed Muzashah,
