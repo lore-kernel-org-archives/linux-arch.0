@@ -1,39 +1,47 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch V4 04/15] entry: Provide generic interrupt entry/exit code
-Date: Wed, 29 Jul 2020 14:18:22 +0200
-Message-ID: <87sgdaa50x.fsf@nanos.tec.linutronix.de>
-References: <20200721105706.030914876@linutronix.de> <20200721110808.671110583@linutronix.de> <CALCETrUBQa=L_Chd=RAPDEihvUWC_9KoHG00zYsGOwiYg87naQ@mail.gmail.com>
+From: Steven Price <steven.price@arm.com>
+Subject: Re: [patch V5 00/15] entry, x86, kvm: Generic entry/exit
+ functionality for host and guest
+Date: Wed, 29 Jul 2020 14:39:51 +0100
+Message-ID: <e0edb228-b7e1-09ae-c41a-b5f4cbf37347@arm.com>
+References: <20200722215954.464281930@linutronix.de>
+ <878sf8tz51.fsf@nanos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:41764 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726054AbgG2MSY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Jul 2020 08:18:24 -0400
-In-Reply-To: <CALCETrUBQa=L_Chd=RAPDEihvUWC_9KoHG00zYsGOwiYg87naQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, Gabriel Krisman Bertazi <krisman@collabora.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <878sf8tz51.fsf@nanos.tec.linutronix.de>
+Content-Language: en-GB
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-Andy Lutomirski <luto@kernel.org> writes:
-> On Tue, Jul 21, 2020 at 4:08 AM Thomas Gleixner <tglx@linutronix.de> wrote:
->>
->> From: Thomas Gleixner <tglx@linutronix.de>
->>
->> Like the syscall entry/exit code interrupt/exception entry after the real
->> low level ASM bits should not be different accross architectures.
->>
->> Provide a generic version based on the x86 code.
->
-> I don't like the name.  Sure, idtentry is ugly and x86-specific, but
-> irq gives the wrong impression.  This is an entry path suitable for
-> any entry that is guaranteed not to hit during entry/exit handling.
-> Syscalls, page faults, etc are not "irqs".
+On 24/07/2020 21:51, Thomas Gleixner wrote:
+> Thomas Gleixner <tglx@linutronix.de> writes:
+>> This is the 5th version of generic entry/exit functionality for host and
+>> guest.
+> 
+> I've merged the pile in two steps. Patch 1-5, i.e. the generic code is
+> here:
+> 
+>    git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git core/entry
+> 
+> and merged this branch and patch 6-15 into
+> 
+>    git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git x86/entry
+> 
+> core/entry is immutable and any updates, changes go on top. It's meant
+> as a base for other architecture developers who want to fiddle with that
+> without having to get the x86 mess as well.
 
-Yeah, it's exceptions and interrupts, but I did not come up with a
-better name so far.
+Hi Thomas,
+
+Just FYI: I'm going to take a look at arm64 support for this. I know 
+Mark previously posted[1] a series moving much of the code to C, so 
+hopefully I can build on that and make use of the generic code.
 
 Thanks,
 
-        tglx
+Steve
+
+[1] https://lore.kernel.org/r/20200108185634.1163-1-mark.rutland@arm.com
