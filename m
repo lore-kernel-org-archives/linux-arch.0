@@ -1,96 +1,70 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36774 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731144AbgGUViT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 17:38:19 -0400
-Received: from mail-pf1-x443.google.com (mail-pf1-x443.google.com [IPv6:2607:f8b0:4864:20::443])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F087AC0619DB
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:38:18 -0700 (PDT)
-Received: by mail-pf1-x443.google.com with SMTP id z3so65886pfn.12
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 14:38:18 -0700 (PDT)
-Date: Tue, 21 Jul 2020 14:38:16 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [patch V4 02/15] entry: Provide generic syscall entry
- functionality
-Message-ID: <202007211426.B40A7A7BD@keescook>
-References: <20200721105706.030914876@linutronix.de>
- <20200721110808.455350746@linutronix.de>
+Return-Path: <SRS0=1VFR=BJ=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+ <20200730152250.GG23808@casper.infradead.org>
+ <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
+ <20200730171251.GI23808@casper.infradead.org>
+ <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
+ <20200730174956.GK23808@casper.infradead.org>
+From: Steven Sistare <steven.sistare@oracle.com>
+Message-ID: <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
+Date: Thu, 30 Jul 2020 14:27:21 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200721110808.455350746@linutronix.de>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200730174956.GK23808@casper.infradead.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200721213816.6lQsV6axc6_CmdzM1jJXOaEK_omoc5WvaC-yRC_P9cA@z>
+Message-ID: <20200730182721.i8eg8NGn5Es9748C_odBI7OFpY6uK8XQnLoblrincd4@z>
 
-On Tue, Jul 21, 2020 at 12:57:08PM +0200, Thomas Gleixner wrote:
-> On syscall entry certain work needs to be done:
+On 7/30/2020 1:49 PM, Matthew Wilcox wrote:
+> On Thu, Jul 30, 2020 at 01:35:51PM -0400, Steven Sistare wrote:
+>> mshare + VA reservation is another possible solution.
+>>
+>> Or MADV_DOEXEC alone, which is ready now.  I hope we can get back to reviewing that.
 > 
->    - Establish state (lockdep, context tracking, tracing)
->    - Conditional work (ptrace, seccomp, audit...)
+> We are.  This is the part of the review process where we explore other
+> solutions to the problem.
 > 
-> This code is needlessly duplicated and  different in all
-> architectures.
+>>>> Also, we need to support updating legacy processes that already created anon segments.
+>>>> We inject code that calls MADV_DOEXEC for such segments.
+>>>
+>>> Yes, I was assuming you'd inject code that called mshare().
+>>
+>> OK, mshare works on existing memory and builds a new vma.
 > 
-> Provide a generic version based on the x86 implementation which has all the
-> RCU and instrumentation bits right.
+> Actually, reparents an existing VMA, and reuses the existing page tables.
 > 
-> As interrupt/exception entry from user space needs parts of the same
-> functionality, provide a function for this as well.
+>>> Actually, since you're injecting code, why do you need the kernel to
+>>> be involved?  You can mmap the new executable and any libraries it depends
+>>> upon, set up a new stack and jump to the main() entry point, all without
+>>> calling exec().  I appreciate it'd be a fair amount of code, but it'd all
+>>> be in userspace and you can probably steal / reuse code from ld.so (I'm
+>>> not familiar with the details of how setting up an executable is done).
+>>
+>> Duplicating all the work that the kernel and loader do to exec a process would
+>> be error prone, require ongoing maintenance, and be redundant.  Better to define 
+>> a small kernel extension and leave exec to the kernel.
 > 
-> syscall_enter_from_user_mode() and irqentry_enter_from_user_mode() must be
-> called right after the low level ASM entry. The calling code must be
-> non-instrumentable. After the functions returns state is correct and the
-> subsequent functions can be instrumented.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> Either this is a one-off kind of thing, in which case it doesn't need
+> ongoing maintenance, or it's something with broad applicability, in
+> which case it can live as its own userspace project.  It could even
+> start off life as part of qemu and then fork into its own project.
 
-Acked-by: Kees Cook <keescook@chromium.org>
+exec will be enhanced over time in the kernel.  A separate user space implementation
+would need to track that.
 
-With one suggestion...
+Reimplementing exec in userland would be a big gross mess.  Not a good solution when
+we have simple and concise ways of solving the problem.
 
-> [...]
-> --- /dev/null
-> +++ b/kernel/entry/common.c
-> @@ -0,0 +1,88 @@
-> [...]
-> +static inline void syscall_enter_audit(struct pt_regs *regs, long syscall)
-> +{
-> +	if (unlikely(audit_context())) {
-> +		unsigned long args[6];
-> +
-> +		syscall_get_arguments(current, regs, args);
-> +		audit_syscall_entry(syscall, args[0], args[1], args[2], args[3]);
-> +	}
-> +}
+> The idea of tagging an ELF executable to say "I can cope with having
+> chunks of my address space provided to me by my executor" is ... odd.
 
-One thing I noticed while doing syscall entry timings for the kernel
-stack base offset randomization was that the stack protector was being
-needlessly enabled in certain paths (seccomp, audit) due to seeing a
-register array being declared on the stack. As part of that series I
-suggested down-grading the stack protector. Since then, Peter's changes
-entirely disabled the stack protector on the entry code, which I
-grudgingly accept (I'd rather have a way to mark a variable as "ignore
-this for stack protector detection", but ... there isn't, so fine.)
+I don't disagree.  But it is useful.  We already pass a block of data containing
+environment variables and arguments from one process to the next.  Preserving 
+additional segments is not a big leap from there.
 
-> [...]
-> --- /dev/null
-> +++ b/kernel/entry/Makefile
-> @@ -0,0 +1,3 @@
-> +# SPDX-License-Identifier: GPL-2.0
-> +
-> +obj-$(CONFIG_GENERIC_ENTRY) += common.o
-
-But, my point is, let's avoid tripping over this again, and retain the
-disabling here:
-
-CFLAGS_common.o += -fno-stack-protector
-
-I can add this again later, but it'd be nice if it was done here to
-avoid gaining back the TIF_WORK stack protector overhead penalty (which
-we're free of in v5.8 for the first time). ;)
-
--- 
-Kees Cook
+- Steve
