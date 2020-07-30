@@ -1,256 +1,118 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44876 "EHLO
+Return-Path: <SRS0=SeSl=BJ=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55572 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731195AbgGVQpP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 12:45:15 -0400
-Received: from mail-wm1-x343.google.com (mail-wm1-x343.google.com [IPv6:2a00:1450:4864:20::343])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B2CBAC0619E0
-        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:14 -0700 (PDT)
-Received: by mail-wm1-x343.google.com with SMTP id f139so2619177wmf.5
-        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 09:45:14 -0700 (PDT)
-From: David Brazdil <dbrazdil@google.com>
-Subject: [PATCH 8/9] kvm: arm64: Set up hyp percpu data for nVHE
-Date: Wed, 22 Jul 2020 17:44:23 +0100
-Message-ID: <20200722164424.42225-9-dbrazdil@google.com>
-In-Reply-To: <20200722164424.42225-1-dbrazdil@google.com>
-References: <20200722164424.42225-1-dbrazdil@google.com>
+        with ESMTP id S1727080AbgG3Rel (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jul 2020 13:34:41 -0400
+Date: Thu, 30 Jul 2020 10:34:37 -0700
+From: Nathan Chancellor <natechancellor@gmail.com>
+Subject: Re: [PATCH 1/4] arm64: stop using <asm/compat.h> directly
+Message-ID: <20200730173437.GA1172439@ubuntu-n2-xlarge-x86>
+References: <20200726160401.311569-1-hch@lst.de>
+ <20200726160401.311569-2-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200726160401.311569-2-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, kernel-team@google.com, David Brazdil <dbrazdil@google.com>
-Message-ID: <20200722164423.9x_a6hKtNdRcm-BmqWG-U_2iNxpATwDdXK4VNL-KGLE@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: x86@kernel.org, Jan Kara <jack@suse.com>, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200730173437.q6-L56-ge811pq9llYWIkwgGhyMYEBkLB2E7nYNswEI@z>
 
-Add hyp percpu section to linker script and rename the corresponding ELF
-sections of hyp/nvhe object files. This moves all nVHE-specific percpu
-variables to the new hyp percpu section.
+On Sun, Jul 26, 2020 at 06:03:58PM +0200, Christoph Hellwig wrote:
+> Always use <linux/compat.h> so that we can move more declarations to
+> common code.  In two of the three cases the asm include was in addition
+> to an existing one for <linux/compat.h> anyway.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/arm64/include/asm/stat.h | 2 +-
+>  arch/arm64/kernel/process.c   | 1 -
+>  arch/arm64/kernel/ptrace.c    | 1 -
+>  3 files changed, 1 insertion(+), 3 deletions(-)
+> 
+> diff --git a/arch/arm64/include/asm/stat.h b/arch/arm64/include/asm/stat.h
+> index 3b4a62f5aeb0c3..1b5ac1ef5d04cc 100644
+> --- a/arch/arm64/include/asm/stat.h
+> +++ b/arch/arm64/include/asm/stat.h
+> @@ -10,7 +10,7 @@
+>  #ifdef CONFIG_COMPAT
+>  
+>  #include <linux/time.h>
+> -#include <asm/compat.h>
+> +#include <linux/compat.h>
 
-Allocate sufficient amount of memory for all percpu hyp regions at global KVM
-init time, and create corresponding hyp mappings.
+This breaks arm64 defconfig:
 
-The base addresses of hyp percpu regions are kept in a dynamically allocated
-array in the kernel.
+$ make -skj"$(nproc)" ARCH=arm64 CROSS_COMPILE=aarch64-linux- distclean defconfig init/main.o
+In file included from ./include/linux/compat.h:17,
+                 from ./arch/arm64/include/asm/stat.h:13,
+                 from ./include/linux/stat.h:6,
+                 from ./include/linux/sysfs.h:22,
+                 from ./include/linux/kobject.h:20,
+                 from ./include/linux/of.h:17,
+                 from ./include/linux/irqdomain.h:35,
+                 from ./include/linux/acpi.h:13,
+                 from ./include/acpi/apei.h:9,
+                 from ./include/acpi/ghes.h:5,
+                 from ./include/linux/arm_sdei.h:8,
+                 from arch/arm64/kernel/asm-offsets.c:10:
+./include/linux/fs.h: In function 'vfs_whiteout':
+./include/linux/fs.h:1736:32: error: 'S_IFCHR' undeclared (first use in this function)
+ 1736 |  return vfs_mknod(dir, dentry, S_IFCHR | WHITEOUT_MODE, WHITEOUT_DEV);
+      |                                ^~~~~~~
+./include/linux/fs.h:1736:32: note: each undeclared identifier is reported only once for each function it appears in
+./include/linux/fs.h: At top level:
+./include/linux/fs.h:1886:46: warning: 'struct kstat' declared inside parameter list will not be visible outside of this definition or declaration
+ 1886 |  int (*getattr) (const struct path *, struct kstat *, u32, unsigned int);
+      |                                              ^~~~~
+./include/linux/fs.h: In function '__mandatory_lock':
+./include/linux/fs.h:2372:25: error: 'S_ISGID' undeclared (first use in this function); did you mean 'SIGIO'?
+ 2372 |  return (ino->i_mode & (S_ISGID | S_IXGRP)) == S_ISGID;
+      |                         ^~~~~~~
+      |                         SIGIO
+./include/linux/fs.h:2372:35: error: 'S_IXGRP' undeclared (first use in this function)
+ 2372 |  return (ino->i_mode & (S_ISGID | S_IXGRP)) == S_ISGID;
+      |                                   ^~~~~~~
+...
 
-Add NULL checks in PMU event-reset code as it may run before KVM memory is
-initialized.
+$ git bisect log
+# bad: [7b287a5c6ac518c415a258f2aa7b1ebb25c263d2] Add linux-next specific files for 20200730
+# good: [d3590ebf6f91350192737dd1d1b219c05277f067] Merge tag 'audit-pr-20200729' of git://git.kernel.org/pub/scm/linux/kernel/git/pcmoore/audit
+git bisect start '7b287a5c6ac518c415a258f2aa7b1ebb25c263d2' 'd3590ebf6f91350192737dd1d1b219c05277f067'
+# bad: [1f1ed12be70e9eb4e05ac206c6ad6a5a31f5b921] Merge remote-tracking branch 'crypto/master'
+git bisect bad 1f1ed12be70e9eb4e05ac206c6ad6a5a31f5b921
+# bad: [07fad673c2f1a02440c879c34f8182b12786a735] Merge remote-tracking branch 'hid/for-next'
+git bisect bad 07fad673c2f1a02440c879c34f8182b12786a735
+# good: [7a77c92312546a74d3507484b256ae17bfb2cfe2] Merge remote-tracking branch 'm68knommu/for-next'
+git bisect good 7a77c92312546a74d3507484b256ae17bfb2cfe2
+# good: [40dd62f180e38317e744d7f82c98af31a24fd2c9] Merge remote-tracking branch 'f2fs/dev'
+git bisect good 40dd62f180e38317e744d7f82c98af31a24fd2c9
+# bad: [52138dfdd2192bcfc7d3bc2e79475966ee4b20c4] Merge remote-tracking branch 'printk/for-next'
+git bisect bad 52138dfdd2192bcfc7d3bc2e79475966ee4b20c4
+# good: [a37c3e37fa3fa1381e03d918d708f82927ddd160] Merge remote-tracking branch 'xfs/for-next'
+git bisect good a37c3e37fa3fa1381e03d918d708f82927ddd160
+# good: [4e523547e2bf755d40cb10e85795c2f9620ff3fb] nvme-pci: add a blank line after declarations
+git bisect good 4e523547e2bf755d40cb10e85795c2f9620ff3fb
+# bad: [5066741180729f7bad9401de34efda3766c3274a] Merge branches 'fixes' and 'work.quota-compat' into for-next
+git bisect bad 5066741180729f7bad9401de34efda3766c3274a
+# good: [4ff8a356daafaafbf90141ee7a3b8fdc18e560a8] ia64: switch to ->regset_get()
+git bisect good 4ff8a356daafaafbf90141ee7a3b8fdc18e560a8
+# good: [ce327e1c54119179066d6f3573a28001febc9265] regset: kill user_regset_copyout{,_zero}()
+git bisect good ce327e1c54119179066d6f3573a28001febc9265
+# good: [1697a322e28ba96d35953c5d824540d172546d36] [elf-fdpic] switch coredump to regsets
+git bisect good 1697a322e28ba96d35953c5d824540d172546d36
+# good: [259bf01c1bd1f049958496a089c4f334fe0c8a48] Merge branches 'work.misc', 'work.regset' and 'work.fdpic' into for-next
+git bisect good 259bf01c1bd1f049958496a089c4f334fe0c8a48
+# bad: [0a3a4497a1de8e68e809a693b549c7ec2f195301] compat: lift compat_s64 and compat_u64 to <linux/compat.h>
+git bisect bad 0a3a4497a1de8e68e809a693b549c7ec2f195301
+# bad: [b902bfb3f0e9d07ec9f48256e57e5c5de6108f8c] arm64: stop using <asm/compat.h> directly
+git bisect bad b902bfb3f0e9d07ec9f48256e57e5c5de6108f8c
+# first bad commit: [b902bfb3f0e9d07ec9f48256e57e5c5de6108f8c] arm64: stop using <asm/compat.h> directly
 
-Signed-off-by: David Brazdil <dbrazdil@google.com>
----
- arch/arm64/include/asm/kvm_asm.h  | 19 +++++++++--
- arch/arm64/include/asm/sections.h |  1 +
- arch/arm64/kernel/vmlinux.lds.S   | 10 ++++++
- arch/arm64/kvm/arm.c              | 55 +++++++++++++++++++++++++++++--
- arch/arm64/kvm/hyp/nvhe/Makefile  |  2 ++
- arch/arm64/kvm/pmu.c              |  5 ++-
- 6 files changed, 86 insertions(+), 6 deletions(-)
+I assume the stat header order should be messed around with but I am not
+sure what exactly that would entail to make sure that nothing else
+breaks, hence just the report.
 
-diff --git a/arch/arm64/include/asm/kvm_asm.h b/arch/arm64/include/asm/kvm_asm.h
-index 3d69cab873e4..22e63e651702 100644
---- a/arch/arm64/include/asm/kvm_asm.h
-+++ b/arch/arm64/include/asm/kvm_asm.h
-@@ -72,8 +72,23 @@
- #define CHOOSE_VHE_SYM(sym)	sym
- #define CHOOSE_NVHE_SYM(sym)	kvm_nvhe_sym(sym)
- 
--#define this_cpu_ptr_nvhe(sym)		this_cpu_ptr(&kvm_nvhe_sym(sym))
--#define per_cpu_ptr_nvhe(sym, cpu)	per_cpu_ptr(&kvm_nvhe_sym(sym), cpu)
-+/* Array of percpu base addresses. Length of the array is nr_cpu_ids. */
-+extern unsigned long *kvm_arm_hyp_percpu_base;
-+
-+/*
-+ * Compute pointer to a symbol defined in nVHE percpu region.
-+ * Returns NULL if percpu memory has not been allocated yet.
-+ */
-+#define this_cpu_ptr_nvhe(sym)	per_cpu_ptr_nvhe(sym, smp_processor_id())
-+#define per_cpu_ptr_nvhe(sym, cpu)					\
-+	({								\
-+		unsigned long base, off;				\
-+		base = kvm_arm_hyp_percpu_base				\
-+			? kvm_arm_hyp_percpu_base[cpu] : 0;		\
-+		off = (unsigned long)&kvm_nvhe_sym(sym) -		\
-+		      (unsigned long)&kvm_nvhe_sym(__per_cpu_start);	\
-+		base ? (typeof(kvm_nvhe_sym(sym))*)(base + off) : NULL;	\
-+	})
- 
- #ifndef __KVM_NVHE_HYPERVISOR__
- /*
-diff --git a/arch/arm64/include/asm/sections.h b/arch/arm64/include/asm/sections.h
-index 3994169985ef..5062553a6847 100644
---- a/arch/arm64/include/asm/sections.h
-+++ b/arch/arm64/include/asm/sections.h
-@@ -18,5 +18,6 @@ extern char __exittext_begin[], __exittext_end[];
- extern char __irqentry_text_start[], __irqentry_text_end[];
- extern char __mmuoff_data_start[], __mmuoff_data_end[];
- extern char __entry_tramp_text_start[], __entry_tramp_text_end[];
-+extern char __kvm_nvhe___per_cpu_start[], __kvm_nvhe___per_cpu_end[];
- 
- #endif /* __ASM_SECTIONS_H */
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index 6827da7f3aa5..c678615ccd6d 100644
---- a/arch/arm64/kernel/vmlinux.lds.S
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -16,6 +16,9 @@
- 
- #include "image.h"
- 
-+#define __CONCAT3(x, y, z) x ## y ## z
-+#define CONCAT3(x, y, z) __CONCAT3(x, y, z)
-+
- OUTPUT_ARCH(aarch64)
- ENTRY(_text)
- 
-@@ -187,6 +190,13 @@ SECTIONS
- 
- 	PERCPU_SECTION(L1_CACHE_BYTES)
- 
-+	/* KVM nVHE per-cpu section */
-+	#undef PERCPU_SECTION_NAME
-+	#undef PERCPU_SYMBOL_NAME
-+	#define PERCPU_SECTION_NAME(suffix)	CONCAT3(.hyp, PERCPU_SECTION_BASE_NAME, suffix)
-+	#define PERCPU_SYMBOL_NAME(name)	__kvm_nvhe_ ## name
-+	PERCPU_SECTION(L1_CACHE_BYTES)
-+
- 	.rela.dyn : ALIGN(8) {
- 		*(.rela .rela*)
- 	}
-diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
-index dc557b380c87..bbbc5c1519a9 100644
---- a/arch/arm64/kvm/arm.c
-+++ b/arch/arm64/kvm/arm.c
-@@ -47,6 +47,7 @@ __asm__(".arch_extension	virt");
- #endif
- 
- static DEFINE_PER_CPU(unsigned long, kvm_arm_hyp_stack_page);
-+unsigned long *kvm_arm_hyp_percpu_base;
- 
- /* The VMID used in the VTTBR */
- static atomic64_t kvm_vmid_gen = ATOMIC64_INIT(1);
-@@ -1253,6 +1254,15 @@ long kvm_arch_vm_ioctl(struct file *filp,
- 	}
- }
- 
-+#define kvm_hyp_percpu_base(cpu)	((unsigned long)per_cpu_ptr_nvhe(__per_cpu_start, cpu))
-+#define kvm_hyp_percpu_array_size	(nr_cpu_ids * sizeof(*kvm_arm_hyp_percpu_base))
-+#define kvm_hyp_percpu_array_order	(get_order(kvm_hyp_percpu_array_size))
-+#define kvm_hyp_percpu_begin		CHOOSE_NVHE_SYM(__per_cpu_start)
-+#define kvm_hyp_percpu_size		((unsigned long)CHOOSE_NVHE_SYM(__per_cpu_end) - \
-+					 (unsigned long)CHOOSE_NVHE_SYM(__per_cpu_start))
-+#define kvm_hyp_percpu_order		(kvm_hyp_percpu_size \
-+						? get_order(kvm_hyp_percpu_size) : 0)
-+
- static void cpu_init_hyp_mode(void)
- {
- 	phys_addr_t pgd_ptr;
-@@ -1268,8 +1278,8 @@ static void cpu_init_hyp_mode(void)
- 	 * kernel's mapping to the linear mapping, and store it in tpidr_el2
- 	 * so that we can use adr_l to access per-cpu variables in EL2.
- 	 */
--	tpidr_el2 = ((unsigned long)this_cpu_ptr(&kvm_host_data) -
--		     (unsigned long)kvm_ksym_ref(&kvm_host_data));
-+	tpidr_el2 = (unsigned long)this_cpu_ptr_nvhe(__per_cpu_start) -
-+		    (unsigned long)kvm_ksym_ref(kvm_hyp_percpu_begin);
- 
- 	pgd_ptr = kvm_mmu_get_httbr();
- 	hyp_stack_ptr = __this_cpu_read(kvm_arm_hyp_stack_page) + PAGE_SIZE;
-@@ -1501,8 +1511,11 @@ static void teardown_hyp_mode(void)
- 	int cpu;
- 
- 	free_hyp_pgds();
--	for_each_possible_cpu(cpu)
-+	for_each_possible_cpu(cpu) {
- 		free_hyp_page(per_cpu(kvm_arm_hyp_stack_page, cpu));
-+		free_hyp_pages(kvm_hyp_percpu_base(cpu), kvm_hyp_percpu_order);
-+	}
-+	free_hyp_pages((unsigned long)kvm_arm_hyp_percpu_base, kvm_hyp_percpu_array_order);
- }
- 
- /**
-@@ -1535,6 +1548,28 @@ static int init_hyp_mode(void)
- 		per_cpu(kvm_arm_hyp_stack_page, cpu) = stack_page;
- 	}
- 
-+	/*
-+	 * Allocate and initialize pages for Hypervisor-mode percpu regions.
-+	 */
-+	kvm_arm_hyp_percpu_base = (unsigned long*)alloc_hyp_pages(
-+			GFP_KERNEL | __GFP_ZERO, kvm_hyp_percpu_array_order);
-+	if (!kvm_arm_hyp_percpu_base) {
-+		err = -ENOMEM;
-+		goto out_err;
-+	}
-+	for_each_possible_cpu(cpu) {
-+		unsigned long percpu_base;
-+
-+		percpu_base = alloc_hyp_pages(GFP_KERNEL, kvm_hyp_percpu_order);
-+		if (!percpu_base) {
-+			err = -ENOMEM;
-+			goto out_err;
-+		}
-+
-+		memcpy((void*)percpu_base, kvm_hyp_percpu_begin, kvm_hyp_percpu_size);
-+		kvm_arm_hyp_percpu_base[cpu] = percpu_base;
-+	}
-+
- 	/*
- 	 * Map the Hyp-code called directly from the host
- 	 */
-@@ -1579,6 +1614,20 @@ static int init_hyp_mode(void)
- 		}
- 	}
- 
-+	/*
-+	 * Map Hyp percpu pages
-+	 */
-+	for_each_possible_cpu(cpu) {
-+		char *percpu_begin = (char *)kvm_arm_hyp_percpu_base[cpu];
-+		char *percpu_end = percpu_begin + PAGE_ALIGN(kvm_hyp_percpu_size);
-+		err = create_hyp_mappings(percpu_begin, percpu_end, PAGE_HYP);
-+
-+		if (err) {
-+			kvm_err("Cannot map hyp percpu region\n");
-+			goto out_err;
-+		}
-+	}
-+
- 	for_each_possible_cpu(cpu) {
- 		kvm_host_data_t *cpu_data;
- 
-diff --git a/arch/arm64/kvm/hyp/nvhe/Makefile b/arch/arm64/kvm/hyp/nvhe/Makefile
-index 0b34414557d6..1d415698e60e 100644
---- a/arch/arm64/kvm/hyp/nvhe/Makefile
-+++ b/arch/arm64/kvm/hyp/nvhe/Makefile
-@@ -23,6 +23,8 @@ $(obj)/%.hyp.o: $(obj)/%.hyp.tmp.o FORCE
- quiet_cmd_hypcopy = HYPCOPY $@
-       cmd_hypcopy = $(OBJCOPY)	--prefix-symbols=__kvm_nvhe_		\
- 				--rename-section=.text=.hyp.text	\
-+				--rename-section=.data..percpu=.hyp.data..percpu \
-+				--rename-section=.data..percpu..read_mostly=.hyp.data..percpu..read_mostly \
- 				$< $@
- 
- # Remove ftrace and Shadow Call Stack CFLAGS.
-diff --git a/arch/arm64/kvm/pmu.c b/arch/arm64/kvm/pmu.c
-index 717941910723..b4c8302f0798 100644
---- a/arch/arm64/kvm/pmu.c
-+++ b/arch/arm64/kvm/pmu.c
-@@ -33,7 +33,7 @@ void kvm_set_pmu_events(u32 set, struct perf_event_attr *attr)
- {
- 	struct kvm_host_data *ctx = this_cpu_ptr_hyp(kvm_host_data);
- 
--	if (!kvm_pmu_switch_needed(attr))
-+	if (!ctx || !kvm_pmu_switch_needed(attr))
- 		return;
- 
- 	if (!attr->exclude_host)
-@@ -49,6 +49,9 @@ void kvm_clr_pmu_events(u32 clr)
- {
- 	struct kvm_host_data *ctx = this_cpu_ptr_hyp(kvm_host_data);
- 
-+	if (!ctx)
-+		return;
-+
- 	ctx->pmu_events.events_host &= ~clr;
- 	ctx->pmu_events.events_guest &= ~clr;
- }
--- 
-2.27.0
+Cheers,
+Nathan
