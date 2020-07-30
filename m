@@ -1,204 +1,54 @@
-Return-Path: <SRS0=LHd7=BG=kvack.org=owner-linux-mm@kernel.org>
-From: Anthony Yznaga <anthony.yznaga@oracle.com>
-Subject: [RFC PATCH 4/5] exec, elf: require opt-in for accepting preserved mem
-Date: Mon, 27 Jul 2020 10:11:26 -0700
-Message-ID: <1595869887-23307-5-git-send-email-anthony.yznaga@oracle.com>
-In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+Return-Path: <SRS0=1VFR=BJ=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
 References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+ <20200730152250.GG23808@casper.infradead.org>
+From: Steven Sistare <steven.sistare@oracle.com>
+Message-ID: <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
+Date: Thu, 30 Jul 2020 11:59:42 -0400
+MIME-Version: 1.0
+In-Reply-To: <20200730152250.GG23808@casper.infradead.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
+To: Matthew Wilcox <willy@infradead.org>, Anthony Yznaga <anthony.yznaga@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200727171126.IHjjk3LrW16U7YRMb-Yq7mlxGwTFCVH0hRmHirsIb-Y@z>
+Message-ID: <20200730155942.h_b6tESSZfsyM8z5qlExp71vIhsyl4wD6y7Kdf_eN-4@z>
 
-Don't copy preserved VMAs to the binary being exec'd unless the binary has
-a "preserved-mem-ok" ELF note.
+On 7/30/2020 11:22 AM, Matthew Wilcox wrote:
+> On Mon, Jul 27, 2020 at 10:11:22AM -0700, Anthony Yznaga wrote:
+>> This patchset adds support for preserving an anonymous memory range across
+>> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit for
+>> sharing memory in this manner, as opposed to re-attaching to a named shared
+>> memory segment, is to ensure it is mapped at the same virtual address in
+>> the new process as it was in the old one.  An intended use for this is to
+>> preserve guest memory for guests using vfio while qemu exec's an updated
+>> version of itself.  By ensuring the memory is preserved at a fixed address,
+>> vfio mappings and their associated kernel data structures can remain valid.
+>> In addition, for the qemu use case, qemu instances that back guest RAM with
+>> anonymous memory can be updated.
+> 
+> I just realised that something else I'm working on might be a suitable
+> alternative to this.  Apologies for not realising it sooner.
+> 
+> http://www.wil.cx/~willy/linux/sileby.html
+> 
+> To use this, you'd mshare() the anonymous memory range, essentially
+> detaching the VMA from the current process's mm_struct and reparenting
+> it to this new mm_struct, which has an fd referencing it.
+> 
+> Then you call exec(), and the exec'ed task gets to call mmap() on that
+> new fd to attach the memory range to its own address space.
+> 
+> Presto!
 
-Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
----
- fs/binfmt_elf.c         | 84 +++++++++++++++++++++++++++++++++++++++++++++++++
- fs/exec.c               | 17 +++++-----
- include/linux/binfmts.h |  7 ++++-
- 3 files changed, 100 insertions(+), 8 deletions(-)
+To be suitable for the qemu use case, we need a guarantee that the same VA range
+is available in the new process, with nothing else mapped there.  From your spec,
+it sounds like the new process could do a series of unrelated mmap's which could
+overlap the desired va range before the silby mmap(fd) is performed??
 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 6445a6dbdb1d..46248b7b0a75 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -683,6 +683,81 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
- 	return error;
- }
- 
-+#define NOTES_SZ			SZ_1K
-+#define PRESERVED_MEM_OK_STRING		"preserved-mem-ok"
-+#define SZ_PRESERVED_MEM_OK_STRING	sizeof(PRESERVED_MEM_OK_STRING)
-+
-+static int parse_elf_note(struct linux_binprm *bprm, const char *data, size_t *off, size_t datasz)
-+{
-+	const struct elf_note *nhdr;
-+	const char *name;
-+	size_t o;
-+
-+	o = *off;
-+	datasz -= o;
-+
-+	if (datasz < sizeof(*nhdr))
-+		return -ENOEXEC;
-+
-+	nhdr = (const struct elf_note *)(data + o);
-+	o += sizeof(*nhdr);
-+	datasz -= sizeof(*nhdr);
-+
-+	/*
-+	 * Currently only the preserved-mem-ok elf note is of interest.
-+	 */
-+	if (nhdr->n_type != 0x07c1feed)
-+		goto next;
-+
-+	if (nhdr->n_namesz > SZ_PRESERVED_MEM_OK_STRING)
-+		return -ENOEXEC;
-+
-+	name =  data + o;
-+	if (datasz < SZ_PRESERVED_MEM_OK_STRING ||
-+	    strncmp(name, PRESERVED_MEM_OK_STRING, SZ_PRESERVED_MEM_OK_STRING))
-+		return -ENOEXEC;
-+
-+	bprm->accepts_preserved_mem = 1;
-+
-+next:
-+	o += roundup(nhdr->n_namesz, 4) + roundup(nhdr->n_descsz, 4);
-+	*off = o;
-+
-+	return 0;
-+}
-+
-+static int parse_elf_notes(struct linux_binprm *bprm, struct elf_phdr *phdr)
-+{
-+	char *notes;
-+	size_t notes_sz;
-+	size_t off = 0;
-+	int ret;
-+
-+	if (!phdr)
-+		return 0;
-+
-+	notes_sz = phdr->p_filesz;
-+	if ((notes_sz > NOTES_SZ) || (notes_sz < sizeof(struct elf_note)))
-+		return -ENOEXEC;
-+
-+	notes = kvmalloc(notes_sz, GFP_KERNEL);
-+	if (!notes)
-+		return -ENOMEM;
-+
-+	ret = elf_read(bprm->file, notes, notes_sz, phdr->p_offset);
-+	if (ret < 0)
-+		goto out;
-+
-+	while (off < notes_sz) {
-+		ret = parse_elf_note(bprm, notes, &off, notes_sz);
-+		if (ret)
-+			break;
-+	}
-+out:
-+	kvfree(notes);
-+	return ret;
-+}
-+
- /*
-  * These are the functions used to load ELF style executables and shared
-  * libraries.  There is no binary dependent code anywhere else.
-@@ -801,6 +876,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 	unsigned long error;
- 	struct elf_phdr *elf_ppnt, *elf_phdata, *interp_elf_phdata = NULL;
- 	struct elf_phdr *elf_property_phdata = NULL;
-+	struct elf_phdr *elf_notes_phdata = NULL;
- 	unsigned long elf_bss, elf_brk;
- 	int bss_prot = 0;
- 	int retval, i;
-@@ -909,6 +985,10 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 				executable_stack = EXSTACK_DISABLE_X;
- 			break;
- 
-+		case PT_NOTE:
-+			elf_notes_phdata = elf_ppnt;
-+			break;
-+
- 		case PT_LOPROC ... PT_HIPROC:
- 			retval = arch_elf_pt_proc(elf_ex, elf_ppnt,
- 						  bprm->file, false,
-@@ -970,6 +1050,10 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 	if (retval)
- 		goto out_free_dentry;
- 
-+	retval = parse_elf_notes(bprm, elf_notes_phdata);
-+	if (retval)
-+		goto out_free_dentry;
-+
- 	/* Flush all traces of the currently running executable */
- 	retval = begin_new_exec(bprm);
- 	if (retval)
-diff --git a/fs/exec.c b/fs/exec.c
-index 1de09c4eef00..b2b046fec1f8 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1088,10 +1088,11 @@ static int vma_dup_some(struct mm_struct *old_mm, struct mm_struct *new_mm)
-  * On success, this function returns with the mutex
-  * exec_update_mutex locked.
-  */
--static int exec_mmap(struct mm_struct *mm)
-+static int exec_mmap(struct linux_binprm *bprm)
- {
- 	struct task_struct *tsk;
- 	struct mm_struct *old_mm, *active_mm;
-+	struct mm_struct *mm = bprm->mm;
- 	int ret;
- 
- 	/* Notify parent that we're no longer interested in the old VM */
-@@ -1118,11 +1119,13 @@ static int exec_mmap(struct mm_struct *mm)
- 			mutex_unlock(&tsk->signal->exec_update_mutex);
- 			return -EINTR;
- 		}
--		ret = vma_dup_some(old_mm, mm);
--		if (ret) {
--			mmap_read_unlock(old_mm);
--			mutex_unlock(&tsk->signal->exec_update_mutex);
--			return ret;
-+		if (bprm->accepts_preserved_mem) {
-+			ret = vma_dup_some(old_mm, mm);
-+			if (ret) {
-+				mmap_read_unlock(old_mm);
-+				mutex_unlock(&tsk->signal->exec_update_mutex);
-+				return ret;
-+			}
- 		}
- 	}
- 
-@@ -1386,7 +1389,7 @@ int begin_new_exec(struct linux_binprm * bprm)
- 	 * Release all of the old mmap stuff
- 	 */
- 	acct_arg_size(bprm, 0);
--	retval = exec_mmap(bprm->mm);
-+	retval = exec_mmap(bprm);
- 	if (retval)
- 		goto out;
- 
-diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
-index 4a20b7517dd0..6a66589454c8 100644
---- a/include/linux/binfmts.h
-+++ b/include/linux/binfmts.h
-@@ -41,7 +41,12 @@ struct linux_binprm {
- 		 * Set when errors can no longer be returned to the
- 		 * original userspace.
- 		 */
--		point_of_no_return:1;
-+		point_of_no_return:1,
-+		/*
-+		 * Set if the binary being exec'd will accept memory marked
-+		 * for preservation by the outgoing process.
-+		 */
-+		accepts_preserved_mem:1;
- #ifdef __alpha__
- 	unsigned int taso:1;
- #endif
--- 
-1.8.3.1
+Also, we need to support updating legacy processes that already created anon segments.
+We inject code that calls MADV_DOEXEC for such segments.
+
+- Steve
