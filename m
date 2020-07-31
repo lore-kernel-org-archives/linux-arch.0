@@ -1,78 +1,102 @@
-From: "josh@joshtriplett.org" <josh@joshtriplett.org>
-Subject: Re: [Ksummit-discuss] [TECH TOPIC] Planning code obsolescence
-Date: Fri, 31 Jul 2020 15:47:04 -0700
-Message-ID: <20200731224704.GF32670@localhost>
-References: <CAK8P3a2PK_bC5=3wcWm43=y5xk-Dq5-fGPExJMnOrNfGfB1m1A@mail.gmail.com>
- <20200731212721.GC32670@localhost>
- <CY4PR13MB1175A3B5D9DE33D3A1E045A6FD4E0@CY4PR13MB1175.namprd13.prod.outlook.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v5 04/36] x86/boot: Add .text.* to setup.ld
+Date: Fri, 31 Jul 2020 16:07:48 -0700
+Message-ID: <20200731230820.1742553-5-keescook@chromium.org>
+References: <20200731230820.1742553-1-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay11.mail.gandi.net ([217.70.178.231]:35817 "EHLO
-        relay11.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726099AbgGaWrK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 18:47:10 -0400
-Content-Disposition: inline
-In-Reply-To: <CY4PR13MB1175A3B5D9DE33D3A1E045A6FD4E0@CY4PR13MB1175.namprd13.prod.outlook.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Bird, Tim" <Tim.Bird@sony.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ksummit <ksummit-discuss@lists.linuxfoundation.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Ard Biesheuvel <ardb@kernel.org>, Fangrui Song <maskray@google.com>, Sedat Dilek <sedat.dilek@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.ker
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 31, 2020 at 09:57:41PM +0000, Bird, Tim wrote:
-> > -----Original Message-----
-> > From: josh@joshtriplett.org
-> > 
-> > On Fri, Jul 31, 2020 at 05:00:12PM +0200, Arnd Bergmann wrote:
-> > > The majority of the code in the kernel deals with hardware that was made
-> > > a long time ago, and we are regularly discussing which of those bits are
-> > > still needed. In some cases (e.g. 20+ year old RISC workstation support),
-> > > there are hobbyists that take care of maintainership despite there being
-> > > no commercial interest. In other cases (e.g. x.25 networking) it turned
-> > > out that there are very long-lived products that are actively supported
-> > > on new kernels.
-> > >
-> > > When I removed support for eight instruction set architectures in 2018,
-> > > those were the ones that no longer had any users of mainline kernels,
-> > > and removing them allowed later cleanup of cross-architecture code that
-> > > would have been much harder before.
-> > >
-> > > I propose adding a Documentation file that keeps track of any notable
-> > > kernel feature that could be classified as "obsolete", and listing
-> > > e.g. following properties:
-> > >
-> > > * Kconfig symbol controlling the feature
-> > >
-> > > * How long we expect to keep it as a minimum
-> > >
-> > > * Known use cases, or other reasons this needs to stay
-> > >
-> > > * Latest kernel in which it was known to have worked
-> > >
-> > > * Contact information for known users (mailing list, personal email)
-> > >
-> > > * Other features that may depend on this
-> > >
-> > > * Possible benefits of eventually removing it
-> > 
-> > We had this once, in the form of feature-removal-schedule.txt. It was,
-> > itself, removed in commit 9c0ece069b32e8e122aea71aa47181c10eb85ba7.
-> > 
-> > I *do* think there'd be value in having policies and processes for "how
-> > do we carefully remove a driver/architecture/etc we think nobody cares
-> > about". That's separate from having an actual in-kernel list of "things
-> > we think we can remove".
-> 
-> I'm not sure the documents are the same.  I think what Arnd is proposing
-> is more of a "why is this thing still here?" document.  When someone does
-> research into who's still using a feature and why, that can be valuable information
-> to share so that future maintenance or removal decisions can be better informed.
-> 
-> Maybe e-mails are sufficient for this, but they'd be harder to find than something in
-> the kernel source. But that supposes that people would look at the file, which 
-> appears didn't happen with feature-removal-schedule.txt.
+From: Arvind Sankar <nivedita@alum.mit.edu>
 
-Ah, I see. So this *isn't* about "features we want to remove", this is
-"features people might think we should remove, but here's the
-documentation for why we aren't"? More of an
-obscure-but-still-wanted-features.txt?
+gcc puts the main function into .text.startup when compiled with -Os (or
+-O2). This results in arch/x86/boot/main.c having a .text.startup
+section which is currently not included explicitly in the linker script
+setup.ld in the same directory.
+
+The BFD linker places this orphan section immediately after .text, so
+this still works. However, LLD git, since [1], is choosing to place it
+immediately after the .bstext section instead (this is the first code
+section). This plays havoc with the section layout that setup.elf
+requires to create the setup header, for eg on 64-bit:
+
+    LD      arch/x86/boot/setup.elf
+  ld.lld: error: section .text.startup file range overlaps with .header
+  >>> .text.startup range is [0x200040, 0x2001FE]
+  >>> .header range is [0x2001EF, 0x20026B]
+
+  ld.lld: error: section .header file range overlaps with .bsdata
+  >>> .header range is [0x2001EF, 0x20026B]
+  >>> .bsdata range is [0x2001FF, 0x200398]
+
+  ld.lld: error: section .bsdata file range overlaps with .entrytext
+  >>> .bsdata range is [0x2001FF, 0x200398]
+  >>> .entrytext range is [0x20026C, 0x2002D3]
+
+  ld.lld: error: section .text.startup virtual address range overlaps
+  with .header
+  >>> .text.startup range is [0x40, 0x1FE]
+  >>> .header range is [0x1EF, 0x26B]
+
+  ld.lld: error: section .header virtual address range overlaps with
+  .bsdata
+  >>> .header range is [0x1EF, 0x26B]
+  >>> .bsdata range is [0x1FF, 0x398]
+
+  ld.lld: error: section .bsdata virtual address range overlaps with
+  .entrytext
+  >>> .bsdata range is [0x1FF, 0x398]
+  >>> .entrytext range is [0x26C, 0x2D3]
+
+  ld.lld: error: section .text.startup load address range overlaps with
+  .header
+  >>> .text.startup range is [0x40, 0x1FE]
+  >>> .header range is [0x1EF, 0x26B]
+
+  ld.lld: error: section .header load address range overlaps with
+  .bsdata
+  >>> .header range is [0x1EF, 0x26B]
+  >>> .bsdata range is [0x1FF, 0x398]
+
+  ld.lld: error: section .bsdata load address range overlaps with
+  .entrytext
+  >>> .bsdata range is [0x1FF, 0x398]
+  >>> .entrytext range is [0x26C, 0x2D3]
+
+Add .text.* to the .text output section to fix this, and also prevent
+any future surprises if the compiler decides to create other such
+sections.
+
+[1] https://reviews.llvm.org/D75225
+
+Tested-by: Nick Desaulniers <ndesaulniers@google.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
+Reviewed-by: Fangrui Song <maskray@google.com>
+Tested-by: Sedat Dilek <sedat.dilek@gmail.com>
+Signed-off-by: Arvind Sankar <nivedita@alum.mit.edu>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/x86/boot/setup.ld | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/x86/boot/setup.ld b/arch/x86/boot/setup.ld
+index 24c95522f231..49546c247ae2 100644
+--- a/arch/x86/boot/setup.ld
++++ b/arch/x86/boot/setup.ld
+@@ -20,7 +20,7 @@ SECTIONS
+ 	.initdata	: { *(.initdata) }
+ 	__end_init = .;
+ 
+-	.text		: { *(.text) }
++	.text		: { *(.text .text.*) }
+ 	.text32		: { *(.text32) }
+ 
+ 	. = ALIGN(16);
+-- 
+2.25.1
