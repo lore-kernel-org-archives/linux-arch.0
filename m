@@ -1,104 +1,82 @@
-From: Steven Sistare <steven.sistare@oracle.com>
-Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-Date: Fri, 31 Jul 2020 12:11:52 -0400
-Message-ID: <9ba26063-0098-e796-9431-8c1d0c076ffc@oracle.com>
-References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
- <20200730152250.GG23808@casper.infradead.org>
- <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
- <20200730171251.GI23808@casper.infradead.org>
- <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
- <20200730174956.GK23808@casper.infradead.org>
- <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
- <87y2n03brx.fsf@x220.int.ebiederm.org>
- <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
- <20200731152736.GP23808@casper.infradead.org>
+From: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH v2 3/7] mm: introduce memfd_secret system call to create
+ "secret" memory areas
+Date: Fri, 31 Jul 2020 17:22:34 +0100
+Message-ID: <20200731162234.GF29569@gaia>
+References: <20200727162935.31714-1-rppt@kernel.org>
+ <20200727162935.31714-4-rppt@kernel.org>
+ <20200730162209.GB3128@gaia>
+ <20200731142905.GA67415@C02TD0UTHF1T.local>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2120.oracle.com ([156.151.31.85]:39164 "EHLO
-        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726502AbgGaQOs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 12:14:48 -0400
-In-Reply-To: <20200731152736.GP23808@casper.infradead.org>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20200731142905.GA67415-NxAhncQ8SJbILnBEAk/BfazUEOm+Xw19@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>
+Cc: Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Christopher Lameter <cl-vYTEC60ixJUAvxtiuMwx3w@public.gmane.org>, Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Elena Reshetova <elena.reshetova-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Idan Yaniv <idan.yaniv-qyM6JfAXOaQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, James Bottomley <jejb-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, "Kirill A. Shutemov" <kirill-oKw7cIdHH8eLwutG50LtGA@public.gmane.org>, Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>, Paul
+List-Id: linux-arch.vger.kernel.org
 
-On 7/31/2020 11:27 AM, Matthew Wilcox wrote:
-> On Fri, Jul 31, 2020 at 10:57:44AM -0400, Steven Sistare wrote:
->> Matthews sileby/mshare proposal has the same issue.  If a process opts-in
->> and mmap's an address in the shared region, then content becomes mapped at
->> a VA that was known to the pre-fork or pre-exec process.  Trust must still
->> be established.
+On Fri, Jul 31, 2020 at 03:29:05PM +0100, Mark Rutland wrote:
+> On Thu, Jul 30, 2020 at 05:22:10PM +0100, Catalin Marinas wrote:
+> > On Mon, Jul 27, 2020 at 07:29:31PM +0300, Mike Rapoport wrote:
+> > > +static int secretmem_mmap(struct file *file, struct vm_area_struct *vma)
+> > > +{
+> > > +	struct secretmem_ctx *ctx = file->private_data;
+> > > +	unsigned long mode = ctx->mode;
+> > > +	unsigned long len = vma->vm_end - vma->vm_start;
+> > > +
+> > > +	if (!mode)
+> > > +		return -EINVAL;
+> > > +
+> > > +	if ((vma->vm_flags & (VM_SHARED | VM_MAYSHARE)) == 0)
+> > > +		return -EINVAL;
+> > > +
+> > > +	if (mlock_future_check(vma->vm_mm, vma->vm_flags | VM_LOCKED, len))
+> > > +		return -EAGAIN;
+> > > +
+> > > +	switch (mode) {
+> > > +	case SECRETMEM_UNCACHED:
+> > > +		vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+> > > +		fallthrough;
+> > > +	case SECRETMEM_EXCLUSIVE:
+> > > +		vma->vm_ops = &secretmem_vm_ops;
+> > > +		break;
+> > > +	default:
+> > > +		return -EINVAL;
+> > > +	}
+> > > +
+> > > +	vma->vm_flags |= VM_LOCKED;
+> > > +
+> > > +	return 0;
+> > > +}
+> > 
+> > I think the uncached mapping is not the right thing for arm/arm64. First
+> > of all, pgprot_noncached() gives us Strongly Ordered (Device memory)
+> > semantics together with not allowing unaligned accesses. I suspect the
+> > semantics are different on x86.
 > 
-> It's up to the recipient whether they try to map it at the same address
-> or at a fresh address.  The intended use case is a "semi-shared" address
-> space between two processes (ie partway between a threaded, fully-shared
-> address space and a forked un-shared address space), in which case
-> there's a certain amount of trust and cooperation between the processes.
-
-Understood, but if the recipient does map at any of the same, which is the whole
-point because you want to share the page table.  The trust relationship is no
-different than for the live update case.  
- 
-> Your preservation-across-exec use-case might or might not need the
-> VMA to be mapped at the same address.  
-
-It does.  qemu registers memory with vfio which remembers the va's in kernel
-metadata for the device.
-
-> I don't know whether qemu stores
-> pointers in this VMA which are absolute within the qemu address space.
-> If it's just the emulated process's address space, then everything will
-> be absolute within its own address space and everything will be opaque
-> to qemu.  If qemu is storing its own pointers in it, then it has to be
-> mapped at the same address.
-
-qemu does not do the latter but that could be a nice way for apps to use
-preserved memory.
-
->>> Here is another suggestion.
->>>
->>> Have a very simple program that does:
->>>
->>> 	for (;;) {
->>> 		handle = dlopen("/my/real/program");
->>> 		real_main = dlsym(handle, "main");
->>> 		real_main(argc, argv, envp);
->>> 		dlclose(handle);
->>> 	}
->>>
->>> With whatever obvious adjustments are needed to fit your usecase.
->>>
->>> That should give the same level of functionality, be portable to all
->>> unices, and not require you to duplicate code.  It belive it limits you
->>> to not upgrading libc, or librt but that is a comparatively small
->>> limitation.
->>>
->>>
->>> Given that in general the interesting work is done in userspace and that
->>> userspace has provided an interface for reusing that work already.
->>> I don't see the justification for adding anything to exec at this point. 
->>
->> Thanks for the suggestion.  That is clever, and would make a fun project,
->> but I would not trust it for production.  These few lines are just
->> the first of many that it would take to reset the environment to the
->> well-defined post-exec initial conditions that all executables expect,
->> and incrementally tearing down state will be prone to bugs.  Getting a
->> clean slate from a kernel exec is a much more reliable design.  The use
->> case is creating long-lived apps that never go down, and the simplest
->> implementation will have the fewest bugs and is the best.  MADV_DOEXEC is
->> simple, and does not even require a new system call, and the kernel already
->> knows how to exec without bugs.
+> > The second, more serious problem, is that I can't find any place where
+> > the caches are flushed for the page mapped on fault. When a page is
+> > allocated, assuming GFP_ZERO, only the caches are guaranteed to be
+> > zeroed. Exposing this subsequently to user space as uncached would allow
+> > the user to read stale data prior to zeroing. The arm64
+> > set_direct_map_default_noflush() doesn't do any cache maintenance.
 > 
-> It's a net increase of 200 lines of kernel code.  If 4 lines of userspace
-> code removes 200 lines of kernel code, I think I know which I prefer ...
+> It's also worth noting that in a virtual machine this is liable to be
+> either broken (with a potential loss of coherency if the host has a
+> cacheable alias as existing KVM hosts have), or pointless (if the host
+> uses S2FWB to upgrade Stage-1 attribues to cacheable as existing KVM
+> hosts also have).
+> 
+> I think that trying to avoid the data caches creates many more problems
+> than it solves, and I don't think there's a strong justification for
+> trying to support that on arm64 to begin with, so I'd rather entirely
+> opt-out on supporting SECRETMEM_UNCACHED.
 
-It will be *far* more than 4 lines.
-Much of the 200 lines is mostly for the elf opt in, and much of the elf code is from
-anthony reviving an earlier patch that use MAP_FIXED_NOREPLACE during segment setup.
+Good point, I forgot the virtualisation aspect. So unless there is a
+hypervisor API to unmap it from the host memory, the uncached option
+isn't of much use on arm64.
 
-- Steve
+-- 
+Catalin
