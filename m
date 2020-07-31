@@ -1,230 +1,101 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:35376 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729736AbgGPTu6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:50:58 -0400
-Message-ID: <20200716185425.089131416@linutronix.de>
-Date: Thu, 16 Jul 2020 20:22:19 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 11/13] x86/entry: Use generic interrupt entry/exit code
-References: <20200716182208.180916541@linutronix.de>
+Return-Path: <SRS0=Pkkz=BK=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+ <20200730152250.GG23808@casper.infradead.org>
+ <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
+ <20200730171251.GI23808@casper.infradead.org>
+ <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
+ <20200730174956.GK23808@casper.infradead.org>
+ <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
+ <87y2n03brx.fsf@x220.int.ebiederm.org>
+ <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
+ <20200731152736.GP23808@casper.infradead.org>
+From: Steven Sistare <steven.sistare@oracle.com>
+Message-ID: <9ba26063-0098-e796-9431-8c1d0c076ffc@oracle.com>
+Date: Fri, 31 Jul 2020 12:11:52 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200731152736.GP23808@casper.infradead.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20200716182219.rS6jCAGBmGqmEuojDEuPXXqv3_3WwAm4ld_QuM5vaMo@z>
+Message-ID: <20200731161152.gmIAIyntMIwakzR_ZTlLVjO5VJRIZz2nYy2sWmjLRoc@z>
 
-Replace the x86 code with the generic variant. Use temporary defines for
-idtentry_* which will be cleaned up in the next step.
+On 7/31/2020 11:27 AM, Matthew Wilcox wrote:
+> On Fri, Jul 31, 2020 at 10:57:44AM -0400, Steven Sistare wrote:
+>> Matthews sileby/mshare proposal has the same issue.  If a process opts-in
+>> and mmap's an address in the shared region, then content becomes mapped at
+>> a VA that was known to the pre-fork or pre-exec process.  Trust must still
+>> be established.
+> 
+> It's up to the recipient whether they try to map it at the same address
+> or at a fresh address.  The intended use case is a "semi-shared" address
+> space between two processes (ie partway between a threaded, fully-shared
+> address space and a forked un-shared address space), in which case
+> there's a certain amount of trust and cooperation between the processes.
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- arch/x86/entry/common.c         |  167 ----------------------------------------
- arch/x86/include/asm/idtentry.h |   10 --
- 2 files changed, 5 insertions(+), 172 deletions(-)
+Understood, but if the recipient does map at any of the same, which is the whole
+point because you want to share the page table.  The trust relationship is no
+different than for the live update case.  
+ 
+> Your preservation-across-exec use-case might or might not need the
+> VMA to be mapped at the same address.  
 
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -198,171 +198,6 @@ SYSCALL_DEFINE0(ni_syscall)
- 	return -ENOSYS;
- }
- 
--/**
-- * idtentry_enter - Handle state tracking on ordinary idtentries
-- * @regs:	Pointer to pt_regs of interrupted context
-- *
-- * Invokes:
-- *  - lockdep irqflag state tracking as low level ASM entry disabled
-- *    interrupts.
-- *
-- *  - Context tracking if the exception hit user mode.
-- *
-- *  - The hardirq tracer to keep the state consistent as low level ASM
-- *    entry disabled interrupts.
-- *
-- * As a precondition, this requires that the entry came from user mode,
-- * idle, or a kernel context in which RCU is watching.
-- *
-- * For kernel mode entries RCU handling is done conditional. If RCU is
-- * watching then the only RCU requirement is to check whether the tick has
-- * to be restarted. If RCU is not watching then rcu_irq_enter() has to be
-- * invoked on entry and rcu_irq_exit() on exit.
-- *
-- * Avoiding the rcu_irq_enter/exit() calls is an optimization but also
-- * solves the problem of kernel mode pagefaults which can schedule, which
-- * is not possible after invoking rcu_irq_enter() without undoing it.
-- *
-- * For user mode entries irqentry_enter_from_user_mode() must be invoked to
-- * establish the proper context for NOHZ_FULL. Otherwise scheduling on exit
-- * would not be possible.
-- *
-- * Returns: An opaque object that must be passed to idtentry_exit()
-- *
-- * The return value must be fed into the state argument of
-- * idtentry_exit().
-- */
--idtentry_state_t noinstr idtentry_enter(struct pt_regs *regs)
--{
--	idtentry_state_t ret = {
--		.exit_rcu = false,
--	};
--
--	if (user_mode(regs)) {
--		irqentry_enter_from_user_mode(regs);
--		return ret;
--	}
--
--	/*
--	 * If this entry hit the idle task invoke rcu_irq_enter() whether
--	 * RCU is watching or not.
--	 *
--	 * Interupts can nest when the first interrupt invokes softirq
--	 * processing on return which enables interrupts.
--	 *
--	 * Scheduler ticks in the idle task can mark quiescent state and
--	 * terminate a grace period, if and only if the timer interrupt is
--	 * not nested into another interrupt.
--	 *
--	 * Checking for __rcu_is_watching() here would prevent the nesting
--	 * interrupt to invoke rcu_irq_enter(). If that nested interrupt is
--	 * the tick then rcu_flavor_sched_clock_irq() would wrongfully
--	 * assume that it is the first interupt and eventually claim
--	 * quiescient state and end grace periods prematurely.
--	 *
--	 * Unconditionally invoke rcu_irq_enter() so RCU state stays
--	 * consistent.
--	 *
--	 * TINY_RCU does not support EQS, so let the compiler eliminate
--	 * this part when enabled.
--	 */
--	if (!IS_ENABLED(CONFIG_TINY_RCU) && is_idle_task(current)) {
--		/*
--		 * If RCU is not watching then the same careful
--		 * sequence vs. lockdep and tracing is required
--		 * as in irqentry_enter_from_user_mode().
--		 */
--		lockdep_hardirqs_off(CALLER_ADDR0);
--		rcu_irq_enter();
--		instrumentation_begin();
--		trace_hardirqs_off_finish();
--		instrumentation_end();
--
--		ret.exit_rcu = true;
--		return ret;
--	}
--
--	/*
--	 * If RCU is watching then RCU only wants to check whether it needs
--	 * to restart the tick in NOHZ mode. rcu_irq_enter_check_tick()
--	 * already contains a warning when RCU is not watching, so no point
--	 * in having another one here.
--	 */
--	instrumentation_begin();
--	rcu_irq_enter_check_tick();
--	/* Use the combo lockdep/tracing function */
--	trace_hardirqs_off();
--	instrumentation_end();
--
--	return ret;
--}
--
--static void idtentry_exit_cond_resched(struct pt_regs *regs, bool may_sched)
--{
--	if (may_sched && !preempt_count()) {
--		/* Sanity check RCU and thread stack */
--		rcu_irq_exit_check_preempt();
--		if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
--			WARN_ON_ONCE(!on_thread_stack());
--		if (need_resched())
--			preempt_schedule_irq();
--	}
--	/* Covers both tracing and lockdep */
--	trace_hardirqs_on();
--}
--
--/**
-- * idtentry_exit - Handle return from exception that used idtentry_enter()
-- * @regs:	Pointer to pt_regs (exception entry regs)
-- * @state:	Return value from matching call to idtentry_enter()
-- *
-- * Depending on the return target (kernel/user) this runs the necessary
-- * preemption and work checks if possible and reguired and returns to
-- * the caller with interrupts disabled and no further work pending.
-- *
-- * This is the last action before returning to the low level ASM code which
-- * just needs to return to the appropriate context.
-- *
-- * Counterpart to idtentry_enter(). The return value of the entry
-- * function must be fed into the @state argument.
-- */
--void noinstr idtentry_exit(struct pt_regs *regs, idtentry_state_t state)
--{
--	lockdep_assert_irqs_disabled();
--
--	/* Check whether this returns to user mode */
--	if (user_mode(regs)) {
--		irqentry_exit_to_user_mode(regs);
--	} else if (regs->flags & X86_EFLAGS_IF) {
--		/*
--		 * If RCU was not watching on entry this needs to be done
--		 * carefully and needs the same ordering of lockdep/tracing
--		 * and RCU as the return to user mode path.
--		 */
--		if (state.exit_rcu) {
--			instrumentation_begin();
--			/* Tell the tracer that IRET will enable interrupts */
--			trace_hardirqs_on_prepare();
--			lockdep_hardirqs_on_prepare(CALLER_ADDR0);
--			instrumentation_end();
--			rcu_irq_exit();
--			lockdep_hardirqs_on(CALLER_ADDR0);
--			return;
--		}
--
--		instrumentation_begin();
--		idtentry_exit_cond_resched(regs, IS_ENABLED(CONFIG_PREEMPTION));
--		instrumentation_end();
--	} else {
--		/*
--		 * IRQ flags state is correct already. Just tell RCU if it
--		 * was not watching on entry.
--		 */
--		if (state.exit_rcu)
--			rcu_irq_exit();
--	}
--}
--
- #ifdef CONFIG_XEN_PV
- #ifndef CONFIG_PREEMPTION
- /*
-@@ -427,7 +262,7 @@ static void __xen_pv_evtchn_do_upcall(vo
- 	inhcall = get_and_clear_inhcall();
- 	if (inhcall && !WARN_ON_ONCE(state.exit_rcu)) {
- 		instrumentation_begin();
--		idtentry_exit_cond_resched(regs, true);
-+		irqentry_exit_cond_resched();
- 		instrumentation_end();
- 		restore_inhcall(inhcall);
- 	} else {
---- a/arch/x86/include/asm/idtentry.h
-+++ b/arch/x86/include/asm/idtentry.h
-@@ -11,12 +11,10 @@
- 
- #include <asm/irq_stack.h>
- 
--typedef struct idtentry_state {
--	bool exit_rcu;
--} idtentry_state_t;
--
--idtentry_state_t idtentry_enter(struct pt_regs *regs);
--void idtentry_exit(struct pt_regs *regs, idtentry_state_t state);
-+/* Temporary defines */
-+typedef irqentry_state_t idtentry_state_t;
-+#define idtentry_enter irqentry_enter
-+#define idtentry_exit irqentry_exit
- 
- /**
-  * DECLARE_IDTENTRY - Declare functions for simple IDT entry points
+It does.  qemu registers memory with vfio which remembers the va's in kernel
+metadata for the device.
+
+> I don't know whether qemu stores
+> pointers in this VMA which are absolute within the qemu address space.
+> If it's just the emulated process's address space, then everything will
+> be absolute within its own address space and everything will be opaque
+> to qemu.  If qemu is storing its own pointers in it, then it has to be
+> mapped at the same address.
+
+qemu does not do the latter but that could be a nice way for apps to use
+preserved memory.
+
+>>> Here is another suggestion.
+>>>
+>>> Have a very simple program that does:
+>>>
+>>> 	for (;;) {
+>>> 		handle = dlopen("/my/real/program");
+>>> 		real_main = dlsym(handle, "main");
+>>> 		real_main(argc, argv, envp);
+>>> 		dlclose(handle);
+>>> 	}
+>>>
+>>> With whatever obvious adjustments are needed to fit your usecase.
+>>>
+>>> That should give the same level of functionality, be portable to all
+>>> unices, and not require you to duplicate code.  It belive it limits you
+>>> to not upgrading libc, or librt but that is a comparatively small
+>>> limitation.
+>>>
+>>>
+>>> Given that in general the interesting work is done in userspace and that
+>>> userspace has provided an interface for reusing that work already.
+>>> I don't see the justification for adding anything to exec at this point. 
+>>
+>> Thanks for the suggestion.  That is clever, and would make a fun project,
+>> but I would not trust it for production.  These few lines are just
+>> the first of many that it would take to reset the environment to the
+>> well-defined post-exec initial conditions that all executables expect,
+>> and incrementally tearing down state will be prone to bugs.  Getting a
+>> clean slate from a kernel exec is a much more reliable design.  The use
+>> case is creating long-lived apps that never go down, and the simplest
+>> implementation will have the fewest bugs and is the best.  MADV_DOEXEC is
+>> simple, and does not even require a new system call, and the kernel already
+>> knows how to exec without bugs.
+> 
+> It's a net increase of 200 lines of kernel code.  If 4 lines of userspace
+> code removes 200 lines of kernel code, I think I know which I prefer ...
+
+It will be *far* more than 4 lines.
+Much of the 200 lines is mostly for the elf opt in, and much of the elf code is from
+anthony reviving an earlier patch that use MAP_FIXED_NOREPLACE during segment setup.
+
+- Steve
