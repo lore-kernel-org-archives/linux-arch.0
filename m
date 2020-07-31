@@ -1,110 +1,188 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45496 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729275AbgGUKas (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 06:30:48 -0400
-Received: from mail-wm1-x34a.google.com (mail-wm1-x34a.google.com [IPv6:2a00:1450:4864:20::34a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7FD8FC0619D9
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:48 -0700 (PDT)
-Received: by mail-wm1-x34a.google.com with SMTP id f74so887821wmf.1
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:48 -0700 (PDT)
-Date: Tue, 21 Jul 2020 12:30:15 +0200
-In-Reply-To: <20200721103016.3287832-1-elver@google.com>
-Message-ID: <20200721103016.3287832-8-elver@google.com>
-Mime-Version: 1.0
-References: <20200721103016.3287832-1-elver@google.com>
-Subject: [PATCH 7/8] asm-generic/bitops: Use instrument_read_write() where appropriate
-From: Marco Elver <elver@google.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-1.mimecast.com ([205.139.110.61]:28909 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1732077AbgGaJMW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 Jul 2020 05:12:22 -0400
+Date: Fri, 31 Jul 2020 10:12:01 +0100
+From: Stefan Hajnoczi <stefanha@redhat.com>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+Message-ID: <20200731091201.GA173964@stefanha-x1.localdomain>
+MIME-Version: 1.0
+In-Reply-To: <20200730152705.ol42jppnl4xfhl32@wittgenstein>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="YiEDa0DAkWCtVeE4"
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com, paulmck@kernel.org
-Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200721103015.F9pSXY7Gaw563fzDBSnbvCYVgrl46LJMFclprlXTALs@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com, Andrea Arcangeli <aarcange@redhat.com>, jasowang@redhat.com, Philippe =?iso-8859-1?Q?Mathieu-Daud=E9?= <f4bug@amsat.org>, Peter Xu <peterx@redhat.com>, Alex Williamson <alex.williamson@redhat.com>, Alexander Graf <graf@amazon.com>, vgoyal@redhat.com
+Message-ID: <20200731091201.e1728I6gpW7yPtoOcdn8A2WM_Pp2SUt_IIsw9xyMDkA@z>
 
-Use the new instrument_read_write() where appropriate.
+--YiEDa0DAkWCtVeE4
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Signed-off-by: Marco Elver <elver@google.com>
----
- include/asm-generic/bitops/instrumented-atomic.h     | 6 +++---
- include/asm-generic/bitops/instrumented-lock.h       | 2 +-
- include/asm-generic/bitops/instrumented-non-atomic.h | 6 +++---
- 3 files changed, 7 insertions(+), 7 deletions(-)
+Hi,
+Sileby looks interesting! I had just written up the following idea which
+seems similar but includes a mechanism for revoking mappings.
 
-diff --git a/include/asm-generic/bitops/instrumented-atomic.h b/include/asm-generic/bitops/instrumented-atomic.h
-index fb2cb33a4013..81915dcd4b4e 100644
---- a/include/asm-generic/bitops/instrumented-atomic.h
-+++ b/include/asm-generic/bitops/instrumented-atomic.h
-@@ -67,7 +67,7 @@ static inline void change_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
- {
--	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_set_bit(nr, addr);
- }
- 
-@@ -80,7 +80,7 @@ static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
- {
--	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_clear_bit(nr, addr);
- }
- 
-@@ -93,7 +93,7 @@ static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
- {
--	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_change_bit(nr, addr);
- }
- 
-diff --git a/include/asm-generic/bitops/instrumented-lock.h b/include/asm-generic/bitops/instrumented-lock.h
-index b9bec468ae03..75ef606f7145 100644
---- a/include/asm-generic/bitops/instrumented-lock.h
-+++ b/include/asm-generic/bitops/instrumented-lock.h
-@@ -52,7 +52,7 @@ static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
-  */
- static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
- {
--	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_read_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_set_bit_lock(nr, addr);
- }
- 
-diff --git a/include/asm-generic/bitops/instrumented-non-atomic.h b/include/asm-generic/bitops/instrumented-non-atomic.h
-index 20f788a25ef9..f86234c7c10c 100644
---- a/include/asm-generic/bitops/instrumented-non-atomic.h
-+++ b/include/asm-generic/bitops/instrumented-non-atomic.h
-@@ -68,7 +68,7 @@ static inline void __change_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
- {
--	instrument_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_read_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch___test_and_set_bit(nr, addr);
- }
- 
-@@ -82,7 +82,7 @@ static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
- {
--	instrument_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_read_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch___test_and_clear_bit(nr, addr);
- }
- 
-@@ -96,7 +96,7 @@ static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
- {
--	instrument_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_read_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch___test_and_change_bit(nr, addr);
- }
- 
--- 
-2.28.0.rc0.105.gf9edc3c819-goog
+Alexander Graf recently brought up an idea that solves the following
+problem:
+
+When process A passes shared memory file descriptors to process B there
+is no way for process A to revoke access or change page protection bits
+after passing the fd.
+
+I'll describe the idea (not sure if it's exactly what Alexander had in
+mind).
+
+Memory view driver
+------------------
+The memory view driver allows process A to control the page table
+entries of an mmap in process B. It is a character device driver that
+process A opens like this:
+
+  int fd = open("/dev/memory-view", O_RDWR);
+
+This returns a file descriptor to a new memory view.
+
+Next process A sets the size of the memory view:
+
+  ftruncate(fd, 16 * GiB);
+
+The size determines how large the memory view will be. The size is a
+virtual memory concept and does not consume resources (there is no
+physical memory backing this).
+
+Process A populates the memory view with ranges from file descriptors it
+wishes to share. The file descriptor can be a shared memory file
+descriptor:
+
+  int memfd = memfd_create("guest-ram, 0);
+  ftruncate(memfd, 32 * GiB);
+
+  /* Map [8GB, 10GB) at 8GB into the memory view */
+  struct memview_map_fd_info = {
+      .fd = memfd,
+      .fd_offset = 8 * GiB,
+      .size = 2 * GiB,
+      .mem_offset = 8 * GiB,
+      .flags = MEMVIEW_MAP_READ | MEMVIEW_MAP_WRITE,
+  };
+  ioctl(fd, MEMVIEW_MAP_FD, &map_fd_info);
+
+It is also possible to populate the memory view from the page cache:
+
+  int filefd = open("big-file.iso", O_RDONLY);
+
+  /* Map [4GB, 12GB) at 0B into the memory view */
+  struct memview_map_fd_info = {
+      .fd = filefd,
+      .fd_offset = 4 * GiB,
+      .size = 8 * GiB,
+      .mem_offset = 0,
+      .flags = MEMVIEW_MAP_READ,
+  };
+  ioctl(fd, MEMVIEW_MAP_FD, &map_fd_info);
+
+The memory view has now been populated like this:
+
+Range (GiB)   Fd               Permissions
+0-8           big-file.iso     read
+8-10          guest-ram        read+write
+10-16         <none>           <none>
+
+Now process A gets the "view" file descriptor for this memory view. The
+view file descriptor does not allow ioctls. It can be safely passed to
+process B in the knowledge that process B can only mmap or close it:
+
+  int viewfd = ioctl(fd, MEMVIEW_GET_VIEWFD);
+
+  ...pass viewfd to process B...
+
+Process B receives viewfd and mmaps it:
+
+  void *ptr = mmap(NULL, 16 * GiB, PROT_READ | PROT_WRITE, MAP_SHARED,
+                   viewfd, 0);
+
+When process B accesses a page in the mmap region the memory view
+driver resolves the page fault by checking if the page is mapped to an
+fd and what its permissions are.
+
+For example, accessing the page at 4GB from the start of the memory view
+is an access at 8GB into big-file.iso. That's because 8GB of
+big-file.iso was mapped at 0 with fd_offset 4GB.
+
+To summarize, there is one vma in process B and the memory view driver
+maps pages from the file descriptors added with ioctl(MEMVIEW_MAP_FD) by
+process A.
+
+Page protection bits are the AND of the mmap
+PROT_READ/PROT_WRITE/PROT_EXEC flags with the memory view driver's
+MEMVIEW_MAP_READ/MEMVIEW_MAP_WRITE/MEMVIEW_MAP_EXEC flags for the
+mapping in question.
+
+Does vmf_insert_mixed_prot() or a similar Linux API allow this?
+
+Can the memory view driver map pages from fds without pinning the pages?
+
+Process A can make further ioctl(MEMVIEW_MAP_FD) calls and also
+ioctl(MEMVIEW_UNMAP_FD) calls to change the mappings. This requires
+zapping affected process B ptes. When process B accesses those pages
+again the fault handler will handle the page fault based on the latest
+memory view layout.
+
+If process B accesses a page with incorrect permissions or that has not
+been configured by process A ioctl calls, a SIGSEGV/SIGBUS signal is
+raised.
+
+When process B uses mprotect(2) and other virtual memory syscalls it
+is unable to increase page permissions. Instead it can only reduce them
+because the pte protection bits are the AND of the mmap flags and the
+memory view driver's MEMVIEW_MAP_READ/MEMVIEW_MAP_WRITE/MEMVIEW_MAP_EXEC
+flags.
+
+Use cases
+---------
+How to use the memory view driver for vhost-user
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+vhost-user and other out-of-process device emulation interfaces need a
+way for the VMM to enforce the IOMMU mappings on the device emulation
+process.
+
+Today the VMM passes all guest RAM fds to the device emulation process
+and has no way of restricting access or revoking it later. With the
+memory view driver the VMM will pass one or more memory view fds instead
+of the actual guest RAM fds. This allows the VMM to invoke
+ioctl(MEMVIEW_MAP_FD/MEMVIEW_UNMAP_FD) to enforce permissions or revoke
+access.
+
+How to use the memory view driver for virtio-fs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The virtiofsd vhost-user process creates a memory view for the device's
+DAX Window and passes it to QEMU. QEMU installs it as a kvm.ko memory
+region so that the guest directly accesses the memory view.
+
+Now virtiofsd can map portions of files into the DAX Window without
+coordinating with the QEMU process. This simplifies the virtio-fs code
+and should also improve DAX map/unmap performance.
+
+Stefan
+
+--YiEDa0DAkWCtVeE4
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAEBCAAdFiEEhpWov9P5fNqsNXdanKSrs4Grc8gFAl8j4GEACgkQnKSrs4Gr
+c8ifDQgAjLeYf5nD/LJSs1tJ4vMLKsebK4OIkz7iOIJDeklVxePFIDc6dDZGMQLk
+u//b8qLfr/0dZ5Q+KCT0GI96oHPK4Eod/PkB73XBm5lXj4wn3/MIKpITgfIN3oQX
+Eb53sfAcDgXtceGB51vjemSDFD0KomE+j/Qj/yASxW1XpB3c1jT4N2XlaUNTYycG
+8whaLYHvfhqkMX7HMbQVc1HGriYcAMgZkMMrn7RYbt4o58hirgauhD87x4kYDMk9
+8Ph1wIeCzUnoxUkL8gjLC5/6qN1OMJ4NjMilYI4QqsUYfnCJYvwsPvrnVjdNs/Cm
+qih0ktK8TMKEBLhHNOVQEJLp24DBdQ==
+=szmz
+-----END PGP SIGNATURE-----
+
+--YiEDa0DAkWCtVeE4--
