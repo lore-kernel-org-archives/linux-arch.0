@@ -1,37 +1,48 @@
-Return-Path: <SRS0=Pkkz=BK=kvack.org=owner-linux-mm@kernel.org>
-Date: Fri, 31 Jul 2020 13:56:49 -0300
-From: Jason Gunthorpe <jgg@ziepe.ca>
-Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-Message-ID: <20200731165649.GG24045@ziepe.ca>
-References: <20200730152250.GG23808@casper.infradead.org>
- <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
- <20200730171251.GI23808@casper.infradead.org>
- <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
- <20200730174956.GK23808@casper.infradead.org>
- <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
- <87y2n03brx.fsf@x220.int.ebiederm.org>
- <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
- <20200731152736.GP23808@casper.infradead.org>
- <9ba26063-0098-e796-9431-8c1d0c076ffc@oracle.com>
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47314 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727067AbgGaXST (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:18:19 -0400
+Received: from mail-pl1-x642.google.com (mail-pl1-x642.google.com [IPv6:2607:f8b0:4864:20::642])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A3FB2C0617A9
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:18:16 -0700 (PDT)
+Received: by mail-pl1-x642.google.com with SMTP id bh1so5009553plb.12
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:18:16 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v5 15/36] arm64/mm: Remove needless section quotes
+Date: Fri, 31 Jul 2020 16:07:59 -0700
+Message-ID: <20200731230820.1742553-16-keescook@chromium.org>
+In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
+References: <20200731230820.1742553-1-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <9ba26063-0098-e796-9431-8c1d0c076ffc@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: Steven Sistare <steven.sistare@oracle.com>
-Cc: Matthew Wilcox <willy@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200731165649.wDhtAOOOy3kH5LJO4dUbr_8tZiQmLrNsQDQ7bOKQFS0@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200731230759.OsWj3to2Tqi3wY_gkrFC7uFAN2R0GCktuZfUFlhbe5Q@z>
 
-On Fri, Jul 31, 2020 at 12:11:52PM -0400, Steven Sistare wrote:
-> > Your preservation-across-exec use-case might or might not need the
-> > VMA to be mapped at the same address.  
-> 
-> It does.  qemu registers memory with vfio which remembers the va's in kernel
-> metadata for the device.
+Fix a case of needless quotes in __section(), which Clang doesn't like.
 
-Once the memory is registered with vfio the VA doesn't matter, vfio
-will keep the iommu pointing at the same physical pages no matter
-where they are mapped.
+Acked-by: Will Deacon <will@kernel.org>
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm64/mm/mmu.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Jason
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index 1df25f26571d..dce024ea6084 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -42,7 +42,7 @@
+ u64 idmap_t0sz = TCR_T0SZ(VA_BITS);
+ u64 idmap_ptrs_per_pgd = PTRS_PER_PGD;
+ 
+-u64 __section(".mmuoff.data.write") vabits_actual;
++u64 __section(.mmuoff.data.write) vabits_actual;
+ EXPORT_SYMBOL(vabits_actual);
+ 
+ u64 kimage_voffset __ro_after_init;
+-- 
+2.25.1
