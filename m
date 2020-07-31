@@ -1,41 +1,84 @@
-Return-Path: <SRS0=1VFR=BJ=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 30 Jul 2020 16:22:50 +0100
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59626 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2387521AbgGaP1t (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 11:27:49 -0400
+Date: Fri, 31 Jul 2020 16:27:36 +0100
 From: Matthew Wilcox <willy@infradead.org>
 Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-Message-ID: <20200730152250.GG23808@casper.infradead.org>
+Message-ID: <20200731152736.GP23808@casper.infradead.org>
 References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+ <20200730152250.GG23808@casper.infradead.org>
+ <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
+ <20200730171251.GI23808@casper.infradead.org>
+ <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
+ <20200730174956.GK23808@casper.infradead.org>
+ <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
+ <87y2n03brx.fsf@x220.int.ebiederm.org>
+ <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: Anthony Yznaga <anthony.yznaga@oracle.com>
-Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com, steven.sistare@oracle.com
+In-Reply-To: <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200730152250.EPfJSEUotsgvo4clI4vBb6xH_dXeEAwVvbfFFTA7Qpc@z>
+To: Steven Sistare <steven.sistare@oracle.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
+Message-ID: <20200731152736.ZPDC1ROW5n2ESMmr-jBbA8FVzlFIqw_GjUh7iRqKc-4@z>
 
-On Mon, Jul 27, 2020 at 10:11:22AM -0700, Anthony Yznaga wrote:
-> This patchset adds support for preserving an anonymous memory range across
-> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit for
-> sharing memory in this manner, as opposed to re-attaching to a named shared
-> memory segment, is to ensure it is mapped at the same virtual address in
-> the new process as it was in the old one.  An intended use for this is to
-> preserve guest memory for guests using vfio while qemu exec's an updated
-> version of itself.  By ensuring the memory is preserved at a fixed address,
-> vfio mappings and their associated kernel data structures can remain valid.
-> In addition, for the qemu use case, qemu instances that back guest RAM with
-> anonymous memory can be updated.
+On Fri, Jul 31, 2020 at 10:57:44AM -0400, Steven Sistare wrote:
+> Matthews sileby/mshare proposal has the same issue.  If a process opts-in
+> and mmap's an address in the shared region, then content becomes mapped at
+> a VA that was known to the pre-fork or pre-exec process.  Trust must still
+> be established.
 
-I just realised that something else I'm working on might be a suitable
-alternative to this.  Apologies for not realising it sooner.
+It's up to the recipient whether they try to map it at the same address
+or at a fresh address.  The intended use case is a "semi-shared" address
+space between two processes (ie partway between a threaded, fully-shared
+address space and a forked un-shared address space), in which case
+there's a certain amount of trust and cooperation between the processes.
 
-http://www.wil.cx/~willy/linux/sileby.html
+Your preservation-across-exec use-case might or might not need the
+VMA to be mapped at the same address.  I don't know whether qemu stores
+pointers in this VMA which are absolute within the qemu address space.
+If it's just the emulated process's address space, then everything will
+be absolute within its own address space and everything will be opaque
+to qemu.  If qemu is storing its own pointers in it, then it has to be
+mapped at the same address.
 
-To use this, you'd mshare() the anonymous memory range, essentially
-detaching the VMA from the current process's mm_struct and reparenting
-it to this new mm_struct, which has an fd referencing it.
+> > Here is another suggestion.
+> > 
+> > Have a very simple program that does:
+> > 
+> > 	for (;;) {
+> > 		handle = dlopen("/my/real/program");
+> > 		real_main = dlsym(handle, "main");
+> > 		real_main(argc, argv, envp);
+> > 		dlclose(handle);
+> > 	}
+> > 
+> > With whatever obvious adjustments are needed to fit your usecase.
+> > 
+> > That should give the same level of functionality, be portable to all
+> > unices, and not require you to duplicate code.  It belive it limits you
+> > to not upgrading libc, or librt but that is a comparatively small
+> > limitation.
+> > 
+> > 
+> > Given that in general the interesting work is done in userspace and that
+> > userspace has provided an interface for reusing that work already.
+> > I don't see the justification for adding anything to exec at this point. 
+> 
+> Thanks for the suggestion.  That is clever, and would make a fun project,
+> but I would not trust it for production.  These few lines are just
+> the first of many that it would take to reset the environment to the
+> well-defined post-exec initial conditions that all executables expect,
+> and incrementally tearing down state will be prone to bugs.  Getting a
+> clean slate from a kernel exec is a much more reliable design.  The use
+> case is creating long-lived apps that never go down, and the simplest
+> implementation will have the fewest bugs and is the best.  MADV_DOEXEC is
+> simple, and does not even require a new system call, and the kernel already
+> knows how to exec without bugs.
 
-Then you call exec(), and the exec'ed task gets to call mmap() on that
-new fd to attach the memory range to its own address space.
-
-Presto!
+It's a net increase of 200 lines of kernel code.  If 4 lines of userspace
+code removes 200 lines of kernel code, I think I know which I prefer ...
