@@ -1,36 +1,52 @@
-Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33022 "EHLO
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59296 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726349AbgGWSsS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 14:48:18 -0400
-Date: Thu, 23 Jul 2020 20:47:59 +0200
-From: peterz@infradead.org
-Subject: Re: [PATCH v3 5/6] powerpc/pseries: implement paravirt qspinlocks
- for SPLPAR
-Message-ID: <20200723184759.GS119549@hirez.programming.kicks-ass.net>
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <20200706043540.1563616-6-npiggin@gmail.com>
- <874kqhvu1v.fsf@mpe.ellerman.id.au>
- <8265d782-4e50-a9b2-a908-0cb588ffa09c@redhat.com>
- <20200723140011.GR5523@worktop.programming.kicks-ass.net>
- <845de183-56f5-2958-3159-faa131d46401@redhat.com>
+        with ESMTP id S1733283AbgGaMWM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 08:22:12 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: improve compat handling for the i386 u64 alignment quirk v2
+Date: Fri, 31 Jul 2020 14:21:59 +0200
+Message-ID: <20200731122202.213333-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <845de183-56f5-2958-3159-faa131d46401@redhat.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200723184759.O6kBKNW75xW8VOIfUTA2i_8j0cJb7dQs1TlqTH8dbgA@z>
+To: x86@kernel.org, Jan Kara <jack@suse.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200731122159.YVur810whtOnSdMhNkkdLk9JJ148UNXV1c4cQfDULgs@z>
 
-On Thu, Jul 23, 2020 at 02:32:36PM -0400, Waiman Long wrote:
-> BTW, do you have any comment on my v2 lock holder cpu info qspinlock patch?
-> I will have to update the patch to fix the reported 0-day test problem, but
-> I want to collect other feedback before sending out v3.
+Hi all,
 
-I want to say I hate it all, it adds instructions to a path we spend an
-aweful lot of time optimizing without really getting anything back for
-it.
+the i386 ABI is a little special in that it uses less than natural
+alignment for 64-bit integer types (u64 and s64), and a significant
+amount of our compat handlers deals with just that.  Unfortunately
+there is no good way to check for this specific quirk at runtime,
+similar how in_compat_syscall() checks for a compat syscall.  This
+series adds such a check, and then uses the quota code as an example
+of how this improves the compat handling.  I have a few other places
+in mind where this will also be useful going forward.
 
-Will, how do you feel about it?
+Changes since v1:
+ - use asm-generic/compat.h instead of linux/compat.h for
+   compat_u64 and compat_s64
+ - fix a typo
+
+Diffstat:
+ b/arch/arm64/include/asm/compat.h        |    2 
+ b/arch/mips/include/asm/compat.h         |    2 
+ b/arch/parisc/include/asm/compat.h       |    2 
+ b/arch/powerpc/include/asm/compat.h      |    2 
+ b/arch/s390/include/asm/compat.h         |    2 
+ b/arch/sparc/include/asm/compat.h        |    3 
+ b/arch/x86/entry/syscalls/syscall_32.tbl |    2 
+ b/arch/x86/include/asm/compat.h          |    3 
+ b/fs/quota/Kconfig                       |    5 -
+ b/fs/quota/Makefile                      |    1 
+ b/fs/quota/compat.h                      |   34 ++++++++
+ b/fs/quota/quota.c                       |   73 +++++++++++++++---
+ b/include/asm-generic/compat.h           |    8 ++
+ b/include/linux/compat.h                 |    9 ++
+ b/include/linux/quotaops.h               |    3 
+ b/kernel/sys_ni.c                        |    1 
+ fs/quota/compat.c                        |  120 -------------------------------
+ 17 files changed, 113 insertions(+), 159 deletions(-)
