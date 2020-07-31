@@ -1,100 +1,101 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:35274 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729718AbgGPTu4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:50:56 -0400
-Message-ID: <20200716185424.980336370@linutronix.de>
-Date: Thu, 16 Jul 2020 20:22:18 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 10/13] x86/entry: Cleanup idtentry_entry/exit_user
-References: <20200716182208.180916541@linutronix.de>
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45808 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727876AbgGaXIp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:08:45 -0400
+Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 12135C0617A0
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:45 -0700 (PDT)
+Received: by mail-pg1-x542.google.com with SMTP id d4so16784262pgk.4
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:45 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input sections
+Date: Fri, 31 Jul 2020 16:07:57 -0700
+Message-ID: <20200731230820.1742553-14-keescook@chromium.org>
+In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
+References: <20200731230820.1742553-1-keescook@chromium.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20200716182218._I6gHOk5oXeC8fCPQCVfHezH2p7Imjaq9x2Ij6ZV3Jk@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, =?UTF-8?q?F=C4=81ng-ru=C3=AC=20S=C3=B2ng?= <maskray@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200731230757.gwk4m4vJC19gagVmbE4U4YfMP8khlesvw85oy7o8mOI@z>
 
-Cleanup the temporary defines and use irqentry_ instead of idtentry_.
+From: Nick Desaulniers <ndesaulniers@google.com>
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Basically, consider .text.{hot|unlikely|unknown}.* part of .text, too.
+
+When compiling with profiling information (collected via PGO
+instrumentations or AutoFDO sampling), Clang will separate code into
+.text.hot, .text.unlikely, or .text.unknown sections based on profiling
+information. After D79600 (clang-11), these sections will have a
+trailing `.` suffix, ie.  .text.hot., .text.unlikely., .text.unknown..
+
+When using -ffunction-sections together with profiling infomation,
+either explicitly (FGKASLR) or implicitly (LTO), code may be placed in
+sections following the convention:
+.text.hot.<foo>, .text.unlikely.<bar>, .text.unknown.<baz>
+where <foo>, <bar>, and <baz> are functions.  (This produces one section
+per function; we generally try to merge these all back via linker script
+so that we don't have 50k sections).
+
+For the above cases, we need to teach our linker scripts that such
+sections might exist and that we'd explicitly like them grouped
+together, otherwise we can wind up with code outside of the
+_stext/_etext boundaries that might not be mapped properly for some
+architectures, resulting in boot failures.
+
+If the linker script is not told about possible input sections, then
+where the section is placed as output is a heuristic-laiden mess that's
+non-portable between linkers (ie. BFD and LLD), and has resulted in many
+hard to debug bugs.  Kees Cook is working on cleaning this up by adding
+--orphan-handling=warn linker flag used in ARCH=powerpc to additional
+architectures. In the case of linker scripts, borrowing from the Zen of
+Python: explicit is better than implicit.
+
+Also, ld.bfd's internal linker script considers .text.hot AND
+.text.hot.* to be part of .text, as well as .text.unlikely and
+.text.unlikely.*. I didn't see support for .text.unknown.*, and didn't
+see Clang producing such code in our kernel builds, but I see code in
+LLVM that can produce such section names if profiling information is
+missing. That may point to a larger issue with generating or collecting
+profiles, but I would much rather be safe and explicit than have to
+debug yet another issue related to orphan section placement.
+
+Reported-by: Jian Cai <jiancai@google.com>
+Suggested-by: Fāng-ruì Sòng <maskray@google.com>
+Tested-by: Luis Lozano <llozano@google.com>
+Tested-by: Manoj Gupta <manojgupta@google.com>
+Acked-by: Kees Cook <keescook@chromium.org>
+Cc: stable@vger.kernel.org
+Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=add44f8d5c5c05e08b11e033127a744d61c26aee
+Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=1de778ed23ce7492c523d5850c6c6dbb34152655
+Link: https://reviews.llvm.org/D79600
+Link: https://bugs.chromium.org/p/chromium/issues/detail?id=1084760
+Debugged-by: Luis Lozano <llozano@google.com>
+Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
+Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/include/asm/idtentry.h |    4 ----
- arch/x86/kernel/cpu/mce/core.c  |    4 ++--
- arch/x86/kernel/traps.c         |   18 +++++++++---------
- 3 files changed, 11 insertions(+), 15 deletions(-)
+ include/asm-generic/vmlinux.lds.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
---- a/arch/x86/include/asm/idtentry.h
-+++ b/arch/x86/include/asm/idtentry.h
-@@ -11,10 +11,6 @@
- 
- #include <asm/irq_stack.h>
- 
--/* Temporary define */
--#define idtentry_enter_user	irqentry_enter_from_user_mode
--#define idtentry_exit_user	irqentry_exit_to_user_mode
--
- typedef struct idtentry_state {
- 	bool exit_rcu;
- } idtentry_state_t;
---- a/arch/x86/kernel/cpu/mce/core.c
-+++ b/arch/x86/kernel/cpu/mce/core.c
-@@ -1927,11 +1927,11 @@ static __always_inline void exc_machine_
- 
- static __always_inline void exc_machine_check_user(struct pt_regs *regs)
- {
--	idtentry_enter_user(regs);
-+	irqentry_enter_from_user_mode(regs);
- 	instrumentation_begin();
- 	machine_check_vector(regs);
- 	instrumentation_end();
--	idtentry_exit_user(regs);
-+	irqentry_exit_to_user_mode(regs);
- }
- 
- #ifdef CONFIG_X86_64
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -638,18 +638,18 @@ DEFINE_IDTENTRY_RAW(exc_int3)
- 		return;
- 
- 	/*
--	 * idtentry_enter_user() uses static_branch_{,un}likely() and therefore
--	 * can trigger INT3, hence poke_int3_handler() must be done
--	 * before. If the entry came from kernel mode, then use nmi_enter()
--	 * because the INT3 could have been hit in any context including
--	 * NMI.
-+	 * irqentry_enter_from_user_mode() uses static_branch_{,un}likely()
-+	 * and therefore can trigger INT3, hence poke_int3_handler() must
-+	 * be done before. If the entry came from kernel mode, then use
-+	 * nmi_enter() because the INT3 could have been hit in any context
-+	 * including NMI.
- 	 */
- 	if (user_mode(regs)) {
--		idtentry_enter_user(regs);
-+		irqentry_enter_from_user_mode(regs);
- 		instrumentation_begin();
- 		do_int3_user(regs);
- 		instrumentation_end();
--		idtentry_exit_user(regs);
-+		irqentry_exit_to_user_mode(regs);
- 	} else {
- 		nmi_enter();
- 		instrumentation_begin();
-@@ -901,12 +901,12 @@ static __always_inline void exc_debug_us
- 	 */
- 	WARN_ON_ONCE(!user_mode(regs));
- 
--	idtentry_enter_user(regs);
-+	irqentry_enter_from_user_mode(regs);
- 	instrumentation_begin();
- 
- 	handle_debug(regs, dr6, true);
- 	instrumentation_end();
--	idtentry_exit_user(regs);
-+	irqentry_exit_to_user_mode(regs);
- }
- 
- #ifdef CONFIG_X86_64
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 2593957f6e8b..af5211ca857c 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -561,7 +561,10 @@
+  */
+ #define TEXT_TEXT							\
+ 		ALIGN_FUNCTION();					\
+-		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
++		*(.text.hot .text.hot.*)				\
++		*(TEXT_MAIN .text.fixup)				\
++		*(.text.unlikely .text.unlikely.*)			\
++		*(.text.unknown .text.unknown.*)			\
+ 		NOINSTR_TEXT						\
+ 		*(.text..refcount)					\
+ 		*(.ref.text)						\
+-- 
+2.25.1
