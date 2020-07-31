@@ -1,133 +1,118 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:39000 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728691AbgGUU1p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 21 Jul 2020 16:27:45 -0400
-Date: Tue, 21 Jul 2020 13:27:45 -0700
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: [patch V4 15/15] x86/kvm: Use generic exit to guest work function
-Message-ID: <20200721202745.GJ22083@linux.intel.com>
-References: <20200721105706.030914876@linutronix.de>
- <20200721110809.855490955@linutronix.de>
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47336 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727933AbgGaXSU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:18:20 -0400
+Received: from mail-pg1-x541.google.com (mail-pg1-x541.google.com [IPv6:2607:f8b0:4864:20::541])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6C25EC0617A4
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:18:20 -0700 (PDT)
+Received: by mail-pg1-x541.google.com with SMTP id j19so16783069pgm.11
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:18:20 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v5 22/36] arm/build: Refactor linker script headers
+Date: Fri, 31 Jul 2020 16:08:06 -0700
+Message-ID: <20200731230820.1742553-23-keescook@chromium.org>
+In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
+References: <20200731230820.1742553-1-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200721110809.855490955@linutronix.de>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200721202745.QHqDpn1Aqqv0mvAIRuYFd0y1ytyjAxpI7YctNTIyOrA@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200731230806.hZMERm9ZIh-f4P8KxmzZOaekNUCGIkSLH3Ox_IjmTOU@z>
 
-On Tue, Jul 21, 2020 at 12:57:21PM +0200, Thomas Gleixner wrote:
-> Use the generic infrastructure to check for and handle pending work before
-> entering into guest mode.
-> 
-> This now handles TIF_NOTIFY_RESUME as well which was ignored so
-> far. Handling it is important as this covers task work and task work will
-> be used to offload the heavy lifting of POSIX CPU timers to thread context.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
->  arch/x86/kvm/Kconfig   |    1 +
->  arch/x86/kvm/vmx/vmx.c |   11 +++++------
->  arch/x86/kvm/x86.c     |   15 ++++++---------
->  3 files changed, 12 insertions(+), 15 deletions(-)
-> 
-> --- a/arch/x86/kvm/Kconfig
-> +++ b/arch/x86/kvm/Kconfig
-> @@ -42,6 +42,7 @@ config KVM
->  	select HAVE_KVM_MSI
->  	select HAVE_KVM_CPU_RELAX_INTERCEPT
->  	select HAVE_KVM_NO_POLL
-> +	select KVM_EXIT_TO_GUEST_WORK
->  	select KVM_GENERIC_DIRTYLOG_READ_PROTECT
->  	select KVM_VFIO
->  	select SRCU
-> --- a/arch/x86/kvm/vmx/vmx.c
-> +++ b/arch/x86/kvm/vmx/vmx.c
-> @@ -27,6 +27,7 @@
->  #include <linux/slab.h>
->  #include <linux/tboot.h>
->  #include <linux/trace_events.h>
-> +#include <linux/entry-kvm.h>
->  
->  #include <asm/apic.h>
->  #include <asm/asm.h>
-> @@ -5376,14 +5377,12 @@ static int handle_invalid_guest_state(st
->  		}
->  
->  		/*
-> -		 * Note, return 1 and not 0, vcpu_run() is responsible for
-> -		 * morphing the pending signal into the proper return code.
-> +		 * Note, return 1 and not 0, vcpu_run() will invoke
-> +		 * exit_to_guest_mode() which will create a proper return
-> +		 * code.
->  		 */
-> -		if (signal_pending(current))
-> +		if (__exit_to_guest_mode_work_pending())
+In preparation for adding --orphan-handling=warn, refactor the linker
+script header includes, and extract common macros.
 
-I whined about this back in v2[*].  "exit to guest mode" is confusing becuase
-virt terminology is "enter to guest" and "exit from guest", whereas the
-kernel's terminology here is "exit from kernel to guest".
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm/{kernel => include/asm}/vmlinux.lds.h | 13 ++++++++-----
+ arch/arm/kernel/vmlinux-xip.lds.S              |  4 +---
+ arch/arm/kernel/vmlinux.lds.S                  |  4 +---
+ 3 files changed, 10 insertions(+), 11 deletions(-)
+ rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (96%)
 
-My past and current self still like XFER_TO_GUEST as the base terminology.
-
-[*] https://lkml.kernel.org/r/20191023144848.GH329@linux.intel.com
-
->  			return 1;
-> -
-> -		if (need_resched())
-> -			schedule();
->  	}
->  
->  	return 1;
-> --- a/arch/x86/kvm/x86.c
-> +++ b/arch/x86/kvm/x86.c
-> @@ -56,6 +56,7 @@
->  #include <linux/sched/stat.h>
->  #include <linux/sched/isolation.h>
->  #include <linux/mem_encrypt.h>
-> +#include <linux/entry-kvm.h>
->  
->  #include <trace/events/kvm.h>
->  
-> @@ -1585,7 +1586,7 @@ EXPORT_SYMBOL_GPL(kvm_emulate_wrmsr);
->  bool kvm_vcpu_exit_request(struct kvm_vcpu *vcpu)
->  {
->  	return vcpu->mode == EXITING_GUEST_MODE || kvm_request_pending(vcpu) ||
-> -		need_resched() || signal_pending(current);
-> +		exit_to_guest_mode_work_pending();
->  }
->  EXPORT_SYMBOL_GPL(kvm_vcpu_exit_request);
->  
-> @@ -8676,15 +8677,11 @@ static int vcpu_run(struct kvm_vcpu *vcp
->  			break;
->  		}
->  
-> -		if (signal_pending(current)) {
-> -			r = -EINTR;
-> -			vcpu->run->exit_reason = KVM_EXIT_INTR;
-> -			++vcpu->stat.signal_exits;
-> -			break;
-> -		}
-> -		if (need_resched()) {
-> +		if (exit_to_guest_mode_work_pending()) {
->  			srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-> -			cond_resched();
-> +			r = exit_to_guest_mode(vcpu);
-> +			if (r)
-
-This loses the stat.signal_exits accounting.  Maybe this?
-
-			if (r) {
-				if (r == -EINTR)
-					++vcpu->stat.signal_exits;
-				return r;
-			}
-
-> +				return r;
->  			vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
->  		}
->  	}
-> 
+diff --git a/arch/arm/kernel/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
+similarity index 96%
+rename from arch/arm/kernel/vmlinux.lds.h
+rename to arch/arm/include/asm/vmlinux.lds.h
+index 381a8e105fa5..a08f4301b718 100644
+--- a/arch/arm/kernel/vmlinux.lds.h
++++ b/arch/arm/include/asm/vmlinux.lds.h
+@@ -1,4 +1,5 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
++#include <asm-generic/vmlinux.lds.h>
+ 
+ #ifdef CONFIG_HOTPLUG_CPU
+ #define ARM_CPU_DISCARD(x)
+@@ -49,8 +50,12 @@
+ 		EXIT_CALL						\
+ 		ARM_MMU_DISCARD(*(.text.fixup))				\
+ 		ARM_MMU_DISCARD(*(__ex_table))				\
+-		*(.discard)						\
+-		*(.discard.*)
++		COMMON_DISCARDS
++
++#define ARM_STUBS_TEXT							\
++		*(.gnu.warning)						\
++		*(.glue_7)						\
++		*(.glue_7t)
+ 
+ #define ARM_TEXT							\
+ 		IDMAP_TEXT						\
+@@ -64,9 +69,7 @@
+ 		CPUIDLE_TEXT						\
+ 		LOCK_TEXT						\
+ 		KPROBES_TEXT						\
+-		*(.gnu.warning)						\
+-		*(.glue_7)						\
+-		*(.glue_7t)						\
++		ARM_STUBS_TEXT						\
+ 		. = ALIGN(4);						\
+ 		*(.got)			/* Global offset table */	\
+ 		ARM_CPU_KEEP(PROC_INFO)
+diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
+index 3d4e88f08196..904c31fa20ed 100644
+--- a/arch/arm/kernel/vmlinux-xip.lds.S
++++ b/arch/arm/kernel/vmlinux-xip.lds.S
+@@ -9,15 +9,13 @@
+ 
+ #include <linux/sizes.h>
+ 
+-#include <asm-generic/vmlinux.lds.h>
++#include <asm/vmlinux.lds.h>
+ #include <asm/cache.h>
+ #include <asm/thread_info.h>
+ #include <asm/memory.h>
+ #include <asm/mpu.h>
+ #include <asm/page.h>
+ 
+-#include "vmlinux.lds.h"
+-
+ OUTPUT_ARCH(arm)
+ ENTRY(stext)
+ 
+diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+index 5592f14b7e35..bb950c896a67 100644
+--- a/arch/arm/kernel/vmlinux.lds.S
++++ b/arch/arm/kernel/vmlinux.lds.S
+@@ -9,15 +9,13 @@
+ #else
+ 
+ #include <linux/pgtable.h>
+-#include <asm-generic/vmlinux.lds.h>
++#include <asm/vmlinux.lds.h>
+ #include <asm/cache.h>
+ #include <asm/thread_info.h>
+ #include <asm/memory.h>
+ #include <asm/mpu.h>
+ #include <asm/page.h>
+ 
+-#include "vmlinux.lds.h"
+-
+ OUTPUT_ARCH(arm)
+ ENTRY(stext)
+ 
+-- 
+2.25.1
