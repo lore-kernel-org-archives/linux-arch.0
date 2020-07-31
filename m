@@ -1,70 +1,84 @@
-Return-Path: <SRS0=1VFR=BJ=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
- <20200730152250.GG23808@casper.infradead.org>
- <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
- <20200730171251.GI23808@casper.infradead.org>
- <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
- <20200730174956.GK23808@casper.infradead.org>
-From: Steven Sistare <steven.sistare@oracle.com>
-Message-ID: <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
-Date: Thu, 30 Jul 2020 14:27:21 -0400
-MIME-Version: 1.0
-In-Reply-To: <20200730174956.GK23808@casper.infradead.org>
-Content-Type: text/plain; charset=utf-8
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx07-001d1705.pphosted.com ([185.132.183.11]:39118 "EHLO
+        mx07-001d1705.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726099AbgGaWlS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 Jul 2020 18:41:18 -0400
+From: "Bird, Tim" <Tim.Bird@sony.com>
+Subject: RE: [Ksummit-discuss] [TECH TOPIC] Planning code obsolescence
+Date: Fri, 31 Jul 2020 21:57:41 +0000
+Message-ID: <CY4PR13MB1175A3B5D9DE33D3A1E045A6FD4E0@CY4PR13MB1175.namprd13.prod.outlook.com>
+References: <CAK8P3a2PK_bC5=3wcWm43=y5xk-Dq5-fGPExJMnOrNfGfB1m1A@mail.gmail.com>
+ <20200731212721.GC32670@localhost>
+In-Reply-To: <20200731212721.GC32670@localhost>
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200730182721.i8eg8NGn5Es9748C_odBI7OFpY6uK8XQnLoblrincd4@z>
+To: "josh@joshtriplett.org" <josh@joshtriplett.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ksummit <ksummit-discuss@lists.linuxfoundation.org>
+Message-ID: <20200731215741.OQgsQp6LdqEFDvsvutd7PVu72fiPg_Jo0RCzTNNzMQw@z>
 
-On 7/30/2020 1:49 PM, Matthew Wilcox wrote:
-> On Thu, Jul 30, 2020 at 01:35:51PM -0400, Steven Sistare wrote:
->> mshare + VA reservation is another possible solution.
->>
->> Or MADV_DOEXEC alone, which is ready now.  I hope we can get back to reviewing that.
-> 
-> We are.  This is the part of the review process where we explore other
-> solutions to the problem.
-> 
->>>> Also, we need to support updating legacy processes that already created anon segments.
->>>> We inject code that calls MADV_DOEXEC for such segments.
->>>
->>> Yes, I was assuming you'd inject code that called mshare().
->>
->> OK, mshare works on existing memory and builds a new vma.
-> 
-> Actually, reparents an existing VMA, and reuses the existing page tables.
-> 
->>> Actually, since you're injecting code, why do you need the kernel to
->>> be involved?  You can mmap the new executable and any libraries it depends
->>> upon, set up a new stack and jump to the main() entry point, all without
->>> calling exec().  I appreciate it'd be a fair amount of code, but it'd all
->>> be in userspace and you can probably steal / reuse code from ld.so (I'm
->>> not familiar with the details of how setting up an executable is done).
->>
->> Duplicating all the work that the kernel and loader do to exec a process would
->> be error prone, require ongoing maintenance, and be redundant.  Better to define 
->> a small kernel extension and leave exec to the kernel.
-> 
-> Either this is a one-off kind of thing, in which case it doesn't need
-> ongoing maintenance, or it's something with broad applicability, in
-> which case it can live as its own userspace project.  It could even
-> start off life as part of qemu and then fork into its own project.
+> -----Original Message-----
+> From: josh@joshtriplett.org
+>=20
+> On Fri, Jul 31, 2020 at 05:00:12PM +0200, Arnd Bergmann wrote:
+> > The majority of the code in the kernel deals with hardware that was mad=
+e
+> > a long time ago, and we are regularly discussing which of those bits ar=
+e
+> > still needed. In some cases (e.g. 20+ year old RISC workstation support=
+),
+> > there are hobbyists that take care of maintainership despite there bein=
+g
+> > no commercial interest. In other cases (e.g. x.25 networking) it turned
+> > out that there are very long-lived products that are actively supported
+> > on new kernels.
+> >
+> > When I removed support for eight instruction set architectures in 2018,
+> > those were the ones that no longer had any users of mainline kernels,
+> > and removing them allowed later cleanup of cross-architecture code that
+> > would have been much harder before.
+> >
+> > I propose adding a Documentation file that keeps track of any notable
+> > kernel feature that could be classified as "obsolete", and listing
+> > e.g. following properties:
+> >
+> > * Kconfig symbol controlling the feature
+> >
+> > * How long we expect to keep it as a minimum
+> >
+> > * Known use cases, or other reasons this needs to stay
+> >
+> > * Latest kernel in which it was known to have worked
+> >
+> > * Contact information for known users (mailing list, personal email)
+> >
+> > * Other features that may depend on this
+> >
+> > * Possible benefits of eventually removing it
+>=20
+> We had this once, in the form of feature-removal-schedule.txt. It was,
+> itself, removed in commit 9c0ece069b32e8e122aea71aa47181c10eb85ba7.
+>=20
+> I *do* think there'd be value in having policies and processes for "how
+> do we carefully remove a driver/architecture/etc we think nobody cares
+> about". That's separate from having an actual in-kernel list of "things
+> we think we can remove".
 
-exec will be enhanced over time in the kernel.  A separate user space implementation
-would need to track that.
+I'm not sure the documents are the same.  I think what Arnd is proposing
+is more of a "why is this thing still here?" document.  When someone does
+research into who's still using a feature and why, that can be valuable inf=
+ormation
+to share so that future maintenance or removal decisions can be better info=
+rmed.
 
-Reimplementing exec in userland would be a big gross mess.  Not a good solution when
-we have simple and concise ways of solving the problem.
+Maybe e-mails are sufficient for this, but they'd be harder to find than so=
+mething in
+the kernel source. But that supposes that people would look at the file, wh=
+ich=20
+appears didn't happen with feature-removal-schedule.txt.
 
-> The idea of tagging an ELF executable to say "I can cope with having
-> chunks of my address space provided to me by my executor" is ... odd.
-
-I don't disagree.  But it is useful.  We already pass a block of data containing
-environment variables and arguments from one process to the next.  Preserving 
-additional segments is not a big leap from there.
-
-- Steve
+ -- Tim
