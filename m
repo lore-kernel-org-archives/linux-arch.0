@@ -1,41 +1,63 @@
-Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49696 "EHLO
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59300 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728890AbgGTQtQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jul 2020 12:49:16 -0400
-Date: Mon, 20 Jul 2020 18:48:50 +0200
-From: peterz@infradead.org
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Message-ID: <20200720164850.GF119549@hirez.programming.kicks-ass.net>
-References: <20200717044427.68747-1-ebiggers@kernel.org>
- <20200718014204.GN5369@dread.disaster.area>
- <20200718140811.GA1179836@rowland.harvard.edu>
- <20200720013320.GP5369@dread.disaster.area>
- <20200720145211.GC1228057@rowland.harvard.edu>
- <20200720153911.GX12769@casper.infradead.org>
- <20200720160433.GQ9247@paulmck-ThinkPad-P72>
+        with ESMTP id S1733285AbgGaMWM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 08:22:12 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 2/3] compat: add a compat_need_64bit_alignment_fixup() helper
+Date: Fri, 31 Jul 2020 14:22:01 +0200
+Message-ID: <20200731122202.213333-3-hch@lst.de>
+In-Reply-To: <20200731122202.213333-1-hch@lst.de>
+References: <20200731122202.213333-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200720160433.GQ9247@paulmck-ThinkPad-P72>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Matthew Wilcox <willy@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Dave Chinner <david@fromorbit.com>, Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200720164850.UBFxRfxEA-ScFaQvoP8Aw33fjOKawncTzmY_1lIaR3s@z>
+To: x86@kernel.org, Jan Kara <jack@suse.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200731122201.wSIAW3YaKqXBavMcRklDWJFi_KFZ2PBMw8NcD3hGBOQ@z>
 
-On Mon, Jul 20, 2020 at 09:04:34AM -0700, Paul E. McKenney wrote:
-> 2.	If we were to say "unlock" instead of "release", consistency
-> 	would demand that we also say "lock" instead of "acquire".
-> 	But "lock" is subtlely different than "acquire", and there is
-> 	a history of people requesting further divergence.
+Add a helper to check if the calling syscall needs a fixup for
+non-natural 64-bit type alignment in the compat ABI.  This will only
+return true for i386 syscalls on x86_64.
 
-This, acquire/release are RCpc, while (with the exception of Power)
-LOCK/UNLOCK are RCsc.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/x86/include/asm/compat.h | 1 +
+ include/linux/compat.h        | 9 +++++++++
+ 2 files changed, 10 insertions(+)
 
-( Or did we settle on RCtso for our release/acquire order? I have vague
-memories of a long-ish thread, but seem to have forgotten the outcome,
-if any. )
-
-Lots of subtlety and head-aches right about there. Anyway, it would be
-awesome if we can get Power into the RCsc locking camp :-)
+diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
+index bf547701f41f87..0e327a01f50fbb 100644
+--- a/arch/x86/include/asm/compat.h
++++ b/arch/x86/include/asm/compat.h
+@@ -209,6 +209,7 @@ static inline bool in_compat_syscall(void)
+ 	return in_32bit_syscall();
+ }
+ #define in_compat_syscall in_compat_syscall	/* override the generic impl */
++#define compat_need_64bit_alignment_fixup in_ia32_syscall
+ #endif
+ 
+ struct compat_siginfo;
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index e90100c0de72e4..a195f90f156cf6 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -937,6 +937,15 @@ static inline bool in_compat_syscall(void) { return false; }
+ 
+ #endif /* CONFIG_COMPAT */
+ 
++/*
++ * Some legacy ABIs like the i386 one use less than natural alignment for 64-bit
++ * types, and will need special compat treatment for that.  Most architectures
++ * don't need that special handling even for compat syscalls.
++ */
++#ifndef compat_need_64bit_alignment_fixup
++#define compat_need_64bit_alignment_fixup()		false
++#endif
++
+ /*
+  * A pointer passed in from user mode. This should not
+  * be used for syscall parameters, just declare them
+-- 
+2.27.0
