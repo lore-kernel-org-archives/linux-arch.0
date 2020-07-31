@@ -1,347 +1,423 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53518 "EHLO
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53612 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730434AbgGUUZv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 16:25:51 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 06/18] alpha: propagate the calling convention changes down to csum_partial_copy.c helpers
-Date: Tue, 21 Jul 2020 21:25:37 +0100
-Message-ID: <20200721202549.4150745-6-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
-References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
- <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
+        with ESMTP id S1731249AbgGaIlZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 04:41:25 -0400
+Received: from mail-vs1-xe44.google.com (mail-vs1-xe44.google.com [IPv6:2607:f8b0:4864:20::e44])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D4490C06174A
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 01:41:24 -0700 (PDT)
+Received: by mail-vs1-xe44.google.com with SMTP id s20so15362698vsq.5
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 01:41:24 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200726160401.311569-1-hch@lst.de> <20200726160401.311569-2-hch@lst.de>
+ <20200730173437.GA1172439@ubuntu-n2-xlarge-x86>
+In-Reply-To: <20200730173437.GA1172439@ubuntu-n2-xlarge-x86>
+From: Naresh Kamboju <naresh.kamboju@linaro.org>
+Date: Fri, 31 Jul 2020 14:11:11 +0530
+Message-ID: <CA+G9fYs0ZJCp39qh2Zs6v=Pb6S=1PYDEA1+Dk7Q8=RL45_P7NQ@mail.gmail.com>
+Subject: Re: [PATCH 1/4] arm64: stop using <asm/compat.h> directly
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200721202537.aVS8NIn1-vrtT9yDlDCDXWhlk3jVNkWM0DfjkQjKnWY@z>
+To: Christoph Hellwig <hch@lst.de>, Nathan Chancellor <natechancellor@gmail.com>
+Cc: X86 ML <x86@kernel.org>, Jan Kara <jack@suse.com>, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, open list <linux-kernel@vger.kernel.org>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, lkft-triage@lists.linaro.org, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20200731084111.d4ZePFwQ9mxj4HD7fOhiZeaRkHv2DoZV6G6IwDRYdJk@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On Thu, 30 Jul 2020 at 23:04, Nathan Chancellor
+<natechancellor@gmail.com> wrote:
+>
+> On Sun, Jul 26, 2020 at 06:03:58PM +0200, Christoph Hellwig wrote:
+> > Always use <linux/compat.h> so that we can move more declarations to
+> > common code.  In two of the three cases the asm include was in addition
+> > to an existing one for <linux/compat.h> anyway.
+> >
+> > Signed-off-by: Christoph Hellwig <hch@lst.de>
+> > ---
+> >  arch/arm64/include/asm/stat.h | 2 +-
+> >  arch/arm64/kernel/process.c   | 1 -
+> >  arch/arm64/kernel/ptrace.c    | 1 -
+> >  3 files changed, 1 insertion(+), 3 deletions(-)
+> >
+> > diff --git a/arch/arm64/include/asm/stat.h b/arch/arm64/include/asm/sta=
+t.h
+> > index 3b4a62f5aeb0c3..1b5ac1ef5d04cc 100644
+> > --- a/arch/arm64/include/asm/stat.h
+> > +++ b/arch/arm64/include/asm/stat.h
+> > @@ -10,7 +10,7 @@
+> >  #ifdef CONFIG_COMPAT
+> >
+> >  #include <linux/time.h>
+> > -#include <asm/compat.h>
+> > +#include <linux/compat.h>
+>
+> This breaks arm64 defconfig:
+>
+> $ make -skj"$(nproc)" ARCH=3Darm64 CROSS_COMPILE=3Daarch64-linux- distcle=
+an defconfig init/main.o
+> In file included from ./include/linux/compat.h:17,
+>                  from ./arch/arm64/include/asm/stat.h:13,
+>                  from ./include/linux/stat.h:6,
+>                  from ./include/linux/sysfs.h:22,
+>                  from ./include/linux/kobject.h:20,
+>                  from ./include/linux/of.h:17,
+>                  from ./include/linux/irqdomain.h:35,
+>                  from ./include/linux/acpi.h:13,
+>                  from ./include/acpi/apei.h:9,
+>                  from ./include/acpi/ghes.h:5,
+>                  from ./include/linux/arm_sdei.h:8,
+>                  from arch/arm64/kernel/asm-offsets.c:10:
+> ./include/linux/fs.h: In function 'vfs_whiteout':
+> ./include/linux/fs.h:1736:32: error: 'S_IFCHR' undeclared (first use in t=
+his function)
+>  1736 |  return vfs_mknod(dir, dentry, S_IFCHR | WHITEOUT_MODE, WHITEOUT_=
+DEV);
+>       |                                ^~~~~~~
+> ./include/linux/fs.h:1736:32: note: each undeclared identifier is reporte=
+d only once for each function it appears in
+> ./include/linux/fs.h: At top level:
+> ./include/linux/fs.h:1886:46: warning: 'struct kstat' declared inside par=
+ameter list will not be visible outside of this definition or declaration
+>  1886 |  int (*getattr) (const struct path *, struct kstat *, u32, unsign=
+ed int);
+>       |                                              ^~~~~
+> ./include/linux/fs.h: In function '__mandatory_lock':
+> ./include/linux/fs.h:2372:25: error: 'S_ISGID' undeclared (first use in t=
+his function); did you mean 'SIGIO'?
+>  2372 |  return (ino->i_mode & (S_ISGID | S_IXGRP)) =3D=3D S_ISGID;
+>       |                         ^~~~~~~
+>       |                         SIGIO
+> ./include/linux/fs.h:2372:35: error: 'S_IXGRP' undeclared (first use in t=
+his function)
+>  2372 |  return (ino->i_mode & (S_ISGID | S_IXGRP)) =3D=3D S_ISGID;
+>       |                                   ^~~~~~~
+> ...
+>
+> $ git bisect log
+> # bad: [7b287a5c6ac518c415a258f2aa7b1ebb25c263d2] Add linux-next specific=
+ files for 20200730
+> # good: [d3590ebf6f91350192737dd1d1b219c05277f067] Merge tag 'audit-pr-20=
+200729' of git://git.kernel.org/pub/scm/linux/kernel/git/pcmoore/audit
+> git bisect start '7b287a5c6ac518c415a258f2aa7b1ebb25c263d2' 'd3590ebf6f91=
+350192737dd1d1b219c05277f067'
+> # bad: [1f1ed12be70e9eb4e05ac206c6ad6a5a31f5b921] Merge remote-tracking b=
+ranch 'crypto/master'
+> git bisect bad 1f1ed12be70e9eb4e05ac206c6ad6a5a31f5b921
+> # bad: [07fad673c2f1a02440c879c34f8182b12786a735] Merge remote-tracking b=
+ranch 'hid/for-next'
+> git bisect bad 07fad673c2f1a02440c879c34f8182b12786a735
+> # good: [7a77c92312546a74d3507484b256ae17bfb2cfe2] Merge remote-tracking =
+branch 'm68knommu/for-next'
+> git bisect good 7a77c92312546a74d3507484b256ae17bfb2cfe2
+> # good: [40dd62f180e38317e744d7f82c98af31a24fd2c9] Merge remote-tracking =
+branch 'f2fs/dev'
+> git bisect good 40dd62f180e38317e744d7f82c98af31a24fd2c9
+> # bad: [52138dfdd2192bcfc7d3bc2e79475966ee4b20c4] Merge remote-tracking b=
+ranch 'printk/for-next'
+> git bisect bad 52138dfdd2192bcfc7d3bc2e79475966ee4b20c4
+> # good: [a37c3e37fa3fa1381e03d918d708f82927ddd160] Merge remote-tracking =
+branch 'xfs/for-next'
+> git bisect good a37c3e37fa3fa1381e03d918d708f82927ddd160
+> # good: [4e523547e2bf755d40cb10e85795c2f9620ff3fb] nvme-pci: add a blank =
+line after declarations
+> git bisect good 4e523547e2bf755d40cb10e85795c2f9620ff3fb
+> # bad: [5066741180729f7bad9401de34efda3766c3274a] Merge branches 'fixes' =
+and 'work.quota-compat' into for-next
+> git bisect bad 5066741180729f7bad9401de34efda3766c3274a
+> # good: [4ff8a356daafaafbf90141ee7a3b8fdc18e560a8] ia64: switch to ->regs=
+et_get()
+> git bisect good 4ff8a356daafaafbf90141ee7a3b8fdc18e560a8
+> # good: [ce327e1c54119179066d6f3573a28001febc9265] regset: kill user_regs=
+et_copyout{,_zero}()
+> git bisect good ce327e1c54119179066d6f3573a28001febc9265
+> # good: [1697a322e28ba96d35953c5d824540d172546d36] [elf-fdpic] switch cor=
+edump to regsets
+> git bisect good 1697a322e28ba96d35953c5d824540d172546d36
+> # good: [259bf01c1bd1f049958496a089c4f334fe0c8a48] Merge branches 'work.m=
+isc', 'work.regset' and 'work.fdpic' into for-next
+> git bisect good 259bf01c1bd1f049958496a089c4f334fe0c8a48
+> # bad: [0a3a4497a1de8e68e809a693b549c7ec2f195301] compat: lift compat_s64=
+ and compat_u64 to <linux/compat.h>
+> git bisect bad 0a3a4497a1de8e68e809a693b549c7ec2f195301
+> # bad: [b902bfb3f0e9d07ec9f48256e57e5c5de6108f8c] arm64: stop using <asm/=
+compat.h> directly
+> git bisect bad b902bfb3f0e9d07ec9f48256e57e5c5de6108f8c
+> # first bad commit: [b902bfb3f0e9d07ec9f48256e57e5c5de6108f8c] arm64: sto=
+p using <asm/compat.h> directly
+>
+> I assume the stat header order should be messed around with but I am not
+> sure what exactly that would entail to make sure that nothing else
+> breaks, hence just the report.
 
-get rid of set_fs() in csum_partial_copy_nocheck(), while we are at it -
-just take the part of csum_and_copy_from_user() sans the access_ok() check
-into a helper function and have csum_partial_copy_nocheck() call that.
+FYI,
+We have also noticed this arm64 build break on linux next 20200730
+with gcc-8.x, gcc-9.x and gcc-10.x
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/alpha/lib/csum_partial_copy.c | 157 ++++++++++++++++---------------------
- 1 file changed, 69 insertions(+), 88 deletions(-)
+make -sk KBUILD_BUILD_USER=3DTuxBuild -C/linux -j16 ARCH=3Darm64
+CROSS_COMPILE=3Daarch64-linux-gnu- HOSTCC=3Dgcc CC=3D"sccache
+aarch64-linux-gnu-gcc" O=3Dbuild Image
+#
+In file included from ../include/linux/compat.h:17,
+                 from ../arch/arm64/include/asm/stat.h:13,
+                 from ../include/linux/stat.h:6,
+                 from ../include/linux/sysfs.h:22,
+                 from ../include/linux/kobject.h:20,
+                 from ../include/linux/of.h:17,
+                 from ../include/linux/irqdomain.h:35,
+                 from ../include/linux/acpi.h:13,
+                 from ../include/acpi/apei.h:9,
+                 from ../include/acpi/ghes.h:5,
+                 from ../include/linux/arm_sdei.h:8,
+                 from ../arch/arm64/kernel/asm-offsets.c:10:
+../include/linux/fs.h: In function =E2=80=98vfs_whiteout=E2=80=99:
+../include/linux/fs.h:1709:32: error: =E2=80=98S_IFCHR=E2=80=99 undeclared =
+(first use
+in this function)
+ 1709 |  return vfs_mknod(dir, dentry, S_IFCHR | WHITEOUT_MODE, WHITEOUT_DE=
+V);
+      |                                ^~~~~~~
+../include/linux/fs.h:1709:32: note: each undeclared identifier is
+reported only once for each function it appears in
+../include/linux/fs.h: At top level:
+../include/linux/fs.h:1855:46: warning: =E2=80=98struct kstat=E2=80=99 decl=
+ared inside
+parameter list will not be visible outside of this definition or
+declaration
+ 1855 |  int (*getattr) (const struct path *, struct kstat *, u32,
+unsigned int);
+      |                                              ^~~~~
+../include/linux/fs.h: In function =E2=80=98__mandatory_lock=E2=80=99:
+../include/linux/fs.h:2325:25: error: =E2=80=98S_ISGID=E2=80=99 undeclared =
+(first use
+in this function); did you mean =E2=80=98SIGIO=E2=80=99?
+ 2325 |  return (ino->i_mode & (S_ISGID | S_IXGRP)) =3D=3D S_ISGID;
+      |                         ^~~~~~~
+      |                         SIGIO
+../include/linux/fs.h:2325:35: error: =E2=80=98S_IXGRP=E2=80=99 undeclared =
+(first use
+in this function)
+ 2325 |  return (ino->i_mode & (S_ISGID | S_IXGRP)) =3D=3D S_ISGID;
+      |                                   ^~~~~~~
+../include/linux/fs.h: In function =E2=80=98invalidate_remote_inode=E2=80=
+=99:
+../include/linux/fs.h:2588:6: error: implicit declaration of function
+=E2=80=98S_ISREG=E2=80=99 [-Werror=3Dimplicit-function-declaration]
+ 2588 |  if (S_ISREG(inode->i_mode) || S_ISDIR(inode->i_mode) ||
+      |      ^~~~~~~
+../include/linux/fs.h:2588:32: error: implicit declaration of function
+=E2=80=98S_ISDIR=E2=80=99; did you mean =E2=80=98EISDIR=E2=80=99?
+[-Werror=3Dimplicit-function-declaration]
+ 2588 |  if (S_ISREG(inode->i_mode) || S_ISDIR(inode->i_mode) ||
+      |                                ^~~~~~~
+      |                                EISDIR
+../include/linux/fs.h:2589:6: error: implicit declaration of function
+=E2=80=98S_ISLNK=E2=80=99 [-Werror=3Dimplicit-function-declaration]
+ 2589 |      S_ISLNK(inode->i_mode))
+      |      ^~~~~~~
+../include/linux/fs.h: In function =E2=80=98execute_ok=E2=80=99:
+../include/linux/fs.h:2768:26: error: =E2=80=98S_IXUGO=E2=80=99 undeclared =
+(first use
+in this function)
+ 2768 |  return (inode->i_mode & S_IXUGO) || S_ISDIR(inode->i_mode);
+      |                          ^~~~~~~
+In file included from ../include/linux/compat.h:17,
+                 from ../arch/arm64/include/asm/stat.h:13,
+                 from ../include/linux/stat.h:6,
+                 from ../include/linux/sysfs.h:22,
+                 from ../include/linux/kobject.h:20,
+                 from ../include/linux/of.h:17,
+                 from ../include/linux/irqdomain.h:35,
+                 from ../include/linux/acpi.h:13,
+                 from ../include/acpi/apei.h:9,
+                 from ../include/acpi/ghes.h:5,
+                 from ../include/linux/arm_sdei.h:8,
+                 from ../arch/arm64/kernel/asm-offsets.c:10:
+../include/linux/fs.h: At top level:
+../include/linux/fs.h:3141:53: warning: =E2=80=98struct kstat=E2=80=99 decl=
+ared inside
+parameter list will not be visible outside of this definition or
+declaration
+ 3141 | extern void generic_fillattr(struct inode *, struct kstat *);
+      |                                                     ^~~~~
+../include/linux/fs.h:3142:58: warning: =E2=80=98struct kstat=E2=80=99 decl=
+ared inside
+parameter list will not be visible outside of this definition or
+declaration
+ 3142 | extern int vfs_getattr_nosec(const struct path *, struct kstat
+*, u32, unsigned int);
+      |                                                          ^~~~~
+../include/linux/fs.h:3143:52: warning: =E2=80=98struct kstat=E2=80=99 decl=
+ared inside
+parameter list will not be visible outside of this definition or
+declaration
+ 3143 | extern int vfs_getattr(const struct path *, struct kstat *,
+u32, unsigned int);
+      |                                                    ^~~~~
+../include/linux/fs.h:3160:60: warning: =E2=80=98struct kstat=E2=80=99 decl=
+ared inside
+parameter list will not be visible outside of this definition or
+declaration
+ 3160 | extern int vfs_statx(int, const char __user *, int, struct
+kstat *, u32);
+      |                                                            ^~~~~
+../include/linux/fs.h:3161:46: warning: =E2=80=98struct kstat=E2=80=99 decl=
+ared inside
+parameter list will not be visible outside of this definition or
+declaration
+ 3161 | extern int vfs_statx_fd(unsigned int, struct kstat *, u32,
+unsigned int);
+      |                                              ^~~~~
+../include/linux/fs.h:3163:64: warning: =E2=80=98struct kstat=E2=80=99 decl=
+ared inside
+parameter list will not be visible outside of this definition or
+declaration
+ 3163 | static inline int vfs_stat(const char __user *filename, struct
+kstat *stat)
+      |                                                                ^~~~=
+~
+../include/linux/fs.h: In function =E2=80=98vfs_stat=E2=80=99:
+../include/linux/fs.h:3166:11: error: =E2=80=98STATX_BASIC_STATS=E2=80=99 u=
+ndeclared
+(first use in this function)
+ 3166 |     stat, STATX_BASIC_STATS);
+      |           ^~~~~~~~~~~~~~~~~
+../include/linux/fs.h:3166:5: error: passing argument 4 of =E2=80=98vfs_sta=
+tx=E2=80=99
+from incompatible pointer type [-Werror=3Dincompatible-pointer-types]
+ 3166 |     stat, STATX_BASIC_STATS);
+      |     ^~~~
+      |     |
+      |     struct kstat *
+../include/linux/fs.h:3160:53: note: expected =E2=80=98struct kstat *=E2=80=
+=99 but
+argument is of type =E2=80=98struct kstat *=E2=80=99
+ 3160 | extern int vfs_statx(int, const char __user *, int, struct
+kstat *, u32);
+      |                                                     ^~~~~~~~~~~~~~
+../include/linux/fs.h: At top level:
+../include/linux/fs.h:3168:61: warning: =E2=80=98struct kstat=E2=80=99 decl=
+ared inside
+parameter list will not be visible outside of this definition or
+declaration
+ 3168 | static inline int vfs_lstat(const char __user *name, struct kstat *=
+stat)
+      |                                                             ^~~~~
+../include/linux/fs.h: In function =E2=80=98vfs_lstat=E2=80=99:
+../include/linux/fs.h:3171:11: error: =E2=80=98STATX_BASIC_STATS=E2=80=99 u=
+ndeclared
+(first use in this function)
+ 3171 |     stat, STATX_BASIC_STATS);
+      |           ^~~~~~~~~~~~~~~~~
+../include/linux/fs.h:3171:5: error: passing argument 4 of =E2=80=98vfs_sta=
+tx=E2=80=99
+from incompatible pointer type [-Werror=3Dincompatible-pointer-types]
+ 3171 |     stat, STATX_BASIC_STATS);
+      |     ^~~~
+      |     |
+      |     struct kstat *
+../include/linux/fs.h:3160:53: note: expected =E2=80=98struct kstat *=E2=80=
+=99 but
+argument is of type =E2=80=98struct kstat *=E2=80=99
+ 3160 | extern int vfs_statx(int, const char __user *, int, struct
+kstat *, u32);
+      |                                                     ^~~~~~~~~~~~~~
+../include/linux/fs.h: At top level:
+../include/linux/fs.h:3174:17: warning: =E2=80=98struct kstat=E2=80=99 decl=
+ared inside
+parameter list will not be visible outside of this definition or
+declaration
+ 3174 |          struct kstat *stat, int flags)
+      |                 ^~~~~
+../include/linux/fs.h: In function =E2=80=98vfs_fstatat=E2=80=99:
+../include/linux/fs.h:3177:11: error: =E2=80=98STATX_BASIC_STATS=E2=80=99 u=
+ndeclared
+(first use in this function)
+ 3177 |     stat, STATX_BASIC_STATS);
+      |           ^~~~~~~~~~~~~~~~~
+../include/linux/fs.h:3177:5: error: passing argument 4 of =E2=80=98vfs_sta=
+tx=E2=80=99
+from incompatible pointer type [-Werror=3Dincompatible-pointer-types]
+ 3177 |     stat, STATX_BASIC_STATS);
+      |     ^~~~
+      |     |
+      |     struct kstat *
+../include/linux/fs.h:3160:53: note: expected =E2=80=98struct kstat *=E2=80=
+=99 but
+argument is of type =E2=80=98struct kstat *=E2=80=99
+ 3160 | extern int vfs_statx(int, const char __user *, int, struct
+kstat *, u32);
+      |                                                     ^~~~~~~~~~~~~~
+../include/linux/fs.h: At top level:
+../include/linux/fs.h:3179:44: warning: =E2=80=98struct kstat=E2=80=99 decl=
+ared inside
+parameter list will not be visible outside of this definition or
+declaration
+ 3179 | static inline int vfs_fstat(int fd, struct kstat *stat)
+      |                                            ^~~~~
+../include/linux/fs.h: In function =E2=80=98vfs_fstat=E2=80=99:
+../include/linux/fs.h:3181:32: error: =E2=80=98STATX_BASIC_STATS=E2=80=99 u=
+ndeclared
+(first use in this function)
+ 3181 |  return vfs_statx_fd(fd, stat, STATX_BASIC_STATS, 0);
+      |                                ^~~~~~~~~~~~~~~~~
+../include/linux/fs.h:3181:26: error: passing argument 2 of
+=E2=80=98vfs_statx_fd=E2=80=99 from incompatible pointer type
+[-Werror=3Dincompatible-pointer-types]
+ 3181 |  return vfs_statx_fd(fd, stat, STATX_BASIC_STATS, 0);
+      |                          ^~~~
+      |                          |
+      |                          struct kstat *
+../include/linux/fs.h:3161:39: note: expected =E2=80=98struct kstat *=E2=80=
+=99 but
+argument is of type =E2=80=98struct kstat *=E2=80=99
+ 3161 | extern int vfs_statx_fd(unsigned int, struct kstat *, u32,
+unsigned int);
+      |                                       ^~~~~~~~~~~~~~
+../include/linux/fs.h: At top level:
+../include/linux/fs.h:3206:55: warning: =E2=80=98struct kstat=E2=80=99 decl=
+ared inside
+parameter list will not be visible outside of this definition or
+declaration
+ 3206 | extern int simple_getattr(const struct path *, struct kstat *,
+u32, unsigned int);
+      |                                                       ^~~~~
+../include/linux/fs.h: In function =E2=80=98vma_is_fsdax=E2=80=99:
+../include/linux/fs.h:3289:6: error: implicit declaration of function
+=E2=80=98S_ISCHR=E2=80=99 [-Werror=3Dimplicit-function-declaration]
+ 3289 |  if (S_ISCHR(inode->i_mode))
+      |      ^~~~~~~
+../include/linux/fs.h: In function =E2=80=98is_sxid=E2=80=99:
+../include/linux/fs.h:3428:17: error: =E2=80=98S_ISUID=E2=80=99 undeclared =
+(first use
+in this function)
+ 3428 |  return (mode & S_ISUID) || ((mode & S_ISGID) && (mode & S_IXGRP));
+      |                 ^~~~~~~
+../include/linux/fs.h:3428:38: error: =E2=80=98S_ISGID=E2=80=99 undeclared =
+(first use
+in this function); did you mean =E2=80=98SIGIO=E2=80=99?
+ 3428 |  return (mode & S_ISUID) || ((mode & S_ISGID) && (mode & S_IXGRP));
+      |                                      ^~~~~~~
+      |                                      SIGIO
+../include/linux/fs.h:3428:58: error: =E2=80=98S_IXGRP=E2=80=99 undeclared =
+(first use
+in this function)
+ 3428 |  return (mode & S_ISUID) || ((mode & S_ISGID) && (mode & S_IXGRP));
+      |                                                          ^~~~~~~
+../include/linux/fs.h: In function =E2=80=98check_sticky=E2=80=99:
+../include/linux/fs.h:3433:22: error: =E2=80=98S_ISVTX=E2=80=99 undeclared =
+(first use
+in this function)
+ 3433 |  if (!(dir->i_mode & S_ISVTX))
+      |                      ^~~~~~~
+cc1: some warnings being treated as errors
+make[2]: *** [../scripts/Makefile.build:114:
+arch/arm64/kernel/asm-offsets.s] Error 1
 
-diff --git a/arch/alpha/lib/csum_partial_copy.c b/arch/alpha/lib/csum_partial_copy.c
-index 3c0e89c39ddb..dc68efbe9367 100644
---- a/arch/alpha/lib/csum_partial_copy.c
-+++ b/arch/alpha/lib/csum_partial_copy.c
-@@ -39,12 +39,11 @@ __asm__ __volatile__("insql %1,%2,%0":"=r" (z):"r" (x),"r" (y))
- #define insqh(x,y,z) \
- __asm__ __volatile__("insqh %1,%2,%0":"=r" (z):"r" (x),"r" (y))
- 
--
--#define __get_user_u(x,ptr)				\
-+#define __get_word(insn,x,ptr)				\
- ({							\
- 	long __guu_err;					\
- 	__asm__ __volatile__(				\
--	"1:	ldq_u %0,%2\n"				\
-+	"1:	"#insn" %0,%2\n"			\
- 	"2:\n"						\
- 	EXC(1b,2b,%0,%1)				\
- 		: "=r"(x), "=r"(__guu_err)		\
-@@ -52,19 +51,6 @@ __asm__ __volatile__("insqh %1,%2,%0":"=r" (z):"r" (x),"r" (y))
- 	__guu_err;					\
- })
- 
--#define __put_user_u(x,ptr)				\
--({							\
--	long __puu_err;					\
--	__asm__ __volatile__(				\
--	"1:	stq_u %2,%1\n"				\
--	"2:\n"						\
--	EXC(1b,2b,$31,%0)				\
--		: "=r"(__puu_err)			\
--		: "m"(__m(addr)), "rJ"(x), "0"(0));	\
--	__puu_err;					\
--})
--
--
- static inline unsigned short from64to16(unsigned long x)
- {
- 	/* Using extract instructions is a bit more efficient
-@@ -95,15 +81,15 @@ static inline unsigned short from64to16(unsigned long x)
-  */
- static inline unsigned long
- csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
--			 long len, unsigned long checksum,
--			 int *errp)
-+			 long len)
- {
-+	unsigned long checksum = ~0U;
- 	unsigned long carry = 0;
--	int err = 0;
- 
- 	while (len >= 0) {
- 		unsigned long word;
--		err |= __get_user(word, src);
-+		if (__get_word(ldq, word, src))
-+			return 0;
- 		checksum += carry;
- 		src++;
- 		checksum += word;
-@@ -116,7 +102,8 @@ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
- 	checksum += carry;
- 	if (len) {
- 		unsigned long word, tmp;
--		err |= __get_user(word, src);
-+		if (__get_word(ldq, word, src))
-+			return 0;
- 		tmp = *dst;
- 		mskql(word, len, word);
- 		checksum += word;
-@@ -125,7 +112,6 @@ csum_partial_cfu_aligned(const unsigned long __user *src, unsigned long *dst,
- 		*dst = word | tmp;
- 		checksum += carry;
- 	}
--	if (err && errp) *errp = err;
- 	return checksum;
- }
- 
-@@ -137,20 +123,21 @@ static inline unsigned long
- csum_partial_cfu_dest_aligned(const unsigned long __user *src,
- 			      unsigned long *dst,
- 			      unsigned long soff,
--			      long len, unsigned long checksum,
--			      int *errp)
-+			      long len)
- {
- 	unsigned long first;
- 	unsigned long word, carry;
- 	unsigned long lastsrc = 7+len+(unsigned long)src;
--	int err = 0;
-+	unsigned long checksum = ~0U;
- 
--	err |= __get_user_u(first,src);
-+	if (__get_word(ldq_u, first,src))
-+		return 0;
- 	carry = 0;
- 	while (len >= 0) {
- 		unsigned long second;
- 
--		err |= __get_user_u(second, src+1);
-+		if (__get_word(ldq_u, second, src+1))
-+			return 0;
- 		extql(first, soff, word);
- 		len -= 8;
- 		src++;
-@@ -168,7 +155,8 @@ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
- 	if (len) {
- 		unsigned long tmp;
- 		unsigned long second;
--		err |= __get_user_u(second, lastsrc);
-+		if (__get_word(ldq_u, second, lastsrc))
-+			return 0;
- 		tmp = *dst;
- 		extql(first, soff, word);
- 		extqh(second, soff, first);
-@@ -180,7 +168,6 @@ csum_partial_cfu_dest_aligned(const unsigned long __user *src,
- 		*dst = word | tmp;
- 		checksum += carry;
- 	}
--	if (err && errp) *errp = err;
- 	return checksum;
- }
- 
-@@ -191,18 +178,18 @@ static inline unsigned long
- csum_partial_cfu_src_aligned(const unsigned long __user *src,
- 			     unsigned long *dst,
- 			     unsigned long doff,
--			     long len, unsigned long checksum,
--			     unsigned long partial_dest,
--			     int *errp)
-+			     long len,
-+			     unsigned long partial_dest)
- {
- 	unsigned long carry = 0;
- 	unsigned long word;
- 	unsigned long second_dest;
--	int err = 0;
-+	unsigned long checksum = ~0U;
- 
- 	mskql(partial_dest, doff, partial_dest);
- 	while (len >= 0) {
--		err |= __get_user(word, src);
-+		if (__get_word(ldq, word, src))
-+			return 0;
- 		len -= 8;
- 		insql(word, doff, second_dest);
- 		checksum += carry;
-@@ -216,7 +203,8 @@ csum_partial_cfu_src_aligned(const unsigned long __user *src,
- 	len += 8;
- 	if (len) {
- 		checksum += carry;
--		err |= __get_user(word, src);
-+		if (__get_word(ldq, word, src))
-+			return 0;
- 		mskql(word, len, word);
- 		len -= 8;
- 		checksum += word;
-@@ -237,7 +225,6 @@ csum_partial_cfu_src_aligned(const unsigned long __user *src,
- 	stq_u(partial_dest | second_dest, dst);
- out:
- 	checksum += carry;
--	if (err && errp) *errp = err;
- 	return checksum;
- }
- 
-@@ -249,23 +236,23 @@ static inline unsigned long
- csum_partial_cfu_unaligned(const unsigned long __user * src,
- 			   unsigned long * dst,
- 			   unsigned long soff, unsigned long doff,
--			   long len, unsigned long checksum,
--			   unsigned long partial_dest,
--			   int *errp)
-+			   long len, unsigned long partial_dest)
- {
- 	unsigned long carry = 0;
- 	unsigned long first;
- 	unsigned long lastsrc;
--	int err = 0;
-+	unsigned long checksum = ~0U;
- 
--	err |= __get_user_u(first, src);
-+	if (__get_word(ldq_u, first, src))
-+		return 0;
- 	lastsrc = 7+len+(unsigned long)src;
- 	mskql(partial_dest, doff, partial_dest);
- 	while (len >= 0) {
- 		unsigned long second, word;
- 		unsigned long second_dest;
- 
--		err |= __get_user_u(second, src+1);
-+		if (__get_word(ldq_u, second, src+1))
-+			return 0;
- 		extql(first, soff, word);
- 		checksum += carry;
- 		len -= 8;
-@@ -286,7 +273,8 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
- 		unsigned long second, word;
- 		unsigned long second_dest;
- 
--		err |= __get_user_u(second, lastsrc);
-+		if (__get_word(ldq_u, second, lastsrc))
-+			return 0;
- 		extql(first, soff, word);
- 		extqh(second, soff, first);
- 		word |= first;
-@@ -307,7 +295,8 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
- 		unsigned long second, word;
- 		unsigned long second_dest;
- 
--		err |= __get_user_u(second, lastsrc);
-+		if (__get_word(ldq_u, second, lastsrc))
-+			return 0;
- 		extql(first, soff, word);
- 		extqh(second, soff, first);
- 		word |= first;
-@@ -320,63 +309,55 @@ csum_partial_cfu_unaligned(const unsigned long __user * src,
- 		stq_u(partial_dest | word | second_dest, dst);
- 		checksum += carry;
- 	}
--	if (err && errp) *errp = err;
- 	return checksum;
- }
- 
--__wsum
--csum_and_copy_from_user(const void __user *src, void *dst, int len)
-+static __wsum __csum_and_copy(const void __user *src, void *dst, int len)
- {
--	unsigned long checksum = ~0U;
- 	unsigned long soff = 7 & (unsigned long) src;
- 	unsigned long doff = 7 & (unsigned long) dst;
--	int err = 0;
--
--	if (len) {
--		if (!access_ok(src, len))
--			return 0;
--		if (!doff) {
--			if (!soff)
--				checksum = csum_partial_cfu_aligned(
--					(const unsigned long __user *) src,
--					(unsigned long *) dst,
--					len-8, checksum, &err);
--			else
--				checksum = csum_partial_cfu_dest_aligned(
--					(const unsigned long __user *) src,
--					(unsigned long *) dst,
--					soff, len-8, checksum, &err);
--		} else {
--			unsigned long partial_dest;
--			ldq_u(partial_dest, dst);
--			if (!soff)
--				checksum = csum_partial_cfu_src_aligned(
--					(const unsigned long __user *) src,
--					(unsigned long *) dst,
--					doff, len-8, checksum,
--					partial_dest, &err);
--			else
--				checksum = csum_partial_cfu_unaligned(
--					(const unsigned long __user *) src,
--					(unsigned long *) dst,
--					soff, doff, len-8, checksum,
--					partial_dest, &err);
--		}
--		checksum = err ? 0 : from64to16 (checksum);
-+	unsigned long checksum;
-+
-+	if (!doff) {
-+		if (!soff)
-+			checksum = csum_partial_cfu_aligned(
-+				(const unsigned long __user *) src,
-+				(unsigned long *) dst, len-8);
-+		else
-+			checksum = csum_partial_cfu_dest_aligned(
-+				(const unsigned long __user *) src,
-+				(unsigned long *) dst,
-+				soff, len-8);
-+	} else {
-+		unsigned long partial_dest;
-+		ldq_u(partial_dest, dst);
-+		if (!soff)
-+			checksum = csum_partial_cfu_src_aligned(
-+				(const unsigned long __user *) src,
-+				(unsigned long *) dst,
-+				doff, len-8, partial_dest);
-+		else
-+			checksum = csum_partial_cfu_unaligned(
-+				(const unsigned long __user *) src,
-+				(unsigned long *) dst,
-+				soff, doff, len-8, partial_dest);
- 	}
--	return (__force __wsum)checksum;
-+	return (__force __wsum)from64to16 (checksum);
-+}
-+
-+__wsum
-+csum_and_copy_from_user(const void __user *src, void *dst, int len)
-+{
-+	if (!access_ok(src, len))
-+		return 0;
-+	return __csum_and_copy(src, dst, len);
- }
- EXPORT_SYMBOL(csum_and_copy_from_user);
- 
- __wsum
- csum_partial_copy_nocheck(const void *src, void *dst, int len)
- {
--	__wsum checksum;
--	mm_segment_t oldfs = get_fs();
--	set_fs(KERNEL_DS);
--	checksum = csum_and_copy_from_user((__force const void __user *)src,
-+	return __csum_and_copy((__force const void __user *)src,
- 						dst, len);
--	set_fs(oldfs);
--	return checksum;
- }
- EXPORT_SYMBOL(csum_partial_copy_nocheck);
--- 
-2.11.0
+
+kernel config:
+https://builds.tuxbuild.com/BsPWKexQQ3JXC2WwDQSoQg/kernel.config
+
+- Naresh
+>
+> Cheers,
+> Nathan
