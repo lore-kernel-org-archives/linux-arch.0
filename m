@@ -1,131 +1,36 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53526 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730639AbgGUUZv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 16:25:51 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 08/18] m68k: get rid of zeroing destination on error in csum_and_copy_from_user()
-Date: Tue, 21 Jul 2020 21:25:39 +0100
-Message-ID: <20200721202549.4150745-8-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
-References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
- <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
+Return-Path: <SRS0=Pkkz=BK=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+From: Steven Sistare <steven.sistare@oracle.com>
+Message-ID: <389f79f9-f1a5-963e-dd05-4d0aaabb5346@oracle.com>
+Date: Fri, 31 Jul 2020 15:41:37 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200721202539.gamxij7JV-30oye2FaR4OTnfOSvApyouOQivh8lFOJE@z>
+Message-ID: <20200731194137.F1fdePFq5W0Sn318ISUL01m1lDKfjq83ZFG9Vvfl-eQ@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On 7/27/2020 1:11 PM, Anthony Yznaga wrote:
+> This patchset adds support for preserving an anonymous memory range across
+> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit for
+> sharing memory in this manner, as opposed to re-attaching to a named shared
+> memory segment, is to ensure it is mapped at the same virtual address in
+> the new process as it was in the old one.  An intended use for this is to
+> preserve guest memory for guests using vfio while qemu exec's an updated
+> version of itself.  By ensuring the memory is preserved at a fixed address,
+> vfio mappings and their associated kernel data structures can remain valid.
+> In addition, for the qemu use case, qemu instances that back guest RAM with
+> anonymous memory can be updated.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/m68k/lib/checksum.c | 79 +++++++++---------------------------------------
- 1 file changed, 15 insertions(+), 64 deletions(-)
+I forgot to mention, our use case is not just theoretical.  It has been implemented
+and is pretty cool (but I am biased).  The pause time for the guest is in the
+100 - 200 msec range.  We submitted qemu patches for review based on the MADV_DOEXEC
+proposal.  In case you are curious:
+  https://lore.kernel.org/qemu-devel/1596122076-341293-1-git-send-email-steven.sistare@oracle.com/
 
-diff --git a/arch/m68k/lib/checksum.c b/arch/m68k/lib/checksum.c
-index 3aeca261f622..7e6afeae6217 100644
---- a/arch/m68k/lib/checksum.c
-+++ b/arch/m68k/lib/checksum.c
-@@ -236,82 +236,33 @@ csum_and_copy_from_user(const void __user *src, void *dst, int len)
- 		"clrl %5\n\t"
- 		"addxl %5,%0\n\t"	/* add X bit */
- 	     "7:\t"
--		"clrl %5\n"		/* no error - clear return value */
--	     "8:\n"
- 		".section .fixup,\"ax\"\n"
- 		".even\n"
--		/* If any exception occurs zero out the rest.
--		   Similarities with the code above are intentional :-) */
-+		/* If any exception occurs, return 0 */
- 	     "90:\t"
--		"clrw %3@+\n\t"
--		"movel %1,%4\n\t"
--		"lsrl #5,%1\n\t"
--		"jeq 1f\n\t"
--		"subql #1,%1\n"
--	     "91:\t"
--		"clrl %3@+\n"
--	     "92:\t"
--		"clrl %3@+\n"
--	     "93:\t"
--		"clrl %3@+\n"
--	     "94:\t"
--		"clrl %3@+\n"
--	     "95:\t"
--		"clrl %3@+\n"
--	     "96:\t"
--		"clrl %3@+\n"
--	     "97:\t"
--		"clrl %3@+\n"
--	     "98:\t"
--		"clrl %3@+\n\t"
--		"dbra %1,91b\n\t"
--		"clrw %1\n\t"
--		"subql #1,%1\n\t"
--		"jcc 91b\n"
--	     "1:\t"
--		"movel %4,%1\n\t"
--		"andw #0x1c,%4\n\t"
--		"jeq 1f\n\t"
--		"lsrw #2,%4\n\t"
--		"subqw #1,%4\n"
--	     "99:\t"
--		"clrl %3@+\n\t"
--		"dbra %4,99b\n\t"
--	     "1:\t"
--		"andw #3,%1\n\t"
--		"jeq 9f\n"
--	     "100:\t"
--		"clrw %3@+\n\t"
--		"tstw %1\n\t"
--		"jeq 9f\n"
--	     "101:\t"
--		"clrb %3@+\n"
--	     "9:\t"
--#define STR(X) STR1(X)
--#define STR1(X) #X
--		"moveq #-" STR(EFAULT) ",%5\n\t"
--		"jra 8b\n"
-+		"clrl %0\n"
-+		"jra 7b\n"
- 		".previous\n"
- 		".section __ex_table,\"a\"\n"
- 		".long 10b,90b\n"
--		".long 11b,91b\n"
--		".long 12b,92b\n"
--		".long 13b,93b\n"
--		".long 14b,94b\n"
--		".long 15b,95b\n"
--		".long 16b,96b\n"
--		".long 17b,97b\n"
--		".long 18b,98b\n"
--		".long 19b,99b\n"
--		".long 20b,100b\n"
--		".long 21b,101b\n"
-+		".long 11b,90b\n"
-+		".long 12b,90b\n"
-+		".long 13b,90b\n"
-+		".long 14b,90b\n"
-+		".long 15b,90b\n"
-+		".long 16b,90b\n"
-+		".long 17b,90b\n"
-+		".long 18b,90b\n"
-+		".long 19b,90b\n"
-+		".long 20b,90b\n"
-+		".long 21b,90b\n"
- 		".previous"
- 		: "=d" (sum), "=d" (len), "=a" (src), "=a" (dst),
- 		  "=&d" (tmp1), "=d" (tmp2)
- 		: "0" (sum), "1" (len), "2" (src), "3" (dst)
- 	    );
- 
--	return tmp2 ? 0 : sum;
-+	return sum;
- }
- 
- EXPORT_SYMBOL(csum_and_copy_from_user);
--- 
-2.11.0
+- Steve
