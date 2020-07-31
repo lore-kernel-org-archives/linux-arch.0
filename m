@@ -1,284 +1,112 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53944 "EHLO
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45726 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727043AbgGQGYX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:23 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 10/22] netfilter/ebtables: clean up compat {get,set}sockopt handling
-Date: Fri, 17 Jul 2020 08:23:19 +0200
-Message-ID: <20200717062331.691152-11-hch@lst.de>
-In-Reply-To: <20200717062331.691152-1-hch@lst.de>
-References: <20200717062331.691152-1-hch@lst.de>
+        with ESMTP id S1726347AbgGaXIc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:08:32 -0400
+Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 65C4EC061757
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:32 -0700 (PDT)
+Received: by mail-pf1-x444.google.com with SMTP id l2so8848216pff.0
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:32 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v5 04/36] x86/boot: Add .text.* to setup.ld
+Date: Fri, 31 Jul 2020 16:07:48 -0700
+Message-ID: <20200731230820.1742553-5-keescook@chromium.org>
+In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
+References: <20200731230820.1742553-1-keescook@chromium.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
-Message-ID: <20200717062319.fJiYOv3ouPLD-Bk0DpIQmorHYxk2UUTXMhLbfJDKq9M@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Ard Biesheuvel <ardb@kernel.org>, Fangrui Song <maskray@google.com>, Sedat Dilek <sedat.dilek@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200731230748.QbsiKj8ji-0BblQr7aQdjO9GZeaENZQ9blQEtw_Hlp0@z>
 
-Merge the native and compat {get,set}sockopt handlers using
-in_compat_syscall().  Note that this required moving a fair
-amout of code around to be done sanely.
+From: Arvind Sankar <nivedita@alum.mit.edu>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+gcc puts the main function into .text.startup when compiled with -Os (or
+-O2). This results in arch/x86/boot/main.c having a .text.startup
+section which is currently not included explicitly in the linker script
+setup.ld in the same directory.
+
+The BFD linker places this orphan section immediately after .text, so
+this still works. However, LLD git, since [1], is choosing to place it
+immediately after the .bstext section instead (this is the first code
+section). This plays havoc with the section layout that setup.elf
+requires to create the setup header, for eg on 64-bit:
+
+    LD      arch/x86/boot/setup.elf
+  ld.lld: error: section .text.startup file range overlaps with .header
+  >>> .text.startup range is [0x200040, 0x2001FE]
+  >>> .header range is [0x2001EF, 0x20026B]
+
+  ld.lld: error: section .header file range overlaps with .bsdata
+  >>> .header range is [0x2001EF, 0x20026B]
+  >>> .bsdata range is [0x2001FF, 0x200398]
+
+  ld.lld: error: section .bsdata file range overlaps with .entrytext
+  >>> .bsdata range is [0x2001FF, 0x200398]
+  >>> .entrytext range is [0x20026C, 0x2002D3]
+
+  ld.lld: error: section .text.startup virtual address range overlaps
+  with .header
+  >>> .text.startup range is [0x40, 0x1FE]
+  >>> .header range is [0x1EF, 0x26B]
+
+  ld.lld: error: section .header virtual address range overlaps with
+  .bsdata
+  >>> .header range is [0x1EF, 0x26B]
+  >>> .bsdata range is [0x1FF, 0x398]
+
+  ld.lld: error: section .bsdata virtual address range overlaps with
+  .entrytext
+  >>> .bsdata range is [0x1FF, 0x398]
+  >>> .entrytext range is [0x26C, 0x2D3]
+
+  ld.lld: error: section .text.startup load address range overlaps with
+  .header
+  >>> .text.startup range is [0x40, 0x1FE]
+  >>> .header range is [0x1EF, 0x26B]
+
+  ld.lld: error: section .header load address range overlaps with
+  .bsdata
+  >>> .header range is [0x1EF, 0x26B]
+  >>> .bsdata range is [0x1FF, 0x398]
+
+  ld.lld: error: section .bsdata load address range overlaps with
+  .entrytext
+  >>> .bsdata range is [0x1FF, 0x398]
+  >>> .entrytext range is [0x26C, 0x2D3]
+
+Add .text.* to the .text output section to fix this, and also prevent
+any future surprises if the compiler decides to create other such
+sections.
+
+[1] https://reviews.llvm.org/D75225
+
+Tested-by: Nick Desaulniers <ndesaulniers@google.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
+Reviewed-by: Fangrui Song <maskray@google.com>
+Tested-by: Sedat Dilek <sedat.dilek@gmail.com>
+Signed-off-by: Arvind Sankar <nivedita@alum.mit.edu>
+Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- net/bridge/netfilter/ebtables.c | 214 +++++++++++++++-----------------
- 1 file changed, 98 insertions(+), 116 deletions(-)
+ arch/x86/boot/setup.ld | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/net/bridge/netfilter/ebtables.c b/net/bridge/netfilter/ebtables.c
-index c83ffe9121639c..fe13108af1f542 100644
---- a/net/bridge/netfilter/ebtables.c
-+++ b/net/bridge/netfilter/ebtables.c
-@@ -1451,86 +1451,6 @@ static int copy_everything_to_user(struct ebt_table *t, void __user *user,
- 	   ebt_entry_to_user, entries, tmp.entries);
- }
+diff --git a/arch/x86/boot/setup.ld b/arch/x86/boot/setup.ld
+index 24c95522f231..49546c247ae2 100644
+--- a/arch/x86/boot/setup.ld
++++ b/arch/x86/boot/setup.ld
+@@ -20,7 +20,7 @@ SECTIONS
+ 	.initdata	: { *(.initdata) }
+ 	__end_init = .;
  
--static int do_ebt_set_ctl(struct sock *sk,
--	int cmd, void __user *user, unsigned int len)
--{
--	int ret;
--	struct net *net = sock_net(sk);
--
--	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
--		return -EPERM;
--
--	switch (cmd) {
--	case EBT_SO_SET_ENTRIES:
--		ret = do_replace(net, user, len);
--		break;
--	case EBT_SO_SET_COUNTERS:
--		ret = update_counters(net, user, len);
--		break;
--	default:
--		ret = -EINVAL;
--	}
--	return ret;
--}
--
--static int do_ebt_get_ctl(struct sock *sk, int cmd, void __user *user, int *len)
--{
--	int ret;
--	struct ebt_replace tmp;
--	struct ebt_table *t;
--	struct net *net = sock_net(sk);
--
--	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
--		return -EPERM;
--
--	if (copy_from_user(&tmp, user, sizeof(tmp)))
--		return -EFAULT;
--
--	tmp.name[sizeof(tmp.name) - 1] = '\0';
--
--	t = find_table_lock(net, tmp.name, &ret, &ebt_mutex);
--	if (!t)
--		return ret;
--
--	switch (cmd) {
--	case EBT_SO_GET_INFO:
--	case EBT_SO_GET_INIT_INFO:
--		if (*len != sizeof(struct ebt_replace)) {
--			ret = -EINVAL;
--			mutex_unlock(&ebt_mutex);
--			break;
--		}
--		if (cmd == EBT_SO_GET_INFO) {
--			tmp.nentries = t->private->nentries;
--			tmp.entries_size = t->private->entries_size;
--			tmp.valid_hooks = t->valid_hooks;
--		} else {
--			tmp.nentries = t->table->nentries;
--			tmp.entries_size = t->table->entries_size;
--			tmp.valid_hooks = t->table->valid_hooks;
--		}
--		mutex_unlock(&ebt_mutex);
--		if (copy_to_user(user, &tmp, *len) != 0) {
--			ret = -EFAULT;
--			break;
--		}
--		ret = 0;
--		break;
--
--	case EBT_SO_GET_ENTRIES:
--	case EBT_SO_GET_INIT_ENTRIES:
--		ret = copy_everything_to_user(t, user, len, cmd);
--		mutex_unlock(&ebt_mutex);
--		break;
--
--	default:
--		mutex_unlock(&ebt_mutex);
--		ret = -EINVAL;
--	}
--
--	return ret;
--}
--
- #ifdef CONFIG_COMPAT
- /* 32 bit-userspace compatibility definitions. */
- struct compat_ebt_replace {
-@@ -2314,28 +2234,6 @@ static int compat_update_counters(struct net *net, void __user *user,
- 					hlp.num_counters, user, len);
- }
+-	.text		: { *(.text) }
++	.text		: { *(.text .text.*) }
+ 	.text32		: { *(.text32) }
  
--static int compat_do_ebt_set_ctl(struct sock *sk,
--		int cmd, void __user *user, unsigned int len)
--{
--	int ret;
--	struct net *net = sock_net(sk);
--
--	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
--		return -EPERM;
--
--	switch (cmd) {
--	case EBT_SO_SET_ENTRIES:
--		ret = compat_do_replace(net, user, len);
--		break;
--	case EBT_SO_SET_COUNTERS:
--		ret = compat_update_counters(net, user, len);
--		break;
--	default:
--		ret = -EINVAL;
--	}
--	return ret;
--}
--
- static int compat_do_ebt_get_ctl(struct sock *sk, int cmd,
- 		void __user *user, int *len)
- {
-@@ -2344,14 +2242,6 @@ static int compat_do_ebt_get_ctl(struct sock *sk, int cmd,
- 	struct ebt_table *t;
- 	struct net *net = sock_net(sk);
- 
--	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
--		return -EPERM;
--
--	/* try real handler in case userland supplied needed padding */
--	if ((cmd == EBT_SO_GET_INFO ||
--	     cmd == EBT_SO_GET_INIT_INFO) && *len != sizeof(tmp))
--			return do_ebt_get_ctl(sk, cmd, user, len);
--
- 	if (copy_from_user(&tmp, user, sizeof(tmp)))
- 		return -EFAULT;
- 
-@@ -2413,20 +2303,112 @@ static int compat_do_ebt_get_ctl(struct sock *sk, int cmd,
- }
- #endif
- 
-+static int do_ebt_get_ctl(struct sock *sk, int cmd, void __user *user, int *len)
-+{
-+	struct net *net = sock_net(sk);
-+	struct ebt_replace tmp;
-+	struct ebt_table *t;
-+	int ret;
-+
-+	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
-+		return -EPERM;
-+
-+#ifdef CONFIG_COMPAT
-+	/* try real handler in case userland supplied needed padding */
-+	if (in_compat_syscall() &&
-+	    ((cmd != EBT_SO_GET_INFO && cmd != EBT_SO_GET_INIT_INFO) ||
-+	     *len != sizeof(tmp)))
-+		return compat_do_ebt_get_ctl(sk, cmd, user, len);
-+#endif
-+
-+	if (copy_from_user(&tmp, user, sizeof(tmp)))
-+		return -EFAULT;
-+
-+	tmp.name[sizeof(tmp.name) - 1] = '\0';
-+
-+	t = find_table_lock(net, tmp.name, &ret, &ebt_mutex);
-+	if (!t)
-+		return ret;
-+
-+	switch (cmd) {
-+	case EBT_SO_GET_INFO:
-+	case EBT_SO_GET_INIT_INFO:
-+		if (*len != sizeof(struct ebt_replace)) {
-+			ret = -EINVAL;
-+			mutex_unlock(&ebt_mutex);
-+			break;
-+		}
-+		if (cmd == EBT_SO_GET_INFO) {
-+			tmp.nentries = t->private->nentries;
-+			tmp.entries_size = t->private->entries_size;
-+			tmp.valid_hooks = t->valid_hooks;
-+		} else {
-+			tmp.nentries = t->table->nentries;
-+			tmp.entries_size = t->table->entries_size;
-+			tmp.valid_hooks = t->table->valid_hooks;
-+		}
-+		mutex_unlock(&ebt_mutex);
-+		if (copy_to_user(user, &tmp, *len) != 0) {
-+			ret = -EFAULT;
-+			break;
-+		}
-+		ret = 0;
-+		break;
-+
-+	case EBT_SO_GET_ENTRIES:
-+	case EBT_SO_GET_INIT_ENTRIES:
-+		ret = copy_everything_to_user(t, user, len, cmd);
-+		mutex_unlock(&ebt_mutex);
-+		break;
-+
-+	default:
-+		mutex_unlock(&ebt_mutex);
-+		ret = -EINVAL;
-+	}
-+
-+	return ret;
-+}
-+
-+static int do_ebt_set_ctl(struct sock *sk, int cmd, void __user *user,
-+		unsigned int len)
-+{
-+	struct net *net = sock_net(sk);
-+	int ret;
-+
-+	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
-+		return -EPERM;
-+
-+	switch (cmd) {
-+	case EBT_SO_SET_ENTRIES:
-+#ifdef CONFIG_COMPAT
-+		if (in_compat_syscall())
-+			ret = compat_do_replace(net, user, len);
-+		else
-+#endif
-+			ret = do_replace(net, user, len);
-+		break;
-+	case EBT_SO_SET_COUNTERS:
-+#ifdef CONFIG_COMPAT
-+		if (in_compat_syscall())
-+			ret = compat_update_counters(net, user, len);
-+		else
-+#endif
-+			ret = update_counters(net, user, len);
-+		break;
-+	default:
-+		ret = -EINVAL;
-+	}
-+	return ret;
-+}
-+
- static struct nf_sockopt_ops ebt_sockopts = {
- 	.pf		= PF_INET,
- 	.set_optmin	= EBT_BASE_CTL,
- 	.set_optmax	= EBT_SO_SET_MAX + 1,
- 	.set		= do_ebt_set_ctl,
--#ifdef CONFIG_COMPAT
--	.compat_set	= compat_do_ebt_set_ctl,
--#endif
- 	.get_optmin	= EBT_BASE_CTL,
- 	.get_optmax	= EBT_SO_GET_MAX + 1,
- 	.get		= do_ebt_get_ctl,
--#ifdef CONFIG_COMPAT
--	.compat_get	= compat_do_ebt_get_ctl,
--#endif
- 	.owner		= THIS_MODULE,
- };
- 
+ 	. = ALIGN(16);
 -- 
-2.27.0
+2.25.1
