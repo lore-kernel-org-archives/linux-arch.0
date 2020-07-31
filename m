@@ -1,113 +1,60 @@
-Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <20200717111349.591934380@infradead.org>
-Date: Fri, 17 Jul 2020 13:10:09 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v2 04/11] sparc32/tlb: Fix __p*_free_tlb()
-References: <20200717111005.024867618@infradead.org>
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45808 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727820AbgGaXIn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:08:43 -0400
+Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2912FC0617A4
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:42 -0700 (PDT)
+Received: by mail-pf1-x441.google.com with SMTP id d188so9129449pfd.2
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:42 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v5 12/36] vmlinux.lds.h: Add .symtab, .strtab, and .shstrtab to ELF_DETAILS
+Date: Fri, 31 Jul 2020 16:07:56 -0700
+Message-ID: <20200731230820.1742553-13-keescook@chromium.org>
+In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
+References: <20200731230820.1742553-1-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200717111009.fWpoK7HU6xLABzO0fkgPf6hHJU5IrmewOAHwoifnfmw@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200731230756.tN4xpNvEH86SylO9p_kgn7qLqru8DcZjklo1MPaJtCA@z>
 
-Just like regular pages, page directories need to observe the
-following order:
+When linking vmlinux with LLD, the synthetic sections .symtab, .strtab,
+and .shstrtab are listed as orphaned. Add them to the ELF_DETAILS section
+so there will be no warnings when --orphan-handling=warn is used more
+widely. (They are added above comment as it is the more common
+order[1].)
 
- 1) unhook
- 2) TLB invalidate
- 3) free
+ld.lld: warning: <internal>:(.symtab) is being placed in '.symtab'
+ld.lld: warning: <internal>:(.shstrtab) is being placed in '.shstrtab'
+ld.lld: warning: <internal>:(.strtab) is being placed in '.strtab'
 
-to ensure it is safe against concurrent accesses.
+[1] https://lore.kernel.org/lkml/20200622224928.o2a7jkq33guxfci4@google.com/
 
-Because Sparc32 has non-page based page directories, use a custom
-table freeer.
-
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reported-by: Fangrui Song <maskray@google.com>
+Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/sparc/Kconfig                  |    1 +
- arch/sparc/include/asm/pgalloc_32.h |    7 +++++--
- arch/sparc/mm/srmmu.c               |   28 ++++++++++++++++++++++++++++
- 3 files changed, 34 insertions(+), 2 deletions(-)
+ include/asm-generic/vmlinux.lds.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -57,6 +57,7 @@ config SPARC32
- 	select CLZ_TAB
- 	select HAVE_UID16
- 	select OLD_SIGACTION
-+	select MMU_GATHER_TABLE_FREE
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 22c9a68c02ae..2593957f6e8b 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -799,7 +799,10 @@
  
- config SPARC64
- 	def_bool 64BIT
---- a/arch/sparc/include/asm/pgalloc_32.h
-+++ b/arch/sparc/include/asm/pgalloc_32.h
-@@ -12,6 +12,9 @@
+ /* Required sections not related to debugging. */
+ #define ELF_DETAILS							\
+-		.comment 0 : { *(.comment) }
++		.comment 0 : { *(.comment) }				\
++		.symtab 0 : { *(.symtab) }				\
++		.strtab 0 : { *(.strtab) }				\
++		.shstrtab 0 : { *(.shstrtab) }
  
- struct page;
- 
-+extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int idx);
-+extern void __tlb_remove_table(void *table);
-+
- void *srmmu_get_nocache(int size, int align);
- void srmmu_free_nocache(void *addr, int size);
- 
-@@ -48,7 +51,7 @@ static inline void free_pmd_fast(pmd_t *
- }
- 
- #define pmd_free(mm, pmd)		free_pmd_fast(pmd)
--#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
-+#define __pmd_free_tlb(tlb, pmd, addr)	pgtable_free_tlb((tlb), (pmd), 1)
- 
- #define pmd_populate(mm, pmd, pte)	pmd_set(pmd, pte)
- #define pmd_pgtable(pmd)		(pgtable_t)__pmd_page(pmd)
-@@ -73,6 +76,6 @@ static inline void free_pte_fast(pte_t *
- #define pte_free_kernel(mm, pte)	free_pte_fast(pte)
- 
- void pte_free(struct mm_struct * mm, pgtable_t pte);
--#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
-+#define __pte_free_tlb(tlb, pte, addr)	pgtable_free_tlb((tlb), (pte), 0)
- 
- #endif /* _SPARC_PGALLOC_H */
---- a/arch/sparc/mm/srmmu.c
-+++ b/arch/sparc/mm/srmmu.c
-@@ -38,6 +38,7 @@
- #include <asm/page.h>
- #include <asm/asi.h>
- #include <asm/smp.h>
-+#include <asm/tlb.h>
- #include <asm/io.h>
- 
- /* Now the cpu specific definitions. */
-@@ -1831,3 +1832,30 @@ void __init load_mmu(void)
- 		sun4m_init_smp();
- #endif
- }
-+
-+#define TLB_IDX_MASK	1UL
-+
-+void __tlb_remove_table(void *table)
-+{
-+	void *dir = (void *)((unsigned long)table & ~TLB_IDX_MASK);
-+	int idx = (unsigned long)table & TLB_IDX_MASK;
-+
-+	switch (idx) {
-+	case 1: /* PMD */
-+		pmd_free(NULL, dir);
-+		break;
-+	case 0: /* PTE */
-+		pte_free(NULL, dir);
-+		break;
-+	}
-+}
-+
-+void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int idx)
-+{
-+	unsigned long pgf = (unsigned long)table;
-+	BUG_ON(idx > TLB_IDX_MASK);
-+	BUG_ON(pgf & TLB_IDX_MASK);
-+	pgf |= idx;
-+	tlb_remove_table(tlb, (void *)pgf);
-+}
-+
+ #ifdef CONFIG_GENERIC_BUG
+ #define BUG_TABLE							\
+-- 
+2.25.1
