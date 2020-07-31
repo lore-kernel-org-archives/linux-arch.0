@@ -1,42 +1,43 @@
-Return-Path: <SRS0=Cqrn=BI=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:46923 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729819AbgG2AAf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jul 2020 20:00:35 -0400
-Received: by mail-pf1-f194.google.com with SMTP id 74so3701063pfx.13
-        for <linux-arch@vger.kernel.org>; Tue, 28 Jul 2020 17:00:35 -0700 (PDT)
-Date: Wed, 29 Jul 2020 00:00:30 +0000
-From: Luis Chamberlain <mcgrof@kernel.org>
-Subject: Re: Add and use a generic version of devmem_is_allowed()
-Message-ID: <20200729000030.GI4332@42.do-not-panic.com>
-References: <20200709211925.1926557-1-palmer@dabbelt.com>
+Return-Path: <SRS0=Pkkz=BK=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+References: <20200730152250.GG23808@casper.infradead.org>
+ <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
+ <20200730171251.GI23808@casper.infradead.org>
+ <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
+ <20200730174956.GK23808@casper.infradead.org>
+ <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
+ <87y2n03brx.fsf@x220.int.ebiederm.org>
+ <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
+ <20200731152736.GP23808@casper.infradead.org>
+ <9ba26063-0098-e796-9431-8c1d0c076ffc@oracle.com>
+ <20200731165649.GG24045@ziepe.ca>
+From: Steven Sistare <steven.sistare@oracle.com>
+Message-ID: <71ddd3c1-bb59-3e63-e137-99b88ace454d@oracle.com>
+Date: Fri, 31 Jul 2020 13:15:34 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200709211925.1926557-1-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200731165649.GG24045@ziepe.ca>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Jason Gunthorpe <jgg@ziepe.ca>
+Cc: Matthew Wilcox <willy@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: zong.li@sifive.com, linux-riscv@lists.infradead.org, rppt@linux.ibm.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, linus.walleij@linaro.org, akpm@linux-foundation.org, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, steve@sk2.org, tglx@linutronix.de, keescook@chromium.org, alex@ghiti.fr, mark.rutland@arm.com, james.morse@arm.com, alex.shi@linux.alibaba.com, andriy.shevchenko@linux.intel.com, broonie@kernel.org, rdunlap@infradead.org, davem@davemloft.net, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, krzk@kernel.org, zaslonko@linux.ibm.com, matti.vaittinen@fi.rohmeurope.com, uwe@kleine-koenig.org, clabbe@baylibre.com, changbin.du@intel.com, Greg KH <gregkh@linuxfoundation.org>, paulmck@kernel.org, pmladek@suse.com, brendanhiggins@google.com, glider@google.com, elver@google.com, davidgow@google.com, ardb@kernel.org, takahiro.akashi@linaro.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com
-Message-ID: <20200729000030.ArSytGeLWXAA0ycsah8TjEZ334FjMt13QfaXAN13Blk@z>
+Message-ID: <20200731171534.IbuQbcEpC2Y2SkiEIzLBrB9IAnAg3OHNWu9GS-JqpZU@z>
 
-On Thu, Jul 09, 2020 at 02:19:20PM -0700, Palmer Dabbelt wrote:
-> As part of adding STRICT_DEVMEM support to the RISC-V port, Zong provided an
-> implementation of devmem_is_allowed() that's exactly the same as the version in
-> a handful of other ports.  Rather than duplicate code, I've put a generic
-> version of this in lib/ and used it for the RISC-V port.
+On 7/31/2020 12:56 PM, Jason Gunthorpe wrote:
+> On Fri, Jul 31, 2020 at 12:11:52PM -0400, Steven Sistare wrote:
+>>> Your preservation-across-exec use-case might or might not need the
+>>> VMA to be mapped at the same address.  
+>>
+>> It does.  qemu registers memory with vfio which remembers the va's in kernel
+>> metadata for the device.
 > 
-> I've put those first two patches on riscv/for-next, which I'm targeting for 5.9
-> (though this is the first version, so they're unreviewed).  The other three
-> obviously depend on the first one going on, but I'm not putting them in the
-> RISC-V tree as I don't want to step on anyone's toes.  If you want me to take
-> yours along with the others then please say something, as otherwise I'll
-> probably forget.
-> 
-> I've put the whole thing at
-> ssh://gitolite.kernel.org/pub/scm/linux/kernel/git/palmer/linux.git -b
-> generic-devmem .
+> Once the memory is registered with vfio the VA doesn't matter, vfio
+> will keep the iommu pointing at the same physical pages no matter
+> where they are mapped.
 
-Reviewed-by: Luis Chamberlain <mcgrof@kernel.org>
+Yes, but there are other code paths that compute and use offsets between va and the
+base va.  Mapping at a different va in the new process breaks vfio; I have tried it.
 
-  Luis
+- Steve
