@@ -1,334 +1,179 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53526 "EHLO
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45740 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730874AbgGUUZx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 16:25:53 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 10/18] i386: propagate the calling conventions change down to csum_partial_copy_generic()
-Date: Tue, 21 Jul 2020 21:25:41 +0100
-Message-ID: <20200721202549.4150745-10-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
-References: <20200721202425.GA2786714@ZenIV.linux.org.uk>
- <20200721202549.4150745-1-viro@ZenIV.linux.org.uk>
+        with ESMTP id S1726976AbgGaXIe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:08:34 -0400
+Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 72DA8C061756
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:34 -0700 (PDT)
+Received: by mail-pl1-x644.google.com with SMTP id bh1so5001615plb.12
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:34 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v5 00/36] Warn on orphan section placement
+Date: Fri, 31 Jul 2020 16:07:44 -0700
+Message-ID: <20200731230820.1742553-1-keescook@chromium.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200721202541.sERxxV9urw4BnZ4IjDJmx-Rhyz1-GZbtbpvO-dYsmvE@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200731230744.E61w7G8-hdJHhKnXHuuMtEgPR1h3CtQRzJFtNrLKAJM@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=linker/orphans/warn/v5
 
-... and don't bother zeroing destination on error
+v5:
+- rebase from -rc2 to -rc7 to avoid build failures on Clang vs binutils
+- include Arvind's GOT fix-up series[3], since it touches many similar areas
+- add PGO/AutoFDO section patch[4]
+- split up x86 and arm changes into more digestable steps
+- move several sections out of DISCARD and into zero-size asserts
+- introduce COMMON_DISCARDS to improve ARM's linker scripts
+v4: https://lore.kernel.org/lkml/20200629061840.4065483-1-keescook@chromium.org/
+v3: https://lore.kernel.org/lkml/20200624014940.1204448-1-keescook@chromium.org/
+v2: https://lore.kernel.org/lkml/20200622205815.2988115-1-keescook@chromium.org/
+v1: https://lore.kernel.org/lkml/20200228002244.15240-1-keescook@chromium.org/
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/x86/include/asm/checksum_32.h |  18 ++----
- arch/x86/lib/checksum_32.S         | 117 +++++++++++++------------------------
- 2 files changed, 47 insertions(+), 88 deletions(-)
+A recent bug[1] was solved for builds linked with ld.lld, and tracking
+it down took way longer than it needed to (a year). Ultimately, it
+boiled down to differences between ld.bfd and ld.lld's handling of
+orphan sections. Similar situation have continued to recur, and it's
+clear the kernel build needs to be much more explicit about linker
+sections. Similarly, the recent FGKASLR series brought up orphan section
+handling too[2]. In all cases, it would have been nice if the linker was
+running with --orphan-handling=warn so that surprise sections wouldn't
+silently get mapped into the kernel image at locations up to the whim
+of the linker's orphan handling logic. Instead, all desired sections
+should be explicitly identified in the linker script (to be either kept,
+discarded, or verified to be zero-sized) with any orphans throwing a
+warning. The powerpc architecture has actually been doing this for some
+time, so this series just extends that coverage to x86, arm, and arm64.
 
-diff --git a/arch/x86/include/asm/checksum_32.h b/arch/x86/include/asm/checksum_32.h
-index 5948cde9e4ad..17da95387997 100644
---- a/arch/x86/include/asm/checksum_32.h
-+++ b/arch/x86/include/asm/checksum_32.h
-@@ -27,9 +27,7 @@ asmlinkage __wsum csum_partial(const void *buff, int len, __wsum sum);
-  * better 64-bit) boundary
-  */
- 
--asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
--					    int len, __wsum sum,
--					    int *src_err_ptr, int *dst_err_ptr);
-+asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst, int len);
- 
- /*
-  *	Note: when you get a NULL pointer exception here this means someone
-@@ -40,23 +38,21 @@ asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
-  */
- static inline __wsum csum_partial_copy_nocheck(const void *src, void *dst, int len)
- {
--	return csum_partial_copy_generic(src, dst, len, 0, NULL, NULL);
-+	return csum_partial_copy_generic(src, dst, len);
- }
- 
- static inline __wsum csum_and_copy_from_user(const void __user *src,
- 					     void *dst, int len)
- {
- 	__wsum ret;
--	int err = 0;
- 
- 	might_sleep();
- 	if (!user_access_begin(src, len))
- 		return 0;
--	ret = csum_partial_copy_generic((__force void *)src, dst,
--					len, ~0U, &err, NULL);
-+	ret = csum_partial_copy_generic((__force void *)src, dst, len);
- 	user_access_end();
- 
--	return err ? 0 : ret;
-+	return ret;
- }
- 
- /*
-@@ -177,16 +173,14 @@ static inline __wsum csum_and_copy_to_user(const void *src,
- 					   int len)
- {
- 	__wsum ret;
--	int err = 0;
- 
- 	might_sleep();
- 	if (!user_access_begin(dst, len))
- 		return 0;
- 
--	ret = csum_partial_copy_generic(src, (__force void *)dst,
--					len, ~0U, NULL, &err);
-+	ret = csum_partial_copy_generic(src, (__force void *)dst, len);
- 	user_access_end();
--	return err ? 0 : ret;
-+	return ret;
- }
- 
- #endif /* _ASM_X86_CHECKSUM_32_H */
-diff --git a/arch/x86/lib/checksum_32.S b/arch/x86/lib/checksum_32.S
-index d1d768912368..4304320e51f4 100644
---- a/arch/x86/lib/checksum_32.S
-+++ b/arch/x86/lib/checksum_32.S
-@@ -253,28 +253,17 @@ EXPORT_SYMBOL(csum_partial)
- 
- /*
- unsigned int csum_partial_copy_generic (const char *src, char *dst,
--				  int len, int sum, int *src_err_ptr, int *dst_err_ptr)
-+				  int len)
-  */ 
- 
- /*
-  * Copy from ds while checksumming, otherwise like csum_partial
-- *
-- * The macros SRC and DST specify the type of access for the instruction.
-- * thus we can call a custom exception handler for all access types.
-- *
-- * FIXME: could someone double-check whether I haven't mixed up some SRC and
-- *	  DST definitions? It's damn hard to trigger all cases.  I hope I got
-- *	  them all but there's no guarantee.
-  */
- 
--#define SRC(y...)			\
-+#define EXC(y...)			\
- 	9999: y;			\
- 	_ASM_EXTABLE_UA(9999b, 6001f)
- 
--#define DST(y...)			\
--	9999: y;			\
--	_ASM_EXTABLE_UA(9999b, 6002f)
--
- #ifndef CONFIG_X86_USE_PPRO_CHECKSUM
- 
- #define ARGBASE 16		
-@@ -285,20 +274,20 @@ SYM_FUNC_START(csum_partial_copy_generic)
- 	pushl %edi
- 	pushl %esi
- 	pushl %ebx
--	movl ARGBASE+16(%esp),%eax	# sum
- 	movl ARGBASE+12(%esp),%ecx	# len
- 	movl ARGBASE+4(%esp),%esi	# src
- 	movl ARGBASE+8(%esp),%edi	# dst
- 
-+	movl $-1, %eax			# sum
- 	testl $2, %edi			# Check alignment. 
- 	jz 2f				# Jump if alignment is ok.
- 	subl $2, %ecx			# Alignment uses up two bytes.
- 	jae 1f				# Jump if we had at least two bytes.
- 	addl $2, %ecx			# ecx was < 2.  Deal with it.
- 	jmp 4f
--SRC(1:	movw (%esi), %bx	)
-+EXC(1:	movw (%esi), %bx	)
- 	addl $2, %esi
--DST(	movw %bx, (%edi)	)
-+EXC(	movw %bx, (%edi)	)
- 	addl $2, %edi
- 	addw %bx, %ax	
- 	adcl $0, %eax
-@@ -306,34 +295,34 @@ DST(	movw %bx, (%edi)	)
- 	movl %ecx, FP(%esp)
- 	shrl $5, %ecx
- 	jz 2f
--	testl %esi, %esi
--SRC(1:	movl (%esi), %ebx	)
--SRC(	movl 4(%esi), %edx	)
-+	testl %esi, %esi		# what's wrong with clc?
-+EXC(1:	movl (%esi), %ebx	)
-+EXC(	movl 4(%esi), %edx	)
- 	adcl %ebx, %eax
--DST(	movl %ebx, (%edi)	)
-+EXC(	movl %ebx, (%edi)	)
- 	adcl %edx, %eax
--DST(	movl %edx, 4(%edi)	)
-+EXC(	movl %edx, 4(%edi)	)
- 
--SRC(	movl 8(%esi), %ebx	)
--SRC(	movl 12(%esi), %edx	)
-+EXC(	movl 8(%esi), %ebx	)
-+EXC(	movl 12(%esi), %edx	)
- 	adcl %ebx, %eax
--DST(	movl %ebx, 8(%edi)	)
-+EXC(	movl %ebx, 8(%edi)	)
- 	adcl %edx, %eax
--DST(	movl %edx, 12(%edi)	)
-+EXC(	movl %edx, 12(%edi)	)
- 
--SRC(	movl 16(%esi), %ebx 	)
--SRC(	movl 20(%esi), %edx	)
-+EXC(	movl 16(%esi), %ebx 	)
-+EXC(	movl 20(%esi), %edx	)
- 	adcl %ebx, %eax
--DST(	movl %ebx, 16(%edi)	)
-+EXC(	movl %ebx, 16(%edi)	)
- 	adcl %edx, %eax
--DST(	movl %edx, 20(%edi)	)
-+EXC(	movl %edx, 20(%edi)	)
- 
--SRC(	movl 24(%esi), %ebx	)
--SRC(	movl 28(%esi), %edx	)
-+EXC(	movl 24(%esi), %ebx	)
-+EXC(	movl 28(%esi), %edx	)
- 	adcl %ebx, %eax
--DST(	movl %ebx, 24(%edi)	)
-+EXC(	movl %ebx, 24(%edi)	)
- 	adcl %edx, %eax
--DST(	movl %edx, 28(%edi)	)
-+EXC(	movl %edx, 28(%edi)	)
- 
- 	lea 32(%esi), %esi
- 	lea 32(%edi), %edi
-@@ -345,9 +334,9 @@ DST(	movl %edx, 28(%edi)	)
- 	andl $0x1c, %edx
- 	je 4f
- 	shrl $2, %edx			# This clears CF
--SRC(3:	movl (%esi), %ebx	)
-+EXC(3:	movl (%esi), %ebx	)
- 	adcl %ebx, %eax
--DST(	movl %ebx, (%edi)	)
-+EXC(	movl %ebx, (%edi)	)
- 	lea 4(%esi), %esi
- 	lea 4(%edi), %edi
- 	dec %edx
-@@ -357,39 +346,24 @@ DST(	movl %ebx, (%edi)	)
- 	jz 7f
- 	cmpl $2, %ecx
- 	jb 5f
--SRC(	movw (%esi), %cx	)
-+EXC(	movw (%esi), %cx	)
- 	leal 2(%esi), %esi
--DST(	movw %cx, (%edi)	)
-+EXC(	movw %cx, (%edi)	)
- 	leal 2(%edi), %edi
- 	je 6f
- 	shll $16,%ecx
--SRC(5:	movb (%esi), %cl	)
--DST(	movb %cl, (%edi)	)
-+EXC(5:	movb (%esi), %cl	)
-+EXC(	movb %cl, (%edi)	)
- 6:	addl %ecx, %eax
- 	adcl $0, %eax
- 7:
--5000:
- 
- # Exception handler:
- .section .fixup, "ax"							
- 
- 6001:
--	movl ARGBASE+20(%esp), %ebx	# src_err_ptr
--	movl $-EFAULT, (%ebx)
--
--	# zero the complete destination - computing the rest
--	# is too much work 
--	movl ARGBASE+8(%esp), %edi	# dst
--	movl ARGBASE+12(%esp), %ecx	# len
--	xorl %eax,%eax
--	rep ; stosb
--
--	jmp 5000b
--
--6002:
--	movl ARGBASE+24(%esp), %ebx	# dst_err_ptr
--	movl $-EFAULT,(%ebx)
--	jmp 5000b
-+	xorl %eax, %eax
-+	jmp 7b
- 
- .previous
- 
-@@ -405,14 +379,14 @@ SYM_FUNC_END(csum_partial_copy_generic)
- /* Version for PentiumII/PPro */
- 
- #define ROUND1(x) \
--	SRC(movl x(%esi), %ebx	)	;	\
-+	EXC(movl x(%esi), %ebx	)	;	\
- 	addl %ebx, %eax			;	\
--	DST(movl %ebx, x(%edi)	)	; 
-+	EXC(movl %ebx, x(%edi)	)	;
- 
- #define ROUND(x) \
--	SRC(movl x(%esi), %ebx	)	;	\
-+	EXC(movl x(%esi), %ebx	)	;	\
- 	adcl %ebx, %eax			;	\
--	DST(movl %ebx, x(%edi)	)	;
-+	EXC(movl %ebx, x(%edi)	)	;
- 
- #define ARGBASE 12
- 		
-@@ -423,7 +397,7 @@ SYM_FUNC_START(csum_partial_copy_generic)
- 	movl ARGBASE+4(%esp),%esi	#src
- 	movl ARGBASE+8(%esp),%edi	#dst	
- 	movl ARGBASE+12(%esp),%ecx	#len
--	movl ARGBASE+16(%esp),%eax	#sum
-+	movl $-1, %eax			#sum
- #	movl %ecx, %edx  
- 	movl %ecx, %ebx  
- 	movl %esi, %edx
-@@ -439,7 +413,7 @@ SYM_FUNC_START(csum_partial_copy_generic)
- 	JMP_NOSPEC ebx
- 1:	addl $64,%esi
- 	addl $64,%edi 
--	SRC(movb -32(%edx),%bl)	; SRC(movb (%edx),%bl)
-+	EXC(movb -32(%edx),%bl)	; EXC(movb (%edx),%bl)
- 	ROUND1(-64) ROUND(-60) ROUND(-56) ROUND(-52)	
- 	ROUND (-48) ROUND(-44) ROUND(-40) ROUND(-36)	
- 	ROUND (-32) ROUND(-28) ROUND(-24) ROUND(-20)	
-@@ -453,29 +427,20 @@ SYM_FUNC_START(csum_partial_copy_generic)
- 	jz 7f
- 	cmpl $2, %edx
- 	jb 5f
--SRC(	movw (%esi), %dx         )
-+EXC(	movw (%esi), %dx         )
- 	leal 2(%esi), %esi
--DST(	movw %dx, (%edi)         )
-+EXC(	movw %dx, (%edi)         )
- 	leal 2(%edi), %edi
- 	je 6f
- 	shll $16,%edx
- 5:
--SRC(	movb (%esi), %dl         )
--DST(	movb %dl, (%edi)         )
-+EXC(	movb (%esi), %dl         )
-+EXC(	movb %dl, (%edi)         )
- 6:	addl %edx, %eax
- 	adcl $0, %eax
- 7:
- .section .fixup, "ax"
--6001:	movl	ARGBASE+20(%esp), %ebx	# src_err_ptr	
--	movl $-EFAULT, (%ebx)
--	# zero the complete destination (computing the rest is too much work)
--	movl ARGBASE+8(%esp),%edi	# dst
--	movl ARGBASE+12(%esp),%ecx	# len
--	xorl %eax,%eax
--	rep; stosb
--	jmp 7b
--6002:	movl ARGBASE+24(%esp), %ebx	# dst_err_ptr
--	movl $-EFAULT, (%ebx)
-+6001:	xorl %eax, %eax
- 	jmp  7b			
- .previous				
- 
+This has gotten sucecssful build testing under the following matrix:
+
+compiler/linker: gcc+ld.bfd, clang+ld.lld
+targets: defconfig, allmodconfig
+architectures: x86, i386, arm64, arm
+versions: v5.8-rc7, next-20200731 (with various build fixes[7][8])
+
+Two known-failure exceptions (unchanged by this series) being:
+- clang+arm/arm64 needs CONFIG_CPU_BIG_ENDIAN=n to pass allmodconfig[5]
+- clang+i386 only builds in -next, which was recently fixed[6]
+
+All three architectures depend on the first several commits to
+vmlinux.lds.h. x86 depends on Arvind's GOT series[3], so I collected it
+into this version of my series, as it hadn't been taken into -tip yet.
+arm64 depends on the efi/libstub patch. As such, I'd like to land this
+series as a whole. Given that two thirds of it is in the arm universe,
+perhaps this can land via the arm64 tree? If x86 -tip is preferred, that
+works too. If I don't hear otherwise, I will just carry this myself in
+-next. In all cases, I would really appreciate reviews/acks/etc. :)
+
+Thanks!
+
+-Kees
+
+[1] https://github.com/ClangBuiltLinux/linux/issues/282
+[2] https://lore.kernel.org/lkml/202002242122.AA4D1B8@keescook/
+[3] https://lore.kernel.org/lkml/20200715004133.1430068-1-nivedita@alum.mit.edu/
+[4] https://lore.kernel.org/lkml/20200625184752.73095-1-ndesaulniers@google.com/
+[5] https://github.com/ClangBuiltLinux/linux/issues/1071
+[6] https://github.com/ClangBuiltLinux/linux/issues/194
+[7] https://lore.kernel.org/lkml/1596166744-2954-2-git-send-email-neal.liu@mediatek.com/
+[8] https://lore.kernel.org/lkml/82f750c4-d423-1ed8-a158-e75153745e07@huawei.com/
+
+
+Ard Biesheuvel (3):
+  x86/boot/compressed: Move .got.plt entries out of the .got section
+  x86/boot/compressed: Force hidden visibility for all symbol references
+  x86/boot/compressed: Get rid of GOT fixup code
+
+Arvind Sankar (4):
+  x86/boot: Add .text.* to setup.ld
+  x86/boot: Remove run-time relocations from .head.text code
+  x86/boot: Remove run-time relocations from head_{32,64}.S
+  x86/boot: Check that there are no run-time relocations
+
+Kees Cook (28):
+  vmlinux.lds.h: Create COMMON_DISCARDS
+  vmlinux.lds.h: Add .gnu.version* to COMMON_DISCARDS
+  vmlinux.lds.h: Avoid KASAN and KCSAN's unwanted sections
+  vmlinux.lds.h: Split ELF_DETAILS from STABS_DEBUG
+  vmlinux.lds.h: Add .symtab, .strtab, and .shstrtab to ELF_DETAILS
+  efi/libstub: Disable -mbranch-protection
+  arm64/mm: Remove needless section quotes
+  arm64/kernel: Remove needless Call Frame Information annotations
+  arm64/build: Remove .eh_frame* sections due to unwind tables
+  arm64/build: Use common DISCARDS in linker script
+  arm64/build: Add missing DWARF sections
+  arm64/build: Assert for unwanted sections
+  arm64/build: Warn on orphan section placement
+  arm/build: Refactor linker script headers
+  arm/build: Explicitly keep .ARM.attributes sections
+  arm/build: Add missing sections
+  arm/build: Warn on orphan section placement
+  arm/boot: Handle all sections explicitly
+  arm/boot: Warn on orphan section placement
+  x86/asm: Avoid generating unused kprobe sections
+  x86/build: Enforce an empty .got.plt section
+  x86/build: Assert for unwanted sections
+  x86/build: Warn on orphan section placement
+  x86/boot/compressed: Reorganize zero-size section asserts
+  x86/boot/compressed: Remove, discard, or assert for unwanted sections
+  x86/boot/compressed: Add missing debugging sections to output
+  x86/boot/compressed: Warn on orphan section placement
+  arm/build: Assert for unwanted sections
+
+Nick Desaulniers (1):
+  vmlinux.lds.h: add PGO and AutoFDO input sections
+
+ arch/alpha/kernel/vmlinux.lds.S               |   1 +
+ arch/arc/kernel/vmlinux.lds.S                 |   1 +
+ arch/arm/Makefile                             |   4 +
+ arch/arm/boot/compressed/Makefile             |   2 +
+ arch/arm/boot/compressed/vmlinux.lds.S        |  20 +--
+ .../arm/{kernel => include/asm}/vmlinux.lds.h |  29 ++-
+ arch/arm/kernel/vmlinux-xip.lds.S             |   8 +-
+ arch/arm/kernel/vmlinux.lds.S                 |   8 +-
+ arch/arm64/Makefile                           |   9 +-
+ arch/arm64/kernel/smccc-call.S                |   2 -
+ arch/arm64/kernel/vmlinux.lds.S               |  28 ++-
+ arch/arm64/mm/mmu.c                           |   2 +-
+ arch/csky/kernel/vmlinux.lds.S                |   1 +
+ arch/hexagon/kernel/vmlinux.lds.S             |   1 +
+ arch/ia64/kernel/vmlinux.lds.S                |   1 +
+ arch/mips/kernel/vmlinux.lds.S                |   1 +
+ arch/nds32/kernel/vmlinux.lds.S               |   1 +
+ arch/nios2/kernel/vmlinux.lds.S               |   1 +
+ arch/openrisc/kernel/vmlinux.lds.S            |   1 +
+ arch/parisc/boot/compressed/vmlinux.lds.S     |   1 +
+ arch/parisc/kernel/vmlinux.lds.S              |   1 +
+ arch/powerpc/kernel/vmlinux.lds.S             |   2 +-
+ arch/riscv/kernel/vmlinux.lds.S               |   1 +
+ arch/s390/kernel/vmlinux.lds.S                |   1 +
+ arch/sh/kernel/vmlinux.lds.S                  |   1 +
+ arch/sparc/kernel/vmlinux.lds.S               |   1 +
+ arch/um/kernel/dyn.lds.S                      |   2 +-
+ arch/um/kernel/uml.lds.S                      |   2 +-
+ arch/unicore32/kernel/vmlinux.lds.S           |   1 +
+ arch/x86/Makefile                             |   4 +
+ arch/x86/boot/compressed/Makefile             |  41 +----
+ arch/x86/boot/compressed/head_32.S            |  99 ++++-------
+ arch/x86/boot/compressed/head_64.S            | 165 +++++++-----------
+ arch/x86/boot/compressed/mkpiggy.c            |   6 +
+ arch/x86/boot/compressed/vmlinux.lds.S        |  48 ++++-
+ arch/x86/boot/setup.ld                        |   2 +-
+ arch/x86/include/asm/asm.h                    |   6 +-
+ arch/x86/kernel/vmlinux.lds.S                 |  39 ++++-
+ drivers/firmware/efi/libstub/Makefile         |  11 +-
+ drivers/firmware/efi/libstub/hidden.h         |   6 -
+ include/asm-generic/vmlinux.lds.h             |  49 +++++-
+ include/linux/hidden.h                        |  19 ++
+ 42 files changed, 377 insertions(+), 252 deletions(-)
+ rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (84%)
+ delete mode 100644 drivers/firmware/efi/libstub/hidden.h
+ create mode 100644 include/linux/hidden.h
+
 -- 
-2.11.0
+2.25.1
