@@ -1,7 +1,7 @@
-From: Jason Gunthorpe <jgg@ziepe.ca>
+From: Steven Sistare <steven.sistare@oracle.com>
 Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-Date: Fri, 31 Jul 2020 13:56:49 -0300
-Message-ID: <20200731165649.GG24045@ziepe.ca>
+Date: Fri, 31 Jul 2020 13:15:34 -0400
+Message-ID: <71ddd3c1-bb59-3e63-e137-99b88ace454d@oracle.com>
 References: <20200730152250.GG23808@casper.infradead.org>
  <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
  <20200730171251.GI23808@casper.infradead.org>
@@ -12,25 +12,31 @@ References: <20200730152250.GG23808@casper.infradead.org>
  <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
  <20200731152736.GP23808@casper.infradead.org>
  <9ba26063-0098-e796-9431-8c1d0c076ffc@oracle.com>
+ <20200731165649.GG24045@ziepe.ca>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <9ba26063-0098-e796-9431-8c1d0c076ffc@oracle.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Sistare <steven.sistare@oracle.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
+In-Reply-To: <20200731165649.GG24045@ziepe.ca>
+Content-Language: en-US
+Sender: linux-fsdevel-owner@vger.kernel.org
+To: Jason Gunthorpe <jgg@ziepe.ca>
 Cc: Matthew Wilcox <willy@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 31, 2020 at 12:11:52PM -0400, Steven Sistare wrote:
-> > Your preservation-across-exec use-case might or might not need the
-> > VMA to be mapped at the same address.  
+On 7/31/2020 12:56 PM, Jason Gunthorpe wrote:
+> On Fri, Jul 31, 2020 at 12:11:52PM -0400, Steven Sistare wrote:
+>>> Your preservation-across-exec use-case might or might not need the
+>>> VMA to be mapped at the same address.  
+>>
+>> It does.  qemu registers memory with vfio which remembers the va's in kernel
+>> metadata for the device.
 > 
-> It does.  qemu registers memory with vfio which remembers the va's in kernel
-> metadata for the device.
+> Once the memory is registered with vfio the VA doesn't matter, vfio
+> will keep the iommu pointing at the same physical pages no matter
+> where they are mapped.
 
-Once the memory is registered with vfio the VA doesn't matter, vfio
-will keep the iommu pointing at the same physical pages no matter
-where they are mapped.
+Yes, but there are other code paths that compute and use offsets between va and the
+base va.  Mapping at a different va in the new process breaks vfio; I have tried it.
 
-Jason
+- Steve
