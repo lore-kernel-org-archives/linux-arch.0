@@ -1,28 +1,80 @@
-Return-Path: <SRS0=C7+S=A7=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:45446 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725805AbgGTGKt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Jul 2020 02:10:49 -0400
-Date: Mon, 20 Jul 2020 08:10:46 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: io_uring vs in_compat_syscall()
-Message-ID: <20200720061046.GA10678@lst.de>
+Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47344 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727871AbgGaXST (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:18:19 -0400
+Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2DA2AC0617A0
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:18:19 -0700 (PDT)
+Received: by mail-pj1-x1043.google.com with SMTP id lx9so8528935pjb.2
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:18:19 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v5 23/36] arm/build: Explicitly keep .ARM.attributes sections
+Date: Fri, 31 Jul 2020 16:08:07 -0700
+Message-ID: <20200731230820.1742553-24-keescook@chromium.org>
+In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
+References: <20200731230820.1742553-1-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <axboe@kernel.dk>
-Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org
-Message-ID: <20200720061046.MXflEx-26Y1ovM7Mk1xLsAvrJJ28kX_wZSyuYnzIDuM@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200731230807.rKrb8vYMWGbVfTjFqLd9uVBPyQ-3W02IYX-K_f_DG9A@z>
 
-Hi Jens,
+In preparation for adding --orphan-handling=warn, explicitly keep the
+.ARM.attributes section by expanding the existing ELF_DETAILS macro into
+ARM_DETAILS.
 
-I just found a (so far theoretical) issue with the io_uring submission
-offloading to workqueues or threads.  We have lots of places using
-in_compat_syscall() to check if a syscall needs compat treatmenet.
-While the biggest users is iocttl(), we also have a fair amount of
-places using in_compat_task() in read and write methods, and these
-will not do the wrong thing when used with io_uring under certain
-conditions.  I'm not sure how to best fix this, except for making sure
-in_compat_syscall() returns true one way or another for these cases.
+Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
+Link: https://lore.kernel.org/lkml/CAKwvOdk-racgq5pxsoGS6Vtifbtrk5fmkmnoLxrQMaOvV0nPWw@mail.gmail.com/
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm/include/asm/vmlinux.lds.h | 4 ++++
+ arch/arm/kernel/vmlinux-xip.lds.S  | 2 +-
+ arch/arm/kernel/vmlinux.lds.S      | 2 +-
+ 3 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/include/asm/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
+index a08f4301b718..c4af5182ab48 100644
+--- a/arch/arm/include/asm/vmlinux.lds.h
++++ b/arch/arm/include/asm/vmlinux.lds.h
+@@ -52,6 +52,10 @@
+ 		ARM_MMU_DISCARD(*(__ex_table))				\
+ 		COMMON_DISCARDS
+ 
++#define ARM_DETAILS							\
++		ELF_DETAILS						\
++		.ARM.attributes 0 : { *(.ARM.attributes) }
++
+ #define ARM_STUBS_TEXT							\
+ 		*(.gnu.warning)						\
+ 		*(.glue_7)						\
+diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
+index 904c31fa20ed..57fcbf55f913 100644
+--- a/arch/arm/kernel/vmlinux-xip.lds.S
++++ b/arch/arm/kernel/vmlinux-xip.lds.S
+@@ -150,7 +150,7 @@ SECTIONS
+ 	_end = .;
+ 
+ 	STABS_DEBUG
+-	ELF_DETAILS
++	ARM_DETAILS
+ }
+ 
+ /*
+diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+index bb950c896a67..1d3d3b599635 100644
+--- a/arch/arm/kernel/vmlinux.lds.S
++++ b/arch/arm/kernel/vmlinux.lds.S
+@@ -149,7 +149,7 @@ SECTIONS
+ 	_end = .;
+ 
+ 	STABS_DEBUG
+-	ELF_DETAILS
++	ARM_DETAILS
+ }
+ 
+ #ifdef CONFIG_STRICT_KERNEL_RWX
+-- 
+2.25.1
