@@ -1,7 +1,7 @@
 From: guoren@kernel.org
-Subject: [PATCH 09/13] csky: Set CONFIG_NR_CPU 4 as default
-Date: Sat,  1 Aug 2020 01:14:09 +0000
-Message-ID: <1596244453-98575-10-git-send-email-guoren@kernel.org>
+Subject: [PATCH 05/13] csky: Fixup kprobes handler couldn't change pc
+Date: Sat,  1 Aug 2020 01:14:05 +0000
+Message-ID: <1596244453-98575-6-git-send-email-guoren@kernel.org>
 References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
@@ -12,27 +12,32 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-The C860 processors support 4 cores smp for maximum, so set NR_CPU
-to 4 as default
+The "Changing Execution Path" section in the Documentation/kprobes.txt
+said:
+
+Since kprobes can probe into a running kernel code, it can change the
+register set, including instruction pointer.
 
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/csky/Kconfig | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/csky/abiv2/mcount.S | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index fd92d73..ad98b93 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -279,7 +279,7 @@ config NR_CPUS
- 	int "Maximum number of CPUs (2-32)"
- 	range 2 32
- 	depends on SMP
--	default "2"
-+	default "4"
+diff --git a/arch/csky/abiv2/mcount.S b/arch/csky/abiv2/mcount.S
+index 911512b..d745e10 100644
+--- a/arch/csky/abiv2/mcount.S
++++ b/arch/csky/abiv2/mcount.S
+@@ -55,7 +55,9 @@
  
- config HIGHMEM
- 	bool "High Memory Support"
+ .macro mcount_exit_regs
+ 	RESTORE_REGS_FTRACE
+-	ldw	t1, (sp, 0)
++	subi	sp, 152
++	ldw	t1, (sp, 4)
++	addi	sp, 152
+ 	ldw	r8, (sp, 4)
+ 	ldw	lr, (sp, 8)
+ 	addi	sp, 12
 -- 
 2.7.4
