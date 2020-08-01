@@ -1,51 +1,146 @@
-Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33468 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726882AbgGXHA1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2020 03:00:27 -0400
-Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 917D0C0619D3
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:27 -0700 (PDT)
-Received: by mail-yb1-xb4a.google.com with SMTP id a185so7297316ybg.8
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jul 2020 00:00:27 -0700 (PDT)
-Date: Fri, 24 Jul 2020 09:00:02 +0200
-In-Reply-To: <20200724070008.1389205-1-elver@google.com>
-Message-ID: <20200724070008.1389205-3-elver@google.com>
-Mime-Version: 1.0
-References: <20200724070008.1389205-1-elver@google.com>
-Subject: [PATCH v2 2/8] objtool, kcsan: Add __tsan_read_write to uaccess whitelist
-From: Marco Elver <elver@google.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=4doj=BL=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:43954 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728375AbgHABPC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 Jul 2020 21:15:02 -0400
+From: guoren@kernel.org
+Subject: [PATCH 13/13] csky: Add context tracking support
+Date: Sat,  1 Aug 2020 01:14:13 +0000
+Message-ID: <1596244453-98575-14-git-send-email-guoren@kernel.org>
+In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
+References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com, paulmck@kernel.org
-Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200724070002.VkPu70YS9wKMYlH_n5Zu1oI20lU9WynvESPTZQAt76Y@z>
+To: guoren@kernel.org, arnd@arndb.de
+Cc: linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>, Greentime Hu <greentime.hu@sifive.com>
+Message-ID: <20200801011413.FrUvjxT95Jo8zuF2GjLDnbBI47TSauPzoBLe4dwemYo@z>
 
-Adds the new __tsan_read_write compound instrumentation to objtool's
-uaccess whitelist.
+From: Guo Ren <guoren@linux.alibaba.com>
 
-Signed-off-by: Marco Elver <elver@google.com>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+This patch support context tracking with no hz full.
+
+Here is the test result with dynticks-testing (see tick_stop):
+
+ cat /sys/kernel/debug/tracing/per_cpu/cpu0/trace
+ tracer: nop
+
+ entries-in-buffer/entries-written: 356/356   #P:1
+
+                              _-----=> irqs-off
+                             / _----=> need-resched
+                            | / _---=> hardirq/softirq
+                            || / _--=> preempt-depth
+                            ||| /     delay
+           TASK-PID   CPU#  ||||    TIMESTAMP  FUNCTION
+              | |       |   ||||       |         |
+...
+          sleep-192   [000] d.h.   167.088270: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=166436355700
+          sleep-192   [000] d.h.   167.092279: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=166440365700
+         <idle>-0     [000] d.h2   167.096492: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=166444578400
+         <idle>-0     [000] d..1   167.097876: tick_stop: success=1 dependency=NONE
+                                               ^^^^^^^^^
+         <idle>-0     [000] d.h1   168.818206: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=168166280900
+   kworker/u2:0-7     [000] ....   168.821760: workqueue_execute_start: work struct (ptrval): function wb_workfn
+   kworker/u2:0-7     [000] d.h1   168.824464: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=168172547100
+    kworker/0:1-18    [000] ....   168.825053: workqueue_execute_start: work struct (ptrval): function vmstat_update
+    kworker/0:1-18    [000] ....   168.825238: workqueue_execute_start: work struct (ptrval): function vmstat_shepherd
+    kworker/0:1-18    [000] ....   168.825516: workqueue_execute_start: work struct (ptrval): function neigh_periodic_work
+         <idle>-0     [000] d..1   168.826121: tick_stop: success=1 dependency=NONE
+   kworker/u2:0-7     [000] ....   169.377327: workqueue_execute_start: work struct (ptrval): function flush_to_ldisc
+         <idle>-0     [000] d..1   169.379832: tick_stop: success=1 dependency=NONE
+   kworker/u2:0-7     [000] ....   169.607935: workqueue_execute_start: work struct (ptrval): function flush_to_ldisc
+   kworker/u2:0-7     [000] d.h1   169.608148: hrtimer_expire_entry: hrtimer=(ptrval) function=tick_sched_timer now=168956235500
+         <idle>-0     [000] d..1   169.608654: tick_stop: success=1 dependency=NONE
+
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Cc: Greentime Hu <greentime.hu@sifive.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- tools/objtool/check.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ arch/csky/Kconfig        |  2 ++
+ arch/csky/kernel/entry.S | 23 +++++++++++++++++++++++
+ 2 files changed, 25 insertions(+)
 
-diff --git a/tools/objtool/check.c b/tools/objtool/check.c
-index 63d8b630c67a..38d82e705c93 100644
---- a/tools/objtool/check.c
-+++ b/tools/objtool/check.c
-@@ -528,6 +528,11 @@ static const char *uaccess_safe_builtin[] = {
- 	"__tsan_write4",
- 	"__tsan_write8",
- 	"__tsan_write16",
-+	"__tsan_read_write1",
-+	"__tsan_read_write2",
-+	"__tsan_read_write4",
-+	"__tsan_read_write8",
-+	"__tsan_read_write16",
- 	"__tsan_atomic8_load",
- 	"__tsan_atomic16_load",
- 	"__tsan_atomic32_load",
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index ad98b93..af23873 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -42,6 +42,8 @@ config CSKY
+ 	select HAVE_ARCH_MMAP_RND_BITS
+ 	select HAVE_ARCH_SECCOMP_FILTER
+ 	select HAVE_COPY_THREAD_TLS
++	select HAVE_CONTEXT_TRACKING
++	select HAVE_VIRT_CPU_ACCOUNTING_GEN
+ 	select HAVE_DEBUG_BUGVERBOSE
+ 	select HAVE_DYNAMIC_FTRACE
+ 	select HAVE_DYNAMIC_FTRACE_WITH_REGS
+diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
+index efd2e69..5936391 100644
+--- a/arch/csky/kernel/entry.S
++++ b/arch/csky/kernel/entry.S
+@@ -23,6 +23,22 @@
+ #endif
+ .endm
+ 
++.macro	context_tracking
++	mfcr	a0, epsr
++	btsti	a0, 31
++	bt	1f
++	jbsr	context_tracking_user_exit
++	ldw	a0, (sp, LSAVE_A0)
++	ldw	a1, (sp, LSAVE_A1)
++	ldw	a2, (sp, LSAVE_A2)
++	ldw	a3, (sp, LSAVE_A3)
++#if defined(__CSKYABIV1__)
++	ldw	r6, (sp, LSAVE_A4)
++	ldw	r7, (sp, LSAVE_A5)
++#endif
++1:
++.endm
++
+ .macro tlbop_begin name, val0, val1, val2
+ ENTRY(csky_\name)
+ 	mtcr    a3, ss2
+@@ -103,6 +119,7 @@ ENTRY(csky_\name)
+ .endm
+ .macro tlbop_end is_write
+ 	zero_fp
++	context_tracking
+ 	RD_MEH	a2
+ 	psrset  ee, ie
+ 	mov     a0, sp
+@@ -128,6 +145,7 @@ tlbop_end 1
+ ENTRY(csky_systemcall)
+ 	SAVE_ALL TRAP0_SIZE
+ 	zero_fp
++	context_tracking
+ 	psrset  ee, ie
+ 
+ 	lrw     r9, __NR_syscalls
+@@ -237,6 +255,9 @@ ret_from_exception:
+ 	and	r10, r9
+ 	cmpnei	r10, 0
+ 	bt	exit_work
++#ifdef CONFIG_CONTEXT_TRACKING
++	jbsr	context_tracking_user_enter
++#endif
+ 1:
+ #ifdef CONFIG_PREEMPTION
+ 	mov	r9, sp
+@@ -277,6 +298,7 @@ work_resched:
+ ENTRY(csky_trap)
+ 	SAVE_ALL 0
+ 	zero_fp
++	context_tracking
+ 	psrset	ee
+ 	mov	a0, sp                 /* Push Stack pointer arg */
+ 	jbsr	trap_c                 /* Call C-level trap handler */
+@@ -311,6 +333,7 @@ ENTRY(csky_get_tls)
+ ENTRY(csky_irq)
+ 	SAVE_ALL 0
+ 	zero_fp
++	context_tracking
+ 	psrset	ee
+ 
+ #ifdef CONFIG_TRACE_IRQFLAGS
 -- 
-2.28.0.rc0.142.g3c755180ce-goog
+2.7.4
