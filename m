@@ -1,43 +1,102 @@
-From: guoren@kernel.org
-Subject: [PATCH 05/13] csky: Fixup kprobes handler couldn't change pc
-Date: Sat,  1 Aug 2020 01:14:05 +0000
-Message-ID: <1596244453-98575-6-git-send-email-guoren@kernel.org>
-References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: guoren@kernel.org, arnd@arndb.de
-Cc: linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
-List-Id: linux-arch.vger.kernel.org
+From: Arvind Sankar <nivedita@alum.mit.edu>
+Subject: Re: [PATCH v5 32/36] x86/boot/compressed: Reorganize zero-size
+ section asserts
+Date: Fri, 31 Jul 2020 21:47:55 -0400
+Message-ID: <20200801014755.GA2700342@rani.riverdale.lan>
+References: <20200731230820.1742553-1-keescook@chromium.org>
+ <20200731230820.1742553-33-keescook@chromium.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41920 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726794AbgHABr7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 21:47:59 -0400
+Content-Disposition: inline
+In-Reply-To: <20200731230820.1742553-33-keescook@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
 
-From: Guo Ren <guoren@linux.alibaba.com>
+On Fri, Jul 31, 2020 at 04:08:16PM -0700, Kees Cook wrote:
+> For readability, move the zero-sized sections to the end after DISCARDS
+> and mark them NOLOAD for good measure.
+> 
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  arch/x86/boot/compressed/vmlinux.lds.S | 42 +++++++++++++++-----------
+>  1 file changed, 25 insertions(+), 17 deletions(-)
+> 
+> diff --git a/arch/x86/boot/compressed/vmlinux.lds.S b/arch/x86/boot/compressed/vmlinux.lds.S
+> index 3c2ee9a5bf43..42dea70a5091 100644
+> --- a/arch/x86/boot/compressed/vmlinux.lds.S
+> +++ b/arch/x86/boot/compressed/vmlinux.lds.S
+> @@ -42,18 +42,16 @@ SECTIONS
+>  		*(.rodata.*)
+>  		_erodata = . ;
+>  	}
+> -	.rel.dyn : {
+> -		*(.rel.*)
+> -	}
+> -	.rela.dyn : {
+> -		*(.rela.*)
+> -	}
+> -	.got : {
+> -		*(.got)
+> -	}
+>  	.got.plt : {
+>  		*(.got.plt)
+>  	}
+> +	ASSERT(SIZEOF(.got.plt) == 0 ||
+> +#ifdef CONFIG_X86_64
+> +	       SIZEOF(.got.plt) == 0x18,
+> +#else
+> +	       SIZEOF(.got.plt) == 0xc,
+> +#endif
+> +	       "Unexpected GOT/PLT entries detected!")
+>  
+>  	.data :	{
+>  		_data = . ;
+> @@ -85,13 +83,23 @@ SECTIONS
+>  	ELF_DETAILS
+>  
+>  	DISCARDS
+> -}
+>  
+> -ASSERT(SIZEOF(.got) == 0, "Unexpected GOT entries detected!")
+> -#ifdef CONFIG_X86_64
+> -ASSERT(SIZEOF(.got.plt) == 0 || SIZEOF(.got.plt) == 0x18, "Unexpected GOT/PLT entries detected!")
+> -#else
+> -ASSERT(SIZEOF(.got.plt) == 0 || SIZEOF(.got.plt) == 0xc, "Unexpected GOT/PLT entries detected!")
+> -#endif
+> +	/*
+> +	 * Sections that should stay zero sized, which is safer to
+> +	 * explicitly check instead of blindly discarding.
+> +	 */
+> +	.got (NOLOAD) : {
+> +		*(.got)
+> +	}
+> +	ASSERT(SIZEOF(.got) == 0, "Unexpected GOT entries detected!")
+>  
+> -ASSERT(SIZEOF(.rel.dyn) == 0 && SIZEOF(.rela.dyn) == 0, "Unexpected run-time relocations detected!")
+> +	/* ld.lld does not like .rel* sections being made "NOLOAD". */
+> +	.rel.dyn : {
+> +		*(.rel.*)
+> +	}
+> +	ASSERT(SIZEOF(.rel.dyn) == 0, "Unexpected run-time relocations (.rel) detected!")
+> +	.rela.dyn : {
+> +		*(.rela.*)
+> +	}
+> +	ASSERT(SIZEOF(.rela.dyn) == 0, "Unexpected run-time relocations (.rela) detected!")
+> +}
+> -- 
+> 2.25.1
+> 
 
-The "Changing Execution Path" section in the Documentation/kprobes.txt
-said:
+There's no point in marking zero-size sections NOLOAD -- if the ASSERT's
+passed, they won't be present in the file at all anyway.
 
-Since kprobes can probe into a running kernel code, it can change the
-register set, including instruction pointer.
-
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
----
- arch/csky/abiv2/mcount.S | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
-
-diff --git a/arch/csky/abiv2/mcount.S b/arch/csky/abiv2/mcount.S
-index 911512b..d745e10 100644
---- a/arch/csky/abiv2/mcount.S
-+++ b/arch/csky/abiv2/mcount.S
-@@ -55,7 +55,9 @@
- 
- .macro mcount_exit_regs
- 	RESTORE_REGS_FTRACE
--	ldw	t1, (sp, 0)
-+	subi	sp, 152
-+	ldw	t1, (sp, 4)
-+	addi	sp, 152
- 	ldw	r8, (sp, 4)
- 	ldw	lr, (sp, 8)
- 	addi	sp, 12
--- 
-2.7.4
+The only section for which there might be a point is .got.plt, which is
+non-empty on 32-bit, and only if it is first moved to the end. That
+saves a few bytes.
