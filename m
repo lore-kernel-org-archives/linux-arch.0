@@ -1,190 +1,94 @@
-Return-Path: <SRS0=FZ5f=BM=vger.kernel.org=linux-doc-owner@kernel.org>
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [PATCH v20 00/12] Landlock LSM
-Date: Sun,  2 Aug 2020 23:58:51 +0200
-Message-ID: <20200802215903.91936-1-mic@digikod.net>
+Return-Path: <SRS0=4doj=BL=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43972 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726534AbgHAR1u (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 1 Aug 2020 13:27:50 -0400
+From: Arvind Sankar <nivedita@alum.mit.edu>
+Date: Sat, 1 Aug 2020 13:27:46 -0400
+Subject: Re: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input
+ sections
+Message-ID: <20200801172746.GC3249534@rani.riverdale.lan>
+References: <20200731230820.1742553-1-keescook@chromium.org>
+ <20200731230820.1742553-14-keescook@chromium.org>
+ <20200801035128.GB2800311@rani.riverdale.lan>
+ <202007312237.4F385EB3@keescook>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <202007312237.4F385EB3@keescook>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200802215851.Fxvt5CvRoUS8JlCmZ5wDJ5UiRbKpBT8zRy7cJU0SevQ@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Arvind Sankar <nivedita@alum.mit.edu>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Michal Marek <michal.lkml@markovi.net>, Kristen Carlson Accardi <kristen@linux.intel.com>
+Message-ID: <20200801172746.RjqENE5-Cpgd_6P7gZGBXuwFAXimYZpvyNYsfAk7iPk@z>
 
-Hi,
+On Fri, Jul 31, 2020 at 11:18:02PM -0700, Kees Cook wrote:
+> On Fri, Jul 31, 2020 at 11:51:28PM -0400, Arvind Sankar wrote:
+> > 
+> > This also changes the ordering to place all hot resp unlikely sections separate
+> > from other text, while currently it places the hot/unlikely bits of each file
+> > together with the rest of the code in that file. That seems like a reasonable
+> 
+> Oh, hmm, yes, we aren't explicitly using SORT() here. Does that mean the
+> input sections were entirely be ordered in compilation unit link order,
+> even in the case of orphan sections? (And I think either way, the answer
+> isn't the same between bfd and lld.) I actually thought the like-named
+> input sections were collected together first with lld, but bfd strictly
+> appended to the output section. I guess it's time for me to stare at -M
+> output from ld...
 
-This new patch series mainly replace the landlock(2) command multiplexor
-with 4 new dedicated syscalls:
-* landlock_get_features(2)
-* landlock_create_ruleset(2)
-* landlock_add_rule(2)
-* landlock_enforce_ruleset(2)
+I don't know what happened to the orphans previously. But .text.hot and
+.text.unlikely will now change ordering. It sounds from below like this
+wasn't intentional? Though it does seem to be how BFD's default linker
+scripts lay it out.
 
-The SLOC count is 1264 for security/landlock/ and 1712 for
-tools/testing/selftest/landlock/ .  Test coverage for security/landlock/
-is 93.6% of lines.  The code not covered only deals with internal kernel
-errors (e.g. memory allocation) and race conditions.
+> 
+> Regardless, this patch is attempting to fix the problem where bfd and lld
+> lay out the orphans differently (as mentioned above, lld seems to sort
+> them in a way that is not strictly appended, and bfd seems to sort them
+> strictly appended). In the case of being appended to the .text output
+> section, this would cause boot failures due to _etext not covering the
+> resulting sections (which this[1] also encountered and fixed to be more
+> robust for such appended collection -- that series actually _depends_ on
+> orphan handling doing the appending, because there is no current way
+> to map wildcard input sections to their own separate output sections).
+> 
+> > change and should be mentioned in the commit message.
+> > 
+> > However, the history of their being together comes from
+> > 
+> >   9bebe9e5b0f3 ("kbuild: Fix .text.unlikely placement")
+> > 
+> > which seems to indicate there was some problem with having them separated out,
+> > although I don't quite understand what the issue was from the commit message.
+> 
+> Looking at this again, I actually wonder if we have bigger issues here
+> with dead code elimination:
+> 
+> #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+> #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
+> ...
+> 
+> that would catch: .text.hot .text.fixup .text.unlikely and .text.unknown
+> but not .text.hot.*, etc (i.e. the third dot isn't matched, which is,
+> I assume, why Clang switched to adding a trailing dot). However, this
+> patch lists .text.hot .text.hot.* first, so they'd get pulled to the
+> front correctly, but the trailing ones (with 2 dots) would not, since
+> they'd match the TEXT_MAIN wildcard first. (This problem actually existed
+> before this patch too, and is not the fault of 9bebe9e5b0f3, but rather
+> the addition of TEXT_MAIN, which could potentially match .text.unlikely
+> and .text.fixup)
 
-The compiled documentation is available here:
-https://landlock.io/linux-doc/landlock-v20/security/landlock/index.html
+The existing comment on TEXT_TEXT mentions that issue. However, note
+that the dead code stuff is only available currently on mips and ppc,
+and is hidden behind EXPERT for those, so I'm not sure if anyone
+actually uses it.
 
-This series can be applied on top of v5.8-rc4 .  This can be tested with
-CONFIG_SECURITY_LANDLOCK and CONFIG_SAMPLE_LANDLOCK.  This patch series
-can be found in a Git repository here:
-https://github.com/landlock-lsm/linux/commits/landlock-v20
-I would really appreciate constructive comments on this patch series.
+9bebe9e5b0f3 predates LD_DEAD_CODE_DATA_ELIMINATION, and there were no
+wildcards I can see in .text at the time, which is why I don't
+understand what problem is referred to in the commit message.
 
-
-# Landlock LSM
-
-The goal of Landlock is to enable to restrict ambient rights (e.g.
-global filesystem access) for a set of processes.  Because Landlock is a
-stackable LSM [1], it makes possible to create safe security sandboxes
-as new security layers in addition to the existing system-wide
-access-controls. This kind of sandbox is expected to help mitigate the
-security impact of bugs or unexpected/malicious behaviors in user-space
-applications. Landlock empowers any process, including unprivileged
-ones, to securely restrict themselves.
-
-Landlock is inspired by seccomp-bpf but instead of filtering syscalls
-and their raw arguments, a Landlock rule can restrict the use of kernel
-objects like file hierarchies, according to the kernel semantic.
-Landlock also takes inspiration from other OS sandbox mechanisms: XNU
-Sandbox, FreeBSD Capsicum or OpenBSD Pledge/Unveil.
-
-In this current form, Landlock misses some access-control features.
-This enables to minimize this patch series and ease review.  This series
-still addresses multiple use cases, especially with the combined use of
-seccomp-bpf: applications with built-in sandboxing, init systems,
-security sandbox tools and security-oriented APIs [2].
-
-Previous version:
-https://lore.kernel.org/lkml/20200707180955.53024-1-mic@digikod.net/
-
-[1] https://lore.kernel.org/lkml/50db058a-7dde-441b-a7f9-f6837fe8b69f@schaufler-ca.com/
-[2] https://lore.kernel.org/lkml/f646e1c7-33cf-333f-070c-0a40ad0468cd@digikod.net/
-
-
-Casey Schaufler (1):
-  LSM: Infrastructure management of the superblock
-
-Mickaël Salaün (11):
-  landlock: Add object management
-  landlock: Add ruleset and domain management
-  landlock: Set up the security framework and manage credentials
-  landlock: Add ptrace restrictions
-  fs,security: Add sb_delete hook
-  landlock: Support filesystem access-control
-  landlock: Add syscall implementations
-  arch: Wire up Landlock syscalls
-  selftests/landlock: Add initial tests
-  samples/landlock: Add a sandbox manager example
-  landlock: Add user and kernel documentation
-
- Documentation/security/index.rst              |    1 +
- Documentation/security/landlock/index.rst     |   18 +
- Documentation/security/landlock/kernel.rst    |   69 +
- Documentation/security/landlock/user.rst      |  271 +++
- MAINTAINERS                                   |   11 +
- arch/Kconfig                                  |    7 +
- arch/alpha/kernel/syscalls/syscall.tbl        |    4 +
- arch/arm/tools/syscall.tbl                    |    4 +
- arch/arm64/include/asm/unistd.h               |    2 +-
- arch/arm64/include/asm/unistd32.h             |    8 +
- arch/ia64/kernel/syscalls/syscall.tbl         |    4 +
- arch/m68k/kernel/syscalls/syscall.tbl         |    4 +
- arch/microblaze/kernel/syscalls/syscall.tbl   |    4 +
- arch/mips/kernel/syscalls/syscall_n32.tbl     |    4 +
- arch/mips/kernel/syscalls/syscall_n64.tbl     |    4 +
- arch/mips/kernel/syscalls/syscall_o32.tbl     |    4 +
- arch/parisc/kernel/syscalls/syscall.tbl       |    4 +
- arch/powerpc/kernel/syscalls/syscall.tbl      |    4 +
- arch/s390/kernel/syscalls/syscall.tbl         |    4 +
- arch/sh/kernel/syscalls/syscall.tbl           |    4 +
- arch/sparc/kernel/syscalls/syscall.tbl        |    4 +
- arch/um/Kconfig                               |    1 +
- arch/x86/entry/syscalls/syscall_32.tbl        |    4 +
- arch/x86/entry/syscalls/syscall_64.tbl        |    4 +
- arch/xtensa/kernel/syscalls/syscall.tbl       |    4 +
- fs/super.c                                    |    1 +
- include/linux/lsm_hook_defs.h                 |    1 +
- include/linux/lsm_hooks.h                     |    3 +
- include/linux/security.h                      |    4 +
- include/linux/syscalls.h                      |    8 +
- include/uapi/asm-generic/unistd.h             |   10 +-
- include/uapi/linux/landlock.h                 |  209 ++
- kernel/sys_ni.c                               |    6 +
- samples/Kconfig                               |    7 +
- samples/Makefile                              |    1 +
- samples/landlock/.gitignore                   |    1 +
- samples/landlock/Makefile                     |   15 +
- samples/landlock/sandboxer.c                  |  248 +++
- security/Kconfig                              |   11 +-
- security/Makefile                             |    2 +
- security/landlock/Kconfig                     |   18 +
- security/landlock/Makefile                    |    4 +
- security/landlock/common.h                    |   20 +
- security/landlock/cred.c                      |   46 +
- security/landlock/cred.h                      |   58 +
- security/landlock/fs.c                        |  609 ++++++
- security/landlock/fs.h                        |   60 +
- security/landlock/object.c                    |   66 +
- security/landlock/object.h                    |   91 +
- security/landlock/ptrace.c                    |  120 ++
- security/landlock/ptrace.h                    |   14 +
- security/landlock/ruleset.c                   |  342 ++++
- security/landlock/ruleset.h                   |  157 ++
- security/landlock/setup.c                     |   40 +
- security/landlock/setup.h                     |   18 +
- security/landlock/syscall.c                   |  571 ++++++
- security/security.c                           |   51 +-
- security/selinux/hooks.c                      |   58 +-
- security/selinux/include/objsec.h             |    6 +
- security/selinux/ss/services.c                |    3 +-
- security/smack/smack.h                        |    6 +
- security/smack/smack_lsm.c                    |   35 +-
- tools/testing/selftests/Makefile              |    1 +
- tools/testing/selftests/landlock/.gitignore   |    2 +
- tools/testing/selftests/landlock/Makefile     |   29 +
- tools/testing/selftests/landlock/base_test.c  |  154 ++
- tools/testing/selftests/landlock/common.h     |  122 ++
- tools/testing/selftests/landlock/config       |    5 +
- tools/testing/selftests/landlock/fs_test.c    | 1698 +++++++++++++++++
- .../testing/selftests/landlock/ptrace_test.c  |  310 +++
- tools/testing/selftests/landlock/true.c       |    5 +
- 71 files changed, 5621 insertions(+), 77 deletions(-)
- create mode 100644 Documentation/security/landlock/index.rst
- create mode 100644 Documentation/security/landlock/kernel.rst
- create mode 100644 Documentation/security/landlock/user.rst
- create mode 100644 include/uapi/linux/landlock.h
- create mode 100644 samples/landlock/.gitignore
- create mode 100644 samples/landlock/Makefile
- create mode 100644 samples/landlock/sandboxer.c
- create mode 100644 security/landlock/Kconfig
- create mode 100644 security/landlock/Makefile
- create mode 100644 security/landlock/common.h
- create mode 100644 security/landlock/cred.c
- create mode 100644 security/landlock/cred.h
- create mode 100644 security/landlock/fs.c
- create mode 100644 security/landlock/fs.h
- create mode 100644 security/landlock/object.c
- create mode 100644 security/landlock/object.h
- create mode 100644 security/landlock/ptrace.c
- create mode 100644 security/landlock/ptrace.h
- create mode 100644 security/landlock/ruleset.c
- create mode 100644 security/landlock/ruleset.h
- create mode 100644 security/landlock/setup.c
- create mode 100644 security/landlock/setup.h
- create mode 100644 security/landlock/syscall.c
- create mode 100644 tools/testing/selftests/landlock/.gitignore
- create mode 100644 tools/testing/selftests/landlock/Makefile
- create mode 100644 tools/testing/selftests/landlock/base_test.c
- create mode 100644 tools/testing/selftests/landlock/common.h
- create mode 100644 tools/testing/selftests/landlock/config
- create mode 100644 tools/testing/selftests/landlock/fs_test.c
- create mode 100644 tools/testing/selftests/landlock/ptrace_test.c
- create mode 100644 tools/testing/selftests/landlock/true.c
-
--- 
-2.28.0.rc2
+Btw, for the FGKASLR stuff, instead of keeping the output sections per
+function, couldn't you generate a table of functions with sizes, and use
+that when randomizing the order? Then the sections themselves could be
+collected into .text explicitly.
