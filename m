@@ -1,93 +1,38 @@
 From: guoren@kernel.org
-Subject: [PATCH 11/13] csky: Add irq_work support
-Date: Sat,  1 Aug 2020 01:14:11 +0000
-Message-ID: <1596244453-98575-12-git-send-email-guoren@kernel.org>
+Subject: [PATCH 09/13] csky: Set CONFIG_NR_CPU 4 as default
+Date: Sat,  1 Aug 2020 01:14:09 +0000
+Message-ID: <1596244453-98575-10-git-send-email-guoren@kernel.org>
 References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43920 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728324AbgHABO6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 Jul 2020 21:14:58 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: guoren@kernel.org, arnd@arndb.de
 Cc: linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-Running work in hardware interrupt context for csky. Implement:
- - arch_irq_work_raise()
- - arch_irq_work_has_interrupt()
+The C860 processors support 4 cores smp for maximum, so set NR_CPU
+to 4 as default
 
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/csky/include/asm/irq_work.h | 11 +++++++++++
- arch/csky/kernel/smp.c           | 12 ++++++++++++
- 2 files changed, 23 insertions(+)
- create mode 100644 arch/csky/include/asm/irq_work.h
+ arch/csky/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/csky/include/asm/irq_work.h b/arch/csky/include/asm/irq_work.h
-new file mode 100644
-index 00000000..33aaf39
---- /dev/null
-+++ b/arch/csky/include/asm/irq_work.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef __ASM_CSKY_IRQ_WORK_H
-+#define __ASM_CSKY_IRQ_WORK_H
-+
-+static inline bool arch_irq_work_has_interrupt(void)
-+{
-+	return true;
-+}
-+extern void arch_irq_work_raise(void);
-+#endif /* __ASM_CSKY_IRQ_WORK_H */
-diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
-index 1945fb2..60f2ab1 100644
---- a/arch/csky/kernel/smp.c
-+++ b/arch/csky/kernel/smp.c
-@@ -12,6 +12,7 @@
- #include <linux/delay.h>
- #include <linux/err.h>
- #include <linux/irq.h>
-+#include <linux/irq_work.h>
- #include <linux/irqdomain.h>
- #include <linux/of.h>
- #include <linux/sched/task_stack.h>
-@@ -35,6 +36,7 @@ enum ipi_message_type {
- 	IPI_EMPTY,
- 	IPI_RESCHEDULE,
- 	IPI_CALL_FUNC,
-+	IPI_IRQ_WORK,
- 	IPI_MAX
- };
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index fd92d73..ad98b93 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -279,7 +279,7 @@ config NR_CPUS
+ 	int "Maximum number of CPUs (2-32)"
+ 	range 2 32
+ 	depends on SMP
+-	default "2"
++	default "4"
  
-@@ -53,6 +55,9 @@ static irqreturn_t handle_ipi(int irq, void *dev)
- 		if (ops & (1 << IPI_CALL_FUNC))
- 			generic_smp_call_function_interrupt();
- 
-+		if (ops & (1 << IPI_IRQ_WORK))
-+			irq_work_run();
-+
- 		BUG_ON((ops >> IPI_MAX) != 0);
- 	}
- 
-@@ -108,6 +113,13 @@ void smp_send_reschedule(int cpu)
- 	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
- }
- 
-+#ifdef CONFIG_IRQ_WORK
-+void arch_irq_work_raise(void)
-+{
-+	send_ipi_message(cpumask_of(smp_processor_id()), IPI_IRQ_WORK);
-+}
-+#endif
-+
- void __init smp_prepare_boot_cpu(void)
- {
- }
+ config HIGHMEM
+ 	bool "High Memory Support"
 -- 
 2.7.4
