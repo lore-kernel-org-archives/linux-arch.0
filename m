@@ -1,461 +1,177 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40964 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728907AbgGPTuq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:50:46 -0400
-Message-ID: <20200716185424.116500611@linutronix.de>
-Date: Thu, 16 Jul 2020 20:22:10 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 02/13] entry: Provide generic syscall exit function
-References: <20200716182208.180916541@linutronix.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+Return-Path: <SRS0=4doj=BL=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:43584 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726794AbgHABOm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 Jul 2020 21:14:42 -0400
+From: guoren@kernel.org
+Subject: [PATCH 02/13] csky: Add SECCOMP_FILTER supported
+Date: Sat,  1 Aug 2020 01:14:02 +0000
+Message-ID: <1596244453-98575-3-git-send-email-guoren@kernel.org>
+In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
+References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20200716182210.zeyb6-FJ1FBA31xEk7z51ySUiYgTXu_iA32Fa5W2V0k@z>
+To: guoren@kernel.org, arnd@arndb.de
+Cc: linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
+Message-ID: <20200801011402.339-qc7Vk0QGpOM15Krwa5UmW2mig5avk6lWzSHcSxU@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+From: Guo Ren <guoren@linux.alibaba.com>
 
-Like syscall entry all architectures have similar and pointlessly different
-code to handle pending work before returning from a syscall to user space.
+secure_computing() is called first in syscall_trace_enter() so that
+a system call will be aborted quickly without doing succeeding syscall
+tracing if seccomp rules want to deny that system call.
 
-  1) One-time syscall exit work:
-      - rseq syscall exit
-      - audit
-      - syscall tracing
-      - tracehook (single stepping)
+TODO:
+ - Update https://github.com/seccomp/libseccomp csky support
 
-  2) Preparatory work
-      - Exit to user mode loop (common TIF handling).
-      - Architecture specific one time work arch_exit_to_user_mode_prepare()
-      - Address limit and lockdep checks
-     
-  3) Final transition (lockdep, tracing, context tracking, RCU). Invokes
-     arch_exit_to_user_mode() to handle e.g. speculation mitigations
-
-Provide a generic version based on the x86 code which has all the RCU and
-instrumentation protections right.
-
-Provide a variant for interrupt return to user mode as well which shares
-the above #2 and #3 work items.
-
-After syscall_exit_to_user_mode() and irqentry_exit_to_user_mode() the
-architecture code just has to return to user space. The code after
-returning from these functions must not be instrumented.
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- include/linux/entry-common.h |  193 +++++++++++++++++++++++++++++++++++++++++++
- kernel/entry/common.c        |  169 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 362 insertions(+)
+ arch/csky/Kconfig                             | 14 ++++++++++++++
+ arch/csky/include/asm/Kbuild                  |  1 +
+ arch/csky/include/asm/thread_info.h           |  2 +-
+ arch/csky/kernel/entry.S                      |  3 +++
+ arch/csky/kernel/ptrace.c                     |  8 ++++++--
+ tools/testing/selftests/seccomp/seccomp_bpf.c | 13 ++++++++++++-
+ 6 files changed, 37 insertions(+), 4 deletions(-)
 
---- a/include/linux/entry-common.h
-+++ b/include/linux/entry-common.h
-@@ -33,6 +33,18 @@
- # define _TIF_AUDIT			(0)
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index bd31ab1..822362d 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -38,6 +38,7 @@ config CSKY
+ 	select GX6605S_TIMER if CPU_CK610
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_AUDITSYSCALL
++	select HAVE_ARCH_SECCOMP_FILTER
+ 	select HAVE_COPY_THREAD_TLS
+ 	select HAVE_DEBUG_BUGVERBOSE
+ 	select HAVE_DYNAMIC_FTRACE
+@@ -296,3 +297,16 @@ endmenu
+ source "arch/csky/Kconfig.platforms"
+ 
+ source "kernel/Kconfig.hz"
++
++config SECCOMP
++	bool "Enable seccomp to safely compute untrusted bytecode"
++	help
++	  This kernel feature is useful for number crunching applications
++	  that may need to compute untrusted bytecode during their
++	  execution. By using pipes or other transports made available to
++	  the process as file descriptors supporting the read/write
++	  syscalls, it's possible to isolate those applications in
++	  their own address space using seccomp. Once seccomp is
++	  enabled via prctl(PR_SET_SECCOMP), it cannot be disabled
++	  and the task is only allowed to execute a few safe syscalls
++	  defined by each seccomp mode.
+diff --git a/arch/csky/include/asm/Kbuild b/arch/csky/include/asm/Kbuild
+index 9337225..64876e59 100644
+--- a/arch/csky/include/asm/Kbuild
++++ b/arch/csky/include/asm/Kbuild
+@@ -4,5 +4,6 @@ generic-y += gpio.h
+ generic-y += kvm_para.h
+ generic-y += local64.h
+ generic-y += qrwlock.h
++generic-y += seccomp.h
+ generic-y += user.h
+ generic-y += vmlinux.lds.h
+diff --git a/arch/csky/include/asm/thread_info.h b/arch/csky/include/asm/thread_info.h
+index 8980e4e..68e7a12 100644
+--- a/arch/csky/include/asm/thread_info.h
++++ b/arch/csky/include/asm/thread_info.h
+@@ -85,6 +85,6 @@ static inline struct thread_info *current_thread_info(void)
+ 				 _TIF_NOTIFY_RESUME | _TIF_UPROBE)
+ 
+ #define _TIF_SYSCALL_WORK	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | \
+-				 _TIF_SYSCALL_TRACEPOINT)
++				 _TIF_SYSCALL_TRACEPOINT | _TIF_SECCOMP)
+ 
+ #endif	/* _ASM_CSKY_THREAD_INFO_H */
+diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
+index f138003..efd2e69 100644
+--- a/arch/csky/kernel/entry.S
++++ b/arch/csky/kernel/entry.S
+@@ -168,6 +168,8 @@ ENTRY(csky_systemcall)
+ csky_syscall_trace:
+ 	mov	a0, sp                  /* sp = pt_regs pointer */
+ 	jbsr	syscall_trace_enter
++	cmpnei	a0, 0
++	bt	1f
+ 	/* Prepare args before do system call */
+ 	ldw	a0, (sp, LSAVE_A0)
+ 	ldw	a1, (sp, LSAVE_A1)
+@@ -188,6 +190,7 @@ csky_syscall_trace:
  #endif
+ 	stw	a0, (sp, LSAVE_A0)	/* Save return value */
  
-+#ifndef _TIF_PATCH_PENDING
-+# define _TIF_PATCH_PENDING		(0)
-+#endif
-+
-+#ifndef _TIF_UPROBE
-+# define _TIF_UPROBE			(0)
-+#endif
-+
-+#ifndef _TIF_NOTIFY_RESUME
-+# define _TIF_NOTIFY_RESUME		(0)
-+#endif
-+
- /*
-  * TIF flags handled in syscall_enter_from_usermode()
-  */
-@@ -45,6 +57,29 @@
- 	 _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_EMU |			\
- 	 ARCH_SYSCALL_ENTER_WORK)
- 
-+/*
-+ * TIF flags handled in syscall_exit_to_user_mode()
-+ */
-+#ifndef ARCH_SYSCALL_EXIT_WORK
-+# define ARCH_SYSCALL_EXIT_WORK		(0)
-+#endif
-+
-+#define SYSCALL_EXIT_WORK						\
-+	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT |			\
-+	 _TIF_SYSCALL_TRACEPOINT | ARCH_SYSCALL_EXIT_WORK)
-+
-+/*
-+ * TIF flags handled in exit_to_user_mode_loop()
-+ */
-+#ifndef ARCH_EXIT_TO_USER_MODE_WORK
-+# define ARCH_EXIT_TO_USER_MODE_WORK		(0)
-+#endif
-+
-+#define EXIT_TO_USER_MODE_WORK						\
-+	(_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_UPROBE |		\
-+	 _TIF_NEED_RESCHED | _TIF_PATCH_PENDING |			\
-+	 ARCH_EXIT_TO_USER_MODE_WORK)
-+
- /**
-  * arch_check_user_regs - Architecture specific sanity check for user mode regs
-  * @regs:	Pointer to currents pt_regs
-@@ -132,6 +167,149 @@ static inline void arch_syscall_enter_au
- long syscall_enter_from_user_mode(struct pt_regs *regs, long syscall);
- 
- /**
-+ * local_irq_enable_exit_to_user - Exit to user variant of local_irq_enable()
-+ * @ti_work:	Cached TIF flags gathered with interrupts disabled
-+ *
-+ * Defaults to local_irq_enable(). Can be supplied by architecture specific
-+ * code.
-+ */
-+static inline void local_irq_enable_exit_to_user(unsigned long ti_work);
-+
-+#ifndef local_irq_enable_exit_to_user
-+static inline void local_irq_enable_exit_to_user(unsigned long ti_work)
-+{
-+	local_irq_enable();
-+}
-+#endif
-+
-+/**
-+ * local_irq_disable_exit_to_user - Exit to user variant of local_irq_disable()
-+ *
-+ * Defaults to local_irq_disable(). Can be supplied by architecture specific
-+ * code.
-+ */
-+static inline void local_irq_disable_exit_to_user(void);
-+
-+#ifndef local_irq_disable_exit_to_user
-+static inline void local_irq_disable_exit_to_user(void)
-+{
-+	local_irq_disable();
-+}
-+#endif
-+
-+/**
-+ * arch_exit_to_user_mode_work - Architecture specific TIF work for exit
-+ *				 to user mode.
-+ * @regs:	Pointer to currents pt_regs
-+ * @ti_work:	Cached TIF flags gathered with interrupts disabled
-+ *
-+ * Invoked from exit_to_user_mode_loop() with interrupt enabled
-+ *
-+ * Defaults to NOOP. Can be supplied by architecture specific code.
-+ */
-+static inline void arch_exit_to_user_mode_work(struct pt_regs *regs,
-+					       unsigned long ti_work);
-+
-+#ifndef arch_exit_to_user_mode_work
-+static inline void arch_exit_to_user_mode_work(struct pt_regs *regs,
-+					       unsigned long ti_work)
-+{
-+}
-+#endif
-+
-+/**
-+ * arch_exit_to_user_mode_prepare - Architecture specific preparation for
-+ *				    exit to user mode.
-+ * @regs:	Pointer to currents pt_regs
-+ * @ti_work:	Cached TIF flags gathered with interrupts disabled
-+ *
-+ * Invoked from exit_to_user_mode_prepare() with interrupt disabled as the last
-+ * function before return. Defaults to NOOP.
-+ */
-+static inline void arch_exit_to_user_mode_prepare(struct pt_regs *regs,
-+						  unsigned long ti_work);
-+
-+#ifndef arch_exit_to_user_mode_prepare
-+static inline void arch_exit_to_user_mode_prepare(struct pt_regs *regs,
-+						  unsigned long ti_work)
-+{
-+}
-+#endif
-+
-+/**
-+ * arch_exit_to_user_mode - Architecture specific final work before
-+ *			    exit to user mode.
-+ *
-+ * Invoked from exit_to_user_mode() with interrupt disabled as the last
-+ * function before return. Defaults to NOOP.
-+ *
-+ * This needs to be __always_inline because it is non-instrumentable code
-+ * invoked after context tracking switched to user mode.
-+ *
-+ * An architecture implementation must not do anything complex, no locking
-+ * etc. The main purpose is for speculation mitigations.
-+ */
-+static __always_inline void arch_exit_to_user_mode(void);
-+
-+#ifndef arch_exit_to_user_mode
-+static __always_inline void arch_exit_to_user_mode(void) { }
-+#endif
-+
-+/**
-+ * arch_do_signal -  Architecture specific signal delivery function
-+ * @regs:	Pointer to currents pt_regs
-+ *
-+ * Invoked from exit_to_user_mode_loop().
-+ */
-+void arch_do_signal(struct pt_regs *regs);
-+
-+/**
-+ * arch_syscall_exit_tracehook - Wrapper around tracehook_report_syscall_exit()
-+ * @regs:	Pointer to currents pt_regs
-+ * @step:	Indicator for single step
-+ *
-+ * Defaults to tracehook_report_syscall_exit(). Can be replaced by
-+ * architecture specific code.
-+ *
-+ * Invoked from syscall_exit_to_user_mode()
-+ */
-+static inline void arch_syscall_exit_tracehook(struct pt_regs *regs, bool step);
-+
-+#ifndef arch_syscall_exit_tracehook
-+static inline void arch_syscall_exit_tracehook(struct pt_regs *regs, bool step)
-+{
-+	tracehook_report_syscall_exit(regs, step);
-+}
-+#endif
-+
-+/**
-+ * syscall_exit_to_user_mode - Handle work before returning to user mode
-+ * @regs:	Pointer to currents pt_regs
-+ *
-+ * Invoked with interrupts enabled and fully valid regs. Returns with all
-+ * work handled, interrupts disabled such that the caller can immediately
-+ * switch to user mode. Called from architecture specific syscall and ret
-+ * from fork code.
-+ *
-+ * The call order is:
-+ *  1) One-time syscall exit work:
-+ *	- rseq syscall exit
-+ *      - audit
-+ *	- syscall tracing
-+ *	- tracehook (single stepping)
-+ *
-+ *  2) Preparatory work
-+ *	- Exit to user mode loop (common TIF handling). Invokes
-+ *	  arch_exit_to_user_mode_work() for architecture specific TIF work
-+ *	- Architecture specific one time work arch_exit_to_user_mode_prepare()
-+ *	- Address limit and lockdep checks
-+ *
-+ *  3) Final transition (lockdep, tracing, context tracking, RCU). Invokes
-+ *     arch_exit_to_user_mode() to handle e.g. speculation mitigations
-+ */
-+void syscall_exit_to_user_mode(struct pt_regs *regs);
-+
-+/**
-  * irqentry_enter_from_user_mode - Establish state before invoking the irq handler
-  * @regs:	Pointer to currents pt_regs
-  *
-@@ -140,4 +318,19 @@ long syscall_enter_from_user_mode(struct
-  */
- void irqentry_enter_from_user_mode(struct pt_regs *regs);
- 
-+/**
-+ * irqentry_exit_to_user_mode - Interrupt exit work
-+ * @regs:	Pointer to current's pt_regs
-+ *
-+ * Invoked with interrupts disbled and fully valid regs. Returns with all
-+ * work handled, interrupts disabled such that the caller can immediately
-+ * switch to user mode. Called from architecture specific interrupt
-+ * handling code.
-+ *
-+ * The call order is #2 and #3 as described in syscall_exit_to_user_mode().
-+ * Interrupt exit is not invoking #1 which is the syscall specific one time
-+ * work.
-+ */
-+void irqentry_exit_to_user_mode(struct pt_regs *regs);
-+
- #endif
---- a/kernel/entry/common.c
-+++ b/kernel/entry/common.c
-@@ -2,6 +2,8 @@
- 
- #include <linux/context_tracking.h>
- #include <linux/entry-common.h>
-+#include <linux/livepatch.h>
-+#include <linux/audit.h>
- 
- #define CREATE_TRACE_POINTS
- #include <trace/events/syscalls.h>
-@@ -72,7 +74,174 @@ noinstr long syscall_enter_from_user_mod
- 	return syscall;
++1:
+ #ifdef CONFIG_DEBUG_RSEQ
+ 	mov	a0, sp
+ 	jbsr	rseq_syscall
+diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
+index 944ca2f..0de10f7 100644
+--- a/arch/csky/kernel/ptrace.c
++++ b/arch/csky/kernel/ptrace.c
+@@ -320,16 +320,20 @@ long arch_ptrace(struct task_struct *child, long request,
+ 	return ret;
  }
  
-+/**
-+ * exit_to_user_mode - Fixup state when exiting to user mode
-+ *
-+ * Syscall/interupt exit enables interrupts, but the kernel state is
-+ * interrupts disabled when this is invoked. Also tell RCU about it.
-+ *
-+ * 1) Trace interrupts on state
-+ * 2) Invoke context tracking if enabled to adjust RCU state
-+ * 3) Invoke architecture specific last minute exit code, e.g. speculation
-+ *    mitigations, etc.
-+ * 4) Tell lockdep that interrupts are enabled
-+ */
-+static __always_inline void exit_to_user_mode(void)
-+{
-+	instrumentation_begin();
-+	trace_hardirqs_on_prepare();
-+	lockdep_hardirqs_on_prepare(CALLER_ADDR0);
-+	instrumentation_end();
-+
-+	user_enter_irqoff();
-+	arch_exit_to_user_mode();
-+	lockdep_hardirqs_on(CALLER_ADDR0);
-+}
-+
-+/* Workaround to allow gradual conversion of architecture code */
-+void __weak arch_do_signal(struct pt_regs *regs) { }
-+
-+static unsigned long exit_to_user_mode_loop(struct pt_regs *regs,
-+					    unsigned long ti_work)
-+{
-+	/*
-+	 * Before returning to user space ensure that all pending work
-+	 * items have been completed.
-+	 */
-+	while (ti_work & EXIT_TO_USER_MODE_WORK) {
-+
-+		local_irq_enable_exit_to_user(ti_work);
-+
-+		if (ti_work & _TIF_NEED_RESCHED)
-+			schedule();
-+
-+		if (ti_work & _TIF_UPROBE)
-+			uprobe_notify_resume(regs);
-+
-+		if (ti_work & _TIF_PATCH_PENDING)
-+			klp_update_patch_state(current);
-+
-+		if (ti_work & _TIF_SIGPENDING)
-+			arch_do_signal(regs);
-+
-+		if (ti_work & _TIF_NOTIFY_RESUME) {
-+			clear_thread_flag(TIF_NOTIFY_RESUME);
-+			tracehook_notify_resume(regs);
-+			rseq_handle_notify_resume(NULL, regs);
-+		}
-+
-+		/* Architecture specific TIF work */
-+		arch_exit_to_user_mode_work(regs, ti_work);
-+
-+		/*
-+		 * Disable interrupts and reevaluate the work flags as they
-+		 * might have changed while interrupts and preemption was
-+		 * enabled above.
-+		 */
-+		local_irq_disable_exit_to_user();
-+		ti_work = READ_ONCE(current_thread_info()->flags);
-+	}
-+
-+	/* Return the latest work state for arch_exit_to_user_mode() */
-+	return ti_work;
-+}
-+
-+static void exit_to_user_mode_prepare(struct pt_regs *regs)
-+{
-+	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-+
-+	lockdep_assert_irqs_disabled();
-+
-+	if (unlikely(ti_work & EXIT_TO_USER_MODE_WORK))
-+		ti_work = exit_to_user_mode_loop(regs, ti_work);
-+
-+	arch_exit_to_user_mode_prepare(regs, ti_work);
-+
-+	/* Ensure that the address limit is intact and no locks are held */
-+	addr_limit_user_check();
-+	lockdep_assert_irqs_disabled();
-+	lockdep_sys_exit();
-+}
-+
-+#ifndef _TIF_SINGLESTEP
-+static inline bool report_single_step(unsigned long ti_work)
-+{
-+	return false;
-+}
-+#else
-+/*
-+ * If TIF_SYSCALL_EMU is set, then the only reason to report is when
-+ * TIF_SINGLESTEP is set (i.e. PTRACE_SYSEMU_SINGLESTEP).  This syscall
-+ * instruction has been already reported in syscall_enter_from_usermode().
-+ */
-+#define SYSEMU_STEP	(_TIF_SINGLESTEP | _TIF_SYSCALL_EMU)
-+
-+static inline bool report_single_step(unsigned long ti_work)
-+{
-+	return (ti_work & SYSEMU_STEP) == _TIF_SINGLESTEP;
-+}
-+#endif
-+
-+static void syscall_exit_work(struct pt_regs *regs, unsigned long ti_work)
-+{
-+	bool step;
-+
-+	audit_syscall_exit(regs);
-+
-+	if (ti_work & _TIF_SYSCALL_TRACEPOINT)
-+		trace_sys_exit(regs, regs_syscall_retval(regs));
-+
-+	step = report_single_step(ti_work);
-+	if (step || ti_work & _TIF_SYSCALL_TRACE)
-+		arch_syscall_exit_tracehook(regs, step);
-+}
-+
-+/*
-+ * Syscall specific exit to user mode preparation. Runs with interrupts
-+ * enabled.
-+ */
-+static void syscall_exit_to_user_mode_prepare(struct pt_regs *regs)
-+{
-+	u32 cached_flags = READ_ONCE(current_thread_info()->flags);
-+	unsigned long nr = regs_syscall_nr(regs);
-+
-+	CT_WARN_ON(ct_state() != CONTEXT_KERNEL);
-+
-+	if (IS_ENABLED(CONFIG_PROVE_LOCKING)) {
-+		if (WARN(irqs_disabled(), "syscall %lu left IRQs disabled", nr))
-+			local_irq_enable();
-+	}
-+
-+	rseq_syscall(regs);
-+
-+	/*
-+	 * Do one-time syscall specific work. If these work items are
-+	 * enabled, we want to run them exactly once per syscall exit with
-+	 * interrupts enabled.
-+	 */
-+	if (unlikely(cached_flags & SYSCALL_EXIT_WORK))
-+		syscall_exit_work(regs, cached_flags);
-+}
-+
-+__visible noinstr void syscall_exit_to_user_mode(struct pt_regs *regs)
-+{
-+	instrumentation_begin();
-+	syscall_exit_to_user_mode_prepare(regs);
-+	local_irq_disable_exit_to_user();
-+	exit_to_user_mode_prepare(regs);
-+	instrumentation_end();
-+	exit_to_user_mode();
-+}
-+
- noinstr void irqentry_enter_from_user_mode(struct pt_regs *regs)
+-asmlinkage void syscall_trace_enter(struct pt_regs *regs)
++asmlinkage int syscall_trace_enter(struct pt_regs *regs)
  {
- 	enter_from_user_mode(regs);
- }
+ 	if (test_thread_flag(TIF_SYSCALL_TRACE))
+ 		if (tracehook_report_syscall_entry(regs))
+-			syscall_set_nr(current, regs, -1);
++			return -1;
 +
-+noinstr void irqentry_exit_to_user_mode(struct pt_regs *regs)
-+{
-+	instrumentation_begin();
-+	exit_to_user_mode_prepare(regs);
-+	instrumentation_end();
-+	exit_to_user_mode();
-+}
++	if (secure_computing() == -1)
++		return -1;
+ 
+ 	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
+ 		trace_sys_enter(regs, syscall_get_nr(current, regs));
+ 
+ 	audit_syscall_entry(regs_syscallid(regs), regs->a0, regs->a1, regs->a2, regs->a3);
++	return 0;
+ }
+ 
+ asmlinkage void syscall_trace_exit(struct pt_regs *regs)
+diff --git a/tools/testing/selftests/seccomp/seccomp_bpf.c b/tools/testing/selftests/seccomp/seccomp_bpf.c
+index 252140a..8d18a0d 100644
+--- a/tools/testing/selftests/seccomp/seccomp_bpf.c
++++ b/tools/testing/selftests/seccomp/seccomp_bpf.c
+@@ -116,6 +116,8 @@ struct seccomp_data {
+ #  define __NR_seccomp 277
+ # elif defined(__riscv)
+ #  define __NR_seccomp 277
++# elif defined(__csky__)
++#  define __NR_seccomp 277
+ # elif defined(__hppa__)
+ #  define __NR_seccomp 338
+ # elif defined(__powerpc__)
+@@ -1603,6 +1605,14 @@ TEST_F(TRACE_poke, getpid_runs_normally)
+ # define ARCH_REGS	struct user_regs_struct
+ # define SYSCALL_NUM	a7
+ # define SYSCALL_RET	a0
++#elif defined(__csky__)
++# define ARCH_REGS	struct pt_regs
++#if defined(__CSKYABIV2__)
++# define SYSCALL_NUM	regs[3]
++#else
++# define SYSCALL_NUM	regs[9]
++#endif
++# define SYSCALL_RET	a0
+ #elif defined(__hppa__)
+ # define ARCH_REGS	struct user_regs_struct
+ # define SYSCALL_NUM	gr[20]
+@@ -1693,7 +1703,8 @@ void change_syscall(struct __test_metadata *_metadata,
+ 	EXPECT_EQ(0, ret) {}
+ 
+ #if defined(__x86_64__) || defined(__i386__) || defined(__powerpc__) || \
+-	defined(__s390__) || defined(__hppa__) || defined(__riscv)
++	defined(__s390__) || defined(__hppa__) || defined(__riscv) || \
++	defined(__csky__)
+ 	{
+ 		regs.SYSCALL_NUM = syscall;
+ 	}
+-- 
+2.7.4
