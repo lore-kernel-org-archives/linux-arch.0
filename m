@@ -1,112 +1,135 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45726 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726347AbgGaXIc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:08:32 -0400
-Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 65C4EC061757
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:32 -0700 (PDT)
-Received: by mail-pf1-x444.google.com with SMTP id l2so8848216pff.0
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:32 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 04/36] x86/boot: Add .text.* to setup.ld
-Date: Fri, 31 Jul 2020 16:07:48 -0700
-Message-ID: <20200731230820.1742553-5-keescook@chromium.org>
-In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
-References: <20200731230820.1742553-1-keescook@chromium.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Return-Path: <SRS0=4doj=BL=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:43934 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728333AbgHABPA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 Jul 2020 21:15:00 -0400
+From: guoren@kernel.org
+Subject: [PATCH 12/13] csky: Add arch_show_interrupts for IPI interrupts
+Date: Sat,  1 Aug 2020 01:14:12 +0000
+Message-ID: <1596244453-98575-13-git-send-email-guoren@kernel.org>
+In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
+References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Ard Biesheuvel <ardb@kernel.org>, Fangrui Song <maskray@google.com>, Sedat Dilek <sedat.dilek@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200731230748.QbsiKj8ji-0BblQr7aQdjO9GZeaENZQ9blQEtw_Hlp0@z>
+To: guoren@kernel.org, arnd@arndb.de
+Cc: linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
+Message-ID: <20200801011412.6CmTmBJKTB2HyAtCRnSvOpcgsUOCe7vYzyE4OYPkGAk@z>
 
-From: Arvind Sankar <nivedita@alum.mit.edu>
+From: Guo Ren <guoren@linux.alibaba.com>
 
-gcc puts the main function into .text.startup when compiled with -Os (or
--O2). This results in arch/x86/boot/main.c having a .text.startup
-section which is currently not included explicitly in the linker script
-setup.ld in the same directory.
+Here is the result:
 
-The BFD linker places this orphan section immediately after .text, so
-this still works. However, LLD git, since [1], is choosing to place it
-immediately after the .bstext section instead (this is the first code
-section). This plays havoc with the section layout that setup.elf
-requires to create the setup header, for eg on 64-bit:
+ cat /proc/interrupts
+           CPU0       CPU1       CPU2       CPU3
+ 15:       1348       1299        952       1076  C-SKY SMP Intc  15  IPI Interrupt
+ 16:       1203       1825       1598       1307  C-SKY SMP Intc  16  csky_mp_timer
+ 43:        292          0          0          0  C-SKY SMP Intc  43  ttyS0
+ 57:        106          0          0          0  C-SKY SMP Intc  57  virtio0
+IPI0:         0          0          0          0  Empty interrupts
+IPI1:        19         41         45         27  Rescheduling interrupts
+IPI2:      1330       1259        908       1050  Function call interrupts
+IPI3:         0          0          0          0  Irq work interrupts
 
-    LD      arch/x86/boot/setup.elf
-  ld.lld: error: section .text.startup file range overlaps with .header
-  >>> .text.startup range is [0x200040, 0x2001FE]
-  >>> .header range is [0x2001EF, 0x20026B]
-
-  ld.lld: error: section .header file range overlaps with .bsdata
-  >>> .header range is [0x2001EF, 0x20026B]
-  >>> .bsdata range is [0x2001FF, 0x200398]
-
-  ld.lld: error: section .bsdata file range overlaps with .entrytext
-  >>> .bsdata range is [0x2001FF, 0x200398]
-  >>> .entrytext range is [0x20026C, 0x2002D3]
-
-  ld.lld: error: section .text.startup virtual address range overlaps
-  with .header
-  >>> .text.startup range is [0x40, 0x1FE]
-  >>> .header range is [0x1EF, 0x26B]
-
-  ld.lld: error: section .header virtual address range overlaps with
-  .bsdata
-  >>> .header range is [0x1EF, 0x26B]
-  >>> .bsdata range is [0x1FF, 0x398]
-
-  ld.lld: error: section .bsdata virtual address range overlaps with
-  .entrytext
-  >>> .bsdata range is [0x1FF, 0x398]
-  >>> .entrytext range is [0x26C, 0x2D3]
-
-  ld.lld: error: section .text.startup load address range overlaps with
-  .header
-  >>> .text.startup range is [0x40, 0x1FE]
-  >>> .header range is [0x1EF, 0x26B]
-
-  ld.lld: error: section .header load address range overlaps with
-  .bsdata
-  >>> .header range is [0x1EF, 0x26B]
-  >>> .bsdata range is [0x1FF, 0x398]
-
-  ld.lld: error: section .bsdata load address range overlaps with
-  .entrytext
-  >>> .bsdata range is [0x1FF, 0x398]
-  >>> .entrytext range is [0x26C, 0x2D3]
-
-Add .text.* to the .text output section to fix this, and also prevent
-any future surprises if the compiler decides to create other such
-sections.
-
-[1] https://reviews.llvm.org/D75225
-
-Tested-by: Nick Desaulniers <ndesaulniers@google.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
-Reviewed-by: Fangrui Song <maskray@google.com>
-Tested-by: Sedat Dilek <sedat.dilek@gmail.com>
-Signed-off-by: Arvind Sankar <nivedita@alum.mit.edu>
-Signed-off-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/x86/boot/setup.ld | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/csky/kernel/smp.c | 49 +++++++++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 41 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/boot/setup.ld b/arch/x86/boot/setup.ld
-index 24c95522f231..49546c247ae2 100644
---- a/arch/x86/boot/setup.ld
-+++ b/arch/x86/boot/setup.ld
-@@ -20,7 +20,7 @@ SECTIONS
- 	.initdata	: { *(.initdata) }
- 	__end_init = .;
+diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
+index 60f2ab1..e7425e6 100644
+--- a/arch/csky/kernel/smp.c
++++ b/arch/csky/kernel/smp.c
+@@ -15,6 +15,7 @@
+ #include <linux/irq_work.h>
+ #include <linux/irqdomain.h>
+ #include <linux/of.h>
++#include <linux/seq_file.h>
+ #include <linux/sched/task_stack.h>
+ #include <linux/sched/mm.h>
+ #include <linux/sched/hotplug.h>
+@@ -27,11 +28,6 @@
+ #include <abi/fpu.h>
+ #endif
  
--	.text		: { *(.text) }
-+	.text		: { *(.text .text.*) }
- 	.text32		: { *(.text32) }
+-struct ipi_data_struct {
+-	unsigned long bits ____cacheline_aligned;
+-};
+-static DEFINE_PER_CPU(struct ipi_data_struct, ipi_data);
+-
+ enum ipi_message_type {
+ 	IPI_EMPTY,
+ 	IPI_RESCHEDULE,
+@@ -40,8 +36,16 @@ enum ipi_message_type {
+ 	IPI_MAX
+ };
  
- 	. = ALIGN(16);
++struct ipi_data_struct {
++	unsigned long bits ____cacheline_aligned;
++	unsigned long stats[IPI_MAX] ____cacheline_aligned;
++};
++static DEFINE_PER_CPU(struct ipi_data_struct, ipi_data);
++
+ static irqreturn_t handle_ipi(int irq, void *dev)
+ {
++	unsigned long *stats = this_cpu_ptr(&ipi_data)->stats;
++
+ 	while (true) {
+ 		unsigned long ops;
+ 
+@@ -49,14 +53,20 @@ static irqreturn_t handle_ipi(int irq, void *dev)
+ 		if (ops == 0)
+ 			return IRQ_HANDLED;
+ 
+-		if (ops & (1 << IPI_RESCHEDULE))
++		if (ops & (1 << IPI_RESCHEDULE)) {
++			stats[IPI_RESCHEDULE]++;
+ 			scheduler_ipi();
++		}
+ 
+-		if (ops & (1 << IPI_CALL_FUNC))
++		if (ops & (1 << IPI_CALL_FUNC)) {
++			stats[IPI_CALL_FUNC]++;
+ 			generic_smp_call_function_interrupt();
++		}
+ 
+-		if (ops & (1 << IPI_IRQ_WORK))
++		if (ops & (1 << IPI_IRQ_WORK)) {
++			stats[IPI_IRQ_WORK]++;
+ 			irq_work_run();
++		}
+ 
+ 		BUG_ON((ops >> IPI_MAX) != 0);
+ 	}
+@@ -88,6 +98,29 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
+ 	send_arch_ipi(to_whom);
+ }
+ 
++static const char * const ipi_names[] = {
++	[IPI_EMPTY]		= "Empty interrupts",
++	[IPI_RESCHEDULE]	= "Rescheduling interrupts",
++	[IPI_CALL_FUNC]		= "Function call interrupts",
++	[IPI_IRQ_WORK]		= "Irq work interrupts",
++};
++
++int arch_show_interrupts(struct seq_file *p, int prec)
++{
++	unsigned int cpu, i;
++
++	for (i = 0; i < IPI_MAX; i++) {
++		seq_printf(p, "%*s%u:%s", prec - 1, "IPI", i,
++			   prec >= 4 ? " " : "");
++		for_each_online_cpu(cpu)
++			seq_printf(p, "%10lu ",
++				per_cpu_ptr(&ipi_data, cpu)->stats[i]);
++		seq_printf(p, " %s\n", ipi_names[i]);
++	}
++
++	return 0;
++}
++
+ void arch_send_call_function_ipi_mask(struct cpumask *mask)
+ {
+ 	send_ipi_message(mask, IPI_CALL_FUNC);
 -- 
-2.25.1
+2.7.4
