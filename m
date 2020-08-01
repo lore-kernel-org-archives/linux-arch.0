@@ -1,123 +1,93 @@
 From: Arvind Sankar <nivedita@alum.mit.edu>
-Subject: Re: [PATCH v5 32/36] x86/boot/compressed: Reorganize zero-size
- section asserts
-Date: Sat, 1 Aug 2020 13:12:25 -0400
-Message-ID: <20200801171225.GB3249534@rani.riverdale.lan>
+Subject: Re: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input
+ sections
+Date: Sat, 1 Aug 2020 13:27:46 -0400
+Message-ID: <20200801172746.GC3249534@rani.riverdale.lan>
 References: <20200731230820.1742553-1-keescook@chromium.org>
- <20200731230820.1742553-33-keescook@chromium.org>
- <20200801014755.GA2700342@rani.riverdale.lan>
- <20200801025325.GA2800311@rani.riverdale.lan>
- <202007312235.4A48157938@keescook>
+ <20200731230820.1742553-14-keescook@chromium.org>
+ <20200801035128.GB2800311@rani.riverdale.lan>
+ <202007312237.4F385EB3@keescook>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41658 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43972 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726494AbgHARM3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 1 Aug 2020 13:12:29 -0400
+        with ESMTP id S1726534AbgHAR1u (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 1 Aug 2020 13:27:50 -0400
 Content-Disposition: inline
-In-Reply-To: <202007312235.4A48157938@keescook>
+In-Reply-To: <202007312237.4F385EB3@keescook>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
-Cc: Arvind Sankar <nivedita@alum.mit.edu>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Cc: Arvind Sankar <nivedita@alum.mit.edu>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org
 
-On Fri, Jul 31, 2020 at 10:36:00PM -0700, Kees Cook wrote:
-> On Fri, Jul 31, 2020 at 10:53:25PM -0400, Arvind Sankar wrote:
-> > On Fri, Jul 31, 2020 at 09:47:55PM -0400, Arvind Sankar wrote:
-> > > On Fri, Jul 31, 2020 at 04:08:16PM -0700, Kees Cook wrote:
-> > > > For readability, move the zero-sized sections to the end after DISCARDS
-> > > > and mark them NOLOAD for good measure.
-> > > > 
-> > > > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > > > ---
-> > > >  arch/x86/boot/compressed/vmlinux.lds.S | 42 +++++++++++++++-----------
-> > > >  1 file changed, 25 insertions(+), 17 deletions(-)
-> > > > 
-> > > > diff --git a/arch/x86/boot/compressed/vmlinux.lds.S b/arch/x86/boot/compressed/vmlinux.lds.S
-> > > > index 3c2ee9a5bf43..42dea70a5091 100644
-> > > > --- a/arch/x86/boot/compressed/vmlinux.lds.S
-> > > > +++ b/arch/x86/boot/compressed/vmlinux.lds.S
-> > > > @@ -42,18 +42,16 @@ SECTIONS
-> > > >  		*(.rodata.*)
-> > > >  		_erodata = . ;
-> > > >  	}
-> > > > -	.rel.dyn : {
-> > > > -		*(.rel.*)
-> > > > -	}
-> > > > -	.rela.dyn : {
-> > > > -		*(.rela.*)
-> > > > -	}
-> > > > -	.got : {
-> > > > -		*(.got)
-> > > > -	}
-> > > >  	.got.plt : {
-> > > >  		*(.got.plt)
-> > > >  	}
-> > > > +	ASSERT(SIZEOF(.got.plt) == 0 ||
-> > > > +#ifdef CONFIG_X86_64
-> > > > +	       SIZEOF(.got.plt) == 0x18,
-> > > > +#else
-> > > > +	       SIZEOF(.got.plt) == 0xc,
-> > > > +#endif
-> > > > +	       "Unexpected GOT/PLT entries detected!")
-> > > >  
-> > > >  	.data :	{
-> > > >  		_data = . ;
-> > > > @@ -85,13 +83,23 @@ SECTIONS
-> > > >  	ELF_DETAILS
-> > > >  
-> > > >  	DISCARDS
-> > > > -}
-> > > >  
-> > > > -ASSERT(SIZEOF(.got) == 0, "Unexpected GOT entries detected!")
-> > > > -#ifdef CONFIG_X86_64
-> > > > -ASSERT(SIZEOF(.got.plt) == 0 || SIZEOF(.got.plt) == 0x18, "Unexpected GOT/PLT entries detected!")
-> > > > -#else
-> > > > -ASSERT(SIZEOF(.got.plt) == 0 || SIZEOF(.got.plt) == 0xc, "Unexpected GOT/PLT entries detected!")
-> > > > -#endif
-> > > > +	/*
-> > > > +	 * Sections that should stay zero sized, which is safer to
-> > > > +	 * explicitly check instead of blindly discarding.
-> > > > +	 */
-> > > > +	.got (NOLOAD) : {
-> > > > +		*(.got)
-> > > > +	}
-> > > > +	ASSERT(SIZEOF(.got) == 0, "Unexpected GOT entries detected!")
-> > > >  
-> > > > -ASSERT(SIZEOF(.rel.dyn) == 0 && SIZEOF(.rela.dyn) == 0, "Unexpected run-time relocations detected!")
-> > > > +	/* ld.lld does not like .rel* sections being made "NOLOAD". */
-> > > > +	.rel.dyn : {
-> > > > +		*(.rel.*)
-> > > > +	}
-> > > > +	ASSERT(SIZEOF(.rel.dyn) == 0, "Unexpected run-time relocations (.rel) detected!")
-> > > > +	.rela.dyn : {
-> > > > +		*(.rela.*)
-> > > > +	}
-> > > > +	ASSERT(SIZEOF(.rela.dyn) == 0, "Unexpected run-time relocations (.rela) detected!")
-> > > > +}
-> > > > -- 
-> > > > 2.25.1
-> > > > 
-> > > 
-> > > There's no point in marking zero-size sections NOLOAD -- if the ASSERT's
-> > > passed, they won't be present in the file at all anyway.
-> > > 
-> > > The only section for which there might be a point is .got.plt, which is
-> > > non-empty on 32-bit, and only if it is first moved to the end. That
-> > > saves a few bytes.
+On Fri, Jul 31, 2020 at 11:18:02PM -0700, Kees Cook wrote:
+> On Fri, Jul 31, 2020 at 11:51:28PM -0400, Arvind Sankar wrote:
 > > 
-> > Btw, you should move .got.plt also to the end anyway for readability,
-> > it's unused even if non-empty. And with the ASSERT being placed
-> > immediately after it, it's even more distracting from the actual section
-> > layout.
+> > This also changes the ordering to place all hot resp unlikely sections separate
+> > from other text, while currently it places the hot/unlikely bits of each file
+> > together with the rest of the code in that file. That seems like a reasonable
 > 
-> ld.bfd (if I'm remembering correctly) was extraordinarily upset about it
-> being at the end. I will retest and report back.
-> 
-> -- 
-> Kees Cook
+> Oh, hmm, yes, we aren't explicitly using SORT() here. Does that mean the
+> input sections were entirely be ordered in compilation unit link order,
+> even in the case of orphan sections? (And I think either way, the answer
+> isn't the same between bfd and lld.) I actually thought the like-named
+> input sections were collected together first with lld, but bfd strictly
+> appended to the output section. I guess it's time for me to stare at -M
+> output from ld...
 
-Actually, moving it to the end also requires marking it INFO or
-stripping it out when creating the bzImage. Otherwise we get back to
-that old problem of materializing .bss/.pgtable in the bzImage.
+I don't know what happened to the orphans previously. But .text.hot and
+.text.unlikely will now change ordering. It sounds from below like this
+wasn't intentional? Though it does seem to be how BFD's default linker
+scripts lay it out.
+
+> 
+> Regardless, this patch is attempting to fix the problem where bfd and lld
+> lay out the orphans differently (as mentioned above, lld seems to sort
+> them in a way that is not strictly appended, and bfd seems to sort them
+> strictly appended). In the case of being appended to the .text output
+> section, this would cause boot failures due to _etext not covering the
+> resulting sections (which this[1] also encountered and fixed to be more
+> robust for such appended collection -- that series actually _depends_ on
+> orphan handling doing the appending, because there is no current way
+> to map wildcard input sections to their own separate output sections).
+> 
+> > change and should be mentioned in the commit message.
+> > 
+> > However, the history of their being together comes from
+> > 
+> >   9bebe9e5b0f3 ("kbuild: Fix .text.unlikely placement")
+> > 
+> > which seems to indicate there was some problem with having them separated out,
+> > although I don't quite understand what the issue was from the commit message.
+> 
+> Looking at this again, I actually wonder if we have bigger issues here
+> with dead code elimination:
+> 
+> #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+> #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
+> ...
+> 
+> that would catch: .text.hot .text.fixup .text.unlikely and .text.unknown
+> but not .text.hot.*, etc (i.e. the third dot isn't matched, which is,
+> I assume, why Clang switched to adding a trailing dot). However, this
+> patch lists .text.hot .text.hot.* first, so they'd get pulled to the
+> front correctly, but the trailing ones (with 2 dots) would not, since
+> they'd match the TEXT_MAIN wildcard first. (This problem actually existed
+> before this patch too, and is not the fault of 9bebe9e5b0f3, but rather
+> the addition of TEXT_MAIN, which could potentially match .text.unlikely
+> and .text.fixup)
+
+The existing comment on TEXT_TEXT mentions that issue. However, note
+that the dead code stuff is only available currently on mips and ppc,
+and is hidden behind EXPERT for those, so I'm not sure if anyone
+actually uses it.
+
+9bebe9e5b0f3 predates LD_DEAD_CODE_DATA_ELIMINATION, and there were no
+wildcards I can see in .text at the time, which is why I don't
+understand what problem is referred to in the commit message.
+
+Btw, for the FGKASLR stuff, instead of keeping the output sections per
+function, couldn't you generate a table of functions with sizes, and use
+that when randomizing the order? Then the sections themselves could be
+collected into .text explicitly.
