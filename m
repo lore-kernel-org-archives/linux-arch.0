@@ -1,110 +1,79 @@
-From: Arvind Sankar <nivedita@alum.mit.edu>
-Subject: Re: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input
- sections
-Date: Fri, 31 Jul 2020 23:51:28 -0400
-Message-ID: <20200801035128.GB2800311@rani.riverdale.lan>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v5 29/36] x86/build: Enforce an empty .got.plt section
+Date: Fri, 31 Jul 2020 22:32:58 -0700
+Message-ID: <202007312231.60719F7C4@keescook>
 References: <20200731230820.1742553-1-keescook@chromium.org>
- <20200731230820.1742553-14-keescook@chromium.org>
+ <20200731230820.1742553-30-keescook@chromium.org>
+ <20200801021248.GB2700342@rani.riverdale.lan>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <stable-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47924 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725497AbgHAFdB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 1 Aug 2020 01:33:01 -0400
+Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 44B35C06174A
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 22:33:01 -0700 (PDT)
+Received: by mail-pf1-x441.google.com with SMTP id w126so15311771pfw.8
+        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 22:33:01 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <20200731230820.1742553-14-keescook@chromium.org>
-Sender: stable-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200801021248.GB2700342@rani.riverdale.lan>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arvind Sankar <nivedita@alum.mit.edu>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
 
-On Fri, Jul 31, 2020 at 04:07:57PM -0700, Kees Cook wrote:
-> From: Nick Desaulniers <ndesaulniers@google.com>
+On Fri, Jul 31, 2020 at 10:12:48PM -0400, Arvind Sankar wrote:
+> On Fri, Jul 31, 2020 at 04:08:13PM -0700, Kees Cook wrote:
+> > The .got.plt section should always be zero (or filled only with the
+> > linker-generated lazy dispatch entry). Enforce this with an assert and
+> > mark the section as NOLOAD. This is more sensitive than just blindly
+> > discarding the section.
+> > 
+> > Signed-off-by: Kees Cook <keescook@chromium.org>
+> > ---
+> >  arch/x86/kernel/vmlinux.lds.S | 14 +++++++++++++-
+> >  1 file changed, 13 insertions(+), 1 deletion(-)
+> > 
+> > diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+> > index 0cc035cb15f1..7faffe7414d6 100644
+> > --- a/arch/x86/kernel/vmlinux.lds.S
+> > +++ b/arch/x86/kernel/vmlinux.lds.S
+> > @@ -414,8 +414,20 @@ SECTIONS
+> >  	ELF_DETAILS
+> >  
+> >  	DISCARDS
+> > -}
+> >  
+> > +	/*
+> > +	 * Make sure that the .got.plt is either completely empty or it
+> > +	 * contains only the lazy dispatch entries.
+> > +	 */
+> > +	.got.plt (NOLOAD) : { *(.got.plt) }
+> > +	ASSERT(SIZEOF(.got.plt) == 0 ||
+> > +#ifdef CONFIG_X86_64
+> > +	       SIZEOF(.got.plt) == 0x18,
+> > +#else
+> > +	       SIZEOF(.got.plt) == 0xc,
+> > +#endif
+> > +	       "Unexpected GOT/PLT entries detected!")
+> > +}
+> >  
+> >  #ifdef CONFIG_X86_32
+> >  /*
+> > -- 
+> > 2.25.1
+> > 
 > 
-> Basically, consider .text.{hot|unlikely|unknown}.* part of .text, too.
-> 
-> When compiling with profiling information (collected via PGO
-> instrumentations or AutoFDO sampling), Clang will separate code into
-> .text.hot, .text.unlikely, or .text.unknown sections based on profiling
-> information. After D79600 (clang-11), these sections will have a
-> trailing `.` suffix, ie.  .text.hot., .text.unlikely., .text.unknown..
-> 
-> When using -ffunction-sections together with profiling infomation,
-> either explicitly (FGKASLR) or implicitly (LTO), code may be placed in
-> sections following the convention:
-> .text.hot.<foo>, .text.unlikely.<bar>, .text.unknown.<baz>
-> where <foo>, <bar>, and <baz> are functions.  (This produces one section
-> per function; we generally try to merge these all back via linker script
-> so that we don't have 50k sections).
-> 
-> For the above cases, we need to teach our linker scripts that such
-> sections might exist and that we'd explicitly like them grouped
-> together, otherwise we can wind up with code outside of the
-> _stext/_etext boundaries that might not be mapped properly for some
-> architectures, resulting in boot failures.
-> 
-> If the linker script is not told about possible input sections, then
-> where the section is placed as output is a heuristic-laiden mess that's
-> non-portable between linkers (ie. BFD and LLD), and has resulted in many
-> hard to debug bugs.  Kees Cook is working on cleaning this up by adding
-> --orphan-handling=warn linker flag used in ARCH=powerpc to additional
-> architectures. In the case of linker scripts, borrowing from the Zen of
-> Python: explicit is better than implicit.
-> 
-> Also, ld.bfd's internal linker script considers .text.hot AND
-> .text.hot.* to be part of .text, as well as .text.unlikely and
-> .text.unlikely.*. I didn't see support for .text.unknown.*, and didn't
-> see Clang producing such code in our kernel builds, but I see code in
-> LLVM that can produce such section names if profiling information is
-> missing. That may point to a larger issue with generating or collecting
-> profiles, but I would much rather be safe and explicit than have to
-> debug yet another issue related to orphan section placement.
-> 
-> Reported-by: Jian Cai <jiancai@google.com>
-> Suggested-by: Fāng-ruì Sòng <maskray@google.com>
-> Tested-by: Luis Lozano <llozano@google.com>
-> Tested-by: Manoj Gupta <manojgupta@google.com>
-> Acked-by: Kees Cook <keescook@chromium.org>
-> Cc: stable@vger.kernel.org
-> Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=add44f8d5c5c05e08b11e033127a744d61c26aee
-> Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=1de778ed23ce7492c523d5850c6c6dbb34152655
-> Link: https://reviews.llvm.org/D79600
-> Link: https://bugs.chromium.org/p/chromium/issues/detail?id=1084760
-> Debugged-by: Luis Lozano <llozano@google.com>
-> Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  include/asm-generic/vmlinux.lds.h | 5 ++++-
->  1 file changed, 4 insertions(+), 1 deletion(-)
-> 
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index 2593957f6e8b..af5211ca857c 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -561,7 +561,10 @@
->   */
->  #define TEXT_TEXT							\
->  		ALIGN_FUNCTION();					\
-> -		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
-> +		*(.text.hot .text.hot.*)				\
-> +		*(TEXT_MAIN .text.fixup)				\
-> +		*(.text.unlikely .text.unlikely.*)			\
-> +		*(.text.unknown .text.unknown.*)			\
->  		NOINSTR_TEXT						\
->  		*(.text..refcount)					\
->  		*(.ref.text)						\
-> -- 
-> 2.25.1
-> 
+> Is this actually needed? vmlinux is a position-dependent executable, and
+> it doesn't get linked with any shared libraries, so it should never have
+> a .got or .got.plt at all I think? Does it show up as an orphan without
+> this?
 
-This also changes the ordering to place all hot resp unlikely sections separate
-from other text, while currently it places the hot/unlikely bits of each file
-together with the rest of the code in that file. That seems like a reasonable
-change and should be mentioned in the commit message.
+When I switched from DISCARD to 0-assert, I tested all of these, but given
+so many combinations, perhaps I made a mistake. I will double-check and
+report back.
 
-However, the history of their being together comes from
-
-  9bebe9e5b0f3 ("kbuild: Fix .text.unlikely placement")
-
-which seems to indicate there was some problem with having them separated out,
-although I don't quite understand what the issue was from the commit message.
-
-Cc Andi and Michal to see if they remember.
+-- 
+Kees Cook
