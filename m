@@ -1,65 +1,48 @@
-Return-Path: <SRS0=oaWr=BD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38248 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726980AbgGXBZx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 21:25:53 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH v2 15/20] mips: __csum_partial_copy_kernel() has no users left
-Date: Fri, 24 Jul 2020 02:25:41 +0100
-Message-ID: <20200724012546.302155-15-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
-References: <20200724012512.GK2786714@ZenIV.linux.org.uk>
- <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Return-Path: <SRS0=4doj=BL=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:43622 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728219AbgHABOr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 Jul 2020 21:14:47 -0400
+From: guoren@kernel.org
+Subject: [PATCH 05/13] csky: Fixup kprobes handler couldn't change pc
+Date: Sat,  1 Aug 2020 01:14:05 +0000
+Message-ID: <1596244453-98575-6-git-send-email-guoren@kernel.org>
+In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
+References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200724012541.hj6xFfzeJ4oIquOTdLf2GGgzValirXaOK6-khDuSTvs@z>
+To: guoren@kernel.org, arnd@arndb.de
+Cc: linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
+Message-ID: <20200801011405.IacUyAFDc-UcVzqKcrptTfB9HKtVCueB27zztpU86YI@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+From: Guo Ren <guoren@linux.alibaba.com>
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+The "Changing Execution Path" section in the Documentation/kprobes.txt
+said:
+
+Since kprobes can probe into a running kernel code, it can change the
+register set, including instruction pointer.
+
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/mips/include/asm/checksum.h | 3 ---
- arch/mips/lib/csum_partial.S     | 3 ---
- 2 files changed, 6 deletions(-)
+ arch/csky/abiv2/mcount.S | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/arch/mips/include/asm/checksum.h b/arch/mips/include/asm/checksum.h
-index 5cf4ce11c821..a8ff9c306363 100644
---- a/arch/mips/include/asm/checksum.h
-+++ b/arch/mips/include/asm/checksum.h
-@@ -34,9 +34,6 @@
-  */
- __wsum csum_partial(const void *buff, int len, __wsum sum);
+diff --git a/arch/csky/abiv2/mcount.S b/arch/csky/abiv2/mcount.S
+index 911512b..d745e10 100644
+--- a/arch/csky/abiv2/mcount.S
++++ b/arch/csky/abiv2/mcount.S
+@@ -55,7 +55,9 @@
  
--__wsum __csum_partial_copy_kernel(const void *src, void *dst,
--				  int len, __wsum sum, int *err_ptr);
--
- __wsum __csum_partial_copy_from_user(const void *src, void *dst,
- 				     int len, __wsum sum, int *err_ptr);
- __wsum __csum_partial_copy_to_user(const void *src, void *dst,
-diff --git a/arch/mips/lib/csum_partial.S b/arch/mips/lib/csum_partial.S
-index 8d70855b0914..983e909c2052 100644
---- a/arch/mips/lib/csum_partial.S
-+++ b/arch/mips/lib/csum_partial.S
-@@ -827,8 +827,6 @@ EXPORT_SYMBOL(csum_partial)
- 	.set	pop
- 	.endm
- 
--LEAF(__csum_partial_copy_kernel)
--EXPORT_SYMBOL(__csum_partial_copy_kernel)
- #ifndef CONFIG_EVA
- FEXPORT(__csum_partial_copy_to_user)
- EXPORT_SYMBOL(__csum_partial_copy_to_user)
-@@ -836,7 +834,6 @@ FEXPORT(__csum_partial_copy_from_user)
- EXPORT_SYMBOL(__csum_partial_copy_from_user)
- #endif
- __BUILD_CSUM_PARTIAL_COPY_USER LEGACY_MODE USEROP USEROP 1
--END(__csum_partial_copy_kernel)
- 
- #ifdef CONFIG_EVA
- LEAF(__csum_partial_copy_to_user)
+ .macro mcount_exit_regs
+ 	RESTORE_REGS_FTRACE
+-	ldw	t1, (sp, 0)
++	subi	sp, 152
++	ldw	t1, (sp, 4)
++	addi	sp, 152
+ 	ldw	r8, (sp, 4)
+ 	ldw	lr, (sp, 8)
+ 	addi	sp, 12
 -- 
-2.11.0
+2.7.4
