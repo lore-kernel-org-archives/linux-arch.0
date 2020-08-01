@@ -1,52 +1,42 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59296 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733283AbgGaMWM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 08:22:12 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: improve compat handling for the i386 u64 alignment quirk v2
-Date: Fri, 31 Jul 2020 14:21:59 +0200
-Message-ID: <20200731122202.213333-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Return-Path: <SRS0=4doj=BL=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:43886 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728306AbgHABO4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 Jul 2020 21:14:56 -0400
+From: guoren@kernel.org
+Subject: [PATCH 10/13] csky: Fixup warning by EXPORT_SYMBOL(kmap)
+Date: Sat,  1 Aug 2020 01:14:10 +0000
+Message-ID: <1596244453-98575-11-git-send-email-guoren@kernel.org>
+In-Reply-To: <1596244453-98575-1-git-send-email-guoren@kernel.org>
+References: <1596244453-98575-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, Jan Kara <jack@suse.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200731122159.YVur810whtOnSdMhNkkdLk9JJ148UNXV1c4cQfDULgs@z>
+To: guoren@kernel.org, arnd@arndb.de
+Cc: linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
+Message-ID: <20200801011410.TzWyfi4IRa-aECrqpmLBQp-x547pRK2NAWELjvbtpfg@z>
 
-Hi all,
+From: Guo Ren <guoren@linux.alibaba.com>
 
-the i386 ABI is a little special in that it uses less than natural
-alignment for 64-bit integer types (u64 and s64), and a significant
-amount of our compat handlers deals with just that.  Unfortunately
-there is no good way to check for this specific quirk at runtime,
-similar how in_compat_syscall() checks for a compat syscall.  This
-series adds such a check, and then uses the quota code as an example
-of how this improves the compat handling.  I have a few other places
-in mind where this will also be useful going forward.
+This a wrong code, and no kmap symbol for export.
 
-Changes since v1:
- - use asm-generic/compat.h instead of linux/compat.h for
-   compat_u64 and compat_s64
- - fix a typo
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/csky/mm/highmem.c | 2 --
+ 1 file changed, 2 deletions(-)
 
-Diffstat:
- b/arch/arm64/include/asm/compat.h        |    2 
- b/arch/mips/include/asm/compat.h         |    2 
- b/arch/parisc/include/asm/compat.h       |    2 
- b/arch/powerpc/include/asm/compat.h      |    2 
- b/arch/s390/include/asm/compat.h         |    2 
- b/arch/sparc/include/asm/compat.h        |    3 
- b/arch/x86/entry/syscalls/syscall_32.tbl |    2 
- b/arch/x86/include/asm/compat.h          |    3 
- b/fs/quota/Kconfig                       |    5 -
- b/fs/quota/Makefile                      |    1 
- b/fs/quota/compat.h                      |   34 ++++++++
- b/fs/quota/quota.c                       |   73 +++++++++++++++---
- b/include/asm-generic/compat.h           |    8 ++
- b/include/linux/compat.h                 |    9 ++
- b/include/linux/quotaops.h               |    3 
- b/kernel/sys_ni.c                        |    1 
- fs/quota/compat.c                        |  120 -------------------------------
- 17 files changed, 113 insertions(+), 159 deletions(-)
+diff --git a/arch/csky/mm/highmem.c b/arch/csky/mm/highmem.c
+index 89ec32e..89c1080 100644
+--- a/arch/csky/mm/highmem.c
++++ b/arch/csky/mm/highmem.c
+@@ -19,8 +19,6 @@ void kmap_flush_tlb(unsigned long addr)
+ }
+ EXPORT_SYMBOL(kmap_flush_tlb);
+ 
+-EXPORT_SYMBOL(kmap);
+-
+ void *kmap_atomic_high_prot(struct page *page, pgprot_t prot)
+ {
+ 	unsigned long vaddr;
+-- 
+2.7.4
