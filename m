@@ -1,173 +1,297 @@
-Return-Path: <SRS0=TE/4=BO=vger.kernel.org=linux-doc-owner@kernel.org>
+Return-Path: <SRS0=FZ5f=BM=vger.kernel.org=linux-doc-owner@kernel.org>
+From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
+Subject: [PATCH v20 03/12] landlock: Set up the security framework and manage credentials
+Date: Sun,  2 Aug 2020 23:58:54 +0200
+Message-ID: <20200802215903.91936-4-mic@digikod.net>
+In-Reply-To: <20200802215903.91936-1-mic@digikod.net>
+References: <20200802215903.91936-1-mic@digikod.net>
 MIME-Version: 1.0
-References: <20200626210917.358969-1-brendanhiggins@google.com>
- <20200626210917.358969-8-brendanhiggins@google.com> <202006261423.0BC9D830@keescook>
-In-Reply-To: <202006261423.0BC9D830@keescook>
-From: Brendan Higgins <brendanhiggins@google.com>
-Date: Tue, 4 Aug 2020 13:06:10 -0700
-Message-ID: <CAFd5g46sH+J9Un-2BTYMjruZ6bd+T35MsR2rCAKeVERV_JSoCw@mail.gmail.com>
-Subject: Re: [PATCH v5 07/12] kunit: test: create a single centralized
- executor for all tests
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-doc-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>, catalin.marinas@arm.com, will@kernel.org, Michal Simek <monstr@monstr.eu>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Zankel <chris@zankel.net>, jcmvbkbc@gmail.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org
+To: linux-kernel@vger.kernel.org
+Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200804200610.UpJTz9l0y8U49A6GXTNJUot2BGYNMrnclu4mO8xfkTU@z>
+Message-ID: <20200802215854.np8JB-qyn4--yRQz4CnJAkk4Tw7qkuKh9B20fu2eirY@z>
 
-On Fri, Jun 26, 2020 at 2:29 PM Kees Cook <keescook@chromium.org> wrote:
->
-> On Fri, Jun 26, 2020 at 02:09:12PM -0700, Brendan Higgins wrote:
-> > From: Alan Maguire <alan.maguire@oracle.com>
-> >
-> > Add a centralized executor to dispatch tests rather than relying on
-> > late_initcall to schedule each test suite separately. Centralized
-> > execution is for built-in tests only; modules will execute tests when
-> > loaded.
-> >
-> > Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
-> > Co-developed-by: Iurii Zaikin <yzaikin@google.com>
-> > Signed-off-by: Iurii Zaikin <yzaikin@google.com>
-> > Co-developed-by: Brendan Higgins <brendanhiggins@google.com>
-> > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> > Reviewed-by: Stephen Boyd <sboyd@kernel.org>
-> > ---
-> >  include/kunit/test.h | 67 +++++++++++++++++++++++++++++---------------
-> >  lib/kunit/Makefile   |  3 +-
-> >  lib/kunit/executor.c | 28 ++++++++++++++++++
-> >  lib/kunit/test.c     |  2 +-
-> >  4 files changed, 76 insertions(+), 24 deletions(-)
-> >  create mode 100644 lib/kunit/executor.c
-> >
-> > diff --git a/include/kunit/test.h b/include/kunit/test.h
-> > index 47e61e1d53370..f3e86c3953a2b 100644
-> > --- a/include/kunit/test.h
-> > +++ b/include/kunit/test.h
-> > @@ -224,7 +224,7 @@ size_t kunit_suite_num_test_cases(struct kunit_suite *suite);
-> >  unsigned int kunit_test_case_num(struct kunit_suite *suite,
-> >                                struct kunit_case *test_case);
-> >
-> > -int __kunit_test_suites_init(struct kunit_suite **suites);
-> > +int __kunit_test_suites_init(struct kunit_suite * const * const suites);
-> >
-> >  void __kunit_test_suites_exit(struct kunit_suite **suites);
-> >
-> > @@ -237,34 +237,57 @@ void __kunit_test_suites_exit(struct kunit_suite **suites);
-> >   * Registers @suites_list with the test framework. See &struct kunit_suite for
-> >   * more information.
-> >   *
-> > - * When builtin, KUnit tests are all run as late_initcalls; this means
-> > - * that they cannot test anything where tests must run at a different init
-> > - * phase. One significant restriction resulting from this is that KUnit
-> > - * cannot reliably test anything that is initialize in the late_init phase;
-> > - * another is that KUnit is useless to test things that need to be run in
-> > - * an earlier init phase.
-> > - *
-> > - * An alternative is to build the tests as a module.  Because modules
-> > - * do not support multiple late_initcall()s, we need to initialize an
-> > - * array of suites for a module.
-> > - *
-> > - * TODO(brendanhiggins@google.com): Don't run all KUnit tests as
-> > - * late_initcalls.  I have some future work planned to dispatch all KUnit
-> > - * tests from the same place, and at the very least to do so after
-> > - * everything else is definitely initialized.
-> > + * If a test suite is built-in, module_init() gets translated into
-> > + * an initcall which we don't want as the idea is that for builtins
-> > + * the executor will manage execution.  So ensure we do not define
-> > + * module_{init|exit} functions for the builtin case when registering
-> > + * suites via kunit_test_suites() below.
-> >   */
-> > -#define kunit_test_suites(suites_list...)                            \
-> > -     static struct kunit_suite *suites[] = {suites_list, NULL};      \
-> > -     static int kunit_test_suites_init(void)                         \
-> > +#ifdef MODULE
-> > +#define kunit_test_suites_for_module(__suites)                               \
-> > +     static int __init kunit_test_suites_init(void)                  \
-> >       {                                                               \
-> > -             return __kunit_test_suites_init(suites);                \
-> > +             return __kunit_test_suites_init(__suites);              \
-> >       }                                                               \
-> > -     late_initcall(kunit_test_suites_init);                          \
-> > +     module_init(kunit_test_suites_init);                            \
-> > +                                                                     \
-> >       static void __exit kunit_test_suites_exit(void)                 \
-> >       {                                                               \
-> > -             return __kunit_test_suites_exit(suites);                \
-> > +             return __kunit_test_suites_exit(__suites);              \
-> >       }                                                               \
-> >       module_exit(kunit_test_suites_exit)
-> > +#else
-> > +#define kunit_test_suites_for_module(__suites)
-> > +#endif /* MODULE */
-> > +
-> > +#define __kunit_test_suites(unique_array, unique_suites, ...)                       \
-> > +     static struct kunit_suite *unique_array[] = { __VA_ARGS__, NULL };     \
-> > +     kunit_test_suites_for_module(unique_array);                            \
-> > +     static struct kunit_suite **unique_suites                              \
-> > +     __used __section(.kunit_test_suites) = unique_array
-> > +
-> > +/**
-> > + * kunit_test_suites() - used to register one or more &struct kunit_suite
-> > + *                    with KUnit.
-> > + *
-> > + * @suites: a statically allocated list of &struct kunit_suite.
-> > + *
-> > + * Registers @suites with the test framework. See &struct kunit_suite for
-> > + * more information.
-> > + *
-> > + * When builtin,  KUnit tests are all run via executor; this is done
-> > + * by placing the array of struct kunit_suite * in the .kunit_test_suites
-> > + * ELF section.
-> > + *
-> > + * An alternative is to build the tests as a module.  Because modules do not
-> > + * support multiple initcall()s, we need to initialize an array of suites for a
-> > + * module.
-> > + *
-> > + */
-> > +#define kunit_test_suites(...)                                               \
-> > +     __kunit_test_suites(__UNIQUE_ID(array),                         \
-> > +                         __UNIQUE_ID(suites),                        \
-> > +                         __VA_ARGS__)
-> >
-> >  #define kunit_test_suite(suite)      kunit_test_suites(&suite)
-> >
-> > diff --git a/lib/kunit/Makefile b/lib/kunit/Makefile
-> > index 724b94311ca36..c49f4ffb6273a 100644
-> > --- a/lib/kunit/Makefile
-> > +++ b/lib/kunit/Makefile
-> > @@ -3,7 +3,8 @@ obj-$(CONFIG_KUNIT) +=                        kunit.o
-> >  kunit-objs +=                                test.o \
-> >                                       string-stream.o \
-> >                                       assert.o \
-> > -                                     try-catch.o
-> > +                                     try-catch.o \
-> > +                                     executor.o
-> >
-> >  ifeq ($(CONFIG_KUNIT_DEBUGFS),y)
-> >  kunit-objs +=                                debugfs.o
-> > diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-> > new file mode 100644
-> > index 0000000000000..7015e7328dce7
-> > --- /dev/null
-> > +++ b/lib/kunit/executor.c
-> > @@ -0,0 +1,28 @@
-> > +// SPDX-License-Identifier: GPL-2.0
-> > +
-> > +#include <kunit/test.h>
-> > +
-> > +/*
-> > + * These symbols point to the .kunit_test_suites section and are defined in
-> > + * include/asm-generic/vmlinux.lds.h, and consequently must be extern.
-> > + */
-> > +extern struct kunit_suite * const * const __kunit_suites_start[];
-> > +extern struct kunit_suite * const * const __kunit_suites_end[];
->
-> I would expect these to be in include/asm-generic/sections.h but I guess
-> it's not required.
+A process credentials point to a Landlock domain, which is underneath
+implemented with a ruleset.  In the following commits, this domain is
+used to check and enforce the ptrace and filesystem security policies.
+A domain is inherited from a parent to its child the same way a thread
+inherits a seccomp policy.
 
-I don't have strong opinions either way, but I think this is less
-clutter since KUnit is the only one that uses it.
+Signed-off-by: Mickaël Salaün <mic@digikod.net>
+Cc: James Morris <jmorris@namei.org>
+Cc: Jann Horn <jannh@google.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Serge E. Hallyn <serge@hallyn.com>
+---
 
-> Reviewed-by: Kees Cook <keescook@chromium.org>
+Changes since v17:
+* Constify returned domain pointers from landlock_get_current_domain()
+  and landlock_get_task_domain() helpers.
 
-Thanks!
+Changes since v15:
+* Optimize landlocked() for current thread.
+* Display the greeting message when everything is initialized.
+
+Changes since v14:
+* Uses pr_fmt from common.h .
+* Constify variables.
+* Remove useless NULL initialization.
+
+Changes since v13:
+* totally get ride of the seccomp dependency
+* only keep credential management and LSM setup.
+
+Previous changes:
+https://lore.kernel.org/lkml/20191104172146.30797-4-mic@digikod.net/
+---
+ security/Kconfig           | 10 +++----
+ security/landlock/Makefile |  3 +-
+ security/landlock/common.h | 20 +++++++++++++
+ security/landlock/cred.c   | 46 ++++++++++++++++++++++++++++++
+ security/landlock/cred.h   | 58 ++++++++++++++++++++++++++++++++++++++
+ security/landlock/setup.c  | 31 ++++++++++++++++++++
+ security/landlock/setup.h  | 16 +++++++++++
+ 7 files changed, 178 insertions(+), 6 deletions(-)
+ create mode 100644 security/landlock/common.h
+ create mode 100644 security/landlock/cred.c
+ create mode 100644 security/landlock/cred.h
+ create mode 100644 security/landlock/setup.c
+ create mode 100644 security/landlock/setup.h
+
+diff --git a/security/Kconfig b/security/Kconfig
+index 582fd777a757..a96ee1c7fd25 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -278,11 +278,11 @@ endchoice
+ 
+ config LSM
+ 	string "Ordered list of enabled LSMs"
+-	default "lockdown,yama,loadpin,safesetid,integrity,smack,selinux,tomoyo,apparmor,bpf" if DEFAULT_SECURITY_SMACK
+-	default "lockdown,yama,loadpin,safesetid,integrity,apparmor,selinux,smack,tomoyo,bpf" if DEFAULT_SECURITY_APPARMOR
+-	default "lockdown,yama,loadpin,safesetid,integrity,tomoyo,bpf" if DEFAULT_SECURITY_TOMOYO
+-	default "lockdown,yama,loadpin,safesetid,integrity,bpf" if DEFAULT_SECURITY_DAC
+-	default "lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,bpf"
++	default "landlock,lockdown,yama,loadpin,safesetid,integrity,smack,selinux,tomoyo,apparmor,bpf" if DEFAULT_SECURITY_SMACK
++	default "landlock,lockdown,yama,loadpin,safesetid,integrity,apparmor,selinux,smack,tomoyo,bpf" if DEFAULT_SECURITY_APPARMOR
++	default "landlock,lockdown,yama,loadpin,safesetid,integrity,tomoyo,bpf" if DEFAULT_SECURITY_TOMOYO
++	default "landlock,lockdown,yama,loadpin,safesetid,integrity,bpf" if DEFAULT_SECURITY_DAC
++	default "landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,bpf"
+ 	help
+ 	  A comma-separated list of LSMs, in initialization order.
+ 	  Any LSMs left off this list will be ignored. This can be
+diff --git a/security/landlock/Makefile b/security/landlock/Makefile
+index d846eba445bb..041ea242e627 100644
+--- a/security/landlock/Makefile
++++ b/security/landlock/Makefile
+@@ -1,3 +1,4 @@
+ obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
+ 
+-landlock-y := object.o ruleset.o
++landlock-y := setup.o object.o ruleset.o \
++	cred.o
+diff --git a/security/landlock/common.h b/security/landlock/common.h
+new file mode 100644
+index 000000000000..5dc0fe15707d
+--- /dev/null
++++ b/security/landlock/common.h
+@@ -0,0 +1,20 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Landlock LSM - Common constants and helpers
++ *
++ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2018-2020 ANSSI
++ */
++
++#ifndef _SECURITY_LANDLOCK_COMMON_H
++#define _SECURITY_LANDLOCK_COMMON_H
++
++#define LANDLOCK_NAME "landlock"
++
++#ifdef pr_fmt
++#undef pr_fmt
++#endif
++
++#define pr_fmt(fmt) LANDLOCK_NAME ": " fmt
++
++#endif /* _SECURITY_LANDLOCK_COMMON_H */
+diff --git a/security/landlock/cred.c b/security/landlock/cred.c
+new file mode 100644
+index 000000000000..7074149d2517
+--- /dev/null
++++ b/security/landlock/cred.c
+@@ -0,0 +1,46 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Landlock LSM - Credential hooks
++ *
++ * Copyright © 2017-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2018-2020 ANSSI
++ */
++
++#include <linux/cred.h>
++#include <linux/lsm_hooks.h>
++
++#include "common.h"
++#include "cred.h"
++#include "ruleset.h"
++#include "setup.h"
++
++static int hook_cred_prepare(struct cred *const new,
++		const struct cred *const old, const gfp_t gfp)
++{
++	const struct landlock_cred_security *cred_old = landlock_cred(old);
++	struct landlock_cred_security *cred_new = landlock_cred(new);
++	struct landlock_ruleset *dom_old;
++
++	dom_old = cred_old->domain;
++	if (dom_old) {
++		landlock_get_ruleset(dom_old);
++		cred_new->domain = dom_old;
++	}
++	return 0;
++}
++
++static void hook_cred_free(struct cred *const cred)
++{
++	landlock_put_ruleset_deferred(landlock_cred(cred)->domain);
++}
++
++static struct security_hook_list landlock_hooks[] __lsm_ro_after_init = {
++	LSM_HOOK_INIT(cred_prepare, hook_cred_prepare),
++	LSM_HOOK_INIT(cred_free, hook_cred_free),
++};
++
++__init void landlock_add_hooks_cred(void)
++{
++	security_add_hooks(landlock_hooks, ARRAY_SIZE(landlock_hooks),
++			LANDLOCK_NAME);
++}
+diff --git a/security/landlock/cred.h b/security/landlock/cred.h
+new file mode 100644
+index 000000000000..2983dd4dda46
+--- /dev/null
++++ b/security/landlock/cred.h
+@@ -0,0 +1,58 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Landlock LSM - Credential hooks
++ *
++ * Copyright © 2019 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2019 ANSSI
++ */
++
++#ifndef _SECURITY_LANDLOCK_CRED_H
++#define _SECURITY_LANDLOCK_CRED_H
++
++#include <linux/cred.h>
++#include <linux/init.h>
++#include <linux/rcupdate.h>
++
++#include "ruleset.h"
++#include "setup.h"
++
++struct landlock_cred_security {
++	struct landlock_ruleset *domain;
++};
++
++static inline struct landlock_cred_security *landlock_cred(
++		const struct cred *cred)
++{
++	return cred->security + landlock_blob_sizes.lbs_cred;
++}
++
++static inline const struct landlock_ruleset *landlock_get_current_domain(void)
++{
++	return landlock_cred(current_cred())->domain;
++}
++
++/*
++ * The call needs to come from an RCU read-side critical section.
++ */
++static inline const struct landlock_ruleset *landlock_get_task_domain(
++		const struct task_struct *const task)
++{
++	return landlock_cred(__task_cred(task))->domain;
++}
++
++static inline bool landlocked(const struct task_struct *const task)
++{
++	bool has_dom;
++
++	if (task == current)
++		return !!landlock_get_current_domain();
++
++	rcu_read_lock();
++	has_dom = !!landlock_get_task_domain(task);
++	rcu_read_unlock();
++	return has_dom;
++}
++
++__init void landlock_add_hooks_cred(void);
++
++#endif /* _SECURITY_LANDLOCK_CRED_H */
+diff --git a/security/landlock/setup.c b/security/landlock/setup.c
+new file mode 100644
+index 000000000000..39ee1766f175
+--- /dev/null
++++ b/security/landlock/setup.c
+@@ -0,0 +1,31 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Landlock LSM - Security framework setup
++ *
++ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2018-2020 ANSSI
++ */
++
++#include <linux/init.h>
++#include <linux/lsm_hooks.h>
++
++#include "common.h"
++#include "cred.h"
++#include "setup.h"
++
++struct lsm_blob_sizes landlock_blob_sizes __lsm_ro_after_init = {
++	.lbs_cred = sizeof(struct landlock_cred_security),
++};
++
++static int __init landlock_init(void)
++{
++	landlock_add_hooks_cred();
++	pr_info("Up and running.\n");
++	return 0;
++}
++
++DEFINE_LSM(LANDLOCK_NAME) = {
++	.name = LANDLOCK_NAME,
++	.init = landlock_init,
++	.blobs = &landlock_blob_sizes,
++};
+diff --git a/security/landlock/setup.h b/security/landlock/setup.h
+new file mode 100644
+index 000000000000..9fdbf33fcc33
+--- /dev/null
++++ b/security/landlock/setup.h
+@@ -0,0 +1,16 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Landlock LSM - Security framework setup
++ *
++ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2018-2020 ANSSI
++ */
++
++#ifndef _SECURITY_LANDLOCK_SETUP_H
++#define _SECURITY_LANDLOCK_SETUP_H
++
++#include <linux/lsm_hooks.h>
++
++extern struct lsm_blob_sizes landlock_blob_sizes;
++
++#endif /* _SECURITY_LANDLOCK_SETUP_H */
+-- 
+2.28.0.rc2
