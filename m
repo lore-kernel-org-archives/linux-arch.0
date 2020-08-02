@@ -1,45 +1,125 @@
-Return-Path: <SRS0=mj0N=BO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:39845 "EHLO mga14.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726000AbgHDEpd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Aug 2020 00:45:33 -0400
-Date: Mon, 3 Aug 2020 21:45:32 -0700
-From: Andi Kleen <ak@linux.intel.com>
-Subject: Re: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input
- sections
-Message-ID: <20200804044532.GC1321588@tassilo.jf.intel.com>
-References: <20200731230820.1742553-1-keescook@chromium.org>
- <20200731230820.1742553-14-keescook@chromium.org>
- <20200801035128.GB2800311@rani.riverdale.lan>
- <20200803190506.GE1299820@tassilo.jf.intel.com>
- <20200803201525.GA1351390@rani.riverdale.lan>
+Return-Path: <SRS0=8YFq=BM=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from smtp-42ad.mail.infomaniak.ch ([84.16.66.173]:42335 "EHLO
+        smtp-42ad.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728051AbgHBV7e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 2 Aug 2020 17:59:34 -0400
+From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
+Subject: [PATCH v20 06/12] fs,security: Add sb_delete hook
+Date: Sun,  2 Aug 2020 23:58:57 +0200
+Message-ID: <20200802215903.91936-7-mic@digikod.net>
+In-Reply-To: <20200802215903.91936-1-mic@digikod.net>
+References: <20200802215903.91936-1-mic@digikod.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200803201525.GA1351390@rani.riverdale.lan>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arvind Sankar <nivedita@alum.mit.edu>
-Cc: Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Michal Marek <michal.lkml@markovi.net>
-Message-ID: <20200804044532.110BashNM2ubqWfmj27b9k5-RCQ8MFRa6WMGdfLBFqM@z>
+To: linux-kernel@vger.kernel.org
+Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Message-ID: <20200802215857.zYQLq1sn1NuGAsjFmXsdPlKsSHerMSdBWtIC0eg-ze4@z>
 
-> Why is that? Both .text and .text.hot have alignment of 2^4 (default
-> function alignment on x86) by default, so it doesn't seem like it should
-> matter for packing density.  Avoiding interspersing cold text among
+The sb_delete security hook is called when shutting down a superblock,
+which may be useful to release kernel objects tied to the superblock's
+lifetime (e.g. inodes).
 
-You may lose part of a cache line on each unit boundary. Linux has 
-a lot of units, some of them small. All these bytes add up.
+This new hook is needed by Landlock to release (ephemerally) tagged
+struct inodes.  This comes from the unprivileged nature of Landlock
+described in the next commit.
 
-It's bad for TLB locality too. Sadly with all the fine grained protection
-changes the 2MB coverage is eroding anyways, but this makes it even worse.
+Signed-off-by: Mickaël Salaün <mic@digikod.net>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: James Morris <jmorris@namei.org>
+Cc: Jann Horn <jannh@google.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Serge E. Hallyn <serge@hallyn.com>
+---
 
-> regular/hot text seems like it should be a net win.
+Changes since v17:
+* Initial patch to replace the direct call to landlock_release_inodes()
+  (requested by James Morris).
+  https://lore.kernel.org/lkml/alpine.LRH.2.21.2005150536440.7929@namei.org/
+---
+ fs/super.c                    | 1 +
+ include/linux/lsm_hook_defs.h | 1 +
+ include/linux/lsm_hooks.h     | 2 ++
+ include/linux/security.h      | 4 ++++
+ security/security.c           | 5 +++++
+ 5 files changed, 13 insertions(+)
 
-> 
-> That old commit doesn't reference efficiency -- it says there was some
-> problem with matching when they were separated out, but there were no
-> wildcard section names back then.
-
-It was about efficiency.
-
--Andi
+diff --git a/fs/super.c b/fs/super.c
+index 904459b35119..d5517e49ccdf 100644
+--- a/fs/super.c
++++ b/fs/super.c
+@@ -454,6 +454,7 @@ void generic_shutdown_super(struct super_block *sb)
+ 		evict_inodes(sb);
+ 		/* only nonzero refcount inodes can have marks */
+ 		fsnotify_sb_delete(sb);
++		security_sb_delete(sb);
+ 
+ 		if (sb->s_dio_done_wq) {
+ 			destroy_workqueue(sb->s_dio_done_wq);
+diff --git a/include/linux/lsm_hook_defs.h b/include/linux/lsm_hook_defs.h
+index af998f93d256..2b855d6a299e 100644
+--- a/include/linux/lsm_hook_defs.h
++++ b/include/linux/lsm_hook_defs.h
+@@ -59,6 +59,7 @@ LSM_HOOK(int, 0, fs_context_dup, struct fs_context *fc,
+ LSM_HOOK(int, -ENOPARAM, fs_context_parse_param, struct fs_context *fc,
+ 	 struct fs_parameter *param)
+ LSM_HOOK(int, 0, sb_alloc_security, struct super_block *sb)
++LSM_HOOK(void, LSM_RET_VOID, sb_delete, struct super_block *sb)
+ LSM_HOOK(void, LSM_RET_VOID, sb_free_security, struct super_block *sb)
+ LSM_HOOK(void, LSM_RET_VOID, sb_free_mnt_opts, void *mnt_opts)
+ LSM_HOOK(int, 0, sb_eat_lsm_opts, char *orig, void **mnt_opts)
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index 80c629d8a2ad..499f19a70a19 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -108,6 +108,8 @@
+  *	allocated.
+  *	@sb contains the super_block structure to be modified.
+  *	Return 0 if operation was successful.
++ * @sb_delete:
++ *	Release objects tied to a superblock (e.g. inodes).
+  * @sb_free_security:
+  *	Deallocate and clear the sb->s_security field.
+  *	@sb contains the super_block structure to be modified.
+diff --git a/include/linux/security.h b/include/linux/security.h
+index 0a0a03b36a3b..28b0ee6c7239 100644
+--- a/include/linux/security.h
++++ b/include/linux/security.h
+@@ -286,6 +286,7 @@ void security_bprm_committed_creds(struct linux_binprm *bprm);
+ int security_fs_context_dup(struct fs_context *fc, struct fs_context *src_fc);
+ int security_fs_context_parse_param(struct fs_context *fc, struct fs_parameter *param);
+ int security_sb_alloc(struct super_block *sb);
++void security_sb_delete(struct super_block *sb);
+ void security_sb_free(struct super_block *sb);
+ void security_free_mnt_opts(void **mnt_opts);
+ int security_sb_eat_lsm_opts(char *options, void **mnt_opts);
+@@ -614,6 +615,9 @@ static inline int security_sb_alloc(struct super_block *sb)
+ 	return 0;
+ }
+ 
++static inline void security_sb_delete(struct super_block *sb)
++{ }
++
+ static inline void security_sb_free(struct super_block *sb)
+ { }
+ 
+diff --git a/security/security.c b/security/security.c
+index d60aa835b670..9337b511306c 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -898,6 +898,11 @@ int security_sb_alloc(struct super_block *sb)
+ 	return rc;
+ }
+ 
++void security_sb_delete(struct super_block *sb)
++{
++	call_void_hook(sb_delete, sb);
++}
++
+ void security_sb_free(struct super_block *sb)
+ {
+ 	call_void_hook(sb_free_security, sb);
+-- 
+2.28.0.rc2
