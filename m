@@ -1,74 +1,50 @@
-Return-Path: <SRS0=mj0N=BO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:42117 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730367AbgHDLry (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Aug 2020 07:47:54 -0400
-Message-ID: <459ef960fb08d51962b9dba4dfba247f102d149d.1596541334.git.christophe.leroy@csgroup.eu>
-In-Reply-To: <cover.1596541334.git.christophe.leroy@csgroup.eu>
-References: <cover.1596541334.git.christophe.leroy@csgroup.eu>
-From: Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v9 3/5] powerpc/vdso: Save and restore TOC pointer on PPC64
-Date: Tue,  4 Aug 2020 11:47:50 +0000 (UTC)
+Return-Path: <SRS0=OB7A=BN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:37566 "EHLO
+        bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728232AbgHCPmz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2020 11:42:55 -0400
+Message-ID: <1596469370.29091.13.camel@HansenPartnership.com>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Date: Mon, 03 Aug 2020 08:42:50 -0700
+In-Reply-To: <877dufvje9.fsf@x220.int.ebiederm.org>
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+         <20200730152250.GG23808@casper.infradead.org>
+         <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
+         <20200730171251.GI23808@casper.infradead.org>
+         <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
+         <20200730174956.GK23808@casper.infradead.org>
+         <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
+         <87y2n03brx.fsf@x220.int.ebiederm.org>
+         <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
+         <877dufvje9.fsf@x220.int.ebiederm.org>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com, anton@ozlabs.org
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200804114750.egSjNf4z73_w2z-PxoJ70A2TU8xJkVsR6lRxxdJnX1M@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, Steven Sistare <steven.sistare@oracle.com>
+Cc: Matthew Wilcox <willy@infradead.org>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
+Message-ID: <20200803154250.G3QAskqiO-yZrbGrzyIZ-JqeZnDDD5UwEMmidT14z5I@z>
 
-On PPC64, the TOC pointer needs to be saved and restored.
+On Mon, 2020-08-03 at 10:28 -0500, Eric W. Biederman wrote:
+[...]
+> What is wrong with live migration between one qemu process and
+> another qemu process on the same machine not work for this use case?
+> 
+> Just reusing live migration would seem to be the simplest path of
+> all, as the code is already implemented.  Further if something goes
+> wrong with the live migration you can fallback to the existing
+> process.  With exec there is no fallback if the new version does not
+> properly support the handoff protocol of the old version.
 
-Suggested-by: Michael Ellerman <mpe@ellerman.id.au>
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
----
-v9: New.
+Actually, could I ask this another way: the other patch set you sent to
+the KVM list was to snapshot the VM to a PKRAM capsule preserved across
+kexec using zero copy for extremely fast save/restore.  The original
+idea was to use this as part of a CRIU based snapshot, kexec to new
+system, restore.  However, why can't you do a local snapshot, restart
+qemu, restore using the PKRAM capsule to achieve exactly the same as
+MADV_DOEXEC does but using a system that's easy to reason about?  It
+may be slightly slower, but I think we're still talking milliseconds.
 
-I'm not sure this is really needed, I can't see the VDSO C code doing
-anything with r2, at least on ppc64_defconfig.
-
-So I let you decide whether you take it or not.
-
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
----
- arch/powerpc/include/asm/vdso/gettimeofday.h | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
-
-diff --git a/arch/powerpc/include/asm/vdso/gettimeofday.h b/arch/powerpc/include/asm/vdso/gettimeofday.h
-index 0b6fa245d54e..fa774086173b 100644
---- a/arch/powerpc/include/asm/vdso/gettimeofday.h
-+++ b/arch/powerpc/include/asm/vdso/gettimeofday.h
-@@ -13,10 +13,16 @@
- 	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
-   .cfi_register lr, r0
- 	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
-+#ifdef CONFIG_PPC64
-+	PPC_STL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
-+#endif
- 	get_datapage	r5, r0
- 	addi		r5, r5, VDSO_DATA_OFFSET
- 	bl		\funct
- 	PPC_LL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
-+#ifdef CONFIG_PPC64
-+	PPC_LL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
-+#endif
- 	cmpwi		r3, 0
- 	mtlr		r0
-   .cfi_restore lr
-@@ -36,10 +42,16 @@
- 	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
-   .cfi_register lr, r0
- 	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
-+#ifdef CONFIG_PPC64
-+	PPC_STL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
-+#endif
- 	get_datapage	r4, r0
- 	addi		r4, r4, VDSO_DATA_OFFSET
- 	bl		\funct
- 	PPC_LL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
-+#ifdef CONFIG_PPC64
-+	PPC_LL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
-+#endif
- 	crclr		so
- 	mtlr		r0
-   .cfi_restore lr
--- 
-2.25.0
+James
