@@ -1,149 +1,45 @@
-Return-Path: <SRS0=mj0N=BO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:5219 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730223AbgHDLRc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Aug 2020 07:17:32 -0400
-Subject: Re: [PATCH v8 2/8] powerpc/vdso: Remove __kernel_datapage_offset and
- simplify __get_datapage()
-References: <cover.1588079622.git.christophe.leroy@c-s.fr>
- <0d2201efe3c7727f2acc718aefd7c5bb22c66c57.1588079622.git.christophe.leroy@c-s.fr>
- <87wo34tbas.fsf@mpe.ellerman.id.au>
-From: Christophe Leroy <christophe.leroy@csgroup.eu>
-Message-ID: <2f9b7d02-9e2f-4724-2608-c5573f6507a2@csgroup.eu>
-Date: Tue, 4 Aug 2020 11:17:26 +0000
-MIME-Version: 1.0
-In-Reply-To: <87wo34tbas.fsf@mpe.ellerman.id.au>
-Content-Type: text/plain; charset=utf-8; format=flowed
+Return-Path: <SRS0=OB7A=BN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from eu-smtp-delivery-151.mimecast.com ([185.58.86.151]:46639 "EHLO
+        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1725907AbgHCIc0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2020 04:32:26 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [RFC PATCH 0/5] madvise MADV_DOEXEC
+Date: Mon, 3 Aug 2020 08:32:19 +0000
+Message-ID: <09ce47c0a97c482b95b8b521e9ee33d4@AcuMS.aculab.com>
+References: <20200730171251.GI23808@casper.infradead.org>
+ <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
+ <20200730174956.GK23808@casper.infradead.org>
+ <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
+ <87y2n03brx.fsf@x220.int.ebiederm.org>
+ <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
+ <20200731152736.GP23808@casper.infradead.org>
+ <9ba26063-0098-e796-9431-8c1d0c076ffc@oracle.com>
+ <20200731165649.GG24045@ziepe.ca>
+ <71ddd3c1-bb59-3e63-e137-99b88ace454d@oracle.com>
+ <20200731174837.GH24045@ziepe.ca>
+ <f4ce3f4a-bdee-ec43-986c-8e4d8b1d2ddc@oracle.com>
+In-Reply-To: <f4ce3f4a-bdee-ec43-986c-8e4d8b1d2ddc@oracle.com>
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, nathanl@linux.ibm.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200804111726.EsPcWLaYSy92BTVC55nHPJdQt9FocwVAdwYXUgBoLwM@z>
+To: 'Steven Sistare' <steven.sistare@oracle.com>, Jason Gunthorpe <jgg@ziepe.ca>
+Cc: Matthew Wilcox <willy@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@kernel.org" <mhocko@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "x86@kernel.org" <x86@kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "arnd@arndb.de" <arnd@arndb.de>, "keescook@chromium.org" <keescook@chromium.org>, "gerg@linux-m68k.org" <gerg@linux-m68k.org>, "ktkhai@virtuozzo.com" <ktkhai@virtuozzo.com>, "christian.brauner@ubuntu.com" <christian.brauner@ubuntu.com>, "peterz@infradead.org" <peterz@infradead.org>, "esyr@redhat.com" <esyr@redhat.com>, "christian@kellner.me" <christian@kellner.me>, "areber@redhat.com" <areber@redhat.com>, "cyphar@cyphar.com" <cyphar@cyphar.com>
+Message-ID: <20200803083219.kEQmCCORngjMfvE13JkvheDI_Dbav1TZRhxmKAIG5wY@z>
 
-
-
-On 07/16/2020 02:59 AM, Michael Ellerman wrote:
-> Christophe Leroy <christophe.leroy@c-s.fr> writes:
->> The VDSO datapage and the text pages are always located immediately
->> next to each other, so it can be hardcoded without an indirection
->> through __kernel_datapage_offset
->>
->> In order to ease things, move the data page in front like other
->> arches, that way there is no need to know the size of the library
->> to locate the data page.
->>
->> Before:
->> clock-getres-realtime-coarse:    vdso: 714 nsec/call
->> clock-gettime-realtime-coarse:    vdso: 792 nsec/call
->> clock-gettime-realtime:    vdso: 1243 nsec/call
->>
->> After:
->> clock-getres-realtime-coarse:    vdso: 699 nsec/call
->> clock-gettime-realtime-coarse:    vdso: 784 nsec/call
->> clock-gettime-realtime:    vdso: 1231 nsec/call
->>
->> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
->> ---
->> v7:
->> - Moved the removal of the tmp param of __get_datapage()
->> in a subsequent patch
->> - Included the addition of the offset param to __get_datapage()
->> in the further preparatory patch
->> ---
->>   arch/powerpc/include/asm/vdso_datapage.h |  8 ++--
->>   arch/powerpc/kernel/vdso.c               | 53 ++++--------------------
->>   arch/powerpc/kernel/vdso32/datapage.S    |  3 --
->>   arch/powerpc/kernel/vdso32/vdso32.lds.S  |  7 +---
->>   arch/powerpc/kernel/vdso64/datapage.S    |  3 --
->>   arch/powerpc/kernel/vdso64/vdso64.lds.S  |  7 +---
->>   6 files changed, 16 insertions(+), 65 deletions(-)
->>
->> diff --git a/arch/powerpc/include/asm/vdso_datapage.h b/arch/powerpc/include/asm/vdso_datapage.h
->> index b9ef6cf50ea5..11886467dfdf 100644
->> --- a/arch/powerpc/include/asm/vdso_datapage.h
->> +++ b/arch/powerpc/include/asm/vdso_datapage.h
->> @@ -118,10 +118,12 @@ extern struct vdso_data *vdso_data;
->>   
->>   .macro get_datapage ptr, tmp
->>   	bcl	20, 31, .+4
->> +999:
->>   	mflr	\ptr
->> -	addi	\ptr, \ptr, (__kernel_datapage_offset - (.-4))@l
->> -	lwz	\tmp, 0(\ptr)
->> -	add	\ptr, \tmp, \ptr
->> +#if CONFIG_PPC_PAGE_SHIFT > 14
->> +	addis	\ptr, \ptr, (_vdso_datapage - 999b)@ha
->> +#endif
->> +	addi	\ptr, \ptr, (_vdso_datapage - 999b)@l
->>   .endm
->>   
->>   #endif /* __ASSEMBLY__ */
->> diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
->> index f38f26e844b6..d33fa22ddbed 100644
->> --- a/arch/powerpc/kernel/vdso.c
->> +++ b/arch/powerpc/kernel/vdso.c
->> @@ -190,7 +190,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
->>   	 * install_special_mapping or the perf counter mmap tracking code
->>   	 * will fail to recognise it as a vDSO (since arch_vma_name fails).
->>   	 */
->> -	current->mm->context.vdso_base = vdso_base;
->> +	current->mm->context.vdso_base = vdso_base + PAGE_SIZE;
-> 
-> I merged this but then realised it breaks the display of the vdso in /proc/self/maps.
-> 
-> ie. the vdso vma gets no name:
-> 
->    # cat /proc/self/maps
->    110f90000-110fa0000 r-xp 00000000 08:03 17021844                         /usr/bin/cat
->    110fa0000-110fb0000 r--p 00000000 08:03 17021844                         /usr/bin/cat
->    110fb0000-110fc0000 rw-p 00010000 08:03 17021844                         /usr/bin/cat
->    126000000-126030000 rw-p 00000000 00:00 0                                [heap]
->    7fffa8790000-7fffa87d0000 rw-p 00000000 00:00 0
->    7fffa87d0000-7fffa8830000 r--p 00000000 08:03 17521786                   /usr/lib/locale/en_AU.utf8/LC_CTYPE
->    7fffa8830000-7fffa8840000 r--p 00000000 08:03 16958337                   /usr/lib/locale/en_AU.utf8/LC_NUMERIC
->    7fffa8840000-7fffa8850000 r--p 00000000 08:03 8501358                    /usr/lib/locale/en_AU.utf8/LC_TIME
->    7fffa8850000-7fffa8ad0000 r--p 00000000 08:03 16870886                   /usr/lib/locale/en_AU.utf8/LC_COLLATE
->    7fffa8ad0000-7fffa8ae0000 r--p 00000000 08:03 8509433                    /usr/lib/locale/en_AU.utf8/LC_MONETARY
->    7fffa8ae0000-7fffa8af0000 r--p 00000000 08:03 25383753                   /usr/lib/locale/en_AU.utf8/LC_MESSAGES/SYS_LC_MESSAGES
->    7fffa8af0000-7fffa8b00000 r--p 00000000 08:03 17521790                   /usr/lib/locale/en_AU.utf8/LC_PAPER
->    7fffa8b00000-7fffa8b10000 r--p 00000000 08:03 8501354                    /usr/lib/locale/en_AU.utf8/LC_NAME
->    7fffa8b10000-7fffa8b20000 r--p 00000000 08:03 8509431                    /usr/lib/locale/en_AU.utf8/LC_ADDRESS
->    7fffa8b20000-7fffa8b30000 r--p 00000000 08:03 8509434                    /usr/lib/locale/en_AU.utf8/LC_TELEPHONE
->    7fffa8b30000-7fffa8b40000 r--p 00000000 08:03 17521787                   /usr/lib/locale/en_AU.utf8/LC_MEASUREMENT
->    7fffa8b40000-7fffa8b50000 r--s 00000000 08:03 25623315                   /usr/lib64/gconv/gconv-modules.cache
->    7fffa8b50000-7fffa8d40000 r-xp 00000000 08:03 25383789                   /usr/lib64/libc-2.30.so
->    7fffa8d40000-7fffa8d50000 r--p 001e0000 08:03 25383789                   /usr/lib64/libc-2.30.so
->    7fffa8d50000-7fffa8d60000 rw-p 001f0000 08:03 25383789                   /usr/lib64/libc-2.30.so
->    7fffa8d60000-7fffa8d70000 r--p 00000000 08:03 8509432                    /usr/lib/locale/en_AU.utf8/LC_IDENTIFICATION
->    7fffa8d70000-7fffa8d90000 r-xp 00000000 00:00 0						<--- missing
->    7fffa8d90000-7fffa8dc0000 r-xp 00000000 08:03 25383781                   /usr/lib64/ld-2.30.so
->    7fffa8dc0000-7fffa8dd0000 r--p 00020000 08:03 25383781                   /usr/lib64/ld-2.30.so
->    7fffa8dd0000-7fffa8de0000 rw-p 00030000 08:03 25383781                   /usr/lib64/ld-2.30.so
->    7fffc31c0000-7fffc31f0000 rw-p 00000000 00:00 0                          [stack]
-> 
-> 
-> And it's also going to break the logic in arch_unmap() to detect if
-> we're unmapping (part of) the VDSO. And it will break arch_remap() too.
-> 
-> And the logic to recognise the signal trampoline in
-> arch/powerpc/perf/callchain_*.c as well.
-
-I don't think it breaks that one, because ->vdsobase is still the start 
-of text.
-
-> 
-> So I'm going to rebase and drop this for now.
-> 
-> Basically we have a bunch of places that assume that vdso_base is == the
-> start of the VDSO vma, and also that the code starts there. So that will
-> need some work to tease out all those assumptions and make them work
-> with this change.
-
-Ok, one day I need to look at it in more details and see how other 
-architectures handle it etc ...
-
-As the benefit is only 2 CPU cycles, I'll drop it for now.
-
-Christophe
+PiBNYXliZS4gIFdlIHN0aWxsIG5lZWQgdG8gcHJlc2VydmUgYW4gYW5vbnltb3VzIHNlZ21lbnQs
+IHRob3VnaC4gIE1BRFZfRE9FWEVDLCBvciBtc2hhcmUsDQo+IG9yIHNvbWV0aGluZyBlbHNlLiAg
+QW5kIEkgdGhpbmsgdGhlIGFiaWxpdHkgdG8gcHJlc2VydmUgbWVtb3J5IGNvbnRhaW5pbmcgcG9p
+bnRlcnMgdG8gaXRzZWxmDQo+IGlzIGFuIGludGVyZXN0aW5nIHVzZSBjYXNlLCB0aG91Z2ggbm90
+IG91cnMuDQoNCldoeSBkb2VzIGFsbCB0aGlzIHJlbWluZCBtZSBvZiB0aGUgb2xkIHNlbmRtYWls
+IGNvZGUuDQpBZnRlciBwYXJzaW5nIHRoZSBjb25maWcgZmlsZSBpdCB1c2VkIHRvIHdyaXRlIGl0
+cyBlbnRpcmUgZGF0YQ0KYXJlYSBvdXQgdG8gYSBmaWxlLg0KT24gcmVzdGFydCwgaWYgdGhlIGNv
+bmZpZyBmaWxlIGhhZG4ndCBjaGFuZ2VkIGl0IHdvdWxkIHJlYWQgaXQgYmFjayBpdC4NCg0KSXQg
+c29ydCBvZiB3b3JrZWQgLSB1bnRpbCBzaGFyZWQgbGlicmFyaWVzIGNhbWUgYWxvbmcuDQpUaGVu
+IGl0IGhhZCBhIGhhYml0IG9mIGdlbmVyYXRpbmcgcmFuZG9tIGNyYXNoZXMuDQoNCglEYXZpZA0K
+DQotDQpSZWdpc3RlcmVkIEFkZHJlc3MgTGFrZXNpZGUsIEJyYW1sZXkgUm9hZCwgTW91bnQgRmFy
+bSwgTWlsdG9uIEtleW5lcywgTUsxIDFQVCwgVUsNClJlZ2lzdHJhdGlvbiBObzogMTM5NzM4NiAo
+V2FsZXMpDQo=
