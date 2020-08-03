@@ -1,130 +1,93 @@
-From: Stafford Horne <shorne@gmail.com>
-Subject: [PATCH] asm-generic/io.h: Fix sparse warnings on big-endian architectures
-Date: Tue,  4 Aug 2020 00:11:34 +0900
-Message-ID: <20200803151134.3740544-1-shorne@gmail.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+Date: Mon, 03 Aug 2020 10:28:14 -0500
+Message-ID: <877dufvje9.fsf@x220.int.ebiederm.org>
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+        <20200730152250.GG23808@casper.infradead.org>
+        <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
+        <20200730171251.GI23808@casper.infradead.org>
+        <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
+        <20200730174956.GK23808@casper.infradead.org>
+        <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
+        <87y2n03brx.fsf@x220.int.ebiederm.org>
+        <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39528 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725945AbgHCPLr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2020 11:11:47 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Stafford Horne <shorne@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com> (Steven
+        Sistare's message of "Fri, 31 Jul 2020 10:57:44 -0400")
+Sender: linux-kernel-owner@vger.kernel.org
+To: Steven Sistare <steven.sistare@oracle.com>
+Cc: Matthew Wilcox <willy@infradead.org>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
+List-Id: linux-arch.vger.kernel.org
 
-On big-endian architectures like OpenRISC, sparse outputs below warnings on
-asm-generic/io.h.  This is due to io statements like:
+Steven Sistare <steven.sistare@oracle.com> writes:
 
-  __raw_writel(cpu_to_le32(value), PCI_IOBASE + addr);
+> On 7/30/2020 5:58 PM, ebiederm@xmission.com wrote:
+>> Here is another suggestion.
+>> 
+>> Have a very simple program that does:
+>> 
+>> 	for (;;) {
+>> 		handle = dlopen("/my/real/program");
+>> 		real_main = dlsym(handle, "main");
+>> 		real_main(argc, argv, envp);
+>> 		dlclose(handle);
+>> 	}
+>> 
+>> With whatever obvious adjustments are needed to fit your usecase.
+>> 
+>> That should give the same level of functionality, be portable to all
+>> unices, and not require you to duplicate code.  It belive it limits you
+>> to not upgrading libc, or librt but that is a comparatively small
+>> limitation.
+>> 
+>> 
+>> Given that in general the interesting work is done in userspace and that
+>> userspace has provided an interface for reusing that work already.
+>> I don't see the justification for adding anything to exec at this point. 
+>
+> Thanks for the suggestion.  That is clever, and would make a fun project,
+> but I would not trust it for production.  These few lines are just
+> the first of many that it would take to reset the environment to the
+> well-defined post-exec initial conditions that all executables expect,
+> and incrementally tearing down state will be prone to bugs.
 
-The __raw_writel() function expects native endianness, however
-cpu_to_le32() returns __le32.  On little-endian machines these match up
-and there is no issue.  However, on big-endian we get warnings, for IO
-that is defined as little-endian the mismatch is expected.
+Agreed.
 
-The fix I propose is to __force to native endian.
+> Getting a clean slate from a kernel exec is a much more reliable
+> design.
 
-Warnings:
+Except you are explicitly throwing that out the window, by preserving
+VMAs.  You very much need to have a clean bug free shutdown to pass VMAs
+reliably.
 
-./include/asm-generic/io.h:166:15: warning: cast to restricted __le16
-./include/asm-generic/io.h:166:15: warning: cast to restricted __le16
-./include/asm-generic/io.h:166:15: warning: cast to restricted __le16
-./include/asm-generic/io.h:166:15: warning: cast to restricted __le16
-./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
-./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
-./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
-./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
-./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
-./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
-./include/asm-generic/io.h:215:22: warning: incorrect type in argument 1 (different base types)
-./include/asm-generic/io.h:215:22:    expected unsigned short [usertype] value
-./include/asm-generic/io.h:215:22:    got restricted __le16 [usertype]
-./include/asm-generic/io.h:225:22: warning: incorrect type in argument 1 (different base types)
-./include/asm-generic/io.h:225:22:    expected unsigned int [usertype] value
-./include/asm-generic/io.h:225:22:    got restricted __le32 [usertype]
+> The use case is creating long-lived apps that never go down, and the
+> simplest implementation will have the fewest bugs and is the best.
+> MADV_DOEXEC is simple, and does not even require a new system call,
+> and the kernel already knows how to exec without bugs.
 
-Signed-off-by: Stafford Horne <shorne@gmail.com>
----
- include/asm-generic/io.h | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+*ROFL*  I wish the kernel knew how to exec things without bugs.
+The bugs are hard to hit but the ones I am aware of are not straight
+forward to fix.
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 30a3aab312e6..c88b73934ab7 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -163,7 +163,7 @@ static inline u16 readw(const volatile void __iomem *addr)
- 	u16 val;
- 
- 	__io_br();
--	val = __le16_to_cpu(__raw_readw(addr));
-+	val = __le16_to_cpu((__le16 __force) __raw_readw(addr));
- 	__io_ar(val);
- 	return val;
- }
-@@ -176,7 +176,7 @@ static inline u32 readl(const volatile void __iomem *addr)
- 	u32 val;
- 
- 	__io_br();
--	val = __le32_to_cpu(__raw_readl(addr));
-+	val = __le32_to_cpu((__le32 __force) __raw_readl(addr));
- 	__io_ar(val);
- 	return val;
- }
-@@ -212,7 +212,7 @@ static inline void writeb(u8 value, volatile void __iomem *addr)
- static inline void writew(u16 value, volatile void __iomem *addr)
- {
- 	__io_bw();
--	__raw_writew(cpu_to_le16(value), addr);
-+	__raw_writew((u16 __force) cpu_to_le16(value), addr);
- 	__io_aw();
- }
- #endif
-@@ -222,7 +222,7 @@ static inline void writew(u16 value, volatile void __iomem *addr)
- static inline void writel(u32 value, volatile void __iomem *addr)
- {
- 	__io_bw();
--	__raw_writel(__cpu_to_le32(value), addr);
-+	__raw_writel((u32 __force) __cpu_to_le32(value), addr);
- 	__io_aw();
- }
- #endif
-@@ -474,7 +474,7 @@ static inline u16 _inw(unsigned long addr)
- 	u16 val;
- 
- 	__io_pbr();
--	val = __le16_to_cpu(__raw_readw(PCI_IOBASE + addr));
-+	val = __le16_to_cpu((__le16 __force) __raw_readw(PCI_IOBASE + addr));
- 	__io_par(val);
- 	return val;
- }
-@@ -487,7 +487,7 @@ static inline u32 _inl(unsigned long addr)
- 	u32 val;
- 
- 	__io_pbr();
--	val = __le32_to_cpu(__raw_readl(PCI_IOBASE + addr));
-+	val = __le32_to_cpu((__le32 __force) __raw_readl(PCI_IOBASE + addr));
- 	__io_par(val);
- 	return val;
- }
-@@ -508,7 +508,7 @@ static inline void _outb(u8 value, unsigned long addr)
- static inline void _outw(u16 value, unsigned long addr)
- {
- 	__io_pbw();
--	__raw_writew(cpu_to_le16(value), PCI_IOBASE + addr);
-+	__raw_writew((u16 __force) cpu_to_le16(value), PCI_IOBASE + addr);
- 	__io_paw();
- }
- #endif
-@@ -518,7 +518,7 @@ static inline void _outw(u16 value, unsigned long addr)
- static inline void _outl(u32 value, unsigned long addr)
- {
- 	__io_pbw();
--	__raw_writel(cpu_to_le32(value), PCI_IOBASE + addr);
-+	__raw_writel((u32 __force) cpu_to_le32(value), PCI_IOBASE + addr);
- 	__io_paw();
- }
- #endif
--- 
-2.26.2
+MADV_DOEXEC is not conceptually simple.  It completely violates the
+guarantees that exec is known to make about the contents of the memory
+of the new process.  This makes it very difficult to reason about.  Nor
+will MADV_DOEXEC be tested very much as it has only one or two users.
+Which means in the fullness of time it is likely someone will change
+something that will break the implementation subtlely and the bug report
+probably won't come in for 3 years, or maybe a decade.  At which point
+it won't be clear if the bug even can be fixed as something else might
+rely on it.
+
+What is wrong with live migration between one qemu process and another
+qemu process on the same machine not work for this use case?
+
+Just reusing live migration would seem to be the simplest path of all,
+as the code is already implemented.  Further if something goes wrong
+with the live migration you can fallback to the existing process.  With
+exec there is no fallback if the new version does not properly support
+the handoff protocol of the old version.
+
+Eric
