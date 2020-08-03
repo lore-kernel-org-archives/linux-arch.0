@@ -1,73 +1,130 @@
-From: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Subject: Re: [PATCH v7 29/29] arm64: mte: Add Memory Tagging Extension
- documentation
-Date: Mon, 3 Aug 2020 13:43:10 +0100
-Message-ID: <20200803124309.GC14398@arm.com>
-References: <20200715170844.30064-1-catalin.marinas@arm.com>
- <20200715170844.30064-30-catalin.marinas@arm.com>
- <20200727163634.GO7127@arm.com>
- <20200728110758.GA21941@arm.com>
- <20200728145350.GR7127@arm.com>
- <20200728195957.GA31698@gaia>
+From: Stafford Horne <shorne@gmail.com>
+Subject: [PATCH] asm-generic/io.h: Fix sparse warnings on big-endian architectures
+Date: Tue,  4 Aug 2020 00:11:34 +0900
+Message-ID: <20200803151134.3740544-1-shorne@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr00059.outbound.protection.outlook.com ([40.107.0.59]:14673
-        "EHLO EUR02-AM5-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727831AbgHCMnZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 3 Aug 2020 08:43:25 -0400
-Content-Disposition: inline
-In-Reply-To: <20200728195957.GA31698@gaia>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39528 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725945AbgHCPLr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2020 11:11:47 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Dave Martin <Dave.Martin@arm.com>, linux-arch@vger.kernel.org, Peter Collingbourne <pcc@google.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, nd@arm.com
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Stafford Horne <shorne@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-The 07/28/2020 20:59, Catalin Marinas wrote:
-> On Tue, Jul 28, 2020 at 03:53:51PM +0100, Szabolcs Nagy wrote:
-> > if linux does not want to add a per process
-> > setting then only libc will be able to opt-in
-> > to mte and only at very early in the startup
-> > process (before executing any user code that
-> > may start threads). this is not out of question,
-> > but i think it limits the usage and deployment
-> > options.
-> 
-> There is also the risk that we try to be too flexible at this stage
-> without a real use-case.
+On big-endian architectures like OpenRISC, sparse outputs below warnings on
+asm-generic/io.h.  This is due to io statements like:
 
-i don't know how mte will be turned on in libc.
+  __raw_writel(cpu_to_le32(value), PCI_IOBASE + addr);
 
-if we can always turn sync tag checks on early
-whenever mte is available then i think there is
-no issue.
+The __raw_writel() function expects native endianness, however
+cpu_to_le32() returns __le32.  On little-endian machines these match up
+and there is no issue.  However, on big-endian we get warnings, for IO
+that is defined as little-endian the mismatch is expected.
 
-but if we have to make the decision later for
-compatibility or performance reasons then per
-thread setting is problematic.
+The fix I propose is to __force to native endian.
 
-use of the prctl outside of libc is very limited
-if it's per thread only:
+Warnings:
 
-- application code may use it in a (elf specific)
-  pre-initialization function, but that's a bit
-  obscure (not exposed in c) and it is reasonable
-  for an application to enable mte checks after
-  it registered a signal handler for mte faults.
-  (and at that point it may be multi-threaded).
+./include/asm-generic/io.h:166:15: warning: cast to restricted __le16
+./include/asm-generic/io.h:166:15: warning: cast to restricted __le16
+./include/asm-generic/io.h:166:15: warning: cast to restricted __le16
+./include/asm-generic/io.h:166:15: warning: cast to restricted __le16
+./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
+./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
+./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
+./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
+./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
+./include/asm-generic/io.h:179:15: warning: cast to restricted __le32
+./include/asm-generic/io.h:215:22: warning: incorrect type in argument 1 (different base types)
+./include/asm-generic/io.h:215:22:    expected unsigned short [usertype] value
+./include/asm-generic/io.h:215:22:    got restricted __le16 [usertype]
+./include/asm-generic/io.h:225:22: warning: incorrect type in argument 1 (different base types)
+./include/asm-generic/io.h:225:22:    expected unsigned int [usertype] value
+./include/asm-generic/io.h:225:22:    got restricted __le32 [usertype]
 
-- library code normally initializes per thread
-  state on the first call into the library from a
-  given thread, but with mte, as soon as memory /
-  pointers are tagged in one thread, all threads
-  are affected: not performing checks in other
-  threads is less secure (may be ok) and it means
-  incompatible syscall abi (not ok). so at least
-  PR_TAGGED_ADDR_ENABLE should have process wide
-  setting for this usage.
+Signed-off-by: Stafford Horne <shorne@gmail.com>
+---
+ include/asm-generic/io.h | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
 
-but i guess it is fine to design the mechanism
-for these in a later linux version, until then
-such usage will be unreliable (will depend on
-how early threads are created).
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 30a3aab312e6..c88b73934ab7 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -163,7 +163,7 @@ static inline u16 readw(const volatile void __iomem *addr)
+ 	u16 val;
+ 
+ 	__io_br();
+-	val = __le16_to_cpu(__raw_readw(addr));
++	val = __le16_to_cpu((__le16 __force) __raw_readw(addr));
+ 	__io_ar(val);
+ 	return val;
+ }
+@@ -176,7 +176,7 @@ static inline u32 readl(const volatile void __iomem *addr)
+ 	u32 val;
+ 
+ 	__io_br();
+-	val = __le32_to_cpu(__raw_readl(addr));
++	val = __le32_to_cpu((__le32 __force) __raw_readl(addr));
+ 	__io_ar(val);
+ 	return val;
+ }
+@@ -212,7 +212,7 @@ static inline void writeb(u8 value, volatile void __iomem *addr)
+ static inline void writew(u16 value, volatile void __iomem *addr)
+ {
+ 	__io_bw();
+-	__raw_writew(cpu_to_le16(value), addr);
++	__raw_writew((u16 __force) cpu_to_le16(value), addr);
+ 	__io_aw();
+ }
+ #endif
+@@ -222,7 +222,7 @@ static inline void writew(u16 value, volatile void __iomem *addr)
+ static inline void writel(u32 value, volatile void __iomem *addr)
+ {
+ 	__io_bw();
+-	__raw_writel(__cpu_to_le32(value), addr);
++	__raw_writel((u32 __force) __cpu_to_le32(value), addr);
+ 	__io_aw();
+ }
+ #endif
+@@ -474,7 +474,7 @@ static inline u16 _inw(unsigned long addr)
+ 	u16 val;
+ 
+ 	__io_pbr();
+-	val = __le16_to_cpu(__raw_readw(PCI_IOBASE + addr));
++	val = __le16_to_cpu((__le16 __force) __raw_readw(PCI_IOBASE + addr));
+ 	__io_par(val);
+ 	return val;
+ }
+@@ -487,7 +487,7 @@ static inline u32 _inl(unsigned long addr)
+ 	u32 val;
+ 
+ 	__io_pbr();
+-	val = __le32_to_cpu(__raw_readl(PCI_IOBASE + addr));
++	val = __le32_to_cpu((__le32 __force) __raw_readl(PCI_IOBASE + addr));
+ 	__io_par(val);
+ 	return val;
+ }
+@@ -508,7 +508,7 @@ static inline void _outb(u8 value, unsigned long addr)
+ static inline void _outw(u16 value, unsigned long addr)
+ {
+ 	__io_pbw();
+-	__raw_writew(cpu_to_le16(value), PCI_IOBASE + addr);
++	__raw_writew((u16 __force) cpu_to_le16(value), PCI_IOBASE + addr);
+ 	__io_paw();
+ }
+ #endif
+@@ -518,7 +518,7 @@ static inline void _outw(u16 value, unsigned long addr)
+ static inline void _outl(u32 value, unsigned long addr)
+ {
+ 	__io_pbw();
+-	__raw_writel(cpu_to_le32(value), PCI_IOBASE + addr);
++	__raw_writel((u32 __force) cpu_to_le32(value), PCI_IOBASE + addr);
+ 	__io_paw();
+ }
+ #endif
+-- 
+2.26.2
