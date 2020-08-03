@@ -1,97 +1,35 @@
-From: Nick Desaulniers <ndesaulniers@google.com>
-Subject: Re: [PATCH v5 23/36] arm/build: Explicitly keep .ARM.attributes sections
-Date: Mon, 3 Aug 2020 12:02:07 -0700
-Message-ID: <CAKwvOdn11z+iFQZC54JvQHC=NFX1FsoRMw2a-2P=5sQ6FKwbnw@mail.gmail.com>
-References: <20200731230820.1742553-1-keescook@chromium.org> <20200731230820.1742553-24-keescook@chromium.org>
+From: Andi Kleen <ak@linux.intel.com>
+Subject: Re: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input
+ sections
+Date: Mon, 3 Aug 2020 12:05:06 -0700
+Message-ID: <20200803190506.GE1299820@tassilo.jf.intel.com>
+References: <20200731230820.1742553-1-keescook@chromium.org>
+ <20200731230820.1742553-14-keescook@chromium.org>
+ <20200801035128.GB2800311@rani.riverdale.lan>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47012 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726847AbgHCTCT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2020 15:02:19 -0400
-Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6028EC061756
-        for <linux-arch@vger.kernel.org>; Mon,  3 Aug 2020 12:02:19 -0700 (PDT)
-Received: by mail-pj1-x1042.google.com with SMTP id i92so384377pje.0
-        for <linux-arch@vger.kernel.org>; Mon, 03 Aug 2020 12:02:19 -0700 (PDT)
-In-Reply-To: <20200731230820.1742553-24-keescook@chromium.org>
+Received: from mga14.intel.com ([192.55.52.115]:47829 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726130AbgHCTFR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 3 Aug 2020 15:05:17 -0400
+Content-Disposition: inline
+In-Reply-To: <20200801035128.GB2800311@rani.riverdale.lan>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.>
+To: Arvind Sankar <nivedita@alum.mit.edu>
+Cc: Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org
 
-On Fri, Jul 31, 2020 at 4:18 PM Kees Cook <keescook@chromium.org> wrote:
->
-> In preparation for adding --orphan-handling=warn, explicitly keep the
-> .ARM.attributes section by expanding the existing ELF_DETAILS macro into
-> ARM_DETAILS.
->
-> Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
-> Link: https://lore.kernel.org/lkml/CAKwvOdk-racgq5pxsoGS6Vtifbtrk5fmkmnoLxrQMaOvV0nPWw@mail.gmail.com/
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  arch/arm/include/asm/vmlinux.lds.h | 4 ++++
->  arch/arm/kernel/vmlinux-xip.lds.S  | 2 +-
->  arch/arm/kernel/vmlinux.lds.S      | 2 +-
->  3 files changed, 6 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/arm/include/asm/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
-> index a08f4301b718..c4af5182ab48 100644
-> --- a/arch/arm/include/asm/vmlinux.lds.h
-> +++ b/arch/arm/include/asm/vmlinux.lds.h
-> @@ -52,6 +52,10 @@
->                 ARM_MMU_DISCARD(*(__ex_table))                          \
->                 COMMON_DISCARDS
->
-> +#define ARM_DETAILS                                                    \
-> +               ELF_DETAILS                                             \
-> +               .ARM.attributes 0 : { *(.ARM.attributes) }
+> However, the history of their being together comes from
+> 
+>   9bebe9e5b0f3 ("kbuild: Fix .text.unlikely placement")
+> 
+> which seems to indicate there was some problem with having them separated out,
+> although I don't quite understand what the issue was from the commit message.
 
-I had to look up what the `0` meant:
-https://sourceware.org/binutils/docs/ld/Output-Section-Attributes.html#Output-Section-Attributes
-mentions it's an "address" and
-https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html#SEC21
-mentions it as "start" (an address).
-Unless we need those, can we drop them? (Sorry for the resulting churn
-that would cause).  I think the NO_LOAD stuff makes more sense, but
-I'm curious if the kernel checks for that.
+Separating it out is less efficient. Gives worse packing for the hot part
+if they are not aligned to 64byte boundaries, which they are usually not. 
 
-> +
->  #define ARM_STUBS_TEXT                                                 \
->                 *(.gnu.warning)                                         \
->                 *(.glue_7)                                              \
-> diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
-> index 904c31fa20ed..57fcbf55f913 100644
-> --- a/arch/arm/kernel/vmlinux-xip.lds.S
-> +++ b/arch/arm/kernel/vmlinux-xip.lds.S
-> @@ -150,7 +150,7 @@ SECTIONS
->         _end = .;
->
->         STABS_DEBUG
-> -       ELF_DETAILS
-> +       ARM_DETAILS
->  }
->
->  /*
-> diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
-> index bb950c896a67..1d3d3b599635 100644
-> --- a/arch/arm/kernel/vmlinux.lds.S
-> +++ b/arch/arm/kernel/vmlinux.lds.S
-> @@ -149,7 +149,7 @@ SECTIONS
->         _end = .;
->
->         STABS_DEBUG
-> -       ELF_DETAILS
-> +       ARM_DETAILS
->  }
->
->  #ifdef CONFIG_STRICT_KERNEL_RWX
-> --
-> 2.25.1
->
+It also improves packing of the cold part, but that probably doesn't matter.
 
-
--- 
-Thanks,
-~Nick Desaulniers
+-Andi
