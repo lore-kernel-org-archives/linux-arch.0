@@ -1,45 +1,98 @@
 Return-Path: <SRS0=OB7A=BN=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from eu-smtp-delivery-151.mimecast.com ([185.58.86.151]:46639 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725907AbgHCIc0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2020 04:32:26 -0400
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [RFC PATCH 0/5] madvise MADV_DOEXEC
-Date: Mon, 3 Aug 2020 08:32:19 +0000
-Message-ID: <09ce47c0a97c482b95b8b521e9ee33d4@AcuMS.aculab.com>
-References: <20200730171251.GI23808@casper.infradead.org>
- <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
- <20200730174956.GK23808@casper.infradead.org>
- <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
- <87y2n03brx.fsf@x220.int.ebiederm.org>
- <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
- <20200731152736.GP23808@casper.infradead.org>
- <9ba26063-0098-e796-9431-8c1d0c076ffc@oracle.com>
- <20200731165649.GG24045@ziepe.ca>
- <71ddd3c1-bb59-3e63-e137-99b88ace454d@oracle.com>
- <20200731174837.GH24045@ziepe.ca>
- <f4ce3f4a-bdee-ec43-986c-8e4d8b1d2ddc@oracle.com>
-In-Reply-To: <f4ce3f4a-bdee-ec43-986c-8e4d8b1d2ddc@oracle.com>
-Content-Language: en-US
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47012 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726847AbgHCTCT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2020 15:02:19 -0400
+Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6028EC061756
+        for <linux-arch@vger.kernel.org>; Mon,  3 Aug 2020 12:02:19 -0700 (PDT)
+Received: by mail-pj1-x1042.google.com with SMTP id i92so384377pje.0
+        for <linux-arch@vger.kernel.org>; Mon, 03 Aug 2020 12:02:19 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
+References: <20200731230820.1742553-1-keescook@chromium.org> <20200731230820.1742553-24-keescook@chromium.org>
+In-Reply-To: <20200731230820.1742553-24-keescook@chromium.org>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Date: Mon, 3 Aug 2020 12:02:07 -0700
+Message-ID: <CAKwvOdn11z+iFQZC54JvQHC=NFX1FsoRMw2a-2P=5sQ6FKwbnw@mail.gmail.com>
+Subject: Re: [PATCH v5 23/36] arm/build: Explicitly keep .ARM.attributes sections
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Steven Sistare' <steven.sistare@oracle.com>, Jason Gunthorpe <jgg@ziepe.ca>
-Cc: Matthew Wilcox <willy@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@kernel.org" <mhocko@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "x86@kernel.org" <x86@kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "arnd@arndb.de" <arnd@arndb.de>, "keescook@chromium.org" <keescook@chromium.org>, "gerg@linux-m68k.org" <gerg@linux-m68k.org>, "ktkhai@virtuozzo.com" <ktkhai@virtuozzo.com>, "christian.brauner@ubuntu.com" <christian.brauner@ubuntu.com>, "peterz@infradead.org" <peterz@infradead.org>, "esyr@redhat.com" <esyr@redhat.com>, "christian@kellner.me" <christian@kellner.me>, "areber@redhat.com" <areber@redhat.com>, "cyphar@cyphar.com" <cyphar@cyphar.com>
-Message-ID: <20200803083219.kEQmCCORngjMfvE13JkvheDI_Dbav1TZRhxmKAIG5wY@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20200803190207.jX5oDY8_N5r_XBX_XaEEVQnINBYUS5jVB_D0Jbl2-Bk@z>
 
-PiBNYXliZS4gIFdlIHN0aWxsIG5lZWQgdG8gcHJlc2VydmUgYW4gYW5vbnltb3VzIHNlZ21lbnQs
-IHRob3VnaC4gIE1BRFZfRE9FWEVDLCBvciBtc2hhcmUsDQo+IG9yIHNvbWV0aGluZyBlbHNlLiAg
-QW5kIEkgdGhpbmsgdGhlIGFiaWxpdHkgdG8gcHJlc2VydmUgbWVtb3J5IGNvbnRhaW5pbmcgcG9p
-bnRlcnMgdG8gaXRzZWxmDQo+IGlzIGFuIGludGVyZXN0aW5nIHVzZSBjYXNlLCB0aG91Z2ggbm90
-IG91cnMuDQoNCldoeSBkb2VzIGFsbCB0aGlzIHJlbWluZCBtZSBvZiB0aGUgb2xkIHNlbmRtYWls
-IGNvZGUuDQpBZnRlciBwYXJzaW5nIHRoZSBjb25maWcgZmlsZSBpdCB1c2VkIHRvIHdyaXRlIGl0
-cyBlbnRpcmUgZGF0YQ0KYXJlYSBvdXQgdG8gYSBmaWxlLg0KT24gcmVzdGFydCwgaWYgdGhlIGNv
-bmZpZyBmaWxlIGhhZG4ndCBjaGFuZ2VkIGl0IHdvdWxkIHJlYWQgaXQgYmFjayBpdC4NCg0KSXQg
-c29ydCBvZiB3b3JrZWQgLSB1bnRpbCBzaGFyZWQgbGlicmFyaWVzIGNhbWUgYWxvbmcuDQpUaGVu
-IGl0IGhhZCBhIGhhYml0IG9mIGdlbmVyYXRpbmcgcmFuZG9tIGNyYXNoZXMuDQoNCglEYXZpZA0K
-DQotDQpSZWdpc3RlcmVkIEFkZHJlc3MgTGFrZXNpZGUsIEJyYW1sZXkgUm9hZCwgTW91bnQgRmFy
-bSwgTWlsdG9uIEtleW5lcywgTUsxIDFQVCwgVUsNClJlZ2lzdHJhdGlvbiBObzogMTM5NzM4NiAo
-V2FsZXMpDQo=
+On Fri, Jul 31, 2020 at 4:18 PM Kees Cook <keescook@chromium.org> wrote:
+>
+> In preparation for adding --orphan-handling=warn, explicitly keep the
+> .ARM.attributes section by expanding the existing ELF_DETAILS macro into
+> ARM_DETAILS.
+>
+> Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
+> Link: https://lore.kernel.org/lkml/CAKwvOdk-racgq5pxsoGS6Vtifbtrk5fmkmnoLxrQMaOvV0nPWw@mail.gmail.com/
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  arch/arm/include/asm/vmlinux.lds.h | 4 ++++
+>  arch/arm/kernel/vmlinux-xip.lds.S  | 2 +-
+>  arch/arm/kernel/vmlinux.lds.S      | 2 +-
+>  3 files changed, 6 insertions(+), 2 deletions(-)
+>
+> diff --git a/arch/arm/include/asm/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
+> index a08f4301b718..c4af5182ab48 100644
+> --- a/arch/arm/include/asm/vmlinux.lds.h
+> +++ b/arch/arm/include/asm/vmlinux.lds.h
+> @@ -52,6 +52,10 @@
+>                 ARM_MMU_DISCARD(*(__ex_table))                          \
+>                 COMMON_DISCARDS
+>
+> +#define ARM_DETAILS                                                    \
+> +               ELF_DETAILS                                             \
+> +               .ARM.attributes 0 : { *(.ARM.attributes) }
+
+I had to look up what the `0` meant:
+https://sourceware.org/binutils/docs/ld/Output-Section-Attributes.html#Output-Section-Attributes
+mentions it's an "address" and
+https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html#SEC21
+mentions it as "start" (an address).
+Unless we need those, can we drop them? (Sorry for the resulting churn
+that would cause).  I think the NO_LOAD stuff makes more sense, but
+I'm curious if the kernel checks for that.
+
+> +
+>  #define ARM_STUBS_TEXT                                                 \
+>                 *(.gnu.warning)                                         \
+>                 *(.glue_7)                                              \
+> diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
+> index 904c31fa20ed..57fcbf55f913 100644
+> --- a/arch/arm/kernel/vmlinux-xip.lds.S
+> +++ b/arch/arm/kernel/vmlinux-xip.lds.S
+> @@ -150,7 +150,7 @@ SECTIONS
+>         _end = .;
+>
+>         STABS_DEBUG
+> -       ELF_DETAILS
+> +       ARM_DETAILS
+>  }
+>
+>  /*
+> diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+> index bb950c896a67..1d3d3b599635 100644
+> --- a/arch/arm/kernel/vmlinux.lds.S
+> +++ b/arch/arm/kernel/vmlinux.lds.S
+> @@ -149,7 +149,7 @@ SECTIONS
+>         _end = .;
+>
+>         STABS_DEBUG
+> -       ELF_DETAILS
+> +       ARM_DETAILS
+>  }
+>
+>  #ifdef CONFIG_STRICT_KERNEL_RWX
+> --
+> 2.25.1
+>
+
+
+-- 
+Thanks,
+~Nick Desaulniers
