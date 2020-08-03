@@ -1,48 +1,89 @@
-Return-Path: <SRS0=ubji=BP=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:39200 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728141AbgHEQvv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 5 Aug 2020 12:51:51 -0400
-Subject: Re: [PATCH v10 2/5] powerpc/vdso: Prepare for switching VDSO to
- generic C implementation.
-References: <cover.1596611196.git.christophe.leroy@csgroup.eu>
- <348528c33cd4007f3fee7fe643ef160843d09a6c.1596611196.git.christophe.leroy@csgroup.eu>
- <20200805140307.GO6753@gate.crashing.org>
-From: Christophe Leroy <christophe.leroy@csgroup.eu>
-Message-ID: <7d409421-6396-8eba-8250-b6c9ff8232d9@csgroup.eu>
-Date: Wed, 5 Aug 2020 18:51:44 +0200
+Return-Path: <SRS0=OB7A=BN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58298 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726130AbgHCUP3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2020 16:15:29 -0400
+From: Arvind Sankar <nivedita@alum.mit.edu>
+Date: Mon, 3 Aug 2020 16:15:25 -0400
+Subject: Re: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input
+ sections
+Message-ID: <20200803201525.GA1351390@rani.riverdale.lan>
+References: <20200731230820.1742553-1-keescook@chromium.org>
+ <20200731230820.1742553-14-keescook@chromium.org>
+ <20200801035128.GB2800311@rani.riverdale.lan>
+ <20200803190506.GE1299820@tassilo.jf.intel.com>
 MIME-Version: 1.0
-In-Reply-To: <20200805140307.GO6753@gate.crashing.org>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20200803190506.GE1299820@tassilo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com, anton@ozlabs.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, luto@kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20200805165144.ms5mZEUnVetqqjYSaOpNTAvPi8gz5-Evb2z8b0vWKSE@z>
+To: Andi Kleen <ak@linux.intel.com>
+Cc: Arvind Sankar <nivedita@alum.mit.edu>, Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Michal Marek <michal.lkml@markovi.net>
+Message-ID: <20200803201525.snJQWriPFZQJPDvRIpoJ4eAlsD7tSCyGk24fHL9OuyI@z>
 
-Hi Again,
-
-Le 05/08/2020 à 16:03, Segher Boessenkool a écrit :
-> Hi!
+On Mon, Aug 03, 2020 at 12:05:06PM -0700, Andi Kleen wrote:
+> > However, the history of their being together comes from
+> > 
+> >   9bebe9e5b0f3 ("kbuild: Fix .text.unlikely placement")
+> > 
+> > which seems to indicate there was some problem with having them separated out,
+> > although I don't quite understand what the issue was from the commit message.
 > 
-> On Wed, Aug 05, 2020 at 07:09:23AM +0000, Christophe Leroy wrote:
->> +/*
->> + * The macros sets two stack frames, one for the caller and one for the callee
->> + * because there are no requirement for the caller to set a stack frame when
->> + * calling VDSO so it may have omitted to set one, especially on PPC64
->> + */
+> Separating it out is less efficient. Gives worse packing for the hot part
+> if they are not aligned to 64byte boundaries, which they are usually not. 
 > 
-> If the caller follows the ABI, there always is a stack frame.  So what
-> is going on?
+> It also improves packing of the cold part, but that probably doesn't matter.
+> 
+> -Andi
 
-Looks like it is not the case. See discussion at 
-https://patchwork.ozlabs.org/project/linuxppc-dev/patch/2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr/
+Why is that? Both .text and .text.hot have alignment of 2^4 (default
+function alignment on x86) by default, so it doesn't seem like it should
+matter for packing density.  Avoiding interspersing cold text among
+regular/hot text seems like it should be a net win.
 
-Seems like GCC uses the redzone and doesn't set a stack frame. I guess 
-it doesn't know that the inline assembly contains a function call so it 
-doesn't set the frame.
+That old commit doesn't reference efficiency -- it says there was some
+problem with matching when they were separated out, but there were no
+wildcard section names back then.
 
+commit 9bebe9e5b0f3109a14000df25308c2971f872605
+Author: Andi Kleen <ak@linux.intel.com>
+Date:   Sun Jul 19 18:01:19 2015 -0700
 
-Christophe
+    kbuild: Fix .text.unlikely placement
+    
+    When building a kernel with .text.unlikely text the unlikely text for
+    each translation unit was put next to the main .text code in the
+    final vmlinux.
+    
+    The problem is that the linker doesn't allow more specific submatches
+    of a section name in a different linker script statement after the
+    main match.
+    
+    So we need to move them all into one line. With that change
+    .text.unlikely is at the end of everything again.
+    
+    I also moved .text.hot into the same statement though, even though
+    that's not strictly needed.
+    
+    Signed-off-by: Andi Kleen <ak@linux.intel.com>
+    Signed-off-by: Michal Marek <mmarek@suse.com>
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 8bd374d3cf21..1781e54ea6d3 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -412,12 +412,10 @@
+  * during second ld run in second ld pass when generating System.map */
+ #define TEXT_TEXT							\
+ 		ALIGN_FUNCTION();					\
+-		*(.text.hot)						\
+-		*(.text .text.fixup)					\
++		*(.text.hot .text .text.fixup .text.unlikely)		\
+ 		*(.ref.text)						\
+ 	MEM_KEEP(init.text)						\
+ 	MEM_KEEP(exit.text)						\
+-		*(.text.unlikely)
+ 
+ 
+ /* sched.text is aling to function alignment to secure we have same
