@@ -1,112 +1,64 @@
 From: Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v9 1/5] powerpc/processor: Move cpu_relax() into
- asm/vdso/processor.h
-Date: Tue,  4 Aug 2020 11:47:48 +0000 (UTC)
-Message-ID: <288845ddd80bb0ae636bb013d4b0fa803fad1056.1596541334.git.christophe.leroy@csgroup.eu>
-References: <cover.1596541334.git.christophe.leroy@csgroup.eu>
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-In-Reply-To: <cover.1596541334.git.christophe.leroy@csgroup.eu>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
+Subject: [PATCH v9 0/5] powerpc: switch VDSO to C implementation
+Date: Tue,  4 Aug 2020 11:47:47 +0000 (UTC)
+Message-ID: <cover.1596541334.git.christophe.leroy@csgroup.eu>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:21477 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730352AbgHDLrv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Aug 2020 07:47:51 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com, anton@ozlabs.org
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, luto@kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
 
-cpu_relax() need to be in asm/vdso/processor.h to be used by
-the C VDSO generic library.
+This is the nineth version of a series to switch powerpc VDSO to
+generic C implementation.
 
-Move it there.
+Main changes since v8 are:
+- Dropped the patches which put the VDSO datapage in front of VDSO text in the mapping
+- Adds a second stack frame because the caller doesn't set one, at least on PPC64
+- Saving the TOC pointer on PPC64 (is that really needed ?)
 
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
----
-v9: Forgot to remove cpu_relax() from processor.h in v8
----
- arch/powerpc/include/asm/processor.h      | 13 ++-----------
- arch/powerpc/include/asm/vdso/processor.h | 23 +++++++++++++++++++++++
- 2 files changed, 25 insertions(+), 11 deletions(-)
+This series applies on today's powerpc/merge branch.
+
+See the last patches for details on changes and performance.
+
+Christophe Leroy (5):
+  powerpc/processor: Move cpu_relax() into asm/vdso/processor.h
+  powerpc/vdso: Prepare for switching VDSO to generic C implementation.
+  powerpc/vdso: Save and restore TOC pointer on PPC64
+  powerpc/vdso: Switch VDSO to generic C implementation.
+  powerpc/vdso: Provide __kernel_clock_gettime64() on vdso32
+
+ arch/powerpc/Kconfig                         |   2 +
+ arch/powerpc/include/asm/clocksource.h       |   7 +
+ arch/powerpc/include/asm/processor.h         |  13 +-
+ arch/powerpc/include/asm/vdso/clocksource.h  |   7 +
+ arch/powerpc/include/asm/vdso/gettimeofday.h | 191 ++++++++++++
+ arch/powerpc/include/asm/vdso/processor.h    |  23 ++
+ arch/powerpc/include/asm/vdso/vsyscall.h     |  25 ++
+ arch/powerpc/include/asm/vdso_datapage.h     |  40 +--
+ arch/powerpc/kernel/asm-offsets.c            |  49 +--
+ arch/powerpc/kernel/time.c                   |  91 +-----
+ arch/powerpc/kernel/vdso.c                   |   5 +-
+ arch/powerpc/kernel/vdso32/Makefile          |  32 +-
+ arch/powerpc/kernel/vdso32/config-fake32.h   |  34 +++
+ arch/powerpc/kernel/vdso32/gettimeofday.S    | 300 +------------------
+ arch/powerpc/kernel/vdso32/vdso32.lds.S      |   1 +
+ arch/powerpc/kernel/vdso32/vgettimeofday.c   |  35 +++
+ arch/powerpc/kernel/vdso64/Makefile          |  23 +-
+ arch/powerpc/kernel/vdso64/gettimeofday.S    | 242 +--------------
+ arch/powerpc/kernel/vdso64/vgettimeofday.c   |  29 ++
+ 19 files changed, 447 insertions(+), 702 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/clocksource.h
+ create mode 100644 arch/powerpc/include/asm/vdso/clocksource.h
+ create mode 100644 arch/powerpc/include/asm/vdso/gettimeofday.h
  create mode 100644 arch/powerpc/include/asm/vdso/processor.h
+ create mode 100644 arch/powerpc/include/asm/vdso/vsyscall.h
+ create mode 100644 arch/powerpc/kernel/vdso32/config-fake32.h
+ create mode 100644 arch/powerpc/kernel/vdso32/vgettimeofday.c
+ create mode 100644 arch/powerpc/kernel/vdso64/vgettimeofday.c
 
-diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
-index ed0d633ab5aa..c1ba9c8d9b90 100644
---- a/arch/powerpc/include/asm/processor.h
-+++ b/arch/powerpc/include/asm/processor.h
-@@ -6,6 +6,8 @@
-  * Copyright (C) 2001 PPC 64 Team, IBM Corp
-  */
- 
-+#include <vdso/processor.h>
-+
- #include <asm/reg.h>
- 
- #ifdef CONFIG_VSX
-@@ -63,14 +65,6 @@ extern int _chrp_type;
- 
- #endif /* defined(__KERNEL__) && defined(CONFIG_PPC32) */
- 
--/* Macros for adjusting thread priority (hardware multi-threading) */
--#define HMT_very_low()   asm volatile("or 31,31,31   # very low priority")
--#define HMT_low()	 asm volatile("or 1,1,1	     # low priority")
--#define HMT_medium_low() asm volatile("or 6,6,6      # medium low priority")
--#define HMT_medium()	 asm volatile("or 2,2,2	     # medium priority")
--#define HMT_medium_high() asm volatile("or 5,5,5      # medium high priority")
--#define HMT_high()	 asm volatile("or 3,3,3	     # high priority")
--
- #ifdef __KERNEL__
- 
- #ifdef CONFIG_PPC64
-@@ -350,7 +344,6 @@ static inline unsigned long __pack_fe01(unsigned int fpmode)
- }
- 
- #ifdef CONFIG_PPC64
--#define cpu_relax()	do { HMT_low(); HMT_medium(); barrier(); } while (0)
- 
- #define spin_begin()	HMT_low()
- 
-@@ -369,8 +362,6 @@ do {								\
- 	}							\
- } while (0)
- 
--#else
--#define cpu_relax()	barrier()
- #endif
- 
- /* Check that a certain kernel stack pointer is valid in task_struct p */
-diff --git a/arch/powerpc/include/asm/vdso/processor.h b/arch/powerpc/include/asm/vdso/processor.h
-new file mode 100644
-index 000000000000..39b9beace9ca
---- /dev/null
-+++ b/arch/powerpc/include/asm/vdso/processor.h
-@@ -0,0 +1,23 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+#ifndef __ASM_VDSO_PROCESSOR_H
-+#define __ASM_VDSO_PROCESSOR_H
-+
-+#ifndef __ASSEMBLY__
-+
-+/* Macros for adjusting thread priority (hardware multi-threading) */
-+#define HMT_very_low()		asm volatile("or 31, 31, 31	# very low priority")
-+#define HMT_low()		asm volatile("or 1, 1, 1	# low priority")
-+#define HMT_medium_low()	asm volatile("or 6, 6, 6	# medium low priority")
-+#define HMT_medium()		asm volatile("or 2, 2, 2	# medium priority")
-+#define HMT_medium_high()	asm volatile("or 5, 5, 5	# medium high priority")
-+#define HMT_high()		asm volatile("or 3, 3, 3	# high priority")
-+
-+#ifdef CONFIG_PPC64
-+#define cpu_relax()	do { HMT_low(); HMT_medium(); barrier(); } while (0)
-+#else
-+#define cpu_relax()	barrier()
-+#endif
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_VDSO_PROCESSOR_H */
 -- 
 2.25.0
