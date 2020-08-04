@@ -1,132 +1,74 @@
-Return-Path: <SRS0=U9ty=BR=kvack.org=owner-linux-mm@kernel.org>
-Date: Fri, 7 Aug 2020 16:19:07 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v7 29/29] arm64: mte: Add Memory Tagging Extension
- documentation
-Message-ID: <20200807151906.GM6750@gaia>
-References: <20200715170844.30064-1-catalin.marinas@arm.com>
- <20200715170844.30064-30-catalin.marinas@arm.com>
- <20200727163634.GO7127@arm.com>
- <20200728110758.GA21941@arm.com>
- <20200728145350.GR7127@arm.com>
- <20200728195957.GA31698@gaia>
- <20200803124309.GC14398@arm.com>
+Return-Path: <SRS0=mj0N=BO=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53542 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726752AbgHDULL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Aug 2020 16:11:11 -0400
+Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9D674C06179E
+        for <linux-arch@vger.kernel.org>; Tue,  4 Aug 2020 13:11:11 -0700 (PDT)
+Received: by mail-pj1-x1042.google.com with SMTP id 2so3147516pjx.5
+        for <linux-arch@vger.kernel.org>; Tue, 04 Aug 2020 13:11:11 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200803124309.GC14398@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Cc: Dave Martin <Dave.Martin@arm.com>, linux-arch@vger.kernel.org, Peter Collingbourne <pcc@google.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, nd@arm.com
+References: <20200626210917.358969-1-brendanhiggins@google.com>
+ <20200626210917.358969-10-brendanhiggins@google.com> <202006261434.119AE33DBB@keescook>
+In-Reply-To: <202006261434.119AE33DBB@keescook>
+From: Brendan Higgins <brendanhiggins@google.com>
+Date: Tue, 4 Aug 2020 13:10:59 -0700
+Message-ID: <CAFd5g45HeXUBVNW31ZYgpqhYOOu=1jwK_LKZQUOO_6mGaqtSUA@mail.gmail.com>
+Subject: Re: [PATCH v5 09/12] kunit: test: add test plan to KUnit TAP format
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200807151907.oCSjFJO-2rQxond09E1LcG5O2FPm8LjTZ6o-zmlT3oA@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>, catalin.marinas@arm.com, will@kernel.org, Michal Simek <monstr@monstr.eu>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Zankel <chris@zankel.net>, jcmvbkbc@gmail.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org
+Message-ID: <20200804201059.7hoSSjlRHytZXLZBrwrQkEF4utQWj_Ze_UQ0Vv5j7oE@z>
 
-Hi Szabolcs,
+On Fri, Jun 26, 2020 at 2:35 PM Kees Cook <keescook@chromium.org> wrote:
+>
+> On Fri, Jun 26, 2020 at 02:09:14PM -0700, Brendan Higgins wrote:
+> > TAP 14 allows an optional test plan to be emitted before the start of
+> > the start of testing[1]; this is valuable because it makes it possible
+> > for a test harness to detect whether the number of tests run matches the
+> > number of tests expected to be run, ensuring that no tests silently
+> > failed.
+> >
+> > Link[1]: https://github.com/isaacs/testanything.github.io/blob/tap14/tap-version-14-specification.md#the-plan
+> > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+> > Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+>
+> Look good, except...
+>
+> > diff --git a/tools/testing/kunit/test_data/test_is_test_passed-all_passed.log b/tools/testing/kunit/test_data/test_is_test_passed-all_passed.log
+> > index 62ebc0288355c4b122ccc18ae2505f971efa57bc..bc0dc8fe35b760b1feb74ec419818dbfae1adb5c 100644
+> > GIT binary patch
+> > delta 28
+> > jcmbQmGoME|#4$jjEVZaOGe1wk(1goSPtRy09}gP<dC~`u
+> >
+> > delta 23
+> > ecmbQwGmD2W#4$jjEVZaOGe1wk&}5@94;uhhkp{*9
+> >
+> > diff --git a/tools/testing/kunit/test_data/test_is_test_passed-crash.log b/tools/testing/kunit/test_data/test_is_test_passed-crash.log
+> > index 0b249870c8be417a5865bd40a24c8597bb7f5ab1..4d97f6708c4a5ad5bb2ac879e12afca6e816d83d 100644
+> > GIT binary patch
+> > delta 15
+> > WcmX>hepY;fFN>j`p3z318g2k9Uj*m?
+> >
+> > delta 10
+> > RcmX>renNbL@5Z2NZU7lr1S$Xk
+> >
+> > diff --git a/tools/testing/kunit/test_data/test_is_test_passed-failure.log b/tools/testing/kunit/test_data/test_is_test_passed-failure.log
+> > index 9e89d32d5667a59d137f8adacf3a88fdb7f88baf..7a416497e3bec044eefc1535f7d84ee85703ba97 100644
+> > GIT binary patch
+> > delta 28
+> > jcmZ3&yOLKp#4$jjEVZaOGe1wk(1goSPtRy0-!wJ=eKrU$
+> >
+> > delta 23
+> > ecmZ3<yM&i7#4$jjEVZaOGe1wk&}5_VG&TTPhX-Z=
+>
+> What is happening here?? Those logs appear as text to me. Why did git
+> freak out?
 
-On Mon, Aug 03, 2020 at 01:43:10PM +0100, Szabolcs Nagy wrote:
-> The 07/28/2020 20:59, Catalin Marinas wrote:
-> > On Tue, Jul 28, 2020 at 03:53:51PM +0100, Szabolcs Nagy wrote:
-> > > if linux does not want to add a per process setting then only libc
-> > > will be able to opt-in to mte and only at very early in the
-> > > startup process (before executing any user code that may start
-> > > threads). this is not out of question, but i think it limits the
-> > > usage and deployment options.
-> > 
-> > There is also the risk that we try to be too flexible at this stage
-> > without a real use-case.
-> 
-> i don't know how mte will be turned on in libc.
-> 
-> if we can always turn sync tag checks on early whenever mte is
-> available then i think there is no issue.
-> 
-> but if we have to make the decision later for compatibility or
-> performance reasons then per thread setting is problematic.
-
-At least for libc, I'm not sure how you could even turn MTE on at
-run-time. The heap allocations would have to be mapped with PROT_MTE as
-we can't easily change them (well, you could mprotect(), assuming the
-user doesn't use tagged pointers on them).
-
-There is a case to switch tag checking from asynchronous to synchronous
-at run-time based on a signal but that's rather specific to Android
-where zygote controls the signal handler. I don't think you can do this
-with libc. Even on Android, since the async fault signal is delivered
-per thread, it probably does this lazily (alternatively, it could issue
-a SIGUSRx to the other threads for synchronisation).
-
-> use of the prctl outside of libc is very limited if it's per thread
-> only:
-
-In the non-Android context, I think the prctl() for MTE control should
-be restricted to the libc. You can control the mode prior to the process
-being started using environment variables. I really don't see how the
-libc could handle the changing of the MTE behaviour at run-time without
-itself handling signals.
-
-> - application code may use it in a (elf specific) pre-initialization
->   function, but that's a bit obscure (not exposed in c) and it is
->   reasonable for an application to enable mte checks after it
->   registered a signal handler for mte faults. (and at that point it
->   may be multi-threaded).
-
-Since the app can install signal handlers, it can also deal with
-notifying other threads with a SIGUSRx, assuming that it decided this
-after multiple threads were created. If it does this while
-single-threaded, subsequent threads would inherit the first one.
-
-The only use-case I see for doing this in the kernel is if the code
-requiring an MTE behaviour change cannot install signal handlers. More
-on this below.
-
-> - library code normally initializes per thread state on the first call
->   into the library from a given thread, but with mte, as soon as
->   memory / pointers are tagged in one thread, all threads are
->   affected: not performing checks in other threads is less secure (may
->   be ok) and it means incompatible syscall abi (not ok). so at least
->   PR_TAGGED_ADDR_ENABLE should have process wide setting for this
->   usage.
-
-My assumption with MTE is that the libc will initialise it when the
-library is loaded (something __attribute__((constructor))) and it's
-still in single-threaded mode. Does it wait until the first malloc()
-call? Also, is there such thing as a per-thread initialiser for a
-dynamic library (not sure it can be implemented in practice though)?
-
-The PR_TAGGED_ADDR_ENABLE synchronisation at least doesn't require IPIs
-to other CPUs to change the hardware state. However, it can still race
-with thread creation or a prctl() on another thread, not sure what we
-can define here, especially as it depends on the kernel internals: e.g.
-thread creation copies some data structures of the calling thread but at
-the same time another thread wants to change such structures for all
-threads of that process. The ordering of events here looks pretty
-fragile.
-
-Maybe with another global status (per process) which takes priority over
-the per thread one would be easier. But such priority is not temporal
-(i.e. whoever called prctl() last) but pretty strict: once a global
-control was requested, it will remain global no matter what subsequent
-threads request (or we can do it the other way around).
-
-> but i guess it is fine to design the mechanism for these in a later
-> linux version, until then such usage will be unreliable (will depend
-> on how early threads are created).
-
-Until we have a real use-case, I'd not complicate the matters further.
-For example, I'm still not sure how realistic it is for an application
-to load a new heap allocator after some threads were created. Even the
-glibc support, I don't think it needs this.
-
-Could an LD_PRELOADED library be initialised after threads were created
-(I guess it could if another preloaded library created threads)? Even if
-it does, do we have an example or it's rather theoretical.
-
-If this becomes an essential use-case, we can look at adding a new flag
-for prctl() which would set the option globally, with the caveats
-mentioned above. It doesn't need to be in the initial ABI (and the
-PR_TAGGED_ADDR_ENABLE is already upstream).
-
-Thanks.
-
--- 
-Catalin
+That's because this is all test data; it's all plaintext, but out of
+necessity some of the test data is kind of munged up and causes
+checkpatch to complain, so Shuah asked us to mark it as binary since
+it isn't actually code and so checkpatch will stop flagging it.
