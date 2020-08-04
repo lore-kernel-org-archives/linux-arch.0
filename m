@@ -1,51 +1,80 @@
 From: Brendan Higgins <brendanhiggins@google.com>
-Subject: Re: [PATCH v5 00/12] kunit: create a centralized executor to dispatch
- all KUnit tests
-Date: Tue, 4 Aug 2020 13:01:30 -0700
-Message-ID: <CAFd5g46auR=OgQ4j=P=KH7GDerW-SkB8aFGehuYkmgJ2Z+jGCA@mail.gmail.com>
-References: <20200626210917.358969-1-brendanhiggins@google.com> <202006261442.5C245709@keescook>
+Subject: Re: [PATCH v5 01/12] vmlinux.lds.h: add linker section for KUnit test suites
+Date: Tue, 4 Aug 2020 13:03:35 -0700
+Message-ID: <CAFd5g45vE7CvgEKYNJeLUiyZb=6Ps52nSqQPJ35+EyC7Y3wkdw@mail.gmail.com>
+References: <20200626210917.358969-1-brendanhiggins@google.com>
+ <20200626210917.358969-2-brendanhiggins@google.com> <202006261416.F4EAAE47E3@keescook>
+ <CAFd5g47vu5vmrXnS0sLu+hdC2HmYz7GY82sE8rhcHfNkuC1NRw@mail.gmail.com> <20200708043128.GY4332@42.do-not-panic.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <202006261442.5C245709@keescook>
+In-Reply-To: <20200708043128.GY4332@42.do-not-panic.com>
 Sender: linux-doc-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>, catalin.marinas@arm.com, will@kernel.org, Michal Simek <monstr@monstr.eu>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Zankel <chris@zankel.net>, jcmvbkbc@gmail.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>
+To: Luis Chamberlain <mcgrof@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>, catalin.marinas@arm.com, will@kernel.org, Michal Simek <monstr@monstr.eu>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Zankel <chris@zankel.net>, jcmvbkbc@gmail.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Loga
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 26, 2020 at 2:52 PM Kees Cook <keescook@chromium.org> wrote:
+On Tue, Jul 7, 2020 at 9:31 PM Luis Chamberlain <mcgrof@kernel.org> wrote:
 >
-> On Fri, Jun 26, 2020 at 02:09:05PM -0700, Brendan Higgins wrote:
-> > This patchset adds a centralized executor to dispatch tests rather than
-> > relying on late_initcall to schedule each test suite separately along
-> > with a couple of new features that depend on it.
+> On Fri, Jun 26, 2020 at 02:22:11PM -0700, Brendan Higgins wrote:
+> > On Fri, Jun 26, 2020 at 2:20 PM Kees Cook <keescook@chromium.org> wrote:
+> > >
+> > > On Fri, Jun 26, 2020 at 02:09:06PM -0700, Brendan Higgins wrote:
+> > > > Add a linker section where KUnit can put references to its test suites.
+> > > > This patch is the first step in transitioning to dispatching all KUnit
+> > > > tests from a centralized executor rather than having each as its own
+> > > > separate late_initcall.
+> > > >
+> > > > Co-developed-by: Iurii Zaikin <yzaikin@google.com>
+> > > > Signed-off-by: Iurii Zaikin <yzaikin@google.com>
+> > > > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+> > > > Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+> > > > ---
+> > > >  include/asm-generic/vmlinux.lds.h | 8 ++++++++
+> > > >  1 file changed, 8 insertions(+)
+> > > >
+> > > > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> > > > index db600ef218d7d..4f9b036fc9616 100644
+> > > > --- a/include/asm-generic/vmlinux.lds.h
+> > > > +++ b/include/asm-generic/vmlinux.lds.h
+> > > > @@ -881,6 +881,13 @@
+> > > >               KEEP(*(.con_initcall.init))                             \
+> > > >               __con_initcall_end = .;
+> > > >
+> > > > +/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
+> > >
+> > > Nit on naming:
+> > >
+> > > > +#define KUNIT_TEST_SUITES                                            \
+> > >
+> > > I would call this KUNIT_TABLE to maintain the same names as other things
+> > > of this nature.
+> > >
+> > > > +             . = ALIGN(8);                                           \
+> > > > +             __kunit_suites_start = .;                               \
+> > > > +             KEEP(*(.kunit_test_suites))                             \
+> > > > +             __kunit_suites_end = .;
+> > > > +
+> > > >  #ifdef CONFIG_BLK_DEV_INITRD
+> > > >  #define INIT_RAM_FS                                                  \
+> > > >       . = ALIGN(4);                                                   \
+> > > > @@ -1056,6 +1063,7 @@
+> > > >               INIT_CALLS                                              \
+> > > >               CON_INITCALL                                            \
+> > > >               INIT_RAM_FS                                             \
+> > > > +             KUNIT_TEST_SUITES                                       \
+> > > >       }
+> > >
+> > > Nack: this must be in INIT_DATA, not in INIT_DATA_SECTION. Not all
+> > > architectures use the INIT_DATA_SECTION macro (e.g. arm64), but everything
+> > > uses INIT_DATA.
+> >
+> > Oh, maybe that would eliminate the need for the other linkerscript
+> > patches? That would be nice.
 
-Sorry it took so long to reply. I got sucked into some other stuff again.
+Sorry for the delayed response. I got pulled into some other things.
 
-> So, the new section looks fine to me (modulo the INIT_DATA change). The
-> plumbing to start the tests, though, I think is redundant. Why not just
-> add a sysctl that starts all known tests?
+> Curious, did changing it as Kees suggest fix it for m68k?
 
-We already have that; however, we use debugfs to start the tests -
-same difference. I just find it convenient to not have to build and
-then maintain a userland for each architecture. It's also really nice
-that KUnit "just works out of the box" - you don't have to download
-anything other than the kernel source, and you don't need to do any
-steps outside of just run "kuit.py run". That seems like a big
-advantage to me.
-
-> That way you don't need the plumbing into init/main.c, and you can have
-> a mode where builtin tests can be started on a fully booted system too.
->
-> i.e. boot with "sysctl.kernel.kunit=start" or when fully booted with
-> "echo start > /proc/sys/kernel/kunit"
->
-> And instead of the kunit-specific halt/reboot stuff, how about moving
-> /proc/sysrq-trigger into /proc/sys instead? Then you (or anything) could
-> do:
->
-> sysctl.kernel.kunit=start sysctl.kernel.sysrq-trigger=b
-
-I think it might be harder to make a case for the reboot stuff without
-the stuff I am working on outside of this patchset. I think I will
-probably drop that patch from this patchset and reintroduce it later.
+It did! There are still some architectures I cannot test due to a lack
+of GCC or QEMU support, but it seems to work on everything else now.
