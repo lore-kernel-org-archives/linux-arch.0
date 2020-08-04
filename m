@@ -1,53 +1,116 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [RFC PATCH 0/5] madvise MADV_DOEXEC
-Date: Tue, 4 Aug 2020 08:44:42 +0000
-Message-ID: <9371b8272fd84280ae40b409b260bab3@AcuMS.aculab.com>
-References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
-         <20200730152250.GG23808@casper.infradead.org>
-         <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
-         <20200730171251.GI23808@casper.infradead.org>
-         <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
-         <20200730174956.GK23808@casper.infradead.org>
-         <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
-         <87y2n03brx.fsf@x220.int.ebiederm.org>
-         <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
-         <877dufvje9.fsf@x220.int.ebiederm.org>
- <1596469370.29091.13.camel@HansenPartnership.com>
+From: Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Subject: [PATCH v3 0/6] mm: introduce memfd_secret system call to create "secret" memory areas
+Date: Tue,  4 Aug 2020 12:50:29 +0300
+Message-ID: <20200804095035.18778-1-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-In-Reply-To: <1596469370.29091.13.camel@HansenPartnership.com>
-Content-Language: en-US
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: 'James Bottomley' <James.Bottomley@HansenPartnership.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Steven Sistare <steven.sistare@oracle.com>
-Cc: Matthew Wilcox <willy@infradead.org>, Anthony Yznaga <anthony.yznaga@oracle.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@kernel.org" <mhocko@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "x86@kernel.org" <x86@kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "arnd@arndb.de" <arnd@arndb.de>, "keescook@chromium.org" <keescook@chromium.org>, "gerg@linux-m68k.org" <gerg@linux-m68k.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Christopher Lameter <cl-vYTEC60ixJUAvxtiuMwx3w@public.gmane.org>, Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Elena Reshetova <elena.reshetova-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Idan Yaniv <idan.yaniv-qyM6JfAXOaQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, James Bottomley <jejb-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, "Kirill A. Shutemov" <kirill-oKw7cIdHH8eLwutG50LtGA@public.gmane.org>, Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-RnJvbTogSmFtZXMgQm90dG9tbGV5DQo+IFNlbnQ6IDAzIEF1Z3VzdCAyMDIwIDE2OjQzDQo+IA0K
-PiBPbiBNb24sIDIwMjAtMDgtMDMgYXQgMTA6MjggLTA1MDAsIEVyaWMgVy4gQmllZGVybWFuIHdy
-b3RlOg0KPiBbLi4uXQ0KPiA+IFdoYXQgaXMgd3Jvbmcgd2l0aCBsaXZlIG1pZ3JhdGlvbiBiZXR3
-ZWVuIG9uZSBxZW11IHByb2Nlc3MgYW5kDQo+ID4gYW5vdGhlciBxZW11IHByb2Nlc3Mgb24gdGhl
-IHNhbWUgbWFjaGluZSBub3Qgd29yayBmb3IgdGhpcyB1c2UgY2FzZT8NCj4gPg0KPiA+IEp1c3Qg
-cmV1c2luZyBsaXZlIG1pZ3JhdGlvbiB3b3VsZCBzZWVtIHRvIGJlIHRoZSBzaW1wbGVzdCBwYXRo
-IG9mDQo+ID4gYWxsLCBhcyB0aGUgY29kZSBpcyBhbHJlYWR5IGltcGxlbWVudGVkLiAgRnVydGhl
-ciBpZiBzb21ldGhpbmcgZ29lcw0KPiA+IHdyb25nIHdpdGggdGhlIGxpdmUgbWlncmF0aW9uIHlv
-dSBjYW4gZmFsbGJhY2sgdG8gdGhlIGV4aXN0aW5nDQo+ID4gcHJvY2Vzcy4gIFdpdGggZXhlYyB0
-aGVyZSBpcyBubyBmYWxsYmFjayBpZiB0aGUgbmV3IHZlcnNpb24gZG9lcyBub3QNCj4gPiBwcm9w
-ZXJseSBzdXBwb3J0IHRoZSBoYW5kb2ZmIHByb3RvY29sIG9mIHRoZSBvbGQgdmVyc2lvbi4NCj4g
-DQo+IEFjdHVhbGx5LCBjb3VsZCBJIGFzayB0aGlzIGFub3RoZXIgd2F5OiB0aGUgb3RoZXIgcGF0
-Y2ggc2V0IHlvdSBzZW50IHRvDQo+IHRoZSBLVk0gbGlzdCB3YXMgdG8gc25hcHNob3QgdGhlIFZN
-IHRvIGEgUEtSQU0gY2Fwc3VsZSBwcmVzZXJ2ZWQgYWNyb3NzDQo+IGtleGVjIHVzaW5nIHplcm8g
-Y29weSBmb3IgZXh0cmVtZWx5IGZhc3Qgc2F2ZS9yZXN0b3JlLiAgVGhlIG9yaWdpbmFsDQo+IGlk
-ZWEgd2FzIHRvIHVzZSB0aGlzIGFzIHBhcnQgb2YgYSBDUklVIGJhc2VkIHNuYXBzaG90LCBrZXhl
-YyB0byBuZXcNCj4gc3lzdGVtLCByZXN0b3JlLiAgSG93ZXZlciwgd2h5IGNhbid0IHlvdSBkbyBh
-IGxvY2FsIHNuYXBzaG90LCByZXN0YXJ0DQo+IHFlbXUsIHJlc3RvcmUgdXNpbmcgdGhlIFBLUkFN
-IGNhcHN1bGUgdG8gYWNoaWV2ZSBleGFjdGx5IHRoZSBzYW1lIGFzDQo+IE1BRFZfRE9FWEVDIGRv
-ZXMgYnV0IHVzaW5nIGEgc3lzdGVtIHRoYXQncyBlYXN5IHRvIHJlYXNvbiBhYm91dD8gIEl0DQo+
-IG1heSBiZSBzbGlnaHRseSBzbG93ZXIsIGJ1dCBJIHRoaW5rIHdlJ3JlIHN0aWxsIHRhbGtpbmcg
-bWlsbGlzZWNvbmRzLg0KDQoNCkkndmUgaGFkIGFub3RoZXIgaWRlYSAodGhhdCBpcyBwcm9iYWJs
-eSBpbXBvc3NpYmxlLi4uKS4NCldoYXQgYWJvdXQgYSAncmV2ZXJzZSBtbWFwJyBvcGVyYXRpb24u
-DQpTb21ldGhpbmcgdGhhdCBjcmVhdGVzIGFuIGZkIHdob3NlIGNvbnRlbnRzIGFyZSBhIGNodW5r
-IG9mIHRoZQ0KcHJvY2Vzc2VzIGFkZHJlc3Mgc3BhY2UuDQoNCglEYXZpZA0KDQotDQpSZWdpc3Rl
-cmVkIEFkZHJlc3MgTGFrZXNpZGUsIEJyYW1sZXkgUm9hZCwgTW91bnQgRmFybSwgTWlsdG9uIEtl
-eW5lcywgTUsxIDFQVCwgVUsNClJlZ2lzdHJhdGlvbiBObzogMTM5NzM4NiAoV2FsZXMpDQo=
+From: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
+
+Hi,
+
+This is an implementation of "secret" mappings backed by a file descriptor. 
+
+v3 changes:
+* Squash kernel-parameters.txt update into the commit that added the
+  command line option.
+* Make uncached mode explicitly selectable by architectures. For now enable
+  it only on x86.
+
+v2 changes:
+* Follow Michael's suggestion and name the new system call 'memfd_secret'
+* Add kernel-parameters documentation about the boot option
+* Fix i386-tinyconfig regression reported by the kbuild bot.
+  CONFIG_SECRETMEM now depends on !EMBEDDED to disable it on small systems
+  from one side and still make it available unconditionally on
+  architectures that support SET_DIRECT_MAP.
+
+The file descriptor backing secret memory mappings is created using a
+dedicated memfd_secret system call The desired protection mode for the
+memory is configured using flags parameter of the system call. The mmap()
+of the file descriptor created with memfd_secret() will create a "secret"
+memory mapping. The pages in that mapping will be marked as not present in
+the direct map and will have desired protection bits set in the user page
+table. For instance, current implementation allows uncached mappings.
+
+Although normally Linux userspace mappings are protected from other users, 
+such secret mappings are useful for environments where a hostile tenant is
+trying to trick the kernel into giving them access to other tenants
+mappings.
+
+Additionally, the secret mappings may be used as a mean to protect guest
+memory in a virtual machine host.
+
+For demonstration of secret memory usage we've created a userspace library
+[1] that does two things: the first is act as a preloader for openssl to
+redirect all the OPENSSL_malloc calls to secret memory meaning any secret
+keys get automatically protected this way and the other thing it does is
+expose the API to the user who needs it. We anticipate that a lot of the
+use cases would be like the openssl one: many toolkits that deal with
+secret keys already have special handling for the memory to try to give
+them greater protection, so this would simply be pluggable into the
+toolkits without any need for user application modification.
+
+I've hesitated whether to continue to use new flags to memfd_create() or to
+add a new system call and I've decided to use a new system call after I've
+started to look into man pages update. There would have been two completely
+independent descriptions and I think it would have been very confusing.
+
+Hiding secret memory mappings behind an anonymous file allows (ab)use of
+the page cache for tracking pages allocated for the "secret" mappings as
+well as using address_space_operations for e.g. page migration callbacks.
+
+The anonymous file may be also used implicitly, like hugetlb files, to
+implement mmap(MAP_SECRET) and use the secret memory areas with "native" mm
+ABIs in the future.
+
+As the fragmentation of the direct map was one of the major concerns raised
+during the previous postings, I've added an amortizing cache of PMD-size
+pages to each file descriptor and an ability to reserve large chunks of the
+physical memory at boot time and then use this memory as an allocation pool
+for the secret memory areas.
+
+v2: https://lore.kernel.org/lkml/20200727162935.31714-1-rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org
+v1: https://lore.kernel.org/lkml/20200720092435.17469-1-rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org/
+rfc-v2: https://lore.kernel.org/lkml/20200706172051.19465-1-rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org/
+rfc-v1: https://lore.kernel.org/lkml/20200130162340.GA14232@rapoport-lnx/
+
+Mike Rapoport (6):
+  mm: add definition of PMD_PAGE_ORDER
+  mmap: make mlock_future_check() global
+  mm: introduce memfd_secret system call to create "secret" memory areas
+  arch, mm: wire up memfd_secret system call were relevant
+  mm: secretmem: use PMD-size pages to amortize direct map fragmentation
+  mm: secretmem: add ability to reserve memory at boot
+
+ arch/Kconfig                           |   7 +
+ arch/arm64/include/asm/unistd.h        |   2 +-
+ arch/arm64/include/asm/unistd32.h      |   2 +
+ arch/arm64/include/uapi/asm/unistd.h   |   1 +
+ arch/riscv/include/asm/unistd.h        |   1 +
+ arch/x86/Kconfig                       |   1 +
+ arch/x86/entry/syscalls/syscall_32.tbl |   1 +
+ arch/x86/entry/syscalls/syscall_64.tbl |   1 +
+ fs/dax.c                               |  10 +-
+ include/linux/pgtable.h                |   3 +
+ include/linux/syscalls.h               |   1 +
+ include/uapi/asm-generic/unistd.h      |   7 +-
+ include/uapi/linux/magic.h             |   1 +
+ include/uapi/linux/secretmem.h         |   9 +
+ kernel/sys_ni.c                        |   2 +
+ mm/Kconfig                             |   4 +
+ mm/Makefile                            |   1 +
+ mm/internal.h                          |   3 +
+ mm/mmap.c                              |   5 +-
+ mm/secretmem.c                         | 458 +++++++++++++++++++++++++
+ 20 files changed, 510 insertions(+), 10 deletions(-)
+ create mode 100644 include/uapi/linux/secretmem.h
+ create mode 100644 mm/secretmem.c
+
+-- 
+2.26.2
