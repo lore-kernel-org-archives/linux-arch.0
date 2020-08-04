@@ -1,125 +1,149 @@
-Return-Path: <SRS0=jC02=BN=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
- <20200730152250.GG23808@casper.infradead.org>
- <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
- <20200730171251.GI23808@casper.infradead.org>
- <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
- <20200730174956.GK23808@casper.infradead.org>
- <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
- <87y2n03brx.fsf@x220.int.ebiederm.org>
- <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
- <877dufvje9.fsf@x220.int.ebiederm.org>
-From: Steven Sistare <steven.sistare@oracle.com>
-Message-ID: <eeec47c5-232d-fe8e-c19d-70c50c49020c@oracle.com>
-Date: Mon, 3 Aug 2020 15:29:26 -0400
+Return-Path: <SRS0=mj0N=BO=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:5219 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730223AbgHDLRc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Aug 2020 07:17:32 -0400
+Subject: Re: [PATCH v8 2/8] powerpc/vdso: Remove __kernel_datapage_offset and
+ simplify __get_datapage()
+References: <cover.1588079622.git.christophe.leroy@c-s.fr>
+ <0d2201efe3c7727f2acc718aefd7c5bb22c66c57.1588079622.git.christophe.leroy@c-s.fr>
+ <87wo34tbas.fsf@mpe.ellerman.id.au>
+From: Christophe Leroy <christophe.leroy@csgroup.eu>
+Message-ID: <2f9b7d02-9e2f-4724-2608-c5573f6507a2@csgroup.eu>
+Date: Tue, 4 Aug 2020 11:17:26 +0000
 MIME-Version: 1.0
-In-Reply-To: <877dufvje9.fsf@x220.int.ebiederm.org>
-Content-Type: text/plain; charset=utf-8
+In-Reply-To: <87wo34tbas.fsf@mpe.ellerman.id.au>
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Matthew Wilcox <willy@infradead.org>, Anthony Yznaga <anthony.yznaga@oracle.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200803192926.NTm4UpvwMDMo55W_d_JNh7NZMfb5Ms-BK4k-JepvYb8@z>
+To: Michael Ellerman <mpe@ellerman.id.au>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, nathanl@linux.ibm.com
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200804111726.EsPcWLaYSy92BTVC55nHPJdQt9FocwVAdwYXUgBoLwM@z>
 
-On 8/3/2020 11:28 AM, ebiederm@xmission.com wrote:
-> Steven Sistare <steven.sistare@oracle.com> writes:
->> On 7/30/2020 5:58 PM, ebiederm@xmission.com wrote:
->>> Here is another suggestion.
->>>
->>> Have a very simple program that does:
->>>
->>> 	for (;;) {
->>> 		handle = dlopen("/my/real/program");
->>> 		real_main = dlsym(handle, "main");
->>> 		real_main(argc, argv, envp);
->>> 		dlclose(handle);
->>> 	}
->>>
->>> With whatever obvious adjustments are needed to fit your usecase.
->>>
->>> That should give the same level of functionality, be portable to all
->>> unices, and not require you to duplicate code.  It belive it limits you
->>> to not upgrading libc, or librt but that is a comparatively small
->>> limitation.
->>>
->>>
->>> Given that in general the interesting work is done in userspace and that
->>> userspace has provided an interface for reusing that work already.
->>> I don't see the justification for adding anything to exec at this point. 
+
+
+On 07/16/2020 02:59 AM, Michael Ellerman wrote:
+> Christophe Leroy <christophe.leroy@c-s.fr> writes:
+>> The VDSO datapage and the text pages are always located immediately
+>> next to each other, so it can be hardcoded without an indirection
+>> through __kernel_datapage_offset
 >>
->> Thanks for the suggestion.  That is clever, and would make a fun project,
->> but I would not trust it for production.  These few lines are just
->> the first of many that it would take to reset the environment to the
->> well-defined post-exec initial conditions that all executables expect,
->> and incrementally tearing down state will be prone to bugs.
+>> In order to ease things, move the data page in front like other
+>> arches, that way there is no need to know the size of the library
+>> to locate the data page.
+>>
+>> Before:
+>> clock-getres-realtime-coarse:    vdso: 714 nsec/call
+>> clock-gettime-realtime-coarse:    vdso: 792 nsec/call
+>> clock-gettime-realtime:    vdso: 1243 nsec/call
+>>
+>> After:
+>> clock-getres-realtime-coarse:    vdso: 699 nsec/call
+>> clock-gettime-realtime-coarse:    vdso: 784 nsec/call
+>> clock-gettime-realtime:    vdso: 1231 nsec/call
+>>
+>> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+>> ---
+>> v7:
+>> - Moved the removal of the tmp param of __get_datapage()
+>> in a subsequent patch
+>> - Included the addition of the offset param to __get_datapage()
+>> in the further preparatory patch
+>> ---
+>>   arch/powerpc/include/asm/vdso_datapage.h |  8 ++--
+>>   arch/powerpc/kernel/vdso.c               | 53 ++++--------------------
+>>   arch/powerpc/kernel/vdso32/datapage.S    |  3 --
+>>   arch/powerpc/kernel/vdso32/vdso32.lds.S  |  7 +---
+>>   arch/powerpc/kernel/vdso64/datapage.S    |  3 --
+>>   arch/powerpc/kernel/vdso64/vdso64.lds.S  |  7 +---
+>>   6 files changed, 16 insertions(+), 65 deletions(-)
+>>
+>> diff --git a/arch/powerpc/include/asm/vdso_datapage.h b/arch/powerpc/include/asm/vdso_datapage.h
+>> index b9ef6cf50ea5..11886467dfdf 100644
+>> --- a/arch/powerpc/include/asm/vdso_datapage.h
+>> +++ b/arch/powerpc/include/asm/vdso_datapage.h
+>> @@ -118,10 +118,12 @@ extern struct vdso_data *vdso_data;
+>>   
+>>   .macro get_datapage ptr, tmp
+>>   	bcl	20, 31, .+4
+>> +999:
+>>   	mflr	\ptr
+>> -	addi	\ptr, \ptr, (__kernel_datapage_offset - (.-4))@l
+>> -	lwz	\tmp, 0(\ptr)
+>> -	add	\ptr, \tmp, \ptr
+>> +#if CONFIG_PPC_PAGE_SHIFT > 14
+>> +	addis	\ptr, \ptr, (_vdso_datapage - 999b)@ha
+>> +#endif
+>> +	addi	\ptr, \ptr, (_vdso_datapage - 999b)@l
+>>   .endm
+>>   
+>>   #endif /* __ASSEMBLY__ */
+>> diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
+>> index f38f26e844b6..d33fa22ddbed 100644
+>> --- a/arch/powerpc/kernel/vdso.c
+>> +++ b/arch/powerpc/kernel/vdso.c
+>> @@ -190,7 +190,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+>>   	 * install_special_mapping or the perf counter mmap tracking code
+>>   	 * will fail to recognise it as a vDSO (since arch_vma_name fails).
+>>   	 */
+>> -	current->mm->context.vdso_base = vdso_base;
+>> +	current->mm->context.vdso_base = vdso_base + PAGE_SIZE;
 > 
-> Agreed.
+> I merged this but then realised it breaks the display of the vdso in /proc/self/maps.
 > 
->> Getting a clean slate from a kernel exec is a much more reliable
->> design.
+> ie. the vdso vma gets no name:
 > 
-> Except you are explicitly throwing that out the window, by preserving
-> VMAs.  You very much need to have a clean bug free shutdown to pass VMAs
-> reliably.
-
-Sure.  The whole community relies on you and others to provide a bug free exec.
-
->> The use case is creating long-lived apps that never go down, and the
->> simplest implementation will have the fewest bugs and is the best.
->> MADV_DOEXEC is simple, and does not even require a new system call,
->> and the kernel already knows how to exec without bugs.
+>    # cat /proc/self/maps
+>    110f90000-110fa0000 r-xp 00000000 08:03 17021844                         /usr/bin/cat
+>    110fa0000-110fb0000 r--p 00000000 08:03 17021844                         /usr/bin/cat
+>    110fb0000-110fc0000 rw-p 00010000 08:03 17021844                         /usr/bin/cat
+>    126000000-126030000 rw-p 00000000 00:00 0                                [heap]
+>    7fffa8790000-7fffa87d0000 rw-p 00000000 00:00 0
+>    7fffa87d0000-7fffa8830000 r--p 00000000 08:03 17521786                   /usr/lib/locale/en_AU.utf8/LC_CTYPE
+>    7fffa8830000-7fffa8840000 r--p 00000000 08:03 16958337                   /usr/lib/locale/en_AU.utf8/LC_NUMERIC
+>    7fffa8840000-7fffa8850000 r--p 00000000 08:03 8501358                    /usr/lib/locale/en_AU.utf8/LC_TIME
+>    7fffa8850000-7fffa8ad0000 r--p 00000000 08:03 16870886                   /usr/lib/locale/en_AU.utf8/LC_COLLATE
+>    7fffa8ad0000-7fffa8ae0000 r--p 00000000 08:03 8509433                    /usr/lib/locale/en_AU.utf8/LC_MONETARY
+>    7fffa8ae0000-7fffa8af0000 r--p 00000000 08:03 25383753                   /usr/lib/locale/en_AU.utf8/LC_MESSAGES/SYS_LC_MESSAGES
+>    7fffa8af0000-7fffa8b00000 r--p 00000000 08:03 17521790                   /usr/lib/locale/en_AU.utf8/LC_PAPER
+>    7fffa8b00000-7fffa8b10000 r--p 00000000 08:03 8501354                    /usr/lib/locale/en_AU.utf8/LC_NAME
+>    7fffa8b10000-7fffa8b20000 r--p 00000000 08:03 8509431                    /usr/lib/locale/en_AU.utf8/LC_ADDRESS
+>    7fffa8b20000-7fffa8b30000 r--p 00000000 08:03 8509434                    /usr/lib/locale/en_AU.utf8/LC_TELEPHONE
+>    7fffa8b30000-7fffa8b40000 r--p 00000000 08:03 17521787                   /usr/lib/locale/en_AU.utf8/LC_MEASUREMENT
+>    7fffa8b40000-7fffa8b50000 r--s 00000000 08:03 25623315                   /usr/lib64/gconv/gconv-modules.cache
+>    7fffa8b50000-7fffa8d40000 r-xp 00000000 08:03 25383789                   /usr/lib64/libc-2.30.so
+>    7fffa8d40000-7fffa8d50000 r--p 001e0000 08:03 25383789                   /usr/lib64/libc-2.30.so
+>    7fffa8d50000-7fffa8d60000 rw-p 001f0000 08:03 25383789                   /usr/lib64/libc-2.30.so
+>    7fffa8d60000-7fffa8d70000 r--p 00000000 08:03 8509432                    /usr/lib/locale/en_AU.utf8/LC_IDENTIFICATION
+>    7fffa8d70000-7fffa8d90000 r-xp 00000000 00:00 0						<--- missing
+>    7fffa8d90000-7fffa8dc0000 r-xp 00000000 08:03 25383781                   /usr/lib64/ld-2.30.so
+>    7fffa8dc0000-7fffa8dd0000 r--p 00020000 08:03 25383781                   /usr/lib64/ld-2.30.so
+>    7fffa8dd0000-7fffa8de0000 rw-p 00030000 08:03 25383781                   /usr/lib64/ld-2.30.so
+>    7fffc31c0000-7fffc31f0000 rw-p 00000000 00:00 0                          [stack]
 > 
-> *ROFL*  I wish the kernel knew how to exec things without bugs.
-
-Essentially you are saying you would argue against any enhancement to exec.
-Surely that is too high a bar.  We must continue to evolve an innovate and
-balance risk against reward.  This use case matters to our business a lot,
-and to others as well, see below.  That is the reward.  I feel you are 
-overstating the risk.  Surely there is some early point in the development
-cycle of some release where this can be integrated and get enough test
-time and soak time to be proven reliable.
-
-> The bugs are hard to hit but the ones I am aware of are not straight
-> forward to fix.
 > 
-> MADV_DOEXEC is not conceptually simple.  It completely violates the
-> guarantees that exec is known to make about the contents of the memory
-> of the new process.  This makes it very difficult to reason about.  
-
-I have having trouble see the difficulty.  Perhaps I am too familar with
-it, but the semantics are few and easy to explain, and it does not introduce
-new concepts: the post-exec process is born with a few more mappings than
-previously, and non-fixed further mmaps choose addresses in the holes.
-
-> Nor
-> will MADV_DOEXEC be tested very much as it has only one or two users.
-> Which means in the fullness of time it is likely someone will change
-> something that will break the implementation subtlely and the bug report
-> probably won't come in for 3 years, or maybe a decade.  At which point
-> it won't be clear if the bug even can be fixed as something else might
-> rely on it.
-
-That's on us; we need to provide kernel tests and be diligent about testing
-new releases.  This matters to our business and we will do so. 
-> What is wrong with live migration between one qemu process and another
-> qemu process on the same machine not work for this use case?
+> And it's also going to break the logic in arch_unmap() to detect if
+> we're unmapping (part of) the VDSO. And it will break arch_remap() too.
 > 
-> Just reusing live migration would seem to be the simplest path of all,
-> as the code is already implemented.  Further if something goes wrong
-> with the live migration you can fallback to the existing process.  With
-> exec there is no fallback if the new version does not properly support
-> the handoff protocol of the old version.
+> And the logic to recognise the signal trampoline in
+> arch/powerpc/perf/callchain_*.c as well.
 
-This is less resource intensive than live migration.  The latter ties up two
-hosts, consumes lots of memory and network bandwidth, may take a long time
-to converge on a busy system, and is unfeasible for guests with a huge amount
-of local storeage (which we call dense I/O shapes).  Live update takes less than
-1 second total, and the guest pause time is 100 - 200 msecs.  It is a very
-attractive solution that other cloud vendors have implemented as well, with
-their own private modifications to exec and and fork.  We have been independently
-working in this area, and we are offering our implementation to the community.
+I don't think it breaks that one, because ->vdsobase is still the start 
+of text.
 
-- Steve
+> 
+> So I'm going to rebase and drop this for now.
+> 
+> Basically we have a bunch of places that assume that vdso_base is == the
+> start of the VDSO vma, and also that the code starts there. So that will
+> need some work to tease out all those assumptions and make them work
+> with this change.
+
+Ok, one day I need to look at it in more details and see how other 
+architectures handle it etc ...
+
+As the benefit is only 2 CPU cycles, I'll drop it for now.
+
+Christophe
