@@ -1,59 +1,246 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-Date: Tue, 4 Aug 2020 12:13:16 +0100
-Message-ID: <20200804111316.GE23808@casper.infradead.org>
-References: <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
- <20200730171251.GI23808@casper.infradead.org>
- <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
- <20200730174956.GK23808@casper.infradead.org>
- <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
- <87y2n03brx.fsf@x220.int.ebiederm.org>
- <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
- <877dufvje9.fsf@x220.int.ebiederm.org>
- <1596469370.29091.13.camel@HansenPartnership.com>
- <9371b8272fd84280ae40b409b260bab3@AcuMS.aculab.com>
+From: Christophe Leroy <christophe.leroy@csgroup.eu>
+Subject: Re: [PATCH v8 5/8] powerpc/vdso: Prepare for switching VDSO to
+ generic C implementation.
+Date: Tue, 4 Aug 2020 11:14:23 +0000
+Message-ID: <65fd7823-cc9d-c05a-0816-c34882b5d55a@csgroup.eu>
+References: <cover.1588079622.git.christophe.leroy@c-s.fr>
+ <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr>
+ <878sflvbad.fsf@mpe.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55440 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730016AbgHDLO6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Aug 2020 07:14:58 -0400
-Content-Disposition: inline
-In-Reply-To: <9371b8272fd84280ae40b409b260bab3@AcuMS.aculab.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Laight <David.Laight@aculab.com>
-Cc: 'James Bottomley' <James.Bottomley@hansenpartnership.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Steven Sistare <steven.sistare@oracle.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@kernel.org" <mhocko@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "x86@kernel.org" <x86@kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "arnd@arndb.de" <arnd@>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
+In-Reply-To: <878sflvbad.fsf@mpe.ellerman.id.au>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
+To: Michael Ellerman <mpe@ellerman.id.au>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, nathanl@linux.ibm.com
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, Tulio Magno Quites Machado Filho <tuliom@linux.ibm.com>, luto@kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Aug 04, 2020 at 08:44:42AM +0000, David Laight wrote:
-> From: James Bottomley
-> > Sent: 03 August 2020 16:43
-> > 
-> > On Mon, 2020-08-03 at 10:28 -0500, Eric W. Biederman wrote:
-> > [...]
-> > > What is wrong with live migration between one qemu process and
-> > > another qemu process on the same machine not work for this use case?
-> > >
-> > > Just reusing live migration would seem to be the simplest path of
-> > > all, as the code is already implemented.  Further if something goes
-> > > wrong with the live migration you can fallback to the existing
-> > > process.  With exec there is no fallback if the new version does not
-> > > properly support the handoff protocol of the old version.
-> > 
-> > Actually, could I ask this another way: the other patch set you sent to
-> > the KVM list was to snapshot the VM to a PKRAM capsule preserved across
-> > kexec using zero copy for extremely fast save/restore.  The original
-> > idea was to use this as part of a CRIU based snapshot, kexec to new
-> > system, restore.  However, why can't you do a local snapshot, restart
-> > qemu, restore using the PKRAM capsule to achieve exactly the same as
-> > MADV_DOEXEC does but using a system that's easy to reason about?  It
-> > may be slightly slower, but I think we're still talking milliseconds.
+
+
+On 07/15/2020 01:04 AM, Michael Ellerman wrote:
+> Christophe Leroy <christophe.leroy@c-s.fr> writes:
+>> Prepare for switching VDSO to generic C implementation in following
+>> patch. Here, we:
+>> - Modify __get_datapage() to take an offset
+>> - Prepare the helpers to call the C VDSO functions
+>> - Prepare the required callbacks for the C VDSO functions
+>> - Prepare the clocksource.h files to define VDSO_ARCH_CLOCKMODES
+>> - Add the C trampolines to the generic C VDSO functions
+>>
+>> powerpc is a bit special for VDSO as well as system calls in the
+>> way that it requires setting CR SO bit which cannot be done in C.
+>> Therefore, entry/exit needs to be performed in ASM.
+>>
+>> Implementing __arch_get_vdso_data() would clobber the link register,
+>> requiring the caller to save it. As the ASM calling function already
+>> has to set a stack frame and saves the link register before calling
+>> the C vdso function, retriving the vdso data pointer there is lighter.
+> ...
+> 
+>> diff --git a/arch/powerpc/include/asm/vdso/gettimeofday.h b/arch/powerpc/include/asm/vdso/gettimeofday.h
+>> new file mode 100644
+>> index 000000000000..4452897f9bd8
+>> --- /dev/null
+>> +++ b/arch/powerpc/include/asm/vdso/gettimeofday.h
+>> @@ -0,0 +1,175 @@
+>> +/* SPDX-License-Identifier: GPL-2.0 */
+>> +#ifndef __ASM_VDSO_GETTIMEOFDAY_H
+>> +#define __ASM_VDSO_GETTIMEOFDAY_H
+>> +
+>> +#include <asm/ptrace.h>
+>> +
+>> +#ifdef __ASSEMBLY__
+>> +
+>> +.macro cvdso_call funct
+>> +  .cfi_startproc
+>> +	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+>> +	mflr		r0
+>> +  .cfi_register lr, r0
+>> +	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
+> 
+> This doesn't work for me on ppc64(le) with glibc.
+> 
+> glibc doesn't create a stack frame before making the VDSO call, so the
+> store of r0 (LR) goes into the caller's frame, corrupting the saved LR,
+> leading to an infinite loop.
+> 
+> This is an example from a statically built program that calls
+> clock_gettime():
+> 
+> 0000000010030cb0 <__clock_gettime>:
+>      10030cb0:   0e 10 40 3c     lis     r2,4110
+>      10030cb4:   00 7a 42 38     addi    r2,r2,31232
+>      10030cb8:   a6 02 08 7c     mflr    r0
+>      10030cbc:   ff ff 22 3d     addis   r9,r2,-1
+>      10030cc0:   58 6d 29 39     addi    r9,r9,27992
+>      10030cc4:   f0 ff c1 fb     std     r30,-16(r1)			<-- redzone store
+>      10030cc8:   78 23 9e 7c     mr      r30,r4
+>      10030ccc:   f8 ff e1 fb     std     r31,-8(r1)			<-- redzone store
+>      10030cd0:   78 1b 7f 7c     mr      r31,r3
+>      10030cd4:   10 00 01 f8     std     r0,16(r1)			<-- save LR to caller's frame
+>      10030cd8:   00 00 09 e8     ld      r0,0(r9)
+>      10030cdc:   00 00 20 2c     cmpdi   r0,0
+>      10030ce0:   50 00 82 41     beq     10030d30 <__clock_gettime+0x80>
+>      10030ce4:   a6 03 09 7c     mtctr   r0
+>      10030ce8:   21 04 80 4e     bctrl					<-- vdso call
+>      10030cec:   26 00 00 7c     mfcr    r0
+>      10030cf0:   00 10 09 74     andis.  r9,r0,4096
+>      10030cf4:   78 1b 69 7c     mr      r9,r3
+>      10030cf8:   28 00 82 40     bne     10030d20 <__clock_gettime+0x70>
+>      10030cfc:   b4 07 23 7d     extsw   r3,r9
+>      10030d00:   10 00 01 e8     ld      r0,16(r1)			<-- load saved LR, since clobbered by the VDSO
+>      10030d04:   f0 ff c1 eb     ld      r30,-16(r1)
+>      10030d08:   f8 ff e1 eb     ld      r31,-8(r1)
+>      10030d0c:   a6 03 08 7c     mtlr    r0				<-- restore LR
+>      10030d10:   20 00 80 4e     blr					<-- jumps to 10030cec
 > 
 > 
-> I've had another idea (that is probably impossible...).
-> What about a 'reverse mmap' operation.
-> Something that creates an fd whose contents are a chunk of the
-> processes address space.
+> I'm kind of confused how it worked for you on 32-bit.
 
-http://www.wil.cx/~willy/linux/sileby.html
+Indeed, 32-bit doesn't have a redzone, so I believe it needs a stack 
+frame whenever it has anything to same. Here is what I have in libc.so:
+
+000fbb60 <__clock_gettime>:
+    fbb60:	94 21 ff e0 	stwu    r1,-32(r1)
+    fbb64:	7c 08 02 a6 	mflr    r0
+    fbb68:	48 09 75 c9 	bl      193130 <_IO_stdout_+0x24b0>
+    fbb6c:	93 c1 00 18 	stw     r30,24(r1)
+    fbb70:	7f c8 02 a6 	mflr    r30
+    fbb74:	90 01 00 24 	stw     r0,36(r1)
+    fbb78:	93 81 00 10 	stw     r28,16(r1)
+    fbb7c:	93 a1 00 14 	stw     r29,20(r1)
+    fbb80:	83 9e fc 98 	lwz     r28,-872(r30)
+    fbb84:	93 e1 00 1c 	stw     r31,28(r1)
+    fbb88:	80 1c 00 00 	lwz     r0,0(r28)
+    fbb8c:	83 82 8f f4 	lwz     r28,-28684(r2)
+    fbb90:	7c 7f 1b 78 	mr      r31,r3
+    fbb94:	7c 00 e2 79 	xor.    r0,r0,r28
+    fbb98:	7c 9d 23 78 	mr      r29,r4
+    fbb9c:	41 82 00 40 	beq     fbbdc <__clock_gettime+0x7c>
+    fbba0:	7c 09 03 a6 	mtctr   r0
+    fbba4:	4e 80 04 21 	bctrl
+    fbba8:	7c 00 00 26 	mfcr    r0
+    fbbac:	74 1c 10 00 	andis.  r28,r0,4096
+    fbbb0:	40 82 00 24 	bne     fbbd4 <__clock_gettime+0x74>
+    fbbb4:	80 01 00 24 	lwz     r0,36(r1)
+    fbbb8:	83 81 00 10 	lwz     r28,16(r1)
+    fbbbc:	7c 08 03 a6 	mtlr    r0
+    fbbc0:	83 a1 00 14 	lwz     r29,20(r1)
+    fbbc4:	83 c1 00 18 	lwz     r30,24(r1)
+    fbbc8:	83 e1 00 1c 	lwz     r31,28(r1)
+    fbbcc:	38 21 00 20 	addi    r1,r1,32
+    fbbd0:	4e 80 00 20 	blr
+...
+   193130:	4e 80 00 21 	blrl
+
+But I guess if a prog has a way to avoid having anything to save, we may 
+face the same issue. So lets create two frames:
+
+diff --git a/arch/powerpc/include/asm/vdso/gettimeofday.h 
+b/arch/powerpc/include/asm/vdso/gettimeofday.h
+index a0712a6e80d9..0b6fa245d54e 100644
+--- a/arch/powerpc/include/asm/vdso/gettimeofday.h
++++ b/arch/powerpc/include/asm/vdso/gettimeofday.h
+@@ -10,6 +10,7 @@
+    .cfi_startproc
+  	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+  	mflr		r0
++	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+    .cfi_register lr, r0
+  	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
+  	get_datapage	r5, r0
+@@ -19,7 +20,7 @@
+  	cmpwi		r3, 0
+  	mtlr		r0
+    .cfi_restore lr
+-	addi		r1, r1, STACK_FRAME_OVERHEAD
++	addi		r1, r1, 2 * STACK_FRAME_OVERHEAD
+  	crclr		so
+  	beqlr+
+  	crset		so
+@@ -32,6 +33,7 @@
+    .cfi_startproc
+  	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+  	mflr		r0
++	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+    .cfi_register lr, r0
+  	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
+  	get_datapage	r4, r0
+@@ -41,7 +43,7 @@
+  	crclr		so
+  	mtlr		r0
+    .cfi_restore lr
+-	addi		r1, r1, STACK_FRAME_OVERHEAD
++	addi		r1, r1, 2 * STACK_FRAME_OVERHEAD
+  	blr
+    .cfi_endproc
+  .endm
+
+
+
+> 
+> There's also no code to load/restore the TOC pointer on BE, which I
+> think we'll need to handle.
+
+I see no code in the generated vdso64.so doing anything with r2, but if 
+you think that's needed, just let's do it:
+
+commit 5a704d89bd5d7aac39194fb4c775f406905bf0a4
+Author: Christophe Leroy <christophe.leroy@csgroup.eu>
+Date:   Tue Aug 4 06:31:48 2020 +0000
+
+     Save and restore GOT
+
+diff --git a/arch/powerpc/include/asm/vdso/gettimeofday.h 
+b/arch/powerpc/include/asm/vdso/gettimeofday.h
+index 0b6fa245d54e..fa774086173b 100644
+--- a/arch/powerpc/include/asm/vdso/gettimeofday.h
++++ b/arch/powerpc/include/asm/vdso/gettimeofday.h
+@@ -13,10 +13,16 @@
+  	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+    .cfi_register lr, r0
+  	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
++#ifdef CONFIG_PPC64
++	PPC_STL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
++#endif
+  	get_datapage	r5, r0
+  	addi		r5, r5, VDSO_DATA_OFFSET
+  	bl		\funct
+  	PPC_LL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
++#ifdef CONFIG_PPC64
++	PPC_LL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
++#endif
+  	cmpwi		r3, 0
+  	mtlr		r0
+    .cfi_restore lr
+@@ -36,10 +42,16 @@
+  	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+    .cfi_register lr, r0
+  	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
++#ifdef CONFIG_PPC64
++	PPC_STL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
++#endif
+  	get_datapage	r4, r0
+  	addi		r4, r4, VDSO_DATA_OFFSET
+  	bl		\funct
+  	PPC_LL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
++#ifdef CONFIG_PPC64
++	PPC_LL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
++#endif
+  	crclr		so
+  	mtlr		r0
+    .cfi_restore lr
+
+
+Christophe
