@@ -1,45 +1,81 @@
-Return-Path: <SRS0=ubji=BP=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-oi1-f193.google.com ([209.85.167.193]:45523 "EHLO
-        mail-oi1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728413AbgHES7p (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Aug 2020 14:59:45 -0400
+Return-Path: <SRS0=TE/4=BO=vger.kernel.org=linux-doc-owner@kernel.org>
 MIME-Version: 1.0
-References: <CAK8P3a2PK_bC5=3wcWm43=y5xk-Dq5-fGPExJMnOrNfGfB1m1A@mail.gmail.com>
- <20200805172629.GA1040@bug>
-In-Reply-To: <20200805172629.GA1040@bug>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Wed, 5 Aug 2020 20:50:43 +0200
-Message-ID: <CAMuHMdV20tZSu5gGsjf8h334+0xr1f=N9NvOoxHQGq42GYsj4g@mail.gmail.com>
-Subject: Re: [Ksummit-discuss] [TECH TOPIC] Planning code obsolescence
+References: <20200626210917.358969-1-brendanhiggins@google.com>
+ <20200626210917.358969-2-brendanhiggins@google.com> <202006261416.F4EAAE47E3@keescook>
+ <CAFd5g47vu5vmrXnS0sLu+hdC2HmYz7GY82sE8rhcHfNkuC1NRw@mail.gmail.com> <20200708043128.GY4332@42.do-not-panic.com>
+In-Reply-To: <20200708043128.GY4332@42.do-not-panic.com>
+From: Brendan Higgins <brendanhiggins@google.com>
+Date: Tue, 4 Aug 2020 13:03:35 -0700
+Message-ID: <CAFd5g45vE7CvgEKYNJeLUiyZb=6Ps52nSqQPJ35+EyC7Y3wkdw@mail.gmail.com>
+Subject: Re: [PATCH v5 01/12] vmlinux.lds.h: add linker section for KUnit test suites
 Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Sender: linux-doc-owner@vger.kernel.org
+To: Luis Chamberlain <mcgrof@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>, catalin.marinas@arm.com, will@kernel.org, Michal Simek <monstr@monstr.eu>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Zankel <chris@zankel.net>, jcmvbkbc@gmail.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pavel Machek <pavel@ucw.cz>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ksummit <ksummit-discuss@lists.linuxfoundation.org>
-Message-ID: <20200805185043.05isZKfimh7oDrj4pnkCTODv6nPK1OaXfb9OgS4bSlc@z>
+Message-ID: <20200804200335.jmrrmdusW91G_Ryj4-4mka4iAc7PVWEZrn0sJtzH1hM@z>
 
-Hi Pavel,
-
-On Wed, Aug 5, 2020 at 7:26 PM Pavel Machek <pavel@ucw.cz> wrote:
-> > I have submitted the below as a topic for the linux/arch/* MC that Mike
-> > and I run, but I suppose it also makes sense to discuss it on the
-> > ksummit-discuss mailing list (cross-posted to linux-arch and lkml) as well
-> > even if we don't discuss it at the main ksummit track.
+On Tue, Jul 7, 2020 at 9:31 PM Luis Chamberlain <mcgrof@kernel.org> wrote:
 >
-> > * Latest kernel in which it was known to have worked
->
-> For some old hardware, I started collecting kernel version, .config and dmesg from
-> successful boots. github.com/pavelmachek, click on "missy".
+> On Fri, Jun 26, 2020 at 02:22:11PM -0700, Brendan Higgins wrote:
+> > On Fri, Jun 26, 2020 at 2:20 PM Kees Cook <keescook@chromium.org> wrote:
+> > >
+> > > On Fri, Jun 26, 2020 at 02:09:06PM -0700, Brendan Higgins wrote:
+> > > > Add a linker section where KUnit can put references to its test suites.
+> > > > This patch is the first step in transitioning to dispatching all KUnit
+> > > > tests from a centralized executor rather than having each as its own
+> > > > separate late_initcall.
+> > > >
+> > > > Co-developed-by: Iurii Zaikin <yzaikin@google.com>
+> > > > Signed-off-by: Iurii Zaikin <yzaikin@google.com>
+> > > > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+> > > > Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+> > > > ---
+> > > >  include/asm-generic/vmlinux.lds.h | 8 ++++++++
+> > > >  1 file changed, 8 insertions(+)
+> > > >
+> > > > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> > > > index db600ef218d7d..4f9b036fc9616 100644
+> > > > --- a/include/asm-generic/vmlinux.lds.h
+> > > > +++ b/include/asm-generic/vmlinux.lds.h
+> > > > @@ -881,6 +881,13 @@
+> > > >               KEEP(*(.con_initcall.init))                             \
+> > > >               __con_initcall_end = .;
+> > > >
+> > > > +/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
+> > >
+> > > Nit on naming:
+> > >
+> > > > +#define KUNIT_TEST_SUITES                                            \
+> > >
+> > > I would call this KUNIT_TABLE to maintain the same names as other things
+> > > of this nature.
+> > >
+> > > > +             . = ALIGN(8);                                           \
+> > > > +             __kunit_suites_start = .;                               \
+> > > > +             KEEP(*(.kunit_test_suites))                             \
+> > > > +             __kunit_suites_end = .;
+> > > > +
+> > > >  #ifdef CONFIG_BLK_DEV_INITRD
+> > > >  #define INIT_RAM_FS                                                  \
+> > > >       . = ALIGN(4);                                                   \
+> > > > @@ -1056,6 +1063,7 @@
+> > > >               INIT_CALLS                                              \
+> > > >               CON_INITCALL                                            \
+> > > >               INIT_RAM_FS                                             \
+> > > > +             KUNIT_TEST_SUITES                                       \
+> > > >       }
+> > >
+> > > Nack: this must be in INIT_DATA, not in INIT_DATA_SECTION. Not all
+> > > architectures use the INIT_DATA_SECTION macro (e.g. arm64), but everything
+> > > uses INIT_DATA.
+> >
+> > Oh, maybe that would eliminate the need for the other linkerscript
+> > patches? That would be nice.
 
-You mean your complete hardware collection doesn't boot v5.8? ;-)
+Sorry for the delayed response. I got pulled into some other things.
 
-Gr{oetje,eeting}s,
+> Curious, did changing it as Kees suggest fix it for m68k?
 
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+It did! There are still some architectures I cannot test due to a lack
+of GCC or QEMU support, but it seems to work on everything else now.
