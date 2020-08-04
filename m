@@ -1,251 +1,59 @@
-From: Alexey Kardashevskiy <aik@ozlabs.ru>
-Subject: Re: [PATCH 2/2] lockdep: warn on redundant or incorrect irq state
- changes
-Date: Tue, 4 Aug 2020 20:00:35 +1000
-Message-ID: <c5b62871-aaf4-0663-bcb7-bc52289753b4@ozlabs.ru>
-References: <20200723105615.1268126-1-npiggin@gmail.com>
- <20200723105615.1268126-2-npiggin@gmail.com>
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+Date: Tue, 4 Aug 2020 12:13:16 +0100
+Message-ID: <20200804111316.GE23808@casper.infradead.org>
+References: <db3bdbae-eb0f-1ae3-94dd-045e37bc94ba@oracle.com>
+ <20200730171251.GI23808@casper.infradead.org>
+ <63a7404c-e4f6-a82e-257b-217585b0277f@oracle.com>
+ <20200730174956.GK23808@casper.infradead.org>
+ <ab7a25bf-3321-77c8-9bc3-28a223a14032@oracle.com>
+ <87y2n03brx.fsf@x220.int.ebiederm.org>
+ <689d6348-6029-5396-8de7-a26bc3c017e5@oracle.com>
+ <877dufvje9.fsf@x220.int.ebiederm.org>
+ <1596469370.29091.13.camel@HansenPartnership.com>
+ <9371b8272fd84280ae40b409b260bab3@AcuMS.aculab.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44200 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55440 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726844AbgHDKAl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Aug 2020 06:00:41 -0400
-Received: from mail-pf1-x442.google.com (mail-pf1-x442.google.com [IPv6:2607:f8b0:4864:20::442])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 88A45C06174A
-        for <linux-arch@vger.kernel.org>; Tue,  4 Aug 2020 03:00:41 -0700 (PDT)
-Received: by mail-pf1-x442.google.com with SMTP id s26so19906343pfm.4
-        for <linux-arch@vger.kernel.org>; Tue, 04 Aug 2020 03:00:41 -0700 (PDT)
-In-Reply-To: <20200723105615.1268126-2-npiggin@gmail.com>
-Content-Language: en-US
+        with ESMTP id S1730016AbgHDLO6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Aug 2020 07:14:58 -0400
+Content-Disposition: inline
+In-Reply-To: <9371b8272fd84280ae40b409b260bab3@AcuMS.aculab.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>
+To: David Laight <David.Laight@aculab.com>
+Cc: 'James Bottomley' <James.Bottomley@hansenpartnership.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Steven Sistare <steven.sistare@oracle.com>, Anthony Yznaga <anthony.yznaga@oracle.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@kernel.org" <mhocko@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "x86@kernel.org" <x86@kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "arnd@arndb.de" <arnd@>
 
-
-
-On 23/07/2020 20:56, Nicholas Piggin wrote:
-> With the previous patch, lockdep hardirq state changes should not be
-> redundant. Softirq state changes already follow that pattern.
+On Tue, Aug 04, 2020 at 08:44:42AM +0000, David Laight wrote:
+> From: James Bottomley
+> > Sent: 03 August 2020 16:43
+> > 
+> > On Mon, 2020-08-03 at 10:28 -0500, Eric W. Biederman wrote:
+> > [...]
+> > > What is wrong with live migration between one qemu process and
+> > > another qemu process on the same machine not work for this use case?
+> > >
+> > > Just reusing live migration would seem to be the simplest path of
+> > > all, as the code is already implemented.  Further if something goes
+> > > wrong with the live migration you can fallback to the existing
+> > > process.  With exec there is no fallback if the new version does not
+> > > properly support the handoff protocol of the old version.
+> > 
+> > Actually, could I ask this another way: the other patch set you sent to
+> > the KVM list was to snapshot the VM to a PKRAM capsule preserved across
+> > kexec using zero copy for extremely fast save/restore.  The original
+> > idea was to use this as part of a CRIU based snapshot, kexec to new
+> > system, restore.  However, why can't you do a local snapshot, restart
+> > qemu, restore using the PKRAM capsule to achieve exactly the same as
+> > MADV_DOEXEC does but using a system that's easy to reason about?  It
+> > may be slightly slower, but I think we're still talking milliseconds.
 > 
-> So warn on unexpected enable-when-enabled or disable-when-disabled
-> conditions, to catch possible errors or sloppy patterns that could
-> lead to similar bad behavior due to NMIs etc.
-
-
-This one does not apply anymore as Peter's changes went in already but
-this one is not really a fix so I can live with that. Did 1/2 go
-anywhere? Thanks,
-
-
 > 
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
-> ---
->  kernel/locking/lockdep.c           | 80 +++++++++++++-----------------
->  kernel/locking/lockdep_internals.h |  4 --
->  kernel/locking/lockdep_proc.c      | 10 +---
->  3 files changed, 35 insertions(+), 59 deletions(-)
-> 
-> diff --git a/kernel/locking/lockdep.c b/kernel/locking/lockdep.c
-> index 29a8de4c50b9..138458fb2234 100644
-> --- a/kernel/locking/lockdep.c
-> +++ b/kernel/locking/lockdep.c
-> @@ -3649,15 +3649,8 @@ void lockdep_hardirqs_on_prepare(unsigned long ip)
->  	if (unlikely(!debug_locks || current->lockdep_recursion))
->  		return;
->  
-> -	if (unlikely(current->hardirqs_enabled)) {
-> -		/*
-> -		 * Neither irq nor preemption are disabled here
-> -		 * so this is racy by nature but losing one hit
-> -		 * in a stat is not a big deal.
-> -		 */
-> -		__debug_atomic_inc(redundant_hardirqs_on);
-> +	if (DEBUG_LOCKS_WARN_ON(current->hardirqs_enabled))
->  		return;
-> -	}
->  
->  	/*
->  	 * We're enabling irqs and according to our state above irqs weren't
-> @@ -3695,15 +3688,8 @@ void noinstr lockdep_hardirqs_on(unsigned long ip)
->  	if (unlikely(!debug_locks || curr->lockdep_recursion))
->  		return;
->  
-> -	if (curr->hardirqs_enabled) {
-> -		/*
-> -		 * Neither irq nor preemption are disabled here
-> -		 * so this is racy by nature but losing one hit
-> -		 * in a stat is not a big deal.
-> -		 */
-> -		__debug_atomic_inc(redundant_hardirqs_on);
-> +	if (DEBUG_LOCKS_WARN_ON(curr->hardirqs_enabled))
->  		return;
-> -	}
->  
->  	/*
->  	 * We're enabling irqs and according to our state above irqs weren't
-> @@ -3738,6 +3724,9 @@ void noinstr lockdep_hardirqs_off(unsigned long ip)
->  	if (unlikely(!debug_locks || curr->lockdep_recursion))
->  		return;
->  
-> +	if (DEBUG_LOCKS_WARN_ON(!curr->hardirqs_enabled))
-> +		return;
-> +
->  	/*
->  	 * So we're supposed to get called after you mask local IRQs, but for
->  	 * some reason the hardware doesn't quite think you did a proper job.
-> @@ -3745,17 +3734,13 @@ void noinstr lockdep_hardirqs_off(unsigned long ip)
->  	if (DEBUG_LOCKS_WARN_ON(!irqs_disabled()))
->  		return;
->  
-> -	if (curr->hardirqs_enabled) {
-> -		/*
-> -		 * We have done an ON -> OFF transition:
-> -		 */
-> -		curr->hardirqs_enabled = 0;
-> -		curr->hardirq_disable_ip = ip;
-> -		curr->hardirq_disable_event = ++curr->irq_events;
-> -		debug_atomic_inc(hardirqs_off_events);
-> -	} else {
-> -		debug_atomic_inc(redundant_hardirqs_off);
-> -	}
-> +	/*
-> +	 * We have done an ON -> OFF transition:
-> +	 */
-> +	curr->hardirqs_enabled = 0;
-> +	curr->hardirq_disable_ip = ip;
-> +	curr->hardirq_disable_event = ++curr->irq_events;
-> +	debug_atomic_inc(hardirqs_off_events);
->  }
->  EXPORT_SYMBOL_GPL(lockdep_hardirqs_off);
->  
-> @@ -3769,6 +3754,9 @@ void lockdep_softirqs_on(unsigned long ip)
->  	if (unlikely(!debug_locks || current->lockdep_recursion))
->  		return;
->  
-> +	if (DEBUG_LOCKS_WARN_ON(curr->softirqs_enabled))
-> +		return;
-> +
->  	/*
->  	 * We fancy IRQs being disabled here, see softirq.c, avoids
->  	 * funny state and nesting things.
-> @@ -3776,11 +3764,6 @@ void lockdep_softirqs_on(unsigned long ip)
->  	if (DEBUG_LOCKS_WARN_ON(!irqs_disabled()))
->  		return;
->  
-> -	if (curr->softirqs_enabled) {
-> -		debug_atomic_inc(redundant_softirqs_on);
-> -		return;
-> -	}
-> -
->  	current->lockdep_recursion++;
->  	/*
->  	 * We'll do an OFF -> ON transition:
-> @@ -3809,26 +3792,26 @@ void lockdep_softirqs_off(unsigned long ip)
->  	if (unlikely(!debug_locks || current->lockdep_recursion))
->  		return;
->  
-> +	if (DEBUG_LOCKS_WARN_ON(!curr->softirqs_enabled))
-> +		return;
-> +
->  	/*
->  	 * We fancy IRQs being disabled here, see softirq.c
->  	 */
->  	if (DEBUG_LOCKS_WARN_ON(!irqs_disabled()))
->  		return;
->  
-> -	if (curr->softirqs_enabled) {
-> -		/*
-> -		 * We have done an ON -> OFF transition:
-> -		 */
-> -		curr->softirqs_enabled = 0;
-> -		curr->softirq_disable_ip = ip;
-> -		curr->softirq_disable_event = ++curr->irq_events;
-> -		debug_atomic_inc(softirqs_off_events);
-> -		/*
-> -		 * Whoops, we wanted softirqs off, so why aren't they?
-> -		 */
-> -		DEBUG_LOCKS_WARN_ON(!softirq_count());
-> -	} else
-> -		debug_atomic_inc(redundant_softirqs_off);
-> +	/*
-> +	 * We have done an ON -> OFF transition:
-> +	 */
-> +	curr->softirqs_enabled = 0;
-> +	curr->softirq_disable_ip = ip;
-> +	curr->softirq_disable_event = ++curr->irq_events;
-> +	debug_atomic_inc(softirqs_off_events);
-> +	/*
-> +	 * Whoops, we wanted softirqs off, so why aren't they?
-> +	 */
-> +	DEBUG_LOCKS_WARN_ON(!softirq_count());
->  }
->  
->  static int
-> @@ -5684,6 +5667,11 @@ void __init lockdep_init(void)
->  
->  	printk(" per task-struct memory footprint: %zu bytes\n",
->  	       sizeof(((struct task_struct *)NULL)->held_locks));
-> +
-> +	WARN_ON(irqs_disabled());
-> +
-> +	current->hardirqs_enabled = 1;
-> +	current->softirqs_enabled = 1;
->  }
->  
->  static void
-> diff --git a/kernel/locking/lockdep_internals.h b/kernel/locking/lockdep_internals.h
-> index baca699b94e9..6dd8b1f06dc4 100644
-> --- a/kernel/locking/lockdep_internals.h
-> +++ b/kernel/locking/lockdep_internals.h
-> @@ -180,12 +180,8 @@ struct lockdep_stats {
->  	unsigned int   chain_lookup_misses;
->  	unsigned long  hardirqs_on_events;
->  	unsigned long  hardirqs_off_events;
-> -	unsigned long  redundant_hardirqs_on;
-> -	unsigned long  redundant_hardirqs_off;
->  	unsigned long  softirqs_on_events;
->  	unsigned long  softirqs_off_events;
-> -	unsigned long  redundant_softirqs_on;
-> -	unsigned long  redundant_softirqs_off;
->  	int            nr_unused_locks;
->  	unsigned int   nr_redundant_checks;
->  	unsigned int   nr_redundant;
-> diff --git a/kernel/locking/lockdep_proc.c b/kernel/locking/lockdep_proc.c
-> index 5525cd3ba0c8..98f204220ed9 100644
-> --- a/kernel/locking/lockdep_proc.c
-> +++ b/kernel/locking/lockdep_proc.c
-> @@ -172,12 +172,8 @@ static void lockdep_stats_debug_show(struct seq_file *m)
->  #ifdef CONFIG_DEBUG_LOCKDEP
->  	unsigned long long hi1 = debug_atomic_read(hardirqs_on_events),
->  			   hi2 = debug_atomic_read(hardirqs_off_events),
-> -			   hr1 = debug_atomic_read(redundant_hardirqs_on),
-> -			   hr2 = debug_atomic_read(redundant_hardirqs_off),
->  			   si1 = debug_atomic_read(softirqs_on_events),
-> -			   si2 = debug_atomic_read(softirqs_off_events),
-> -			   sr1 = debug_atomic_read(redundant_softirqs_on),
-> -			   sr2 = debug_atomic_read(redundant_softirqs_off);
-> +			   si2 = debug_atomic_read(softirqs_off_events);
->  
->  	seq_printf(m, " chain lookup misses:           %11llu\n",
->  		debug_atomic_read(chain_lookup_misses));
-> @@ -196,12 +192,8 @@ static void lockdep_stats_debug_show(struct seq_file *m)
->  
->  	seq_printf(m, " hardirq on events:             %11llu\n", hi1);
->  	seq_printf(m, " hardirq off events:            %11llu\n", hi2);
-> -	seq_printf(m, " redundant hardirq ons:         %11llu\n", hr1);
-> -	seq_printf(m, " redundant hardirq offs:        %11llu\n", hr2);
->  	seq_printf(m, " softirq on events:             %11llu\n", si1);
->  	seq_printf(m, " softirq off events:            %11llu\n", si2);
-> -	seq_printf(m, " redundant softirq ons:         %11llu\n", sr1);
-> -	seq_printf(m, " redundant softirq offs:        %11llu\n", sr2);
->  #endif
->  }
->  
-> 
+> I've had another idea (that is probably impossible...).
+> What about a 'reverse mmap' operation.
+> Something that creates an fd whose contents are a chunk of the
+> processes address space.
 
--- 
-Alexey
+http://www.wil.cx/~willy/linux/sileby.html
