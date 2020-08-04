@@ -1,45 +1,77 @@
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Subject: Re: [PATCH v3 0/2] prctl.2 man page updates for Linux 5.6
-Date: Tue, 4 Aug 2020 14:52:05 +0200
-Message-ID: <CAKgNAkhrjuAXOey2Mp64oitqyjyTu1Zbtx0dy5J2-qzpyFf33Q@mail.gmail.com>
-References: <1593020162-9365-1-git-send-email-Dave.Martin@arm.com>
- <c17e330c-69f7-da7a-feae-cb8b8f5d7ea0@gmail.com> <20200720165205.GI30452@arm.com>
- <CAKgNAkggayFEjHgPNu1HzvXGfSDoCq=Y-Ni4iv=RBYk2Eb6U1Q@mail.gmail.com> <20200729145630.GH21941@arm.com>
-Reply-To: mtk.manpages@gmail.com
+From: Daniel Axtens <dja@axtens.net>
+Subject: Re: [PATCH v2 01/17] KVM: PPC: Book3S HV: simplify kvm_cma_reserve()
+Date: Tue, 04 Aug 2020 23:53:15 +1000
+Message-ID: <87tuxio6us.fsf@dja-thinkpad.axtens.net>
+References: <20200802163601.8189-1-rppt@kernel.org> <20200802163601.8189-2-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42410 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725932AbgHDMwS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Aug 2020 08:52:18 -0400
-In-Reply-To: <20200729145630.GH21941@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-man <linux-man@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <20200802163601.8189-2-rppt@kernel.org>
+Sender: linux-sh-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>, Baoquan He <bhe@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoph Hellwig <hch@lst.de>, Dave Hansen <dave.hansen@linux.intel.com>, Emil Renner Berthing <kernel@esmil.dk>, Ingo Molnar <mingo@redhat.com>, Hari Bathini <hbathini@linux.ibm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Simek <monstr@monstr.eu>, Mike Rapoport <rppt@linux.ibm.com>, Mike Rapoport <rppt@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Paul Mackerras <paulus@samba.org>, Paul Walmsley <paul.walmsley@sifive.com>, Peter Zijlstra <peterz@infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-> > >         There is already inconsistency here: there are may top-level
-> > >         lists using ".IP *" in prctl.2, and plenty of places where the
-> > >         default indentation is used.
-> >
-> > I must admit that I'm in the process of rethinking bulleted lists, and
-> > I have not come to a conclusion (and that's why nothing is said in
-> > man-pages(7), and also why there is currently inconsistency).
-> >
-> > Using .IP with the default indent (8n) results in a very deep indent
-> > between the glyph and the text, so it's not my preference.
+Hi Mike,
+
 >
-> Is it worth trying to change the default indent in the macro package, or
-> will that just upset other people?
+> The memory size calculation in kvm_cma_reserve() traverses memblock.memory
+> rather than simply call memblock_phys_mem_size(). The comment in that
+> function suggests that at some point there should have been call to
+> memblock_analyze() before memblock_phys_mem_size() could be used.
+> As of now, there is no memblock_analyze() at all and
+> memblock_phys_mem_size() can be used as soon as cold-plug memory is
+> registerd with memblock.
+>
+> Replace loop over memblock.memory with a call to memblock_phys_mem_size().
+>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+>  arch/powerpc/kvm/book3s_hv_builtin.c | 11 ++---------
+>  1 file changed, 2 insertions(+), 9 deletions(-)
+>
+> diff --git a/arch/powerpc/kvm/book3s_hv_builtin.c b/arch/powerpc/kvm/book3s_hv_builtin.c
+> index 7cd3cf3d366b..56ab0d28de2a 100644
+> --- a/arch/powerpc/kvm/book3s_hv_builtin.c
+> +++ b/arch/powerpc/kvm/book3s_hv_builtin.c
+> @@ -95,22 +95,15 @@ EXPORT_SYMBOL_GPL(kvm_free_hpt_cma);
+>  void __init kvm_cma_reserve(void)
+>  {
+>  	unsigned long align_size;
+> -	struct memblock_region *reg;
+> -	phys_addr_t selected_size = 0;
+> +	phys_addr_t selected_size;
+>  
+>  	/*
+>  	 * We need CMA reservation only when we are in HV mode
+>  	 */
+>  	if (!cpu_has_feature(CPU_FTR_HVMODE))
+>  		return;
+> -	/*
+> -	 * We cannot use memblock_phys_mem_size() here, because
+> -	 * memblock_analyze() has not been called yet.
+> -	 */
+> -	for_each_memblock(memory, reg)
+> -		selected_size += memblock_region_memory_end_pfn(reg) -
+> -				 memblock_region_memory_base_pfn(reg);
+>  
+> +	selected_size = PHYS_PFN(memblock_phys_mem_size());
+>  	selected_size = (selected_size * kvm_cma_resv_ratio / 100) << PAGE_SHIFT;
 
-I imagine it would break other stuff.
+I think this is correct, but PHYS_PFN does x >> PAGE_SHIFT and then the
+next line does x << PAGE_SHIFT, so I think we could combine those two
+lines as:
 
-Thanks,
+selected_size = PAGE_ALIGN(memblock_phys_mem_size() * kvm_cma_resv_ratio / 100);
 
-Michael
+(I think that might technically change it from aligning down to aligning
+up but I don't think 1 page matters here.)
 
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+Kind regards,
+Daniel
+
+
+>  	if (selected_size) {
+>  		pr_debug("%s: reserving %ld MiB for global area\n", __func__,
+> -- 
+> 2.26.2
