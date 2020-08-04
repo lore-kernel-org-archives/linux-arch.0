@@ -1,36 +1,108 @@
-Return-Path: <SRS0=OB7A=BN=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:47829 "EHLO mga14.intel.com"
+Return-Path: <SRS0=mj0N=BO=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:25377 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726130AbgHCTFR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 3 Aug 2020 15:05:17 -0400
-Date: Mon, 3 Aug 2020 12:05:06 -0700
-From: Andi Kleen <ak@linux.intel.com>
-Subject: Re: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input
- sections
-Message-ID: <20200803190506.GE1299820@tassilo.jf.intel.com>
-References: <20200731230820.1742553-1-keescook@chromium.org>
- <20200731230820.1742553-14-keescook@chromium.org>
- <20200801035128.GB2800311@rani.riverdale.lan>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200801035128.GB2800311@rani.riverdale.lan>
+        id S1730365AbgHDLrx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Aug 2020 07:47:53 -0400
+Message-ID: <288845ddd80bb0ae636bb013d4b0fa803fad1056.1596541334.git.christophe.leroy@csgroup.eu>
+In-Reply-To: <cover.1596541334.git.christophe.leroy@csgroup.eu>
+References: <cover.1596541334.git.christophe.leroy@csgroup.eu>
+From: Christophe Leroy <christophe.leroy@csgroup.eu>
+Subject: [PATCH v9 1/5] powerpc/processor: Move cpu_relax() into
+ asm/vdso/processor.h
+Date: Tue,  4 Aug 2020 11:47:48 +0000 (UTC)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arvind Sankar <nivedita@alum.mit.edu>
-Cc: Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Michal Marek <michal.lkml@markovi.net>
-Message-ID: <20200803190506.vYuFXy3RWfROPlh6UqnFXO4ICDDG2R6Q7Mp7HVd0Dg8@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com, anton@ozlabs.org
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200804114748.DcTsAsu7aThy0sdfj6SESZ2x7ny4d3EWy54xFWavYmE@z>
 
-> However, the history of their being together comes from
-> 
->   9bebe9e5b0f3 ("kbuild: Fix .text.unlikely placement")
-> 
-> which seems to indicate there was some problem with having them separated out,
-> although I don't quite understand what the issue was from the commit message.
+cpu_relax() need to be in asm/vdso/processor.h to be used by
+the C VDSO generic library.
 
-Separating it out is less efficient. Gives worse packing for the hot part
-if they are not aligned to 64byte boundaries, which they are usually not. 
+Move it there.
 
-It also improves packing of the cold part, but that probably doesn't matter.
+Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+---
+v9: Forgot to remove cpu_relax() from processor.h in v8
+---
+ arch/powerpc/include/asm/processor.h      | 13 ++-----------
+ arch/powerpc/include/asm/vdso/processor.h | 23 +++++++++++++++++++++++
+ 2 files changed, 25 insertions(+), 11 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/vdso/processor.h
 
--Andi
+diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
+index ed0d633ab5aa..c1ba9c8d9b90 100644
+--- a/arch/powerpc/include/asm/processor.h
++++ b/arch/powerpc/include/asm/processor.h
+@@ -6,6 +6,8 @@
+  * Copyright (C) 2001 PPC 64 Team, IBM Corp
+  */
+ 
++#include <vdso/processor.h>
++
+ #include <asm/reg.h>
+ 
+ #ifdef CONFIG_VSX
+@@ -63,14 +65,6 @@ extern int _chrp_type;
+ 
+ #endif /* defined(__KERNEL__) && defined(CONFIG_PPC32) */
+ 
+-/* Macros for adjusting thread priority (hardware multi-threading) */
+-#define HMT_very_low()   asm volatile("or 31,31,31   # very low priority")
+-#define HMT_low()	 asm volatile("or 1,1,1	     # low priority")
+-#define HMT_medium_low() asm volatile("or 6,6,6      # medium low priority")
+-#define HMT_medium()	 asm volatile("or 2,2,2	     # medium priority")
+-#define HMT_medium_high() asm volatile("or 5,5,5      # medium high priority")
+-#define HMT_high()	 asm volatile("or 3,3,3	     # high priority")
+-
+ #ifdef __KERNEL__
+ 
+ #ifdef CONFIG_PPC64
+@@ -350,7 +344,6 @@ static inline unsigned long __pack_fe01(unsigned int fpmode)
+ }
+ 
+ #ifdef CONFIG_PPC64
+-#define cpu_relax()	do { HMT_low(); HMT_medium(); barrier(); } while (0)
+ 
+ #define spin_begin()	HMT_low()
+ 
+@@ -369,8 +362,6 @@ do {								\
+ 	}							\
+ } while (0)
+ 
+-#else
+-#define cpu_relax()	barrier()
+ #endif
+ 
+ /* Check that a certain kernel stack pointer is valid in task_struct p */
+diff --git a/arch/powerpc/include/asm/vdso/processor.h b/arch/powerpc/include/asm/vdso/processor.h
+new file mode 100644
+index 000000000000..39b9beace9ca
+--- /dev/null
++++ b/arch/powerpc/include/asm/vdso/processor.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __ASM_VDSO_PROCESSOR_H
++#define __ASM_VDSO_PROCESSOR_H
++
++#ifndef __ASSEMBLY__
++
++/* Macros for adjusting thread priority (hardware multi-threading) */
++#define HMT_very_low()		asm volatile("or 31, 31, 31	# very low priority")
++#define HMT_low()		asm volatile("or 1, 1, 1	# low priority")
++#define HMT_medium_low()	asm volatile("or 6, 6, 6	# medium low priority")
++#define HMT_medium()		asm volatile("or 2, 2, 2	# medium priority")
++#define HMT_medium_high()	asm volatile("or 5, 5, 5	# medium high priority")
++#define HMT_high()		asm volatile("or 3, 3, 3	# high priority")
++
++#ifdef CONFIG_PPC64
++#define cpu_relax()	do { HMT_low(); HMT_medium(); barrier(); } while (0)
++#else
++#define cpu_relax()	barrier()
++#endif
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_PROCESSOR_H */
+-- 
+2.25.0
