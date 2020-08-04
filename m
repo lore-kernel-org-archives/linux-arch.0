@@ -1,136 +1,232 @@
-From: Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: [PATCH v3 4/6] arch, mm: wire up memfd_secret system call were relevant
-Date: Tue,  4 Aug 2020 12:50:33 +0300
-Message-ID: <20200804095035.18778-5-rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v3 5/6] mm: secretmem: use PMD-size pages to amortize direct map fragmentation
+Date: Tue,  4 Aug 2020 12:50:34 +0300
+Message-ID: <20200804095035.18778-6-rppt@kernel.org>
 References: <20200804095035.18778-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200804095035.18778-1-rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Christopher Lameter <cl-vYTEC60ixJUAvxtiuMwx3w@public.gmane.org>, Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Elena Reshetova <elena.reshetova-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Idan Yaniv <idan.yaniv-qyM6JfAXOaQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, James Bottomley <jejb-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, "Kirill A. Shutemov" <kirill-oKw7cIdHH8eLwutG50LtGA@public.gmane.org>, Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:46626 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729032AbgHDJvf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Aug 2020 05:51:35 -0400
+In-Reply-To: <20200804095035.18778-1-rppt@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Christopher Lameter <cl@linux.com>, Dan Williams <dan.j.williams@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Elena Reshetova <elena.reshetova@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>, Ingo Molnar <mingo@redhat.com>, James Bottomley <jejb@linux.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, Mike Rapoport <rppt@linux.ibm.com>, Mike Rapoport <rppt@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>
 
-From: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-Wire up memfd_secret system call on architectures that define
-ARCH_HAS_SET_DIRECT_MAP, namely arm64, risc-v and x86.
+Removing a PAGE_SIZE page from the direct map every time such page is
+allocated for a secret memory mapping will cause severe fragmentation of
+the direct map. This fragmentation can be reduced by using PMD-size pages
+as a pool for small pages for secret memory mappings.
 
-Signed-off-by: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
-Acked-by: Palmer Dabbelt <palmerdabbelt-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Acked-by: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Add a gen_pool per secretmem inode and lazily populate this pool with
+PMD-size pages.
+
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/arm64/include/asm/unistd.h        | 2 +-
- arch/arm64/include/asm/unistd32.h      | 2 ++
- arch/arm64/include/uapi/asm/unistd.h   | 1 +
- arch/riscv/include/asm/unistd.h        | 1 +
- arch/x86/entry/syscalls/syscall_32.tbl | 1 +
- arch/x86/entry/syscalls/syscall_64.tbl | 1 +
- include/linux/syscalls.h               | 1 +
- include/uapi/asm-generic/unistd.h      | 7 ++++++-
- 8 files changed, 14 insertions(+), 2 deletions(-)
+ mm/secretmem.c | 107 ++++++++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 88 insertions(+), 19 deletions(-)
 
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-index 3b859596840d..b3b2019f8d16 100644
---- a/arch/arm64/include/asm/unistd.h
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -38,7 +38,7 @@
- #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE + 5)
- #define __ARM_NR_COMPAT_END		(__ARM_NR_COMPAT_BASE + 0x800)
+diff --git a/mm/secretmem.c b/mm/secretmem.c
+index 65cd6660991d..e42616785a88 100644
+--- a/mm/secretmem.c
++++ b/mm/secretmem.c
+@@ -6,6 +6,7 @@
+ #include <linux/bitops.h>
+ #include <linux/printk.h>
+ #include <linux/pagemap.h>
++#include <linux/genalloc.h>
+ #include <linux/syscalls.h>
+ #include <linux/pseudo_fs.h>
+ #include <linux/set_memory.h>
+@@ -30,24 +31,66 @@
+ #define SECRETMEM_FLAGS_MASK	SECRETMEM_MODE_MASK
  
--#define __NR_compat_syscalls		440
-+#define __NR_compat_syscalls		441
- #endif
+ struct secretmem_ctx {
++	struct gen_pool *pool;
+ 	unsigned int mode;
+ };
  
- #define __ARCH_WANT_SYS_CLONE
-diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
-index 6d95d0c8bf2f..3d9c3a3012db 100644
---- a/arch/arm64/include/asm/unistd32.h
-+++ b/arch/arm64/include/asm/unistd32.h
-@@ -885,6 +885,8 @@ __SYSCALL(__NR_openat2, sys_openat2)
- __SYSCALL(__NR_pidfd_getfd, sys_pidfd_getfd)
- #define __NR_faccessat2 439
- __SYSCALL(__NR_faccessat2, sys_faccessat2)
-+#define __NR_memfd_secret 440
-+__SYSCALL(__NR_memfd_secret, sys_memfd_secret)
- 
- /*
-  * Please add new compat syscalls above this comment and update
-diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
-index f83a70e07df8..ce2ee8f1e361 100644
---- a/arch/arm64/include/uapi/asm/unistd.h
-+++ b/arch/arm64/include/uapi/asm/unistd.h
-@@ -20,5 +20,6 @@
- #define __ARCH_WANT_SET_GET_RLIMIT
- #define __ARCH_WANT_TIME32_SYSCALLS
- #define __ARCH_WANT_SYS_CLONE3
-+#define __ARCH_WANT_MEMFD_SECRET
- 
- #include <asm-generic/unistd.h>
-diff --git a/arch/riscv/include/asm/unistd.h b/arch/riscv/include/asm/unistd.h
-index 977ee6181dab..6c316093a1e5 100644
---- a/arch/riscv/include/asm/unistd.h
-+++ b/arch/riscv/include/asm/unistd.h
-@@ -9,6 +9,7 @@
-  */
- 
- #define __ARCH_WANT_SYS_CLONE
-+#define __ARCH_WANT_MEMFD_SECRET
- 
- #include <uapi/asm/unistd.h>
- 
-diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index d8f8a1a69ed1..6f8b5978053b 100644
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -443,3 +443,4 @@
- 437	i386	openat2			sys_openat2
- 438	i386	pidfd_getfd		sys_pidfd_getfd
- 439	i386	faccessat2		sys_faccessat2
-+440	i386	memfd_secret		sys_memfd_secret
-diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-index 78847b32e137..7d3775d1c3d7 100644
---- a/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -360,6 +360,7 @@
- 437	common	openat2			sys_openat2
- 438	common	pidfd_getfd		sys_pidfd_getfd
- 439	common	faccessat2		sys_faccessat2
-+440	common	memfd_secret		sys_memfd_secret
- 
- #
- # x32-specific system call numbers start at 512 to avoid cache impact
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index b951a87da987..e4d7b30867c6 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -1005,6 +1005,7 @@ asmlinkage long sys_pidfd_send_signal(int pidfd, int sig,
- 				       siginfo_t __user *info,
- 				       unsigned int flags);
- asmlinkage long sys_pidfd_getfd(int pidfd, int fd, unsigned int flags);
-+asmlinkage long sys_memfd_secret(unsigned long flags);
- 
- /*
-  * Architecture-specific system calls
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index f4a01305d9a6..7b288347c5a9 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -858,8 +858,13 @@ __SYSCALL(__NR_pidfd_getfd, sys_pidfd_getfd)
- #define __NR_faccessat2 439
- __SYSCALL(__NR_faccessat2, sys_faccessat2)
- 
-+#ifdef __ARCH_WANT_MEMFD_SECRET
-+#define __NR_memfd_secret 440
-+__SYSCALL(__NR_memfd_secret, sys_memfd_secret)
-+#endif
+-static struct page *secretmem_alloc_page(gfp_t gfp)
++static int secretmem_pool_increase(struct secretmem_ctx *ctx, gfp_t gfp)
+ {
+-	/*
+-	 * FIXME: use a cache of large pages to reduce the direct map
+-	 * fragmentation
+-	 */
+-	return alloc_page(gfp);
++	unsigned long nr_pages = (1 << PMD_PAGE_ORDER);
++	struct gen_pool *pool = ctx->pool;
++	unsigned long addr;
++	struct page *page;
++	int err;
 +
- #undef __NR_syscalls
--#define __NR_syscalls 440
-+#define __NR_syscalls 441
++	page = alloc_pages(gfp, PMD_PAGE_ORDER);
++	if (!page)
++		return -ENOMEM;
++
++	addr = (unsigned long)page_address(page);
++	split_page(page, PMD_PAGE_ORDER);
++
++	err = gen_pool_add(pool, addr, PMD_SIZE, NUMA_NO_NODE);
++	if (err) {
++		__free_pages(page, PMD_PAGE_ORDER);
++		return err;
++	}
++
++	__kernel_map_pages(page, nr_pages, 0);
++
++	return 0;
++}
++
++static struct page *secretmem_alloc_page(struct secretmem_ctx *ctx,
++					 gfp_t gfp)
++{
++	struct gen_pool *pool = ctx->pool;
++	unsigned long addr;
++	struct page *page;
++	int err;
++
++	if (gen_pool_avail(pool) < PAGE_SIZE) {
++		err = secretmem_pool_increase(ctx, gfp);
++		if (err)
++			return NULL;
++	}
++
++	addr = gen_pool_alloc(pool, PAGE_SIZE);
++	if (!addr)
++		return NULL;
++
++	page = virt_to_page(addr);
++	get_page(page);
++
++	return page;
+ }
  
- /*
-  * 32 bit systems traditionally used different
+ static vm_fault_t secretmem_fault(struct vm_fault *vmf)
+ {
++	struct secretmem_ctx *ctx = vmf->vma->vm_file->private_data;
+ 	struct address_space *mapping = vmf->vma->vm_file->f_mapping;
+ 	struct inode *inode = file_inode(vmf->vma->vm_file);
+ 	pgoff_t offset = vmf->pgoff;
+-	unsigned long addr;
+ 	struct page *page;
+ 	int ret = 0;
+ 
+@@ -56,7 +99,7 @@ static vm_fault_t secretmem_fault(struct vm_fault *vmf)
+ 
+ 	page = find_get_entry(mapping, offset);
+ 	if (!page) {
+-		page = secretmem_alloc_page(vmf->gfp_mask);
++		page = secretmem_alloc_page(ctx, vmf->gfp_mask);
+ 		if (!page)
+ 			return vmf_error(-ENOMEM);
+ 
+@@ -64,14 +107,8 @@ static vm_fault_t secretmem_fault(struct vm_fault *vmf)
+ 		if (unlikely(ret))
+ 			goto err_put_page;
+ 
+-		ret = set_direct_map_invalid_noflush(page);
+-		if (ret)
+-			goto err_del_page_cache;
+-
+-		addr = (unsigned long)page_address(page);
+-		flush_tlb_kernel_range(addr, addr + PAGE_SIZE);
+-
+ 		__SetPageUptodate(page);
++		set_page_private(page, (unsigned long)ctx);
+ 
+ 		ret = VM_FAULT_LOCKED;
+ 	}
+@@ -79,8 +116,6 @@ static vm_fault_t secretmem_fault(struct vm_fault *vmf)
+ 	vmf->page = page;
+ 	return ret;
+ 
+-err_del_page_cache:
+-	delete_from_page_cache(page);
+ err_put_page:
+ 	put_page(page);
+ 	return vmf_error(ret);
+@@ -139,7 +174,11 @@ static int secretmem_migratepage(struct address_space *mapping,
+ 
+ static void secretmem_freepage(struct page *page)
+ {
+-	set_direct_map_default_noflush(page);
++	unsigned long addr = (unsigned long)page_address(page);
++	struct secretmem_ctx *ctx = (struct secretmem_ctx *)page_private(page);
++	struct gen_pool *pool = ctx->pool;
++
++	gen_pool_free(pool, addr, PAGE_SIZE);
+ }
+ 
+ static const struct address_space_operations secretmem_aops = {
+@@ -164,13 +203,18 @@ static struct file *secretmem_file_create(unsigned long flags)
+ 	if (!ctx)
+ 		goto err_free_inode;
+ 
++	ctx->pool = gen_pool_create(PAGE_SHIFT, NUMA_NO_NODE);
++	if (!ctx->pool)
++		goto err_free_ctx;
++
+ 	file = alloc_file_pseudo(inode, secretmem_mnt, "secretmem",
+ 				 O_RDWR, &secretmem_fops);
+ 	if (IS_ERR(file))
+-		goto err_free_ctx;
++		goto err_free_pool;
+ 
+ 	mapping_set_unevictable(inode->i_mapping);
+ 
++	inode->i_private = ctx;
+ 	inode->i_mapping->private_data = ctx;
+ 	inode->i_mapping->a_ops = &secretmem_aops;
+ 
+@@ -184,6 +228,8 @@ static struct file *secretmem_file_create(unsigned long flags)
+ 
+ 	return file;
+ 
++err_free_pool:
++	gen_pool_destroy(ctx->pool);
+ err_free_ctx:
+ 	kfree(ctx);
+ err_free_inode:
+@@ -228,11 +274,34 @@ SYSCALL_DEFINE1(memfd_secret, unsigned long, flags)
+ 	return err;
+ }
+ 
++static void secretmem_cleanup_chunk(struct gen_pool *pool,
++				    struct gen_pool_chunk *chunk, void *data)
++{
++	unsigned long start = chunk->start_addr;
++	unsigned long end = chunk->end_addr;
++	unsigned long nr_pages, addr;
++
++	nr_pages = (end - start + 1) / PAGE_SIZE;
++	__kernel_map_pages(virt_to_page(start), nr_pages, 1);
++
++	for (addr = start; addr < end; addr += PAGE_SIZE)
++		put_page(virt_to_page(addr));
++}
++
++static void secretmem_cleanup_pool(struct secretmem_ctx *ctx)
++{
++	struct gen_pool *pool = ctx->pool;
++
++	gen_pool_for_each_chunk(pool, secretmem_cleanup_chunk, ctx);
++	gen_pool_destroy(pool);
++}
++
+ static void secretmem_evict_inode(struct inode *inode)
+ {
+ 	struct secretmem_ctx *ctx = inode->i_private;
+ 
+ 	truncate_inode_pages_final(&inode->i_data);
++	secretmem_cleanup_pool(ctx);
+ 	clear_inode(inode);
+ 	kfree(ctx);
+ }
 -- 
 2.26.2
