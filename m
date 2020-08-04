@@ -1,47 +1,80 @@
-Return-Path: <SRS0=NA3S=BP=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 5 Aug 2020 10:24:18 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v7 18/29] arm64: mte: Allow user control of the tag check
- mode via prctl()
-Message-ID: <20200805092418.GB13391@gaia>
-References: <20200715170844.30064-1-catalin.marinas@arm.com>
- <20200715170844.30064-19-catalin.marinas@arm.com>
- <9342a080-9450-c01a-54a0-9ddebfe45613@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <9342a080-9450-c01a-54a0-9ddebfe45613@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
+Return-Path: <SRS0=mj0N=BO=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:36669 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730242AbgHDLsQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Aug 2020 07:48:16 -0400
+Message-ID: <21e46e2f81e5db4675be113ef00edbf398398dc9.1596541334.git.christophe.leroy@csgroup.eu>
+In-Reply-To: <cover.1596541334.git.christophe.leroy@csgroup.eu>
+References: <cover.1596541334.git.christophe.leroy@csgroup.eu>
+From: Christophe Leroy <christophe.leroy@csgroup.eu>
+Subject: [PATCH v9 5/5] powerpc/vdso: Provide __kernel_clock_gettime64() on
+ vdso32
+Date: Tue,  4 Aug 2020 11:47:52 +0000 (UTC)
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200805092418.lMbP8tmEwT7Kck6WA5LhPaSUHrs_m2Lnyn95jCt-q7Q@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com, anton@ozlabs.org
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200804114752.8Qm4QoItNubh4KpUh5US6AiVZlcMkezTP2CYbD4-5VE@z>
 
-On Tue, Aug 04, 2020 at 08:34:42PM +0100, Kevin Brodsky wrote:
-> On 15/07/2020 18:08, Catalin Marinas wrote:
-> > By default, even if PROT_MTE is set on a memory range, there is no tag
-> > check fault reporting (SIGSEGV). Introduce a set of option to the
-> > exiting prctl(PR_SET_TAGGED_ADDR_CTRL) to allow user control of the tag
-> > check fault mode:
-> > 
-> >    PR_MTE_TCF_NONE  - no reporting (default)
-> >    PR_MTE_TCF_SYNC  - synchronous tag check fault reporting
-> >    PR_MTE_TCF_ASYNC - asynchronous tag check fault reporting
-> > 
-> > These options translate into the corresponding SCTLR_EL1.TCF0 bitfield,
-> > context-switched by the kernel. Note that uaccess done by the kernel is
-> > not checked and cannot be configured by the user.
-> 
-> The last sentence is outdated, it should probably say that uaccess is only
-> checked in in synchronous mode.
+Provides __kernel_clock_gettime64() on vdso32. This is the
+64 bits version of __kernel_clock_gettime() which is
+y2038 compliant.
 
-Thanks, I forgot about the commit log. The documentation was updated to:
+Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+---
+ arch/powerpc/kernel/vdso32/gettimeofday.S  | 9 +++++++++
+ arch/powerpc/kernel/vdso32/vdso32.lds.S    | 1 +
+ arch/powerpc/kernel/vdso32/vgettimeofday.c | 6 ++++++
+ 3 files changed, 16 insertions(+)
 
-**Note**: Kernel accesses to the user address space (e.g. ``read()``
-system call) are not checked if the user thread tag checking mode is
-``PR_MTE_TCF_NONE`` or ``PR_MTE_TCF_ASYNC``. If the tag checking mode is
-``PR_MTE_TCF_SYNC``, the kernel makes a best effort to check its user
-address accesses, however it cannot always guarantee it.
-
+diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
+index fd7b01c51281..a6e29f880e0e 100644
+--- a/arch/powerpc/kernel/vdso32/gettimeofday.S
++++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
+@@ -35,6 +35,15 @@ V_FUNCTION_BEGIN(__kernel_clock_gettime)
+ 	cvdso_call __c_kernel_clock_gettime
+ V_FUNCTION_END(__kernel_clock_gettime)
+ 
++/*
++ * Exact prototype of clock_gettime64()
++ *
++ * int __kernel_clock_gettime64(clockid_t clock_id, struct __timespec64 *ts);
++ *
++ */
++V_FUNCTION_BEGIN(__kernel_clock_gettime64)
++	cvdso_call __c_kernel_clock_gettime64
++V_FUNCTION_END(__kernel_clock_gettime64)
+ 
+ /*
+  * Exact prototype of clock_getres()
+diff --git a/arch/powerpc/kernel/vdso32/vdso32.lds.S b/arch/powerpc/kernel/vdso32/vdso32.lds.S
+index 4c985467a668..582c5b046cc9 100644
+--- a/arch/powerpc/kernel/vdso32/vdso32.lds.S
++++ b/arch/powerpc/kernel/vdso32/vdso32.lds.S
+@@ -148,6 +148,7 @@ VERSION
+ #ifndef CONFIG_PPC_BOOK3S_601
+ 		__kernel_gettimeofday;
+ 		__kernel_clock_gettime;
++		__kernel_clock_gettime64;
+ 		__kernel_clock_getres;
+ 		__kernel_time;
+ 		__kernel_get_tbfreq;
+diff --git a/arch/powerpc/kernel/vdso32/vgettimeofday.c b/arch/powerpc/kernel/vdso32/vgettimeofday.c
+index 0b9ab4c22ef2..f7f71fecf4ed 100644
+--- a/arch/powerpc/kernel/vdso32/vgettimeofday.c
++++ b/arch/powerpc/kernel/vdso32/vgettimeofday.c
+@@ -11,6 +11,12 @@ int __c_kernel_clock_gettime(clockid_t clock, struct old_timespec32 *ts,
+ 	return __cvdso_clock_gettime32_data(vd, clock, ts);
+ }
+ 
++int __c_kernel_clock_gettime64(clockid_t clock, struct __kernel_timespec *ts,
++			       const struct vdso_data *vd)
++{
++	return __cvdso_clock_gettime_data(vd, clock, ts);
++}
++
+ int __c_kernel_gettimeofday(struct __kernel_old_timeval *tv, struct timezone *tz,
+ 			    const struct vdso_data *vd)
+ {
 -- 
-Catalin
+2.25.0
