@@ -1,130 +1,47 @@
-From: Baoquan He <bhe@redhat.com>
-Subject: Re: [PATCH v2 14/17] x86/setup: simplify reserve_crashkernel()
-Date: Wed, 5 Aug 2020 14:00:06 +0800
-Message-ID: <20200805060006.GU10792@MiWiFi-R3L-srv>
-References: <20200802163601.8189-1-rppt@kernel.org>
- <20200802163601.8189-15-rppt@kernel.org>
+From: Stephen Boyd <sboyd@kernel.org>
+Subject: Re: [PATCH v6 5/5] Documentation: kunit: add a brief blurb about kunit_test_suite
+Date: Tue, 04 Aug 2020 23:01:01 -0700
+Message-ID: <159660726105.1360974.11438808412702251122@swboyd.mtv.corp.google.com>
+References: <20200804204745.987648-1-brendanhiggins@google.com> <20200804204745.987648-6-brendanhiggins@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <sparclinux-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200802163601.8189-15-rppt@kernel.org>
-Sender: sparclinux-owner@vger.kernel.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoph Hellwig <hch@lst.de>, Dave Hansen <dave.hansen@linux.intel.com>, Emil Renner Berthing <kernel@esmil.dk>, Ingo Molnar <mingo@redhat.com>, Hari Bathini <hbathini@linux.ibm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Simek <monstr@monstr.eu>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paul Mackerras <paulus@samba.org>, Paul Walmsley <paul.walmsley@sifive.com>, Peter Zijlstra <peterz@infradead.org>, Russell
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:53776 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726382AbgHEGBC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Aug 2020 02:01:02 -0400
+In-Reply-To: <20200804204745.987648-6-brendanhiggins@google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: akpm@linux-foundation.org, alan.maguire@oracle.com, anton.ivanov@cambridgegreys.com, arnd@arndb.de, davidgow@google.com, frowand.list@gmail.com, jdike@addtoit.com, keescook@chromium.org, richard@nod.at, rppt@linux.ibm.com, skhan@linuxfoundation.org, yzaikin@google.com
+Cc: gregkh@linuxfoundation.org, logang@deltatee.com, mcgrof@kernel.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 
-On 08/02/20 at 07:35pm, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
-> 
-> * Replace magic numbers with defines
-> * Replace memblock_find_in_range() + memblock_reserve() with
->   memblock_phys_alloc_range()
-> * Stop checking for low memory size in reserve_crashkernel_low(). The
->   allocation from limited range will anyway fail if there is no enough
->   memory, so there is no need for extra traversal of memblock.memory
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Quoting Brendan Higgins (2020-08-04 13:47:45)
+> Add a brief blurb saying how and when the kunit_test_suite() macro
+> works to the usage documentation.
+>=20
+> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
 > ---
->  arch/x86/kernel/setup.c | 40 ++++++++++++++--------------------------
->  1 file changed, 14 insertions(+), 26 deletions(-)
+>  Documentation/dev-tools/kunit/usage.rst | 5 +++++
+>  1 file changed, 5 insertions(+)
+>=20
+> diff --git a/Documentation/dev-tools/kunit/usage.rst b/Documentation/dev-=
+tools/kunit/usage.rst
+> index 3c3fe8b5feccf..961d3ea3ca19a 100644
+> --- a/Documentation/dev-tools/kunit/usage.rst
+> +++ b/Documentation/dev-tools/kunit/usage.rst
+> @@ -211,6 +211,11 @@ KUnit test framework.
+>  .. note::
+>     A test case will only be run if it is associated with a test suite.
+> =20
+> +``kunit_test_suite(...)`` is a macro which tells the linker to put the s=
+pecified
+> +test suite in a special linker section so that it can be run by KUnit ei=
+ther
+> +after late_init, or when the test module is loaded (depending on whether=
+ the
 
-Applied this patch on top of 5.8, crashkernel reservation works well.
-And the code change looks good.
+"late_init" probably needs some italics or something, but otherwise.
 
-Reviewed-by: Baoquan He <bhe@redhat.com>
-
-> 
-> diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-> index d8de4053c5e8..d7ced6982524 100644
-> --- a/arch/x86/kernel/setup.c
-> +++ b/arch/x86/kernel/setup.c
-> @@ -419,13 +419,13 @@ static int __init reserve_crashkernel_low(void)
->  {
->  #ifdef CONFIG_X86_64
->  	unsigned long long base, low_base = 0, low_size = 0;
-> -	unsigned long total_low_mem;
-> +	unsigned long low_mem_limit;
->  	int ret;
->  
-> -	total_low_mem = memblock_mem_size(1UL << (32 - PAGE_SHIFT));
-> +	low_mem_limit = min(memblock_phys_mem_size(), CRASH_ADDR_LOW_MAX);
->  
->  	/* crashkernel=Y,low */
-> -	ret = parse_crashkernel_low(boot_command_line, total_low_mem, &low_size, &base);
-> +	ret = parse_crashkernel_low(boot_command_line, low_mem_limit, &low_size, &base);
->  	if (ret) {
->  		/*
->  		 * two parts from kernel/dma/swiotlb.c:
-> @@ -443,23 +443,17 @@ static int __init reserve_crashkernel_low(void)
->  			return 0;
->  	}
->  
-> -	low_base = memblock_find_in_range(0, 1ULL << 32, low_size, CRASH_ALIGN);
-> +	low_base = memblock_phys_alloc_range(low_size, CRASH_ALIGN, 0, CRASH_ADDR_LOW_MAX);
->  	if (!low_base) {
->  		pr_err("Cannot reserve %ldMB crashkernel low memory, please try smaller size.\n",
->  		       (unsigned long)(low_size >> 20));
->  		return -ENOMEM;
->  	}
->  
-> -	ret = memblock_reserve(low_base, low_size);
-> -	if (ret) {
-> -		pr_err("%s: Error reserving crashkernel low memblock.\n", __func__);
-> -		return ret;
-> -	}
-> -
-> -	pr_info("Reserving %ldMB of low memory at %ldMB for crashkernel (System low RAM: %ldMB)\n",
-> +	pr_info("Reserving %ldMB of low memory at %ldMB for crashkernel (low RAM limit: %ldMB)\n",
->  		(unsigned long)(low_size >> 20),
->  		(unsigned long)(low_base >> 20),
-> -		(unsigned long)(total_low_mem >> 20));
-> +		(unsigned long)(low_mem_limit >> 20));
->  
->  	crashk_low_res.start = low_base;
->  	crashk_low_res.end   = low_base + low_size - 1;
-> @@ -503,13 +497,13 @@ static void __init reserve_crashkernel(void)
->  		 * unless "crashkernel=size[KMG],high" is specified.
->  		 */
->  		if (!high)
-> -			crash_base = memblock_find_in_range(CRASH_ALIGN,
-> -						CRASH_ADDR_LOW_MAX,
-> -						crash_size, CRASH_ALIGN);
-> +			crash_base = memblock_phys_alloc_range(crash_size,
-> +						CRASH_ALIGN, CRASH_ALIGN,
-> +						CRASH_ADDR_LOW_MAX);
->  		if (!crash_base)
-> -			crash_base = memblock_find_in_range(CRASH_ALIGN,
-> -						CRASH_ADDR_HIGH_MAX,
-> -						crash_size, CRASH_ALIGN);
-> +			crash_base = memblock_phys_alloc_range(crash_size,
-> +						CRASH_ALIGN, CRASH_ALIGN,
-> +						CRASH_ADDR_HIGH_MAX);
->  		if (!crash_base) {
->  			pr_info("crashkernel reservation failed - No suitable area found.\n");
->  			return;
-> @@ -517,19 +511,13 @@ static void __init reserve_crashkernel(void)
->  	} else {
->  		unsigned long long start;
->  
-> -		start = memblock_find_in_range(crash_base,
-> -					       crash_base + crash_size,
-> -					       crash_size, 1 << 20);
-> +		start = memblock_phys_alloc_range(crash_size, SZ_1M, crash_base,
-> +						  crash_base + crash_size);
->  		if (start != crash_base) {
->  			pr_info("crashkernel reservation failed - memory is in use.\n");
->  			return;
->  		}
->  	}
-> -	ret = memblock_reserve(crash_base, crash_size);
-> -	if (ret) {
-> -		pr_err("%s: Error reserving crashkernel memblock.\n", __func__);
-> -		return;
-> -	}
->  
->  	if (crash_base >= (1ULL << 32) && reserve_crashkernel_low()) {
->  		memblock_free(crash_base, crash_size);
-> -- 
-> 2.26.2
-> 
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
