@@ -1,52 +1,35 @@
-From: Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: Re: [PATCH v10 2/5] powerpc/vdso: Prepare for switching VDSO to
- generic C implementation.
-Date: Wed, 5 Aug 2020 18:51:44 +0200
-Message-ID: <7d409421-6396-8eba-8250-b6c9ff8232d9@csgroup.eu>
-References: <cover.1596611196.git.christophe.leroy@csgroup.eu>
- <348528c33cd4007f3fee7fe643ef160843d09a6c.1596611196.git.christophe.leroy@csgroup.eu>
- <20200805140307.GO6753@gate.crashing.org>
+From: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
+Subject: Re: [PATCH v2 17/17] memblock: use separate iterators for memory and
+ reserved regions
+Date: Wed, 5 Aug 2020 19:10:04 +0200
+Message-ID: <CANiq72kaw7EMePMbgYyKMCkBC+7CgERq4FV2Lp-fH+ea3H12vg@mail.gmail.com>
+References: <20200802163601.8189-1-rppt@kernel.org>
+ <20200802163601.8189-18-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-In-Reply-To: <20200805140307.GO6753@gate.crashing.org>
-Content-Language: fr
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: nathanl@linux.ibm.com, linux-arch@vger.kernel.org, vincenzo.frascino@arm.com, arnd@arndb.de, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, luto@kernel.org, tglx@linutronix.de, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <20200802163601.8189-18-rppt@kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
+To: Mike Rapoport <rppt@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Emil Renner Berthing <kernel@esmil.dk>, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Dave Hansen <dave.hansen@linux.intel.com>, linux-mips@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Mike Rapoport <rppt@linux.ibm.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Ingo
 List-Id: linux-arch.vger.kernel.org
 
-Hi Again,
+On Sun, Aug 2, 2020 at 6:41 PM Mike Rapoport <rppt@kernel.org> wrote:
+>
+>  .clang-format                  |  3 ++-
 
-Le 05/08/2020 à 16:03, Segher Boessenkool a écrit :
-> Hi!
-> 
-> On Wed, Aug 05, 2020 at 07:09:23AM +0000, Christophe Leroy wrote:
->> +/*
->> + * The macros sets two stack frames, one for the caller and one for the callee
->> + * because there are no requirement for the caller to set a stack frame when
->> + * calling VDSO so it may have omitted to set one, especially on PPC64
->> + */
-> 
-> If the caller follows the ABI, there always is a stack frame.  So what
-> is going on?
+The .clang-format bit:
 
-Looks like it is not the case. See discussion at 
-https://patchwork.ozlabs.org/project/linuxppc-dev/patch/2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr/
+Acked-by: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
 
-Seems like GCC uses the redzone and doesn't set a stack frame. I guess 
-it doesn't know that the inline assembly contains a function call so it 
-doesn't set the frame.
-
-
-Christophe
+Cheers,
+Miguel
