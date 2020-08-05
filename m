@@ -1,80 +1,38 @@
-Return-Path: <SRS0=mj0N=BO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:36669 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730242AbgHDLsQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Aug 2020 07:48:16 -0400
-Message-ID: <21e46e2f81e5db4675be113ef00edbf398398dc9.1596541334.git.christophe.leroy@csgroup.eu>
-In-Reply-To: <cover.1596541334.git.christophe.leroy@csgroup.eu>
-References: <cover.1596541334.git.christophe.leroy@csgroup.eu>
-From: Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v9 5/5] powerpc/vdso: Provide __kernel_clock_gettime64() on
- vdso32
-Date: Tue,  4 Aug 2020 11:47:52 +0000 (UTC)
+Return-Path: <SRS0=ubji=BP=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from jabberwock.ucw.cz ([46.255.230.98]:36570 "EHLO
+        jabberwock.ucw.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728371AbgHER0j (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Aug 2020 13:26:39 -0400
+Date: Wed, 5 Aug 2020 19:26:30 +0200
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [TECH TOPIC] Planning code obsolescence
+Message-ID: <20200805172629.GA1040@bug>
+References: <CAK8P3a2PK_bC5=3wcWm43=y5xk-Dq5-fGPExJMnOrNfGfB1m1A@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a2PK_bC5=3wcWm43=y5xk-Dq5-fGPExJMnOrNfGfB1m1A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com, anton@ozlabs.org
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200804114752.8Qm4QoItNubh4KpUh5US6AiVZlcMkezTP2CYbD4-5VE@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: ksummit <ksummit-discuss@lists.linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20200805172630.SgolMNLTC87wb9jRosJzCFjajVp2jOOECmutETzN8aM@z>
 
-Provides __kernel_clock_gettime64() on vdso32. This is the
-64 bits version of __kernel_clock_gettime() which is
-y2038 compliant.
+Hi!
 
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
----
- arch/powerpc/kernel/vdso32/gettimeofday.S  | 9 +++++++++
- arch/powerpc/kernel/vdso32/vdso32.lds.S    | 1 +
- arch/powerpc/kernel/vdso32/vgettimeofday.c | 6 ++++++
- 3 files changed, 16 insertions(+)
+> I have submitted the below as a topic for the linux/arch/* MC that Mike
+> and I run, but I suppose it also makes sense to discuss it on the
+> ksummit-discuss mailing list (cross-posted to linux-arch and lkml) as well
+> even if we don't discuss it at the main ksummit track.
 
-diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
-index fd7b01c51281..a6e29f880e0e 100644
---- a/arch/powerpc/kernel/vdso32/gettimeofday.S
-+++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
-@@ -35,6 +35,15 @@ V_FUNCTION_BEGIN(__kernel_clock_gettime)
- 	cvdso_call __c_kernel_clock_gettime
- V_FUNCTION_END(__kernel_clock_gettime)
- 
-+/*
-+ * Exact prototype of clock_gettime64()
-+ *
-+ * int __kernel_clock_gettime64(clockid_t clock_id, struct __timespec64 *ts);
-+ *
-+ */
-+V_FUNCTION_BEGIN(__kernel_clock_gettime64)
-+	cvdso_call __c_kernel_clock_gettime64
-+V_FUNCTION_END(__kernel_clock_gettime64)
- 
- /*
-  * Exact prototype of clock_getres()
-diff --git a/arch/powerpc/kernel/vdso32/vdso32.lds.S b/arch/powerpc/kernel/vdso32/vdso32.lds.S
-index 4c985467a668..582c5b046cc9 100644
---- a/arch/powerpc/kernel/vdso32/vdso32.lds.S
-+++ b/arch/powerpc/kernel/vdso32/vdso32.lds.S
-@@ -148,6 +148,7 @@ VERSION
- #ifndef CONFIG_PPC_BOOK3S_601
- 		__kernel_gettimeofday;
- 		__kernel_clock_gettime;
-+		__kernel_clock_gettime64;
- 		__kernel_clock_getres;
- 		__kernel_time;
- 		__kernel_get_tbfreq;
-diff --git a/arch/powerpc/kernel/vdso32/vgettimeofday.c b/arch/powerpc/kernel/vdso32/vgettimeofday.c
-index 0b9ab4c22ef2..f7f71fecf4ed 100644
---- a/arch/powerpc/kernel/vdso32/vgettimeofday.c
-+++ b/arch/powerpc/kernel/vdso32/vgettimeofday.c
-@@ -11,6 +11,12 @@ int __c_kernel_clock_gettime(clockid_t clock, struct old_timespec32 *ts,
- 	return __cvdso_clock_gettime32_data(vd, clock, ts);
- }
- 
-+int __c_kernel_clock_gettime64(clockid_t clock, struct __kernel_timespec *ts,
-+			       const struct vdso_data *vd)
-+{
-+	return __cvdso_clock_gettime_data(vd, clock, ts);
-+}
-+
- int __c_kernel_gettimeofday(struct __kernel_old_timeval *tv, struct timezone *tz,
- 			    const struct vdso_data *vd)
- {
--- 
-2.25.0
+> * Latest kernel in which it was known to have worked
+
+For some old hardware, I started collecting kernel version, .config and dmesg from
+successful boots. github.com/pavelmachek, click on "missy".
+
+Best regards,
+									Pavel
+
+
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
