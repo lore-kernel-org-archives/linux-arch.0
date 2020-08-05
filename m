@@ -1,80 +1,53 @@
-Return-Path: <SRS0=TE/4=BO=vger.kernel.org=linux-doc-owner@kernel.org>
-Date: Tue,  4 Aug 2020 13:47:40 -0700
-Message-ID: <20200804204745.987648-1-brendanhiggins@google.com>
+Return-Path: <SRS0=ubji=BP=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:57203 "EHLO gate.crashing.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728019AbgHETB4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Aug 2020 15:01:56 -0400
+Date: Wed, 5 Aug 2020 13:40:54 -0500
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH v10 2/5] powerpc/vdso: Prepare for switching VDSO to generic C implementation.
+Message-ID: <20200805184054.GQ6753@gate.crashing.org>
+References: <cover.1596611196.git.christophe.leroy@csgroup.eu> <348528c33cd4007f3fee7fe643ef160843d09a6c.1596611196.git.christophe.leroy@csgroup.eu> <20200805140307.GO6753@gate.crashing.org> <3db2a590-b842-83db-ed2b-f3ee62595f18@csgroup.eu>
 Mime-Version: 1.0
-Subject: [PATCH v6 0/5] kunit: create a centralized executor to dispatch all
- KUnit tests
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-doc-owner@vger.kernel.org
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <3db2a590-b842-83db-ed2b-f3ee62595f18@csgroup.eu>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200804204740.HwxJrf2O3QZ8a8HDm3doI2NFHyUHkGPzY7HP2lsW2DI@z>
+To: Christophe Leroy <christophe.leroy@csgroup.eu>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com, anton@ozlabs.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, luto@kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20200805184054.xOnIXdPE6ot-_QFyA13htJ6b4oUiNYXUAi4YTAjG07w@z>
 
-## TL;DR
+Hi!
 
-This patchset adds a centralized executor to dispatch tests rather than
-relying on late_initcall to schedule each test suite separately along
-with a couple of new features that depend on it.
+On Wed, Aug 05, 2020 at 04:40:16PM +0000, Christophe Leroy wrote:
+> >It cannot optimise it because it does not know shift < 32.  The code
+> >below is incorrect for shift equal to 32, fwiw.
+> 
+> Is there a way to tell it ?
 
-## What am I trying to do?
+Sure, for example the &31 should work (but it doesn't, with the GCC
+version you used -- which version is that?)
 
-Conceptually, I am trying to provide a mechanism by which test suites
-can be grouped together so that they can be reasoned about collectively.
-The second to last patch in this series add features which depend on
-this:
+> >What does the compiler do for just
+> >
+> >static __always_inline u64 vdso_shift_ns(u64 ns, unsigned long shift)
+> >	return ns >> (shift & 31);
+> >}
+> >
+> 
+> Worse:
 
-PATCH 04/05 Prints out a test plan[1] right before KUnit tests are run;
-            this is valuable because it makes it possible for a test
-            harness to detect whether the number of tests run matches
-            the number of tests expected to be run, ensuring that no
-            tests silently failed. The test plan includes a count of
-            tests that will run. With the centralized executor, the
-            tests are located in a single data structure and thus can be
-            counted.
+I cannot make heads or tails of all that branch spaghetti, sorry.
 
-In addition, by dispatching tests from a single location, we can
-guarantee that all KUnit tests run after late_init is complete, which
-was a concern during the initial KUnit patchset review (this has not
-been a problem in practice, but resolving with certainty is nevertheless
-desirable).
+>  73c:	55 8c 06 fe 	clrlwi  r12,r12,27
+>  740:	7f c8 f0 14 	addc    r30,r8,r30
+>  744:	7c c6 4a 14 	add     r6,r6,r9
+>  748:	7c c6 e1 14 	adde    r6,r6,r28
+>  74c:	34 6c ff e0 	addic.  r3,r12,-32
+>  750:	41 80 00 70 	blt     7c0 <__c_kernel_clock_gettime+0x114>
 
-Other use cases for this exist, but the above features should provide an
-idea of the value that this could provide.
-
-## Changes since last revision:
- - Renamed the KUNIT_TEST_SUITES the KUNIT_TABLE section and moved it
-   from INIT_DATA_SECTION to INIT_DATA; this had the additional
-   consequence of making the first several architecture specific patches
-   unnecessary - suggested by Kees.
- - Dropped the kunit_shutdown patches; I think it makes more sense to
-   reintroduce them in a later patchset.
-
-Alan Maguire (1):
-  kunit: test: create a single centralized executor for all tests
-
-Brendan Higgins (4):
-  vmlinux.lds.h: add linker section for KUnit test suites
-  init: main: add KUnit to kernel init
-  kunit: test: add test plan to KUnit TAP format
-  Documentation: kunit: add a brief blurb about kunit_test_suite
-
- Documentation/dev-tools/kunit/usage.rst       |   5 ++
- include/asm-generic/vmlinux.lds.h             |  10 ++-
- include/kunit/test.h                          |  76 +++++++++++++-----
- init/main.c                                   |   4 +
- lib/kunit/Makefile                            |   3 +-
- lib/kunit/executor.c                          |  43 ++++++++++
- lib/kunit/test.c                              |  13 +--
- tools/testing/kunit/kunit_parser.py           |  76 ++++++++++++++----
- .../test_is_test_passed-all_passed.log        | Bin 1562 -> 1567 bytes
- .../test_data/test_is_test_passed-crash.log   | Bin 3016 -> 3021 bytes
- .../test_data/test_is_test_passed-failure.log | Bin 1700 -> 1705 bytes
- 11 files changed, 180 insertions(+), 50 deletions(-)
- create mode 100644 lib/kunit/executor.c
+This branch is always true.  Hrm.
 
 
-base-commit: 145ff1ec090dce9beb5a9590b5dc288e7bb2e65d
--- 
-2.28.0.163.g6104cc2f0b6-goog
+Segher
