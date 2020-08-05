@@ -1,49 +1,50 @@
-From: Baoquan He <bhe@redhat.com>
-Subject: Re: [PATCH v2 16/17] memblock: implement
- for_each_reserved_mem_region() using __next_mem_region()
-Date: Wed, 5 Aug 2020 17:11:05 +0800
-Message-ID: <20200805091105.GW10792@MiWiFi-R3L-srv>
-References: <20200802163601.8189-1-rppt@kernel.org>
- <20200802163601.8189-17-rppt@kernel.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v7 18/29] arm64: mte: Allow user control of the tag check
+ mode via prctl()
+Date: Wed, 5 Aug 2020 10:24:18 +0100
+Message-ID: <20200805092418.GB13391@gaia>
+References: <20200715170844.30064-1-catalin.marinas@arm.com>
+ <20200715170844.30064-19-catalin.marinas@arm.com>
+ <9342a080-9450-c01a-54a0-9ddebfe45613@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:58704 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725809AbgHEJYX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Aug 2020 05:24:23 -0400
 Content-Disposition: inline
-In-Reply-To: <20200802163601.8189-17-rppt@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: Emil Renner Berthing <kernel@esmil.dk>, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Dave Hansen <dave.hansen@linux.intel.com>, linux-mips@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, Stafford Horne <shorne@gmail.com>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Mike Rapoport <rppt@linux.ibm.com>, clang-built-linux@googlegroups.com, Ingo Molnar <mingo@redhat.com>, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, ucli
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <9342a080-9450-c01a-54a0-9ddebfe45613@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kevin Brodsky <kevin.brodsky@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
 
-On 08/02/20 at 07:36pm, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
+On Tue, Aug 04, 2020 at 08:34:42PM +0100, Kevin Brodsky wrote:
+> On 15/07/2020 18:08, Catalin Marinas wrote:
+> > By default, even if PROT_MTE is set on a memory range, there is no tag
+> > check fault reporting (SIGSEGV). Introduce a set of option to the
+> > exiting prctl(PR_SET_TAGGED_ADDR_CTRL) to allow user control of the tag
+> > check fault mode:
+> > 
+> >    PR_MTE_TCF_NONE  - no reporting (default)
+> >    PR_MTE_TCF_SYNC  - synchronous tag check fault reporting
+> >    PR_MTE_TCF_ASYNC - asynchronous tag check fault reporting
+> > 
+> > These options translate into the corresponding SCTLR_EL1.TCF0 bitfield,
+> > context-switched by the kernel. Note that uaccess done by the kernel is
+> > not checked and cannot be configured by the user.
 > 
-> Iteration over memblock.reserved with for_each_reserved_mem_region() used
-> __next_reserved_mem_region() that implemented a subset of
-> __next_mem_region().
-> 
-> Use __for_each_mem_range() and, essentially, __next_mem_region() with
-> appropriate parameters to reduce code duplication.
-> 
-> While on it, rename for_each_reserved_mem_region() to
-> for_each_reserved_mem_range() for consistency.
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> ---
->  .clang-format                    |  2 +-
->  arch/arm64/kernel/setup.c        |  2 +-
->  drivers/irqchip/irq-gic-v3-its.c |  2 +-
->  include/linux/memblock.h         | 12 +++------
->  mm/memblock.c                    | 46 +++++++-------------------------
->  5 files changed, 17 insertions(+), 47 deletions(-)
+> The last sentence is outdated, it should probably say that uaccess is only
+> checked in in synchronous mode.
 
-Reviewed-by: Baoquan He <bhe@redhat.com>
+Thanks, I forgot about the commit log. The documentation was updated to:
+
+**Note**: Kernel accesses to the user address space (e.g. ``read()``
+system call) are not checked if the user thread tag checking mode is
+``PR_MTE_TCF_NONE`` or ``PR_MTE_TCF_ASYNC``. If the tag checking mode is
+``PR_MTE_TCF_SYNC``, the kernel makes a best effort to check its user
+address accesses, however it cannot always guarantee it.
+
+-- 
+Catalin
