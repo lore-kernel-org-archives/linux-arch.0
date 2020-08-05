@@ -1,146 +1,47 @@
-Return-Path: <SRS0=mj0N=BO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48804 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728532AbgHDBTk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2020 21:19:40 -0400
-Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A7E15C061757
-        for <linux-arch@vger.kernel.org>; Mon,  3 Aug 2020 18:19:40 -0700 (PDT)
-Received: by mail-pg1-x543.google.com with SMTP id p8so5090757pgn.13
-        for <linux-arch@vger.kernel.org>; Mon, 03 Aug 2020 18:19:40 -0700 (PDT)
-Date: Mon, 3 Aug 2020 18:19:35 -0700
-From: =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>
-Subject: Re: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input
- sections
-Message-ID: <20200804011935.b4asdxdxwvwic7js@google.com>
-References: <20200731230820.1742553-1-keescook@chromium.org>
- <20200731230820.1742553-14-keescook@chromium.org>
- <20200801035128.GB2800311@rani.riverdale.lan>
- <20200803190506.GE1299820@tassilo.jf.intel.com>
- <20200803201525.GA1351390@rani.riverdale.lan>
+Return-Path: <SRS0=NA3S=BP=kvack.org=owner-linux-mm@kernel.org>
+Date: Wed, 5 Aug 2020 10:24:18 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v7 18/29] arm64: mte: Allow user control of the tag check
+ mode via prctl()
+Message-ID: <20200805092418.GB13391@gaia>
+References: <20200715170844.30064-1-catalin.marinas@arm.com>
+ <20200715170844.30064-19-catalin.marinas@arm.com>
+ <9342a080-9450-c01a-54a0-9ddebfe45613@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200803201525.GA1351390@rani.riverdale.lan>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <9342a080-9450-c01a-54a0-9ddebfe45613@arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Kevin Brodsky <kevin.brodsky@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Arvind Sankar <nivedita@alum.mit.edu>, Kees Cook <keescook@chromium.org>
-Cc: Andi Kleen <ak@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Michal Marek <michal.lkml@markovi.net>
-Message-ID: <20200804011935.b5U0evIatnBl0RBsIXDSbJKTuMVEqbNwKKm95Sa4jdE@z>
+Message-ID: <20200805092418.lMbP8tmEwT7Kck6WA5LhPaSUHrs_m2Lnyn95jCt-q7Q@z>
 
-On 2020-08-03, Arvind Sankar wrote:
->On Mon, Aug 03, 2020 at 12:05:06PM -0700, Andi Kleen wrote:
->> > However, the history of their being together comes from
->> >
->> >   9bebe9e5b0f3 ("kbuild: Fix .text.unlikely placement")
->> >
->> > which seems to indicate there was some problem with having them separated out,
->> > although I don't quite understand what the issue was from the commit message.
->>
->> Separating it out is less efficient. Gives worse packing for the hot part
->> if they are not aligned to 64byte boundaries, which they are usually not.
->>
->> It also improves packing of the cold part, but that probably doesn't matter.
->>
->> -Andi
->
->Why is that? Both .text and .text.hot have alignment of 2^4 (default
->function alignment on x86) by default, so it doesn't seem like it should
->matter for packing density.  Avoiding interspersing cold text among
->regular/hot text seems like it should be a net win.
->
->That old commit doesn't reference efficiency -- it says there was some
->problem with matching when they were separated out, but there were no
->wildcard section names back then.
+On Tue, Aug 04, 2020 at 08:34:42PM +0100, Kevin Brodsky wrote:
+> On 15/07/2020 18:08, Catalin Marinas wrote:
+> > By default, even if PROT_MTE is set on a memory range, there is no tag
+> > check fault reporting (SIGSEGV). Introduce a set of option to the
+> > exiting prctl(PR_SET_TAGGED_ADDR_CTRL) to allow user control of the tag
+> > check fault mode:
+> > 
+> >    PR_MTE_TCF_NONE  - no reporting (default)
+> >    PR_MTE_TCF_SYNC  - synchronous tag check fault reporting
+> >    PR_MTE_TCF_ASYNC - asynchronous tag check fault reporting
+> > 
+> > These options translate into the corresponding SCTLR_EL1.TCF0 bitfield,
+> > context-switched by the kernel. Note that uaccess done by the kernel is
+> > not checked and cannot be configured by the user.
+> 
+> The last sentence is outdated, it should probably say that uaccess is only
+> checked in in synchronous mode.
 
-I just want to share some context. GNU ld's internal linker script does
-impose a particular input section order by specifying separate input section descriptions:
+Thanks, I forgot about the commit log. The documentation was updated to:
 
-   .text           :
-   {
-     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
-     *(.text.exit .text.exit.*)
-     *(.text.startup .text.startup.*)
-     *(.text.hot .text.hot.*)
-     *(SORT(.text.sorted.*))   # binutils 5fa5f8f5fe494ba4fe98c11899a5464cd164ec75, invented for GCC's call graph profiling. LLVM doesn't use it
-     *(.text .stub .text.* .gnu.linkonce.t.*)
-     ...
+**Note**: Kernel accesses to the user address space (e.g. ``read()``
+system call) are not checked if the user thread tag checking mode is
+``PR_MTE_TCF_NONE`` or ``PR_MTE_TCF_ASYNC``. If the tag checking mode is
+``PR_MTE_TCF_SYNC``, the kernel makes a best effort to check its user
+address accesses, however it cannot always guarantee it.
 
-This order is a bit arbitrary. gold and LLD have -z keep-text-section-prefix. With the option,
-there can be several output sections, with the '.unlikely'/'.exit'/'.startup'/etc suffix.
-This has the advantage that the hot/unlikely/exit/etc attribution of a particular function is more obvious:
-
-   [ 2] .text             PROGBITS        000000000040007c 00007c 000003 00  AX  0   0  4
-   [ 3] .text.startup     PROGBITS        000000000040007f 00007f 000001 00  AX  0   0  1
-   [ 4] .text.exit        PROGBITS        0000000000400080 000080 000002 00  AX  0   0  1
-   [ 5] .text.unlikely    PROGBITS        0000000000400082 000082 000001 00  AX  0   0  1 
-   ...
-
-In our case we only need one output section.......
-
-If we place all text sections in one input section description:
-
-     *(.text.unlikely .text.*_unlikely .text.exit .text.exit.* .text.startup .text.startup.* .text.hot .text.hot.* ... )
-
-In many cases the input sections are laid out in the input order. In LLD there are two ordering cases:
-
-* If clang PGO (-fprofile-use=) is enabled, .llvm.call-graph-profile will be created automatically.
-   LLD can perform reordering **within an input section description**. The ordering is quite complex,
-   you can read https://github.com/llvm/llvm-project/blob/master/lld/ELF/CallGraphSort.cpp#L9 if you are curious:)
-
-   I don't know the performance improvement of this heuristic. (I don't think the original paper
-   cgo2017-hfsort-final1.pdf took ThinLTO into account, so the result might not
-   reflect realistic work loads where both ThinLTO and PGO are used) This, if matters, likely only matters
-   for very large executable, not the case for the kernel.
-* On some RISC architectures (ARM/AArch64/PowerPC),
-   the ordered sections (due to either .llvm.call-graph-profile or
-   --symbol-reordering-file=; the two can't be used together) are placed in a
-   suitable place in the input section description
-   ( http://reviews.llvm.org/D44969 )
-
-
-In summary, using one (large) input section description may have some
-performance improvement with LLD but I don't think it will be significant.
-There may be some size improvement for ARM/AArch64/PowerPC if someone wants to test.
-
->commit 9bebe9e5b0f3109a14000df25308c2971f872605
->Author: Andi Kleen <ak@linux.intel.com>
->Date:   Sun Jul 19 18:01:19 2015 -0700
->
->    kbuild: Fix .text.unlikely placement
->
->    When building a kernel with .text.unlikely text the unlikely text for
->    each translation unit was put next to the main .text code in the
->    final vmlinux.
->
->    The problem is that the linker doesn't allow more specific submatches
->    of a section name in a different linker script statement after the
->    main match.
->
->    So we need to move them all into one line. With that change
->    .text.unlikely is at the end of everything again.
->
->    I also moved .text.hot into the same statement though, even though
->    that's not strictly needed.
->
->    Signed-off-by: Andi Kleen <ak@linux.intel.com>
->    Signed-off-by: Michal Marek <mmarek@suse.com>
->
->diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
->index 8bd374d3cf21..1781e54ea6d3 100644
->--- a/include/asm-generic/vmlinux.lds.h
->+++ b/include/asm-generic/vmlinux.lds.h
->@@ -412,12 +412,10 @@
->  * during second ld run in second ld pass when generating System.map */
-> #define TEXT_TEXT							\
-> 		ALIGN_FUNCTION();					\
->-		*(.text.hot)						\
->-		*(.text .text.fixup)					\
->+		*(.text.hot .text .text.fixup .text.unlikely)		\
-> 		*(.ref.text)						\
-> 	MEM_KEEP(init.text)						\
-> 	MEM_KEEP(exit.text)						\
->-		*(.text.unlikely)
->
->
-> /* sched.text is aling to function alignment to secure we have same
+-- 
+Catalin
