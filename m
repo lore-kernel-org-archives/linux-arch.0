@@ -1,71 +1,75 @@
 From: Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v10 3/5] powerpc/vdso: Save and restore TOC pointer on PPC64
-Date: Wed,  5 Aug 2020 07:09:24 +0000 (UTC)
-Message-ID: <fbcca4cf3f73a059a6954b39fb5499bee5a0be60.1596611196.git.christophe.leroy@csgroup.eu>
+Subject: [PATCH v10 5/5] powerpc/vdso: Provide __kernel_clock_gettime64() on
+ vdso32
+Date: Wed,  5 Aug 2020 07:09:26 +0000 (UTC)
+Message-ID: <32049545671e558b6ef822e0f501a2038c121bf1.1596611196.git.christophe.leroy@csgroup.eu>
 References: <cover.1596611196.git.christophe.leroy@csgroup.eu>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:4453 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726459AbgHEHJ0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 5 Aug 2020 03:09:26 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1596611196.git.christophe.leroy@csgroup.eu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com, anton@ozlabs.org
 Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On PPC64, the TOC pointer needs to be saved and restored.
+Provides __kernel_clock_gettime64() on vdso32. This is the
+64 bits version of __kernel_clock_gettime() which is
+y2038 compliant.
 
-Suggested-by: Michael Ellerman <mpe@ellerman.id.au>
 Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
 ---
-v9: New.
+ arch/powerpc/kernel/vdso32/gettimeofday.S  | 9 +++++++++
+ arch/powerpc/kernel/vdso32/vdso32.lds.S    | 1 +
+ arch/powerpc/kernel/vdso32/vgettimeofday.c | 6 ++++++
+ 3 files changed, 16 insertions(+)
 
-I'm not sure this is really needed, I can't see the VDSO C code doing
-anything with r2, at least on ppc64_defconfig.
-
-So I let you decide whether you take it or not.
----
- arch/powerpc/include/asm/vdso/gettimeofday.h | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
-
-diff --git a/arch/powerpc/include/asm/vdso/gettimeofday.h b/arch/powerpc/include/asm/vdso/gettimeofday.h
-index e2c462796a22..8ed4329c9fb8 100644
---- a/arch/powerpc/include/asm/vdso/gettimeofday.h
-+++ b/arch/powerpc/include/asm/vdso/gettimeofday.h
-@@ -19,10 +19,16 @@
-   .cfi_register lr, r0
- 	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
- 	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
-+#ifdef CONFIG_PPC64
-+	PPC_STL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
-+#endif
- 	get_datapage	r5, r0
- 	addi		r5, r5, VDSO_DATA_OFFSET
- 	bl		\funct
- 	PPC_LL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
-+#ifdef CONFIG_PPC64
-+	PPC_LL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
-+#endif
- 	cmpwi		r3, 0
- 	mtlr		r0
-   .cfi_restore lr
-@@ -42,10 +48,16 @@
-   .cfi_register lr, r0
- 	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
- 	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
-+#ifdef CONFIG_PPC64
-+	PPC_STL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
-+#endif
- 	get_datapage	r4, r0
- 	addi		r4, r4, VDSO_DATA_OFFSET
- 	bl		\funct
- 	PPC_LL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
-+#ifdef CONFIG_PPC64
-+	PPC_LL		r2, STACK_FRAME_OVERHEAD + STK_GOT(r1)
-+#endif
- 	crclr		so
- 	mtlr		r0
-   .cfi_restore lr
+diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
+index fd7b01c51281..a6e29f880e0e 100644
+--- a/arch/powerpc/kernel/vdso32/gettimeofday.S
++++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
+@@ -35,6 +35,15 @@ V_FUNCTION_BEGIN(__kernel_clock_gettime)
+ 	cvdso_call __c_kernel_clock_gettime
+ V_FUNCTION_END(__kernel_clock_gettime)
+ 
++/*
++ * Exact prototype of clock_gettime64()
++ *
++ * int __kernel_clock_gettime64(clockid_t clock_id, struct __timespec64 *ts);
++ *
++ */
++V_FUNCTION_BEGIN(__kernel_clock_gettime64)
++	cvdso_call __c_kernel_clock_gettime64
++V_FUNCTION_END(__kernel_clock_gettime64)
+ 
+ /*
+  * Exact prototype of clock_getres()
+diff --git a/arch/powerpc/kernel/vdso32/vdso32.lds.S b/arch/powerpc/kernel/vdso32/vdso32.lds.S
+index 4c985467a668..582c5b046cc9 100644
+--- a/arch/powerpc/kernel/vdso32/vdso32.lds.S
++++ b/arch/powerpc/kernel/vdso32/vdso32.lds.S
+@@ -148,6 +148,7 @@ VERSION
+ #ifndef CONFIG_PPC_BOOK3S_601
+ 		__kernel_gettimeofday;
+ 		__kernel_clock_gettime;
++		__kernel_clock_gettime64;
+ 		__kernel_clock_getres;
+ 		__kernel_time;
+ 		__kernel_get_tbfreq;
+diff --git a/arch/powerpc/kernel/vdso32/vgettimeofday.c b/arch/powerpc/kernel/vdso32/vgettimeofday.c
+index 0b9ab4c22ef2..f7f71fecf4ed 100644
+--- a/arch/powerpc/kernel/vdso32/vgettimeofday.c
++++ b/arch/powerpc/kernel/vdso32/vgettimeofday.c
+@@ -11,6 +11,12 @@ int __c_kernel_clock_gettime(clockid_t clock, struct old_timespec32 *ts,
+ 	return __cvdso_clock_gettime32_data(vd, clock, ts);
+ }
+ 
++int __c_kernel_clock_gettime64(clockid_t clock, struct __kernel_timespec *ts,
++			       const struct vdso_data *vd)
++{
++	return __cvdso_clock_gettime_data(vd, clock, ts);
++}
++
+ int __c_kernel_gettimeofday(struct __kernel_old_timeval *tv, struct timezone *tz,
+ 			    const struct vdso_data *vd)
+ {
 -- 
 2.25.0
