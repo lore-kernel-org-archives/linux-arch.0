@@ -1,52 +1,48 @@
-Return-Path: <SRS0=TE/4=BO=vger.kernel.org=linux-doc-owner@kernel.org>
+Return-Path: <SRS0=ubji=BP=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:39200 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728141AbgHEQvv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Aug 2020 12:51:51 -0400
+Subject: Re: [PATCH v10 2/5] powerpc/vdso: Prepare for switching VDSO to
+ generic C implementation.
+References: <cover.1596611196.git.christophe.leroy@csgroup.eu>
+ <348528c33cd4007f3fee7fe643ef160843d09a6c.1596611196.git.christophe.leroy@csgroup.eu>
+ <20200805140307.GO6753@gate.crashing.org>
+From: Christophe Leroy <christophe.leroy@csgroup.eu>
+Message-ID: <7d409421-6396-8eba-8250-b6c9ff8232d9@csgroup.eu>
+Date: Wed, 5 Aug 2020 18:51:44 +0200
 MIME-Version: 1.0
-References: <20200626210917.358969-1-brendanhiggins@google.com> <202006261442.5C245709@keescook>
-In-Reply-To: <202006261442.5C245709@keescook>
-From: Brendan Higgins <brendanhiggins@google.com>
-Date: Tue, 4 Aug 2020 13:01:30 -0700
-Message-ID: <CAFd5g46auR=OgQ4j=P=KH7GDerW-SkB8aFGehuYkmgJ2Z+jGCA@mail.gmail.com>
-Subject: Re: [PATCH v5 00/12] kunit: create a centralized executor to dispatch
- all KUnit tests
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-doc-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>, catalin.marinas@arm.com, will@kernel.org, Michal Simek <monstr@monstr.eu>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Zankel <chris@zankel.net>, jcmvbkbc@gmail.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org
+In-Reply-To: <20200805140307.GO6753@gate.crashing.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200804200130.W9IEFGC0hslJOglo6mLMSu2HRqhODHuH6T_M2_uVIOE@z>
+To: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com, anton@ozlabs.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, luto@kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20200805165144.ms5mZEUnVetqqjYSaOpNTAvPi8gz5-Evb2z8b0vWKSE@z>
 
-On Fri, Jun 26, 2020 at 2:52 PM Kees Cook <keescook@chromium.org> wrote:
->
-> On Fri, Jun 26, 2020 at 02:09:05PM -0700, Brendan Higgins wrote:
-> > This patchset adds a centralized executor to dispatch tests rather than
-> > relying on late_initcall to schedule each test suite separately along
-> > with a couple of new features that depend on it.
+Hi Again,
 
-Sorry it took so long to reply. I got sucked into some other stuff again.
+Le 05/08/2020 à 16:03, Segher Boessenkool a écrit :
+> Hi!
+> 
+> On Wed, Aug 05, 2020 at 07:09:23AM +0000, Christophe Leroy wrote:
+>> +/*
+>> + * The macros sets two stack frames, one for the caller and one for the callee
+>> + * because there are no requirement for the caller to set a stack frame when
+>> + * calling VDSO so it may have omitted to set one, especially on PPC64
+>> + */
+> 
+> If the caller follows the ABI, there always is a stack frame.  So what
+> is going on?
 
-> So, the new section looks fine to me (modulo the INIT_DATA change). The
-> plumbing to start the tests, though, I think is redundant. Why not just
-> add a sysctl that starts all known tests?
+Looks like it is not the case. See discussion at 
+https://patchwork.ozlabs.org/project/linuxppc-dev/patch/2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr/
 
-We already have that; however, we use debugfs to start the tests -
-same difference. I just find it convenient to not have to build and
-then maintain a userland for each architecture. It's also really nice
-that KUnit "just works out of the box" - you don't have to download
-anything other than the kernel source, and you don't need to do any
-steps outside of just run "kuit.py run". That seems like a big
-advantage to me.
+Seems like GCC uses the redzone and doesn't set a stack frame. I guess 
+it doesn't know that the inline assembly contains a function call so it 
+doesn't set the frame.
 
-> That way you don't need the plumbing into init/main.c, and you can have
-> a mode where builtin tests can be started on a fully booted system too.
->
-> i.e. boot with "sysctl.kernel.kunit=start" or when fully booted with
-> "echo start > /proc/sys/kernel/kunit"
->
-> And instead of the kunit-specific halt/reboot stuff, how about moving
-> /proc/sysrq-trigger into /proc/sys instead? Then you (or anything) could
-> do:
->
-> sysctl.kernel.kunit=start sysctl.kernel.sysrq-trigger=b
 
-I think it might be harder to make a case for the reboot stuff without
-the stuff I am working on outside of this patchset. I think I will
-probably drop that patch from this patchset and reintroduce it later.
+Christophe
