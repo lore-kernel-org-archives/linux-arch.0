@@ -1,47 +1,101 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [PATCH v3 3/6] mm: introduce memfd_secret system call to create
- "secret" memory areas
-Date: Wed, 5 Aug 2020 06:05:18 -0700
-Message-ID: <1f52d43e-29e4-b175-73d5-0aa3c3e79f23@infradead.org>
-References: <20200804095035.18778-1-rppt@kernel.org>
- <20200804095035.18778-4-rppt@kernel.org>
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH v8 5/8] powerpc/vdso: Prepare for switching VDSO to
+ generic C implementation.
+Date: Wed, 5 Aug 2020 08:35:05 -0500
+Message-ID: <20200805133505.GN6753@gate.crashing.org>
+References: <cover.1588079622.git.christophe.leroy@c-s.fr>
+ <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr>
+ <878sflvbad.fsf@mpe.ellerman.id.au>
+ <65fd7823-cc9d-c05a-0816-c34882b5d55a@csgroup.eu>
+ <87wo2dy5in.fsf@mpe.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200804095035.18778-4-rppt@kernel.org>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Mike Rapoport <rppt@kernel.org>, linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Dave Hansen <dave.hansen@linux.intel.com>, linux-mm@kvack.org, "H. Peter Anvin" <hpa@zytor.com>, Christopher Lameter <cl@linux.com>, Idan Yaniv <idan.yaniv@ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Tycho Andersen <tycho@tycho.ws>, linux-nvdimm@lists.01.org, Will Deacon <will@kernel.org>, x86@kernel.org, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Ingo Molnar <mingo@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Arnd Bergmann <arnd@arndb.de>, James Bottomley <jejb@linux.ibm.com>, Borislav Petkov <bp@alien8.de>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Paul Walmsley <paul.walmsley@sifive.com>, Kirill A. S
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
+Content-Disposition: inline
+In-Reply-To: <87wo2dy5in.fsf@mpe.ellerman.id.au>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, nathanl@linux.ibm.com, arnd@arndb.de, linux-kernel@vger.kernel.org, Tulio Magno Quites Machado Filho <tuliom@linux.ibm.com>, Paul Mackerras <paulus@samba.org>, luto@kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On 8/4/20 2:50 AM, Mike Rapoport wrote:
-> diff --git a/mm/Kconfig b/mm/Kconfig
-> index f2104cc0d35c..8378175e72a4 100644
-> --- a/mm/Kconfig
-> +++ b/mm/Kconfig
-> @@ -872,4 +872,8 @@ config ARCH_HAS_HUGEPD
->  config MAPPING_DIRTY_HELPERS
->          bool
->  
-> +config SECRETMEM
-> +        def_bool ARCH_HAS_SET_DIRECT_MAP && !EMBEDDED
+Hi!
 
-use tab above, not spaces.
+On Wed, Aug 05, 2020 at 04:24:16PM +1000, Michael Ellerman wrote:
+> Christophe Leroy <christophe.leroy@csgroup.eu> writes:
+> > Indeed, 32-bit doesn't have a redzone, so I believe it needs a stack 
+> > frame whenever it has anything to same.
+> 
+> Yeah OK that would explain it.
+> 
+> > Here is what I have in libc.so:
+> >
+> > 000fbb60 <__clock_gettime>:
+> >     fbb60:	94 21 ff e0 	stwu    r1,-32(r1)
 
-> +	select GENERIC_ALLOCATOR
-> +
->  endmenu
+This is the *only* place where you can use a negative offset from r1:
+in the stwu to extend the stack (set up a new stack frame, or make the
+current one bigger).
+
+> > diff --git a/arch/powerpc/include/asm/vdso/gettimeofday.h 
+> > b/arch/powerpc/include/asm/vdso/gettimeofday.h
+> > index a0712a6e80d9..0b6fa245d54e 100644
+> > --- a/arch/powerpc/include/asm/vdso/gettimeofday.h
+> > +++ b/arch/powerpc/include/asm/vdso/gettimeofday.h
+> > @@ -10,6 +10,7 @@
+> >     .cfi_startproc
+> >   	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+> >   	mflr		r0
+> > +	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+> >     .cfi_register lr, r0
+> 
+> The cfi_register should come directly after the mflr I think.
+
+That is the idiomatic way to write it, and most obviously correct.  But
+as long as the value in LR at function entry is available in multiple
+places (like, in LR and in R0 here), it is fine to use either for
+unwinding.  Sometimes you can use this to optimise the unwind tables a
+bit -- not really worth it in hand-written code, it's more important to
+make it legible ;-)
+
+> >> There's also no code to load/restore the TOC pointer on BE, which I
+> >> think we'll need to handle.
+> >
+> > I see no code in the generated vdso64.so doing anything with r2, but if 
+> > you think that's needed, just let's do it:
+> 
+> Hmm, true.
+> 
+> The compiler will use the toc for globals (and possibly also for large
+> constants?)
+
+And anything else it bloody well wants to, yeah :-)
+
+> AFAIK there's no way to disable use of the toc, or make it a build error
+> if it's needed.
+
+Yes.
+
+> At the same time it's much safer for us to just save/restore r2, and
+> probably in the noise performance wise.
+
+If you want a function to be able to work with ABI-compliant code safely
+(in all cases), you'll have to make it itself ABI-compliant as well,
+yes :-)
+
+> So yeah we should probably do as below.
+
+[ snip ]
+
+Looks good yes.
 
 
--- 
-~Randy
+Segher
