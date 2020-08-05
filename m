@@ -1,69 +1,58 @@
-From: Pavel Machek <pavel@denx.de>
-Subject: Re: [Ksummit-discuss] [TECH TOPIC] Planning code obsolescence
-Date: Wed, 5 Aug 2020 21:30:01 +0200
-Message-ID: <20200805193001.nebwdutcek53pnit@duo.ucw.cz>
-References: <CAK8P3a2PK_bC5=3wcWm43=y5xk-Dq5-fGPExJMnOrNfGfB1m1A@mail.gmail.com>
- <20200805172629.GA1040@bug>
- <CAMuHMdV20tZSu5gGsjf8h334+0xr1f=N9NvOoxHQGq42GYsj4g@mail.gmail.com>
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH v10 2/5] powerpc/vdso: Prepare for switching VDSO to generic C implementation.
+Date: Wed, 5 Aug 2020 15:55:56 -0500
+Message-ID: <20200805205556.GR6753@gate.crashing.org>
+References: <cover.1596611196.git.christophe.leroy@csgroup.eu> <348528c33cd4007f3fee7fe643ef160843d09a6c.1596611196.git.christophe.leroy@csgroup.eu> <20200805140307.GO6753@gate.crashing.org> <7d409421-6396-8eba-8250-b6c9ff8232d9@csgroup.eu>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="2as7iuittmdh4m5a"
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from jabberwock.ucw.cz ([46.255.230.98]:44408 "EHLO
-        jabberwock.ucw.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728990AbgHETaF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Aug 2020 15:30:05 -0400
+Received: from gate.crashing.org ([63.228.1.57]:39741 "EHLO gate.crashing.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725730AbgHEU4n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Aug 2020 16:56:43 -0400
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdV20tZSu5gGsjf8h334+0xr1f=N9NvOoxHQGq42GYsj4g@mail.gmail.com>
+In-Reply-To: <7d409421-6396-8eba-8250-b6c9ff8232d9@csgroup.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ksummit <ksummit-discuss@lists.linuxfoundation.org>
+To: Christophe Leroy <christophe.leroy@csgroup.eu>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com, anton@ozlabs.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, luto@kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
 
+Hi!
 
---2as7iuittmdh4m5a
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Wed 2020-08-05 20:50:43, Geert Uytterhoeven wrote:
-> Hi Pavel,
->=20
-> On Wed, Aug 5, 2020 at 7:26 PM Pavel Machek <pavel@ucw.cz> wrote:
-> > > I have submitted the below as a topic for the linux/arch/* MC that Mi=
-ke
-> > > and I run, but I suppose it also makes sense to discuss it on the
-> > > ksummit-discuss mailing list (cross-posted to linux-arch and lkml) as=
- well
-> > > even if we don't discuss it at the main ksummit track.
+On Wed, Aug 05, 2020 at 06:51:44PM +0200, Christophe Leroy wrote:
+> Le 05/08/2020 à 16:03, Segher Boessenkool a écrit :
+> >On Wed, Aug 05, 2020 at 07:09:23AM +0000, Christophe Leroy wrote:
+> >>+/*
+> >>+ * The macros sets two stack frames, one for the caller and one for the 
+> >>callee
+> >>+ * because there are no requirement for the caller to set a stack frame 
+> >>when
+> >>+ * calling VDSO so it may have omitted to set one, especially on PPC64
+> >>+ */
 > >
-> > > * Latest kernel in which it was known to have worked
-> >
-> > For some old hardware, I started collecting kernel version, .config and=
- dmesg from
-> > successful boots. github.com/pavelmachek, click on "missy".
->=20
-> You mean your complete hardware collection doesn't boot v5.8? ;-)
+> >If the caller follows the ABI, there always is a stack frame.  So what
+> >is going on?
+> 
+> Looks like it is not the case. See discussion at 
+> https://patchwork.ozlabs.org/project/linuxppc-dev/patch/2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr/
+> 
+> Seems like GCC uses the redzone and doesn't set a stack frame. I guess 
+> it doesn't know that the inline assembly contains a function call so it 
+> doesn't set the frame.
 
-I need to do some pushing, and yes, maybe some more testing.
+Yes, that is the problem.  See
+https://gcc.gnu.org/onlinedocs/gcc-10.2.0/gcc/Extended-Asm.html#AssemblerTemplate
+where this is (briefly) discussed:
+  "Accessing data from C programs without using input/output operands
+  (such as by using global symbols directly from the assembler
+  template) may not work as expected. Similarly, calling functions
+  directly from an assembler template requires a detailed understanding
+  of the target assembler and ABI."
 
-But I was wondering if someone sees this as useful and wants to
-contribute more devices? :-).
-									Pavel
+I don't know of a good way to tell GCC some function needs a frame (that
+is, one that doesn't result in extra code other than to set up the
+frame).  I'll think about it.
 
---=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
-g.html
 
---2as7iuittmdh4m5a
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iF0EARECAB0WIQRPfPO7r0eAhk010v0w5/Bqldv68gUCXysIuQAKCRAw5/Bqldv6
-8ne8AKCzcy8jflTVvnbaGcu03o4XWep3TgCgiOYXuMl+/WCzPV9BgoTFu+rV6qA=
-=rLGV
------END PGP SIGNATURE-----
-
---2as7iuittmdh4m5a--
+Segher
