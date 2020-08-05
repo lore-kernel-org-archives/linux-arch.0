@@ -1,16 +1,16 @@
-From: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-Subject: Re: [PATCH v2 17/17] memblock: use separate iterators for memory and
- reserved regions
-Date: Wed, 5 Aug 2020 12:58:44 +0200
-Message-ID: <20200805105844.GA11658@alpha.franken.de>
-References: <20200802163601.8189-1-rppt@kernel.org>
- <20200802163601.8189-18-rppt@kernel.org>
+From: Randy Dunlap <rdunlap@infradead.org>
+Subject: Re: [PATCH v3 3/6] mm: introduce memfd_secret system call to create
+ "secret" memory areas
+Date: Wed, 5 Aug 2020 06:05:18 -0700
+Message-ID: <1f52d43e-29e4-b175-73d5-0aa3c3e79f23@infradead.org>
+References: <20200804095035.18778-1-rppt@kernel.org>
+ <20200804095035.18778-4-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20200802163601.8189-18-rppt@kernel.org>
+In-Reply-To: <20200804095035.18778-4-rppt@kernel.org>
+Content-Language: en-US
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
  <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
@@ -20,28 +20,28 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
  <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
 Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Emil Renner Berthing <kernel@esmil.dk>, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Dave Hansen <dave.hansen@linux.intel.com>, linux-mips@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Mike Rapoport <rppt@linux.ibm.com>, clang-built-linux@googlegroups.com, Ingo Molnar <mingo@redhat.com>, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.mari>
+To: Mike Rapoport <rppt@kernel.org>, linux-kernel@vger.kernel.org
+Cc: Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Dave Hansen <dave.hansen@linux.intel.com>, linux-mm@kvack.org, "H. Peter Anvin" <hpa@zytor.com>, Christopher Lameter <cl@linux.com>, Idan Yaniv <idan.yaniv@ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Tycho Andersen <tycho@tycho.ws>, linux-nvdimm@lists.01.org, Will Deacon <will@kernel.org>, x86@kernel.org, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Ingo Molnar <mingo@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Arnd Bergmann <arnd@arndb.de>, James Bottomley <jejb@linux.ibm.com>, Borislav Petkov <bp@alien8.de>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Paul Walmsley <paul.walmsley@sifive.com>, Kirill A. S
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Aug 02, 2020 at 07:36:01PM +0300, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
-> 
-> for_each_memblock() is used to iterate over memblock.memory in
-> a few places that use data from memblock_region rather than the memory
-> ranges.
-> 
-> Introduce separate for_each_mem_region() and for_each_reserved_mem_region()
-> to improve encapsulation of memblock internals from its users.
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> ---
->  arch/mips/netlogic/xlp/setup.c |  2 +-
+On 8/4/20 2:50 AM, Mike Rapoport wrote:
+> diff --git a/mm/Kconfig b/mm/Kconfig
+> index f2104cc0d35c..8378175e72a4 100644
+> --- a/mm/Kconfig
+> +++ b/mm/Kconfig
+> @@ -872,4 +872,8 @@ config ARCH_HAS_HUGEPD
+>  config MAPPING_DIRTY_HELPERS
+>          bool
+>  
+> +config SECRETMEM
+> +        def_bool ARCH_HAS_SET_DIRECT_MAP && !EMBEDDED
 
-Acked-by: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+use tab above, not spaces.
 
-Thomas.
+> +	select GENERIC_ALLOCATOR
+> +
+>  endmenu
+
 
 -- 
-Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
-good idea.                                                [ RFC1925, 2.3 ]
+~Randy
