@@ -1,125 +1,45 @@
-Return-Path: <SRS0=8YFq=BM=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtp-42ad.mail.infomaniak.ch ([84.16.66.173]:42335 "EHLO
-        smtp-42ad.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728051AbgHBV7e (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 2 Aug 2020 17:59:34 -0400
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [PATCH v20 06/12] fs,security: Add sb_delete hook
-Date: Sun,  2 Aug 2020 23:58:57 +0200
-Message-ID: <20200802215903.91936-7-mic@digikod.net>
-In-Reply-To: <20200802215903.91936-1-mic@digikod.net>
-References: <20200802215903.91936-1-mic@digikod.net>
+Return-Path: <SRS0=ubji=BP=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-oi1-f193.google.com ([209.85.167.193]:45523 "EHLO
+        mail-oi1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728413AbgHES7p (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Aug 2020 14:59:45 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+References: <CAK8P3a2PK_bC5=3wcWm43=y5xk-Dq5-fGPExJMnOrNfGfB1m1A@mail.gmail.com>
+ <20200805172629.GA1040@bug>
+In-Reply-To: <20200805172629.GA1040@bug>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Wed, 5 Aug 2020 20:50:43 +0200
+Message-ID: <CAMuHMdV20tZSu5gGsjf8h334+0xr1f=N9NvOoxHQGq42GYsj4g@mail.gmail.com>
+Subject: Re: [Ksummit-discuss] [TECH TOPIC] Planning code obsolescence
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
-Message-ID: <20200802215857.zYQLq1sn1NuGAsjFmXsdPlKsSHerMSdBWtIC0eg-ze4@z>
+To: Pavel Machek <pavel@ucw.cz>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ksummit <ksummit-discuss@lists.linuxfoundation.org>
+Message-ID: <20200805185043.05isZKfimh7oDrj4pnkCTODv6nPK1OaXfb9OgS4bSlc@z>
 
-The sb_delete security hook is called when shutting down a superblock,
-which may be useful to release kernel objects tied to the superblock's
-lifetime (e.g. inodes).
+Hi Pavel,
 
-This new hook is needed by Landlock to release (ephemerally) tagged
-struct inodes.  This comes from the unprivileged nature of Landlock
-described in the next commit.
+On Wed, Aug 5, 2020 at 7:26 PM Pavel Machek <pavel@ucw.cz> wrote:
+> > I have submitted the below as a topic for the linux/arch/* MC that Mike
+> > and I run, but I suppose it also makes sense to discuss it on the
+> > ksummit-discuss mailing list (cross-posted to linux-arch and lkml) as well
+> > even if we don't discuss it at the main ksummit track.
+>
+> > * Latest kernel in which it was known to have worked
+>
+> For some old hardware, I started collecting kernel version, .config and dmesg from
+> successful boots. github.com/pavelmachek, click on "missy".
 
-Signed-off-by: Mickaël Salaün <mic@digikod.net>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: James Morris <jmorris@namei.org>
-Cc: Jann Horn <jannh@google.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Serge E. Hallyn <serge@hallyn.com>
----
+You mean your complete hardware collection doesn't boot v5.8? ;-)
 
-Changes since v17:
-* Initial patch to replace the direct call to landlock_release_inodes()
-  (requested by James Morris).
-  https://lore.kernel.org/lkml/alpine.LRH.2.21.2005150536440.7929@namei.org/
----
- fs/super.c                    | 1 +
- include/linux/lsm_hook_defs.h | 1 +
- include/linux/lsm_hooks.h     | 2 ++
- include/linux/security.h      | 4 ++++
- security/security.c           | 5 +++++
- 5 files changed, 13 insertions(+)
+Gr{oetje,eeting}s,
 
-diff --git a/fs/super.c b/fs/super.c
-index 904459b35119..d5517e49ccdf 100644
---- a/fs/super.c
-+++ b/fs/super.c
-@@ -454,6 +454,7 @@ void generic_shutdown_super(struct super_block *sb)
- 		evict_inodes(sb);
- 		/* only nonzero refcount inodes can have marks */
- 		fsnotify_sb_delete(sb);
-+		security_sb_delete(sb);
- 
- 		if (sb->s_dio_done_wq) {
- 			destroy_workqueue(sb->s_dio_done_wq);
-diff --git a/include/linux/lsm_hook_defs.h b/include/linux/lsm_hook_defs.h
-index af998f93d256..2b855d6a299e 100644
---- a/include/linux/lsm_hook_defs.h
-+++ b/include/linux/lsm_hook_defs.h
-@@ -59,6 +59,7 @@ LSM_HOOK(int, 0, fs_context_dup, struct fs_context *fc,
- LSM_HOOK(int, -ENOPARAM, fs_context_parse_param, struct fs_context *fc,
- 	 struct fs_parameter *param)
- LSM_HOOK(int, 0, sb_alloc_security, struct super_block *sb)
-+LSM_HOOK(void, LSM_RET_VOID, sb_delete, struct super_block *sb)
- LSM_HOOK(void, LSM_RET_VOID, sb_free_security, struct super_block *sb)
- LSM_HOOK(void, LSM_RET_VOID, sb_free_mnt_opts, void *mnt_opts)
- LSM_HOOK(int, 0, sb_eat_lsm_opts, char *orig, void **mnt_opts)
-diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index 80c629d8a2ad..499f19a70a19 100644
---- a/include/linux/lsm_hooks.h
-+++ b/include/linux/lsm_hooks.h
-@@ -108,6 +108,8 @@
-  *	allocated.
-  *	@sb contains the super_block structure to be modified.
-  *	Return 0 if operation was successful.
-+ * @sb_delete:
-+ *	Release objects tied to a superblock (e.g. inodes).
-  * @sb_free_security:
-  *	Deallocate and clear the sb->s_security field.
-  *	@sb contains the super_block structure to be modified.
-diff --git a/include/linux/security.h b/include/linux/security.h
-index 0a0a03b36a3b..28b0ee6c7239 100644
---- a/include/linux/security.h
-+++ b/include/linux/security.h
-@@ -286,6 +286,7 @@ void security_bprm_committed_creds(struct linux_binprm *bprm);
- int security_fs_context_dup(struct fs_context *fc, struct fs_context *src_fc);
- int security_fs_context_parse_param(struct fs_context *fc, struct fs_parameter *param);
- int security_sb_alloc(struct super_block *sb);
-+void security_sb_delete(struct super_block *sb);
- void security_sb_free(struct super_block *sb);
- void security_free_mnt_opts(void **mnt_opts);
- int security_sb_eat_lsm_opts(char *options, void **mnt_opts);
-@@ -614,6 +615,9 @@ static inline int security_sb_alloc(struct super_block *sb)
- 	return 0;
- }
- 
-+static inline void security_sb_delete(struct super_block *sb)
-+{ }
-+
- static inline void security_sb_free(struct super_block *sb)
- { }
- 
-diff --git a/security/security.c b/security/security.c
-index d60aa835b670..9337b511306c 100644
---- a/security/security.c
-+++ b/security/security.c
-@@ -898,6 +898,11 @@ int security_sb_alloc(struct super_block *sb)
- 	return rc;
- }
- 
-+void security_sb_delete(struct super_block *sb)
-+{
-+	call_void_hook(sb_delete, sb);
-+}
-+
- void security_sb_free(struct super_block *sb)
- {
- 	call_void_hook(sb_free_security, sb);
+                        Geert
+
 -- 
-2.28.0.rc2
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
