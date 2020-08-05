@@ -1,81 +1,92 @@
-Return-Path: <SRS0=TE/4=BO=vger.kernel.org=linux-doc-owner@kernel.org>
-MIME-Version: 1.0
-References: <20200626210917.358969-1-brendanhiggins@google.com>
- <20200626210917.358969-2-brendanhiggins@google.com> <202006261416.F4EAAE47E3@keescook>
- <CAFd5g47vu5vmrXnS0sLu+hdC2HmYz7GY82sE8rhcHfNkuC1NRw@mail.gmail.com> <20200708043128.GY4332@42.do-not-panic.com>
-In-Reply-To: <20200708043128.GY4332@42.do-not-panic.com>
-From: Brendan Higgins <brendanhiggins@google.com>
-Date: Tue, 4 Aug 2020 13:03:35 -0700
-Message-ID: <CAFd5g45vE7CvgEKYNJeLUiyZb=6Ps52nSqQPJ35+EyC7Y3wkdw@mail.gmail.com>
-Subject: Re: [PATCH v5 01/12] vmlinux.lds.h: add linker section for KUnit test suites
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-doc-owner@vger.kernel.org
-To: Luis Chamberlain <mcgrof@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>, catalin.marinas@arm.com, will@kernel.org, Michal Simek <monstr@monstr.eu>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Zankel <chris@zankel.net>, jcmvbkbc@gmail.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org
+Return-Path: <SRS0=ubji=BP=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:49182 "EHLO gate.crashing.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725969AbgHEQS5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Aug 2020 12:18:57 -0400
+Date: Wed, 5 Aug 2020 08:35:05 -0500
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH v8 5/8] powerpc/vdso: Prepare for switching VDSO to generic C implementation.
+Message-ID: <20200805133505.GN6753@gate.crashing.org>
+References: <cover.1588079622.git.christophe.leroy@c-s.fr> <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr> <878sflvbad.fsf@mpe.ellerman.id.au> <65fd7823-cc9d-c05a-0816-c34882b5d55a@csgroup.eu> <87wo2dy5in.fsf@mpe.ellerman.id.au>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87wo2dy5in.fsf@mpe.ellerman.id.au>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200804200335.jmrrmdusW91G_Ryj4-4mka4iAc7PVWEZrn0sJtzH1hM@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Christophe Leroy <christophe.leroy@csgroup.eu>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, nathanl@linux.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, Tulio Magno Quites Machado Filho <tuliom@linux.ibm.com>, luto@kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20200805133505.eeB-tJZSA74L2MGBMz7y79_5Eu4Eohb-vzsKGw0YP9k@z>
 
-On Tue, Jul 7, 2020 at 9:31 PM Luis Chamberlain <mcgrof@kernel.org> wrote:
->
-> On Fri, Jun 26, 2020 at 02:22:11PM -0700, Brendan Higgins wrote:
-> > On Fri, Jun 26, 2020 at 2:20 PM Kees Cook <keescook@chromium.org> wrote:
-> > >
-> > > On Fri, Jun 26, 2020 at 02:09:06PM -0700, Brendan Higgins wrote:
-> > > > Add a linker section where KUnit can put references to its test suites.
-> > > > This patch is the first step in transitioning to dispatching all KUnit
-> > > > tests from a centralized executor rather than having each as its own
-> > > > separate late_initcall.
-> > > >
-> > > > Co-developed-by: Iurii Zaikin <yzaikin@google.com>
-> > > > Signed-off-by: Iurii Zaikin <yzaikin@google.com>
-> > > > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> > > > Reviewed-by: Stephen Boyd <sboyd@kernel.org>
-> > > > ---
-> > > >  include/asm-generic/vmlinux.lds.h | 8 ++++++++
-> > > >  1 file changed, 8 insertions(+)
-> > > >
-> > > > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> > > > index db600ef218d7d..4f9b036fc9616 100644
-> > > > --- a/include/asm-generic/vmlinux.lds.h
-> > > > +++ b/include/asm-generic/vmlinux.lds.h
-> > > > @@ -881,6 +881,13 @@
-> > > >               KEEP(*(.con_initcall.init))                             \
-> > > >               __con_initcall_end = .;
-> > > >
-> > > > +/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
-> > >
-> > > Nit on naming:
-> > >
-> > > > +#define KUNIT_TEST_SUITES                                            \
-> > >
-> > > I would call this KUNIT_TABLE to maintain the same names as other things
-> > > of this nature.
-> > >
-> > > > +             . = ALIGN(8);                                           \
-> > > > +             __kunit_suites_start = .;                               \
-> > > > +             KEEP(*(.kunit_test_suites))                             \
-> > > > +             __kunit_suites_end = .;
-> > > > +
-> > > >  #ifdef CONFIG_BLK_DEV_INITRD
-> > > >  #define INIT_RAM_FS                                                  \
-> > > >       . = ALIGN(4);                                                   \
-> > > > @@ -1056,6 +1063,7 @@
-> > > >               INIT_CALLS                                              \
-> > > >               CON_INITCALL                                            \
-> > > >               INIT_RAM_FS                                             \
-> > > > +             KUNIT_TEST_SUITES                                       \
-> > > >       }
-> > >
-> > > Nack: this must be in INIT_DATA, not in INIT_DATA_SECTION. Not all
-> > > architectures use the INIT_DATA_SECTION macro (e.g. arm64), but everything
-> > > uses INIT_DATA.
+Hi!
+
+On Wed, Aug 05, 2020 at 04:24:16PM +1000, Michael Ellerman wrote:
+> Christophe Leroy <christophe.leroy@csgroup.eu> writes:
+> > Indeed, 32-bit doesn't have a redzone, so I believe it needs a stack 
+> > frame whenever it has anything to same.
+> 
+> Yeah OK that would explain it.
+> 
+> > Here is what I have in libc.so:
 > >
-> > Oh, maybe that would eliminate the need for the other linkerscript
-> > patches? That would be nice.
+> > 000fbb60 <__clock_gettime>:
+> >     fbb60:	94 21 ff e0 	stwu    r1,-32(r1)
 
-Sorry for the delayed response. I got pulled into some other things.
+This is the *only* place where you can use a negative offset from r1:
+in the stwu to extend the stack (set up a new stack frame, or make the
+current one bigger).
 
-> Curious, did changing it as Kees suggest fix it for m68k?
+> > diff --git a/arch/powerpc/include/asm/vdso/gettimeofday.h 
+> > b/arch/powerpc/include/asm/vdso/gettimeofday.h
+> > index a0712a6e80d9..0b6fa245d54e 100644
+> > --- a/arch/powerpc/include/asm/vdso/gettimeofday.h
+> > +++ b/arch/powerpc/include/asm/vdso/gettimeofday.h
+> > @@ -10,6 +10,7 @@
+> >     .cfi_startproc
+> >   	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+> >   	mflr		r0
+> > +	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+> >     .cfi_register lr, r0
+> 
+> The cfi_register should come directly after the mflr I think.
 
-It did! There are still some architectures I cannot test due to a lack
-of GCC or QEMU support, but it seems to work on everything else now.
+That is the idiomatic way to write it, and most obviously correct.  But
+as long as the value in LR at function entry is available in multiple
+places (like, in LR and in R0 here), it is fine to use either for
+unwinding.  Sometimes you can use this to optimise the unwind tables a
+bit -- not really worth it in hand-written code, it's more important to
+make it legible ;-)
+
+> >> There's also no code to load/restore the TOC pointer on BE, which I
+> >> think we'll need to handle.
+> >
+> > I see no code in the generated vdso64.so doing anything with r2, but if 
+> > you think that's needed, just let's do it:
+> 
+> Hmm, true.
+> 
+> The compiler will use the toc for globals (and possibly also for large
+> constants?)
+
+And anything else it bloody well wants to, yeah :-)
+
+> AFAIK there's no way to disable use of the toc, or make it a build error
+> if it's needed.
+
+Yes.
+
+> At the same time it's much safer for us to just save/restore r2, and
+> probably in the noise performance wise.
+
+If you want a function to be able to work with ABI-compliant code safely
+(in all cases), you'll have to make it itself ABI-compliant as well,
+yes :-)
+
+> So yeah we should probably do as below.
+
+[ snip ]
+
+Looks good yes.
+
+
+Segher
