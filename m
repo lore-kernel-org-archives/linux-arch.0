@@ -1,128 +1,72 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: [git pull] regset work
-Date: Thu, 6 Aug 2020 15:10:44 +0100
-Message-ID: <20200806141044.GP1236603@ZenIV.linux.org.uk>
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH v8 5/8] powerpc/vdso: Prepare for switching VDSO to
+ generic C implementation.
+Date: Thu, 6 Aug 2020 13:33:16 -0500
+Message-ID: <20200806183316.GV6753@gate.crashing.org>
+References: <cover.1588079622.git.christophe.leroy@c-s.fr>
+ <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr>
+ <878sflvbad.fsf@mpe.ellerman.id.au>
+ <65fd7823-cc9d-c05a-0816-c34882b5d55a@csgroup.eu>
+ <87wo2dy5in.fsf@mpe.ellerman.id.au> <20200805133505.GN6753@gate.crashing.org>
+ <87r1sky1hm.fsf@mpe.ellerman.id.au>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44924 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729894AbgHFRAf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Aug 2020 13:00:35 -0400
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+In-Reply-To: <87r1sky1hm.fsf@mpe.ellerman.id.au>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, nathanl@linux.ibm.com, arnd@arndb.de, linux-kernel@vger.kernel.org, Tulio Magno Quites Machado Filho <tuliom@linux.ibm.com>, Paul Mackerras <paulus@samba.org>, luto@kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-	regset API changes.  Regularize copy_regset_{to,from}_user() callers,
-switch to saner calling conventions for ->get(), kill user_regset_copyout().
-->put() side of things will have to wait for the next cycle, unfortunately.
-The series had been posted (l-k, linux-arch) and sat in -next for weeks.
-The balance is about -1KLoC and replacements for ->get() instances are a lot
-saner.
+Hi!
 
-	Two trivial conflicts - one in arch/x86/include/asm/fpu/xstate.h
-(obvious merge), another in arch/x86/kernel/fpu/xstate.c (the variant from
-this branch is the right one).
+On Thu, Aug 06, 2020 at 12:03:33PM +1000, Michael Ellerman wrote:
+> Segher Boessenkool <segher@kernel.crashing.org> writes:
+> > On Wed, Aug 05, 2020 at 04:24:16PM +1000, Michael Ellerman wrote:
+> >> Christophe Leroy <christophe.leroy@csgroup.eu> writes:
+> >> > Indeed, 32-bit doesn't have a redzone, so I believe it needs a stack 
+> >> > frame whenever it has anything to same.
 
-The following changes since commit b3a9e3b9622ae10064826dccb4f7a52bd88c7407:
+^^^
 
-  Linux 5.8-rc1 (2020-06-14 12:45:04 -0700)
+> >> >     fbb60:	94 21 ff e0 	stwu    r1,-32(r1)
+> >
+> > This is the *only* place where you can use a negative offset from r1:
+> > in the stwu to extend the stack (set up a new stack frame, or make the
+> > current one bigger).
+> 
+> (You're talking about 32-bit code here right?)
 
-are available in the git repository at:
+The "SYSV" ELF binding, yeah, which is used for 32-bit on Linux (give or
+take, ho hum).
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git work.regset
+The ABIs that have a red zone are much nicer here (but less simple) :-)
 
-for you to fetch changes up to ce327e1c54119179066d6f3573a28001febc9265:
+> >> At the same time it's much safer for us to just save/restore r2, and
+> >> probably in the noise performance wise.
+> >
+> > If you want a function to be able to work with ABI-compliant code safely
+> > (in all cases), you'll have to make it itself ABI-compliant as well,
+> > yes :-)
+> 
+> True. Except this is the VDSO which has previously been a bit wild west
+> as far as ABI goes :)
 
-  regset: kill user_regset_copyout{,_zero}() (2020-07-27 14:31:13 -0400)
+It could get away with many things because it was guaranteed to be a
+leaf function.  Some of those things even violate the ABIs, but you can
+get away with it easily, much reduced scope.  Now if this is generated
+code, violating the rules will catch up with you sooner rather than
+later ;-)
 
-----------------------------------------------------------------
-Al Viro (42):
-      x86: copy_fpstate_to_sigframe(): have fpregs_soft_get() use kernel buffer
-      x86: kill dump_fpu()
-      [ia64] sanitize elf_access_gpreg()
-      [ia64] teach elf_access_reg() to handle the missing range (r16..r31)
-      [ia64] regularize do_gpregs_[gs]et()
-      [ia64] access_uarea(): stop bothering with gpregs_[gs]et()
-      [ia64] access_uarea(): don't bother with fpregs_[gs]et()
-      sparc64: switch genregs32_get() to use of get_from_target()
-      sparc32: get rid of odd callers of copy_regset_to_user()
-      sparc64: get rid of odd callers of copy_regset_to_user()
-      arm64: take fetching compat reg out of pt_regs into a new helper
-      arm64: get rid of copy_regset_to_user() in compat_ptrace_read_user()
-      arm64: sanitize compat_ptrace_write_user()
-      sparc32: get rid of odd callers of copy_regset_from_user()
-      sparc64: get rid of odd callers of copy_regset_from_user()
-      introduction of regset ->get() wrappers, switching ELF coredumps to those
-      Merge branches 'regset.x86', 'regset.ia64', 'regset.sparc' and 'regset.arm64' into work.regset
-      copy_regset_to_user(): do all copyout at once.
-      regset: new method and helpers for it
-      x86: switch to ->regset_get()
-      powerpc: switch to ->regset_get()
-      s390: switch to ->regset_get()
-      sparc: switch to ->regset_get()
-      mips: switch to ->regset_get()
-      arm64: switch to ->regset_get()
-      sh: convert to ->regset_get()
-      arm: switch to ->regset_get()
-      arc: switch to ->regset_get()
-      ia64: switch to ->regset_get()
-      c6x: switch to ->regset_get()
-      riscv: switch to ->regset_get()
-      openrisc: switch to ->regset_get()
-      h8300: switch to ->regset_get()
-      hexagon: switch to ->regset_get()
-      nios2: switch to ->regset_get()
-      nds32: switch to ->regset_get()
-      parisc: switch to ->regset_get()
-      xtensa: switch to ->regset_get()
-      csky: switch to ->regset_get()
-      regset: kill ->get()
-      regset(): kill ->get_size()
-      regset: kill user_regset_copyout{,_zero}()
 
- arch/arc/kernel/ptrace.c                    | 148 +++----
- arch/arm/kernel/ptrace.c                    |  52 +--
- arch/arm64/kernel/ptrace.c                  | 303 +++++---------
- arch/c6x/kernel/ptrace.c                    |  11 +-
- arch/csky/kernel/ptrace.c                   |  24 +-
- arch/h8300/kernel/ptrace.c                  |  17 +-
- arch/hexagon/kernel/ptrace.c                |  62 +--
- arch/ia64/kernel/ptrace.c                   | 396 +++++++------------
- arch/mips/kernel/ptrace.c                   | 204 +++-------
- arch/nds32/kernel/ptrace.c                  |   9 +-
- arch/nios2/kernel/ptrace.c                  |  51 +--
- arch/openrisc/kernel/ptrace.c               |  26 +-
- arch/parisc/kernel/ptrace.c                 |  84 +---
- arch/powerpc/kernel/ptrace/ptrace-altivec.c |  37 +-
- arch/powerpc/kernel/ptrace/ptrace-decl.h    |  44 +--
- arch/powerpc/kernel/ptrace/ptrace-novsx.c   |   5 +-
- arch/powerpc/kernel/ptrace/ptrace-spe.c     |  16 +-
- arch/powerpc/kernel/ptrace/ptrace-tm.c      | 152 +++----
- arch/powerpc/kernel/ptrace/ptrace-view.c    | 185 ++++-----
- arch/powerpc/kernel/ptrace/ptrace-vsx.c     |  13 +-
- arch/riscv/kernel/ptrace.c                  |  33 +-
- arch/s390/kernel/ptrace.c                   | 199 +++-------
- arch/sh/kernel/process_32.c                 |   5 +-
- arch/sh/kernel/ptrace_32.c                  |  48 +--
- arch/sparc/kernel/ptrace_32.c               | 269 +++++++------
- arch/sparc/kernel/ptrace_64.c               | 591 ++++++++++++++--------------
- arch/x86/include/asm/fpu/internal.h         |   1 -
- arch/x86/include/asm/fpu/regset.h           |   4 +-
- arch/x86/include/asm/fpu/xstate.h           |   4 +-
- arch/x86/kernel/fpu/regset.c                |  55 +--
- arch/x86/kernel/fpu/signal.c                |  13 +-
- arch/x86/kernel/fpu/xstate.c                | 164 ++------
- arch/x86/kernel/ptrace.c                    |  75 ++--
- arch/x86/kernel/tls.c                       |  32 +-
- arch/x86/kernel/tls.h                       |   2 +-
- arch/x86/math-emu/fpu_entry.c               |  19 +-
- arch/xtensa/kernel/ptrace.c                 |  16 +-
- fs/binfmt_elf.c                             |  54 ++-
- include/linux/regset.h                      | 218 +++-------
- kernel/Makefile                             |   2 +-
- kernel/regset.c                             |  76 ++++
- 41 files changed, 1370 insertions(+), 2349 deletions(-)
- create mode 100644 kernel/regset.c
+Segher
