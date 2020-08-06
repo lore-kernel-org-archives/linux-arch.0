@@ -1,58 +1,71 @@
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: [PATCH v3 3/6] mm: introduce memfd_secret system call to create
- "secret" memory areas
-Date: Thu, 6 Aug 2020 14:14:15 +0300
-Message-ID: <20200806111415.GL163101@linux.ibm.com>
-References: <20200804095035.18778-1-rppt@kernel.org>
- <20200804095035.18778-4-rppt@kernel.org>
- <20200806102757.7vobcaewdukr2xdl@box>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: improve compat handling for the i386 u64 alignment quirk v2
+Date: Thu, 6 Aug 2020 15:50:36 +0200
+Message-ID: <20200806135036.GA2077896@gmail.com>
+References: <20200731122202.213333-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20200806102757.7vobcaewdukr2xdl@box>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Dave Hansen <dave.hansen@linux.intel.com>, linux-mm@kvack.org, "H. Peter Anvin" <hpa@zytor.com>, Christopher Lameter <cl@linux.com>, Idan Yaniv <idan.yaniv@ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Tycho Andersen <tycho@tycho.ws>, linux-nvdimm@lists.01.org, Will Deacon <will@kernel.org>, x86@kernel.org, Matthew Wilcox <willy@infradead.org>, Ingo Molnar <mingo@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Arnd Bergmann <arnd@arndb.de>, James Bottomley <jejb@linux.ibm.com>, Borislav Petkov <bp@alien8.de>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Paul Walmsley <paul.walmsley@sifive.com>, Dan Williams <dan.j.williams@intel.com>linux-a
+In-Reply-To: <20200731122202.213333-1-hch@lst.de>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Jan Kara <jack@suse.com>, linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 06, 2020 at 01:27:57PM +0300, Kirill A. Shutemov wrote:
-> On Tue, Aug 04, 2020 at 12:50:32PM +0300, Mike Rapoport wrote:
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> > 
-> > Introduce "memfd_secret" system call with the ability to create memory
-> > areas visible only in the context of the owning process and not mapped not
-> > only to other processes but in the kernel page tables as well.
-> > 
-> > The user will create a file descriptor using the memfd_secret() system call
-> > where flags supplied as a parameter to this system call will define the
-> > desired protection mode for the memory associated with that file
-> > descriptor. Currently there are two protection modes:
-> > 
-> > * exclusive - the memory area is unmapped from the kernel direct map and it
-> >               is present only in the page tables of the owning mm.
-> > * uncached  - the memory area is present only in the page tables of the
-> >               owning mm and it is mapped there as uncached.
+
+* Christoph Hellwig <hch@lst.de> wrote:
+
+> Hi all,
 > 
-> I'm not sure why flag for exclusive mode is needed. It has to be default.
-> And if you want uncached on top of that set the flag.
+> the i386 ABI is a little special in that it uses less than natural
+> alignment for 64-bit integer types (u64 and s64), and a significant
+> amount of our compat handlers deals with just that.  Unfortunately
+> there is no good way to check for this specific quirk at runtime,
+> similar how in_compat_syscall() checks for a compat syscall.  This
+> series adds such a check, and then uses the quota code as an example
+> of how this improves the compat handling.  I have a few other places
+> in mind where this will also be useful going forward.
+> 
+> Changes since v1:
+>  - use asm-generic/compat.h instead of linux/compat.h for
+>    compat_u64 and compat_s64
+>  - fix a typo
+> 
+> Diffstat:
+>  b/arch/arm64/include/asm/compat.h        |    2 
+>  b/arch/mips/include/asm/compat.h         |    2 
+>  b/arch/parisc/include/asm/compat.h       |    2 
+>  b/arch/powerpc/include/asm/compat.h      |    2 
+>  b/arch/s390/include/asm/compat.h         |    2 
+>  b/arch/sparc/include/asm/compat.h        |    3 
+>  b/arch/x86/entry/syscalls/syscall_32.tbl |    2 
+>  b/arch/x86/include/asm/compat.h          |    3 
+>  b/fs/quota/Kconfig                       |    5 -
+>  b/fs/quota/Makefile                      |    1 
+>  b/fs/quota/compat.h                      |   34 ++++++++
+>  b/fs/quota/quota.c                       |   73 +++++++++++++++---
+>  b/include/asm-generic/compat.h           |    8 ++
+>  b/include/linux/compat.h                 |    9 ++
+>  b/include/linux/quotaops.h               |    3 
+>  b/kernel/sys_ni.c                        |    1 
+>  fs/quota/compat.c                        |  120 -------------------------------
+>  17 files changed, 113 insertions(+), 159 deletions(-)
 
-Makes sense.
+If nobody objects to this being done at runtime, and if it's 100% ABI 
+compatible, then the x86 impact looks good to me:
 
-> What am I missing?
->
-> -- 
->  Kirill A. Shutemov
+Acked-by: Ingo Molnar <mingo@kernel.org>
 
--- 
-Sincerely yours,
-Mike.
+Thanks,
+
+	Ingo
