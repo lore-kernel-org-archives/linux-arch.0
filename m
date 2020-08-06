@@ -1,45 +1,29 @@
-Return-Path: <SRS0=mj0N=BO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59272 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726011AbgHDXw2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Aug 2020 19:52:28 -0400
-Message-ID: <80v-q$4-o4pqyq0@6eeih174.p55>
-From: "Mr Barrister Hans Erich" <dave@dbsoundfactory.com>
-Reply-To: "Mr Barrister Hans Erich" <dave@dbsoundfactory.com>
-Subject: RE:PERSONAL LETTER FROM MRS RASHIA AMIRA
-Date: Mon, 07 Oct 19 18:22:17 GMT
-MIME-Version: 1.0
-Content-Type: multipart/alternative;
-        boundary="_.A4476ECDD73A3"
+Return-Path: <SRS0=BY23=BQ=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:44846 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730365AbgHFRUB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Aug 2020 13:20:01 -0400
+Subject: Re: [GIT PULL] csky updates for v5.9-rc1
+From: pr-tracker-bot@kernel.org
+In-Reply-To: <1596672601-8227-1-git-send-email-guoren@kernel.org>
+References: <1596672601-8227-1-git-send-email-guoren@kernel.org>
+Message-ID: <159673440057.17279.11436521736758693246.pr-tracker-bot@kernel.org>
+Date: Thu, 06 Aug 2020 17:20:00 +0000
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linkos@binet.lv
+To: guoren@kernel.org
+Cc: torvalds@linux-foundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org
+Message-ID: <20200806172000.rhRowS0BRNW3p9IK6nDwX_08HU7HGLUSWCAwqKqKzEg@z>
 
+The pull request you sent on Thu,  6 Aug 2020 08:10:01 +0800:
 
---_.A4476ECDD73A3
-Content-Type: text/plain;
-Content-Transfer-Encoding: quoted-printable
+> https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.9-rc1
 
-Greetings
+has been merged into torvalds/linux.git:
+https://git.kernel.org/torvalds/c/2044513ffe4a9c18e6e2a64f048e05d8b62fa927
 
-My name is Barrister Hans Erich.
+Thank you!
 
-I have a client who is interested to invest in your country, she is a well=
- known politician in her country and deserve a lucrative investment partne=
-rship with you outside her country without any delay   Please can you mana=
-ge such investment please Kindly reply for further details.
-
-Your full names --------
-
-
-Your urgent response will be appreciated
-
-Thank you and God bless you.
-
-Barrister Hans Erich
-
-Yours sincerely,
-Barrister Hans Erich
-CONTACT: hanserich9helmut@gmail.com
-
---_.A4476ECDD73A3--
+-- 
+Deet-doot-dot, I am a bot.
+https://korg.docs.kernel.org/prtracker.html
