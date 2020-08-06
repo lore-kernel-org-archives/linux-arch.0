@@ -1,59 +1,62 @@
-Return-Path: <SRS0=mj0N=BO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44148 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728745AbgHDQGx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Aug 2020 12:06:53 -0400
-From: Arvind Sankar <nivedita@alum.mit.edu>
-Date: Tue, 4 Aug 2020 12:06:49 -0400
-Subject: Re: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input
- sections
-Message-ID: <20200804160649.GA2409491@rani.riverdale.lan>
-References: <20200731230820.1742553-1-keescook@chromium.org>
- <20200731230820.1742553-14-keescook@chromium.org>
- <20200801035128.GB2800311@rani.riverdale.lan>
- <20200803190506.GE1299820@tassilo.jf.intel.com>
- <20200803201525.GA1351390@rani.riverdale.lan>
- <20200804044532.GC1321588@tassilo.jf.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Return-Path: <SRS0=BY23=BQ=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:59882 "EHLO gate.crashing.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728053AbgHFSeW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Aug 2020 14:34:22 -0400
+Date: Thu, 6 Aug 2020 13:33:16 -0500
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH v8 5/8] powerpc/vdso: Prepare for switching VDSO to generic C implementation.
+Message-ID: <20200806183316.GV6753@gate.crashing.org>
+References: <cover.1588079622.git.christophe.leroy@c-s.fr> <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr> <878sflvbad.fsf@mpe.ellerman.id.au> <65fd7823-cc9d-c05a-0816-c34882b5d55a@csgroup.eu> <87wo2dy5in.fsf@mpe.ellerman.id.au> <20200805133505.GN6753@gate.crashing.org> <87r1sky1hm.fsf@mpe.ellerman.id.au>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200804044532.GC1321588@tassilo.jf.intel.com>
+In-Reply-To: <87r1sky1hm.fsf@mpe.ellerman.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <ak@linux.intel.com>
-Cc: Arvind Sankar <nivedita@alum.mit.edu>, Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Michal Marek <michal.lkml@markovi.net>
-Message-ID: <20200804160649.8q__ij3SUxRXwhoQLhsOlFL8xeI-ob31UKmC5shkZ3E@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Christophe Leroy <christophe.leroy@csgroup.eu>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, nathanl@linux.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, Tulio Magno Quites Machado Filho <tuliom@linux.ibm.com>, luto@kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20200806183316.aIgtFstDr6KepSkoSpheH66sXzFVsndfmU7fTcUp32M@z>
 
-On Mon, Aug 03, 2020 at 09:45:32PM -0700, Andi Kleen wrote:
-> > Why is that? Both .text and .text.hot have alignment of 2^4 (default
-> > function alignment on x86) by default, so it doesn't seem like it should
-> > matter for packing density.  Avoiding interspersing cold text among
+Hi!
+
+On Thu, Aug 06, 2020 at 12:03:33PM +1000, Michael Ellerman wrote:
+> Segher Boessenkool <segher@kernel.crashing.org> writes:
+> > On Wed, Aug 05, 2020 at 04:24:16PM +1000, Michael Ellerman wrote:
+> >> Christophe Leroy <christophe.leroy@csgroup.eu> writes:
+> >> > Indeed, 32-bit doesn't have a redzone, so I believe it needs a stack 
+> >> > frame whenever it has anything to same.
+
+^^^
+
+> >> >     fbb60:	94 21 ff e0 	stwu    r1,-32(r1)
+> >
+> > This is the *only* place where you can use a negative offset from r1:
+> > in the stwu to extend the stack (set up a new stack frame, or make the
+> > current one bigger).
 > 
-> You may lose part of a cache line on each unit boundary. Linux has 
-> a lot of units, some of them small. All these bytes add up.
+> (You're talking about 32-bit code here right?)
 
-Separating out .text.unlikely, which isn't aligned, slightly _reduces_
-this loss, but not by much -- just over 1K on a defconfig. More
-importantly, it moves cold code out of line (~320k on a defconfig),
-giving better code density for the hot code.
+The "SYSV" ELF binding, yeah, which is used for 32-bit on Linux (give or
+take, ho hum).
 
-For .text and .text.hot, you lose the alignment padding on every
-function boundary, not unit boundary, because of the 16-byte alignment.
-Whether .text.hot and .text are arranged by translation unit or not
-makes no difference.
+The ABIs that have a red zone are much nicer here (but less simple) :-)
 
-With *(.text.hot) *(.text) you get HHTT, with *(.text.hot .text) you get
-HTHT, but in both cases the individual chunks are already aligned to 16
-bytes. If .text.hot _had_ different alignment requirements to .text, the
-HHTT should actually give better packing in general, I think.
-
+> >> At the same time it's much safer for us to just save/restore r2, and
+> >> probably in the noise performance wise.
+> >
+> > If you want a function to be able to work with ABI-compliant code safely
+> > (in all cases), you'll have to make it itself ABI-compliant as well,
+> > yes :-)
 > 
-> It's bad for TLB locality too. Sadly with all the fine grained protection
-> changes the 2MB coverage is eroding anyways, but this makes it even worse.
-> 
+> True. Except this is the VDSO which has previously been a bit wild west
+> as far as ABI goes :)
 
-Yes, that could be true for .text.hot, depending on whether the hot
-functions are called from all over the kernel (in which case putting
-them together ought to be better) or mostly from regular text within the
-unit in which they appeared (in which case it would be better together
-with that code).
+It could get away with many things because it was guaranteed to be a
+leaf function.  Some of those things even violate the ABIs, but you can
+get away with it easily, much reduced scope.  Now if this is generated
+code, violating the rules will catch up with you sooner rather than
+later ;-)
+
+
+Segher
