@@ -1,63 +1,107 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v8 5/8] powerpc/vdso: Prepare for switching VDSO to generic C implementation.
-Date: Fri, 07 Aug 2020 12:44:42 +1000
-Message-ID: <87mu37xjhh.fsf@mpe.ellerman.id.au>
-References: <cover.1588079622.git.christophe.leroy@c-s.fr> <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr> <878sflvbad.fsf@mpe.ellerman.id.au> <65fd7823-cc9d-c05a-0816-c34882b5d55a@csgroup.eu> <87wo2dy5in.fsf@mpe.ellerman.id.au> <20200805133505.GN6753@gate.crashing.org> <87r1sky1hm.fsf@mpe.ellerman.id.au> <20200806183316.GV6753@gate.crashing.org>
+From: David Laight <David.Laight-ZS65k/vG3HxXrIkS9f7CXA@public.gmane.org>
+Subject: RE: [PATCH 3/3] quota: simplify the quotactl compat handling
+Date: Fri, 7 Aug 2020 09:07:06 +0000
+Message-ID: <97285a880c434a4ea9072ff1b9c238e7@AcuMS.aculab.com>
+References: <20200731122202.213333-1-hch@lst.de>
+ <20200731122202.213333-4-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bilbo.ozlabs.org ([203.11.71.1]:42129 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726058AbgHGCop (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Aug 2020 22:44:45 -0400
-In-Reply-To: <20200806183316.GV6753@gate.crashing.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Christophe Leroy <christophe.leroy@csgroup.eu>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, nathanl@linux.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, Tulio Magno Quites Machado Filho <tuliom@linux.ibm.com>, luto@kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20200731122202.213333-4-hch-jcswGhMUV9g@public.gmane.org>
+Content-Language: en-US
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: 'Christoph Hellwig' <hch-jcswGhMUV9g@public.gmane.org>, "x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jan Kara <jack-IBi9RG/b67k@public.gmane.org>
+Cc: "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Jan Kara <jack-AlSwsSmVLrQ@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-Segher Boessenkool <segher@kernel.crashing.org> writes:
-> On Thu, Aug 06, 2020 at 12:03:33PM +1000, Michael Ellerman wrote:
->> Segher Boessenkool <segher@kernel.crashing.org> writes:
->> > On Wed, Aug 05, 2020 at 04:24:16PM +1000, Michael Ellerman wrote:
->> >> Christophe Leroy <christophe.leroy@csgroup.eu> writes:
->> >> > Indeed, 32-bit doesn't have a redzone, so I believe it needs a stack 
->> >> > frame whenever it has anything to same.
+From: Christoph Hellwig
+> Sent: 31 July 2020 13:22
 >
-> ^^^
->
->> >> >     fbb60:	94 21 ff e0 	stwu    r1,-32(r1)
->> >
->> > This is the *only* place where you can use a negative offset from r1:
->> > in the stwu to extend the stack (set up a new stack frame, or make the
->> > current one bigger).
->> 
->> (You're talking about 32-bit code here right?)
->
-> The "SYSV" ELF binding, yeah, which is used for 32-bit on Linux (give or
-> take, ho hum).
->
-> The ABIs that have a red zone are much nicer here (but less simple) :-)
+> Fold the misaligned u64 workarounds into the main quotactl flow instead
+> of implementing a separate compat syscall handler.
+> 
+...
+> diff --git a/fs/quota/compat.h b/fs/quota/compat.h
+> new file mode 100644
+> index 00000000000000..ef7d1e12d650b3
+> --- /dev/null
+> +++ b/fs/quota/compat.h
+> @@ -0,0 +1,34 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +#include <linux/compat.h>
+> +
+> +struct compat_if_dqblk {
+> +	compat_u64			dqb_bhardlimit;
+> +	compat_u64			dqb_bsoftlimit;
+> +	compat_u64			dqb_curspace;
+> +	compat_u64			dqb_ihardlimit;
+> +	compat_u64			dqb_isoftlimit;
+> +	compat_u64			dqb_curinodes;
+> +	compat_u64			dqb_btime;
+> +	compat_u64			dqb_itime;
+> +	compat_uint_t			dqb_valid;
+> +};
+> +
+> +struct compat_fs_qfilestat {
+> +	compat_u64			dqb_bhardlimit;
+> +	compat_u64			qfs_nblks;
+> +	compat_uint_t			qfs_nextents;
+> +};
+> +
+> +struct compat_fs_quota_stat {
+> +	__s8				qs_version;
+> +	__u16				qs_flags;
+> +	__s8				qs_pad;
+> +	struct compat_fs_qfilestat	qs_uquota;
+> +	struct compat_fs_qfilestat	qs_gquota;
+> +	compat_uint_t			qs_incoredqs;
+> +	compat_int_t			qs_btimelimit;
+> +	compat_int_t			qs_itimelimit;
+> +	compat_int_t			qs_rtbtimelimit;
+> +	__u16				qs_bwarnlimit;
+> +	__u16				qs_iwarnlimit;
+> +};
+> diff --git a/fs/quota/quota.c b/fs/quota/quota.c
+> index 5444d3c4d93f37..e1e9d05a14c3e4 100644
+> --- a/fs/quota/quota.c
+> +++ b/fs/quota/quota.c
+> @@ -19,6 +19,7 @@
+>  #include <linux/types.h>
+>  #include <linux/writeback.h>
+>  #include <linux/nospec.h>
+> +#include "compat.h"
+> 
+>  static int check_quotactl_permission(struct super_block *sb, int type, int cmd,
+>  				     qid_t id)
+> @@ -211,8 +212,18 @@ static int quota_getquota(struct super_block *sb, int type, qid_t id,
+>  	if (ret)
+>  		return ret;
+>  	copy_to_if_dqblk(&idq, &fdq);
+> -	if (copy_to_user(addr, &idq, sizeof(idq)))
+> -		return -EFAULT;
+> +
+> +	if (compat_need_64bit_alignment_fixup()) {
+> +		struct compat_if_dqblk __user *compat_dqblk = addr;
+> +
+> +		if (copy_to_user(compat_dqblk, &idq, sizeof(*compat_dqblk)))
+> +			return -EFAULT;
+> +		if (put_user(idq.dqb_valid, &compat_dqblk->dqb_valid))
+> +			return -EFAULT;
 
-Yep, just checking I wasn't misunderstanding your comment about negative
-offsets.
+Isn't this always copying the same value again?
+I don't think Linux has any 64 bit systems with a 32bit compat
+layer that have 64bit 'int'.
+Since the only difference in the structures is the 'end padding'
+isn't it enough to just copy the size of the 'compat' structure
+in a compat system call?
+It might even be that gcc will optimise the condition away
+when the structure sizes match.
 
->> >> At the same time it's much safer for us to just save/restore r2, and
->> >> probably in the noise performance wise.
->> >
->> > If you want a function to be able to work with ABI-compliant code safely
->> > (in all cases), you'll have to make it itself ABI-compliant as well,
->> > yes :-)
->> 
->> True. Except this is the VDSO which has previously been a bit wild west
->> as far as ABI goes :)
->
-> It could get away with many things because it was guaranteed to be a
-> leaf function.  Some of those things even violate the ABIs, but you can
-> get away with it easily, much reduced scope.  Now if this is generated
-> code, violating the rules will catch up with you sooner rather than
-> later ;-)
+The same is true for a lot of the rest of this file.
 
-Agreed.
+	David
 
-cheers
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
