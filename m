@@ -1,89 +1,132 @@
-Return-Path: <SRS0=OB7A=BN=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58298 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726130AbgHCUP3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2020 16:15:29 -0400
-From: Arvind Sankar <nivedita@alum.mit.edu>
-Date: Mon, 3 Aug 2020 16:15:25 -0400
-Subject: Re: [PATCH v5 13/36] vmlinux.lds.h: add PGO and AutoFDO input
- sections
-Message-ID: <20200803201525.GA1351390@rani.riverdale.lan>
-References: <20200731230820.1742553-1-keescook@chromium.org>
- <20200731230820.1742553-14-keescook@chromium.org>
- <20200801035128.GB2800311@rani.riverdale.lan>
- <20200803190506.GE1299820@tassilo.jf.intel.com>
+Return-Path: <SRS0=U9ty=BR=kvack.org=owner-linux-mm@kernel.org>
+Date: Fri, 7 Aug 2020 16:19:07 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v7 29/29] arm64: mte: Add Memory Tagging Extension
+ documentation
+Message-ID: <20200807151906.GM6750@gaia>
+References: <20200715170844.30064-1-catalin.marinas@arm.com>
+ <20200715170844.30064-30-catalin.marinas@arm.com>
+ <20200727163634.GO7127@arm.com>
+ <20200728110758.GA21941@arm.com>
+ <20200728145350.GR7127@arm.com>
+ <20200728195957.GA31698@gaia>
+ <20200803124309.GC14398@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200803190506.GE1299820@tassilo.jf.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200803124309.GC14398@arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Szabolcs Nagy <szabolcs.nagy@arm.com>
+Cc: Dave Martin <Dave.Martin@arm.com>, linux-arch@vger.kernel.org, Peter Collingbourne <pcc@google.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, nd@arm.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <ak@linux.intel.com>
-Cc: Arvind Sankar <nivedita@alum.mit.edu>, Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Jian Cai <jiancai@google.com>, =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Michal Marek <michal.lkml@markovi.net>
-Message-ID: <20200803201525.snJQWriPFZQJPDvRIpoJ4eAlsD7tSCyGk24fHL9OuyI@z>
+Message-ID: <20200807151907.oCSjFJO-2rQxond09E1LcG5O2FPm8LjTZ6o-zmlT3oA@z>
 
-On Mon, Aug 03, 2020 at 12:05:06PM -0700, Andi Kleen wrote:
-> > However, the history of their being together comes from
+Hi Szabolcs,
+
+On Mon, Aug 03, 2020 at 01:43:10PM +0100, Szabolcs Nagy wrote:
+> The 07/28/2020 20:59, Catalin Marinas wrote:
+> > On Tue, Jul 28, 2020 at 03:53:51PM +0100, Szabolcs Nagy wrote:
+> > > if linux does not want to add a per process setting then only libc
+> > > will be able to opt-in to mte and only at very early in the
+> > > startup process (before executing any user code that may start
+> > > threads). this is not out of question, but i think it limits the
+> > > usage and deployment options.
 > > 
-> >   9bebe9e5b0f3 ("kbuild: Fix .text.unlikely placement")
-> > 
-> > which seems to indicate there was some problem with having them separated out,
-> > although I don't quite understand what the issue was from the commit message.
+> > There is also the risk that we try to be too flexible at this stage
+> > without a real use-case.
 > 
-> Separating it out is less efficient. Gives worse packing for the hot part
-> if they are not aligned to 64byte boundaries, which they are usually not. 
+> i don't know how mte will be turned on in libc.
 > 
-> It also improves packing of the cold part, but that probably doesn't matter.
+> if we can always turn sync tag checks on early whenever mte is
+> available then i think there is no issue.
 > 
-> -Andi
+> but if we have to make the decision later for compatibility or
+> performance reasons then per thread setting is problematic.
 
-Why is that? Both .text and .text.hot have alignment of 2^4 (default
-function alignment on x86) by default, so it doesn't seem like it should
-matter for packing density.  Avoiding interspersing cold text among
-regular/hot text seems like it should be a net win.
+At least for libc, I'm not sure how you could even turn MTE on at
+run-time. The heap allocations would have to be mapped with PROT_MTE as
+we can't easily change them (well, you could mprotect(), assuming the
+user doesn't use tagged pointers on them).
 
-That old commit doesn't reference efficiency -- it says there was some
-problem with matching when they were separated out, but there were no
-wildcard section names back then.
+There is a case to switch tag checking from asynchronous to synchronous
+at run-time based on a signal but that's rather specific to Android
+where zygote controls the signal handler. I don't think you can do this
+with libc. Even on Android, since the async fault signal is delivered
+per thread, it probably does this lazily (alternatively, it could issue
+a SIGUSRx to the other threads for synchronisation).
 
-commit 9bebe9e5b0f3109a14000df25308c2971f872605
-Author: Andi Kleen <ak@linux.intel.com>
-Date:   Sun Jul 19 18:01:19 2015 -0700
+> use of the prctl outside of libc is very limited if it's per thread
+> only:
 
-    kbuild: Fix .text.unlikely placement
-    
-    When building a kernel with .text.unlikely text the unlikely text for
-    each translation unit was put next to the main .text code in the
-    final vmlinux.
-    
-    The problem is that the linker doesn't allow more specific submatches
-    of a section name in a different linker script statement after the
-    main match.
-    
-    So we need to move them all into one line. With that change
-    .text.unlikely is at the end of everything again.
-    
-    I also moved .text.hot into the same statement though, even though
-    that's not strictly needed.
-    
-    Signed-off-by: Andi Kleen <ak@linux.intel.com>
-    Signed-off-by: Michal Marek <mmarek@suse.com>
+In the non-Android context, I think the prctl() for MTE control should
+be restricted to the libc. You can control the mode prior to the process
+being started using environment variables. I really don't see how the
+libc could handle the changing of the MTE behaviour at run-time without
+itself handling signals.
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 8bd374d3cf21..1781e54ea6d3 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -412,12 +412,10 @@
-  * during second ld run in second ld pass when generating System.map */
- #define TEXT_TEXT							\
- 		ALIGN_FUNCTION();					\
--		*(.text.hot)						\
--		*(.text .text.fixup)					\
-+		*(.text.hot .text .text.fixup .text.unlikely)		\
- 		*(.ref.text)						\
- 	MEM_KEEP(init.text)						\
- 	MEM_KEEP(exit.text)						\
--		*(.text.unlikely)
- 
- 
- /* sched.text is aling to function alignment to secure we have same
+> - application code may use it in a (elf specific) pre-initialization
+>   function, but that's a bit obscure (not exposed in c) and it is
+>   reasonable for an application to enable mte checks after it
+>   registered a signal handler for mte faults. (and at that point it
+>   may be multi-threaded).
+
+Since the app can install signal handlers, it can also deal with
+notifying other threads with a SIGUSRx, assuming that it decided this
+after multiple threads were created. If it does this while
+single-threaded, subsequent threads would inherit the first one.
+
+The only use-case I see for doing this in the kernel is if the code
+requiring an MTE behaviour change cannot install signal handlers. More
+on this below.
+
+> - library code normally initializes per thread state on the first call
+>   into the library from a given thread, but with mte, as soon as
+>   memory / pointers are tagged in one thread, all threads are
+>   affected: not performing checks in other threads is less secure (may
+>   be ok) and it means incompatible syscall abi (not ok). so at least
+>   PR_TAGGED_ADDR_ENABLE should have process wide setting for this
+>   usage.
+
+My assumption with MTE is that the libc will initialise it when the
+library is loaded (something __attribute__((constructor))) and it's
+still in single-threaded mode. Does it wait until the first malloc()
+call? Also, is there such thing as a per-thread initialiser for a
+dynamic library (not sure it can be implemented in practice though)?
+
+The PR_TAGGED_ADDR_ENABLE synchronisation at least doesn't require IPIs
+to other CPUs to change the hardware state. However, it can still race
+with thread creation or a prctl() on another thread, not sure what we
+can define here, especially as it depends on the kernel internals: e.g.
+thread creation copies some data structures of the calling thread but at
+the same time another thread wants to change such structures for all
+threads of that process. The ordering of events here looks pretty
+fragile.
+
+Maybe with another global status (per process) which takes priority over
+the per thread one would be easier. But such priority is not temporal
+(i.e. whoever called prctl() last) but pretty strict: once a global
+control was requested, it will remain global no matter what subsequent
+threads request (or we can do it the other way around).
+
+> but i guess it is fine to design the mechanism for these in a later
+> linux version, until then such usage will be unreliable (will depend
+> on how early threads are created).
+
+Until we have a real use-case, I'd not complicate the matters further.
+For example, I'm still not sure how realistic it is for an application
+to load a new heap allocator after some threads were created. Even the
+glibc support, I don't think it needs this.
+
+Could an LD_PRELOADED library be initialised after threads were created
+(I guess it could if another preloaded library created threads)? Even if
+it does, do we have an example or it's rather theoretical.
+
+If this becomes an essential use-case, we can look at adding a new flag
+for prctl() which would set the option globally, with the caveats
+mentioned above. It doesn't need to be in the initial ABI (and the
+PR_TAGGED_ADDR_ENABLE is already upstream).
+
+Thanks.
+
+-- 
+Catalin
