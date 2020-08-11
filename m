@@ -1,137 +1,32 @@
 Return-Path: <SRS0=iceZ=BV=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail29.static.mailgun.info ([104.130.122.29]:37295 "EHLO
-        mail29.static.mailgun.info" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725889AbgHKSf1 (ORCPT
+Received: from sonic304-10.consmr.mail.bf2.yahoo.com ([74.6.128.33]:40018 "EHLO
+        sonic304-10.consmr.mail.bf2.yahoo.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726023AbgHKTwO (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Aug 2020 14:35:27 -0400
-Reply-To: <bcain@codeaurora.org>
-From: "Brian Cain" <bcain@codeaurora.org>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk> <20200629182628.529995-1-viro@ZenIV.linux.org.uk> <20200629182628.529995-33-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200629182628.529995-33-viro@ZenIV.linux.org.uk>
-Subject: RE: [PATCH 33/41] hexagon: switch to ->get2()
-Date: Tue, 11 Aug 2020 13:35:23 -0500
-Message-ID: <038001d6700e$2da6af80$88f40e80$@codeaurora.org>
+        Tue, 11 Aug 2020 15:52:14 -0400
+Date: Tue, 11 Aug 2020 19:52:09 +0000 (UTC)
+From: Aisha Gadafi <aishagadafi100@aol.com>
+Reply-To: aishagadafi609@gmail.com
+Message-ID: <2118364924.335373.1597175529292@mail.yahoo.com>
+Subject: Dear Friend,
 MIME-Version: 1.0
-Content-Type: text/plain;
-        charset="us-ascii"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Content-Language: en-us
+References: <2118364924.335373.1597175529292.ref@mail.yahoo.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Al Viro' <viro@ZenIV.linux.org.uk>, 'Linus Torvalds' <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 'David Miller' <davem@davemloft.net>, 'Tony Luck' <tony.luck@intel.com>, 'Will Deacon' <will@kernel.org>
-Message-ID: <20200811183523.4Rjj3lsZkXhSjOQrSjkhF25PhobA67MbANrT4w4pFYg@z>
 
+Greetings of the day from Mrs Aisha Gaddafi
 
-> -----Original Message-----
-> From: linux-arch-owner@vger.kernel.org <linux-arch-owner@vger.kernel.org>
-> On Behalf Of Al Viro
+Dear Friend,
+Greetings and Nice Day.
+Assalamu Alaikum
+May i  use this medium to open a mutual communication with you seeking your acceptance towards investing in your country under your management as my partner, My name is Aisha  Gaddafi and presently living in Oman, i am a Widow and single Mother with three Children, the only biological Daughter of late Libyan President (Late Colonel Muammar Gaddafi) and presently i am under political asylum protection by the Omani Government.
 
-Acked-by: Brian Cain <bcain@codeaurora.org>
+I have funds worth "Twenty Seven Million Five Hundred Thousand United State Dollars" -$27.500.000.00 US Dollars which i want to entrust on you for investment project in your country.If you are willing to handle this project on my behalf, kindly reply urgent to enable me provide you more details to start the transfer process.
+I shall appreciate your urgent response through my email address below:
+ 
+aishagadafi609@gmail.com
 
-> From: Al Viro <viro@zeniv.linux.org.uk>
-> 
-> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
-> ---
->  arch/hexagon/kernel/ptrace.c | 62
-+++++++++++++++-----------------------------
->  1 file changed, 21 insertions(+), 41 deletions(-)
-> 
-> diff --git a/arch/hexagon/kernel/ptrace.c b/arch/hexagon/kernel/ptrace.c
-index
-> dcbf7ea960cc..fa6287d1a061 100644
-> --- a/arch/hexagon/kernel/ptrace.c
-> +++ b/arch/hexagon/kernel/ptrace.c
-> @@ -35,58 +35,38 @@ void user_disable_single_step(struct task_struct
-*child)
-> 
->  static int genregs_get(struct task_struct *target,
->  		   const struct user_regset *regset,
-> -		   unsigned int pos, unsigned int count,
-> -		   void *kbuf, void __user *ubuf)
-> +		   srtuct membuf to)
->  {
-> -	int ret;
-> -	unsigned int dummy;
->  	struct pt_regs *regs = task_pt_regs(target);
-> 
-> -
-> -	if (!regs)
-> -		return -EIO;
-> -
->  	/* The general idea here is that the copyout must happen in
->  	 * exactly the same order in which the userspace expects these
->  	 * regs. Now, the sequence in userspace does not match the
->  	 * sequence in the kernel, so everything past the 32 gprs
->  	 * happens one at a time.
->  	 */
-> -	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-> -				  &regs->r00, 0, 32*sizeof(unsigned long));
-> -
-> -#define ONEXT(KPT_REG, USR_REG) \
-> -	if (!ret) \
-> -		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, \
-> -			KPT_REG, offsetof(struct user_regs_struct, USR_REG),
-> \
-> -			offsetof(struct user_regs_struct, USR_REG) + \
-> -				 sizeof(unsigned long));
-> -
-> +	membuf_write(&to, &regs->r00, 32*sizeof(unsigned long));
->  	/* Must be exactly same sequence as struct user_regs_struct */
-> -	ONEXT(&regs->sa0, sa0);
-> -	ONEXT(&regs->lc0, lc0);
-> -	ONEXT(&regs->sa1, sa1);
-> -	ONEXT(&regs->lc1, lc1);
-> -	ONEXT(&regs->m0, m0);
-> -	ONEXT(&regs->m1, m1);
-> -	ONEXT(&regs->usr, usr);
-> -	ONEXT(&regs->preds, p3_0);
-> -	ONEXT(&regs->gp, gp);
-> -	ONEXT(&regs->ugp, ugp);
-> -	ONEXT(&pt_elr(regs), pc);
-> -	dummy = pt_cause(regs);
-> -	ONEXT(&dummy, cause);
-> -	ONEXT(&pt_badva(regs), badva);
-> +	membuf_store(&to, regs->sa0);
-> +	membuf_store(&to, regs->lc0);
-> +	membuf_store(&to, regs->sa1);
-> +	membuf_store(&to, regs->lc1);
-> +	membuf_store(&to, regs->m0);
-> +	membuf_store(&to, regs->m1);
-> +	membuf_store(&to, regs->usr);
-> +	membuf_store(&to, regs->p3_0);
-> +	membuf_store(&to, regs->gp);
-> +	membuf_store(&to, regs->ugp);
-> +	membuf_store(&to, pt_elr(regs)); // pc
-> +	membuf_store(&to, (unsigned long)pt_cause(regs)); // cause
-> +	membuf_store(&to, pt_badva(regs)); // badva
->  #if CONFIG_HEXAGON_ARCH_VERSION >=4
-> -	ONEXT(&regs->cs0, cs0);
-> -	ONEXT(&regs->cs1, cs1);
-> +	membuf_store(&to, regs->cs0);
-> +	membuf_store(&to, regs->cs1);
-> +	return membuf_zero(&to, sizeof(unsigned long)); #else
-> +	return membuf_zero(&to, 3 * sizeof(unsigned long));
->  #endif
-> -
-> -	/* Pad the rest with zeros, if needed */
-> -	if (!ret)
-> -		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-> -					offsetof(struct user_regs_struct,
-> pad1), -1);
-> -	return ret;
->  }
-> 
->  static int genregs_set(struct task_struct *target, @@ -159,7 +139,7 @@
-static
-> const struct user_regset hexagon_regsets[] = {
->  		.n = ELF_NGREG,
->  		.size = sizeof(unsigned long),
->  		.align = sizeof(unsigned long),
-> -		.get = genregs_get,
-> +		.get2 = genregs_get,
->  		.set = genregs_set,
->  	},
->  };
-> --
-> 2.11.0
+Best Regards
+Mrs Aisha Gaddafi
