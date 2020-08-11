@@ -1,108 +1,104 @@
-Return-Path: <SRS0=xtX6=BV=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 11 Aug 2020 17:32:17 +0100
-From: Jonathan Cameron <Jonathan.Cameron@huawei.com>
-Subject: Re: [PATCH v3 0/8] huge vmalloc mappings
-Message-ID: <20200811173217.0000161e@huawei.com>
-In-Reply-To: <20200810022732.1150009-1-npiggin@gmail.com>
-References: <20200810022732.1150009-1-npiggin@gmail.com>
+Return-Path: <SRS0=iceZ=BV=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail29.static.mailgun.info ([104.130.122.29]:29845 "EHLO
+        mail29.static.mailgun.info" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726089AbgHKSfB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Aug 2020 14:35:01 -0400
+Reply-To: <bcain@codeaurora.org>
+From: "Brian Cain" <bcain@codeaurora.org>
+References: <20200728033405.78469-1-npiggin@gmail.com> <20200728033405.78469-8-npiggin@gmail.com>
+In-Reply-To: <20200728033405.78469-8-npiggin@gmail.com>
+Subject: RE: [PATCH 07/24] hexagon: use asm-generic/mmu_context.h for no-op implementations
+Date: Tue, 11 Aug 2020 13:34:52 -0500
+Message-ID: <037d01d6700e$1af0a580$50d1f080$@codeaurora.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
+Content-Type: text/plain;
+        charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin
- Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Zefan Li <lizefan@huawei.com>
+Content-Language: en-us
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200811163217.Y8xceh9OQft-8nhWlowVvO6nazY9b5g-NOfnYb9FRdg@z>
-
-On Mon, 10 Aug 2020 12:27:24 +1000
-Nicholas Piggin <npiggin@gmail.com> wrote:
-
-> Not tested on x86 or arm64, would appreciate a quick test there so I can
-> ask Andrew to put it in -mm. Other option is I can disable huge vmallocs
-> for them for the time being.
-
-Hi Nicholas,
-
-For arm64 testing with a Kunpeng920.
-
-I ran a quick sanity test with this series on top of mainline (yes mid merge window
-so who knows what state is...).  Could I be missing some dependency?
-
-Without them it boots, with them it doesn't.  Any immediate guesses?
-
-[    0.069507] Dentry cache hash table entries: 33554432 (order: 16, 268435456 bytes, vmalloc)                                                               
-[    0.087134] Inode-cache hash table entries: 16777216 (order: 15, 134217728 bytes, vmalloc)                                                                
-[    0.097044] Mount-cache hash table entries: 524288 (order: 10, 4194304 bytes, vmalloc)                                                                    
-[    0.106534] Mountpoint-cache hash table entries: 524288 (order: 10, 4194304 bytes, vmalloc)
-[    0.116349] ------------[ cut here ]------------   
-[    0.121465] kernel BUG at kernel/fork.c:402!
-[    0.126194] Internal error: Oops - BUG: 0 [#1] PREEMPT SMP
-[    0.132273] Modules linked in:
-[    0.135653] CPU: 0 PID: 0 Comm: swapper/0 Not tainted 5.8.0-12307-g2b197e00c338 #637
-[    0.144240] pstate: 20000009 (nzCv daif -PAN -UAO BTYPE=--)
-[    0.150420] pc : copy_process+0x10c0/0x1690
-[    0.155049] lr : copy_process+0x2e0/0x1690
-[    0.159584] sp : ffffd96c55773d60
-[    0.163250] x29: ffffd96c55773d70 x28: ffff20bf87060000
-[    0.169134] x27: 0000000000800300 x26: 00000000ffffffff
-[    0.175018] x25: ffff8000108a8000 x24: ffffd96c55a32708
-[    0.180901] x23: ffff20bf87043800 x22: 0000000000000000
-[    0.186787] x21: 0000000000000000 x20: ffffd96c55773ef0
-[    0.192672] x19: ffffd96c55783bc0 x18: 0000000000000010
-[    0.198557] x17: 00000000855c858e x16: 00000000a8256fca
-[    0.204441] x15: ffffffffffffffff x14: ffff000000000000
-[    0.210327] x13: ffff800010901000 x12: ffff8000108b1000
-[    0.216212] x11: 0000000000000001 x10: ffffd96c55a6d000
-[    0.222096] x9 : ffffd96c53bf7594 x8 : 0000000000000041
-[    0.227980] x7 : ffff004fffffa6b0 x6 : ffff800010aa8000
-[    0.233864] x5 : 000000000000fffd x4 : 0000000000000000
-[    0.239748] x3 : ffffd96c55a63598 x2 : 0000000000000001
-[    0.245632] x1 : ffffd96c55783bc0 x0 : 0000000000000008
-[    0.251519] Call trace:
-[    0.254221]  copy_process+0x10c0/0x1690
-[    0.258466]  _do_fork+0x98/0x488
-[    0.262036]  kernel_thread+0x6c/0x90
-[    0.265997]  rest_init+0x38/0xf0
-[    0.269568]  arch_call_rest_init+0x18/0x24
-[    0.274105]  start_kernel+0x60c/0x644
-[    0.278159] Code: f000a441 f943f421 cb010000 17ffffe1 (d4210000)
-[    0.284961] ---[ end trace 985361e2cb97a0d9 ]---
-[    0.290073] Kernel panic - not syncing: Attempted to kill the idle task!
-[    0.297532] ---[ end Kernel panic - not syncing: Attempted to kill the idle task! ]---
-
-Thanks,
-
-Jonathan
+To: 'Nicholas Piggin' <npiggin@gmail.com>, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, 'Arnd Bergmann' <arnd@arndb.de>, linux-hexagon@vger.kernel.org
+Message-ID: <20200811183452.Jvax36VMAMhbpeJ99MLBkHVmfQac9qts0SMd4_puBDQ@z>
 
 
+> -----Original Message-----
+> From: linux-arch-owner@vger.kernel.org <linux-arch-owner@vger.kernel.org>
+> On Behalf Of Nicholas Piggin
+
+Acked-by: Brian Cain <bcain@codeaurora.org>
+
+ 
+> Cc: Brian Cain <bcain@codeaurora.org>
+> Cc: linux-hexagon@vger.kernel.org
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
+>  arch/hexagon/include/asm/mmu_context.h | 33 ++++----------------------
+>  1 file changed, 5 insertions(+), 28 deletions(-)
 > 
-> Since v2:
-> - Rebased on vmalloc cleanups, split series into simpler pieces.
-> - Fixed several compile errors and warnings
-> - Keep the page array and accounting in small page units because
->   struct vm_struct is an interface (this should fix x86 vmap stack debug
->   assert). [Thanks Zefan]
+> diff --git a/arch/hexagon/include/asm/mmu_context.h
+> b/arch/hexagon/include/asm/mmu_context.h
+> index cdc4adc0300a..81947764c47d 100644
+> --- a/arch/hexagon/include/asm/mmu_context.h
+> +++ b/arch/hexagon/include/asm/mmu_context.h
+> @@ -15,39 +15,13 @@
+>  #include <asm/pgalloc.h>
+>  #include <asm/mem-layout.h>
 > 
-> Nicholas Piggin (8):
->   mm/vmalloc: fix vmalloc_to_page for huge vmap mappings
->   mm: apply_to_pte_range warn and fail if a large pte is encountered
->   mm/vmalloc: rename vmap_*_range vmap_pages_*_range
->   lib/ioremap: rename ioremap_*_range to vmap_*_range
->   mm: HUGE_VMAP arch support cleanup
->   mm: Move vmap_range from lib/ioremap.c to mm/vmalloc.c
->   mm/vmalloc: add vmap_range_noflush variant
->   mm/vmalloc: Hugepage vmalloc mappings
+> -static inline void destroy_context(struct mm_struct *mm) -{ -}
+> -
+>  /*
+>   * VM port hides all TLB management, so "lazy TLB" isn't very
+>   * meaningful.  Even for ports to architectures with visble TLBs,
+>   * this is almost invariably a null function.
+> + *
+> + * mm->context is set up by pgd_alloc, so no init_new_context required.
+>   */
+> -static inline void enter_lazy_tlb(struct mm_struct *mm,
+> -	struct task_struct *tsk)
+> -{
+> -}
+> -
+> -/*
+> - * Architecture-specific actions, if any, for memory map deactivation.
+> - */
+> -static inline void deactivate_mm(struct task_struct *tsk,
+> -	struct mm_struct *mm)
+> -{
+> -}
+> -
+> -/**
+> - * init_new_context - initialize context related info for new mm_struct
+> instance
+> - * @tsk: pointer to a task struct
+> - * @mm: pointer to a new mm struct
+> - */
+> -static inline int init_new_context(struct task_struct *tsk,
+> -					struct mm_struct *mm)
+> -{
+> -	/* mm->context is set up by pgd_alloc */
+> -	return 0;
+> -}
 > 
->  .../admin-guide/kernel-parameters.txt         |   2 +
->  arch/arm64/mm/mmu.c                           |  10 +-
->  arch/powerpc/mm/book3s64/radix_pgtable.c      |   8 +-
->  arch/x86/mm/ioremap.c                         |  10 +-
->  include/linux/io.h                            |   9 -
->  include/linux/vmalloc.h                       |  13 +
->  init/main.c                                   |   1 -
->  mm/ioremap.c                                  | 231 +--------
->  mm/memory.c                                   |  60 ++-
->  mm/vmalloc.c                                  | 442 +++++++++++++++---
->  10 files changed, 453 insertions(+), 333 deletions(-)
+>  /*
+>   *  Switch active mm context
+> @@ -74,6 +48,7 @@ static inline void switch_mm(struct mm_struct *prev,
+> struct mm_struct *next,
+>  /*
+>   *  Activate new memory map for task
+>   */
+> +#define activate_mm activate_mm
+>  static inline void activate_mm(struct mm_struct *prev, struct mm_struct
+> *next)  {
+>  	unsigned long flags;
+> @@ -86,4 +61,6 @@ static inline void activate_mm(struct mm_struct *prev,
+> struct mm_struct *next)
+>  /*  Generic hooks for arch_dup_mmap and arch_exit_mmap  */  #include
+> <asm-generic/mm_hooks.h>
 > 
+> +#include <asm-generic/mmu_context.h>
+> +
+>  #endif
+> --
+> 2.23.0
