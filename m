@@ -1,486 +1,108 @@
-Return-Path: <SRS0=Y13L=BU=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v3 6/8] mm: Move vmap_range from lib/ioremap.c to mm/vmalloc.c
-Date: Mon, 10 Aug 2020 12:27:30 +1000
-Message-ID: <20200810022732.1150009-7-npiggin@gmail.com>
+Return-Path: <SRS0=xtX6=BV=kvack.org=owner-linux-mm@kernel.org>
+Date: Tue, 11 Aug 2020 17:32:17 +0100
+From: Jonathan Cameron <Jonathan.Cameron@huawei.com>
+Subject: Re: [PATCH v3 0/8] huge vmalloc mappings
+Message-ID: <20200811173217.0000161e@huawei.com>
 In-Reply-To: <20200810022732.1150009-1-npiggin@gmail.com>
 References: <20200810022732.1150009-1-npiggin@gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="US-ASCII"
+Content-Transfer-Encoding: 7bit
 Sender: owner-linux-mm@kvack.org
-To: linux-mm@kvack.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Zefan Li <lizefan@huawei.com>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin
+ Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Zefan Li <lizefan@huawei.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200810022730.tK34zLdz_joZyoRI2wgT7AlJcbZ0faxnM6G-dGYnWZE@z>
+Message-ID: <20200811163217.Y8xceh9OQft-8nhWlowVvO6nazY9b5g-NOfnYb9FRdg@z>
 
-This is a generic kernel virtual memory mapper, not specific to ioremap.
+On Mon, 10 Aug 2020 12:27:24 +1000
+Nicholas Piggin <npiggin@gmail.com> wrote:
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- include/linux/vmalloc.h |   2 +
- mm/ioremap.c            | 192 ----------------------------------------
- mm/vmalloc.c            | 191 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 193 insertions(+), 192 deletions(-)
+> Not tested on x86 or arm64, would appreciate a quick test there so I can
+> ask Andrew to put it in -mm. Other option is I can disable huge vmallocs
+> for them for the time being.
 
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 787d77ad7536..e3590e93bfff 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -181,6 +181,8 @@ extern struct vm_struct *remove_vm_area(const void *a=
-ddr);
- extern struct vm_struct *find_vm_area(const void *addr);
-=20
- #ifdef CONFIG_MMU
-+extern int vmap_range(unsigned long addr, unsigned long end, phys_addr_t=
- phys_addr, pgprot_t prot,
-+			unsigned int max_page_shift);
- extern int map_kernel_range_noflush(unsigned long start, unsigned long s=
-ize,
- 				    pgprot_t prot, struct page **pages);
- int map_kernel_range(unsigned long start, unsigned long size, pgprot_t p=
-rot,
-diff --git a/mm/ioremap.c b/mm/ioremap.c
-index b0032dbadaf7..cdda0e022740 100644
---- a/mm/ioremap.c
-+++ b/mm/ioremap.c
-@@ -28,198 +28,6 @@ early_param("nohugeiomap", set_nohugeiomap);
- static const bool iomap_allow_huge =3D false;
- #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
-=20
--static int vmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long =
-end,
--			phys_addr_t phys_addr, pgprot_t prot, pgtbl_mod_mask *mask)
--{
--	pte_t *pte;
--	u64 pfn;
--
--	pfn =3D phys_addr >> PAGE_SHIFT;
--	pte =3D pte_alloc_kernel_track(pmd, addr, mask);
--	if (!pte)
--		return -ENOMEM;
--	do {
--		BUG_ON(!pte_none(*pte));
--		set_pte_at(&init_mm, addr, pte, pfn_pte(pfn, prot));
--		pfn++;
--	} while (pte++, addr +=3D PAGE_SIZE, addr !=3D end);
--	*mask |=3D PGTBL_PTE_MODIFIED;
--	return 0;
--}
--
--static int vmap_try_huge_pmd(pmd_t *pmd, unsigned long addr, unsigned lo=
-ng end,
--			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift)
--{
--	if (max_page_shift < PMD_SHIFT)
--		return 0;
--
--	if (!arch_vmap_pmd_supported(prot))
--		return 0;
--
--	if ((end - addr) !=3D PMD_SIZE)
--		return 0;
--
--	if (!IS_ALIGNED(addr, PMD_SIZE))
--		return 0;
--
--	if (!IS_ALIGNED(phys_addr, PMD_SIZE))
--		return 0;
--
--	if (pmd_present(*pmd) && !pmd_free_pte_page(pmd, addr))
--		return 0;
--
--	return pmd_set_huge(pmd, phys_addr, prot);
--}
--
--static int vmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long =
-end,
--			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift,
--			pgtbl_mod_mask *mask)
--{
--	pmd_t *pmd;
--	unsigned long next;
--
--	pmd =3D pmd_alloc_track(&init_mm, pud, addr, mask);
--	if (!pmd)
--		return -ENOMEM;
--	do {
--		next =3D pmd_addr_end(addr, end);
--
--		if (vmap_try_huge_pmd(pmd, addr, next, phys_addr, prot, max_page_shift=
-)) {
--			*mask |=3D PGTBL_PMD_MODIFIED;
--			continue;
--		}
--
--		if (vmap_pte_range(pmd, addr, next, phys_addr, prot, mask))
--			return -ENOMEM;
--	} while (pmd++, phys_addr +=3D (next - addr), addr =3D next, addr !=3D =
-end);
--	return 0;
--}
--
--static int vmap_try_huge_pud(pud_t *pud, unsigned long addr, unsigned lo=
-ng end,
--			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift)
--{
--	if (max_page_shift < PUD_SHIFT)
--		return 0;
--
--	if (!arch_vmap_pud_supported(prot))
--		return 0;
--
--	if ((end - addr) !=3D PUD_SIZE)
--		return 0;
--
--	if (!IS_ALIGNED(addr, PUD_SIZE))
--		return 0;
--
--	if (!IS_ALIGNED(phys_addr, PUD_SIZE))
--		return 0;
--
--	if (pud_present(*pud) && !pud_free_pmd_page(pud, addr))
--		return 0;
--
--	return pud_set_huge(pud, phys_addr, prot);
--}
--
--static int vmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long =
-end,
--			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift,
--			pgtbl_mod_mask *mask)
--{
--	pud_t *pud;
--	unsigned long next;
--
--	pud =3D pud_alloc_track(&init_mm, p4d, addr, mask);
--	if (!pud)
--		return -ENOMEM;
--	do {
--		next =3D pud_addr_end(addr, end);
--
--		if (vmap_try_huge_pud(pud, addr, next, phys_addr, prot, max_page_shift=
-)) {
--			*mask |=3D PGTBL_PUD_MODIFIED;
--			continue;
--		}
--
--		if (vmap_pmd_range(pud, addr, next, phys_addr, prot, max_page_shift, m=
-ask))
--			return -ENOMEM;
--	} while (pud++, phys_addr +=3D (next - addr), addr =3D next, addr !=3D =
-end);
--	return 0;
--}
--
--static int vmap_try_huge_p4d(p4d_t *p4d, unsigned long addr, unsigned lo=
-ng end,
--			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift)
--{
--	if (max_page_shift < P4D_SHIFT)
--		return 0;
--
--	if (!arch_vmap_p4d_supported(prot))
--		return 0;
--
--	if ((end - addr) !=3D P4D_SIZE)
--		return 0;
--
--	if (!IS_ALIGNED(addr, P4D_SIZE))
--		return 0;
--
--	if (!IS_ALIGNED(phys_addr, P4D_SIZE))
--		return 0;
--
--	if (p4d_present(*p4d) && !p4d_free_pud_page(p4d, addr))
--		return 0;
--
--	return p4d_set_huge(p4d, phys_addr, prot);
--}
--
--static int vmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long =
-end,
--			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift,
--			pgtbl_mod_mask *mask)
--{
--	p4d_t *p4d;
--	unsigned long next;
--
--	p4d =3D p4d_alloc_track(&init_mm, pgd, addr, mask);
--	if (!p4d)
--		return -ENOMEM;
--	do {
--		next =3D p4d_addr_end(addr, end);
--
--		if (vmap_try_huge_p4d(p4d, addr, next, phys_addr, prot, max_page_shift=
-)) {
--			*mask |=3D PGTBL_P4D_MODIFIED;
--			continue;
--		}
--
--		if (vmap_pud_range(p4d, addr, next, phys_addr, prot, max_page_shift, m=
-ask))
--			return -ENOMEM;
--	} while (p4d++, phys_addr +=3D (next - addr), addr =3D next, addr !=3D =
-end);
--	return 0;
--}
--
--static int vmap_range(unsigned long addr, unsigned long end, phys_addr_t=
- phys_addr, pgprot_t prot,
--			unsigned int max_page_shift)
--{
--	pgd_t *pgd;
--	unsigned long start;
--	unsigned long next;
--	int err;
--	pgtbl_mod_mask mask =3D 0;
--
--	might_sleep();
--	BUG_ON(addr >=3D end);
--
--	start =3D addr;
--	pgd =3D pgd_offset_k(addr);
--	do {
--		next =3D pgd_addr_end(addr, end);
--		err =3D vmap_p4d_range(pgd, addr, next, phys_addr, prot, max_page_shif=
-t, &mask);
--		if (err)
--			break;
--	} while (pgd++, phys_addr +=3D (next - addr), addr =3D next, addr !=3D =
-end);
--
--	flush_cache_vmap(start, end);
--
--	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
--		arch_sync_kernel_mappings(start, end);
--
--	return err;
--}
--
- int ioremap_page_range(unsigned long addr, unsigned long end, phys_addr_=
-t phys_addr, pgprot_t prot)
- {
- 	unsigned int max_page_shift =3D PAGE_SHIFT;
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 3a1e45fd1626..129f10545bb1 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -71,6 +71,197 @@ static void free_work(struct work_struct *w)
- }
-=20
- /*** Page table manipulation functions ***/
-+static int vmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long =
-end,
-+			phys_addr_t phys_addr, pgprot_t prot, pgtbl_mod_mask *mask)
-+{
-+	pte_t *pte;
-+	u64 pfn;
-+
-+	pfn =3D phys_addr >> PAGE_SHIFT;
-+	pte =3D pte_alloc_kernel_track(pmd, addr, mask);
-+	if (!pte)
-+		return -ENOMEM;
-+	do {
-+		BUG_ON(!pte_none(*pte));
-+		set_pte_at(&init_mm, addr, pte, pfn_pte(pfn, prot));
-+		pfn++;
-+	} while (pte++, addr +=3D PAGE_SIZE, addr !=3D end);
-+	*mask |=3D PGTBL_PTE_MODIFIED;
-+	return 0;
-+}
-+
-+static int vmap_try_huge_pmd(pmd_t *pmd, unsigned long addr, unsigned lo=
-ng end,
-+			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift)
-+{
-+	if (max_page_shift < PMD_SHIFT)
-+		return 0;
-+
-+	if (!arch_vmap_pmd_supported(prot))
-+		return 0;
-+
-+	if ((end - addr) !=3D PMD_SIZE)
-+		return 0;
-+
-+	if (!IS_ALIGNED(addr, PMD_SIZE))
-+		return 0;
-+
-+	if (!IS_ALIGNED(phys_addr, PMD_SIZE))
-+		return 0;
-+
-+	if (pmd_present(*pmd) && !pmd_free_pte_page(pmd, addr))
-+		return 0;
-+
-+	return pmd_set_huge(pmd, phys_addr, prot);
-+}
-+
-+static int vmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long =
-end,
-+			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift,
-+			pgtbl_mod_mask *mask)
-+{
-+	pmd_t *pmd;
-+	unsigned long next;
-+
-+	pmd =3D pmd_alloc_track(&init_mm, pud, addr, mask);
-+	if (!pmd)
-+		return -ENOMEM;
-+	do {
-+		next =3D pmd_addr_end(addr, end);
-+
-+		if (vmap_try_huge_pmd(pmd, addr, next, phys_addr, prot, max_page_shift=
-)) {
-+			*mask |=3D PGTBL_PMD_MODIFIED;
-+			continue;
-+		}
-+
-+		if (vmap_pte_range(pmd, addr, next, phys_addr, prot, mask))
-+			return -ENOMEM;
-+	} while (pmd++, phys_addr +=3D (next - addr), addr =3D next, addr !=3D =
-end);
-+	return 0;
-+}
-+
-+static int vmap_try_huge_pud(pud_t *pud, unsigned long addr, unsigned lo=
-ng end,
-+			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift)
-+{
-+	if (max_page_shift < PUD_SHIFT)
-+		return 0;
-+
-+	if (!arch_vmap_pud_supported(prot))
-+		return 0;
-+
-+	if ((end - addr) !=3D PUD_SIZE)
-+		return 0;
-+
-+	if (!IS_ALIGNED(addr, PUD_SIZE))
-+		return 0;
-+
-+	if (!IS_ALIGNED(phys_addr, PUD_SIZE))
-+		return 0;
-+
-+	if (pud_present(*pud) && !pud_free_pmd_page(pud, addr))
-+		return 0;
-+
-+	return pud_set_huge(pud, phys_addr, prot);
-+}
-+
-+static int vmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long =
-end,
-+			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift,
-+			pgtbl_mod_mask *mask)
-+{
-+	pud_t *pud;
-+	unsigned long next;
-+
-+	pud =3D pud_alloc_track(&init_mm, p4d, addr, mask);
-+	if (!pud)
-+		return -ENOMEM;
-+	do {
-+		next =3D pud_addr_end(addr, end);
-+
-+		if (vmap_try_huge_pud(pud, addr, next, phys_addr, prot, max_page_shift=
-)) {
-+			*mask |=3D PGTBL_PUD_MODIFIED;
-+			continue;
-+		}
-+
-+		if (vmap_pmd_range(pud, addr, next, phys_addr, prot, max_page_shift, m=
-ask))
-+			return -ENOMEM;
-+	} while (pud++, phys_addr +=3D (next - addr), addr =3D next, addr !=3D =
-end);
-+	return 0;
-+}
-+
-+static int vmap_try_huge_p4d(p4d_t *p4d, unsigned long addr, unsigned lo=
-ng end,
-+			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift)
-+{
-+	if (max_page_shift < P4D_SHIFT)
-+		return 0;
-+
-+	if (!arch_vmap_p4d_supported(prot))
-+		return 0;
-+
-+	if ((end - addr) !=3D P4D_SIZE)
-+		return 0;
-+
-+	if (!IS_ALIGNED(addr, P4D_SIZE))
-+		return 0;
-+
-+	if (!IS_ALIGNED(phys_addr, P4D_SIZE))
-+		return 0;
-+
-+	if (p4d_present(*p4d) && !p4d_free_pud_page(p4d, addr))
-+		return 0;
-+
-+	return p4d_set_huge(p4d, phys_addr, prot);
-+}
-+
-+static int vmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long =
-end,
-+			phys_addr_t phys_addr, pgprot_t prot, unsigned int max_page_shift,
-+			pgtbl_mod_mask *mask)
-+{
-+	p4d_t *p4d;
-+	unsigned long next;
-+
-+	p4d =3D p4d_alloc_track(&init_mm, pgd, addr, mask);
-+	if (!p4d)
-+		return -ENOMEM;
-+	do {
-+		next =3D p4d_addr_end(addr, end);
-+
-+		if (vmap_try_huge_p4d(p4d, addr, next, phys_addr, prot, max_page_shift=
-)) {
-+			*mask |=3D PGTBL_P4D_MODIFIED;
-+			continue;
-+		}
-+
-+		if (vmap_pud_range(p4d, addr, next, phys_addr, prot, max_page_shift, m=
-ask))
-+			return -ENOMEM;
-+	} while (p4d++, phys_addr +=3D (next - addr), addr =3D next, addr !=3D =
-end);
-+	return 0;
-+}
-+
-+int vmap_range(unsigned long addr, unsigned long end, phys_addr_t phys_a=
-ddr, pgprot_t prot,
-+			unsigned int max_page_shift)
-+{
-+	pgd_t *pgd;
-+	unsigned long start;
-+	unsigned long next;
-+	int err;
-+	pgtbl_mod_mask mask =3D 0;
-+
-+	might_sleep();
-+	BUG_ON(addr >=3D end);
-+
-+	start =3D addr;
-+	pgd =3D pgd_offset_k(addr);
-+	do {
-+		next =3D pgd_addr_end(addr, end);
-+		err =3D vmap_p4d_range(pgd, addr, next, phys_addr, prot, max_page_shif=
-t, &mask);
-+		if (err)
-+			break;
-+	} while (pgd++, phys_addr +=3D (next - addr), addr =3D next, addr !=3D =
-end);
-+
-+	flush_cache_vmap(start, end);
-+
-+	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-+		arch_sync_kernel_mappings(start, end);
-+
-+	return err;
-+}
-=20
- static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned lo=
-ng end,
- 			     pgtbl_mod_mask *mask)
---=20
-2.23.0
+Hi Nicholas,
+
+For arm64 testing with a Kunpeng920.
+
+I ran a quick sanity test with this series on top of mainline (yes mid merge window
+so who knows what state is...).  Could I be missing some dependency?
+
+Without them it boots, with them it doesn't.  Any immediate guesses?
+
+[    0.069507] Dentry cache hash table entries: 33554432 (order: 16, 268435456 bytes, vmalloc)                                                               
+[    0.087134] Inode-cache hash table entries: 16777216 (order: 15, 134217728 bytes, vmalloc)                                                                
+[    0.097044] Mount-cache hash table entries: 524288 (order: 10, 4194304 bytes, vmalloc)                                                                    
+[    0.106534] Mountpoint-cache hash table entries: 524288 (order: 10, 4194304 bytes, vmalloc)
+[    0.116349] ------------[ cut here ]------------   
+[    0.121465] kernel BUG at kernel/fork.c:402!
+[    0.126194] Internal error: Oops - BUG: 0 [#1] PREEMPT SMP
+[    0.132273] Modules linked in:
+[    0.135653] CPU: 0 PID: 0 Comm: swapper/0 Not tainted 5.8.0-12307-g2b197e00c338 #637
+[    0.144240] pstate: 20000009 (nzCv daif -PAN -UAO BTYPE=--)
+[    0.150420] pc : copy_process+0x10c0/0x1690
+[    0.155049] lr : copy_process+0x2e0/0x1690
+[    0.159584] sp : ffffd96c55773d60
+[    0.163250] x29: ffffd96c55773d70 x28: ffff20bf87060000
+[    0.169134] x27: 0000000000800300 x26: 00000000ffffffff
+[    0.175018] x25: ffff8000108a8000 x24: ffffd96c55a32708
+[    0.180901] x23: ffff20bf87043800 x22: 0000000000000000
+[    0.186787] x21: 0000000000000000 x20: ffffd96c55773ef0
+[    0.192672] x19: ffffd96c55783bc0 x18: 0000000000000010
+[    0.198557] x17: 00000000855c858e x16: 00000000a8256fca
+[    0.204441] x15: ffffffffffffffff x14: ffff000000000000
+[    0.210327] x13: ffff800010901000 x12: ffff8000108b1000
+[    0.216212] x11: 0000000000000001 x10: ffffd96c55a6d000
+[    0.222096] x9 : ffffd96c53bf7594 x8 : 0000000000000041
+[    0.227980] x7 : ffff004fffffa6b0 x6 : ffff800010aa8000
+[    0.233864] x5 : 000000000000fffd x4 : 0000000000000000
+[    0.239748] x3 : ffffd96c55a63598 x2 : 0000000000000001
+[    0.245632] x1 : ffffd96c55783bc0 x0 : 0000000000000008
+[    0.251519] Call trace:
+[    0.254221]  copy_process+0x10c0/0x1690
+[    0.258466]  _do_fork+0x98/0x488
+[    0.262036]  kernel_thread+0x6c/0x90
+[    0.265997]  rest_init+0x38/0xf0
+[    0.269568]  arch_call_rest_init+0x18/0x24
+[    0.274105]  start_kernel+0x60c/0x644
+[    0.278159] Code: f000a441 f943f421 cb010000 17ffffe1 (d4210000)
+[    0.284961] ---[ end trace 985361e2cb97a0d9 ]---
+[    0.290073] Kernel panic - not syncing: Attempted to kill the idle task!
+[    0.297532] ---[ end Kernel panic - not syncing: Attempted to kill the idle task! ]---
+
+Thanks,
+
+Jonathan
+
+
+> 
+> Since v2:
+> - Rebased on vmalloc cleanups, split series into simpler pieces.
+> - Fixed several compile errors and warnings
+> - Keep the page array and accounting in small page units because
+>   struct vm_struct is an interface (this should fix x86 vmap stack debug
+>   assert). [Thanks Zefan]
+> 
+> Nicholas Piggin (8):
+>   mm/vmalloc: fix vmalloc_to_page for huge vmap mappings
+>   mm: apply_to_pte_range warn and fail if a large pte is encountered
+>   mm/vmalloc: rename vmap_*_range vmap_pages_*_range
+>   lib/ioremap: rename ioremap_*_range to vmap_*_range
+>   mm: HUGE_VMAP arch support cleanup
+>   mm: Move vmap_range from lib/ioremap.c to mm/vmalloc.c
+>   mm/vmalloc: add vmap_range_noflush variant
+>   mm/vmalloc: Hugepage vmalloc mappings
+> 
+>  .../admin-guide/kernel-parameters.txt         |   2 +
+>  arch/arm64/mm/mmu.c                           |  10 +-
+>  arch/powerpc/mm/book3s64/radix_pgtable.c      |   8 +-
+>  arch/x86/mm/ioremap.c                         |  10 +-
+>  include/linux/io.h                            |   9 -
+>  include/linux/vmalloc.h                       |  13 +
+>  init/main.c                                   |   1 -
+>  mm/ioremap.c                                  | 231 +--------
+>  mm/memory.c                                   |  60 ++-
+>  mm/vmalloc.c                                  | 442 +++++++++++++++---
+>  10 files changed, 453 insertions(+), 333 deletions(-)
+> 
