@@ -1,114 +1,52 @@
-Return-Path: <SRS0=ubji=BP=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:52287 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728422AbgHERCf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 5 Aug 2020 13:02:35 -0400
-Date: Wed, 5 Aug 2020 09:03:07 -0500
-From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: [PATCH v10 2/5] powerpc/vdso: Prepare for switching VDSO to generic C implementation.
-Message-ID: <20200805140307.GO6753@gate.crashing.org>
-References: <cover.1596611196.git.christophe.leroy@csgroup.eu> <348528c33cd4007f3fee7fe643ef160843d09a6c.1596611196.git.christophe.leroy@csgroup.eu>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <348528c33cd4007f3fee7fe643ef160843d09a6c.1596611196.git.christophe.leroy@csgroup.eu>
+Return-Path: <SRS0=fuLN=BW=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:39408 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726173AbgHLBIF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Aug 2020 21:08:05 -0400
+Subject: Re: [PATCH v3 0/8] huge vmalloc mappings
+References: <20200810022732.1150009-1-npiggin@gmail.com>
+ <20200811173217.0000161e@huawei.com>
+From: Zefan Li <lizefan@huawei.com>
+Message-ID: <d457aabc-9f58-f47e-f5fa-9539618b2759@huawei.com>
+Date: Wed, 12 Aug 2020 09:07:44 +0800
+MIME-Version: 1.0
+In-Reply-To: <20200811173217.0000161e@huawei.com>
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christophe Leroy <christophe.leroy@csgroup.eu>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com, anton@ozlabs.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, luto@kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20200805140307.ZYQS5rbR3gLGITp_jSiCW5MpmcQe4oRRb6tm_U-QHoQ@z>
+To: Jonathan Cameron <Jonathan.Cameron@huawei.com>, Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20200812010744.KSdecKKAHpAajEK9u2gC-meigzB9xWCs0Zq3fEO8TLk@z>
 
-Hi!
-
-On Wed, Aug 05, 2020 at 07:09:23AM +0000, Christophe Leroy wrote:
-> Provide vdso_shift_ns(), as the generic x >> s gives the following
-> bad result:
+On 2020/8/12 0:32, Jonathan Cameron wrote:
+> On Mon, 10 Aug 2020 12:27:24 +1000
+> Nicholas Piggin <npiggin@gmail.com> wrote:
 > 
->   18:	35 25 ff e0 	addic.  r9,r5,-32
->   1c:	41 80 00 10 	blt     2c <shift+0x14>
->   20:	7c 64 4c 30 	srw     r4,r3,r9
->   24:	38 60 00 00 	li      r3,0
-> ...
->   2c:	54 69 08 3c 	rlwinm  r9,r3,1,0,30
->   30:	21 45 00 1f 	subfic  r10,r5,31
->   34:	7c 84 2c 30 	srw     r4,r4,r5
->   38:	7d 29 50 30 	slw     r9,r9,r10
->   3c:	7c 63 2c 30 	srw     r3,r3,r5
->   40:	7d 24 23 78 	or      r4,r9,r4
+>> Not tested on x86 or arm64, would appreciate a quick test there so I can
+>> ask Andrew to put it in -mm. Other option is I can disable huge vmallocs
+>> for them for the time being.
 > 
-> In our case the shift is always <= 32. In addition,  the upper 32 bits
-> of the result are likely nul. Lets GCC know it, it also optimises the
-> following calculations.
+> Hi Nicholas,
 > 
-> With the patch, we get:
->    0:	21 25 00 20 	subfic  r9,r5,32
->    4:	7c 69 48 30 	slw     r9,r3,r9
->    8:	7c 84 2c 30 	srw     r4,r4,r5
->    c:	7d 24 23 78 	or      r4,r9,r4
->   10:	7c 63 2c 30 	srw     r3,r3,r5
+> For arm64 testing with a Kunpeng920.
+> 
+> I ran a quick sanity test with this series on top of mainline (yes mid merge window
+> so who knows what state is...).  Could I be missing some dependency?
+> 
+> Without them it boots, with them it doesn't.  Any immediate guesses?
+> 
 
-See below.  Such code is valid on PowerPC for all shift < 64, and a
-future version of GCC will do that (it is on various TODO lists, it is
-bound to happen *some* day ;-), but it won't help you yet of course).
+I've already reported this bug in v2, and yeah I also tested it on arm64
+(not Kunpeng though), so looks like it still hasn't been fixed.
 
+...
+>>
+>> Since v2:
+>> - Rebased on vmalloc cleanups, split series into simpler pieces.
+>> - Fixed several compile errors and warnings
+>> - Keep the page array and accounting in small page units because
+>>   struct vm_struct is an interface (this should fix x86 vmap stack debug
+>>   assert). [Thanks Zefan]
 
-> +/*
-> + * The macros sets two stack frames, one for the caller and one for the callee
-> + * because there are no requirement for the caller to set a stack frame when
-> + * calling VDSO so it may have omitted to set one, especially on PPC64
-> + */
-
-If the caller follows the ABI, there always is a stack frame.  So what
-is going on?
-
-
-> +/*
-> + * powerpc specific delta calculation.
-> + *
-> + * This variant removes the masking of the subtraction because the
-> + * clocksource mask of all VDSO capable clocksources on powerpc is U64_MAX
-> + * which would result in a pointless operation. The compiler cannot
-> + * optimize it away as the mask comes from the vdso data and is not compile
-> + * time constant.
-> + */
-
-It cannot optimise it because it does not know shift < 32.  The code
-below is incorrect for shift equal to 32, fwiw.
-
-> +static __always_inline u64 vdso_calc_delta(u64 cycles, u64 last, u64 mask, u32 mult)
-> +{
-> +	return (cycles - last) * mult;
-> +}
-> +#define vdso_calc_delta vdso_calc_delta
-> +
-> +#ifndef __powerpc64__
-> +static __always_inline u64 vdso_shift_ns(u64 ns, unsigned long shift)
-> +{
-> +	u32 hi = ns >> 32;
-> +	u32 lo = ns;
-> +
-> +	lo >>= shift;
-> +	lo |= hi << (32 - shift);
-> +	hi >>= shift;
-
-
-> +	if (likely(hi == 0))
-> +		return lo;
-
-Removing these two lines shouldn't change generated object code?  Or not
-make it worse, at least.
-
-> +	return ((u64)hi << 32) | lo;
-> +}
-
-
-What does the compiler do for just
-
-static __always_inline u64 vdso_shift_ns(u64 ns, unsigned long shift)
-	return ns >> (shift & 31);
-}
-
-?
-
-
-Segher
+though the changelog says it's fixed for x86.
