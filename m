@@ -2,64 +2,65 @@ Return-Path: <SRS0=bFu9=BY=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
+X-Spam-Status: No, score=-10.0 required=3.0 tests=BAYES_00,DKIM_INVALID,
 	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
-	autolearn_force=no version=3.4.0
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,UNWANTED_LANGUAGE_BODY,URIBL_BLOCKED,
+	USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F30F9C433E3
-	for <linux-arch@archiver.kernel.org>; Fri, 14 Aug 2020 21:48:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 71910C433E1
+	for <linux-arch@archiver.kernel.org>; Fri, 14 Aug 2020 21:48:52 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CBA8720838
-	for <linux-arch@archiver.kernel.org>; Fri, 14 Aug 2020 21:48:49 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 4B76520716
+	for <linux-arch@archiver.kernel.org>; Fri, 14 Aug 2020 21:48:52 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=wdc.com header.i=@wdc.com header.b="SM0fwG7S"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=wdc.com header.i=@wdc.com header.b="pHRymtt9"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728521AbgHNVsf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 14 Aug 2020 17:48:35 -0400
+        id S1728488AbgHNVse (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 14 Aug 2020 17:48:34 -0400
 Received: from esa6.hgst.iphmx.com ([216.71.154.45]:25018 "EHLO
         esa6.hgst.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728481AbgHNVse (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Aug 2020 17:48:34 -0400
+        with ESMTP id S1726213AbgHNVsb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Aug 2020 17:48:31 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple;
   d=wdc.com; i=@wdc.com; q=dns/txt; s=dkim.wdc.com;
-  t=1597441714; x=1628977714;
+  t=1597441711; x=1628977711;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references:mime-version:content-transfer-encoding;
-  bh=UjeLYAGOcdXcIsgSttMVEHrk7RBdvzzoyHtETVrepjo=;
-  b=SM0fwG7STXRMwyFzy9z3luTJL646RAlsWpvyf+B1nD5KDTJ7K5+1m9DA
-   vER5azcK8Ff/KWfIEZnqVATgfwLEFW0Zd6fpRbYfSo9xudASpV8RecC74
-   qfsjc+n2LmcoMrxRhMOTg5m7MMGZRU71Do7BELYNKVeXKDQ617PvGS0K3
-   DprUAeUHlOH1XIywGtDJ+tOhp+dCnJdNV1o8SD60D6/kJLYUS2ZxCtJ40
-   T7tNxKECOqnY9RVmr7xxB+Bc4xrUxZuyXM3kIuKlSkgtjhS9DZOuOc1/S
-   Zx4mYYxMw2++o4T3hiHi+A+mw5b9PLSNuoYDsSAQcdlrCGnBWbJa4FeqW
-   A==;
-IronPort-SDR: DLj19ngf19Vk+atw2SpsBr+CYrdzK6VqONy493aVezvPekelR0lW41Vs41Mksf7ZjfoPM20cZ8
- iQp8UJb2QGzN0g7vvtZbcWHeFMkd4gwf5IZp/MsShMmEanjWURCf957bRZhYc0GsM+LDGV4yMU
- sYuEhXzEgcJCLHfIyqQJPTb7MnS3bPEorVwlTTqbVUsxMMRDhmV3PgFskWb56N2qYtoF3Fv70G
- 5k9nk8/EqnND8+hv4vmL+e9KfWCXgMhiA1mJ5SMcFLEgHGnTaZ9IatrXghJgW6KDqfiEG4qfky
- oRM=
+  bh=m0ccOUy/zHhyg/Evs7xmin4JSbqfjO8+1dBWk5YQiwo=;
+  b=pHRymtt9fZqhgJbw1DRYDH9sBG77AgGDjKarGSmHTephtiBZ7xbPJ0R4
+   1jtYAeO3jdyyO27Q3gA9BCXsjJ3ny/2/dnYf0wd70YMHN5hukaoNcPPYl
+   6p71pMQRBkjPAvPdx51t7Vws8FjjGHgcowe67C4UGGU2ZOT855SXSFmKA
+   JRgoFm93txhLOrBQSc6x6X84ytTpLdQNu3E3DhSQQBn3gXZXwXyIUw80T
+   BvRsOZMLrlmaI5eZyGNvpbng3mrElUyc6LIsCd6k1Sad1Bgnn3Pzf+uDd
+   DzO1umBWZf2xGCCRDeZa8ORpKI0dwFEx5jzvWgTFbapMpfIh3pWSoJ96c
+   g==;
+IronPort-SDR: vlMzTpLfhiIbcos5QIL6rEEM5+n4dlYCcs6lAv8p83LT7m9NX9phLcahwA/jIzdr5jQXftHR2d
+ DN9Q1qdGw2RDVUsq6uJMf7jatxM+0sag2kWj8hOyOqQDpFXvL3ecW3zEY+QR9Qs+I2WzjQhqGL
+ CwvGEOXosjETSPYiBlPWJc7f4H3vYRIghguAcFrnjio+2/MJ0Yb+skaB/nhm1uDD4Tb0QGcmRT
+ ijLc3Epee79tF2wzv02OQmOsqqX8ujhZ4LK4xliMIDRJuI8KrjS+RAORpErMCVIUGpkqEn+pEB
+ tXI=
 X-IronPort-AV: E=Sophos;i="5.76,313,1592841600"; 
-   d="scan'208";a="146217658"
+   d="scan'208";a="146217644"
 Received: from h199-255-45-15.hgst.com (HELO uls-op-cesaep02.wdc.com) ([199.255.45.15])
-  by ob1.hgst.iphmx.com with ESMTP; 15 Aug 2020 05:48:33 +0800
-IronPort-SDR: DvKPrsgP1fyL8qL/AulukhlyfDvn/gEfManoYtqBqqeTQjZJN4WVkcu9f4eXxufC5ltT6xYVwH
- Uu8JoZTyCqfQ==
+  by ob1.hgst.iphmx.com with ESMTP; 15 Aug 2020 05:48:30 +0800
+IronPort-SDR: GuoeXe6RNrCbmW7LjiwYXCInQbZWCx3bODEenedX9sYYBsg6TjexTXxPVvFM4AdDeLhSf+mnBB
+ e8eIP9XbShDA==
 Received: from uls-op-cesaip01.wdc.com ([10.248.3.36])
-  by uls-op-cesaep02.wdc.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 14 Aug 2020 14:35:37 -0700
-IronPort-SDR: OiHQPqy3m8DvMgsYc0QMagm9siS9tQWyreMlyzSSKgLyP9TYhEfZkQosudZErrRfYErDIjVTC5
- hyH3FpWbrN7Q==
+  by uls-op-cesaep02.wdc.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 14 Aug 2020 14:35:35 -0700
+IronPort-SDR: 2DVjtT6pQ6aK8cobzGLIr5QvsxKqDYZY5QAG/Ddtcd0GZ8GIwoCQOm4wZ3qrCTJjgmFEssxSQT
+ 4a2SYWxH1DIg==
 WDCIronportException: Internal
 Received: from cnf006060.ad.shared (HELO jedi-01.hgst.com) ([10.86.59.56])
-  by uls-op-cesaip01.wdc.com with ESMTP; 14 Aug 2020 14:48:31 -0700
+  by uls-op-cesaip01.wdc.com with ESMTP; 14 Aug 2020 14:48:28 -0700
 From:   Atish Patra <atish.patra@wdc.com>
 To:     linux-kernel@vger.kernel.org
-Cc:     Greentime Hu <greentime.hu@sifive.com>,
+Cc:     Atish Patra <atish.patra@wdc.com>,
         Albert Ou <aou@eecs.berkeley.edu>,
         Andrew Morton <akpm@linux-foundation.org>,
         Anshuman Khandual <anshuman.khandual@arm.com>,
         Anup Patel <Anup.Patel@wdc.com>, Arnd Bergmann <arnd@arndb.de>,
         Catalin Marinas <catalin.marinas@arm.com>,
+        Greentime Hu <greentime.hu@sifive.com>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org,
         Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>,
@@ -73,9 +74,9 @@ Cc:     Greentime Hu <greentime.hu@sifive.com>,
         Will Deacon <will@kernel.org>, Zong Li <zong.li@sifive.com>,
         Ganapatrao Kulkarni <gkulkarni@cavium.com>,
         linux-arm-kernel@lists.infradead.org
-Subject: [RFC/RFT PATCH 5/6] riscv: Add support pte_protnone and pmd_protnone if CONFIG_NUMA_BALANCING
-Date:   Fri, 14 Aug 2020 14:47:24 -0700
-Message-Id: <20200814214725.28818-6-atish.patra@wdc.com>
+Subject: [RFC/RFT PATCH 2/6] arm64, numa: Change the numa init function name to be generic
+Date:   Fri, 14 Aug 2020 14:47:21 -0700
+Message-Id: <20200814214725.28818-3-atish.patra@wdc.com>
 X-Mailer: git-send-email 2.24.0
 In-Reply-To: <20200814214725.28818-1-atish.patra@wdc.com>
 References: <20200814214725.28818-1-atish.patra@wdc.com>
@@ -86,54 +87,90 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Greentime Hu <greentime.hu@sifive.com>
+As we are using generic numa implementation code, modify the init function
+name to indicate that generic implementation.
 
-These two functions are used to distinguish between PROT_NONENUMA
-protections and hinting fault protections.
-
-Signed-off-by: Greentime Hu <greentime.hu@sifive.com>
+Signed-off-by: Atish Patra <atish.patra@wdc.com>
 ---
- arch/riscv/include/asm/pgtable.h | 20 ++++++++++++++++++++
- 1 file changed, 20 insertions(+)
+ arch/arm64/mm/init.c       | 4 ++--
+ drivers/base/arch_numa.c   | 8 ++++++--
+ include/asm-generic/numa.h | 4 ++--
+ 3 files changed, 10 insertions(+), 6 deletions(-)
 
-diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
-index 515b42f98d34..2751110675e6 100644
---- a/arch/riscv/include/asm/pgtable.h
-+++ b/arch/riscv/include/asm/pgtable.h
-@@ -183,6 +183,11 @@ static inline unsigned long pmd_page_vaddr(pmd_t pmd)
- 	return (unsigned long)pfn_to_virt(pmd_val(pmd) >> _PAGE_PFN_SHIFT);
- }
+diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+index 481d22c32a2e..93b660229e1d 100644
+--- a/arch/arm64/mm/init.c
++++ b/arch/arm64/mm/init.c
+@@ -418,10 +418,10 @@ void __init bootmem_init(void)
+ 	max_pfn = max_low_pfn = max;
+ 	min_low_pfn = min;
  
-+static inline pte_t pmd_pte(pmd_t pmd)
-+{
-+	return __pte(pmd_val(pmd));
-+}
-+
- /* Yields the page frame number (PFN) of a page table entry */
- static inline unsigned long pte_pfn(pte_t pte)
- {
-@@ -286,6 +291,21 @@ static inline pte_t pte_mkhuge(pte_t pte)
- 	return pte;
- }
+-	arm64_numa_init();
++	arch_numa_init();
  
-+#ifdef CONFIG_NUMA_BALANCING
-+/*
-+ * See the comment in include/asm-generic/pgtable.h
-+ */
-+static inline int pte_protnone(pte_t pte)
-+{
-+	return (pte_val(pte) & (_PAGE_PRESENT | _PAGE_PROT_NONE)) == _PAGE_PROT_NONE;
-+}
-+
-+static inline int pmd_protnone(pmd_t pmd)
-+{
-+	return pte_protnone(pmd_pte(pmd));
-+}
+ 	/*
+-	 * must be done after arm64_numa_init() which calls numa_init() to
++	 * must be done after arch_numa_init() which calls numa_init() to
+ 	 * initialize node_online_map that gets used in hugetlb_cma_reserve()
+ 	 * while allocating required CMA size across online nodes.
+ 	 */
+diff --git a/drivers/base/arch_numa.c b/drivers/base/arch_numa.c
+index 73f8b49d485c..83341c807240 100644
+--- a/drivers/base/arch_numa.c
++++ b/drivers/base/arch_numa.c
+@@ -13,7 +13,9 @@
+ #include <linux/module.h>
+ #include <linux/of.h>
+ 
++#ifdef CONFIG_ARM64
+ #include <asm/acpi.h>
 +#endif
-+
- /* Modify page protection bits */
- static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ #include <asm/sections.h>
+ 
+ struct pglist_data *node_data[MAX_NUMNODES] __read_mostly;
+@@ -445,16 +447,18 @@ static int __init dummy_numa_init(void)
+ }
+ 
+ /**
+- * arm64_numa_init() - Initialize NUMA
++ * arch_numa_init() - Initialize NUMA
+  *
+  * Try each configured NUMA initialization method until one succeeds. The
+  * last fallback is dummy single node config encomapssing whole memory.
+  */
+-void __init arm64_numa_init(void)
++void __init arch_numa_init(void)
  {
+ 	if (!numa_off) {
++#ifdef CONFIG_ARM64
+ 		if (!acpi_disabled && !numa_init(arm64_acpi_numa_init))
+ 			return;
++#endif
+ 		if (acpi_disabled && !numa_init(of_numa_init))
+ 			return;
+ 	}
+diff --git a/include/asm-generic/numa.h b/include/asm-generic/numa.h
+index 0635c0724b7c..309eca8c0b5d 100644
+--- a/include/asm-generic/numa.h
++++ b/include/asm-generic/numa.h
+@@ -27,7 +27,7 @@ static inline const struct cpumask *cpumask_of_node(int node)
+ }
+ #endif
+ 
+-void __init arm64_numa_init(void);
++void __init arch_numa_init(void);
+ int __init numa_add_memblk(int nodeid, u64 start, u64 end);
+ void __init numa_set_distance(int from, int to, int distance);
+ void __init numa_free_distance(void);
+@@ -41,7 +41,7 @@ void numa_remove_cpu(unsigned int cpu);
+ static inline void numa_store_cpu_info(unsigned int cpu) { }
+ static inline void numa_add_cpu(unsigned int cpu) { }
+ static inline void numa_remove_cpu(unsigned int cpu) { }
+-static inline void arm64_numa_init(void) { }
++static inline void arch_numa_init(void) { }
+ static inline void early_map_cpu_to_node(unsigned int cpu, int nid) { }
+ 
+ #endif	/* CONFIG_NUMA */
 -- 
 2.24.0
 
