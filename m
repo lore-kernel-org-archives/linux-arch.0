@@ -2,56 +2,56 @@ Return-Path: <SRS0=bFu9=BY=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
-	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
+	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 89EAEC433E1
-	for <linux-arch@archiver.kernel.org>; Fri, 14 Aug 2020 21:48:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8E1B2C433E1
+	for <linux-arch@archiver.kernel.org>; Fri, 14 Aug 2020 21:48:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4EF2520771
-	for <linux-arch@archiver.kernel.org>; Fri, 14 Aug 2020 21:48:30 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 594BB22B47
+	for <linux-arch@archiver.kernel.org>; Fri, 14 Aug 2020 21:48:35 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=wdc.com header.i=@wdc.com header.b="FG5nEySE"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=wdc.com header.i=@wdc.com header.b="dYHzppwK"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728266AbgHNVs3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 14 Aug 2020 17:48:29 -0400
+        id S1728506AbgHNVse (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 14 Aug 2020 17:48:34 -0400
 Received: from esa6.hgst.iphmx.com ([216.71.154.45]:25018 "EHLO
         esa6.hgst.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726213AbgHNVs3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Aug 2020 17:48:29 -0400
+        with ESMTP id S1727864AbgHNVsd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Aug 2020 17:48:33 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple;
   d=wdc.com; i=@wdc.com; q=dns/txt; s=dkim.wdc.com;
-  t=1597441709; x=1628977709;
-  h=from:to:cc:subject:date:message-id:mime-version:
-   content-transfer-encoding;
-  bh=cVOIibxYR9Eik4Y9Pl2EwMku9T0o7D2+6lin3phBclo=;
-  b=FG5nEySERNmFp5kwAvGMVTTNp7ZpYZp1rgelmKtvfAfV1OoVmhN+TDfY
-   XzLTbEb+rFiR25Uu6Rug4ICVz3IV3NQcWswyPTPQCfzZyFeth/crxBP7r
-   ZaBaXDWGFq28NUtDLyiwKyfHssgTRIyHcRrUnbxn15aELvQrg634m+2si
-   7cRGpOekgdMeJ2HyKSnPoBkkcyvs3fMJotOVAotsx5yZryQxfQ+Hhj+dt
-   2FD56hnVS4ax7yZA4Lqs94qw1OcbrgS5sIa+ISXhkm1i5o/V5jEipYT3/
-   2924s6SHuXy0IwQl/iAb7HCwJuT7P4i3w+9Hv5L/xrK29givVd1owaERx
+  t=1597441713; x=1628977713;
+  h=from:to:cc:subject:date:message-id:in-reply-to:
+   references:mime-version:content-transfer-encoding;
+  bh=0l8UMU0Nf80nnOcPq6fS4BA8LVPERcrIfgcS5BiLKhg=;
+  b=dYHzppwKZRNTqari1W/+UMbO1/OuYaJ5tqoDuJlAlNhGU+ivBs6Lx1E3
+   gj5/6jmerslw6dx1BQeOSLaPoZwFSG24rraiDo8WwANP+f08mUYrgilOr
+   I1LW707eXGiRzYX39GKQX/Js7eqlxUAe/poaJy3Ogaqf3qoin9Qw9YbV4
+   k24ktGJtypItrvhYx5zEt76ltXGbVWv/pTNneeeYwp6XbsMAVkn7PrghT
+   ieOdp7PxtD+T97DJQFeo9LcXtmxngvd3aii7C2Df0uVksO4Wre+kpCoPG
+   d60jt0TYgLYA/PVhibwXKuiOZaSU5Z1IfXzVMtdLPW5oIgYDl+6hm1//8
    Q==;
-IronPort-SDR: uaz3AsPiibnzMG4lKNuSzTpq85/u2UmElbIusb4i6FuntW1/zy5wECdAYMu23X2YIK7YBUWZYu
- gIx2S1/zuboJVRCr6u+ZSu7GSV9M/8gtXs+aJj18vTqmSCav+2RdFQUXjbXKZ8mheR6cDt7APR
- HhyOq98/drVjyzsXGbZnpsRBICOEMtqm5+aWhmXgSxcltFewtI+8G71wREmCUXT0LWfKB8zYTN
- m/EgRie9ynIVkcrruSIc1YwjvdNSZINrCLcKpMAl+LZoR6px3cBRr4OXN5xioYBNY8/lKWdssc
- 5zk=
+IronPort-SDR: VwYyg6F1ke1Py5joIZ+lZDC5Y2pDV90V3saqeMvOvHBO4lF11omuG7WKZt3Yr/np+r3HcNqCUd
+ D/ZYxrBwXAWE0vORUGhcm6VgTrttfP3el03PuLX1F3WUACFAhb9LYQMAE1Y0BE1QOP9QO1Iynj
+ hkvMgPoBCIfxOWoTEZXquFqiuvGFppH9qSm2tldXEep6lqYxgs5jPm1GZBOvBCiVayIP5Uq38p
+ FazsOmhjkH83DLJOCLKuma6IEVU4MdEgQlHHvZkCsp2PqFvH8r471HhsVAHuVfOGredPsIVRRU
+ Ct8=
 X-IronPort-AV: E=Sophos;i="5.76,313,1592841600"; 
-   d="scan'208";a="146217638"
+   d="scan'208";a="146217649"
 Received: from h199-255-45-15.hgst.com (HELO uls-op-cesaep02.wdc.com) ([199.255.45.15])
-  by ob1.hgst.iphmx.com with ESMTP; 15 Aug 2020 05:48:29 +0800
-IronPort-SDR: tb0HLr7vkTm0qkspYnA/OUpPeNPTXSliIXl2JnpgkxyCYHjwBA1hRO/hBRlYPRJemq8ATNEo54
- aoGBLcEjZFfg==
+  by ob1.hgst.iphmx.com with ESMTP; 15 Aug 2020 05:48:31 +0800
+IronPort-SDR: qpMXf9ctH+Z+c+fDGINFi55bB0pVWl41a3DJ4yGioPw0WYslR0uBVXF8QhVq6c+2XZMI0FL+zU
+ 8ot+CJW2r57Q==
 Received: from uls-op-cesaip01.wdc.com ([10.248.3.36])
-  by uls-op-cesaep02.wdc.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 14 Aug 2020 14:35:33 -0700
-IronPort-SDR: l9oujh1ogNiL8KZfFqy7fwqsIfsdi8s8QR8PSME3DgGt+iLSNGkjDoL5CfDo85ewnW9Idf7xdE
- o8npwh7E+v9w==
+  by uls-op-cesaep02.wdc.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 14 Aug 2020 14:35:36 -0700
+IronPort-SDR: GdemDOqwgj4kCAjq3L57gKGOb0BWT3gQzwEH1J+zYbKEVIRvsWAvkgfPVY9GgvZMY4uY0At5b4
+ uSyUDwfD8Rkg==
 WDCIronportException: Internal
 Received: from cnf006060.ad.shared (HELO jedi-01.hgst.com) ([10.86.59.56])
-  by uls-op-cesaip01.wdc.com with ESMTP; 14 Aug 2020 14:48:26 -0700
+  by uls-op-cesaip01.wdc.com with ESMTP; 14 Aug 2020 14:48:29 -0700
 From:   Atish Patra <atish.patra@wdc.com>
 To:     linux-kernel@vger.kernel.org
 Cc:     Atish Patra <atish.patra@wdc.com>,
@@ -74,10 +74,12 @@ Cc:     Atish Patra <atish.patra@wdc.com>,
         Will Deacon <will@kernel.org>, Zong Li <zong.li@sifive.com>,
         Ganapatrao Kulkarni <gkulkarni@cavium.com>,
         linux-arm-kernel@lists.infradead.org
-Subject: [RFC/RFT PATCH 0/6] Unify NUMA implementation between ARM64 & RISC-V
-Date:   Fri, 14 Aug 2020 14:47:19 -0700
-Message-Id: <20200814214725.28818-1-atish.patra@wdc.com>
+Subject: [RFC/RFT PATCH 3/6] arm64, numa: Move pcibus_to_node definition to generic numa code
+Date:   Fri, 14 Aug 2020 14:47:22 -0700
+Message-Id: <20200814214725.28818-4-atish.patra@wdc.com>
 X-Mailer: git-send-email 2.24.0
+In-Reply-To: <20200814214725.28818-1-atish.patra@wdc.com>
+References: <20200814214725.28818-1-atish.patra@wdc.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
@@ -85,90 +87,65 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This series attempts to move the ARM64 numa implementation to common
-code so that RISC-V can leverage that as well instead of reimplementing
-it again.
+pcibus_to_node is used only when numa is enabled and does not depend
+on ISA. Thus, it can be moved the generic numa implementation.
 
-RISC-V specific bits are based on initial work done by Greentime Hu [1] but
-modified to reuse the common implementation to avoid duplication.
+Signed-off-by: Atish Patra <atish.patra@wdc.com>
+---
+ arch/arm64/kernel/pci.c  | 10 ----------
+ drivers/base/arch_numa.c | 11 +++++++++++
+ 2 files changed, 11 insertions(+), 10 deletions(-)
 
-[1] https://lkml.org/lkml/2020/1/10/233
-
-This series has been tested on qemu with numa enabled for both RISC-V & ARM64.
-It would be great if somebody can test it on numa capable ARM64 hardware platforms.
-This patch series doesn't modify the maintainers list for the common code (arch_numa)
-as I am not sure if somebody from ARM64 community or Greg should take up the
-maintainership. Ganapatrao was the original author of the arm64 version.
-I would be happy to update that in the next revision once it is decided.
-
-# numactl --hardware
-available: 2 nodes (0-1)
-node 0 cpus: 0 1 2 3
-node 0 size: 486 MB
-node 0 free: 470 MB
-node 1 cpus: 4 5 6 7
-node 1 size: 424 MB
-node 1 free: 408 MB
-node distances:
-node   0   1 
-  0:  10  20 
-  1:  20  10 
-# numactl -show
-policy: default
-preferred node: current
-physcpubind: 0 1 2 3 4 5 6 7 
-cpubind: 0 1 
-nodebind: 0 1 
-membind: 0 1 
-
-For RISC-V, the following qemu series is a pre-requisite to test the patches in Qemu.
-
-https://patchwork.kernel.org/project/qemu-devel/list/?series=303313
-
-The patches are also available at
-
-https://github.com/atishp04/linux/tree/5.10_numa_unified
-
-There may be some minor conflicts with Mike's cleanup series [2] depending on the
-order in which these two series are being accepted. I can rebase on top his series
-if required.
-
-[2] https://lkml.org/lkml/2020/7/28/39
-
-Atish Patra (5):
-numa: Move numa implementation to common code
-arm64, numa: Change the numa init function name to be generic
-arm64, numa: Move pcibus_to_node definition to generic numa code
-riscv: Separate memory init from paging init
-riscv: Add numa support for riscv64 platform
-
-Greentime Hu (1):
-riscv: Add support pte_protnone and pmd_protnone if
-CONFIG_NUMA_BALANCING
-
-arch/arm64/Kconfig                            |  1 +
-arch/arm64/include/asm/numa.h                 | 45 +---------------
-arch/arm64/kernel/pci.c                       | 10 ----
-arch/arm64/mm/Makefile                        |  1 -
-arch/arm64/mm/init.c                          |  4 +-
-arch/riscv/Kconfig                            | 31 ++++++++++-
-arch/riscv/include/asm/mmzone.h               | 13 +++++
-arch/riscv/include/asm/numa.h                 |  8 +++
-arch/riscv/include/asm/pci.h                  | 10 ++++
-arch/riscv/include/asm/pgtable.h              | 21 ++++++++
-arch/riscv/kernel/setup.c                     | 12 ++++-
-arch/riscv/kernel/smpboot.c                   | 12 ++++-
-arch/riscv/mm/init.c                          | 10 +++-
-drivers/base/Kconfig                          |  6 +++
-drivers/base/Makefile                         |  1 +
-.../mm/numa.c => drivers/base/arch_numa.c     | 19 ++++++-
-include/asm-generic/numa.h                    | 51 +++++++++++++++++++
-17 files changed, 190 insertions(+), 65 deletions(-)
-create mode 100644 arch/riscv/include/asm/mmzone.h
-create mode 100644 arch/riscv/include/asm/numa.h
-rename arch/arm64/mm/numa.c => drivers/base/arch_numa.c (97%)
-create mode 100644 include/asm-generic/numa.h
-
---
+diff --git a/arch/arm64/kernel/pci.c b/arch/arm64/kernel/pci.c
+index 1006ed2d7c60..07c122946c11 100644
+--- a/arch/arm64/kernel/pci.c
++++ b/arch/arm64/kernel/pci.c
+@@ -54,16 +54,6 @@ int raw_pci_write(unsigned int domain, unsigned int bus,
+ 	return b->ops->write(b, devfn, reg, len, val);
+ }
+ 
+-#ifdef CONFIG_NUMA
+-
+-int pcibus_to_node(struct pci_bus *bus)
+-{
+-	return dev_to_node(&bus->dev);
+-}
+-EXPORT_SYMBOL(pcibus_to_node);
+-
+-#endif
+-
+ #ifdef CONFIG_ACPI
+ 
+ struct acpi_pci_generic_root_info {
+diff --git a/drivers/base/arch_numa.c b/drivers/base/arch_numa.c
+index 83341c807240..4ab1b20a615d 100644
+--- a/drivers/base/arch_numa.c
++++ b/drivers/base/arch_numa.c
+@@ -11,6 +11,7 @@
+ #include <linux/acpi.h>
+ #include <linux/memblock.h>
+ #include <linux/module.h>
++#include <linux/pci.h>
+ #include <linux/of.h>
+ 
+ #ifdef CONFIG_ARM64
+@@ -60,6 +61,16 @@ EXPORT_SYMBOL(cpumask_of_node);
+ 
+ #endif
+ 
++#ifdef CONFIG_PCI
++
++int pcibus_to_node(struct pci_bus *bus)
++{
++	return dev_to_node(&bus->dev);
++}
++EXPORT_SYMBOL(pcibus_to_node);
++
++#endif
++
+ static void numa_update_cpu(unsigned int cpu, bool remove)
+ {
+ 	int nid = cpu_to_node(cpu);
+-- 
 2.24.0
 
