@@ -7,23 +7,23 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 910B1C433DF
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:36:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B0FE2C433E1
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:36:10 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 79E1520674
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:36:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 90A8520674
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:36:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728666AbgHRRf4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 18 Aug 2020 13:35:56 -0400
-Received: from youngberry.canonical.com ([91.189.89.112]:52440 "EHLO
+        id S1728635AbgHRRee (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 18 Aug 2020 13:34:34 -0400
+Received: from youngberry.canonical.com ([91.189.89.112]:52410 "EHLO
         youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728626AbgHRRee (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Aug 2020 13:34:34 -0400
+        with ESMTP id S1727773AbgHRRe3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Aug 2020 13:34:29 -0400
 Received: from ip5f5af70b.dynamic.kabel-deutschland.de ([95.90.247.11] helo=wittgenstein.fritz.box)
         by youngberry.canonical.com with esmtpsa (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
         (Exim 4.86_2)
         (envelope-from <christian.brauner@ubuntu.com>)
-        id 1k85VH-0003E9-KN; Tue, 18 Aug 2020 17:34:31 +0000
+        id 1k85VA-0003E9-T8; Tue, 18 Aug 2020 17:34:25 +0000
 From:   Christian Brauner <christian.brauner@ubuntu.com>
 To:     Christoph Hewllig <hch@infradead.org>,
         linux-kernel@vger.kernel.org,
@@ -56,9 +56,9 @@ Cc:     Jonathan Corbet <corbet@lwn.net>,
         kgdb-bugreport@lists.sourceforge.net,
         linux-kselftest@vger.kernel.org,
         Christian Brauner <christian.brauner@ubuntu.com>
-Subject: [PATCH 08/11] kprobes: switch to kernel_clone()
-Date:   Tue, 18 Aug 2020 19:34:08 +0200
-Message-Id: <20200818173411.404104-9-christian.brauner@ubuntu.com>
+Subject: [PATCH 03/11] ia64: switch to kernel_clone()
+Date:   Tue, 18 Aug 2020 19:34:03 +0200
+Message-Id: <20200818173411.404104-4-christian.brauner@ubuntu.com>
 X-Mailer: git-send-email 2.28.0
 In-Reply-To: <20200818173411.404104-1-christian.brauner@ubuntu.com>
 References: <20200818173411.404104-1-christian.brauner@ubuntu.com>
@@ -72,44 +72,36 @@ X-Mailing-List: linux-arch@vger.kernel.org
 The old _do_fork() helper is removed in favor of the new kernel_clone() helper.
 The latter adheres to naming conventions for kernel internal syscall helpers.
 
-Cc: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-Cc: Alexandre Chartre <alexandre.chartre@oracle.com>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: linux-ia64@vger.kernel.org
 Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
 ---
- samples/kprobes/kprobe_example.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/ia64/kernel/process.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/samples/kprobes/kprobe_example.c b/samples/kprobes/kprobe_example.c
-index 240f2435ce6f..a02f53836ee1 100644
---- a/samples/kprobes/kprobe_example.c
-+++ b/samples/kprobes/kprobe_example.c
-@@ -2,13 +2,13 @@
- /*
-  * NOTE: This example is works on x86 and powerpc.
-  * Here's a sample kernel module showing the use of kprobes to dump a
-- * stack trace and selected registers when _do_fork() is called.
-+ * stack trace and selected registers when kernel_clone() is called.
+diff --git a/arch/ia64/kernel/process.c b/arch/ia64/kernel/process.c
+index f19cb97c0098..126f72490ec7 100644
+--- a/arch/ia64/kernel/process.c
++++ b/arch/ia64/kernel/process.c
+@@ -310,7 +310,7 @@ ia64_load_extra (struct task_struct *task)
   *
-  * For more information on theory of operation of kprobes, see
-  * Documentation/staging/kprobes.rst
+  *	<clone syscall>	        <some kernel call frames>
+  *	sys_clone		   :
+- *	_do_fork		_do_fork
++ *	kernel_clone		kernel_clone
+  *	copy_thread		copy_thread
   *
-  * You will see the trace data in /var/log/messages and on the console
-- * whenever _do_fork() is invoked to create a new process.
-+ * whenever kernel_clone() is invoked to create a new process.
-  */
+  * This means that the stack layout is as follows:
+@@ -455,7 +455,7 @@ asmlinkage long ia64_clone(unsigned long clone_flags, unsigned long stack_start,
+ 		.tls		= tls,
+ 	};
  
- #include <linux/kernel.h>
-@@ -16,7 +16,7 @@
- #include <linux/kprobes.h>
+-	return _do_fork(&args);
++	return kernel_clone(&args);
+ }
  
- #define MAX_SYMBOL_LEN	64
--static char symbol[MAX_SYMBOL_LEN] = "_do_fork";
-+static char symbol[MAX_SYMBOL_LEN] = "kernel_clone";
- module_param_string(symbol, symbol, sizeof(symbol), 0644);
- 
- /* For each probe you need to allocate a kprobe structure */
+ static void
 -- 
 2.28.0
 
