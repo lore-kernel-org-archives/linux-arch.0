@@ -4,40 +4,40 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
-	autolearn_force=no version=3.4.0
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4AF3EC433E1
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:20:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 98FB9C433E1
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:20:55 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1E9DF2054F
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:20:52 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6E6FD206DA
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:20:55 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1597764052;
-	bh=dUKKYp+Ft8lgOMm6cKxwXBFbtVJGm+PCemtBor/aqGw=;
+	s=default; t=1597764055;
+	bh=DFgjPvI/vXV91uvzN+sme20WtWl/kJKoZupsBOJXfBQ=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=BbrT2mwCZDOW5qPsvSiZxk8UwfLQbP7ZuQQYplaP/LpauoTJ8oGVtKzzqh426zQBi
-	 EkLS5pBnCV5BtZgAeNUVJ5k8IGa7/DjsDBB+Z91l2U596ynjmiMaMJK9DfYhhzkb7F
-	 Eg9zlHmz3j3thpy0JPqpnnapilCLAfcZQseqKeYo=
+	b=eTypL6aZuNpc2mfbAlIqZNL4eW35RS58T2Tuiq7kijm5WyN7PA3Rlc28hPifWccAX
+	 sB1PEEJPMdv6OlgwP0f/Mz5Q44aM4wmVXSkt1+sWK76OAIXE78Fwq5rXt6/uiI41A5
+	 SvbgCJ/UUSCRm6fikvTutOkRz5VvTpEyA4PdG0Cw=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728071AbgHRPS3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 18 Aug 2020 11:18:29 -0400
-Received: from mail.kernel.org ([198.145.29.99]:42504 "EHLO mail.kernel.org"
+        id S1728040AbgHRPST (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 18 Aug 2020 11:18:19 -0400
+Received: from mail.kernel.org ([198.145.29.99]:41106 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728008AbgHRPS2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Aug 2020 11:18:28 -0400
+        id S1728002AbgHRPRd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Aug 2020 11:17:33 -0400
 Received: from aquarius.haifa.ibm.com (nesher1.haifa.il.ibm.com [195.110.40.7])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id B66A72054F;
-        Tue, 18 Aug 2020 15:18:16 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id E54462054F;
+        Tue, 18 Aug 2020 15:17:21 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1597763907;
-        bh=dUKKYp+Ft8lgOMm6cKxwXBFbtVJGm+PCemtBor/aqGw=;
+        s=default; t=1597763852;
+        bh=DFgjPvI/vXV91uvzN+sme20WtWl/kJKoZupsBOJXfBQ=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=SWqHv/VvLWmdItemMFsJypQPsY1OSdFDGnONmHQO1oj21YEVwu+qnXbfl3f3a0DfV
-         OBkfSBjlwY0rORPvgmvPfZ30NETD+FxClsfze0w0baJoX/wopG8hjHGzSAgEWrpKUx
-         JX4k0TBTQmvHB6mwuwR5THhekoylPF8XUoQcrqCU=
+        b=Sb4tO818fhfIY1L0sTQE8nDj+8mGi9uHOcqZnjg0uj3tpj6i4/rzppzDqqqompdjZ
+         iFUaYJr4fueUpI5iPhsaxdXJPjYQyvH1ESfKCPejy1fi1XGVCto65QLI3+mssBbcEL
+         8tsVYJMK/jhJgOVkQ7iYEV+fVy8vBFUiHXB5XJsI=
 From:   Mike Rapoport <rppt@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     Andy Lutomirski <luto@kernel.org>, Baoquan He <bhe@redhat.com>,
@@ -72,10 +72,11 @@ Cc:     Andy Lutomirski <luto@kernel.org>, Baoquan He <bhe@redhat.com>,
         linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
         linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org,
         openrisc@lists.librecores.org, sparclinux@vger.kernel.org,
-        uclinux-h8-devel@lists.sourceforge.jp, x86@kernel.org
-Subject: [PATCH v3 09/17] memblock: make memblock_debug and related functionality private
-Date:   Tue, 18 Aug 2020 18:16:26 +0300
-Message-Id: <20200818151634.14343-10-rppt@kernel.org>
+        uclinux-h8-devel@lists.sourceforge.jp, x86@kernel.org,
+        Jonathan Cameron <Jonathan.Cameron@huawei.com>
+Subject: [PATCH v3 04/17] arm64: numa: simplify dummy_numa_init()
+Date:   Tue, 18 Aug 2020 18:16:21 +0300
+Message-Id: <20200818151634.14343-5-rppt@kernel.org>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20200818151634.14343-1-rppt@kernel.org>
 References: <20200818151634.14343-1-rppt@kernel.org>
@@ -88,109 +89,97 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Mike Rapoport <rppt@linux.ibm.com>
 
-The only user of memblock_dbg() outside memblock was s390 setup code and it
-is converted to use pr_debug() instead.
-This allows to stop exposing memblock_debug and memblock_dbg() to the rest
-of the kernel.
+dummy_numa_init() loops over memblock.memory and passes nid=0 to
+numa_add_memblk() which essentially wraps memblock_set_node(). However,
+memblock_set_node() can cope with entire memory span itself, so the loop
+over memblock.memory regions is redundant.
+
+Using a single call to memblock_set_node() rather than a loop also fixes an
+issue with a buggy ACPI firmware in which the SRAT table covers some but
+not all of the memory in the EFI memory map.
+
+Jonathan Cameron says:
+
+  This issue can be easily triggered by having an SRAT table which fails
+  to cover all elements of the EFI memory map.
+
+  This firmware error is detected and a warning printed. e.g.
+  "NUMA: Warning: invalid memblk node 64 [mem 0x240000000-0x27fffffff]"
+  At that point we fall back to dummy_numa_init().
+
+  However, the failed ACPI init has left us with our memblocks all broken
+  up as we split them when trying to assign them to NUMA nodes.
+
+  We then iterate over the memblocks and add them to node 0.
+
+  numa_add_memblk() calls memblock_set_node() which merges regions that
+  were previously split up during the earlier attempt to add them to different
+  nodes during parsing of SRAT.
+
+  This means elements are moved in the memblock array and we can end up
+  in a different memblock after the call to numa_add_memblk().
+  Result is:
+
+  Unable to handle kernel paging request at virtual address 0000000000003a40
+  Mem abort info:
+    ESR = 0x96000004
+    EC = 0x25: DABT (current EL), IL = 32 bits
+    SET = 0, FnV = 0
+    EA = 0, S1PTW = 0
+  Data abort info:
+    ISV = 0, ISS = 0x00000004
+    CM = 0, WnR = 0
+  [0000000000003a40] user address but active_mm is swapper
+  Internal error: Oops: 96000004 [#1] PREEMPT SMP
+
+  ...
+
+  Call trace:
+    sparse_init_nid+0x5c/0x2b0
+    sparse_init+0x138/0x170
+    bootmem_init+0x80/0xe0
+    setup_arch+0x2a0/0x5fc
+    start_kernel+0x8c/0x648
+
+Replace the loop with a single call to memblock_set_node() to the entire
+memory.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Reviewed-by: Baoquan He <bhe@redhat.com>
+Acked-by: Jonathan Cameron <Jonathan.Cameron@huawei.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/s390/kernel/setup.c |  4 ++--
- include/linux/memblock.h | 12 +-----------
- mm/memblock.c            | 13 +++++++++++--
- 3 files changed, 14 insertions(+), 15 deletions(-)
+ arch/arm64/mm/numa.c | 13 +++++--------
+ 1 file changed, 5 insertions(+), 8 deletions(-)
 
-diff --git a/arch/s390/kernel/setup.c b/arch/s390/kernel/setup.c
-index e600f6953d7c..68089eabae27 100644
---- a/arch/s390/kernel/setup.c
-+++ b/arch/s390/kernel/setup.c
-@@ -776,8 +776,8 @@ static void __init memblock_add_mem_detect_info(void)
- 	unsigned long start, end;
- 	int i;
+diff --git a/arch/arm64/mm/numa.c b/arch/arm64/mm/numa.c
+index 73f8b49d485c..8a97cd3d2dfe 100644
+--- a/arch/arm64/mm/numa.c
++++ b/arch/arm64/mm/numa.c
+@@ -423,19 +423,16 @@ static int __init numa_init(int (*init_func)(void))
+  */
+ static int __init dummy_numa_init(void)
+ {
++	phys_addr_t start = memblock_start_of_DRAM();
++	phys_addr_t end = memblock_end_of_DRAM();
+ 	int ret;
+-	struct memblock_region *mblk;
  
--	memblock_dbg("physmem info source: %s (%hhd)\n",
--		     get_mem_info_source(), mem_detect.info_source);
-+	pr_debug("physmem info source: %s (%hhd)\n",
-+		 get_mem_info_source(), mem_detect.info_source);
- 	/* keep memblock lists close to the kernel */
- 	memblock_set_bottom_up(true);
- 	for_each_mem_detect_block(i, &start, &end) {
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 550faf69fc1c..47a76e237fca 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -86,7 +86,6 @@ struct memblock {
- };
- 
- extern struct memblock memblock;
--extern int memblock_debug;
- 
- #ifndef CONFIG_ARCH_KEEP_MEMBLOCK
- #define __init_memblock __meminit
-@@ -98,9 +97,6 @@ void memblock_discard(void);
- static inline void memblock_discard(void) {}
- #endif
- 
--#define memblock_dbg(fmt, ...) \
--	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
+ 	if (numa_off)
+ 		pr_info("NUMA disabled\n"); /* Forced off on command line. */
+-	pr_info("Faking a node at [mem %#018Lx-%#018Lx]\n",
+-		memblock_start_of_DRAM(), memblock_end_of_DRAM() - 1);
 -
- phys_addr_t memblock_find_in_range(phys_addr_t start, phys_addr_t end,
- 				   phys_addr_t size, phys_addr_t align);
- void memblock_allow_resize(void);
-@@ -476,13 +472,7 @@ bool memblock_is_region_memory(phys_addr_t base, phys_addr_t size);
- bool memblock_is_reserved(phys_addr_t addr);
- bool memblock_is_region_reserved(phys_addr_t base, phys_addr_t size);
+-	for_each_memblock(memory, mblk) {
+-		ret = numa_add_memblk(0, mblk->base, mblk->base + mblk->size);
+-		if (!ret)
+-			continue;
++	pr_info("Faking a node at [mem %#018Lx-%#018Lx]\n", start, end - 1);
  
--extern void __memblock_dump_all(void);
--
--static inline void memblock_dump_all(void)
--{
--	if (memblock_debug)
--		__memblock_dump_all();
--}
-+void memblock_dump_all(void);
- 
- /**
-  * memblock_set_current_limit - Set the current allocation limit to allow
-diff --git a/mm/memblock.c b/mm/memblock.c
-index 59f3998ae5db..799513f3d6a9 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -137,7 +137,10 @@ struct memblock_type physmem = {
- 	     i < memblock_type->cnt;					\
- 	     i++, rgn = &memblock_type->regions[i])
- 
--int memblock_debug __initdata_memblock;
-+#define memblock_dbg(fmt, ...) \
-+	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
-+
-+static int memblock_debug __initdata_memblock;
- static bool system_has_some_mirror __initdata_memblock = false;
- static int memblock_can_resize __initdata_memblock;
- static int memblock_memory_in_slab __initdata_memblock = 0;
-@@ -1920,7 +1923,7 @@ static void __init_memblock memblock_dump(struct memblock_type *type)
++	ret = numa_add_memblk(0, start, end);
++	if (ret) {
+ 		pr_err("NUMA init failed\n");
+ 		return ret;
  	}
- }
- 
--void __init_memblock __memblock_dump_all(void)
-+static void __init_memblock __memblock_dump_all(void)
- {
- 	pr_info("MEMBLOCK configuration:\n");
- 	pr_info(" memory size = %pa reserved size = %pa\n",
-@@ -1934,6 +1937,12 @@ void __init_memblock __memblock_dump_all(void)
- #endif
- }
- 
-+void __init_memblock memblock_dump_all(void)
-+{
-+	if (memblock_debug)
-+		__memblock_dump_all();
-+}
-+
- void __init memblock_allow_resize(void)
- {
- 	memblock_can_resize = 1;
 -- 
 2.26.2
 
