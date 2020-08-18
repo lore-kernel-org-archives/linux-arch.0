@@ -4,40 +4,40 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
-	autolearn_force=no version=3.4.0
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A25B4C433E3
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:19:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A5081C433E1
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:20:05 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 78C12208B3
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:19:36 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 756262076E
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:20:05 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1597763976;
-	bh=xdLje+Wq+Qqc9RqjhZLPYalhD3lsz2kBtQOX3rvPlas=;
+	s=default; t=1597764005;
+	bh=ozDs+ikcDN9A8o1w1ZdwHNmljXS0aLZyo/vOcdPYmPg=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=xcRnEElvPjxwpnN7fMMXYqY1R7+SuRlCIrisdGv2JaV0aSReJigYyRijgEU1yoegy
-	 mYL0kupGGPW6AOPhTu3ZW49wXrfOEr8tBfoT95T6NOTutRmhY1j0xkZ8INdvW3oPM4
-	 1HSeSePBqddraPqjtnOPsT9wAYqxXu02Umej+4l0=
+	b=SIrAPduRIIcyatVLURPmIpde5zgHWYbZOkDbqM827xrJXv8qIuCaHCDdKvkl4GMed
+	 T0c/+wt2/dVxO4YmkIlCcUwoR0D2j0fgfqez9UX0S/8fCNqjIx4+RExvPxmIardTjX
+	 bZdVA4X727e1nSHn9QtR6bD2vongRMixpqz6yNqQ=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726904AbgHRPTe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 18 Aug 2020 11:19:34 -0400
-Received: from mail.kernel.org ([198.145.29.99]:43570 "EHLO mail.kernel.org"
+        id S1728147AbgHRPUE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 18 Aug 2020 11:20:04 -0400
+Received: from mail.kernel.org ([198.145.29.99]:44572 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728121AbgHRPTM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Aug 2020 11:19:12 -0400
+        id S1728140AbgHRPT6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Aug 2020 11:19:58 -0400
 Received: from aquarius.haifa.ibm.com (nesher1.haifa.il.ibm.com [195.110.40.7])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id B5F202080C;
-        Tue, 18 Aug 2020 15:19:00 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id DD7D0207DE;
+        Tue, 18 Aug 2020 15:19:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1597763951;
-        bh=xdLje+Wq+Qqc9RqjhZLPYalhD3lsz2kBtQOX3rvPlas=;
+        s=default; t=1597763995;
+        bh=ozDs+ikcDN9A8o1w1ZdwHNmljXS0aLZyo/vOcdPYmPg=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=sECSrz89dq6Asy9v/j+zcAAnyasqeJ2/ZC5nuINkm3twrHsAG81JUnPqiu8OKZxqF
-         C/B27cV4JLldeBaMM3hOhZqwU5M2rMEw7W4NlqWhNnSs+dTca6wI56Kb6BFIQMMk9j
-         ZW1Zp3BkrlgAEgNsK4vPqNBOErn9MxV1511OomEk=
+        b=Q2YllB9nxUs1S8Yq+B7V9TZ9cWz5F/+xOingwwq7uoFzA7Y3VtgRDQ88+C68JDaKk
+         9Cp0/R0cjM1AjjyNT45D7/sgkudmCC50TRmJL2WZildNh9PimFmugzn8K80+/wDka2
+         Rhm31KncO57PPdeDTZwxahtVjAg9quHFjMnG2guE=
 From:   Mike Rapoport <rppt@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     Andy Lutomirski <luto@kernel.org>, Baoquan He <bhe@redhat.com>,
@@ -73,10 +73,12 @@ Cc:     Andy Lutomirski <luto@kernel.org>, Baoquan He <bhe@redhat.com>,
         linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org,
         openrisc@lists.librecores.org, sparclinux@vger.kernel.org,
         uclinux-h8-devel@lists.sourceforge.jp, x86@kernel.org,
-        Ingo Molnar <mingo@kernel.org>
-Subject: [PATCH v3 13/17] x86/setup: simplify initrd relocation and reservation
-Date:   Tue, 18 Aug 2020 18:16:30 +0300
-Message-Id: <20200818151634.14343-14-rppt@kernel.org>
+        Ingo Molnar <mingo@kernel.org>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
+Subject: [PATCH v3 17/17] memblock: use separate iterators for memory and reserved regions
+Date:   Tue, 18 Aug 2020 18:16:34 +0300
+Message-Id: <20200818151634.14343-18-rppt@kernel.org>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20200818151634.14343-1-rppt@kernel.org>
 References: <20200818151634.14343-1-rppt@kernel.org>
@@ -89,77 +91,207 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Mike Rapoport <rppt@linux.ibm.com>
 
-Currently, initrd image is reserved very early during setup and then it
-might be relocated and re-reserved after the initial physical memory
-mapping is created. The "late" reservation of memblock verifies that mapped
-memory size exceeds the size of initrd, then checks whether the relocation
-required and, if yes, relocates inirtd to a new memory allocated from
-memblock and frees the old location.
+for_each_memblock() is used to iterate over memblock.memory in
+a few places that use data from memblock_region rather than the memory
+ranges.
 
-The check for memory size is excessive as memblock allocation will anyway
-fail if there is not enough memory. Besides, there is no point to allocate
-memory from memblock using memblock_find_in_range() + memblock_reserve()
-when there exists memblock_phys_alloc_range() with required functionality.
-
-Remove the redundant check and simplify memblock allocation.
+Introduce separate for_each_mem_region() and for_each_reserved_mem_region()
+to improve encapsulation of memblock internals from its users.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Acked-by: Ingo Molnar <mingo@kernel.org>
 Reviewed-by: Baoquan He <bhe@redhat.com>
+Acked-by: Ingo Molnar <mingo@kernel.org>		   # x86
+Acked-by: Thomas Bogendoerfer <tsbogend@alpha.franken.de>  # MIPS
+Acked-by: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>   # .clang-format
 ---
- arch/x86/kernel/setup.c | 16 +++-------------
- 1 file changed, 3 insertions(+), 13 deletions(-)
+ .clang-format                  |  3 ++-
+ arch/arm64/kernel/setup.c      |  2 +-
+ arch/arm64/mm/numa.c           |  2 +-
+ arch/mips/netlogic/xlp/setup.c |  2 +-
+ arch/riscv/mm/init.c           |  2 +-
+ arch/x86/mm/numa.c             |  2 +-
+ include/linux/memblock.h       | 19 ++++++++++++++++---
+ mm/memblock.c                  |  4 ++--
+ mm/page_alloc.c                |  8 ++++----
+ 9 files changed, 29 insertions(+), 15 deletions(-)
 
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 3511736fbc74..2cac39ade2e3 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -263,16 +263,12 @@ static void __init relocate_initrd(void)
- 	u64 area_size     = PAGE_ALIGN(ramdisk_size);
+diff --git a/.clang-format b/.clang-format
+index 2b77cc419b97..a118fdde25c1 100644
+--- a/.clang-format
++++ b/.clang-format
+@@ -201,7 +201,7 @@ ForEachMacros:
+   - 'for_each_matching_node'
+   - 'for_each_matching_node_and_match'
+   - 'for_each_member'
+-  - 'for_each_memblock'
++  - 'for_each_mem_region'
+   - 'for_each_memblock_type'
+   - 'for_each_memcg_cache_index'
+   - 'for_each_mem_pfn_range'
+@@ -268,6 +268,7 @@ ForEachMacros:
+   - 'for_each_property_of_node'
+   - 'for_each_registered_fb'
+   - 'for_each_reserved_mem_range'
++  - 'for_each_reserved_mem_region'
+   - 'for_each_rtd_codec_dais'
+   - 'for_each_rtd_codec_dais_rollback'
+   - 'for_each_rtd_components'
+diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+index a986c6f8ab42..dcce72ac072b 100644
+--- a/arch/arm64/kernel/setup.c
++++ b/arch/arm64/kernel/setup.c
+@@ -217,7 +217,7 @@ static void __init request_standard_resources(void)
+ 	if (!standard_resources)
+ 		panic("%s: Failed to allocate %zu bytes\n", __func__, res_size);
  
- 	/* We need to move the initrd down into directly mapped mem */
--	relocated_ramdisk = memblock_find_in_range(0, PFN_PHYS(max_pfn_mapped),
--						   area_size, PAGE_SIZE);
--
-+	relocated_ramdisk = memblock_phys_alloc_range(area_size, PAGE_SIZE, 0,
-+						      PFN_PHYS(max_pfn_mapped));
- 	if (!relocated_ramdisk)
- 		panic("Cannot find place for new RAMDISK of size %lld\n",
- 		      ramdisk_size);
+-	for_each_memblock(memory, region) {
++	for_each_mem_region(region) {
+ 		res = &standard_resources[i++];
+ 		if (memblock_is_nomap(region)) {
+ 			res->name  = "reserved";
+diff --git a/arch/arm64/mm/numa.c b/arch/arm64/mm/numa.c
+index 8a97cd3d2dfe..5efdbd01a59c 100644
+--- a/arch/arm64/mm/numa.c
++++ b/arch/arm64/mm/numa.c
+@@ -350,7 +350,7 @@ static int __init numa_register_nodes(void)
+ 	struct memblock_region *mblk;
  
--	/* Note: this includes all the mem currently occupied by
--	   the initrd, we rely on that fact to keep the data intact. */
--	memblock_reserve(relocated_ramdisk, area_size);
- 	initrd_start = relocated_ramdisk + PAGE_OFFSET;
- 	initrd_end   = initrd_start + ramdisk_size;
- 	printk(KERN_INFO "Allocated new RAMDISK: [mem %#010llx-%#010llx]\n",
-@@ -299,13 +295,13 @@ static void __init early_reserve_initrd(void)
+ 	/* Check that valid nid is set to memblks */
+-	for_each_memblock(memory, mblk) {
++	for_each_mem_region(mblk) {
+ 		int mblk_nid = memblock_get_region_node(mblk);
  
- 	memblock_reserve(ramdisk_image, ramdisk_end - ramdisk_image);
- }
-+
- static void __init reserve_initrd(void)
+ 		if (mblk_nid == NUMA_NO_NODE || mblk_nid >= MAX_NUMNODES) {
+diff --git a/arch/mips/netlogic/xlp/setup.c b/arch/mips/netlogic/xlp/setup.c
+index 1a0fc5b62ba4..6e3102bcd2f1 100644
+--- a/arch/mips/netlogic/xlp/setup.c
++++ b/arch/mips/netlogic/xlp/setup.c
+@@ -70,7 +70,7 @@ static void nlm_fixup_mem(void)
+ 	const int pref_backup = 512;
+ 	struct memblock_region *mem;
+ 
+-	for_each_memblock(memory, mem) {
++	for_each_mem_region(mem) {
+ 		memblock_remove(mem->base + mem->size - pref_backup,
+ 			pref_backup);
+ 	}
+diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
+index 06355716d19a..1fb6a826c2fd 100644
+--- a/arch/riscv/mm/init.c
++++ b/arch/riscv/mm/init.c
+@@ -531,7 +531,7 @@ static void __init resource_init(void)
  {
- 	/* Assume only end is not page aligned */
- 	u64 ramdisk_image = get_ramdisk_image();
- 	u64 ramdisk_size  = get_ramdisk_size();
- 	u64 ramdisk_end   = PAGE_ALIGN(ramdisk_image + ramdisk_size);
--	u64 mapped_size;
+ 	struct memblock_region *region;
  
- 	if (!boot_params.hdr.type_of_loader ||
- 	    !ramdisk_image || !ramdisk_size)
-@@ -313,12 +309,6 @@ static void __init reserve_initrd(void)
+-	for_each_memblock(memory, region) {
++	for_each_mem_region(region) {
+ 		struct resource *res;
  
- 	initrd_start = 0;
+ 		res = memblock_alloc(sizeof(struct resource), SMP_CACHE_BYTES);
+diff --git a/arch/x86/mm/numa.c b/arch/x86/mm/numa.c
+index aa76ec2d359b..b6246768479d 100644
+--- a/arch/x86/mm/numa.c
++++ b/arch/x86/mm/numa.c
+@@ -516,7 +516,7 @@ static void __init numa_clear_kernel_node_hotplug(void)
+ 	 *   memory ranges, because quirks such as trim_snb_memory()
+ 	 *   reserve specific pages for Sandy Bridge graphics. ]
+ 	 */
+-	for_each_memblock(reserved, mb_region) {
++	for_each_reserved_mem_region(mb_region) {
+ 		int nid = memblock_get_region_node(mb_region);
  
--	mapped_size = memblock_mem_size(max_pfn_mapped);
--	if (ramdisk_size >= (mapped_size>>1))
--		panic("initrd too large to handle, "
--		       "disabling initrd (%lld needed, %lld available)\n",
--		       ramdisk_size, mapped_size>>1);
--
- 	printk(KERN_INFO "RAMDISK: [mem %#010llx-%#010llx]\n", ramdisk_image,
- 			ramdisk_end - 1);
+ 		if (nid != MAX_NUMNODES)
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index 354078713cd1..ef131255cedc 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -553,9 +553,22 @@ static inline unsigned long memblock_region_reserved_end_pfn(const struct memblo
+ 	return PFN_UP(reg->base + reg->size);
+ }
+ 
+-#define for_each_memblock(memblock_type, region)					\
+-	for (region = memblock.memblock_type.regions;					\
+-	     region < (memblock.memblock_type.regions + memblock.memblock_type.cnt);	\
++/**
++ * for_each_mem_region - itereate over memory regions
++ * @region: loop variable
++ */
++#define for_each_mem_region(region)					\
++	for (region = memblock.memory.regions;				\
++	     region < (memblock.memory.regions + memblock.memory.cnt);	\
++	     region++)
++
++/**
++ * for_each_reserved_mem_region - itereate over reserved memory regions
++ * @region: loop variable
++ */
++#define for_each_reserved_mem_region(region)				\
++	for (region = memblock.reserved.regions;			\
++	     region < (memblock.reserved.regions + memblock.reserved.cnt); \
+ 	     region++)
+ 
+ extern void *alloc_large_system_hash(const char *tablename,
+diff --git a/mm/memblock.c b/mm/memblock.c
+index d0be57acccf2..4eacfed872c4 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -1664,7 +1664,7 @@ static phys_addr_t __init_memblock __find_max_addr(phys_addr_t limit)
+ 	 * the memory memblock regions, if the @limit exceeds the total size
+ 	 * of those regions, max_addr will keep original value PHYS_ADDR_MAX
+ 	 */
+-	for_each_memblock(memory, r) {
++	for_each_mem_region(r) {
+ 		if (limit <= r->size) {
+ 			max_addr = r->base + limit;
+ 			break;
+@@ -1834,7 +1834,7 @@ void __init_memblock memblock_trim_memory(phys_addr_t align)
+ 	phys_addr_t start, end, orig_start, orig_end;
+ 	struct memblock_region *r;
+ 
+-	for_each_memblock(memory, r) {
++	for_each_mem_region(r) {
+ 		orig_start = r->base;
+ 		orig_end = r->base + r->size;
+ 		start = round_up(orig_start, align);
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 12da56b1cf39..366982d1a1c2 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -5950,7 +5950,7 @@ overlap_memmap_init(unsigned long zone, unsigned long *pfn)
+ 
+ 	if (mirrored_kernelcore && zone == ZONE_MOVABLE) {
+ 		if (!r || *pfn >= memblock_region_memory_end_pfn(r)) {
+-			for_each_memblock(memory, r) {
++			for_each_mem_region(r) {
+ 				if (*pfn < memblock_region_memory_end_pfn(r))
+ 					break;
+ 			}
+@@ -6535,7 +6535,7 @@ static unsigned long __init zone_absent_pages_in_node(int nid,
+ 		unsigned long start_pfn, end_pfn;
+ 		struct memblock_region *r;
+ 
+-		for_each_memblock(memory, r) {
++		for_each_mem_region(r) {
+ 			start_pfn = clamp(memblock_region_memory_base_pfn(r),
+ 					  zone_start_pfn, zone_end_pfn);
+ 			end_pfn = clamp(memblock_region_memory_end_pfn(r),
+@@ -7129,7 +7129,7 @@ static void __init find_zone_movable_pfns_for_nodes(void)
+ 	 * options.
+ 	 */
+ 	if (movable_node_is_enabled()) {
+-		for_each_memblock(memory, r) {
++		for_each_mem_region(r) {
+ 			if (!memblock_is_hotpluggable(r))
+ 				continue;
+ 
+@@ -7150,7 +7150,7 @@ static void __init find_zone_movable_pfns_for_nodes(void)
+ 	if (mirrored_kernelcore) {
+ 		bool mem_below_4gb_not_mirrored = false;
+ 
+-		for_each_memblock(memory, r) {
++		for_each_mem_region(r) {
+ 			if (memblock_is_mirror(r))
+ 				continue;
  
 -- 
 2.26.2
