@@ -2,34 +2,46 @@ Return-Path: <SRS0=YYpG=B4=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.6 required=3.0 tests=BAYES_00,DKIM_INVALID,
+	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 176DCC433DF
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:37:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 820C6C433DF
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:44:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id F10FA20738
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:37:00 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5BBDD2054F
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:44:59 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="fICQlLgf"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728681AbgHRRg7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 18 Aug 2020 13:36:59 -0400
-Received: from youngberry.canonical.com ([91.189.89.112]:52416 "EHLO
-        youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728493AbgHRRe3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Aug 2020 13:34:29 -0400
-Received: from ip5f5af70b.dynamic.kabel-deutschland.de ([95.90.247.11] helo=wittgenstein.fritz.box)
-        by youngberry.canonical.com with esmtpsa (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
-        (Exim 4.86_2)
-        (envelope-from <christian.brauner@ubuntu.com>)
-        id 1k85VC-0003E9-CE; Tue, 18 Aug 2020 17:34:26 +0000
-From:   Christian Brauner <christian.brauner@ubuntu.com>
-To:     Christoph Hewllig <hch@infradead.org>,
+        id S1726670AbgHRRo6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 18 Aug 2020 13:44:58 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54880 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726569AbgHRRo5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Aug 2020 13:44:57 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5932EC061389;
+        Tue, 18 Aug 2020 10:44:57 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=VUwmIR+lImU3NRAfKAiYvoX2F1rNIteoEgPghMUy3n4=; b=fICQlLgf7nqw1v5EVdw+y4UkgP
+        kbIROvywOoijsDOmGkmor5zGA36mtA9nORnPdRV0+PY6SgIHRyUiYvquWKJzwh5dVSuVFAFvX3DME
+        uAmwFhMRtuIsHO7AxjC/Hf6i4yUHlUCTV0VhFn4FHFVQ71s5gGsrDviphLM3xYp35OmWKPBpLVRcf
+        hwpTdFcUGW3d/jWbjCTyNWqqxGNmLCqcnEhJLRysG1hkTFskpa06/7toKpSoT4Zo3bffiyMFfe8De
+        fS6X/+bj0bRKlbATWH2OR/lk0NRD8TCNYrCLq21TKS0tsjdfMcrFa8oUinpiBxN298K5q3iSTGAud
+        JKE97/QA==;
+Received: from willy by casper.infradead.org with local (Exim 4.92.3 #3 (Red Hat Linux))
+        id 1k85fD-0006aT-In; Tue, 18 Aug 2020 17:44:47 +0000
+Date:   Tue, 18 Aug 2020 18:44:47 +0100
+From:   Matthew Wilcox <willy@infradead.org>
+To:     Christian Brauner <christian.brauner@ubuntu.com>
+Cc:     Christoph Hewllig <hch@infradead.org>,
         linux-kernel@vger.kernel.org,
         Linus Torvalds <torvalds@linux-foundation.org>,
-        linux-arch@vger.kernel.org
-Cc:     Jonathan Corbet <corbet@lwn.net>,
+        linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>,
         Yoshinori Sato <ysato@users.sourceforge.jp>,
         Tony Luck <tony.luck@intel.com>,
         Fenghua Yu <fenghua.yu@intel.com>,
@@ -54,60 +66,26 @@ Cc:     Jonathan Corbet <corbet@lwn.net>,
         uclinux-h8-devel@lists.sourceforge.jp, linux-ia64@vger.kernel.org,
         linux-m68k@lists.linux-m68k.org, sparclinux@vger.kernel.org,
         kgdb-bugreport@lists.sourceforge.net,
-        linux-kselftest@vger.kernel.org,
-        Christian Brauner <christian.brauner@ubuntu.com>
-Subject: [PATCH 04/11] m68k: switch to kernel_clone()
-Date:   Tue, 18 Aug 2020 19:34:04 +0200
-Message-Id: <20200818173411.404104-5-christian.brauner@ubuntu.com>
-X-Mailer: git-send-email 2.28.0
-In-Reply-To: <20200818173411.404104-1-christian.brauner@ubuntu.com>
+        linux-kselftest@vger.kernel.org
+Subject: Re: [PATCH 00/11] Introduce kernel_clone(), kill _do_fork()
+Message-ID: <20200818174447.GV17456@casper.infradead.org>
 References: <20200818173411.404104-1-christian.brauner@ubuntu.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200818173411.404104-1-christian.brauner@ubuntu.com>
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The old _do_fork() helper is removed in favor of the new kernel_clone() helper.
-The latter adheres to naming conventions for kernel internal syscall helpers.
+On Tue, Aug 18, 2020 at 07:34:00PM +0200, Christian Brauner wrote:
+> The only remaining function callable outside of kernel/fork.c is
+> _do_fork(). It doesn't really follow the naming of kernel-internal
+> syscall helpers as Christoph righly pointed out. Switch all callers and
+> references to kernel_clone() and remove _do_fork() once and for all.
 
-Cc: Kars de Jong <jongk@linux-m68k.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k@lists.linux-m68k.org
-Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
----
- arch/m68k/kernel/process.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
-
-diff --git a/arch/m68k/kernel/process.c b/arch/m68k/kernel/process.c
-index 6492a2c54dbc..08359a6e058f 100644
---- a/arch/m68k/kernel/process.c
-+++ b/arch/m68k/kernel/process.c
-@@ -107,10 +107,10 @@ void flush_thread(void)
-  * on top of pt_regs, which means that sys_clone() arguments would be
-  * buried.  We could, of course, copy them, but it's too costly for no
-  * good reason - generic clone() would have to copy them *again* for
-- * _do_fork() anyway.  So in this case it's actually better to pass pt_regs *
-- * and extract arguments for _do_fork() from there.  Eventually we might
-- * go for calling _do_fork() directly from the wrapper, but only after we
-- * are finished with _do_fork() prototype conversion.
-+ * kernel_clone() anyway.  So in this case it's actually better to pass pt_regs *
-+ * and extract arguments for kernel_clone() from there.  Eventually we might
-+ * go for calling kernel_clone() directly from the wrapper, but only after we
-+ * are finished with kernel_clone() prototype conversion.
-  */
- asmlinkage int m68k_clone(struct pt_regs *regs)
- {
-@@ -125,7 +125,7 @@ asmlinkage int m68k_clone(struct pt_regs *regs)
- 		.tls		= regs->d5,
- 	};
- 
--	return _do_fork(&args);
-+	return kernel_clone(&args);
- }
- 
- /*
--- 
-2.28.0
-
+My only concern is around return type.  long, int, pid_t ... can we
+choose one and stick to it?  pid_t is probably the right return type
+within the kernel, despite the return type of clone3().  It'll save us
+some work if we ever go through the hassle of growing pid_t beyond 31-bit.
