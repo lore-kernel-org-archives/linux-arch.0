@@ -2,131 +2,96 @@ Return-Path: <SRS0=YYpG=B4=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.6 required=3.0 tests=BAYES_00,DKIM_INVALID,
+	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 127E7C433E1
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:21:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6ED5EC433E1
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:42:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D595D2076E
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:21:31 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1597764091;
-	bh=Tc7JOtILZvhmn/QZSq/rDuumFmni1KkgrRzI9vNcyIs=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=a6RCfB46m1WTcJcMIR9Quk4RBJL5y22pzqrax4aLlh3Vu/Jeh3z3IqtY7tc0gzGXY
-	 W4pGVW8FtjLICyGUGQykYcMS4iiGhUw8ufrgGyoFs/yvjMb+ogwpVuhZwVcKGwlQEj
-	 greHMKyWARSK+fCBHqBXGgyMD7Cbstb+Qm1iJdJ0=
+	by mail.kernel.org (Postfix) with ESMTP id 4201320674
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:42:02 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="SS9qWW4i"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727836AbgHRPVP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 18 Aug 2020 11:21:15 -0400
-Received: from mail.kernel.org ([198.145.29.99]:40524 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727956AbgHRPRL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Aug 2020 11:17:11 -0400
-Received: from aquarius.haifa.ibm.com (nesher1.haifa.il.ibm.com [195.110.40.7])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 3188A2054F;
-        Tue, 18 Aug 2020 15:16:59 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1597763830;
-        bh=Tc7JOtILZvhmn/QZSq/rDuumFmni1KkgrRzI9vNcyIs=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=LGeqCVGqnjrha4TWndZaE/VnVhphBLSJIhWexklI8V6bUgoTtQfgaa8M9GXlf/+XT
-         WHUWAaZKTipeFUYBV6OLDTInvZP09FVWD6Y83cd7blmmE3C/RloP3ygxxjtDeRP+pl
-         Lwv5+wEO4Xr3K0oZUXYD0eSo61PTTILdUD0cRgzU=
-From:   Mike Rapoport <rppt@kernel.org>
-To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     Andy Lutomirski <luto@kernel.org>, Baoquan He <bhe@redhat.com>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christoph Hellwig <hch@lst.de>, Daniel Axtens <dja@axtens.net>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Emil Renner Berthing <kernel@esmil.dk>,
-        Ingo Molnar <mingo@redhat.com>,
-        Hari Bathini <hbathini@linux.ibm.com>,
-        Marek Szyprowski <m.szyprowski@samsung.com>,
-        Max Filippov <jcmvbkbc@gmail.com>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Michal Simek <monstr@monstr.eu>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Mike Rapoport <rppt@kernel.org>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Mackerras <paulus@samba.org>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Russell King <linux@armlinux.org.uk>,
-        Stafford Horne <shorne@gmail.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Will Deacon <will@kernel.org>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        clang-built-linux@googlegroups.com,
-        iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org,
-        linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
-        linux-mm@kvack.org, linux-riscv@lists.infradead.org,
-        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
-        linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org,
-        openrisc@lists.librecores.org, sparclinux@vger.kernel.org,
-        uclinux-h8-devel@lists.sourceforge.jp, x86@kernel.org
-Subject: [PATCH v3 02/17] dma-contiguous: simplify cma_early_percent_memory()
-Date:   Tue, 18 Aug 2020 18:16:19 +0300
-Message-Id: <20200818151634.14343-3-rppt@kernel.org>
-X-Mailer: git-send-email 2.26.2
-In-Reply-To: <20200818151634.14343-1-rppt@kernel.org>
-References: <20200818151634.14343-1-rppt@kernel.org>
+        id S1727880AbgHRPmB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 18 Aug 2020 11:42:01 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35280 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726896AbgHRPl5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Aug 2020 11:41:57 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 73DD0C061389;
+        Tue, 18 Aug 2020 08:41:57 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=YC5uocxVWr0+W2/Gmoj0x49mC0HJbzGZXtwi1gy/ZcQ=; b=SS9qWW4idnVrCKkBcCU6p41ReX
+        FbE/tWKHXCBN1dynhu4TioUKAvis/2xaDgWasXUZeqxXnSLOUXPcNJReKashsZVkV2mZ/WPUvpDqE
+        rniDmzWbKqmZ3/J1j0dNL3mRHmfDElx4qfghEf7CIRadcbJTNdTkc8habCarBSY9/Y3KraOt+/5OW
+        KBc6ykYp6SlAlisz4QzMyDw29bGYWsvoxfzo266zxINRAIgvj9zUQ42J6VqyzuxWXzJBp/IjHsiKa
+        qXPNiybyxs7NplvnIBe0U3K2p15x+oSHEPMygRBpdzsqF7kqu8S01CtTzcLIQn/6PDtCSaEIF195A
+        cnpgycng==;
+Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
+        by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
+        id 1k83kC-0004ai-3J; Tue, 18 Aug 2020 15:41:48 +0000
+Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (Client did not present a certificate)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 1DDC3300DB4;
+        Tue, 18 Aug 2020 17:41:43 +0200 (CEST)
+Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
+        id 0B714200D4BEA; Tue, 18 Aug 2020 17:41:43 +0200 (CEST)
+Date:   Tue, 18 Aug 2020 17:41:43 +0200
+From:   peterz@infradead.org
+To:     Nicholas Piggin <npiggin@gmail.com>
+Cc:     Alexey Kardashevskiy <aik@ozlabs.ru>, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>
+Subject: Re: [PATCH 1/2] lockdep: improve current->(hard|soft)irqs_enabled
+ synchronisation with actual irq state
+Message-ID: <20200818154143.GT2674@hirez.programming.kicks-ass.net>
+References: <20200723105615.1268126-1-npiggin@gmail.com>
+ <20200807111126.GI2674@hirez.programming.kicks-ass.net>
+ <1597220073.mbvcty6ghk.astroid@bobo.none>
+ <20200812103530.GL2674@hirez.programming.kicks-ass.net>
+ <1597735273.s0usqkrlsk.astroid@bobo.none>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1597735273.s0usqkrlsk.astroid@bobo.none>
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On Tue, Aug 18, 2020 at 05:22:33PM +1000, Nicholas Piggin wrote:
+> Excerpts from peterz@infradead.org's message of August 12, 2020 8:35 pm:
+> > On Wed, Aug 12, 2020 at 06:18:28PM +1000, Nicholas Piggin wrote:
+> >> Excerpts from peterz@infradead.org's message of August 7, 2020 9:11 pm:
+> >> > 
+> >> > What's wrong with something like this?
+> >> > 
+> >> > AFAICT there's no reason to actually try and add IRQ tracing here, it's
+> >> > just a hand full of instructions at the most.
+> >> 
+> >> Because we may want to use that in other places as well, so it would
+> >> be nice to have tracing.
+> >> 
+> >> Hmm... also, I thought NMI context was free to call local_irq_save/restore
+> >> anyway so the bug would still be there in those cases?
+> > 
+> > NMI code has in_nmi() true, in which case the IRQ tracing is disabled
+> > (except for x86 which has CONFIG_TRACE_IRQFLAGS_NMI).
+> > 
+> 
+> That doesn't help. It doesn't fix the lockdep irq state going out of
+> synch with the actual irq state. The code which triggered this with the
+> special powerpc irq disable has in_nmi() true as well.
 
-The memory size calculation in cma_early_percent_memory() traverses
-memblock.memory rather than simply call memblock_phys_mem_size(). The
-comment in that function suggests that at some point there should have been
-call to memblock_analyze() before memblock_phys_mem_size() could be used.
-As of now, there is no memblock_analyze() at all and
-memblock_phys_mem_size() can be used as soon as cold-plug memory is
-registerd with memblock.
+Urgh, you're talking about using lockdep_assert_irqs*() from NMI
+context?
 
-Replace loop over memblock.memory with a call to memblock_phys_mem_size().
-
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Reviewed-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Baoquan He <bhe@redhat.com>
----
- kernel/dma/contiguous.c | 11 +----------
- 1 file changed, 1 insertion(+), 10 deletions(-)
-
-diff --git a/kernel/dma/contiguous.c b/kernel/dma/contiguous.c
-index cff7e60968b9..0369fd5fda8f 100644
---- a/kernel/dma/contiguous.c
-+++ b/kernel/dma/contiguous.c
-@@ -73,16 +73,7 @@ early_param("cma", early_cma);
- 
- static phys_addr_t __init __maybe_unused cma_early_percent_memory(void)
- {
--	struct memblock_region *reg;
--	unsigned long total_pages = 0;
--
--	/*
--	 * We cannot use memblock_phys_mem_size() here, because
--	 * memblock_analyze() has not been called yet.
--	 */
--	for_each_memblock(memory, reg)
--		total_pages += memblock_region_memory_end_pfn(reg) -
--			       memblock_region_memory_base_pfn(reg);
-+	unsigned long total_pages = PHYS_PFN(memblock_phys_mem_size());
- 
- 	return (total_pages * CONFIG_CMA_SIZE_PERCENTAGE / 100) << PAGE_SHIFT;
- }
--- 
-2.26.2
-
+If not, I'm afraid I might've lost the plot a little on what exact
+failure case we're talking about.
