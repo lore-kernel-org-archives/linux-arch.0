@@ -7,23 +7,23 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B0FE2C433E1
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:36:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C8931C433E1
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:36:16 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 90A8520674
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:36:10 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B0F7C20674
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 17:36:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728635AbgHRRee (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 18 Aug 2020 13:34:34 -0400
-Received: from youngberry.canonical.com ([91.189.89.112]:52410 "EHLO
+        id S1728543AbgHRRgL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 18 Aug 2020 13:36:11 -0400
+Received: from youngberry.canonical.com ([91.189.89.112]:52413 "EHLO
         youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727773AbgHRRe3 (ORCPT
+        with ESMTP id S1728405AbgHRRe3 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Aug 2020 13:34:29 -0400
 Received: from ip5f5af70b.dynamic.kabel-deutschland.de ([95.90.247.11] helo=wittgenstein.fritz.box)
         by youngberry.canonical.com with esmtpsa (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
         (Exim 4.86_2)
         (envelope-from <christian.brauner@ubuntu.com>)
-        id 1k85VA-0003E9-T8; Tue, 18 Aug 2020 17:34:25 +0000
+        id 1k85V9-0003E9-E5; Tue, 18 Aug 2020 17:34:23 +0000
 From:   Christian Brauner <christian.brauner@ubuntu.com>
 To:     Christoph Hewllig <hch@infradead.org>,
         linux-kernel@vger.kernel.org,
@@ -56,9 +56,9 @@ Cc:     Jonathan Corbet <corbet@lwn.net>,
         kgdb-bugreport@lists.sourceforge.net,
         linux-kselftest@vger.kernel.org,
         Christian Brauner <christian.brauner@ubuntu.com>
-Subject: [PATCH 03/11] ia64: switch to kernel_clone()
-Date:   Tue, 18 Aug 2020 19:34:03 +0200
-Message-Id: <20200818173411.404104-4-christian.brauner@ubuntu.com>
+Subject: [PATCH 02/11] h8300: switch to kernel_clone()
+Date:   Tue, 18 Aug 2020 19:34:02 +0200
+Message-Id: <20200818173411.404104-3-christian.brauner@ubuntu.com>
 X-Mailer: git-send-email 2.28.0
 In-Reply-To: <20200818173411.404104-1-christian.brauner@ubuntu.com>
 References: <20200818173411.404104-1-christian.brauner@ubuntu.com>
@@ -72,36 +72,25 @@ X-Mailing-List: linux-arch@vger.kernel.org
 The old _do_fork() helper is removed in favor of the new kernel_clone() helper.
 The latter adheres to naming conventions for kernel internal syscall helpers.
 
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
+Cc: Greentime Hu <green.hu@gmail.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: uclinux-h8-devel@lists.sourceforge.jp
 Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
 ---
- arch/ia64/kernel/process.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/h8300/kernel/process.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/ia64/kernel/process.c b/arch/ia64/kernel/process.c
-index f19cb97c0098..126f72490ec7 100644
---- a/arch/ia64/kernel/process.c
-+++ b/arch/ia64/kernel/process.c
-@@ -310,7 +310,7 @@ ia64_load_extra (struct task_struct *task)
-  *
-  *	<clone syscall>	        <some kernel call frames>
-  *	sys_clone		   :
-- *	_do_fork		_do_fork
-+ *	kernel_clone		kernel_clone
-  *	copy_thread		copy_thread
-  *
-  * This means that the stack layout is as follows:
-@@ -455,7 +455,7 @@ asmlinkage long ia64_clone(unsigned long clone_flags, unsigned long stack_start,
- 		.tls		= tls,
- 	};
+diff --git a/arch/h8300/kernel/process.c b/arch/h8300/kernel/process.c
+index 83ce3caf7313..aea0a40b77a9 100644
+--- a/arch/h8300/kernel/process.c
++++ b/arch/h8300/kernel/process.c
+@@ -172,5 +172,5 @@ asmlinkage int sys_clone(unsigned long __user *args)
+ 	kargs.exit_signal	= (lower_32_bits(clone_flags) & CSIGNAL);
+ 	kargs.stack		= newsp;
  
--	return _do_fork(&args);
-+	return kernel_clone(&args);
+-	return _do_fork(&kargs);
++	return kernel_clone(&kargs);
  }
- 
- static void
 -- 
 2.28.0
 
