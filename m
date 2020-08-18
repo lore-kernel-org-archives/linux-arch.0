@@ -7,37 +7,37 @@ X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7A01CC433E1
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:17:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E7CF2C433E3
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:18:19 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 51F7F2054F
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:17:21 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B47AA207DA
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:18:19 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1597763841;
-	bh=ylWhwiFM7Obo+eRxZUr7GmKhaKz7f1+YPfRZdPbto5M=;
+	s=default; t=1597763899;
+	bh=J2TTgbSkpqMfLCXDnbmKHenVNbCxcYzX9yMnhVHfk48=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=rHmsH9alk1qnlG7f2xUo9/CKE7zOXKo5+ptoSZ2X7B0bW/UF4leisVCvSER3PoEwl
-	 ZKZJoxmyhPBExI3EZwFZgZlT8K4OJ1B6dWR0QvEE1LdMrIEgJwk32u4Pgi3hZBjRsH
-	 2quInZczWyxSaQe/sqjmnZySsZn3rmvZ2HDo6HUk=
+	b=Sk56ewtPz3jBEmmR/LstbnkG5H6RrKwjnipo3M3IQIHrZXMG+nyYXhnulXHzPLBWu
+	 mmhoKKb260UolBraJynjT+jzY7dfIzzfHGn8TkLHEPgs8e9qpQoIqOhNsUK+KQPby/
+	 nEJXuG4wUkfzya7sRHCam/vjjFZxcYePTV/LjopU=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727971AbgHRPRP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 18 Aug 2020 11:17:15 -0400
-Received: from mail.kernel.org ([198.145.29.99]:40296 "EHLO mail.kernel.org"
+        id S1727981AbgHRPSS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 18 Aug 2020 11:18:18 -0400
+Received: from mail.kernel.org ([198.145.29.99]:41656 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727942AbgHRPRA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Aug 2020 11:17:00 -0400
+        id S1727942AbgHRPRz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Aug 2020 11:17:55 -0400
 Received: from aquarius.haifa.ibm.com (nesher1.haifa.il.ibm.com [195.110.40.7])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 263212076E;
-        Tue, 18 Aug 2020 15:16:48 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 1557A2083B;
+        Tue, 18 Aug 2020 15:17:43 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1597763819;
-        bh=ylWhwiFM7Obo+eRxZUr7GmKhaKz7f1+YPfRZdPbto5M=;
+        s=default; t=1597763874;
+        bh=J2TTgbSkpqMfLCXDnbmKHenVNbCxcYzX9yMnhVHfk48=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=lVcTgt1q2F5hubs/cN48dtaOxOQJ9mV8AoapoK1n6LFrBWU+b0Sh8TD35ZAthEwP2
-         0ZOR7+CZefQJ1OGqXIc4A7CboGZjsKb+tVzVnqXN6rXS5knGCLHn6PfJBBX68c5L5F
-         CGQ5QOJJxEnTj567AbAKslG9FG0zccZ6gi7lSsdg=
+        b=Nnpj9aHPG2KrOH4/+klVGNuK/8Jk1zpZIDm/NkthQ+PlCtSHYH5K9SF+vic/Hgljh
+         aX6GYVU+9totQf5Ls3jsX3v4EOxk19bt3ErWGD3vxRwxDr77xrhkql9OdQ1TIDsYPz
+         M1XgT1PKnZBp1hv2FG7lhMFlFVATie/SitWQyBf0=
 From:   Mike Rapoport <rppt@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     Andy Lutomirski <luto@kernel.org>, Baoquan He <bhe@redhat.com>,
@@ -73,9 +73,9 @@ Cc:     Andy Lutomirski <luto@kernel.org>, Baoquan He <bhe@redhat.com>,
         linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org,
         openrisc@lists.librecores.org, sparclinux@vger.kernel.org,
         uclinux-h8-devel@lists.sourceforge.jp, x86@kernel.org
-Subject: [PATCH v3 01/17] KVM: PPC: Book3S HV: simplify kvm_cma_reserve()
-Date:   Tue, 18 Aug 2020 18:16:18 +0300
-Message-Id: <20200818151634.14343-2-rppt@kernel.org>
+Subject: [PATCH v3 06/17] riscv: drop unneeded node initialization
+Date:   Tue, 18 Aug 2020 18:16:23 +0300
+Message-Id: <20200818151634.14343-7-rppt@kernel.org>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20200818151634.14343-1-rppt@kernel.org>
 References: <20200818151634.14343-1-rppt@kernel.org>
@@ -88,51 +88,37 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Mike Rapoport <rppt@linux.ibm.com>
 
-The memory size calculation in kvm_cma_reserve() traverses memblock.memory
-rather than simply call memblock_phys_mem_size(). The comment in that
-function suggests that at some point there should have been call to
-memblock_analyze() before memblock_phys_mem_size() could be used.
-As of now, there is no memblock_analyze() at all and
-memblock_phys_mem_size() can be used as soon as cold-plug memory is
-registerd with memblock.
+RISC-V does not (yet) support NUMA  and for UMA architectures node 0 is
+used implicitly during early memory initialization.
 
-Replace loop over memblock.memory with a call to memblock_phys_mem_size().
+There is no need to call memblock_set_node(), remove this call and the
+surrounding code.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/powerpc/kvm/book3s_hv_builtin.c | 12 ++----------
- 1 file changed, 2 insertions(+), 10 deletions(-)
+ arch/riscv/mm/init.c | 9 ---------
+ 1 file changed, 9 deletions(-)
 
-diff --git a/arch/powerpc/kvm/book3s_hv_builtin.c b/arch/powerpc/kvm/book3s_hv_builtin.c
-index 073617ce83e0..8f58dd20b362 100644
---- a/arch/powerpc/kvm/book3s_hv_builtin.c
-+++ b/arch/powerpc/kvm/book3s_hv_builtin.c
-@@ -95,23 +95,15 @@ EXPORT_SYMBOL_GPL(kvm_free_hpt_cma);
- void __init kvm_cma_reserve(void)
- {
- 	unsigned long align_size;
--	struct memblock_region *reg;
--	phys_addr_t selected_size = 0;
-+	phys_addr_t selected_size;
+diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
+index 787c75f751a5..0485cfaacc72 100644
+--- a/arch/riscv/mm/init.c
++++ b/arch/riscv/mm/init.c
+@@ -191,15 +191,6 @@ void __init setup_bootmem(void)
+ 	early_init_fdt_scan_reserved_mem();
+ 	memblock_allow_resize();
+ 	memblock_dump_all();
+-
+-	for_each_memblock(memory, reg) {
+-		unsigned long start_pfn = memblock_region_memory_base_pfn(reg);
+-		unsigned long end_pfn = memblock_region_memory_end_pfn(reg);
+-
+-		memblock_set_node(PFN_PHYS(start_pfn),
+-				  PFN_PHYS(end_pfn - start_pfn),
+-				  &memblock.memory, 0);
+-	}
+ }
  
- 	/*
- 	 * We need CMA reservation only when we are in HV mode
- 	 */
- 	if (!cpu_has_feature(CPU_FTR_HVMODE))
- 		return;
--	/*
--	 * We cannot use memblock_phys_mem_size() here, because
--	 * memblock_analyze() has not been called yet.
--	 */
--	for_each_memblock(memory, reg)
--		selected_size += memblock_region_memory_end_pfn(reg) -
--				 memblock_region_memory_base_pfn(reg);
- 
--	selected_size = (selected_size * kvm_cma_resv_ratio / 100) << PAGE_SHIFT;
-+	selected_size = PAGE_ALIGN(memblock_phys_mem_size() * kvm_cma_resv_ratio / 100);
- 	if (selected_size) {
- 		pr_info("%s: reserving %ld MiB for global area\n", __func__,
- 			 (unsigned long)selected_size / SZ_1M);
+ #ifdef CONFIG_MMU
 -- 
 2.26.2
 
