@@ -7,37 +7,37 @@ X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 592A7C433E4
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:18:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F1AA4C433E1
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:18:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 22D10207DA
-	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:18:20 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C7E8F208B3
+	for <linux-arch@archiver.kernel.org>; Tue, 18 Aug 2020 15:18:21 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1597763900;
-	bh=ZYR3GBWOTbbLeEGoi1OsOkKb8CEKMyuyBWdLENWnJ1E=;
+	s=default; t=1597763901;
+	bh=pd6tPUt2ij5eVwUys1N2/je9Ueo/gXQuNWSa4Q9eWYQ=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=X6lFLA0MkF8HTjmLSjPI0qMReS/Sh6m3i21YOPXE2VsuZQQyi5VOHUlFumb1maism
-	 nOnRhXUoNw7QURETcz8K9Ifr2lHulS8YK6SaPkijvj0+jSe9nX8dwde3sK5Ndg4M2D
-	 gsLJTpbSnzCis1terykvx8rcdD/VR6QZzT4SFENU=
+	b=diRAME1Q1FQAEp1MwPsoy0qkpAb0x9LJpLnB1oyXbgEz5gjg1dz+X2qkbcuUVID2m
+	 QievL+S37qmAPttB0GYbM7BpGtQhTPR/8AZsFp19Yx8N5sKK2U1cyj8lAWsrv/PZxd
+	 lIyu6PIHXFVytyQCThdPWtPiYL1YDzK5GJ1igBvc=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728034AbgHRPST (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 18 Aug 2020 11:18:19 -0400
-Received: from mail.kernel.org ([198.145.29.99]:41394 "EHLO mail.kernel.org"
+        id S1728048AbgHRPSU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 18 Aug 2020 11:18:20 -0400
+Received: from mail.kernel.org ([198.145.29.99]:42212 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728007AbgHRPRo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Aug 2020 11:17:44 -0400
+        id S1726736AbgHRPSR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Aug 2020 11:18:17 -0400
 Received: from aquarius.haifa.ibm.com (nesher1.haifa.il.ibm.com [195.110.40.7])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id DB9C120829;
-        Tue, 18 Aug 2020 15:17:32 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id DA7162087D;
+        Tue, 18 Aug 2020 15:18:05 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1597763863;
-        bh=ZYR3GBWOTbbLeEGoi1OsOkKb8CEKMyuyBWdLENWnJ1E=;
+        s=default; t=1597763896;
+        bh=pd6tPUt2ij5eVwUys1N2/je9Ueo/gXQuNWSa4Q9eWYQ=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=m1XiJCmbrGx1o925QNv8c/Bp6H5XPTpfeJ1QGf/lnbyqfmruYKi1v8ifq7YUyQIAR
-         mOZ35o8Tc86vDo4Lj7DwV982KPoM3khuhgabjNvcxndzkeQsxV3GQCIW74zG8fnva1
-         XoxYm1fjkSfMwhRHIMQT4Ivgbg9mEYH8FxQPW2cc=
+        b=aMwnH14VB9pEvRif2kVXF2j9PC1kC4UCHLgZKwNXLzSUzRVbdfutiHYDJNbY4L5Cn
+         DSx/dIQT+xRpE9G7mTEjerjFtWAArSIBhoi9OW+Gl+/Arns44xtJv2oiFd0qu78t60
+         DniuPQvPK80yg3qGzD04yvXU+ZjlZwAlZl+BmuiU=
 From:   Mike Rapoport <rppt@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     Andy Lutomirski <luto@kernel.org>, Baoquan He <bhe@redhat.com>,
@@ -73,9 +73,9 @@ Cc:     Andy Lutomirski <luto@kernel.org>, Baoquan He <bhe@redhat.com>,
         linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org,
         openrisc@lists.librecores.org, sparclinux@vger.kernel.org,
         uclinux-h8-devel@lists.sourceforge.jp, x86@kernel.org
-Subject: [PATCH v3 05/17] h8300, nds32, openrisc: simplify detection of memory extents
-Date:   Tue, 18 Aug 2020 18:16:22 +0300
-Message-Id: <20200818151634.14343-6-rppt@kernel.org>
+Subject: [PATCH v3 08/17] memblock: make for_each_memblock_type() iterator private
+Date:   Tue, 18 Aug 2020 18:16:25 +0300
+Message-Id: <20200818151634.14343-9-rppt@kernel.org>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20200818151634.14343-1-rppt@kernel.org>
 References: <20200818151634.14343-1-rppt@kernel.org>
@@ -88,85 +88,48 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Mike Rapoport <rppt@linux.ibm.com>
 
-Instead of traversing memblock.memory regions to find memory_start and
-memory_end, simply query memblock_{start,end}_of_DRAM().
+for_each_memblock_type() is not used outside mm/memblock.c, move it there
+from include/linux/memblock.h
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Acked-by: Stafford Horne <shorne@gmail.com>
+Reviewed-by: Baoquan He <bhe@redhat.com>
 ---
- arch/h8300/kernel/setup.c    | 8 +++-----
- arch/nds32/kernel/setup.c    | 8 ++------
- arch/openrisc/kernel/setup.c | 9 ++-------
- 3 files changed, 7 insertions(+), 18 deletions(-)
+ include/linux/memblock.h | 5 -----
+ mm/memblock.c            | 5 +++++
+ 2 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/h8300/kernel/setup.c b/arch/h8300/kernel/setup.c
-index 28ac88358a89..0281f92eea3d 100644
---- a/arch/h8300/kernel/setup.c
-+++ b/arch/h8300/kernel/setup.c
-@@ -74,17 +74,15 @@ static void __init bootmem_init(void)
- 	memory_end = memory_start = 0;
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index 9d925db0d355..550faf69fc1c 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -552,11 +552,6 @@ static inline unsigned long memblock_region_reserved_end_pfn(const struct memblo
+ 	     region < (memblock.memblock_type.regions + memblock.memblock_type.cnt);	\
+ 	     region++)
  
- 	/* Find main memory where is the kernel */
--	for_each_memblock(memory, region) {
--		memory_start = region->base;
--		memory_end = region->base + region->size;
--	}
-+	memory_start = memblock_start_of_DRAM();
-+	memory_end = memblock_end_of_DRAM();
+-#define for_each_memblock_type(i, memblock_type, rgn)			\
+-	for (i = 0, rgn = &memblock_type->regions[0];			\
+-	     i < memblock_type->cnt;					\
+-	     i++, rgn = &memblock_type->regions[i])
+-
+ extern void *alloc_large_system_hash(const char *tablename,
+ 				     unsigned long bucketsize,
+ 				     unsigned long numentries,
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 45f198750be9..59f3998ae5db 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -132,6 +132,11 @@ struct memblock_type physmem = {
+ };
+ #endif
  
- 	if (!memory_end)
- 		panic("No memory!");
- 
- 	/* setup bootmem globals (we use no_bootmem, but mm still depends on this) */
- 	min_low_pfn = PFN_UP(memory_start);
--	max_low_pfn = PFN_DOWN(memblock_end_of_DRAM());
-+	max_low_pfn = PFN_DOWN(memory_end);
- 	max_pfn = max_low_pfn;
- 
- 	memblock_reserve(__pa(_stext), _end - _stext);
-diff --git a/arch/nds32/kernel/setup.c b/arch/nds32/kernel/setup.c
-index a066efbe53c0..c356e484dcab 100644
---- a/arch/nds32/kernel/setup.c
-+++ b/arch/nds32/kernel/setup.c
-@@ -249,12 +249,8 @@ static void __init setup_memory(void)
- 	memory_end = memory_start = 0;
- 
- 	/* Find main memory where is the kernel */
--	for_each_memblock(memory, region) {
--		memory_start = region->base;
--		memory_end = region->base + region->size;
--		pr_info("%s: Memory: 0x%x-0x%x\n", __func__,
--			memory_start, memory_end);
--	}
-+	memory_start = memblock_start_of_DRAM();
-+	memory_end = memblock_end_of_DRAM();
- 
- 	if (!memory_end) {
- 		panic("No memory!");
-diff --git a/arch/openrisc/kernel/setup.c b/arch/openrisc/kernel/setup.c
-index b18e775f8be3..5a5940f7ebb1 100644
---- a/arch/openrisc/kernel/setup.c
-+++ b/arch/openrisc/kernel/setup.c
-@@ -48,17 +48,12 @@ static void __init setup_memory(void)
- 	unsigned long ram_start_pfn;
- 	unsigned long ram_end_pfn;
- 	phys_addr_t memory_start, memory_end;
--	struct memblock_region *region;
- 
- 	memory_end = memory_start = 0;
- 
- 	/* Find main memory where is the kernel, we assume its the only one */
--	for_each_memblock(memory, region) {
--		memory_start = region->base;
--		memory_end = region->base + region->size;
--		printk(KERN_INFO "%s: Memory: 0x%x-0x%x\n", __func__,
--		       memory_start, memory_end);
--	}
-+	memory_start = memblock_start_of_DRAM();
-+	memory_end = memblock_end_of_DRAM();
- 
- 	if (!memory_end) {
- 		panic("No memory!");
++#define for_each_memblock_type(i, memblock_type, rgn)			\
++	for (i = 0, rgn = &memblock_type->regions[0];			\
++	     i < memblock_type->cnt;					\
++	     i++, rgn = &memblock_type->regions[i])
++
+ int memblock_debug __initdata_memblock;
+ static bool system_has_some_mirror __initdata_memblock = false;
+ static int memblock_can_resize __initdata_memblock;
 -- 
 2.26.2
 
