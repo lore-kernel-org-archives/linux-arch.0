@@ -2,177 +2,143 @@ Return-Path: <SRS0=FX5x=B7=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.9 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1,
-	USER_IN_DEF_DKIM_WL autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.6 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_GIT autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6B29FC433E1
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 13:31:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5D8E6C433E1
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 15:12:33 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 493A12078D
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 13:31:42 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3B5FD2076E
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 15:12:33 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="FBhfxiep"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="kZUnJ6jz"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728622AbgHUNbj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 21 Aug 2020 09:31:39 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35344 "EHLO
+        id S1728021AbgHUPMc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 21 Aug 2020 11:12:32 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51044 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728454AbgHUNbd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 09:31:33 -0400
-Received: from mail-wr1-x443.google.com (mail-wr1-x443.google.com [IPv6:2a00:1450:4864:20::443])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C1AEAC061574
-        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 06:31:30 -0700 (PDT)
-Received: by mail-wr1-x443.google.com with SMTP id r2so1944856wrs.8
-        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 06:31:30 -0700 (PDT)
+        with ESMTP id S1727833AbgHUPMa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 11:12:30 -0400
+Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8EC48C061573;
+        Fri, 21 Aug 2020 08:12:28 -0700 (PDT)
+Received: by mail-pg1-x543.google.com with SMTP id o13so1148685pgf.0;
+        Fri, 21 Aug 2020 08:12:28 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=date:from:to:cc:subject:message-id:references:mime-version
-         :content-disposition:in-reply-to:user-agent;
-        bh=09U6vmSaahNdcLROs1sJRQMLO2jTllhKcJ+uh2MtTKA=;
-        b=FBhfxiepYWlS9uM4Bp3qtAyG46bdidayLJQHBxfbLueX+M3HuwfkeT558+nRQSbGQ4
-         WIkVB7yUWXC2eCaRIJYc9a46sTBZ1NQ87YdhCK4Kk7YUvpR4FWpISpOByJZ/KcL7WD9W
-         FnnokDVRdBqspIHoF/ghT0bvw9dXJK9uZLJKKLX3++cPmth+P3DTxEK7dchVqIzmC7/w
-         qESqZ7Ekkci69zw1SX0P7XlEJHyLp71EYw9mf3yxrtfwZQN2AVKie5IdT9vBStgJ3ipy
-         xWFmymgEZ+MbB5be3/p9NsdJln2lhDmi8cUI7UmvNIiDwlTSZprlboBjw6xYvbCGDtGk
-         6u7w==
+        d=gmail.com; s=20161025;
+        h=from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=lRxrDToJB/xPOxG5kGdgUWQPtXDsSaGWKdRXIKBnLww=;
+        b=kZUnJ6jz2FEkjkC4B07sDG1MjmzhjlUML84kGzNbhSDyDdfVyIkBqQ1JVaKnlcpnsW
+         O4/rnCdzXc5wLDuh66q0rTTJxxarsRrbbSJ3CBzYgOl2Kiph/wZYJr1Qvco+GQ7avZZF
+         Dbs74MOkriYYn3Uv1eGMGWPeNA1bNr83Aa+YHScAmKLmebvgMrUyej9FYoVnkrCPjtE3
+         /d9DU7qLsc96xQiWL8n/lPwiBLfzsLbk3ZLdsUeHAbC9H8xLy9KN7b5omTiIo5lCszfb
+         4BIvgj0FwaU6x9/I2bYSDZEgvwAguArcSIW9qjKYuZ90qn8CQH/xh3SQ44OCN04qHdb/
+         qz8A==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to:user-agent;
-        bh=09U6vmSaahNdcLROs1sJRQMLO2jTllhKcJ+uh2MtTKA=;
-        b=qis80x/wUFN4aJI89+saFUUeCvj2WhQSb+E3DeCEfL+Rt45so8pXc8CNUjv2Wxj1/b
-         ho7Owaxxb5UQaWcZpyfw2DTOpXov9nqntVXjRhjx+cTBV+GnDNgcAMhxVWwCFzieDSp5
-         s15Lk+nR/HqIxr/MAEB48X8Yw/8tDbtBvtmB8x80ADWpFOGFdDUJlwuQCjmT1lb3qift
-         J9IwXrHd0GiF2XVd9pDe+USP1dsysALzI0bMO8TnY6Eky9QxCihmGVNkM1jwBLz9aZxT
-         awqE8IuKFUAKUWVB0zWSE5tLlw5YZM4Udk9dwCc7Y3mTCO8Kh4+u776nDyShOwOeFRhC
-         y7/Q==
-X-Gm-Message-State: AOAM532qHumfsxYg89b/Op261OtWO+szy98gDhPGOpyey3Rn5eD602qo
-        2yUZNRG/DqkZLJazbE6YKjv42Q==
-X-Google-Smtp-Source: ABdhPJxriNxDM/f9/YbCE9WsW7FeM36vohjb4MJ/IXB6Q5OW1j4S16rZa29+Vlc8vCz1eSzYWkhUIg==
-X-Received: by 2002:a5d:4a8d:: with SMTP id o13mr471970wrq.194.1598016687509;
-        Fri, 21 Aug 2020 06:31:27 -0700 (PDT)
-Received: from elver.google.com ([100.105.32.75])
-        by smtp.gmail.com with ESMTPSA id 15sm4796747wmo.33.2020.08.21.06.31.25
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=lRxrDToJB/xPOxG5kGdgUWQPtXDsSaGWKdRXIKBnLww=;
+        b=EA68r7e7JOxQzC089+nNHH9Kj1n1ZhweTRlVYDRRfkbCMMoERm2JwwNxgRvd6KpEc5
+         ea6H8E/y6CJ3Aeix0tJVBPcxUm+BvyC9p44hg1PO4HjOij7e33AEhTxr28auEaMt5x9D
+         nkdR9H5XfmjLLDcLWylnz5fYzKWHP40Pa8JNaWuWe/px8cxTQzLm+EX7uyWagOiLy4v7
+         b80pi7dm8tTXGpyjPjTeSJRl4aLWdovWIdwiXL1Qap6byiU+DVzaeMZHThvmoP8bHtlI
+         2t1oLCaV+BVkOOMkXyy06MbfXv2M4VI2IvEoBFsyblpjudnindX8A18di6JG28FZU98u
+         y56g==
+X-Gm-Message-State: AOAM532Gx1MvVzhoP6NRbe41YT+BvvnoK+kcCVTgc5zRSEEVvrxnFSsr
+        i9zjSjxyiHgBkB/Bi65YwXjaYB1uPZM=
+X-Google-Smtp-Source: ABdhPJxt6gfGs7RCQ4HiMUqjAvNGZuzKIyZP+qM+HUnYFTtKpiyJhyFCAA1UxFk4xgMqZ7BnAojcJw==
+X-Received: by 2002:aa7:8757:: with SMTP id g23mr2825194pfo.283.1598022748057;
+        Fri, 21 Aug 2020 08:12:28 -0700 (PDT)
+Received: from bobo.ozlabs.ibm.com (61-68-212-105.tpgi.com.au. [61.68.212.105])
+        by smtp.gmail.com with ESMTPSA id s8sm3126985pfc.122.2020.08.21.08.12.22
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 21 Aug 2020 06:31:26 -0700 (PDT)
-Date:   Fri, 21 Aug 2020 15:31:20 +0200
-From:   Marco Elver <elver@google.com>
-To:     Dmitry Vyukov <dvyukov@google.com>
-Cc:     albert.linde@gmail.com, Andrew Morton <akpm@linux-foundation.org>,
-        Borislav Petkov <bp@alien8.de>, Ingo Molnar <mingo@redhat.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Akinobu Mita <akinobu.mita@gmail.com>,
-        "H. Peter Anvin" <hpa@zytor.com>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Alexander Potapenko <glider@google.com>,
-        Andrey Konovalov <andreyknvl@google.com>,
-        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        the arch/x86 maintainers <x86@kernel.org>,
-        Albert van der Linde <alinde@google.com>
-Subject: Re: [PATCH 1/3] lib, include/linux: add usercopy failure capability
-Message-ID: <20200821133120.GA3145341@elver.google.com>
-References: <20200821104926.828511-1-alinde@google.com>
- <20200821104926.828511-2-alinde@google.com>
- <CACT4Y+ZeoUX39tBZs-DLoX0q5tC+skB56Cxf_SSpKiJdv3mMFg@mail.gmail.com>
+        Fri, 21 Aug 2020 08:12:27 -0700 (PDT)
+From:   Nicholas Piggin <npiggin@gmail.com>
+To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        Zefan Li <lizefan@huawei.com>,
+        Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        Christophe Leroy <christophe.leroy@csgroup.eu>
+Subject: [PATCH v6 00/12] huge vmalloc mappings
+Date:   Sat, 22 Aug 2020 01:12:04 +1000
+Message-Id: <20200821151216.1005117-1-npiggin@gmail.com>
+X-Mailer: git-send-email 2.23.0
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CACT4Y+ZeoUX39tBZs-DLoX0q5tC+skB56Cxf_SSpKiJdv3mMFg@mail.gmail.com>
-User-Agent: Mutt/1.14.4 (2020-06-18)
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Aug 21, 2020 at 01:51PM +0200, Dmitry Vyukov wrote:
-...
-> > +++ b/lib/fault-inject-usercopy.c
-> > @@ -0,0 +1,66 @@
-> > +// SPDX-License-Identifier: GPL-2.0-only
-> > +#include <linux/fault-inject.h>
-> > +#include <linux/fault-inject-usercopy.h>
-> > +#include <linux/random.h>
-> > +
-> > +static struct {
-> > +       struct fault_attr attr;
-> > +       u32 failsize;
-> > +} fail_usercopy = {
-> > +       .attr = FAULT_ATTR_INITIALIZER,
-> > +       .failsize = 0,
-> > +};
-> > +
-> > +static int __init setup_fail_usercopy(char *str)
-> > +{
-> > +       return setup_fault_attr(&fail_usercopy.attr, str);
-> > +}
-> > +__setup("fail_usercopy=", setup_fail_usercopy);
-> > +
-> > +#ifdef CONFIG_FAULT_INJECTION_DEBUG_FS
-> > +
-> > +static int __init fail_usercopy_debugfs(void)
-> > +{
-> > +       umode_t mode = S_IFREG | 0600;
-> > +       struct dentry *dir;
-> > +
-> > +       dir = fault_create_debugfs_attr("fail_usercopy", NULL,
-> > +                                       &fail_usercopy.attr);
-> > +       if (IS_ERR(dir))
-> > +               return PTR_ERR(dir);
-> > +
-> > +       debugfs_create_u32("failsize", mode, dir,
-> > +                          &fail_usercopy.failsize);
-> 
-> Marco, what's the right way to annotate these concurrent accesses for KCSAN?
-
-For debugfs variables that are accessed concurrently, the only
-non-data-racy option (currently) is to use debugfs_create_atomic_t() and
-make the variable an atomic_t.
-
-If it's read-mostly as is the case here, and given that atomic_read() is
-cheap (it maps to READ_ONCE on x86 and arm64), that'd be reasonable even
-if performance is a concern.
-
-> > +       return 0;
-> > +}
-> > +
-> > +late_initcall(fail_usercopy_debugfs);
-> > +
-> > +#endif /* CONFIG_FAULT_INJECTION_DEBUG_FS */
-> > +
-> > +/**
-> > + * should_fail_usercopy() - Failure code or amount of bytes not to copy.
-> > + * @n: Size of the original copy call.
-> > + *
-> > + * The general idea is to have a method which returns the amount of bytes not
-> > + * to copy, a failure to return, or 0 if the calling function should progress
-> > + * without a failure. E.g., copy_{to,from}_user should NOT copy the amount of
-> > + * bytes returned by should_fail_usercopy, returning this value (in addition
-> > + * to any bytes that could actually not be copied) or a failure.
-> > + *
-> > + * Return: one of:
-> > + * negative, failure to return;
-> > + * 0, progress normally;
-> > + * a number in ]0, n], the number of bytes not to copy.
-> > + *
-> > + */
-> > +long should_fail_usercopy(unsigned long n)
-> > +{
-> > +       if (should_fail(&fail_usercopy.attr, n)) {
-> > +               if (fail_usercopy.failsize > 0)
-> > +                       return fail_usercopy.failsize % (n + 1);
-
-If you wanted to retain the u32 in debugfs, you can mark this
-'data_race(fail_usercopy.failsize)' -- since what we're doing here is
-probabilistic anyway, reading a garbage value won't affect things much.
-
-Alternatively, just switch to atomic_t and it'll just be an
-atomic_read().
+Thanks Christophe and Christoph for reviews.
 
 Thanks,
--- Marco
+Nick
+
+Since v5:
+- Split arch changes out better and make the constant folding work
+- Avoid most of the 80 column wrap, fix a reference to lib/ioremap.c
+- Fix compile error on some archs
+
+Since v4:
+- Fixed an off-by-page-order bug in v4
+- Several minor cleanups.
+- Added page order to /proc/vmallocinfo
+- Added hugepage to alloc_large_system_hage output.
+- Made an architecture config option, powerpc only for now.
+
+Since v3:
+- Fixed an off-by-one bug in a loop
+- Fix !CONFIG_HAVE_ARCH_HUGE_VMAP build fail
+- Hopefully this time fix the arm64 vmap stack bug, thanks Jonathan
+  Cameron for debugging the cause of this (hopefully).
+
+Since v2:
+- Rebased on vmalloc cleanups, split series into simpler pieces.
+- Fixed several compile errors and warnings
+- Keep the page array and accounting in small page units because
+  struct vm_struct is an interface (this should fix x86 vmap stack debug
+  assert). [Thanks Zefan]
+
+Nicholas Piggin (12):
+  mm/vmalloc: fix vmalloc_to_page for huge vmap mappings
+  mm: apply_to_pte_range warn and fail if a large pte is encountered
+  mm/vmalloc: rename vmap_*_range vmap_pages_*_range
+  lib/ioremap: rename ioremap_*_range to vmap_*_range
+  mm: HUGE_VMAP arch support cleanup
+  powerpc: inline huge vmap supported functions
+  arm64: inline huge vmap supported functions
+  x86: inline huge vmap supported functions
+  mm: Move vmap_range from mm/ioremap.c to mm/vmalloc.c
+  mm/vmalloc: add vmap_range_noflush variant
+  mm/vmalloc: Hugepage vmalloc mappings
+  powerpc/64s/radix: Enable huge vmalloc mappings
+
+ .../admin-guide/kernel-parameters.txt         |   2 +
+ arch/Kconfig                                  |   4 +
+ arch/arm64/include/asm/vmalloc.h              |  25 +
+ arch/arm64/mm/mmu.c                           |  26 -
+ arch/powerpc/Kconfig                          |   1 +
+ arch/powerpc/include/asm/vmalloc.h            |  21 +
+ arch/powerpc/mm/book3s64/radix_pgtable.c      |  21 -
+ arch/x86/include/asm/vmalloc.h                |  23 +
+ arch/x86/mm/ioremap.c                         |  19 -
+ arch/x86/mm/pgtable.c                         |  13 -
+ include/linux/io.h                            |   9 -
+ include/linux/vmalloc.h                       |  10 +
+ init/main.c                                   |   1 -
+ mm/ioremap.c                                  | 225 +--------
+ mm/memory.c                                   |  60 ++-
+ mm/page_alloc.c                               |   5 +-
+ mm/vmalloc.c                                  | 443 +++++++++++++++---
+ 17 files changed, 515 insertions(+), 393 deletions(-)
+
+-- 
+2.23.0
+
