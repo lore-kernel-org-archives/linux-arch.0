@@ -7,74 +7,74 @@ X-Spam-Status: No, score=-12.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
 	USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A69ADC433DF
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4EC51C433E3
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:13 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7EAFE2072D
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:08 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 1ACE12076E
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:13 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="JT4pVb10"
+	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="cEhj/1dX"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726852AbgHUTpH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 21 Aug 2020 15:45:07 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36838 "EHLO
+        id S1726874AbgHUTpM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 21 Aug 2020 15:45:12 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36768 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726761AbgHUToj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 15:44:39 -0400
+        with ESMTP id S1726799AbgHUToo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 15:44:44 -0400
 Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 13EEEC061574
-        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:29 -0700 (PDT)
-Received: by mail-pj1-x1041.google.com with SMTP id nv17so1261830pjb.3
-        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:29 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5DCFEC061386
+        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:30 -0700 (PDT)
+Received: by mail-pj1-x1041.google.com with SMTP id i13so658763pjv.0
+        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:30 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=chromium.org; s=google;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=0/rE8jJuXRc1airAle0+onivAY85nE0+tqDHT+XyY88=;
-        b=JT4pVb10IceVeDm1adcHLxdY4EdYIPEWA3KjTJabgl0d0VA5WUnoX/ushJfgCok6Ho
-         4B3EVm8AF4NzrvER3XCq7eZ+7m4BIvPPR9geOnruF42EwoVDjqeHzLgmffnFdRS+y+Bg
-         5UlsXllprv18ipGiriocq+G9bM7cQTotoNyOo=
+        bh=Iyu1hqfWZF/Rprc+orVpuMlUtMs4mrBdsJ6TcxbP7dg=;
+        b=cEhj/1dXziGzNz3rzCPAyy+0VKr4B6ufAh5DgKVx30rzDGb14ve/eXfOAOHLNwWMoJ
+         CdTN2XCZlucbNHybqLceeWOXF09o+ktLiVPykM1lpIJxxYeBbq0GUTQ6Y8QnLr5f8mJp
+         2Oh+xOILfK2AkARlkRq0fbM9ZA6auqArJxZb8=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=0/rE8jJuXRc1airAle0+onivAY85nE0+tqDHT+XyY88=;
-        b=LB20jyrzWdCZQ0bc4FG5cTfoGEFsGX4h7DowZ8huNPVJ7Rox2I5A3xDN7Ewe0rczP9
-         lN7Fh4/poHSwps67cH+y4BSl3q2xHqgg2Vug7PxC50KbIjZfjA5v09LL/8/zNDW/7vgW
-         IcUseGA8mmVhGagmUAGoj/VBp+cDaxLDYZde8y9JErzjLUf1SSXGceCLeFO0VZ7yfEZL
-         tl6TTSTi7exYLWNivFIYmzYyCPs5/Q6z0BlnwD63ueAah42XbPbiQINEjHxnWNKG3B+g
-         Qhgtw+jKjljNhelH032VbUF+SXfOrntJUUqk+737pMsuMCLC5gMae8iG5XnnjAX0BwOp
-         ci4A==
-X-Gm-Message-State: AOAM531tWCSUekbUC7ZtL1TGaxXSg6TsNUrzdoEK0NF6MXBXEED5OPXd
-        IwwN3KmQVTlGPhwQzFGwzgerbw==
-X-Google-Smtp-Source: ABdhPJyuGIVQ0b+PhpdQKCs1+OXOtpRIrOjbVmWZxwlIoSAwv7AnBEr84ug+NmvksNd2aTZqqIZrEg==
-X-Received: by 2002:a17:902:ac84:: with SMTP id h4mr3560297plr.334.1598039068646;
-        Fri, 21 Aug 2020 12:44:28 -0700 (PDT)
+        bh=Iyu1hqfWZF/Rprc+orVpuMlUtMs4mrBdsJ6TcxbP7dg=;
+        b=iK+SNid5OxZdqUJ7YQb5e2LWN1mT0sD70GHijmA8RPYvwOIPO0A+jrCb6oAc6x6FE/
+         woDskAGkUExjMaxg4MtpbaehhJbbmDSuc0WJYyJyK2lkfYRTUjAfHuKqUy0vX+8fr/Uq
+         lOLMBrh+KmUwRW5EZDMFbBtthf9Q8NJ9GGbApQN5jLvtsJoyHQ1ms78xY0CkfHqO5swY
+         v1ty1y1UGygSvSpMQyB/r0uQTFJkldtoRNCyOJ5C+X/UvVcOgXCE2PAr0vs50DIoluwa
+         loJLXOlqs2DYNJPGRRbAQjS1TGEsonqAQe4u7gFmboUT7K2lKAm6LMMZBfiOYGXAuWds
+         N3EQ==
+X-Gm-Message-State: AOAM531tetiSwBmieQSqD3VY3hYbJoe/Ph11/Tfm2wMBSz2a1w2ma2KS
+        g205LQ/uZdr3waMitWT6EsCDUQ==
+X-Google-Smtp-Source: ABdhPJzpIJZx9fWtR3JYrT9Hz00IB8Bbc5lbvCNlSB2U5AhmKzx1WV+9QjdpbeHcGVcZ/7aFyUdG+g==
+X-Received: by 2002:a17:90a:9d83:: with SMTP id k3mr3788859pjp.19.1598039070005;
+        Fri, 21 Aug 2020 12:44:30 -0700 (PDT)
 Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
-        by smtp.gmail.com with ESMTPSA id e125sm3411364pfh.69.2020.08.21.12.44.21
+        by smtp.gmail.com with ESMTPSA id z9sm3224171pfn.59.2020.08.21.12.44.23
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
         Fri, 21 Aug 2020 12:44:25 -0700 (PDT)
 From:   Kees Cook <keescook@chromium.org>
 To:     Ingo Molnar <mingo@kernel.org>
 Cc:     Kees Cook <keescook@chromium.org>,
-        Arvind Sankar <nivedita@alum.mit.edu>,
-        Atish Patra <atish.patra@wdc.com>, linux-efi@vger.kernel.org,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
         Catalin Marinas <catalin.marinas@arm.com>,
         Mark Rutland <mark.rutland@arm.com>,
+        Ard Biesheuvel <ardb@kernel.org>,
         Peter Collingbourne <pcc@google.com>,
         James Morse <james.morse@arm.com>,
         Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>,
         Russell King <linux@armlinux.org.uk>,
         Masahiro Yamada <masahiroy@kernel.org>,
+        Arvind Sankar <nivedita@alum.mit.edu>,
+        Nick Desaulniers <ndesaulniers@google.com>,
         Nathan Chancellor <natechancellor@gmail.com>,
         Arnd Bergmann <arnd@arndb.de>, x86@kernel.org,
         clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Subject: [PATCH v6 07/29] efi/libstub: Disable -mbranch-protection
-Date:   Fri, 21 Aug 2020 12:42:48 -0700
-Message-Id: <20200821194310.3089815-8-keescook@chromium.org>
+        linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-kernel@vger.kernel.org
+Subject: [PATCH v6 12/29] arm64/build: Add missing DWARF sections
+Date:   Fri, 21 Aug 2020 12:42:53 -0700
+Message-Id: <20200821194310.3089815-13-keescook@chromium.org>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20200821194310.3089815-1-keescook@chromium.org>
 References: <20200821194310.3089815-1-keescook@chromium.org>
@@ -85,55 +85,25 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-In preparation for adding --orphan-handling=warn to more architectures,
-disable -mbranch-protection, as EFI does not yet support it[1].  This was
-noticed due to it producing unwanted .note.gnu.property sections (prefixed
-with .init due to the objcopy build step).
+Explicitly include DWARF sections when they're present in the build.
 
-However, we must also work around a bug in Clang where the section is
-still emitted for code-less object files[2], so also remove the section
-during the objcopy.
-
-[1] https://lore.kernel.org/lkml/CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com
-[2] https://bugs.llvm.org/show_bug.cgi?id=46480
-
-Cc: Arvind Sankar <nivedita@alum.mit.edu>
-Cc: Atish Patra <atish.patra@wdc.com>
-Cc: linux-efi@vger.kernel.org
-Acked-by: Ard Biesheuvel <ardb@kernel.org>
-Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- drivers/firmware/efi/libstub/Makefile | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ arch/arm64/kernel/vmlinux.lds.S | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
-index 5eefd60917df..0c911e391d75 100644
---- a/drivers/firmware/efi/libstub/Makefile
-+++ b/drivers/firmware/efi/libstub/Makefile
-@@ -18,7 +18,8 @@ cflags-$(CONFIG_X86)		+= -m$(BITS) -D__KERNEL__ \
- # arm64 uses the full KBUILD_CFLAGS so it's necessary to explicitly
- # disable the stackleak plugin
- cflags-$(CONFIG_ARM64)		:= $(subst $(CC_FLAGS_FTRACE),,$(KBUILD_CFLAGS)) \
--				   -fpie $(DISABLE_STACKLEAK_PLUGIN)
-+				   -fpie $(DISABLE_STACKLEAK_PLUGIN) \
-+				   $(call cc-option,-mbranch-protection=none)
- cflags-$(CONFIG_ARM)		:= $(subst $(CC_FLAGS_FTRACE),,$(KBUILD_CFLAGS)) \
- 				   -fno-builtin -fpic \
- 				   $(call cc-option,-mno-single-pic-base)
-@@ -66,6 +67,12 @@ lib-$(CONFIG_X86)		+= x86-stub.o
- CFLAGS_arm32-stub.o		:= -DTEXT_OFFSET=$(TEXT_OFFSET)
- CFLAGS_arm64-stub.o		:= -DTEXT_OFFSET=$(TEXT_OFFSET)
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index 082e9efa2b43..16eb2ef806cd 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -239,6 +239,7 @@ SECTIONS
+ 	_end = .;
  
-+# Even when -mbranch-protection=none is set, Clang will generate a
-+# .note.gnu.property for code-less object files (like lib/ctype.c),
-+# so work around this by explicitly removing the unwanted section.
-+# https://bugs.llvm.org/show_bug.cgi?id=46480
-+STUBCOPY_FLAGS-y		+= --remove-section=.note.gnu.property
-+
- #
- # For x86, bootloaders like systemd-boot or grub-efi do not zero-initialize the
- # .bss section, so the .bss section of the EFI stub needs to be included in the
+ 	STABS_DEBUG
++	DWARF_DEBUG
+ 	ELF_DETAILS
+ 
+ 	HEAD_SYMBOLS
 -- 
 2.25.1
 
