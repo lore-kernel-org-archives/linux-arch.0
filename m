@@ -5,59 +5,59 @@ X-Spam-Level:
 X-Spam-Status: No, score=-12.6 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
-	version=3.4.0
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D100CC433E1
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 15:14:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 45B3BC433DF
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 15:14:51 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A626C207C3
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 15:14:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2233D207DF
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 15:14:51 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Dxuzt8Gq"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="GSNKWe4s"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728324AbgHUPOU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 21 Aug 2020 11:14:20 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51136 "EHLO
+        id S1728146AbgHUPM6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 21 Aug 2020 11:12:58 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51086 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728193AbgHUPNG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 11:13:06 -0400
-Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B1DF6C061573;
-        Fri, 21 Aug 2020 08:13:03 -0700 (PDT)
-Received: by mail-pj1-x1043.google.com with SMTP id ds1so946249pjb.1;
-        Fri, 21 Aug 2020 08:13:03 -0700 (PDT)
+        with ESMTP id S1728131AbgHUPMp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 11:12:45 -0400
+Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D6759C061573;
+        Fri, 21 Aug 2020 08:12:44 -0700 (PDT)
+Received: by mail-pf1-x444.google.com with SMTP id y206so1193981pfb.10;
+        Fri, 21 Aug 2020 08:12:44 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=mshGO+fS8Fvu8aEJg35ArnuOW0kj8WJXDS3j67fcQcE=;
-        b=Dxuzt8Gq7VFN+A3EE1DxMPxeR9USeuD5Ig74qLhRJfNfR1CmVPxrcgV8gPhNHj2A8P
-         quPQ5BBpTYZyqfVksB15bO0M5UDQGUg2/RLxDTyK+Jo40A3mOU5yASraaNxMTRw9S0OZ
-         JN/wNNkHe44ywg52mENRYGVDjuigU4bPuvrNsGcn/ef5dP1I5n/TKYfxM9lVuHicwz6s
-         Zw/5/ic/iqoZQf//idHiVEb0OpRo1LT4zDCNXeQ+gcZ8ESpEwAwKL9N6H+yqcJSx8YM0
-         URv+AuGrWbPWMx5M1EKzJeHJmDN2ARnD48B0zdNvmgnYzHz2Jn8n6nsRPZQUsqV4Q4nK
-         axrQ==
+        bh=sv/9eriXs4YMtuUqEg5bncZ0rlcJBEbL+hLm5+QBb40=;
+        b=GSNKWe4sKvin/No7SBzCc6TLryWUHXwgfTbEx2FE6v6Qty5pCQrFFPx5gnqy/TMrZ0
+         FhhPfnO1bjKpB4mpbA2Zbxb9SnDJDwQaEqzIh/veS4HnSfjR3rbv9N9XL2owb+is8FBp
+         U8tWqJVuLXxEfds8/KLwA4IOscmZGRMKdB06OQO7XdHheYKQrpMNaMFkXftauA9SdKrT
+         lW1CdeEv5KN8HhDLkiTqMOuJxGW/FRMC5XelBXGxC4PtVgAegGzDna0egFgASOCs/cMD
+         9ZO6lXh6LIZdusjsisbkJtFSMIfznqn5HCpt0SnfiGnceZS3t5zZrhGdIB1XZ3XVbxe3
+         86KQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=mshGO+fS8Fvu8aEJg35ArnuOW0kj8WJXDS3j67fcQcE=;
-        b=CetdOjLLioar06av/nlVp3MNEjezf0eWj48cFNX71iF/K8KUSDJgWGzFEeAUBnVzJE
-         0kXD7G3Mb2mR0z8Y9+mF81TSL/s6z8p1KYqCcmoIVp3y9gmBeVYiV15AMjqCiHyXusjG
-         YPrCEDvgN5iH2xeJq0HmrFnvDeJXTXLlAHNa1aW1yVrVq9G43+uh9+/umAkFJCu626Fr
-         4FCOP/2AcXTEI3GIqMy7x1Psa/j6BFaPkVk3ifVts0pIcxnSdNkB8fFgQ+zulcMbyZyn
-         h9+QPqVGAoUgXiHpo6XjOyIRpxl3UU0Lf7UoJGIEpdQgdvyVUrw/CiU5NAqxnl9pCLFd
-         6VyQ==
-X-Gm-Message-State: AOAM5322JfWivpC06z0PZnsrAvkLU4DsX8KTLEUMEtSHBkFGPCgyqnP/
-        TASOlWmopINdGidFDisO/0k=
-X-Google-Smtp-Source: ABdhPJyI4dN8FzkV0FOxrBa1THMuB+8nPxJGWft+AXElncM0Z7aiq7OcjvvT8WAe06i2OCzHEasr8Q==
-X-Received: by 2002:a17:90a:cb0b:: with SMTP id z11mr2882310pjt.77.1598022783284;
-        Fri, 21 Aug 2020 08:13:03 -0700 (PDT)
+        bh=sv/9eriXs4YMtuUqEg5bncZ0rlcJBEbL+hLm5+QBb40=;
+        b=KssuQuKiSATNxvEiXxzg3R+Vje+et5IJQ5wdhaLOKfRYHTGI8rSG0TnjhiNgDUihjs
+         eUbkt+HWnqpOCGenNhsKmHY1GS106dVSJb/Jx9AtGoxCPYDDlbQh9dF8MPqVFGGLX8QY
+         XD9wA1g/h+AepqPnsuraNHBDfuFF0hjI7NYnXJvsvYN1zrwI65Bj0oVy3y9n+K7TzjRB
+         913WsjFZ9Qk2qKExVG3+B/B8XoWiZgCuEy/mmLkC7W2zO0/PRMjDNYzSU/JBJCdkc3hA
+         MsgBlzw2vBEvJ8SCPv3huuzBJ5GAUpfQt/L7GfYkxoEpCIqQNIztcTPvIc7djnpXfrXh
+         PoOQ==
+X-Gm-Message-State: AOAM530ipfe8ZCtKdKIAlx8qLMy4WhNou31Epfzoi0fG0A0cK4ydNmm/
+        zNAdGJbwQRPilsN2dPYs+rw=
+X-Google-Smtp-Source: ABdhPJyVcrLzuP+hh//+EDBR3EBQ4EbV3sHIVDVex2GP8JpaDxXcsB6PkbGOFarFI53/CgzL2OUHFA==
+X-Received: by 2002:a63:af51:: with SMTP id s17mr2699253pgo.286.1598022764313;
+        Fri, 21 Aug 2020 08:12:44 -0700 (PDT)
 Received: from bobo.ozlabs.ibm.com (61-68-212-105.tpgi.com.au. [61.68.212.105])
-        by smtp.gmail.com with ESMTPSA id s8sm3126985pfc.122.2020.08.21.08.12.58
+        by smtp.gmail.com with ESMTPSA id s8sm3126985pfc.122.2020.08.21.08.12.39
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 21 Aug 2020 08:13:02 -0700 (PDT)
+        Fri, 21 Aug 2020 08:12:43 -0700 (PDT)
 From:   Nicholas Piggin <npiggin@gmail.com>
 To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
 Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
@@ -66,9 +66,9 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
         Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
         Christoph Hellwig <hch@infradead.org>,
         Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v6 06/12] powerpc: inline huge vmap supported functions
-Date:   Sat, 22 Aug 2020 01:12:10 +1000
-Message-Id: <20200821151216.1005117-7-npiggin@gmail.com>
+Subject: [PATCH v6 03/12] mm/vmalloc: rename vmap_*_range vmap_pages_*_range
+Date:   Sat, 22 Aug 2020 01:12:07 +1000
+Message-Id: <20200821151216.1005117-4-npiggin@gmail.com>
 X-Mailer: git-send-email 2.23.0
 In-Reply-To: <20200821151216.1005117-1-npiggin@gmail.com>
 References: <20200821151216.1005117-1-npiggin@gmail.com>
@@ -79,85 +79,86 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This allows unsupported levels to be constant folded away, and so
-p4d_free_pud_page can be removed because it's no longer linked to.
+The vmalloc mapper operates on a struct page * array rather than a
+linear physical address, re-name it to make this distinction clear.
 
-Cc: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/powerpc/include/asm/vmalloc.h       | 19 ++++++++++++++++---
- arch/powerpc/mm/book3s64/radix_pgtable.c | 21 ---------------------
- 2 files changed, 16 insertions(+), 24 deletions(-)
+ mm/vmalloc.c | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/vmalloc.h b/arch/powerpc/include/asm/vmalloc.h
-index 105abb73f075..3f0c153befb0 100644
---- a/arch/powerpc/include/asm/vmalloc.h
-+++ b/arch/powerpc/include/asm/vmalloc.h
-@@ -1,12 +1,25 @@
- #ifndef _ASM_POWERPC_VMALLOC_H
- #define _ASM_POWERPC_VMALLOC_H
- 
-+#include <asm/mmu.h>
- #include <asm/page.h>
- 
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
--bool arch_vmap_p4d_supported(pgprot_t prot);
--bool arch_vmap_pud_supported(pgprot_t prot);
--bool arch_vmap_pmd_supported(pgprot_t prot);
-+static inline bool arch_vmap_p4d_supported(pgprot_t prot)
-+{
-+	return false;
-+}
-+
-+static inline bool arch_vmap_pud_supported(pgprot_t prot)
-+{
-+	/* HPT does not cope with large pages in the vmalloc area */
-+	return radix_enabled();
-+}
-+
-+static inline bool arch_vmap_pmd_supported(pgprot_t prot)
-+{
-+	return radix_enabled();
-+}
- #endif
- 
- #endif /* _ASM_POWERPC_VMALLOC_H */
-diff --git a/arch/powerpc/mm/book3s64/radix_pgtable.c b/arch/powerpc/mm/book3s64/radix_pgtable.c
-index eca83a50bf2e..27f5837cf145 100644
---- a/arch/powerpc/mm/book3s64/radix_pgtable.c
-+++ b/arch/powerpc/mm/book3s64/radix_pgtable.c
-@@ -1134,22 +1134,6 @@ void radix__ptep_modify_prot_commit(struct vm_area_struct *vma,
- 	set_pte_at(mm, addr, ptep, pte);
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 4e9b21adc73d..45cd80ec7eeb 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -189,7 +189,7 @@ void unmap_kernel_range_noflush(unsigned long start, unsigned long size)
+ 		arch_sync_kernel_mappings(start, end);
  }
  
--bool arch_vmap_pud_supported(pgprot_t prot)
--{
--	/* HPT does not cope with large pages in the vmalloc area */
--	return radix_enabled();
--}
--
--bool arch_vmap_pmd_supported(pgprot_t prot)
--{
--	return radix_enabled();
--}
--
--int p4d_free_pud_page(p4d_t *p4d, unsigned long addr)
--{
--	return 0;
--}
--
- int pud_set_huge(pud_t *pud, phys_addr_t addr, pgprot_t prot)
+-static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
++static int vmap_pages_pte_range(pmd_t *pmd, unsigned long addr,
+ 		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
+ 		pgtbl_mod_mask *mask)
  {
- 	pte_t *ptep = (pte_t *)pud;
-@@ -1233,8 +1217,3 @@ int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
- 
- 	return 1;
+@@ -217,7 +217,7 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
+ 	return 0;
  }
--
--bool arch_vmap_p4d_supported(pgprot_t prot)
--{
--	return false;
--}
+ 
+-static int vmap_pmd_range(pud_t *pud, unsigned long addr,
++static int vmap_pages_pmd_range(pud_t *pud, unsigned long addr,
+ 		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
+ 		pgtbl_mod_mask *mask)
+ {
+@@ -229,13 +229,13 @@ static int vmap_pmd_range(pud_t *pud, unsigned long addr,
+ 		return -ENOMEM;
+ 	do {
+ 		next = pmd_addr_end(addr, end);
+-		if (vmap_pte_range(pmd, addr, next, prot, pages, nr, mask))
++		if (vmap_pages_pte_range(pmd, addr, next, prot, pages, nr, mask))
+ 			return -ENOMEM;
+ 	} while (pmd++, addr = next, addr != end);
+ 	return 0;
+ }
+ 
+-static int vmap_pud_range(p4d_t *p4d, unsigned long addr,
++static int vmap_pages_pud_range(p4d_t *p4d, unsigned long addr,
+ 		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
+ 		pgtbl_mod_mask *mask)
+ {
+@@ -247,13 +247,13 @@ static int vmap_pud_range(p4d_t *p4d, unsigned long addr,
+ 		return -ENOMEM;
+ 	do {
+ 		next = pud_addr_end(addr, end);
+-		if (vmap_pmd_range(pud, addr, next, prot, pages, nr, mask))
++		if (vmap_pages_pmd_range(pud, addr, next, prot, pages, nr, mask))
+ 			return -ENOMEM;
+ 	} while (pud++, addr = next, addr != end);
+ 	return 0;
+ }
+ 
+-static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
++static int vmap_pages_p4d_range(pgd_t *pgd, unsigned long addr,
+ 		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
+ 		pgtbl_mod_mask *mask)
+ {
+@@ -265,7 +265,7 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
+ 		return -ENOMEM;
+ 	do {
+ 		next = p4d_addr_end(addr, end);
+-		if (vmap_pud_range(p4d, addr, next, prot, pages, nr, mask))
++		if (vmap_pages_pud_range(p4d, addr, next, prot, pages, nr, mask))
+ 			return -ENOMEM;
+ 	} while (p4d++, addr = next, addr != end);
+ 	return 0;
+@@ -306,7 +306,7 @@ int map_kernel_range_noflush(unsigned long addr, unsigned long size,
+ 		next = pgd_addr_end(addr, end);
+ 		if (pgd_bad(*pgd))
+ 			mask |= PGTBL_PGD_MODIFIED;
+-		err = vmap_p4d_range(pgd, addr, next, prot, pages, &nr, &mask);
++		err = vmap_pages_p4d_range(pgd, addr, next, prot, pages, &nr, &mask);
+ 		if (err)
+ 			return err;
+ 	} while (pgd++, addr = next, addr != end);
 -- 
 2.23.0
 
