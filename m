@@ -7,51 +7,51 @@ X-Spam-Status: No, score=-12.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
 	USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4EC51C433E3
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5DDF1C433DF
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:15 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1ACE12076E
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 396AD20738
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:15 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="cEhj/1dX"
+	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="NyTgbCze"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726874AbgHUTpM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1726875AbgHUTpM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Fri, 21 Aug 2020 15:45:12 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36768 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36772 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726799AbgHUToo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 15:44:44 -0400
-Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5DCFEC061386
-        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:30 -0700 (PDT)
-Received: by mail-pj1-x1041.google.com with SMTP id i13so658763pjv.0
-        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:30 -0700 (PDT)
+        with ESMTP id S1726688AbgHUToy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 15:44:54 -0400
+Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4866DC061795
+        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:31 -0700 (PDT)
+Received: by mail-pl1-x644.google.com with SMTP id t11so1341585plr.5
+        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:31 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=chromium.org; s=google;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=Iyu1hqfWZF/Rprc+orVpuMlUtMs4mrBdsJ6TcxbP7dg=;
-        b=cEhj/1dXziGzNz3rzCPAyy+0VKr4B6ufAh5DgKVx30rzDGb14ve/eXfOAOHLNwWMoJ
-         CdTN2XCZlucbNHybqLceeWOXF09o+ktLiVPykM1lpIJxxYeBbq0GUTQ6Y8QnLr5f8mJp
-         2Oh+xOILfK2AkARlkRq0fbM9ZA6auqArJxZb8=
+        bh=aNMQ3F5q4g/Uk/+s5Q6WGurCwVwunmhXKYzGhkTYsIo=;
+        b=NyTgbCzeEp1ym59DR/QNoKj0uG9hbvo/o+utcH9r4Kqq9qDleAjXl0OOU+wa72oid0
+         FrDeaXspf6qhKYOuNZye4L/12pgzRr6iZoEOwV7U/CjWa9fCFKPcsbBgybjxujpqjzK7
+         J1y+nrPz7erQ0BcWjuHUvdi/5/c1Bpagd89nw=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=Iyu1hqfWZF/Rprc+orVpuMlUtMs4mrBdsJ6TcxbP7dg=;
-        b=iK+SNid5OxZdqUJ7YQb5e2LWN1mT0sD70GHijmA8RPYvwOIPO0A+jrCb6oAc6x6FE/
-         woDskAGkUExjMaxg4MtpbaehhJbbmDSuc0WJYyJyK2lkfYRTUjAfHuKqUy0vX+8fr/Uq
-         lOLMBrh+KmUwRW5EZDMFbBtthf9Q8NJ9GGbApQN5jLvtsJoyHQ1ms78xY0CkfHqO5swY
-         v1ty1y1UGygSvSpMQyB/r0uQTFJkldtoRNCyOJ5C+X/UvVcOgXCE2PAr0vs50DIoluwa
-         loJLXOlqs2DYNJPGRRbAQjS1TGEsonqAQe4u7gFmboUT7K2lKAm6LMMZBfiOYGXAuWds
-         N3EQ==
-X-Gm-Message-State: AOAM531tetiSwBmieQSqD3VY3hYbJoe/Ph11/Tfm2wMBSz2a1w2ma2KS
-        g205LQ/uZdr3waMitWT6EsCDUQ==
-X-Google-Smtp-Source: ABdhPJzpIJZx9fWtR3JYrT9Hz00IB8Bbc5lbvCNlSB2U5AhmKzx1WV+9QjdpbeHcGVcZ/7aFyUdG+g==
-X-Received: by 2002:a17:90a:9d83:: with SMTP id k3mr3788859pjp.19.1598039070005;
+        bh=aNMQ3F5q4g/Uk/+s5Q6WGurCwVwunmhXKYzGhkTYsIo=;
+        b=TKTpNhqGXX9DaWWlZhgheqH90PZLPCj/MuRAJcvF99rP04su4XVWhnw+ZO/wSt4A/B
+         n+rhfcL4gN2evcGjqDfpV3kSjhrmOZU6F6M6aA8SOmbZbEeYeLL1ABhJmXLuziTP9Bzv
+         kJnA7FvnbhxqKIc16wmF0AyNCHu6YpVZYpar1Dr/f2IIgB64IAkAaTp8MWVd6QmN9oM7
+         71ld9N1PwuAhdT5vfNcGaSMyXM3i2+UwFKkkYAb06Kz3VcceQcoYvGjF6ZADYQGzwxwT
+         3mwpKjIwLvFkEsypCJaeYLYQI9+jAqaNchHeK2WQDIiM4y1atVAMI5r9/sVcI0s3JFVM
+         icOg==
+X-Gm-Message-State: AOAM532mFbnbiyHyBc3Ne9xU5lbMfEwtvsWolE5iDa1n7rOLxnW2lfUL
+        T16h1sVFdJisDugmAovrrjVl0g==
+X-Google-Smtp-Source: ABdhPJwx2k11/u4a4HxHG8VAxnrqER3e8md8d+tJb6KWY7SBST29tpxto+MAjoOMhPh2+M9prsPHmg==
+X-Received: by 2002:a17:902:c181:: with SMTP id d1mr3416243pld.296.1598039070655;
         Fri, 21 Aug 2020 12:44:30 -0700 (PDT)
 Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
-        by smtp.gmail.com with ESMTPSA id z9sm3224171pfn.59.2020.08.21.12.44.23
+        by smtp.gmail.com with ESMTPSA id u5sm3268710pfm.149.2020.08.21.12.44.25
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
         Fri, 21 Aug 2020 12:44:25 -0700 (PDT)
 From:   Kees Cook <keescook@chromium.org>
@@ -72,9 +72,9 @@ Cc:     Kees Cook <keescook@chromium.org>,
         clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org,
         linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-kernel@vger.kernel.org
-Subject: [PATCH v6 12/29] arm64/build: Add missing DWARF sections
-Date:   Fri, 21 Aug 2020 12:42:53 -0700
-Message-Id: <20200821194310.3089815-13-keescook@chromium.org>
+Subject: [PATCH v6 15/29] arm/build: Refactor linker script headers
+Date:   Fri, 21 Aug 2020 12:42:56 -0700
+Message-Id: <20200821194310.3089815-16-keescook@chromium.org>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20200821194310.3089815-1-keescook@chromium.org>
 References: <20200821194310.3089815-1-keescook@chromium.org>
@@ -85,25 +85,98 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Explicitly include DWARF sections when they're present in the build.
+In preparation for adding --orphan-handling=warn, refactor the linker
+script header includes, and extract common macros.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm64/kernel/vmlinux.lds.S | 1 +
- 1 file changed, 1 insertion(+)
+ arch/arm/{kernel => include/asm}/vmlinux.lds.h | 13 ++++++++-----
+ arch/arm/kernel/vmlinux-xip.lds.S              |  4 +---
+ arch/arm/kernel/vmlinux.lds.S                  |  4 +---
+ 3 files changed, 10 insertions(+), 11 deletions(-)
+ rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (96%)
 
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index 082e9efa2b43..16eb2ef806cd 100644
---- a/arch/arm64/kernel/vmlinux.lds.S
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -239,6 +239,7 @@ SECTIONS
- 	_end = .;
+diff --git a/arch/arm/kernel/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
+similarity index 96%
+rename from arch/arm/kernel/vmlinux.lds.h
+rename to arch/arm/include/asm/vmlinux.lds.h
+index 381a8e105fa5..a08f4301b718 100644
+--- a/arch/arm/kernel/vmlinux.lds.h
++++ b/arch/arm/include/asm/vmlinux.lds.h
+@@ -1,4 +1,5 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
++#include <asm-generic/vmlinux.lds.h>
  
- 	STABS_DEBUG
-+	DWARF_DEBUG
- 	ELF_DETAILS
+ #ifdef CONFIG_HOTPLUG_CPU
+ #define ARM_CPU_DISCARD(x)
+@@ -49,8 +50,12 @@
+ 		EXIT_CALL						\
+ 		ARM_MMU_DISCARD(*(.text.fixup))				\
+ 		ARM_MMU_DISCARD(*(__ex_table))				\
+-		*(.discard)						\
+-		*(.discard.*)
++		COMMON_DISCARDS
++
++#define ARM_STUBS_TEXT							\
++		*(.gnu.warning)						\
++		*(.glue_7)						\
++		*(.glue_7t)
  
- 	HEAD_SYMBOLS
+ #define ARM_TEXT							\
+ 		IDMAP_TEXT						\
+@@ -64,9 +69,7 @@
+ 		CPUIDLE_TEXT						\
+ 		LOCK_TEXT						\
+ 		KPROBES_TEXT						\
+-		*(.gnu.warning)						\
+-		*(.glue_7)						\
+-		*(.glue_7t)						\
++		ARM_STUBS_TEXT						\
+ 		. = ALIGN(4);						\
+ 		*(.got)			/* Global offset table */	\
+ 		ARM_CPU_KEEP(PROC_INFO)
+diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
+index 3d4e88f08196..904c31fa20ed 100644
+--- a/arch/arm/kernel/vmlinux-xip.lds.S
++++ b/arch/arm/kernel/vmlinux-xip.lds.S
+@@ -9,15 +9,13 @@
+ 
+ #include <linux/sizes.h>
+ 
+-#include <asm-generic/vmlinux.lds.h>
++#include <asm/vmlinux.lds.h>
+ #include <asm/cache.h>
+ #include <asm/thread_info.h>
+ #include <asm/memory.h>
+ #include <asm/mpu.h>
+ #include <asm/page.h>
+ 
+-#include "vmlinux.lds.h"
+-
+ OUTPUT_ARCH(arm)
+ ENTRY(stext)
+ 
+diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+index 5592f14b7e35..bb950c896a67 100644
+--- a/arch/arm/kernel/vmlinux.lds.S
++++ b/arch/arm/kernel/vmlinux.lds.S
+@@ -9,15 +9,13 @@
+ #else
+ 
+ #include <linux/pgtable.h>
+-#include <asm-generic/vmlinux.lds.h>
++#include <asm/vmlinux.lds.h>
+ #include <asm/cache.h>
+ #include <asm/thread_info.h>
+ #include <asm/memory.h>
+ #include <asm/mpu.h>
+ #include <asm/page.h>
+ 
+-#include "vmlinux.lds.h"
+-
+ OUTPUT_ARCH(arm)
+ ENTRY(stext)
+ 
 -- 
 2.25.1
 
