@@ -5,63 +5,58 @@ X-Spam-Level:
 X-Spam-Status: No, score=-12.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
+	USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A3F68C433EA
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:46:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A3B67C433E4
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:46:26 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7DD732072D
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:46:23 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7E80D207DA
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:46:26 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="S9JWqqSo"
+	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="WQAO8nzc"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726728AbgHUTqU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 21 Aug 2020 15:46:20 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36768 "EHLO
+        id S1727056AbgHUTqZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 21 Aug 2020 15:46:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36758 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726711AbgHUTo3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 15:44:29 -0400
-Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 81A88C0617A1
-        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:25 -0700 (PDT)
-Received: by mail-pj1-x1041.google.com with SMTP id ep8so1251329pjb.3
-        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:25 -0700 (PDT)
+        with ESMTP id S1725831AbgHUTo2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 15:44:28 -0400
+Received: from mail-pl1-x642.google.com (mail-pl1-x642.google.com [IPv6:2607:f8b0:4864:20::642])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1EBD9C06179B
+        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:24 -0700 (PDT)
+Received: by mail-pl1-x642.google.com with SMTP id g15so1336869plj.6
+        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:24 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=chromium.org; s=google;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=LhHa8hwizWicyR7AmABsSaI963QK2ejKgNvGzEzQJyI=;
-        b=S9JWqqSou1s/FK9u3DQ4o9uu0Z66hNrndmRM9lwRys0IRRdCU3reoSB3x/0i4D3/0d
-         FE38SPzh4Sjdcmnpux/wEu2YEvs49KaQ4x96TdKBVxMC1MQo/Pu6aF3uTjn2T4WoNN1/
-         69NCo9CYct3Ga+OFZvqV0/uxV0gjNFTPm/uUo=
+        bh=EUDDa5Q6lLloNoTQD6KqNHOrv0G5BcLftZGhmDIGIUI=;
+        b=WQAO8nzc20p4joT5SWjFSFwNOUK151WWyLE1F1s8PdTuZonJVYgAtlZ8pDXZ4AqOqd
+         vECfHj/uT7fKKd8Qks16HHdoIyHotqZJnMRENHTJLHqtxq4/EKASXKh/xIpHq1PCzQOe
+         6/Oopz6fd7xjErT/RlKOTUW3p5afBMZhqXfX4=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=LhHa8hwizWicyR7AmABsSaI963QK2ejKgNvGzEzQJyI=;
-        b=DjWzGIplTV2ZhJVHI5JmGHtg6qxTlkWswnWV9GIju7Lp1oCZZYwvu2kkhehyfe1wZy
-         oJcgtRTWFAzZqcY9KWmGyYPH7W55mwLUMHp1PiB2Lj67T9PtqWEOMTcCD1ovOQKGEF37
-         qXrGZUiOnDnluRmYZokrDH3Uz/4uUjhRETcPuqF0wU18dDwHms2LspaoURcQhw0nS07E
-         JBri+UIJHAHLzj9vhw6dt98Jok5cn0l05udQ5aBk/v6gPxYy9TtrIg9RQQSwrJWTQeop
-         0aFX4EaJU5Hsm4JkfvHMSybPsxn/vODfcHG3+qA7fj805AXuVGKu7BjSmQmw5qMZ8Xg/
-         L5kA==
-X-Gm-Message-State: AOAM530XVTACa26/J4FZQ6aXokZH3wrhfQDs9VYV1HcVMH02dgnakXzt
-        Qo8r0DdrBJC8nFIzL1ccSR5KdA==
-X-Google-Smtp-Source: ABdhPJzWv+Ua2gk2lyj7ptkVCQDZcrq9EuhQmtA+I5dIDb9MoFHSNp7AHZuTqGfhtxhz0zpt9GJ9mA==
-X-Received: by 2002:a17:902:b70e:: with SMTP id d14mr3365610pls.253.1598039065065;
-        Fri, 21 Aug 2020 12:44:25 -0700 (PDT)
+        bh=EUDDa5Q6lLloNoTQD6KqNHOrv0G5BcLftZGhmDIGIUI=;
+        b=UQLFYrgnNCGM4X3Nlc3oj0lp+jEtDCpuFhHK45UtO4q0hLEtVMOMg7xo2eIj0I/bgr
+         wY1eKj5mt7JOzhKyrCxDKkpWXxvXGta9+OeAAr3dLq2299xY8ULWkihmZeghWxxwO2H6
+         byeQr8e64QLPkBUY2wxV/iXc/xqSdlsbN2WcSzyMT12DCwfNJR8BcRGYnMJclQ6Ozr8B
+         Tm7A5zVa4v5lfkmpLeR90M9bIiTCiyysg2YW8JHkP73b6Q8dj7yUZ3LSsvj32GFVDbVT
+         VpnUPu85NIfxDAPbV05YF0GxEa+K6ZrmRgcj+bp6911XH0X2HFkQh8XxE/S48FUkTmxX
+         kSqQ==
+X-Gm-Message-State: AOAM531SZg6ZMYQ+Uw5VyWhbJRi327j1Mj36Q2Plpd+YStKvQmg+GWuM
+        kcuMwLMcrQbo40hai3F7WAfqgA==
+X-Google-Smtp-Source: ABdhPJwAkf1pEoEXTnteUwchu7GM7Vb0zPYumreldvv1hu9wDHdvHTU4ydc4PdV7f7+x8VGZjdhzEg==
+X-Received: by 2002:a17:90a:4dca:: with SMTP id r10mr3568315pjl.200.1598039063622;
+        Fri, 21 Aug 2020 12:44:23 -0700 (PDT)
 Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
-        by smtp.gmail.com with ESMTPSA id a193sm3460814pfa.105.2020.08.21.12.44.21
+        by smtp.gmail.com with ESMTPSA id 74sm3320208pfv.191.2020.08.21.12.44.19
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
         Fri, 21 Aug 2020 12:44:21 -0700 (PDT)
 From:   Kees Cook <keescook@chromium.org>
 To:     Ingo Molnar <mingo@kernel.org>
-Cc:     Kees Cook <keescook@chromium.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Jian Cai <jiancai@google.com>,
-        =?UTF-8?q?F=C4=81ng-ru=C3=AC=20S=C3=B2ng?= <maskray@google.com>,
-        Luis Lozano <llozano@google.com>,
-        Manoj Gupta <manojgupta@google.com>, stable@vger.kernel.org,
+Cc:     Kees Cook <keescook@chromium.org>, Marco Elver <elver@google.com>,
         Catalin Marinas <catalin.marinas@arm.com>,
         Mark Rutland <mark.rutland@arm.com>,
         Ard Biesheuvel <ardb@kernel.org>,
@@ -71,99 +66,70 @@ Cc:     Kees Cook <keescook@chromium.org>,
         Russell King <linux@armlinux.org.uk>,
         Masahiro Yamada <masahiroy@kernel.org>,
         Arvind Sankar <nivedita@alum.mit.edu>,
+        Nick Desaulniers <ndesaulniers@google.com>,
         Nathan Chancellor <natechancellor@gmail.com>,
         Arnd Bergmann <arnd@arndb.de>, x86@kernel.org,
         clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org,
         linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-kernel@vger.kernel.org
-Subject: [PATCH v6 06/29] vmlinux.lds.h: add PGO and AutoFDO input sections
-Date:   Fri, 21 Aug 2020 12:42:47 -0700
-Message-Id: <20200821194310.3089815-7-keescook@chromium.org>
+Subject: [PATCH v6 03/29] vmlinux.lds.h: Avoid KASAN and KCSAN's unwanted sections
+Date:   Fri, 21 Aug 2020 12:42:44 -0700
+Message-Id: <20200821194310.3089815-4-keescook@chromium.org>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20200821194310.3089815-1-keescook@chromium.org>
 References: <20200821194310.3089815-1-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Nick Desaulniers <ndesaulniers@google.com>
+KASAN (-fsanitize=kernel-address) and KCSAN (-fsanitize=thread)
+produce unwanted[1] .eh_frame and .init_array.* sections. Add them to
+COMMON_DISCARDS, except with CONFIG_CONSTRUCTORS, which wants to keep
+.init_array.* sections.
 
-Basically, consider .text.{hot|unlikely|unknown}.* part of .text, too.
+[1] https://bugs.llvm.org/show_bug.cgi?id=46478
 
-When compiling with profiling information (collected via PGO
-instrumentations or AutoFDO sampling), Clang will separate code into
-.text.hot, .text.unlikely, or .text.unknown sections based on profiling
-information. After D79600 (clang-11), these sections will have a
-trailing `.` suffix, ie.  .text.hot., .text.unlikely., .text.unknown..
-
-When using -ffunction-sections together with profiling infomation,
-either explicitly (FGKASLR) or implicitly (LTO), code may be placed in
-sections following the convention:
-.text.hot.<foo>, .text.unlikely.<bar>, .text.unknown.<baz>
-where <foo>, <bar>, and <baz> are functions.  (This produces one section
-per function; we generally try to merge these all back via linker script
-so that we don't have 50k sections).
-
-For the above cases, we need to teach our linker scripts that such
-sections might exist and that we'd explicitly like them grouped
-together, otherwise we can wind up with code outside of the
-_stext/_etext boundaries that might not be mapped properly for some
-architectures, resulting in boot failures.
-
-If the linker script is not told about possible input sections, then
-where the section is placed as output is a heuristic-laiden mess that's
-non-portable between linkers (ie. BFD and LLD), and has resulted in many
-hard to debug bugs.  Kees Cook is working on cleaning this up by adding
---orphan-handling=warn linker flag used in ARCH=powerpc to additional
-architectures. In the case of linker scripts, borrowing from the Zen of
-Python: explicit is better than implicit.
-
-Also, ld.bfd's internal linker script considers .text.hot AND
-.text.hot.* to be part of .text, as well as .text.unlikely and
-.text.unlikely.*. I didn't see support for .text.unknown.*, and didn't
-see Clang producing such code in our kernel builds, but I see code in
-LLVM that can produce such section names if profiling information is
-missing. That may point to a larger issue with generating or collecting
-profiles, but I would much rather be safe and explicit than have to
-debug yet another issue related to orphan section placement.
-
-Reported-by: Jian Cai <jiancai@google.com>
-Suggested-by: Fāng-ruì Sòng <maskray@google.com>
-Tested-by: Luis Lozano <llozano@google.com>
-Tested-by: Manoj Gupta <manojgupta@google.com>
-Acked-by: Kees Cook <keescook@chromium.org>
-Cc: stable@vger.kernel.org
-Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=add44f8d5c5c05e08b11e033127a744d61c26aee
-Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=1de778ed23ce7492c523d5850c6c6dbb34152655
-Link: https://reviews.llvm.org/D79600
-Link: https://bugs.chromium.org/p/chromium/issues/detail?id=1084760
-Debugged-by: Luis Lozano <llozano@google.com>
-Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
+Tested-by: Marco Elver <elver@google.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- include/asm-generic/vmlinux.lds.h | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ include/asm-generic/vmlinux.lds.h | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
 
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 98d013dcc11a..91dcfb91ac45 100644
+index f1f02a2f71b7..6b89a03e636e 100644
 --- a/include/asm-generic/vmlinux.lds.h
 +++ b/include/asm-generic/vmlinux.lds.h
-@@ -581,7 +581,10 @@
-  */
- #define TEXT_TEXT							\
- 		ALIGN_FUNCTION();					\
--		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
-+		*(.text.hot .text.hot.*)				\
-+		*(TEXT_MAIN .text.fixup)				\
-+		*(.text.unlikely .text.unlikely.*)			\
-+		*(.text.unknown .text.unknown.*)			\
- 		NOINSTR_TEXT						\
- 		*(.text..refcount)					\
- 		*(.ref.text)						\
+@@ -954,7 +954,27 @@
+ 	EXIT_DATA
+ #endif
+ 
++/*
++ * Clang's -fsanitize=kernel-address and -fsanitize=thread produce
++ * unwanted sections (.eh_frame and .init_array.*), but
++ * CONFIG_CONSTRUCTORS wants to keep any .init_array.* sections.
++ * https://bugs.llvm.org/show_bug.cgi?id=46478
++ */
++#if defined(CONFIG_KASAN_GENERIC) || defined(CONFIG_KCSAN)
++# ifdef CONFIG_CONSTRUCTORS
++#  define SANITIZER_DISCARDS						\
++	*(.eh_frame)
++# else
++#  define SANITIZER_DISCARDS						\
++	*(.init_array) *(.init_array.*)					\
++	*(.eh_frame)
++# endif
++#else
++# define SANITIZER_DISCARDS
++#endif
++
+ #define COMMON_DISCARDS							\
++	SANITIZER_DISCARDS						\
+ 	*(.discard)							\
+ 	*(.discard.*)							\
+ 	*(.modinfo)							\
 -- 
 2.25.1
 
