@@ -5,58 +5,58 @@ X-Spam-Level:
 X-Spam-Status: No, score=-12.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
+	USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 15AD0C433E1
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3D6C9C433DF
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:29 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E148E2072D
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:16 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 15A6A2072D
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Aug 2020 19:45:29 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="GlR5zQFU"
+	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="UoERYCO2"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725834AbgHUTpN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 21 Aug 2020 15:45:13 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36794 "EHLO
+        id S1726904AbgHUTp1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 21 Aug 2020 15:45:27 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36806 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726779AbgHUTon (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 15:44:43 -0400
-Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B3BF4C061575
-        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:29 -0700 (PDT)
-Received: by mail-pj1-x1043.google.com with SMTP id ep8so1251402pjb.3
-        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:29 -0700 (PDT)
+        with ESMTP id S1726870AbgHUTpJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2020 15:45:09 -0400
+Received: from mail-pj1-x102c.google.com (mail-pj1-x102c.google.com [IPv6:2607:f8b0:4864:20::102c])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D27DCC061798
+        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:37 -0700 (PDT)
+Received: by mail-pj1-x102c.google.com with SMTP id mt12so1258260pjb.4
+        for <linux-arch@vger.kernel.org>; Fri, 21 Aug 2020 12:44:37 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=chromium.org; s=google;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=DuU6+2YeRUFxWKjj7Z5/wAYkCT2n/Otc0iy3c5gDK6c=;
-        b=GlR5zQFUZPyZN2xj2JZwbsd+nhmW4YrsAiNDspKlZSHIVFCaiwpu22zpQk8g1mPkD4
-         uL0gfTyd6RZ41fhOBJ8O7qPIY2yarQAieyWySyZtzw9F84HAFF/dGTHkR8qjcoeeFhLR
-         kxmlF5bkG7LX0OWEqpt9f6F/IKJimzW3fMjFQ=
+        bh=LnzDApNoxwO5pBe0Rw0QWzekBEKvTuf/gsd4zpzC+NU=;
+        b=UoERYCO24yjxw/nfIGuRfWgjYp/IIpMBbAVGy1Wh0MBis2sB6JQnzFux8I34fXIfzL
+         XiTwAIwqPF4tOCBbtkjo2duqIpNp4WHF09n3SLEANmWxObkZKlAhR7FwKcJlzhd+gQgM
+         C1S+79RksYz2j/ZELEmvpwtea99u0tMD9V+xs=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=DuU6+2YeRUFxWKjj7Z5/wAYkCT2n/Otc0iy3c5gDK6c=;
-        b=XeoyG1UhT0G7UDBhtgsMuSz1QWaC9omjPctix/rYe3eO4EcAP4qSBilGEU9DigvtMx
-         ZaWD10mdRLDUnLJjTuVu4plvowXsrDcNwPfJGw2qAhdigDAqQvQJK7IfjQekITBeFf/K
-         sgS7GCOayq/byWpBMhQNfQPqq4DCGUmtzrFZDJXRJJRyzct6i6+9NP0QKhv2ERzLZRfY
-         fivpPceue3Oq8wTqDUq9fSnBj3D8IqYZkSlXjSb19kB9jgmM/apF1nNh1cWq+RsAz0D+
-         U/LvwXT+uN/ULNvcA9A0srkjwhPQK4OALbbE+wt8kDjaGiyrQJ74XBm2d2GVm1g9GALP
-         Zoxw==
-X-Gm-Message-State: AOAM532pYmQnuTO41tyyIZPMA8eRSzeidaSTtV8+kEg27mYjMbHhrMyl
-        jxyfsnAKPm7ytFUdmL2EJvvOJA==
-X-Google-Smtp-Source: ABdhPJwhqJDgxru2YIkrhKiac4wFZ7e/7/Sgw8YpVmg5RV/C1Br7xa8dVv+HqKXZX/CaKWJr+nVfqg==
-X-Received: by 2002:a17:902:b686:: with SMTP id c6mr3542403pls.133.1598039069315;
-        Fri, 21 Aug 2020 12:44:29 -0700 (PDT)
+        bh=LnzDApNoxwO5pBe0Rw0QWzekBEKvTuf/gsd4zpzC+NU=;
+        b=dxUhq5uUKgiV870Gq/hxA0magqhjY3+7GDDFU58gzS85Gh8Y0HUh6yBu0QYly8rjJ9
+         mKVIrD7PKV4tHwtuYqX9GBFeNe4QoFu5Xq/DYzSjVqmqEsVRgEJXNXTMp/2ivZjQQtUB
+         pzNxWB/whNcHb8hsw7U9cA/kf1GDT4aQ6HO5szratPEIfZeSqAWl/N0URpJzLbYR/mQy
+         3Wx2UbVeBHwTsgUaiYasMNdXIqNc3S6O7tZKR8Adx6IscVFByg7MGHMYgHWl7phK1hzx
+         tAtseH7Zv5foetxlGS1FOuffcJNNZdlZfGt6l1W1Vxotheea5YvDzArkSGAvVKpGuY9m
+         fT1g==
+X-Gm-Message-State: AOAM533wWRWLNKyuxYow4L66oQLPFyBrrEtJlVLCnb5IxunHNcfRw23B
+        AAlbK4wdTI9f1jEaNw90k8Xeiw==
+X-Google-Smtp-Source: ABdhPJyu0JBnryH7c2ygqsir+GpNNDwC3kcAJ7djAIPlnuSXRNo65MZU7eflxCCpW8/XD/Xeo3NXaw==
+X-Received: by 2002:a17:902:ac84:: with SMTP id h4mr3560513plr.334.1598039073450;
+        Fri, 21 Aug 2020 12:44:33 -0700 (PDT)
 Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
-        by smtp.gmail.com with ESMTPSA id h5sm3442830pfq.146.2020.08.21.12.44.23
+        by smtp.gmail.com with ESMTPSA id o7sm2570901pjl.48.2020.08.21.12.44.27
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 21 Aug 2020 12:44:25 -0700 (PDT)
+        Fri, 21 Aug 2020 12:44:32 -0700 (PDT)
 From:   Kees Cook <keescook@chromium.org>
 To:     Ingo Molnar <mingo@kernel.org>
-Cc:     Kees Cook <keescook@chromium.org>, Will Deacon <will@kernel.org>,
+Cc:     Kees Cook <keescook@chromium.org>,
         Catalin Marinas <catalin.marinas@arm.com>,
         Mark Rutland <mark.rutland@arm.com>,
         Ard Biesheuvel <ardb@kernel.org>,
@@ -72,9 +72,9 @@ Cc:     Kees Cook <keescook@chromium.org>, Will Deacon <will@kernel.org>,
         clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org,
         linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-kernel@vger.kernel.org
-Subject: [PATCH v6 11/29] arm64/build: Use common DISCARDS in linker script
-Date:   Fri, 21 Aug 2020 12:42:52 -0700
-Message-Id: <20200821194310.3089815-12-keescook@chromium.org>
+Subject: [PATCH v6 24/29] x86/build: Assert for unwanted sections
+Date:   Fri, 21 Aug 2020 12:43:05 -0700
+Message-Id: <20200821194310.3089815-25-keescook@chromium.org>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20200821194310.3089815-1-keescook@chromium.org>
 References: <20200821194310.3089815-1-keescook@chromium.org>
@@ -85,40 +85,50 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Use the common DISCARDS rule for the linker script in an effort to
-regularize the linker script to prepare for warning on orphaned
-sections. Additionally clean up left-over no-op macros.
+In preparation for warning on orphan sections, enforce other
+expected-to-be-zero-sized sections (since discarding them might hide
+problems with them suddenly gaining unexpected entries).
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Will Deacon <will@kernel.org>
 ---
- arch/arm64/kernel/vmlinux.lds.S | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ arch/x86/kernel/vmlinux.lds.S | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index c2b8426bf4bd..082e9efa2b43 100644
---- a/arch/arm64/kernel/vmlinux.lds.S
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -6,6 +6,7 @@
-  */
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index 4b1b936a6e7d..45d72447df84 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -427,6 +427,30 @@ SECTIONS
+ 	       SIZEOF(.got.plt) == 0xc,
+ #endif
+ 	       "Unexpected GOT/PLT entries detected!")
++
++	/*
++	 * Sections that should stay zero sized, which is safer to
++	 * explicitly check instead of blindly discarding.
++	 */
++	.got : {
++		*(.got) *(.igot.*)
++	}
++	ASSERT(SIZEOF(.got) == 0, "Unexpected GOT entries detected!")
++
++	.plt : {
++		*(.plt) *(.plt.*) *(.iplt)
++	}
++	ASSERT(SIZEOF(.plt) == 0, "Unexpected run-time procedure linkages detected!")
++
++	.rel.dyn : {
++		*(.rel.*) *(.rel_*)
++	}
++	ASSERT(SIZEOF(.rel.dyn) == 0, "Unexpected run-time relocations (.rel) detected!")
++
++	.rela.dyn : {
++		*(.rela.*) *(.rela_*)
++	}
++	ASSERT(SIZEOF(.rela.dyn) == 0, "Unexpected run-time relocations (.rela) detected!")
+ }
  
- #define RO_EXCEPTION_TABLE_ALIGN	8
-+#define RUNTIME_DISCARD_EXIT
- 
- #include <asm-generic/vmlinux.lds.h>
- #include <asm/cache.h>
-@@ -88,10 +89,8 @@ SECTIONS
- 	 * matching the same input section name.  There is no documented
- 	 * order of matching.
- 	 */
-+	DISCARDS
- 	/DISCARD/ : {
--		EXIT_CALL
--		*(.discard)
--		*(.discard.*)
- 		*(.interp .dynamic)
- 		*(.dynsym .dynstr .hash .gnu.hash)
- 	}
+ #ifdef CONFIG_X86_32
 -- 
 2.25.1
 
