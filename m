@@ -7,23 +7,23 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 839FEC433E1
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A62B3C433E1
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:22 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6351A20738
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:17 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7134E2075B
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727122AbgHXS27 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Aug 2020 14:28:59 -0400
-Received: from mail.kernel.org ([198.145.29.99]:35670 "EHLO mail.kernel.org"
+        id S1725998AbgHXS3V (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Aug 2020 14:29:21 -0400
+Received: from mail.kernel.org ([198.145.29.99]:36202 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726840AbgHXS2x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Aug 2020 14:28:53 -0400
+        id S1727063AbgHXS3K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Aug 2020 14:29:10 -0400
 Received: from localhost.localdomain (unknown [95.146.230.145])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 2DF8C2074D;
-        Mon, 24 Aug 2020 18:28:49 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 9D2E6206BE;
+        Mon, 24 Aug 2020 18:29:06 +0000 (UTC)
 From:   Catalin Marinas <catalin.marinas@arm.com>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
@@ -35,12 +35,10 @@ Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
         Andrey Konovalov <andreyknvl@google.com>,
         Peter Collingbourne <pcc@google.com>,
         Andrew Morton <akpm@linux-foundation.org>,
-        Alan Hayward <Alan.Hayward@arm.com>,
-        Luis Machado <luis.machado@linaro.org>,
-        Omair Javaid <omair.javaid@linaro.org>
-Subject: [PATCH v8 21/28] arm64: mte: ptrace: Add PTRACE_{PEEK,POKE}MTETAGS support
-Date:   Mon, 24 Aug 2020 19:27:51 +0100
-Message-Id: <20200824182758.27267-22-catalin.marinas@arm.com>
+        libc-alpha@sourceware.org
+Subject: [PATCH v8 28/28] arm64: mte: Add Memory Tagging Extension documentation
+Date:   Mon, 24 Aug 2020 19:27:58 +0100
+Message-Id: <20200824182758.27267-29-catalin.marinas@arm.com>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20200824182758.27267-1-catalin.marinas@arm.com>
 References: <20200824182758.27267-1-catalin.marinas@arm.com>
@@ -51,372 +49,408 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add support for bulk setting/getting of the MTE tags in a tracee's
-address space at 'addr' in the ptrace() syscall prototype. 'data' points
-to a struct iovec in the tracer's address space with iov_base
-representing the address of a tracer's buffer of length iov_len. The
-tags to be copied to/from the tracer's buffer are stored as one tag per
-byte.
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-On successfully copying at least one tag, ptrace() returns 0 and updates
-the tracer's iov_len with the number of tags copied. In case of error,
-either -EIO or -EFAULT is returned, trying to follow the ptrace() man
-page.
+Memory Tagging Extension (part of the ARMv8.5 Extensions) provides
+a mechanism to detect the sources of memory related errors which
+may be vulnerable to exploitation, including bounds violations,
+use-after-free, use-after-return, use-out-of-scope and use before
+initialization errors.
 
-Note that the tag copying functions are not performance critical,
-therefore they lack optimisations found in typical memory copy routines.
+Add Memory Tagging Extension documentation for the arm64 linux
+kernel support.
 
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Szabolcs Nagy <szabolcs.nagy@arm.com>
 Cc: Will Deacon <will@kernel.org>
-Cc: Alan Hayward <Alan.Hayward@arm.com>
-Cc: Luis Machado <luis.machado@linaro.org>
-Cc: Omair Javaid <omair.javaid@linaro.org>
 ---
 
 Notes:
-    v8:
-    - Removed the tsk argument to get_user_pages_remote().
+    v7:
+    - Add information on ptrace() regset access (NT_ARM_TAGGED_ADDR_CTRL).
     
     v4:
-    - Following the change to only clear the tags in a page if it is mapped
-      to user with PROT_MTE, ptrace() now will refuse to access tags in
-      pages not previously mapped with PROT_MTE (PG_mte_tagged set). This is
-      primarily to avoid leaking uninitialised tags to user via ptrace().
-    - Fix SYM_FUNC_END argument typo.
-    - Rename MTE_ALLOC_* to MTE_GRANULE_*.
-    - Use uao_user_alternative for the user access in case we ever want to
-      call mte_copy_tags_* with a kernel buffer. It also matches the other
-      uaccess routines in the kernel.
-    - Simplify arch_ptrace() slightly.
-    - Reorder down_write_killable() with access_ok() in
-      __access_remote_tags().
-    - Handle copy length 0 in mte_copy_tags_{to,from}_user().
-    - Use put_user() instead of __put_user().
+    - Document behaviour of madvise(MADV_DONTNEED/MADV_FREE).
+    - Document the initial process state on fork/execve.
+    - Clarify when the kernel uaccess checks the tags.
+    - Minor updates to the example code.
+    - A few other minor clean-ups following review.
     
-    New in v3.
+    v3:
+    - Modify the uaccess checking conditions: only when the sync mode is
+      selected by the user. In async mode, the kernel uaccesses are not
+      checked.
+    - Clarify that an include mask of 0 (exclude mask 0xffff) results in
+      always generating tag 0.
+    - Document the ptrace() interface.
+    
+    v2:
+    - Documented the uaccess kernel tag checking mode.
+    - Removed the BTI definitions from cpu-feature-registers.rst.
+    - Removed the paragraph stating that MTE depends on the tagged address
+      ABI (while the Kconfig entry does, there is no requirement for the
+      user to enable both).
+    - Changed the GCR_EL1.Exclude handling description following the change
+      in the prctl() interface (include vs exclude mask).
+    - Updated the example code.
 
- arch/arm64/include/asm/mte.h         |  17 ++++
- arch/arm64/include/uapi/asm/ptrace.h |   3 +
- arch/arm64/kernel/mte.c              | 138 +++++++++++++++++++++++++++
- arch/arm64/kernel/ptrace.c           |   7 ++
- arch/arm64/lib/mte.S                 |  53 ++++++++++
- 5 files changed, 218 insertions(+)
+ Documentation/arm64/cpu-feature-registers.rst |   2 +
+ Documentation/arm64/elf_hwcaps.rst            |   4 +
+ Documentation/arm64/index.rst                 |   1 +
+ .../arm64/memory-tagging-extension.rst        | 305 ++++++++++++++++++
+ 4 files changed, 312 insertions(+)
+ create mode 100644 Documentation/arm64/memory-tagging-extension.rst
 
-diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
-index 1a919905295b..7ea0c0e526d1 100644
---- a/arch/arm64/include/asm/mte.h
-+++ b/arch/arm64/include/asm/mte.h
-@@ -5,6 +5,11 @@
- #ifndef __ASM_MTE_H
- #define __ASM_MTE_H
+diff --git a/Documentation/arm64/cpu-feature-registers.rst b/Documentation/arm64/cpu-feature-registers.rst
+index f28853f80089..328e0c454fbd 100644
+--- a/Documentation/arm64/cpu-feature-registers.rst
++++ b/Documentation/arm64/cpu-feature-registers.rst
+@@ -175,6 +175,8 @@ infrastructure:
+      +------------------------------+---------+---------+
+      | Name                         |  bits   | visible |
+      +------------------------------+---------+---------+
++     | MTE                          | [11-8]  |    y    |
++     +------------------------------+---------+---------+
+      | SSBS                         | [7-4]   |    y    |
+      +------------------------------+---------+---------+
+      | BT                           | [3-0]   |    y    |
+diff --git a/Documentation/arm64/elf_hwcaps.rst b/Documentation/arm64/elf_hwcaps.rst
+index 84a9fd2d41b4..bbd9cf54db6c 100644
+--- a/Documentation/arm64/elf_hwcaps.rst
++++ b/Documentation/arm64/elf_hwcaps.rst
+@@ -240,6 +240,10 @@ HWCAP2_BTI
  
-+#define MTE_GRANULE_SIZE	UL(16)
-+#define MTE_GRANULE_MASK	(~(MTE_GRANULE_SIZE - 1))
-+#define MTE_TAG_SHIFT		56
-+#define MTE_TAG_SIZE		4
-+
- #ifndef __ASSEMBLY__
+     Functionality implied by ID_AA64PFR0_EL1.BT == 0b0001.
  
- #include <linux/page-flags.h>
-@@ -12,6 +17,10 @@
- #include <asm/pgtable-types.h>
++HWCAP2_MTE
++
++    Functionality implied by ID_AA64PFR1_EL1.MTE == 0b0010, as described
++    by Documentation/arm64/memory-tagging-extension.rst.
  
- void mte_clear_page_tags(void *addr);
-+unsigned long mte_copy_tags_from_user(void *to, const void __user *from,
-+				      unsigned long n);
-+unsigned long mte_copy_tags_to_user(void __user *to, void *from,
-+				    unsigned long n);
- 
- #ifdef CONFIG_ARM64_MTE
- 
-@@ -25,6 +34,8 @@ void mte_thread_switch(struct task_struct *next);
- void mte_suspend_exit(void);
- long set_mte_ctrl(struct task_struct *task, unsigned long arg);
- long get_mte_ctrl(struct task_struct *task);
-+int mte_ptrace_copy_tags(struct task_struct *child, long request,
-+			 unsigned long addr, unsigned long data);
- 
- #else
- 
-@@ -54,6 +65,12 @@ static inline long get_mte_ctrl(struct task_struct *task)
- {
- 	return 0;
- }
-+static inline int mte_ptrace_copy_tags(struct task_struct *child,
-+				       long request, unsigned long addr,
-+				       unsigned long data)
-+{
-+	return -EIO;
-+}
- 
- #endif
- 
-diff --git a/arch/arm64/include/uapi/asm/ptrace.h b/arch/arm64/include/uapi/asm/ptrace.h
-index 06413d9f2341..758ae984ff97 100644
---- a/arch/arm64/include/uapi/asm/ptrace.h
-+++ b/arch/arm64/include/uapi/asm/ptrace.h
-@@ -76,6 +76,9 @@
- /* syscall emulation path in ptrace */
- #define PTRACE_SYSEMU		  31
- #define PTRACE_SYSEMU_SINGLESTEP  32
-+/* MTE allocation tag access */
-+#define PTRACE_PEEKMTETAGS	  33
-+#define PTRACE_POKEMTETAGS	  34
- 
- #ifndef __ASSEMBLY__
- 
-diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
-index e80c49af74af..56e79807006c 100644
---- a/arch/arm64/kernel/mte.c
-+++ b/arch/arm64/kernel/mte.c
-@@ -4,14 +4,18 @@
-  */
- 
- #include <linux/bitops.h>
-+#include <linux/kernel.h>
- #include <linux/mm.h>
- #include <linux/prctl.h>
- #include <linux/sched.h>
-+#include <linux/sched/mm.h>
- #include <linux/string.h>
- #include <linux/thread_info.h>
-+#include <linux/uio.h>
- 
- #include <asm/cpufeature.h>
- #include <asm/mte.h>
-+#include <asm/ptrace.h>
- #include <asm/sysreg.h>
- 
- void mte_sync_tags(pte_t *ptep, pte_t pte)
-@@ -179,3 +183,137 @@ long get_mte_ctrl(struct task_struct *task)
- 
- 	return ret;
- }
+ 4. Unused AT_HWCAP bits
+ -----------------------
+diff --git a/Documentation/arm64/index.rst b/Documentation/arm64/index.rst
+index d9665d83c53a..43b0939d384e 100644
+--- a/Documentation/arm64/index.rst
++++ b/Documentation/arm64/index.rst
+@@ -14,6 +14,7 @@ ARM64 Architecture
+     hugetlbpage
+     legacy_instructions
+     memory
++    memory-tagging-extension
+     perf
+     pointer-authentication
+     silicon-errata
+diff --git a/Documentation/arm64/memory-tagging-extension.rst b/Documentation/arm64/memory-tagging-extension.rst
+new file mode 100644
+index 000000000000..e3709b536b89
+--- /dev/null
++++ b/Documentation/arm64/memory-tagging-extension.rst
+@@ -0,0 +1,305 @@
++===============================================
++Memory Tagging Extension (MTE) in AArch64 Linux
++===============================================
 +
-+/*
-+ * Access MTE tags in another process' address space as given in mm. Update
-+ * the number of tags copied. Return 0 if any tags copied, error otherwise.
-+ * Inspired by __access_remote_vm().
-+ */
-+static int __access_remote_tags(struct mm_struct *mm, unsigned long addr,
-+				struct iovec *kiov, unsigned int gup_flags)
-+{
-+	struct vm_area_struct *vma;
-+	void __user *buf = kiov->iov_base;
-+	size_t len = kiov->iov_len;
-+	int ret;
-+	int write = gup_flags & FOLL_WRITE;
++Authors: Vincenzo Frascino <vincenzo.frascino@arm.com>
++         Catalin Marinas <catalin.marinas@arm.com>
 +
-+	if (!access_ok(buf, len))
-+		return -EFAULT;
++Date: 2020-02-25
 +
-+	if (mmap_read_lock_killable(mm))
-+		return -EIO;
++This document describes the provision of the Memory Tagging Extension
++functionality in AArch64 Linux.
 +
-+	while (len) {
-+		unsigned long tags, offset;
-+		void *maddr;
-+		struct page *page = NULL;
++Introduction
++============
 +
-+		ret = get_user_pages_remote(mm, addr, 1, gup_flags, &page,
-+					    &vma, NULL);
-+		if (ret <= 0)
-+			break;
++ARMv8.5 based processors introduce the Memory Tagging Extension (MTE)
++feature. MTE is built on top of the ARMv8.0 virtual address tagging TBI
++(Top Byte Ignore) feature and allows software to access a 4-bit
++allocation tag for each 16-byte granule in the physical address space.
++Such memory range must be mapped with the Normal-Tagged memory
++attribute. A logical tag is derived from bits 59-56 of the virtual
++address used for the memory access. A CPU with MTE enabled will compare
++the logical tag against the allocation tag and potentially raise an
++exception on mismatch, subject to system registers configuration.
 +
-+		/*
-+		 * Only copy tags if the page has been mapped as PROT_MTE
-+		 * (PG_mte_tagged set). Otherwise the tags are not valid and
-+		 * not accessible to user. Moreover, an mprotect(PROT_MTE)
-+		 * would cause the existing tags to be cleared if the page
-+		 * was never mapped with PROT_MTE.
-+		 */
-+		if (!test_bit(PG_mte_tagged, &page->flags)) {
-+			ret = -EOPNOTSUPP;
-+			put_page(page);
-+			break;
-+		}
++Userspace Support
++=================
 +
-+		/* limit access to the end of the page */
-+		offset = offset_in_page(addr);
-+		tags = min(len, (PAGE_SIZE - offset) / MTE_GRANULE_SIZE);
++When ``CONFIG_ARM64_MTE`` is selected and Memory Tagging Extension is
++supported by the hardware, the kernel advertises the feature to
++userspace via ``HWCAP2_MTE``.
 +
-+		maddr = page_address(page);
-+		if (write) {
-+			tags = mte_copy_tags_from_user(maddr + offset, buf, tags);
-+			set_page_dirty_lock(page);
-+		} else {
-+			tags = mte_copy_tags_to_user(buf, maddr + offset, tags);
-+		}
-+		put_page(page);
++PROT_MTE
++--------
 +
-+		/* error accessing the tracer's buffer */
-+		if (!tags)
-+			break;
++To access the allocation tags, a user process must enable the Tagged
++memory attribute on an address range using a new ``prot`` flag for
++``mmap()`` and ``mprotect()``:
 +
-+		len -= tags;
-+		buf += tags;
-+		addr += tags * MTE_GRANULE_SIZE;
-+	}
-+	mmap_read_unlock(mm);
++``PROT_MTE`` - Pages allow access to the MTE allocation tags.
 +
-+	/* return an error if no tags copied */
-+	kiov->iov_len = buf - kiov->iov_base;
-+	if (!kiov->iov_len) {
-+		/* check for error accessing the tracee's address space */
-+		if (ret <= 0)
-+			return -EIO;
-+		else
-+			return -EFAULT;
-+	}
++The allocation tag is set to 0 when such pages are first mapped in the
++user address space and preserved on copy-on-write. ``MAP_SHARED`` is
++supported and the allocation tags can be shared between processes.
 +
-+	return 0;
-+}
++**Note**: ``PROT_MTE`` is only supported on ``MAP_ANONYMOUS`` and
++RAM-based file mappings (``tmpfs``, ``memfd``). Passing it to other
++types of mapping will result in ``-EINVAL`` returned by these system
++calls.
 +
-+/*
-+ * Copy MTE tags in another process' address space at 'addr' to/from tracer's
-+ * iovec buffer. Return 0 on success. Inspired by ptrace_access_vm().
-+ */
-+static int access_remote_tags(struct task_struct *tsk, unsigned long addr,
-+			      struct iovec *kiov, unsigned int gup_flags)
-+{
-+	struct mm_struct *mm;
-+	int ret;
++**Note**: The ``PROT_MTE`` flag (and corresponding memory type) cannot
++be cleared by ``mprotect()``.
 +
-+	mm = get_task_mm(tsk);
-+	if (!mm)
-+		return -EPERM;
++**Note**: ``madvise()`` memory ranges with ``MADV_DONTNEED`` and
++``MADV_FREE`` may have the allocation tags cleared (set to 0) at any
++point after the system call.
 +
-+	if (!tsk->ptrace || (current != tsk->parent) ||
-+	    ((get_dumpable(mm) != SUID_DUMP_USER) &&
-+	     !ptracer_capable(tsk, mm->user_ns))) {
-+		mmput(mm);
-+		return -EPERM;
-+	}
++Tag Check Faults
++----------------
 +
-+	ret = __access_remote_tags(mm, addr, kiov, gup_flags);
-+	mmput(mm);
++When ``PROT_MTE`` is enabled on an address range and a mismatch between
++the logical and allocation tags occurs on access, there are three
++configurable behaviours:
 +
-+	return ret;
-+}
++- *Ignore* - This is the default mode. The CPU (and kernel) ignores the
++  tag check fault.
 +
-+int mte_ptrace_copy_tags(struct task_struct *child, long request,
-+			 unsigned long addr, unsigned long data)
-+{
-+	int ret;
-+	struct iovec kiov;
-+	struct iovec __user *uiov = (void __user *)data;
-+	unsigned int gup_flags = FOLL_FORCE;
++- *Synchronous* - The kernel raises a ``SIGSEGV`` synchronously, with
++  ``.si_code = SEGV_MTESERR`` and ``.si_addr = <fault-address>``. The
++  memory access is not performed. If ``SIGSEGV`` is ignored or blocked
++  by the offending thread, the containing process is terminated with a
++  ``coredump``.
 +
-+	if (!system_supports_mte())
-+		return -EIO;
++- *Asynchronous* - The kernel raises a ``SIGSEGV``, in the offending
++  thread, asynchronously following one or multiple tag check faults,
++  with ``.si_code = SEGV_MTEAERR`` and ``.si_addr = 0`` (the faulting
++  address is unknown).
 +
-+	if (get_user(kiov.iov_base, &uiov->iov_base) ||
-+	    get_user(kiov.iov_len, &uiov->iov_len))
-+		return -EFAULT;
++The user can select the above modes, per thread, using the
++``prctl(PR_SET_TAGGED_ADDR_CTRL, flags, 0, 0, 0)`` system call where
++``flags`` contain one of the following values in the ``PR_MTE_TCF_MASK``
++bit-field:
 +
-+	if (request == PTRACE_POKEMTETAGS)
-+		gup_flags |= FOLL_WRITE;
++- ``PR_MTE_TCF_NONE``  - *Ignore* tag check faults
++- ``PR_MTE_TCF_SYNC``  - *Synchronous* tag check fault mode
++- ``PR_MTE_TCF_ASYNC`` - *Asynchronous* tag check fault mode
 +
-+	/* align addr to the MTE tag granule */
-+	addr &= MTE_GRANULE_MASK;
++The current tag check fault mode can be read using the
++``prctl(PR_GET_TAGGED_ADDR_CTRL, 0, 0, 0, 0)`` system call.
 +
-+	ret = access_remote_tags(child, addr, &kiov, gup_flags);
-+	if (!ret)
-+		ret = put_user(kiov.iov_len, &uiov->iov_len);
++Tag checking can also be disabled for a user thread by setting the
++``PSTATE.TCO`` bit with ``MSR TCO, #1``.
 +
-+	return ret;
-+}
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 8942de814b72..101040a37d40 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -34,6 +34,7 @@
- #include <asm/cpufeature.h>
- #include <asm/debug-monitors.h>
- #include <asm/fpsimd.h>
-+#include <asm/mte.h>
- #include <asm/pointer_auth.h>
- #include <asm/stacktrace.h>
- #include <asm/syscall.h>
-@@ -1691,6 +1692,12 @@ const struct user_regset_view *task_user_regset_view(struct task_struct *task)
- long arch_ptrace(struct task_struct *child, long request,
- 		 unsigned long addr, unsigned long data)
- {
-+	switch (request) {
-+	case PTRACE_PEEKMTETAGS:
-+	case PTRACE_POKEMTETAGS:
-+		return mte_ptrace_copy_tags(child, request, addr, data);
-+	}
++**Note**: Signal handlers are always invoked with ``PSTATE.TCO = 0``,
++irrespective of the interrupted context. ``PSTATE.TCO`` is restored on
++``sigreturn()``.
 +
- 	return ptrace_request(child, request, addr, data);
- }
- 
-diff --git a/arch/arm64/lib/mte.S b/arch/arm64/lib/mte.S
-index 3c3d0edbbca3..434f81d9a180 100644
---- a/arch/arm64/lib/mte.S
-+++ b/arch/arm64/lib/mte.S
-@@ -4,7 +4,9 @@
-  */
- #include <linux/linkage.h>
- 
-+#include <asm/alternative.h>
- #include <asm/assembler.h>
-+#include <asm/mte.h>
- #include <asm/page.h>
- #include <asm/sysreg.h>
- 
-@@ -51,3 +53,54 @@ SYM_FUNC_START(mte_copy_page_tags)
- 	b.ne	1b
- 	ret
- SYM_FUNC_END(mte_copy_page_tags)
++**Note**: There are no *match-all* logical tags available for user
++applications.
 +
-+/*
-+ * Read tags from a user buffer (one tag per byte) and set the corresponding
-+ * tags at the given kernel address. Used by PTRACE_POKEMTETAGS.
-+ *   x0 - kernel address (to)
-+ *   x1 - user buffer (from)
-+ *   x2 - number of tags/bytes (n)
-+ * Returns:
-+ *   x0 - number of tags read/set
-+ */
-+SYM_FUNC_START(mte_copy_tags_from_user)
-+	mov	x3, x1
-+	cbz	x2, 2f
-+1:
-+	uao_user_alternative 2f, ldrb, ldtrb, w4, x1, 0
-+	lsl	x4, x4, #MTE_TAG_SHIFT
-+	stg	x4, [x0], #MTE_GRANULE_SIZE
-+	add	x1, x1, #1
-+	subs	x2, x2, #1
-+	b.ne	1b
++**Note**: Kernel accesses to the user address space (e.g. ``read()``
++system call) are not checked if the user thread tag checking mode is
++``PR_MTE_TCF_NONE`` or ``PR_MTE_TCF_ASYNC``. If the tag checking mode is
++``PR_MTE_TCF_SYNC``, the kernel makes a best effort to check its user
++address accesses, however it cannot always guarantee it.
 +
-+	// exception handling and function return
-+2:	sub	x0, x1, x3		// update the number of tags set
-+	ret
-+SYM_FUNC_END(mte_copy_tags_from_user)
++Excluding Tags in the ``IRG``, ``ADDG`` and ``SUBG`` instructions
++-----------------------------------------------------------------
 +
-+/*
-+ * Get the tags from a kernel address range and write the tag values to the
-+ * given user buffer (one tag per byte). Used by PTRACE_PEEKMTETAGS.
-+ *   x0 - user buffer (to)
-+ *   x1 - kernel address (from)
-+ *   x2 - number of tags/bytes (n)
-+ * Returns:
-+ *   x0 - number of tags read/set
-+ */
-+SYM_FUNC_START(mte_copy_tags_to_user)
-+	mov	x3, x0
-+	cbz	x2, 2f
-+1:
-+	ldg	x4, [x1]
-+	ubfx	x4, x4, #MTE_TAG_SHIFT, #MTE_TAG_SIZE
-+	uao_user_alternative 2f, strb, sttrb, w4, x0, 0
-+	add	x0, x0, #1
-+	add	x1, x1, #MTE_GRANULE_SIZE
-+	subs	x2, x2, #1
-+	b.ne	1b
++The architecture allows excluding certain tags to be randomly generated
++via the ``GCR_EL1.Exclude`` register bit-field. By default, Linux
++excludes all tags other than 0. A user thread can enable specific tags
++in the randomly generated set using the ``prctl(PR_SET_TAGGED_ADDR_CTRL,
++flags, 0, 0, 0)`` system call where ``flags`` contains the tags bitmap
++in the ``PR_MTE_TAG_MASK`` bit-field.
 +
-+	// exception handling and function return
-+2:	sub	x0, x0, x3		// update the number of tags copied
-+	ret
-+SYM_FUNC_END(mte_copy_tags_to_user)
++**Note**: The hardware uses an exclude mask but the ``prctl()``
++interface provides an include mask. An include mask of ``0`` (exclusion
++mask ``0xffff``) results in the CPU always generating tag ``0``.
++
++Initial process state
++---------------------
++
++On ``execve()``, the new process has the following configuration:
++
++- ``PR_TAGGED_ADDR_ENABLE`` set to 0 (disabled)
++- Tag checking mode set to ``PR_MTE_TCF_NONE``
++- ``PR_MTE_TAG_MASK`` set to 0 (all tags excluded)
++- ``PSTATE.TCO`` set to 0
++- ``PROT_MTE`` not set on any of the initial memory maps
++
++On ``fork()``, the new process inherits the parent's configuration and
++memory map attributes with the exception of the ``madvise()`` ranges
++with ``MADV_WIPEONFORK`` which will have the data and tags cleared (set
++to 0).
++
++The ``ptrace()`` interface
++--------------------------
++
++``PTRACE_PEEKMTETAGS`` and ``PTRACE_POKEMTETAGS`` allow a tracer to read
++the tags from or set the tags to a tracee's address space. The
++``ptrace()`` system call is invoked as ``ptrace(request, pid, addr,
++data)`` where:
++
++- ``request`` - one of ``PTRACE_PEEKMTETAGS`` or ``PTRACE_PEEKMTETAGS``.
++- ``pid`` - the tracee's PID.
++- ``addr`` - address in the tracee's address space.
++- ``data`` - pointer to a ``struct iovec`` where ``iov_base`` points to
++  a buffer of ``iov_len`` length in the tracer's address space.
++
++The tags in the tracer's ``iov_base`` buffer are represented as one
++4-bit tag per byte and correspond to a 16-byte MTE tag granule in the
++tracee's address space.
++
++**Note**: If ``addr`` is not aligned to a 16-byte granule, the kernel
++will use the corresponding aligned address.
++
++``ptrace()`` return value:
++
++- 0 - tags were copied, the tracer's ``iov_len`` was updated to the
++  number of tags transferred. This may be smaller than the requested
++  ``iov_len`` if the requested address range in the tracee's or the
++  tracer's space cannot be accessed or does not have valid tags.
++- ``-EPERM`` - the specified process cannot be traced.
++- ``-EIO`` - the tracee's address range cannot be accessed (e.g. invalid
++  address) and no tags copied. ``iov_len`` not updated.
++- ``-EFAULT`` - fault on accessing the tracer's memory (``struct iovec``
++  or ``iov_base`` buffer) and no tags copied. ``iov_len`` not updated.
++- ``-EOPNOTSUPP`` - the tracee's address does not have valid tags (never
++  mapped with the ``PROT_MTE`` flag). ``iov_len`` not updated.
++
++**Note**: There are no transient errors for the requests above, so user
++programs should not retry in case of a non-zero system call return.
++
++``PTRACE_GETREGSET`` and ``PTRACE_SETREGSET`` with ``addr ==
++``NT_ARM_TAGGED_ADDR_CTRL`` allow ``ptrace()`` access to the tagged
++address ABI control and MTE configuration of a process as per the
++``prctl()`` options described in
++Documentation/arm64/tagged-address-abi.rst and above. The corresponding
++``regset`` is 1 element of 8 bytes (``sizeof(long))``).
++
++Example of correct usage
++========================
++
++*MTE Example code*
++
++.. code-block:: c
++
++    /*
++     * To be compiled with -march=armv8.5-a+memtag
++     */
++    #include <errno.h>
++    #include <stdint.h>
++    #include <stdio.h>
++    #include <stdlib.h>
++    #include <unistd.h>
++    #include <sys/auxv.h>
++    #include <sys/mman.h>
++    #include <sys/prctl.h>
++
++    /*
++     * From arch/arm64/include/uapi/asm/hwcap.h
++     */
++    #define HWCAP2_MTE              (1 << 18)
++
++    /*
++     * From arch/arm64/include/uapi/asm/mman.h
++     */
++    #define PROT_MTE                 0x20
++
++    /*
++     * From include/uapi/linux/prctl.h
++     */
++    #define PR_SET_TAGGED_ADDR_CTRL 55
++    #define PR_GET_TAGGED_ADDR_CTRL 56
++    # define PR_TAGGED_ADDR_ENABLE  (1UL << 0)
++    # define PR_MTE_TCF_SHIFT       1
++    # define PR_MTE_TCF_NONE        (0UL << PR_MTE_TCF_SHIFT)
++    # define PR_MTE_TCF_SYNC        (1UL << PR_MTE_TCF_SHIFT)
++    # define PR_MTE_TCF_ASYNC       (2UL << PR_MTE_TCF_SHIFT)
++    # define PR_MTE_TCF_MASK        (3UL << PR_MTE_TCF_SHIFT)
++    # define PR_MTE_TAG_SHIFT       3
++    # define PR_MTE_TAG_MASK        (0xffffUL << PR_MTE_TAG_SHIFT)
++
++    /*
++     * Insert a random logical tag into the given pointer.
++     */
++    #define insert_random_tag(ptr) ({                       \
++            uint64_t __val;                                 \
++            asm("irg %0, %1" : "=r" (__val) : "r" (ptr));   \
++            __val;                                          \
++    })
++
++    /*
++     * Set the allocation tag on the destination address.
++     */
++    #define set_tag(tagged_addr) do {                                      \
++            asm volatile("stg %0, [%0]" : : "r" (tagged_addr) : "memory"); \
++    } while (0)
++
++    int main()
++    {
++            unsigned char *a;
++            unsigned long page_sz = sysconf(_SC_PAGESIZE);
++            unsigned long hwcap2 = getauxval(AT_HWCAP2);
++
++            /* check if MTE is present */
++            if (!(hwcap2 & HWCAP2_MTE))
++                    return EXIT_FAILURE;
++
++            /*
++             * Enable the tagged address ABI, synchronous MTE tag check faults and
++             * allow all non-zero tags in the randomly generated set.
++             */
++            if (prctl(PR_SET_TAGGED_ADDR_CTRL,
++                      PR_TAGGED_ADDR_ENABLE | PR_MTE_TCF_SYNC | (0xfffe << PR_MTE_TAG_SHIFT),
++                      0, 0, 0)) {
++                    perror("prctl() failed");
++                    return EXIT_FAILURE;
++            }
++
++            a = mmap(0, page_sz, PROT_READ | PROT_WRITE,
++                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++            if (a == MAP_FAILED) {
++                    perror("mmap() failed");
++                    return EXIT_FAILURE;
++            }
++
++            /*
++             * Enable MTE on the above anonymous mmap. The flag could be passed
++             * directly to mmap() and skip this step.
++             */
++            if (mprotect(a, page_sz, PROT_READ | PROT_WRITE | PROT_MTE)) {
++                    perror("mprotect() failed");
++                    return EXIT_FAILURE;
++            }
++
++            /* access with the default tag (0) */
++            a[0] = 1;
++            a[1] = 2;
++
++            printf("a[0] = %hhu a[1] = %hhu\n", a[0], a[1]);
++
++            /* set the logical and allocation tags */
++            a = (unsigned char *)insert_random_tag(a);
++            set_tag(a);
++
++            printf("%p\n", a);
++
++            /* non-zero tag access */
++            a[0] = 3;
++            printf("a[0] = %hhu a[1] = %hhu\n", a[0], a[1]);
++
++            /*
++             * If MTE is enabled correctly the next instruction will generate an
++             * exception.
++             */
++            printf("Expecting SIGSEGV...\n");
++            a[16] = 0xdd;
++
++            /* this should not be printed in the PR_MTE_TCF_SYNC mode */
++            printf("...haven't got one\n");
++
++            return EXIT_FAILURE;
++    }
