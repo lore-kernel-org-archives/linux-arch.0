@@ -7,23 +7,23 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0F1D1C433E1
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A79D5C433DF
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E7C4D2075B
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:00 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9271F2078D
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727061AbgHXS27 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Aug 2020 14:28:59 -0400
-Received: from mail.kernel.org ([198.145.29.99]:35760 "EHLO mail.kernel.org"
+        id S1726803AbgHXS3A (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Aug 2020 14:29:00 -0400
+Received: from mail.kernel.org ([198.145.29.99]:35896 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726803AbgHXS2z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Aug 2020 14:28:55 -0400
+        id S1727114AbgHXS27 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Aug 2020 14:28:59 -0400
 Received: from localhost.localdomain (unknown [95.146.230.145])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id DAA5120738;
-        Mon, 24 Aug 2020 18:28:51 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id EAF362078D;
+        Mon, 24 Aug 2020 18:28:56 +0000 (UTC)
 From:   Catalin Marinas <catalin.marinas@arm.com>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
@@ -35,12 +35,10 @@ Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
         Andrey Konovalov <andreyknvl@google.com>,
         Peter Collingbourne <pcc@google.com>,
         Andrew Morton <akpm@linux-foundation.org>,
-        Alan Hayward <Alan.Hayward@arm.com>,
-        Luis Machado <luis.machado@linaro.org>,
-        Omair Javaid <omair.javaid@linaro.org>
-Subject: [PATCH v8 22/28] arm64: mte: ptrace: Add NT_ARM_TAGGED_ADDR_CTRL regset
-Date:   Mon, 24 Aug 2020 19:27:52 +0100
-Message-Id: <20200824182758.27267-23-catalin.marinas@arm.com>
+        Steven Price <steven.price@arm.com>
+Subject: [PATCH v8 24/28] mm: Add arch hooks for saving/restoring tags
+Date:   Mon, 24 Aug 2020 19:27:54 +0100
+Message-Id: <20200824182758.27267-25-catalin.marinas@arm.com>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20200824182758.27267-1-catalin.marinas@arm.com>
 References: <20200824182758.27267-1-catalin.marinas@arm.com>
@@ -51,102 +49,136 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This regset allows read/write access to a ptraced process
-prctl(PR_SET_TAGGED_ADDR_CTRL) setting.
+From: Steven Price <steven.price@arm.com>
 
+Arm's Memory Tagging Extension (MTE) adds some metadata (tags) to
+every physical page, when swapping pages out to disk it is necessary to
+save these tags, and later restore them when reading the pages back.
+
+Add some hooks along with dummy implementations to enable the
+arch code to handle this.
+
+Three new hooks are added to the swap code:
+ * arch_prepare_to_swap() and
+ * arch_swap_invalidate_page() / arch_swap_invalidate_area().
+One new hook is added to shmem:
+ * arch_swap_restore()
+
+Signed-off-by: Steven Price <steven.price@arm.com>
+[catalin.marinas@arm.com: add unlock_page() on the error path]
+[catalin.marinas@arm.com: dropped the _tags suffix]
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Alan Hayward <Alan.Hayward@arm.com>
-Cc: Luis Machado <luis.machado@linaro.org>
-Cc: Omair Javaid <omair.javaid@linaro.org>
+Acked-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
 Notes:
-    v8:
-    - Removed user_regset_copyout().
+    v6:
+    - Added comment on where the arch code should define the overriding
+      macros (asm/pgtable.h).
+    - Dropped _tags suffix from arch_swap_restore_tags().
     
-    New in v7.
+    New in v4.
 
- arch/arm64/kernel/ptrace.c | 42 ++++++++++++++++++++++++++++++++++++++
- include/uapi/linux/elf.h   |  1 +
- 2 files changed, 43 insertions(+)
+ include/linux/pgtable.h | 28 ++++++++++++++++++++++++++++
+ mm/page_io.c            | 10 ++++++++++
+ mm/shmem.c              |  6 ++++++
+ mm/swapfile.c           |  2 ++
+ 4 files changed, 46 insertions(+)
 
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 101040a37d40..f49b349e16a3 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -1033,6 +1033,35 @@ static int pac_generic_keys_set(struct task_struct *target,
- #endif /* CONFIG_CHECKPOINT_RESTORE */
- #endif /* CONFIG_ARM64_PTR_AUTH */
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index e8cbc2e795d5..dc3b74129fbc 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -633,6 +633,34 @@ static inline int arch_unmap_one(struct mm_struct *mm,
+ }
+ #endif
  
-+#ifdef CONFIG_ARM64_TAGGED_ADDR_ABI
-+static int tagged_addr_ctrl_get(struct task_struct *target,
-+				const struct user_regset *regset,
-+				struct membuf to)
++/*
++ * Allow architectures to preserve additional metadata associated with
++ * swapped-out pages. The corresponding __HAVE_ARCH_SWAP_* macros and function
++ * prototypes must be defined in the arch-specific asm/pgtable.h file.
++ */
++#ifndef __HAVE_ARCH_PREPARE_TO_SWAP
++static inline int arch_prepare_to_swap(struct page *page)
 +{
-+	long ctrl = get_tagged_addr_ctrl(target);
-+
-+	if (IS_ERR_VALUE(ctrl))
-+		return ctrl;
-+
-+	return membuf_write(&to, &ctrl, sizeof(ctrl));
-+}
-+
-+static int tagged_addr_ctrl_set(struct task_struct *target, const struct
-+				user_regset *regset, unsigned int pos,
-+				unsigned int count, const void *kbuf, const
-+				void __user *ubuf)
-+{
-+	int ret;
-+	long ctrl;
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &ctrl, 0, -1);
-+	if (ret)
-+		return ret;
-+
-+	return set_tagged_addr_ctrl(target, ctrl);
++	return 0;
 +}
 +#endif
 +
- enum aarch64_regset {
- 	REGSET_GPR,
- 	REGSET_FPR,
-@@ -1052,6 +1081,9 @@ enum aarch64_regset {
- 	REGSET_PACG_KEYS,
- #endif
- #endif
-+#ifdef CONFIG_ARM64_TAGGED_ADDR_ABI
-+	REGSET_TAGGED_ADDR_CTRL,
++#ifndef __HAVE_ARCH_SWAP_INVALIDATE
++static inline void arch_swap_invalidate_page(int type, pgoff_t offset)
++{
++}
++
++static inline void arch_swap_invalidate_area(int type)
++{
++}
 +#endif
- };
- 
- static const struct user_regset aarch64_regsets[] = {
-@@ -1149,6 +1181,16 @@ static const struct user_regset aarch64_regsets[] = {
- 	},
- #endif
- #endif
-+#ifdef CONFIG_ARM64_TAGGED_ADDR_ABI
-+	[REGSET_TAGGED_ADDR_CTRL] = {
-+		.core_note_type = NT_ARM_TAGGED_ADDR_CTRL,
-+		.n = 1,
-+		.size = sizeof(long),
-+		.align = sizeof(long),
-+		.regset_get = tagged_addr_ctrl_get,
-+		.set = tagged_addr_ctrl_set,
-+	},
++
++#ifndef __HAVE_ARCH_SWAP_RESTORE
++static inline void arch_swap_restore(swp_entry_t entry, struct page *page)
++{
++}
 +#endif
- };
++
+ #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
+ #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
+ #endif
+diff --git a/mm/page_io.c b/mm/page_io.c
+index e485a6e8a6cd..4ca28aad0d94 100644
+--- a/mm/page_io.c
++++ b/mm/page_io.c
+@@ -252,6 +252,16 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
+ 		unlock_page(page);
+ 		goto out;
+ 	}
++	/*
++	 * Arch code may have to preserve more data than just the page
++	 * contents, e.g. memory tags.
++	 */
++	ret = arch_prepare_to_swap(page);
++	if (ret) {
++		set_page_dirty(page);
++		unlock_page(page);
++		goto out;
++	}
+ 	if (frontswap_store(page) == 0) {
+ 		set_page_writeback(page);
+ 		unlock_page(page);
+diff --git a/mm/shmem.c b/mm/shmem.c
+index ec94f4c7851e..e57d3314dc4b 100644
+--- a/mm/shmem.c
++++ b/mm/shmem.c
+@@ -1734,6 +1734,12 @@ static int shmem_swapin_page(struct inode *inode, pgoff_t index,
+ 	}
+ 	wait_on_page_writeback(page);
  
- static const struct user_regset_view user_aarch64_view = {
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index 22220945a5fd..30f68b42eeb5 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -425,6 +425,7 @@ typedef struct elf64_shdr {
- #define NT_ARM_PAC_MASK		0x406	/* ARM pointer authentication code masks */
- #define NT_ARM_PACA_KEYS	0x407	/* ARM pointer authentication address keys */
- #define NT_ARM_PACG_KEYS	0x408	/* ARM pointer authentication generic key */
-+#define NT_ARM_TAGGED_ADDR_CTRL	0x409	/* arm64 tagged address control (prctl()) */
- #define NT_ARC_V2	0x600		/* ARCv2 accumulator/extra registers */
- #define NT_VMCOREDD	0x700		/* Vmcore Device Dump Note */
- #define NT_MIPS_DSP	0x800		/* MIPS DSP ASE registers */
++	/*
++	 * Some architectures may have to restore extra metadata to the
++	 * physical page after reading from swap.
++	 */
++	arch_swap_restore(swap, page);
++
+ 	if (shmem_should_replace_page(page, gfp)) {
+ 		error = shmem_replace_page(&page, gfp, info, index);
+ 		if (error)
+diff --git a/mm/swapfile.c b/mm/swapfile.c
+index 12f59e641b5e..4b1d1a04e327 100644
+--- a/mm/swapfile.c
++++ b/mm/swapfile.c
+@@ -717,6 +717,7 @@ static void swap_range_free(struct swap_info_struct *si, unsigned long offset,
+ 	else
+ 		swap_slot_free_notify = NULL;
+ 	while (offset <= end) {
++		arch_swap_invalidate_page(si->type, offset);
+ 		frontswap_invalidate_page(si->type, offset);
+ 		if (swap_slot_free_notify)
+ 			swap_slot_free_notify(si->bdev, offset);
+@@ -2682,6 +2683,7 @@ SYSCALL_DEFINE1(swapoff, const char __user *, specialfile)
+ 	frontswap_map = frontswap_map_get(p);
+ 	spin_unlock(&p->lock);
+ 	spin_unlock(&swap_lock);
++	arch_swap_invalidate_area(p->type);
+ 	frontswap_invalidate_area(p->type);
+ 	frontswap_map_set(p, NULL);
+ 	mutex_unlock(&swapon_mutex);
