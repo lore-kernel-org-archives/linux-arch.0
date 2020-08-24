@@ -7,23 +7,23 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3D4AFC433E5
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4B897C433E1
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 25D02206BE
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2A65E20738
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Aug 2020 18:29:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727125AbgHXS27 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Aug 2020 14:28:59 -0400
-Received: from mail.kernel.org ([198.145.29.99]:35834 "EHLO mail.kernel.org"
+        id S1727792AbgHXS3J (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Aug 2020 14:29:09 -0400
+Received: from mail.kernel.org ([198.145.29.99]:36076 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727061AbgHXS25 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Aug 2020 14:28:57 -0400
+        id S1727776AbgHXS3E (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Aug 2020 14:29:04 -0400
 Received: from localhost.localdomain (unknown [95.146.230.145])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 8C12720767;
-        Mon, 24 Aug 2020 18:28:54 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id CF65320738;
+        Mon, 24 Aug 2020 18:29:01 +0000 (UTC)
 From:   Catalin Marinas <catalin.marinas@arm.com>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
@@ -35,10 +35,11 @@ Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
         Andrey Konovalov <andreyknvl@google.com>,
         Peter Collingbourne <pcc@google.com>,
         Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>
-Subject: [PATCH v8 23/28] fs: Handle intra-page faults in copy_mount_options()
-Date:   Mon, 24 Aug 2020 19:27:53 +0100
-Message-Id: <20200824182758.27267-24-catalin.marinas@arm.com>
+        Steven Price <steven.price@arm.com>,
+        James Morse <james.morse@arm.com>
+Subject: [PATCH v8 26/28] arm64: mte: Save tags when hibernating
+Date:   Mon, 24 Aug 2020 19:27:56 +0100
+Message-Id: <20200824182758.27267-27-catalin.marinas@arm.com>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20200824182758.27267-1-catalin.marinas@arm.com>
 References: <20200824182758.27267-1-catalin.marinas@arm.com>
@@ -49,84 +50,174 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The copy_mount_options() function takes a user pointer argument but no
-size and it tries to read up to a PAGE_SIZE. However, copy_from_user()
-is not guaranteed to return all the accessible bytes if, for example,
-the access crosses a page boundary and gets a fault on the second page.
-To work around this, the current copy_mount_options() implementation
-performs two copy_from_user() passes, first to the end of the current
-page and the second to what's left in the subsequent page.
+From: Steven Price <steven.price@arm.com>
 
-On arm64 with MTE enabled, access to a user page may trigger a fault
-after part of the buffer in a page has been copied (when the user
-pointer tag, bits 56-59, no longer matches the allocation tag stored in
-memory). Allow copy_mount_options() to handle such intra-page faults by
-resorting to byte at a time copy in case of copy_from_user() failure.
+When hibernating the contents of all pages in the system are written to
+disk, however the MTE tags are not visible to the generic hibernation
+code. So just before the hibernation image is created copy the tags out
+of the physical tag storage into standard memory so they will be
+included in the hibernation image. After hibernation apply the tags back
+into the physical tag storage.
 
-Note that copy_from_user() handles the zeroing of the kernel buffer in
-case of error.
-
+Signed-off-by: Steven Price <steven.price@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: James Morse <james.morse@arm.com>
+Cc: Will Deacon <will@kernel.org>
 ---
 
 Notes:
-    v6:
-    - Simplified logic to fall-back to byte-by-byte if the copy_from_user()
-      fails.
-    
-    v4:
-    - Rewrite to avoid arch_has_exact_copy_from_user()
-    
-    New in v3.
+    New in v4.
 
- fs/namespace.c | 25 ++++++++++++++++++-------
- 1 file changed, 18 insertions(+), 7 deletions(-)
+ arch/arm64/kernel/hibernate.c | 118 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 118 insertions(+)
 
-diff --git a/fs/namespace.c b/fs/namespace.c
-index bae0e95b3713..32a0b9146757 100644
---- a/fs/namespace.c
-+++ b/fs/namespace.c
-@@ -3075,7 +3075,7 @@ static void shrink_submounts(struct mount *mnt)
- void *copy_mount_options(const void __user * data)
- {
- 	char *copy;
--	unsigned size;
-+	unsigned left, offset;
+diff --git a/arch/arm64/kernel/hibernate.c b/arch/arm64/kernel/hibernate.c
+index 68e14152d6e9..23467092e24d 100644
+--- a/arch/arm64/kernel/hibernate.c
++++ b/arch/arm64/kernel/hibernate.c
+@@ -31,6 +31,7 @@
+ #include <asm/kexec.h>
+ #include <asm/memory.h>
+ #include <asm/mmu_context.h>
++#include <asm/mte.h>
+ #include <asm/pgalloc.h>
+ #include <asm/pgtable-hwdef.h>
+ #include <asm/sections.h>
+@@ -285,6 +286,117 @@ static int create_safe_exec_page(void *src_start, size_t length,
  
- 	if (!data)
- 		return NULL;
-@@ -3084,16 +3084,27 @@ void *copy_mount_options(const void __user * data)
- 	if (!copy)
- 		return ERR_PTR(-ENOMEM);
+ #define dcache_clean_range(start, end)	__flush_dcache_area(start, (end - start))
  
--	size = PAGE_SIZE - offset_in_page(data);
-+	left = copy_from_user(copy, data, PAGE_SIZE);
- 
--	if (copy_from_user(copy, data, size)) {
-+	/*
-+	 * Not all architectures have an exact copy_from_user(). Resort to
-+	 * byte at a time.
-+	 */
-+	offset = PAGE_SIZE - left;
-+	while (left) {
-+		char c;
-+		if (get_user(c, (const char __user *)data + offset))
-+			break;
-+		copy[offset] = c;
-+		left--;
-+		offset++;
++#ifdef CONFIG_ARM64_MTE
++
++static DEFINE_XARRAY(mte_pages);
++
++static int save_tags(struct page *page, unsigned long pfn)
++{
++	void *tag_storage, *ret;
++
++	tag_storage = mte_allocate_tag_storage();
++	if (!tag_storage)
++		return -ENOMEM;
++
++	mte_save_page_tags(page_address(page), tag_storage);
++
++	ret = xa_store(&mte_pages, pfn, tag_storage, GFP_KERNEL);
++	if (WARN(xa_is_err(ret), "Failed to store MTE tags")) {
++		mte_free_tag_storage(tag_storage);
++		return xa_err(ret);
++	} else if (WARN(ret, "swsusp: %s: Duplicate entry", __func__)) {
++		mte_free_tag_storage(ret);
 +	}
 +
-+	if (left == PAGE_SIZE) {
- 		kfree(copy);
- 		return ERR_PTR(-EFAULT);
- 	}
--	if (size != PAGE_SIZE) {
--		if (copy_from_user(copy + size, data + size, PAGE_SIZE - size))
--			memset(copy + size, 0, PAGE_SIZE - size);
--	}
++	return 0;
++}
 +
- 	return copy;
- }
++static void swsusp_mte_free_storage(void)
++{
++	XA_STATE(xa_state, &mte_pages, 0);
++	void *tags;
++
++	xa_lock(&mte_pages);
++	xas_for_each(&xa_state, tags, ULONG_MAX) {
++		mte_free_tag_storage(tags);
++	}
++	xa_unlock(&mte_pages);
++
++	xa_destroy(&mte_pages);
++}
++
++static int swsusp_mte_save_tags(void)
++{
++	struct zone *zone;
++	unsigned long pfn, max_zone_pfn;
++	int ret = 0;
++	int n = 0;
++
++	if (!system_supports_mte())
++		return 0;
++
++	for_each_populated_zone(zone) {
++		max_zone_pfn = zone_end_pfn(zone);
++		for (pfn = zone->zone_start_pfn; pfn < max_zone_pfn; pfn++) {
++			struct page *page = pfn_to_online_page(pfn);
++
++			if (!page)
++				continue;
++
++			if (!test_bit(PG_mte_tagged, &page->flags))
++				continue;
++
++			ret = save_tags(page, pfn);
++			if (ret) {
++				swsusp_mte_free_storage();
++				goto out;
++			}
++
++			n++;
++		}
++	}
++	pr_info("Saved %d MTE pages\n", n);
++
++out:
++	return ret;
++}
++
++static void swsusp_mte_restore_tags(void)
++{
++	XA_STATE(xa_state, &mte_pages, 0);
++	int n = 0;
++	void *tags;
++
++	xa_lock(&mte_pages);
++	xas_for_each(&xa_state, tags, ULONG_MAX) {
++		unsigned long pfn = xa_state.xa_index;
++		struct page *page = pfn_to_online_page(pfn);
++
++		mte_restore_page_tags(page_address(page), tags);
++
++		mte_free_tag_storage(tags);
++		n++;
++	}
++	xa_unlock(&mte_pages);
++
++	pr_info("Restored %d MTE pages\n", n);
++
++	xa_destroy(&mte_pages);
++}
++
++#else	/* CONFIG_ARM64_MTE */
++
++static int swsusp_mte_save_tags(void)
++{
++	return 0;
++}
++
++static void swsusp_mte_restore_tags(void)
++{
++}
++
++#endif	/* CONFIG_ARM64_MTE */
++
+ int swsusp_arch_suspend(void)
+ {
+ 	int ret = 0;
+@@ -302,6 +414,10 @@ int swsusp_arch_suspend(void)
+ 		/* make the crash dump kernel image visible/saveable */
+ 		crash_prepare_suspend();
+ 
++		ret = swsusp_mte_save_tags();
++		if (ret)
++			return ret;
++
+ 		sleep_cpu = smp_processor_id();
+ 		ret = swsusp_save();
+ 	} else {
+@@ -315,6 +431,8 @@ int swsusp_arch_suspend(void)
+ 			dcache_clean_range(__hyp_text_start, __hyp_text_end);
+ 		}
+ 
++		swsusp_mte_restore_tags();
++
+ 		/* make the crash dump kernel image protected again */
+ 		crash_post_resume();
  
