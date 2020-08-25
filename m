@@ -2,213 +2,114 @@ Return-Path: <SRS0=QFkJ=CD=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham
+X-Spam-Status: No, score=-4.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BAC4FC433DF
-	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 08:53:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 21F00C433DF
+	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 09:15:13 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 96A192071E
-	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 08:53:20 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1598345600;
-	bh=qVtzvPt8utxsO0tcKG1A7vsPaEcIuMmBWjFifpCIBCk=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:List-ID:From;
-	b=W7qKzmFhQCUNYKGfX+LLEPcAtF08mEU+ANEkkdMuf9H4DmJxz441Lkm5iJrEq1vzp
-	 GIsc0yKfm13TFPyrXd/g15D2UtQLzI4VxVBo4hnbKj/MM2q8jxfXlplguhArmMVAaV
-	 r+wyaH8QZH8qH2jztHYtD2KHlPMhmITnomg2VBwM=
+	by mail.kernel.org (Postfix) with ESMTP id E203120706
+	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 09:15:12 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="dXID83x2"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726015AbgHYIxU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 25 Aug 2020 04:53:20 -0400
-Received: from mail.kernel.org ([198.145.29.99]:45128 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725916AbgHYIxT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Aug 2020 04:53:19 -0400
-Received: from disco-boy.misterjones.org (disco-boy.misterjones.org [51.254.78.96])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        id S1729048AbgHYJPK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 25 Aug 2020 05:15:10 -0400
+Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:23993 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1729021AbgHYJPD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Aug 2020 05:15:03 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1598346900;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=92i+0YUtQgEC4ia+7x4FHZS4hUNlAuigR1V4PDLFWpU=;
+        b=dXID83x2aRkxAWfQMPZWk/vI0Qh6hxbzpf47lTeb+tvwUuSj24TdgkBRIgaD3YGlKDHCvj
+        SX0gBQ3rs/KB+oGq+tV6STleCJU2EMW74zeeqTsUIgHcgFv0Gbs6KFrUuNrUir9FoGGTcZ
+        CrwCG66NpsxslHzCJrVNy5/sTPOAUQQ=
+Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
+ [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
+ us-mta-493-qjGmojjQPt2LSoxrEMPg0A-1; Tue, 25 Aug 2020 05:14:56 -0400
+X-MC-Unique: qjGmojjQPt2LSoxrEMPg0A-1
+Received: from smtp.corp.redhat.com (int-mx05.intmail.prod.int.phx2.redhat.com [10.5.11.15])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id D67C42065F;
-        Tue, 25 Aug 2020 08:53:18 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1598345599;
-        bh=qVtzvPt8utxsO0tcKG1A7vsPaEcIuMmBWjFifpCIBCk=;
-        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-        b=UGw4fE3bO3bG0OD/6ngOZpNCwnpSNW1lWwt9CdFx/4xLXnKBbUzoGdelwmUa2k+4h
-         NbPndi7P0kyFKZ7ULQeKTuUEjXWxQzwemugWpvhd7DlH0Q5zNdxgLtb01zm1FMVzaK
-         aCiGznnDpvglZIab7NdenzVoQnWT7dLWdDRNjdbM=
-Received: from disco-boy.misterjones.org ([51.254.78.96] helo=www.loen.fr)
-        by disco-boy.misterjones.org with esmtpsa (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
-        (Exim 4.92)
-        (envelope-from <maz@kernel.org>)
-        id 1kAUhg-006TYE-R5; Tue, 25 Aug 2020 09:53:16 +0100
+        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id C7438100746B;
+        Tue, 25 Aug 2020 09:14:52 +0000 (UTC)
+Received: from oldenburg2.str.redhat.com (ovpn-112-37.ams2.redhat.com [10.36.112.37])
+        by smtp.corp.redhat.com (Postfix) with ESMTPS id 5353C808AB;
+        Tue, 25 Aug 2020 09:14:39 +0000 (UTC)
+From:   Florian Weimer <fweimer@redhat.com>
+To:     Andy Lutomirski <luto@kernel.org>
+Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>, X86 ML <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>,
+        LKML <linux-kernel@vger.kernel.org>,
+        "open list\:DOCUMENTATION" <linux-doc@vger.kernel.org>,
+        Linux-MM <linux-mm@kvack.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux API <linux-api@vger.kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>
+Subject: Re: [PATCH v11 9/9] x86: Disallow vsyscall emulation when CET is enabled
+References: <20200825002645.3658-1-yu-cheng.yu@intel.com>
+        <20200825002645.3658-10-yu-cheng.yu@intel.com>
+        <CALCETrVXwUDu2m-XEd-_J03L=sricM4cMxQYVkdGRWZDjmMB2g@mail.gmail.com>
+Date:   Tue, 25 Aug 2020 11:14:37 +0200
+In-Reply-To: <CALCETrVXwUDu2m-XEd-_J03L=sricM4cMxQYVkdGRWZDjmMB2g@mail.gmail.com>
+        (Andy Lutomirski's message of "Mon, 24 Aug 2020 17:32:35 -0700")
+Message-ID: <87pn7f9jeq.fsf@oldenburg2.str.redhat.com>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.3 (gnu/linux)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII;
- format=flowed
-Content-Transfer-Encoding: 7bit
-Date:   Tue, 25 Aug 2020 09:53:16 +0100
-From:   Marc Zyngier <maz@kernel.org>
-To:     Catalin Marinas <catalin.marinas@arm.com>,
-        Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc:     linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>,
-        Dave P Martin <Dave.Martin@arm.com>,
-        Szabolcs Nagy <szabolcs.nagy@arm.com>,
-        Kevin Brodsky <kevin.brodsky@arm.com>,
-        Andrey Konovalov <andreyknvl@google.com>,
-        Peter Collingbourne <pcc@google.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Suzuki K Poulose <Suzuki.Poulose@arm.com>
-Subject: Re: [PATCH v8 03/28] arm64: mte: CPU feature detection and initial
- sysreg configuration
-In-Reply-To: <20200824182758.27267-4-catalin.marinas@arm.com>
-References: <20200824182758.27267-1-catalin.marinas@arm.com>
- <20200824182758.27267-4-catalin.marinas@arm.com>
-User-Agent: Roundcube Webmail/1.4.8
-Message-ID: <61bba3c1948651a5221b87f2dfa2872f@kernel.org>
-X-Sender: maz@kernel.org
-X-SA-Exim-Connect-IP: 51.254.78.96
-X-SA-Exim-Rcpt-To: catalin.marinas@arm.com, vincenzo.frascino@arm.com, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, will@kernel.org, Dave.Martin@arm.com, szabolcs.nagy@arm.com, kevin.brodsky@arm.com, andreyknvl@google.com, pcc@google.com, akpm@linux-foundation.org, Suzuki.Poulose@arm.com
-X-SA-Exim-Mail-From: maz@kernel.org
-X-SA-Exim-Scanned: No (on disco-boy.misterjones.org); SAEximRunCond expanded to false
+Content-Type: text/plain
+X-Scanned-By: MIMEDefang 2.79 on 10.5.11.15
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 2020-08-24 19:27, Catalin Marinas wrote:
-> From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> 
-> Add the cpufeature and hwcap entries to detect the presence of MTE. Any
-> secondary CPU not supporting the feature, if detected on the boot CPU,
-> will be parked.
-> 
-> Add the minimum SCTLR_EL1 and HCR_EL2 bits for enabling MTE. The Normal
-> Tagged memory type is configured in MAIR_EL1 before the MMU is enabled
-> in order to avoid disrupting other CPUs in the CnP domain.
-> 
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Marc Zyngier <maz@kernel.org>
-> Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
-> ---
-> 
-> Notes:
->     v8:
->     - Move the SCTLR_EL1, MAIR_EL1, GCR_EL1 and TFSR*_EL1 
-> initialisation to
->       __cpu_setup before the MMU is enabled. While early MAIR_EL1 is
->       desirable to avoid conflicting with other CPUs in a CnP domain 
-> the
->       TFSR_EL1 and GCR_EL1 will only come in handy later when support 
-> for
->       in-kernel MTE is added.
-> 
->     v7:
->     - Hide the MTE ID register field for guests until MTE gains support 
-> for KVM.
-> 
->  arch/arm64/include/asm/cpucaps.h    |  3 ++-
->  arch/arm64/include/asm/cpufeature.h |  6 ++++++
->  arch/arm64/include/asm/hwcap.h      |  2 +-
->  arch/arm64/include/asm/kvm_arm.h    |  2 +-
->  arch/arm64/include/asm/sysreg.h     |  1 +
->  arch/arm64/include/uapi/asm/hwcap.h |  2 +-
->  arch/arm64/kernel/cpufeature.c      | 17 +++++++++++++++++
->  arch/arm64/kernel/cpuinfo.c         |  2 +-
->  arch/arm64/kvm/sys_regs.c           |  2 ++
->  arch/arm64/mm/proc.S                | 24 ++++++++++++++++++++++++
->  10 files changed, 56 insertions(+), 5 deletions(-)
-> 
-> diff --git a/arch/arm64/include/asm/cpucaps.h 
-> b/arch/arm64/include/asm/cpucaps.h
-> index 07b643a70710..1937653b05a3 100644
-> --- a/arch/arm64/include/asm/cpucaps.h
-> +++ b/arch/arm64/include/asm/cpucaps.h
-> @@ -64,7 +64,8 @@
->  #define ARM64_BTI				54
->  #define ARM64_HAS_ARMv8_4_TTL			55
->  #define ARM64_HAS_TLB_RANGE			56
-> +#define ARM64_MTE				57
-> 
-> -#define ARM64_NCAPS				57
-> +#define ARM64_NCAPS				58
-> 
->  #endif /* __ASM_CPUCAPS_H */
-> diff --git a/arch/arm64/include/asm/cpufeature.h
-> b/arch/arm64/include/asm/cpufeature.h
-> index 89b4f0142c28..680b5b36ddd5 100644
-> --- a/arch/arm64/include/asm/cpufeature.h
-> +++ b/arch/arm64/include/asm/cpufeature.h
-> @@ -681,6 +681,12 @@ static __always_inline bool
-> system_uses_irq_prio_masking(void)
->  	       cpus_have_const_cap(ARM64_HAS_IRQ_PRIO_MASKING);
->  }
-> 
-> +static inline bool system_supports_mte(void)
-> +{
-> +	return IS_ENABLED(CONFIG_ARM64_MTE) &&
-> +		cpus_have_const_cap(ARM64_MTE);
-> +}
-> +
->  static inline bool system_has_prio_mask_debugging(void)
->  {
->  	return IS_ENABLED(CONFIG_ARM64_DEBUG_PRIORITY_MASKING) &&
-> diff --git a/arch/arm64/include/asm/hwcap.h 
-> b/arch/arm64/include/asm/hwcap.h
-> index 22f73fe09030..0d4a6741b6a5 100644
-> --- a/arch/arm64/include/asm/hwcap.h
-> +++ b/arch/arm64/include/asm/hwcap.h
-> @@ -95,7 +95,7 @@
->  #define KERNEL_HWCAP_DGH		__khwcap2_feature(DGH)
->  #define KERNEL_HWCAP_RNG		__khwcap2_feature(RNG)
->  #define KERNEL_HWCAP_BTI		__khwcap2_feature(BTI)
-> -/* reserved for KERNEL_HWCAP_MTE	__khwcap2_feature(MTE) */
-> +#define KERNEL_HWCAP_MTE		__khwcap2_feature(MTE)
-> 
->  /*
->   * This yields a mask that user programs can use to figure out what
-> diff --git a/arch/arm64/include/asm/kvm_arm.h 
-> b/arch/arm64/include/asm/kvm_arm.h
-> index 8a1cbfd544d6..6c3b2fc922bb 100644
-> --- a/arch/arm64/include/asm/kvm_arm.h
-> +++ b/arch/arm64/include/asm/kvm_arm.h
-> @@ -78,7 +78,7 @@
->  			 HCR_AMO | HCR_SWIO | HCR_TIDCP | HCR_RW | HCR_TLOR | \
->  			 HCR_FMO | HCR_IMO)
->  #define HCR_VIRT_EXCP_MASK (HCR_VSE | HCR_VI | HCR_VF)
-> -#define HCR_HOST_NVHE_FLAGS (HCR_RW | HCR_API | HCR_APK)
-> +#define HCR_HOST_NVHE_FLAGS (HCR_RW | HCR_API | HCR_APK | HCR_ATA)
->  #define HCR_HOST_VHE_FLAGS (HCR_RW | HCR_TGE | HCR_E2H)
+* Andy Lutomirski:
 
-Why is HCR_ATA only set for nVHE? HCR_EL2.ATA seems to apply to both,
-doesn't it?
+> On Mon, Aug 24, 2020 at 5:30 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+>>
+>> From: "H.J. Lu" <hjl.tools@gmail.com>
+>>
+>> Emulation of the legacy vsyscall page is required by some programs built
+>> before 2013.  Newer programs after 2013 don't use it.  Disallow vsyscall
+>> emulation when Control-flow Enforcement (CET) is enabled to enhance
+>> security.
+>
+> NAK.
+>
+> By all means disable execute emulation if CET-IBT is enabled at the
+> time emulation is attempted, and maybe even disable the vsyscall page
+> entirely if you can magically tell that CET-IBT will be enabled when a
+> process starts, but you don't get to just disable it outright on a
+> CET-enabled kernel.
 
-> 
->  /* TCR_EL2 Registers bits */
+Yeah, we definitely would have to revert/avoid this downstream.  People
+definitely want to run glibc-2.12-era workloads on current kernels.
+Thanks for catching it.
 
-[...]
+Florian
 
-> diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
-> index 077293b5115f..59b91f58efec 100644
-> --- a/arch/arm64/kvm/sys_regs.c
-> +++ b/arch/arm64/kvm/sys_regs.c
-> @@ -1131,6 +1131,8 @@ static u64 read_id_reg(const struct kvm_vcpu 
-> *vcpu,
->  		if (!vcpu_has_sve(vcpu))
->  			val &= ~(0xfUL << ID_AA64PFR0_SVE_SHIFT);
->  		val &= ~(0xfUL << ID_AA64PFR0_AMU_SHIFT);
-> +	} else if (id == SYS_ID_AA64PFR1_EL1) {
-> +		val &= ~(0xfUL << ID_AA64PFR1_MTE_SHIFT);
-
-Hiding the capability is fine, but where is the handling of trapping
-instructions done? They should result in an UNDEF being injected.
-
-Thanks,
-
-         M.
--- 
-Jazz is not dead. It just smells funny...
