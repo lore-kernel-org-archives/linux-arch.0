@@ -7,33 +7,33 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7CBD6C433E1
-	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 00:31:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9658FC433E1
+	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 00:31:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6878B20767
-	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 00:31:54 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7A9F020767
+	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 00:31:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728480AbgHYAaj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Aug 2020 20:30:39 -0400
+        id S1728650AbgHYAby (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Aug 2020 20:31:54 -0400
 Received: from mga01.intel.com ([192.55.52.88]:28757 "EHLO mga01.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728219AbgHYAag (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Aug 2020 20:30:36 -0400
-IronPort-SDR: e4R0YNN6Cs4yhVyUFB46M2dHfVhLYqgXJBS9xqY0JPvxEdTnTuZR5f0LxhHWDQD3A7TNT1YC1G
- Qj2lEnec9ctA==
-X-IronPort-AV: E=McAfee;i="6000,8403,9723"; a="174053262"
+        id S1728473AbgHYAai (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Aug 2020 20:30:38 -0400
+IronPort-SDR: xL4kFBvQlNpHzkXYasBuMYqqUolaN1ni2URDKw58XlWxZ6ddP6BLNoEjnzUu+ynYT55BD1FBpm
+ AUK87hD27LcA==
+X-IronPort-AV: E=McAfee;i="6000,8403,9723"; a="174053270"
 X-IronPort-AV: E=Sophos;i="5.76,350,1592895600"; 
-   d="scan'208";a="174053262"
+   d="scan'208";a="174053270"
 X-Amp-Result: SKIPPED(no attachment in message)
 X-Amp-File-Uploaded: False
 Received: from orsmga004.jf.intel.com ([10.7.209.38])
-  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Aug 2020 17:30:34 -0700
-IronPort-SDR: TFQsm/tu5aV7nP34bj6j/mtL2KBSX8IjvNHKQzQlR+2sGvwEBfTGcI7PRmB5ov5JqKt89kMuCX
- 8EZxamN/snUg==
+  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Aug 2020 17:30:36 -0700
+IronPort-SDR: 7R5NO8Y00591d02foMcLeXqtfwQA4+ex9md6DKlWZ250Mzuqy7PmZmnlR7AZGcTijUSG8HZw5R
+ GhbhSH3JxPwg==
 X-IronPort-AV: E=Sophos;i="5.76,350,1592895600"; 
-   d="scan'208";a="443429301"
+   d="scan'208";a="443429321"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Aug 2020 17:30:33 -0700
+  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Aug 2020 17:30:35 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -61,9 +61,9 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Dave Martin <Dave.Martin@arm.com>,
         Weijiang Yang <weijiang.yang@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v11 2/9] x86/cet/ibt: User-mode Indirect Branch Tracking support
-Date:   Mon, 24 Aug 2020 17:26:37 -0700
-Message-Id: <20200825002645.3658-3-yu-cheng.yu@intel.com>
+Subject: [PATCH v11 5/9] x86/cet/ibt: Update arch_prctl functions for Indirect Branch Tracking
+Date:   Mon, 24 Aug 2020 17:26:40 -0700
+Message-Id: <20200825002645.3658-6-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20200825002645.3658-1-yu-cheng.yu@intel.com>
 References: <20200825002645.3658-1-yu-cheng.yu@intel.com>
@@ -74,176 +74,50 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Introduce user-mode Indirect Branch Tracking (IBT) support.  Update setup
-routines to include IBT.
+From: "H.J. Lu" <hjl.tools@gmail.com>
 
+Update ARCH_X86_CET_STATUS and ARCH_X86_CET_DISABLE for Indirect Branch
+Tracking.
+
+Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
-v10:
-- Change no_cet_ibt to no_user_ibt.
+ arch/x86/kernel/cet_prctl.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
 
-v9:
-- Change cpu_feature_enabled() to static_cpu_has().
-
-v2:
-- Change noibt to no_cet_ibt.
-
- arch/x86/include/asm/cet.h                    |  3 ++
- arch/x86/include/asm/disabled-features.h      |  8 ++++-
- arch/x86/kernel/cet.c                         | 33 +++++++++++++++++++
- arch/x86/kernel/cpu/common.c                  | 17 ++++++++++
- .../arch/x86/include/asm/disabled-features.h  |  8 ++++-
- 5 files changed, 67 insertions(+), 2 deletions(-)
-
-diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
-index f7eb197998ad..916ac2a0404c 100644
---- a/arch/x86/include/asm/cet.h
-+++ b/arch/x86/include/asm/cet.h
-@@ -15,6 +15,7 @@ struct cet_status {
- 	unsigned long	shstk_base;
- 	unsigned long	shstk_size;
- 	unsigned int	locked:1;
-+	unsigned int	ibt_enabled:1;
- };
+diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
+index cc49eef08ab0..2cd089e1542c 100644
+--- a/arch/x86/kernel/cet_prctl.c
++++ b/arch/x86/kernel/cet_prctl.c
+@@ -22,6 +22,9 @@ static int copy_status_to_user(struct cet_status *cet, u64 arg2)
+ 		buf[2] = (u64)cet->shstk_size;
+ 	}
  
- #ifdef CONFIG_X86_INTEL_CET
-@@ -26,6 +27,8 @@ void cet_disable_free_shstk(struct task_struct *p);
- int cet_verify_rstor_token(bool ia32, unsigned long ssp, unsigned long *new_ssp);
- void cet_restore_signal(struct sc_ext *sc);
- int cet_setup_signal(bool ia32, unsigned long rstor, struct sc_ext *sc);
-+int cet_setup_ibt(void);
-+void cet_disable_ibt(void);
- #else
- static inline int prctl_cet(int option, u64 arg2) { return -EINVAL; }
- static inline int cet_setup_thread_shstk(struct task_struct *p) { return 0; }
-diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
-index a0e1b24cfa02..52c9c07cfacc 100644
---- a/arch/x86/include/asm/disabled-features.h
-+++ b/arch/x86/include/asm/disabled-features.h
-@@ -62,6 +62,12 @@
- #define DISABLE_SHSTK	(1<<(X86_FEATURE_SHSTK & 31))
- #endif
- 
-+#ifdef CONFIG_X86_INTEL_BRANCH_TRACKING_USER
-+#define DISABLE_IBT	0
-+#else
-+#define DISABLE_IBT	(1<<(X86_FEATURE_IBT & 31))
-+#endif
++	if (cet->ibt_enabled)
++		buf[0] |= GNU_PROPERTY_X86_FEATURE_1_IBT;
 +
- /*
-  * Make sure to add features to the correct mask
-  */
-@@ -83,7 +89,7 @@
- #define DISABLED_MASK15	0
- #define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_UMIP|DISABLE_SHSTK)
- #define DISABLED_MASK17	0
--#define DISABLED_MASK18	0
-+#define DISABLED_MASK18	(DISABLE_IBT)
- #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 19)
- 
- #endif /* _ASM_X86_DISABLED_FEATURES_H */
-diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
-index 2bf1a6b6abb6..b1c122a5aef4 100644
---- a/arch/x86/kernel/cet.c
-+++ b/arch/x86/kernel/cet.c
-@@ -13,6 +13,8 @@
- #include <linux/uaccess.h>
- #include <linux/sched/signal.h>
- #include <linux/compat.h>
-+#include <linux/vmalloc.h>
-+#include <linux/bitops.h>
- #include <asm/msr.h>
- #include <asm/user.h>
- #include <asm/fpu/internal.h>
-@@ -355,3 +357,34 @@ int cet_setup_signal(bool ia32, unsigned long rstor_addr, struct sc_ext *sc_ext)
- 
- 	return 0;
+ 	return copy_to_user((u64 __user *)arg2, buf, sizeof(buf));
  }
-+
-+int cet_setup_ibt(void)
-+{
-+	u64 msr_val;
-+
-+	if (!static_cpu_has(X86_FEATURE_IBT))
-+		return -EOPNOTSUPP;
-+
-+	start_update_msrs();
-+	rdmsrl(MSR_IA32_U_CET, msr_val);
-+	msr_val |= (CET_ENDBR_EN | CET_NO_TRACK_EN);
-+	wrmsrl(MSR_IA32_U_CET, msr_val);
-+	end_update_msrs();
-+	current->thread.cet.ibt_enabled = 1;
-+	return 0;
-+}
-+
-+void cet_disable_ibt(void)
-+{
-+	u64 msr_val;
-+
-+	if (!static_cpu_has(X86_FEATURE_IBT))
-+		return;
-+
-+	start_update_msrs();
-+	rdmsrl(MSR_IA32_U_CET, msr_val);
-+	msr_val &= CET_SHSTK_EN;
-+	wrmsrl(MSR_IA32_U_CET, msr_val);
-+	end_update_msrs();
-+	current->thread.cet.ibt_enabled = 0;
-+}
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index 5f60ddaabc46..43666b1f50a2 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -536,6 +536,23 @@ static __init int setup_disable_shstk(char *s)
- __setup("no_user_shstk", setup_disable_shstk);
- #endif
  
-+#ifdef CONFIG_X86_INTEL_BRANCH_TRACKING_USER
-+static __init int setup_disable_ibt(char *s)
-+{
-+	/* require an exact match without trailing characters */
-+	if (s[0] != '\0')
-+		return 0;
-+
-+	if (!boot_cpu_has(X86_FEATURE_IBT))
-+		return 1;
-+
-+	setup_clear_cpu_cap(X86_FEATURE_IBT);
-+	pr_info("x86: 'no_user_ibt' specified, disabling user Branch Tracking\n");
-+	return 1;
-+}
-+__setup("no_user_ibt", setup_disable_ibt);
-+#endif
-+
- /*
-  * Some CPU features depend on higher CPUID levels, which may not always
-  * be available due to CPUID level capping or broken virtualization
-diff --git a/tools/arch/x86/include/asm/disabled-features.h b/tools/arch/x86/include/asm/disabled-features.h
-index a0e1b24cfa02..52c9c07cfacc 100644
---- a/tools/arch/x86/include/asm/disabled-features.h
-+++ b/tools/arch/x86/include/asm/disabled-features.h
-@@ -62,6 +62,12 @@
- #define DISABLE_SHSTK	(1<<(X86_FEATURE_SHSTK & 31))
- #endif
+@@ -72,7 +75,8 @@ int prctl_cet(int option, u64 arg2)
+ 	if (option == ARCH_X86_CET_STATUS)
+ 		return copy_status_to_user(cet, arg2);
  
-+#ifdef CONFIG_X86_INTEL_BRANCH_TRACKING_USER
-+#define DISABLE_IBT	0
-+#else
-+#define DISABLE_IBT	(1<<(X86_FEATURE_IBT & 31))
-+#endif
-+
- /*
-  * Make sure to add features to the correct mask
-  */
-@@ -83,7 +89,7 @@
- #define DISABLED_MASK15	0
- #define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_UMIP|DISABLE_SHSTK)
- #define DISABLED_MASK17	0
--#define DISABLED_MASK18	0
-+#define DISABLED_MASK18	(DISABLE_IBT)
- #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 19)
+-	if (!static_cpu_has(X86_FEATURE_SHSTK))
++	if (!static_cpu_has(X86_FEATURE_SHSTK) &&
++	    !static_cpu_has(X86_FEATURE_IBT))
+ 		return -EOPNOTSUPP;
  
- #endif /* _ASM_X86_DISABLED_FEATURES_H */
+ 	switch (option) {
+@@ -83,6 +87,8 @@ int prctl_cet(int option, u64 arg2)
+ 			return -EINVAL;
+ 		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
+ 			cet_disable_free_shstk(current);
++		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_IBT)
++			cet_disable_ibt();
+ 		return 0;
+ 
+ 	case ARCH_X86_CET_LOCK:
 -- 
 2.21.0
 
