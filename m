@@ -2,106 +2,104 @@ Return-Path: <SRS0=QFkJ=CD=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.9 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 40242C433DF
-	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 09:30:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1E85DC433E4
+	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 10:55:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 29C6A2071E
-	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 09:30:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0500F2075F
+	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 10:55:01 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729456AbgHYJa0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 25 Aug 2020 05:30:26 -0400
-Received: from imap3.hz.codethink.co.uk ([176.9.8.87]:33956 "EHLO
-        imap3.hz.codethink.co.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728543AbgHYJa0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Aug 2020 05:30:26 -0400
-X-Greylist: delayed 2596 seconds by postgrey-1.27 at vger.kernel.org; Tue, 25 Aug 2020 05:30:23 EDT
-Received: from cpc98990-stkp12-2-0-cust216.10-2.cable.virginm.net ([86.26.12.217] helo=[192.168.0.10])
-        by imap3.hz.codethink.co.uk with esmtpsa  (Exim 4.92 #3 (Debian))
-        id 1kAUbe-0002Te-3f; Tue, 25 Aug 2020 09:47:02 +0100
-Subject: Re: [PATCH v7 10/10] Drivers: hv: Enable Hyper-V code to be built on
- ARM64
-To:     Ard Biesheuvel <ardb@kernel.org>,
-        Michael Kelley <mikelley@microsoft.com>
-Cc:     Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Marc Zyngier <maz@kernel.org>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-hyperv@vger.kernel.org,
-        linux-efi <linux-efi@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>, wei.liu@kernel.org,
-        vkuznets <vkuznets@redhat.com>,
-        KY Srinivasan <kys@microsoft.com>,
-        Sunil Muthuswamy <sunilmut@microsoft.com>,
-        Boqun Feng <boqun.feng@gmail.com>
-References: <1598287583-71762-1-git-send-email-mikelley@microsoft.com>
- <1598287583-71762-11-git-send-email-mikelley@microsoft.com>
- <CAMj1kXHKDD5+Na7t=bbkqo2OaiidmnJg+RqermV-2=exj-P77A@mail.gmail.com>
-From:   Ben Dooks <ben.dooks@codethink.co.uk>
-Organization: Codethink Limited.
-Message-ID: <5e8af3c3-fe08-0a56-fe05-0527a6cae0dd@codethink.co.uk>
-Date:   Tue, 25 Aug 2020 09:47:00 +0100
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
- Thunderbird/68.11.0
+        id S1729458AbgHYKzA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 25 Aug 2020 06:55:00 -0400
+Received: from mail.kernel.org ([198.145.29.99]:53310 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728117AbgHYKy7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Aug 2020 06:54:59 -0400
+Received: from C02TF0J2HF1T.local (unknown [213.205.240.110])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id ECA0F2068E;
+        Tue, 25 Aug 2020 10:54:53 +0000 (UTC)
+Date:   Tue, 25 Aug 2020 11:54:50 +0100
+From:   Catalin Marinas <catalin.marinas@arm.com>
+To:     Marc Zyngier <maz@kernel.org>
+Cc:     Vincenzo Frascino <vincenzo.frascino@arm.com>,
+        linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>,
+        Dave P Martin <Dave.Martin@arm.com>,
+        Szabolcs Nagy <szabolcs.nagy@arm.com>,
+        Kevin Brodsky <kevin.brodsky@arm.com>,
+        Andrey Konovalov <andreyknvl@google.com>,
+        Peter Collingbourne <pcc@google.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Subject: Re: [PATCH v8 03/28] arm64: mte: CPU feature detection and initial
+ sysreg configuration
+Message-ID: <20200825105450.GA22233@C02TF0J2HF1T.local>
+References: <20200824182758.27267-1-catalin.marinas@arm.com>
+ <20200824182758.27267-4-catalin.marinas@arm.com>
+ <61bba3c1948651a5221b87f2dfa2872f@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <CAMj1kXHKDD5+Na7t=bbkqo2OaiidmnJg+RqermV-2=exj-P77A@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <61bba3c1948651a5221b87f2dfa2872f@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 24/08/2020 18:24, Ard Biesheuvel wrote:
-> On Mon, 24 Aug 2020 at 18:48, Michael Kelley <mikelley@microsoft.com> wrote:
->>
->> Update drivers/hv/Kconfig so CONFIG_HYPERV can be selected on
->> ARM64, causing the Hyper-V specific code to be built.
->>
->> Signed-off-by: Michael Kelley <mikelley@microsoft.com>
->> ---
->>   drivers/hv/Kconfig | 3 ++-
->>   1 file changed, 2 insertions(+), 1 deletion(-)
->>
->> diff --git a/drivers/hv/Kconfig b/drivers/hv/Kconfig
->> index 79e5356..1113e49 100644
->> --- a/drivers/hv/Kconfig
->> +++ b/drivers/hv/Kconfig
->> @@ -4,7 +4,8 @@ menu "Microsoft Hyper-V guest support"
->>
->>   config HYPERV
->>          tristate "Microsoft Hyper-V client drivers"
->> -       depends on X86 && ACPI && X86_LOCAL_APIC && HYPERVISOR_GUEST
->> +       depends on ACPI && \
->> +                       ((X86 && X86_LOCAL_APIC && HYPERVISOR_GUEST) || ARM64)
->>          select PARAVIRT
->>          select X86_HV_CALLBACK_VECTOR
->>          help
+On Tue, Aug 25, 2020 at 09:53:16AM +0100, Marc Zyngier wrote:
+> On 2020-08-24 19:27, Catalin Marinas wrote:
+> > diff --git a/arch/arm64/include/asm/kvm_arm.h
+> > b/arch/arm64/include/asm/kvm_arm.h
+> > index 8a1cbfd544d6..6c3b2fc922bb 100644
+> > --- a/arch/arm64/include/asm/kvm_arm.h
+> > +++ b/arch/arm64/include/asm/kvm_arm.h
+> > @@ -78,7 +78,7 @@
+> >  			 HCR_AMO | HCR_SWIO | HCR_TIDCP | HCR_RW | HCR_TLOR | \
+> >  			 HCR_FMO | HCR_IMO)
+> >  #define HCR_VIRT_EXCP_MASK (HCR_VSE | HCR_VI | HCR_VF)
+> > -#define HCR_HOST_NVHE_FLAGS (HCR_RW | HCR_API | HCR_APK)
+> > +#define HCR_HOST_NVHE_FLAGS (HCR_RW | HCR_API | HCR_APK | HCR_ATA)
+> >  #define HCR_HOST_VHE_FLAGS (HCR_RW | HCR_TGE | HCR_E2H)
 > 
-> Given the comment in a previous patch
-> 
-> +/*
-> + * All data structures defined in the TLFS that are shared between Hyper-V
-> + * and a guest VM use Little Endian byte ordering.  This matches the default
-> + * byte ordering of Linux running on ARM64, so no special handling is required.
-> + */
-> 
-> shouldn't this depend on !CONFIG_CPU_BIG_ENDIAN ?
+> Why is HCR_ATA only set for nVHE? HCR_EL2.ATA seems to apply to both,
+> doesn't it?
 
-or mark the data __le and have the appropriate accessor functions do
-the swapping.
+We need HCR_EL2.ATA to be set when !VHE so that the host kernel can use
+MTE. That said, I think we need to turn it off when running a guest.
+Even if we hide the ID register, the guest may still attempt to enable
+tags on some memory that doesn't support it, leading to unpredictable
+behaviour (well, only if we expose device memory to guests directly;
+Steve's patches will deal with this but for now we just disable MTE in
+guests).
 
+With VHE, HCR_EL2.ATA only affects the guests, so it can stay off. The
+host's use of tags is controlled by SCTLR_EL1/EL2.ATA (i.e. HCR_EL2.ATA
+has no effect if E2H and TGE are both 1; qemu has a bug here which I
+discovered yesterday).
+
+> > diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
+> > index 077293b5115f..59b91f58efec 100644
+> > --- a/arch/arm64/kvm/sys_regs.c
+> > +++ b/arch/arm64/kvm/sys_regs.c
+> > @@ -1131,6 +1131,8 @@ static u64 read_id_reg(const struct kvm_vcpu
+> > *vcpu,
+> >  		if (!vcpu_has_sve(vcpu))
+> >  			val &= ~(0xfUL << ID_AA64PFR0_SVE_SHIFT);
+> >  		val &= ~(0xfUL << ID_AA64PFR0_AMU_SHIFT);
+> > +	} else if (id == SYS_ID_AA64PFR1_EL1) {
+> > +		val &= ~(0xfUL << ID_AA64PFR1_MTE_SHIFT);
+> 
+> Hiding the capability is fine, but where is the handling of trapping
+> instructions done? They should result in an UNDEF being injected.
+
+They are a few new MTE-specific MSR/MRS which are trapped at EL2 but
+since KVM doesn't understand them yet, shouldn't it already inject
+undef back at EL1? That would be safer regardless of MTE support.
 
 -- 
-Ben Dooks				http://www.codethink.co.uk/
-Senior Engineer				Codethink - Providing Genius
-
-https://www.codethink.co.uk/privacy.html
+Catalin
