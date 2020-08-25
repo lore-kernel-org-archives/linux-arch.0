@@ -2,37 +2,38 @@ Return-Path: <SRS0=QFkJ=CD=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_GIT autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EB8D6C43446
-	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 00:30:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7AB8CC433DF
+	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 00:30:49 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D58142065F
-	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 00:30:41 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 64E892065F
+	for <linux-arch@archiver.kernel.org>; Tue, 25 Aug 2020 00:30:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728487AbgHYAak (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Aug 2020 20:30:40 -0400
-Received: from mga01.intel.com ([192.55.52.88]:28750 "EHLO mga01.intel.com"
+        id S1728504AbgHYAan (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Aug 2020 20:30:43 -0400
+Received: from mga01.intel.com ([192.55.52.88]:28753 "EHLO mga01.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728259AbgHYAad (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Aug 2020 20:30:33 -0400
-IronPort-SDR: gkdM9hOxviYv5S2PRvDtZvzjDIIFKQqXtvni1clfxx+kf6AxaRK1qESdn+94Cle5RSHVQ8pjGJ
- x4mJ/pwiUJrw==
-X-IronPort-AV: E=McAfee;i="6000,8403,9723"; a="174053256"
+        id S1728493AbgHYAal (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Aug 2020 20:30:41 -0400
+IronPort-SDR: ETmAT1ntNHezUodsKD7XAV2LpICu/LpT1466kZAuiasOzkusvrtv4nKzxLtSsA1DJ9FtcbQKwN
+ ps+IRviKGNgQ==
+X-IronPort-AV: E=McAfee;i="6000,8403,9723"; a="174053294"
 X-IronPort-AV: E=Sophos;i="5.76,350,1592895600"; 
-   d="scan'208";a="174053256"
+   d="scan'208";a="174053294"
 X-Amp-Result: SKIPPED(no attachment in message)
 X-Amp-File-Uploaded: False
 Received: from orsmga004.jf.intel.com ([10.7.209.38])
-  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Aug 2020 17:30:33 -0700
-IronPort-SDR: 67oZwxQgYdJmA+KUqL3mx/insEcOmQz8+Fw2zgB45hu4tE5sq6WVUE5kNs/tmLEdpDBb/61GGS
- r3onGRfXEP3g==
+  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Aug 2020 17:30:38 -0700
+IronPort-SDR: lYjt4wcfMve2UloFv1ZVhYpn9TLEcoQGsrogMIRpRCyCUOWZ2cXw36gxsL2insLMn2J+uDtF9n
+ 2Af6Rj+f0Ywg==
 X-IronPort-AV: E=Sophos;i="5.76,350,1592895600"; 
-   d="scan'208";a="443429289"
+   d="scan'208";a="443429341"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Aug 2020 17:30:32 -0700
+  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Aug 2020 17:30:37 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -60,10 +61,12 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Dave Martin <Dave.Martin@arm.com>,
         Weijiang Yang <weijiang.yang@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v11 0/9] Control-flow Enforcement: Indirect Branch Tracking, PTRACE
-Date:   Mon, 24 Aug 2020 17:26:35 -0700
-Message-Id: <20200825002645.3658-1-yu-cheng.yu@intel.com>
+Subject: [PATCH v11 9/9] x86: Disallow vsyscall emulation when CET is enabled
+Date:   Mon, 24 Aug 2020 17:26:44 -0700
+Message-Id: <20200825002645.3658-10-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
+In-Reply-To: <20200825002645.3658-1-yu-cheng.yu@intel.com>
+References: <20200825002645.3658-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
@@ -71,60 +74,59 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Control-flow Enforcement (CET) is a new Intel processor feature that blocks
-return/jump-oriented programming attacks.  Details are in "Intel 64 and
-IA-32 Architectures Software Developer's Manual" [1].
+From: "H.J. Lu" <hjl.tools@gmail.com>
 
-This is the second part of CET and enables Indirect Branch Tracking (IBT).
-It is built on top of the shadow stack series.
+Emulation of the legacy vsyscall page is required by some programs built
+before 2013.  Newer programs after 2013 don't use it.  Disallow vsyscall
+emulation when Control-flow Enforcement (CET) is enabled to enhance
+security.
 
-Changes from v9:
+Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/Kconfig | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
 
-- Remove the legacy bitmap arch_prctl() as it is not used by GLIBC anymore.
-  Should it be needed in the future, I will re-post the patch separately.
-
-[1] Intel 64 and IA-32 Architectures Software Developer's Manual:
-
-    https://software.intel.com/en-us/download/intel-64-and-ia-32-
-    architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4
-
-[2] Previous IBT patches v9:
-
-    https://lkml.kernel.org/r/20200205182308.4028-1-yu-cheng.yu@intel.com/
-
-    There have been no major changes since v9, and there is no IBT patches
-    v10.
-
-H.J. Lu (4):
-  x86/cet/ibt: Update arch_prctl functions for Indirect Branch Tracking
-  x86/vdso/32: Add ENDBR32 to __kernel_vsyscall entry point
-  x86/vdso: Insert endbr32/endbr64 to vDSO
-  x86: Disallow vsyscall emulation when CET is enabled
-
-Yu-cheng Yu (5):
-  x86/cet/ibt: Add Kconfig option for user-mode Indirect Branch Tracking
-  x86/cet/ibt: User-mode Indirect Branch Tracking support
-  x86/cet/ibt: Handle signals for Indirect Branch Tracking
-  x86/cet/ibt: ELF header parsing for Indirect Branch Tracking
-  x86/cet: Add PTRACE interface for CET
-
- arch/x86/Kconfig                              | 26 +++++++-
- arch/x86/entry/vdso/Makefile                  |  4 ++
- arch/x86/entry/vdso/vdso32/system_call.S      |  3 +
- arch/x86/include/asm/cet.h                    |  3 +
- arch/x86/include/asm/disabled-features.h      |  8 ++-
- arch/x86/include/asm/fpu/regset.h             |  7 ++-
- arch/x86/kernel/cet.c                         | 60 ++++++++++++++++++-
- arch/x86/kernel/cet_prctl.c                   |  8 ++-
- arch/x86/kernel/cpu/common.c                  | 17 ++++++
- arch/x86/kernel/fpu/regset.c                  | 44 ++++++++++++++
- arch/x86/kernel/fpu/signal.c                  |  8 ++-
- arch/x86/kernel/process_64.c                  |  8 +++
- arch/x86/kernel/ptrace.c                      | 16 +++++
- include/uapi/linux/elf.h                      |  1 +
- .../arch/x86/include/asm/disabled-features.h  |  8 ++-
- 15 files changed, 208 insertions(+), 13 deletions(-)
-
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5bd6d6a10047..bbc68ecfae2b 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1210,7 +1210,7 @@ config X86_ESPFIX64
+ config X86_VSYSCALL_EMULATION
+ 	bool "Enable vsyscall emulation" if EXPERT
+ 	default y
+-	depends on X86_64
++	depends on X86_64 && !X86_INTEL_CET
+ 	help
+ 	 This enables emulation of the legacy vsyscall page.  Disabling
+ 	 it is roughly equivalent to booting with vsyscall=none, except
+@@ -1225,6 +1225,8 @@ config X86_VSYSCALL_EMULATION
+ 	 Disabling this option saves about 7K of kernel size and
+ 	 possibly 4K of additional runtime pagetable memory.
+ 
++	 This option is disabled when Intel CET is enabled.
++
+ config X86_IOPL_IOPERM
+ 	bool "IOPERM and IOPL Emulation"
+ 	default y
+@@ -2361,7 +2363,7 @@ config COMPAT_VDSO
+ 
+ choice
+ 	prompt "vsyscall table for legacy applications"
+-	depends on X86_64
++	depends on X86_64 && !X86_INTEL_CET
+ 	default LEGACY_VSYSCALL_XONLY
+ 	help
+ 	  Legacy user code that does not know how to find the vDSO expects
+@@ -2378,6 +2380,8 @@ choice
+ 
+ 	  If unsure, select "Emulate execution only".
+ 
++	  This option is not enabled when Intel CET is enabled.
++
+ 	config LEGACY_VSYSCALL_EMULATE
+ 		bool "Full emulation"
+ 		help
 -- 
 2.21.0
 
