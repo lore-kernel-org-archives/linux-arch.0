@@ -8,65 +8,68 @@ X-Spam-Status: No, score=-9.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	SPF_HELO_NONE,SPF_PASS,UNWANTED_LANGUAGE_BODY,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DFF47C433DF
-	for <linux-arch@archiver.kernel.org>; Wed, 26 Aug 2020 14:56:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4FFFEC433E1
+	for <linux-arch@archiver.kernel.org>; Wed, 26 Aug 2020 14:56:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B85E5221E2
-	for <linux-arch@archiver.kernel.org>; Wed, 26 Aug 2020 14:56:19 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2C9BA2078D
+	for <linux-arch@archiver.kernel.org>; Wed, 26 Aug 2020 14:56:21 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="FGy4UDYo"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="u9wJQQt5"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728147AbgHZO4I (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1726999AbgHZO4I (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Wed, 26 Aug 2020 10:56:08 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34116 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34144 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727892AbgHZOxy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Aug 2020 10:53:54 -0400
-Received: from mail-pl1-x641.google.com (mail-pl1-x641.google.com [IPv6:2607:f8b0:4864:20::641])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 32939C061756;
-        Wed, 26 Aug 2020 07:53:54 -0700 (PDT)
-Received: by mail-pl1-x641.google.com with SMTP id a8so792956plm.2;
-        Wed, 26 Aug 2020 07:53:54 -0700 (PDT)
+        with ESMTP id S1728348AbgHZOyD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Aug 2020 10:54:03 -0400
+Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5D100C061574;
+        Wed, 26 Aug 2020 07:54:03 -0700 (PDT)
+Received: by mail-pj1-x1042.google.com with SMTP id kx11so973822pjb.5;
+        Wed, 26 Aug 2020 07:54:03 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=e8+XEx65ih5RYTqzxYTgKflRaIZKD/7jhLd8hvjKhoA=;
-        b=FGy4UDYo6m6GBc2xXeUMxJap23UMwNdjY7eL7lGlWn9KfQkpaS6sESmgITWra6DZWm
-         /Mi97hnvE4hUwic1kShBHCbSYLi9ZFJsPz03Xeu0qGaYv5HxF2dJqkk3yhQTkdWSFlPp
-         th/meyADJ+ihbqDWHsVSOV0gf872gpLJoyNzaA7xYGYJnlkyct+Dmp9VmScC4LHjsit7
-         tF0/fMFPxL9KmUBHWldmPbDCLnpMNAHrPrSidGnVKtes9JoAwZfB4HDN7IQCNYoBOgYm
-         0EHrvoANNw8g1VgaYJW/DA+RY0dAEcb0xX4JPILHib0sQ4UO26ugArAdKVANsYAp5Q65
-         gZzQ==
+        bh=CT6s1M0q19YFhy+cBpQPX3nn1CscA8mpaTfBdcn8vdo=;
+        b=u9wJQQt5hW3qa3ya9qPXmEQyMDTWMQZHbSO3RwJdp2sKyqS30CDXWxqirn98P9bvjq
+         5k9b4obnh5IAZeF3n7nfI5cHz7FVY+P1pluo2c6rNimHuQV8OYtaeX/V4Cced3rL7xFH
+         NCmQH0Rh0EknPo8Tvnt6+BRX7xfXxLWINB6359wCNE+lf1Khs+fny6WA4kqbxPx7sPP2
+         4Wu6b2bDlHb8ThVwsTbMsR4G4gOOz15ZBN+OjgIx4lyrvVzbF9xPrFpaYgkafvJyfa3m
+         0kzpltobbXHAvhfSdg/A1z2zfQnA54cJJtn0xYgsVjEazuZMO04Q6WmKCtnX2fM2uoeQ
+         xN4w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=e8+XEx65ih5RYTqzxYTgKflRaIZKD/7jhLd8hvjKhoA=;
-        b=b6iAWrOswA8tI5bkhXy8q8OvV5N5gWye2yPSStsFjv0KHCO7ZfCaPd+RhFkwcTgdZm
-         Hi9KIkI7srxEU6kHjYkaVkUwhe8Wmu9VVcibFmkLvLKT2Q0UwLKYdeUH3y5bIlwHZ8fc
-         M5aOYA/NXx7DRy9ib6Sz7WkR+e0l++RcqG4WtAcqP3MBRrMVjJZGIf2ys7HpBbPwq2jP
-         fgx4GVmiHPwHjGxBl7pkLy3Yzv2Vro/JipoY/i0NAF/KQ2oX8qLfk5f+NW9rDjWeCKlM
-         gWxv2gl2OrUeZ0qid5r9QZOR814kZypUfvRaAWtcWgF/lS9/DxRTmnSobSsdroH0x0wp
-         A6JA==
-X-Gm-Message-State: AOAM531TLXA/do7NCqr0IHeXMcpn5mAyH7kwlEa4ywChhlYsToyGJTlq
-        HoyhKUk4tmv+2vHUGzZVugaM8dr/NVw=
-X-Google-Smtp-Source: ABdhPJyqVaB3WiBe6Kt/rHoBpwVXo+qfNE5apFM8ZRbLHw2soLnSS1xm7aEAeYy53WlJjsaefeOdgQ==
-X-Received: by 2002:a17:90a:d594:: with SMTP id v20mr6749324pju.227.1598453633587;
-        Wed, 26 Aug 2020 07:53:53 -0700 (PDT)
+        bh=CT6s1M0q19YFhy+cBpQPX3nn1CscA8mpaTfBdcn8vdo=;
+        b=XSpH4Ujdth5XR5wRmjVWM/8Ng6l6uSnjMYduhaphXl5VMHkzsMxXX1R0E0Gw1/oCf8
+         jBP41LuUdbbWbVNV6QQ911GxAT1bA8maNqhAMEn+/Ww5qm8C29yoLU5GO77Vno8Tpls5
+         /4zncNVxpbJc7w8633/R4+59Hp3pvqlZDNUiIqRxes4qo28Ah0wnKIFkZai15gI2hgHU
+         18mJXbbhTTkHb9MWplNzAvoOcDUq8nqktyqa4Fjm0lxGi/8yJQQn3FFCp/hd06x4o08N
+         fhI+AmiVZwlLLSgzOzw+PUqlAtCVsdKJLJ3cj1zFIlh7r4CaO66Iy0QyDAcRDpJ9t9ZN
+         FCvg==
+X-Gm-Message-State: AOAM531BTo9YYHPPd40s6o+ny0n68aw5NtRDMIys0WZj0QGUwO+wspky
+        uEJiaiy+kvJ7hI9LSdbU/+O/u24vNAg=
+X-Google-Smtp-Source: ABdhPJxvkuoGl75ZVpNr1RgzK005jvzedZlnd2QDmA+7r0p3ng9I2IdwjyZLrFMe98sls8FJaqrpYA==
+X-Received: by 2002:a17:902:c395:: with SMTP id g21mr12112718plg.264.1598453642763;
+        Wed, 26 Aug 2020 07:54:02 -0700 (PDT)
 Received: from bobo.ozlabs.ibm.com (61-68-212-105.tpgi.com.au. [61.68.212.105])
-        by smtp.gmail.com with ESMTPSA id r7sm3327140pfl.186.2020.08.26.07.53.50
+        by smtp.gmail.com with ESMTPSA id r7sm3327140pfl.186.2020.08.26.07.53.58
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 26 Aug 2020 07:53:53 -0700 (PDT)
+        Wed, 26 Aug 2020 07:54:02 -0700 (PDT)
 From:   Nicholas Piggin <npiggin@gmail.com>
 To:     linux-arch@vger.kernel.org
 Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
         linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>,
-        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
-        Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
-Subject: [PATCH v2 15/23] parisc: use asm-generic/mmu_context.h for no-op implementations
-Date:   Thu, 27 Aug 2020 00:52:41 +1000
-Message-Id: <20200826145249.745432-16-npiggin@gmail.com>
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        linux-riscv@lists.infradead.org,
+        Palmer Dabbelt <palmerdabbelt@google.com>
+Subject: [PATCH v2 17/23] riscv: use asm-generic/mmu_context.h for no-op implementations
+Date:   Thu, 27 Aug 2020 00:52:43 +1000
+Message-Id: <20200826145249.745432-18-npiggin@gmail.com>
 X-Mailer: git-send-email 2.23.0
 In-Reply-To: <20200826145249.745432-1-npiggin@gmail.com>
 References: <20200826145249.745432-1-npiggin@gmail.com>
@@ -77,62 +80,57 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
-Cc: Helge Deller <deller@gmx.de>
-Cc: linux-parisc@vger.kernel.org
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: Albert Ou <aou@eecs.berkeley.edu>
+Cc: linux-riscv@lists.infradead.org
+Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/parisc/include/asm/mmu_context.h | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ arch/riscv/include/asm/mmu_context.h | 22 ++--------------------
+ 1 file changed, 2 insertions(+), 20 deletions(-)
 
-diff --git a/arch/parisc/include/asm/mmu_context.h b/arch/parisc/include/asm/mmu_context.h
-index cb5f2f730421..46f8c22c5977 100644
---- a/arch/parisc/include/asm/mmu_context.h
-+++ b/arch/parisc/include/asm/mmu_context.h
-@@ -7,16 +7,13 @@
- #include <linux/atomic.h>
- #include <asm-generic/mm_hooks.h>
+diff --git a/arch/riscv/include/asm/mmu_context.h b/arch/riscv/include/asm/mmu_context.h
+index 67c463812e2d..250defa06f3a 100644
+--- a/arch/riscv/include/asm/mmu_context.h
++++ b/arch/riscv/include/asm/mmu_context.h
+@@ -13,34 +13,16 @@
+ #include <linux/mm.h>
+ #include <linux/sched.h>
  
--static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
+-static inline void enter_lazy_tlb(struct mm_struct *mm,
+-	struct task_struct *task)
 -{
 -}
 -
- /* on PA-RISC, we actually have enough contexts to justify an allocator
-  * for them.  prumpf */
- 
- extern unsigned long alloc_sid(void);
- extern void free_sid(unsigned long);
- 
-+#define init_new_context init_new_context
- static inline int
- init_new_context(struct task_struct *tsk, struct mm_struct *mm)
- {
-@@ -26,6 +23,7 @@ init_new_context(struct task_struct *tsk, struct mm_struct *mm)
- 	return 0;
- }
- 
-+#define destroy_context destroy_context
- static inline void
- destroy_context(struct mm_struct *mm)
- {
-@@ -71,8 +69,7 @@ static inline void switch_mm(struct mm_struct *prev,
- }
- #define switch_mm_irqs_off switch_mm_irqs_off
- 
--#define deactivate_mm(tsk,mm)	do { } while (0)
+-/* Initialize context-related info for a new mm_struct */
+-static inline int init_new_context(struct task_struct *task,
+-	struct mm_struct *mm)
+-{
+-	return 0;
+-}
 -
-+#define activate_mm activate_mm
- static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
- {
- 	/*
-@@ -90,4 +87,7 @@ static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
+-static inline void destroy_context(struct mm_struct *mm)
+-{
+-}
+-
+ void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+ 	struct task_struct *task);
  
- 	switch_mm(prev,next,current);
++#define activate_mm activate_mm
+ static inline void activate_mm(struct mm_struct *prev,
+ 			       struct mm_struct *next)
+ {
+ 	switch_mm(prev, next, NULL);
  }
-+
+ 
+-static inline void deactivate_mm(struct task_struct *task,
+-	struct mm_struct *mm)
+-{
+-}
 +#include <asm-generic/mmu_context.h>
-+
- #endif
+ 
+ #endif /* _ASM_RISCV_MMU_CONTEXT_H */
 -- 
 2.23.0
 
