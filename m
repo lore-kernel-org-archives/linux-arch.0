@@ -2,34 +2,43 @@ Return-Path: <SRS0=Iq1u=CE=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.5 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BF6F9C433E1
-	for <linux-arch@archiver.kernel.org>; Wed, 26 Aug 2020 17:08:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C5781C433E1
+	for <linux-arch@archiver.kernel.org>; Wed, 26 Aug 2020 18:49:24 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id AAD12207DF
-	for <linux-arch@archiver.kernel.org>; Wed, 26 Aug 2020 17:08:54 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A651E207BC
+	for <linux-arch@archiver.kernel.org>; Wed, 26 Aug 2020 18:49:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726873AbgHZRIu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 26 Aug 2020 13:08:50 -0400
-Received: from foss.arm.com ([217.140.110.172]:49226 "EHLO foss.arm.com"
+        id S1726765AbgHZStY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 26 Aug 2020 14:49:24 -0400
+Received: from mga12.intel.com ([192.55.52.136]:11669 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726854AbgHZRIu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Aug 2020 13:08:50 -0400
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id C2A95101E;
-        Wed, 26 Aug 2020 10:08:48 -0700 (PDT)
-Received: from arm.com (usa-sjc-imap-foss1.foss.arm.com [10.121.207.14])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 0B85B3F68F;
-        Wed, 26 Aug 2020 10:08:44 -0700 (PDT)
-Date:   Wed, 26 Aug 2020 18:08:42 +0100
-From:   Dave Martin <Dave.Martin@arm.com>
-To:     Florian Weimer <fweimer@redhat.com>
-Cc:     "Yu, Yu-cheng" <yu-cheng.yu@intel.com>,
-        Dave Hansen <dave.hansen@intel.com>,
-        Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>,
+        id S1726191AbgHZStX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Aug 2020 14:49:23 -0400
+IronPort-SDR: KHu55cxrHrf0j8RUFm2jUI9+iDTzDovNZYYix61wcSZ7wRcRDpLzJFnaVK/egBpTSWbl0qn2GZ
+ 85s5Q4Nf/R3g==
+X-IronPort-AV: E=McAfee;i="6000,8403,9725"; a="135915855"
+X-IronPort-AV: E=Sophos;i="5.76,356,1592895600"; 
+   d="scan'208";a="135915855"
+X-Amp-Result: SKIPPED(no attachment in message)
+X-Amp-File-Uploaded: False
+Received: from fmsmga005.fm.intel.com ([10.253.24.32])
+  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 26 Aug 2020 11:49:23 -0700
+IronPort-SDR: kz1B6Bl9Evoh0DAuECATySIb6A0aSvHXJVx+ZQr3fJEHh3x2b1adDajhdyc7g2skce1j/DGDrQ
+ EzPikqGDu3IQ==
+X-IronPort-AV: E=Sophos;i="5.76,356,1592895600"; 
+   d="scan'208";a="500347882"
+Received: from yyu32-mobl1.amr.corp.intel.com (HELO [10.251.141.162]) ([10.251.141.162])
+  by fmsmga005-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 26 Aug 2020 11:49:22 -0700
+Subject: Re: [PATCH v11 25/25] x86/cet/shstk: Add arch_prctl functions for
+ shadow stack
+To:     Andy Lutomirski <luto@kernel.org>,
+        Florian Weimer <fweimer@redhat.com>
+Cc:     Dave Martin <Dave.Martin@arm.com>,
+        Dave Hansen <dave.hansen@intel.com>, X86 ML <x86@kernel.org>,
         "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
         Ingo Molnar <mingo@redhat.com>,
@@ -55,9 +64,6 @@ Cc:     "Yu, Yu-cheng" <yu-cheng.yu@intel.com>,
         "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
         Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
         Weijiang Yang <weijiang.yang@intel.com>
-Subject: Re: [PATCH v11 25/25] x86/cet/shstk: Add arch_prctl functions for
- shadow stack
-Message-ID: <20200826170841.GX6642@arm.com>
 References: <20200825002540.3351-1-yu-cheng.yu@intel.com>
  <20200825002540.3351-26-yu-cheng.yu@intel.com>
  <CALCETrVpLnZGfWWLpJO+aZ9aBbx5KGaCskejXiCXF1GtsFFoPg@mail.gmail.com>
@@ -66,69 +72,72 @@ References: <20200825002540.3351-1-yu-cheng.yu@intel.com>
  <73c2211f-8811-2d9f-1930-1c5035e6129c@intel.com>
  <af258a0e-56e9-3747-f765-dfe45ce76bba@intel.com>
  <ef7f9e24-f952-d78c-373e-85435f742688@intel.com>
- <20200826164604.GW6642@arm.com>
- <87ft892vvf.fsf@oldenburg2.str.redhat.com>
+ <20200826164604.GW6642@arm.com> <87ft892vvf.fsf@oldenburg2.str.redhat.com>
+ <CALCETrVeNA0Kt2rW0CRCVo1JE0CKaBxu9KrJiyqUA8LPraY=7g@mail.gmail.com>
+From:   "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
+Message-ID: <0e9996bc-4c1b-cc99-9616-c721b546f857@intel.com>
+Date:   Wed, 26 Aug 2020 11:49:21 -0700
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101
+ Thunderbird/68.11.0
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <87ft892vvf.fsf@oldenburg2.str.redhat.com>
-User-Agent: Mutt/1.5.23 (2014-03-12)
+In-Reply-To: <CALCETrVeNA0Kt2rW0CRCVo1JE0CKaBxu9KrJiyqUA8LPraY=7g@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Aug 26, 2020 at 06:51:48PM +0200, Florian Weimer wrote:
-> * Dave Martin:
+On 8/26/2020 10:04 AM, Andy Lutomirski wrote:
+> On Wed, Aug 26, 2020 at 9:52 AM Florian Weimer <fweimer@redhat.com> wrote:
+>>
+>> * Dave Martin:
+>>
+>>> On Tue, Aug 25, 2020 at 04:34:27PM -0700, Yu, Yu-cheng wrote:
+>>>> On 8/25/2020 4:20 PM, Dave Hansen wrote:
+>>>>> On 8/25/20 2:04 PM, Yu, Yu-cheng wrote:
+>>>>>>>> I think this is more arch-specific.  Even if it becomes a new syscall,
+>>>>>>>> we still need to pass the same parameters.
+>>>>>>>
+>>>>>>> Right, but without the copying in and out of memory.
+>>>>>>>
+>>>>>> Linux-api is already on the Cc list.  Do we need to add more people to
+>>>>>> get some agreements for the syscall?
+>>>>> What kind of agreement are you looking for?  I'd suggest just coding it
+>>>>> up and posting the patches.  Adding syscalls really is really pretty
+>>>>> straightforward and isn't much code at all.
+>>>>>
+>>>>
+>>>> Sure, I will do that.
+>>>
+>>> Alternatively, would a regular prctl() work here?
+>>
+>> Is this something appliation code has to call, or just the dynamic
+>> loader?
+>>
+>> prctl in glibc is a variadic function, so if there's a mismatch between
+>> the kernel/userspace syscall convention and the userspace calling
+>> convention (for variadic functions) for specific types, it can't be made
+>> to work in a generic way.
+>>
+>> The loader can use inline assembly for system calls and does not have
+>> this issue, but applications would be implcated by it.
+>>
 > 
-> > On Tue, Aug 25, 2020 at 04:34:27PM -0700, Yu, Yu-cheng wrote:
-> >> On 8/25/2020 4:20 PM, Dave Hansen wrote:
-> >> >On 8/25/20 2:04 PM, Yu, Yu-cheng wrote:
-> >> >>>>I think this is more arch-specific.  Even if it becomes a new syscall,
-> >> >>>>we still need to pass the same parameters.
-> >> >>>
-> >> >>>Right, but without the copying in and out of memory.
-> >> >>>
-> >> >>Linux-api is already on the Cc list.  Do we need to add more people to
-> >> >>get some agreements for the syscall?
-> >> >What kind of agreement are you looking for?  I'd suggest just coding it
-> >> >up and posting the patches.  Adding syscalls really is really pretty
-> >> >straightforward and isn't much code at all.
-> >> >
-> >> 
-> >> Sure, I will do that.
-> >
-> > Alternatively, would a regular prctl() work here?
+> I would expect things like Go and various JITs to call it directly.
 > 
-> Is this something appliation code has to call, or just the dynamic
-> loader?
+> If we wanted to be fancy and add a potentially more widely useful
+> syscall, how about:
 > 
-> prctl in glibc is a variadic function, so if there's a mismatch between
-> the kernel/userspace syscall convention and the userspace calling
-> convention (for variadic functions) for specific types, it can't be made
-> to work in a generic way.
->
-> The loader can use inline assembly for system calls and does not have
-> this issue, but applications would be implcated by it.
+> mmap_special(void *addr, size_t length, int prot, int flags, int type);
+> 
+> Where type is something like MMAP_SPECIAL_X86_SHSTK.  Fundamentally,
+> this is really just mmap() except that we want to map something a bit
+> magical, and we don't want to require opening a device node to do it.
+> 
 
-To the extent that this is a problem, libc's prctl() wrapper has to
-handle it already.  New prctl() calls tend to demand precisely 4
-arguments and require unused arguments to be 0, but this is more down to
-policy rather than because anything breaks otherwise.
+One benefit of MMAP_SPECIAL_* is there are more free bits than MAP_*.
+Does ARM have similar needs for memory mapping, Dave?
 
-You're right that this has implications: for i386, libc probably pulls
-more arguments off the stack than are really there in some situations.
-This isn't a new problem though.  There are already generic prctls with
-fewer than 4 args that are used on x86.
-
-Merging the actual prctl() and arch_prctl() syscalls doesn't acutally
-stop libc from retaining separate wrappers if they have different
-argument marshaling requirements in some corner cases.
-
-
-There might be some underlying reason by x86 has its own call and nobody
-else followed the same model, but I don't know what it is.
-
-Cheers
----Dave
+Yu-cheng
