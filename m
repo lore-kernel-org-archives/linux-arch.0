@@ -2,129 +2,102 @@ Return-Path: <SRS0=b863=CF=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	NICE_REPLY_A,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 80FEEC433DF
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 11:40:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1D3CFC433DF
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 11:53:49 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5CBC820738
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 11:40:01 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id ED4082177B
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 11:53:48 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1598528401;
-	bh=OxjpBA84KDi5ZWWyg3y0i/wou8N/yNawXlcHxpgAmK0=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=Zl8CoQWMC4c3JYXejN9/sbdz2loE57kIJKA2dPCk9iqIPYtah3UW8l6oY6ulx7NqS
-	 +ExspfA7F7zx5EoXhARnY6NXOSghe7AzlQ3yqefjazjLnzWdvrG8DdSTsIqBfj9uwR
-	 1TPdWfYyn01DWYSDsx+0lrNiu4vHSgM8SkhTpC20=
+	s=default; t=1598529229;
+	bh=FJ6VppXfhXdONz0GZcmIu4gnd/OYSpzCj9s6sDvRBk8=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:List-ID:From;
+	b=ykGWONUFT5camvlvXGlRlVceHVTjF6WRWQsB44/GlCWePfYbHQNqzZj5qjxI4pHTm
+	 ztMxYjVNVQmhdhBeJCrnHudzMOnLzdWeFknXfJ+KiLp5bZmpcKcDpQVyCIUuiAE9Uu
+	 y8cJCQ6yN+owt+kaw8TQCV8ThHzYyba1mDgTPUJU=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728731AbgH0Ljw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Aug 2020 07:39:52 -0400
-Received: from mail.kernel.org ([198.145.29.99]:50700 "EHLO mail.kernel.org"
+        id S1728732AbgH0Lxp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Aug 2020 07:53:45 -0400
+Received: from mail.kernel.org ([198.145.29.99]:55044 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728586AbgH0Lib (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Aug 2020 07:38:31 -0400
-Received: from localhost.localdomain (NE2965lan1.rev.em-net.ne.jp [210.141.244.193])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        id S1728746AbgH0Lu6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Aug 2020 07:50:58 -0400
+Received: from devnote2 (NE2965lan1.rev.em-net.ne.jp [210.141.244.193])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id DEA5222CB1;
-        Thu, 27 Aug 2020 11:37:41 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 483462177B;
+        Thu, 27 Aug 2020 11:50:30 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1598528264;
-        bh=OxjpBA84KDi5ZWWyg3y0i/wou8N/yNawXlcHxpgAmK0=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=XyaNvZ+ZBRKlwzei3uUjiA1wRVxBbBADTab/rAYQVbxyvtQ87IcTxr8UKJjjhOqgI
-         GRl/0l2KQXScHbEdqTjwL91JBnaoCdlv6pll6d7qPHVn9M8xpNlwHVP5qr/1a2V6Vw
-         ynDcWUjkgMGxyW9TKQek5DDzZeB4Unnlm9FttT1Q=
+        s=default; t=1598529032;
+        bh=FJ6VppXfhXdONz0GZcmIu4gnd/OYSpzCj9s6sDvRBk8=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+        b=t9vHXty5w3CKX05loqhbwow0e6e7zcsqhVW3Z5ib1F3qjHrP3er+YBf9Ahw0hln3i
+         xBNS1q6YfTMpN3ox8Nk1QPPIYG5+uzEIXx9AvzFhHXkbExJrWm5fowdaPnZBFy893t
+         ex/4B4P90OzkDQ0SDC3xbjIaHIeYJOLuvU5jcmzU=
+Date:   Thu, 27 Aug 2020 20:50:28 +0900
 From:   Masami Hiramatsu <mhiramat@kernel.org>
-To:     linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
-Cc:     Eddy Wu <Eddy_Wu@trendmicro.com>, x86@kernel.org,
-        "David S . Miller" <davem@davemloft.net>,
+To:     peterz@infradead.org
+Cc:     linux-kernel@vger.kernel.org, Eddy Wu <Eddy_Wu@trendmicro.com>,
+        x86@kernel.org, "David S . Miller" <davem@davemloft.net>,
         Steven Rostedt <rostedt@goodmis.org>,
         Ingo Molnar <mingo@redhat.com>,
         "Naveen N . Rao" <naveen.n.rao@linux.ibm.com>,
         Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>,
         linux-arch@vger.kernel.org
-Subject: [PATCH v2 14/15] kprobes: Remove NMI context check
-Date:   Thu, 27 Aug 2020 20:37:38 +0900
-Message-Id: <159852825822.707944.12873921829000019667.stgit@devnote2>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <159852811819.707944.12798182250041968537.stgit@devnote2>
+Subject: Re: [PATCH v2 15/15] kprobes: Free kretprobe_instance with rcu
+ callback
+Message-Id: <20200827205028.964ca2ac4cd79d4e6cee7f9f@kernel.org>
+In-Reply-To: <20200827114807.GA2674@hirez.programming.kicks-ass.net>
 References: <159852811819.707944.12798182250041968537.stgit@devnote2>
-User-Agent: StGit/0.19
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
+        <159852826969.707944.15092569392287597887.stgit@devnote2>
+        <20200827114807.GA2674@hirez.programming.kicks-ass.net>
+X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.32; x86_64-pc-linux-gnu)
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Since the commit 9b38cc704e84 ("kretprobe: Prevent triggering
-kretprobe from within kprobe_flush_task") sets a dummy current
-kprobe in the trampoline handler by kprobe_busy_begin/end(),
-it is not possible to run a kretprobe pre handler in kretprobe
-trampoline handler context even with the NMI. If the NMI interrupts
-a kretprobe_trampoline_handler() and it hits a kretprobe, the
-2nd kretprobe will detect recursion correctly and it will be
-skipped.
-This means we have almost no double-lock issue on kretprobes by NMI.
+On Thu, 27 Aug 2020 13:48:07 +0200
+peterz@infradead.org wrote:
 
-The last one point is in cleanup_rp_inst() which also takes
-kretprobe_table_lock without setting up current kprobes.
-So adding kprobe_busy_begin/end() there allows us to remove
-in_nmi() check.
+> On Thu, Aug 27, 2020 at 08:37:49PM +0900, Masami Hiramatsu wrote:
+> > Free kretprobe_instance with rcu callback instead of directly
+> > freeing the object in the kretprobe handler context.
+> > 
+> > This will make kretprobe run safer in NMI context.
+> > 
+> > Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+> > ---
+> >  include/linux/kprobes.h |    3 ++-
+> >  kernel/kprobes.c        |   25 ++++++-------------------
+> >  2 files changed, 8 insertions(+), 20 deletions(-)
+> > 
+> > diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
+> > index 46a7afcf5ec0..97557f820d9b 100644
+> > --- a/include/linux/kprobes.h
+> > +++ b/include/linux/kprobes.h
+> > @@ -160,6 +160,7 @@ struct kretprobe_instance {
+> >  	struct kretprobe *rp;
+> >  	kprobe_opcode_t *ret_addr;
+> >  	struct task_struct *task;
+> > +	struct rcu_head rcu;
+> >  	void *fp;
+> >  	char data[];
+> >  };
+> 
+> You can stick the rcu_head in a union with hlist.
 
-The above commit applies kprobe_busy_begin/end() on x86, but
-now all arch implementation are unified to generic one, we can
-safely remove the in_nmi() check from arch independent code.
+Indeed. OK, I'll update it.
 
-Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
----
- kernel/kprobes.c |   16 ++++------------
- 1 file changed, 4 insertions(+), 12 deletions(-)
+Thank you!
 
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index cbd2ad1af7b7..311033e4b8e4 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -1359,7 +1359,8 @@ static void cleanup_rp_inst(struct kretprobe *rp)
- 	struct hlist_node *next;
- 	struct hlist_head *head;
- 
--	/* No race here */
-+	/* To avoid recursive kretprobe by NMI, set kprobe busy here */
-+	kprobe_busy_begin();
- 	for (hash = 0; hash < KPROBE_TABLE_SIZE; hash++) {
- 		kretprobe_table_lock(hash, &flags);
- 		head = &kretprobe_inst_table[hash];
-@@ -1369,6 +1370,8 @@ static void cleanup_rp_inst(struct kretprobe *rp)
- 		}
- 		kretprobe_table_unlock(hash, &flags);
- 	}
-+	kprobe_busy_end();
-+
- 	free_rp_inst(rp);
- }
- NOKPROBE_SYMBOL(cleanup_rp_inst);
-@@ -2038,17 +2041,6 @@ static int pre_handler_kretprobe(struct kprobe *p, struct pt_regs *regs)
- 	unsigned long hash, flags = 0;
- 	struct kretprobe_instance *ri;
- 
--	/*
--	 * To avoid deadlocks, prohibit return probing in NMI contexts,
--	 * just skip the probe and increase the (inexact) 'nmissed'
--	 * statistical counter, so that the user is informed that
--	 * something happened:
--	 */
--	if (unlikely(in_nmi())) {
--		rp->nmissed++;
--		return 0;
--	}
--
- 	/* TODO: consider to only swap the RA after the last pre_handler fired */
- 	hash = hash_ptr(current, KPROBE_HASH_BITS);
- 	raw_spin_lock_irqsave(&rp->lock, flags);
 
+-- 
+Masami Hiramatsu <mhiramat@kernel.org>
