@@ -7,46 +7,46 @@ X-Spam-Status: No, score=-6.5 required=3.0 tests=BAYES_00,DKIM_INVALID,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 963CFC433E1
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 16:21:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E11B3C433DF
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 16:21:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 696512087C
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 16:21:28 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AECCE2087C
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 16:21:35 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="vG1pkpfu"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="YsdlAZrw"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726232AbgH0QV2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Aug 2020 12:21:28 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47472 "EHLO
+        id S1727124AbgH0QVd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Aug 2020 12:21:33 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47478 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726217AbgH0QV1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 12:21:27 -0400
-Received: from merlin.infradead.org (merlin.infradead.org [IPv6:2001:8b0:10b:1231::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 90888C061264;
-        Thu, 27 Aug 2020 09:21:27 -0700 (PDT)
+        with ESMTP id S1726217AbgH0QVa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 12:21:30 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A32DCC061264;
+        Thu, 27 Aug 2020 09:21:29 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=merlin.20170209; h=Content-Type:MIME-Version:References:
+        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=BWEl8bF4KSKcL/2rh1UKiQEUDsP7RnkAC7synKLKMUY=; b=vG1pkpfuPkP+zUTmvLIr+DU1pU
-        yDXq7tNnW5j0KccQI5XGojZuTPJ9Vt+tP58+PNuAuv35KufMh5cMsNxZtGwm40hDHdZ77q8ki/8RC
-        Um9bGgMXwQJ+SAA24FX129Ntdrp/89xZ7h/3G72zfI26y55qJMshMEApWiYtGOYKyaVXSDt4NXin0
-        fGIlj6Jqx8BhxkGAm20wG7yEnbra+MXu29YKA+VNtmZxg96/WY4qSoBYTFfhap4g2iOSNMThJEqQU
-        3ModKNPKuhs3ij9Bys4pWeI85e+0AIexRcSOzyzNm0o8VOSCijD2le83HX/xrpNDA8jttKzZLN4Gk
-        A04K8QMg==;
+        bh=CA2LQBV3qCg6kIH7wqA7nexZ0XEQZOH6C+KSSjM5Pyc=; b=YsdlAZrww5XuIhxYUmnVkQFRh+
+        FnZV15nwR3QW0N+is51bG5riqHNv+pduSKbUKJokyFRjLRHZoSxulIZe/0+X4RPoRMZbHDQHJZ7ke
+        0HTF+6zKl7DsGvqmlfNvMtlYuHHdP13V9kZ0u3HFK9vpHgfi/MJalVz57WWiRac8UmQgLd6hjXzMy
+        oU1SJvmRWfU1+wpGHof/BRwhLmh5rY/Ddy9ee3mfMRXElFw39tFADwAM895ezqfiQrUYqz5LYkP3U
+        2+qY3815giREXHTBn5+Qnc3OxxZERZ0G3U7TFvlFOuH3/9SGYpKgqYkEDaTLGZxP7JOODEaEJG23n
+        yt8Bw5hQ==;
 Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
-        by merlin.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kBKe5-0003xm-B6; Thu, 27 Aug 2020 16:21:01 +0000
+        by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
+        id 1kBKe4-0001WN-IV; Thu, 27 Aug 2020 16:21:00 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id B11DC305C22;
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id B3CF83077B1;
         Thu, 27 Aug 2020 18:20:57 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 7F7AA2C2868F6; Thu, 27 Aug 2020 18:20:57 +0200 (CEST)
-Message-ID: <20200827161754.418488259@infradead.org>
+        id 7305D203C0774; Thu, 27 Aug 2020 18:20:57 +0200 (CEST)
+Message-ID: <20200827161754.241309505@infradead.org>
 User-Agent: quilt/0.66
-Date:   Thu, 27 Aug 2020 18:12:41 +0200
+Date:   Thu, 27 Aug 2020 18:12:38 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     linux-kernel@vger.kernel.org, mhiramat@kernel.org
 Cc:     Eddy_Wu@trendmicro.com, x86@kernel.org, davem@davemloft.net,
@@ -54,7 +54,7 @@ Cc:     Eddy_Wu@trendmicro.com, x86@kernel.org, davem@davemloft.net,
         anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org,
         cameron@moodycamel.com, oleg@redhat.com, will@kernel.org,
         paulmck@kernel.org, peterz@infradead.org
-Subject: [RFC][PATCH 4/7] kprobe: Dont kfree() from breakpoint context
+Subject: [RFC][PATCH 1/7] llist: Add nonatomic __llist_add()
 References: <20200827161237.889877377@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -63,113 +63,59 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Breakpoint context might not be a safe context for kfree(), push it
-out to RCU.
+
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- include/linux/kprobes.h |    2 +-
- kernel/kprobes.c        |   27 ++++++---------------------
- 2 files changed, 7 insertions(+), 22 deletions(-)
+ drivers/gpu/drm/i915/i915_request.c |    6 ------
+ include/linux/llist.h               |   15 +++++++++++++++
+ 2 files changed, 15 insertions(+), 6 deletions(-)
 
---- a/include/linux/kprobes.h
-+++ b/include/linux/kprobes.h
-@@ -159,6 +159,7 @@ struct kretprobe_instance {
- 	union {
- 		struct llist_node llist;
- 		struct hlist_node hlist;
-+		struct rcu_head rcu;
- 	};
- 	struct kretprobe *rp;
- 	kprobe_opcode_t *ret_addr;
-@@ -398,7 +399,6 @@ int register_kretprobes(struct kretprobe
- void unregister_kretprobes(struct kretprobe **rps, int num);
- 
- void kprobe_flush_task(struct task_struct *tk);
--void recycle_rp_inst(struct kretprobe_instance *ri, struct hlist_head *head);
- 
- int disable_kprobe(struct kprobe *kp);
- int enable_kprobe(struct kprobe *kp);
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -1214,8 +1214,7 @@ void kprobes_inc_nmissed_count(struct kp
+--- a/drivers/gpu/drm/i915/i915_request.c
++++ b/drivers/gpu/drm/i915/i915_request.c
+@@ -357,12 +357,6 @@ void i915_request_retire_upto(struct i91
+ 	} while (i915_request_retire(tmp) && tmp != rq);
  }
- NOKPROBE_SYMBOL(kprobes_inc_nmissed_count);
  
--void recycle_rp_inst(struct kretprobe_instance *ri,
--		     struct hlist_head *head)
-+static void recycle_rp_inst(struct kretprobe_instance *ri)
- {
- 	struct kretprobe *rp = ri->rp;
- 
-@@ -1226,9 +1225,9 @@ void recycle_rp_inst(struct kretprobe_in
- 		raw_spin_lock(&rp->lock);
- 		hlist_add_head(&ri->hlist, &rp->free_instances);
- 		raw_spin_unlock(&rp->lock);
--	} else
--		/* Unregistering */
--		hlist_add_head(&ri->hlist, head);
-+	} else {
-+		kfree_rcu(ri, rcu);
-+	}
- }
- NOKPROBE_SYMBOL(recycle_rp_inst);
- 
-@@ -1261,15 +1260,12 @@ void kprobe_busy_end(void)
- void kprobe_flush_task(struct task_struct *tk)
- {
- 	struct kretprobe_instance *ri;
--	struct hlist_head empty_rp;
- 	struct llist_node *node;
--	struct hlist_node *tmp;
- 
- 	/* Early boot, not yet initialized. */
- 	if (unlikely(!kprobes_initialized))
- 		return;
- 
--	INIT_HLIST_HEAD(&empty_rp);
- 
- 	kprobe_busy_begin();
- 
-@@ -1280,12 +1276,7 @@ void kprobe_flush_task(struct task_struc
- 		ri = container_of(node, struct kretprobe_instance, llist);
- 		node = node->next;
- 
--		recycle_rp_inst(ri, &empty_rp);
--	}
+-static void __llist_add(struct llist_node *node, struct llist_head *head)
+-{
+-	node->next = head->first;
+-	head->first = node;
+-}
 -
--	hlist_for_each_entry_safe(ri, tmp, &empty_rp, hlist) {
--		hlist_del(&ri->hlist);
--		kfree(ri);
-+		recycle_rp_inst(ri);
- 	}
- 
- 	kprobe_busy_end();
-@@ -1937,7 +1928,6 @@ unsigned long __kretprobe_trampoline_han
- 	unsigned long orig_ret_address = 0;
- 	struct llist_node *first, *node;
- 	struct hlist_head empty_rp;
--	struct hlist_node *tmp;
- 
- 	INIT_HLIST_HEAD(&empty_rp);
- 
-@@ -1980,16 +1970,11 @@ unsigned long __kretprobe_trampoline_han
- 			__this_cpu_write(current_kprobe, &kprobe_busy);
- 		}
- 
--		recycle_rp_inst(ri, &empty_rp);
-+		recycle_rp_inst(ri);
- 
- 		first = node;
- 	}
- 
--	hlist_for_each_entry_safe(ri, tmp, &empty_rp, hlist) {
--		hlist_del(&ri->hlist);
--		kfree(ri);
--	}
--
- 	return orig_ret_address;
+ static struct i915_request * const *
+ __engine_active(struct intel_engine_cs *engine)
+ {
+--- a/include/linux/llist.h
++++ b/include/linux/llist.h
+@@ -197,6 +197,16 @@ static inline struct llist_node *llist_n
+ extern bool llist_add_batch(struct llist_node *new_first,
+ 			    struct llist_node *new_last,
+ 			    struct llist_head *head);
++
++static inline bool __llist_add_batch(struct llist_node *new_first,
++				     struct llist_node *new_last,
++				     struct llist_head *head)
++{
++	new_last->next = head->first;
++	head->first = new_first;
++	return new_last->next == NULL;
++}
++
+ /**
+  * llist_add - add a new entry
+  * @new:	new entry to be added
+@@ -209,6 +219,11 @@ static inline bool llist_add(struct llis
+ 	return llist_add_batch(new, new, head);
  }
- NOKPROBE_SYMBOL(__kretprobe_trampoline_handler)
+ 
++static inline bool __llist_add(struct llist_node *new, struct llist_head *head)
++{
++	return __llist_add_batch(new, new, head);
++}
++
+ /**
+  * llist_del_all - delete all entries from lock-less list
+  * @head:	the head of lock-less list to delete all entries
 
 
