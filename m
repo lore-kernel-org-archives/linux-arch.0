@@ -2,50 +2,44 @@ Return-Path: <SRS0=b863=CF=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.6 required=3.0 tests=BAYES_00,DKIM_INVALID,
-	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,NICE_REPLY_A,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 085D1C433DF
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 11:54:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BFBDCC433DF
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 13:11:30 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id BDD642177B
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 11:54:37 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="MM43WGiC"
+	by mail.kernel.org (Postfix) with ESMTP id 99C0322CAF
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 13:11:30 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=default; t=1598533890;
+	bh=y/lp9qyaaM7Bpx+/gb8wqjGJ5T/lQhnVCnSMOeuYfec=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:List-ID:From;
+	b=UPj6Y5TsP6A0Rvxki6RbWZC5+7yNaGogBWHaDMTF7XtfCEFH5/z6e95lF+sU2BS9+
+	 QkyR4vfPkidAA/xLHwGagmtAKqfIObvh+X7M6aqS2XXBfiaj60X+1XyBmKxAEdUIxP
+	 Bxh8VrHiPGkg4vE2ATPASPAUc4REBH/PMkv4Lj7s=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728966AbgH0Lx4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Aug 2020 07:53:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33156 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728934AbgH0Lu6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 07:50:58 -0400
-Received: from merlin.infradead.org (merlin.infradead.org [IPv6:2001:8b0:10b:1231::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 56942C06123C;
-        Thu, 27 Aug 2020 04:49:50 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=merlin.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=awfRf66HgGbxCRr70kQw5NQ84A89ap4b1ms7NbzviQY=; b=MM43WGiCJfh+YM6OHLDNcC42DR
-        pCMfp7AylWwoKAKC2yUp9DqtyVcDCvZ294vX53tJH+ONZFQUEoUj+CsnNi9VL5zbnJCrGCLb3bgSv
-        /kY7uRJjUM0QaQHJH7VemyieIhcgfz4Bk/km3qYJg6n9d7k8rSpd1dRAjGEYgHLAL+4YJP1s4r5+0
-        VQlVZVpXrpqQEonTGOUxbutnU2mLfQcGbcWW8xsuUilR48V9yyEvvW2yEcEdmr4LwFnSOEO2Lr82Z
-        ElAvoFZbdnFEFKid73m8Jm54EhcyJH92Wudd/QC9ImfJPxq+eQYpDfw9fcL5Bbyvt2QnoJshuHXQj
-        G++v5ebA==;
-Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
-        by merlin.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kBGPC-0000TM-Ld; Thu, 27 Aug 2020 11:49:22 +0000
-Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
+        id S1727056AbgH0NKj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Aug 2020 09:10:39 -0400
+Received: from mail.kernel.org ([198.145.29.99]:48950 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727077AbgH0NKe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Aug 2020 09:10:34 -0400
+Received: from devnote2 (NE2965lan1.rev.em-net.ne.jp [210.141.244.193])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 127FF301A66;
-        Thu, 27 Aug 2020 13:49:19 +0200 (CEST)
-Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
-        id C22922C1263AB; Thu, 27 Aug 2020 13:49:19 +0200 (CEST)
-Date:   Thu, 27 Aug 2020 13:49:19 +0200
-From:   peterz@infradead.org
-To:     Masami Hiramatsu <mhiramat@kernel.org>
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 599CD22CAF;
+        Thu, 27 Aug 2020 13:02:59 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=default; t=1598533381;
+        bh=y/lp9qyaaM7Bpx+/gb8wqjGJ5T/lQhnVCnSMOeuYfec=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+        b=U4je+28DrKs6l2GyNXB1ys9+ccco2w261d7RE1Vl8JuZ/56fFCHHV0q5WApIvhWXz
+         OUxmf/ltt8gsBFjbuogwRYMvlSDrAfam0HzbNjIKbTLZoeie5CV61Acmp+KjMo12TV
+         nIi07CTolp4VkXD2kQbGeKT1tFn5byQJybruDHRo=
+Date:   Thu, 27 Aug 2020 22:02:56 +0900
+From:   Masami Hiramatsu <mhiramat@kernel.org>
+To:     peterz@infradead.org
 Cc:     linux-kernel@vger.kernel.org, Eddy Wu <Eddy_Wu@trendmicro.com>,
         x86@kernel.org, "David S . Miller" <davem@davemloft.net>,
         Steven Rostedt <rostedt@goodmis.org>,
@@ -55,21 +49,34 @@ Cc:     linux-kernel@vger.kernel.org, Eddy Wu <Eddy_Wu@trendmicro.com>,
         linux-arch@vger.kernel.org
 Subject: Re: [PATCH v2 15/15] kprobes: Free kretprobe_instance with rcu
  callback
-Message-ID: <20200827114919.GB2674@hirez.programming.kicks-ass.net>
+Message-Id: <20200827220256.9aaedd03e3eeec8d7b765132@kernel.org>
+In-Reply-To: <20200827114919.GB2674@hirez.programming.kicks-ass.net>
 References: <159852811819.707944.12798182250041968537.stgit@devnote2>
- <159852826969.707944.15092569392287597887.stgit@devnote2>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <159852826969.707944.15092569392287597887.stgit@devnote2>
+        <159852826969.707944.15092569392287597887.stgit@devnote2>
+        <20200827114919.GB2674@hirez.programming.kicks-ass.net>
+X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.32; x86_64-pc-linux-gnu)
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Aug 27, 2020 at 08:37:49PM +0900, Masami Hiramatsu wrote:
+On Thu, 27 Aug 2020 13:49:19 +0200
+peterz@infradead.org wrote:
 
-> +void recycle_rp_inst(struct kretprobe_instance *ri)
+> On Thu, Aug 27, 2020 at 08:37:49PM +0900, Masami Hiramatsu wrote:
+> 
+> > +void recycle_rp_inst(struct kretprobe_instance *ri)
+> 
+> Also note, that at this point there is no external caller of this
+> function anymore.
 
-Also note, that at this point there is no external caller of this
-function anymore.
+OK, actually, there are more local functions are exported without any
+reason. Let's make all static.
+
+Thank you,
+
+-- 
+Masami Hiramatsu <mhiramat@kernel.org>
