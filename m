@@ -8,64 +8,64 @@ X-Spam-Status: No, score=-12.6 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5A91DC433E4
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:15:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AD145C433E1
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:15:30 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3542F207F7
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:15:08 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 875DD20738
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:15:30 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="dbXRHC4z"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="sADfUrTe"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728666AbgH0KPG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Aug 2020 06:15:06 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46434 "EHLO
+        id S1728804AbgH0KPa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Aug 2020 06:15:30 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46444 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728723AbgH0KPB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 06:15:01 -0400
+        with ESMTP id S1728731AbgH0KPE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 06:15:04 -0400
 Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5A005C061233;
-        Thu, 27 Aug 2020 03:15:01 -0700 (PDT)
-Received: by mail-pj1-x1042.google.com with SMTP id mw10so2350466pjb.2;
-        Thu, 27 Aug 2020 03:15:01 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5022EC061264;
+        Thu, 27 Aug 2020 03:15:04 -0700 (PDT)
+Received: by mail-pj1-x1042.google.com with SMTP id mt12so2368948pjb.4;
+        Thu, 27 Aug 2020 03:15:04 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :in-reply-to:references;
-        bh=gsuwAWlE4Ohz54mRMi0rZJXgpp5AgeOB9KKtUdDvTLA=;
-        b=dbXRHC4ze7LeL+Cm4RIJhQ1FUd9tZOr4Mx1+oJuWIi2k7Nc9pMDcl3+UHKS/d/iDrx
-         mjxxtfFiG0xhdHA3M1Ps2hxGI94RDGVMmXrpphEQjESkog1VkHr3hPXJaZDkiuV1YDUL
-         oplqZnWPD9yCd1Bq8c5gDrI8A/Nn95HBJDegWQA9VnoGyNvXoIUTC/Xl5BNnN6K0uaLO
-         4C8+E4MTe89kNhc71/GMo50SxJhJb9KUROTOkw7jib9Wf3+oBU/ipEZhINwXMid8yet1
-         K/R0CvwWopZ2LJrbY9uc85dgU0sl9sctd3OjnuUsSLutlWX5B9CRkKdUj5Udqroodmna
-         H/sA==
+        bh=ligckTORXYSrSmKLcHqQzSKW2gKfGktzSGPREcOvEO8=;
+        b=sADfUrTeNU+ykSRFQKQ5ZZpU1xPWKf5O6zpFRUNhjYRo3gjWZGwdM9WD2q+DeaqWS3
+         /LKNgVm3QYNyrthSB5u5+97fTI90AXnAEziGodo0z5nZr7uUCuCkLmE4CSjR4fWqBET6
+         ylWVynwZyOtlOpR8SRVCXXeyza1lAxHTb86G1C+jj8aVQ1TKTZawFYtnH0EDICSqQ806
+         LO4CBY1o1ZxfqmBW0IrHJgpRsqDsvgkwMPDq2mePGiqGvHvYcp//Z12XwbPVZUrtyODJ
+         RzfVrx5CyC/r87+cr9BiRWjxcOtT7CJBj0z1NPQWNvG1dmvPGKotgVygyMf8+AoxVUze
+         oGzA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:in-reply-to:references;
-        bh=gsuwAWlE4Ohz54mRMi0rZJXgpp5AgeOB9KKtUdDvTLA=;
-        b=I3Jjn7Du9oej/sx8ha6W6h3dw2sK9kokz1bSPO2MWJI+5qdorJXJBi/h+OmUfi/bIm
-         ZSUnlC3xOTyxLN1nmLAaTrf4+32NmYO2HhKmfTXGOR9vwWfYDxtoA2KbzJm2wPNYH0dk
-         3BfDD4028twKa7KJdDY6TuLS1Qu7CJ+nF6vqwj0IUGb0fja/EdCqK+Nl52NkXQJjJ8RD
-         ANiEQ4twLIw7DuuJaIW/EXy4TKrm2QVOAiNq1ahYX8QOILHyMmoFBPPzsHHlaYH/0GCx
-         AEntmJLccFKMMNoBP64OsukDTU9beW6rE89qA6YZUT1y80LeSS2R/On5sUqkrKxMVDdT
-         IMPA==
-X-Gm-Message-State: AOAM533LAuZNZh8pyGSRpJphliMAoiZnYde13YLTwJ63AZa4wynBF2if
-        Q6DLhidYiu4fC4xhKxyFrBE=
-X-Google-Smtp-Source: ABdhPJyiQ5d5yPzC+ariiDTv9QSPiaZpVVYwS6m+U0ir5dr4RLEGld3Njghw2PavCkmzymZiCHPeuQ==
-X-Received: by 2002:a17:90b:40cb:: with SMTP id hj11mr10477339pjb.67.1598523300941;
-        Thu, 27 Aug 2020 03:15:00 -0700 (PDT)
+        bh=ligckTORXYSrSmKLcHqQzSKW2gKfGktzSGPREcOvEO8=;
+        b=oDm+4sKAYiG7JYozZNBBNX2ax+4N0LQMN0sUBiUn0a2DFAYOjvi1TWHM1VPel4ohSl
+         Mze5ixYitSfEpdqwVqxf9oQfaUTy7ClF5hbObJNIJHbdMQWBLdhV5+wPRm5v+p3JSLBs
+         4PQYEhaGWFTliOjBYIKsv/w/01CdDhGW6qEHCbJTYUtku/n7Cl62H0SgZIMl+bjayWyS
+         jbXMmPr2c03nro7YvH2UOJoVsXPPwGchgzWHdt6k5RYiCg6Wg0JMtse0oFg/Kr6dU1A+
+         StxgHkAWTwH7UEBKAhsXSHMP7y+yhk27qNHFZf+ylf9bBRLRxIQ/zaQ4lIbWtyjv6zLZ
+         HfZQ==
+X-Gm-Message-State: AOAM531O+O7ia2ocV3uX1RPBEheOeWSuEOc0GiUDkGPfa1mV2I+1aYIR
+        F6490FORMX0if102u0Om3uadTZMamU9QaQ==
+X-Google-Smtp-Source: ABdhPJyrIfvr0HBhvHG+N7ppCWW85jxfQ9DTbR4JO3iyfjjNJVtHaK4E4Bj10N7CPdQR6A5DBQAnCw==
+X-Received: by 2002:a17:90a:d90a:: with SMTP id c10mr6632235pjv.31.1598523303963;
+        Thu, 27 Aug 2020 03:15:03 -0700 (PDT)
 Received: from VM-0-6-centos.localdomain ([119.28.90.140])
-        by smtp.gmail.com with ESMTPSA id t10sm2333434pfq.52.2020.08.27.03.14.59
+        by smtp.gmail.com with ESMTPSA id t10sm2333434pfq.52.2020.08.27.03.15.02
         (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 27 Aug 2020 03:15:00 -0700 (PDT)
+        Thu, 27 Aug 2020 03:15:03 -0700 (PDT)
 From:   Chunguang Xu <brookxu.cn@gmail.com>
 X-Google-Original-From: Chunguang Xu <brookxu@tencent.com>
 To:     arnd@arndb.de
 Cc:     rppt@kernel.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org
-Subject: [PATCH 21/23] ext4: use ASSERT_FAIL()/ASSERT_WARN() to cleanup some code
-Date:   Thu, 27 Aug 2020 18:14:26 +0800
-Message-Id: <fbfe941021207ab2688ed045dc570e902b8d6a35.1598518912.git.brookxu@tencent.com>
+Subject: [PATCH 23/23] ALSA: asihpi: use ASSERT_FAIL()/ASSERT_WARN() to cleanup some code
+Date:   Thu, 27 Aug 2020 18:14:28 +0800
+Message-Id: <1f104cd576b71f53f01e0cd4ae5c57143231dd58.1598518912.git.brookxu@tencent.com>
 X-Mailer: git-send-email 1.8.3.1
 In-Reply-To: <cover.1598518912.git.brookxu@tencent.com>
 References: <cover.1598518912.git.brookxu@tencent.com>
@@ -82,30 +82,28 @@ facilitating problem analysis.
 
 Signed-off-by: Chunguang Xu <brookxu@tencent.com>
 ---
- fs/ext4/mballoc.c | 10 +---------
- 1 file changed, 1 insertion(+), 9 deletions(-)
+ sound/pci/asihpi/hpidebug.h | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
 
-diff --git a/fs/ext4/mballoc.c b/fs/ext4/mballoc.c
-index c0a331e..99976e6 100644
---- a/fs/ext4/mballoc.c
-+++ b/fs/ext4/mballoc.c
-@@ -591,15 +591,7 @@ static inline void mb_group_bb_bitmap_free(struct ext4_group_info *grp)
+diff --git a/sound/pci/asihpi/hpidebug.h b/sound/pci/asihpi/hpidebug.h
+index c24ed69..b65c8dc 100644
+--- a/sound/pci/asihpi/hpidebug.h
++++ b/sound/pci/asihpi/hpidebug.h
+@@ -34,13 +34,7 @@ enum { HPI_DEBUG_LEVEL_ERROR = 0,	/* always log errors */
+ #define FILE_LINE  __FILE__ ":" __stringify(__LINE__) " "
+ #endif
  
- #ifdef AGGRESSIVE_CHECK
+-#define HPI_DEBUG_ASSERT(expression) \
+-	do { \
+-		if (!(expression)) { \
+-			printk(KERN_ERR  FILE_LINE \
+-				"ASSERT " __stringify(expression)); \
+-		} \
+-	} while (0)
++#define HPI_DEBUG_ASSERT(expression) ASSERT_WARN(expression)
  
--#define MB_CHECK_ASSERT(assert)						\
--do {									\
--	if (!(assert)) {						\
--		printk(KERN_EMERG					\
--			"Assertion failure in %s() at %s:%d: \"%s\"\n",	\
--			function, file, line, # assert);		\
--		BUG();							\
--	}								\
--} while (0)
-+#define MB_CHECK_ASSERT(assert) ASSERT_FAIL(assert)
- 
- static int __mb_check_buddy(struct ext4_buddy *e4b, char *file,
- 				const char *function, int line)
+ #define HPI_DEBUG_LOG(level, ...) \
+ 	do { \
 -- 
 1.8.3.1
 
