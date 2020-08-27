@@ -2,135 +2,135 @@ Return-Path: <SRS0=b863=CF=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5FE46C433E1
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 06:24:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 17290C433E1
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 08:05:16 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 27EF922B40
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 06:24:38 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1598509478;
-	bh=uk+W9b3nyOTd17BruOaKw2TwWmN6jLYYAy6DEz/dU0E=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
-	b=bct4JzfgSd/sHQjJvY+SjitL6prIUlfFJBI4nKidN7nZLFgOFh7u3toKBnOmuJz9s
-	 025AQZH2j0LIFpntBRGVFR3ONOg6EBXmSL0nPR499FWC5tAvrnC6/d3N5mvDqnhfSf
-	 00F8lAXhzdZUrgA2TFUXvdY95t2+89yYlUvOSNB0=
+	by mail.kernel.org (Postfix) with ESMTP id DF60B22CAF
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 08:05:15 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="jNUP6ef9"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726157AbgH0GYh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Aug 2020 02:24:37 -0400
-Received: from mail.kernel.org ([198.145.29.99]:38454 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725909AbgH0GYh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Aug 2020 02:24:37 -0400
-Received: from kernel.org (unknown [87.70.91.42])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 3E6012177B;
-        Thu, 27 Aug 2020 06:24:36 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1598509477;
-        bh=uk+W9b3nyOTd17BruOaKw2TwWmN6jLYYAy6DEz/dU0E=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=PTh7L97kiPMnbXtcJXINdnG9+lx4wO5nMVdIIpGr7C/E1pMyaQAQS0Z+3RTg6K31Q
-         iFrtYGcNKSph4lmm8sL7G9NxSRuPjd5rjE+dp7exhSut8Z3xyBQamiahIHgRoXYo7s
-         35LTLeMCISST3pK2SlumjcncWZPCJQdug4QUI68E=
-Date:   Thu, 27 Aug 2020 09:24:31 +0300
-From:   Mike Rapoport <rppt@kernel.org>
-To:     Chunguang Xu <brookxu.cn@gmail.com>
-Cc:     arnd@arndb.de, linux-arch@vger.kernel.org
-Subject: Re: [PATCH 1/1] include/asm-generic/bug.h: add ASSERT_FAIL() and
- ASSERT_WARN() wrapper
-Message-ID: <20200827062431.GC69706@kernel.org>
-References: <2a79d3f5feb628ab318fcebe004e398b8124ce46.1598481550.git.brookxu@tencent.com>
- <7d916ac76e7823efbf88828dc6c61737555434a1.1598481550.git.brookxu@tencent.com>
+        id S1726395AbgH0IFP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Aug 2020 04:05:15 -0400
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:6080 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727909AbgH0IFO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Aug 2020 04:05:14 -0400
+Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 07R81uwr135707;
+        Thu, 27 Aug 2020 04:04:57 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
+ : date : message-id : in-reply-to : references : mime-version :
+ content-transfer-encoding; s=pp1;
+ bh=LVwTeyKe/+eadJkxhdcPDPb/XZX3HzejRljrDbr75SI=;
+ b=jNUP6ef9XIH7oasB6ZyYh9qZm3t053dJrpBjJIRdTnUfEtzLSJSuBpd1QIeHT2jdoTXR
+ XpqfN1gH3wQJ++HeN+bVVdIA0ZSH6s2fcd6aCE+MSiWW5kaNY30v48xJ19t91WUKwwk2
+ zlyzchEalkxHKcxFFkiPO1BFdWBzqSVLhiHGlNrL3qHOI9TM3KMZIRpJQ9G64fjy1Q1t
+ uXhKTkz7JAgVOxI+taqNDtZUL4ohtMHX22wfjSELiTPz9PoQV8jSpQ2ED23y8RDNuDai
+ HcrRu/CBm72G4W1I1p14GTk98nSCZIWf/tnOYt8dhP1H+MZgjs6mDZoBvd0+eeh0fS6q oQ== 
+Received: from ppma03wdc.us.ibm.com (ba.79.3fa9.ip4.static.sl-reverse.com [169.63.121.186])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 33669amtyr-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Thu, 27 Aug 2020 04:04:57 -0400
+Received: from pps.filterd (ppma03wdc.us.ibm.com [127.0.0.1])
+        by ppma03wdc.us.ibm.com (8.16.0.42/8.16.0.42) with SMTP id 07R82gF9020720;
+        Thu, 27 Aug 2020 08:04:57 GMT
+Received: from b03cxnp08025.gho.boulder.ibm.com (b03cxnp08025.gho.boulder.ibm.com [9.17.130.17])
+        by ppma03wdc.us.ibm.com with ESMTP id 332utr8947-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Thu, 27 Aug 2020 08:04:57 +0000
+Received: from b03ledav004.gho.boulder.ibm.com (b03ledav004.gho.boulder.ibm.com [9.17.130.235])
+        by b03cxnp08025.gho.boulder.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 07R84qPF3867248
+        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Thu, 27 Aug 2020 08:04:52 GMT
+Received: from b03ledav004.gho.boulder.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id B4F3778060;
+        Thu, 27 Aug 2020 08:04:55 +0000 (GMT)
+Received: from b03ledav004.gho.boulder.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id A36377805F;
+        Thu, 27 Aug 2020 08:04:50 +0000 (GMT)
+Received: from skywalker.ibmuc.com (unknown [9.102.17.9])
+        by b03ledav004.gho.boulder.ibm.com (Postfix) with ESMTP;
+        Thu, 27 Aug 2020 08:04:50 +0000 (GMT)
+From:   "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+To:     linux-mm@kvack.org, akpm@linux-foundation.org
+Cc:     mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org,
+        Anshuman Khandual <anshuman.khandual@arm.com>,
+        linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org,
+        linux-snps-arc@lists.infradead.org, x86@kernel.org,
+        linux-arch@vger.kernel.org,
+        Gerald Schaefer <gerald.schaefer@de.ibm.com>,
+        Christophe Leroy <christophe.leroy@c-s.fr>,
+        Vineet Gupta <vgupta@synopsys.com>,
+        Mike Rapoport <rppt@linux.ibm.com>, Qian Cai <cai@lca.pw>,
+        "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v3 01/13] powerpc/mm: Add DEBUG_VM WARN for pmd_clear
+Date:   Thu, 27 Aug 2020 13:34:26 +0530
+Message-Id: <20200827080438.315345-2-aneesh.kumar@linux.ibm.com>
+X-Mailer: git-send-email 2.26.2
+In-Reply-To: <20200827080438.315345-1-aneesh.kumar@linux.ibm.com>
+References: <20200827080438.315345-1-aneesh.kumar@linux.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <7d916ac76e7823efbf88828dc6c61737555434a1.1598481550.git.brookxu@tencent.com>
+Content-Transfer-Encoding: 8bit
+X-TM-AS-GCONF: 00
+X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.235,18.0.687
+ definitions=2020-08-27_02:2020-08-27,2020-08-27 signatures=0
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 mlxscore=0 suspectscore=0
+ spamscore=0 phishscore=0 lowpriorityscore=0 clxscore=1015 impostorscore=0
+ mlxlogscore=999 malwarescore=0 adultscore=0 bulkscore=0 priorityscore=1501
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2006250000
+ definitions=main-2008270057
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Aug 27, 2020 at 07:04:53AM +0800, Chunguang Xu wrote:
-> The kernel has not yet defined ASSERT(). Indeed, BUG() and WARN() are very
-> clear and can cover most application scenarios. However, some applications
-> require more debugging information and similar behavior to assert(), which
-> cannot be directly provided by BUG() and WARN().
-> 
-> Therefore, many modules independently implement ASSERT(), and most of them
-> are similar, but slightly different. This makes the code redundant and
-> inconvenient to troubleshoot the system. Therefore, perhaps we need to
-> define two wrappers for BUG() and WARN(), provide the implementation of
-> ASSERT(), simplify the code and facilitate problem analysis.
-> 
-> Signed-off-by: Chunguang Xu <brookxu@tencent.com>
-> ---
->  include/asm-generic/bug.h | 33 +++++++++++++++++++++++++++++++++
->  1 file changed, 33 insertions(+)
+With the hash page table, the kernel should not use pmd_clear for clearing
+huge pte entries. Add a DEBUG_VM WARN to catch the wrong usage.
 
-It would be useful to convert at least one occurrence of the existing
-ASSERT()s to the new implementation in the same patch series.
+Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+---
+ arch/powerpc/include/asm/book3s/64/pgtable.h | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
 
-> diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-> index 18b0f4e..28f8c27 100644
-> --- a/include/asm-generic/bug.h
-> +++ b/include/asm-generic/bug.h
-> @@ -174,6 +174,31 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
->  	unlikely(__ret_warn_once);				\
->  })
->  
-> +/*
-> + * ASSERT_FAIL() and ASSERT_WARN() can be used to check whether some
-> + * conditions have failed. We generally use ASSERT_FAIL() to check
-> + * critical conditions, and other use ASSERT_WARN().
-> + */
-> +#ifndef ASSERT_FAIL
-> +#define ASSERT_FAIL(condition) do {					\
-> +	if (unlikely(!(condition))) {					\
-> +		pr_emerg("Assertion failed: %s, file: %s, line: %d\n",	\
-> +			  #condition, __FILE__, __LINE__);		\
-> +		BUG();							\
-> +	}								\
-> +} while (0)
-> +#endif
-> +
-> +#ifndef ASSERT_WARN
-> +#define ASSERT_WARN(condition) do {					\
-> +	if (unlikely(!(condition))) {					\
-> +		pr_warn("Assertion failed: %s, file: %s, line: %d\n",	\
-> +			 #condition, __FILE__, __LINE__);		\
-> +		WARN_ON(1);						\
-> +	}								\
-> +} while (0)
-> +#endif
-> +
->  #else /* !CONFIG_BUG */
->  #ifndef HAVE_ARCH_BUG
->  #define BUG() do {} while (1)
-> @@ -203,6 +228,14 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
->  #define WARN_TAINT(condition, taint, format...) WARN(condition, format)
->  #define WARN_TAINT_ONCE(condition, taint, format...) WARN(condition, format)
->  
-> +#ifndef ASSERT_FAIL
-> +#define ASSERT_FAIL(condition) do { } while (0)
-> +#endif
-> +
-> +#ifndef ASSERT_WARN
-> +#define ASSERT_WARN(condition) do { } while (0)
-> +#endif
-> +
->  #endif
->  
->  /*
-> -- 
-> 1.8.3.1
-> 
-
+diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+index 6de56c3b33c4..079211968987 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgtable.h
++++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+@@ -868,6 +868,13 @@ static inline bool pte_ci(pte_t pte)
+ 
+ static inline void pmd_clear(pmd_t *pmdp)
+ {
++	if (IS_ENABLED(CONFIG_DEBUG_VM) && !radix_enabled()) {
++		/*
++		 * Don't use this if we can possibly have a hash page table
++		 * entry mapping this.
++		 */
++		WARN_ON((pmd_val(*pmdp) & (H_PAGE_HASHPTE | _PAGE_PTE)) == (H_PAGE_HASHPTE | _PAGE_PTE));
++	}
+ 	*pmdp = __pmd(0);
+ }
+ 
+@@ -916,6 +923,13 @@ static inline int pmd_bad(pmd_t pmd)
+ 
+ static inline void pud_clear(pud_t *pudp)
+ {
++	if (IS_ENABLED(CONFIG_DEBUG_VM) && !radix_enabled()) {
++		/*
++		 * Don't use this if we can possibly have a hash page table
++		 * entry mapping this.
++		 */
++		WARN_ON((pud_val(*pudp) & (H_PAGE_HASHPTE | _PAGE_PTE)) == (H_PAGE_HASHPTE | _PAGE_PTE));
++	}
+ 	*pudp = __pud(0);
+ }
+ 
 -- 
-Sincerely yours,
-Mike.
+2.26.2
+
