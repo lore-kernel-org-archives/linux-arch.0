@@ -5,67 +5,67 @@ X-Spam-Level:
 X-Spam-Status: No, score=-12.6 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
-	version=3.4.0
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F1CBAC433DF
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:16:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 64446C433E1
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:16:52 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CC34020738
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:16:09 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 387EC2075B
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:16:52 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="gh3oGZp+"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="R0lx+daS"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728873AbgH0KQA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Aug 2020 06:16:00 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46386 "EHLO
+        id S1728605AbgH0KP7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Aug 2020 06:15:59 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46392 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728473AbgH0KOs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 06:14:48 -0400
-Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6231FC061233;
-        Thu, 27 Aug 2020 03:14:48 -0700 (PDT)
-Received: by mail-pj1-x1042.google.com with SMTP id kx11so2344938pjb.5;
-        Thu, 27 Aug 2020 03:14:48 -0700 (PDT)
+        with ESMTP id S1727066AbgH0KOy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 06:14:54 -0400
+Received: from mail-pj1-x1032.google.com (mail-pj1-x1032.google.com [IPv6:2607:f8b0:4864:20::1032])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4A672C061264;
+        Thu, 27 Aug 2020 03:14:54 -0700 (PDT)
+Received: by mail-pj1-x1032.google.com with SMTP id i13so2378604pjv.0;
+        Thu, 27 Aug 2020 03:14:54 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :in-reply-to:references;
-        bh=/kimB1f/4/A5yYV5xm0X/9TghrX0JSWNrajPc7XT9rI=;
-        b=gh3oGZp+f8o/QF+vsAJV/vk9O3Urp7kPs1TJdJMiKFZzoaqAF0dvN729Po4NF6cgan
-         AKQEShrF87dSlVlojebT1M1IGtIR6SdrqfDNAq4AzHCGSXpQcLiPcJkE7FMBhpaBE7aY
-         ZFisI5N1ee+IVdxJoSLxyPdWAsre3qvLaE3Byamoq/zgkfg+XuDzBcnpHiQ0uwqo/2FH
-         j7iflZC7gcuKCJg48qNViqmpn9sfj6cxALC7g9/6HuXH+WutvAw3MkUMsnMqwCAT5X/I
-         0nGTAP2dBoMM2EqWFFPZcpYyLjBSykNb1MwaJF1CdpSr8m+QJvAy4092rmVOXwr+LHVj
-         rohw==
+        bh=MM8ByLpSzA5yU4gymQhZmL1JfibHhtBl5mNFRiHI+fw=;
+        b=R0lx+daSLUHkhX+nMEeLycxQeuAq1h27Ol1K4gOKJIY0KqDCSpZnJ21OyBcpGXZ/7u
+         wRJiiskFKcNW3hve+ObGPxcvkHYUbfzMw7uK1u/93nqxi6mCNSL6O0GMqDKZcRpUFe4C
+         NtQBgBCuVejieuiWpWLWo6J4P3PJFGHkn7GiRYcAYV/YQjHOBDVANJxbJQrWtncyRUee
+         V1aMQKc5U9X0MmCnrpdMUndDBW96JrOlW0/lbTHzpDyutRgqhMKVmfD3zZvAJywt7knF
+         0fSRdSD3gozwxfHG1p8eK19mMt7Tirvrf5sNdRV5b1qIZwxseX77UVbNEqJwufNkYY8A
+         XEjA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:in-reply-to:references;
-        bh=/kimB1f/4/A5yYV5xm0X/9TghrX0JSWNrajPc7XT9rI=;
-        b=Sa3B77koNdIzy72H/VigcrpkldsWj5AwS6LCzSVfytiOrTzuea/msyhEIz1L5AX6qG
-         1YLDyKDMOmqtHz5eHNY+Cb4d+cczeSEx41VFx0hRzwj4pPtmx8/KlYuyjQh9tQKB8Ktn
-         w2dtNsE46suqtYIQJcjI9bQ644h2gNuGa/8hCeP1xTRVjuLM4CiSWpHnAL+EkbLl0s9G
-         tCwdv3rzlCYdqvgAE9AS+gwLan+D3wOt9SuH6+6oifzTTGdhOix+P+s1aZjl57Axv94n
-         Gu00WWZs4rs1Qrguqv8DdZWJijU6JneO4L+0J60gs0Jgc1ZEQXKDkKGRujsIPiReTaCO
-         b6DA==
-X-Gm-Message-State: AOAM5314Tc2IEw/1L1Dxz4mUk7P59S0e+5pm5JseF2zHY/jgzPUhxIc6
-        dtOt6Cb+s2kGrWN9SC8LSpU=
-X-Google-Smtp-Source: ABdhPJzmbapTwGtdXDdcjazJg/DtrHbGu1TN6g8CVZfLYoqrO8aKTQjX4sGn73DP4oS485ggIi3NSw==
-X-Received: by 2002:a17:90b:4ac7:: with SMTP id mh7mr9346454pjb.99.1598523288016;
-        Thu, 27 Aug 2020 03:14:48 -0700 (PDT)
+        bh=MM8ByLpSzA5yU4gymQhZmL1JfibHhtBl5mNFRiHI+fw=;
+        b=mHDCCgDT2D2guZVO5L9KV+C9+zMwEYlTOm8d+RICSK+nsfKd2/fItJzjJN4QFTnSUc
+         5K2W4pk+gjsmfsSTSBbKRTNVtDmYvUR3EtxygeZYgJT9uTn1wbXtixQiK1BtQfsQzqgH
+         LUvItr/XK+pxlfXCC4qp+Mrz6eDHA1V451oRbbnPje+0mJnT9RX4oKBkFTSUsv2YmCxz
+         21yRIkfNnjsoT9yZaApF6Vpd5Ipjb7fWNwHCyiI8D8GgDuSFfWRQQMZIdxqwOPvgQUdB
+         EizeuJXnjlF1nj5ZmatKg8pnRQa68Fsig/qRPYTGV93vpV5cLHTz7UJTPu0A3HTR66ET
+         VBtw==
+X-Gm-Message-State: AOAM530BQaOaTbIMUdvqNINdHIJ28VjBTx4NBfd7F/o0ZRgdxAEKEif0
+        Zb7LZ9eIpvys+C70orSf03/1VeWZwNHNug==
+X-Google-Smtp-Source: ABdhPJySTxbhAISxFhl3CrPfgjbdCW33JdORLifcr40wS71jXayBPzn+t1oRT8YjrraMnBRvRuLQ6w==
+X-Received: by 2002:a17:90b:110:: with SMTP id p16mr1549885pjz.150.1598523293716;
+        Thu, 27 Aug 2020 03:14:53 -0700 (PDT)
 Received: from VM-0-6-centos.localdomain ([119.28.90.140])
-        by smtp.gmail.com with ESMTPSA id t10sm2333434pfq.52.2020.08.27.03.14.46
+        by smtp.gmail.com with ESMTPSA id t10sm2333434pfq.52.2020.08.27.03.14.52
         (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 27 Aug 2020 03:14:47 -0700 (PDT)
+        Thu, 27 Aug 2020 03:14:53 -0700 (PDT)
 From:   Chunguang Xu <brookxu.cn@gmail.com>
 X-Google-Original-From: Chunguang Xu <brookxu@tencent.com>
 To:     arnd@arndb.de
 Cc:     rppt@kernel.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org
-Subject: [PATCH 12/23] rivafb: use ASSERT_FAIL()/ASSERT_WARN() to cleanup some code
-Date:   Thu, 27 Aug 2020 18:14:17 +0800
-Message-Id: <5dff71c1e206d7e55d13092aa233482bb0e156a8.1598518912.git.brookxu@tencent.com>
+Subject: [PATCH 16/23] sym53c8xx: use ASSERT_FAIL()/ASSERT_WARN() to cleanup some code
+Date:   Thu, 27 Aug 2020 18:14:21 +0800
+Message-Id: <c5d891436d993d2becd40eff4db1a40d4a9bc4ac.1598518912.git.brookxu@tencent.com>
 X-Mailer: git-send-email 1.8.3.1
 In-Reply-To: <cover.1598518912.git.brookxu@tencent.com>
 References: <cover.1598518912.git.brookxu@tencent.com>
@@ -82,27 +82,29 @@ facilitating problem analysis.
 
 Signed-off-by: Chunguang Xu <brookxu@tencent.com>
 ---
- drivers/video/fbdev/riva/fbdev.c | 7 +------
- 1 file changed, 1 insertion(+), 6 deletions(-)
+ drivers/scsi/sym53c8xx_2/sym_hipd.h | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
 
-diff --git a/drivers/video/fbdev/riva/fbdev.c b/drivers/video/fbdev/riva/fbdev.c
-index 9b34938..8a2e768 100644
---- a/drivers/video/fbdev/riva/fbdev.c
-+++ b/drivers/video/fbdev/riva/fbdev.c
-@@ -67,12 +67,7 @@
- #define NVTRACE_LEAVE(...)  NVTRACE("%s END\n", __func__)
- 
- #ifdef CONFIG_FB_RIVA_DEBUG
--#define assert(expr) \
--	if(!(expr)) { \
--	printk( "Assertion failed! %s,%s,%s,line=%d\n",\
--	#expr,__FILE__,__func__,__LINE__); \
--	BUG(); \
--	}
-+#define assert(expr) ASSERT_FAIL(expr)
- #else
- #define assert(expr)
+diff --git a/drivers/scsi/sym53c8xx_2/sym_hipd.h b/drivers/scsi/sym53c8xx_2/sym_hipd.h
+index 9231a28..0676c94 100644
+--- a/drivers/scsi/sym53c8xx_2/sym_hipd.h
++++ b/drivers/scsi/sym53c8xx_2/sym_hipd.h
+@@ -79,14 +79,7 @@
+  *  These ones should have been already defined.
+  */
+ #ifndef assert
+-#define	assert(expression) { \
+-	if (!(expression)) { \
+-		(void)panic( \
+-			"assertion \"%s\" failed: file \"%s\", line %d\n", \
+-			#expression, \
+-			__FILE__, __LINE__); \
+-	} \
+-}
++#define	assert(expression) ASSERT_FAIL(expression)
  #endif
+ 
+ /*
 -- 
 1.8.3.1
 
