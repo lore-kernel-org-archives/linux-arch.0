@@ -2,141 +2,92 @@ Return-Path: <SRS0=b863=CF=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 104EAC433E3
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 08:06:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 09F48C433E3
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 09:33:54 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E275A20786
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 08:06:42 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="PM/SbGvy"
+	by mail.kernel.org (Postfix) with ESMTP id D9516207F7
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 09:33:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727969AbgH0IGg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Aug 2020 04:06:36 -0400
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:16938 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727943AbgH0IGX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Aug 2020 04:06:23 -0400
-Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 07R8483e148327;
-        Thu, 27 Aug 2020 04:05:51 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
- : date : message-id : in-reply-to : references : mime-version :
- content-transfer-encoding; s=pp1;
- bh=/JPUnQuffv7jn54LjXMBo+lRYnWeulAZBuZ/TKve1Lc=;
- b=PM/SbGvybmAYz0Y5hDxqZQJ+pVF8Ogi/NK51/JXIVK5/4ycwkO4a90fV6X3/iQ/vbdsj
- vtVuG0LjZNaNGNvpheujE8SZV3TZXUvJqaTTZ43gsYR+sgj0UeISeGrHC9GS6jd1ZMp6
- llGxB3Uqu8BjB+hqkIOFWcnhiL0XE24nEaR9D/N7RzTQ4S1MwEd8oFBsh5YO21AdsxUJ
- 6iMVFzuo6Xx8uQQC1K+WlPyRl+KW/cz6uhPZAkUzWP1Doe/J4yIhAoxWdspo6Bm+0e/n
- bj5/M/lEunaNvdS0+xgH2aQWXwl6BLU1gywcyjiBoPpvJYMr1kWlm4Km7z8PmmmfcGcS iQ== 
-Received: from ppma05wdc.us.ibm.com (1b.90.2fa9.ip4.static.sl-reverse.com [169.47.144.27])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 3367sy24qg-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Thu, 27 Aug 2020 04:05:51 -0400
-Received: from pps.filterd (ppma05wdc.us.ibm.com [127.0.0.1])
-        by ppma05wdc.us.ibm.com (8.16.0.42/8.16.0.42) with SMTP id 07R82tWs024563;
-        Thu, 27 Aug 2020 08:05:49 GMT
-Received: from b03cxnp07029.gho.boulder.ibm.com (b03cxnp07029.gho.boulder.ibm.com [9.17.130.16])
-        by ppma05wdc.us.ibm.com with ESMTP id 332uw7r7au-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Thu, 27 Aug 2020 08:05:49 +0000
-Received: from b03ledav004.gho.boulder.ibm.com (b03ledav004.gho.boulder.ibm.com [9.17.130.235])
-        by b03cxnp07029.gho.boulder.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 07R85m6G131782
-        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Thu, 27 Aug 2020 08:05:48 GMT
-Received: from b03ledav004.gho.boulder.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 2A9807805E;
-        Thu, 27 Aug 2020 08:05:48 +0000 (GMT)
-Received: from b03ledav004.gho.boulder.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 25DC378063;
-        Thu, 27 Aug 2020 08:05:43 +0000 (GMT)
-Received: from skywalker.ibmuc.com (unknown [9.102.17.9])
-        by b03ledav004.gho.boulder.ibm.com (Postfix) with ESMTP;
-        Thu, 27 Aug 2020 08:05:42 +0000 (GMT)
-From:   "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-To:     linux-mm@kvack.org, akpm@linux-foundation.org
-Cc:     mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org,
-        Anshuman Khandual <anshuman.khandual@arm.com>,
-        linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org,
-        linux-snps-arc@lists.infradead.org, x86@kernel.org,
-        linux-arch@vger.kernel.org,
-        Gerald Schaefer <gerald.schaefer@de.ibm.com>,
-        Christophe Leroy <christophe.leroy@c-s.fr>,
-        Vineet Gupta <vgupta@synopsys.com>,
-        Mike Rapoport <rppt@linux.ibm.com>, Qian Cai <cai@lca.pw>,
-        "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: [PATCH v3 11/13] mm/debug_vm_pgtable/pmd_clear: Don't use pmd/pud_clear on pte entries
-Date:   Thu, 27 Aug 2020 13:34:36 +0530
-Message-Id: <20200827080438.315345-12-aneesh.kumar@linux.ibm.com>
-X-Mailer: git-send-email 2.26.2
-In-Reply-To: <20200827080438.315345-1-aneesh.kumar@linux.ibm.com>
-References: <20200827080438.315345-1-aneesh.kumar@linux.ibm.com>
+        id S1728419AbgH0Jdx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Aug 2020 05:33:53 -0400
+Received: from mail-ot1-f67.google.com ([209.85.210.67]:46054 "EHLO
+        mail-ot1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728185AbgH0Jdw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 05:33:52 -0400
+Received: by mail-ot1-f67.google.com with SMTP id 5so3842012otp.12;
+        Thu, 27 Aug 2020 02:33:52 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=erOE8TrBl8kvb1HNiu2tPG2od/TXcbDQmkj/FRCOogE=;
+        b=YXzWRY9ZrUXjPWXnP7UHwOTWlDnTir7IDkajyrrpdZDXEUCYuQT8dBDToy6/81o2HS
+         WJsFa7rRtwMm6/QTPBoee6I1INAfOEdy1fSM/YYFPojxT71Op8oUV5bcH2gqGpQwwBs6
+         OcCXzY4m5DrRy5NK92tWWcRhmxMoUgO3pUZYzbiGrqjmEn4PYSmOpdoMqnz/3EaEHi34
+         odAgrKmAYRstpDOiI04+zUjpBlB7WIfeWnodhRToVUbB48uim1q/oALhhqPmhDWwoFrV
+         IyeVzo9FNJ12Cy9vTvVieJSNUOiYGZ7DTTd1mEcV0wvYqSmadVv2LFBruq+OaLBCgIeo
+         Rw7g==
+X-Gm-Message-State: AOAM531MOHeaGmOkZCWLwRKxS4RZfVMCilZoctPrhzCtltUY49sReP9e
+        m3FovEU51riG7L+oz8T3RsjlV1umgA5Y7Hx1+Bs=
+X-Google-Smtp-Source: ABdhPJzf5Rkx0MMkmy1DhlPa7m6zteOCzt6mslUfJ+2pjnLB14NhM0Z4C9ViJf9/MwLtHCDrl20l9yZOG5kwebfd3OE=
+X-Received: by 2002:a9d:32e5:: with SMTP id u92mr11767634otb.107.1598520831934;
+ Thu, 27 Aug 2020 02:33:51 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-TM-AS-GCONF: 00
-X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.235,18.0.687
- definitions=2020-08-27_02:2020-08-27,2020-08-27 signatures=0
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 mlxlogscore=980
- malwarescore=0 bulkscore=0 phishscore=0 spamscore=0 mlxscore=0
- suspectscore=0 impostorscore=0 clxscore=1015 priorityscore=1501
- lowpriorityscore=0 adultscore=0 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.12.0-2006250000 definitions=main-2008270060
+References: <20200826145249.745432-1-npiggin@gmail.com> <20200826145249.745432-10-npiggin@gmail.com>
+In-Reply-To: <20200826145249.745432-10-npiggin@gmail.com>
+From:   Geert Uytterhoeven <geert@linux-m68k.org>
+Date:   Thu, 27 Aug 2020 11:33:40 +0200
+Message-ID: <CAMuHMdX5qo+2XpEm5QNbuwWRn508Ewee9rHYtmCBadj0x=3VnA@mail.gmail.com>
+Subject: Re: [PATCH v2 09/23] m68k: use asm-generic/mmu_context.h for no-op implementations
+To:     Nicholas Piggin <npiggin@gmail.com>
+Cc:     Linux-Arch <linux-arch@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux MM <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-pmd_clear() should not be used to clear pmd level pte entries.
+On Wed, Aug 26, 2020 at 4:53 PM Nicholas Piggin <npiggin@gmail.com> wrote:
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: linux-m68k@lists.linux-m68k.org
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 
-Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
----
- mm/debug_vm_pgtable.c | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+With the below fixed:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-diff --git a/mm/debug_vm_pgtable.c b/mm/debug_vm_pgtable.c
-index 0a6e771ebd13..a188b6e4e37e 100644
---- a/mm/debug_vm_pgtable.c
-+++ b/mm/debug_vm_pgtable.c
-@@ -196,6 +196,8 @@ static void __init pmd_advanced_tests(struct mm_struct *mm,
- 	pmd = READ_ONCE(*pmdp);
- 	WARN_ON(pmd_young(pmd));
- 
-+	/*  Clear the pte entries  */
-+	pmdp_huge_get_and_clear(mm, vaddr, pmdp);
- 	pgtable = pgtable_trans_huge_withdraw(mm, pmdp);
- }
- 
-@@ -321,6 +323,8 @@ static void __init pud_advanced_tests(struct mm_struct *mm,
- 	pudp_test_and_clear_young(vma, vaddr, pudp);
- 	pud = READ_ONCE(*pudp);
- 	WARN_ON(pud_young(pud));
-+
-+	pudp_huge_get_and_clear(mm, vaddr, pudp);
- }
- 
- static void __init pud_leaf_tests(unsigned long pfn, pgprot_t prot)
-@@ -444,8 +448,6 @@ static void __init pud_populate_tests(struct mm_struct *mm, pud_t *pudp,
- 	 * This entry points to next level page table page.
- 	 * Hence this must not qualify as pud_bad().
- 	 */
--	pmd_clear(pmdp);
--	pud_clear(pudp);
- 	pud_populate(mm, pudp, pmdp);
- 	pud = READ_ONCE(*pudp);
- 	WARN_ON(pud_bad(pud));
-@@ -577,7 +579,6 @@ static void __init pmd_populate_tests(struct mm_struct *mm, pmd_t *pmdp,
- 	 * This entry points to next level page table page.
- 	 * Hence this must not qualify as pmd_bad().
- 	 */
--	pmd_clear(pmdp);
- 	pmd_populate(mm, pmdp, pgtable);
- 	pmd = READ_ONCE(*pmdp);
- 	WARN_ON(pmd_bad(pmd));
+> --- a/arch/m68k/include/asm/mmu_context.h
+> +++ b/arch/m68k/include/asm/mmu_context.h
+> @@ -79,19 +76,6 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+>         set_context(tsk->mm->context, next->pgd);
+>  }
+>
+> -/*
+> - * After we have set current->mm to a new value, this activates
+> - * the context for the new mm so we see the new mappings.
+> - */
+> -static inline void activate_mm(struct mm_struct *active_mm,
+> -       struct mm_struct *mm)
+> -{
+> -       get_mmu_context(mm);
+> -       set_context(mm->context, mm->pgd);
+> -}
+
+Assumed switch_mm() in [PATCH v2 01/23] is revived with the above body.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
 -- 
-2.26.2
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
