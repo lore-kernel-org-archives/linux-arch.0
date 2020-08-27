@@ -8,64 +8,64 @@ X-Spam-Status: No, score=-12.6 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A051CC433DF
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:14:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 31816C433DF
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:14:53 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7C153207F7
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:14:41 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0F9F922B49
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:14:53 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="IEc8i4WX"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="RVJeGpi0"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728605AbgH0KOh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Aug 2020 06:14:37 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46330 "EHLO
+        id S1728508AbgH0KOt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Aug 2020 06:14:49 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46370 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728511AbgH0KOd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 06:14:33 -0400
-Received: from mail-pj1-x1044.google.com (mail-pj1-x1044.google.com [IPv6:2607:f8b0:4864:20::1044])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4A504C061264;
-        Thu, 27 Aug 2020 03:14:33 -0700 (PDT)
-Received: by mail-pj1-x1044.google.com with SMTP id i13so2378216pjv.0;
-        Thu, 27 Aug 2020 03:14:33 -0700 (PDT)
+        with ESMTP id S1728668AbgH0KOo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 06:14:44 -0400
+Received: from mail-pf1-x433.google.com (mail-pf1-x433.google.com [IPv6:2607:f8b0:4864:20::433])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1F5B0C06121B;
+        Thu, 27 Aug 2020 03:14:44 -0700 (PDT)
+Received: by mail-pf1-x433.google.com with SMTP id d22so3127933pfn.5;
+        Thu, 27 Aug 2020 03:14:44 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :in-reply-to:references;
-        bh=UDBPswEp8dsJZvpDMzf+Lnp61jTLy0JiMIvkg5nGV7c=;
-        b=IEc8i4WXG7VzIHAYfO/I4ZUn50a19U3Skre3p313rR/NTl63yFjB6KBTnjUJX8D6Kp
-         BR/AzeOhZldZO4jcHkWxhaR/WCoL3L4YNFsEcaroVM+JdJMT9OuXTuLon+xix17RrdAY
-         EqxRWxXWYai5vvLaOvq4jmZHj2FmjidTHZY0JmDstloOio8vKBui2/KJEpO19apFWSCH
-         uWe4hMCsB4prBK8khu/ZyKAazifgaZR4n6+v1BsvgcIRYU+obtRqoEaJNHFl+ljXaRTU
-         3z8b/5rqsX64BSNcz7iT8dXJDFstMTCaj3K/TyWxagcqLGPpjhuV8T5LeBKfbGXcFQQE
-         gMuw==
+        bh=K6iAF1bAIgrDi8rEAEPz6sa2CytTwXocJLkALhrz0vk=;
+        b=RVJeGpi0UwHEAl9A2coXSoVlKmrj7yytq0pZskmSSD+JQ3UXq0gXQX9onvp1QCh4eP
+         ypXcIZbNwl0yKUFSuITUgFEFvaIylXncTWG4WehuOr7fvXyCvLFUOb6pe5LG2ViNBvi/
+         XJmvBqlBMMyQRIyJLASrt2mCjkeRGzh5BlLWuL+OOHbPYDwUeBFnzlp0gJLxWcKA0yU7
+         1kv/jKsPtJLjJJEHSvlkCzdS6nk0ZKeRnVg0Xs47//v7QG2tRcAX0rtokolcWQELoD2P
+         5G0A8l4VvASFIZb5DxnIuGpQ8yZ+R6YyJ68LKTWgC5QKTWvc4nd6d3fZwFy/0Lg0fgqp
+         1HXQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:in-reply-to:references;
-        bh=UDBPswEp8dsJZvpDMzf+Lnp61jTLy0JiMIvkg5nGV7c=;
-        b=HCX+LtM32D3yG/z1GppF6pQuY4ihgw2rn0oyrNrWXIvgdYAainWm7IFN7T81F8ieZ5
-         FLRnfVqDe2ty/OS0LDfdFel0XdvKZQITcKZ3W77E6Iqn1C8tToDDZ22W+3/0F+d+oJ9F
-         DTZgLftmAx+qnYwN9AjWbUzxeygGQ/InBEmInBXBa11IaSgkEn1t9PVDTAjTtV+ZB4Vq
-         ZzT12N0frjVdYZrLwB1APnW8t74rzzDeczWA+8xx9jXW2Ts+TpoNN6r2S5378BiN5utU
-         CZe3M61lI9R22c2LNCHtMQI1dXnNWL/OOOmajWHRyIhY36/Cy/EdKPizy562hi8/CKC+
-         vECg==
-X-Gm-Message-State: AOAM5308jJ+R3/pspIxBo//8ATOpcFZw/7U44Jb3r22i1bNQFhpa1ayj
-        Ez5DbFYRe2LtUYl+hFoDPeA=
-X-Google-Smtp-Source: ABdhPJzLg4CY2SoSbumHIwYY7nDV2bxZKmFGfhTZXxFbtqm1sRoM6+MiaEI011ZtxuYN9rfCzPOX2g==
-X-Received: by 2002:a17:90a:a10c:: with SMTP id s12mr10079245pjp.32.1598523272672;
-        Thu, 27 Aug 2020 03:14:32 -0700 (PDT)
+        bh=K6iAF1bAIgrDi8rEAEPz6sa2CytTwXocJLkALhrz0vk=;
+        b=tH8K1AisPTlNGJAGZJN3CuZPShnjye2UNdo5A3gLLEVkipQCKqjcgUJ3lniVU6Fv1c
+         dEIYWtrU+euPUJvPHdfvvaxjOWNiRmffd8fWKA1fVlMX/ae7g/a0Of8IZBiSsv2azpN8
+         JyoT+rPZl3aiLtiaN8Tn2frritTrR7JXA+IRXNRO2ZvCrfcBt7FUw3S3CIAaKNDB3fCq
+         LnEivO0uRYc0M1LUvBlEpIDCDTrYLcdwdRl6kCfZH1HvsHman59jkUpLljjhdVxjs5D0
+         Ey/OlWtKurtdzDBZkSjtb7XoGJRdNpUeTvowKHOf77+C8R3cY7F9MO0GFEKaNZOml3gI
+         JVdw==
+X-Gm-Message-State: AOAM531R/FqICpiECW2XiGi2EmalVXQlDX0sPZ8gaulDTvrSmvKNk0QX
+        1F2het5KyrophT9JD7ice+hashNlryiYSA==
+X-Google-Smtp-Source: ABdhPJxzftCMISEkIaodqrxvMsYxKv8AyN4ChJGIdKWqtBmlqFbcyDqpUhXAJ9YTChj2zCB65TX83g==
+X-Received: by 2002:a17:902:8a93:: with SMTP id p19mr15949244plo.320.1598523283735;
+        Thu, 27 Aug 2020 03:14:43 -0700 (PDT)
 Received: from VM-0-6-centos.localdomain ([119.28.90.140])
-        by smtp.gmail.com with ESMTPSA id t10sm2333434pfq.52.2020.08.27.03.14.31
+        by smtp.gmail.com with ESMTPSA id t10sm2333434pfq.52.2020.08.27.03.14.42
         (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 27 Aug 2020 03:14:32 -0700 (PDT)
+        Thu, 27 Aug 2020 03:14:43 -0700 (PDT)
 From:   Chunguang Xu <brookxu.cn@gmail.com>
 X-Google-Original-From: Chunguang Xu <brookxu@tencent.com>
 To:     arnd@arndb.de
 Cc:     rppt@kernel.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org
-Subject: [PATCH 01/23] include/asm-generic/bug.h: add ASSERT_FAIL() and ASSERT_WARN() wrapper
-Date:   Thu, 27 Aug 2020 18:14:06 +0800
-Message-Id: <7d916ac76e7823efbf88828dc6c61737555434a1.1598518912.git.brookxu@tencent.com>
+Subject: [PATCH 09/23] cachefiles: use ASSERT_FAIL()/ASSERT_WARN() to cleanup some code
+Date:   Thu, 27 Aug 2020 18:14:14 +0800
+Message-Id: <6ab4f297f0a88e562a141219b9d9797d966d3257.1598518912.git.brookxu@tencent.com>
 X-Mailer: git-send-email 1.8.3.1
 In-Reply-To: <cover.1598518912.git.brookxu@tencent.com>
 References: <cover.1598518912.git.brookxu@tencent.com>
@@ -76,73 +76,35 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The kernel has not yet defined ASSERT(). Indeed, BUG() and WARN() are very
-clear and can cover most application scenarios. However, some applications
-require more debugging information and similar behavior to assert(), which
-cannot be directly provided by BUG() and WARN().
-
-Therefore, many modules independently implement ASSERT(), and most of them
-are similar, but slightly different. This makes the code redundant and
-inconvenient to troubleshoot the system. Therefore, perhaps we need to
-define two wrappers for BUG() and WARN(), provide the implementation of
-ASSERT(), simplify the code and facilitate problem analysis.
+Since ASSERT_FAIL() and ASSERT_WARN() have been provided, ASSERT()
+may be realized through them, thus reducing code redundancy and
+facilitating problem analysis.
 
 Signed-off-by: Chunguang Xu <brookxu@tencent.com>
 ---
- include/asm-generic/bug.h | 33 +++++++++++++++++++++++++++++++++
- 1 file changed, 33 insertions(+)
+ fs/cachefiles/internal.h | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 18b0f4e..28f8c27 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -174,6 +174,31 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
- 	unlikely(__ret_warn_once);				\
- })
+diff --git a/fs/cachefiles/internal.h b/fs/cachefiles/internal.h
+index cf9bd64..2447437 100644
+--- a/fs/cachefiles/internal.h
++++ b/fs/cachefiles/internal.h
+@@ -316,14 +316,7 @@ extern int cachefiles_remove_object_xattr(struct cachefiles_cache *cache,
  
-+/*
-+ * ASSERT_FAIL() and ASSERT_WARN() can be used to check whether some
-+ * conditions have failed. We generally use ASSERT_FAIL() to check
-+ * critical conditions, and other use ASSERT_WARN().
-+ */
-+#ifndef ASSERT_FAIL
-+#define ASSERT_FAIL(condition) do {					\
-+	if (unlikely(!(condition))) {					\
-+		pr_emerg("Assertion failed: %s, file: %s, line: %d\n",	\
-+			  #condition, __FILE__, __LINE__);		\
-+		BUG();							\
-+	}								\
-+} while (0)
-+#endif
-+
-+#ifndef ASSERT_WARN
-+#define ASSERT_WARN(condition) do {					\
-+	if (unlikely(!(condition))) {					\
-+		pr_warn("Assertion failed: %s, file: %s, line: %d\n",	\
-+			 #condition, __FILE__, __LINE__);		\
-+		WARN_ON(1);						\
-+	}								\
-+} while (0)
-+#endif
-+
- #else /* !CONFIG_BUG */
- #ifndef HAVE_ARCH_BUG
- #define BUG() do {} while (1)
-@@ -203,6 +228,14 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
- #define WARN_TAINT(condition, taint, format...) WARN(condition, format)
- #define WARN_TAINT_ONCE(condition, taint, format...) WARN(condition, format)
+ #if 1 /* defined(__KDEBUGALL) */
  
-+#ifndef ASSERT_FAIL
-+#define ASSERT_FAIL(condition) do { } while (0)
-+#endif
-+
-+#ifndef ASSERT_WARN
-+#define ASSERT_WARN(condition) do { } while (0)
-+#endif
-+
- #endif
+-#define ASSERT(X)							\
+-do {									\
+-	if (unlikely(!(X))) {						\
+-		pr_err("\n");						\
+-		pr_err("Assertion failed\n");		\
+-		BUG();							\
+-	}								\
+-} while (0)
++#define ASSERT(X) ASSERT_FAIL(x)
  
- /*
+ #define ASSERTCMP(X, OP, Y)						\
+ do {									\
 -- 
 1.8.3.1
 
