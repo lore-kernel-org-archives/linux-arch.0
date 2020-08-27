@@ -5,67 +5,67 @@ X-Spam-Level:
 X-Spam-Status: No, score=-12.6 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
-	version=3.4.0
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 24DDBC433E3
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:16:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AE1CFC433DF
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:18:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 036602075B
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:16:55 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8A02E2075B
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:18:21 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ANPJzFdN"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="N0J5F50z"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728808AbgH0KQx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Aug 2020 06:16:53 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46376 "EHLO
+        id S1728646AbgH0KOm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Aug 2020 06:14:42 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46346 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728369AbgH0KOq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 06:14:46 -0400
-Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A1450C061264;
-        Thu, 27 Aug 2020 03:14:45 -0700 (PDT)
-Received: by mail-pg1-x542.google.com with SMTP id g29so2003121pgl.2;
-        Thu, 27 Aug 2020 03:14:45 -0700 (PDT)
+        with ESMTP id S1728369AbgH0KOh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 06:14:37 -0400
+Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 519F0C061233;
+        Thu, 27 Aug 2020 03:14:37 -0700 (PDT)
+Received: by mail-pj1-x1041.google.com with SMTP id mw10so2350014pjb.2;
+        Thu, 27 Aug 2020 03:14:37 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :in-reply-to:references;
-        bh=HZGm0oXcyUeZY6L8W+dSwUofViF+kTxFMzUB/D8ZFAM=;
-        b=ANPJzFdN8kjfNXtQxOMLBA22mHOKLWBBCBVZg7qIV+f6tHORlUxSlOXNIdI/ab0jXE
-         EC57zjRwF8+aPIaz+y4ZhMJ+oxbezSBvEyn9T/IwuhSdzcJIWC3FQGBt294Up+XvlWr0
-         veffF2qvQKp1rFI29ulOXGOcRMuT0tX4ShR4mEdztLPrAe2Pl2pSKZ9f2vqcXdltClE/
-         TsNA8XgEmZpaEfs+8s+0mWOSMXZwqFq++aYwFzGr+p3TTQ00/sDcY0SUCrLOFwtmVia/
-         tNNrwkYY/2rWHHmiVkJcgjuJjYS7QbAy1INVzDRUbZbHfBpNVz/Dr3w40tVArsvNnOqK
-         IPUg==
+        bh=Rz4ryX0AMxAkIMgQI5I1yCNb3HoLILhZhjQ00rbjtJY=;
+        b=N0J5F50z/STIBf+k6ASzGjD6I3UkwlsYUJjLWuiCCjEzN1DAntFnkY87cnP6qDQ/JK
+         RAcUB/f3x+/Zl9mnnCh7Mcj7nKRR36RhK4NFZIwUvOZkPwOwb35dN/v/VrKAloqV77Hx
+         +pIBtdLjjSZnCNRUUmi5OpaO4fsFBywdzLPm0mTNxdJMcJYq4RzV47hc7twFR64KRgn+
+         g6NMFWwcqSaHAqpavP7YgUbEnSIUONji2M7uJh+O4FO4Pm8DBeJ/YsUCoyeQmoxiMkKF
+         pRsA53BuUhYLfow1mX80TJ6a42j5n7F7p1hP3/DLh2L5nu7Sd+0bSEqz+s9dw/Z5hrQn
+         ZcIw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:in-reply-to:references;
-        bh=HZGm0oXcyUeZY6L8W+dSwUofViF+kTxFMzUB/D8ZFAM=;
-        b=lH3Udd4q8EsGW5pi/8OAmaOPLqE6Ai1Ujj2rHwHzY+F164XsqJpX+XyPwIyrlXWumR
-         SBV+SHPe7Tse6o9ygqJgSaXT7JBeGKeXkFOgfr/mRFVajSccPzrjuDgWYcSkuY/32/54
-         fTnIwPkP6d6t0nrITDxpXp5M2109Y0LhOIA1naBfH0T2EPUsSy9qiR+y+Vlg6Csq4nxW
-         /3wHLXk+QfEZcz+jSgmTvCjvFYq7d5u0bUF/mJnBw5NbZKoZjz4yD83yoejQ5AFy14H1
-         2iDYEIDW+Juj6DYUFIUdkptY2nbSt3noPBwfmQuJq2OaR5CbBAgkg+XFX90H1rcvAVY1
-         NAbQ==
-X-Gm-Message-State: AOAM533JOJaWa9jlX9LD2XpWTDfk/Wn+RZx6IqIBv0B4hx6f0je8twnG
-        Tek1YTok9uQVOoWecxrE7gi9Q/KAR33Raw==
-X-Google-Smtp-Source: ABdhPJzTG3bN4gpahNny/4xg9AnJ4k/CAerjJ60Meuyw9Gqe8D4p8VQB3S/ZcsE8VOZfEy0wiKuinQ==
-X-Received: by 2002:a62:7687:: with SMTP id r129mr15999101pfc.308.1598523285129;
-        Thu, 27 Aug 2020 03:14:45 -0700 (PDT)
+        bh=Rz4ryX0AMxAkIMgQI5I1yCNb3HoLILhZhjQ00rbjtJY=;
+        b=e55D34Nih+yOhJxgpJ8kgsYCY2ybh5e6SNeEiN7AnnfMm4Xy+0075LCdUd1iwAD6A+
+         2hZPGMEhgtlnlERnjGV8vR1dX4i91Iz0OClpxqg0wMgidXG3nvpfgAoaMgTxxs1dc8nG
+         VZreJddJWai9Aigr6N+tN/eq7ru1oa+mXuPjlfuKorH9DWhNkQ/mUFcGBUF58oPyQIrW
+         W9bebU+HU28DjAGgmmCSc8DlYmpaf0izdz00wekE+Ubo8/9eiMByWREiOQUfb4Aiau02
+         Yr2IJKslOWiXRJ91TnXfl35YXd8W2r+apoc9ef5eB0lSEk+CJp6zWCysyHwlaIykBJGo
+         HAaA==
+X-Gm-Message-State: AOAM5325FYEdfF/ATxv3KYEAxzdQGxcQOrpXgZNwyeJZxXX7xcEzDtr8
+        vnpenUIfJoR3vfn6eB3gsQ0=
+X-Google-Smtp-Source: ABdhPJz+IG0Jrr1ijpeIHBxbdt+cj7XdgQ5SkdJp+WjLbqRWiCfi13cVTc7OhKskz9OljtBT1tmUDw==
+X-Received: by 2002:a17:90a:a787:: with SMTP id f7mr10038606pjq.103.1598523276803;
+        Thu, 27 Aug 2020 03:14:36 -0700 (PDT)
 Received: from VM-0-6-centos.localdomain ([119.28.90.140])
-        by smtp.gmail.com with ESMTPSA id t10sm2333434pfq.52.2020.08.27.03.14.43
+        by smtp.gmail.com with ESMTPSA id t10sm2333434pfq.52.2020.08.27.03.14.35
         (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 27 Aug 2020 03:14:44 -0700 (PDT)
+        Thu, 27 Aug 2020 03:14:36 -0700 (PDT)
 From:   Chunguang Xu <brookxu.cn@gmail.com>
 X-Google-Original-From: Chunguang Xu <brookxu@tencent.com>
 To:     arnd@arndb.de
 Cc:     rppt@kernel.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org
-Subject: [PATCH 10/23] btrfs: use ASSERT_FAIL()/ASSERT_WARN() to cleanup some code
-Date:   Thu, 27 Aug 2020 18:14:15 +0800
-Message-Id: <03e19096206bd199e6e42289da5c8da537faaeea.1598518912.git.brookxu@tencent.com>
+Subject: [PATCH 04/23] fore200e: use ASSERT_FAIL()/ASSERT_WARN() to cleanup some code
+Date:   Thu, 27 Aug 2020 18:14:09 +0800
+Message-Id: <4fd1c0a89043ba696f8653cc721557ff6a5b86aa.1598518912.git.brookxu@tencent.com>
 X-Mailer: git-send-email 1.8.3.1
 In-Reply-To: <cover.1598518912.git.brookxu@tencent.com>
 References: <cover.1598518912.git.brookxu@tencent.com>
@@ -82,33 +82,26 @@ facilitating problem analysis.
 
 Signed-off-by: Chunguang Xu <brookxu@tencent.com>
 ---
- fs/btrfs/ctree.h | 12 +-----------
- 1 file changed, 1 insertion(+), 11 deletions(-)
+ drivers/atm/fore200e.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
 
-diff --git a/fs/btrfs/ctree.h b/fs/btrfs/ctree.h
-index 9c7e466..9254dc6 100644
---- a/fs/btrfs/ctree.h
-+++ b/fs/btrfs/ctree.h
-@@ -3226,18 +3226,8 @@ void btrfs_no_printk(const struct btrfs_fs_info *fs_info, const char *fmt, ...)
- } while (0)
+diff --git a/drivers/atm/fore200e.c b/drivers/atm/fore200e.c
+index a81bc49..04f121b 100644
+--- a/drivers/atm/fore200e.c
++++ b/drivers/atm/fore200e.c
+@@ -83,11 +83,7 @@
+ #define FORE200E_NEXT_ENTRY(index, modulo)         (index = ((index) + 1) % (modulo))
  
- #ifdef CONFIG_BTRFS_ASSERT
--__cold __noreturn
--static inline void assertfail(const char *expr, const char *file, int line)
--{
--	pr_err("assertion failed: %s, in %s:%d\n", expr, file, line);
--	BUG();
--}
--
--#define ASSERT(expr)						\
--	(likely(expr) ? (void)0 : assertfail(#expr, __FILE__, __LINE__))
--
-+#define ASSERT(expr)	ASSERT_FAIL(expr)
+ #if 1
+-#define ASSERT(expr)     if (!(expr)) { \
+-			     printk(FORE200E "assertion failed! %s[%d]: %s\n", \
+-				    __func__, __LINE__, #expr); \
+-			     panic(FORE200E "%s", __func__); \
+-			 }
++#define ASSERT(expr)     ASSERT_FAIL(expr)
  #else
--static inline void assertfail(const char *expr, const char* file, int line) { }
- #define ASSERT(expr)	(void)(expr)
+ #define ASSERT(expr)     do {} while (0)
  #endif
- 
 -- 
 1.8.3.1
 
