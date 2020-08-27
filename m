@@ -7,36 +7,36 @@ X-Spam-Status: No, score=-12.6 required=3.0 tests=BAYES_00,DKIM_INVALID,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7731AC433DF
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 15:09:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 88BC5C433E1
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 15:09:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4E22C2177B
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 15:09:34 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 679B02177B
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 15:09:59 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="knXWjKeE"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="EAf8Yl6V"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727077AbgH0PJS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Aug 2020 11:09:18 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34764 "EHLO
+        id S1728442AbgH0PJg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Aug 2020 11:09:36 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34698 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727901AbgH0PAr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 11:00:47 -0400
+        with ESMTP id S1726971AbgH0PAj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 11:00:39 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7D0EDC061264;
-        Thu, 27 Aug 2020 08:00:47 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5E0EBC06121B;
+        Thu, 27 Aug 2020 08:00:39 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=B6771Z78+EjFEl66FRYSdFSUZAia5cb3z6J6dPED0dc=; b=knXWjKeEqARgnI/Ym4VKx3eyBp
-        J1+42pWzyuc3J49bkSBoybqBRrOv8WWSCYaIN6NoplfaUUydPXKxiZ6z6xT9Ry4rUwFTfyY+/C6+D
-        5UmYO8YpyY4ua4EYKq32hh1ZqrVKsCF2Z+nEwOij4HA2SI7/VjZOz0BTQdOkxx/s4wLYAymkhbM7x
-        5kRNOISkygbyodgWy0F6ZpHrxZ8fWpHf1/9kwooaeddfUbmpA6F7O6JFpvVVq9yvmi5fHIN2Gphc6
-        cAQqhk82TMgKVWi4WcSN+JoeQ+qNccAHkDoHHRPPNYSCYWQOvYimZnD+5ZhZJJrKksuNLPCVzh0+6
-        4CGOzRrA==;
+        bh=WnUT44U564BtTxR+CgxY1D0BXTu5a2MR+R2q2mWaxn8=; b=EAf8Yl6V6A2IAfW5NiN9dXI4lg
+        Js5uFIb0IB5xrVtkWEMPRdaJHrj+Wp5ilcm49q0E9wgBciAuotYq8K5OBbCrOtvIL5mamvPEfB89d
+        c5z4Cds8cffCjW3gMZvhYLZRZr3Y1JCmIF7X20PINMsSevxFB+6EQmEpc+ueGwbFdmOpF9VJNjDQH
+        h2wPlNL+90vSuLdvA8oOW/Snimax50sYs7kj9Nu1xrQ2LfumTpdnB/7COvoRl1EdDVvceu6BQN7F5
+        VZ13vdvCaJs8yOT4zxFUy785qCH9MQ/rydGmWfPaT6ACr0TWu8TH1r+u2NWQ5dwXsZriJc39nz+Y9
+        0KFYD6+w==;
 Received: from [2001:4bb8:18c:45ba:9892:9e86:5202:32f0] (helo=localhost)
         by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kBJOK-00045C-DF; Thu, 27 Aug 2020 15:00:40 +0000
+        id 1kBJOD-00044O-Cf; Thu, 27 Aug 2020 15:00:33 +0000
 From:   Christoph Hellwig <hch@lst.de>
 To:     Linus Torvalds <torvalds@linux-foundation.org>,
         Al Viro <viro@zeniv.linux.org.uk>,
@@ -44,9 +44,9 @@ To:     Linus Torvalds <torvalds@linux-foundation.org>,
 Cc:     Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org,
         linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
         linuxppc-dev@lists.ozlabs.org
-Subject: [PATCH 06/10] x86: move PAGE_OFFSET, TASK_SIZE & friends to page_{32,64}_types.h
-Date:   Thu, 27 Aug 2020 17:00:26 +0200
-Message-Id: <20200827150030.282762-7-hch@lst.de>
+Subject: [PATCH 01/10] fs: don't allow kernel reads and writes without iter ops
+Date:   Thu, 27 Aug 2020 17:00:21 +0200
+Message-Id: <20200827150030.282762-2-hch@lst.de>
 X-Mailer: git-send-email 2.28.0
 In-Reply-To: <20200827150030.282762-1-hch@lst.de>
 References: <20200827150030.282762-1-hch@lst.de>
@@ -58,156 +58,123 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-At least for 64-bit this moves them closer to some of the defines
-they are based on, and it prepares for using the TASK_SIZE_MAX
-definition from assembly.
+Don't allow calling ->read or ->write with set_fs as a preparation for
+killing off set_fs.  All the instances that we use kernel_read/write on
+are using the iter ops already.
+
+If a file has both the regular ->read/->write methods and the iter
+variants those could have different semantics for messed up enough
+drivers.  Also fails the kernel access to them in that case.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/include/asm/page_32_types.h | 11 +++++++
- arch/x86/include/asm/page_64_types.h | 38 +++++++++++++++++++++
- arch/x86/include/asm/processor.h     | 49 ----------------------------
- 3 files changed, 49 insertions(+), 49 deletions(-)
+ fs/read_write.c | 67 +++++++++++++++++++++++++++++++------------------
+ 1 file changed, 42 insertions(+), 25 deletions(-)
 
-diff --git a/arch/x86/include/asm/page_32_types.h b/arch/x86/include/asm/page_32_types.h
-index 565ad755c785e2..26236925fb2c36 100644
---- a/arch/x86/include/asm/page_32_types.h
-+++ b/arch/x86/include/asm/page_32_types.h
-@@ -41,6 +41,17 @@
- #define __VIRTUAL_MASK_SHIFT	32
- #endif	/* CONFIG_X86_PAE */
- 
-+/*
-+ * User space process size: 3GB (default).
-+ */
-+#define IA32_PAGE_OFFSET	PAGE_OFFSET
-+#define TASK_SIZE		PAGE_OFFSET
-+#define TASK_SIZE_LOW		TASK_SIZE
-+#define TASK_SIZE_MAX		TASK_SIZE
-+#define DEFAULT_MAP_WINDOW	TASK_SIZE
-+#define STACK_TOP		TASK_SIZE
-+#define STACK_TOP_MAX		STACK_TOP
-+
- /*
-  * Kernel image size is limited to 512 MB (see in arch/x86/kernel/head_32.S)
-  */
-diff --git a/arch/x86/include/asm/page_64_types.h b/arch/x86/include/asm/page_64_types.h
-index 288b065955b729..996595c9897e0a 100644
---- a/arch/x86/include/asm/page_64_types.h
-+++ b/arch/x86/include/asm/page_64_types.h
-@@ -58,6 +58,44 @@
- #define __VIRTUAL_MASK_SHIFT	47
- #endif
- 
-+/*
-+ * User space process size.  This is the first address outside the user range.
-+ * There are a few constraints that determine this:
-+ *
-+ * On Intel CPUs, if a SYSCALL instruction is at the highest canonical
-+ * address, then that syscall will enter the kernel with a
-+ * non-canonical return address, and SYSRET will explode dangerously.
-+ * We avoid this particular problem by preventing anything executable
-+ * from being mapped at the maximum canonical address.
-+ *
-+ * On AMD CPUs in the Ryzen family, there's a nasty bug in which the
-+ * CPUs malfunction if they execute code from the highest canonical page.
-+ * They'll speculate right off the end of the canonical space, and
-+ * bad things happen.  This is worked around in the same way as the
-+ * Intel problem.
-+ *
-+ * With page table isolation enabled, we map the LDT in ... [stay tuned]
-+ */
-+#define TASK_SIZE_MAX	((1UL << __VIRTUAL_MASK_SHIFT) - PAGE_SIZE)
-+
-+#define DEFAULT_MAP_WINDOW	((1UL << 47) - PAGE_SIZE)
-+
-+/* This decides where the kernel will search for a free chunk of vm
-+ * space during mmap's.
-+ */
-+#define IA32_PAGE_OFFSET	((current->personality & ADDR_LIMIT_3GB) ? \
-+					0xc0000000 : 0xFFFFe000)
-+
-+#define TASK_SIZE_LOW		(test_thread_flag(TIF_ADDR32) ? \
-+					IA32_PAGE_OFFSET : DEFAULT_MAP_WINDOW)
-+#define TASK_SIZE		(test_thread_flag(TIF_ADDR32) ? \
-+					IA32_PAGE_OFFSET : TASK_SIZE_MAX)
-+#define TASK_SIZE_OF(child)	((test_tsk_thread_flag(child, TIF_ADDR32)) ? \
-+					IA32_PAGE_OFFSET : TASK_SIZE_MAX)
-+
-+#define STACK_TOP		TASK_SIZE_LOW
-+#define STACK_TOP_MAX		TASK_SIZE_MAX
-+
- /*
-  * Maximum kernel image size is limited to 1 GiB, due to the fixmap living
-  * in the next 1 GiB (see level2_kernel_pgt in arch/x86/kernel/head_64.S).
-diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
-index 97143d87994c24..1618eeb08361a9 100644
---- a/arch/x86/include/asm/processor.h
-+++ b/arch/x86/include/asm/processor.h
-@@ -782,17 +782,6 @@ static inline void spin_lock_prefetch(const void *x)
- })
- 
- #ifdef CONFIG_X86_32
--/*
-- * User space process size: 3GB (default).
-- */
--#define IA32_PAGE_OFFSET	PAGE_OFFSET
--#define TASK_SIZE		PAGE_OFFSET
--#define TASK_SIZE_LOW		TASK_SIZE
--#define TASK_SIZE_MAX		TASK_SIZE
--#define DEFAULT_MAP_WINDOW	TASK_SIZE
--#define STACK_TOP		TASK_SIZE
--#define STACK_TOP_MAX		STACK_TOP
--
- #define INIT_THREAD  {							  \
- 	.sp0			= TOP_OF_INIT_STACK,			  \
- 	.sysenter_cs		= __KERNEL_CS,				  \
-@@ -802,44 +791,6 @@ static inline void spin_lock_prefetch(const void *x)
- #define KSTK_ESP(task)		(task_pt_regs(task)->sp)
- 
- #else
--/*
-- * User space process size.  This is the first address outside the user range.
-- * There are a few constraints that determine this:
-- *
-- * On Intel CPUs, if a SYSCALL instruction is at the highest canonical
-- * address, then that syscall will enter the kernel with a
-- * non-canonical return address, and SYSRET will explode dangerously.
-- * We avoid this particular problem by preventing anything executable
-- * from being mapped at the maximum canonical address.
-- *
-- * On AMD CPUs in the Ryzen family, there's a nasty bug in which the
-- * CPUs malfunction if they execute code from the highest canonical page.
-- * They'll speculate right off the end of the canonical space, and
-- * bad things happen.  This is worked around in the same way as the
-- * Intel problem.
-- *
-- * With page table isolation enabled, we map the LDT in ... [stay tuned]
-- */
--#define TASK_SIZE_MAX	((1UL << __VIRTUAL_MASK_SHIFT) - PAGE_SIZE)
--
--#define DEFAULT_MAP_WINDOW	((1UL << 47) - PAGE_SIZE)
--
--/* This decides where the kernel will search for a free chunk of vm
-- * space during mmap's.
-- */
--#define IA32_PAGE_OFFSET	((current->personality & ADDR_LIMIT_3GB) ? \
--					0xc0000000 : 0xFFFFe000)
--
--#define TASK_SIZE_LOW		(test_thread_flag(TIF_ADDR32) ? \
--					IA32_PAGE_OFFSET : DEFAULT_MAP_WINDOW)
--#define TASK_SIZE		(test_thread_flag(TIF_ADDR32) ? \
--					IA32_PAGE_OFFSET : TASK_SIZE_MAX)
--#define TASK_SIZE_OF(child)	((test_tsk_thread_flag(child, TIF_ADDR32)) ? \
--					IA32_PAGE_OFFSET : TASK_SIZE_MAX)
--
--#define STACK_TOP		TASK_SIZE_LOW
--#define STACK_TOP_MAX		TASK_SIZE_MAX
--
- #define INIT_THREAD  {						\
- 	.addr_limit		= KERNEL_DS,			\
+diff --git a/fs/read_write.c b/fs/read_write.c
+index 5db58b8c78d0dd..702c4301d9eb6b 100644
+--- a/fs/read_write.c
++++ b/fs/read_write.c
+@@ -419,27 +419,41 @@ static ssize_t new_sync_read(struct file *filp, char __user *buf, size_t len, lo
+ 	return ret;
  }
+ 
++static int warn_unsupported(struct file *file, const char *op)
++{
++	pr_warn_ratelimited(
++		"kernel %s not supported for file %pD4 (pid: %d comm: %.20s)\n",
++		op, file, current->pid, current->comm);
++	return -EINVAL;
++}
++
+ ssize_t __kernel_read(struct file *file, void *buf, size_t count, loff_t *pos)
+ {
+-	mm_segment_t old_fs = get_fs();
++	struct kvec iov = {
++		.iov_base	= buf,
++		.iov_len	= min_t(size_t, count, MAX_RW_COUNT),
++	};
++	struct kiocb kiocb;
++	struct iov_iter iter;
+ 	ssize_t ret;
+ 
+ 	if (WARN_ON_ONCE(!(file->f_mode & FMODE_READ)))
+ 		return -EINVAL;
+ 	if (!(file->f_mode & FMODE_CAN_READ))
+ 		return -EINVAL;
++	/*
++	 * Also fail if ->read_iter and ->read are both wired up as that
++	 * implies very convoluted semantics.
++	 */
++	if (unlikely(!file->f_op->read_iter || file->f_op->read))
++		return warn_unsupported(file, "read");
+ 
+-	if (count > MAX_RW_COUNT)
+-		count =  MAX_RW_COUNT;
+-	set_fs(KERNEL_DS);
+-	if (file->f_op->read)
+-		ret = file->f_op->read(file, (void __user *)buf, count, pos);
+-	else if (file->f_op->read_iter)
+-		ret = new_sync_read(file, (void __user *)buf, count, pos);
+-	else
+-		ret = -EINVAL;
+-	set_fs(old_fs);
++	init_sync_kiocb(&kiocb, file);
++	kiocb.ki_pos = *pos;
++	iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
++	ret = file->f_op->read_iter(&kiocb, &iter);
+ 	if (ret > 0) {
++		*pos = kiocb.ki_pos;
+ 		fsnotify_access(file);
+ 		add_rchar(current, ret);
+ 	}
+@@ -510,28 +524,31 @@ static ssize_t new_sync_write(struct file *filp, const char __user *buf, size_t
+ /* caller is responsible for file_start_write/file_end_write */
+ ssize_t __kernel_write(struct file *file, const void *buf, size_t count, loff_t *pos)
+ {
+-	mm_segment_t old_fs;
+-	const char __user *p;
++	struct kvec iov = {
++		.iov_base	= (void *)buf,
++		.iov_len	= min_t(size_t, count, MAX_RW_COUNT),
++	};
++	struct kiocb kiocb;
++	struct iov_iter iter;
+ 	ssize_t ret;
+ 
+ 	if (WARN_ON_ONCE(!(file->f_mode & FMODE_WRITE)))
+ 		return -EBADF;
+ 	if (!(file->f_mode & FMODE_CAN_WRITE))
+ 		return -EINVAL;
++	/*
++	 * Also fail if ->write_iter and ->write are both wired up as that
++	 * implies very convoluted semantics.
++	 */
++	if (unlikely(!file->f_op->write_iter || file->f_op->write))
++		return warn_unsupported(file, "write");
+ 
+-	old_fs = get_fs();
+-	set_fs(KERNEL_DS);
+-	p = (__force const char __user *)buf;
+-	if (count > MAX_RW_COUNT)
+-		count =  MAX_RW_COUNT;
+-	if (file->f_op->write)
+-		ret = file->f_op->write(file, p, count, pos);
+-	else if (file->f_op->write_iter)
+-		ret = new_sync_write(file, p, count, pos);
+-	else
+-		ret = -EINVAL;
+-	set_fs(old_fs);
++	init_sync_kiocb(&kiocb, file);
++	kiocb.ki_pos = *pos;
++	iov_iter_kvec(&iter, WRITE, &iov, 1, iov.iov_len);
++	ret = file->f_op->write_iter(&kiocb, &iter);
+ 	if (ret > 0) {
++		*pos = kiocb.ki_pos;
+ 		fsnotify_modify(file);
+ 		add_wchar(current, ret);
+ 	}
 -- 
 2.28.0
 
