@@ -8,64 +8,64 @@ X-Spam-Status: No, score=-12.6 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6A722C433E1
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:16:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F1CBAC433DF
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:16:09 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 456D120738
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:16:00 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id CC34020738
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Aug 2020 10:16:09 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="WkXBpWp7"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="gh3oGZp+"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728861AbgH0KP7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Aug 2020 06:15:59 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46394 "EHLO
+        id S1728873AbgH0KQA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Aug 2020 06:16:00 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46386 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728690AbgH0KOv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 06:14:51 -0400
+        with ESMTP id S1728473AbgH0KOs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2020 06:14:48 -0400
 Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4366EC061232;
-        Thu, 27 Aug 2020 03:14:51 -0700 (PDT)
-Received: by mail-pj1-x1042.google.com with SMTP id q93so2423273pjq.0;
-        Thu, 27 Aug 2020 03:14:51 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6231FC061233;
+        Thu, 27 Aug 2020 03:14:48 -0700 (PDT)
+Received: by mail-pj1-x1042.google.com with SMTP id kx11so2344938pjb.5;
+        Thu, 27 Aug 2020 03:14:48 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :in-reply-to:references;
-        bh=YEwhGlOiAn2QBZ/J91Vcx56sl7B71UFREHc/KBToN3g=;
-        b=WkXBpWp7j5GxJXTfymH26tFnRLaHsn9jzVUToPdLVRPXUt4L3JYq4bLbmTH8ChyhTs
-         /H+mXg5XKLwgmYFMz7JJrHAgQKawIxxrcC6gbtzu8+5FkBHTbsP09CkkV+py4bJV+/S6
-         lFa0/Ka7rMByyOU2a+jSMs2RvQRru6IEjFaFAxogdpuvB94j6QGHNH290Pz22d6QeMDF
-         WFHVaLNrOIfL4xptSLhqbkxpJZzgoXobqyE06x9gxKkbfwqYOySUY8R97ZSYmOn0G96O
-         NwI21pojUs/hCpuwgk2KKf5gzzcmwacO0hYw2Z/Y45Fdjq8PAToI0nnf8IoGRhGhOg1h
-         3aXw==
+        bh=/kimB1f/4/A5yYV5xm0X/9TghrX0JSWNrajPc7XT9rI=;
+        b=gh3oGZp+f8o/QF+vsAJV/vk9O3Urp7kPs1TJdJMiKFZzoaqAF0dvN729Po4NF6cgan
+         AKQEShrF87dSlVlojebT1M1IGtIR6SdrqfDNAq4AzHCGSXpQcLiPcJkE7FMBhpaBE7aY
+         ZFisI5N1ee+IVdxJoSLxyPdWAsre3qvLaE3Byamoq/zgkfg+XuDzBcnpHiQ0uwqo/2FH
+         j7iflZC7gcuKCJg48qNViqmpn9sfj6cxALC7g9/6HuXH+WutvAw3MkUMsnMqwCAT5X/I
+         0nGTAP2dBoMM2EqWFFPZcpYyLjBSykNb1MwaJF1CdpSr8m+QJvAy4092rmVOXwr+LHVj
+         rohw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:in-reply-to:references;
-        bh=YEwhGlOiAn2QBZ/J91Vcx56sl7B71UFREHc/KBToN3g=;
-        b=IJ0IDol8UE2Vo9BXXkVhiCEeGn+CmS7UZz7kPquUJfydOFjmISjcqZqGRQtDbAQf5x
-         t7YT+24ZRFE0MTL7KAS5C8avvDeA2PnV+1VO8K3DLGiQ6qFd7nWZBYEW783XoK4f6a7b
-         Oh/qDgNi5F2JszUw2+GzD6bITxWvN2vpTFHGG9l1x9+6zNdSt5e9QMtYvPceSsp8Gdq9
-         EEZ9kZQtmHT8dJT+ztCnHmhHrzaKB/v3y8VVfADgSdFQdqFlDCNqTADDoM8fCp98uY1T
-         9CgauGpULKxAP1pFkFThAf3GwkEX/PjZwt3TJCJkGXb7/3vaJTg+XD3o+cnhqmO7725k
-         0KVw==
-X-Gm-Message-State: AOAM530hADmsTU18ZhmXQqQNoBvc//l6YXMHjDZ+COVZ1HnioG4H5h7e
-        aMAS36dr/fE5wtS7qTmPelg=
-X-Google-Smtp-Source: ABdhPJzuYx6FZ/d8jAIKixAJodimMSFEeM0cgIw7dnzyvIFdj/pAatlRZfA/qkTpV+NKgCpmcU4XRw==
-X-Received: by 2002:a17:90a:c917:: with SMTP id v23mr9893892pjt.97.1598523290873;
-        Thu, 27 Aug 2020 03:14:50 -0700 (PDT)
+        bh=/kimB1f/4/A5yYV5xm0X/9TghrX0JSWNrajPc7XT9rI=;
+        b=Sa3B77koNdIzy72H/VigcrpkldsWj5AwS6LCzSVfytiOrTzuea/msyhEIz1L5AX6qG
+         1YLDyKDMOmqtHz5eHNY+Cb4d+cczeSEx41VFx0hRzwj4pPtmx8/KlYuyjQh9tQKB8Ktn
+         w2dtNsE46suqtYIQJcjI9bQ644h2gNuGa/8hCeP1xTRVjuLM4CiSWpHnAL+EkbLl0s9G
+         tCwdv3rzlCYdqvgAE9AS+gwLan+D3wOt9SuH6+6oifzTTGdhOix+P+s1aZjl57Axv94n
+         Gu00WWZs4rs1Qrguqv8DdZWJijU6JneO4L+0J60gs0Jgc1ZEQXKDkKGRujsIPiReTaCO
+         b6DA==
+X-Gm-Message-State: AOAM5314Tc2IEw/1L1Dxz4mUk7P59S0e+5pm5JseF2zHY/jgzPUhxIc6
+        dtOt6Cb+s2kGrWN9SC8LSpU=
+X-Google-Smtp-Source: ABdhPJzmbapTwGtdXDdcjazJg/DtrHbGu1TN6g8CVZfLYoqrO8aKTQjX4sGn73DP4oS485ggIi3NSw==
+X-Received: by 2002:a17:90b:4ac7:: with SMTP id mh7mr9346454pjb.99.1598523288016;
+        Thu, 27 Aug 2020 03:14:48 -0700 (PDT)
 Received: from VM-0-6-centos.localdomain ([119.28.90.140])
-        by smtp.gmail.com with ESMTPSA id t10sm2333434pfq.52.2020.08.27.03.14.49
+        by smtp.gmail.com with ESMTPSA id t10sm2333434pfq.52.2020.08.27.03.14.46
         (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 27 Aug 2020 03:14:50 -0700 (PDT)
+        Thu, 27 Aug 2020 03:14:47 -0700 (PDT)
 From:   Chunguang Xu <brookxu.cn@gmail.com>
 X-Google-Original-From: Chunguang Xu <brookxu@tencent.com>
 To:     arnd@arndb.de
 Cc:     rppt@kernel.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org
-Subject: [PATCH 14/23] fbdev/cirrusfb:: use ASSERT_FAIL()/ASSERT_WARN() to cleanup some code
-Date:   Thu, 27 Aug 2020 18:14:19 +0800
-Message-Id: <66be38f348ed3725d626fddef76ff55db7aa5999.1598518912.git.brookxu@tencent.com>
+Subject: [PATCH 12/23] rivafb: use ASSERT_FAIL()/ASSERT_WARN() to cleanup some code
+Date:   Thu, 27 Aug 2020 18:14:17 +0800
+Message-Id: <5dff71c1e206d7e55d13092aa233482bb0e156a8.1598518912.git.brookxu@tencent.com>
 X-Mailer: git-send-email 1.8.3.1
 In-Reply-To: <cover.1598518912.git.brookxu@tencent.com>
 References: <cover.1598518912.git.brookxu@tencent.com>
@@ -82,23 +82,24 @@ facilitating problem analysis.
 
 Signed-off-by: Chunguang Xu <brookxu@tencent.com>
 ---
- drivers/video/fbdev/cirrusfb.c | 6 +-----
- 1 file changed, 1 insertion(+), 5 deletions(-)
+ drivers/video/fbdev/riva/fbdev.c | 7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
 
-diff --git a/drivers/video/fbdev/cirrusfb.c b/drivers/video/fbdev/cirrusfb.c
-index 3df64a9..3dcafdd 100644
---- a/drivers/video/fbdev/cirrusfb.c
-+++ b/drivers/video/fbdev/cirrusfb.c
-@@ -67,11 +67,7 @@
+diff --git a/drivers/video/fbdev/riva/fbdev.c b/drivers/video/fbdev/riva/fbdev.c
+index 9b34938..8a2e768 100644
+--- a/drivers/video/fbdev/riva/fbdev.c
++++ b/drivers/video/fbdev/riva/fbdev.c
+@@ -67,12 +67,7 @@
+ #define NVTRACE_LEAVE(...)  NVTRACE("%s END\n", __func__)
  
- /* debugging assertions */
- #ifndef CIRRUSFB_NDEBUG
+ #ifdef CONFIG_FB_RIVA_DEBUG
 -#define assert(expr) \
--	if (!(expr)) { \
--		printk("Assertion failed! %s,%s,%s,line=%d\n", \
--		#expr, __FILE__, __func__, __LINE__); \
+-	if(!(expr)) { \
+-	printk( "Assertion failed! %s,%s,%s,line=%d\n",\
+-	#expr,__FILE__,__func__,__LINE__); \
+-	BUG(); \
 -	}
-+#define assert(expr) ASSERT_WARN(expr)
++#define assert(expr) ASSERT_FAIL(expr)
  #else
  #define assert(expr)
  #endif
