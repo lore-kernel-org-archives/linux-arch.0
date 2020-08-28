@@ -4,54 +4,55 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-5.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,NICE_REPLY_A,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C90D2C433E2
-	for <linux-arch@archiver.kernel.org>; Fri, 28 Aug 2020 09:07:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BD204C433E2
+	for <linux-arch@archiver.kernel.org>; Fri, 28 Aug 2020 09:13:47 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8949020776
-	for <linux-arch@archiver.kernel.org>; Fri, 28 Aug 2020 09:07:09 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 88E89208D5
+	for <linux-arch@archiver.kernel.org>; Fri, 28 Aug 2020 09:13:47 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1598605629;
-	bh=iJ29MQbverKkUXcy2t6xCo9ztoVcU48RgfAfleJOr/s=;
+	s=default; t=1598606027;
+	bh=0LYSf79a3WDCXGRveXivNmN6ae5e+lWHgvgnet5g+no=;
 	h=Date:From:To:Cc:Subject:In-Reply-To:References:List-ID:From;
-	b=tt+et8MRuQ1ZNor1FDLay4ahr1Vxpxlz2JB5HXLTzYTX/+GdWM+YlBmpZoJngl0Az
-	 NKeUYwaeGGYcW9f575CiO4tEhy1Ou4Wh7E8CDxZzzo8bRFaunLK+YwdGdPS4OaAlUt
-	 iJVZQGMpyS/Rckh7+0yRAafpADDPNLQTc46NjfM8=
+	b=YumZtJyWXJQTcp4osWXwAzYlhZtfxC5ebUQYYqpFERja3i+WxreRtGRwQGMFqrzXC
+	 SHF0CHL/QbdQ5WJesEi0/eQyFO5TZy4ahEq0kWomVmAtubUJU9H+NdlqW+b5RdvTwu
+	 Mgk7vZMMTv0Wq9rXKYCZUld/dj4i0nmyJAKVj/Js=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728555AbgH1JHJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 28 Aug 2020 05:07:09 -0400
-Received: from mail.kernel.org ([198.145.29.99]:45062 "EHLO mail.kernel.org"
+        id S1728809AbgH1JNr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 28 Aug 2020 05:13:47 -0400
+Received: from mail.kernel.org ([198.145.29.99]:47488 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728016AbgH1JHI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 28 Aug 2020 05:07:08 -0400
+        id S1728786AbgH1JNq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 28 Aug 2020 05:13:46 -0400
 Received: from devnote2 (NE2965lan1.rev.em-net.ne.jp [210.141.244.193])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 493062071B;
-        Fri, 28 Aug 2020 09:07:04 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 54DF42071B;
+        Fri, 28 Aug 2020 09:13:43 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1598605627;
-        bh=iJ29MQbverKkUXcy2t6xCo9ztoVcU48RgfAfleJOr/s=;
+        s=default; t=1598606026;
+        bh=0LYSf79a3WDCXGRveXivNmN6ae5e+lWHgvgnet5g+no=;
         h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-        b=sHOU5fS3eW+dkXh3hubsixQafbCFIeb1C1fi8ZpJ1lXPiGZyRfv/XBfYZRlHXGxej
-         OZgGP+A/wy1jqDlMKbZB8R3dcWK8qb18wqqs7ib8GmeLrdF7mnOCFk6YidbK+2z5Bh
-         mE+JLb+YzL8p2NXPen2uI8wj2pyksFsjyH74KdO8=
-Date:   Fri, 28 Aug 2020 18:07:02 +0900
+        b=R28jQCmPuweJSEHJUncejRpuC4SzCSZMTBUaQrSodwnybCu35ZKLoL4z0TYdfjRfp
+         JS4YwonP8qEATXWLuh8j2B1RVq8ZtxezIxGtnbM0xqbwLyuy7dT1LRnYgGpFAMum+I
+         69vTxPbV4KtJxG+PWUJQHVyykxDh0AgutPWarBMo=
+Date:   Fri, 28 Aug 2020 18:13:41 +0900
 From:   Masami Hiramatsu <mhiramat@kernel.org>
-To:     Masami Hiramatsu <mhiramat@kernel.org>
-Cc:     Peter Zijlstra <peterz@infradead.org>,
-        linux-kernel@vger.kernel.org, Eddy_Wu@trendmicro.com,
+To:     peterz@infradead.org
+Cc:     linux-kernel@vger.kernel.org, Eddy_Wu@trendmicro.com,
         x86@kernel.org, davem@davemloft.net, rostedt@goodmis.org,
         naveen.n.rao@linux.ibm.com, anil.s.keshavamurthy@intel.com,
         linux-arch@vger.kernel.org, cameron@moodycamel.com,
         oleg@redhat.com, will@kernel.org, paulmck@kernel.org
-Subject: Re: [RFC][PATCH 3/7] kprobes: Remove kretprobe hash
-Message-Id: <20200828180702.1e00c4e75e0f4b92fbc7b001@kernel.org>
-In-Reply-To: <20200828030059.d6618caf5b0214c424b941df@kernel.org>
+Subject: Re: [RFC][PATCH 7/7] kprobes: Replace rp->free_instance with
+ freelist
+Message-Id: <20200828181341.c1da066360c6085d48850e22@kernel.org>
+In-Reply-To: <20200828084851.GQ1362448@hirez.programming.kicks-ass.net>
 References: <20200827161237.889877377@infradead.org>
-        <20200827161754.359432340@infradead.org>
-        <20200828030059.d6618caf5b0214c424b941df@kernel.org>
+        <20200827161754.594247581@infradead.org>
+        <20200828084851.GQ1362448@hirez.programming.kicks-ass.net>
 X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.32; x86_64-pc-linux-gnu)
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
@@ -61,79 +62,42 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, 28 Aug 2020 03:00:59 +0900
-Masami Hiramatsu <mhiramat@kernel.org> wrote:
+On Fri, 28 Aug 2020 10:48:51 +0200
+peterz@infradead.org wrote:
 
-> On Thu, 27 Aug 2020 18:12:40 +0200
-> Peter Zijlstra <peterz@infradead.org> wrote:
+> On Thu, Aug 27, 2020 at 06:12:44PM +0200, Peter Zijlstra wrote:
+> >  struct kretprobe_instance {
+> >  	union {
+> > +		/*
+> > +		 * Dodgy as heck, this relies on not clobbering freelist::refs.
+> > +		 * llist: only clobbers freelist::next.
+> > +		 * rcu: clobbers both, but only after rp::freelist is gone.
+> > +		 */
+> > +		struct freelist_node freelist;
+> >  		struct llist_node llist;
+> > -		struct hlist_node hlist;
+> >  		struct rcu_head rcu;
+> >  	};
 > 
-> > +static void invalidate_rp_inst(struct task_struct *t, struct kretprobe *rp)
-> > +{
-> > +	struct invl_rp_ipi iri = {
-> > +		.task = t,
-> > +		.rp = rp,
-> > +		.done = false
-> > +	};
-> > +
-> > +	for (;;) {
-> > +		if (try_invoke_on_locked_down_task(t, __invalidate_rp_inst, rp))
-> > +			return;
-> > +
-> > +		smp_call_function_single(task_cpu(t), __invalidate_rp_ipi, &iri, 1);
-> > +		if (iri.done)
-> > +			return;
-> > +	}
+> Masami, make sure to make this something like:
 > 
-> Hmm, what about making a status place holder and point it from
-> each instance to tell it is valid or not?
+> 	union {
+> 		struct freelist_node freelist;
+> 		struct rcu_head rcu;
+> 	};
+> 	struct llist_node llist;
 > 
-> struct kretprobe_holder {
-> 	atomic_t refcnt;
-> 	struct kretprobe *rp;
-> };
+> for v4, because after some sleep I'm fairly sure what I wrote above was
+> broken.
 > 
-> struct kretprobe {
-> ...
-> 	struct kretprobe_holder	*rph;	// allocate at register
-> ...
-> };
-> 
-> struct kretprobe_instance {
-> ...
-> 	struct kretprobe_holder	*rph; // free if refcnt == 0
-> ...
-> };
-> 
-> cleanup_rp_inst(struct kretprobe *rp)
-> {
-> 	rp->rph->rp = NULL;
-> }
-> 
-> kretprobe_trampoline_handler()
-> {
-> ...
-> 	rp = READ_ONCE(ri->rph-rp);
-> 	if (likely(rp)) {
-> 		// call rp->handler
-> 	} else
-> 		rcu_call(ri, free_rp_inst_rcu);
-> ...
-> }
-> 
-> free_rp_inst_rcu()
-> {
-> 	if (!atomic_dec_return(ri->rph->refcnt))
-> 		kfree(ri->rph);
-> 	kfree(ri);
-> }
-> 
-> This increase kretprobe_instance a bit, but make things simpler.
-> (and still keep lockless, atomic op is in the rcu callback).
+> We'll only use RCU once the freelist is gone, so sharing that storage
+> should still be okay.
 
-OK, I've written the code and run a smoke test on it.
-I'll send it with my 4th version of series.
+Hmm, would you mean there is a chance that an instance belongs to
+both freelist and llist?
 
 Thank you,
+
 
 -- 
 Masami Hiramatsu <mhiramat@kernel.org>
