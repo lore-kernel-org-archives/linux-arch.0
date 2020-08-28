@@ -7,37 +7,37 @@ X-Spam-Status: No, score=-14.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AA796C433E2
-	for <linux-arch@archiver.kernel.org>; Fri, 28 Aug 2020 12:31:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6AA89C433E2
+	for <linux-arch@archiver.kernel.org>; Fri, 28 Aug 2020 12:31:22 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 79D1C2078A
-	for <linux-arch@archiver.kernel.org>; Fri, 28 Aug 2020 12:31:00 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3E3082078A
+	for <linux-arch@archiver.kernel.org>; Fri, 28 Aug 2020 12:31:22 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1598617860;
-	bh=JCO/lXzUYdFJWlKazCE1J0QbFO+BF8f1YZINWJLpv0A=;
+	s=default; t=1598617882;
+	bh=5lzSgZ2xdAht4OeIc7gBPbt2PKptF7RGvnsQijVexP4=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=EPmueTIGKnDguJhVr480zFLDgnTSBZrNbHirbdUca/09Rv0XPldLW3tWu0AAlYpVa
-	 i1ltPdrPlxnZUk64Frp55aoKSGfc7ItB+xk2/9yXeqTR6sYe7ZlI3N4tAr+6sDYKU5
-	 52BNk9QZPJt34AABVB03mXD7BlTlrT/e6Hbqst1w=
+	b=xU+n5oQlP2WhtZSIBlbV8W3WKgaugcRop2J78qCFQyELNM8oM05htK834+jlr2V/d
+	 KerfVtsxOAhkBR0BBz/XjBOGorpj6YUjAPhist679iakR1jiBCcQhT38708wPhOakp
+	 YDJ1BY5oShxSGCrNH56IXTlpn3WFY10u3p4IuM1M=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729175AbgH1Maq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 28 Aug 2020 08:30:46 -0400
-Received: from mail.kernel.org ([198.145.29.99]:40932 "EHLO mail.kernel.org"
+        id S1729369AbgH1MbT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 28 Aug 2020 08:31:19 -0400
+Received: from mail.kernel.org ([198.145.29.99]:41542 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729410AbgH1M3v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 28 Aug 2020 08:29:51 -0400
+        id S1729348AbgH1MbA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 28 Aug 2020 08:31:00 -0400
 Received: from localhost.localdomain (NE2965lan1.rev.em-net.ne.jp [210.141.244.193])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 4D5F12086A;
-        Fri, 28 Aug 2020 12:29:46 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id D244120848;
+        Fri, 28 Aug 2020 12:30:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1598617789;
-        bh=JCO/lXzUYdFJWlKazCE1J0QbFO+BF8f1YZINWJLpv0A=;
+        s=default; t=1598617854;
+        bh=5lzSgZ2xdAht4OeIc7gBPbt2PKptF7RGvnsQijVexP4=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=jYr3eXjYnGs59WVQsPiU2JU2fTihwh1eB9pwsba1cCkRmVzTHjwZ8+A/CLiwtbKxL
-         7xU3517WjfWK9PRUS/Kay+BDI8mPXl0d5zpaPX+xZ4JMJ+7jX1SLd3W1vCkglBERV0
-         3rIRI09gr0GA2he8l52TCYT1RDB4Vod8E9nradno=
+        b=y3DvgiRQPYZsSKf6OCcIgrLkK11PrC5Vfnf//RYDE1AvvwexJLbOwcdBkYNf5szY1
+         mFhs3yUE1lbUQYBRbhYQhdxaBlbRtP/T+DmxZRxguSuNYBJYB4i9MiiZEGl1L1nWT3
+         jxht0KlAQ5TVY3ajmG7AWOzqmaqSG76H1PpGCVGg=
 From:   Masami Hiramatsu <mhiramat@kernel.org>
 To:     linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
 Cc:     Eddy_Wu@trendmicro.com, x86@kernel.org, davem@davemloft.net,
@@ -45,9 +45,9 @@ Cc:     Eddy_Wu@trendmicro.com, x86@kernel.org, davem@davemloft.net,
         anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org,
         cameron@moodycamel.com, oleg@redhat.com, will@kernel.org,
         paulmck@kernel.org, mhiramat@kernel.org
-Subject: [PATCH v4 17/23] llist: Add nonatomic __llist_add()
-Date:   Fri, 28 Aug 2020 21:29:44 +0900
-Message-Id: <159861778403.992023.16294174469836026964.stgit@devnote2>
+Subject: [PATCH v4 23/23] kprobes: Replace rp->free_instance with freelist
+Date:   Fri, 28 Aug 2020 21:30:49 +0900
+Message-Id: <159861784965.992023.10483111122152811370.stgit@devnote2>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <159861759775.992023.12553306821235086809.stgit@devnote2>
 References: <159861759775.992023.12553306821235086809.stgit@devnote2>
@@ -62,60 +62,152 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Peter Zijlstra <peterz@infradead.org>
 
+Gets rid of rp->lock, and as a result kretprobes are now fully
+lockless.
+
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- drivers/gpu/drm/i915/i915_request.c |    6 ------
- include/linux/llist.h               |   15 +++++++++++++++
- 2 files changed, 15 insertions(+), 6 deletions(-)
+ Changes
+  - [MH] expel the llist from anon union in kretprobe_instance
+---
+ include/linux/kprobes.h |    8 +++----
+ kernel/kprobes.c        |   56 ++++++++++++++++++++---------------------------
+ 2 files changed, 28 insertions(+), 36 deletions(-)
 
-diff --git a/drivers/gpu/drm/i915/i915_request.c b/drivers/gpu/drm/i915/i915_request.c
-index 0b2fe55e6194..0e851b925c8c 100644
---- a/drivers/gpu/drm/i915/i915_request.c
-+++ b/drivers/gpu/drm/i915/i915_request.c
-@@ -357,12 +357,6 @@ void i915_request_retire_upto(struct i915_request *rq)
- 	} while (i915_request_retire(tmp) && tmp != rq);
- }
+diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
+index d7cdae2d8f2e..aa330bfefefd 100644
+--- a/include/linux/kprobes.h
++++ b/include/linux/kprobes.h
+@@ -28,6 +28,7 @@
+ #include <linux/mutex.h>
+ #include <linux/ftrace.h>
+ #include <linux/refcount.h>
++#include <linux/freelist.h>
+ #include <asm/kprobes.h>
  
--static void __llist_add(struct llist_node *node, struct llist_head *head)
--{
--	node->next = head->first;
--	head->first = node;
--}
--
- static struct i915_request * const *
- __engine_active(struct intel_engine_cs *engine)
+ #ifdef CONFIG_KPROBES
+@@ -157,17 +158,16 @@ struct kretprobe {
+ 	int maxactive;
+ 	int nmissed;
+ 	size_t data_size;
+-	struct hlist_head free_instances;
++	struct freelist_head freelist;
+ 	struct kretprobe_holder *rph;
+-	raw_spinlock_t lock;
+ };
+ 
+ struct kretprobe_instance {
+ 	union {
+-		struct llist_node llist;
+-		struct hlist_node hlist;
++		struct freelist_node freelist;
+ 		struct rcu_head rcu;
+ 	};
++	struct llist_node llist;
+ 	struct kretprobe_holder *rph;
+ 	kprobe_opcode_t *ret_addr;
+ 	void *fp;
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index 95390eb130f4..56cd865877fa 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -1228,11 +1228,8 @@ static void recycle_rp_inst(struct kretprobe_instance *ri)
  {
-diff --git a/include/linux/llist.h b/include/linux/llist.h
-index 2e9c7215882b..c17893dcc591 100644
---- a/include/linux/llist.h
-+++ b/include/linux/llist.h
-@@ -197,6 +197,16 @@ static inline struct llist_node *llist_next(struct llist_node *node)
- extern bool llist_add_batch(struct llist_node *new_first,
- 			    struct llist_node *new_last,
- 			    struct llist_head *head);
-+
-+static inline bool __llist_add_batch(struct llist_node *new_first,
-+				     struct llist_node *new_last,
-+				     struct llist_head *head)
-+{
-+	new_last->next = head->first;
-+	head->first = new_first;
-+	return new_last->next == NULL;
-+}
-+
- /**
-  * llist_add - add a new entry
-  * @new:	new entry to be added
-@@ -209,6 +219,11 @@ static inline bool llist_add(struct llist_node *new, struct llist_head *head)
- 	return llist_add_batch(new, new, head);
- }
+ 	struct kretprobe *rp = get_kretprobe(ri);
  
-+static inline bool __llist_add(struct llist_node *new, struct llist_head *head)
-+{
-+	return __llist_add_batch(new, new, head);
-+}
+-	INIT_HLIST_NODE(&ri->hlist);
+ 	if (likely(rp)) {
+-		raw_spin_lock(&rp->lock);
+-		hlist_add_head(&ri->hlist, &rp->free_instances);
+-		raw_spin_unlock(&rp->lock);
++		freelist_add(&ri->freelist, &rp->freelist);
+ 	} else
+ 		call_rcu(&ri->rcu, free_rp_inst_rcu);
+ }
+@@ -1292,11 +1289,14 @@ NOKPROBE_SYMBOL(kprobe_flush_task);
+ static inline void free_rp_inst(struct kretprobe *rp)
+ {
+ 	struct kretprobe_instance *ri;
+-	struct hlist_node *next;
++	struct freelist_node *node;
+ 	int count = 0;
+ 
+-	hlist_for_each_entry_safe(ri, next, &rp->free_instances, hlist) {
+-		hlist_del(&ri->hlist);
++	node = rp->freelist.head;
++	while (node) {
++		ri = container_of(node, struct kretprobe_instance, freelist);
++		node = node->next;
 +
- /**
-  * llist_del_all - delete all entries from lock-less list
-  * @head:	the head of lock-less list to delete all entries
+ 		kfree(ri);
+ 		count++;
+ 	}
+@@ -1925,32 +1925,26 @@ NOKPROBE_SYMBOL(__kretprobe_trampoline_handler)
+ static int pre_handler_kretprobe(struct kprobe *p, struct pt_regs *regs)
+ {
+ 	struct kretprobe *rp = container_of(p, struct kretprobe, kp);
+-	unsigned long flags = 0;
+ 	struct kretprobe_instance *ri;
++	struct freelist_node *fn;
+ 
+-	/* TODO: consider to only swap the RA after the last pre_handler fired */
+-	raw_spin_lock_irqsave(&rp->lock, flags);
+-	if (!hlist_empty(&rp->free_instances)) {
+-		ri = hlist_entry(rp->free_instances.first,
+-				struct kretprobe_instance, hlist);
+-		hlist_del(&ri->hlist);
+-		raw_spin_unlock_irqrestore(&rp->lock, flags);
+-
+-		if (rp->entry_handler && rp->entry_handler(ri, regs)) {
+-			raw_spin_lock_irqsave(&rp->lock, flags);
+-			hlist_add_head(&ri->hlist, &rp->free_instances);
+-			raw_spin_unlock_irqrestore(&rp->lock, flags);
+-			return 0;
+-		}
+-
+-		arch_prepare_kretprobe(ri, regs);
++	fn = freelist_try_get(&rp->freelist);
++	if (!fn) {
++		rp->nmissed++;
++		return 0;
++	}
+ 
+-		__llist_add(&ri->llist, &current->kretprobe_instances);
++	ri = container_of(fn, struct kretprobe_instance, freelist);
+ 
+-	} else {
+-		rp->nmissed++;
+-		raw_spin_unlock_irqrestore(&rp->lock, flags);
++	if (rp->entry_handler && rp->entry_handler(ri, regs)) {
++		freelist_add(&ri->freelist, &rp->freelist);
++		return 0;
+ 	}
++
++	arch_prepare_kretprobe(ri, regs);
++
++	__llist_add(&ri->llist, &current->kretprobe_instances);
++
+ 	return 0;
+ }
+ NOKPROBE_SYMBOL(pre_handler_kretprobe);
+@@ -2007,8 +2001,7 @@ int register_kretprobe(struct kretprobe *rp)
+ 		rp->maxactive = num_possible_cpus();
+ #endif
+ 	}
+-	raw_spin_lock_init(&rp->lock);
+-	INIT_HLIST_HEAD(&rp->free_instances);
++	rp->freelist.head = NULL;
+ 	rp->rph = kzalloc(sizeof(struct kretprobe_holder), GFP_KERNEL);
+ 	rp->rph->rp = rp;
+ 	for (i = 0; i < rp->maxactive; i++) {
+@@ -2020,8 +2013,7 @@ int register_kretprobe(struct kretprobe *rp)
+ 			return -ENOMEM;
+ 		}
+ 		inst->rph = rp->rph;
+-		INIT_HLIST_NODE(&inst->hlist);
+-		hlist_add_head(&inst->hlist, &rp->free_instances);
++		freelist_add(&inst->freelist, &rp->freelist);
+ 	}
+ 	refcount_set(&rp->rph->ref, i);
+ 
 
