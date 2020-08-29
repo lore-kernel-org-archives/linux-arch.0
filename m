@@ -7,37 +7,37 @@ X-Spam-Status: No, score=-14.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2A702C433E2
-	for <linux-arch@archiver.kernel.org>; Sat, 29 Aug 2020 13:03:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A3326C433E6
+	for <linux-arch@archiver.kernel.org>; Sat, 29 Aug 2020 13:03:50 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 090D820EDD
-	for <linux-arch@archiver.kernel.org>; Sat, 29 Aug 2020 13:03:41 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8109B20EDD
+	for <linux-arch@archiver.kernel.org>; Sat, 29 Aug 2020 13:03:50 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1598706221;
-	bh=w9gK3vfNWub0gKn2f1AbBtHLMsVqdA5lIAUDVNwM+Tc=;
+	s=default; t=1598706230;
+	bh=OnDsOkdDc4BFhJtuovyYT6NNWTOHQ4rJ+pxhZH/+kVU=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=LvM7O47dDhArJ8dsGX3J2eS8Q/X4PieB8Ud6yv9snI494/IbuDz7Mj04qyjTwekzP
-	 J2Z+T57UPK1nW/GIFJUjVLhbEEngr4SL2sQGyU3w7CP4qq2Lt/QRyJEBVxnSBk7KHd
-	 Td+hP996YSrSGxVSFyXvWoCpK090MBMNqqJnbnmc=
+	b=JFqlfgGptXPodMch/yVUaJGhopvbbtitCiGjMhQn5bk6ZiLsmLAPakty5rKO5eK5u
+	 S655w0IvV/VTYaMGCOPGuv8cXwZxYHoC8cRpZKS2lK6UUvkesovHyZU1ev81Pl9FA4
+	 1ak1HqWAaYJ7LCj6tV1i1/ca/JAPO1j+OGo9RzSg=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728030AbgH2ND2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 29 Aug 2020 09:03:28 -0400
-Received: from mail.kernel.org ([198.145.29.99]:53984 "EHLO mail.kernel.org"
+        id S1728211AbgH2NDi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 29 Aug 2020 09:03:38 -0400
+Received: from mail.kernel.org ([198.145.29.99]:53732 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728190AbgH2NCu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 29 Aug 2020 09:02:50 -0400
+        id S1728182AbgH2NCU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 29 Aug 2020 09:02:20 -0400
 Received: from localhost.localdomain (NE2965lan1.rev.em-net.ne.jp [210.141.244.193])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 45D222076D;
-        Sat, 29 Aug 2020 13:02:38 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id C5A1021548;
+        Sat, 29 Aug 2020 13:02:17 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1598706161;
-        bh=w9gK3vfNWub0gKn2f1AbBtHLMsVqdA5lIAUDVNwM+Tc=;
+        s=default; t=1598706140;
+        bh=OnDsOkdDc4BFhJtuovyYT6NNWTOHQ4rJ+pxhZH/+kVU=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=w0Tvi3WgdeocwLMk+CjQf2J9AFI1F/4NRiwsa3xvyg4YBg+GJBRDiGm8AMVgiIuI/
-         bwJD/UEtMTbauxLLS/sLboKyoXW/fEQkdn0DnmpbsycQ3s+jaToPxvQQNsqGLW983o
-         /VAGhhUXuzFnQXA+BFebq7mv3PvCIEU0mZJ5aERQ=
+        b=Fi1ZSQeiCV90J9TWX/zz8C84dVH53OLwhyy1FmI+fmhiyFEbg9YllmRtEg5vXQh6p
+         6sOIHD37QucZXe1mgJ3X7OOEtU9nnYHNCH0mUmsi26i/CEjz39z+SzxRJJ8cY6i1gp
+         iWxJAaNICUv58//+HtwwN7IN+WT5ttMlyIYEs1t0=
 From:   Masami Hiramatsu <mhiramat@kernel.org>
 To:     linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
 Cc:     Eddy_Wu@trendmicro.com, x86@kernel.org, davem@davemloft.net,
@@ -45,9 +45,9 @@ Cc:     Eddy_Wu@trendmicro.com, x86@kernel.org, davem@davemloft.net,
         anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org,
         cameron@moodycamel.com, oleg@redhat.com, will@kernel.org,
         paulmck@kernel.org, mhiramat@kernel.org
-Subject: [PATCH v5 14/21] kprobes: Remove NMI context check
-Date:   Sat, 29 Aug 2020 22:02:36 +0900
-Message-Id: <159870615628.1229682.6087311596892125907.stgit@devnote2>
+Subject: [PATCH v5 12/21] sh: kprobes: Use generic kretprobe trampoline handler
+Date:   Sat, 29 Aug 2020 22:02:15 +0900
+Message-Id: <159870613547.1229682.15519965962108261812.stgit@devnote2>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <159870598914.1229682.15230803449082078353.stgit@devnote2>
 References: <159870598914.1229682.15230803449082078353.stgit@devnote2>
@@ -60,69 +60,86 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Since the commit 9b38cc704e84 ("kretprobe: Prevent triggering
-kretprobe from within kprobe_flush_task") sets a dummy current
-kprobe in the trampoline handler by kprobe_busy_begin/end(),
-it is not possible to run a kretprobe pre handler in kretprobe
-trampoline handler context even with the NMI. If the NMI interrupts
-a kretprobe_trampoline_handler() and it hits a kretprobe, the
-2nd kretprobe will detect recursion correctly and it will be
-skipped.
-This means we have almost no double-lock issue on kretprobes by NMI.
-
-The last one point is in cleanup_rp_inst() which also takes
-kretprobe_table_lock without setting up current kprobes.
-So adding kprobe_busy_begin/end() there allows us to remove
-in_nmi() check.
-
-The above commit applies kprobe_busy_begin/end() on x86, but
-now all arch implementation are unified to generic one, we can
-safely remove the in_nmi() check from arch independent code.
-
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
 ---
- kernel/kprobes.c |   16 ++++------------
- 1 file changed, 4 insertions(+), 12 deletions(-)
+ arch/sh/kernel/kprobes.c |   58 ++--------------------------------------------
+ 1 file changed, 3 insertions(+), 55 deletions(-)
 
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index a0afaa79024e..211138225fa5 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -1359,7 +1359,8 @@ static void cleanup_rp_inst(struct kretprobe *rp)
- 	struct hlist_node *next;
- 	struct hlist_head *head;
+diff --git a/arch/sh/kernel/kprobes.c b/arch/sh/kernel/kprobes.c
+index 318296f48f1a..756100b01e84 100644
+--- a/arch/sh/kernel/kprobes.c
++++ b/arch/sh/kernel/kprobes.c
+@@ -204,6 +204,7 @@ void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
+ 				      struct pt_regs *regs)
+ {
+ 	ri->ret_addr = (kprobe_opcode_t *) regs->pr;
++	ri->fp = NULL;
  
--	/* No race here */
-+	/* To avoid recursive kretprobe by NMI, set kprobe busy here */
-+	kprobe_busy_begin();
- 	for (hash = 0; hash < KPROBE_TABLE_SIZE; hash++) {
- 		kretprobe_table_lock(hash, &flags);
- 		head = &kretprobe_inst_table[hash];
-@@ -1369,6 +1370,8 @@ static void cleanup_rp_inst(struct kretprobe *rp)
- 		}
- 		kretprobe_table_unlock(hash, &flags);
- 	}
-+	kprobe_busy_end();
-+
- 	free_rp_inst(rp);
- }
- NOKPROBE_SYMBOL(cleanup_rp_inst);
-@@ -2035,17 +2038,6 @@ static int pre_handler_kretprobe(struct kprobe *p, struct pt_regs *regs)
- 	unsigned long hash, flags = 0;
- 	struct kretprobe_instance *ri;
+ 	/* Replace the return addr with trampoline addr */
+ 	regs->pr = (unsigned long)kretprobe_trampoline;
+@@ -302,62 +303,9 @@ static void __used kretprobe_trampoline_holder(void)
+  */
+ int __kprobes trampoline_probe_handler(struct kprobe *p, struct pt_regs *regs)
+ {
+-	struct kretprobe_instance *ri = NULL;
+-	struct hlist_head *head, empty_rp;
+-	struct hlist_node *tmp;
+-	unsigned long flags, orig_ret_address = 0;
+-	unsigned long trampoline_address = (unsigned long)&kretprobe_trampoline;
++	regs->pc = __kretprobe_trampoline_handler(regs, &kretprobe_trampoline, NULL);
  
+-	INIT_HLIST_HEAD(&empty_rp);
+-	kretprobe_hash_lock(current, &head, &flags);
+-
 -	/*
--	 * To avoid deadlocks, prohibit return probing in NMI contexts,
--	 * just skip the probe and increase the (inexact) 'nmissed'
--	 * statistical counter, so that the user is informed that
--	 * something happened:
+-	 * It is possible to have multiple instances associated with a given
+-	 * task either because an multiple functions in the call path
+-	 * have a return probe installed on them, and/or more then one return
+-	 * return probe was registered for a target function.
+-	 *
+-	 * We can handle this because:
+-	 *     - instances are always inserted at the head of the list
+-	 *     - when multiple return probes are registered for the same
+-	 *       function, the first instance's ret_addr will point to the
+-	 *       real return address, and all the rest will point to
+-	 *       kretprobe_trampoline
 -	 */
--	if (unlikely(in_nmi())) {
--		rp->nmissed++;
--		return 0;
+-	hlist_for_each_entry_safe(ri, tmp, head, hlist) {
+-		if (ri->task != current)
+-			/* another task is sharing our hash bucket */
+-			continue;
+-
+-		if (ri->rp && ri->rp->handler) {
+-			__this_cpu_write(current_kprobe, &ri->rp->kp);
+-			ri->rp->handler(ri, regs);
+-			__this_cpu_write(current_kprobe, NULL);
+-		}
+-
+-		orig_ret_address = (unsigned long)ri->ret_addr;
+-		recycle_rp_inst(ri, &empty_rp);
+-
+-		if (orig_ret_address != trampoline_address)
+-			/*
+-			 * This is the real return address. Any other
+-			 * instances associated with this task are for
+-			 * other calls deeper on the call stack
+-			 */
+-			break;
 -	}
 -
- 	/* TODO: consider to only swap the RA after the last pre_handler fired */
- 	hash = hash_ptr(current, KPROBE_HASH_BITS);
- 	raw_spin_lock_irqsave(&rp->lock, flags);
+-	kretprobe_assert(ri, orig_ret_address, trampoline_address);
+-
+-	regs->pc = orig_ret_address;
+-	kretprobe_hash_unlock(current, &flags);
+-
+-	hlist_for_each_entry_safe(ri, tmp, &empty_rp, hlist) {
+-		hlist_del(&ri->hlist);
+-		kfree(ri);
+-	}
+-
+-	return orig_ret_address;
++	return 1;
+ }
+ 
+ static int __kprobes post_kprobe_handler(struct pt_regs *regs)
 
