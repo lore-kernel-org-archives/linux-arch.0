@@ -1,150 +1,199 @@
-Return-Path: <SRS0=t1zw=CH=vger.kernel.org=linux-arch-owner@kernel.org>
+Return-Path: <SRS0=Ybp/=CI=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.6 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+X-Spam-Status: No, score=-11.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=ham
-	autolearn_force=no version=3.4.0
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 75EC3C433E2
-	for <linux-arch@archiver.kernel.org>; Sat, 29 Aug 2020 17:31:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2E334C433E2
+	for <linux-arch@archiver.kernel.org>; Sun, 30 Aug 2020 02:55:00 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5C0A620B80
-	for <linux-arch@archiver.kernel.org>; Sat, 29 Aug 2020 17:31:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 02E172075B
+	for <linux-arch@archiver.kernel.org>; Sun, 30 Aug 2020 02:55:00 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1598722264;
-	bh=MIejLqCcrs1VRg7ixEsu20TKbHNfmfOmpymgis+xDAs=;
-	h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:List-ID:
-	 From;
-	b=ZagKCuHCC1oxa/YtWyOIo7Q7z6HLc22pEV0XEIjwJjZWWh1MV5Q9olkwqzGYZD39b
-	 MCPla9tEbjMA5RXguEyQBQM8v3o5jWKHZ7WCSzhMTN50uOiB48XnFE774Mk8tcgDh1
-	 1oJ8fdX5wTikBcYXnz6nJt59HKrBOu7Gxb/OxIq0=
+	s=default; t=1598756100;
+	bh=Z3utoNDrOsl5rBfHIimSAKozg7AYBP8nGpqxszM//w0=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:List-ID:From;
+	b=FcoXsRdGe4tbrXOBjxIVe6S8t3z8TNtx0lH4udgWigoanRtZuamGQruwMD0A7bi8W
+	 LYqRDDtskXVCACgK9EDVXej/MuibyCK8eJRuP0ykL9Iq0KYT4BI3srkon2oJW/kZoJ
+	 9BpkHg3ge50dFtlzqbyFwyhD9uvBaQPP+dYy8VHM=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728273AbgH2RbD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 29 Aug 2020 13:31:03 -0400
-Received: from mail.kernel.org ([198.145.29.99]:36314 "EHLO mail.kernel.org"
+        id S1728614AbgH3Cyn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 29 Aug 2020 22:54:43 -0400
+Received: from mail.kernel.org ([198.145.29.99]:56956 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728139AbgH2RbD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 29 Aug 2020 13:31:03 -0400
-Received: from paulmck-ThinkPad-P72.home (unknown [50.45.173.55])
+        id S1728613AbgH3Cym (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 29 Aug 2020 22:54:42 -0400
+Received: from localhost (113.sub-72-107-119.myvzw.com [72.107.119.113])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id E9C4220757;
-        Sat, 29 Aug 2020 17:31:00 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 9897D2075B;
+        Sun, 30 Aug 2020 02:54:40 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1598722261;
-        bh=MIejLqCcrs1VRg7ixEsu20TKbHNfmfOmpymgis+xDAs=;
-        h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:From;
-        b=vrnNntjzOiZFvoYkZ0iQ4dzR5oKfwpzgI5nJ9G/vAV5m+TX0viJULfFgV2x2xy5eG
-         BWafutq7HG2YAtPUbP0YhJHJ4arzKJwJ618fzvyM9TCQelSoSebEZuN62wGRbT5mYb
-         BMgwyoEcP9NZBzr46+AUyX1/I854yqP3uc4f8TwQ=
-Received: by paulmck-ThinkPad-P72.home (Postfix, from userid 1000)
-        id BD3773523112; Sat, 29 Aug 2020 10:31:00 -0700 (PDT)
-Date:   Sat, 29 Aug 2020 10:31:00 -0700
-From:   "Paul E. McKenney" <paulmck@kernel.org>
-To:     peterz@infradead.org
-Cc:     Masami Hiramatsu <mhiramat@kernel.org>,
-        linux-kernel@vger.kernel.org, Eddy_Wu@trendmicro.com,
-        x86@kernel.org, davem@davemloft.net, rostedt@goodmis.org,
-        naveen.n.rao@linux.ibm.com, anil.s.keshavamurthy@intel.com,
-        linux-arch@vger.kernel.org, cameron@moodycamel.com,
-        oleg@redhat.com, will@kernel.org
-Subject: Re: [PATCH v4 18/23] sched: Fix try_invoke_on_locked_down_task()
- semantics
-Message-ID: <20200829173100.GS2855@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: <159861759775.992023.12553306821235086809.stgit@devnote2>
- <159861779482.992023.8503137488052381952.stgit@devnote2>
- <20200829110155.70c676520ad2cfef8374171d@kernel.org>
- <20200829073049.GC2674@hirez.programming.kicks-ass.net>
+        s=default; t=1598756081;
+        bh=Z3utoNDrOsl5rBfHIimSAKozg7AYBP8nGpqxszM//w0=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:From;
+        b=jtwZ/v6p2sVfweeOXgXlYs5Vnq9wMh10kTQjajvH7IdOshWMhSKCj27bkwKMpHy+J
+         Qk7+qfwS1qADtdTbFQaqgVtbf2ylygBfMX7uq6EJiNYEWaOw9HbZh5aCjfBoUbi0/f
+         nZknlBe/Q7GsLWKnLGQJ0kDtulxaxEznfsmvVgm8=
+Date:   Sat, 29 Aug 2020 21:54:38 -0500
+From:   Bjorn Helgaas <helgaas@kernel.org>
+To:     Atish Patra <atishp@atishpatra.org>
+Cc:     Jonathan Cameron <Jonathan.Cameron@huawei.com>,
+        "Rafael J. Wysocki" <rafael@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Atish Patra <atish.patra@wdc.com>,
+        Zong Li <zong.li@sifive.com>,
+        linux-riscv <linux-riscv@lists.infradead.org>,
+        Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org,
+        Rob Herring <robh@kernel.org>,
+        Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>,
+        Ganapatrao Kulkarni <gkulkarni@cavium.com>,
+        Steven Price <steven.price@arm.com>, linux-pci@vger.kernel.org,
+        Greentime Hu <greentime.hu@sifive.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Anshuman Khandual <anshuman.khandual@arm.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Bjorn Helgaas <bhelgaas@google.com>,
+        "linux-arm-kernel@lists.infradead.org" 
+        <linux-arm-kernel@lists.infradead.org>,
+        Nick Hu <nickhu@andestech.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Anup Patel <Anup.Patel@wdc.com>,
+        "linux-kernel@vger.kernel.org List" <linux-kernel@vger.kernel.org>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Mike Rapoport <rppt@kernel.org>
+Subject: Re: [RFC/RFT PATCH 3/6] arm64, numa: Move pcibus_to_node definition
+ to generic numa code
+Message-ID: <20200830025438.GA9624@bjorn-Precision-5520>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200829073049.GC2674@hirez.programming.kicks-ass.net>
-User-Agent: Mutt/1.9.4 (2018-02-28)
+In-Reply-To: <CAOnJCULtHzQKJNE4OO_U2NMaW6pX38Pw7dLywGc9og1BuuAYNQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sat, Aug 29, 2020 at 09:30:49AM +0200, peterz@infradead.org wrote:
-> On Sat, Aug 29, 2020 at 11:01:55AM +0900, Masami Hiramatsu wrote:
-> > On Fri, 28 Aug 2020 21:29:55 +0900
-> > Masami Hiramatsu <mhiramat@kernel.org> wrote:
-> > 
-> > > From: Peter Zijlstra <peterz@infradead.org>
-> > 
-> > In the next version I will drop this since I will merge the kretprobe_holder
-> > things into removing kretporbe hash patch.
-> > 
-> > However, this patch itself seems fixing a bug of commit 2beaf3280e57
-> > ("sched/core: Add function to sample state of locked-down task").
-> > Peter, could you push this separately?
-> 
-> Yeah, Paul and me have a slightly different version for that, this also
-> changes semantics we're still bickering over ;-)
-> 
-> But yes, I'll take care of it.
+On Fri, Aug 28, 2020 at 06:11:50PM -0700, Atish Patra wrote:
+> On Fri, Aug 28, 2020 at 9:15 AM Bjorn Helgaas <helgaas@kernel.org> wrote:
+> > On Fri, Aug 28, 2020 at 10:48:30AM +0100, Jonathan Cameron wrote:
+> > > On Fri, 14 Aug 2020 14:47:22 -0700
+> > > Atish Patra <atish.patra@wdc.com> wrote:
+> > >
+> > > > pcibus_to_node is used only when numa is enabled and does not depend
+> > > > on ISA. Thus, it can be moved the generic numa implementation.
+> > > >
+> > > > Signed-off-by: Atish Patra <atish.patra@wdc.com>
+> > >
+> > > From a more general unification point of view, there seem to
+> > > be two ways architectures implement this.
+> > > Either
+> > >
+> > > bus->sysdata.node
+> > >
+> > > Or as here.
+> > > There are weird other options, but let us ignore those :)
+> > >
+> > > That is going to take a bit of unwinding should we
+> > > want to take this unification further and perhaps we want to think
+> > > about doing this in pci generic code rather than here?
+> > >
+> > > Perhaps this is one we are better keeping architecture specific for
+> > > now?
+> > >
+> > > +CC Bjorn and Linux-pci
+> > >
+> > >
+> > > > ---
+> > > >  arch/arm64/kernel/pci.c  | 10 ----------
+> > > >  drivers/base/arch_numa.c | 11 +++++++++++
+> > > >  2 files changed, 11 insertions(+), 10 deletions(-)
+> > > >
+> > > > diff --git a/arch/arm64/kernel/pci.c b/arch/arm64/kernel/pci.c
+> > > > index 1006ed2d7c60..07c122946c11 100644
+> > > > --- a/arch/arm64/kernel/pci.c
+> > > > +++ b/arch/arm64/kernel/pci.c
+> > > > @@ -54,16 +54,6 @@ int raw_pci_write(unsigned int domain, unsigned int bus,
+> > > >     return b->ops->write(b, devfn, reg, len, val);
+> > > >  }
+> > > >
+> > > > -#ifdef CONFIG_NUMA
+> > > > -
+> > > > -int pcibus_to_node(struct pci_bus *bus)
+> > > > -{
+> > > > -   return dev_to_node(&bus->dev);
+> > > > -}
+> > > > -EXPORT_SYMBOL(pcibus_to_node);
+> > > > -
+> > > > -#endif
+> > > > -
+> > > >  #ifdef CONFIG_ACPI
+> > > >
+> > > >  struct acpi_pci_generic_root_info {
+> > > > diff --git a/drivers/base/arch_numa.c b/drivers/base/arch_numa.c
+> > > > index 83341c807240..4ab1b20a615d 100644
+> > > > --- a/drivers/base/arch_numa.c
+> > > > +++ b/drivers/base/arch_numa.c
+> > > > @@ -11,6 +11,7 @@
+> > > >  #include <linux/acpi.h>
+> > > >  #include <linux/memblock.h>
+> > > >  #include <linux/module.h>
+> > > > +#include <linux/pci.h>
+> > > >  #include <linux/of.h>
+> > > >
+> > > >  #ifdef CONFIG_ARM64
+> > > > @@ -60,6 +61,16 @@ EXPORT_SYMBOL(cpumask_of_node);
+> > > >
+> > > >  #endif
+> > > >
+> > > > +#ifdef CONFIG_PCI
+> > > > +
+> > > > +int pcibus_to_node(struct pci_bus *bus)
+> > > > +{
+> > > > +   return dev_to_node(&bus->dev);
+> > > > +}
+> > > > +EXPORT_SYMBOL(pcibus_to_node);
+> > > > +
+> > > > +#endif
+> >
+> > I certainly agree that this should not be arch-specific, but I'm not
+> > really in favor of adding this PCI gunk in drivers/base.
+> >
+> > I think we can do better (eventually) by getting rid of
+> > pcibus_to_node() completely.  It's not used very much except by
+> > cpumask_of_pcibus(), which itself is hardly used at all.
+> >
+> I am a bit confused here. A quick grep suggested that pcibus_to_node()
+> is also called from generic pci probe,
+> controller and few drivers(block, infiniband) as well. Maybe I am
+> missing something here ?
 
-For whatever it is worth, I ended up back at your original patch with
-one change to the header comment, as shown below.  Does this work for you?
+I didn't say it was *only* used by cpumask_of_pcibus().  13 of the 29
+calls are from cpumask_of_pcibus().
 
-							Thanx, Paul
+As you point out, there are a few drivers that use it.  They typically
+have a pci_dev, so they do the equivalent of pcibus_to_node(pdev->bus).
+That seems silly; they should just do dev_to_node(&pdev->dev) instead.
 
-------------------------------------------------------------------------
+I looked at this once, and it seems like there might have been a
+wrinkle like the pdev->dev node not being set correctly or something.
+If that's the case, I think it should be fixed.
 
-commit 3f73a1137f8e999a606357064ebd914cf5f2c897
-Author: Peter Zijlstra <peterz@infradead.org>
-Date:   Sat Aug 29 10:22:24 2020 -0700
+> We can move the pcibus_to_node to arch specific code for now if that's
+> what is preferred.
 
-    sched/core: Allow try_invoke_on_locked_down_task() with irqs disabled
-    
-    The try_invoke_on_locked_down_task() function currently requires
-    that interrupts be enabled, but it is called with interrupts
-    disabled from rcu_print_task_stall(), resulting in an "IRQs not
-    enabled as expected" diagnostic.  This commit therefore updates
-    try_invoke_on_locked_down_task() to use raw_spin_lock_irqsave() instead
-    of raw_spin_lock_irq(), thus allowing use from either context.
-    
-    Link: https://lore.kernel.org/lkml/000000000000903d5805ab908fc4@google.com/
-    Reported-by: syzbot+cb3b69ae80afd6535b0e@syzkaller.appspotmail.com
-    Not-signed-off-by: Peter Zijlstra <peterz@infradead.org>
+Now I'm the one who's confused :)  Most arches, including arm64,
+already have arch-specific implementations of pcibus_to_node().  I
+didn't look at the rest of the series to see if there's a reason you
+need to move pcibus_to_node() from arch/arm64/kernel/pci.c to
+drivers//base/arch_numa.c.  If you don't need to, I would just leave
+it where it is.
 
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 8471a0f..a814028 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -2988,7 +2988,7 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
- 
- /**
-  * try_invoke_on_locked_down_task - Invoke a function on task in fixed state
-- * @p: Process for which the function is to be invoked.
-+ * @p: Process for which the function is to be invoked, can be @current.
-  * @func: Function to invoke.
-  * @arg: Argument to function.
-  *
-@@ -3006,12 +3006,11 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
-  */
- bool try_invoke_on_locked_down_task(struct task_struct *p, bool (*func)(struct task_struct *t, void *arg), void *arg)
- {
--	bool ret = false;
- 	struct rq_flags rf;
-+	bool ret = false;
- 	struct rq *rq;
- 
--	lockdep_assert_irqs_enabled();
--	raw_spin_lock_irq(&p->pi_lock);
-+	raw_spin_lock_irqsave(&p->pi_lock, rf.flags);
- 	if (p->on_rq) {
- 		rq = __task_rq_lock(p, &rf);
- 		if (task_rq(p) == rq)
-@@ -3028,7 +3027,7 @@ bool try_invoke_on_locked_down_task(struct task_struct *p, bool (*func)(struct t
- 				ret = func(p, arg);
- 		}
- 	}
--	raw_spin_unlock_irq(&p->pi_lock);
-+	raw_spin_unlock_irqrestore(&p->pi_lock, rf.flags);
- 	return ret;
- }
- 
+> > > >  static void numa_update_cpu(unsigned int cpu, bool remove)
+> > > >  {
+> > > >     int nid = cpu_to_node(cpu);
