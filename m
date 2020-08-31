@@ -4,51 +4,50 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 46388C433E6
-	for <linux-arch@archiver.kernel.org>; Mon, 31 Aug 2020 18:20:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 431FFC2BB4D
+	for <linux-arch@archiver.kernel.org>; Mon, 31 Aug 2020 18:21:19 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1CD1C20678
-	for <linux-arch@archiver.kernel.org>; Mon, 31 Aug 2020 18:20:55 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 1B6D520678
+	for <linux-arch@archiver.kernel.org>; Mon, 31 Aug 2020 18:21:19 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1598898055;
-	bh=GbUimKU7zvAKgZNGhX7IhIWdtWnZAJxe/ynYeOUWm6Y=;
+	s=default; t=1598898079;
+	bh=heC54HJZJRhKoXK7S58uiKiSEON3T0nWjfDpYeIt8jI=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=2BlmiWe60DY8D+LdCKRAVRNt0zBHWoVGPGGh52KqPJ+F3W0+Xakk8LQAG+n4SiQE0
-	 sWMiMNksxSYsul4CbJqWp47ED/+7jSwNDJ51JwsbsQbxRWmSgZWjeVgJhuAQHKLq+/
-	 tcdl2MzOU0yaSWbaNbEeMN3GM2tB6QWxvm8McZvc=
+	b=be7j2z7xbbrFZ51M2Lbh/ib7Rs1lFNnUD4ccRiRMREgEnr22usnahSTPLjuT1jvrU
+	 srWA3brcRVFRwXiJkuyJbQWHYYw95w60p3ITBqgKLbFo5MjNLsVcIAf/Otp+PhfjUd
+	 oSdEqJkrLQaVU1+j0gliDO/VsnhGLR4FP1601M3o=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729856AbgHaSUx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1729854AbgHaSUx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Mon, 31 Aug 2020 14:20:53 -0400
-Received: from mail.kernel.org ([198.145.29.99]:56538 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:56648 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727058AbgHaSUn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1729826AbgHaSUn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Mon, 31 Aug 2020 14:20:43 -0400
 Received: from paulmck-ThinkPad-P72.home (unknown [50.45.173.55])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 8C6D721534;
-        Mon, 31 Aug 2020 18:20:40 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id A85D421527;
+        Mon, 31 Aug 2020 18:20:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1598898040;
-        bh=GbUimKU7zvAKgZNGhX7IhIWdtWnZAJxe/ynYeOUWm6Y=;
+        s=default; t=1598898041;
+        bh=heC54HJZJRhKoXK7S58uiKiSEON3T0nWjfDpYeIt8jI=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=BjethCLNeYitW8NGP4mj8U3pGzV50+cDY3HLj1Rkbtfjer4wPgO3I9q5DfsmpsOrB
-         pr6BKMxxSmIIeeF3liP01+ZkdclQQeeMwV9knYQecXHtCmXtxSQX61kdw11ZdPp/gt
-         eTFDMgU8MsnKA+aQvSOp8W5AmO5Xk2t7fmnKot9o=
+        b=kqINwVWtK/QKH4YfjDPOyDf6dOf13nPtE7H1HOCS5+1M4Hi6JV6kYz3pxibagNJE+
+         +sqGrfGUNJA3/6BMi+KnAoczPsAz7AsOWXFd4P6KtjOCEE0B0Dt5n3UuGgRhoRSSbG
+         YUVpb7c3c2+41B15D0RmKkMnHpBgNkGb+dR6Eea8=
 From:   paulmck@kernel.org
 To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         kernel-team@fb.com, mingo@kernel.org
 Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
         peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
         dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        akiyks@gmail.com, "Paul E. McKenney" <paulmck@kernel.org>,
-        Dave Chinner <dchinner@redhat.com>
-Subject: [PATCH kcsan 5/9] tools/memory-model: Add a simple entry point document
-Date:   Mon, 31 Aug 2020 11:20:33 -0700
-Message-Id: <20200831182037.2034-5-paulmck@kernel.org>
+        akiyks@gmail.com, "Paul E. McKenney" <paulmck@kernel.org>
+Subject: [PATCH kcsan 9/9] tools/memory-model:  Document locking corner cases
+Date:   Mon, 31 Aug 2020 11:20:37 -0700
+Message-Id: <20200831182037.2034-9-paulmck@kernel.org>
 X-Mailer: git-send-email 2.9.5
 In-Reply-To: <20200831182012.GA1965@paulmck-ThinkPad-P72>
 References: <20200831182012.GA1965@paulmck-ThinkPad-P72>
@@ -59,338 +58,571 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: "Paul E. McKenney" <paulmck@kernel.org>
 
-Current LKMM documentation assumes that the reader already understands
-concurrency in the Linux kernel, which won't necessarily always be the
-case.  This commit supplies a simple.txt file that provides a starting
-point for someone who is new to concurrency in the Linux kernel.
-That said, this file might also useful as a reminder to experienced
-developers of simpler approaches to dealing with concurrency.
+Most Linux-kernel uses of locking are straightforward, but there are
+corner-case uses that rely on less well-known aspects of the lock and
+unlock primitives.  This commit therefore adds a locking.txt and litmus
+tests in Documentation/litmus-tests/locking to explain these corner-case
+uses.
 
-Link: Link: https://lwn.net/Articles/827180/
-[ paulmck: Apply feedback from Joel Fernandes. ]
-Co-developed-by: Dave Chinner <dchinner@redhat.com>
-Signed-off-by: Dave Chinner <dchinner@redhat.com>
-Co-developed-by: Paul E. McKenney <paulmck@kernel.org>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- tools/memory-model/Documentation/litmus-tests.txt |   8 +-
- tools/memory-model/Documentation/simple.txt       | 271 ++++++++++++++++++++++
- tools/memory-model/README                         |   5 +
- 3 files changed, 282 insertions(+), 2 deletions(-)
- create mode 100644 tools/memory-model/Documentation/simple.txt
+ .../litmus-tests/locking/DCL-broken.litmus         |  55 ++++
+ .../litmus-tests/locking/DCL-fixed.litmus          |  56 ++++
+ .../litmus-tests/locking/RM-broken.litmus          |  42 +++
+ Documentation/litmus-tests/locking/RM-fixed.litmus |  42 +++
+ tools/memory-model/Documentation/locking.txt       | 320 +++++++++++++++++++++
+ 5 files changed, 515 insertions(+)
+ create mode 100644 Documentation/litmus-tests/locking/DCL-broken.litmus
+ create mode 100644 Documentation/litmus-tests/locking/DCL-fixed.litmus
+ create mode 100644 Documentation/litmus-tests/locking/RM-broken.litmus
+ create mode 100644 Documentation/litmus-tests/locking/RM-fixed.litmus
+ create mode 100644 tools/memory-model/Documentation/locking.txt
 
-diff --git a/tools/memory-model/Documentation/litmus-tests.txt b/tools/memory-model/Documentation/litmus-tests.txt
-index 289a38d..2f840dc 100644
---- a/tools/memory-model/Documentation/litmus-tests.txt
-+++ b/tools/memory-model/Documentation/litmus-tests.txt
-@@ -726,8 +726,12 @@ P0()'s line 10 initializes "x" to the value 1 then line 11 links to "x"
- from "y", replacing "z".
- 
- P1()'s line 20 loads a pointer from "y", and line 21 dereferences that
--pointer.  The RCU read-side critical section spanning lines 19-22 is
--just for show in this example.
-+pointer.  The RCU read-side critical section spanning lines 19-22 is just
-+for show in this example.  Note that the address used for line 21's load
-+depends on (in this case, "is exactly the same as") the value loaded by
-+line 20.  This is an example of what is called an "address dependency".
-+This particular address dependency extends from the load on line 20 to the
-+load on line 21.  Address dependencies provide a weak form of ordering.
- 
- Running this test results in the following:
- 
-diff --git a/tools/memory-model/Documentation/simple.txt b/tools/memory-model/Documentation/simple.txt
+diff --git a/Documentation/litmus-tests/locking/DCL-broken.litmus b/Documentation/litmus-tests/locking/DCL-broken.litmus
 new file mode 100644
-index 0000000..81e1a0e
+index 0000000..cfaa25f
 --- /dev/null
-+++ b/tools/memory-model/Documentation/simple.txt
-@@ -0,0 +1,271 @@
-+This document provides options for those wishing to keep their
-+memory-ordering lives simple, as is necessary for those whose domain
-+is complex.  After all, there are bugs other than memory-ordering bugs,
-+and the time spent gaining memory-ordering knowledge is not available
-+for gaining domain knowledge.  Furthermore Linux-kernel memory model
-+(LKMM) is quite complex, with subtle differences in code often having
-+dramatic effects on correctness.
++++ b/Documentation/litmus-tests/locking/DCL-broken.litmus
+@@ -0,0 +1,55 @@
++C DCL-broken
 +
-+The options near the beginning of this list are quite simple.  The idea
-+is not that kernel hackers don't already know about them, but rather
-+that they might need the occasional reminder.
++(*
++ * Result: Sometimes
++ *
++ * This litmus test demonstrates more than just locking is required to
++ * correctly implement double-checked locking.
++ *)
 +
-+Please note that this is a generic guide, and that specific subsystems
-+will often have special requirements or idioms.  For example, developers
-+of MMIO-based device drivers will often need to use mb(), rmb(), and
-+wmb(), and therefore might find smp_mb(), smp_rmb(), and smp_wmb()
-+to be more natural than smp_load_acquire() and smp_store_release().
-+On the other hand, those coming in from other environments will likely
-+be more familiar with these last two.
++{
++	int flag;
++	int data;
++	int lck;
++}
 +
++P0(int *flag, int *data, int *lck)
++{
++	int r0;
++	int r1;
++	int r2;
 +
-+Single-threaded code
-+====================
++	r0 = READ_ONCE(*flag);
++	if (r0 == 0) {
++		spin_lock(lck);
++		r1 = READ_ONCE(*flag);
++		if (r1 == 0) {
++			WRITE_ONCE(*data, 1);
++			WRITE_ONCE(*flag, 1);
++		}
++		spin_unlock(lck);
++	}
++	r2 = READ_ONCE(*data);
++}
 +
-+In single-threaded code, there is no reordering, at least assuming
-+that your toolchain and hardware are working correctly.  In addition,
-+it is generally a mistake to assume your code will only run in a single
-+threaded context as the kernel can enter the same code path on multiple
-+CPUs at the same time.  One important exception is a function that makes
-+no external data references.
++P1(int *flag, int *data, int *lck)
++{
++	int r0;
++	int r1;
++	int r2;
 +
-+In the general case, you will need to take explicit steps to ensure that
-+your code really is executed within a single thread that does not access
-+shared variables.  A simple way to achieve this is to define a global lock
-+that you acquire at the beginning of your code and release at the end,
-+taking care to ensure that all references to your code's shared data are
-+also carried out under that same lock.  Because only one thread can hold
-+this lock at a given time, your code will be executed single-threaded.
-+This approach is called "code locking".
++	r0 = READ_ONCE(*flag);
++	if (r0 == 0) {
++		spin_lock(lck);
++		r1 = READ_ONCE(*flag);
++		if (r1 == 0) {
++			WRITE_ONCE(*data, 1);
++			WRITE_ONCE(*flag, 1);
++		}
++		spin_unlock(lck);
++	}
++	r2 = READ_ONCE(*data);
++}
 +
-+Code locking can severely limit both performance and scalability, so it
-+should be used with caution, and only on code paths that execute rarely.
-+After all, a huge amount of effort was required to remove the Linux
-+kernel's old "Big Kernel Lock", so let's please be very careful about
-+adding new "little kernel locks".
++locations [flag;data;lck;0:r0;0:r1;1:r0;1:r1]
++exists (0:r2=0 \/ 1:r2=0)
+diff --git a/Documentation/litmus-tests/locking/DCL-fixed.litmus b/Documentation/litmus-tests/locking/DCL-fixed.litmus
+new file mode 100644
+index 0000000..579d6c2
+--- /dev/null
++++ b/Documentation/litmus-tests/locking/DCL-fixed.litmus
+@@ -0,0 +1,56 @@
++C DCL-fixed
 +
-+One of the advantages of locking is that, in happy contrast with the
-+year 1981, almost all kernel developers are very familiar with locking.
-+The Linux kernel's lockdep (CONFIG_PROVE_LOCKING=y) is very helpful with
-+the formerly feared deadlock scenarios.
++(*
++ * Result: Never
++ *
++ * This litmus test demonstrates that double-checked locking can be
++ * reliable given proper use of smp_load_acquire() and smp_store_release()
++ * in addition to the locking.
++ *)
 +
-+Please use the standard locking primitives provided by the kernel rather
-+than rolling your own.  For one thing, the standard primitives interact
-+properly with lockdep.  For another thing, these primitives have been
-+tuned to deal better with high contention.  And for one final thing, it is
-+surprisingly hard to correctly code production-quality lock acquisition
-+and release functions.  After all, even simple non-production-quality
-+locking functions must carefully prevent both the CPU and the compiler
-+from moving code in either direction across the locking function.
++{
++	int flag;
++	int data;
++	int lck;
++}
 +
-+Despite the scalability limitations of single-threaded code, RCU
-+takes this approach for much of its grace-period processing and also
-+for early-boot operation.  The reason RCU is able to scale despite
-+single-threaded grace-period processing is use of batching, where all
-+updates that accumulated during one grace period are handled by the
-+next one.  In other words, slowing down grace-period processing makes
-+it more efficient.  Nor is RCU unique:  Similar batching optimizations
-+are used in many I/O operations.
++P0(int *flag, int *data, int *lck)
++{
++	int r0;
++	int r1;
++	int r2;
 +
++	r0 = smp_load_acquire(flag);
++	if (r0 == 0) {
++		spin_lock(lck);
++		r1 = READ_ONCE(*flag);
++		if (r1 == 0) {
++			WRITE_ONCE(*data, 1);
++			smp_store_release(flag, 1);
++		}
++		spin_unlock(lck);
++	}
++	r2 = READ_ONCE(*data);
++}
 +
-+Packaged code
-+=============
++P1(int *flag, int *data, int *lck)
++{
++	int r0;
++	int r1;
++	int r2;
 +
-+Even if performance and scalability concerns prevent your code from
-+being completely single-threaded, it is often possible to use library
-+functions that handle the concurrency nearly or entirely on their own.
-+This approach delegates any LKMM worries to the library maintainer.
++	r0 = smp_load_acquire(flag);
++	if (r0 == 0) {
++		spin_lock(lck);
++		r1 = READ_ONCE(*flag);
++		if (r1 == 0) {
++			WRITE_ONCE(*data, 1);
++			smp_store_release(flag, 1);
++		}
++		spin_unlock(lck);
++	}
++	r2 = READ_ONCE(*data);
++}
 +
-+In the kernel, what is the "library"?  Quite a bit.  It includes the
-+contents of the lib/ directory, much of the include/linux/ directory along
-+with a lot of other heavily used APIs.  But heavily used examples include
-+the list macros (for example, include/linux/{,rcu}list.h), workqueues,
-+smp_call_function(), and the various hash tables and search trees.
++locations [flag;data;lck;0:r0;0:r1;1:r0;1:r1]
++exists (0:r2=0 \/ 1:r2=0)
+diff --git a/Documentation/litmus-tests/locking/RM-broken.litmus b/Documentation/litmus-tests/locking/RM-broken.litmus
+new file mode 100644
+index 0000000..c586ae4
+--- /dev/null
++++ b/Documentation/litmus-tests/locking/RM-broken.litmus
+@@ -0,0 +1,42 @@
++C RM-broken
 +
++(*
++ * Result: DEADLOCK
++ *
++ * This litmus test demonstrates that the old "roach motel" approach
++ * to locking, where code can be freely moved into critical sections,
++ * cannot be used in the Linux kernel.
++ *)
 +
-+Data locking
-+============
++{
++	int lck;
++	int x;
++	int y;
++}
 +
-+With code locking, we use single-threaded code execution to guarantee
-+serialized access to the data that the code is accessing.  However,
-+we can also achieve this by instead associating the lock with specific
-+instances of the data structures.  This creates a "critical section"
-+in the code execution that will execute as though it is single threaded.
-+By placing all the accesses and modifications to a shared data structure
-+inside a critical section, we ensure that the execution context that
-+holds the lock has exclusive access to the shared data.
++P0(int *x, int *y, int *lck)
++{
++	int r2;
 +
-+The poster boy for this approach is the hash table, where placing a lock
-+in each hash bucket allows operations on different buckets to proceed
-+concurrently.  This works because the buckets do not overlap with each
-+other, so that an operation on one bucket does not interfere with any
-+other bucket.
++	spin_lock(lck);
++	r2 = atomic_inc_return(y);
++	WRITE_ONCE(*x, 1);
++	spin_unlock(lck);
++}
 +
-+As the number of buckets increases, data locking scales naturally.
-+In particular, if the amount of data increases with the number of CPUs,
-+increasing the number of buckets as the number of CPUs increase results
-+in a naturally scalable data structure.
++P1(int *x, int *y, int *lck)
++{
++	int r0;
++	int r1;
++	int r2;
 +
++	spin_lock(lck);
++	r0 = READ_ONCE(*x);
++	r1 = READ_ONCE(*x);
++	r2 = atomic_inc_return(y);
++	spin_unlock(lck);
++}
 +
-+Per-CPU processing
-+==================
++locations [x;lck;0:r2;1:r0;1:r1;1:r2]
++filter (y=2 /\ 1:r0=0 /\ 1:r1=1)
++exists (1:r2=1)
+diff --git a/Documentation/litmus-tests/locking/RM-fixed.litmus b/Documentation/litmus-tests/locking/RM-fixed.litmus
+new file mode 100644
+index 0000000..6728567
+--- /dev/null
++++ b/Documentation/litmus-tests/locking/RM-fixed.litmus
+@@ -0,0 +1,42 @@
++C RM-fixed
 +
-+Partitioning processing and data over CPUs allows each CPU to take
-+a single-threaded approach while providing excellent performance and
-+scalability.  Of course, there is no free lunch:  The dark side of this
-+excellence is substantially increased memory footprint.
++(*
++ * Result: Never
++ *
++ * This litmus test demonstrates that the old "roach motel" approach
++ * to locking, where code can be freely moved into critical sections,
++ * cannot be used in the Linux kernel.
++ *)
 +
-+In addition, it is sometimes necessary to occasionally update some global
-+view of this processing and data, in which case something like locking
-+must be used to protect this global view.  This is the approach taken
-+by the percpu_counter infrastructure. In many cases, there are already
-+generic/library variants of commonly used per-cpu constructs available.
-+Please use them rather than rolling your own.
++{
++	int lck;
++	int x;
++	int y;
++}
 +
-+RCU uses DEFINE_PER_CPU*() declaration to create a number of per-CPU
-+data sets.  For example, each CPU does private quiescent-state processing
-+within its instance of the per-CPU rcu_data structure, and then uses data
-+locking to report quiescent states up the grace-period combining tree.
++P0(int *x, int *y, int *lck)
++{
++	int r2;
 +
++	spin_lock(lck);
++	r2 = atomic_inc_return(y);
++	WRITE_ONCE(*x, 1);
++	spin_unlock(lck);
++}
 +
-+Packaged primitives: Sequence locking
-+=====================================
++P1(int *x, int *y, int *lck)
++{
++	int r0;
++	int r1;
++	int r2;
 +
-+Lockless programming is considered by many to be more difficult than
-+lock-based programming, but there are a few lockless design patterns that
-+have been built out into an API.  One of these APIs is sequence locking.
-+Although this APIs can be used in extremely complex ways, there are simple
-+and effective ways of using it that avoid the need to pay attention to
-+memory ordering.
++	r0 = READ_ONCE(*x);
++	r1 = READ_ONCE(*x);
++	spin_lock(lck);
++	r2 = atomic_inc_return(y);
++	spin_unlock(lck);
++}
 +
-+The basic keep-things-simple rule for sequence locking is "do not write
-+in read-side code".  Yes, you can do writes from within sequence-locking
-+readers, but it won't be so simple.  For example, such writes will be
-+lockless and should be idempotent.
++locations [x;lck;0:r2;1:r0;1:r1;1:r2]
++filter (y=2 /\ 1:r0=0 /\ 1:r1=1)
++exists (1:r2=1)
+diff --git a/tools/memory-model/Documentation/locking.txt b/tools/memory-model/Documentation/locking.txt
+new file mode 100644
+index 0000000..a6ad6aa
+--- /dev/null
++++ b/tools/memory-model/Documentation/locking.txt
+@@ -0,0 +1,320 @@
++Locking
++=======
 +
-+For more sophisticated use cases, LKMM can guide you, including use
-+cases involving combining sequence locking with other synchronization
-+primitives.  (LKMM does not yet know about sequence locking, so it is
-+currently necessary to open-code it in your litmus tests.)
++Locking is well-known and the common use cases are straightforward: Any
++CPU holding a given lock sees any changes previously seen or made by any
++CPU before it previously released that same lock.  This last sentence
++is the only part of this document that most developers will need to read.
 +
-+Additional information may be found in include/linux/seqlock.h.
-+
-+Packaged primitives: RCU
-+========================
-+
-+Another lockless design pattern that has been baked into an API
-+is RCU.  The Linux kernel makes sophisticated use of RCU, but the
-+keep-things-simple rules for RCU are "do not write in read-side code"
-+and "do not update anything that is visible to and accessed by readers",
-+and "protect updates with locking".
-+
-+These rules are illustrated by the functions foo_update_a() and
-+foo_get_a() shown in Documentation/RCU/whatisRCU.rst.  Additional
-+RCU usage patterns maybe found in Documentation/RCU and in the
-+source code.
-+
-+
-+Packaged primitives: Atomic operations
-+======================================
-+
-+Back in the day, the Linux kernel had three types of atomic operations:
-+
-+1.	Initialization and read-out, such as atomic_set() and atomic_read().
-+
-+2.	Operations that did not return a value and provided no ordering,
-+	such as atomic_inc() and atomic_dec().
-+
-+3.	Operations that returned a value and provided full ordering, such as
-+	atomic_add_return() and atomic_dec_and_test().  Note that some
-+	value-returning operations provide full ordering only conditionally.
-+	For example, cmpxchg() provides ordering only upon success.
-+
-+More recent kernels have operations that return a value but do not
-+provide full ordering.  These are flagged with either a _relaxed()
-+suffix (providing no ordering), or an _acquire() or _release() suffix
-+(providing limited ordering).
-+
-+Additional information may be found in these files:
-+
-+Documentation/atomic_t.txt
-+Documentation/atomic_bitops.txt
-+Documentation/core-api/atomic_ops.rst
-+Documentation/core-api/refcount-vs-atomic.rst
-+
-+Reading code using these primitives is often also quite helpful.
-+
-+
-+Lockless, fully ordered
-+=======================
-+
-+When using locking, there often comes a time when it is necessary
-+to access some variable or another without holding the data lock
-+that serializes access to that variable.
-+
-+If you want to keep things simple, use the initialization and read-out
-+operations from the previous section only when there are no racing
-+accesses.  Otherwise, use only fully ordered operations when accessing
-+or modifying the variable.  This approach guarantees that code prior
-+to a given access to that variable will be seen by all CPUs has having
-+happened before any code following any later access to that same variable.
-+
-+Please note that per-CPU functions are not atomic operations and
-+hence they do not provide any ordering guarantees at all.
-+
-+If the lockless accesses are frequently executed reads that are used
-+only for heuristics, or if they are frequently executed writes that
-+are used only for statistics, please see the next section.
-+
-+
-+Lockless statistics and heuristics
-+==================================
-+
-+Unordered primitives such as atomic_read(), atomic_set(), READ_ONCE(), and
-+WRITE_ONCE() can safely be used in some cases.  These primitives provide
-+no ordering, but they do prevent the compiler from carrying out a number
-+of destructive optimizations (for which please see the next section).
-+One example use for these primitives is statistics, such as per-CPU
-+counters exemplified by the rt_cache_stat structure's routing-cache
-+statistics counters.  Another example use case is heuristics, such as
-+the jiffies_till_first_fqs and jiffies_till_next_fqs kernel parameters
-+controlling how often RCU scans for idle CPUs.
-+
-+But be careful.  "Unordered" really does mean "unordered".  It is all
-+too easy to assume ordering, and this assumption must be avoided when
-+using these primitives.
++However, developers who would like to also access lock-protected shared
++variables outside of their corresponding locks should continue reading.
 +
 +
-+Don't let the compiler trip you up
-+==================================
++Locking and Prior Accesses
++--------------------------
 +
-+It can be quite tempting to use plain C-language accesses for lockless
-+loads from and stores to shared variables.  Although this is both
-+possible and quite common in the Linux kernel, it does require a
-+surprising amount of analysis, care, and knowledge about the compiler.
-+Yes, some decades ago it was not unfair to consider a C compiler to be
-+an assembler with added syntax and better portability, but the advent of
-+sophisticated optimizing compilers mean that those days are long gone.
-+Today's optimizing compilers can profoundly rewrite your code during the
-+translation process, and have long been ready, willing, and able to do so.
++The basic rule of locking is worth repeating:
 +
-+Therefore, if you really need to use C-language assignments instead of
-+READ_ONCE(), WRITE_ONCE(), and so on, you will need to have a very good
-+understanding of both the C standard and your compiler.  Here are some
-+introductory references and some tooling to start you on this noble quest:
++	Any CPU holding a given lock sees any changes previously seen
++	or made by any CPU before it previously released that same lock.
 +
-+Who's afraid of a big bad optimizing compiler?
-+	https://lwn.net/Articles/793253/
-+Calibrating your fear of big bad optimizing compilers
-+	https://lwn.net/Articles/799218/
-+Concurrency bugs should fear the big bad data-race detector (part 1)
-+	https://lwn.net/Articles/816850/
-+Concurrency bugs should fear the big bad data-race detector (part 2)
-+	https://lwn.net/Articles/816854/
++Note that this statement is a bit stronger than "Any CPU holding a
++given lock sees all changes made by any CPU during the time that CPU was
++previously holding this same lock".  For example, consider the following
++pair of code fragments:
++
++	/* See MP+polocks.litmus. */
++	void CPU0(void)
++	{
++		WRITE_ONCE(x, 1);
++		spin_lock(&mylock);
++		WRITE_ONCE(y, 1);
++		spin_unlock(&mylock);
++	}
++
++	void CPU1(void)
++	{
++		spin_lock(&mylock);
++		r0 = READ_ONCE(y);
++		spin_unlock(&mylock);
++		r1 = READ_ONCE(x);
++	}
++
++The basic rule guarantees that if CPU0() acquires mylock before CPU1(),
++then both r0 and r1 must be set to the value 1.  This also has the
++consequence that if the final value of r0 is equal to 1, then the final
++value of r1 must also be equal to 1.  In contrast, the weaker rule would
++say nothing about the final value of r1.
 +
 +
-+More complex use cases
-+======================
++Locking and Subsequent Accesses
++-------------------------------
 +
-+If the alternatives above do not do what you need, please look at the
-+recipes-pairs.txt file to peel off the next layer of the memory-ordering
-+onion.
-diff --git a/tools/memory-model/README b/tools/memory-model/README
-index d2e03c4..c8144d4 100644
---- a/tools/memory-model/README
-+++ b/tools/memory-model/README
-@@ -177,6 +177,11 @@ Documentation/recipes.txt
- Documentation/references.txt
- 	Provides background reading.
- 
-+Documentation/simple.txt
-+	Starting point for someone new to Linux-kernel concurrency.
-+	And also for those needing a reminder of the simpler approaches
-+	to concurrency!
++The converse to the basic rule also holds:  Any CPU holding a given
++lock will not see any changes that will be made by any CPU after it
++subsequently acquires this same lock.  This converse statement is
++illustrated by the following litmus test:
 +
- linux-kernel.bell
- 	Categorizes the relevant instructions, including memory
- 	references, memory barriers, atomic read-modify-write operations,
++	/* See MP+porevlocks.litmus. */
++	void CPU0(void)
++	{
++		r0 = READ_ONCE(y);
++		spin_lock(&mylock);
++		r1 = READ_ONCE(x);
++		spin_unlock(&mylock);
++	}
++
++	void CPU1(void)
++	{
++		spin_lock(&mylock);
++		WRITE_ONCE(x, 1);
++		spin_unlock(&mylock);
++		WRITE_ONCE(y, 1);
++	}
++
++This converse to the basic rule guarantees that if CPU0() acquires
++mylock before CPU1(), then both r0 and r1 must be set to the value 0.
++This also has the consequence that if the final value of r1 is equal
++to 0, then the final value of r0 must also be equal to 0.  In contrast,
++the weaker rule would say nothing about the final value of r0.
++
++These examples show only a single pair of CPUs, but the effects of the
++locking basic rule extend across multiple acquisitions of a given lock
++across multiple CPUs.
++
++
++Double-Checked Locking
++----------------------
++
++It is well known that more than just a lock is required to make
++double-checked locking work correctly,  This litmus test illustrates
++one incorrect approach:
++
++	/* See Documentation/litmus-tests/locking/DCL-broken.litmus. */
++	P0(int *flag, int *data, int *lck)
++	{
++		int r0;
++		int r1;
++		int r2;
++
++		r0 = READ_ONCE(*flag);
++		if (r0 == 0) {
++			spin_lock(lck);
++			r1 = READ_ONCE(*flag);
++			if (r1 == 0) {
++				WRITE_ONCE(*data, 1);
++				WRITE_ONCE(*flag, 1);
++			}
++			spin_unlock(lck);
++		}
++		r2 = READ_ONCE(*data);
++	}
++	/* P1() is the exactly the same as P0(). */
++
++There are two problems.  First, there is no ordering between the first
++READ_ONCE() of "flag" and the READ_ONCE() of "data".  Second, there is
++no ordering between the two WRITE_ONCE() calls.  It should therefore be
++no surprise that "r2" can be zero, and a quick herd7 run confirms this.
++
++One way to fix this is to use smp_load_acquire() and smp_store_release()
++as shown in this corrected version:
++
++	/* See Documentation/litmus-tests/locking/DCL-fixed.litmus. */
++	P0(int *flag, int *data, int *lck)
++	{
++		int r0;
++		int r1;
++		int r2;
++
++		r0 = smp_load_acquire(flag);
++		if (r0 == 0) {
++			spin_lock(lck);
++			r1 = READ_ONCE(*flag);
++			if (r1 == 0) {
++				WRITE_ONCE(*data, 1);
++				smp_store_release(flag, 1);
++			}
++			spin_unlock(lck);
++		}
++		r2 = READ_ONCE(*data);
++	}
++	/* P1() is the exactly the same as P0(). */
++
++The smp_load_acquire() guarantees that its load from "flags" will
++be ordered before the READ_ONCE() from data, thus solving the first
++problem.  The smp_store_release() guarantees that its store will be
++ordered after the WRITE_ONCE() to "data", solving the second problem.
++The smp_store_release() pairs with the smp_load_acquire(), thus ensuring
++that the ordering provided by each actually takes effect.  Again, a
++quick herd7 run confirms this.
++
++In short, if you access a lock-protected variable without holding the
++corresponding lock, you will need to provide additional ordering, in
++this case, via the smp_load_acquire() and the smp_store_release().
++
++
++Ordering Provided by a Lock to CPUs Not Holding That Lock
++---------------------------------------------------------
++
++It is not necessarily the case that accesses ordered by locking will be
++seen as ordered by CPUs not holding that lock.  Consider this example:
++
++	/* See Z6.0+pooncelock+pooncelock+pombonce.litmus. */
++	void CPU0(void)
++	{
++		spin_lock(&mylock);
++		WRITE_ONCE(x, 1);
++		WRITE_ONCE(y, 1);
++		spin_unlock(&mylock);
++	}
++
++	void CPU1(void)
++	{
++		spin_lock(&mylock);
++		r0 = READ_ONCE(y);
++		WRITE_ONCE(z, 1);
++		spin_unlock(&mylock);
++	}
++
++	void CPU2(void)
++	{
++		WRITE_ONCE(z, 2);
++		smp_mb();
++		r1 = READ_ONCE(x);
++	}
++
++Counter-intuitive though it might be, it is quite possible to have
++the final value of r0 be 1, the final value of z be 2, and the final
++value of r1 be 0.  The reason for this surprising outcome is that CPU2()
++never acquired the lock, and thus did not fully benefit from the lock's
++ordering properties.
++
++Ordering can be extended to CPUs not holding the lock by careful use
++of smp_mb__after_spinlock():
++
++	/* See Z6.0+pooncelock+poonceLock+pombonce.litmus. */
++	void CPU0(void)
++	{
++		spin_lock(&mylock);
++		WRITE_ONCE(x, 1);
++		WRITE_ONCE(y, 1);
++		spin_unlock(&mylock);
++	}
++
++	void CPU1(void)
++	{
++		spin_lock(&mylock);
++		smp_mb__after_spinlock();
++		r0 = READ_ONCE(y);
++		WRITE_ONCE(z, 1);
++		spin_unlock(&mylock);
++	}
++
++	void CPU2(void)
++	{
++		WRITE_ONCE(z, 2);
++		smp_mb();
++		r1 = READ_ONCE(x);
++	}
++
++This addition of smp_mb__after_spinlock() strengthens the lock
++acquisition sufficiently to rule out the counter-intuitive outcome.
++In other words, the addition of the smp_mb__after_spinlock() prohibits
++the counter-intuitive result where the final value of r0 is 1, the final
++value of z is 2, and the final value of r1 is 0.
++
++
++No Roach-Motel Locking!
++-----------------------
++
++This example requires familiarity with the herd7 "filter" clause, so
++please read up on that topic in litmus-tests.txt.
++
++It is tempting to allow memory-reference instructions to be pulled
++into a critical section, but this cannot be allowed in the general case.
++For example, consider a spin loop preceding a lock-based critical section.
++Now, herd7 does not model spin loops, but we can emulate one with two
++loads, with a "filter" clause to constrain the first to return the
++initial value and the second to return the updated value, as shown below:
++
++	/* See Documentation/litmus-tests/locking/RM-fixed.litmus. */
++	P0(int *x, int *y, int *lck)
++	{
++		int r2;
++
++		spin_lock(lck);
++		r2 = atomic_inc_return(y);
++		WRITE_ONCE(*x, 1);
++		spin_unlock(lck);
++	}
++
++	P1(int *x, int *y, int *lck)
++	{
++		int r0;
++		int r1;
++		int r2;
++
++		r0 = READ_ONCE(*x);
++		r1 = READ_ONCE(*x);
++		spin_lock(lck);
++		r2 = atomic_inc_return(y);
++		spin_unlock(lck);
++	}
++
++	filter (y=2 /\ 1:r0=0 /\ 1:r1=1)
++	exists (1:r2=1)
++
++The variable "x" is the control variable for the emulated spin loop.
++P0() sets it to "1" while holding the lock, and P1() emulates the
++spin loop by reading it twice, first into "1:r0" (which should get the
++initial value "0") and then into "1:r1" (which should get the updated
++value "1").
++
++The purpose of the variable "y" is to reject deadlocked executions.
++Only those executions where the final value of "y" have avoided deadlock.
++
++The "filter" clause takes all this into account, constraining "y" to
++equal "2", "1:r0" to equal "0", and "1:r1" to equal 1.
++
++Then the "exists" clause checks to see if P1() acquired its lock first,
++which should not happen given the filter clause because P0() updates
++"x" while holding the lock.  And herd7 confirms this.
++
++But suppose that the compiler was permitted to reorder the spin loop
++into P1()'s critical section, like this:
++
++	/* See Documentation/litmus-tests/locking/RM-broken.litmus. */
++	P0(int *x, int *y, int *lck)
++	{
++		int r2;
++
++		spin_lock(lck);
++		r2 = atomic_inc_return(y);
++		WRITE_ONCE(*x, 1);
++		spin_unlock(lck);
++	}
++
++	P1(int *x, int *y, int *lck)
++	{
++		int r0;
++		int r1;
++		int r2;
++
++		spin_lock(lck);
++		r0 = READ_ONCE(*x);
++		r1 = READ_ONCE(*x);
++		r2 = atomic_inc_return(y);
++		spin_unlock(lck);
++	}
++
++	locations [x;lck;0:r2;1:r0;1:r1;1:r2]
++	filter (y=2 /\ 1:r0=0 /\ 1:r1=1)
++	exists (1:r2=1)
++
++If "1:r0" is equal to "0", "1:r1" can never equal "1" because P0()
++cannot update "x" while P1() holds the lock.  And herd7 confirms this,
++showing zero executions matching the "filter" criteria.
++
++And this is why Linux-kernel lock and unlock primitives must prevent
++code from entering critical sections.  It is not sufficient to only
++prevnt code from leaving them.
 -- 
 2.9.5
 
