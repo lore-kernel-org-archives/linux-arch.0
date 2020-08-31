@@ -8,56 +8,56 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BDABCC433E6
-	for <linux-arch@archiver.kernel.org>; Mon, 31 Aug 2020 17:17:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 233A5C43461
+	for <linux-arch@archiver.kernel.org>; Mon, 31 Aug 2020 17:17:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8AE3D206FA
-	for <linux-arch@archiver.kernel.org>; Mon, 31 Aug 2020 17:17:55 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0009A20707
+	for <linux-arch@archiver.kernel.org>; Mon, 31 Aug 2020 17:17:58 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Dx+2ufm2"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="EuAtdL6m"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728990AbgHaRRt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 31 Aug 2020 13:17:49 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43724 "EHLO
+        id S1728988AbgHaRR6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 31 Aug 2020 13:17:58 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43720 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728979AbgHaRRr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 31 Aug 2020 13:17:47 -0400
-Received: from mail-wm1-x344.google.com (mail-wm1-x344.google.com [IPv6:2a00:1450:4864:20::344])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BB152C061755;
-        Mon, 31 Aug 2020 10:17:45 -0700 (PDT)
-Received: by mail-wm1-x344.google.com with SMTP id c19so431598wmd.1;
-        Mon, 31 Aug 2020 10:17:45 -0700 (PDT)
+        with ESMTP id S1728949AbgHaRRq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 31 Aug 2020 13:17:46 -0400
+Received: from mail-wr1-x443.google.com (mail-wr1-x443.google.com [IPv6:2a00:1450:4864:20::443])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 412E2C061573;
+        Mon, 31 Aug 2020 10:17:44 -0700 (PDT)
+Received: by mail-wr1-x443.google.com with SMTP id m6so4503081wrn.0;
+        Mon, 31 Aug 2020 10:17:44 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=+nbsjObGEQTbldxK9r/J/0l54hz3WdGBb4kWLFeHtdc=;
-        b=Dx+2ufm2r6fK25HiX1RMSlUidv/QGw4uPXaRL6i7mexd7xL0hFBtLS4EzMQG/CdwnX
-         x5s36sbIxBMaW8rvJpgD6ehhu4M0Ybr/5/AaXA0kF5cg4HM7/WlpKO1JH0ev9HC/LADp
-         0F3SOaec49UEeOhrG6gEgcVi9/AwZQYvjekESTbiyFRE4o8MovAfgBIq+8QeDrt5N83h
-         f0YFqIgUCtneqXL3gFoZZMw7mGFctnnF/VkA5hcKx0vKM5cLmFcqGdtyA/geyvNIeuDo
-         HxRMdyh9i3Pzz6MhpAgG/Djl40XS3SI6hyO0C9aoRubn1AckHFClT2LKA88X7GUR2Oes
-         gFiQ==
+        bh=+gGZxgvlTARaKucMxqVABiCjM6gJ2kfiSzxtTcKqrJ4=;
+        b=EuAtdL6mjxEzUPoywmYmcyiBSfVq3qUISoZV/BoWJeEfilqbBSrWwbERlTNgHDqkjY
+         PVDgYn386QDlPb96mS5mXKmljlNswSIkGKvZkN1bhLjdaxdzmM8vU/905C/qEI6D5vsF
+         GZqalnNgxl8pnDZoqT7+02sQpso+YjPCyHNAVQRBTpG7TNTesCOmvJAA1ARUs93VSpXY
+         69wGtM/4P6KdkqHynidcAp5RK1gGcBQ48lHjnuJ/u//RmVY5YXsPyhaBNuWhIZFlY52/
+         1IKKWo40wkvGkoltlRNMTU0bI300zV+UaiACofJ6v9PkJiIz0d26LsK+R9R9zAK4lfkh
+         YtcA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=+nbsjObGEQTbldxK9r/J/0l54hz3WdGBb4kWLFeHtdc=;
-        b=CoulpLwwyOBdEhijhMKLmP1QAEi988NWvhD0GCFeJy2bmUEdyVJeIpjW5v/8ZUXaKI
-         /rLmTVja5CpxsidKO0oDqGMv61ELctn/4NRqve5Fp6ql9FEKfgbXu446v1qD0TPo/py6
-         cJCbGOHLXRgamJvqFRfPQUwFdOvgD3niaI5G2m9zlup96Ux+vMMozur1MBw36zCptGhH
-         R6SY3EhgK8XNPwW0VzHH27wC5tCSWqAyf+eZ8aX2yCahrEtBwqgS00yL9phLolKfo3i+
-         spPYtZcXnO7ujBMrtZvU5ms5FsYnhdsS6VCHVnHnW3+t3QKZBD4EIcmpDJ2IFpSRe1yk
-         59ZA==
-X-Gm-Message-State: AOAM532y6mw9mzJs8zkhUdEPeo3fDVRfsp3l7U0iAhGms/8jwsZJuy5P
-        F6DIxdYp+qzeL8bqaKi3OKY=
-X-Google-Smtp-Source: ABdhPJwKFzt8ldI9tB15Yc56sc4C4H6P4uAMd8lRcJSd25uy/2Qxgs23epbBzGXYfbc0jBfBs1/gEQ==
-X-Received: by 2002:a1c:415:: with SMTP id 21mr285439wme.183.1598894264450;
-        Mon, 31 Aug 2020 10:17:44 -0700 (PDT)
+        bh=+gGZxgvlTARaKucMxqVABiCjM6gJ2kfiSzxtTcKqrJ4=;
+        b=RxOQua9W6YUmjnjwusnq4aSxqTf2pmtxQ5eKHL5CiyKWkb9x5o6/IY0PDFJAJevtoq
+         aIOx60iX9P37dHRtCbvU6TU5IGaDoLsPtnWQoPGkqWfUR7uyYEbOBGEsynvhtE3Dh3nz
+         T42qalMaGJOgEddzigy/vxYZyXDVslajmWH2/GgwlWTCA1Oj9ZY86xaEsHe/PqrSKdvg
+         UDwES7fUv15EMU/DuIPTJ07NgGm4s6Jwsq1XzsHt+VEUpPn6r7wLO9WMfuH+E56gtqj7
+         X3CCZodE7VJQV//9ZiBetpF6w5504+qfBt2JOlRnzHRfDe66bVrQl1mLm1G6RXCo7vea
+         jYZg==
+X-Gm-Message-State: AOAM531k6axsPhROVcNRyOgam1kENBdf2nuWj/l6oMAYdmfz5l7GfxQd
+        M5g01QEsOR7Y5W8UrXZsuQ4=
+X-Google-Smtp-Source: ABdhPJwnozj4gSlVmyms9gfmOiQ/InAFzbmkpS9IESX4C/+nlkrrlGOOWXm4eXgWB06bN9NzhXytkQ==
+X-Received: by 2002:a5d:68d1:: with SMTP id p17mr2420957wrw.378.1598894262881;
+        Mon, 31 Aug 2020 10:17:42 -0700 (PDT)
 Received: from alinde.c.googlers.com.com (88.140.78.34.bc.googleusercontent.com. [34.78.140.88])
-        by smtp.gmail.com with ESMTPSA id w15sm840978wro.46.2020.08.31.10.17.43
+        by smtp.gmail.com with ESMTPSA id w15sm840978wro.46.2020.08.31.10.17.41
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 31 Aug 2020 10:17:43 -0700 (PDT)
+        Mon, 31 Aug 2020 10:17:41 -0700 (PDT)
 From:   albert.linde@gmail.com
 X-Google-Original-From: alinde@google.com
 To:     akpm@linux-foundation.org, bp@alien8.de, mingo@redhat.com,
@@ -69,9 +69,9 @@ Cc:     akinobu.mita@gmail.com, hpa@zytor.com, viro@zeniv.linux.org.uk,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         x86@kernel.org, albert.linde@gmail.com,
         Albert van der Linde <alinde@google.com>
-Subject: [PATCH v3 3/3] x86: add failure injection to get/put/clear_user
-Date:   Mon, 31 Aug 2020 17:17:33 +0000
-Message-Id: <20200831171733.955393-4-alinde@google.com>
+Subject: [PATCH v3 1/3] lib, include/linux: add usercopy failure capability
+Date:   Mon, 31 Aug 2020 17:17:31 +0000
+Message-Id: <20200831171733.955393-2-alinde@google.com>
 X-Mailer: git-send-email 2.28.0.402.g5ffc5be6b7-goog
 In-Reply-To: <20200831171733.955393-1-alinde@google.com>
 References: <20200831171733.955393-1-alinde@google.com>
@@ -84,141 +84,182 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Albert van der Linde <alinde@google.com>
 
-To test fault-tolerance of user memory acceses in x86, add support for
-fault injection.
+Add a failure injection capability to improve testing of fault-tolerance
+in usages of user memory access functions.
 
-Make both put_user() and get_user() fail with -EFAULT, and clear_user()
-fail by not clearing any bytes.
+Add CONFIG_FAULT_INJECTION_USERCOPY to enable faults in usercopy
+functions. The should_fail_usercopy function is to be called by these
+functions (copy_from_user, get_user, ...) in order to fail or not.
 
 Reviewed-by: Akinobu Mita <akinobu.mita@gmail.com>
 Reviewed-by: Alexander Potapenko <glider@google.com>
 Signed-off-by: Albert van der Linde <alinde@google.com>
 ---
 v2:
- - no significant changes
+ - adressed comments from Dmitry Vyukov
+ - removed failsize
+ - changed should_fail function to return bool
 
 v3:
  - no changes
 ---
- arch/x86/include/asm/uaccess.h | 68 +++++++++++++++++++---------------
- arch/x86/lib/usercopy_64.c     |  3 ++
- 2 files changed, 42 insertions(+), 29 deletions(-)
+ .../admin-guide/kernel-parameters.txt         |  1 +
+ .../fault-injection/fault-injection.rst       |  7 +++-
+ include/linux/fault-inject-usercopy.h         | 22 +++++++++++
+ lib/Kconfig.debug                             |  7 ++++
+ lib/Makefile                                  |  1 +
+ lib/fault-inject-usercopy.c                   | 39 +++++++++++++++++++
+ 6 files changed, 76 insertions(+), 1 deletion(-)
+ create mode 100644 include/linux/fault-inject-usercopy.h
+ create mode 100644 lib/fault-inject-usercopy.c
 
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index ecefaffd15d4..004eeee2199a 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -5,6 +5,7 @@
-  * User space memory access functions
-  */
- #include <linux/compiler.h>
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index a1068742a6df..790e54988d4f 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -1332,6 +1332,7 @@
+ 			current integrity status.
+ 
+ 	failslab=
++	fail_usercopy=
+ 	fail_page_alloc=
+ 	fail_make_request=[KNL]
+ 			General fault injection mechanism.
+diff --git a/Documentation/fault-injection/fault-injection.rst b/Documentation/fault-injection/fault-injection.rst
+index f850ad018b70..31ecfe44e5b4 100644
+--- a/Documentation/fault-injection/fault-injection.rst
++++ b/Documentation/fault-injection/fault-injection.rst
+@@ -16,6 +16,10 @@ Available fault injection capabilities
+ 
+   injects page allocation failures. (alloc_pages(), get_free_pages(), ...)
+ 
++- fail_usercopy
++
++  injects failures in user memory access functions. (copy_from_user(), get_user(), ...)
++
+ - fail_futex
+ 
+   injects futex deadlock and uaddr fault errors.
+@@ -177,6 +181,7 @@ use the boot option::
+ 
+ 	failslab=
+ 	fail_page_alloc=
++	fail_usercopy=
+ 	fail_make_request=
+ 	fail_futex=
+ 	mmc_core.fail_request=<interval>,<probability>,<space>,<times>
+@@ -222,7 +227,7 @@ How to add new fault injection capability
+ 
+ - debugfs entries
+ 
+-  failslab, fail_page_alloc, and fail_make_request use this way.
++  failslab, fail_page_alloc, fail_usercopy, and fail_make_request use this way.
+   Helper functions:
+ 
+ 	fault_create_debugfs_attr(name, parent, attr);
+diff --git a/include/linux/fault-inject-usercopy.h b/include/linux/fault-inject-usercopy.h
+new file mode 100644
+index 000000000000..56c3a693fdd9
+--- /dev/null
++++ b/include/linux/fault-inject-usercopy.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __LINUX_FAULT_INJECT_USERCOPY_H__
++#define __LINUX_FAULT_INJECT_USERCOPY_H__
++
++/*
++ * This header provides a wrapper for injecting failures to user space memory
++ * access functions.
++ */
++
++#include <linux/types.h>
++
++#ifdef CONFIG_FAULT_INJECTION_USERCOPY
++
++bool should_fail_usercopy(void);
++
++#else
++
++static inline bool should_fail_usercopy(void) { return false; }
++
++#endif /* CONFIG_FAULT_INJECTION_USERCOPY */
++
++#endif /* __LINUX_FAULT_INJECT_USERCOPY_H__ */
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index e068c3c7189a..2fc5049fba4e 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1770,6 +1770,13 @@ config FAIL_PAGE_ALLOC
+ 	help
+ 	  Provide fault-injection capability for alloc_pages().
+ 
++config FAULT_INJECTION_USERCOPY
++	bool "Fault injection capability for usercopy functions"
++	depends on FAULT_INJECTION
++	help
++	  Provides fault-injection capability to inject failures
++	  in usercopy functions (copy_from_user(), get_user(), ...).
++
+ config FAIL_MAKE_REQUEST
+ 	bool "Fault-injection capability for disk IO"
+ 	depends on FAULT_INJECTION && BLOCK
+diff --git a/lib/Makefile b/lib/Makefile
+index a4a4c6864f51..18daad2bc606 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -207,6 +207,7 @@ obj-$(CONFIG_AUDIT_COMPAT_GENERIC) += compat_audit.o
+ 
+ obj-$(CONFIG_IOMMU_HELPER) += iommu-helper.o
+ obj-$(CONFIG_FAULT_INJECTION) += fault-inject.o
++obj-$(CONFIG_FAULT_INJECTION_USERCOPY) += fault-inject-usercopy.o
+ obj-$(CONFIG_NOTIFIER_ERROR_INJECTION) += notifier-error-inject.o
+ obj-$(CONFIG_PM_NOTIFIER_ERROR_INJECT) += pm-notifier-error-inject.o
+ obj-$(CONFIG_NETDEV_NOTIFIER_ERROR_INJECT) += netdev-notifier-error-inject.o
+diff --git a/lib/fault-inject-usercopy.c b/lib/fault-inject-usercopy.c
+new file mode 100644
+index 000000000000..77558b6c29ca
+--- /dev/null
++++ b/lib/fault-inject-usercopy.c
+@@ -0,0 +1,39 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include <linux/fault-inject.h>
 +#include <linux/fault-inject-usercopy.h>
- #include <linux/kasan-checks.h>
- #include <linux/string.h>
- #include <asm/asm.h>
-@@ -175,11 +176,16 @@ extern int __get_user_bad(void);
- 	register __inttype(*(ptr)) __val_gu asm("%"_ASM_DX);		\
- 	__chk_user_ptr(ptr);						\
- 	might_fault();							\
--	asm volatile("call __get_user_%P4"				\
--		     : "=a" (__ret_gu), "=r" (__val_gu),		\
-+	if (should_fail_usercopy()) {					\
-+		(x) = 0;						\
-+		__ret_gu = -EFAULT;					\
-+	} else {							\
-+		asm volatile("call __get_user_%P4"			\
-+			: "=a" (__ret_gu), "=r" (__val_gu),		\
- 			ASM_CALL_CONSTRAINT				\
--		     : "0" (ptr), "i" (sizeof(*(ptr))));		\
--	(x) = (__force __typeof__(*(ptr))) __val_gu;			\
-+			: "0" (ptr), "i" (sizeof(*(ptr))));		\
-+		(x) = (__force __typeof__(*(ptr))) __val_gu;		\
-+	}								\
- 	__builtin_expect(__ret_gu, 0);					\
- })
- 
-@@ -236,31 +242,35 @@ extern void __put_user_8(void);
-  *
-  * Return: zero on success, or -EFAULT on error.
-  */
--#define put_user(x, ptr)					\
--({								\
--	int __ret_pu;						\
--	__typeof__(*(ptr)) __pu_val;				\
--	__chk_user_ptr(ptr);					\
--	might_fault();						\
--	__pu_val = x;						\
--	switch (sizeof(*(ptr))) {				\
--	case 1:							\
--		__put_user_x(1, __pu_val, ptr, __ret_pu);	\
--		break;						\
--	case 2:							\
--		__put_user_x(2, __pu_val, ptr, __ret_pu);	\
--		break;						\
--	case 4:							\
--		__put_user_x(4, __pu_val, ptr, __ret_pu);	\
--		break;						\
--	case 8:							\
--		__put_user_x8(__pu_val, ptr, __ret_pu);		\
--		break;						\
--	default:						\
--		__put_user_x(X, __pu_val, ptr, __ret_pu);	\
--		break;						\
--	}							\
--	__builtin_expect(__ret_pu, 0);				\
-+#define put_user(x, ptr)						\
-+({									\
-+	int __ret_pu;							\
-+	__typeof__(*(ptr)) __pu_val;					\
-+	__chk_user_ptr(ptr);						\
-+	might_fault();							\
-+	__pu_val = x;							\
-+	if (should_fail_usercopy()) {					\
-+		__ret_pu = -EFAULT;					\
-+	} else {							\
-+		switch (sizeof(*(ptr))) {				\
-+		case 1:							\
-+			__put_user_x(1, __pu_val, ptr, __ret_pu);	\
-+			break;						\
-+		case 2:							\
-+			__put_user_x(2, __pu_val, ptr, __ret_pu);	\
-+			break;						\
-+		case 4:							\
-+			__put_user_x(4, __pu_val, ptr, __ret_pu);	\
-+			break;						\
-+		case 8:							\
-+			__put_user_x8(__pu_val, ptr, __ret_pu);		\
-+			break;						\
-+		default:						\
-+			__put_user_x(X, __pu_val, ptr, __ret_pu);	\
-+			break;						\
-+		}							\
-+	}								\
-+	__builtin_expect(__ret_pu, 0);					\
- })
- 
- #define __put_user_size(x, ptr, size, label)				\
-diff --git a/arch/x86/lib/usercopy_64.c b/arch/x86/lib/usercopy_64.c
-index b0dfac3d3df7..7747cda5780d 100644
---- a/arch/x86/lib/usercopy_64.c
-+++ b/arch/x86/lib/usercopy_64.c
-@@ -7,6 +7,7 @@
-  * Copyright 2002 Andi Kleen <ak@suse.de>
-  */
- #include <linux/export.h>
-+#include <linux/fault-inject-usercopy.h>
- #include <linux/uaccess.h>
- #include <linux/highmem.h>
- 
-@@ -50,6 +51,8 @@ EXPORT_SYMBOL(__clear_user);
- 
- unsigned long clear_user(void __user *to, unsigned long n)
- {
-+	if (should_fail_usercopy())
-+		return n;
- 	if (access_ok(to, n))
- 		return __clear_user(to, n);
- 	return n;
++
++static struct {
++	struct fault_attr attr;
++} fail_usercopy = {
++	.attr = FAULT_ATTR_INITIALIZER,
++};
++
++static int __init setup_fail_usercopy(char *str)
++{
++	return setup_fault_attr(&fail_usercopy.attr, str);
++}
++__setup("fail_usercopy=", setup_fail_usercopy);
++
++#ifdef CONFIG_FAULT_INJECTION_DEBUG_FS
++
++static int __init fail_usercopy_debugfs(void)
++{
++	struct dentry *dir;
++
++	dir = fault_create_debugfs_attr("fail_usercopy", NULL,
++					&fail_usercopy.attr);
++	if (IS_ERR(dir))
++		return PTR_ERR(dir);
++
++	return 0;
++}
++
++late_initcall(fail_usercopy_debugfs);
++
++#endif /* CONFIG_FAULT_INJECTION_DEBUG_FS */
++
++bool should_fail_usercopy(void)
++{
++	return should_fail(&fail_usercopy.attr, 1);
++}
++EXPORT_SYMBOL_GPL(should_fail_usercopy);
 -- 
 2.28.0.402.g5ffc5be6b7-goog
 
