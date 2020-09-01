@@ -2,74 +2,69 @@ Return-Path: <SRS0=ECFR=CK=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
-	autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_GIT autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 26A5AC433E6
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7C2ABC433E2
 	for <linux-arch@archiver.kernel.org>; Tue,  1 Sep 2020 14:47:18 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E2DB42220B
-	for <linux-arch@archiver.kernel.org>; Tue,  1 Sep 2020 14:47:17 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 48FEA21D6C
+	for <linux-arch@archiver.kernel.org>; Tue,  1 Sep 2020 14:47:18 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="T4A+W2yS"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="PyMSULK1"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728060AbgIAOrP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 1 Sep 2020 10:47:15 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42674 "EHLO
+        id S1728315AbgIAOrQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 1 Sep 2020 10:47:16 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42638 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728173AbgIAOQC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Sep 2020 10:16:02 -0400
-Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DE740C061260;
-        Tue,  1 Sep 2020 07:16:00 -0700 (PDT)
-Received: by mail-pf1-x444.google.com with SMTP id u20so880080pfn.0;
-        Tue, 01 Sep 2020 07:16:00 -0700 (PDT)
+        with ESMTP id S1728215AbgIAOPt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Sep 2020 10:15:49 -0400
+Received: from mail-pf1-x443.google.com (mail-pf1-x443.google.com [IPv6:2607:f8b0:4864:20::443])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 670DDC06125C;
+        Tue,  1 Sep 2020 07:15:49 -0700 (PDT)
+Received: by mail-pf1-x443.google.com with SMTP id u20so879811pfn.0;
+        Tue, 01 Sep 2020 07:15:49 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=xhdYKbDeI//C8isyTeQG6V0bhJKWBijBvpr1V+gnGEs=;
-        b=T4A+W2yS6M5KQnbIW9fn7O3Z6p924HgMcAZBjnTcSLjeYEM2j7i/Q+gVdvgLlbx/Wr
-         4YVEKAwqatc9fn619WYBKrZzsiY/FPP3CKmmOSV6pRdWWoXCJqKVxKsnY1e3ZdiLnhMu
-         K2WcQ9fh7POdOAW80IZXpBXTDJlaBHagPqVvbCYzlx+yMxtyzKwvl1fNG5rMazAdAfO5
-         orQ6MJDdjLIpPRrMM/mwdJM1HYWX1aB6rVs/OupzKnoQzBYUTb78Lfv4vWvQdSVPg3f0
-         jrpCAVBdpVqD+xODHrRTY2EC9Wh1ISt4tbvBbfVfBCy6QRabIU+JXYWatUpMvsW6kJbZ
-         Ws7A==
+        h=from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=gRMZTfF+7DDMzzPkhZwJ7VQo0zinLl/ycwSJOrxIz0o=;
+        b=PyMSULK18qWenOPbSwNLyCnYQpqVLLfJScBRvmypxjLsHLM054xPCE1dM8kzvb6F09
+         6bmFiOy02czIVSFJQYAOr/C7ih9cHLbvBV/9joy1bUpkIni9uby2C5tgSUuBLZMGM0A9
+         XuPW+w7ttoWi1l33DJbDu2/9N3RaOHwLwsFcXuGyxs+uSes1Qa40VMe0Ox+EKJJzBg/E
+         E/i4dIeFOu80hz7TU6r9wLMtYJAXEDT1iYbOaAL+VVqeG9CGtwfVp5kp1z7Q6mIO4Tdw
+         yfs1D+WhK3JWahge/buirMHm34i2HEpD/nwHvJCSTQDLMtb9jRtLfGoMmfXG2z12iK2H
+         vmKw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=xhdYKbDeI//C8isyTeQG6V0bhJKWBijBvpr1V+gnGEs=;
-        b=sx5RxI3wi77sgNMzx1chgl/gdtcDDLPxWBSCL4Ne5Y2NCajbbZ2QHZJYPZw/kOcsRD
-         l24KR2kH5FzXhsCLwJJ4D7Hkxb0QFZMy9SGwxCZDrLORGozpMU0daaFaPV7yfyJPcKXi
-         h0FFBd6EGC4ooRBlIYShzzb+8mx6ACd5K1TCWiaBimv7LjUH/wAAupwlmbEBOK+X4f1Y
-         yP8xRBXjt+odPKA9YVBgzS7eY2/WyEXI7FM2HMWdLLr8zQikj/rgdTIBi6Q8WIIMqOzJ
-         YrIbAhWsaSCx3u4+zRq5e7od1mG5HmUU2deS2YaeKen0ftgtC1kMHWtnEc50zYoMuUYd
-         dCFw==
-X-Gm-Message-State: AOAM531KVpc/Dck7d6Y0gyQhcEWnZrbgRgBwNnu19SltcVK5Hla1DaXU
-        hbHXMxCkBRlQNYZLXD2l749EQHQ3i2g=
-X-Google-Smtp-Source: ABdhPJyKaGdo4eiu4sBDOVDt2zOUFHP2Y2dgCjCgoPnDlnvF1oh4LLAgz1Slfa92Cw8toERGdtmjmQ==
-X-Received: by 2002:a63:4923:: with SMTP id w35mr1641283pga.368.1598969760130;
-        Tue, 01 Sep 2020 07:16:00 -0700 (PDT)
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=gRMZTfF+7DDMzzPkhZwJ7VQo0zinLl/ycwSJOrxIz0o=;
+        b=sa+ithFWnCEoJwFE5wcJFB5dqETkcceHq2n/7iUVCLyQZm1NnteBWe9DYqHDNL+dy+
+         RSifKbYL3f5FoIe9kz2WsuPvvvFk1E1yXUZRpKl+K3BPUkKbyDsEaCy663vMeBWW9Rgh
+         MVOwzT/wE4G5eEIB0TSH5SxjakYmiKqmq49JNHypP6r5CxsOggoel4MI7VMPfkmefBHt
+         XQAge+FSiquYewBkoi2VHgKQ29TmATDma4uUsHuEG7eVJY3E6lqZYvZjOylIritR3bql
+         9la2iqcv83U8zJOZNViOYKA/+FT7AA/kdxCo1R71iWrkofOxaiwXOQRCIIWsizbsM+W5
+         lvxw==
+X-Gm-Message-State: AOAM530qXCR8U2XyUMlmNYwBm8KIHShLaBai+6tbh9tLPEEw+fBgnrfL
+        whI3UV5bxr+tmOAe5toPdUjPTYDeKx0=
+X-Google-Smtp-Source: ABdhPJw4up6Oy40sGL30tEm2Av/lC7PrC16VMpBZwq7V5ZKVGlh8PekAkGENa/slvcseBFfY+yviQw==
+X-Received: by 2002:a62:8443:: with SMTP id k64mr2073858pfd.252.1598969748672;
+        Tue, 01 Sep 2020 07:15:48 -0700 (PDT)
 Received: from bobo.ibm.com ([203.185.249.227])
-        by smtp.gmail.com with ESMTPSA id w9sm2212816pgg.76.2020.09.01.07.15.56
+        by smtp.gmail.com with ESMTPSA id w9sm2212816pgg.76.2020.09.01.07.15.45
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 01 Sep 2020 07:15:59 -0700 (PDT)
+        Tue, 01 Sep 2020 07:15:48 -0700 (PDT)
 From:   Nicholas Piggin <npiggin@gmail.com>
 To:     linux-arch@vger.kernel.org
 Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
-        linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>,
-        Vineet Gupta <vgupta@synopsys.com>,
-        linux-snps-arc@lists.infradead.org
-Subject: [PATCH v3 03/23] arc: use asm-generic/mmu_context.h for no-op implementations
-Date:   Wed,  2 Sep 2020 00:15:19 +1000
-Message-Id: <20200901141539.1757549-4-npiggin@gmail.com>
+        linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH v3 00/23] Use asm-generic for mmu_context no-op functions
+Date:   Wed,  2 Sep 2020 00:15:16 +1000
+Message-Id: <20200901141539.1757549-1-npiggin@gmail.com>
 X-Mailer: git-send-email 2.23.0
-In-Reply-To: <20200901141539.1757549-1-npiggin@gmail.com>
-References: <20200901141539.1757549-1-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
@@ -77,67 +72,84 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Cc: Vineet Gupta <vgupta@synopsys.com>
-Cc: linux-snps-arc@lists.infradead.org
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
+It would be nice to be able to modify mmu_context functions or add a
+hook without updating all architectures, many of which will be no-ops.
 
-Please ack or nack if you object to this being mered via
-Arnd's tree.
+The motivation for this series is a change to lazy mmu handling, but
+this series stands on its own as a good cleanup whether or not we end
+up making that change.
 
- arch/arc/include/asm/mmu_context.h | 17 +++++++++--------
- 1 file changed, 9 insertions(+), 8 deletions(-)
+Since v2:
+- Fixed build failure on arm64 (fingers crossed), did more cross
+  compiling.
+- Accounted for feedback and added acks (thanks all).
 
-diff --git a/arch/arc/include/asm/mmu_context.h b/arch/arc/include/asm/mmu_context.h
-index 3a5e6a5b9ed6..df164066e172 100644
---- a/arch/arc/include/asm/mmu_context.h
-+++ b/arch/arc/include/asm/mmu_context.h
-@@ -102,6 +102,7 @@ static inline void get_new_mmu_context(struct mm_struct *mm)
-  * Initialize the context related info for a new mm_struct
-  * instance.
-  */
-+#define init_new_context init_new_context
- static inline int
- init_new_context(struct task_struct *tsk, struct mm_struct *mm)
- {
-@@ -113,6 +114,7 @@ init_new_context(struct task_struct *tsk, struct mm_struct *mm)
- 	return 0;
- }
- 
-+#define destroy_context destroy_context
- static inline void destroy_context(struct mm_struct *mm)
- {
- 	unsigned long flags;
-@@ -153,13 +155,13 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
- }
- 
- /*
-- * Called at the time of execve() to get a new ASID
-- * Note the subtlety here: get_new_mmu_context() behaves differently here
-- * vs. in switch_mm(). Here it always returns a new ASID, because mm has
-- * an unallocated "initial" value, while in latter, it moves to a new ASID,
-- * only if it was unallocated
-+ * activate_mm defaults (in asm-generic) to switch_mm and is called at the
-+ * time of execve() to get a new ASID Note the subtlety here:
-+ * get_new_mmu_context() behaves differently here vs. in switch_mm(). Here
-+ * it always returns a new ASID, because mm has an unallocated "initial"
-+ * value, while in latter, it moves to a new ASID, only if it was
-+ * unallocated
-  */
--#define activate_mm(prev, next)		switch_mm(prev, next, NULL)
- 
- /* it seemed that deactivate_mm( ) is a reasonable place to do book-keeping
-  * for retiring-mm. However destroy_context( ) still needs to do that because
-@@ -168,8 +170,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
-  * there is a good chance that task gets sched-out/in, making it's ASID valid
-  * again (this teased me for a whole day).
-  */
--#define deactivate_mm(tsk, mm)   do { } while (0)
- 
--#define enter_lazy_tlb(mm, tsk)
-+#include <asm-generic/mmu_context.h>
- 
- #endif /* __ASM_ARC_MMU_CONTEXT_H */
+Arnd, most of the main archs have acks, and I asked for ack/nack
+from ones which are missing. We could give those a bit more time
+then merge.
+
+Thanks,
+Nick
+
+Nicholas Piggin (23):
+  asm-generic: add generic MMU versions of mmu context functions
+  alpha: use asm-generic/mmu_context.h for no-op implementations
+  arc: use asm-generic/mmu_context.h for no-op implementations
+  arm: use asm-generic/mmu_context.h for no-op implementations
+  arm64: use asm-generic/mmu_context.h for no-op implementations
+  csky: use asm-generic/mmu_context.h for no-op implementations
+  hexagon: use asm-generic/mmu_context.h for no-op implementations
+  ia64: use asm-generic/mmu_context.h for no-op implementations
+  m68k: use asm-generic/mmu_context.h for no-op implementations
+  microblaze: use asm-generic/mmu_context.h for no-op implementations
+  mips: use asm-generic/mmu_context.h for no-op implementations
+  nds32: use asm-generic/mmu_context.h for no-op implementations
+  nios2: use asm-generic/mmu_context.h for no-op implementations
+  openrisc: use asm-generic/mmu_context.h for no-op implementations
+  parisc: use asm-generic/mmu_context.h for no-op implementations
+  powerpc: use asm-generic/mmu_context.h for no-op implementations
+  riscv: use asm-generic/mmu_context.h for no-op implementations
+  s390: use asm-generic/mmu_context.h for no-op implementations
+  sh: use asm-generic/mmu_context.h for no-op implementations
+  sparc: use asm-generic/mmu_context.h for no-op implementations
+  um: use asm-generic/mmu_context.h for no-op implementations
+  x86: use asm-generic/mmu_context.h for no-op implementations
+  xtensa: use asm-generic/mmu_context.h for no-op implementations
+
+ arch/alpha/include/asm/mmu_context.h         | 12 ++--
+ arch/arc/include/asm/mmu_context.h           | 17 +++---
+ arch/arm/include/asm/mmu_context.h           | 26 +--------
+ arch/arm64/include/asm/mmu_context.h         |  7 +--
+ arch/c6x/include/asm/mmu_context.h           |  6 ++
+ arch/csky/include/asm/mmu_context.h          |  8 +--
+ arch/hexagon/include/asm/mmu_context.h       | 33 ++---------
+ arch/ia64/include/asm/mmu_context.h          | 17 ++----
+ arch/m68k/include/asm/mmu_context.h          | 37 +++----------
+ arch/microblaze/include/asm/mmu_context.h    |  2 +-
+ arch/microblaze/include/asm/mmu_context_mm.h |  8 +--
+ arch/microblaze/include/asm/processor.h      |  3 -
+ arch/mips/include/asm/mmu_context.h          | 11 ++--
+ arch/nds32/include/asm/mmu_context.h         | 10 +---
+ arch/nios2/include/asm/mmu_context.h         | 21 ++-----
+ arch/openrisc/include/asm/mmu_context.h      |  8 +--
+ arch/parisc/include/asm/mmu_context.h        | 12 ++--
+ arch/powerpc/include/asm/mmu_context.h       | 13 +++--
+ arch/riscv/include/asm/mmu_context.h         | 22 +-------
+ arch/s390/include/asm/mmu_context.h          |  9 ++-
+ arch/sh/include/asm/mmu_context.h            |  7 +--
+ arch/sh/include/asm/mmu_context_32.h         |  9 ---
+ arch/sparc/include/asm/mmu_context_32.h      | 10 ++--
+ arch/sparc/include/asm/mmu_context_64.h      | 10 ++--
+ arch/um/include/asm/mmu_context.h            | 12 ++--
+ arch/x86/include/asm/mmu_context.h           |  6 ++
+ arch/xtensa/include/asm/mmu_context.h        | 11 +---
+ arch/xtensa/include/asm/nommu_context.h      | 26 +--------
+ include/asm-generic/mmu_context.h            | 58 +++++++++++++++-----
+ include/asm-generic/nommu_context.h          | 19 +++++++
+ 30 files changed, 174 insertions(+), 276 deletions(-)
+ create mode 100644 arch/c6x/include/asm/mmu_context.h
+ create mode 100644 include/asm-generic/nommu_context.h
+
 -- 
 2.23.0
 
