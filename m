@@ -2,126 +2,63 @@ Return-Path: <SRS0=ECFR=CK=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
-	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	MENTIONS_GIT_HOSTING,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.5 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F06AFC433E6
-	for <linux-arch@archiver.kernel.org>; Tue,  1 Sep 2020 14:57:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 500E9C433E6
+	for <linux-arch@archiver.kernel.org>; Tue,  1 Sep 2020 16:24:51 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C98F5206FA
-	for <linux-arch@archiver.kernel.org>; Tue,  1 Sep 2020 14:57:34 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="NhtVVS7i";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="IXxC7ghc"
+	by mail.kernel.org (Postfix) with ESMTP id 3A1BC20767
+	for <linux-arch@archiver.kernel.org>; Tue,  1 Sep 2020 16:24:51 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728719AbgIAOyw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 1 Sep 2020 10:54:52 -0400
-Received: from Galois.linutronix.de ([193.142.43.55]:39608 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727839AbgIALs1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Sep 2020 07:48:27 -0400
-Date:   Tue, 01 Sep 2020 11:48:00 -0000
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020; t=1598960881;
-        h=from:from:sender:sender:reply-to:reply-to:subject:subject:date:date:
-         message-id:message-id:to:to:cc:cc:mime-version:mime-version:
-         content-type:content-type:
-         content-transfer-encoding:content-transfer-encoding:
-         in-reply-to:in-reply-to:references:references;
-        bh=4pUta5Zk4FfoDx/NGPIBXT5qYhHCXO0PxXNn6+h/JFg=;
-        b=NhtVVS7iynWFb+nPXvI/P9XVnUKRnH1SZA+UFbA6fs2TjAuTnphLpRyl3I0/GX9NsY8pVr
-        5FqW0bh96K4hASmqf/k1PL7HVPw8YmtZk7wAvNW/k6IhPuxuSk+8dtAzCupkpmfauJbZbS
-        rTg+bY5IRqI/MqYAA0gtQZJ+gg3QDCAwRDT7xjcr7WobqDC5H7SIKHHbzZuOwREc4W4naf
-        XnoQioAJNDWCrN7+aBW89aXcpYy51QBbxdbSf1SeRGTm5+CfXX6acD6M6Rg1vOSdaRXBxB
-        2A0ew7MD1vF5Szfcb6njqGnG7nwr89IvTDjgHn68tpwDzZFxkIWR9q3nfDFFFw==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020e; t=1598960881;
-        h=from:from:sender:sender:reply-to:reply-to:subject:subject:date:date:
-         message-id:message-id:to:to:cc:cc:mime-version:mime-version:
-         content-type:content-type:
-         content-transfer-encoding:content-transfer-encoding:
-         in-reply-to:in-reply-to:references:references;
-        bh=4pUta5Zk4FfoDx/NGPIBXT5qYhHCXO0PxXNn6+h/JFg=;
-        b=IXxC7ghcoXOMkFsdiVCLXuv302cyIZ84U2uCR/fMI4ssPXTwPX7MTp3aLkHB4PK8kgWarx
-        uxdASpMgK3ApyPCg==
-From:   "tip-bot2 for Kees Cook" <tip-bot2@linutronix.de>
-Reply-to: linux-kernel@vger.kernel.org
-To:     linux-tip-commits@vger.kernel.org
-Subject: [tip: core/build] vmlinux.lds.h: Avoid KASAN and KCSAN's unwanted sections
-Cc:     Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>,
-        Marco Elver <elver@google.com>, linux-arch@vger.kernel.org,
-        x86 <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>
-In-Reply-To: <20200821194310.3089815-4-keescook@chromium.org>
-References: <20200821194310.3089815-4-keescook@chromium.org>
+        id S1731080AbgIAQYt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 1 Sep 2020 12:24:49 -0400
+Received: from elvis.franken.de ([193.175.24.41]:45859 "EHLO elvis.franken.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730952AbgIAPcT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 1 Sep 2020 11:32:19 -0400
+Received: from uucp (helo=alpha)
+        by elvis.franken.de with local-bsmtp (Exim 3.36 #1)
+        id 1kD8Gf-0002rq-01; Tue, 01 Sep 2020 17:32:17 +0200
+Received: by alpha.franken.de (Postfix, from userid 1000)
+        id 0F0A1C0E68; Tue,  1 Sep 2020 17:23:24 +0200 (CEST)
+Date:   Tue, 1 Sep 2020 17:23:24 +0200
+From:   Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+To:     Nicholas Piggin <npiggin@gmail.com>
+Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>,
+        linux-mips@vger.kernel.org
+Subject: Re: [PATCH v3 11/23] mips: use asm-generic/mmu_context.h for no-op
+ implementations
+Message-ID: <20200901152324.GB14288@alpha.franken.de>
+References: <20200901141539.1757549-1-npiggin@gmail.com>
+ <20200901141539.1757549-12-npiggin@gmail.com>
 MIME-Version: 1.0
-Message-ID: <159896088072.20229.9345391960421718006.tip-bot2@tip-bot2>
-Robot-ID: <tip-bot2.linutronix.de>
-Robot-Unsubscribe: Contact <mailto:tglx@linutronix.de> to get blacklisted from these emails
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200901141539.1757549-12-npiggin@gmail.com>
+User-Agent: Mutt/1.5.23 (2014-03-12)
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The following commit has been merged into the core/build branch of tip:
+On Wed, Sep 02, 2020 at 12:15:27AM +1000, Nicholas Piggin wrote:
+> Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+> Cc: linux-mips@vger.kernel.org
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
+> 
+> Please ack or nack if you object to this being mered via
+> Arnd's tree.
+> 
+>  arch/mips/include/asm/mmu_context.h | 11 ++++-------
+>  1 file changed, 4 insertions(+), 7 deletions(-)
 
-Commit-ID:     d812db78288d76d1e8c6df3a840c41a8875f6468
-Gitweb:        https://git.kernel.org/tip/d812db78288d76d1e8c6df3a840c41a8875f6468
-Author:        Kees Cook <keescook@chromium.org>
-AuthorDate:    Fri, 21 Aug 2020 12:42:44 -07:00
-Committer:     Ingo Molnar <mingo@kernel.org>
-CommitterDate: Tue, 01 Sep 2020 09:50:35 +02:00
+Acked-by: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
 
-vmlinux.lds.h: Avoid KASAN and KCSAN's unwanted sections
-
-KASAN (-fsanitize=kernel-address) and KCSAN (-fsanitize=thread)
-produce unwanted[1] .eh_frame and .init_array.* sections. Add them to
-COMMON_DISCARDS, except with CONFIG_CONSTRUCTORS, which wants to keep
-.init_array.* sections.
-
-[1] https://bugs.llvm.org/show_bug.cgi?id=46478
-
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Tested-by: Marco Elver <elver@google.com>
-Cc: linux-arch@vger.kernel.org
-Link: https://lore.kernel.org/r/20200821194310.3089815-4-keescook@chromium.org
----
- include/asm-generic/vmlinux.lds.h | 20 ++++++++++++++++++++
- 1 file changed, 20 insertions(+)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index f1f02a2..6b89a03 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -954,7 +954,27 @@
- 	EXIT_DATA
- #endif
- 
-+/*
-+ * Clang's -fsanitize=kernel-address and -fsanitize=thread produce
-+ * unwanted sections (.eh_frame and .init_array.*), but
-+ * CONFIG_CONSTRUCTORS wants to keep any .init_array.* sections.
-+ * https://bugs.llvm.org/show_bug.cgi?id=46478
-+ */
-+#if defined(CONFIG_KASAN_GENERIC) || defined(CONFIG_KCSAN)
-+# ifdef CONFIG_CONSTRUCTORS
-+#  define SANITIZER_DISCARDS						\
-+	*(.eh_frame)
-+# else
-+#  define SANITIZER_DISCARDS						\
-+	*(.init_array) *(.init_array.*)					\
-+	*(.eh_frame)
-+# endif
-+#else
-+# define SANITIZER_DISCARDS
-+#endif
-+
- #define COMMON_DISCARDS							\
-+	SANITIZER_DISCARDS						\
- 	*(.discard)							\
- 	*(.discard.*)							\
- 	*(.modinfo)							\
+-- 
+Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
+good idea.                                                [ RFC1925, 2.3 ]
