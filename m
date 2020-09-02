@@ -2,110 +2,122 @@ Return-Path: <SRS0=7ttA=CL=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,NICE_REPLY_A,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8FA76C433E2
-	for <linux-arch@archiver.kernel.org>; Wed,  2 Sep 2020 00:37:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8827EC433E2
+	for <linux-arch@archiver.kernel.org>; Wed,  2 Sep 2020 02:53:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6ACE120707
-	for <linux-arch@archiver.kernel.org>; Wed,  2 Sep 2020 00:37:48 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1599007068;
-	bh=uXylxhEArUF1OTJL+DKdTu14JoB/sFaqO8H1MXHetpI=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:List-ID:From;
-	b=EGZ7OGKqFim2smiK7WqdCQqoeAGf+pGZJy5MgiMFVgSsDMwrFqYD5IK3IIzx51feP
-	 0IYcsdQcL5nGVFllkfxVFqdMd6K9bVnRkv11HzJ55IUXdwBS3w1B0ET6kPBeRCHdch
-	 Jg9aBtppAB3jEz+uXjbxieOQP1bJM6o9OE/Rdwmg=
+	by mail.kernel.org (Postfix) with ESMTP id 61E622087C
+	for <linux-arch@archiver.kernel.org>; Wed,  2 Sep 2020 02:53:59 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="etH6NKPq"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726174AbgIBAhs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 1 Sep 2020 20:37:48 -0400
-Received: from mail.kernel.org ([198.145.29.99]:59592 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726140AbgIBAhp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 1 Sep 2020 20:37:45 -0400
-Received: from devnote2 (NE2965lan1.rev.em-net.ne.jp [210.141.244.193])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 4ED97206F0;
-        Wed,  2 Sep 2020 00:37:42 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1599007065;
-        bh=uXylxhEArUF1OTJL+DKdTu14JoB/sFaqO8H1MXHetpI=;
-        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-        b=SjULBlljcNFVHbJD026My1NQ25hL7ZlJIP4Z5ShmkFh0RTUeJxqj669iql17iGHl3
-         K009uQhrHbu0lpd+p22MdaNJmSoE+ZYH9zYo51neZbvs7q8LLv4yuG7Lx4ToTJ8/6t
-         00X0kERIAZmu0c1GhOsnbeM4MHFyq4ZY3ewKrtDA=
-Date:   Wed, 2 Sep 2020 09:37:39 +0900
-From:   Masami Hiramatsu <mhiramat@kernel.org>
-To:     Peter Zijlstra <peterz@infradead.org>,
-        Ingo Molnar <mingo@kernel.org>
-Cc:     linux-kernel@vger.kernel.org, Eddy_Wu@trendmicro.com,
-        x86@kernel.org, davem@davemloft.net, rostedt@goodmis.org,
-        naveen.n.rao@linux.ibm.com, anil.s.keshavamurthy@intel.com,
-        linux-arch@vger.kernel.org, cameron@moodycamel.com,
-        oleg@redhat.com, will@kernel.org, paulmck@kernel.org
-Subject: Re: [PATCH v5 00/21] kprobes: Unify kretprobe trampoline handlers
- and make kretprobe lockless
-Message-Id: <20200902093739.8bd13603380951eaddbcd8a5@kernel.org>
-In-Reply-To: <20200901190808.GK29142@worktop.programming.kicks-ass.net>
-References: <159870598914.1229682.15230803449082078353.stgit@devnote2>
-        <20200901190808.GK29142@worktop.programming.kicks-ass.net>
-X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.32; x86_64-pc-linux-gnu)
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+        id S1726269AbgIBCxz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 1 Sep 2020 22:53:55 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46902 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726140AbgIBCxw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Sep 2020 22:53:52 -0400
+Received: from mail-pl1-x641.google.com (mail-pl1-x641.google.com [IPv6:2607:f8b0:4864:20::641])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9B04AC061244
+        for <linux-arch@vger.kernel.org>; Tue,  1 Sep 2020 19:53:52 -0700 (PDT)
+Received: by mail-pl1-x641.google.com with SMTP id j11so1573207plk.9
+        for <linux-arch@vger.kernel.org>; Tue, 01 Sep 2020 19:53:52 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=chromium.org; s=google;
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=gClGbep+iV5WfCNFybEdnpd2yOKBqRu+dgKC1E3FLqg=;
+        b=etH6NKPqvQ0E/BEfK1vGJeNK5TqdvKBju+PVw+Mb41Om+kz+V3liIydjrFcRux4SkU
+         v05mxqn5MJF8kH9X94XWKQG2jM7AFeMLaNS02HEIB7YHiurUIEtkT+i/BFHv0qdgbId+
+         JfK1I292Rf3BQCyWOqL6J7XZBXjo/fSJ76OhM=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=gClGbep+iV5WfCNFybEdnpd2yOKBqRu+dgKC1E3FLqg=;
+        b=GxkUl4enqnf5irgfub99LXIl4RTKBn1jyR++Y2+apbHLfGXpHslZ7w9Y6d6ixD7NKK
+         GuQasauxq6dRPkGir0h5wkMhICA/DGcG6N5yvKOlIWSjxTdhm+O/5I24eEt1QSGeQKOU
+         N+GD9TYNTUmBM8ZvpxqELo+xdir0I7koljuIuo8KNmS42I91d5dJCgUYRkV7pcwyEMbd
+         k7QatAyadv7o2g6qnTRrEjW5ySXrIi8tannpKxAVioBvFmKElzlmhwLdVW7lv61SjAlF
+         avkGE7uQyIH1j19b1AYK84Nm3oUTiFOSWZmryASi1uNevUFmm3NTFval9FaSpNLRG4ks
+         ZW9w==
+X-Gm-Message-State: AOAM5339VXnb9zYZTa4Z5VzkQM7E6K3T/uNGeb6B/SIAPh+bMTeGf7hO
+        dJusaxbiGS5H86r0XsO4e9AL1g==
+X-Google-Smtp-Source: ABdhPJzgc+AwMOXYevHKlYRL3a9Gq1SPcptqwTmA/q6SZkJHgbLxcLNKxPWoUeQVwVN+9q7tAZgD6w==
+X-Received: by 2002:a17:90b:4d0f:: with SMTP id mw15mr256915pjb.174.1599015231590;
+        Tue, 01 Sep 2020 19:53:51 -0700 (PDT)
+Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
+        by smtp.gmail.com with ESMTPSA id y4sm3597155pfr.46.2020.09.01.19.53.50
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 01 Sep 2020 19:53:50 -0700 (PDT)
+From:   Kees Cook <keescook@chromium.org>
+To:     Ingo Molnar <mingo@kernel.org>
+Cc:     Kees Cook <keescook@chromium.org>,
+        Nick Desaulniers <ndesaulniers@google.com>,
+        Borislav Petkov <bp@suse.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Ard Biesheuvel <ardb@kernel.org>,
+        Peter Collingbourne <pcc@google.com>,
+        James Morse <james.morse@arm.com>,
+        Ingo Molnar <mingo@redhat.com>,
+        Russell King <linux@armlinux.org.uk>,
+        Masahiro Yamada <masahiroy@kernel.org>,
+        Arvind Sankar <nivedita@alum.mit.edu>,
+        Nathan Chancellor <natechancellor@gmail.com>,
+        Arnd Bergmann <arnd@arndb.de>, x86@kernel.org,
+        clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org,
+        linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-kernel@vger.kernel.org
+Subject: [PATCH v7 2/5] arm/build: Warn on orphan section placement
+Date:   Tue,  1 Sep 2020 19:53:44 -0700
+Message-Id: <20200902025347.2504702-3-keescook@chromium.org>
+X-Mailer: git-send-email 2.25.1
+In-Reply-To: <20200902025347.2504702-1-keescook@chromium.org>
+References: <20200902025347.2504702-1-keescook@chromium.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, 1 Sep 2020 21:08:08 +0200
-Peter Zijlstra <peterz@infradead.org> wrote:
+We don't want to depend on the linker's orphan section placement
+heuristics as these can vary between linkers, and may change between
+versions. All sections need to be explicitly handled in the linker
+script.
 
-> On Sat, Aug 29, 2020 at 09:59:49PM +0900, Masami Hiramatsu wrote:
-> > Masami Hiramatsu (16):
-> >       kprobes: Add generic kretprobe trampoline handler
-> >       x86/kprobes: Use generic kretprobe trampoline handler
-> >       arm: kprobes: Use generic kretprobe trampoline handler
-> >       arm64: kprobes: Use generic kretprobe trampoline handler
-> >       arc: kprobes: Use generic kretprobe trampoline handler
-> >       csky: kprobes: Use generic kretprobe trampoline handler
-> >       ia64: kprobes: Use generic kretprobe trampoline handler
-> >       mips: kprobes: Use generic kretprobe trampoline handler
-> >       parisc: kprobes: Use generic kretprobe trampoline handler
-> >       powerpc: kprobes: Use generic kretprobe trampoline handler
-> >       s390: kprobes: Use generic kretprobe trampoline handler
-> >       sh: kprobes: Use generic kretprobe trampoline handler
-> >       sparc: kprobes: Use generic kretprobe trampoline handler
-> >       kprobes: Remove NMI context check
-> >       kprobes: Free kretprobe_instance with rcu callback
-> >       kprobes: Make local used functions static
-> > 
-> > Peter Zijlstra (5):
-> >       llist: Add nonatomic __llist_add() and __llist_dell_all()
-> >       kprobes: Remove kretprobe hash
-> >       asm-generic/atomic: Add try_cmpxchg() fallbacks
-> >       freelist: Lock less freelist
-> >       kprobes: Replace rp->free_instance with freelist
-> 
-> This looks good to me, do you want me to merge them through -tip? If so,
-> do we want to try and get them in this release still?
+Specifically, this would have made a recently fixed bug very obvious:
 
-Yes, thanks. For the kretprobe missing issue, we will need the first half
-(up to "kprobes: Remove NMI context check"), so we can split the series
-if someone think the lockless is still immature.
+ld: warning: orphan section `.fixup' from `arch/arm/lib/copy_from_user.o' being placed in section `.fixup'
 
-> 
-> Ingo, opinions? This basically fixes a regression cauesd by
-> 
->   0d00449c7a28 ("x86: Replace ist_enter() with nmi_enter()")
-> 
+With all sections handled, enable orphan section warning.
 
-Oops, I missed Ingo in CC. 
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm/Makefile | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-Thank you,
-
+diff --git a/arch/arm/Makefile b/arch/arm/Makefile
+index 4e877354515f..e589da3c8949 100644
+--- a/arch/arm/Makefile
++++ b/arch/arm/Makefile
+@@ -16,6 +16,10 @@ LDFLAGS_vmlinux	+= --be8
+ KBUILD_LDFLAGS_MODULE	+= --be8
+ endif
+ 
++# We never want expected sections to be placed heuristically by the
++# linker. All sections should be explicitly named in the linker script.
++LDFLAGS_vmlinux += $(call ld-option, --orphan-handling=warn)
++
+ ifeq ($(CONFIG_ARM_MODULE_PLTS),y)
+ KBUILD_LDS_MODULE	+= $(srctree)/arch/arm/kernel/module.lds
+ endif
 -- 
-Masami Hiramatsu <mhiramat@kernel.org>
+2.25.1
+
