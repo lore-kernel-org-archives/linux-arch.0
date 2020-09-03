@@ -8,56 +8,56 @@ X-Spam-Status: No, score=-21.1 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 08656C43461
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 09:18:07 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 37632C433E2
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 09:18:09 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id BF6CA2071B
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 09:18:06 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id ECCB620897
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 09:18:08 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="bKVLGaca"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="Uw5/3Frz"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728301AbgICJSA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Sep 2020 05:18:00 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44426 "EHLO
+        id S1726679AbgICJSB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Sep 2020 05:18:01 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44444 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726679AbgICJRm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 05:17:42 -0400
-Received: from mail-ej1-x644.google.com (mail-ej1-x644.google.com [IPv6:2a00:1450:4864:20::644])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 77D8DC06124F
-        for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2020 02:17:41 -0700 (PDT)
-Received: by mail-ej1-x644.google.com with SMTP id m22so2790552eje.10
-        for <linux-arch@vger.kernel.org>; Thu, 03 Sep 2020 02:17:41 -0700 (PDT)
+        with ESMTP id S1728185AbgICJRr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 05:17:47 -0400
+Received: from mail-ed1-x542.google.com (mail-ed1-x542.google.com [IPv6:2a00:1450:4864:20::542])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 93256C061247
+        for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2020 02:17:46 -0700 (PDT)
+Received: by mail-ed1-x542.google.com with SMTP id n22so1935773edt.4
+        for <linux-arch@vger.kernel.org>; Thu, 03 Sep 2020 02:17:46 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=zNvDbfBdNwTHuqwmJ87zZAgkBHe207JszB0bJn56FTQ=;
-        b=bKVLGacayIn54nHdLPKqW3i8uEBaZAwki24ZWWmC6StEw8/dwhS84EJljmlUfqPDzN
-         os8Cz89rtKYRMOQozzZ6QHFUcakWPYFWt85KojPT2HEAJ5vAzQvf8RVMU4xH/NRXfvG1
-         3bdX7bTf8sgCIGmRYkuDw3RUrax3VG60ypb2xKs8gIochB3Zkg1ZfP4oG2oGGUEX4ZtS
-         S1DaMW7NxbxZ4GQrSBQL+3bYpDlVEz1Xcf2zT3DD55F6UuPfyc7VljV1HOWLMd6nT1bg
-         bYSJOwJm6ojHGXX5B8rzmyp0EZhWXLVr9dl6F6VT7JHKmVgtrZYrBcaNOk77rMkhzTW/
-         C3Qw==
+        bh=QisZTdt2TL1FFTIx3f7MU7jGvA7bpKi0v1t83QtatC8=;
+        b=Uw5/3FrzMA18Q3Hr8bbsY/elC1IYtbQMCmA2A1rm0P1TwtZ0HUJ3+Lkb6GHUz/KfyT
+         5Al3hHDQuNzPO3OeXgaWJfxewKIYqv4MKaFVppm/Z/TcAZfbOgiQ4zYQxjLikS2PukDB
+         eddkTC6h0wqw6WxN7MJlFEOae5fT5x7v3eWNKPT2CfUJ1fHB3Cd5E0hq+uPMBEc83KPG
+         7U6q8+wSN+z9aq3qXwyi1FejKiLD1Gpj7p/VuJsVIpVoihNVXCgu7KkkYPjGDpN0WPhY
+         IF/SUzyo608sod7cU3tL38lq+aGlpUqVnUKjU3x2oKB72hrYza4FntfToHRguFg1IgDJ
+         +80Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=zNvDbfBdNwTHuqwmJ87zZAgkBHe207JszB0bJn56FTQ=;
-        b=nrrvS9+CNQ50S6tjXIz3sRiTF0o1JlUkNWKpwYhttFdenSFA9fjmQJTdQoxRgY5qqL
-         peGZaKqRlGA9HYnJPU5CPTv+jhewVdzWGnj1mUx/Day8et2wXmFYgR1Vk/5CpgwuG47E
-         bTW0MHr22xm14Zg4swJ0L9wZUnlU7VGiKlOnncn5LH+yVjxMv5zwI3xGEfuCz2p/luWO
-         4VwLd3CAlfE5QVWx9XMLxor7gu0QE/z9Q2dgmE8UB4sKF4vxWC2vUAJjnvdX8VPIcvB8
-         5FQp2I3Anz5CIItAmxFf8rBQHdYhrr3LCZJ+uZyjACNzyuIVsODFLcn1qMaQ5496nNZC
-         ZT+A==
-X-Gm-Message-State: AOAM533RUX4w1ZX+oiEZCsFO9hVAn6ex9NvvWPdp9i7j3mWGnp0qr1LR
-        NZA15dqNvIyFiwNHRjPPdz9kTw==
-X-Google-Smtp-Source: ABdhPJxjc2flZ0tLE+wu0DM0G8WaozAnEsLB5cW424g4zHnmjkJ4t03cn83T3cbh6pDJJ5h5XXDJhQ==
-X-Received: by 2002:a17:906:3955:: with SMTP id g21mr1170038eje.69.1599124659856;
-        Thu, 03 Sep 2020 02:17:39 -0700 (PDT)
+        bh=QisZTdt2TL1FFTIx3f7MU7jGvA7bpKi0v1t83QtatC8=;
+        b=iQ2vzChCjYrGD2rqop+4LB5/XJgJmcddH6Or/nKTR8rgIel2h5j5ATt5SG8mmfQlq2
+         0tFVCBLpsrAvB6eHAqF3+cnziGsiRVRSUxmuaIsbiw+0Lx4Dc6aPQjg+C1uMA2/XH4hf
+         IL+2jXNIq2JkFDhPjtzgU8u2oUgGLj/E4h7jlrLqpMYPlSrooBhFU32pILLYB+8biumP
+         E24MAujp8qYNRxyvkQ87XciH0nX50+dFQuNgsYB0CejW8faWnOFd3yxYldli4ZKkwfax
+         sVpejQQWZZlMyYbj3h7KIH00TKVE8gpjv4MRPxW+kNNZzSEAe9fD3tiCSWb8XWhFPv/4
+         iABw==
+X-Gm-Message-State: AOAM533MXpNKbfUpzmfUpsxeToyxJeygyPOksrDjTIAFpo9wWFkHyoKm
+        MQa0GIJgTGWsFcyuXrUCBS+R5g==
+X-Google-Smtp-Source: ABdhPJyZQ+B3hRMDuLLmB1WZ72xdRkglhDJaUzjBZFK8sPqN0Tzw3VvIDM0m15Hpqcb86+xd083gjw==
+X-Received: by 2002:a05:6402:486:: with SMTP id k6mr2060104edv.83.1599124665051;
+        Thu, 03 Sep 2020 02:17:45 -0700 (PDT)
 Received: from localhost (dynamic-2a00-1028-919a-a06e-64ac-0036-822c-68d3.ipv6.broadband.iol.cz. [2a00:1028:919a:a06e:64ac:36:822c:68d3])
-        by smtp.gmail.com with ESMTPSA id g19sm2670317ejz.5.2020.09.03.02.17.38
+        by smtp.gmail.com with ESMTPSA id m4sm2829132ejn.31.2020.09.03.02.17.43
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 03 Sep 2020 02:17:38 -0700 (PDT)
+        Thu, 03 Sep 2020 02:17:44 -0700 (PDT)
 From:   David Brazdil <dbrazdil@google.com>
 To:     Marc Zyngier <maz@kernel.org>,
         Catalin Marinas <catalin.marinas@arm.com>,
@@ -70,9 +70,9 @@ Cc:     James Morse <james.morse@arm.com>,
         linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
         kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org,
         kernel-team@android.com, David Brazdil <dbrazdil@google.com>
-Subject: [PATCH v2 02/10] kvm: arm64: Partially link nVHE hyp code, simplify HYPCOPY
-Date:   Thu,  3 Sep 2020 11:17:04 +0200
-Message-Id: <20200903091712.46456-3-dbrazdil@google.com>
+Subject: [PATCH v2 04/10] kvm: arm64: Remove hyp_adr/ldr_this_cpu
+Date:   Thu,  3 Sep 2020 11:17:06 +0200
+Message-Id: <20200903091712.46456-5-dbrazdil@google.com>
 X-Mailer: git-send-email 2.28.0
 In-Reply-To: <20200903091712.46456-1-dbrazdil@google.com>
 References: <20200903091712.46456-1-dbrazdil@google.com>
@@ -83,126 +83,112 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Previous series introduced custom build rules for nVHE hyp code, using
-objcopy to prefix ELF section and symbol names to separate nVHE code
-into its own "namespace". This approach was limited by the expressiveness
-of objcopy's command line interface, eg. missing support for wildcards.
+The hyp_adr/ldr_this_cpu helpers were introduced for use in hyp code
+because they always needed to use TPIDR_EL2 for base, while
+adr/ldr_this_cpu from kernel proper would select between TPIDR_EL2 and
+_EL1 based on VHE/nVHE.
 
-Improve the build rules by partially linking all '.hyp.o' files and
-prefixing their ELF section names using a linker script. Continue using
-objcopy for prefixing ELF symbol names.
-
-One immediate advantage of this approach is that all subsections
-matching a pattern can be merged into a single prefixed section, eg.
-.text and .text.* can be linked into a single '.hyp.text'. This removes
-the need for -fno-reorder-functions on GCC and will be useful in the
-future too: LTO builds use .text subsections, compilers routinely
-generate .rodata subsections, etc.
-
-Partially linking all hyp code into a single object file also makes it
-easier to analyze.
+Simplify this now that the nVHE hyp mode case can be handled using the
+__KVM_NVHE_HYPERVISOR__ macro. VHE selects _EL2 with alternatives.
 
 Signed-off-by: David Brazdil <dbrazdil@google.com>
 ---
- arch/arm64/kvm/hyp/nvhe/Makefile  | 56 ++++++++++++++++---------------
- arch/arm64/kvm/hyp/nvhe/hyp.lds.S | 14 ++++++++
- 2 files changed, 43 insertions(+), 27 deletions(-)
- create mode 100644 arch/arm64/kvm/hyp/nvhe/hyp.lds.S
+ arch/arm64/include/asm/assembler.h | 27 +++++++++++++++++----------
+ arch/arm64/include/asm/kvm_asm.h   | 14 +-------------
+ arch/arm64/kvm/hyp/hyp-entry.S     |  2 +-
+ 3 files changed, 19 insertions(+), 24 deletions(-)
 
-diff --git a/arch/arm64/kvm/hyp/nvhe/Makefile b/arch/arm64/kvm/hyp/nvhe/Makefile
-index aef76487edc2..1b2fbb19f3e8 100644
---- a/arch/arm64/kvm/hyp/nvhe/Makefile
-+++ b/arch/arm64/kvm/hyp/nvhe/Makefile
-@@ -10,40 +10,42 @@ obj-y := timer-sr.o sysreg-sr.o debug-sr.o switch.o tlb.o hyp-init.o
- obj-y += ../vgic-v3-sr.o ../aarch32.o ../vgic-v2-cpuif-proxy.o ../entry.o \
- 	 ../fpsimd.o ../hyp-entry.o
+diff --git a/arch/arm64/include/asm/assembler.h b/arch/arm64/include/asm/assembler.h
+index 54d181177656..b392a977efb6 100644
+--- a/arch/arm64/include/asm/assembler.h
++++ b/arch/arm64/include/asm/assembler.h
+@@ -218,6 +218,21 @@ lr	.req	x30		// link register
+ 	str	\src, [\tmp, :lo12:\sym]
+ 	.endm
  
--obj-y := $(patsubst %.o,%.hyp.o,$(obj-y))
--extra-y := $(patsubst %.hyp.o,%.hyp.tmp.o,$(obj-y))
-+##
-+## Build rules for compiling nVHE hyp code
-+## Output of this folder is `hyp.o`, a partially linked object file containing
-+## all nVHE hyp code and data.
-+##
++	/*
++	 * @dst: destination register (32 or 64 bit wide)
++	 */
++	.macro	this_cpu_offset, dst
++#ifdef __KVM_NVHE_HYPERVISOR__
++	mrs	\dst, tpidr_el2
++#else
++alternative_if_not ARM64_HAS_VIRT_HOST_EXTN
++	mrs	\dst, tpidr_el1
++alternative_else
++	mrs	\dst, tpidr_el2
++alternative_endif
++#endif
++	.endm
++
+ 	/*
+ 	 * @dst: Result of per_cpu(sym, smp_processor_id()) (can be SP)
+ 	 * @sym: The name of the per-cpu variable
+@@ -226,11 +241,7 @@ lr	.req	x30		// link register
+ 	.macro adr_this_cpu, dst, sym, tmp
+ 	adrp	\tmp, \sym
+ 	add	\dst, \tmp, #:lo12:\sym
+-alternative_if_not ARM64_HAS_VIRT_HOST_EXTN
+-	mrs	\tmp, tpidr_el1
+-alternative_else
+-	mrs	\tmp, tpidr_el2
+-alternative_endif
++	this_cpu_offset \tmp
+ 	add	\dst, \dst, \tmp
+ 	.endm
  
--$(obj)/%.hyp.tmp.o: $(src)/%.c FORCE
-+hyp-obj := $(patsubst %.o,%.hyp.o,$(obj-y))
-+obj-y := hyp.o
-+extra-y := $(hyp-obj) hyp.tmp.o hyp.lds
-+
-+# 1) Compile all source files to `.hyp.o` object files. The file extension
-+#    avoids file name clashes for files shared with VHE.
-+$(obj)/%.hyp.o: $(src)/%.c FORCE
- 	$(call if_changed_rule,cc_o_c)
--$(obj)/%.hyp.tmp.o: $(src)/%.S FORCE
-+$(obj)/%.hyp.o: $(src)/%.S FORCE
- 	$(call if_changed_rule,as_o_S)
--$(obj)/%.hyp.o: $(obj)/%.hyp.tmp.o FORCE
--	$(call if_changed,hypcopy)
+@@ -241,11 +252,7 @@ alternative_endif
+ 	 */
+ 	.macro ldr_this_cpu dst, sym, tmp
+ 	adr_l	\dst, \sym
+-alternative_if_not ARM64_HAS_VIRT_HOST_EXTN
+-	mrs	\tmp, tpidr_el1
+-alternative_else
+-	mrs	\tmp, tpidr_el2
+-alternative_endif
++	this_cpu_offset \tmp
+ 	ldr	\dst, [\dst, \tmp]
+ 	.endm
  
--# Disable reordering functions by GCC (enabled at -O2).
--# This pass puts functions into '.text.*' sections to aid the linker
--# in optimizing ELF layout. See HYPCOPY comment below for more info.
--ccflags-y += $(call cc-option,-fno-reorder-functions)
-+# 2) Compile linker script.
-+$(obj)/hyp.lds: $(src)/hyp.lds.S FORCE
-+	$(call if_changed_dep,cpp_lds_S)
-+
-+# 3) Partially link all '.hyp.o' files and apply the linker script.
-+#    Prefixes names of ELF sections with '.hyp', eg. '.hyp.text'.
-+LDFLAGS_hyp.tmp.o := -r -T $(obj)/hyp.lds
-+$(obj)/hyp.tmp.o: $(addprefix $(obj)/,$(hyp-obj)) $(obj)/hyp.lds FORCE
-+	$(call if_changed,ld)
-+
-+# 4) Produce the final 'hyp.o', ready to be linked into 'vmlinux'.
-+#    Prefixes names of ELF symbols with '__kvm_nvhe_'.
-+$(obj)/hyp.o: $(obj)/hyp.tmp.o FORCE
-+	$(call if_changed,hypcopy)
+diff --git a/arch/arm64/include/asm/kvm_asm.h b/arch/arm64/include/asm/kvm_asm.h
+index 9149079f0269..469c0662f7f3 100644
+--- a/arch/arm64/include/asm/kvm_asm.h
++++ b/arch/arm64/include/asm/kvm_asm.h
+@@ -179,20 +179,8 @@ extern char __smccc_workaround_1_smc[__SMCCC_WORKAROUND_1_SMC_SZ];
  
- # The HYPCOPY command uses `objcopy` to prefix all ELF symbol names
--# and relevant ELF section names to avoid clashes with VHE code/data.
--#
--# Hyp code is assumed to be in the '.text' section of the input object
--# files (with the exception of specialized sections such as
--# '.hyp.idmap.text'). This assumption may be broken by a compiler that
--# divides code into sections like '.text.unlikely' so as to optimize
--# ELF layout. HYPCOPY checks that no such sections exist in the input
--# using `objdump`, otherwise they would be linked together with other
--# kernel code and not memory-mapped correctly at runtime.
-+# to avoid clashes with VHE code/data.
- quiet_cmd_hypcopy = HYPCOPY $@
--      cmd_hypcopy =							\
--	if $(OBJDUMP) -h $< | grep -F '.text.'; then			\
--		echo "$@: function reordering not supported in nVHE hyp code" >&2; \
--		/bin/false;						\
--	fi;								\
--	$(OBJCOPY) --prefix-symbols=__kvm_nvhe_				\
--		   --rename-section=.text=.hyp.text			\
--		   $< $@
-+      cmd_hypcopy = $(OBJCOPY) --prefix-symbols=__kvm_nvhe_ $< $@
+ #else /* __ASSEMBLY__ */
  
- # Remove ftrace and Shadow Call Stack CFLAGS.
- # This is equivalent to the 'notrace' and '__noscs' annotations.
-diff --git a/arch/arm64/kvm/hyp/nvhe/hyp.lds.S b/arch/arm64/kvm/hyp/nvhe/hyp.lds.S
-new file mode 100644
-index 000000000000..aaa0ce133a32
---- /dev/null
-+++ b/arch/arm64/kvm/hyp/nvhe/hyp.lds.S
-@@ -0,0 +1,14 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Linker script used during partial linking of nVHE EL2 object files.
-+ * Written by David Brazdil <dbrazdil@google.com>
-+ */
-+
-+/*
-+ * Defines an ELF hyp section from input section @NAME and its subsections.
-+ */
-+#define HYP_SECTION(NAME) .hyp##NAME : { *(NAME NAME##.[0-9a-zA-Z_]*) }
-+
-+SECTIONS {
-+	HYP_SECTION(.text)
-+}
+-.macro hyp_adr_this_cpu reg, sym, tmp
+-	adr_l	\reg, \sym
+-	mrs	\tmp, tpidr_el2
+-	add	\reg, \reg, \tmp
+-.endm
+-
+-.macro hyp_ldr_this_cpu reg, sym, tmp
+-	adr_l	\reg, \sym
+-	mrs	\tmp, tpidr_el2
+-	ldr	\reg,  [\reg, \tmp]
+-.endm
+-
+ .macro get_host_ctxt reg, tmp
+-	hyp_adr_this_cpu \reg, kvm_host_data, \tmp
++	adr_this_cpu \reg, kvm_host_data, \tmp
+ 	add	\reg, \reg, #HOST_DATA_CONTEXT
+ .endm
+ 
+diff --git a/arch/arm64/kvm/hyp/hyp-entry.S b/arch/arm64/kvm/hyp/hyp-entry.S
+index 46b4dab933d0..fba91c2ab410 100644
+--- a/arch/arm64/kvm/hyp/hyp-entry.S
++++ b/arch/arm64/kvm/hyp/hyp-entry.S
+@@ -132,7 +132,7 @@ alternative_cb_end
+ 	str	x0, [x2, #VCPU_WORKAROUND_FLAGS]
+ 
+ 	/* Check that we actually need to perform the call */
+-	hyp_ldr_this_cpu x0, arm64_ssbd_callback_required, x2
++	ldr_this_cpu x0, arm64_ssbd_callback_required, x2
+ 	cbz	x0, wa2_end
+ 
+ 	mov	w0, #ARM_SMCCC_ARCH_WORKAROUND_2
 -- 
 2.28.0.402.g5ffc5be6b7-goog
 
