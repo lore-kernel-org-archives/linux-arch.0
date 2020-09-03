@@ -8,56 +8,56 @@ X-Spam-Status: No, score=-21.1 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BD55FC433E7
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 09:18:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7352BC43461
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 09:18:45 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 806EF206C0
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 09:18:44 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3FE12206C0
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 09:18:45 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="nMfWtLwF"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="ibaN6UVu"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728073AbgICJSo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1728412AbgICJSo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Thu, 3 Sep 2020 05:18:44 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44478 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44456 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728292AbgICJR5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 05:17:57 -0400
-Received: from mail-ej1-x644.google.com (mail-ej1-x644.google.com [IPv6:2a00:1450:4864:20::644])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CF8B9C06125C
-        for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2020 02:17:54 -0700 (PDT)
-Received: by mail-ej1-x644.google.com with SMTP id i22so2832632eja.5
-        for <linux-arch@vger.kernel.org>; Thu, 03 Sep 2020 02:17:54 -0700 (PDT)
+        with ESMTP id S1728283AbgICJRt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 05:17:49 -0400
+Received: from mail-ej1-x641.google.com (mail-ej1-x641.google.com [IPv6:2a00:1450:4864:20::641])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 46807C061249
+        for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2020 02:17:49 -0700 (PDT)
+Received: by mail-ej1-x641.google.com with SMTP id nw23so2841125ejb.4
+        for <linux-arch@vger.kernel.org>; Thu, 03 Sep 2020 02:17:49 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=22FDsG2iZpK/4rGNv58xs8DHFdUQri5Jr1UNE+6mylQ=;
-        b=nMfWtLwFlKOKjnQRBR8B1Cf3oI5FbF7UZcTPADs/DolIRxiGjjVgPUhp7JOS4z2rbb
-         uLLDsPat/+nF1SZHOeuqv5yof7xurbgnFAnWmj3y1LAP2D/M5cYjGuR2IZeoOizewrMx
-         As1Q/GCznqtOImaDt++9UkE1rlwejNJlIG6W7mmQkxnFAUB/+oGZ+AzNTD8+1M2O2u1l
-         6YB9EXX5DLq1CKv9EHKUc2KRxhJ5No1Nif9rprHTMGleWBjQkTyfMdntl43ps8v5kOYL
-         AZtRLAWGSgk8M0FjnGtgsRo79ZO1DodIMFTJ6M/ysYHNSKNicuD5JrjRW334QcaIgx2R
-         eYmg==
+        bh=lr26ux0OOjKqBElJON72X2bDuUHIIFflkukJO3BWbvU=;
+        b=ibaN6UVuyMWanD/p/syhzRmTyFuupe1wk12IPBNXGichEgTkklyUUzy7oxzAUVwF14
+         5bnjjmfHLlMy5ji9KSMCLbP7UER0UcEHRPFkukXNMEJrAXyWkKKhNA6xGa5CjZ55qrBn
+         M1JIPvdv5M1d5OYPv0nEEBa9+CWY76zMCqtZxvvUXWq+fTYMqlOYzh0VOa8DBh4sIxIU
+         gPAB3kITbTsjqhMnV9JKcuqDcJEd+mL27vzwiNl8NSdIRVhBbvONoim/RFqzbpZ1zGDX
+         KdUU4dB2O45UnNf3T4r/QYNBddgXEb080EB4ixmCZwI96W4HF9pMuBnfG+4vo77c214P
+         +hmg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=22FDsG2iZpK/4rGNv58xs8DHFdUQri5Jr1UNE+6mylQ=;
-        b=jeqW16mO/soyskQ5jHamKt9CwbnH3266GzlgdCB5r38uTD4CFWv2VBnjcIhSViICeR
-         DNNtK/vwWcsNcj2fkEQCnDUY28exGCNzczqwIldBcfWdPUVgD3VDGahDRJwE00IMmtvW
-         Jlb5YagdEOuD39QoHCwdCYQHvxuKs6UHLmiyM2T63pOuqdGW0+slX9P20+UhwfJuvjhA
-         ZjrleTdRzA4/oLc1FubQEDSRn+2cE2yk81yZql09JzVwFyvsIYfrXU/VtFa8UMYZbKzr
-         sd80Op/qGwnNuJ5X7SIwrfmL9E8IPuGmHhq8wdMnCnV88aUf5DKdCB19D6VBVttkIR7c
-         2jKQ==
-X-Gm-Message-State: AOAM5336clIr0wZon+PYPBRijkjHWTs8MtMfMuwRrWPLLIkILG87QrZS
-        Fw/wm0eAJGnLT+eQscK+WsexTQ==
-X-Google-Smtp-Source: ABdhPJxyfhSRIDHpyvYf5FPIpo/5Aj41XM/FjbhFjdrBvNpmd3UNySmojerVgxx5Cn0qBhV+NQdlxA==
-X-Received: by 2002:a17:906:f1cf:: with SMTP id gx15mr1090496ejb.241.1599124673252;
-        Thu, 03 Sep 2020 02:17:53 -0700 (PDT)
+        bh=lr26ux0OOjKqBElJON72X2bDuUHIIFflkukJO3BWbvU=;
+        b=EiGgw8rP/LZU80OXADfxLYzyXTSNWbHv0zxH4Pg+9czqwCGVjhmZ0VYWcdPbPD84r6
+         gMjxxWSsnXhsgnX+ZmtfJ0qRKABwht/2PqqdqLCmZr4U45eYoKCUam6OteLIDUxD5b3C
+         z/vPKwqQGoU1q6hJhdxeKAMSSK3MoITLDpQ7K1hQKSMDj+BFVpg5UPBcZuBzj7s3QhQQ
+         1L8fpmOOsxqrptceFXSFZzw4w0SzPdm+rBasdBJMWg9d9nd/hHMGnr/2XfDCkfubd584
+         57Wsz3W6RdSMRDGnmWa6I0PlWFhmTa2m0jAM5nrwPZn8oRV8eycgG2rpXSv+S2K0JAmh
+         EDHQ==
+X-Gm-Message-State: AOAM530kftJIfnN3CLBYdDAjJU/BJFz86g5gbqS8AaOiGVvBG1HZ9Amp
+        QojhpEcAC/CKB79PuTqG8has2g==
+X-Google-Smtp-Source: ABdhPJzEdTeSQp0oSfef6z3rNf21sKeagThs669GopkjjafQDEK3m3QDA/V0e2Zh7SmEpjSfWGhgLw==
+X-Received: by 2002:a17:906:5856:: with SMTP id h22mr1120110ejs.480.1599124667692;
+        Thu, 03 Sep 2020 02:17:47 -0700 (PDT)
 Received: from localhost (dynamic-2a00-1028-919a-a06e-64ac-0036-822c-68d3.ipv6.broadband.iol.cz. [2a00:1028:919a:a06e:64ac:36:822c:68d3])
-        by smtp.gmail.com with ESMTPSA id y8sm2587216ejd.57.2020.09.03.02.17.51
+        by smtp.gmail.com with ESMTPSA id gw6sm2638439ejb.47.2020.09.03.02.17.46
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 03 Sep 2020 02:17:52 -0700 (PDT)
+        Thu, 03 Sep 2020 02:17:46 -0700 (PDT)
 From:   David Brazdil <dbrazdil@google.com>
 To:     Marc Zyngier <maz@kernel.org>,
         Catalin Marinas <catalin.marinas@arm.com>,
@@ -70,9 +70,9 @@ Cc:     James Morse <james.morse@arm.com>,
         linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
         kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org,
         kernel-team@android.com, David Brazdil <dbrazdil@google.com>
-Subject: [PATCH v2 07/10] kvm: arm64: Create separate instances of kvm_host_data for VHE/nVHE
-Date:   Thu,  3 Sep 2020 11:17:09 +0200
-Message-Id: <20200903091712.46456-8-dbrazdil@google.com>
+Subject: [PATCH v2 05/10] kvm: arm64: Add helpers for accessing nVHE hyp per-cpu vars
+Date:   Thu,  3 Sep 2020 11:17:07 +0200
+Message-Id: <20200903091712.46456-6-dbrazdil@google.com>
 X-Mailer: git-send-email 2.28.0
 In-Reply-To: <20200903091712.46456-1-dbrazdil@google.com>
 References: <20200903091712.46456-1-dbrazdil@google.com>
@@ -83,144 +83,65 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Host CPU context is stored in a global per-cpu variable `kvm_host_data`.
-In preparation for introducing independent per-CPU region for nVHE hyp,
-create two separate instances of `kvm_host_data`, one for VHE and one
-for nVHE.
+Defining a per-CPU variable in hyp/nvhe will result in its name being
+prefixed with __kvm_nvhe_. Add helpers for declaring these variables
+in kernel proper and accessing them with this_cpu_ptr and per_cpu_ptr.
 
 Signed-off-by: David Brazdil <dbrazdil@google.com>
 ---
- arch/arm64/include/asm/kvm_host.h | 2 +-
- arch/arm64/kernel/image-vars.h    | 1 -
- arch/arm64/kvm/arm.c              | 5 ++---
- arch/arm64/kvm/hyp/nvhe/switch.c  | 3 +++
- arch/arm64/kvm/hyp/vhe/switch.c   | 3 +++
- arch/arm64/kvm/pmu.c              | 8 ++++----
- 6 files changed, 13 insertions(+), 9 deletions(-)
+ arch/arm64/include/asm/kvm_asm.h | 25 +++++++++++++++++++++++--
+ 1 file changed, 23 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
-index e52c927aade5..964e05777fe3 100644
---- a/arch/arm64/include/asm/kvm_host.h
-+++ b/arch/arm64/include/asm/kvm_host.h
-@@ -565,7 +565,7 @@ void kvm_set_sei_esr(struct kvm_vcpu *vcpu, u64 syndrome);
+diff --git a/arch/arm64/include/asm/kvm_asm.h b/arch/arm64/include/asm/kvm_asm.h
+index 469c0662f7f3..2b89817cdb01 100644
+--- a/arch/arm64/include/asm/kvm_asm.h
++++ b/arch/arm64/include/asm/kvm_asm.h
+@@ -60,9 +60,21 @@
+ 	DECLARE_KVM_VHE_SYM(sym);		\
+ 	DECLARE_KVM_NVHE_SYM(sym)
  
- struct kvm_vcpu *kvm_mpidr_to_vcpu(struct kvm *kvm, unsigned long mpidr);
++#define DECLARE_KVM_VHE_PER_CPU(type, sym)	\
++	DECLARE_PER_CPU(type, sym)
++#define DECLARE_KVM_NVHE_PER_CPU(type, sym)	\
++	DECLARE_PER_CPU(type, kvm_nvhe_sym(sym))
++
++#define DECLARE_KVM_HYP_PER_CPU(type, sym)	\
++	DECLARE_KVM_VHE_PER_CPU(type, sym);	\
++	DECLARE_KVM_NVHE_PER_CPU(type, sym)
++
+ #define CHOOSE_VHE_SYM(sym)	sym
+ #define CHOOSE_NVHE_SYM(sym)	kvm_nvhe_sym(sym)
  
--DECLARE_PER_CPU(kvm_host_data_t, kvm_host_data);
-+DECLARE_KVM_HYP_PER_CPU(kvm_host_data_t, kvm_host_data);
- 
- static inline void kvm_init_host_cpu_context(struct kvm_cpu_context *cpu_ctxt)
- {
-diff --git a/arch/arm64/kernel/image-vars.h b/arch/arm64/kernel/image-vars.h
-index 5fc5eadfb3e6..21307e2db3fc 100644
---- a/arch/arm64/kernel/image-vars.h
-+++ b/arch/arm64/kernel/image-vars.h
-@@ -69,7 +69,6 @@ KVM_NVHE_ALIAS(kvm_patch_vector_branch);
- KVM_NVHE_ALIAS(kvm_update_va_mask);
- 
- /* Global kernel state accessed by nVHE hyp code. */
--KVM_NVHE_ALIAS(kvm_host_data);
- KVM_NVHE_ALIAS(kvm_vgic_global_state);
- 
- /* Kernel constant needed to compute idmap addresses. */
-diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
-index 1bb960812493..d437052c5481 100644
---- a/arch/arm64/kvm/arm.c
-+++ b/arch/arm64/kvm/arm.c
-@@ -46,7 +46,6 @@
- __asm__(".arch_extension	virt");
++#define this_cpu_ptr_nvhe(sym)		this_cpu_ptr(&kvm_nvhe_sym(sym))
++#define per_cpu_ptr_nvhe(sym, cpu)	per_cpu_ptr(&kvm_nvhe_sym(sym), cpu)
++
+ #ifndef __KVM_NVHE_HYPERVISOR__
+ /*
+  * BIG FAT WARNINGS:
+@@ -75,12 +87,21 @@
+  * - Don't let the nVHE hypervisor have access to this, as it will
+  *   pick the *wrong* symbol (yes, it runs at EL2...).
+  */
+-#define CHOOSE_HYP_SYM(sym)	(is_kernel_in_hyp_mode() ? CHOOSE_VHE_SYM(sym) \
++#define CHOOSE_HYP_SYM(sym)		(is_kernel_in_hyp_mode()	\
++					   ? CHOOSE_VHE_SYM(sym)	\
+ 					   : CHOOSE_NVHE_SYM(sym))
++#define this_cpu_ptr_hyp(sym)		(is_kernel_in_hyp_mode()	\
++					   ? this_cpu_ptr(&sym)		\
++					   : this_cpu_ptr_nvhe(sym))
++#define per_cpu_ptr_hyp(sym, cpu)	(is_kernel_in_hyp_mode()	\
++					   ? per_cpu_ptr(&sym, cpu)	\
++					   : per_cpu_ptr_nvhe(sym, cpu))
+ #else
+ /* The nVHE hypervisor shouldn't even try to access anything */
+ extern void *__nvhe_undefined_symbol;
+-#define CHOOSE_HYP_SYM(sym)	__nvhe_undefined_symbol
++#define CHOOSE_HYP_SYM(sym)		__nvhe_undefined_symbol
++#define this_cpu_ptr_hyp(sym)		(&__nvhe_undefined_symbol)
++#define per_cpu_ptr_hyp(sym, cpu)	(&__nvhe_undefined_symbol)
  #endif
  
--DEFINE_PER_CPU(kvm_host_data_t, kvm_host_data);
- static DEFINE_PER_CPU(unsigned long, kvm_arm_hyp_stack_page);
- 
- /* The VMID used in the VTTBR */
-@@ -1305,7 +1304,7 @@ static void cpu_hyp_reset(void)
- 
- static void cpu_hyp_reinit(void)
- {
--	kvm_init_host_cpu_context(&this_cpu_ptr(&kvm_host_data)->host_ctxt);
-+	kvm_init_host_cpu_context(&this_cpu_ptr_hyp(kvm_host_data)->host_ctxt);
- 
- 	cpu_hyp_reset();
- 
-@@ -1540,7 +1539,7 @@ static int init_hyp_mode(void)
- 	for_each_possible_cpu(cpu) {
- 		kvm_host_data_t *cpu_data;
- 
--		cpu_data = per_cpu_ptr(&kvm_host_data, cpu);
-+		cpu_data = per_cpu_ptr_hyp(kvm_host_data, cpu);
- 		err = create_hyp_mappings(cpu_data, cpu_data + 1, PAGE_HYP);
- 
- 		if (err) {
-diff --git a/arch/arm64/kvm/hyp/nvhe/switch.c b/arch/arm64/kvm/hyp/nvhe/switch.c
-index 4662df6330d7..a7e9b03bd9d1 100644
---- a/arch/arm64/kvm/hyp/nvhe/switch.c
-+++ b/arch/arm64/kvm/hyp/nvhe/switch.c
-@@ -30,6 +30,9 @@
- /* Non-VHE copy of the kernel symbol. */
- DEFINE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
- 
-+/* Non-VHE instance of kvm_host_data. */
-+DEFINE_PER_CPU(kvm_host_data_t, kvm_host_data);
-+
- static void __activate_traps(struct kvm_vcpu *vcpu)
- {
- 	u64 val;
-diff --git a/arch/arm64/kvm/hyp/vhe/switch.c b/arch/arm64/kvm/hyp/vhe/switch.c
-index 575e8054f116..0949fc97bf03 100644
---- a/arch/arm64/kvm/hyp/vhe/switch.c
-+++ b/arch/arm64/kvm/hyp/vhe/switch.c
-@@ -28,6 +28,9 @@
- 
- const char __hyp_panic_string[] = "HYP panic:\nPS:%08llx PC:%016llx ESR:%08llx\nFAR:%016llx HPFAR:%016llx PAR:%016llx\nVCPU:%p\n";
- 
-+/* VHE instance of kvm_host_data. */
-+DEFINE_PER_CPU(kvm_host_data_t, kvm_host_data);
-+
- static void __activate_traps(struct kvm_vcpu *vcpu)
- {
- 	u64 val;
-diff --git a/arch/arm64/kvm/pmu.c b/arch/arm64/kvm/pmu.c
-index 3c224162b3dd..6d80ffe1ebfc 100644
---- a/arch/arm64/kvm/pmu.c
-+++ b/arch/arm64/kvm/pmu.c
-@@ -31,7 +31,7 @@ static bool kvm_pmu_switch_needed(struct perf_event_attr *attr)
-  */
- void kvm_set_pmu_events(u32 set, struct perf_event_attr *attr)
- {
--	struct kvm_host_data *ctx = this_cpu_ptr(&kvm_host_data);
-+	struct kvm_host_data *ctx = this_cpu_ptr_hyp(kvm_host_data);
- 
- 	if (!kvm_pmu_switch_needed(attr))
- 		return;
-@@ -47,7 +47,7 @@ void kvm_set_pmu_events(u32 set, struct perf_event_attr *attr)
-  */
- void kvm_clr_pmu_events(u32 clr)
- {
--	struct kvm_host_data *ctx = this_cpu_ptr(&kvm_host_data);
-+	struct kvm_host_data *ctx = this_cpu_ptr_hyp(kvm_host_data);
- 
- 	ctx->pmu_events.events_host &= ~clr;
- 	ctx->pmu_events.events_guest &= ~clr;
-@@ -173,7 +173,7 @@ void kvm_vcpu_pmu_restore_guest(struct kvm_vcpu *vcpu)
- 		return;
- 
- 	preempt_disable();
--	host = this_cpu_ptr(&kvm_host_data);
-+	host = this_cpu_ptr_hyp(kvm_host_data);
- 	events_guest = host->pmu_events.events_guest;
- 	events_host = host->pmu_events.events_host;
- 
-@@ -193,7 +193,7 @@ void kvm_vcpu_pmu_restore_host(struct kvm_vcpu *vcpu)
- 	if (!has_vhe())
- 		return;
- 
--	host = this_cpu_ptr(&kvm_host_data);
-+	host = this_cpu_ptr_hyp(kvm_host_data);
- 	events_guest = host->pmu_events.events_guest;
- 	events_host = host->pmu_events.events_host;
- 
+ /* Translate a kernel address @ptr into its equivalent linear mapping */
 -- 
 2.28.0.402.g5ffc5be6b7-goog
 
