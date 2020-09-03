@@ -7,36 +7,36 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6AAE6C433E2
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:45:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 86EF6C433E2
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:46:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 293C1206EB
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:45:56 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 57605206EF
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:46:06 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="ikzu/L7X"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="ano1KxC9"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729300AbgICOfY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Sep 2020 10:35:24 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35164 "EHLO
+        id S1729189AbgICOfO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Sep 2020 10:35:14 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35162 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729310AbgICOZk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 10:25:40 -0400
+        with ESMTP id S1729309AbgICOZl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 10:25:41 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C3660C0611E9;
-        Thu,  3 Sep 2020 07:23:02 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E8435C0611E2;
+        Thu,  3 Sep 2020 07:23:01 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=gS5pxowtZGQtlMoye8B5H+J58EER0kAQV3eD68lEeeo=; b=ikzu/L7Xjdg8p2s2ivLYYXAez0
-        TTv6T0a3efFbi8TojG+k2ZMzWyJzqu8hN1PYBAosqVZ5zLKorYnBxEfohnIRLitITUbL3Y02K7cjG
-        GzQNHbbbOfpou32eclJcidbdzb7FJ59DAsVyZbsQNH0Sja5GcTeKkttkwac1YnyqBzNYtxKBZfoQz
-        ZCOYnGqNMcDisPSanmQDPMVCLyAhvpR4lidyONwTBdqmUT3CmcRQ9By/hYENd8Axj1t+b6QG16VS5
-        qgUOJjRry7jgrpReaKe6bhOgnayWKUFQTfLkgs5a2RaaWWq+b7oOOg2uAXevA1YgidGSgt6cj85kW
-        8C6TG1JA==;
+        bh=B6771Z78+EjFEl66FRYSdFSUZAia5cb3z6J6dPED0dc=; b=ano1KxC9m3ViDX/61fzt8/FHMf
+        RYHXWlYGDttZ0+lgsMWL4w8BpYaRnZtOMa9rrOQLMX33RlH5va3GXXHqre/VPKXxVaQjLpLs9+JLS
+        pNYAQk67L8tsuNGSuVJn4Zfkc6wZ1Rz8Un47lKNDI2PPFupe6j4PP8Ajy2diXmkk1/786NG4JqG1s
+        HpADYcsco56ugQCOTW4Vik4gMhVdYF6aiqtpfbHrCuaICF4S3OglJLXESWBI/ffhk7zEpieJ++kMW
+        bo5eC+DQfcCyEPZrKwWurPrb4oLT3TgydSQ96TbdxijgdvIaJ3aoI9bHG61jifWO6nKrLXYgRZvB8
+        dFeOgvBA==;
 Received: from [2001:4bb8:184:af1:c70:4a89:bc61:2] (helo=localhost)
         by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kDq8b-0004bA-2C; Thu, 03 Sep 2020 14:22:53 +0000
+        id 1kDq8e-0004bg-GP; Thu, 03 Sep 2020 14:22:56 +0000
 From:   Christoph Hellwig <hch@lst.de>
 To:     Linus Torvalds <torvalds@linux-foundation.org>,
         Al Viro <viro@zeniv.linux.org.uk>,
@@ -46,9 +46,9 @@ Cc:     Alexey Dobriyan <adobriyan@gmail.com>,
         Kees Cook <keescook@chromium.org>,
         linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
         linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Subject: [PATCH 07/14] uaccess: add infrastructure for kernel builds with set_fs()
-Date:   Thu,  3 Sep 2020 16:22:35 +0200
-Message-Id: <20200903142242.925828-8-hch@lst.de>
+Subject: [PATCH 10/14] x86: move PAGE_OFFSET, TASK_SIZE & friends to page_{32,64}_types.h
+Date:   Thu,  3 Sep 2020 16:22:38 +0200
+Message-Id: <20200903142242.925828-11-hch@lst.de>
 X-Mailer: git-send-email 2.28.0
 In-Reply-To: <20200903142242.925828-1-hch@lst.de>
 References: <20200903142242.925828-1-hch@lst.de>
@@ -60,380 +60,156 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add a CONFIG_SET_FS option that is selected by architecturess that
-implement set_fs, which is all of them initially.  If the option is not
-set stubs for routines related to overriding the address space are
-provided so that architectures can start to opt out of providing set_fs.
+At least for 64-bit this moves them closer to some of the defines
+they are based on, and it prepares for using the TASK_SIZE_MAX
+definition from assembly.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/Kconfig            |  3 +++
- arch/alpha/Kconfig      |  1 +
- arch/arc/Kconfig        |  1 +
- arch/arm/Kconfig        |  1 +
- arch/arm64/Kconfig      |  1 +
- arch/c6x/Kconfig        |  1 +
- arch/csky/Kconfig       |  1 +
- arch/h8300/Kconfig      |  1 +
- arch/hexagon/Kconfig    |  1 +
- arch/ia64/Kconfig       |  1 +
- arch/m68k/Kconfig       |  1 +
- arch/microblaze/Kconfig |  1 +
- arch/mips/Kconfig       |  1 +
- arch/nds32/Kconfig      |  1 +
- arch/nios2/Kconfig      |  1 +
- arch/openrisc/Kconfig   |  1 +
- arch/parisc/Kconfig     |  1 +
- arch/powerpc/Kconfig    |  1 +
- arch/riscv/Kconfig      |  1 +
- arch/s390/Kconfig       |  1 +
- arch/sh/Kconfig         |  1 +
- arch/sparc/Kconfig      |  1 +
- arch/um/Kconfig         |  1 +
- arch/x86/Kconfig        |  1 +
- arch/xtensa/Kconfig     |  1 +
- include/linux/uaccess.h | 18 ++++++++++++++++++
- 26 files changed, 45 insertions(+)
+ arch/x86/include/asm/page_32_types.h | 11 +++++++
+ arch/x86/include/asm/page_64_types.h | 38 +++++++++++++++++++++
+ arch/x86/include/asm/processor.h     | 49 ----------------------------
+ 3 files changed, 49 insertions(+), 49 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index af14a567b493fc..3fab619a6aa51a 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -24,6 +24,9 @@ config KEXEC_ELF
- config HAVE_IMA_KEXEC
- 	bool
+diff --git a/arch/x86/include/asm/page_32_types.h b/arch/x86/include/asm/page_32_types.h
+index 565ad755c785e2..26236925fb2c36 100644
+--- a/arch/x86/include/asm/page_32_types.h
++++ b/arch/x86/include/asm/page_32_types.h
+@@ -41,6 +41,17 @@
+ #define __VIRTUAL_MASK_SHIFT	32
+ #endif	/* CONFIG_X86_PAE */
  
-+config SET_FS
-+	bool
++/*
++ * User space process size: 3GB (default).
++ */
++#define IA32_PAGE_OFFSET	PAGE_OFFSET
++#define TASK_SIZE		PAGE_OFFSET
++#define TASK_SIZE_LOW		TASK_SIZE
++#define TASK_SIZE_MAX		TASK_SIZE
++#define DEFAULT_MAP_WINDOW	TASK_SIZE
++#define STACK_TOP		TASK_SIZE
++#define STACK_TOP_MAX		STACK_TOP
 +
- config HOTPLUG_SMT
- 	bool
- 
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index 9c5f06e8eb9bc0..d6e9fc7a7b19e2 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -39,6 +39,7 @@ config ALPHA
- 	select OLD_SIGSUSPEND
- 	select CPU_NO_EFFICIENT_FFS if !ALPHA_EV67
- 	select MMU_GATHER_NO_RANGE
-+	select SET_FS
- 	help
- 	  The Alpha is a 64-bit general-purpose processor designed and
- 	  marketed by the Digital Equipment Corporation of blessed memory,
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index ba00c4e1e1c271..c49f5754a11e40 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -48,6 +48,7 @@ config ARC
- 	select PCI_SYSCALL if PCI
- 	select PERF_USE_VMALLOC if ARC_CACHE_VIPT_ALIASING
- 	select HAVE_ARCH_JUMP_LABEL if ISA_ARCV2 && !CPU_ENDIAN_BE32
-+	select SET_FS
- 
- config ARCH_HAS_CACHE_LINE_SIZE
- 	def_bool y
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index e00d94b1665876..87e1478a42dc4f 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -118,6 +118,7 @@ config ARM
- 	select PCI_SYSCALL if PCI
- 	select PERF_USE_VMALLOC
- 	select RTC_LIB
-+	select SET_FS
- 	select SYS_SUPPORTS_APM_EMULATION
- 	# Above selects are sorted alphabetically; please add new ones
- 	# according to that.  Thanks.
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 6d232837cbeee8..fbd9e35bef096f 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -192,6 +192,7 @@ config ARM64
- 	select PCI_SYSCALL if PCI
- 	select POWER_RESET
- 	select POWER_SUPPLY
-+	select SET_FS
- 	select SPARSE_IRQ
- 	select SWIOTLB
- 	select SYSCTL_EXCEPTION_TRACE
-diff --git a/arch/c6x/Kconfig b/arch/c6x/Kconfig
-index 6444ebfd06a665..48d66bf0465d68 100644
---- a/arch/c6x/Kconfig
-+++ b/arch/c6x/Kconfig
-@@ -22,6 +22,7 @@ config C6X
- 	select GENERIC_CLOCKEVENTS
- 	select MODULES_USE_ELF_RELA
- 	select MMU_GATHER_NO_RANGE if MMU
-+	select SET_FS
- 
- config MMU
- 	def_bool n
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index 3d5afb5f568543..2836f6e76fdb2d 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -78,6 +78,7 @@ config CSKY
- 	select PCI_DOMAINS_GENERIC if PCI
- 	select PCI_SYSCALL if PCI
- 	select PCI_MSI if PCI
-+	select SET_FS
- 
- config LOCKDEP_SUPPORT
- 	def_bool y
-diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
-index d11666d538fea8..7945de067e9fcc 100644
---- a/arch/h8300/Kconfig
-+++ b/arch/h8300/Kconfig
-@@ -25,6 +25,7 @@ config H8300
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_HASH
- 	select CPU_NO_EFFICIENT_FFS
-+	select SET_FS
- 	select UACCESS_MEMCPY
- 
- config CPU_BIG_ENDIAN
-diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
-index 667cfc511cf999..f2afabbadd430e 100644
---- a/arch/hexagon/Kconfig
-+++ b/arch/hexagon/Kconfig
-@@ -31,6 +31,7 @@ config HEXAGON
- 	select GENERIC_CLOCKEVENTS_BROADCAST
- 	select MODULES_USE_ELF_RELA
- 	select GENERIC_CPU_DEVICES
-+	select SET_FS
- 	help
- 	  Qualcomm Hexagon is a processor architecture designed for high
- 	  performance and low power across a wide variety of applications.
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 5b4ec80bf5863a..22a6853840e235 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -56,6 +56,7 @@ config IA64
- 	select NEED_DMA_MAP_STATE
- 	select NEED_SG_DMA_LENGTH
- 	select NUMA if !FLATMEM
-+	select SET_FS
- 	default y
- 	help
- 	  The Itanium Processor Family is Intel's 64-bit successor to
-diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
-index 6f2f38d05772ab..dcf4ae8c9b215f 100644
---- a/arch/m68k/Kconfig
-+++ b/arch/m68k/Kconfig
-@@ -32,6 +32,7 @@ config M68K
- 	select OLD_SIGSUSPEND3
- 	select OLD_SIGACTION
- 	select MMU_GATHER_NO_RANGE if MMU
-+	select SET_FS
- 
- config CPU_BIG_ENDIAN
- 	def_bool y
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index d262ac0c8714bd..7e3d4583abf3e6 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -46,6 +46,7 @@ config MICROBLAZE
- 	select CPU_NO_EFFICIENT_FFS
- 	select MMU_GATHER_NO_RANGE if MMU
- 	select SPARSE_IRQ
-+	select SET_FS
- 
- # Endianness selection
- choice
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index c95fa3a2484cf0..fbc26391b588f8 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -87,6 +87,7 @@ config MIPS
- 	select MODULES_USE_ELF_RELA if MODULES && 64BIT
- 	select PERF_USE_VMALLOC
- 	select RTC_LIB
-+	select SET_FS
- 	select SYSCTL_EXCEPTION_TRACE
- 	select VIRT_TO_BUS
- 
-diff --git a/arch/nds32/Kconfig b/arch/nds32/Kconfig
-index e30298e99e1bdf..e8e541fd2267d0 100644
---- a/arch/nds32/Kconfig
-+++ b/arch/nds32/Kconfig
-@@ -48,6 +48,7 @@ config NDS32
- 	select HAVE_FUNCTION_GRAPH_TRACER
- 	select HAVE_FTRACE_MCOUNT_RECORD
- 	select HAVE_DYNAMIC_FTRACE
-+	select SET_FS
- 	help
- 	  Andes(nds32) Linux support.
- 
-diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
-index c6645141bb2a88..c7c6ba6bec9dfc 100644
---- a/arch/nios2/Kconfig
-+++ b/arch/nios2/Kconfig
-@@ -27,6 +27,7 @@ config NIOS2
- 	select USB_ARCH_HAS_HCD if USB_SUPPORT
- 	select CPU_NO_EFFICIENT_FFS
- 	select MMU_GATHER_NO_RANGE if MMU
-+	select SET_FS
- 
- config GENERIC_CSUM
- 	def_bool y
-diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
-index 7e94fe37cb2fdf..6233c62931803f 100644
---- a/arch/openrisc/Kconfig
-+++ b/arch/openrisc/Kconfig
-@@ -39,6 +39,7 @@ config OPENRISC
- 	select ARCH_WANT_FRAME_POINTERS
- 	select GENERIC_IRQ_MULTI_HANDLER
- 	select MMU_GATHER_NO_RANGE if MMU
-+	select SET_FS
- 
- config CPU_BIG_ENDIAN
- 	def_bool y
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index 3b0f53dd70bc9b..be70af482b5a9a 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -63,6 +63,7 @@ config PARISC
- 	select HAVE_FTRACE_MCOUNT_RECORD if HAVE_DYNAMIC_FTRACE
- 	select HAVE_KPROBES_ON_FTRACE
- 	select HAVE_DYNAMIC_FTRACE_WITH_REGS
-+	select SET_FS
- 
- 	help
- 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 65bed1fdeaad71..4d1c18a3b83977 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -249,6 +249,7 @@ config PPC
- 	select PCI_SYSCALL			if PCI
- 	select PPC_DAWR				if PPC64
- 	select RTC_LIB
-+	select SET_FS
- 	select SPARSE_IRQ
- 	select SYSCTL_EXCEPTION_TRACE
- 	select THREAD_INFO_IN_TASK
-diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index df18372861d8d2..ea0c1ad456d838 100644
---- a/arch/riscv/Kconfig
-+++ b/arch/riscv/Kconfig
-@@ -82,6 +82,7 @@ config RISCV
- 	select PCI_MSI if PCI
- 	select RISCV_INTC
- 	select RISCV_TIMER if RISCV_SBI
-+	select SET_FS
- 	select SPARSEMEM_STATIC if 32BIT
- 	select SPARSE_IRQ
- 	select SYSCTL_EXCEPTION_TRACE
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 3d86e12e8e3c21..fd81385a7787cb 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -185,6 +185,7 @@ config S390
- 	select OLD_SIGSUSPEND3
- 	select PCI_DOMAINS		if PCI
- 	select PCI_MSI			if PCI
-+	select SET_FS
- 	select SPARSE_IRQ
- 	select SYSCTL_EXCEPTION_TRACE
- 	select THREAD_INFO_IN_TASK
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index d20927128fce05..2bd1653f3b3fea 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -71,6 +71,7 @@ config SUPERH
- 	select PERF_EVENTS
- 	select PERF_USE_VMALLOC
- 	select RTC_LIB
-+	select SET_FS
- 	select SPARSE_IRQ
- 	help
- 	  The SuperH is a RISC processor targeted for use in embedded systems
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index efeff2c896a544..3e0cf0319a278a 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -49,6 +49,7 @@ config SPARC
- 	select LOCKDEP_SMALL if LOCKDEP
- 	select NEED_DMA_MAP_STATE
- 	select NEED_SG_DMA_LENGTH
-+	select SET_FS
- 
- config SPARC32
- 	def_bool !64BIT
-diff --git a/arch/um/Kconfig b/arch/um/Kconfig
-index eb51fec759484a..3aefcd81566809 100644
---- a/arch/um/Kconfig
-+++ b/arch/um/Kconfig
-@@ -19,6 +19,7 @@ config UML
- 	select GENERIC_CPU_DEVICES
- 	select GENERIC_CLOCKEVENTS
- 	select HAVE_GCC_PLUGINS
-+	select SET_FS
- 	select TTY # Needed for line.c
- 
- config MMU
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 7101ac64bb209d..f85c13355732fe 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -237,6 +237,7 @@ config X86
- 	select HAVE_ARCH_KCSAN			if X86_64
- 	select X86_FEATURE_NAMES		if PROC_FS
- 	select PROC_PID_ARCH_STATUS		if PROC_FS
-+	select SET_FS
- 	imply IMA_SECURE_AND_OR_TRUSTED_BOOT    if EFI
- 
- config INSTRUCTION_DECODER
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index e997e0119c0251..94bad4d66b4bde 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -41,6 +41,7 @@ config XTENSA
- 	select IRQ_DOMAIN
- 	select MODULES_USE_ELF_RELA
- 	select PERF_USE_VMALLOC
-+	select SET_FS
- 	select VIRT_TO_BUS
- 	help
- 	  Xtensa processors are 32-bit RISC machines designed by Tensilica
-diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-index 94b28541165929..70073c802b48ed 100644
---- a/include/linux/uaccess.h
-+++ b/include/linux/uaccess.h
-@@ -8,6 +8,7 @@
- 
- #include <asm/uaccess.h>
- 
-+#ifdef CONFIG_SET_FS
  /*
-  * Force the uaccess routines to be wired up for actual userspace access,
-  * overriding any possible set_fs(KERNEL_DS) still lingering around.  Undone
-@@ -25,6 +26,23 @@ static inline void force_uaccess_end(mm_segment_t oldfs)
- {
- 	set_fs(oldfs);
+  * Kernel image size is limited to 512 MB (see in arch/x86/kernel/head_32.S)
+  */
+diff --git a/arch/x86/include/asm/page_64_types.h b/arch/x86/include/asm/page_64_types.h
+index 288b065955b729..996595c9897e0a 100644
+--- a/arch/x86/include/asm/page_64_types.h
++++ b/arch/x86/include/asm/page_64_types.h
+@@ -58,6 +58,44 @@
+ #define __VIRTUAL_MASK_SHIFT	47
+ #endif
+ 
++/*
++ * User space process size.  This is the first address outside the user range.
++ * There are a few constraints that determine this:
++ *
++ * On Intel CPUs, if a SYSCALL instruction is at the highest canonical
++ * address, then that syscall will enter the kernel with a
++ * non-canonical return address, and SYSRET will explode dangerously.
++ * We avoid this particular problem by preventing anything executable
++ * from being mapped at the maximum canonical address.
++ *
++ * On AMD CPUs in the Ryzen family, there's a nasty bug in which the
++ * CPUs malfunction if they execute code from the highest canonical page.
++ * They'll speculate right off the end of the canonical space, and
++ * bad things happen.  This is worked around in the same way as the
++ * Intel problem.
++ *
++ * With page table isolation enabled, we map the LDT in ... [stay tuned]
++ */
++#define TASK_SIZE_MAX	((1UL << __VIRTUAL_MASK_SHIFT) - PAGE_SIZE)
++
++#define DEFAULT_MAP_WINDOW	((1UL << 47) - PAGE_SIZE)
++
++/* This decides where the kernel will search for a free chunk of vm
++ * space during mmap's.
++ */
++#define IA32_PAGE_OFFSET	((current->personality & ADDR_LIMIT_3GB) ? \
++					0xc0000000 : 0xFFFFe000)
++
++#define TASK_SIZE_LOW		(test_thread_flag(TIF_ADDR32) ? \
++					IA32_PAGE_OFFSET : DEFAULT_MAP_WINDOW)
++#define TASK_SIZE		(test_thread_flag(TIF_ADDR32) ? \
++					IA32_PAGE_OFFSET : TASK_SIZE_MAX)
++#define TASK_SIZE_OF(child)	((test_tsk_thread_flag(child, TIF_ADDR32)) ? \
++					IA32_PAGE_OFFSET : TASK_SIZE_MAX)
++
++#define STACK_TOP		TASK_SIZE_LOW
++#define STACK_TOP_MAX		TASK_SIZE_MAX
++
+ /*
+  * Maximum kernel image size is limited to 1 GiB, due to the fixmap living
+  * in the next 1 GiB (see level2_kernel_pgt in arch/x86/kernel/head_64.S).
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 97143d87994c24..1618eeb08361a9 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -782,17 +782,6 @@ static inline void spin_lock_prefetch(const void *x)
+ })
+ 
+ #ifdef CONFIG_X86_32
+-/*
+- * User space process size: 3GB (default).
+- */
+-#define IA32_PAGE_OFFSET	PAGE_OFFSET
+-#define TASK_SIZE		PAGE_OFFSET
+-#define TASK_SIZE_LOW		TASK_SIZE
+-#define TASK_SIZE_MAX		TASK_SIZE
+-#define DEFAULT_MAP_WINDOW	TASK_SIZE
+-#define STACK_TOP		TASK_SIZE
+-#define STACK_TOP_MAX		STACK_TOP
+-
+ #define INIT_THREAD  {							  \
+ 	.sp0			= TOP_OF_INIT_STACK,			  \
+ 	.sysenter_cs		= __KERNEL_CS,				  \
+@@ -802,44 +791,6 @@ static inline void spin_lock_prefetch(const void *x)
+ #define KSTK_ESP(task)		(task_pt_regs(task)->sp)
+ 
+ #else
+-/*
+- * User space process size.  This is the first address outside the user range.
+- * There are a few constraints that determine this:
+- *
+- * On Intel CPUs, if a SYSCALL instruction is at the highest canonical
+- * address, then that syscall will enter the kernel with a
+- * non-canonical return address, and SYSRET will explode dangerously.
+- * We avoid this particular problem by preventing anything executable
+- * from being mapped at the maximum canonical address.
+- *
+- * On AMD CPUs in the Ryzen family, there's a nasty bug in which the
+- * CPUs malfunction if they execute code from the highest canonical page.
+- * They'll speculate right off the end of the canonical space, and
+- * bad things happen.  This is worked around in the same way as the
+- * Intel problem.
+- *
+- * With page table isolation enabled, we map the LDT in ... [stay tuned]
+- */
+-#define TASK_SIZE_MAX	((1UL << __VIRTUAL_MASK_SHIFT) - PAGE_SIZE)
+-
+-#define DEFAULT_MAP_WINDOW	((1UL << 47) - PAGE_SIZE)
+-
+-/* This decides where the kernel will search for a free chunk of vm
+- * space during mmap's.
+- */
+-#define IA32_PAGE_OFFSET	((current->personality & ADDR_LIMIT_3GB) ? \
+-					0xc0000000 : 0xFFFFe000)
+-
+-#define TASK_SIZE_LOW		(test_thread_flag(TIF_ADDR32) ? \
+-					IA32_PAGE_OFFSET : DEFAULT_MAP_WINDOW)
+-#define TASK_SIZE		(test_thread_flag(TIF_ADDR32) ? \
+-					IA32_PAGE_OFFSET : TASK_SIZE_MAX)
+-#define TASK_SIZE_OF(child)	((test_tsk_thread_flag(child, TIF_ADDR32)) ? \
+-					IA32_PAGE_OFFSET : TASK_SIZE_MAX)
+-
+-#define STACK_TOP		TASK_SIZE_LOW
+-#define STACK_TOP_MAX		TASK_SIZE_MAX
+-
+ #define INIT_THREAD  {						\
+ 	.addr_limit		= KERNEL_DS,			\
  }
-+#else /* CONFIG_SET_FS */
-+typedef struct {
-+	/* empty dummy */
-+} mm_segment_t;
-+
-+#define uaccess_kernel()		(false)
-+#define user_addr_max()			(TASK_SIZE_MAX)
-+
-+static inline mm_segment_t force_uaccess_begin(void)
-+{
-+	return (mm_segment_t) { };
-+}
-+
-+static inline void force_uaccess_end(mm_segment_t oldfs)
-+{
-+}
-+#endif /* CONFIG_SET_FS */
- 
- /*
-  * Architectures should provide two primitives (raw_copy_{to,from}_user())
 -- 
 2.28.0
 
