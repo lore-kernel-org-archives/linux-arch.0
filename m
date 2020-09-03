@@ -7,36 +7,36 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B5B06C433E2
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:45:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6AAE6C433E2
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:45:56 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 717F2206EB
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:45:38 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 293C1206EB
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:45:56 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="nrKsGZuV"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="ikzu/L7X"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729331AbgICOfd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Sep 2020 10:35:33 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35490 "EHLO
+        id S1729300AbgICOfY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Sep 2020 10:35:24 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35164 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729314AbgICOZk (ORCPT
+        with ESMTP id S1729310AbgICOZk (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 10:25:40 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8DE14C0619C3;
-        Thu,  3 Sep 2020 07:23:06 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C3660C0611E9;
+        Thu,  3 Sep 2020 07:23:02 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=5NZ1P7QDF1+eaYhKUtbmR34beFE5hayLjhF41T3Ri/M=; b=nrKsGZuVt+nJInlFVXFC21eZV3
-        YwfxKrENcIZ5Owpezc0WlUvokm4+UhjmBdAi+VebPbSumJBA7W4kUvb5H/Wl8vNZQKapP0Rrewn00
-        CceK8hgqNmZGIeF831mW4YS3xSg3Y+O2bJfiTlkTKLQq/mQR/JLpNk4MVN0Yz9D2zubgEqtiXYnA0
-        0dDQPdd0omuPMscEcqQN58GLmfYV3EzRnMvZ17KK08JhWWS5BukxlQ/rsWUhUfCcpbhfcTNdIqX9H
-        6/Patsc6q64BKDIwrtBV78nifd2xhQWr3E+Fg3Ht3KqnAiFEMbGwtxsmmaFI35GyVThRm0KYOIHZP
-        jg/LYNgg==;
+        bh=gS5pxowtZGQtlMoye8B5H+J58EER0kAQV3eD68lEeeo=; b=ikzu/L7Xjdg8p2s2ivLYYXAez0
+        TTv6T0a3efFbi8TojG+k2ZMzWyJzqu8hN1PYBAosqVZ5zLKorYnBxEfohnIRLitITUbL3Y02K7cjG
+        GzQNHbbbOfpou32eclJcidbdzb7FJ59DAsVyZbsQNH0Sja5GcTeKkttkwac1YnyqBzNYtxKBZfoQz
+        ZCOYnGqNMcDisPSanmQDPMVCLyAhvpR4lidyONwTBdqmUT3CmcRQ9By/hYENd8Axj1t+b6QG16VS5
+        qgUOJjRry7jgrpReaKe6bhOgnayWKUFQTfLkgs5a2RaaWWq+b7oOOg2uAXevA1YgidGSgt6cj85kW
+        8C6TG1JA==;
 Received: from [2001:4bb8:184:af1:c70:4a89:bc61:2] (helo=localhost)
         by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kDq8j-0004ca-Gn; Thu, 03 Sep 2020 14:23:01 +0000
+        id 1kDq8b-0004bA-2C; Thu, 03 Sep 2020 14:22:53 +0000
 From:   Christoph Hellwig <hch@lst.de>
 To:     Linus Torvalds <torvalds@linux-foundation.org>,
         Al Viro <viro@zeniv.linux.org.uk>,
@@ -46,9 +46,9 @@ Cc:     Alexey Dobriyan <adobriyan@gmail.com>,
         Kees Cook <keescook@chromium.org>,
         linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
         linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Subject: [PATCH 14/14] powerpc: remove address space overrides using set_fs()
-Date:   Thu,  3 Sep 2020 16:22:42 +0200
-Message-Id: <20200903142242.925828-15-hch@lst.de>
+Subject: [PATCH 07/14] uaccess: add infrastructure for kernel builds with set_fs()
+Date:   Thu,  3 Sep 2020 16:22:35 +0200
+Message-Id: <20200903142242.925828-8-hch@lst.de>
 X-Mailer: git-send-email 2.28.0
 In-Reply-To: <20200903142242.925828-1-hch@lst.de>
 References: <20200903142242.925828-1-hch@lst.de>
@@ -60,214 +60,380 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Stop providing the possibility to override the address space using
-set_fs() now that there is no need for that any more.
+Add a CONFIG_SET_FS option that is selected by architecturess that
+implement set_fs, which is all of them initially.  If the option is not
+set stubs for routines related to overriding the address space are
+provided so that architectures can start to opt out of providing set_fs.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/powerpc/Kconfig                   |  1 -
- arch/powerpc/include/asm/processor.h   |  7 ----
- arch/powerpc/include/asm/thread_info.h |  5 +--
- arch/powerpc/include/asm/uaccess.h     | 57 +++++++-------------------
- arch/powerpc/kernel/signal.c           |  3 --
- arch/powerpc/lib/sstep.c               |  6 +--
- 6 files changed, 18 insertions(+), 61 deletions(-)
+ arch/Kconfig            |  3 +++
+ arch/alpha/Kconfig      |  1 +
+ arch/arc/Kconfig        |  1 +
+ arch/arm/Kconfig        |  1 +
+ arch/arm64/Kconfig      |  1 +
+ arch/c6x/Kconfig        |  1 +
+ arch/csky/Kconfig       |  1 +
+ arch/h8300/Kconfig      |  1 +
+ arch/hexagon/Kconfig    |  1 +
+ arch/ia64/Kconfig       |  1 +
+ arch/m68k/Kconfig       |  1 +
+ arch/microblaze/Kconfig |  1 +
+ arch/mips/Kconfig       |  1 +
+ arch/nds32/Kconfig      |  1 +
+ arch/nios2/Kconfig      |  1 +
+ arch/openrisc/Kconfig   |  1 +
+ arch/parisc/Kconfig     |  1 +
+ arch/powerpc/Kconfig    |  1 +
+ arch/riscv/Kconfig      |  1 +
+ arch/s390/Kconfig       |  1 +
+ arch/sh/Kconfig         |  1 +
+ arch/sparc/Kconfig      |  1 +
+ arch/um/Kconfig         |  1 +
+ arch/x86/Kconfig        |  1 +
+ arch/xtensa/Kconfig     |  1 +
+ include/linux/uaccess.h | 18 ++++++++++++++++++
+ 26 files changed, 45 insertions(+)
 
+diff --git a/arch/Kconfig b/arch/Kconfig
+index af14a567b493fc..3fab619a6aa51a 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -24,6 +24,9 @@ config KEXEC_ELF
+ config HAVE_IMA_KEXEC
+ 	bool
+ 
++config SET_FS
++	bool
++
+ config HOTPLUG_SMT
+ 	bool
+ 
+diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+index 9c5f06e8eb9bc0..d6e9fc7a7b19e2 100644
+--- a/arch/alpha/Kconfig
++++ b/arch/alpha/Kconfig
+@@ -39,6 +39,7 @@ config ALPHA
+ 	select OLD_SIGSUSPEND
+ 	select CPU_NO_EFFICIENT_FFS if !ALPHA_EV67
+ 	select MMU_GATHER_NO_RANGE
++	select SET_FS
+ 	help
+ 	  The Alpha is a 64-bit general-purpose processor designed and
+ 	  marketed by the Digital Equipment Corporation of blessed memory,
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index ba00c4e1e1c271..c49f5754a11e40 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -48,6 +48,7 @@ config ARC
+ 	select PCI_SYSCALL if PCI
+ 	select PERF_USE_VMALLOC if ARC_CACHE_VIPT_ALIASING
+ 	select HAVE_ARCH_JUMP_LABEL if ISA_ARCV2 && !CPU_ENDIAN_BE32
++	select SET_FS
+ 
+ config ARCH_HAS_CACHE_LINE_SIZE
+ 	def_bool y
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index e00d94b1665876..87e1478a42dc4f 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -118,6 +118,7 @@ config ARM
+ 	select PCI_SYSCALL if PCI
+ 	select PERF_USE_VMALLOC
+ 	select RTC_LIB
++	select SET_FS
+ 	select SYS_SUPPORTS_APM_EMULATION
+ 	# Above selects are sorted alphabetically; please add new ones
+ 	# according to that.  Thanks.
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 6d232837cbeee8..fbd9e35bef096f 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -192,6 +192,7 @@ config ARM64
+ 	select PCI_SYSCALL if PCI
+ 	select POWER_RESET
+ 	select POWER_SUPPLY
++	select SET_FS
+ 	select SPARSE_IRQ
+ 	select SWIOTLB
+ 	select SYSCTL_EXCEPTION_TRACE
+diff --git a/arch/c6x/Kconfig b/arch/c6x/Kconfig
+index 6444ebfd06a665..48d66bf0465d68 100644
+--- a/arch/c6x/Kconfig
++++ b/arch/c6x/Kconfig
+@@ -22,6 +22,7 @@ config C6X
+ 	select GENERIC_CLOCKEVENTS
+ 	select MODULES_USE_ELF_RELA
+ 	select MMU_GATHER_NO_RANGE if MMU
++	select SET_FS
+ 
+ config MMU
+ 	def_bool n
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index 3d5afb5f568543..2836f6e76fdb2d 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -78,6 +78,7 @@ config CSKY
+ 	select PCI_DOMAINS_GENERIC if PCI
+ 	select PCI_SYSCALL if PCI
+ 	select PCI_MSI if PCI
++	select SET_FS
+ 
+ config LOCKDEP_SUPPORT
+ 	def_bool y
+diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
+index d11666d538fea8..7945de067e9fcc 100644
+--- a/arch/h8300/Kconfig
++++ b/arch/h8300/Kconfig
+@@ -25,6 +25,7 @@ config H8300
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_HASH
+ 	select CPU_NO_EFFICIENT_FFS
++	select SET_FS
+ 	select UACCESS_MEMCPY
+ 
+ config CPU_BIG_ENDIAN
+diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
+index 667cfc511cf999..f2afabbadd430e 100644
+--- a/arch/hexagon/Kconfig
++++ b/arch/hexagon/Kconfig
+@@ -31,6 +31,7 @@ config HEXAGON
+ 	select GENERIC_CLOCKEVENTS_BROADCAST
+ 	select MODULES_USE_ELF_RELA
+ 	select GENERIC_CPU_DEVICES
++	select SET_FS
+ 	help
+ 	  Qualcomm Hexagon is a processor architecture designed for high
+ 	  performance and low power across a wide variety of applications.
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 5b4ec80bf5863a..22a6853840e235 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -56,6 +56,7 @@ config IA64
+ 	select NEED_DMA_MAP_STATE
+ 	select NEED_SG_DMA_LENGTH
+ 	select NUMA if !FLATMEM
++	select SET_FS
+ 	default y
+ 	help
+ 	  The Itanium Processor Family is Intel's 64-bit successor to
+diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
+index 6f2f38d05772ab..dcf4ae8c9b215f 100644
+--- a/arch/m68k/Kconfig
++++ b/arch/m68k/Kconfig
+@@ -32,6 +32,7 @@ config M68K
+ 	select OLD_SIGSUSPEND3
+ 	select OLD_SIGACTION
+ 	select MMU_GATHER_NO_RANGE if MMU
++	select SET_FS
+ 
+ config CPU_BIG_ENDIAN
+ 	def_bool y
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+index d262ac0c8714bd..7e3d4583abf3e6 100644
+--- a/arch/microblaze/Kconfig
++++ b/arch/microblaze/Kconfig
+@@ -46,6 +46,7 @@ config MICROBLAZE
+ 	select CPU_NO_EFFICIENT_FFS
+ 	select MMU_GATHER_NO_RANGE if MMU
+ 	select SPARSE_IRQ
++	select SET_FS
+ 
+ # Endianness selection
+ choice
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index c95fa3a2484cf0..fbc26391b588f8 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -87,6 +87,7 @@ config MIPS
+ 	select MODULES_USE_ELF_RELA if MODULES && 64BIT
+ 	select PERF_USE_VMALLOC
+ 	select RTC_LIB
++	select SET_FS
+ 	select SYSCTL_EXCEPTION_TRACE
+ 	select VIRT_TO_BUS
+ 
+diff --git a/arch/nds32/Kconfig b/arch/nds32/Kconfig
+index e30298e99e1bdf..e8e541fd2267d0 100644
+--- a/arch/nds32/Kconfig
++++ b/arch/nds32/Kconfig
+@@ -48,6 +48,7 @@ config NDS32
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+ 	select HAVE_DYNAMIC_FTRACE
++	select SET_FS
+ 	help
+ 	  Andes(nds32) Linux support.
+ 
+diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
+index c6645141bb2a88..c7c6ba6bec9dfc 100644
+--- a/arch/nios2/Kconfig
++++ b/arch/nios2/Kconfig
+@@ -27,6 +27,7 @@ config NIOS2
+ 	select USB_ARCH_HAS_HCD if USB_SUPPORT
+ 	select CPU_NO_EFFICIENT_FFS
+ 	select MMU_GATHER_NO_RANGE if MMU
++	select SET_FS
+ 
+ config GENERIC_CSUM
+ 	def_bool y
+diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
+index 7e94fe37cb2fdf..6233c62931803f 100644
+--- a/arch/openrisc/Kconfig
++++ b/arch/openrisc/Kconfig
+@@ -39,6 +39,7 @@ config OPENRISC
+ 	select ARCH_WANT_FRAME_POINTERS
+ 	select GENERIC_IRQ_MULTI_HANDLER
+ 	select MMU_GATHER_NO_RANGE if MMU
++	select SET_FS
+ 
+ config CPU_BIG_ENDIAN
+ 	def_bool y
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index 3b0f53dd70bc9b..be70af482b5a9a 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -63,6 +63,7 @@ config PARISC
+ 	select HAVE_FTRACE_MCOUNT_RECORD if HAVE_DYNAMIC_FTRACE
+ 	select HAVE_KPROBES_ON_FTRACE
+ 	select HAVE_DYNAMIC_FTRACE_WITH_REGS
++	select SET_FS
+ 
+ 	help
+ 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
 diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 4d1c18a3b83977..65bed1fdeaad71 100644
+index 65bed1fdeaad71..4d1c18a3b83977 100644
 --- a/arch/powerpc/Kconfig
 +++ b/arch/powerpc/Kconfig
-@@ -249,7 +249,6 @@ config PPC
+@@ -249,6 +249,7 @@ config PPC
  	select PCI_SYSCALL			if PCI
  	select PPC_DAWR				if PPC64
  	select RTC_LIB
--	select SET_FS
++	select SET_FS
  	select SPARSE_IRQ
  	select SYSCTL_EXCEPTION_TRACE
  	select THREAD_INFO_IN_TASK
-diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
-index ed0d633ab5aa42..f01e4d650c520a 100644
---- a/arch/powerpc/include/asm/processor.h
-+++ b/arch/powerpc/include/asm/processor.h
-@@ -83,10 +83,6 @@ struct task_struct;
- void start_thread(struct pt_regs *regs, unsigned long fdptr, unsigned long sp);
- void release_thread(struct task_struct *);
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index df18372861d8d2..ea0c1ad456d838 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -82,6 +82,7 @@ config RISCV
+ 	select PCI_MSI if PCI
+ 	select RISCV_INTC
+ 	select RISCV_TIMER if RISCV_SBI
++	select SET_FS
+ 	select SPARSEMEM_STATIC if 32BIT
+ 	select SPARSE_IRQ
+ 	select SYSCTL_EXCEPTION_TRACE
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 3d86e12e8e3c21..fd81385a7787cb 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -185,6 +185,7 @@ config S390
+ 	select OLD_SIGSUSPEND3
+ 	select PCI_DOMAINS		if PCI
+ 	select PCI_MSI			if PCI
++	select SET_FS
+ 	select SPARSE_IRQ
+ 	select SYSCTL_EXCEPTION_TRACE
+ 	select THREAD_INFO_IN_TASK
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index d20927128fce05..2bd1653f3b3fea 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -71,6 +71,7 @@ config SUPERH
+ 	select PERF_EVENTS
+ 	select PERF_USE_VMALLOC
+ 	select RTC_LIB
++	select SET_FS
+ 	select SPARSE_IRQ
+ 	help
+ 	  The SuperH is a RISC processor targeted for use in embedded systems
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index efeff2c896a544..3e0cf0319a278a 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -49,6 +49,7 @@ config SPARC
+ 	select LOCKDEP_SMALL if LOCKDEP
+ 	select NEED_DMA_MAP_STATE
+ 	select NEED_SG_DMA_LENGTH
++	select SET_FS
  
--typedef struct {
--	unsigned long seg;
--} mm_segment_t;
--
- #define TS_FPR(i) fp_state.fpr[i][TS_FPROFFSET]
- #define TS_CKFPR(i) ckfp_state.fpr[i][TS_FPROFFSET]
+ config SPARC32
+ 	def_bool !64BIT
+diff --git a/arch/um/Kconfig b/arch/um/Kconfig
+index eb51fec759484a..3aefcd81566809 100644
+--- a/arch/um/Kconfig
++++ b/arch/um/Kconfig
+@@ -19,6 +19,7 @@ config UML
+ 	select GENERIC_CPU_DEVICES
+ 	select GENERIC_CLOCKEVENTS
+ 	select HAVE_GCC_PLUGINS
++	select SET_FS
+ 	select TTY # Needed for line.c
  
-@@ -148,7 +144,6 @@ struct thread_struct {
- 	unsigned long	ksp_vsid;
- #endif
- 	struct pt_regs	*regs;		/* Pointer to saved register state */
--	mm_segment_t	addr_limit;	/* for get_fs() validation */
- #ifdef CONFIG_BOOKE
- 	/* BookE base exception scratch space; align on cacheline */
- 	unsigned long	normsave[8] ____cacheline_aligned;
-@@ -295,7 +290,6 @@ struct thread_struct {
- #define INIT_THREAD { \
- 	.ksp = INIT_SP, \
- 	.ksp_limit = INIT_SP_LIMIT, \
--	.addr_limit = KERNEL_DS, \
- 	.pgdir = swapper_pg_dir, \
- 	.fpexc_mode = MSR_FE0 | MSR_FE1, \
- 	SPEFSCR_INIT \
-@@ -303,7 +297,6 @@ struct thread_struct {
- #else
- #define INIT_THREAD  { \
- 	.ksp = INIT_SP, \
--	.addr_limit = KERNEL_DS, \
- 	.fpexc_mode = 0, \
- }
- #endif
-diff --git a/arch/powerpc/include/asm/thread_info.h b/arch/powerpc/include/asm/thread_info.h
-index ca6c9702570494..46a210b03d2b80 100644
---- a/arch/powerpc/include/asm/thread_info.h
-+++ b/arch/powerpc/include/asm/thread_info.h
-@@ -90,7 +90,6 @@ void arch_setup_new_exec(void);
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
- #define TIF_SIGPENDING		1	/* signal pending */
- #define TIF_NEED_RESCHED	2	/* rescheduling necessary */
--#define TIF_FSCHECK		3	/* Check FS is USER_DS on return */
- #define TIF_SYSCALL_EMU		4	/* syscall emulation active */
- #define TIF_RESTORE_TM		5	/* need to restore TM FP/VEC/VSX */
- #define TIF_PATCH_PENDING	6	/* pending live patching update */
-@@ -130,7 +129,6 @@ void arch_setup_new_exec(void);
- #define _TIF_SYSCALL_TRACEPOINT	(1<<TIF_SYSCALL_TRACEPOINT)
- #define _TIF_EMULATE_STACK_STORE	(1<<TIF_EMULATE_STACK_STORE)
- #define _TIF_NOHZ		(1<<TIF_NOHZ)
--#define _TIF_FSCHECK		(1<<TIF_FSCHECK)
- #define _TIF_SYSCALL_EMU	(1<<TIF_SYSCALL_EMU)
- #define _TIF_SYSCALL_DOTRACE	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | \
- 				 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT | \
-@@ -138,8 +136,7 @@ void arch_setup_new_exec(void);
+ config MMU
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 7101ac64bb209d..f85c13355732fe 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -237,6 +237,7 @@ config X86
+ 	select HAVE_ARCH_KCSAN			if X86_64
+ 	select X86_FEATURE_NAMES		if PROC_FS
+ 	select PROC_PID_ARCH_STATUS		if PROC_FS
++	select SET_FS
+ 	imply IMA_SECURE_AND_OR_TRUSTED_BOOT    if EFI
  
- #define _TIF_USER_WORK_MASK	(_TIF_SIGPENDING | _TIF_NEED_RESCHED | \
- 				 _TIF_NOTIFY_RESUME | _TIF_UPROBE | \
--				 _TIF_RESTORE_TM | _TIF_PATCH_PENDING | \
--				 _TIF_FSCHECK)
-+				 _TIF_RESTORE_TM | _TIF_PATCH_PENDING)
- #define _TIF_PERSYSCALL_MASK	(_TIF_RESTOREALL|_TIF_NOERROR)
+ config INSTRUCTION_DECODER
+diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+index e997e0119c0251..94bad4d66b4bde 100644
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -41,6 +41,7 @@ config XTENSA
+ 	select IRQ_DOMAIN
+ 	select MODULES_USE_ELF_RELA
+ 	select PERF_USE_VMALLOC
++	select SET_FS
+ 	select VIRT_TO_BUS
+ 	help
+ 	  Xtensa processors are 32-bit RISC machines designed by Tensilica
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index 94b28541165929..70073c802b48ed 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -8,6 +8,7 @@
  
- /* Bits in local_flags */
-diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
-index 7fe3531ad36a77..5363f7fc6dd06c 100644
---- a/arch/powerpc/include/asm/uaccess.h
-+++ b/arch/powerpc/include/asm/uaccess.h
-@@ -8,62 +8,33 @@
- #include <asm/extable.h>
- #include <asm/kup.h>
+ #include <asm/uaccess.h>
  
--/*
-- * The fs value determines whether argument validity checking should be
-- * performed or not.  If get_fs() == USER_DS, checking is performed, with
-- * get_fs() == KERNEL_DS, checking is bypassed.
-- *
-- * For historical reasons, these macros are grossly misnamed.
-- *
-- * The fs/ds values are now the highest legal address in the "segment".
-- * This simplifies the checking in the routines below.
-- */
--
--#define MAKE_MM_SEG(s)  ((mm_segment_t) { (s) })
--
--#define KERNEL_DS	MAKE_MM_SEG(~0UL)
- #ifdef __powerpc64__
- /* We use TASK_SIZE_USER64 as TASK_SIZE is not constant */
--#define USER_DS		MAKE_MM_SEG(TASK_SIZE_USER64 - 1)
--#else
--#define USER_DS		MAKE_MM_SEG(TASK_SIZE - 1)
--#endif
--
--#define get_fs()	(current->thread.addr_limit)
--
--static inline void set_fs(mm_segment_t fs)
--{
--	current->thread.addr_limit = fs;
--	/* On user-mode return check addr_limit (fs) is correct */
--	set_thread_flag(TIF_FSCHECK);
--}
--
--#define uaccess_kernel() (get_fs().seg == KERNEL_DS.seg)
--#define user_addr_max()	(get_fs().seg)
-+#define TASK_SIZE_MAX		TASK_SIZE_USER64
- 
--#ifdef __powerpc64__
++#ifdef CONFIG_SET_FS
  /*
-- * This check is sufficient because there is a large enough
-- * gap between user addresses and the kernel addresses
-+ * This check is sufficient because there is a large enough gap between user
-+ * addresses and the kernel addresses.
-  */
--#define __access_ok(addr, size, segment)	\
--	(((addr) <= (segment).seg) && ((size) <= (segment).seg))
-+static inline bool __access_ok(unsigned long addr, unsigned long size)
+  * Force the uaccess routines to be wired up for actual userspace access,
+  * overriding any possible set_fs(KERNEL_DS) still lingering around.  Undone
+@@ -25,6 +26,23 @@ static inline void force_uaccess_end(mm_segment_t oldfs)
+ {
+ 	set_fs(oldfs);
+ }
++#else /* CONFIG_SET_FS */
++typedef struct {
++	/* empty dummy */
++} mm_segment_t;
++
++#define uaccess_kernel()		(false)
++#define user_addr_max()			(TASK_SIZE_MAX)
++
++static inline mm_segment_t force_uaccess_begin(void)
 +{
-+	return addr < TASK_SIZE_MAX && size < TASK_SIZE_MAX;
++	return (mm_segment_t) { };
 +}
- 
- #else
-+#define TASK_SIZE_MAX		TASK_SIZE
- 
--static inline int __access_ok(unsigned long addr, unsigned long size,
--			mm_segment_t seg)
-+static inline bool __access_ok(unsigned long addr, unsigned long size)
- {
--	if (addr > seg.seg)
--		return 0;
--	return (size == 0 || size - 1 <= seg.seg - addr);
-+	if (addr >= TASK_SIZE_MAX)
-+		return false;
-+	return size == 0 || size <= TASK_SIZE_MAX - addr;
- }
--
--#endif
-+#endif /* __powerpc64__ */
- 
- #define access_ok(addr, size)		\
- 	(__chk_user_ptr(addr),		\
--	 __access_ok((__force unsigned long)(addr), (size), get_fs()))
-+	 __access_ok((unsigned long)(addr), (size)))
++
++static inline void force_uaccess_end(mm_segment_t oldfs)
++{
++}
++#endif /* CONFIG_SET_FS */
  
  /*
-  * These are the main single-value transfer routines.  They automatically
-diff --git a/arch/powerpc/kernel/signal.c b/arch/powerpc/kernel/signal.c
-index d15a98c758b8b4..df547d8e31e49c 100644
---- a/arch/powerpc/kernel/signal.c
-+++ b/arch/powerpc/kernel/signal.c
-@@ -312,9 +312,6 @@ void do_notify_resume(struct pt_regs *regs, unsigned long thread_info_flags)
- {
- 	user_exit();
- 
--	/* Check valid addr_limit, TIF check is done there */
--	addr_limit_user_check();
--
- 	if (thread_info_flags & _TIF_UPROBE)
- 		uprobe_notify_resume(regs);
- 
-diff --git a/arch/powerpc/lib/sstep.c b/arch/powerpc/lib/sstep.c
-index caee8cc77e1954..8342188ea1acd0 100644
---- a/arch/powerpc/lib/sstep.c
-+++ b/arch/powerpc/lib/sstep.c
-@@ -108,11 +108,11 @@ static nokprobe_inline long address_ok(struct pt_regs *regs,
- {
- 	if (!user_mode(regs))
- 		return 1;
--	if (__access_ok(ea, nb, USER_DS))
-+	if (__access_ok(ea, nb))
- 		return 1;
--	if (__access_ok(ea, 1, USER_DS))
-+	if (__access_ok(ea, 1))
- 		/* Access overlaps the end of the user region */
--		regs->dar = USER_DS.seg;
-+		regs->dar = TASK_SIZE_MAX - 1;
- 	else
- 		regs->dar = ea;
- 	return 0;
+  * Architectures should provide two primitives (raw_copy_{to,from}_user())
 -- 
 2.28.0
 
