@@ -2,105 +2,57 @@ Return-Path: <SRS0=8TOP=CM=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
-	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-4.5 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	TVD_SUBJ_WIPE_DEBT,USER_AGENT_SANE_1 autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 828F6C433E2
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:35:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 88550C43461
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:40:54 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 54A4C206EB
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:35:33 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="o/Pxs1mG"
+	by mail.kernel.org (Postfix) with ESMTP id 6895E20684
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:40:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729262AbgICOfQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Sep 2020 10:35:16 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35166 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729311AbgICOZk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 10:25:40 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C94D0C0619C0;
-        Thu,  3 Sep 2020 07:23:03 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
-        Content-Type:Content-ID:Content-Description;
-        bh=TXXlSSf7SfiIdDcWgXqZJ7xhYsZWGzhY0xh4QhcsR6E=; b=o/Pxs1mGpn5rRJdbkgt5aWoRGE
-        7k9RoAQ+XnzDFTl2N2+F9s2IrqD5IlVN4GnOIyAIxnPltoWUKz8gv7/HqcUj1H9/KcBkuUNXBImnT
-        +woQTWH85aOLFlr9xuGE129TUAhoAMKN8Xikp9jryLxx1+ExNIrDcoDKLybbM0eRYhXA7domlXq6t
-        HQy6ND02IbYkZ5cZ8GmcdKIwEOfm9jdIwC/GUBKiXfa87qlh34dBtWwtho0+bidTPMpcbg6K5295X
-        HTlWyylFVmhBw67AYTYuFhp3UOjwMBa49mqTlMMI0yUoR+nsOYt41JkcwEsmyflkOt4FDjqxCQhO5
-        RijJm48g==;
-Received: from [2001:4bb8:184:af1:c70:4a89:bc61:2] (helo=localhost)
-        by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kDq8f-0004bu-LC; Thu, 03 Sep 2020 14:22:57 +0000
+        id S1729392AbgICOkv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Sep 2020 10:40:51 -0400
+Received: from verein.lst.de ([213.95.11.211]:38101 "EHLO verein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729367AbgICOkt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 3 Sep 2020 10:40:49 -0400
+Received: by verein.lst.de (Postfix, from userid 2407)
+        id ACD3967357; Thu,  3 Sep 2020 16:40:37 +0200 (CEST)
+Date:   Thu, 3 Sep 2020 16:40:37 +0200
 From:   Christoph Hellwig <hch@lst.de>
-To:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org
-Cc:     Alexey Dobriyan <adobriyan@gmail.com>,
+To:     Al Viro <viro@zeniv.linux.org.uk>
+Cc:     Christoph Hellwig <hch@lst.de>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org,
+        Alexey Dobriyan <adobriyan@gmail.com>,
         Luis Chamberlain <mcgrof@kernel.org>,
         Kees Cook <keescook@chromium.org>,
         linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
         linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Subject: [PATCH 11/14] x86: make TASK_SIZE_MAX usable from assembly code
-Date:   Thu,  3 Sep 2020 16:22:39 +0200
-Message-Id: <20200903142242.925828-12-hch@lst.de>
-X-Mailer: git-send-email 2.28.0
-In-Reply-To: <20200903142242.925828-1-hch@lst.de>
-References: <20200903142242.925828-1-hch@lst.de>
+Subject: Re: remove the last set_fs() in common code, and remove it for x86
+ and powerpc v3
+Message-ID: <20200903144037.GA17821@lst.de>
+References: <20200903142242.925828-1-hch@lst.de> <20200903142803.GM1236603@ZenIV.linux.org.uk> <20200903143003.GA17260@lst.de> <20200903143629.GN1236603@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200903143629.GN1236603@ZenIV.linux.org.uk>
+User-Agent: Mutt/1.5.17 (2007-11-01)
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-For 64-bit the only thing missing was a strategic _AC, and for 32-bit we
-need to use __PAGE_OFFSET instead of PAGE_OFFSET in the TASK_SIZE
-definition to escape the explicit unsigned long cast.  This just works
-because __PAGE_OFFSET is defined using _AC itself and thus never needs
-the cast anyway.
+On Thu, Sep 03, 2020 at 03:36:29PM +0100, Al Viro wrote:
+> FWIW, vfs.git#for-next is always a merge of independent branches; I don't
+> put stuff directly into #for-next - too easy to lose that way.
+> 
+> IOW, that would be something like #base.set_fs, included into #for-next
+> merge set.  And I've no problem with never-rebased branches...
+> 
+> Where in the mainline are the most recent prereqs of this series?
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/include/asm/page_32_types.h | 4 ++--
- arch/x86/include/asm/page_64_types.h | 2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/arch/x86/include/asm/page_32_types.h b/arch/x86/include/asm/page_32_types.h
-index 26236925fb2c36..f462895a33e452 100644
---- a/arch/x86/include/asm/page_32_types.h
-+++ b/arch/x86/include/asm/page_32_types.h
-@@ -44,8 +44,8 @@
- /*
-  * User space process size: 3GB (default).
-  */
--#define IA32_PAGE_OFFSET	PAGE_OFFSET
--#define TASK_SIZE		PAGE_OFFSET
-+#define IA32_PAGE_OFFSET	__PAGE_OFFSET
-+#define TASK_SIZE		__PAGE_OFFSET
- #define TASK_SIZE_LOW		TASK_SIZE
- #define TASK_SIZE_MAX		TASK_SIZE
- #define DEFAULT_MAP_WINDOW	TASK_SIZE
-diff --git a/arch/x86/include/asm/page_64_types.h b/arch/x86/include/asm/page_64_types.h
-index 996595c9897e0a..838515daf87b36 100644
---- a/arch/x86/include/asm/page_64_types.h
-+++ b/arch/x86/include/asm/page_64_types.h
-@@ -76,7 +76,7 @@
-  *
-  * With page table isolation enabled, we map the LDT in ... [stay tuned]
-  */
--#define TASK_SIZE_MAX	((1UL << __VIRTUAL_MASK_SHIFT) - PAGE_SIZE)
-+#define TASK_SIZE_MAX	((_AC(1,UL) << __VIRTUAL_MASK_SHIFT) - PAGE_SIZE)
- 
- #define DEFAULT_MAP_WINDOW	((1UL << 47) - PAGE_SIZE)
- 
--- 
-2.28.0
-
+I can't think of anything past -rc1, but I haven't actually checked.
