@@ -5,62 +5,62 @@ X-Spam-Level:
 X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
 	DKIM_ADSP_CUSTOM_MED,DKIM_INVALID,DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
+	USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 17856C2D0E0
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 20:33:47 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3328EC31E5C
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 20:34:19 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EA9BB2083B
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 20:33:46 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 11F5E20684
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 20:34:19 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=google.com header.i=@google.com header.b="iQRyuXb7"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=google.com header.i=@google.com header.b="WYxR9JOX"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729421AbgICUdp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Sep 2020 16:33:45 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35536 "EHLO
+        id S1729604AbgICUeS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Sep 2020 16:34:18 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35470 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729616AbgICUdL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 16:33:11 -0400
-Received: from mail-qv1-xf4a.google.com (mail-qv1-xf4a.google.com [IPv6:2607:f8b0:4864:20::f4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B7373C061A1B
-        for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2020 13:31:52 -0700 (PDT)
-Received: by mail-qv1-xf4a.google.com with SMTP id a13so2510931qvl.6
-        for <linux-arch@vger.kernel.org>; Thu, 03 Sep 2020 13:31:52 -0700 (PDT)
+        with ESMTP id S1729605AbgICUdI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 16:33:08 -0400
+Received: from mail-pf1-x449.google.com (mail-pf1-x449.google.com [IPv6:2607:f8b0:4864:20::449])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 98655C061251
+        for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2020 13:31:48 -0700 (PDT)
+Received: by mail-pf1-x449.google.com with SMTP id t201so2703716pfc.13
+        for <linux-arch@vger.kernel.org>; Thu, 03 Sep 2020 13:31:48 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=sender:date:in-reply-to:message-id:mime-version:references:subject
          :from:to:cc;
-        bh=KoA5zv+DpjEyp13/YuX/m1kwH/JJTx3lL+cQSxNvvDE=;
-        b=iQRyuXb7DQREhbTivVeYcDoSGjtob7g8M5KS5z8R2T1nBf9Gx0F/IaqPMtn2bzwhh2
-         DvvxcFNLC0B9wSIyz6SplW6mCPM1aenF7xoo1ziClwMNK+NKE53qTfAePUKqHL2UJnkB
-         FLm0++eFSfi/lPj6VdPdxbPF95syaHvlo+Sk6yuM88i2IZzlSpgq1yQGQxsjz99mcX7p
-         m9V6emvEp6fvuUTr1uX1VsgenOsyFKN9dFgrfxlx04zsYAMmRAr9kaydPt8YWI7OzTUw
-         /xEzK08P+0B0NFU8v2bS7pcwz8uTLGPrj4WfYV2c9K1P9hISKsyvAPYFID29+oNZ0pwD
-         RY9A==
+        bh=cZOWhnp892SUnLhqC+1TPlOe8BVqsfDWwTFGwwryYEw=;
+        b=WYxR9JOXeqHMLp90nNI8/6ltDzhvsuYjv6d1zFqp8zsjL+qJYufybBNzAbPMTkNNZl
+         D7MpSi0LlP6FuYPjz4u35DCi8t432jxAgU18y16gIeH1WYnR8Oge5r65aJHFkr+O6ap5
+         7Jb4/kJwsklpayP8Ru/q1xJFOJRx54JFuZjQSOGJapmUtPdOP08d8KZWkeRlM2D1Swzv
+         SnITw4E+gwFNoLz9DvBEQEulPAjlW7Re+DfF/dU1eZIdgljsqQSczq8cMfTFPUsSyciF
+         mvuZnj+9HqmA+LFzkWAsNTdETxPd/fZaNFdn6zEOPF2B4+IaWN0xMyzjF9d7hiT6GQ2b
+         54pA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=KoA5zv+DpjEyp13/YuX/m1kwH/JJTx3lL+cQSxNvvDE=;
-        b=DgroC5Ym2kU7+bX666Q7LfgdmMxnFwIax60G4KhP6njvXE+3OD3pgwhUZGDgjASBKY
-         7c8QItCmraDinqaN0tN/S/QL/y/mdFM4C/XnLtS/0nmTHZmE7hcUk4CqcaJK9GR832Wp
-         AfzdmqBADaSLZ4FDavdlU47pD1WBWTCllghS0HHYUtGdToVOBXdZGkiM6QARhcdQKVS1
-         wyzqFJZNNekLRqcFItcxipCeGXqQ6wgq4v+WKfcm21f6LL/dxuXGkY3cdMrvkNo0gwcH
-         i1bNzlW1mZ7bqmjqd9v/l7L1fXi8NCkduWD7l7olZez5D2kjoUlZjf2uotcYgg/wJm0+
-         6OCA==
-X-Gm-Message-State: AOAM533uPhWzPXJYPTT2D2M487fWe8U6trOwTOs+i7bDZyy7kQo3zoeH
-        V3lLq/7QF61CWdQQMdI2M70ElJi1feFnhSdNcSo=
-X-Google-Smtp-Source: ABdhPJx+z0p9xaedPgPNzeY/Rz32SVtx7k9bWUtWq2o8BTU/tO7RQ+3N5loCDPVr3FxVA9GPo0ZEtNIss1cCzuNBmj0=
+        bh=cZOWhnp892SUnLhqC+1TPlOe8BVqsfDWwTFGwwryYEw=;
+        b=cE18rvDRjUkWKpcnPzhw97RCrZ6yef4FjpcDI7qcgS4ofNgKYTNMZlPxgaQBHoST1H
+         YPrMyBes38Rr4IBP0swsIzAto8lSjnN8OuoYJZuziMNg+uOPhuN0lt3IaZkR4eoEFcsD
+         kR/b/FJdDDVPPMyRGOa664yQNP6ffhHUp2EEQBM+HCj9BYSxGQ6kGDH3ZaRXtblAJKrl
+         BhIGVDlhgx/s36kg417GRZzvzMCqhh5De0DvbU2WwJxp95c+mylnk/jLM7ckkIhiF05S
+         ZpuvpZz3/+C9z6BIRTQmeh2SsLGrThLB+ff8sYFAsEs16PRqXki6ub+3Y2XQdoJFgOiR
+         w/bw==
+X-Gm-Message-State: AOAM531IKX6UWW3ogyU/RK6cfz8AhghsAmI/2y+NczwXIagcczN5fmIE
+        MHAlvFzhfo5g7l7WSIpQmqPV5zrrKPMMLq8oHkw=
+X-Google-Smtp-Source: ABdhPJwa626CxZJt6X6ejRxk7e3J2MLsFDDgC11k4AQQkijvXAVNZFdD5YlGgxxeK9SEt/5A/DqexW+VRmPulFH2V5w=
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
- (user=samitolvanen job=sendgmr) by 2002:a05:6214:1105:: with SMTP id
- e5mr3719981qvs.11.1599165111812; Thu, 03 Sep 2020 13:31:51 -0700 (PDT)
-Date:   Thu,  3 Sep 2020 13:30:52 -0700
+ (user=samitolvanen job=sendgmr) by 2002:a17:90b:4595:: with SMTP id
+ hd21mr720735pjb.0.1599165107467; Thu, 03 Sep 2020 13:31:47 -0700 (PDT)
+Date:   Thu,  3 Sep 2020 13:30:50 -0700
 In-Reply-To: <20200903203053.3411268-1-samitolvanen@google.com>
-Message-Id: <20200903203053.3411268-28-samitolvanen@google.com>
+Message-Id: <20200903203053.3411268-26-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20200624203200.78870-1-samitolvanen@google.com> <20200903203053.3411268-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.28.0.526.ge36021eeef-goog
-Subject: [PATCH v2 27/28] x86, relocs: Ignore L4_PAGE_OFFSET relocations
+Subject: [PATCH v2 25/28] arm64: allow LTO_CLANG and THINLTO to be selected
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Masahiro Yamada <masahiroy@kernel.org>,
         Will Deacon <will@kernel.org>
@@ -81,26 +81,26 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-L4_PAGE_OFFSET is a constant value, so don't warn about absolute
-relocations.
+Allow CONFIG_LTO_CLANG and CONFIG_THINLTO to be enabled.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 ---
- arch/x86/tools/relocs.c | 1 +
- 1 file changed, 1 insertion(+)
+ arch/arm64/Kconfig | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/x86/tools/relocs.c b/arch/x86/tools/relocs.c
-index ce7188cbdae5..8f3bf34840ce 100644
---- a/arch/x86/tools/relocs.c
-+++ b/arch/x86/tools/relocs.c
-@@ -47,6 +47,7 @@ static const char * const sym_regex_kernel[S_NSYMTYPES] = {
- 	[S_ABS] =
- 	"^(xen_irq_disable_direct_reloc$|"
- 	"xen_save_fl_direct_reloc$|"
-+	"L4_PAGE_OFFSET|"
- 	"VDSO|"
- 	"__crc_)",
- 
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 6d232837cbee..2699fc5d332e 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -72,6 +72,8 @@ config ARM64
+ 	select ARCH_USE_SYM_ANNOTATIONS
+ 	select ARCH_SUPPORTS_MEMORY_FAILURE
+ 	select ARCH_SUPPORTS_SHADOW_CALL_STACK if CC_HAVE_SHADOW_CALL_STACK
++	select ARCH_SUPPORTS_LTO_CLANG
++	select ARCH_SUPPORTS_THINLTO
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select ARCH_SUPPORTS_INT128 if CC_HAS_INT128 && (GCC_VERSION >= 50000 || CC_IS_CLANG)
+ 	select ARCH_SUPPORTS_NUMA_BALANCING
 -- 
 2.28.0.402.g5ffc5be6b7-goog
 
