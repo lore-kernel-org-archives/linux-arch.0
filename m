@@ -7,60 +7,60 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
 	USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0E6F1C2D0A7
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 20:34:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 879A7C35264
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 20:34:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E03EE2083B
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 20:34:56 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6913F20658
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 20:34:59 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=google.com header.i=@google.com header.b="W5E0fdTW"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=google.com header.i=@google.com header.b="foQd1ccG"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729037AbgICUez (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Sep 2020 16:34:55 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35450 "EHLO
+        id S1729585AbgICUe4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Sep 2020 16:34:56 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35520 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729598AbgICUdA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 16:33:00 -0400
-Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D20C3C061A13
-        for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2020 13:31:43 -0700 (PDT)
-Received: by mail-yb1-xb49.google.com with SMTP id k74so3981543ybf.23
-        for <linux-arch@vger.kernel.org>; Thu, 03 Sep 2020 13:31:43 -0700 (PDT)
+        with ESMTP id S1729580AbgICUcz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 16:32:55 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5C7D7C061A0C
+        for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2020 13:31:41 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id c78so4033005ybf.6
+        for <linux-arch@vger.kernel.org>; Thu, 03 Sep 2020 13:31:41 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=sender:date:in-reply-to:message-id:mime-version:references:subject
          :from:to:cc;
-        bh=DRdAryjq8aJ9FhWbdHsWSPKN6ISJIFMAFBJf/ilStC4=;
-        b=W5E0fdTWYYpdRgGn3+mM1jE0Lnq94Ez+0wXBu2gCXs/Y+ie/fjFHxxGVxqs4iDjO61
-         XUhA7AwaMsRFv8vxG+A2l1ssqjpgTZnnYSVjKhst6YSRYn0OJjWUHRfPYs4kigu2qd4P
-         t+7zq62XXAtCsJ6LJcQc5WI8i9ada15PY9rxQyYH3tgvVRCGIgzZ7AaRdUcs3DL9eEcC
-         Mksgubm5f3YT2uHtXKoqiKJVJ82iqcQCdR5AMuaFyYG+/7pg3g10PdXI72qaqm/rzX7U
-         +8H1VOT5Eb3eLUSsSkUJu8s7szptM4G6CN6v7v59SQ2mX07NJ6vsYtwXB5FrSylvGkOB
-         +/fg==
+        bh=gZC6Tdrs+v21YOKu6+arkvfjaZ3DhZrnypdcQEca1D0=;
+        b=foQd1ccGGkpo+boEYd5oWFvOEqUFsLOsw7HcQjk7CIRbm5LCTNdOl5wa0EML7/VvYr
+         hSLaVdQouhjHuUbPo9f+4M/xtC0IJ15IspdRTNtqyRPgMX042InznCYV0QaqUuGWaZhX
+         yr7qh5/zqONdjl6THb/gM+tHALShdMZci7V3798taH3nzPLYknSe4WOZdF55ISWlVC3u
+         oLyB9I0hC5kzOIAog1H5BSrk+Esklfb706f6Xf7yzVXsjl9ZpU6T7CFpRH7UhCjFZzfF
+         BO8x4gbp7vwKwvsRhpfOm93Ook2I3FtazoTsJN46AzCHKk4H0tMI+BnAuZN4NELK8Mrk
+         NY9Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=DRdAryjq8aJ9FhWbdHsWSPKN6ISJIFMAFBJf/ilStC4=;
-        b=s8C7omxXFukBdAPKU4tBSut13ebSGmThG5n7BGUYIkf5BhHwzP0NH1cEXPM6UNQo8O
-         E9Y+U0UkhiZbKqTvA9S6SA83uiBJO3ze3gND/mTC+1zjp+FB+WNzfwjyb35ev0+TNi/G
-         cUbg0RTDj4Djxvwb4cPyN/tukFoNpaSxdtECMxpqPjkrrPESC8WYYVefyDvltXYQzD3W
-         bU9y5gP+8OWoRT+/Sl5j5SaDAr/0xeRaITPCvi54PDLFHvGfpeLssz+XSItS1dN6KOL6
-         WQfG0+nw1PryvHbyD9csjG4XBITK9Tli8VjZpfcGn2SbCoNrDeTJKI6cZiRiDhF0movt
-         CTGA==
-X-Gm-Message-State: AOAM5301Pvyjriw1+kN5WUq6CB4EtEM/NY5OI+BYh95NfAAlHLkMt3XR
-        11jhQL+VPQi1VQNyEY/dp7w3joauxYF+MYyOgq8=
-X-Google-Smtp-Source: ABdhPJwiTOpKp1DNcc2Niuh9wmKZr2hpSpikSLbkfpniA2lBbifw5OwcLaWnbhau9OTVobvQsgnuxmwxleyw5C1VPmM=
+        bh=gZC6Tdrs+v21YOKu6+arkvfjaZ3DhZrnypdcQEca1D0=;
+        b=jxnapMuiET7L6QMBxPpVduLAkKfw5vO8+l4+lEXhR7zsV3a2tNJCmPyDjysC/sL8V9
+         vryyHdW4evV3YhLJhfhfY3pfpwe4/qPTa4fY8BgWDMzcdNEAUgHmZLwS4e5CyyIQYTHj
+         2a/Om7xneOk7b33N+ff8aktJsx1YUnm3XVoj8gAZc7FqwRZEbpOi7dZcVcY5wdG5qT9n
+         k27CHsrClRb/2uXn76e2/rIywtAOyvtmscFirEpfdvcTLvEg0YAL3j2jlHlRDZXNDwuJ
+         uSh5P8uvE1mfQ33PNEsGONEmjRSWQmpxXV83owjsrSgq+Q70D/N4rvyEPpP81y1bA77L
+         nmsQ==
+X-Gm-Message-State: AOAM5330BahyiZf6eJR9GZM8qINRqAbg0aBdEDD/GhKSxPRjTrhDZPBZ
+        0K6RXec7ujSt3NJsaTmoGAo1Gq2h5Ty3CotsybM=
+X-Google-Smtp-Source: ABdhPJyXSwgng3rbQFnr3rvYfakxH4HxONln41kDPV0y/dTw4tzhlXUtl0E/eHCkBgnTPRrKKknIT40to5VxsCjgMHM=
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
- (user=samitolvanen job=sendgmr) by 2002:a25:ef07:: with SMTP id
- g7mr4300288ybd.448.1599165103083; Thu, 03 Sep 2020 13:31:43 -0700 (PDT)
-Date:   Thu,  3 Sep 2020 13:30:48 -0700
+ (user=samitolvanen job=sendgmr) by 2002:a25:d84e:: with SMTP id
+ p75mr5687011ybg.94.1599165100560; Thu, 03 Sep 2020 13:31:40 -0700 (PDT)
+Date:   Thu,  3 Sep 2020 13:30:47 -0700
 In-Reply-To: <20200903203053.3411268-1-samitolvanen@google.com>
-Message-Id: <20200903203053.3411268-24-samitolvanen@google.com>
+Message-Id: <20200903203053.3411268-23-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20200624203200.78870-1-samitolvanen@google.com> <20200903203053.3411268-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.28.0.526.ge36021eeef-goog
-Subject: [PATCH v2 23/28] arm64: vdso: disable LTO
+Subject: [PATCH v2 22/28] arm64: export CC_USING_PATCHABLE_FUNCTION_ENTRY
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Masahiro Yamada <masahiroy@kernel.org>,
         Will Deacon <will@kernel.org>
@@ -81,29 +81,27 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Disable LTO for the vDSO by filtering out CC_FLAGS_LTO, as there's no
-point in using link-time optimization for the small about of C code.
+Since arm64 does not use -pg in CC_FLAGS_FTRACE with
+DYNAMIC_FTRACE_WITH_REGS, skip running recordmcount by
+exporting CC_USING_PATCHABLE_FUNCTION_ENTRY.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 ---
- arch/arm64/kernel/vdso/Makefile | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/arm64/Makefile | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
-index 45d5cfe46429..aa47070a3ccf 100644
---- a/arch/arm64/kernel/vdso/Makefile
-+++ b/arch/arm64/kernel/vdso/Makefile
-@@ -30,8 +30,8 @@ ldflags-y := -shared -nostdlib -soname=linux-vdso.so.1 --hash-style=sysv	\
- ccflags-y := -fno-common -fno-builtin -fno-stack-protector -ffixed-x18
- ccflags-y += -DDISABLE_BRANCH_PROFILING
+diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
+index 130569f90c54..eeaf3c2e0971 100644
+--- a/arch/arm64/Makefile
++++ b/arch/arm64/Makefile
+@@ -127,6 +127,7 @@ endif
+ ifeq ($(CONFIG_DYNAMIC_FTRACE_WITH_REGS),y)
+   KBUILD_CPPFLAGS += -DCC_USING_PATCHABLE_FUNCTION_ENTRY
+   CC_FLAGS_FTRACE := -fpatchable-function-entry=2
++  export CC_USING_PATCHABLE_FUNCTION_ENTRY := 1
+ endif
  
--CFLAGS_REMOVE_vgettimeofday.o = $(CC_FLAGS_FTRACE) -Os $(CC_FLAGS_SCS) $(GCC_PLUGINS_CFLAGS)
--KBUILD_CFLAGS			+= $(DISABLE_LTO)
-+CFLAGS_REMOVE_vgettimeofday.o = $(CC_FLAGS_FTRACE) -Os $(CC_FLAGS_SCS) $(GCC_PLUGINS_CFLAGS) \
-+				$(CC_FLAGS_LTO)
- KASAN_SANITIZE			:= n
- UBSAN_SANITIZE			:= n
- OBJECT_FILES_NON_STANDARD	:= y
+ # Default value
 -- 
 2.28.0.402.g5ffc5be6b7-goog
 
