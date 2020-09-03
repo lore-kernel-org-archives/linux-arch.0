@@ -2,102 +2,125 @@ Return-Path: <SRS0=8TOP=CM=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
-	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,TVD_SUBJ_WIPE_DEBT,USER_AGENT_GIT autolearn=no autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-4.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 165D9C433E2
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:48:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 18A77C43461
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:54:24 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E0F5320DD4
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:48:13 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="H1ysAq3n"
+	by mail.kernel.org (Postfix) with ESMTP id CD53B2072A
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:54:23 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=default; t=1599144863;
+	bh=mriIatmtdubimfxx6F+KYhhAQsXMp4Zfj9n/rnqEnYg=;
+	h=References:In-Reply-To:From:Date:Subject:To:Cc:List-ID:From;
+	b=BzfMaWHpOw0VSqp67XvI9kAnMxbeoEl0FKA7YuYDvLaNokO+7A+pAD3rlqcgnLXzq
+	 CT7nsw3x6Fkp8q7uDYR3t3ZAXkpGmdDJlvpsfUyp5KzgC4rrUCMkki+BFIJaid9YjU
+	 jqx8sgIQ3QiN3aVQSQyaNqk1GhvVpafTU+W8GSpc=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729207AbgICOr7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Sep 2020 10:47:59 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35162 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729156AbgICOX1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 10:23:27 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6D00CC06124F;
-        Thu,  3 Sep 2020 07:22:51 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
-        Content-Description:In-Reply-To:References;
-        bh=Nmt3gQrXHRpJsq5nosMrsljZettvm0yOX7zhocjtN3o=; b=H1ysAq3n3J6+FAOCcSXFaaRG8D
-        fuHtZL4njNSPBAI3AAdu+2NhFbCA0M/aFer+STq20lof8lzzLkcHwR+4mUTX+D0OnGGRKirmYoTjG
-        EdnkecbKc4QL1WDsCKuG9gjFRHY4W+kA3NaiFvzHmE7krKfzPxtpP//6nMpTok5F3qQKEfpKv2Wk+
-        B/I87rPNxRr3SGs9cjQH2lP62Am3AmAkrgJHUCDx6nxKWYJ9IGmyL8OPQ/S5+kXwOaGOIk6OHjy+D
-        vtZSYF0uJln0Jn1YMjj1NEYT4k/z9t438BC2mqYo5NUFChlAdhDU8L6mp+Ue0DSSntfuCiP05e1qW
-        Ddh3SSAg==;
-Received: from [2001:4bb8:184:af1:c70:4a89:bc61:2] (helo=localhost)
-        by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kDq8R-0004a3-Rf; Thu, 03 Sep 2020 14:22:44 +0000
-From:   Christoph Hellwig <hch@lst.de>
-To:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org
-Cc:     Alexey Dobriyan <adobriyan@gmail.com>,
-        Luis Chamberlain <mcgrof@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Subject: remove the last set_fs() in common code, and remove it for x86 and powerpc v3
-Date:   Thu,  3 Sep 2020 16:22:28 +0200
-Message-Id: <20200903142242.925828-1-hch@lst.de>
-X-Mailer: git-send-email 2.28.0
+        id S1729422AbgICOyV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Sep 2020 10:54:21 -0400
+Received: from mail.kernel.org ([198.145.29.99]:52072 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729408AbgICOyT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 3 Sep 2020 10:54:19 -0400
+Received: from mail-wm1-f50.google.com (mail-wm1-f50.google.com [209.85.128.50])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 6A8202151B
+        for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2020 14:54:18 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=default; t=1599144858;
+        bh=mriIatmtdubimfxx6F+KYhhAQsXMp4Zfj9n/rnqEnYg=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=MfmZFBjT64s2kj82dccACMNfccL3q/EDxxTceknRnn5UC3AImrGOzEffZCZJBQLHb
+         xsY0ha/O5YBHgCotpGQ0WDdqXQ8tT675l0QXQ1Xgz+E+lw7gbhM7WmZIOITJodOcZN
+         IMv6xVYpajk0/OrPonK7qnFLO3OuTIBZUFe3Lv/M=
+Received: by mail-wm1-f50.google.com with SMTP id u18so3199580wmc.3
+        for <linux-arch@vger.kernel.org>; Thu, 03 Sep 2020 07:54:18 -0700 (PDT)
+X-Gm-Message-State: AOAM532ehGZ8j7eSVLcljimeXNsIOVr4UXKDOHne5clkGe5nAJQsR1bR
+        //OGlbsIylf76aLmJr5lyJhBXgqj+bU+9v3EByzguA==
+X-Google-Smtp-Source: ABdhPJwZWPiuPxsfeWv1J/1dfx0Phx0Z+CR6jZc6Vth7ClO5Nnnsw9BnQ2BG0ronnM+rSbGLQcOzQkjyBYwFKrdO6uM=
+X-Received: by 2002:a1c:740c:: with SMTP id p12mr2909254wmc.176.1599144856798;
+ Thu, 03 Sep 2020 07:54:16 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
+References: <46e42e5e-0bca-5f3f-efc9-5ab15827cc0b@intel.com>
+ <40BC093A-F430-4DCC-8DC0-2BA90A6FC3FA@amacapital.net> <b3809dd7-8566-0517-2389-8089475135b7@intel.com>
+In-Reply-To: <b3809dd7-8566-0517-2389-8089475135b7@intel.com>
+From:   Andy Lutomirski <luto@kernel.org>
+Date:   Thu, 3 Sep 2020 07:54:05 -0700
+X-Gmail-Original-Message-ID: <CALCETrVY6XXUkePL0D0gmGEkq_oB2Ly_uXo6QQUz1v0H7sf_-g@mail.gmail.com>
+Message-ID: <CALCETrVY6XXUkePL0D0gmGEkq_oB2Ly_uXo6QQUz1v0H7sf_-g@mail.gmail.com>
+Subject: Re: [PATCH v11 6/9] x86/cet: Add PTRACE interface for CET
+To:     Dave Hansen <dave.hansen@intel.com>
+Cc:     "Yu, Yu-cheng" <yu-cheng.yu@intel.com>,
+        Jann Horn <jannh@google.com>,
+        "the arch/x86 maintainers" <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>,
+        kernel list <linux-kernel@vger.kernel.org>,
+        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
+        Linux-MM <linux-mm@kvack.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux API <linux-api@vger.kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi all,
+On Thu, Sep 3, 2020 at 7:27 AM Dave Hansen <dave.hansen@intel.com> wrote:
+>
+> On 9/2/20 9:35 PM, Andy Lutomirski wrote:
+> >>>>>> +       fpu__prepare_read(fpu);
+> >>>>>> +       cetregs =3D get_xsave_addr(&fpu->state.xsave, XFEATURE_CET=
+_USER);
+> >>>>>> +       if (!cetregs)
+> >>>>>> +               return -EFAULT;
+> >>>>> Can this branch ever be hit without a kernel bug? If yes, I think
+> >>>>> -EFAULT is probably a weird error code to choose here. If no, this
+> >>>>> should probably use WARN_ON(). Same thing in cetregs_set().
+> >>>> When a thread is not CET-enabled, its CET state does not exist.  I l=
+ooked at EFAULT, and it means "Bad address".  Maybe this can be ENODEV, whi=
+ch means "No such device"?
+> > Having read the code, I=E2=80=99m unconvinced. It looks like a get_xsav=
+e_addr() failure means =E2=80=9Cstate not saved; task sees INIT state=E2=80=
+=9D.  So *maybe* it=E2=80=99s reasonable -ENODEV this, but I=E2=80=99m not =
+really convinced. I tend to think we should return the actual INIT state an=
+d that we should permit writes and handle them correctly.
+>
+> PTRACE is asking for access to the values in the *registers*, not for
+> the value in the kernel XSAVE buffer.  We just happen to only have the
+> kernel XSAVE buffer around.
+>
+> If we want to really support PTRACE we have to allow the registers to be
+> get/set, regardless of what state they are in, INIT state or not.  So,
+> yeah I agree with Andy.
 
-this series removes the last set_fs() used to force a kernel address
-space for the uaccess code in the kernel read/write/splice code, and then
-stops implementing the address space overrides entirely for x86 and
-powerpc.
+I think the core dump code gets here, too, so the values might be in
+registers as well.  I hope that fpu__prepare_read() does the right
+thing in this case.
 
-[Note to Linus: I'd like to get this into linux-next rather earlier
-than later.  Do you think it is ok to add this tree to linux-next?]
-
-The file system part has been posted a few times, and the read/write side
-has been pretty much unchanced.  For splice this series drops the
-conversion of the seq_file and sysctl code to the iter ops, and thus loses
-the splice support for them.  The reasons for that is that it caused a lot
-of churn for not much use - splice for these small files really isn't much
-of a win, even if existing userspace uses it.  All callers I found do the
-proper fallback, but if this turns out to be an issue the conversion can
-be resurrected.
-
-Besides x86 and powerpc I plan to eventually convert all other
-architectures, although this will be a slow process, starting with the
-easier ones once the infrastructure is merged.  The process to convert
-architectures is roughtly:
-
- (1) ensure there is no set_fs(KERNEL_DS) left in arch specific code
- (2) implement __get_kernel_nofault and __put_kernel_nofault
- (3) remove the arch specific address limitation functionality
-
-Changes since v2:
- - add back the patch to support splice through read_iter/write iter
-   on /proc/sys/*
- - entirely remove the tests that depend on set_fs.  Note that for
-   lkdtm the maintainer (Kees) disagrees with this request from Linus
- - fix a wrong check in the powerpc access_ok, and drop a few spurious
-   cleanups there
-
-Changes since v1:
- - drop the patch to remove the non-iter ops for /dev/zero and
-   /dev/null as they caused a performance regression
- - don't enable user access in __get_kernel on powerpc
- - xfail the set_fs() based lkdtm tests
-
-Diffstat:
+--Andy
