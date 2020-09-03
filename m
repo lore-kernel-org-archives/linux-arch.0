@@ -2,110 +2,140 @@ Return-Path: <SRS0=8TOP=CM=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-7.9 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
+	DKIM_ADSP_CUSTOM_MED,DKIM_INVALID,DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7BB5BC433E9
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 17:59:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EB3B1C43461
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 20:31:45 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 63C1720775
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 17:59:18 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B8AAC208CA
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 20:31:45 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=google.com header.i=@google.com header.b="ppe0VpEZ"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728677AbgICR7S (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Sep 2020 13:59:18 -0400
-Received: from mga18.intel.com ([134.134.136.126]:1301 "EHLO mga18.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726327AbgICR7R (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 3 Sep 2020 13:59:17 -0400
-IronPort-SDR: Zey8bhnXoWmUpAaat3pVpAK6f3SZOPQBi8xZwhy83WX+eZ99nSpcrQVUuI5IJ8uZmy+pQ3cntM
- 26sdud4xUmZg==
-X-IronPort-AV: E=McAfee;i="6000,8403,9733"; a="145329662"
-X-IronPort-AV: E=Sophos;i="5.76,387,1592895600"; 
-   d="scan'208";a="145329662"
-X-Amp-Result: SKIPPED(no attachment in message)
-X-Amp-File-Uploaded: False
-Received: from fmsmga002.fm.intel.com ([10.253.24.26])
-  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Sep 2020 10:59:16 -0700
-IronPort-SDR: X6hOgUBXuT53zGBETVRIl8Y3udPYgeOjMvy4EgfTvR+oR8iOyOvL0gprGjnPMNJMYyxw+50upa
- fFrRD+sU+TdQ==
-X-IronPort-AV: E=Sophos;i="5.76,387,1592895600"; 
-   d="scan'208";a="334548855"
-Received: from yyu32-mobl1.amr.corp.intel.com (HELO [10.209.173.133]) ([10.209.173.133])
-  by fmsmga002-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Sep 2020 10:59:15 -0700
-Subject: Re: [PATCH v11 6/9] x86/cet: Add PTRACE interface for CET
-To:     Dave Hansen <dave.hansen@intel.com>,
-        Andy Lutomirski <luto@kernel.org>
-Cc:     Jann Horn <jannh@google.com>,
-        the arch/x86 maintainers <x86@kernel.org>,
-        "H. Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>,
-        kernel list <linux-kernel@vger.kernel.org>,
-        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
-        Linux-MM <linux-mm@kvack.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux API <linux-api@vger.kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Borislav Petkov <bp@alien8.de>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Jonathan Corbet <corbet@lwn.net>,
+        id S1729477AbgICUbe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Sep 2020 16:31:34 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35528 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729405AbgICUbL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 16:31:11 -0400
+Received: from mail-qt1-x84a.google.com (mail-qt1-x84a.google.com [IPv6:2607:f8b0:4864:20::84a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CD761C061245
+        for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2020 13:31:03 -0700 (PDT)
+Received: by mail-qt1-x84a.google.com with SMTP id t11so2922615qtn.8
+        for <linux-arch@vger.kernel.org>; Thu, 03 Sep 2020 13:31:03 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20161025;
+        h=sender:date:in-reply-to:message-id:mime-version:references:subject
+         :from:to:cc;
+        bh=wTbIhLiuyTm+XoSeGxmt2GAAo+IvKYWaIE8cYk7ZU44=;
+        b=ppe0VpEZBeDfsEU5ITwny6NkcdkxKAFIdZQ3UQnzTBxYV1ctHU67inW4vW137h4gBv
+         nWXa8buMLxkA1rBskFYK1Eq0jsE+Qw/6BSGfBW65fCge+eKI/kv4A55AD2s+47ypACRJ
+         cVE0+4wdwaCT6SrkHGr9ymZTLU8/wNLASZe7MqnKgh8hB4+OUomA4eJmR7t0BZXrjJW/
+         LOvoQCoshN1779crEt6wAJjVHKmUtlw45dC2cFZP8uDI0DaAgpfMMNr88O/e/upP1nRo
+         CSOVQI7ODlZsWF9jyXFOiYjx8Wwf0ptZxrDsx86udsnr+hYtU3KnXTgcc4ezeQUCHDis
+         66oQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
+         :references:subject:from:to:cc;
+        bh=wTbIhLiuyTm+XoSeGxmt2GAAo+IvKYWaIE8cYk7ZU44=;
+        b=b+cGEMMNs0rpe+m1qgNfn1dDeXOJyZTld2VHoH5WssWPkDm4zDPnn/j1KrGBpeZi6Q
+         jZ/okR2nsSNoCPwmL2GWyV7KRU9tcZe/IEO8A6JKIiBQLouVKqUrkQVVubGvIKiEjgnN
+         UjobvK9Kz1fbEq0NcJJXd1xzB+365wgm7laRK6GDQATeazUoSybF94hHtnXmxzDUq66j
+         ivGFw0AAPypf2SmUBGeNGbft81Jf3zAFncHpLRC1v2tuLJWOwzCztSzhaShBd9RY36UZ
+         2stDTVMEqtU+7hd+bmSFHHUikJH5k6RlhdfUx+D4eGjoh6Ydzyk5evZqoq2y2liGbEMy
+         qFtA==
+X-Gm-Message-State: AOAM531cPLYE5Zx6kIcHN+n3heWqf9wrZhqNGAW1tOSkSlwFo40ijIcG
+        HnIfWhyUTuOPuUn8dwzMfzY47Fj4mQj5hmec5zc=
+X-Google-Smtp-Source: ABdhPJyv9bEdV3xRGJWnQr7fgcxwXMprdZ7rQuE4G3j1pIhhWyO6nI10INeeai4ZhUeY9OF61z4g8Dh58X2KMzWpmUw=
+X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
+ (user=samitolvanen job=sendgmr) by 2002:a0c:a342:: with SMTP id
+ u60mr3554884qvu.2.1599165062979; Thu, 03 Sep 2020 13:31:02 -0700 (PDT)
+Date:   Thu,  3 Sep 2020 13:30:29 -0700
+In-Reply-To: <20200903203053.3411268-1-samitolvanen@google.com>
+Message-Id: <20200903203053.3411268-5-samitolvanen@google.com>
+Mime-Version: 1.0
+References: <20200624203200.78870-1-samitolvanen@google.com> <20200903203053.3411268-1-samitolvanen@google.com>
+X-Mailer: git-send-email 2.28.0.526.ge36021eeef-goog
+Subject: [PATCH v2 04/28] RAS/CEC: Fix cec_init() prototype
+From:   Sami Tolvanen <samitolvanen@google.com>
+To:     Masahiro Yamada <masahiroy@kernel.org>,
+        Will Deacon <will@kernel.org>
+Cc:     Peter Zijlstra <peterz@infradead.org>,
+        Steven Rostedt <rostedt@goodmis.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
         Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
-        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>
-References: <46e42e5e-0bca-5f3f-efc9-5ab15827cc0b@intel.com>
- <40BC093A-F430-4DCC-8DC0-2BA90A6FC3FA@amacapital.net>
- <b3809dd7-8566-0517-2389-8089475135b7@intel.com>
- <88261152-2de1-fe8d-7ab0-acb108e97e04@intel.com>
- <1b51d89c-c7de-2032-df23-e138d1369ffa@intel.com>
- <CALCETrUq3xiHV2xOZV-FD_de_P_TL-Bs91XT+F+79psBfigCSg@mail.gmail.com>
- <21491d05-6306-0a6f-58a7-8bf29feae8c7@intel.com>
- <CALCETrXJkXXDF=tdu3KBHgzDO+E-HhqMk9Ttixgk4WX_PLPDJw@mail.gmail.com>
- <8fcde9bb-284f-f089-96d3-702f501a6258@intel.com>
-From:   "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
-Message-ID: <2a58982b-8a69-1280-86ec-d0b70ede4453@intel.com>
-Date:   Thu, 3 Sep 2020 10:59:14 -0700
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101
- Thunderbird/68.12.0
-MIME-Version: 1.0
-In-Reply-To: <8fcde9bb-284f-f089-96d3-702f501a6258@intel.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+        Nick Desaulniers <ndesaulniers@google.com>,
+        clang-built-linux@googlegroups.com,
+        kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org,
+        linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org,
+        x86@kernel.org, Luca Stefani <luca.stefani.ge1@gmail.com>,
+        Sami Tolvanen <samitolvanen@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 9/3/2020 9:42 AM, Dave Hansen wrote:
-> On 9/3/20 9:32 AM, Andy Lutomirski wrote:
->>> Taking the config register out of the init state is illogical, as is
->>> writing to SSP while the config register is in its init state.
->> What's so special about the INIT state?  It's optimized by XSAVES, but
->> it's just a number, right?  So taking the register out of the INIT
->> state is kind of like saying "gdb wanted to set xmm0 to (0,0,0,1), but
->> it was in the INIT state to begin with", right?
-> 
-> Yeah, that's a good point.  The init state shouldn't be special, as the
-> hardware is within its right to choose not to use the init optimization
-> at any time.
-> 
-Then, I would suggest changing get_xsave_addr() to return non-null for 
-the INIT state case.  For the other two cases, it still returns NULL. 
-But this also requires any write to INIT states to set xstate_bv bits 
-properly.  This would be a pitfall for any code addition later on.
+From: Luca Stefani <luca.stefani.ge1@gmail.com>
 
-Looking at this another way.  Would it be better for the debugger to get 
-an error and then to set the MSR directly first (vs. changing the XSAVES 
-INIT state first)?
+late_initcall() expects a function that returns an integer. Update the
+function signature to match.
+
+ [ bp: Massage commit message into proper sentences. ]
+
+Fixes: 9554bfe403nd ("x86/mce: Convert the CEC to use the MCE notifier")
+Signed-off-by: Luca Stefani <luca.stefani.ge1@gmail.com>
+Signed-off-by: Borislav Petkov <bp@suse.de>
+Reviewed-by: Sami Tolvanen <samitolvanen@google.com>
+Tested-by: Sami Tolvanen <samitolvanen@google.com>
+Link: https://lkml.kernel.org/r/20200805095708.83939-1-luca.stefani.ge1@gmail.com
+---
+ drivers/ras/cec.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/ras/cec.c b/drivers/ras/cec.c
+index 569d9ad2c594..6939aa5b3dc7 100644
+--- a/drivers/ras/cec.c
++++ b/drivers/ras/cec.c
+@@ -553,20 +553,20 @@ static struct notifier_block cec_nb = {
+ 	.priority	= MCE_PRIO_CEC,
+ };
+ 
+-static void __init cec_init(void)
++static int __init cec_init(void)
+ {
+ 	if (ce_arr.disabled)
+-		return;
++		return -ENODEV;
+ 
+ 	ce_arr.array = (void *)get_zeroed_page(GFP_KERNEL);
+ 	if (!ce_arr.array) {
+ 		pr_err("Error allocating CE array page!\n");
+-		return;
++		return -ENOMEM;
+ 	}
+ 
+ 	if (create_debugfs_nodes()) {
+ 		free_page((unsigned long)ce_arr.array);
+-		return;
++		return -ENOMEM;
+ 	}
+ 
+ 	INIT_DELAYED_WORK(&cec_work, cec_work_fn);
+@@ -575,6 +575,7 @@ static void __init cec_init(void)
+ 	mce_register_decode_chain(&cec_nb);
+ 
+ 	pr_info("Correctable Errors collector initialized.\n");
++	return 0;
+ }
+ late_initcall(cec_init);
+ 
+-- 
+2.28.0.402.g5ffc5be6b7-goog
+
