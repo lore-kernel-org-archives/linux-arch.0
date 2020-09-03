@@ -2,275 +2,143 @@ Return-Path: <SRS0=8TOP=CM=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
-	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.9 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 77C2FC43461
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:26:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 13B07C433E2
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:28:47 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4A6C5206EB
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:26:51 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="popZrL8P"
+	by mail.kernel.org (Postfix) with ESMTP id F1FEC20758
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:28:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729324AbgICO0c (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Sep 2020 10:26:32 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35312 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729248AbgICOYg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 10:24:36 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DF134C06123D;
-        Thu,  3 Sep 2020 07:22:57 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
-        Content-Type:Content-ID:Content-Description;
-        bh=SQdHM2VLoZetKqW2OYcNprtrCZT26+7Z4k+2D4WNncE=; b=popZrL8PCblOIFRTKHvMUBBNSp
-        ZCEAoKC4hHQXQ8WsMz/WgnelztBwRBbSWbZHevz3hxSFXqeTedGT4SDDD1YgTbTaAEr6V5lGWQg8a
-        HVtyugUOZKnSjmEExUTr7SXbzDmaJEAJf56QWd/JMBsJ8BQ/4x79ZFtIBKRs+Jc/iPJZE5sgtOPlP
-        7+72C+iGX0glUPQjpqNvi3+m4hRvm+yv1MfMaehTQ2M5ez45nq/6BBdv7UKe7SNOW4M0TgHFEHDPC
-        QvGRf6aLWoPga1Wv6BiYziRkJ/4mN9dwOlkDH0xH2f6RiGRbERDwBog/M7Goi1Bz2hSsBPejUnB3G
-        sE+Tog0Q==;
-Received: from [2001:4bb8:184:af1:c70:4a89:bc61:2] (helo=localhost)
-        by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kDq8Z-0004az-6M; Thu, 03 Sep 2020 14:22:51 +0000
-From:   Christoph Hellwig <hch@lst.de>
-To:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org
-Cc:     Alexey Dobriyan <adobriyan@gmail.com>,
-        Luis Chamberlain <mcgrof@kernel.org>,
+        id S1729301AbgICO2J (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Sep 2020 10:28:09 -0400
+Received: from mga18.intel.com ([134.134.136.126]:44987 "EHLO mga18.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729343AbgICO1B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 3 Sep 2020 10:27:01 -0400
+IronPort-SDR: ieTJP0ba9vKyhaPpTycNXPGdYgxH+Xoxcm5WiRXAQ18q7Nn88STN/gmL/jRtsFPiGTONKgJK/5
+ QUh4D2RS7Oow==
+X-IronPort-AV: E=McAfee;i="6000,8403,9733"; a="145274696"
+X-IronPort-AV: E=Sophos;i="5.76,387,1592895600"; 
+   d="scan'208";a="145274696"
+X-Amp-Result: SKIPPED(no attachment in message)
+X-Amp-File-Uploaded: False
+Received: from orsmga004.jf.intel.com ([10.7.209.38])
+  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Sep 2020 07:26:59 -0700
+IronPort-SDR: GBtStz2sZiaoRRPyakQnVVI6aA1XF5h+b63oOQ6DF0pvr9tPf5gpUkg1pU1WzeQSmfz5By5QEL
+ eutbJCobqW+g==
+X-IronPort-AV: E=Sophos;i="5.76,387,1592895600"; 
+   d="scan'208";a="446922586"
+Received: from jhoh-mobl2.amr.corp.intel.com (HELO [10.212.33.96]) ([10.212.33.96])
+  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Sep 2020 07:26:57 -0700
+Subject: Re: [PATCH v11 6/9] x86/cet: Add PTRACE interface for CET
+To:     Andy Lutomirski <luto@amacapital.net>,
+        "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
+Cc:     Jann Horn <jannh@google.com>,
+        the arch/x86 maintainers <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>,
+        kernel list <linux-kernel@vger.kernel.org>,
+        linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux API <linux-api@vger.kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Jonathan Corbet <corbet@lwn.net>,
         Kees Cook <keescook@chromium.org>,
-        linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Subject: [PATCH 06/14] fs: don't allow splice read/write without explicit ops
-Date:   Thu,  3 Sep 2020 16:22:34 +0200
-Message-Id: <20200903142242.925828-7-hch@lst.de>
-X-Mailer: git-send-email 2.28.0
-In-Reply-To: <20200903142242.925828-1-hch@lst.de>
-References: <20200903142242.925828-1-hch@lst.de>
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>
+References: <46e42e5e-0bca-5f3f-efc9-5ab15827cc0b@intel.com>
+ <40BC093A-F430-4DCC-8DC0-2BA90A6FC3FA@amacapital.net>
+From:   Dave Hansen <dave.hansen@intel.com>
+Autocrypt: addr=dave.hansen@intel.com; keydata=
+ xsFNBE6HMP0BEADIMA3XYkQfF3dwHlj58Yjsc4E5y5G67cfbt8dvaUq2fx1lR0K9h1bOI6fC
+ oAiUXvGAOxPDsB/P6UEOISPpLl5IuYsSwAeZGkdQ5g6m1xq7AlDJQZddhr/1DC/nMVa/2BoY
+ 2UnKuZuSBu7lgOE193+7Uks3416N2hTkyKUSNkduyoZ9F5twiBhxPJwPtn/wnch6n5RsoXsb
+ ygOEDxLEsSk/7eyFycjE+btUtAWZtx+HseyaGfqkZK0Z9bT1lsaHecmB203xShwCPT49Blxz
+ VOab8668QpaEOdLGhtvrVYVK7x4skyT3nGWcgDCl5/Vp3TWA4K+IofwvXzX2ON/Mj7aQwf5W
+ iC+3nWC7q0uxKwwsddJ0Nu+dpA/UORQWa1NiAftEoSpk5+nUUi0WE+5DRm0H+TXKBWMGNCFn
+ c6+EKg5zQaa8KqymHcOrSXNPmzJuXvDQ8uj2J8XuzCZfK4uy1+YdIr0yyEMI7mdh4KX50LO1
+ pmowEqDh7dLShTOif/7UtQYrzYq9cPnjU2ZW4qd5Qz2joSGTG9eCXLz5PRe5SqHxv6ljk8mb
+ ApNuY7bOXO/A7T2j5RwXIlcmssqIjBcxsRRoIbpCwWWGjkYjzYCjgsNFL6rt4OL11OUF37wL
+ QcTl7fbCGv53KfKPdYD5hcbguLKi/aCccJK18ZwNjFhqr4MliQARAQABzShEYXZpZCBDaHJp
+ c3RvcGhlciBIYW5zZW4gPGRhdmVAc3I3MS5uZXQ+wsF7BBMBAgAlAhsDBgsJCAcDAgYVCAIJ
+ CgsEFgIDAQIeAQIXgAUCTo3k0QIZAQAKCRBoNZUwcMmSsMO2D/421Xg8pimb9mPzM5N7khT0
+ 2MCnaGssU1T59YPE25kYdx2HntwdO0JA27Wn9xx5zYijOe6B21ufrvsyv42auCO85+oFJWfE
+ K2R/IpLle09GDx5tcEmMAHX6KSxpHmGuJmUPibHVbfep2aCh9lKaDqQR07gXXWK5/yU1Dx0r
+ VVFRaHTasp9fZ9AmY4K9/BSA3VkQ8v3OrxNty3OdsrmTTzO91YszpdbjjEFZK53zXy6tUD2d
+ e1i0kBBS6NLAAsqEtneplz88T/v7MpLmpY30N9gQU3QyRC50jJ7LU9RazMjUQY1WohVsR56d
+ ORqFxS8ChhyJs7BI34vQusYHDTp6PnZHUppb9WIzjeWlC7Jc8lSBDlEWodmqQQgp5+6AfhTD
+ kDv1a+W5+ncq+Uo63WHRiCPuyt4di4/0zo28RVcjtzlGBZtmz2EIC3vUfmoZbO/Gn6EKbYAn
+ rzz3iU/JWV8DwQ+sZSGu0HmvYMt6t5SmqWQo/hyHtA7uF5Wxtu1lCgolSQw4t49ZuOyOnQi5
+ f8R3nE7lpVCSF1TT+h8kMvFPv3VG7KunyjHr3sEptYxQs4VRxqeirSuyBv1TyxT+LdTm6j4a
+ mulOWf+YtFRAgIYyyN5YOepDEBv4LUM8Tz98lZiNMlFyRMNrsLV6Pv6SxhrMxbT6TNVS5D+6
+ UorTLotDZKp5+M7BTQRUY85qARAAsgMW71BIXRgxjYNCYQ3Xs8k3TfAvQRbHccky50h99TUY
+ sqdULbsb3KhmY29raw1bgmyM0a4DGS1YKN7qazCDsdQlxIJp9t2YYdBKXVRzPCCsfWe1dK/q
+ 66UVhRPP8EGZ4CmFYuPTxqGY+dGRInxCeap/xzbKdvmPm01Iw3YFjAE4PQ4hTMr/H76KoDbD
+ cq62U50oKC83ca/PRRh2QqEqACvIH4BR7jueAZSPEDnzwxvVgzyeuhwqHY05QRK/wsKuhq7s
+ UuYtmN92Fasbxbw2tbVLZfoidklikvZAmotg0dwcFTjSRGEg0Gr3p/xBzJWNavFZZ95Rj7Et
+ db0lCt0HDSY5q4GMR+SrFbH+jzUY/ZqfGdZCBqo0cdPPp58krVgtIGR+ja2Mkva6ah94/oQN
+ lnCOw3udS+Eb/aRcM6detZr7XOngvxsWolBrhwTQFT9D2NH6ryAuvKd6yyAFt3/e7r+HHtkU
+ kOy27D7IpjngqP+b4EumELI/NxPgIqT69PQmo9IZaI/oRaKorYnDaZrMXViqDrFdD37XELwQ
+ gmLoSm2VfbOYY7fap/AhPOgOYOSqg3/Nxcapv71yoBzRRxOc4FxmZ65mn+q3rEM27yRztBW9
+ AnCKIc66T2i92HqXCw6AgoBJRjBkI3QnEkPgohQkZdAb8o9WGVKpfmZKbYBo4pEAEQEAAcLB
+ XwQYAQIACQUCVGPOagIbDAAKCRBoNZUwcMmSsJeCEACCh7P/aaOLKWQxcnw47p4phIVR6pVL
+ e4IEdR7Jf7ZL00s3vKSNT+nRqdl1ugJx9Ymsp8kXKMk9GSfmZpuMQB9c6io1qZc6nW/3TtvK
+ pNGz7KPPtaDzvKA4S5tfrWPnDr7n15AU5vsIZvgMjU42gkbemkjJwP0B1RkifIK60yQqAAlT
+ YZ14P0dIPdIPIlfEPiAWcg5BtLQU4Wg3cNQdpWrCJ1E3m/RIlXy/2Y3YOVVohfSy+4kvvYU3
+ lXUdPb04UPw4VWwjcVZPg7cgR7Izion61bGHqVqURgSALt2yvHl7cr68NYoFkzbNsGsye9ft
+ M9ozM23JSgMkRylPSXTeh5JIK9pz2+etco3AfLCKtaRVysjvpysukmWMTrx8QnI5Nn5MOlJj
+ 1Ov4/50JY9pXzgIDVSrgy6LYSMc4vKZ3QfCY7ipLRORyalFDF3j5AGCMRENJjHPD6O7bl3Xo
+ 4DzMID+8eucbXxKiNEbs21IqBZbbKdY1GkcEGTE7AnkA3Y6YB7I/j9mQ3hCgm5muJuhM/2Fr
+ OPsw5tV/LmQ5GXH0JQ/TZXWygyRFyyI2FqNTx4WHqUn3yFj8rwTAU1tluRUYyeLy0ayUlKBH
+ ybj0N71vWO936MqP6haFERzuPAIpxj2ezwu0xb1GjTk4ynna6h5GjnKgdfOWoRtoWndMZxbA
+ z5cecg==
+Message-ID: <b3809dd7-8566-0517-2389-8089475135b7@intel.com>
+Date:   Thu, 3 Sep 2020 07:26:56 -0700
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
+ Thunderbird/68.10.0
 MIME-Version: 1.0
+In-Reply-To: <40BC093A-F430-4DCC-8DC0-2BA90A6FC3FA@amacapital.net>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 8bit
-X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-default_file_splice_write is the last piece of generic code that uses
-set_fs to make the uaccess routines operate on kernel pointers.  It
-implements a "fallback loop" for splicing from files that do not actually
-provide a proper splice_read method.  The usual file systems and other
-high bandwidth instances all provide a ->splice_read, so this just removes
-support for various device drivers and procfs/debugfs files.  If splice
-support for any of those turns out to be important it can be added back
-by switching them to the iter ops and using generic_file_splice_read.
+On 9/2/20 9:35 PM, Andy Lutomirski wrote:
+>>>>>> +       fpu__prepare_read(fpu);
+>>>>>> +       cetregs = get_xsave_addr(&fpu->state.xsave, XFEATURE_CET_USER);
+>>>>>> +       if (!cetregs)
+>>>>>> +               return -EFAULT;
+>>>>> Can this branch ever be hit without a kernel bug? If yes, I think
+>>>>> -EFAULT is probably a weird error code to choose here. If no, this
+>>>>> should probably use WARN_ON(). Same thing in cetregs_set().
+>>>> When a thread is not CET-enabled, its CET state does not exist.  I looked at EFAULT, and it means "Bad address".  Maybe this can be ENODEV, which means "No such device"?
+> Having read the code, I’m unconvinced. It looks like a get_xsave_addr() failure means “state not saved; task sees INIT state”.  So *maybe* it’s reasonable -ENODEV this, but I’m not really convinced. I tend to think we should return the actual INIT state and that we should permit writes and handle them correctly.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
- fs/read_write.c    |   2 +-
- fs/splice.c        | 130 +++++----------------------------------------
- include/linux/fs.h |   2 -
- 3 files changed, 15 insertions(+), 119 deletions(-)
+PTRACE is asking for access to the values in the *registers*, not for
+the value in the kernel XSAVE buffer.  We just happen to only have the
+kernel XSAVE buffer around.
 
-diff --git a/fs/read_write.c b/fs/read_write.c
-index 702c4301d9eb6b..8c61f67453e3d3 100644
---- a/fs/read_write.c
-+++ b/fs/read_write.c
-@@ -1077,7 +1077,7 @@ ssize_t vfs_iter_write(struct file *file, struct iov_iter *iter, loff_t *ppos,
- }
- EXPORT_SYMBOL(vfs_iter_write);
- 
--ssize_t vfs_readv(struct file *file, const struct iovec __user *vec,
-+static ssize_t vfs_readv(struct file *file, const struct iovec __user *vec,
- 		  unsigned long vlen, loff_t *pos, rwf_t flags)
- {
- 	struct iovec iovstack[UIO_FASTIOV];
-diff --git a/fs/splice.c b/fs/splice.c
-index d7c8a7c4db07ff..412df7b48f9eb7 100644
---- a/fs/splice.c
-+++ b/fs/splice.c
-@@ -342,89 +342,6 @@ const struct pipe_buf_operations nosteal_pipe_buf_ops = {
- };
- EXPORT_SYMBOL(nosteal_pipe_buf_ops);
- 
--static ssize_t kernel_readv(struct file *file, const struct kvec *vec,
--			    unsigned long vlen, loff_t offset)
--{
--	mm_segment_t old_fs;
--	loff_t pos = offset;
--	ssize_t res;
--
--	old_fs = get_fs();
--	set_fs(KERNEL_DS);
--	/* The cast to a user pointer is valid due to the set_fs() */
--	res = vfs_readv(file, (const struct iovec __user *)vec, vlen, &pos, 0);
--	set_fs(old_fs);
--
--	return res;
--}
--
--static ssize_t default_file_splice_read(struct file *in, loff_t *ppos,
--				 struct pipe_inode_info *pipe, size_t len,
--				 unsigned int flags)
--{
--	struct kvec *vec, __vec[PIPE_DEF_BUFFERS];
--	struct iov_iter to;
--	struct page **pages;
--	unsigned int nr_pages;
--	unsigned int mask;
--	size_t offset, base, copied = 0;
--	ssize_t res;
--	int i;
--
--	if (pipe_full(pipe->head, pipe->tail, pipe->max_usage))
--		return -EAGAIN;
--
--	/*
--	 * Try to keep page boundaries matching to source pagecache ones -
--	 * it probably won't be much help, but...
--	 */
--	offset = *ppos & ~PAGE_MASK;
--
--	iov_iter_pipe(&to, READ, pipe, len + offset);
--
--	res = iov_iter_get_pages_alloc(&to, &pages, len + offset, &base);
--	if (res <= 0)
--		return -ENOMEM;
--
--	nr_pages = DIV_ROUND_UP(res + base, PAGE_SIZE);
--
--	vec = __vec;
--	if (nr_pages > PIPE_DEF_BUFFERS) {
--		vec = kmalloc_array(nr_pages, sizeof(struct kvec), GFP_KERNEL);
--		if (unlikely(!vec)) {
--			res = -ENOMEM;
--			goto out;
--		}
--	}
--
--	mask = pipe->ring_size - 1;
--	pipe->bufs[to.head & mask].offset = offset;
--	pipe->bufs[to.head & mask].len -= offset;
--
--	for (i = 0; i < nr_pages; i++) {
--		size_t this_len = min_t(size_t, len, PAGE_SIZE - offset);
--		vec[i].iov_base = page_address(pages[i]) + offset;
--		vec[i].iov_len = this_len;
--		len -= this_len;
--		offset = 0;
--	}
--
--	res = kernel_readv(in, vec, nr_pages, *ppos);
--	if (res > 0) {
--		copied = res;
--		*ppos += res;
--	}
--
--	if (vec != __vec)
--		kfree(vec);
--out:
--	for (i = 0; i < nr_pages; i++)
--		put_page(pages[i]);
--	kvfree(pages);
--	iov_iter_advance(&to, copied);	/* truncates and discards */
--	return res;
--}
--
- /*
-  * Send 'sd->len' bytes to socket from 'sd->file' at position 'sd->pos'
-  * using sendpage(). Return the number of bytes sent.
-@@ -788,33 +705,6 @@ iter_file_splice_write(struct pipe_inode_info *pipe, struct file *out,
- 
- EXPORT_SYMBOL(iter_file_splice_write);
- 
--static int write_pipe_buf(struct pipe_inode_info *pipe, struct pipe_buffer *buf,
--			  struct splice_desc *sd)
--{
--	int ret;
--	void *data;
--	loff_t tmp = sd->pos;
--
--	data = kmap(buf->page);
--	ret = __kernel_write(sd->u.file, data + buf->offset, sd->len, &tmp);
--	kunmap(buf->page);
--
--	return ret;
--}
--
--static ssize_t default_file_splice_write(struct pipe_inode_info *pipe,
--					 struct file *out, loff_t *ppos,
--					 size_t len, unsigned int flags)
--{
--	ssize_t ret;
--
--	ret = splice_from_pipe(pipe, out, ppos, len, flags, write_pipe_buf);
--	if (ret > 0)
--		*ppos += ret;
--
--	return ret;
--}
--
- /**
-  * generic_splice_sendpage - splice data from a pipe to a socket
-  * @pipe:	pipe to splice from
-@@ -836,15 +726,23 @@ ssize_t generic_splice_sendpage(struct pipe_inode_info *pipe, struct file *out,
- 
- EXPORT_SYMBOL(generic_splice_sendpage);
- 
-+static int warn_unsupported(struct file *file, const char *op)
-+{
-+	pr_debug_ratelimited(
-+		"splice %s not supported for file %pD4 (pid: %d comm: %.20s)\n",
-+		op, file, current->pid, current->comm);
-+	return -EINVAL;
-+}
-+
- /*
-  * Attempt to initiate a splice from pipe to file.
-  */
- static long do_splice_from(struct pipe_inode_info *pipe, struct file *out,
- 			   loff_t *ppos, size_t len, unsigned int flags)
- {
--	if (out->f_op->splice_write)
--		return out->f_op->splice_write(pipe, out, ppos, len, flags);
--	return default_file_splice_write(pipe, out, ppos, len, flags);
-+	if (unlikely(!out->f_op->splice_write))
-+		return warn_unsupported(out, "write");
-+	return out->f_op->splice_write(pipe, out, ppos, len, flags);
- }
- 
- /*
-@@ -866,9 +764,9 @@ static long do_splice_to(struct file *in, loff_t *ppos,
- 	if (unlikely(len > MAX_RW_COUNT))
- 		len = MAX_RW_COUNT;
- 
--	if (in->f_op->splice_read)
--		return in->f_op->splice_read(in, ppos, pipe, len, flags);
--	return default_file_splice_read(in, ppos, pipe, len, flags);
-+	if (unlikely(!in->f_op->splice_read))
-+		return warn_unsupported(in, "read");
-+	return in->f_op->splice_read(in, ppos, pipe, len, flags);
- }
- 
- /**
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index 7519ae003a082c..839eeccf10174b 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -1894,8 +1894,6 @@ ssize_t rw_copy_check_uvector(int type, const struct iovec __user * uvector,
- 
- extern ssize_t vfs_read(struct file *, char __user *, size_t, loff_t *);
- extern ssize_t vfs_write(struct file *, const char __user *, size_t, loff_t *);
--extern ssize_t vfs_readv(struct file *, const struct iovec __user *,
--		unsigned long, loff_t *, rwf_t);
- extern ssize_t vfs_copy_file_range(struct file *, loff_t , struct file *,
- 				   loff_t, size_t, unsigned int);
- extern ssize_t generic_copy_file_range(struct file *file_in, loff_t pos_in,
--- 
-2.28.0
-
+If we want to really support PTRACE we have to allow the registers to be
+get/set, regardless of what state they are in, INIT state or not.  So,
+yeah I agree with Andy.
