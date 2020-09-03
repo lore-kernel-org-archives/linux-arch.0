@@ -7,36 +7,36 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6A294C433E9
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:26:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 86640C433E2
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:26:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 459A7206EB
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:26:01 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 532AE206EB
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:26:21 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="KT+oozOc"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="aXm8ada5"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729171AbgICOZy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Sep 2020 10:25:54 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35164 "EHLO
+        id S1729306AbgICO0P (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Sep 2020 10:26:15 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35316 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729160AbgICOX1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 10:23:27 -0400
+        with ESMTP id S1729271AbgICOYg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 10:24:36 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0C27AC061258;
-        Thu,  3 Sep 2020 07:22:53 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F0466C06123F;
+        Thu,  3 Sep 2020 07:22:58 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=rSb0BL01Ey1fqtHAuOSKbe3w6r8nDxlokUvLOIV+cDE=; b=KT+oozOcmlzKunmiiHT+7RSbLJ
-        gavWA9RkFz1P2aj1gpddXMWCOPrlOgFZgn4hA6S1M4p8FygVV8uLc6oVLVdIdzudykwHVoOkF2Wzp
-        y4CN6+hoansmAFrPY6AcwRlPW2AYCFAG2hVuPOCHgYk9sMriwkwFnPJiKXXa/+f29JxRVYESVJilJ
-        yro5pzGVFiYakxduDdi7cG5eLmyL8MSiW3yaSWrBYgWmOz0MpQKOhV3qjfYYYQRIUYzeTH/kA9Ou6
-        ke5i0/VMjflVHFxMBa1jtGpOoAqFVtzP5nH9zYLeue3nJYnASu8pHhLeNb2npgfemID2x+DEVJ+Pe
-        P43farcQ==;
+        bh=glRx1e+2K28c137CnQcnREE32Krzi32mzQeiUOb4p8k=; b=aXm8ada5czGlZeEedfKGmsycdu
+        XFy77fTL6a7UVpeZ5XjCNDyNL1ym6/11MKlvDcgii10R7629AQHAVCkS1pGwSTGRKAJaWkw9LRvVF
+        3JSzd4hQb6IDMc6kLI8zVGFbH+Lmkx9TwN07Xr/fV64EzjAO4ABTibJ83Uw29e0dbrGs2LbZedqvb
+        E8L6It2nFiIxyBiDcKt9cU59Qp6Q8YAEQmxWAQW02CvAeC7oFJnRoWJDoze120xNiGkiCqg84AoPh
+        qpjFDVcO28oUIXPgpopWgoQ9ldSmsPzP3JAuBajxqnl6TjEfHRBKOYSm8K16fkeoOmXevyEP4yp7W
+        IG/giTfg==;
 Received: from [2001:4bb8:184:af1:c70:4a89:bc61:2] (helo=localhost)
         by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kDq8U-0004aE-Co; Thu, 03 Sep 2020 14:22:46 +0000
+        id 1kDq8c-0004bL-6R; Thu, 03 Sep 2020 14:22:54 +0000
 From:   Christoph Hellwig <hch@lst.de>
 To:     Linus Torvalds <torvalds@linux-foundation.org>,
         Al Viro <viro@zeniv.linux.org.uk>,
@@ -46,9 +46,9 @@ Cc:     Alexey Dobriyan <adobriyan@gmail.com>,
         Kees Cook <keescook@chromium.org>,
         linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
         linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Subject: [PATCH 02/14] proc: cleanup the compat vs no compat file ops
-Date:   Thu,  3 Sep 2020 16:22:30 +0200
-Message-Id: <20200903142242.925828-3-hch@lst.de>
+Subject: [PATCH 08/14] test_bitmap: remove user bitmap tests
+Date:   Thu,  3 Sep 2020 16:22:36 +0200
+Message-Id: <20200903142242.925828-9-hch@lst.de>
 X-Mailer: git-send-email 2.28.0
 In-Reply-To: <20200903142242.925828-1-hch@lst.de>
 References: <20200903142242.925828-1-hch@lst.de>
@@ -60,54 +60,177 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Instead of providing a special no-compat version provide a special
-compat version for operations with ->compat_ioctl.
+We can't run the tests for userspace bitmap parsing if set_fs() doesn't
+exist, and it is about to go away for x86, powerpc with other major
+architectures to follow.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- fs/proc/inode.c | 10 ++++------
- 1 file changed, 4 insertions(+), 6 deletions(-)
+ lib/test_bitmap.c | 91 +++++++++++------------------------------------
+ 1 file changed, 21 insertions(+), 70 deletions(-)
 
-diff --git a/fs/proc/inode.c b/fs/proc/inode.c
-index 016b1302cbabc0..93dd2045737504 100644
---- a/fs/proc/inode.c
-+++ b/fs/proc/inode.c
-@@ -572,9 +572,6 @@ static const struct file_operations proc_reg_file_ops = {
- 	.write		= proc_reg_write,
- 	.poll		= proc_reg_poll,
- 	.unlocked_ioctl	= proc_reg_unlocked_ioctl,
--#ifdef CONFIG_COMPAT
--	.compat_ioctl	= proc_reg_compat_ioctl,
--#endif
- 	.mmap		= proc_reg_mmap,
- 	.get_unmapped_area = proc_reg_get_unmapped_area,
- 	.open		= proc_reg_open,
-@@ -582,12 +579,13 @@ static const struct file_operations proc_reg_file_ops = {
+diff --git a/lib/test_bitmap.c b/lib/test_bitmap.c
+index df903c53952bb9..4425a1dd4ef1c7 100644
+--- a/lib/test_bitmap.c
++++ b/lib/test_bitmap.c
+@@ -354,50 +354,37 @@ static const struct test_bitmap_parselist parselist_tests[] __initconst = {
+ 
  };
  
- #ifdef CONFIG_COMPAT
--static const struct file_operations proc_reg_file_ops_no_compat = {
-+static const struct file_operations proc_reg_file_ops_compat = {
- 	.llseek		= proc_reg_llseek,
- 	.read		= proc_reg_read,
- 	.write		= proc_reg_write,
- 	.poll		= proc_reg_poll,
- 	.unlocked_ioctl	= proc_reg_unlocked_ioctl,
-+	.compat_ioctl	= proc_reg_compat_ioctl,
- 	.mmap		= proc_reg_mmap,
- 	.get_unmapped_area = proc_reg_get_unmapped_area,
- 	.open		= proc_reg_open,
-@@ -646,8 +644,8 @@ struct inode *proc_get_inode(struct super_block *sb, struct proc_dir_entry *de)
- 		inode->i_op = de->proc_iops;
- 		inode->i_fop = &proc_reg_file_ops;
- #ifdef CONFIG_COMPAT
--		if (!de->proc_ops->proc_compat_ioctl)
--			inode->i_fop = &proc_reg_file_ops_no_compat;
-+		if (de->proc_ops->proc_compat_ioctl)
-+			inode->i_fop = &proc_reg_file_ops_compat;
- #endif
- 	} else if (S_ISDIR(inode->i_mode)) {
- 		inode->i_op = de->proc_iops;
+-static void __init __test_bitmap_parselist(int is_user)
++static void __init test_bitmap_parselist(void)
+ {
+ 	int i;
+ 	int err;
+ 	ktime_t time;
+ 	DECLARE_BITMAP(bmap, 2048);
+-	char *mode = is_user ? "_user"  : "";
+ 
+ 	for (i = 0; i < ARRAY_SIZE(parselist_tests); i++) {
+ #define ptest parselist_tests[i]
+ 
+-		if (is_user) {
+-			mm_segment_t orig_fs = get_fs();
+-			size_t len = strlen(ptest.in);
+-
+-			set_fs(KERNEL_DS);
+-			time = ktime_get();
+-			err = bitmap_parselist_user((__force const char __user *)ptest.in, len,
+-						    bmap, ptest.nbits);
+-			time = ktime_get() - time;
+-			set_fs(orig_fs);
+-		} else {
+-			time = ktime_get();
+-			err = bitmap_parselist(ptest.in, bmap, ptest.nbits);
+-			time = ktime_get() - time;
+-		}
++		time = ktime_get();
++		err = bitmap_parselist(ptest.in, bmap, ptest.nbits);
++		time = ktime_get() - time;
+ 
+ 		if (err != ptest.errno) {
+-			pr_err("parselist%s: %d: input is %s, errno is %d, expected %d\n",
+-					mode, i, ptest.in, err, ptest.errno);
++			pr_err("parselist: %d: input is %s, errno is %d, expected %d\n",
++					i, ptest.in, err, ptest.errno);
+ 			continue;
+ 		}
+ 
+ 		if (!err && ptest.expected
+ 			 && !__bitmap_equal(bmap, ptest.expected, ptest.nbits)) {
+-			pr_err("parselist%s: %d: input is %s, result is 0x%lx, expected 0x%lx\n",
+-					mode, i, ptest.in, bmap[0],
++			pr_err("parselist: %d: input is %s, result is 0x%lx, expected 0x%lx\n",
++					i, ptest.in, bmap[0],
+ 					*ptest.expected);
+ 			continue;
+ 		}
+ 
+ 		if (ptest.flags & PARSE_TIME)
+-			pr_err("parselist%s: %d: input is '%s' OK, Time: %llu\n",
+-					mode, i, ptest.in, time);
++			pr_err("parselist: %d: input is '%s' OK, Time: %llu\n",
++					i, ptest.in, time);
+ 
+ #undef ptest
+ 	}
+@@ -443,75 +430,41 @@ static const struct test_bitmap_parselist parse_tests[] __initconst = {
+ #undef step
+ };
+ 
+-static void __init __test_bitmap_parse(int is_user)
++static void __init test_bitmap_parse(void)
+ {
+ 	int i;
+ 	int err;
+ 	ktime_t time;
+ 	DECLARE_BITMAP(bmap, 2048);
+-	char *mode = is_user ? "_user"  : "";
+ 
+ 	for (i = 0; i < ARRAY_SIZE(parse_tests); i++) {
+ 		struct test_bitmap_parselist test = parse_tests[i];
++		size_t len = test.flags & NO_LEN ? UINT_MAX : strlen(test.in);
+ 
+-		if (is_user) {
+-			size_t len = strlen(test.in);
+-			mm_segment_t orig_fs = get_fs();
+-
+-			set_fs(KERNEL_DS);
+-			time = ktime_get();
+-			err = bitmap_parse_user((__force const char __user *)test.in, len,
+-						bmap, test.nbits);
+-			time = ktime_get() - time;
+-			set_fs(orig_fs);
+-		} else {
+-			size_t len = test.flags & NO_LEN ?
+-				UINT_MAX : strlen(test.in);
+-			time = ktime_get();
+-			err = bitmap_parse(test.in, len, bmap, test.nbits);
+-			time = ktime_get() - time;
+-		}
++		time = ktime_get();
++		err = bitmap_parse(test.in, len, bmap, test.nbits);
++		time = ktime_get() - time;
+ 
+ 		if (err != test.errno) {
+-			pr_err("parse%s: %d: input is %s, errno is %d, expected %d\n",
+-					mode, i, test.in, err, test.errno);
++			pr_err("parse: %d: input is %s, errno is %d, expected %d\n",
++					i, test.in, err, test.errno);
+ 			continue;
+ 		}
+ 
+ 		if (!err && test.expected
+ 			 && !__bitmap_equal(bmap, test.expected, test.nbits)) {
+-			pr_err("parse%s: %d: input is %s, result is 0x%lx, expected 0x%lx\n",
+-					mode, i, test.in, bmap[0],
++			pr_err("parse: %d: input is %s, result is 0x%lx, expected 0x%lx\n",
++					i, test.in, bmap[0],
+ 					*test.expected);
+ 			continue;
+ 		}
+ 
+ 		if (test.flags & PARSE_TIME)
+-			pr_err("parse%s: %d: input is '%s' OK, Time: %llu\n",
+-					mode, i, test.in, time);
++			pr_err("parse: %d: input is '%s' OK, Time: %llu\n",
++					i, test.in, time);
+ 	}
+ }
+ 
+-static void __init test_bitmap_parselist(void)
+-{
+-	__test_bitmap_parselist(0);
+-}
+-
+-static void __init test_bitmap_parselist_user(void)
+-{
+-	__test_bitmap_parselist(1);
+-}
+-
+-static void __init test_bitmap_parse(void)
+-{
+-	__test_bitmap_parse(0);
+-}
+-
+-static void __init test_bitmap_parse_user(void)
+-{
+-	__test_bitmap_parse(1);
+-}
+-
+ #define EXP1_IN_BITS	(sizeof(exp1) * 8)
+ 
+ static void __init test_bitmap_arr32(void)
+@@ -675,9 +628,7 @@ static void __init selftest(void)
+ 	test_replace();
+ 	test_bitmap_arr32();
+ 	test_bitmap_parse();
+-	test_bitmap_parse_user();
+ 	test_bitmap_parselist();
+-	test_bitmap_parselist_user();
+ 	test_mem_optimisations();
+ 	test_for_each_set_clump8();
+ 	test_bitmap_cut();
 -- 
 2.28.0
 
