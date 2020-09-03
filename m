@@ -2,176 +2,170 @@ Return-Path: <SRS0=8TOP=CM=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-21.1 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
+	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 057CAC433E7
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 09:18:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B7731C433E9
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:25:54 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B76FC207EA
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 09:18:58 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 90064206EB
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Sep 2020 14:25:54 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="fSryvZyp"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="SbA4Ermb"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728354AbgICJSo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Sep 2020 05:18:44 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44474 "EHLO
+        id S1729316AbgICOZk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Sep 2020 10:25:40 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35166 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728213AbgICJR4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 05:17:56 -0400
-Received: from mail-ej1-x644.google.com (mail-ej1-x644.google.com [IPv6:2a00:1450:4864:20::644])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E836CC061251
-        for <linux-arch@vger.kernel.org>; Thu,  3 Sep 2020 02:17:51 -0700 (PDT)
-Received: by mail-ej1-x644.google.com with SMTP id gr14so1708041ejb.1
-        for <linux-arch@vger.kernel.org>; Thu, 03 Sep 2020 02:17:51 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=mwdRMAavqdTzOvo7Ir5BJvWRsG9Q05qSRw6OHtvkMgg=;
-        b=fSryvZypFiRayJ6qbXdHAuS+6FDnue70hvCWNO7yOK8m0hMkAwkbG1pA/JeNI0g4bP
-         6BM7jhcArJY2rH/F2rySk6k1pOyCgrpB3aynRg2CWQT9D+5Gdy/9FaJUCJgmN9O/SF3N
-         4+pQVl03npehC5dbcL3VFetoYyKoZjOs1/SuBZd8+sE6LrP6fd+64/cDg6RMPEfAHBdj
-         yJWNrZ4eV4GH5S84SAX+WO2Nk68D36mOzVejo4YmLFm+B0tkHmYZu33yKfcuj2dtUon6
-         DM77MiypYG43OUNr5/rK0Bs6MkABNFfbRrRvyezu9uc+d9VeuHmo81HSmvyhD1Ku4Qg2
-         NVrw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=mwdRMAavqdTzOvo7Ir5BJvWRsG9Q05qSRw6OHtvkMgg=;
-        b=TNsJuzuTLtgwNS3pGTYYLer8REHZCWVerCMYIuiaMfaKu/x/ve+saRBfPtrPbxhU89
-         goEuLxgirEMiAXzZFnMPUWAexbCzjZmWuAsHsoAapezU+BLDefj0rCCS1P4EH8qnOl4C
-         tnTiuODRercHpfJPE7YXRYFOMJR6vH/9IiH5gd2zRwoR6iyHTOcdNFjJOiPwLKnEelip
-         uGxqP+cnnALHmGpyrnIF5sZ2CPZjcEOcfhYHzQ7xQaYiQjndXO76SruyyXnUCrX0Il4P
-         DWok1RBrxjQ4C6vhJxBhf7WnkgoBGb8Pz9Sm1WfKSz/t3/AZu4owzu+6PLeiozEuXvNl
-         ux7Q==
-X-Gm-Message-State: AOAM530LOVkMDf70vUVKnECkhIlbvqFY1zVvJpuP3TD9OL+S7B4ueD8z
-        e/edqXUP6yrb8orc7xlJN8viag==
-X-Google-Smtp-Source: ABdhPJyIo0tfIVl9zQQOPILZ6Iv+dAifCx9Hj7ENqoQaHZteaS0OleBiI3IwVUhr2OYIrgj5J+SKnQ==
-X-Received: by 2002:a17:906:a1d8:: with SMTP id bx24mr1085448ejb.161.1599124670371;
-        Thu, 03 Sep 2020 02:17:50 -0700 (PDT)
-Received: from localhost (dynamic-2a00-1028-919a-a06e-64ac-0036-822c-68d3.ipv6.broadband.iol.cz. [2a00:1028:919a:a06e:64ac:36:822c:68d3])
-        by smtp.gmail.com with ESMTPSA id l19sm2594526ejn.67.2020.09.03.02.17.48
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 03 Sep 2020 02:17:49 -0700 (PDT)
-From:   David Brazdil <dbrazdil@google.com>
-To:     Marc Zyngier <maz@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>, Dennis Zhou <dennis@kernel.org>,
-        Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>,
-        Arnd Bergmann <arnd@arndb.de>
-Cc:     James Morse <james.morse@arm.com>,
-        Julien Thierry <julien.thierry.kdev@gmail.com>,
-        Suzuki K Poulose <suzuki.poulose@arm.com>,
-        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-        kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org,
-        kernel-team@android.com, David Brazdil <dbrazdil@google.com>
-Subject: [PATCH v2 06/10] kvm: arm64: Duplicate arm64_ssbd_callback_required for nVHE hyp
-Date:   Thu,  3 Sep 2020 11:17:08 +0200
-Message-Id: <20200903091712.46456-7-dbrazdil@google.com>
+        with ESMTP id S1729166AbgICOX1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2020 10:23:27 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C0DB0C06123A;
+        Thu,  3 Sep 2020 07:22:53 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
+        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+        Content-Type:Content-ID:Content-Description;
+        bh=GwBdpIiwC2/H13uoaD81joKeq/bh8CR8vbkN01NmQb8=; b=SbA4ErmbdCRIGV1PaNDyOgDFPM
+        WOOiPDFGt5XBXfY5jP3ztB9vrJDDiTR3S831moFSwBWUyfChZFA1BRQyvkGlC4vN6lIlYL31/eVpQ
+        4AZ/cMaZgHPOscMzV+WC/lo7EDhbN6cT4yHXmo8UUQdHbIdKsugCkPPCeHoLQmyy2ajyyl1HCObXN
+        dj+uFNX/JF/U5HPn9nHMlQ9Pywqvz2sdtEcNQUADBxGUgwOgUPSXjjzUvlPRHTvAFfIzHtMEXNFst
+        f548siR/l2sI0jQVLbHQdGVTZCCgvbgDJNNoQ5+zgVnaQl8a2szvK8Yw6jk21Qfeo4BxY81HFnhg5
+        HmT3L4Cw==;
+Received: from [2001:4bb8:184:af1:c70:4a89:bc61:2] (helo=localhost)
+        by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
+        id 1kDq8V-0004aL-IH; Thu, 03 Sep 2020 14:22:47 +0000
+From:   Christoph Hellwig <hch@lst.de>
+To:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org
+Cc:     Alexey Dobriyan <adobriyan@gmail.com>,
+        Luis Chamberlain <mcgrof@kernel.org>,
+        Kees Cook <keescook@chromium.org>,
+        linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Subject: [PATCH 03/14] proc: add a read_iter method to proc proc_ops
+Date:   Thu,  3 Sep 2020 16:22:31 +0200
+Message-Id: <20200903142242.925828-4-hch@lst.de>
 X-Mailer: git-send-email 2.28.0
-In-Reply-To: <20200903091712.46456-1-dbrazdil@google.com>
-References: <20200903091712.46456-1-dbrazdil@google.com>
+In-Reply-To: <20200903142242.925828-1-hch@lst.de>
+References: <20200903142242.925828-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
+X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hyp keeps track of which cores require SSBD callback by accessing a
-kernel-proper global variable. Create an nVHE symbol of the same name
-and copy the value from kernel proper to nVHE at KVM init time.
+This will allow proc files to implement iter read semantics.
 
-Done in preparation for separating percpu memory owned by kernel
-proper and nVHE.
-
-Signed-off-by: David Brazdil <dbrazdil@google.com>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/arm64/include/asm/kvm_mmu.h | 10 +++++++---
- arch/arm64/kernel/image-vars.h   |  1 -
- arch/arm64/kvm/arm.c             |  2 +-
- arch/arm64/kvm/hyp/nvhe/switch.c |  3 +++
- 4 files changed, 11 insertions(+), 5 deletions(-)
+ fs/proc/inode.c         | 53 ++++++++++++++++++++++++++++++++++++++---
+ include/linux/proc_fs.h |  1 +
+ 2 files changed, 51 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm64/include/asm/kvm_mmu.h b/arch/arm64/include/asm/kvm_mmu.h
-index 189839c3706a..9db93da35606 100644
---- a/arch/arm64/include/asm/kvm_mmu.h
-+++ b/arch/arm64/include/asm/kvm_mmu.h
-@@ -529,23 +529,27 @@ static inline int kvm_map_vectors(void)
- 
- #ifdef CONFIG_ARM64_SSBD
- DECLARE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
-+DECLARE_KVM_NVHE_PER_CPU(u64, arm64_ssbd_callback_required);
- 
--static inline int hyp_map_aux_data(void)
-+static inline int hyp_init_aux_data(void)
- {
- 	int cpu, err;
- 
- 	for_each_possible_cpu(cpu) {
- 		u64 *ptr;
- 
--		ptr = per_cpu_ptr(&arm64_ssbd_callback_required, cpu);
-+		ptr = per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu);
- 		err = create_hyp_mappings(ptr, ptr + 1, PAGE_HYP);
- 		if (err)
- 			return err;
-+
-+		/* Copy value from kernel to hyp. */
-+		*ptr = per_cpu(arm64_ssbd_callback_required, cpu);
- 	}
- 	return 0;
+diff --git a/fs/proc/inode.c b/fs/proc/inode.c
+index 93dd2045737504..58c075e2a452d6 100644
+--- a/fs/proc/inode.c
++++ b/fs/proc/inode.c
+@@ -297,6 +297,21 @@ static loff_t proc_reg_llseek(struct file *file, loff_t offset, int whence)
+ 	return rv;
  }
- #else
--static inline int hyp_map_aux_data(void)
-+static inline int hyp_init_aux_data(void)
- {
- 	return 0;
- }
-diff --git a/arch/arm64/kernel/image-vars.h b/arch/arm64/kernel/image-vars.h
-index 8982b68289b7..5fc5eadfb3e6 100644
---- a/arch/arm64/kernel/image-vars.h
-+++ b/arch/arm64/kernel/image-vars.h
-@@ -69,7 +69,6 @@ KVM_NVHE_ALIAS(kvm_patch_vector_branch);
- KVM_NVHE_ALIAS(kvm_update_va_mask);
  
- /* Global kernel state accessed by nVHE hyp code. */
--KVM_NVHE_ALIAS(arm64_ssbd_callback_required);
- KVM_NVHE_ALIAS(kvm_host_data);
- KVM_NVHE_ALIAS(kvm_vgic_global_state);
- 
-diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
-index 46dc3d75cf13..1bb960812493 100644
---- a/arch/arm64/kvm/arm.c
-+++ b/arch/arm64/kvm/arm.c
-@@ -1549,7 +1549,7 @@ static int init_hyp_mode(void)
- 		}
- 	}
- 
--	err = hyp_map_aux_data();
-+	err = hyp_init_aux_data();
- 	if (err)
- 		kvm_err("Cannot map host auxiliary data: %d\n", err);
- 
-diff --git a/arch/arm64/kvm/hyp/nvhe/switch.c b/arch/arm64/kvm/hyp/nvhe/switch.c
-index cc4f8e790fb3..4662df6330d7 100644
---- a/arch/arm64/kvm/hyp/nvhe/switch.c
-+++ b/arch/arm64/kvm/hyp/nvhe/switch.c
-@@ -27,6 +27,9 @@
- #include <asm/processor.h>
- #include <asm/thread_info.h>
- 
-+/* Non-VHE copy of the kernel symbol. */
-+DEFINE_PER_CPU_READ_MOSTLY(u64, arm64_ssbd_callback_required);
++static ssize_t proc_reg_read_iter(struct kiocb *iocb, struct iov_iter *iter)
++{
++	struct proc_dir_entry *pde = PDE(file_inode(iocb->ki_filp));
++	ssize_t ret;
 +
- static void __activate_traps(struct kvm_vcpu *vcpu)
++	if (pde_is_permanent(pde))
++		return pde->proc_ops->proc_read_iter(iocb, iter);
++
++	if (!use_pde(pde))
++		return -EIO;
++	ret = pde->proc_ops->proc_read_iter(iocb, iter);
++	unuse_pde(pde);
++	return ret;
++}
++
+ static ssize_t pde_read(struct proc_dir_entry *pde, struct file *file, char __user *buf, size_t count, loff_t *ppos)
  {
- 	u64 val;
+ 	typeof_member(struct proc_ops, proc_read) read;
+@@ -578,6 +593,18 @@ static const struct file_operations proc_reg_file_ops = {
+ 	.release	= proc_reg_release,
+ };
+ 
++static const struct file_operations proc_iter_file_ops = {
++	.llseek		= proc_reg_llseek,
++	.read_iter	= proc_reg_read_iter,
++	.write		= proc_reg_write,
++	.poll		= proc_reg_poll,
++	.unlocked_ioctl	= proc_reg_unlocked_ioctl,
++	.mmap		= proc_reg_mmap,
++	.get_unmapped_area = proc_reg_get_unmapped_area,
++	.open		= proc_reg_open,
++	.release	= proc_reg_release,
++};
++
+ #ifdef CONFIG_COMPAT
+ static const struct file_operations proc_reg_file_ops_compat = {
+ 	.llseek		= proc_reg_llseek,
+@@ -591,6 +618,19 @@ static const struct file_operations proc_reg_file_ops_compat = {
+ 	.open		= proc_reg_open,
+ 	.release	= proc_reg_release,
+ };
++
++static const struct file_operations proc_iter_file_ops_compat = {
++	.llseek		= proc_reg_llseek,
++	.read_iter	= proc_reg_read_iter,
++	.write		= proc_reg_write,
++	.poll		= proc_reg_poll,
++	.unlocked_ioctl	= proc_reg_unlocked_ioctl,
++	.compat_ioctl	= proc_reg_compat_ioctl,
++	.mmap		= proc_reg_mmap,
++	.get_unmapped_area = proc_reg_get_unmapped_area,
++	.open		= proc_reg_open,
++	.release	= proc_reg_release,
++};
+ #endif
+ 
+ static void proc_put_link(void *p)
+@@ -642,10 +682,17 @@ struct inode *proc_get_inode(struct super_block *sb, struct proc_dir_entry *de)
+ 
+ 	if (S_ISREG(inode->i_mode)) {
+ 		inode->i_op = de->proc_iops;
+-		inode->i_fop = &proc_reg_file_ops;
++		if (de->proc_ops->proc_read_iter)
++			inode->i_fop = &proc_iter_file_ops;
++		else
++			inode->i_fop = &proc_reg_file_ops;
+ #ifdef CONFIG_COMPAT
+-		if (de->proc_ops->proc_compat_ioctl)
+-			inode->i_fop = &proc_reg_file_ops_compat;
++		if (de->proc_ops->proc_compat_ioctl) {
++			if (de->proc_ops->proc_read_iter)
++				inode->i_fop = &proc_iter_file_ops_compat;
++			else
++				inode->i_fop = &proc_reg_file_ops_compat;
++		}
+ #endif
+ 	} else if (S_ISDIR(inode->i_mode)) {
+ 		inode->i_op = de->proc_iops;
+diff --git a/include/linux/proc_fs.h b/include/linux/proc_fs.h
+index 2df965cd09742d..270cab43ca3dad 100644
+--- a/include/linux/proc_fs.h
++++ b/include/linux/proc_fs.h
+@@ -30,6 +30,7 @@ struct proc_ops {
+ 	unsigned int proc_flags;
+ 	int	(*proc_open)(struct inode *, struct file *);
+ 	ssize_t	(*proc_read)(struct file *, char __user *, size_t, loff_t *);
++	ssize_t (*proc_read_iter)(struct kiocb *, struct iov_iter *);
+ 	ssize_t	(*proc_write)(struct file *, const char __user *, size_t, loff_t *);
+ 	loff_t	(*proc_lseek)(struct file *, loff_t, int);
+ 	int	(*proc_release)(struct inode *, struct file *);
 -- 
-2.28.0.402.g5ffc5be6b7-goog
+2.28.0
 
