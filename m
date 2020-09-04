@@ -7,23 +7,23 @@ X-Spam-Status: No, score=-13.0 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1A94CC43461
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:36:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 629E8C43461
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:36:13 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D9693206B8
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:36:01 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 39D05206B8
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:36:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730157AbgIDKfw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Sep 2020 06:35:52 -0400
-Received: from mail.kernel.org ([198.145.29.99]:51658 "EHLO mail.kernel.org"
+        id S1730116AbgIDKfx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Sep 2020 06:35:53 -0400
+Received: from mail.kernel.org ([198.145.29.99]:51654 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730204AbgIDKbV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1730137AbgIDKbV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 4 Sep 2020 06:31:21 -0400
 Received: from localhost.localdomain (unknown [46.69.195.48])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 6B4C621548;
-        Fri,  4 Sep 2020 10:30:57 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 3A1502145D;
+        Fri,  4 Sep 2020 10:30:50 +0000 (UTC)
 From:   Catalin Marinas <catalin.marinas@arm.com>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
@@ -35,9 +35,9 @@ Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
         Andrey Konovalov <andreyknvl@google.com>,
         Peter Collingbourne <pcc@google.com>,
         Andrew Morton <akpm@linux-foundation.org>
-Subject: [PATCH v9 11/29] arm64: Avoid unnecessary clear_user_page() indirection
-Date:   Fri,  4 Sep 2020 11:30:11 +0100
-Message-Id: <20200904103029.32083-12-catalin.marinas@arm.com>
+Subject: [PATCH v9 08/29] mm: Preserve the PG_arch_2 flag in __split_huge_page_tail()
+Date:   Fri,  4 Sep 2020 11:30:08 +0100
+Message-Id: <20200904103029.32083-9-catalin.marinas@arm.com>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20200904103029.32083-1-catalin.marinas@arm.com>
 References: <20200904103029.32083-1-catalin.marinas@arm.com>
@@ -48,52 +48,44 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Since clear_user_page() calls clear_page() directly, avoid the
-unnecessary indirection.
+When a huge page is split into normal pages, part of the head page flags
+are transferred to the tail pages. However, the PG_arch_* flags are not
+part of the preserved set.
+
+PG_arch_2 is used by the arm64 MTE support to mark pages that have valid
+tags. The absence of such flag would cause the arm64 set_pte_at() to
+clear the tags in order to avoid stale tags exposed to user or the
+swapping out hooks to ignore the tags. Not preserving PG_arch_2 on huge
+page splitting leads to tag corruption in the tail pages.
+
+Preserve the newly added PG_arch_2 flag in __split_huge_page_tail().
 
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 ---
 
 Notes:
-    New in v5.
+    v7:
+    - Only preserve PG_arch_2 in __split_huge_page_tail(). The PG_arch_1
+      flag will be discussed separately as it may potentially impact s390
+      and x86.
+    
+    New in v6.
 
- arch/arm64/include/asm/page.h | 3 +--
- arch/arm64/mm/copypage.c      | 6 ------
- 2 files changed, 1 insertion(+), 8 deletions(-)
+ mm/huge_memory.c | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/arch/arm64/include/asm/page.h b/arch/arm64/include/asm/page.h
-index 11734ce29702..d918cb1d83a6 100644
---- a/arch/arm64/include/asm/page.h
-+++ b/arch/arm64/include/asm/page.h
-@@ -18,7 +18,6 @@
- struct page;
- struct vm_area_struct;
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 2ccff8472cd4..1a5773c95f53 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -2337,6 +2337,9 @@ static void __split_huge_page_tail(struct page *head, int tail,
+ 			 (1L << PG_workingset) |
+ 			 (1L << PG_locked) |
+ 			 (1L << PG_unevictable) |
++#ifdef CONFIG_64BIT
++			 (1L << PG_arch_2) |
++#endif
+ 			 (1L << PG_dirty)));
  
--extern void __cpu_clear_user_page(void *p, unsigned long user);
- extern void copy_page(void *to, const void *from);
- extern void clear_page(void *to);
- 
-@@ -33,7 +32,7 @@ void copy_highpage(struct page *to, struct page *from);
- 	alloc_page_vma(GFP_HIGHUSER | __GFP_ZERO | movableflags, vma, vaddr)
- #define __HAVE_ARCH_ALLOC_ZEROED_USER_HIGHPAGE
- 
--#define clear_user_page(addr,vaddr,pg)  __cpu_clear_user_page(addr, vaddr)
-+#define clear_user_page(page, vaddr, pg)	clear_page(page)
- #define copy_user_page(to, from, vaddr, pg)	copy_page(to, from)
- 
- typedef struct page *pgtable_t;
-diff --git a/arch/arm64/mm/copypage.c b/arch/arm64/mm/copypage.c
-index 4a2233fa674e..70a71f38b6a9 100644
---- a/arch/arm64/mm/copypage.c
-+++ b/arch/arm64/mm/copypage.c
-@@ -35,9 +35,3 @@ void copy_user_highpage(struct page *to, struct page *from,
- 	flush_dcache_page(to);
- }
- EXPORT_SYMBOL_GPL(copy_user_highpage);
--
--void __cpu_clear_user_page(void *kaddr, unsigned long vaddr)
--{
--	clear_page(kaddr);
--}
--EXPORT_SYMBOL_GPL(__cpu_clear_user_page);
+ 	/* ->mapping in first tail page is compound_mapcount */
