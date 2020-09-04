@@ -7,23 +7,23 @@ X-Spam-Status: No, score=-13.0 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4402CC43461
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:35:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CCF5AC433E2
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:35:53 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 22AD120658
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:35:51 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AE8FA20658
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:35:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730106AbgIDKfl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Sep 2020 06:35:41 -0400
-Received: from mail.kernel.org ([198.145.29.99]:51530 "EHLO mail.kernel.org"
+        id S1730128AbgIDKfv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Sep 2020 06:35:51 -0400
+Received: from mail.kernel.org ([198.145.29.99]:51656 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730196AbgIDKbV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1730139AbgIDKbV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 4 Sep 2020 06:31:21 -0400
 Received: from localhost.localdomain (unknown [46.69.195.48])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 597E120DD4;
-        Fri,  4 Sep 2020 10:31:12 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 07D6A21534;
+        Fri,  4 Sep 2020 10:30:54 +0000 (UTC)
 From:   Catalin Marinas <catalin.marinas@arm.com>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
@@ -35,9 +35,9 @@ Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
         Andrey Konovalov <andreyknvl@google.com>,
         Peter Collingbourne <pcc@google.com>,
         Andrew Morton <akpm@linux-foundation.org>
-Subject: [PATCH v9 17/29] mm: Allow arm64 mmap(PROT_MTE) on RAM-based files
-Date:   Fri,  4 Sep 2020 11:30:17 +0100
-Message-Id: <20200904103029.32083-18-catalin.marinas@arm.com>
+Subject: [PATCH v9 10/29] arm64: mte: Tags-aware copy_{user_,}highpage() implementations
+Date:   Fri,  4 Sep 2020 11:30:10 +0100
+Message-Id: <20200904103029.32083-11-catalin.marinas@arm.com>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20200904103029.32083-1-catalin.marinas@arm.com>
 References: <20200904103029.32083-1-catalin.marinas@arm.com>
@@ -48,28 +48,171 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Since arm64 memory (allocation) tags can only be stored in RAM, mapping
-files with PROT_MTE is not allowed by default. RAM-based files like
-those in a tmpfs mount or memfd_create() can support memory tagging, so
-update the vm_flags accordingly in shmem_mmap().
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
+When the Memory Tagging Extension is enabled, the tags need to be
+preserved across page copy (e.g. for copy-on-write, page migration).
+
+Introduce MTE-aware copy_{user_,}highpage() functions to copy tags to
+the destination if the source page has the PG_mte_tagged flag set.
+copy_user_page() does not need to handle tag copying since, with this
+patch, it is only called by the DAX code where there is no source page
+structure (and no source tags).
+
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Acked-by: Andrew Morton <akpm@linux-foundation.org>
+Cc: Will Deacon <will@kernel.org>
 ---
- mm/shmem.c | 3 +++
- 1 file changed, 3 insertions(+)
 
-diff --git a/mm/shmem.c b/mm/shmem.c
-index 271548ca20f3..ec94f4c7851e 100644
---- a/mm/shmem.c
-+++ b/mm/shmem.c
-@@ -2267,6 +2267,9 @@ static int shmem_mmap(struct file *file, struct vm_area_struct *vma)
- 			vma->vm_flags &= ~(VM_MAYWRITE);
- 	}
+Notes:
+    v5:
+    - Handle tags in copy_highpage() (previously only copy_user_highpage()).
+    - Ignore tags in copy_user_page() since it is only called directly by
+      the DAX code where there is no source page structure.
+    - Fix missing ret in mte_copy_page_tags().
+    
+    v4:
+    - Moved the tag copying to a separate function in mte.S and only called
+      if the source page has the PG_mte_tagged flag set.
+
+ arch/arm64/include/asm/mte.h  |  4 ++++
+ arch/arm64/include/asm/page.h | 14 +++++++++++---
+ arch/arm64/lib/mte.S          | 19 +++++++++++++++++++
+ arch/arm64/mm/copypage.c      | 25 +++++++++++++++++++++----
+ 4 files changed, 55 insertions(+), 7 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
+index 1716b3d02489..b2577eee62c2 100644
+--- a/arch/arm64/include/asm/mte.h
++++ b/arch/arm64/include/asm/mte.h
+@@ -19,6 +19,7 @@ void mte_clear_page_tags(void *addr);
+ #define PG_mte_tagged	PG_arch_2
  
-+	/* arm64 - allow memory tagging on RAM-based files */
-+	vma->vm_flags |= VM_MTE_ALLOWED;
+ void mte_sync_tags(pte_t *ptep, pte_t pte);
++void mte_copy_page_tags(void *kto, const void *kfrom);
+ void flush_mte_state(void);
+ 
+ #else
+@@ -29,6 +30,9 @@ void flush_mte_state(void);
+ static inline void mte_sync_tags(pte_t *ptep, pte_t pte)
+ {
+ }
++static inline void mte_copy_page_tags(void *kto, const void *kfrom)
++{
++}
+ static inline void flush_mte_state(void)
+ {
+ }
+diff --git a/arch/arm64/include/asm/page.h b/arch/arm64/include/asm/page.h
+index c01b52add377..11734ce29702 100644
+--- a/arch/arm64/include/asm/page.h
++++ b/arch/arm64/include/asm/page.h
+@@ -15,18 +15,26 @@
+ #include <linux/personality.h> /* for READ_IMPLIES_EXEC */
+ #include <asm/pgtable-types.h>
+ 
++struct page;
++struct vm_area_struct;
 +
- 	file_accessed(file);
- 	vma->vm_ops = &shmem_vm_ops;
- 	if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE) &&
+ extern void __cpu_clear_user_page(void *p, unsigned long user);
+-extern void __cpu_copy_user_page(void *to, const void *from,
+-				 unsigned long user);
+ extern void copy_page(void *to, const void *from);
+ extern void clear_page(void *to);
+ 
++void copy_user_highpage(struct page *to, struct page *from,
++			unsigned long vaddr, struct vm_area_struct *vma);
++#define __HAVE_ARCH_COPY_USER_HIGHPAGE
++
++void copy_highpage(struct page *to, struct page *from);
++#define __HAVE_ARCH_COPY_HIGHPAGE
++
+ #define __alloc_zeroed_user_highpage(movableflags, vma, vaddr) \
+ 	alloc_page_vma(GFP_HIGHUSER | __GFP_ZERO | movableflags, vma, vaddr)
+ #define __HAVE_ARCH_ALLOC_ZEROED_USER_HIGHPAGE
+ 
+ #define clear_user_page(addr,vaddr,pg)  __cpu_clear_user_page(addr, vaddr)
+-#define copy_user_page(to,from,vaddr,pg) __cpu_copy_user_page(to, from, vaddr)
++#define copy_user_page(to, from, vaddr, pg)	copy_page(to, from)
+ 
+ typedef struct page *pgtable_t;
+ 
+diff --git a/arch/arm64/lib/mte.S b/arch/arm64/lib/mte.S
+index a36705640086..3c3d0edbbca3 100644
+--- a/arch/arm64/lib/mte.S
++++ b/arch/arm64/lib/mte.S
+@@ -5,6 +5,7 @@
+ #include <linux/linkage.h>
+ 
+ #include <asm/assembler.h>
++#include <asm/page.h>
+ #include <asm/sysreg.h>
+ 
+ 	.arch	armv8.5-a+memtag
+@@ -32,3 +33,21 @@ SYM_FUNC_START(mte_clear_page_tags)
+ 	b.ne	1b
+ 	ret
+ SYM_FUNC_END(mte_clear_page_tags)
++
++/*
++ * Copy the tags from the source page to the destination one
++ *   x0 - address of the destination page
++ *   x1 - address of the source page
++ */
++SYM_FUNC_START(mte_copy_page_tags)
++	mov	x2, x0
++	mov	x3, x1
++	multitag_transfer_size x5, x6
++1:	ldgm	x4, [x3]
++	stgm	x4, [x2]
++	add	x2, x2, x5
++	add	x3, x3, x5
++	tst	x2, #(PAGE_SIZE - 1)
++	b.ne	1b
++	ret
++SYM_FUNC_END(mte_copy_page_tags)
+diff --git a/arch/arm64/mm/copypage.c b/arch/arm64/mm/copypage.c
+index 2ee7b73433a5..4a2233fa674e 100644
+--- a/arch/arm64/mm/copypage.c
++++ b/arch/arm64/mm/copypage.c
+@@ -6,18 +6,35 @@
+  * Copyright (C) 2012 ARM Ltd.
+  */
+ 
++#include <linux/bitops.h>
+ #include <linux/mm.h>
+ 
+ #include <asm/page.h>
+ #include <asm/cacheflush.h>
++#include <asm/cpufeature.h>
++#include <asm/mte.h>
+ 
+-void __cpu_copy_user_page(void *kto, const void *kfrom, unsigned long vaddr)
++void copy_highpage(struct page *to, struct page *from)
+ {
+-	struct page *page = virt_to_page(kto);
++	struct page *kto = page_address(to);
++	struct page *kfrom = page_address(from);
++
+ 	copy_page(kto, kfrom);
+-	flush_dcache_page(page);
++
++	if (system_supports_mte() && test_bit(PG_mte_tagged, &from->flags)) {
++		set_bit(PG_mte_tagged, &to->flags);
++		mte_copy_page_tags(kto, kfrom);
++	}
++}
++EXPORT_SYMBOL(copy_highpage);
++
++void copy_user_highpage(struct page *to, struct page *from,
++			unsigned long vaddr, struct vm_area_struct *vma)
++{
++	copy_highpage(to, from);
++	flush_dcache_page(to);
+ }
+-EXPORT_SYMBOL_GPL(__cpu_copy_user_page);
++EXPORT_SYMBOL_GPL(copy_user_highpage);
+ 
+ void __cpu_clear_user_page(void *kaddr, unsigned long vaddr)
+ {
