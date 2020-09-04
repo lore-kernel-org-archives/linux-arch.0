@@ -4,26 +4,26 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.0 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C31FFC43461
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:31:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 43F09C28E83
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:31:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 98A7621556
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:31:34 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 14D4121556
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:31:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730214AbgIDKbb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Sep 2020 06:31:31 -0400
-Received: from mail.kernel.org ([198.145.29.99]:51660 "EHLO mail.kernel.org"
+        id S1730110AbgIDKbd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Sep 2020 06:31:33 -0400
+Received: from mail.kernel.org ([198.145.29.99]:51904 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730207AbgIDKbV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1730068AbgIDKbV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 4 Sep 2020 06:31:21 -0400
 Received: from localhost.localdomain (unknown [46.69.195.48])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id C4FE821582;
-        Fri,  4 Sep 2020 10:30:59 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id E6C83208C7;
+        Fri,  4 Sep 2020 10:31:09 +0000 (UTC)
 From:   Catalin Marinas <catalin.marinas@arm.com>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
@@ -35,9 +35,9 @@ Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
         Andrey Konovalov <andreyknvl@google.com>,
         Peter Collingbourne <pcc@google.com>,
         Andrew Morton <akpm@linux-foundation.org>
-Subject: [PATCH v9 12/29] arm64: mte: Tags-aware aware memcmp_pages() implementation
-Date:   Fri,  4 Sep 2020 11:30:12 +0100
-Message-Id: <20200904103029.32083-13-catalin.marinas@arm.com>
+Subject: [PATCH v9 16/29] arm64: mte: Validate the PROT_MTE request via arch_validate_flags()
+Date:   Fri,  4 Sep 2020 11:30:16 +0100
+Message-Id: <20200904103029.32083-17-catalin.marinas@arm.com>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20200904103029.32083-1-catalin.marinas@arm.com>
 References: <20200904103029.32083-1-catalin.marinas@arm.com>
@@ -48,88 +48,44 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When the Memory Tagging Extension is enabled, two pages are identical
-only if both their data and tags are identical.
+Make use of the newly introduced arch_validate_flags() hook to
+sanity-check the PROT_MTE request passed to mmap() and mprotect(). If
+the mapping does not support MTE, these syscalls will return -EINVAL.
 
-Make the generic memcmp_pages() a __weak function and add an
-arm64-specific implementation which returns non-zero if any of the two
-pages contain valid MTE tags (PG_mte_tagged set). There isn't much
-benefit in comparing the tags of two pages since these are normally used
-for heap allocations and likely to differ anyway.
-
-Co-developed-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will@kernel.org>
 ---
+ arch/arm64/include/asm/mman.h | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
 
-Notes:
-    v4:
-    - Remove page tag comparison. This is not very useful to detect
-      identical pages as long as set_pte_at() can zero the tags on a page
-      without copy-on-write if mapped with PROT_MTE. This can be improved
-      if a real case appears but it's unlikely for heap pages to be
-      identical across multiple processes.
-    - Move the memcmp_pages() function to mte.c.
-
- arch/arm64/kernel/mte.c | 26 ++++++++++++++++++++++++++
- mm/util.c               |  2 +-
- 2 files changed, 27 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
-index 5bf9bbed5a25..5f54fd140610 100644
---- a/arch/arm64/kernel/mte.c
-+++ b/arch/arm64/kernel/mte.c
-@@ -5,6 +5,7 @@
+diff --git a/arch/arm64/include/asm/mman.h b/arch/arm64/include/asm/mman.h
+index b01051be7750..e3e28f7daf62 100644
+--- a/arch/arm64/include/asm/mman.h
++++ b/arch/arm64/include/asm/mman.h
+@@ -49,8 +49,10 @@ static inline pgprot_t arch_vm_get_page_prot(unsigned long vm_flags)
+ 	 * register (1) as VM_MTE in the vma->vm_flags and (2) as
+ 	 * VM_MTE_ALLOWED. Note that the latter can only be set during the
+ 	 * mmap() call since mprotect() does not accept MAP_* flags.
++	 * Checking for VM_MTE only is sufficient since arch_validate_flags()
++	 * does not permit (VM_MTE & !VM_MTE_ALLOWED).
+ 	 */
+-	if ((vm_flags & VM_MTE) && (vm_flags & VM_MTE_ALLOWED))
++	if (vm_flags & VM_MTE)
+ 		prot |= PTE_ATTRINDX(MT_NORMAL_TAGGED);
  
- #include <linux/bitops.h>
- #include <linux/mm.h>
-+#include <linux/string.h>
- #include <linux/thread_info.h>
- 
- #include <asm/cpufeature.h>
-@@ -23,6 +24,31 @@ void mte_sync_tags(pte_t *ptep, pte_t pte)
- 	}
+ 	return __pgprot(prot);
+@@ -72,4 +74,14 @@ static inline bool arch_validate_prot(unsigned long prot,
  }
+ #define arch_validate_prot(prot, addr) arch_validate_prot(prot, addr)
  
-+int memcmp_pages(struct page *page1, struct page *page2)
++static inline bool arch_validate_flags(unsigned long vm_flags)
 +{
-+	char *addr1, *addr2;
-+	int ret;
++	if (!system_supports_mte())
++		return true;
 +
-+	addr1 = page_address(page1);
-+	addr2 = page_address(page2);
-+	ret = memcmp(addr1, addr2, PAGE_SIZE);
-+
-+	if (!system_supports_mte() || ret)
-+		return ret;
-+
-+	/*
-+	 * If the page content is identical but at least one of the pages is
-+	 * tagged, return non-zero to avoid KSM merging. If only one of the
-+	 * pages is tagged, set_pte_at() may zero or change the tags of the
-+	 * other page via mte_sync_tags().
-+	 */
-+	if (test_bit(PG_mte_tagged, &page1->flags) ||
-+	    test_bit(PG_mte_tagged, &page2->flags))
-+		return addr1 != addr2;
-+
-+	return ret;
++	/* only allow VM_MTE if VM_MTE_ALLOWED has been set previously */
++	return !(vm_flags & VM_MTE) || (vm_flags & VM_MTE_ALLOWED);
 +}
++#define arch_validate_flags(vm_flags) arch_validate_flags(vm_flags)
 +
- void flush_mte_state(void)
- {
- 	if (!system_supports_mte())
-diff --git a/mm/util.c b/mm/util.c
-index 5ef378a2a038..4e21fe7eae27 100644
---- a/mm/util.c
-+++ b/mm/util.c
-@@ -957,7 +957,7 @@ int get_cmdline(struct task_struct *task, char *buffer, int buflen)
- 	return res;
- }
- 
--int memcmp_pages(struct page *page1, struct page *page2)
-+int __weak memcmp_pages(struct page *page1, struct page *page2)
- {
- 	char *addr1, *addr2;
- 	int ret;
+ #endif /* ! __ASM_MMAN_H__ */
