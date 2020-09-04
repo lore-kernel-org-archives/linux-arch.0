@@ -2,102 +2,102 @@ Return-Path: <SRS0=JdYX=CN=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
-	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-2.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	TVD_SUBJ_WIPE_DEBT,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BAAD4C2BB84
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 16:54:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 34E52C4CC69
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 18:10:30 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8441B206B7
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 16:54:55 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0B1662223D
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 18:01:44 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="hbn1/jps"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="fgQCIgRW"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728053AbgIDQyu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Sep 2020 12:54:50 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54186 "EHLO
+        id S1726948AbgIDR6a (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Sep 2020 13:58:30 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36182 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726293AbgIDQwZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Sep 2020 12:52:25 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3F1CAC061244;
-        Fri,  4 Sep 2020 09:52:25 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
-        Content-Type:Content-ID:Content-Description;
-        bh=MkSVtcwaZuMrc9OzI8eVvOG/Cdl/4QZOV215qZC/7jE=; b=hbn1/jpsA3yTfNkNCn8x40H4wn
-        8GMkx35SdpSHWCWGmQKnvmoEzVV6IYm7D9vOKw5mwVdoCNsk0QO9VlNbWD7Kw8EBa05GzrYUMnkQp
-        YpaoZOmuc/VK6vRbaBkRlZyFkCM1JIlGBIqkGLoKqyQaTRkqjkcirWhj4glZltC1xFPijF7QuD17+
-        LQ+0cKgf4Syn/SzNwk1XRUpJyvFSTWCo4GNudNQN168jaPspKm+SMdsT59xydtvhydNNl2MQQj/oE
-        mXjs46r3MnbpMkEM2wIxIT0iABaCUF3cX0wOiAMorxQq3aJFHW64CfcfEhGutpoPsWsOcmL3+jJx3
-        RfXkGJ4Q==;
-Received: from [2001:4bb8:184:af1:704:22b1:700d:1395] (helo=localhost)
-        by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kEEwm-00012c-D9; Fri, 04 Sep 2020 16:52:21 +0000
-From:   Christoph Hellwig <hch@lst.de>
-To:     Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Alexander Viro <viro@zeniv.linux.org.uk>
-Cc:     linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org
-Subject: [PATCH 1/8] maccess: add a generic __{get,put}_kernel_nofault for nommu
-Date:   Fri,  4 Sep 2020 18:52:09 +0200
-Message-Id: <20200904165216.1799796-2-hch@lst.de>
-X-Mailer: git-send-email 2.28.0
-In-Reply-To: <20200904165216.1799796-1-hch@lst.de>
-References: <20200904165216.1799796-1-hch@lst.de>
+        with ESMTP id S1726047AbgIDR62 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Sep 2020 13:58:28 -0400
+Received: from mail-ed1-x541.google.com (mail-ed1-x541.google.com [IPv6:2a00:1450:4864:20::541])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6B48FC061244;
+        Fri,  4 Sep 2020 10:58:27 -0700 (PDT)
+Received: by mail-ed1-x541.google.com with SMTP id n22so6978444edt.4;
+        Fri, 04 Sep 2020 10:58:27 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=xWrD3MuyolikZBdkT5ghr88RwiH+oj1SGO1EEE8/fK8=;
+        b=fgQCIgRWO9koqQpJSZq0UUVMNjWdYYuTIm3HfndnOr8ei7WofSr0zy+yG8x0XPPYry
+         syRVhzehT0ZIjLtJNng03oQjHxaMO3BEcdNUzsIkeTxfqetWTO2vTELR3ZpcuRrRZ5/L
+         N1ZVac6a1zcGtBy3wgfNZYi9YASM4WHZtCE19VizJ1ypdJt7bMP1VGdbHtj/8jZHkrE/
+         aMvFV3CsEjbwtu9wLUvO6dR+NlU9QQRfxsV5TjzRLcrBr4zIp6ijB35Q9TVuFQsjDP9E
+         C9RKR7D19nIk6CCoFvQeImizIc1LJbdyP/98edlFpfyTem8uTC/SzpqJKf/5pt2FEhOI
+         qBAg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=xWrD3MuyolikZBdkT5ghr88RwiH+oj1SGO1EEE8/fK8=;
+        b=J1PqSVAnaw9+4j7Fdyqz1/9nK0lCuA4fH24FkfzRCIroHRGjPquAst3C3XRRpeUhEA
+         FToZwygNu7yBuqBMZSmfzksgEq5G2R7Al/rOeNcKtX4wkCEpm/JrzK6PKa79KDqxD9Oq
+         bRRjTAId1z/2gHv1nzQq7b5FP2n2hGJAkwvQXrwh5biLHgnZZnQV/LRRfCoB0bPqSIYJ
+         Lw43P/K+KnA2iKjFvRpqnykM3m6pfm/OfepdU7MnWRGpJfC+AAkjXbHCQitRGFDicDXM
+         SJNIGSzbM5GDpp28DQydefuYEKED989UQHohsaC60edMQFVBqTFbHGGbAei3hL+xCSg9
+         dCEg==
+X-Gm-Message-State: AOAM531oYq72g/rGr3GEyIo7Q907FPMBCUb/zztj4tg/F3I2bQukul2Y
+        Soqaorr2jhEpIKC37WycWA==
+X-Google-Smtp-Source: ABdhPJwmF6eKN6yrdWqMeDA6ZaWPrS1RLQwm+PEUIDVhPMvcR0xkr1YXtb5BAvLBd7cgo66vO8NUpA==
+X-Received: by 2002:aa7:d043:: with SMTP id n3mr9504016edo.243.1599242306081;
+        Fri, 04 Sep 2020 10:58:26 -0700 (PDT)
+Received: from localhost.localdomain ([46.53.251.136])
+        by smtp.gmail.com with ESMTPSA id lo25sm6546522ejb.53.2020.09.04.10.58.24
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 04 Sep 2020 10:58:25 -0700 (PDT)
+Date:   Fri, 4 Sep 2020 20:58:23 +0300
+From:   Alexey Dobriyan <adobriyan@gmail.com>
+To:     Ingo Molnar <mingo@kernel.org>
+Cc:     Christoph Hellwig <hch@lst.de>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org,
+        Luis Chamberlain <mcgrof@kernel.org>,
+        Kees Cook <keescook@chromium.org>,
+        linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Subject: Re: remove the last set_fs() in common code, and remove it for x86
+ and powerpc v3
+Message-ID: <20200904175823.GA500051@localhost.localdomain>
+References: <20200903142242.925828-1-hch@lst.de>
+ <20200904060024.GA2779810@gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20200904060024.GA2779810@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Nommu architectures do not have page tables and thus no page faults.
-Implement the maccess helpers using get_unaligned and put_unaligned and
-enable them unconditionally for !CONFIG_MMU.
+On Fri, Sep 04, 2020 at 08:00:24AM +0200, Ingo Molnar wrote:
+> * Christoph Hellwig <hch@lst.de> wrote:
+> > this series removes the last set_fs() used to force a kernel address
+> > space for the uaccess code in the kernel read/write/splice code, and then
+> > stops implementing the address space overrides entirely for x86 and
+> > powerpc.
+> 
+> Cool! For the x86 bits:
+> 
+>   Acked-by: Ingo Molnar <mingo@kernel.org>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- include/asm-generic/uaccess.h | 20 ++++++++++++++++++++
- 1 file changed, 20 insertions(+)
+set_fs() is older than some kernel hackers!
 
-diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
-index ba68ee4dabfaa7..cc3b2c8b68fab4 100644
---- a/include/asm-generic/uaccess.h
-+++ b/include/asm-generic/uaccess.h
-@@ -9,6 +9,26 @@
-  */
- #include <linux/string.h>
- 
-+#ifndef CONFIG_MMU
-+#include <asm/unaligned.h>
-+
-+#define __get_kernel_nofault(dst, src, type, err_label)			\
-+do {									\
-+	*((type *)dst) = get_unaligned((type *)(src));			\
-+	if (0) /* make sure the label looks used to the compiler */	\
-+		goto err_label;						\
-+} while (0)
-+
-+#define __put_kernel_nofault(dst, src, type, err_label)			\
-+do {									\
-+	put_unaligned(*((type *)src), (type *)(dst));			\
-+	if (0) /* make sure the label looks used to the compiler */	\
-+		goto err_label;						\
-+} while (0)
-+
-+#define HAVE_GET_KERNEL_NOFAULT 1
-+#endif /* !CONFIG_MMU */
-+
- #ifdef CONFIG_UACCESS_MEMCPY
- static inline __must_check unsigned long
- raw_copy_from_user(void *to, const void __user * from, unsigned long n)
--- 
-2.28.0
-
+	$ cd linux-0.11/
+	$ find . -type f -name '*.h' | xargs grep -e set_fs -w -n -A3
+	./include/asm/segment.h:61:extern inline void set_fs(unsigned long val)
+	./include/asm/segment.h-62-{
+	./include/asm/segment.h-63-     __asm__("mov %0,%%fs"::"a" ((unsigned short) val));
+	./include/asm/segment.h-64-}
