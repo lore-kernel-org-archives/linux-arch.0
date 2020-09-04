@@ -2,126 +2,103 @@ Return-Path: <SRS0=JdYX=CN=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-4.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+X-Spam-Status: No, score=-3.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
+	SPF_PASS,TVD_SUBJ_WIPE_DEBT,URIBL_BLOCKED autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 45A99C28E83
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 05:58:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 82A96C43461
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 06:00:30 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 0D70D206F2
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 05:58:32 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3D42F205CB
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 06:00:30 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1599199112;
-	bh=kG4cDXBMwOEWtg2SbyCMwgRDg2zW4amVr/qTLCyJ7vQ=;
+	s=default; t=1599199230;
+	bh=CufiwZgoptbCZRGNm9qMJI8XdSf+8qMLviIADfz6+sc=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
-	b=i2DUro++XSJOz3Ktk0xoVBleXsUzz35EXUyqVargjMao1muc3qjhy3Ax3gN4kZC1R
-	 pC+9aRiOaGMQCFRVYCNWsZ5NmNaEUVqOE9ydolePmJ+3lF4Jd4TnA45hLK+TrNxGKD
-	 mG9YcMrrl0faxo5nv+JCrd97+LeP8XOf5XVMurGM=
+	b=BrEZxz18nqsFuf92StSVvKrMnolK+38lu++juLbm+4NkybVo87115eXm6uDrFuVmh
+	 Ve5y6rE3ciMWfBuQU/Fb2aSAK7JKr9A5T6gDb959Tz/EY+onFvbTc5K4PUnIekS6ez
+	 roRIW3VI5CnGAmAhRxC2PlDw4H8972lAtuJH7Bzs=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726089AbgIDF6b (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Sep 2020 01:58:31 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37858 "EHLO
+        id S1726445AbgIDGA3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Sep 2020 02:00:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38160 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725812AbgIDF6a (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Sep 2020 01:58:30 -0400
-Received: from mail-ed1-x541.google.com (mail-ed1-x541.google.com [IPv6:2a00:1450:4864:20::541])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EE36AC061244;
-        Thu,  3 Sep 2020 22:58:29 -0700 (PDT)
-Received: by mail-ed1-x541.google.com with SMTP id l17so4894303edq.12;
-        Thu, 03 Sep 2020 22:58:29 -0700 (PDT)
+        with ESMTP id S1725812AbgIDGA2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Sep 2020 02:00:28 -0400
+Received: from mail-ej1-x644.google.com (mail-ej1-x644.google.com [IPv6:2a00:1450:4864:20::644])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 48487C061244;
+        Thu,  3 Sep 2020 23:00:28 -0700 (PDT)
+Received: by mail-ej1-x644.google.com with SMTP id z23so6944785ejr.13;
+        Thu, 03 Sep 2020 23:00:28 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=sender:date:from:to:cc:subject:message-id:references:mime-version
          :content-disposition:in-reply-to;
-        bh=86/hDza+7M+cBpbx4SYN2mNKlPBD4Khd4N7abYdp5es=;
-        b=INFYiCzmKU5iRQe53yQOFtmJQLAE0oYHTB6GP7SpNat6APmdvxU7CFfVGsOjm0Zto8
-         +Y0XjZoAfwtJDOhvF5OsWU5oQQyUQmfpjTt6n+Fqok+l/YzBvTHtkz3WvNmO9f9WZ6Tl
-         Vi+vUgPP+WzubQlb3Pf5wQQ/2vK1sk4vD8dWEznnxJx9IkBNSKmQriauqGWDzRLo0gG7
-         VI8z/rIRvNRpB6Q/YL8rsM5fb6sHUBf/mf3N0+adBR3VyjGcnVJgZxmKyMSBx6ICd4VF
-         S35cHKZhRM5s64mDTpYHaob7cWV4fflraLlbLhMcl51PorbbNws+VWiGnRpQ3VeZCAqn
-         NFhA==
+        bh=/RbKFcDe/9p0eCn6PVwL3hGGJ9h1UwG7+EMiD7IMIjA=;
+        b=BUUjH6498pxgKlkI7TBQkAxL4YAOzv1LuihEIjbUhMlESZB9pcmBNlol1CXWwjT3QA
+         GLzgR1b5EhnjoX1bPYt3Hi+Ahrt4TJ6gkdCjW6PB4FmtMV4zqNCGt9xlA+64OUjDtdeA
+         NrrDxCFEgrxrN8exnV279/ZKGMyixFaXASn2kADFjY4/3WaHmmuCEQmWp3MDs66/miJa
+         ksLSa3zmEexrNsV7V+5t1v6NG/6WmSqUBJCREH+GegDbN0ai4pgrWp5wyoeIwAAIN5yv
+         83ERivChI0D+Ky59cSCS2nhTILw7TgtSN99hoNpdlqipXI1DUcgXY1dIukd08J8Jc2wL
+         oG1w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:sender:date:from:to:cc:subject:message-id
          :references:mime-version:content-disposition:in-reply-to;
-        bh=86/hDza+7M+cBpbx4SYN2mNKlPBD4Khd4N7abYdp5es=;
-        b=fLuNSmmNZADVY1sNl92nu1EJ4dYiKpiVbAY86gPZ3nw5eYT6UV6Y3FgcJlc1KZ/lD3
-         2fIH9YirPDpDvRvGOxNfXw6HoSfBCoCG3YSu3gMRlX/UPOaTKuDKkbAIhb7BhDkxPQq1
-         seYe27Q974iG661ulR1j3hu7T+qpM4UKlGQzt1n3xn3DiDNugzKExIyqgMi2E4petdA0
-         9HiA97kwuFFIQoLwdWUeTsAcU3bEb9X3c5qQTZJE3pjv/sKSiOP22WLCNpZiIN6E+9SD
-         OIVcJaS5ZOGYDp9rCsquxWro384wDgMGR+Pq+2KRE8DCUN4VTyMsTU/av4pvH/PzVYQ1
-         wRUA==
-X-Gm-Message-State: AOAM532+pH35DUz6M+0zcy5j87NBeI6WqLWpumtB8Gis2fObnpGSHikH
-        OVBcYKEneqVZhyyZnzKB0Hw=
-X-Google-Smtp-Source: ABdhPJwWt7ZQxHXwfHlIAvDC4aqzZ2345pSsFoI7PTTwHE6eLo8+11eQMMVi7nzT7RaJhdxO9p5+OA==
-X-Received: by 2002:a50:fd19:: with SMTP id i25mr6926242eds.142.1599199108527;
-        Thu, 03 Sep 2020 22:58:28 -0700 (PDT)
+        bh=/RbKFcDe/9p0eCn6PVwL3hGGJ9h1UwG7+EMiD7IMIjA=;
+        b=j/uWxs8e/YTk6ynojrmJOSkTjnFZBhz1cXVjh32q5hfmhMw+jA7WekioDnbvv1Zz+V
+         Scb3Jz748Mlsia2Wp+1K0R1BB/w4ZC/sLgXRvH8XfZ/1ExyJF7ZtB5es8HwaIBt7DEKN
+         eQxjWler0W0LHcLBLOldy4jAEyAdQy6s6irog3xcUqpNGuazuDQ8BsFCxDUV84lF+iTz
+         sn+PI90v/kXDKmy/h0wBsQwEcAVf998kzybKCBR+S1hFBPmuYngIGPKIwsMh7PgXliR+
+         v/tnqNHp5WDrTER50wOmVNMA/ojhpbsGHsQdvQvXZP3QrXnr954O1R+wyqyDpJAAkCpB
+         YfVA==
+X-Gm-Message-State: AOAM532gAMFb8FKiRLYD8yJtHZPJAst7wIwed7RImHSa4iIvAYTnwnYc
+        ufkSX/YvSV4/xNfnuq5nRRk=
+X-Google-Smtp-Source: ABdhPJw7qUGl/jQF6c84gFZcHhRqBS1gA5FSgsoreOSwdAggSpDPGO0dfyGq/1ecMqRsqPeYMPizIw==
+X-Received: by 2002:a17:906:a1d7:: with SMTP id bx23mr5864845ejb.273.1599199226711;
+        Thu, 03 Sep 2020 23:00:26 -0700 (PDT)
 Received: from gmail.com (563BA415.dsl.pool.telekom.hu. [86.59.164.21])
-        by smtp.gmail.com with ESMTPSA id c8sm5158129ejp.30.2020.09.03.22.58.27
+        by smtp.gmail.com with ESMTPSA id r26sm5332257ejb.102.2020.09.03.23.00.25
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 03 Sep 2020 22:58:27 -0700 (PDT)
-Date:   Fri, 4 Sep 2020 07:58:25 +0200
+        Thu, 03 Sep 2020 23:00:26 -0700 (PDT)
+Date:   Fri, 4 Sep 2020 08:00:24 +0200
 From:   Ingo Molnar <mingo@kernel.org>
-To:     Nick Desaulniers <ndesaulniers@google.com>,
-        Kees Cook <keescook@chromium.org>
-Cc:     Kees Cook <keescook@chromium.org>, Borislav Petkov <bp@suse.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Peter Collingbourne <pcc@google.com>,
-        James Morse <james.morse@arm.com>,
-        Ingo Molnar <mingo@redhat.com>,
-        Russell King <linux@armlinux.org.uk>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Arvind Sankar <nivedita@alum.mit.edu>,
-        Nathan Chancellor <natechancellor@gmail.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>,
-        clang-built-linux <clang-built-linux@googlegroups.com>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        linux-efi <linux-efi@vger.kernel.org>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        LKML <linux-kernel@vger.kernel.org>
-Subject: Re: [PATCH v7 0/5] Warn on orphan section placement
-Message-ID: <20200904055825.GA2779622@gmail.com>
-References: <20200902025347.2504702-1-keescook@chromium.org>
- <CAKwvOd=r8X1UeBRgYMcjUoQX_nbOEbXCQYGX6n7kMnJhGXis=Q@mail.gmail.com>
+To:     Christoph Hellwig <hch@lst.de>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org,
+        Alexey Dobriyan <adobriyan@gmail.com>,
+        Luis Chamberlain <mcgrof@kernel.org>,
+        Kees Cook <keescook@chromium.org>,
+        linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Subject: Re: remove the last set_fs() in common code, and remove it for x86
+ and powerpc v3
+Message-ID: <20200904060024.GA2779810@gmail.com>
+References: <20200903142242.925828-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAKwvOd=r8X1UeBRgYMcjUoQX_nbOEbXCQYGX6n7kMnJhGXis=Q@mail.gmail.com>
+In-Reply-To: <20200903142242.925828-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 
-* Nick Desaulniers <ndesaulniers@google.com> wrote:
+* Christoph Hellwig <hch@lst.de> wrote:
 
-> On Tue, Sep 1, 2020 at 7:53 PM Kees Cook <keescook@chromium.org> wrote:
-> >
-> > Hi Ingo,
-> >
-> > The ever-shortening series. ;) Here is "v7", which is just the remaining
-> > Makefile changes to enable orphan section warnings, now updated to
-> > include ld-option calls.
-> >
-> > Thanks for getting this all into -tip!
+> Hi all,
 > 
-> For the series,
-> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-> 
-> As the recent ppc vdso boogaloo exposed, what about the vdsos?
-> * arch/x86/entry/vdso/Makefile
-> * arch/arm/vdso/Makefile
-> * arch/arm64/kernel/vdso/Makefile
-> * arch/arm64/kernel/vdso32/Makefile
+> this series removes the last set_fs() used to force a kernel address
+> space for the uaccess code in the kernel read/write/splice code, and then
+> stops implementing the address space overrides entirely for x86 and
+> powerpc.
 
-Kees, will these patches DTRT for the vDSO builds? I will be unable to test 
-these patches on that old system until tomorrow the earliest.
+Cool! For the x86 bits:
 
-I'm keeping these latest changes in WIP.core/build for now.
+  Acked-by: Ingo Molnar <mingo@kernel.org>
 
 Thanks,
 
