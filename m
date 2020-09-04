@@ -7,23 +7,23 @@ X-Spam-Status: No, score=-13.0 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4DE89C43461
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:33:07 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6FF7DC43461
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:33:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2DDF5206D4
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:33:07 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 460C1206D4
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:33:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729946AbgIDKc6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Sep 2020 06:32:58 -0400
-Received: from mail.kernel.org ([198.145.29.99]:51650 "EHLO mail.kernel.org"
+        id S1730143AbgIDKdc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Sep 2020 06:33:32 -0400
+Received: from mail.kernel.org ([198.145.29.99]:52376 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730203AbgIDKbV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 4 Sep 2020 06:31:21 -0400
+        id S1730205AbgIDKbn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 4 Sep 2020 06:31:43 -0400
 Received: from localhost.localdomain (unknown [46.69.195.48])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id C09E920C09;
-        Fri,  4 Sep 2020 10:30:47 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 29F542087C;
+        Fri,  4 Sep 2020 10:31:39 +0000 (UTC)
 From:   Catalin Marinas <catalin.marinas@arm.com>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
@@ -34,11 +34,10 @@ Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
         Kevin Brodsky <kevin.brodsky@arm.com>,
         Andrey Konovalov <andreyknvl@google.com>,
         Peter Collingbourne <pcc@google.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Steven Price <steven.price@arm.com>
-Subject: [PATCH v9 07/29] mm: Add PG_arch_2 page flag
-Date:   Fri,  4 Sep 2020 11:30:07 +0100
-Message-Id: <20200904103029.32083-8-catalin.marinas@arm.com>
+        Andrew Morton <akpm@linux-foundation.org>
+Subject: [PATCH v9 28/29] arm64: mte: Kconfig entry
+Date:   Fri,  4 Sep 2020 11:30:28 +0100
+Message-Id: <20200904103029.32083-29-catalin.marinas@arm.com>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20200904103029.32083-1-catalin.marinas@arm.com>
 References: <20200904103029.32083-1-catalin.marinas@arm.com>
@@ -49,118 +48,81 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Steven Price <steven.price@arm.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-For arm64 MTE support it is necessary to be able to mark pages that
-contain user space visible tags that will need to be saved/restored e.g.
-when swapped out.
+Add Memory Tagging Extension support to the arm64 kbuild.
 
-To support this add a new arch specific flag (PG_arch_2). This flag is
-only available on 64-bit architectures due to the limited number of
-spare page flags on the 32-bit ones.
-
-Signed-off-by: Steven Price <steven.price@arm.com>
-[catalin.marinas@arm.com: use CONFIG_64BIT for guarding this new flag]
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Will Deacon <will@kernel.org>
 ---
 
 Notes:
-    v6:
-    - Using CONFIG_64BIT instead of a new CONFIG_ARCH_USES_PG_ARCH_2 option.
+    v9:
+    - Slight improvement on the ARM64_AS_HAS_MTE comment.
     
-    New in v4.
+    v7:
+    - Binutils gained initial support for MTE in 2.32.0. However, a late
+      architecture addition (LDGM/STGM) is only supported in the newer
+      2.32.x and 2.33 versions. Change the AS_HAS_MTE option to also check
+      for stgm in addition to .arch armv8.5-a+memtag.
+    
+    v6:
+    - Remove select ARCH_USES_PG_ARCH_2, no longer defined.
+    
+    v5:
+    - Remove duplicate ARMv8.5 menu entry.
+    
+    v4:
+    - select ARCH_USES_PG_ARCH_2.
+    - remove ARCH_NO_SWAP.
+    - default y.
 
- fs/proc/page.c                    | 3 +++
- include/linux/kernel-page-flags.h | 1 +
- include/linux/page-flags.h        | 3 +++
- include/trace/events/mmflags.h    | 9 ++++++++-
- tools/vm/page-types.c             | 2 ++
- 5 files changed, 17 insertions(+), 1 deletion(-)
+ arch/arm64/Kconfig | 33 +++++++++++++++++++++++++++++++++
+ 1 file changed, 33 insertions(+)
 
-diff --git a/fs/proc/page.c b/fs/proc/page.c
-index f909243d4a66..9f1077d94cde 100644
---- a/fs/proc/page.c
-+++ b/fs/proc/page.c
-@@ -217,6 +217,9 @@ u64 stable_page_flags(struct page *page)
- 	u |= kpf_copy_bit(k, KPF_PRIVATE_2,	PG_private_2);
- 	u |= kpf_copy_bit(k, KPF_OWNER_PRIVATE,	PG_owner_priv_1);
- 	u |= kpf_copy_bit(k, KPF_ARCH,		PG_arch_1);
-+#ifdef CONFIG_64BIT
-+	u |= kpf_copy_bit(k, KPF_ARCH_2,	PG_arch_2);
-+#endif
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 6d232837cbee..e7450fbd0aa7 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -1664,6 +1664,39 @@ config ARCH_RANDOM
+ 	  provides a high bandwidth, cryptographically secure
+ 	  hardware random number generator.
  
- 	return u;
- };
-diff --git a/include/linux/kernel-page-flags.h b/include/linux/kernel-page-flags.h
-index abd20ef93c98..eee1877a354e 100644
---- a/include/linux/kernel-page-flags.h
-+++ b/include/linux/kernel-page-flags.h
-@@ -17,5 +17,6 @@
- #define KPF_ARCH		38
- #define KPF_UNCACHED		39
- #define KPF_SOFTDIRTY		40
-+#define KPF_ARCH_2		41
- 
- #endif /* LINUX_KERNEL_PAGE_FLAGS_H */
-diff --git a/include/linux/page-flags.h b/include/linux/page-flags.h
-index 6be1aa559b1e..276140c94f4a 100644
---- a/include/linux/page-flags.h
-+++ b/include/linux/page-flags.h
-@@ -135,6 +135,9 @@ enum pageflags {
- #if defined(CONFIG_IDLE_PAGE_TRACKING) && defined(CONFIG_64BIT)
- 	PG_young,
- 	PG_idle,
-+#endif
-+#ifdef CONFIG_64BIT
-+	PG_arch_2,
- #endif
- 	__NR_PAGEFLAGS,
- 
-diff --git a/include/trace/events/mmflags.h b/include/trace/events/mmflags.h
-index 5fb752034386..67018d367b9f 100644
---- a/include/trace/events/mmflags.h
-+++ b/include/trace/events/mmflags.h
-@@ -79,6 +79,12 @@
- #define IF_HAVE_PG_IDLE(flag,string)
- #endif
- 
-+#ifdef CONFIG_64BIT
-+#define IF_HAVE_PG_ARCH_2(flag,string) ,{1UL << flag, string}
-+#else
-+#define IF_HAVE_PG_ARCH_2(flag,string)
-+#endif
++config ARM64_AS_HAS_MTE
++	# Initial support for MTE went in binutils 2.32.0, checked with
++	# ".arch armv8.5-a+memtag" below. However, this was incomplete
++	# as a late addition to the final architecture spec (LDGM/STGM)
++	# is only supported in the newer 2.32.x and 2.33 binutils
++	# versions, hence the extra "stgm" instruction check below.
++	def_bool $(as-instr,.arch armv8.5-a+memtag\nstgm xzr$(comma)[x0])
 +
- #define __def_pageflag_names						\
- 	{1UL << PG_locked,		"locked"	},		\
- 	{1UL << PG_waiters,		"waiters"	},		\
-@@ -105,7 +111,8 @@ IF_HAVE_PG_MLOCK(PG_mlocked,		"mlocked"	)		\
- IF_HAVE_PG_UNCACHED(PG_uncached,	"uncached"	)		\
- IF_HAVE_PG_HWPOISON(PG_hwpoison,	"hwpoison"	)		\
- IF_HAVE_PG_IDLE(PG_young,		"young"		)		\
--IF_HAVE_PG_IDLE(PG_idle,		"idle"		)
-+IF_HAVE_PG_IDLE(PG_idle,		"idle"		)		\
-+IF_HAVE_PG_ARCH_2(PG_arch_2,		"arch_2"	)
++config ARM64_MTE
++	bool "Memory Tagging Extension support"
++	default y
++	depends on ARM64_AS_HAS_MTE && ARM64_TAGGED_ADDR_ABI
++	select ARCH_USES_HIGH_VMA_FLAGS
++	help
++	  Memory Tagging (part of the ARMv8.5 Extensions) provides
++	  architectural support for run-time, always-on detection of
++	  various classes of memory error to aid with software debugging
++	  to eliminate vulnerabilities arising from memory-unsafe
++	  languages.
++
++	  This option enables the support for the Memory Tagging
++	  Extension at EL0 (i.e. for userspace).
++
++	  Selecting this option allows the feature to be detected at
++	  runtime. Any secondary CPU not implementing this feature will
++	  not be allowed a late bring-up.
++
++	  Userspace binaries that want to use this feature must
++	  explicitly opt in. The mechanism for the userspace is
++	  described in:
++
++	  Documentation/arm64/memory-tagging-extension.rst.
++
+ endmenu
  
- #define show_page_flags(flags)						\
- 	(flags) ? __print_flags(flags, "|",				\
-diff --git a/tools/vm/page-types.c b/tools/vm/page-types.c
-index 58c0eab71bca..0517c744b04e 100644
---- a/tools/vm/page-types.c
-+++ b/tools/vm/page-types.c
-@@ -78,6 +78,7 @@
- #define KPF_ARCH		38
- #define KPF_UNCACHED		39
- #define KPF_SOFTDIRTY		40
-+#define KPF_ARCH_2		41
- 
- /* [48-] take some arbitrary free slots for expanding overloaded flags
-  * not part of kernel API
-@@ -135,6 +136,7 @@ static const char * const page_flag_names[] = {
- 	[KPF_ARCH]		= "h:arch",
- 	[KPF_UNCACHED]		= "c:uncached",
- 	[KPF_SOFTDIRTY]		= "f:softdirty",
-+	[KPF_ARCH_2]		= "H:arch_2",
- 
- 	[KPF_READAHEAD]		= "I:readahead",
- 	[KPF_SLOB_FREE]		= "P:slob_free",
+ config ARM64_SVE
