@@ -4,26 +4,26 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.0 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3E291C43461
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:32:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5E2F5C43461
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:32:31 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1820B2084D
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:32:25 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 339A52084D
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Sep 2020 10:32:31 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726171AbgIDKcT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Sep 2020 06:32:19 -0400
-Received: from mail.kernel.org ([198.145.29.99]:51908 "EHLO mail.kernel.org"
+        id S1730160AbgIDKbq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Sep 2020 06:31:46 -0400
+Received: from mail.kernel.org ([198.145.29.99]:51654 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730211AbgIDKbW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1730217AbgIDKbW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 4 Sep 2020 06:31:22 -0400
 Received: from localhost.localdomain (unknown [46.69.195.48])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id AE1A621707;
-        Fri,  4 Sep 2020 10:31:14 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 651A22098B;
+        Fri,  4 Sep 2020 10:31:19 +0000 (UTC)
 From:   Catalin Marinas <catalin.marinas@arm.com>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
@@ -35,9 +35,9 @@ Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
         Andrey Konovalov <andreyknvl@google.com>,
         Peter Collingbourne <pcc@google.com>,
         Andrew Morton <akpm@linux-foundation.org>
-Subject: [PATCH v9 18/29] arm64: mte: Allow user control of the tag check mode via prctl()
-Date:   Fri,  4 Sep 2020 11:30:18 +0100
-Message-Id: <20200904103029.32083-19-catalin.marinas@arm.com>
+Subject: [PATCH v9 20/29] arm64: mte: Restore the GCR_EL1 register after a suspend
+Date:   Fri,  4 Sep 2020 11:30:20 +0100
+Message-Id: <20200904103029.32083-21-catalin.marinas@arm.com>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20200904103029.32083-1-catalin.marinas@arm.com>
 References: <20200904103029.32083-1-catalin.marinas@arm.com>
@@ -48,274 +48,83 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-By default, even if PROT_MTE is set on a memory range, there is no tag
-check fault reporting (SIGSEGV). Introduce a set of option to the
-exiting prctl(PR_SET_TAGGED_ADDR_CTRL) to allow user control of the tag
-check fault mode:
-
-  PR_MTE_TCF_NONE  - no reporting (default)
-  PR_MTE_TCF_SYNC  - synchronous tag check fault reporting
-  PR_MTE_TCF_ASYNC - asynchronous tag check fault reporting
-
-These options translate into the corresponding SCTLR_EL1.TCF0 bitfield,
-context-switched by the kernel. Note that the kernel accesses to the
-user address space (e.g. read() system call) are not checked if the user
-thread tag checking mode is PR_MTE_TCF_NONE or PR_MTE_TCF_ASYNC. If the
-tag checking mode is PR_MTE_TCF_SYNC, the kernel makes a best effort to
-check its user address accesses, however it cannot always guarantee it.
+The CPU resume/suspend routines only take care of the common system
+registers. Restore GCR_EL1 in addition via the __cpu_suspend_exit()
+function.
 
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will@kernel.org>
+Reviewed-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 ---
 
 Notes:
-    v3:
-    - Use SCTLR_EL1_TCF0_NONE instead of 0 for consistency.
-    - Move mte_thread_switch() in this patch from an earlier one. In
-      addition, it is called after the dsb() in __switch_to() so that any
-      asynchronous tag check faults have been registered in the TFSR_EL1
-      registers (to be added with the in-kernel MTE support.
-    
-    v2:
-    - Handle SCTLR_EL1_TCF0_NONE explicitly for consistency with PR_MTE_TCF_NONE.
-    - Fix SCTLR_EL1 register setting in flush_mte_state() (thanks to Peter
-      Collingbourne).
-    - Added ISB to update_sctlr_el1_tcf0() since, with the latest
-      architecture update/fix, the TCF0 field is used by the uaccess
-      routines.
+    New in v3.
 
- arch/arm64/include/asm/mte.h       | 14 ++++++
- arch/arm64/include/asm/processor.h |  3 ++
- arch/arm64/kernel/mte.c            | 77 ++++++++++++++++++++++++++++++
- arch/arm64/kernel/process.c        | 26 ++++++++--
- include/uapi/linux/prctl.h         |  6 +++
- 5 files changed, 123 insertions(+), 3 deletions(-)
+ arch/arm64/include/asm/mte.h | 4 ++++
+ arch/arm64/kernel/mte.c      | 8 ++++++++
+ arch/arm64/kernel/suspend.c  | 4 ++++
+ 3 files changed, 16 insertions(+)
 
 diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
-index b2577eee62c2..df2efbc9f8f1 100644
+index df2efbc9f8f1..c93047eff9fe 100644
 --- a/arch/arm64/include/asm/mte.h
 +++ b/arch/arm64/include/asm/mte.h
-@@ -21,6 +21,9 @@ void mte_clear_page_tags(void *addr);
- void mte_sync_tags(pte_t *ptep, pte_t pte);
+@@ -22,6 +22,7 @@ void mte_sync_tags(pte_t *ptep, pte_t pte);
  void mte_copy_page_tags(void *kto, const void *kfrom);
  void flush_mte_state(void);
-+void mte_thread_switch(struct task_struct *next);
-+long set_mte_ctrl(unsigned long arg);
-+long get_mte_ctrl(void);
+ void mte_thread_switch(struct task_struct *next);
++void mte_suspend_exit(void);
+ long set_mte_ctrl(unsigned long arg);
+ long get_mte_ctrl(void);
  
- #else
- 
-@@ -36,6 +39,17 @@ static inline void mte_copy_page_tags(void *kto, const void *kfrom)
- static inline void flush_mte_state(void)
+@@ -42,6 +43,9 @@ static inline void flush_mte_state(void)
+ static inline void mte_thread_switch(struct task_struct *next)
  {
  }
-+static inline void mte_thread_switch(struct task_struct *next)
++static inline void mte_suspend_exit(void)
 +{
 +}
-+static inline long set_mte_ctrl(unsigned long arg)
-+{
-+	return 0;
-+}
-+static inline long get_mte_ctrl(void)
-+{
-+	return 0;
-+}
- 
- #endif
- 
-diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-index 240fe5e5b720..80e7f0573309 100644
---- a/arch/arm64/include/asm/processor.h
-+++ b/arch/arm64/include/asm/processor.h
-@@ -151,6 +151,9 @@ struct thread_struct {
- 	struct ptrauth_keys_user	keys_user;
- 	struct ptrauth_keys_kernel	keys_kernel;
- #endif
-+#ifdef CONFIG_ARM64_MTE
-+	u64			sctlr_tcf0;
-+#endif
- };
- 
- static inline void arch_thread_struct_whitelist(unsigned long *offset,
+ static inline long set_mte_ctrl(unsigned long arg)
+ {
+ 	return 0;
 diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
-index 5f54fd140610..375483a1f573 100644
+index 07798b8d5039..09cf76fc1090 100644
 --- a/arch/arm64/kernel/mte.c
 +++ b/arch/arm64/kernel/mte.c
-@@ -5,6 +5,8 @@
- 
- #include <linux/bitops.h>
- #include <linux/mm.h>
-+#include <linux/prctl.h>
-+#include <linux/sched.h>
- #include <linux/string.h>
- #include <linux/thread_info.h>
- 
-@@ -49,6 +51,26 @@ int memcmp_pages(struct page *page1, struct page *page2)
- 	return ret;
+@@ -116,6 +116,14 @@ void mte_thread_switch(struct task_struct *next)
+ 	update_gcr_el1_excl(next->thread.gcr_user_incl);
  }
  
-+static void update_sctlr_el1_tcf0(u64 tcf0)
-+{
-+	/* ISB required for the kernel uaccess routines */
-+	sysreg_clear_set(sctlr_el1, SCTLR_EL1_TCF0_MASK, tcf0);
-+	isb();
-+}
-+
-+static void set_sctlr_el1_tcf0(u64 tcf0)
-+{
-+	/*
-+	 * mte_thread_switch() checks current->thread.sctlr_tcf0 as an
-+	 * optimisation. Disable preemption so that it does not see
-+	 * the variable update before the SCTLR_EL1.TCF0 one.
-+	 */
-+	preempt_disable();
-+	current->thread.sctlr_tcf0 = tcf0;
-+	update_sctlr_el1_tcf0(tcf0);
-+	preempt_enable();
-+}
-+
- void flush_mte_state(void)
- {
- 	if (!system_supports_mte())
-@@ -58,4 +80,59 @@ void flush_mte_state(void)
- 	dsb(ish);
- 	write_sysreg_s(0, SYS_TFSRE0_EL1);
- 	clear_thread_flag(TIF_MTE_ASYNC_FAULT);
-+	/* disable tag checking */
-+	set_sctlr_el1_tcf0(SCTLR_EL1_TCF0_NONE);
-+}
-+
-+void mte_thread_switch(struct task_struct *next)
++void mte_suspend_exit(void)
 +{
 +	if (!system_supports_mte())
 +		return;
 +
-+	/* avoid expensive SCTLR_EL1 accesses if no change */
-+	if (current->thread.sctlr_tcf0 != next->thread.sctlr_tcf0)
-+		update_sctlr_el1_tcf0(next->thread.sctlr_tcf0);
++	update_gcr_el1_excl(current->thread.gcr_user_incl);
 +}
 +
-+long set_mte_ctrl(unsigned long arg)
-+{
-+	u64 tcf0;
-+
-+	if (!system_supports_mte())
-+		return 0;
-+
-+	switch (arg & PR_MTE_TCF_MASK) {
-+	case PR_MTE_TCF_NONE:
-+		tcf0 = SCTLR_EL1_TCF0_NONE;
-+		break;
-+	case PR_MTE_TCF_SYNC:
-+		tcf0 = SCTLR_EL1_TCF0_SYNC;
-+		break;
-+	case PR_MTE_TCF_ASYNC:
-+		tcf0 = SCTLR_EL1_TCF0_ASYNC;
-+		break;
-+	default:
-+		return -EINVAL;
-+	}
-+
-+	set_sctlr_el1_tcf0(tcf0);
-+
-+	return 0;
-+}
-+
-+long get_mte_ctrl(void)
-+{
-+	if (!system_supports_mte())
-+		return 0;
-+
-+	switch (current->thread.sctlr_tcf0) {
-+	case SCTLR_EL1_TCF0_NONE:
-+		return PR_MTE_TCF_NONE;
-+	case SCTLR_EL1_TCF0_SYNC:
-+		return PR_MTE_TCF_SYNC;
-+	case SCTLR_EL1_TCF0_ASYNC:
-+		return PR_MTE_TCF_ASYNC;
-+	}
-+
-+	return 0;
- }
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index a49028efab68..bb759b88d44a 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -577,6 +577,13 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
+ long set_mte_ctrl(unsigned long arg)
+ {
+ 	u64 tcf0;
+diff --git a/arch/arm64/kernel/suspend.c b/arch/arm64/kernel/suspend.c
+index c1dee9066ff9..62c239cd60c2 100644
+--- a/arch/arm64/kernel/suspend.c
++++ b/arch/arm64/kernel/suspend.c
+@@ -10,6 +10,7 @@
+ #include <asm/daifflags.h>
+ #include <asm/debug-monitors.h>
+ #include <asm/exec.h>
++#include <asm/mte.h>
+ #include <asm/memory.h>
+ #include <asm/mmu_context.h>
+ #include <asm/smp_plat.h>
+@@ -74,6 +75,9 @@ void notrace __cpu_suspend_exit(void)
  	 */
- 	dsb(ish);
- 
-+	/*
-+	 * MTE thread switching must happen after the DSB above to ensure that
-+	 * any asynchronous tag check faults have been logged in the TFSR*_EL1
-+	 * registers.
-+	 */
-+	mte_thread_switch(next);
+ 	if (arm64_get_ssbd_state() == ARM64_SSBD_FORCE_DISABLE)
+ 		arm64_set_ssbd_mitigation(false);
 +
- 	/* the actual thread switch */
- 	last = cpu_switch_to(prev, next);
- 
-@@ -636,9 +643,15 @@ static unsigned int tagged_addr_disabled;
- 
- long set_tagged_addr_ctrl(unsigned long arg)
- {
-+	unsigned long valid_mask = PR_TAGGED_ADDR_ENABLE;
-+
- 	if (is_compat_task())
- 		return -EINVAL;
--	if (arg & ~PR_TAGGED_ADDR_ENABLE)
-+
-+	if (system_supports_mte())
-+		valid_mask |= PR_MTE_TCF_MASK;
-+
-+	if (arg & ~valid_mask)
- 		return -EINVAL;
- 
- 	/*
-@@ -648,6 +661,9 @@ long set_tagged_addr_ctrl(unsigned long arg)
- 	if (arg & PR_TAGGED_ADDR_ENABLE && tagged_addr_disabled)
- 		return -EINVAL;
- 
-+	if (set_mte_ctrl(arg) != 0)
-+		return -EINVAL;
-+
- 	update_thread_flag(TIF_TAGGED_ADDR, arg & PR_TAGGED_ADDR_ENABLE);
- 
- 	return 0;
-@@ -655,13 +671,17 @@ long set_tagged_addr_ctrl(unsigned long arg)
- 
- long get_tagged_addr_ctrl(void)
- {
-+	long ret = 0;
-+
- 	if (is_compat_task())
- 		return -EINVAL;
- 
- 	if (test_thread_flag(TIF_TAGGED_ADDR))
--		return PR_TAGGED_ADDR_ENABLE;
-+		ret = PR_TAGGED_ADDR_ENABLE;
- 
--	return 0;
-+	ret |= get_mte_ctrl();
-+
-+	return ret;
++	/* Restore additional MTE-specific configuration */
++	mte_suspend_exit();
  }
  
  /*
-diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-index 07b4f8131e36..2390ab324afa 100644
---- a/include/uapi/linux/prctl.h
-+++ b/include/uapi/linux/prctl.h
-@@ -233,6 +233,12 @@ struct prctl_mm_map {
- #define PR_SET_TAGGED_ADDR_CTRL		55
- #define PR_GET_TAGGED_ADDR_CTRL		56
- # define PR_TAGGED_ADDR_ENABLE		(1UL << 0)
-+/* MTE tag check fault modes */
-+# define PR_MTE_TCF_SHIFT		1
-+# define PR_MTE_TCF_NONE		(0UL << PR_MTE_TCF_SHIFT)
-+# define PR_MTE_TCF_SYNC		(1UL << PR_MTE_TCF_SHIFT)
-+# define PR_MTE_TCF_ASYNC		(2UL << PR_MTE_TCF_SHIFT)
-+# define PR_MTE_TCF_MASK		(3UL << PR_MTE_TCF_SHIFT)
- 
- /* Control reclaim behavior when allocating memory */
- #define PR_SET_IO_FLUSHER		57
