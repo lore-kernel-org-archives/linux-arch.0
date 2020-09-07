@@ -2,149 +2,84 @@ Return-Path: <SRS0=71DO=CQ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	NICE_REPLY_A,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-12.6 required=3.0 tests=BAYES_00,DKIM_INVALID,
+	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CF245C43461
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 01:12:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F0ACDC43461
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 05:58:38 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 95CD521531
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 01:12:39 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1599441159;
-	bh=xyTSMPG3pyBCZv5zMohBYPXtrUS10O0YxLED9qNXz1I=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:List-ID:From;
-	b=O0EdH8IxGc0UNDUSk9aWl88GFcMBvpVVV4g6aMAwV681JWRITz7TqXAGuIF4046m/
-	 leSYAhgzOzn6JZgBwjtXI20T1JAyOlyRTQJHwZzjK94kKVT8lvSmg8zR7SpPcVrY1o
-	 mBpCWSmXtDbMasR/flb1pFcyFiAH/FdXGlGpFlPY=
+	by mail.kernel.org (Postfix) with ESMTP id AD92F2137B
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 05:58:38 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="R30FrVFA"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726620AbgIGBMi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 6 Sep 2020 21:12:38 -0400
-Received: from mail.kernel.org ([198.145.29.99]:33570 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726564AbgIGBMh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 6 Sep 2020 21:12:37 -0400
-Received: from devnote2 (NE2965lan1.rev.em-net.ne.jp [210.141.244.193])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id A6EA82080A;
-        Mon,  7 Sep 2020 01:12:28 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1599441156;
-        bh=xyTSMPG3pyBCZv5zMohBYPXtrUS10O0YxLED9qNXz1I=;
-        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-        b=z4ctw8TGu/NMj1f6Hv2KXkrBHHa+hL7RZJDYAkBwkP7Zi0ELinKFYmIOB4m2bj+Br
-         REdUI3oczw2sfJo0SbI9XIY3sEtUK+33VKxfvPvGwHzxwMucx5Nbb4xzObhrn0k+Zq
-         pn0XJDjrIvvplQXYJSINInsZBA/KoOuJSe+bM3zE=
-Date:   Mon, 7 Sep 2020 10:12:26 +0900
-From:   Masami Hiramatsu <mhiramat@kernel.org>
-To:     Christian Brauner <christian.brauner@ubuntu.com>
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        Jonathan Corbet <corbet@lwn.net>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Tony Luck <tony.luck@intel.com>,
-        Fenghua Yu <fenghua.yu@intel.com>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Ley Foon Tan <ley.foon.tan@intel.com>,
-        "David S. Miller" <davem@davemloft.net>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        x86@kernel.org, Arnd Bergmann <arnd@arndb.de>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Stafford Horne <shorne@gmail.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Kars de Jong <jongk@linux-m68k.org>,
-        Kees Cook <keescook@chromium.org>,
-        Greentime Hu <green.hu@gmail.com>,
-        "Eric W. Biederman" <ebiederm@xmission.com>,
-        Mauro Carvalho Chehab <mchehab+huawei@kernel.org>,
-        Alexandre Chartre <alexandre.chartre@oracle.com>,
-        Masami Hiramatsu <mhiramat@kernel.org>,
-        Tom Zanussi <zanussi@kernel.org>,
-        Xiao Yang <yangx.jy@cn.fujitsu.com>, linux-doc@vger.kernel.org,
-        uclinux-h8-devel@lists.sourceforge.jp, linux-ia64@vger.kernel.org,
-        linux-m68k@lists.linux-m68k.org, sparclinux@vger.kernel.org,
-        kgdb-bugreport@lists.sourceforge.net,
-        linux-kselftest@vger.kernel.org,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Christoph Hewllig <hch@infradead.org>,
-        Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH v2 08/11] kprobes: switch to kernel_clone()
-Message-Id: <20200907101226.ab0d00639be953e81d4576c2@kernel.org>
-In-Reply-To: <20200819104655.436656-9-christian.brauner@ubuntu.com>
-References: <20200819104655.436656-1-christian.brauner@ubuntu.com>
-        <20200819104655.436656-9-christian.brauner@ubuntu.com>
-X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.32; x86_64-pc-linux-gnu)
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+        id S1726733AbgIGF6h (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Sep 2020 01:58:37 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49036 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726732AbgIGF6h (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2020 01:58:37 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A88B6C061574;
+        Sun,  6 Sep 2020 22:58:34 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
+        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+        Content-Type:Content-ID:Content-Description;
+        bh=RIXQEf9L32x2nCRSAR4fbxYw+icKSSPU8Vsh6D6+7r0=; b=R30FrVFADjC0p5xwxfRVo7qWUc
+        A6fGogfRR1wSmWR8BWODbMpvolShmup7QRuYeheM/53AjXSfeVkelsss28CshU3tYcaueE/X21iBc
+        LA+l+fzgY3ekJqqRd8lwP2rPma62noqvJWnzsjA4HNwbDM2IJmkCjuMuqAy7BYfxAAoJP7EGt4V1u
+        Y7S0Tga/jW7kgxEGPrGCqkIapN1mEnNn025KP1hOR1gnErfrRfBYkXDXgse9Z5JV1A/MZtFe0TBMz
+        Xw1dLV0uDQAZb9g41DpupXmJsfTQYRRNODKXN7prVkJ3TBW4BV4MmSUjjn53ReJWfK6lNAVCLtaJl
+        AVZVnHqg==;
+Received: from [2001:4bb8:184:af1:e178:97b2:ac6b:4e16] (helo=localhost)
+        by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
+        id 1kFAAe-00034c-3z; Mon, 07 Sep 2020 05:58:28 +0000
+From:   Christoph Hellwig <hch@lst.de>
+To:     Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Alexander Viro <viro@zeniv.linux.org.uk>
+Cc:     linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org
+Subject: [PATCH 1/8] uaccess: provide a generic TASK_SIZE_MAX definition
+Date:   Mon,  7 Sep 2020 07:58:18 +0200
+Message-Id: <20200907055825.1917151-2-hch@lst.de>
+X-Mailer: git-send-email 2.28.0
+In-Reply-To: <20200907055825.1917151-1-hch@lst.de>
+References: <20200907055825.1917151-1-hch@lst.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi,
+Define TASK_SIZE_MAX as TASK_SIZE if not otherwise defined.
 
-On Wed, 19 Aug 2020 12:46:52 +0200
-Christian Brauner <christian.brauner@ubuntu.com> wrote:
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ include/linux/uaccess.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-> The old _do_fork() helper is removed in favor of the new kernel_clone() helper.
-> The latter adheres to naming conventions for kernel internal syscall helpers.
-
-This looks good to me.
-
-Acked-by: Masami Hiramatsu <mhiramat@kernel.org>
-
-Thank you!
-
-> 
-> Cc: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-> Cc: Alexandre Chartre <alexandre.chartre@oracle.com>
-> Cc: Jonathan Corbet <corbet@lwn.net>
-> Cc: Masami Hiramatsu <mhiramat@kernel.org>
-> Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
-> ---
-> /* v2 */
-> unchanged
-> ---
->  samples/kprobes/kprobe_example.c | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
-> 
-> diff --git a/samples/kprobes/kprobe_example.c b/samples/kprobes/kprobe_example.c
-> index 240f2435ce6f..a02f53836ee1 100644
-> --- a/samples/kprobes/kprobe_example.c
-> +++ b/samples/kprobes/kprobe_example.c
-> @@ -2,13 +2,13 @@
->  /*
->   * NOTE: This example is works on x86 and powerpc.
->   * Here's a sample kernel module showing the use of kprobes to dump a
-> - * stack trace and selected registers when _do_fork() is called.
-> + * stack trace and selected registers when kernel_clone() is called.
->   *
->   * For more information on theory of operation of kprobes, see
->   * Documentation/staging/kprobes.rst
->   *
->   * You will see the trace data in /var/log/messages and on the console
-> - * whenever _do_fork() is invoked to create a new process.
-> + * whenever kernel_clone() is invoked to create a new process.
->   */
->  
->  #include <linux/kernel.h>
-> @@ -16,7 +16,7 @@
->  #include <linux/kprobes.h>
->  
->  #define MAX_SYMBOL_LEN	64
-> -static char symbol[MAX_SYMBOL_LEN] = "_do_fork";
-> +static char symbol[MAX_SYMBOL_LEN] = "kernel_clone";
->  module_param_string(symbol, symbol, sizeof(symbol), 0644);
->  
->  /* For each probe you need to allocate a kprobe structure */
-> -- 
-> 2.28.0
-> 
-
-
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index 70073c802b48ed..d0e43761c708d8 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -31,6 +31,10 @@ typedef struct {
+ 	/* empty dummy */
+ } mm_segment_t;
+ 
++#ifndef TASK_SIZE_MAX
++#define TASK_SIZE_MAX			TASK_SIZE
++#endif
++
+ #define uaccess_kernel()		(false)
+ #define user_addr_max()			(TASK_SIZE_MAX)
+ 
 -- 
-Masami Hiramatsu <mhiramat@kernel.org>
+2.28.0
+
