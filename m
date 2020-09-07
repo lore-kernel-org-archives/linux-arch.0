@@ -2,66 +2,67 @@ Return-Path: <SRS0=71DO=CQ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_GIT autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 71DD6C2BB84
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 18:05:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AA2E6C433E2
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 18:05:41 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3358B20738
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 18:05:40 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7643320738
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 18:05:41 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="oNHElOGv"
+	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="DKUC1cxI"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730498AbgIGSFE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 7 Sep 2020 14:05:04 -0400
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:25598 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729659AbgIGSEx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2020 14:04:53 -0400
-Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 087I2giF154827;
-        Mon, 7 Sep 2020 14:03:10 -0400
+        id S1728925AbgIGSEl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Sep 2020 14:04:41 -0400
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:19414 "EHLO
+        mx0b-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728548AbgIGSEk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2020 14:04:40 -0400
+Received: from pps.filterd (m0127361.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 087I2Kaj149186;
+        Mon, 7 Sep 2020 14:03:16 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
- : date : message-id; s=pp1;
- bh=8rnGmMRkvkgX5N8u5JthtpfXJszyHTkxMnCJPQcMOTk=;
- b=oNHElOGvXv7QXaLspNhgBWGRiX738kpCkhlwlGjGhW6WQSn4ILECsFVDKMAVhX3jycTY
- 38iL6cj6qt5KHOA5IKdtBFd56Jm5DiojDCi8u4JNsJ+HFhE+hC5bhGO63+ArV7j3jjMB
- KteVXwVtQZJeib4KCJ6hc5VnJQKdQAat7P3f72FdC1i36tpErUh8TqRfKmZRP2QuGoGY
- Pdy7bDmtvf4/HMsucF8Kje/WAlqFgobYWiWEi2jGt+lFsg/ZnhW1xFMmUJcOHEMHPa6V
- 8pQIR5nOC70xYKb0WzbXHw2pq5dWHFQN75UtWq9ix/i7BtYF2GrVUkK8+Ie/tMW96IYy wQ== 
+ : date : message-id : in-reply-to : references; s=pp1;
+ bh=llOokXYaeFuIqVieDq95v0tbRJZyTidIz682PTCYDAE=;
+ b=DKUC1cxIdAyXGdb1LJMQxZCmyRckMOY3yH+BL2PIngvCYp9BUjlEt9kNIZfUGGbwFQPD
+ bantvKYv38QTxd4IL4TDUhdMYgKl7HtCjI4wLqN0xpm18+BVow6mrg+vGE8uN95Pqb7K
+ r3A/hRvxcHV07fQVv4bHCljFgqnzeJAwpg4w4cxTYbt9ypJOOXXa/60NC6bwYZ2xTJyI
+ /wWSwGk1krs3AmfcV9p3i0tMaQ8847pcow1g3GsKVixL9i1Bvuu/CzewQKiyoiqtOg7x
+ wMTvQsX3CLxuhJDnZskAgiskS7ZyMC1EO8GXmdBTdbeZjjPLW3zmvsr58bQCVaBm2qrv pw== 
 Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 33dspe85a1-1
+        by mx0a-001b2d01.pphosted.com with ESMTP id 33dsgfrbxf-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 07 Sep 2020 14:03:10 -0400
-Received: from m0098404.ppops.net (m0098404.ppops.net [127.0.0.1])
-        by pps.reinject (8.16.0.36/8.16.0.36) with SMTP id 087I39BQ157737;
-        Mon, 7 Sep 2020 14:03:09 -0400
-Received: from ppma03fra.de.ibm.com (6b.4a.5195.ip4.static.sl-reverse.com [149.81.74.107])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 33dspe858x-1
+        Mon, 07 Sep 2020 14:03:16 -0400
+Received: from m0127361.ppops.net (m0127361.ppops.net [127.0.0.1])
+        by pps.reinject (8.16.0.36/8.16.0.36) with SMTP id 087I2StQ149524;
+        Mon, 7 Sep 2020 14:03:15 -0400
+Received: from ppma05fra.de.ibm.com (6c.4a.5195.ip4.static.sl-reverse.com [149.81.74.108])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 33dsgfrbwd-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 07 Sep 2020 14:03:09 -0400
-Received: from pps.filterd (ppma03fra.de.ibm.com [127.0.0.1])
-        by ppma03fra.de.ibm.com (8.16.0.42/8.16.0.42) with SMTP id 087I2pTg014263;
-        Mon, 7 Sep 2020 18:03:07 GMT
+        Mon, 07 Sep 2020 14:03:15 -0400
+Received: from pps.filterd (ppma05fra.de.ibm.com [127.0.0.1])
+        by ppma05fra.de.ibm.com (8.16.0.42/8.16.0.42) with SMTP id 087I39Cf010781;
+        Mon, 7 Sep 2020 18:03:13 GMT
 Received: from b06avi18878370.portsmouth.uk.ibm.com (b06avi18878370.portsmouth.uk.ibm.com [9.149.26.194])
-        by ppma03fra.de.ibm.com with ESMTP id 33c2a89kw2-1
+        by ppma05fra.de.ibm.com with ESMTP id 33c2a89kvj-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 07 Sep 2020 18:03:06 +0000
+        Mon, 07 Sep 2020 18:03:13 +0000
 Received: from d06av24.portsmouth.uk.ibm.com (d06av24.portsmouth.uk.ibm.com [9.149.105.60])
-        by b06avi18878370.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 087I33R861538636
+        by b06avi18878370.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 087I3A7O64356840
         (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Mon, 7 Sep 2020 18:03:03 GMT
+        Mon, 7 Sep 2020 18:03:11 GMT
 Received: from d06av24.portsmouth.uk.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id C035B42045;
-        Mon,  7 Sep 2020 18:03:03 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id CDA974203F;
+        Mon,  7 Sep 2020 18:03:10 +0000 (GMT)
 Received: from d06av24.portsmouth.uk.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id A4C4C4203F;
-        Mon,  7 Sep 2020 18:03:02 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id B683442045;
+        Mon,  7 Sep 2020 18:03:09 +0000 (GMT)
 Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
         by d06av24.portsmouth.uk.ibm.com (Postfix) with ESMTP;
-        Mon,  7 Sep 2020 18:03:02 +0000 (GMT)
+        Mon,  7 Sep 2020 18:03:09 +0000 (GMT)
 From:   Gerald Schaefer <gerald.schaefer@linux.ibm.com>
 To:     Jason Gunthorpe <jgg@ziepe.ca>, John Hubbard <jhubbard@nvidia.com>
 Cc:     LKML <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>,
@@ -95,90 +96,95 @@ Cc:     LKML <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>,
         Heiko Carstens <hca@linux.ibm.com>,
         Christian Borntraeger <borntraeger@de.ibm.com>,
         Claudio Imbrenda <imbrenda@linux.ibm.com>
-Subject: [RFC PATCH v2 0/3] mm/gup: fix gup_fast with dynamic page table folding
-Date:   Mon,  7 Sep 2020 20:00:55 +0200
-Message-Id: <20200907180058.64880-1-gerald.schaefer@linux.ibm.com>
+Subject: [RFC PATCH v2 3/3] mm: make generic pXd_addr_end() macros inline functions
+Date:   Mon,  7 Sep 2020 20:00:58 +0200
+Message-Id: <20200907180058.64880-4-gerald.schaefer@linux.ibm.com>
 X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20200907180058.64880-1-gerald.schaefer@linux.ibm.com>
+References: <20200907180058.64880-1-gerald.schaefer@linux.ibm.com>
 X-TM-AS-GCONF: 00
 X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.235,18.0.687
  definitions=2020-09-07_11:2020-09-07,2020-09-07 signatures=0
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 impostorscore=0
- priorityscore=1501 mlxscore=0 suspectscore=0 adultscore=0 phishscore=0
- lowpriorityscore=0 bulkscore=0 spamscore=0 clxscore=1011 mlxlogscore=914
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 spamscore=0 impostorscore=0
+ mlxscore=0 adultscore=0 priorityscore=1501 clxscore=1015
+ lowpriorityscore=0 phishscore=0 mlxlogscore=950 suspectscore=0 bulkscore=0
  malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2006250000 definitions=main-2009070173
+ engine=8.12.0-2006250000 definitions=main-2009070168
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This is v2 of an RFC previously discussed here:
-https://lore.kernel.org/lkml/20200828140314.8556-1-gerald.schaefer@linux.ibm.com/
+From: Alexander Gordeev <agordeev@linux.ibm.com>
 
-Patch 1 is a fix for a regression in gup_fast on s390, after our conversion
-to common gup_fast code. It will introduce special helper functions
-pXd_addr_end_folded(), which have to be used in places where pagetable walk
-is done w/o lock and with READ_ONCE, so currently only in gup_fast.
+Since pXd_addr_end() macros take pXd page-table entry as a
+parameter it makes sense to check the entry type on compile.
+Even though most archs do not make use of page-table entries
+in pXd_addr_end() calls, checking the type in traversal code
+paths could help to avoid subtle bugs.
 
-Patch 2 is an attempt to make that more generic, i.e. change pXd_addr_end()
-themselves by adding an extra pXd value parameter. That was suggested by
-Jason during v1 discussion, because he is already thinking of some other
-places where he might want to switch to the READ_ONCE logic for pagetable
-walks. In general, that would be the cleanest / safest solution, but there
-is some impact on other architectures and common code, hence the new and
-greatly enlarged recipient list.
+Signed-off-by: Alexander Gordeev <agordeev@linux.ibm.com>
+Signed-off-by: Gerald Schaefer <gerald.schaefer@linux.ibm.com>
+---
+ include/linux/pgtable.h | 36 ++++++++++++++++++++----------------
+ 1 file changed, 20 insertions(+), 16 deletions(-)
 
-Patch 3 is a "nice to have" add-on, which makes pXd_addr_end() inline
-functions instead of #defines, so that we get some type checking for the
-new pXd value parameter.
-
-Not sure about Fixes/stable tags for the generic solution. Only patch 1
-fixes a real bug on s390, and has Fixes/stable tags. Patches 2 + 3 might
-still be nice to have in stable, to ease future backports, but I guess
-"nice to have" does not really qualify for stable backports.
-
-Changes in v2:
-- Pick option 2 from v1 discussion (pXd_addr_end_folded helpers)
-- Add patch 2 + 3 for more generic approach
-
-Alexander Gordeev (3):
-  mm/gup: fix gup_fast with dynamic page table folding
-  mm: make pXd_addr_end() functions page-table entry aware
-  mm: make generic pXd_addr_end() macros inline functions
-
- arch/arm/include/asm/pgtable-2level.h    |  2 +-
- arch/arm/mm/idmap.c                      |  6 ++--
- arch/arm/mm/mmu.c                        |  8 ++---
- arch/arm64/kernel/hibernate.c            | 16 +++++----
- arch/arm64/kvm/mmu.c                     | 16 ++++-----
- arch/arm64/mm/kasan_init.c               |  8 ++---
- arch/arm64/mm/mmu.c                      | 25 +++++++-------
- arch/powerpc/mm/book3s64/radix_pgtable.c |  7 ++--
- arch/powerpc/mm/hugetlbpage.c            |  6 ++--
- arch/s390/include/asm/pgtable.h          | 42 ++++++++++++++++++++++++
- arch/s390/mm/page-states.c               |  8 ++---
- arch/s390/mm/pageattr.c                  |  8 ++---
- arch/s390/mm/vmem.c                      |  8 ++---
- arch/sparc/mm/hugetlbpage.c              |  6 ++--
- arch/um/kernel/tlb.c                     |  8 ++---
- arch/x86/mm/init_64.c                    | 15 ++++-----
- arch/x86/mm/kasan_init_64.c              | 16 ++++-----
- include/asm-generic/pgtable-nop4d.h      |  2 +-
- include/asm-generic/pgtable-nopmd.h      |  2 +-
- include/asm-generic/pgtable-nopud.h      |  2 +-
- include/linux/pgtable.h                  | 38 ++++++++++++---------
- mm/gup.c                                 |  8 ++---
- mm/ioremap.c                             |  8 ++---
- mm/kasan/init.c                          | 17 +++++-----
- mm/madvise.c                             |  4 +--
- mm/memory.c                              | 40 +++++++++++-----------
- mm/mlock.c                               | 18 +++++++---
- mm/mprotect.c                            |  8 ++---
- mm/pagewalk.c                            |  8 ++---
- mm/swapfile.c                            |  8 ++---
- mm/vmalloc.c                             | 16 ++++-----
- 31 files changed, 219 insertions(+), 165 deletions(-)
-
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index 67ebc22cf83d..d9e7d16c2263 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -656,31 +656,35 @@ static inline int arch_unmap_one(struct mm_struct *mm,
+  */
+ 
+ #ifndef pgd_addr_end
+-#define pgd_addr_end(pgd, addr, end)					\
+-({	unsigned long __boundary = ((addr) + PGDIR_SIZE) & PGDIR_MASK;	\
+-	(__boundary - 1 < (end) - 1)? __boundary: (end);		\
+-})
++#define pgd_addr_end pgd_addr_end
++static inline unsigned long pgd_addr_end(pgd_t pgd, unsigned long addr, unsigned long end)
++{	unsigned long __boundary = (addr + PGDIR_SIZE) & PGDIR_MASK;
++	return (__boundary - 1 < end - 1) ? __boundary : end;
++}
+ #endif
+ 
+ #ifndef p4d_addr_end
+-#define p4d_addr_end(p4d, addr, end)					\
+-({	unsigned long __boundary = ((addr) + P4D_SIZE) & P4D_MASK;	\
+-	(__boundary - 1 < (end) - 1)? __boundary: (end);		\
+-})
++#define p4d_addr_end p4d_addr_end
++static inline unsigned long p4d_addr_end(p4d_t p4d, unsigned long addr, unsigned long end)
++{	unsigned long __boundary = (addr + P4D_SIZE) & P4D_MASK;
++	return (__boundary - 1 < end - 1) ? __boundary : end;
++}
+ #endif
+ 
+ #ifndef pud_addr_end
+-#define pud_addr_end(pud, addr, end)					\
+-({	unsigned long __boundary = ((addr) + PUD_SIZE) & PUD_MASK;	\
+-	(__boundary - 1 < (end) - 1)? __boundary: (end);		\
+-})
++#define pud_addr_end pud_addr_end
++static inline unsigned long pud_addr_end(pud_t pud, unsigned long addr, unsigned long end)
++{	unsigned long __boundary = (addr + PUD_SIZE) & PUD_MASK;
++	return (__boundary - 1 < end - 1) ? __boundary : end;
++}
+ #endif
+ 
+ #ifndef pmd_addr_end
+-#define pmd_addr_end(pmd, addr, end)					\
+-({	unsigned long __boundary = ((addr) + PMD_SIZE) & PMD_MASK;	\
+-	(__boundary - 1 < (end) - 1)? __boundary: (end);		\
+-})
++#define pmd_addr_end pmd_addr_end
++static inline unsigned long pmd_addr_end(pmd_t pmd, unsigned long addr, unsigned long end)
++{	unsigned long __boundary = (addr + PMD_SIZE) & PMD_MASK;
++	return (__boundary - 1 < end - 1) ? __boundary : end;
++}
+ #endif
+ 
+ /*
 -- 
 2.17.1
 
