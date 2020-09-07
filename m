@@ -2,148 +2,119 @@ Return-Path: <SRS0=71DO=CQ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
+X-Spam-Status: No, score=-11.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 37C8EC43461
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:45:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E12E9C43461
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:46:57 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 03FED2087D
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:45:29 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B3F4D206B8
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:46:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729899AbgIGPoF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 7 Sep 2020 11:44:05 -0400
-Received: from mout.kundenserver.de ([212.227.17.24]:50997 "EHLO
+        id S1730136AbgIGPij (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Sep 2020 11:38:39 -0400
+Received: from mout.kundenserver.de ([212.227.17.13]:52977 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730150AbgIGPil (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2020 11:38:41 -0400
+        with ESMTP id S1730107AbgIGPh1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2020 11:37:27 -0400
 Received: from threadripper.lan ([149.172.98.151]) by mrelayeu.kundenserver.de
  (mreue109 [212.227.15.145]) with ESMTPA (Nemesis) id
- 1MJV9S-1jzqjP0Umm-00Jnof; Mon, 07 Sep 2020 17:38:07 +0200
+ 1MQMmF-1jtUy03FLN-00MIv2; Mon, 07 Sep 2020 17:37:13 +0200
 From:   Arnd Bergmann <arnd@arndb.de>
 To:     Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>, kernel@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linus.walleij@linaro.org, Arnd Bergmann <arnd@arndb.de>,
-        stable@vger.kernel.org, Mikael Pettersson <mikpe@it.uu.se>,
-        Russell King <rmk+kernel@arm.linux.org.uk>,
-        Russell King <linux@armlinux.org.uk>,
-        Christian Brauner <christian.brauner@ubuntu.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        linux-kernel@vger.kernel.org
-Subject: [PATCH 3/9] ARM: oabi-compat: add epoll_pwait handler
-Date:   Mon,  7 Sep 2020 17:36:44 +0200
-Message-Id: <20200907153701.2981205-4-arnd@arndb.de>
+        linus.walleij@linaro.org, Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 0/9] ARM: remove set_fs callers and implementation
+Date:   Mon,  7 Sep 2020 17:36:41 +0200
+Message-Id: <20200907153701.2981205-1-arnd@arndb.de>
 X-Mailer: git-send-email 2.27.0
-In-Reply-To: <20200907153701.2981205-1-arnd@arndb.de>
-References: <20200907153701.2981205-1-arnd@arndb.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-Provags-ID: V03:K1:mvJo34mtjWtAx5UFkxoUsY6BYLk5TxizfdfEI/T6x5LXUToj2Gs
- eq4jhvfQgCUKPTs9VI3GmZeo30Whz44Ox+rBSFU6/8DoOpbXTNq3BKOS7KvtD7vitnLMev4
- ZFISkwZY/310lkDvmmlXoZ8nLNeLLkmUhcFehyL7d6y1wwXDF0+lOSnnoh0frh3q4KA+91I
- Lb4TvMtrLPcnWR4BAJPaQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:gCeswl9BfCM=:8DnlAUEq/JrLIRCAQnq+4c
- heUMcytFGL9tiFJ1xdsFSFtVUhbROAfIR6rz5QWmrlX/3jRXPCNlSpz54jhN+BO26VW+BgXX4
- sEajACaStSEJHDlxXlIftijP6E2P1WvTsh4QJpXE0NXaY7EqkQSJTN8eKqm95HRCAKs8JtXNn
- QIqYB2FoU8lTDlAmZceNhMALXWsqt1acoJMqa4SLBSLs/Oc0VIjw92LA4Y71Z5BRtV4QyX9Q9
- LK7V1PUXYbDpHBtekYajXnJb5MiV5Vr6g0xfZBzTZRgQqgbGskNa0zWu72ME8DN5I3yGd4NLk
- faAv2ObSfUAJO/SPcKKVSuca2j1J1Rt70kYxlAYxHhqE+RrHnfH4i1RP5rzkdI7D/OHmQnLAI
- Ohtt/1M7hr74cjMJHnkMB6mfI0viumKX3SZPeJwT1XAzTpJOYgYyd3DAhIx2hnzw+IKK/7P+5
- 5OyThGF+d2nW42AyaJLWVvWHeQ4l9VmypwDGz1rH4GhoUH/OwhkzDgOWDDHvL//VYqg9oro2W
- PXL4keqq9nxuAolkORV0VIoZEeZIoIYRHKiLDXBkSEN9jo6ULRdgjtos9M23J7ieZ9jNoRbVk
- q54xAsqfU3vb6T5eX9rD6xUaYqcCoMrsqlv8lvRWAsRFBDy5YSuC5dschGvUASIVSTVr6pLEF
- w2qHMs4qdTq7B/85diKoKdCjBAr0L+wotV6N/fM+LfIMgGy+u/XAdCOQP/wk0UHjlazDk4p5j
- cfqs5phJHeJ50WwvwITuO9J38rpQLs8qdm5dPb1fu50nskyoGxHYfJNM6Pwd2Qu/GD8Eyo479
- M4npqU27DepXRo8YACxDghI5/x51i6lxG89ailOeiMPg84cUKupPvgidmWDMN9W+EPw++Jp
+X-Provags-ID: V03:K1:VjRIHVKsrJ2cp1DZW/WWar2/93OzLGw+aSFBTMZna85P5K77sAZ
+ Xch35nM3blzVomWJfJD7n6iXwAEm8E3HwandaTb2+6zBSlwd2VeBUH0fqENpQrUh0XtfTfD
+ qfbOFRC61hirr7cOpMwF9FBayHhHu8B/OOTAIN6DrhaoGavRLobM+MTxqFg9mYvIyrsQcDq
+ kSKFtTEpMK0s/MdO16Cww==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:ndcJ4md6HKs=:k8lJJzPq5Q6bCc/q2u0d/F
+ gOihSTsr/6SWTxmx92Lqbx6XJ0C8SqnQaEKKMCdZipxiRx6pDNivu2OSYx4pMUqyXtyfPEyDv
+ a3mZq77kVBEBmnxZgwt6qPIaangNt2U0H7WelIhHbvdOareFCKqc1y0Lrhob7/FwUwi6JimyP
+ pYcHqzyZ0QE2ninttJEXc523JmcGvUiwJFSXUgW6uEBn7e+x+RqQjgyAFiRIgdXoe29Sgm0A1
+ Vlu0qRlraIXFOzWYuqGdcoilXiJG8O6pAI6MflhHbVI57HHQ2+fdKhHJzx+Fy3BaMadwM5LmI
+ c3YQFGJc9T0BGZWjrrOvZiBinPmrdcUaIpEpZJCWFPJi3y3KiPunrfCYK+zgGCqK31MUhaQ2o
+ lrVVat8P5A/lycgKPZhAy9ah/ACyIJcrB4VjS9NPS7OrT76q6fsSfQtCsKWZ6Ez0I7MHy7oeL
+ wh+ZAEig2auAChonuKGjg5n+a37AZWw8D3GzwUATHwXqgQHqiXdLRP480NT8okpx9RYMMSaiw
+ zxXd5wJo6STcvilW/xQv17QEhfmdHeD5/bBVc/logNrrB6ELLkaJ+ExWid1aaSQIMZOy+A/4W
+ h8hpT9uUZZ0+8AbEn3VqplebZDQuP/pjDN2n9aM5v1sbpO+FJnf8UkF9Aqq2hXvL0dsEiC/pq
+ 3xF7DWf8d20TCwjAxPeDcyMDDAXeno1JtEhRVaNEVBHqC43mTqtWIJHNFAAgle/Qt0mU8v52b
+ LWAKqRWaF5awi9zIMgGvMN4Up0FNcRYj6KrkhnJ0Mp7mBcBbLOHmjkTCyC5lVRZ5NK/OsEQZ3
+ +gkKrgZF+JQuGPT90Ylv+P3Px6XS7DQfYX527LIkEbErHEr4KwksdTq46L4E7UN/9R8XNB2
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The epoll_wait() syscall has a special version for OABI compat
-mode to convert the arguments to the EABI structure layout
-of the kernel. However, the later epoll_pwait() syscall was
-added in arch/arm in linux-2.6.32 without this conversion.
+Hi Christoph, Russell,
 
-Use the same kind of handler for both.
+As promised, here is my series to remove set_fs() from arch/arm based
+on the architecture-independent patches.
 
-Fixes: 369842658a36 ("ARM: 5677/1: ARM support for TIF_RESTORE_SIGMASK/pselect6/ppoll/epoll_pwait")
-Cc: stable@vger.kernel.org
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- arch/arm/kernel/sys_oabi-compat.c | 35 ++++++++++++++++++++++++++++---
- arch/arm/tools/syscall.tbl        |  2 +-
- 2 files changed, 33 insertions(+), 4 deletions(-)
+I have tested the oabi-compat changes using the LTP tests for the three
+modified syscalls using an Armv7 kernel and a Debian 5 OABI user space,
+and I have lightly tested the get_kernel_nofault infrastructure by
+loading the test_lockup.ko module after setting CONFIG_DEBUG_SPINLOCK.
 
-diff --git a/arch/arm/kernel/sys_oabi-compat.c b/arch/arm/kernel/sys_oabi-compat.c
-index 0203e545bbc8..2ce3e8c6ca91 100644
---- a/arch/arm/kernel/sys_oabi-compat.c
-+++ b/arch/arm/kernel/sys_oabi-compat.c
-@@ -264,9 +264,8 @@ asmlinkage long sys_oabi_epoll_ctl(int epfd, int op, int fd,
- 	return do_epoll_ctl(epfd, op, fd, &kernel, false);
- }
- 
--asmlinkage long sys_oabi_epoll_wait(int epfd,
--				    struct oabi_epoll_event __user *events,
--				    int maxevents, int timeout)
-+static long do_oabi_epoll_wait(int epfd, struct oabi_epoll_event __user *events,
-+			       int maxevents, int timeout)
- {
- 	struct epoll_event *kbuf;
- 	struct oabi_epoll_event e;
-@@ -299,6 +298,36 @@ asmlinkage long sys_oabi_epoll_wait(int epfd,
- 	return err ? -EFAULT : ret;
- }
- 
-+SYSCALL_DEFINE4(oabi_epoll_wait, int, epfd, struct oabi_epoll_event __user *, events,
-+		int, maxevents, int, timeout)
-+{
-+	return do_oabi_epoll_wait(epfd, events, maxevents, timeout);
-+}
-+
-+/*
-+ * Implement the event wait interface for the eventpoll file. It is the kernel
-+ * part of the user space epoll_pwait(2).
-+ */
-+SYSCALL_DEFINE6(oabi_epoll_pwait, int, epfd, struct oabi_epoll_event __user *, events,
-+		int, maxevents, int, timeout, const sigset_t __user *, sigmask,
-+		size_t, sigsetsize)
-+{
-+	int error;
-+
-+	/*
-+	 * If the caller wants a certain signal mask to be set during the wait,
-+	 * we apply it here.
-+	 */
-+	error = set_user_sigmask(sigmask, sigsetsize);
-+	if (error)
-+		return error;
-+
-+	error = do_oabi_epoll_wait(epfd, events, maxevents, timeout);
-+	restore_saved_sigmask_unless(error == -EINTR);
-+
-+	return error;
-+}
-+
- struct oabi_sembuf {
- 	unsigned short	sem_num;
- 	short		sem_op;
-diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
-index 171077cbf419..39a24bee7df8 100644
---- a/arch/arm/tools/syscall.tbl
-+++ b/arch/arm/tools/syscall.tbl
-@@ -360,7 +360,7 @@
- 343	common	vmsplice		sys_vmsplice
- 344	common	move_pages		sys_move_pages
- 345	common	getcpu			sys_getcpu
--346	common	epoll_pwait		sys_epoll_pwait
-+346	common	epoll_pwait		sys_epoll_pwait		sys_oabi_epoll_pwait
- 347	common	kexec_load		sys_kexec_load
- 348	common	utimensat		sys_utimensat_time32
- 349	common	signalfd		sys_signalfd
+Let me know if there is a more thorough test I should try.
+
+Overall there is a bit of ugliness getting introduced in the oabi compat
+code and for adding another code path for TUSER(). If anyone has a better
+idea, I can try out a different way.
+
+I assume these patches can go through Al's tree along with the
+corresponding changes for other architectures, once Russell is happy
+with them.
+
+Please review.
+
+     Arnd
+
+[1] https://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git/log/?h=arm-kill-set_fs
+
+Arnd Bergmann (9):
+  mm/maccess: fix unaligned copy_{from,to}_kernel_nofault
+  ARM: traps: use get_kernel_nofault instead of set_fs()
+  ARM: oabi-compat: add epoll_pwait handler
+  ARM: syscall: always store thread_info->syscall
+  ARM: oabi-compat: rework epoll_wait/epoll_pwait emulation
+  ARM: oabi-compat: rework sys_semtimedop emulation
+  ARM: oabi-compat: rework fcntl64() emulation
+  ARM: uaccess: add __{get,put}_kernel_nofault
+  ARM: uaccess: remove set_fs() implementation
+
+ arch/arm/Kconfig                   |   1 -
+ arch/arm/include/asm/ptrace.h      |   1 -
+ arch/arm/include/asm/syscall.h     |  14 +++
+ arch/arm/include/asm/thread_info.h |   4 -
+ arch/arm/include/asm/uaccess-asm.h |   6 -
+ arch/arm/include/asm/uaccess.h     | 169 ++++++++++++++-------------
+ arch/arm/kernel/asm-offsets.c      |   3 +-
+ arch/arm/kernel/entry-common.S     |  16 +--
+ arch/arm/kernel/process.c          |   7 +-
+ arch/arm/kernel/ptrace.c           |   4 +-
+ arch/arm/kernel/signal.c           |   8 --
+ arch/arm/kernel/sys_oabi-compat.c  | 180 ++++++++++++++++-------------
+ arch/arm/kernel/traps.c            |  69 +++++------
+ arch/arm/lib/copy_from_user.S      |   3 +-
+ arch/arm/lib/copy_to_user.S        |   3 +-
+ arch/arm/tools/syscall.tbl         |   2 +-
+ fs/eventpoll.c                     |   5 +-
+ include/linux/eventpoll.h          |  16 +++
+ include/linux/syscalls.h           |   2 +
+ ipc/sem.c                          |  84 +++++++++-----
+ mm/maccess.c                       |  28 ++++-
+ 21 files changed, 338 insertions(+), 287 deletions(-)
+
 -- 
 2.27.0
 
