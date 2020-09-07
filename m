@@ -7,123 +7,156 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D96D9C433E2
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:39:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3321EC2BB84
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:40:58 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A498F21473
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:39:21 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E92112078E
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:40:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730107AbgIGPjS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 7 Sep 2020 11:39:18 -0400
-Received: from mout.kundenserver.de ([217.72.192.73]:56055 "EHLO
+        id S1730202AbgIGPk1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Sep 2020 11:40:27 -0400
+Received: from mout.kundenserver.de ([212.227.17.24]:51457 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730072AbgIGPil (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2020 11:38:41 -0400
+        with ESMTP id S1730183AbgIGPim (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2020 11:38:42 -0400
 Received: from threadripper.lan ([149.172.98.151]) by mrelayeu.kundenserver.de
  (mreue109 [212.227.15.145]) with ESMTPA (Nemesis) id
- 1MBltK-1kPFtF1hMq-00CCY9; Mon, 07 Sep 2020 17:37:29 +0200
+ 1MDQqe-1kMUkb2t1S-00AYvP; Mon, 07 Sep 2020 17:38:31 +0200
 From:   Arnd Bergmann <arnd@arndb.de>
 To:     Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>, kernel@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linus.walleij@linaro.org, Arnd Bergmann <arnd@arndb.de>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Daniel Borkmann <daniel@iogearbox.net>,
-        Alexei Starovoitov <ast@kernel.org>, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org
-Subject: [PATCH 1/9] mm/maccess: fix unaligned copy_{from,to}_kernel_nofault
-Date:   Mon,  7 Sep 2020 17:36:42 +0200
-Message-Id: <20200907153701.2981205-2-arnd@arndb.de>
+        Russell King <linux@armlinux.org.uk>,
+        Oleg Nesterov <oleg@redhat.com>, linux-kernel@vger.kernel.org
+Subject: [PATCH 4/9] ARM: syscall: always store thread_info->syscall
+Date:   Mon,  7 Sep 2020 17:36:45 +0200
+Message-Id: <20200907153701.2981205-5-arnd@arndb.de>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20200907153701.2981205-1-arnd@arndb.de>
 References: <20200907153701.2981205-1-arnd@arndb.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-Provags-ID: V03:K1:31/POUWQp1frtERuDjS9nzjZRuMNBQ7Hl3VxeiobYDrtzHzJ2GM
- 9wXwMRq/o9LvfehtVxWSMILv/LQI5+kUntODj1eCkVxeCYq5Lrz/gGasQFrjKx+LO0h/Qf6
- pjokHD1+IYoLYtmU2LohgFAguxtZa3LdkAiQyIOU8lZ6+niqwzeZQNVYkR+L7T4UuZdL8Zf
- gsLsiO7j5MDIewk++Z/ow==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:aItepcr89DA=:aiAcRLMkq0gHgO7TDTGkcb
- uZEMfKxb/i/P9Ubbqltgx+eWjZotocAHZ6qMJ6MtcmtFoSW/uCpn3Zs8e9ruuMRzn1XGLJk1g
- oxfQ/Gw5UpJhnV0SR73Ld0iVUA5Q2M8lo9SD/j1cf5y9wQ4iJ34KKpBZLkzGMwnuxYe6/X3rV
- DEylejz1mpw7B4lGzkTN891jykp3fRJHx9pw4/CsgeTQntVMBFyMzmNurX9MOXelYvtdc2jLu
- e8acewZxxgXxvvSrl2kVxbyg5PfHhc7ShUvPVErZFaQxlDipp4PvwR0eHB/2kEiS3NZc/27hU
- SFjh94GcA8w+/n4sEnYYDCAaML4bjRvTkWKQf4nGnepuRWYswuBcf4xNhSFdk8KsWQnXt65D8
- UNfjEVJCc0Wd16VxUE1hDSX4TzHlhoRwgaKJH6PudhgLkDQqCwVLjewc4cc+5gFX+cjhbphQo
- P/Er+fCNyKiuGLgO7cMIr0z/FXBjHXiK2OCJE5dVyaBJqusIvJblWEaKBKkSa5c70fTkBd3GH
- OG0LoaYDZ3mK/Yy4y66vHYgs8tf3Y/heXTXtFaRgcctWAYHLcvBj7rQX/PhFCnuhepHUC0GbE
- WUrtPFQfdltMfXembr86ptRtpjfcfwKhLVZ23UA3kIxcDrGRjet8CxNdQ+oTD3X/jLx0JTVf0
- folBd4CNWLTkLl6F+jFElPI9kgbia3Vqr3sMU8qOTKzdHw7kl5z93oUwI0fIPhuwMCi7xGOkm
- gnWLik9otETPdKt4WZxfP++KnRgPaaIVeGb3qjiOv2I5lk1qWl/AaISjzVPgpqAvCXJyYkOtc
- zovMuSd2ZTY1/lfXKqRhtcE0uDKI5q7wwwW+/00cUI/XyCFxTYGFzh6EryfpzIvgexCu69y
+X-Provags-ID: V03:K1:uU+TecuTqu0R9F35nqN09r3ArM9MaO4zXOfC9fDMIDMEVEKC175
+ eHZUfwQdTB/7fFkfB+W0xXhaL/XvLVtfh3ZII8xq2BsysD5q1nM3wenG7EjjevHA85Ih0AQ
+ mlXzjl7IH/NziTpdbHjgoDEHpe7jzEJLgqK6PF4xOwmTCdV9zJyccr74NZVuFw3sxfvZd7S
+ 1XP2KfBS6lM4e4HWdXgDg==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:Z/SwDeuaCd0=:/46zD3F6r+k7KbKrKJm1ST
+ V4MN6RGZ+H8tKnSPMQ+oAHnTre6MUpHwHidwDxZ7ty7CnjAPZxSZYfVivHg3KZFy7A/x5nMSE
+ sXprY3IsstN25hPLLiGjkm2HlrJt0i67Dq/9Xa9T6FVkZRs0oMgjT8NW6Uh4Ddq4PO3Hmnr0p
+ V1yS0OD8FAkDDJ2FmZIUTCDoQ6bq8vDbzTUV0x5MkULGCQRP8G2JowviiZIBEl14AtOX7moWs
+ Yg0TrDqtfQzAcBZ9kKD1HOuailFV/WXNLQpfYBxCMHR7D3t/qWjlOy002kCPtCN2BP+KeQL07
+ Jpr/dKZAKy+TRbTicE4OM/jNBu5qMlxQo6Il4OkBp/UqOH6qEBfggVcyXeyw0PgtGIXBFndA2
+ xXNFHYa87PqLRbeE3tafQLd76jeYC9eB+s0+Zxk8dwPaYYDi2YO+vVzsZ2ZxZWIx8uMZu3LHJ
+ jZqbY4rkdNYyuAe09LIQeDPHvXLn2refM0ZgHYHjSmvyQIpYPiaKNLeeCgEtVS03UZdtLfHtC
+ hTAYWDucfXShXAR+cHKaE0M96whTL+Q14f22PHX0E8VVOIxoqrhwebvpc3MfZ2ovrYW0YGK+q
+ TIjxM1ZdJMnbbWaXKJ8aEp+I8iumE+pV7jlMjAi3pkS62KvSO0TkAT27iW3rKBRFSFjmdD22B
+ aRFUozwW4aXk+RsX6dxUObqOIQXGsNwpSnkSOoIDmqR0wiEOQBMzznBi5Rs+wpWVDeVPY82qN
+ D/sPt8sRdQRhxegfrLVm3g2NzxwJh09lh3qXuFCI/SUKoJ4UkbI9bOBygLAbDzomJR1gZL4va
+ Wc1hhmPUEokG2APXShmXD//MqjIAM9d5dcAYfSF77VJ/zvGS5FIC6NCQ75rzLAynBQaNqHs
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On machines such as ARMv5 that trap unaligned accesses, these
-two functions can be slow when each access needs to be emulated,
-or they might not work at all.
+The system call number is used in a a couple of places, in particular
+ptrace, seccomp and /proc/<pid>/syscall.
 
-Change them so that each loop is only used when both the src
-and dst pointers are naturally aligned.
+The last one apparently never worked reliably on ARM for tasks
+that are not currently getting traced.
+
+Storing the syscall number in the normal entry path makes it work,
+as well as allowing us to see if the current system call is for
+OABI compat mode, which is the next thing I want to hook into.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- mm/maccess.c | 28 ++++++++++++++++++++++------
- 1 file changed, 22 insertions(+), 6 deletions(-)
+ arch/arm/include/asm/syscall.h | 3 +++
+ arch/arm/kernel/asm-offsets.c  | 1 +
+ arch/arm/kernel/entry-common.S | 7 +++++--
+ arch/arm/kernel/ptrace.c       | 4 ++--
+ 4 files changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/mm/maccess.c b/mm/maccess.c
-index 3bd70405f2d8..d3f1a1f0b1c1 100644
---- a/mm/maccess.c
-+++ b/mm/maccess.c
-@@ -24,13 +24,21 @@ bool __weak copy_from_kernel_nofault_allowed(const void *unsafe_src,
- 
- long copy_from_kernel_nofault(void *dst, const void *src, size_t size)
+diff --git a/arch/arm/include/asm/syscall.h b/arch/arm/include/asm/syscall.h
+index fd02761ba06c..ff6cc365eaf7 100644
+--- a/arch/arm/include/asm/syscall.h
++++ b/arch/arm/include/asm/syscall.h
+@@ -22,6 +22,9 @@ extern const unsigned long sys_call_table[];
+ static inline int syscall_get_nr(struct task_struct *task,
+ 				 struct pt_regs *regs)
  {
-+	unsigned long align = 0;
++	if (IS_ENABLED(CONFIG_OABI_COMPAT))
++		return task_thread_info(task)->syscall & ~__NR_OABI_SYSCALL_BASE;
 +
-+	if (!IS_ENABLED(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS))
-+		align = (unsigned long)dst | (unsigned long)src;
-+
- 	if (!copy_from_kernel_nofault_allowed(src, size))
- 		return -ERANGE;
+ 	return task_thread_info(task)->syscall;
+ }
  
- 	pagefault_disable();
--	copy_from_kernel_nofault_loop(dst, src, size, u64, Efault);
--	copy_from_kernel_nofault_loop(dst, src, size, u32, Efault);
--	copy_from_kernel_nofault_loop(dst, src, size, u16, Efault);
-+	if (!(align & 7))
-+		copy_from_kernel_nofault_loop(dst, src, size, u64, Efault);
-+	if (!(align & 3))
-+		copy_from_kernel_nofault_loop(dst, src, size, u32, Efault);
-+	if (!(align & 1))
-+		copy_from_kernel_nofault_loop(dst, src, size, u16, Efault);
- 	copy_from_kernel_nofault_loop(dst, src, size, u8, Efault);
- 	pagefault_enable();
- 	return 0;
-@@ -50,10 +58,18 @@ EXPORT_SYMBOL_GPL(copy_from_kernel_nofault);
+diff --git a/arch/arm/kernel/asm-offsets.c b/arch/arm/kernel/asm-offsets.c
+index a1570c8bab25..97af6735172b 100644
+--- a/arch/arm/kernel/asm-offsets.c
++++ b/arch/arm/kernel/asm-offsets.c
+@@ -46,6 +46,7 @@ int main(void)
+   DEFINE(TI_CPU,		offsetof(struct thread_info, cpu));
+   DEFINE(TI_CPU_DOMAIN,		offsetof(struct thread_info, cpu_domain));
+   DEFINE(TI_CPU_SAVE,		offsetof(struct thread_info, cpu_context));
++  DEFINE(TI_SYSCALL,		offsetof(struct thread_info, syscall));
+   DEFINE(TI_USED_CP,		offsetof(struct thread_info, used_cp));
+   DEFINE(TI_TP_VALUE,		offsetof(struct thread_info, tp_value));
+   DEFINE(TI_FPSTATE,		offsetof(struct thread_info, fpstate));
+diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+index 271cb8a1eba1..2ea3a1989fed 100644
+--- a/arch/arm/kernel/entry-common.S
++++ b/arch/arm/kernel/entry-common.S
+@@ -223,6 +223,7 @@ ENTRY(vector_swi)
+ 	/* saved_psr and saved_pc are now dead */
  
- long copy_to_kernel_nofault(void *dst, const void *src, size_t size)
+ 	uaccess_disable tbl
++	get_thread_info tsk
+ 
+ 	adr	tbl, sys_call_table		@ load syscall table pointer
+ 
+@@ -234,13 +235,16 @@ ENTRY(vector_swi)
+ 	 * get the old ABI syscall table address.
+ 	 */
+ 	bics	r10, r10, #0xff000000
++	str	r10, [tsk, #TI_SYSCALL]
+ 	eorne	scno, r10, #__NR_OABI_SYSCALL_BASE
+ 	ldrne	tbl, =sys_oabi_call_table
+ #elif !defined(CONFIG_AEABI)
+ 	bic	scno, scno, #0xff000000		@ mask off SWI op-code
++	str	scno, [tsk, #TI_SYSCALL]
+ 	eor	scno, scno, #__NR_SYSCALL_BASE	@ check OS number
++#else
++	str	scno, [tsk, #TI_SYSCALL]
+ #endif
+-	get_thread_info tsk
+ 	/*
+ 	 * Reload the registers that may have been corrupted on entry to
+ 	 * the syscall assembly (by tracing or context tracking.)
+@@ -285,7 +289,6 @@ ENDPROC(vector_swi)
+ 	 * context switches, and waiting for our parent to respond.
+ 	 */
+ __sys_trace:
+-	mov	r1, scno
+ 	add	r0, sp, #S_OFF
+ 	bl	syscall_trace_enter
+ 	mov	scno, r0
+diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
+index 2771e682220b..252060663b00 100644
+--- a/arch/arm/kernel/ptrace.c
++++ b/arch/arm/kernel/ptrace.c
+@@ -885,9 +885,9 @@ static void tracehook_report_syscall(struct pt_regs *regs,
+ 	regs->ARM_ip = ip;
+ }
+ 
+-asmlinkage int syscall_trace_enter(struct pt_regs *regs, int scno)
++asmlinkage int syscall_trace_enter(struct pt_regs *regs)
  {
-+	unsigned long align = 0;
-+
-+	if (!IS_ENABLED(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS))
-+		align = (unsigned long)dst | (unsigned long)src;
-+
- 	pagefault_disable();
--	copy_to_kernel_nofault_loop(dst, src, size, u64, Efault);
--	copy_to_kernel_nofault_loop(dst, src, size, u32, Efault);
--	copy_to_kernel_nofault_loop(dst, src, size, u16, Efault);
-+	if (!(align & 7))
-+		copy_to_kernel_nofault_loop(dst, src, size, u64, Efault);
-+	if (!(align & 3))
-+		copy_to_kernel_nofault_loop(dst, src, size, u32, Efault);
-+	if (!(align & 1))
-+		copy_to_kernel_nofault_loop(dst, src, size, u16, Efault);
- 	copy_to_kernel_nofault_loop(dst, src, size, u8, Efault);
- 	pagefault_enable();
- 	return 0;
+-	current_thread_info()->syscall = scno;
++	int scno;
+ 
+ 	if (test_thread_flag(TIF_SYSCALL_TRACE))
+ 		tracehook_report_syscall(regs, PTRACE_SYSCALL_ENTER);
 -- 
 2.27.0
 
