@@ -2,243 +2,128 @@ Return-Path: <SRS0=71DO=CQ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E0A29C433E2
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:31:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D96D9C433E2
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:39:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A400A21481
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:31:21 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1599492681;
-	bh=zYJev9ozBZZYWCdZliC0NJ2UTR7Xp72Zu3TKpz48plc=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc:List-ID:From;
-	b=PZBGyyr6LLZ3UPStQTB4wvPGS6o359szCe+Yb+f/oiFtTGiWOMgiEc7+Alnym1fOj
-	 1lXLq+/PHMDgbB0u2cV3LrfwmNRxhw1xGomJczdddd+4BJdxl1QjxD77Wm2AE2wMaW
-	 6ok7MnOKsE2QjTkVy1ok0Y/iTnpP6WR/uo+EsgiY=
+	by mail.kernel.org (Postfix) with ESMTP id A498F21473
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:39:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730125AbgIGPbR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 7 Sep 2020 11:31:17 -0400
-Received: from conssluserg-03.nifty.com ([210.131.2.82]:42350 "EHLO
-        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730126AbgIGPbN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2020 11:31:13 -0400
-Received: from mail-pl1-f170.google.com (mail-pl1-f170.google.com [209.85.214.170]) (authenticated)
-        by conssluserg-03.nifty.com with ESMTP id 087FUq3p028956;
-        Tue, 8 Sep 2020 00:30:52 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conssluserg-03.nifty.com 087FUq3p028956
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1599492652;
-        bh=LaAhPv7xf0fzyzAeNRC0oSM953AkWxA0K40O3j1oCJU=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=Yna4t3lcBn3ihm+SsMQJlSW4XLVip7NZS99xKV6wjegTr21Y5C+6/U7bVUwTlcnB3
-         dAmf1vUY7jje4VMpEF5B9l3HdyZldxrn5AXwW+dJOhdygQuD1gpo1B7WlJLi4042rB
-         wpL8A6q4haTi7v3IdY0Yz7k421Qa5DJ7HjSymgZP9UOkdS5L+VUN1HdPhWxO0fbpqq
-         sqd7DXuvbF/TUg/5jmbJC5BH0SP6sb2Rjrmz2EPA8uMz+CX6itEvKBHdMkyZwmZ2lm
-         UGnHdDg5OmpNRGnyEq7vt5ZnO4AVkuczrZKm7pug4SY+XcKT7YxjN66TWcAmcWHrm9
-         GYuGjQJXsXUnw==
-X-Nifty-SrcIP: [209.85.214.170]
-Received: by mail-pl1-f170.google.com with SMTP id bh1so4594746plb.12;
-        Mon, 07 Sep 2020 08:30:52 -0700 (PDT)
-X-Gm-Message-State: AOAM532PME+KZv2QiB8Ls5zr5M9hnDVaTJwUVXix08jd/4jQLwbkSBSD
-        UK86K9ig84qWFdqTxYGRAGYYKMwV2F1awyonCsg=
-X-Google-Smtp-Source: ABdhPJyEfw+RTulZSFTnkTeBt2WLDcgnnJBCvvqMaD56gohQ35yMLXLHW+vK/ERS8QsJRkz5skzAxWakdk+WfgH2rog=
-X-Received: by 2002:a17:90b:208:: with SMTP id fy8mr4808973pjb.153.1599492651374;
- Mon, 07 Sep 2020 08:30:51 -0700 (PDT)
+        id S1730107AbgIGPjS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Sep 2020 11:39:18 -0400
+Received: from mout.kundenserver.de ([217.72.192.73]:56055 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730072AbgIGPil (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2020 11:38:41 -0400
+Received: from threadripper.lan ([149.172.98.151]) by mrelayeu.kundenserver.de
+ (mreue109 [212.227.15.145]) with ESMTPA (Nemesis) id
+ 1MBltK-1kPFtF1hMq-00CCY9; Mon, 07 Sep 2020 17:37:29 +0200
+From:   Arnd Bergmann <arnd@arndb.de>
+To:     Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>
+Cc:     Alexander Viro <viro@zeniv.linux.org.uk>, kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linus.walleij@linaro.org, Arnd Bergmann <arnd@arndb.de>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Daniel Borkmann <daniel@iogearbox.net>,
+        Alexei Starovoitov <ast@kernel.org>, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org
+Subject: [PATCH 1/9] mm/maccess: fix unaligned copy_{from,to}_kernel_nofault
+Date:   Mon,  7 Sep 2020 17:36:42 +0200
+Message-Id: <20200907153701.2981205-2-arnd@arndb.de>
+X-Mailer: git-send-email 2.27.0
+In-Reply-To: <20200907153701.2981205-1-arnd@arndb.de>
+References: <20200907153701.2981205-1-arnd@arndb.de>
 MIME-Version: 1.0
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200903203053.3411268-1-samitolvanen@google.com> <20200903203053.3411268-10-samitolvanen@google.com>
-In-Reply-To: <20200903203053.3411268-10-samitolvanen@google.com>
-From:   Masahiro Yamada <masahiroy@kernel.org>
-Date:   Tue, 8 Sep 2020 00:30:14 +0900
-X-Gmail-Original-Message-ID: <CAK7LNAR7SbBPz06s5Gf2d+zry+Px1=jcUrC9c=_zQiCJLttY3A@mail.gmail.com>
-Message-ID: <CAK7LNAR7SbBPz06s5Gf2d+zry+Px1=jcUrC9c=_zQiCJLttY3A@mail.gmail.com>
-Subject: Re: [PATCH v2 09/28] kbuild: add support for Clang LTO
-To:     Sami Tolvanen <samitolvanen@google.com>
-Cc:     Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        clang-built-linux <clang-built-linux@googlegroups.com>,
-        Kernel Hardening <kernel-hardening@lists.openwall.com>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        linux-arm-kernel <linux-arm-kernel@lists.infradead.org>,
-        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+X-Provags-ID: V03:K1:31/POUWQp1frtERuDjS9nzjZRuMNBQ7Hl3VxeiobYDrtzHzJ2GM
+ 9wXwMRq/o9LvfehtVxWSMILv/LQI5+kUntODj1eCkVxeCYq5Lrz/gGasQFrjKx+LO0h/Qf6
+ pjokHD1+IYoLYtmU2LohgFAguxtZa3LdkAiQyIOU8lZ6+niqwzeZQNVYkR+L7T4UuZdL8Zf
+ gsLsiO7j5MDIewk++Z/ow==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:aItepcr89DA=:aiAcRLMkq0gHgO7TDTGkcb
+ uZEMfKxb/i/P9Ubbqltgx+eWjZotocAHZ6qMJ6MtcmtFoSW/uCpn3Zs8e9ruuMRzn1XGLJk1g
+ oxfQ/Gw5UpJhnV0SR73Ld0iVUA5Q2M8lo9SD/j1cf5y9wQ4iJ34KKpBZLkzGMwnuxYe6/X3rV
+ DEylejz1mpw7B4lGzkTN891jykp3fRJHx9pw4/CsgeTQntVMBFyMzmNurX9MOXelYvtdc2jLu
+ e8acewZxxgXxvvSrl2kVxbyg5PfHhc7ShUvPVErZFaQxlDipp4PvwR0eHB/2kEiS3NZc/27hU
+ SFjh94GcA8w+/n4sEnYYDCAaML4bjRvTkWKQf4nGnepuRWYswuBcf4xNhSFdk8KsWQnXt65D8
+ UNfjEVJCc0Wd16VxUE1hDSX4TzHlhoRwgaKJH6PudhgLkDQqCwVLjewc4cc+5gFX+cjhbphQo
+ P/Er+fCNyKiuGLgO7cMIr0z/FXBjHXiK2OCJE5dVyaBJqusIvJblWEaKBKkSa5c70fTkBd3GH
+ OG0LoaYDZ3mK/Yy4y66vHYgs8tf3Y/heXTXtFaRgcctWAYHLcvBj7rQX/PhFCnuhepHUC0GbE
+ WUrtPFQfdltMfXembr86ptRtpjfcfwKhLVZ23UA3kIxcDrGRjet8CxNdQ+oTD3X/jLx0JTVf0
+ folBd4CNWLTkLl6F+jFElPI9kgbia3Vqr3sMU8qOTKzdHw7kl5z93oUwI0fIPhuwMCi7xGOkm
+ gnWLik9otETPdKt4WZxfP++KnRgPaaIVeGb3qjiOv2I5lk1qWl/AaISjzVPgpqAvCXJyYkOtc
+ zovMuSd2ZTY1/lfXKqRhtcE0uDKI5q7wwwW+/00cUI/XyCFxTYGFzh6EryfpzIvgexCu69y
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Sep 4, 2020 at 5:31 AM Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> This change adds build system support for Clang's Link Time
-> Optimization (LTO). With -flto, instead of ELF object files, Clang
-> produces LLVM bitcode, which is compiled into native code at link
-> time, allowing the final binary to be optimized globally. For more
-> details, see:
->
->   https://llvm.org/docs/LinkTimeOptimization.html
->
-> The Kconfig option CONFIG_LTO_CLANG is implemented as a choice,
-> which defaults to LTO being disabled. To use LTO, the architecture
-> must select ARCH_SUPPORTS_LTO_CLANG and support:
->
->   - compiling with Clang,
->   - compiling inline assembly with Clang's integrated assembler,
->   - and linking with LLD.
->
-> While using full LTO results in the best runtime performance, the
-> compilation is not scalable in time or memory. CONFIG_THINLTO
-> enables ThinLTO, which allows parallel optimization and faster
-> incremental builds. ThinLTO is used by default if the architecture
-> also selects ARCH_SUPPORTS_THINLTO:
->
->   https://clang.llvm.org/docs/ThinLTO.html
->
-> To enable LTO, LLVM tools must be used to handle bitcode files. The
-> easiest way is to pass the LLVM=1 option to make:
->
->   $ make LLVM=1 defconfig
->   $ scripts/config -e LTO_CLANG
->   $ make LLVM=1
->
-> Alternatively, at least the following LLVM tools must be used:
->
->   CC=clang LD=ld.lld AR=llvm-ar NM=llvm-nm
->
-> To prepare for LTO support with other compilers, common parts are
-> gated behind the CONFIG_LTO option, and LTO can be disabled for
-> specific files by filtering out CC_FLAGS_LTO.
->
-> Note that support for DYNAMIC_FTRACE and MODVERSIONS are added in
-> follow-up patches.
->
-> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-> ---
->  Makefile                          | 18 +++++++-
->  arch/Kconfig                      | 68 +++++++++++++++++++++++++++++++
->  include/asm-generic/vmlinux.lds.h | 11 +++--
->  scripts/Makefile.build            |  9 +++-
->  scripts/Makefile.modfinal         |  9 +++-
->  scripts/Makefile.modpost          | 24 ++++++++++-
->  scripts/link-vmlinux.sh           | 32 +++++++++++----
->  7 files changed, 154 insertions(+), 17 deletions(-)
+On machines such as ARMv5 that trap unaligned accesses, these
+two functions can be slow when each access needs to be emulated,
+or they might not work at all.
 
+Change them so that each loop is only used when both the src
+and dst pointers are naturally aligned.
 
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ mm/maccess.c | 28 ++++++++++++++++++++++------
+ 1 file changed, 22 insertions(+), 6 deletions(-)
 
->  #define TEXT_MAIN .text
-> diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-> index 6ecf30c70ced..a5f4b5d407e6 100644
-> --- a/scripts/Makefile.build
-> +++ b/scripts/Makefile.build
-> @@ -111,7 +111,7 @@ endif
->  # ---------------------------------------------------------------------------
->
->  quiet_cmd_cc_s_c = CC $(quiet_modtag)  $@
-> -      cmd_cc_s_c = $(CC) $(filter-out $(DEBUG_CFLAGS), $(c_flags)) $(DISABLE_LTO) -fverbose-asm -S -o $@ $<
-> +      cmd_cc_s_c = $(CC) $(filter-out $(DEBUG_CFLAGS) $(CC_FLAGS_LTO), $(c_flags)) -fverbose-asm -S -o $@ $<
->
->  $(obj)/%.s: $(src)/%.c FORCE
->         $(call if_changed_dep,cc_s_c)
-> @@ -428,8 +428,15 @@ $(obj)/lib.a: $(lib-y) FORCE
->  # Do not replace $(filter %.o,^) with $(real-prereqs). When a single object
->  # module is turned into a multi object module, $^ will contain header file
->  # dependencies recorded in the .*.cmd file.
-> +ifdef CONFIG_LTO_CLANG
-> +quiet_cmd_link_multi-m = AR [M]  $@
-> +cmd_link_multi-m =                                             \
-> +       rm -f $@;                                               \
-> +       $(AR) rcsTP$(KBUILD_ARFLAGS) $@ $(filter %.o,$^)
+diff --git a/mm/maccess.c b/mm/maccess.c
+index 3bd70405f2d8..d3f1a1f0b1c1 100644
+--- a/mm/maccess.c
++++ b/mm/maccess.c
+@@ -24,13 +24,21 @@ bool __weak copy_from_kernel_nofault_allowed(const void *unsafe_src,
+ 
+ long copy_from_kernel_nofault(void *dst, const void *src, size_t size)
+ {
++	unsigned long align = 0;
++
++	if (!IS_ENABLED(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS))
++		align = (unsigned long)dst | (unsigned long)src;
++
+ 	if (!copy_from_kernel_nofault_allowed(src, size))
+ 		return -ERANGE;
+ 
+ 	pagefault_disable();
+-	copy_from_kernel_nofault_loop(dst, src, size, u64, Efault);
+-	copy_from_kernel_nofault_loop(dst, src, size, u32, Efault);
+-	copy_from_kernel_nofault_loop(dst, src, size, u16, Efault);
++	if (!(align & 7))
++		copy_from_kernel_nofault_loop(dst, src, size, u64, Efault);
++	if (!(align & 3))
++		copy_from_kernel_nofault_loop(dst, src, size, u32, Efault);
++	if (!(align & 1))
++		copy_from_kernel_nofault_loop(dst, src, size, u16, Efault);
+ 	copy_from_kernel_nofault_loop(dst, src, size, u8, Efault);
+ 	pagefault_enable();
+ 	return 0;
+@@ -50,10 +58,18 @@ EXPORT_SYMBOL_GPL(copy_from_kernel_nofault);
+ 
+ long copy_to_kernel_nofault(void *dst, const void *src, size_t size)
+ {
++	unsigned long align = 0;
++
++	if (!IS_ENABLED(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS))
++		align = (unsigned long)dst | (unsigned long)src;
++
+ 	pagefault_disable();
+-	copy_to_kernel_nofault_loop(dst, src, size, u64, Efault);
+-	copy_to_kernel_nofault_loop(dst, src, size, u32, Efault);
+-	copy_to_kernel_nofault_loop(dst, src, size, u16, Efault);
++	if (!(align & 7))
++		copy_to_kernel_nofault_loop(dst, src, size, u64, Efault);
++	if (!(align & 3))
++		copy_to_kernel_nofault_loop(dst, src, size, u32, Efault);
++	if (!(align & 1))
++		copy_to_kernel_nofault_loop(dst, src, size, u16, Efault);
+ 	copy_to_kernel_nofault_loop(dst, src, size, u8, Efault);
+ 	pagefault_enable();
+ 	return 0;
+-- 
+2.27.0
 
-
-KBUILD_ARFLAGS no longer exists in the mainline.
-(commit 13dc8c029cabf52ba95f60c56eb104d4d95d5889)
-
-
-
-
-> +else
->  quiet_cmd_link_multi-m = LD [M]  $@
->        cmd_link_multi-m = $(LD) $(ld_flags) -r -o $@ $(filter %.o,$^)
-> +endif
->
->  $(multi-used-m): FORCE
->         $(call if_changed,link_multi-m)
-> diff --git a/scripts/Makefile.modfinal b/scripts/Makefile.modfinal
-> index 411c1e600e7d..1005b147abd0 100644
-> --- a/scripts/Makefile.modfinal
-> +++ b/scripts/Makefile.modfinal
-> @@ -6,6 +6,7 @@
->  PHONY := __modfinal
->  __modfinal:
->
-> +include $(objtree)/include/config/auto.conf
->  include $(srctree)/scripts/Kbuild.include
->
->  # for c_flags
-> @@ -29,6 +30,12 @@ quiet_cmd_cc_o_c = CC [M]  $@
->
->  ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
->
-> +ifdef CONFIG_LTO_CLANG
-> +# With CONFIG_LTO_CLANG, reuse the object file we compiled for modpost to
-> +# avoid a second slow LTO link
-> +prelink-ext := .lto
-> +endif
-> +
->  quiet_cmd_ld_ko_o = LD [M]  $@
->        cmd_ld_ko_o =                                                     \
->         $(LD) -r $(KBUILD_LDFLAGS)                                      \
-> @@ -37,7 +44,7 @@ quiet_cmd_ld_ko_o = LD [M]  $@
->                 -o $@ $(filter %.o, $^);                                \
->         $(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
->
-> -$(modules): %.ko: %.o %.mod.o $(KBUILD_LDS_MODULE) FORCE
-> +$(modules): %.ko: %$(prelink-ext).o %.mod.o $(KBUILD_LDS_MODULE) FORCE
->         +$(call if_changed,ld_ko_o)
->
->  targets += $(modules) $(modules:.ko=.mod.o)
-> diff --git a/scripts/Makefile.modpost b/scripts/Makefile.modpost
-> index f54b6ac37ac2..a70f1f7da6aa 100644
-> --- a/scripts/Makefile.modpost
-> +++ b/scripts/Makefile.modpost
-> @@ -102,12 +102,32 @@ $(input-symdump):
->         @echo >&2 'WARNING: Symbol version dump "$@" is missing.'
->         @echo >&2 '         Modules may not have dependencies or modversions.'
->
-> +ifdef CONFIG_LTO_CLANG
-> +# With CONFIG_LTO_CLANG, .o files might be LLVM bitcode,
-
-or, .o files might be even thin archives.
-
-For example,
-
-$ file net/ipv6/netfilter/nf_defrag_ipv6.o
-net/ipv6/netfilter/nf_defrag_ipv6.o: thin archive with 6 symbol entries
-
-
-Now we have 3 possibilities for .o files:
-
-  - ELF  (real .o)
-  - LLVM bitcode (.bc)
-  - Thin archive (.a)
-
-
-Let me discuss how to proceed with this...
-
-
-
-
-
---
-Best Regards
-Masahiro Yamada
