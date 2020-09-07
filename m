@@ -2,119 +2,226 @@ Return-Path: <SRS0=71DO=CQ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E12E9C43461
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:46:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7D75AC43461
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:46:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B3F4D206B8
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:46:57 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 4B899206B8
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Sep 2020 15:46:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730136AbgIGPij (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 7 Sep 2020 11:38:39 -0400
-Received: from mout.kundenserver.de ([212.227.17.13]:52977 "EHLO
+        id S1730195AbgIGPqt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Sep 2020 11:46:49 -0400
+Received: from mout.kundenserver.de ([217.72.192.74]:54589 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730107AbgIGPh1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2020 11:37:27 -0400
+        with ESMTP id S1730146AbgIGPil (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2020 11:38:41 -0400
 Received: from threadripper.lan ([149.172.98.151]) by mrelayeu.kundenserver.de
  (mreue109 [212.227.15.145]) with ESMTPA (Nemesis) id
- 1MQMmF-1jtUy03FLN-00MIv2; Mon, 07 Sep 2020 17:37:13 +0200
+ 1MKsax-1jz1mO2Uaj-00LArU; Mon, 07 Sep 2020 17:37:45 +0200
 From:   Arnd Bergmann <arnd@arndb.de>
 To:     Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>, kernel@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linus.walleij@linaro.org, Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 0/9] ARM: remove set_fs callers and implementation
-Date:   Mon,  7 Sep 2020 17:36:41 +0200
-Message-Id: <20200907153701.2981205-1-arnd@arndb.de>
+        linus.walleij@linaro.org, Arnd Bergmann <arnd@arndb.de>,
+        Russell King <linux@armlinux.org.uk>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Dmitry Safonov <0x7f454c46@gmail.com>,
+        linux-kernel@vger.kernel.org
+Subject: [PATCH 2/9] ARM: traps: use get_kernel_nofault instead of set_fs()
+Date:   Mon,  7 Sep 2020 17:36:43 +0200
+Message-Id: <20200907153701.2981205-3-arnd@arndb.de>
 X-Mailer: git-send-email 2.27.0
+In-Reply-To: <20200907153701.2981205-1-arnd@arndb.de>
+References: <20200907153701.2981205-1-arnd@arndb.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-Provags-ID: V03:K1:VjRIHVKsrJ2cp1DZW/WWar2/93OzLGw+aSFBTMZna85P5K77sAZ
- Xch35nM3blzVomWJfJD7n6iXwAEm8E3HwandaTb2+6zBSlwd2VeBUH0fqENpQrUh0XtfTfD
- qfbOFRC61hirr7cOpMwF9FBayHhHu8B/OOTAIN6DrhaoGavRLobM+MTxqFg9mYvIyrsQcDq
- kSKFtTEpMK0s/MdO16Cww==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:ndcJ4md6HKs=:k8lJJzPq5Q6bCc/q2u0d/F
- gOihSTsr/6SWTxmx92Lqbx6XJ0C8SqnQaEKKMCdZipxiRx6pDNivu2OSYx4pMUqyXtyfPEyDv
- a3mZq77kVBEBmnxZgwt6qPIaangNt2U0H7WelIhHbvdOareFCKqc1y0Lrhob7/FwUwi6JimyP
- pYcHqzyZ0QE2ninttJEXc523JmcGvUiwJFSXUgW6uEBn7e+x+RqQjgyAFiRIgdXoe29Sgm0A1
- Vlu0qRlraIXFOzWYuqGdcoilXiJG8O6pAI6MflhHbVI57HHQ2+fdKhHJzx+Fy3BaMadwM5LmI
- c3YQFGJc9T0BGZWjrrOvZiBinPmrdcUaIpEpZJCWFPJi3y3KiPunrfCYK+zgGCqK31MUhaQ2o
- lrVVat8P5A/lycgKPZhAy9ah/ACyIJcrB4VjS9NPS7OrT76q6fsSfQtCsKWZ6Ez0I7MHy7oeL
- wh+ZAEig2auAChonuKGjg5n+a37AZWw8D3GzwUATHwXqgQHqiXdLRP480NT8okpx9RYMMSaiw
- zxXd5wJo6STcvilW/xQv17QEhfmdHeD5/bBVc/logNrrB6ELLkaJ+ExWid1aaSQIMZOy+A/4W
- h8hpT9uUZZ0+8AbEn3VqplebZDQuP/pjDN2n9aM5v1sbpO+FJnf8UkF9Aqq2hXvL0dsEiC/pq
- 3xF7DWf8d20TCwjAxPeDcyMDDAXeno1JtEhRVaNEVBHqC43mTqtWIJHNFAAgle/Qt0mU8v52b
- LWAKqRWaF5awi9zIMgGvMN4Up0FNcRYj6KrkhnJ0Mp7mBcBbLOHmjkTCyC5lVRZ5NK/OsEQZ3
- +gkKrgZF+JQuGPT90Ylv+P3Px6XS7DQfYX527LIkEbErHEr4KwksdTq46L4E7UN/9R8XNB2
+X-Provags-ID: V03:K1:bqL9TqSlLxoRFFmGo0QZlOzE4loGzIV2al/StD8nh0dRqmEo/zl
+ r64AuU+j3zZIcpJ6aJRTDhH/hcUIRPN0v5Ce+f7pq0+Pp8u9hWU8oEVPjpBBwogE+XZO5No
+ yCZBEAexPXzjyNtW8kovGgln9eIgE+krcRPWvUn/+8dWvPjezJSouRZiuckvQOO9eR1YOws
+ VWiVkFvqGHaxoJfst5xjA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:CSTeWP/Fmbs=:E8ArNtSucnOwkJb173KkVn
+ IFhVpT/SayTL0XFhu8YBu2d7K0bL9QnhCHK4fB2CFn0Zj2g3TMFjdioycUx2V4BaIKupaQDIs
+ wI8mBHmGHVyoVjvlcdlZKLSdfELYqVeHF4kmrwxRpDKJvcnOCJME7Rej/KDkpE6ag+Ku18u+S
+ yd5YNp33A9tdwdJii9LINoc87+IuZ8zULpSiWFjGT21fQAbi2xLWVJitEDlOpFnANCjlFLXWo
+ b3LLS4keCz7+qN55MsLOE0S2XYC2Ysbw7ubVOFa+rkW55p+wPt4i/ksIxd4nQWX5qC5FKKVCE
+ AB4ZmIdysWUCXUadYMP2Zemix0HlSGwjRIFgkVaqVCcd3rrUY17VT3dRZQr4ZUUe5mzItwpQV
+ vmVNrXP59siGL3uPhFAlQt+SqGN1gQnL2bE1lisYTdl8TsepO6sI3UQslea4PhVZ4hnbn8N65
+ jZeoWlAB8KyTCeFQsJxCfzZisUI4uigMcagsHFoDxwLdGQDdNdU4NVx49T2eWg6mlWPLsBnGy
+ 7GFt3Qm4BIQdDXksjITSF7oh5hslqPcyZ9W6JFvoxNEGUs89KFfPsJ1ckPAEqgZ35a7RC+UVj
+ JODqUytSWQ4zgyD1qO+Pdsl8SCVlDnUaibLrcEPawVKITJ90Mo+8rlFAn7IOM4ITlIwbATXZ6
+ P0l1KLrLU85ifgidC5vUKDxqq0+jv/cdc8O46AzDbsmqfld29FWhTZo6Vy2L0ZFDCkhMnUDw7
+ OsZTugwqnbpd/JGAfSwg31t+KdQOl+uCFV8vCxlBfxS0Vi2wY3bW7ToTBVFZ8qcTG4Prq1Gus
+ YX+14gkcMYMMyV9PS2ocYDIj1r+hUM9KDPzRnhOLzrwatKBB8vtTe4ANv9ofKnBAKb49ftq
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Christoph, Russell,
+The stack dumping code needs to work for both kernel and user mode,
+and currently this works by using set_fs() and then calling get_user()
+to carefully access a potentially invalid pointer.
 
-As promised, here is my series to remove set_fs() from arch/arm based
-on the architecture-independent patches.
+Change both locations to handle user and kernel mode differently, using
+get_kernel_nofault() in case of kernel pointers.
 
-I have tested the oabi-compat changes using the LTP tests for the three
-modified syscalls using an Armv7 kernel and a Debian 5 OABI user space,
-and I have lightly tested the get_kernel_nofault infrastructure by
-loading the test_lockup.ko module after setting CONFIG_DEBUG_SPINLOCK.
+I change __get_user() to get_user() here for consistency, as user space
+stacks should not point into kernel memory.
 
-Let me know if there is a more thorough test I should try.
+In dump_backtrace_entry() I assume that dump_mem() can only operate on
+kernel pointers when in_entry_text(from) is true, rather than checking
+the mode register.
 
-Overall there is a bit of ugliness getting introduced in the oabi compat
-code and for adding another code path for TUSER(). If anyone has a better
-idea, I can try out a different way.
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/arm/kernel/traps.c | 69 ++++++++++++++++++-----------------------
+ 1 file changed, 31 insertions(+), 38 deletions(-)
 
-I assume these patches can go through Al's tree along with the
-corresponding changes for other architectures, once Russell is happy
-with them.
-
-Please review.
-
-     Arnd
-
-[1] https://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git/log/?h=arm-kill-set_fs
-
-Arnd Bergmann (9):
-  mm/maccess: fix unaligned copy_{from,to}_kernel_nofault
-  ARM: traps: use get_kernel_nofault instead of set_fs()
-  ARM: oabi-compat: add epoll_pwait handler
-  ARM: syscall: always store thread_info->syscall
-  ARM: oabi-compat: rework epoll_wait/epoll_pwait emulation
-  ARM: oabi-compat: rework sys_semtimedop emulation
-  ARM: oabi-compat: rework fcntl64() emulation
-  ARM: uaccess: add __{get,put}_kernel_nofault
-  ARM: uaccess: remove set_fs() implementation
-
- arch/arm/Kconfig                   |   1 -
- arch/arm/include/asm/ptrace.h      |   1 -
- arch/arm/include/asm/syscall.h     |  14 +++
- arch/arm/include/asm/thread_info.h |   4 -
- arch/arm/include/asm/uaccess-asm.h |   6 -
- arch/arm/include/asm/uaccess.h     | 169 ++++++++++++++-------------
- arch/arm/kernel/asm-offsets.c      |   3 +-
- arch/arm/kernel/entry-common.S     |  16 +--
- arch/arm/kernel/process.c          |   7 +-
- arch/arm/kernel/ptrace.c           |   4 +-
- arch/arm/kernel/signal.c           |   8 --
- arch/arm/kernel/sys_oabi-compat.c  | 180 ++++++++++++++++-------------
- arch/arm/kernel/traps.c            |  69 +++++------
- arch/arm/lib/copy_from_user.S      |   3 +-
- arch/arm/lib/copy_to_user.S        |   3 +-
- arch/arm/tools/syscall.tbl         |   2 +-
- fs/eventpoll.c                     |   5 +-
- include/linux/eventpoll.h          |  16 +++
- include/linux/syscalls.h           |   2 +
- ipc/sem.c                          |  84 +++++++++-----
- mm/maccess.c                       |  28 ++++-
- 21 files changed, 338 insertions(+), 287 deletions(-)
-
+diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
+index 17d5a785df28..ebed261b356f 100644
+--- a/arch/arm/kernel/traps.c
++++ b/arch/arm/kernel/traps.c
+@@ -60,7 +60,7 @@ static int __init user_debug_setup(char *str)
+ __setup("user_debug=", user_debug_setup);
+ #endif
+ 
+-static void dump_mem(const char *, const char *, unsigned long, unsigned long);
++static void dump_mem(const char *, const char *, unsigned long, unsigned long, bool kernel_mode);
+ 
+ void dump_backtrace_entry(unsigned long where, unsigned long from,
+ 			  unsigned long frame, const char *loglvl)
+@@ -76,7 +76,7 @@ void dump_backtrace_entry(unsigned long where, unsigned long from,
+ #endif
+ 
+ 	if (in_entry_text(from) && end <= ALIGN(frame, THREAD_SIZE))
+-		dump_mem(loglvl, "Exception stack", frame + 4, end);
++		dump_mem(loglvl, "Exception stack", frame + 4, end, true);
+ }
+ 
+ void dump_backtrace_stm(u32 *stack, u32 instruction, const char *loglvl)
+@@ -119,20 +119,11 @@ static int verify_stack(unsigned long sp)
+  * Dump out the contents of some memory nicely...
+  */
+ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
+-		     unsigned long top)
++		     unsigned long top, bool kernel_mode)
+ {
+ 	unsigned long first;
+-	mm_segment_t fs;
+ 	int i;
+ 
+-	/*
+-	 * We need to switch to kernel mode so that we can use __get_user
+-	 * to safely read from kernel space.  Note that we now dump the
+-	 * code first, just in case the backtrace kills us.
+-	 */
+-	fs = get_fs();
+-	set_fs(KERNEL_DS);
+-
+ 	printk("%s%s(0x%08lx to 0x%08lx)\n", lvl, str, bottom, top);
+ 
+ 	for (first = bottom & ~31; first < top; first += 32) {
+@@ -144,20 +135,25 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
+ 
+ 		for (p = first, i = 0; i < 8 && p < top; i++, p += 4) {
+ 			if (p >= bottom && p < top) {
+-				unsigned long val;
+-				if (__get_user(val, (unsigned long *)p) == 0)
+-					sprintf(str + i * 9, " %08lx", val);
++				u32 val;
++				int err;
++
++				if (kernel_mode)
++					err = get_kernel_nofault(val, (u32 *)p);
++				else
++					err = get_user(val, (u32 *)p);
++
++				if (!err)
++					sprintf(str + i * 9, " %08x", val);
+ 				else
+ 					sprintf(str + i * 9, " ????????");
+ 			}
+ 		}
+ 		printk("%s%04lx:%s\n", lvl, first & 0xffff, str);
+ 	}
+-
+-	set_fs(fs);
+ }
+ 
+-static void __dump_instr(const char *lvl, struct pt_regs *regs)
++static void dump_instr(const char *lvl, struct pt_regs *regs)
+ {
+ 	unsigned long addr = instruction_pointer(regs);
+ 	const int thumb = thumb_mode(regs);
+@@ -173,10 +169,20 @@ static void __dump_instr(const char *lvl, struct pt_regs *regs)
+ 	for (i = -4; i < 1 + !!thumb; i++) {
+ 		unsigned int val, bad;
+ 
+-		if (thumb)
+-			bad = get_user(val, &((u16 *)addr)[i]);
+-		else
+-			bad = get_user(val, &((u32 *)addr)[i]);
++		if (!user_mode(regs)) {
++			if (thumb) {
++				u16 val16;
++				bad = get_kernel_nofault(val16, &((u16 *)addr)[i]);
++				val = val16;
++			} else {
++				bad = get_kernel_nofault(val, &((u32 *)addr)[i]);
++			}
++		} else {
++			if (thumb)
++				bad = get_user(val, &((u16 *)addr)[i]);
++			else
++				bad = get_user(val, &((u32 *)addr)[i]);
++		}
+ 
+ 		if (!bad)
+ 			p += sprintf(p, i == 0 ? "(%0*x) " : "%0*x ",
+@@ -189,20 +195,6 @@ static void __dump_instr(const char *lvl, struct pt_regs *regs)
+ 	printk("%sCode: %s\n", lvl, str);
+ }
+ 
+-static void dump_instr(const char *lvl, struct pt_regs *regs)
+-{
+-	mm_segment_t fs;
+-
+-	if (!user_mode(regs)) {
+-		fs = get_fs();
+-		set_fs(KERNEL_DS);
+-		__dump_instr(lvl, regs);
+-		set_fs(fs);
+-	} else {
+-		__dump_instr(lvl, regs);
+-	}
+-}
+-
+ #ifdef CONFIG_ARM_UNWIND
+ static inline void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
+ 				  const char *loglvl)
+@@ -276,6 +268,7 @@ static int __die(const char *str, int err, struct pt_regs *regs)
+ 	struct task_struct *tsk = current;
+ 	static int die_counter;
+ 	int ret;
++	bool kernel_mode = !user_mode(regs);
+ 
+ 	pr_emerg("Internal error: %s: %x [#%d]" S_PREEMPT S_SMP S_ISA "\n",
+ 	         str, err, ++die_counter);
+@@ -290,9 +283,9 @@ static int __die(const char *str, int err, struct pt_regs *regs)
+ 	pr_emerg("Process %.*s (pid: %d, stack limit = 0x%p)\n",
+ 		 TASK_COMM_LEN, tsk->comm, task_pid_nr(tsk), end_of_stack(tsk));
+ 
+-	if (!user_mode(regs) || in_interrupt()) {
++	if (kernel_mode || in_interrupt()) {
+ 		dump_mem(KERN_EMERG, "Stack: ", regs->ARM_sp,
+-			 THREAD_SIZE + (unsigned long)task_stack_page(tsk));
++			 THREAD_SIZE + (unsigned long)task_stack_page(tsk), kernel_mode);
+ 		dump_backtrace(regs, tsk, KERN_EMERG);
+ 		dump_instr(KERN_EMERG, regs);
+ 	}
 -- 
 2.27.0
 
