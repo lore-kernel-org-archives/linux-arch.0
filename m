@@ -2,273 +2,92 @@ Return-Path: <SRS0=Ay9U=CS=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-9.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.7 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,NICE_REPLY_A,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 86982C2D0E1
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Sep 2020 04:59:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 55141C433E2
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Sep 2020 05:28:48 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3F93321D40
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Sep 2020 04:59:58 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=dabbelt-com.20150623.gappssmtp.com header.i=@dabbelt-com.20150623.gappssmtp.com header.b="hpg4QcQy"
+	by mail.kernel.org (Postfix) with ESMTP id 05C7821D43
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Sep 2020 05:28:47 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=default; t=1599629328;
+	bh=ml6WI+Chx2VJC/Q73iCBAJoy55Yh6p7fbppRzEQTBhQ=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:List-ID:From;
+	b=c6HUHYn0bXaeoptGSwu/j4QwTVR/9YSF05G6pBE2qWY38gfIgXdVKR79d77j8oCb0
+	 xCC2O07VgEttsRPCDCGHVsTf8W7vE43l59igvTFS49zLomh+HBJ5k19JD1DE/URjug
+	 ZuiQv7WlQBi9qplKEvDkFxEHGKPXfGsNmMZu7coQ=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727037AbgIIE75 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Sep 2020 00:59:57 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34620 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725917AbgIIE71 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Sep 2020 00:59:27 -0400
-Received: from mail-pf1-x443.google.com (mail-pf1-x443.google.com [IPv6:2607:f8b0:4864:20::443])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5E925C061756
-        for <linux-arch@vger.kernel.org>; Tue,  8 Sep 2020 21:59:27 -0700 (PDT)
-Received: by mail-pf1-x443.google.com with SMTP id b124so1058737pfg.13
-        for <linux-arch@vger.kernel.org>; Tue, 08 Sep 2020 21:59:27 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=dabbelt-com.20150623.gappssmtp.com; s=20150623;
-        h=date:subject:in-reply-to:cc:from:to:message-id:mime-version
-         :content-transfer-encoding;
-        bh=/CFjqhupI1AWKqg+mCbgMP9R+W6vd0H8IsBhpy0/FFY=;
-        b=hpg4QcQyAdlz4HPaeo1/zixNDr+qZlp7W1wiXTwWOYJ/GWcLojwWm0o9fbPsFjukK9
-         2LKyXGPlUU1c8pEOjV/nFFboLir8U07CRMECpMSSX4NodajoEO5/g2YUnEdaUOliam3v
-         x3A/YIoz3tB3O2UOgr2XwxOPgtcNU/pjXer6Nvjw/A4SmYd3kuVE2yhD1obX3twpm0ZJ
-         uY8gePDhzkbYs2xr3tSi0I50LXoRUBZy62iivUyn1MDOazCVhaC0q5853njaJ5h6HPDo
-         vFAMxiLoka/mwDjY4FpgeA2C3f1ROVcjIJ6bOqoC3xU+j3/VplUtfN7ZTq74wSoUoqgm
-         nYuQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:subject:in-reply-to:cc:from:to:message-id
-         :mime-version:content-transfer-encoding;
-        bh=/CFjqhupI1AWKqg+mCbgMP9R+W6vd0H8IsBhpy0/FFY=;
-        b=rIiBFWLnT6ozBL94fx/c0ty/fQlq4AReZYg10eFyInMbJeNl6b3IYh3Ud4KAZajx8R
-         FTrJ66r7sRB2mkz3+hI1Nf6XKlYQ1Sy50hdhOxdeDYCubikUCtDMoI+pUEuQiRYj5BVO
-         Oeo4U+7vz97Mw1JQpQkRqQJpIZeuHm5iid4bRSCbgvInC0m9iTL/HprqWhKaGhxOmZZ0
-         Xn+Z4D/TioKrJo9UYj8OPnStJ9GBk4NlDRehCbF8iHJ1ZNw6GAY6BDXDJWtwfE8rbtJA
-         gHGcu3USJMimen5Vfd69oh/0gNFJ33sbxIkiLQcm5QgD1Fcr+iBdZxoF0fSimZfyQLs6
-         wjbw==
-X-Gm-Message-State: AOAM533ogBY462VAjMuw5zYi2vThUusE8pt6SxUbhJaevEEYVWGUpcHz
-        4B7Jj3W8EOXTnu5SJX/202i5aQ==
-X-Google-Smtp-Source: ABdhPJwy3yBcV7Uv8j6LpvPP4ltOvLLGG22xDuMaz75P6SEw83qpXJZok8u89m0LxFNrXKeBbGOOHw==
-X-Received: by 2002:a62:1bc2:: with SMTP id b185mr2014599pfb.75.1599627566376;
-        Tue, 08 Sep 2020 21:59:26 -0700 (PDT)
-Received: from localhost (76-210-143-223.lightspeed.sntcca.sbcglobal.net. [76.210.143.223])
-        by smtp.gmail.com with ESMTPSA id z18sm1034026pfn.186.2020.09.08.21.59.25
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 08 Sep 2020 21:59:25 -0700 (PDT)
-Date:   Tue, 08 Sep 2020 21:59:25 -0700 (PDT)
-X-Google-Original-Date: Tue, 08 Sep 2020 21:43:09 PDT (-0700)
-Subject:     Re: [PATCH 6/8] riscv: refactor __get_user and __put_user
-In-Reply-To: <20200907055825.1917151-7-hch@lst.de>
-CC:     Paul Walmsley <paul.walmsley@sifive.com>,
-        Arnd Bergmann <arnd@arndb.de>, viro@zeniv.linux.org.uk,
-        linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org
-From:   Palmer Dabbelt <palmer@dabbelt.com>
-To:     Christoph Hellwig <hch@lst.de>
-Message-ID: <mhng-e4978c15-9e83-4621-a9e6-76a550f6dcda@palmerdabbelt-glaptop1>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+        id S1725826AbgIIF2r (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Sep 2020 01:28:47 -0400
+Received: from mail.kernel.org ([198.145.29.99]:44786 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725772AbgIIF2q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Sep 2020 01:28:46 -0400
+Received: from devnote2 (NE2965lan1.rev.em-net.ne.jp [210.141.244.193])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 869E121D40;
+        Wed,  9 Sep 2020 05:28:42 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=default; t=1599629326;
+        bh=ml6WI+Chx2VJC/Q73iCBAJoy55Yh6p7fbppRzEQTBhQ=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+        b=B4giaAfOriZRBNC2lbcDSpoIwM/1GVMsqQBTbOjvVW9ErO+HeEoYALGkVU0qYQw0I
+         m1hLqkFj/kqDO6K8NT3Stto6lzJcLuJfbKgjpYpR2WhISL23lCL2VNetFpqdueMtZy
+         6tpBZ1kKewFKC8hmcsoy5WvW72NXnf6Uan2MMOnI=
+Date:   Wed, 9 Sep 2020 14:28:40 +0900
+From:   Masami Hiramatsu <mhiramat@kernel.org>
+To:     Masami Hiramatsu <mhiramat@kernel.org>
+Cc:     peterz@infradead.org, Ingo Molnar <mingo@kernel.org>,
+        linux-kernel@vger.kernel.org, Eddy_Wu@trendmicro.com,
+        x86@kernel.org, davem@davemloft.net, rostedt@goodmis.org,
+        naveen.n.rao@linux.ibm.com, anil.s.keshavamurthy@intel.com,
+        linux-arch@vger.kernel.org, cameron@moodycamel.com,
+        oleg@redhat.com, will@kernel.org, paulmck@kernel.org,
+        systemtap@sourceware.org
+Subject: Re: [PATCH v5 00/21] kprobes: Unify kretprobe trampoline handlers
+ and make kretprobe lockless
+Message-Id: <20200909142840.b2245ae2f8325f042a3bc546@kernel.org>
+In-Reply-To: <20200909000923.54cca4fb530904c57e8ff529@kernel.org>
+References: <159870598914.1229682.15230803449082078353.stgit@devnote2>
+        <20200901190808.GK29142@worktop.programming.kicks-ass.net>
+        <20200902093739.8bd13603380951eaddbcd8a5@kernel.org>
+        <20200902070226.GG2674@hirez.programming.kicks-ass.net>
+        <20200902171755.b126672093a3c5d1b3a62a4f@kernel.org>
+        <20200902093613.GY1362448@hirez.programming.kicks-ass.net>
+        <20200902221926.f5cae5b4ad00b8d8f9ad99c7@kernel.org>
+        <20200902134252.GH1362448@hirez.programming.kicks-ass.net>
+        <20200903103954.68f0c97da57b3679169ce3a7@kernel.org>
+        <20200908103736.GP1362448@hirez.programming.kicks-ass.net>
+        <20200909000923.54cca4fb530904c57e8ff529@kernel.org>
+X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.32; x86_64-pc-linux-gnu)
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, 06 Sep 2020 22:58:23 PDT (-0700), Christoph Hellwig wrote:
-> Add new __get_user_nocheck and __put_user_nocheck that switch on the size
-> and call the actual inline assembly helpers, and move the uaccess enable
-> / disable into the actual __get_user and __put_user.  This prepares for
-> natively implementing __get_kernel_nofault and __put_kernel_nofault.
->
-> Also don't bother with the deprecated register keyword for the error
-> return.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/riscv/include/asm/uaccess.h | 94 ++++++++++++++++++--------------
->  1 file changed, 52 insertions(+), 42 deletions(-)
->
-> diff --git a/arch/riscv/include/asm/uaccess.h b/arch/riscv/include/asm/uaccess.h
-> index e8eedf22e90747..b67d1c616ec348 100644
-> --- a/arch/riscv/include/asm/uaccess.h
-> +++ b/arch/riscv/include/asm/uaccess.h
-> @@ -107,7 +107,6 @@ static inline int __access_ok(unsigned long addr, unsigned long size)
->  do {								\
->  	uintptr_t __tmp;					\
->  	__typeof__(x) __x;					\
-> -	__enable_user_access();					\
->  	__asm__ __volatile__ (					\
->  		"1:\n"						\
->  		"	" insn " %1, %3\n"			\
-> @@ -125,7 +124,6 @@ do {								\
->  		"	.previous"				\
->  		: "+r" (err), "=&r" (__x), "=r" (__tmp)		\
->  		: "m" (*(ptr)), "i" (-EFAULT));			\
-> -	__disable_user_access();				\
->  	(x) = __x;						\
->  } while (0)
->
-> @@ -138,7 +136,6 @@ do {								\
->  	u32 __user *__ptr = (u32 __user *)(ptr);		\
->  	u32 __lo, __hi;						\
->  	uintptr_t __tmp;					\
-> -	__enable_user_access();					\
->  	__asm__ __volatile__ (					\
->  		"1:\n"						\
->  		"	lw %1, %4\n"				\
-> @@ -162,12 +159,30 @@ do {								\
->  			"=r" (__tmp)				\
->  		: "m" (__ptr[__LSW]), "m" (__ptr[__MSW]),	\
->  			"i" (-EFAULT));				\
-> -	__disable_user_access();				\
->  	(x) = (__typeof__(x))((__typeof__((x)-(x)))(		\
->  		(((u64)__hi << 32) | __lo)));			\
->  } while (0)
->  #endif /* CONFIG_64BIT */
->
-> +#define __get_user_nocheck(x, __gu_ptr, __gu_err)		\
-> +do {								\
-> +	switch (sizeof(*__gu_ptr)) {				\
-> +	case 1:							\
-> +		__get_user_asm("lb", (x), __gu_ptr, __gu_err);	\
-> +		break;						\
-> +	case 2:							\
-> +		__get_user_asm("lh", (x), __gu_ptr, __gu_err);	\
-> +		break;						\
-> +	case 4:							\
-> +		__get_user_asm("lw", (x), __gu_ptr, __gu_err);	\
-> +		break;						\
-> +	case 8:							\
-> +		__get_user_8((x), __gu_ptr, __gu_err);	\
-> +		break;						\
-> +	default:						\
-> +		BUILD_BUG();					\
-> +	}							\
-> +} while (0)
->
->  /**
->   * __get_user: - Get a simple variable from user space, with less checking.
-> @@ -191,25 +206,15 @@ do {								\
->   */
->  #define __get_user(x, ptr)					\
->  ({								\
-> -	register long __gu_err = 0;				\
->  	const __typeof__(*(ptr)) __user *__gu_ptr = (ptr);	\
-> +	long __gu_err = 0;					\
-> +								\
->  	__chk_user_ptr(__gu_ptr);				\
-> -	switch (sizeof(*__gu_ptr)) {				\
-> -	case 1:							\
-> -		__get_user_asm("lb", (x), __gu_ptr, __gu_err);	\
-> -		break;						\
-> -	case 2:							\
-> -		__get_user_asm("lh", (x), __gu_ptr, __gu_err);	\
-> -		break;						\
-> -	case 4:							\
-> -		__get_user_asm("lw", (x), __gu_ptr, __gu_err);	\
-> -		break;						\
-> -	case 8:							\
-> -		__get_user_8((x), __gu_ptr, __gu_err);	\
-> -		break;						\
-> -	default:						\
-> -		BUILD_BUG();					\
-> -	}							\
-> +								\
-> +	__enable_user_access();					\
-> +	__get_user_nocheck(x, __gu_ptr, __gu_err);		\
-> +	__disable_user_access();				\
-> +								\
->  	__gu_err;						\
->  })
->
-> @@ -243,7 +248,6 @@ do {								\
->  do {								\
->  	uintptr_t __tmp;					\
->  	__typeof__(*(ptr)) __x = x;				\
-> -	__enable_user_access();					\
->  	__asm__ __volatile__ (					\
->  		"1:\n"						\
->  		"	" insn " %z3, %2\n"			\
-> @@ -260,7 +264,6 @@ do {								\
->  		"	.previous"				\
->  		: "+r" (err), "=r" (__tmp), "=m" (*(ptr))	\
->  		: "rJ" (__x), "i" (-EFAULT));			\
-> -	__disable_user_access();				\
->  } while (0)
->
->  #ifdef CONFIG_64BIT
-> @@ -272,7 +275,6 @@ do {								\
->  	u32 __user *__ptr = (u32 __user *)(ptr);		\
->  	u64 __x = (__typeof__((x)-(x)))(x);			\
->  	uintptr_t __tmp;					\
-> -	__enable_user_access();					\
->  	__asm__ __volatile__ (					\
->  		"1:\n"						\
->  		"	sw %z4, %2\n"				\
-> @@ -294,10 +296,28 @@ do {								\
->  			"=m" (__ptr[__LSW]),			\
->  			"=m" (__ptr[__MSW])			\
->  		: "rJ" (__x), "rJ" (__x >> 32), "i" (-EFAULT));	\
-> -	__disable_user_access();				\
->  } while (0)
->  #endif /* CONFIG_64BIT */
->
-> +#define __put_user_nocheck(x, __gu_ptr, __pu_err)					\
-> +do {								\
-> +	switch (sizeof(*__gu_ptr)) {				\
-> +	case 1:							\
-> +		__put_user_asm("sb", (x), __gu_ptr, __pu_err);	\
-> +		break;						\
-> +	case 2:							\
-> +		__put_user_asm("sh", (x), __gu_ptr, __pu_err);	\
-> +		break;						\
-> +	case 4:							\
-> +		__put_user_asm("sw", (x), __gu_ptr, __pu_err);	\
-> +		break;						\
-> +	case 8:							\
-> +		__put_user_8((x), __gu_ptr, __pu_err);	\
-> +		break;						\
-> +	default:						\
-> +		BUILD_BUG();					\
-> +	}							\
-> +} while (0)
->
->  /**
->   * __put_user: - Write a simple value into user space, with less checking.
-> @@ -320,25 +340,15 @@ do {								\
->   */
->  #define __put_user(x, ptr)					\
->  ({								\
-> -	register long __pu_err = 0;				\
->  	__typeof__(*(ptr)) __user *__gu_ptr = (ptr);		\
-> +	long __pu_err = 0;					\
-> +								\
->  	__chk_user_ptr(__gu_ptr);				\
-> -	switch (sizeof(*__gu_ptr)) {				\
-> -	case 1:							\
-> -		__put_user_asm("sb", (x), __gu_ptr, __pu_err);	\
-> -		break;						\
-> -	case 2:							\
-> -		__put_user_asm("sh", (x), __gu_ptr, __pu_err);	\
-> -		break;						\
-> -	case 4:							\
-> -		__put_user_asm("sw", (x), __gu_ptr, __pu_err);	\
-> -		break;						\
-> -	case 8:							\
-> -		__put_user_8((x), __gu_ptr, __pu_err);	\
-> -		break;						\
-> -	default:						\
-> -		BUILD_BUG();					\
-> -	}							\
-> +								\
-> +	__enable_user_access();					\
-> +	__put_user_nocheck(x, __gu_ptr, __pu_err);		\
-> +	__disable_user_access();				\
-> +								\
->  	__pu_err;						\
->  })
+On Wed, 9 Sep 2020 00:09:23 +0900
+Masami Hiramatsu <mhiramat@kernel.org> wrote:
 
-Reviewed-by: Palmer Dabbelt <palmerdabbelt@google.com>
-Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
+> > > Of course make it lockless then warning is gone.
+> > > But even without the lockless patch, this warning can be false-positive
+> > > because we prohibit nested kprobe call, right?
+> > 
+> > Yes, because the actual nesting is avoided by kprobe_busy, but lockdep
+> > can't tell. Lockdep sees a regular lock user and an in-nmi lock user and
+> > figures that's a bad combination.
+
+Hmm, what about introducing new LOCK_USED_KPROBE bit, which will be set
+if the lock is accessed when the current_kprobe is set (including kprobe_busy)?
+This means it is in the kprobe user-handler context. If we access the lock always
+in the kprobes context, it is never nested.
+
+Thank you,
+
+-- 
+Masami Hiramatsu <mhiramat@kernel.org>
