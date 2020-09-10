@@ -2,114 +2,179 @@ Return-Path: <SRS0=3HFy=CT=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-9.6 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,FSL_HELO_FAKE,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_IN_DEF_DKIM_WL autolearn=no autolearn_force=no
+X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_2 autolearn=no autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 35A26C43461
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 17:39:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 24D9FC433E2
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 18:02:14 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D0A7B206A1
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 17:39:08 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C171521D79
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 18:02:13 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="eS8Omoyt"
+	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="YfCX/fYM"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726729AbgIJRiw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 10 Sep 2020 13:38:52 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57436 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727023AbgIJRhg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Sep 2020 13:37:36 -0400
-Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 71420C06138D
-        for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2020 08:07:11 -0700 (PDT)
-Received: by mail-pj1-x1042.google.com with SMTP id s2so153471pjr.4
-        for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2020 08:07:11 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=date:from:to:cc:subject:message-id:references:mime-version
-         :content-disposition:in-reply-to;
-        bh=CkdZTgPQtli4HqKjoybGJC69i/K2eo+/Y/ueOVTU/uQ=;
-        b=eS8OmoytThC7KUY/Rbjn9+OdhHCTAxZHZhtO9Ll397opaMxtZwThboa+C2O8ZFCyZO
-         3yO7BFlQAHn+yHQOjTkSFxrGQT55I8zRk+ACqC8mUlAGEgaJBYVxdtDOeJYvRXY7OjD1
-         qoTqm7lymwBPWk5HvlxgcsMnJSmrWwc/CDEf5vU234aNsYZC/feumKaSOaVQM1oeg2rp
-         5mn5icPj2L2oVd+okglM+aUogVgHmTvRe+DoweL0N0v4d2/lpxJ7oBj1ZuDkqyJtw+x2
-         MyX0f8gzheaFJLMAEkWsyGR+2G8QUbr85wv/70bydcasoZ+1oXcDIR0JEbGlmuon6m7C
-         zqwA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to;
-        bh=CkdZTgPQtli4HqKjoybGJC69i/K2eo+/Y/ueOVTU/uQ=;
-        b=ZpMimiz0HIhfOIU0P8tullfmO6krNSxR1V1l2mQmCge8Mdv1u2yX3F+cQzzTZtORgk
-         uTM5yCFP7B4EEAsLxCLIO7wSz06d6Qd2yMK3dc2qpu23gj0AAnUwuPGOPewpwzaHV/jh
-         JQbGqyMhbpHXYvwkGbM8h5XBUswWEMzWoYWbUXVCtQLn1I94SG+5zZLLkcPiDRPDQMPh
-         1gpoJT4EtYsaFn0eA6wm1gG7BjHIMEcd4gNljysLNdW4LttM5WivsyQ8U0CtJ7dJZMwd
-         qGTm5vp4TY1SQYVVWxc/4cPAyq2Xjuj8jpejWck6LIvUXcWqOwpn1nWC0Mm55AKl33Hn
-         mjnw==
-X-Gm-Message-State: AOAM532oUzvHQjXjwoXSFFotywQ3L+zqQAOGCd2TQSxS5XDmG8YA189c
-        vdVc3zZ0TwC7yuhhbGIRI6t/Ug==
-X-Google-Smtp-Source: ABdhPJzgkkNJGQRPeFg7lZtu3UZBjQBkf2nGy3Om/c9n+Dj7KFkAAjDpg1xpd04kYgbe9qjhwsW3RQ==
-X-Received: by 2002:a17:902:82c1:: with SMTP id u1mr6062512plz.38.1599750430560;
-        Thu, 10 Sep 2020 08:07:10 -0700 (PDT)
-Received: from google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
-        by smtp.gmail.com with ESMTPSA id p5sm5097827pgm.66.2020.09.10.08.07.08
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 10 Sep 2020 08:07:09 -0700 (PDT)
-Date:   Thu, 10 Sep 2020 08:07:04 -0700
-From:   Sami Tolvanen <samitolvanen@google.com>
-To:     David Woodhouse <dwmw2@infradead.org>
-Cc:     Masahiro Yamada <masahiroy@kernel.org>,
+        id S1726780AbgIJSAy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 10 Sep 2020 14:00:54 -0400
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:7826 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726415AbgIJSAD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 10 Sep 2020 14:00:03 -0400
+Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 08AHYY7h006938;
+        Thu, 10 Sep 2020 13:57:58 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=date : from : to : cc :
+ subject : message-id : in-reply-to : references : mime-version :
+ content-type : content-transfer-encoding; s=pp1;
+ bh=G9Zv2DFfzXQ+AcQ+DZwioP8Um0SpBOmEagJC1mqcw8c=;
+ b=YfCX/fYM/+0cU4iK0BOtwuIlzhkFZzTLrSdJXWxJ1k4qvuqNmGqxiyn/KPt+KO86LgCv
+ HLH9k4JhR6BcmigWtTWBD6ZPqiZuUa47ahKdOpl8NTgL6knGqAsfYVupChmLtkca9Bsc
+ I831JKul4hMzTIOVuB0rQhwZQk9ohHxm25Hjd2rWK5KvyJjzUOFASuUvmuwRLK/W0F3S
+ 15Nj4qDZJzISHQuSxWNdTxPuNefS3nEELxbeP0vDnPGrlCROMOBhYiQko1YZndl1q0z+
+ /SnTTR+pYYRZOgX5pbpEMBYvpoOAlBwiL4k1va7ddddU5XSao6D8/ff297hykAE5qXrl Yg== 
+Received: from pps.reinject (localhost [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 33frf88wyt-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Thu, 10 Sep 2020 13:57:58 -0400
+Received: from m0098410.ppops.net (m0098410.ppops.net [127.0.0.1])
+        by pps.reinject (8.16.0.36/8.16.0.36) with SMTP id 08AHYZQN007007;
+        Thu, 10 Sep 2020 13:57:57 -0400
+Received: from ppma03ams.nl.ibm.com (62.31.33a9.ip4.static.sl-reverse.com [169.51.49.98])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 33frf88wy2-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Thu, 10 Sep 2020 13:57:57 -0400
+Received: from pps.filterd (ppma03ams.nl.ibm.com [127.0.0.1])
+        by ppma03ams.nl.ibm.com (8.16.0.42/8.16.0.42) with SMTP id 08AHvttm028822;
+        Thu, 10 Sep 2020 17:57:55 GMT
+Received: from b06cxnps4075.portsmouth.uk.ibm.com (d06relay12.portsmouth.uk.ibm.com [9.149.109.197])
+        by ppma03ams.nl.ibm.com with ESMTP id 33c2a86aw6-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Thu, 10 Sep 2020 17:57:55 +0000
+Received: from d06av23.portsmouth.uk.ibm.com (d06av23.portsmouth.uk.ibm.com [9.149.105.59])
+        by b06cxnps4075.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 08AHvqcP35914082
+        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Thu, 10 Sep 2020 17:57:52 GMT
+Received: from d06av23.portsmouth.uk.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id 85058A4055;
+        Thu, 10 Sep 2020 17:57:52 +0000 (GMT)
+Received: from d06av23.portsmouth.uk.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id 48D47A4053;
+        Thu, 10 Sep 2020 17:57:51 +0000 (GMT)
+Received: from thinkpad (unknown [9.171.93.242])
+        by d06av23.portsmouth.uk.ibm.com (Postfix) with SMTP;
+        Thu, 10 Sep 2020 17:57:51 +0000 (GMT)
+Date:   Thu, 10 Sep 2020 19:57:49 +0200
+From:   Gerald Schaefer <gerald.schaefer@linux.ibm.com>
+To:     Jason Gunthorpe <jgg@ziepe.ca>
+Cc:     Alexander Gordeev <agordeev@linux.ibm.com>,
+        Dave Hansen <dave.hansen@intel.com>,
+        John Hubbard <jhubbard@nvidia.com>,
+        LKML <linux-kernel@vger.kernel.org>,
+        linux-mm <linux-mm@kvack.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Russell King <linux@armlinux.org.uk>,
+        Mike Rapoport <rppt@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
         Will Deacon <will@kernel.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Jeff Dike <jdike@addtoit.com>,
+        Richard Weinberger <richard@nod.at>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Andy Lutomirski <luto@kernel.org>,
         Peter Zijlstra <peterz@infradead.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        clang-built-linux@googlegroups.com,
-        kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org,
-        x86@kernel.org
-Subject: Re: [PATCH v2 15/28] init: lto: ensure initcall ordering
-Message-ID: <20200910150704.GA2041735@google.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200903203053.3411268-1-samitolvanen@google.com>
- <20200903203053.3411268-16-samitolvanen@google.com>
- <5f45f55340cf54f5506a50adf61e49b27b904322.camel@infradead.org>
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andrey Ryabinin <aryabinin@virtuozzo.com>,
+        linux-x86 <x86@kernel.org>,
+        linux-arm <linux-arm-kernel@lists.infradead.org>,
+        linux-power <linuxppc-dev@lists.ozlabs.org>,
+        linux-sparc <sparclinux@vger.kernel.org>,
+        linux-um <linux-um@lists.infradead.org>,
+        linux-s390 <linux-s390@vger.kernel.org>,
+        Vasily Gorbik <gor@linux.ibm.com>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@de.ibm.com>,
+        Claudio Imbrenda <imbrenda@linux.ibm.com>
+Subject: Re: [RFC PATCH v2 1/3] mm/gup: fix gup_fast with dynamic page table
+ folding
+Message-ID: <20200910195749.795232d1@thinkpad>
+In-Reply-To: <20200910130233.GK87483@ziepe.ca>
+References: <20200907180058.64880-1-gerald.schaefer@linux.ibm.com>
+        <20200907180058.64880-2-gerald.schaefer@linux.ibm.com>
+        <0dbc6ec8-45ea-0853-4856-2bc1e661a5a5@intel.com>
+        <20200909142904.00b72921@thinkpad>
+        <aacad1b7-f121-44a5-f01d-385cb0f6351e@intel.com>
+        <20200909192534.442f8984@thinkpad>
+        <20200909180324.GI87483@ziepe.ca>
+        <20200910093925.GB29166@oc3871087118.ibm.com>
+        <20200910130233.GK87483@ziepe.ca>
+X-Mailer: Claws Mail 3.17.6 (GTK+ 2.24.32; x86_64-redhat-linux-gnu)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5f45f55340cf54f5506a50adf61e49b27b904322.camel@infradead.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+X-TM-AS-GCONF: 00
+X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.235,18.0.687
+ definitions=2020-09-10_05:2020-09-10,2020-09-10 signatures=0
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 bulkscore=0 impostorscore=0
+ mlxlogscore=999 clxscore=1015 mlxscore=0 priorityscore=1501 spamscore=0
+ malwarescore=0 adultscore=0 lowpriorityscore=0 phishscore=0 suspectscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2006250000
+ definitions=main-2009100162
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Sep 10, 2020 at 10:25:40AM +0100, David Woodhouse wrote:
-> On Thu, 2020-09-03 at 13:30 -0700, Sami Tolvanen wrote:
-> > With LTO, the compiler doesn't necessarily obey the link order for
-> > initcalls, and initcall variables need globally unique names to avoid
-> > collisions at link time.
-> > 
-> > This change exports __KBUILD_MODNAME and adds the initcall_id() macro,
-> > which uses it together with __COUNTER__ and __LINE__ to help ensure
-> > these variables have unique names, and moves each variable to its own
-> > section when LTO is enabled, so the correct order can be specified using
-> > a linker script.
-> > 
-> > The generate_initcall_ordering.pl script uses nm to find initcalls from
-> > the object files passed to the linker, and generates a linker script
-> > that specifies the intended order. With LTO, the script is called in
-> > link-vmlinux.sh.
+On Thu, 10 Sep 2020 10:02:33 -0300
+Jason Gunthorpe <jgg@ziepe.ca> wrote:
+
+> On Thu, Sep 10, 2020 at 11:39:25AM +0200, Alexander Gordeev wrote:
 > 
-> Is this guaranteed to give you the *same* initcall ordering with LTO as
-> without?
+> > As Gerald mentioned, it is very difficult to explain in a clear way.
+> > Hopefully, one could make sense ot of it.
+> 
+> I would say the page table API requires this invariant:
+> 
+>         pud = pud_offset(p4d, addr);
+>         do {
+> 		WARN_ON(pud != pud_offset(p4d, addr);
+>                 next = pud_addr_end(addr, end);
+>         } while (pud++, addr = next, addr != end);
+> 
+> ie pud++ is supposed to be a shortcut for 
+>   pud_offset(p4d, next)
+> 
 
-Yes. It follows the link order, just like the linker without LTO, and
-also preserves the order within each file.
+Hmm, IIUC, all architectures with static folding will simply return
+the passed-in p4d pointer for pud_offset(p4d, addr), for 3-level
+pagetables. There is no difference for s390. For gup_fast, that p4d
+pointer is not really a pointer to a value in a pagetable, but
+to some local copy of such a value, and not just for s390.
 
-Sami
+So, pud = p4d = pointer to copy, and increasing that pud pointer
+cannot be the same as pud_offset(p4d, next). I do see your point
+however, at last I think :-) My problem is that I do not see where
+we would have an s390-specific issue here. Maybe my understanding
+of how it works for others with static folding is wrong. That
+would explain my difficulties in getting your point...
+
+> While S390 does not follow this. Fixing addr_end brings it into
+> alignment by preventing pud++ from happening.
+
+Exactly, only that nobody seems to follow it, IIUC. Fixing it up
+with pXd_addr_end was my impression of what we need to do, in order to
+have it work the same way as for others.
+
+> The only currently known side effect is that gup_fast crashes, but it
+> sure is an unexpected thing.
+
+Well, from my understanding it feels more unexpected that something
+that is supposed to be a pointer to an entry in a page table, really is
+just a pointer to some copy somewhere.
