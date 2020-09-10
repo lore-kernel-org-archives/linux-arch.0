@@ -2,139 +2,119 @@ Return-Path: <SRS0=3HFy=CT=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-2.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	TVD_SUBJ_WIPE_DEBT,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F2FA0C43461
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 19:44:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 02CBFC43461
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 19:46:27 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C872221556
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 19:44:49 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A764B21556
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 19:46:26 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="eC6xHFZe"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1731311AbgIJPcy convert rfc822-to-8bit (ORCPT
-        <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 10 Sep 2020 11:32:54 -0400
-Received: from eu-smtp-delivery-151.mimecast.com ([207.82.80.151]:31657 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1731244AbgIJPcQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Sep 2020 11:32:16 -0400
-Received: from AcuMS.aculab.com (156.67.243.126 [156.67.243.126]) (Using
- TLS) by relay.mimecast.com with ESMTP id
- uk-mta-276-Rr3yeOHPPMud0l-oIQnsyA-1; Thu, 10 Sep 2020 16:31:54 +0100
-X-MC-Unique: Rr3yeOHPPMud0l-oIQnsyA-1
-Received: from AcuMS.Aculab.com (fd9f:af1c:a25b:0:43c:695e:880f:8750) by
- AcuMS.aculab.com (fd9f:af1c:a25b:0:43c:695e:880f:8750) with Microsoft SMTP
- Server (TLS) id 15.0.1347.2; Thu, 10 Sep 2020 16:31:53 +0100
-Received: from AcuMS.Aculab.com ([fe80::43c:695e:880f:8750]) by
- AcuMS.aculab.com ([fe80::43c:695e:880f:8750%12]) with mapi id 15.00.1347.000;
- Thu, 10 Sep 2020 16:31:53 +0100
-From:   David Laight <David.Laight@ACULAB.COM>
-To:     'Segher Boessenkool' <segher@kernel.crashing.org>
-CC:     'Christophe Leroy' <christophe.leroy@csgroup.eu>,
-        'Linus Torvalds' <torvalds@linux-foundation.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        the arch/x86 maintainers <x86@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Alexey Dobriyan <adobriyan@gmail.com>,
-        "Luis Chamberlain" <mcgrof@kernel.org>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
-        Christoph Hellwig <hch@lst.de>
-Subject: RE: remove the last set_fs() in common code, and remove it for x86
- and powerpc v3
-Thread-Topic: remove the last set_fs() in common code, and remove it for x86
- and powerpc v3
-Thread-Index: AQHWhvDyD2c/lZfV3kC0Ftay5UVebqlhgjnw///zuACAABnIEIAAOoMggAAi9ACAABJI8A==
-Date:   Thu, 10 Sep 2020 15:31:53 +0000
-Message-ID: <18fdbaeacba349a0a8bf7568f709e991@AcuMS.aculab.com>
-References: <20200903142242.925828-1-hch@lst.de>
- <20200903142803.GM1236603@ZenIV.linux.org.uk>
- <CAHk-=wgQNyeHxXfckd1WtiYnoDZP1Y_kD-tJKqWSksRoDZT=Aw@mail.gmail.com>
- <20200909184001.GB28786@gate.crashing.org>
- <CAHk-=whu19Du_rZ-zBtGsXAB-Qo7NtoJjQjd-Sa9OB5u1Cq_Zw@mail.gmail.com>
- <3beb8b019e4a4f7b81fdb1bc68bd1e2d@AcuMS.aculab.com>
- <186a62fc-042c-d6ab-e7dc-e61b18945498@csgroup.eu>
- <59a64e9a210847b59f70f9bd2d02b5c3@AcuMS.aculab.com>
- <5050b43687c84515a49b345174a98822@AcuMS.aculab.com>
- <20200910152030.GJ28786@gate.crashing.org>
-In-Reply-To: <20200910152030.GJ28786@gate.crashing.org>
-Accept-Language: en-GB, en-US
-X-MS-Has-Attach: 
-X-MS-TNEF-Correlator: 
-x-ms-exchange-transport-fromentityheader: Hosted
-x-originating-ip: [10.202.205.107]
+        id S1726662AbgIJTqW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 10 Sep 2020 15:46:22 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49226 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726932AbgIJTpr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Sep 2020 15:45:47 -0400
+Received: from mail-pg1-x544.google.com (mail-pg1-x544.google.com [IPv6:2607:f8b0:4864:20::544])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0F81BC061757
+        for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2020 12:45:47 -0700 (PDT)
+Received: by mail-pg1-x544.google.com with SMTP id g29so4857597pgl.2
+        for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2020 12:45:47 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=chromium.org; s=google;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=kT3st5L2W/yGrskNA7hV4WTKcp+VzTZ5Pgaqe30vqT8=;
+        b=eC6xHFZebGzDOu2iJFlC4sYhGBsPBPtk9a7oklICzLNlEMzSAdGnasLCc1rhvVduzw
+         WWGkAB927UqclP1++HPY0zndFIqCAsSEoCB33GsJW1zgx9zdnqi9fNwkG+wGtFEr+T3z
+         bUYjH1Oc2jBMRnj0f0FQ3tH0tHQIOzzYF+914=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=kT3st5L2W/yGrskNA7hV4WTKcp+VzTZ5Pgaqe30vqT8=;
+        b=QAFl9r3DQiPkswxUTGkL7Trqk9L8h65h66zMWdwwnSfcFznT6EhgwrTuZ4Yb74uOJT
+         +T7yRZbD/VNt5Mz/6TDyNEn1VY7eruImJEAcq/fSjlOV5o/WRRx64t/Zhc+lblLo5bv9
+         uX71etnU6h5Zpo4DXrX2KZW3fq+TNOMSGzc2URTBz+WFAj/yodXB8Xp1+trUDeh25Psw
+         yuAmwRSFLJKgxrMOIeuUBmvleJ9jcOo0ABkBXtUWpreMI4MF5wAQwAVmZBV2Sdc8sRMc
+         2PnsqJ7jlH1cPKXKKzCY8DSLnIFcCkXoOjylJ7rH+Pmr/AxPzj4dnCdUZFVXWIEK+LHB
+         qE3w==
+X-Gm-Message-State: AOAM531KE28Wb2AGMBjhH6YKaOHWF8Mj/FzCKYVQ7jvEJ6MH10NiRi+n
+        NLMOZj+VW/pdcI/lM3nfONg6xg==
+X-Google-Smtp-Source: ABdhPJwWpKs77i2Pw4YhFhAT5cZe6s0qx17kIVE+as0BWVJNc55TKLnEBagdP5cQWEjWPugWxrbACw==
+X-Received: by 2002:aa7:858e:: with SMTP id w14mr2753410pfn.95.1599767146631;
+        Thu, 10 Sep 2020 12:45:46 -0700 (PDT)
+Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
+        by smtp.gmail.com with ESMTPSA id l79sm2905776pfd.210.2020.09.10.12.45.45
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 10 Sep 2020 12:45:45 -0700 (PDT)
+Date:   Thu, 10 Sep 2020 12:45:44 -0700
+From:   Kees Cook <keescook@chromium.org>
+To:     Masahiro Yamada <masahiroy@kernel.org>
+Cc:     linux-kbuild@vger.kernel.org, linux-ia64@vger.kernel.org,
+        Peter Zijlstra <peterz@infradead.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Paul Mackerras <paulus@samba.org>,
+        linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>,
+        Ard Biesheuvel <ardb@kernel.org>,
+        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+        linux-arch@vger.kernel.org,
+        Mauro Carvalho Chehab <mchehab+huawei@kernel.org>,
+        Richard Weinberger <richard@nod.at>,
+        Russell King <linux@armlinux.org.uk>,
+        Ingo Molnar <mingo@redhat.com>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Fenghua Yu <fenghua.yu@intel.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Arnd Bergmann <arnd@arndb.de>, Jeff Dike <jdike@addtoit.com>,
+        Jessica Yu <jeyu@kernel.org>, linux-um@lists.infradead.org,
+        linux-m68k@lists.linux-m68k.org, Tony Luck <tony.luck@intel.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        linux-arm-kernel@lists.infradead.org,
+        Michal Marek <michal.lkml@markovi.net>,
+        linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        linuxppc-dev@lists.ozlabs.org
+Subject: Re: [PATCH] kbuild: preprocess module linker script
+Message-ID: <202009101245.493610D05@keescook>
+References: <20200904133122.133071-1-masahiroy@kernel.org>
 MIME-Version: 1.0
-Authentication-Results: relay.mimecast.com;
-        auth=pass smtp.auth=C51A453 smtp.mailfrom=david.laight@aculab.com
-X-Mimecast-Spam-Score: 0.001
-X-Mimecast-Originator: aculab.com
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200904133122.133071-1-masahiroy@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-
-
-> -----Original Message-----
-> From: Segher Boessenkool <segher@kernel.crashing.org>
-> Sent: 10 September 2020 16:21
-> To: David Laight <David.Laight@ACULAB.COM>
-> Cc: 'Christophe Leroy' <christophe.leroy@csgroup.eu>; 'Linus Torvalds' <torvalds@linux-
-> foundation.org>; linux-arch <linux-arch@vger.kernel.org>; Kees Cook <keescook@chromium.org>; the
-> arch/x86 maintainers <x86@kernel.org>; Nick Desaulniers <ndesaulniers@google.com>; Linux Kernel
-> Mailing List <linux-kernel@vger.kernel.org>; Alexey Dobriyan <adobriyan@gmail.com>; Luis Chamberlain
-> <mcgrof@kernel.org>; Al Viro <viro@zeniv.linux.org.uk>; linux-fsdevel <linux-fsdevel@vger.kernel.org>;
-> linuxppc-dev <linuxppc-dev@lists.ozlabs.org>; Christoph Hellwig <hch@lst.de>
-> Subject: Re: remove the last set_fs() in common code, and remove it for x86 and powerpc v3
+On Fri, Sep 04, 2020 at 10:31:21PM +0900, Masahiro Yamada wrote:
+> There was a request to preprocess the module linker script like we do
+> for the vmlinux one (https://lkml.org/lkml/2020/8/21/512).
 > 
-> On Thu, Sep 10, 2020 at 12:26:53PM +0000, David Laight wrote:
-> > Actually this is pretty sound:
-> > 	__label__ label;
-> > 	register int eax asm ("eax");
-> > 	// Ensure eax can't be reloaded from anywhere
-> > 	// In particular it can't be reloaded after the asm goto line
-> > 	asm volatile ("" : "=r" (eax));
+> The difference between vmlinux.lds and module.lds is that the latter
+> is needed for external module builds, thus must be cleaned up by
+> 'make mrproper' instead of 'make clean' (also, it must be created by
+> 'make modules_prepare').
 > 
-> This asm is fine.  It says it writes the "eax" variable, which lives in
-> the eax register *in that asm* (so *not* guaranteed after it!).
+> You cannot put it in arch/*/kernel/ because 'make clean' descends into
+> it. I moved arch/*/kernel/module.lds to arch/*/include/asm/module.lds.h,
+> which is included from scripts/module.lds.S.
 > 
-> > 	// Provided gcc doesn't save eax here...
-> > 	asm volatile goto ("xxxxx" ::: "eax" : label);
+> scripts/module.lds is fine because 'make clean' keeps all the build
+> artifacts under scripts/.
 > 
-> So this is incorrect.
-
-From the other email:
-
-> It is neither input nor output operand here!  Only *then* is a local
-> register asm guaranteed to be in the given reg: as input or output to an
-> inline asm.
-
-Ok, so adding '"r" (eax)' to the input section helps a bit.
-
-> > 	// ... and reload the saved value here.
-> > 	// The input value here will be that modified by the 'asm goto'.
-> > 	// Since this modifies eax it can't be moved before the 'asm goto'.
-> > 	asm volatile ("" : "+r" (eax));
-> > 	// So here eax must contain the value set by the "xxxxx" instructions.
+> You can add arch-specific sections in <asm/module.lds.h>.
 > 
-> No, the register eax will contain the value of the eax variable.  In the
-> asm; it might well be there before or after the asm as well, but none of
-> that is guaranteed.
+> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 
-Perhaps not 'guaranteed', but very unlikely to be wrong.
-It doesn't give gcc much scope for not generating the desired code.
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-	David
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
-
+-- 
+Kees Cook
