@@ -2,122 +2,158 @@ Return-Path: <SRS0=3HFy=CT=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.9 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B7C4CC433E2
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 21:59:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DA126C433E2
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 21:59:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8B325208E4
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 21:59:11 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 93DAC208E4
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Sep 2020 21:59:36 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="XGa+1wti"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725308AbgIJV6r (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 10 Sep 2020 17:58:47 -0400
-Received: from foss.arm.com ([217.140.110.172]:33474 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730278AbgIJLNe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Sep 2020 07:13:34 -0400
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 1A46231B;
-        Thu, 10 Sep 2020 04:12:38 -0700 (PDT)
-Received: from [192.168.1.179] (unknown [172.31.20.19])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 879433F68F;
-        Thu, 10 Sep 2020 04:12:36 -0700 (PDT)
-Subject: Re: [PATCH v9 09/29] arm64: mte: Clear the tags when a page is mapped
- in user-space with PROT_MTE
-To:     Catalin Marinas <catalin.marinas@arm.com>
-Cc:     linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>,
-        Dave P Martin <Dave.Martin@arm.com>,
-        Vincenzo Frascino <vincenzo.frascino@arm.com>,
-        Szabolcs Nagy <szabolcs.nagy@arm.com>,
-        Kevin Brodsky <kevin.brodsky@arm.com>,
-        Andrey Konovalov <andreyknvl@google.com>,
-        Peter Collingbourne <pcc@google.com>,
-        Andrew Morton <akpm@linux-foundation.org>
-References: <20200904103029.32083-1-catalin.marinas@arm.com>
- <20200904103029.32083-10-catalin.marinas@arm.com>
- <5c2ebe16-2ac9-6cff-3456-6d8ac96b5fb7@arm.com> <20200910105258.GA4030@gaia>
-From:   Steven Price <steven.price@arm.com>
-Message-ID: <19137fdc-64c6-a5c2-d6f6-ebcf4f553816@arm.com>
-Date:   Thu, 10 Sep 2020 12:12:27 +0100
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
- Thunderbird/68.10.0
+        id S1725887AbgIJV7d (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 10 Sep 2020 17:59:33 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41836 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725877AbgIJV7Z (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Sep 2020 17:59:25 -0400
+Received: from mail-qk1-x743.google.com (mail-qk1-x743.google.com [IPv6:2607:f8b0:4864:20::743])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 441A4C0613ED
+        for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2020 14:59:24 -0700 (PDT)
+Received: by mail-qk1-x743.google.com with SMTP id o5so7728588qke.12
+        for <linux-arch@vger.kernel.org>; Thu, 10 Sep 2020 14:59:24 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=ziepe.ca; s=google;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=RBvq+OOZpOHz7JVY1b9A66StBw0lh3lNMqv01GrhYLE=;
+        b=XGa+1wtiJPkykbDWCfESpB/MvI1RBtyH5dvDVcm14/sCZlt15vU51OB/uvdf8x4ZQa
+         kQYpCVOD4ExSpYHPDOteT1PnQSYpcVDio5gc9zCACzdojqAlh6SwMKMRY4M2jHdso8pC
+         o1SCOD1e7CU5P94+lNcRXuJe4cmvhxIpYDyRzl6AlKYd1iDVs+vkgkgFbjeoHTVRj1ST
+         1yBIDBY0FM4tBgJQZxvv5cNNGM4bu8ROu2teyjXMmbtUrBhHsMF7QLWMp1o0b0abexEB
+         POsgnb1rV2g2SN+GvDFk4nRwxlB7GR1NoIs/6jzxofpKRolvj4glG/Y8VK7FoDyzwgcR
+         PZcQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=RBvq+OOZpOHz7JVY1b9A66StBw0lh3lNMqv01GrhYLE=;
+        b=KEsdJKXSrGxZfM5BX84FjoCxw+FdNV7pN/q2XT+USHveScWyRw2wMSDdN0rcU6bdSX
+         pC7qhBfLUC3vOXn6NNbLXVeNCZ5xvp1nJTdZWiPZw0g+kBP06Y5QEgUzRt7yUVbUtQgy
+         Ohb9LRGHgu+K0Q0UaK4wF7ArGBgaRJkeX8+MJY7j6NkM+Namq1Qy3h9UFvTl/rYXbg8n
+         vLKkUyBxvq0S2ijiyc9wiXP0CLnsuDCsWDBrlE7yNlQkWa3IJRRtv/bjzmSs17tNUkGG
+         nCLiXOA2KUw0DYoXDsB86KKWMMkA2FT7PGdDoXrY4mZP/W3K/HDkbW/Uz1QfpH5Cleho
+         BiMQ==
+X-Gm-Message-State: AOAM533I0xfhx7jkH48PozAVZZ2Aye9zvZbHpbp+JTfAR38VbOZNwW/V
+        Y6ElnFy9SDYDhrrKODOjL5Pdhw==
+X-Google-Smtp-Source: ABdhPJzg7+n4mPFpbsKeMom2f+wjc9snf2MnK4gNUYWrTQr71TGF5AizTC8kCaHgs9VlFTOngDCTww==
+X-Received: by 2002:ae9:c015:: with SMTP id u21mr10626371qkk.268.1599775163249;
+        Thu, 10 Sep 2020 14:59:23 -0700 (PDT)
+Received: from ziepe.ca (hlfxns017vw-156-34-48-30.dhcp-dynamic.fibreop.ns.bellaliant.net. [156.34.48.30])
+        by smtp.gmail.com with ESMTPSA id j88sm32038qte.96.2020.09.10.14.59.22
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 10 Sep 2020 14:59:22 -0700 (PDT)
+Received: from jgg by mlx with local (Exim 4.94)
+        (envelope-from <jgg@ziepe.ca>)
+        id 1kGUbB-004RUb-H7; Thu, 10 Sep 2020 18:59:21 -0300
+Date:   Thu, 10 Sep 2020 18:59:21 -0300
+From:   Jason Gunthorpe <jgg@ziepe.ca>
+To:     Linus Torvalds <torvalds@linux-foundation.org>
+Cc:     Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        Dave Hansen <dave.hansen@intel.com>,
+        John Hubbard <jhubbard@nvidia.com>,
+        LKML <linux-kernel@vger.kernel.org>,
+        linux-mm <linux-mm@kvack.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Russell King <linux@armlinux.org.uk>,
+        Mike Rapoport <rppt@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Jeff Dike <jdike@addtoit.com>,
+        Richard Weinberger <richard@nod.at>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Andy Lutomirski <luto@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andrey Ryabinin <aryabinin@virtuozzo.com>,
+        linux-x86 <x86@kernel.org>,
+        linux-arm <linux-arm-kernel@lists.infradead.org>,
+        linux-power <linuxppc-dev@lists.ozlabs.org>,
+        linux-sparc <sparclinux@vger.kernel.org>,
+        linux-um <linux-um@lists.infradead.org>,
+        linux-s390 <linux-s390@vger.kernel.org>,
+        Vasily Gorbik <gor@linux.ibm.com>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@de.ibm.com>,
+        Claudio Imbrenda <imbrenda@linux.ibm.com>
+Subject: Re: [RFC PATCH v2 1/3] mm/gup: fix gup_fast with dynamic page table
+ folding
+Message-ID: <20200910215921.GP87483@ziepe.ca>
+References: <20200909142904.00b72921@thinkpad>
+ <aacad1b7-f121-44a5-f01d-385cb0f6351e@intel.com>
+ <20200909192534.442f8984@thinkpad>
+ <20200909180324.GI87483@ziepe.ca>
+ <20200910093925.GB29166@oc3871087118.ibm.com>
+ <CAHk-=wh4SuNvThq1nBiqk0N-fW6NsY5w=VawC=rJs7ekmjAhjA@mail.gmail.com>
+ <20200910181319.GO87483@ziepe.ca>
+ <CAHk-=wh3SjOE2r4WCfagL5Zq4Oj4Jsu1=1jTTi2GxGDTxP-J0Q@mail.gmail.com>
+ <20200910211010.46d064a7@thinkpad>
+ <CAHk-=wg3ggXU98Mnv-ss-hEcvUNc9vCtgSRc7GpcGfvyOw_h3g@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20200910105258.GA4030@gaia>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wg3ggXU98Mnv-ss-hEcvUNc9vCtgSRc7GpcGfvyOw_h3g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 10/09/2020 11:52, Catalin Marinas wrote:
-> On Thu, Sep 10, 2020 at 11:23:33AM +0100, Steven Price wrote:
->> On 04/09/2020 11:30, Catalin Marinas wrote:
->>> --- /dev/null
->>> +++ b/arch/arm64/lib/mte.S
->>> @@ -0,0 +1,34 @@
->>> +/* SPDX-License-Identifier: GPL-2.0-only */
->>> +/*
->>> + * Copyright (C) 2020 ARM Ltd.
->>> + */
->>> +#include <linux/linkage.h>
->>> +
->>> +#include <asm/assembler.h>
->>> +#include <asm/sysreg.h>
->>> +
->>> +	.arch	armv8.5-a+memtag
->>> +
->>> +/*
->>> + * multitag_transfer_size - set \reg to the block size that is accessed by the
->>> + * LDGM/STGM instructions.
->>> + */
->>> +	.macro	multitag_transfer_size, reg, tmp
->>> +	mrs_s	\reg, SYS_GMID_EL1
->>> +	ubfx	\reg, \reg, #SYS_GMID_EL1_BS_SHIFT, #SYS_GMID_EL1_BS_SIZE
->>> +	mov	\tmp, #4
->>> +	lsl	\reg, \tmp, \reg
->>> +	.endm
->>> +
->>> +/*
->>> + * Clear the tags in a page
->>> + *   x0 - address of the page to be cleared
->>> + */
->>> +SYM_FUNC_START(mte_clear_page_tags)
->>> +	multitag_transfer_size x1, x2
->>> +1:	stgm	xzr, [x0]
->>> +	add	x0, x0, x1
->>> +	tst	x0, #(PAGE_SIZE - 1)
->>> +	b.ne	1b
->>> +	ret
->>> +SYM_FUNC_END(mte_clear_page_tags)
->>
->> Could the value of SYS_GMID_EL1 vary between CPUs and do we therefore need a
->> preempt_disable() around mte_clear_page_tags() (and other functions in later
->> patches)?
-> 
-> If they differ, disabling preemption here is not sufficient. We'd have
-> to trap the GMID_EL1 access at EL2 as well and emulate it (we do this
-> for CTR_EL0 in dcache_line_size).
+On Thu, Sep 10, 2020 at 12:32:05PM -0700, Linus Torvalds wrote:
+> Yeah, I get hung up on naming sometimes. I don't tend to care much
+> about private local variables ("i" is a perfectly fine variable name),
+> but these kinds of somewhat subtle cross-architecture definitions I
+> feel matter.
 
-Hmm, good point. It's actually not possible to properly emulate this - 
-EL2 can trap GMID_EL1 to provide a different (presumably smaller) size, 
-but LDGM/STGM will still read/store the number of tags of the underlying 
-hardware. While simple loops like we've got at the moment won't care 
-(we'll just end up doing useless work), it won't be architecturally 
-correct. The guest can always deduce the underlying value. So I think we 
-can safely consider this broken hardware.
+One of the first replys to this patch was to ask "when would I use
+_orig vs normal", so you are not alone. The name should convey it..
 
-> I don't want to proactively implement this just in case we'll have
-> broken hardware (I feel a bit more optimistic today ;)).
+So, I suggest pXX_offset_unlocked()
 
-Given the above I think if we do have broken hardware the only sane 
-thing to do would be to provide a way of overriding 
-multitag_transfer_size to return the smallest size of all CPUs. Which 
-works well enough for the uses we've currently got.
+Since it is safe to call without the page table lock, while pXX_offset()
+requires the page table lock to be held as the internal *pXX is a data
+race otherwise.
 
-Steve
+Patch 1 might be OK for a stable backport, but to get to a clear
+pXX_offset_unlocked() all the arches would want to be changed to
+implement that API and the generic code would provide the wrapper:
+
+#define pXX_offset(pXXp, address) pXX_offset_unlocked(pXXp, *(pXXp), address)
+
+Arches would not have a *pXX inside their code.
+
+Then we can talk about auditing call sites of pXX_offset and think
+about using the _unlocked version in places where the page table lock
+is not held.
+
+For instance mm/pagewalk.c should be changed. So should
+huge_pte_offset() and probably other places. These places might
+already be exsting data-race bugs.
+
+It is code-as-documentation indicating an unlocked page table walk.
+
+Now it is not just a S390 story but a change that makes the data
+concurrency much clearer, so I think I prefer this version to the
+addr_end one too.
+
+Regards,
+Jason
