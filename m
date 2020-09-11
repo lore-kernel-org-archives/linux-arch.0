@@ -2,78 +2,69 @@ Return-Path: <SRS0=4jT1=CU=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BEBE3C43461
-	for <linux-arch@archiver.kernel.org>; Fri, 11 Sep 2020 19:14:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5967EC433E2
+	for <linux-arch@archiver.kernel.org>; Fri, 11 Sep 2020 19:40:08 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7B3B722208
-	for <linux-arch@archiver.kernel.org>; Fri, 11 Sep 2020 19:14:57 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1599851697;
-	bh=0/6uWfJdJWAL9eJCKxmmwmOYYZ3cCsVfUmC8dzBhKfM=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc:List-ID:From;
-	b=fRraHyafAAwYwikHQ1CGXJiF8+QPQ17Ydxa6HKEBZEAm4Y/4cCGayFqv+aegV3She
-	 +VrQyxKWLapbKw076lnyvnElMsm65Cow1i3mKMi0kl65zLSWqqERw42TP1vSjIEDq/
-	 NE91bjeBVRwiS76fHBddOpslemueXLcrnCQTea68=
+	by mail.kernel.org (Postfix) with ESMTP id 1156522228
+	for <linux-arch@archiver.kernel.org>; Fri, 11 Sep 2020 19:40:08 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="pR94XQpt"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725787AbgIKTO4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 11 Sep 2020 15:14:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41298 "EHLO
+        id S1725936AbgIKTkG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 11 Sep 2020 15:40:06 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45316 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725783AbgIKTOz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Sep 2020 15:14:55 -0400
-Received: from mail-lf1-x143.google.com (mail-lf1-x143.google.com [IPv6:2a00:1450:4864:20::143])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D0A2AC061573
-        for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2020 12:14:54 -0700 (PDT)
-Received: by mail-lf1-x143.google.com with SMTP id u8so6944688lff.1
-        for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2020 12:14:54 -0700 (PDT)
+        with ESMTP id S1725841AbgIKTkD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Sep 2020 15:40:03 -0400
+Received: from mail-qt1-x841.google.com (mail-qt1-x841.google.com [IPv6:2607:f8b0:4864:20::841])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 64C33C061757
+        for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2020 12:40:02 -0700 (PDT)
+Received: by mail-qt1-x841.google.com with SMTP id h6so8795232qtd.6
+        for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2020 12:40:02 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=lUTLfTAHN/JEc/vY2NZSlPv25B0eM9+I2UvpN7fipvE=;
-        b=Clxn1QsgKc2lKUePPSN2NAL/bI5bjfBFRul7KsPI2uaRRhC0MOrKjvIFIZdRmVowg5
-         Sj/tT1SzRVgDZ+3t3dHFGme2ZZ2AzNzf/iHPNpa3Fuz0WH5hvvP/wmiJL+the/L7uCVO
-         8PyXw3Q3ZjkkDqlxpbtvaLMr+QGOuNdWTmuIw=
+        d=ziepe.ca; s=google;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=BK+tuqq8QDNrIoMgEZ8skJmt+wwLfpOudGjevs6T6M8=;
+        b=pR94XQptn8bYWaLD/i62y0BbH4X2j7wiJqZGlqseUoyJZSGJ0zI0HKYeJ35DMYKrYj
+         WbhjcV6+xwWxfqIPSocDLvuU4le3AHcBTI0Kkw63m7PTGBSfCFh8H4C0gtlUJ6ddWvCd
+         XcdsVVT9YWUzwHhTOFC4l3Lbeao4TtBRlS8AFvOhX/pLbALT6BgXMIp8At2yTcyVWT+X
+         /Gi+2KyTFER9vciFK2XRsy2Nx/3JqByhLTyHCxqiGpqrTEcqOAYJOLnNIo+XUP+DsmVi
+         X10VcO/OtSw+SdWqS+NdVAAiGzoxEsRPjZQhGjyOxN9ZUZUawxj+MaNI5ivGNv9YOJ5y
+         bbyg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=lUTLfTAHN/JEc/vY2NZSlPv25B0eM9+I2UvpN7fipvE=;
-        b=cBkK2SuqYGlEpOClDK6hDgNuu3ZrchhgGi/Fco8Z5RYOihP3q2l/3Er4iL09QhkT/m
-         H8v6iQUgiJ3QfwohO92hoAX5Ea8YkeBvhBv/S8bb64NNIDtF6hRn65u0P+IVJSPe+gKH
-         dalqNegY80R7Av1jH/NwHx9+3FRkhE1C4QYhSy2VPkWB1KsghLV9nFS5YsXVVneyEkhb
-         38/eDR+zdOlHpgDZgR2Vw+scc6u4qLuUdamLDnPIQ3VJ6tZTa06u/VCsIz/o/XVTbhR/
-         Jlo+pW6ZipN8AtqVyNKmHzcsbwyzywDdPJ5m94jOBwd+aRvq/HiQaR0R9P/aw2K/zkpj
-         ADOA==
-X-Gm-Message-State: AOAM532cbZVA+XcaFruvMCMo/ZL1saSKooyMIb6iBTMOyiOpV03pWQPb
-        /pWLyZ1Bbk2yVv69UThQi6aRKrYZJJ8R1A==
-X-Google-Smtp-Source: ABdhPJw2FOAJfy5CCFQtONdnzX2vo93MvncQS0gDwVMrvIHFd9m+o+oMoJZuPqq+r6fRgWygCPb7jw==
-X-Received: by 2002:a19:6c2:: with SMTP id 185mr686262lfg.441.1599851692963;
-        Fri, 11 Sep 2020 12:14:52 -0700 (PDT)
-Received: from mail-lf1-f50.google.com (mail-lf1-f50.google.com. [209.85.167.50])
-        by smtp.gmail.com with ESMTPSA id h27sm544775lfj.87.2020.09.11.12.14.52
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 11 Sep 2020 12:14:52 -0700 (PDT)
-Received: by mail-lf1-f50.google.com with SMTP id z17so6897325lfi.12
-        for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2020 12:14:52 -0700 (PDT)
-X-Received: by 2002:ac2:4ec7:: with SMTP id p7mr651524lfr.352.1599851382451;
- Fri, 11 Sep 2020 12:09:42 -0700 (PDT)
-MIME-Version: 1.0
-References: <20200911070939.GB1362448@hirez.programming.kicks-ass.net> <patch.git-2c4880212370.your-ad-here.call-01599849957-ext-4686@work.hours>
-In-Reply-To: <patch.git-2c4880212370.your-ad-here.call-01599849957-ext-4686@work.hours>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Fri, 11 Sep 2020 12:09:25 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wg0cqRnqT=pBFx+wk3mQVzuCxQ3ea_nYOTyaCG4Ohkk_Q@mail.gmail.com>
-Message-ID: <CAHk-=wg0cqRnqT=pBFx+wk3mQVzuCxQ3ea_nYOTyaCG4Ohkk_Q@mail.gmail.com>
-Subject: Re: [PATCH] mm/gup: fix gup_fast with dynamic page table folding
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=BK+tuqq8QDNrIoMgEZ8skJmt+wwLfpOudGjevs6T6M8=;
+        b=X5/xPjfARgmmZYWJgOHPFDyQv/NPuC1IC3yQnv64mqIwXkxjXcafs2uKMyByI59iuo
+         ysCU+V9wWu09O3UVkKeem1slsEKyCHbw3zPYZqh6E7G6Qy6vMCJIfimiF2aEXA1wNb7C
+         Eu+xVOM1wybkVFIGrgl9HtYv9qOHMQzvSvtzr0uSOaK1eVu1hdlpqRIgvuzXfvNka4yf
+         L0fwy0UxTRKrNh7JX5ftbRjudvMJgyX0UwOW5iLfJJemxjf35KesHxcQVXI7GTMioBml
+         11KK2UjixBMAvndTzlW/af8xqBX1GKka/wX/jdZiiSnCeLW9avDoMzYbE7cUDjbDJ8qu
+         JKhA==
+X-Gm-Message-State: AOAM53231fhXjzdYQp9iK4s3IUdkGcxZ8eL/+sC5kk+hYP1yGDwEn4C2
+        MlHnsSY5gGmc2OAugH0Lx+Rahw==
+X-Google-Smtp-Source: ABdhPJxer3roPhN5O41vGECqY/2AzhDkztmY22iufRFTo4PTGgzF7YR4n8VSHFjV/DPaACcXuMPDOw==
+X-Received: by 2002:ac8:3a06:: with SMTP id w6mr3467667qte.255.1599853201602;
+        Fri, 11 Sep 2020 12:40:01 -0700 (PDT)
+Received: from ziepe.ca (hlfxns017vw-156-34-48-30.dhcp-dynamic.fibreop.ns.bellaliant.net. [156.34.48.30])
+        by smtp.gmail.com with ESMTPSA id o4sm3733647qkk.75.2020.09.11.12.40.00
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 11 Sep 2020 12:40:00 -0700 (PDT)
+Received: from jgg by mlx with local (Exim 4.94)
+        (envelope-from <jgg@ziepe.ca>)
+        id 1kGots-0059mB-64; Fri, 11 Sep 2020 16:40:00 -0300
+Date:   Fri, 11 Sep 2020 16:40:00 -0300
+From:   Jason Gunthorpe <jgg@ziepe.ca>
 To:     Vasily Gorbik <gor@linux.ibm.com>
-Cc:     Jason Gunthorpe <jgg@ziepe.ca>, John Hubbard <jhubbard@nvidia.com>,
+Cc:     John Hubbard <jhubbard@nvidia.com>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
         Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
         Alexander Gordeev <agordeev@linux.ibm.com>,
         Peter Zijlstra <peterz@infradead.org>,
@@ -106,24 +97,39 @@ Cc:     Jason Gunthorpe <jgg@ziepe.ca>, John Hubbard <jhubbard@nvidia.com>,
         Heiko Carstens <hca@linux.ibm.com>,
         Christian Borntraeger <borntraeger@de.ibm.com>,
         Claudio Imbrenda <imbrenda@linux.ibm.com>
-Content-Type: text/plain; charset="UTF-8"
+Subject: Re: [PATCH] mm/gup: fix gup_fast with dynamic page table folding
+Message-ID: <20200911194000.GB1221970@ziepe.ca>
+References: <20200911070939.GB1362448@hirez.programming.kicks-ass.net>
+ <patch.git-2c4880212370.your-ad-here.call-01599849957-ext-4686@work.hours>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <patch.git-2c4880212370.your-ad-here.call-01599849957-ext-4686@work.hours>
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Sep 11, 2020 at 12:04 PM Vasily Gorbik <gor@linux.ibm.com> wrote:
->
-> Currently to make sure that every page table entry is read just once
-> gup_fast walks perform READ_ONCE and pass pXd value down to the next
-> gup_pXd_range function by value e.g.:
-[ ... ]
+On Fri, Sep 11, 2020 at 09:03:06PM +0200, Vasily Gorbik wrote:
+> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+> index e8cbc2e795d5..e899d3506671 100644
+> +++ b/include/linux/pgtable.h
+> @@ -1427,6 +1427,16 @@ typedef unsigned int pgtbl_mod_mask;
+>  #define mm_pmd_folded(mm)	__is_defined(__PAGETABLE_PMD_FOLDED)
+>  #endif
+>  
+> +#ifndef p4d_offset_lockless
+> +#define p4d_offset_lockless(pgdp, pgd, address) p4d_offset(&pgd, address)
+> +#endif
+> +#ifndef pud_offset_lockless
+> +#define pud_offset_lockless(p4dp, p4d, address) pud_offset(&p4d, address)
+> +#endif
+> +#ifndef pmd_offset_lockless
+> +#define pmd_offset_lockless(pudp, pud, address) pmd_offset(&pud, address)
 
-Ack, this looks sane to me.
+Needs brackets: &(pgd) 
 
-I was going to ask how horrible it would be to convert all the other
-users, but a quick grep convinced me that yeah, it's only GUP that is
-this special, and we don't want to make this interface be the real one
-for everything else too..
+These would probably be better as static inlines though, as only s390
+compiles will type check pudp like this.
 
-                Linus
+Jason
