@@ -5,56 +5,57 @@ X-Spam-Level:
 X-Spam-Status: No, score=-12.5 required=3.0 tests=BAYES_00,DKIM_INVALID,
 	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4D656C43461
-	for <linux-arch@archiver.kernel.org>; Sat, 12 Sep 2020 01:34:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F1DD6C43461
+	for <linux-arch@archiver.kernel.org>; Sat, 12 Sep 2020 01:35:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 09393221EB
-	for <linux-arch@archiver.kernel.org>; Sat, 12 Sep 2020 01:34:59 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 94A1820731
+	for <linux-arch@archiver.kernel.org>; Sat, 12 Sep 2020 01:35:36 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=wdc.com header.i=@wdc.com header.b="HteRHqpf"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=wdc.com header.i=@wdc.com header.b="UFucOdsP"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725648AbgILBez (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 11 Sep 2020 21:34:55 -0400
+        id S1725804AbgILBfG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 11 Sep 2020 21:35:06 -0400
 Received: from esa5.hgst.iphmx.com ([216.71.153.144]:13356 "EHLO
         esa5.hgst.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725765AbgILBer (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Sep 2020 21:34:47 -0400
+        with ESMTP id S1725792AbgILBey (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Sep 2020 21:34:54 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple;
   d=wdc.com; i=@wdc.com; q=dns/txt; s=dkim.wdc.com;
-  t=1599874488; x=1631410488;
+  t=1599874495; x=1631410495;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references:mime-version:content-transfer-encoding;
-  bh=tbb0dwy6D9iYWS1kPOnxa+vdqEyJ1+ag9dCJR1CHDY0=;
-  b=HteRHqpfO3TQqDyGVaf8UfKh5fVU8ITe5P+ffOpgPQKH3B+oIia/cqoI
-   vDpjxEZKowdAkNH6pjJdsnIkSk4zciyioX/EegU2yJGxE/3ztw48APyOy
-   t1A/XbXpPn0972cMY6jB/GivzlINJbVS21B6l4HiLMJIw7YVLFaFVJrxe
-   OBSHpQOKLZSNLyfi2WQzvA94ALiQ1OkU4ecl3nGYaf3kqM/E4KF8PUTa+
-   Ko/pkKT9COKhyJzym62cBM97+vYE5xVg2yhA5QLndsrNeI6ud+DrHPRiN
-   PKpISqzc3aA0bhBzUg3BwO9p4gb1CuxfsslMUxUo2nYlEAqsvsHgV4zNR
-   Q==;
-IronPort-SDR: pqlkHEduGwkYEml0LlLYaXhiOrNKVYecmaQ93km4psa8XK/BEY/ngD3Jb3OzYtn4fSg9ROgGkE
- P3LvRTiNOXQwvPkRGt6C5rmWkFRHq8JjfFMdGxyWpgZKCX+buQ53cR/Ca3go6XMfCVDN8i/Sg/
- BojBXawSK0vEEF98yRVj5GBdEIFv4P1C5mBmxBjr156AO62e1oFhiduC/ph8leuYecKUfnxEh3
- k7fZZNcaXeNHMKCY9i01I0I2M91kelEKi7slwY2Vi7XEbC9MCyBrau+zd1ZJfXVuUlppGhjdKs
- UuA=
+  bh=JkSJpzvIaD6c9g/5xpC8MP5lV35I6QGKFzDpcrYYtoA=;
+  b=UFucOdsPDfQpy1DAIzT7TWEyNDDCkAEyd9Du0IsRiqYC2x7uVI4ZPUZA
+   95ZdUgXAbOUvcm0L2FqeHFKaco5Anv+v9Ry5D6tq/7m9Bh/QEXGNApCtn
+   ZBYi5rkQfEgIetvGnER2A58p0/jmkleIyV/jTTSDIsaTdNGJJnYDzdxVC
+   R2z4tCJnsoy6j5k0v1igymH+bPXD8MDlBOOKIsRPIsqGlx+sWaOmzA7hj
+   jamRtIDoTuVqqjEiJ6D+bGKDcXMBlCEsMS/ZpiNKq2kdc0LWV4Sx/e9Wu
+   wur/XqTsIosd4Q+/6cz/9YMM6Mo59IWzURXZNvGF19GB7GARNzyZrKuWA
+   g==;
+IronPort-SDR: K/G3xlfWBxWCT5mSPhgFjmWhqqFsB6QE5Jnayw18VH3vIL1w5v1zcmjqYmA8oY8rv4KYOurfTn
+ 47k32fCm2QILjeSOjcy6VGPU+1XaEwcLYOUyL04fKBCm7YBMjDXO7KgFST7SfoO5OyxX846aX7
+ X0js4rszELejK0FgEPE6idWiA5lZQDlzywcfPLLG+jXh7FXrTwpds1zWrxIQXoUDPfthqENNeA
+ YjV0VDOrh4A6wQKoJIPEmZTpmBeHvVqa6a9ZZE8UhFw/xhqjiMXSscD2JsmaSuuilAIIIE16wi
+ L24=
 X-IronPort-AV: E=Sophos;i="5.76,418,1592841600"; 
-   d="scan'208";a="147177954"
+   d="scan'208";a="147177963"
 Received: from uls-op-cesaip01.wdc.com (HELO uls-op-cesaep01.wdc.com) ([199.255.45.14])
-  by ob1.hgst.iphmx.com with ESMTP; 12 Sep 2020 09:34:47 +0800
-IronPort-SDR: XF7KyhGrxPcyk6oCJKxUvE76PJHfCo+sHDUCs9i35Ygkc3AcbWPI5dsZsClsLj4kmBNUW4mj4I
- BaXil7HHI1iw==
+  by ob1.hgst.iphmx.com with ESMTP; 12 Sep 2020 09:34:50 +0800
+IronPort-SDR: 3LOLVja06A0hmdmkFZUptBSaxQcbxzHAPfTsI2/XYeoUMp+8BnxFc6rnekAjAfyhL+ycGosAx0
+ 0FgFPzxixrFg==
 Received: from uls-op-cesaip02.wdc.com ([10.248.3.37])
-  by uls-op-cesaep01.wdc.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 11 Sep 2020 18:22:01 -0700
-IronPort-SDR: hu6MvwAluDkqpVTgl2uVsaHk+jsK3Sr0U4cnByviLCrw2u2Q4CzH4YrOtkM8MDFlEF+vRjGGOs
- P37IHm8lszDA==
+  by uls-op-cesaep01.wdc.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 11 Sep 2020 18:22:04 -0700
+IronPort-SDR: au43y8yvcMAKuIcwxIiE9zPcVwxZdxmh9+KeLC62rL5Nr/sxoxnIDjhf24+clJ06XxG8ooG1wl
+ GH4g/3IHqz9Q==
 WDCIronportException: Internal
 Received: from unknown (HELO jedi-01.hgst.com) ([10.86.59.229])
-  by uls-op-cesaip02.wdc.com with ESMTP; 11 Sep 2020 18:34:46 -0700
+  by uls-op-cesaip02.wdc.com with ESMTP; 11 Sep 2020 18:34:48 -0700
 From:   Atish Patra <atish.patra@wdc.com>
 To:     linux-kernel@vger.kernel.org
 Cc:     Atish Patra <atish.patra@wdc.com>,
+        Greentime Hu <greentime.hu@sifive.com>,
         Albert Ou <aou@eecs.berkeley.edu>,
         Andrew Morton <akpm@linux-foundation.org>,
         Anshuman Khandual <anshuman.khandual@arm.com>,
@@ -62,7 +63,6 @@ Cc:     Atish Patra <atish.patra@wdc.com>,
         Arnd Bergmann <arnd@arndb.de>,
         Catalin Marinas <catalin.marinas@arm.com>,
         David Hildenbrand <david@redhat.com>,
-        Greentime Hu <greentime.hu@sifive.com>,
         Bjorn Helgaas <helgaas@kernel.org>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Jia He <justin.he@arm.com>, linux-arch@vger.kernel.org,
@@ -74,9 +74,9 @@ Cc:     Atish Patra <atish.patra@wdc.com>,
         Steven Price <steven.price@arm.com>,
         Will Deacon <will@kernel.org>, Zong Li <zong.li@sifive.com>,
         Jonathan Cameron <Jonathan.Cameron@huawei.com>
-Subject: [RFC/RFT PATCH v2 2/5] arm64, numa: Change the numa init function name to be generic
-Date:   Fri, 11 Sep 2020 18:34:38 -0700
-Message-Id: <20200912013441.9730-3-atish.patra@wdc.com>
+Subject: [RFC/RFT PATCH v2 5/5] riscv: Add numa support for riscv64 platform
+Date:   Fri, 11 Sep 2020 18:34:41 -0700
+Message-Id: <20200912013441.9730-6-atish.patra@wdc.com>
 X-Mailer: git-send-email 2.24.0
 In-Reply-To: <20200912013441.9730-1-atish.patra@wdc.com>
 References: <20200912013441.9730-1-atish.patra@wdc.com>
@@ -87,132 +87,256 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-As we are using generic numa implementation code, modify the init function
-name to indicate that generic implementation.
+Use the generic numa implementation to add NUMA support for RISC-V.
+This is based on Greentime's patch[1] but modified to use generic NUMA
+implementation and few more fixes.
 
+[1] https://lkml.org/lkml/2020/1/10/233
+
+Co-developed-by: Greentime Hu <greentime.hu@sifive.com>
+Signed-off-by: Greentime Hu <greentime.hu@sifive.com>
 Signed-off-by: Atish Patra <atish.patra@wdc.com>
 ---
- arch/arm64/kernel/acpi_numa.c | 13 -------------
- arch/arm64/mm/init.c          |  4 ++--
- drivers/base/arch_numa.c      | 29 ++++++++++++++++++++++++++---
- include/asm-generic/numa.h    |  4 ++--
- 4 files changed, 30 insertions(+), 20 deletions(-)
+ arch/riscv/Kconfig              | 31 ++++++++++++++++++++++++++++++-
+ arch/riscv/include/asm/mmzone.h | 13 +++++++++++++
+ arch/riscv/include/asm/numa.h   |  8 ++++++++
+ arch/riscv/include/asm/pci.h    | 14 ++++++++++++++
+ arch/riscv/kernel/setup.c       | 10 ++++++++--
+ arch/riscv/kernel/smpboot.c     | 12 +++++++++++-
+ arch/riscv/mm/init.c            |  4 +++-
+ 7 files changed, 87 insertions(+), 5 deletions(-)
+ create mode 100644 arch/riscv/include/asm/mmzone.h
+ create mode 100644 arch/riscv/include/asm/numa.h
 
-diff --git a/arch/arm64/kernel/acpi_numa.c b/arch/arm64/kernel/acpi_numa.c
-index 7ff800045434..96502ff92af5 100644
---- a/arch/arm64/kernel/acpi_numa.c
-+++ b/arch/arm64/kernel/acpi_numa.c
-@@ -117,16 +117,3 @@ void __init acpi_numa_gicc_affinity_init(struct acpi_srat_gicc_affinity *pa)
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index df18372861d8..7beb6ddb6eb1 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -137,7 +137,7 @@ config PAGE_OFFSET
+ 	default 0xffffffe000000000 if 64BIT && MAXPHYSMEM_128GB
  
- 	node_set(node, numa_nodes_parsed);
+ config ARCH_FLATMEM_ENABLE
+-	def_bool y
++	def_bool !NUMA
+ 
+ config ARCH_SPARSEMEM_ENABLE
+ 	def_bool y
+@@ -295,6 +295,35 @@ config TUNE_GENERIC
+ 
+ endchoice
+ 
++# Common NUMA Features
++config NUMA
++	bool "NUMA Memory Allocation and Scheduler Support"
++	select GENERIC_ARCH_NUMA
++	select OF_NUMA
++	select ARCH_SUPPORTS_NUMA_BALANCING
++	help
++	  Enable NUMA (Non-Uniform Memory Access) support.
++
++	  The kernel will try to allocate memory used by a CPU on the
++	  local memory of the CPU and add some more NUMA awareness to the kernel.
++
++config NODES_SHIFT
++	int "Maximum NUMA Nodes (as a power of 2)"
++	range 1 10
++	default "2"
++	depends on NEED_MULTIPLE_NODES
++	help
++	  Specify the maximum number of NUMA Nodes available on the target
++	  system.  Increases memory reserved to accommodate various tables.
++
++config USE_PERCPU_NUMA_NODE_ID
++	def_bool y
++	depends on NUMA
++
++config NEED_PER_CPU_EMBED_FIRST_CHUNK
++	def_bool y
++	depends on NUMA
++
+ config RISCV_ISA_C
+ 	bool "Emit compressed instructions when building Linux"
+ 	default y
+diff --git a/arch/riscv/include/asm/mmzone.h b/arch/riscv/include/asm/mmzone.h
+new file mode 100644
+index 000000000000..fa17e01d9ab2
+--- /dev/null
++++ b/arch/riscv/include/asm/mmzone.h
+@@ -0,0 +1,13 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_MMZONE_H
++#define __ASM_MMZONE_H
++
++#ifdef CONFIG_NUMA
++
++#include <asm/numa.h>
++
++extern struct pglist_data *node_data[];
++#define NODE_DATA(nid)		(node_data[(nid)])
++
++#endif /* CONFIG_NUMA */
++#endif /* __ASM_MMZONE_H */
+diff --git a/arch/riscv/include/asm/numa.h b/arch/riscv/include/asm/numa.h
+new file mode 100644
+index 000000000000..8c8cf4297cc3
+--- /dev/null
++++ b/arch/riscv/include/asm/numa.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_NUMA_H
++#define __ASM_NUMA_H
++
++#include <asm/topology.h>
++#include <asm-generic/numa.h>
++
++#endif	/* __ASM_NUMA_H */
+diff --git a/arch/riscv/include/asm/pci.h b/arch/riscv/include/asm/pci.h
+index 1c473a1bd986..658e112c3ce7 100644
+--- a/arch/riscv/include/asm/pci.h
++++ b/arch/riscv/include/asm/pci.h
+@@ -32,6 +32,20 @@ static inline int pci_proc_domain(struct pci_bus *bus)
+ 	/* always show the domain in /proc */
+ 	return 1;
  }
--
--int __init arm64_acpi_numa_init(void)
--{
--	int ret;
--
--	ret = acpi_numa_init();
--	if (ret) {
--		pr_info("Failed to initialise from firmware\n");
--		return ret;
--	}
--
--	return srat_disabled() ? -EINVAL : 0;
--}
-diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
-index 481d22c32a2e..93b660229e1d 100644
---- a/arch/arm64/mm/init.c
-+++ b/arch/arm64/mm/init.c
-@@ -418,10 +418,10 @@ void __init bootmem_init(void)
- 	max_pfn = max_low_pfn = max;
- 	min_low_pfn = min;
- 
--	arm64_numa_init();
-+	arch_numa_init();
- 
- 	/*
--	 * must be done after arm64_numa_init() which calls numa_init() to
-+	 * must be done after arch_numa_init() which calls numa_init() to
- 	 * initialize node_online_map that gets used in hugetlb_cma_reserve()
- 	 * while allocating required CMA size across online nodes.
- 	 */
-diff --git a/drivers/base/arch_numa.c b/drivers/base/arch_numa.c
-index 73f8b49d485c..a4039dcabd3e 100644
---- a/drivers/base/arch_numa.c
-+++ b/drivers/base/arch_numa.c
-@@ -13,7 +13,9 @@
- #include <linux/module.h>
- #include <linux/of.h>
- 
-+#ifdef CONFIG_ACPI_NUMA
- #include <asm/acpi.h>
-+#endif
- #include <asm/sections.h>
- 
- struct pglist_data *node_data[MAX_NUMNODES] __read_mostly;
-@@ -444,16 +446,37 @@ static int __init dummy_numa_init(void)
- 	return 0;
- }
- 
-+#ifdef CONFIG_ACPI_NUMA
-+int __init arch_acpi_numa_init(void)
++
++#ifdef	CONFIG_NUMA
++
++static inline int pcibus_to_node(struct pci_bus *bus)
 +{
-+	int ret;
-+
-+	ret = acpi_numa_init();
-+	if (ret) {
-+		pr_info("Failed to initialise from firmware\n");
-+		return ret;
-+	}
-+
-+	return srat_disabled() ? -EINVAL : 0;
++	return dev_to_node(&bus->dev);
 +}
-+#else
-+int __init arch_acpi_numa_init(void)
-+{
-+	return -EOPNOTSUPP;
-+}
-+
++#ifndef cpumask_of_pcibus
++#define cpumask_of_pcibus(bus)	(pcibus_to_node(bus) == -1 ?		\
++				 cpu_all_mask :				\
++				 cpumask_of_node(pcibus_to_node(bus)))
 +#endif
++#endif	/* CONFIG_NUMA */
 +
- /**
-- * arm64_numa_init() - Initialize NUMA
-+ * arch_numa_init() - Initialize NUMA
-  *
-  * Try each configured NUMA initialization method until one succeeds. The
-  * last fallback is dummy single node config encomapssing whole memory.
-  */
--void __init arm64_numa_init(void)
-+void __init arch_numa_init(void)
+ #endif  /* CONFIG_PCI */
+ 
+ #endif  /* _ASM_RISCV_PCI_H */
+diff --git a/arch/riscv/kernel/setup.c b/arch/riscv/kernel/setup.c
+index 07fa6d13367e..53a806a9cbaf 100644
+--- a/arch/riscv/kernel/setup.c
++++ b/arch/riscv/kernel/setup.c
+@@ -101,13 +101,19 @@ void __init setup_arch(char **cmdline_p)
+ 
+ static int __init topology_init(void)
  {
- 	if (!numa_off) {
--		if (!acpi_disabled && !numa_init(arm64_acpi_numa_init))
-+		if (!acpi_disabled && !numa_init(arch_acpi_numa_init))
- 			return;
- 		if (acpi_disabled && !numa_init(of_numa_init))
- 			return;
-diff --git a/include/asm-generic/numa.h b/include/asm-generic/numa.h
-index 2718d5a6ff03..e7962db4ba44 100644
---- a/include/asm-generic/numa.h
-+++ b/include/asm-generic/numa.h
-@@ -27,7 +27,7 @@ static inline const struct cpumask *cpumask_of_node(int node)
+-	int i;
++	int i, ret;
++
++	for_each_online_node(i)
++		register_one_node(i);
+ 
+ 	for_each_possible_cpu(i) {
+ 		struct cpu *cpu = &per_cpu(cpu_devices, i);
+ 
+ 		cpu->hotpluggable = cpu_has_hotplug(i);
+-		register_cpu(cpu, i);
++		ret = register_cpu(cpu, i);
++		if (unlikely(ret))
++			pr_warn("Warning: %s: register_cpu %d failed (%d)\n",
++			       __func__, i, ret);
+ 	}
+ 
+ 	return 0;
+diff --git a/arch/riscv/kernel/smpboot.c b/arch/riscv/kernel/smpboot.c
+index 96167d55ed98..5e276c25646f 100644
+--- a/arch/riscv/kernel/smpboot.c
++++ b/arch/riscv/kernel/smpboot.c
+@@ -27,6 +27,7 @@
+ #include <asm/cpu_ops.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
++#include <asm/numa.h>
+ #include <asm/tlbflush.h>
+ #include <asm/sections.h>
+ #include <asm/sbi.h>
+@@ -45,13 +46,18 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
+ {
+ 	int cpuid;
+ 	int ret;
++	unsigned int curr_cpuid;
++
++	curr_cpuid = smp_processor_id();
++	numa_store_cpu_info(curr_cpuid);
++	numa_add_cpu(curr_cpuid);
+ 
+ 	/* This covers non-smp usecase mandated by "nosmp" option */
+ 	if (max_cpus == 0)
+ 		return;
+ 
+ 	for_each_possible_cpu(cpuid) {
+-		if (cpuid == smp_processor_id())
++		if (cpuid == curr_cpuid)
+ 			continue;
+ 		if (cpu_ops[cpuid]->cpu_prepare) {
+ 			ret = cpu_ops[cpuid]->cpu_prepare(cpuid);
+@@ -59,6 +65,7 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
+ 				continue;
+ 		}
+ 		set_cpu_present(cpuid, true);
++		numa_store_cpu_info(cpuid);
+ 	}
  }
- #endif
  
--void __init arm64_numa_init(void);
-+void __init arch_numa_init(void);
- int __init numa_add_memblk(int nodeid, u64 start, u64 end);
- void __init numa_set_distance(int from, int to, int distance);
- void __init numa_free_distance(void);
-@@ -41,7 +41,7 @@ void numa_remove_cpu(unsigned int cpu);
- static inline void numa_store_cpu_info(unsigned int cpu) { }
- static inline void numa_add_cpu(unsigned int cpu) { }
- static inline void numa_remove_cpu(unsigned int cpu) { }
--static inline void arm64_numa_init(void) { }
-+static inline void arch_numa_init(void) { }
- static inline void early_map_cpu_to_node(unsigned int cpu, int nid) { }
+@@ -79,6 +86,7 @@ void __init setup_smp(void)
+ 		if (hart == cpuid_to_hartid_map(0)) {
+ 			BUG_ON(found_boot_cpu);
+ 			found_boot_cpu = 1;
++			early_map_cpu_to_node(0, of_node_to_nid(dn));
+ 			continue;
+ 		}
+ 		if (cpuid >= NR_CPUS) {
+@@ -88,6 +96,7 @@ void __init setup_smp(void)
+ 		}
  
- #endif	/* CONFIG_NUMA */
+ 		cpuid_to_hartid_map(cpuid) = hart;
++		early_map_cpu_to_node(cpuid, of_node_to_nid(dn));
+ 		cpuid++;
+ 	}
+ 
+@@ -153,6 +162,7 @@ asmlinkage __visible void smp_callin(void)
+ 	current->active_mm = mm;
+ 
+ 	notify_cpu_starting(curr_cpuid);
++	numa_add_cpu(curr_cpuid);
+ 	update_siblings_masks(curr_cpuid);
+ 	set_cpu_online(curr_cpuid, 1);
+ 
+diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
+index 8f31a5428ce4..bc484babb9ca 100644
+--- a/arch/riscv/mm/init.c
++++ b/arch/riscv/mm/init.c
+@@ -20,6 +20,7 @@
+ #include <asm/soc.h>
+ #include <asm/io.h>
+ #include <asm/ptdump.h>
++#include <asm/numa.h>
+ 
+ #include "../kernel/head.h"
+ 
+@@ -188,7 +189,6 @@ void __init setup_bootmem(void)
+ 
+ 	early_init_fdt_scan_reserved_mem();
+ 	memblock_allow_resize();
+-	memblock_dump_all();
+ 
+ 	for_each_memblock(memory, reg) {
+ 		unsigned long start_pfn = memblock_region_memory_base_pfn(reg);
+@@ -573,9 +573,11 @@ void __init paging_init(void)
+ 
+ void __init misc_mem_init(void)
+ {
++	arch_numa_init();
+ 	sparse_init();
+ 	zone_sizes_init();
+ 	resource_init();
++	memblock_dump_all();
+ }
+ 
+ #ifdef CONFIG_SPARSEMEM_VMEMMAP
 -- 
 2.24.0
 
