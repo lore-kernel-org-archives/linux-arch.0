@@ -2,424 +2,207 @@ Return-Path: <SRS0=B83m=CX=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+X-Spam-Status: No, score=-13.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 37BFEC43461
-	for <linux-arch@archiver.kernel.org>; Mon, 14 Sep 2020 12:03:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 013A1C433E2
+	for <linux-arch@archiver.kernel.org>; Mon, 14 Sep 2020 13:10:22 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E52C321655
-	for <linux-arch@archiver.kernel.org>; Mon, 14 Sep 2020 12:03:32 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B8ACA208E4
+	for <linux-arch@archiver.kernel.org>; Mon, 14 Sep 2020 13:10:21 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1600085013;
-	bh=5j31fL/IwPMwzpua5NWTXm9tEcqggnx4CMjHdoymkJ0=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=QqYa+zkK3+eeDAT04jdWQP5Xc7IrRmD/6MnBJWSy0NGiFtjtwlkxlwZ5fkHk7cPYo
-	 GcO3MHO7U1PS3a8yBlss8HwSCwLU8u5SpugHEvJUZy+HfcRzm3EAjmjNT2/zjOycga
-	 QD/zR9UYPaR23G7QaXxFQwMqFHqx9ffWVvJzqqsA=
+	s=default; t=1600089021;
+	bh=enr+iyTv6u2XzskZFJ5qT83Kq/MSJgsJ+u1/0SVC2DE=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
+	b=McaqZPYVIpo0xAlKyiU82I+Vt3PsA9lDdMtU8L1+LYcPyv2CipnzaJGFDcKoM7QV4
+	 IBHdxgFQzdHKIDJ5TmaScgp/rfY9h7dQZKVgY0qHj8eci7ugyVY8x5gXjzRcnR0hHc
+	 Qb1uXsh8fWg/jbBzpAq7vi9Zj055oYXo6VbWXRk8=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726072AbgINMC4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 14 Sep 2020 08:02:56 -0400
-Received: from mail-wm1-f65.google.com ([209.85.128.65]:52526 "EHLO
-        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726047AbgINMCj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2020 08:02:39 -0400
-Received: by mail-wm1-f65.google.com with SMTP id q9so10352723wmj.2;
-        Mon, 14 Sep 2020 04:59:36 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=zxHnY7apMqv5AqhPxMYX2OBuMx0/yr3Z9ap02Ex1SFE=;
-        b=uHO6aCcuXZmBZtTCqDkSWHi9+a0hMW3rcklrRenlLjArU1Xh51C3Vg+LUrJw0KOfz9
-         ozxW6V+NSos5jZzVWa8K2fdASU/qUSt0m6Dsr8J/y6+nT8UiMVGgb1IsfDbNGOKeNryO
-         zv5jJHXCs+FhPbKcoqBEpiTGQyjnO1RZ6aVFC7cx07weiBX2sNuGRki0snMuyxwsO9Nq
-         P2aqyfv+u1Bu8Zt06KiapEockBDfFfzD8+qhYmrmkqTsvQ47sb8JmKMqbVehjuvcx/U+
-         BqUvBYCjxxj/3GpARHZ7n5RJaQLh6YN4JCttivOKlS4ehZguzhqD2+EsJmZSwH/sp1ql
-         sWUg==
-X-Gm-Message-State: AOAM533KHE5PGKKIpQbqa3q6RCK1rJTuAgwWHf55RAGwern2Kc3446xI
-        k1Wc36NvA2BNzBdILDLrCNJeum4FLVA=
-X-Google-Smtp-Source: ABdhPJzNXRr5PtkOMtwv5l3L+NOpuysTZYRsL1l18Y7aA9puJzd1eNCBO3sHLyfQBYSC0D5HIn0c/Q==
-X-Received: by 2002:a7b:c397:: with SMTP id s23mr15050475wmj.174.1600084775036;
-        Mon, 14 Sep 2020 04:59:35 -0700 (PDT)
-Received: from liuwe-devbox-debian-v2.j3c5onc20sse1dnehy4noqpfcg.zx.internal.cloudapp.net ([51.145.34.42])
-        by smtp.gmail.com with ESMTPSA id c205sm18764809wmd.33.2020.09.14.04.59.34
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 14 Sep 2020 04:59:34 -0700 (PDT)
-From:   Wei Liu <wei.liu@kernel.org>
-To:     Linux on Hyper-V List <linux-hyperv@vger.kernel.org>
-Cc:     virtualization@lists.linux-foundation.org,
-        Linux Kernel List <linux-kernel@vger.kernel.org>,
-        Michael Kelley <mikelley@microsoft.com>,
-        Vineeth Pillai <viremana@linux.microsoft.com>,
-        Sunil Muthuswamy <sunilmut@microsoft.com>,
-        Nuno Das Neves <nudasnev@microsoft.com>,
-        Wei Liu <wei.liu@kernel.org>,
-        Lillian Grassin-Drake <ligrassi@microsoft.com>,
-        "K. Y. Srinivasan" <kys@microsoft.com>,
-        Haiyang Zhang <haiyangz@microsoft.com>,
-        Stephen Hemminger <sthemmin@microsoft.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        x86@kernel.org (maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)),
-        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-        linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
-Subject: [PATCH RFC v1 09/18] x86/hyperv: provide a bunch of helper functions
-Date:   Mon, 14 Sep 2020 11:59:18 +0000
-Message-Id: <20200914115928.83184-1-wei.liu@kernel.org>
-X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20200914112802.80611-1-wei.liu@kernel.org>
-References: <20200914112802.80611-1-wei.liu@kernel.org>
+        id S1726534AbgINNKQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 14 Sep 2020 09:10:16 -0400
+Received: from mail.kernel.org ([198.145.29.99]:36748 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726407AbgINNJp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 14 Sep 2020 09:09:45 -0400
+Received: from willie-the-truck (236.31.169.217.in-addr.arpa [217.169.31.236])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 7AF03206B2;
+        Mon, 14 Sep 2020 13:09:41 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=default; t=1600088984;
+        bh=enr+iyTv6u2XzskZFJ5qT83Kq/MSJgsJ+u1/0SVC2DE=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=HJEzeySpEP9Li+pydqi15kb1u831aaAa+xIym6H9E2N3vCvslGr2iwd+P8M1q2/KV
+         oSZObq1fkwLf0vFtUgCRsKaEc92nsIxzoi2BG5AQAEfuEj1PR858lINKG6gctQ6lsa
+         BjSmPK+oikK1hmXW8zjoRAQ2wZdbtaPoD7suvK/g=
+Date:   Mon, 14 Sep 2020 14:09:38 +0100
+From:   Will Deacon <will@kernel.org>
+To:     David Brazdil <dbrazdil@google.com>
+Cc:     Marc Zyngier <maz@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
+        Christoph Lameter <cl@linux.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        James Morse <james.morse@arm.com>,
+        Julien Thierry <julien.thierry.kdev@gmail.com>,
+        Suzuki K Poulose <suzuki.poulose@arm.com>,
+        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+        kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org,
+        kernel-team@android.com
+Subject: Re: [PATCH v2 02/10] kvm: arm64: Partially link nVHE hyp code,
+ simplify HYPCOPY
+Message-ID: <20200914130937.GC24441@willie-the-truck>
+References: <20200903091712.46456-1-dbrazdil@google.com>
+ <20200903091712.46456-3-dbrazdil@google.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200903091712.46456-3-dbrazdil@google.com>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-They are used to deposit pages into Microsoft Hypervisor and bring up
-logical and virtual processors.
+On Thu, Sep 03, 2020 at 11:17:04AM +0200, David Brazdil wrote:
+> Previous series introduced custom build rules for nVHE hyp code, using
+> objcopy to prefix ELF section and symbol names to separate nVHE code
+> into its own "namespace". This approach was limited by the expressiveness
+> of objcopy's command line interface, eg. missing support for wildcards.
 
-Signed-off-by: Lillian Grassin-Drake <ligrassi@microsoft.com>
-Signed-off-by: Sunil Muthuswamy <sunilmut@microsoft.com>
-Signed-off-by: Nuno Das Neves <nudasnev@microsoft.com>
-Co-Developed-by: Lillian Grassin-Drake <ligrassi@microsoft.com>
-Co-Developed-by: Sunil Muthuswamy <sunilmut@microsoft.com>
-Co-Developed-by: Nuno Das Neves <nudasnev@microsoft.com>
-Signed-off-by: Wei Liu <wei.liu@kernel.org>
----
- arch/x86/hyperv/Makefile          |   2 +-
- arch/x86/hyperv/hv_proc.c         | 209 ++++++++++++++++++++++++++++++
- arch/x86/include/asm/mshyperv.h   |   4 +
- include/asm-generic/hyperv-tlfs.h |  56 ++++++++
- 4 files changed, 270 insertions(+), 1 deletion(-)
- create mode 100644 arch/x86/hyperv/hv_proc.c
+nit: "Previous series" isn't a lot of use here or in the git log. You can
+just say something like:
 
-diff --git a/arch/x86/hyperv/Makefile b/arch/x86/hyperv/Makefile
-index 89b1f74d3225..565358020921 100644
---- a/arch/x86/hyperv/Makefile
-+++ b/arch/x86/hyperv/Makefile
-@@ -1,6 +1,6 @@
- # SPDX-License-Identifier: GPL-2.0-only
- obj-y			:= hv_init.o mmu.o nested.o
--obj-$(CONFIG_X86_64)	+= hv_apic.o
-+obj-$(CONFIG_X86_64)	+= hv_apic.o hv_proc.o
- 
- ifdef CONFIG_X86_64
- obj-$(CONFIG_PARAVIRT_SPINLOCKS)	+= hv_spinlock.o
-diff --git a/arch/x86/hyperv/hv_proc.c b/arch/x86/hyperv/hv_proc.c
-new file mode 100644
-index 000000000000..847c72465d0e
---- /dev/null
-+++ b/arch/x86/hyperv/hv_proc.c
-@@ -0,0 +1,209 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#include <linux/types.h>
-+#include <linux/version.h>
-+#include <linux/vmalloc.h>
-+#include <linux/mm.h>
-+#include <linux/clockchips.h>
-+#include <linux/acpi.h>
-+#include <linux/hyperv.h>
-+#include <linux/slab.h>
-+#include <linux/cpuhotplug.h>
-+#include <asm/hypervisor.h>
-+#include <asm/mshyperv.h>
-+#include <asm/apic.h>
-+
-+#include <asm/trace/hyperv.h>
-+
-+#define HV_DEPOSIT_MAX_ORDER (8)
-+#define HV_DEPOSIT_MAX (1 << HV_DEPOSIT_MAX_ORDER)
-+
-+#define MAX(a, b) ((a) > (b) ? (a) : (b))
-+#define MIN(a, b) ((a) < (b) ? (a) : (b))
-+
-+/*
-+ * Deposits exact number of pages
-+ * Must be called with interrupts enabled
-+ * Max 256 pages
-+ */
-+int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
-+{
-+	struct page **pages;
-+	int *counts;
-+	int num_allocations;
-+	int i, j, page_count;
-+	int order;
-+	int desired_order;
-+	int status;
-+	int ret;
-+	u64 base_pfn;
-+	struct hv_deposit_memory *input_page;
-+	unsigned long flags;
-+
-+	if (num_pages > HV_DEPOSIT_MAX)
-+		return -EINVAL;
-+	if (!num_pages)
-+		return 0;
-+
-+	ret = -ENOMEM;
-+
-+	/* One buffer for page pointers and counts */
-+	pages = page_address(alloc_page(GFP_KERNEL));
-+	if (!pages)
-+		goto free_buf;
-+	counts = (int *)&pages[256];
-+
-+	/* Allocate all the pages before disabling interrupts */
-+	num_allocations = 0;
-+	i = 0;
-+	order = HV_DEPOSIT_MAX_ORDER;
-+
-+	while (num_pages) {
-+		/* Find highest order we can actually allocate */
-+		desired_order = 31 - __builtin_clz(num_pages);
-+		order = MIN(desired_order, order);
-+		do {
-+			pages[i] = alloc_pages_node(node, GFP_KERNEL, order);
-+			if (!pages[i]) {
-+				if (!order) {
-+					goto err_free_allocations;
-+				}
-+				--order;
-+			}
-+		} while (!pages[i]);
-+
-+		split_page(pages[i], order);
-+		counts[i] = 1 << order;
-+		num_pages -= counts[i];
-+		i++;
-+		num_allocations++;
-+	}
-+
-+	local_irq_save(flags);
-+
-+	input_page = *this_cpu_ptr(hyperv_pcpu_input_arg);
-+
-+	input_page->partition_id = partition_id;
-+
-+	/* Populate gpa_page_list - these will fit on the input page */
-+	for (i = 0, page_count = 0; i < num_allocations; ++i) {
-+		base_pfn = page_to_pfn(pages[i]);
-+		for (j = 0; j < counts[i]; ++j, ++page_count)
-+			input_page->gpa_page_list[page_count] = base_pfn + j;
-+	}
-+	status = hv_do_rep_hypercall(HVCALL_DEPOSIT_MEMORY,
-+				     page_count, 0, input_page,
-+				     NULL) & HV_HYPERCALL_RESULT_MASK;
-+	local_irq_restore(flags);
-+
-+	if (status != HV_STATUS_SUCCESS) {
-+		pr_err("Failed to deposit pages: %d\n", status);
-+		ret = status;
-+		goto err_free_allocations;
-+	}
-+
-+	ret = 0;
-+	goto free_buf;
-+
-+err_free_allocations:
-+	for (i = 0; i < num_allocations; ++i) {
-+		base_pfn = page_to_pfn(pages[i]);
-+		for (j = 0; j < counts[i]; ++j)
-+			__free_page(pfn_to_page(base_pfn + j));
-+	}
-+
-+free_buf:
-+	free_page((unsigned long)pages);
-+	return ret;
-+}
-+EXPORT_SYMBOL_GPL(hv_call_deposit_pages);
-+
-+int hv_call_add_logical_proc(int node, u32 lp_index, u32 apic_id)
-+{
-+	struct hv_add_logical_processor_in *input;
-+	struct hv_add_logical_processor_out *output;
-+	int status;
-+	unsigned long flags;
-+	int ret = 0;
-+
-+	do {
-+		local_irq_save(flags);
-+
-+		input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-+		/* We don't do anything with the output right now */
-+		output = *this_cpu_ptr(hyperv_pcpu_output_arg);
-+
-+		input->lp_index = lp_index;
-+		input->apic_id = apic_id;
-+		input->flags = 0;
-+		input->proximity_domain_info.domain_id = node_to_pxm(node);
-+		input->proximity_domain_info.flags.reserved = 0;
-+		input->proximity_domain_info.flags.proximity_info_valid = 1;
-+		input->proximity_domain_info.flags.proximity_preferred = 1;
-+		status = hv_do_hypercall(HVCALL_ADD_LOGICAL_PROCESSOR,
-+					 input, output);
-+		local_irq_restore(flags);
-+
-+		if (status != HV_STATUS_INSUFFICIENT_MEMORY) {
-+			if (status != HV_STATUS_SUCCESS) {
-+				pr_err("%s: cpu %u apic ID %u, %d\n", __func__,
-+				       lp_index, apic_id, status);
-+				ret = status;
-+			}
-+			break;
-+		}
-+		ret = hv_call_deposit_pages(node, hv_current_partition_id, 1);
-+
-+	} while (!ret);
-+
-+	return ret;
-+}
-+
-+int hv_call_create_vp(int node, u64 partition_id, u32 vp_index, u32 flags)
-+{
-+	struct hv_create_vp *input;
-+	int status;
-+	unsigned long irq_flags;
-+	int ret = 0;
-+
-+	/* Root VPs don't seem to need pages deposited */
-+	if (partition_id != hv_current_partition_id) {
-+		ret = hv_call_deposit_pages(node, partition_id, 90);
-+		if (ret)
-+			return ret;
-+	}
-+
-+	do {
-+		local_irq_save(irq_flags);
-+
-+		input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-+
-+		input->partition_id = partition_id;
-+		input->vp_index = vp_index;
-+		input->flags = flags;
-+		if (node != NUMA_NO_NODE) {
-+			input->proximity_domain_info.domain_id = node_to_pxm(node);
-+			input->proximity_domain_info.flags.reserved = 0;
-+			input->proximity_domain_info.flags.proximity_info_valid = 1;
-+			input->proximity_domain_info.flags.proximity_preferred = 1;
-+		} else {
-+			input->proximity_domain_info.as_uint64 = 0;
-+		}
-+		status = hv_do_hypercall(HVCALL_CREATE_VP, input, NULL);
-+		local_irq_restore(irq_flags);
-+
-+		if (status != HV_STATUS_INSUFFICIENT_MEMORY) {
-+			if (status != HV_STATUS_SUCCESS) {
-+				pr_err("%s: vcpu %u, lp %u, %d\n", __func__,
-+				       vp_index, flags, status);
-+				ret = status;
-+			}
-+			break;
-+		}
-+		ret = hv_call_deposit_pages(node, partition_id, 1);
-+
-+	} while (!ret);
-+
-+	return ret;
-+}
-+EXPORT_SYMBOL_GPL(hv_call_create_vp);
-+
-diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-index 4039302e0ae9..60afc3e417d0 100644
---- a/arch/x86/include/asm/mshyperv.h
-+++ b/arch/x86/include/asm/mshyperv.h
-@@ -67,6 +67,10 @@ extern void  __percpu  **hyperv_pcpu_output_arg;
- 
- extern u64 hv_current_partition_id;
- 
-+int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages);
-+int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id);
-+int hv_call_create_vp(int node, u64 partition_id, u32 vp_index, u32 flags);
-+
- static inline u64 hv_do_hypercall(u64 control, void *input, void *output)
- {
- 	u64 input_address = input ? virt_to_phys(input) : 0;
-diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
-index 87b1a79b19eb..2b05bed712c0 100644
---- a/include/asm-generic/hyperv-tlfs.h
-+++ b/include/asm-generic/hyperv-tlfs.h
-@@ -142,6 +142,8 @@ struct ms_hyperv_tsc_page {
- #define HVCALL_FLUSH_VIRTUAL_ADDRESS_LIST_EX	0x0014
- #define HVCALL_SEND_IPI_EX			0x0015
- #define HVCALL_GET_PARTITION_ID			0x0046
-+#define HVCALL_DEPOSIT_MEMORY			0x0048
-+#define HVCALL_CREATE_VP			0x004e
- #define HVCALL_GET_VP_REGISTERS			0x0050
- #define HVCALL_SET_VP_REGISTERS			0x0051
- #define HVCALL_POST_MESSAGE			0x005c
-@@ -149,6 +151,7 @@ struct ms_hyperv_tsc_page {
- #define HVCALL_POST_DEBUG_DATA			0x0069
- #define HVCALL_RETRIEVE_DEBUG_DATA		0x006a
- #define HVCALL_RESET_DEBUG_SESSION		0x006b
-+#define HVCALL_ADD_LOGICAL_PROCESSOR		0x0076
- #define HVCALL_RETARGET_INTERRUPT		0x007e
- #define HVCALL_FLUSH_GUEST_PHYSICAL_ADDRESS_SPACE 0x00af
- #define HVCALL_FLUSH_GUEST_PHYSICAL_ADDRESS_LIST 0x00b0
-@@ -413,6 +416,59 @@ struct hv_get_partition_id {
- 	u64 partition_id;
- } __packed;
- 
-+/* HvDepositMemory hypercall */
-+struct hv_deposit_memory {
-+	u64 partition_id;
-+	u64 gpa_page_list[];
-+};
-+
-+
-+struct hv_proximity_domain_flags {
-+	u32 proximity_preferred : 1;
-+	u32 reserved : 30;
-+	u32 proximity_info_valid : 1;
-+};
-+
-+/* Not a union in windows but useful for zeroing */
-+union hv_proximity_domain_info {
-+	struct {
-+		u32 domain_id;
-+		struct hv_proximity_domain_flags flags;
-+	};
-+	u64 as_uint64;
-+};
-+
-+struct hv_lp_startup_status {
-+	u64 hv_status;
-+	u64 substatus1;
-+	u64 substatus2;
-+	u64 substatus3;
-+	u64 substatus4;
-+	u64 substatus5;
-+	u64 substatus6;
-+};
-+
-+/* HvAddLogicalProcessor hypercalls */
-+struct hv_add_logical_processor_in {
-+	u32 lp_index;
-+	u32 apic_id;
-+	union hv_proximity_domain_info proximity_domain_info;
-+	u64 flags;
-+};
-+
-+struct hv_add_logical_processor_out {
-+	struct hv_lp_startup_status startup_status;
-+};
-+
-+/* HvCreateVp hypercall */
-+struct hv_create_vp {
-+	u64 partition_id;
-+	u32 vp_index;
-+	u32 padding;
-+	union hv_proximity_domain_info proximity_domain_info;
-+	u64 flags;
-+};
-+
- /* HvRetargetDeviceInterrupt hypercall */
- union hv_msi_entry {
- 	u64 as_uint64;
--- 
-2.20.1
+  "Relying on objcopy to prefix the ELF section names of the nVHE hyp code
+   is brittle and prevents us from using wildcards to match specific
+   section names."
 
+and then go on to explain what the change is doing (see
+Documentation/process/submitting-patches.rst for more help here)
+
+Also, given that this is independent of the other patches, please can you
+move it right to the start of the series? I'm a bit worried about the
+potential for regressions given the changes to the way in which we link,
+so the sooner we can get this patch some more exposure, the better.
+
+> Improve the build rules by partially linking all '.hyp.o' files and
+> prefixing their ELF section names using a linker script. Continue using
+> objcopy for prefixing ELF symbol names.
+> 
+> One immediate advantage of this approach is that all subsections
+> matching a pattern can be merged into a single prefixed section, eg.
+> .text and .text.* can be linked into a single '.hyp.text'. This removes
+> the need for -fno-reorder-functions on GCC and will be useful in the
+> future too: LTO builds use .text subsections, compilers routinely
+> generate .rodata subsections, etc.
+> 
+> Partially linking all hyp code into a single object file also makes it
+> easier to analyze.
+> 
+> Signed-off-by: David Brazdil <dbrazdil@google.com>
+> ---
+>  arch/arm64/kvm/hyp/nvhe/Makefile  | 56 ++++++++++++++++---------------
+>  arch/arm64/kvm/hyp/nvhe/hyp.lds.S | 14 ++++++++
+>  2 files changed, 43 insertions(+), 27 deletions(-)
+>  create mode 100644 arch/arm64/kvm/hyp/nvhe/hyp.lds.S
+> 
+> diff --git a/arch/arm64/kvm/hyp/nvhe/Makefile b/arch/arm64/kvm/hyp/nvhe/Makefile
+> index aef76487edc2..1b2fbb19f3e8 100644
+> --- a/arch/arm64/kvm/hyp/nvhe/Makefile
+> +++ b/arch/arm64/kvm/hyp/nvhe/Makefile
+> @@ -10,40 +10,42 @@ obj-y := timer-sr.o sysreg-sr.o debug-sr.o switch.o tlb.o hyp-init.o
+>  obj-y += ../vgic-v3-sr.o ../aarch32.o ../vgic-v2-cpuif-proxy.o ../entry.o \
+>  	 ../fpsimd.o ../hyp-entry.o
+>  
+> -obj-y := $(patsubst %.o,%.hyp.o,$(obj-y))
+> -extra-y := $(patsubst %.hyp.o,%.hyp.tmp.o,$(obj-y))
+> +##
+> +## Build rules for compiling nVHE hyp code
+> +## Output of this folder is `hyp.o`, a partially linked object file containing
+> +## all nVHE hyp code and data.
+> +##
+>  
+> -$(obj)/%.hyp.tmp.o: $(src)/%.c FORCE
+> +hyp-obj := $(patsubst %.o,%.hyp.o,$(obj-y))
+> +obj-y := hyp.o
+> +extra-y := $(hyp-obj) hyp.tmp.o hyp.lds
+> +
+> +# 1) Compile all source files to `.hyp.o` object files. The file extension
+> +#    avoids file name clashes for files shared with VHE.
+> +$(obj)/%.hyp.o: $(src)/%.c FORCE
+>  	$(call if_changed_rule,cc_o_c)
+> -$(obj)/%.hyp.tmp.o: $(src)/%.S FORCE
+> +$(obj)/%.hyp.o: $(src)/%.S FORCE
+>  	$(call if_changed_rule,as_o_S)
+> -$(obj)/%.hyp.o: $(obj)/%.hyp.tmp.o FORCE
+> -	$(call if_changed,hypcopy)
+>  
+> -# Disable reordering functions by GCC (enabled at -O2).
+> -# This pass puts functions into '.text.*' sections to aid the linker
+> -# in optimizing ELF layout. See HYPCOPY comment below for more info.
+> -ccflags-y += $(call cc-option,-fno-reorder-functions)
+> +# 2) Compile linker script.
+> +$(obj)/hyp.lds: $(src)/hyp.lds.S FORCE
+> +	$(call if_changed_dep,cpp_lds_S)
+
+Why is it not sufficient just to list the linker script as a target, like
+we do for vmlinux.lds in extra-y?
+
+> +# 3) Partially link all '.hyp.o' files and apply the linker script.
+> +#    Prefixes names of ELF sections with '.hyp', eg. '.hyp.text'.
+> +LDFLAGS_hyp.tmp.o := -r -T $(obj)/hyp.lds
+> +$(obj)/hyp.tmp.o: $(addprefix $(obj)/,$(hyp-obj)) $(obj)/hyp.lds FORCE
+> +	$(call if_changed,ld)
+> +
+> +# 4) Produce the final 'hyp.o', ready to be linked into 'vmlinux'.
+> +#    Prefixes names of ELF symbols with '__kvm_nvhe_'.
+> +$(obj)/hyp.o: $(obj)/hyp.tmp.o FORCE
+> +	$(call if_changed,hypcopy)
+>  
+>  # The HYPCOPY command uses `objcopy` to prefix all ELF symbol names
+> -# and relevant ELF section names to avoid clashes with VHE code/data.
+> -#
+> -# Hyp code is assumed to be in the '.text' section of the input object
+> -# files (with the exception of specialized sections such as
+> -# '.hyp.idmap.text'). This assumption may be broken by a compiler that
+> -# divides code into sections like '.text.unlikely' so as to optimize
+> -# ELF layout. HYPCOPY checks that no such sections exist in the input
+> -# using `objdump`, otherwise they would be linked together with other
+> -# kernel code and not memory-mapped correctly at runtime.
+> +# to avoid clashes with VHE code/data.
+>  quiet_cmd_hypcopy = HYPCOPY $@
+> -      cmd_hypcopy =							\
+> -	if $(OBJDUMP) -h $< | grep -F '.text.'; then			\
+> -		echo "$@: function reordering not supported in nVHE hyp code" >&2; \
+> -		/bin/false;						\
+> -	fi;								\
+> -	$(OBJCOPY) --prefix-symbols=__kvm_nvhe_				\
+> -		   --rename-section=.text=.hyp.text			\
+> -		   $< $@
+> +      cmd_hypcopy = $(OBJCOPY) --prefix-symbols=__kvm_nvhe_ $< $@
+>  
+>  # Remove ftrace and Shadow Call Stack CFLAGS.
+>  # This is equivalent to the 'notrace' and '__noscs' annotations.
+> diff --git a/arch/arm64/kvm/hyp/nvhe/hyp.lds.S b/arch/arm64/kvm/hyp/nvhe/hyp.lds.S
+> new file mode 100644
+> index 000000000000..aaa0ce133a32
+> --- /dev/null
+> +++ b/arch/arm64/kvm/hyp/nvhe/hyp.lds.S
+> @@ -0,0 +1,14 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +/*
+> + * Linker script used during partial linking of nVHE EL2 object files.
+> + * Written by David Brazdil <dbrazdil@google.com>
+> + */
+> +
+> +/*
+> + * Defines an ELF hyp section from input section @NAME and its subsections.
+> + */
+> +#define HYP_SECTION(NAME) .hyp##NAME : { *(NAME NAME##.[0-9a-zA-Z_]*) }
+
+Is 'NAME##.*' likely to cause a problem here?
+
+Will
