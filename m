@@ -7,47 +7,47 @@ X-Spam-Status: No, score=-14.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1B7CFC433E2
-	for <linux-arch@archiver.kernel.org>; Mon, 14 Sep 2020 11:39:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D9B5FC433E2
+	for <linux-arch@archiver.kernel.org>; Mon, 14 Sep 2020 12:02:56 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CA83121973
-	for <linux-arch@archiver.kernel.org>; Mon, 14 Sep 2020 11:39:16 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9CE8921974
+	for <linux-arch@archiver.kernel.org>; Mon, 14 Sep 2020 12:02:56 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1600083556;
-	bh=WFMoyUf1VlJApaj7XaiNZ59Q/JT8cHwhf+h3Qkj1dIU=;
+	s=default; t=1600084976;
+	bh=1Fa6SZqKjkBoGhl6HyLQ0z+Enxe8Jn0WD4JeZTh0wQs=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=wGOA+AMiuogsFw0NJNW/Oon9rid2VNbgthR4B7wCNqANWR1HoW2iJeYfCXcpUXNsa
-	 FXyO5qO5WmkKXCnVFZFyIwf0mmsoCEjCra7Ih4SJIm/7ir2Ca1bH55+E2eviqkpt84
-	 ukCTkFbCSr7qTfKWih8BBp4kyN/KVUeigf2Wr3js=
+	b=meZCNaZSwuBrMAQLn0KjlQRwHmzO+rBG58+w/ZZhhBfT2N8rgnNap9aQQM5tEnNEU
+	 JqQGLJTuWayrsDCKY/KCeiLmPO0v7fZ+OmPFtFgkaTEYonkIAG/MndoC3Dn5fyZEWP
+	 k8UkStXf4w1AoiRewlc23pAIzdeiUaL4irgT2tBw=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726087AbgINLjD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 14 Sep 2020 07:39:03 -0400
-Received: from mail-wm1-f67.google.com ([209.85.128.67]:35465 "EHLO
-        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726004AbgINL2T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2020 07:28:19 -0400
-Received: by mail-wm1-f67.google.com with SMTP id y15so10878835wmi.0;
-        Mon, 14 Sep 2020 04:28:17 -0700 (PDT)
+        id S1726087AbgINMCp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 14 Sep 2020 08:02:45 -0400
+Received: from mail-wr1-f67.google.com ([209.85.221.67]:44247 "EHLO
+        mail-wr1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726133AbgINMCh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2020 08:02:37 -0400
+Received: by mail-wr1-f67.google.com with SMTP id s12so18381958wrw.11;
+        Mon, 14 Sep 2020 04:59:39 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=E5gZOMWCKMKk580URxqoyALVdSaE1aGhUW3u1REOZ5I=;
-        b=BAHxS0o4OZM0oSO1wdCh0WLt0MEpSJ6IZ0/KCekxDnWWm2wX66klMlx+KItPPg2u+C
-         fRCSBdS63aNnWO3E2nVLiqMlZ7JU4CBqsVYkuCSMx9NnPR5YXvedmLb5kpYwrCLYapS6
-         109MpxtClbqnvKhcyhPogj8wMVBjOcHSPDlSnWuhv06ALng8y1HhVCtqjgWJpP8YZ7eB
-         L3yP3VOIiPZcJbU6dPW8Y3+CXkymCRLf1oBzcgcmmYWt/72KHX5zl17qVvVoMPphZkHu
-         Lk+ncwPCnlWor6A2wjzfbKmknIv4BlDQCRJybm+EPQBRuCwrLMFYtITAODMMgUNABDF5
-         9okw==
-X-Gm-Message-State: AOAM5339BSYGu//WVGq+JGqw4XVdfJSSJEAjea+YSEUlCrTmfU1XWadr
-        FbkZRMhzFizPAsE+/VRwvYc7pTmG9EY=
-X-Google-Smtp-Source: ABdhPJyLH9akdmKsMw9n3pT4HKtXuSpu5lR8A6RNMOd9JnBbyvoEOL+Sr6ZvZFG4SHsB3dL2Fye3xg==
-X-Received: by 2002:a7b:cb82:: with SMTP id m2mr15239917wmi.56.1600082896796;
-        Mon, 14 Sep 2020 04:28:16 -0700 (PDT)
+        bh=E2EMorFYrbloyZ3vBTHgOEOIyWrtL7EoKHtqjNRb01I=;
+        b=H2+Sw7QsMIOU9B5vQlHrmNA3jtYUx/b3hIn5Vm6fRGLKXkeWMZwnWk3gA5WmAyeBT2
+         RVXv0hzWVVXEgb4E8T0WSQigEcO6jO4iLup4N37YfuAiA/BX1pog0sMJx4NV3xU6t2Ui
+         npPu6pqC5OgZJ3kZMuqnPDN1xSqjv3EYnx47ADlK951oOKZSWddcovX2RaZv+zywbjLy
+         A8qo7N0Tqvtfa9Ry1peB3q6NfG28YRoQmtwYaHqnk7thkqXbNOCId+g7LJHj5G5NxZT+
+         ynLcsdOIaRNUyyV17FfGSawJ09IbJsBo7m6SEYalZFt6t5kcpHy0AxzWaBBEqIzn4mmV
+         lYDw==
+X-Gm-Message-State: AOAM532skSG22+UMBYGk+Bgi5d6p8CNPHYoQmqVVAH1I249RYXe9jsNT
+        RdCpk7JSrxqP9o6+H79wWdIri1BAIwA=
+X-Google-Smtp-Source: ABdhPJxO9hw1Wwb7xPWmOwlTO90CDRLUa0mPW7CxAKdL2u8XJEE5dFmtvCNRlyXzV1EMv/w7tYiLtA==
+X-Received: by 2002:a5d:4104:: with SMTP id l4mr15516895wrp.396.1600084779262;
+        Mon, 14 Sep 2020 04:59:39 -0700 (PDT)
 Received: from liuwe-devbox-debian-v2.j3c5onc20sse1dnehy4noqpfcg.zx.internal.cloudapp.net ([51.145.34.42])
-        by smtp.gmail.com with ESMTPSA id s12sm12024606wmd.20.2020.09.14.04.28.16
+        by smtp.gmail.com with ESMTPSA id c205sm18764809wmd.33.2020.09.14.04.59.38
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 14 Sep 2020 04:28:16 -0700 (PDT)
+        Mon, 14 Sep 2020 04:59:38 -0700 (PDT)
 From:   Wei Liu <wei.liu@kernel.org>
 To:     Linux on Hyper-V List <linux-hyperv@vger.kernel.org>
 Cc:     virtualization@lists.linux-foundation.org,
@@ -57,18 +57,14 @@ Cc:     virtualization@lists.linux-foundation.org,
         Sunil Muthuswamy <sunilmut@microsoft.com>,
         Nuno Das Neves <nudasnev@microsoft.com>,
         Wei Liu <wei.liu@kernel.org>,
-        Lillian Grassin-Drake <ligrassi@microsoft.com>,
         "K. Y. Srinivasan" <kys@microsoft.com>,
         Haiyang Zhang <haiyangz@microsoft.com>,
         Stephen Hemminger <sthemmin@microsoft.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        x86@kernel.org (maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)),
-        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+        Arnd Bergmann <arnd@arndb.de>,
         linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
-Subject: [PATCH RFC v1 07/18] x86/hyperv: extract partition ID from Microsoft Hypervisor if necessary
-Date:   Mon, 14 Sep 2020 11:27:51 +0000
-Message-Id: <20200914112802.80611-8-wei.liu@kernel.org>
+Subject: [PATCH RFC v1 13/18] asm-generic/hyperv: introduce hv_device_id and auxiliary structures
+Date:   Mon, 14 Sep 2020 11:59:22 +0000
+Message-Id: <20200914115928.83184-5-wei.liu@kernel.org>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20200914112802.80611-1-wei.liu@kernel.org>
 References: <20200914112802.80611-1-wei.liu@kernel.org>
@@ -79,105 +75,106 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-We will need the partition ID for executing some hypercalls later.
+We will need to identify the device we want Microsoft Hypervisor to
+manipulate.  Introduce the data structures for that purpose.
 
-Signed-off-by: Lillian Grassin-Drake <ligrassi@microsoft.com>
+They will be used in a later patch.
+
+Signed-off-by: Sunil Muthuswamy <sunilmut@microsoft.com>
 Co-Developed-by: Sunil Muthuswamy <sunilmut@microsoft.com>
 Signed-off-by: Wei Liu <wei.liu@kernel.org>
 ---
- arch/x86/hyperv/hv_init.c         | 26 ++++++++++++++++++++++++++
- arch/x86/include/asm/mshyperv.h   |  2 ++
- include/asm-generic/hyperv-tlfs.h |  6 ++++++
- 3 files changed, 34 insertions(+)
+ include/asm-generic/hyperv-tlfs.h | 79 +++++++++++++++++++++++++++++++
+ 1 file changed, 79 insertions(+)
 
-diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-index ebba4be4185d..0eec1ed32023 100644
---- a/arch/x86/hyperv/hv_init.c
-+++ b/arch/x86/hyperv/hv_init.c
-@@ -30,6 +30,9 @@
- bool hv_root_partition;
- EXPORT_SYMBOL_GPL(hv_root_partition);
- 
-+u64 hv_current_partition_id;
-+EXPORT_SYMBOL_GPL(hv_current_partition_id);
-+
- void *hv_hypercall_pg;
- EXPORT_SYMBOL_GPL(hv_hypercall_pg);
- 
-@@ -345,6 +348,26 @@ static struct syscore_ops hv_syscore_ops = {
- 	.resume		= hv_resume,
- };
- 
-+void __init hv_get_partition_id(void)
-+{
-+	struct hv_get_partition_id *output_page;
-+	int status;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	output_page = *this_cpu_ptr(hyperv_pcpu_output_arg);
-+	status = hv_do_hypercall(HVCALL_GET_PARTITION_ID, NULL, output_page) &
-+		HV_HYPERCALL_RESULT_MASK;
-+	if (status != HV_STATUS_SUCCESS)
-+		pr_err("Failed to get partition ID: %d\n", status);
-+	else
-+		hv_current_partition_id = output_page->partition_id;
-+	local_irq_restore(flags);
-+
-+	/* No point in proceeding if this failed */
-+	BUG_ON(status != HV_STATUS_SUCCESS);
-+}
-+
- /*
-  * This function is to be invoked early in the boot sequence after the
-  * hypervisor has been detected.
-@@ -440,6 +463,9 @@ void __init hyperv_init(void)
- 
- 	register_syscore_ops(&hv_syscore_ops);
- 
-+	if (hv_root_partition)
-+		hv_get_partition_id();
-+
- 	return;
- 
- remove_cpuhp_state:
-diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-index f5c62140f28d..4039302e0ae9 100644
---- a/arch/x86/include/asm/mshyperv.h
-+++ b/arch/x86/include/asm/mshyperv.h
-@@ -65,6 +65,8 @@ extern void *hv_hypercall_pg;
- extern void  __percpu  **hyperv_pcpu_input_arg;
- extern void  __percpu  **hyperv_pcpu_output_arg;
- 
-+extern u64 hv_current_partition_id;
-+
- static inline u64 hv_do_hypercall(u64 control, void *input, void *output)
- {
- 	u64 input_address = input ? virt_to_phys(input) : 0;
 diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
-index e6903589a82a..87b1a79b19eb 100644
+index 83945ada5a50..faf892ce152d 100644
 --- a/include/asm-generic/hyperv-tlfs.h
 +++ b/include/asm-generic/hyperv-tlfs.h
-@@ -141,6 +141,7 @@ struct ms_hyperv_tsc_page {
- #define HVCALL_FLUSH_VIRTUAL_ADDRESS_SPACE_EX	0x0013
- #define HVCALL_FLUSH_VIRTUAL_ADDRESS_LIST_EX	0x0014
- #define HVCALL_SEND_IPI_EX			0x0015
-+#define HVCALL_GET_PARTITION_ID			0x0046
- #define HVCALL_GET_VP_REGISTERS			0x0050
- #define HVCALL_SET_VP_REGISTERS			0x0051
- #define HVCALL_POST_MESSAGE			0x005c
-@@ -407,6 +408,11 @@ struct hv_tlb_flush_ex {
- 	u64 gva_list[];
+@@ -612,4 +612,83 @@ struct hv_set_vp_registers_input {
+ 	} element[];
  } __packed;
  
-+/* HvGetPartitionId hypercall (output only) */
-+struct hv_get_partition_id {
-+	u64 partition_id;
++enum hv_device_type {
++	HV_DEVICE_TYPE_LOGICAL = 0,
++	HV_DEVICE_TYPE_PCI = 1,
++	HV_DEVICE_TYPE_IOAPIC = 2,
++	HV_DEVICE_TYPE_ACPI = 3,
++};
++
++typedef u16 hv_pci_rid;
++typedef u16 hv_pci_segment;
++typedef u64 hv_logical_device_id;
++union hv_pci_bdf {
++	u16 as_uint16;
++
++	struct {
++		u8 function:3;
++		u8 device:5;
++		u8 bus;
++	};
 +} __packed;
 +
- /* HvRetargetDeviceInterrupt hypercall */
- union hv_msi_entry {
- 	u64 as_uint64;
++union hv_pci_bus_range {
++	u16 as_uint16;
++
++	struct {
++		u8 subordinate_bus;
++		u8 secondary_bus;
++	};
++} __packed;
++
++union hv_device_id {
++	u64 as_uint64;
++
++	struct {
++		u64 :62;
++		u64 device_type:2;
++	};
++
++	// HV_DEVICE_TYPE_LOGICAL
++	struct {
++		u64 id:62;
++		u64 device_type:2;
++	} logical;
++
++	// HV_DEVICE_TYPE_PCI
++	struct {
++		union {
++			hv_pci_rid rid;
++			union hv_pci_bdf bdf;
++		};
++
++		hv_pci_segment segment;
++		union hv_pci_bus_range shadow_bus_range;
++
++		u16 phantom_function_bits:2;
++		u16 source_shadow:1;
++
++		u16 rsvdz0:11;
++		u16 device_type:2;
++	} pci;
++
++	// HV_DEVICE_TYPE_IOAPIC
++	struct {
++		u8 ioapic_id;
++		u8 rsvdz0;
++		u16 rsvdz1;
++		u16 rsvdz2;
++
++		u16 rsvdz3:14;
++		u16 device_type:2;
++	} ioapic;
++
++	// HV_DEVICE_TYPE_ACPI
++	struct {
++		u32 input_mapping_base;
++		u32 input_mapping_count:30;
++		u32 device_type:2;
++	} acpi;
++} __packed;
++
+ #endif
 -- 
 2.20.1
 
