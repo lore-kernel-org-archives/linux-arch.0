@@ -2,145 +2,78 @@ Return-Path: <SRS0=9PY8=CY=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.6 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 78202C43461
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 22:22:47 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DAB34C43461
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 23:04:52 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 43D8F20809
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 22:22:47 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1600208567;
-	bh=UC1yh2hp7xYE271XAEDPNKg+J+sQcRAFlbeySxxF1fY=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
-	b=fD8TvXs/6V44gBPQYSCFcCYhuQlLM2SD0apq/GvVBy17euUi/VnUigBtu6TrSm+mR
-	 CHTNEijmhCPn+XmIGV4fAItXuO0TnfzPEB9e4ljw+83uxT9v9iA6FBl/THo+Eubwg5
-	 Ov3+zQ3cQKLf1xXYg3Y45C08itKkNSCwLKo/aUSk=
+	by mail.kernel.org (Postfix) with ESMTP id 9F06120770
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 23:04:52 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727668AbgIOWWo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 15 Sep 2020 18:22:44 -0400
-Received: from mail.kernel.org ([198.145.29.99]:34484 "EHLO mail.kernel.org"
+        id S1727289AbgIOXEt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 15 Sep 2020 19:04:49 -0400
+Received: from foss.arm.com ([217.140.110.172]:37454 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727684AbgIOQ0Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 15 Sep 2020 12:26:24 -0400
-Received: from willie-the-truck (236.31.169.217.in-addr.arpa [217.169.31.236])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 680002074B;
-        Tue, 15 Sep 2020 16:11:08 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1600186275;
-        bh=UC1yh2hp7xYE271XAEDPNKg+J+sQcRAFlbeySxxF1fY=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=aLJBoJyZ2MbAregGNpzO/CAOq3qYqCUVYtw7hO4M7FduU8HInY48wZG+1gWntYelQ
-         oLWO9tTjUONmPdC0nJ9es906NbinxDOlYlq9MiTPOxDMzJntQj9N/nuOqfyS1ru3ka
-         TrV8du2f8kHA6eUDyUlEROxdTu8m4Jc0gLv8xEr4=
-Date:   Tue, 15 Sep 2020 17:11:05 +0100
-From:   Will Deacon <will@kernel.org>
-To:     Thomas Gleixner <tglx@linutronix.de>
-Cc:     LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org,
-        Linus Torvalds <torvalds@linuxfoundation.org>,
-        Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-        Valentin Schneider <valentin.schneider@arm.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Ingo Molnar <mingo@kernel.org>,
-        Richard Henderson <rth@twiddle.net>,
-        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
-        Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org,
-        Jeff Dike <jdike@addtoit.com>,
-        Richard Weinberger <richard@nod.at>,
-        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
-        linux-um@lists.infradead.org, Brian Cain <bcain@codeaurora.org>,
-        linux-hexagon@vger.kernel.org,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        linux-m68k@lists.linux-m68k.org,
-        Juri Lelli <juri.lelli@redhat.com>,
-        Vincent Guittot <vincent.guittot@linaro.org>,
-        Dietmar Eggemann <dietmar.eggemann@arm.com>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Ben Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>,
-        Daniel Bristot de Oliveira <bristot@redhat.com>,
-        Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org,
-        Ingo Molnar <mingo@redhat.com>,
-        Russell King <linux@armlinux.org.uk>,
-        linux-arm-kernel@lists.infradead.org,
-        Chris Zankel <chris@zankel.net>,
-        Max Filippov <jcmvbkbc@gmail.com>,
-        linux-xtensa@linux-xtensa.org,
-        Jani Nikula <jani.nikula@linux.intel.com>,
-        Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
-        Rodrigo Vivi <rodrigo.vivi@intel.com>,
-        David Airlie <airlied@linux.ie>,
-        Daniel Vetter <daniel@ffwll.ch>,
-        intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Josh Triplett <josh@joshtriplett.org>,
-        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-        Lai Jiangshan <jiangshanlai@gmail.com>,
-        Shuah Khan <shuah@kernel.org>, rcu@vger.kernel.org,
-        linux-kselftest@vger.kernel.org
-Subject: Re: [patch 04/13] lockdep: Clenaup PREEMPT_COUNT leftovers
-Message-ID: <20200915161104.GB26745@willie-the-truck>
-References: <20200914204209.256266093@linutronix.de>
- <20200914204441.375753691@linutronix.de>
+        id S1727202AbgIOOzE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 15 Sep 2020 10:55:04 -0400
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 831F131B;
+        Tue, 15 Sep 2020 07:54:56 -0700 (PDT)
+Received: from e121166-lin.cambridge.arm.com (e121166-lin.cambridge.arm.com [10.1.196.255])
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id F161B3F68F;
+        Tue, 15 Sep 2020 07:54:54 -0700 (PDT)
+Date:   Tue, 15 Sep 2020 15:54:48 +0100
+From:   Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+To:     Christoph Hellwig <hch@infradead.org>
+Cc:     linux-kernel@vger.kernel.org,
+        "David S. Miller" <davem@davemloft.net>, linux-pci@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        Bjorn Helgaas <bhelgaas@google.com>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+        George Cherian <george.cherian@marvell.com>,
+        Yang Yingliang <yangyingliang@huawei.com>
+Subject: Re: [PATCH 1/2] sparc32: Move ioremap/iounmap declaration before
+ asm-generic/io.h include
+Message-ID: <20200915145448.GA6316@e121166-lin.cambridge.arm.com>
+References: <20200915093203.16934-1-lorenzo.pieralisi@arm.com>
+ <20200915093203.16934-2-lorenzo.pieralisi@arm.com>
+ <20200915141452.GA19202@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200914204441.375753691@linutronix.de>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+In-Reply-To: <20200915141452.GA19202@infradead.org>
+User-Agent: Mutt/1.9.4 (2018-02-28)
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Sep 14, 2020 at 10:42:13PM +0200, Thomas Gleixner wrote:
-> CONFIG_PREEMPT_COUNT is now unconditionally enabled and will be
-> removed. Cleanup the leftovers before doing so.
+On Tue, Sep 15, 2020 at 03:14:52PM +0100, Christoph Hellwig wrote:
+> > diff --git a/arch/sparc/include/asm/io_32.h b/arch/sparc/include/asm/io_32.h
+> > index 9a52d9506f80..042201c79ad1 100644
+> > --- a/arch/sparc/include/asm/io_32.h
+> > +++ b/arch/sparc/include/asm/io_32.h
+> > @@ -11,6 +11,16 @@
+> >  #define memcpy_fromio(d,s,sz) _memcpy_fromio(d,s,sz)
+> >  #define memcpy_toio(d,s,sz)   _memcpy_toio(d,s,sz)
+> >  
+> > +#ifdef __KERNEL__
+> > +
+> > +/*
+> > + * Bus number may be embedded in the higher bits of the physical address.
+> > + * This is why we have no bus number argument to ioremap().
+> > + */
+> > +void __iomem *ioremap(phys_addr_t offset, size_t size);
+> > +void iounmap(volatile void __iomem *addr);
+> > +#endif
 > 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: Will Deacon <will@kernel.org>
-> ---
->  include/linux/lockdep.h |    6 ++----
->  lib/Kconfig.debug       |    1 -
->  2 files changed, 2 insertions(+), 5 deletions(-)
-> 
-> --- a/include/linux/lockdep.h
-> +++ b/include/linux/lockdep.h
-> @@ -585,16 +585,14 @@ do {									\
->  
->  #define lockdep_assert_preemption_enabled()				\
->  do {									\
-> -	WARN_ON_ONCE(IS_ENABLED(CONFIG_PREEMPT_COUNT)	&&		\
-> -		     debug_locks			&&		\
-> +	WARN_ON_ONCE(debug_locks			&&		\
->  		     (preempt_count() != 0		||		\
->  		      !raw_cpu_read(hardirqs_enabled)));		\
->  } while (0)
->  
->  #define lockdep_assert_preemption_disabled()				\
->  do {									\
-> -	WARN_ON_ONCE(IS_ENABLED(CONFIG_PREEMPT_COUNT)	&&		\
-> -		     debug_locks			&&		\
-> +	WARN_ON_ONCE(debug_locks			&&		\
->  		     (preempt_count() == 0		&&		\
->  		      raw_cpu_read(hardirqs_enabled)));			\
->  } while (0)
-> --- a/lib/Kconfig.debug
-> +++ b/lib/Kconfig.debug
-> @@ -1161,7 +1161,6 @@ config PROVE_LOCKING
->  	select DEBUG_RWSEMS
->  	select DEBUG_WW_MUTEX_SLOWPATH
->  	select DEBUG_LOCK_ALLOC
-> -	select PREEMPT_COUNT
->  	select TRACE_IRQFLAGS
->  	default n
->  	help
+> No need for an __KERNEL__ in non-uapi headers.
 
-Acked-by: Will Deacon <will@kernel.org>
+Sure, just kept the same preproc guard as current code, will add a patch
+to remove the guard first before this one then.
 
-Will
+Thanks,
+Lorenzo
