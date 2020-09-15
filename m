@@ -2,347 +2,651 @@ Return-Path: <SRS0=9PY8=CY=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.3 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,SIGNED_OFF_BY,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
+	UNPARSEABLE_RELAY,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BEEC9C433E2
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 17:31:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 55087C433E2
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 18:09:18 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6D0C920936
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 17:31:53 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id F2B7020738
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 18:09:17 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=nvidia.com header.i=@nvidia.com header.b="W/i1+jdP"
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="tYZyxrnC"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727907AbgIORbq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 15 Sep 2020 13:31:46 -0400
-Received: from hqnvemgate24.nvidia.com ([216.228.121.143]:19308 "EHLO
-        hqnvemgate24.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727758AbgIORbk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Sep 2020 13:31:40 -0400
-Received: from hqpgpgate101.nvidia.com (Not Verified[216.228.121.13]) by hqnvemgate24.nvidia.com (using TLS: TLSv1.2, DES-CBC3-SHA)
-        id <B5f60f9e90000>; Tue, 15 Sep 2020 10:29:13 -0700
-Received: from hqmail.nvidia.com ([172.20.161.6])
-  by hqpgpgate101.nvidia.com (PGP Universal service);
-  Tue, 15 Sep 2020 10:31:34 -0700
-X-PGP-Universal: processed;
-        by hqpgpgate101.nvidia.com on Tue, 15 Sep 2020 10:31:34 -0700
-Received: from [10.2.52.22] (10.124.1.5) by HQMAIL107.nvidia.com
- (172.20.187.13) with Microsoft SMTP Server (TLS) id 15.0.1473.3; Tue, 15 Sep
- 2020 17:31:28 +0000
-Subject: Re: [PATCH v2] mm/gup: fix gup_fast with dynamic page table folding
-To:     Vasily Gorbik <gor@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>
-CC:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
-        Alexander Gordeev <agordeev@linux.ibm.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Dave Hansen <dave.hansen@intel.com>,
-        LKML <linux-kernel@vger.kernel.org>,
-        linux-mm <linux-mm@kvack.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Russell King <linux@armlinux.org.uk>,
-        "Mike Rapoport" <rppt@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        "Will Deacon" <will@kernel.org>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        "Benjamin Herrenschmidt" <benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@samba.org>,
-        Jeff Dike <jdike@addtoit.com>,
-        Richard Weinberger <richard@nod.at>,
-        "Dave Hansen" <dave.hansen@linux.intel.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Arnd Bergmann <arnd@arndb.de>,
-        "Andrey Ryabinin" <aryabinin@virtuozzo.com>,
-        linux-x86 <x86@kernel.org>,
-        linux-arm <linux-arm-kernel@lists.infradead.org>,
-        linux-power <linuxppc-dev@lists.ozlabs.org>,
-        linux-sparc <sparclinux@vger.kernel.org>,
-        linux-um <linux-um@lists.infradead.org>,
-        linux-s390 <linux-s390@vger.kernel.org>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        "Christian Borntraeger" <borntraeger@de.ibm.com>,
-        Claudio Imbrenda <imbrenda@linux.ibm.com>
-References: <20200911200511.GC1221970@ziepe.ca>
- <patch.git-943f1e5dcff2.your-ad-here.call-01599856292-ext-8676@work.hours>
-From:   John Hubbard <jhubbard@nvidia.com>
-Message-ID: <9daa9203-d164-ec78-8a8d-30b8b22cb1da@nvidia.com>
-Date:   Tue, 15 Sep 2020 10:31:28 -0700
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
- Thunderbird/68.12.0
+        id S1727865AbgIOSI7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 15 Sep 2020 14:08:59 -0400
+Received: from userp2120.oracle.com ([156.151.31.85]:52640 "EHLO
+        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727982AbgIOSHH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Sep 2020 14:07:07 -0400
+Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
+        by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 08FI0JLU123514;
+        Tue, 15 Sep 2020 18:05:55 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : cc :
+ subject : date : message-id : in-reply-to : references : mime-version :
+ content-transfer-encoding; s=corp-2020-01-29;
+ bh=afSVLb44oHhYE10JuOLLFNxF5BwMZtpGxBvSMToAPIc=;
+ b=tYZyxrnCgMvmKpJmJ0anBkw9OIJD9N3+/w8iItL7G0wp+OuhQap+uCzVw0AyR3QRCjtV
+ y6tD66u7B32mti0j+3TWi4Bbs/h76mw+sMFn6NPsE1DGhw+BkEV7Iagsv0QEwTM2AC31
+ C8IuUiKIqiOz0d0tmj0Rosp5jUOzIgS7Koft8WLKDZkiNYX9mJ45/Xi0e/D8q7LFugtj
+ sAmspRndmTWkCVg6lJepv3MO47iKxjJqf0+EibnF2p0o9ctvSZdtq1vOf7F1cY6+2rbV
+ kyiImEtT5KxP2kUyjRPa57F65y0982z99pKw87yX1peZW33Lst5cSTGy4WB74/FcueEe Nw== 
+Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
+        by userp2120.oracle.com with ESMTP id 33j91dgbyx-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=FAIL);
+        Tue, 15 Sep 2020 18:05:55 +0000
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+        by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 08FI4g02135811;
+        Tue, 15 Sep 2020 18:05:55 GMT
+Received: from aserv0122.oracle.com (aserv0122.oracle.com [141.146.126.236])
+        by userp3030.oracle.com with ESMTP id 33h88ys63k-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Tue, 15 Sep 2020 18:05:55 +0000
+Received: from abhmp0008.oracle.com (abhmp0008.oracle.com [141.146.116.14])
+        by aserv0122.oracle.com (8.14.4/8.14.4) with ESMTP id 08FI5nUG021313;
+        Tue, 15 Sep 2020 18:05:49 GMT
+Received: from neelam.us.oracle.com (/10.152.128.16)
+        by default (Oracle Beehive Gateway v4.0)
+        with ESMTP ; Tue, 15 Sep 2020 18:05:48 +0000
+From:   Alex Kogan <alex.kogan@oracle.com>
+To:     linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com,
+        will.deacon@arm.com, arnd@arndb.de, longman@redhat.com,
+        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de,
+        hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com,
+        jglauber@marvell.com
+Cc:     steven.sistare@oracle.com, daniel.m.jordan@oracle.com,
+        alex.kogan@oracle.com, dave.dice@oracle.com
+Subject: [PATCH v11 3/5] locking/qspinlock: Introduce CNA into the slow path of qspinlock
+Date:   Tue, 15 Sep 2020 14:05:33 -0400
+Message-Id: <20200915180535.2975060-4-alex.kogan@oracle.com>
+X-Mailer: git-send-email 2.25.1
+In-Reply-To: <20200915180535.2975060-1-alex.kogan@oracle.com>
+References: <20200915180535.2975060-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
-In-Reply-To: <patch.git-943f1e5dcff2.your-ad-here.call-01599856292-ext-8676@work.hours>
-X-Originating-IP: [10.124.1.5]
-X-ClientProxiedBy: HQMAIL105.nvidia.com (172.20.187.12) To
- HQMAIL107.nvidia.com (172.20.187.13)
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nvidia.com; s=n1;
-        t=1600190953; bh=0LuXBF+QuyfRd7vsh816EU5TQVILtq5WYJSSBYonuEo=;
-        h=X-PGP-Universal:Subject:To:CC:References:From:Message-ID:Date:
-         User-Agent:MIME-Version:In-Reply-To:X-Originating-IP:
-         X-ClientProxiedBy:Content-Type:Content-Language:
-         Content-Transfer-Encoding;
-        b=W/i1+jdP/N55Xza2MEm/gNz+nYX0bLMaq7K4jpYOydN5L+jzX14UrU6QLlOAou+x4
-         5llBNT9lKJ5kA0wXGCkfISrtAVC77+n+sNZvHsqoSgJnBEAxkiaKKljqwFvVixVgt5
-         kS73XbEMXl9BfBEOqZvSjLoxf/8kpnSdyvYceULQC6Z6HqzD61F8GqcBS1pTkJoByO
-         +4jmgHZSu4rRE5U2vRhPciij3I+cXnK0og81egRmf4sgJVhePYSfOwVDDhzMufBwCA
-         crQDAaOYbstfztYG1D3h6XvP7ewjVrlMuhoWQa7v0odeBQEwLVADbGDE2bQJEFOJAC
-         ttS6TCVAHFe/Q==
+Content-Transfer-Encoding: 8bit
+X-Proofpoint-Virus-Version: vendor=nai engine=6000 definitions=9745 signatures=668679
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 spamscore=0 adultscore=0
+ suspectscore=0 mlxscore=0 bulkscore=0 mlxlogscore=999 malwarescore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2006250000
+ definitions=main-2009150146
+X-Proofpoint-Virus-Version: vendor=nai engine=6000 definitions=9745 signatures=668679
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 impostorscore=0
+ priorityscore=1501 malwarescore=0 suspectscore=0 mlxlogscore=999
+ clxscore=1015 adultscore=0 lowpriorityscore=0 spamscore=0 mlxscore=0
+ bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2006250000 definitions=main-2009150145
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 9/11/20 1:36 PM, Vasily Gorbik wrote:
-> Currently to make sure that every page table entry is read just once
-> gup_fast walks perform READ_ONCE and pass pXd value down to the next
-> gup_pXd_range function by value e.g.:
-> 
-> static int gup_pud_range(p4d_t p4d, unsigned long addr, unsigned long end,
->                           unsigned int flags, struct page **pages, int *nr)
-> ...
->          pudp = pud_offset(&p4d, addr);
-> 
-> This function passes a reference on that local value copy to pXd_offset,
-> and might get the very same pointer in return. This happens when the
-> level is folded (on most arches), and that pointer should not be iterated.
-> 
-> On s390 due to the fact that each task might have different 5,4 or
-> 3-level address translation and hence different levels folded the logic
-> is more complex and non-iteratable pointer to a local copy leads to
-> severe problems.
-> 
-> Here is an example of what happens with gup_fast on s390, for a task
-> with 3-levels paging, crossing a 2 GB pud boundary:
-> 
-> // addr = 0x1007ffff000, end = 0x10080001000
-> static int gup_pud_range(p4d_t p4d, unsigned long addr, unsigned long end,
->                           unsigned int flags, struct page **pages, int *nr)
-> {
->          unsigned long next;
->          pud_t *pudp;
-> 
->          // pud_offset returns &p4d itself (a pointer to a value on stack)
->          pudp = pud_offset(&p4d, addr);
->          do {
->                  // on second iteratation reading "random" stack value
->                  pud_t pud = READ_ONCE(*pudp);
-> 
->                  // next = 0x10080000000, due to PUD_SIZE/MASK != PGDIR_SIZE/MASK on s390
->                  next = pud_addr_end(addr, end);
->                  ...
->          } while (pudp++, addr = next, addr != end); // pudp++ iterating over stack
-> 
->          return 1;
-> }
-> 
-> This happens since s390 moved to common gup code with
-> commit d1874a0c2805 ("s390/mm: make the pxd_offset functions more robust")
-> and commit 1a42010cdc26 ("s390/mm: convert to the generic
-> get_user_pages_fast code"). s390 tried to mimic static level folding by
-> changing pXd_offset primitives to always calculate top level page table
-> offset in pgd_offset and just return the value passed when pXd_offset
-> has to act as folded.
-> 
-> What is crucial for gup_fast and what has been overlooked is
-> that PxD_SIZE/MASK and thus pXd_addr_end should also change
-> correspondingly. And the latter is not possible with dynamic folding.
-> 
-> To fix the issue in addition to pXd values pass original
-> pXdp pointers down to gup_pXd_range functions. And introduce
-> pXd_offset_lockless helpers, which take an additional pXd
-> entry value parameter. This has already been discussed in
-> https://lkml.kernel.org/r/20190418100218.0a4afd51@mschwideX1
-> 
-> Cc: <stable@vger.kernel.org> # 5.2+
-> Fixes: 1a42010cdc26 ("s390/mm: convert to the generic get_user_pages_fast code")
-> Reviewed-by: Gerald Schaefer <gerald.schaefer@linux.ibm.com>
-> Reviewed-by: Alexander Gordeev <agordeev@linux.ibm.com>
-> Signed-off-by: Vasily Gorbik <gor@linux.ibm.com>
-> ---
+In CNA, spinning threads are organized in two queues, a primary queue for
+threads running on the same node as the current lock holder, and a
+secondary queue for threads running on other nodes. After acquiring the
+MCS lock and before acquiring the spinlock, the MCS lock
+holder checks whether the next waiter in the primary queue (if exists) is
+running on the same NUMA node. If it is not, that waiter is detached from
+the main queue and moved into the tail of the secondary queue. This way,
+we gradually filter the primary queue, leaving only waiters running on
+the same preferred NUMA node. For more details, see
+https://arxiv.org/abs/1810.05600.
 
-Looks cleaner than I'd dared hope for. :)
+Note that this variant of CNA may introduce starvation by continuously
+passing the lock between waiters in the main queue. This issue will be
+addressed later in the series.
 
-Reviewed-by: John Hubbard <jhubbard@nvidia.com>
+Enabling CNA is controlled via a new configuration option
+(NUMA_AWARE_SPINLOCKS). By default, the CNA variant is patched in at the
+boot time only if we run on a multi-node machine in native environment and
+the new config is enabled. (For the time being, the patching requires
+CONFIG_PARAVIRT_SPINLOCKS to be enabled as well. However, this should be
+resolved once static_call() is available.) This default behavior can be
+overridden with the new kernel boot command-line option
+"numa_spinlock=on/off" (default is "auto").
 
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+Reviewed-by: Waiman Long <longman@redhat.com>
+---
+ .../admin-guide/kernel-parameters.txt         |  10 +
+ arch/x86/Kconfig                              |  20 ++
+ arch/x86/include/asm/qspinlock.h              |   4 +
+ arch/x86/kernel/alternative.c                 |   4 +
+ kernel/locking/mcs_spinlock.h                 |   2 +-
+ kernel/locking/qspinlock.c                    |  42 ++-
+ kernel/locking/qspinlock_cna.h                | 336 ++++++++++++++++++
+ 7 files changed, 413 insertions(+), 5 deletions(-)
+ create mode 100644 kernel/locking/qspinlock_cna.h
 
-thanks,
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index a1068742a6df..51ce050f8701 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -3353,6 +3353,16 @@
+ 
+ 	nox2apic	[X86-64,APIC] Do not enable x2APIC mode.
+ 
++	numa_spinlock=	[NUMA, PV_OPS] Select the NUMA-aware variant
++			of spinlock. The options are:
++			auto - Enable this variant if running on a multi-node
++			machine in native environment.
++			on  - Unconditionally enable this variant.
++			off - Unconditionally disable this variant.
++
++			Not specifying this option is equivalent to
++			numa_spinlock=auto.
++
+ 	cpu0_hotplug	[X86] Turn on CPU0 hotplug feature when
+ 			CONFIG_BOOTPARAM_HOTPLUG_CPU0 is off.
+ 			Some features depend on CPU0. Known dependencies are:
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 7101ac64bb20..5fa37b5efb7b 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1561,6 +1561,26 @@ config NUMA
+ 
+ 	  Otherwise, you should say N.
+ 
++config NUMA_AWARE_SPINLOCKS
++	bool "Numa-aware spinlocks"
++	depends on NUMA
++	depends on QUEUED_SPINLOCKS
++	depends on 64BIT
++	# For now, we depend on PARAVIRT_SPINLOCKS to make the patching work.
++	# This is awkward, but hopefully would be resolved once static_call()
++	# is available.
++	depends on PARAVIRT_SPINLOCKS
++	default y
++	help
++	  Introduce NUMA (Non Uniform Memory Access) awareness into
++	  the slow path of spinlocks.
++
++	  In this variant of qspinlock, the kernel will try to keep the lock
++	  on the same node, thus reducing the number of remote cache misses,
++	  while trading some of the short term fairness for better performance.
++
++	  Say N if you want absolute first come first serve fairness.
++
+ config AMD_NUMA
+ 	def_bool y
+ 	prompt "Old style AMD Opteron NUMA detection"
+diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
+index d86ab942219c..21d09e8db979 100644
+--- a/arch/x86/include/asm/qspinlock.h
++++ b/arch/x86/include/asm/qspinlock.h
+@@ -27,6 +27,10 @@ static __always_inline u32 queued_fetch_set_pending_acquire(struct qspinlock *lo
+ 	return val;
+ }
+ 
++#ifdef CONFIG_NUMA_AWARE_SPINLOCKS
++extern void cna_configure_spin_lock_slowpath(void);
++#endif
++
+ #ifdef CONFIG_PARAVIRT_SPINLOCKS
+ extern void native_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+ extern void __pv_init_lock_hash(void);
+diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+index cdaab30880b9..f964e7aa24d4 100644
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -741,6 +741,10 @@ void __init alternative_instructions(void)
+ 	}
+ #endif
+ 
++#if defined(CONFIG_NUMA_AWARE_SPINLOCKS)
++	cna_configure_spin_lock_slowpath();
++#endif
++
+ 	apply_paravirt(__parainstructions, __parainstructions_end);
+ 
+ 	restart_nmi();
+diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
+index 904ba5d0f3f4..5e47ffb3f08b 100644
+--- a/kernel/locking/mcs_spinlock.h
++++ b/kernel/locking/mcs_spinlock.h
+@@ -17,7 +17,7 @@
+ 
+ struct mcs_spinlock {
+ 	struct mcs_spinlock *next;
+-	int locked; /* 1 if lock acquired */
++	unsigned int locked; /* 1 if lock acquired */
+ 	int count;  /* nesting count, see qspinlock.c */
+ };
+ 
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 24b5802fc6f1..5981891ddda3 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -11,7 +11,7 @@
+  *          Peter Zijlstra <peterz@infradead.org>
+  */
+ 
+-#ifndef _GEN_PV_LOCK_SLOWPATH
++#if !defined(_GEN_PV_LOCK_SLOWPATH) && !defined(_GEN_CNA_LOCK_SLOWPATH)
+ 
+ #include <linux/smp.h>
+ #include <linux/bug.h>
+@@ -71,7 +71,8 @@
+ /*
+  * On 64-bit architectures, the mcs_spinlock structure will be 16 bytes in
+  * size and four of them will fit nicely in one 64-byte cacheline. For
+- * pvqspinlock, however, we need more space for extra data. To accommodate
++ * pvqspinlock, however, we need more space for extra data. The same also
++ * applies for the NUMA-aware variant of spinlocks (CNA). To accommodate
+  * that, we insert two more long words to pad it up to 32 bytes. IOW, only
+  * two of them can fit in a cacheline in this case. That is OK as it is rare
+  * to have more than 2 levels of slowpath nesting in actual use. We don't
+@@ -80,7 +81,7 @@
+  */
+ struct qnode {
+ 	struct mcs_spinlock mcs;
+-#ifdef CONFIG_PARAVIRT_SPINLOCKS
++#if defined(CONFIG_PARAVIRT_SPINLOCKS) || defined(CONFIG_NUMA_AWARE_SPINLOCKS)
+ 	long reserved[2];
+ #endif
+ };
+@@ -104,6 +105,8 @@ struct qnode {
+  * Exactly fits one 64-byte cacheline on a 64-bit architecture.
+  *
+  * PV doubles the storage and uses the second cacheline for PV state.
++ * CNA also doubles the storage and uses the second cacheline for
++ * CNA-specific state.
+  */
+ static DEFINE_PER_CPU_ALIGNED(struct qnode, qnodes[MAX_NODES]);
+ 
+@@ -317,7 +320,7 @@ static __always_inline void __mcs_lock_handoff(struct mcs_spinlock *node,
+ #define try_clear_tail		__try_clear_tail
+ #define mcs_lock_handoff	__mcs_lock_handoff
+ 
+-#endif /* _GEN_PV_LOCK_SLOWPATH */
++#endif /* _GEN_PV_LOCK_SLOWPATH && _GEN_CNA_LOCK_SLOWPATH */
+ 
+ /**
+  * queued_spin_lock_slowpath - acquire the queued spinlock
+@@ -589,6 +592,37 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ }
+ EXPORT_SYMBOL(queued_spin_lock_slowpath);
+ 
++/*
++ * Generate the code for NUMA-aware spinlocks
++ */
++#if !defined(_GEN_CNA_LOCK_SLOWPATH) && defined(CONFIG_NUMA_AWARE_SPINLOCKS)
++#define _GEN_CNA_LOCK_SLOWPATH
++
++#undef pv_init_node
++#define pv_init_node			cna_init_node
++
++#undef pv_wait_head_or_lock
++#define pv_wait_head_or_lock		cna_wait_head_or_lock
++
++#undef try_clear_tail
++#define try_clear_tail			cna_try_clear_tail
++
++#undef mcs_lock_handoff
++#define mcs_lock_handoff			cna_lock_handoff
++
++#undef  queued_spin_lock_slowpath
++/*
++ * defer defining queued_spin_lock_slowpath until after the include to
++ * avoid a name clash with the identically named field in pv_ops.lock
++ * (see cna_configure_spin_lock_slowpath())
++ */
++#include "qspinlock_cna.h"
++#define queued_spin_lock_slowpath	__cna_queued_spin_lock_slowpath
++
++#include "qspinlock.c"
++
++#endif
++
+ /*
+  * Generate the paravirt code for queued_spin_unlock_slowpath().
+  */
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+new file mode 100644
+index 000000000000..590402ad69ef
+--- /dev/null
++++ b/kernel/locking/qspinlock_cna.h
+@@ -0,0 +1,336 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _GEN_CNA_LOCK_SLOWPATH
++#error "do not include this file"
++#endif
++
++#include <linux/topology.h>
++
++/*
++ * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
++ *
++ * In CNA, spinning threads are organized in two queues, a primary queue for
++ * threads running on the same NUMA node as the current lock holder, and a
++ * secondary queue for threads running on other nodes. Schematically, it
++ * looks like this:
++ *
++ *    cna_node
++ *   +----------+     +--------+         +--------+
++ *   |mcs:next  | --> |mcs:next| --> ... |mcs:next| --> NULL  [Primary queue]
++ *   |mcs:locked| -.  +--------+         +--------+
++ *   +----------+  |
++ *                 `----------------------.
++ *                                        v
++ *                 +--------+         +--------+
++ *                 |mcs:next| --> ... |mcs:next|            [Secondary queue]
++ *                 +--------+         +--------+
++ *                     ^                    |
++ *                     `--------------------'
++ *
++ * N.B. locked := 1 if secondary queue is absent. Otherwise, it contains the
++ * encoded pointer to the tail of the secondary queue, which is organized as a
++ * circular list.
++ *
++ * After acquiring the MCS lock and before acquiring the spinlock, the MCS lock
++ * holder checks whether the next waiter in the primary queue (if exists) is
++ * running on the same NUMA node. If it is not, that waiter is detached from the
++ * main queue and moved into the tail of the secondary queue. This way, we
++ * gradually filter the primary queue, leaving only waiters running on the same
++ * preferred NUMA node.
++ *
++ * For more details, see https://arxiv.org/abs/1810.05600.
++ *
++ * Authors: Alex Kogan <alex.kogan@oracle.com>
++ *          Dave Dice <dave.dice@oracle.com>
++ */
++
++struct cna_node {
++	struct mcs_spinlock	mcs;
++	u16			numa_node;
++	u16			real_numa_node;
++	u32			encoded_tail;	/* self */
++	u32			partial_order;	/* enum val */
++};
++
++enum {
++	LOCAL_WAITER_FOUND,
++	LOCAL_WAITER_NOT_FOUND,
++};
++
++static void __init cna_init_nodes_per_cpu(unsigned int cpu)
++{
++	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
++	int numa_node = cpu_to_node(cpu);
++	int i;
++
++	for (i = 0; i < MAX_NODES; i++) {
++		struct cna_node *cn = (struct cna_node *)grab_mcs_node(base, i);
++
++		cn->real_numa_node = numa_node;
++		cn->encoded_tail = encode_tail(cpu, i);
++		/*
++		 * make sure @encoded_tail is not confused with other valid
++		 * values for @locked (0 or 1)
++		 */
++		WARN_ON(cn->encoded_tail <= 1);
++	}
++}
++
++static int __init cna_init_nodes(void)
++{
++	unsigned int cpu;
++
++	/*
++	 * this will break on 32bit architectures, so we restrict
++	 * the use of CNA to 64bit only (see arch/x86/Kconfig)
++	 */
++	BUILD_BUG_ON(sizeof(struct cna_node) > sizeof(struct qnode));
++	/* we store an ecoded tail word in the node's @locked field */
++	BUILD_BUG_ON(sizeof(u32) > sizeof(unsigned int));
++
++	for_each_possible_cpu(cpu)
++		cna_init_nodes_per_cpu(cpu);
++
++	return 0;
++}
++
++static __always_inline void cna_init_node(struct mcs_spinlock *node)
++{
++	struct cna_node *cn = (struct cna_node *)node;
++
++	cn->numa_node = cn->real_numa_node;
++}
++
++/*
++ * cna_splice_head -- splice the entire secondary queue onto the head of the
++ * primary queue.
++ *
++ * Returns the new primary head node or NULL on failure.
++ */
++static struct mcs_spinlock *
++cna_splice_head(struct qspinlock *lock, u32 val,
++		struct mcs_spinlock *node, struct mcs_spinlock *next)
++{
++	struct mcs_spinlock *head_2nd, *tail_2nd;
++	u32 new;
++
++	tail_2nd = decode_tail(node->locked);
++	head_2nd = tail_2nd->next;
++
++	if (next) {
++		/*
++		 * If the primary queue is not empty, the primary tail doesn't
++		 * need to change and we can simply link the secondary tail to
++		 * the old primary head.
++		 */
++		tail_2nd->next = next;
++	} else {
++		/*
++		 * When the primary queue is empty, the secondary tail becomes
++		 * the primary tail.
++		 */
++
++		/*
++		 * Speculatively break the secondary queue's circular link such
++		 * that when the secondary tail becomes the primary tail it all
++		 * works out.
++		 */
++		tail_2nd->next = NULL;
++
++		/*
++		 * tail_2nd->next = NULL;	old = xchg_tail(lock, tail);
++		 *				prev = decode_tail(old);
++		 * try_cmpxchg_release(...);	WRITE_ONCE(prev->next, node);
++		 *
++		 * If the following cmpxchg() succeeds, our stores will not
++		 * collide.
++		 */
++		new = ((struct cna_node *)tail_2nd)->encoded_tail |
++			_Q_LOCKED_VAL;
++		if (!atomic_try_cmpxchg_release(&lock->val, &val, new)) {
++			/* Restore the secondary queue's circular link. */
++			tail_2nd->next = head_2nd;
++			return NULL;
++		}
++	}
++
++	/* The primary queue head now is what was the secondary queue head. */
++	return head_2nd;
++}
++
++static inline bool cna_try_clear_tail(struct qspinlock *lock, u32 val,
++				      struct mcs_spinlock *node)
++{
++	/*
++	 * We're here because the primary queue is empty; check the secondary
++	 * queue for remote waiters.
++	 */
++	if (node->locked > 1) {
++		struct mcs_spinlock *next;
++
++		/*
++		 * When there are waiters on the secondary queue, try to move
++		 * them back onto the primary queue and let them rip.
++		 */
++		next = cna_splice_head(lock, val, node, NULL);
++		if (next) {
++			arch_mcs_lock_handoff(&next->locked, 1);
++			return true;
++		}
++
++		return false;
++	}
++
++	/* Both queues are empty. Do what MCS does. */
++	return __try_clear_tail(lock, val, node);
++}
++
++/*
++ * cna_splice_tail -- splice the next node from the primary queue onto
++ * the secondary queue.
++ */
++static void cna_splice_next(struct mcs_spinlock *node,
++			    struct mcs_spinlock *next,
++			    struct mcs_spinlock *nnext)
++{
++	/* remove 'next' from the main queue */
++	node->next = nnext;
++
++	/* stick `next` on the secondary queue tail */
++	if (node->locked <= 1) { /* if secondary queue is empty */
++		/* create secondary queue */
++		next->next = next;
++	} else {
++		/* add to the tail of the secondary queue */
++		struct mcs_spinlock *tail_2nd = decode_tail(node->locked);
++		struct mcs_spinlock *head_2nd = tail_2nd->next;
++
++		tail_2nd->next = next;
++		next->next = head_2nd;
++	}
++
++	node->locked = ((struct cna_node *)next)->encoded_tail;
++}
++
++/*
++ * cna_order_queue - check whether the next waiter in the main queue is on
++ * the same NUMA node as the lock holder; if not, and it has a waiter behind
++ * it in the main queue, move the former onto the secondary queue.
++ */
++static u32 cna_order_queue(struct mcs_spinlock *node)
++{
++	struct mcs_spinlock *next = READ_ONCE(node->next);
++	int numa_node, next_numa_node;
++
++	if (!next)
++		return LOCAL_WAITER_NOT_FOUND;
++
++	numa_node = ((struct cna_node *)node)->numa_node;
++	next_numa_node = ((struct cna_node *)next)->numa_node;
++
++	if (next_numa_node != numa_node) {
++		struct mcs_spinlock *nnext = READ_ONCE(next->next);
++
++		if (nnext) {
++			cna_splice_next(node, next, nnext);
++			next = nnext;
++		}
++		/*
++		 * Inherit NUMA node id of primary queue, to maintain the
++		 * preference even if the next waiter is on a different node.
++		 */
++		((struct cna_node *)next)->numa_node = numa_node;
++	}
++	return LOCAL_WAITER_FOUND;
++}
++
++/* Abuse the pv_wait_head_or_lock() hook to get some work done */
++static __always_inline u32 cna_wait_head_or_lock(struct qspinlock *lock,
++						 struct mcs_spinlock *node)
++{
++	struct cna_node *cn = (struct cna_node *)node;
++
++	/*
++	 * Try and put the time otherwise spent spin waiting on
++	 * _Q_LOCKED_PENDING_MASK to use by sorting our lists.
++	 */
++	cn->partial_order = cna_order_queue(node);
++
++	return 0; /* we lied; we didn't wait, go do so now */
++}
++
++static inline void cna_lock_handoff(struct mcs_spinlock *node,
++				 struct mcs_spinlock *next)
++{
++	struct cna_node *cn = (struct cna_node *)node;
++	u32 val = 1;
++
++	u32 partial_order = cn->partial_order;
++
++	if (partial_order == LOCAL_WAITER_NOT_FOUND)
++		partial_order = cna_order_queue(node);
++
++	/*
++	 * At this point, we must have a successor in the main queue, so if we call
++	 * cna_order_queue() above, we will find a local waiter, either real or
++	 * fake one.
++	 */
++	WARN_ON(partial_order == LOCAL_WAITER_NOT_FOUND);
++
++	/*
++	 * We found a local waiter; reload @next in case it was changed by
++	 * cna_order_queue().
++	 */
++	next = node->next;
++	if (node->locked > 1)
++		val = node->locked;	/* preseve secondary queue */
++
++	arch_mcs_lock_handoff(&next->locked, val);
++}
++
++/*
++ * Constant (boot-param configurable) flag selecting the NUMA-aware variant
++ * of spinlock.  Possible values: -1 (off) / 0 (auto, default) / 1 (on).
++ */
++static int numa_spinlock_flag;
++
++static int __init numa_spinlock_setup(char *str)
++{
++	if (!strcmp(str, "auto")) {
++		numa_spinlock_flag = 0;
++		return 1;
++	} else if (!strcmp(str, "on")) {
++		numa_spinlock_flag = 1;
++		return 1;
++	} else if (!strcmp(str, "off")) {
++		numa_spinlock_flag = -1;
++		return 1;
++	}
++
++	return 0;
++}
++__setup("numa_spinlock=", numa_spinlock_setup);
++
++void __cna_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
++
++/*
++ * Switch to the NUMA-friendly slow path for spinlocks when we have
++ * multiple NUMA nodes in native environment, unless the user has
++ * overridden this default behavior by setting the numa_spinlock flag.
++ */
++void __init cna_configure_spin_lock_slowpath(void)
++{
++
++	if (numa_spinlock_flag < 0)
++		return;
++
++	if (numa_spinlock_flag == 0 && (nr_node_ids < 2 ||
++		    pv_ops.lock.queued_spin_lock_slowpath !=
++			native_queued_spin_lock_slowpath))
++		return;
++
++	cna_init_nodes();
++
++	pv_ops.lock.queued_spin_lock_slowpath = __cna_queued_spin_lock_slowpath;
++
++	pr_info("Enabling CNA spinlock\n");
++}
 -- 
-John Hubbard
-NVIDIA
-
-> v2: added brackets &pgd -> &(pgd)
-> 
->   arch/s390/include/asm/pgtable.h | 42 +++++++++++++++++++++++----------
->   include/linux/pgtable.h         | 10 ++++++++
->   mm/gup.c                        | 18 +++++++-------
->   3 files changed, 49 insertions(+), 21 deletions(-)
-> 
-> diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
-> index 7eb01a5459cd..b55561cc8786 100644
-> --- a/arch/s390/include/asm/pgtable.h
-> +++ b/arch/s390/include/asm/pgtable.h
-> @@ -1260,26 +1260,44 @@ static inline pgd_t *pgd_offset_raw(pgd_t *pgd, unsigned long address)
->   
->   #define pgd_offset(mm, address) pgd_offset_raw(READ_ONCE((mm)->pgd), address)
->   
-> -static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
-> +static inline p4d_t *p4d_offset_lockless(pgd_t *pgdp, pgd_t pgd, unsigned long address)
->   {
-> -	if ((pgd_val(*pgd) & _REGION_ENTRY_TYPE_MASK) >= _REGION_ENTRY_TYPE_R1)
-> -		return (p4d_t *) pgd_deref(*pgd) + p4d_index(address);
-> -	return (p4d_t *) pgd;
-> +	if ((pgd_val(pgd) & _REGION_ENTRY_TYPE_MASK) >= _REGION_ENTRY_TYPE_R1)
-> +		return (p4d_t *) pgd_deref(pgd) + p4d_index(address);
-> +	return (p4d_t *) pgdp;
->   }
-> +#define p4d_offset_lockless p4d_offset_lockless
->   
-> -static inline pud_t *pud_offset(p4d_t *p4d, unsigned long address)
-> +static inline p4d_t *p4d_offset(pgd_t *pgdp, unsigned long address)
->   {
-> -	if ((p4d_val(*p4d) & _REGION_ENTRY_TYPE_MASK) >= _REGION_ENTRY_TYPE_R2)
-> -		return (pud_t *) p4d_deref(*p4d) + pud_index(address);
-> -	return (pud_t *) p4d;
-> +	return p4d_offset_lockless(pgdp, *pgdp, address);
-> +}
-> +
-> +static inline pud_t *pud_offset_lockless(p4d_t *p4dp, p4d_t p4d, unsigned long address)
-> +{
-> +	if ((p4d_val(p4d) & _REGION_ENTRY_TYPE_MASK) >= _REGION_ENTRY_TYPE_R2)
-> +		return (pud_t *) p4d_deref(p4d) + pud_index(address);
-> +	return (pud_t *) p4dp;
-> +}
-> +#define pud_offset_lockless pud_offset_lockless
-> +
-> +static inline pud_t *pud_offset(p4d_t *p4dp, unsigned long address)
-> +{
-> +	return pud_offset_lockless(p4dp, *p4dp, address);
->   }
->   #define pud_offset pud_offset
->   
-> -static inline pmd_t *pmd_offset(pud_t *pud, unsigned long address)
-> +static inline pmd_t *pmd_offset_lockless(pud_t *pudp, pud_t pud, unsigned long address)
-> +{
-> +	if ((pud_val(pud) & _REGION_ENTRY_TYPE_MASK) >= _REGION_ENTRY_TYPE_R3)
-> +		return (pmd_t *) pud_deref(pud) + pmd_index(address);
-> +	return (pmd_t *) pudp;
-> +}
-> +#define pmd_offset_lockless pmd_offset_lockless
-> +
-> +static inline pmd_t *pmd_offset(pud_t *pudp, unsigned long address)
->   {
-> -	if ((pud_val(*pud) & _REGION_ENTRY_TYPE_MASK) >= _REGION_ENTRY_TYPE_R3)
-> -		return (pmd_t *) pud_deref(*pud) + pmd_index(address);
-> -	return (pmd_t *) pud;
-> +	return pmd_offset_lockless(pudp, *pudp, address);
->   }
->   #define pmd_offset pmd_offset
->   
-> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
-> index e8cbc2e795d5..90654cb63e9e 100644
-> --- a/include/linux/pgtable.h
-> +++ b/include/linux/pgtable.h
-> @@ -1427,6 +1427,16 @@ typedef unsigned int pgtbl_mod_mask;
->   #define mm_pmd_folded(mm)	__is_defined(__PAGETABLE_PMD_FOLDED)
->   #endif
->   
-> +#ifndef p4d_offset_lockless
-> +#define p4d_offset_lockless(pgdp, pgd, address) p4d_offset(&(pgd), address)
-> +#endif
-> +#ifndef pud_offset_lockless
-> +#define pud_offset_lockless(p4dp, p4d, address) pud_offset(&(p4d), address)
-> +#endif
-> +#ifndef pmd_offset_lockless
-> +#define pmd_offset_lockless(pudp, pud, address) pmd_offset(&(pud), address)
-> +#endif
-> +
->   /*
->    * p?d_leaf() - true if this entry is a final mapping to a physical address.
->    * This differs from p?d_huge() by the fact that they are always available (if
-> diff --git a/mm/gup.c b/mm/gup.c
-> index e5739a1974d5..578bf5bd8bf8 100644
-> --- a/mm/gup.c
-> +++ b/mm/gup.c
-> @@ -2485,13 +2485,13 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
->   	return 1;
->   }
->   
-> -static int gup_pmd_range(pud_t pud, unsigned long addr, unsigned long end,
-> +static int gup_pmd_range(pud_t *pudp, pud_t pud, unsigned long addr, unsigned long end,
->   		unsigned int flags, struct page **pages, int *nr)
->   {
->   	unsigned long next;
->   	pmd_t *pmdp;
->   
-> -	pmdp = pmd_offset(&pud, addr);
-> +	pmdp = pmd_offset_lockless(pudp, pud, addr);
->   	do {
->   		pmd_t pmd = READ_ONCE(*pmdp);
->   
-> @@ -2528,13 +2528,13 @@ static int gup_pmd_range(pud_t pud, unsigned long addr, unsigned long end,
->   	return 1;
->   }
->   
-> -static int gup_pud_range(p4d_t p4d, unsigned long addr, unsigned long end,
-> +static int gup_pud_range(p4d_t *p4dp, p4d_t p4d, unsigned long addr, unsigned long end,
->   			 unsigned int flags, struct page **pages, int *nr)
->   {
->   	unsigned long next;
->   	pud_t *pudp;
->   
-> -	pudp = pud_offset(&p4d, addr);
-> +	pudp = pud_offset_lockless(p4dp, p4d, addr);
->   	do {
->   		pud_t pud = READ_ONCE(*pudp);
->   
-> @@ -2549,20 +2549,20 @@ static int gup_pud_range(p4d_t p4d, unsigned long addr, unsigned long end,
->   			if (!gup_huge_pd(__hugepd(pud_val(pud)), addr,
->   					 PUD_SHIFT, next, flags, pages, nr))
->   				return 0;
-> -		} else if (!gup_pmd_range(pud, addr, next, flags, pages, nr))
-> +		} else if (!gup_pmd_range(pudp, pud, addr, next, flags, pages, nr))
->   			return 0;
->   	} while (pudp++, addr = next, addr != end);
->   
->   	return 1;
->   }
->   
-> -static int gup_p4d_range(pgd_t pgd, unsigned long addr, unsigned long end,
-> +static int gup_p4d_range(pgd_t *pgdp, pgd_t pgd, unsigned long addr, unsigned long end,
->   			 unsigned int flags, struct page **pages, int *nr)
->   {
->   	unsigned long next;
->   	p4d_t *p4dp;
->   
-> -	p4dp = p4d_offset(&pgd, addr);
-> +	p4dp = p4d_offset_lockless(pgdp, pgd, addr);
->   	do {
->   		p4d_t p4d = READ_ONCE(*p4dp);
->   
-> @@ -2574,7 +2574,7 @@ static int gup_p4d_range(pgd_t pgd, unsigned long addr, unsigned long end,
->   			if (!gup_huge_pd(__hugepd(p4d_val(p4d)), addr,
->   					 P4D_SHIFT, next, flags, pages, nr))
->   				return 0;
-> -		} else if (!gup_pud_range(p4d, addr, next, flags, pages, nr))
-> +		} else if (!gup_pud_range(p4dp, p4d, addr, next, flags, pages, nr))
->   			return 0;
->   	} while (p4dp++, addr = next, addr != end);
->   
-> @@ -2602,7 +2602,7 @@ static void gup_pgd_range(unsigned long addr, unsigned long end,
->   			if (!gup_huge_pd(__hugepd(pgd_val(pgd)), addr,
->   					 PGDIR_SHIFT, next, flags, pages, nr))
->   				return;
-> -		} else if (!gup_p4d_range(pgd, addr, next, flags, pages, nr))
-> +		} else if (!gup_p4d_range(pgdp, pgd, addr, next, flags, pages, nr))
->   			return;
->   	} while (pgdp++, addr = next, addr != end);
->   }
-> 
+2.21.1 (Apple Git-122.3)
 
