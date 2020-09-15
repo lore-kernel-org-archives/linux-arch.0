@@ -5,52 +5,52 @@ X-Spam-Level:
 X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
-	UNPARSEABLE_RELAY,USER_AGENT_GIT autolearn=unavailable autolearn_force=no
-	version=3.4.0
+	UNPARSEABLE_RELAY,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C77AFC2D0E0
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 18:10:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8AB5AC43461
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 18:11:32 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6F37420936
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 18:10:01 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 43D6720738
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Sep 2020 18:11:32 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="I80v/FAT"
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="ZSb2Cmhk"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727786AbgIOSJG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 15 Sep 2020 14:09:06 -0400
-Received: from aserp2120.oracle.com ([141.146.126.78]:41224 "EHLO
+        id S1727901AbgIOSLV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 15 Sep 2020 14:11:21 -0400
+Received: from aserp2120.oracle.com ([141.146.126.78]:42810 "EHLO
         aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727876AbgIOSHH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Sep 2020 14:07:07 -0400
+        with ESMTP id S1727934AbgIOSJQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Sep 2020 14:09:16 -0400
 Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
-        by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 08FHwwu0078475;
-        Tue, 15 Sep 2020 18:06:00 GMT
+        by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 08FHwnx2078388;
+        Tue, 15 Sep 2020 18:07:55 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : cc :
  subject : date : message-id : in-reply-to : references : mime-version :
  content-transfer-encoding; s=corp-2020-01-29;
- bh=wyOZXM5CTPqjHP81dfLipqHK2O3wv/6C60UTHFbsYIA=;
- b=I80v/FATMj2/TvT4VK3NwRjyBUdRPdIBOXK6dkd+ekJN/OtzM4+p84jn4mf+2hYhhv0f
- WOOoqe5Bg+sRisim1Qh9SDunVPq3RE0FyLhajMVNJNQl9Q3LXCVMtkuK5o91Im32+r/m
- +VhkHdnXfp5oUL5n2yDQXrJhj8RmH0A0WzHoLkln4UqRBtDqxF/et68QfakNJDbQesIh
- 2V9vm2dqoGGKrjajwT5DCmVM9XIlT2V1WPmvsJYsBWzOwTQqP/90aCKFip00cMq5WqtM
- rberhU0hXBUVAW+SHkKdgQigjvvj1p3J2vT0a8rkTtgxLPCOaFHGw+ZRs+R28JcmUo/w dQ== 
-Received: from aserp3030.oracle.com (aserp3030.oracle.com [141.146.126.71])
-        by aserp2120.oracle.com with ESMTP id 33gp9m6qq6-1
+ bh=xSmDvkQkMYEWD7WRdYuNVEN2qfEEyomzGbWMzSTkEsw=;
+ b=ZSb2CmhktBSZTNFLJKcKY+Jk3juA6JFLokE5btJ3XUl/B87Ye0+XBmb+PcqAeYO/85pZ
+ aTr8cugz8k+vCewg0w8iQXSxwVkzQPCoQImlwZH913Ubcrksq/GZIsJL0/CPJKXKBvTA
+ n5w7rWqgUGjJ2ihB27+mt4Iy5FXY9OtZJ12jIgW0szAUC8vGNd6rl24N7wE61vlprjLa
+ bz+AuQm4Jwsaup+y5DXYJUNfyXNlh4/6A4xeuVwRfK9Y8PAPIOot8uAJW0yMmDfsAsPg
+ a+0ixEPl6okQr0yUnInx1JjzhjaZutstrbj2Ah8+WfKQMRDTf4Oq0xGbKpFaS98Jqi47 Uw== 
+Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
+        by aserp2120.oracle.com with ESMTP id 33gp9m6r06-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=FAIL);
-        Tue, 15 Sep 2020 18:06:00 +0000
-Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-        by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 08FI5x3q089090;
-        Tue, 15 Sep 2020 18:06:00 GMT
-Received: from userv0122.oracle.com (userv0122.oracle.com [156.151.31.75])
-        by aserp3030.oracle.com with ESMTP id 33h7wphgxm-1
+        Tue, 15 Sep 2020 18:07:55 +0000
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+        by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 08FI5p1C062230;
+        Tue, 15 Sep 2020 18:05:55 GMT
+Received: from userv0121.oracle.com (userv0121.oracle.com [156.151.31.72])
+        by userp3020.oracle.com with ESMTP id 33hm310msy-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Tue, 15 Sep 2020 18:06:00 +0000
+        Tue, 15 Sep 2020 18:05:54 +0000
 Received: from abhmp0008.oracle.com (abhmp0008.oracle.com [141.146.116.14])
-        by userv0122.oracle.com (8.14.4/8.14.4) with ESMTP id 08FI5kBu009862;
-        Tue, 15 Sep 2020 18:05:46 GMT
+        by userv0121.oracle.com (8.14.4/8.13.8) with ESMTP id 08FI5oYW000920;
+        Tue, 15 Sep 2020 18:05:50 GMT
 Received: from neelam.us.oracle.com (/10.152.128.16)
         by default (Oracle Beehive Gateway v4.0)
-        with ESMTP ; Tue, 15 Sep 2020 18:05:46 +0000
+        with ESMTP ; Tue, 15 Sep 2020 18:05:50 +0000
 From:   Alex Kogan <alex.kogan@oracle.com>
 To:     linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com,
         will.deacon@arm.com, arnd@arndb.de, longman@redhat.com,
@@ -60,21 +60,21 @@ To:     linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com,
         jglauber@marvell.com
 Cc:     steven.sistare@oracle.com, daniel.m.jordan@oracle.com,
         alex.kogan@oracle.com, dave.dice@oracle.com
-Subject: [PATCH v11 1/5] locking/qspinlock: Rename mcs lock/unlock macros and make them more generic
-Date:   Tue, 15 Sep 2020 14:05:31 -0400
-Message-Id: <20200915180535.2975060-2-alex.kogan@oracle.com>
+Subject: [PATCH v11 4/5] locking/qspinlock: Introduce starvation avoidance into CNA
+Date:   Tue, 15 Sep 2020 14:05:34 -0400
+Message-Id: <20200915180535.2975060-5-alex.kogan@oracle.com>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20200915180535.2975060-1-alex.kogan@oracle.com>
 References: <20200915180535.2975060-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Proofpoint-Virus-Version: vendor=nai engine=6000 definitions=9745 signatures=668679
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 malwarescore=0
- adultscore=0 bulkscore=0 phishscore=0 mlxlogscore=924 mlxscore=0
- spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2006250000 definitions=main-2009150146
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 bulkscore=0 mlxlogscore=999
+ malwarescore=0 mlxscore=0 phishscore=0 adultscore=0 suspectscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2006250000
+ definitions=main-2009150146
 X-Proofpoint-Virus-Version: vendor=nai engine=6000 definitions=9745 signatures=668679
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 mlxlogscore=938
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 mlxlogscore=999
  adultscore=0 malwarescore=0 clxscore=1015 lowpriorityscore=0 phishscore=0
  spamscore=0 priorityscore=1501 suspectscore=0 impostorscore=0 mlxscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2006250000
@@ -84,155 +84,195 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The mcs unlock macro (arch_mcs_lock_handoff) should accept the value to be
-stored into the lock argument as another argument. This allows using the
-same macro in cases where the value to be stored when passing the lock is
-different from 1.
+Keep track of the time the thread at the head of the secondary queue
+has been waiting, and force inter-node handoff once this time passes
+a preset threshold. The default value for the threshold (10ms) can be
+overridden with the new kernel boot command-line option
+"numa_spinlock_threshold". The ms value is translated internally to the
+nearest rounded-up jiffies.
 
 Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
 Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
 Reviewed-by: Waiman Long <longman@redhat.com>
 ---
- arch/arm/include/asm/mcs_spinlock.h |  6 +++---
- include/asm-generic/mcs_spinlock.h  |  4 ++--
- kernel/locking/mcs_spinlock.h       | 18 +++++++++---------
- kernel/locking/qspinlock.c          |  4 ++--
- kernel/locking/qspinlock_paravirt.h |  2 +-
- 5 files changed, 17 insertions(+), 17 deletions(-)
+ .../admin-guide/kernel-parameters.txt         |  9 ++
+ kernel/locking/qspinlock_cna.h                | 95 ++++++++++++++++---
+ 2 files changed, 92 insertions(+), 12 deletions(-)
 
-diff --git a/arch/arm/include/asm/mcs_spinlock.h b/arch/arm/include/asm/mcs_spinlock.h
-index 529d2cf4d06f..1eb4d733459c 100644
---- a/arch/arm/include/asm/mcs_spinlock.h
-+++ b/arch/arm/include/asm/mcs_spinlock.h
-@@ -6,7 +6,7 @@
- #include <asm/spinlock.h>
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 51ce050f8701..73ab23a47b97 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -3363,6 +3363,15 @@
+ 			Not specifying this option is equivalent to
+ 			numa_spinlock=auto.
  
- /* MCS spin-locking. */
--#define arch_mcs_spin_lock_contended(lock)				\
-+#define arch_mcs_spin_wait(lock)					\
- do {									\
- 	/* Ensure prior stores are observed before we enter wfe. */	\
- 	smp_mb();							\
-@@ -14,9 +14,9 @@ do {									\
- 		wfe();							\
- } while (0)								\
- 
--#define arch_mcs_spin_unlock_contended(lock)				\
-+#define arch_mcs_lock_handoff(lock, val)				\
- do {									\
--	smp_store_release(lock, 1);					\
-+	smp_store_release((lock), (val));				\
- 	dsb_sev();							\
- } while (0)
- 
-diff --git a/include/asm-generic/mcs_spinlock.h b/include/asm-generic/mcs_spinlock.h
-index 10cd4ffc6ba2..f933d99c63e0 100644
---- a/include/asm-generic/mcs_spinlock.h
-+++ b/include/asm-generic/mcs_spinlock.h
-@@ -4,8 +4,8 @@
- /*
-  * Architectures can define their own:
++	numa_spinlock_threshold=	[NUMA, PV_OPS]
++			Set the time threshold in milliseconds for the
++			number of intra-node lock hand-offs before the
++			NUMA-aware spinlock is forced to be passed to
++			a thread on another NUMA node.	Valid values
++			are in the [1..100] range. Smaller values result
++			in a more fair, but less performant spinlock,
++			and vice versa. The default value is 10.
++
+ 	cpu0_hotplug	[X86] Turn on CPU0 hotplug feature when
+ 			CONFIG_BOOTPARAM_HOTPLUG_CPU0 is off.
+ 			Some features depend on CPU0. Known dependencies are:
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+index 590402ad69ef..d3e27549c769 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -37,6 +37,12 @@
+  * gradually filter the primary queue, leaving only waiters running on the same
+  * preferred NUMA node.
   *
-- *   arch_mcs_spin_lock_contended(l)
-- *   arch_mcs_spin_unlock_contended(l)
-+ *   arch_mcs_spin_wait(l)
-+ *   arch_mcs_lock_handoff(l, val)
++ * We change the NUMA node preference after a waiter at the head of the
++ * secondary queue spins for a certain amount of time (10ms, by default).
++ * We do that by flushing the secondary queue into the head of the primary queue,
++ * effectively changing the preference to the NUMA node of the waiter at the head
++ * of the secondary queue at the time of the flush.
++ *
+  * For more details, see https://arxiv.org/abs/1810.05600.
   *
-  * See kernel/locking/mcs_spinlock.c.
-  */
-diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
-index 5e10153b4d3c..904ba5d0f3f4 100644
---- a/kernel/locking/mcs_spinlock.h
-+++ b/kernel/locking/mcs_spinlock.h
-@@ -21,7 +21,7 @@ struct mcs_spinlock {
- 	int count;  /* nesting count, see qspinlock.c */
+  * Authors: Alex Kogan <alex.kogan@oracle.com>
+@@ -49,13 +55,33 @@ struct cna_node {
+ 	u16			real_numa_node;
+ 	u32			encoded_tail;	/* self */
+ 	u32			partial_order;	/* enum val */
++	s32			start_time;
  };
  
--#ifndef arch_mcs_spin_lock_contended
-+#ifndef arch_mcs_spin_wait
- /*
-  * Using smp_cond_load_acquire() provides the acquire semantics
-  * required so that subsequent operations happen after the
-@@ -29,20 +29,20 @@ struct mcs_spinlock {
-  * ARM64 would like to do spin-waiting instead of purely
-  * spinning, and smp_cond_load_acquire() provides that behavior.
-  */
--#define arch_mcs_spin_lock_contended(l)					\
--do {									\
--	smp_cond_load_acquire(l, VAL);					\
-+#define arch_mcs_spin_wait(l)					\
-+do {								\
-+	smp_cond_load_acquire(l, VAL);				\
- } while (0)
- #endif
+ enum {
+ 	LOCAL_WAITER_FOUND,
+ 	LOCAL_WAITER_NOT_FOUND,
++	FLUSH_SECONDARY_QUEUE
+ };
  
--#ifndef arch_mcs_spin_unlock_contended
-+#ifndef arch_mcs_lock_handoff
- /*
-  * smp_store_release() provides a memory barrier to ensure all
-  * operations in the critical section has been completed before
-  * unlocking.
-  */
--#define arch_mcs_spin_unlock_contended(l)				\
--	smp_store_release((l), 1)
-+#define arch_mcs_lock_handoff(l, val)				\
-+	smp_store_release((l), (val))
- #endif
++/*
++ * Controls the threshold time in ms (default = 10) for intra-node lock
++ * hand-offs before the NUMA-aware variant of spinlock is forced to be
++ * passed to a thread on another NUMA node. The default setting can be
++ * changed with the "numa_spinlock_threshold" boot option.
++ */
++#define MSECS_TO_JIFFIES(m)	\
++	(((m) + (MSEC_PER_SEC / HZ) - 1) / (MSEC_PER_SEC / HZ))
++static int intra_node_handoff_threshold __ro_after_init = MSECS_TO_JIFFIES(10);
++
++static inline bool intra_node_threshold_reached(struct cna_node *cn)
++{
++	s32 current_time = (s32)jiffies;
++	s32 threshold = cn->start_time + intra_node_handoff_threshold;
++
++	return current_time - threshold > 0;
++}
++
+ static void __init cna_init_nodes_per_cpu(unsigned int cpu)
+ {
+ 	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
+@@ -98,6 +124,7 @@ static __always_inline void cna_init_node(struct mcs_spinlock *node)
+ 	struct cna_node *cn = (struct cna_node *)node;
  
- /*
-@@ -91,7 +91,7 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- 	WRITE_ONCE(prev->next, node);
- 
- 	/* Wait until the lock holder passes the lock down. */
--	arch_mcs_spin_lock_contended(&node->locked);
-+	arch_mcs_spin_wait(&node->locked);
+ 	cn->numa_node = cn->real_numa_node;
++	cn->start_time = 0;
  }
  
  /*
-@@ -115,7 +115,7 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- 	}
+@@ -197,8 +224,15 @@ static void cna_splice_next(struct mcs_spinlock *node,
  
- 	/* Pass lock to next waiter. */
--	arch_mcs_spin_unlock_contended(&next->locked);
-+	arch_mcs_lock_handoff(&next->locked, 1);
+ 	/* stick `next` on the secondary queue tail */
+ 	if (node->locked <= 1) { /* if secondary queue is empty */
++		struct cna_node *cn = (struct cna_node *)node;
++
+ 		/* create secondary queue */
+ 		next->next = next;
++
++		cn->start_time = (s32)jiffies;
++		/* make sure start_time != 0 iff secondary queue is not empty */
++		if (!cn->start_time)
++			cn->start_time = 1;
+ 	} else {
+ 		/* add to the tail of the secondary queue */
+ 		struct mcs_spinlock *tail_2nd = decode_tail(node->locked);
+@@ -249,11 +283,15 @@ static __always_inline u32 cna_wait_head_or_lock(struct qspinlock *lock,
+ {
+ 	struct cna_node *cn = (struct cna_node *)node;
+ 
+-	/*
+-	 * Try and put the time otherwise spent spin waiting on
+-	 * _Q_LOCKED_PENDING_MASK to use by sorting our lists.
+-	 */
+-	cn->partial_order = cna_order_queue(node);
++	if (!cn->start_time || !intra_node_threshold_reached(cn)) {
++		/*
++		 * Try and put the time otherwise spent spin waiting on
++		 * _Q_LOCKED_PENDING_MASK to use by sorting our lists.
++		 */
++		cn->partial_order = cna_order_queue(node);
++	} else {
++		cn->partial_order = FLUSH_SECONDARY_QUEUE;
++	}
+ 
+ 	return 0; /* we lied; we didn't wait, go do so now */
  }
+@@ -276,13 +314,29 @@ static inline void cna_lock_handoff(struct mcs_spinlock *node,
+ 	 */
+ 	WARN_ON(partial_order == LOCAL_WAITER_NOT_FOUND);
  
- #endif /* __LINUX_MCS_SPINLOCK_H */
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index cbff6ba53d56..435d696f9250 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -471,7 +471,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 		WRITE_ONCE(prev->next, node);
+-	/*
+-	 * We found a local waiter; reload @next in case it was changed by
+-	 * cna_order_queue().
+-	 */
+-	next = node->next;
+-	if (node->locked > 1)
+-		val = node->locked;	/* preseve secondary queue */
++	if (partial_order == LOCAL_WAITER_FOUND) {
++		/*
++		 * We found a local waiter; reload @next in case it
++		 * was changed by cna_order_queue().
++		 */
++		next = node->next;
++		if (node->locked > 1) {
++			val = node->locked;     /* preseve secondary queue */
++			((struct cna_node *)next)->start_time = cn->start_time;
++		}
++	} else {
++		WARN_ON(partial_order != FLUSH_SECONDARY_QUEUE);
++		/*
++		 * We decided to flush the secondary queue;
++		 * this can only happen if that queue is not empty.
++		 */
++		WARN_ON(node->locked <= 1);
++		/*
++		 * Splice the secondary queue onto the primary queue and pass the lock
++		 * to the longest waiting remote waiter.
++		 */
++		next = cna_splice_head(NULL, 0, node, next);
++	}
  
- 		pv_wait_node(node, prev);
--		arch_mcs_spin_lock_contended(&node->locked);
-+		arch_mcs_spin_wait(&node->locked);
+ 	arch_mcs_lock_handoff(&next->locked, val);
+ }
+@@ -334,3 +388,20 @@ void __init cna_configure_spin_lock_slowpath(void)
  
- 		/*
- 		 * While waiting for the MCS lock, the next pointer may have
-@@ -550,7 +550,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	if (!next)
- 		next = smp_cond_load_relaxed(&node->next, (VAL));
- 
--	arch_mcs_spin_unlock_contended(&next->locked);
-+	arch_mcs_lock_handoff(&next->locked, 1);
- 	pv_kick_node(lock, next);
- 
- release:
-diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
-index e84d21aa0722..619d80fd5ea8 100644
---- a/kernel/locking/qspinlock_paravirt.h
-+++ b/kernel/locking/qspinlock_paravirt.h
-@@ -368,7 +368,7 @@ static void pv_kick_node(struct qspinlock *lock, struct mcs_spinlock *node)
- 	 *
- 	 * Matches with smp_store_mb() and cmpxchg() in pv_wait_node()
- 	 *
--	 * The write to next->locked in arch_mcs_spin_unlock_contended()
-+	 * The write to next->locked in arch_mcs_lock_handoff()
- 	 * must be ordered before the read of pn->state in the cmpxchg()
- 	 * below for the code to work correctly. To guarantee full ordering
- 	 * irrespective of the success or failure of the cmpxchg(),
+ 	pr_info("Enabling CNA spinlock\n");
+ }
++
++static int __init numa_spinlock_threshold_setup(char *str)
++{
++	int param;
++
++	if (get_option(&str, &param)) {
++		/* valid value is between 1 and 100 */
++		if (param <= 0 || param > 100)
++			return 0;
++
++		intra_node_handoff_threshold = msecs_to_jiffies(param);
++		return 1;
++	}
++
++	return 0;
++}
++__setup("numa_spinlock_threshold=", numa_spinlock_threshold_setup);
 -- 
 2.21.1 (Apple Git-122.3)
 
