@@ -2,140 +2,97 @@ Return-Path: <SRS0=Mp4i=CZ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-7.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-11.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_IN_DEF_DKIM_WL autolearn=no
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7A010C433E2
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 18:49:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A628DC43461
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 18:57:53 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2AF9720936
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 18:49:57 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1600282197;
-	bh=16sTH0SegakzZKBjY8U3FsytaAxRFzwi1y28PIc8vKg=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc:List-ID:From;
-	b=qrIADsMJ7ZiJ/b1cqeIsNhSdOVGohmJoYzsDI2AiuMI/tjY4LcH0VzDWfNCbPMpxu
-	 qJUkvWgl45hxTnNvlawwzLSibfp19mm8qMNAxQOXpiLPq4a9RmVUU3u5RoJl1U5fb9
-	 J2EXTcgLTQ0xIOnZFammNt3mc9oj3UwkKhXNUlN8=
+	by mail.kernel.org (Postfix) with ESMTP id 47A6A20732
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 18:57:53 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="OpOeI24L"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727950AbgIPStr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 16 Sep 2020 14:49:47 -0400
-Received: from mail.kernel.org ([198.145.29.99]:47750 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728169AbgIPStk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 Sep 2020 14:49:40 -0400
-Received: from mail-ed1-f45.google.com (mail-ed1-f45.google.com [209.85.208.45])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 6C94E22211
-        for <linux-arch@vger.kernel.org>; Wed, 16 Sep 2020 18:49:39 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1600282179;
-        bh=16sTH0SegakzZKBjY8U3FsytaAxRFzwi1y28PIc8vKg=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=Qatkcq3nv+S9pPj+P3JFSXG9oKzt2ivfBeSNtIFNuwDO8ZBcYBS3134yWRyvjTXiQ
-         4L7IXkhOodRGI+KFpKt3pj2oao09DdAJWwhNU7tUkWacyJbacCR2xaFA2YuokWC5fS
-         mD3KTRcCOuu+Cqd3yKSH66vZQHQDEZkKLTJ91ngA=
-Received: by mail-ed1-f45.google.com with SMTP id l17so7493076edq.12
-        for <linux-arch@vger.kernel.org>; Wed, 16 Sep 2020 11:49:39 -0700 (PDT)
-X-Gm-Message-State: AOAM5320aKQsI58P26Y4++AFL9gkmfcCGBxG2+v8dUM1ehvyk74P8Y6X
-        MpnfxVyTFfruhHtlZnlFjdGP7H2q67PbcGczd5EYOA==
-X-Google-Smtp-Source: ABdhPJwUX3bHQLCL84qG4wIC/JlN+nYNkgmXwAB8lo/1k8NF8oo4sGXt7L/6GSwGvTFkR4oICcgx71syaFhCR+ehMOk=
-X-Received: by 2002:a5d:5111:: with SMTP id s17mr28001448wrt.70.1600282177590;
- Wed, 16 Sep 2020 11:49:37 -0700 (PDT)
-MIME-Version: 1.0
-References: <20200916072842.3502-1-rppt@kernel.org>
-In-Reply-To: <20200916072842.3502-1-rppt@kernel.org>
-From:   Andy Lutomirski <luto@kernel.org>
-Date:   Wed, 16 Sep 2020 11:49:25 -0700
-X-Gmail-Original-Message-ID: <CALCETrV6nFQ4tzhxKPSnK+Ec=U8ojY0k_-G2EqEG-WMGT4TkUw@mail.gmail.com>
-Message-ID: <CALCETrV6nFQ4tzhxKPSnK+Ec=U8ojY0k_-G2EqEG-WMGT4TkUw@mail.gmail.com>
-Subject: Re: [PATCH v5 0/5] mm: introduce memfd_secret system call to create
- "secret" memory areas
-To:     Mike Rapoport <rppt@kernel.org>
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        id S1727623AbgIPS5s (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 16 Sep 2020 14:57:48 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36510 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727222AbgIPRxL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Sep 2020 13:53:11 -0400
+Received: from mail-wr1-x443.google.com (mail-wr1-x443.google.com [IPv6:2a00:1450:4864:20::443])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0822DC08EE13
+        for <linux-arch@vger.kernel.org>; Wed, 16 Sep 2020 06:35:08 -0700 (PDT)
+Received: by mail-wr1-x443.google.com with SMTP id a17so6954786wrn.6
+        for <linux-arch@vger.kernel.org>; Wed, 16 Sep 2020 06:35:07 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20161025;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=Y0GHMsQrfoNkF8hoL5Nxc0+CH+Sz1FlZ4J0DpK8dO70=;
+        b=OpOeI24LEAE+oDQATH8MdVWdt4mZNQ4qh1Hc0omlnt7RwHiPRKvJrLL01717FgPnnb
+         1t+n+B6+mnQxwsOhc5OfAHt9THe5P9ok+08CnWZwgPJLemA4xraL3S0LRRaUFrd0nuU7
+         yRKZjwxGHu2Xcb4i1Mdyqj+a2bvB9eJzXsEOa3kbquHPZTCRLg6PiXODmEUA6N/ezqtH
+         WrdIqnvo6yMjPIgfbcKtYQzcIktY+hY7v3S3aaNBZGh1xFeC7rDf3IQUoCoKX+3JD4qH
+         ShFWfgA8F0+G1Or4c6EbK0e67x7FvsJI33FROdF/TI1M6+2DETeMlQ74rxZgNY5SadWE
+         gcLg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=Y0GHMsQrfoNkF8hoL5Nxc0+CH+Sz1FlZ4J0DpK8dO70=;
+        b=cvTOpdpKChEr9aritsRKwVLc5uIshU9C+/bHgx50UGcL5x13A/dw8pAA9KWQkyDpPi
+         gdqVrurx+n5mwRPeNlV6RETk+qIuS+OB+sXzbkx0CDwXorXEFgxgeTj9cHV27TajKSTs
+         v43Z1zKHJl0tFTLZ/U/nuWJa3FS8GpwA3UnE2vfQTRYMp6EZmX/Uc0PFJem3SEH1PV4f
+         4b0bXRtec8ev5BPJZHvLT6Wo8l5xgySisMnGeGrrHKGYQMV7Fh03MF2Wbrs9WSi2jXsc
+         LiwkhDNFuQqBCUjm6DvqXbocc4bfn2PTMNHGYdVorUzutAubsaVOEv5QSb0k1iyeKCzz
+         fYwg==
+X-Gm-Message-State: AOAM533gLHNAawx36ZRnjhvlVrx5aZee+uraWiRs+93yK4/KbgtBhg6o
+        LgvGBAtVFIvhMB85ecoUguR57w==
+X-Google-Smtp-Source: ABdhPJxj1njKOkMy/uGBtiswR54WhjIWwVc4v6yTTlieFUIM6NmtAP4wvPkgHYBaLSDHrvMxwMPqPg==
+X-Received: by 2002:a5d:45cc:: with SMTP id b12mr4416951wrs.395.1600263306480;
+        Wed, 16 Sep 2020 06:35:06 -0700 (PDT)
+Received: from google.com ([2a01:4b00:8523:2d03:e49d:f6be:d31b:ad3c])
+        by smtp.gmail.com with ESMTPSA id v9sm37780715wrv.35.2020.09.16.06.35.05
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 16 Sep 2020 06:35:05 -0700 (PDT)
+Date:   Wed, 16 Sep 2020 14:35:04 +0100
+From:   David Brazdil <dbrazdil@google.com>
+To:     Andrew Scull <ascull@google.com>
+Cc:     Marc Zyngier <maz@kernel.org>,
         Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>,
-        Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Wilcox <willy@infradead.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
-        Linux API <linux-api@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        linux-arm-kernel <linux-arm-kernel@lists.infradead.org>,
-        Linux FS Devel <linux-fsdevel@vger.kernel.org>,
-        Linux-MM <linux-mm@kvack.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        linux-nvdimm <linux-nvdimm@lists.01.org>,
-        linux-riscv@lists.infradead.org, X86 ML <x86@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+        Will Deacon <will@kernel.org>, Dennis Zhou <dennis@kernel.org>,
+        Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        James Morse <james.morse@arm.com>,
+        Julien Thierry <julien.thierry.kdev@gmail.com>,
+        Suzuki K Poulose <suzuki.poulose@arm.com>,
+        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+        kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org,
+        kernel-team@android.com
+Subject: Re: [PATCH v2 10/10] kvm: arm64: Remove unnecessary hyp mappings
+Message-ID: <20200916133504.7v5j7y5ccajw2a7s@google.com>
+References: <20200903091712.46456-1-dbrazdil@google.com>
+ <20200903091712.46456-11-dbrazdil@google.com>
+ <20200910140738.GE93664@google.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200910140738.GE93664@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Sep 16, 2020 at 12:28 AM Mike Rapoport <rppt@kernel.org> wrote:
->
-> From: Mike Rapoport <rppt@linux.ibm.com>
->
-> Hi,
->
-> This is an implementation of "secret" mappings backed by a file descriptor.
-> I've dropped the boot time reservation patch for now as it is not strictly
-> required for the basic usage and can be easily added later either with or
-> without CMA.
->
-> v5 changes:
-> * rebase on v5.9-rc5
-> * drop boot time memory reservation patch
->
-> v4 changes:
-> * rebase on v5.9-rc1
-> * Do not redefine PMD_PAGE_ORDER in fs/dax.c, thanks Kirill
-> * Make secret mappings exclusive by default and only require flags to
->   memfd_secret() system call for uncached mappings, thanks again Kirill :)
->
-> v3 changes:
-> * Squash kernel-parameters.txt update into the commit that added the
->   command line option.
-> * Make uncached mode explicitly selectable by architectures. For now enable
->   it only on x86.
->
-> v2 changes:
-> * Follow Michael's suggestion and name the new system call 'memfd_secret'
-> * Add kernel-parameters documentation about the boot option
-> * Fix i386-tinyconfig regression reported by the kbuild bot.
->   CONFIG_SECRETMEM now depends on !EMBEDDED to disable it on small systems
->   from one side and still make it available unconditionally on
->   architectures that support SET_DIRECT_MAP.
->
-> The file descriptor backing secret memory mappings is created using a
-> dedicated memfd_secret system call The desired protection mode for the
-> memory is configured using flags parameter of the system call. The mmap()
-> of the file descriptor created with memfd_secret() will create a "secret"
-> memory mapping. The pages in that mapping will be marked as not present in
-> the direct map and will have desired protection bits set in the user page
-> table. For instance, current implementation allows uncached mappings.
+> > +	for_each_possible_cpu(cpu)
+> > +		*(per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu)) =
+> > +			per_cpu(arm64_ssbd_callback_required, cpu);
+> 
+> Careful with breaking allocations across lines, that seems to be taboo
+> in this subsystem.
 
-I still have serious concerns with uncached mappings.  I'm not saying
-I can't be convinced, but I'm not currently convinced that we should
-allow user code to create UC mappings on x86.
+Happy to put the `ptr` var back. Sorry *embarrassed emoji*.
 
---Andy
+Thanks for reviewing,
+David
