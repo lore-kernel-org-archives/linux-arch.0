@@ -2,97 +2,136 @@ Return-Path: <SRS0=Mp4i=CZ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_IN_DEF_DKIM_WL autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.5 required=3.0 tests=BAYES_00,DKIM_INVALID,
+	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A628DC43461
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 18:57:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4567DC43461
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 19:26:20 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 47A6A20732
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 18:57:53 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id DD4DF20936
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 19:26:19 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="OpOeI24L"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="qie+Isc1"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727623AbgIPS5s (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 16 Sep 2020 14:57:48 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36510 "EHLO
+        id S1727442AbgIPTZu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 16 Sep 2020 15:25:50 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50806 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727222AbgIPRxL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Sep 2020 13:53:11 -0400
-Received: from mail-wr1-x443.google.com (mail-wr1-x443.google.com [IPv6:2a00:1450:4864:20::443])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0822DC08EE13
-        for <linux-arch@vger.kernel.org>; Wed, 16 Sep 2020 06:35:08 -0700 (PDT)
-Received: by mail-wr1-x443.google.com with SMTP id a17so6954786wrn.6
-        for <linux-arch@vger.kernel.org>; Wed, 16 Sep 2020 06:35:07 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=date:from:to:cc:subject:message-id:references:mime-version
-         :content-disposition:in-reply-to;
-        bh=Y0GHMsQrfoNkF8hoL5Nxc0+CH+Sz1FlZ4J0DpK8dO70=;
-        b=OpOeI24LEAE+oDQATH8MdVWdt4mZNQ4qh1Hc0omlnt7RwHiPRKvJrLL01717FgPnnb
-         1t+n+B6+mnQxwsOhc5OfAHt9THe5P9ok+08CnWZwgPJLemA4xraL3S0LRRaUFrd0nuU7
-         yRKZjwxGHu2Xcb4i1Mdyqj+a2bvB9eJzXsEOa3kbquHPZTCRLg6PiXODmEUA6N/ezqtH
-         WrdIqnvo6yMjPIgfbcKtYQzcIktY+hY7v3S3aaNBZGh1xFeC7rDf3IQUoCoKX+3JD4qH
-         ShFWfgA8F0+G1Or4c6EbK0e67x7FvsJI33FROdF/TI1M6+2DETeMlQ74rxZgNY5SadWE
-         gcLg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to;
-        bh=Y0GHMsQrfoNkF8hoL5Nxc0+CH+Sz1FlZ4J0DpK8dO70=;
-        b=cvTOpdpKChEr9aritsRKwVLc5uIshU9C+/bHgx50UGcL5x13A/dw8pAA9KWQkyDpPi
-         gdqVrurx+n5mwRPeNlV6RETk+qIuS+OB+sXzbkx0CDwXorXEFgxgeTj9cHV27TajKSTs
-         v43Z1zKHJl0tFTLZ/U/nuWJa3FS8GpwA3UnE2vfQTRYMp6EZmX/Uc0PFJem3SEH1PV4f
-         4b0bXRtec8ev5BPJZHvLT6Wo8l5xgySisMnGeGrrHKGYQMV7Fh03MF2Wbrs9WSi2jXsc
-         LiwkhDNFuQqBCUjm6DvqXbocc4bfn2PTMNHGYdVorUzutAubsaVOEv5QSb0k1iyeKCzz
-         fYwg==
-X-Gm-Message-State: AOAM533gLHNAawx36ZRnjhvlVrx5aZee+uraWiRs+93yK4/KbgtBhg6o
-        LgvGBAtVFIvhMB85ecoUguR57w==
-X-Google-Smtp-Source: ABdhPJxj1njKOkMy/uGBtiswR54WhjIWwVc4v6yTTlieFUIM6NmtAP4wvPkgHYBaLSDHrvMxwMPqPg==
-X-Received: by 2002:a5d:45cc:: with SMTP id b12mr4416951wrs.395.1600263306480;
-        Wed, 16 Sep 2020 06:35:06 -0700 (PDT)
-Received: from google.com ([2a01:4b00:8523:2d03:e49d:f6be:d31b:ad3c])
-        by smtp.gmail.com with ESMTPSA id v9sm37780715wrv.35.2020.09.16.06.35.05
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 16 Sep 2020 06:35:05 -0700 (PDT)
-Date:   Wed, 16 Sep 2020 14:35:04 +0100
-From:   David Brazdil <dbrazdil@google.com>
-To:     Andrew Scull <ascull@google.com>
-Cc:     Marc Zyngier <maz@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>, Dennis Zhou <dennis@kernel.org>,
-        Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        James Morse <james.morse@arm.com>,
-        Julien Thierry <julien.thierry.kdev@gmail.com>,
-        Suzuki K Poulose <suzuki.poulose@arm.com>,
-        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-        kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org,
-        kernel-team@android.com
-Subject: Re: [PATCH v2 10/10] kvm: arm64: Remove unnecessary hyp mappings
-Message-ID: <20200916133504.7v5j7y5ccajw2a7s@google.com>
-References: <20200903091712.46456-1-dbrazdil@google.com>
- <20200903091712.46456-11-dbrazdil@google.com>
- <20200910140738.GE93664@google.com>
+        with ESMTP id S1727326AbgIPTYE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Sep 2020 15:24:04 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3111DC06174A;
+        Wed, 16 Sep 2020 12:24:02 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=Lu9AW4PaP4+ghxOf92Z5TIuOtrZJHfVdt4GP1kALmko=; b=qie+Isc1xWiVTOH0FpnUHhEdVO
+        U/jpqcMvDRllAqn5p1U7GdefAxVM84Yy20b0cEM1bgiBf5hCnk01e9MB0TfKNwOXtWN1U1K+TKZoh
+        Bf7eW6kpPKuWJAr92A4pFo4s9J4/zlCT/ZybRGMdVlaWMx2Lk0KLJY3uqYA5myPxU7z9T0QBID7Dv
+        QCPTePB01BBKw0BUKhTbux2is2J6jnziOkr8sFb2qrhMyKZ9JnMFHBYx4uJoB16mYi9Z0C/a5HCRA
+        DVWm6Js19jJdrChlv68PKTMdyYhgXX++ENCqsExKeuZiA9F/oE7zG8P2cfvR8n7McmH85zDTJUYAn
+        sSR0hzAg==;
+Received: from willy by casper.infradead.org with local (Exim 4.92.3 #3 (Red Hat Linux))
+        id 1kId20-0006tV-87; Wed, 16 Sep 2020 19:23:52 +0000
+Date:   Wed, 16 Sep 2020 20:23:52 +0100
+From:   Matthew Wilcox <willy@infradead.org>
+To:     Thomas Gleixner <tglx@linutronix.de>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        LKML <linux-kernel@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+        Valentin Schneider <valentin.schneider@arm.com>,
+        Richard Henderson <rth@twiddle.net>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>,
+        alpha <linux-alpha@vger.kernel.org>,
+        Jeff Dike <jdike@addtoit.com>,
+        Richard Weinberger <richard@nod.at>,
+        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+        linux-um <linux-um@lists.infradead.org>,
+        Brian Cain <bcain@codeaurora.org>,
+        linux-hexagon@vger.kernel.org,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        Ingo Molnar <mingo@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Juri Lelli <juri.lelli@redhat.com>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        Dietmar Eggemann <dietmar.eggemann@arm.com>,
+        Steven Rostedt <rostedt@goodmis.org>,
+        Ben Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>,
+        Daniel Bristot de Oliveira <bristot@redhat.com>,
+        Will Deacon <will@kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Linux-MM <linux-mm@kvack.org>, Ingo Molnar <mingo@redhat.com>,
+        Russell King <linux@armlinux.org.uk>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        Chris Zankel <chris@zankel.net>,
+        Max Filippov <jcmvbkbc@gmail.com>,
+        linux-xtensa@linux-xtensa.org,
+        Jani Nikula <jani.nikula@linux.intel.com>,
+        Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
+        Rodrigo Vivi <rodrigo.vivi@intel.com>,
+        David Airlie <airlied@linux.ie>,
+        Daniel Vetter <daniel@ffwll.ch>,
+        intel-gfx <intel-gfx@lists.freedesktop.org>,
+        dri-devel <dri-devel@lists.freedesktop.org>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        Josh Triplett <josh@joshtriplett.org>,
+        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+        Lai Jiangshan <jiangshanlai@gmail.com>,
+        Shuah Khan <shuah@kernel.org>, rcu@vger.kernel.org,
+        "open list:KERNEL SELFTEST FRAMEWORK" 
+        <linux-kselftest@vger.kernel.org>
+Subject: Re: [patch 00/13] preempt: Make preempt count unconditional
+Message-ID: <20200916192352.GO5449@casper.infradead.org>
+References: <20200914204209.256266093@linutronix.de>
+ <CAHk-=win80rdof8Pb=5k6gT9j_v+hz-TQzKPVastZDvBe9RimQ@mail.gmail.com>
+ <871rj4owfn.fsf@nanos.tec.linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200910140738.GE93664@google.com>
+In-Reply-To: <871rj4owfn.fsf@nanos.tec.linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-> > +	for_each_possible_cpu(cpu)
-> > +		*(per_cpu_ptr_nvhe(arm64_ssbd_callback_required, cpu)) =
-> > +			per_cpu(arm64_ssbd_callback_required, cpu);
-> 
-> Careful with breaking allocations across lines, that seems to be taboo
-> in this subsystem.
+On Mon, Sep 14, 2020 at 11:55:24PM +0200, Thomas Gleixner wrote:
+> But just look at any check which uses preemptible(), especially those
+> which check !preemptible():
 
-Happy to put the `ptr` var back. Sorry *embarrassed emoji*.
+hmm.
 
-Thanks for reviewing,
-David
++++ b/include/linux/preempt.h
+@@ -180,7 +180,9 @@ do { \
+ 
+ #define preempt_enable_no_resched() sched_preempt_enable_no_resched()
+ 
++#ifndef MODULE
+ #define preemptible()  (preempt_count() == 0 && !irqs_disabled())
++#endif
+ 
+ #ifdef CONFIG_PREEMPTION
+ #define preempt_enable() \
+
+
+$ git grep -w preemptible drivers
+(slightly trimmed by hand to remove, eg, comments)
+drivers/firmware/arm_sdei.c:    WARN_ON_ONCE(preemptible());
+drivers/firmware/arm_sdei.c:    WARN_ON_ONCE(preemptible());
+drivers/firmware/arm_sdei.c:    WARN_ON_ONCE(preemptible());
+drivers/firmware/arm_sdei.c:    WARN_ON_ONCE(preemptible());
+drivers/firmware/arm_sdei.c:    WARN_ON(preemptible());
+drivers/firmware/efi/efi-pstore.c:                            preemptible(), record->size, record->psi->buf);
+drivers/irqchip/irq-gic-v4.c:   WARN_ON(preemptible());
+drivers/irqchip/irq-gic-v4.c:   WARN_ON(preemptible());
+drivers/scsi/hisi_sas/hisi_sas_main.c:          if (!preemptible())
+drivers/xen/time.c:     BUG_ON(preemptible());
+
+That only looks like two drivers that need more than WARNectomies.
+
+Although maybe rcu_read_load_sched_held() or rcu_read_lock_any_held()
+might get called from a module ...
