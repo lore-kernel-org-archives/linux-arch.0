@@ -2,114 +2,140 @@ Return-Path: <SRS0=Mp4i=CZ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_IN_DEF_DKIM_WL autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.6 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5929BC43461
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 19:48:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 08737C433E2
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 20:12:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EAAB521582
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 19:48:42 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="QehNvtX2"
+	by mail.kernel.org (Postfix) with ESMTP id B4B8521582
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 20:12:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=default; t=1600287125;
+	bh=vzWS9EzHiimLXZ027QxNP7+5zm0L+WfvO4sFMPnUD5c=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
+	b=jHa91ZuSyOyeW4xMgBmIKBY/guyv+exoXhtj7di3MEQovQtMv78vpaVWSO2pYrTf4
+	 InDSjIEZfrWrzYpVZCu9syKkk0X5ttCezNfmDMpGKhvoDL4VRi8aolc93hw8TAN5gV
+	 yL6veYSl2V/ASLerToZj/bThQrgjtKMOmK6ndc7A=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727696AbgIPTsk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 16 Sep 2020 15:48:40 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34066 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727256AbgIPRhz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Sep 2020 13:37:55 -0400
-Received: from mail-wm1-x334.google.com (mail-wm1-x334.google.com [IPv6:2a00:1450:4864:20::334])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2D091C0A8886
-        for <linux-arch@vger.kernel.org>; Wed, 16 Sep 2020 05:40:50 -0700 (PDT)
-Received: by mail-wm1-x334.google.com with SMTP id l9so2861811wme.3
-        for <linux-arch@vger.kernel.org>; Wed, 16 Sep 2020 05:40:50 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=date:from:to:cc:subject:message-id:references:mime-version
-         :content-disposition:in-reply-to;
-        bh=SHWTqsRrpvdPx0tBOPELgE5HkWuQTwHGc/3aI5QE1HY=;
-        b=QehNvtX2SryaVlrh3oRpLKvQXaA321J8J2rWE9nBVHLPUgI50PzqYEAcIABF380PtC
-         9NDRWzgncEP4mNNOlban8PDvDL3FswoMuuayj43rhl2+HUxXOjVL4XW+VclSGMdA2Og8
-         GE1XRR+LNnVc2sBlNMBhTJ+mGrWaZtP+tSLTYIP3RQRjsEmctstJK2cuxjdbE6gjknON
-         q/PrKStFzGteU3RCiUUzijYZu4vWgo2JYbOm/2xX9M5Y6ptZZzPkdW7aN380hBPAbV/n
-         5nqrdkvrNbRtueRtfWsbTNFvSh6Qx9L7B7C5Q5gMhhctF8cYq9ZRRPQMNzZD6znaGJK8
-         xjEA==
+        id S1726617AbgIPULt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 16 Sep 2020 16:11:49 -0400
+Received: from mail-wm1-f68.google.com ([209.85.128.68]:50735 "EHLO
+        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727117AbgIPRdQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Sep 2020 13:33:16 -0400
+Received: by mail-wm1-f68.google.com with SMTP id e17so3577749wme.0;
+        Wed, 16 Sep 2020 10:33:14 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to;
-        bh=SHWTqsRrpvdPx0tBOPELgE5HkWuQTwHGc/3aI5QE1HY=;
-        b=seShO4wswcWVVu7uy1NPpPHOrWo4CixDltPFUq0iGJZdkWyTN3Cusjgqc1ycEfdtvP
-         A9j6CMdkNtBMBYFcp8BCXsZKX2MZovNn6bQAljB7AN1PtX1oXn8i8o1JsTkAmBb/L9OK
-         CPgbSZkfgl8ISA+AsFf4lqddta+E0Jm+Ou3J6L/oL9de2p1wRseoVPDSzYXaUqVE2+l/
-         sKStPL4MZZJjlxuJtpwyWdvVkAFMmRPOWqgfjFtCEFTyIXEbtY6jDmU5HgezKT902dl4
-         vbViCOSnke8MtLI3w63icnyk40qN2gq0dPTQgOwhWFSmENMoUCsnu6Ksz8xRXOa04INX
-         aH7w==
-X-Gm-Message-State: AOAM533fo7VNHrVgzA5nVPThKhL3KInkbXiDQxvVVnZyt1Sgtt2PxlSW
-        UQZxEwg7xmfxWmy80I3rcoL3hw==
-X-Google-Smtp-Source: ABdhPJwA4P8SpiiyN27RMOw1Mmmvb2s4C9MzoRrI8V/f6GP5+OmiwBGeC9tuLCDkSa/+obWc5Z4Rmg==
-X-Received: by 2002:a1c:f415:: with SMTP id z21mr4520772wma.88.1600260047425;
-        Wed, 16 Sep 2020 05:40:47 -0700 (PDT)
-Received: from google.com ([2a01:4b00:8523:2d03:e49d:f6be:d31b:ad3c])
-        by smtp.gmail.com with ESMTPSA id 10sm5250595wmi.37.2020.09.16.05.40.46
+         :mime-version:content-disposition:in-reply-to:user-agent;
+        bh=ldHCQZEbH6mXJ0nQIfyxhFzRsfVxNZ4TaLzszON1d9k=;
+        b=tKcYuEPnMMRxhy/wAXuhZfR7duE+RlVJZ1geQRopYt+9xTP7aBKncwRlXPbDuExdPY
+         WrNrxFlesM+qK2v3+o0Lw+IZbCWZc2sOD0YcWZaB0T4/ucjDp6F1egTnzF0ZyhQrI0n8
+         ok/GZL13xlr+eNRmt2PG8pNA1s6DFdORUgA2kVWkTJYqOhKszqaA/kfSRjYhSMeALmGj
+         xKVm32iGWsagqRbqQhw5sBaK2xyIii4HV2cZ5Lm2ixO6rKX1clUkQGUM9Kpn+c2P6BOr
+         pTQ92oNdMuVZTfSA+GJusubzR0jRLR5CWbNDaNgnsp7VgB4naGUlmfB+iDYqKSKlpf1Y
+         4uWA==
+X-Gm-Message-State: AOAM533i2WIidp+sHXdIDWxDzQ8e4xnulz/naQFsrWK8izquhddn6G9D
+        xETdkXrcRRTxXExdE3GC2Djm8pRHyaA=
+X-Google-Smtp-Source: ABdhPJxKE9LndKWPqE9c0rk+ywJAV/cod/ghoctHMJq5VT/1ihI9WVcOOfs570RwJJYaVmhfZp36RQ==
+X-Received: by 2002:a7b:cf1a:: with SMTP id l26mr5502058wmg.164.1600273965104;
+        Wed, 16 Sep 2020 09:32:45 -0700 (PDT)
+Received: from liuwe-devbox-debian-v2 ([51.145.34.42])
+        by smtp.gmail.com with ESMTPSA id z14sm32544835wrh.14.2020.09.16.09.32.44
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 16 Sep 2020 05:40:46 -0700 (PDT)
-Date:   Wed, 16 Sep 2020 13:40:45 +0100
-From:   David Brazdil <dbrazdil@google.com>
-To:     Will Deacon <will@kernel.org>
-Cc:     Marc Zyngier <maz@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
-        Christoph Lameter <cl@linux.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        James Morse <james.morse@arm.com>,
-        Julien Thierry <julien.thierry.kdev@gmail.com>,
-        Suzuki K Poulose <suzuki.poulose@arm.com>,
-        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-        kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org,
-        kernel-team@android.com
-Subject: Re: [PATCH v2 00/10] Independent per-CPU data section for nVHE
-Message-ID: <20200916124045.stlrdh5lvedpzab4@google.com>
-References: <20200903091712.46456-1-dbrazdil@google.com>
- <20200914174008.GA25238@willie-the-truck>
- <20200916115404.rhv4dkyjz35e4x25@google.com>
- <20200916122412.elxfxbdygvmdgrj5@google.com>
- <20200916123913.GA28056@willie-the-truck>
+        Wed, 16 Sep 2020 09:32:44 -0700 (PDT)
+Date:   Wed, 16 Sep 2020 16:32:43 +0000
+From:   Wei Liu <wei.liu@kernel.org>
+To:     Vitaly Kuznetsov <vkuznets@redhat.com>
+Cc:     Wei Liu <wei.liu@kernel.org>,
+        Linux on Hyper-V List <linux-hyperv@vger.kernel.org>,
+        virtualization@lists.linux-foundation.org,
+        Linux Kernel List <linux-kernel@vger.kernel.org>,
+        Michael Kelley <mikelley@microsoft.com>,
+        Vineeth Pillai <viremana@linux.microsoft.com>,
+        Sunil Muthuswamy <sunilmut@microsoft.com>,
+        Nuno Das Neves <nudasnev@microsoft.com>,
+        Lillian Grassin-Drake <ligrassi@microsoft.com>,
+        "K. Y. Srinivasan" <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+        "open list:GENERIC INCLUDE/ASM HEADER FILES" 
+        <linux-arch@vger.kernel.org>
+Subject: Re: [PATCH RFC v1 07/18] x86/hyperv: extract partition ID from
+ Microsoft Hypervisor if necessary
+Message-ID: <20200916163243.3zkhff57gpoug6x4@liuwe-devbox-debian-v2>
+References: <20200914112802.80611-1-wei.liu@kernel.org>
+ <20200914112802.80611-8-wei.liu@kernel.org>
+ <87y2lbjpx7.fsf@vitty.brq.redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200916123913.GA28056@willie-the-truck>
+In-Reply-To: <87y2lbjpx7.fsf@vitty.brq.redhat.com>
+User-Agent: NeoMutt/20180716
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-> >  SECTIONS {
-> >         HYP_SECTION(.text)
-> > -       HYP_SECTION(.data..percpu)
-> > -       HYP_SECTION(.data..percpu..first)
-> > -       HYP_SECTION(.data..percpu..page_aligned)
-> > -       HYP_SECTION(.data..percpu..read_mostly)
-> > -       HYP_SECTION(.data..percpu..shared_aligned)
+On Tue, Sep 15, 2020 at 12:27:16PM +0200, Vitaly Kuznetsov wrote:
+> Wei Liu <wei.liu@kernel.org> writes:
+[...]
+> >  
+> > +void __init hv_get_partition_id(void)
+> > +{
+> > +	struct hv_get_partition_id *output_page;
+> > +	int status;
+> > +	unsigned long flags;
 > > +
-> > +       .hyp..data..percpu : {
+> > +	local_irq_save(flags);
+> > +	output_page = *this_cpu_ptr(hyperv_pcpu_output_arg);
+> > +	status = hv_do_hypercall(HVCALL_GET_PARTITION_ID, NULL, output_page) &
+> > +		HV_HYPERCALL_RESULT_MASK;
 > 
-> Too many '.'s here?
-Oops
+> Nit: in this case status is 'u16', we can define it as such (instead of
+> signed int).
+
+Fixed.
 
 > 
-> > +               __per_cpu_load = .;
+> > +	if (status != HV_STATUS_SUCCESS)
+> > +		pr_err("Failed to get partition ID: %d\n", status);
+> > +	else
+> > +		hv_current_partition_id = output_page->partition_id;
+> > +	local_irq_restore(flags);
+> > +
+> > +	/* No point in proceeding if this failed */
+> > +	BUG_ON(status != HV_STATUS_SUCCESS);
+> > +}
+> > +
+> >  /*
+> >   * This function is to be invoked early in the boot sequence after the
+> >   * hypervisor has been detected.
+> > @@ -440,6 +463,9 @@ void __init hyperv_init(void)
+> >  
+> >  	register_syscore_ops(&hv_syscore_ops);
+> >  
+> > +	if (hv_root_partition)
+> > +		hv_get_partition_id();
 > 
-> I don't think we need this symbol.
-True
-
+> According to TLFS, partition ID is available when AccessPartitionId
+> privilege is granted. I'd suggest we check that instead of
+> hv_root_partition (and we can set hv_current_partition_id to something
+> like U64_MAX so we know it wasn't acuired). So the BUG_ON condition will
+> move here:
 > 
-> Otherwise, idea looks good to me. Can you respin like this, but also
-> incorporating some of the cleanup in the diff I posted, please?
+>         hv_get_partition_id();
+>         BUG_ON(hv_root_partition && hv_current_partition_id == U64_MAX);
+> 
 
-On it! :)
+Good point. I will reorganize this a bit.
 
-David
+Wei.
