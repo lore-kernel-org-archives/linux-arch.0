@@ -2,85 +2,151 @@ Return-Path: <SRS0=Mp4i=CZ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-11.1 required=3.0 tests=BAYES_00,DKIM_INVALID,
+	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	NICE_REPLY_A,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4DC45C2BB84
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 21:03:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D8813C43461
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 21:06:53 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 02436206BE
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 21:03:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7C79720731
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Sep 2020 21:06:53 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="sha7upVR"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726673AbgIPVCg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 16 Sep 2020 17:02:36 -0400
-Received: from foss.arm.com ([217.140.110.172]:33466 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726485AbgIPQPR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 Sep 2020 12:15:17 -0400
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 2511D1435;
-        Wed, 16 Sep 2020 04:07:09 -0700 (PDT)
-Received: from red-moon.arm.com (unknown [10.57.6.237])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 5A2C23F68F;
-        Wed, 16 Sep 2020 04:07:06 -0700 (PDT)
-From:   Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-To:     linux-kernel@vger.kernel.org
-Cc:     Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>,
-        "David S . Miller" <davem@davemloft.net>,
-        linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        Bjorn Helgaas <bhelgaas@google.com>,
+        id S1726576AbgIPVF7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 16 Sep 2020 17:05:59 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48482 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726444AbgIPQOy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Sep 2020 12:14:54 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 06A26C02C295;
+        Wed, 16 Sep 2020 08:59:58 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:Content-Type:
+        In-Reply-To:MIME-Version:Date:Message-ID:From:References:Cc:To:Subject:Sender
+        :Reply-To:Content-ID:Content-Description;
+        bh=2L8WeVvRo1osqjjhclSBTpn136Oyr6chq2WMPl65EcM=; b=sha7upVR0ozVlTJFDWdFS4KUrg
+        Dlh504xPkCjJ6bcnR0tgQmZYiIutQK/G0ONBD+iomCp+zVQ82oPYqYPfOa29q6UCwl36D+BB9FNFs
+        pSeTBdPEiVQz6llxOwpNLZRraxMD45Yt9agHPf8ceWEhufE5EkURg5LtEm+1DjoRnfjJ/WOFs5+4j
+        BadKgeBe/qwlbda6A6xYg/rSWFAOIGOJ/+qKGuMxZNBtCJ1ZUglDN7/DVuOWKZv/bNRIhqme65n0j
+        CV7jlQDHwCcs1yfZz07j2hPdh6zbICLmsA3R4X5f+JNoZnWPrhrt60ytieQyxK1LeEjJ519udtgbv
+        hAy+S0yQ==;
+Received: from [2601:1c0:6280:3f0::19c2]
+        by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
+        id 1kIZqU-0000qm-87; Wed, 16 Sep 2020 15:59:46 +0000
+Subject: Re: [PATCH v5 3/5] mm: introduce memfd_secret system call to create
+ "secret" memory areas
+To:     Mike Rapoport <rppt@kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>
+Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
         Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-        George Cherian <george.cherian@marvell.com>,
-        Yang Yingliang <yangyingliang@huawei.com>
-Subject: [PATCH v2 1/3] sparc32: Remove useless io_32.h __KERNEL__ preprocessor guard
-Date:   Wed, 16 Sep 2020 12:06:56 +0100
-Message-Id: <084753d3064fe946ff1963eda2eb425cfd7daa7b.1600254147.git.lorenzo.pieralisi@arm.com>
-X-Mailer: git-send-email 2.26.1
-In-Reply-To: <cover.1600254147.git.lorenzo.pieralisi@arm.com>
-References: <20200915093203.16934-1-lorenzo.pieralisi@arm.com> <cover.1600254147.git.lorenzo.pieralisi@arm.com>
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        David Hildenbrand <david@redhat.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>,
+        Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Matthew Wilcox <willy@infradead.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-nvdimm@lists.01.org,
+        linux-riscv@lists.infradead.org, x86@kernel.org
+References: <20200916073539.3552-1-rppt@kernel.org>
+ <20200916073539.3552-4-rppt@kernel.org>
+From:   Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <6319035d-73db-4b4d-3fa7-aaa11d3843a0@infradead.org>
+Date:   Wed, 16 Sep 2020 08:59:37 -0700
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
+ Thunderbird/68.12.0
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200916073539.3552-4-rppt@kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The __KERNEL_ preprocessor guard is useless in non-uapi headers.
+Hi Mike,
 
-Remove it.
 
-Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: David S. Miller <davem@davemloft.net>
----
- arch/sparc/include/asm/io_32.h | 4 ----
- 1 file changed, 4 deletions(-)
+On 9/16/20 12:35 AM, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
+> 
+> 
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+>  arch/Kconfig                   |   7 +
+>  arch/x86/Kconfig               |   1 +
+>  include/uapi/linux/magic.h     |   1 +
+>  include/uapi/linux/secretmem.h |   8 +
+>  kernel/sys_ni.c                |   2 +
+>  mm/Kconfig                     |   4 +
+>  mm/Makefile                    |   1 +
+>  mm/secretmem.c                 | 264 +++++++++++++++++++++++++++++++++
+>  8 files changed, 288 insertions(+)
+>  create mode 100644 include/uapi/linux/secretmem.h
+>  create mode 100644 mm/secretmem.c
+> 
+> diff --git a/arch/Kconfig b/arch/Kconfig
+> index af14a567b493..8d161bd4142d 100644
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -975,6 +975,13 @@ config HAVE_SPARSE_SYSCALL_NR
+>  config ARCH_HAS_VDSO_DATA
+>  	bool
+>  
+> +config HAVE_SECRETMEM_UNCACHED
+> +       bool
+> +       help
+> +          An architecture can select this if its semantics of non-cached
+> +          mappings can be used to prevent speculative loads and it is
+> +          useful for secret protection.
 
-diff --git a/arch/sparc/include/asm/io_32.h b/arch/sparc/include/asm/io_32.h
-index 9a52d9506f80..8179958e3ce1 100644
---- a/arch/sparc/include/asm/io_32.h
-+++ b/arch/sparc/include/asm/io_32.h
-@@ -121,8 +121,6 @@ static inline void sbus_memcpy_toio(volatile void __iomem *dst,
- 	}
- }
- 
--#ifdef __KERNEL__
--
- /*
-  * Bus number may be embedded in the higher bits of the physical address.
-  * This is why we have no bus number argument to ioremap().
-@@ -148,8 +146,6 @@ static inline int sbus_can_burst64(void)
- struct device;
- void sbus_set_sbus64(struct device *, int);
- 
--#endif
--
- #define __ARCH_HAS_NO_PAGE_ZERO_MAPPED		1
- 
- 
+Please use tabs instead of spaces for indentation.
+
+> +
+>  source "kernel/gcov/Kconfig"
+>  
+>  source "scripts/gcc-plugins/Kconfig"
+
+> diff --git a/mm/Kconfig b/mm/Kconfig
+> index 6c974888f86f..70cfc20d7caa 100644
+> --- a/mm/Kconfig
+> +++ b/mm/Kconfig
+> @@ -868,4 +868,8 @@ config ARCH_HAS_HUGEPD
+>  config MAPPING_DIRTY_HELPERS
+>          bool
+>  
+> +config SECRETMEM
+> +        def_bool ARCH_HAS_SET_DIRECT_MAP && !EMBEDDED
+
+Use tab above for indentation.
+
+> +	select GENERIC_ALLOCATOR
+> +
+>  endmenu
+
+
+thanks.
 -- 
-2.26.1
+~Randy
 
