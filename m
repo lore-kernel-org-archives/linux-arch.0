@@ -7,142 +7,121 @@ X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5251FC43463
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 12:47:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2D328C43463
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 12:47:49 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 285FE22208
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 12:47:36 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E0E6E2311A
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 12:47:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727027AbgIRMrO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Sep 2020 08:47:14 -0400
-Received: from mout.kundenserver.de ([212.227.126.134]:38071 "EHLO
+        id S1727078AbgIRMri (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Sep 2020 08:47:38 -0400
+Received: from mout.kundenserver.de ([212.227.126.187]:55965 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726785AbgIRMrF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Sep 2020 08:47:05 -0400
+        with ESMTP id S1727003AbgIRMq4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Sep 2020 08:46:56 -0400
 Received: from threadripper.lan ([149.172.98.151]) by mrelayeu.kundenserver.de
  (mreue011 [212.227.15.129]) with ESMTPA (Nemesis) id
- 1MfYgC-1kyvGF0nzE-00g4ML; Fri, 18 Sep 2020 14:46:35 +0200
+ 1Mr8zO-1knLTA2coI-00oGkp; Fri, 18 Sep 2020 14:46:34 +0200
 From:   Arnd Bergmann <arnd@arndb.de>
 To:     Christoph Hellwig <hch@infradead.org>,
         Russell King <linux@armlinux.org.uk>,
         Alexander Viro <viro@zeniv.linux.org.uk>
 Cc:     linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        Arnd Bergmann <arnd@arndb.de>, stable@vger.kernel.org,
-        Christoph Hellwig <hch@lst.de>
-Subject: [PATCH v2 3/9] ARM: oabi-compat: add epoll_pwait handler
-Date:   Fri, 18 Sep 2020 14:46:18 +0200
-Message-Id: <20200918124624.1469673-4-arnd@arndb.de>
+        Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>
+Subject: [PATCH v2 1/9] mm/maccess: fix unaligned copy_{from,to}_kernel_nofault
+Date:   Fri, 18 Sep 2020 14:46:16 +0200
+Message-Id: <20200918124624.1469673-2-arnd@arndb.de>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20200918124624.1469673-1-arnd@arndb.de>
 References: <20200918124624.1469673-1-arnd@arndb.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-Provags-ID: V03:K1:k9iqebiHjZ3oX4maOmeQmQ79S0aPwKPwE2q75VUILRfCNExgNeO
- t0nF6W9/K5gbYqjtYvM4XiNKBdrX7ZFYKkzh1Fxlh6/il8JpWkY3ypnnne2K3+vI88uMf/n
- qjTCSjNLfgphnVaY0MT4mVePdlMdTJlatzEmPXHlWRCVNfUZ6DbTt1b1Dh0nOmmPcquU1tI
- S6QntlECa7NX6h38ahEOA==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:XfkwJUmH3E4=:S60cqccaGmI+fr+LIINq+e
- sDHp87nP2o+HiNpcipd5cqxDft/QdzBStQvx4rdJIbhgsG3Z9YqLp+e0IzBqBycYmllyoxlC+
- Lu6splyvjbeRGeABicNZcAia+DzbZWji3IESnk4Enqlm3I4HWz1XhMHGbepFYsZrCBZ4Cvnj9
- rc6fETdbTjR+FAPREHNuIcL1kqsl0ivLBGngtWdX3EJr/vzZ3ENTveZA1yk+9WZHDjyRx/apv
- MJbeH5bbB6WxooA4NpCMwRbgIJdlocSUPiUQ7SC9NvZpGjdTTin1TmvCIS1/zGWe5ofM86sIC
- zCURttpBs5CH6gcyNOYCwfUO7Ed45rMupRQdBhg38GzuJbpFSl9A85ovWkBXRLF2n6IyGyJGp
- bJgEKRu6M7S3Gg0lVLRXVVxVqAiMV2e0B7Yf1ffd/5vYycbkP72ZhJfKPbgcE6naWGIQ0AfIb
- knBd7KxhSTqEzIqTmZHqEkcCCE1Dgi+nOwzsFLvscM3O+jFT5L2AmciwWsOpRu+3uHtNK9hE+
- XvNiERzJYepOaCk7SVXbgLA3YkBGb2oVqxjnbiNtnmi0DLseUBsuygwR2LeGSruPcjvV1j4Jk
- 2AO/D9NyX0UEpYdKXmg8ki0/N8pfdEzLezVc+hATYQ/Kj6gAn+uol7nRpHKzgaFKri5e98hce
- oBX07m2UVBxgVuJNLrXCYYx/qLrewR8R5SSxaVNmjuv5SBDjFt1ZjpuocmHPNPzLqedINavQw
- ZHa1+B/i4so5uBmRR2P+xykrXvdaZoPpSIFGJp1bVMbLzl+9oNKv3fyzO4D3QN1ClVpJx2mZr
- u1erPP0OiCtf8yAPsWfI2hGTJnkOKyvFWqlMVUiMGt9mxmItPlpCLZgTwQ67tvgcmtYfztF
+X-Provags-ID: V03:K1:aM+IxhTWQ8zLEy6I5xMM14Ev05fAqzi2N6KWBwjGmrTs5WlEUtT
+ h3d/Ek0+MD7Kg+UFacJgz6oWfZKeIYwr4MM2bOz3usLS6zOvlxqXzO+j1mOgipiLpoWR2SD
+ 5K6CrFeWW5//N3cy9JMAg2AO19WmtU3iNg006du/rVt/cP2Aa1dqQ0+GdFtoh+I1fO8EW4r
+ aTvEWserNBkjpzkGWOOuQ==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:t7msc0UXfsQ=:yaYfo6Eb6GxlQw0v2fCfgT
+ qfpkjhEkog+a5swVrJWRLI0F60ZAoQa+U72qb8Dm4gq3x2tUgEn4wddszH62L6tjKGbUgg0ma
+ vv2qlf2F5gMIXlIEKTRPr7MP0E7h658vOczUAtSP9ULseis7pnmHdXl5mY1o8bv6x2h+moCol
+ pUZKxC2avRCwspOZYSqaWOJqTaecq5Kp5j38nJIpwfH7GepL4JmeElY6K+prcigvu2b/KGzLt
+ rzR8UxhOt3ILMlL4zIcQ83t35YaRRce7iFh29RIWWV5RGuo7GS2sPr0Xqm0NCLNd5xsJirFmH
+ d6q07QmGQzg9HIkWjyEz6ochFwmR8Bbds6hT8jb+LYefWbdMwlEaG3yebGqvR2AbSgrAGySGx
+ bwgquAH3VI8ifEi31v601nWLoPohbfUDjLLvxZP/ud2cPnJFir3ntvThVPvaxEhpFrZJbvimP
+ u2wy7qe9bqtokp4OHIx5D8mqu0XpgDYFq//rCsYqg+1jifdcfcSomDujlg45g0eM9fgCXDG68
+ Gn54qF2GMix5PSMOWWE+IQxHzRQXj5GUghUjAG/wxM2JD+juq6t9ul7AJKeotoue5gtBfVEJe
+ 92lmPtwB87ccXhEbD6OrywRci3W5jl3s6YwNIgsv6XQU7/UjOa7Gz4fpNDIm5dktfQwfjFUXv
+ nayGdJc/vWr86qx+LItPMChsRCRpcyHqxxA/esHHJeCeyohXYCseWppKuP/1f2hAAkq8BIGy4
+ Uj337rpz5iNoUmGJU2x/XjiYqPziCVKKhjYFv6Tg/SL4BO0pV6d8l2eBrFUJiVpY6GlcjXKdz
+ 3yxbq0G6dBJ/N50FfWidrUtiDKawO2xbzBq8KoqXgMPql3f1q2P6a17UKjqNjxNFnjrnBkd
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The epoll_wait() syscall has a special version for OABI compat
-mode to convert the arguments to the EABI structure layout
-of the kernel. However, the later epoll_pwait() syscall was
-added in arch/arm in linux-2.6.32 without this conversion.
+On machines such as ARMv5 that trap unaligned accesses, these
+two functions can be slow when each access needs to be emulated,
+or they might not work at all.
 
-Use the same kind of handler for both.
+Change them so that each loop is only used when both the src
+and dst pointers are naturally aligned.
 
-Fixes: 369842658a36 ("ARM: 5677/1: ARM support for TIF_RESTORE_SIGMASK/pselect6/ppoll/epoll_pwait")
-Cc: stable@vger.kernel.org
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arm/kernel/sys_oabi-compat.c | 37 ++++++++++++++++++++++++++++---
- arch/arm/tools/syscall.tbl        |  2 +-
- 2 files changed, 35 insertions(+), 4 deletions(-)
+ mm/maccess.c | 28 ++++++++++++++++++++++------
+ 1 file changed, 22 insertions(+), 6 deletions(-)
 
-diff --git a/arch/arm/kernel/sys_oabi-compat.c b/arch/arm/kernel/sys_oabi-compat.c
-index 0203e545bbc8..a2b1ae01e5bf 100644
---- a/arch/arm/kernel/sys_oabi-compat.c
-+++ b/arch/arm/kernel/sys_oabi-compat.c
-@@ -264,9 +264,8 @@ asmlinkage long sys_oabi_epoll_ctl(int epfd, int op, int fd,
- 	return do_epoll_ctl(epfd, op, fd, &kernel, false);
- }
+diff --git a/mm/maccess.c b/mm/maccess.c
+index 3bd70405f2d8..d3f1a1f0b1c1 100644
+--- a/mm/maccess.c
++++ b/mm/maccess.c
+@@ -24,13 +24,21 @@ bool __weak copy_from_kernel_nofault_allowed(const void *unsafe_src,
  
--asmlinkage long sys_oabi_epoll_wait(int epfd,
--				    struct oabi_epoll_event __user *events,
--				    int maxevents, int timeout)
-+static long do_oabi_epoll_wait(int epfd, struct oabi_epoll_event __user *events,
-+			       int maxevents, int timeout)
+ long copy_from_kernel_nofault(void *dst, const void *src, size_t size)
  {
- 	struct epoll_event *kbuf;
- 	struct oabi_epoll_event e;
-@@ -299,6 +298,38 @@ asmlinkage long sys_oabi_epoll_wait(int epfd,
- 	return err ? -EFAULT : ret;
- }
++	unsigned long align = 0;
++
++	if (!IS_ENABLED(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS))
++		align = (unsigned long)dst | (unsigned long)src;
++
+ 	if (!copy_from_kernel_nofault_allowed(src, size))
+ 		return -ERANGE;
  
-+SYSCALL_DEFINE4(oabi_epoll_wait, int, epfd,
-+		struct oabi_epoll_event __user *, events,
-+		int, maxevents, int, timeout)
-+{
-+	return do_oabi_epoll_wait(epfd, events, maxevents, timeout);
-+}
+ 	pagefault_disable();
+-	copy_from_kernel_nofault_loop(dst, src, size, u64, Efault);
+-	copy_from_kernel_nofault_loop(dst, src, size, u32, Efault);
+-	copy_from_kernel_nofault_loop(dst, src, size, u16, Efault);
++	if (!(align & 7))
++		copy_from_kernel_nofault_loop(dst, src, size, u64, Efault);
++	if (!(align & 3))
++		copy_from_kernel_nofault_loop(dst, src, size, u32, Efault);
++	if (!(align & 1))
++		copy_from_kernel_nofault_loop(dst, src, size, u16, Efault);
+ 	copy_from_kernel_nofault_loop(dst, src, size, u8, Efault);
+ 	pagefault_enable();
+ 	return 0;
+@@ -50,10 +58,18 @@ EXPORT_SYMBOL_GPL(copy_from_kernel_nofault);
+ 
+ long copy_to_kernel_nofault(void *dst, const void *src, size_t size)
+ {
++	unsigned long align = 0;
 +
-+/*
-+ * Implement the event wait interface for the eventpoll file. It is the kernel
-+ * part of the user space epoll_pwait(2).
-+ */
-+SYSCALL_DEFINE6(oabi_epoll_pwait, int, epfd,
-+		struct oabi_epoll_event __user *, events, int, maxevents,
-+		int, timeout, const sigset_t __user *, sigmask,
-+		size_t, sigsetsize)
-+{
-+	int error;
++	if (!IS_ENABLED(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS))
++		align = (unsigned long)dst | (unsigned long)src;
 +
-+	/*
-+	 * If the caller wants a certain signal mask to be set during the wait,
-+	 * we apply it here.
-+	 */
-+	error = set_user_sigmask(sigmask, sigsetsize);
-+	if (error)
-+		return error;
-+
-+	error = do_oabi_epoll_wait(epfd, events, maxevents, timeout);
-+	restore_saved_sigmask_unless(error == -EINTR);
-+
-+	return error;
-+}
-+
- struct oabi_sembuf {
- 	unsigned short	sem_num;
- 	short		sem_op;
-diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
-index 171077cbf419..39a24bee7df8 100644
---- a/arch/arm/tools/syscall.tbl
-+++ b/arch/arm/tools/syscall.tbl
-@@ -360,7 +360,7 @@
- 343	common	vmsplice		sys_vmsplice
- 344	common	move_pages		sys_move_pages
- 345	common	getcpu			sys_getcpu
--346	common	epoll_pwait		sys_epoll_pwait
-+346	common	epoll_pwait		sys_epoll_pwait		sys_oabi_epoll_pwait
- 347	common	kexec_load		sys_kexec_load
- 348	common	utimensat		sys_utimensat_time32
- 349	common	signalfd		sys_signalfd
+ 	pagefault_disable();
+-	copy_to_kernel_nofault_loop(dst, src, size, u64, Efault);
+-	copy_to_kernel_nofault_loop(dst, src, size, u32, Efault);
+-	copy_to_kernel_nofault_loop(dst, src, size, u16, Efault);
++	if (!(align & 7))
++		copy_to_kernel_nofault_loop(dst, src, size, u64, Efault);
++	if (!(align & 3))
++		copy_to_kernel_nofault_loop(dst, src, size, u32, Efault);
++	if (!(align & 1))
++		copy_to_kernel_nofault_loop(dst, src, size, u16, Efault);
+ 	copy_to_kernel_nofault_loop(dst, src, size, u8, Efault);
+ 	pagefault_enable();
+ 	return 0;
 -- 
 2.27.0
 
