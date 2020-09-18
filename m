@@ -2,138 +2,122 @@ Return-Path: <SRS0=8KsW=C3=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
-	USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.6 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 69A93C43464
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 20:53:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DC792C43463
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 21:06:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 23DAF2311D
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 20:53:33 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7E67C221EC
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 21:06:39 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="KW2Q2zo+"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="IWLwt/Jb"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726448AbgIRUx3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Sep 2020 16:53:29 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58938 "EHLO
+        id S1726154AbgIRVGj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Sep 2020 17:06:39 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60982 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726371AbgIRUx3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Sep 2020 16:53:29 -0400
-Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 361C8C0613D1
-        for <linux-arch@vger.kernel.org>; Fri, 18 Sep 2020 13:53:29 -0700 (PDT)
-Received: by mail-pj1-x1042.google.com with SMTP id jw11so3637297pjb.0
-        for <linux-arch@vger.kernel.org>; Fri, 18 Sep 2020 13:53:29 -0700 (PDT)
+        with ESMTP id S1726118AbgIRVGi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Sep 2020 17:06:38 -0400
+Received: from mail-io1-xd42.google.com (mail-io1-xd42.google.com [IPv6:2607:f8b0:4864:20::d42])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A8AEDC0613CE;
+        Fri, 18 Sep 2020 14:06:38 -0700 (PDT)
+Received: by mail-io1-xd42.google.com with SMTP id y74so8460856iof.12;
+        Fri, 18 Sep 2020 14:06:38 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
+        d=gmail.com; s=20161025;
         h=mime-version:references:in-reply-to:from:date:message-id:subject:to
          :cc;
-        bh=Iy3TQ3C1Ek23yK9GZJXs0daNRNetn5CYF4/zAE2h7ik=;
-        b=KW2Q2zo+JFuYkr4TiNUBIe05OcRvez9oPhQD2VPO4rhQx4vr57iS+J6zydE3kkrQLF
-         DI66mG3IeYuMnm30FYVw5h6Oxc9WygSHNlBMmug3nlJy8G1DUZ0juqx+QQnea9m7Gete
-         ZlaTZ+Z/2TdOkps+Zf6K1JMQCJdPxK/x+hQD14J8YYA/+4YQfkWf+gJLTCmIge3scE76
-         p3ygrRlm7Krhqb7M2JzcHo7FC2+dzmjQDXITtDjcCKKvClFY66fCZJuYnZ82RbA6pZTO
-         Ed6GbIdgELybyBiBA7rEsXwGMBM8G5XyQ62y/lS/J/y5NTvmLs19ZGyoccTTuwOoeW73
-         b8Ig==
+        bh=MvHhXjI9PINmG+l6DCDjKQZbsTRKGGMkTBP5zN5aSFQ=;
+        b=IWLwt/JbdMSRpT6Wv3WAyCBN9qFCREgWtJcF0R1RIzLVY0SISm4RFwHsdcXIdL5d4E
+         Yy7/2s+LDlk/87c0Fp+tQVi0zmDpn6GNtT8zIFczwsT7f4zqRnFy453Wbrx2aO+2VbVj
+         vdaq2zhFJLmSjCLU0mocGAmtZoaaUK6RKO8Qz0A7yeJUTDJbRPhXHIh5ZOcHlXUvXFk3
+         LUOd/Bi9DKb0KWJIFqeinsKHmFCXFee6BbXLTqIXmNkioPBdjnv37wleZo/wrgkqn1NX
+         72vkgJhAipRe1DB64E2Yesd7jEdncu2/Nm2GU5jxRqcToMVoB7Ia5jtjXQAZwflWHYOc
+         Ckjw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:mime-version:references:in-reply-to:from:date
          :message-id:subject:to:cc;
-        bh=Iy3TQ3C1Ek23yK9GZJXs0daNRNetn5CYF4/zAE2h7ik=;
-        b=QraJ9mty0+yimZJdlNJd85NYNIZ0+xVztqEURpmtNDMy37MelpUVG/8D1qDYZpPzOZ
-         c66OG5Bx3CU4cunl8tmAfi/P7qg5S+AiIuYIjA2nm1AaJcgjRKHz1wHdLLagJTGSAW6W
-         K70px6yR0cnR0qFVfDwmn8MaCIOe5Pn6y+hHzKPwX65RTm6hGTtsPdEto5i0C8ep5Kjs
-         IxQZS6uVKYOIPxYrTZBtRSw2arQdJojz29w6qteZzZKj4ArtrK0Cg6NsSwokU8AizF31
-         LPCh14GR/4Q34MoXh9hbROdpuSku1bWFeXOygb2InFy07MmQrKOivmzMAQMpfodvsDo/
-         COtw==
-X-Gm-Message-State: AOAM532eiCzqS5Mi+aYeV3/zFbbBd0dcZuCaCwLseGJkEohlOYSa/dE8
-        Ui4XhJodknCwgXbGaDdMPGP23Yyl/yNTST0Hu12khw==
-X-Google-Smtp-Source: ABdhPJykoyGWTRcD0lR6xnSRRS+gTsSrH7i8r0dJuA7wRYkUeLk2vde81YvSA+MIvTflgkJVw4xrDt+AfE3pnj9QWgw=
-X-Received: by 2002:a17:90b:f18:: with SMTP id br24mr2004360pjb.32.1600462408474;
- Fri, 18 Sep 2020 13:53:28 -0700 (PDT)
+        bh=MvHhXjI9PINmG+l6DCDjKQZbsTRKGGMkTBP5zN5aSFQ=;
+        b=A/WFCEewpv/hVP+yj013d7fyobtZY8fzFKEx4Junlhi7DrYSak7z3b0OLVahYulrHB
+         8NFC6b6mNd7Lg5G6mwHrfT+pLbyzV96qZKN//EwbDgSCAQjNhORLMHUNyS2FKZWIyxJk
+         Fwmrq0DlLMkxwM4DgFZu9OX4Xph7r12OwbM5AZoOtEqeGG3XGY97Wjc5gjc+3+W0d22c
+         MGUl/FltLIoTeJuPOhJrMiqcgdDDTopfSSKUMCyffb5xylQpPxRIkFHanGHhLRqjgDYn
+         K+UNQWnsr1jsKXu+vqb9GW7A8a27SKRn9slONAWBTY9KActvTnBsEwoIXvZer2dGEzu3
+         5Xrw==
+X-Gm-Message-State: AOAM531ceTPCGYCq7GYxVopo4hkPHCdZ4yuRW3CTkWOJHw1eUkvzV73r
+        W/vrN/MLASot8dzmTKH08JwEr2HMjIHIuIuMrXM=
+X-Google-Smtp-Source: ABdhPJz3m6rfOxVGTE582qPYyesCg/UTfBm54/gjoz20D1+b0ua1bBFx46wx6IdHom/D2OhPgwwR2gJWI9CZGMjZWXc=
+X-Received: by 2002:a5e:9e4c:: with SMTP id j12mr29230986ioq.37.1600463197971;
+ Fri, 18 Sep 2020 14:06:37 -0700 (PDT)
 MIME-Version: 1.0
-References: <20200918201436.2932360-1-samitolvanen@google.com>
- <CA+icZUW1MYSUz8jwOaVpi6ib1dyCv1VmG5priw6TTzXGSh_8Gg@mail.gmail.com> <CABCJKueyWvNB2MQw_PCLtZb8F1+sA1QOLJi_5qMKwdFCcwSMGg@mail.gmail.com>
-In-Reply-To: <CABCJKueyWvNB2MQw_PCLtZb8F1+sA1QOLJi_5qMKwdFCcwSMGg@mail.gmail.com>
-From:   Nick Desaulniers <ndesaulniers@google.com>
-Date:   Fri, 18 Sep 2020 13:53:17 -0700
-Message-ID: <CAKwvOd=N5XS+c7X+fM+0aHWoo8j-xZ96Qk1a4n6gvYJZAq1mCQ@mail.gmail.com>
-Subject: Re: [PATCH v3 00/30] Add support for Clang LTO
-To:     Sami Tolvanen <samitolvanen@google.com>
-Cc:     Sedat Dilek <sedat.dilek@gmail.com>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        Clang-Built-Linux ML <clang-built-linux@googlegroups.com>,
-        Kernel Hardening <kernel-hardening@lists.openwall.com>,
+References: <20200918192312.25978-1-yu-cheng.yu@intel.com> <20200918192312.25978-9-yu-cheng.yu@intel.com>
+ <f02b511d-1d48-6dea-d2e6-84d58e21e6cd@intel.com> <20200918210026.GC4304@duo.ucw.cz>
+In-Reply-To: <20200918210026.GC4304@duo.ucw.cz>
+From:   "H.J. Lu" <hjl.tools@gmail.com>
+Date:   Fri, 18 Sep 2020 14:06:02 -0700
+Message-ID: <CAMe9rOrHCE51dKSz3fPXG-ORNim_Ok7rtwQxnudH9et4ecHBRA@mail.gmail.com>
+Subject: Re: [PATCH v12 8/8] x86: Disallow vsyscall emulation when CET is enabled
+To:     Pavel Machek <pavel@ucw.cz>
+Cc:     Dave Hansen <dave.hansen@intel.com>,
+        Yu-cheng Yu <yu-cheng.yu@intel.com>,
+        "the arch/x86 maintainers" <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>,
+        LKML <linux-kernel@vger.kernel.org>,
+        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
+        Linux-MM <linux-mm@kvack.org>,
         linux-arch <linux-arch@vger.kernel.org>,
-        linux-arm-kernel <linux-arm-kernel@lists.infradead.org>,
-        linux-kbuild <linux-kbuild@vger.kernel.org>,
-        LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org,
-        X86 ML <x86@kernel.org>
+        Linux API <linux-api@vger.kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Sep 18, 2020 at 1:50 PM Sami Tolvanen <samitolvanen@google.com> wrote:
+On Fri, Sep 18, 2020 at 2:00 PM Pavel Machek <pavel@ucw.cz> wrote:
 >
-> On Fri, Sep 18, 2020 at 1:22 PM Sedat Dilek <sedat.dilek@gmail.com> wrote:
+> On Fri 2020-09-18 12:32:57, Dave Hansen wrote:
+> > On 9/18/20 12:23 PM, Yu-cheng Yu wrote:
+> > > Emulation of the legacy vsyscall page is required by some programs
+> > > built before 2013.  Newer programs after 2013 don't use it.
+> > > Disable vsyscall emulation when Control-flow Enforcement (CET) is
+> > > enabled to enhance security.
 > >
-> > On Fri, Sep 18, 2020 at 10:14 PM 'Sami Tolvanen' via Clang Built Linux
-> > <clang-built-linux@googlegroups.com> wrote:
-> > >
-> > > This patch series adds support for building x86_64 and arm64 kernels
-> > > with Clang's Link Time Optimization (LTO).
-> > >
-> > > In addition to performance, the primary motivation for LTO is
-> > > to allow Clang's Control-Flow Integrity (CFI) to be used in the
-> > > kernel. Google has shipped millions of Pixel devices running three
-> > > major kernel versions with LTO+CFI since 2018.
-> > >
-> > > Most of the patches are build system changes for handling LLVM
-> > > bitcode, which Clang produces with LTO instead of ELF object files,
-> > > postponing ELF processing until a later stage, and ensuring initcall
-> > > ordering.
-> > >
-> > > Note that patches 1-5 are not directly related to LTO, but are
-> > > needed to compile LTO kernels with ToT Clang, so I'm including them
-> > > in the series for your convenience:
-> > >
-> > >  - Patches 1-3 fix build issues with LLVM and they are already in
-> > >    linux-next.
-> > >
-> > >  - Patch 4 fixes x86 builds with LLVM IAS, but it hasn't yet been
-> > >    picked up by maintainers.
-> > >
-> > >  - Patch 5 is from Masahiro's kbuild tree and makes the LTO linker
-> > >    script changes much cleaner.
-> > >
+> > How does this "enhance security"?
 > >
-> > Hi Sami,
-> >
-> > might be good to point to your GitHub tree and corresponding
-> > release-tag for easy fetching.
+> > What is the connection between vsyscall emulation and CET?
 >
-> Ah, true. You can also pull this series from
+> Boom.
 >
->   https://github.com/samitolvanen/linux.git lto-v3
+> We don't break compatibility by default, and you should not tell
+> people to enable CET by default if you plan to do this.
+>
 
-Also, I've been using b4 happily for a short while now.
-https://people.kernel.org/monsieuricon/introducing-b4-and-patch-attestation
+Nothing will be broken.   CET enabled applications don't use/need
+vsyscall emulation.
 
-My workflow would be: check lore.kernel.org/lkml/
-for the series in question. In this case:
-https://lore.kernel.org/lkml/CABCJKueyWvNB2MQw_PCLtZb8F1+sA1QOLJi_5qMKwdFCcwSMGg@mail.gmail.com/T/#t
-is the cover letter.  Then in my tree:
-$ b4 am https://lore.kernel.org/lkml/CABCJKueyWvNB2MQw_PCLtZb8F1+sA1QOLJi_5qMKwdFCcwSMGg@mail.gmail.com/T/#t
--o - | git am
 -- 
-Thanks,
-~Nick Desaulniers
+H.J.
