@@ -7,33 +7,33 @@ X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1D0D2C47095
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 19:23:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 17DD2C4741F
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 19:23:38 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E27CC2311D
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 19:23:35 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E47E7235FA
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 19:23:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726546AbgIRTXb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Sep 2020 15:23:31 -0400
+        id S1726731AbgIRTXh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Sep 2020 15:23:37 -0400
 Received: from mga18.intel.com ([134.134.136.126]:41776 "EHLO mga18.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726526AbgIRTWr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 Sep 2020 15:22:47 -0400
-IronPort-SDR: BerIo87wLnh0kJ2339l1b+IEC3oqZCdQMTmkwupTeuF8Tk6NleVxaPp92CHhwuhg24jE/EWAml
- I6KV4i6H7ZRg==
-X-IronPort-AV: E=McAfee;i="6000,8403,9748"; a="147766246"
+        id S1726416AbgIRTWY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 Sep 2020 15:22:24 -0400
+IronPort-SDR: 9FXngG/ZfEND+53oUP2bilkXCCRd6LAi8SKoAs1Takv9stiSAsrT9uJmlNG8K1HqqDHGKIuh4p
+ nJKr+C93Oy0g==
+X-IronPort-AV: E=McAfee;i="6000,8403,9748"; a="147766239"
 X-IronPort-AV: E=Sophos;i="5.77,274,1596524400"; 
-   d="scan'208";a="147766246"
+   d="scan'208";a="147766239"
 X-Amp-Result: SKIPPED(no attachment in message)
 X-Amp-File-Uploaded: False
 Received: from orsmga005.jf.intel.com ([10.7.209.41])
-  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Sep 2020 12:22:20 -0700
-IronPort-SDR: Q8RkjPj1oFBO89KpfbrQ5fhVg8Cs5Ep2QmTuOXoD9vIypHa13K847KKq0fzk/w0c0uSxAqivB9
- rrcwHHYGvvOA==
+  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Sep 2020 12:22:18 -0700
+IronPort-SDR: SFoinFLfkDoEptYvCHFy3bBMiKWVtkLUMeFV+Wd3mgBTmGYtNvBtd8fhAWRS2g/XhXmr9fD75v
+ Hm3Q/Iw/1EOA==
 X-IronPort-AV: E=Sophos;i="5.77,274,1596524400"; 
-   d="scan'208";a="484331870"
+   d="scan'208";a="484331846"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga005-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Sep 2020 12:22:20 -0700
+  by orsmga005-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Sep 2020 12:22:17 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -61,9 +61,9 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Dave Martin <Dave.Martin@arm.com>,
         Weijiang Yang <weijiang.yang@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v12 15/26] mm: Fixup places that call pte_mkwrite() directly
-Date:   Fri, 18 Sep 2020 12:21:13 -0700
-Message-Id: <20200918192125.25473-16-yu-cheng.yu@intel.com>
+Subject: [PATCH v12 11/26] x86/mm: Update ptep_set_wrprotect() and pmdp_set_wrprotect() for transition from _PAGE_DIRTY_HW to _PAGE_COW
+Date:   Fri, 18 Sep 2020 12:21:09 -0700
+Message-Id: <20200918192125.25473-12-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20200918192125.25473-1-yu-cheng.yu@intel.com>
 References: <20200918192125.25473-1-yu-cheng.yu@intel.com>
@@ -73,78 +73,114 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-A shadow stack page is made writable by pte_mkwrite_shstk(), which sets
-_PAGE_DIRTY_HW.  There are a few places that call pte_mkwrite() directly
-and miss the maybe_mkwrite() fixup in the previous patch.  Fix them with
-maybe_mkwrite():
+When shadow stack is introduced, [R/O + _PAGE_DIRTY_HW] PTE is reserved
+for shadow stack.  Copy-on-write PTEs have [R/O + _PAGE_COW].
 
-- do_anonymous_page() and migrate_vma_insert_page() check VM_WRITE directly
-  and call pte_mkwrite(), which is the same as maybe_mkwrite().  Change
-  them to maybe_mkwrite().
+When a PTE goes from [R/W + _PAGE_DIRTY_HW] to [R/O + _PAGE_COW], it could
+become a transient shadow stack PTE in two cases:
 
-- In do_numa_page(), if the numa entry 'was-writable', then pte_mkwrite()
-  is called directly.  Fix it by doing maybe_mkwrite().
+The first case is that some processors can start a write but end up seeing
+a read-only PTE by the time they get to the Dirty bit, creating a transient
+shadow stack PTE.  However, this will not occur on processors supporting
+shadow stack, therefore we don't need a TLB flush here.
 
-- In change_pte_range(), pte_mkwrite() is called directly.  Replace it with
-  maybe_mkwrite().
+The second case is that when the software, without atomic, tests & replaces
+_PAGE_DIRTY_HW with _PAGE_COW, a transient shadow stack PTE can exist.
+This is prevented with cmpxchg.
+
+Dave Hansen, Jann Horn, Andy Lutomirski, and Peter Zijlstra provided many
+insights to the issue.  Jann Horn provided the cmpxchg solution.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- mm/memory.c   | 5 ++---
- mm/migrate.c  | 3 +--
- mm/mprotect.c | 2 +-
- 3 files changed, 4 insertions(+), 6 deletions(-)
+v10:
+- Replace bit shift with pte_wrprotect()/pmd_wrprotect(), which use bit
+  test & shift.
+- Move READ_ONCE of old_pte into try_cmpxchg() loop.
+- Change static_cpu_has() to cpu_feature_enabled().
 
-diff --git a/mm/memory.c b/mm/memory.c
-index 469af373ae76..c7c9d2d1118a 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3374,8 +3374,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+v9:
+- Change compile-time conditionals to runtime checks.
+- Fix parameters of try_cmpxchg(): change pte_t/pmd_t to
+  pte_t.pte/pmd_t.pmd.
+
+v4:
+- Implement try_cmpxchg().
+
+ arch/x86/include/asm/pgtable.h | 52 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 52 insertions(+)
+
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 3bdb192a904b..a00d55fda5a2 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -1230,6 +1230,32 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
+ static inline void ptep_set_wrprotect(struct mm_struct *mm,
+ 				      unsigned long addr, pte_t *ptep)
+ {
++	/*
++	 * Some processors can start a write, but end up seeing a read-only
++	 * PTE by the time they get to the Dirty bit.  In this case, they
++	 * will set the Dirty bit, leaving a read-only, Dirty PTE which
++	 * looks like a shadow stack PTE.
++	 *
++	 * However, this behavior has been improved and will not occur on
++	 * processors supporting shadow stack.  Without this guarantee, a
++	 * transition to a non-present PTE and flush the TLB would be
++	 * needed.
++	 *
++	 * When changing a writable PTE to read-only and if the PTE has
++	 * _PAGE_DIRTY_HW set, move that bit to _PAGE_COW so that the
++	 * PTE is not a shadow stack PTE.
++	 */
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
++		pte_t old_pte, new_pte;
++
++		do {
++			old_pte = READ_ONCE(*ptep);
++			new_pte = pte_wrprotect(old_pte);
++
++		} while (!try_cmpxchg(&ptep->pte, &old_pte.pte, new_pte.pte));
++
++		return;
++	}
+ 	clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
+ }
  
- 	entry = mk_pte(page, vma->vm_page_prot);
- 	entry = pte_sw_mkyoung(entry);
--	if (vma->vm_flags & VM_WRITE)
--		entry = pte_mkwrite(pte_mkdirty(entry));
-+	entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+@@ -1286,6 +1312,32 @@ static inline pud_t pudp_huge_get_and_clear(struct mm_struct *mm,
+ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
+ 				      unsigned long addr, pmd_t *pmdp)
+ {
++	/*
++	 * Some processors can start a write, but end up seeing a read-only
++	 * PMD by the time they get to the Dirty bit.  In this case, they
++	 * will set the Dirty bit, leaving a read-only, Dirty PMD which
++	 * looks like a Shadow Stack PMD.
++	 *
++	 * However, this behavior has been improved and will not occur on
++	 * processors supporting Shadow Stack.  Without this guarantee, a
++	 * transition to a non-present PMD and flush the TLB would be
++	 * needed.
++	 *
++	 * When changing a writable PMD to read-only and if the PMD has
++	 * _PAGE_DIRTY_HW set, we move that bit to _PAGE_COW so that the
++	 * PMD is not a shadow stack PMD.
++	 */
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
++		pmd_t old_pmd, new_pmd;
++
++		do {
++			old_pmd = READ_ONCE(*pmdp);
++			new_pmd = pmd_wrprotect(old_pmd);
++
++		} while (!try_cmpxchg((pmdval_t *)pmdp, (pmdval_t *)&old_pmd, pmd_val(new_pmd)));
++
++		return;
++	}
+ 	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
+ }
  
- 	vmf->pte = pte_offset_map_lock(vma->vm_mm, vmf->pmd, vmf->address,
- 			&vmf->ptl);
-@@ -4029,7 +4028,7 @@ static vm_fault_t do_numa_page(struct vm_fault *vmf)
- 	pte = pte_modify(old_pte, vma->vm_page_prot);
- 	pte = pte_mkyoung(pte);
- 	if (was_writable)
--		pte = pte_mkwrite(pte);
-+		pte = maybe_mkwrite(pte, vma);
- 	ptep_modify_prot_commit(vma, vmf->address, vmf->pte, old_pte, pte);
- 	update_mmu_cache(vma, vmf->address, vmf->pte);
- 
-diff --git a/mm/migrate.c b/mm/migrate.c
-index 941b89383cf3..dd55d8669de5 100644
---- a/mm/migrate.c
-+++ b/mm/migrate.c
-@@ -2904,8 +2904,7 @@ static void migrate_vma_insert_page(struct migrate_vma *migrate,
- 		}
- 	} else {
- 		entry = mk_pte(page, vma->vm_page_prot);
--		if (vma->vm_flags & VM_WRITE)
--			entry = pte_mkwrite(pte_mkdirty(entry));
-+		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
- 	}
- 
- 	ptep = pte_offset_map_lock(mm, pmdp, addr, &ptl);
-diff --git a/mm/mprotect.c b/mm/mprotect.c
-index ce8b8a5eacbb..a8edbcb3af99 100644
---- a/mm/mprotect.c
-+++ b/mm/mprotect.c
-@@ -135,7 +135,7 @@ static unsigned long change_pte_range(struct vm_area_struct *vma, pmd_t *pmd,
- 			if (dirty_accountable && pte_dirty(ptent) &&
- 					(pte_soft_dirty(ptent) ||
- 					 !(vma->vm_flags & VM_SOFTDIRTY))) {
--				ptent = pte_mkwrite(ptent);
-+				ptent = maybe_mkwrite(ptent, vma);
- 			}
- 			ptep_modify_prot_commit(vma, addr, pte, oldpte, ptent);
- 			pages++;
 -- 
 2.21.0
 
