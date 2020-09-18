@@ -7,33 +7,33 @@ X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C7037C4363C
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 19:22:46 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 253F5C43464
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 19:22:51 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9CAE52311C
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 19:22:46 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id F1ABF221EC
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 19:22:50 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726503AbgIRTWp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Sep 2020 15:22:45 -0400
-Received: from mga18.intel.com ([134.134.136.126]:41779 "EHLO mga18.intel.com"
+        id S1726572AbgIRTWu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Sep 2020 15:22:50 -0400
+Received: from mga18.intel.com ([134.134.136.126]:41777 "EHLO mga18.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726380AbgIRTWX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 Sep 2020 15:22:23 -0400
-IronPort-SDR: 9KM1Y5vwTepPR0syJ4ukxfI0kjSZ0CUyWnaQjMZ8qyvziiRe7YkrNeOj46u7fFcEHA5MGbmMKO
- IzYUtYqi6Bgg==
-X-IronPort-AV: E=McAfee;i="6000,8403,9748"; a="147766220"
+        id S1726524AbgIRTWs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 Sep 2020 15:22:48 -0400
+IronPort-SDR: jf0KwqD7ERgID1pUSbWEvEFKXKeswZRv9JiePwXrqpxUONTlaNf6zEUJbOL1wtGkEXkjBVL2Zh
+ GQMvGNE9R1rQ==
+X-IronPort-AV: E=McAfee;i="6000,8403,9748"; a="147766245"
 X-IronPort-AV: E=Sophos;i="5.77,274,1596524400"; 
-   d="scan'208";a="147766220"
+   d="scan'208";a="147766245"
 X-Amp-Result: SKIPPED(no attachment in message)
 X-Amp-File-Uploaded: False
 Received: from orsmga005.jf.intel.com ([10.7.209.41])
-  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Sep 2020 12:22:13 -0700
-IronPort-SDR: 1nd+Fo6vjukqRbcdUnqF5mmsOgYIx4YqQklbM1Wyzj5no8TwFKEv8kcTN6PB6enPE5VeNkxx+C
- XfShSblz/jfg==
+  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Sep 2020 12:22:20 -0700
+IronPort-SDR: 6KfETiHQYPfBW/e2LKCbE6posU3/KLO4zYn5MtTj0bjgGPYdrLmpZwgHFGKiZJ4hnipgar4YW+
+ LjeH3VgoCU4w==
 X-IronPort-AV: E=Sophos;i="5.77,274,1596524400"; 
-   d="scan'208";a="484331811"
+   d="scan'208";a="484331863"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga005-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Sep 2020 12:22:13 -0700
+  by orsmga005-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Sep 2020 12:22:19 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -61,9 +61,9 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Dave Martin <Dave.Martin@arm.com>,
         Weijiang Yang <weijiang.yang@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v12 04/26] x86/cet: Add control-protection fault handler
-Date:   Fri, 18 Sep 2020 12:21:02 -0700
-Message-Id: <20200918192125.25473-5-yu-cheng.yu@intel.com>
+Subject: [PATCH v12 14/26] x86/mm: Update maybe_mkwrite() for shadow stack
+Date:   Fri, 18 Sep 2020 12:21:12 -0700
+Message-Id: <20200918192125.25473-15-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20200918192125.25473-1-yu-cheng.yu@intel.com>
 References: <20200918192125.25473-1-yu-cheng.yu@intel.com>
@@ -73,159 +73,130 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-A control-protection fault is triggered when a control-flow transfer
-attempt violates Shadow Stack or Indirect Branch Tracking constraints.
-For example, the return address for a RET instruction differs from the copy
-on the Shadow Stack; or an indirect JMP instruction, without the NOTRACK
-prefix, arrives at a non-ENDBR opcode.
-
-The control-protection fault handler works in a similar way as the general
-protection fault handler.  It provides the si_code SEGV_CPERR to the signal
-handler.
+Shadow stack memory is writable, but its VMA has VM_SHSTK instead of
+VM_WRITE.  Update maybe_mkwrite() to include the shadow stack.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
-v10:
-- Change CONFIG_X86_64 to CONFIG_X86_INTEL_CET.
+ arch/x86/Kconfig        |  4 ++++
+ arch/x86/mm/pgtable.c   | 18 ++++++++++++++++++
+ include/linux/mm.h      |  2 ++
+ include/linux/pgtable.h | 24 ++++++++++++++++++++++++
+ mm/huge_memory.c        |  2 ++
+ 5 files changed, 50 insertions(+)
 
-v9:
-- Add Shadow Stack pointer to the fault printout.
-
- arch/x86/include/asm/idtentry.h    |  4 ++
- arch/x86/kernel/idt.c              |  4 ++
- arch/x86/kernel/signal_compat.c    |  2 +-
- arch/x86/kernel/traps.c            | 59 ++++++++++++++++++++++++++++++
- include/uapi/asm-generic/siginfo.h |  3 +-
- 5 files changed, 70 insertions(+), 2 deletions(-)
-
-diff --git a/arch/x86/include/asm/idtentry.h b/arch/x86/include/asm/idtentry.h
-index a43366191212..47ffdb658867 100644
---- a/arch/x86/include/asm/idtentry.h
-+++ b/arch/x86/include/asm/idtentry.h
-@@ -532,6 +532,10 @@ DECLARE_IDTENTRY_ERRORCODE(X86_TRAP_SS,	exc_stack_segment);
- DECLARE_IDTENTRY_ERRORCODE(X86_TRAP_GP,	exc_general_protection);
- DECLARE_IDTENTRY_ERRORCODE(X86_TRAP_AC,	exc_alignment_check);
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 4844649ee884..e93be385cd04 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1935,6 +1935,9 @@ config AS_HAS_SHADOW_STACK
+ config X86_INTEL_CET
+ 	def_bool n
  
-+#ifdef CONFIG_X86_INTEL_CET
-+DECLARE_IDTENTRY_ERRORCODE(X86_TRAP_CP, exc_control_protection);
-+#endif
++config ARCH_MAYBE_MKWRITE
++	def_bool n
 +
- /* Raw exception entries which need extra work */
- DECLARE_IDTENTRY_RAW(X86_TRAP_UD,		exc_invalid_op);
- DECLARE_IDTENTRY_RAW(X86_TRAP_BP,		exc_int3);
-diff --git a/arch/x86/kernel/idt.c b/arch/x86/kernel/idt.c
-index 7ecf9babf0cb..395c34fd201a 100644
---- a/arch/x86/kernel/idt.c
-+++ b/arch/x86/kernel/idt.c
-@@ -112,6 +112,10 @@ static const __initconst struct idt_data def_idts[] = {
- #elif defined(CONFIG_X86_32)
- 	SYSG(IA32_SYSCALL_VECTOR,	entry_INT80_32),
+ config ARCH_HAS_SHADOW_STACK
+ 	def_bool n
+ 
+@@ -1945,6 +1948,7 @@ config X86_INTEL_SHADOW_STACK_USER
+ 	depends on AS_HAS_SHADOW_STACK
+ 	select ARCH_USES_HIGH_VMA_FLAGS
+ 	select X86_INTEL_CET
++	select ARCH_MAYBE_MKWRITE
+ 	select ARCH_HAS_SHADOW_STACK
+ 	help
+ 	  Shadow Stacks provides protection against program stack
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index dfd82f51ba66..a9666b64bc05 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -610,6 +610,24 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
+ }
  #endif
-+
-+#ifdef CONFIG_X86_INTEL_CET
-+	INTG(X86_TRAP_CP,		asm_exc_control_protection),
-+#endif
- };
  
- /*
-diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
-index 9ccbf0576cd0..c572a3de1037 100644
---- a/arch/x86/kernel/signal_compat.c
-+++ b/arch/x86/kernel/signal_compat.c
-@@ -27,7 +27,7 @@ static inline void signal_compat_build_tests(void)
- 	 */
- 	BUILD_BUG_ON(NSIGILL  != 11);
- 	BUILD_BUG_ON(NSIGFPE  != 15);
--	BUILD_BUG_ON(NSIGSEGV != 7);
-+	BUILD_BUG_ON(NSIGSEGV != 8);
- 	BUILD_BUG_ON(NSIGBUS  != 5);
- 	BUILD_BUG_ON(NSIGTRAP != 5);
- 	BUILD_BUG_ON(NSIGCHLD != 6);
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index 81a2fb711091..89f4c58f1aff 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -597,6 +597,65 @@ DEFINE_IDTENTRY_ERRORCODE(exc_general_protection)
- 	cond_local_irq_disable(regs);
++#ifdef CONFIG_ARCH_MAYBE_MKWRITE
++pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
++{
++	if (likely(vma->vm_flags & VM_SHSTK))
++		pte = pte_mkwrite_shstk(pte);
++	return pte;
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
++{
++	if (likely(vma->vm_flags & VM_SHSTK))
++		pmd = pmd_mkwrite_shstk(pmd);
++	return pmd;
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++#endif /* CONFIG_ARCH_MAYBE_MKWRITE */
++
+ /**
+  * reserve_top_address - reserves a hole in the top of kernel address space
+  * @reserve - size of hole to reserve
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index cd69e2fa8026..d89d194c60ad 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -967,6 +967,8 @@ static inline pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
+ {
+ 	if (likely(vma->vm_flags & VM_WRITE))
+ 		pte = pte_mkwrite(pte);
++	else
++		pte = arch_maybe_mkwrite(pte, vma);
+ 	return pte;
  }
  
-+#ifdef CONFIG_X86_INTEL_CET
-+static const char * const control_protection_err[] = {
-+	"unknown",
-+	"near-ret",
-+	"far-ret/iret",
-+	"endbranch",
-+	"rstorssp",
-+	"setssbsy",
-+};
-+
-+/*
-+ * When a control protection exception occurs, send a signal
-+ * to the responsible application.  Currently, control
-+ * protection is only enabled for the user mode.  This
-+ * exception should not come from the kernel mode.
-+ */
-+DEFINE_IDTENTRY_ERRORCODE(exc_control_protection)
-+{
-+	struct task_struct *tsk;
-+
-+	if (notify_die(DIE_TRAP, "control protection fault", regs,
-+		       error_code, X86_TRAP_CP, SIGSEGV) == NOTIFY_STOP)
-+		return;
-+	cond_local_irq_enable(regs);
-+
-+	if (!user_mode(regs))
-+		die("kernel control protection fault", regs, error_code);
-+
-+	if (!static_cpu_has(X86_FEATURE_SHSTK) &&
-+	    !static_cpu_has(X86_FEATURE_IBT))
-+		WARN_ONCE(1, "CET is disabled but got control protection fault\n");
-+
-+	tsk = current;
-+	tsk->thread.error_code = error_code;
-+	tsk->thread.trap_nr = X86_TRAP_CP;
-+
-+	if (show_unhandled_signals && unhandled_signal(tsk, SIGSEGV) &&
-+	    printk_ratelimit()) {
-+		unsigned int max_err;
-+		unsigned long ssp;
-+
-+		max_err = ARRAY_SIZE(control_protection_err) - 1;
-+		if ((error_code < 0) || (error_code > max_err))
-+			error_code = 0;
-+		rdmsrl(MSR_IA32_PL3_SSP, ssp);
-+		pr_info("%s[%d] control protection ip:%lx sp:%lx ssp:%lx error:%lx(%s)",
-+			tsk->comm, task_pid_nr(tsk),
-+			regs->ip, regs->sp, ssp, error_code,
-+			control_protection_err[error_code]);
-+		print_vma_addr(KERN_CONT " in ", regs->ip);
-+		pr_cont("\n");
-+	}
-+
-+	force_sig_fault(SIGSEGV, SEGV_CPERR,
-+			(void __user *)uprobe_get_trap_addr(regs));
-+	cond_local_irq_disable(regs);
-+}
-+#endif
-+
- static bool do_int3(struct pt_regs *regs)
- {
- 	int res;
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index cb3d6c267181..91e10cbe3bb0 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -229,7 +229,8 @@ typedef struct siginfo {
- #define SEGV_ACCADI	5	/* ADI not enabled for mapped object */
- #define SEGV_ADIDERR	6	/* Disrupting MCD error */
- #define SEGV_ADIPERR	7	/* Precise MCD exception */
--#define NSIGSEGV	7
-+#define SEGV_CPERR	8	/* Control protection fault */
-+#define NSIGSEGV	8
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index e8cbc2e795d5..a665fc8c0eaf 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -1356,6 +1356,30 @@ static inline bool arch_has_pfn_modify_check(void)
+ }
+ #endif /* !_HAVE_ARCH_PFN_MODIFY_ALLOWED */
  
++#ifdef CONFIG_MMU
++#ifdef CONFIG_ARCH_MAYBE_MKWRITE
++pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma);
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma);
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++
++#else /* !CONFIG_ARCH_MAYBE_MKWRITE */
++static inline pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
++{
++	return pte;
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static inline pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
++{
++	return pmd;
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++
++#endif /* CONFIG_ARCH_MAYBE_MKWRITE */
++#endif /* CONFIG_MMU */
++
  /*
-  * SIGBUS si_codes
+  * Architecture PAGE_KERNEL_* fallbacks
+  *
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 7ff29cc3d55c..8c381794c084 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -464,6 +464,8 @@ pmd_t maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
+ {
+ 	if (likely(vma->vm_flags & VM_WRITE))
+ 		pmd = pmd_mkwrite(pmd);
++	else
++		pmd = arch_maybe_pmd_mkwrite(pmd, vma);
+ 	return pmd;
+ }
+ 
 -- 
 2.21.0
 
