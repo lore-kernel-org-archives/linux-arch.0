@@ -6,61 +6,54 @@ X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
 	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5B797C43464
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 15:01:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6CFE2C43463
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 15:16:28 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 168C62311D
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 15:01:53 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2F9D92388E
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 15:16:28 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725955AbgIRPBw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Sep 2020 11:01:52 -0400
-Received: from elvis.franken.de ([193.175.24.41]:44667 "EHLO elvis.franken.de"
+        id S1726236AbgIRPQV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Sep 2020 11:16:21 -0400
+Received: from verein.lst.de ([213.95.11.211]:33150 "EHLO verein.lst.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726871AbgIRPBu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 Sep 2020 11:01:50 -0400
-X-Greylist: delayed 1241 seconds by postgrey-1.27 at vger.kernel.org; Fri, 18 Sep 2020 11:01:49 EDT
-Received: from uucp (helo=alpha)
-        by elvis.franken.de with local-bsmtp (Exim 3.36 #1)
-        id 1kJHZL-0002r7-00; Fri, 18 Sep 2020 16:40:59 +0200
-Received: by alpha.franken.de (Postfix, from userid 1000)
-        id A828DC0FDF; Fri, 18 Sep 2020 16:13:36 +0200 (CEST)
-Date:   Fri, 18 Sep 2020 16:13:36 +0200
-From:   Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-To:     Huang Pei <huangpei@loongson.cn>
-Cc:     ambrosehua@gmail.com, Bibo Mao <maobibo@loongson.cn>,
+        id S1726126AbgIRPQU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 Sep 2020 11:16:20 -0400
+Received: by verein.lst.de (Postfix, from userid 2407)
+        id B635268BEB; Fri, 18 Sep 2020 17:16:15 +0200 (CEST)
+Date:   Fri, 18 Sep 2020 17:16:15 +0200
+From:   Christoph Hellwig <hch@lst.de>
+To:     Al Viro <viro@zeniv.linux.org.uk>
+Cc:     Christoph Hellwig <hch@lst.de>,
         Andrew Morton <akpm@linux-foundation.org>,
-        linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Paul Burton <paulburton@kernel.org>,
-        Li Xuefeng <lixuefeng@loongson.cn>,
-        Yang Tiezhu <yangtiezhu@loongson.cn>,
-        Gao Juxin <gaojuxin@loongson.cn>,
-        Fuxin Zhang <zhangfx@lemote.com>,
-        Huacai Chen <chenhc@lemote.com>
-Subject: Re: [PATCH v2] MIPS: make userspace mapping young by default
-Message-ID: <20200918141336.GA21486@alpha.franken.de>
-References: <20200908021647.21907-1-huangpei@loongson.cn>
+        Jens Axboe <axboe@kernel.dk>, Arnd Bergmann <arnd@arndb.de>,
+        David Howells <dhowells@redhat.com>,
+        linux-arm-kernel@lists.infradead.org, x86@kernel.org,
+        linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
+        linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-s390@vger.kernel.org, sparclinux@vger.kernel.org,
+        linux-block@vger.kernel.org, linux-scsi@vger.kernel.org,
+        linux-fsdevel@vger.kernel.org, linux-aio@kvack.org,
+        io-uring@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org, netdev@vger.kernel.org,
+        keyrings@vger.kernel.org, linux-security-module@vger.kernel.org
+Subject: Re: [PATCH 1/9] kernel: add a PF_FORCE_COMPAT flag
+Message-ID: <20200918151615.GA23432@lst.de>
+References: <20200918124533.3487701-1-hch@lst.de> <20200918124533.3487701-2-hch@lst.de> <20200918134012.GY3421308@ZenIV.linux.org.uk> <20200918134406.GA17064@lst.de> <20200918135822.GZ3421308@ZenIV.linux.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200908021647.21907-1-huangpei@loongson.cn>
-User-Agent: Mutt/1.5.23 (2014-03-12)
+In-Reply-To: <20200918135822.GZ3421308@ZenIV.linux.org.uk>
+User-Agent: Mutt/1.5.17 (2007-11-01)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Sep 08, 2020 at 10:16:47AM +0800, Huang Pei wrote:
-> -#define PAGE_NONE	__pgprot(_PAGE_PRESENT | _PAGE_NO_READ | \
-> -				 _page_cachable_default)
-> [...]
-> +#define PAGE_NONE      __pgprot(_PAGE_PRESENT | _PAGE_NO_READ | \
-> +                                _page_cachable_default)
+On Fri, Sep 18, 2020 at 02:58:22PM +0100, Al Viro wrote:
+> Said that, why not provide a variant that would take an explicit
+> "is it compat" argument and use it there?  And have the normal
+> one pass in_compat_syscall() to that...
 
-this looks like pure white space changes, please re-send without
-whitespace changes.
-
-Thomas.
-
--- 
-Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
-good idea.                                                [ RFC1925, 2.3 ]
+That would help to not introduce a regression with this series yes.
+But it wouldn't fix existing bugs when io_uring is used to access
+read or write methods that use in_compat_syscall().  One example that
+I recently ran into is drivers/scsi/sg.c.
