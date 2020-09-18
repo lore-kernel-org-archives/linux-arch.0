@@ -2,251 +2,183 @@ Return-Path: <SRS0=8KsW=C3=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-20.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-11.5 required=3.0 tests=BAYES_00,DKIM_INVALID,
+	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AE27AC43463
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 20:17:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 44637C43463
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 20:22:51 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 550F420684
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 20:17:30 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id CE71823119
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 20:22:50 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="LkhMujvC"
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=wdc.com header.i=@wdc.com header.b="FeaXvMT5"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726503AbgIRURZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Sep 2020 16:17:25 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52738 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726379AbgIRUOs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Sep 2020 16:14:48 -0400
-Received: from mail-qk1-x74a.google.com (mail-qk1-x74a.google.com [IPv6:2607:f8b0:4864:20::74a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 00EE9C0613CF
-        for <linux-arch@vger.kernel.org>; Fri, 18 Sep 2020 13:14:48 -0700 (PDT)
-Received: by mail-qk1-x74a.google.com with SMTP id a136so2630941qkb.18
-        for <linux-arch@vger.kernel.org>; Fri, 18 Sep 2020 13:14:47 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=sender:date:in-reply-to:message-id:mime-version:references:subject
-         :from:to:cc;
-        bh=46CPzhkDZEHeVpITNsapIjJxI0GjMO0SMNC0C8zkP90=;
-        b=LkhMujvCwkAUduIkDT6HnIktUCrB5Z/3D25w6G0QNw860IsQ40FImypNjlzxTcr/Au
-         n+9fzi/agpuqfcXrcQ0fs9gpA6EUdSxDWeZLY+Wxjj2BNQ+BzNcCsZyFoGMw1SoQwEn7
-         Vky9ALkSplpzqGWE5ykTJHhmKQkB6SRsw37Q2teNcRRCdFq/BbTNSY0YT6cxl/Z8WsQt
-         IkHTEo/6oT5i0M4N8CmxnPlDoqLO1RePr9TKMuxW0t+rJZ+H6sI7VXPD+4lmX8P4dGQf
-         2ba7OnV3lWFKvPMTDiYCW9d1dVAmP+S6qXdzk6tIQJuuHskbsLDbby7gT/dawv97DBLV
-         kMuA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
-         :references:subject:from:to:cc;
-        bh=46CPzhkDZEHeVpITNsapIjJxI0GjMO0SMNC0C8zkP90=;
-        b=jmLl4mEoYa47lXI9MElPRPv+JENbiXnPkG1GX1BWLVvPa15Yjhrc3yO5CSEGubUSk8
-         ZxrjHqvUfiiNe3MIZZLV0lnN1yzjqMTlw1xajjT2hFj7ielmrdnEAge75cRnZ1xJUfG8
-         aExpXJHVEXoB/Llq0Pnef5abp0VWkTwcMhTA20auMtVPD9U3taKyBh4I6FlGkHJodSDG
-         98wlGghkl7W9T6zsCWujDMYO3pAP5FGvtFa/jQhnoEWHzQ6IFA9Hze9FGK9WmzA4Vx8w
-         Mxtx9G5gl9o4F3zSSyzsmdxAw2dJ0OMSCo+6XjHpHIbLDkaltWYwmfWf13bzQP5pzKWx
-         Pzww==
-X-Gm-Message-State: AOAM530XsJKvLgVQx192w+K1mQTlA/+/f+OdE6feMWxZ3lXlLWcQrxum
-        hdNS/sSNcIIUJT4FBKkUJcNx7hqBHA/WVMn/t3I=
-X-Google-Smtp-Source: ABdhPJzkhvMi5i8NysjPP44Ym29blfdYM/w5M8ZctCd+TLmrbSAkk8b9xov7oP7EJd5gSzIpsOENgUxOQTCr56AGzHg=
-Sender: "samitolvanen via sendgmr" 
-        <samitolvanen@samitolvanen1.mtv.corp.google.com>
-X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
- (user=samitolvanen job=sendgmr) by 2002:a0c:d443:: with SMTP id
- r3mr35786354qvh.17.1600460087054; Fri, 18 Sep 2020 13:14:47 -0700 (PDT)
-Date:   Fri, 18 Sep 2020 13:14:10 -0700
-In-Reply-To: <20200918201436.2932360-1-samitolvanen@google.com>
-Message-Id: <20200918201436.2932360-5-samitolvanen@google.com>
-Mime-Version: 1.0
-References: <20200918201436.2932360-1-samitolvanen@google.com>
-X-Mailer: git-send-email 2.28.0.681.g6f77f65b4e-goog
-Subject: [PATCH v3 04/30] x86/asm: Replace __force_order with memory clobber
-From:   Sami Tolvanen <samitolvanen@google.com>
-To:     Masahiro Yamada <masahiroy@kernel.org>,
-        Will Deacon <will@kernel.org>
-Cc:     Peter Zijlstra <peterz@infradead.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
+        id S1726200AbgIRUWu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Sep 2020 16:22:50 -0400
+Received: from esa2.hgst.iphmx.com ([68.232.143.124]:4416 "EHLO
+        esa2.hgst.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726159AbgIRUWu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Sep 2020 16:22:50 -0400
+X-Greylist: delayed 602 seconds by postgrey-1.27 at vger.kernel.org; Fri, 18 Sep 2020 16:22:49 EDT
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple;
+  d=wdc.com; i=@wdc.com; q=dns/txt; s=dkim.wdc.com;
+  t=1600460585; x=1631996585;
+  h=from:to:cc:subject:date:message-id:mime-version:
+   content-transfer-encoding;
+  bh=GI3H7FI5MM8SnAiJ9n4LYSUWOw7izossiuo/gw2bk/g=;
+  b=FeaXvMT5lLjEbd8JiQuyTEKACxgbf27Urr6dwkn5EgDmU+GCOejqrQmH
+   M+xEf7Xa3Hd1BoPcqcEGfYh8zLqtnuRY39kqiB0gy2zjt+NyGeFzcF73o
+   K4FddX2tBJLRXvy6ikTnWCBnxZlNIEWokmwTkCY4LJBZDi2nXANL/u+li
+   oV0Pk8dG3OOZ5SoWYOxMlOwZsYa4UPHdK1YkkEuDAmXEP+jnuYAmORj/i
+   xylPZideMPdMc3z9vPfYPC4RHB6wEvSPCvmp0E2NUB+sYHEhY4FF6l8yU
+   7gxYnHd1vlNd74lUSVVkjvy625l3nG7dDrLSMGgAeq2b1ksikFT91F0g1
+   g==;
+IronPort-SDR: n7gL7+au+kwg8pVzlX7pj5lxuL/mgXCFDnewZC9Z4ZyFZLi7wj/YHBUOU4i0K7wIuwoaGUnFZN
+ 10q06f280xX30MBvVxr3+xlK2kWd8vTNHNN973bPSSOZUFDPIqe05GTCvw57uVljMyYg1jzjCW
+ O1P6wWi8bvhrMs+uVqB1OjuIoc41I38m7v+sX1PfGP2144Fb5wubmwjEZTIbRtnYI5fHo4hpwh
+ jmqTAbs0KFUWZaEgNrAGxhFqMtoGsr9wsXooPS0YitAAmxiMmN/EmyWtN8g1mQCYkbaGFjLXlM
+ MFI=
+X-IronPort-AV: E=Sophos;i="5.77,274,1596470400"; 
+   d="scan'208";a="251108770"
+Received: from uls-op-cesaip01.wdc.com (HELO uls-op-cesaep01.wdc.com) ([199.255.45.14])
+  by ob1.hgst.iphmx.com with ESMTP; 19 Sep 2020 04:12:51 +0800
+IronPort-SDR: N67rpcmvGxCc7H2ofiTkgJvnyHggQdG55gAoviszUa3jb2Qd8Zs/fc2q8UUtu+2i1iEC2yRF2u
+ bcrQJ6bWebwA==
+Received: from uls-op-cesaip02.wdc.com ([10.248.3.37])
+  by uls-op-cesaep01.wdc.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Sep 2020 12:59:53 -0700
+IronPort-SDR: Q+Z6LvVPGweJdIFY//I/72e4PvvW6vQGNmh+aBzgJ5z5U6FdHT4C8mw8luHFGSpwHXxbrFjjRP
+ ymg46FROWaFQ==
+WDCIronportException: Internal
+Received: from us3v3d262.ad.shared (HELO jedi-01.hgst.com) ([10.86.60.69])
+  by uls-op-cesaip02.wdc.com with ESMTP; 18 Sep 2020 13:12:47 -0700
+From:   Atish Patra <atish.patra@wdc.com>
+To:     linux-kernel@vger.kernel.org
+Cc:     Atish Patra <atish.patra@wdc.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Anshuman Khandual <anshuman.khandual@arm.com>,
+        Anup Patel <anup@brainfault.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        David Hildenbrand <david@redhat.com>,
+        Greentime Hu <greentime.hu@sifive.com>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        clang-built-linux@googlegroups.com,
-        kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org,
-        x86@kernel.org, Arvind Sankar <nivedita@alum.mit.edu>
-Content-Type: text/plain; charset="UTF-8"
+        Jonathan Cameron <Jonathan.Cameron@huawei.com>,
+        linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org,
+        Mike Rapoport <rppt@kernel.org>,
+        Nicolas Saenz Julienne <nsaenzjulienne@suse.de>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        "Rafael J. Wysocki" <rafael@kernel.org>,
+        Steven Price <steven.price@arm.com>,
+        Will Deacon <will@kernel.org>, Zong Li <zong.li@sifive.com>,
+        linux-arm-kernel@lists.infradead.org
+Subject: [RFT PATCH v3 0/5] Unify NUMA implementation between ARM64 & RISC-V
+Date:   Fri, 18 Sep 2020 13:11:35 -0700
+Message-Id: <20200918201140.3172284-1-atish.patra@wdc.com>
+X-Mailer: git-send-email 2.25.1
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Arvind Sankar <nivedita@alum.mit.edu>
+This series attempts to move the ARM64 numa implementation to common
+code so that RISC-V can leverage that as well instead of reimplementing
+it again.
 
-The CRn accessor functions use __force_order as a dummy operand to
-prevent the compiler from reordering CRn reads/writes with respect to
-each other.
+RISC-V specific bits are based on initial work done by Greentime Hu [1] but
+modified to reuse the common implementation to avoid duplication.
 
-The fact that the asm is volatile should be enough to prevent this:
-volatile asm statements should be executed in program order. However GCC
-4.9.x and 5.x have a bug that might result in reordering. This was fixed
-in 8.1, 7.3 and 6.5. Versions prior to these, including 5.x and 4.9.x,
-may reorder volatile asm statements with respect to each other.
+[1] https://lkml.org/lkml/2020/1/10/233
 
-There are some issues with __force_order as implemented:
-- It is used only as an input operand for the write functions, and hence
-  doesn't do anything additional to prevent reordering writes.
-- It allows memory accesses to be cached/reordered across write
-  functions, but CRn writes affect the semantics of memory accesses, so
-  this could be dangerous.
-- __force_order is not actually defined in the kernel proper, but the
-  LLVM toolchain can in some cases require a definition: LLVM (as well
-  as GCC 4.9) requires it for PIE code, which is why the compressed
-  kernel has a definition, but also the clang integrated assembler may
-  consider the address of __force_order to be significant, resulting in
-  a reference that requires a definition.
+This series has been tested on qemu with numa enabled for both RISC-V & ARM64.
+It would be great if somebody can test it on numa capable ARM64 hardware platforms.
+This patch series doesn't modify the maintainers list for the common code (arch_numa)
+as I am not sure if somebody from ARM64 community or Greg should take up the
+maintainership. Ganapatrao was the original author of the arm64 version.
+I would be happy to update that in the next revision once it is decided.
 
-Fix this by:
-- Using a memory clobber for the write functions to additionally prevent
-  caching/reordering memory accesses across CRn writes.
-- Using a dummy input operand with an arbitrary constant address for the
-  read functions, instead of a global variable. This will prevent reads
-  from being reordered across writes, while allowing memory loads to be
-  cached/reordered across CRn reads, which should be safe.
+# numactl --hardware
+available: 2 nodes (0-1)
+node 0 cpus: 0 1 2 3
+node 0 size: 486 MB
+node 0 free: 470 MB
+node 1 cpus: 4 5 6 7
+node 1 size: 424 MB
+node 1 free: 408 MB
+node distances:
+node   0   1 
+  0:  10  20 
+  1:  20  10 
+# numactl -show
+policy: default
+preferred node: current
+physcpubind: 0 1 2 3 4 5 6 7 
+cpubind: 0 1 
+nodebind: 0 1 
+membind: 0 1 
 
-Signed-off-by: Arvind Sankar <nivedita@alum.mit.edu>
-Tested-by: Nathan Chancellor <natechancellor@gmail.com>
-Tested-by: Sedat Dilek <sedat.dilek@gmail.com>
-Reviewed-by: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Link: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82602
-Link: https://lore.kernel.org/lkml/20200527135329.1172644-1-arnd@arndb.de/
----
- arch/x86/boot/compressed/pgtable_64.c |  9 ---------
- arch/x86/include/asm/special_insns.h  | 28 ++++++++++++++-------------
- arch/x86/kernel/cpu/common.c          |  4 ++--
- 3 files changed, 17 insertions(+), 24 deletions(-)
+For RISC-V, the following qemu series is a pre-requisite(already available in upstream)
+to test the patches in Qemu and 2 socket OmniXtend FPGA.
 
-diff --git a/arch/x86/boot/compressed/pgtable_64.c b/arch/x86/boot/compressed/pgtable_64.c
-index c8862696a47b..7d0394f4ebf9 100644
---- a/arch/x86/boot/compressed/pgtable_64.c
-+++ b/arch/x86/boot/compressed/pgtable_64.c
-@@ -5,15 +5,6 @@
- #include "pgtable.h"
- #include "../string.h"
- 
--/*
-- * __force_order is used by special_insns.h asm code to force instruction
-- * serialization.
-- *
-- * It is not referenced from the code, but GCC < 5 with -fPIE would fail
-- * due to an undefined symbol. Define it to make these ancient GCCs work.
-- */
--unsigned long __force_order;
--
- #define BIOS_START_MIN		0x20000U	/* 128K, less than this is insane */
- #define BIOS_START_MAX		0x9f000U	/* 640K, absolute maximum */
- 
-diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
-index 59a3e13204c3..d6e3bb9363d2 100644
---- a/arch/x86/include/asm/special_insns.h
-+++ b/arch/x86/include/asm/special_insns.h
-@@ -11,45 +11,47 @@
- #include <linux/jump_label.h>
- 
- /*
-- * Volatile isn't enough to prevent the compiler from reordering the
-- * read/write functions for the control registers and messing everything up.
-- * A memory clobber would solve the problem, but would prevent reordering of
-- * all loads stores around it, which can hurt performance. Solution is to
-- * use a variable and mimic reads and writes to it to enforce serialization
-+ * The compiler should not reorder volatile asm statements with respect to each
-+ * other: they should execute in program order. However GCC 4.9.x and 5.x have
-+ * a bug (which was fixed in 8.1, 7.3 and 6.5) where they might reorder
-+ * volatile asm. The write functions are not affected since they have memory
-+ * clobbers preventing reordering. To prevent reads from being reordered with
-+ * respect to writes, use a dummy memory operand.
-  */
--extern unsigned long __force_order;
-+
-+#define __FORCE_ORDER "m"(*(unsigned int *)0x1000UL)
- 
- void native_write_cr0(unsigned long val);
- 
- static inline unsigned long native_read_cr0(void)
- {
- 	unsigned long val;
--	asm volatile("mov %%cr0,%0\n\t" : "=r" (val), "=m" (__force_order));
-+	asm volatile("mov %%cr0,%0\n\t" : "=r" (val) : __FORCE_ORDER);
- 	return val;
- }
- 
- static __always_inline unsigned long native_read_cr2(void)
- {
- 	unsigned long val;
--	asm volatile("mov %%cr2,%0\n\t" : "=r" (val), "=m" (__force_order));
-+	asm volatile("mov %%cr2,%0\n\t" : "=r" (val) : __FORCE_ORDER);
- 	return val;
- }
- 
- static __always_inline void native_write_cr2(unsigned long val)
- {
--	asm volatile("mov %0,%%cr2": : "r" (val), "m" (__force_order));
-+	asm volatile("mov %0,%%cr2": : "r" (val) : "memory");
- }
- 
- static inline unsigned long __native_read_cr3(void)
- {
- 	unsigned long val;
--	asm volatile("mov %%cr3,%0\n\t" : "=r" (val), "=m" (__force_order));
-+	asm volatile("mov %%cr3,%0\n\t" : "=r" (val) : __FORCE_ORDER);
- 	return val;
- }
- 
- static inline void native_write_cr3(unsigned long val)
- {
--	asm volatile("mov %0,%%cr3": : "r" (val), "m" (__force_order));
-+	asm volatile("mov %0,%%cr3": : "r" (val) : "memory");
- }
- 
- static inline unsigned long native_read_cr4(void)
-@@ -64,10 +66,10 @@ static inline unsigned long native_read_cr4(void)
- 	asm volatile("1: mov %%cr4, %0\n"
- 		     "2:\n"
- 		     _ASM_EXTABLE(1b, 2b)
--		     : "=r" (val), "=m" (__force_order) : "0" (0));
-+		     : "=r" (val) : "0" (0), __FORCE_ORDER);
- #else
- 	/* CR4 always exists on x86_64. */
--	asm volatile("mov %%cr4,%0\n\t" : "=r" (val), "=m" (__force_order));
-+	asm volatile("mov %%cr4,%0\n\t" : "=r" (val) : __FORCE_ORDER);
- #endif
- 	return val;
- }
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index c5d6f17d9b9d..178499f90366 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -359,7 +359,7 @@ void native_write_cr0(unsigned long val)
- 	unsigned long bits_missing = 0;
- 
- set_register:
--	asm volatile("mov %0,%%cr0": "+r" (val), "+m" (__force_order));
-+	asm volatile("mov %0,%%cr0": "+r" (val) : : "memory");
- 
- 	if (static_branch_likely(&cr_pinning)) {
- 		if (unlikely((val & X86_CR0_WP) != X86_CR0_WP)) {
-@@ -378,7 +378,7 @@ void native_write_cr4(unsigned long val)
- 	unsigned long bits_changed = 0;
- 
- set_register:
--	asm volatile("mov %0,%%cr4": "+r" (val), "+m" (cr4_pinned_bits));
-+	asm volatile("mov %0,%%cr4": "+r" (val) : : "memory");
- 
- 	if (static_branch_likely(&cr_pinning)) {
- 		if (unlikely((val & cr4_pinned_mask) != cr4_pinned_bits)) {
--- 
-2.28.0.681.g6f77f65b4e-goog
+https://patchwork.kernel.org/project/qemu-devel/list/?series=303313
+
+The patches are also available at
+
+https://github.com/atishp04/linux/tree/5.10_numa_unified_v3
+
+There may be some minor conflicts with Mike's cleanup series [2] depending on the
+order in which these two series are being accepted. I can rebase on top his series
+if required.
+
+[2] https://lkml.org/lkml/2020/8/18/754
+
+Changes from v2->v3:
+1. Added Acked-by/Reviewed-by tags.
+2. Replaced asm/acpi.h with linux/acpi.h
+3. Defined arch_acpi_numa_init as static.
+
+Changes from v1->v2:
+1. Replaced ARM64 specific compile time protection with ACPI specific ones.
+2. Dropped common pcibus_to_node changes. Added required changes in RISC-V. 
+3. Fixed few typos.
+
+Atish Patra (4):
+numa: Move numa implementation to common code
+arm64, numa: Change the numa init functions name to be generic
+riscv: Separate memory init from paging init
+riscv: Add numa support for riscv64 platform
+
+Greentime Hu (1):
+riscv: Add support pte_protnone and pmd_protnone if
+CONFIG_NUMA_BALANCING
+
+arch/arm64/Kconfig                            |  1 +
+arch/arm64/include/asm/numa.h                 | 45 +----------------
+arch/arm64/kernel/acpi_numa.c                 | 13 -----
+arch/arm64/mm/Makefile                        |  1 -
+arch/arm64/mm/init.c                          |  4 +-
+arch/riscv/Kconfig                            | 31 +++++++++++-
+arch/riscv/include/asm/mmzone.h               | 13 +++++
+arch/riscv/include/asm/numa.h                 |  8 +++
+arch/riscv/include/asm/pci.h                  | 14 ++++++
+arch/riscv/include/asm/pgtable.h              | 21 ++++++++
+arch/riscv/kernel/setup.c                     | 11 ++++-
+arch/riscv/kernel/smpboot.c                   | 12 ++++-
+arch/riscv/mm/init.c                          | 10 +++-
+drivers/base/Kconfig                          |  6 +++
+drivers/base/Makefile                         |  1 +
+.../mm/numa.c => drivers/base/arch_numa.c     | 31 ++++++++++--
+include/asm-generic/numa.h                    | 49 +++++++++++++++++++
+17 files changed, 201 insertions(+), 70 deletions(-)
+create mode 100644 arch/riscv/include/asm/mmzone.h
+create mode 100644 arch/riscv/include/asm/numa.h
+rename arch/arm64/mm/numa.c => drivers/base/arch_numa.c (95%)
+create mode 100644 include/asm-generic/numa.h
+
+--
+2.25.1
 
