@@ -7,21 +7,21 @@ X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 592B7C43464
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8A510C43465
 	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 12:47:50 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 19A7B208B8
+	by mail.kernel.org (Postfix) with ESMTP id 6586C208B8
 	for <linux-arch@archiver.kernel.org>; Fri, 18 Sep 2020 12:47:50 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726828AbgIRMri (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1726497AbgIRMri (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Fri, 18 Sep 2020 08:47:38 -0400
-Received: from mout.kundenserver.de ([212.227.126.134]:51665 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.134]:60693 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726392AbgIRMrA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Sep 2020 08:47:00 -0400
+        with ESMTP id S1726126AbgIRMrB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Sep 2020 08:47:01 -0400
 Received: from threadripper.lan ([149.172.98.151]) by mrelayeu.kundenserver.de
  (mreue011 [212.227.15.129]) with ESMTPA (Nemesis) id
- 1MTRAS-1jtycg3laG-00Ti0L; Fri, 18 Sep 2020 14:46:34 +0200
+ 1MMoOy-1k0cTH1t1o-00IjeX; Fri, 18 Sep 2020 14:46:35 +0200
 From:   Arnd Bergmann <arnd@arndb.de>
 To:     Christoph Hellwig <hch@infradead.org>,
         Russell King <linux@armlinux.org.uk>,
@@ -29,140 +29,135 @@ To:     Christoph Hellwig <hch@infradead.org>,
 Cc:     linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v2 2/9] ARM: traps: use get_kernel_nofault instead of set_fs()
-Date:   Fri, 18 Sep 2020 14:46:17 +0200
-Message-Id: <20200918124624.1469673-3-arnd@arndb.de>
+Subject: [PATCH v2 4/9] ARM: syscall: always store thread_info->syscall
+Date:   Fri, 18 Sep 2020 14:46:19 +0200
+Message-Id: <20200918124624.1469673-5-arnd@arndb.de>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20200918124624.1469673-1-arnd@arndb.de>
 References: <20200918124624.1469673-1-arnd@arndb.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-Provags-ID: V03:K1:Gy/6r3hP6+Xw0VZ1kPuBOfmudRbDMtnh6jF154kk+qnOsu9JUCQ
- cQK0bo1hDNYXTK9JI2Na6UKfmHCGL9OWP+7LGyS/kOe6Uc9yJbO9xExzSioQ0OF5BPd/C1V
- nmlIEcSh3DpIrVLDUZebSlnT9QnSnvqCMQd9I2RYk49O2SSMFV8/sb0VnF6GCOz06mOntBv
- vtRVwI+wzeyGhICf15/8w==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:DMblnyBKhY4=:9xYkhBDiYrvF2PKMOZ5/jd
- 7itoiVV6ScsHcK8wPs3xmfxSSrugMrRfii48gNLwyhVjnLhHsCHeIToONufxWhSJtWjqp50Rd
- dIhEumG+L/4r73Q7OyhK/FrDYOmZctzBbZbyaVJ4wQqNud37Mn9XLeJ8YXD11XGCYC0p6i9Ge
- aOPWKJtnHknCvEXZxHrj6X8nCWU097zi0wIqq8hmcU+urPAHVQ7Y29zGk/ELMlP4oGdhPlU52
- 6I+dJDkdUkKfntHzL5sCVutRX7EueaRKoTpxc2faPKlwJQxnGn7NyNFxjeypshD9UPmkv0qIz
- uylSZc/nektnaiR3D6IRhQZJMwJDykBoIe8C3jk0bbNnCInQBu4lL/0wQ2RHfnusS4U0glwC8
- SD2DQohnsrGmHMGnbqEnN7XTejaUW+b9phi85MVOtGtIEuN4980eeaFVIsMTkklxbhhq3oHCf
- L/0jbGnUehzANInlLiBFQiyHWJ6O4vsTWFpWso1N3zvn1ePT3/CLrnhkUTYZrdnoAHZ+GQAbH
- 3ZfCZ13w4NlZrcq9AiIZ93tkymhgVfkaxx4TATAiRc5BNr+tkMSj0wWdKy4ArwL6Sk95+LKBK
- GxcEz1kzhIFPShl/11Yi7N2GGdiN0cZntPvNNU8dwnwdzcSzUnJS8OjxdNgYRBjR8O6eyP7Cr
- dlsU4otbC8UOXe3bQ6WT2de5wyXNscPVST3gquGhFq+RSacYFwmiUJq4YwmSjeapSR6o3uXck
- zD+Ip58BziCarZCj5aMUGzFfn/jRUcoejVakvpvdBJ3pK87EOfqMQYxnulXte+co+uheW/4yI
- FNjRnYXt1zm6T5mNTFcR7DRZP8334b7k9fdnpA8MGg/BI710j6z9SMcAT4z3EUHAhn6bPeJ
+X-Provags-ID: V03:K1:oYbsUpC7iW/8Uz8fjl5NJEZ6YNi0H9qnT9Jm+ZYvgswXJGPeqSV
+ bhUcYLv/xDzIBjqVc6MjVmMlF7JZalcV+3/Q7of7qmFllWrLNW63+jVKT1T/YMZgNMiwnMX
+ +pkmssiDTvvTNYFjalidxInFqjQ5jcM3S5E4Z/GsqvnZiMypxNAvzda2B60Iw35ofXdSbMs
+ YUbV8Z0aHsSrGU+ZQiGBw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:TjZZlTlaR60=:2fdE+jOcrb1YH2bgwD8Xke
+ SuRyc8Oz2mtKsEVpefh1Uu2kYfnWbyF+jrgSr5wb62vQvxDaIl8Uz/tdbANmAoRJr10I8ARm+
+ 4d+12YrYfGXRrZj52FjmTOZBINDPSGe+QiFma8Skcf1DXaMgG1+fnWxgamIXFj9mkwvdX97uy
+ SDqcNDdXdYCA4Svk5qm/p/SUgLV4R/7k9T+4heHkSstmHg32aQHUOi/h63EuMnaZ8Ksb30QOo
+ iyas2/Rnt2RbQaUPzXnSlUII3ZzL7HT1URu+AXxsu56orSIiCEve32E5e+X/QY+YmKoaona1d
+ EO5qxGAm9Ikrt7EwnRSKX+NDWr26pPkP+PeHt3DGfK81oTgn/y69xdDuUKaKjmhl7YTqEKy3x
+ aR0S03+lsvzQo9C35zCQpnjF4H0CA5vs3BbYla7x4i1aCggG0Salua3KS8KOELbbqzU24M6nO
+ Q7sqEsZequ0MAvFN00gT9RRxTlkQRz9Ev7E85DSwepKQAQ3Afed15dmfSTGTDfkv2L0XZ+8Lb
+ li9A1upiGsTkc2mJopRvz83BOFwprQcfdCzhcax/8JylgWtdNRLp5oE/3+f8jK+A6aqZveIoP
+ K08mTTcsqwfSLwpmi804K2P3ZUtg3gDwZtn/BHQuocZ6trUljg4Lcc71Oa9C+6d5513SS+gND
+ CaxxX2jLKSf7j8uUtNvPuEMEGbodh4OWXl5C7bCg8O0FqTd8dgpJoijuB1Mf9givq8FvMbKHN
+ VA0qrxNrJ7kkQd6w6R8ptjoTfBvU4oNagxEx8TNqSmCK9XG2WCqhvoApxjhx8lYMEImxzTX0S
+ Vh/o+ghDotvwTFKIHR092E6j+irvP4k4i6+AAfX1f+dz02v6cQyxkRV+uX8Ic7gTaS3OjFx
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-ARM uses set_fs() and __get_user() to allow the stack dumping code to
-access possibly invalid pointers carefully. These can be changed to the
-simpler get_kernel_nofault(), and allow the eventual removal of set_fs().
+The system call number is used in a a couple of places, in particular
+ptrace, seccomp and /proc/<pid>/syscall.
 
-dump_instr() will print either kernel or user space pointers,
-depending on how it was called. For dump_mem(), I assume we are only
-interested in kernel pointers, and the only time that this is called
-with user_mode(regs)==true is when the regs themselves are unreliable
-as a result of the condition that caused the trap.
+The last one apparently never worked reliably on ARM for tasks
+that are not currently getting traced.
+
+Storing the syscall number in the normal entry path makes it work,
+as well as allowing us to see if the current system call is for
+OABI compat mode, which is the next thing I want to hook into.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arm/kernel/traps.c | 47 ++++++++++++++---------------------------
- 1 file changed, 16 insertions(+), 31 deletions(-)
+ arch/arm/include/asm/syscall.h | 5 ++++-
+ arch/arm/kernel/asm-offsets.c  | 1 +
+ arch/arm/kernel/entry-common.S | 7 +++++--
+ arch/arm/kernel/ptrace.c       | 4 ++--
+ 4 files changed, 12 insertions(+), 5 deletions(-)
 
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index 17d5a785df28..c3964a283b63 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -122,17 +122,8 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
- 		     unsigned long top)
+diff --git a/arch/arm/include/asm/syscall.h b/arch/arm/include/asm/syscall.h
+index fd02761ba06c..855aa7cc9b8e 100644
+--- a/arch/arm/include/asm/syscall.h
++++ b/arch/arm/include/asm/syscall.h
+@@ -22,7 +22,10 @@ extern const unsigned long sys_call_table[];
+ static inline int syscall_get_nr(struct task_struct *task,
+ 				 struct pt_regs *regs)
  {
- 	unsigned long first;
--	mm_segment_t fs;
- 	int i;
- 
--	/*
--	 * We need to switch to kernel mode so that we can use __get_user
--	 * to safely read from kernel space.  Note that we now dump the
--	 * code first, just in case the backtrace kills us.
--	 */
--	fs = get_fs();
--	set_fs(KERNEL_DS);
--
- 	printk("%s%s(0x%08lx to 0x%08lx)\n", lvl, str, bottom, top);
- 
- 	for (first = bottom & ~31; first < top; first += 32) {
-@@ -145,7 +136,7 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
- 		for (p = first, i = 0; i < 8 && p < top; i++, p += 4) {
- 			if (p >= bottom && p < top) {
- 				unsigned long val;
--				if (__get_user(val, (unsigned long *)p) == 0)
-+				if (get_kernel_nofault(val, (unsigned long *)p))
- 					sprintf(str + i * 9, " %08lx", val);
- 				else
- 					sprintf(str + i * 9, " ????????");
-@@ -153,11 +144,9 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
- 		}
- 		printk("%s%04lx:%s\n", lvl, first & 0xffff, str);
- 	}
--
--	set_fs(fs);
+-	return task_thread_info(task)->syscall;
++	if (!IS_ENABLED(CONFIG_OABI_COMPAT))
++		return task_thread_info(task)->syscall;
++
++	return task_thread_info(task)->syscall & ~__NR_OABI_SYSCALL_BASE;
  }
  
--static void __dump_instr(const char *lvl, struct pt_regs *regs)
-+static void dump_instr(const char *lvl, struct pt_regs *regs)
- {
- 	unsigned long addr = instruction_pointer(regs);
- 	const int thumb = thumb_mode(regs);
-@@ -173,10 +162,20 @@ static void __dump_instr(const char *lvl, struct pt_regs *regs)
- 	for (i = -4; i < 1 + !!thumb; i++) {
- 		unsigned int val, bad;
+ static inline void syscall_rollback(struct task_struct *task,
+diff --git a/arch/arm/kernel/asm-offsets.c b/arch/arm/kernel/asm-offsets.c
+index a1570c8bab25..97af6735172b 100644
+--- a/arch/arm/kernel/asm-offsets.c
++++ b/arch/arm/kernel/asm-offsets.c
+@@ -46,6 +46,7 @@ int main(void)
+   DEFINE(TI_CPU,		offsetof(struct thread_info, cpu));
+   DEFINE(TI_CPU_DOMAIN,		offsetof(struct thread_info, cpu_domain));
+   DEFINE(TI_CPU_SAVE,		offsetof(struct thread_info, cpu_context));
++  DEFINE(TI_SYSCALL,		offsetof(struct thread_info, syscall));
+   DEFINE(TI_USED_CP,		offsetof(struct thread_info, used_cp));
+   DEFINE(TI_TP_VALUE,		offsetof(struct thread_info, tp_value));
+   DEFINE(TI_FPSTATE,		offsetof(struct thread_info, fpstate));
+diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+index 271cb8a1eba1..2ea3a1989fed 100644
+--- a/arch/arm/kernel/entry-common.S
++++ b/arch/arm/kernel/entry-common.S
+@@ -223,6 +223,7 @@ ENTRY(vector_swi)
+ 	/* saved_psr and saved_pc are now dead */
  
--		if (thumb)
--			bad = get_user(val, &((u16 *)addr)[i]);
--		else
--			bad = get_user(val, &((u32 *)addr)[i]);
-+		if (!user_mode(regs)) {
-+			if (thumb) {
-+				u16 val16;
-+				bad = get_kernel_nofault(val16, &((u16 *)addr)[i]);
-+				val = val16;
-+			} else {
-+				bad = get_kernel_nofault(val, &((u32 *)addr)[i]);
-+			}
-+		} else {
-+			if (thumb)
-+				bad = get_user(val, &((u16 *)addr)[i]);
-+			else
-+				bad = get_user(val, &((u32 *)addr)[i]);
-+		}
+ 	uaccess_disable tbl
++	get_thread_info tsk
  
- 		if (!bad)
- 			p += sprintf(p, i == 0 ? "(%0*x) " : "%0*x ",
-@@ -189,20 +188,6 @@ static void __dump_instr(const char *lvl, struct pt_regs *regs)
- 	printk("%sCode: %s\n", lvl, str);
+ 	adr	tbl, sys_call_table		@ load syscall table pointer
+ 
+@@ -234,13 +235,16 @@ ENTRY(vector_swi)
+ 	 * get the old ABI syscall table address.
+ 	 */
+ 	bics	r10, r10, #0xff000000
++	str	r10, [tsk, #TI_SYSCALL]
+ 	eorne	scno, r10, #__NR_OABI_SYSCALL_BASE
+ 	ldrne	tbl, =sys_oabi_call_table
+ #elif !defined(CONFIG_AEABI)
+ 	bic	scno, scno, #0xff000000		@ mask off SWI op-code
++	str	scno, [tsk, #TI_SYSCALL]
+ 	eor	scno, scno, #__NR_SYSCALL_BASE	@ check OS number
++#else
++	str	scno, [tsk, #TI_SYSCALL]
+ #endif
+-	get_thread_info tsk
+ 	/*
+ 	 * Reload the registers that may have been corrupted on entry to
+ 	 * the syscall assembly (by tracing or context tracking.)
+@@ -285,7 +289,6 @@ ENDPROC(vector_swi)
+ 	 * context switches, and waiting for our parent to respond.
+ 	 */
+ __sys_trace:
+-	mov	r1, scno
+ 	add	r0, sp, #S_OFF
+ 	bl	syscall_trace_enter
+ 	mov	scno, r0
+diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
+index 2771e682220b..252060663b00 100644
+--- a/arch/arm/kernel/ptrace.c
++++ b/arch/arm/kernel/ptrace.c
+@@ -885,9 +885,9 @@ static void tracehook_report_syscall(struct pt_regs *regs,
+ 	regs->ARM_ip = ip;
  }
  
--static void dump_instr(const char *lvl, struct pt_regs *regs)
--{
--	mm_segment_t fs;
--
--	if (!user_mode(regs)) {
--		fs = get_fs();
--		set_fs(KERNEL_DS);
--		__dump_instr(lvl, regs);
--		set_fs(fs);
--	} else {
--		__dump_instr(lvl, regs);
--	}
--}
--
- #ifdef CONFIG_ARM_UNWIND
- static inline void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
- 				  const char *loglvl)
+-asmlinkage int syscall_trace_enter(struct pt_regs *regs, int scno)
++asmlinkage int syscall_trace_enter(struct pt_regs *regs)
+ {
+-	current_thread_info()->syscall = scno;
++	int scno;
+ 
+ 	if (test_thread_flag(TIF_SYSCALL_TRACE))
+ 		tracehook_report_syscall(regs, PTRACE_SYSCALL_ENTER);
 -- 
 2.27.0
 
