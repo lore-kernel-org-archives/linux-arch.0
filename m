@@ -2,99 +2,183 @@ Return-Path: <SRS0=16f6=C4=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C80D7C43463
-	for <linux-arch@archiver.kernel.org>; Sat, 19 Sep 2020 16:23:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D9FA8C43463
+	for <linux-arch@archiver.kernel.org>; Sat, 19 Sep 2020 17:19:15 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 81FC4222BB
-	for <linux-arch@archiver.kernel.org>; Sat, 19 Sep 2020 16:23:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 859EB2100A
+	for <linux-arch@archiver.kernel.org>; Sat, 19 Sep 2020 17:19:15 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1600532617;
-	bh=yIMDaLtf/+YFizwPnR8klP42GqyYZ5ElGRoZQu6X97M=;
+	s=default; t=1600535955;
+	bh=s1QledPcp7al3nH2h2l+Ur2QcnUZN7Ux6HN+Xf/OtMo=;
 	h=References:In-Reply-To:From:Date:Subject:To:Cc:List-ID:From;
-	b=WEaFW/strZ/kthkL35tEd0qDfYxAJjHR+Ud6rBERNKwYXNgiHEf/bQY8RCS1IIJ6v
-	 QIsiEtbjdg3DgWW1s8rzRWxtxeyiee3KcpAVyxDUyxwn44g7g/p5fpPUA9s/z5ciMU
-	 ksfRzyv65FmslMKtB/2heuIt60QFk/mfCrjVICpA=
+	b=S5BpDqC2vAoUPgaZ9KTgBfI8/e4xARVuhg/jPOVsei+yTwm+7rloN8m/zDLcuV3XF
+	 O6zEmLbKpujAX7LBJHg334oRXGhq8H5TvCtrxc31O6sZLUxSdxSZ6SKPXYtEOucNaE
+	 iXytvez/0OzO0D3WlpnIQ31+hGvgESrKOyERNUDo=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726518AbgISQXh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 19 Sep 2020 12:23:37 -0400
-Received: from mail.kernel.org ([198.145.29.99]:59898 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726434AbgISQXg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 19 Sep 2020 12:23:36 -0400
-Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com [209.85.128.41])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 127BE2311B
-        for <linux-arch@vger.kernel.org>; Sat, 19 Sep 2020 16:23:36 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1600532616;
-        bh=yIMDaLtf/+YFizwPnR8klP42GqyYZ5ElGRoZQu6X97M=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=YUs5z6A+jbyOjViAggfd75LfVJAXVlL6S70XXy/bSyZscAbDzqAWG4OVuiRPoKllX
-         8iDAYtkYLMWVWSGiZALQNnGWPtgEG54QgPP0UeehdM25bePxbkLBmtaA7MbAPhserV
-         gTh/eYz4pD8V9OCDj3Y0DZjZnifKA2vn2zkFrfDg=
-Received: by mail-wm1-f41.google.com with SMTP id w2so8091344wmi.1
-        for <linux-arch@vger.kernel.org>; Sat, 19 Sep 2020 09:23:36 -0700 (PDT)
-X-Gm-Message-State: AOAM5336G8Fy0GDUdodXFQ9jZIjcjK0N0+eBtCB8VZW7J44WGqrEdsA2
-        NBcuPS58ORJI9EtBIgoqZ7mkexmHIGIUqp/MdvqwUw==
-X-Google-Smtp-Source: ABdhPJwlQQiwz+pgI03nF2aOSUVgWBn9X9k20I0J0W3TutdYI4/0CQ+JWWhM7EREU/GlWxV9KL8iEAPcgKTxRTyI700=
-X-Received: by 2002:a1c:7e15:: with SMTP id z21mr21042180wmc.21.1600532614589;
- Sat, 19 Sep 2020 09:23:34 -0700 (PDT)
+        id S1726463AbgISRTO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 19 Sep 2020 13:19:14 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50766 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726434AbgISRTO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Sep 2020 13:19:14 -0400
+Received: from mail-lf1-x141.google.com (mail-lf1-x141.google.com [IPv6:2a00:1450:4864:20::141])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2DBF7C0613CE
+        for <linux-arch@vger.kernel.org>; Sat, 19 Sep 2020 10:19:14 -0700 (PDT)
+Received: by mail-lf1-x141.google.com with SMTP id y17so9560049lfa.8
+        for <linux-arch@vger.kernel.org>; Sat, 19 Sep 2020 10:19:14 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linux-foundation.org; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=waM6UyKAxKjxaPuk1aOj7tJ5Pe/ksOuiXEzSSo1PI/U=;
+        b=PDwKTi4lX9j7zg3G7WzPyBOHBiLdhmAgWRxWPWvYR/nEys9FVfUL6zNUVgG09pDixg
+         o+e2DCxbAvOZN3jBhyrOMZPfygh9RU8mogp2HXrCoLkUWHRL8e1VK4NRvgzXaMsluBfo
+         GR1BPuNqLZOfJqo2g/IqA9gl4eqzfpV+zOYak=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=waM6UyKAxKjxaPuk1aOj7tJ5Pe/ksOuiXEzSSo1PI/U=;
+        b=t078QJ3Jk17iXJAAzQstB5Alt6pkepiMOXyhXAKgonOSDwypQtvIAqkhLs3JTqbPXM
+         blWCYe7Wz44m6oCHs0So0esFRML4hDplXqPWgSOqAmrGcAEWURqEsOybb83NJN8d6cNE
+         QURny4PlMrKhurFu2McWOINSfozSy5laKpFkEDy8SiVbTnrCBG4RIM/uiqzjyYXCKe+W
+         RpeFivEp6pD7TiwUmVaPGbxjJgElj2HLYcRPFbEknX9OI6KW3Udpi1d9NVmEUm0gaehB
+         ge4mMcUF0aNDIMsvOyT9+OS1RZq98GOoPb9plDmnpJ8YNK6z+fob5NMzCFR39C5moI73
+         neYw==
+X-Gm-Message-State: AOAM532r6H9Puk1qOj/QUymetP6cMsrxnXO0GDxEGlzccZz3FFcgHvQo
+        oAZkG4Z2WPzslT1jIrjbzOdgrdQXETT7YQ==
+X-Google-Smtp-Source: ABdhPJzn3txP0YU7IvO2Sk7r3bNkupwy3QL7ihiNZD4ou+bjsyGPpOt78d3FCZERsm7Xea9MQ3qs+Q==
+X-Received: by 2002:ac2:5298:: with SMTP id q24mr12371846lfm.164.1600535952417;
+        Sat, 19 Sep 2020 10:19:12 -0700 (PDT)
+Received: from mail-lf1-f48.google.com (mail-lf1-f48.google.com. [209.85.167.48])
+        by smtp.gmail.com with ESMTPSA id f6sm1368970lfq.211.2020.09.19.10.19.11
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sat, 19 Sep 2020 10:19:12 -0700 (PDT)
+Received: by mail-lf1-f48.google.com with SMTP id w11so9589229lfn.2
+        for <linux-arch@vger.kernel.org>; Sat, 19 Sep 2020 10:19:11 -0700 (PDT)
+X-Received: by 2002:a19:521a:: with SMTP id m26mr14134256lfb.133.1600535951025;
+ Sat, 19 Sep 2020 10:19:11 -0700 (PDT)
 MIME-Version: 1.0
-References: <20200918132439.1475479-1-arnd@arndb.de> <20200918132439.1475479-2-arnd@arndb.de>
- <20200919053514.GI30063@infradead.org>
-In-Reply-To: <20200919053514.GI30063@infradead.org>
-From:   Andy Lutomirski <luto@kernel.org>
-Date:   Sat, 19 Sep 2020 09:23:22 -0700
-X-Gmail-Original-Message-ID: <CALCETrVDqHG2chDsLWBHF39SXh6vjzE_xcEs+AWgOg5531BLuQ@mail.gmail.com>
-Message-ID: <CALCETrVDqHG2chDsLWBHF39SXh6vjzE_xcEs+AWgOg5531BLuQ@mail.gmail.com>
-Subject: Re: [PATCH 1/4] x86: add __X32_COND_SYSCALL() macro
-To:     Christoph Hellwig <hch@infradead.org>
-Cc:     Arnd Bergmann <arnd@arndb.de>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Eric Biederman <ebiederm@xmission.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        linux-arm-kernel <linux-arm-kernel@lists.infradead.org>,
+References: <20200919091751.011116649@linutronix.de>
+In-Reply-To: <20200919091751.011116649@linutronix.de>
+From:   Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sat, 19 Sep 2020 10:18:54 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wiYGyrFRbA1cc71D2-nc5U9LM9jUJesXGqpPnB7E4X1YQ@mail.gmail.com>
+Message-ID: <CAHk-=wiYGyrFRbA1cc71D2-nc5U9LM9jUJesXGqpPnB7E4X1YQ@mail.gmail.com>
+Subject: Re: [patch RFC 00/15] mm/highmem: Provide a preemptible variant of
+ kmap_atomic & friends
+To:     Thomas Gleixner <tglx@linutronix.de>
+Cc:     LKML <linux-kernel@vger.kernel.org>,
         linux-arch <linux-arch@vger.kernel.org>,
-        Linux-MM <linux-mm@kvack.org>, kexec@lists.infradead.org,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>,
-        "H . Peter Anvin" <hpa@zytor.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Christoph Hellwig <hch@lst.de>, Brian Gerst <brgerst@gmail.com>
+        Paul McKenney <paulmck@kernel.org>,
+        "the arch/x86 maintainers" <x86@kernel.org>,
+        Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Juri Lelli <juri.lelli@redhat.com>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        Dietmar Eggemann <dietmar.eggemann@arm.com>,
+        Steven Rostedt <rostedt@goodmis.org>,
+        Ben Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>,
+        Daniel Bristot de Oliveira <bristot@redhat.com>,
+        Will Deacon <will@kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Linux-MM <linux-mm@kvack.org>,
+        Russell King <linux@armlinux.org.uk>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        Chris Zankel <chris@zankel.net>,
+        Max Filippov <jcmvbkbc@gmail.com>,
+        linux-xtensa@linux-xtensa.org,
+        Jani Nikula <jani.nikula@linux.intel.com>,
+        Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
+        Rodrigo Vivi <rodrigo.vivi@intel.com>,
+        David Airlie <airlied@linux.ie>,
+        Daniel Vetter <daniel@ffwll.ch>,
+        intel-gfx <intel-gfx@lists.freedesktop.org>,
+        dri-devel <dri-devel@lists.freedesktop.org>,
+        Ard Biesheuvel <ardb@kernel.org>,
+        Herbert Xu <herbert@gondor.apana.org.au>,
+        Vineet Gupta <vgupta@synopsys.com>,
+        "open list:SYNOPSYS ARC ARCHITECTURE" 
+        <linux-snps-arc@lists.infradead.org>,
+        Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>,
+        linux-csky@vger.kernel.org, Michal Simek <monstr@monstr.eu>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        linux-mips@vger.kernel.org, Nick Hu <nickhu@andestech.com>,
+        Greentime Hu <green.hu@gmail.com>,
+        Vincent Chen <deanbo422@gmail.com>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        "David S. Miller" <davem@davemloft.net>,
+        linux-sparc <sparclinux@vger.kernel.org>
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Sep 18, 2020 at 10:35 PM Christoph Hellwig <hch@infradead.org> wrote:
+On Sat, Sep 19, 2020 at 2:50 AM Thomas Gleixner <tglx@linutronix.de> wrote:
 >
-> On Fri, Sep 18, 2020 at 03:24:36PM +0200, Arnd Bergmann wrote:
-> > sys_move_pages() is an optional syscall, and once we remove
-> > the compat version of it in favor of the native one with an
-> > in_compat_syscall() check, the x32 syscall table refers to
-> > a __x32_sys_move_pages symbol that may not exist when the
-> > syscall is disabled.
-> >
-> > Change the COND_SYSCALL() definition on x86 to also include
-> > the redirection for x32.
-> >
-> > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
->
-> Adding the x86 maintainers and Brian Gerst.  Brian proposed another
-> problem to the mess that most of the compat syscall handlers used by
-> x32 here:
->
->    https://lkml.org/lkml/2020/6/16/664
->
-> hpa didn't particularly like it, but with your and my pending series
-> we'll soon use more native than compat syscalls for x32, so something
-> will need to change..
+> this provides a preemptible variant of kmap_atomic & related
+> interfaces. This is achieved by:
 
-I'm fine with either solution.
+Ack. This looks really nice, even apart from the new capability.
+
+The only thing I really reacted to is that the name doesn't make sense
+to me: "kmap_temporary()" seems a bit odd.
+
+Particularly for an interface that really is basically meant as a
+better replacement of "kmap_atomic()" (but is perhaps also a better
+replacement for "kmap()").
+
+I think I understand how the name came about: I think the "temporary"
+is there as a distinction from the "longterm" regular kmap(). So I
+think it makes some sense from an internal implementation angle, but I
+don't think it makes a lot of sense from an interface name.
+
+I don't know what might be a better name, but if we want to emphasize
+that it's thread-private and a one-off, maybe "local" would be a
+better naming, and make it distinct from the "global" nature of the
+old kmap() interface?
+
+However, another solution might be to just use this new preemptible
+"local" kmap(), and remove the old global one entirely. Yes, the old
+global one caches the page table mapping and that sounds really
+efficient and nice. But it's actually horribly horribly bad, because
+it means that we need to use locking for them. Your new "temporary"
+implementation seems to be fundamentally better locking-wise, and only
+need preemption disabling as locking (and is equally fast for the
+non-highmem case).
+
+So I wonder if the single-page TLB flush isn't a better model, and
+whether it wouldn't be a lot simpler to just get rid of the old
+complex kmap() entirely, and replace it with this?
+
+I agree we can't replace the kmap_atomic() version, because maybe
+people depend on the preemption disabling it also implied. But what
+about replacing the non-atomic kmap()?
+
+Maybe I've missed something.  Is it because the new interface still
+does "pagefault_disable()" perhaps?
+
+But does it even need the pagefault_disable() at all? Yes, the
+*atomic* one obviously needed it. But why does this new one need to
+disable page faults?
+
+[ I'm just reading the patches, I didn't try to apply them and look at
+the end result, so I might have missed something ]
+
+The only other worry I would have is just test coverage of this
+change. I suspect very few developers use HIGHMEM. And I know the
+various test robots don't tend to test 32-bit either.
+
+But apart from that question about naming (and perhaps replacing
+kmap() entirely), I very much like it.
+
+                        Linus
