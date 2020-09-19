@@ -2,290 +2,103 @@ Return-Path: <SRS0=16f6=C4=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.9 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
+X-Spam-Status: No, score=-11.6 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SIGNED_OFF_BY,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 26C36C47426
-	for <linux-arch@archiver.kernel.org>; Sat, 19 Sep 2020 09:51:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3AA69C43464
+	for <linux-arch@archiver.kernel.org>; Sat, 19 Sep 2020 10:26:19 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id ECA992376F
-	for <linux-arch@archiver.kernel.org>; Sat, 19 Sep 2020 09:51:10 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="EmzU/Ha7";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="3MSiTX3/"
+	by mail.kernel.org (Postfix) with ESMTP id 038052344C
+	for <linux-arch@archiver.kernel.org>; Sat, 19 Sep 2020 10:26:18 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=default; t=1600511179;
+	bh=QS+/7ck8Ms+3NScVBhWMouEzmGA4XUAFNHh7y81UkaA=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
+	b=isrsxUoLCXKYR620nZrM6vsD/6uJ8LrGE9+9XhKmjc5j6349zflob8kcL+bVGc2Rf
+	 Kuz/plXsgoxkvaNS0M1+cON9K+MUMKY6kuzYFXqZQ08FrrEoUFEoInQvP2/T1EKj3q
+	 cpPjF0ZeTgCQXLdYzcX3Up1TEOi4sBPsUnRMe+Qk=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726413AbgISJvH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 19 Sep 2020 05:51:07 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37458 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726491AbgISJup (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Sep 2020 05:50:45 -0400
-Received: from galois.linutronix.de (Galois.linutronix.de [IPv6:2a0a:51c0:0:12e:550::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2690AC0613D0;
-        Sat, 19 Sep 2020 02:50:45 -0700 (PDT)
-Message-Id: <20200919092617.279626264@linutronix.de>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020; t=1600509018;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         content-transfer-encoding:content-transfer-encoding:  references:references;
-        bh=CYFZGC5XFXwIeIdTxBbBsuptLpgHnLvRMVVfnfU0Lek=;
-        b=EmzU/Ha7VTgCHPh+OPwMMAxl1vQw2EZbgMLA0QK5w0tgoNA9cK5GrZ+iRnxTLUvFmO6uvT
-        5xni0RQrFsvKWLEwnxRXfnK1ZoluDBJkq1/t4BopRLVlWdsZl8LGtkYO5VPQeJOAVh0loT
-        3pxfhX7Xzg7eD/HDkG7ZRFVEUuI8wNqIatH3iT0c6USltX67MnShz/PRGAOuuY98QpJcJF
-        RKzxtBefOl4frfc7PbgyYDsbLhAgIw9uUlbWv2A+h4Ox5jUUab+vAsmRMaNniDuggLqVCk
-        2DATRO4G8SXRfgThVN15NoLylHOz2CDJg97svW/xOW73oUnocZFgU2gqrFZxtA==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020e; t=1600509018;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         content-transfer-encoding:content-transfer-encoding:  references:references;
-        bh=CYFZGC5XFXwIeIdTxBbBsuptLpgHnLvRMVVfnfU0Lek=;
-        b=3MSiTX3/QibrqvIYfxIqARkPAbMeHtlldJHdL2IUUoOqwRf5x+Ph+DQIW8CwuSUBjdR486
-        DKAgHE+Y4cwJC9Ag==
-Date:   Sat, 19 Sep 2020 11:18:05 +0200
-From:   Thomas Gleixner <tglx@linutronix.de>
-To:     LKML <linux-kernel@vger.kernel.org>
-Cc:     linux-arch@vger.kernel.org,
-        Linus Torvalds <torvalds@linuxfoundation.org>,
-        Paul McKenney <paulmck@kernel.org>, x86@kernel.org,
-        Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Juri Lelli <juri.lelli@redhat.com>,
-        Vincent Guittot <vincent.guittot@linaro.org>,
-        Dietmar Eggemann <dietmar.eggemann@arm.com>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Ben Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>,
-        Daniel Bristot de Oliveira <bristot@redhat.com>,
-        Will Deacon <will@kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Linux-MM <linux-mm@kvack.org>,
-        Russell King <linux@armlinux.org.uk>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        Chris Zankel <chris@zankel.net>,
-        Max Filippov <jcmvbkbc@gmail.com>,
-        linux-xtensa@linux-xtensa.org,
-        Jani Nikula <jani.nikula@linux.intel.com>,
-        Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
-        Rodrigo Vivi <rodrigo.vivi@intel.com>,
-        David Airlie <airlied@linux.ie>,
-        Daniel Vetter <daniel@ffwll.ch>,
-        intel-gfx <intel-gfx@lists.freedesktop.org>,
-        dri-devel <dri-devel@lists.freedesktop.org>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        Vineet Gupta <vgupta@synopsys.com>,
-        linux-snps-arc@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>,
-        Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org,
-        Michal Simek <monstr@monstr.eu>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        linux-mips@vger.kernel.org, Nick Hu <nickhu@andestech.com>,
-        Greentime Hu <green.hu@gmail.com>,
-        Vincent Chen <deanbo422@gmail.com>,
-        Michael Ellerman <mpe@ellerman.id.au>,
+        id S1726216AbgISK0P (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 19 Sep 2020 06:26:15 -0400
+Received: from mail.kernel.org ([198.145.29.99]:34152 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726041AbgISK0P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 19 Sep 2020 06:26:15 -0400
+Received: from linux-8ccs (p57a236d4.dip0.t-ipconnect.de [87.162.54.212])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id EEFFF207FF;
+        Sat, 19 Sep 2020 10:26:09 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=default; t=1600511174;
+        bh=QS+/7ck8Ms+3NScVBhWMouEzmGA4XUAFNHh7y81UkaA=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=Dhs4E9cCPWR5U6/L6w+Ot0AP6OfHcv183sxqnUkXXz/AnXJDt0AXHHvcqCMVei5i6
+         GKnSZS2OKXzMu25vZ30nutYcHd1k1XhpuBjem46GWue0KNcO/LOyTnnK8hzbEj6OMj
+         lh64cXJ94R44/ThRRJAbdzF0qE+FcmC0n0GycrxI=
+Date:   Sat, 19 Sep 2020 12:26:01 +0200
+From:   Jessica Yu <jeyu@kernel.org>
+To:     Masahiro Yamada <masahiroy@kernel.org>
+Cc:     linux-kbuild@vger.kernel.org, Will Deacon <will@kernel.org>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+        Arnd Bergmann <arnd@arndb.de>,
         Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Fenghua Yu <fenghua.yu@intel.com>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Jeff Dike <jdike@addtoit.com>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Michal Marek <michal.lkml@markovi.net>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
         Paul Mackerras <paulus@samba.org>,
-        linuxppc-dev@lists.ozlabs.org,
-        "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
-Subject: [patch RFC 14/15] sched: highmem: Store temporary kmaps in task struct
-References: <20200919091751.011116649@linutronix.de>
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Richard Weinberger <richard@nod.at>,
+        Russell King <linux@armlinux.org.uk>,
+        Tony Luck <tony.luck@intel.com>, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org,
+        linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        linux-riscv@lists.infradead.org, linux-um@lists.infradead.org,
+        linuxppc-dev@lists.ozlabs.org
+Subject: Re: [PATCH v2] kbuild: preprocess module linker script
+Message-ID: <20200919102601.GA22693@linux-8ccs>
+References: <20200908042708.2511528-1-masahiroy@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Disposition: inline
+In-Reply-To: <20200908042708.2511528-1-masahiroy@kernel.org>
+X-OS:   Linux linux-8ccs 4.12.14-lp150.12.61-default x86_64
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Instead of storing the map per CPU provide and use per task storage. That
-prepares for temporary kmaps which are preemptible.
++++ Masahiro Yamada [08/09/20 13:27 +0900]:
+>There was a request to preprocess the module linker script like we
+>do for the vmlinux one. (https://lkml.org/lkml/2020/8/21/512)
+>
+>The difference between vmlinux.lds and module.lds is that the latter
+>is needed for external module builds, thus must be cleaned up by
+>'make mrproper' instead of 'make clean'. Also, it must be created
+>by 'make modules_prepare'.
+>
+>You cannot put it in arch/$(SRCARCH)/kernel/, which is cleaned up by
+>'make clean'. I moved arch/$(SRCARCH)/kernel/module.lds to
+>arch/$(SRCARCH)/include/asm/module.lds.h, which is included from
+>scripts/module.lds.S.
+>
+>scripts/module.lds is fine because 'make clean' keeps all the
+>build artifacts under scripts/.
+>
+>You can add arch-specific sections in <asm/module.lds.h>.
+>
+>Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+>Tested-by: Jessica Yu <jeyu@kernel.org>
+>Acked-by: Will Deacon <will@kernel.org>
 
-The context switch code is preparatory and not yet in use because
-kmap_atomic() runs with preemption disabled. Will be made usable in the
-next step.
+Acked-by: Jessica Yu <jeyu@kernel.org>
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- include/linux/highmem.h |    1 
- include/linux/sched.h   |    9 +++++++
- kernel/sched/core.c     |   10 ++++++++
- mm/highmem.c            |   59 ++++++++++++++++++++++++++++++++++++++++++------
- 4 files changed, 72 insertions(+), 7 deletions(-)
-
---- a/include/linux/highmem.h
-+++ b/include/linux/highmem.h
-@@ -38,6 +38,7 @@ static inline void invalidate_kernel_vma
- void *kmap_atomic_pfn_prot(unsigned long pfn, pgprot_t prot);
- void *kmap_atomic_page_prot(struct page *page, pgprot_t prot);
- void kunmap_atomic_indexed(void *vaddr);
-+void kmap_switch_temporary(struct task_struct *prev, struct task_struct *next);
- # ifndef ARCH_NEEDS_KMAP_HIGH_GET
- static inline void *arch_kmap_temporary_high_get(struct page *page)
- {
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -34,6 +34,7 @@
- #include <linux/rseq.h>
- #include <linux/seqlock.h>
- #include <linux/kcsan.h>
-+#include <asm/kmap_types.h>
- 
- /* task_struct member predeclarations (sorted alphabetically): */
- struct audit_context;
-@@ -628,6 +629,13 @@ struct wake_q_node {
- 	struct wake_q_node *next;
- };
- 
-+struct kmap_ctrl {
-+#ifdef CONFIG_KMAP_ATOMIC_GENERIC
-+	int				idx;
-+	pte_t				pteval[KM_TYPE_NR];
-+#endif
-+};
-+
- struct task_struct {
- #ifdef CONFIG_THREAD_INFO_IN_TASK
- 	/*
-@@ -1280,6 +1288,7 @@ struct task_struct {
- 	unsigned int			sequential_io;
- 	unsigned int			sequential_io_avg;
- #endif
-+	struct kmap_ctrl		kmap_ctrl;
- #ifdef CONFIG_DEBUG_ATOMIC_SLEEP
- 	unsigned long			task_state_change;
- #endif
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -3529,6 +3529,15 @@ static inline void finish_lock_switch(st
- # define finish_arch_post_lock_switch()	do { } while (0)
- #endif
- 
-+static inline void kmap_temp_switch(struct task_struct *prev,
-+				    struct task_struct *next)
-+{
-+#ifdef CONFIG_HIGHMEM
-+	if (unlikely(prev->kmap_ctrl.idx || next->kmap_ctrl.idx))
-+		kmap_switch_temporary(prev, next);
-+#endif
-+}
-+
- /**
-  * prepare_task_switch - prepare to switch tasks
-  * @rq: the runqueue preparing to switch
-@@ -3551,6 +3560,7 @@ prepare_task_switch(struct rq *rq, struc
- 	perf_event_task_sched_out(prev, next);
- 	rseq_preempt(prev);
- 	fire_sched_out_preempt_notifiers(prev, next);
-+	kmap_temp_switch(prev, next);
- 	prepare_task(next);
- 	prepare_arch_switch(next);
- }
---- a/mm/highmem.c
-+++ b/mm/highmem.c
-@@ -370,6 +370,7 @@ void kunmap_high(struct page *page)
- 	if (need_wakeup)
- 		wake_up(pkmap_map_wait);
- }
-+
- EXPORT_SYMBOL(kunmap_high);
- #else
- static inline void kmap_high_unmap_temporary(unsigned long vaddr) { }
-@@ -377,11 +378,9 @@ static inline void kmap_high_unmap_tempo
- 
- #ifdef CONFIG_KMAP_ATOMIC_GENERIC
- 
--static DEFINE_PER_CPU(int, __kmap_atomic_idx);
--
- static inline int kmap_atomic_idx_push(void)
- {
--	int idx = __this_cpu_inc_return(__kmap_atomic_idx) - 1;
-+	int idx = current->kmap_ctrl.idx++;
- 
- 	WARN_ON_ONCE(in_irq() && !irqs_disabled());
- 	BUG_ON(idx >= KM_TYPE_NR);
-@@ -390,14 +389,13 @@ static inline int kmap_atomic_idx_push(v
- 
- static inline int kmap_atomic_idx(void)
- {
--	return __this_cpu_read(__kmap_atomic_idx) - 1;
-+	return current->kmap_ctrl.idx - 1;
- }
- 
- static inline void kmap_atomic_idx_pop(void)
- {
--	int idx = __this_cpu_dec_return(__kmap_atomic_idx);
--
--	BUG_ON(idx < 0);
-+	current->kmap_ctrl.idx--;
-+	BUG_ON(current->kmap_ctrl.idx < 0);
- }
- 
- #ifndef arch_kmap_temp_post_map
-@@ -447,6 +445,7 @@ static void *__kmap_atomic_pfn_prot(unsi
- 	pteval = pfn_pte(pfn, prot);
- 	set_pte(kmap_pte - idx, pteval);
- 	arch_kmap_temp_post_map(vaddr, pteval);
-+	current->kmap_ctrl.pteval[kmap_atomic_idx()] = pteval;
- 	preempt_enable();
- 
- 	return (void *)vaddr;
-@@ -499,11 +498,57 @@ void kunmap_atomic_indexed(void *vaddr)
- 	arch_kmap_temp_pre_unmap(addr);
- 	pte_clear(&init_mm, addr, kmap_pte - idx);
- 	arch_kmap_temp_post_unmap(addr);
-+	current->kmap_ctrl.pteval[kmap_atomic_idx()] = __pte(0);
- 	kmap_atomic_idx_pop();
- 	preempt_enable();
- 	pagefault_enable();
- }
- EXPORT_SYMBOL(kunmap_atomic_indexed);
-+
-+void kmap_switch_temporary(struct task_struct *prev, struct task_struct *next)
-+{
-+	pte_t *kmap_pte = kmap_get_pte();
-+	int i;
-+
-+	/* Clear @prev's kmaps */
-+	for (i = 0; i < prev->kmap_ctrl.idx; i++) {
-+		pte_t pteval = prev->kmap_ctrl.pteval[i];
-+		unsigned long addr;
-+		int idx;
-+
-+		if (WARN_ON_ONCE(pte_none(pteval)))
-+			continue;
-+
-+		/*
-+		 * This is a horrible hack for XTENSA to calculate the
-+		 * coloured PTE index. Uses the PFN encoded into the pteval
-+		 * and the map index calculation because the actual mapped
-+		 * virtual address is not stored in task::kmap_ctrl.
-+		 *
-+		 * For any sane architecture that address calculation is
-+		 * optimized out.
-+		 */
-+		idx = arch_kmap_temp_map_idx(i, pte_pfn(pteval));
-+
-+		arch_kmap_temp_pre_unmap(addr);
-+		pte_clear(&init_mm, addr, kmap_pte - idx);
-+		arch_kmap_temp_post_unmap(addr);
-+	}
-+
-+	/* Restore @next's kmaps */
-+	for (i = 0; i < next->kmap_ctrl.idx; i++) {
-+		pte_t pteval = next->kmap_ctrl.pteval[i];
-+		int idx;
-+
-+		if (WARN_ON_ONCE(pte_none(pteval)))
-+			continue;
-+
-+		idx = arch_kmap_temp_map_idx(i, pte_pfn(pteval));
-+		set_pte(kmap_pte - idx, pteval);
-+		arch_kmap_temp_post_map(addr, pteval);
-+	}
-+}
-+
- #endif
- 
- #if defined(HASHED_PAGE_VIRTUAL)
+Thanks for working on this! 
 
