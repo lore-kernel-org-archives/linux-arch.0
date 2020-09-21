@@ -2,40 +2,41 @@ Return-Path: <SRS0=rgBY=C6=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_GIT autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7287BC4347E
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Sep 2020 14:36:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7C1D4C4346A
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Sep 2020 14:36:14 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 38C2B222BB
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Sep 2020 14:36:15 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3884E22262
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Sep 2020 14:36:14 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="OtPsbytG"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="GRkfTBxW"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726969AbgIUOee (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 21 Sep 2020 10:34:34 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42178 "EHLO
+        id S1727174AbgIUOef (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 21 Sep 2020 10:34:35 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42186 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726471AbgIUOec (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Sep 2020 10:34:32 -0400
+        with ESMTP id S1726501AbgIUOed (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Sep 2020 10:34:33 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EFFDBC061755;
-        Mon, 21 Sep 2020 07:34:30 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 15CFCC0613D0;
+        Mon, 21 Sep 2020 07:34:33 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
-        Content-Description:In-Reply-To:References;
-        bh=8Kz1DGu4Y1npvsQfjeR0IuDoooJXN+7G6DfyjI+HLNA=; b=OtPsbytGKDJDCuQypN2pYiSnoe
-        WW9gEK1h3pS7c+IQZpnzc0Z2syR2DXQhQvIG69gs0m4gIsYDKdpbqTPoJY0KAH/4RpKbeW8iZ1mRX
-        vxkW+18T3nFRDMLa0nVyDIB3SOH1V3r9kDVBdzpbv9bxb4RAEG9axuO1VhoVIBGbmODrrzwl7s4B2
-        WjgXwnbcnEwkrtq0pGDN05iXhBJjZM95u3BbE1Q7EZKpepfhIa4lsQpYT8cI9u/NrdyqDlTS9j0PA
-        aPYsG/HabbUElCCwrUATgfMpg2D12Ceg09o3ge7xKDfkMLp5samCXpvbTzXxzUTh1yaGtXuT5+Efi
-        QKoS47JA==;
+        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+        Content-Type:Content-ID:Content-Description;
+        bh=puJFCdMF2FXbv89uAHf/KkyLCkpGKdSCiHzE06eX0/Y=; b=GRkfTBxWaYN59mWczbVBJZ/J4z
+        kVM8Nphlbf3FY02zkGWWBVM283NPs2K9y+IDVdwyxNN1Q6a4B7YoCyWtJodiottCcy6XpP96dRyGn
+        JHkp6fow0Ism2aY5WYKFck/rP6z+BMXBmYaJqqKRA5DWZwKptXaUZhs1y+Gx9Hcs78ge5sNfRyKIN
+        h2HYTgdyzISCw5GbBnBiQ0zAOMx4TZdmJQTPfx5COcVblaZe9D1Cqm0YVjyEpK04tgDaqtazmJ5UR
+        ftg8Mk3Zj7g+8AAriBQApIZOIJYX0rTvWCnxH8RgTXNwePT8RLDRBDPDY+Cv19f1nEHzB8vcryJzp
+        d7oTPRIQ==;
 Received: from p4fdb0c34.dip0.t-ipconnect.de ([79.219.12.52] helo=localhost)
         by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kKMtW-0007qY-0E; Mon, 21 Sep 2020 14:34:19 +0000
+        id 1kKMtZ-0007rC-EL; Mon, 21 Sep 2020 14:34:21 +0000
 From:   Christoph Hellwig <hch@lst.de>
 To:     Alexander Viro <viro@zeniv.linux.org.uk>
 Cc:     Andrew Morton <akpm@linux-foundation.org>,
@@ -50,11 +51,15 @@ Cc:     Andrew Morton <akpm@linux-foundation.org>,
         linux-aio@kvack.org, io-uring@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         netdev@vger.kernel.org, keyrings@vger.kernel.org,
-        linux-security-module@vger.kernel.org
-Subject: let import_iovec deal with compat_iovecs as well v2
-Date:   Mon, 21 Sep 2020 16:34:23 +0200
-Message-Id: <20200921143434.707844-1-hch@lst.de>
+        linux-security-module@vger.kernel.org,
+        David Laight <David.Laight@ACULAB.COM>,
+        David Laight <david.laight@aculab.com>
+Subject: [PATCH 02/11] mm: call import_iovec() instead of rw_copy_check_uvector() in process_vm_rw()
+Date:   Mon, 21 Sep 2020 16:34:25 +0200
+Message-Id: <20200921143434.707844-3-hch@lst.de>
 X-Mailer: git-send-email 2.28.0
+In-Reply-To: <20200921143434.707844-1-hch@lst.de>
+References: <20200921143434.707844-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
@@ -62,46 +67,121 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Al,
+From: David Laight <David.Laight@ACULAB.COM>
 
-this series changes import_iovec to transparently deal with comat iovec
-structures, and then cleanups up a lot of code dupliation.
+This is the only direct call of rw_copy_check_uvector().  Removing it
+will allow rw_copy_check_uvector() to be inlined into import_iovec(),
+while only paying a minor price by setting up an otherwise unused
+iov_iter in the process_vm_readv/process_vm_writev syscalls that aren't
+in a super hot path.
 
-Changes since v1:
- - improve a commit message
- - drop a pointless unlikely
- - drop the PF_FORCE_COMPAT flag
- - add a few more cleanups (including two from David Laight)
+Signed-off-by: David Laight <david.laight@aculab.com>
+[hch: expanded the commit log, pass CHECK_IOVEC_ONLY instead of 0 for the
+      compat case, handle CHECK_IOVEC_ONLY in iov_iter_init]
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ lib/iov_iter.c         |  2 +-
+ mm/process_vm_access.c | 33 ++++++++++++++++++---------------
+ 2 files changed, 19 insertions(+), 16 deletions(-)
 
-Diffstat:
- arch/arm64/include/asm/unistd32.h                  |   10 
- arch/mips/kernel/syscalls/syscall_n32.tbl          |   10 
- arch/mips/kernel/syscalls/syscall_o32.tbl          |   10 
- arch/parisc/kernel/syscalls/syscall.tbl            |   10 
- arch/powerpc/kernel/syscalls/syscall.tbl           |   10 
- arch/s390/kernel/syscalls/syscall.tbl              |   10 
- arch/sparc/kernel/syscalls/syscall.tbl             |   10 
- arch/x86/entry/syscall_x32.c                       |    5 
- arch/x86/entry/syscalls/syscall_32.tbl             |   10 
- arch/x86/entry/syscalls/syscall_64.tbl             |   10 
- block/scsi_ioctl.c                                 |   12 
- drivers/scsi/sg.c                                  |    9 
- fs/aio.c                                           |   38 --
- fs/io_uring.c                                      |   20 -
- fs/read_write.c                                    |  362 +--------------------
- fs/splice.c                                        |   57 ---
- include/linux/compat.h                             |   24 -
- include/linux/fs.h                                 |   11 
- include/linux/uio.h                                |   10 
- include/uapi/asm-generic/unistd.h                  |   12 
- lib/iov_iter.c                                     |  161 +++++++--
- mm/process_vm_access.c                             |   85 ----
- net/compat.c                                       |    4 
- security/keys/compat.c                             |   37 --
- security/keys/internal.h                           |    5 
- security/keys/keyctl.c                             |    2 
- tools/include/uapi/asm-generic/unistd.h            |   12 
- tools/perf/arch/powerpc/entry/syscalls/syscall.tbl |   10 
- tools/perf/arch/s390/entry/syscalls/syscall.tbl    |   10 
- tools/perf/arch/x86/entry/syscalls/syscall_64.tbl  |   10 
- 30 files changed, 280 insertions(+), 706 deletions(-)
+diff --git a/lib/iov_iter.c b/lib/iov_iter.c
+index 5e40786c8f1232..db54588406dfae 100644
+--- a/lib/iov_iter.c
++++ b/lib/iov_iter.c
+@@ -443,7 +443,7 @@ void iov_iter_init(struct iov_iter *i, unsigned int direction,
+ 			const struct iovec *iov, unsigned long nr_segs,
+ 			size_t count)
+ {
+-	WARN_ON(direction & ~(READ | WRITE));
++	WARN_ON(direction & ~(READ | WRITE | CHECK_IOVEC_ONLY));
+ 	direction &= READ | WRITE;
+ 
+ 	/* It will get better.  Eventually... */
+diff --git a/mm/process_vm_access.c b/mm/process_vm_access.c
+index 29c052099affdc..40cd502c337534 100644
+--- a/mm/process_vm_access.c
++++ b/mm/process_vm_access.c
+@@ -264,7 +264,7 @@ static ssize_t process_vm_rw(pid_t pid,
+ 	struct iovec iovstack_r[UIO_FASTIOV];
+ 	struct iovec *iov_l = iovstack_l;
+ 	struct iovec *iov_r = iovstack_r;
+-	struct iov_iter iter;
++	struct iov_iter iter_l, iter_r;
+ 	ssize_t rc;
+ 	int dir = vm_write ? WRITE : READ;
+ 
+@@ -272,23 +272,25 @@ static ssize_t process_vm_rw(pid_t pid,
+ 		return -EINVAL;
+ 
+ 	/* Check iovecs */
+-	rc = import_iovec(dir, lvec, liovcnt, UIO_FASTIOV, &iov_l, &iter);
++	rc = import_iovec(dir, lvec, liovcnt, UIO_FASTIOV, &iov_l, &iter_l);
+ 	if (rc < 0)
+ 		return rc;
+-	if (!iov_iter_count(&iter))
++	if (!iov_iter_count(&iter_l))
+ 		goto free_iovecs;
+ 
+-	rc = rw_copy_check_uvector(CHECK_IOVEC_ONLY, rvec, riovcnt, UIO_FASTIOV,
+-				   iovstack_r, &iov_r);
++	rc = import_iovec(CHECK_IOVEC_ONLY, rvec, riovcnt, UIO_FASTIOV, &iov_r,
++			  &iter_r);
+ 	if (rc <= 0)
+ 		goto free_iovecs;
+ 
+-	rc = process_vm_rw_core(pid, &iter, iov_r, riovcnt, flags, vm_write);
++	rc = process_vm_rw_core(pid, &iter_l, iter_r.iov, iter_r.nr_segs,
++				flags, vm_write);
+ 
+ free_iovecs:
+ 	if (iov_r != iovstack_r)
+ 		kfree(iov_r);
+-	kfree(iov_l);
++	if (iov_l != iovstack_l)
++		kfree(iov_l);
+ 
+ 	return rc;
+ }
+@@ -322,30 +324,31 @@ compat_process_vm_rw(compat_pid_t pid,
+ 	struct iovec iovstack_r[UIO_FASTIOV];
+ 	struct iovec *iov_l = iovstack_l;
+ 	struct iovec *iov_r = iovstack_r;
+-	struct iov_iter iter;
++	struct iov_iter iter_l, iter_r;
+ 	ssize_t rc = -EFAULT;
+ 	int dir = vm_write ? WRITE : READ;
+ 
+ 	if (flags != 0)
+ 		return -EINVAL;
+ 
+-	rc = compat_import_iovec(dir, lvec, liovcnt, UIO_FASTIOV, &iov_l, &iter);
++	rc = compat_import_iovec(dir, lvec, liovcnt, UIO_FASTIOV, &iov_l, &iter_l);
+ 	if (rc < 0)
+ 		return rc;
+-	if (!iov_iter_count(&iter))
++	if (!iov_iter_count(&iter_l))
+ 		goto free_iovecs;
+-	rc = compat_rw_copy_check_uvector(CHECK_IOVEC_ONLY, rvec, riovcnt,
+-					  UIO_FASTIOV, iovstack_r,
+-					  &iov_r);
++	rc = compat_import_iovec(CHECK_IOVEC_ONLY, rvec, riovcnt, UIO_FASTIOV,
++				 &iov_r, &iter_r);
+ 	if (rc <= 0)
+ 		goto free_iovecs;
+ 
+-	rc = process_vm_rw_core(pid, &iter, iov_r, riovcnt, flags, vm_write);
++	rc = process_vm_rw_core(pid, &iter_l, iter_r.iov, iter_r.nr_segs,
++				flags, vm_write);
+ 
+ free_iovecs:
+ 	if (iov_r != iovstack_r)
+ 		kfree(iov_r);
+-	kfree(iov_l);
++	if (iov_l != iovstack_l)
++		kfree(iov_l);
+ 	return rc;
+ }
+ 
+-- 
+2.28.0
+
