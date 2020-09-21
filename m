@@ -2,170 +2,70 @@ Return-Path: <SRS0=rgBY=C6=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-22.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_IN_DEF_DKIM_WL autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0E7A1C43466
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Sep 2020 15:53:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2EE6AC43466
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Sep 2020 16:12:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B4EC5235FA
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Sep 2020 15:53:51 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="wS3DJbGh"
+	by mail.kernel.org (Postfix) with ESMTP id DAD8A20708
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Sep 2020 16:12:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727219AbgIUPxv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 21 Sep 2020 11:53:51 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54514 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726810AbgIUPxv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Sep 2020 11:53:51 -0400
-Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 17CF6C0613D0
-        for <linux-arch@vger.kernel.org>; Mon, 21 Sep 2020 08:53:51 -0700 (PDT)
-Received: by mail-pj1-x1043.google.com with SMTP id kk9so12090pjb.2
-        for <linux-arch@vger.kernel.org>; Mon, 21 Sep 2020 08:53:51 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=Fn5z5p0KWkT8F7kdqXLtUSD00/eNhULjEnaQyt7HO3c=;
-        b=wS3DJbGh/toEWGHMWfIYAyfl62a2xPnkTm7cNhPym3mzQxK28qL+kZCrSZggBSROXa
-         NIIsRsLPprRNfrNxq/O7SgGIAQv+11RPoBUmYfVay0H+wQrvpSFqZGCCwczoE0PI3NwM
-         BajK6bGuvdWSOxCULPkkElyJinqDQbfrg3BX4qxe0nSoLtxoqCUZ4DYY8jlgM9XNnsxV
-         m952IZLwDFx/YDBae5MI6BosCFQlIVPnADU67SRlbPRPa3XZPP99q/tE/mqTrWmaFUGB
-         Cr7PUOGoUwpYEL9jPXyQWHhnShzEybRi2A7whxiV331Jx4G8BVdc/1kDmDMbH8AHeYn9
-         IaBA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=Fn5z5p0KWkT8F7kdqXLtUSD00/eNhULjEnaQyt7HO3c=;
-        b=ngcf7Dg4l4xjTFaHBHjyFxrVSu8SImdYTpYrefx0oURYnSY9EPwuDn0kdocRUwBBQS
-         YhFbb2UFAZG3K0H8j9kJfnlgWwDA90AEaKlVjzyfxzPLWmfQHxNm9a0GBPVYmnlfwP/y
-         l+s5PXxGUI9PqsaY4MKTYfmwZmsmKsQAjR6gBvXTR7Wg/wpRQ0VbbkF4Y6VEbAiLahpl
-         8xgtzIlojk3GvgMLUF3fhckOuc5yU/k3Ov8xPnhNHvECE2rOBdwEtFmI7sQV8kxzfsGa
-         LUTKh70h3L+L9lJ+WXUd0p/zwaR0HZ4gAPz+BTYwXVwN/lDardsk/xRHfk8jX81eYJt2
-         MJKA==
-X-Gm-Message-State: AOAM533deWYKayDW+48G+I1NSOYBgM9lA0Oe5WwMy+gEI86XPs4CK7xW
-        p+t9acVYgxN33IQV+adFs2FD4/ZA02l3PDs/lOA6Qf3QcuU=
-X-Google-Smtp-Source: ABdhPJxEx7C1NCFiroHZ1htfv1qkh42nY8oGzcnOH06wOhFq2SsYUT8w4mdvW5J7C4BtXsEWH+72M+TnlFjXmM5sSRs=
-X-Received: by 2002:a17:90b:889:: with SMTP id bj9mr28426pjb.101.1600703630255;
- Mon, 21 Sep 2020 08:53:50 -0700 (PDT)
+        id S1728028AbgIUQMa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 21 Sep 2020 12:12:30 -0400
+Received: from verein.lst.de ([213.95.11.211]:40705 "EHLO verein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727361AbgIUQMa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 21 Sep 2020 12:12:30 -0400
+Received: by verein.lst.de (Postfix, from userid 2407)
+        id AF5CF68B02; Mon, 21 Sep 2020 18:12:24 +0200 (CEST)
+Date:   Mon, 21 Sep 2020 18:12:24 +0200
+From:   Christoph Hellwig <hch@lst.de>
+To:     Al Viro <viro@zeniv.linux.org.uk>
+Cc:     David Laight <David.Laight@aculab.com>,
+        Christoph Hellwig <hch@lst.de>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Jens Axboe <axboe@kernel.dk>, Arnd Bergmann <arnd@arndb.de>,
+        David Howells <dhowells@redhat.com>,
+        "linux-arm-kernel@lists.infradead.org" 
+        <linux-arm-kernel@lists.infradead.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>,
+        "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>,
+        "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>,
+        "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>,
+        "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>,
+        "linux-block@vger.kernel.org" <linux-block@vger.kernel.org>,
+        "linux-scsi@vger.kernel.org" <linux-scsi@vger.kernel.org>,
+        "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
+        "linux-aio@kvack.org" <linux-aio@kvack.org>,
+        "io-uring@vger.kernel.org" <io-uring@vger.kernel.org>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "linux-mm@kvack.org" <linux-mm@kvack.org>,
+        "netdev@vger.kernel.org" <netdev@vger.kernel.org>,
+        "keyrings@vger.kernel.org" <keyrings@vger.kernel.org>,
+        "linux-security-module@vger.kernel.org" 
+        <linux-security-module@vger.kernel.org>
+Subject: Re: [PATCH 02/11] mm: call import_iovec() instead of
+ rw_copy_check_uvector() in process_vm_rw()
+Message-ID: <20200921161224.GA24807@lst.de>
+References: <20200921143434.707844-1-hch@lst.de> <20200921143434.707844-3-hch@lst.de> <20200921150211.GS3421308@ZenIV.linux.org.uk> <ef67787edb2f48548d69caaaff6997ba@AcuMS.aculab.com> <20200921152937.GX3421308@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-References: <20200918201436.2932360-1-samitolvanen@google.com> <20200918201436.2932360-4-samitolvanen@google.com>
-In-Reply-To: <20200918201436.2932360-4-samitolvanen@google.com>
-From:   Nick Desaulniers <ndesaulniers@google.com>
-Date:   Mon, 21 Sep 2020 08:53:39 -0700
-Message-ID: <CAKwvOdk7pR5dK0ynxPOWHVYVWLMF1CUn6c=_GvpF-80YHNhQEQ@mail.gmail.com>
-Subject: Re: [PATCH v3 03/30] x86/boot/compressed: Disable relocation relaxation
-To:     Sami Tolvanen <samitolvanen@google.com>
-Cc:     Masahiro Yamada <masahiroy@kernel.org>,
-        Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        clang-built-linux <clang-built-linux@googlegroups.com>,
-        Kernel Hardening <kernel-hardening@lists.openwall.com>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
-        LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org,
-        "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>,
-        Arvind Sankar <nivedita@alum.mit.edu>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200921152937.GX3421308@ZenIV.linux.org.uk>
+User-Agent: Mutt/1.5.17 (2007-11-01)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-It looks like this just hit mainline over the weekend. FWIW. EOM.
+On Mon, Sep 21, 2020 at 04:29:37PM +0100, Al Viro wrote:
+> On Mon, Sep 21, 2020 at 03:21:35PM +0000, David Laight wrote:
+> 
+> > You really don't want to be looping through the array twice.
+> 
+> Profiles, please.
 
-On Fri, Sep 18, 2020 at 1:14 PM Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> From: Arvind Sankar <nivedita@alum.mit.edu>
->
-> The x86-64 psABI [0] specifies special relocation types
-> (R_X86_64_[REX_]GOTPCRELX) for indirection through the Global Offset
-> Table, semantically equivalent to R_X86_64_GOTPCREL, which the linker
-> can take advantage of for optimization (relaxation) at link time. This
-> is supported by LLD and binutils versions 2.26 onwards.
->
-> The compressed kernel is position-independent code, however, when using
-> LLD or binutils versions before 2.27, it must be linked without the -pie
-> option. In this case, the linker may optimize certain instructions into
-> a non-position-independent form, by converting foo@GOTPCREL(%rip) to $foo.
->
-> This potential issue has been present with LLD and binutils-2.26 for a
-> long time, but it has never manifested itself before now:
-> - LLD and binutils-2.26 only relax
->         movq    foo@GOTPCREL(%rip), %reg
->   to
->         leaq    foo(%rip), %reg
->   which is still position-independent, rather than
->         mov     $foo, %reg
->   which is permitted by the psABI when -pie is not enabled.
-> - gcc happens to only generate GOTPCREL relocations on mov instructions.
-> - clang does generate GOTPCREL relocations on non-mov instructions, but
->   when building the compressed kernel, it uses its integrated assembler
->   (due to the redefinition of KBUILD_CFLAGS dropping -no-integrated-as),
->   which has so far defaulted to not generating the GOTPCRELX
->   relocations.
->
-> Nick Desaulniers reports [1,2]:
->   A recent change [3] to a default value of configuration variable
->   (ENABLE_X86_RELAX_RELOCATIONS OFF -> ON) in LLVM now causes Clang's
->   integrated assembler to emit R_X86_64_GOTPCRELX/R_X86_64_REX_GOTPCRELX
->   relocations. LLD will relax instructions with these relocations based
->   on whether the image is being linked as position independent or not.
->   When not, then LLD will relax these instructions to use absolute
->   addressing mode (R_RELAX_GOT_PC_NOPIC). This causes kernels built with
->   Clang and linked with LLD to fail to boot.
->
-> Patch series [4] is a solution to allow the compressed kernel to be
-> linked with -pie unconditionally, but even if merged is unlikely to be
-> backported. As a simple solution that can be applied to stable as well,
-> prevent the assembler from generating the relaxed relocation types using
-> the -mrelax-relocations=no option. For ease of backporting, do this
-> unconditionally.
->
-> [0] https://gitlab.com/x86-psABIs/x86-64-ABI/-/blob/master/x86-64-ABI/linker-optimization.tex#L65
-> [1] https://lore.kernel.org/lkml/20200807194100.3570838-1-ndesaulniers@google.com/
-> [2] https://github.com/ClangBuiltLinux/linux/issues/1121
-> [3] https://reviews.llvm.org/rGc41a18cf61790fc898dcda1055c3efbf442c14c0
-> [4] https://lore.kernel.org/lkml/20200731202738.2577854-1-nivedita@alum.mit.edu/
->
-> Reported-by: Nick Desaulniers <ndesaulniers@google.com>
-> Signed-off-by: Arvind Sankar <nivedita@alum.mit.edu>
-> Tested-by: Nick Desaulniers <ndesaulniers@google.com>
-> Tested-by: Sedat Dilek <sedat.dilek@gmail.com>
-> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-> Cc: stable@vger.kernel.org
-> ---
->  arch/x86/boot/compressed/Makefile | 2 ++
->  1 file changed, 2 insertions(+)
->
-> diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
-> index 3962f592633d..ff7894f39e0e 100644
-> --- a/arch/x86/boot/compressed/Makefile
-> +++ b/arch/x86/boot/compressed/Makefile
-> @@ -43,6 +43,8 @@ KBUILD_CFLAGS += -Wno-pointer-sign
->  KBUILD_CFLAGS += $(call cc-option,-fmacro-prefix-map=$(srctree)/=)
->  KBUILD_CFLAGS += -fno-asynchronous-unwind-tables
->  KBUILD_CFLAGS += -D__DISABLE_EXPORTS
-> +# Disable relocation relaxation in case the link is not PIE.
-> +KBUILD_CFLAGS += $(call as-option,-Wa$(comma)-mrelax-relocations=no)
->
->  KBUILD_AFLAGS  := $(KBUILD_CFLAGS) -D__ASSEMBLY__
->  GCOV_PROFILE := n
-> --
-> 2.28.0.681.g6f77f65b4e-goog
->
-
-
--- 
-Thanks,
-~Nick Desaulniers
+Given that the iov array should be cache hot I'd be surprised to
+see a huge difference.  
