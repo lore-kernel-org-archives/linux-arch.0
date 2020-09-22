@@ -2,493 +2,204 @@ Return-Path: <SRS0=B1nT=C7=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-17.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_IN_DEF_DKIM_WL autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	MSGID_FROM_MTA_HEADER,SPF_HELO_NONE,SPF_PASS,UNPARSEABLE_RELAY,URIBL_BLOCKED,
+	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 03EC0C2D0E2
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Sep 2020 12:23:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4BB36C4363D
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Sep 2020 15:53:05 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 736B6208A9
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Sep 2020 12:23:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E157B239D2
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Sep 2020 15:53:04 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="Z3PYOmz3"
+	dkim=pass (1024-bit key) header.d=armh.onmicrosoft.com header.i=@armh.onmicrosoft.com header.b="ya6s8sec";
+	dkim=pass (1024-bit key) header.d=armh.onmicrosoft.com header.i=@armh.onmicrosoft.com header.b="ya6s8sec"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726563AbgIVMXE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Sep 2020 08:23:04 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46528 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726562AbgIVMXD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Sep 2020 08:23:03 -0400
-Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CF970C061755
-        for <linux-arch@vger.kernel.org>; Tue, 22 Sep 2020 05:23:03 -0700 (PDT)
-Received: by mail-pj1-x1041.google.com with SMTP id gf14so1366943pjb.5
-        for <linux-arch@vger.kernel.org>; Tue, 22 Sep 2020 05:23:03 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=QfJr3g7EWEvLrHVjStd9hBLq9lf4DyhXByITRk2r0H0=;
-        b=Z3PYOmz30Eu9j7/G9GURm0WDTCrfU5cCWvBc0iZ0w3oRPQG7y1mENUe1C2NdcY58o3
-         naKF7tJpZhf+e7WerlZXmHLQziaA8TsHMs8ofu+RaaADmld3e/qwt8YQb9vfHVQz1kYt
-         j05xcWh3SQ5+t/UfaIfjfX5k+2jjWSKT9GSf6kmis1DcFfPj6Vg0DKu70u8g8PZCy8iC
-         TL9JSdQdQLc4wPL3BHJXURW/yfdVqI++B18xJ36F5GM0WjEhQfc00aYs8WSOOf8Ro365
-         o4rhtPVS+evIk1z66+lV4/rDsGgTG5UcH9iN3FQFVrcb+yBQUzSsa+2nGi0/7wbklgEl
-         KYWg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=QfJr3g7EWEvLrHVjStd9hBLq9lf4DyhXByITRk2r0H0=;
-        b=NrK4dhr59XR+eiJVIOZ+WCSv8SuEBigcAkNYezdBlKBSzg2dYaQhFFEb95Cj2dip50
-         6cHJBY3dy5WmV1T80VdhF/IeUZhC8FrC8C4puTLwFRHTS/N9d9OQtOXeUWPvMgj4sWN8
-         YTOvXQAQo+JE/Fj4AWQD2shWeQxW3IRvb8hnIGz3xDLZmki+ue0vkJLL25GZYEc99BB/
-         po2vGqqI+vkdrnTivg7EGWSs5/44l860moyY2l3zQUOIfEm6NBXM76lGgVNpz63vcfWH
-         cJhlirgYDpAhsOHp8FqpOJ5SnhX79TCXlCg+MuybCzj/jpS9dbIgFc+a36g3YCkiZ7Ur
-         22Kg==
-X-Gm-Message-State: AOAM533aOtslwoTSHnpuzLTeZYn/hvxqb7t4urNAAJVykLfXT4PdC4Wm
-        WkqxD+0G2wB0eXjEFz5+dWk4LSfAlvRBD9+i4C5ZgQ==
-X-Google-Smtp-Source: ABdhPJzQfHY1Ii40vuPg1nYGQN1FkP72AOCu+gu9ZWMeRyYWAHOAom2yOw91DoeuIZ0MHABRkqqzdAiOKU/jHeEJ2NE=
-X-Received: by 2002:a17:90a:cc0e:: with SMTP id b14mr3351047pju.166.1600777382916;
- Tue, 22 Sep 2020 05:23:02 -0700 (PDT)
-MIME-Version: 1.0
-References: <20200904103029.32083-1-catalin.marinas@arm.com> <20200904103029.32083-30-catalin.marinas@arm.com>
-In-Reply-To: <20200904103029.32083-30-catalin.marinas@arm.com>
-From:   Andrey Konovalov <andreyknvl@google.com>
-Date:   Tue, 22 Sep 2020 14:22:51 +0200
-Message-ID: <CAAeHK+xbJEnvvPiB9ywR_76UqDFpe2HdPn7sDAY+-gso8=ngCw@mail.gmail.com>
-Subject: Re: [PATCH v9 29/29] arm64: mte: Add Memory Tagging Extension documentation
+        id S1726634AbgIVPxE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Sep 2020 11:53:04 -0400
+Received: from mail-eopbgr140042.outbound.protection.outlook.com ([40.107.14.42]:39017
+        "EHLO EUR01-VE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726589AbgIVPxE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 22 Sep 2020 11:53:04 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=armh.onmicrosoft.com;
+ s=selector2-armh-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=TNlMc3BfSCHBfmvuHxysUdTHrqLsanEl/lgUOtkyrZI=;
+ b=ya6s8secKJnUuPrqMD57mof50sK8ubEu/bFd/qXrCcIT1zdTW+sS9vlWnxHvstA5rXtPNtZsKhPU81VzCr5gG6aZ1Y/0K1WuHMLCXYRSUGZwnMlhn4AwTGoiDOiJT8bJcJK6p9kHQJsSW9+4JvgK3Fg9oAI+UENQGf+50IxjobM=
+Received: from AM5PR04CA0015.eurprd04.prod.outlook.com (2603:10a6:206:1::28)
+ by VI1PR08MB5501.eurprd08.prod.outlook.com (2603:10a6:803:138::21) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3370.17; Tue, 22 Sep
+ 2020 15:53:00 +0000
+Received: from VE1EUR03FT042.eop-EUR03.prod.protection.outlook.com
+ (2603:10a6:206:1:cafe::14) by AM5PR04CA0015.outlook.office365.com
+ (2603:10a6:206:1::28) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3391.15 via Frontend
+ Transport; Tue, 22 Sep 2020 15:53:00 +0000
+X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 63.35.35.123)
+ smtp.mailfrom=arm.com; vger.kernel.org; dkim=pass (signature was verified)
+ header.d=armh.onmicrosoft.com;vger.kernel.org; dmarc=bestguesspass
+ action=none header.from=arm.com;
+Received-SPF: Pass (protection.outlook.com: domain of arm.com designates
+ 63.35.35.123 as permitted sender) receiver=protection.outlook.com;
+ client-ip=63.35.35.123; helo=64aa7808-outbound-1.mta.getcheckrecipient.com;
+Received: from 64aa7808-outbound-1.mta.getcheckrecipient.com (63.35.35.123) by
+ VE1EUR03FT042.mail.protection.outlook.com (10.152.19.62) with Microsoft SMTP
+ Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.20.3391.15 via Frontend Transport; Tue, 22 Sep 2020 15:53:00 +0000
+Received: ("Tessian outbound 195a290eb161:v64"); Tue, 22 Sep 2020 15:52:59 +0000
+X-CheckRecipientChecked: true
+X-CR-MTA-CID: f6ed8c82c5e227ec
+X-CR-MTA-TID: 64aa7808
+Received: from 8ce197089d28.1
+        by 64aa7808-outbound-1.mta.getcheckrecipient.com id 42BC8765-7AE1-4912-8B77-5AF8C51E68DD.1;
+        Tue, 22 Sep 2020 15:52:54 +0000
+Received: from EUR03-VE1-obe.outbound.protection.outlook.com
+    by 64aa7808-outbound-1.mta.getcheckrecipient.com with ESMTPS id 8ce197089d28.1
+    (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384);
+    Tue, 22 Sep 2020 15:52:54 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=hknS0N+UtDSYG5AEf1YZLG8h9JMtq2cDG+DKb36u1pgfc7Cma276SApH8hFD3nwko90I/hGXRlsPwTXT8M5O+TKacQEXPiBN/kibBDnRpWOl+w9IRbd/v8oJ/1YuYj9iI1Kn1sAHA03Ilwm9CAvyIiya4nY5y1kWl2V8gogaaTNMPvsduefyElcl9kuHGW0UrLNWISfmp/CQ10Ex+UPpEZT+zzOlcAZbmoD940UKupsVeULswCIGcsRlZ3d2R8XAjQURYSZrhTR8Uzw/r7Jjh9EwVvWEHe7P6ed5Oq+PP/MjCUfH5WH3o1L5kDkDDq/n6Y8PuN/gm54wVz6SWKJO6g==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=TNlMc3BfSCHBfmvuHxysUdTHrqLsanEl/lgUOtkyrZI=;
+ b=Hg3PRNOUUphhK8HOqsnMhQRIxHYp7jepRztn0AV4/5vHu1zWAJBSzsxhrMJzpL9txcFzXOWNKC40tHQwtJKwb81oiRCCyr1bLDThHHFszUvTuNEi9GE8yAASe49PZDfHZnQTlLkw8I8xsUam0xeBNDdBx+UI8HFatPTXAKk2oJOLSQBKr7xrBXSXr2+RFpclkxmkGNQAXDR2O/kURphLffromeu9qZkyayGFdufyYBr/SjbEx5jM+/1/bBVf/KgssDbL43MX72y+020vyL3nGQbYZqTot/NvPmEmJIY8vx29sF0bTQhutRN65xjSWDzf4kTKZVkXJu2FfjOONUw3HQ==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=arm.com; dmarc=pass action=none header.from=arm.com; dkim=pass
+ header.d=arm.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=armh.onmicrosoft.com;
+ s=selector2-armh-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=TNlMc3BfSCHBfmvuHxysUdTHrqLsanEl/lgUOtkyrZI=;
+ b=ya6s8secKJnUuPrqMD57mof50sK8ubEu/bFd/qXrCcIT1zdTW+sS9vlWnxHvstA5rXtPNtZsKhPU81VzCr5gG6aZ1Y/0K1WuHMLCXYRSUGZwnMlhn4AwTGoiDOiJT8bJcJK6p9kHQJsSW9+4JvgK3Fg9oAI+UENQGf+50IxjobM=
+Authentication-Results-Original: arm.com; dkim=none (message not signed)
+ header.d=none;arm.com; dmarc=none action=none header.from=arm.com;
+Received: from PR3PR08MB5564.eurprd08.prod.outlook.com (2603:10a6:102:87::18)
+ by PR3PR08MB5563.eurprd08.prod.outlook.com (2603:10a6:102:89::13) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3412.20; Tue, 22 Sep
+ 2020 15:52:51 +0000
+Received: from PR3PR08MB5564.eurprd08.prod.outlook.com
+ ([fe80::ad67:3b31:680d:9d01]) by PR3PR08MB5564.eurprd08.prod.outlook.com
+ ([fe80::ad67:3b31:680d:9d01%3]) with mapi id 15.20.3391.027; Tue, 22 Sep 2020
+ 15:52:51 +0000
+Date:   Tue, 22 Sep 2020 16:52:49 +0100
+From:   Szabolcs Nagy <szabolcs.nagy@arm.com>
 To:     Catalin Marinas <catalin.marinas@arm.com>
-Cc:     Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        Linux Memory Management List <linux-mm@kvack.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Will Deacon <will@kernel.org>,
-        Dave P Martin <Dave.Martin@arm.com>,
+Cc:     Will Deacon <will@kernel.org>,
+        linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, Dave P Martin <Dave.Martin@arm.com>,
         Vincenzo Frascino <vincenzo.frascino@arm.com>,
-        Szabolcs Nagy <szabolcs.nagy@arm.com>,
         Kevin Brodsky <kevin.brodsky@arm.com>,
+        Andrey Konovalov <andreyknvl@google.com>,
         Peter Collingbourne <pcc@google.com>,
         Andrew Morton <akpm@linux-foundation.org>,
         libc-alpha@sourceware.org
-Content-Type: text/plain; charset="UTF-8"
+Subject: Re: [PATCH v9 29/29] arm64: mte: Add Memory Tagging Extension
+ documentation
+Message-ID: <20200922155248.GA16385@arm.com>
+References: <20200904103029.32083-1-catalin.marinas@arm.com>
+ <20200904103029.32083-30-catalin.marinas@arm.com>
+ <20200917081107.GA29031@willie-the-truck>
+ <20200917090229.GA10662@gaia>
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20200917090229.GA10662@gaia>
+User-Agent: Mutt/1.9.4 (2018-02-28)
+X-ClientProxiedBy: LO2P265CA0091.GBRP265.PROD.OUTLOOK.COM
+ (2603:10a6:600:8::31) To PR3PR08MB5564.eurprd08.prod.outlook.com
+ (2603:10a6:102:87::18)
+MIME-Version: 1.0
+X-MS-Exchange-MessageSentRepresentingType: 1
+Received: from arm.com (217.140.106.54) by LO2P265CA0091.GBRP265.PROD.OUTLOOK.COM (2603:10a6:600:8::31) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3391.14 via Frontend Transport; Tue, 22 Sep 2020 15:52:51 +0000
+X-Originating-IP: [217.140.106.54]
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-HT: Tenant
+X-MS-Office365-Filtering-Correlation-Id: 291417d2-8d49-45df-30e7-08d85f0f9515
+X-MS-TrafficTypeDiagnostic: PR3PR08MB5563:|VI1PR08MB5501:
+X-MS-Exchange-Transport-Forked: True
+X-Microsoft-Antispam-PRVS: <VI1PR08MB5501CEFA8DD9DF6F6E126060ED3B0@VI1PR08MB5501.eurprd08.prod.outlook.com>
+x-checkrecipientrouted: true
+NoDisclaimer: true
+X-MS-Oob-TLC-OOBClassifiers: OLM:8882;OLM:8882;
+X-MS-Exchange-SenderADCheck: 1
+X-Microsoft-Antispam-Untrusted: BCL:0;
+X-Microsoft-Antispam-Message-Info-Original: 6pgZPDuq6+dE03Ok39pzE1S12bxKbSkjBRrdHBJMkV8h6oEEMl7opsxDcsV9speEYDHkDcVtPzoFGNBXz+VnZE0J2WTRAC4yrqS08bEmwbSoB+5iFqkR5OrgHVijgeRPC5tlJITRN5XwMtx81e+ZfqX+N32FZ1PW+M10B255zL3Zs1bRpBm3/8Ou3sQ0KgYCtY/okQ5uOV6VtaqAl4c+IK2cdbMXdX7YkrCRXJ8ypWx0sfOoH7GSQTrQn1tydvTOLIyos9BMWVeefCsgOX6nKuwQSwUZxG75DINAc2B9dxaIfi+cCbpgcvIKjh3rBdNcD0I28y7ka0GhjkIx3lW7/w==
+X-Forefront-Antispam-Report-Untrusted: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:PR3PR08MB5564.eurprd08.prod.outlook.com;PTR:;CAT:NONE;SFS:(4636009)(396003)(366004)(39850400004)(346002)(376002)(136003)(16526019)(6636002)(33656002)(86362001)(956004)(2616005)(478600001)(8936002)(26005)(7696005)(52116002)(83380400001)(5660300002)(54906003)(6862004)(8676002)(8886007)(44832011)(55016002)(4326008)(66556008)(186003)(316002)(37006003)(66476007)(66946007)(2906002)(1076003)(36756003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData: HdM9/F3GeXgJ2cZC6B9uK74rGDCFoQt2zyWnwrZ5Z6Xj0F9tKgSrz3r8Wic8NEHJxqhQqGTiFzSLlcFnGqe4OHtfPXaIHFct/x4C/kcBHPFJx5+HIK3JFonoPY3UMcnP5dwvBptg6BnXvQp7dJ+VIlMv5DCELVYam5x9hiiobM0yecr2xwTbMGc37C9vzCWRHsxKwhs47sQd1uJm5xYQuBMDpQ7tgxuKw+RrDQcYUnqeWz/gfG6iVVuUo5zq3ZO/A4VTLokp/oSxCN+F1Y5X7DCLvhA+nroSRte4dTTc39D6x2VYsXNZEwmBGCQyfrrSGtU0OwaDYac7f5gKoxIaKXd8W0esRadu1rk4e43G4lnTC37ezt+kyqQzmkWReCatHNtbq+igMho90rCKrIKu61/Y8kRnIJMBpfzP16OkyP5UxTomaOiLA1z6wjqC0x/xp7rdsphlHWU3hh3M0K3LZ+vtBXYkJUdUGTlFsL8cYqwUiQUoLAKJOecAviNOps66mibcTiV44/sK27KBj8wFYheCUJjKv4qZdDKdRU826QTLO3rMesczUh4bMi1pVhGy+FUBzCY9clmgBuUJjFnXDZxKiOj2fWCWpbYnR9rKyn8tOU4+mhBmVhXmZ8c3MOrpudkJ5ceg06VtjbiFBBncOw==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: PR3PR08MB5563
+Original-Authentication-Results: arm.com; dkim=none (message not signed)
+ header.d=none;arm.com; dmarc=none action=none header.from=arm.com;
+X-EOPAttributedMessage: 0
+X-MS-Exchange-Transport-CrossTenantHeadersStripped: VE1EUR03FT042.eop-EUR03.prod.protection.outlook.com
+X-MS-Office365-Filtering-Correlation-Id-Prvs: b3c98b4d-fc1c-4bdf-b8d1-08d85f0f8fbe
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info: ntMd37bpYDUNd67poTvph45vedPtOGyeH8wUr3k4W7GkJ0DQhHBP/flyrz51STAMOzoCKUuuKjnML4c6sYkf3sMCtacB67f2lrKG1di/prIf5F0yvbHVoFOxYvSBtaeJFhFrmhQb4QmlGdr6uPKBkwugDhcU53z1KnJi75NqC2WGSX+KTjm/6rzkKGVPLVAdkod7dtCL5ZHCYvqKzmXxjyPaiRvGXc2J+enda+FwO0V5NTK5cawEGhPN/58iv4lyoSoiViev+5qOWEB2tmf/7TRbCuh/1F008BLue2rVmZfCe397tuL9gSROz4kSrA2gb2BEiu1RhjqGwz45iId1JAoPtCnMoq5qVGB5kK1JsE/3EGsZXVPEu6Oqm7l1wNq6+4IG619cU6TNkx2fyVpTXg==
+X-Forefront-Antispam-Report: CIP:63.35.35.123;CTRY:IE;LANG:en;SCL:1;SRV:;IPV:CAL;SFV:NSPM;H:64aa7808-outbound-1.mta.getcheckrecipient.com;PTR:ec2-63-35-35-123.eu-west-1.compute.amazonaws.com;CAT:NONE;SFS:(4636009)(39860400002)(346002)(136003)(396003)(376002)(46966005)(70206006)(956004)(8676002)(37006003)(54906003)(33656002)(8886007)(44832011)(336012)(2906002)(86362001)(82310400003)(478600001)(2616005)(6636002)(5660300002)(70586007)(83380400001)(186003)(36906005)(36756003)(316002)(7696005)(82740400003)(356005)(81166007)(107886003)(47076004)(55016002)(1076003)(4326008)(16526019)(6862004)(26005)(8936002);DIR:OUT;SFP:1101;
+X-OriginatorOrg: arm.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 22 Sep 2020 15:53:00.2097
+ (UTC)
+X-MS-Exchange-CrossTenant-Network-Message-Id: 291417d2-8d49-45df-30e7-08d85f0f9515
+X-MS-Exchange-CrossTenant-Id: f34e5979-57d9-4aaa-ad4d-b122a662184d
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=f34e5979-57d9-4aaa-ad4d-b122a662184d;Ip=[63.35.35.123];Helo=[64aa7808-outbound-1.mta.getcheckrecipient.com]
+X-MS-Exchange-CrossTenant-AuthSource: VE1EUR03FT042.eop-EUR03.prod.protection.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: VI1PR08MB5501
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Sep 4, 2020 at 12:31 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
->
-> From: Vincenzo Frascino <vincenzo.frascino@arm.com>
->
-> Memory Tagging Extension (part of the ARMv8.5 Extensions) provides
-> a mechanism to detect the sources of memory related errors which
-> may be vulnerable to exploitation, including bounds violations,
-> use-after-free, use-after-return, use-out-of-scope and use before
-> initialization errors.
->
-> Add Memory Tagging Extension documentation for the arm64 linux
-> kernel support.
->
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Acked-by: Szabolcs Nagy <szabolcs.nagy@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> ---
->
-> Notes:
->     v7:
->     - Add information on ptrace() regset access (NT_ARM_TAGGED_ADDR_CTRL).
->
->     v4:
->     - Document behaviour of madvise(MADV_DONTNEED/MADV_FREE).
->     - Document the initial process state on fork/execve.
->     - Clarify when the kernel uaccess checks the tags.
->     - Minor updates to the example code.
->     - A few other minor clean-ups following review.
->
->     v3:
->     - Modify the uaccess checking conditions: only when the sync mode is
->       selected by the user. In async mode, the kernel uaccesses are not
->       checked.
->     - Clarify that an include mask of 0 (exclude mask 0xffff) results in
->       always generating tag 0.
->     - Document the ptrace() interface.
->
->     v2:
->     - Documented the uaccess kernel tag checking mode.
->     - Removed the BTI definitions from cpu-feature-registers.rst.
->     - Removed the paragraph stating that MTE depends on the tagged address
->       ABI (while the Kconfig entry does, there is no requirement for the
->       user to enable both).
->     - Changed the GCR_EL1.Exclude handling description following the change
->       in the prctl() interface (include vs exclude mask).
->     - Updated the example code.
->
->  Documentation/arm64/cpu-feature-registers.rst |   2 +
->  Documentation/arm64/elf_hwcaps.rst            |   4 +
->  Documentation/arm64/index.rst                 |   1 +
->  .../arm64/memory-tagging-extension.rst        | 305 ++++++++++++++++++
->  4 files changed, 312 insertions(+)
->  create mode 100644 Documentation/arm64/memory-tagging-extension.rst
->
-> diff --git a/Documentation/arm64/cpu-feature-registers.rst b/Documentation/arm64/cpu-feature-registers.rst
-> index f28853f80089..328e0c454fbd 100644
-> --- a/Documentation/arm64/cpu-feature-registers.rst
-> +++ b/Documentation/arm64/cpu-feature-registers.rst
-> @@ -175,6 +175,8 @@ infrastructure:
->       +------------------------------+---------+---------+
->       | Name                         |  bits   | visible |
->       +------------------------------+---------+---------+
-> +     | MTE                          | [11-8]  |    y    |
-> +     +------------------------------+---------+---------+
->       | SSBS                         | [7-4]   |    y    |
->       +------------------------------+---------+---------+
->       | BT                           | [3-0]   |    y    |
-> diff --git a/Documentation/arm64/elf_hwcaps.rst b/Documentation/arm64/elf_hwcaps.rst
-> index 84a9fd2d41b4..bbd9cf54db6c 100644
-> --- a/Documentation/arm64/elf_hwcaps.rst
-> +++ b/Documentation/arm64/elf_hwcaps.rst
-> @@ -240,6 +240,10 @@ HWCAP2_BTI
->
->      Functionality implied by ID_AA64PFR0_EL1.BT == 0b0001.
->
-> +HWCAP2_MTE
-> +
-> +    Functionality implied by ID_AA64PFR1_EL1.MTE == 0b0010, as described
-> +    by Documentation/arm64/memory-tagging-extension.rst.
->
->  4. Unused AT_HWCAP bits
->  -----------------------
-> diff --git a/Documentation/arm64/index.rst b/Documentation/arm64/index.rst
-> index d9665d83c53a..43b0939d384e 100644
-> --- a/Documentation/arm64/index.rst
-> +++ b/Documentation/arm64/index.rst
-> @@ -14,6 +14,7 @@ ARM64 Architecture
->      hugetlbpage
->      legacy_instructions
->      memory
-> +    memory-tagging-extension
->      perf
->      pointer-authentication
->      silicon-errata
-> diff --git a/Documentation/arm64/memory-tagging-extension.rst b/Documentation/arm64/memory-tagging-extension.rst
-> new file mode 100644
-> index 000000000000..e3709b536b89
-> --- /dev/null
-> +++ b/Documentation/arm64/memory-tagging-extension.rst
-> @@ -0,0 +1,305 @@
-> +===============================================
-> +Memory Tagging Extension (MTE) in AArch64 Linux
-> +===============================================
-> +
-> +Authors: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> +         Catalin Marinas <catalin.marinas@arm.com>
-> +
-> +Date: 2020-02-25
-> +
-> +This document describes the provision of the Memory Tagging Extension
-> +functionality in AArch64 Linux.
-> +
-> +Introduction
-> +============
-> +
-> +ARMv8.5 based processors introduce the Memory Tagging Extension (MTE)
-> +feature. MTE is built on top of the ARMv8.0 virtual address tagging TBI
-> +(Top Byte Ignore) feature and allows software to access a 4-bit
-> +allocation tag for each 16-byte granule in the physical address space.
-> +Such memory range must be mapped with the Normal-Tagged memory
-> +attribute. A logical tag is derived from bits 59-56 of the virtual
-> +address used for the memory access. A CPU with MTE enabled will compare
-> +the logical tag against the allocation tag and potentially raise an
-> +exception on mismatch, subject to system registers configuration.
-> +
-> +Userspace Support
-> +=================
-> +
-> +When ``CONFIG_ARM64_MTE`` is selected and Memory Tagging Extension is
-> +supported by the hardware, the kernel advertises the feature to
-> +userspace via ``HWCAP2_MTE``.
-> +
-> +PROT_MTE
-> +--------
-> +
-> +To access the allocation tags, a user process must enable the Tagged
-> +memory attribute on an address range using a new ``prot`` flag for
-> +``mmap()`` and ``mprotect()``:
-> +
-> +``PROT_MTE`` - Pages allow access to the MTE allocation tags.
-> +
-> +The allocation tag is set to 0 when such pages are first mapped in the
-> +user address space and preserved on copy-on-write. ``MAP_SHARED`` is
-> +supported and the allocation tags can be shared between processes.
-> +
-> +**Note**: ``PROT_MTE`` is only supported on ``MAP_ANONYMOUS`` and
-> +RAM-based file mappings (``tmpfs``, ``memfd``). Passing it to other
-> +types of mapping will result in ``-EINVAL`` returned by these system
-> +calls.
-> +
-> +**Note**: The ``PROT_MTE`` flag (and corresponding memory type) cannot
-> +be cleared by ``mprotect()``.
-> +
-> +**Note**: ``madvise()`` memory ranges with ``MADV_DONTNEED`` and
-> +``MADV_FREE`` may have the allocation tags cleared (set to 0) at any
-> +point after the system call.
-> +
-> +Tag Check Faults
-> +----------------
-> +
-> +When ``PROT_MTE`` is enabled on an address range and a mismatch between
-> +the logical and allocation tags occurs on access, there are three
-> +configurable behaviours:
-> +
-> +- *Ignore* - This is the default mode. The CPU (and kernel) ignores the
-> +  tag check fault.
-> +
-> +- *Synchronous* - The kernel raises a ``SIGSEGV`` synchronously, with
-> +  ``.si_code = SEGV_MTESERR`` and ``.si_addr = <fault-address>``. The
-> +  memory access is not performed. If ``SIGSEGV`` is ignored or blocked
-> +  by the offending thread, the containing process is terminated with a
-> +  ``coredump``.
-> +
-> +- *Asynchronous* - The kernel raises a ``SIGSEGV``, in the offending
-> +  thread, asynchronously following one or multiple tag check faults,
-> +  with ``.si_code = SEGV_MTEAERR`` and ``.si_addr = 0`` (the faulting
-> +  address is unknown).
-> +
-> +The user can select the above modes, per thread, using the
-> +``prctl(PR_SET_TAGGED_ADDR_CTRL, flags, 0, 0, 0)`` system call where
-> +``flags`` contain one of the following values in the ``PR_MTE_TCF_MASK``
-> +bit-field:
-> +
-> +- ``PR_MTE_TCF_NONE``  - *Ignore* tag check faults
-> +- ``PR_MTE_TCF_SYNC``  - *Synchronous* tag check fault mode
-> +- ``PR_MTE_TCF_ASYNC`` - *Asynchronous* tag check fault mode
-> +
-> +The current tag check fault mode can be read using the
-> +``prctl(PR_GET_TAGGED_ADDR_CTRL, 0, 0, 0, 0)`` system call.
-> +
-> +Tag checking can also be disabled for a user thread by setting the
-> +``PSTATE.TCO`` bit with ``MSR TCO, #1``.
-> +
-> +**Note**: Signal handlers are always invoked with ``PSTATE.TCO = 0``,
-> +irrespective of the interrupted context. ``PSTATE.TCO`` is restored on
-> +``sigreturn()``.
-> +
-> +**Note**: There are no *match-all* logical tags available for user
-> +applications.
-> +
-> +**Note**: Kernel accesses to the user address space (e.g. ``read()``
-> +system call) are not checked if the user thread tag checking mode is
-> +``PR_MTE_TCF_NONE`` or ``PR_MTE_TCF_ASYNC``. If the tag checking mode is
-> +``PR_MTE_TCF_SYNC``, the kernel makes a best effort to check its user
-> +address accesses, however it cannot always guarantee it.
-> +
-> +Excluding Tags in the ``IRG``, ``ADDG`` and ``SUBG`` instructions
-> +-----------------------------------------------------------------
-> +
-> +The architecture allows excluding certain tags to be randomly generated
-> +via the ``GCR_EL1.Exclude`` register bit-field. By default, Linux
-> +excludes all tags other than 0. A user thread can enable specific tags
-> +in the randomly generated set using the ``prctl(PR_SET_TAGGED_ADDR_CTRL,
-> +flags, 0, 0, 0)`` system call where ``flags`` contains the tags bitmap
-> +in the ``PR_MTE_TAG_MASK`` bit-field.
-> +
-> +**Note**: The hardware uses an exclude mask but the ``prctl()``
-> +interface provides an include mask. An include mask of ``0`` (exclusion
-> +mask ``0xffff``) results in the CPU always generating tag ``0``.
-> +
-> +Initial process state
-> +---------------------
-> +
-> +On ``execve()``, the new process has the following configuration:
-> +
-> +- ``PR_TAGGED_ADDR_ENABLE`` set to 0 (disabled)
-> +- Tag checking mode set to ``PR_MTE_TCF_NONE``
-> +- ``PR_MTE_TAG_MASK`` set to 0 (all tags excluded)
-> +- ``PSTATE.TCO`` set to 0
-> +- ``PROT_MTE`` not set on any of the initial memory maps
-> +
-> +On ``fork()``, the new process inherits the parent's configuration and
-> +memory map attributes with the exception of the ``madvise()`` ranges
-> +with ``MADV_WIPEONFORK`` which will have the data and tags cleared (set
-> +to 0).
-> +
-> +The ``ptrace()`` interface
-> +--------------------------
-> +
-> +``PTRACE_PEEKMTETAGS`` and ``PTRACE_POKEMTETAGS`` allow a tracer to read
-> +the tags from or set the tags to a tracee's address space. The
-> +``ptrace()`` system call is invoked as ``ptrace(request, pid, addr,
-> +data)`` where:
-> +
-> +- ``request`` - one of ``PTRACE_PEEKMTETAGS`` or ``PTRACE_PEEKMTETAGS``.
+The 09/17/2020 10:02, Catalin Marinas wrote:
+> On Thu, Sep 17, 2020 at 09:11:08AM +0100, Will Deacon wrote:
+> > On Fri, Sep 04, 2020 at 11:30:29AM +0100, Catalin Marinas wrote:
+> > > From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+...
+> > > Acked-by: Szabolcs Nagy <szabolcs.nagy@arm.com>
+> > 
+> > I'm taking this to mean that Szabolcs is happy with the proposed ABI --
+> > please shout if that's not the case!
+> 
+> I think Szabolcs is still on holiday. To summarise the past threads,
+> AFAICT he's happy with this per-thread control ABI but the discussion
+> went on whether to expand it in the future (with a new bit) to
+> synchronise the tag checking mode across all threads of a process. This
+> adds some complications for the kernel as it needs an IPI to the other
+> CPUs to set SCTLR_EL1 and it's also racy with multiple threads
+> requesting different modes.
+> 
+> Now, in the glibc land, if the tag check mode is controlled via
+> environment variables, the dynamic loader can set this at process start
+> while still in single-threaded mode and not touch it at run-time. The
+> MTE checking can still be enabled at run-time, per mapped memory range
+> via the PROT_MTE flag. This approach doesn't require any additional
+> changes to the current patches. But it's for Szabolcs to confirm once
+> he's back.
 
-Typo here, one of those should be POKE.
+my thinking now is that for PROT_MTE use outside
+of libc we will need a way to enable tag checks
+early so user code does not have to worry about
+tag check settings across threads (coordinating
+the setting at runtime seems problematic, same
+for the irg exclusion set).
 
-> +- ``pid`` - the tracee's PID.
-> +- ``addr`` - address in the tracee's address space.
-> +- ``data`` - pointer to a ``struct iovec`` where ``iov_base`` points to
-> +  a buffer of ``iov_len`` length in the tracer's address space.
-> +
-> +The tags in the tracer's ``iov_base`` buffer are represented as one
-> +4-bit tag per byte and correspond to a 16-byte MTE tag granule in the
-> +tracee's address space.
-> +
-> +**Note**: If ``addr`` is not aligned to a 16-byte granule, the kernel
-> +will use the corresponding aligned address.
-> +
-> +``ptrace()`` return value:
-> +
-> +- 0 - tags were copied, the tracer's ``iov_len`` was updated to the
-> +  number of tags transferred. This may be smaller than the requested
-> +  ``iov_len`` if the requested address range in the tracee's or the
-> +  tracer's space cannot be accessed or does not have valid tags.
-> +- ``-EPERM`` - the specified process cannot be traced.
-> +- ``-EIO`` - the tracee's address range cannot be accessed (e.g. invalid
-> +  address) and no tags copied. ``iov_len`` not updated.
-> +- ``-EFAULT`` - fault on accessing the tracer's memory (``struct iovec``
-> +  or ``iov_base`` buffer) and no tags copied. ``iov_len`` not updated.
-> +- ``-EOPNOTSUPP`` - the tracee's address does not have valid tags (never
-> +  mapped with the ``PROT_MTE`` flag). ``iov_len`` not updated.
-> +
-> +**Note**: There are no transient errors for the requests above, so user
-> +programs should not retry in case of a non-zero system call return.
-> +
-> +``PTRACE_GETREGSET`` and ``PTRACE_SETREGSET`` with ``addr ==
-> +``NT_ARM_TAGGED_ADDR_CTRL`` allow ``ptrace()`` access to the tagged
-> +address ABI control and MTE configuration of a process as per the
-> +``prctl()`` options described in
-> +Documentation/arm64/tagged-address-abi.rst and above. The corresponding
-> +``regset`` is 1 element of 8 bytes (``sizeof(long))``).
-> +
-> +Example of correct usage
-> +========================
-> +
-> +*MTE Example code*
-> +
-> +.. code-block:: c
-> +
-> +    /*
-> +     * To be compiled with -march=armv8.5-a+memtag
-> +     */
-> +    #include <errno.h>
-> +    #include <stdint.h>
-> +    #include <stdio.h>
-> +    #include <stdlib.h>
-> +    #include <unistd.h>
-> +    #include <sys/auxv.h>
-> +    #include <sys/mman.h>
-> +    #include <sys/prctl.h>
-> +
-> +    /*
-> +     * From arch/arm64/include/uapi/asm/hwcap.h
-> +     */
-> +    #define HWCAP2_MTE              (1 << 18)
-> +
-> +    /*
-> +     * From arch/arm64/include/uapi/asm/mman.h
-> +     */
-> +    #define PROT_MTE                 0x20
-> +
-> +    /*
-> +     * From include/uapi/linux/prctl.h
-> +     */
-> +    #define PR_SET_TAGGED_ADDR_CTRL 55
-> +    #define PR_GET_TAGGED_ADDR_CTRL 56
-> +    # define PR_TAGGED_ADDR_ENABLE  (1UL << 0)
-> +    # define PR_MTE_TCF_SHIFT       1
-> +    # define PR_MTE_TCF_NONE        (0UL << PR_MTE_TCF_SHIFT)
-> +    # define PR_MTE_TCF_SYNC        (1UL << PR_MTE_TCF_SHIFT)
-> +    # define PR_MTE_TCF_ASYNC       (2UL << PR_MTE_TCF_SHIFT)
-> +    # define PR_MTE_TCF_MASK        (3UL << PR_MTE_TCF_SHIFT)
-> +    # define PR_MTE_TAG_SHIFT       3
-> +    # define PR_MTE_TAG_MASK        (0xffffUL << PR_MTE_TAG_SHIFT)
-> +
-> +    /*
-> +     * Insert a random logical tag into the given pointer.
-> +     */
-> +    #define insert_random_tag(ptr) ({                       \
-> +            uint64_t __val;                                 \
-> +            asm("irg %0, %1" : "=r" (__val) : "r" (ptr));   \
-> +            __val;                                          \
-> +    })
-> +
-> +    /*
-> +     * Set the allocation tag on the destination address.
-> +     */
-> +    #define set_tag(tagged_addr) do {                                      \
-> +            asm volatile("stg %0, [%0]" : : "r" (tagged_addr) : "memory"); \
-> +    } while (0)
-> +
-> +    int main()
-> +    {
-> +            unsigned char *a;
-> +            unsigned long page_sz = sysconf(_SC_PAGESIZE);
-> +            unsigned long hwcap2 = getauxval(AT_HWCAP2);
-> +
-> +            /* check if MTE is present */
-> +            if (!(hwcap2 & HWCAP2_MTE))
-> +                    return EXIT_FAILURE;
-> +
-> +            /*
-> +             * Enable the tagged address ABI, synchronous MTE tag check faults and
-> +             * allow all non-zero tags in the randomly generated set.
-> +             */
-> +            if (prctl(PR_SET_TAGGED_ADDR_CTRL,
-> +                      PR_TAGGED_ADDR_ENABLE | PR_MTE_TCF_SYNC | (0xfffe << PR_MTE_TAG_SHIFT),
-> +                      0, 0, 0)) {
-> +                    perror("prctl() failed");
-> +                    return EXIT_FAILURE;
-> +            }
-> +
-> +            a = mmap(0, page_sz, PROT_READ | PROT_WRITE,
-> +                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-> +            if (a == MAP_FAILED) {
-> +                    perror("mmap() failed");
-> +                    return EXIT_FAILURE;
-> +            }
-> +
-> +            /*
-> +             * Enable MTE on the above anonymous mmap. The flag could be passed
-> +             * directly to mmap() and skip this step.
-> +             */
-> +            if (mprotect(a, page_sz, PROT_READ | PROT_WRITE | PROT_MTE)) {
-> +                    perror("mprotect() failed");
-> +                    return EXIT_FAILURE;
-> +            }
-> +
-> +            /* access with the default tag (0) */
-> +            a[0] = 1;
-> +            a[1] = 2;
-> +
-> +            printf("a[0] = %hhu a[1] = %hhu\n", a[0], a[1]);
-> +
-> +            /* set the logical and allocation tags */
-> +            a = (unsigned char *)insert_random_tag(a);
-> +            set_tag(a);
-> +
-> +            printf("%p\n", a);
-> +
-> +            /* non-zero tag access */
-> +            a[0] = 3;
-> +            printf("a[0] = %hhu a[1] = %hhu\n", a[0], a[1]);
-> +
-> +            /*
-> +             * If MTE is enabled correctly the next instruction will generate an
-> +             * exception.
-> +             */
-> +            printf("Expecting SIGSEGV...\n");
-> +            a[16] = 0xdd;
-> +
-> +            /* this should not be printed in the PR_MTE_TCF_SYNC mode */
-> +            printf("...haven't got one\n");
-> +
-> +            return EXIT_FAILURE;
-> +    }
+if we add a kernel level opt-in mechanism for tag
+checks later (e.g. elf marking) or if the settings
+are exclusively owned by early libc code then i
+think the proposed abi is ok (this is our current
+agreement and works as long as no late runtime
+change is needed to the settings).
 
-Acked-by: Andrey Konovalov <andreyknvl@google.com>
-
-Thanks!
+i'm now wondering about the default tag check mode:
+it may be better to enable sync tag checks in the
+kernel. it's not clear to me what would break with
+that. this is probably late to discuss now and libc
+would need ways to override the default no matter
+what, but i'd like to know if somebody sees problems
+or risks with unconditional sync tag checks turned on
+(sorry i don't remember if we went through this before).
+i assume it would have no effect on a process that
+never uses PROT_MTE.
