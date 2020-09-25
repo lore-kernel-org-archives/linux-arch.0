@@ -2,236 +2,191 @@ Return-Path: <SRS0=Ae5t=DC=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 249DDC4363D
-	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 15:27:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2ABD5C4363D
+	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 15:30:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CF9C6235F9
-	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 15:27:32 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id EF25D2075F
+	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 15:30:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729294AbgIYP1c (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 25 Sep 2020 11:27:32 -0400
-Received: from mga04.intel.com ([192.55.52.120]:20130 "EHLO mga04.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728527AbgIYP1c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 25 Sep 2020 11:27:32 -0400
-IronPort-SDR: UkqmgYUoN7LUjvnYfeJelNYA85BKCnrgFp+BqMDmATXvylYR666AQUSQydKzDSbkzTBwImKUKi
- f0GqUcSPPg+A==
-X-IronPort-AV: E=McAfee;i="6000,8403,9755"; a="158942346"
-X-IronPort-AV: E=Sophos;i="5.77,302,1596524400"; 
-   d="scan'208";a="158942346"
-X-Amp-Result: SKIPPED(no attachment in message)
-X-Amp-File-Uploaded: False
-Received: from orsmga005.jf.intel.com ([10.7.209.41])
-  by fmsmga104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 25 Sep 2020 07:57:29 -0700
-IronPort-SDR: bSQkNwg/M3GuYYQd9O7ebA2i89GkMfG1wRgW73KN6WwqXTz/kO1pCB8EOW7i/8OCAhDFwN+19c
- 8xtXIWfRFu4A==
-X-IronPort-AV: E=Sophos;i="5.77,302,1596524400"; 
-   d="scan'208";a="487499245"
-Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga005-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 25 Sep 2020 07:57:29 -0700
-From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
-To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Borislav Petkov <bp@alien8.de>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
-        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        Pengfei Xu <pengfei.xu@intel.com>
-Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>,
-        Mark Brown <broonie@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v13 23/26] ELF: Introduce arch_setup_elf_property()
-Date:   Fri, 25 Sep 2020 07:56:46 -0700
-Message-Id: <20200925145649.5438-24-yu-cheng.yu@intel.com>
-X-Mailer: git-send-email 2.21.0
-In-Reply-To: <20200925145649.5438-1-yu-cheng.yu@intel.com>
-References: <20200925145649.5438-1-yu-cheng.yu@intel.com>
+        id S1728974AbgIYPa6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 25 Sep 2020 11:30:58 -0400
+Received: from mout.kundenserver.de ([212.227.126.187]:41931 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727749AbgIYPa6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 25 Sep 2020 11:30:58 -0400
+Received: from mail-qk1-f179.google.com ([209.85.222.179]) by
+ mrelayeu.kundenserver.de (mreue011 [212.227.15.129]) with ESMTPSA (Nemesis)
+ id 1MK3FW-1k0RTl3uV4-00LUYa; Fri, 25 Sep 2020 17:30:56 +0200
+Received: by mail-qk1-f179.google.com with SMTP id q63so3169693qkf.3;
+        Fri, 25 Sep 2020 08:30:55 -0700 (PDT)
+X-Gm-Message-State: AOAM530qR/qXZ6jAiPfeslA3hWHjfleucb7j9hg8TbkHG58vVZSGr0sw
+        7EfTwqyor6qUxRJxo/0kfUWoM/JenZO0HakCAkA=
+X-Google-Smtp-Source: ABdhPJwViFuhR693mJsi/dMIOSfPt325VJh7VG9UX6ruHa7SF+GVqx2YpXQOMKPH5JMPhgn7i6oNEU0/IDo4ojtcxQA=
+X-Received: by 2002:a37:a483:: with SMTP id n125mr521612qke.286.1601047854526;
+ Fri, 25 Sep 2020 08:30:54 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200918124624.1469673-1-arnd@arndb.de> <20200919081906.GV1551@shell.armlinux.org.uk>
+ <CAK8P3a1k9Ms8EBD-KxsGWY8LxzWqLh-E6ZaemcTMeYoRKBaQUg@mail.gmail.com>
+In-Reply-To: <CAK8P3a1k9Ms8EBD-KxsGWY8LxzWqLh-E6ZaemcTMeYoRKBaQUg@mail.gmail.com>
+From:   Arnd Bergmann <arnd@arndb.de>
+Date:   Fri, 25 Sep 2020 17:30:38 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a3ZFvXPbKRJzjh5Gj08TcQYNV+MoSTLXjTOnkyVb4WuNA@mail.gmail.com>
+Message-ID: <CAK8P3a3ZFvXPbKRJzjh5Gj08TcQYNV+MoSTLXjTOnkyVb4WuNA@mail.gmail.com>
+Subject: Re: [PATCH v2 0/9] ARM: remove set_fs callers and implementation
+To:     Russell King - ARM Linux admin <linux@armlinux.org.uk>
+Cc:     Christoph Hellwig <hch@infradead.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux-MM <linux-mm@kvack.org>
+Content-Type: text/plain; charset="UTF-8"
+X-Provags-ID: V03:K1:BqCMMSoyRrviZQlLSe/1hZjWAOw7cRzBNgqfwmFAo0uTFqKoe8N
+ LYHmMQ65mUiELoDg+BB/V8VMtzq9XXZ8ntA/JWpytwQPBqMOAfapITesodPr+psZVW1F+s/
+ qJis4JpEdLcK/47tNFT4DjdlzebSSnP/69c3Fk/OJYNST4j3KTpPN8erKQpx/P65SOIBqQH
+ /9wkI9DDfigSABAb6aHIA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:vDEzA/YuduA=:acQ+b2jLJw0uNZQSgYGBxL
+ I4Jw+k9sBg+GJvZ0lWrSLmoPWD4nzNAfv91uNFkq2S4JjNq0aaJs/a2FP3cvmtqsqdq8r0IEk
+ bIEdZmHZO49o/IQMtSDADsHv3swSmyh6xR3D+EPQEwJOAoixZcKenDNKr++6VdBRpkZMb4NUO
+ BzCMocqttbYA+ek6/wlCzgS6LFQNaw9c+LbXgYbmroCCovhtj9vuu/4UycHTsMF06rr5dG2u+
+ J8LdfanxAqXphDAFNr+jM/OEs865ohAC+mYOFRaPN9KyYkzMu1tzn3zwloa1MaIohJWvLsaFm
+ XHPwPu+EAj4vvdmUdkbNIxKN5nG2NEkMht9+IAhoTG80h7KhjI5tVlh+826h8jFCk5wOUYwsb
+ EPDObavvorcrx1rtttQByv4yhwgjMA/dCRafez6hB97QlPIJHCQ/9TgIL1Nq3VhA2Viw/sEHd
+ IhNUuS+uhH6buUkz46O29vdax+QRuc+4fHBdk1SdBBXzWttPzcnmfVtnItDIIvIH+YNAOD9Oz
+ OcDYrOOXSGGU1lOTwihfS+wNAL4rgPsdEAd2trlF04Fx30iCDB59IsX+Ggh+4yD76U1EaZMFl
+ je3JwS9Uxd4oQTrOeDBlh2QKEeProl9VlYtqj0OYHgOG6ZdbxDtGePBVy62Hg0D0SOS3SAcqa
+ Jp3NEhPDIGFO2UOHL9OB5lkfzYm/xKgc9VZOEauO0fxXmfb0mepHbRF7Z7KYx3YIO0QI85BLu
+ 44jQ37VUk+VvWuIXVgXThqEv+QhLb6pjLPxe0CgBYki+/m/Ew5z/mywkBpL7JuFv4hNJlmeQV
+ xNVs+8NVsEES/IGcYYCaFcf12BBtb16acx65aSsC7WnCzEmvm250LD8hw7z7UA/kqxVHY05
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-An ELF file's .note.gnu.property indicates arch features supported by the
-file.  These features are extracted by arch_parse_elf_property() and stored
-in 'arch_elf_state'.  Introduce arch_setup_elf_property() for enabling such
-features.  The first use-case of this function is shadow stack.
+On Fri, Sep 25, 2020 at 4:08 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> On Sat, Sep 19, 2020 at 10:19 AM Russell King - ARM Linux admin
+> <linux@armlinux.org.uk> wrote:
+> >
+> > On Fri, Sep 18, 2020 at 02:46:15PM +0200, Arnd Bergmann wrote:
+> > > Hi Christoph, Russell,
+> > >
+> > > Here is an updated series for removing set_fs() from arch/arm,
+> > > based on the previous feedback.
+> > >
+> > > I have tested the oabi-compat changes using the LTP tests for the three
+> > > modified syscalls using an Armv7 kernel and a Debian 5 OABI user space,
+> > > and I have lightly tested the get_kernel_nofault infrastructure by
+> > > loading the test_lockup.ko module after setting CONFIG_DEBUG_SPINLOCK.
+> >
+> > I'm not too keen on always saving the syscall number, but for the gain
+> > of getting rid of set_fs() I think it's worth it. However...
+> >
+> > I think there are some things to check - what value do you end up
+> > with as the first number in /proc/self/syscall when you do:
+> >
+> > strace cat /proc/self/syscall
+> >
+> > ?
+>
+> > It should be 3, not 0x900003. I suspect you're getting the latter
+> > with these changes.  IIRC, task_thread_info(task)->syscall needs to
+> > be the value _without_ the offset, otherwise tracing will break.
+>
+> It seems broken in different ways, depending on the combination
+> of kernel and userland:
+>
+> 1. EABI armv5-versatile kernel, EABI Debian 5:
+> $ cat /proc/self/syscall
+> 0 0x1500000000003 0x1500000000400 0x1500000000400 0x60000013c7800480
+> 0xc0008668c0112f8c 0xc0112d14c68e1f68 0xbeab06f8 0xb6e80d4c
+> $ strace -f cat /proc/self/syscall
+> execve("/bin/cat", ["cat", "/proc/self/syscall"], [/* 16 vars */]) =
+> -1 EINTR (Interrupted system call)
+> dup(2)                                  = -1 EINTR (Interrupted system call)
+> write(2, "strace: exec: Interrupted system "..., 38) = -1 EINTR
+> (Interrupted system call)
+> exit_group(1)                           = ?
 
-ARM64 is the other arch that has ARCH_USER_GNU_PROPERTY and arch_parse_elf_
-property().  Add arch_setup_elf_property() for it.
+Both the missing number and the broken strace are fixed with
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: Mark Brown <broonie@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Dave Martin <Dave.Martin@arm.com>
----
-v11:
-- Combine three patches of arch_setup_elf_property() into one.
-- Add empty arch_setup_elf_property() for arm64.
+diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+index 610e32273c81..2c0bde14fba6 100644
+--- a/arch/arm/kernel/entry-common.S
++++ b/arch/arm/kernel/entry-common.S
+@@ -226,7 +226,8 @@ ENTRY(vector_swi)
+         * get the old ABI syscall table address.
+         */
+        bics    r10, r10, #0xff000000
+-       str     r10, [tsk, #TI_SYSCALL]
++       strne   r10, [tsk, #TI_SYSCALL]
++       streq   scno, [tsk, #TI_SYSCALL]
+        eorne   scno, r10, #__NR_OABI_SYSCALL_BASE
+        ldrne   tbl, =sys_oabi_call_table
+ #elif !defined(CONFIG_AEABI)
 
-v9:
-- Change cpu_feature_enabled() to static_cpu_has().
+It was already working with CONFIG_AEABI=y and
+CONFIG_OABI_COMPAT=n
 
- arch/arm64/include/asm/elf.h |  5 +++++
- arch/x86/Kconfig             |  2 ++
- arch/x86/include/asm/elf.h   | 13 +++++++++++++
- arch/x86/kernel/process_64.c | 32 ++++++++++++++++++++++++++++++++
- fs/binfmt_elf.c              |  4 ++++
- include/linux/elf.h          |  6 ++++++
- 6 files changed, 62 insertions(+)
+> 2. EABI kernel, OABI Debian 5:
+> $ cat /proc/self/syscall
+> 3 0x1500000000003 0x13ccc00000400 0x1500000000400 0x60000013c7800480
+> 0xc0008de0c0112f8c 0xc0112d14c7313f68 0xbeed27d0 0xb6eab324
+> $ strace cat /proc/self/syscall
+> execve("/bin/cat", ["cat", "/proc/self/syscall"], [/* 16 vars */]) = -1090648236
+> --- SIGILL (Illegal instruction) @ 0 (0) ---
+> +++ killed by SIGILL +++
 
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index 8d1c8dcb87fd..d37bc7915935 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -281,6 +281,11 @@ static inline int arch_parse_elf_property(u32 type, const void *data,
- 	return 0;
- }
- 
-+static inline int arch_setup_elf_property(struct arch_elf_state *arch)
-+{
-+	return 0;
-+}
-+
- static inline int arch_elf_pt_proc(void *ehdr, void *phdr,
- 				   struct file *f, bool is_interp,
- 				   struct arch_elf_state *state)
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 7578327226e3..4b28a0ce4594 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1950,6 +1950,8 @@ config X86_SHADOW_STACK_USER
- 	select X86_CET
- 	select ARCH_MAYBE_MKWRITE
- 	select ARCH_HAS_SHADOW_STACK
-+	select ARCH_USE_GNU_PROPERTY
-+	select ARCH_BINFMT_ELF_STATE
- 	help
- 	  Shadow Stacks provides protection against program stack
- 	  corruption.  It's a hardware feature.  This only matters
-diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
-index b9a5d488f1a5..0e1be2a13359 100644
---- a/arch/x86/include/asm/elf.h
-+++ b/arch/x86/include/asm/elf.h
-@@ -385,6 +385,19 @@ extern int compat_arch_setup_additional_pages(struct linux_binprm *bprm,
- 					      int uses_interp);
- #define compat_arch_setup_additional_pages compat_arch_setup_additional_pages
- 
-+#ifdef CONFIG_ARCH_BINFMT_ELF_STATE
-+struct arch_elf_state {
-+	unsigned int gnu_property;
-+};
-+
-+#define INIT_ARCH_ELF_STATE {	\
-+	.gnu_property = 0,	\
-+}
-+
-+#define arch_elf_pt_proc(ehdr, phdr, elf, interp, state) (0)
-+#define arch_check_elf(ehdr, interp, interp_ehdr, state) (0)
-+#endif
-+
- /* Do not change the values. See get_align_mask() */
- enum align_flags {
- 	ALIGN_VA_32	= BIT(0),
-diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
-index 9afefe325acb..8725e67bcd44 100644
---- a/arch/x86/kernel/process_64.c
-+++ b/arch/x86/kernel/process_64.c
-@@ -837,3 +837,35 @@ unsigned long KSTK_ESP(struct task_struct *task)
- {
- 	return task_pt_regs(task)->sp;
- }
-+
-+#ifdef CONFIG_ARCH_USE_GNU_PROPERTY
-+int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
-+			     bool compat, struct arch_elf_state *state)
-+{
-+	if (type != GNU_PROPERTY_X86_FEATURE_1_AND)
-+		return 0;
-+
-+	if (datasz != sizeof(unsigned int))
-+		return -ENOEXEC;
-+
-+	state->gnu_property = *(unsigned int *)data;
-+	return 0;
-+}
-+
-+int arch_setup_elf_property(struct arch_elf_state *state)
-+{
-+	int r = 0;
-+
-+	if (!IS_ENABLED(CONFIG_X86_CET))
-+		return r;
-+
-+	memset(&current->thread.cet, 0, sizeof(struct cet_status));
-+
-+	if (static_cpu_has(X86_FEATURE_SHSTK)) {
-+		if (state->gnu_property & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
-+			r = cet_setup_shstk();
-+	}
-+
-+	return r;
-+}
-+#endif
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 13d053982dd7..2b4cfc256895 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -1217,6 +1217,10 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 
- 	set_binfmt(&elf_format);
- 
-+	retval = arch_setup_elf_property(&arch_state);
-+	if (retval < 0)
-+		goto out;
-+
- #ifdef ARCH_HAS_SETUP_ADDITIONAL_PAGES
- 	retval = arch_setup_additional_pages(bprm, !!interpreter);
- 	if (retval < 0)
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index 5d5b0321da0b..4827695ca415 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -82,9 +82,15 @@ static inline int arch_parse_elf_property(u32 type, const void *data,
- {
- 	return 0;
- }
-+
-+static inline int arch_setup_elf_property(struct arch_elf_state *arch)
-+{
-+	return 0;
-+}
+This was caused by me after all, here is my fix:
+
+--- a/arch/arm/kernel/ptrace.c
++++ b/arch/arm/kernel/ptrace.c
+@@ -25,6 +25,7 @@
+ #include <linux/tracehook.h>
+ #include <linux/unistd.h>
+
++#include <asm/syscall.h>
+ #include <asm/traps.h>
+
+ #define CREATE_TRACE_POINTS
+@@ -898,11 +899,11 @@ asmlinkage int syscall_trace_enter(struct pt_regs *regs)
+                return -1;
  #else
- extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
- 				   bool compat, struct arch_elf_state *arch);
-+extern int arch_setup_elf_property(struct arch_elf_state *arch);
+        /* XXX: remove this once OABI gets fixed */
+-       secure_computing_strict(current_thread_info()->syscall);
++       secure_computing_strict(syscall_get_nr(current, regs));
  #endif
- 
- #ifdef CONFIG_ARCH_HAVE_ELF_PROT
--- 
-2.21.0
 
+        /* Tracer or seccomp may have changed syscall. */
+-       scno = current_thread_info()->syscall;
++       scno = syscall_get_nr(current, regs);
+
+        if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
+                trace_sys_enter(regs, scno);
+
+> 3. OABI kernel, OABI Debian 5:
+>  cat /proc/self/syscall
+> 9437187 0x1500000000003 0x13ccc00000400 0x1500000000400 0x100060000013
+> 0x15000c72cff6c 0xc72cfe9000000000 0xbece27d0 0xb6f2f324
+
+This one is fixed by
+
+--- a/arch/arm/include/asm/syscall.h
++++ b/arch/arm/include/asm/syscall.h
+@@ -22,7 +22,7 @@ extern const unsigned long sys_call_table[];
+ static inline int syscall_get_nr(struct task_struct *task,
+                                 struct pt_regs *regs)
+ {
+-       if (!IS_ENABLED(CONFIG_OABI_COMPAT))
++       if (IS_ENABLED(CONFIG_AEABI) && !IS_ENABLED(CONFIG_OABI_COMPAT))
+                return task_thread_info(task)->syscall;
+
+        return task_thread_info(task)->syscall & ~__NR_OABI_SYSCALL_BASE;
+
+
+
+I'll send an updated patch once I've addressed Christoph's comments.
+
+      Arnd
