@@ -3,158 +3,93 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
 X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4C4D6C4363D
-	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 10:31:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 71F49C4363D
+	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 13:40:26 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 0687D235FA
-	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 10:31:30 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3A3152076D
+	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 13:40:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727151AbgIYKba (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 25 Sep 2020 06:31:30 -0400
-Received: from foss.arm.com ([217.140.110.172]:41500 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727044AbgIYKba (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 25 Sep 2020 06:31:30 -0400
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id E1AE91045;
-        Fri, 25 Sep 2020 03:31:28 -0700 (PDT)
-Received: from C02TD0UTHF1T.local (unknown [10.57.16.138])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id B1DFE3F718;
-        Fri, 25 Sep 2020 03:31:21 -0700 (PDT)
-Date:   Fri, 25 Sep 2020 11:31:14 +0100
-From:   Mark Rutland <mark.rutland@arm.com>
-To:     Peter Zijlstra <peterz@infradead.org>
-Cc:     David Hildenbrand <david@redhat.com>,
-        Mike Rapoport <rppt@kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>,
-        Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Wilcox <willy@infradead.org>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Shuah Khan <shuah@kernel.org>, Tycho Andersen <tycho@tycho.ws>,
-        Will Deacon <will@kernel.org>, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org
-Subject: Re: [PATCH v6 5/6] mm: secretmem: use PMD-size pages to amortize
- direct map fragmentation
-Message-ID: <20200925103114.GA7407@C02TD0UTHF1T.local>
-References: <20200924132904.1391-1-rppt@kernel.org>
- <20200924132904.1391-6-rppt@kernel.org>
- <20200925074125.GQ2628@hirez.programming.kicks-ass.net>
- <8435eff6-7fa9-d923-45e5-d8850e4c6d73@redhat.com>
- <20200925095029.GX2628@hirez.programming.kicks-ass.net>
+        id S1728353AbgIYNkZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 25 Sep 2020 09:40:25 -0400
+Received: from mout.kundenserver.de ([217.72.192.74]:38487 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727982AbgIYNkZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 25 Sep 2020 09:40:25 -0400
+Received: from mail-qk1-f169.google.com ([209.85.222.169]) by
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.145]) with ESMTPSA (Nemesis)
+ id 1MC3L9-1k9PMr07Gn-00CRU1; Fri, 25 Sep 2020 15:40:24 +0200
+Received: by mail-qk1-f169.google.com with SMTP id w12so2764989qki.6;
+        Fri, 25 Sep 2020 06:40:23 -0700 (PDT)
+X-Gm-Message-State: AOAM530500acsNwYCXug3/z+Zgh9+yPg2H/ioFdnWAyRBY4V5WQErZzU
+        HEqRXjSJK8zb36/LNeaKAIwQPmQnzCkjDKH9yto=
+X-Google-Smtp-Source: ABdhPJxIzKAUN9mD09+7O4OymSuZ1I/pDmcOEjpPUHVj02syVVQTEeh8QmLOAxe8V/n/N1LP9j4emlnxenewjYHzGJQ=
+X-Received: by 2002:a05:620a:15a7:: with SMTP id f7mr12935qkk.3.1601041222779;
+ Fri, 25 Sep 2020 06:40:22 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200925095029.GX2628@hirez.programming.kicks-ass.net>
+References: <20200918124624.1469673-1-arnd@arndb.de> <20200919052715.GF30063@infradead.org>
+In-Reply-To: <20200919052715.GF30063@infradead.org>
+From:   Arnd Bergmann <arnd@arndb.de>
+Date:   Fri, 25 Sep 2020 15:40:06 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a1LM8SXbzcVv1B05fdmxBZ-PA+P4m4oP1Dgc4JmR2CGMw@mail.gmail.com>
+Message-ID: <CAK8P3a1LM8SXbzcVv1B05fdmxBZ-PA+P4m4oP1Dgc4JmR2CGMw@mail.gmail.com>
+Subject: Re: [PATCH v2 0/9] ARM: remove set_fs callers and implementation
+To:     Christoph Hellwig <hch@infradead.org>
+Cc:     Russell King <linux@armlinux.org.uk>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux-MM <linux-mm@kvack.org>
+Content-Type: text/plain; charset="UTF-8"
+X-Provags-ID: V03:K1:3NzBN9prIQYrQLxyTiAZ2qekukyha8zMOOKFTefaoN8A4cWDskU
+ LvRVk2YSWJUK5ahJIHR2B7rnCU78KMisNA1U+rTagdpd9peGNaqHqHCkRwRwpCiJ9Tci10m
+ 2CRQfikVzGKPTSxf+u+NGDRgVrFHdEt7bDNkLHdNPM0W26v4+rNQADfIdn5u2RJ7azhmXrV
+ wKtVOCtdXtquaSPB7JA1A==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:b5RuZM+XTM4=:RUDc48Wx0DH6fMnrXUFe53
+ Ifc4CzYsoWg2OCRivZd71czdBfbSdMsmpym9w7syzpV8JDeSv7YPHoJPuRSoooeRcqzRZmDDq
+ 6VqdAdXExajOI7565jIWc+DsLUHMzF8IYzAHzfnZqB/p7ksIlMtya6ne2/Z9m0cMFbEmgZudZ
+ LfWJ6CQmpu4B7oycrYF7UVue1z5Ztknl+96h1kD5UiTPNF0cq4qVagSyHzGwvLQuO9P5nzwtO
+ 9K1wpu1qpvhu2xyQTVcHb9Q2oLSwJR1SNfs6zOTh0TfiLOAspmIXiqEzTq+TEcXnQzUNFRPyc
+ CexaTEiyWUx7SFKYQcCV28/jEvTYm150H1P85aaB5K8Xgqos6tyyie887c6Usn9JtWG+/egLS
+ lBdmSx1PF/wD30yUiDFWo8nXH1EBKMPL9rGRxusPKCRvL7mkFdbmnbfBmBhER3ZIv9/cntzai
+ w33xWqzK9PM9ZPitW3TbgHhu6WlV5ow4CYvuFoSmU1YcwSrFvDZPuvrH5ovCyxmRf5nuAqiud
+ PovdlNefEjsWbmJRUL626Jkkv3H73zELEzk1hJP6ETDYHNdZyppYgFTAVN0BK/9ACLMZAE2uU
+ 5lXm1FrqkAczFZSLlUjm6byvUQmAb8aEe4lIp5OAb05+HkW9G+QX2RETs4XGmwiAHzNkPhYdc
+ t7TKenHf63/bmC+w2OsVu6/toOLXrQs5o/tQ6/h6frZ1ikZdEW4OmtB6SF1k25P60Q0aqUN2w
+ QSP6S9SYYyJkJlQELTJBGw2AYdSETNJOZDzLFreXzyNPCCg8RLInGZ68qmF1vCNV1BOTO5RMN
+ dufYlE9dZiNsN6lmtdAFOIgJfdUMNL6UqwqNdZea5WIkly7Dj1+uQFn9ux++y2EPFU4nMMu
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi,
+On Sat, Sep 19, 2020 at 7:27 AM Christoph Hellwig <hch@infradead.org> wrote:
+>
+> On Fri, Sep 18, 2020 at 02:46:15PM +0200, Arnd Bergmann wrote:
+> > Hi Christoph, Russell,
+> >
+> > Here is an updated series for removing set_fs() from arch/arm,
+> > based on the previous feedback.
+> >
+> > I have tested the oabi-compat changes using the LTP tests for the three
+> > modified syscalls using an Armv7 kernel and a Debian 5 OABI user space,
+> > and I have lightly tested the get_kernel_nofault infrastructure by
+> > loading the test_lockup.ko module after setting CONFIG_DEBUG_SPINLOCK.
+>
+> What is the base line?  Just the base.set_fs branch in Als tree, or do
+> you need anything from my RISC-V series?
 
-Sorry to come to this so late; I've been meaning to provide feedback on
-this for a while but have been indisposed for a bit due to an injury.
+I imported these additional patches from you:
 
-On Fri, Sep 25, 2020 at 11:50:29AM +0200, Peter Zijlstra wrote:
-> On Fri, Sep 25, 2020 at 11:00:30AM +0200, David Hildenbrand wrote:
-> > On 25.09.20 09:41, Peter Zijlstra wrote:
-> > > On Thu, Sep 24, 2020 at 04:29:03PM +0300, Mike Rapoport wrote:
-> > >> From: Mike Rapoport <rppt@linux.ibm.com>
-> > >>
-> > >> Removing a PAGE_SIZE page from the direct map every time such page is
-> > >> allocated for a secret memory mapping will cause severe fragmentation of
-> > >> the direct map. This fragmentation can be reduced by using PMD-size pages
-> > >> as a pool for small pages for secret memory mappings.
-> > >>
-> > >> Add a gen_pool per secretmem inode and lazily populate this pool with
-> > >> PMD-size pages.
-> > > 
-> > > What's the actual efficacy of this? Since the pmd is per inode, all I
-> > > need is a lot of inodes and we're in business to destroy the directmap,
-> > > no?
-> > > 
-> > > Afaict there's no privs needed to use this, all a process needs is to
-> > > stay below the mlock limit, so a 'fork-bomb' that maps a single secret
-> > > page will utterly destroy the direct map.
-> > > 
-> > > I really don't like this, at all.
-> > 
-> > As I expressed earlier, I would prefer allowing allocation of secretmem
-> > only from a previously defined CMA area. This would physically locally
-> > limit the pain.
-> 
-> Given that this thing doesn't have a migrate hook, that seems like an
-> eminently reasonable contraint. Because not only will it mess up the
-> directmap, it will also destroy the ability of the page-allocator /
-> compaction to re-form high order blocks by sprinkling holes throughout.
-> 
-> Also, this is all very close to XPFO, yet I don't see that mentioned
-> anywhere.
+e0d17576790e quota: simplify the quotactl compat handling
+b0f8a0c4046f compat: add a compat_need_64bit_alignment_fixup() helper
+ed8af9335e19 compat: lift compat_s64 and compat_u64 to <asm-generic/compat.h>
+ce526c75bbe2 uaccess: provide a generic TASK_SIZE_MAX definition
 
-Agreed. I think if we really need something like this, something between
-XPFO and DEBUG_PAGEALLOC would be generally better, since:
+I think I only actually needed the last one of those for the Arm
+patches, the other ones are dependencies for my other patches
+I have on the same branch.
 
-* Secretmem puts userspace in charge of kernel internals (AFAICT without
-  any ulimits?), so that seems like an avenue for malicious or buggy
-  userspace to exploit and trigger DoS, etc. The other approaches leave
-  the kernel in charge at all times, and it's a system-level choice
-  which is easier to reason about and test.
-
-* Secretmem interaction with existing ABIs is unclear. Should uaccess
-  primitives work for secretmem? If so, this means that it's not valid
-  to transform direct uaccesses in syscalls etc into accesses via the
-  linear/direct map. If not, how do we prevent syscalls? The other
-  approaches are clear that this should always work, but the kernel
-  should avoid mappings wherever possible.
-
-* The uncached option doesn't work in a number of situations, such as
-  systems which are purely cache coherent at all times, or where the
-  hypervisor has overridden attributes. The kernel cannot even know that
-  whther this works as intended. On its own this doens't solve a
-  particular problem, and I think this is a solution looking for a
-  problem.
-
-... and fundamentally, this seems like a "more security, please" option
-that is going to be abused, since everyone wants security, regardless of
-how we say it *should* be used. The few use-cases that may make sense
-(e.g. protection of ketys and/or crypto secrrets), aren't going to be
-able to rely on this (since e.g. other uses may depelete memory pools),
-so this is going to be best-effort. With all that in mind, I struggle to
-beleive that this is going to be worth the maintenance cost (e.g. with
-any issues arising from uaccess, IO, etc).
-
-Overall, I would prefer to not see this syscall in the kernel.
-
-> Further still, it has this HAVE_SECRETMEM_UNCACHED nonsense which is
-> completely unused. I'm not at all sure exposing UNCACHED to random
-> userspace is a sane idea.
-
-I agree the uncached stuff should be removed. It is at best misleading
-since the kernel can't guarantee it does what it says, I think it's
-liable to lead to issues in future (e.g. since it can cause memory
-operations to raise different exceptions relative to what they can
-today), and as above it seems like a solution looking for a problem.
-
-Thanks,
-Mark.
+      Arnd
