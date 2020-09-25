@@ -7,33 +7,33 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F40E3C4727D
-	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 15:47:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 48FBCC47420
+	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 16:09:43 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C4CE421741
-	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 15:47:36 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 17DD32371F
+	for <linux-arch@archiver.kernel.org>; Fri, 25 Sep 2020 16:09:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729327AbgIYPrd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 25 Sep 2020 11:47:33 -0400
-Received: from mga04.intel.com ([192.55.52.120]:21732 "EHLO mga04.intel.com"
+        id S1728423AbgIYQJj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 25 Sep 2020 12:09:39 -0400
+Received: from mga04.intel.com ([192.55.52.120]:24060 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728423AbgIYPrc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 25 Sep 2020 11:47:32 -0400
-IronPort-SDR: u2b06A+4cbQo51+NfQYxddsPdKoImafr64J5VI9y3SDQkarRnoL2RivsIT9ygy90dbpxg2Ifd+
- UuEE3G8D2uQA==
-X-IronPort-AV: E=McAfee;i="6000,8403,9755"; a="158942279"
+        id S1727812AbgIYQJj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 25 Sep 2020 12:09:39 -0400
+IronPort-SDR: tRWnfQ7OSqu0yqJPKzYuWUTKAa86Wb4iBPXAP7YBhZfWv2j2w0v0pwu3zqyhnGq4Won4KwPcFq
+ JFJuh86+r86A==
+X-IronPort-AV: E=McAfee;i="6000,8403,9755"; a="158942337"
 X-IronPort-AV: E=Sophos;i="5.77,302,1596524400"; 
-   d="scan'208";a="158942279"
+   d="scan'208";a="158942337"
 X-Amp-Result: SKIPPED(no attachment in message)
 X-Amp-File-Uploaded: False
 Received: from orsmga005.jf.intel.com ([10.7.209.41])
-  by fmsmga104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 25 Sep 2020 07:57:19 -0700
-IronPort-SDR: pv91liv5aQu3UoYGO+/7YAxS7vZbMjw0l8223TrNoQUUmDiqU6ivxEdudw0VxRzv/9oOKFM8dW
- C02QvI+xpNEQ==
+  by fmsmga104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 25 Sep 2020 07:57:28 -0700
+IronPort-SDR: eseqoOG3AgJOxzWo1BKSawx7BfN0V1HAw175u0yVdfSH40WWj2HVSLoj5ROef7JLaU5y01Xv9C
+ /Smn6xARoRkw==
 X-IronPort-AV: E=Sophos;i="5.77,302,1596524400"; 
-   d="scan'208";a="487499162"
+   d="scan'208";a="487499229"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga005-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 25 Sep 2020 07:57:18 -0700
+  by orsmga005-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 25 Sep 2020 07:57:27 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -62,9 +62,9 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Weijiang Yang <weijiang.yang@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v13 08/26] x86/mm: Introduce _PAGE_COW
-Date:   Fri, 25 Sep 2020 07:56:31 -0700
-Message-Id: <20200925145649.5438-9-yu-cheng.yu@intel.com>
+Subject: [PATCH v13 21/26] x86/cet/shstk: Handle signals for shadow stack
+Date:   Fri, 25 Sep 2020 07:56:44 -0700
+Message-Id: <20200925145649.5438-22-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20200925145649.5438-1-yu-cheng.yu@intel.com>
 References: <20200925145649.5438-1-yu-cheng.yu@intel.com>
@@ -74,370 +74,569 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-There is essentially no room left in the x86 hardware PTEs on some OSes
-(not Linux).  That left the hardware architects looking for a way to
-represent a new memory type (shadow stack) within the existing bits.
-They chose to repurpose a lightly-used state: Write=0,Dirty=1.
+To deliver a signal, create a shadow stack restore token and put a restore
+token and the signal restorer address on the shadow stack.  For sigreturn,
+verify the token and restore the shadow stack pointer.
 
-The reason it's lightly used is that Dirty=1 is normally set by hardware
-and cannot normally be set by hardware on a Write=0 PTE.  Software must
-normally be involved to create one of these PTEs, so software can simply
-opt to not create them.
+Introduce WRUSS, which is a kernel-mode instruction but writes directly to
+user shadow stack.  It is used to construct the user signal stack as
+described above.
 
-But that leaves us with a Linux problem: we need to ensure we never create
-Write=0,Dirty=1 PTEs.  In places where we do create them, we need to find
-an alternative way to represent them _without_ using the same hardware bit
-combination.  Thus, enter _PAGE_COW.  This results in the following:
-
-(a) A modified, copy-on-write (COW) page: (R/O + _PAGE_COW)
-(b) A R/O page that has been COW'ed: (R/O + _PAGE_COW)
-    The user page is in a R/O VMA, and get_user_pages() needs a writable
-    copy.  The page fault handler creates a copy of the page and sets
-    the new copy's PTE as R/O and _PAGE_COW.
-(c) A shadow stack PTE: (R/O + _PAGE_DIRTY_HW)
-(d) A shared shadow stack PTE: (R/O + _PAGE_COW)
-    When a shadow stack page is being shared among processes (this happens
-    at fork()), its PTE is cleared of _PAGE_DIRTY_HW, so the next shadow
-    stack access causes a fault, and the page is duplicated and
-    _PAGE_DIRTY_HW is set again.  This is the COW equivalent for shadow
-    stack pages, even though it's copy-on-access rather than copy-on-write.
-(e) A page where the processor observed a Write=1 PTE, started a write, set
-    Dirty=1, but then observed a Write=0 PTE.  That's possible today, but
-    will not happen on processors that support shadow stack.
-
-Use _PAGE_COW in pte_wrprotect() and _PAGE_DIRTY_HW in pte_mkwrite().
-Apply the same changes to pmd and pud.
-
-When this patch is applied, there are six free bits left in the 64-bit PTE.
-There are no more free bits in the 32-bit PTE (except for PAE) and shadow
-stack is not implemented for the 32-bit kernel.
+Introduce a signal context extension struct 'sc_ext', which is used to save
+shadow stack restore token address and WAIT_ENDBR status.  WAIT_ENDBR will
+be introduced later in the Indirect Branch Tracking (IBT) series, but add
+that into sc_ext now to keep the struct stable in case the IBT series is
+applied later.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
+v13:
+- Check restore token pointing to a valid address.
+
 v10:
-- Change _PAGE_BIT_DIRTY_SW to _PAGE_BIT_COW, as it is used for copy-on-
-  write PTEs.
-- Update pte_write() and treat shadow stack as writable.
-- Change *_mkdirty_shstk() to *_mkwrite_shstk() as these make shadow stack
-  pages writable.
-- Use bit test & shift to move _PAGE_BIT_DIRTY_HW to _PAGE_BIT_COW.
-- Change static_cpu_has() to cpu_feature_enabled().
-- Revise commit log.
+- Combine with WRUSS instruction patch, since it is used only here.
+- Revise signal restore code to the latest supervisor states handling.
+  Move shadow stack restore token checking out of the fast path.
 
 v9:
-- Remove pte_move_flags() etc. and put the logic directly in
-  pte_wrprotect()/pte_mkwrite() etc.
-- Change compile-time conditionals to run-time checks.
-- Split out pte_modify()/pmd_modify() to a new patch.
-- Update comments.
+- Update CET MSR access according to XSAVES supervisor state changes.
+- Add 'wait_endbr' to struct 'sc_ext'.
+- Update and simplify signal frame allocation, setup, and restoration.
+- Update commit log text.
 
- arch/x86/include/asm/pgtable.h       | 120 ++++++++++++++++++++++++---
- arch/x86/include/asm/pgtable_types.h |  41 ++++++++-
- 2 files changed, 150 insertions(+), 11 deletions(-)
+v2:
+- Move CET status from sigcontext to a separate struct sc_ext, which is
+  located above the fpstate on the signal frame.
+- Add a restore token for sigreturn address.
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index 86b7acd221c1..ac4ed814be96 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -122,9 +122,9 @@ extern pmdval_t early_pmd_flags;
-  * The following only work if pte_present() is true.
-  * Undefined behaviour if not..
+ arch/x86/ia32/ia32_signal.c            |  17 +++
+ arch/x86/include/asm/cet.h             |   8 ++
+ arch/x86/include/asm/fpu/internal.h    |  10 ++
+ arch/x86/include/asm/special_insns.h   |  32 ++++++
+ arch/x86/include/uapi/asm/sigcontext.h |   9 ++
+ arch/x86/kernel/cet.c                  | 152 +++++++++++++++++++++++++
+ arch/x86/kernel/fpu/signal.c           | 100 ++++++++++++++++
+ arch/x86/kernel/signal.c               |  10 ++
+ 8 files changed, 338 insertions(+)
+
+diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+index 81cf22398cd1..cec9cf0a00cf 100644
+--- a/arch/x86/ia32/ia32_signal.c
++++ b/arch/x86/ia32/ia32_signal.c
+@@ -35,6 +35,7 @@
+ #include <asm/sigframe.h>
+ #include <asm/sighandling.h>
+ #include <asm/smap.h>
++#include <asm/cet.h>
+ 
+ static inline void reload_segments(struct sigcontext_32 *sc)
+ {
+@@ -205,6 +206,7 @@ static void __user *get_sigframe(struct ksignal *ksig, struct pt_regs *regs,
+ 				 void __user **fpstate)
+ {
+ 	unsigned long sp, fx_aligned, math_size;
++	void __user *restorer = NULL;
+ 
+ 	/* Default to using normal stack */
+ 	sp = regs->sp;
+@@ -218,8 +220,23 @@ static void __user *get_sigframe(struct ksignal *ksig, struct pt_regs *regs,
+ 		 ksig->ka.sa.sa_restorer)
+ 		sp = (unsigned long) ksig->ka.sa.sa_restorer;
+ 
++	if (ksig->ka.sa.sa_flags & SA_RESTORER) {
++		restorer = ksig->ka.sa.sa_restorer;
++	} else if (current->mm->context.vdso) {
++		if (ksig->ka.sa.sa_flags & SA_SIGINFO)
++			restorer = current->mm->context.vdso +
++				vdso_image_32.sym___kernel_rt_sigreturn;
++		else
++			restorer = current->mm->context.vdso +
++				vdso_image_32.sym___kernel_sigreturn;
++	}
++
+ 	sp = fpu__alloc_mathframe(sp, 1, &fx_aligned, &math_size);
+ 	*fpstate = (struct _fpstate_32 __user *) sp;
++
++	if (save_cet_to_sigframe(1, *fpstate, (unsigned long)restorer))
++		return (void __user *) -1L;
++
+ 	if (copy_fpstate_to_sigframe(*fpstate, (void __user *)fx_aligned,
+ 				     math_size) < 0)
+ 		return (void __user *) -1L;
+diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+index 5750fbcbb952..73435856ce54 100644
+--- a/arch/x86/include/asm/cet.h
++++ b/arch/x86/include/asm/cet.h
+@@ -6,6 +6,8 @@
+ #include <linux/types.h>
+ 
+ struct task_struct;
++struct sc_ext;
++
+ /*
+  * Per-thread CET status
   */
--static inline int pte_dirty(pte_t pte)
-+static inline bool pte_dirty(pte_t pte)
- {
--	return pte_flags(pte) & _PAGE_DIRTY_HW;
-+	return pte_flags(pte) & _PAGE_DIRTY_BITS;
- }
- 
- 
-@@ -161,9 +161,9 @@ static inline int pte_young(pte_t pte)
- 	return pte_flags(pte) & _PAGE_ACCESSED;
- }
- 
--static inline int pmd_dirty(pmd_t pmd)
-+static inline bool pmd_dirty(pmd_t pmd)
- {
--	return pmd_flags(pmd) & _PAGE_DIRTY_HW;
-+	return pmd_flags(pmd) & _PAGE_DIRTY_BITS;
- }
- 
- static inline int pmd_young(pmd_t pmd)
-@@ -171,9 +171,9 @@ static inline int pmd_young(pmd_t pmd)
- 	return pmd_flags(pmd) & _PAGE_ACCESSED;
- }
- 
--static inline int pud_dirty(pud_t pud)
-+static inline bool pud_dirty(pud_t pud)
- {
--	return pud_flags(pud) & _PAGE_DIRTY_HW;
-+	return pud_flags(pud) & _PAGE_DIRTY_BITS;
- }
- 
- static inline int pud_young(pud_t pud)
-@@ -183,6 +183,12 @@ static inline int pud_young(pud_t pud)
- 
- static inline int pte_write(pte_t pte)
- {
-+	/*
-+	 * If _PAGE_DIRTY_HW is set, the PTE must either have
-+	 * _PAGE_RW or be a shadow stack PTE, which is logically writable.
-+	 */
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK))
-+		return pte_flags(pte) & (_PAGE_RW | _PAGE_DIRTY_HW);
- 	return pte_flags(pte) & _PAGE_RW;
- }
- 
-@@ -334,7 +340,7 @@ static inline pte_t pte_clear_uffd_wp(pte_t pte)
- 
- static inline pte_t pte_mkclean(pte_t pte)
- {
--	return pte_clear_flags(pte, _PAGE_DIRTY_HW);
-+	return pte_clear_flags(pte, _PAGE_DIRTY_BITS);
- }
- 
- static inline pte_t pte_mkold(pte_t pte)
-@@ -344,6 +350,17 @@ static inline pte_t pte_mkold(pte_t pte)
- 
- static inline pte_t pte_wrprotect(pte_t pte)
- {
-+	/*
-+	 * Blindly clearing _PAGE_RW might accidentally create
-+	 * a shadow stack PTE (RW=0,Dirty=1).  Move the hardware
-+	 * dirty value to the software bit.
-+	 */
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
-+		pte.pte |= (pte.pte & _PAGE_DIRTY_HW) >>
-+			   _PAGE_BIT_DIRTY_HW << _PAGE_BIT_COW;
-+		pte = pte_clear_flags(pte, _PAGE_DIRTY_HW);
-+	}
-+
- 	return pte_clear_flags(pte, _PAGE_RW);
- }
- 
-@@ -354,6 +371,18 @@ static inline pte_t pte_mkexec(pte_t pte)
- 
- static inline pte_t pte_mkdirty(pte_t pte)
- {
-+	pteval_t dirty = _PAGE_DIRTY_HW;
-+
-+	/* Avoid creating (HW)Dirty=1,Write=0 PTEs */
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && !pte_write(pte))
-+		dirty = _PAGE_COW;
-+
-+	return pte_set_flags(pte, dirty | _PAGE_SOFT_DIRTY);
-+}
-+
-+static inline pte_t pte_mkwrite_shstk(pte_t pte)
-+{
-+	pte = pte_clear_flags(pte, _PAGE_COW);
- 	return pte_set_flags(pte, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
- }
- 
-@@ -364,6 +393,13 @@ static inline pte_t pte_mkyoung(pte_t pte)
- 
- static inline pte_t pte_mkwrite(pte_t pte)
- {
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
-+		if (pte_flags(pte) & _PAGE_COW) {
-+			pte = pte_clear_flags(pte, _PAGE_COW);
-+			pte = pte_set_flags(pte, _PAGE_DIRTY_HW);
-+		}
-+	}
-+
- 	return pte_set_flags(pte, _PAGE_RW);
- }
- 
-@@ -435,16 +471,41 @@ static inline pmd_t pmd_mkold(pmd_t pmd)
- 
- static inline pmd_t pmd_mkclean(pmd_t pmd)
- {
--	return pmd_clear_flags(pmd, _PAGE_DIRTY_HW);
-+	return pmd_clear_flags(pmd, _PAGE_DIRTY_BITS);
- }
- 
- static inline pmd_t pmd_wrprotect(pmd_t pmd)
- {
-+	/*
-+	 * Blindly clearing _PAGE_RW might accidentally create
-+	 * a shadow stack PMD (RW=0,Dirty=1).  Move the hardware
-+	 * dirty value to the software bit.
-+	 */
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
-+		pmdval_t v = native_pmd_val(pmd);
-+
-+		v |= (v & _PAGE_DIRTY_HW) >> _PAGE_BIT_DIRTY_HW <<
-+		     _PAGE_BIT_COW;
-+		pmd = pmd_clear_flags(__pmd(v), _PAGE_DIRTY_HW);
-+	}
-+
- 	return pmd_clear_flags(pmd, _PAGE_RW);
- }
- 
- static inline pmd_t pmd_mkdirty(pmd_t pmd)
- {
-+	pmdval_t dirty = _PAGE_DIRTY_HW;
-+
-+	/* Avoid creating (HW)Dirty=1,Write=0 PMDs */
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && !(pmd_flags(pmd) & _PAGE_RW))
-+		dirty = _PAGE_COW;
-+
-+	return pmd_set_flags(pmd, dirty | _PAGE_SOFT_DIRTY);
-+}
-+
-+static inline pmd_t pmd_mkwrite_shstk(pmd_t pmd)
-+{
-+	pmd = pmd_clear_flags(pmd, _PAGE_COW);
- 	return pmd_set_flags(pmd, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
- }
- 
-@@ -465,6 +526,13 @@ static inline pmd_t pmd_mkyoung(pmd_t pmd)
- 
- static inline pmd_t pmd_mkwrite(pmd_t pmd)
- {
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
-+		if (pmd_flags(pmd) & _PAGE_COW) {
-+			pmd = pmd_clear_flags(pmd, _PAGE_COW);
-+			pmd = pmd_set_flags(pmd, _PAGE_DIRTY_HW);
-+		}
-+	}
-+
- 	return pmd_set_flags(pmd, _PAGE_RW);
- }
- 
-@@ -489,17 +557,36 @@ static inline pud_t pud_mkold(pud_t pud)
- 
- static inline pud_t pud_mkclean(pud_t pud)
- {
--	return pud_clear_flags(pud, _PAGE_DIRTY_HW);
-+	return pud_clear_flags(pud, _PAGE_DIRTY_BITS);
- }
- 
- static inline pud_t pud_wrprotect(pud_t pud)
- {
-+	/*
-+	 * Blindly clearing _PAGE_RW might accidentally create
-+	 * a shadow stack PUD (RW=0,Dirty=1).  Move the hardware
-+	 * dirty value to the software bit.
-+	 */
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
-+		pudval_t v = native_pud_val(pud);
-+
-+		v |= (v & _PAGE_DIRTY_HW) >> _PAGE_BIT_DIRTY_HW <<
-+		     _PAGE_BIT_COW;
-+		pud = pud_clear_flags(__pud(v), _PAGE_DIRTY_HW);
-+	}
-+
- 	return pud_clear_flags(pud, _PAGE_RW);
- }
- 
- static inline pud_t pud_mkdirty(pud_t pud)
- {
--	return pud_set_flags(pud, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
-+	pudval_t dirty = _PAGE_DIRTY_HW;
-+
-+	/* Avoid creating (HW)Dirty=1,Write=0 PUDs */
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && !(pud_flags(pud) & _PAGE_RW))
-+		dirty = _PAGE_COW;
-+
-+	return pud_set_flags(pud, dirty | _PAGE_SOFT_DIRTY);
- }
- 
- static inline pud_t pud_mkdevmap(pud_t pud)
-@@ -519,6 +606,13 @@ static inline pud_t pud_mkyoung(pud_t pud)
- 
- static inline pud_t pud_mkwrite(pud_t pud)
- {
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
-+		if (pud_flags(pud) & _PAGE_COW) {
-+			pud = pud_clear_flags(pud, _PAGE_COW);
-+			pud = pud_set_flags(pud, _PAGE_DIRTY_HW);
-+		}
-+	}
-+
- 	return pud_set_flags(pud, _PAGE_RW);
- }
- 
-@@ -1132,6 +1226,12 @@ extern int pmdp_clear_flush_young(struct vm_area_struct *vma,
- #define pmd_write pmd_write
- static inline int pmd_write(pmd_t pmd)
- {
-+	/*
-+	 * If _PAGE_DIRTY_HW is set, then the PMD must either have
-+	 * _PAGE_RW or be a shadow stack PMD, which is logically writable.
-+	 */
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK))
-+		return pmd_flags(pmd) & (_PAGE_RW | _PAGE_DIRTY_HW);
- 	return pmd_flags(pmd) & _PAGE_RW;
- }
- 
-diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
-index 5f31f1c407b9..75362df8b226 100644
---- a/arch/x86/include/asm/pgtable_types.h
-+++ b/arch/x86/include/asm/pgtable_types.h
-@@ -23,7 +23,8 @@
- #define _PAGE_BIT_SOFTW2	10	/* " */
- #define _PAGE_BIT_SOFTW3	11	/* " */
- #define _PAGE_BIT_PAT_LARGE	12	/* On 2MB or 1GB pages */
--#define _PAGE_BIT_SOFTW4	58	/* available for programmer */
-+#define _PAGE_BIT_SOFTW4	57	/* available for programmer */
-+#define _PAGE_BIT_SOFTW5	58	/* available for programmer */
- #define _PAGE_BIT_PKEY_BIT0	59	/* Protection Keys, bit 1/4 */
- #define _PAGE_BIT_PKEY_BIT1	60	/* Protection Keys, bit 2/4 */
- #define _PAGE_BIT_PKEY_BIT2	61	/* Protection Keys, bit 3/4 */
-@@ -36,6 +37,16 @@
- #define _PAGE_BIT_SOFT_DIRTY	_PAGE_BIT_SOFTW3 /* software dirty tracking */
- #define _PAGE_BIT_DEVMAP	_PAGE_BIT_SOFTW4
- 
-+/*
-+ * This bit indicates a copy-on-write page, and is different from
-+ * _PAGE_BIT_SOFT_DIRTY, which tracks which pages a task writes to.
-+ */
-+#ifdef CONFIG_X86_64
-+#define _PAGE_BIT_COW		_PAGE_BIT_SOFTW5 /* copy-on-write */
-+#else
-+#define _PAGE_BIT_COW		0
-+#endif
-+
- /* If _PAGE_BIT_PRESENT is clear, we use these: */
- /* - if the user mapped it with PROT_NONE; pte_present gives true */
- #define _PAGE_BIT_PROTNONE	_PAGE_BIT_GLOBAL
-@@ -117,6 +128,34 @@
- #define _PAGE_DEVMAP	(_AT(pteval_t, 0))
+@@ -18,9 +20,15 @@ struct cet_status {
+ int cet_setup_shstk(void);
+ void cet_disable_shstk(void);
+ void cet_free_shstk(struct task_struct *p);
++int cet_verify_rstor_token(bool ia32, unsigned long ssp, unsigned long *new_ssp);
++void cet_restore_signal(struct sc_ext *sc);
++int cet_setup_signal(bool ia32, unsigned long rstor, struct sc_ext *sc);
+ #else
+ static inline void cet_disable_shstk(void) {}
+ static inline void cet_free_shstk(struct task_struct *p) {}
++static inline void cet_restore_signal(struct sc_ext *sc) { return; }
++static inline int cet_setup_signal(bool ia32, unsigned long rstor,
++				   struct sc_ext *sc) { return -EINVAL; }
  #endif
  
-+/*
-+ * _PAGE_COW is used to separate R/O and copy-on-write PTEs created by
-+ * software from the shadow stack PTE setting required by the hardware:
-+ * (a) A modified, copy-on-write (COW) page: (R/O + _PAGE_COW)
-+ * (b) A R/O page that has been COW'ed: (R/O +_PAGE_COW)
-+ *     The user page is in a R/O VMA, and get_user_pages() needs a
-+ *     writable copy.  The page fault handler creates a copy of the page
-+ *     and sets the new copy's PTE as R/O and _PAGE_COW.
-+ * (c) A shadow stack PTE: (R/O + _PAGE_DIRTY_HW)
-+ * (d) A shared (copy-on-access) shadow stack PTE: (R/O + _PAGE_COW)
-+ *     When a shadow stack page is being shared among processes (this
-+ *     happens at fork()), its PTE is cleared of _PAGE_DIRTY_HW, so the
-+ *     next shadow stack access causes a fault, and the page is duplicated
-+ *     and _PAGE_DIRTY_HW is set again.  This is the COW equivalent for
-+ *     shadow stack pages, even though it's copy-on-access rather than
-+ *     copy-on-write.
-+ * (e) A page where the processor observed a Write=1 PTE, started a write,
-+ *     set Dirty=1, but then observed a Write=0 PTE.  That's possible
-+ *     today, but will not happen on processors that support shadow stack.
-+ */
-+#ifdef CONFIG_X86_SHADOW_STACK_USER
-+#define _PAGE_COW	(_AT(pteval_t, 1) << _PAGE_BIT_COW)
+ #endif /* __ASSEMBLY__ */
+diff --git a/arch/x86/include/asm/fpu/internal.h b/arch/x86/include/asm/fpu/internal.h
+index 0a460f2a3f90..ec900a7a4786 100644
+--- a/arch/x86/include/asm/fpu/internal.h
++++ b/arch/x86/include/asm/fpu/internal.h
+@@ -442,6 +442,16 @@ static inline void copy_kernel_to_fpregs(union fpregs_state *fpstate)
+ 	__copy_kernel_to_fpregs(fpstate, -1);
+ }
+ 
++#ifdef CONFIG_X86_CET
++extern int save_cet_to_sigframe(int ia32, void __user *fp,
++				unsigned long restorer);
 +#else
-+#define _PAGE_COW	(_AT(pteval_t, 0))
++static inline int save_cet_to_sigframe(int ia32, void __user *fp,
++				unsigned long restorer)
++{
++	return 0;
++}
 +#endif
-+
-+#define _PAGE_DIRTY_BITS (_PAGE_DIRTY_HW | _PAGE_COW)
-+
- #define _PAGE_PROTNONE	(_AT(pteval_t, 1) << _PAGE_BIT_PROTNONE)
+ extern int copy_fpstate_to_sigframe(void __user *buf, void __user *fp, int size);
  
  /*
+diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
+index 59a3e13204c3..ee86c19da532 100644
+--- a/arch/x86/include/asm/special_insns.h
++++ b/arch/x86/include/asm/special_insns.h
+@@ -232,6 +232,38 @@ static inline void clwb(volatile void *__p)
+ 		: [pax] "a" (p));
+ }
+ 
++#ifdef CONFIG_X86_CET
++#if defined(CONFIG_IA32_EMULATION) || defined(CONFIG_X86_X32)
++static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
++{
++	asm_volatile_goto("1: wrussd %1, (%0)\n"
++			  _ASM_EXTABLE(1b, %l[fail])
++			  :: "r" (addr), "r" (val)
++			  :: fail);
++	return 0;
++fail:
++	return -EPERM;
++}
++#else
++static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
++{
++	WARN_ONCE(1, "%s used but not supported.\n", __func__);
++	return -EFAULT;
++}
++#endif
++
++static inline int write_user_shstk_64(unsigned long addr, unsigned long val)
++{
++	asm_volatile_goto("1: wrussq %1, (%0)\n"
++			  _ASM_EXTABLE(1b, %l[fail])
++			  :: "r" (addr), "r" (val)
++			  :: fail);
++	return 0;
++fail:
++	return -EPERM;
++}
++#endif /* CONFIG_X86_CET */
++
+ #define nop() asm volatile ("nop")
+ 
+ #endif /* __KERNEL__ */
+diff --git a/arch/x86/include/uapi/asm/sigcontext.h b/arch/x86/include/uapi/asm/sigcontext.h
+index 844d60eb1882..cf2d55db3be4 100644
+--- a/arch/x86/include/uapi/asm/sigcontext.h
++++ b/arch/x86/include/uapi/asm/sigcontext.h
+@@ -196,6 +196,15 @@ struct _xstate {
+ 	/* New processor state extensions go here: */
+ };
+ 
++/*
++ * Located at the end of sigcontext->fpstate, aligned to 8.
++ */
++struct sc_ext {
++	unsigned long total_size;
++	unsigned long ssp;
++	unsigned long wait_endbr;
++};
++
+ /*
+  * The 32-bit signal frame:
+  */
+diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+index f8b0a077594f..51ddd17aee8f 100644
+--- a/arch/x86/kernel/cet.c
++++ b/arch/x86/kernel/cet.c
+@@ -19,6 +19,8 @@
+ #include <asm/fpu/xstate.h>
+ #include <asm/fpu/types.h>
+ #include <asm/cet.h>
++#include <asm/special_insns.h>
++#include <uapi/asm/sigcontext.h>
+ 
+ static void start_update_msrs(void)
+ {
+@@ -72,6 +74,80 @@ static unsigned long alloc_shstk(unsigned long size, int flags)
+ 	return addr;
+ }
+ 
++#define TOKEN_MODE_MASK	3UL
++#define TOKEN_MODE_64	1UL
++#define IS_TOKEN_64(token) ((token & TOKEN_MODE_MASK) == TOKEN_MODE_64)
++#define IS_TOKEN_32(token) ((token & TOKEN_MODE_MASK) == 0)
++
++/*
++ * Verify the restore token at the address of 'ssp' is
++ * valid and then set shadow stack pointer according to the
++ * token.
++ */
++int cet_verify_rstor_token(bool ia32, unsigned long ssp,
++			   unsigned long *new_ssp)
++{
++	unsigned long token;
++
++	*new_ssp = 0;
++
++	if (!IS_ALIGNED(ssp, 8))
++		return -EINVAL;
++
++	if (get_user(token, (unsigned long __user *)ssp))
++		return -EFAULT;
++
++	/* Is 64-bit mode flag correct? */
++	if (!ia32 && !IS_TOKEN_64(token))
++		return -EINVAL;
++	else if (ia32 && !IS_TOKEN_32(token))
++		return -EINVAL;
++
++	token &= ~TOKEN_MODE_MASK;
++
++	/*
++	 * Restore address properly aligned?
++	 */
++	if ((!ia32 && !IS_ALIGNED(token, 8)) || !IS_ALIGNED(token, 4))
++		return -EINVAL;
++
++	/*
++	 * Token was placed properly?
++	 */
++	if (((ALIGN_DOWN(token, 8) - 8) != ssp) || (token >= TASK_SIZE_MAX))
++		return -EINVAL;
++
++	*new_ssp = token;
++	return 0;
++}
++
++/*
++ * Create a restore token on the shadow stack.
++ * A token is always 8-byte and aligned to 8.
++ */
++static int create_rstor_token(bool ia32, unsigned long ssp,
++			      unsigned long *new_ssp)
++{
++	unsigned long addr;
++
++	*new_ssp = 0;
++
++	if ((!ia32 && !IS_ALIGNED(ssp, 8)) || !IS_ALIGNED(ssp, 4))
++		return -EINVAL;
++
++	addr = ALIGN_DOWN(ssp, 8) - 8;
++
++	/* Is the token for 64-bit? */
++	if (!ia32)
++		ssp |= TOKEN_MODE_64;
++
++	if (write_user_shstk_64(addr, ssp))
++		return -EFAULT;
++
++	*new_ssp = addr;
++	return 0;
++}
++
+ int cet_setup_shstk(void)
+ {
+ 	unsigned long addr, size;
+@@ -145,3 +221,79 @@ void cet_free_shstk(struct task_struct *tsk)
+ 	cet->shstk_base = 0;
+ 	cet->shstk_size = 0;
+ }
++
++/*
++ * Called from __fpu__restore_sig() and XSAVES buffer is protected by
++ * set_thread_flag(TIF_NEED_FPU_LOAD) in the slow path.
++ */
++void cet_restore_signal(struct sc_ext *sc_ext)
++{
++	struct cet_user_state *cet_user_state;
++	struct cet_status *cet = &current->thread.cet;
++	u64 msr_val = 0;
++
++	if (!static_cpu_has(X86_FEATURE_SHSTK))
++		return;
++
++	cet_user_state = get_xsave_addr(&current->thread.fpu.state.xsave,
++					XFEATURE_CET_USER);
++	if (!cet_user_state)
++		return;
++
++	if (cet->shstk_size) {
++		if (test_thread_flag(TIF_NEED_FPU_LOAD))
++			cet_user_state->user_ssp = sc_ext->ssp;
++		else
++			wrmsrl(MSR_IA32_PL3_SSP, sc_ext->ssp);
++
++		msr_val |= CET_SHSTK_EN;
++	}
++
++	if (test_thread_flag(TIF_NEED_FPU_LOAD))
++		cet_user_state->user_cet = msr_val;
++	else
++		wrmsrl(MSR_IA32_U_CET, msr_val);
++}
++
++/*
++ * Setup the shadow stack for the signal handler: first,
++ * create a restore token to keep track of the current ssp,
++ * and then the return address of the signal handler.
++ */
++int cet_setup_signal(bool ia32, unsigned long rstor_addr, struct sc_ext *sc_ext)
++{
++	struct cet_status *cet = &current->thread.cet;
++	unsigned long ssp = 0, new_ssp = 0;
++	int err;
++
++	if (cet->shstk_size) {
++		if (!rstor_addr)
++			return -EINVAL;
++
++		ssp = cet_get_shstk_addr();
++		err = create_rstor_token(ia32, ssp, &new_ssp);
++		if (err)
++			return err;
++
++		if (ia32) {
++			ssp = new_ssp - sizeof(u32);
++			err = write_user_shstk_32(ssp, (unsigned int)rstor_addr);
++		} else {
++			ssp = new_ssp - sizeof(u64);
++			err = write_user_shstk_64(ssp, rstor_addr);
++		}
++
++		if (err)
++			return err;
++
++		sc_ext->ssp = new_ssp;
++	}
++
++	if (ssp) {
++		start_update_msrs();
++		wrmsrl(MSR_IA32_PL3_SSP, ssp);
++		end_update_msrs();
++	}
++
++	return 0;
++}
+diff --git a/arch/x86/kernel/fpu/signal.c b/arch/x86/kernel/fpu/signal.c
+index a4ec65317a7f..c0c2141cb4b3 100644
+--- a/arch/x86/kernel/fpu/signal.c
++++ b/arch/x86/kernel/fpu/signal.c
+@@ -52,6 +52,74 @@ static inline int check_for_xstate(struct fxregs_state __user *buf,
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_X86_CET
++int save_cet_to_sigframe(int ia32, void __user *fp, unsigned long restorer)
++{
++	int err = 0;
++
++	if (!current->thread.cet.shstk_size)
++		return 0;
++
++	if (fp) {
++		struct sc_ext ext = {0, 0, 0};
++
++		err = cet_setup_signal(ia32, restorer, &ext);
++		if (!err) {
++			void __user *p = fp;
++
++			ext.total_size = sizeof(ext);
++
++			if (ia32)
++				p += sizeof(struct fregs_state);
++
++			p += fpu_user_xstate_size + FP_XSTATE_MAGIC2_SIZE;
++			p = (void __user *)ALIGN((unsigned long)p, 8);
++
++			if (copy_to_user(p, &ext, sizeof(ext)))
++				return -EFAULT;
++		}
++	}
++
++	return err;
++}
++
++static int get_cet_from_sigframe(int ia32, void __user *fp, struct sc_ext *ext)
++{
++	int err = 0;
++
++	memset(ext, 0, sizeof(*ext));
++
++	if (!current->thread.cet.shstk_size)
++		return 0;
++
++	if (fp) {
++		void __user *p = fp;
++
++		if (ia32)
++			p += sizeof(struct fregs_state);
++
++		p += fpu_user_xstate_size + FP_XSTATE_MAGIC2_SIZE;
++		p = (void __user *)ALIGN((unsigned long)p, 8);
++
++		if (copy_from_user(ext, p, sizeof(*ext)))
++			return -EFAULT;
++
++		if (ext->total_size != sizeof(*ext))
++			return -EFAULT;
++
++		if (current->thread.cet.shstk_size)
++			err = cet_verify_rstor_token(ia32, ext->ssp, &ext->ssp);
++	}
++
++	return err;
++}
++#else
++static int get_cet_from_sigframe(int ia32, void __user *fp, struct sc_ext *ext)
++{
++	return 0;
++}
++#endif
++
+ /*
+  * Signal frame handlers.
+  */
+@@ -295,6 +363,7 @@ static int __fpu__restore_sig(void __user *buf, void __user *buf_fx, int size)
+ 	struct task_struct *tsk = current;
+ 	struct fpu *fpu = &tsk->thread.fpu;
+ 	struct user_i387_ia32_struct env;
++	struct sc_ext sc_ext;
+ 	u64 user_xfeatures = 0;
+ 	int fx_only = 0;
+ 	int ret = 0;
+@@ -335,6 +404,10 @@ static int __fpu__restore_sig(void __user *buf, void __user *buf_fx, int size)
+ 	if ((unsigned long)buf_fx % 64)
+ 		fx_only = 1;
+ 
++	ret = get_cet_from_sigframe(ia32_fxstate, buf, &sc_ext);
++	if (ret)
++		return ret;
++
+ 	if (!ia32_fxstate) {
+ 		/*
+ 		 * Attempt to restore the FPU registers directly from user
+@@ -349,6 +422,8 @@ static int __fpu__restore_sig(void __user *buf, void __user *buf_fx, int size)
+ 		pagefault_enable();
+ 		if (!ret) {
+ 
++			cet_restore_signal(&sc_ext);
++
+ 			/*
+ 			 * Restore supervisor states: previous context switch
+ 			 * etc has done XSAVES and saved the supervisor states
+@@ -423,6 +498,8 @@ static int __fpu__restore_sig(void __user *buf, void __user *buf_fx, int size)
+ 		if (unlikely(init_bv))
+ 			copy_kernel_to_xregs(&init_fpstate.xsave, init_bv);
+ 
++		cet_restore_signal(&sc_ext);
++
+ 		/*
+ 		 * Restore previously saved supervisor xstates along with
+ 		 * copied-in user xstates.
+@@ -491,12 +568,35 @@ int fpu__restore_sig(void __user *buf, int ia32_frame)
+ 	return __fpu__restore_sig(buf, buf_fx, size);
+ }
+ 
++#ifdef CONFIG_X86_CET
++static unsigned long fpu__alloc_sigcontext_ext(unsigned long sp)
++{
++	struct cet_status *cet = &current->thread.cet;
++
++	/*
++	 * sigcontext_ext is at: fpu + fpu_user_xstate_size +
++	 * FP_XSTATE_MAGIC2_SIZE, then aligned to 8.
++	 */
++	if (cet->shstk_size)
++		sp -= (sizeof(struct sc_ext) + 8);
++
++	return sp;
++}
++#else
++static unsigned long fpu__alloc_sigcontext_ext(unsigned long sp)
++{
++	return sp;
++}
++#endif
++
+ unsigned long
+ fpu__alloc_mathframe(unsigned long sp, int ia32_frame,
+ 		     unsigned long *buf_fx, unsigned long *size)
+ {
+ 	unsigned long frame_size = xstate_sigframe_size();
+ 
++	sp = fpu__alloc_sigcontext_ext(sp);
++
+ 	*buf_fx = sp = round_down(sp - frame_size, 64);
+ 	if (ia32_frame && use_fxsr()) {
+ 		frame_size += sizeof(struct fregs_state);
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index be0d7d4152ec..f39335ed4f7e 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -46,6 +46,7 @@
+ #include <asm/syscall.h>
+ #include <asm/sigframe.h>
+ #include <asm/signal.h>
++#include <asm/cet.h>
+ 
+ #ifdef CONFIG_X86_64
+ /*
+@@ -239,6 +240,9 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size,
+ 	unsigned long buf_fx = 0;
+ 	int onsigstack = on_sig_stack(sp);
+ 	int ret;
++#ifdef CONFIG_X86_64
++	void __user *restorer = NULL;
++#endif
+ 
+ 	/* redzone */
+ 	if (IS_ENABLED(CONFIG_X86_64))
+@@ -270,6 +274,12 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size,
+ 	if (onsigstack && !likely(on_sig_stack(sp)))
+ 		return (void __user *)-1L;
+ 
++#ifdef CONFIG_X86_64
++	if (ka->sa.sa_flags & SA_RESTORER)
++		restorer = ka->sa.sa_restorer;
++	ret = save_cet_to_sigframe(0, *fpstate, (unsigned long)restorer);
++#endif
++
+ 	/* save i387 and extended state */
+ 	ret = copy_fpstate_to_sigframe(*fpstate, (void __user *)buf_fx, math_size);
+ 	if (ret < 0)
 -- 
 2.21.0
 
