@@ -7,34 +7,34 @@ X-Spam-Status: No, score=-5.4 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 64B84C4346E
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 08:21:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E44D6C4741F
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 08:23:28 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 25A9C20773
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 08:21:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AAC4D21548
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 08:23:28 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.com header.i=@suse.com header.b="kYjuvZ+i"
+	dkim=pass (1024-bit key) header.d=suse.com header.i=@suse.com header.b="Yx+4OiWz"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727700AbgI2IV0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Sep 2020 04:21:26 -0400
-Received: from mx2.suse.de ([195.135.220.15]:33218 "EHLO mx2.suse.de"
+        id S1727634AbgI2IX2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 29 Sep 2020 04:23:28 -0400
+Received: from mx2.suse.de ([195.135.220.15]:34326 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727653AbgI2IVY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Sep 2020 04:21:24 -0400
+        id S1727484AbgI2IX1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 Sep 2020 04:23:27 -0400
 X-Virus-Scanned: by amavisd-new at test-mx.suse.de
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
-        t=1601367682;
+        t=1601367805;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
          to:to:cc:cc:mime-version:mime-version:content-type:content-type:
          in-reply-to:in-reply-to:references:references;
         bh=KFyfyEQCS1dcCR4BhfL+zwiQ3CuzyAy4x23tr+VkzjE=;
-        b=kYjuvZ+ilRICWeNF3tv+sX4B6qR0l26SNFX+2yuqmAbG6VZsVdy+/ab4DWFA/2mAPMzvho
-        sWiMi4hR4DtnoNBd3zA9aScladT2LR3g7zk3zp4xXinjBQFShKRtNv5abZ+aKM+mJdoLfs
-        LfJPGyvdVLHOxuKwI+4KWXzshc3e4XY=
+        b=Yx+4OiWzh8hL3oRWBVwsl7OoNxopUmSyQasLhmn1G1pwm5WeUKovPN8LH2bdOC7Tf1qJAG
+        BQKht+ljEQ7JSXztBWuZ/SDej3VcAwduMW5YketNY8WVwtpxMMor30Pmo+P2rpxR7SkCAG
+        TBCtVCqjpOLjck1NyY3qWCFDobpueAs=
 Received: from relay2.suse.de (unknown [195.135.221.27])
-        by mx2.suse.de (Postfix) with ESMTP id 4162CACA3;
-        Tue, 29 Sep 2020 08:21:22 +0000 (UTC)
-Date:   Tue, 29 Sep 2020 10:21:21 +0200
+        by mx2.suse.de (Postfix) with ESMTP id 0860EB2A1;
+        Tue, 29 Sep 2020 08:23:25 +0000 (UTC)
+Date:   Tue, 29 Sep 2020 10:23:24 +0200
 From:   Michal Hocko <mhocko@suse.com>
 To:     Daniel Vetter <daniel@ffwll.ch>
 Cc:     "Paul E. McKenney" <paulmck@kernel.org>,
@@ -102,7 +102,7 @@ User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
-Message-ID: <20200929082121.l4gss6SIN9tyRe6VEIsJWTGiayhPkJ0y8Z3Y42P4wCU@z>
+Message-ID: <20200929082324.IfBCDP-BI_B906MQEiFkwrr4j-EOgQCBoui4OohKmGc@z>
 
 On Wed 16-09-20 23:43:02, Daniel Vetter wrote:
 > I can
