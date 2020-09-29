@@ -5,65 +5,65 @@ X-Spam-Level:
 X-Spam-Status: No, score=-20.9 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=ham autolearn_force=no
-	version=3.4.0
+	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5164CC47420
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BB443C47425
 	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:48:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 0091E20774
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:48:01 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6A33C208FE
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:48:02 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="HdK7XgY2"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="gdAEDDvL"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728074AbgI2VsB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Sep 2020 17:48:01 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48258 "EHLO
+        id S1729365AbgI2VsA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 29 Sep 2020 17:48:00 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48414 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728617AbgI2Vqx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Sep 2020 17:46:53 -0400
-Received: from mail-qv1-xf4a.google.com (mail-qv1-xf4a.google.com [IPv6:2607:f8b0:4864:20::f4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DCB94C0613D3
-        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:46:52 -0700 (PDT)
-Received: by mail-qv1-xf4a.google.com with SMTP id t4so3334041qvr.21
-        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:46:52 -0700 (PDT)
+        with ESMTP id S1728074AbgI2VrW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Sep 2020 17:47:22 -0400
+Received: from mail-qk1-x74a.google.com (mail-qk1-x74a.google.com [IPv6:2607:f8b0:4864:20::74a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 29AADC0613D0
+        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:22 -0700 (PDT)
+Received: by mail-qk1-x74a.google.com with SMTP id d22so3655456qkb.18
+        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:22 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=sender:date:in-reply-to:message-id:mime-version:references:subject
          :from:to:cc;
-        bh=Xjrukg6K3IydY/lqqi+bCZNdR5RjdEmABiI8yk+fZMI=;
-        b=HdK7XgY20csMFcb+NLyDCXa0Y0BGLZ848JpvtrKXuN4kP13qc7mB9gIo/tOvGsTK0n
-         Ji2dtRPOFfuxFcA+duNxDZiijoE33HNw7tWDF5E8m1wqENg9cj6ei3CjwJ0N3MORXBa0
-         OiIDsCN2lwWZN36P+HMA0/i6r+hGq8LSRXCmTEW0ezq9gHlvKKSRObpHJBOae/EdWdAU
-         32Gd6c/t2yV+iQQ9uWMBg3zEyEcOs6POlcO4VSL93GZziqn82PoJ2cs2fwnaH1D9AfNM
-         SAML6VP9UfLTVbfCFJsAI8Lgk3AeE4OjZhWgBqaEtQTo1lOZgisnM8dMNB6pz6Qg5Lay
-         cqDQ==
+        bh=M/tCJ87SKQnbyhBQptnFDCNgoy9D1scy1+3ph9ahS3g=;
+        b=gdAEDDvLlL0msAdcbIE0elhCADhQmKL9S16dzNU1NewfqdOooSY9iFqACy8+PZ7gHu
+         RjJqXHtJjRJu9BoQC0Z+qcoslnaCbYOM5YVwAUiEbJv8oMPbNKei4NbKX8/eYf1TjsBX
+         LuD//MCUmK3U7ZJ2uod6D1w8OHvoyhKJylEziLAmUyzobSpYb93PY4CL1x+jJuLiN+Df
+         TJvELp9Gtnh21l2Y6CWFhRqKGqHS7xc78jprEFcrRoojdnbVtKont9eEkY55sgaj+pEf
+         r+rlpDV8ZtQQ3iUVmb9timiu1KOz8XTe/0fr94WEPlFW4uof3ENuM7MDtO9p1BgJUAsl
+         mKLg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=Xjrukg6K3IydY/lqqi+bCZNdR5RjdEmABiI8yk+fZMI=;
-        b=J6lEvpjLzrsbSW3kR6W9vK8XMxS7s7SbzaTqZnd+FzhJbhXdBBl8tQq2yqaBHKPSSD
-         9cSd6OM6ltYwWiQzoSMQg2LAlxaNiX8ys0smg+e5QqUwhwIfZhgYJoK9/J1iaRNHC2Rp
-         ECNnldTzjQtD3kGEKrd3+iMllnUg960kXeYTGISDCgIqE9ApejT4qMf5JzoeM3Jiyz6N
-         xP9jR9cwf+AJRO8vH4GgP6En7w0Le+6gooAUW5wPHlN/GfOL/DdzCVrQVLvvcq9BqPCn
-         BoDytXlTLLYjLq1Aq133ND7hX20zMWk4+diKe9wxZrAOLu1GXN7ARsRIotaV+RrxcSD2
-         hUdQ==
-X-Gm-Message-State: AOAM533sEUj9WKmBqiE+AHSA/FvXzSTCMVTktI7QFvktB1C+5cQTi7G2
-        4LjwnAd/qMmdgIUzL6LBj5ab+XcJPMCty73aHM8=
-X-Google-Smtp-Source: ABdhPJy7cJ63oyWVE3guhSQ8dpAugUL8BOvZOYiTdX/ZOOHGsEKlj0fM6UJAmLz8cRUfCBdDvDQP4efk1c6ZbLA+m7Q=
+        bh=M/tCJ87SKQnbyhBQptnFDCNgoy9D1scy1+3ph9ahS3g=;
+        b=DjWYVL6ACKLhz6EzSygLSX3CwLvQoOJpFAIyq0gc4VwLSuiqJ6TypPxr5vep7tn5De
+         65F3/KKAeQ3/0gt9il5LWJoaQXH3axxufD2B3m+sakmvqOvPbZ77rBk4FI7Yc7wDUcf3
+         pkMjXTKa3TNPtUOEkOKLuzQvPoc3tEy/Sin8CmPUjjYefBnZGeNkapL9jY7wq8n1rlzM
+         xuCjB4V70dh6AE35Yl5hBJ9YpD/+72Qbb1zHsqh7Uvp9maAFFS7+DDgPVua0RBa8xT3q
+         vvIPM1zc0RWdkGkzoDQ4Ro10NgVoVOXNmDH3T8OJOqJWB7rOmCG0nYWzFwGiyK7GhEDn
+         vq2A==
+X-Gm-Message-State: AOAM531KXTjzpprWjaYTHBuDNQQakgVw6yitDX1TSvuIVfPJyN6CFuFu
+        VzHAgmpqp5cLT0jiqViW+Yw0RfcYgFyPSBKzffc=
+X-Google-Smtp-Source: ABdhPJwIclf1YZILYpRHL9aLGjIyClVObMTVmWZ7pfwr9sU8b01qvKeenw3eQ8lUfzBJlACcTh5VbLCas1CqVTaKm1c=
 Sender: "samitolvanen via sendgmr" 
         <samitolvanen@samitolvanen1.mtv.corp.google.com>
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
- (user=samitolvanen job=sendgmr) by 2002:ad4:42b3:: with SMTP id
- e19mr6361028qvr.6.1601416011975; Tue, 29 Sep 2020 14:46:51 -0700 (PDT)
-Date:   Tue, 29 Sep 2020 14:46:11 -0700
+ (user=samitolvanen job=sendgmr) by 2002:ad4:58c7:: with SMTP id
+ dh7mr6716936qvb.20.1601416041280; Tue, 29 Sep 2020 14:47:21 -0700 (PDT)
+Date:   Tue, 29 Sep 2020 14:46:23 -0700
 In-Reply-To: <20200929214631.3516445-1-samitolvanen@google.com>
-Message-Id: <20200929214631.3516445-10-samitolvanen@google.com>
+Message-Id: <20200929214631.3516445-22-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20200929214631.3516445-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.28.0.709.gb0816b6eb0-goog
-Subject: [PATCH v4 09/29] arm64: disable recordmcount with DYNAMIC_FTRACE_WITH_REGS
+Subject: [PATCH v4 21/29] scripts/mod: disable LTO for empty.c
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Masahiro Yamada <masahiroy@kernel.org>,
         Will Deacon <will@kernel.org>,
@@ -83,27 +83,27 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Select FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY to disable
-recordmcount when DYNAMIC_FTRACE_WITH_REGS is selected.
+With CONFIG_LTO_CLANG, clang generates LLVM IR instead of ELF object
+files. As empty.o is used for probing target properties, disable LTO
+for it to produce an object file instead.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm64/Kconfig | 2 ++
- 1 file changed, 2 insertions(+)
+ scripts/mod/Makefile | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 6d232837cbee..ad522b021f35 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -155,6 +155,8 @@ config ARM64
- 	select HAVE_DYNAMIC_FTRACE
- 	select HAVE_DYNAMIC_FTRACE_WITH_REGS \
- 		if $(cc-option,-fpatchable-function-entry=2)
-+	select FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY \
-+		if DYNAMIC_FTRACE_WITH_REGS
- 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
- 	select HAVE_FAST_GUP
- 	select HAVE_FTRACE_MCOUNT_RECORD
+diff --git a/scripts/mod/Makefile b/scripts/mod/Makefile
+index 78071681d924..c9e38ad937fd 100644
+--- a/scripts/mod/Makefile
++++ b/scripts/mod/Makefile
+@@ -1,5 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0
+ OBJECT_FILES_NON_STANDARD := y
++CFLAGS_REMOVE_empty.o += $(CC_FLAGS_LTO)
+ 
+ hostprogs-always-y	+= modpost mk_elfconfig
+ always-y		+= empty.o
 -- 
 2.28.0.709.gb0816b6eb0-goog
 
