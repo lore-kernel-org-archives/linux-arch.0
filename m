@@ -5,65 +5,65 @@ X-Spam-Level:
 X-Spam-Status: No, score=-20.9 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
+	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 423BEC47426
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C1103C47427
 	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:48:48 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E6EC021974
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:48:47 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 844D921707
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:48:48 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="jWS8iUHI"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="VQOoXlSc"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728192AbgI2Vsq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Sep 2020 17:48:46 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48420 "EHLO
+        id S1729423AbgI2Vsj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 29 Sep 2020 17:48:39 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48430 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729237AbgI2Vsj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Sep 2020 17:48:39 -0400
-Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A059DC0613AB
-        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:38 -0700 (PDT)
-Received: by mail-yb1-xb49.google.com with SMTP id b3so6378327ybg.23
-        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:38 -0700 (PDT)
+        with ESMTP id S1729247AbgI2Vrq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Sep 2020 17:47:46 -0400
+Received: from mail-qt1-x84a.google.com (mail-qt1-x84a.google.com [IPv6:2607:f8b0:4864:20::84a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D5EE1C0613DA
+        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:26 -0700 (PDT)
+Received: by mail-qt1-x84a.google.com with SMTP id z27so4093095qtu.3
+        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:26 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=sender:date:in-reply-to:message-id:mime-version:references:subject
          :from:to:cc;
-        bh=YnFARiKS6UDkwdk7WP0wlvbxlnuyKDZd5kTTgvwZzNo=;
-        b=jWS8iUHI1yEZwlx3KeKvcgfGPXNdJ4L5onYlC3CBBL8D7obZFD5GHWOijlDtJb8Ij7
-         nRmkWkJefVtEgGfyFLejApsO2VFmeAT9vQpKzbQWErmeV2XzN2V7GUaE7Pe9GHYQRqUr
-         Xv61qqqbIr/UD4HQGH+NeCWqUBIaeXjzSEj5haCz3bHxBeyeFilgtE7h3SBO5qI9TeFI
-         VNBOjzf+qN4PzKeK/ip+sm+V/3xF7iAcrvnH3Y+OXfQISp+lvRlaGKxv9Vs2X9cKIOs1
-         +Egn3AASlwiipmUBXQC2SS1FvIyAuimNGXi91NcEG22l5xpotuSePeSMxIwf0qHe6n0r
-         39pg==
+        bh=dEqcNX1Djl0IV1+V4O1jZ3zX0CSjG7hkO+H8f2GKot0=;
+        b=VQOoXlScak0WysBr/W0lMAFEgBmf32Hfw3oXYJ6KFr0fKBu3y13ZA46qQn/qdgZK8G
+         i7ux8V3oo0qTphW/9JBrWhu78R0GtF1wBcMFmXjLpLEc7GSsvPNid7x6lav1uJEis2a7
+         9W/iGpPEQWtZ88Ylf6C8QNA3xu3tblmY6b/lZ2G2WdHJgfBPHmhOTR1ICCMpX+ICACEs
+         gkyzgzySrJUDgSqaEtM3K6Q4WXigD1N/jiQrFgmXGoYkLUA/xKM7BuINs/wO+fWF4DHc
+         JWaw9z1iMdO3i+MVSCqHWvgzTM8qRNCbnWvbhhOBb0dwF6b5pI+bPyepJLJRhfWXJMhQ
+         QkeA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=YnFARiKS6UDkwdk7WP0wlvbxlnuyKDZd5kTTgvwZzNo=;
-        b=FNJbum762bF4W+nHx6Dt2bVlPsEZydx5h671tKvJTXmX7Ts8FSQ1D5TdvgU45WTNJE
-         anSC3fmok1gvg6QgUxfK+euMpo0xNy2IGClDFiWMRf8w/2XIlrXJaHNnmiw2k/rqQdPq
-         QG2AYZh9AhmIhBJdG7VjQSXEqZfuuhTAn33fMqyRu6+bDHqScssI6ulsmVrRrKZvoJ6+
-         cqXNLfhsZqmfjWG3i7yalVV0v1frD4vxwQxb2OLmexzuH0/zCAEFiK+pFSO0EpnP7a6M
-         Wpc8jVeQjcv4zAZRWWzuMXSBQRYRfQBWt7HcmAEXeT9anhVyLKP6CfbVDk04JYIo8UkC
-         mRXg==
-X-Gm-Message-State: AOAM530hfqFYf1ifu80zNTSZbYEVCJFD40ZxAPCEtx7GubpQDo2L8l3J
-        cfd3MraQyXynBkoUx8CmeWAZhBgBX+5Kpm/xnoU=
-X-Google-Smtp-Source: ABdhPJxYhSRNOkwgDRc/l2C7Jl258wmN5ml/1qkiBHZtQEnR2mVC77q0+39UpprEXaMpqtbM+otlfoYoA23IDmqOt+I=
+        bh=dEqcNX1Djl0IV1+V4O1jZ3zX0CSjG7hkO+H8f2GKot0=;
+        b=GTmbzobAx0dL5TfOw2rSe4WgPE08WYqkwUtk2pYBDYOC1saQb/8By4vIt0dD9uXfU5
+         yFHJaU88s60Udbb8odM/ZA0S2ifPr/F1HIA7+1/NLbIq5PKGXyFcDeLxq7+fo//WwzOn
+         tzdjnOwUL/mhcW7GSA8lgWyoDoOqb5blSOdHLXWY/yDymN5hhQNpLdkmGFMkSBcwKuso
+         9Nu/uvppivBvzQeLWbVVRxiJ/LSrDVMAyTAv+TwHXOlJFgmluq5u1N0IMEtjSrWiFNDD
+         y0pSlZmNe2UH6v2fCc3pgytTN4a11t29kx4Yff/DderwasEs7J3JwBz0q8gQFpmzBlz0
+         sT8Q==
+X-Gm-Message-State: AOAM5300g+lC9NsM30qnd6Mr+S7ZUxdQPrsYO3/tuuGEYaBAYP2ySA6S
+        MBn+UavOMXzKKcv7dqTihbV5zUlaGcdqtxaKTBk=
+X-Google-Smtp-Source: ABdhPJx3IHLlEpEE6lKzgLbRoH8pUHS5aZ5bMzeasJnHs8u5b0ZHEbgeZKYJBmfQeDJ5khZeV7Cye7dg816GPppPI2c=
 Sender: "samitolvanen via sendgmr" 
         <samitolvanen@samitolvanen1.mtv.corp.google.com>
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
- (user=samitolvanen job=sendgmr) by 2002:a25:ae9f:: with SMTP id
- b31mr8477359ybj.437.1601416057863; Tue, 29 Sep 2020 14:47:37 -0700 (PDT)
-Date:   Tue, 29 Sep 2020 14:46:30 -0700
+ (user=samitolvanen job=sendgmr) by 2002:a0c:abc7:: with SMTP id
+ k7mr6181365qvb.45.1601416045978; Tue, 29 Sep 2020 14:47:25 -0700 (PDT)
+Date:   Tue, 29 Sep 2020 14:46:25 -0700
 In-Reply-To: <20200929214631.3516445-1-samitolvanen@google.com>
-Message-Id: <20200929214631.3516445-29-samitolvanen@google.com>
+Message-Id: <20200929214631.3516445-24-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20200929214631.3516445-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.28.0.709.gb0816b6eb0-goog
-Subject: [PATCH v4 28/29] x86, cpu: disable LTO for cpu.c
+Subject: [PATCH v4 23/29] drivers/misc/lkdtm: disable LTO for rodata.o
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Masahiro Yamada <masahiroy@kernel.org>,
         Will Deacon <will@kernel.org>,
@@ -83,32 +83,27 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Clang incorrectly inlines functions with differing stack protector
-attributes, which breaks __restore_processor_state() that relies on
-stack protector being disabled. This change disables LTO for cpu.c
-to work aroung the bug.
+Disable LTO for rodata.o to allow objcopy to be used to
+manipulate sections.
 
-Link: https://bugs.llvm.org/show_bug.cgi?id=47479
-Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+Acked-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/power/Makefile | 4 ++++
- 1 file changed, 4 insertions(+)
+ drivers/misc/lkdtm/Makefile | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/x86/power/Makefile b/arch/x86/power/Makefile
-index 6907b523e856..5f711a441623 100644
---- a/arch/x86/power/Makefile
-+++ b/arch/x86/power/Makefile
-@@ -5,5 +5,9 @@ OBJECT_FILES_NON_STANDARD_hibernate_asm_$(BITS).o := y
- # itself be stack-protected
- CFLAGS_cpu.o	:= -fno-stack-protector
+diff --git a/drivers/misc/lkdtm/Makefile b/drivers/misc/lkdtm/Makefile
+index c70b3822013f..dd4c936d4d73 100644
+--- a/drivers/misc/lkdtm/Makefile
++++ b/drivers/misc/lkdtm/Makefile
+@@ -13,6 +13,7 @@ lkdtm-$(CONFIG_LKDTM)		+= cfi.o
  
-+# Clang may incorrectly inline functions with stack protector enabled into
-+# __restore_processor_state(): https://bugs.llvm.org/show_bug.cgi?id=47479
-+CFLAGS_REMOVE_cpu.o := $(CC_FLAGS_LTO)
-+
- obj-$(CONFIG_PM_SLEEP)		+= cpu.o
- obj-$(CONFIG_HIBERNATION)	+= hibernate_$(BITS).o hibernate_asm_$(BITS).o hibernate.o
+ KASAN_SANITIZE_stackleak.o	:= n
+ KCOV_INSTRUMENT_rodata.o	:= n
++CFLAGS_REMOVE_rodata.o		+= $(CC_FLAGS_LTO)
+ 
+ OBJCOPYFLAGS :=
+ OBJCOPYFLAGS_rodata_objcopy.o	:= \
 -- 
 2.28.0.709.gb0816b6eb0-goog
 
