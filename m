@@ -8,62 +8,62 @@ X-Spam-Status: No, score=-20.9 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BB443C47425
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:48:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B87BDC47423
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:48:05 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6A33C208FE
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:48:02 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 60CA021548
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:48:05 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="gdAEDDvL"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="MekhgGdQ"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729365AbgI2VsA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1729351AbgI2VsA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Tue, 29 Sep 2020 17:48:00 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48414 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48400 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728074AbgI2VrW (ORCPT
+        with ESMTP id S1729042AbgI2VrW (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Sep 2020 17:47:22 -0400
-Received: from mail-qk1-x74a.google.com (mail-qk1-x74a.google.com [IPv6:2607:f8b0:4864:20::74a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 29AADC0613D0
-        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:22 -0700 (PDT)
-Received: by mail-qk1-x74a.google.com with SMTP id d22so3655456qkb.18
-        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:22 -0700 (PDT)
+Received: from mail-pf1-x44a.google.com (mail-pf1-x44a.google.com [IPv6:2607:f8b0:4864:20::44a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 20926C0613D7
+        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:17 -0700 (PDT)
+Received: by mail-pf1-x44a.google.com with SMTP id i128so4822721pfg.22
+        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:17 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=sender:date:in-reply-to:message-id:mime-version:references:subject
          :from:to:cc;
-        bh=M/tCJ87SKQnbyhBQptnFDCNgoy9D1scy1+3ph9ahS3g=;
-        b=gdAEDDvLlL0msAdcbIE0elhCADhQmKL9S16dzNU1NewfqdOooSY9iFqACy8+PZ7gHu
-         RjJqXHtJjRJu9BoQC0Z+qcoslnaCbYOM5YVwAUiEbJv8oMPbNKei4NbKX8/eYf1TjsBX
-         LuD//MCUmK3U7ZJ2uod6D1w8OHvoyhKJylEziLAmUyzobSpYb93PY4CL1x+jJuLiN+Df
-         TJvELp9Gtnh21l2Y6CWFhRqKGqHS7xc78jprEFcrRoojdnbVtKont9eEkY55sgaj+pEf
-         r+rlpDV8ZtQQ3iUVmb9timiu1KOz8XTe/0fr94WEPlFW4uof3ENuM7MDtO9p1BgJUAsl
-         mKLg==
+        bh=5ADrbIYYdkQ2THetWVdXFRMGM/F7dNAyZUNR6Ura+J8=;
+        b=MekhgGdQDfVYCDwXqPqLOmRuR7bDrOrx74bKs36BEL9DMLEqc3GHdIW78xNvVW+CXD
+         OBR1TA7PPlKp15z5Yvt6TGU00YrPE6jEVmJU2/BObk6f58edi9mDYneayNLG3BF+85eI
+         JjVCIO2RNOdO/LFMDVGntOPmSZ80VCfWnW6rDxt2eRzeZ6jXgiYTuMIacuHOI7Agk84Q
+         /EqGu8oBcu0EPNuoFAiQuSJKYV61YqkH23yEvB8gadt3EGDYNx7DqA1r7P5qUmqJEEld
+         mLCeOrbo1nSD3wVfre9ST4vF2Q7dHDbNvEpQKR0fdUlOz46fHVxsu7B8etms0FiNNoqi
+         jwIA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=M/tCJ87SKQnbyhBQptnFDCNgoy9D1scy1+3ph9ahS3g=;
-        b=DjWYVL6ACKLhz6EzSygLSX3CwLvQoOJpFAIyq0gc4VwLSuiqJ6TypPxr5vep7tn5De
-         65F3/KKAeQ3/0gt9il5LWJoaQXH3axxufD2B3m+sakmvqOvPbZ77rBk4FI7Yc7wDUcf3
-         pkMjXTKa3TNPtUOEkOKLuzQvPoc3tEy/Sin8CmPUjjYefBnZGeNkapL9jY7wq8n1rlzM
-         xuCjB4V70dh6AE35Yl5hBJ9YpD/+72Qbb1zHsqh7Uvp9maAFFS7+DDgPVua0RBa8xT3q
-         vvIPM1zc0RWdkGkzoDQ4Ro10NgVoVOXNmDH3T8OJOqJWB7rOmCG0nYWzFwGiyK7GhEDn
-         vq2A==
-X-Gm-Message-State: AOAM531KXTjzpprWjaYTHBuDNQQakgVw6yitDX1TSvuIVfPJyN6CFuFu
-        VzHAgmpqp5cLT0jiqViW+Yw0RfcYgFyPSBKzffc=
-X-Google-Smtp-Source: ABdhPJwIclf1YZILYpRHL9aLGjIyClVObMTVmWZ7pfwr9sU8b01qvKeenw3eQ8lUfzBJlACcTh5VbLCas1CqVTaKm1c=
+        bh=5ADrbIYYdkQ2THetWVdXFRMGM/F7dNAyZUNR6Ura+J8=;
+        b=OsgU19l+6rkDhhzjCYHXV9Ppcu2RVIwC7gK37iJ2lHc2QwmXb+zfpQA+bdlb4b9vjm
+         yE/v8KY3Bn+OnBBWUkwX8sV7l28/tT8GC7Un/xpQEEiUSKu1mig6fKtlfhSkADes7R/a
+         /L7CMKWQQw2DzZabDRoZRJVTlzg7hPwgOu+QELtk1rkVE5hhdnKU3sC7RFIY7X1U6Myv
+         ztQPktY9g2tCBpksxoVcIQS6CXPZs7TQ4bAeh6/2iP8LBY/d4VSWk9QBmIhYbGNrZqWq
+         tAZUDUAw6sq63a5YDSDyUiigxznKIkJCBJB8yYY7vRsbwZDUPvhNSvS79knH82u2zuN6
+         oyaQ==
+X-Gm-Message-State: AOAM530PhEs35pKV7pYGDhr8yorpNBKf7GQRZMtQQe6JhQryz3QK0ZhK
+        x1JwLsGT99UNNw3Lk4lPY6Qdng9jCIXZCFXD4kE=
+X-Google-Smtp-Source: ABdhPJyEka8NWg0904uGqV+IPTNA4hO1MufGCj8cRerlSixJNEwhSMmuf5P+grySLqv5SKpAniKp5seVaNsVmut9k5g=
 Sender: "samitolvanen via sendgmr" 
         <samitolvanen@samitolvanen1.mtv.corp.google.com>
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
- (user=samitolvanen job=sendgmr) by 2002:ad4:58c7:: with SMTP id
- dh7mr6716936qvb.20.1601416041280; Tue, 29 Sep 2020 14:47:21 -0700 (PDT)
-Date:   Tue, 29 Sep 2020 14:46:23 -0700
+ (user=samitolvanen job=sendgmr) by 2002:a63:ff63:: with SMTP id
+ s35mr4883241pgk.14.1601416036594; Tue, 29 Sep 2020 14:47:16 -0700 (PDT)
+Date:   Tue, 29 Sep 2020 14:46:21 -0700
 In-Reply-To: <20200929214631.3516445-1-samitolvanen@google.com>
-Message-Id: <20200929214631.3516445-22-samitolvanen@google.com>
+Message-Id: <20200929214631.3516445-20-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20200929214631.3516445-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.28.0.709.gb0816b6eb0-goog
-Subject: [PATCH v4 21/29] scripts/mod: disable LTO for empty.c
+Subject: [PATCH v4 19/29] PCI: Fix PREL32 relocations for LTO
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Masahiro Yamada <masahiroy@kernel.org>,
         Will Deacon <will@kernel.org>,
@@ -83,27 +83,58 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-With CONFIG_LTO_CLANG, clang generates LLVM IR instead of ELF object
-files. As empty.o is used for probing target properties, disable LTO
-for it to produce an object file instead.
+With Clang's Link Time Optimization (LTO), the compiler can rename
+static functions to avoid global naming collisions. As PCI fixup
+functions are typically static, renaming can break references
+to them in inline assembly. This change adds a global stub to
+DECLARE_PCI_FIXUP_SECTION to fix the issue when PREL32 relocations
+are used.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+Acked-by: Bjorn Helgaas <bhelgaas@google.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- scripts/mod/Makefile | 1 +
- 1 file changed, 1 insertion(+)
+ include/linux/pci.h | 19 ++++++++++++++-----
+ 1 file changed, 14 insertions(+), 5 deletions(-)
 
-diff --git a/scripts/mod/Makefile b/scripts/mod/Makefile
-index 78071681d924..c9e38ad937fd 100644
---- a/scripts/mod/Makefile
-+++ b/scripts/mod/Makefile
-@@ -1,5 +1,6 @@
- # SPDX-License-Identifier: GPL-2.0
- OBJECT_FILES_NON_STANDARD := y
-+CFLAGS_REMOVE_empty.o += $(CC_FLAGS_LTO)
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 835530605c0d..4e64421981c7 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1909,19 +1909,28 @@ enum pci_fixup_pass {
+ };
  
- hostprogs-always-y	+= modpost mk_elfconfig
- always-y		+= empty.o
+ #ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
+-#define __DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+-				    class_shift, hook)			\
+-	__ADDRESSABLE(hook)						\
++#define ___DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
++				    class_shift, hook, stub)		\
++	void stub(struct pci_dev *dev);					\
++	void stub(struct pci_dev *dev)					\
++	{ 								\
++		hook(dev); 						\
++	}								\
+ 	asm(".section "	#sec ", \"a\"				\n"	\
+ 	    ".balign	16					\n"	\
+ 	    ".short "	#vendor ", " #device "			\n"	\
+ 	    ".long "	#class ", " #class_shift "		\n"	\
+-	    ".long "	#hook " - .				\n"	\
++	    ".long "	#stub " - .				\n"	\
+ 	    ".previous						\n");
++
++#define __DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
++				  class_shift, hook, stub)		\
++	___DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
++				  class_shift, hook, stub)
+ #define DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+ 				  class_shift, hook)			\
+ 	__DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+-				  class_shift, hook)
++				  class_shift, hook, __UNIQUE_ID(hook))
+ #else
+ /* Anonymous variables would be nice... */
+ #define DECLARE_PCI_FIXUP_SECTION(section, name, vendor, device, class,	\
 -- 
 2.28.0.709.gb0816b6eb0-goog
 
