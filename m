@@ -1,74 +1,34 @@
-Return-Path: <SRS0=Z+aZ=DG=vger.kernel.org=linux-arch-owner@kernel.org>
+Return-Path: <SRS0=6Wmj=DH=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-20.9 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_SANE_2 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9DE50C47420
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:49:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 91896C4727D
+	for <linux-arch@archiver.kernel.org>; Wed, 30 Sep 2020 00:13:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5CD7020789
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Sep 2020 21:49:05 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="Imh3zKnl"
+	by mail.kernel.org (Postfix) with ESMTP id 363F0207C4
+	for <linux-arch@archiver.kernel.org>; Wed, 30 Sep 2020 00:13:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728291AbgI2VtE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Sep 2020 17:49:04 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48496 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729227AbgI2Vrp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Sep 2020 17:47:45 -0400
-Received: from mail-qt1-x84a.google.com (mail-qt1-x84a.google.com [IPv6:2607:f8b0:4864:20::84a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3E11CC0613A8
-        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:36 -0700 (PDT)
-Received: by mail-qt1-x84a.google.com with SMTP id 7so4051726qtp.18
-        for <linux-arch@vger.kernel.org>; Tue, 29 Sep 2020 14:47:36 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=sender:date:in-reply-to:message-id:mime-version:references:subject
-         :from:to:cc;
-        bh=19TlqdLHcWDTmI9u6TYfXzttwjA+Dmg1Ug41aa4j6uk=;
-        b=Imh3zKnlf2nNedw1LEfjqkhMgHeK71AVCBTejoYYCUi6PprkQk88VjzniR9FHbE1XH
-         A/II2EqGYTLeEsZmDBTUvx/jf+f+d3tAzBZHwlmB+xrtw4+Z2cxN48VSSgTsz6Lj1ySD
-         au/YMsmvn17ksVH6myXy9K4BV+sk2zN+Jafs8YeXGbiW03h8j+LFgn5hDUVmYV3j8Dwy
-         l5E/DW5nnZBvg1KomyJxVSBEJYPTHNIcVL8vsj7kyNFLz2DfWMaRIUqUjSw2EGwIoKgP
-         4DyUsfcM0sMb+V2Mle0bHYnakGr+xwU5kaLeprG/fr2kotBwhV+W2FpWkSGvxSxGnZ4G
-         GCHA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
-         :references:subject:from:to:cc;
-        bh=19TlqdLHcWDTmI9u6TYfXzttwjA+Dmg1Ug41aa4j6uk=;
-        b=ZlEk/3pMbByivURbu7R8kTGD3SxOx+du7TkrxGTL1i9uYlN7CbyD8DbdvAOxYN6er4
-         hOP9RTExEH2rcQO/QqG8IVwZOqldetZE+ElRABgJ21P8sZqyoiTcw/aTZdM6DArb/+La
-         S3DyAbkbc153j8my7EFfvNIHjaoMASgbHnmEaKT7G1m3lZC5Fc2UWF0a8ygXTwL2eoLH
-         p8RnnsDGZmAnwY8o5dU8qjEZQTA/mcrDZw3LsrJsfeVaYz9h8GK96LREMBWH+oM0vbcX
-         GDDkPeCnNliD37I2MQQh3qdFgMAIYhLuzgYoVqarSQGVe7E4ICqNpx/fq/GABUUychwm
-         x6jQ==
-X-Gm-Message-State: AOAM530MjPxZxexTqQ5L1Es6IhdEQf4VH9TIra2dFSUm7+ORWL3iZ1D/
-        PdHovC0pRG09TzkCJnBFVZRIdZfxdUcxQfAxNKc=
-X-Google-Smtp-Source: ABdhPJwlpWalcJXzE9B3fP2Zu3YiL4EE4FmSmcZUIR72EOxrhafPHlFtIMBSkfJpTgmFk8E2fcAes0b129xUXc5bjus=
-Sender: "samitolvanen via sendgmr" 
-        <samitolvanen@samitolvanen1.mtv.corp.google.com>
-X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
- (user=samitolvanen job=sendgmr) by 2002:ad4:4594:: with SMTP id
- x20mr6549973qvu.4.1601416055400; Tue, 29 Sep 2020 14:47:35 -0700 (PDT)
-Date:   Tue, 29 Sep 2020 14:46:29 -0700
-In-Reply-To: <20200929214631.3516445-1-samitolvanen@google.com>
-Message-Id: <20200929214631.3516445-28-samitolvanen@google.com>
-Mime-Version: 1.0
-References: <20200929214631.3516445-1-samitolvanen@google.com>
-X-Mailer: git-send-email 2.28.0.709.gb0816b6eb0-goog
-Subject: [PATCH v4 27/29] x86, vdso: disable LTO only for vDSO
-From:   Sami Tolvanen <samitolvanen@google.com>
-To:     Masahiro Yamada <masahiroy@kernel.org>,
+        id S1728701AbgI3ANB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 29 Sep 2020 20:13:01 -0400
+Received: from mail.kernel.org ([198.145.29.99]:36094 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728192AbgI3ANB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 Sep 2020 20:13:01 -0400
+Received: from oasis.local.home (cpe-66-24-58-225.stny.res.rr.com [66.24.58.225])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 5580B20739;
+        Wed, 30 Sep 2020 00:12:59 +0000 (UTC)
+Date:   Tue, 29 Sep 2020 20:12:57 -0400
+From:   Steven Rostedt <rostedt@goodmis.org>
+To:     Sami Tolvanen <samitolvanen@google.com>
+Cc:     Masahiro Yamada <masahiroy@kernel.org>,
         Will Deacon <will@kernel.org>,
-        Steven Rostedt <rostedt@goodmis.org>
-Cc:     Peter Zijlstra <peterz@infradead.org>,
+        Peter Zijlstra <peterz@infradead.org>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         "Paul E. McKenney" <paulmck@kernel.org>,
         Kees Cook <keescook@chromium.org>,
@@ -77,43 +37,54 @@ Cc:     Peter Zijlstra <peterz@infradead.org>,
         kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org,
         linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org,
         linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org,
-        x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>
-Content-Type: text/plain; charset="UTF-8"
+        x86@kernel.org
+Subject: Re: [PATCH v4 06/29] tracing: move function tracer options to
+ Kconfig
+Message-ID: <20200929201257.1570aadd@oasis.local.home>
+In-Reply-To: <20200929214631.3516445-7-samitolvanen@google.com>
+References: <20200929214631.3516445-1-samitolvanen@google.com>
+        <20200929214631.3516445-7-samitolvanen@google.com>
+X-Mailer: Claws Mail 3.17.3 (GTK+ 2.24.32; x86_64-pc-linux-gnu)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Disable LTO for the vDSO. Note that while we could use Clang's LTO
-for the 64-bit vDSO, it won't add noticeable benefit for the small
-amount of C code.
+On Tue, 29 Sep 2020 14:46:08 -0700
+Sami Tolvanen <samitolvanen@google.com> wrote:
 
-Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/entry/vdso/Makefile | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+> +++ b/kernel/trace/Kconfig
+> @@ -595,6 +595,22 @@ config FTRACE_MCOUNT_RECORD
+>  	depends on DYNAMIC_FTRACE
+>  	depends on HAVE_FTRACE_MCOUNT_RECORD
+>  
+> +config FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY
+> +	bool
+> +	depends on FTRACE_MCOUNT_RECORD
+> +
+> +config FTRACE_MCOUNT_USE_CC
+> +	def_bool y
+> +	depends on $(cc-option,-mrecord-mcount)
 
-diff --git a/arch/x86/entry/vdso/Makefile b/arch/x86/entry/vdso/Makefile
-index ecc27018ae13..9b742f21d2db 100644
---- a/arch/x86/entry/vdso/Makefile
-+++ b/arch/x86/entry/vdso/Makefile
-@@ -90,7 +90,7 @@ ifneq ($(RETPOLINE_VDSO_CFLAGS),)
- endif
- endif
- 
--$(vobjs): KBUILD_CFLAGS := $(filter-out $(GCC_PLUGINS_CFLAGS) $(RETPOLINE_CFLAGS),$(KBUILD_CFLAGS)) $(CFL)
-+$(vobjs): KBUILD_CFLAGS := $(filter-out $(CC_FLAGS_LTO) $(GCC_PLUGINS_CFLAGS) $(RETPOLINE_CFLAGS),$(KBUILD_CFLAGS)) $(CFL)
- 
- #
- # vDSO code runs in userspace and -pg doesn't help with profiling anyway.
-@@ -148,6 +148,7 @@ KBUILD_CFLAGS_32 := $(filter-out -fno-pic,$(KBUILD_CFLAGS_32))
- KBUILD_CFLAGS_32 := $(filter-out -mfentry,$(KBUILD_CFLAGS_32))
- KBUILD_CFLAGS_32 := $(filter-out $(GCC_PLUGINS_CFLAGS),$(KBUILD_CFLAGS_32))
- KBUILD_CFLAGS_32 := $(filter-out $(RETPOLINE_CFLAGS),$(KBUILD_CFLAGS_32))
-+KBUILD_CFLAGS_32 := $(filter-out $(CC_FLAGS_LTO),$(KBUILD_CFLAGS_32))
- KBUILD_CFLAGS_32 += -m32 -msoft-float -mregparm=0 -fpic
- KBUILD_CFLAGS_32 += -fno-stack-protector
- KBUILD_CFLAGS_32 += $(call cc-option, -foptimize-sibling-calls)
--- 
-2.28.0.709.gb0816b6eb0-goog
+Does the above get executed at every build? Or does a make *config need
+to be done? If someone were to pass a .config to someone else that had
+a compiler that didn't support this, would it be changed if the person
+just did a make?
 
+-- Steve
+
+
+> +	depends on !FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY
+> +	depends on FTRACE_MCOUNT_RECORD
+> +
+> +config FTRACE_MCOUNT_USE_RECORDMCOUNT
+> +	def_bool y
+> +	depends on !FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY
+> +	depends on !FTRACE_MCOUNT_USE_CC
+> +	depends on FTRACE_MCOUNT_RECORD
+> +
+>  config TRACING_MAP
+>  	bool
+>  	depends on ARCH_HAVE_NMI_SAFE_CMPXCHG
