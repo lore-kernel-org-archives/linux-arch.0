@@ -2,95 +2,168 @@ Return-Path: <SRS0=vnfG=DI=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-4.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 31157C4727C
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 13:56:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C21E3C4727C
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:13:03 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E49C021D7D
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 13:56:43 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1601560603;
-	bh=o6qC8bC+K4scG1XPUArlJlnEglhhA7NyUzceP6nkYdI=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
-	b=LixT1AITvrooBLPtcZzl1c2T3P/di67EI+mrwZJxY50VmelVSNakU9zRGTcrIXZZl
-	 zEiL17KVWXg8k2ex2KvmDyORaPSjOO00HCo0i1uOcx8LXW8GBZE70IdxKaJ62hxgFr
-	 gUBl2n84NButz3/t8e+5++oDIBbqY2nUHJfPOCS8=
+	by mail.kernel.org (Postfix) with ESMTP id 7ABCB20B1F
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:13:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1732099AbgJAN4n (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 1 Oct 2020 09:56:43 -0400
-Received: from mail.kernel.org ([198.145.29.99]:48826 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732018AbgJAN4n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 1 Oct 2020 09:56:43 -0400
-Received: from localhost (fla63-h02-176-172-189-251.dsl.sta.abo.bbox.fr [176.172.189.251])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 2B5A720872;
-        Thu,  1 Oct 2020 13:56:42 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1601560602;
-        bh=o6qC8bC+K4scG1XPUArlJlnEglhhA7NyUzceP6nkYdI=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=MXeH6FmIoCrfau0W+WEVxQ2VRPiAykZjm2GMGlUsh12yFePp1P8OfDU9y4YF/flEM
-         MSbl46cqF3QyJirMrdBjRZAVUJJcW7N6F4JPKxVSba6zbSRfU/L6n5//FXQ6rFK+vI
-         RnXQMZb6DOSyo1ig6sI67GlpHT7Y41BHNna95WqI=
-Date:   Thu, 1 Oct 2020 15:56:40 +0200
-From:   Frederic Weisbecker <frederic@kernel.org>
-To:     Alex Belits <abelits@marvell.com>
-Cc:     "rostedt@goodmis.org" <rostedt@goodmis.org>,
-        Prasun Kapoor <pkapoor@marvell.com>,
-        "mingo@kernel.org" <mingo@kernel.org>,
-        "davem@davemloft.net" <davem@davemloft.net>,
-        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
-        "peterz@infradead.org" <peterz@infradead.org>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
-        "tglx@linutronix.de" <tglx@linutronix.de>,
-        "will@kernel.org" <will@kernel.org>,
-        "linux-arm-kernel@lists.infradead.org" 
-        <linux-arm-kernel@lists.infradead.org>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Subject: Re: [PATCH v4 03/13] task_isolation: userspace hard isolation from
- kernel
-Message-ID: <20201001135640.GA1748@lothringen>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
- <b18546567a2ed61073ae86f2d9945257ab285dfa.camel@marvell.com>
+        id S1732388AbgJAOND (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 1 Oct 2020 10:13:03 -0400
+Received: from mout.kundenserver.de ([217.72.192.74]:43633 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732104AbgJAONC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2020 10:13:02 -0400
+Received: from threadripper.lan ([46.223.126.90]) by mrelayeu.kundenserver.de
+ (mreue108 [212.227.15.145]) with ESMTPA (Nemesis) id
+ 1Mi2Fj-1ksOCT0Dcf-00e4nJ; Thu, 01 Oct 2020 16:12:52 +0200
+From:   Arnd Bergmann <arnd@arndb.de>
+To:     Russell King <linux@armlinux.org.uk>,
+        Christoph Hellwig <hch@lst.de>
+Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
+        linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org,
+        Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH v3 02/10] ARM: traps: use get_kernel_nofault instead of set_fs()
+Date:   Thu,  1 Oct 2020 16:12:25 +0200
+Message-Id: <20201001141233.119343-3-arnd@arndb.de>
+X-Mailer: git-send-email 2.27.0
+In-Reply-To: <20201001141233.119343-1-arnd@arndb.de>
+References: <20201001141233.119343-1-arnd@arndb.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <b18546567a2ed61073ae86f2d9945257ab285dfa.camel@marvell.com>
+Content-Transfer-Encoding: 8bit
+X-Provags-ID: V03:K1:bdOfhwwBBRSt/4DOOJUnmGtWrsvKQpezNqOznMTEofVRfuUQlXA
+ X87CCp0XIB1Oa5guDvzEWLOmiOSrvDxOopnL87e93NYoWsre4aIkXzGrxlbH2ym5kNTLI18
+ ca4Ho0AXD0m7+Cy6A5vM4/eBgni/drXtxn7O69DSEVOkarAPXcTfVI0bU1cTLu0pQssoo8f
+ Iu8KTgt6Y7CliDwvjbTMA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:Szc4dFsfUBQ=:nxTDskwhGfcu7ntfGfAaY+
+ Dd87fn4NarNP2ZDAd34jAMNnWjle8Z8Y40KlZCId3CLHJNmcd0VgIUH435tCedDcA2iVG8Mjp
+ NI0saGFNQSvCKjYXru9oVIK/Hu092AIEmlXuoNUCk3V2i7yUjpBMMDCc0ob9H5Ic3SIU9p+JN
+ QGxDJr6PArOdidNfXE3U+xPQoQbpA8dwL3i/0ogruuC806fXckMTOzE4GAXxo76Ojr03s13Ex
+ im9qJpp7afwvZpqFNovt7YSI9So/vMueQFtQHr26MTMMMjigvHADShV/GmuGrYN6g741Hg7OM
+ PSlm271Fxk65rjbFKDYIWPqLXiHoYQOlurJUtnCBHu1kKY1PS+JDFLJLR+kp73clhD7i/RyMB
+ qz1APo7A05M8MxbFenXvRuD1WgYD7wGeU3yb39ZjOkydYpGOv20hPRLUJa0jqFx44mxFijmpj
+ Y85WbeYL3D7nTEW9OQt6Su7gHvJpNvJ+VG0WccfE475shveN+wOJaHHa7CD6oguiWrstxvqHc
+ NFqSeZJk8BBgRYi1dvnuT42ndGFJ2akvvG1Mamzu8vORSer1FlTexDM6jbujYolrzjkJolI7T
+ igB/ESc3cepL10X/CjspXmECItQEIK8HesSTXpGBP0OScOVJoCPAEfrEtlSzjbJS6KIqiUkNI
+ zv/BqMkN6ZZqr3evUfbyGktFanBMPpjUDHsJHc32+h3AlEas9uzZrrCXrocTpNFfGbXWGKZPL
+ ur9R/fXrEFYrhIejn6Vx1oONXWDU/euG/FLAfAZLXkNqaz5kd7L8zPdE6M59pfmfgTwt5detd
+ N0IZHwqihu/kbX6kNo+kiU+H6mrT/4miiTzZ7ku9FblfrbvepgUylk5KkgXSD4sruVXmZzI
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Jul 22, 2020 at 02:49:49PM +0000, Alex Belits wrote:
-> +/*
-> + * Description of the last two tasks that ran isolated on a given CPU.
-> + * This is intended only for messages about isolation breaking. We
-> + * don't want any references to actual task while accessing this from
-> + * CPU that caused isolation breaking -- we know nothing about timing
-> + * and don't want to use locking or RCU.
-> + */
-> +struct isol_task_desc {
-> +	atomic_t curr_index;
-> +	atomic_t curr_index_wr;
-> +	bool	warned[2];
-> +	pid_t	pid[2];
-> +	pid_t	tgid[2];
-> +	char	comm[2][TASK_COMM_LEN];
-> +};
-> +static DEFINE_PER_CPU(struct isol_task_desc, isol_task_descs);
+ARM uses set_fs() and __get_user() to allow the stack dumping code to
+access possibly invalid pointers carefully. These can be changed to the
+simpler get_kernel_nofault(), and allow the eventual removal of set_fs().
 
-So that's quite a huge patch that would have needed to be split up.
-Especially this tracing engine.
+dump_instr() will print either kernel or user space pointers,
+depending on how it was called. For dump_mem(), I assume we are only
+interested in kernel pointers, and the only time that this is called
+with user_mode(regs)==true is when the regs themselves are unreliable
+as a result of the condition that caused the trap.
 
-Speaking of which, I agree with Thomas that it's unnecessary. It's too much
-code and complexity. We can use the existing trace events and perform the
-analysis from userspace to find the source of the disturbance.
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/arm/kernel/traps.c | 47 ++++++++++++++---------------------------
+ 1 file changed, 16 insertions(+), 31 deletions(-)
 
-Thanks.
+diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
+index 17d5a785df28..c3964a283b63 100644
+--- a/arch/arm/kernel/traps.c
++++ b/arch/arm/kernel/traps.c
+@@ -122,17 +122,8 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
+ 		     unsigned long top)
+ {
+ 	unsigned long first;
+-	mm_segment_t fs;
+ 	int i;
+ 
+-	/*
+-	 * We need to switch to kernel mode so that we can use __get_user
+-	 * to safely read from kernel space.  Note that we now dump the
+-	 * code first, just in case the backtrace kills us.
+-	 */
+-	fs = get_fs();
+-	set_fs(KERNEL_DS);
+-
+ 	printk("%s%s(0x%08lx to 0x%08lx)\n", lvl, str, bottom, top);
+ 
+ 	for (first = bottom & ~31; first < top; first += 32) {
+@@ -145,7 +136,7 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
+ 		for (p = first, i = 0; i < 8 && p < top; i++, p += 4) {
+ 			if (p >= bottom && p < top) {
+ 				unsigned long val;
+-				if (__get_user(val, (unsigned long *)p) == 0)
++				if (get_kernel_nofault(val, (unsigned long *)p))
+ 					sprintf(str + i * 9, " %08lx", val);
+ 				else
+ 					sprintf(str + i * 9, " ????????");
+@@ -153,11 +144,9 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
+ 		}
+ 		printk("%s%04lx:%s\n", lvl, first & 0xffff, str);
+ 	}
+-
+-	set_fs(fs);
+ }
+ 
+-static void __dump_instr(const char *lvl, struct pt_regs *regs)
++static void dump_instr(const char *lvl, struct pt_regs *regs)
+ {
+ 	unsigned long addr = instruction_pointer(regs);
+ 	const int thumb = thumb_mode(regs);
+@@ -173,10 +162,20 @@ static void __dump_instr(const char *lvl, struct pt_regs *regs)
+ 	for (i = -4; i < 1 + !!thumb; i++) {
+ 		unsigned int val, bad;
+ 
+-		if (thumb)
+-			bad = get_user(val, &((u16 *)addr)[i]);
+-		else
+-			bad = get_user(val, &((u32 *)addr)[i]);
++		if (!user_mode(regs)) {
++			if (thumb) {
++				u16 val16;
++				bad = get_kernel_nofault(val16, &((u16 *)addr)[i]);
++				val = val16;
++			} else {
++				bad = get_kernel_nofault(val, &((u32 *)addr)[i]);
++			}
++		} else {
++			if (thumb)
++				bad = get_user(val, &((u16 *)addr)[i]);
++			else
++				bad = get_user(val, &((u32 *)addr)[i]);
++		}
+ 
+ 		if (!bad)
+ 			p += sprintf(p, i == 0 ? "(%0*x) " : "%0*x ",
+@@ -189,20 +188,6 @@ static void __dump_instr(const char *lvl, struct pt_regs *regs)
+ 	printk("%sCode: %s\n", lvl, str);
+ }
+ 
+-static void dump_instr(const char *lvl, struct pt_regs *regs)
+-{
+-	mm_segment_t fs;
+-
+-	if (!user_mode(regs)) {
+-		fs = get_fs();
+-		set_fs(KERNEL_DS);
+-		__dump_instr(lvl, regs);
+-		set_fs(fs);
+-	} else {
+-		__dump_instr(lvl, regs);
+-	}
+-}
+-
+ #ifdef CONFIG_ARM_UNWIND
+ static inline void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
+ 				  const char *loglvl)
+-- 
+2.27.0
 
