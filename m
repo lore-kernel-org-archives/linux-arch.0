@@ -4,24 +4,24 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C21E3C4727C
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:13:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 90815C47425
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:13:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7ABCB20B1F
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:13:03 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 47CBA2087D
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:13:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1732388AbgJAOND (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 1 Oct 2020 10:13:03 -0400
-Received: from mout.kundenserver.de ([217.72.192.74]:43633 "EHLO
+        id S1732414AbgJAONE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 1 Oct 2020 10:13:04 -0400
+Received: from mout.kundenserver.de ([212.227.17.10]:39041 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732104AbgJAONC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2020 10:13:02 -0400
+        with ESMTP id S1732380AbgJAOND (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2020 10:13:03 -0400
 Received: from threadripper.lan ([46.223.126.90]) by mrelayeu.kundenserver.de
  (mreue108 [212.227.15.145]) with ESMTPA (Nemesis) id
- 1Mi2Fj-1ksOCT0Dcf-00e4nJ; Thu, 01 Oct 2020 16:12:52 +0200
+ 1MZTua-1jsYXD0BPy-00WXhu; Thu, 01 Oct 2020 16:12:53 +0200
 From:   Arnd Bergmann <arnd@arndb.de>
 To:     Russell King <linux@armlinux.org.uk>,
         Christoph Hellwig <hch@lst.de>
@@ -29,141 +29,256 @@ Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
         linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v3 02/10] ARM: traps: use get_kernel_nofault instead of set_fs()
-Date:   Thu,  1 Oct 2020 16:12:25 +0200
-Message-Id: <20201001141233.119343-3-arnd@arndb.de>
+Subject: [PATCH v3 05/10] ARM: oabi-compat: rework epoll_wait/epoll_pwait emulation
+Date:   Thu,  1 Oct 2020 16:12:28 +0200
+Message-Id: <20201001141233.119343-6-arnd@arndb.de>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20201001141233.119343-1-arnd@arndb.de>
 References: <20201001141233.119343-1-arnd@arndb.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-Provags-ID: V03:K1:bdOfhwwBBRSt/4DOOJUnmGtWrsvKQpezNqOznMTEofVRfuUQlXA
- X87CCp0XIB1Oa5guDvzEWLOmiOSrvDxOopnL87e93NYoWsre4aIkXzGrxlbH2ym5kNTLI18
- ca4Ho0AXD0m7+Cy6A5vM4/eBgni/drXtxn7O69DSEVOkarAPXcTfVI0bU1cTLu0pQssoo8f
- Iu8KTgt6Y7CliDwvjbTMA==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:Szc4dFsfUBQ=:nxTDskwhGfcu7ntfGfAaY+
- Dd87fn4NarNP2ZDAd34jAMNnWjle8Z8Y40KlZCId3CLHJNmcd0VgIUH435tCedDcA2iVG8Mjp
- NI0saGFNQSvCKjYXru9oVIK/Hu092AIEmlXuoNUCk3V2i7yUjpBMMDCc0ob9H5Ic3SIU9p+JN
- QGxDJr6PArOdidNfXE3U+xPQoQbpA8dwL3i/0ogruuC806fXckMTOzE4GAXxo76Ojr03s13Ex
- im9qJpp7afwvZpqFNovt7YSI9So/vMueQFtQHr26MTMMMjigvHADShV/GmuGrYN6g741Hg7OM
- PSlm271Fxk65rjbFKDYIWPqLXiHoYQOlurJUtnCBHu1kKY1PS+JDFLJLR+kp73clhD7i/RyMB
- qz1APo7A05M8MxbFenXvRuD1WgYD7wGeU3yb39ZjOkydYpGOv20hPRLUJa0jqFx44mxFijmpj
- Y85WbeYL3D7nTEW9OQt6Su7gHvJpNvJ+VG0WccfE475shveN+wOJaHHa7CD6oguiWrstxvqHc
- NFqSeZJk8BBgRYi1dvnuT42ndGFJ2akvvG1Mamzu8vORSer1FlTexDM6jbujYolrzjkJolI7T
- igB/ESc3cepL10X/CjspXmECItQEIK8HesSTXpGBP0OScOVJoCPAEfrEtlSzjbJS6KIqiUkNI
- zv/BqMkN6ZZqr3evUfbyGktFanBMPpjUDHsJHc32+h3AlEas9uzZrrCXrocTpNFfGbXWGKZPL
- ur9R/fXrEFYrhIejn6Vx1oONXWDU/euG/FLAfAZLXkNqaz5kd7L8zPdE6M59pfmfgTwt5detd
- N0IZHwqihu/kbX6kNo+kiU+H6mrT/4miiTzZ7ku9FblfrbvepgUylk5KkgXSD4sruVXmZzI
+X-Provags-ID: V03:K1:XIaaingPpec+a6Y9LnJdFRwLVmXn4q8tvLz+Ns67E/nR1D/CxZu
+ 2f3ZnnElaftMX2cx8jyMBlmpalu7G5S/I031cpRt14OJk2MLBpS6dKgk+Bdl3ce64tXMDWm
+ Hwnv2472nk9CekGEslTcGf322mcSuHLrXX8gQI8H1dtCigaz/f5YFFNOB8S3+XW2dhKOK6N
+ Rl0wHOU7kQNzOOiMgPY2g==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:ZDmt+JVyqPo=:wUWBan/XhTM7os4S00g0T1
+ sAA5nlHwb2VVfsFK9dU/a72r9wdjyeUBgIFSad74IASqgKIVGCoU+8vZ7BfHvdlMiqjHAQp9Z
+ tgCOQ+zioezPU4zafO96vEDsV5BF9fVIZkeVKR9d/W/Bfj1aG0pVpwdcSc11+/eoFhv69GK8w
+ w8QHdRPUVOPNHiYwh65IIuC8Ow9o80p5akdwFNDzx/v44Hv4qGjrgA7RVfxSNtBPQ/3moCKyW
+ wSFfkeEc5qed66reLd4wMONAaR8dya2lOTQddbcrXhUfOkoU7Hgnytl431wF8Kw/7Fnty0p6v
+ csZbFnhptYVWvuEB0e0pCeH9V2vAW9wUct0VI0gh/tZi1FNqlCPpJeUElc/pAnc0ZOfXRFeqk
+ hx6oEqu32UlvEGgtKT79aP346fSXQEPKGg/NBf3PU9h5ZAf0LWxPUgiE2eGqKyaij+zjd1M3w
+ Rua29DbwZhTMWZ/OlqwLboQ3VGaZiDA75hKH1iUV7H+J3vvCKGVTyyUHQ/W0hx9M/g75B+2cP
+ ImMGY8kLdF0n5crMk+bRxpEFdmqh90hlyOHzvdBkTNSGyI0ARmeAmDuIEaj/4mC+DEBR2+pel
+ av/0ToexShtb0AthHNwYs1xfxh55pIlVpyHtdcptQD6g2CtaRcUtJWUS8CrERRaFSumcX9q2t
+ BC/Dnec1dYFdqDUDukAvVwYCUqaKaeIyRkWPernuN+z7P7K89nAW2flez9NT72UaMBubcb26Q
+ gIkmca9Si1jS80rxKq1DDxkLiYZ5g8/VNHKrm0opo1X7zy9hV0nCqymt1Rkjyvrvw59QYUVm/
+ UUpavLZQBScTTuFf50HVhGD+9UL/yjmdAh2WCFRLV+NFjWwPrDfOXE4XUDlJFNNvevClVaL
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-ARM uses set_fs() and __get_user() to allow the stack dumping code to
-access possibly invalid pointers carefully. These can be changed to the
-simpler get_kernel_nofault(), and allow the eventual removal of set_fs().
+The epoll_wait() system call wrapper is one of the remaining users of
+the set_fs() infrasturcture for Arm. Changing it to not require set_fs()
+is rather complex unfortunately.
 
-dump_instr() will print either kernel or user space pointers,
-depending on how it was called. For dump_mem(), I assume we are only
-interested in kernel pointers, and the only time that this is called
-with user_mode(regs)==true is when the regs themselves are unreliable
-as a result of the condition that caused the trap.
+The approach I'm taking here is to allow architectures to override
+the code that copies the output to user space, and let the oabi-compat
+implementation check whether it is getting called from an EABI or OABI
+system call based on the thread_info->syscall value.
 
-Reviewed-by: Christoph Hellwig <hch@lst.de>
+The in_oabi_syscall() check here mirrors the in_compat_syscall() and
+in_x32_syscall() helpers for 32-bit compat implementations on other
+architectures.
+
+Overall, the amount of code goes down, at least with the newly added
+sys_oabi_epoll_pwait() helper getting removed again. The downside
+is added complexity in the source code for the native implementation.
+There should be no difference in runtime performance except for Arm
+kernels with CONFIG_OABI_COMPAT enabled that now have to go through
+an external function call to check which of the two variants to use.
+
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arm/kernel/traps.c | 47 ++++++++++++++---------------------------
- 1 file changed, 16 insertions(+), 31 deletions(-)
+ arch/arm/include/asm/syscall.h    | 11 +++++
+ arch/arm/kernel/sys_oabi-compat.c | 75 +++++++------------------------
+ arch/arm/tools/syscall.tbl        |  4 +-
+ fs/eventpoll.c                    |  5 +--
+ include/linux/eventpoll.h         | 18 ++++++++
+ 5 files changed, 49 insertions(+), 64 deletions(-)
 
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index 17d5a785df28..c3964a283b63 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -122,17 +122,8 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
- 		     unsigned long top)
- {
- 	unsigned long first;
--	mm_segment_t fs;
- 	int i;
+diff --git a/arch/arm/include/asm/syscall.h b/arch/arm/include/asm/syscall.h
+index 89898497edd6..9efb7b3384e5 100644
+--- a/arch/arm/include/asm/syscall.h
++++ b/arch/arm/include/asm/syscall.h
+@@ -28,6 +28,17 @@ static inline int syscall_get_nr(struct task_struct *task,
+ 	return task_thread_info(task)->syscall & ~__NR_OABI_SYSCALL_BASE;
+ }
  
--	/*
--	 * We need to switch to kernel mode so that we can use __get_user
--	 * to safely read from kernel space.  Note that we now dump the
--	 * code first, just in case the backtrace kills us.
--	 */
++static inline bool __in_oabi_syscall(struct task_struct *task)
++{
++	return IS_ENABLED(CONFIG_OABI_COMPAT) &&
++		(task_thread_info(task)->syscall & __NR_OABI_SYSCALL_BASE);
++}
++
++static inline bool in_oabi_syscall(void)
++{
++	return __in_oabi_syscall(current);
++}
++
+ static inline void syscall_rollback(struct task_struct *task,
+ 				    struct pt_regs *regs)
+ {
+diff --git a/arch/arm/kernel/sys_oabi-compat.c b/arch/arm/kernel/sys_oabi-compat.c
+index a2b1ae01e5bf..f9d8e5be6ba0 100644
+--- a/arch/arm/kernel/sys_oabi-compat.c
++++ b/arch/arm/kernel/sys_oabi-compat.c
+@@ -83,6 +83,8 @@
+ #include <linux/uaccess.h>
+ #include <linux/slab.h>
+ 
++#include <asm/syscall.h>
++
+ struct oldabi_stat64 {
+ 	unsigned long long st_dev;
+ 	unsigned int	__pad1;
+@@ -264,70 +266,25 @@ asmlinkage long sys_oabi_epoll_ctl(int epfd, int op, int fd,
+ 	return do_epoll_ctl(epfd, op, fd, &kernel, false);
+ }
+ 
+-static long do_oabi_epoll_wait(int epfd, struct oabi_epoll_event __user *events,
+-			       int maxevents, int timeout)
++struct epoll_event __user *
++epoll_put_uevent(__poll_t revents, __u64 data,
++		 struct epoll_event __user *uevent)
+ {
+-	struct epoll_event *kbuf;
+-	struct oabi_epoll_event e;
+-	mm_segment_t fs;
+-	long ret, err, i;
++	if (in_oabi_syscall()) {
++		struct oabi_epoll_event __user *oevent = (void __user *)uevent;
+ 
+-	if (maxevents <= 0 ||
+-			maxevents > (INT_MAX/sizeof(*kbuf)) ||
+-			maxevents > (INT_MAX/sizeof(*events)))
+-		return -EINVAL;
+-	if (!access_ok(events, sizeof(*events) * maxevents))
+-		return -EFAULT;
+-	kbuf = kmalloc_array(maxevents, sizeof(*kbuf), GFP_KERNEL);
+-	if (!kbuf)
+-		return -ENOMEM;
 -	fs = get_fs();
 -	set_fs(KERNEL_DS);
--
- 	printk("%s%s(0x%08lx to 0x%08lx)\n", lvl, str, bottom, top);
- 
- 	for (first = bottom & ~31; first < top; first += 32) {
-@@ -145,7 +136,7 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
- 		for (p = first, i = 0; i < 8 && p < top; i++, p += 4) {
- 			if (p >= bottom && p < top) {
- 				unsigned long val;
--				if (__get_user(val, (unsigned long *)p) == 0)
-+				if (get_kernel_nofault(val, (unsigned long *)p))
- 					sprintf(str + i * 9, " %08lx", val);
- 				else
- 					sprintf(str + i * 9, " ????????");
-@@ -153,11 +144,9 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
- 		}
- 		printk("%s%04lx:%s\n", lvl, first & 0xffff, str);
- 	}
--
+-	ret = sys_epoll_wait(epfd, kbuf, maxevents, timeout);
 -	set_fs(fs);
- }
- 
--static void __dump_instr(const char *lvl, struct pt_regs *regs)
-+static void dump_instr(const char *lvl, struct pt_regs *regs)
- {
- 	unsigned long addr = instruction_pointer(regs);
- 	const int thumb = thumb_mode(regs);
-@@ -173,10 +162,20 @@ static void __dump_instr(const char *lvl, struct pt_regs *regs)
- 	for (i = -4; i < 1 + !!thumb; i++) {
- 		unsigned int val, bad;
- 
--		if (thumb)
--			bad = get_user(val, &((u16 *)addr)[i]);
--		else
--			bad = get_user(val, &((u32 *)addr)[i]);
-+		if (!user_mode(regs)) {
-+			if (thumb) {
-+				u16 val16;
-+				bad = get_kernel_nofault(val16, &((u16 *)addr)[i]);
-+				val = val16;
-+			} else {
-+				bad = get_kernel_nofault(val, &((u32 *)addr)[i]);
-+			}
-+		} else {
-+			if (thumb)
-+				bad = get_user(val, &((u16 *)addr)[i]);
-+			else
-+				bad = get_user(val, &((u32 *)addr)[i]);
-+		}
- 
- 		if (!bad)
- 			p += sprintf(p, i == 0 ? "(%0*x) " : "%0*x ",
-@@ -189,20 +188,6 @@ static void __dump_instr(const char *lvl, struct pt_regs *regs)
- 	printk("%sCode: %s\n", lvl, str);
- }
- 
--static void dump_instr(const char *lvl, struct pt_regs *regs)
--{
--	mm_segment_t fs;
--
--	if (!user_mode(regs)) {
--		fs = get_fs();
--		set_fs(KERNEL_DS);
--		__dump_instr(lvl, regs);
--		set_fs(fs);
--	} else {
--		__dump_instr(lvl, regs);
+-	err = 0;
+-	for (i = 0; i < ret; i++) {
+-		e.events = kbuf[i].events;
+-		e.data = kbuf[i].data;
+-		err = __copy_to_user(events, &e, sizeof(e));
+-		if (err)
+-			break;
+-		events++;
 -	}
+-	kfree(kbuf);
+-	return err ? -EFAULT : ret;
+-}
++		if (__put_user(revents, &oevent->events) ||
++		    __put_user(data, &oevent->data))
++			return NULL;
+ 
+-SYSCALL_DEFINE4(oabi_epoll_wait, int, epfd,
+-		struct oabi_epoll_event __user *, events,
+-		int, maxevents, int, timeout)
+-{
+-	return do_oabi_epoll_wait(epfd, events, maxevents, timeout);
 -}
 -
- #ifdef CONFIG_ARM_UNWIND
- static inline void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
- 				  const char *loglvl)
+-/*
+- * Implement the event wait interface for the eventpoll file. It is the kernel
+- * part of the user space epoll_pwait(2).
+- */
+-SYSCALL_DEFINE6(oabi_epoll_pwait, int, epfd,
+-		struct oabi_epoll_event __user *, events, int, maxevents,
+-		int, timeout, const sigset_t __user *, sigmask,
+-		size_t, sigsetsize)
+-{
+-	int error;
+-
+-	/*
+-	 * If the caller wants a certain signal mask to be set during the wait,
+-	 * we apply it here.
+-	 */
+-	error = set_user_sigmask(sigmask, sigsetsize);
+-	if (error)
+-		return error;
++		return (void __user *)(oevent+1);
++	}
+ 
+-	error = do_oabi_epoll_wait(epfd, events, maxevents, timeout);
+-	restore_saved_sigmask_unless(error == -EINTR);
++	if (__put_user(revents, &uevent->events) ||
++	    __put_user(data, &uevent->data))
++		return NULL;
+ 
+-	return error;
++	return uevent+1;
+ }
+ 
+ struct oabi_sembuf {
+diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
+index 39a24bee7df8..fe5cd48fed91 100644
+--- a/arch/arm/tools/syscall.tbl
++++ b/arch/arm/tools/syscall.tbl
+@@ -266,7 +266,7 @@
+ 249	common	lookup_dcookie		sys_lookup_dcookie
+ 250	common	epoll_create		sys_epoll_create
+ 251	common	epoll_ctl		sys_epoll_ctl		sys_oabi_epoll_ctl
+-252	common	epoll_wait		sys_epoll_wait		sys_oabi_epoll_wait
++252	common	epoll_wait		sys_epoll_wait
+ 253	common	remap_file_pages	sys_remap_file_pages
+ # 254 for set_thread_area
+ # 255 for get_thread_area
+@@ -360,7 +360,7 @@
+ 343	common	vmsplice		sys_vmsplice
+ 344	common	move_pages		sys_move_pages
+ 345	common	getcpu			sys_getcpu
+-346	common	epoll_pwait		sys_epoll_pwait		sys_oabi_epoll_pwait
++346	common	epoll_pwait		sys_epoll_pwait
+ 347	common	kexec_load		sys_kexec_load
+ 348	common	utimensat		sys_utimensat_time32
+ 349	common	signalfd		sys_signalfd
+diff --git a/fs/eventpoll.c b/fs/eventpoll.c
+index 12eebcdea9c8..796d9e72dc96 100644
+--- a/fs/eventpoll.c
++++ b/fs/eventpoll.c
+@@ -1745,8 +1745,8 @@ static __poll_t ep_send_events_proc(struct eventpoll *ep, struct list_head *head
+ 		if (!revents)
+ 			continue;
+ 
+-		if (__put_user(revents, &uevent->events) ||
+-		    __put_user(epi->event.data, &uevent->data)) {
++		uevent = epoll_put_uevent(revents, epi->event.data, uevent);
++		if (!uevent) {
+ 			list_add(&epi->rdllink, head);
+ 			ep_pm_stay_awake(epi);
+ 			if (!esed->res)
+@@ -1754,7 +1754,6 @@ static __poll_t ep_send_events_proc(struct eventpoll *ep, struct list_head *head
+ 			return 0;
+ 		}
+ 		esed->res++;
+-		uevent++;
+ 		if (epi->event.events & EPOLLONESHOT)
+ 			epi->event.events &= EP_PRIVATE_BITS;
+ 		else if (!(epi->event.events & EPOLLET)) {
+diff --git a/include/linux/eventpoll.h b/include/linux/eventpoll.h
+index 8f000fada5a4..d1f13147ed69 100644
+--- a/include/linux/eventpoll.h
++++ b/include/linux/eventpoll.h
+@@ -77,4 +77,22 @@ static inline void eventpoll_release(struct file *file) {}
+ 
+ #endif
+ 
++#if defined(CONFIG_ARM) && defined(CONFIG_OABI_COMPAT)
++/* ARM OABI has an incompatible struct layout and needs a special handler */
++extern struct epoll_event __user *
++epoll_put_uevent(__poll_t revents, __u64 data,
++		 struct epoll_event __user *uevent);
++#else
++static inline struct epoll_event __user *
++epoll_put_uevent(__poll_t revents, __u64 data,
++		 struct epoll_event __user *uevent)
++{
++	if (__put_user(revents, &uevent->events) ||
++	    __put_user(data, &uevent->data))
++		return NULL;
++
++	return uevent+1;
++}
++#endif
++
+ #endif /* #ifndef _LINUX_EVENTPOLL_H */
 -- 
 2.27.0
 
