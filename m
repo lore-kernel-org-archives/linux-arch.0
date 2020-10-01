@@ -2,126 +2,97 @@ Return-Path: <SRS0=vnfG=DI=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SIGNED_OFF_BY,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8CB58C47420
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:13:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6AE53C4727C
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:33:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4BD112087D
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:13:45 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 30B6320B1F
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:33:35 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=default; t=1601562815;
+	bh=xZOlHDbJguhnX0FwxSgLkyWh39Pd+NwDAH+vBk+yRYI=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
+	b=Tw9McjI4HjM0DTntRFx5/ONj7qgIW/4FciEPU/2PiZ+ub8UQc5AZn1l+/b5Yp4Ix4
+	 OqR9IlT0WLF1trdTibQ5Qf1Oi8SKlZzcfv5xLuGwTvUOImATBIA6YvjCWgniOGQMdt
+	 LY/dFEQ2fIopkKKXmoJrl6J3Q7Sfq2/IW/5AZX7U=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1732443AbgJAONo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 1 Oct 2020 10:13:44 -0400
-Received: from mout.kundenserver.de ([217.72.192.73]:36927 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732420AbgJAONH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2020 10:13:07 -0400
-Received: from threadripper.lan ([46.223.126.90]) by mrelayeu.kundenserver.de
- (mreue108 [212.227.15.145]) with ESMTPA (Nemesis) id
- 1N7zNt-1kSR3A338F-0153Zr; Thu, 01 Oct 2020 16:12:51 +0200
-From:   Arnd Bergmann <arnd@arndb.de>
-To:     Russell King <linux@armlinux.org.uk>,
-        Christoph Hellwig <hch@lst.de>
-Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
-        linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v3 01/10] mm/maccess: fix unaligned copy_{from,to}_kernel_nofault
-Date:   Thu,  1 Oct 2020 16:12:24 +0200
-Message-Id: <20201001141233.119343-2-arnd@arndb.de>
-X-Mailer: git-send-email 2.27.0
-In-Reply-To: <20201001141233.119343-1-arnd@arndb.de>
-References: <20201001141233.119343-1-arnd@arndb.de>
+        id S1732452AbgJAOdb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 1 Oct 2020 10:33:31 -0400
+Received: from mail-oo1-f68.google.com ([209.85.161.68]:41740 "EHLO
+        mail-oo1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732020AbgJAOdb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2020 10:33:31 -0400
+Received: by mail-oo1-f68.google.com with SMTP id t3so1519427ook.8;
+        Thu, 01 Oct 2020 07:33:29 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=NklUCDIMExUICy4FN/gh63Vm3SmGzKI/5Dwr1ozJ1xo=;
+        b=Uye2+7mYqgX89ErfbrN19Ywi5H8ep5QlB475QIIkeLx+4MtiZnluCT8Ayj5oMDuah/
+         X3VI3p/1xoRqc90ue14+uRGHnU5T+CSbBpMNCSFUONviMRdPluG6VhyZ6t0ziOVpQWf5
+         5qCqbSFAajrV5sYt0fdIrqEMgWlg4/MjNQmuL64DscaMXWLG3LY+K0QN2ALwTqxXrvqy
+         GCoRbjPuzRTBi4AYoed1PjP6LlxxLSB+ML80CitU301Z2aeickSJi3B6oQf6v4euVWP5
+         SkhFJMXhoRNuSlZ5MdR9ZBkO768iwigMNOj0Vh1UBc+6Auk0tdurJFS9V1RyzA7gvUNm
+         BP5Q==
+X-Gm-Message-State: AOAM533Hwl06GCV8x1+z+TBM6dt/UsBDrObdk66WFuJF8qPyGRaf2r67
+        A05UQ3DCgg1cCo29Sksj4ewRms3+EF2z
+X-Google-Smtp-Source: ABdhPJwtom5klA/Ap8NrMcL34dnJEga9NT+pmkNy471CG5ehIqBT2YW5RiioY1ZL73r4Gt8Hdb3wCQ==
+X-Received: by 2002:a4a:95f1:: with SMTP id p46mr5633028ooi.93.1601562808922;
+        Thu, 01 Oct 2020 07:33:28 -0700 (PDT)
+Received: from xps15 (24-155-109-49.dyn.grandenetworks.net. [24.155.109.49])
+        by smtp.gmail.com with ESMTPSA id g7sm1204483otk.56.2020.10.01.07.33.27
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 01 Oct 2020 07:33:28 -0700 (PDT)
+Received: (nullmailer pid 695955 invoked by uid 1000);
+        Thu, 01 Oct 2020 14:33:22 -0000
+Date:   Thu, 1 Oct 2020 09:33:22 -0500
+From:   Rob Herring <robh@kernel.org>
+To:     Wei Liu <wei.liu@kernel.org>
+Cc:     Stephen Hemminger <sthemmin@microsoft.com>,
+        Sunil Muthuswamy <sunilmut@microsoft.com>,
+        Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        virtualization@lists.linux-foundation.org,
+        Bjorn Helgaas <bhelgaas@google.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        linux-arch@vger.kernel.org, linux-pci@vger.kernel.org,
+        Michael Kelley <mikelley@microsoft.com>,
+        Linux on Hyper-V List <linux-hyperv@vger.kernel.org>,
+        "K. Y. Srinivasan" <kys@microsoft.com>,
+        Nuno Das Neves <nudasnev@microsoft.com>,
+        Linux Kernel List <linux-kernel@vger.kernel.org>,
+        Vineeth Pillai <viremana@linux.microsoft.com>
+Subject: Re: [PATCH RFC v1 12/18] asm-generic/hyperv: update
+ hv_interrupt_entry
+Message-ID: <20201001143322.GA695896@bogus>
+References: <20200914112802.80611-1-wei.liu@kernel.org>
+ <20200914115928.83184-4-wei.liu@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Provags-ID: V03:K1:JIkXMdpDR0ur20R0TfErz+SS7ek7hvlvdV08ZHXeS+8QM4q5qK6
- oT9S3UUAu8+kuKQ310bTrvgZsTPi8oFqjkMnDCgDogD5CTA1129uIhJSRz66AIMQ6yGzpwV
- VZ7gSDOe+HZl0q0ILFE1GDKaBjPyI0M+DNF+78LaWKBU+07VvQz5UeP0edPN78w8PRlI3rm
- B1KVNZjXcwcfTqz40kzbw==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:qrUogoUvLLw=:+pbjXbqQxUCpKCme1RZhl2
- zc7bJzX+2DAGkGh5VmN+7gSpTBJPbC7RolI8bMF2Z+DDea3ZJF0kR6Ld4B3RfHVd7vPkaUMdp
- 0WNymXhXx9vd7jZDICIyZnrsBgtxCbzP6LcRMb4SqZhoxOh8wfn+W4eOuPpBuDI5WGBRc9MDO
- ixnj2wBXKRn+HqufENoX5QQHVVntKLkjakka7wvZvZLtdl4EqZDo6/CjGsmQGxtqA9kRHlXV0
- sr74KwumQ3Xz6zPbZgANxK06SwKVY/My6ROTRnnrIBDI/cBpMXATnpv5phPBGDFSacF9dD5JJ
- MzPNeuOItveG9UFf35QfuUyer+jFhh5+c9ObUBKal9r8zByMU+MCHHc5TgqIut6/rfmRHgLm2
- Sir1y2RGYkDtmy0tqy69PraNN5UdK30CrCGbzFtwem0Xqg6+Am2xwZe6zvdErMVmmoMLe4mE8
- iNv7MGsq3+S9z+0FP3drVF0zuapLhZlZ6Rh4JYT+ehx/Q6CUkDmXC75hnG+ai94YFqkJPb6TL
- rfoz2Exakbgw+hN6w7QJceYdHmDsTkluvtyvFleqZqH9w42ZOGiE54PSm4btuAcKS+gXEbEPa
- uGmo8WsfKwITSzMLnlPhmghA1NiwJs3P7E2IcvmyL67yRlcSLrV4VPfPkYmjOKRjK1AdmoMTe
- cj4x989Ytn+yfkYcdMT2v3CA0U/KIilQZb9AYID1UvZOBm53SCy50RwDtw8DYd/vFC91+4WH6
- K2/pebXwCupnWz1vbQk4cDs4H47oFOSHca74ZXpDQH8HDxeRQrvhaBgeudfixDl6iiSZOVCke
- 0wTJXd3yoRzjMH5PXfMOcM4a1cFCkerlUapMYjUCpadICOCeAEuHGAiIvHtnRwtHtC7NLJL
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200914115928.83184-4-wei.liu@kernel.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On machines such as ARMv5 that trap unaligned accesses, these
-two functions can be slow when each access needs to be emulated,
-or they might not work at all.
+On Mon, 14 Sep 2020 11:59:21 +0000, Wei Liu wrote:
+> We will soon use the same structure to handle IO-APIC interrupts as
+> well. Introduce an enum to identify the source and a data structure for
+> IO-APIC RTE.
+> 
+> While at it, update pci-hyperv.c to use the enum.
+> 
+> No functional change.
+> 
+> Signed-off-by: Wei Liu <wei.liu@kernel.org>
+> ---
+>  drivers/pci/controller/pci-hyperv.c |  2 +-
+>  include/asm-generic/hyperv-tlfs.h   | 36 +++++++++++++++++++++++++++--
+>  2 files changed, 35 insertions(+), 3 deletions(-)
+> 
 
-Change them so that each loop is only used when both the src
-and dst pointers are naturally aligned.
-
-Reviewed-by: Christoph Hellwig <hch@lst.de>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- mm/maccess.c | 28 ++++++++++++++++++++++------
- 1 file changed, 22 insertions(+), 6 deletions(-)
-
-diff --git a/mm/maccess.c b/mm/maccess.c
-index 3bd70405f2d8..d3f1a1f0b1c1 100644
---- a/mm/maccess.c
-+++ b/mm/maccess.c
-@@ -24,13 +24,21 @@ bool __weak copy_from_kernel_nofault_allowed(const void *unsafe_src,
- 
- long copy_from_kernel_nofault(void *dst, const void *src, size_t size)
- {
-+	unsigned long align = 0;
-+
-+	if (!IS_ENABLED(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS))
-+		align = (unsigned long)dst | (unsigned long)src;
-+
- 	if (!copy_from_kernel_nofault_allowed(src, size))
- 		return -ERANGE;
- 
- 	pagefault_disable();
--	copy_from_kernel_nofault_loop(dst, src, size, u64, Efault);
--	copy_from_kernel_nofault_loop(dst, src, size, u32, Efault);
--	copy_from_kernel_nofault_loop(dst, src, size, u16, Efault);
-+	if (!(align & 7))
-+		copy_from_kernel_nofault_loop(dst, src, size, u64, Efault);
-+	if (!(align & 3))
-+		copy_from_kernel_nofault_loop(dst, src, size, u32, Efault);
-+	if (!(align & 1))
-+		copy_from_kernel_nofault_loop(dst, src, size, u16, Efault);
- 	copy_from_kernel_nofault_loop(dst, src, size, u8, Efault);
- 	pagefault_enable();
- 	return 0;
-@@ -50,10 +58,18 @@ EXPORT_SYMBOL_GPL(copy_from_kernel_nofault);
- 
- long copy_to_kernel_nofault(void *dst, const void *src, size_t size)
- {
-+	unsigned long align = 0;
-+
-+	if (!IS_ENABLED(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS))
-+		align = (unsigned long)dst | (unsigned long)src;
-+
- 	pagefault_disable();
--	copy_to_kernel_nofault_loop(dst, src, size, u64, Efault);
--	copy_to_kernel_nofault_loop(dst, src, size, u32, Efault);
--	copy_to_kernel_nofault_loop(dst, src, size, u16, Efault);
-+	if (!(align & 7))
-+		copy_to_kernel_nofault_loop(dst, src, size, u64, Efault);
-+	if (!(align & 3))
-+		copy_to_kernel_nofault_loop(dst, src, size, u32, Efault);
-+	if (!(align & 1))
-+		copy_to_kernel_nofault_loop(dst, src, size, u16, Efault);
- 	copy_to_kernel_nofault_loop(dst, src, size, u8, Efault);
- 	pagefault_enable();
- 	return 0;
--- 
-2.27.0
-
+Acked-by: Rob Herring <robh@kernel.org>
