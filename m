@@ -2,26 +2,26 @@ Return-Path: <SRS0=vnfG=DI=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D202AC4741F
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F2AE4C47425
 	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:13:12 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9A2DA20872
+	by mail.kernel.org (Postfix) with ESMTP id BE33822204
 	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:13:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1732463AbgJAONK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 1 Oct 2020 10:13:10 -0400
-Received: from mout.kundenserver.de ([217.72.192.73]:46561 "EHLO
+        id S1732469AbgJAONL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 1 Oct 2020 10:13:11 -0400
+Received: from mout.kundenserver.de ([217.72.192.75]:47201 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732421AbgJAONH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2020 10:13:07 -0400
+        with ESMTP id S1732434AbgJAONJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2020 10:13:09 -0400
 Received: from threadripper.lan ([46.223.126.90]) by mrelayeu.kundenserver.de
  (mreue108 [212.227.15.145]) with ESMTPA (Nemesis) id
- 1MDQmW-1kEben1bZW-00ASUI; Thu, 01 Oct 2020 16:12:51 +0200
+ 1MFshF-1kC9kn03HL-00HLAt; Thu, 01 Oct 2020 16:12:54 +0200
 From:   Arnd Bergmann <arnd@arndb.de>
 To:     Russell King <linux@armlinux.org.uk>,
         Christoph Hellwig <hch@lst.de>
@@ -29,99 +29,288 @@ Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
         linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v3 00/10] ARM: remove set_fs callers and implementation
-Date:   Thu,  1 Oct 2020 16:12:23 +0200
-Message-Id: <20201001141233.119343-1-arnd@arndb.de>
+Subject: [PATCH v3 08/10] ARM: uaccess: add __{get,put}_kernel_nofault
+Date:   Thu,  1 Oct 2020 16:12:31 +0200
+Message-Id: <20201001141233.119343-9-arnd@arndb.de>
 X-Mailer: git-send-email 2.27.0
+In-Reply-To: <20201001141233.119343-1-arnd@arndb.de>
+References: <20201001141233.119343-1-arnd@arndb.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-Provags-ID: V03:K1:uvT0YYMCSl5yaLC0/r8RyA+xGdKVT1cAiXxy5fc6u04+Z7n9ImA
- J6uOW5QZ/LsnTiydt7y11fk9jnUMLq1J2fKNQj/BVedh2XfzFisuEDQrKA4ybpaUNFEUtnz
- IuuxJCH7VyCbIARbJox82g2ljhI7S52bXKBbaIFCrjE4UgS6vcwwQxXrAkf1Cv9E4YEMpgW
- geXoKOZ1Dl3DAgMusEkNQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:upTsn8YWAJw=:bCdYpMIkHwcotA5EW6TSXq
- iIuZdlAHh5fZnmzQj7wOUNsBOJbqbmCGyhYbaO6GS6UOUxI9ePnw49zQct8RaEDRTRf8KKiGk
- 03Sf2fIJcCnG4gpMu7KeYxOPHH0Vriqz27KTWuMNHDZ6OF0iTbtEhAn96dMHTJD97mHBTu6Jq
- uoTgZi6ElWW2sEOnp2jrrHq0Kk20CSwAnLlPWC7dlLIijzc+Id82FNXfaU55LPfJ014kOOrDi
- m7wnkLf87f33csKJEcUu6HtABRlMRwVtNOu7Roi6Cze7Zc/hmLyTca4zSNoFCA+f1Jg6SIMax
- f2YLED/AMOF/6xtWOihOzizHtGll7SaSeIMJs887u/RFXBr41sztwh1PbmOx4y2F5QBY2ETYg
- AmZcE2pwFlcJe5tPZkyxzddnXgUog0VxyqFm1VDm18d7TpCZy7dXZjxXSJNjZ6dxtDboz4kE1
- DfkuwdL1lHKaIU3mYQneWnDU+1yutpqBZ17EvdfJ46lnb5V6mDvfJ6l34f9GrrrLDt65+6lAP
- J0oMVZ9cZxHTvw1tZgGRytaTxN9nT0a4j5QEU8PGZ8s/3XIIrH7EQSjc4/MnX0ALshbVpAr+J
- 1z736Q3pLNDRpkGP5+aoBg2Y34ox0wyvlyHyb1fddP6bS3nw9cEnl74x+XdHQQ0utT4fQFcSL
- Wm3H8Nb/Wzhy33xYSSY9F+Jae2cCHLzKbFr/TPGg6ua5OCHTrFYkDYXR+e/jnfnB/SqlebcML
- rk0C0eo5hAtplfQogMhE4zIzh65DH0MOoLsNW9w8O7ZYx5TPJf5CotTsnl6Uf+Y6oqv1aG7La
- J7dnKMtRyjA1fFUJw4BAFHowogyZNrte4cp0yzvlVrdQeajzPF2AlWSQWdEGnX1h07a8OGQ
+X-Provags-ID: V03:K1:6Pw+IdMtuuuRfExdV9J/hy/KpU2/RIytHtCrfwskoeMr5jufDuD
+ 2sdNXOnzzFn3Cxx/yJ8Ek3CVmJh5Fd/A/gsGZb+DJGJIy0IXBCuv6Sth9pIq5SxKFBfeQQj
+ qJVoteQfe//af/XjvJ9HEQ8XLs5T40KE/HRC3NFaoQmFLy9zRJbgFJeWRbZSLiYfnXJHUhC
+ oNCw5jW5Ji3QahkkDBc6A==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:EDxnNVS/DeY=:96E/HkW8eKf1LYRqSsWSyx
+ A+k77fy+NVkx7qEBjMLIfJY2EK45wKGDtz1cl5rulbSlz3UacqmNpC/vwEDj97S06lg62dypZ
+ zrDv8a/V3mVt1SCMZ5vZKRUXA7zBajOWH9A05Jx8x48AhhctDmEMzU7HvbG8jfyucursOlb8O
+ ZHSpwqDuwj9hpdNcstGxY8lBikNR71gqrHFItFlT34nxWjKwb19tNILriRd3Eam79CU4m5tnh
+ 8NWSmdMELjTurCOKdOauBO/4lySfhbDOYxl7jUKYNSsOce7KQVvkGWTU0CSt4KCmSdIpb6Hz2
+ I3+poKaTKGTbFHowzO5vc7thxgBZ9fIrGNVnvANlFKZoCUv1BWmWfM2P0wzSBGeMOIonOm/EW
+ Twfy55oR0ehtb7eX2PSyOEYsVMaNgve2Ahslnd3vqkn+Ay919EeOYuSAAfOgoXRBQhqaUBp9e
+ cTVoVwrYDiA3cnm8FewJfb/upkgkfO/NkUejJMSmw+dmlaokxN+VHjY6rHekVRcC98lhXqYxk
+ vy0634nWv4ArA4ZAjyp+/Gs+bzuyR615PV72xdBW9ggPjGgcZAVFZIyBZWCedn1BoMAnnAKUe
+ 4iH4ux/oYvw2U9Ex9UyZ7SOgC/kI20FyqATRnp5WDZEWKOR+UzhMuQ39iKhoZjU5VuExSgO+g
+ 3FXnVto7XTH9ePJMvl1GGgBN3avo0FDu8hXiXMZpTDftJj8rUVGX6+dPSl+vCJ/uQ8Qp904q1
+ yOh5Xh2BoETIv4Ov0v6kastKWts5lswMHuju6MaGmdvT0T6SpuOrqKcD8vbsj13tsUXyEpvIW
+ i1jpEj5u+DtXtXojbgTeGSw7bM+iDae5UdgNzfIJ+8WSDIqbwDyFkifVCNuTLZjt0kQtNXM
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Christoph, Russell,
+These mimic the behavior of get_user and put_user, except
+for domain switching, address limit checking and handling
+of mismatched sizes, none of which are relevant here.
 
-This is the updated version of my ARM set_fs patches, hopefully
-I managed to address your previous concerns.
+To work with pre-Armv6 kernels, this has to avoid TUSER()
+inside of the new macros, the new approach passes the "t"
+string along with the opcode, which is a bit uglier but
+avoids duplicating more code.
 
-I have tested the oabi-compat changes using the LTP tests for the three
-modified syscalls using an Armv7 kernel and a Debian 5 OABI user space.
+As there is no __get_user_asm_dword(), I work around it
+by copying 32 bit at a time, which is possible because
+the output size is known.
 
-I also tested the syscall_get_nr() in all combinations of OABI/EABI
-kernel user space and fixed the bugs I found after Russell pointed
-out one of those issues.
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/arm/include/asm/uaccess.h | 123 ++++++++++++++++++++++-----------
+ 1 file changed, 83 insertions(+), 40 deletions(-)
 
-The series is now based on
-https://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git/log/?h=base.set_fs
-with no extra patches, after I included a patch to define a
-private TASK_SIZE_MAX.
-
-Russell, if you would still consider this seris for the next merge
-window and there are no further review comments, you can pull it
-from
-
-  https://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git \
-	arm-kill-set_fs-7
-
-At this point I'd probably just defer it another release and
-rebase once -rc1 is out, dropping the TASK_SIZE_MAX patch.
-
-     Arnd
-
-
-Arnd Bergmann (10):
-  mm/maccess: fix unaligned copy_{from,to}_kernel_nofault
-  ARM: traps: use get_kernel_nofault instead of set_fs()
-  ARM: oabi-compat: add epoll_pwait handler
-  ARM: syscall: always store thread_info->syscall
-  ARM: oabi-compat: rework epoll_wait/epoll_pwait emulation
-  ARM: oabi-compat: rework sys_semtimedop emulation
-  ARM: oabi-compat: rework fcntl64() emulation
-  ARM: uaccess: add __{get,put}_kernel_nofault
-  ARM: provide a TASK_SIZE_MAX definition
-  ARM: uaccess: remove set_fs() implementation
-
- arch/arm/Kconfig                   |   1 -
- arch/arm/include/asm/memory.h      |   2 +
- arch/arm/include/asm/ptrace.h      |   1 -
- arch/arm/include/asm/syscall.h     |  16 ++-
- arch/arm/include/asm/thread_info.h |   4 -
- arch/arm/include/asm/uaccess-asm.h |   6 -
- arch/arm/include/asm/uaccess.h     | 169 ++++++++++++++-------------
- arch/arm/kernel/asm-offsets.c      |   3 +-
- arch/arm/kernel/entry-common.S     |  17 +--
- arch/arm/kernel/process.c          |   7 +-
- arch/arm/kernel/ptrace.c           |   9 +-
- arch/arm/kernel/signal.c           |   8 --
- arch/arm/kernel/sys_oabi-compat.c  | 181 ++++++++++++++++-------------
- arch/arm/kernel/traps.c            |  47 +++-----
- arch/arm/lib/copy_from_user.S      |   3 +-
- arch/arm/lib/copy_to_user.S        |   3 +-
- arch/arm/tools/syscall.tbl         |   2 +-
- fs/eventpoll.c                     |   5 +-
- include/linux/eventpoll.h          |  18 +++
- include/linux/syscalls.h           |   3 +
- ipc/sem.c                          |  84 ++++++++-----
- mm/maccess.c                       |  28 ++++-
- 22 files changed, 334 insertions(+), 283 deletions(-)
-
+diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
+index a13d90206472..4f60638755c4 100644
+--- a/arch/arm/include/asm/uaccess.h
++++ b/arch/arm/include/asm/uaccess.h
+@@ -308,11 +308,11 @@ static inline void set_fs(mm_segment_t fs)
+ #define __get_user(x, ptr)						\
+ ({									\
+ 	long __gu_err = 0;						\
+-	__get_user_err((x), (ptr), __gu_err);				\
++	__get_user_err((x), (ptr), __gu_err, TUSER());			\
+ 	__gu_err;							\
+ })
+ 
+-#define __get_user_err(x, ptr, err)					\
++#define __get_user_err(x, ptr, err, __t)				\
+ do {									\
+ 	unsigned long __gu_addr = (unsigned long)(ptr);			\
+ 	unsigned long __gu_val;						\
+@@ -321,18 +321,19 @@ do {									\
+ 	might_fault();							\
+ 	__ua_flags = uaccess_save_and_enable();				\
+ 	switch (sizeof(*(ptr))) {					\
+-	case 1:	__get_user_asm_byte(__gu_val, __gu_addr, err);	break;	\
+-	case 2:	__get_user_asm_half(__gu_val, __gu_addr, err);	break;	\
+-	case 4:	__get_user_asm_word(__gu_val, __gu_addr, err);	break;	\
++	case 1:	__get_user_asm_byte(__gu_val, __gu_addr, err, __t); break;	\
++	case 2:	__get_user_asm_half(__gu_val, __gu_addr, err, __t); break;	\
++	case 4:	__get_user_asm_word(__gu_val, __gu_addr, err, __t); break;	\
+ 	default: (__gu_val) = __get_user_bad();				\
+ 	}								\
+ 	uaccess_restore(__ua_flags);					\
+ 	(x) = (__typeof__(*(ptr)))__gu_val;				\
+ } while (0)
++#endif
+ 
+ #define __get_user_asm(x, addr, err, instr)			\
+ 	__asm__ __volatile__(					\
+-	"1:	" TUSER(instr) " %1, [%2], #0\n"		\
++	"1:	" instr " %1, [%2], #0\n"			\
+ 	"2:\n"							\
+ 	"	.pushsection .text.fixup,\"ax\"\n"		\
+ 	"	.align	2\n"					\
+@@ -348,40 +349,38 @@ do {									\
+ 	: "r" (addr), "i" (-EFAULT)				\
+ 	: "cc")
+ 
+-#define __get_user_asm_byte(x, addr, err)			\
+-	__get_user_asm(x, addr, err, ldrb)
++#define __get_user_asm_byte(x, addr, err, __t)			\
++	__get_user_asm(x, addr, err, "ldrb" __t)
+ 
+ #if __LINUX_ARM_ARCH__ >= 6
+ 
+-#define __get_user_asm_half(x, addr, err)			\
+-	__get_user_asm(x, addr, err, ldrh)
++#define __get_user_asm_half(x, addr, err, __t)			\
++	__get_user_asm(x, addr, err, "ldrh" __t)
+ 
+ #else
+ 
+ #ifndef __ARMEB__
+-#define __get_user_asm_half(x, __gu_addr, err)			\
++#define __get_user_asm_half(x, __gu_addr, err, __t)		\
+ ({								\
+ 	unsigned long __b1, __b2;				\
+-	__get_user_asm_byte(__b1, __gu_addr, err);		\
+-	__get_user_asm_byte(__b2, __gu_addr + 1, err);		\
++	__get_user_asm_byte(__b1, __gu_addr, err, __t);		\
++	__get_user_asm_byte(__b2, __gu_addr + 1, err, __t);	\
+ 	(x) = __b1 | (__b2 << 8);				\
+ })
+ #else
+-#define __get_user_asm_half(x, __gu_addr, err)			\
++#define __get_user_asm_half(x, __gu_addr, err, __t)		\
+ ({								\
+ 	unsigned long __b1, __b2;				\
+-	__get_user_asm_byte(__b1, __gu_addr, err);		\
+-	__get_user_asm_byte(__b2, __gu_addr + 1, err);		\
++	__get_user_asm_byte(__b1, __gu_addr, err, __t);		\
++	__get_user_asm_byte(__b2, __gu_addr + 1, err, __t);	\
+ 	(x) = (__b1 << 8) | __b2;				\
+ })
+ #endif
+ 
+ #endif /* __LINUX_ARM_ARCH__ >= 6 */
+ 
+-#define __get_user_asm_word(x, addr, err)			\
+-	__get_user_asm(x, addr, err, ldr)
+-#endif
+-
++#define __get_user_asm_word(x, addr, err, __t)			\
++	__get_user_asm(x, addr, err, "ldr" __t)
+ 
+ #define __put_user_switch(x, ptr, __err, __fn)				\
+ 	do {								\
+@@ -425,7 +424,7 @@ do {									\
+ #define __put_user_nocheck(x, __pu_ptr, __err, __size)			\
+ 	do {								\
+ 		unsigned long __pu_addr = (unsigned long)__pu_ptr;	\
+-		__put_user_nocheck_##__size(x, __pu_addr, __err);	\
++		__put_user_nocheck_##__size(x, __pu_addr, __err, TUSER());\
+ 	} while (0)
+ 
+ #define __put_user_nocheck_1 __put_user_asm_byte
+@@ -433,9 +432,11 @@ do {									\
+ #define __put_user_nocheck_4 __put_user_asm_word
+ #define __put_user_nocheck_8 __put_user_asm_dword
+ 
++#endif /* !CONFIG_CPU_SPECTRE */
++
+ #define __put_user_asm(x, __pu_addr, err, instr)		\
+ 	__asm__ __volatile__(					\
+-	"1:	" TUSER(instr) " %1, [%2], #0\n"		\
++	"1:	" instr " %1, [%2], #0\n"		\
+ 	"2:\n"							\
+ 	"	.pushsection .text.fixup,\"ax\"\n"		\
+ 	"	.align	2\n"					\
+@@ -450,36 +451,36 @@ do {									\
+ 	: "r" (x), "r" (__pu_addr), "i" (-EFAULT)		\
+ 	: "cc")
+ 
+-#define __put_user_asm_byte(x, __pu_addr, err)			\
+-	__put_user_asm(x, __pu_addr, err, strb)
++#define __put_user_asm_byte(x, __pu_addr, err, __t)		\
++	__put_user_asm(x, __pu_addr, err, "strb" __t)
+ 
+ #if __LINUX_ARM_ARCH__ >= 6
+ 
+-#define __put_user_asm_half(x, __pu_addr, err)			\
+-	__put_user_asm(x, __pu_addr, err, strh)
++#define __put_user_asm_half(x, __pu_addr, err, __t)		\
++	__put_user_asm(x, __pu_addr, err, "strh" __t)
+ 
+ #else
+ 
+ #ifndef __ARMEB__
+-#define __put_user_asm_half(x, __pu_addr, err)			\
++#define __put_user_asm_half(x, __pu_addr, err, __t)		\
+ ({								\
+ 	unsigned long __temp = (__force unsigned long)(x);	\
+-	__put_user_asm_byte(__temp, __pu_addr, err);		\
+-	__put_user_asm_byte(__temp >> 8, __pu_addr + 1, err);	\
++	__put_user_asm_byte(__temp, __pu_addr, err, __t);	\
++	__put_user_asm_byte(__temp >> 8, __pu_addr + 1, err, __t);\
+ })
+ #else
+-#define __put_user_asm_half(x, __pu_addr, err)			\
++#define __put_user_asm_half(x, __pu_addr, err, __t)		\
+ ({								\
+ 	unsigned long __temp = (__force unsigned long)(x);	\
+-	__put_user_asm_byte(__temp >> 8, __pu_addr, err);	\
+-	__put_user_asm_byte(__temp, __pu_addr + 1, err);	\
++	__put_user_asm_byte(__temp >> 8, __pu_addr, err, __t);	\
++	__put_user_asm_byte(__temp, __pu_addr + 1, err, __t);	\
+ })
+ #endif
+ 
+ #endif /* __LINUX_ARM_ARCH__ >= 6 */
+ 
+-#define __put_user_asm_word(x, __pu_addr, err)			\
+-	__put_user_asm(x, __pu_addr, err, str)
++#define __put_user_asm_word(x, __pu_addr, err, __t)		\
++	__put_user_asm(x, __pu_addr, err, "str" __t)
+ 
+ #ifndef __ARMEB__
+ #define	__reg_oper0	"%R2"
+@@ -489,12 +490,12 @@ do {									\
+ #define	__reg_oper1	"%R2"
+ #endif
+ 
+-#define __put_user_asm_dword(x, __pu_addr, err)			\
++#define __put_user_asm_dword(x, __pu_addr, err, __t)		\
+ 	__asm__ __volatile__(					\
+- ARM(	"1:	" TUSER(str) "	" __reg_oper1 ", [%1], #4\n"	) \
+- ARM(	"2:	" TUSER(str) "	" __reg_oper0 ", [%1]\n"	) \
+- THUMB(	"1:	" TUSER(str) "	" __reg_oper1 ", [%1]\n"	) \
+- THUMB(	"2:	" TUSER(str) "	" __reg_oper0 ", [%1, #4]\n"	) \
++ ARM(	"1:	str" __t "	" __reg_oper1 ", [%1], #4\n"  ) \
++ ARM(	"2:	str" __t "	" __reg_oper0 ", [%1]\n"      ) \
++ THUMB(	"1:	str" __t "	" __reg_oper1 ", [%1]\n"      ) \
++ THUMB(	"2:	str" __t "	" __reg_oper0 ", [%1, #4]\n"  ) \
+ 	"3:\n"							\
+ 	"	.pushsection .text.fixup,\"ax\"\n"		\
+ 	"	.align	2\n"					\
+@@ -510,7 +511,49 @@ do {									\
+ 	: "r" (x), "i" (-EFAULT)				\
+ 	: "cc")
+ 
+-#endif /* !CONFIG_CPU_SPECTRE */
++#define HAVE_GET_KERNEL_NOFAULT
++
++#define __get_kernel_nofault(dst, src, type, err_label)			\
++do {									\
++	const type *__pk_ptr = (src);					\
++	unsigned long __src = (unsigned long)(__pk_ptr);		\
++	type __val;							\
++	int __err = 0;							\
++	switch (sizeof(type)) {						\
++	case 1:	__get_user_asm_byte(__val, __src, __err, ""); break;	\
++	case 2: __get_user_asm_half(__val, __src, __err, ""); break;	\
++	case 4: __get_user_asm_word(__val, __src, __err, ""); break;	\
++	case 8: {							\
++		u32 *__v32 = (u32*)&__val;				\
++		__get_user_asm_word(__v32[0], __src, __err, "");	\
++		if (__err)						\
++			break;						\
++		__get_user_asm_word(__v32[1], __src+4, __err, "");	\
++		break;							\
++	}								\
++	default: __err = __get_user_bad(); break;			\
++	}								\
++	*(type *)(dst) = __val;						\
++	if (__err)							\
++		goto err_label;						\
++} while (0)
++
++#define __put_kernel_nofault(dst, src, type, err_label)			\
++do {									\
++	const type *__pk_ptr = (dst);					\
++	unsigned long __dst = (unsigned long)__pk_ptr;			\
++	int __err = 0;							\
++	type __val = *(type *)src;					\
++	switch (sizeof(type)) {						\
++	case 1: __put_user_asm_byte(__val, __dst, __err, ""); break;	\
++	case 2:	__put_user_asm_half(__val, __dst, __err, ""); break;	\
++	case 4:	__put_user_asm_word(__val, __dst, __err, ""); break;	\
++	case 8:	__put_user_asm_dword(__val, __dst, __err, ""); break;	\
++	default: __err = __put_user_bad(); break;			\
++	}								\
++	if (__err)							\
++		goto err_label;						\
++} while (0)
+ 
+ #ifdef CONFIG_MMU
+ extern unsigned long __must_check
 -- 
 2.27.0
 
