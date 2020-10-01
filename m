@@ -2,125 +2,83 @@ Return-Path: <SRS0=vnfG=DI=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-4.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.2 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 97325C4727C
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 08:14:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 06199C4727C
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 13:17:18 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5A7712176B
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 08:14:52 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1601540092;
-	bh=OQ5Rl7mvGEVxEAedAezsC2iYk6ORsvLvfeXsvmSGzK4=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
-	b=cNJfW2MUMoEyQpv9bYlBmTLd3yaGxzh9g1m8jlw0llW9DgW9vn0ReYsXq+sO5+vVG
-	 iXzq7QzIpVqKHzNP5Dd0ZbfSOv9olnSXioUFn7suPteGuF8FnRM5PLXnE5NUdRD0eW
-	 MOkmdb2AFnk6lMT3j84HY2QHl30KxYedOoJl20xE=
+	by mail.kernel.org (Postfix) with ESMTP id B8AA220754
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 13:17:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726992AbgJAIOs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 1 Oct 2020 04:14:48 -0400
-Received: from mail.kernel.org ([198.145.29.99]:37804 "EHLO mail.kernel.org"
+        id S1732139AbgJANRR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 1 Oct 2020 09:17:17 -0400
+Received: from mx2.suse.de ([195.135.220.15]:55250 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725894AbgJAIOs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 1 Oct 2020 04:14:48 -0400
-Received: from kernel.org (unknown [87.71.73.56])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 4E72520BED;
-        Thu,  1 Oct 2020 08:14:36 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1601540087;
-        bh=OQ5Rl7mvGEVxEAedAezsC2iYk6ORsvLvfeXsvmSGzK4=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=k835WoUyIOxQs1vszUiMSjhhSn11jUXQ4TGNaslDPJ9EKG6CIPIx1unOuP857BqXd
-         F1ArPeyz1k6Gs5CuzXCCFTlGWQZkxC6BH30SPuw/qvNv/yezU2G1NGKT7Dtwd3B07I
-         0dXT3c8NBDcUtoxf2jYtr1TPrqgIIGcfASC6m31I=
-Date:   Thu, 1 Oct 2020 11:14:30 +0300
-From:   Mike Rapoport <rppt@kernel.org>
-To:     Matthew Wilcox <willy@infradead.org>
-Cc:     Mike Rapoport <rppt@linux.ibm.com>,
+        id S1732018AbgJANRM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 1 Oct 2020 09:17:12 -0400
+X-Virus-Scanned: by amavisd-new at test-mx.suse.de
+Received: from relay2.suse.de (unknown [195.135.221.27])
+        by mx2.suse.de (Postfix) with ESMTP id 0B2A4AF59;
+        Thu,  1 Oct 2020 13:17:08 +0000 (UTC)
+Date:   Thu, 1 Oct 2020 15:17:07 +0200 (CEST)
+From:   Miroslav Benes <mbenes@suse.cz>
+To:     Sami Tolvanen <samitolvanen@google.com>
+cc:     Masahiro Yamada <masahiroy@kernel.org>,
+        Will Deacon <will@kernel.org>,
+        Steven Rostedt <rostedt@goodmis.org>,
         Peter Zijlstra <peterz@infradead.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Idan Yaniv <idan.yaniv@ibm.com>,
-        Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Shuah Khan <shuah@kernel.org>, Tycho Andersen <tycho@tycho.ws>,
-        Will Deacon <will@kernel.org>, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org
-Subject: Re: [PATCH v6 5/6] mm: secretmem: use PMD-size pages to amortize
- direct map fragmentation
-Message-ID: <20201001081430.GA3537283@kernel.org>
-References: <20200924132904.1391-1-rppt@kernel.org>
- <20200924132904.1391-6-rppt@kernel.org>
- <20200925074125.GQ2628@hirez.programming.kicks-ass.net>
- <20200929130529.GE2142832@kernel.org>
- <20200929141216.GO2628@hirez.programming.kicks-ass.net>
- <20200929145813.GA3226834@linux.ibm.com>
- <20200929151552.GS2628@hirez.programming.kicks-ass.net>
- <20200930102745.GC3226834@linux.ibm.com>
- <20200930150928.GR20115@casper.infradead.org>
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        Kees Cook <keescook@chromium.org>,
+        Nick Desaulniers <ndesaulniers@google.com>,
+        clang-built-linux@googlegroups.com,
+        kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org,
+        linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org,
+        x86@kernel.org, jthierry@redhat.com, jpoimboe@redhat.com
+Subject: Re: [PATCH v4 04/29] objtool: Add a pass for generating
+ __mcount_loc
+In-Reply-To: <20200929214631.3516445-5-samitolvanen@google.com>
+Message-ID: <alpine.LSU.2.21.2010011504340.6689@pobox.suse.cz>
+References: <20200929214631.3516445-1-samitolvanen@google.com> <20200929214631.3516445-5-samitolvanen@google.com>
+User-Agent: Alpine 2.21 (LSU 202 2017-01-01)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200930150928.GR20115@casper.infradead.org>
+Content-Type: text/plain; charset=US-ASCII
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Sep 30, 2020 at 04:09:28PM +0100, Matthew Wilcox wrote:
-> On Wed, Sep 30, 2020 at 01:27:45PM +0300, Mike Rapoport wrote:
-> > On Tue, Sep 29, 2020 at 05:15:52PM +0200, Peter Zijlstra wrote:
-> > > On Tue, Sep 29, 2020 at 05:58:13PM +0300, Mike Rapoport wrote:
-> > > > On Tue, Sep 29, 2020 at 04:12:16PM +0200, Peter Zijlstra wrote:
-> > > 
-> > > > > It will drop them down to 4k pages. Given enough inodes, and allocating
-> > > > > only a single sekrit page per pmd, we'll shatter the directmap into 4k.
-> > > > 
-> > > > Why? Secretmem allocates PMD-size page per inode and uses it as a pool
-> > > > of 4K pages for that inode. This way it ensures that
-> > > > __kernel_map_pages() is always called on PMD boundaries.
-> > > 
-> > > Oh, you unmap the 2m page upfront? I read it like you did the unmap at
-> > > the sekrit page alloc, not the pool alloc side of things.
-> > > 
-> > > Then yes, but then you're wasting gobs of memory. Basically you can pin
-> > > 2M per inode while only accounting a single page.
-> > 
-> > Right, quite like THP :)
+Hi Sami,
+
+On Tue, 29 Sep 2020, Sami Tolvanen wrote:
+
+> From: Peter Zijlstra <peterz@infradead.org>
 > 
-> Huh?  THP accounts every page it allocates.  If you allocate 2MB,
-> it accounts 512 pages.
+> Add the --mcount option for generating __mcount_loc sections
+> needed for dynamic ftrace. Using this pass requires the kernel to
+> be compiled with -mfentry and CC_USING_NOP_MCOUNT to be defined
+> in Makefile.
+> 
+> Link: https://lore.kernel.org/lkml/20200625200235.GQ4781@hirez.programming.kicks-ass.net/
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+> [Sami: rebased to mainline, dropped config changes, fixed to actually use
+>        --mcount, and wrote a commit message.]
+> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+> Reviewed-by: Kees Cook <keescook@chromium.org>
 
-I meant that secremem allocates 2M in advance like THP and not that it
-similar because only page is accounted.
-Anyway, the intention was to account the entrire 2M chunk (512 pages),
-so I'll recheck the accounting and I'll fix it if I missed something.
+I am sorry to reply on v4. Should have been sooner.
 
-> And THP are reclaimable by vmscan, this is obviously not.
+Julien has been sending patches to make objtool's check functionality 
+arch-agnostic as much as possible. So it seems to me that the patch should 
+be based on the effort
 
-True, this is more like mlock in that sense.
+I also wonder about making 'mcount' command separate from 'check'. Similar 
+to what is 'orc' now. But that could be done later.
 
--- 
-Sincerely yours,
-Mike.
+See tip-tree/objtool/core for both.
+
+Thanks
+Miroslav
