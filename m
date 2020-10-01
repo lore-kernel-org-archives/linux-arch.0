@@ -2,122 +2,244 @@ Return-Path: <SRS0=vnfG=DI=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8BB47C4727C
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:47:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 28E6CC4727E
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 16:22:12 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 0DF8F2158C
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 14:47:36 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1601563656;
-	bh=i8gkPOTOaQ0+zyvFuAkWNLjAJL2goMrnBIOZltkQ8Ck=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
-	b=2VvnyByZh+w1jHEYXxK2YAjWykNRYvjzxCnaE1BVhWK51Bqgb69w64CvwQxZrgzcQ
-	 l9SLq6pf+lUNZVItfQ4bB6RDqDTy1SdU8SY/tE2CCt2JD/Ga0zSJi1rEUKPoHzI3fJ
-	 hvdFoJcCaV3BHeIkify+Vl0f9oXSIhCvVyAjz2zU=
+	by mail.kernel.org (Postfix) with ESMTP id D0DD820848
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Oct 2020 16:22:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1732207AbgJAOrf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 1 Oct 2020 10:47:35 -0400
-Received: from mail.kernel.org ([198.145.29.99]:35258 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732020AbgJAOrf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 1 Oct 2020 10:47:35 -0400
-Received: from localhost (fla63-h02-176-172-189-251.dsl.sta.abo.bbox.fr [176.172.189.251])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id F27AF207DE;
-        Thu,  1 Oct 2020 14:47:33 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1601563654;
-        bh=i8gkPOTOaQ0+zyvFuAkWNLjAJL2goMrnBIOZltkQ8Ck=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=AZLGzuFNTPMn09I0z3LQqB6nzf+J1qT4KmkpA1/2qQMnhaYS05nYkxwEHglBaBKuK
-         OD4eWHWTOmOuR6j18ekhqESCIE/U4IteqNC3m2p98CQYXbpth1LrOuqwP+CvdoDQ2N
-         vjlq3eoDrlemL6LFh9S2r7IqXrpMviURP4YvS3WE=
-Date:   Thu, 1 Oct 2020 16:47:31 +0200
-From:   Frederic Weisbecker <frederic@kernel.org>
-To:     Alex Belits <abelits@marvell.com>
-Cc:     "rostedt@goodmis.org" <rostedt@goodmis.org>,
-        Prasun Kapoor <pkapoor@marvell.com>,
-        "mingo@kernel.org" <mingo@kernel.org>,
-        "davem@davemloft.net" <davem@davemloft.net>,
-        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
-        "peterz@infradead.org" <peterz@infradead.org>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
-        "tglx@linutronix.de" <tglx@linutronix.de>,
-        "will@kernel.org" <will@kernel.org>,
-        "linux-arm-kernel@lists.infradead.org" 
-        <linux-arm-kernel@lists.infradead.org>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Subject: Re: [PATCH v4 11/13] task_isolation: net: don't flush backlog on
- CPUs running isolated tasks
-Message-ID: <20201001144731.GC6595@lothringen>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
- <01470cf1f1a2e79e46a87bb5a8a4780a1c3cc740.camel@marvell.com>
+        id S1732026AbgJAQWL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 1 Oct 2020 12:22:11 -0400
+Received: from netrider.rowland.org ([192.131.102.5]:49375 "HELO
+        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1730534AbgJAQWL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2020 12:22:11 -0400
+X-Greylist: delayed 400 seconds by postgrey-1.27 at vger.kernel.org; Thu, 01 Oct 2020 12:22:10 EDT
+Received: (qmail 254425 invoked by uid 1000); 1 Oct 2020 12:15:29 -0400
+Date:   Thu, 1 Oct 2020 12:15:29 -0400
+From:   Alan Stern <stern@rowland.harvard.edu>
+To:     "Paul E. McKenney" <paulmck@kernel.org>
+Cc:     parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org,
+        boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com,
+        j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com,
+        dlustig@nvidia.com, joel@joelfernandes.org,
+        viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org
+Subject: Re: Litmus test for question from Al Viro
+Message-ID: <20201001161529.GA251468@rowland.harvard.edu>
+References: <20201001045116.GA5014@paulmck-ThinkPad-P72>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <01470cf1f1a2e79e46a87bb5a8a4780a1c3cc740.camel@marvell.com>
+In-Reply-To: <20201001045116.GA5014@paulmck-ThinkPad-P72>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Jul 22, 2020 at 02:58:24PM +0000, Alex Belits wrote:
-> From: Yuri Norov <ynorov@marvell.com>
+On Wed, Sep 30, 2020 at 09:51:16PM -0700, Paul E. McKenney wrote:
+> Hello!
 > 
-> If CPU runs isolated task, there's no any backlog on it, and
-> so we don't need to flush it.
-
-What guarantees that we have no backlog on it?
-
-> Currently flush_all_backlogs()
-> enqueues corresponding work on all CPUs including ones that run
-> isolated tasks. It leads to breaking task isolation for nothing.
+> Al Viro posted the following query:
 > 
-> In this patch, backlog flushing is enqueued only on non-isolated CPUs.
+> ------------------------------------------------------------------------
 > 
-> Signed-off-by: Yuri Norov <ynorov@marvell.com>
-> [abelits@marvell.com: use safe task_isolation_on_cpu() implementation]
-> Signed-off-by: Alex Belits <abelits@marvell.com>
-> ---
->  net/core/dev.c | 7 ++++++-
->  1 file changed, 6 insertions(+), 1 deletion(-)
+> <viro> fun question regarding barriers, if you have time for that
+> <viro>         V->A = V->B = 1;
+> <viro>
+> <viro> CPU1:
+> <viro>         to_free = NULL
+> <viro>         spin_lock(&LOCK)
+> <viro>         if (!smp_load_acquire(&V->B))
+> <viro>                 to_free = V
+> <viro>         V->A = 0
+> <viro>         spin_unlock(&LOCK)
+> <viro>         kfree(to_free)
+> <viro>
+> <viro> CPU2:
+> <viro>         to_free = V;
+> <viro>         if (READ_ONCE(V->A)) {
+> <viro>                 spin_lock(&LOCK)
+> <viro>                 if (V->A)
+> <viro>                         to_free = NULL
+> <viro>                 smp_store_release(&V->B, 0);
+> <viro>                 spin_unlock(&LOCK)
+> <viro>         }
+> <viro>         kfree(to_free);
+> <viro> 1) is it guaranteed that V will be freed exactly once and that
+> 	  no accesses to *V will happen after freeing it?
+> <viro> 2) do we need smp_store_release() there?  I.e. will anything
+> 	  break if it's replaced with plain V->B = 0?
+
+Here are my answers to Al's questions:
+
+1) It is guaranteed that V will be freed exactly once.  It is not 
+guaranteed that no accesses to *V will occur after it is freed, because 
+the test contains a data race.  CPU1's plain "V->A = 0" write races with 
+CPU2's READ_ONCE; if the plain write were replaced with 
+"WRITE_ONCE(V->A, 0)" then the guarantee would hold.  Equally well, 
+CPU1's smp_load_acquire could be replaced with a plain read while the 
+plain write is replaced with smp_store_release.
+
+2) The smp_store_release in CPU2 is not needed.  Replacing it with a 
+plain V->B = 0 will not break anything.
+
+Analysis: Apart from the kfree calls themselves, the only access to a 
+shared variable outside of a critical section is CPU2's READ_ONCE of 
+V->A.  So let's consider two possibilities:
+
+1: The READ_ONCE returns 0.  Then CPU2 doesn't execute its critical 
+section and does kfree(V).  However, the fact that the READ_ONCE got 0 
+means that CPU1 has already entered its critical section, has already 
+written to V->A (but with a plain write!) and therefore has already seen 
+V->B = 1 (because of the smp_load_acquire), and therefore will not free 
+V.  This case shows that the ordering we require is for CPU1 to read 
+V->B before it writes V->A.  The ordering can be enforced by using 
+either a load-acquire (as in the litmus test) or a store-release.
+
+2: The READ_ONCE returns 1.  Then CPU2 does execute its critical 
+section, and we can simply treat this case the same as if the critical 
+section was executed unconditionally.  Whichever CPU runs its critical 
+section second will free V, and the other CPU won't try to access V 
+after leaving its own critical section (and thus won't access V after it 
+has been freed).
+
+> ------------------------------------------------------------------------
 > 
-> diff --git a/net/core/dev.c b/net/core/dev.c
-> index 90b59fc50dc9..83a282f7453d 100644
-> --- a/net/core/dev.c
-> +++ b/net/core/dev.c
-> @@ -74,6 +74,7 @@
->  #include <linux/cpu.h>
->  #include <linux/types.h>
->  #include <linux/kernel.h>
-> +#include <linux/isolation.h>
->  #include <linux/hash.h>
->  #include <linux/slab.h>
->  #include <linux/sched.h>
-> @@ -5624,9 +5625,13 @@ static void flush_all_backlogs(void)
->  
->  	get_online_cpus();
->  
-> -	for_each_online_cpu(cpu)
-> +	smp_rmb();
+> Of course herd7 supports neither structures nor arrays, but I was
+> crazy enough to try individual variables with made-up address and data
+> dependencies.  This litmus test must also detect use-after-free bugs,
+> but a simple variable should be able to do that.  So here is a
+> prototype:
+> 
+> ------------------------------------------------------------------------
+> 
+> C C-viro-2020.09.29a
+> 
+> {
+> 	int a = 1;
+> 	int b = 1;
+> 	int v = 1;
+> }
 
-What is it ordering?
+Not the way I would have done it, but okay.  I would have modeled the 
+kfree by setting a and b both to some sentinel value.
 
-> +	for_each_online_cpu(cpu) {
-> +		if (task_isolation_on_cpu(cpu))
-> +			continue;
->  		queue_work_on(cpu, system_highpri_wq,
->  			      per_cpu_ptr(&flush_works, cpu));
-> +	}
->  
->  	for_each_online_cpu(cpu)
->  		flush_work(per_cpu_ptr(&flush_works, cpu));
+> P0(int *a, int *b, int *v, spinlock_t *l)
+> {
+> 	int r0;
+> 	int r1;
+> 	int r2 = 2;
+> 	int r8;
+> 	int r9a = 2;
+> 	int r9b = 2;
+> 
+> 	r0 = 0;
+> 	spin_lock(l);
+> 	r9a = READ_ONCE(*v); // Use after free?
+> 	r8 = r9a - r9a; // Restore address dependency
+> 	r8 = b + r8;
+> 	r1 = smp_load_acquire(r8);
+> 	if (r1 == 0)
+> 		r0 = 1;
+> 	r9b = READ_ONCE(*v); // Use after free?
+> 	WRITE_ONCE(*a, r9b - r9b); // Use data dependency
+> 	spin_unlock(l);
+> 	if (r0) {
+> 		r2 = READ_ONCE(*v);
+> 		WRITE_ONCE(*v, 0); /* kfree(). */
+> 	}
+> }
+> 
+> P1(int *a, int *b, int *v, spinlock_t *l)
+> {
+> 	int r0;
+> 	int r1;
+> 	int r1a;
+> 	int r2 = 2;
+> 	int r8;
+> 	int r9a = 2;
+> 	int r9b = 2;
+> 	int r9c = 2;
+> 
+> 	r0 = READ_ONCE(*v);
+> 	r9a = r0; // Use after free?
 
-Thanks.
+Wrong.  This should be:
+
+	r0 = 1;
+	r9a = READ_ONCE(*v);
+
+> 	r8 = r9a - r9a; // Restore address dependency
+> 	r8 = a + r8;
+> 	r1 = READ_ONCE(*r8);
+> 	if (r1) {
+> 		spin_lock(l);
+> 		r9b = READ_ONCE(*v); // Use after free?
+> 		r8 = r9b - r9b; // Restore address dependency
+> 		r8 = a + r8;
+> 		r1a = READ_ONCE(*r8);
+> 		if (r1a)
+> 			r0 = 0;
+> 		r9c = READ_ONCE(*v); // Use after free?
+> 		smp_store_release(b, r9c - rc9); // Use data dependency
+> 		spin_unlock(l);
+> 	}
+> 	if (r0) {
+> 		r2 = READ_ONCE(*v);
+> 		WRITE_ONCE(*v, 0); /* kfree(). */
+> 	}
+> }
+> 
+> locations [a;b;v;0:r1;0:r8;1:r1;1:r8]
+> exists (0:r0=1:r0 \/ (* Both or neither did kfree(). *)
+> 	v=1 \/ (* Neither did kfree, redundant check. *)
+> 	0:r2=0 \/ 1:r2=0 \/  (* Both did kfree, redundant check. *)
+> 	0:r9a=0 \/ 0:r9b=0 \/ 1:r9a=0 \/ (* CPU1 use after free. *)
+> 	1:r9b=0 \/ 1:r9c=0) (* CPU2 use after free. *)
+> 
+> ------------------------------------------------------------------------
+> 
+> This "exists" clause is satisfied:
+> 
+> ------------------------------------------------------------------------
+> 
+> $ herd7 -conf linux-kernel.cfg ~/paper/scalability/LWNLinuxMM/litmus/manual/kernel/C-viro-2020.09.29a.litmus
+> Test C-viro-2020.09.29a Allowed
+> States 5
+> 0:r0=0; 0:r1=1; 0:r2=2; 0:r8=b; 0:r9a=0; 0:r9b=0; 1:r0=1; 1:r1=0; 1:r2=1; 1:r8=a; 1:r9a=1; 1:r9b=2; 1:r9c=2; a=0; b=1; v=0;
+> 0:r0=0; 0:r1=1; 0:r2=2; 0:r8=b; 0:r9a=1; 0:r9b=0; 1:r0=1; 1:r1=0; 1:r2=1; 1:r8=a; 1:r9a=1; 1:r9b=2; 1:r9c=2; a=0; b=1; v=0;
+> 0:r0=0; 0:r1=1; 0:r2=2; 0:r8=b; 0:r9a=1; 0:r9b=1; 1:r0=0; 1:r1=1; 1:r2=2; 1:r8=a; 1:r9a=1; 1:r9b=1; 1:r9c=1; a=0; b=1; v=1;
+
+The values for this case don't make sense.  I haven't checked the other 
+four cases.  Printing a graph of the relations for this case (the only 
+state with v=1 at the end) might help.
+
+> 0:r0=0; 0:r1=1; 0:r2=2; 0:r8=b; 0:r9a=1; 0:r9b=1; 1:r0=1; 1:r1=0; 1:r2=1; 1:r8=a; 1:r9a=1; 1:r9b=2; 1:r9c=2; a=0; b=1; v=0;
+> 0:r0=0; 0:r1=1; 0:r2=2; 0:r8=b; 0:r9a=1; 0:r9b=1; 1:r0=1; 1:r1=1; 1:r2=1; 1:r8=a; 1:r9a=1; 1:r9b=1; 1:r9c=1; a=0; b=1; v=0;
+> Ok
+> Witnesses
+> Positive: 3 Negative: 2
+> Condition exists (0:r0=1:r0 \/ v=1 \/ 0:r2=0 \/ 1:r2=0 \/ 0:r9a=0 \/ 0:r9b=0 \/ 1:r9a=0 \/ 1:r9b=0 \/ 1:r9c=0)
+> Observation C-viro-2020.09.29a Sometimes 3 2
+> Time C-viro-2020.09.29a 14.33
+> Hash=89f74abff4de682ee0bea8ee6dd53134
+
+Why didn't this flag the data race?
+
+> ------------------------------------------------------------------------
+> 
+> So did we end up with herd7 not respecting "fake" dependencies like
+> those shown above, or have I just messed up the translation from Al's
+> example to the litmus test?  (Given one thing and another over the past
+> couple of days, my guess would be that I just messed up the translation,
+> especially given that I don't see a reference to fake dependencies in
+> the documentation, but I figured that I should ask.)
+
+What do you get if you fix up the litmus test?
+
+Alan
