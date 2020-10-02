@@ -2,118 +2,109 @@ Return-Path: <SRS0=QG/g=DJ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0B577C4363D
-	for <linux-arch@archiver.kernel.org>; Fri,  2 Oct 2020 16:27:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 98102C35257
+	for <linux-arch@archiver.kernel.org>; Fri,  2 Oct 2020 20:59:13 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C43E520758
-	for <linux-arch@archiver.kernel.org>; Fri,  2 Oct 2020 16:27:33 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1601656053;
-	bh=qjXtcFl6KESR4O+wlsbZ/VOlNTSMkzOYIXFbmRZDgSo=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc:List-ID:From;
-	b=Ve5/x3eVMdjJZd6KFb/Bj7zBOIcD7Bc++oBREqHvax4YGq+Nzyg5bE74c7mei1mM9
-	 TA47l2o/haMMdAmgUp1GlYM9Z9+NaTIeVUX4ZituOAkEEAxA1r/++4OKW5UwOHiZbj
-	 D1WFHWEKLMRR0cYC0olbUfPXTHdwjfcot+D9U3Xs=
+	by mail.kernel.org (Postfix) with ESMTP id 6490020754
+	for <linux-arch@archiver.kernel.org>; Fri,  2 Oct 2020 20:59:13 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Ij7PUtkJ"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726569AbgJBQ1c (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 2 Oct 2020 12:27:32 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44548 "EHLO
+        id S1725772AbgJBU7H (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 2 Oct 2020 16:59:07 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58690 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733260AbgJBQ1a (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Oct 2020 12:27:30 -0400
-Received: from mail-lj1-x244.google.com (mail-lj1-x244.google.com [IPv6:2a00:1450:4864:20::244])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 81C55C0613D0
-        for <linux-arch@vger.kernel.org>; Fri,  2 Oct 2020 09:27:30 -0700 (PDT)
-Received: by mail-lj1-x244.google.com with SMTP id s205so1671270lja.7
-        for <linux-arch@vger.kernel.org>; Fri, 02 Oct 2020 09:27:30 -0700 (PDT)
+        with ESMTP id S1725283AbgJBU7H (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Oct 2020 16:59:07 -0400
+Received: from mail-il1-x142.google.com (mail-il1-x142.google.com [IPv6:2607:f8b0:4864:20::142])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 34240C0613D0;
+        Fri,  2 Oct 2020 13:59:07 -0700 (PDT)
+Received: by mail-il1-x142.google.com with SMTP id o18so2501809ilg.0;
+        Fri, 02 Oct 2020 13:59:07 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
+        d=gmail.com; s=20161025;
         h=mime-version:references:in-reply-to:from:date:message-id:subject:to
          :cc;
-        bh=XESAsar1PPbow9QXM6iPAt7dZfh4lXWZnIFR2ENhSp8=;
-        b=dQd4p/GwRMxd2rF8gBrN78ey6p2K8zuzTy3s9sWMNAin9xHfUCuyFLi919lpEWk9Dc
-         zCAWOHW6ysQaFQHfncwjPw8GtCF9mIdVDdsTyJBxdGYxPtsWb34P9+jGkQhhAkEUnrzR
-         +hu0t3g2U6uMrarSu3VT/dg6iysw2VK0TvQ0g=
+        bh=XkEYe1/fNy+Pf7SIAfod53fKG7vqHvWMD5Ql6n+ejRA=;
+        b=Ij7PUtkJXXbHQuBf9b8ZOxPvaU1A4n3iWSWa3CFASIc7I4v8wyPm4Dupo2AuLqWE/w
+         y7POCNEBvYyDVb9dqHo7ls4kSRElaq2Wyo+FXtnQR3JeOfOI7ZC2dDGllAnD0D7+03/Z
+         jQv/4GTdmY9ehua0cjtW9uSpqctb/J7/XRt3Kg8GMt4uL+JeLuUTzYR14atNNX8Vdz+W
+         0XIPgJ/lI7OObl5sItq82k81rc10JdjlY/taAZL9qlqYLYNeWhoFhWYVRxgYJ3u8eGJ4
+         0CyEDwkz3fsXUDvujQTCe9e6yRSTHWkp66vpM+XILRSp/ZhBVUDOjIpNqJX4MYalH+gn
+         qG4Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:mime-version:references:in-reply-to:from:date
          :message-id:subject:to:cc;
-        bh=XESAsar1PPbow9QXM6iPAt7dZfh4lXWZnIFR2ENhSp8=;
-        b=PimMz3ywCY/vedhrA1NzqnJsW6GaPoz1dbOIMvd4RQPrgWZayxb8jm/OSCgy1hxaCQ
-         AD//18A9jNL2XLHBNdKrsgW1/x8k1Nw3nt8698QBpM5h1uJhoBtwq5ES3Z2XR8XI00Ni
-         cYEsQQY0/OEqAZA5ogOIAjmX+pJRVqzK9onMAz2ODoFFzfhrBoErE37Ye6ldZZ0u4F2W
-         ErX1qIGRpNrpFyPCrqG0wSaoF1B3k2g3Op2UOSgGZd/Cmt5KQSSWXP3fsi6NKY+ZNgac
-         YdZoImQrgO6WZQIDowc1a63bE95tAmLGDOYXtQZDhHzggmPhwoxPmlcTQpvWe/AUAUxc
-         T/bw==
-X-Gm-Message-State: AOAM530jfmDvhSF2GQpQpTxLId1/a5oI3+I7U7lFCcv1V1i4wY8cHy0z
-        1DTiGyXNNcBMGnmKy7pChMiuuTqCAzQ1Cg==
-X-Google-Smtp-Source: ABdhPJwAkyi2CIpN/6L9XRM5x5qBER9kceXgCYaIny6+Dmp87rADhpqK71op/k6txA/ooC3WXkZE8Q==
-X-Received: by 2002:a2e:90c3:: with SMTP id o3mr904182ljg.147.1601656048128;
-        Fri, 02 Oct 2020 09:27:28 -0700 (PDT)
-Received: from mail-lf1-f48.google.com (mail-lf1-f48.google.com. [209.85.167.48])
-        by smtp.gmail.com with ESMTPSA id n3sm375074lfq.274.2020.10.02.09.27.26
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 02 Oct 2020 09:27:26 -0700 (PDT)
-Received: by mail-lf1-f48.google.com with SMTP id y2so2568620lfy.10
-        for <linux-arch@vger.kernel.org>; Fri, 02 Oct 2020 09:27:26 -0700 (PDT)
-X-Received: by 2002:ac2:5594:: with SMTP id v20mr1257887lfg.344.1601656045931;
- Fri, 02 Oct 2020 09:27:25 -0700 (PDT)
+        bh=XkEYe1/fNy+Pf7SIAfod53fKG7vqHvWMD5Ql6n+ejRA=;
+        b=Yb3n1KV6Cq5kKpZptZ+G/umGtQ17CWT5D/GFpuQ3sjKltoO4PPl6zNZd82XdHSthba
+         aErkV0LIt2MWbV2IHPG+mW3P2BsMO5j+pu3weKFjOfq6PsuDBqt930ldLU4NuCIfbS2T
+         35A6FhzBXYM9CpTRqTsBH6pnvlaY9GjLw9AmiK3X82Mg18962hflecMzsnQXU+61L40D
+         m3+pgV/HZbe6uB8qPP/j96s5tHuPq/0onvTG3+bDJzfZSZd7GrvMTYaCm42bsklItMIP
+         LnRJ7D/YaES2G/en+on6fxqR3h7J1aXxQgo1EAqsobQfb3ezK0h/oGeXnRHALDdePvWY
+         9q1A==
+X-Gm-Message-State: AOAM531HsbEMPDUo6xHyhqFGtVEDd5TAuRC2YcCmd8rlyOWr7fGCl2st
+        6RqWFJoMQLC8Hfe4+s1BRcFyvUj5nYcrdW8ibag=
+X-Google-Smtp-Source: ABdhPJxwldEJ93I2YYlI4aV0mGMs3+uEX9u8wY+YfRcK16cMXr4MrtvoeooObH0TWVAJOdlNaj0/+P/5Ow69DdAaFFg=
+X-Received: by 2002:a92:ba4d:: with SMTP id o74mr3331734ili.205.1601672346502;
+ Fri, 02 Oct 2020 13:59:06 -0700 (PDT)
 MIME-Version: 1.0
-References: <20200903142242.925828-1-hch@lst.de> <20200903142242.925828-6-hch@lst.de>
- <20201001223852.GA855@sol.localdomain> <20201001224051.GI3421308@ZenIV.linux.org.uk>
-In-Reply-To: <20201001224051.GI3421308@ZenIV.linux.org.uk>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Fri, 2 Oct 2020 09:27:09 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wgj=mKeN-EfV5tKwJNeHPLG0dybq+R5ZyGuc4WeUnqcmA@mail.gmail.com>
-Message-ID: <CAHk-=wgj=mKeN-EfV5tKwJNeHPLG0dybq+R5ZyGuc4WeUnqcmA@mail.gmail.com>
-Subject: Re: [PATCH 05/14] fs: don't allow kernel reads and writes without
- iter ops
-To:     Al Viro <viro@zeniv.linux.org.uk>
-Cc:     Eric Biggers <ebiggers@kernel.org>, Christoph Hellwig <hch@lst.de>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        "the arch/x86 maintainers" <x86@kernel.org>,
-        Alexey Dobriyan <adobriyan@gmail.com>,
-        Luis Chamberlain <mcgrof@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+References: <cover.1593243079.git.syednwaris@gmail.com> <CACRpkdYyCNEUSOtCJMTm7t1z15oK7nH3KcTe5LreJAzZ0KtQuw@mail.gmail.com>
+ <20200911225417.GA5286@shinobu> <CACRpkdah+k-EyhF8bNRkvw4bFDiai9dYo3ph9wsumo_v3U-U0g@mail.gmail.com>
+ <20200929130743.GB4458@shinobu> <CAHp75VdtUr1KHD5bng4sHZqsR888gN_TJ-bN8oLsX8GpsM8wYw@mail.gmail.com>
+ <CACRpkdY-SwOx9tGyvrZy_VZJgHyG4ipo27bPnTe==o8_b_CTfg@mail.gmail.com>
+In-Reply-To: <CACRpkdY-SwOx9tGyvrZy_VZJgHyG4ipo27bPnTe==o8_b_CTfg@mail.gmail.com>
+From:   Syed Nayyar Waris <syednwaris@gmail.com>
+Date:   Sat, 3 Oct 2020 02:28:55 +0530
+Message-ID: <CACG_h5or4anPqMRv5HOpe6CDOAWTY8rBot9G82p=9TABL1qCMQ@mail.gmail.com>
+Subject: Re: [PATCH v9 0/4] Introduce the for_each_set_clump macro
+To:     Linus Walleij <linus.walleij@linaro.org>
+Cc:     Andy Shevchenko <andy.shevchenko@gmail.com>,
+        William Breathitt Gray <vilhelm.gray@gmail.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Michal Simek <michal.simek@xilinx.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Robert Richter <rrichter@marvell.com>,
+        Bartosz Golaszewski <bgolaszewski@baylibre.com>,
+        Masahiro Yamada <yamada.masahiro@socionext.com>,
+        Zhang Rui <rui.zhang@intel.com>,
+        Daniel Lezcano <daniel.lezcano@linaro.org>,
+        Amit Kucheria <amit.kucheria@verdurent.com>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        Linux PM list <linux-pm@vger.kernel.org>
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Oct 1, 2020 at 3:41 PM Al Viro <viro@zeniv.linux.org.uk> wrote:
+On Wed, Sep 30, 2020 at 2:59 PM Linus Walleij <linus.walleij@linaro.org> wrote:
 >
-> Better
->         loff_t dummy = 0;
-> ...
->                 wr = __kernel_write(file, data, bytes, &dummy);
+> On Tue, Sep 29, 2020 at 3:14 PM Andy Shevchenko
+> <andy.shevchenko@gmail.com> wrote:
+>
+> > Linus, are you referencing to [3]? It was fixed in GENMASK()
+> > implementation some time ago.
+> > [3]: https://lore.kernel.org/lkml/202006171559.JSbGJXNw%25lkp@intel.com/
+>
+> Yup.
+>
+> I tried to apply the patches again now to test it but now patch 2
+> needs to be rebased.
+>
+> Sorry for all the trouble!
+>
+> Syed can you rebase the patch set on v5.9-rc1 and resend as v10?
 
-No, just fix __kernel_write() to work correctly.
+Sure Linus. I will send it as soon as possible.
 
-The fact is, NULL _is_ the right pointer for ppos these days.
-
-That commit by Christoph is buggy: it replaces new_sync_write() with a
-buggy open-coded version.
-
-Notice how new_sync_write does
-
-        kiocb.ki_pos = (ppos ? *ppos : 0);
-,,,
-        if (ret > 0 && ppos)
-                *ppos = kiocb.ki_pos;
-
-but the open-coded version doesn't.
-
-So just fix that in linux-next. The *last* thing we want is to have
-different semantics for the "same" kernel functions.
-
-               Linus
+Thanks
+Syed Nayyar Waris
