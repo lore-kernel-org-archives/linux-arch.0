@@ -2,118 +2,264 @@ Return-Path: <SRS0=wlVW=DK=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.6 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9CDC2C4363D
-	for <linux-arch@archiver.kernel.org>; Sat,  3 Oct 2020 09:32:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CD021C41604
+	for <linux-arch@archiver.kernel.org>; Sat,  3 Oct 2020 11:37:12 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6CAC7206F8
-	for <linux-arch@archiver.kernel.org>; Sat,  3 Oct 2020 09:32:54 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7E701206C9
+	for <linux-arch@archiver.kernel.org>; Sat,  3 Oct 2020 11:37:12 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="i1gww9oL"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="e+jmq+N9"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725828AbgJCJcu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 3 Oct 2020 05:32:50 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:32980 "EHLO
+        id S1725789AbgJCLhM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 3 Oct 2020 07:37:12 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52048 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725820AbgJCJcr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 3 Oct 2020 05:32:47 -0400
-Received: from mail-wr1-x444.google.com (mail-wr1-x444.google.com [IPv6:2a00:1450:4864:20::444])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 96643C0613E8;
-        Sat,  3 Oct 2020 02:32:47 -0700 (PDT)
-Received: by mail-wr1-x444.google.com with SMTP id o5so4331149wrn.13;
-        Sat, 03 Oct 2020 02:32:47 -0700 (PDT)
+        with ESMTP id S1725767AbgJCLhL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 3 Oct 2020 07:37:11 -0400
+Received: from mail-il1-x143.google.com (mail-il1-x143.google.com [IPv6:2607:f8b0:4864:20::143])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 98EE3C0613D0;
+        Sat,  3 Oct 2020 04:37:11 -0700 (PDT)
+Received: by mail-il1-x143.google.com with SMTP id u9so3602412ilj.7;
+        Sat, 03 Oct 2020 04:37:11 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=subject:from:to:cc:references:message-id:date:user-agent
-         :mime-version:in-reply-to:content-language:content-transfer-encoding;
-        bh=wmkJ9FxHCpTr+iWv6GHurEZpNNofEO+mT2y21utzFUs=;
-        b=i1gww9oLCuAl7ps5bghVOHqyGmypLPIhDKuBqotkCvdnqEFRaD36CeVYStIMsJFTUN
-         D6OtC9a5Pd3uni6o0V4KWqVjMy4G9aoHk65TQ0a3vqdwc8JJkyW9d2HuLnCONT5/aDfg
-         6/s3VQo5bRbDCwgHl10h4opIShPXPwp0jNEqEv/LXoy0m9KLmBLPzE2Ma/7RxYryfpvx
-         KDR4E1aW4hiJeLllUYcX3LaBX6pETHnRvDUFo4bDzUh+KpIuRoixv+Md31XOw1sV9Y0U
-         jfsAyXPOLfP0gNHv1chHDLJodyRwn8IOgMLUW4LseTUQ8ulmWGY0taiIppcuxmyOrSSX
-         QMJw==
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=tDIrc79AJ4xWJONqBKbp/xE/awnhYPlRc+BDwTgV1oc=;
+        b=e+jmq+N9nTxpC676tT3yU47npM2EQpxGRsrOznkYzg2DEH3VP4cVzqZodFh7cOkU/x
+         bvqO48pK9zqGDKE4wuoOaQjksMdEfNLrdYqn3Q81ET02jnHwWOkzisTAs521a/b9IvHd
+         CGB5S19ZYwxxFQGInMwsO++CkFAmwsyxWpNtkhZ/K8ZPEvZTGYqiQljbddN1KOdPU0Tg
+         xOkSmtiSuevnMq/y4oC1LvkwQNDT1ZxRtjpiHe7xMMjM1gkNvk44YDEatzmAQaGF9mb4
+         AhF7ZLaW+qarr7xApcvNG/qjXDR/Q6sHn2Oj8zf64l6lYvRp8H5cSvQXALLYLcKyrLDv
+         GEgQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:subject:from:to:cc:references:message-id:date
-         :user-agent:mime-version:in-reply-to:content-language
-         :content-transfer-encoding;
-        bh=wmkJ9FxHCpTr+iWv6GHurEZpNNofEO+mT2y21utzFUs=;
-        b=H6/nd45JXOBDvTLuQRJGWY8zFWX/vnRp1f9Yjso3Bm/7AUoKmu6pMEXGZahaRfm3Uu
-         YDBAMDSIvrWHUcyUYpXRCCf1CXQi52wW5y+eqYrfP0mE6tCDYLZsdLQ6sRZWVQmSozog
-         qBfdxZkd5VD3DSRKx5mNXLJpH7kqNqHAQKkoNDbUllEJQo+24HxucSYGZx1bsmkb+MS+
-         3QAdEsbi0CaI4dy7KbwHQAAuMqX9XLwMaYyna/iWLdFc8OsANPyK/R9DoWfx3nGK9g3e
-         oN3RsWxrKA0bfF0bqrHLeJXX/t8hJiMYc6dgh+7az9E/To9DXJygxb+DTC7VEK6wrQZL
-         OHYg==
-X-Gm-Message-State: AOAM530yzSJKHjgrMxaFCUiLnHNPJoqnYDBPSXfrerPWdT5z/LRnvqwy
-        wIttkG5maRCSrqRyE7Y6E8U=
-X-Google-Smtp-Source: ABdhPJxF6OsanYU7MGuhJyTy3ufPHyRz/VHEz71PltEzIDMI5xb5/GcsYkMEQc6B2ut+ufvoU3MTDA==
-X-Received: by 2002:adf:e391:: with SMTP id e17mr7048859wrm.289.1601717566307;
-        Sat, 03 Oct 2020 02:32:46 -0700 (PDT)
-Received: from [192.168.1.143] ([170.253.60.68])
-        by smtp.gmail.com with ESMTPSA id i14sm4778140wml.24.2020.10.03.02.32.43
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sat, 03 Oct 2020 02:32:45 -0700 (PDT)
-Subject: Re: [PATCH] man2: new page describing memfd_secret() system call
-From:   Alejandro Colomar <colomar.6.4.3@gmail.com>
-To:     rppt@kernel.org, mtk.manpages@gmail.com
-Cc:     akpm@linux-foundation.org, arnd@arndb.de, bp@alien8.de,
-        catalin.marinas@arm.com, cl@linux.com, dan.j.williams@intel.com,
-        dave.hansen@linux.intel.com, david@redhat.com,
-        elena.reshetova@intel.com, hpa@zytor.com, idan.yaniv@ibm.com,
-        jejb@linux.ibm.com, kirill@shutemov.name,
-        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-kselftest@vger.kernel.org, linux-man@vger.kernel.org,
-        linux-mm@kvack.org, linux-nvdimm@lists.01.org,
-        linux-riscv@lists.infradead.org, luto@kernel.org,
-        mark.rutland@arm.com, mingo@redhat.com, palmer@dabbelt.com,
-        paul.walmsley@sifive.com, peterz@infradead.org, rppt@linux.ibm.com,
-        shuah@kernel.org, tglx@linutronix.de, tycho@tycho.ws,
-        viro@zeniv.linux.org.uk, will@kernel.org, willy@infradead.org,
-        x86@kernel.org
-References: <20200924133513.1589-1-rppt@kernel.org>
- <efb6d051-2104-af26-bfb0-995f4716feb2@gmail.com>
-Message-ID: <94cf1b3a-e191-a896-a27d-cd7649cb2c59@gmail.com>
-Date:   Sat, 3 Oct 2020 11:32:43 +0200
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
- Thunderbird/68.12.0
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=tDIrc79AJ4xWJONqBKbp/xE/awnhYPlRc+BDwTgV1oc=;
+        b=Sa5u3iQVRB2mfSHvfEZAqF+X36gyLG8KaMEtJZjzBX6/uZlisfmSOFHDtJZnsRF4Vr
+         WCJW6T4RVJ0ZBqAaIjYiKq6Rah/A24sbL1WHejXBHT41bJO0gFemjFnt7z6l4+07QxH8
+         PMGlgabWCP2i0JNypgaLtLruwdz9Yv3tyQTddsDawoSwLXH5EhAucW6Icaka1a7Jy0q/
+         MlRHvxnb9W+o+ckFOOyPQ5OJsr6kJx5Sq2ynF6Zu56QqE/p73aBKhQU1BW/5GVOrioHM
+         1BbS+dxurjJv2Ct/L0oYWNcA5MkHlLxuwSc1SM+6/xNQKqe9IzlKLrNA+9avr3lnN0Yf
+         lfeA==
+X-Gm-Message-State: AOAM5302UFVuUDRIMrJk8J4G/0i1QC0GN+DuXX6rQFlKM7HB/qhu6pQR
+        HHNYYZLDCyzCPhIx36Yrrrl9KMvwDpbTCUfWFz4=
+X-Google-Smtp-Source: ABdhPJxteT0FDEK1JgVnbvql8r8XJH2XORfm6IG1wLS5lo1xiAB76tledd9yo1CIoFnJTjVGOXRD4XuZktlUubQJqIU=
+X-Received: by 2002:a05:6e02:547:: with SMTP id i7mr1325513ils.0.1601725030542;
+ Sat, 03 Oct 2020 04:37:10 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <efb6d051-2104-af26-bfb0-995f4716feb2@gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+References: <cover.1601679791.git.syednwaris@gmail.com> <dcd0580812ebae079e6f5035b990b195ccc6b709.1601679791.git.syednwaris@gmail.com>
+ <CAHp75VcoGAjrPa7rcORsaDXZLb-n+U3hG0k6O+weMVYweSPVxg@mail.gmail.com>
+In-Reply-To: <CAHp75VcoGAjrPa7rcORsaDXZLb-n+U3hG0k6O+weMVYweSPVxg@mail.gmail.com>
+From:   Syed Nayyar Waris <syednwaris@gmail.com>
+Date:   Sat, 3 Oct 2020 17:06:59 +0530
+Message-ID: <CACG_h5pianK4DRL5YeuSuN0gv6Jvcndc=_wLCL4QgmZyR=bOMw@mail.gmail.com>
+Subject: Re: [PATCH v10 1/4] bitops: Introduce the for_each_set_clump macro
+To:     Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc:     Linus Walleij <linus.walleij@linaro.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        William Breathitt Gray <vilhelm.gray@gmail.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Mike and Michael,
+On Sat, Oct 3, 2020 at 2:14 PM Andy Shevchenko
+<andy.shevchenko@gmail.com> wrote:
+>
+> On Sat, Oct 3, 2020 at 2:51 AM Syed Nayyar Waris <syednwaris@gmail.com> wrote:
+>
+> Now I remember...
+> This needs to be revisited.
+>
+> > This macro iterates for each group of bits (clump) with set bits,
+> > within a bitmap memory region. For each iteration, "start" is set to
+> > the bit offset of the found clump, while the respective clump value is
+> > stored to the location pointed by "clump". Additionally, the
+> > bitmap_get_value and bitmap_set_value functions are introduced to
+>
+> Mark functions like func() in the text as well.
+Okay
 
-Ping. :)
+>
+> > respectively get and set a value of n-bits in a bitmap memory region.
+> > The n-bits can have any size less than or equal to BITS_PER_LONG.
+> > Moreover, during setting value of n-bit in bitmap, if a situation arise
+> > that the width of next n-bit is exceeding the word boundary, then it
+> > will divide itself such that some portion of it is stored in that word,
+> > while the remaining portion is stored in the next higher word. Similar
+> > situation occurs while retrieving value of n-bits from bitmap.
+>
+> retrieving the value
+> from a bitmap
+Okay
 
-Thanks,
+>
+> ...
+>
+> > +/**
+> > + * bitmap_get_value - get a value of n-bits from the memory region
+> > + * @map: address to the bitmap memory region
+> > + * @start: bit offset of the n-bit value
+> > + * @nbits: size of value in bits
+> > + *
+> > + * Returns value of nbits located at the @start bit offset within the @map
+> > + * memory region.
+> > + */
+> > +static inline unsigned long bitmap_get_value(const unsigned long *map,
+> > +                                             unsigned long start,
+> > +                                             unsigned long nbits)
+> > +{
+> > +       const size_t index = BIT_WORD(start);
+> > +       const unsigned long offset = start % BITS_PER_LONG;
+> > +       const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
+> > +       const unsigned long space = ceiling - start;
+> > +       unsigned long value_low, value_high;
+> > +
+> > +       if (space >= nbits)
+> > +               return (map[index] >> offset) & GENMASK(nbits - 1, 0);
+>
+> This is UB in GENMASK() when nbits == 0.
 
-Alex
+'nbits' actually specifies the width of clump value. Basically 'nbits'
+denotes how-many-bits wide the clump value is.
+'nbits' having a value of '0' means zero-width-sized clump, meaning
+nothing. 'nbits' can take valid values from '1' to BITS_PER_LONG.
+The minimum value the 'nbits' can have is 1 because the smallest sized
+clump can be 1-bit-wide. It can't be smaller than that.
 
-On 2020-09-24 16:55, Alejandro Colomar wrote:
-> * Mike Rapoport:
->  > +.PP
->  > +.IR Note :
->  > +There is no glibc wrapper for this system call; see NOTES.
-> 
-> You added a reference to NOTES, but then in notes there is nothing about 
-> it.  I guess you wanted to add the following to NOTES (taken from 
-> membarrier.2):
-> 
-> .PP
-> Glibc does not provide a wrapper for this system call; call it using
-> .BR syscall (2).
-> 
-> Cheers,
-> 
-> Alex
+Let me know if I have misunderstood something?
+
+>
+> > +       else {
+> > +               value_low = map[index] & BITMAP_FIRST_WORD_MASK(start);
+> > +               value_high = map[index + 1] & BITMAP_LAST_WORD_MASK(start + nbits);
+> > +               return (value_low >> offset) | (value_high << space);
+> > +       }
+> > +}
+>
+> ...
+>
+> > +/**
+> > + * bitmap_set_value - set n-bit value within a memory region
+> > + * @map: address to the bitmap memory region
+> > + * @value: value of nbits
+> > + * @start: bit offset of the n-bit value
+> > + * @nbits: size of value in bits
+> > + */
+> > +static inline void bitmap_set_value(unsigned long *map,
+> > +                                   unsigned long value,
+> > +                                   unsigned long start, unsigned long nbits)
+> > +{
+> > +       const size_t index = BIT_WORD(start);
+> > +       const unsigned long offset = start % BITS_PER_LONG;
+> > +       const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
+> > +       const unsigned long space = ceiling - start;
+>
+> > +       value &= GENMASK(nbits - 1, 0);
+>
+> This is UB when nbits == 0.
+
+Same as above.
+'nbits' actually specifies the width of clump value. Basically 'nbits'
+denotes how-many-bits wide the clump value is.
+'nbits' having a value of '0' means zero-width-sized clump, meaning
+nothing. 'nbits' can take valid values from '1' to BITS_PER_LONG.
+The minimum value the 'nbits' can have is 1 because the smallest sized
+clump can be 1-bit-wide. It can't be smaller than that.
+
+>
+> > +       if (space >= nbits) {
+> > +               map[index] &= ~(GENMASK(nbits + offset - 1, offset));
+>
+> UB when nbits == 0 and start == 0.
+>
+> > +               map[index] |= value << offset;
+> > +       } else {
+> > +               map[index] &= ~BITMAP_FIRST_WORD_MASK(start);
+> > +               map[index] |= value << offset;
+> > +               map[index + 1] &= ~BITMAP_LAST_WORD_MASK(start + nbits);
+> > +               map[index + 1] |= (value >> space);
+>
+> And another LKP finding was among these lines, but I don't remember the details.
+
+Yes you are right. There was sparse warning reported for this.
+sparse: shift too big (64) for type unsigned long
+The warning was reported in patch [4/4] referring to this patch [1/4].
+
+Later it was clarified by the sparse-check maintainer that this
+warning is to be ignored and no code fix is required.
+
+https://www.mail-archive.com/linux-kernel@vger.kernel.org/msg2202377.html
+
+>
+> > +       }
+> > +}
+> > +
+> >  #endif /* __ASSEMBLY__ */
+> >
+> >  #endif /* __LINUX_BITMAP_H */
+> > diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+> > index 99f2ac30b1d9..36a445e4a7cc 100644
+> > --- a/include/linux/bitops.h
+> > +++ b/include/linux/bitops.h
+> > @@ -62,6 +62,19 @@ extern unsigned long __sw_hweight64(__u64 w);
+> >              (start) < (size); \
+> >              (start) = find_next_clump8(&(clump), (bits), (size), (start) + 8))
+> >
+> > +/**
+> > + * for_each_set_clump - iterate over bitmap for each clump with set bits
+> > + * @start: bit offset to start search and to store the current iteration offset
+> > + * @clump: location to store copy of current 8-bit clump
+> > + * @bits: bitmap address to base the search on
+> > + * @size: bitmap size in number of bits
+> > + * @clump_size: clump size in bits
+> > + */
+> > +#define for_each_set_clump(start, clump, bits, size, clump_size) \
+> > +       for ((start) = find_first_clump(&(clump), (bits), (size), (clump_size)); \
+> > +            (start) < (size); \
+> > +            (start) = find_next_clump(&(clump), (bits), (size), (start) + (clump_size), (clump_size)))
+> > +
+> >  static inline int get_bitmask_order(unsigned int count)
+> >  {
+> >         int order;
+> > diff --git a/lib/find_bit.c b/lib/find_bit.c
+> > index 49f875f1baf7..1341bd39b32a 100644
+> > --- a/lib/find_bit.c
+> > +++ b/lib/find_bit.c
+> > @@ -190,3 +190,17 @@ unsigned long find_next_clump8(unsigned long *clump, const unsigned long *addr,
+> >         return offset;
+> >  }
+> >  EXPORT_SYMBOL(find_next_clump8);
+> > +
+> > +unsigned long find_next_clump(unsigned long *clump, const unsigned long *addr,
+> > +                              unsigned long size, unsigned long offset,
+> > +                              unsigned long clump_size)
+> > +{
+> > +       offset = find_next_bit(addr, size, offset);
+> > +       if (offset == size)
+> > +               return size;
+> > +
+> > +       offset = rounddown(offset, clump_size);
+> > +       *clump = bitmap_get_value(addr, offset, clump_size);
+> > +       return offset;
+> > +}
+> > +EXPORT_SYMBOL(find_next_clump);
+> > --
+> > 2.26.2
+> >
+>
+>
+> --
+> With Best Regards,
+> Andy Shevchenko
