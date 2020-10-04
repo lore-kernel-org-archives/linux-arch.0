@@ -2,164 +2,122 @@ Return-Path: <SRS0=BF3X=DL=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.3 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.3 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 135E7C4363C
-	for <linux-arch@archiver.kernel.org>; Sun,  4 Oct 2020 23:31:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B7C96C4363C
+	for <linux-arch@archiver.kernel.org>; Sun,  4 Oct 2020 23:32:29 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B373C206B6
-	for <linux-arch@archiver.kernel.org>; Sun,  4 Oct 2020 23:31:48 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 76CB4206C3
+	for <linux-arch@archiver.kernel.org>; Sun,  4 Oct 2020 23:32:29 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1601854308;
-	bh=Fr3NHWbNgrp1rVoCUSdjSwL4pUPYFn3xz34Odri2SUw=;
+	s=default; t=1601854349;
+	bh=YzpcxYAFA+eJp0cl8hwcxcJi+D+5TLeTPsAXUn92KwY=;
 	h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:List-ID:
 	 From;
-	b=Qwy5iuJJSl8tRX+b4Y/zDPmMfBAL3f/PCemmTFlURYarKTOhrhdkwBWtQpUgv5L8D
-	 UGHnOM0yQDV/6uhcKAJ67qRARv5h8/XoXOJcledYsO5DLmaLWX60zvWPqrZdyFH0XS
-	 by8rQpp3bl4pg0ZwUJ6QRgrKVWLlw3rWTS4lfdNA=
+	b=d29tu497D5nF53Dx2AaKA6BD6kpb5BbdD8wBPEvbV1MME0vqP3L5heTGVveOmSaDY
+	 78TqblRl+7QNV7BIknsORdfuywFJb7xCQ93js8sZuSPqF8V72O2iAMb8Bqi+3tTDW6
+	 GUjiGpsBqXstvRxFcAUdyfl7P2SdHBiKaNsjfC1U=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725838AbgJDXbr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 4 Oct 2020 19:31:47 -0400
-Received: from mail.kernel.org ([198.145.29.99]:36514 "EHLO mail.kernel.org"
+        id S1725860AbgJDXc3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 4 Oct 2020 19:32:29 -0400
+Received: from mail.kernel.org ([198.145.29.99]:36970 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725836AbgJDXbr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 4 Oct 2020 19:31:47 -0400
+        id S1725836AbgJDXc2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 4 Oct 2020 19:32:28 -0400
 Received: from paulmck-ThinkPad-P72.home (50-39-104-11.bvtn.or.frontiernet.net [50.39.104.11])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id E48B320678;
-        Sun,  4 Oct 2020 23:31:46 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 0B2B2206B6;
+        Sun,  4 Oct 2020 23:32:28 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1601854306;
-        bh=Fr3NHWbNgrp1rVoCUSdjSwL4pUPYFn3xz34Odri2SUw=;
+        s=default; t=1601854348;
+        bh=YzpcxYAFA+eJp0cl8hwcxcJi+D+5TLeTPsAXUn92KwY=;
         h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:From;
-        b=2GBsAjMshWT992YJKYIwkPi4eQS67jBp64NpzPu68bibwF420bswIYIW3O4E9uCHW
-         1j7i10YKYcegDbumj7VVxtVWfRhiW8QU5E7qKd6SKI+jnx7gRZlxoFKisBeAlSN8Po
-         plMfuxdog7xdFZ2oOvY6updQ5i1YU4UqDyvgTJdw=
+        b=t2teay/JnQ5b19qQc0wEnqJMTZHhT/onkMM/QrCtYWDQE/9PoM6eOIpF5vAwMUlRd
+         8Qi+lDP65X0DEbOm/D1CH8C7ZIeqIH85VLnsmwYPI5pHl1y2dETJdCnqun4WwvDr19
+         kL8/uAyH2U5PBJmU9hSez81fpWJHtTviQ5/GK33M=
 Received: by paulmck-ThinkPad-P72.home (Postfix, from userid 1000)
-        id C413A35225F2; Sun,  4 Oct 2020 16:31:46 -0700 (PDT)
-Date:   Sun, 4 Oct 2020 16:31:46 -0700
+        id C614035225F2; Sun,  4 Oct 2020 16:32:27 -0700 (PDT)
+Date:   Sun, 4 Oct 2020 16:32:27 -0700
 From:   "Paul E. McKenney" <paulmck@kernel.org>
-To:     Alan Stern <stern@rowland.harvard.edu>
-Cc:     parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org,
-        boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com,
-        j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com,
-        dlustig@nvidia.com, joel@joelfernandes.org,
-        viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org
+To:     Jon Masters <jcm@jonmasters.org>
+Cc:     Alan Stern <stern@rowland.harvard.edu>, parri.andrea@gmail.com,
+        will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com,
+        npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk,
+        luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com,
+        joel@joelfernandes.org, viro@zeniv.linux.org.uk,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Subject: Re: Litmus test for question from Al Viro
-Message-ID: <20201004233146.GP29330@paulmck-ThinkPad-P72>
+Message-ID: <20201004233227.GQ29330@paulmck-ThinkPad-P72>
 Reply-To: paulmck@kernel.org
 References: <20201001045116.GA5014@paulmck-ThinkPad-P72>
  <20201001161529.GA251468@rowland.harvard.edu>
- <20201001213048.GF29330@paulmck-ThinkPad-P72>
- <20201003132212.GB318272@rowland.harvard.edu>
+ <17935342-e927-284c-9a2b-ca75dd2398ad@jonmasters.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20201003132212.GB318272@rowland.harvard.edu>
+In-Reply-To: <17935342-e927-284c-9a2b-ca75dd2398ad@jonmasters.org>
 User-Agent: Mutt/1.9.4 (2018-02-28)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sat, Oct 03, 2020 at 09:22:12AM -0400, Alan Stern wrote:
-> To expand on my statement about the LKMM's weakness regarding control 
-> constructs, here is a litmus test to illustrate the issue.  You might 
-> want to add this to one of the archives.
+On Fri, Oct 02, 2020 at 10:35:45PM -0400, Jon Masters wrote:
+> On 10/1/20 12:15 PM, Alan Stern wrote:
+> > On Wed, Sep 30, 2020 at 09:51:16PM -0700, Paul E. McKenney wrote:
+> > > Hello!
+> > > 
+> > > Al Viro posted the following query:
+> > > 
+> > > ------------------------------------------------------------------------
+> > > 
+> > > <viro> fun question regarding barriers, if you have time for that
+> > > <viro>         V->A = V->B = 1;
+> > > <viro>
+> > > <viro> CPU1:
+> > > <viro>         to_free = NULL
+> > > <viro>         spin_lock(&LOCK)
+> > > <viro>         if (!smp_load_acquire(&V->B))
+> > > <viro>                 to_free = V
+> > > <viro>         V->A = 0
+> > > <viro>         spin_unlock(&LOCK)
+> > > <viro>         kfree(to_free)
+> > > <viro>
+> > > <viro> CPU2:
+> > > <viro>         to_free = V;
+> > > <viro>         if (READ_ONCE(V->A)) {
+> > > <viro>                 spin_lock(&LOCK)
+> > > <viro>                 if (V->A)
+> > > <viro>                         to_free = NULL
+> > > <viro>                 smp_store_release(&V->B, 0);
+> > > <viro>                 spin_unlock(&LOCK)
+> > > <viro>         }
+> > > <viro>         kfree(to_free);
+> > > <viro> 1) is it guaranteed that V will be freed exactly once and that
+> > > 	  no accesses to *V will happen after freeing it?
+> > > <viro> 2) do we need smp_store_release() there?  I.e. will anything
+> > > 	  break if it's replaced with plain V->B = 0?
+> > 
+> > Here are my answers to Al's questions:
+> > 
+> > 1) It is guaranteed that V will be freed exactly once.  It is not
+> > guaranteed that no accesses to *V will occur after it is freed, because
+> > the test contains a data race.  CPU1's plain "V->A = 0" write races with
+> > CPU2's READ_ONCE; if the plain write were replaced with
+> > "WRITE_ONCE(V->A, 0)" then the guarantee would hold.  Equally well,
+> > CPU1's smp_load_acquire could be replaced with a plain read while the
+> > plain write is replaced with smp_store_release.
+> > 
+> > 2) The smp_store_release in CPU2 is not needed.  Replacing it with a
+> > plain V->B = 0 will not break anything.
 > 
-> Alan
-> 
-> C crypto-control-data
-> (*
->  * LB plus crypto-control-data plus data
->  *
->  * Expected result: allowed
->  *
->  * This is an example of OOTA and we would like it to be forbidden.
->  * The WRITE_ONCE in P0 is both data-dependent and (at the hardware level)
->  * control-dependent on the preceding READ_ONCE.  But the dependencies are
->  * hidden by the form of the conditional control construct, hence the 
->  * name "crypto-control-data".  The memory model doesn't recognize them.
->  *)
-> 
-> {}
-> 
-> P0(int *x, int *y)
-> {
-> 	int r1;
-> 
-> 	r1 = 1;
-> 	if (READ_ONCE(*x) == 0)
-> 		r1 = 0;
-> 	WRITE_ONCE(*y, r1);
-> }
-> 
-> P1(int *x, int *y)
-> {
-> 	WRITE_ONCE(*x, READ_ONCE(*y));
-> }
-> 
-> exists (0:r1=1)
+> This was my interpretation also. I made the mistake of reading this right
+> before trying to go to bed the other night and ended up tweeting at Paul
+> that I'd regret it if he gave me scary dreams. Thought about it and read
+> your write up and it is still exactly how I see it.
 
-Nice simple example!  How about like this?
+Should I have added a "read at your own risk" disclaimer?  ;-)
 
 							Thanx, Paul
-
-------------------------------------------------------------------------
-
-commit c964f404eabe4d8ce294e59dda713d8c19d340cf
-Author: Alan Stern <stern@rowland.harvard.edu>
-Date:   Sun Oct 4 16:27:03 2020 -0700
-
-    manual/kernel: Add a litmus test with a hidden dependency
-    
-    This commit adds a litmus test that has a data dependency that can be
-    hidden by control flow.  In this test, both the taken and the not-taken
-    branches of an "if" statement must be accounted for in order to properly
-    analyze the litmus test.  But herd7 looks only at individual executions
-    in isolation, so fails to see the dependency.
-    
-    Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-    Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-
-diff --git a/manual/kernel/crypto-control-data.litmus b/manual/kernel/crypto-control-data.litmus
-new file mode 100644
-index 0000000..6baecf9
---- /dev/null
-+++ b/manual/kernel/crypto-control-data.litmus
-@@ -0,0 +1,31 @@
-+C crypto-control-data
-+(*
-+ * LB plus crypto-control-data plus data
-+ *
-+ * Result: Sometimes
-+ *
-+ * This is an example of OOTA and we would like it to be forbidden.
-+ * The WRITE_ONCE in P0 is both data-dependent and (at the hardware level)
-+ * control-dependent on the preceding READ_ONCE.  But the dependencies are
-+ * hidden by the form of the conditional control construct, hence the 
-+ * name "crypto-control-data".  The memory model doesn't recognize them.
-+ *)
-+
-+{}
-+
-+P0(int *x, int *y)
-+{
-+	int r1;
-+
-+	r1 = 1;
-+	if (READ_ONCE(*x) == 0)
-+		r1 = 0;
-+	WRITE_ONCE(*y, r1);
-+}
-+
-+P1(int *x, int *y)
-+{
-+	WRITE_ONCE(*x, READ_ONCE(*y));
-+}
-+
-+exists (0:r1=1)
