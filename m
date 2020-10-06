@@ -5,70 +5,70 @@ X-Spam-Level:
 X-Spam-Status: No, score=-12.6 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
-	version=3.4.0
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0B1F9C4727D
-	for <linux-arch@archiver.kernel.org>; Tue,  6 Oct 2020 09:45:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4EF38C41604
+	for <linux-arch@archiver.kernel.org>; Tue,  6 Oct 2020 09:46:16 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A3C9D20870
-	for <linux-arch@archiver.kernel.org>; Tue,  6 Oct 2020 09:45:57 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 00887206F7
+	for <linux-arch@archiver.kernel.org>; Tue,  6 Oct 2020 09:46:15 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="eNboFgST"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="OO87hkx0"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725891AbgJFJp5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 6 Oct 2020 05:45:57 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48514 "EHLO
+        id S1725960AbgJFJqP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 6 Oct 2020 05:46:15 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48568 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725960AbgJFJp4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Oct 2020 05:45:56 -0400
-Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6DEECC061755
-        for <linux-arch@vger.kernel.org>; Tue,  6 Oct 2020 02:45:55 -0700 (PDT)
-Received: by mail-pg1-x542.google.com with SMTP id j33so984645pgj.5
-        for <linux-arch@vger.kernel.org>; Tue, 06 Oct 2020 02:45:55 -0700 (PDT)
+        with ESMTP id S1725947AbgJFJqP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Oct 2020 05:46:15 -0400
+Received: from mail-pl1-x642.google.com (mail-pl1-x642.google.com [IPv6:2607:f8b0:4864:20::642])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7203BC061755
+        for <linux-arch@vger.kernel.org>; Tue,  6 Oct 2020 02:46:15 -0700 (PDT)
+Received: by mail-pl1-x642.google.com with SMTP id y20so952474pll.12
+        for <linux-arch@vger.kernel.org>; Tue, 06 Oct 2020 02:46:15 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=jYKWSZpS/C8VsskkJfHhWWpBDQWCJdoW8/7KByaLGe0=;
-        b=eNboFgSTP3UvdJQ0PU4I+RtCUoGN8lo0Y7+jlYNZHUOuWviC+ApRexiwsw1iHSnG7N
-         xI4hooYuMh74wcrOWECWuNqBm+NnUfytTY/QcAYonQtcI4y8pztotHl0cJCdYv8p9P/O
-         0cNY1Hqs0BeaRvkJSv8UIhyGkeVUmJtmwnlHzgrcVXkAbsqXcmy2mkYCjL+kY6FQalSF
-         yBh/OFyJ2eeow3aGfN0sLnXAS9R/dk2WUkoSJSLbDTWwYkqo5cQGrUyOBrP9Ie+ePPno
-         wWEIk/k9wbdFws4ARiliCYBy+fb1iKbPXyVwri17mNad3xh/Vm70T/e8XlYUniBaw1Lz
-         f15w==
+        bh=rH4gei9MPvx6IQYMRAhuOETSp1Podm8Z71dGBNsbxHU=;
+        b=OO87hkx0Fkvh8sCQ2mngO/0j2s+yoaZkbPem8w9Dve0mw/rhD19f888Hh99Fe3IZTw
+         5EGq3n3a0S/9d6N7o+h9Bgf4MqHDAp0Nz1I1E/8y3rpAJvqUN8Pgc3pXMYarbQ0no7Hl
+         HHWbB0yQsj8VNHsBZvTfLbA5iFP7m/2xftV+G7JIgUfbR8n+BIblt2/OlU2UnZhQHG0B
+         Jk9K2wTt25mNK790O8xnls3sQ/IXm3Us7ul6s9YIUlqxU6JmoTzrxjwqOojFXY8+my+f
+         ADC3pVtzXEAjetVUMYff3xQRdiN1+0FVotl2ShQfDInubwglrhwMP95Ap9J7Py2E9aIr
+         6pcA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=jYKWSZpS/C8VsskkJfHhWWpBDQWCJdoW8/7KByaLGe0=;
-        b=ciLV9dm1EQ32FsdYL4/bss984Vj44qHFDER/UG9z2U5S0NpRWsOXzcLx1PrtT9Ed6J
-         kT7CDMC5cEsI+1artRyCnjJ54WdE9QPUTC1i0tEm8qTJVfFkt3zC4KfVQzFWVamyvnLx
-         hSsMe/HUIXRGpjJ9i1rIls4epNX3vRmUDIIZQkt1iS6KYzyQCw+8qdMVoDpH0ZBKi5SS
-         0RlnWOXNqMRvF/m7QGdyDbxLuLhRe/byPfx6V2lyVzlia3kFRxN5tgLZrrZe8q2nkhPX
-         hYpWHUenF7zTtIB19xX1se8doGrTHrW/wjY7hEHfdpCgSg+RvM6P7R9U7cuCB6PrSVBs
-         3tzQ==
-X-Gm-Message-State: AOAM532uhvrLOf3a1CwnOm3zoQVfzfFKJq2YOIqKiZDaw3BriSM94Imi
-        6fdrrqEJI9RGr7N9DelK9lk=
-X-Google-Smtp-Source: ABdhPJwgJDUHzp6G52TrUed9heeLd9tS+7g4aI21gekOt/ohSf+qb3CgwumkeixOWqCVCfBWeJL/+w==
-X-Received: by 2002:a63:fa45:: with SMTP id g5mr3284459pgk.448.1601977554843;
-        Tue, 06 Oct 2020 02:45:54 -0700 (PDT)
+        bh=rH4gei9MPvx6IQYMRAhuOETSp1Podm8Z71dGBNsbxHU=;
+        b=Q+eYojtRbdIXpaTHFJqF1vU1qMS12JNpE7u/lxoxjwtYRyGcCUXASnBJx7pgqZt2Sj
+         WehcdZEdcl2kNgvujzSGb3tnmZ0ftCiiVUBEADUQb0MQzqi13I5l5Te9DyT00oljy+qj
+         CUTGmCYHiyp6hxq1gidRA8UYq0gN4e10D9RqCANPHPExmDyRsFqqggERFQfukk0B7AR1
+         IYku19tmMSaFIHsuPECNk4yknyU8Rgglz02trSWcAq3SOwilMdaELmBRmX0FyiathFFW
+         QAxLwywUcRKTHNAoIABwvlBDbwmWXr/SxQYCYQiO9WYr0DHXSfD/uIRQRwg5VhZkqW2H
+         vXgw==
+X-Gm-Message-State: AOAM531xCZ5EXBw1G/fp09m08hoF5B7xYIqsy06TtTjH8X7N1ikHaQVO
+        2+yAfUZpRFNq6WdVTNQNCyE=
+X-Google-Smtp-Source: ABdhPJx8E2x1lx0f38YgFzshBcQjfxbFVLPcUHE/c8D9fr3FNLDNCApc3QVfIFJR8gwudfT5ctdnMQ==
+X-Received: by 2002:a17:90a:d57:: with SMTP id 23mr3470735pju.232.1601977574887;
+        Tue, 06 Oct 2020 02:46:14 -0700 (PDT)
 Received: from earth-mac.local (219x123x138x129.ap219.ftth.ucom.ne.jp. [219.123.138.129])
-        by smtp.gmail.com with ESMTPSA id 15sm2488064pgt.24.2020.10.06.02.45.53
+        by smtp.gmail.com with ESMTPSA id j12sm2227595pjd.36.2020.10.06.02.46.13
         (version=TLS1_2 cipher=ECDHE-ECDSA-CHACHA20-POLY1305 bits=256/256);
-        Tue, 06 Oct 2020 02:45:54 -0700 (PDT)
+        Tue, 06 Oct 2020 02:46:14 -0700 (PDT)
 Received: by earth-mac.local (Postfix, from userid 501)
-        id AD97120390F4FC; Tue,  6 Oct 2020 18:45:51 +0900 (JST)
+        id 1DF1420390F50C; Tue,  6 Oct 2020 18:46:12 +0900 (JST)
 From:   Hajime Tazaki <thehajime@gmail.com>
 To:     linux-um@lists.infradead.org, jdike@addtoit.com, richard@nod.at,
         anton.ivanov@cambridgegreys.com
 Cc:     tavi.purdila@gmail.com, retrage01@gmail.com,
         linux-kernel-library@freelists.org, linux-arch@vger.kernel.org,
         Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v7 14/21] um: nommu: initialization and cleanup
-Date:   Tue,  6 Oct 2020 18:44:23 +0900
-Message-Id: <07a6f9b18e47445fd2e57578695cd1f1af644854.1601960644.git.thehajime@gmail.com>
+Subject: [RFC v7 16/21] um: nommu: plug in the build system
+Date:   Tue,  6 Oct 2020 18:44:25 +0900
+Message-Id: <714783a8d1d6aace7d0e315fc12ffc60b5867ada.1601960644.git.thehajime@gmail.com>
 X-Mailer: git-send-email 2.20.1 (Apple Git-117)
 In-Reply-To: <cover.1601960644.git.thehajime@gmail.com>
 References: <cover.1601960644.git.thehajime@gmail.com>
@@ -78,250 +78,194 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add the lkl_start_kernel and lkl_sys_halt APIs that start and
-respectively stops the Linux kernel.
+Basic Makefiles for building library of nommu mode. Add a new architecture
+specific target for installing the resulting library files and headers.
 
-lkl_start_kernel creates a separate threads that will run the initial
-and idle kernel thread. It waits for the kernel to complete
-initialization before returning, to avoid races with system calls
-issues by the host application.
+To make nommu binaries build, UML introduced an additional option, UMMODE
+variable, to switch the output file of build: kernel (default), or
+library (nommu).  Those modes are not able to be ON at the same time.
 
-During the setup phase, we create "/init" in initial ramfs root
-filesystem to avoid mounting the "real" rootfs since ramfs is good
-enough for now.
+To build on library mode, users do the following:
 
-lkl_sys_halt will shutdown the kernel, terminate all threads and
-free all host resources used by the kernel before returning.
+  make defconfig ARCH=um UMMODE=library
+  make ARCH=um UMMODE=library
 
-Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
 Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
+Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
 ---
- arch/um/nommu/include/uapi/asm/host_ops.h |  14 ++
- arch/um/nommu/um/setup.c                  | 162 ++++++++++++++++++++++
- tools/um/uml/process.c                    |   2 +
- 3 files changed, 178 insertions(+)
- create mode 100644 arch/um/nommu/um/setup.c
+ arch/um/Kconfig           | 17 ++++++++++++++---
+ arch/um/Makefile          | 12 +++++++++++-
+ arch/um/kernel/Makefile   | 14 +++++++++-----
+ arch/um/nommu/um/Kconfig  | 37 +++++++++++++++++++++++++++++++++++++
+ arch/um/nommu/um/Makefile |  4 ++++
+ 5 files changed, 75 insertions(+), 9 deletions(-)
+ create mode 100644 arch/um/nommu/um/Kconfig
+ create mode 100644 arch/um/nommu/um/Makefile
 
-diff --git a/arch/um/nommu/include/uapi/asm/host_ops.h b/arch/um/nommu/include/uapi/asm/host_ops.h
-index 133877c857a1..0811494c080c 100644
---- a/arch/um/nommu/include/uapi/asm/host_ops.h
-+++ b/arch/um/nommu/include/uapi/asm/host_ops.h
-@@ -16,6 +16,7 @@ struct lkl_jmp_buf {
-  * These operations must be provided by a host library or by the application
-  * itself.
-  * @print - optional operation that receives console messages
-+ * @panic - called during a kernel panic
-  *
-  * @sem_alloc - allocate a host semaphore an initialize it to count
-  * @sem_free - free a host semaphore
-@@ -65,6 +66,7 @@ struct lkl_jmp_buf {
-  */
- struct lkl_host_operations {
- 	void (*print)(const char *str, int len);
-+	void (*panic)(void);
+diff --git a/arch/um/Kconfig b/arch/um/Kconfig
+index e41d31d0d875..df7daceb095c 100644
+--- a/arch/um/Kconfig
++++ b/arch/um/Kconfig
+@@ -22,9 +22,20 @@ config UML
+ 	select TTY # Needed for line.c
+ 	select MODULE_REL_CRCS if MODVERSIONS
  
- 	struct lkl_sem *(*sem_alloc)(int count);
- 	void (*sem_free)(struct lkl_sem *sem);
-@@ -96,6 +98,18 @@ struct lkl_host_operations {
- 	void (*mem_free)(void *mem);
- };
- 
-+/**
-+ * lkl_start_kernel - registers the host operations and starts the kernel
-+ *
-+ * The function returns only after the kernel is shutdown with lkl_sys_halt.
-+ *
-+ * @lkl_ops - pointer to host operations
-+ * @cmd_line - format for command line string that is going to be used to
-+ * generate the Linux kernel command line
-+ */
-+int lkl_start_kernel(struct lkl_host_operations *ops,
-+		     const char *fmt, ...);
++config UMMODE_LIB
++	bool "UML mode: library mode"
++	default y if "$(UMMODE)" = "library"
++	help
++	 This mode switches a mode to build a library of UML (Linux
++	 Kernel Library/LKL).  This switch is exclusive to "kernel mode"
++	 of UML, which is traditional mode of UML.
 +
- void lkl_bug(const char *fmt, ...);
++	 For more detail about LKL, see
++	 <file:Documentation/virt/uml/lkl.txt>.
++
+ config MMU
+ 	bool
+-	default y
++	default y if !UMMODE_LIB
  
- #endif
-diff --git a/arch/um/nommu/um/setup.c b/arch/um/nommu/um/setup.c
+ config NO_IOMEM
+ 	def_bool y
+@@ -45,12 +56,12 @@ config LOCKDEP_SUPPORT
+ 
+ config STACKTRACE_SUPPORT
+ 	bool
+-	default y
++	default y if MMU
+ 	select STACKTRACE
+ 
+ config GENERIC_CALIBRATE_DELAY
+ 	bool
+-	default y
++	default y if MMU
+ 
+ config HZ
+ 	int
+diff --git a/arch/um/Makefile b/arch/um/Makefile
+index 8be7bc479442..ee35bd030bf8 100644
+--- a/arch/um/Makefile
++++ b/arch/um/Makefile
+@@ -17,6 +17,10 @@ else
+         KBUILD_DEFCONFIG := $(SUBARCH)_defconfig
+ endif
+ 
++ifeq ($(UMMODE),library)
++  SUBARCH := um/nommu
++endif
++
+ ARCH_DIR := arch/um
+ OS := $(shell uname -s)
+ # We require bash because the vmlinux link and loader script cpp use bash
+@@ -97,8 +101,14 @@ KBUILD_CFLAGS += $(KERNEL_DEFINES)
+ LDFLAGS_vmlinux += -r
+ 
+ INSTALL_PATH=$(objtree)/tools/um
++ifeq ($(UMMODE),library)
++all: install
++	$(Q)$(MAKE) -C $(srctree)/tools/um
++install: linux.o um_headers_install
++else
+ all: linux
+ install: linux.o
++endif
+ 	@echo "  INSTALL	$(INSTALL_PATH)/lib/$<"
+ 	@mkdir -p $(INSTALL_PATH)/lib/
+ 	@cp $< $(INSTALL_PATH)/lib/
+@@ -111,7 +121,7 @@ linux: linux.o
+ 
+ linux.o: vmlinux
+ 	@echo '  LINK	$@'
+-	$(Q)$(OBJCOPY) -R .eh_frame $< $@
++	$(Q)$(OBJCOPY) -R .eh_frame -L sem_init -L sem_post -L sem_wait -L sem_destroy $< $@
+ 	$(Q)mkdir -p $(objtree)/tools/um/lib
+ 
+ define archhelp
+diff --git a/arch/um/kernel/Makefile b/arch/um/kernel/Makefile
+index 9b63831a69e1..01605ed439cb 100644
+--- a/arch/um/kernel/Makefile
++++ b/arch/um/kernel/Makefile
+@@ -14,17 +14,21 @@ CPPFLAGS_vmlinux.lds := -DSTART=$(LDS_START)		\
+ 			$(LDS_EXTRA)
+ extra-y := vmlinux.lds
+ 
+-obj-y = config.o exec.o exitcode.o irq.o ksyms.o mem.o \
+-	physmem.o process.o ptrace.o reboot.o sigio.o \
+-	signal.o syscall.o sysrq.o time.o tlb.o trap.o \
+-	um_arch.o umid.o maccess.o kmsg_dump.o skas/
++obj-y = config.o exitcode.o irq.o ksyms.o \
++	process.o reboot.o sigio.o \
++	signal.o syscall.o time.o \
++	um_arch.o umid.o maccess.o kmsg_dump.o
++
++ifdef CONFIG_MMU
++obj-y += exec.o mem.o physmem.o ptrace.o sysrq.o tlb.o trap.o skas/
++endif
+ 
+ obj-$(CONFIG_BLK_DEV_INITRD) += initrd.o
+ obj-$(CONFIG_GPROF)	+= gprof_syms.o
+ obj-$(CONFIG_GCOV)	+= gmon_syms.o
+ obj-$(CONFIG_EARLY_PRINTK) += early_printk.o
+ obj-$(CONFIG_STACKTRACE) += stacktrace.o
+-obj-y += user_syms.o
++obj-$(CONFIG_MMU) += user_syms.o
+ 
+ USER_OBJS := config.o
+ 
+diff --git a/arch/um/nommu/um/Kconfig b/arch/um/nommu/um/Kconfig
 new file mode 100644
-index 000000000000..eaa74d771f73
+index 000000000000..20b3eaccb6f0
 --- /dev/null
-+++ b/arch/um/nommu/um/setup.c
-@@ -0,0 +1,162 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#include <linux/binfmts.h>
-+#include <linux/init.h>
-+#include <linux/init_task.h>
-+#include <linux/personality.h>
-+#include <linux/reboot.h>
-+#include <linux/fs.h>
-+#include <linux/start_kernel.h>
-+#include <linux/syscalls.h>
-+#include <linux/tick.h>
-+#include <linux/kernel.h>
-+#include <linux/console.h>
-+#include <asm/host_ops.h>
-+#include <asm/irq.h>
-+#include <asm/unistd.h>
-+#include <asm/syscalls.h>
-+#include <asm/cpu.h>
-+#include <os.h>
-+#include <as-layout.h>
++++ b/arch/um/nommu/um/Kconfig
+@@ -0,0 +1,37 @@
++config UML_NOMMU
++	def_bool y
++	depends on !SMP && !MMU
++	select UACCESS_MEMCPY
++	select ARCH_THREAD_STACK_ALLOCATOR
++	select ARCH_HAS_SYSCALL_WRAPPER
 +
++config 64BIT
++	bool
++	default y
 +
-+static void *init_sem;
-+static int is_running;
++config GENERIC_CSUM
++	def_bool y
 +
++config GENERIC_ATOMIC64
++	bool
++	default y if !64BIT
 +
-+struct lkl_host_operations *lkl_ops;
++config SECCOMP
++	bool
++	default n
 +
-+long lkl_panic_blink(int state)
-+{
-+	lkl_ops->panic();
-+	return 0;
-+}
++config GENERIC_HWEIGHT
++	def_bool y
 +
-+static void __init *lkl_run_kernel(void *arg)
-+{
++config GENERIC_CALIBRATE_DELAY
++	bool
++	default n
 +
-+	panic_blink = lkl_panic_blink;
++config STACKTRACE_SUPPORT
++	bool
++	default n
 +
-+	threads_init();
-+	lkl_cpu_get();
-+	start_kernel();
++# XXX: need this to work well with tap13.py
++config PRINTK_TIME
++	bool
++	default y
+diff --git a/arch/um/nommu/um/Makefile b/arch/um/nommu/um/Makefile
+new file mode 100644
+index 000000000000..b580e0fe97b5
+--- /dev/null
++++ b/arch/um/nommu/um/Makefile
+@@ -0,0 +1,4 @@
++include/generated/user_constants.h: $(srctree)/arch/um/nommu/um/user_constants.h
++	$(Q)cp -f $^ $@
 +
-+	return NULL;
-+}
-+
-+int __init lkl_start_kernel(struct lkl_host_operations *ops,
-+			    const char *fmt, ...)
-+{
-+	int ret;
-+
-+	lkl_ops = ops;
-+
-+	init_sem = lkl_ops->sem_alloc(0);
-+	if (!init_sem)
-+		return -ENOMEM;
-+
-+	ret = lkl_cpu_init();
-+	if (ret)
-+		goto out_free_init_sem;
-+
-+	ret = lkl_ops->thread_create(lkl_run_kernel, NULL);
-+	if (!ret) {
-+		ret = -ENOMEM;
-+		goto out_free_init_sem;
-+	}
-+
-+	lkl_ops->sem_down(init_sem);
-+	lkl_ops->sem_free(init_sem);
-+	current_thread_info()->task->thread.arch.tid = lkl_ops->thread_self();
-+	lkl_cpu_change_owner(current_thread_info()->task->thread.arch.tid);
-+
-+	lkl_cpu_put();
-+	is_running = 1;
-+
-+	return 0;
-+
-+out_free_init_sem:
-+	lkl_ops->sem_free(init_sem);
-+
-+	return ret;
-+}
-+
-+int lkl_is_running(void)
-+{
-+	return is_running;
-+}
-+
-+
-+long lkl_sys_halt(void)
-+{
-+	long err;
-+	long params[6] = {LINUX_REBOOT_MAGIC1,
-+		LINUX_REBOOT_MAGIC2, LINUX_REBOOT_CMD_RESTART, };
-+
-+	err = lkl_syscall(__NR_reboot, params);
-+	if (err < 0)
-+		return err;
-+
-+	is_running = false;
-+
-+	lkl_cpu_wait_shutdown();
-+
-+	syscalls_cleanup();
-+	threads_cleanup();
-+	/* Shutdown the clockevents source. */
-+	tick_suspend_local();
-+	free_mem();
-+	lkl_ops->thread_join(current_thread_info()->task->thread.arch.tid);
-+
-+	return 0;
-+}
-+
-+
-+static int lkl_run_init(struct linux_binprm *bprm);
-+
-+static struct linux_binfmt lkl_run_init_binfmt = {
-+	.module		= THIS_MODULE,
-+	.load_binary	= lkl_run_init,
-+};
-+
-+static int lkl_run_init(struct linux_binprm *bprm)
-+{
-+	int ret;
-+
-+	if (strcmp("/init", bprm->filename) != 0)
-+		return -EINVAL;
-+
-+	ret = begin_new_exec(bprm);
-+	if (ret)
-+		return ret;
-+	set_personality(PER_LINUX);
-+	setup_new_exec(bprm);
-+
-+	set_binfmt(&lkl_run_init_binfmt);
-+
-+	init_pid_ns.child_reaper = 0;
-+
-+	syscalls_init();
-+
-+	lkl_ops->sem_up(init_sem);
-+	lkl_ops->thread_exit();
-+
-+	return 0;
-+}
-+
-+
-+/* skip mounting the "real" rootfs. ramfs is good enough. */
-+static int __init fs_setup(void)
-+{
-+	int fd, flags;
-+
-+	if (force_o_largefile())
-+		flags |= O_LARGEFILE;
-+	fd = do_sys_open(AT_FDCWD, "/init", O_CREAT | flags, 0700);
-+	WARN_ON(fd < 0);
-+	ksys_close(fd);
-+
-+	register_binfmt(&lkl_run_init_binfmt);
-+
-+	return 0;
-+}
-+late_initcall(fs_setup);
-diff --git a/tools/um/uml/process.c b/tools/um/uml/process.c
-index e52dd37ddadc..c39d914e80ac 100644
---- a/tools/um/uml/process.c
-+++ b/tools/um/uml/process.c
-@@ -114,6 +114,8 @@ void os_kill_process(int pid, int reap_child)
- 
- void os_kill_ptraced_process(int pid, int reap_child)
- {
-+	if (pid == 0)
-+		return;
- 	kill(pid, SIGKILL);
- 	ptrace(PTRACE_KILL, pid);
- 	ptrace(PTRACE_CONT, pid);
++obj-y = bootmem.o console.o cpu.o delay.o setup.o syscalls.o threads.o unimplemented.o
 -- 
 2.21.0 (Apple Git-122.2)
 
