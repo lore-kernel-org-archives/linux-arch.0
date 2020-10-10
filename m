@@ -2,83 +2,47 @@ Return-Path: <SRS0=b7yF=DR=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-4.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3B0F1C433E7
-	for <linux-arch@archiver.kernel.org>; Sat, 10 Oct 2020 01:21:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 45B11C433DF
+	for <linux-arch@archiver.kernel.org>; Sat, 10 Oct 2020 01:35:40 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id F0BD72222F
-	for <linux-arch@archiver.kernel.org>; Sat, 10 Oct 2020 01:21:30 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id EA9EC21D6C
+	for <linux-arch@archiver.kernel.org>; Sat, 10 Oct 2020 01:35:39 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1602292891;
-	bh=9JlcYB0wvrXFh4a+RwcnSbt3/NQEkRgfgPAgIRSjtXg=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc:List-ID:From;
-	b=u6HDpJGzlP7dNtndmQaZzNbFGpOvGmr4ANIsYVzdW/bKKX4T+x6bbf3LXMMrDA6XK
-	 6N/9q00LtnauFy2NcLvKAPn4tYtxplHoJWqetO1oXK5ItQZ6BtMiizHQ9fy3BIAM/I
-	 +5TIlhbohPPNTtgI58mBqoNaETazYfhsVDrMKTt8=
+	s=default; t=1602293740;
+	bh=/LYWflPFUQmr4zRX/3aYO5X4zGhKa6rc4/cUxk3xBL0=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
+	b=wgW6+KlNsqHH5OBrFceoOjT+oRUAW4xmyXVxu+We51wm7uPdG7rOBM/foBpZL3PTT
+	 R1ln/k1sQKRyE3HrFEsHb14lgivNsaA8/tMhpY1VBG6yL6ksrZQlLNYsKP/9Oj+eqV
+	 1KaKgIo906ho7LgwtVOtg6egK730DQaUFf22UX+4=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727879AbgJJBVD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 9 Oct 2020 21:21:03 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38706 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729348AbgJJBDw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2020 21:03:52 -0400
-Received: from mail-lf1-x141.google.com (mail-lf1-x141.google.com [IPv6:2a00:1450:4864:20::141])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 77E46C0613D9
-        for <linux-arch@vger.kernel.org>; Fri,  9 Oct 2020 18:03:51 -0700 (PDT)
-Received: by mail-lf1-x141.google.com with SMTP id c141so5902608lfg.5
-        for <linux-arch@vger.kernel.org>; Fri, 09 Oct 2020 18:03:51 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=s7OwKgWi2gSxmEp/hYxtSzWSpApJcXjT+OdSqNt7VYU=;
-        b=Wf1q2lnubIrbXjk14tkrYxXcbBXmzq9qYbXL1Q2p8EB+0CvkKSqF+3HlgfvaB+X8S6
-         SG17cHHpnVFX880L11ZWENbR0ebhET03jaC+x724GDZbfQvjLR0+JYp1fVD8FDqLvksZ
-         kRBaHY97weaJ2iFk9krv7PVK7ymwvLjzNkwFU=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=s7OwKgWi2gSxmEp/hYxtSzWSpApJcXjT+OdSqNt7VYU=;
-        b=nVtbN3+q5H4k8TWu7Srzj/1BNiperLrU2EWGiNi3oodQhKHztDRfd2FSTQgwhZitMG
-         p0mFqurF/80fBGmTzs2mNNXBCD6aIctdYc8glm7Jx60pbVYQnVOYU6g9ud/Pz/biFkho
-         wCvPUWIEutgFSyc54AgY3fJvAefiRzz1kkkehWjRu1SQe0rrV39Yj9tis4TxYVf4J2Ay
-         KqEqONBb4UGNvKovDTwdW45N6vtpQbAy+uxXcexKdFBL+PVyUg5OfcrDSSL77n6CjwnM
-         R9ZhA0w0eaNJs0Pl3B4VgTt2h++7FZua7Nh4y2mpUR/W6x0PHpJvkgz3NlEDqzqstB6n
-         VRpA==
-X-Gm-Message-State: AOAM532yS3FWMZFRe2O1VbfOxyNePQeE0p0HzxMprTCrnvrgRrFNzrKC
-        YLbH0prUJ+ZH4jG77rnFV/Becc1WZQBjxw==
-X-Google-Smtp-Source: ABdhPJyW58+RTcYCST0/2XP5VaEoXY/gH1C1OyYjKonosxZ8j/KxMZ1rO8cjfWTbp4tOPbQm71LE4g==
-X-Received: by 2002:ac2:4216:: with SMTP id y22mr4566868lfh.61.1602291829595;
-        Fri, 09 Oct 2020 18:03:49 -0700 (PDT)
-Received: from mail-lj1-f176.google.com (mail-lj1-f176.google.com. [209.85.208.176])
-        by smtp.gmail.com with ESMTPSA id m8sm1706533lfh.258.2020.10.09.18.03.47
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 09 Oct 2020 18:03:48 -0700 (PDT)
-Received: by mail-lj1-f176.google.com with SMTP id a5so11235868ljj.11
-        for <linux-arch@vger.kernel.org>; Fri, 09 Oct 2020 18:03:47 -0700 (PDT)
-X-Received: by 2002:a2e:2202:: with SMTP id i2mr5735571lji.70.1602291827290;
- Fri, 09 Oct 2020 18:03:47 -0700 (PDT)
-MIME-Version: 1.0
-References: <20200903142242.925828-1-hch@lst.de> <20200903142242.925828-6-hch@lst.de>
- <20201001223852.GA855@sol.localdomain> <20201001224051.GI3421308@ZenIV.linux.org.uk>
- <CAHk-=wgj=mKeN-EfV5tKwJNeHPLG0dybq+R5ZyGuc4WeUnqcmA@mail.gmail.com> <20201009220633.GA1122@sol.localdomain>
-In-Reply-To: <20201009220633.GA1122@sol.localdomain>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Fri, 9 Oct 2020 18:03:31 -0700
-X-Gmail-Original-Message-ID: <CAHk-=whcEzYjkqdpZciHh+iAdUttvfWZYoiHiF67XuTXB1YJLw@mail.gmail.com>
-Message-ID: <CAHk-=whcEzYjkqdpZciHh+iAdUttvfWZYoiHiF67XuTXB1YJLw@mail.gmail.com>
-Subject: Re: [PATCH 05/14] fs: don't allow kernel reads and writes without
- iter ops
-To:     Eric Biggers <ebiggers@kernel.org>
+        id S1729357AbgJJBfX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 9 Oct 2020 21:35:23 -0400
+Received: from mail.kernel.org ([198.145.29.99]:54446 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729627AbgJJBT1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 9 Oct 2020 21:19:27 -0400
+Received: from sol.localdomain (172-10-235-113.lightspeed.sntcca.sbcglobal.net [172.10.235.113])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id E21C92222E;
+        Sat, 10 Oct 2020 01:19:20 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=default; t=1602292761;
+        bh=/LYWflPFUQmr4zRX/3aYO5X4zGhKa6rc4/cUxk3xBL0=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=fnNqw0PxV6IX/oLMEyLtVNaBKSLmW486bhyKJLb6xU/3aVPdJKhHCe2HS/jCJdP0f
+         h0sh+gunMLdhhfPbzEwE/adD6a+CcuxJBLWFF4wZ5mMEi09wQZiAX4gGdyI1D/7+Em
+         Ko/SaQsKuwBj912JA0Lt3zk0AWrOM2p3zFXWLH54=
+Date:   Fri, 9 Oct 2020 18:19:19 -0700
+From:   Eric Biggers <ebiggers@kernel.org>
+To:     Linus Torvalds <torvalds@linux-foundation.org>
 Cc:     Al Viro <viro@zeniv.linux.org.uk>, Christoph Hellwig <hch@lst.de>,
         Michael Ellerman <mpe@ellerman.id.au>,
-        "the arch/x86 maintainers" <x86@kernel.org>,
+        the arch/x86 maintainers <x86@kernel.org>,
         Alexey Dobriyan <adobriyan@gmail.com>,
         Luis Chamberlain <mcgrof@kernel.org>,
         Kees Cook <keescook@chromium.org>,
@@ -86,23 +50,42 @@ Cc:     Al Viro <viro@zeniv.linux.org.uk>, Christoph Hellwig <hch@lst.de>,
         linux-fsdevel <linux-fsdevel@vger.kernel.org>,
         linux-arch <linux-arch@vger.kernel.org>,
         linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Content-Type: text/plain; charset="UTF-8"
+Subject: Re: [PATCH 05/14] fs: don't allow kernel reads and writes without
+ iter ops
+Message-ID: <20201010011919.GC1122@sol.localdomain>
+References: <20200903142242.925828-1-hch@lst.de>
+ <20200903142242.925828-6-hch@lst.de>
+ <20201001223852.GA855@sol.localdomain>
+ <20201001224051.GI3421308@ZenIV.linux.org.uk>
+ <CAHk-=wgj=mKeN-EfV5tKwJNeHPLG0dybq+R5ZyGuc4WeUnqcmA@mail.gmail.com>
+ <20201009220633.GA1122@sol.localdomain>
+ <CAHk-=whcEzYjkqdpZciHh+iAdUttvfWZYoiHiF67XuTXB1YJLw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHk-=whcEzYjkqdpZciHh+iAdUttvfWZYoiHiF67XuTXB1YJLw@mail.gmail.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Oct 9, 2020 at 3:06 PM Eric Biggers <ebiggers@kernel.org> wrote:
->
-> It's a bit unintuitive that ppos=NULL means "use pos 0", not "use file->f_pos".
+On Fri, Oct 09, 2020 at 06:03:31PM -0700, Linus Torvalds wrote:
+> On Fri, Oct 9, 2020 at 3:06 PM Eric Biggers <ebiggers@kernel.org> wrote:
+> >
+> > It's a bit unintuitive that ppos=NULL means "use pos 0", not "use file->f_pos".
+> 
+> That's not at all what it means.
+> 
+> A NULL ppos means "this has no position at all", and is what we use
+> for FMODE_STREAM file descriptors (ie sockets, pipes, etc).
+> 
+> It also means that we don't do the locking for position updates.
+> 
+> The fact that "ki_pos" gets set to zero is just because it needs to be
+> _something_. It shouldn't actually ever be used for stream devices.
+> 
 
-That's not at all what it means.
+Okay, that makes more sense.  So the patchset from Matthew
+https://lkml.kernel.org/linux-fsdevel/20201003025534.21045-1-willy@infradead.org/T/#u
+isn't what you had in mind.
 
-A NULL ppos means "this has no position at all", and is what we use
-for FMODE_STREAM file descriptors (ie sockets, pipes, etc).
-
-It also means that we don't do the locking for position updates.
-
-The fact that "ki_pos" gets set to zero is just because it needs to be
-_something_. It shouldn't actually ever be used for stream devices.
-
-                  Linus
+- Eric
