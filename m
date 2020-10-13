@@ -8,62 +8,63 @@ X-Spam-Status: No, score=-20.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B19F1C35267
-	for <linux-arch@archiver.kernel.org>; Tue, 13 Oct 2020 02:42:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E5D0EC388CC
+	for <linux-arch@archiver.kernel.org>; Tue, 13 Oct 2020 02:42:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 803AF221FC
-	for <linux-arch@archiver.kernel.org>; Tue, 13 Oct 2020 02:42:09 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AFD89221EB
+	for <linux-arch@archiver.kernel.org>; Tue, 13 Oct 2020 02:42:11 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="RWGnAnvd"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="UStis3hb"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727235AbgJMAdY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 12 Oct 2020 20:33:24 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47826 "EHLO
+        id S1727753AbgJMAe0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 12 Oct 2020 20:34:26 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47830 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727480AbgJMAcj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2020 20:32:39 -0400
-Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8EDDFC0613DA
-        for <linux-arch@vger.kernel.org>; Mon, 12 Oct 2020 17:32:33 -0700 (PDT)
-Received: by mail-yb1-xb4a.google.com with SMTP id c9so17167408ybs.8
-        for <linux-arch@vger.kernel.org>; Mon, 12 Oct 2020 17:32:33 -0700 (PDT)
+        with ESMTP id S1727740AbgJMAdl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2020 20:33:41 -0400
+Received: from mail-pf1-x44a.google.com (mail-pf1-x44a.google.com [IPv6:2607:f8b0:4864:20::44a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EA452C0613BD
+        for <linux-arch@vger.kernel.org>; Mon, 12 Oct 2020 17:32:59 -0700 (PDT)
+Received: by mail-pf1-x44a.google.com with SMTP id g24so13845732pfo.1
+        for <linux-arch@vger.kernel.org>; Mon, 12 Oct 2020 17:32:59 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=sender:date:in-reply-to:message-id:mime-version:references:subject
          :from:to:cc;
-        bh=i0HfMD/wRChzzw+H0j5SIQI+XYlsyfomuEvjB0A2b7U=;
-        b=RWGnAnvd5Lp76tMdFpNH1+zuCs711HvTmjeeqWExWdLO0b+IYvl8hseJy7bQVsA/yQ
-         WbWgdjz9odSgS33tA7SyJrG23HtPbcQQ2sqTeDLN0z+XNW/U1+B04f29pxuTIBAo0Bwr
-         1kuUI0qew0RRwWEdSqeHxrYPCuM0lKcyAQQHVJyqk0NDK5lndU4kJ0nEntK7Gw/b+6ds
-         NINAxQFY1xV9pWKvIAxegfc8BATcwAptMc23jyb2HlWegaJKMJtRw94gvpud1QRadkKB
-         gA/bzBYbBksOIuoqgqduz/XaFVcQDSEIQm1NvRkC4MArUYBfjsPwupbm8iuKYDaYWWMx
-         dfRw==
+        bh=s78GraQfKANUm9dTCmVzo29Dpzl6ui3oK0KuklmHT+M=;
+        b=UStis3hbnwPX4GBdlrEziRJNAuXpozGmmfM1jjzsAsE8VSqd0cbY6odMaz39IA0Ojw
+         whXL6/eJ7EeqBedFDwaT3w5Q+1TV0rdJwA3Y3y9puXLwfjf7F0qnCIboZUysC1WDMVid
+         4Nj43Y1l6hIv3BvqtYvKlA+3y+Qx5yGdBGC7iek7d9zIgRpsjTFpfGg7cM3b7K4jNPc3
+         C+tUthfv3AI4pSRMqj3k+jNvTZwQ0NPU9oBd39SNZPMR7BGOFp7+kKDm9ZAbYc3IAGak
+         ZWMXtsvozkuOgmM9rpB2qjGh1x8II7JaobE2C/HaxwERoWZW6ZWfuMc4skxi/3WZYGIY
+         484A==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=i0HfMD/wRChzzw+H0j5SIQI+XYlsyfomuEvjB0A2b7U=;
-        b=MfqZlNwdN0W3u04pPbyeuDjKlifeJJ99ee6t5lAlwjIIryK7VnC2CQF+6YiAoTVmZ1
-         B1n6qilCl05JRkfML7LhmmJUKd9KZOEDsWB2aM5k9yswFqykRTZLKT7/sNAxA+U63a81
-         Ns+fddXsxwFln3/UoXsGeEHCUGSoPDrpcOD7DQXe6pBcvmkU+KlQRz6P1/fossURql+k
-         FV9cp4AT6GcbLVuDqa3AOcvLNZ7lSgiXR7FgaBZjfTM/jHk2cLhsQaXYavATnSn8LpAJ
-         yvoLwUpTj8wvZtui2OG8TsYVsmoLv2ZIs2nfP4XIbVebxGe9e2CCTfLTJwmgyjlJaDTo
-         9rgA==
-X-Gm-Message-State: AOAM5326z3iNZl/m40Vs/LodowZEe2MLBlOE0QBb/Pkh1kCMtz9hfT5Q
-        sZstcw7jbpXw95VlqUWYpRfCwdxv5T6CkZd12xk=
-X-Google-Smtp-Source: ABdhPJyWpX0TYRebf3Rkf2Yh1c8ADAskEKEgvpC4cZTbopj2J6pmYFQCkigTg2srbz/p2P1Qt1W0jVbIt5KqdOEhaLA=
+        bh=s78GraQfKANUm9dTCmVzo29Dpzl6ui3oK0KuklmHT+M=;
+        b=GGsKYHFCIyt5XwCeu0G0E2Cpyau2OO7jbLfYeNXeZuDeEdqI8EN2KoRkm5I7992G1i
+         vFTBWVOTj1ES9U0TFgthPamdRBPz7GxplU5vq6FKopa/CGvCiVMqcI2tTpCCuBAFJvPJ
+         IE2nsz8CYGqJC7a1RqLTwWh17Vgy0jkFJgG8RDCiHUKz8MMVQ4+V8FE/zdkr42YqHJnG
+         ZGmb56QrZeGeZXqJq2LADpUOmzB98kt/xgjZhvY/facea7IZMfgZqsjnewK9s4LczXi3
+         hndd2gSBB7Td12jsOGS3dSjJvsRKyym/7vAWWKzJGLqWyZy32SfZVHCerKhpgI+ew61o
+         k1dA==
+X-Gm-Message-State: AOAM531QWmumpWllE4oN/VkawJMSUfDojhoy/57Tqk2MPpMwkWZ28/KF
+        ek5cFRujmPwbJpzvXYiFry+mu7wYjs/ANDxBmeA=
+X-Google-Smtp-Source: ABdhPJys+9GAtwDLSAFaJoF/SaTJzh0YT4ITojDPzI8BvdeCNUSIWeGX02fenqn9RcJYa4C5XTo/mbLq+dmrOimZhu8=
 Sender: "samitolvanen via sendgmr" 
         <samitolvanen@samitolvanen1.mtv.corp.google.com>
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
- (user=samitolvanen job=sendgmr) by 2002:a25:cc89:: with SMTP id
- l131mr12649555ybf.154.1602549152704; Mon, 12 Oct 2020 17:32:32 -0700 (PDT)
-Date:   Mon, 12 Oct 2020 17:31:51 -0700
+ (user=samitolvanen job=sendgmr) by 2002:a17:902:b40a:b029:d4:e1c7:db59 with
+ SMTP id x10-20020a170902b40ab02900d4e1c7db59mr157311plr.85.1602549179447;
+ Mon, 12 Oct 2020 17:32:59 -0700 (PDT)
+Date:   Mon, 12 Oct 2020 17:32:02 -0700
 In-Reply-To: <20201013003203.4168817-1-samitolvanen@google.com>
-Message-Id: <20201013003203.4168817-14-samitolvanen@google.com>
+Message-Id: <20201013003203.4168817-25-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20201013003203.4168817-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.28.0.1011.ga647a8990f-goog
-Subject: [PATCH v6 13/25] kbuild: lto: merge module sections
+Subject: [PATCH v6 24/25] x86, cpu: disable LTO for cpu.c
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Masahiro Yamada <masahiroy@kernel.org>,
         Steven Rostedt <rostedt@goodmis.org>
@@ -83,55 +84,32 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-LLD always splits sections with LTO, which increases module sizes. This
-change adds linker script rules to merge the split sections in the final
-module.
+Clang incorrectly inlines functions with differing stack protector
+attributes, which breaks __restore_processor_state() that relies on
+stack protector being disabled. This change disables LTO for cpu.c
+to work aroung the bug.
 
+Link: https://bugs.llvm.org/show_bug.cgi?id=47479
 Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- scripts/module.lds.S | 28 ++++++++++++++++++++++++++++
- 1 file changed, 28 insertions(+)
+ arch/x86/power/Makefile | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/scripts/module.lds.S b/scripts/module.lds.S
-index 69b9b71a6a47..037120173a22 100644
---- a/scripts/module.lds.S
-+++ b/scripts/module.lds.S
-@@ -25,5 +25,33 @@ SECTIONS {
- 	__jump_table		0 : ALIGN(8) { KEEP(*(__jump_table)) }
- }
+diff --git a/arch/x86/power/Makefile b/arch/x86/power/Makefile
+index 6907b523e856..5f711a441623 100644
+--- a/arch/x86/power/Makefile
++++ b/arch/x86/power/Makefile
+@@ -5,5 +5,9 @@ OBJECT_FILES_NON_STANDARD_hibernate_asm_$(BITS).o := y
+ # itself be stack-protected
+ CFLAGS_cpu.o	:= -fno-stack-protector
  
-+#ifdef CONFIG_LTO_CLANG
-+/*
-+ * With CONFIG_LTO_CLANG, LLD always enables -fdata-sections and
-+ * -ffunction-sections, which increases the size of the final module.
-+ * Merge the split sections in the final binary.
-+ */
-+SECTIONS {
-+	__patchable_function_entries : { *(__patchable_function_entries) }
++# Clang may incorrectly inline functions with stack protector enabled into
++# __restore_processor_state(): https://bugs.llvm.org/show_bug.cgi?id=47479
++CFLAGS_REMOVE_cpu.o := $(CC_FLAGS_LTO)
 +
-+	.bss : {
-+		*(.bss .bss.[0-9a-zA-Z_]*)
-+		*(.bss..L*)
-+	}
-+
-+	.data : {
-+		*(.data .data.[0-9a-zA-Z_]*)
-+		*(.data..L*)
-+	}
-+
-+	.rodata : {
-+		*(.rodata .rodata.[0-9a-zA-Z_]*)
-+		*(.rodata..L*)
-+	}
-+
-+	.text : { *(.text .text.[0-9a-zA-Z_]*) }
-+}
-+#endif
-+
- /* bring in arch-specific sections */
- #include <asm/module.lds.h>
+ obj-$(CONFIG_PM_SLEEP)		+= cpu.o
+ obj-$(CONFIG_HIBERNATION)	+= hibernate_$(BITS).o hibernate_asm_$(BITS).o hibernate.o
 -- 
 2.28.0.1011.ga647a8990f-goog
 
