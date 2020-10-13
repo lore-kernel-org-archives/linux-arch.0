@@ -8,62 +8,62 @@ X-Spam-Status: No, score=-20.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0C7F5C388F8
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 90AF5C5517A
 	for <linux-arch@archiver.kernel.org>; Tue, 13 Oct 2020 02:41:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C43F021D81
-	for <linux-arch@archiver.kernel.org>; Tue, 13 Oct 2020 02:41:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5102F21D7F
+	for <linux-arch@archiver.kernel.org>; Tue, 13 Oct 2020 02:41:06 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="qUGfJyLp"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="UJ5mCWL1"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727217AbgJMAcY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 12 Oct 2020 20:32:24 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47692 "EHLO
+        id S1727383AbgJMAc1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 12 Oct 2020 20:32:27 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47780 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727211AbgJMAcO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2020 20:32:14 -0400
-Received: from mail-qv1-xf4a.google.com (mail-qv1-xf4a.google.com [IPv6:2607:f8b0:4864:20::f4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EBA17C0613D0
-        for <linux-arch@vger.kernel.org>; Mon, 12 Oct 2020 17:32:13 -0700 (PDT)
-Received: by mail-qv1-xf4a.google.com with SMTP id c3so11817208qvj.4
-        for <linux-arch@vger.kernel.org>; Mon, 12 Oct 2020 17:32:13 -0700 (PDT)
+        with ESMTP id S1727375AbgJMAc0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2020 20:32:26 -0400
+Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 74E4CC0613D8
+        for <linux-arch@vger.kernel.org>; Mon, 12 Oct 2020 17:32:26 -0700 (PDT)
+Received: by mail-yb1-xb49.google.com with SMTP id x14so5803902ybg.7
+        for <linux-arch@vger.kernel.org>; Mon, 12 Oct 2020 17:32:26 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=sender:date:in-reply-to:message-id:mime-version:references:subject
          :from:to:cc;
-        bh=f2KSu+z7jDKn/rdJa/Ip0wrfAi6otBE8x5RUzQIqnlQ=;
-        b=qUGfJyLpLmfej5ayabZKu5Bx4lT6/dyQBaJieiAyUkElQNJXRTsFGO3tBSTM0lH2WA
-         E8V9ctIk3cowUGCLCj+ga8NWhuW8IsfwOiJPG1VpvW+N9kqDnIZHA2+bYHE9+JVl/qUy
-         HkLMvl1JsNGiHimiSWLmswdh++6c+veGwVRY0BjKT7ZP8U4LeGCMRGB4XDAMh69ghBO/
-         5nFy/ZHge5bmVUXcC9MrHZlc3Xr5nTl0ryjhWHaz5aNwTpnOR/W3z6l/IOWulBcFblgs
-         8AEBWXHGSuLlm30LeIElRQ+qmxGsBMMzGPECrypA4+EfaFSAGSv0sR/xXe5bUivu5Azc
-         zG5A==
+        bh=8bp3PQ/7kK50N/SyZEDvRd1Vp9NoLqhW+sLCA5D6N8E=;
+        b=UJ5mCWL1fFmQ+PxULb9p87s0nqFxM+BepZ4cTj/3K/9Rl3+R69U63Qoo7kbjpQJmLF
+         fe6htCxpHb5pvdMiMW7w4jfVTIc0MjpjYYrgO7qtJrxEcZluiiuQ4CilOc6suei2x16J
+         ZyAV+xCVkwBYu4Ypv3PNkoRqnUEeD3oVuV25mZ/ZMBu+EeLJ8WEFNae5g2/awFDSCZgp
+         hbWfhNOdCEgE4Orq6FyUsLEX8fGkRh/PRZNh5ngDsRLmToIgltIDpU1+UVeeaBKUU/SH
+         2G0ccI3U01Zj6y5PdlF4BC4DIc7g6ih08EXhvn4pV3U8TiwtHluquziLm/T5nfcBgQ/A
+         E3Bg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=f2KSu+z7jDKn/rdJa/Ip0wrfAi6otBE8x5RUzQIqnlQ=;
-        b=tHlq9uYhJWlKSBasA0Ts1cXjkuOvRnbs3YxMwoeWMRsIWEsV0UFMZ4+odooodtZHx0
-         AXH9exE1DClAzbTHSv//sBrizB7CxmS+pqO7r7n1GAaHcruSPFdqdCpXeVwsrcSwViYN
-         J4it11gdnu68tOskiiMdYdjz1bCVxcL9+mt9eVDjpWlrABvjUehTgBwppNA5ZA1L+g2+
-         4xdJlTHReBSjHKZ8J0mcCen7FVr5sacEp1rr+JrEVSCof/u38FhhP6nnwy61CJYkiMhA
-         pihp+kII8HBL2nZAxiFN12bWS6KA7xRIBvDy8ei+Xhs6/974NqHhnf8iIQwlKTS1VZyv
-         2UIA==
-X-Gm-Message-State: AOAM5310LIpT0xeNjAKtsvnK8EJuTw6PUjVc1/xYDmnlSUVCBBFhj5gM
-        8kDqH5uM1hsZBfjPBqFloFFltdkwFlRfIHf849c=
-X-Google-Smtp-Source: ABdhPJx/eVhqbFhuf8A/9RKbRt5xAPrKG8l+BlgeU9T8uNxkYkRthW5oOA8rtJHTS4Ep1kI0dRFFhyGDS7i3dzc9NJc=
+        bh=8bp3PQ/7kK50N/SyZEDvRd1Vp9NoLqhW+sLCA5D6N8E=;
+        b=f9+Ma5yVHaeal9Kkh0+qMu/2/nJR2COmh/b+1hCyEjpsLfncOTwbmC2KzvnFEgbKBu
+         bJYn2Hv/Ps8bCdaeWeEblBgWMwmUF3/n6OlrFWwE1aMSIQxacBCR6ble2a3ShKM5ArDl
+         fnul2186oQB7/MGyNnVaOLZZoMEO9tN2wTuQe4D3ylhkDmWei0kh7yP3WMw3DEzFbvDJ
+         2Kts0dOLX+qsbPXa8XHy6pfPJfkKHwsKYt8us21CbGFtKdoBRv6uXLdCFG0QQ5Ov98AK
+         ymNwnUTPxQR9wiKir2feBgb6bHjuqCEIv8WGp/pmPnjdzIL/pPih489KgA32zfXxcwJr
+         MiKg==
+X-Gm-Message-State: AOAM531sODz6R4lFtBRT3zuPUpUYVhtqFCL8rGF/G5nz6sr6o/ouzWNu
+        1Ucsw6QVycBqr5ieYrGZZyBieUWKkzvuAmMaDIM=
+X-Google-Smtp-Source: ABdhPJyaKJlnl73Nam7qP2rlTKBQqyq7hNelqtAXX2QbINkl92Xg8gdjjbAPMWIDS85cwQxWAerS5XsHH4+zdwdv4nw=
 Sender: "samitolvanen via sendgmr" 
         <samitolvanen@samitolvanen1.mtv.corp.google.com>
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
- (user=samitolvanen job=sendgmr) by 2002:a0c:e5cf:: with SMTP id
- u15mr27081552qvm.24.1602549133091; Mon, 12 Oct 2020 17:32:13 -0700 (PDT)
-Date:   Mon, 12 Oct 2020 17:31:42 -0700
+ (user=samitolvanen job=sendgmr) by 2002:a25:5f4f:: with SMTP id
+ h15mr34686955ybm.407.1602549145672; Mon, 12 Oct 2020 17:32:25 -0700 (PDT)
+Date:   Mon, 12 Oct 2020 17:31:48 -0700
 In-Reply-To: <20201013003203.4168817-1-samitolvanen@google.com>
-Message-Id: <20201013003203.4168817-5-samitolvanen@google.com>
+Message-Id: <20201013003203.4168817-11-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20201013003203.4168817-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.28.0.1011.ga647a8990f-goog
-Subject: [PATCH v6 04/25] tracing: move function tracer options to Kconfig
+Subject: [PATCH v6 10/25] objtool: Split noinstr validation from --vmlinux
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Masahiro Yamada <masahiroy@kernel.org>,
         Steven Rostedt <rostedt@goodmis.org>
@@ -83,117 +83,79 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Move function tracer options to Kconfig to make it easier to add
-new methods for generating __mcount_loc, and to make the options
-available also when building kernel modules.
-
-Note that FTRACE_MCOUNT_USE_* options are updated on rebuild and
-therefore, work even if the .config was generated in a different
-environment.
+This change adds a --noinstr flag to objtool to allow us to specify
+that we're processing vmlinux.o without also enabling noinstr
+validation. This is needed to avoid false positives with LTO when we
+run objtool on vmlinux.o without CONFIG_DEBUG_ENTRY.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 ---
- Makefile               | 20 ++++++++------------
- kernel/trace/Kconfig   | 16 ++++++++++++++++
- scripts/Makefile.build |  6 ++----
- 3 files changed, 26 insertions(+), 16 deletions(-)
+ scripts/link-vmlinux.sh       | 2 +-
+ tools/objtool/builtin-check.c | 3 ++-
+ tools/objtool/builtin.h       | 2 +-
+ tools/objtool/check.c         | 2 +-
+ 4 files changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index 0dcf302fe2da..129001b38357 100644
---- a/Makefile
-+++ b/Makefile
-@@ -841,12 +841,8 @@ KBUILD_CFLAGS += $(DEBUG_CFLAGS)
- export DEBUG_CFLAGS
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 1a48ef525f46..5ace1dc43993 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -92,7 +92,7 @@ objtool_link()
+ 	local objtoolopt;
  
- ifdef CONFIG_FUNCTION_TRACER
--ifdef CONFIG_FTRACE_MCOUNT_RECORD
--  # gcc 5 supports generating the mcount tables directly
--  ifeq ($(call cc-option-yn,-mrecord-mcount),y)
--    CC_FLAGS_FTRACE	+= -mrecord-mcount
--    export CC_USING_RECORD_MCOUNT := 1
--  endif
-+ifdef CONFIG_FTRACE_MCOUNT_USE_CC
-+  CC_FLAGS_FTRACE	+= -mrecord-mcount
-   ifdef CONFIG_HAVE_NOP_MCOUNT
-     ifeq ($(call cc-option-yn, -mnop-mcount),y)
-       CC_FLAGS_FTRACE	+= -mnop-mcount
-@@ -854,6 +850,12 @@ ifdef CONFIG_FTRACE_MCOUNT_RECORD
-     endif
-   endif
- endif
-+ifdef CONFIG_FTRACE_MCOUNT_USE_RECORDMCOUNT
-+  ifdef CONFIG_HAVE_C_RECORDMCOUNT
-+    BUILD_C_RECORDMCOUNT := y
-+    export BUILD_C_RECORDMCOUNT
-+  endif
-+endif
- ifdef CONFIG_HAVE_FENTRY
-   ifeq ($(call cc-option-yn, -mfentry),y)
-     CC_FLAGS_FTRACE	+= -mfentry
-@@ -863,12 +865,6 @@ endif
- export CC_FLAGS_FTRACE
- KBUILD_CFLAGS	+= $(CC_FLAGS_FTRACE) $(CC_FLAGS_USING)
- KBUILD_AFLAGS	+= $(CC_FLAGS_USING)
--ifdef CONFIG_DYNAMIC_FTRACE
--	ifdef CONFIG_HAVE_C_RECORDMCOUNT
--		BUILD_C_RECORDMCOUNT := y
--		export BUILD_C_RECORDMCOUNT
--	endif
--endif
- endif
+ 	if [ -n "${CONFIG_VMLINUX_VALIDATION}" ]; then
+-		objtoolopt="check --vmlinux"
++		objtoolopt="check --vmlinux --noinstr"
+ 		if [ -z "${CONFIG_FRAME_POINTER}" ]; then
+ 			objtoolopt="${objtoolopt} --no-fp"
+ 		fi
+diff --git a/tools/objtool/builtin-check.c b/tools/objtool/builtin-check.c
+index facfc10bc5dc..b84cdc72b51f 100644
+--- a/tools/objtool/builtin-check.c
++++ b/tools/objtool/builtin-check.c
+@@ -18,7 +18,7 @@
+ #include "builtin.h"
+ #include "objtool.h"
  
- # We trigger additional mismatches with less inlining
-diff --git a/kernel/trace/Kconfig b/kernel/trace/Kconfig
-index a4020c0b4508..927ad004888a 100644
---- a/kernel/trace/Kconfig
-+++ b/kernel/trace/Kconfig
-@@ -595,6 +595,22 @@ config FTRACE_MCOUNT_RECORD
- 	depends on DYNAMIC_FTRACE
- 	depends on HAVE_FTRACE_MCOUNT_RECORD
+-bool no_fp, no_unreachable, retpoline, module, backtrace, uaccess, stats, validate_dup, vmlinux, mcount;
++bool no_fp, no_unreachable, retpoline, module, backtrace, uaccess, stats, validate_dup, vmlinux, mcount, noinstr;
  
-+config FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY
-+	bool
-+	depends on FTRACE_MCOUNT_RECORD
-+
-+config FTRACE_MCOUNT_USE_CC
-+	def_bool y
-+	depends on $(cc-option,-mrecord-mcount)
-+	depends on !FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY
-+	depends on FTRACE_MCOUNT_RECORD
-+
-+config FTRACE_MCOUNT_USE_RECORDMCOUNT
-+	def_bool y
-+	depends on !FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY
-+	depends on !FTRACE_MCOUNT_USE_CC
-+	depends on FTRACE_MCOUNT_RECORD
-+
- config TRACING_MAP
- 	bool
- 	depends on ARCH_HAVE_NMI_SAFE_CMPXCHG
-diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-index a467b9323442..a4634aae1506 100644
---- a/scripts/Makefile.build
-+++ b/scripts/Makefile.build
-@@ -178,8 +178,7 @@ cmd_modversions_c =								\
- 	fi
- endif
+ static const char * const check_usage[] = {
+ 	"objtool check [<options>] file.o",
+@@ -34,6 +34,7 @@ const struct option check_options[] = {
+ 	OPT_BOOLEAN('a', "uaccess", &uaccess, "enable uaccess checking"),
+ 	OPT_BOOLEAN('s', "stats", &stats, "print statistics"),
+ 	OPT_BOOLEAN('d', "duplicate", &validate_dup, "duplicate validation for vmlinux.o"),
++	OPT_BOOLEAN('n', "noinstr", &noinstr, "noinstr validation for vmlinux.o"),
+ 	OPT_BOOLEAN('l', "vmlinux", &vmlinux, "vmlinux.o validation"),
+ 	OPT_BOOLEAN('M', "mcount", &mcount, "generate __mcount_loc"),
+ 	OPT_END(),
+diff --git a/tools/objtool/builtin.h b/tools/objtool/builtin.h
+index 94565a72b701..2502bb27de17 100644
+--- a/tools/objtool/builtin.h
++++ b/tools/objtool/builtin.h
+@@ -8,7 +8,7 @@
+ #include <subcmd/parse-options.h>
  
--ifdef CONFIG_FTRACE_MCOUNT_RECORD
--ifndef CC_USING_RECORD_MCOUNT
-+ifdef CONFIG_FTRACE_MCOUNT_USE_RECORDMCOUNT
- # compiler will not generate __mcount_loc use recordmcount or recordmcount.pl
- ifdef BUILD_C_RECORDMCOUNT
- ifeq ("$(origin RECORDMCOUNT_WARN)", "command line")
-@@ -206,8 +205,7 @@ recordmcount_source := $(srctree)/scripts/recordmcount.pl
- endif # BUILD_C_RECORDMCOUNT
- cmd_record_mcount = $(if $(findstring $(strip $(CC_FLAGS_FTRACE)),$(_c_flags)),	\
- 	$(sub_cmd_record_mcount))
--endif # CC_USING_RECORD_MCOUNT
--endif # CONFIG_FTRACE_MCOUNT_RECORD
-+endif # CONFIG_FTRACE_MCOUNT_USE_RECORDMCOUNT
+ extern const struct option check_options[];
+-extern bool no_fp, no_unreachable, retpoline, module, backtrace, uaccess, stats, validate_dup, vmlinux, mcount;
++extern bool no_fp, no_unreachable, retpoline, module, backtrace, uaccess, stats, validate_dup, vmlinux, mcount, noinstr;
  
- ifdef CONFIG_STACK_VALIDATION
- ifneq ($(SKIP_STACK_VALIDATION),1)
+ extern int cmd_check(int argc, const char **argv);
+ extern int cmd_orc(int argc, const char **argv);
+diff --git a/tools/objtool/check.c b/tools/objtool/check.c
+index c39c4d2b432a..c216dd4d662c 100644
+--- a/tools/objtool/check.c
++++ b/tools/objtool/check.c
+@@ -244,7 +244,7 @@ static void init_insn_state(struct insn_state *state, struct section *sec)
+ 	 * not correctly determine insn->call_dest->sec (external symbols do
+ 	 * not have a section).
+ 	 */
+-	if (vmlinux && sec)
++	if (vmlinux && noinstr && sec)
+ 		state->noinstr = sec->noinstr;
+ }
+ 
 -- 
 2.28.0.1011.ga647a8990f-goog
 
