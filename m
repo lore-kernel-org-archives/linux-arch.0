@@ -2,31 +2,32 @@ Return-Path: <SRS0=OX6G=DU=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4CDB3C433DF
-	for <linux-arch@archiver.kernel.org>; Tue, 13 Oct 2020 11:52:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 01AF7C433E7
+	for <linux-arch@archiver.kernel.org>; Tue, 13 Oct 2020 12:00:16 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id DE9452080A
-	for <linux-arch@archiver.kernel.org>; Tue, 13 Oct 2020 11:52:24 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AA5E220870
+	for <linux-arch@archiver.kernel.org>; Tue, 13 Oct 2020 12:00:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727265AbgJMLwY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 13 Oct 2020 07:52:24 -0400
-Received: from foss.arm.com ([217.140.110.172]:57922 "EHLO foss.arm.com"
+        id S1728566AbgJMMAO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 13 Oct 2020 08:00:14 -0400
+Received: from foss.arm.com ([217.140.110.172]:58440 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727230AbgJMLwX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 13 Oct 2020 07:52:23 -0400
+        id S1728688AbgJML76 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 13 Oct 2020 07:59:58 -0400
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id DBD6D1FB;
-        Tue, 13 Oct 2020 04:52:22 -0700 (PDT)
-Received: from [172.16.1.113] (unknown [172.31.20.19])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 3EA933F719;
-        Tue, 13 Oct 2020 04:52:21 -0700 (PDT)
-Subject: Re: [RFC PATCH 1/3] arm64: kvm: Handle Asymmetric AArch32 systems
-To:     Marc Zyngier <maz@kernel.org>
-Cc:     Qais Yousef <qais.yousef@arm.com>, linux-arch@vger.kernel.org,
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id C78E21FB;
+        Tue, 13 Oct 2020 04:59:57 -0700 (PDT)
+Received: from e107158-lin (unknown [10.1.194.78])
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 77DA83F719;
+        Tue, 13 Oct 2020 04:59:56 -0700 (PDT)
+Date:   Tue, 13 Oct 2020 12:59:53 +0100
+From:   Qais Yousef <qais.yousef@arm.com>
+To:     James Morse <james.morse@arm.com>
+Cc:     Marc Zyngier <maz@kernel.org>, linux-arch@vger.kernel.org,
         Will Deacon <will@kernel.org>,
         "Peter Zijlstra (Intel)" <peterz@infradead.org>,
         Catalin Marinas <catalin.marinas@arm.com>,
@@ -34,6 +35,8 @@ Cc:     Qais Yousef <qais.yousef@arm.com>, linux-arch@vger.kernel.org,
         Linus Torvalds <torvalds@linux-foundation.org>,
         Morten Rasmussen <morten.rasmussen@arm.com>,
         linux-arm-kernel@lists.infradead.org
+Subject: Re: [RFC PATCH 1/3] arm64: kvm: Handle Asymmetric AArch32 systems
+Message-ID: <20201013115953.gepxn5dbzrk6x6ec@e107158-lin>
 References: <20201008181641.32767-1-qais.yousef@arm.com>
  <20201008181641.32767-2-qais.yousef@arm.com>
  <7c058d22dce84ec7636863c1486b11d1@kernel.org>
@@ -42,56 +45,58 @@ References: <20201008181641.32767-1-qais.yousef@arm.com>
  <20201009124817.i7u53qrntvu7l5zq@e107158-lin.cambridge.arm.com>
  <54379ee1-97b1-699b-9500-655164f2e083@arm.com>
  <8cdbcf81bae94f4b030e2906191d80af@kernel.org>
-From:   James Morse <james.morse@arm.com>
-Message-ID: <13eb5d05-9eaf-7640-cd44-cfd7f8820257@arm.com>
-Date:   Tue, 13 Oct 2020 12:51:37 +0100
-User-Agent: Mozilla/5.0 (X11; Linux aarch64; rv:68.0) Gecko/20100101
- Thunderbird/68.12.0
+ <13eb5d05-9eaf-7640-cd44-cfd7f8820257@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <8cdbcf81bae94f4b030e2906191d80af@kernel.org>
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+In-Reply-To: <13eb5d05-9eaf-7640-cd44-cfd7f8820257@arm.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Marc,
-
-On 13/10/2020 11:32, Marc Zyngier wrote:
-> On 2020-10-12 16:32, James Morse wrote:
->> On 09/10/2020 13:48, Qais Yousef wrote:
->>> On 10/09/20 13:34, Marc Zyngier wrote:
->>>> You can try setting vcpu->arch.target to -1, which is already caught by
->>>> kvm_vcpu_initialized() right at the top of this function. This will
->>
->>>> prevent any reentry unless the VMM issues a KVM_ARM_VCPU_INIT ioctl.
->>
->> This doesn't reset SPSR, so this lets the VMM restart the guest with a
->> bad value.
+On 10/13/20 12:51, James Morse wrote:
+> Hi Marc,
 > 
-> That's not my reading of the code. Without a valid target, you cannot enter
-> the guest (kvm_vcpu_initialized() prevents you to do so). To set the target,
-> you need to issue a KVM_ARM_VCPU_INIT ioctl, which eventually calls
-
-> kvm_reset_vcpu(), which does set PSTATE to something legal.
-
-aha! So it does, this is what I was missing.
-
-
-> Or do you mean the guest's SPSR_EL1? Why would that matter?
+> On 13/10/2020 11:32, Marc Zyngier wrote:
+> > On 2020-10-12 16:32, James Morse wrote:
+> >> On 09/10/2020 13:48, Qais Yousef wrote:
+> >>> On 10/09/20 13:34, Marc Zyngier wrote:
+> >>>> You can try setting vcpu->arch.target to -1, which is already caught by
+> >>>> kvm_vcpu_initialized() right at the top of this function. This will
+> >>
+> >>>> prevent any reentry unless the VMM issues a KVM_ARM_VCPU_INIT ioctl.
+> >>
+> >> This doesn't reset SPSR, so this lets the VMM restart the guest with a
+> >> bad value.
+> > 
+> > That's not my reading of the code. Without a valid target, you cannot enter
+> > the guest (kvm_vcpu_initialized() prevents you to do so). To set the target,
+> > you need to issue a KVM_ARM_VCPU_INIT ioctl, which eventually calls
 > 
->> I think we should make it impossible to return to aarch32 from EL2 on
->> these systems.
+> > kvm_reset_vcpu(), which does set PSTATE to something legal.
 > 
-> And I'm saying that the above fulfills that requirement. Am I missing
-> something obvious?
+> aha! So it does, this is what I was missing.
+> 
+> 
+> > Or do you mean the guest's SPSR_EL1? Why would that matter?
+> > 
+> >> I think we should make it impossible to return to aarch32 from EL2 on
+> >> these systems.
+> > 
+> > And I'm saying that the above fulfills that requirement. Am I missing
+> > something obvious?
+> 
+> Nope, I was.
+> 
+> I agree the check on entry from user-space isn't needed.
 
-Nope, I was.
+Thanks both.
 
-I agree the check on entry from user-space isn't needed.
+So using the vcpu->arch.target = -1 is the best way forward. In my experiments
+when I did that I considered calling kvm_reset_vcpu() too, does it make sense
+to force the reset here too? Or too heavy handed?
 
+Thanks
 
-Thanks,
-
-James
+--
+Qais Yousef
