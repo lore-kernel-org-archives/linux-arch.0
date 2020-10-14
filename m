@@ -7,57 +7,58 @@ X-Spam-Status: No, score=-9.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
 	URIBL_BLOCKED autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4DA05C2BD10
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:20:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9FBD4C433DF
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:24:57 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E57E222257
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:20:03 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3A57022257
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:24:57 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="hr4N6hwj"
+	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="R63EBTH6"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2388173AbgJOBUD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 14 Oct 2020 21:20:03 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47392 "EHLO
+        id S2388549AbgJOBYz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 14 Oct 2020 21:24:55 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48192 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388102AbgJOBTi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2020 21:19:38 -0400
-Received: from mail-pf1-x443.google.com (mail-pf1-x443.google.com [IPv6:2607:f8b0:4864:20::443])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1A8AEC05BD33
-        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 15:50:31 -0700 (PDT)
-Received: by mail-pf1-x443.google.com with SMTP id e10so732862pfj.1
-        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 15:50:31 -0700 (PDT)
+        with ESMTP id S1732081AbgJOBYj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2020 21:24:39 -0400
+Received: from mail-pj1-x1044.google.com (mail-pj1-x1044.google.com [IPv6:2607:f8b0:4864:20::1044])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 73CBEC051117
+        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 15:58:14 -0700 (PDT)
+Received: by mail-pj1-x1044.google.com with SMTP id a1so651008pjd.1
+        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 15:58:14 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=chromium.org; s=google;
         h=date:from:to:cc:subject:message-id:references:mime-version
          :content-disposition:in-reply-to;
-        bh=3VrWtG2Nzyu2csFSOGvGre3/3hIZgGNscPNIfDNpl2k=;
-        b=hr4N6hwj+08gozMcwrEdmSN1/DHjJ1wV/rjoECw8Rb2Lo+XQgEYgDpitXER6aen3HX
-         eXkJa61f3G1/5SOO7jrmjCFOzgysn3m/odJ4K0c9h+p6mhA72fUnwN1sijYXM89+e5/y
-         E6EY2141rat0DkfG+cb3u9htDo0fyWs7u+jCA=
+        bh=WUVth3Yi/0Gf6s7eybXLKtt4uMjJ4xi70yGGSwDkLw0=;
+        b=R63EBTH6+0dTkzS267+O24BYdxnurWecDwGpDuhGH5wyKY0Pg8ynHUH/iEecP4Gnho
+         RfNGPWH3YDit4Wmb0luYZWOyRplddz6hFIgmHH4CLhIZt4IyCFh8a/BvWIZDZQnBcGoK
+         FZBeYg7LPlk+kUu4N8sYcxncY/8J8OqwbusLI=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:from:to:cc:subject:message-id:references
          :mime-version:content-disposition:in-reply-to;
-        bh=3VrWtG2Nzyu2csFSOGvGre3/3hIZgGNscPNIfDNpl2k=;
-        b=WjuCIMTIDSr4+2tMtHC+PgSIIpqDrq9Iz4l+yz4H7UEhhrf38qRdn/ApxhR31qugp5
-         qYFqSP82IgBcNzepv0ywFfTRt34on8Wg7bFekaLYMSV407cYK70ihO8j9zJszrnq4Uy9
-         7/iY2OWevQ8+pMNl9YEeQEB21jhT/djc0uMic20VRDe/nWo8KWsPV5NB/P2NFaAjmhyg
-         tWwoAmq6wSX8XwJrQSNgHhWA1dw2wd8z+3inMvxLrLi7F8y8pIBNGHrFLi3N9cRh0KFg
-         cnNByP8LZNOEsOFCmX1VGfEoj3Nk7ou6xYbL3IJzf0YkxUA+Py1oarcxY6N9k/mKIBak
-         mc+w==
-X-Gm-Message-State: AOAM532whBeTj9lsQALBjph89dk4sqbG7VQPAUX5OxkExWPurWMBIZV4
-        gXK2NUVVfEroaxcLSRCROuFC3g==
-X-Google-Smtp-Source: ABdhPJy3mXoDsP85zSkY2lnijaDX4p6o9n8i+9WfyCkbfe3bfD5GCGw8G2jBei5i1UDoglc5TJDPQA==
-X-Received: by 2002:a62:1856:0:b029:155:1718:91a3 with SMTP id 83-20020a6218560000b0290155171891a3mr1359345pfy.66.1602715830672;
-        Wed, 14 Oct 2020 15:50:30 -0700 (PDT)
+        bh=WUVth3Yi/0Gf6s7eybXLKtt4uMjJ4xi70yGGSwDkLw0=;
+        b=RsJY+wFJwZV3OoIHiqFyRp5a/uByk06+NVAs9XoUyNPfZ4qBQn86T989xxUxkxZ8QY
+         Q1u1QL75ghxV6En4DBTQNkO6a0+rB3wUwLJFa3lcW289UgLuFGBHAd8p9iQNBQH6gxYI
+         V/fgQDTRucOM5RIaq4ertIXqO84ETJIxtUaP8XY930gxQZBxS1imimm1RbcMpZH9RSUc
+         Nls8GDj9s7kUdErg0xAGLcIvD5DNFxxcXYCU+f7i9vQkDm2F0YeMtr83lqOPW0pyEoDo
+         bJAcZMEogdUx4q4CGHKGC3BsBXJeUJUdYf03u+mzZTSw7E9KaTRwL9C/PNmXA7Y4xeEf
+         a08A==
+X-Gm-Message-State: AOAM530VTll2YqdCPmpk0uXEpA5BcPiwvUnB4LNDHyGnZb17jVEfz8U3
+        /vJcSPcV+aWosMFwW3z8OFIYGQ==
+X-Google-Smtp-Source: ABdhPJzHdqdE46WrFZlw8R7S7F1x+3bND/WLRTw47I4euXQao8J+1ZC4KoSJiwuZcz/FXnt7OEBn6A==
+X-Received: by 2002:a17:902:59da:b029:d4:c71a:357a with SMTP id d26-20020a17090259dab02900d4c71a357amr1496188plj.38.1602716293981;
+        Wed, 14 Oct 2020 15:58:13 -0700 (PDT)
 Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
-        by smtp.gmail.com with ESMTPSA id 143sm704359pfw.13.2020.10.14.15.50.29
+        by smtp.gmail.com with ESMTPSA id g14sm715510pfo.17.2020.10.14.15.58.12
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 14 Oct 2020 15:50:29 -0700 (PDT)
-Date:   Wed, 14 Oct 2020 15:50:28 -0700
+        Wed, 14 Oct 2020 15:58:13 -0700 (PDT)
+Date:   Wed, 14 Oct 2020 15:58:12 -0700
 From:   Kees Cook <keescook@chromium.org>
-To:     Masahiro Yamada <masahiroy@kernel.org>
-Cc:     Sami Tolvanen <samitolvanen@google.com>,
+To:     Bjorn Helgaas <bhelgaas@google.com>
+Cc:     Masahiro Yamada <masahiroy@kernel.org>,
+        Sami Tolvanen <samitolvanen@google.com>,
         Steven Rostedt <rostedt@goodmis.org>,
         Will Deacon <will@kernel.org>,
         Peter Zijlstra <peterz@infradead.org>,
@@ -69,58 +70,77 @@ Cc:     Sami Tolvanen <samitolvanen@google.com>,
         linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org,
         linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org,
         x86@kernel.org
-Subject: Re: [PATCH v6 14/25] kbuild: lto: remove duplicate dependencies from
- .mod files
-Message-ID: <202010141549.412F2BF0@keescook>
+Subject: Re: [PATCH v6 17/25] PCI: Fix PREL32 relocations for LTO
+Message-ID: <202010141556.DC58D913@keescook>
 References: <20201013003203.4168817-1-samitolvanen@google.com>
- <20201013003203.4168817-15-samitolvanen@google.com>
+ <20201013003203.4168817-18-samitolvanen@google.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20201013003203.4168817-15-samitolvanen@google.com>
+In-Reply-To: <20201013003203.4168817-18-samitolvanen@google.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Oct 12, 2020 at 05:31:52PM -0700, Sami Tolvanen wrote:
-> With LTO, llvm-nm prints out symbols for each archive member
-> separately, which results in a lot of duplicate dependencies in the
-> .mod file when CONFIG_TRIM_UNUSED_SYMS is enabled. When a module
-> consists of several compilation units, the output can exceed the
-> default xargs command size limit and split the dependency list to
-> multiple lines, which results in used symbols getting trimmed.
-> 
-> This change removes duplicate dependencies, which will reduce the
-> probability of this happening and makes .mod files smaller and
-> easier to read.
+On Mon, Oct 12, 2020 at 05:31:55PM -0700, Sami Tolvanen wrote:
+> With Clang's Link Time Optimization (LTO), the compiler can rename
+> static functions to avoid global naming collisions. As PCI fixup
+> functions are typically static, renaming can break references
+> to them in inline assembly. This change adds a global stub to
+> DECLARE_PCI_FIXUP_SECTION to fix the issue when PREL32 relocations
+> are used.
 > 
 > Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+> Acked-by: Bjorn Helgaas <bhelgaas@google.com>
 > Reviewed-by: Kees Cook <keescook@chromium.org>
 
-Hi Masahiro,
-
-This appears to be a general improvement as well. This looks like it can
-land without depending on the rest of the series.
+Another independent patch! :) Bjorn, since you've already Acked this
+patch, would be be willing to pick it up for your tree?
 
 -Kees
 
 > ---
->  scripts/Makefile.build | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+>  include/linux/pci.h | 19 ++++++++++++++-----
+>  1 file changed, 14 insertions(+), 5 deletions(-)
 > 
-> diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-> index ab0ddf4884fd..96d6c9e18901 100644
-> --- a/scripts/Makefile.build
-> +++ b/scripts/Makefile.build
-> @@ -266,7 +266,7 @@ endef
+> diff --git a/include/linux/pci.h b/include/linux/pci.h
+> index 835530605c0d..4e64421981c7 100644
+> --- a/include/linux/pci.h
+> +++ b/include/linux/pci.h
+> @@ -1909,19 +1909,28 @@ enum pci_fixup_pass {
+>  };
 >  
->  # List module undefined symbols (or empty line if not enabled)
->  ifdef CONFIG_TRIM_UNUSED_KSYMS
-> -cmd_undef_syms = $(NM) $< | sed -n 's/^  *U //p' | xargs echo
-> +cmd_undef_syms = $(NM) $< | sed -n 's/^  *U //p' | sort -u | xargs echo
->  else
->  cmd_undef_syms = echo
->  endif
+>  #ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
+> -#define __DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+> -				    class_shift, hook)			\
+> -	__ADDRESSABLE(hook)						\
+> +#define ___DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+> +				    class_shift, hook, stub)		\
+> +	void stub(struct pci_dev *dev);					\
+> +	void stub(struct pci_dev *dev)					\
+> +	{ 								\
+> +		hook(dev); 						\
+> +	}								\
+>  	asm(".section "	#sec ", \"a\"				\n"	\
+>  	    ".balign	16					\n"	\
+>  	    ".short "	#vendor ", " #device "			\n"	\
+>  	    ".long "	#class ", " #class_shift "		\n"	\
+> -	    ".long "	#hook " - .				\n"	\
+> +	    ".long "	#stub " - .				\n"	\
+>  	    ".previous						\n");
+> +
+> +#define __DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+> +				  class_shift, hook, stub)		\
+> +	___DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+> +				  class_shift, hook, stub)
+>  #define DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+>  				  class_shift, hook)			\
+>  	__DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+> -				  class_shift, hook)
+> +				  class_shift, hook, __UNIQUE_ID(hook))
+>  #else
+>  /* Anonymous variables would be nice... */
+>  #define DECLARE_PCI_FIXUP_SECTION(section, name, vendor, device, class,	\
 > -- 
 > 2.28.0.1011.ga647a8990f-goog
 > 
