@@ -2,96 +2,121 @@ Return-Path: <SRS0=26Yk=DW=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+X-Spam-Status: No, score=-9.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_IN_DEF_DKIM_WL
-	autolearn=no autolearn_force=no version=3.4.0
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0884CC433E7
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:30:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 72906C433DF
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:34:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A430D22257
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:30:26 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 130C22225E
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:34:39 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="PgKjpNgr"
+	dkim=pass (1024-bit key) header.d=chromium.org header.i=@chromium.org header.b="A4NM72S6"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1732265AbgJOBaV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 14 Oct 2020 21:30:21 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49054 "EHLO
+        id S1732295AbgJOBei (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 14 Oct 2020 21:34:38 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49840 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732273AbgJOB3j (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2020 21:29:39 -0400
-Received: from mail-lf1-x144.google.com (mail-lf1-x144.google.com [IPv6:2a00:1450:4864:20::144])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 152C7C002169
-        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 17:13:16 -0700 (PDT)
-Received: by mail-lf1-x144.google.com with SMTP id z2so1498868lfr.1
-        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 17:13:15 -0700 (PDT)
+        with ESMTP id S1732278AbgJOBei (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2020 21:34:38 -0400
+Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F2D12C051123
+        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 16:04:44 -0700 (PDT)
+Received: by mail-pf1-x444.google.com with SMTP id f19so719227pfj.11
+        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 16:04:44 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=LURiEnBAw2K4z9zIAiaFYTyrr5u9bQTopZRlsHwZQ30=;
-        b=PgKjpNgrHeicAl8QzyJWoTs5A6rmp6R8Pmum8VjneOxNanE02C3iR0xMHPEKXRSwiA
-         hgbPuEmU4Y/KvHEeIBgVzlegtYfQL/e1IYCy/LveXiVHXjGwp6JSkRsgM1KwAIfKJcKw
-         xjiOyeSTmvlceona3bncz+d4u8W6hA+58+IV74pozmLNmVEOzj6zHtFH6BbvMPGb1Q1N
-         SCAyW7rDspMISGiSvIfRrqTnMCItj6RGBKiMdjZQs84SXB/tH/0v/+6ZNBKtXVi4giBx
-         5O+k8MWQSqRdXTBoaXJdV4Sbx9ykfhv8CIwDyMJZ5tK/7VE1ZpxXSBqDafewuTLQ+EfB
-         Zbrw==
+        d=chromium.org; s=google;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=HqPJcxWf/UHRmEBTt7/8+9fERJsy5yZfgCD3aK5edac=;
+        b=A4NM72S6XOBlLt7ydRqFfSTY+OzBlWVuGGGaRlZDZkxqnf9MjeK3Cltt2aQwpxz7zl
+         YPaTWKV0+tLK3Kb7pbXz2pJr1jB6+H/v5iYuk2OxW0AuK4tTcH+40f5MEDMJrkrAI+J2
+         LoHF7HCUrNhZW1eGKcy8zqurDJKuGMnRlW63c=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=LURiEnBAw2K4z9zIAiaFYTyrr5u9bQTopZRlsHwZQ30=;
-        b=Iydckrp8BfPi06N0PtXzm1m2ztTKskCLP3AswyqJ+n/gxgaPj5zo6MqSLhnZ6oPA4K
-         Nvg7puOZ/3h0cfnhBQ2xMFSb/XHULpvmYTipb41Hx7sAd0lTlfeL68RsUrylHwz81AWI
-         nmanoXshlya2m6nTrBMnzpbfLRiDKStEjw5g7pfVemoVsNhCe3QTV3osJLOjalyZBeG8
-         b/LW0g3P9lE5/BY1pTpv3QM0BaqGwpHIwtROJPhLJGkt2C0z5KZOhcvxMeu+Gxfzagh6
-         5W2haNHAvaLz6O2BLYDBp1GCJToPMpSJyI1nNsYGAMwHETQLeFcjiCVCB6Kd7+ajLeVy
-         VVsg==
-X-Gm-Message-State: AOAM532rulF0wxYwttMZDeV8vvGMuwOuRidwqKV3Z/B1ICoMPK8DEAaT
-        /lJugMJ3bd4cVu7KRDUaEKcOG8uhiNyKtbqHAaTIFw==
-X-Google-Smtp-Source: ABdhPJzXFIHFpKtLKeaohPSTTFSTn1moPmFA2URXdVrEpwDK24AygeIW08WWsjsl1A8u32KKXSdaLbgxjj+v3FNFXjU=
-X-Received: by 2002:a05:6512:52f:: with SMTP id o15mr141586lfc.381.1602720794371;
- Wed, 14 Oct 2020 17:13:14 -0700 (PDT)
-MIME-Version: 1.0
-References: <20201013003203.4168817-1-samitolvanen@google.com> <20201013003203.4168817-17-samitolvanen@google.com>
-In-Reply-To: <20201013003203.4168817-17-samitolvanen@google.com>
-From:   Jann Horn <jannh@google.com>
-Date:   Thu, 15 Oct 2020 02:12:47 +0200
-Message-ID: <CAG48ez26uiRBKS06_DQXB_GSmNjJjRiT+YA6pgLBGYCbVi2NNg@mail.gmail.com>
-Subject: Re: [PATCH v6 16/25] init: lto: fix PREL32 relocations
-To:     Sami Tolvanen <samitolvanen@google.com>
-Cc:     Masahiro Yamada <masahiroy@kernel.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=HqPJcxWf/UHRmEBTt7/8+9fERJsy5yZfgCD3aK5edac=;
+        b=oSUZKkaA2N+nZ/E8bgNHiFHV+ecM1903Brl96ghK5tkYQPtLLkl+rQedQXOP5ehgmv
+         +nnQvJBqt/ueHokZnOqHM69B5AuC/tAlOumTUsK70mH+pIPsszpEmqPeGpwOR97RX7LG
+         MvEObxSKImIGGbfvPK0wTQseZ7L2wTuTCwpcTVnx81IEv0LFWdAeTyA/yJL7L3qnnHVq
+         Z62QcZ1gBd2+XfBehSszkKKZEibZ+uwTm15rvzCOs3EyWhUEDhryNo1AYfVuAoWKiiZD
+         d8xPUHtNQqNXPE/otWwsA8LMJLwWu6twyhh/z4Q9+c66vOusQwFKuq8nSnxuobRY/3qk
+         zXcg==
+X-Gm-Message-State: AOAM533iLxGoUmLYY7KpLVUnUrCyxcAT6cCKYPLtr4+nn0IiNLlQ/iNu
+        9BogSbNuaZvybN8GwNPK7OlFwA==
+X-Google-Smtp-Source: ABdhPJxQO4z1ZaWn5pAJCV5CIuDC8XILyE1EUBiq6fM/ieZ9iTkPZPD2HOND28lI1h9ZOyny5zW2rg==
+X-Received: by 2002:a63:845:: with SMTP id 66mr938293pgi.318.1602716684465;
+        Wed, 14 Oct 2020 16:04:44 -0700 (PDT)
+Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
+        by smtp.gmail.com with ESMTPSA id d128sm743917pfc.8.2020.10.14.16.04.43
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 14 Oct 2020 16:04:43 -0700 (PDT)
+Date:   Wed, 14 Oct 2020 16:04:42 -0700
+From:   Kees Cook <keescook@chromium.org>
+To:     Ingo Molnar <mingo@kernel.org>
+Cc:     Stephen Rothwell <sfr@canb.auug.org.au>,
         Nick Desaulniers <ndesaulniers@google.com>,
-        clang-built-linux <clang-built-linux@googlegroups.com>,
-        Kernel Hardening <kernel-hardening@lists.openwall.com>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        linux-kbuild@vger.kernel.org,
-        kernel list <linux-kernel@vger.kernel.org>,
-        linux-pci@vger.kernel.org,
-        "the arch/x86 maintainers" <x86@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+        Arnd Bergmann <arnd@arndb.de>,
+        clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org, x86@kernel.org
+Subject: Re: [PATCH v2] vmlinux.lds.h: Keep .ctors.* with .ctors
+Message-ID: <202010141603.49EA0CE@keescook>
+References: <20201005025720.2599682-1-keescook@chromium.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20201005025720.2599682-1-keescook@chromium.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Oct 13, 2020 at 2:34 AM Sami Tolvanen <samitolvanen@google.com> wrote:
-> With LTO, the compiler can rename static functions to avoid global
-> naming collisions. As initcall functions are typically static,
-> renaming can break references to them in inline assembly. This
-> change adds a global stub with a stable name for each initcall to
-> fix the issue when PREL32 relocations are used.
+On Sun, Oct 04, 2020 at 07:57:20PM -0700, Kees Cook wrote:
+> Under some circumstances, the compiler generates .ctors.* sections. This
+> is seen doing a cross compile of x86_64 from a powerpc64el host:
+> 
+> x86_64-linux-gnu-ld: warning: orphan section `.ctors.65435' from `kernel/trace/trace_clock.o' being
+> placed in section `.ctors.65435'
+> x86_64-linux-gnu-ld: warning: orphan section `.ctors.65435' from `kernel/trace/ftrace.o' being
+> placed in section `.ctors.65435'
+> x86_64-linux-gnu-ld: warning: orphan section `.ctors.65435' from `kernel/trace/ring_buffer.o' being
+> placed in section `.ctors.65435'
+> 
+> Include these orphans along with the regular .ctors section.
+> 
+> Reported-by: Stephen Rothwell <sfr@canb.auug.org.au>
+> Tested-by: Stephen Rothwell <sfr@canb.auug.org.au>
+> Fixes: 83109d5d5fba ("x86/build: Warn on orphan section placement")
+> Signed-off-by: Kees Cook <keescook@chromium.org>
 
-While I understand that this may be necessary for now, are there any
-plans to fix this in the compiler in the future? There was a thread
-about this issue at
-<http://lists.llvm.org/pipermail/llvm-dev/2016-April/thread.html#98047>,
-and possible solutions were discussed there, but it looks like that
-fizzled out...
+Ping -- please take this for tip/urgent, otherwise we're drowning sfr in
+warnings. :)
+
+-Kees
+
+> ---
+> v2: brown paper bag version: fix whitespace for proper backslash alignment
+> ---
+>  include/asm-generic/vmlinux.lds.h | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 5430febd34be..b83c00c63997 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -684,6 +684,7 @@
+>  #ifdef CONFIG_CONSTRUCTORS
+>  #define KERNEL_CTORS()	. = ALIGN(8);			   \
+>  			__ctors_start = .;		   \
+> +			KEEP(*(SORT(.ctors.*)))		   \
+>  			KEEP(*(.ctors))			   \
+>  			KEEP(*(SORT(.init_array.*)))	   \
+>  			KEEP(*(.init_array))		   \
+> -- 
+> 2.25.1
+> 
+
+-- 
+Kees Cook
