@@ -2,129 +2,128 @@ Return-Path: <SRS0=26Yk=DW=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_IN_DEF_DKIM_WL autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5AC01C433DF
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:49:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BE4C5C433E7
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:55:14 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 13E9A2225F
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:49:42 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6016322257
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:55:14 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="WE7IFwP9"
+	dkim=pass (2048-bit key) header.d=amacapital-net.20150623.gappssmtp.com header.i=@amacapital-net.20150623.gappssmtp.com header.b="B/MjJBqa"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1732369AbgJOBti (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 14 Oct 2020 21:49:38 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52300 "EHLO
+        id S1732472AbgJOBzK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 14 Oct 2020 21:55:10 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53124 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732370AbgJOBth (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2020 21:49:37 -0400
-Received: from mail-lj1-x243.google.com (mail-lj1-x243.google.com [IPv6:2a00:1450:4864:20::243])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D6897C08E8AE
-        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 16:24:09 -0700 (PDT)
-Received: by mail-lj1-x243.google.com with SMTP id c21so1238919ljj.0
-        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 16:24:09 -0700 (PDT)
+        with ESMTP id S1732441AbgJOByk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2020 21:54:40 -0400
+Received: from mail-pl1-x642.google.com (mail-pl1-x642.google.com [IPv6:2607:f8b0:4864:20::642])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F2DADC0613D9
+        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 14:07:36 -0700 (PDT)
+Received: by mail-pl1-x642.google.com with SMTP id w11so359751pll.8
+        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 14:07:36 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=G1p4V+7SeMLHnh08qcMlfbDl3wtxivqtmtup/MyvFDY=;
-        b=WE7IFwP9IhL8DE1zZKJle/ZGrNF6+L4elBdskKUHhzr6aRc+x7wWJi20JSldqtkJ7Z
-         j/7BB6dyuTbU5p9PSE8H3XtV1HRU//Yqj6FJa8U+jMWDY41ES81W1cB++Kto9YrI/Q9M
-         lg7UOj5OnYiqZbnuwDy16M4Ygj4NgVILO1Me3MLBRFSsQxX9nkWQCeKpS7ipOCfd1Eqg
-         M0MC2h3UVNaHCnV0m7sBQfkfVwxLkCsUo4Uff8EHxKLN05AZsmdIMReoJfBYKlL6Kg3q
-         +7i9vZUIztJLnoCIPO/bJoqUuwmFkJ1IK4411mBF4oyBnjITBziC24r05hMyonx/2eTu
-         eLyw==
+        d=amacapital-net.20150623.gappssmtp.com; s=20150623;
+        h=content-transfer-encoding:from:mime-version:subject:date:message-id
+         :references:cc:in-reply-to:to;
+        bh=dR7lB2w8aCjI+7SL+gCWVnyWE0EcJqrEtve/Fbe7wCs=;
+        b=B/MjJBqabR3kHP8fuBSvbUC1hpjUg/luJg1VJj+JARvr6cqZGaBRBHiO64T1qx5Rz7
+         jUR16cnHImawwz9obH9+PQiNMrBTw11th2E5mmAmePsS/Jq8oWK/UrnHLPf2dMOUMrJz
+         Rj5PceZQsnxljXjERM8WV5U0foTw7fXr2J0EApon+KYJiAPlqBouCxvl3tSndHbB9IB2
+         RZ92Jp5l+sW62Ablfb58utH8lz8FqYU4TTVIAZbSvWJlJMdH7B7+6Weotzz0eekyB5cu
+         el6K4FFvc3oekO0Y8Xt5arM6WYR4BGQYcfpUpoknPGHQAEUtj3vY7RqRXNf4x7iqDJrA
+         3LgQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=G1p4V+7SeMLHnh08qcMlfbDl3wtxivqtmtup/MyvFDY=;
-        b=S/1/f+GOzZ++FtJo9rnpq65M3qUT1r8oNloLo5LejHPpCnA/NJdiqEsEnpDFXIehZY
-         nnRo/ZcXX+KpmZX82zngODkKodfg+7oq/ilefACRHCH/aBKPRoNyEaqDR/oGRXk+PXfI
-         xme2U0AXvV3UsGVDrxsODBiIMovwR0tIjFgPM6eF1fHKU+Q9pXjZSwEpQbQcLKXkuiM0
-         MpnB5rB9S78fSqWTXKejeVQJcSIKs0oJMfzi078Mau6qEHxE1wFdDtv/+rHCiQijlsQg
-         bGpbeAlrm/rtsR+pc/vHgtu+cxy34NHrz1R3idMowufu6m0ONkmNfQlwul1JHqU9OfQA
-         xGyw==
-X-Gm-Message-State: AOAM53028xCnKCL7HKaf4qh0YiOhH1wtmYsj89+CsqcbqBtcrJapVe95
-        RtE4bD1JloYaGcYOWxA11cJYXmtgZcSG9iYReeXHBQ==
-X-Google-Smtp-Source: ABdhPJydMCD+XHL2TSxEVaZRxaszslycs2dTV+hsdRxTeju9rh0yCfYdZANr/pfddpUzM3d5IpL0YBG2d5o1ouutlCY=
-X-Received: by 2002:a2e:e1a:: with SMTP id 26mr156295ljo.377.1602717848016;
- Wed, 14 Oct 2020 16:24:08 -0700 (PDT)
-MIME-Version: 1.0
-References: <20201013003203.4168817-1-samitolvanen@google.com> <20201013003203.4168817-23-samitolvanen@google.com>
-In-Reply-To: <20201013003203.4168817-23-samitolvanen@google.com>
-From:   Jann Horn <jannh@google.com>
-Date:   Thu, 15 Oct 2020 01:23:41 +0200
-Message-ID: <CAG48ez2baAvKDA0wfYLKy-KnM_1CdOwjU873VJGDM=CErjsv_A@mail.gmail.com>
-Subject: Re: [PATCH v6 22/25] x86/asm: annotate indirect jumps
-To:     Sami Tolvanen <samitolvanen@google.com>,
-        Josh Poimboeuf <jpoimboe@redhat.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        "the arch/x86 maintainers" <x86@kernel.org>
-Cc:     Masahiro Yamada <masahiroy@kernel.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Will Deacon <will@kernel.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        clang-built-linux <clang-built-linux@googlegroups.com>,
-        Kernel Hardening <kernel-hardening@lists.openwall.com>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        linux-kbuild@vger.kernel.org,
-        kernel list <linux-kernel@vger.kernel.org>,
-        linux-pci@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+        h=x-gm-message-state:content-transfer-encoding:from:mime-version
+         :subject:date:message-id:references:cc:in-reply-to:to;
+        bh=dR7lB2w8aCjI+7SL+gCWVnyWE0EcJqrEtve/Fbe7wCs=;
+        b=M9N8uZ4sMKyzKnB66ItR9Ed+cqrQBiC39Qaktm5wJUe4Y2JfDykh6NzAy4jXPv97gp
+         +F0gD2JFT8+WSVDkHYzl5urRGVstTGvhtg6ZrEs/OLs16vO9za3pY2AIwBw+oa2r9Tkf
+         WGHyptLUjyoWuz67RTMNspF8lWswVBuTixj+nkYyVkiQ/7M70jRUaQaXrmTXfgIq5afE
+         pGS+Vmd+6xx0LbB5r8/6uPigJHFg62LmlxXC/u7X5S53SQgHDbiDHPZ1RCaQLOMSTUyZ
+         FTqignLUybmyw1IRfeHmE/oVIIC/+zdyrp+uEK0RGtNW7E4GxCq5PqUK2kzXf4+8lkqL
+         /UVg==
+X-Gm-Message-State: AOAM5325UcSlkNTR7Du0Rd4S2k7TiLP7IZV9DM6+0xszmnEGC6dy2gzy
+        uZ5meu/6ELhzHZgwRlmfqBpLmQ==
+X-Google-Smtp-Source: ABdhPJykDDF86fwzs6jHsxI1qVDwzTE5CSv91OmX/qxVA0fgG8du089mMPQ6hbvROZzrmDNYuE/fNw==
+X-Received: by 2002:a17:90a:4e47:: with SMTP id t7mr1017421pjl.26.1602709655153;
+        Wed, 14 Oct 2020 14:07:35 -0700 (PDT)
+Received: from ?IPv6:2601:646:c200:1ef2:21fb:4af8:8865:6308? ([2601:646:c200:1ef2:21fb:4af8:8865:6308])
+        by smtp.gmail.com with ESMTPSA id jy19sm501565pjb.9.2020.10.14.14.07.34
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 14 Oct 2020 14:07:34 -0700 (PDT)
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+From:   Andy Lutomirski <luto@amacapital.net>
+Mime-Version: 1.0 (1.0)
+Subject: Re: [PATCH 5/8] x86/clear_page: add clear_page_uncached()
+Date:   Wed, 14 Oct 2020 14:07:30 -0700
+Message-Id: <22E29783-F1F5-43DA-B35F-D75FB247475D@amacapital.net>
+References: <20201014195823.GC18196@zn.tnic>
+Cc:     Andy Lutomirski <luto@kernel.org>,
+        Ankur Arora <ankur.a.arora@oracle.com>,
+        LKML <linux-kernel@vger.kernel.org>,
+        Linux-MM <linux-mm@kvack.org>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Michal Hocko <mhocko@kernel.org>,
+        Boris Ostrovsky <boris.ostrovsky@oracle.com>,
+        Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Ira Weiny <ira.weiny@intel.com>,
+        linux-arch <linux-arch@vger.kernel.org>
+In-Reply-To: <20201014195823.GC18196@zn.tnic>
+To:     Borislav Petkov <bp@alien8.de>
+X-Mailer: iPhone Mail (18A393)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-+objtool folks
 
-On Tue, Oct 13, 2020 at 2:35 AM Sami Tolvanen <samitolvanen@google.com> wrote:
-> Running objtool --vmlinux --duplicate on vmlinux.o produces a few
-> warnings about indirect jumps with retpoline:
->
->   vmlinux.o: warning: objtool: wakeup_long64()+0x61: indirect jump
->   found in RETPOLINE build
->   ...
->
-> This change adds ANNOTATE_RETPOLINE_SAFE annotations to the jumps
-> in assembly code to stop the warnings.
 
-In other words, this patch deals with the fact that
-OBJECT_FILES_NON_STANDARD stops being effective for object files that
-are linked into the main kernel when LTO is on, right?
-All the files you're touching here are supposed to be excluded from
-objtool warnings at the moment:
 
-$ grep OBJECT_FILES_NON_STANDARD arch/x86/kernel/acpi/Makefile
-OBJECT_FILES_NON_STANDARD_wakeup_$(BITS).o := y
-$ grep OBJECT_FILES_NON_STANDARD arch/x86/platform/pvh/Makefile
-OBJECT_FILES_NON_STANDARD_head.o := y
-$ grep OBJECT_FILES_NON_STANDARD arch/x86/power/Makefile
-OBJECT_FILES_NON_STANDARD_hibernate_asm_$(BITS).o := y
+> On Oct 14, 2020, at 12:58 PM, Borislav Petkov <bp@alien8.de> wrote:
+>=20
+> =EF=BB=BFOn Wed, Oct 14, 2020 at 08:45:37AM -0700, Andy Lutomirski wrote:
+>>> On Wed, Oct 14, 2020 at 1:33 AM Ankur Arora <ankur.a.arora@oracle.com> w=
+rote:
+>>>=20
+>>> Define clear_page_uncached() as an alternative_call() to clear_page_nt()=
 
-It would probably be good to keep LTO and non-LTO builds in sync about
-which files are subjected to objtool checks. So either you should be
-removing the OBJECT_FILES_NON_STANDARD annotations for anything that
-is linked into the main kernel (which would be a nice cleanup, if that
-is possible), or alternatively ensure that code from these files is
-excluded from objtool checks even with LTO (that'd probably be messy
-and a bad idea?).
+>>> if the CPU sets X86_FEATURE_NT_GOOD and fallback to clear_page() if it
+>>> doesn't.
+>>>=20
+>>> Similarly define clear_page_uncached_flush() which provides an SFENCE
+>>> if the CPU sets X86_FEATURE_NT_GOOD.
+>>=20
+>> As long as you keep "NT" or "MOVNTI" in the names and keep functions
+>> in arch/x86, I think it's reasonable to expect that callers understand
+>> that MOVNTI has bizarre memory ordering rules.  But once you give
+>> something a generic name like "clear_page_uncached" and stick it in
+>> generic code, I think the semantics should be more obvious.
+>=20
+> Why does it have to be a separate call? Why isn't it behind the
+> clear_page() alternative machinery so that the proper function is
+> selected at boot? IOW, why does a user of clear_page functionality need
+> to know at all about an "uncached" variant?
+>=20
+>=20
 
-Grepping for other files marked as OBJECT_FILES_NON_STANDARD that
-might be included in the main kernel on x86, I also see stuff like:
+I assume it=E2=80=99s for a little optimization of clearing more than one pa=
+ge per SFENCE.
 
-    5 arch/x86/crypto/Makefile                            5
-OBJECT_FILES_NON_STANDARD := y
-   10 arch/x86/kernel/Makefile                           39
-OBJECT_FILES_NON_STANDARD_ftrace_$(BITS).o          := y
-   12 arch/x86/kvm/Makefile                               7
-OBJECT_FILES_NON_STANDARD_vmenter.o := y
+In any event, based on the benchmark data upthread, we only want to do NT cl=
+ears when they=E2=80=99re rather large, so this shouldn=E2=80=99t be just an=
+ alternative. I assume this is because a page or two will fit in cache and, f=
+or most uses that allocate zeroed pages, we prefer cache-hot pages.  When cl=
+earing 1G, on the other hand, cache-hot is impossible and we prefer the impr=
+oved bandwidth and less cache trashing of NT clears.
 
-for which I think the same thing applies.
+Perhaps SFENCE is so fast that this is a silly optimization, though, and we d=
+on=E2=80=99t lose anything measurable by SFENCEing once per page.=
