@@ -2,81 +2,84 @@ Return-Path: <SRS0=9GLg=DV=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.9 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3CF5FC433E7
-	for <linux-arch@archiver.kernel.org>; Wed, 14 Oct 2020 18:21:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D000CC433E7
+	for <linux-arch@archiver.kernel.org>; Wed, 14 Oct 2020 18:48:42 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id AF2902222C
-	for <linux-arch@archiver.kernel.org>; Wed, 14 Oct 2020 18:21:48 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="icPeuHkh"
+	by mail.kernel.org (Postfix) with ESMTP id 6E2EF22246
+	for <linux-arch@archiver.kernel.org>; Wed, 14 Oct 2020 18:48:42 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729462AbgJNSVs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 14 Oct 2020 14:21:48 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39222 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726830AbgJNSVs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2020 14:21:48 -0400
-Received: from merlin.infradead.org (merlin.infradead.org [IPv6:2001:8b0:10b:1231::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CC9E4C061755;
-        Wed, 14 Oct 2020 11:21:47 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=merlin.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=4D+6T/0Jyivj7fxKw3DZP3bEv4Hi+6DaIRYNjOGogQc=; b=icPeuHkhwm/7g2D5K7SjNoPM5s
-        al/it2gTFcFnA3j1b1bbGIvp9LTWyagOXzUN5jvmI0GDPi6ml4eD0d52R2OwRtyKSvCS+k4demdSu
-        VT5KGDheTz5gEsE3WBJE9K02m+nLco4ZktkKbpuxeQdHPW3/i9FtrGhn6R3XCDKJQd/onhJsK73W4
-        LKhukfnTNYT9ZUzSX6bJ/yNVJYi9sFnQkAK2Ap4gEoxUpX3920FOVTde0jJ7FAsLgwsBb9awOT8wF
-        J2wNgf1SGp7lO6tY4adBbux1qDforNMyg6G3iWIsLIfBozBc0lW3wPEQ/gxl/dF/llRv6F8wwIxxm
-        oZgiXiXg==;
-Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
-        by merlin.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kSlOq-0004TS-Kg; Wed, 14 Oct 2020 18:21:20 +0000
-Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 402B0300DAE;
-        Wed, 14 Oct 2020 20:21:15 +0200 (CEST)
-Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
-        id 23F3520696FD8; Wed, 14 Oct 2020 20:21:15 +0200 (CEST)
-Date:   Wed, 14 Oct 2020 20:21:15 +0200
-From:   Peter Zijlstra <peterz@infradead.org>
-To:     Ingo Molnar <mingo@kernel.org>
-Cc:     Sami Tolvanen <samitolvanen@google.com>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Will Deacon <will@kernel.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
+        id S1730119AbgJNSsl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 14 Oct 2020 14:48:41 -0400
+Received: from namei.org ([65.99.196.166]:35602 "EHLO namei.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726269AbgJNSsl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Oct 2020 14:48:41 -0400
+X-Greylist: delayed 2428 seconds by postgrey-1.27 at vger.kernel.org; Wed, 14 Oct 2020 14:48:41 EDT
+Received: from localhost (localhost [127.0.0.1])
+        by namei.org (8.14.4/8.14.4) with ESMTP id 09EI7CpI027390;
+        Wed, 14 Oct 2020 18:07:13 GMT
+Date:   Thu, 15 Oct 2020 05:07:12 +1100 (AEDT)
+From:   James Morris <jmorris@namei.org>
+To:     =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mic@digikod.net>
+cc:     linux-kernel@vger.kernel.org,
+        "Serge E . Hallyn" <serge@hallyn.com>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Richard Weinberger <richard@nod.at>,
+        Andy Lutomirski <luto@amacapital.net>,
+        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Casey Schaufler <casey@schaufler-ca.com>,
+        Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>,
+        Jonathan Corbet <corbet@lwn.net>,
         Kees Cook <keescook@chromium.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        clang-built-linux@googlegroups.com,
-        kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org,
-        x86@kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v6 02/25] objtool: Add a pass for generating __mcount_loc
-Message-ID: <20201014182115.GF2594@hirez.programming.kicks-ass.net>
-References: <20201013003203.4168817-1-samitolvanen@google.com>
- <20201013003203.4168817-3-samitolvanen@google.com>
- <20201014165004.GA3593121@gmail.com>
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Shuah Khan <shuah@kernel.org>,
+        Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>,
+        kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
+        linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-security-module@vger.kernel.org, x86@kernel.org,
+        =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mic@linux.microsoft.com>
+Subject: Re: [PATCH v21 07/12] landlock: Support filesystem access-control
+In-Reply-To: <20201008153103.1155388-8-mic@digikod.net>
+Message-ID: <alpine.LRH.2.21.2010150504360.26012@namei.org>
+References: <20201008153103.1155388-1-mic@digikod.net> <20201008153103.1155388-8-mic@digikod.net>
+User-Agent: Alpine 2.21 (LRH 202 2017-01-01)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20201014165004.GA3593121@gmail.com>
+Content-Type: multipart/mixed; boundary="1665246916-928235661-1602698835=:26012"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Oct 14, 2020 at 06:50:04PM +0200, Ingo Molnar wrote:
-> Meh, adding --mcount as an option to 'objtool check' was a valid hack for a 
-> prototype patchset, but please turn this into a proper subcommand, just 
-> like 'objtool orc' is.
-> 
-> 'objtool check' should ... keep checking. :-)
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-No, no subcommands. orc being a subcommand was a mistake.
+--1665246916-928235661-1602698835=:26012
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
+
+On Thu, 8 Oct 2020, Mickaël Salaün wrote:
+
+> +config ARCH_EPHEMERAL_STATES
+> +	def_bool n
+> +	help
+> +	  An arch should select this symbol if it does not keep an internal kernel
+> +	  state for kernel objects such as inodes, but instead relies on something
+> +	  else (e.g. the host kernel for an UML kernel).
+> +
+
+This is used to disable Landlock for UML, correct? I wonder if it could be 
+more specific: "ephemeral states" is a very broad term.
+
+How about something like ARCH_OWN_INODES ?
+
+
+-- 
+James Morris
+<jmorris@namei.org>
+
+--1665246916-928235661-1602698835=:26012--
