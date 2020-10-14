@@ -2,96 +2,83 @@ Return-Path: <SRS0=9GLg=DV=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.9 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-9.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5D043C433E7
-	for <linux-arch@archiver.kernel.org>; Wed, 14 Oct 2020 22:54:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C22AEC433E7
+	for <linux-arch@archiver.kernel.org>; Wed, 14 Oct 2020 23:02:37 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 097DC20797
-	for <linux-arch@archiver.kernel.org>; Wed, 14 Oct 2020 22:54:24 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5A0B722273
+	for <linux-arch@archiver.kernel.org>; Wed, 14 Oct 2020 23:02:37 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=zx2c4.com header.i=@zx2c4.com header.b="PQ2llucr"
+	dkim=pass (2048-bit key) header.d=zx2c4.com header.i=@zx2c4.com header.b="gYz9PJ4B"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730190AbgJNWyY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 14 Oct 2020 18:54:24 -0400
-Received: from mail.zx2c4.com ([192.95.5.64]:47737 "EHLO mail.zx2c4.com"
+        id S1731068AbgJNXCc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 14 Oct 2020 19:02:32 -0400
+Received: from mail.zx2c4.com ([192.95.5.64]:42481 "EHLO mail.zx2c4.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730189AbgJNWyY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Oct 2020 18:54:24 -0400
-Received: by mail.zx2c4.com (ZX2C4 Mail Server) with ESMTP id 23c1002f;
-        Wed, 14 Oct 2020 22:20:45 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha1; c=relaxed; d=zx2c4.com; h=mime-version
-        :references:in-reply-to:from:date:message-id:subject:to:cc
-        :content-type; s=mail; bh=XHEkKwOSP573OP70L/G1jZ0zw04=; b=PQ2llu
-        cr3zGJ+52nI/pqkMngSSZZ9wZNWDMwBl6uKh+xy690cAQFpDU38IrclZZMvbhEEg
-        TlC3A7FeHR3m2FywHbaFSemG19VZW66w+bo/wnTN0D58Eps2+KSlKPNf2UEPPXjO
-        9cOi4gXE1aZeGmSVMySaKCU2DlRGkPHcnwpmLfota4omz+72DlgVJwxGcBVAQKSd
-        nWZQb1Qe4Wz7lPSgRRulRxJ09QcEvoyw4SKiRi1f3F5xaTbTPiKKdeQ6eFY7l15G
-        2FjDC53qpvnU1robvQLw+aNvysJk0x4ECz/wLC1MGxBkD4v+TW3NI8mGhyLw9vtR
-        T+oq8TX5x64CJrUg==
-Received: by mail.zx2c4.com (ZX2C4 Mail Server) with ESMTPSA id ee2c4fb9 (TLSv1.3:TLS_AES_256_GCM_SHA384:256:NO);
-        Wed, 14 Oct 2020 22:20:44 +0000 (UTC)
-Received: by mail-io1-f46.google.com with SMTP id k21so1675067ioa.9;
-        Wed, 14 Oct 2020 15:54:19 -0700 (PDT)
-X-Gm-Message-State: AOAM530D2a2hbEvi3efQYP2heNl1xGxuRZcWqRSYOsXiFoYYysiMy78s
-        +NVAbC4w9ww4Y4wtbIvvwzlK3keHOlCe1AFl2cI=
-X-Google-Smtp-Source: ABdhPJx7nd6uZrd5MITcpSjRtd7mzZC+L8JBlUV/DELdqVqYoh9IsAgj+V2g9lJeL+rJRWYAJRljcfDWts9sMse3T8Q=
-X-Received: by 2002:a5e:d606:: with SMTP id w6mr1206594iom.67.1602716059144;
- Wed, 14 Oct 2020 15:54:19 -0700 (PDT)
-MIME-Version: 1.0
-References: <20200724012512.GK2786714@ZenIV.linux.org.uk> <20200724012546.302155-1-viro@ZenIV.linux.org.uk>
- <20200724012546.302155-20-viro@ZenIV.linux.org.uk> <20201014222650.GA390346@zx2c4.com>
- <CAHk-=wgTrpV=mT_EZF1BbWxqezrFJRJcaDtuM58qXMXk9=iaZA@mail.gmail.com> <CAHk-=wj_rmS+kQvC9DccZy=UiUFJVFG9=fQajtfSCSP1h0Rofw@mail.gmail.com>
-In-Reply-To: <CAHk-=wj_rmS+kQvC9DccZy=UiUFJVFG9=fQajtfSCSP1h0Rofw@mail.gmail.com>
+        id S1731265AbgJNXCS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Oct 2020 19:02:18 -0400
+Received: by mail.zx2c4.com (ZX2C4 Mail Server) with ESMTP id 075e12dc;
+        Wed, 14 Oct 2020 22:28:40 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed; d=zx2c4.com; h=from:to:cc
+        :subject:date:message-id:in-reply-to:references:mime-version
+        :content-transfer-encoding; s=mail; bh=EPozuoj+BDm/fNTp6nmCgRrnb
+        EI=; b=gYz9PJ4B7EuU6vk6qPqdAddg4bDnwzOOhB6j96pC1QC6JhgGVLnYQz//V
+        MCUGHyzXTkEynX7iFMjllnvi0ui1qLCCbWWq0E6/JfxIbFUmwx85fYInWLGTU2x8
+        uGMPSFB6nnmKrmWU585OZjOG9jA9TOlN56cqtPJG6LWOlxlD0RJsWYdrar/f8hVM
+        1zTcSfx+0yvy532DRFJMpXnnpv6TJp4EZ5C+x36/7kFXFanjjCpD+5ol4Sh/8jd6
+        aj0bz65xTT3as0O4g2fOyDLcEbpkGSKn1Fh7X1lw7JrRZdsIiBt2eJ0C13DqlPUO
+        kF+2z+5Ug6eHBHfoQXEPlMCqc9wZA==
+Received: by mail.zx2c4.com (ZX2C4 Mail Server) with ESMTPSA id 992bda79 (TLSv1.3:TLS_AES_256_GCM_SHA384:256:NO);
+        Wed, 14 Oct 2020 22:28:40 +0000 (UTC)
 From:   "Jason A. Donenfeld" <Jason@zx2c4.com>
-Date:   Thu, 15 Oct 2020 00:54:08 +0200
-X-Gmail-Original-Message-ID: <CAHmME9r-tC_RvYFiUKKS-5Z6z9Egd5NCWupv9FVpYt+khKR+7Q@mail.gmail.com>
-Message-ID: <CAHmME9r-tC_RvYFiUKKS-5Z6z9Egd5NCWupv9FVpYt+khKR+7Q@mail.gmail.com>
-Subject: Re: [PATCH v2 20/20] ppc: propagate the calling conventions change
- down to csum_partial_copy_generic()
-To:     Linus Torvalds <torvalds@linux-foundation.org>
-Cc:     Al Viro <viro@zeniv.linux.org.uk>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Netdev <netdev@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+To:     Al Viro <viro@zeniv.linux.org.uk>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        netdev@vger.kernel.org
+Cc:     "Jason A. Donenfeld" <Jason@zx2c4.com>
+Subject: [PATCH] powerpc32: don't adjust unmoved stack pointer in csum_partial_copy_generic() epilogue
+Date:   Thu, 15 Oct 2020 01:02:09 +0200
+Message-Id: <20201014230209.427011-1-Jason@zx2c4.com>
+In-Reply-To: <20201014222650.GA390346@zx2c4.com>
+References: <20201014222650.GA390346@zx2c4.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Oct 15, 2020 at 12:53 AM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> On Wed, Oct 14, 2020 at 3:51 PM Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > I think it's this instruction:
-> >
-> >         addi    r1,r1,16
-> >
-> > that should be removed from the function exit, because Al removed the
-> >
-> > -       stwu    r1,-16(r1)
-> >
-> > on function entry.
-> >
-> > So I think you end up with a corrupt stack pointer and basically
-> > random behavior.
-> >
-> > Mind trying that? (This is obviously all in
-> > arch/powerpc/lib/checksum_32.S, the csum_partial_copy_generic()
-> > function).
->
-> Patch attached to make it easier to test.
->
-> NOTE! This is ENTIRELY untested. My ppc asm is so rusty that I might
-> be barking entirely up the wrong tree, and I just made things much
-> worse.
+A recent change to the checksum code removed usage of some extra
+arguments, alongside with storage on the stack for those, and the stack
+pointer no longer needed to be adjusted in the function prologue. But, a
+left over subtraction wasn't removed in the function epilogue, causing
+the function to return with the stack pointer moved 16 bytes away from
+where it should have. This corrupted local state and lead to weird
+crashes. This commit simply removes the leftover instruction from the
+epilogue.
 
-Indeed - exactly the same thing that's in my tree. Writing a commit
-message for it now.
+Fixes: 70d65cd555c5 ("ppc: propagate the calling conventions change down to csum_partial_copy_generic()")
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Jason A. Donenfeld <Jason@zx2c4.com>
+---
+ arch/powerpc/lib/checksum_32.S | 1 -
+ 1 file changed, 1 deletion(-)
 
-Jason
+diff --git a/arch/powerpc/lib/checksum_32.S b/arch/powerpc/lib/checksum_32.S
+index ec5cd2dede35..27d9070617df 100644
+--- a/arch/powerpc/lib/checksum_32.S
++++ b/arch/powerpc/lib/checksum_32.S
+@@ -236,7 +236,6 @@ _GLOBAL(csum_partial_copy_generic)
+ 	slwi	r0,r0,8
+ 	adde	r12,r12,r0
+ 66:	addze	r3,r12
+-	addi	r1,r1,16
+ 	beqlr+	cr7
+ 	rlwinm	r3,r3,8,0,31	/* odd destination address: rotate one byte */
+ 	blr
+-- 
+2.28.0
+
