@@ -2,128 +2,169 @@ Return-Path: <SRS0=26Yk=DW=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-14.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
+	USER_IN_DEF_DKIM_WL autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BE4C5C433E7
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:55:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 53FB9C433E7
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 02:09:57 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6016322257
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 01:55:14 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0091E22257
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 02:09:56 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=amacapital-net.20150623.gappssmtp.com header.i=@amacapital-net.20150623.gappssmtp.com header.b="B/MjJBqa"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="hV3EcZ9e"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1732472AbgJOBzK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 14 Oct 2020 21:55:10 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53124 "EHLO
+        id S1732587AbgJOCJw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 14 Oct 2020 22:09:52 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55616 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732441AbgJOByk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2020 21:54:40 -0400
-Received: from mail-pl1-x642.google.com (mail-pl1-x642.google.com [IPv6:2607:f8b0:4864:20::642])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F2DADC0613D9
-        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 14:07:36 -0700 (PDT)
-Received: by mail-pl1-x642.google.com with SMTP id w11so359751pll.8
-        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 14:07:36 -0700 (PDT)
+        with ESMTP id S1729709AbgJOCJh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2020 22:09:37 -0400
+Received: from mail-vs1-xe43.google.com (mail-vs1-xe43.google.com [IPv6:2607:f8b0:4864:20::e43])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AB4D9C02524A
+        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 16:43:36 -0700 (PDT)
+Received: by mail-vs1-xe43.google.com with SMTP id x185so455562vsb.1
+        for <linux-arch@vger.kernel.org>; Wed, 14 Oct 2020 16:43:36 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=amacapital-net.20150623.gappssmtp.com; s=20150623;
-        h=content-transfer-encoding:from:mime-version:subject:date:message-id
-         :references:cc:in-reply-to:to;
-        bh=dR7lB2w8aCjI+7SL+gCWVnyWE0EcJqrEtve/Fbe7wCs=;
-        b=B/MjJBqabR3kHP8fuBSvbUC1hpjUg/luJg1VJj+JARvr6cqZGaBRBHiO64T1qx5Rz7
-         jUR16cnHImawwz9obH9+PQiNMrBTw11th2E5mmAmePsS/Jq8oWK/UrnHLPf2dMOUMrJz
-         Rj5PceZQsnxljXjERM8WV5U0foTw7fXr2J0EApon+KYJiAPlqBouCxvl3tSndHbB9IB2
-         RZ92Jp5l+sW62Ablfb58utH8lz8FqYU4TTVIAZbSvWJlJMdH7B7+6Weotzz0eekyB5cu
-         el6K4FFvc3oekO0Y8Xt5arM6WYR4BGQYcfpUpoknPGHQAEUtj3vY7RqRXNf4x7iqDJrA
-         3LgQ==
+        d=google.com; s=20161025;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=3w+czKVyohLMxBcXMIaP13GyxeCO5C8H4KHeiFeA5uE=;
+        b=hV3EcZ9e3iiFPQCKxp7ayResTreDTTT76eiBKWopdm7fBfVSbydoH4uXlekHQ37vFk
+         zXpjjyq2lbfupZnYFdy/4eW/r2w+5nK8rn9/C7Ni/VNeluvRNzP3QUg/mt1POZBJ9O0X
+         jcnNTSyxegxhdYNM3DdKtv/sWIWampNQct9P5kInAEkhPUgYLgCN8rT0gu2Csfby6BXB
+         /oxUCPbsL6bdghzdHIkIYo0VATfcR/5zNwpsmypwYFbAtMXIuB+CtBKLkcS4DP4wTIwH
+         7hSJvYCS1NhA/vlYV2HrSlu2BqkSsu85i0QsR9NkaI7g60OotH2kXXOQ7SwwmjFEvGuF
+         2PKw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:content-transfer-encoding:from:mime-version
-         :subject:date:message-id:references:cc:in-reply-to:to;
-        bh=dR7lB2w8aCjI+7SL+gCWVnyWE0EcJqrEtve/Fbe7wCs=;
-        b=M9N8uZ4sMKyzKnB66ItR9Ed+cqrQBiC39Qaktm5wJUe4Y2JfDykh6NzAy4jXPv97gp
-         +F0gD2JFT8+WSVDkHYzl5urRGVstTGvhtg6ZrEs/OLs16vO9za3pY2AIwBw+oa2r9Tkf
-         WGHyptLUjyoWuz67RTMNspF8lWswVBuTixj+nkYyVkiQ/7M70jRUaQaXrmTXfgIq5afE
-         pGS+Vmd+6xx0LbB5r8/6uPigJHFg62LmlxXC/u7X5S53SQgHDbiDHPZ1RCaQLOMSTUyZ
-         FTqignLUybmyw1IRfeHmE/oVIIC/+zdyrp+uEK0RGtNW7E4GxCq5PqUK2kzXf4+8lkqL
-         /UVg==
-X-Gm-Message-State: AOAM5325UcSlkNTR7Du0Rd4S2k7TiLP7IZV9DM6+0xszmnEGC6dy2gzy
-        uZ5meu/6ELhzHZgwRlmfqBpLmQ==
-X-Google-Smtp-Source: ABdhPJykDDF86fwzs6jHsxI1qVDwzTE5CSv91OmX/qxVA0fgG8du089mMPQ6hbvROZzrmDNYuE/fNw==
-X-Received: by 2002:a17:90a:4e47:: with SMTP id t7mr1017421pjl.26.1602709655153;
-        Wed, 14 Oct 2020 14:07:35 -0700 (PDT)
-Received: from ?IPv6:2601:646:c200:1ef2:21fb:4af8:8865:6308? ([2601:646:c200:1ef2:21fb:4af8:8865:6308])
-        by smtp.gmail.com with ESMTPSA id jy19sm501565pjb.9.2020.10.14.14.07.34
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Wed, 14 Oct 2020 14:07:34 -0700 (PDT)
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-From:   Andy Lutomirski <luto@amacapital.net>
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH 5/8] x86/clear_page: add clear_page_uncached()
-Date:   Wed, 14 Oct 2020 14:07:30 -0700
-Message-Id: <22E29783-F1F5-43DA-B35F-D75FB247475D@amacapital.net>
-References: <20201014195823.GC18196@zn.tnic>
-Cc:     Andy Lutomirski <luto@kernel.org>,
-        Ankur Arora <ankur.a.arora@oracle.com>,
-        LKML <linux-kernel@vger.kernel.org>,
-        Linux-MM <linux-mm@kvack.org>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Michal Hocko <mhocko@kernel.org>,
-        Boris Ostrovsky <boris.ostrovsky@oracle.com>,
-        Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>,
-        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=3w+czKVyohLMxBcXMIaP13GyxeCO5C8H4KHeiFeA5uE=;
+        b=Vxj9hUzgyEZpSg6oxLOfklcPIRejabrAMwTy9vmxVOaSH69o+pM2mTzTIY4BiY5j10
+         J/+JNa9kzx/JdwOx4sqACLl43riAy00ROITyqZUc00ICarqwDW94XTduVhoRRtLku1iJ
+         rpoa573ypAtHY3dCFSVR9NHmTyo+CQ6OPZkn9JpNiaQNOubF5m57q/De71xqDfH+UEIk
+         UlyFe0dYMUjwZ/PFKbqRfRKN9zsSU5zSpjyga0DjaBRm+J3WI7Yn6wJlFueb8gGZGjxf
+         wgEN84rp1+RenNZMexsc0cqnhySLGbQ0JW9B3Y0/GWX7tTK28uX/FtJYJmw/TvJc2l3t
+         543Q==
+X-Gm-Message-State: AOAM530lA8HMNn3S4zteoBMwzXwzs0uZTVvtuw8wJYmangPB2eZEPPQ8
+        FdNA5OSd/F23TseJKVdu7W9XZzgaUJVMEo2Ez5SBag==
+X-Google-Smtp-Source: ABdhPJy+uau90omOax4ZnuqjzDGaW3nLTRRyJ6xot3CSnMwXblec2A/H42qx53XH50y1gjhVCjq44S8JtpYTB76HiVE=
+X-Received: by 2002:a67:fb96:: with SMTP id n22mr1213426vsr.13.1602719015516;
+ Wed, 14 Oct 2020 16:43:35 -0700 (PDT)
+MIME-Version: 1.0
+References: <20200904103029.32083-1-catalin.marinas@arm.com>
+ <20200904103029.32083-30-catalin.marinas@arm.com> <20200917081107.GA29031@willie-the-truck>
+ <20200917090229.GA10662@gaia> <20200917161550.GA6642@arm.com> <20200918083046.GA30709@willie-the-truck>
+In-Reply-To: <20200918083046.GA30709@willie-the-truck>
+From:   Peter Collingbourne <pcc@google.com>
+Date:   Wed, 14 Oct 2020 16:43:23 -0700
+Message-ID: <CAMn1gO76z7eLcuYg_PuWPCq7_N5p29518EGy-FdY9AvyY0fDgw@mail.gmail.com>
+Subject: Re: [PATCH v9 29/29] arm64: mte: Add Memory Tagging Extension documentation
+To:     Will Deacon <will@kernel.org>
+Cc:     Dave Martin <Dave.Martin@arm.com>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        linux-arch@vger.kernel.org, libc-alpha@sourceware.org,
+        Szabolcs Nagy <szabolcs.nagy@arm.com>,
+        Andrey Konovalov <andreyknvl@google.com>,
+        Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org,
         Andrew Morton <akpm@linux-foundation.org>,
-        Ira Weiny <ira.weiny@intel.com>,
-        linux-arch <linux-arch@vger.kernel.org>
-In-Reply-To: <20201014195823.GC18196@zn.tnic>
-To:     Borislav Petkov <bp@alien8.de>
-X-Mailer: iPhone Mail (18A393)
+        Vincenzo Frascino <vincenzo.frascino@arm.com>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+On Fri, Sep 18, 2020 at 1:30 AM Will Deacon <will@kernel.org> wrote:
+>
+> On Thu, Sep 17, 2020 at 05:15:53PM +0100, Dave Martin wrote:
+> > On Thu, Sep 17, 2020 at 10:02:30AM +0100, Catalin Marinas wrote:
+> > > On Thu, Sep 17, 2020 at 09:11:08AM +0100, Will Deacon wrote:
+> > > > On Fri, Sep 04, 2020 at 11:30:29AM +0100, Catalin Marinas wrote:
+> > > > > From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> > > > >
+> > > > > Memory Tagging Extension (part of the ARMv8.5 Extensions) provides
+> > > > > a mechanism to detect the sources of memory related errors which
+> > > > > may be vulnerable to exploitation, including bounds violations,
+> > > > > use-after-free, use-after-return, use-out-of-scope and use before
+> > > > > initialization errors.
+> > > > >
+> > > > > Add Memory Tagging Extension documentation for the arm64 linux
+> > > > > kernel support.
+> > > > >
+> > > > > Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> > > > > Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
+> > > > > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> > > > > Acked-by: Szabolcs Nagy <szabolcs.nagy@arm.com>
+> > > >
+> > > > I'm taking this to mean that Szabolcs is happy with the proposed ABI --
+> > > > please shout if that's not the case!
+> > >
+> > > I think Szabolcs is still on holiday. To summarise the past threads,
+> > > AFAICT he's happy with this per-thread control ABI but the discussion
+> > > went on whether to expand it in the future (with a new bit) to
+> > > synchronise the tag checking mode across all threads of a process. This
+> > > adds some complications for the kernel as it needs an IPI to the other
+> > > CPUs to set SCTLR_EL1 and it's also racy with multiple threads
+> > > requesting different modes.
+> > >
+> > > Now, in the glibc land, if the tag check mode is controlled via
+> > > environment variables, the dynamic loader can set this at process start
+> > > while still in single-threaded mode and not touch it at run-time. The
+> > > MTE checking can still be enabled at run-time, per mapped memory range
+> > > via the PROT_MTE flag. This approach doesn't require any additional
+> > > changes to the current patches. But it's for Szabolcs to confirm once
+> > > he's back.
+> > >
+> > > > Wasn't there a man page kicking around too? Would be good to see that
+> > > > go upstream (to the manpages project, of course).
+> > >
+> > > Dave started writing one for the tagged address ABI, not sure where that
+> > > is. For the MTE additions, we are waiting for the ABI to be upstreamed.
+> >
+> > The tagged address ABI control stuff is upstream in the man-pages-5.08
+> > release.
+> >
+> > I don't think anyone drafted anything for MTE yet.  Do we consider the
+> > MTE ABI to be sufficiently stable now for it to be worth starting
+> > drafting something?
+>
+> I think so, yes. I'm hoping to queue it for 5.10, once I have an Ack from
+> the Android tools side on the per-thread ABI.
 
+Our main requirement on the Android side is to provide an API for
+changing the tag checking mode in all threads in a process while
+multiple threads are running. I think we've been able to accomplish
+this [1] by using a libc private real-time signal which is sent to all
+threads. The implementation has been tested on FVP via the included
+unit tests. The code has also been tested on real hardware in a
+multi-threaded app process (of course we don't have MTE-enabled
+hardware, so the implementation was tested on hardware by hacking it
+to disable the tagged address ABI instead of changing the tag checking
+mode, and then verifying via ptrace(PTRACE_GETREGSET) that the tagged
+address ABI was disabled in all threads).
 
+That being said, as with any code at the nexus of concurrency and
+POSIX signals, the implementation is quite tricky so I would say it
+falls more into the category of "no obvious problems" than "obviously
+no problems". It also relies on changes to the implementations of
+pthread APIs so it wouldn't catch threads created directly via clone()
+rather than via pthread_create(). I think we would be able to ignore
+such threads on Android without causing compatibility issues because
+we can require the process to not create threads via clone() before
+calling the function. I imagine this may not necessarily work for
+other libcs like glibc, though, but as I understand it glibc has no
+plan to offer such an API.
 
-> On Oct 14, 2020, at 12:58 PM, Borislav Petkov <bp@alien8.de> wrote:
->=20
-> =EF=BB=BFOn Wed, Oct 14, 2020 at 08:45:37AM -0700, Andy Lutomirski wrote:
->>> On Wed, Oct 14, 2020 at 1:33 AM Ankur Arora <ankur.a.arora@oracle.com> w=
-rote:
->>>=20
->>> Define clear_page_uncached() as an alternative_call() to clear_page_nt()=
+I feel confident enough in the kernel API though that I think that
+it's reasonable as a starting point at least, and that if a problem
+with the API is discovered I would expect it to be fixable by adding
+new APIs, so:
 
->>> if the CPU sets X86_FEATURE_NT_GOOD and fallback to clear_page() if it
->>> doesn't.
->>>=20
->>> Similarly define clear_page_uncached_flush() which provides an SFENCE
->>> if the CPU sets X86_FEATURE_NT_GOOD.
->>=20
->> As long as you keep "NT" or "MOVNTI" in the names and keep functions
->> in arch/x86, I think it's reasonable to expect that callers understand
->> that MOVNTI has bizarre memory ordering rules.  But once you give
->> something a generic name like "clear_page_uncached" and stick it in
->> generic code, I think the semantics should be more obvious.
->=20
-> Why does it have to be a separate call? Why isn't it behind the
-> clear_page() alternative machinery so that the proper function is
-> selected at boot? IOW, why does a user of clear_page functionality need
-> to know at all about an "uncached" variant?
->=20
->=20
+Acked-by: Peter Collingbourne <pcc@google.com>
 
-I assume it=E2=80=99s for a little optimization of clearing more than one pa=
-ge per SFENCE.
+Peter
 
-In any event, based on the benchmark data upthread, we only want to do NT cl=
-ears when they=E2=80=99re rather large, so this shouldn=E2=80=99t be just an=
- alternative. I assume this is because a page or two will fit in cache and, f=
-or most uses that allocate zeroed pages, we prefer cache-hot pages.  When cl=
-earing 1G, on the other hand, cache-hot is impossible and we prefer the impr=
-oved bandwidth and less cache trashing of NT clears.
-
-Perhaps SFENCE is so fast that this is a silly optimization, though, and we d=
-on=E2=80=99t lose anything measurable by SFENCEing once per page.=
+[1] https://android-review.googlesource.com/c/platform/bionic/+/1427377
