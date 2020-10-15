@@ -2,173 +2,81 @@ Return-Path: <SRS0=26Yk=DW=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-9.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 939E6C433E7
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 12:32:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6BE8CC4363A
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 14:47:17 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2F6DD22268
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 12:32:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2887F218AC
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Oct 2020 14:47:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727968AbgJOMcE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 15 Oct 2020 08:32:04 -0400
-Received: from smtp-42aa.mail.infomaniak.ch ([84.16.66.170]:50283 "EHLO
-        smtp-42aa.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726583AbgJOMcE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Oct 2020 08:32:04 -0400
-Received: from smtp-2-0000.mail.infomaniak.ch (unknown [10.5.36.107])
-        by smtp-3-3000.mail.infomaniak.ch (Postfix) with ESMTPS id 4CBpZB5fPXzlhTQt;
-        Thu, 15 Oct 2020 14:32:02 +0200 (CEST)
-Received: from ns3096276.ip-94-23-54.eu (unknown [94.23.54.103])
-        by smtp-2-0000.mail.infomaniak.ch (Postfix) with ESMTPA id 4CBpZ66ymBzlh8V2;
-        Thu, 15 Oct 2020 14:31:58 +0200 (CEST)
-Subject: Re: [PATCH v21 12/12] landlock: Add user and kernel documentation
-To:     James Morris <jmorris@namei.org>,
-        "Serge E . Hallyn" <serge@hallyn.com>,
-        Jonathan Corbet <corbet@lwn.net>
-Cc:     linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>,
-        Richard Weinberger <richard@nod.at>,
-        Andy Lutomirski <luto@amacapital.net>,
-        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+        id S2388695AbgJOOrM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 15 Oct 2020 10:47:12 -0400
+Received: from mx2.suse.de ([195.135.220.15]:55232 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2389258AbgJOOqp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Oct 2020 10:46:45 -0400
+X-Virus-Scanned: by amavisd-new at test-mx.suse.de
+Received: from relay2.suse.de (unknown [195.135.221.27])
+        by mx2.suse.de (Postfix) with ESMTP id 17619AC24;
+        Thu, 15 Oct 2020 14:46:44 +0000 (UTC)
+Date:   Thu, 15 Oct 2020 16:46:41 +0200
+From:   Michal =?iso-8859-1?Q?Such=E1nek?= <msuchanek@suse.de>
+To:     Leonardo Bras <leonardo@linux.ibm.com>
+Cc:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
         Arnd Bergmann <arnd@arndb.de>,
-        Casey Schaufler <casey@schaufler-ca.com>,
-        Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>,
-        Kees Cook <keescook@chromium.org>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Shuah Khan <shuah@kernel.org>,
-        Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>,
-        kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
-        linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-security-module@vger.kernel.org, x86@kernel.org,
-        =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@linux.microsoft.com>
-References: <20201008153103.1155388-1-mic@digikod.net>
- <20201008153103.1155388-13-mic@digikod.net>
-From:   =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
-Message-ID: <fc1c5675-034b-bf5b-ba2b-6be06e03b458@digikod.net>
-Date:   Thu, 15 Oct 2020 14:31:58 +0200
-User-Agent: 
+        Andrew Morton <akpm@linux-foundation.org>,
+        "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        Christophe Leroy <christophe.leroy@c-s.fr>,
+        Steven Price <steven.price@arm.com>,
+        Robin Murphy <robin.murphy@arm.com>,
+        Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Reza Arbab <arbab@linux.ibm.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Allison Randal <allison@lohutok.net>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Mike Rapoport <rppt@linux.ibm.com>, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org,
+        linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org
+Subject: Re: [PATCH v6 02/11] mm/gup: Use functions to track lockless pgtbl
+ walks on gup_pgd_range
+Message-ID: <20201015144641.GE29778@kitsune.suse.cz>
+References: <20200206030900.147032-1-leonardo@linux.ibm.com>
+ <20200206030900.147032-3-leonardo@linux.ibm.com>
+ <760c238043196e0628c8c0eff48a8e938ef539ba.camel@linux.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <20201008153103.1155388-13-mic@digikod.net>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <760c238043196e0628c8c0eff48a8e938ef539ba.camel@linux.ibm.com>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+Hello,
 
-On 08/10/2020 17:31, Mickaël Salaün wrote:
-> From: Mickaël Salaün <mic@linux.microsoft.com>
+On Thu, Feb 06, 2020 at 12:25:18AM -0300, Leonardo Bras wrote:
+> On Thu, 2020-02-06 at 00:08 -0300, Leonardo Bras wrote:
+> >                 gup_pgd_range(addr, end, gup_flags, pages, &nr);
+> > -               local_irq_enable();
+> > +               end_lockless_pgtbl_walk(IRQS_ENABLED);
+> >                 ret = nr;
+> >         }
+> >  
 > 
-> This documentation can be built with the Sphinx framework.
-> 
-> Cc: James Morris <jmorris@namei.org>
-> Cc: Jann Horn <jannh@google.com>
-> Cc: Kees Cook <keescook@chromium.org>
-> Cc: Serge E. Hallyn <serge@hallyn.com>
-> Signed-off-by: Mickaël Salaün <mic@linux.microsoft.com>
-> Reviewed-by: Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>
-> ---
-> 
-> Changes since v20:
-> * Update examples and documentation with the new syscalls.
-> 
-> Changes since v19:
-> * Update examples and documentation with the new syscalls.
-> 
-> Changes since v15:
-> * Add current limitations.
-> 
-> Changes since v14:
-> * Fix spelling (contributed by Randy Dunlap).
-> * Extend documentation about inheritance and explain layer levels.
-> * Remove the use of now-removed access rights.
-> * Use GitHub links.
-> * Improve kernel documentation.
-> * Add section for tests.
-> * Update example.
-> 
-> Changes since v13:
-> * Rewrote the documentation according to the major revamp.
-> 
-> Previous changes:
-> https://lore.kernel.org/lkml/20191104172146.30797-8-mic@digikod.net/
-> ---
->  Documentation/security/index.rst           |   1 +
->  Documentation/security/landlock/index.rst  |  18 ++
->  Documentation/security/landlock/kernel.rst |  69 ++++++
->  Documentation/security/landlock/user.rst   | 242 +++++++++++++++++++++
->  4 files changed, 330 insertions(+)
->  create mode 100644 Documentation/security/landlock/index.rst
->  create mode 100644 Documentation/security/landlock/kernel.rst
->  create mode 100644 Documentation/security/landlock/user.rst
-> 
-> diff --git a/Documentation/security/index.rst b/Documentation/security/index.rst
-> index 8129405eb2cc..e3f2bf4fef77 100644
-> --- a/Documentation/security/index.rst
-> +++ b/Documentation/security/index.rst
-> @@ -16,3 +16,4 @@ Security Documentation
->     siphash
->     tpm/index
->     digsig
-> +   landlock/index
-> diff --git a/Documentation/security/landlock/index.rst b/Documentation/security/landlock/index.rst
-> new file mode 100644
-> index 000000000000..2520f8f33f5e
-> --- /dev/null
-> +++ b/Documentation/security/landlock/index.rst
-> @@ -0,0 +1,18 @@
-> +=========================================
-> +Landlock LSM: unprivileged access control
-> +=========================================
-> +
-> +:Author: Mickaël Salaün
-> +
-> +The goal of Landlock is to enable to restrict ambient rights (e.g.  global
-> +filesystem access) for a set of processes.  Because Landlock is a stackable
-> +LSM, it makes possible to create safe security sandboxes as new security layers
-> +in addition to the existing system-wide access-controls. This kind of sandbox
-> +is expected to help mitigate the security impact of bugs or
-> +unexpected/malicious behaviors in user-space applications. Landlock empowers
-> +any process, including unprivileged ones, to securely restrict themselves.
-> +
-> +.. toctree::
-> +
-> +    user
-> +    kernel
-> diff --git a/Documentation/security/landlock/kernel.rst b/Documentation/security/landlock/kernel.rst
-> new file mode 100644
-> index 000000000000..27c0933a0b6e
-> --- /dev/null
-> +++ b/Documentation/security/landlock/kernel.rst
-> @@ -0,0 +1,69 @@
-> +==============================
-> +Landlock: kernel documentation
-> +==============================
-Cf. https://landlock.io/linux-doc/landlock-v21/security/landlock/kernel.html
+> Just noticed IRQS_ENABLED is not available on other archs than ppc64.
+> I will fix this for v7.
 
-I guess this is the good place for kernel API documentation.
+Has threre been v7?
 
-> diff --git a/Documentation/security/landlock/user.rst b/Documentation/security/landlock/user.rst
-> new file mode 100644
-> index 000000000000..e6fbc75c1af1
-> --- /dev/null
-> +++ b/Documentation/security/landlock/user.rst
-> @@ -0,0 +1,242 @@
-> +=================================
-> +Landlock: userspace documentation
-> +=================================
-Cf. https://landlock.io/linux-doc/landlock-v21/security/landlock/user.html
+I cannot find it.
 
-Shouldn't this go in Documentation/userspace-api/ instead?
+Thanks
 
-Documentation/security/lsm-development.rst says that LSM documentation
-should go to Documentation/admin-guide/LSM/ but this is not (like
-seccomp) an admin documentation.
-Should the Documentation/userspace-api/landlock.rst be linked from
-Documentation/admin-guide/LSM/index.rst too?
+Michal
