@@ -1,4 +1,4 @@
-Return-Path: <SRS0=jFrJ=EB=vger.kernel.org=linux-arch-owner@kernel.org>
+Return-Path: <SRS0=bmjM=EC=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
@@ -7,37 +7,37 @@ X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B0458C56201
-	for <linux-arch@archiver.kernel.org>; Mon, 26 Oct 2020 23:54:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3F63DC55178
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Oct 2020 00:01:17 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 66EB9221FC
-	for <linux-arch@archiver.kernel.org>; Mon, 26 Oct 2020 23:54:19 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0AB9020872
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Oct 2020 00:01:17 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1603756459;
-	bh=mhHlSIJfVFrMVT2i0n5BU00tB/vn/oPPP/QuTcSHyKk=;
+	s=default; t=1603756877;
+	bh=hOMLBQQT58cA7OMEtDBImp7k1w5J8R403kiK9y1wlcI=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=fl3iuB+BCh00LfFsBPFdC5LqZ+yo5E56KNPJSM+lXDdWnwlZje7gd29TvyE7qqwjj
-	 +Byz5CrMMvrmCMAO3f4bYYBczg3DBt08WENn4QnF2dhjtGIWbkQB6q7Qe5sjIN7A87
-	 jLvbotny6U++Y8zOpLwwPe4N1JNhLhUjljuFD2ug=
+	b=lovC5Dkp0CW/b1P9qE9gHkqcCleZGbiYGZLOh1RhLICYEdYW/bWQelUn7byzadeO+
+	 yBaf+mSYRQgHumISbUe+DNQ2jIF2SOzJHsddqo4fWDHAApsg9VJBjR4jCPrRmi0HSk
+	 eT9x5DhgNxrJM+opz7uvD3+RQXLehJCo4Rf6jdb0=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2410391AbgJZXyS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 26 Oct 2020 19:54:18 -0400
-Received: from mail.kernel.org ([198.145.29.99]:59972 "EHLO mail.kernel.org"
+        id S1732107AbgJ0ABK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 26 Oct 2020 20:01:10 -0400
+Received: from mail.kernel.org ([198.145.29.99]:36438 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2410384AbgJZXyR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Oct 2020 19:54:17 -0400
+        id S2436475AbgJZX4b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Oct 2020 19:56:31 -0400
 Received: from sasha-vm.mshome.net (c-73-47-72-35.hsd1.nh.comcast.net [73.47.72.35])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 8C629221FC;
-        Mon, 26 Oct 2020 23:54:15 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 4B63B221FC;
+        Mon, 26 Oct 2020 23:56:30 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1603756456;
-        bh=mhHlSIJfVFrMVT2i0n5BU00tB/vn/oPPP/QuTcSHyKk=;
+        s=default; t=1603756591;
+        bh=hOMLBQQT58cA7OMEtDBImp7k1w5J8R403kiK9y1wlcI=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=j2+xjUFEjUc7f4Xdas3HNPKTQw3Ba84Laqb+LV4lYjXIKF0EU/kSlQAM66Cf6wyG/
-         VAUdRd9pBzcCwNowzekpoCyUr5OuWHHgkinxAiynCC6pkxEd5beQPXfuP+42sx93jM
-         WQZtjDpfGrGheiEH6A3Q9HZh17h19KzNcOVBkIcg=
+        b=NTp/x4W+ar3g2YqQifEQLde0NTKjuwtk8DyCz7fOQ+CeeDOA383tS/OiKsXot2BNr
+         XrlSkeWmZpbZO/fThFdiENytU5TrOt+M0rQg/0IJFK3QagJR+6ynTZnA8TnmFDDCtt
+         8AbA5oFNLtki+9Zc43uB9KNQjQy0VizFL3J8yjwI=
 From:   Sasha Levin <sashal@kernel.org>
 To:     linux-kernel@vger.kernel.org, stable@vger.kernel.org
 Cc:     Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>,
@@ -47,12 +47,12 @@ Cc:     Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>,
         Bjorn Helgaas <bhelgaas@google.com>,
         Yang Yingliang <yangyingliang@huawei.com>,
         Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org
-Subject: [PATCH AUTOSEL 5.8 106/132] asm-generic/io.h: Fix !CONFIG_GENERIC_IOMAP pci_iounmap() implementation
-Date:   Mon, 26 Oct 2020 19:51:38 -0400
-Message-Id: <20201026235205.1023962-106-sashal@kernel.org>
+Subject: [PATCH AUTOSEL 5.4 62/80] asm-generic/io.h: Fix !CONFIG_GENERIC_IOMAP pci_iounmap() implementation
+Date:   Mon, 26 Oct 2020 19:54:58 -0400
+Message-Id: <20201026235516.1025100-62-sashal@kernel.org>
 X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20201026235205.1023962-1-sashal@kernel.org>
-References: <20201026235205.1023962-1-sashal@kernel.org>
+In-Reply-To: <20201026235516.1025100-1-sashal@kernel.org>
+References: <20201026235516.1025100-1-sashal@kernel.org>
 MIME-Version: 1.0
 X-stable: review
 X-Patchwork-Hint: Ignore
@@ -103,10 +103,10 @@ Signed-off-by: Sasha Levin <sashal@kernel.org>
  1 file changed, 27 insertions(+), 12 deletions(-)
 
 diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 30a3aab312e6c..89057394e1862 100644
+index d02806513670c..5e6c4f375e0c3 100644
 --- a/include/asm-generic/io.h
 +++ b/include/asm-generic/io.h
-@@ -911,18 +911,6 @@ static inline void iowrite64_rep(volatile void __iomem *addr,
+@@ -887,18 +887,6 @@ static inline void iowrite64_rep(volatile void __iomem *addr,
  #include <linux/vmalloc.h>
  #define __io_virt(x) ((void __force *)(x))
  
@@ -125,7 +125,7 @@ index 30a3aab312e6c..89057394e1862 100644
  /*
   * Change virtual addresses to physical addresses and vv.
   * These are pretty trivial
-@@ -1016,6 +1004,16 @@ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+@@ -1013,6 +1001,16 @@ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
  	port &= IO_SPACE_LIMIT;
  	return (port > MMIO_UPPER_LIMIT) ? NULL : PCI_IOBASE + port;
  }
@@ -142,7 +142,7 @@ index 30a3aab312e6c..89057394e1862 100644
  #endif
  
  #ifndef ioport_unmap
-@@ -1030,6 +1028,23 @@ extern void ioport_unmap(void __iomem *p);
+@@ -1027,6 +1025,23 @@ extern void ioport_unmap(void __iomem *p);
  #endif /* CONFIG_GENERIC_IOMAP */
  #endif /* CONFIG_HAS_IOPORT_MAP */
  
