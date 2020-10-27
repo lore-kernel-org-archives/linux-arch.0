@@ -2,88 +2,92 @@ Return-Path: <SRS0=bmjM=EC=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 37067C55179
-	for <linux-arch@archiver.kernel.org>; Tue, 27 Oct 2020 08:52:46 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 47FE9C4363A
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Oct 2020 09:29:55 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B902C2071A
-	for <linux-arch@archiver.kernel.org>; Tue, 27 Oct 2020 08:52:45 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D977922281
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Oct 2020 09:29:54 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="KVvc9euK"
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="h/4pju3A"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2895106AbgJ0Iwp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 27 Oct 2020 04:52:45 -0400
-Received: from casper.infradead.org ([90.155.50.34]:34970 "EHLO
-        casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2895105AbgJ0Iwo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Oct 2020 04:52:44 -0400
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
-        Content-Description:In-Reply-To:References;
-        bh=Aakq5ONajagRQRWUZGCHnMSkynNLLZQ4DCSJugWWUH0=; b=KVvc9euKLp49L1tVLI9ZMxp2Wz
-        biMq3A2nuCumBvuYlInpMqo5NWa7xCVsMUhrpANCh6VA5CJ0cnJw/WkERnXhDqnefnWKbWuRRUPnl
-        nalwnOxRxJ43N4GEUIuh9mekPijAFin6CBxZUmlYx97sL2Y8g6AJfYS6ifvnjLAQRZNnsX1Yshh+i
-        VU9HassfXOpSVmxOCYd2ERk2Xqu1yK3S1Qud85PsS6FvYCL1/Q3MPE8bkuBbBPfRl3bw9JZM5h1gp
-        JT8mCtLu1uwhWF3gN6PKBn/a4oeWlq9nhs3gKQ7+eCZi+nGWL+ehFT9BNSwnjvqnAApByr2IINZz+
-        Km8bzm2g==;
-Received: from 089144193201.atnat0002.highway.a1.net ([89.144.193.201] helo=localhost)
-        by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kXKiV-0003bR-Hq; Tue, 27 Oct 2020 08:52:35 +0000
-From:   Christoph Hellwig <hch@lst.de>
-To:     arnd@arndb.de
-Cc:     palmerdabbelt@google.com, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, kernel test robot <lkp@intel.com>
-Subject: [PATCH] asm-generic: mark __{get,put}_user_fn as __always_inline
-Date:   Tue, 27 Oct 2020 09:50:17 +0100
-Message-Id: <20201027085017.3705228-1-hch@lst.de>
-X-Mailer: git-send-email 2.28.0
+        id S2895589AbgJ0J3y (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 27 Oct 2020 05:29:54 -0400
+Received: from us-smtp-delivery-124.mimecast.com ([63.128.21.124]:25235 "EHLO
+        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2895586AbgJ0J3x (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Oct 2020 05:29:53 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1603790992;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=feIJOART/ZjbjgTvLv37NEKK+uAf07iUjckzKK2mLvo=;
+        b=h/4pju3A4bYNdb1n4wqpiuuqQ7yLLFdqGPA6OVzTADAHDARPbyGOBh9VwBmSe56zKuw8hD
+        fw23hPPyyn8M0dxY5Ghe7bcPXrOR5bLv72z/fubH5biJ2ZYEe2SVv82iOrOjU4SYdEXfSR
+        GqfuV49MwX4ziQ9qnxvcAkWyK25FpPg=
+Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
+ [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
+ us-mta-190-8oJbH0wQNXae1a0bKDAYWw-1; Tue, 27 Oct 2020 05:29:49 -0400
+X-MC-Unique: 8oJbH0wQNXae1a0bKDAYWw-1
+Received: from smtp.corp.redhat.com (int-mx06.intmail.prod.int.phx2.redhat.com [10.5.11.16])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+        (No client certificate requested)
+        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 8DC62186DD25;
+        Tue, 27 Oct 2020 09:29:47 +0000 (UTC)
+Received: from warthog.procyon.org.uk (ovpn-120-70.rdu2.redhat.com [10.10.120.70])
+        by smtp.corp.redhat.com (Postfix) with ESMTP id 89DA75C1BD;
+        Tue, 27 Oct 2020 09:29:45 +0000 (UTC)
+Organization: Red Hat UK Ltd. Registered Address: Red Hat UK Ltd, Amberley
+        Place, 107-111 Peascod Street, Windsor, Berkshire, SI4 1TE, United
+        Kingdom.
+        Registered in England and Wales under Company Registration No. 3798903
+From:   David Howells <dhowells@redhat.com>
+In-Reply-To: <20200827150030.282762-3-hch@lst.de>
+References: <20200827150030.282762-3-hch@lst.de> <20200827150030.282762-1-hch@lst.de>
+To:     Christoph Hellwig <hch@lst.de>
+Cc:     dhowells@redhat.com,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org,
+        Kees Cook <keescook@chromium.org>,
+        linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Subject: Re: [PATCH 02/10] fs: don't allow splice read/write without explicit ops
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <3088367.1603790984.1@warthog.procyon.org.uk>
+Date:   Tue, 27 Oct 2020 09:29:44 +0000
+Message-ID: <3088368.1603790984@warthog.procyon.org.uk>
+X-Scanned-By: MIMEDefang 2.79 on 10.5.11.16
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Without the explicit __always_inline, some RISC-V configs place the
-functions out of line, triggering the BUILD_BUG_ON checks in the
-function.
+Christoph Hellwig <hch@lst.de> wrote:
 
-Fixes: 11129e8ed4d9 ("riscv: use memcpy based uaccess for nommu again")
-Reported-by: kernel test robot <lkp@intel.com>
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- include/asm-generic/uaccess.h | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+> default_file_splice_write is the last piece of generic code that uses
+> set_fs to make the uaccess routines operate on kernel pointers.  It
+> implements a "fallback loop" for splicing from files that do not actually
+> provide a proper splice_read method.  The usual file systems and other
+> high bandwith instances all provide a ->splice_read, so this just removes
+> support for various device drivers and procfs/debugfs files.  If splice
+> support for any of those turns out to be important it can be added back
+> by switching them to the iter ops and using generic_file_splice_read.
 
-diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
-index 45f9872fd74759..4973328f3c6e75 100644
---- a/include/asm-generic/uaccess.h
-+++ b/include/asm-generic/uaccess.h
-@@ -12,7 +12,8 @@
- #ifdef CONFIG_UACCESS_MEMCPY
- #include <asm/unaligned.h>
- 
--static inline int __get_user_fn(size_t size, const void __user *from, void *to)
-+static __always_inline int
-+__get_user_fn(size_t size, const void __user *from, void *to)
- {
- 	BUILD_BUG_ON(!__builtin_constant_p(size));
- 
-@@ -37,7 +38,8 @@ static inline int __get_user_fn(size_t size, const void __user *from, void *to)
- }
- #define __get_user_fn(sz, u, k)	__get_user_fn(sz, u, k)
- 
--static inline int __put_user_fn(size_t size, void __user *to, void *from)
-+static __always_inline int
-+__put_user_fn(size_t size, void __user *to, void *from)
- {
- 	BUILD_BUG_ON(!__builtin_constant_p(size));
- 
--- 
-2.28.0
+Hmmm...  this causes the copy_file_range() syscall to fail with EINVAL in some
+places where before it used to work.
+
+For my part, it causes the generic/112 xfstest to fail with afs, but there may
+be other places.
+
+Is this a regression we need to fix in the VFS core?  Or is it something we
+need to fix in xfstests and assume userspace will fallback to doing it itself?
+
+David
 
