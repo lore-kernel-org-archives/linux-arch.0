@@ -2,30 +2,44 @@ Return-Path: <SRS0=7t7o=EE=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.6 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1BFF5C55179
-	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 00:53:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8C699C4363A
+	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 00:55:05 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C884E20790
-	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 00:53:51 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3CDF720790
+	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 00:55:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=default; t=1603932905;
+	bh=gCC0Dn6wIGkv86PvFj+5e1eW46q6tyKiN4oY61BT7os=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
+	b=RubHjLaT/jSAYIeMVUVogIF+H6gISYvQli740ltOaNToxS/SL/hnKxSzfNK/0aQFJ
+	 j3Vmk3whWU6LPSqyscTWZLESkNlyBlXZipfUCTCM5Z2W9cuHk5chGSwMGndMH3bv1J
+	 LaoUPmAcRGrxMV9oY9eb4bwWi8JmV4/NiKtgU/l4=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1731716AbgJ1WTW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 28 Oct 2020 18:19:22 -0400
-Received: from mail.kernel.org ([198.145.29.99]:60530 "EHLO mail.kernel.org"
+        id S1731797AbgJ1WSE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Oct 2020 18:18:04 -0400
+Received: from mail.kernel.org ([198.145.29.99]:60526 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731736AbgJ1WRn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Oct 2020 18:17:43 -0400
-Received: from gaia (unknown [95.145.162.19])
+        id S1731780AbgJ1WRp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 28 Oct 2020 18:17:45 -0400
+Received: from willie-the-truck (236.31.169.217.in-addr.arpa [217.169.31.236])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id A8CC8246CE;
-        Wed, 28 Oct 2020 11:49:48 +0000 (UTC)
-Date:   Wed, 28 Oct 2020 11:49:46 +0000
-From:   Catalin Marinas <catalin.marinas@arm.com>
-To:     Will Deacon <will@kernel.org>
+        by mail.kernel.org (Postfix) with ESMTPSA id EA94F246BA;
+        Wed, 28 Oct 2020 11:22:02 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=default; t=1603884124;
+        bh=gCC0Dn6wIGkv86PvFj+5e1eW46q6tyKiN4oY61BT7os=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=UMbj+PfZ1WE8lf5L27GZgSlvtoY46oq0ZS5AOpDKIQzT2yn6yeVar0fO4Hq2UjPCH
+         exHXpIrznCGfSYJWHivfkolSB9wAv8uGESDTeOx8S1FsUzCrrYliLwcAD7QhedRH3C
+         GqZk18VqCoTXNMcdCdwh1IJvheh5OsOpmXsi6vvM=
+Date:   Wed, 28 Oct 2020 11:21:59 +0000
+From:   Will Deacon <will@kernel.org>
+To:     Catalin Marinas <catalin.marinas@arm.com>
 Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
         Marc Zyngier <maz@kernel.org>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
@@ -34,67 +48,37 @@ Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
         Qais Yousef <qais.yousef@arm.com>,
         Suren Baghdasaryan <surenb@google.com>, kernel-team@android.com
 Subject: Re: [PATCH 2/6] arm64: Allow mismatched 32-bit EL0 support
-Message-ID: <20201028114945.GE13345@gaia>
+Message-ID: <20201028112159.GC27927@willie-the-truck>
 References: <20201027215118.27003-1-will@kernel.org>
  <20201027215118.27003-3-will@kernel.org>
- <20201028111204.GB13345@gaia>
- <20201028111713.GA27927@willie-the-truck>
- <20201028112206.GD13345@gaia>
- <20201028112343.GD27927@willie-the-truck>
+ <20201028111810.GC13345@gaia>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20201028112343.GD27927@willie-the-truck>
+In-Reply-To: <20201028111810.GC13345@gaia>
 User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Oct 28, 2020 at 11:23:43AM +0000, Will Deacon wrote:
-> On Wed, Oct 28, 2020 at 11:22:06AM +0000, Catalin Marinas wrote:
-> > On Wed, Oct 28, 2020 at 11:17:13AM +0000, Will Deacon wrote:
-> > > On Wed, Oct 28, 2020 at 11:12:04AM +0000, Catalin Marinas wrote:
-> > > > On Tue, Oct 27, 2020 at 09:51:14PM +0000, Will Deacon wrote:
-> > > > > +static bool has_32bit_el0(const struct arm64_cpu_capabilities *entry, int scope)
-> > > > > +{
-> > > > > +	return has_cpuid_feature(entry, scope) || __allow_mismatched_32bit_el0;
-> > > > > +}
-> > > > > +
-> > > > >  static bool has_useable_gicv3_cpuif(const struct arm64_cpu_capabilities *entry, int scope)
-> > > > >  {
-> > > > >  	bool has_sre;
-> > > > > @@ -1803,7 +1851,7 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
-> > > > >  		.desc = "32-bit EL0 Support",
-> > > > >  		.capability = ARM64_HAS_32BIT_EL0,
-> > > > >  		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-> > > > > -		.matches = has_cpuid_feature,
-> > > > > +		.matches = has_32bit_el0,
-> > > > 
-> > > > Ah, so this one reports 32-bit EL0 support even if no CPU actually
-> > > > supports 32-bit (passing the command line option on TX2 would come up
-> > > > with 32-bit EL0 in dmesg). I'd rather hide the .desc above and print the
-> > > > information elsewhere when have at least one CPU supporting this.
-> > > 
-> > > Yeah, the problem is if a CPU with 32-bit EL0 support was late-onlined,
-> > > then we would have 32-bit support, so I think this is an oddity that you
-> > > get when the command line is passed. That said, I could nobble .desc and
-> > > print it from the .matches function, with a slightly different message
-> > > when the command line is passed.
-> > 
-> > I think we could do a pr_info_once() in update_32bit_cpu_features().
+On Wed, Oct 28, 2020 at 11:18:10AM +0000, Catalin Marinas wrote:
+> On Tue, Oct 27, 2020 at 09:51:14PM +0000, Will Deacon wrote:
+> > +bool system_has_mismatched_32bit_el0(void)
+> > +{
+> > +	u64 reg;
+> > +	unsigned int fld;
+> > +
+> > +	if (!__allow_mismatched_32bit_el0)
+> > +		return false;
+> > +
+> > +	reg = read_sanitised_ftr_reg(SYS_ID_AA64PFR0_EL1);
+> > +	fld = cpuid_feature_extract_unsigned_field(reg, ID_AA64PFR0_EL0_SHIFT);
+> > +	return fld == ID_AA64PFR0_EL0_64BIT_ONLY;
+> > +}
 > 
-> Is that called on a system with one CPU?
+> Same here, this reports true even if no 32-bit is available (I have yet
+> to go through the other patches to see how this function is used).
 
-Ah, it's not.
+Same deal, really. We need to report true to deal with late-onlining.
 
-Anyway, I see your reasoning behind the late CPUs but I don't
-particularly like abusing the cpufeature support to pretend a
-SYSTEM_FEATURE is available before knowing any CPU has it (maybe we do
-it in other cases, I haven't checked).
-
-Could we not instead add a new feature for asymmetric support that's
-defined as ARM64_CPUCAP_WEAK_LOCAL_CPU_FEATURE? This would be allowed
-for late CPUs and we keep the system_supports_32bit_el0() unchanged.
-
--- 
-Catalin
+Will
