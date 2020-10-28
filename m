@@ -2,29 +2,28 @@ Return-Path: <SRS0=7t7o=EE=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-8.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 80300C56202
-	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 00:57:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CCC17C4363A
+	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 00:59:23 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3AFE020796
-	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 00:57:57 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8C77920791
+	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 00:59:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728117AbgJ2A54 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 28 Oct 2020 20:57:56 -0400
-Received: from mail.kernel.org ([198.145.29.99]:60502 "EHLO mail.kernel.org"
+        id S1727470AbgJ2A7W (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Oct 2020 20:59:22 -0400
+Received: from mail.kernel.org ([198.145.29.99]:60532 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731584AbgJ1WRd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Oct 2020 18:17:33 -0400
+        id S1731128AbgJ1WRc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 28 Oct 2020 18:17:32 -0400
 Received: from gaia (unknown [95.145.162.19])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id DDEF4246F2;
-        Wed, 28 Oct 2020 12:15:09 +0000 (UTC)
-Date:   Wed, 28 Oct 2020 12:15:07 +0000
+        by mail.kernel.org (Postfix) with ESMTPSA id 665E0246BE;
+        Wed, 28 Oct 2020 11:22:09 +0000 (UTC)
+Date:   Wed, 28 Oct 2020 11:22:06 +0000
 From:   Catalin Marinas <catalin.marinas@arm.com>
 To:     Will Deacon <will@kernel.org>
 Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
@@ -34,45 +33,51 @@ Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
         Morten Rasmussen <morten.rasmussen@arm.com>,
         Qais Yousef <qais.yousef@arm.com>,
         Suren Baghdasaryan <surenb@google.com>, kernel-team@android.com
-Subject: Re: [PATCH 5/6] arm64: Advertise CPUs capable of running 32-bit
- applcations in sysfs
-Message-ID: <20201028121506.GG13345@gaia>
+Subject: Re: [PATCH 2/6] arm64: Allow mismatched 32-bit EL0 support
+Message-ID: <20201028112206.GD13345@gaia>
 References: <20201027215118.27003-1-will@kernel.org>
- <20201027215118.27003-6-will@kernel.org>
+ <20201027215118.27003-3-will@kernel.org>
+ <20201028111204.GB13345@gaia>
+ <20201028111713.GA27927@willie-the-truck>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20201027215118.27003-6-will@kernel.org>
+In-Reply-To: <20201028111713.GA27927@willie-the-truck>
 User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Oct 27, 2020 at 09:51:17PM +0000, Will Deacon wrote:
-> diff --git a/Documentation/ABI/testing/sysfs-devices-system-cpu b/Documentation/ABI/testing/sysfs-devices-system-cpu
-> index b555df825447..19893fb8e870 100644
-> --- a/Documentation/ABI/testing/sysfs-devices-system-cpu
-> +++ b/Documentation/ABI/testing/sysfs-devices-system-cpu
-> @@ -472,6 +472,14 @@ Description:	AArch64 CPU registers
->  		'identification' directory exposes the CPU ID registers for
->  		 identifying model and revision of the CPU.
->  
-> +What:		/sys/devices/system/cpu/aarch32_el0
+On Wed, Oct 28, 2020 at 11:17:13AM +0000, Will Deacon wrote:
+> On Wed, Oct 28, 2020 at 11:12:04AM +0000, Catalin Marinas wrote:
+> > On Tue, Oct 27, 2020 at 09:51:14PM +0000, Will Deacon wrote:
+> > > +static bool has_32bit_el0(const struct arm64_cpu_capabilities *entry, int scope)
+> > > +{
+> > > +	return has_cpuid_feature(entry, scope) || __allow_mismatched_32bit_el0;
+> > > +}
+> > > +
+> > >  static bool has_useable_gicv3_cpuif(const struct arm64_cpu_capabilities *entry, int scope)
+> > >  {
+> > >  	bool has_sre;
+> > > @@ -1803,7 +1851,7 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
+> > >  		.desc = "32-bit EL0 Support",
+> > >  		.capability = ARM64_HAS_32BIT_EL0,
+> > >  		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
+> > > -		.matches = has_cpuid_feature,
+> > > +		.matches = has_32bit_el0,
+> > 
+> > Ah, so this one reports 32-bit EL0 support even if no CPU actually
+> > supports 32-bit (passing the command line option on TX2 would come up
+> > with 32-bit EL0 in dmesg). I'd rather hide the .desc above and print the
+> > information elsewhere when have at least one CPU supporting this.
+> 
+> Yeah, the problem is if a CPU with 32-bit EL0 support was late-onlined,
+> then we would have 32-bit support, so I think this is an oddity that you
+> get when the command line is passed. That said, I could nobble .desc and
+> print it from the .matches function, with a slightly different message
+> when the command line is passed.
 
-Nitpick: should we call this aarch32_el0_present? It's not exactly
-present as we populate it as CPUs come online but it's closer to this
-mask than to the online one.
-
-> +Date:		October 2020
-> +Contact:	Linux ARM Kernel Mailing list <linux-arm-kernel@lists.infradead.org>
-> +Description:	Identifies the subset of CPUs in the system that can execute
-> +		AArch32 (32-bit ARM) applications. If absent, then all or none
-> +		of the CPUs can execute AArch32 applications and execve() will
-> +		behave accordingly.
-
-What does "accordingly" mean? Normally, we'd get ENOEXEC but here the
-execve() "succeeds" followed by a SIGKILL if it ends up on the wrong
-CPU.
+I think we could do a pr_info_once() in update_32bit_cpu_features().
 
 -- 
 Catalin
