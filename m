@@ -2,167 +2,198 @@ Return-Path: <SRS0=7t7o=EE=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.6 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8F27BC4741F
-	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 22:20:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A3D55C55179
+	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 22:32:37 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3AEC621655
-	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 22:20:56 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1604010056;
-	bh=m6TaEjMK+QnqqWJRKbHR4HNUhM+htkEzN2vpPYuV/ig=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
-	b=i9Xo0I5DWjsGXaSviBSjGiC4/8ewATn6ANVGtOxIoiMRE4fGoBVrwRYsZeLgFozfV
-	 nSxZEMOyDre5JGqIZSnh1aFFv2iYsc7N59hd4BQ1qrx32Ir1zMEBxrAQWDwxAO96QD
-	 rtOHgENAEJ78HmAaDCHhaDjc8c2/4qLjw3Bloe4M=
+	by mail.kernel.org (Postfix) with ESMTP id 496D120782
+	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 22:32:37 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="h5bDqASa";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="qUGB4G8I"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725562AbgJ2WUz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 29 Oct 2020 18:20:55 -0400
-Received: from mail.kernel.org ([198.145.29.99]:42738 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725372AbgJ2WUz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 29 Oct 2020 18:20:55 -0400
-Received: from willie-the-truck (236.31.169.217.in-addr.arpa [217.169.31.236])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 0A9E920FC3;
-        Thu, 29 Oct 2020 22:20:51 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1604010054;
-        bh=m6TaEjMK+QnqqWJRKbHR4HNUhM+htkEzN2vpPYuV/ig=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=AquyTaaIwXdM7oCx1yP7tkJzjIkU7McGO9nPvj7cWnmqqZ2SFc6UNsEVGfipmgEPd
-         Zfp3NRESpNQ9lnU7qL/F4Rd5WXQVEKUezkPQZycyxHDF+p1m829RTveEg2PS9Sfpuj
-         JYrbesNpIItYr+ozKBo0YffQxCyZ5xiPwtLDUza0=
-Date:   Thu, 29 Oct 2020 22:20:48 +0000
-From:   Will Deacon <will@kernel.org>
-To:     Catalin Marinas <catalin.marinas@arm.com>
-Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
-        Marc Zyngier <maz@kernel.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        id S1725896AbgJ2Wcf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 29 Oct 2020 18:32:35 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56004 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725791AbgJ2Wcf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Oct 2020 18:32:35 -0400
+Received: from galois.linutronix.de (Galois.linutronix.de [IPv6:2a0a:51c0:0:12e:550::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3D5BEC0613D4;
+        Thu, 29 Oct 2020 15:32:16 -0700 (PDT)
+Message-Id: <20201029222651.114375025@linutronix.de>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
+        s=2020; t=1604010734;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:  references:references;
+        bh=HnSZZISzS7YHLaWjNBqhnVwkOJGM4uyuebNYkt2dD2Y=;
+        b=h5bDqASaJRiw8FTatt1NWMJ1NsBVsKWavB9anSl7SVpd5p52g1JAJSMHeiCJbJ7t5E/WDQ
+        lo5agwQi8mlCGBssU8N+6SQ/m8gdsUrJyDSVfl/XL9abKwuajItGXXPXGTHCtGE20Cz2sd
+        rCWgtqR8dTl6PWlpd8KNbB8hRWT0khOUoZacONhXdYhTrIIALOF/+GdPCb2i0ejRjfVv2l
+        rHXmpoop+1LssPFvuKeXOgTRPyRwBphtIk7tSih4G+KcvPQUfyTy9wLiYnHwMf2kanNUZ3
+        gMn0NSIXHFqlSQ1TCkyi/hA3OuYESAxeLSMSN35lQJpya5DiWt5KW6aD6NtppA==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
+        s=2020e; t=1604010734;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:  references:references;
+        bh=HnSZZISzS7YHLaWjNBqhnVwkOJGM4uyuebNYkt2dD2Y=;
+        b=qUGB4G8IMxu0ZLQ5PIWAx7dEhQA3Wqk8RSi0QcDYGAfZeQ9hWjcWmOwz2v0X9xiOhpcQcf
+        yyUJ7Fi+2PVluoCw==
+Date:   Thu, 29 Oct 2020 23:18:11 +0100
+From:   Thomas Gleixner <tglx@linutronix.de>
+To:     LKML <linux-kernel@vger.kernel.org>
+Cc:     linux-arch@vger.kernel.org,
+        Linus Torvalds <torvalds@linuxfoundation.org>,
         Peter Zijlstra <peterz@infradead.org>,
-        Morten Rasmussen <morten.rasmussen@arm.com>,
-        Qais Yousef <qais.yousef@arm.com>,
-        Suren Baghdasaryan <surenb@google.com>, kernel-team@android.com
-Subject: Re: [PATCH 2/6] arm64: Allow mismatched 32-bit EL0 support
-Message-ID: <20201029222048.GD31375@willie-the-truck>
-References: <20201027215118.27003-1-will@kernel.org>
- <20201027215118.27003-3-will@kernel.org>
- <20201028111204.GB13345@gaia>
- <20201028111713.GA27927@willie-the-truck>
- <20201028112206.GD13345@gaia>
- <20201028112343.GD27927@willie-the-truck>
- <20201028114945.GE13345@gaia>
- <20201028124049.GC28091@willie-the-truck>
- <20201028185620.GK13345@gaia>
+        Paul McKenney <paulmck@kernel.org>,
+        David Airlie <airlied@linux.ie>,
+        Daniel Vetter <daniel@ffwll.ch>,
+        Ard Biesheuvel <ardb@kernel.org>,
+        Herbert Xu <herbert@gondor.apana.org.au>,
+        Christoph Hellwig <hch@lst.de>,
+        Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+        Vineet Gupta <vgupta@synopsys.com>,
+        linux-snps-arc@lists.infradead.org, Ingo Molnar <mingo@kernel.org>,
+        Juri Lelli <juri.lelli@redhat.com>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        Dietmar Eggemann <dietmar.eggemann@arm.com>,
+        Steven Rostedt <rostedt@goodmis.org>,
+        Ben Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>,
+        Daniel Bristot de Oliveira <bristot@redhat.com>,
+        Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org,
+        x86@kernel.org, Russell King <linux@armlinux.org.uk>,
+        Arnd Bergmann <arnd@arndb.de>,
+        linux-arm-kernel@lists.infradead.org, Guo Ren <guoren@kernel.org>,
+        linux-csky@vger.kernel.org, Michal Simek <monstr@monstr.eu>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        linux-mips@vger.kernel.org, Nick Hu <nickhu@andestech.com>,
+        Greentime Hu <green.hu@gmail.com>,
+        Vincent Chen <deanbo422@gmail.com>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        linuxppc-dev@lists.ozlabs.org,
+        "David S. Miller" <davem@davemloft.net>,
+        sparclinux@vger.kernel.org, Chris Zankel <chris@zankel.net>,
+        Max Filippov <jcmvbkbc@gmail.com>,
+        linux-xtensa@linux-xtensa.org
+Subject: [patch V2 05/18] arc/mm/highmem: Use generic kmap atomic implementation
+References: <20201029221806.189523375@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20201028185620.GK13345@gaia>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+Content-Type: text/plain; charset=UTF-8
+Content-transfer-encoding: 8-bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Oct 28, 2020 at 06:56:21PM +0000, Catalin Marinas wrote:
-> On Wed, Oct 28, 2020 at 12:40:49PM +0000, Will Deacon wrote:
-> > On Wed, Oct 28, 2020 at 11:49:46AM +0000, Catalin Marinas wrote:
-> > > On Wed, Oct 28, 2020 at 11:23:43AM +0000, Will Deacon wrote:
-> > > > On Wed, Oct 28, 2020 at 11:22:06AM +0000, Catalin Marinas wrote:
-> > > > > On Wed, Oct 28, 2020 at 11:17:13AM +0000, Will Deacon wrote:
-> > > > > > On Wed, Oct 28, 2020 at 11:12:04AM +0000, Catalin Marinas wrote:
-> > > Anyway, I see your reasoning behind the late CPUs but I don't
-> > > particularly like abusing the cpufeature support to pretend a
-> > > SYSTEM_FEATURE is available before knowing any CPU has it (maybe we do
-> > > it in other cases, I haven't checked).
-> > 
-> > Hmm, but that's exactly what this cmdline option is about. We pretend that
-> > the system has 32-bit EL0 when normally we would say that we don't.
-> 
-> So that's more about force-enabling 32-bit irrespective of whether any
-> CPU supports it (not just in the mismatched/asymmetric case). Of course,
-> if the aarch32_el0 mask is empty, the apps would get SIGKILL'ed.
+Adopt the map ordering to match the other architectures and the generic
+code.
 
-Yes, but given that we can't generally rule out a 32-bit CPU coming online
-late, I don't think we should pretend that we're in a position to detect
-a 64-bit-only system.
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: linux-snps-arc@lists.infradead.org
+---
+ arch/arc/Kconfig               |    1 
+ arch/arc/include/asm/highmem.h |    8 ++++++-
+ arch/arc/mm/highmem.c          |   44 -----------------------------------------
+ 3 files changed, 9 insertions(+), 44 deletions(-)
 
-> > > Could we not instead add a new feature for asymmetric support that's
-> > > defined as ARM64_CPUCAP_WEAK_LOCAL_CPU_FEATURE? This would be allowed
-> > > for late CPUs and we keep the system_supports_32bit_el0() unchanged.
-> > 
-> > I really don't think this gains us anything.
-> 
-> It saves us having to explain to someone passing this option on a TX2
-> why personality(PER_LINUX32) and even execve() appear to work (well,
-> until SIGKILL). The lscpu tool, for example, uses personality() to
-> display whether the CPUs support 32-bit.
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -507,6 +507,7 @@ config LINUX_RAM_BASE
+ config HIGHMEM
+ 	bool "High Memory Support"
+ 	select ARCH_DISCONTIGMEM_ENABLE
++	select KMAP_LOCAL
+ 	help
+ 	  With ARC 2G:2G address split, only upper 2G is directly addressable by
+ 	  kernel. Enable this to potentially allow access to rest of 2G and PAE
+--- a/arch/arc/include/asm/highmem.h
++++ b/arch/arc/include/asm/highmem.h
+@@ -15,7 +15,10 @@
+ #define FIXMAP_BASE		(PAGE_OFFSET - FIXMAP_SIZE - PKMAP_SIZE)
+ #define FIXMAP_SIZE		PGDIR_SIZE	/* only 1 PGD worth */
+ #define KM_TYPE_NR		((FIXMAP_SIZE >> PAGE_SHIFT)/NR_CPUS)
+-#define FIXMAP_ADDR(nr)		(FIXMAP_BASE + ((nr) << PAGE_SHIFT))
++
++#define FIX_KMAP_BEGIN		(0)
++#define FIX_KMAP_END		((FIXMAP_SIZE >> PAGE_SHIFT) - 1)
++#define FIXADDR_TOP		(FIXMAP_BASE + FIXMAP_SIZE - PAGE_SIZE)
+ 
+ /* start after fixmap area */
+ #define PKMAP_BASE		(FIXMAP_BASE + FIXMAP_SIZE)
+@@ -29,6 +32,9 @@
+ 
+ extern void kmap_init(void);
+ 
++#define arch_kmap_local_post_unmap(vaddr)			\
++	local_flush_tlb_kernel_range(vaddr, vaddr + PAGE_SIZE)
++
+ static inline void flush_cache_kmaps(void)
+ {
+ 	flush_cache_all();
+--- a/arch/arc/mm/highmem.c
++++ b/arch/arc/mm/highmem.c
+@@ -47,48 +47,6 @@
+  */
+ 
+ extern pte_t * pkmap_page_table;
+-static pte_t * fixmap_page_table;
+-
+-void *kmap_atomic_high_prot(struct page *page, pgprot_t prot)
+-{
+-	int idx, cpu_idx;
+-	unsigned long vaddr;
+-
+-	cpu_idx = kmap_atomic_idx_push();
+-	idx = cpu_idx + KM_TYPE_NR * smp_processor_id();
+-	vaddr = FIXMAP_ADDR(idx);
+-
+-	set_pte_at(&init_mm, vaddr, fixmap_page_table + idx,
+-		   mk_pte(page, prot));
+-
+-	return (void *)vaddr;
+-}
+-EXPORT_SYMBOL(kmap_atomic_high_prot);
+-
+-void kunmap_atomic_high(void *kv)
+-{
+-	unsigned long kvaddr = (unsigned long)kv;
+-
+-	if (kvaddr >= FIXMAP_BASE && kvaddr < (FIXMAP_BASE + FIXMAP_SIZE)) {
+-
+-		/*
+-		 * Because preemption is disabled, this vaddr can be associated
+-		 * with the current allocated index.
+-		 * But in case of multiple live kmap_atomic(), it still relies on
+-		 * callers to unmap in right order.
+-		 */
+-		int cpu_idx = kmap_atomic_idx();
+-		int idx = cpu_idx + KM_TYPE_NR * smp_processor_id();
+-
+-		WARN_ON(kvaddr != FIXMAP_ADDR(idx));
+-
+-		pte_clear(&init_mm, kvaddr, fixmap_page_table + idx);
+-		local_flush_tlb_kernel_range(kvaddr, kvaddr + PAGE_SIZE);
+-
+-		kmap_atomic_idx_pop();
+-	}
+-}
+-EXPORT_SYMBOL(kunmap_atomic_high);
+ 
+ static noinline pte_t * __init alloc_kmap_pgtable(unsigned long kvaddr)
+ {
+@@ -113,5 +71,5 @@ void __init kmap_init(void)
+ 	pkmap_page_table = alloc_kmap_pgtable(PKMAP_BASE);
+ 
+ 	BUILD_BUG_ON(LAST_PKMAP > PTRS_PER_PTE);
+-	fixmap_page_table = alloc_kmap_pgtable(FIXMAP_BASE);
++	alloc_kmap_pgtable(FIXMAP_BASE);
+ }
 
-It really doesn't save us having to explain what this option does: it will
-need to be documented regardless. If you pass this option on TX2 then, yes,
-you get access to the PER_LINUX32 personality because that's what this
-option does. If you don't like that, don't pass the option! It's like
-passing "nosmp" and being surprised that you only have one CPU online.
-
-> Also with PER_LINUX32, /proc/cpuinfo shows the 32-bit HWCAPs. We have
-> compat_elf_hwcap pre-populated with some stuff which is entirely untrue
-> if AArch32 is missing.
-> 
-> Thinking about the COMPAT_HWCAPs, do we actually populate them properly
-> on an asymmetric system if the boot CPU is not AArch32-capable? In my
-> original patch I had to defer populating boot_cpu_data with AArch32
-> information until a capable CPU was found. If not,
-> update_32bit_cpu_features() will set most 32-bit features to 0.
-
-I think there are two interesting aspects to the COMPAT_HWCAPS:
-
- 1. Both my patches and the patches from Qais seem to get this wrong, so
-    the set of reported 32-bit caps is too small. I'll look at fixing this
-    for v2.
-
- 2. The 32-bit hwcaps are exposed by the PER_LINUX32 personality, and so
-    have to be fixed at boot *even if the boot CPUs are all 64-bit-only*.
-    This means that if the first 32-bit-capable core is onlined late, then
-    it will only get the base capabilities, but I think that's fine and
-    consistent with our overall handling of hwcaps (which cannot appear
-    dynamically to userspace).
-
-> > The current users of system_supports_32bit_el0() are:
-> > 
-> >   - The ELF loader
-> >   - CPU feature sanitisation code
-> >   - Personality syscall
-> 
-> There three need a relaxed system_supports_32bit_el0(), so we could
-> change it to check a new relaxed feature.
-> 
-> >   - KVM
-> 
-> Here I think we need the stronger guarantee, no 32-bit allowed in
-> guests (the original symmetric feature check).
-
-Right, and I handle this in these patches. But the point is really that
-the majority of the users of system_supports_32bit_el0() are actually
-interested in the asymmetric case and it doesn't make sense to call that out
-separately. If it's the naming you object to, we could rename
-system_supports_32bit_el0() to something else? Adding a new cap just adds
-complexity that we don't need.
-
-> > and, afaict, all of these would need to check the new feature if we added
-> > it.  I think it would also mean that at least one 32-bit capable CPU would
-> > have to boot early in order for the new feature to be advertised, which
-> > feels like an artificial restriction to me, particularly as you could just
-> > offline it immediately.
-> 
-> How strong requirement is to allow late CPUs here? I think we'd miss the
-> COMPAT_HWCAPs as we no longer populate them once user-space started,
-> they are actually setup via smp_cpus_done() -> setup_cpu_features().
-
-I think the requirement is to be as consistent as possible and not introduce
-more new behaviours than we really have to. Allowing late onlining of cores
-but fixing the (compat) hwcaps during boot is fine.
-
-Will
