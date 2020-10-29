@@ -2,65 +2,65 @@ Return-Path: <SRS0=7t7o=EE=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+X-Spam-Status: No, score=-17.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
-	USER_IN_DEF_DKIM_WL autolearn=no autolearn_force=no version=3.4.0
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B4CADC4363A
-	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 01:07:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C0A7EC5517A
+	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 01:07:37 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5EE712068D
-	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 01:07:25 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 54D5920725
+	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 01:07:37 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="OQFoy5zJ"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="S5U0imA/"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730398AbgJ2BHV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 28 Oct 2020 21:07:21 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52866 "EHLO
+        id S2404233AbgJ2BHc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Oct 2020 21:07:32 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53078 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2404152AbgJ2BG3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Oct 2020 21:06:29 -0400
-Received: from mail-lj1-x244.google.com (mail-lj1-x244.google.com [IPv6:2a00:1450:4864:20::244])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4A305C0613D2
-        for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2020 18:06:28 -0700 (PDT)
-Received: by mail-lj1-x244.google.com with SMTP id p15so1264290ljj.8
-        for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2020 18:06:28 -0700 (PDT)
+        with ESMTP id S2404235AbgJ2BH1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Oct 2020 21:07:27 -0400
+Received: from mail-lj1-x242.google.com (mail-lj1-x242.google.com [IPv6:2a00:1450:4864:20::242])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CF23AC0613D6
+        for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2020 18:07:26 -0700 (PDT)
+Received: by mail-lj1-x242.google.com with SMTP id p15so1266088ljj.8
+        for <linux-arch@vger.kernel.org>; Wed, 28 Oct 2020 18:07:26 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=mime-version:references:in-reply-to:from:date:message-id:subject:to
          :cc:content-transfer-encoding;
-        bh=sdW8glxlqT52o6OrX86F7zpNSSHvHFcM+yTkw93QmvU=;
-        b=OQFoy5zJcvGaPYRjULm9FRQ4mPpGgZUmLkSBusyWrqN7wYA6OKMhtdFCj7k6mxGVVn
-         /OB6g0MYcj16bI3y0RZAnTaIqfzbpgMOw5XGd4GR3BPNbqmLRVZfrNgeih5y59Ukq7m8
-         hQ2JsWLBe5/8kwUHrYWzO15rATBwrSZSug26Qn738s0cmusMvscNdYWrEyDFeIIxigX/
-         djhhUiRssu5Q15Vhx6qIjm2Ox/u4rrcbzo4r3H7eYiBYzRqiKzLmUsoc0+Jsbge3+k21
-         5yjSQlazLmxu+Kte6xds9kyAl4e/NpD7HFcpW0zVmKkL0FHCl8jErMGvQv9yJe4Z5ez9
-         yF+A==
+        bh=br9kKS+gFA8BznJTzuPGoVM3iBvdwFO+Ql9r2LbNOMk=;
+        b=S5U0imA/A2cSiMX+/z+0z/lz+LR0BfcHiU2uN8JFu023cQ7/C3g0A9ewEoemNmg9Gq
+         lc0geXzLiz77TikTHXSfI1WkCExuZ6yFC8txlnUvmbho/a1wgCxu8ytSsOFxq+B9lgQc
+         Ctomz1rh6DgZvWfQegQd/4BqnkGRFnOy1qCHakTETFAptS7rqdPTZ8kG9/XUll/1+44G
+         f4W4wePPRnxGuoBJxzivBGZxNaYeBAi6ggUBEdeG56tZ6FnpQ9/DtGnQBfIPxCUR3Up0
+         JDE3azPAl0sPGCQ8w6PJK9FyWzjgRq059MqgLg7K9hBsyVBZjqZyNg15OkMJLhFhn5IB
+         mfFQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:mime-version:references:in-reply-to:from:date
          :message-id:subject:to:cc:content-transfer-encoding;
-        bh=sdW8glxlqT52o6OrX86F7zpNSSHvHFcM+yTkw93QmvU=;
-        b=nS3rdvrwVkoqnQ8uXKxk0p3YkfLx/ML2PJxtCLKNWQBgFLFZphhZCNY3J0G5PNPOFU
-         qS1XcWy0nfPAHrP6xB9nGJqXqme6xl+gywSTLFIJ6Frwi1erKf4hxD7pd8n1N9lpE8u9
-         pSakjHHNqE43NOeOf/qNAYYvXIxw0yG51yX/2aU9BB9KJkHsWaqG0yJqvBqf3Qbsp61q
-         NqptJp6131/1SqFpVGohoZmwMyGbz0YWDlsCG9wGk1fOwCwdJuRxQXIcIc8fLkL1LM3c
-         LIILqaJ9tmeTaPupZ3MeYRCCRNYO8xMyjcwBZQcrQTqI+iWATjQlB9zSpIqoSfnFhUpr
-         vaMQ==
-X-Gm-Message-State: AOAM5306+dJuxjchtZfExlrcysFcEUfo2tCUKT2UsnWfBRwnwiysBqy0
-        AqogA14HvgoJYFBFa9Co/UiI/qZ0zB9VxeyV1gExgA==
-X-Google-Smtp-Source: ABdhPJzyyZaaLe2JA3VvgL7cUtSj9LlNwA65qJkm7Fv1qbvcq5QSy/4U16ih92Ck7/3Dyb1x1IAYXE/2zulh7bsAAQY=
-X-Received: by 2002:a2e:b888:: with SMTP id r8mr712081ljp.138.1603933586611;
- Wed, 28 Oct 2020 18:06:26 -0700 (PDT)
+        bh=br9kKS+gFA8BznJTzuPGoVM3iBvdwFO+Ql9r2LbNOMk=;
+        b=DUQXOhGIv2fwm/IIjIl5dpvGDtzkYNRxTZUBBEbFonP7QcKmFUJxqtyy7V7unOKwfs
+         +/RXcmOSaz29QUmb2Mm9Y7p6sqBstd9Fb5mGxrrs4kFmk7E6ncDNz3vNCdOhpF6esIsi
+         c4VVWcU+FnOkNR7DUkZPAG85OUFY5UHC1vxfB/rmJwg41HYIVDWlQ3PkTR3UyKg+AS5a
+         qkNcE4DvsWLPVWHYf9PJL/5j+HrXV4L/xYBZAbYBsXhaZSztBOkru8ngeJl7oMQZxiq0
+         FPMFZ66MikgPPZLwNuQ4H/l7fngL9LFMnjP3ANJCjuRUFDUPT2VeF/isexPlBngtNTmT
+         1mUQ==
+X-Gm-Message-State: AOAM531mbujJPe0RaYzQKmCET6tv4u/4dEd66Hh7hurMqVYjrLdsYgpw
+        7518eg2wOgWfM8ZHWMbXUI+ng/RtJF7xKmyZ5iXxGg==
+X-Google-Smtp-Source: ABdhPJzyVeStMQew4XabMc0NUvhBaLjb+ZFK+w6wLXdEwDI/BalwghYQUiGOdURfby5L62jSVPu7zskjTaVnRvUgjvE=
+X-Received: by 2002:a2e:9a17:: with SMTP id o23mr816986lji.242.1603933645156;
+ Wed, 28 Oct 2020 18:07:25 -0700 (PDT)
 MIME-Version: 1.0
-References: <20201027200358.557003-1-mic@digikod.net> <20201027200358.557003-4-mic@digikod.net>
-In-Reply-To: <20201027200358.557003-4-mic@digikod.net>
+References: <20201027200358.557003-1-mic@digikod.net> <20201027200358.557003-9-mic@digikod.net>
+In-Reply-To: <20201027200358.557003-9-mic@digikod.net>
 From:   Jann Horn <jannh@google.com>
-Date:   Thu, 29 Oct 2020 02:06:00 +0100
-Message-ID: <CAG48ez2idPLmoQmqi5SL-kL1B=3W4LBAEc8r7oUp2J9SxTr1rA@mail.gmail.com>
-Subject: Re: [PATCH v22 03/12] landlock: Set up the security framework and
- manage credentials
+Date:   Thu, 29 Oct 2020 02:06:58 +0100
+Message-ID: <CAG48ez1San538w=+He309vHg4pBSCvAf7e5xeHdqeOHA6qwitw@mail.gmail.com>
+Subject: Re: [PATCH v22 08/12] landlock: Add syscall implementations
 To:     =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
 Cc:     James Morris <jmorris@namei.org>,
         "Serge E . Hallyn" <serge@hallyn.com>,
@@ -95,16 +95,231 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 On Tue, Oct 27, 2020 at 9:04 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.net> =
 wrote:
-> Process's credentials point to a Landlock domain, which is underneath
-> implemented with a ruleset.  In the following commits, this domain is
-> used to check and enforce the ptrace and filesystem security policies.
-> A domain is inherited from a parent to its child the same way a thread
-> inherits a seccomp policy.
->
+> These 3 system calls are designed to be used by unprivileged processes
+> to sandbox themselves:
+> * landlock_create_ruleset(2): Creates a ruleset and returns its file
+>   descriptor.
+> * landlock_add_rule(2): Adds a rule (e.g. file hierarchy access) to a
+>   ruleset, identified by the dedicated file descriptor.
+> * landlock_enforce_ruleset_current(2): Enforces a ruleset on the current
+>   thread and its future children (similar to seccomp).  This syscall has
+>   the same usage restrictions as seccomp(2): the caller must have the
+>   no_new_privs attribute set or have CAP_SYS_ADMIN in the current user
+>   namespace.
+[...]
+> Cc: Arnd Bergmann <arnd@arndb.de>
 > Cc: James Morris <jmorris@namei.org>
 > Cc: Jann Horn <jannh@google.com>
 > Cc: Kees Cook <keescook@chromium.org>
 > Cc: Serge E. Hallyn <serge@hallyn.com>
 > Signed-off-by: Micka=C3=ABl Sala=C3=BCn <mic@linux.microsoft.com>
+[...]
+> diff --git a/include/uapi/linux/landlock.h b/include/uapi/linux/landlock.=
+h
+[...]
+> +/**
+> + * struct landlock_path_beneath_attr - Path hierarchy definition
+> + *
+> + * Argument of sys_landlock_add_rule().
+> + */
+> +struct landlock_path_beneath_attr {
+> +       /**
+> +        * @allowed_access: Bitmask of allowed actions for this file hier=
+archy
+> +        * (cf. `Filesystem flags`_).
+> +        */
+> +       __u64 allowed_access;
+> +       /**
+> +        * @parent_fd: File descriptor, open with ``O_PATH``, which ident=
+ify
 
-Reviewed-by: Jann Horn <jannh@google.com>
+nit: "identifies"
+
+> +        * the parent directory of a file hierarchy, or just a file.
+> +        */
+> +       __s32 parent_fd;
+> +       /*
+> +        * This struct is packed to avoid trailing reserved members.
+> +        * Cf. security/landlock/syscall.c:build_check_abi()
+> +        */
+> +} __attribute__((packed));
+[...]
+> diff --git a/security/landlock/syscall.c b/security/landlock/syscall.c
+[...]
+> +static int copy_min_struct_from_user(void *const dst, const size_t ksize=
+,
+> +               const size_t ksize_min, const void __user *const src,
+> +               const size_t usize)
+> +{
+> +       /* Checks buffer inconsistencies. */
+> +       BUILD_BUG_ON(!dst);
+> +       if (!src)
+> +               return -EFAULT;
+> +
+> +       /* Checks size ranges. */
+> +       BUILD_BUG_ON(ksize <=3D 0);
+> +       BUILD_BUG_ON(ksize < ksize_min);
+
+To make these checks work reliably, you should add __always_inline to
+the function.
+
+> +       if (usize < ksize_min)
+> +               return -EINVAL;
+> +       if (usize > PAGE_SIZE)
+> +               return -E2BIG;
+> +
+> +       /* Copies user buffer and fills with zeros. */
+> +       return copy_struct_from_user(dst, ksize, src, usize);
+> +}
+[...]
+> +static int get_path_from_fd(const s32 fd, struct path *const path)
+> +{
+> +       struct fd f;
+> +       int err =3D 0;
+> +
+> +       BUILD_BUG_ON(!__same_type(fd,
+> +               ((struct landlock_path_beneath_attr *)NULL)->parent_fd));
+> +
+> +       /* Handles O_PATH. */
+> +       f =3D fdget_raw(fd);
+> +       if (!f.file)
+> +               return -EBADF;
+> +       /*
+> +        * Only allows O_PATH file descriptor: enables to restrict ambien=
+t
+> +        * filesystem access without requiring to open and risk leaking o=
+r
+> +        * misusing a file descriptor.  Forbid internal filesystems (e.g.
+> +        * nsfs), including pseudo filesystems that will never be mountab=
+le
+> +        * (e.g. sockfs, pipefs).
+> +        */
+> +       if (!(f.file->f_mode & FMODE_PATH) ||
+> +                       (f.file->f_path.mnt->mnt_flags & MNT_INTERNAL) ||
+> +                       (f.file->f_path.dentry->d_sb->s_flags & SB_NOUSER=
+) ||
+> +                       d_is_negative(f.file->f_path.dentry) ||
+> +                       IS_PRIVATE(d_backing_inode(f.file->f_path.dentry)=
+)) {
+> +               err =3D -EBADFD;
+> +               goto out_fdput;
+> +       }
+> +       path->mnt =3D f.file->f_path.mnt;
+> +       path->dentry =3D f.file->f_path.dentry;
+
+those two lines can be replaced with "*path =3D f.file->f_path"
+
+> +       path_get(path);
+> +
+> +out_fdput:
+> +       fdput(f);
+> +       return err;
+> +}
+[...]
+> +/**
+> + * sys_landlock_enforce_ruleset_current - Enforce a ruleset on the curre=
+nt task
+> + *
+> + * @ruleset_fd: File descriptor tied to the ruleset to merge with the ta=
+rget.
+> + * @flags: Must be 0.
+> + *
+> + * This system call enables to enforce a Landlock ruleset on the current
+> + * thread.  Enforcing a ruleset requires that the task has CAP_SYS_ADMIN=
+ in its
+> + * namespace or be running with no_new_privs.  This avoids scenarios whe=
+re
+
+s/be/is/
+
+> + * unprivileged tasks can affect the behavior of privileged children.
+> + *
+> + * Possible returned errors are:
+> + *
+> + * - EOPNOTSUPP: Landlock is supported by the kernel but disabled at boo=
+t time;
+> + * - EINVAL: @flags is not 0.
+> + * - EBADF: @ruleset_fd is not a file descriptor for the current thread;
+> + * - EBADFD: @ruleset_fd is not a ruleset file descriptor;
+> + * - EPERM: @ruleset_fd has no read access to the underlying ruleset, or=
+ the
+> + *   current thread is not running with no_new_privs (or doesn't have
+> + *   CAP_SYS_ADMIN in its namespace).
+> + */
+> +SYSCALL_DEFINE2(landlock_enforce_ruleset_current,
+> +               const int, ruleset_fd, const __u32, flags)
+> +{
+> +       struct landlock_ruleset *new_dom, *ruleset;
+> +       struct cred *new_cred;
+> +       struct landlock_cred_security *new_llcred;
+> +       int err;
+> +
+> +       if (!landlock_initialized)
+> +               return -EOPNOTSUPP;
+> +
+> +       /* No flag for now. */
+> +       if (flags)
+> +               return -EINVAL;
+> +
+> +       /*
+> +        * Similar checks as for seccomp(2), except that an -EPERM may be
+> +        * returned.
+> +        */
+> +       if (!task_no_new_privs(current)) {
+> +               err =3D security_capable(current_cred(), current_user_ns(=
+),
+> +                               CAP_SYS_ADMIN, CAP_OPT_NOAUDIT);
+
+I think this should be ns_capable_noaudit(current_user_ns(), CAP_SYS_ADMIN)=
+?
+
+> +               if (err)
+> +                       return err;
+> +       }
+> +
+> +       /* Gets and checks the ruleset. */
+> +       ruleset =3D get_ruleset_from_fd(ruleset_fd, FMODE_CAN_READ);
+> +       if (IS_ERR(ruleset))
+> +               return PTR_ERR(ruleset);
+> +
+> +       /* Prepares new credentials. */
+> +       new_cred =3D prepare_creds();
+> +       if (!new_cred) {
+> +               err =3D -ENOMEM;
+> +               goto out_put_ruleset;
+> +       }
+> +       new_llcred =3D landlock_cred(new_cred);
+> +
+> +       /*
+> +        * There is no possible race condition while copying and manipula=
+ting
+> +        * the current credentials because they are dedicated per thread.
+> +        */
+> +       new_dom =3D landlock_merge_ruleset(new_llcred->domain, ruleset);
+> +       if (IS_ERR(new_dom)) {
+> +               err =3D PTR_ERR(new_dom);
+> +               goto out_put_creds;
+> +       }
+> +
+> +       /* Replaces the old (prepared) domain. */
+> +       landlock_put_ruleset(new_llcred->domain);
+> +       new_llcred->domain =3D new_dom;
+> +
+> +       landlock_put_ruleset(ruleset);
+> +       return commit_creds(new_cred);
+> +
+> +out_put_creds:
+> +       abort_creds(new_cred);
+> +       return err;
+
+I think this "return err" is wrong - don't we still have to put "ruleset" h=
+ere?
+
+
+> +out_put_ruleset:
+> +       landlock_put_ruleset(ruleset);
+> +       return err;
+> +}
+> --
+> 2.28.0
+>
