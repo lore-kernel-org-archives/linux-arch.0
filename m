@@ -7,42 +7,42 @@ X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EAEE8C4742C
-	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 22:33:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 501B8C56202
+	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 22:33:31 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8B15B20FC3
-	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 22:33:09 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id EB89C20838
+	for <linux-arch@archiver.kernel.org>; Thu, 29 Oct 2020 22:33:30 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="VCA691jL";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="STUDCvqB"
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="UmrmyK4O";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="HxpVD2rY"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725966AbgJ2Wci (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 29 Oct 2020 18:32:38 -0400
-Received: from Galois.linutronix.de ([193.142.43.55]:37884 "EHLO
+        id S1726167AbgJ2WdK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 29 Oct 2020 18:33:10 -0400
+Received: from Galois.linutronix.de ([193.142.43.55]:37344 "EHLO
         galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725868AbgJ2Wch (ORCPT
+        with ESMTP id S1725853AbgJ2Wch (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Oct 2020 18:32:37 -0400
-Message-Id: <20201029222652.396632514@linutronix.de>
+Message-Id: <20201029222651.695446198@linutronix.de>
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020; t=1604010750;
+        s=2020; t=1604010742;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
          to:to:cc:cc:mime-version:mime-version:content-type:content-type:
          content-transfer-encoding:content-transfer-encoding:  references:references;
-        bh=bMLYR+ULvXX0256D4Df+wpxshaXLT7cqrLUawfmTX9Q=;
-        b=VCA691jLGnAZqdkXjZ9aUxRkLnyXLfBMqRSIRGqu4/sp5RVdZI3iAlpz3yv3t1RyGv51sf
-        aj9j5cUxfpMz1aNToNIzkolkGvpz7ly1nZ0wFgpScVGDCVLa9utWAflNggS31P6+Vx5DgO
-        1C8/Ue4XDTwlZf88m6Fw19NheeTWMADwN2TxrPGwBVXeCC/gnrTmhvqU8zHGAfIieyG/Z5
-        i1fEod79b3LJX5Bn5Do/KyPghX9o5UthsAzdPKiEuUUjL0qxS/SNe26GnpIA1NCCeOno1z
-        DFWxF3vPmxWQH5W4OmZ6SbVraqTnScVGk0DBL33R6duvu8JhKTsFJouGGv1nyQ==
+        bh=mKqToMCt4TK857L6pxHu/gEBeaTgg/I0tChqKCuxQX4=;
+        b=UmrmyK4OiYktirQTA7UPVpOuNJymPsdcFHoBTqnXV9fJJb1k9GhyerYmkkw6v1FwOK7Lkz
+        4x4mNiTbwKg5XZwyKoq/Fq/JZ9UZ0JmihPnq0kgM/l9myx6jlrloa9+qlrvH0E2IILOMmC
+        azN6aJk3sfuSUjUjr2/AsPYOwAqbXnNKjPh5PdAvsV4A4C05v8RCUhZuD0Ntmlxx3ysFgQ
+        BZrlbNRbVJFUI5O0NQLP/p+jcklvUVwb+VDp4aa3GQ3POyZoXr7nIQg1P3mWQ/HIXLu6jH
+        COkPfToQ9Rvl0nOPi0H1A0kcb8D8omgt9o+h745K16paCYz0CD3yjsB+QlfWaQ==
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020e; t=1604010750;
+        s=2020e; t=1604010742;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
          to:to:cc:cc:mime-version:mime-version:content-type:content-type:
          content-transfer-encoding:content-transfer-encoding:  references:references;
-        bh=bMLYR+ULvXX0256D4Df+wpxshaXLT7cqrLUawfmTX9Q=;
-        b=STUDCvqBTgV5xXrnXgKMETTb5aOCokIJFCvgDEer9TTJtzFGrKJQw3D5iibPwOcWdvspr/
-        F17h1AXIu/YLuvCg==
-Date:   Thu, 29 Oct 2020 23:18:24 +0100
+        bh=mKqToMCt4TK857L6pxHu/gEBeaTgg/I0tChqKCuxQX4=;
+        b=HxpVD2rY7MqmhvHwPuXswIG/rzdtissHt/T3LPe1/rTXCiyfxOrWzI7fQMiVzATIzNobbU
+        5pcryDtXkN5Hm+Dg==
+Date:   Thu, 29 Oct 2020 23:18:17 +0100
 From:   Thomas Gleixner <tglx@linutronix.de>
 To:     LKML <linux-kernel@vger.kernel.org>
 Cc:     linux-arch@vger.kernel.org,
@@ -55,7 +55,10 @@ Cc:     linux-arch@vger.kernel.org,
         Herbert Xu <herbert@gondor.apana.org.au>,
         Christoph Hellwig <hch@lst.de>,
         Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-        Ingo Molnar <mingo@kernel.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@kernel.org>,
         Juri Lelli <juri.lelli@redhat.com>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         Dietmar Eggemann <dietmar.eggemann@arm.com>,
@@ -73,15 +76,11 @@ Cc:     linux-arch@vger.kernel.org,
         linux-mips@vger.kernel.org, Nick Hu <nickhu@andestech.com>,
         Greentime Hu <green.hu@gmail.com>,
         Vincent Chen <deanbo422@gmail.com>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@samba.org>,
-        linuxppc-dev@lists.ozlabs.org,
         "David S. Miller" <davem@davemloft.net>,
         sparclinux@vger.kernel.org, Chris Zankel <chris@zankel.net>,
         Max Filippov <jcmvbkbc@gmail.com>,
         linux-xtensa@linux-xtensa.org
-Subject: [patch V2 18/18] io-mapping: Provide iomap_local variant
+Subject: [patch V2 11/18] powerpc/mm/highmem: Switch to generic kmap atomic
 References: <20201029221806.189523375@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -90,71 +89,154 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Similar to kmap local provide a iomap local variant which only disables
-migration, but neither disables pagefaults nor preemption.
+No reason having the same code in every architecture
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 ---
-V2: Split out from the large combo patch and add the !IOMAP_ATOMIC variants
----
- include/linux/io-mapping.h |   34 ++++++++++++++++++++++++++++++++--
- 1 file changed, 32 insertions(+), 2 deletions(-)
+ arch/powerpc/Kconfig               |    1 
+ arch/powerpc/include/asm/highmem.h |    6 ++-
+ arch/powerpc/mm/Makefile           |    1 
+ arch/powerpc/mm/highmem.c          |   67 -------------------------------------
+ arch/powerpc/mm/mem.c              |    7 ---
+ 5 files changed, 6 insertions(+), 76 deletions(-)
 
---- a/include/linux/io-mapping.h
-+++ b/include/linux/io-mapping.h
-@@ -83,6 +83,23 @@ io_mapping_unmap_atomic(void __iomem *va
- }
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -409,6 +409,7 @@ menu "Kernel options"
+ config HIGHMEM
+ 	bool "High memory support"
+ 	depends on PPC32
++        select KMAP_LOCAL
  
- static inline void __iomem *
-+io_mapping_map_local_wc(struct io_mapping *mapping, unsigned long offset)
-+{
-+	resource_size_t phys_addr;
+ source "kernel/Kconfig.hz"
+ 
+--- a/arch/powerpc/include/asm/highmem.h
++++ b/arch/powerpc/include/asm/highmem.h
+@@ -29,7 +29,6 @@
+ #include <asm/page.h>
+ #include <asm/fixmap.h>
+ 
+-extern pte_t *kmap_pte;
+ extern pte_t *pkmap_page_table;
+ 
+ /*
+@@ -60,6 +59,11 @@ extern pte_t *pkmap_page_table;
+ 
+ #define flush_cache_kmaps()	flush_cache_all()
+ 
++#define arch_kmap_local_post_map(vaddr, pteval)	\
++	local_flush_tlb_page(NULL, vaddr)
++#define arch_kmap_local_post_unmap(vaddr)	\
++	local_flush_tlb_page(NULL, vaddr)
 +
-+	BUG_ON(offset >= mapping->size);
-+	phys_addr = mapping->base + offset;
-+	migrate_disable();
-+	return __iomap_local_pfn_prot(PHYS_PFN(phys_addr), mapping->prot);
-+}
-+
-+static inline void io_mapping_unmap_local(void __iomem *vaddr)
-+{
-+	kunmap_local_indexed((void __force *)vaddr);
-+	migrate_enable();
-+}
-+
-+static inline void __iomem *
- io_mapping_map_wc(struct io_mapping *mapping,
- 		  unsigned long offset,
- 		  unsigned long size)
-@@ -101,7 +118,7 @@ io_mapping_unmap(void __iomem *vaddr)
- 	iounmap(vaddr);
- }
+ #endif /* __KERNEL__ */
  
--#else
-+#else  /* HAVE_ATOMIC_IOMAP */
+ #endif /* _ASM_HIGHMEM_H */
+--- a/arch/powerpc/mm/Makefile
++++ b/arch/powerpc/mm/Makefile
+@@ -16,7 +16,6 @@ obj-$(CONFIG_NEED_MULTIPLE_NODES) += num
+ obj-$(CONFIG_PPC_MM_SLICES)	+= slice.o
+ obj-$(CONFIG_HUGETLB_PAGE)	+= hugetlbpage.o
+ obj-$(CONFIG_NOT_COHERENT_CACHE) += dma-noncoherent.o
+-obj-$(CONFIG_HIGHMEM)		+= highmem.o
+ obj-$(CONFIG_PPC_COPRO_BASE)	+= copro_fault.o
+ obj-$(CONFIG_PPC_PTDUMP)	+= ptdump/
+ obj-$(CONFIG_KASAN)		+= kasan/
+--- a/arch/powerpc/mm/highmem.c
++++ /dev/null
+@@ -1,67 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-/*
+- * highmem.c: virtual kernel memory mappings for high memory
+- *
+- * PowerPC version, stolen from the i386 version.
+- *
+- * Used in CONFIG_HIGHMEM systems for memory pages which
+- * are not addressable by direct kernel virtual addresses.
+- *
+- * Copyright (C) 1999 Gerhard Wichert, Siemens AG
+- *		      Gerhard.Wichert@pdb.siemens.de
+- *
+- *
+- * Redesigned the x86 32-bit VM architecture to deal with
+- * up to 16 Terrabyte physical memory. With current x86 CPUs
+- * we now support up to 64 Gigabytes physical RAM.
+- *
+- * Copyright (C) 1999 Ingo Molnar <mingo@redhat.com>
+- *
+- * Reworked for PowerPC by various contributors. Moved from
+- * highmem.h by Benjamin Herrenschmidt (c) 2009 IBM Corp.
+- */
+-
+-#include <linux/highmem.h>
+-#include <linux/module.h>
+-
+-void *kmap_atomic_high_prot(struct page *page, pgprot_t prot)
+-{
+-	unsigned long vaddr;
+-	int idx, type;
+-
+-	type = kmap_atomic_idx_push();
+-	idx = type + KM_TYPE_NR*smp_processor_id();
+-	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
+-	WARN_ON(IS_ENABLED(CONFIG_DEBUG_HIGHMEM) && !pte_none(*(kmap_pte - idx)));
+-	__set_pte_at(&init_mm, vaddr, kmap_pte-idx, mk_pte(page, prot), 1);
+-	local_flush_tlb_page(NULL, vaddr);
+-
+-	return (void*) vaddr;
+-}
+-EXPORT_SYMBOL(kmap_atomic_high_prot);
+-
+-void kunmap_atomic_high(void *kvaddr)
+-{
+-	unsigned long vaddr = (unsigned long) kvaddr & PAGE_MASK;
+-
+-	if (vaddr < __fix_to_virt(FIX_KMAP_END))
+-		return;
+-
+-	if (IS_ENABLED(CONFIG_DEBUG_HIGHMEM)) {
+-		int type = kmap_atomic_idx();
+-		unsigned int idx;
+-
+-		idx = type + KM_TYPE_NR * smp_processor_id();
+-		WARN_ON(vaddr != __fix_to_virt(FIX_KMAP_BEGIN + idx));
+-
+-		/*
+-		 * force other mappings to Oops if they'll try to access
+-		 * this pte without first remap it
+-		 */
+-		pte_clear(&init_mm, vaddr, kmap_pte-idx);
+-		local_flush_tlb_page(NULL, vaddr);
+-	}
+-
+-	kmap_atomic_idx_pop();
+-}
+-EXPORT_SYMBOL(kunmap_atomic_high);
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -61,11 +61,6 @@
+ unsigned long long memory_limit;
+ bool init_mem_is_free;
  
- #include <linux/uaccess.h>
+-#ifdef CONFIG_HIGHMEM
+-pte_t *kmap_pte;
+-EXPORT_SYMBOL(kmap_pte);
+-#endif
+-
+ pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
+ 			      unsigned long size, pgprot_t vma_prot)
+ {
+@@ -235,8 +230,6 @@ void __init paging_init(void)
  
-@@ -166,7 +183,20 @@ io_mapping_unmap_atomic(void __iomem *va
- 	preempt_enable();
- }
+ 	map_kernel_page(PKMAP_BASE, 0, __pgprot(0));	/* XXX gross */
+ 	pkmap_page_table = virt_to_kpte(PKMAP_BASE);
+-
+-	kmap_pte = virt_to_kpte(__fix_to_virt(FIX_KMAP_BEGIN));
+ #endif /* CONFIG_HIGHMEM */
  
--#endif /* HAVE_ATOMIC_IOMAP */
-+static inline void __iomem *
-+io_mapping_map_local_wc(struct io_mapping *mapping, unsigned long offset)
-+{
-+	migrate_disable();
-+	return io_mapping_map_wc(mapping, offset, PAGE_SIZE);
-+}
-+
-+static inline void io_mapping_unmap_local(void __iomem *vaddr)
-+{
-+	io_mapping_unmap(vaddr);
-+	migrate_enable();
-+}
-+
-+#endif /* !HAVE_ATOMIC_IOMAP */
- 
- static inline struct io_mapping *
- io_mapping_create_wc(resource_size_t base,
+ 	printk(KERN_DEBUG "Top of RAM: 0x%llx, Total RAM: 0x%llx\n",
 
