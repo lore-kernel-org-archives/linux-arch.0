@@ -5,48 +5,48 @@ X-Spam-Level:
 X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A3F92C55179
-	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 15:50:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 81EACC4741F
+	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 15:50:08 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3E61D2151B
-	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 15:50:03 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E825E22243
+	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 15:50:07 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1604073003;
-	bh=dw+FNOj9rldGYjGgvqnlK7d2jveyytjZONsX8DAT/q4=;
+	s=default; t=1604073008;
+	bh=fY6p+lkklIuvlOl6LSOK1NSbGCEH/SLgf43BZ+YXIi4=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=RrERRFtMumUNArIpA7PnNN+ja2YzFQ9KElE/pnjeFdC4XBZksPP0w7VGx6n04twda
-	 F42kelc7dpgYz5w6Z9zRHqCe464JOnlKLcW4i3kM2QKUB6R9SIFoYdJwpHttQmfDZi
-	 P0R/M5aKeUyPEQk3xG1d5sbL7PfVVKEBOkjUtbiA=
+	b=YNyBkc3SgUHljXmCz+7/Nl2lsbZPu+cEa8g95oDqdFI3prkauABISulJ4PVDiiCMi
+	 cBF4UPktUXwiRbd5Me4+rZPcxmQFijV+kwTaZdoMkF4ZIaU482B8R+ABEccj7RsZRB
+	 gzOray5q2g6+RqpnjiaU1WF2p64B7HbBdjxD8bo8=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727278AbgJ3PuC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 30 Oct 2020 11:50:02 -0400
-Received: from mail.kernel.org ([198.145.29.99]:42410 "EHLO mail.kernel.org"
+        id S1727186AbgJ3Ptj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 30 Oct 2020 11:49:39 -0400
+Received: from mail.kernel.org ([198.145.29.99]:42144 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727231AbgJ3Pts (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 30 Oct 2020 11:49:48 -0400
+        id S1727215AbgJ3Pti (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Oct 2020 11:49:38 -0400
 Received: from localhost.localdomain (HSI-KBW-46-223-126-90.hsi.kabel-badenwuerttemberg.de [46.223.126.90])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 5308F22253;
-        Fri, 30 Oct 2020 15:49:44 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 1AF182223F;
+        Fri, 30 Oct 2020 15:49:34 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1604072986;
-        bh=dw+FNOj9rldGYjGgvqnlK7d2jveyytjZONsX8DAT/q4=;
+        s=default; t=1604072977;
+        bh=fY6p+lkklIuvlOl6LSOK1NSbGCEH/SLgf43BZ+YXIi4=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=R0a5HNrBIRQUBu6ig7nuv+MepNXNQ24+T16k0PcALBnQZR4OF92jeVXmuZSrRVNd6
-         XZ5W5D//tVylebaXnmmw2zHAt37AnRO8154mQwRo1xA0cfvtRiA++v20bomKsCI+V5
-         yyEMPB23AsmMXSFWEGc+XVUndufFs2TfKX+nvOUg=
+        b=OncIA6fgT7xFpJo++EiS1WLvS/pajpXd+csgRgpXj9iJfxdcXoVFvkZC2udyZ7Gc0
+         A7YWdxoVLtkUb/MfCSuNuR2coybydBXmuGgODODKEQw7OYawqvdhClLdjklrO58mlD
+         gWrbJrvaqoWYAbuuzGAp2QfG0RB11vi75z2ReBXs=
 From:   Arnd Bergmann <arnd@kernel.org>
 To:     Russell King <linux@armlinux.org.uk>,
         Christoph Hellwig <hch@lst.de>
 Cc:     linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         viro@zeniv.linux.org.uk, linus.walleij@linaro.org, arnd@arndb.de
-Subject: [PATCH 8/9] ARM: uaccess: add __{get,put}_kernel_nofault
-Date:   Fri, 30 Oct 2020 16:49:18 +0100
-Message-Id: <20201030154919.1246645-8-arnd@kernel.org>
+Subject: [PATCH 4/9] ARM: syscall: always store thread_info->syscall
+Date:   Fri, 30 Oct 2020 16:49:14 +0100
+Message-Id: <20201030154919.1246645-4-arnd@kernel.org>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20201030154919.1246645-1-arnd@kernel.org>
 References: <20201030154519.1245983-1-arnd@kernel.org>
@@ -59,259 +59,129 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Arnd Bergmann <arnd@arndb.de>
 
-These mimic the behavior of get_user and put_user, except
-for domain switching, address limit checking and handling
-of mismatched sizes, none of which are relevant here.
+The system call number is used in a a couple of places, in particular
+ptrace, seccomp and /proc/<pid>/syscall.
 
-To work with pre-Armv6 kernels, this has to avoid TUSER()
-inside of the new macros, the new approach passes the "t"
-string along with the opcode, which is a bit uglier but
-avoids duplicating more code.
+The last one apparently never worked reliably on ARM for tasks
+that are not currently getting traced.
 
-As there is no __get_user_asm_dword(), I work around it
-by copying 32 bit at a time, which is possible because
-the output size is known.
+Storing the syscall number in the normal entry path makes it work,
+as well as allowing us to see if the current system call is for
+OABI compat mode, which is the next thing I want to hook into.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arm/include/asm/uaccess.h | 123 ++++++++++++++++++++++-----------
- 1 file changed, 83 insertions(+), 40 deletions(-)
+ arch/arm/include/asm/syscall.h | 5 ++++-
+ arch/arm/kernel/asm-offsets.c  | 1 +
+ arch/arm/kernel/entry-common.S | 8 ++++++--
+ arch/arm/kernel/ptrace.c       | 9 +++++----
+ 4 files changed, 16 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
-index a13d90206472..4f60638755c4 100644
---- a/arch/arm/include/asm/uaccess.h
-+++ b/arch/arm/include/asm/uaccess.h
-@@ -308,11 +308,11 @@ static inline void set_fs(mm_segment_t fs)
- #define __get_user(x, ptr)						\
- ({									\
- 	long __gu_err = 0;						\
--	__get_user_err((x), (ptr), __gu_err);				\
-+	__get_user_err((x), (ptr), __gu_err, TUSER());			\
- 	__gu_err;							\
- })
+diff --git a/arch/arm/include/asm/syscall.h b/arch/arm/include/asm/syscall.h
+index fd02761ba06c..89898497edd6 100644
+--- a/arch/arm/include/asm/syscall.h
++++ b/arch/arm/include/asm/syscall.h
+@@ -22,7 +22,10 @@ extern const unsigned long sys_call_table[];
+ static inline int syscall_get_nr(struct task_struct *task,
+ 				 struct pt_regs *regs)
+ {
+-	return task_thread_info(task)->syscall;
++	if (IS_ENABLED(CONFIG_AEABI) && !IS_ENABLED(CONFIG_OABI_COMPAT))
++		return task_thread_info(task)->syscall;
++
++	return task_thread_info(task)->syscall & ~__NR_OABI_SYSCALL_BASE;
+ }
  
--#define __get_user_err(x, ptr, err)					\
-+#define __get_user_err(x, ptr, err, __t)				\
- do {									\
- 	unsigned long __gu_addr = (unsigned long)(ptr);			\
- 	unsigned long __gu_val;						\
-@@ -321,18 +321,19 @@ do {									\
- 	might_fault();							\
- 	__ua_flags = uaccess_save_and_enable();				\
- 	switch (sizeof(*(ptr))) {					\
--	case 1:	__get_user_asm_byte(__gu_val, __gu_addr, err);	break;	\
--	case 2:	__get_user_asm_half(__gu_val, __gu_addr, err);	break;	\
--	case 4:	__get_user_asm_word(__gu_val, __gu_addr, err);	break;	\
-+	case 1:	__get_user_asm_byte(__gu_val, __gu_addr, err, __t); break;	\
-+	case 2:	__get_user_asm_half(__gu_val, __gu_addr, err, __t); break;	\
-+	case 4:	__get_user_asm_word(__gu_val, __gu_addr, err, __t); break;	\
- 	default: (__gu_val) = __get_user_bad();				\
- 	}								\
- 	uaccess_restore(__ua_flags);					\
- 	(x) = (__typeof__(*(ptr)))__gu_val;				\
- } while (0)
-+#endif
+ static inline void syscall_rollback(struct task_struct *task,
+diff --git a/arch/arm/kernel/asm-offsets.c b/arch/arm/kernel/asm-offsets.c
+index a1570c8bab25..97af6735172b 100644
+--- a/arch/arm/kernel/asm-offsets.c
++++ b/arch/arm/kernel/asm-offsets.c
+@@ -46,6 +46,7 @@ int main(void)
+   DEFINE(TI_CPU,		offsetof(struct thread_info, cpu));
+   DEFINE(TI_CPU_DOMAIN,		offsetof(struct thread_info, cpu_domain));
+   DEFINE(TI_CPU_SAVE,		offsetof(struct thread_info, cpu_context));
++  DEFINE(TI_SYSCALL,		offsetof(struct thread_info, syscall));
+   DEFINE(TI_USED_CP,		offsetof(struct thread_info, used_cp));
+   DEFINE(TI_TP_VALUE,		offsetof(struct thread_info, tp_value));
+   DEFINE(TI_FPSTATE,		offsetof(struct thread_info, fpstate));
+diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+index 271cb8a1eba1..9a76467bbb47 100644
+--- a/arch/arm/kernel/entry-common.S
++++ b/arch/arm/kernel/entry-common.S
+@@ -223,6 +223,7 @@ ENTRY(vector_swi)
+ 	/* saved_psr and saved_pc are now dead */
  
- #define __get_user_asm(x, addr, err, instr)			\
- 	__asm__ __volatile__(					\
--	"1:	" TUSER(instr) " %1, [%2], #0\n"		\
-+	"1:	" instr " %1, [%2], #0\n"			\
- 	"2:\n"							\
- 	"	.pushsection .text.fixup,\"ax\"\n"		\
- 	"	.align	2\n"					\
-@@ -348,40 +349,38 @@ do {									\
- 	: "r" (addr), "i" (-EFAULT)				\
- 	: "cc")
+ 	uaccess_disable tbl
++	get_thread_info tsk
  
--#define __get_user_asm_byte(x, addr, err)			\
--	__get_user_asm(x, addr, err, ldrb)
-+#define __get_user_asm_byte(x, addr, err, __t)			\
-+	__get_user_asm(x, addr, err, "ldrb" __t)
+ 	adr	tbl, sys_call_table		@ load syscall table pointer
  
- #if __LINUX_ARM_ARCH__ >= 6
+@@ -234,13 +235,17 @@ ENTRY(vector_swi)
+ 	 * get the old ABI syscall table address.
+ 	 */
+ 	bics	r10, r10, #0xff000000
++	strne	r10, [tsk, #TI_SYSCALL]
++	streq	scno, [tsk, #TI_SYSCALL]
+ 	eorne	scno, r10, #__NR_OABI_SYSCALL_BASE
+ 	ldrne	tbl, =sys_oabi_call_table
+ #elif !defined(CONFIG_AEABI)
+ 	bic	scno, scno, #0xff000000		@ mask off SWI op-code
++	str	scno, [tsk, #TI_SYSCALL]
+ 	eor	scno, scno, #__NR_SYSCALL_BASE	@ check OS number
++#else
++	str	scno, [tsk, #TI_SYSCALL]
+ #endif
+-	get_thread_info tsk
+ 	/*
+ 	 * Reload the registers that may have been corrupted on entry to
+ 	 * the syscall assembly (by tracing or context tracking.)
+@@ -285,7 +290,6 @@ ENDPROC(vector_swi)
+ 	 * context switches, and waiting for our parent to respond.
+ 	 */
+ __sys_trace:
+-	mov	r1, scno
+ 	add	r0, sp, #S_OFF
+ 	bl	syscall_trace_enter
+ 	mov	scno, r0
+diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
+index 2771e682220b..683edb8b627d 100644
+--- a/arch/arm/kernel/ptrace.c
++++ b/arch/arm/kernel/ptrace.c
+@@ -25,6 +25,7 @@
+ #include <linux/tracehook.h>
+ #include <linux/unistd.h>
  
--#define __get_user_asm_half(x, addr, err)			\
--	__get_user_asm(x, addr, err, ldrh)
-+#define __get_user_asm_half(x, addr, err, __t)			\
-+	__get_user_asm(x, addr, err, "ldrh" __t)
++#include <asm/syscall.h>
+ #include <asm/traps.h>
  
+ #define CREATE_TRACE_POINTS
+@@ -885,9 +886,9 @@ static void tracehook_report_syscall(struct pt_regs *regs,
+ 	regs->ARM_ip = ip;
+ }
+ 
+-asmlinkage int syscall_trace_enter(struct pt_regs *regs, int scno)
++asmlinkage int syscall_trace_enter(struct pt_regs *regs)
+ {
+-	current_thread_info()->syscall = scno;
++	int scno;
+ 
+ 	if (test_thread_flag(TIF_SYSCALL_TRACE))
+ 		tracehook_report_syscall(regs, PTRACE_SYSCALL_ENTER);
+@@ -898,11 +899,11 @@ asmlinkage int syscall_trace_enter(struct pt_regs *regs, int scno)
+ 		return -1;
  #else
- 
- #ifndef __ARMEB__
--#define __get_user_asm_half(x, __gu_addr, err)			\
-+#define __get_user_asm_half(x, __gu_addr, err, __t)		\
- ({								\
- 	unsigned long __b1, __b2;				\
--	__get_user_asm_byte(__b1, __gu_addr, err);		\
--	__get_user_asm_byte(__b2, __gu_addr + 1, err);		\
-+	__get_user_asm_byte(__b1, __gu_addr, err, __t);		\
-+	__get_user_asm_byte(__b2, __gu_addr + 1, err, __t);	\
- 	(x) = __b1 | (__b2 << 8);				\
- })
- #else
--#define __get_user_asm_half(x, __gu_addr, err)			\
-+#define __get_user_asm_half(x, __gu_addr, err, __t)		\
- ({								\
- 	unsigned long __b1, __b2;				\
--	__get_user_asm_byte(__b1, __gu_addr, err);		\
--	__get_user_asm_byte(__b2, __gu_addr + 1, err);		\
-+	__get_user_asm_byte(__b1, __gu_addr, err, __t);		\
-+	__get_user_asm_byte(__b2, __gu_addr + 1, err, __t);	\
- 	(x) = (__b1 << 8) | __b2;				\
- })
+ 	/* XXX: remove this once OABI gets fixed */
+-	secure_computing_strict(current_thread_info()->syscall);
++	secure_computing_strict(syscall_get_nr(current, regs));
  #endif
  
- #endif /* __LINUX_ARM_ARCH__ >= 6 */
+ 	/* Tracer or seccomp may have changed syscall. */
+-	scno = current_thread_info()->syscall;
++	scno = syscall_get_nr(current, regs);
  
--#define __get_user_asm_word(x, addr, err)			\
--	__get_user_asm(x, addr, err, ldr)
--#endif
--
-+#define __get_user_asm_word(x, addr, err, __t)			\
-+	__get_user_asm(x, addr, err, "ldr" __t)
- 
- #define __put_user_switch(x, ptr, __err, __fn)				\
- 	do {								\
-@@ -425,7 +424,7 @@ do {									\
- #define __put_user_nocheck(x, __pu_ptr, __err, __size)			\
- 	do {								\
- 		unsigned long __pu_addr = (unsigned long)__pu_ptr;	\
--		__put_user_nocheck_##__size(x, __pu_addr, __err);	\
-+		__put_user_nocheck_##__size(x, __pu_addr, __err, TUSER());\
- 	} while (0)
- 
- #define __put_user_nocheck_1 __put_user_asm_byte
-@@ -433,9 +432,11 @@ do {									\
- #define __put_user_nocheck_4 __put_user_asm_word
- #define __put_user_nocheck_8 __put_user_asm_dword
- 
-+#endif /* !CONFIG_CPU_SPECTRE */
-+
- #define __put_user_asm(x, __pu_addr, err, instr)		\
- 	__asm__ __volatile__(					\
--	"1:	" TUSER(instr) " %1, [%2], #0\n"		\
-+	"1:	" instr " %1, [%2], #0\n"		\
- 	"2:\n"							\
- 	"	.pushsection .text.fixup,\"ax\"\n"		\
- 	"	.align	2\n"					\
-@@ -450,36 +451,36 @@ do {									\
- 	: "r" (x), "r" (__pu_addr), "i" (-EFAULT)		\
- 	: "cc")
- 
--#define __put_user_asm_byte(x, __pu_addr, err)			\
--	__put_user_asm(x, __pu_addr, err, strb)
-+#define __put_user_asm_byte(x, __pu_addr, err, __t)		\
-+	__put_user_asm(x, __pu_addr, err, "strb" __t)
- 
- #if __LINUX_ARM_ARCH__ >= 6
- 
--#define __put_user_asm_half(x, __pu_addr, err)			\
--	__put_user_asm(x, __pu_addr, err, strh)
-+#define __put_user_asm_half(x, __pu_addr, err, __t)		\
-+	__put_user_asm(x, __pu_addr, err, "strh" __t)
- 
- #else
- 
- #ifndef __ARMEB__
--#define __put_user_asm_half(x, __pu_addr, err)			\
-+#define __put_user_asm_half(x, __pu_addr, err, __t)		\
- ({								\
- 	unsigned long __temp = (__force unsigned long)(x);	\
--	__put_user_asm_byte(__temp, __pu_addr, err);		\
--	__put_user_asm_byte(__temp >> 8, __pu_addr + 1, err);	\
-+	__put_user_asm_byte(__temp, __pu_addr, err, __t);	\
-+	__put_user_asm_byte(__temp >> 8, __pu_addr + 1, err, __t);\
- })
- #else
--#define __put_user_asm_half(x, __pu_addr, err)			\
-+#define __put_user_asm_half(x, __pu_addr, err, __t)		\
- ({								\
- 	unsigned long __temp = (__force unsigned long)(x);	\
--	__put_user_asm_byte(__temp >> 8, __pu_addr, err);	\
--	__put_user_asm_byte(__temp, __pu_addr + 1, err);	\
-+	__put_user_asm_byte(__temp >> 8, __pu_addr, err, __t);	\
-+	__put_user_asm_byte(__temp, __pu_addr + 1, err, __t);	\
- })
- #endif
- 
- #endif /* __LINUX_ARM_ARCH__ >= 6 */
- 
--#define __put_user_asm_word(x, __pu_addr, err)			\
--	__put_user_asm(x, __pu_addr, err, str)
-+#define __put_user_asm_word(x, __pu_addr, err, __t)		\
-+	__put_user_asm(x, __pu_addr, err, "str" __t)
- 
- #ifndef __ARMEB__
- #define	__reg_oper0	"%R2"
-@@ -489,12 +490,12 @@ do {									\
- #define	__reg_oper1	"%R2"
- #endif
- 
--#define __put_user_asm_dword(x, __pu_addr, err)			\
-+#define __put_user_asm_dword(x, __pu_addr, err, __t)		\
- 	__asm__ __volatile__(					\
-- ARM(	"1:	" TUSER(str) "	" __reg_oper1 ", [%1], #4\n"	) \
-- ARM(	"2:	" TUSER(str) "	" __reg_oper0 ", [%1]\n"	) \
-- THUMB(	"1:	" TUSER(str) "	" __reg_oper1 ", [%1]\n"	) \
-- THUMB(	"2:	" TUSER(str) "	" __reg_oper0 ", [%1, #4]\n"	) \
-+ ARM(	"1:	str" __t "	" __reg_oper1 ", [%1], #4\n"  ) \
-+ ARM(	"2:	str" __t "	" __reg_oper0 ", [%1]\n"      ) \
-+ THUMB(	"1:	str" __t "	" __reg_oper1 ", [%1]\n"      ) \
-+ THUMB(	"2:	str" __t "	" __reg_oper0 ", [%1, #4]\n"  ) \
- 	"3:\n"							\
- 	"	.pushsection .text.fixup,\"ax\"\n"		\
- 	"	.align	2\n"					\
-@@ -510,7 +511,49 @@ do {									\
- 	: "r" (x), "i" (-EFAULT)				\
- 	: "cc")
- 
--#endif /* !CONFIG_CPU_SPECTRE */
-+#define HAVE_GET_KERNEL_NOFAULT
-+
-+#define __get_kernel_nofault(dst, src, type, err_label)			\
-+do {									\
-+	const type *__pk_ptr = (src);					\
-+	unsigned long __src = (unsigned long)(__pk_ptr);		\
-+	type __val;							\
-+	int __err = 0;							\
-+	switch (sizeof(type)) {						\
-+	case 1:	__get_user_asm_byte(__val, __src, __err, ""); break;	\
-+	case 2: __get_user_asm_half(__val, __src, __err, ""); break;	\
-+	case 4: __get_user_asm_word(__val, __src, __err, ""); break;	\
-+	case 8: {							\
-+		u32 *__v32 = (u32*)&__val;				\
-+		__get_user_asm_word(__v32[0], __src, __err, "");	\
-+		if (__err)						\
-+			break;						\
-+		__get_user_asm_word(__v32[1], __src+4, __err, "");	\
-+		break;							\
-+	}								\
-+	default: __err = __get_user_bad(); break;			\
-+	}								\
-+	*(type *)(dst) = __val;						\
-+	if (__err)							\
-+		goto err_label;						\
-+} while (0)
-+
-+#define __put_kernel_nofault(dst, src, type, err_label)			\
-+do {									\
-+	const type *__pk_ptr = (dst);					\
-+	unsigned long __dst = (unsigned long)__pk_ptr;			\
-+	int __err = 0;							\
-+	type __val = *(type *)src;					\
-+	switch (sizeof(type)) {						\
-+	case 1: __put_user_asm_byte(__val, __dst, __err, ""); break;	\
-+	case 2:	__put_user_asm_half(__val, __dst, __err, ""); break;	\
-+	case 4:	__put_user_asm_word(__val, __dst, __err, ""); break;	\
-+	case 8:	__put_user_asm_dword(__val, __dst, __err, ""); break;	\
-+	default: __err = __put_user_bad(); break;			\
-+	}								\
-+	if (__err)							\
-+		goto err_label;						\
-+} while (0)
- 
- #ifdef CONFIG_MMU
- extern unsigned long __must_check
+ 	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
+ 		trace_sys_enter(regs, scno);
 -- 
 2.27.0
 
