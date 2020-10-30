@@ -2,169 +2,217 @@ Return-Path: <SRS0=x4yw=EF=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.6 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BEFD8C00A89
-	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 15:50:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3B3D8C55178
+	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 16:14:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6CF3C2151B
-	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 15:50:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E2D6C20A8B
+	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 16:14:01 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1604073013;
-	bh=ZWVfnKETIZSkSXx6wtt9uwQPqWB73y+8PUTcomvoy2w=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=fD3dn2gbCZym5aB6KXQaCodN2Af57kKuaIhCP9o8o5yB6hUDJuN7sxDn06gUXEulh
-	 Au8KtDcIFRYm4dwRXUzrnTWYs/JrblSsnELWYTYc/+2ftRTcscgd5IDT/ztm6Xv5P9
-	 nlO4u3PekmKna19XTwY/6yysZw9HDZHeU31UHtxg=
+	s=default; t=1604074442;
+	bh=ywikaYdRiQXniE64iyK/LcRo1wbh9lpmPAH9bB5n1fE=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:List-ID:From;
+	b=Rxxj32txxQyoAxWFTFOL1oc0c+mWWQJvJ9NsSFvwwvPEi5IKqy2fkqjpLrUeTbieS
+	 5cx0EXXlDbiVt+WFVzgxBmxAjUahlN14AA+O1LFK7wzUzP22neUJASK8q7sjMb8ZY7
+	 iYUTskUMIGGiUbweC5KR95NmVdP/yOTBPFkHsJT4=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726178AbgJ3Pte (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 30 Oct 2020 11:49:34 -0400
-Received: from mail.kernel.org ([198.145.29.99]:42002 "EHLO mail.kernel.org"
+        id S1726072AbgJ3QOB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 30 Oct 2020 12:14:01 -0400
+Received: from mail.kernel.org ([198.145.29.99]:49908 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727183AbgJ3Ptd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 30 Oct 2020 11:49:33 -0400
-Received: from localhost.localdomain (HSI-KBW-46-223-126-90.hsi.kabel-badenwuerttemberg.de [46.223.126.90])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        id S1726061AbgJ3QOB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Oct 2020 12:14:01 -0400
+Received: from willie-the-truck (236.31.169.217.in-addr.arpa [217.169.31.236])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 45B6C2151B;
-        Fri, 30 Oct 2020 15:49:30 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 1D73B206FA;
+        Fri, 30 Oct 2020 16:13:56 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1604072972;
-        bh=ZWVfnKETIZSkSXx6wtt9uwQPqWB73y+8PUTcomvoy2w=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=TWyfwhH4qhKP35A1ntbbH2uTPQAKolFdHFHrtSWwJy5Sq5MvZ555anM/3vysGQt3y
-         VQVFD3UKiR9sA0ZvC/Z2NGFLAwjkgRWm6gMwYLIrEkgPnGIiqou5iSFnPMElVNJU08
-         Q5LxJVIxJgvA6T5x1TmH6oh+G31HTu67VEszV24o=
-From:   Arnd Bergmann <arnd@kernel.org>
-To:     Russell King <linux@armlinux.org.uk>,
-        Christoph Hellwig <hch@lst.de>
-Cc:     linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        viro@zeniv.linux.org.uk, linus.walleij@linaro.org, arnd@arndb.de
-Subject: [PATCH 2/9] ARM: traps: use get_kernel_nofault instead of set_fs()
-Date:   Fri, 30 Oct 2020 16:49:12 +0100
-Message-Id: <20201030154919.1246645-2-arnd@kernel.org>
-X-Mailer: git-send-email 2.27.0
-In-Reply-To: <20201030154919.1246645-1-arnd@kernel.org>
-References: <20201030154519.1245983-1-arnd@kernel.org>
- <20201030154919.1246645-1-arnd@kernel.org>
+        s=default; t=1604074439;
+        bh=ywikaYdRiQXniE64iyK/LcRo1wbh9lpmPAH9bB5n1fE=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=Yr9JwkixYuMK7TzQlmStjXDhBdqB3R6vD6xmVxPTnCiWiW3eYeS/t7UsZJ/6sEpyw
+         lTEvG/tKOc7PEzgg415xqVMe5NxrXJ2oVURTzTvs/QgbUkpLa0wMci/5ILOlHRGdBw
+         TLvv4rI3qIDUP27stZgiKfVhCn4vdotwbYX8q9MQ=
+Date:   Fri, 30 Oct 2020 16:13:53 +0000
+From:   Will Deacon <will@kernel.org>
+To:     Catalin Marinas <catalin.marinas@arm.com>
+Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+        Marc Zyngier <maz@kernel.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Morten Rasmussen <morten.rasmussen@arm.com>,
+        Qais Yousef <qais.yousef@arm.com>,
+        Suren Baghdasaryan <surenb@google.com>, kernel-team@android.com
+Subject: Re: [PATCH 2/6] arm64: Allow mismatched 32-bit EL0 support
+Message-ID: <20201030161353.GC32582@willie-the-truck>
+References: <20201027215118.27003-3-will@kernel.org>
+ <20201028111204.GB13345@gaia>
+ <20201028111713.GA27927@willie-the-truck>
+ <20201028112206.GD13345@gaia>
+ <20201028112343.GD27927@willie-the-truck>
+ <20201028114945.GE13345@gaia>
+ <20201028124049.GC28091@willie-the-truck>
+ <20201028185620.GK13345@gaia>
+ <20201029222048.GD31375@willie-the-truck>
+ <20201030111846.GC23196@gaia>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20201030111846.GC23196@gaia>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Arnd Bergmann <arnd@arndb.de>
+On Fri, Oct 30, 2020 at 11:18:47AM +0000, Catalin Marinas wrote:
+> On Thu, Oct 29, 2020 at 10:20:48PM +0000, Will Deacon wrote:
+> > On Wed, Oct 28, 2020 at 06:56:21PM +0000, Catalin Marinas wrote:
+> > > On Wed, Oct 28, 2020 at 12:40:49PM +0000, Will Deacon wrote:
+> > > > On Wed, Oct 28, 2020 at 11:49:46AM +0000, Catalin Marinas wrote:
+> > > > > On Wed, Oct 28, 2020 at 11:23:43AM +0000, Will Deacon wrote:
+> > > > > > On Wed, Oct 28, 2020 at 11:22:06AM +0000, Catalin Marinas wrote:
+> > > > > > > On Wed, Oct 28, 2020 at 11:17:13AM +0000, Will Deacon wrote:
+> > > > > > > > On Wed, Oct 28, 2020 at 11:12:04AM +0000, Catalin Marinas wrote:
+> > > > > Anyway, I see your reasoning behind the late CPUs but I don't
+> > > > > particularly like abusing the cpufeature support to pretend a
+> > > > > SYSTEM_FEATURE is available before knowing any CPU has it (maybe we do
+> > > > > it in other cases, I haven't checked).
+> > > > 
+> > > > Hmm, but that's exactly what this cmdline option is about. We pretend that
+> > > > the system has 32-bit EL0 when normally we would say that we don't.
+> > > 
+> > > So that's more about force-enabling 32-bit irrespective of whether any
+> > > CPU supports it (not just in the mismatched/asymmetric case). Of course,
+> > > if the aarch32_el0 mask is empty, the apps would get SIGKILL'ed.
+> > 
+> > Yes, but given that we can't generally rule out a 32-bit CPU coming online
+> > late, I don't think we should pretend that we're in a position to detect
+> > a 64-bit-only system.
+> 
+> No, we can't pretend it's a 64-bit only system but the kernel could
+> insist that 32-bit is not available if CPUs come in late. And since we
+> won't add late compat HWCAPs, I think allowing late 32-bit CPUs is a
+> pretty useless feature (see more below; of course, we allow those late
+> CPUs but they'd only run 64-bit apps).
 
-ARM uses set_fs() and __get_user() to allow the stack dumping code to
-access possibly invalid pointers carefully. These can be changed to the
-simpler get_kernel_nofault(), and allow the eventual removal of set_fs().
+Why should we insist on this? It doesn't gain us anything in the kernel and
+I don't think we should police userspace just because we can (the presence
+of the command-line option is indicative that we should really be letting
+userspace get on with it).
 
-dump_instr() will print either kernel or user space pointers,
-depending on how it was called. For dump_mem(), I assume we are only
-interested in kernel pointers, and the only time that this is called
-with user_mode(regs)==true is when the regs themselves are unreliable
-as a result of the condition that caused the trap.
+> > > > > Could we not instead add a new feature for asymmetric support that's
+> > > > > defined as ARM64_CPUCAP_WEAK_LOCAL_CPU_FEATURE? This would be allowed
+> > > > > for late CPUs and we keep the system_supports_32bit_el0() unchanged.
+> > > > 
+> > > > I really don't think this gains us anything.
+> > > 
+> > > It saves us having to explain to someone passing this option on a TX2
+> > > why personality(PER_LINUX32) and even execve() appear to work (well,
+> > > until SIGKILL). The lscpu tool, for example, uses personality() to
+> > > display whether the CPUs support 32-bit.
+> > 
+> > It really doesn't save us having to explain what this option does: it will
+> > need to be documented regardless. If you pass this option on TX2 then, yes,
+> > you get access to the PER_LINUX32 personality because that's what this
+> > option does. If you don't like that, don't pass the option! It's like
+> > passing "nosmp" and being surprised that you only have one CPU online.
+> 
+> I see this analogy the other way around, you pass "allow_smp" on a UP
+> system and the kernel pretends there are more CPUs available, only that
+> the app gets SIGKILL'ed if it ends up on the fake core. Well, if it's
+> properly documented and people read it, we could live with this.
 
-Reviewed-by: Christoph Hellwig <hch@lst.de>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- arch/arm/kernel/traps.c | 47 ++++++++++++++---------------------------
- 1 file changed, 16 insertions(+), 31 deletions(-)
+The bottom line is that passing command-line options can make things look
+different and so we need to document what they do. I don't think we're
+disagreeing here.
 
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index 17d5a785df28..c3964a283b63 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -122,17 +122,8 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
- 		     unsigned long top)
- {
- 	unsigned long first;
--	mm_segment_t fs;
- 	int i;
- 
--	/*
--	 * We need to switch to kernel mode so that we can use __get_user
--	 * to safely read from kernel space.  Note that we now dump the
--	 * code first, just in case the backtrace kills us.
--	 */
--	fs = get_fs();
--	set_fs(KERNEL_DS);
--
- 	printk("%s%s(0x%08lx to 0x%08lx)\n", lvl, str, bottom, top);
- 
- 	for (first = bottom & ~31; first < top; first += 32) {
-@@ -145,7 +136,7 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
- 		for (p = first, i = 0; i < 8 && p < top; i++, p += 4) {
- 			if (p >= bottom && p < top) {
- 				unsigned long val;
--				if (__get_user(val, (unsigned long *)p) == 0)
-+				if (get_kernel_nofault(val, (unsigned long *)p))
- 					sprintf(str + i * 9, " %08lx", val);
- 				else
- 					sprintf(str + i * 9, " ????????");
-@@ -153,11 +144,9 @@ static void dump_mem(const char *lvl, const char *str, unsigned long bottom,
- 		}
- 		printk("%s%04lx:%s\n", lvl, first & 0xffff, str);
- 	}
--
--	set_fs(fs);
- }
- 
--static void __dump_instr(const char *lvl, struct pt_regs *regs)
-+static void dump_instr(const char *lvl, struct pt_regs *regs)
- {
- 	unsigned long addr = instruction_pointer(regs);
- 	const int thumb = thumb_mode(regs);
-@@ -173,10 +162,20 @@ static void __dump_instr(const char *lvl, struct pt_regs *regs)
- 	for (i = -4; i < 1 + !!thumb; i++) {
- 		unsigned int val, bad;
- 
--		if (thumb)
--			bad = get_user(val, &((u16 *)addr)[i]);
--		else
--			bad = get_user(val, &((u32 *)addr)[i]);
-+		if (!user_mode(regs)) {
-+			if (thumb) {
-+				u16 val16;
-+				bad = get_kernel_nofault(val16, &((u16 *)addr)[i]);
-+				val = val16;
-+			} else {
-+				bad = get_kernel_nofault(val, &((u32 *)addr)[i]);
-+			}
-+		} else {
-+			if (thumb)
-+				bad = get_user(val, &((u16 *)addr)[i]);
-+			else
-+				bad = get_user(val, &((u32 *)addr)[i]);
-+		}
- 
- 		if (!bad)
- 			p += sprintf(p, i == 0 ? "(%0*x) " : "%0*x ",
-@@ -189,20 +188,6 @@ static void __dump_instr(const char *lvl, struct pt_regs *regs)
- 	printk("%sCode: %s\n", lvl, str);
- }
- 
--static void dump_instr(const char *lvl, struct pt_regs *regs)
--{
--	mm_segment_t fs;
--
--	if (!user_mode(regs)) {
--		fs = get_fs();
--		set_fs(KERNEL_DS);
--		__dump_instr(lvl, regs);
--		set_fs(fs);
--	} else {
--		__dump_instr(lvl, regs);
--	}
--}
--
- #ifdef CONFIG_ARM_UNWIND
- static inline void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
- 				  const char *loglvl)
--- 
-2.27.0
+> > > Also with PER_LINUX32, /proc/cpuinfo shows the 32-bit HWCAPs. We have
+> > > compat_elf_hwcap pre-populated with some stuff which is entirely untrue
+> > > if AArch32 is missing.
+> > > 
+> > > Thinking about the COMPAT_HWCAPs, do we actually populate them properly
+> > > on an asymmetric system if the boot CPU is not AArch32-capable? In my
+> > > original patch I had to defer populating boot_cpu_data with AArch32
+> > > information until a capable CPU was found. If not,
+> > > update_32bit_cpu_features() will set most 32-bit features to 0.
+> > 
+> > I think there are two interesting aspects to the COMPAT_HWCAPS:
+> > 
+> >  1. Both my patches and the patches from Qais seem to get this wrong, so
+> >     the set of reported 32-bit caps is too small. I'll look at fixing this
+> >     for v2.
+> 
+> I had it addressed in my original patch and Qais' first post on lakml.
+> It deferred filling in the 32-bit part of boot_cpu_data until the first
+> encounter of a 32-bit CPU.
+> 
+> I suggested we drop the cpuinfo_arm64.aarch32_valid member entirely but
+> I think we should have made it a static variable in cpuinfo_store_cpu()
+> or somewhere around there and still populate the 32-bit part of
+> boot_cpu_data.
 
+OK, I haven't looked into the reason for this yet.
+
+> >  2. The 32-bit hwcaps are exposed by the PER_LINUX32 personality, and so
+> >     have to be fixed at boot *even if the boot CPUs are all 64-bit-only*.
+> 
+> Note that the kernel rejects PER_LINUX32 if the system is 64-bit only.
+> With this option, arguably the 64-bit personality() ABI is slightly
+> changed. It doesn't matter much, only for lscpu reporting 32-bit
+> support when it's not there.
+
+I think this is just a consequence of enabling this option.
+
+> >     This means that if the first 32-bit-capable core is onlined late, then
+> >     it will only get the base capabilities, but I think that's fine and
+> >     consistent with our overall handling of hwcaps (which cannot appear
+> >     dynamically to userspace).
+> 
+> Yes but such bare 32-bit mode is entirely useless and I don't think we
+> should even pretend we have 32-bit. The compat hwcaps here would be
+> "half thumb fastmult edsp tls idiva idivt lpae evtstrm", statically
+> filled in. It's missing major bits like "vfp" and "neon" which are
+> necessary for the general purpose 32-bit EABI.
+
+So? If we found such a CPU during boot, would we refuse to online it because
+we consider it "entirely useless"? No! That said, given that it's _very_
+likely for the late CPUs to support vfp and neon, we could set those caps
+speculatively if the 64-bit cores have fpsimd (late onlining would be
+prevented for cores lacking those). Does the architecture allow you to
+implement both AArch64 and AArch32 at EL0, but only have fpsimd for AArch64?
+
+> Yes, in theory you can run an applications that don't make use of FP but
+> are there such apps still around? Even worse, I think not having
+> HWCAP_VFP or HWCAP_NEON should lead to a SIGILL if executing such
+> instructions but I have a suspicion they'd work just fine. So our compat
+> ABI in this case is no longer consistent with what we'd expose on a
+> symmetric system.
+
+In general, we already have this case for other capabilities where the
+architecture doesn't provide us with controls to disable instructions at
+EL0, so I don't think this is something new. However, given that we can
+trap fp, then I agree that this should be consistent with the caps.
+
+> > > How strong requirement is to allow late CPUs here? I think we'd miss the
+> > > COMPAT_HWCAPs as we no longer populate them once user-space started,
+> > > they are actually setup via smp_cpus_done() -> setup_cpu_features().
+> > 
+> > I think the requirement is to be as consistent as possible and not introduce
+> > more new behaviours than we really have to. Allowing late onlining of cores
+> > but fixing the (compat) hwcaps during boot is fine.
+> 
+> As I said above, I think we would be even more inconsistent w.r.t.
+> HWCAPs if we require at least one early AArch32-capable CPU, otherwise
+> don't expose 32-bit at all. I don't see what we gain by allowing all
+> 32-bit CPUs to come in late, other than maybe saving an entry in the
+> cpufeature array.
+
+It's a combination of there not being a good reason to prevent the
+late-onlining and not gaining anything from the additional feature (I've
+already shown why it doesn't help with the vast majority of callsites).
+
+Will
