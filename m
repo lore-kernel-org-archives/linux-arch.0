@@ -2,79 +2,47 @@ Return-Path: <SRS0=x4yw=EF=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E5AA0C00A89
-	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 22:46:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C9B00C00A89
+	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 23:26:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 952C722245
-	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 22:46:50 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1604098010;
-	bh=GSiqbQqAJ1M2D1p3OfKXbhTMv/wr6G7MI+M4TCqCEqQ=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc:List-ID:From;
-	b=wDcaZYUM5wgoDEQpGBR3tcElwgfYEa4xzPA2kGYPqFZ5Fj0QMxTUlQkr21KemFDbG
-	 rBEMv3GXevZCoaxEj0wlSW3yB8qr5fo+IdH6tMpCh1Ch+nysUM3xmWLemRSI+8oFMV
-	 wu8NxMpc0l1E1AT06epl2MopfFn2PUB+bilFAiYU=
+	by mail.kernel.org (Postfix) with ESMTP id 601172224A
+	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 23:26:11 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="msLkbucZ";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="ukQ/zD3p"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725838AbgJ3Wqu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 30 Oct 2020 18:46:50 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56052 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725836AbgJ3Wqt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Oct 2020 18:46:49 -0400
-Received: from mail-lj1-x242.google.com (mail-lj1-x242.google.com [IPv6:2a00:1450:4864:20::242])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4F7ACC0613D7
-        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2020 15:46:49 -0700 (PDT)
-Received: by mail-lj1-x242.google.com with SMTP id 2so8506872ljj.13
-        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2020 15:46:49 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=FrhxrWCIONXWoPxsDWMRBR+W10EJDGZ7OkgmkAXhFNU=;
-        b=NSjEistXDK7QrUisKBKyvvsUCTs8KpdALOTDGFQa3ZlxOrfYPgQ15P5Hp32THt3kZR
-         cN7sjbd0KoMQ3npg9DHgup7Q9J8GXdmUQ8lIGjC/f9HFg6XaYw9GqJyObayLgtYOnfyC
-         +DPogaxfsLaFCM9OrmD2eUZrIvZD8sMP/wXjA=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=FrhxrWCIONXWoPxsDWMRBR+W10EJDGZ7OkgmkAXhFNU=;
-        b=ifd8xyx2jnB2I2oHhMyc9fISEda/d+geWARPUDCiU5YGXQ9uSzmshKxjNEQ5JCjwto
-         CrPH3ZMZXlcAFeTRN6FW4sH2q2jkD8Ftv5rBO2qCtUKt8zi6EEWDCtEj5XzU4JO3nWIZ
-         K8l5LtnZR1bFjjs/dOihRZdDpgwAEQfr9n2Tr8Z1sKFx65964vx8+dvT6efeCkOWoGeL
-         7shox/tARpvj6B4dEtWBL/RxFmxVI5wAaXUBic2BM/wluXUDrr+NGFiaUkJAqf8T7+V9
-         fkud3BMfjOWv/PG9NDu//ZTo+ADONuXN35ePq8yJYQ+r4g3mTldcPr0BKeNun/J/n3ni
-         zzGA==
-X-Gm-Message-State: AOAM533NcfYb4RQCoBz3Jv+wqFYbVIJ5CMPXq5DUTmhyA2vksgn947j5
-        5+rCO5hQJMIkeWZWdTUB4ByvIK6390tLpw==
-X-Google-Smtp-Source: ABdhPJyHR9wYbmUJHBmxnzwAflHScXDdrjl/36uPd0kgPnMPJRrI8UQRH0fwj0ww60FcWPAAhlLDkQ==
-X-Received: by 2002:a2e:904e:: with SMTP id n14mr1901287ljg.356.1604098007417;
-        Fri, 30 Oct 2020 15:46:47 -0700 (PDT)
-Received: from mail-lf1-f48.google.com (mail-lf1-f48.google.com. [209.85.167.48])
-        by smtp.gmail.com with ESMTPSA id r5sm802045ljm.77.2020.10.30.15.46.42
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 30 Oct 2020 15:46:43 -0700 (PDT)
-Received: by mail-lf1-f48.google.com with SMTP id y184so7904746lfa.12
-        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2020 15:46:42 -0700 (PDT)
-X-Received: by 2002:a19:4815:: with SMTP id v21mr1949766lfa.603.1604098002560;
- Fri, 30 Oct 2020 15:46:42 -0700 (PDT)
-MIME-Version: 1.0
-References: <20201029221806.189523375@linutronix.de> <CAHk-=wiFxxGapdOyZHE-7LbFPk+jdfoqdeeJg0zWNQ86WvJGXg@mail.gmail.com>
- <87pn50ob0s.fsf@nanos.tec.linutronix.de> <87blgknjcw.fsf@nanos.tec.linutronix.de>
- <CAHk-=whsJv0bwWRVZHsLoSe48ykAea6T7Oi=G+r8ckLrZ0YUpg@mail.gmail.com> <87sg9vl59i.fsf@nanos.tec.linutronix.de>
-In-Reply-To: <87sg9vl59i.fsf@nanos.tec.linutronix.de>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Fri, 30 Oct 2020 15:46:26 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wjjO9BtTUAsLraqZqdzaPGJ-qvubZfwUsmRUX896eHcGw@mail.gmail.com>
-Message-ID: <CAHk-=wjjO9BtTUAsLraqZqdzaPGJ-qvubZfwUsmRUX896eHcGw@mail.gmail.com>
-Subject: Re: [patch V2 00/18] mm/highmem: Preemptible variant of kmap_atomic & friends
-To:     Thomas Gleixner <tglx@linutronix.de>
+        id S1725782AbgJ3X0K (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 30 Oct 2020 19:26:10 -0400
+Received: from Galois.linutronix.de ([193.142.43.55]:45598 "EHLO
+        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725446AbgJ3X0J (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Oct 2020 19:26:09 -0400
+From:   Thomas Gleixner <tglx@linutronix.de>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
+        s=2020; t=1604100366;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=BysKp1h3o8sBMwB2TAPG1V2I6LPAOQLiaGarMRHzzeQ=;
+        b=msLkbucZt6Zr2TdRRib4dyDR0Hmqjd9PCcJZcYk2Y1Kr1ZHeC/yu/EIwOLyVB56b5rrdpp
+        OdacYuXpMYpjP9QvQoxSkUy4+15KZ7mnez1Lt6Lta84CJdyeg+J/0zUeLEoJRKfOx53S17
+        dCpw0E5DGGOzwLCo8DNxzDNhnmNdmwNB6oX0FgcV8OsiJcfbj1iTy+odpmjKWyPbeoJbMv
+        smX85NvwI3DS8olPym6LnXfgy7AKd0tQ6O98pWv/VYPzafvQyU//DV2jk5nWx0metTssku
+        W29H4CAvM6xIk6KZE+gueTFcCV2msyvYHhyoy0vdg3fzuoyZKUA7dZJxYuDW2w==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
+        s=2020e; t=1604100366;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=BysKp1h3o8sBMwB2TAPG1V2I6LPAOQLiaGarMRHzzeQ=;
+        b=ukQ/zD3pRqCynz3kjYH2vqm7QEULUzQexquSIj29pG2BIqkPvy5LfqQiDopGo7rLLtVPFL
+        ef6qN/D2BkNlx2CQ==
+To:     Linus Torvalds <torvalds@linux-foundation.org>
 Cc:     LKML <linux-kernel@vger.kernel.org>,
         linux-arch <linux-arch@vger.kernel.org>,
         Peter Zijlstra <peterz@infradead.org>,
@@ -94,9 +62,9 @@ Cc:     LKML <linux-kernel@vger.kernel.org>,
         Daniel Bristot de Oliveira <bristot@redhat.com>,
         Andrew Morton <akpm@linux-foundation.org>,
         Linux-MM <linux-mm@kvack.org>,
-        "the arch/x86 maintainers" <x86@kernel.org>,
+        the arch/x86 maintainers <x86@kernel.org>,
         Vineet Gupta <vgupta@synopsys.com>,
-        "open list:SYNOPSYS ARC ARCHITECTURE" 
+        "open list\:SYNOPSYS ARC ARCHITECTURE" 
         <linux-snps-arc@lists.infradead.org>,
         Russell King <linux@armlinux.org.uk>,
         Arnd Bergmann <arnd@arndb.de>,
@@ -116,50 +84,46 @@ Cc:     LKML <linux-kernel@vger.kernel.org>,
         Chris Zankel <chris@zankel.net>,
         Max Filippov <jcmvbkbc@gmail.com>,
         linux-xtensa@linux-xtensa.org, Matthew Wilcox <willy@infradead.org>
-Content-Type: text/plain; charset="UTF-8"
+Subject: Re: [patch V2 00/18] mm/highmem: Preemptible variant of kmap_atomic & friends
+In-Reply-To: <CAHk-=wjjO9BtTUAsLraqZqdzaPGJ-qvubZfwUsmRUX896eHcGw@mail.gmail.com>
+References: <20201029221806.189523375@linutronix.de> <CAHk-=wiFxxGapdOyZHE-7LbFPk+jdfoqdeeJg0zWNQ86WvJGXg@mail.gmail.com> <87pn50ob0s.fsf@nanos.tec.linutronix.de> <87blgknjcw.fsf@nanos.tec.linutronix.de> <CAHk-=whsJv0bwWRVZHsLoSe48ykAea6T7Oi=G+r8ckLrZ0YUpg@mail.gmail.com> <87sg9vl59i.fsf@nanos.tec.linutronix.de> <CAHk-=wjjO9BtTUAsLraqZqdzaPGJ-qvubZfwUsmRUX896eHcGw@mail.gmail.com>
+Date:   Sat, 31 Oct 2020 00:26:05 +0100
+Message-ID: <87pn4zl2ia.fsf@nanos.tec.linutronix.de>
+MIME-Version: 1.0
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Oct 30, 2020 at 3:26 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+On Fri, Oct 30 2020 at 15:46, Linus Torvalds wrote:
+> On Fri, Oct 30, 2020 at 3:26 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+> To me, your patch series has two big advantages:
 >
-> While at it I might have a look at that debug request from Willy in the
-> other end of this thread. Any comment on that?
+>  - more common code
 >
->  https://lore.kernel.org/r/87k0v7mrrd.fsf@nanos.tec.linutronix.de
+>  - kmap_local() becomes more of a no-op
+>
+> and the last thing we want is to expand on kmap.
 
-I do think that it would be nice to have a debug mode, particularly
-since over the last few years we've really lost a lot of HIGHMEM
-coverage (to the point that I've wondered how worthwhile it really is
-to support at all any more - I think it's Arnd who argued that it's
-mainly some embedded ARM variants that will want it for the forseeable
-future).
+Happy to go with that.
 
-So I'm honestly somewhat torn. I think HIGHMEM is dying, and yes that
-argues for "non-HIGHMEM had better have some debug coverage", but at
-the same time I think it doesn't even really matter any more. At some
-point those embedded ARM platforms just aren't even interesting - they
-might as well use older kernels if they are the only thing really
-arguing for HIGHMEM at all.
+While trying to document the mess, I just stumbled over the abuse of
+kmap_atomic_prot() in
 
-This is one reason why I'd like the new kmap_local() to be a no-op,
-and I'd prefer for it to have no other side effects - because I want
-to be ready to remove it entirely some day. And if we end up having
-some transition where people start rewriting "kmap_atomic()" to be
-"kmap_local() + explicit preemption disable", then I think that would
-be a good step on that whole "kmap will eventually go away" path.
+drivers/gpu/drm/ttm/ttm_bo_util.c:      dst = kmap_atomic_prot(d, prot);
+drivers/gpu/drm/ttm/ttm_bo_util.c:      src = kmap_atomic_prot(s, prot);
+drivers/gpu/drm/vmwgfx/vmwgfx_blit.c:   kmap_atomic_prot(d->dst_pages[dst_page],
+drivers/gpu/drm/vmwgfx/vmwgfx_blit.c:   kmap_atomic_prot(d->src_pages[src_page],
 
-But I do *not* believe that we need to add _so_ much debug support
-that we'd catch Willy's "more than one page" case. And I absolutely do
-not believe for a second that we should start caring about compound
-pages. NO. kmap() is almost dead already, we're not making it worse.
+For !HIGHMEM kmap_atomic_prot() just ignores the 'prot' argument and
+returns the page address. 
 
-To me, your patch series has two big advantages:
+Moar patches to be written ... Sigh!
 
- - more common code
+Thanks,
 
- - kmap_local() becomes more of a no-op
+        tglx
 
-and the last thing we want is to expand on kmap.
 
-           Linus
+
+
