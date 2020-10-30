@@ -7,46 +7,46 @@ X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F3282C56201
-	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 15:49:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6052CC5DF9D
+	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 15:50:00 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id BC2152151B
-	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 15:49:48 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id F244922245
+	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 15:49:59 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1604072988;
-	bh=Nohcs14NXVmzDPgy7u84GYyJC54hRaPFadvgsNBjXrI=;
+	s=default; t=1604073000;
+	bh=Mb09tzc2RqZDiW5zESZRVaJa8p0JD3B9TZ8nelNX9Bo=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=WImPzkm1B7/H0cIQLSp04IxntPq8H6vATwdl1yEqp0V27WU+HBzRqFRX5ovD5Vm+y
-	 ib5ntX9I0DuY4cy20s+PETR8mb+jBrs0QuLJw+G7pGB/N31F3BZCafPVnL3Yo+2BGI
-	 veMpRkdOWLkWd+vh5BzwtUlYdNRsLxGxdF/e7txY=
+	b=uLJ9yU/GAaXg/sUxN2nQrvYcETSZzUT0OP3rnJxBmoZmu1OKh+9zcVP95Wkhlw6vd
+	 k/w9nORqIz4hw860jvm6DzAbIqhmo2YWHEOMavGZc2/ieHqiJhiyzIHWuvzSeGB4TW
+	 P3cEwvw/O5dVBgpGYW718FLIvLcBNI3XfuKyTxQI=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727247AbgJ3Ptr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 30 Oct 2020 11:49:47 -0400
-Received: from mail.kernel.org ([198.145.29.99]:42272 "EHLO mail.kernel.org"
+        id S1727265AbgJ3Ptx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 30 Oct 2020 11:49:53 -0400
+Received: from mail.kernel.org ([198.145.29.99]:42524 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727215AbgJ3Ptm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 30 Oct 2020 11:49:42 -0400
+        id S1727251AbgJ3Ptu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Oct 2020 11:49:50 -0400
 Received: from localhost.localdomain (HSI-KBW-46-223-126-90.hsi.kabel-badenwuerttemberg.de [46.223.126.90])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id B0A3320A8B;
-        Fri, 30 Oct 2020 15:49:39 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 9F908221FA;
+        Fri, 30 Oct 2020 15:49:46 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1604072981;
-        bh=Nohcs14NXVmzDPgy7u84GYyJC54hRaPFadvgsNBjXrI=;
+        s=default; t=1604072988;
+        bh=Mb09tzc2RqZDiW5zESZRVaJa8p0JD3B9TZ8nelNX9Bo=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=tNj45AqwPZGaVSNZpP/1A40HzTQLDVBwf2c34+4NvqbGTUhoh/FO1BRqJrOzNVruE
-         LD4BOIie9hoNn4iQjlQcwnREWhJReYlSVouLAnKm8M47AUNXUKe7p+0J5aXJlKS3Jx
-         fB308cFDSQauT/MWaRTsr+6FJpvDCoAqru2H5sJE=
+        b=SZu7bKNIFA36nZNFMkHJRieZUdefVsM6sCIKUKFyFuezV7w7DHs/SpVUOSI/2QIAX
+         98hJoI0rSc1QAgCTQ5JdBlxtfOYuJQy9KMPyGcoS7YjyJRO/o8g2/vNLLHYQorVmd/
+         DTIHUcBk+G0JOOP2pmqgaTbIeBqANHsNeY8rLNlw=
 From:   Arnd Bergmann <arnd@kernel.org>
 To:     Russell King <linux@armlinux.org.uk>,
         Christoph Hellwig <hch@lst.de>
 Cc:     linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         viro@zeniv.linux.org.uk, linus.walleij@linaro.org, arnd@arndb.de
-Subject: [PATCH 6/9] ARM: oabi-compat: rework sys_semtimedop emulation
-Date:   Fri, 30 Oct 2020 16:49:16 +0100
-Message-Id: <20201030154919.1246645-6-arnd@kernel.org>
+Subject: [PATCH 9/9] ARM: uaccess: remove set_fs() implementation
+Date:   Fri, 30 Oct 2020 16:49:19 +0100
+Message-Id: <20201030154919.1246645-9-arnd@kernel.org>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20201030154919.1246645-1-arnd@kernel.org>
 References: <20201030154519.1245983-1-arnd@kernel.org>
@@ -59,326 +59,356 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Arnd Bergmann <arnd@arndb.de>
 
-sys_oabi_semtimedop() is one of the last users of set_fs() on Arm. To
-remove this one, expose the internal code of the actual implementation
-that operates on a kernel pointer and call it directly after copying.
+There are no remaining callers of set_fs(), so just remove it
+along with all associated code that operates on
+thread_info->addr_limit.
 
-There should be no measurable impact on the normal execution of this
-function, and it makes the overly long function a little shorter, which
-may help readability.
+There are still further optimizations that can be done:
 
-While reworking the oabi version, make it behave a little more like
-the native one, using kvmalloc_array() and restructure the code
-flow in a similar way.
+- In get_user(), the address check could be moved entirely
+  into the out of line code, rather than passing a constant
+  as an argument,
 
-The naming of __do_semtimedop() is not very good, I hope someone can
-come up with a better name.
-
-One regression was spotted by kernel test robot <rong.a.chen@intel.com>
-and fixed before the first mailing list submission.
+- I assume the DACR handling can be simplified as we now
+  only change it during user access when CONFIG_CPU_SW_DOMAIN_PAN
+  is set, but not during set_fs().
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arm/kernel/sys_oabi-compat.c | 38 ++++++++------
- include/linux/syscalls.h          |  3 ++
- ipc/sem.c                         | 84 +++++++++++++++++++------------
- 3 files changed, 77 insertions(+), 48 deletions(-)
+ arch/arm/Kconfig                   |  1 -
+ arch/arm/include/asm/ptrace.h      |  1 -
+ arch/arm/include/asm/thread_info.h |  4 ---
+ arch/arm/include/asm/uaccess-asm.h |  6 ----
+ arch/arm/include/asm/uaccess.h     | 46 +++---------------------------
+ arch/arm/kernel/asm-offsets.c      |  2 --
+ arch/arm/kernel/entry-common.S     |  9 ------
+ arch/arm/kernel/process.c          |  7 +----
+ arch/arm/kernel/signal.c           |  8 ------
+ arch/arm/lib/copy_from_user.S      |  3 +-
+ arch/arm/lib/copy_to_user.S        |  3 +-
+ 11 files changed, 7 insertions(+), 83 deletions(-)
 
-diff --git a/arch/arm/kernel/sys_oabi-compat.c b/arch/arm/kernel/sys_oabi-compat.c
-index f9d8e5be6ba0..c3e63b73b6ae 100644
---- a/arch/arm/kernel/sys_oabi-compat.c
-+++ b/arch/arm/kernel/sys_oabi-compat.c
-@@ -80,6 +80,7 @@
- #include <linux/socket.h>
- #include <linux/net.h>
- #include <linux/ipc.h>
-+#include <linux/ipc_namespace.h>
- #include <linux/uaccess.h>
- #include <linux/slab.h>
- 
-@@ -294,46 +295,51 @@ struct oabi_sembuf {
- 	unsigned short	__pad;
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index fe2f17eb2b50..55a8892dd5d8 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -120,7 +120,6 @@ config ARM
+ 	select PCI_SYSCALL if PCI
+ 	select PERF_USE_VMALLOC
+ 	select RTC_LIB
+-	select SET_FS
+ 	select SYS_SUPPORTS_APM_EMULATION
+ 	# Above selects are sorted alphabetically; please add new ones
+ 	# according to that.  Thanks.
+diff --git a/arch/arm/include/asm/ptrace.h b/arch/arm/include/asm/ptrace.h
+index 91d6b7856be4..93051e2f402c 100644
+--- a/arch/arm/include/asm/ptrace.h
++++ b/arch/arm/include/asm/ptrace.h
+@@ -19,7 +19,6 @@ struct pt_regs {
+ struct svc_pt_regs {
+ 	struct pt_regs regs;
+ 	u32 dacr;
+-	u32 addr_limit;
  };
  
-+#define sc_semopm     sem_ctls[2]
-+
- asmlinkage long sys_oabi_semtimedop(int semid,
- 				    struct oabi_sembuf __user *tsops,
- 				    unsigned nsops,
- 				    const struct old_timespec32 __user *timeout)
- {
-+	struct ipc_namespace *ns;
- 	struct sembuf *sops;
--	struct old_timespec32 local_timeout;
- 	long err;
- 	int i;
+ #define to_svc_pt_regs(r) container_of(r, struct svc_pt_regs, regs)
+diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/asm/thread_info.h
+index 536b6b979f63..8b705f611216 100644
+--- a/arch/arm/include/asm/thread_info.h
++++ b/arch/arm/include/asm/thread_info.h
+@@ -23,8 +23,6 @@ struct task_struct;
  
-+	ns = current->nsproxy->ipc_ns;
-+	if (nsops > ns->sc_semopm)
-+		return -E2BIG;
- 	if (nsops < 1 || nsops > SEMOPM)
- 		return -EINVAL;
--	if (!access_ok(tsops, sizeof(*tsops) * nsops))
--		return -EFAULT;
--	sops = kmalloc_array(nsops, sizeof(*sops), GFP_KERNEL);
-+	sops = kvmalloc_array(nsops, sizeof(*sops), GFP_KERNEL);
- 	if (!sops)
- 		return -ENOMEM;
- 	err = 0;
- 	for (i = 0; i < nsops; i++) {
- 		struct oabi_sembuf osb;
--		err |= __copy_from_user(&osb, tsops, sizeof(osb));
-+		err |= copy_from_user(&osb, tsops, sizeof(osb));
- 		sops[i].sem_num = osb.sem_num;
- 		sops[i].sem_op = osb.sem_op;
- 		sops[i].sem_flg = osb.sem_flg;
- 		tsops++;
- 	}
--	if (timeout) {
--		/* copy this as well before changing domain protection */
--		err |= copy_from_user(&local_timeout, timeout, sizeof(*timeout));
--		timeout = &local_timeout;
--	}
- 	if (err) {
- 		err = -EFAULT;
--	} else {
--		mm_segment_t fs = get_fs();
--		set_fs(KERNEL_DS);
--		err = sys_semtimedop_time32(semid, sops, nsops, timeout);
--		set_fs(fs);
-+		goto out;
-+	}
-+
-+	if (timeout) {
-+		struct timespec64 ts;
-+		err = get_old_timespec32(&ts, timeout);
-+		if (err)
-+			goto out;
-+		err = __do_semtimedop(semid, sops, nsops, &ts, ns);
-+		goto out;
- 	}
--	kfree(sops);
-+	err = __do_semtimedop(semid, sops, nsops, NULL, ns);
-+out:
-+	kvfree(sops);
- 	return err;
+ #include <asm/types.h>
+ 
+-typedef unsigned long mm_segment_t;
+-
+ struct cpu_context_save {
+ 	__u32	r4;
+ 	__u32	r5;
+@@ -46,7 +44,6 @@ struct cpu_context_save {
+ struct thread_info {
+ 	unsigned long		flags;		/* low level flags */
+ 	int			preempt_count;	/* 0 => preemptable, <0 => bug */
+-	mm_segment_t		addr_limit;	/* address limit */
+ 	struct task_struct	*task;		/* main task structure */
+ 	__u32			cpu;		/* cpu */
+ 	__u32			cpu_domain;	/* cpu domain */
+@@ -72,7 +69,6 @@ struct thread_info {
+ 	.task		= &tsk,						\
+ 	.flags		= 0,						\
+ 	.preempt_count	= INIT_PREEMPT_COUNT,				\
+-	.addr_limit	= KERNEL_DS,					\
  }
  
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 37bea07c12f2..fc7340fa4702 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -1342,6 +1342,9 @@ long ksys_old_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
- long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
- 			    unsigned int nsops,
- 			    const struct old_timespec32 __user *timeout);
-+long __do_semtimedop(int semid, struct sembuf *tsems, unsigned int nsops,
-+		     const struct timespec64 *timeout,
-+		     struct ipc_namespace *ns);
+ /*
+diff --git a/arch/arm/include/asm/uaccess-asm.h b/arch/arm/include/asm/uaccess-asm.h
+index 907571fd05c6..6451a433912c 100644
+--- a/arch/arm/include/asm/uaccess-asm.h
++++ b/arch/arm/include/asm/uaccess-asm.h
+@@ -84,12 +84,8 @@
+ 	 * if \disable is set.
+ 	 */
+ 	.macro	uaccess_entry, tsk, tmp0, tmp1, tmp2, disable
+-	ldr	\tmp1, [\tsk, #TI_ADDR_LIMIT]
+-	mov	\tmp2, #TASK_SIZE
+-	str	\tmp2, [\tsk, #TI_ADDR_LIMIT]
+  DACR(	mrc	p15, 0, \tmp0, c3, c0, 0)
+  DACR(	str	\tmp0, [sp, #SVC_DACR])
+-	str	\tmp1, [sp, #SVC_ADDR_LIMIT]
+ 	.if \disable && IS_ENABLED(CONFIG_CPU_SW_DOMAIN_PAN)
+ 	/* kernel=client, user=no access */
+ 	mov	\tmp2, #DACR_UACCESS_DISABLE
+@@ -106,9 +102,7 @@
  
- int __sys_getsockopt(int fd, int level, int optname, char __user *optval,
- 		int __user *optlen);
-diff --git a/ipc/sem.c b/ipc/sem.c
-index f6c30a85dadf..c7725031c2ba 100644
---- a/ipc/sem.c
-+++ b/ipc/sem.c
-@@ -1978,46 +1978,34 @@ static struct sem_undo *find_alloc_undo(struct ipc_namespace *ns, int semid)
- 	return un;
- }
+ 	/* Restore the user access state previously saved by uaccess_entry */
+ 	.macro	uaccess_exit, tsk, tmp0, tmp1
+-	ldr	\tmp1, [sp, #SVC_ADDR_LIMIT]
+  DACR(	ldr	\tmp0, [sp, #SVC_DACR])
+-	str	\tmp1, [\tsk, #TI_ADDR_LIMIT]
+  DACR(	mcr	p15, 0, \tmp0, c3, c0, 0)
+ 	.endm
  
--static long do_semtimedop(int semid, struct sembuf __user *tsops,
--		unsigned nsops, const struct timespec64 *timeout)
-+long __do_semtimedop(int semid, struct sembuf *sops,
-+		unsigned nsops, const struct timespec64 *timeout,
-+		struct ipc_namespace *ns)
- {
- 	int error = -EINVAL;
- 	struct sem_array *sma;
--	struct sembuf fast_sops[SEMOPM_FAST];
--	struct sembuf *sops = fast_sops, *sop;
-+	struct sembuf *sop;
- 	struct sem_undo *un;
- 	int max, locknum;
- 	bool undos = false, alter = false, dupsop = false;
- 	struct sem_queue queue;
- 	unsigned long dup = 0, jiffies_left = 0;
--	struct ipc_namespace *ns;
+diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
+index 4f60638755c4..084d1c07c2d0 100644
+--- a/arch/arm/include/asm/uaccess.h
++++ b/arch/arm/include/asm/uaccess.h
+@@ -52,32 +52,8 @@ static __always_inline void uaccess_restore(unsigned int flags)
+ extern int __get_user_bad(void);
+ extern int __put_user_bad(void);
+ 
+-/*
+- * Note that this is actually 0x1,0000,0000
+- */
+-#define KERNEL_DS	0x00000000
 -
--	ns = current->nsproxy->ipc_ns;
+ #ifdef CONFIG_MMU
  
- 	if (nsops < 1 || semid < 0)
- 		return -EINVAL;
- 	if (nsops > ns->sc_semopm)
- 		return -E2BIG;
--	if (nsops > SEMOPM_FAST) {
--		sops = kvmalloc_array(nsops, sizeof(*sops), GFP_KERNEL);
--		if (sops == NULL)
--			return -ENOMEM;
--	}
+-#define USER_DS		TASK_SIZE
+-#define get_fs()	(current_thread_info()->addr_limit)
 -
--	if (copy_from_user(sops, tsops, nsops * sizeof(*tsops))) {
--		error =  -EFAULT;
--		goto out_free;
--	}
+-static inline void set_fs(mm_segment_t fs)
+-{
+-	current_thread_info()->addr_limit = fs;
+-
+-	/*
+-	 * Prevent a mispredicted conditional call to set_fs from forwarding
+-	 * the wrong address limit to access_ok under speculation.
+-	 */
+-	dsb(nsh);
+-	isb();
+-
+-	modify_domain(DOMAIN_KERNEL, fs ? DOMAIN_CLIENT : DOMAIN_MANAGER);
+-}
+-
+-#define uaccess_kernel()	(get_fs() == KERNEL_DS)
+-
+ /*
+  * We use 33-bit arithmetic here.  Success returns zero, failure returns
+  * addr_limit.  We take advantage that addr_limit will be zero for KERNEL_DS,
+@@ -89,7 +65,7 @@ static inline void set_fs(mm_segment_t fs)
+ 	__asm__(".syntax unified\n" \
+ 		"adds %1, %2, %3; sbcscc %1, %1, %0; movcc %0, #0" \
+ 		: "=&r" (flag), "=&r" (roksum) \
+-		: "r" (addr), "Ir" (size), "0" (current_thread_info()->addr_limit) \
++		: "r" (addr), "Ir" (size), "0" (TASK_SIZE) \
+ 		: "cc"); \
+ 	flag; })
  
- 	if (timeout) {
- 		if (timeout->tv_sec < 0 || timeout->tv_nsec < 0 ||
- 			timeout->tv_nsec >= 1000000000L) {
- 			error = -EINVAL;
--			goto out_free;
-+			goto out;
- 		}
- 		jiffies_left = timespec64_to_jiffies(timeout);
- 	}
+@@ -120,7 +96,7 @@ static inline void __user *__uaccess_mask_range_ptr(const void __user *ptr,
+ 	"	subshs	%1, %1, %2\n"
+ 	"	movlo	%0, #0\n"
+ 	: "+r" (safe_ptr), "=&r" (tmp)
+-	: "r" (size), "r" (current_thread_info()->addr_limit)
++	: "r" (size), "r" (TASK_SIZE)
+ 	: "cc");
  
-+
- 	max = 0;
- 	for (sop = sops; sop < sops + nsops; sop++) {
- 		unsigned long mask = 1ULL << ((sop->sem_num) % BITS_PER_LONG);
-@@ -2046,7 +2034,7 @@ static long do_semtimedop(int semid, struct sembuf __user *tsops,
- 		un = find_alloc_undo(ns, semid);
- 		if (IS_ERR(un)) {
- 			error = PTR_ERR(un);
--			goto out_free;
-+			goto out;
- 		}
+ 	csdb();
+@@ -194,7 +170,7 @@ extern int __get_user_64t_4(void *);
+ 
+ #define __get_user_check(x, p)						\
+ 	({								\
+-		unsigned long __limit = current_thread_info()->addr_limit - 1; \
++		unsigned long __limit = TASK_SIZE - 1; \
+ 		register typeof(*(p)) __user *__p asm("r0") = (p);	\
+ 		register __inttype(x) __r2 asm("r2");			\
+ 		register unsigned long __l asm("r1") = __limit;		\
+@@ -245,7 +221,7 @@ extern int __put_user_8(void *, unsigned long long);
+ 
+ #define __put_user_check(__pu_val, __ptr, __err, __s)			\
+ 	({								\
+-		unsigned long __limit = current_thread_info()->addr_limit - 1; \
++		unsigned long __limit = TASK_SIZE - 1; \
+ 		register typeof(__pu_val) __r2 asm("r2") = __pu_val;	\
+ 		register const void __user *__p asm("r0") = __ptr;	\
+ 		register unsigned long __l asm("r1") = __limit;		\
+@@ -262,19 +238,8 @@ extern int __put_user_8(void *, unsigned long long);
+ 
+ #else /* CONFIG_MMU */
+ 
+-/*
+- * uClinux has only one addr space, so has simplified address limits.
+- */
+-#define USER_DS			KERNEL_DS
+-
+-#define uaccess_kernel()	(true)
+ #define __addr_ok(addr)		((void)(addr), 1)
+ #define __range_ok(addr, size)	((void)(addr), 0)
+-#define get_fs()		(KERNEL_DS)
+-
+-static inline void set_fs(mm_segment_t fs)
+-{
+-}
+ 
+ #define get_user(x, p)	__get_user(x, p)
+ #define __put_user_check __put_user_nocheck
+@@ -283,9 +248,6 @@ static inline void set_fs(mm_segment_t fs)
+ 
+ #define access_ok(addr, size)	(__range_ok(addr, size) == 0)
+ 
+-#define user_addr_max() \
+-	(uaccess_kernel() ? ~0UL : get_fs())
+-
+ #ifdef CONFIG_CPU_SPECTRE
+ /*
+  * When mitigating Spectre variant 1, it is not worth fixing the non-
+diff --git a/arch/arm/kernel/asm-offsets.c b/arch/arm/kernel/asm-offsets.c
+index 97af6735172b..78f0a25baf2d 100644
+--- a/arch/arm/kernel/asm-offsets.c
++++ b/arch/arm/kernel/asm-offsets.c
+@@ -41,7 +41,6 @@ int main(void)
+   BLANK();
+   DEFINE(TI_FLAGS,		offsetof(struct thread_info, flags));
+   DEFINE(TI_PREEMPT,		offsetof(struct thread_info, preempt_count));
+-  DEFINE(TI_ADDR_LIMIT,		offsetof(struct thread_info, addr_limit));
+   DEFINE(TI_TASK,		offsetof(struct thread_info, task));
+   DEFINE(TI_CPU,		offsetof(struct thread_info, cpu));
+   DEFINE(TI_CPU_DOMAIN,		offsetof(struct thread_info, cpu_domain));
+@@ -90,7 +89,6 @@ int main(void)
+   DEFINE(S_OLD_R0,		offsetof(struct pt_regs, ARM_ORIG_r0));
+   DEFINE(PT_REGS_SIZE,		sizeof(struct pt_regs));
+   DEFINE(SVC_DACR,		offsetof(struct svc_pt_regs, dacr));
+-  DEFINE(SVC_ADDR_LIMIT,	offsetof(struct svc_pt_regs, addr_limit));
+   DEFINE(SVC_REGS_SIZE,		sizeof(struct svc_pt_regs));
+   BLANK();
+   DEFINE(SIGFRAME_RC3_OFFSET,	offsetof(struct sigframe, retcode[3]));
+diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+index 9a76467bbb47..2c0bde14fba6 100644
+--- a/arch/arm/kernel/entry-common.S
++++ b/arch/arm/kernel/entry-common.S
+@@ -49,9 +49,6 @@ __ret_fast_syscall:
+  UNWIND(.fnstart	)
+  UNWIND(.cantunwind	)
+ 	disable_irq_notrace			@ disable interrupts
+-	ldr	r2, [tsk, #TI_ADDR_LIMIT]
+-	cmp	r2, #TASK_SIZE
+-	blne	addr_limit_check_failed
+ 	ldr	r1, [tsk, #TI_FLAGS]		@ re-check for syscall tracing
+ 	tst	r1, #_TIF_SYSCALL_WORK | _TIF_WORK_MASK
+ 	bne	fast_work_pending
+@@ -86,9 +83,6 @@ __ret_fast_syscall:
+ 	bl	do_rseq_syscall
+ #endif
+ 	disable_irq_notrace			@ disable interrupts
+-	ldr	r2, [tsk, #TI_ADDR_LIMIT]
+-	cmp	r2, #TASK_SIZE
+-	blne	addr_limit_check_failed
+ 	ldr	r1, [tsk, #TI_FLAGS]		@ re-check for syscall tracing
+ 	tst	r1, #_TIF_SYSCALL_WORK | _TIF_WORK_MASK
+ 	beq	no_work_pending
+@@ -127,9 +121,6 @@ ret_slow_syscall:
+ #endif
+ 	disable_irq_notrace			@ disable interrupts
+ ENTRY(ret_to_user_from_irq)
+-	ldr	r2, [tsk, #TI_ADDR_LIMIT]
+-	cmp	r2, #TASK_SIZE
+-	blne	addr_limit_check_failed
+ 	ldr	r1, [tsk, #TI_FLAGS]
+ 	tst	r1, #_TIF_WORK_MASK
+ 	bne	slow_work_pending
+diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
+index 8e6ace03e960..28a1a4a9dd77 100644
+--- a/arch/arm/kernel/process.c
++++ b/arch/arm/kernel/process.c
+@@ -97,7 +97,7 @@ void __show_regs(struct pt_regs *regs)
+ 	unsigned long flags;
+ 	char buf[64];
+ #ifndef CONFIG_CPU_V7M
+-	unsigned int domain, fs;
++	unsigned int domain;
+ #ifdef CONFIG_CPU_SW_DOMAIN_PAN
+ 	/*
+ 	 * Get the domain register for the parent context. In user
+@@ -106,14 +106,11 @@ void __show_regs(struct pt_regs *regs)
+ 	 */
+ 	if (user_mode(regs)) {
+ 		domain = DACR_UACCESS_ENABLE;
+-		fs = get_fs();
  	} else {
- 		un = NULL;
-@@ -2057,25 +2045,25 @@ static long do_semtimedop(int semid, struct sembuf __user *tsops,
- 	if (IS_ERR(sma)) {
- 		rcu_read_unlock();
- 		error = PTR_ERR(sma);
--		goto out_free;
-+		goto out;
+ 		domain = to_svc_pt_regs(regs)->dacr;
+-		fs = to_svc_pt_regs(regs)->addr_limit;
  	}
+ #else
+ 	domain = get_domain();
+-	fs = get_fs();
+ #endif
+ #endif
  
- 	error = -EFBIG;
- 	if (max >= sma->sem_nsems) {
- 		rcu_read_unlock();
--		goto out_free;
-+		goto out;
- 	}
+@@ -149,8 +146,6 @@ void __show_regs(struct pt_regs *regs)
+ 		if ((domain & domain_mask(DOMAIN_USER)) ==
+ 		    domain_val(DOMAIN_USER, DOMAIN_NOACCESS))
+ 			segment = "none";
+-		else if (fs == KERNEL_DS)
+-			segment = "kernel";
+ 		else
+ 			segment = "user";
  
- 	error = -EACCES;
- 	if (ipcperms(ns, &sma->sem_perm, alter ? S_IWUGO : S_IRUGO)) {
- 		rcu_read_unlock();
--		goto out_free;
-+		goto out;
- 	}
- 
- 	error = security_sem_semop(&sma->sem_perm, sops, nsops, alter);
- 	if (error) {
- 		rcu_read_unlock();
--		goto out_free;
-+		goto out;
- 	}
- 
- 	error = -EIDRM;
-@@ -2089,7 +2077,7 @@ static long do_semtimedop(int semid, struct sembuf __user *tsops,
- 	 * entangled here and why it's RMID race safe on comments at sem_lock()
- 	 */
- 	if (!ipc_valid_object(&sma->sem_perm))
--		goto out_unlock_free;
-+		goto out_unlock;
- 	/*
- 	 * semid identifiers are not unique - find_alloc_undo may have
- 	 * allocated an undo structure, it was invalidated by an RMID
-@@ -2098,7 +2086,7 @@ static long do_semtimedop(int semid, struct sembuf __user *tsops,
- 	 * "un" itself is guaranteed by rcu.
- 	 */
- 	if (un && un->semid == -1)
--		goto out_unlock_free;
-+		goto out_unlock;
- 
- 	queue.sops = sops;
- 	queue.nsops = nsops;
-@@ -2124,10 +2112,10 @@ static long do_semtimedop(int semid, struct sembuf __user *tsops,
- 		rcu_read_unlock();
- 		wake_up_q(&wake_q);
- 
--		goto out_free;
-+		goto out;
- 	}
- 	if (error < 0) /* non-blocking error path */
--		goto out_unlock_free;
-+		goto out_unlock;
- 
- 	/*
- 	 * We need to sleep on this operation, so we put the current
-@@ -2192,14 +2180,14 @@ static long do_semtimedop(int semid, struct sembuf __user *tsops,
- 		if (error != -EINTR) {
- 			/* see SEM_BARRIER_2 for purpose/pairing */
- 			smp_acquire__after_ctrl_dep();
--			goto out_free;
-+			goto out;
- 		}
- 
- 		rcu_read_lock();
- 		locknum = sem_lock(sma, sops, nsops);
- 
- 		if (!ipc_valid_object(&sma->sem_perm))
--			goto out_unlock_free;
-+			goto out_unlock;
- 
- 		/*
- 		 * No necessity for any barrier: We are protect by sem_lock()
-@@ -2211,7 +2199,7 @@ static long do_semtimedop(int semid, struct sembuf __user *tsops,
- 		 * Leave without unlink_queue(), but with sem_unlock().
- 		 */
- 		if (error != -EINTR)
--			goto out_unlock_free;
-+			goto out_unlock;
- 
- 		/*
- 		 * If an interrupt occurred we have to clean up the queue.
-@@ -2222,13 +2210,45 @@ static long do_semtimedop(int semid, struct sembuf __user *tsops,
- 
- 	unlink_queue(sma, &queue);
- 
--out_unlock_free:
-+out_unlock:
- 	sem_unlock(sma, locknum);
- 	rcu_read_unlock();
-+out:
-+	return error;
-+}
-+
-+static long do_semtimedop(int semid, struct sembuf __user *tsops,
-+		unsigned nsops, const struct timespec64 *timeout)
-+{
-+	struct sembuf fast_sops[SEMOPM_FAST];
-+	struct sembuf *sops = fast_sops;
-+	struct ipc_namespace *ns;
-+	int ret;
-+
-+	ns = current->nsproxy->ipc_ns;
-+	if (nsops > ns->sc_semopm)
-+		return -E2BIG;
-+	if (nsops < 1)
-+		return -EINVAL;
-+
-+	if (nsops > SEMOPM_FAST) {
-+		sops = kvmalloc_array(nsops, sizeof(*sops), GFP_KERNEL);
-+		if (sops == NULL)
-+			return -ENOMEM;
-+	}
-+
-+	if (copy_from_user(sops, tsops, nsops * sizeof(*tsops))) {
-+		ret =  -EFAULT;
-+		goto out_free;
-+	}
-+
-+	ret = __do_semtimedop(semid, sops, nsops, timeout, ns);
-+
- out_free:
- 	if (sops != fast_sops)
- 		kvfree(sops);
--	return error;
-+
-+	return ret;
+diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
+index 585edbfccf6d..e2e4db8fee42 100644
+--- a/arch/arm/kernel/signal.c
++++ b/arch/arm/kernel/signal.c
+@@ -709,14 +709,6 @@ struct page *get_signal_page(void)
+ 	return page;
  }
  
- long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+-/* Defer to generic check */
+-asmlinkage void addr_limit_check_failed(void)
+-{
+-#ifdef CONFIG_MMU
+-	addr_limit_user_check();
+-#endif
+-}
+-
+ #ifdef CONFIG_DEBUG_RSEQ
+ asmlinkage void do_rseq_syscall(struct pt_regs *regs)
+ {
+diff --git a/arch/arm/lib/copy_from_user.S b/arch/arm/lib/copy_from_user.S
+index f8016e3db65d..f481ef789a93 100644
+--- a/arch/arm/lib/copy_from_user.S
++++ b/arch/arm/lib/copy_from_user.S
+@@ -109,8 +109,7 @@
+ 
+ ENTRY(arm_copy_from_user)
+ #ifdef CONFIG_CPU_SPECTRE
+-	get_thread_info r3
+-	ldr	r3, [r3, #TI_ADDR_LIMIT]
++	mov	r3, #TASK_SIZE
+ 	uaccess_mask_range_ptr r1, r2, r3, ip
+ #endif
+ 
+diff --git a/arch/arm/lib/copy_to_user.S b/arch/arm/lib/copy_to_user.S
+index ebfe4cb3d912..215da16c7d6e 100644
+--- a/arch/arm/lib/copy_to_user.S
++++ b/arch/arm/lib/copy_to_user.S
+@@ -109,8 +109,7 @@
+ ENTRY(__copy_to_user_std)
+ WEAK(arm_copy_to_user)
+ #ifdef CONFIG_CPU_SPECTRE
+-	get_thread_info r3
+-	ldr	r3, [r3, #TI_ADDR_LIMIT]
++	mov	r3, #TASK_SIZE
+ 	uaccess_mask_range_ptr r0, r2, r3, ip
+ #endif
+ 
 -- 
 2.27.0
 
