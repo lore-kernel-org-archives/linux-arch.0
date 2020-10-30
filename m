@@ -2,151 +2,147 @@ Return-Path: <SRS0=x4yw=EF=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-4.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6034DC4742C
-	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 20:36:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3F2ECC00A89
+	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 21:29:03 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D23DC22253
-	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 20:36:26 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E19AB22202
+	for <linux-arch@archiver.kernel.org>; Fri, 30 Oct 2020 21:29:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1604090186;
-	bh=W5+9lcoQDsFXJSeK7F1kjPJUM3y+KjSdlpeW31vX9hw=;
+	s=default; t=1604093343;
+	bh=tZSPplLftF65YenDg5MlNkzy10RGzZxkh25MXH0GVn4=;
 	h=References:In-Reply-To:From:Date:Subject:To:Cc:List-ID:From;
-	b=sYC2Ka7FEYNlGE37qzFtIE7hB3sPqM6NOOIkyGDOM5OXdCE4mOB121bGYrQllgLM3
-	 vcpnCkkSFcJ4fZMc5up9b8hOVU2pshdmYFVceuJkF5s6fk64mxR8K+JMZWh2qyqF/u
-	 sVAg0zTBEnBRqUE9iAwVDHdpUMDOhoPPanYwSib0=
+	b=E3CTD67+64IeuwI6hFD3Gkhny2czrdQeHSizATAcD3704PR97BxrvLbdZMdmbI13z
+	 WK7qW7ko3zIA6+XQP0AEMikBBsu7o2OLYUACDRzhB2gn052YO3DgzTdJ91Xof9Lz50
+	 Oow7BAMt92NocH9Aotj8R0BGdroiyOJBi7ew2hfU=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727628AbgJ3UgW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 30 Oct 2020 16:36:22 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35758 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727526AbgJ3UgP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Oct 2020 16:36:15 -0400
-Received: from mail-ej1-x641.google.com (mail-ej1-x641.google.com [IPv6:2a00:1450:4864:20::641])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 041CAC0613CF
-        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2020 13:36:15 -0700 (PDT)
-Received: by mail-ej1-x641.google.com with SMTP id t25so10277143ejd.13
-        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2020 13:36:14 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=kjos0+S2Gon+fH3b26doFlCP2cxrfT62BjLoezK4rG4=;
-        b=J8d/YD59wQ/au5l1BQ7ue2vwfU1yPmEzaWIbs72/a3aDX73KGLSsh/e6e4T2ilr+m6
-         v7YctKloyJWKSYk1q7y81pi983c4f8E7/f/kLdP0CFwMkO7uyjtkdfJgwTbIAUd3yTgV
-         b5YrSxtLonkg9fnewHN7YslOk1fl6e5oIhge0=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=kjos0+S2Gon+fH3b26doFlCP2cxrfT62BjLoezK4rG4=;
-        b=lLb7diNiGXgtLAJP21hcUoG02A/5SDGvmwCY0wcobG31+CklawA1Hcim+OapTO2sPK
-         pDvrDz3H+J8X7fZwrpP7sJXEQfoaVu/vw868dR6iLoR+2OgksBIaqftTCBf3jT/2b6j/
-         ZjQsoyAQbNJZ4IyMT1u5dcv7oqqQQls9IfoFj/iIcOEqfitbRX7P3DTsvJ4H/z/bqLGf
-         INE8DffzGUszhqlP59D0aNictqxHNl9nAiaHyFCCViS03AiXEsmqQiHmdzt+EYbRtPcz
-         k+aCu7I+te19++SuSEJ+0o2bXzqGw6rkS45A5f0+VYYegIH/VuHr2TpkXmgVA6Z4NS8h
-         9eBQ==
-X-Gm-Message-State: AOAM532MntdQGTVQhLWH0OLrF/b069JlS1zy55sf5jSJQH0CDo+7UEA7
-        4DyNpNt0s7uSqNKCLYIxPAMNtzhaidXqOQ==
-X-Google-Smtp-Source: ABdhPJzXCsw0s9tbY6BAM1oEWtPjV7H/1DxtfiTdHLkdGzip1e3GuyA23BzVg/FuxGbPmGUhR5hqeg==
-X-Received: by 2002:a17:906:4e41:: with SMTP id g1mr3375737ejw.47.1604090173344;
-        Fri, 30 Oct 2020 13:36:13 -0700 (PDT)
-Received: from mail-wr1-f48.google.com (mail-wr1-f48.google.com. [209.85.221.48])
-        by smtp.gmail.com with ESMTPSA id c19sm3472530edt.48.2020.10.30.13.36.12
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 30 Oct 2020 13:36:13 -0700 (PDT)
-Received: by mail-wr1-f48.google.com with SMTP id m13so7823870wrj.7
-        for <linux-arch@vger.kernel.org>; Fri, 30 Oct 2020 13:36:12 -0700 (PDT)
-X-Received: by 2002:a2e:760a:: with SMTP id r10mr1661953ljc.421.1604089720167;
- Fri, 30 Oct 2020 13:28:40 -0700 (PDT)
+        id S1727869AbgJ3V2p (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 30 Oct 2020 17:28:45 -0400
+Received: from mail.kernel.org ([198.145.29.99]:42164 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727727AbgJ3V2o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Oct 2020 17:28:44 -0400
+Received: from mail-qk1-f171.google.com (mail-qk1-f171.google.com [209.85.222.171])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 7F8E822241;
+        Fri, 30 Oct 2020 21:28:43 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=default; t=1604093323;
+        bh=tZSPplLftF65YenDg5MlNkzy10RGzZxkh25MXH0GVn4=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=PnRgQyolUgqkCmxzG1qYuQvzFNCGWid218+CcJ56bfcRGfXuszO7y5Pa6YL7Yze08
+         J/7Tsj67hoX/Y1z9arApiqu3hxdDEUtyRhSVJltPMxBHhMPJleX9zExIEGYRtwALYT
+         WM/wRk2bR5M1DT5XgRdUsyy5cegXXECSS8xLX2YE=
+Received: by mail-qk1-f171.google.com with SMTP id k9so6251708qki.6;
+        Fri, 30 Oct 2020 14:28:43 -0700 (PDT)
+X-Gm-Message-State: AOAM533LWWoL0PXBLjvgY64ovW0oNDnxqEq0ALj7ZVc0y6hMgc6wQ5y4
+        gKnz69slxqfC9cMEwzVQ/+z07NdMglggMESgAE8=
+X-Google-Smtp-Source: ABdhPJwzRQW1k5B6zbrTfsf30S/rHG5MM3vjwuzzwTJuv1SPViYWCLHZOGFiwlUAQWhT5QXO52QrgMTVaMhXXk5+ufM=
+X-Received: by 2002:a05:620a:215d:: with SMTP id m29mr4296031qkm.138.1604093322540;
+ Fri, 30 Oct 2020 14:28:42 -0700 (PDT)
 MIME-Version: 1.0
-References: <20201029221806.189523375@linutronix.de> <CAHk-=wiFxxGapdOyZHE-7LbFPk+jdfoqdeeJg0zWNQ86WvJGXg@mail.gmail.com>
- <87pn50ob0s.fsf@nanos.tec.linutronix.de> <87blgknjcw.fsf@nanos.tec.linutronix.de>
-In-Reply-To: <87blgknjcw.fsf@nanos.tec.linutronix.de>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Fri, 30 Oct 2020 13:28:24 -0700
-X-Gmail-Original-Message-ID: <CAHk-=whsJv0bwWRVZHsLoSe48ykAea6T7Oi=G+r8ckLrZ0YUpg@mail.gmail.com>
-Message-ID: <CAHk-=whsJv0bwWRVZHsLoSe48ykAea6T7Oi=G+r8ckLrZ0YUpg@mail.gmail.com>
-Subject: Re: [patch V2 00/18] mm/highmem: Preemptible variant of kmap_atomic & friends
-To:     Thomas Gleixner <tglx@linutronix.de>
-Cc:     LKML <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Paul McKenney <paulmck@kernel.org>,
-        David Airlie <airlied@linux.ie>,
-        Daniel Vetter <daniel@ffwll.ch>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        Christoph Hellwig <hch@lst.de>,
-        Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-        Ingo Molnar <mingo@kernel.org>,
-        Juri Lelli <juri.lelli@redhat.com>,
-        Vincent Guittot <vincent.guittot@linaro.org>,
-        Dietmar Eggemann <dietmar.eggemann@arm.com>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Ben Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>,
-        Daniel Bristot de Oliveira <bristot@redhat.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Linux-MM <linux-mm@kvack.org>,
-        "the arch/x86 maintainers" <x86@kernel.org>,
-        Vineet Gupta <vgupta@synopsys.com>,
-        "open list:SYNOPSYS ARC ARCHITECTURE" 
-        <linux-snps-arc@lists.infradead.org>,
-        Russell King <linux@armlinux.org.uk>,
-        Arnd Bergmann <arnd@arndb.de>,
+References: <20201030154519.1245983-1-arnd@kernel.org> <20201030154919.1246645-1-arnd@kernel.org>
+ <20201030154919.1246645-4-arnd@kernel.org> <20201030165338.GG1551@shell.armlinux.org.uk>
+In-Reply-To: <20201030165338.GG1551@shell.armlinux.org.uk>
+From:   Arnd Bergmann <arnd@kernel.org>
+Date:   Fri, 30 Oct 2020 22:28:26 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a0ZCinLU0zWj9x0=QoFkrui+1QACjADzAa4yyUaO+qzXA@mail.gmail.com>
+Message-ID: <CAK8P3a0ZCinLU0zWj9x0=QoFkrui+1QACjADzAa4yyUaO+qzXA@mail.gmail.com>
+Subject: Re: [PATCH 4/9] ARM: syscall: always store thread_info->syscall
+To:     Russell King - ARM Linux admin <linux@armlinux.org.uk>
+Cc:     Christoph Hellwig <hch@lst.de>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
         Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org,
-        Michal Simek <monstr@monstr.eu>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        linux-mips@vger.kernel.org, Nick Hu <nickhu@andestech.com>,
-        Greentime Hu <green.hu@gmail.com>,
-        Vincent Chen <deanbo422@gmail.com>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@samba.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
-        "David S. Miller" <davem@davemloft.net>,
-        linux-sparc <sparclinux@vger.kernel.org>,
-        Chris Zankel <chris@zankel.net>,
-        Max Filippov <jcmvbkbc@gmail.com>,
-        linux-xtensa@linux-xtensa.org
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux-MM <linux-mm@kvack.org>, Al Viro <viro@zeniv.linux.org.uk>,
+        Linus Walleij <linus.walleij@linaro.org>,
+        Arnd Bergmann <arnd@arndb.de>
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Oct 30, 2020 at 2:39 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+On Fri, Oct 30, 2020 at 5:53 PM Russell King - ARM Linux admin
+<linux@armlinux.org.uk> wrote:
 >
-> But then we really should not name it kmap_local. 'local' suggests
-> locality, think local_irq*, local_bh* ... kmap_task would be more
-> accurate then.
+> On Fri, Oct 30, 2020 at 04:49:14PM +0100, Arnd Bergmann wrote:
+> > From: Arnd Bergmann <arnd@arndb.de>
+> >
+> > The system call number is used in a a couple of places, in particular
+> > ptrace, seccomp and /proc/<pid>/syscall.
+> >
+> > The last one apparently never worked reliably on ARM for tasks
+> > that are not currently getting traced.
+> >
+> > Storing the syscall number in the normal entry path makes it work,
+> > as well as allowing us to see if the current system call is for
+> > OABI compat mode, which is the next thing I want to hook into.
+>
+> I'm not sure this patch is correct.
 
-So the main reason I'd like to see it is because I think on a
-non-highmem machine, the new kmap should be a complete no-op. IOW,
-we'd make sure that there are no costs, no need to increment any
-"restrict migration" counts etc.
+I'm not following where you still see a mismatch, I was hoping I
+had fixed them all after your previous review :(
 
-It's been a bit of a pain to have kmap_atomic() have magical side
-semantics that people might then depend on.
+The thread_info->syscall entry should now consistently contain
+__NR_SYSCALL_BASE on an EABI kernel, and all users of
+that should consistently mask it out.
 
-I think "local" could still work as a name, because it would have to
-be thread-local (and maybe we'd want a debug mode where that gets
-verified, as actual HIGHMEM machines are getting rare).
+> Tracing the existing code for OABI:
+>
+> asmlinkage int syscall_trace_enter(struct pt_regs *regs, int scno)
+> {
+>         current_thread_info()->syscall = scno;
 
-I'd avoid "task", because that implies (to me, at least) that it
-wouldn't be good for interrupts etc that don't have a task context.
+This no longer stores to current_thread_info()->syscall but instead
+reads the number from syscall_get_nr().
 
-I think the main issue is that it has to be released in the same
-context as it was created (ie no passing those things around to other
-contexts). I think "local" is fine for that, but I could imagine other
-names. The ones that come to mind are somewhat cumbersome, though
-("shortterm" or "local_ctx" or something along those lines).
+>         /* Legacy ABI only. */
+> USER(   ldr     scno, [saved_pc, #-4]   )       @ get SWI instruction
+>         bic     scno, scno, #0xff000000         @ mask off SWI op-code
+>         eor     scno, scno, #__NR_SYSCALL_BASE  @ check OS number
+>         tst     r10, #_TIF_SYSCALL_WORK         @ are we tracing syscalls?
+>         bne     __sys_trace
+>
+> __sys_trace:
+>         mov     r1, scno
+>         add     r0, sp, #S_OFF
+>         bl      syscall_trace_enter
+>
+> So, thread_info->syscall does not include __NR_SYSCALL_BASE. The
+> reason for this is the code that makes use of that via syscall_get_nr().
+> kernel/trace/trace_syscalls.c:
 
-I dunno.
+On both CONFIG_OABI_COMPAT and on !CONFIG_AEABI kernels,
+I store the value before masking out __NR_SYSCALL_BASE
+after my change. For EABI-only kernels there is no need for
+the mask.
 
-              Linus
+>         syscall_nr = trace_get_syscall_nr(current, regs);
+>         if (syscall_nr < 0 || syscall_nr >= NR_syscalls)
+>                 return;
+>
+> and NR_syscalls is the number of syscalls, which doesn't include the
+> __NR_SYSCALL_BASE offset.
+>
+> So, I think this patch actually breaks OABI.
+
+The value returned from trace_get_syscall_nr() is always in
+the 0...NR_syscalls range without the __NR_SYSCALL_BASE
+for a valid syscall. because of the added
+
+ static inline int syscall_get_nr(struct task_struct *task,
+                                 struct pt_regs *regs)
+ {
+-       return task_thread_info(task)->syscall;
++       return task_thread_info(task)->syscall & ~__NR_OABI_SYSCALL_BASE;
+ }
+
+(plus the corresponding logic for OABI_COMPAT.
+
+Which of the above do you think I got wrong?
+
+      Arnd
