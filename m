@@ -7,50 +7,50 @@ X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3DBCDC388F9
-	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8467DC55179
+	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:24 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E657620757
-	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:22 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3A12022264
+	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:24 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1604427143;
-	bh=PQX74yj5ihTQA+DrUuH9+j3nU3WFMOKlvrcpoArY8Os=;
+	s=default; t=1604427144;
+	bh=RjLeg+Sy17mVJa5fHrzWB0ic8XSr9rJNYyeuKFcuC1c=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=BRxPRwoZnAqL7RAczXqb7kZEvot9RTYwRDz4OH7qM2fkjnvyLGDW08qOfUkFBFTuO
-	 YggUHwzTyd+gE+jK8hLZcd0XqMd9oUpsMgqLu8RZc6qyNAS+cBXqACn7ypZ1rHFRW6
-	 mgB35MD6O+7OIpuXoYfqYBoMMHuaI3Kxw0+uS9Cw=
+	b=ZxCJfZQw7b9PUC3MLCJ2JU4y3R7QSa7UFaSfc6Q3DXLmljHXNvkmsrhjjqTjEC1oA
+	 wm7db5nmmlwj83IwItlsDtWASTmz3Qawqc76GbzvWuv4YM8L0ArDw0d+L+UuLv/4F+
+	 QM99rBR6qfimF419rLfx/ZffbNU2iHRA2oO1N1sM=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729207AbgKCSMI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 3 Nov 2020 13:12:08 -0500
-Received: from mail-lj1-f195.google.com ([209.85.208.195]:41117 "EHLO
-        mail-lj1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729170AbgKCSMH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2020 13:12:07 -0500
-Received: by mail-lj1-f195.google.com with SMTP id p15so20117628ljj.8;
-        Tue, 03 Nov 2020 10:12:06 -0800 (PST)
+        id S1729188AbgKCSMH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 3 Nov 2020 13:12:07 -0500
+Received: from mail-lf1-f68.google.com ([209.85.167.68]:42194 "EHLO
+        mail-lf1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729160AbgKCSMG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2020 13:12:06 -0500
+Received: by mail-lf1-f68.google.com with SMTP id a7so23439792lfk.9;
+        Tue, 03 Nov 2020 10:12:04 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=MyGoxRTFxoN3CcXdLX3OQwBVVHqEtKepL93LP6Dv6QA=;
-        b=R//HsVHjsHYbrjjn8eGGKKqsHCTgqppovrb59bcrLEcJ28pRP/trqVJ85u/pPh38My
-         hjLRCPNFjlfxoEi667GosKFJ0GUaixvK/Ho8zndfUO/BsS6v0/aAKyDv3W3glGJnmlQu
-         9O8L19zc0Qj9XfXbfopC6mgoS1yG1ns77PJeiAYwuLh5irsgE8HMsteg8Fk1y0jdhhfQ
-         0ebnJiYuftNDv/92m4+nzE3u35D5UeHUilIioeGgNB4syzJf4nxfR7crXN0YcamKcz5c
-         esgH7JzXerCszKIJho+mrc2y6+7tIxmXdtTZNiD3I4wq7OLSeLBc/5tjjC7lHcDvHXo5
-         aMxg==
-X-Gm-Message-State: AOAM530NPlo4hppeMg9dIVIwGSRmEdGy0Gdx+1roM7pGyYFPA5YTzWU3
-        iYuJnMPIYVSdMOhurtGcP58d6WmPUhZsoA==
-X-Google-Smtp-Source: ABdhPJz/MO3T96ux3lea2nDseTlpodjsFUn7zZD2Ae+pvGCV0PQp49JaKgosvrFzcYrMAizjAgvuaw==
-X-Received: by 2002:a2e:9b0c:: with SMTP id u12mr8407658lji.338.1604427124922;
-        Tue, 03 Nov 2020 10:12:04 -0800 (PST)
+        bh=S93dby/jp7jv4MUI4mEuwR4ZWuAyJbbXIVViROFzc9E=;
+        b=ix8/rtZMrhZXxmXfx7iG0YoSy9Au2kkBk5Jcitcuz3bWEgSBWQuL5/Pk37ad8OOLUH
+         DUSS8EnXcwUSkl+6QpCkdC+sRCQYpVYVhyeXF2q160Dkdftl8TJ9uKH770FFAnYb9ibz
+         XAsOKHA0t8gxi2kdPTmBrD9p+R02dpNSr3gi1PXfsp/W8OgwqBIIsUk7P3fj7J3ANH2V
+         bxbf7F9o/d9KGRa6HU30QXsFfH0GPW738oTez/ovQaAioWHUxtiO4tfw5omA/1Od2ACV
+         xef/eu87J2V3+B2EHVw5UiWi6hKQdTEJY6tC6KX3heEXbPn3BtIuaIYTQXaBy4hHcqj+
+         d5yA==
+X-Gm-Message-State: AOAM5306X58wO1tu7cZVu30SZIqZyotWLeRrwhq2fddrq2lWwhW/J7vm
+        wgY4m2bfMIt5+UIFpRvhNJQm5TDwaX0w/A==
+X-Google-Smtp-Source: ABdhPJxT8ZggtFKDC1OxlicGZYYGKQRpSeJxIsq/fh4HsdFQHzRVqsL/ZTEAnjpTQFyx1dLmJhOMAA==
+X-Received: by 2002:ac2:5de5:: with SMTP id z5mr7271852lfq.232.1604427123837;
+        Tue, 03 Nov 2020 10:12:03 -0800 (PST)
 Received: from xi.terra (c-beaee455.07-184-6d6c6d4.bbcust.telenor.se. [85.228.174.190])
-        by smtp.gmail.com with ESMTPSA id l14sm3641920ljb.122.2020.11.03.10.11.59
+        by smtp.gmail.com with ESMTPSA id l20sm4082156lfc.274.2020.11.03.10.11.59
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
         Tue, 03 Nov 2020 10:12:01 -0800 (PST)
 Received: from johan by xi.terra with local (Exim 4.93.0.4)
         (envelope-from <johan@xi.terra>)
-        id 1ka0mo-0002s0-7f; Tue, 03 Nov 2020 19:12:02 +0100
+        id 1ka0mo-0002rq-2V; Tue, 03 Nov 2020 19:12:02 +0100
 From:   Johan Hovold <johan@kernel.org>
 To:     linux-kernel@vger.kernel.org
 Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
@@ -70,9 +70,9 @@ Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
         Daniel Kurtz <djkurtz@chromium.org>,
         linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
         Johan Hovold <johan@kernel.org>
-Subject: [PATCH 8/8] params: clean up module-param macros
-Date:   Tue,  3 Nov 2020 18:57:11 +0100
-Message-Id: <20201103175711.10731-9-johan@kernel.org>
+Subject: [PATCH 6/8] params: drop redundant "unused" attributes
+Date:   Tue,  3 Nov 2020 18:57:09 +0100
+Message-Id: <20201103175711.10731-7-johan@kernel.org>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20201103175711.10731-1-johan@kernel.org>
 References: <20201103175711.10731-1-johan@kernel.org>
@@ -82,35 +82,36 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Clean up the module-param macros by adding some indentation and using
-the __aligned() macro to improve readability.
+Drop the redundant "unused" attributes from module-parameter structures
+already marked "used".
 
 Signed-off-by: Johan Hovold <johan@kernel.org>
 ---
- include/linux/moduleparam.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ include/linux/moduleparam.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/include/linux/moduleparam.h b/include/linux/moduleparam.h
-index 15ecc6cc3a3b..eed280fae433 100644
+index 6388eb9734a5..742074ad9f6e 100644
 --- a/include/linux/moduleparam.h
 +++ b/include/linux/moduleparam.h
-@@ -21,12 +21,12 @@
- #define MAX_PARAM_PREFIX_LEN (64 - sizeof(unsigned long))
+@@ -22,7 +22,7 @@
  
  #define __MODULE_INFO(tag, name, info)					  \
--static const char __UNIQUE_ID(name)[]					  \
--  __used __section(".modinfo") __attribute__((aligned(1)))		  \
--  = __MODULE_INFO_PREFIX __stringify(tag) "=" info
-+	static const char __UNIQUE_ID(name)[]				  \
-+		__used __section(".modinfo") __aligned(1)		  \
-+		= __MODULE_INFO_PREFIX __stringify(tag) "=" info
+ static const char __UNIQUE_ID(name)[]					  \
+-  __used __section(".modinfo") __attribute__((unused, aligned(1)))	  \
++  __used __section(".modinfo") __attribute__((aligned(1)))		  \
+   = __MODULE_INFO_PREFIX __stringify(tag) "=" info
  
  #define __MODULE_PARM_TYPE(name, _type)					  \
--  __MODULE_INFO(parmtype, name##type, #name ":" _type)
-+	__MODULE_INFO(parmtype, name##type, #name ":" _type)
+@@ -289,7 +289,7 @@ struct kparam_array
+ 	static const char __param_str_##name[] = prefix #name;		\
+ 	static struct kernel_param __moduleparam_const __param_##name	\
+ 	__used								\
+-    __section("__param") __attribute__ ((unused, aligned(sizeof(void *)))) \
++	__section("__param") __attribute__ ((aligned(sizeof(void *))))  \
+ 	= { __param_str_##name, THIS_MODULE, ops,			\
+ 	    VERIFY_OCTAL_PERMISSIONS(perm), level, flags, { arg } }
  
- /* One for each parameter, describing how to use it.  Some files do
-    multiple of these per line, so can't just use MODULE_INFO. */
 -- 
 2.26.2
 
