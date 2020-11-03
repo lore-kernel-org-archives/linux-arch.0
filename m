@@ -2,151 +2,160 @@ Return-Path: <SRS0=eeVS=EJ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-9.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-12.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6B93EC5517A
-	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:07:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9BD6BC388F9
+	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 34296207BB
-	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:07:49 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5A65922226
+	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:04 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=default; t=1604427124;
+	bh=MwudSI0Vg4OHGOXOlTJ8cyaTTU5UsPJ5DNYxmXn90OY=;
+	h=From:To:Cc:Subject:Date:List-ID:From;
+	b=F0QaqdzKi2HHc8sVXTCg3RLUImHop1j99duICK3NAG9gObM8J0AHfjWJ4ukarGAvO
+	 n6j74XT7tKxw7A67h9TMPE4EomXmt2ExuXkM1mhqa1OZLsIzwjzxyh4NcIsm3/ucN5
+	 ztlKMKnCPLSVr26flR4wgGgSlRQnRdIqGqHVFqyU=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729069AbgKCSHT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 3 Nov 2020 13:07:19 -0500
-Received: from pegase1.c-s.fr ([93.17.236.30]:14769 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728312AbgKCSHQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 3 Nov 2020 13:07:16 -0500
-Received: from localhost (mailhub1-int [192.168.12.234])
-        by localhost (Postfix) with ESMTP id 4CQd6909hgz9v1YZ;
-        Tue,  3 Nov 2020 19:07:13 +0100 (CET)
-X-Virus-Scanned: Debian amavisd-new at c-s.fr
-Received: from pegase1.c-s.fr ([192.168.12.234])
-        by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
-        with ESMTP id BMTw4iXNtetc; Tue,  3 Nov 2020 19:07:12 +0100 (CET)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase1.c-s.fr (Postfix) with ESMTP id 4CQd686Stfz9v1YS;
-        Tue,  3 Nov 2020 19:07:12 +0100 (CET)
-Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id B2C0D8B7DB;
-        Tue,  3 Nov 2020 19:07:14 +0100 (CET)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id 3VU6HEWNWuIV; Tue,  3 Nov 2020 19:07:14 +0100 (CET)
-Received: from po17688vm.idsi0.si.c-s.fr (unknown [192.168.4.90])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 536E98B7D4;
-        Tue,  3 Nov 2020 19:07:14 +0100 (CET)
-Received: by po17688vm.idsi0.si.c-s.fr (Postfix, from userid 0)
-        id 37B3466860; Tue,  3 Nov 2020 18:07:14 +0000 (UTC)
-Message-Id: <3747db2c50eb98a86088871bef7ed7c593e336bb.1604426550.git.christophe.leroy@csgroup.eu>
-In-Reply-To: <cover.1604426550.git.christophe.leroy@csgroup.eu>
-References: <cover.1604426550.git.christophe.leroy@csgroup.eu>
-From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v13 3/8] powerpc/processor: Move cpu_relax() into
- asm/vdso/processor.h
-To:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@samba.org>,
-        Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com,
-        anton@ozlabs.org
-Cc:     linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com,
-        luto@kernel.org, linux-arch@vger.kernel.org
-Date:   Tue,  3 Nov 2020 18:07:14 +0000 (UTC)
+        id S1729079AbgKCSMD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 3 Nov 2020 13:12:03 -0500
+Received: from mail-lj1-f193.google.com ([209.85.208.193]:43091 "EHLO
+        mail-lj1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728815AbgKCSMD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2020 13:12:03 -0500
+Received: by mail-lj1-f193.google.com with SMTP id d24so20042075ljg.10;
+        Tue, 03 Nov 2020 10:12:01 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=kSiaQEI9iuJw/ssLHdIHxMndxMzRbBZZ0KM7RNAHM3c=;
+        b=FFpg8mWkGUnK/90t52YnhCnTMqW/WYUiQag/ZogS7jI/8BlCEVVJFvDDiOnYR6EzYn
+         HTDb8YN/RsQPZ+nx4OSyQxNhnciYa1M0RtbD8ZmvvWOkWb04FShDwgoC5+4wNpHnBSoE
+         tOa7W5bN44itPl0q0ZkbY+Hy4gy3rpl5w5LCw1mHFtOIFSbAq6mg9nRe0J4pJ8F3oPtx
+         z4tMygMciwr5G+uoin/ys1e4xNovWxLxEhNN8jv8QREByntuIuZmNC1iSbeuNfJrMUt4
+         hC0zf/jUZZopUkgcy+mbZn0ntVvYyBXoEisHcDoe9snAItIblD3pk7qhDBTZNTKyrARz
+         NDAA==
+X-Gm-Message-State: AOAM532IgSGPsZLkHfCpVpBsfeViuvRXgzlneIFRe5l5vu/BAUb8vs9i
+        iSUHyJo60LHbO1yZBCHApVUovmSctA56wQ==
+X-Google-Smtp-Source: ABdhPJw5lAvIVcM9GD7by5r20/82PI4VcL2xyGYr4rIWJlRWES8SN1jHlox+kEdXE4w8ELMP3o/vuw==
+X-Received: by 2002:a05:651c:105b:: with SMTP id x27mr9266604ljm.302.1604427120315;
+        Tue, 03 Nov 2020 10:12:00 -0800 (PST)
+Received: from xi.terra (c-beaee455.07-184-6d6c6d4.bbcust.telenor.se. [85.228.174.190])
+        by smtp.gmail.com with ESMTPSA id t10sm4092988lfc.258.2020.11.03.10.11.59
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 03 Nov 2020 10:11:59 -0800 (PST)
+Received: from johan by xi.terra with local (Exim 4.93.0.4)
+        (envelope-from <johan@xi.terra>)
+        id 1ka0mm-0002rM-Pj; Tue, 03 Nov 2020 19:12:01 +0100
+From:   Johan Hovold <johan@kernel.org>
+To:     linux-kernel@vger.kernel.org
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Rob Herring <robh+dt@kernel.org>,
+        Frank Rowand <frowand.list@gmail.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Jessica Yu <jeyu@kernel.org>,
+        Nick Desaulniers <ndesaulniers@gooogle.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Dmitry Torokhov <dmitry.torokhov@gmail.com>,
+        David Miller <davem@davemloft.net>,
+        Jakub Jelinek <jakub@redhat.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Steven Rostedt <rostedt@goodmis.org>,
+        Daniel Kurtz <djkurtz@chromium.org>,
+        linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        Johan Hovold <johan@kernel.org>
+Subject: [PATCH 0/8] linker-section array fix and clean ups
+Date:   Tue,  3 Nov 2020 18:57:03 +0100
+Message-Id: <20201103175711.10731-1-johan@kernel.org>
+X-Mailer: git-send-email 2.26.2
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-cpu_relax() need to be in asm/vdso/processor.h to be used by
-the C VDSO generic library.
+We rely on the linker to create arrays for a number of things including
+kernel parameters and device-tree-match entries.
 
-Move it there.
+The stride of these linker-section arrays obviously needs to match the
+expectations of the code accessing them or bad things will happen.
 
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
----
-v9: Forgot to remove cpu_relax() from processor.h in v8
----
- arch/powerpc/include/asm/processor.h      | 13 ++-----------
- arch/powerpc/include/asm/vdso/processor.h | 23 +++++++++++++++++++++++
- 2 files changed, 25 insertions(+), 11 deletions(-)
- create mode 100644 arch/powerpc/include/asm/vdso/processor.h
+One thing to watch out for is that gcc is known to increase the
+alignment of larger objects with static extent as an optimisation (on
+x86), but this can be suppressed by using the aligned attribute when
+declaring entries.
 
-diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
-index c61c859b51a8..333e3b6c76fb 100644
---- a/arch/powerpc/include/asm/processor.h
-+++ b/arch/powerpc/include/asm/processor.h
-@@ -6,6 +6,8 @@
-  * Copyright (C) 2001 PPC 64 Team, IBM Corp
-  */
- 
-+#include <vdso/processor.h>
-+
- #include <asm/reg.h>
- 
- #ifdef CONFIG_VSX
-@@ -63,14 +65,6 @@ extern int _chrp_type;
- 
- #endif /* defined(__KERNEL__) && defined(CONFIG_PPC32) */
- 
--/* Macros for adjusting thread priority (hardware multi-threading) */
--#define HMT_very_low()   asm volatile("or 31,31,31   # very low priority")
--#define HMT_low()	 asm volatile("or 1,1,1	     # low priority")
--#define HMT_medium_low() asm volatile("or 6,6,6      # medium low priority")
--#define HMT_medium()	 asm volatile("or 2,2,2	     # medium priority")
--#define HMT_medium_high() asm volatile("or 5,5,5      # medium high priority")
--#define HMT_high()	 asm volatile("or 3,3,3	     # high priority")
--
- #ifdef __KERNEL__
- 
- #ifdef CONFIG_PPC64
-@@ -344,7 +338,6 @@ static inline unsigned long __pack_fe01(unsigned int fpmode)
- }
- 
- #ifdef CONFIG_PPC64
--#define cpu_relax()	do { HMT_low(); HMT_medium(); barrier(); } while (0)
- 
- #define spin_begin()	HMT_low()
- 
-@@ -363,8 +356,6 @@ do {								\
- 	}							\
- } while (0)
- 
--#else
--#define cpu_relax()	barrier()
- #endif
- 
- /* Check that a certain kernel stack pointer is valid in task_struct p */
-diff --git a/arch/powerpc/include/asm/vdso/processor.h b/arch/powerpc/include/asm/vdso/processor.h
-new file mode 100644
-index 000000000000..39b9beace9ca
---- /dev/null
-+++ b/arch/powerpc/include/asm/vdso/processor.h
-@@ -0,0 +1,23 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+#ifndef __ASM_VDSO_PROCESSOR_H
-+#define __ASM_VDSO_PROCESSOR_H
-+
-+#ifndef __ASSEMBLY__
-+
-+/* Macros for adjusting thread priority (hardware multi-threading) */
-+#define HMT_very_low()		asm volatile("or 31, 31, 31	# very low priority")
-+#define HMT_low()		asm volatile("or 1, 1, 1	# low priority")
-+#define HMT_medium_low()	asm volatile("or 6, 6, 6	# medium low priority")
-+#define HMT_medium()		asm volatile("or 2, 2, 2	# medium priority")
-+#define HMT_medium_high()	asm volatile("or 5, 5, 5	# medium high priority")
-+#define HMT_high()		asm volatile("or 3, 3, 3	# high priority")
-+
-+#ifdef CONFIG_PPC64
-+#define cpu_relax()	do { HMT_low(); HMT_medium(); barrier(); } while (0)
-+#else
-+#define cpu_relax()	barrier()
-+#endif
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_VDSO_PROCESSOR_H */
+We've been relying on this behaviour for 16 years for kernel parameters
+(and other structures) and it indeed hasn't changed since the
+introduction of the aligned attribute in gcc 3.1 (see align_variable()
+in [1]).
+
+Occasionally this gcc optimisation do cause problems which have instead
+been worked around in various creative ways including using indirection
+through an array of pointers. This was originally done for tracepoints
+[2] after a number of failed attempts to create properly aligned arrays,
+and the approach was later reused for module-version attributes [3] and
+earlycon entries.
+
+This series reverts the latter two workarounds in favour of the one-line
+fix of aligning the entries according to the requirement of the type.
+
+In principle, there shouldn't be anything preventing us from doing the
+same for tracepoints.
+
+The key observation here is that the arrays should be constructed using
+the alignment of the type in question (as given by __alignof__()) rather
+than some specific alignment such as sizeof(void *). This allows the
+structures to be stored efficiently, but more importantly prevents
+breakage on architectures like m68k where pointers are 2-byte aligned
+should the size or alignment of the type change (e.g. so that the size
+is no longer divisible by four).
+
+As a preventive measure in case the kernel-parameter structures are ever
+amended (or the code pattern is reused elsewhere), the final patches
+switches the parameter declarations to also use type alignment.
+
+The series has been tested using gcc 4.9 and 9.3 on x86_32 and
+x86_64 and using gcc 7.2 on arm; and has been compile-tested and
+verified using gcc 4.9 and 10.1 on aarch64, sparc and m68k.
+
+Note that the patches are mostly independent and can be merged through
+different subsystem trees. I decided to post them as a series to provide
+a common background and have a single thread for any general discussion.
+
+Johan
+
+[1] https://github.com/gcc-mirror/gcc/blob/master/gcc/varasm.c
+[2] https://lore.kernel.org/lkml/20110126222622.GA10794@Krystal/ 
+[3] https://lore.kernel.org/lkml/1297123347-2170-1-git-send-email-dtor@vmware.com/
+
+
+Johan Hovold (8):
+  of: fix linker-section match-table corruption
+  earlycon: simplify earlycon-table implementation
+  module: drop version-attribute alignment
+  module: simplify version-attribute handling
+  init: use type alignment for kernel parameters
+  params: drop redundant "unused" attributes
+  params: use type alignment for kernel parameters
+  params: clean up module-param macros
+
+ drivers/of/fdt.c              |  7 ++-----
+ drivers/tty/serial/earlycon.c |  6 ++----
+ include/linux/init.h          |  2 +-
+ include/linux/module.h        | 28 ++++++++++++++--------------
+ include/linux/moduleparam.h   | 12 ++++++------
+ include/linux/of.h            |  1 +
+ include/linux/serial_core.h   | 20 +++++++-------------
+ kernel/params.c               | 10 ++++------
+ 8 files changed, 37 insertions(+), 49 deletions(-)
+
 -- 
-2.25.0
+2.26.2
 
