@@ -2,55 +2,55 @@ Return-Path: <SRS0=eeVS=EJ=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
+X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9BD6BC388F9
-	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 288B6C2D0A3
+	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:09 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5A65922226
-	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D228D22226
+	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:08 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1604427124;
-	bh=MwudSI0Vg4OHGOXOlTJ8cyaTTU5UsPJ5DNYxmXn90OY=;
-	h=From:To:Cc:Subject:Date:List-ID:From;
-	b=F0QaqdzKi2HHc8sVXTCg3RLUImHop1j99duICK3NAG9gObM8J0AHfjWJ4ukarGAvO
-	 n6j74XT7tKxw7A67h9TMPE4EomXmt2ExuXkM1mhqa1OZLsIzwjzxyh4NcIsm3/ucN5
-	 ztlKMKnCPLSVr26flR4wgGgSlRQnRdIqGqHVFqyU=
+	s=default; t=1604427128;
+	bh=YkaD4b+z/SpZ7FcziWDlSPXvvpyKN5VdPbY35z2qB3Y=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
+	b=iIefZ7HcZqeAW3101NfS5Xv4v1Jre1REuvnOmMG5krIkVMCyhoCZlJZmJof68lruv
+	 kos8L6sItMEZDaoPzEY9pDRgdRldCuk0EgfG3co4LUrijob+fIkd19EEpJD50C4LVF
+	 FQ/u4OubVoEZzu4C9YJaT/kdDLu9c9qV6jFjehC4=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729079AbgKCSMD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 3 Nov 2020 13:12:03 -0500
-Received: from mail-lj1-f193.google.com ([209.85.208.193]:43091 "EHLO
-        mail-lj1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728815AbgKCSMD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2020 13:12:03 -0500
-Received: by mail-lj1-f193.google.com with SMTP id d24so20042075ljg.10;
-        Tue, 03 Nov 2020 10:12:01 -0800 (PST)
+        id S1729147AbgKCSMH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 3 Nov 2020 13:12:07 -0500
+Received: from mail-lj1-f194.google.com ([209.85.208.194]:39608 "EHLO
+        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729091AbgKCSMF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2020 13:12:05 -0500
+Received: by mail-lj1-f194.google.com with SMTP id m16so20087005ljo.6;
+        Tue, 03 Nov 2020 10:12:03 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=kSiaQEI9iuJw/ssLHdIHxMndxMzRbBZZ0KM7RNAHM3c=;
-        b=FFpg8mWkGUnK/90t52YnhCnTMqW/WYUiQag/ZogS7jI/8BlCEVVJFvDDiOnYR6EzYn
-         HTDb8YN/RsQPZ+nx4OSyQxNhnciYa1M0RtbD8ZmvvWOkWb04FShDwgoC5+4wNpHnBSoE
-         tOa7W5bN44itPl0q0ZkbY+Hy4gy3rpl5w5LCw1mHFtOIFSbAq6mg9nRe0J4pJ8F3oPtx
-         z4tMygMciwr5G+uoin/ys1e4xNovWxLxEhNN8jv8QREByntuIuZmNC1iSbeuNfJrMUt4
-         hC0zf/jUZZopUkgcy+mbZn0ntVvYyBXoEisHcDoe9snAItIblD3pk7qhDBTZNTKyrARz
-         NDAA==
-X-Gm-Message-State: AOAM532IgSGPsZLkHfCpVpBsfeViuvRXgzlneIFRe5l5vu/BAUb8vs9i
-        iSUHyJo60LHbO1yZBCHApVUovmSctA56wQ==
-X-Google-Smtp-Source: ABdhPJw5lAvIVcM9GD7by5r20/82PI4VcL2xyGYr4rIWJlRWES8SN1jHlox+kEdXE4w8ELMP3o/vuw==
-X-Received: by 2002:a05:651c:105b:: with SMTP id x27mr9266604ljm.302.1604427120315;
-        Tue, 03 Nov 2020 10:12:00 -0800 (PST)
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=rjuGehr4XknYYBgxjDQlTnP9rZe3czEuMZ+c8GBcVIs=;
+        b=eyUk9M3d0gRbUqzUn5L7mHbsiICExTp0iFSKmFNmhg9SPLjRUOocp3Mr7fMO0ByIUf
+         Jn0IPxBXhUyr9azeXC4/qGn1+S3rMXgyjg1XDaA2BRBWaruNkxjJr4odOP52vnn07ucg
+         GfCoDoAEFKpYlC73nsqXj/g0yNISueFJFPXcQiBGDpgnoA5NqYaFV/PHdsUwjumqpjOM
+         YjPla8Cc0Qxsa5p6EDi8RzOgJDi38yCK403gOSQxWEPEs0nZDpzoKtDCiOCSu8kG+Wc7
+         bVaJJNylSEXfNohhpbmY6HesLtF6fhoZ0/MUSQdnXnVzFAil/reyLukST8fQjhe0ZscG
+         X6Vg==
+X-Gm-Message-State: AOAM533boOEyNbDIPnTXNUz8DMmhERM/aS3EpN4+5c9NO2/pXnlRZqfI
+        h9/tPdKMCc2B+PWrN8ZsECNLLHI2c2ldNA==
+X-Google-Smtp-Source: ABdhPJyy4ScccKitgsgLmfW4+7RpegTCk9j7/oY7fM88C4FjnN07f4OIgFsfgAaoXJfSheheELK2gA==
+X-Received: by 2002:a2e:7d08:: with SMTP id y8mr8938849ljc.257.1604427122745;
+        Tue, 03 Nov 2020 10:12:02 -0800 (PST)
 Received: from xi.terra (c-beaee455.07-184-6d6c6d4.bbcust.telenor.se. [85.228.174.190])
-        by smtp.gmail.com with ESMTPSA id t10sm4092988lfc.258.2020.11.03.10.11.59
+        by smtp.gmail.com with ESMTPSA id j10sm3655725lfr.288.2020.11.03.10.11.59
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 03 Nov 2020 10:11:59 -0800 (PST)
+        Tue, 03 Nov 2020 10:12:01 -0800 (PST)
 Received: from johan by xi.terra with local (Exim 4.93.0.4)
         (envelope-from <johan@xi.terra>)
-        id 1ka0mm-0002rM-Pj; Tue, 03 Nov 2020 19:12:01 +0100
+        id 1ka0mn-0002rg-Sf; Tue, 03 Nov 2020 19:12:01 +0100
 From:   Johan Hovold <johan@kernel.org>
 To:     linux-kernel@vger.kernel.org
 Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
@@ -70,92 +70,101 @@ Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
         Daniel Kurtz <djkurtz@chromium.org>,
         linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
         Johan Hovold <johan@kernel.org>
-Subject: [PATCH 0/8] linker-section array fix and clean ups
-Date:   Tue,  3 Nov 2020 18:57:03 +0100
-Message-Id: <20201103175711.10731-1-johan@kernel.org>
+Subject: [PATCH 4/8] module: simplify version-attribute handling
+Date:   Tue,  3 Nov 2020 18:57:07 +0100
+Message-Id: <20201103175711.10731-5-johan@kernel.org>
 X-Mailer: git-send-email 2.26.2
+In-Reply-To: <20201103175711.10731-1-johan@kernel.org>
+References: <20201103175711.10731-1-johan@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-We rely on the linker to create arrays for a number of things including
-kernel parameters and device-tree-match entries.
+Instead of using the array-of-pointers trick to avoid having gcc mess up
+the built-in module-version array stride, specify type alignment when
+declaring entries to prevent gcc from increasing alignment.
 
-The stride of these linker-section arrays obviously needs to match the
-expectations of the code accessing them or bad things will happen.
+This is essentially an alternative (one-line) fix to the problem
+addressed by commit b4bc842802db ("module: deal with alignment issues in
+built-in module versions").
 
-One thing to watch out for is that gcc is known to increase the
-alignment of larger objects with static extent as an optimisation (on
-x86), but this can be suppressed by using the aligned attribute when
-declaring entries.
+Note that we have been relying on this gcc behaviour for kernel
+parameters for 16 years and it indeed hasn't changed since the
+introduction of the aligned attribute in gcc-3.1.
 
-We've been relying on this behaviour for 16 years for kernel parameters
-(and other structures) and it indeed hasn't changed since the
-introduction of the aligned attribute in gcc 3.1 (see align_variable()
-in [1]).
+Signed-off-by: Johan Hovold <johan@kernel.org>
+---
+ include/linux/module.h | 26 +++++++++++++-------------
+ kernel/params.c        | 10 ++++------
+ 2 files changed, 17 insertions(+), 19 deletions(-)
 
-Occasionally this gcc optimisation do cause problems which have instead
-been worked around in various creative ways including using indirection
-through an array of pointers. This was originally done for tracepoints
-[2] after a number of failed attempts to create properly aligned arrays,
-and the approach was later reused for module-version attributes [3] and
-earlycon entries.
-
-This series reverts the latter two workarounds in favour of the one-line
-fix of aligning the entries according to the requirement of the type.
-
-In principle, there shouldn't be anything preventing us from doing the
-same for tracepoints.
-
-The key observation here is that the arrays should be constructed using
-the alignment of the type in question (as given by __alignof__()) rather
-than some specific alignment such as sizeof(void *). This allows the
-structures to be stored efficiently, but more importantly prevents
-breakage on architectures like m68k where pointers are 2-byte aligned
-should the size or alignment of the type change (e.g. so that the size
-is no longer divisible by four).
-
-As a preventive measure in case the kernel-parameter structures are ever
-amended (or the code pattern is reused elsewhere), the final patches
-switches the parameter declarations to also use type alignment.
-
-The series has been tested using gcc 4.9 and 9.3 on x86_32 and
-x86_64 and using gcc 7.2 on arm; and has been compile-tested and
-verified using gcc 4.9 and 10.1 on aarch64, sparc and m68k.
-
-Note that the patches are mostly independent and can be merged through
-different subsystem trees. I decided to post them as a series to provide
-a common background and have a single thread for any general discussion.
-
-Johan
-
-[1] https://github.com/gcc-mirror/gcc/blob/master/gcc/varasm.c
-[2] https://lore.kernel.org/lkml/20110126222622.GA10794@Krystal/ 
-[3] https://lore.kernel.org/lkml/1297123347-2170-1-git-send-email-dtor@vmware.com/
-
-
-Johan Hovold (8):
-  of: fix linker-section match-table corruption
-  earlycon: simplify earlycon-table implementation
-  module: drop version-attribute alignment
-  module: simplify version-attribute handling
-  init: use type alignment for kernel parameters
-  params: drop redundant "unused" attributes
-  params: use type alignment for kernel parameters
-  params: clean up module-param macros
-
- drivers/of/fdt.c              |  7 ++-----
- drivers/tty/serial/earlycon.c |  6 ++----
- include/linux/init.h          |  2 +-
- include/linux/module.h        | 28 ++++++++++++++--------------
- include/linux/moduleparam.h   | 12 ++++++------
- include/linux/of.h            |  1 +
- include/linux/serial_core.h   | 20 +++++++-------------
- kernel/params.c               | 10 ++++------
- 8 files changed, 37 insertions(+), 49 deletions(-)
-
+diff --git a/include/linux/module.h b/include/linux/module.h
+index 293250958512..5958075ea3f4 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -266,20 +266,20 @@ extern typeof(name) __mod_##type##__##name##_device_table		\
+ #else
+ #define MODULE_VERSION(_version)					\
+ 	MODULE_INFO(version, _version);					\
+-	static struct module_version_attribute ___modver_attr = {	\
+-		.mattr	= {						\
+-			.attr	= {					\
+-				.name	= "version",			\
+-				.mode	= S_IRUGO,			\
++	static struct module_version_attribute __modver_attr		\
++		__used __section("__modver")				\
++		__aligned(__alignof__(struct module_version_attribute)) \
++		= {							\
++			.mattr	= {					\
++				.attr	= {				\
++					.name	= "version",		\
++					.mode	= S_IRUGO,		\
++				},					\
++				.show	= __modver_version_show,	\
+ 			},						\
+-			.show	= __modver_version_show,		\
+-		},							\
+-		.module_name	= KBUILD_MODNAME,			\
+-		.version	= _version,				\
+-	};								\
+-	static const struct module_version_attribute			\
+-	__used __section("__modver")					\
+-	* __moduleparam_const __modver_attr = &___modver_attr
++			.module_name	= KBUILD_MODNAME,		\
++			.version	= _version,			\
++		};
+ #endif
+ 
+ /* Optional firmware file (or files) needed by the module
+diff --git a/kernel/params.c b/kernel/params.c
+index 3835fb82c64b..aa7d6f2213f1 100644
+--- a/kernel/params.c
++++ b/kernel/params.c
+@@ -843,18 +843,16 @@ ssize_t __modver_version_show(struct module_attribute *mattr,
+ 	return scnprintf(buf, PAGE_SIZE, "%s\n", vattr->version);
+ }
+ 
+-extern const struct module_version_attribute *__start___modver[];
+-extern const struct module_version_attribute *__stop___modver[];
++extern const struct module_version_attribute __start___modver[];
++extern const struct module_version_attribute __stop___modver[];
+ 
+ static void __init version_sysfs_builtin(void)
+ {
+-	const struct module_version_attribute **p;
++	const struct module_version_attribute *vattr;
+ 	struct module_kobject *mk;
+ 	int err;
+ 
+-	for (p = __start___modver; p < __stop___modver; p++) {
+-		const struct module_version_attribute *vattr = *p;
+-
++	for (vattr = __start___modver; vattr < __stop___modver; vattr++) {
+ 		mk = locate_module_kobject(vattr->module_name);
+ 		if (mk) {
+ 			err = sysfs_create_file(&mk->kobj, &vattr->mattr.attr);
 -- 
 2.26.2
 
