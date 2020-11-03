@@ -7,46 +7,46 @@ X-Spam-Status: No, score=-9.7 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2A196C56201
-	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:07:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B4838C55179
+	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:07:45 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EBECE207BB
-	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:07:49 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6F38C207BB
+	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:07:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729059AbgKCSHT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 3 Nov 2020 13:07:19 -0500
-Received: from pegase1.c-s.fr ([93.17.236.30]:7031 "EHLO pegase1.c-s.fr"
+        id S1729077AbgKCSHU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 3 Nov 2020 13:07:20 -0500
+Received: from pegase1.c-s.fr ([93.17.236.30]:4805 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729021AbgKCSHS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 3 Nov 2020 13:07:18 -0500
+        id S1727883AbgKCSHQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 3 Nov 2020 13:07:16 -0500
 Received: from localhost (mailhub1-int [192.168.12.234])
-        by localhost (Postfix) with ESMTP id 4CQd6B1lWkz9v1Yb;
-        Tue,  3 Nov 2020 19:07:14 +0100 (CET)
+        by localhost (Postfix) with ESMTP id 4CQd681Hv0z9v1YY;
+        Tue,  3 Nov 2020 19:07:12 +0100 (CET)
 X-Virus-Scanned: Debian amavisd-new at c-s.fr
 Received: from pegase1.c-s.fr ([192.168.12.234])
         by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
-        with ESMTP id NF4LVou6ygdx; Tue,  3 Nov 2020 19:07:14 +0100 (CET)
+        with ESMTP id onygEN-zwiKy; Tue,  3 Nov 2020 19:07:12 +0100 (CET)
 Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase1.c-s.fr (Postfix) with ESMTP id 4CQd6B0xm0z9v1YS;
-        Tue,  3 Nov 2020 19:07:14 +0100 (CET)
+        by pegase1.c-s.fr (Postfix) with ESMTP id 4CQd675Hwbz9v1YS;
+        Tue,  3 Nov 2020 19:07:11 +0100 (CET)
 Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id E19C58B7DC;
-        Tue,  3 Nov 2020 19:07:15 +0100 (CET)
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 8DF0F8B7DC;
+        Tue,  3 Nov 2020 19:07:13 +0100 (CET)
 X-Virus-Scanned: amavisd-new at c-s.fr
 Received: from messagerie.si.c-s.fr ([127.0.0.1])
         by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id 1AyYWoDOcbhm; Tue,  3 Nov 2020 19:07:15 +0100 (CET)
+        with ESMTP id nyfe8n40bfUi; Tue,  3 Nov 2020 19:07:13 +0100 (CET)
 Received: from po17688vm.idsi0.si.c-s.fr (unknown [192.168.4.90])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 59EAB8B7DD;
-        Tue,  3 Nov 2020 19:07:15 +0100 (CET)
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 4A2238B7D4;
+        Tue,  3 Nov 2020 19:07:13 +0100 (CET)
 Received: by po17688vm.idsi0.si.c-s.fr (Postfix, from userid 0)
-        id 3E52266860; Tue,  3 Nov 2020 18:07:15 +0000 (UTC)
-Message-Id: <2d03f4b466156c0a0bfe5494c8874dcac952445c.1604426550.git.christophe.leroy@csgroup.eu>
+        id 30A5C66860; Tue,  3 Nov 2020 18:07:13 +0000 (UTC)
+Message-Id: <08ffecd31403b3c692f25f97b07a378ba784873e.1604426550.git.christophe.leroy@csgroup.eu>
 In-Reply-To: <cover.1604426550.git.christophe.leroy@csgroup.eu>
 References: <cover.1604426550.git.christophe.leroy@csgroup.eu>
 From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v13 4/8] powerpc/time: Move timebase functions into new
- asm/timebase.h
+Subject: [PATCH v13 2/8] powerpc/feature: Use CONFIG_PPC64 instead of
+ __powerpc64__ to define possible features
 To:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
         Paul Mackerras <paulus@samba.org>,
         Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com,
@@ -54,126 +54,46 @@ To:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
 Cc:     linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
         arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com,
         luto@kernel.org, linux-arch@vger.kernel.org
-Date:   Tue,  3 Nov 2020 18:07:15 +0000 (UTC)
+Date:   Tue,  3 Nov 2020 18:07:13 +0000 (UTC)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-In order to easily use get_tb() from C VDSO, move timebase
-functions into a new header named asm/timebase.h
+In order to build VDSO32 for PPC64, we need to have CPU_FTRS_POSSIBLE
+and CPU_FTRS_ALWAYS independant of whether we are building the
+32 bits VDSO or the 64 bits VDSO.
+
+Use #ifdef CONFIG_PPC64 instead of #ifdef __powerpc64__
 
 Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
 ---
 v13: new
 ---
- arch/powerpc/include/asm/time.h     | 30 +--------------------
- arch/powerpc/include/asm/timebase.h | 42 +++++++++++++++++++++++++++++
- 2 files changed, 43 insertions(+), 29 deletions(-)
- create mode 100644 arch/powerpc/include/asm/timebase.h
+ arch/powerpc/include/asm/cputable.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/time.h b/arch/powerpc/include/asm/time.h
-index 2f566c1a754c..46d0d65cda0e 100644
---- a/arch/powerpc/include/asm/time.h
-+++ b/arch/powerpc/include/asm/time.h
-@@ -15,6 +15,7 @@
+diff --git a/arch/powerpc/include/asm/cputable.h b/arch/powerpc/include/asm/cputable.h
+index 5e31960a56a9..e069a2d9f7c1 100644
+--- a/arch/powerpc/include/asm/cputable.h
++++ b/arch/powerpc/include/asm/cputable.h
+@@ -488,7 +488,7 @@ static inline void cpu_feature_keys_init(void) { }
+ 	    CPU_FTR_PURR | CPU_FTR_REAL_LE | CPU_FTR_DABRX)
+ #define CPU_FTRS_COMPATIBLE	(CPU_FTR_PPCAS_ARCH_V2)
  
- #include <asm/processor.h>
- #include <asm/cpu_has_feature.h>
-+#include <asm/timebase.h>
- 
- /* time.c */
- extern unsigned long tb_ticks_per_jiffy;
-@@ -38,12 +39,6 @@ struct div_result {
- 	u64 result_low;
+-#ifdef __powerpc64__
++#ifdef CONFIG_PPC64
+ #ifdef CONFIG_PPC_BOOK3E
+ #define CPU_FTRS_POSSIBLE	(CPU_FTRS_E6500 | CPU_FTRS_E5500)
+ #else
+@@ -545,7 +545,7 @@ enum {
  };
+ #endif /* __powerpc64__ */
  
--/* For compatibility, get_tbl() is defined as get_tb() on ppc64 */
--static inline unsigned long get_tbl(void)
--{
--	return mftb();
--}
--
- static inline u64 get_vtb(void)
- {
- #ifdef CONFIG_PPC_BOOK3S_64
-@@ -53,29 +48,6 @@ static inline u64 get_vtb(void)
- 	return 0;
- }
- 
--static inline u64 get_tb(void)
--{
--	unsigned int tbhi, tblo, tbhi2;
--
--	if (IS_ENABLED(CONFIG_PPC64))
--		return mftb();
--
--	do {
--		tbhi = mftbu();
--		tblo = mftb();
--		tbhi2 = mftbu();
--	} while (tbhi != tbhi2);
--
--	return ((u64)tbhi << 32) | tblo;
--}
--
--static inline void set_tb(unsigned int upper, unsigned int lower)
--{
--	mtspr(SPRN_TBWL, 0);
--	mtspr(SPRN_TBWU, upper);
--	mtspr(SPRN_TBWL, lower);
--}
--
- /* Accessor functions for the decrementer register.
-  * The 4xx doesn't even have a decrementer.  I tried to use the
-  * generic timer interrupt code, which seems OK, with the 4xx PIT
-diff --git a/arch/powerpc/include/asm/timebase.h b/arch/powerpc/include/asm/timebase.h
-new file mode 100644
-index 000000000000..a8eae3adaa91
---- /dev/null
-+++ b/arch/powerpc/include/asm/timebase.h
-@@ -0,0 +1,42 @@
-+/* SPDX-License-Identifier: GPL-2.0-or-later */
-+/*
-+ * Common timebase prototypes and such for all ppc machines.
-+ *
-+ * Written by Cort Dougan (cort@cs.nmt.edu) to merge
-+ * Paul Mackerras' version and mine for PReP and Pmac.
-+ */
-+
-+#ifndef __POWERPC_TIMEBASE_H
-+#define __POWERPC_TIMEBASE_H
-+
-+#include <asm/reg.h>
-+
-+/* For compatibility, get_tbl() is defined as get_tb() on ppc64 */
-+static inline unsigned long get_tbl(void)
-+{
-+	return mftb();
-+}
-+
-+static inline u64 get_tb(void)
-+{
-+	unsigned int tbhi, tblo, tbhi2;
-+
-+	if (IS_ENABLED(CONFIG_PPC64))
-+		return mftb();
-+
-+	do {
-+		tbhi = mftbu();
-+		tblo = mftb();
-+		tbhi2 = mftbu();
-+	} while (tbhi != tbhi2);
-+
-+	return ((u64)tbhi << 32) | tblo;
-+}
-+
-+static inline void set_tb(unsigned int upper, unsigned int lower)
-+{
-+	mtspr(SPRN_TBWL, 0);
-+	mtspr(SPRN_TBWU, upper);
-+	mtspr(SPRN_TBWL, lower);
-+}
-+#endif /* __POWERPC_TIMEBASE_H */
+-#ifdef __powerpc64__
++#ifdef CONFIG_PPC64
+ #ifdef CONFIG_PPC_BOOK3E
+ #define CPU_FTRS_ALWAYS		(CPU_FTRS_E6500 & CPU_FTRS_E5500)
+ #else
 -- 
 2.25.0
 
