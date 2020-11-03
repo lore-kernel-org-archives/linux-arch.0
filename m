@@ -4,53 +4,53 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 21CB8C388F7
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9F670C56201
 	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:26 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CB7E320780
-	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:25 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 54249207BB
+	for <linux-arch@archiver.kernel.org>; Tue,  3 Nov 2020 18:12:26 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1604427145;
-	bh=QCHSF+94LKGSLQPMW0glad3A+EX+spOHxBoFB0aXvBU=;
+	s=default; t=1604427146;
+	bh=YiFAXF8gpP+Fmp8T9Pr/5UbVkNbZC60Fqcgag/+SXFE=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=kGiS3/hWOUoYUfWSEbs0IiNYZ0V2rm1HpZBCPQsbRNNksjzzQwsezMJ0Z5h7F385K
-	 5Plv5D8BbkUTxzZl8a7hn0Dl5efcog7nbGqYKZzv53NggHFa8blAxqLscEWIaAL2n8
-	 H8DlwqZfH5HJSFeEeHAbC0Nyc2JHvJtAIJgqWvec=
+	b=h/G6Qgm2n2sVqjPXLryciCM1dbrD6bJ3iBeUZA8sLguDvJMRtFrawx5Fj4oOSb/p0
+	 3FB75NvMeIXKa6sJ+YW+5nkGeiLzprzlzim6hDjhOxOPmy9UmvrhqN66Pk9xjLNAVJ
+	 hd2ksnISVPuGD1iAx4HHB0sqC76bkpjGnEZmJ0/Y=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729261AbgKCSMY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 3 Nov 2020 13:12:24 -0500
-Received: from mail-lj1-f195.google.com ([209.85.208.195]:37037 "EHLO
-        mail-lj1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729143AbgKCSMF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2020 13:12:05 -0500
-Received: by mail-lj1-f195.google.com with SMTP id i2so20106906ljg.4;
-        Tue, 03 Nov 2020 10:12:04 -0800 (PST)
+        id S1729263AbgKCSMZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 3 Nov 2020 13:12:25 -0500
+Received: from mail-lj1-f194.google.com ([209.85.208.194]:34119 "EHLO
+        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729069AbgKCSME (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2020 13:12:04 -0500
+Received: by mail-lj1-f194.google.com with SMTP id y16so20114329ljk.1;
+        Tue, 03 Nov 2020 10:12:03 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=DWS2S4IqKiS2heydlDLEdna4ZCr5rpDtwM55ddWvvtU=;
-        b=GDIsRb8gi/N+EZOM9ZhX8GMz5WqThw0TMUK1JZySMF5e3OeHnAYnC+P4i2Mx2He8qO
-         es4D4HXxVciRv007w0cQPZpGK0Y0IUk/yvghudU4ckQHa+FlF3hTCgNMXc6BNB4Wjm9x
-         /ke954LP4fK1CqELLshFioth5aHdB27afRF39kLSLTbZEtObkXHmeEw49rSbyFosTlvl
-         wy4p82lsNTbvZ1uCdVsHFcbFcbgio4ZKBCMQ+ffFIPxXhHrpWXB8oxmg5eB/nDiHoeu4
-         rZ7SeNvbRra33I73Lpyv1tOwAjFbj6NRVdovfb3VqXTdy9ndp9OkEq/niR832ZUbPQ6u
-         jRdg==
-X-Gm-Message-State: AOAM530lzkOqGLrABOuNIz9ygilO+TrA8CY3mNo3kRhrOnDvkwdZ6Rpg
-        iVQXkpURn+cETP00vRnv74x9kjPEbFx3/w==
-X-Google-Smtp-Source: ABdhPJwc8wDtdPCNAYPFmWQsDK9gsD0scYRvOTXL6ZCroo6mSIn3e70xQH7uoKlgadVzXtsqqhLFSg==
-X-Received: by 2002:a05:651c:1245:: with SMTP id h5mr8111765ljh.404.1604427123263;
-        Tue, 03 Nov 2020 10:12:03 -0800 (PST)
+        bh=lmR+OgLQpXiz9C9It/pksOvqMCO0WrxIHSJ60EhO0sc=;
+        b=oux46P4vgVZdof1jzj8LRZFje/Rej+BWquKQhbOVV7Nm67GLsIj8NzPlkgz0NuTLpK
+         TWth9aAd62ZFGkNzphsr0rArbRh/D4l8hmPDCUJtpPMjIc5U9lJb1Bb/m38nGAAvFRjY
+         zuPYJyhdqgVX3sy1pPQJTTzIdjSFehdqzjJeGEboknxBxInla/qNoPmlYEiIxAycHHxz
+         RL18/OdrJt/eDeDPVUnNwMP72CILzRpNzFdS3XZwb2W96vDMceqRaF2QsbralKbKdEgQ
+         pQwebMEV/dpRzDOOyjhQnoS4QvGIR2qcAnr3vTihZrUPkhgsdG9UuhHqCOJW33H4CU7I
+         Quwg==
+X-Gm-Message-State: AOAM53086B1QCRFAJCZF8t4qh4MoL7xUZGyeJiMebN2anWled5EPaPS8
+        Om2R3W2n49Uma1/rwhhWw1AGOABWhG5pVw==
+X-Google-Smtp-Source: ABdhPJz07sueJ3+iSzebkN7P4Ah4zYnUmAAYA1hmwphU/S9lC2YVretq83hvmXcayqIQwculOmRVWg==
+X-Received: by 2002:a2e:7310:: with SMTP id o16mr9809475ljc.42.1604427122132;
+        Tue, 03 Nov 2020 10:12:02 -0800 (PST)
 Received: from xi.terra (c-beaee455.07-184-6d6c6d4.bbcust.telenor.se. [85.228.174.190])
-        by smtp.gmail.com with ESMTPSA id p21sm3961746lfc.231.2020.11.03.10.11.59
+        by smtp.gmail.com with ESMTPSA id g20sm4540473ljn.134.2020.11.03.10.11.59
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 03 Nov 2020 10:12:01 -0800 (PST)
+        Tue, 03 Nov 2020 10:12:00 -0800 (PST)
 Received: from johan by xi.terra with local (Exim 4.93.0.4)
         (envelope-from <johan@xi.terra>)
-        id 1ka0mo-0002rk-04; Tue, 03 Nov 2020 19:12:02 +0100
+        id 1ka0mn-0002rb-PW; Tue, 03 Nov 2020 19:12:01 +0100
 From:   Johan Hovold <johan@kernel.org>
 To:     linux-kernel@vger.kernel.org
 Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
@@ -70,9 +70,9 @@ Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
         Daniel Kurtz <djkurtz@chromium.org>,
         linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
         Johan Hovold <johan@kernel.org>
-Subject: [PATCH 5/8] init: use type alignment for kernel parameters
-Date:   Tue,  3 Nov 2020 18:57:08 +0100
-Message-Id: <20201103175711.10731-6-johan@kernel.org>
+Subject: [PATCH 3/8] module: drop version-attribute alignment
+Date:   Tue,  3 Nov 2020 18:57:06 +0100
+Message-Id: <20201103175711.10731-4-johan@kernel.org>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20201103175711.10731-1-johan@kernel.org>
 References: <20201103175711.10731-1-johan@kernel.org>
@@ -82,38 +82,37 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Specify type alignment for kernel parameters instead of sizeof(long).
+Commit 98562ad8cb03 ("module: explicitly align module_version_attribute
+structure") added an alignment attribute to the struct
+module_version_attribute type in order to fix an alignment issue on m68k
+where the structure is 2-byte aligned while MODULE_VERSION() forced the
+__modver section entries to be 4-byte aligned (sizeof(void *)).
 
-The alignment attribute is used to prevent gcc from increasing the
-alignment of objects with static extent, something which would mess up
-the __setup array stride.
-
-Using __alignof__(struct obs_kernel_param) rather than sizeof(long) is
-preferred since it better indicates why it is there and doesn't break
-should the type size or alignment change.
-
-Note that on m68k the alignment of struct obs_kernel_param is actually
-two and that adding a 1- or 2-byte field to the 12-byte struct would
-cause a breakage with the current 4-byte alignment.
+This was essentially an alternative fix to the problem addressed by
+b4bc842802db ("module: deal with alignment issues in built-in module
+versions") which used the array-of-pointer trick to prevent gcc from
+increasing alignment of the version attribute entries. And with the
+pointer indirection in place there's no need to increase the alignment
+of the type.
 
 Signed-off-by: Johan Hovold <johan@kernel.org>
 ---
- include/linux/init.h | 2 +-
+ include/linux/module.h | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/linux/init.h b/include/linux/init.h
-index 7b53cb3092ee..e668832ef66a 100644
---- a/include/linux/init.h
-+++ b/include/linux/init.h
-@@ -255,7 +255,7 @@ struct obs_kernel_param {
- 		__aligned(1) = str; 					\
- 	static struct obs_kernel_param __setup_##unique_id		\
- 		__used __section(".init.setup")				\
--		__attribute__((aligned((sizeof(long)))))		\
-+		__aligned(__alignof__(struct obs_kernel_param))		\
- 		= { __setup_str_##unique_id, fn, early }
+diff --git a/include/linux/module.h b/include/linux/module.h
+index 7ccdf87f376f..293250958512 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -66,7 +66,7 @@ struct module_version_attribute {
+ 	struct module_attribute mattr;
+ 	const char *module_name;
+ 	const char *version;
+-} __attribute__ ((__aligned__(sizeof(void *))));
++};
  
- #define __setup(str, fn)						\
+ extern ssize_t __modver_version_show(struct module_attribute *,
+ 				     struct module_kobject *, char *);
 -- 
 2.26.2
 
