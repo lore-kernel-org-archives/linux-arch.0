@@ -2,181 +2,144 @@ Return-Path: <SRS0=N3NN=EL=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
+X-Spam-Status: No, score=-9.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 59AF9C55178
-	for <linux-arch@archiver.kernel.org>; Thu,  5 Nov 2020 16:59:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 59821C55178
+	for <linux-arch@archiver.kernel.org>; Thu,  5 Nov 2020 17:34:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 0A1CE21734
-	for <linux-arch@archiver.kernel.org>; Thu,  5 Nov 2020 16:59:20 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1604595561;
-	bh=QhWIszDhteaRpJlcjNX2n3XqMiEcN3Ocb6xdibtizj0=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=hVotHWiV9vJ9fZYNv0eac0SbygWoXyp5S14H8lzpLoiHqe/GGYjm9x74Mp5n9lnF8
-	 3HZXX0ZDoN+U6grl6595aiURlERGB3LGPZwDXq7tzCwdorFNuWTHWFVGUANQmOiS+p
-	 oNQbs9ursdDgrsxYqa21sClncMyLFdCAFSCQLuNk=
+	by mail.kernel.org (Postfix) with ESMTP id EFACD2072E
+	for <linux-arch@archiver.kernel.org>; Thu,  5 Nov 2020 17:34:03 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (2048-bit key) header.d=dabbelt-com.20150623.gappssmtp.com header.i=@dabbelt-com.20150623.gappssmtp.com header.b="lzbVQmsn"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1731735AbgKEQ61 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 5 Nov 2020 11:58:27 -0500
-Received: from mail-wr1-f66.google.com ([209.85.221.66]:45980 "EHLO
-        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730174AbgKEQ60 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Nov 2020 11:58:26 -0500
-Received: by mail-wr1-f66.google.com with SMTP id p1so2576341wrf.12;
-        Thu, 05 Nov 2020 08:58:25 -0800 (PST)
+        id S1731694AbgKEReC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 5 Nov 2020 12:34:02 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45432 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731672AbgKEReC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Nov 2020 12:34:02 -0500
+Received: from mail-pj1-x1044.google.com (mail-pj1-x1044.google.com [IPv6:2607:f8b0:4864:20::1044])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1D70EC0613CF
+        for <linux-arch@vger.kernel.org>; Thu,  5 Nov 2020 09:34:02 -0800 (PST)
+Received: by mail-pj1-x1044.google.com with SMTP id f12so426357pjp.4
+        for <linux-arch@vger.kernel.org>; Thu, 05 Nov 2020 09:34:02 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=dabbelt-com.20150623.gappssmtp.com; s=20150623;
+        h=date:subject:in-reply-to:cc:from:to:message-id:mime-version
+         :content-transfer-encoding;
+        bh=BNUKSCGWkc6CIawczqK2wZtYLRe3Vlhmmh+CKSA+3+c=;
+        b=lzbVQmsnHGQrz4/Uh0fYZi54IjSFhyftDYTHwIkpshJXq9uFE86Pa9KWtVjBqWJ7yd
+         onq3vAXQjTajSdGzQNX20E/F+aTUTqCib4eZOiqNtlC/7QkS53dFygSpG/W3sUaNJt5c
+         qziTHhbP7erX23zyVe1C/vgsPyjRg7S59nO505Ef8FRnRDFDEHb7eJus9H8y7UOL0GcD
+         kz5bw5d7wVOPW8Ro0wVtFiDoGvk6pa/TQguCGQJNwdYqoy8N7CCh6wwBSGCc2nivqMeC
+         LVMIsZUmFNl9BJeJW24JmrCWWop64Jw79jkqnvLrQ4fzrQemdE2L/D6hiptAVeXhATd9
+         9EXw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=Lc9Ih+aBOUIcyg/pc4PzDWU6F5HLqSVXvBtWicqQZLQ=;
-        b=AxJIgaj8zcOC1XPNXQ5lLcbVTO4mMH8EsJ0dyCr4Ie3ndV4RDCr1dox+rXHhpCpwfW
-         kXurxPH5SrGv0p/m8rRsIlLlRDb5xcV54ZjFlwUcKeKDuQp5fw2Oxlw8uzhkzW8aRjgj
-         jEY9LaTo+ABXVlKfgmdL75N5mymCr6W+qYwiPexyoFkw5476oJiVOpQY/+XaHQraLTju
-         KodNutYtanxfRg9M1s7/iHOHKecL1rBug5xZlhVqyXd8OvtbitbPL2fI/NjZV6sF9Qk3
-         FYEmuX4QjEziTxWhIDFKkgfIfZMhZ0ZVSsgNE1AHu6zxCXFGL9cbFIY0Rnpcz08h7mHe
-         qUXw==
-X-Gm-Message-State: AOAM531a0apTP3kera/DBGt7q4/C5z1bs3NSo6nVrKKpIUN06YdIqVhA
-        6yzJtu1E879kBiUJp7l9HUqw5cZXC0k=
-X-Google-Smtp-Source: ABdhPJyOUZNa+lay5gs3PR3kYDl/Kc1uFywqQBMwfD5IqygRpbX5bv8wcV0eQ4KJ/Pt+ROquaQ7fBw==
-X-Received: by 2002:adf:c847:: with SMTP id e7mr4091644wrh.346.1604595504429;
-        Thu, 05 Nov 2020 08:58:24 -0800 (PST)
-Received: from liuwe-devbox-debian-v2.j3c5onc20sse1dnehy4noqpfcg.zx.internal.cloudapp.net ([51.145.34.42])
-        by smtp.gmail.com with ESMTPSA id z5sm3350729wrw.87.2020.11.05.08.58.23
+        h=x-gm-message-state:date:subject:in-reply-to:cc:from:to:message-id
+         :mime-version:content-transfer-encoding;
+        bh=BNUKSCGWkc6CIawczqK2wZtYLRe3Vlhmmh+CKSA+3+c=;
+        b=PiycsohpaTGJp2PjF9D9cf194Mbe5MiZP/bsUJEa2ee7bdoAmJa7bl4WCjH0JRoWlR
+         DSZXC3Ra2y1uVIPqCH9gXsJCSR6iWkO1p4/Dh57lahhACOBtmKr2xOUmcy5K+z52SMPD
+         GRTnUHPaF27Saz7X4QqM8uujzpQULABdvMDN1KlMyaDuWIyMMq0PnM1BM/7TKz1ndfW7
+         Mx5s3quohBRl5cbukWX9tFH2indyNGzvQF2FPuLcyojCaQvyY/NcTVKvGlax7cUpiNIT
+         wi+39TclJtkxlDAoanv5PHPd3lFN/YDuMqLuUsT4nshlliZF/zUjx15IvepwlsJRt08H
+         zDiA==
+X-Gm-Message-State: AOAM530D9kgjgFBQMDTTlgQOrRVKtgfiJpWixEKSjPYtld1nNzP0YL2X
+        gxabIL10yLL3sowu5e9NAXuRBA==
+X-Google-Smtp-Source: ABdhPJylFsENw71w4yVASLj+rnk7or2cMT1g74UPVnCfF46/UVvMxhFTOGNn7sZscCvrZhuorInUWg==
+X-Received: by 2002:a17:902:23:b029:d6:2387:55e1 with SMTP id 32-20020a1709020023b02900d6238755e1mr3120958pla.8.1604597641453;
+        Thu, 05 Nov 2020 09:34:01 -0800 (PST)
+Received: from localhost (76-210-143-223.lightspeed.sntcca.sbcglobal.net. [76.210.143.223])
+        by smtp.gmail.com with ESMTPSA id c11sm2964888pgl.20.2020.11.05.09.34.00
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 05 Nov 2020 08:58:24 -0800 (PST)
-From:   Wei Liu <wei.liu@kernel.org>
-To:     Linux on Hyper-V List <linux-hyperv@vger.kernel.org>
-Cc:     virtualization@lists.linux-foundation.org,
-        Linux Kernel List <linux-kernel@vger.kernel.org>,
-        Michael Kelley <mikelley@microsoft.com>,
-        Vineeth Pillai <viremana@linux.microsoft.com>,
-        Sunil Muthuswamy <sunilmut@microsoft.com>,
-        Nuno Das Neves <nunodasneves@linux.microsoft.com>,
-        Wei Liu <wei.liu@kernel.org>,
-        Lillian Grassin-Drake <ligrassi@microsoft.com>,
-        "K. Y. Srinivasan" <kys@microsoft.com>,
-        Haiyang Zhang <haiyangz@microsoft.com>,
-        Stephen Hemminger <sthemmin@microsoft.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        x86@kernel.org (maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)),
-        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-        linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
-Subject: [PATCH v2 07/17] x86/hyperv: extract partition ID from Microsoft Hypervisor if necessary
-Date:   Thu,  5 Nov 2020 16:58:04 +0000
-Message-Id: <20201105165814.29233-8-wei.liu@kernel.org>
-X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20201105165814.29233-1-wei.liu@kernel.org>
-References: <20201105165814.29233-1-wei.liu@kernel.org>
-MIME-Version: 1.0
+        Thu, 05 Nov 2020 09:34:00 -0800 (PST)
+Date:   Thu, 05 Nov 2020 09:34:00 -0800 (PST)
+X-Google-Original-Date: Wed, 04 Nov 2020 14:01:41 PST (-0800)
+Subject:     Re: [PATCH v4 3/5] riscv: Separate memory init from paging init
+In-Reply-To: <20201006001752.248564-4-atish.patra@wdc.com>
+CC:     linux-kernel@vger.kernel.org, Atish Patra <Atish.Patra@wdc.com>,
+        greentime.hu@sifive.com, aou@eecs.berkeley.edu,
+        akpm@linux-foundation.org, anshuman.khandual@arm.com,
+        anup@brainfault.org, Arnd Bergmann <arnd@arndb.de>,
+        catalin.marinas@arm.com, david@redhat.com,
+        Greg KH <gregkh@linuxfoundation.org>, justin.he@arm.com,
+        Jonathan.Cameron@huawei.com, wangkefeng.wang@huawei.com,
+        linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org,
+        rppt@kernel.org, nsaenzjulienne@suse.de,
+        Paul Walmsley <paul.walmsley@sifive.com>, rafael@kernel.org,
+        steven.price@arm.com, will@kernel.org, zong.li@sifive.com,
+        linux-arm-kernel@lists.infradead.org
+From:   Palmer Dabbelt <palmer@dabbelt.com>
+To:     Atish Patra <Atish.Patra@wdc.com>
+Message-ID: <mhng-f811a008-fd0c-4e85-b48d-4f2c476c1c65@palmerdabbelt-glaptop1>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-We will need the partition ID for executing some hypercalls later.
+On Mon, 05 Oct 2020 17:17:50 PDT (-0700), Atish Patra wrote:
+> Currently, we perform some memory init functions in paging init. But,
+> that will be an issue for NUMA support where DT needs to be flattened
+> before numa initialization and memblock_present can only be called
+> after numa initialization.
+>
+> Move memory initialization related functions to a separate function.
+>
+> Signed-off-by: Atish Patra <atish.patra@wdc.com>
+> Reviewed-by: Greentime Hu <greentime.hu@sifive.com>
+> ---
+>  arch/riscv/include/asm/pgtable.h | 1 +
+>  arch/riscv/kernel/setup.c        | 1 +
+>  arch/riscv/mm/init.c             | 6 +++++-
+>  3 files changed, 7 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
+> index eaea1f717010..515b42f98d34 100644
+> --- a/arch/riscv/include/asm/pgtable.h
+> +++ b/arch/riscv/include/asm/pgtable.h
+> @@ -466,6 +466,7 @@ static inline void __kernel_map_pages(struct page *page, int numpages, int enabl
+>  extern void *dtb_early_va;
+>  void setup_bootmem(void);
+>  void paging_init(void);
+> +void misc_mem_init(void);
+>
+>  #define FIRST_USER_ADDRESS  0
+>
+> diff --git a/arch/riscv/kernel/setup.c b/arch/riscv/kernel/setup.c
+> index 2c6dd329312b..07fa6d13367e 100644
+> --- a/arch/riscv/kernel/setup.c
+> +++ b/arch/riscv/kernel/setup.c
+> @@ -78,6 +78,7 @@ void __init setup_arch(char **cmdline_p)
+>  #else
+>  	unflatten_device_tree();
+>  #endif
+> +	misc_mem_init();
+>
+>  #ifdef CONFIG_SWIOTLB
+>  	swiotlb_init(1);
+> diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
+> index ed6e83871112..114c3966aadb 100644
+> --- a/arch/riscv/mm/init.c
+> +++ b/arch/riscv/mm/init.c
+> @@ -565,8 +565,12 @@ static void __init resource_init(void)
+>  void __init paging_init(void)
+>  {
+>  	setup_vm_final();
+> -	sparse_init();
+>  	setup_zero_page();
+> +}
+> +
+> +void __init misc_mem_init(void)
+> +{
+> +	sparse_init();
+>  	zone_sizes_init();
+>  	resource_init();
+>  }
 
-Signed-off-by: Lillian Grassin-Drake <ligrassi@microsoft.com>
-Co-Developed-by: Sunil Muthuswamy <sunilmut@microsoft.com>
-Signed-off-by: Wei Liu <wei.liu@kernel.org>
----
- arch/x86/hyperv/hv_init.c         | 26 ++++++++++++++++++++++++++
- arch/x86/include/asm/mshyperv.h   |  2 ++
- include/asm-generic/hyperv-tlfs.h |  6 ++++++
- 3 files changed, 34 insertions(+)
-
-diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-index 7a2e37f025b0..73b0fb851f76 100644
---- a/arch/x86/hyperv/hv_init.c
-+++ b/arch/x86/hyperv/hv_init.c
-@@ -30,6 +30,9 @@
- bool hv_root_partition;
- EXPORT_SYMBOL_GPL(hv_root_partition);
- 
-+u64 hv_current_partition_id;
-+EXPORT_SYMBOL_GPL(hv_current_partition_id);
-+
- void *hv_hypercall_pg;
- EXPORT_SYMBOL_GPL(hv_hypercall_pg);
- 
-@@ -335,6 +338,26 @@ static struct syscore_ops hv_syscore_ops = {
- 	.resume		= hv_resume,
- };
- 
-+void __init hv_get_partition_id(void)
-+{
-+	struct hv_get_partition_id *output_page;
-+	u16 status;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	output_page = *this_cpu_ptr(hyperv_pcpu_output_arg);
-+	status = hv_do_hypercall(HVCALL_GET_PARTITION_ID, NULL, output_page) &
-+		HV_HYPERCALL_RESULT_MASK;
-+	if (status != HV_STATUS_SUCCESS)
-+		pr_err("Failed to get partition ID: %d\n", status);
-+	else
-+		hv_current_partition_id = output_page->partition_id;
-+	local_irq_restore(flags);
-+
-+	/* No point in proceeding if this failed */
-+	BUG_ON(status != HV_STATUS_SUCCESS);
-+}
-+
- /*
-  * This function is to be invoked early in the boot sequence after the
-  * hypervisor has been detected.
-@@ -430,6 +453,9 @@ void __init hyperv_init(void)
- 
- 	register_syscore_ops(&hv_syscore_ops);
- 
-+	if (hv_root_partition)
-+		hv_get_partition_id();
-+
- 	return;
- 
- remove_cpuhp_state:
-diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-index 62d9390f1ddf..67f5d35a73d3 100644
---- a/arch/x86/include/asm/mshyperv.h
-+++ b/arch/x86/include/asm/mshyperv.h
-@@ -78,6 +78,8 @@ extern void *hv_hypercall_pg;
- extern void  __percpu  **hyperv_pcpu_input_arg;
- extern void  __percpu  **hyperv_pcpu_output_arg;
- 
-+extern u64 hv_current_partition_id;
-+
- static inline u64 hv_do_hypercall(u64 control, void *input, void *output)
- {
- 	u64 input_address = input ? virt_to_phys(input) : 0;
-diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
-index e6903589a82a..87b1a79b19eb 100644
---- a/include/asm-generic/hyperv-tlfs.h
-+++ b/include/asm-generic/hyperv-tlfs.h
-@@ -141,6 +141,7 @@ struct ms_hyperv_tsc_page {
- #define HVCALL_FLUSH_VIRTUAL_ADDRESS_SPACE_EX	0x0013
- #define HVCALL_FLUSH_VIRTUAL_ADDRESS_LIST_EX	0x0014
- #define HVCALL_SEND_IPI_EX			0x0015
-+#define HVCALL_GET_PARTITION_ID			0x0046
- #define HVCALL_GET_VP_REGISTERS			0x0050
- #define HVCALL_SET_VP_REGISTERS			0x0051
- #define HVCALL_POST_MESSAGE			0x005c
-@@ -407,6 +408,11 @@ struct hv_tlb_flush_ex {
- 	u64 gva_list[];
- } __packed;
- 
-+/* HvGetPartitionId hypercall (output only) */
-+struct hv_get_partition_id {
-+	u64 partition_id;
-+} __packed;
-+
- /* HvRetargetDeviceInterrupt hypercall */
- union hv_msi_entry {
- 	u64 as_uint64;
--- 
-2.20.1
-
+Reviewed-by: Palmer Dabbelt <palmerdabbelt@google.com>
