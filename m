@@ -7,47 +7,47 @@ X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 224F8C4741F
-	for <linux-arch@archiver.kernel.org>; Thu,  5 Nov 2020 16:58:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DF5A1C4741F
+	for <linux-arch@archiver.kernel.org>; Thu,  5 Nov 2020 16:58:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C2EC620756
-	for <linux-arch@archiver.kernel.org>; Thu,  5 Nov 2020 16:58:20 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8F6112073A
+	for <linux-arch@archiver.kernel.org>; Thu,  5 Nov 2020 16:58:36 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=default; t=1604595500;
-	bh=pqPSd8kjThaKaamevBlGffzYFqFbRYWilYCqCHNqyNQ=;
+	s=default; t=1604595516;
+	bh=wlQoVhvq7nreh/YwalXJyyQSu3zGNtWpKt2wvj5t+Wg=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:List-ID:From;
-	b=Y4uFcDSoug9puE5ZYLxTP5hBZgbM28PC94OFw/nnjrdrLGrJG1IQdFBZNgTSai52e
-	 pZ2VFYRO5Ef7pxZvumRtANyAIA8LPlGi+706OuOjUtw2DSxqddsEEXyR2QWidA9q1z
-	 gjrNc6s69gQUD45yvnY1+ZzgZEHNT9o5zRlSzn1Y=
+	b=Hub9ELu+Brv4MKAuIibZGDc57teUfb+JVRv0f736bNax6fwdpXMXSk90xVJRwIom9
+	 AVaEOqBZ8pU5YdGrWeos5nq9YZrzAiE+Qcxk9KDz3WS9frFRp4LrMiu8kBiI+uy6Q3
+	 A9QkldvCz3klFZGrM/phvU8wuTDJ7bSS3+arsODY=
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726996AbgKEQ6U (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 5 Nov 2020 11:58:20 -0500
-Received: from mail-wm1-f66.google.com ([209.85.128.66]:52053 "EHLO
-        mail-wm1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725998AbgKEQ6U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Nov 2020 11:58:20 -0500
-Received: by mail-wm1-f66.google.com with SMTP id v5so2293513wmh.1;
-        Thu, 05 Nov 2020 08:58:19 -0800 (PST)
+        id S1731808AbgKEQ6f (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 5 Nov 2020 11:58:35 -0500
+Received: from mail-wm1-f68.google.com ([209.85.128.68]:36624 "EHLO
+        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731779AbgKEQ6e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Nov 2020 11:58:34 -0500
+Received: by mail-wm1-f68.google.com with SMTP id a65so1951045wme.1;
+        Thu, 05 Nov 2020 08:58:32 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=WkfHYu6VFyajw5WpXwEkCq0cVnpjzGJSXx+/xipV4v8=;
-        b=MkyqTk15rYnYBnGgGEdrh25q/YOn1aHRA1T2076hANvIBc3l/q3cncwBjinm1ferHi
-         1IiIoaVomCXTKfAglTsE0jIhntKvsKkQzv4sehAR1zqD99xMxRGxx2+A4PK5T8XIDEJW
-         TJHUzlbirVfZ5TbSbgFp5VN2bqWeqBXPJS21jpZ9B5GbP98WE0lnAbMSWhXdjDCk1Jo/
-         XL+AGbzZ1VN5/oUY/aUYS4xYJ/RZdydq7YOZk4ulH9VoY5c2Csk6wcLT3AQQMvRKUkhm
-         abH0avd//tV++Cz/gcEjOQK+4tVS3r4zugcRiPFq26D/kFvThZXZxInjsaFmYIS/oWji
-         Cc4w==
-X-Gm-Message-State: AOAM53198v6DgVFLOSqpnn6csl4tee47Sca04Amx9sLFe5VYbSN61Kya
-        NshUi8XAu7iy4vradhZ+8wRD950gYAI=
-X-Google-Smtp-Source: ABdhPJwgAiyLEaiqDhRSl6kBYfnenPKv9pqZSG/OLB29Xn0FKny8t1hmWLsFTHnpfrUcwl228XplxQ==
-X-Received: by 2002:a05:600c:219a:: with SMTP id e26mr4013747wme.168.1604595498317;
-        Thu, 05 Nov 2020 08:58:18 -0800 (PST)
+        bh=T+5cdHutuUA6EocbXq66t9UAokwgwiTTLHmiOikJqFA=;
+        b=j+DHvZiQ84Ks+WnvswGxzs4nIo3yC3UKaGByrygxwaRDvr/y757sZvaxykYKVBEejJ
+         YxKB3FM4yCFRUQbrlyO0vPmKRQEjTmhS33eMZWdDMkRnrKY6j9lPieAtWcZDWWjk9/J1
+         tFKD+8fuKJIOkZcnPQFb63nyIqsgb9vWInZehYULNRHkQuSIqKrzp0lM4RaSFwkHkZx9
+         EQf1ODrk4axmJdaO7xSS7WSrJqWLNjqVddaPMg2TZQmipY1BvWSClCfniVtWYP7Zz7mz
+         uzufbx4zO9DU1bjIYT1Ce6dADvGKvrso0b3BYFkNugF3Quw/hL/H7ZrUgFfRiGyP6yVP
+         W69A==
+X-Gm-Message-State: AOAM533vNLmpRL0/jtLKgR/dgMG+Mj2lLSWZN0IzEiYTMTpnqq/v0lHW
+        f6BXU+1hJfwJUYUEWhyF9l7jKSc6Bus=
+X-Google-Smtp-Source: ABdhPJzWmQJR2fvOGewz/GmIg/it1S5HrKiQm6iGY1hQIqJ/17qtiJlH8shiTuv5ye80GP9HFqBogA==
+X-Received: by 2002:a7b:c055:: with SMTP id u21mr3712241wmc.27.1604595511860;
+        Thu, 05 Nov 2020 08:58:31 -0800 (PST)
 Received: from liuwe-devbox-debian-v2.j3c5onc20sse1dnehy4noqpfcg.zx.internal.cloudapp.net ([51.145.34.42])
-        by smtp.gmail.com with ESMTPSA id z5sm3350729wrw.87.2020.11.05.08.58.17
+        by smtp.gmail.com with ESMTPSA id z5sm3350729wrw.87.2020.11.05.08.58.31
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 05 Nov 2020 08:58:17 -0800 (PST)
+        Thu, 05 Nov 2020 08:58:31 -0800 (PST)
 From:   Wei Liu <wei.liu@kernel.org>
 To:     Linux on Hyper-V List <linux-hyperv@vger.kernel.org>
 Cc:     virtualization@lists.linux-foundation.org,
@@ -62,9 +62,9 @@ Cc:     virtualization@lists.linux-foundation.org,
         Stephen Hemminger <sthemmin@microsoft.com>,
         Arnd Bergmann <arnd@arndb.de>,
         linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
-Subject: [PATCH v2 01/17] asm-generic/hyperv: change HV_CPU_POWER_MANAGEMENT to HV_CPU_MANAGEMENT
-Date:   Thu,  5 Nov 2020 16:57:58 +0000
-Message-Id: <20201105165814.29233-2-wei.liu@kernel.org>
+Subject: [PATCH v2 13/17] asm-generic/hyperv: introduce hv_device_id and auxiliary structures
+Date:   Thu,  5 Nov 2020 16:58:10 +0000
+Message-Id: <20201105165814.29233-14-wei.liu@kernel.org>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20201105165814.29233-1-wei.liu@kernel.org>
 References: <20201105165814.29233-1-wei.liu@kernel.org>
@@ -74,26 +74,106 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This makes the name match Hyper-V TLFS.
+We will need to identify the device we want Microsoft Hypervisor to
+manipulate.  Introduce the data structures for that purpose.
 
+They will be used in a later patch.
+
+Signed-off-by: Sunil Muthuswamy <sunilmut@microsoft.com>
+Co-Developed-by: Sunil Muthuswamy <sunilmut@microsoft.com>
 Signed-off-by: Wei Liu <wei.liu@kernel.org>
 ---
- include/asm-generic/hyperv-tlfs.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/asm-generic/hyperv-tlfs.h | 79 +++++++++++++++++++++++++++++++
+ 1 file changed, 79 insertions(+)
 
 diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
-index e73a11850055..e6903589a82a 100644
+index b6895d4d9ad0..09223e41172c 100644
 --- a/include/asm-generic/hyperv-tlfs.h
 +++ b/include/asm-generic/hyperv-tlfs.h
-@@ -88,7 +88,7 @@
- #define HV_CONNECT_PORT				BIT(7)
- #define HV_ACCESS_STATS				BIT(8)
- #define HV_DEBUGGING				BIT(11)
--#define HV_CPU_POWER_MANAGEMENT			BIT(12)
-+#define HV_CPU_MANAGEMENT			BIT(12)
+@@ -623,4 +623,83 @@ struct hv_set_vp_registers_input {
+ 	} element[];
+ } __packed;
  
- 
- /*
++enum hv_device_type {
++	HV_DEVICE_TYPE_LOGICAL = 0,
++	HV_DEVICE_TYPE_PCI = 1,
++	HV_DEVICE_TYPE_IOAPIC = 2,
++	HV_DEVICE_TYPE_ACPI = 3,
++};
++
++typedef u16 hv_pci_rid;
++typedef u16 hv_pci_segment;
++typedef u64 hv_logical_device_id;
++union hv_pci_bdf {
++	u16 as_uint16;
++
++	struct {
++		u8 function:3;
++		u8 device:5;
++		u8 bus;
++	};
++} __packed;
++
++union hv_pci_bus_range {
++	u16 as_uint16;
++
++	struct {
++		u8 subordinate_bus;
++		u8 secondary_bus;
++	};
++} __packed;
++
++union hv_device_id {
++	u64 as_uint64;
++
++	struct {
++		u64 :62;
++		u64 device_type:2;
++	};
++
++	/* HV_DEVICE_TYPE_LOGICAL */
++	struct {
++		u64 id:62;
++		u64 device_type:2;
++	} logical;
++
++	/* HV_DEVICE_TYPE_PCI */
++	struct {
++		union {
++			hv_pci_rid rid;
++			union hv_pci_bdf bdf;
++		};
++
++		hv_pci_segment segment;
++		union hv_pci_bus_range shadow_bus_range;
++
++		u16 phantom_function_bits:2;
++		u16 source_shadow:1;
++
++		u16 rsvdz0:11;
++		u16 device_type:2;
++	} pci;
++
++	/* HV_DEVICE_TYPE_IOAPIC */
++	struct {
++		u8 ioapic_id;
++		u8 rsvdz0;
++		u16 rsvdz1;
++		u16 rsvdz2;
++
++		u16 rsvdz3:14;
++		u16 device_type:2;
++	} ioapic;
++
++	/* HV_DEVICE_TYPE_ACPI */
++	struct {
++		u32 input_mapping_base;
++		u32 input_mapping_count:30;
++		u32 device_type:2;
++	} acpi;
++} __packed;
++
+ #endif
 -- 
 2.20.1
 
