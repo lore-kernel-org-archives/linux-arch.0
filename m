@@ -7,33 +7,33 @@ X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9AC5FC55ABD
-	for <linux-arch@archiver.kernel.org>; Tue, 10 Nov 2020 16:23:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8C106C6379D
+	for <linux-arch@archiver.kernel.org>; Tue, 10 Nov 2020 16:23:57 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5C10C20825
-	for <linux-arch@archiver.kernel.org>; Tue, 10 Nov 2020 16:23:51 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 421D820780
+	for <linux-arch@archiver.kernel.org>; Tue, 10 Nov 2020 16:23:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726737AbgKJQXu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 10 Nov 2020 11:23:50 -0500
-Received: from mga05.intel.com ([192.55.52.43]:28141 "EHLO mga05.intel.com"
+        id S1726344AbgKJQX4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 10 Nov 2020 11:23:56 -0500
+Received: from mga04.intel.com ([192.55.52.120]:36544 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730994AbgKJQW6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1730853AbgKJQW6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Tue, 10 Nov 2020 11:22:58 -0500
-IronPort-SDR: xCcqDJKG1SW8PPkgqC66jLFKJwyCrX2dOfIOqfYkjFXtqXJFhcZZrqFGbbGHkEPiQPJPPL9WYb
- yY/GzmccYPgw==
-X-IronPort-AV: E=McAfee;i="6000,8403,9801"; a="254713404"
+IronPort-SDR: QCBiejELEjWcQj/YXQdqsGIaWYIgAC5NkZieT1po24phRBKIMq7xr0wu+OIQfy2ccYefvk3z2M
+ xQfILMNvVAkQ==
+X-IronPort-AV: E=McAfee;i="6000,8403,9801"; a="167418678"
 X-IronPort-AV: E=Sophos;i="5.77,466,1596524400"; 
-   d="scan'208";a="254713404"
+   d="scan'208";a="167418678"
 X-Amp-Result: SKIPPED(no attachment in message)
 X-Amp-File-Uploaded: False
 Received: from fmsmga003.fm.intel.com ([10.253.24.29])
-  by fmsmga105.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Nov 2020 08:22:56 -0800
-IronPort-SDR: On53lC7w9+nB/NsAa8Yw99CUBO0EJGFQ6m8GklvnarS6AoMAE7ggdJwSYpCqf5M8u7/gi5pa3K
- J59362OYvNwA==
+  by fmsmga104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Nov 2020 08:22:54 -0800
+IronPort-SDR: Z00bkfKti0l1mIp1NdWgXMKUyKC8JtfDpcC6vHYslQF+xdBetCAVgU8szDipHG/w36TNyWCvlD
+ Msw9BOVSYYLQ==
 X-IronPort-AV: E=Sophos;i="5.77,466,1596524400"; 
-   d="scan'208";a="365572940"
+   d="scan'208";a="365572901"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Nov 2020 08:22:55 -0800
+  by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Nov 2020 08:22:53 -0800
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -61,10 +61,12 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Dave Martin <Dave.Martin@arm.com>,
         Weijiang Yang <weijiang.yang@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>
-Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v15 25/26] x86/cet/shstk: Add arch_prctl functions for shadow stack
-Date:   Tue, 10 Nov 2020 08:22:10 -0800
-Message-Id: <20201110162211.9207-26-yu-cheng.yu@intel.com>
+Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>,
+        Peter Collingbourne <pcc@google.com>,
+        Andrew Morton <akpm@linux-foundation.org>
+Subject: [PATCH v15 19/26] mm: Re-introduce vm_flags to do_mmap()
+Date:   Tue, 10 Nov 2020 08:22:04 -0800
+Message-Id: <20201110162211.9207-20-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20201110162211.9207-1-yu-cheng.yu@intel.com>
 References: <20201110162211.9207-1-yu-cheng.yu@intel.com>
@@ -74,182 +76,149 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-arch_prctl(ARCH_X86_CET_STATUS, u64 *args)
-    Get CET feature status.
+There was no more caller passing vm_flags to do_mmap(), and vm_flags was
+removed from the function's input by:
 
-    The parameter 'args' is a pointer to a user buffer.  The kernel returns
-    the following information:
+    commit 45e55300f114 ("mm: remove unnecessary wrapper function do_mmap_pgoff()").
 
-    *args = shadow stack/IBT status
-    *(args + 1) = shadow stack base address
-    *(args + 2) = shadow stack size
-
-arch_prctl(ARCH_X86_CET_DISABLE, unsigned int features)
-    Disable CET features specified in 'features'.  Return -EPERM if CET is
-    locked.
-
-arch_prctl(ARCH_X86_CET_LOCK)
-    Lock in CET features.
-
-Also change do_arch_prctl_common()'s parameter 'cpuid_enabled' to
-'arg2', as it is now also passed to prctl_cet().
+There is a new user now.  Shadow stack allocation passes VM_SHSTK to
+do_mmap().  Re-introduce vm_flags to do_mmap(), but without the old wrapper
+do_mmap_pgoff().  Instead, make all callers of the wrapper pass a zero
+vm_flags to do_mmap().
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Reviewed-by: Peter Collingbourne <pcc@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: linux-mm@kvack.org
 ---
- arch/x86/include/asm/cet.h        |  3 ++
- arch/x86/include/uapi/asm/prctl.h |  4 ++
- arch/x86/kernel/Makefile          |  2 +-
- arch/x86/kernel/cet_prctl.c       | 68 +++++++++++++++++++++++++++++++
- arch/x86/kernel/process.c         |  6 +--
- 5 files changed, 79 insertions(+), 4 deletions(-)
- create mode 100644 arch/x86/kernel/cet_prctl.c
+ fs/aio.c           |  2 +-
+ include/linux/mm.h |  3 ++-
+ ipc/shm.c          |  2 +-
+ mm/mmap.c          | 10 +++++-----
+ mm/nommu.c         |  4 ++--
+ mm/util.c          |  2 +-
+ 6 files changed, 12 insertions(+), 11 deletions(-)
 
-diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
-index ec4b5e62d0ce..16870e5bc8eb 100644
---- a/arch/x86/include/asm/cet.h
-+++ b/arch/x86/include/asm/cet.h
-@@ -14,9 +14,11 @@ struct sc_ext;
- struct cet_status {
- 	unsigned long	shstk_base;
- 	unsigned long	shstk_size;
-+	unsigned int	locked:1;
- };
+diff --git a/fs/aio.c b/fs/aio.c
+index c45c20d87538..641640288b50 100644
+--- a/fs/aio.c
++++ b/fs/aio.c
+@@ -527,7 +527,7 @@ static int aio_setup_ring(struct kioctx *ctx, unsigned int nr_events)
  
- #ifdef CONFIG_X86_CET
-+int prctl_cet(int option, u64 arg2);
- int cet_setup_shstk(void);
- int cet_setup_thread_shstk(struct task_struct *p, unsigned long clone_flags);
- void cet_disable_shstk(void);
-@@ -25,6 +27,7 @@ int cet_verify_rstor_token(bool ia32, unsigned long ssp, unsigned long *new_ssp)
- void cet_restore_signal(struct sc_ext *sc);
- int cet_setup_signal(bool ia32, unsigned long rstor, struct sc_ext *sc);
- #else
-+static inline int prctl_cet(int option, u64 arg2) { return -EINVAL; }
- static inline int cet_setup_thread_shstk(struct task_struct *p,
- 					 unsigned long clone_flags) { return 0; }
- static inline void cet_disable_shstk(void) {}
-diff --git a/arch/x86/include/uapi/asm/prctl.h b/arch/x86/include/uapi/asm/prctl.h
-index 5a6aac9fa41f..9245bf629120 100644
---- a/arch/x86/include/uapi/asm/prctl.h
-+++ b/arch/x86/include/uapi/asm/prctl.h
-@@ -14,4 +14,8 @@
- #define ARCH_MAP_VDSO_32	0x2002
- #define ARCH_MAP_VDSO_64	0x2003
- 
-+#define ARCH_X86_CET_STATUS		0x3001
-+#define ARCH_X86_CET_DISABLE		0x3002
-+#define ARCH_X86_CET_LOCK		0x3003
-+
- #endif /* _ASM_X86_PRCTL_H */
-diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
-index 4a89d0f3792e..5d04c4f21485 100644
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -151,7 +151,7 @@ obj-$(CONFIG_UNWINDER_FRAME_POINTER)	+= unwind_frame.o
- obj-$(CONFIG_UNWINDER_GUESS)		+= unwind_guess.o
- 
- obj-$(CONFIG_AMD_MEM_ENCRYPT)		+= sev-es.o
--obj-$(CONFIG_X86_CET)			+= cet.o
-+obj-$(CONFIG_X86_CET)			+= cet.o cet_prctl.o
- 
- ###
- # 64 bit specific files
-diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
-new file mode 100644
-index 000000000000..bd5ad11763e4
---- /dev/null
-+++ b/arch/x86/kernel/cet_prctl.c
-@@ -0,0 +1,68 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+#include <linux/errno.h>
-+#include <linux/uaccess.h>
-+#include <linux/prctl.h>
-+#include <linux/compat.h>
-+#include <linux/mman.h>
-+#include <linux/elfcore.h>
-+#include <asm/processor.h>
-+#include <asm/prctl.h>
-+#include <asm/cet.h>
-+
-+/* See Documentation/x86/intel_cet.rst. */
-+
-+static int copy_status_to_user(struct cet_status *cet, u64 arg2)
-+{
-+	u64 buf[3] = {0, 0, 0};
-+
-+	if (cet->shstk_size) {
-+		buf[0] |= GNU_PROPERTY_X86_FEATURE_1_SHSTK;
-+		buf[1] = (u64)cet->shstk_base;
-+		buf[2] = (u64)cet->shstk_size;
-+	}
-+
-+	return copy_to_user((u64 __user *)arg2, buf, sizeof(buf));
-+}
-+
-+int prctl_cet(int option, u64 arg2)
-+{
-+	struct cet_status *cet;
-+	unsigned int features;
-+
-+	/*
-+	 * GLIBC's ENOTSUPP == EOPNOTSUPP == 95, and it does not recognize
-+	 * the kernel's ENOTSUPP (524).  So return EOPNOTSUPP here.
-+	 */
-+	if (!IS_ENABLED(CONFIG_X86_CET))
-+		return -EOPNOTSUPP;
-+
-+	cet = &current->thread.cet;
-+
-+	if (option == ARCH_X86_CET_STATUS)
-+		return copy_status_to_user(cet, arg2);
-+
-+	if (!static_cpu_has(X86_FEATURE_SHSTK))
-+		return -EOPNOTSUPP;
-+
-+	switch (option) {
-+	case ARCH_X86_CET_DISABLE:
-+		if (cet->locked)
-+			return -EPERM;
-+
-+		features = (unsigned int)arg2;
-+
-+		if (features & GNU_PROPERTY_X86_FEATURE_1_INVAL)
-+			return -EINVAL;
-+		if (features & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
-+			cet_disable_shstk();
-+		return 0;
-+
-+	case ARCH_X86_CET_LOCK:
-+		cet->locked = 1;
-+		return 0;
-+
-+	default:
-+		return -ENOSYS;
-+	}
-+}
-diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
-index 67632ba893b7..33cb6da22ef0 100644
---- a/arch/x86/kernel/process.c
-+++ b/arch/x86/kernel/process.c
-@@ -977,14 +977,14 @@ unsigned long get_wchan(struct task_struct *p)
- }
- 
- long do_arch_prctl_common(struct task_struct *task, int option,
--			  unsigned long cpuid_enabled)
-+			  unsigned long arg2)
- {
- 	switch (option) {
- 	case ARCH_GET_CPUID:
- 		return get_cpuid_mode();
- 	case ARCH_SET_CPUID:
--		return set_cpuid_mode(task, cpuid_enabled);
-+		return set_cpuid_mode(task, arg2);
+ 	ctx->mmap_base = do_mmap(ctx->aio_ring_file, 0, ctx->mmap_size,
+ 				 PROT_READ | PROT_WRITE,
+-				 MAP_SHARED, 0, &unused, NULL);
++				 MAP_SHARED, 0, 0, &unused, NULL);
+ 	mmap_write_unlock(mm);
+ 	if (IS_ERR((void *)ctx->mmap_base)) {
+ 		ctx->mmap_size = 0;
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 80cda65bb1ae..ef1bd7c7e88b 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2584,7 +2584,8 @@ extern unsigned long mmap_region(struct file *file, unsigned long addr,
+ 	struct list_head *uf);
+ extern unsigned long do_mmap(struct file *file, unsigned long addr,
+ 	unsigned long len, unsigned long prot, unsigned long flags,
+-	unsigned long pgoff, unsigned long *populate, struct list_head *uf);
++	vm_flags_t vm_flags, unsigned long pgoff, unsigned long *populate,
++	struct list_head *uf);
+ extern int __do_munmap(struct mm_struct *, unsigned long, size_t,
+ 		       struct list_head *uf, bool downgrade);
+ extern int do_munmap(struct mm_struct *, unsigned long, size_t,
+diff --git a/ipc/shm.c b/ipc/shm.c
+index e25c7c6106bc..91474258933d 100644
+--- a/ipc/shm.c
++++ b/ipc/shm.c
+@@ -1556,7 +1556,7 @@ long do_shmat(int shmid, char __user *shmaddr, int shmflg,
+ 			goto invalid;
  	}
  
--	return -EINVAL;
-+	return prctl_cet(option, arg2);
- }
+-	addr = do_mmap(file, addr, size, prot, flags, 0, &populate, NULL);
++	addr = do_mmap(file, addr, size, prot, flags, 0, 0, &populate, NULL);
+ 	*raddr = addr;
+ 	err = 0;
+ 	if (IS_ERR_VALUE(addr))
+diff --git a/mm/mmap.c b/mm/mmap.c
+index 2290a67f4d3f..c4938e4b789b 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1403,11 +1403,11 @@ static inline bool file_mmap_ok(struct file *file, struct inode *inode,
+  */
+ unsigned long do_mmap(struct file *file, unsigned long addr,
+ 			unsigned long len, unsigned long prot,
+-			unsigned long flags, unsigned long pgoff,
+-			unsigned long *populate, struct list_head *uf)
++			unsigned long flags, vm_flags_t vm_flags,
++			unsigned long pgoff, unsigned long *populate,
++			struct list_head *uf)
+ {
+ 	struct mm_struct *mm = current->mm;
+-	vm_flags_t vm_flags;
+ 	int pkey = 0;
+ 
+ 	*populate = 0;
+@@ -1469,7 +1469,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
+ 	 * to. we assume access permissions have been handled by the open
+ 	 * of the memory object, so we don't do any here.
+ 	 */
+-	vm_flags = calc_vm_prot_bits(prot, pkey) | calc_vm_flag_bits(flags) |
++	vm_flags |= calc_vm_prot_bits(prot, pkey) | calc_vm_flag_bits(flags) |
+ 			mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
+ 
+ 	if (flags & MAP_LOCKED)
+@@ -3051,7 +3051,7 @@ SYSCALL_DEFINE5(remap_file_pages, unsigned long, start, unsigned long, size,
+ 
+ 	file = get_file(vma->vm_file);
+ 	ret = do_mmap(vma->vm_file, start, size,
+-			prot, flags, pgoff, &populate, NULL);
++			prot, flags, 0, pgoff, &populate, NULL);
+ 	fput(file);
+ out:
+ 	mmap_write_unlock(mm);
+diff --git a/mm/nommu.c b/mm/nommu.c
+index 0faf39b32cdb..a03c72f0c3f8 100644
+--- a/mm/nommu.c
++++ b/mm/nommu.c
+@@ -1071,6 +1071,7 @@ unsigned long do_mmap(struct file *file,
+ 			unsigned long len,
+ 			unsigned long prot,
+ 			unsigned long flags,
++			vm_flags_t vm_flags,
+ 			unsigned long pgoff,
+ 			unsigned long *populate,
+ 			struct list_head *uf)
+@@ -1078,7 +1079,6 @@ unsigned long do_mmap(struct file *file,
+ 	struct vm_area_struct *vma;
+ 	struct vm_region *region;
+ 	struct rb_node *rb;
+-	vm_flags_t vm_flags;
+ 	unsigned long capabilities, result;
+ 	int ret;
+ 
+@@ -1097,7 +1097,7 @@ unsigned long do_mmap(struct file *file,
+ 
+ 	/* we've determined that we can make the mapping, now translate what we
+ 	 * now know into VMA flags */
+-	vm_flags = determine_vm_flags(file, prot, flags, capabilities);
++	vm_flags |= determine_vm_flags(file, prot, flags, capabilities);
+ 
+ 	/* we're going to need to record the mapping */
+ 	region = kmem_cache_zalloc(vm_region_jar, GFP_KERNEL);
+diff --git a/mm/util.c b/mm/util.c
+index 4ddb6e186dd5..6fd9a272b7f9 100644
+--- a/mm/util.c
++++ b/mm/util.c
+@@ -504,7 +504,7 @@ unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr,
+ 	if (!ret) {
+ 		if (mmap_write_lock_killable(mm))
+ 			return -EINTR;
+-		ret = do_mmap(file, addr, len, prot, flag, pgoff, &populate,
++		ret = do_mmap(file, addr, len, prot, flag, 0, pgoff, &populate,
+ 			      &uf);
+ 		mmap_write_unlock(mm);
+ 		userfaultfd_unmap_complete(mm, &uf);
 -- 
 2.21.0
 
