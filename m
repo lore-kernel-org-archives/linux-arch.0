@@ -2,105 +2,90 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.2 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 292D7C4742C
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 12:04:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 047EBC63697
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 12:25:20 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E77A12224C
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 12:04:25 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="jwH7GTwD"
+	by mail.kernel.org (Postfix) with ESMTP id BDA7322250
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 12:25:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726974AbgKMMEV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Nov 2020 07:04:21 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59964 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726753AbgKMLjg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Nov 2020 06:39:36 -0500
-Received: from merlin.infradead.org (merlin.infradead.org [IPv6:2001:8b0:10b:1231::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F3650C061A4B;
-        Fri, 13 Nov 2020 03:38:53 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=merlin.20170209; h=Content-Type:MIME-Version:References:
-        Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
-        Content-ID:Content-Description:In-Reply-To;
-        bh=dkK1YwAwJr6lV1mVrW1fmTp7v30s/RnaMPTh1AauuPg=; b=jwH7GTwDtA84bsBUM9o4vuVEkW
-        ZeAbQl6jHxR4+xuUnQIwtknl/di1ZCq40VnwcPZGKy6TagfKuXAh2fLZFicppmulcXlgcvuvh2r8Z
-        c7Jq9QnjzcgauBep3FWOb8Y6r9ilHINvVSS7Qr8hGcM5rRp/YYgOH46mSK1wDqLiQ/j8z6oYiPtjR
-        GHsPJNEx1oZjKPh7asip5nIE4cHNqeeZeYff4h9vIWDqEyEyRT8YaKuAiYhvu1y9D65398AgCQEh9
-        wjxeTXYYIYwvMtVz5qAgWpoPsHLhodoaF0AYy8HbUGpcUgGY25+iuVP4orPPVQ4Guk6Zn0qdt0SIy
-        ZlHdpB2A==;
-Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
-        by merlin.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kdXPM-0002Xm-HI; Fri, 13 Nov 2020 11:38:24 +0000
-Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
+        id S1726558AbgKMMZR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Nov 2020 07:25:17 -0500
+Received: from mail.kernel.org ([198.145.29.99]:50108 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726507AbgKMMZR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Nov 2020 07:25:17 -0500
+Received: from gaia (unknown [2.26.170.190])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 60E0D306102;
-        Fri, 13 Nov 2020 12:38:19 +0100 (CET)
-Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 3D7702BCDBFD3; Fri, 13 Nov 2020 12:38:19 +0100 (CET)
-Message-ID: <20201113113426.465239104@infradead.org>
-User-Agent: quilt/0.66
-Date:   Fri, 13 Nov 2020 12:19:03 +0100
-From:   Peter Zijlstra <peterz@infradead.org>
-To:     kan.liang@linux.intel.com, mingo@kernel.org, acme@kernel.org,
-        mark.rutland@arm.com, alexander.shishkin@linux.intel.com,
-        jolsa@redhat.com, eranian@google.com
-Cc:     christophe.leroy@csgroup.eu, npiggin@gmail.com,
-        linuxppc-dev@lists.ozlabs.org, mpe@ellerman.id.au, will@kernel.org,
-        willy@infradead.org, aneesh.kumar@linux.ibm.com,
-        sparclinux@vger.kernel.org, davem@davemloft.net,
-        catalin.marinas@arm.com, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, ak@linux.intel.com,
-        dave.hansen@intel.com, kirill.shutemov@linux.intel.com,
-        peterz@infradead.org
-Subject: [PATCH 2/5] mm: Introduce pXX_leaf_size()
-References: <20201113111901.743573013@infradead.org>
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 90DDC206CA;
+        Fri, 13 Nov 2020 12:25:10 +0000 (UTC)
+Date:   Fri, 13 Nov 2020 12:25:08 +0000
+From:   Catalin Marinas <catalin.marinas@arm.com>
+To:     Mike Rapoport <rppt@kernel.org>
+Cc:     Andrew Morton <akpm@linux-foundation.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        David Hildenbrand <david@redhat.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Matthew Wilcox <willy@infradead.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Shuah Khan <shuah@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org, Palmer Dabbelt <palmerdabbelt@google.com>
+Subject: Re: [PATCH v8 8/9] arch, mm: wire up memfd_secret system call were
+ relevant
+Message-ID: <20201113122507.GC3212@gaia>
+References: <20201110151444.20662-1-rppt@kernel.org>
+ <20201110151444.20662-9-rppt@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20201110151444.20662-9-rppt@kernel.org>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-A number of architectures have non-pagetable aligned huge/large pages.
-For such architectures a leaf can actually be part of a larger TLB
-entry.
+Hi Mike,
 
-Provide generic helpers to determine the TLB size of a page-table
-leaf.
+On Tue, Nov 10, 2020 at 05:14:43PM +0200, Mike Rapoport wrote:
+> diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+> index 6c1dcca067e0..c71c3fe0b6cd 100644
+> --- a/arch/arm64/include/asm/unistd32.h
+> +++ b/arch/arm64/include/asm/unistd32.h
+> @@ -891,6 +891,8 @@ __SYSCALL(__NR_faccessat2, sys_faccessat2)
+>  __SYSCALL(__NR_process_madvise, sys_process_madvise)
+>  #define __NR_watch_mount 441
+>  __SYSCALL(__NR_watch_mount, sys_watch_mount)
+> +#define __NR_memfd_secret 442
+> +__SYSCALL(__NR_memfd_secret, sys_memfd_secret)
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- include/linux/pgtable.h |   16 ++++++++++++++++
- 1 file changed, 16 insertions(+)
+arch/arm doesn't select ARCH_HAS_SET_DIRECT_MAP and doesn't support
+memfd_secret(), so I wouldn't add it to the compat layer.
 
---- a/include/linux/pgtable.h
-+++ b/include/linux/pgtable.h
-@@ -1536,4 +1536,20 @@ typedef unsigned int pgtbl_mod_mask;
- #define pmd_leaf(x)	0
- #endif
- 
-+#ifndef pgd_leaf_size
-+#define pgd_leaf_size(x) PGD_SIZE
-+#endif
-+#ifndef p4d_leaf_size
-+#define p4d_leaf_size(x) P4D_SIZE
-+#endif
-+#ifndef pud_leaf_size
-+#define pud_leaf_size(x) PUD_SIZE
-+#endif
-+#ifndef pmd_leaf_size
-+#define pmd_leaf_size(x) PMD_SIZE
-+#endif
-+#ifndef pte_leaf_size
-+#define pte_leaf_size(x) PAGE_SIZE
-+#endif
-+
- #endif /* _LINUX_PGTABLE_H */
-
-
+-- 
+Catalin
