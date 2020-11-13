@@ -2,106 +2,121 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 28DBFC56202
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E9CCBC4742C
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 10:26:42 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CCD4C22265
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:48 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="H8pXASpf"
+	by mail.kernel.org (Postfix) with ESMTP id ACD992224B
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 10:26:42 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726288AbgKMJis (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Nov 2020 04:38:48 -0500
-Received: from mail.kernel.org ([198.145.29.99]:50548 "EHLO mail.kernel.org"
+        id S1726355AbgKMK0l (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Nov 2020 05:26:41 -0500
+Received: from mail.kernel.org ([198.145.29.99]:58682 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726459AbgKMJiG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Nov 2020 04:38:06 -0500
-Received: from localhost.localdomain (236.31.169.217.in-addr.arpa [217.169.31.236])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        id S1726176AbgKMK0l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Nov 2020 05:26:41 -0500
+Received: from trantor (unknown [2.26.170.190])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 7FC1322256;
-        Fri, 13 Nov 2020 09:38:02 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1605260285;
-        bh=J8+I2f+gPpziZ5U6sdn75jZAGik3lGxmmN6ishZFfVY=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=H8pXASpfRCOapA6Jkxei/lB3qb4AVGc8BfhyocAUYLwjickDOqbUL+Jf91bB0+Pdl
-         5ys/nQVkSOijTysjHAzCt7WWyxjKb+ncTsCBHAT7GRc+m/1xP0/qU+itAl5fRLDxLo
-         qxW+bUbroDgNn97IFhkqEWra2KgpKSX/9zgiIfWs=
-From:   Will Deacon <will@kernel.org>
-To:     linux-arm-kernel@lists.infradead.org
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        Will Deacon <will@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
+        by mail.kernel.org (Postfix) with ESMTPSA id 82F7922245;
+        Fri, 13 Nov 2020 10:26:38 +0000 (UTC)
+Date:   Fri, 13 Nov 2020 10:26:36 +0000
+From:   Catalin Marinas <catalin.marinas@arm.com>
+To:     Will Deacon <will@kernel.org>
+Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
         Marc Zyngier <maz@kernel.org>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Peter Zijlstra <peterz@infradead.org>,
         Morten Rasmussen <morten.rasmussen@arm.com>,
         Qais Yousef <qais.yousef@arm.com>,
         Suren Baghdasaryan <surenb@google.com>,
-        Quentin Perret <qperret@google.com>, Tejun Heo <tj@kernel.org>,
-        Li Zefan <lizefan@huawei.com>,
-        Johannes Weiner <hannes@cmpxchg.org>,
-        Ingo Molnar <mingo@redhat.com>,
-        Juri Lelli <juri.lelli@redhat.com>,
-        Vincent Guittot <vincent.guittot@linaro.org>,
-        kernel-team@android.com
-Subject: [PATCH v3 08/14] arm64: exec: Adjust affinity for compat tasks with mismatched 32-bit EL0
-Date:   Fri, 13 Nov 2020 09:37:13 +0000
-Message-Id: <20201113093720.21106-9-will@kernel.org>
-X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20201113093720.21106-1-will@kernel.org>
-References: <20201113093720.21106-1-will@kernel.org>
+        Quentin Perret <qperret@google.com>, kernel-team@android.com
+Subject: Re: [PATCH v2 2/6] arm64: Allow mismatched 32-bit EL0 support
+Message-ID: <X65fXAo1CK6redfD@trantor>
+References: <20201109213023.15092-1-will@kernel.org>
+ <20201109213023.15092-3-will@kernel.org>
+ <20201111191043.GA5125@gaia>
+ <20201113093630.GA21075@willie-the-truck>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20201113093630.GA21075@willie-the-truck>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When exec'ing a 32-bit task on a system with mismatched support for
-32-bit EL0, try to ensure that it starts life on a CPU that can actually
-run it.
+On Fri, Nov 13, 2020 at 09:36:30AM +0000, Will Deacon wrote:
+> On Wed, Nov 11, 2020 at 07:10:44PM +0000, Catalin Marinas wrote:
+> > On Mon, Nov 09, 2020 at 09:30:18PM +0000, Will Deacon wrote:
+> > > +static bool has_32bit_el0(const struct arm64_cpu_capabilities *entry, int scope)
+> > > +{
+> > > +	if (!has_cpuid_feature(entry, scope))
+> > > +		return allow_mismatched_32bit_el0;
+> > 
+> > I still don't like overriding the cpufeature mechanism in this way. What about
+> > something like below? It still doesn't fit perfectly but at least the
+> > capability represents what was detected in the system. We then decide in
+> > system_supports_32bit_el0() whether to allow asymmetry. There is an
+> > extra trick to park a non-AArch32 capable CPU in has_32bit_el0() if it
+> > comes up late and the feature has already been advertised with
+> > !allow_mismatched_32bit_el0.
+> 
+> I deliberately allow late onlining of 64-bit-only cores and I don't think
+> this is something we should forbid
 
-Signed-off-by: Will Deacon <will@kernel.org>
----
- arch/arm64/kernel/process.c | 12 +++++++++++-
- 1 file changed, 11 insertions(+), 1 deletion(-)
+I agree and my patch allows this. That's a property of
+WEAK_LOCAL_CPUFEATURE.
 
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index 1540ab0fbf23..17b94007fed4 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -625,6 +625,16 @@ unsigned long arch_align_stack(unsigned long sp)
- 	return sp & ~0xf;
- }
- 
-+static void adjust_compat_task_affinity(struct task_struct *p)
-+{
-+	const struct cpumask *mask = system_32bit_el0_cpumask();
-+
-+	if (restrict_cpus_allowed_ptr(p, mask))
-+		set_cpus_allowed_ptr(p, mask);
-+
-+	set_tsk_thread_flag(current, TIF_NOTIFY_RESUME);
-+}
-+
- /*
-  * Called from setup_new_exec() after (COMPAT_)SET_PERSONALITY.
-  */
-@@ -635,7 +645,7 @@ void arch_setup_new_exec(void)
- 	if (is_compat_task()) {
- 		mmflags = MMCF_AARCH32;
- 		if (static_branch_unlikely(&arm64_mismatched_32bit_el0))
--			set_tsk_thread_flag(current, TIF_NOTIFY_RESUME);
-+			adjust_compat_task_affinity(current);
- 	}
- 
- 	current->mm->context.flags = mmflags;
+> (although it's not clear from your patch when
+> allow_mismatched_32bit_el0 gets set).
+
+It doesn't, that was meant as a discussion point around the cpufeature
+framework but still relying on your other patches for cpumask, cmdline
+argument.
+
+> Furthermore, killing CPUs from the matches callback feels _very_ dodgy
+> to me, as it's invoked indirectly by things such as
+> this_cpu_has_cap().
+
+Yeah, this part is not nice. What we want here is for a late 64-bit only
+CPU to be parked if !allow_mismatched_32bit_el0 and we detected 32-bit
+already (symmetric).
+
+> > I find it clearer, though I probably stared at it more than at your
+> > patch ;).
+> 
+> Yeah, swings and roundabouts...
+> 
+> I think we're quibbling on implementation details a bit here whereas we
+> should probably be focussing on what to do about execve() and CPU hotplug.
+
+Do we need to solve the execve() problem? If yes, we have to get the
+scheduler involved. The hotplug case I think is simpler, just make sure
+we have a last standing 32-bit capable CPU, no ABI changes.
+
+For execve(), arguably we don't necessarily break the execve() ABI as
+the affinity change may be done later when scheduling the task. But
+given that it's a user opt-in for this feature anyway, we just document
+the ABI changes.
+
+> Your patch doesn't apply on top of my series or replace this one, so there's
+> not an awful lot I can do with it. I'm about to post a v3 with a tentative
+> solution for execve(), so please could you demonstrate your idea on top of
+> that so I can see how it fits together?
+
+I'll give it a go and if it looks any nicer, I'll post something. As you
+say, it's more like personal preference on the implementation details.
+
+On the functional aspects, we must preserve the current behaviour like
+detecting symmetry and parking late CPUs if they don't comply in the
+!allow_mismatched_32bit_el0 case. In the allow_mismatched_32bit_el0
+case, we relax this to the equivalent of a weak feature (either missing
+or present for early/late CPUs) but only report 32-bit if we found an
+early 32-bit capable CPU (I ended up with a truth table on a piece of
+paper).
+
 -- 
-2.29.2.299.gdc1121823c-goog
-
+Catalin
