@@ -4,35 +4,35 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2C273C56202
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EA2DAC4742C
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:47 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D2CC322268
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:41 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A886E22265
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:47 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="0/PI+FDH"
+	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="p8ja5dED"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726380AbgKMJih (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Nov 2020 04:38:37 -0500
-Received: from mail.kernel.org ([198.145.29.99]:50634 "EHLO mail.kernel.org"
+        id S1726513AbgKMJiI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Nov 2020 04:38:08 -0500
+Received: from mail.kernel.org ([198.145.29.99]:50332 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726526AbgKMJiK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Nov 2020 04:38:10 -0500
+        id S1726460AbgKMJh7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Nov 2020 04:37:59 -0500
 Received: from localhost.localdomain (236.31.169.217.in-addr.arpa [217.169.31.236])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 5167422255;
-        Fri, 13 Nov 2020 09:38:06 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 004842224D;
+        Fri, 13 Nov 2020 09:37:54 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1605260289;
-        bh=aKaV015mUxvwMhlEhyaLwpZL2Dl6+smAeyQsbVylj1o=;
+        s=default; t=1605260278;
+        bh=pyZT5qD+AOrZwx9wlgWYY4ZAqPT58rRrfL1buWsPYnk=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=0/PI+FDHBeYaoGX6uNZt1NqpWgXQDFjngOOxZttN96Fy/xTEsFh0jXDD3sK6vQBNt
-         44V/jnQDZk1o6IsMtevENV1FOoA/UpWd0rpT13Wkm0JdQ+REcIbMkhf2vPcwSDoqjd
-         X2ok1EYA3MmFWzXQlpK2BvQaRDAw1U2fQCyTAv40=
+        b=p8ja5dEDu9Kq7iP/mbreuLWq0Wx/NeTfzBLjKvZ38pEgbJ7azo8Y+RJkmt4SAONGk
+         wHrU3XGPofiwF3qgrGDYRLz7pTvW7ZFSfVTswv9J1ewexzAlE2e+JxrwoO32YOo2Mc
+         eltkDvXDQalZXOCA1/o3/Z2bnrV7Yqmqdj35zPm4=
 From:   Will Deacon <will@kernel.org>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
@@ -51,9 +51,9 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         Juri Lelli <juri.lelli@redhat.com>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         kernel-team@android.com
-Subject: [PATCH v3 09/14] cpuset: Don't use the cpu_possible_mask as a last resort for cgroup v1
-Date:   Fri, 13 Nov 2020 09:37:14 +0000
-Message-Id: <20201113093720.21106-10-will@kernel.org>
+Subject: [PATCH v3 06/14] arm64: Hook up cmdline parameter to allow mismatched 32-bit EL0
+Date:   Fri, 13 Nov 2020 09:37:11 +0000
+Message-Id: <20201113093720.21106-7-will@kernel.org>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20201113093720.21106-1-will@kernel.org>
 References: <20201113093720.21106-1-will@kernel.org>
@@ -63,40 +63,51 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-If the scheduler cannot find an allowed CPU for a task,
-cpuset_cpus_allowed_fallback() will widen the affinity to cpu_possible_mask
-if cgroup v1 is in use.
+Allow systems with mismatched 32-bit support at EL0 to run 32-bit
+applications based on a new kernel parameter.
 
-In preparation for allowing architectures to provide their own fallback
-mask, just return early if we're not using cgroup v2 and allow
-select_fallback_rq() to figure out the mask by itself.
-
-Cc: Li Zefan <lizefan@huawei.com>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Johannes Weiner <hannes@cmpxchg.org>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- kernel/cgroup/cpuset.c | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ Documentation/admin-guide/kernel-parameters.txt | 7 +++++++
+ arch/arm64/kernel/cpufeature.c                  | 7 +++++++
+ 2 files changed, 14 insertions(+)
 
-diff --git a/kernel/cgroup/cpuset.c b/kernel/cgroup/cpuset.c
-index 57b5b5d0a5fd..e970737c3ed2 100644
---- a/kernel/cgroup/cpuset.c
-+++ b/kernel/cgroup/cpuset.c
-@@ -3299,9 +3299,11 @@ void cpuset_cpus_allowed(struct task_struct *tsk, struct cpumask *pmask)
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 526d65d8573a..f20188c44d83 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -289,6 +289,13 @@
+ 			do not want to use tracing_snapshot_alloc() as it needs
+ 			to be done where GFP_KERNEL allocations are allowed.
  
- void cpuset_cpus_allowed_fallback(struct task_struct *tsk)
- {
-+	if (!is_in_v2_mode())
-+		return; /* select_fallback_rq will try harder */
++	allow_mismatched_32bit_el0 [ARM64]
++			Allow execve() of 32-bit applications and setting of the
++			PER_LINUX32 personality on systems where only a strict
++			subset of the CPUs support 32-bit EL0. When this
++			parameter is present, the set of CPUs supporting 32-bit
++			EL0 is indicated by /sys/devices/system/cpu/aarch32_el0.
 +
- 	rcu_read_lock();
--	do_set_cpus_allowed(tsk, is_in_v2_mode() ?
--		task_cs(tsk)->cpus_allowed : cpu_possible_mask);
-+	do_set_cpus_allowed(tsk, task_cs(tsk)->cpus_allowed);
- 	rcu_read_unlock();
+ 	amd_iommu=	[HW,X86-64]
+ 			Pass parameters to the AMD IOMMU driver in the system.
+ 			Possible values are:
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index a7a9b7bffc49..dfded018af44 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -1273,6 +1273,13 @@ const struct cpumask *system_32bit_el0_cpumask(void)
+ 	return cpu_present_mask;
+ }
  
- 	/*
++static int __init parse_32bit_el0_param(char *str)
++{
++	allow_mismatched_32bit_el0 = true;
++	return 0;
++}
++early_param("allow_mismatched_32bit_el0", parse_32bit_el0_param);
++
+ static ssize_t aarch32_el0_show(struct device *dev,
+ 				struct device_attribute *attr, char *buf)
+ {
 -- 
 2.29.2.299.gdc1121823c-goog
 
