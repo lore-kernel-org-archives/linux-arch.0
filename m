@@ -4,35 +4,35 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3CF04C388F7
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 523B5C4742C
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:20 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EFF9422255
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:37:59 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E92F72227F
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:19 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="NF5TrctN"
+	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="hJ0sm9lH"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726465AbgKMJh7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Nov 2020 04:37:59 -0500
-Received: from mail.kernel.org ([198.145.29.99]:50262 "EHLO mail.kernel.org"
+        id S1726563AbgKMJiT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Nov 2020 04:38:19 -0500
+Received: from mail.kernel.org ([198.145.29.99]:50766 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726200AbgKMJhz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Nov 2020 04:37:55 -0500
+        id S1726554AbgKMJiS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Nov 2020 04:38:18 -0500
 Received: from localhost.localdomain (236.31.169.217.in-addr.arpa [217.169.31.236])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 51A7D22252;
-        Fri, 13 Nov 2020 09:37:51 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id C52D92225E;
+        Fri, 13 Nov 2020 09:38:13 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1605260274;
-        bh=/swUdk8H3XTBHRR0gEQ8Qeq0VC41J3Kt3yphSfDMmAM=;
+        s=default; t=1605260297;
+        bh=mEksWh+4+8NCkqXKHhes2krWnYnJe6uXQp/IwoxcPus=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=NF5TrctNvVJw1Cq4orqLwijIOlu6CD8oLj9mE4CZkItB4aflyIUbMZ0LIfQVe8LCf
-         P4B6McoExibsp2emmfTYNh6knRNjn+oB2V+wSlv9GHmPxWxZsjTBs0XzeM7ONJ1W5k
-         GTsPif28SOrlfJ8nMpjmqoe5s+C4gPWNAHnYdUP4=
+        b=hJ0sm9lHRn2NQcCZTgSUk4cOUP3hLVjvsmBJGt7GyQvLrLB3sw/PHAn3OW4g2y+xf
+         i4IFIQJKyA13wq70oIJuWjkVxl9hcZ6/JOWAJJf+Aemj5zNMUOoqU6CISQ3mo34AUi
+         mJd2vhiTsZioGZxsitQFkZYPgfNNdfOeu7ILmrbE=
 From:   Will Deacon <will@kernel.org>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
@@ -51,9 +51,9 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         Juri Lelli <juri.lelli@redhat.com>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         kernel-team@android.com
-Subject: [PATCH v3 05/14] arm64: Advertise CPUs capable of running 32-bit applications in sysfs
-Date:   Fri, 13 Nov 2020 09:37:10 +0000
-Message-Id: <20201113093720.21106-6-will@kernel.org>
+Subject: [PATCH v3 11/14] sched: Reject CPU affinity changes based on arch_cpu_allowed_mask()
+Date:   Fri, 13 Nov 2020 09:37:16 +0000
+Message-Id: <20201113093720.21106-12-will@kernel.org>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20201113093720.21106-1-will@kernel.org>
 References: <20201113093720.21106-1-will@kernel.org>
@@ -63,74 +63,39 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Since 32-bit applications will be killed if they are caught trying to
-execute on a 64-bit-only CPU in a mismatched system, advertise the set
-of 32-bit capable CPUs to userspace in sysfs.
+Reject explicit requests to change the affinity mask of a task via
+set_cpus_allowed_ptr() if the requested mask is not a subset of the
+mask returned by arch_cpu_allowed_mask(). This ensures that the
+'cpus_mask' for a given task cannot contain CPUs which are incapable of
+executing it, except in cases where the affinity is forced.
 
-Reviewed-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- .../ABI/testing/sysfs-devices-system-cpu      |  9 +++++++++
- arch/arm64/kernel/cpufeature.c                | 19 +++++++++++++++++++
- 2 files changed, 28 insertions(+)
+ kernel/sched/core.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/Documentation/ABI/testing/sysfs-devices-system-cpu b/Documentation/ABI/testing/sysfs-devices-system-cpu
-index 1a04ca8162ad..8a2e377b0dde 100644
---- a/Documentation/ABI/testing/sysfs-devices-system-cpu
-+++ b/Documentation/ABI/testing/sysfs-devices-system-cpu
-@@ -493,6 +493,15 @@ Description:	AArch64 CPU registers
- 		'identification' directory exposes the CPU ID registers for
- 		identifying model and revision of the CPU.
- 
-+What:		/sys/devices/system/cpu/aarch32_el0
-+Date:		November 2020
-+Contact:	Linux ARM Kernel Mailing list <linux-arm-kernel@lists.infradead.org>
-+Description:	Identifies the subset of CPUs in the system that can execute
-+		AArch32 (32-bit ARM) applications. If present, the same format as
-+		/sys/devices/system/cpu/{offline,online,possible,present} is used.
-+		If absent, then all or none of the CPUs can execute AArch32
-+		applications and execve() will behave accordingly.
-+
- What:		/sys/devices/system/cpu/cpu#/cpu_capacity
- Date:		December 2016
- Contact:	Linux kernel mailing list <linux-kernel@vger.kernel.org>
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index 1aa01ecc133f..a7a9b7bffc49 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -67,6 +67,7 @@
- #include <linux/crash_dump.h>
- #include <linux/sort.h>
- #include <linux/stop_machine.h>
-+#include <linux/sysfs.h>
- #include <linux/types.h>
- #include <linux/mm.h>
- #include <linux/cpu.h>
-@@ -1272,6 +1273,24 @@ const struct cpumask *system_32bit_el0_cpumask(void)
- 	return cpu_present_mask;
- }
- 
-+static ssize_t aarch32_el0_show(struct device *dev,
-+				struct device_attribute *attr, char *buf)
-+{
-+	const struct cpumask *mask = system_32bit_el0_cpumask();
-+
-+	return sysfs_emit(buf, "%*pbl\n", cpumask_pr_args(mask));
-+}
-+static const DEVICE_ATTR_RO(aarch32_el0);
-+
-+static int __init aarch32_el0_sysfs_init(void)
-+{
-+	if (!allow_mismatched_32bit_el0)
-+		return 0;
-+
-+	return device_create_file(cpu_subsys.dev_root, &dev_attr_aarch32_el0);
-+}
-+device_initcall(aarch32_el0_sysfs_init);
-+
- static bool has_32bit_el0(const struct arm64_cpu_capabilities *entry, int scope)
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 8df38ebfe769..13bdb2ae4d3f 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -1877,6 +1877,7 @@ static int __set_cpus_allowed_ptr_locked(struct task_struct *p,
+ 					 struct rq_flags *rf)
  {
- 	if (!has_cpuid_feature(entry, scope))
+ 	const struct cpumask *cpu_valid_mask = cpu_active_mask;
++	const struct cpumask *cpu_allowed_mask = arch_cpu_allowed_mask(p);
+ 	unsigned int dest_cpu;
+ 	int ret = 0;
+ 
+@@ -1887,6 +1888,9 @@ static int __set_cpus_allowed_ptr_locked(struct task_struct *p,
+ 		 * Kernel threads are allowed on online && !active CPUs
+ 		 */
+ 		cpu_valid_mask = cpu_online_mask;
++	} else if (!cpumask_subset(new_mask, cpu_allowed_mask)) {
++		ret = -EINVAL;
++		goto out;
+ 	}
+ 
+ 	/*
 -- 
 2.29.2.299.gdc1121823c-goog
 
