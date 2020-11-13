@@ -4,35 +4,35 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	SIGNED_OFF_BY,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 43F25C4742C
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CB17CC388F7
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D7CDE22268
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 77FE822268
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Nov 2020 09:38:36 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="Fr8MygHN"
+	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="ctmVIgbY"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726630AbgKMJi3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Nov 2020 04:38:29 -0500
-Received: from mail.kernel.org ([198.145.29.99]:51042 "EHLO mail.kernel.org"
+        id S1726460AbgKMJiQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Nov 2020 04:38:16 -0500
+Received: from mail.kernel.org ([198.145.29.99]:50696 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726625AbgKMJi3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Nov 2020 04:38:29 -0500
+        id S1726533AbgKMJiO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Nov 2020 04:38:14 -0500
 Received: from localhost.localdomain (236.31.169.217.in-addr.arpa [217.169.31.236])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 2A24122273;
-        Fri, 13 Nov 2020 09:38:25 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 0C97D22261;
+        Fri, 13 Nov 2020 09:38:09 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1605260308;
-        bh=MPh5af3X0Dm3aB+BIm9ePd8PIPXyj5kqE/e2/iF3jRg=;
+        s=default; t=1605260293;
+        bh=QBUW8J2aV5bknFUdEkA6PLCqeHwwVFx3z9FxkoIyHcA=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=Fr8MygHNcoQ2I5pQzRIXcpaNXIAQ2wJJOzQKn0zmZ6Ke2TUkc5fDm1D2A7pPqTams
-         fKGVG59mWuC8ycRg51Ew1Flu2YojFItCKJAwCwC1Ex+FygK63lSVSOF1yg1hR9uNYa
-         DjNU/D1LbX0al5IBBwHmtQT29x4mNuOouU+p7Mvw=
+        b=ctmVIgbYtFgwkrVBlVqy6osvMbOjK9tNHBZmrJPw7IuTAd72cvI/J2Twu8xgKUkNO
+         D0i2pUV7K3MwEx399wHnh56VGi4BY7WjRWg25nVEPkyb8lgVK6ssHsi5wjQ02WWSar
+         ti477TTlfoHFQHkU4O0wrkOki+r9nhd8u1gGiqvE=
 From:   Will Deacon <will@kernel.org>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
@@ -51,9 +51,9 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         Juri Lelli <juri.lelli@redhat.com>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         kernel-team@android.com
-Subject: [PATCH v3 14/14] arm64: Remove logic to kill 32-bit tasks on 64-bit-only cores
-Date:   Fri, 13 Nov 2020 09:37:19 +0000
-Message-Id: <20201113093720.21106-15-will@kernel.org>
+Subject: [PATCH v3 10/14] sched: Introduce arch_cpu_allowed_mask() to limit fallback rq selection
+Date:   Fri, 13 Nov 2020 09:37:15 +0000
+Message-Id: <20201113093720.21106-11-will@kernel.org>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20201113093720.21106-1-will@kernel.org>
 References: <20201113093720.21106-1-will@kernel.org>
@@ -63,97 +63,68 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The scheduler now knows enough about these braindead systems to place
-32-bit tasks accordingly, so throw out the safety checks and allow the
-ret-to-user path to avoid do_notify_resume() if there is nothing to do.
+Asymmetric systems may not offer the same level of userspace ISA support
+across all CPUs, meaning that some applications cannot be executed by
+some CPUs. As a concrete example, upcoming arm64 big.LITTLE designs do
+not feature support for 32-bit applications on both clusters.
+
+On such a system, we must take care not to migrate a task to an
+unsupported CPU when forcefully moving tasks in select_fallback_rq()
+in response to a CPU hot-unplug operation.
+
+Introduce an arch_cpu_allowed_mask() hook which, given a task argument,
+allows an architecture to return a cpumask of CPUs that are capable of
+executing that task. The default implementation returns the
+cpu_possible_mask, since sane machines do not suffer from per-cpu ISA
+limitations that affect scheduling. The new mask is used when selecting
+the fallback runqueue as a last resort before forcing a migration to the
+first active CPU.
 
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- arch/arm64/kernel/process.c | 12 ------------
- arch/arm64/kernel/signal.c  | 26 --------------------------
- 2 files changed, 38 deletions(-)
+ kernel/sched/core.c | 13 ++++++++++---
+ 1 file changed, 10 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index 17b94007fed4..dba94af1b840 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -542,15 +542,6 @@ static void erratum_1418040_thread_switch(struct task_struct *prev,
- 	write_sysreg(val, cntkctl_el1);
- }
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 818c8f7bdf2a..8df38ebfe769 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -1696,6 +1696,11 @@ void check_preempt_curr(struct rq *rq, struct task_struct *p, int flags)
  
--static void compat_thread_switch(struct task_struct *next)
--{
--	if (!is_compat_thread(task_thread_info(next)))
--		return;
--
--	if (static_branch_unlikely(&arm64_mismatched_32bit_el0))
--		set_tsk_thread_flag(next, TIF_NOTIFY_RESUME);
--}
--
+ #ifdef CONFIG_SMP
+ 
++/* Must contain at least one active CPU */
++#ifndef arch_cpu_allowed_mask
++#define  arch_cpu_allowed_mask(p)	cpu_possible_mask
++#endif
++
  /*
-  * Thread switching.
-  */
-@@ -567,7 +558,6 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
- 	uao_thread_switch(next);
- 	ssbs_thread_switch(next);
- 	erratum_1418040_thread_switch(prev, next);
--	compat_thread_switch(next);
+  * Per-CPU kthreads are allowed to run on !active && online CPUs, see
+  * __set_cpus_allowed_ptr() and select_fallback_rq().
+@@ -1708,7 +1713,10 @@ static inline bool is_cpu_allowed(struct task_struct *p, int cpu)
+ 	if (is_per_cpu_kthread(p))
+ 		return cpu_online(cpu);
  
- 	/*
- 	 * Complete any pending TLB or cache maintenance on this CPU in case
-@@ -631,8 +621,6 @@ static void adjust_compat_task_affinity(struct task_struct *p)
- 
- 	if (restrict_cpus_allowed_ptr(p, mask))
- 		set_cpus_allowed_ptr(p, mask);
--
--	set_tsk_thread_flag(current, TIF_NOTIFY_RESUME);
+-	return cpu_active(cpu);
++	if (!cpu_active(cpu))
++		return false;
++
++	return cpumask_test_cpu(cpu, arch_cpu_allowed_mask(p));
  }
  
  /*
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index bcb6ca2d9a7c..a8184cad8890 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -911,19 +911,6 @@ static void do_signal(struct pt_regs *regs)
- 	restore_saved_sigmask();
- }
- 
--static bool cpu_affinity_invalid(struct pt_regs *regs)
--{
--	if (!compat_user_mode(regs))
--		return false;
--
--	/*
--	 * We're preemptible, but a reschedule will cause us to check the
--	 * affinity again.
--	 */
--	return !cpumask_test_cpu(raw_smp_processor_id(),
--				 system_32bit_el0_cpumask());
--}
--
- asmlinkage void do_notify_resume(struct pt_regs *regs,
- 				 unsigned long thread_flags)
- {
-@@ -961,19 +948,6 @@ asmlinkage void do_notify_resume(struct pt_regs *regs,
- 			if (thread_flags & _TIF_NOTIFY_RESUME) {
- 				tracehook_notify_resume(regs);
- 				rseq_handle_notify_resume(NULL, regs);
--
--				/*
--				 * If we reschedule after checking the affinity
--				 * then we must ensure that TIF_NOTIFY_RESUME
--				 * is set so that we check the affinity again.
--				 * Since tracehook_notify_resume() clears the
--				 * flag, ensure that the compiler doesn't move
--				 * it after the affinity check.
--				 */
--				barrier();
--
--				if (cpu_affinity_invalid(regs))
--					force_sig(SIGKILL);
+@@ -2361,10 +2369,9 @@ static int select_fallback_rq(int cpu, struct task_struct *p)
  			}
- 
- 			if (thread_flags & _TIF_FOREIGN_FPSTATE)
+ 			fallthrough;
+ 		case possible:
+-			do_set_cpus_allowed(p, cpu_possible_mask);
++			do_set_cpus_allowed(p, arch_cpu_allowed_mask(p));
+ 			state = fail;
+ 			break;
+-
+ 		case fail:
+ 			BUG();
+ 			break;
 -- 
 2.29.2.299.gdc1121823c-goog
 
