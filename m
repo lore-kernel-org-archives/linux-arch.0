@@ -7,44 +7,44 @@ X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 35062C56202
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4861DC63699
 	for <linux-arch@archiver.kernel.org>; Sat, 14 Nov 2020 07:16:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E997422280
-	for <linux-arch@archiver.kernel.org>; Sat, 14 Nov 2020 07:16:38 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 102E6208B6
+	for <linux-arch@archiver.kernel.org>; Sat, 14 Nov 2020 07:16:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726452AbgKNHQU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1726430AbgKNHQU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Sat, 14 Nov 2020 02:16:20 -0500
-Received: from mga14.intel.com ([192.55.52.115]:18125 "EHLO mga14.intel.com"
+Received: from mga12.intel.com ([192.55.52.136]:23609 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726430AbgKNHQS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1726465AbgKNHQS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Sat, 14 Nov 2020 02:16:18 -0500
-IronPort-SDR: YVJuo5/ImX8YtsV2/EXar7i/503kSZ45BZ308AksqR3wEAKGiiDKnSWxQtBX7hsu1diRbadKka
- mNeDN1dJ8boA==
-X-IronPort-AV: E=McAfee;i="6000,8403,9804"; a="169783063"
+IronPort-SDR: 7qBAQUQ4civ/rXvbmAmArm1wQLUPKb9gshu94fwisi/8TBjFf4WdHcskSW56F2fzUTeewBvtSv
+ BPIIfsrtjdPQ==
+X-IronPort-AV: E=McAfee;i="6000,8403,9804"; a="149835380"
 X-IronPort-AV: E=Sophos;i="5.77,477,1596524400"; 
-   d="scan'208";a="169783063"
+   d="scan'208";a="149835380"
 X-Amp-Result: SKIPPED(no attachment in message)
 X-Amp-File-Uploaded: False
-Received: from fmsmga003.fm.intel.com ([10.253.24.29])
-  by fmsmga103.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Nov 2020 23:16:17 -0800
-IronPort-SDR: rzlK1aa6jwjPxC2Xs2p4gbousTIWjOb+yhCRnutE40+UeiB2cOMAI2QIiNCB3XDRnNa9oM5ZyH
- qY127A2ReMSA==
+Received: from orsmga006.jf.intel.com ([10.7.209.51])
+  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Nov 2020 23:16:17 -0800
+IronPort-SDR: /Xp3eHBNkkveFMkcRjnweTwN9rjJrlGHHbY/N4WlT7obr1A3MbVpguAsfjMig9FA1RzAR6sydT
+ PEItZHzj5TQg==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="5.77,477,1596524400"; 
-   d="scan'208";a="366967206"
+   d="scan'208";a="329103759"
 Received: from lkp-server02.sh.intel.com (HELO 697932c29306) ([10.239.97.151])
-  by FMSMGA003.fm.intel.com with ESMTP; 13 Nov 2020 23:16:16 -0800
+  by orsmga006.jf.intel.com with ESMTP; 13 Nov 2020 23:16:16 -0800
 Received: from kbuild by 697932c29306 with local (Exim 4.92)
         (envelope-from <lkp@intel.com>)
-        id 1kdpnD-0000jO-Q8; Sat, 14 Nov 2020 07:16:15 +0000
-Date:   Sat, 14 Nov 2020 15:15:27 +0800
+        id 1kdpnD-0000jM-Pl; Sat, 14 Nov 2020 07:16:15 +0000
+Date:   Sat, 14 Nov 2020 15:15:24 +0800
 From:   kernel test robot <lkp@intel.com>
 To:     Arnd Bergmann <arnd@arndb.de>
 Cc:     linux-arch@vger.kernel.org
-Subject: [asm-generic:asm-generic-cleanup] BUILD SUCCESS
- 8d0dd23c6c78d140ed2132f523592ddb4cea839f
-Message-ID: <5faf840f.G9socgHgLMTqmAJm%lkp@intel.com>
+Subject: [asm-generic:master] BUILD SUCCESS
+ 129eb82bd5f2cc251d9581e18d7541e74b5dd8e8
+Message-ID: <5faf840c.E0eaMpBV1fsNSWUZ%lkp@intel.com>
 User-Agent: Heirloom mailx 12.5 6/20/10
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -53,12 +53,12 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-tree/branch: https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git  asm-generic-cleanup
-branch HEAD: 8d0dd23c6c78d140ed2132f523592ddb4cea839f  syscalls: Fix file comments for syscalls implemented in kernel/sys.c
+tree/branch: https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git  master
+branch HEAD: 129eb82bd5f2cc251d9581e18d7541e74b5dd8e8  Merge branch 'asm-generic-fixes' into asm-generic
 
 elapsed time: 721m
 
-configs tested: 148
+configs tested: 145
 configs skipped: 3
 
 The following configs have been built successfully.
@@ -70,12 +70,11 @@ arm64                            allyesconfig
 arm64                               defconfig
 arm                              allyesconfig
 arm                              allmodconfig
-powerpc                    sam440ep_defconfig
-mips                             allyesconfig
-h8300                    h8300h-sim_defconfig
-sh                             shx3_defconfig
-xtensa                              defconfig
-powerpc                  iss476-smp_defconfig
+arm                         hackkit_defconfig
+mips                          rm200_defconfig
+sh                          r7785rp_defconfig
+ia64                             alldefconfig
+arm                          collie_defconfig
 powerpc                     sequoia_defconfig
 powerpc                       eiger_defconfig
 arm                        neponset_defconfig
@@ -89,26 +88,23 @@ xtensa                  cadence_csp_defconfig
 nios2                            alldefconfig
 sh                          rsk7203_defconfig
 m68k                            q40_defconfig
+sh                             shx3_defconfig
 openrisc                    or1ksim_defconfig
-arm                           corgi_defconfig
-x86_64                           alldefconfig
-ia64                            zx1_defconfig
-xtensa                  nommu_kc705_defconfig
-arm                         hackkit_defconfig
 powerpc                  storcenter_defconfig
 sparc                       sparc32_defconfig
 powerpc                     ppa8548_defconfig
-arm                          gemini_defconfig
-m68k                       m5249evb_defconfig
-arm                          iop32x_defconfig
-arm                          simpad_defconfig
-arm                           sunxi_defconfig
 mips                         rt305x_defconfig
 powerpc                   bluestone_defconfig
 powerpc               mpc834x_itxgp_defconfig
 ia64                                defconfig
 arm                      pxa255-idp_defconfig
 powerpc                     tqm8560_defconfig
+powerpc                  mpc866_ads_defconfig
+sh                ecovec24-romimage_defconfig
+arm64                            alldefconfig
+arm                           h5000_defconfig
+powerpc                      pmac32_defconfig
+mips                   sb1250_swarm_defconfig
 powerpc                 mpc832x_rdb_defconfig
 mips                        omega2p_defconfig
 powerpc                      cm5200_defconfig
@@ -173,6 +169,7 @@ i386                             allyesconfig
 sparc                            allyesconfig
 sparc                               defconfig
 i386                                defconfig
+mips                             allyesconfig
 mips                             allmodconfig
 powerpc                          allyesconfig
 powerpc                          allmodconfig
@@ -197,10 +194,10 @@ i386                 randconfig-a015-20201113
 i386                 randconfig-a013-20201113
 riscv                    nommu_k210_defconfig
 riscv                            allyesconfig
-riscv                    nommu_virt_defconfig
 riscv                             allnoconfig
-riscv                          rv32_defconfig
 riscv                            allmodconfig
+riscv                    nommu_virt_defconfig
+riscv                          rv32_defconfig
 x86_64                                   rhel
 x86_64                           allyesconfig
 x86_64                    rhel-7.6-kselftests
