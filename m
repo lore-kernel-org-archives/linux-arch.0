@@ -7,21 +7,24 @@ X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,UNPARSEABLE_RELAY,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D836EC5519F
-	for <linux-arch@archiver.kernel.org>; Sat, 14 Nov 2020 03:30:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 362B6C63699
+	for <linux-arch@archiver.kernel.org>; Sat, 14 Nov 2020 03:30:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9B51222245
-	for <linux-arch@archiver.kernel.org>; Sat, 14 Nov 2020 03:30:35 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 1E19B2225D
+	for <linux-arch@archiver.kernel.org>; Sat, 14 Nov 2020 03:30:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726506AbgKNDaF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Nov 2020 22:30:05 -0500
-Received: from bhuna.collabora.co.uk ([46.235.227.227]:58620 "EHLO
-        bhuna.collabora.co.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726494AbgKNDaF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Nov 2020 22:30:05 -0500
+        id S1726532AbgKNDaL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Nov 2020 22:30:11 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40134 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726494AbgKNDaL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Nov 2020 22:30:11 -0500
+Received: from bhuna.collabora.co.uk (bhuna.collabora.co.uk [IPv6:2a00:1098:0:82:1000:25:2eeb:e3e3])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DDD2FC0613D1;
+        Fri, 13 Nov 2020 19:30:10 -0800 (PST)
 Received: from [127.0.0.1] (localhost [127.0.0.1])
         (Authenticated sender: krisman)
-        with ESMTPSA id 6B1521F47989
+        with ESMTPSA id 955D61F47993
 From:   Gabriel Krisman Bertazi <krisman@collabora.com>
 To:     tglx@linutronix.de
 Cc:     mingo@redhat.com, keescook@chromium.org, arnd@arndb.de,
@@ -30,9 +33,9 @@ Cc:     mingo@redhat.com, keescook@chromium.org, arnd@arndb.de,
         linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         x86@kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>,
         kernel@collabora.com
-Subject: [PATCH 07/10] ptrace: Migrate TIF_SYSCALL_EMU to use SYSCALL_WORK flag
-Date:   Fri, 13 Nov 2020 22:29:14 -0500
-Message-Id: <20201114032917.1205658-8-krisman@collabora.com>
+Subject: [PATCH 09/10] kernel: entry: Drop usage of TIF flags in the generic syscall code
+Date:   Fri, 13 Nov 2020 22:29:16 -0500
+Message-Id: <20201114032917.1205658-10-krisman@collabora.com>
 X-Mailer: git-send-email 2.29.2
 In-Reply-To: <20201114032917.1205658-1-krisman@collabora.com>
 References: <20201114032917.1205658-1-krisman@collabora.com>
@@ -42,189 +45,119 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-For architectures that rely on the generic syscall entry code, use the
-syscall_work field in struct thread_info and the specific SYSCALL_WORK
-flag.  This set of flags has the advantage of being architecture
-independent.
-
-Users of the flag outside of the generic entry code should rely on the
-accessor macros, such that the flag is still correctly resolved for
-architectures that don't use the generic entry code and still rely on
-TIF flags for system call work.
+Now that the flags migration in the common syscall entry is complete and
+the code relies exclusively on syscall_work, clean up the
+accesses to TI flags in that path.
 
 Signed-off-by: Gabriel Krisman Bertazi <krisman@collabora.com>
 ---
- include/linux/entry-common.h |  8 ++------
- include/linux/thread_info.h  |  2 ++
- include/linux/tracehook.h    |  2 +-
- kernel/entry/common.c        | 19 ++++++++++---------
- kernel/fork.c                |  4 ++--
- kernel/ptrace.c              | 10 +++++-----
- 6 files changed, 22 insertions(+), 23 deletions(-)
+ include/linux/entry-common.h | 20 +++++++++-----------
+ kernel/entry/common.c        | 17 +++++++----------
+ 2 files changed, 16 insertions(+), 21 deletions(-)
 
 diff --git a/include/linux/entry-common.h b/include/linux/entry-common.h
-index dc864edb7950..39d56558818d 100644
+index afeb927e8545..cffd8bf1e085 100644
 --- a/include/linux/entry-common.h
 +++ b/include/linux/entry-common.h
-@@ -13,10 +13,6 @@
-  * Define dummy _TIF work flags if not defined by the architecture or for
-  * disabled functionality.
-  */
--#ifndef _TIF_SYSCALL_EMU
--# define _TIF_SYSCALL_EMU		(0)
--#endif
--
- #ifndef _TIF_SYSCALL_AUDIT
- # define _TIF_SYSCALL_AUDIT		(0)
+@@ -26,31 +26,29 @@
  #endif
-@@ -42,7 +38,6 @@
- 
- #define SYSCALL_ENTER_WORK						\
- 	(_TIF_SYSCALL_AUDIT  |						\
--	 _TIF_SYSCALL_EMU |						\
- 	 ARCH_SYSCALL_ENTER_WORK)
  
  /*
-@@ -58,7 +53,8 @@
+- * TIF flags handled in syscall_enter_from_user_mode()
++ * SYSCALL_WORK flags handled in syscall_enter_from_user_mode()
+  */
+-#ifndef ARCH_SYSCALL_ENTER_WORK
+-# define ARCH_SYSCALL_ENTER_WORK	(0)
++#ifndef ARCH_SYSCALL_WORK_ENTER
++# define ARCH_SYSCALL_WORK_ENTER	(0)
+ #endif
  
+-#define SYSCALL_ENTER_WORK ARCH_SYSCALL_ENTER_WORK
+-
+ /*
+  * TIF flags handled in syscall_exit_to_user_mode()
+  */
+-#ifndef ARCH_SYSCALL_EXIT_WORK
+-# define ARCH_SYSCALL_EXIT_WORK		(0)
++#ifndef ARCH_SYSCALL_WORK_EXIT
++# define ARCH_SYSCALL_WORK_EXIT		(0)
+ #endif
+ 
+-#define SYSCALL_EXIT_WORK ARCH_SYSCALL_EXIT_WORK
+-
  #define SYSCALL_WORK_ENTER	(SYSCALL_WORK_SECCOMP |			\
  				 SYSCALL_WORK_SYSCALL_TRACEPOINT |	\
--				 SYSCALL_WORK_SYSCALL_TRACE)
-+				 SYSCALL_WORK_SYSCALL_TRACE |		\
-+				 SYSCALL_WORK_SYSCALL_EMU)
+ 				 SYSCALL_WORK_SYSCALL_TRACE |		\
+ 				 SYSCALL_WORK_SYSCALL_EMU |		\
+-				 SYSCALL_WORK_SYSCALL_AUDIT)
++				 SYSCALL_WORK_SYSCALL_AUDIT |		\
++				 ARCH_SYSCALL_WORK_ENTER)
  #define SYSCALL_WORK_EXIT	(SYSCALL_WORK_SYSCALL_TRACEPOINT |	\
- 				 SYSCALL_WORK_SYSCALL_TRACE)
+ 				 SYSCALL_WORK_SYSCALL_TRACE |		\
+-				 SYSCALL_WORK_SYSCALL_AUDIT)
++				 SYSCALL_WORK_SYSCALL_AUDIT |		\
++				 ARCH_SYSCALL_WORK_EXIT)
  
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index b01f05282158..3c7dedadf94d 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -40,11 +40,13 @@ enum syscall_work_bit {
- 	SYSCALL_WORK_SECCOMP		= 0,
- 	SYSCALL_WORK_SYSCALL_TRACEPOINT	= 1,
- 	SYSCALL_WORK_SYSCALL_TRACE	= 2,
-+	SYSCALL_WORK_SYSCALL_EMU	= 3,
- };
- 
- #define _SYSCALL_WORK_SECCOMP		 BIT(SYSCALL_WORK_SECCOMP)
- #define _SYSCALL_WORK_SYSCALL_TRACEPOINT BIT(SYSCALL_WORK_SYSCALL_TRACEPOINT)
- #define _SYSCALL_WORK_SYSCALL_TRACE	 BIT(SYSCALL_WORK_SYSCALL_TRACE)
-+#define _SYSCALL_WORK_SYSCALL_EMU	 BIT(SYSCALL_WORK_SYSCALL_EMU)
- 
- #include <asm/thread_info.h>
- 
-diff --git a/include/linux/tracehook.h b/include/linux/tracehook.h
-index 0aa3771d1df5..24424da49abc 100644
---- a/include/linux/tracehook.h
-+++ b/include/linux/tracehook.h
-@@ -83,7 +83,7 @@ static inline int ptrace_report_syscall(struct pt_regs *regs,
-  * tracehook_report_syscall_entry - task is about to attempt a system call
-  * @regs:		user register state of current task
-  *
-- * This will be called if %SYSCALL_TRACE or %TIF_SYSCALL_EMU have been set,
-+ * This will be called if %SYSCALL_TRACE or %SYSCALL_EMU have been set,
-  * when the current task has just entered the kernel for a system call.
-  * Full user register state is available here.  Changing the values
-  * in @regs can affect the system call number and arguments to be tried.
+ /*
+  * TIF flags handled in exit_to_user_mode_loop()
 diff --git a/kernel/entry/common.c b/kernel/entry/common.c
-index 55ede5fed650..0170a4ae58f8 100644
+index 0170a4ae58f8..0ddc590bfe73 100644
 --- a/kernel/entry/common.c
 +++ b/kernel/entry/common.c
-@@ -47,9 +47,9 @@ static long syscall_trace_enter(struct pt_regs *regs, long syscall,
+@@ -42,7 +42,7 @@ static inline void syscall_enter_audit(struct pt_regs *regs, long syscall)
+ }
+ 
+ static long syscall_trace_enter(struct pt_regs *regs, long syscall,
+-				unsigned long ti_work, unsigned long work)
++				unsigned long work)
+ {
  	long ret = 0;
  
- 	/* Handle ptrace */
--	if (work & _SYSCALL_WORK_SYSCALL_TRACE || ti_work & _TIF_SYSCALL_EMU) {
-+	if (work & (_SYSCALL_WORK_SYSCALL_TRACE | _SYSCALL_WORK_SYSCALL_EMU)) {
- 		ret = arch_syscall_enter_tracehook(regs);
--		if (ret || (ti_work & _TIF_SYSCALL_EMU))
-+		if (ret || (work & _SYSCALL_WORK_SYSCALL_EMU))
- 			return -1L;
- 	}
- 
-@@ -208,21 +208,22 @@ static void exit_to_user_mode_prepare(struct pt_regs *regs)
- }
- 
- #ifndef _TIF_SINGLESTEP
--static inline bool report_single_step(unsigned long ti_work)
-+static inline bool report_single_step(unsigned long work)
+@@ -74,12 +74,10 @@ static long syscall_trace_enter(struct pt_regs *regs, long syscall,
+ static __always_inline long
+ __syscall_enter_from_user_work(struct pt_regs *regs, long syscall)
  {
- 	return false;
+-	unsigned long ti_work;
+ 	unsigned long work = READ_ONCE(current_thread_info()->syscall_work);
+ 
+-	ti_work = READ_ONCE(current_thread_info()->flags);
+-	if (work & SYSCALL_WORK_ENTER || ti_work & SYSCALL_ENTER_WORK)
+-		syscall = syscall_trace_enter(regs, syscall, ti_work, work);
++	if (work & SYSCALL_WORK_ENTER)
++		syscall = syscall_trace_enter(regs, syscall, work);
+ 
+ 	return syscall;
  }
- #else
- /*
-- * If TIF_SYSCALL_EMU is set, then the only reason to report is when
-+ * If SYSCALL_EMU is set, then the only reason to report is when
-  * TIF_SINGLESTEP is set (i.e. PTRACE_SYSEMU_SINGLESTEP).  This syscall
-  * instruction has been already reported in syscall_enter_from_user_mode().
-  */
--#define SYSEMU_STEP	(_TIF_SINGLESTEP | _TIF_SYSCALL_EMU)
--
--static inline bool report_single_step(unsigned long ti_work)
-+static inline bool report_single_step(unsigned long work)
- {
--	return (ti_work & SYSEMU_STEP) == _TIF_SINGLESTEP;
-+	if (!(work & _SYSCALL_WORK_SYSCALL_EMU))
-+		return false;
+@@ -227,8 +225,8 @@ static inline bool report_single_step(unsigned long work)
+ }
+ #endif
+ 
+-static void syscall_exit_work(struct pt_regs *regs, unsigned long ti_work,
+-			      unsigned long work)
 +
-+	return !!(current_thread_info()->flags & _TIF_SINGLESTEP);
- }
- #endif
++static void syscall_exit_work(struct pt_regs *regs, unsigned long work)
+ {
+ 	bool step;
  
-@@ -236,7 +237,7 @@ static void syscall_exit_work(struct pt_regs *regs, unsigned long ti_work,
- 	if (work & _SYSCALL_WORK_SYSCALL_TRACEPOINT)
- 		trace_sys_exit(regs, syscall_get_return_value(current, regs));
+@@ -248,7 +246,6 @@ static void syscall_exit_work(struct pt_regs *regs, unsigned long ti_work,
+  */
+ static void syscall_exit_to_user_mode_prepare(struct pt_regs *regs)
+ {
+-	u32 cached_flags = READ_ONCE(current_thread_info()->flags);
+ 	unsigned long work = READ_ONCE(current_thread_info()->syscall_work);
+ 	unsigned long nr = syscall_get_nr(current, regs);
  
--	step = report_single_step(ti_work);
-+	step = report_single_step(work);
- 	if (step || work & _SYSCALL_WORK_SYSCALL_TRACE)
- 		arch_syscall_exit_tracehook(regs, step);
- }
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 6f934a930015..4f131cb0192a 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -2159,8 +2159,8 @@ static __latent_entropy struct task_struct *copy_process(
+@@ -266,8 +263,8 @@ static void syscall_exit_to_user_mode_prepare(struct pt_regs *regs)
+ 	 * enabled, we want to run them exactly once per syscall exit with
+ 	 * interrupts enabled.
  	 */
- 	user_disable_single_step(p);
- 	clear_task_syscall_work(p, SYSCALL_TRACE);
--#ifdef TIF_SYSCALL_EMU
--	clear_tsk_thread_flag(p, TIF_SYSCALL_EMU);
-+#if defined(CONFIG_GENERIC_ENTRY) || defined(TIF_SYSCALL_EMU)
-+	clear_task_syscall_work(p, SYSCALL_EMU);
- #endif
- 	clear_tsk_latency_tracing(p);
+-	if (unlikely(work & SYSCALL_WORK_EXIT || cached_flags & SYSCALL_EXIT_WORK))
+-		syscall_exit_work(regs, cached_flags, work);
++	if (unlikely(work & SYSCALL_WORK_EXIT))
++		syscall_exit_work(regs, work);
+ }
  
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 55a2bc3186a7..237bcd6d255c 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -118,8 +118,8 @@ void __ptrace_unlink(struct task_struct *child)
- 	BUG_ON(!child->ptrace);
- 
- 	clear_task_syscall_work(child, SYSCALL_TRACE);
--#ifdef TIF_SYSCALL_EMU
--	clear_tsk_thread_flag(child, TIF_SYSCALL_EMU);
-+#if defined(CONFIG_GENERIC_ENTRY) || defined(TIF_SYSCALL_EMU)
-+	clear_task_syscall_work(child, SYSCALL_EMU);
- #endif
- 
- 	child->parent = child->real_parent;
-@@ -816,11 +816,11 @@ static int ptrace_resume(struct task_struct *child, long request,
- 	else
- 		clear_task_syscall_work(child, SYSCALL_TRACE);
- 
--#ifdef TIF_SYSCALL_EMU
-+#if defined(CONFIG_GENERIC_ENTRY) || defined(TIF_SYSCALL_EMU)
- 	if (request == PTRACE_SYSEMU || request == PTRACE_SYSEMU_SINGLESTEP)
--		set_tsk_thread_flag(child, TIF_SYSCALL_EMU);
-+		set_task_syscall_work(child, SYSCALL_EMU);
- 	else
--		clear_tsk_thread_flag(child, TIF_SYSCALL_EMU);
-+		clear_task_syscall_work(child, SYSCALL_EMU);
- #endif
- 
- 	if (is_singleblock(request)) {
+ __visible noinstr void syscall_exit_to_user_mode(struct pt_regs *regs)
 -- 
 2.29.2
 
