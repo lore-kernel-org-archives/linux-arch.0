@@ -5,26 +5,26 @@ X-Spam-Level:
 X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SIGNED_OFF_BY,
 	SPF_HELO_NONE,SPF_PASS,UNPARSEABLE_RELAY,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A26BEC8300A
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5D6ACC64EBC
 	for <linux-arch@archiver.kernel.org>; Mon, 16 Nov 2020 17:42:57 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7822E222E8
+	by mail.kernel.org (Postfix) with ESMTP id 3947C222E8
 	for <linux-arch@archiver.kernel.org>; Mon, 16 Nov 2020 17:42:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2387424AbgKPRm4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 16 Nov 2020 12:42:56 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46738 "EHLO
+        id S2387935AbgKPRmw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 16 Nov 2020 12:42:52 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46784 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387921AbgKPRmf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Nov 2020 12:42:35 -0500
+        with ESMTP id S2387591AbgKPRmv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Nov 2020 12:42:51 -0500
 Received: from bhuna.collabora.co.uk (bhuna.collabora.co.uk [IPv6:2a00:1098:0:82:1000:25:2eeb:e3e3])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 14F7CC0613CF;
-        Mon, 16 Nov 2020 09:42:35 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 93919C0613CF;
+        Mon, 16 Nov 2020 09:42:51 -0800 (PST)
 Received: from [127.0.0.1] (localhost [127.0.0.1])
         (Authenticated sender: krisman)
-        with ESMTPSA id C9C491F45E58
+        with ESMTPSA id 172321F45E47
 From:   Gabriel Krisman Bertazi <krisman@collabora.com>
 To:     tglx@linutronix.de
 Cc:     hch@infradead.org, mingo@redhat.com, keescook@chromium.org,
@@ -34,9 +34,9 @@ Cc:     hch@infradead.org, mingo@redhat.com, keescook@chromium.org,
         linux-kernel@vger.kernel.org, x86@kernel.org,
         Gabriel Krisman Bertazi <krisman@collabora.com>,
         kernel@collabora.com
-Subject: [PATCH v2 05/10] tracepoints: Migrate to use SYSCALL_WORK flag
-Date:   Mon, 16 Nov 2020 12:42:01 -0500
-Message-Id: <20201116174206.2639648-6-krisman@collabora.com>
+Subject: [PATCH v2 10/10] x86: Reclaim unused x86 TI flags
+Date:   Mon, 16 Nov 2020 12:42:06 -0500
+Message-Id: <20201116174206.2639648-11-krisman@collabora.com>
 X-Mailer: git-send-email 2.29.2
 In-Reply-To: <20201116174206.2639648-1-krisman@collabora.com>
 References: <20201116174206.2639648-1-krisman@collabora.com>
@@ -46,168 +46,60 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-For architectures that rely on the generic syscall entry code, use the
-syscall_work field in struct thread_info and the specific SYSCALL_WORK
-flag.  This set of flags has the advantage of being architecture
-independent.
-
-Users of the flag outside of the generic entry code should rely on the
-accessor macros, such that the flag is still correctly resolved for
-architectures that don't use the generic entry code and still rely on
-TIF flags for system call work.
+Reclaim TI flags that were migrated to syscall_work flags.
 
 Signed-off-by: Gabriel Krisman Bertazi <krisman@collabora.com>
-
 ---
-Changes since v2:
-  - Drop explicit value assignment in enum (tglx)
-  - Avoid FLAG/_FLAG defines (tglx)
-  - Fix comment to refer to SYSCALL_WORK_SECCOMP (me)
----
- include/linux/entry-common.h | 13 +++++--------
- include/linux/thread_info.h  |  2 ++
- include/trace/syscall.h      |  6 +++---
- kernel/entry/common.c        |  4 ++--
- kernel/trace/trace_events.c  |  8 ++++----
- kernel/tracepoint.c          |  4 ++--
- 6 files changed, 18 insertions(+), 19 deletions(-)
+ arch/x86/include/asm/thread_info.h | 10 ----------
+ 1 file changed, 10 deletions(-)
 
-diff --git a/include/linux/entry-common.h b/include/linux/entry-common.h
-index f3fc4457f63f..8aba367e5c79 100644
---- a/include/linux/entry-common.h
-+++ b/include/linux/entry-common.h
-@@ -17,10 +17,6 @@
- # define _TIF_SYSCALL_EMU		(0)
- #endif
- 
--#ifndef _TIF_SYSCALL_TRACEPOINT
--# define _TIF_SYSCALL_TRACEPOINT	(0)
--#endif
--
- #ifndef _TIF_SYSCALL_AUDIT
- # define _TIF_SYSCALL_AUDIT		(0)
- #endif
-@@ -46,7 +42,7 @@
- 
- #define SYSCALL_ENTER_WORK						\
- 	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT  |			\
--	 _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_EMU |			\
-+	 _TIF_SYSCALL_EMU |						\
- 	 ARCH_SYSCALL_ENTER_WORK)
- 
- /*
-@@ -58,10 +54,11 @@
- 
- #define SYSCALL_EXIT_WORK						\
- 	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT |			\
--	 _TIF_SYSCALL_TRACEPOINT | ARCH_SYSCALL_EXIT_WORK)
-+	 ARCH_SYSCALL_EXIT_WORK)
- 
--#define SYSCALL_WORK_ENTER	(SYSCALL_WORK_SECCOMP)
--#define SYSCALL_WORK_EXIT	(0)
-+#define SYSCALL_WORK_ENTER	(SYSCALL_WORK_SECCOMP |			\
-+				 SYSCALL_WORK_SYSCALL_TRACEPOINT)
-+#define SYSCALL_WORK_EXIT	(SYSCALL_WORK_SYSCALL_TRACEPOINT)
- 
- /*
-  * TIF flags handled in exit_to_user_mode_loop()
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index 1d6488130b5c..ff0ac2ebb4ff 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -37,9 +37,11 @@ enum {
- 
- enum syscall_work_bit {
- 	SYSCALL_WORK_BIT_SECCOMP,
-+	SYSCALL_WORK_BIT_SYSCALL_TRACEPOINT,
- };
- 
- #define SYSCALL_WORK_SECCOMP		BIT(SYSCALL_WORK_BIT_SECCOMP)
-+#define SYSCALL_WORK_SYSCALL_TRACEPOINT	BIT(SYSCALL_WORK_BIT_SYSCALL_TRACEPOINT)
- 
- #include <asm/thread_info.h>
- 
-diff --git a/include/trace/syscall.h b/include/trace/syscall.h
-index dc8ac27d27c1..8e193f3a33b3 100644
---- a/include/trace/syscall.h
-+++ b/include/trace/syscall.h
-@@ -37,10 +37,10 @@ struct syscall_metadata {
- #if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_HAVE_SYSCALL_TRACEPOINTS)
- static inline void syscall_tracepoint_update(struct task_struct *p)
- {
--	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
--		set_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
-+	if (test_syscall_work(SYSCALL_TRACEPOINT))
-+		set_task_syscall_work(p, SYSCALL_TRACEPOINT);
- 	else
--		clear_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
-+		clear_task_syscall_work(p, SYSCALL_TRACEPOINT);
- }
- #else
- static inline void syscall_tracepoint_update(struct task_struct *p)
-diff --git a/kernel/entry/common.c b/kernel/entry/common.c
-index c321056c73d7..4e2b3c08d939 100644
---- a/kernel/entry/common.c
-+++ b/kernel/entry/common.c
-@@ -63,7 +63,7 @@ static long syscall_trace_enter(struct pt_regs *regs, long syscall,
- 	/* Either of the above might have changed the syscall number */
- 	syscall = syscall_get_nr(current, regs);
- 
--	if (unlikely(ti_work & _TIF_SYSCALL_TRACEPOINT))
-+	if (unlikely(work & SYSCALL_WORK_SYSCALL_TRACEPOINT))
- 		trace_sys_enter(regs, syscall);
- 
- 	syscall_enter_audit(regs, syscall);
-@@ -233,7 +233,7 @@ static void syscall_exit_work(struct pt_regs *regs, unsigned long ti_work,
- 
- 	audit_syscall_exit(regs);
- 
--	if (ti_work & _TIF_SYSCALL_TRACEPOINT)
-+	if (work & SYSCALL_WORK_SYSCALL_TRACEPOINT)
- 		trace_sys_exit(regs, syscall_get_return_value(current, regs));
- 
- 	step = report_single_step(ti_work);
-diff --git a/kernel/trace/trace_events.c b/kernel/trace/trace_events.c
-index 47a71f96e5bc..adf65b502453 100644
---- a/kernel/trace/trace_events.c
-+++ b/kernel/trace/trace_events.c
-@@ -3428,10 +3428,10 @@ static __init int event_trace_enable(void)
-  * initialize events and perhaps start any events that are on the
-  * command line. Unfortunately, there are some events that will not
-  * start this early, like the system call tracepoints that need
-- * to set the TIF_SYSCALL_TRACEPOINT flag of pid 1. But event_trace_enable()
-- * is called before pid 1 starts, and this flag is never set, making
-- * the syscall tracepoint never get reached, but the event is enabled
-- * regardless (and not doing anything).
-+ * to set the %SYSCALL_WORK_SYSCALL_TRACEPOINT flag of pid 1. But
-+ * event_trace_enable() is called before pid 1 starts, and this flag
-+ * is never set, making the syscall tracepoint never get reached, but
-+ * the event is enabled regardless (and not doing anything).
+diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
+index b217f63e73b7..33b637442b9e 100644
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@ -75,15 +75,11 @@ struct thread_info {
+  * - these are process state flags that various assembly files
+  *   may need to access
   */
- static __init int event_trace_enable_again(void)
- {
-diff --git a/kernel/tracepoint.c b/kernel/tracepoint.c
-index 3f659f855074..7261fa0f5e3c 100644
---- a/kernel/tracepoint.c
-+++ b/kernel/tracepoint.c
-@@ -594,7 +594,7 @@ int syscall_regfunc(void)
- 	if (!sys_tracepoint_refcount) {
- 		read_lock(&tasklist_lock);
- 		for_each_process_thread(p, t) {
--			set_tsk_thread_flag(t, TIF_SYSCALL_TRACEPOINT);
-+			set_task_syscall_work(t, SYSCALL_TRACEPOINT);
- 		}
- 		read_unlock(&tasklist_lock);
- 	}
-@@ -611,7 +611,7 @@ void syscall_unregfunc(void)
- 	if (!sys_tracepoint_refcount) {
- 		read_lock(&tasklist_lock);
- 		for_each_process_thread(p, t) {
--			clear_tsk_thread_flag(t, TIF_SYSCALL_TRACEPOINT);
-+			clear_task_syscall_work(t, SYSCALL_TRACEPOINT);
- 		}
- 		read_unlock(&tasklist_lock);
- 	}
+-#define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+ #define TIF_NOTIFY_RESUME	1	/* callback before returning to user */
+ #define TIF_SIGPENDING		2	/* signal pending */
+ #define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+ #define TIF_SINGLESTEP		4	/* reenable singlestep on user return*/
+ #define TIF_SSBD		5	/* Speculative store bypass disable */
+-#define TIF_SYSCALL_EMU		6	/* syscall emulation active */
+-#define TIF_SYSCALL_AUDIT	7	/* syscall auditing active */
+-#define TIF_SECCOMP		8	/* secure computing */
+ #define TIF_SPEC_IB		9	/* Indirect branch speculation mitigation */
+ #define TIF_SPEC_L1D_FLUSH	10	/* Flush L1D on mm switches (processes) */
+ #define TIF_USER_RETURN_NOTIFY	11	/* notify kernel of userspace return */
+@@ -101,18 +97,13 @@ struct thread_info {
+ #define TIF_FORCED_TF		24	/* true if TF in eflags artificially */
+ #define TIF_BLOCKSTEP		25	/* set when we want DEBUGCTLMSR_BTF */
+ #define TIF_LAZY_MMU_UPDATES	27	/* task is updating the mmu lazily */
+-#define TIF_SYSCALL_TRACEPOINT	28	/* syscall tracepoint instrumentation */
+ #define TIF_ADDR32		29	/* 32-bit address space on 64 bits */
+ 
+-#define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+ #define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+ #define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
+ #define _TIF_SSBD		(1 << TIF_SSBD)
+-#define _TIF_SYSCALL_EMU	(1 << TIF_SYSCALL_EMU)
+-#define _TIF_SYSCALL_AUDIT	(1 << TIF_SYSCALL_AUDIT)
+-#define _TIF_SECCOMP		(1 << TIF_SECCOMP)
+ #define _TIF_SPEC_IB		(1 << TIF_SPEC_IB)
+ #define _TIF_SPEC_L1D_FLUSH	(1 << TIF_SPEC_L1D_FLUSH)
+ #define _TIF_USER_RETURN_NOTIFY	(1 << TIF_USER_RETURN_NOTIFY)
+@@ -129,7 +120,6 @@ struct thread_info {
+ #define _TIF_FORCED_TF		(1 << TIF_FORCED_TF)
+ #define _TIF_BLOCKSTEP		(1 << TIF_BLOCKSTEP)
+ #define _TIF_LAZY_MMU_UPDATES	(1 << TIF_LAZY_MMU_UPDATES)
+-#define _TIF_SYSCALL_TRACEPOINT	(1 << TIF_SYSCALL_TRACEPOINT)
+ #define _TIF_ADDR32		(1 << TIF_ADDR32)
+ 
+ /* flags to check in __switch_to() */
 -- 
 2.29.2
 
