@@ -5,52 +5,52 @@ X-Spam-Level:
 X-Spam-Status: No, score=-18.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	UNPARSEABLE_RELAY,USER_AGENT_GIT autolearn=ham autolearn_force=no
+	UNPARSEABLE_RELAY,USER_AGENT_GIT autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BF719C83008
-	for <linux-arch@archiver.kernel.org>; Tue, 17 Nov 2020 23:21:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 07D7FC64E7B
+	for <linux-arch@archiver.kernel.org>; Tue, 17 Nov 2020 23:21:45 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 672EF2222B
-	for <linux-arch@archiver.kernel.org>; Tue, 17 Nov 2020 23:21:10 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 93711222E9
+	for <linux-arch@archiver.kernel.org>; Tue, 17 Nov 2020 23:21:44 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="dZc2BtLf"
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="mPfDnJxX"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729444AbgKQXVI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 17 Nov 2020 18:21:08 -0500
-Received: from userp2120.oracle.com ([156.151.31.85]:44856 "EHLO
+        id S1729576AbgKQXVO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 17 Nov 2020 18:21:14 -0500
+Received: from userp2120.oracle.com ([156.151.31.85]:44918 "EHLO
         userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729351AbgKQXVH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 17 Nov 2020 18:21:07 -0500
+        with ESMTP id S1729548AbgKQXVN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 17 Nov 2020 18:21:13 -0500
 Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
-        by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 0AHNDeGn099806;
-        Tue, 17 Nov 2020 23:13:40 GMT
+        by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 0AHNDc65099794;
+        Tue, 17 Nov 2020 23:13:38 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : cc :
  subject : date : message-id : in-reply-to : references : mime-version :
  content-transfer-encoding; s=corp-2020-01-29;
- bh=zBL5BAUEhYhdIPvRI+2kng+aaDFLCZfcYOytq8dMIi0=;
- b=dZc2BtLfS49rPyD8h0J/MnTUnYj2Rs9tHIshUyT5AsLqeEM8gNi6g7VAsNXsFWut17Ca
- GWKYOKfCCLbpEVr6dpPh0FOGoOPNCk90Kf4WqnefBz0UYUQAknJgU+IVCG2tOSIDJ6ct
- qUXxJ/TsvVrOsxeMqkDl3rF8wMk43mgfSRGYIiBovEnV/u7AOIlnDWVmmS0lrLWbT09O
- dXn4A7Ux1Ws6vQukv8BPFeQ7n7Xsj2pOUkn9wiWn3GMYQ/AvObnjNyHjgCQV+DV3HiyI
- d4UiVcCQvSccGgUYZGopO96PCMVUEyDCL69wiOjf/vgZGDyLM3EqTjCcseQT1zYsbvwP 8A== 
+ bh=we47x/zXOJPVtNw5uym1kfGuctWw0Fy3iZ7QHb+/J1c=;
+ b=mPfDnJxXgDZo+hX5lQzxOsle4wCCh/ahgx3oUCzNaRUYlTkPNxK6wr1I6Ffq+2R67xNY
+ wD60/Ot4aoqf3QeVZAAPVlMzqdRMYYOkzXvI39m9520WFfKWP8xdFia2NUYMZ3VOBAUC
+ fOCtXGeOAegJbzIWImEz/DwLZ+ulrTm9bwPE0KxnV8xREBp6fULcqzDoi6tgrOzfZ6E1
+ Nos57Ct+8HK+CO26Xm7YXoQFwUCsi4xHcXJiVU2wgaRHZ8SuSGUktgAA8rORLsxvMkNZ
+ 7YG0JLEurL9iw7FqCnReSErVPoETyugcVhIvCXLZOzBfgnl1jI5smsEb0SmN0BA8Nt71 8g== 
 Received: from aserp3030.oracle.com (aserp3030.oracle.com [141.146.126.71])
-        by userp2120.oracle.com with ESMTP id 34t7vn59ry-1
+        by userp2120.oracle.com with ESMTP id 34t7vn59rs-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=FAIL);
-        Tue, 17 Nov 2020 23:13:39 +0000
+        Tue, 17 Nov 2020 23:13:38 +0000
 Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-        by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 0AHN5bYa161369;
-        Tue, 17 Nov 2020 23:13:39 GMT
-Received: from userv0122.oracle.com (userv0122.oracle.com [156.151.31.75])
-        by aserp3030.oracle.com with ESMTP id 34uspu1abx-1
+        by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 0AHN5bNo161431;
+        Tue, 17 Nov 2020 23:13:34 GMT
+Received: from aserv0122.oracle.com (aserv0122.oracle.com [141.146.126.236])
+        by aserp3030.oracle.com with ESMTP id 34uspu1a99-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Tue, 17 Nov 2020 23:13:39 +0000
+        Tue, 17 Nov 2020 23:13:34 +0000
 Received: from abhmp0003.oracle.com (abhmp0003.oracle.com [141.146.116.9])
-        by userv0122.oracle.com (8.14.4/8.14.4) with ESMTP id 0AHNDbDG032331;
-        Tue, 17 Nov 2020 23:13:37 GMT
+        by aserv0122.oracle.com (8.14.4/8.14.4) with ESMTP id 0AHNDXQr028988;
+        Tue, 17 Nov 2020 23:13:33 GMT
 Received: from neelam.us.oracle.com (/10.152.128.16)
         by default (Oracle Beehive Gateway v4.0)
-        with ESMTP ; Tue, 17 Nov 2020 15:13:36 -0800
+        with ESMTP ; Tue, 17 Nov 2020 15:13:32 -0800
 From:   Alex Kogan <alex.kogan@oracle.com>
 To:     linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com,
         will.deacon@arm.com, arnd@arndb.de, longman@redhat.com,
@@ -60,9 +60,9 @@ To:     linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com,
         jglauber@marvell.com
 Cc:     steven.sistare@oracle.com, daniel.m.jordan@oracle.com,
         alex.kogan@oracle.com, dave.dice@oracle.com
-Subject: [PATCH v12 5/5] locking/qspinlock: Avoid moving certain threads between waiting queues in CNA
-Date:   Tue, 17 Nov 2020 18:13:23 -0500
-Message-Id: <20201117231323.797104-6-alex.kogan@oracle.com>
+Subject: [PATCH v12 2/5] locking/qspinlock: Refactor the qspinlock slow path
+Date:   Tue, 17 Nov 2020 18:13:20 -0500
+Message-Id: <20201117231323.797104-3-alex.kogan@oracle.com>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20201117231323.797104-1-alex.kogan@oracle.com>
 References: <20201117231323.797104-1-alex.kogan@oracle.com>
@@ -83,92 +83,87 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Prohibit moving certain threads (e.g., in irq and nmi contexts)
-to the secondary queue. Those prioritized threads will always stay
-in the primary queue, and so will have a shorter wait time for the lock.
+Move some of the code manipulating the spin lock into separate functions.
+This would allow easier integration of alternative ways to manipulate
+that lock.
 
 Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
 Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
 Reviewed-by: Waiman Long <longman@redhat.com>
 ---
- kernel/locking/qspinlock_cna.h | 26 ++++++++++++++++++++------
- 1 file changed, 20 insertions(+), 6 deletions(-)
+ kernel/locking/qspinlock.c | 38 ++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 36 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
-index d3e2754..ac3109a 100644
---- a/kernel/locking/qspinlock_cna.h
-+++ b/kernel/locking/qspinlock_cna.h
-@@ -4,6 +4,7 @@
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 435d696..e351870 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -289,6 +289,34 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
+ #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
  #endif
  
- #include <linux/topology.h>
-+#include <linux/sched/rt.h>
- 
- /*
-  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
-@@ -35,7 +36,8 @@
-  * running on the same NUMA node. If it is not, that waiter is detached from the
-  * main queue and moved into the tail of the secondary queue. This way, we
-  * gradually filter the primary queue, leaving only waiters running on the same
-- * preferred NUMA node.
-+ * preferred NUMA node. Note that certain priortized waiters (e.g., in
-+ * irq and nmi contexts) are excluded from being moved to the secondary queue.
-  *
-  * We change the NUMA node preference after a waiter at the head of the
-  * secondary queue spins for a certain amount of time (10ms, by default).
-@@ -49,6 +51,8 @@
-  *          Dave Dice <dave.dice@oracle.com>
-  */
- 
-+#define CNA_PRIORITY_NODE      0xffff
++/*
++ * __try_clear_tail - try to clear tail by setting the lock value to
++ * _Q_LOCKED_VAL.
++ * @lock: Pointer to the queued spinlock structure
++ * @val: Current value of the lock
++ * @node: Pointer to the MCS node of the lock holder
++ */
++static __always_inline bool __try_clear_tail(struct qspinlock *lock,
++					     u32 val,
++					     struct mcs_spinlock *node)
++{
++	return atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL);
++}
 +
- struct cna_node {
- 	struct mcs_spinlock	mcs;
- 	u16			numa_node;
-@@ -121,9 +125,10 @@ static int __init cna_init_nodes(void)
- 
- static __always_inline void cna_init_node(struct mcs_spinlock *node)
- {
-+	bool priority = !in_task() || irqs_disabled() || rt_task(current);
- 	struct cna_node *cn = (struct cna_node *)node;
- 
--	cn->numa_node = cn->real_numa_node;
-+	cn->numa_node = priority ? CNA_PRIORITY_NODE : cn->real_numa_node;
- 	cn->start_time = 0;
- }
- 
-@@ -262,11 +267,13 @@ static u32 cna_order_queue(struct mcs_spinlock *node)
- 	next_numa_node = ((struct cna_node *)next)->numa_node;
- 
- 	if (next_numa_node != numa_node) {
--		struct mcs_spinlock *nnext = READ_ONCE(next->next);
-+		if (next_numa_node != CNA_PRIORITY_NODE) {
-+			struct mcs_spinlock *nnext = READ_ONCE(next->next);
- 
--		if (nnext) {
--			cna_splice_next(node, next, nnext);
--			next = nnext;
-+			if (nnext) {
-+				cna_splice_next(node, next, nnext);
-+				next = nnext;
-+			}
- 		}
- 		/*
- 		 * Inherit NUMA node id of primary queue, to maintain the
-@@ -285,6 +292,13 @@ static __always_inline u32 cna_wait_head_or_lock(struct qspinlock *lock,
- 
- 	if (!cn->start_time || !intra_node_threshold_reached(cn)) {
- 		/*
-+		 * We are at the head of the wait queue, no need to use
-+		 * the fake NUMA node ID.
-+		 */
-+		if (cn->numa_node == CNA_PRIORITY_NODE)
-+			cn->numa_node = cn->real_numa_node;
++/*
++ * __mcs_lock_handoff - pass the MCS lock to the next waiter
++ * @node: Pointer to the MCS node of the lock holder
++ * @next: Pointer to the MCS node of the first waiter in the MCS queue
++ */
++static __always_inline void __mcs_lock_handoff(struct mcs_spinlock *node,
++					       struct mcs_spinlock *next)
++{
++	arch_mcs_lock_handoff(&next->locked, 1);
++}
 +
-+		/*
- 		 * Try and put the time otherwise spent spin waiting on
- 		 * _Q_LOCKED_PENDING_MASK to use by sorting our lists.
- 		 */
++#define try_clear_tail		__try_clear_tail
++#define mcs_lock_handoff	__mcs_lock_handoff
++
+ #endif /* _GEN_PV_LOCK_SLOWPATH */
+ 
+ /**
+@@ -533,7 +561,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 *       PENDING will make the uncontended transition fail.
+ 	 */
+ 	if ((val & _Q_TAIL_MASK) == tail) {
+-		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
++		if (try_clear_tail(lock, val, node))
+ 			goto release; /* No contention */
+ 	}
+ 
+@@ -550,7 +578,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	if (!next)
+ 		next = smp_cond_load_relaxed(&node->next, (VAL));
+ 
+-	arch_mcs_lock_handoff(&next->locked, 1);
++	mcs_lock_handoff(node, next);
+ 	pv_kick_node(lock, next);
+ 
+ release:
+@@ -575,6 +603,12 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
+ #undef pv_kick_node
+ #undef pv_wait_head_or_lock
+ 
++#undef try_clear_tail
++#define try_clear_tail		__try_clear_tail
++
++#undef mcs_lock_handoff
++#define mcs_lock_handoff			__mcs_lock_handoff
++
+ #undef  queued_spin_lock_slowpath
+ #define queued_spin_lock_slowpath	__pv_queued_spin_lock_slowpath
+ 
 -- 
 2.7.4
 
