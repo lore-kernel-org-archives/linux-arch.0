@@ -2,39 +2,39 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A6C64C6379D
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:07:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4C19CC64E90
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:07:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 570B2246A5
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:07:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 01A5E246CA
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:07:05 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727392AbgKSTGl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 19 Nov 2020 14:06:41 -0500
-Received: from mga12.intel.com ([192.55.52.136]:21738 "EHLO mga12.intel.com"
+        id S1727846AbgKSTGs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 19 Nov 2020 14:06:48 -0500
+Received: from mga12.intel.com ([192.55.52.136]:21741 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727160AbgKSTGl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1727363AbgKSTGl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Thu, 19 Nov 2020 14:06:41 -0500
-IronPort-SDR: BEutbUlwzYkRLSFFuYoTIIw9J/Ud7cYFOkeZeot0N6uNOXxD+VcSchYAM+BeOpAlsyIQlmnpxB
- 9FlkcI+XdzTw==
-X-IronPort-AV: E=McAfee;i="6000,8403,9810"; a="150614461"
+IronPort-SDR: tHm/mcoOBnqly1M6/rMuahSggzJDUygLVEujbYFz8VZFI0XrEtfQXxsNmSCerZTpiBTjy59jUI
+ KsMUm2kKy0Xw==
+X-IronPort-AV: E=McAfee;i="6000,8403,9810"; a="150614464"
 X-IronPort-AV: E=Sophos;i="5.78,354,1599548400"; 
-   d="scan'208";a="150614461"
+   d="scan'208";a="150614464"
 X-Amp-Result: SKIPPED(no attachment in message)
 X-Amp-File-Uploaded: False
 Received: from fmsmga001.fm.intel.com ([10.253.24.23])
-  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Nov 2020 11:06:39 -0800
-IronPort-SDR: /LycEAwuD7D8NTvjhQxukEXdB9131AkvjDRbv7YVI1eXzkJ/47ZWL81OOQKr1Z9f7wuTYGB47H
- oc9i+TynSF4Q==
+  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Nov 2020 11:06:40 -0800
+IronPort-SDR: QvspKCblnMCzsL5wITYJlqCsyv5vaoj+VeSN8G8G3ANsVrt2oRyOfr/jIoEfE+Rm7qkyy7yfoR
+ iAXOglYNV5mA==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="5.78,354,1599548400"; 
-   d="scan'208";a="431333987"
+   d="scan'208";a="431333996"
 Received: from chang-linux-3.sc.intel.com ([172.25.66.175])
-  by fmsmga001.fm.intel.com with ESMTP; 19 Nov 2020 11:06:39 -0800
+  by fmsmga001.fm.intel.com with ESMTP; 19 Nov 2020 11:06:40 -0800
 From:   "Chang S. Bae" <chang.seok.bae@intel.com>
 To:     tglx@linutronix.de, mingo@kernel.org, bp@suse.de, luto@kernel.org,
         x86@kernel.org
@@ -43,72 +43,115 @@ Cc:     len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
         ravi.v.shankar@intel.com, libc-alpha@sourceware.org,
         linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
         linux-kernel@vger.kernel.org, chang.seok.bae@intel.com
-Subject: [PATCH v2 0/4] x86: Improve Minimum Alternate Stack Size
-Date:   Thu, 19 Nov 2020 11:02:33 -0800
-Message-Id: <20201119190237.626-1-chang.seok.bae@intel.com>
+Subject: [PATCH v2 3/4] x86/signal: Prevent an alternate stack overflow before a signal delivery
+Date:   Thu, 19 Nov 2020 11:02:36 -0800
+Message-Id: <20201119190237.626-4-chang.seok.bae@intel.com>
 X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20201119190237.626-1-chang.seok.bae@intel.com>
+References: <20201119190237.626-1-chang.seok.bae@intel.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-[ We know there are a lot of Intel patches out there this week. We're
-  posting this as early as we can in case anyone has bandwidth to take a
-  look.  We don't think these are quite ready to be merged, but any review
-  is appreciated. ]
+The kernel pushes data on the userspace stack when entering a signal. If
+using a sigaltstack(), the kernel precisely knows the user stack size.
 
-During signal entry, the kernel pushes data onto the normal userspace
-stack. On x86, the data pushed onto the user stack includes XSAVE state,
-which has grown over time as new features and larger registers have been
-added to the architecture.
+When the kernel knows that the user stack is too small, avoid the overflow
+and do an immediate SIGSEGV instead.
 
-MINSIGSTKSZ is a constant provided in the kernel signal.h headers and
-typically distributed in lib-dev(el) packages, e.g. [1]. Its value is
-compiled into programs and is part of the user/kernel ABI. The MINSIGSTKSZ
-constant indicates to userspace how much data the kernel expects to push on
-the user stack, [2][3].
+This overflow is known to occur on systems with large XSAVE state. The
+effort to increase the size typically used for altstacks reduces the
+frequency of these overflows, but this approach is still useful for legacy
+binaries.
 
-However, this constant is much too small and does not reflect recent
-additions to the architecture. For instance, when AVX-512 states are in
-use, the signal frame size can be 3.5KB while MINSIGSTKSZ remains 2KB.
+Here the kernel expects a bit conservative stack size (for 64-bit apps).
+Legacy binaries used a too-small sigaltstack would be already overflowed
+before this change, if they run on modern hardware.
 
-The bug report [4] explains this as an ABI issue. The small MINSIGSTKSZ can
-cause user stack overflow when delivering a signal.
+Signed-off-by: Chang S. Bae <chang.seok.bae@intel.com>
+Reviewed-by: Len Brown <len.brown@intel.com>
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ arch/x86/ia32/ia32_signal.c     | 11 ++++++++---
+ arch/x86/include/asm/sigframe.h |  2 ++
+ arch/x86/kernel/signal.c        | 16 +++++++++++++++-
+ 3 files changed, 25 insertions(+), 4 deletions(-)
 
-In this series, we suggest a couple of things:
-1. Provide a variable minimum stack size to userspace, as a similar
-   approach to [5]
-2. Avoid using a too-small alternate stack
-
-Changes from v1 [6]:
-* Took stack alignment into account for sigframe size (Dave Martin)
-
-[1]: https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/bits/sigstack.h;h=b9dca794da093dc4d41d39db9851d444e1b54d9b;hb=HEAD
-[2]: https://www.gnu.org/software/libc/manual/html_node/Signal-Stack.html
-[3]: https://man7.org/linux/man-pages/man2/sigaltstack.2.html
-[4]: https://bugzilla.kernel.org/show_bug.cgi?id=153531
-[5]: https://blog.linuxplumbersconf.org/2017/ocw/system/presentations/4671/original/plumbers-dm-2017.pdf
-[6]: https://lore.kernel.org/lkml/20200929205746.6763-1-chang.seok.bae@intel.com/
-
-Chang S. Bae (4):
-  x86/signal: Introduce helpers to get the maximum signal frame size
-  x86/elf: Support a new ELF aux vector AT_MINSIGSTKSZ
-  x86/signal: Prevent an alternate stack overflow before a signal
-    delivery
-  selftest/x86/signal: Include test cases for validating sigaltstack
-
- arch/x86/ia32/ia32_signal.c               |  11 +-
- arch/x86/include/asm/elf.h                |   4 +
- arch/x86/include/asm/fpu/signal.h         |   2 +
- arch/x86/include/asm/sigframe.h           |  25 +++++
- arch/x86/include/uapi/asm/auxvec.h        |   6 +-
- arch/x86/kernel/cpu/common.c              |   3 +
- arch/x86/kernel/fpu/signal.c              |  20 ++++
- arch/x86/kernel/signal.c                  |  82 +++++++++++++-
- tools/testing/selftests/x86/Makefile      |   2 +-
- tools/testing/selftests/x86/sigaltstack.c | 126 ++++++++++++++++++++++
- 10 files changed, 272 insertions(+), 9 deletions(-)
- create mode 100644 tools/testing/selftests/x86/sigaltstack.c
-
+diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+index 81cf22398cd1..85abd9eb79d5 100644
+--- a/arch/x86/ia32/ia32_signal.c
++++ b/arch/x86/ia32/ia32_signal.c
+@@ -210,13 +210,18 @@ static void __user *get_sigframe(struct ksignal *ksig, struct pt_regs *regs,
+ 	sp = regs->sp;
+ 
+ 	/* This is the X/Open sanctioned signal stack switching.  */
+-	if (ksig->ka.sa.sa_flags & SA_ONSTACK)
++	if (ksig->ka.sa.sa_flags & SA_ONSTACK) {
++		/* If the altstack might overflow, die with SIGSEGV: */
++		if (!altstack_size_ok(current))
++			return (void __user *)-1L;
++
+ 		sp = sigsp(sp, ksig);
+ 	/* This is the legacy signal stack switching. */
+-	else if (regs->ss != __USER32_DS &&
++	} else if (regs->ss != __USER32_DS &&
+ 		!(ksig->ka.sa.sa_flags & SA_RESTORER) &&
+-		 ksig->ka.sa.sa_restorer)
++		 ksig->ka.sa.sa_restorer) {
+ 		sp = (unsigned long) ksig->ka.sa.sa_restorer;
++	}
+ 
+ 	sp = fpu__alloc_mathframe(sp, 1, &fx_aligned, &math_size);
+ 	*fpstate = (struct _fpstate_32 __user *) sp;
+diff --git a/arch/x86/include/asm/sigframe.h b/arch/x86/include/asm/sigframe.h
+index ac77f3f90bc9..c9f2f9ace76f 100644
+--- a/arch/x86/include/asm/sigframe.h
++++ b/arch/x86/include/asm/sigframe.h
+@@ -106,6 +106,8 @@ struct rt_sigframe_x32 {
+ #define SIZEOF_rt_sigframe_x32	0
+ #endif
+ 
++bool altstack_size_ok(struct task_struct *tsk);
++
+ void __init init_sigframe_size(void);
+ 
+ #endif /* _ASM_X86_SIGFRAME_H */
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index ee6f1ceaa7a2..cee41d684dc2 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -251,8 +251,13 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size,
+ 
+ 	/* This is the X/Open sanctioned signal stack switching.  */
+ 	if (ka->sa.sa_flags & SA_ONSTACK) {
+-		if (sas_ss_flags(sp) == 0)
++		if (sas_ss_flags(sp) == 0) {
++			/* If the altstack might overflow, die with SIGSEGV: */
++			if (!altstack_size_ok(current))
++				return (void __user *)-1L;
++
+ 			sp = current->sas_ss_sp + current->sas_ss_size;
++		}
+ 	} else if (IS_ENABLED(CONFIG_X86_32) &&
+ 		   !onsigstack &&
+ 		   regs->ss != __USER_DS &&
+@@ -725,6 +730,15 @@ unsigned long get_sigframe_size(void)
+ 	return max_frame_size;
+ }
+ 
++bool altstack_size_ok(struct task_struct *tsk)
++{
++	/*
++	 * Can this task's sigaltstack accommodate the largest
++	 * signal frame the kernel might need?
++	 */
++	return (tsk->sas_ss_size >= max_frame_size);
++}
++
+ static inline int is_ia32_compat_frame(struct ksignal *ksig)
+ {
+ 	return IS_ENABLED(CONFIG_IA32_EMULATION) &&
 -- 
 2.17.1
 
