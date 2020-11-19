@@ -2,39 +2,39 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-11.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4CCE0C388F9
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A6C64C6379D
 	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:07:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 05453246CA
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:07:01 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 570B2246A5
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:07:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727197AbgKSTGl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1727392AbgKSTGl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Thu, 19 Nov 2020 14:06:41 -0500
 Received: from mga12.intel.com ([192.55.52.136]:21738 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726944AbgKSTGl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1727160AbgKSTGl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Thu, 19 Nov 2020 14:06:41 -0500
-IronPort-SDR: Q8Z1M84r9eJat97C99tV8SmkDliAhsv5FAA8zelHyM/uLD/iFDNNIq8XT04aujDo/UdLjo1bcA
- KPKvcPQD58EQ==
-X-IronPort-AV: E=McAfee;i="6000,8403,9810"; a="150614463"
+IronPort-SDR: BEutbUlwzYkRLSFFuYoTIIw9J/Ud7cYFOkeZeot0N6uNOXxD+VcSchYAM+BeOpAlsyIQlmnpxB
+ 9FlkcI+XdzTw==
+X-IronPort-AV: E=McAfee;i="6000,8403,9810"; a="150614461"
 X-IronPort-AV: E=Sophos;i="5.78,354,1599548400"; 
-   d="scan'208";a="150614463"
+   d="scan'208";a="150614461"
 X-Amp-Result: SKIPPED(no attachment in message)
 X-Amp-File-Uploaded: False
 Received: from fmsmga001.fm.intel.com ([10.253.24.23])
-  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Nov 2020 11:06:40 -0800
-IronPort-SDR: n8TA3IManuqrcTlk2ugPC5bmgwG8KEkOXeSI7KE5Z9OPY2kl0AH9aJt9Ksc7HD3LeJjWPShKwY
- isD4NikzCgOg==
+  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Nov 2020 11:06:39 -0800
+IronPort-SDR: /LycEAwuD7D8NTvjhQxukEXdB9131AkvjDRbv7YVI1eXzkJ/47ZWL81OOQKr1Z9f7wuTYGB47H
+ oc9i+TynSF4Q==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="5.78,354,1599548400"; 
-   d="scan'208";a="431333993"
+   d="scan'208";a="431333987"
 Received: from chang-linux-3.sc.intel.com ([172.25.66.175])
-  by fmsmga001.fm.intel.com with ESMTP; 19 Nov 2020 11:06:40 -0800
+  by fmsmga001.fm.intel.com with ESMTP; 19 Nov 2020 11:06:39 -0800
 From:   "Chang S. Bae" <chang.seok.bae@intel.com>
 To:     tglx@linutronix.de, mingo@kernel.org, bp@suse.de, luto@kernel.org,
         x86@kernel.org
@@ -42,124 +42,73 @@ Cc:     len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
         Dave.Martin@arm.com, mpe@ellerman.id.au, tony.luck@intel.com,
         ravi.v.shankar@intel.com, libc-alpha@sourceware.org,
         linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        linux-kernel@vger.kernel.org, chang.seok.bae@intel.com,
-        Fenghua Yu <fenghua.yu@intel.com>
-Subject: [PATCH v2 2/4] x86/elf: Support a new ELF aux vector AT_MINSIGSTKSZ
-Date:   Thu, 19 Nov 2020 11:02:35 -0800
-Message-Id: <20201119190237.626-3-chang.seok.bae@intel.com>
+        linux-kernel@vger.kernel.org, chang.seok.bae@intel.com
+Subject: [PATCH v2 0/4] x86: Improve Minimum Alternate Stack Size
+Date:   Thu, 19 Nov 2020 11:02:33 -0800
+Message-Id: <20201119190237.626-1-chang.seok.bae@intel.com>
 X-Mailer: git-send-email 2.17.1
-In-Reply-To: <20201119190237.626-1-chang.seok.bae@intel.com>
-References: <20201119190237.626-1-chang.seok.bae@intel.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Historically, signal.h defines MINSIGSTKSZ (2KB) and SIGSTKSZ (8KB), for
-use by all architectures with sigaltstack(2). Over time, the hardware state
-size grew, but these constants did not evolve. Today, literal use of these
-constants on several architectures may result in signal stack overflow, and
-thus user data corruption.
+[ We know there are a lot of Intel patches out there this week. We're
+  posting this as early as we can in case anyone has bandwidth to take a
+  look.  We don't think these are quite ready to be merged, but any review
+  is appreciated. ]
 
-A few years ago, the ARM team addressed this issue by establishing
-getauxval(AT_MINSIGSTKSZ), such that the kernel can supply at runtime value
-that is an appropriate replacement on the current and future hardware.
+During signal entry, the kernel pushes data onto the normal userspace
+stack. On x86, the data pushed onto the user stack includes XSAVE state,
+which has grown over time as new features and larger registers have been
+added to the architecture.
 
-Add getauxval(AT_MINSIGSTKSZ) support to x86, analogous to the support
-added for ARM in commit 94b07c1f8c39 ("arm64: signal: Report signal frame
-size to userspace via auxv").
+MINSIGSTKSZ is a constant provided in the kernel signal.h headers and
+typically distributed in lib-dev(el) packages, e.g. [1]. Its value is
+compiled into programs and is part of the user/kernel ABI. The MINSIGSTKSZ
+constant indicates to userspace how much data the kernel expects to push on
+the user stack, [2][3].
 
-Reported-by: Florian Weimer <fweimer@redhat.com>
-Fixes: c2bc11f10a39 ("x86, AVX-512: Enable AVX-512 States Context Switch")
-Signed-off-by: Chang S. Bae <chang.seok.bae@intel.com>
-Reviewed-by: Len Brown <len.brown@intel.com>
-Cc: H.J. Lu <hjl.tools@gmail.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: Dave Martin <Dave.Martin@arm.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: x86@kernel.org
-Cc: libc-alpha@sourceware.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-api@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Link: https://bugzilla.kernel.org/show_bug.cgi?id=153531
----
- arch/x86/include/asm/elf.h         | 4 ++++
- arch/x86/include/uapi/asm/auxvec.h | 6 ++++--
- arch/x86/kernel/signal.c           | 5 +++++
- 3 files changed, 13 insertions(+), 2 deletions(-)
+However, this constant is much too small and does not reflect recent
+additions to the architecture. For instance, when AVX-512 states are in
+use, the signal frame size can be 3.5KB while MINSIGSTKSZ remains 2KB.
 
-diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
-index b9a5d488f1a5..044b024abea1 100644
---- a/arch/x86/include/asm/elf.h
-+++ b/arch/x86/include/asm/elf.h
-@@ -311,6 +311,7 @@ do {									\
- 		NEW_AUX_ENT(AT_SYSINFO,	VDSO_ENTRY);			\
- 		NEW_AUX_ENT(AT_SYSINFO_EHDR, VDSO_CURRENT_BASE);	\
- 	}								\
-+	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());			\
- } while (0)
- 
- /*
-@@ -327,6 +328,7 @@ extern unsigned long task_size_32bit(void);
- extern unsigned long task_size_64bit(int full_addr_space);
- extern unsigned long get_mmap_base(int is_legacy);
- extern bool mmap_address_hint_valid(unsigned long addr, unsigned long len);
-+extern unsigned long get_sigframe_size(void);
- 
- #ifdef CONFIG_X86_32
- 
-@@ -348,6 +350,7 @@ do {									\
- 	if (vdso64_enabled)						\
- 		NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
- 			    (unsigned long __force)current->mm->context.vdso); \
-+	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());			\
- } while (0)
- 
- /* As a historical oddity, the x32 and x86_64 vDSOs are controlled together. */
-@@ -356,6 +359,7 @@ do {									\
- 	if (vdso64_enabled)						\
- 		NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
- 			    (unsigned long __force)current->mm->context.vdso); \
-+	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());			\
- } while (0)
- 
- #define AT_SYSINFO		32
-diff --git a/arch/x86/include/uapi/asm/auxvec.h b/arch/x86/include/uapi/asm/auxvec.h
-index 580e3c567046..edd7808060e6 100644
---- a/arch/x86/include/uapi/asm/auxvec.h
-+++ b/arch/x86/include/uapi/asm/auxvec.h
-@@ -10,11 +10,13 @@
- #endif
- #define AT_SYSINFO_EHDR		33
- 
-+#define AT_MINSIGSTKSZ		51
-+
- /* entries in ARCH_DLINFO: */
- #if defined(CONFIG_IA32_EMULATION) || !defined(CONFIG_X86_64)
--# define AT_VECTOR_SIZE_ARCH 2
-+# define AT_VECTOR_SIZE_ARCH 3
- #else /* else it's non-compat x86-64 */
--# define AT_VECTOR_SIZE_ARCH 1
-+# define AT_VECTOR_SIZE_ARCH 2
- #endif
- 
- #endif /* _ASM_X86_AUXVEC_H */
-diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-index bae35ff6e744..ee6f1ceaa7a2 100644
---- a/arch/x86/kernel/signal.c
-+++ b/arch/x86/kernel/signal.c
-@@ -720,6 +720,11 @@ void __init init_sigframe_size(void)
- 	max_frame_size = round_up(max_frame_size, FRAME_ALIGNMENT);
- }
- 
-+unsigned long get_sigframe_size(void)
-+{
-+	return max_frame_size;
-+}
-+
- static inline int is_ia32_compat_frame(struct ksignal *ksig)
- {
- 	return IS_ENABLED(CONFIG_IA32_EMULATION) &&
+The bug report [4] explains this as an ABI issue. The small MINSIGSTKSZ can
+cause user stack overflow when delivering a signal.
+
+In this series, we suggest a couple of things:
+1. Provide a variable minimum stack size to userspace, as a similar
+   approach to [5]
+2. Avoid using a too-small alternate stack
+
+Changes from v1 [6]:
+* Took stack alignment into account for sigframe size (Dave Martin)
+
+[1]: https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/bits/sigstack.h;h=b9dca794da093dc4d41d39db9851d444e1b54d9b;hb=HEAD
+[2]: https://www.gnu.org/software/libc/manual/html_node/Signal-Stack.html
+[3]: https://man7.org/linux/man-pages/man2/sigaltstack.2.html
+[4]: https://bugzilla.kernel.org/show_bug.cgi?id=153531
+[5]: https://blog.linuxplumbersconf.org/2017/ocw/system/presentations/4671/original/plumbers-dm-2017.pdf
+[6]: https://lore.kernel.org/lkml/20200929205746.6763-1-chang.seok.bae@intel.com/
+
+Chang S. Bae (4):
+  x86/signal: Introduce helpers to get the maximum signal frame size
+  x86/elf: Support a new ELF aux vector AT_MINSIGSTKSZ
+  x86/signal: Prevent an alternate stack overflow before a signal
+    delivery
+  selftest/x86/signal: Include test cases for validating sigaltstack
+
+ arch/x86/ia32/ia32_signal.c               |  11 +-
+ arch/x86/include/asm/elf.h                |   4 +
+ arch/x86/include/asm/fpu/signal.h         |   2 +
+ arch/x86/include/asm/sigframe.h           |  25 +++++
+ arch/x86/include/uapi/asm/auxvec.h        |   6 +-
+ arch/x86/kernel/cpu/common.c              |   3 +
+ arch/x86/kernel/fpu/signal.c              |  20 ++++
+ arch/x86/kernel/signal.c                  |  82 +++++++++++++-
+ tools/testing/selftests/x86/Makefile      |   2 +-
+ tools/testing/selftests/x86/sigaltstack.c | 126 ++++++++++++++++++++++
+ 10 files changed, 272 insertions(+), 9 deletions(-)
+ create mode 100644 tools/testing/selftests/x86/sigaltstack.c
+
 -- 
 2.17.1
 
