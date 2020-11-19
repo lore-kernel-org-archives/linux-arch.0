@@ -2,45 +2,57 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-7.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1C2B1C63697
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 16:44:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 174ADC56201
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 16:44:43 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9EBDD2222A
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 16:44:21 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9BFAB22242
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 16:44:42 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="k4TottIk"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="aPw2cjLE"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728147AbgKSQoV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 19 Nov 2020 11:44:21 -0500
-Received: from mail.kernel.org ([198.145.29.99]:54488 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727853AbgKSQoV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Nov 2020 11:44:21 -0500
-Received: from willie-the-truck (236.31.169.217.in-addr.arpa [217.169.31.236])
+        id S1728264AbgKSQo1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 19 Nov 2020 11:44:27 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56630 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727853AbgKSQo0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Nov 2020 11:44:26 -0500
+Received: from merlin.infradead.org (merlin.infradead.org [IPv6:2001:8b0:10b:1231::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4F8C6C0613CF;
+        Thu, 19 Nov 2020 08:44:26 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=merlin.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=wsLfXjOUb7k94iVGlwmbXuzfOOU9iLV4p1vlaVNg328=; b=aPw2cjLEbuAk9sffw1SyN12mzE
+        xGA3HaEVMjcPXoGk0MCUQlqIGOBeWK1oAX0Ji1bp9JH/5r3oohaA6Egr1/k3AU3+G4uTlULqeXlxZ
+        gYAEOukuxEpzsBfzFt3mly3eT9O33XM5BnyyHbTK6fN+WjvV6bpVYQmlyjVYBGJzSwmiH21JfQ5ht
+        22pms09JsVLwwFZ6UGElKJdY3scHWGGW/d4FQwI7qYAD8ngvf6IFcxpNXd/EzNLa4YOBf5pGE1kEc
+        2Qe6TFk/5FRrJGJcP3F0NKTlIgMcW/nXWEyT1Kg6rSjbSjrjUU9SBGNzgZOpd1+/P+Kf3uco3WWcq
+        f2GYv0ug==;
+Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
+        by merlin.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
+        id 1kfn2c-0000Sq-BE; Thu, 19 Nov 2020 16:44:14 +0000
+Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 084F222227;
-        Thu, 19 Nov 2020 16:44:16 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1605804260;
-        bh=X0dkfAQ/RZZ0vc2DWgesSKsb7UCpnk9G0pl0RaG4zEU=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=k4TottIk5krhLkqXtTph8vd7A6u5ljjlWbxWAjXe7Z6sXYTNYXXzCMAmXoSwHW9xt
-         lp2lRVO+8F83dkUQ6edvDpjIdmhyWiyoHgylpmZr4ZHEDl5k1b+7IYCN9lKCYwG1NV
-         hzMVdWYRKIw5zsRHRpKcB7LT73Rf0cTKUh84Cf4s=
-Date:   Thu, 19 Nov 2020 16:44:13 +0000
-From:   Will Deacon <will@kernel.org>
-To:     Quentin Perret <qperret@google.com>
-Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+        (Client did not present a certificate)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 3673E300F7A;
+        Thu, 19 Nov 2020 17:44:11 +0100 (CET)
+Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
+        id 20E982C37252F; Thu, 19 Nov 2020 17:44:11 +0100 (CET)
+Date:   Thu, 19 Nov 2020 17:44:11 +0100
+From:   Peter Zijlstra <peterz@infradead.org>
+To:     Will Deacon <will@kernel.org>
+Cc:     Quentin Perret <qperret@google.com>,
+        linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org,
         Catalin Marinas <catalin.marinas@arm.com>,
         Marc Zyngier <maz@kernel.org>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Peter Zijlstra <peterz@infradead.org>,
         Morten Rasmussen <morten.rasmussen@arm.com>,
         Qais Yousef <qais.yousef@arm.com>,
         Suren Baghdasaryan <surenb@google.com>,
@@ -50,50 +62,64 @@ Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
         Juri Lelli <juri.lelli@redhat.com>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         kernel-team@android.com
-Subject: Re: [PATCH v3 11/14] sched: Reject CPU affinity changes based on
- arch_cpu_allowed_mask()
-Message-ID: <20201119164412.GE4582@willie-the-truck>
+Subject: Re: [PATCH v3 08/14] arm64: exec: Adjust affinity for compat tasks
+ with mismatched 32-bit EL0
+Message-ID: <20201119164411.GV3121392@hirez.programming.kicks-ass.net>
 References: <20201113093720.21106-1-will@kernel.org>
- <20201113093720.21106-12-will@kernel.org>
- <20201119094744.GE2416649@google.com>
- <20201119110723.GE3946@willie-the-truck>
- <20201119143012.GA2458028@google.com>
+ <20201113093720.21106-9-will@kernel.org>
+ <20201119092407.GB2416649@google.com>
+ <20201119110603.GB3946@willie-the-truck>
+ <20201119161956.GS3121392@hirez.programming.kicks-ass.net>
+ <20201119163035.GB4582@willie-the-truck>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20201119143012.GA2458028@google.com>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+In-Reply-To: <20201119163035.GB4582@willie-the-truck>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Nov 19, 2020 at 02:30:12PM +0000, Quentin Perret wrote:
-> On Thursday 19 Nov 2020 at 11:07:24 (+0000), Will Deacon wrote:
-> > Yeah, the cpuset code ignores the return value of set_cpus_allowed_ptr() in
-> > update_tasks_cpumask() so the failure won't be propagated, but then again I
-> > think that might be the right thing to do. Nothing prevents 32-bit and
-> > 64-bit tasks from co-existing in the same cpuseti afaict, so forcing the
-> > 64-bit tasks onto the 32-bit-capable cores feels much worse than the
-> > approach taken here imo.
+On Thu, Nov 19, 2020 at 04:30:36PM +0000, Will Deacon wrote:
+> On Thu, Nov 19, 2020 at 05:19:56PM +0100, Peter Zijlstra wrote:
+> > On Thu, Nov 19, 2020 at 11:06:04AM +0000, Will Deacon wrote:
+> > > On Thu, Nov 19, 2020 at 09:24:07AM +0000, Quentin Perret wrote:
+> > > > On Friday 13 Nov 2020 at 09:37:13 (+0000), Will Deacon wrote:
+> > > > > When exec'ing a 32-bit task on a system with mismatched support for
+> > > > > 32-bit EL0, try to ensure that it starts life on a CPU that can actually
+> > > > > run it.
+> > > > > 
+> > > > > Signed-off-by: Will Deacon <will@kernel.org>
+> > > > > ---
+> > > > >  arch/arm64/kernel/process.c | 12 +++++++++++-
+> > > > >  1 file changed, 11 insertions(+), 1 deletion(-)
+> > > > > 
+> > > > > diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+> > > > > index 1540ab0fbf23..17b94007fed4 100644
+> > > > > --- a/arch/arm64/kernel/process.c
+> > > > > +++ b/arch/arm64/kernel/process.c
+> > > > > @@ -625,6 +625,16 @@ unsigned long arch_align_stack(unsigned long sp)
+> > > > >  	return sp & ~0xf;
+> > > > >  }
+> > > > >  
+> > > > > +static void adjust_compat_task_affinity(struct task_struct *p)
+> > > > > +{
+> > > > > +	const struct cpumask *mask = system_32bit_el0_cpumask();
+> > > > > +
+> > > > > +	if (restrict_cpus_allowed_ptr(p, mask))
+> > > > > +		set_cpus_allowed_ptr(p, mask);
+> > > > 
+> > > > My understanding of this call to set_cpus_allowed_ptr() is that you're
+> > > > mimicking the hotplug vs affinity case behaviour in some ways. That is,
+> > > > if a task is pinned to a CPU and userspace hotplugs that CPU, then the
+> > > > kernel will reset the affinity of the task to the remaining online CPUs.
+> > > 
+> > > Correct. It looks to the 32-bit application like all the 64-bit-only CPUs
+> > > were hotplugged off at the point of the execve().
+> > 
+> > This doesn't respect cpusets though :/
 > 
-> Ack. And thinking about it more, failing the cgroup operation wouldn't
-> guarantee that the task's affinity and the cpuset are aligned anyway. We
-> could still exec into a 32 bit task from within a 64 bit-only cpuset.
-> 
-> > The interesting case is what happens if the cpuset for a 32-bit task is
-> > changed to contain only the 64-bit-only cores. I think that's a userspace
-> > bug
-> 
-> Maybe, but I think Android will do exactly that in some cases :/
-> 
-> > but the fallback rq selection should avert disaster.
-> 
-> I thought _this_ patch was 'fixing' this case by making the cpuset
-> operation pretty much a nop on the task affinity? The fallback rq stuff
-> is all about hotplug no?
+> How does that differ from select_fallback_rq()?
 
-Yeah, sorry, I wasn't clear. This patch postpones disaster until hotplug
-off time, when cpuset_cpus_allowed_fallback() will fail and
-select_fallback_rq() will have to step in.
+That has that cpuset state it tries first, only if that fails does it do
+the possible mask.
 
-Will
