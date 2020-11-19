@@ -2,281 +2,119 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6749CC64E75
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:07:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0226AC388F9
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:26:20 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 123AC221FC
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:07:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A10A2238E6
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:26:19 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="r7Gvj5r1"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727337AbgKSTGm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 19 Nov 2020 14:06:42 -0500
-Received: from mga12.intel.com ([192.55.52.136]:21738 "EHLO mga12.intel.com"
+        id S1727189AbgKSTZ7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 19 Nov 2020 14:25:59 -0500
+Received: from mail.kernel.org ([198.145.29.99]:38354 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726944AbgKSTGl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Nov 2020 14:06:41 -0500
-IronPort-SDR: jTnhhDD0BD6/6oaBklPYZ72XSwQOHspv0Yd2IEBycMPUxN88xojr7E6fBRs/ewccy2ZbhwYwB+
- ECAa9+8eY7EQ==
-X-IronPort-AV: E=McAfee;i="6000,8403,9810"; a="150614462"
-X-IronPort-AV: E=Sophos;i="5.78,354,1599548400"; 
-   d="scan'208";a="150614462"
-X-Amp-Result: SKIPPED(no attachment in message)
-X-Amp-File-Uploaded: False
-Received: from fmsmga001.fm.intel.com ([10.253.24.23])
-  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Nov 2020 11:06:40 -0800
-IronPort-SDR: o/KL1o3LyK17PXbYYUKj/9wgCLPu8rx3BYM6J0+Yyb+Sei/0DexUT8x2AIDYhQRLCJEvqPDIXH
- zPBiogR0OhvA==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="5.78,354,1599548400"; 
-   d="scan'208";a="431333990"
-Received: from chang-linux-3.sc.intel.com ([172.25.66.175])
-  by fmsmga001.fm.intel.com with ESMTP; 19 Nov 2020 11:06:39 -0800
-From:   "Chang S. Bae" <chang.seok.bae@intel.com>
-To:     tglx@linutronix.de, mingo@kernel.org, bp@suse.de, luto@kernel.org,
-        x86@kernel.org
-Cc:     len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
-        Dave.Martin@arm.com, mpe@ellerman.id.au, tony.luck@intel.com,
-        ravi.v.shankar@intel.com, libc-alpha@sourceware.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        linux-kernel@vger.kernel.org, chang.seok.bae@intel.com
-Subject: [PATCH v2 1/4] x86/signal: Introduce helpers to get the maximum signal frame size
-Date:   Thu, 19 Nov 2020 11:02:34 -0800
-Message-Id: <20201119190237.626-2-chang.seok.bae@intel.com>
-X-Mailer: git-send-email 2.17.1
-In-Reply-To: <20201119190237.626-1-chang.seok.bae@intel.com>
-References: <20201119190237.626-1-chang.seok.bae@intel.com>
+        id S1727905AbgKSTZ6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Nov 2020 14:25:58 -0500
+Received: from willie-the-truck (236.31.169.217.in-addr.arpa [217.169.31.236])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id A7AF6221FE;
+        Thu, 19 Nov 2020 19:25:54 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=default; t=1605813958;
+        bh=tpiSO13FbNyZ42kAbeVAMN0z3Q1MzKH9/3qggLww0uQ=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=r7Gvj5r18o4ajlJFxbZptgsKAjyvN81ac7Vl0PWWW7vgY0S4IhHlyeIc5GLyIIw/h
+         pJN+A48yxUDNPeT2M/RVFraejiLdehZ5T+GwLeGCdGiZ/aPb/eGZ19Tm36d84efeEe
+         W3kpJD0CA6Sxju9AI3YUc85X4mQR6ey0TYoH/F3I=
+Date:   Thu, 19 Nov 2020 19:25:51 +0000
+From:   Will Deacon <will@kernel.org>
+To:     Valentin Schneider <valentin.schneider@arm.com>
+Cc:     Peter Zijlstra <peterz@infradead.org>,
+        linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Marc Zyngier <maz@kernel.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Morten Rasmussen <morten.rasmussen@arm.com>,
+        Qais Yousef <qais.yousef@arm.com>,
+        Suren Baghdasaryan <surenb@google.com>,
+        Quentin Perret <qperret@google.com>, Tejun Heo <tj@kernel.org>,
+        Li Zefan <lizefan@huawei.com>,
+        Johannes Weiner <hannes@cmpxchg.org>,
+        Ingo Molnar <mingo@redhat.com>,
+        Juri Lelli <juri.lelli@redhat.com>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        kernel-team@android.com
+Subject: Re: [PATCH v3 07/14] sched: Introduce restrict_cpus_allowed_ptr() to
+ limit task CPU affinity
+Message-ID: <20201119192550.GD4906@willie-the-truck>
+References: <20201113093720.21106-1-will@kernel.org>
+ <20201113093720.21106-8-will@kernel.org>
+ <jhj8saxwm1l.mognet@arm.com>
+ <20201119131319.GE4331@willie-the-truck>
+ <20201119160944.GP3121392@hirez.programming.kicks-ass.net>
+ <jhj4kllwahv.mognet@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <jhj4kllwahv.mognet@arm.com>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Signal frames do not have a fixed format and can vary in size when a number
-of things change: support XSAVE features, 32 vs. 64-bit apps. Add the code
-to support a runtime method for userspace to dynamically discover how large
-a signal stack needs to be.
+On Thu, Nov 19, 2020 at 04:57:22PM +0000, Valentin Schneider wrote:
+> 
+> On 19/11/20 16:09, Peter Zijlstra wrote:
+> > On Thu, Nov 19, 2020 at 01:13:20PM +0000, Will Deacon wrote:
+> >
+> >> Sure, but I was talking about what userspace sees, and I don't think it ever
+> >> sees CPUs that have been hotplugged off, right? That is, sched_getaffinity()
+> >> masks its result with the active_mask.
+> >
+> > # for i in /sys/devices/system/cpu/cpu*/online; do echo -n $i ":"; cat $i; done
+> > /sys/devices/system/cpu/cpu1/online :0
+> > /sys/devices/system/cpu/cpu2/online :1
+> > /sys/devices/system/cpu/cpu3/online :1
+> > /sys/devices/system/cpu/cpu4/online :1
+> > /sys/devices/system/cpu/cpu5/online :1
+> > /sys/devices/system/cpu/cpu6/online :1
+> > /sys/devices/system/cpu/cpu7/online :1
+> >
+> > # grep Cpus_allowed /proc/self/status
+> > Cpus_allowed:   ff
+> > Cpus_allowed_list:      0-7
+> >
+> >
+> > :-)
+> 
+> Harumph, so there is that...
+> 
+> $ while true; do continue; done &
+> $ PID=$!
+> $ taskset -pc 0-1 $PID
+>   pid 849's current affinity list: 0-5
+>   pid 849's new affinity list: 0,1
+> $ echo 0 > /sys/devices/system/cpu/cpu1/online
+>   [12578.545726] CPU1: shutdown
+>   [12578.548454] psci: CPU1 killed (polled 0 ms)
+> $ taskset -pc $PID
+>   pid 849's current affinity list: 0
+> $ cat /proc/$PID/status | grep Cpus
+>   Cpus_allowed:   03
+>   Cpus_allowed_list:      0-1
 
-Introduce a new variable, max_frame_size, and helper functions for the
-calculation to be used in a new user interface. Set max_frame_size to a
-system-wide worst-case value, instead of storing multiple app-specific
-values.
+Yeah, I'm not sure this is worth tackling tbh. sched_getaffinity() does the
+right thing, but poking around in /proc and /sys is always going to defeat
+the illusion and I don't see what we gain in reporting CPUs on which the
+task is _never_ going to run anyway. But I'll revise my stance on it being
+identical to hotplug :) (I would've gotten away with it too, if it wasn't
+for those pesky hackers).
 
-Locate the body of the helper function -- fpu__get_fpstate_sigframe_size()
-in fpu/signal.c for its relevance.
-
-Signed-off-by: Chang S. Bae <chang.seok.bae@intel.com>
-Reviewed-by: Len Brown <len.brown@intel.com>
-Acked-by: H.J. Lu <hjl.tools@gmail.com>
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
----
-Change from v1:
-* Took stack alignment into account for sigframe size (Dave Martin)
----
- arch/x86/include/asm/fpu/signal.h |  2 +
- arch/x86/include/asm/sigframe.h   | 23 ++++++++++++
- arch/x86/kernel/cpu/common.c      |  3 ++
- arch/x86/kernel/fpu/signal.c      | 20 ++++++++++
- arch/x86/kernel/signal.c          | 61 ++++++++++++++++++++++++++++++-
- 5 files changed, 107 insertions(+), 2 deletions(-)
-
-diff --git a/arch/x86/include/asm/fpu/signal.h b/arch/x86/include/asm/fpu/signal.h
-index 7fb516b6893a..5bfbf8f2e5a3 100644
---- a/arch/x86/include/asm/fpu/signal.h
-+++ b/arch/x86/include/asm/fpu/signal.h
-@@ -29,6 +29,8 @@ unsigned long
- fpu__alloc_mathframe(unsigned long sp, int ia32_frame,
- 		     unsigned long *buf_fx, unsigned long *size);
- 
-+unsigned long fpu__get_fpstate_sigframe_size(void);
-+
- extern void fpu__init_prepare_fx_sw_frame(void);
- 
- #endif /* _ASM_X86_FPU_SIGNAL_H */
-diff --git a/arch/x86/include/asm/sigframe.h b/arch/x86/include/asm/sigframe.h
-index 84eab2724875..ac77f3f90bc9 100644
---- a/arch/x86/include/asm/sigframe.h
-+++ b/arch/x86/include/asm/sigframe.h
-@@ -52,6 +52,15 @@ struct rt_sigframe_ia32 {
- 	char retcode[8];
- 	/* fp state follows here */
- };
-+
-+#define SIZEOF_sigframe_ia32	sizeof(struct sigframe_ia32)
-+#define SIZEOF_rt_sigframe_ia32	sizeof(struct rt_sigframe_ia32)
-+
-+#else
-+
-+#define SIZEOF_sigframe_ia32	0
-+#define SIZEOF_rt_sigframe_ia32	0
-+
- #endif /* defined(CONFIG_X86_32) || defined(CONFIG_IA32_EMULATION) */
- 
- #ifdef CONFIG_X86_64
-@@ -81,8 +90,22 @@ struct rt_sigframe_x32 {
- 	/* fp state follows here */
- };
- 
-+#define SIZEOF_rt_sigframe_x32	sizeof(struct rt_sigframe_x32)
-+
- #endif /* CONFIG_X86_X32_ABI */
- 
-+#define SIZEOF_rt_sigframe	sizeof(struct rt_sigframe)
-+
-+#else
-+
-+#define SIZEOF_rt_sigframe	0
-+
- #endif /* CONFIG_X86_64 */
- 
-+#ifndef SIZEOF_rt_sigframe_x32
-+#define SIZEOF_rt_sigframe_x32	0
-+#endif
-+
-+void __init init_sigframe_size(void);
-+
- #endif /* _ASM_X86_SIGFRAME_H */
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index 35ad8480c464..6954932272d5 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -58,6 +58,7 @@
- #include <asm/intel-family.h>
- #include <asm/cpu_device_id.h>
- #include <asm/uv/uv.h>
-+#include <asm/sigframe.h>
- 
- #include "cpu.h"
- 
-@@ -1331,6 +1332,8 @@ static void __init early_identify_cpu(struct cpuinfo_x86 *c)
- 
- 	fpu__init_system(c);
- 
-+	init_sigframe_size();
-+
- #ifdef CONFIG_X86_32
- 	/*
- 	 * Regardless of whether PCID is enumerated, the SDM says
-diff --git a/arch/x86/kernel/fpu/signal.c b/arch/x86/kernel/fpu/signal.c
-index a4ec65317a7f..9f009525f551 100644
---- a/arch/x86/kernel/fpu/signal.c
-+++ b/arch/x86/kernel/fpu/signal.c
-@@ -507,6 +507,26 @@ fpu__alloc_mathframe(unsigned long sp, int ia32_frame,
- 
- 	return sp;
- }
-+
-+unsigned long fpu__get_fpstate_sigframe_size(void)
-+{
-+	unsigned long xstate_size = xstate_sigframe_size();
-+	unsigned long fsave_header_size = 0;
-+
-+	/*
-+	 * This space is needed on (most) 32-bit kernels, or when a 32-bit
-+	 * app is running on a 64-bit kernel. To keep things simple, just
-+	 * assume the worst case and always include space for 'freg_state',
-+	 * even for 64-bit apps on 64-bit kernels. This wastes a bit of
-+	 * space, but keeps the code simple.
-+	 */
-+	if ((IS_ENABLED(CONFIG_IA32_EMULATION) ||
-+	     IS_ENABLED(CONFIG_X86_32)) && use_fxsr())
-+		fsave_header_size = sizeof(struct fregs_state);
-+
-+	return fsave_header_size + xstate_size;
-+}
-+
- /*
-  * Prepare the SW reserved portion of the fxsave memory layout, indicating
-  * the presence of the extended state information in the memory layout
-diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-index be0d7d4152ec..bae35ff6e744 100644
---- a/arch/x86/kernel/signal.c
-+++ b/arch/x86/kernel/signal.c
-@@ -212,6 +212,11 @@ do {									\
-  * Set up a signal frame.
-  */
- 
-+/* x86 ABI requires 16-byte alignment */
-+#define FRAME_ALIGNMENT	16UL
-+
-+#define MAX_FRAME_PADDING	(FRAME_ALIGNMENT - 1)
-+
- /*
-  * Determine which stack to use..
-  */
-@@ -222,9 +227,9 @@ static unsigned long align_sigframe(unsigned long sp)
- 	 * Align the stack pointer according to the i386 ABI,
- 	 * i.e. so that on function entry ((sp + 4) & 15) == 0.
- 	 */
--	sp = ((sp + 4) & -16ul) - 4;
-+	sp = ((sp + 4) & -FRAME_ALIGNMENT) - 4;
- #else /* !CONFIG_X86_32 */
--	sp = round_down(sp, 16) - 8;
-+	sp = round_down(sp, FRAME_ALIGNMENT) - 8;
- #endif
- 	return sp;
- }
-@@ -663,6 +668,58 @@ SYSCALL_DEFINE0(rt_sigreturn)
- 	return 0;
- }
- 
-+/*
-+ * The FP state frame contains an XSAVE buffer which must be 64-byte aligned.
-+ * If a signal frame starts at an unaligned address, extra space is required.
-+ * This is the max alignment padding, conservatively.
-+ */
-+#define MAX_XSAVE_PADDING	63UL
-+
-+/*
-+ * The frame data is composed of the following areas and laid out as:
-+ *
-+ * -------------------------
-+ * | alignment padding     |
-+ * -------------------------
-+ * | (f)xsave frame        |
-+ * -------------------------
-+ * | fsave header          |
-+ * -------------------------
-+ * | alignment padding     |
-+ * -------------------------
-+ * | siginfo + ucontext    |
-+ * -------------------------
-+ */
-+
-+/* max_frame_size tells userspace the worst case signal stack size. */
-+static unsigned long __ro_after_init max_frame_size;
-+
-+void __init init_sigframe_size(void)
-+{
-+	/*
-+	 * Use the largest of possible structure formats. This might
-+	 * slightly oversize the frame for 64-bit apps.
-+	 */
-+
-+	if (IS_ENABLED(CONFIG_X86_32) ||
-+	    IS_ENABLED(CONFIG_IA32_EMULATION))
-+		max_frame_size = max((unsigned long)SIZEOF_sigframe_ia32,
-+				     (unsigned long)SIZEOF_rt_sigframe_ia32);
-+
-+	if (IS_ENABLED(CONFIG_X86_X32_ABI))
-+		max_frame_size = max(max_frame_size, (unsigned long)SIZEOF_rt_sigframe_x32);
-+
-+	if (IS_ENABLED(CONFIG_X86_64))
-+		max_frame_size = max(max_frame_size, (unsigned long)SIZEOF_rt_sigframe);
-+
-+	max_frame_size += MAX_FRAME_PADDING;
-+
-+	max_frame_size += fpu__get_fpstate_sigframe_size() + MAX_XSAVE_PADDING;
-+
-+	/* Userspace expects an aligned size. */
-+	max_frame_size = round_up(max_frame_size, FRAME_ALIGNMENT);
-+}
-+
- static inline int is_ia32_compat_frame(struct ksignal *ksig)
- {
- 	return IS_ENABLED(CONFIG_IA32_EMULATION) &&
--- 
-2.17.1
-
+Will
