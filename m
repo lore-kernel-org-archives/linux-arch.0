@@ -2,100 +2,140 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.3 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.9 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,FSL_HELO_FAKE,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_IN_DEF_DKIM_WL autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BB762C5519F
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 01:13:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 974ECC2D0E4
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 09:18:27 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 351352145D
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 01:13:07 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2E5192224D
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 09:18:27 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="FVps4gSc"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="SiGcoM1Z"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726110AbgKSBMq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 18 Nov 2020 20:12:46 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54168 "EHLO
+        id S1726407AbgKSJS0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 19 Nov 2020 04:18:26 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44074 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725947AbgKSBMq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 18 Nov 2020 20:12:46 -0500
-Received: from merlin.infradead.org (merlin.infradead.org [IPv6:2001:8b0:10b:1231::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1CC30C0613D4;
-        Wed, 18 Nov 2020 17:12:46 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=merlin.20170209; h=Content-Transfer-Encoding:Content-Type:
-        In-Reply-To:MIME-Version:Date:Message-ID:From:References:Cc:To:Subject:Sender
-        :Reply-To:Content-ID:Content-Description;
-        bh=TMXl8eP8f+rdhsuETVYmBMrtcwFUog3k1+Ypy5Ju3oA=; b=FVps4gScS2k+oVdahvk9DZ6i1J
-        FdkAkPMiM+0tEkK9teAcqHXD83Z3mj1ExtS5YxqcozewAllYfT5OaR9cK4I3hBPPiuvwTANJwyftt
-        lOGoV/yxDHQRMCa86DbEdgUVtwg+Xpj63Q+WJP4x9FbfUCXYP6Ak6q1sPiz3glJ/4SefmeCTfYOMz
-        /B9LND/6y0Lu5DugC35YW0tp4Yg4lkH1Jx/Liw3G9pRYgszRUVAIzfBf3kxVBWk5q2OHy3mKZ77sJ
-        AjQDbUHzeQ8Z2F0A0Pb7WDmtue6Bs6VBEpuAkYVB2ZEMLJLJaZfVckaZrfOG6kzErNm5RulXA/R1f
-        cX89S//g==;
-Received: from [2601:1c0:6280:3f0::bcc4]
-        by merlin.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kfYUv-0001Q0-1T; Thu, 19 Nov 2020 01:12:29 +0000
-Subject: Re: [PATCH v5 2/5] numa: Move numa implementation to common code
-To:     Atish Patra <atish.patra@wdc.com>, linux-kernel@vger.kernel.org
-Cc:     Jonathan Cameron <Jonathan.Cameron@huawei.com>,
+        with ESMTP id S1726182AbgKSJS0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Nov 2020 04:18:26 -0500
+Received: from mail-wr1-x42f.google.com (mail-wr1-x42f.google.com [IPv6:2a00:1450:4864:20::42f])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EB0B9C0613CF
+        for <linux-arch@vger.kernel.org>; Thu, 19 Nov 2020 01:18:25 -0800 (PST)
+Received: by mail-wr1-x42f.google.com with SMTP id m6so5607097wrg.7
+        for <linux-arch@vger.kernel.org>; Thu, 19 Nov 2020 01:18:25 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20161025;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=IdO73wPUtO91VkHNoPsos+au3LYwQYAXfz1yiydAPjw=;
+        b=SiGcoM1Z7UHzA4JfGM1ADc64LSJObWD3rK3mEabHpVq+qsFkyqIgfWSUClkF7e3P0a
+         mKFhGum+0JZb1YcCdG5O/7uy/cMY9n3BY4b9FtY9fAi/OUtd/2O9UfKfYNjDU3lfk1Vv
+         CoNWUnbPdfiklG0Ba6yHoigcezvm5licw9EJO29W6jBElMQmLtDXKCS3blMZdf01ZrfY
+         vqsf9SnELgTdAgJN6Ce32HjjQvSFCGOVbK81+ZgDWGGPvCxUiSuQNEcPZpyXeyUb/HxR
+         xO/UDT0W53dW8agM2LrCrqtWsc6aG5p8xK6BGQr/Xj0LwEgvuha5uXQuwSA3mqO6k4J9
+         ZKqw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=IdO73wPUtO91VkHNoPsos+au3LYwQYAXfz1yiydAPjw=;
+        b=OoSH7NzXxOqHLryxeIXdni0ZvT9NUr1lBaw/5CF2HP9Y3UzAc+QIEO1lHSdfn/jmZI
+         0TXwxvlsFLQ0xDraT2Gn78WnSV55bkwXnXa7qWcBqoHTf9rkyM+r5jJ0URMIN/LKYZrd
+         7VdXNNztNPmU5xxxc8ItExj/jVohhR6WHpXZNkDsPnYsUJPOMySKNtc9i/yeQDPeMwnG
+         7EeNFdhcxgQFMg2MexptHOEcRrd9X01TefHdjwcjLoI1NoDeuzwHfhcgaJOgbZDzaACt
+         ZZUjhwClLfBRyJR/xj7XnZd5u542kP+nTCf6hJTszQ1W1OcFFoZlOi87wcLKteB4PBLP
+         rhdw==
+X-Gm-Message-State: AOAM532P1kO0OzgHzuJUL0qrc6m4A6D3jjrEb1X5C76FZ0fBkDXQQb8H
+        f5nWYRYaViI63g4h+baeLbQxjhmsok4ENA==
+X-Google-Smtp-Source: ABdhPJy9KoqPyLqdoPK1EXUPy9/Ro5D0jFmed6OXcjS8SVZViEddXqKt96daQmNhCN5uascZH3UUww==
+X-Received: by 2002:adf:d18a:: with SMTP id v10mr8830619wrc.325.1605777504496;
+        Thu, 19 Nov 2020 01:18:24 -0800 (PST)
+Received: from google.com ([2a00:79e0:d:210:f693:9fff:fef4:a7ef])
+        by smtp.gmail.com with ESMTPSA id a128sm8935236wmf.5.2020.11.19.01.18.23
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 19 Nov 2020 01:18:23 -0800 (PST)
+Date:   Thu, 19 Nov 2020 09:18:20 +0000
+From:   Quentin Perret <qperret@google.com>
+To:     Will Deacon <will@kernel.org>
+Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org,
         Catalin Marinas <catalin.marinas@arm.com>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Anshuman Khandual <anshuman.khandual@arm.com>,
-        Anup Patel <anup@brainfault.org>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Baoquan He <bhe@redhat.com>,
-        Daniel Lezcano <daniel.lezcano@linaro.org>,
-        Greentime Hu <greentime.hu@sifive.com>,
+        Marc Zyngier <maz@kernel.org>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org,
-        Mike Rapoport <rppt@kernel.org>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        "Rafael J. Wysocki" <rafael@kernel.org>,
-        Steven Price <steven.price@arm.com>,
-        Will Deacon <will@kernel.org>,
-        Zhengyuan Liu <liuzhengyuan@tj.kylinos.cn>,
-        linux-arm-kernel@lists.infradead.org
-References: <20201119003829.1282810-1-atish.patra@wdc.com>
- <20201119003829.1282810-3-atish.patra@wdc.com>
-From:   Randy Dunlap <rdunlap@infradead.org>
-Message-ID: <c650ecd7-7cd3-fd8e-7d4b-ed32ca91ca70@infradead.org>
-Date:   Wed, 18 Nov 2020 17:12:20 -0800
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
- Thunderbird/68.12.0
+        Peter Zijlstra <peterz@infradead.org>,
+        Morten Rasmussen <morten.rasmussen@arm.com>,
+        Qais Yousef <qais.yousef@arm.com>,
+        Suren Baghdasaryan <surenb@google.com>,
+        Tejun Heo <tj@kernel.org>, Li Zefan <lizefan@huawei.com>,
+        Johannes Weiner <hannes@cmpxchg.org>,
+        Ingo Molnar <mingo@redhat.com>,
+        Juri Lelli <juri.lelli@redhat.com>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        kernel-team@android.com
+Subject: Re: [PATCH v3 07/14] sched: Introduce restrict_cpus_allowed_ptr() to
+ limit task CPU affinity
+Message-ID: <20201119091820.GA2416649@google.com>
+References: <20201113093720.21106-1-will@kernel.org>
+ <20201113093720.21106-8-will@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20201119003829.1282810-3-atish.patra@wdc.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20201113093720.21106-8-will@kernel.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 11/18/20 4:38 PM, Atish Patra wrote:
-> diff --git a/drivers/base/Kconfig b/drivers/base/Kconfig
-> index 8d7001712062..c5956c8845cc 100644
-> --- a/drivers/base/Kconfig
-> +++ b/drivers/base/Kconfig
-> @@ -210,4 +210,10 @@ config GENERIC_ARCH_TOPOLOGY
->  	  appropriate scaling, sysfs interface for reading capacity values at
->  	  runtime.
+Hey Will,
+
+On Friday 13 Nov 2020 at 09:37:12 (+0000), Will Deacon wrote:
+> -static int __set_cpus_allowed_ptr(struct task_struct *p,
+> -				  const struct cpumask *new_mask, bool check)
+> +static int __set_cpus_allowed_ptr_locked(struct task_struct *p,
+> +					 const struct cpumask *new_mask,
+> +					 bool check,
+> +					 struct rq *rq,
+> +					 struct rq_flags *rf)
+>  {
+>  	const struct cpumask *cpu_valid_mask = cpu_active_mask;
+>  	unsigned int dest_cpu;
+> -	struct rq_flags rf;
+> -	struct rq *rq;
+>  	int ret = 0;
+
+Should we have a lockdep assertion here?
+
+> -	rq = task_rq_lock(p, &rf);
+>  	update_rq_clock(rq);
 >  
-> +config GENERIC_ARCH_NUMA
-> +	bool
-> +	help
-> +	  Enable support for generic NUMA implementation. Currently, RISC-V
-> +	  and ARM64 uses it.
+>  	if (p->flags & PF_KTHREAD) {
+> @@ -1929,7 +1923,7 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
+>  	if (task_running(rq, p) || p->state == TASK_WAKING) {
+>  		struct migration_arg arg = { p, dest_cpu };
+>  		/* Need help from migration thread: drop lock and wait. */
+> -		task_rq_unlock(rq, p, &rf);
+> +		task_rq_unlock(rq, p, rf);
+>  		stop_one_cpu(cpu_of(rq), migration_cpu_stop, &arg);
+>  		return 0;
+>  	} else if (task_on_rq_queued(p)) {
+> @@ -1937,20 +1931,69 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
+>  		 * OK, since we're going to drop the lock immediately
+>  		 * afterwards anyway.
+>  		 */
+> -		rq = move_queued_task(rq, &rf, p, dest_cpu);
+> +		rq = move_queued_task(rq, rf, p, dest_cpu);
+>  	}
+>  out:
+> -	task_rq_unlock(rq, p, &rf);
+> +	task_rq_unlock(rq, p, rf);
 
-	            use it.
+And that's a little odd to have here no? Can we move it back on the
+caller's side?
 
-> +
->  endmenu
+>  	return ret;
+>  }
 
-
--- 
-~Randy
-
+Thanks,
+Quentin
