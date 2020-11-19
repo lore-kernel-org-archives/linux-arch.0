@@ -2,94 +2,164 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C4F68C6379F
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 16:57:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4CCE0C388F9
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:07:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 78E92241A6
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 16:57:54 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 05453246CA
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 19:07:01 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729154AbgKSQ5a (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 19 Nov 2020 11:57:30 -0500
-Received: from foss.arm.com ([217.140.110.172]:35034 "EHLO foss.arm.com"
+        id S1727197AbgKSTGl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 19 Nov 2020 14:06:41 -0500
+Received: from mga12.intel.com ([192.55.52.136]:21738 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727935AbgKSQ5a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Nov 2020 11:57:30 -0500
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id D5C441396;
-        Thu, 19 Nov 2020 08:57:29 -0800 (PST)
-Received: from e113632-lin (e113632-lin.cambridge.arm.com [10.1.194.46])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 868F53F718;
-        Thu, 19 Nov 2020 08:57:27 -0800 (PST)
-References: <20201113093720.21106-1-will@kernel.org> <20201113093720.21106-8-will@kernel.org> <jhj8saxwm1l.mognet@arm.com> <20201119131319.GE4331@willie-the-truck> <20201119160944.GP3121392@hirez.programming.kicks-ass.net>
-User-agent: mu4e 0.9.17; emacs 26.3
-From:   Valentin Schneider <valentin.schneider@arm.com>
-To:     Peter Zijlstra <peterz@infradead.org>
-Cc:     Will Deacon <will@kernel.org>,
-        linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Marc Zyngier <maz@kernel.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Morten Rasmussen <morten.rasmussen@arm.com>,
-        Qais Yousef <qais.yousef@arm.com>,
-        Suren Baghdasaryan <surenb@google.com>,
-        Quentin Perret <qperret@google.com>, Tejun Heo <tj@kernel.org>,
-        Li Zefan <lizefan@huawei.com>,
-        Johannes Weiner <hannes@cmpxchg.org>,
-        Ingo Molnar <mingo@redhat.com>,
-        Juri Lelli <juri.lelli@redhat.com>,
-        Vincent Guittot <vincent.guittot@linaro.org>,
-        kernel-team@android.com
-Subject: Re: [PATCH v3 07/14] sched: Introduce restrict_cpus_allowed_ptr() to limit task CPU affinity
-Message-ID: <jhj4kllwahv.mognet@arm.com>
-In-reply-to: <20201119160944.GP3121392@hirez.programming.kicks-ass.net>
-Date:   Thu, 19 Nov 2020 16:57:22 +0000
-MIME-Version: 1.0
-Content-Type: text/plain
+        id S1726944AbgKSTGl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Nov 2020 14:06:41 -0500
+IronPort-SDR: Q8Z1M84r9eJat97C99tV8SmkDliAhsv5FAA8zelHyM/uLD/iFDNNIq8XT04aujDo/UdLjo1bcA
+ KPKvcPQD58EQ==
+X-IronPort-AV: E=McAfee;i="6000,8403,9810"; a="150614463"
+X-IronPort-AV: E=Sophos;i="5.78,354,1599548400"; 
+   d="scan'208";a="150614463"
+X-Amp-Result: SKIPPED(no attachment in message)
+X-Amp-File-Uploaded: False
+Received: from fmsmga001.fm.intel.com ([10.253.24.23])
+  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Nov 2020 11:06:40 -0800
+IronPort-SDR: n8TA3IManuqrcTlk2ugPC5bmgwG8KEkOXeSI7KE5Z9OPY2kl0AH9aJt9Ksc7HD3LeJjWPShKwY
+ isD4NikzCgOg==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.78,354,1599548400"; 
+   d="scan'208";a="431333993"
+Received: from chang-linux-3.sc.intel.com ([172.25.66.175])
+  by fmsmga001.fm.intel.com with ESMTP; 19 Nov 2020 11:06:40 -0800
+From:   "Chang S. Bae" <chang.seok.bae@intel.com>
+To:     tglx@linutronix.de, mingo@kernel.org, bp@suse.de, luto@kernel.org,
+        x86@kernel.org
+Cc:     len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
+        Dave.Martin@arm.com, mpe@ellerman.id.au, tony.luck@intel.com,
+        ravi.v.shankar@intel.com, libc-alpha@sourceware.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
+        linux-kernel@vger.kernel.org, chang.seok.bae@intel.com,
+        Fenghua Yu <fenghua.yu@intel.com>
+Subject: [PATCH v2 2/4] x86/elf: Support a new ELF aux vector AT_MINSIGSTKSZ
+Date:   Thu, 19 Nov 2020 11:02:35 -0800
+Message-Id: <20201119190237.626-3-chang.seok.bae@intel.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20201119190237.626-1-chang.seok.bae@intel.com>
+References: <20201119190237.626-1-chang.seok.bae@intel.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+Historically, signal.h defines MINSIGSTKSZ (2KB) and SIGSTKSZ (8KB), for
+use by all architectures with sigaltstack(2). Over time, the hardware state
+size grew, but these constants did not evolve. Today, literal use of these
+constants on several architectures may result in signal stack overflow, and
+thus user data corruption.
 
-On 19/11/20 16:09, Peter Zijlstra wrote:
-> On Thu, Nov 19, 2020 at 01:13:20PM +0000, Will Deacon wrote:
->
->> Sure, but I was talking about what userspace sees, and I don't think it ever
->> sees CPUs that have been hotplugged off, right? That is, sched_getaffinity()
->> masks its result with the active_mask.
->
-> # for i in /sys/devices/system/cpu/cpu*/online; do echo -n $i ":"; cat $i; done
-> /sys/devices/system/cpu/cpu1/online :0
-> /sys/devices/system/cpu/cpu2/online :1
-> /sys/devices/system/cpu/cpu3/online :1
-> /sys/devices/system/cpu/cpu4/online :1
-> /sys/devices/system/cpu/cpu5/online :1
-> /sys/devices/system/cpu/cpu6/online :1
-> /sys/devices/system/cpu/cpu7/online :1
->
-> # grep Cpus_allowed /proc/self/status
-> Cpus_allowed:   ff
-> Cpus_allowed_list:      0-7
->
->
-> :-)
+A few years ago, the ARM team addressed this issue by establishing
+getauxval(AT_MINSIGSTKSZ), such that the kernel can supply at runtime value
+that is an appropriate replacement on the current and future hardware.
 
-Harumph, so there is that...
+Add getauxval(AT_MINSIGSTKSZ) support to x86, analogous to the support
+added for ARM in commit 94b07c1f8c39 ("arm64: signal: Report signal frame
+size to userspace via auxv").
 
-$ while true; do continue; done &
-$ PID=$!
-$ taskset -pc 0-1 $PID
-  pid 849's current affinity list: 0-5
-  pid 849's new affinity list: 0,1
-$ echo 0 > /sys/devices/system/cpu/cpu1/online
-  [12578.545726] CPU1: shutdown
-  [12578.548454] psci: CPU1 killed (polled 0 ms)
-$ taskset -pc $PID
-  pid 849's current affinity list: 0
-$ cat /proc/$PID/status | grep Cpus
-  Cpus_allowed:   03
-  Cpus_allowed_list:      0-1
+Reported-by: Florian Weimer <fweimer@redhat.com>
+Fixes: c2bc11f10a39 ("x86, AVX-512: Enable AVX-512 States Context Switch")
+Signed-off-by: Chang S. Bae <chang.seok.bae@intel.com>
+Reviewed-by: Len Brown <len.brown@intel.com>
+Cc: H.J. Lu <hjl.tools@gmail.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Dave Martin <Dave.Martin@arm.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: x86@kernel.org
+Cc: libc-alpha@sourceware.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-api@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Link: https://bugzilla.kernel.org/show_bug.cgi?id=153531
+---
+ arch/x86/include/asm/elf.h         | 4 ++++
+ arch/x86/include/uapi/asm/auxvec.h | 6 ++++--
+ arch/x86/kernel/signal.c           | 5 +++++
+ 3 files changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index b9a5d488f1a5..044b024abea1 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -311,6 +311,7 @@ do {									\
+ 		NEW_AUX_ENT(AT_SYSINFO,	VDSO_ENTRY);			\
+ 		NEW_AUX_ENT(AT_SYSINFO_EHDR, VDSO_CURRENT_BASE);	\
+ 	}								\
++	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());			\
+ } while (0)
+ 
+ /*
+@@ -327,6 +328,7 @@ extern unsigned long task_size_32bit(void);
+ extern unsigned long task_size_64bit(int full_addr_space);
+ extern unsigned long get_mmap_base(int is_legacy);
+ extern bool mmap_address_hint_valid(unsigned long addr, unsigned long len);
++extern unsigned long get_sigframe_size(void);
+ 
+ #ifdef CONFIG_X86_32
+ 
+@@ -348,6 +350,7 @@ do {									\
+ 	if (vdso64_enabled)						\
+ 		NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
+ 			    (unsigned long __force)current->mm->context.vdso); \
++	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());			\
+ } while (0)
+ 
+ /* As a historical oddity, the x32 and x86_64 vDSOs are controlled together. */
+@@ -356,6 +359,7 @@ do {									\
+ 	if (vdso64_enabled)						\
+ 		NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
+ 			    (unsigned long __force)current->mm->context.vdso); \
++	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());			\
+ } while (0)
+ 
+ #define AT_SYSINFO		32
+diff --git a/arch/x86/include/uapi/asm/auxvec.h b/arch/x86/include/uapi/asm/auxvec.h
+index 580e3c567046..edd7808060e6 100644
+--- a/arch/x86/include/uapi/asm/auxvec.h
++++ b/arch/x86/include/uapi/asm/auxvec.h
+@@ -10,11 +10,13 @@
+ #endif
+ #define AT_SYSINFO_EHDR		33
+ 
++#define AT_MINSIGSTKSZ		51
++
+ /* entries in ARCH_DLINFO: */
+ #if defined(CONFIG_IA32_EMULATION) || !defined(CONFIG_X86_64)
+-# define AT_VECTOR_SIZE_ARCH 2
++# define AT_VECTOR_SIZE_ARCH 3
+ #else /* else it's non-compat x86-64 */
+-# define AT_VECTOR_SIZE_ARCH 1
++# define AT_VECTOR_SIZE_ARCH 2
+ #endif
+ 
+ #endif /* _ASM_X86_AUXVEC_H */
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index bae35ff6e744..ee6f1ceaa7a2 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -720,6 +720,11 @@ void __init init_sigframe_size(void)
+ 	max_frame_size = round_up(max_frame_size, FRAME_ALIGNMENT);
+ }
+ 
++unsigned long get_sigframe_size(void)
++{
++	return max_frame_size;
++}
++
+ static inline int is_ia32_compat_frame(struct ksignal *ksig)
+ {
+ 	return IS_ENABLED(CONFIG_IA32_EMULATION) &&
+-- 
+2.17.1
+
