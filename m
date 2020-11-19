@@ -2,77 +2,54 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.5 required=3.0 tests=BAYES_00,DKIM_INVALID,
-	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-12.3 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C5D3CC64E7C
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 00:39:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BB762C5519F
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 01:13:08 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 70CEB2467A
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 00:39:00 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 351352145D
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Nov 2020 01:13:07 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=wdc.com header.i=@wdc.com header.b="dTcrzsed"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="FVps4gSc"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727179AbgKSAiu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 18 Nov 2020 19:38:50 -0500
-Received: from esa1.hgst.iphmx.com ([68.232.141.245]:49091 "EHLO
-        esa1.hgst.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726739AbgKSAij (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 18 Nov 2020 19:38:39 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple;
-  d=wdc.com; i=@wdc.com; q=dns/txt; s=dkim.wdc.com;
-  t=1605746319; x=1637282319;
-  h=from:to:cc:subject:date:message-id:in-reply-to:
-   references:mime-version:content-transfer-encoding;
-  bh=tBpauZx+fMSCAhtcJtgaXTjyMk4K33HNxdPCRgo5eAU=;
-  b=dTcrzsedYcALOIVOJ9/3ANfggSzTpX4wQ9zp7HK555so5+439ZM295Hc
-   mNyjGMh8RSv+pdIjJL9Xa2hde9agZI5GLV53GyQ425whmUPQf+mv1dSFl
-   tomsRmmkMl+0XbfcIxq8yzkEpzKIBWTEDujttsfKJKzUL2zWKC7wCdDfz
-   +3lzzRZqvg5axrcuXYj9MpnjURB7GvfhrF840WEIEVpAXkH4CCFvp4VER
-   gIV8yDON+8BwGn+NUE0/2xUMoK84FJClM94sgFgPU1Bg7ajn23NetnRsh
-   B+i5akNjbOmIiTtEN7D4crCek4MULT7z3cLYNy6MiB+mFL7LBOq19gh5E
-   Q==;
-IronPort-SDR: mJKvHGGwhBzQw6leP7vFYTFL+9ux63zVj775Ssc9NKebCqmiJbI5EBGWd5OJC5g2E4CO6cfHm2
- htLQd2lHcKHe2BqAoZz5Lix8gPTwWEgJ/KdT/2Azrg2d7PtI2lf5iYUEuEcht8Z0derz0Hb8Hp
- cnZmoxwPKgKoYrG17/7wfEnOTWOAUsp1x2uJf0yyWDCMJvIAAEIK9TjSY4g/ZZ5JUjP/yVNh4y
- Wsw/nC6XJwHnKBgaq4UxrkE2VMjztKxa0bmehJHBe5dr8S0gNwsazEI2GahnTCQL5DGyQPwJEK
- UbI=
-X-IronPort-AV: E=Sophos;i="5.77,488,1596470400"; 
-   d="scan'208";a="262974341"
-Received: from h199-255-45-15.hgst.com (HELO uls-op-cesaep02.wdc.com) ([199.255.45.15])
-  by ob1.hgst.iphmx.com with ESMTP; 19 Nov 2020 08:38:39 +0800
-IronPort-SDR: 2D/8WScK2SQVF891gB+M8clc3+LN4loHlAybpIaj748UTc77OSXdac9EvT80HUz6sb05d5I2pc
- ORVEWcMQGQoyQPnqoVo+dlBPX9SbAevCCr0PNum080EBPU6byabKZ0jsi/E6oQ9T+7WJZH19pI
- I975yJmKzLWrUIIMPNBQLgvk8GkKC6JLGuqs+dAdOTmMAK4pkcEXO1ND3ZrQ1+02n510nhvYmg
- Di8bjYpwOFngeGak1zULIYlgUp4jwsBZxZpfE3FAYSNWYomD8N1GIP4izXKWS9RbBdmrxzOS7F
- lJUVq6xVk8q+leq0NxvZmw4m
-Received: from uls-op-cesaip02.wdc.com ([10.248.3.37])
-  by uls-op-cesaep02.wdc.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Nov 2020 16:23:10 -0800
-IronPort-SDR: WCaCsrsQeD76vs6BFx7SRimVV5INxI7DErIY0dh+zHL6r7f7mSDPhUNFrE4WqDFTIutVZMMunu
- wqhTxTrVS1A9vDQVtpsuWjd/gi0VH2iIABey0qs6WV6Xv3BZacKVArX7YI67nLhsntgDW28ipN
- Xn4BjRUZbX1axB9UG2WOz118O/X055REKNgOJ3MBAMk7DUnaK/LdNxI5NBZ3Gzj6oL4LbP1s1d
- VwgDTQ2No147z99s/TxQB3G3eNk7wdpCEnmu3aYGSBmgCYjZBFQ4NDa3q2K0v3fseBt1l/zGNy
- 6x0=
-WDCIronportException: Internal
-Received: from 6hj08h2.ad.shared (HELO jedi-01.hgst.com) ([10.86.61.71])
-  by uls-op-cesaip02.wdc.com with ESMTP; 18 Nov 2020 16:38:37 -0800
-From:   Atish Patra <atish.patra@wdc.com>
-To:     linux-kernel@vger.kernel.org
-Cc:     Greentime Hu <greentime.hu@sifive.com>,
-        Anup Patel <anup@brainfault.org>,
-        Palmer Dabbelt <palmerdabbelt@google.com>,
+        id S1726110AbgKSBMq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 18 Nov 2020 20:12:46 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54168 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725947AbgKSBMq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 18 Nov 2020 20:12:46 -0500
+Received: from merlin.infradead.org (merlin.infradead.org [IPv6:2001:8b0:10b:1231::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1CC30C0613D4;
+        Wed, 18 Nov 2020 17:12:46 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=merlin.20170209; h=Content-Transfer-Encoding:Content-Type:
+        In-Reply-To:MIME-Version:Date:Message-ID:From:References:Cc:To:Subject:Sender
+        :Reply-To:Content-ID:Content-Description;
+        bh=TMXl8eP8f+rdhsuETVYmBMrtcwFUog3k1+Ypy5Ju3oA=; b=FVps4gScS2k+oVdahvk9DZ6i1J
+        FdkAkPMiM+0tEkK9teAcqHXD83Z3mj1ExtS5YxqcozewAllYfT5OaR9cK4I3hBPPiuvwTANJwyftt
+        lOGoV/yxDHQRMCa86DbEdgUVtwg+Xpj63Q+WJP4x9FbfUCXYP6Ak6q1sPiz3glJ/4SefmeCTfYOMz
+        /B9LND/6y0Lu5DugC35YW0tp4Yg4lkH1Jx/Liw3G9pRYgszRUVAIzfBf3kxVBWk5q2OHy3mKZ77sJ
+        AjQDbUHzeQ8Z2F0A0Pb7WDmtue6Bs6VBEpuAkYVB2ZEMLJLJaZfVckaZrfOG6kzErNm5RulXA/R1f
+        cX89S//g==;
+Received: from [2601:1c0:6280:3f0::bcc4]
+        by merlin.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
+        id 1kfYUv-0001Q0-1T; Thu, 19 Nov 2020 01:12:29 +0000
+Subject: Re: [PATCH v5 2/5] numa: Move numa implementation to common code
+To:     Atish Patra <atish.patra@wdc.com>, linux-kernel@vger.kernel.org
+Cc:     Jonathan Cameron <Jonathan.Cameron@huawei.com>,
+        Catalin Marinas <catalin.marinas@arm.com>,
         Albert Ou <aou@eecs.berkeley.edu>,
         Andrew Morton <akpm@linux-foundation.org>,
         Anshuman Khandual <anshuman.khandual@arm.com>,
+        Anup Patel <anup@brainfault.org>,
         Ard Biesheuvel <ardb@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Atish Patra <atish.patra@wdc.com>, Baoquan He <bhe@redhat.com>,
-        Catalin Marinas <catalin.marinas@arm.com>,
+        Arnd Bergmann <arnd@arndb.de>, Baoquan He <bhe@redhat.com>,
         Daniel Lezcano <daniel.lezcano@linaro.org>,
+        Greentime Hu <greentime.hu@sifive.com>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Jonathan Cameron <Jonathan.Cameron@huawei.com>,
         linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org,
         Mike Rapoport <rppt@kernel.org>,
         Palmer Dabbelt <palmer@dabbelt.com>,
@@ -82,68 +59,43 @@ Cc:     Greentime Hu <greentime.hu@sifive.com>,
         Will Deacon <will@kernel.org>,
         Zhengyuan Liu <liuzhengyuan@tj.kylinos.cn>,
         linux-arm-kernel@lists.infradead.org
-Subject: [PATCH v5 4/5] riscv: Add support pte_protnone and pmd_protnone if CONFIG_NUMA_BALANCING
-Date:   Wed, 18 Nov 2020 16:38:28 -0800
-Message-Id: <20201119003829.1282810-5-atish.patra@wdc.com>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20201119003829.1282810-1-atish.patra@wdc.com>
 References: <20201119003829.1282810-1-atish.patra@wdc.com>
+ <20201119003829.1282810-3-atish.patra@wdc.com>
+From:   Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <c650ecd7-7cd3-fd8e-7d4b-ed32ca91ca70@infradead.org>
+Date:   Wed, 18 Nov 2020 17:12:20 -0800
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
+ Thunderbird/68.12.0
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20201119003829.1282810-3-atish.patra@wdc.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Greentime Hu <greentime.hu@sifive.com>
+On 11/18/20 4:38 PM, Atish Patra wrote:
+> diff --git a/drivers/base/Kconfig b/drivers/base/Kconfig
+> index 8d7001712062..c5956c8845cc 100644
+> --- a/drivers/base/Kconfig
+> +++ b/drivers/base/Kconfig
+> @@ -210,4 +210,10 @@ config GENERIC_ARCH_TOPOLOGY
+>  	  appropriate scaling, sysfs interface for reading capacity values at
+>  	  runtime.
+>  
+> +config GENERIC_ARCH_NUMA
+> +	bool
+> +	help
+> +	  Enable support for generic NUMA implementation. Currently, RISC-V
+> +	  and ARM64 uses it.
 
-These two functions are used to distinguish between PROT_NONENUMA
-protections and hinting fault protections.
+	            use it.
 
-Signed-off-by: Greentime Hu <greentime.hu@sifive.com>
-Reviewed-by: Anup Patel <anup@brainfault.org>
-Reviewed-by: Palmer Dabbelt <palmerdabbelt@google.com>
----
- arch/riscv/include/asm/pgtable.h | 20 ++++++++++++++++++++
- 1 file changed, 20 insertions(+)
+> +
+>  endmenu
 
-diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
-index a0f8a86236e8..64aba4f7a0ed 100644
---- a/arch/riscv/include/asm/pgtable.h
-+++ b/arch/riscv/include/asm/pgtable.h
-@@ -187,6 +187,11 @@ static inline unsigned long pmd_page_vaddr(pmd_t pmd)
- 	return (unsigned long)pfn_to_virt(pmd_val(pmd) >> _PAGE_PFN_SHIFT);
- }
- 
-+static inline pte_t pmd_pte(pmd_t pmd)
-+{
-+	return __pte(pmd_val(pmd));
-+}
-+
- /* Yields the page frame number (PFN) of a page table entry */
- static inline unsigned long pte_pfn(pte_t pte)
- {
-@@ -290,6 +295,21 @@ static inline pte_t pte_mkhuge(pte_t pte)
- 	return pte;
- }
- 
-+#ifdef CONFIG_NUMA_BALANCING
-+/*
-+ * See the comment in include/asm-generic/pgtable.h
-+ */
-+static inline int pte_protnone(pte_t pte)
-+{
-+	return (pte_val(pte) & (_PAGE_PRESENT | _PAGE_PROT_NONE)) == _PAGE_PROT_NONE;
-+}
-+
-+static inline int pmd_protnone(pmd_t pmd)
-+{
-+	return pte_protnone(pmd_pte(pmd));
-+}
-+#endif
-+
- /* Modify page protection bits */
- static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
- {
+
 -- 
-2.25.1
+~Randy
 
