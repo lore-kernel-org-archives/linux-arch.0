@@ -6,43 +6,43 @@ X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9C692C64E7B
-	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 10:25:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 69424C2D0E4
+	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 10:25:23 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7059B2158C
-	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 10:25:20 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 259D220731
+	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 10:25:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728491AbgKWKZB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 23 Nov 2020 05:25:01 -0500
-Received: from mail-lj1-f194.google.com ([209.85.208.194]:45841 "EHLO
-        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728343AbgKWKY7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2020 05:24:59 -0500
-Received: by mail-lj1-f194.google.com with SMTP id b17so17341426ljf.12;
-        Mon, 23 Nov 2020 02:24:56 -0800 (PST)
+        id S1728523AbgKWKZI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 23 Nov 2020 05:25:08 -0500
+Received: from mail-lf1-f65.google.com ([209.85.167.65]:44227 "EHLO
+        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728460AbgKWKZB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2020 05:25:01 -0500
+Received: by mail-lf1-f65.google.com with SMTP id d20so7105035lfe.11;
+        Mon, 23 Nov 2020 02:24:58 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=DIiHwj3zzp1SABTt1Q6VlY96K3Om1JLL4a2Gj9szo8g=;
-        b=eOo67ZJDQIFZOTk4Cv5FDEpZiM91eYQDmB13Pmm5j53eP9L7yI6Eio1QGjyZrtHBq7
-         BNKCZV9xOh9+dyoLg936DzXwJY1C2o2SPTfdGX//nZkfG/vA0aLBai4OgmhyK1ixv3b+
-         cfWqlw5dae/v71DNZZqoOHL7//u85L74DjOYUEfsovC29hx1LAerk1n8UVTa64zspxVL
-         o0UH7JqpsT8ahBJPXUbGpCs8RIpxdKZntOeq69oj3f3BMA56xNS6rF+1rKYwOS2EyGUB
-         aSHlSMwEG9deyyAYP6CaVXwm6kwpPoAw7ovz6C1fbJccogwL9rq+/60+ADQRP5Q+kL52
-         HhPw==
-X-Gm-Message-State: AOAM5336ntNFa60Aet7RDJOks1lqA4N2uarskq+Q/jypEIoQ/VkBg8kG
-        t+loadlL60mUI8a4C5yhjSo=
-X-Google-Smtp-Source: ABdhPJypPhINbxOPDDAy+PaHJNUlqNhM/8V6ncVpCoNzYAAdenvD9//gnaDWJRNgSPvUqaBBQdCBOQ==
-X-Received: by 2002:a05:651c:326:: with SMTP id b6mr2712269ljp.339.1606127095742;
-        Mon, 23 Nov 2020 02:24:55 -0800 (PST)
+        bh=MyGoxRTFxoN3CcXdLX3OQwBVVHqEtKepL93LP6Dv6QA=;
+        b=OE+KIeqgCGVJlCOpBED4oW7Ho0krS1kdfAYjCG4J2tTM+dGyH6J50nCrKL9hddNF+A
+         bfMqWw5prwWFwq9MmILkyq6z6tAJYyebKHCkCg5uNFv7KHEEoJNboqZ+Kz/cO70IA8et
+         6wpcvU3U0NE+JsNoCKzik9pEZRkkcSyLekoJt7C0tJaBLYnXwrajDfVuMzno+7qaIwei
+         iPauvfCqBpKNlASI0w4BAnIKsx5PANmNNygE9Jj+6BC9TKk53HxR7V81Skllxws+SHQY
+         5FtIvb43YQKEua0CXBu5cQs4CJebzZxwR92e6dXIFgRCLkeNyqEijUZicDTmv/AeBfi6
+         +0PA==
+X-Gm-Message-State: AOAM5330GtawGKbUnA7ztgGJ1yYnBNr0SyqFKIPoWrK4G2C+QZRphemj
+        fIBgdMHRPQ93WBtapVkemvqFiWbWum5Rog==
+X-Google-Smtp-Source: ABdhPJwl8WMWawBdVsNJWOHAvxz3cvEnNqeVuuYH2D1bUXik+AgYZGIqav0dRAEa9yNytSMyPFebDg==
+X-Received: by 2002:a19:910b:: with SMTP id t11mr1687236lfd.306.1606127097818;
+        Mon, 23 Nov 2020 02:24:57 -0800 (PST)
 Received: from xi.terra (c-beaee455.07-184-6d6c6d4.bbcust.telenor.se. [85.228.174.190])
-        by smtp.gmail.com with ESMTPSA id h11sm1343594lfc.194.2020.11.23.02.24.52
+        by smtp.gmail.com with ESMTPSA id y17sm425927ljc.50.2020.11.23.02.24.53
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
         Mon, 23 Nov 2020 02:24:54 -0800 (PST)
 Received: from johan by xi.terra with local (Exim 4.93.0.4)
         (envelope-from <johan@xi.terra>)
-        id 1kh91q-000286-Gd; Mon, 23 Nov 2020 11:25:02 +0100
+        id 1kh91q-00028L-QS; Mon, 23 Nov 2020 11:25:02 +0100
 From:   Johan Hovold <johan@kernel.org>
 To:     Rob Herring <robh+dt@kernel.org>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
@@ -60,9 +60,9 @@ Cc:     Frank Rowand <frowand.list@gmail.com>,
         Daniel Kurtz <djkurtz@chromium.org>,
         linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
         linux-kernel@vger.kernel.org, Johan Hovold <johan@kernel.org>
-Subject: [PATCH v2 5/8] init: use type alignment for kernel parameters
-Date:   Mon, 23 Nov 2020 11:23:16 +0100
-Message-Id: <20201123102319.8090-6-johan@kernel.org>
+Subject: [PATCH v2 8/8] params: clean up module-param macros
+Date:   Mon, 23 Nov 2020 11:23:19 +0100
+Message-Id: <20201123102319.8090-9-johan@kernel.org>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20201123102319.8090-1-johan@kernel.org>
 References: <20201123102319.8090-1-johan@kernel.org>
@@ -72,38 +72,35 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Specify type alignment for kernel parameters instead of sizeof(long).
-
-The alignment attribute is used to prevent gcc from increasing the
-alignment of objects with static extent as an optimisation, something
-which would mess up the __setup array stride.
-
-Using __alignof__(struct obs_kernel_param) rather than sizeof(long) is
-preferred since it better indicates why it is there and doesn't break
-should the type size or alignment change.
-
-Note that on m68k the alignment of struct obs_kernel_param is actually
-two and that adding a 1- or 2-byte field to the 12-byte struct would
-cause a breakage with the current 4-byte alignment.
+Clean up the module-param macros by adding some indentation and using
+the __aligned() macro to improve readability.
 
 Signed-off-by: Johan Hovold <johan@kernel.org>
 ---
- include/linux/init.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/linux/moduleparam.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/init.h b/include/linux/init.h
-index 7b53cb3092ee..e668832ef66a 100644
---- a/include/linux/init.h
-+++ b/include/linux/init.h
-@@ -255,7 +255,7 @@ struct obs_kernel_param {
- 		__aligned(1) = str; 					\
- 	static struct obs_kernel_param __setup_##unique_id		\
- 		__used __section(".init.setup")				\
--		__attribute__((aligned((sizeof(long)))))		\
-+		__aligned(__alignof__(struct obs_kernel_param))		\
- 		= { __setup_str_##unique_id, fn, early }
+diff --git a/include/linux/moduleparam.h b/include/linux/moduleparam.h
+index 15ecc6cc3a3b..eed280fae433 100644
+--- a/include/linux/moduleparam.h
++++ b/include/linux/moduleparam.h
+@@ -21,12 +21,12 @@
+ #define MAX_PARAM_PREFIX_LEN (64 - sizeof(unsigned long))
  
- #define __setup(str, fn)						\
+ #define __MODULE_INFO(tag, name, info)					  \
+-static const char __UNIQUE_ID(name)[]					  \
+-  __used __section(".modinfo") __attribute__((aligned(1)))		  \
+-  = __MODULE_INFO_PREFIX __stringify(tag) "=" info
++	static const char __UNIQUE_ID(name)[]				  \
++		__used __section(".modinfo") __aligned(1)		  \
++		= __MODULE_INFO_PREFIX __stringify(tag) "=" info
+ 
+ #define __MODULE_PARM_TYPE(name, _type)					  \
+-  __MODULE_INFO(parmtype, name##type, #name ":" _type)
++	__MODULE_INFO(parmtype, name##type, #name ":" _type)
+ 
+ /* One for each parameter, describing how to use it.  Some files do
+    multiple of these per line, so can't just use MODULE_INFO. */
 -- 
 2.26.2
 
