@@ -2,53 +2,54 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-4.0 required=3.0 tests=BAYES_00,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 03471C8300C
-	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 10:25:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E5D35C63798
+	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 10:39:41 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id BF0F22074B
-	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 10:25:26 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A3F2F20773
+	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 10:39:41 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728196AbgKWKZS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 23 Nov 2020 05:25:18 -0500
-Received: from mail-lj1-f195.google.com ([209.85.208.195]:42832 "EHLO
-        mail-lj1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726735AbgKWKY5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2020 05:24:57 -0500
-Received: by mail-lj1-f195.google.com with SMTP id p12so17352861ljc.9;
-        Mon, 23 Nov 2020 02:24:55 -0800 (PST)
+        id S1728690AbgKWKj2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 23 Nov 2020 05:39:28 -0500
+Received: from mail-lf1-f66.google.com ([209.85.167.66]:38210 "EHLO
+        mail-lf1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728158AbgKWKj2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2020 05:39:28 -0500
+Received: by mail-lf1-f66.google.com with SMTP id s27so3071007lfp.5;
+        Mon, 23 Nov 2020 02:39:26 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=LHyP1gF49h6gvXjDL3rBo+x9M1skx5AsWhXDDOWrSN8=;
-        b=Tcq13H1iIZndhmqeBuZQUkoDlRt/AW6+CmrM6hgtikbGhP3MiUna5cKy9ux8t9tNPp
-         cI0OXaLrfxBUNV+ZtjVz8/uzqYB3ILXCkXwqv2VnXDJL4qtkQqBrHQSdK7WiDmom8SfR
-         ewhvwOGK/Tc0zjjON2DJAigSoueXgYKndMfs2yxb++bqsLaCJRAxtIhzJsUy0ZXqjAEv
-         pLfD6Caei+mhLoKZNts22+PoJhPri1AhLnsO9gfyFCxx1B92bD83nkmn/Vl4jqXjk3hA
-         X4PJqGRRiir/3wYDqgmobvVxBC7wUcjjpodBJDZW9DG2eDeEcl3WdIcAZ49NQix9gkNw
-         sVmA==
-X-Gm-Message-State: AOAM531QlJwo18xwBaYNY9xFlvVjhGThzz4dmVxTFn2Zl4u+0MIliv0K
-        rLxcHYvFK0Es9166HIH2Tjw=
-X-Google-Smtp-Source: ABdhPJwNXcmhpB6rR47zowKo5AjZLMScQFr8spUl+ZmF+hYgPcER80cRSefkGb5VbKWnUX1JyagGew==
-X-Received: by 2002:a2e:5853:: with SMTP id x19mr24502ljd.232.1606127095247;
-        Mon, 23 Nov 2020 02:24:55 -0800 (PST)
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=Zu6OfJ95y/pN6IwPuUeH5utOpyu4tZOqYK7qDx71Ni8=;
+        b=k9JqMwa01H/TlQXgxHuXxiJo/wUA1VsRNt3AxNiDnjURaGSfwSG+QEH43PMQ/Rw1yY
+         jI0xFRSXAQYJo6c9tZyoSmxZKkpl0/SPZVInxv12CnjZSbi9CbCfe7JsoESPfnrPYxcL
+         /wdnvFU12+j7+AiUVRfO3Z/xZljrjdTmRU+U6oWeioBukaiqLgHK7Qg2EseYZFj77X3g
+         u0xkug4Er8VAo6rNgd+IHkwi6U6pEtKYAMYh1oA7k8a83ajT6qc/pvdgxwZm5aNwLm5S
+         9KipbC5NH5+C8dqx073LE1hbCWvEFbrAaxVHZcoPzf126t2IGpe2BqsfrCR6j7DWieQx
+         W/jw==
+X-Gm-Message-State: AOAM5315nVHeLZzfG5vjv0Rr2yYdullCmpn9zwwYRaIfZFX49akRVQ94
+        tF/QIM8NvrHlm8dvXmZAnLfT8v76LDstGQ==
+X-Google-Smtp-Source: ABdhPJzUGZ0YqN/vl49P9feH1vlK2oj73FKY6pxWrO7X1b7knH1ZqrDuJBa3qsxmQarxIFKwpMFjqQ==
+X-Received: by 2002:a19:1d0:: with SMTP id 199mr12243126lfb.151.1606127965943;
+        Mon, 23 Nov 2020 02:39:25 -0800 (PST)
 Received: from xi.terra (c-beaee455.07-184-6d6c6d4.bbcust.telenor.se. [85.228.174.190])
-        by smtp.gmail.com with ESMTPSA id a24sm1267712ljn.85.2020.11.23.02.24.52
+        by smtp.gmail.com with ESMTPSA id s20sm493368ljg.15.2020.11.23.02.39.24
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 23 Nov 2020 02:24:54 -0800 (PST)
+        Mon, 23 Nov 2020 02:39:25 -0800 (PST)
 Received: from johan by xi.terra with local (Exim 4.93.0.4)
-        (envelope-from <johan@xi.terra>)
-        id 1kh91q-00027w-AR; Mon, 23 Nov 2020 11:25:02 +0100
+        (envelope-from <johan@kernel.org>)
+        id 1kh9Ft-0002BT-Sm; Mon, 23 Nov 2020 11:39:34 +0100
+Date:   Mon, 23 Nov 2020 11:39:33 +0100
 From:   Johan Hovold <johan@kernel.org>
-To:     Rob Herring <robh+dt@kernel.org>,
+To:     Jessica Yu <jeyu@kernel.org>
+Cc:     Johan Hovold <johan@kernel.org>, linux-kernel@vger.kernel.org,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Rob Herring <robh+dt@kernel.org>,
+        Frank Rowand <frowand.list@gmail.com>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Jessica Yu <jeyu@kernel.org>,
-        Linus Torvalds <torvalds@linux-foundation.org>
-Cc:     Frank Rowand <frowand.list@gmail.com>,
         Arnd Bergmann <arnd@arndb.de>,
         Geert Uytterhoeven <geert@linux-m68k.org>,
         Dmitry Torokhov <dmitry.torokhov@gmail.com>,
@@ -58,51 +59,51 @@ Cc:     Frank Rowand <frowand.list@gmail.com>,
         Thomas Gleixner <tglx@linutronix.de>,
         Steven Rostedt <rostedt@goodmis.org>,
         Daniel Kurtz <djkurtz@chromium.org>,
-        linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
-        linux-kernel@vger.kernel.org, Johan Hovold <johan@kernel.org>
-Subject: [PATCH v2 3/8] module: drop version-attribute alignment
-Date:   Mon, 23 Nov 2020 11:23:14 +0100
-Message-Id: <20201123102319.8090-4-johan@kernel.org>
-X-Mailer: git-send-email 2.26.2
-In-Reply-To: <20201123102319.8090-1-johan@kernel.org>
-References: <20201123102319.8090-1-johan@kernel.org>
+        linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org
+Subject: Re: [PATCH 0/8] linker-section array fix and clean ups
+Message-ID: <X7uRZUY+2L9Yg9wt@localhost>
+References: <20201103175711.10731-1-johan@kernel.org>
+ <20201106160344.GA12184@linux-8ccs.fritz.box>
+ <20201106164537.GD4085@localhost>
+ <20201111154716.GB5304@linux-8ccs>
+ <X66VvI/M4GRDbiWM@localhost>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <X66VvI/M4GRDbiWM@localhost>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Commit 98562ad8cb03 ("module: explicitly align module_version_attribute
-structure") added an alignment attribute to the struct
-module_version_attribute type in order to fix an alignment issue on m68k
-where the structure is 2-byte aligned while MODULE_VERSION() forced the
-__modver section entries to be 4-byte aligned (sizeof(void *)).
+On Fri, Nov 13, 2020 at 03:18:36PM +0100, Johan Hovold wrote:
+> On Wed, Nov 11, 2020 at 04:47:16PM +0100, Jessica Yu wrote:
+> 
+> > Thanks for providing the links and references. Your explanation and
+> > this reply from Jakub [1] clarified things for me. I was not aware of
+> > the distinction gcc made between aligned attributes on types vs. on
+> > variables. So from what I understand now, gcc suppresses the
+> > optimization when the alignment is specified in the variable
+> > declaration, but not necessarily when the aligned attribute is just on
+> > the type.
+> > 
+> > Even though it's been in use for a long time, I think it would be
+> > really helpful if this gcc quirk was explained just a bit more in the
+> > patch changelogs, especially since this is undocumented behavior.
+> > I found the explanation in [1] (as well as in your cover letter) to be
+> > sufficient. Maybe something like "GCC suppresses any optimizations
+> > increasing alignment when the alignment is specified in the variable
+> > declaration, as opposed to just on the type definition. Therefore,
+> > explicitly specify type alignment when declaring entries to prevent
+> > gcc from increasing alignment."
+> 
+> Sure, I can try to expand the commit messages a bit.
 
-This was essentially an alternative fix to the problem addressed by
-b4bc842802db ("module: deal with alignment issues in built-in module
-versions") which used the array-of-pointer trick to prevent gcc from
-increasing alignment of the version attribute entries. And with the
-pointer indirection in place there's no need to increase the alignment
-of the type.
+I've amended the commit messages of the relevant patches to make it more
+clear that the optimisation can be suppressed by specifying alignment
+when declaring variables, but without making additional claims about the
+type attribute. I hope the result is acceptable to you.
 
-Signed-off-by: Johan Hovold <johan@kernel.org>
----
- include/linux/module.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Perhaps you can include a lore link to the patches when applying so that
+this thread can be found easily if needed.
 
-diff --git a/include/linux/module.h b/include/linux/module.h
-index 6264617bab4d..735f2931ea47 100644
---- a/include/linux/module.h
-+++ b/include/linux/module.h
-@@ -66,7 +66,7 @@ struct module_version_attribute {
- 	struct module_attribute mattr;
- 	const char *module_name;
- 	const char *version;
--} __attribute__ ((__aligned__(sizeof(void *))));
-+};
- 
- extern ssize_t __modver_version_show(struct module_attribute *,
- 				     struct module_kobject *, char *);
--- 
-2.26.2
-
+Johan
