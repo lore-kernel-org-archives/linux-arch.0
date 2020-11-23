@@ -6,43 +6,43 @@ X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 93B73C63777
+	by smtp.lore.kernel.org (Postfix) with ESMTP id ED7A8C64EBC
 	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 10:25:25 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 531052074B
-	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 10:25:23 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C5CEC20731
+	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 10:25:25 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728463AbgKWKZB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 23 Nov 2020 05:25:01 -0500
-Received: from mail-lf1-f67.google.com ([209.85.167.67]:44227 "EHLO
-        mail-lf1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728377AbgKWKZB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2020 05:25:01 -0500
-Received: by mail-lf1-f67.google.com with SMTP id d20so7104967lfe.11;
+        id S1728541AbgKWKZM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 23 Nov 2020 05:25:12 -0500
+Received: from mail-lj1-f195.google.com ([209.85.208.195]:44979 "EHLO
+        mail-lj1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728151AbgKWKY6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2020 05:24:58 -0500
+Received: by mail-lj1-f195.google.com with SMTP id s9so17343766ljo.11;
         Mon, 23 Nov 2020 02:24:57 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=0R5B5NEv7oqTPvl5L6QmigBIM00NjEd6sjsvZWW1R4A=;
-        b=RabaZ/Hv7ZdMdkJMHwtUZLbcSay6nMj3Frz5WIFQiZIgJ2u4Peu0OvUOvht1+PPn6e
-         JUYDqovbRK2Bmzn6UBLJScBWdnyBgWtyrdzrdpk1uuUyLrisu30WH/qkoCqfPBMNjavq
-         NwVl+Il2kJXdBp4/36EAGCI4WIZHOFQwMArQ7hIhGybk57KhSnkkurIXaO338B8CpTco
-         N0pIs9pbqW1osW3kVLMJ8kjVzlDVZxREvnJSmaYUw5EAQ4/I+lqgIpmRO6gVwogGvt8H
-         aJeCWccWiVl//m1dFuSAbzO3fVeWJNwdrImD3O8caWwZYSLfCFqnMylz7kbP8gv5LfNC
-         bxeQ==
-X-Gm-Message-State: AOAM533b0qCrNWnwhVAcm+9knmpXrAKyV9mpm7SsRJfcQXCnGp+7U92b
-        y1siNmLJBeqt6JRXN2og8qI=
-X-Google-Smtp-Source: ABdhPJzg8syGN8Z5PZT9JURA0pE0JMS+anhz0oG1XKKRmwEDBBg3hlO3N0RWYpGP0xVsjCD7fELdsw==
-X-Received: by 2002:a19:7fcd:: with SMTP id a196mr12426890lfd.53.1606127096822;
+        bh=O2Qijc9aD+xW1gS8brgc0GdeSKquQ1+Gpi9pX1QSTC8=;
+        b=sDUVoVIA44+zO9izMxeUVpY15NdFrwB2Tfy5fJrTapbBOI8fKuKcI3MvrYfxLZnCaN
+         zeFgSU7SboU4Caw8NLL0SuF4xsXEDdzWCFM7aeFNuN5DzcC+4DiqYnvf2eM6jIpUCt4l
+         mC8Bj6Lf59tXj/KahANkdbryU3rkx0BHwD3qVxLtnNseSVyQGxPN6EvmXwtoULfYtiqD
+         luPpBozoL2x9EjOvUIo5e/YXsw2O4hb78bT77oCA0aRetfrDO35F9bbWIBRvpOXbSmLB
+         PZfiuwLQwi02VmkW0xvlYZB0nX5BwMq0TtCTrQn/F/RpmrZsp6GRTzX2sPE/mPoGWYXE
+         Ki9g==
+X-Gm-Message-State: AOAM531N6EIEDdKVwqMqJTBlNFxT4AAz3ArbkWELL1t30CSL2R1Qeye9
+        Yzy0m0JUtPuHA89z0wvcubo=
+X-Google-Smtp-Source: ABdhPJwgOlDN8KDCwSZS3ShtINu2/HapY7fElGJeiTXcNj8Tz55wosnok9KcMg/QlGR0eBh9Fi3M1A==
+X-Received: by 2002:a2e:b701:: with SMTP id j1mr13560576ljo.242.1606127096342;
         Mon, 23 Nov 2020 02:24:56 -0800 (PST)
 Received: from xi.terra (c-beaee455.07-184-6d6c6d4.bbcust.telenor.se. [85.228.174.190])
-        by smtp.gmail.com with ESMTPSA id 7sm430133ljq.34.2020.11.23.02.24.52
+        by smtp.gmail.com with ESMTPSA id o17sm1330328lfg.136.2020.11.23.02.24.53
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
         Mon, 23 Nov 2020 02:24:54 -0800 (PST)
 Received: from johan by xi.terra with local (Exim 4.93.0.4)
         (envelope-from <johan@xi.terra>)
-        id 1kh91q-000281-D3; Mon, 23 Nov 2020 11:25:02 +0100
+        id 1kh91q-00028G-NA; Mon, 23 Nov 2020 11:25:02 +0100
 From:   Johan Hovold <johan@kernel.org>
 To:     Rob Herring <robh+dt@kernel.org>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
@@ -60,9 +60,9 @@ Cc:     Frank Rowand <frowand.list@gmail.com>,
         Daniel Kurtz <djkurtz@chromium.org>,
         linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
         linux-kernel@vger.kernel.org, Johan Hovold <johan@kernel.org>
-Subject: [PATCH v2 4/8] module: simplify version-attribute handling
-Date:   Mon, 23 Nov 2020 11:23:15 +0100
-Message-Id: <20201123102319.8090-5-johan@kernel.org>
+Subject: [PATCH v2 7/8] params: use type alignment for kernel parameters
+Date:   Mon, 23 Nov 2020 11:23:18 +0100
+Message-Id: <20201123102319.8090-8-johan@kernel.org>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20201123102319.8090-1-johan@kernel.org>
 References: <20201123102319.8090-1-johan@kernel.org>
@@ -72,93 +72,40 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Instead of using the array-of-pointers trick to avoid having gcc mess up
-the built-in module-version array stride, specify type alignment when
-declaring entries to prevent gcc from increasing alignment.
+Specify type alignment for kernel parameters instead of sizeof(void *).
 
-This is essentially an alternative (one-line) fix to the problem
-addressed by commit b4bc842802db ("module: deal with alignment issues in
-built-in module versions").
+The alignment attribute is used to prevent gcc from increasing the
+alignment of objects with static extent as an optimisation, something
+which would mess up the __param array stride.
 
-gcc can increase the alignment of larger objects with static extent as
-an optimisation, but this can be suppressed by using the aligned
-attribute when declaring variables.
+Using __alignof__(struct kernel_param) rather than sizeof(void *) is
+preferred since it better indicates why it is there and doesn't break
+should the type size or alignment change.
 
-Note that we have been relying on this behaviour for kernel parameters
-for 16 years and it indeed hasn't changed since the introduction of the
-aligned attribute in gcc-3.1.
+Note that on m68k the alignment of struct kernel_param is actually two
+and that adding a 1- or 2-byte field to the 20-byte struct would cause a
+breakage with the current 4-byte alignment.
 
 Signed-off-by: Johan Hovold <johan@kernel.org>
 ---
- include/linux/module.h | 26 +++++++++++++-------------
- kernel/params.c        | 10 ++++------
- 2 files changed, 17 insertions(+), 19 deletions(-)
+ include/linux/moduleparam.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/module.h b/include/linux/module.h
-index 735f2931ea47..ebe2641d7b0b 100644
---- a/include/linux/module.h
-+++ b/include/linux/module.h
-@@ -266,20 +266,20 @@ extern typeof(name) __mod_##type##__##name##_device_table		\
- #else
- #define MODULE_VERSION(_version)					\
- 	MODULE_INFO(version, _version);					\
--	static struct module_version_attribute ___modver_attr = {	\
--		.mattr	= {						\
--			.attr	= {					\
--				.name	= "version",			\
--				.mode	= S_IRUGO,			\
-+	static struct module_version_attribute __modver_attr		\
-+		__used __section("__modver")				\
-+		__aligned(__alignof__(struct module_version_attribute)) \
-+		= {							\
-+			.mattr	= {					\
-+				.attr	= {				\
-+					.name	= "version",		\
-+					.mode	= S_IRUGO,		\
-+				},					\
-+				.show	= __modver_version_show,	\
- 			},						\
--			.show	= __modver_version_show,		\
--		},							\
--		.module_name	= KBUILD_MODNAME,			\
--		.version	= _version,				\
--	};								\
--	static const struct module_version_attribute			\
--	__used __section("__modver")					\
--	* __moduleparam_const __modver_attr = &___modver_attr
-+			.module_name	= KBUILD_MODNAME,		\
-+			.version	= _version,			\
-+		};
- #endif
+diff --git a/include/linux/moduleparam.h b/include/linux/moduleparam.h
+index 742074ad9f6e..15ecc6cc3a3b 100644
+--- a/include/linux/moduleparam.h
++++ b/include/linux/moduleparam.h
+@@ -288,8 +288,8 @@ struct kparam_array
+ 	/* Default value instead of permissions? */			\
+ 	static const char __param_str_##name[] = prefix #name;		\
+ 	static struct kernel_param __moduleparam_const __param_##name	\
+-	__used								\
+-	__section("__param") __attribute__ ((aligned(sizeof(void *))))  \
++	__used __section("__param")					\
++	__aligned(__alignof__(struct kernel_param))			\
+ 	= { __param_str_##name, THIS_MODULE, ops,			\
+ 	    VERIFY_OCTAL_PERMISSIONS(perm), level, flags, { arg } }
  
- /* Optional firmware file (or files) needed by the module
-diff --git a/kernel/params.c b/kernel/params.c
-index 164d79330849..2daa2780a92c 100644
---- a/kernel/params.c
-+++ b/kernel/params.c
-@@ -843,18 +843,16 @@ ssize_t __modver_version_show(struct module_attribute *mattr,
- 	return scnprintf(buf, PAGE_SIZE, "%s\n", vattr->version);
- }
- 
--extern const struct module_version_attribute *__start___modver[];
--extern const struct module_version_attribute *__stop___modver[];
-+extern const struct module_version_attribute __start___modver[];
-+extern const struct module_version_attribute __stop___modver[];
- 
- static void __init version_sysfs_builtin(void)
- {
--	const struct module_version_attribute **p;
-+	const struct module_version_attribute *vattr;
- 	struct module_kobject *mk;
- 	int err;
- 
--	for (p = __start___modver; p < __stop___modver; p++) {
--		const struct module_version_attribute *vattr = *p;
--
-+	for (vattr = __start___modver; vattr < __stop___modver; vattr++) {
- 		mk = locate_module_kobject(vattr->module_name);
- 		if (mk) {
- 			err = sysfs_create_file(&mk->kobj, &vattr->mattr.attr);
 -- 
 2.26.2
 
