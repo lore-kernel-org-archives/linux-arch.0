@@ -2,225 +2,220 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 33E9FC5519F
-	for <linux-arch@archiver.kernel.org>; Sun, 22 Nov 2020 11:52:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8DAB8C6379F
+	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 09:55:03 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E2025208C3
-	for <linux-arch@archiver.kernel.org>; Sun, 22 Nov 2020 11:52:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 404E32078E
+	for <linux-arch@archiver.kernel.org>; Mon, 23 Nov 2020 09:55:03 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="JLXA+ro1"
+	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="bgTuwoVK"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727621AbgKVLvo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 22 Nov 2020 06:51:44 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55230 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727589AbgKVLvn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 22 Nov 2020 06:51:43 -0500
-Received: from mail-wr1-x443.google.com (mail-wr1-x443.google.com [IPv6:2a00:1450:4864:20::443])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 64304C0613CF
-        for <linux-arch@vger.kernel.org>; Sun, 22 Nov 2020 03:51:43 -0800 (PST)
-Received: by mail-wr1-x443.google.com with SMTP id p8so15637449wrx.5
-        for <linux-arch@vger.kernel.org>; Sun, 22 Nov 2020 03:51:43 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=date:from:to:cc:subject:message-id:mime-version:content-disposition;
-        bh=QKuA4ekOdaJDz2ZNBGMOghu/aSzBNJa42AJDcLk6jOQ=;
-        b=JLXA+ro1f2pyGijb818SWjOikHzun2D9pSZJAUZpINS8K7zgz+m7JszJJQs55yurWT
-         9t+EqoPX+MxO35oCTS7NZX59A2jMR3pJywt1RlwTgCD3oTIgAXpyeHfNngg84KtBzDD7
-         E+38SOwvkHdp5SwUG/kvz4JkLvs2k7uQBxbFqqvocVtgo8tvIb8a2fHQGLAL42FNYBA7
-         cBjWmCZhPQexEzUxT01Ag6FH/qDQ+E9yJcC1yfRBaewKl+lXRHi5UpyofKtAaq0aTeQV
-         Vjjz1spnPClre/ExirNh0SSCAVKn8bZ0bxsXwSFZPMUfAHXLLXBDbus+hqJCbxMCE9g1
-         nGfQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:mime-version
-         :content-disposition;
-        bh=QKuA4ekOdaJDz2ZNBGMOghu/aSzBNJa42AJDcLk6jOQ=;
-        b=Ao84eR936YQx0R1CO05VTQqIvB7I4zRkBt4i/XBK4pPIE4D5sr3Rn9xICl8J6ygTa4
-         FU/xqmhuYCh0zkCvewfGGH6+yAX+OrMxzHfXE3P6vKOtfJxZ9F6Ugf3xU7m0Z/jFJOoA
-         zISeSSbSv5blgCGKZKLg5MW3oTjEgP/jK78Mi3Lx6PLLHddbj06sEEicW0iLZiqqK7zz
-         ZfVpi3AWe/HTGoabaCYdtVtu4n01dxgmBKrLSgZWLWs+kaZoBag3bDt4p1gZ3TT9bYVG
-         o5Y1Igl1ltTgPPuEdtFxh6GmfVzsCUNJI7vtnvQSRxlsddsH6MT8sBNG/uL4nxVs/qbF
-         PF3g==
-X-Gm-Message-State: AOAM531QrlUe76vz2sRAFfh5pDn3a42yYVV+wSmYAvoDi3ipPON4xDTB
-        dJTicTopjEMS9QNK67sQRf+fyJdOHw==
-X-Google-Smtp-Source: ABdhPJz+m3jlhX90gQlAUF42BIgXNnP7Vh6lwxA/UyDttKVK2dM4N/+gCW5fs60mcrZYPhqH2c7vNA==
-X-Received: by 2002:a5d:52c1:: with SMTP id r1mr27040160wrv.255.1606045902201;
-        Sun, 22 Nov 2020 03:51:42 -0800 (PST)
-Received: from localhost.localdomain ([46.53.251.228])
-        by smtp.gmail.com with ESMTPSA id k81sm48190115wma.2.2020.11.22.03.51.41
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 22 Nov 2020 03:51:41 -0800 (PST)
-Date:   Sun, 22 Nov 2020 14:51:39 +0300
-From:   Alexey Dobriyan <adobriyan@gmail.com>
-To:     arnd@arndb.de
-Cc:     linux-arch@vger.kernel.org
-Subject: [PATCH] asm-generic/io.h: terser readsb() and friends
-Message-ID: <20201122115139.GA47348@localhost.localdomain>
+        id S1727907AbgKWJyz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 23 Nov 2020 04:54:55 -0500
+Received: from mail.kernel.org ([198.145.29.99]:58148 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727692AbgKWJyy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 23 Nov 2020 04:54:54 -0500
+Received: from aquarius.haifa.ibm.com (nesher1.haifa.il.ibm.com [195.110.40.7])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id D7CBA20639;
+        Mon, 23 Nov 2020 09:54:43 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=default; t=1606125293;
+        bh=l1UjkAfnNyh98N6sVhXyjWVNCPQSh1Uyco6l02Ql/jg=;
+        h=From:To:Cc:Subject:Date:From;
+        b=bgTuwoVK7hlJ5tHwSZMnIqlj7XWEpPuUuHTgxap440Ax2AVXU38rvp9PcK/jVVArt
+         tLbnq1rqSaOYQRNwXYibXvU+TzqevKQgsG2+deH95KCtyicXmdl32HTOpIAdOVOLCE
+         UqyvVlS5KaRbanBFN6Nwe3OwZ4laWY0MBwv4Wf4I=
+From:   Mike Rapoport <rppt@kernel.org>
+To:     Andrew Morton <akpm@linux-foundation.org>
+Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        David Hildenbrand <david@redhat.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Matthew Wilcox <willy@infradead.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Mike Rapoport <rppt@kernel.org>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Roman Gushchin <guro@fb.com>, Shuah Khan <shuah@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org
+Subject: [PATCH v10 0/9] mm: introduce memfd_secret system call to create "secret" memory areas
+Date:   Mon, 23 Nov 2020 11:54:23 +0200
+Message-Id: <20201123095432.5860-1-rppt@kernel.org>
+X-Mailer: git-send-email 2.28.0
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-	if (count) {
-		do {
-			...
-		} while (--count);
-	}
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-can be rewritten as
+Hi,
 
-	while (count-- > 0) {
-		...
-	}
+This is an implementation of "secret" mappings backed by a file descriptor.
 
-Drop useless variables while I'm at it.
+The file descriptor backing secret memory mappings is created using a
+dedicated memfd_secret system call The desired protection mode for the
+memory is configured using flags parameter of the system call. The mmap()
+of the file descriptor created with memfd_secret() will create a "secret"
+memory mapping. The pages in that mapping will be marked as not present in
+the direct map and will have desired protection bits set in the user page
+table. For instance, current implementation allows uncached mappings.
 
-Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
----
+Although normally Linux userspace mappings are protected from other users,
+such secret mappings are useful for environments where a hostile tenant is
+trying to trick the kernel into giving them access to other tenants
+mappings.
 
- include/asm-generic/io.h |   68 ++++++++++++++++-------------------------------
- 1 file changed, 24 insertions(+), 44 deletions(-)
+Additionally, in the future the secret mappings may be used as a mean to
+protect guest memory in a virtual machine host.
 
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -317,13 +317,10 @@ static inline void writeq_relaxed(u64 value, volatile void __iomem *addr)
- static inline void readsb(const volatile void __iomem *addr, void *buffer,
- 			  unsigned int count)
- {
--	if (count) {
--		u8 *buf = buffer;
-+	u8 *buf = buffer;
- 
--		do {
--			u8 x = __raw_readb(addr);
--			*buf++ = x;
--		} while (--count);
-+	while (count-- > 0) {
-+		*buf++ = __raw_readb(addr);
- 	}
- }
- #endif
-@@ -333,13 +330,10 @@ static inline void readsb(const volatile void __iomem *addr, void *buffer,
- static inline void readsw(const volatile void __iomem *addr, void *buffer,
- 			  unsigned int count)
- {
--	if (count) {
--		u16 *buf = buffer;
-+	u16 *buf = buffer;
- 
--		do {
--			u16 x = __raw_readw(addr);
--			*buf++ = x;
--		} while (--count);
-+	while (count-- > 0) {
-+		*buf++ = __raw_readw(addr);
- 	}
- }
- #endif
-@@ -349,13 +343,10 @@ static inline void readsw(const volatile void __iomem *addr, void *buffer,
- static inline void readsl(const volatile void __iomem *addr, void *buffer,
- 			  unsigned int count)
- {
--	if (count) {
--		u32 *buf = buffer;
-+	u32 *buf = buffer;
- 
--		do {
--			u32 x = __raw_readl(addr);
--			*buf++ = x;
--		} while (--count);
-+	while (count-- > 0) {
-+		*buf++ = __raw_readl(addr);
- 	}
- }
- #endif
-@@ -366,13 +357,10 @@ static inline void readsl(const volatile void __iomem *addr, void *buffer,
- static inline void readsq(const volatile void __iomem *addr, void *buffer,
- 			  unsigned int count)
- {
--	if (count) {
--		u64 *buf = buffer;
-+	u64 *buf = buffer;
- 
--		do {
--			u64 x = __raw_readq(addr);
--			*buf++ = x;
--		} while (--count);
-+	while (count-- > 0) {
-+		*buf++ = __raw_readq(addr);
- 	}
- }
- #endif
-@@ -383,12 +371,10 @@ static inline void readsq(const volatile void __iomem *addr, void *buffer,
- static inline void writesb(volatile void __iomem *addr, const void *buffer,
- 			   unsigned int count)
- {
--	if (count) {
--		const u8 *buf = buffer;
-+	const u8 *buf = buffer;
- 
--		do {
--			__raw_writeb(*buf++, addr);
--		} while (--count);
-+	while (count-- > 0) {
-+		__raw_writeb(*buf++, addr);
- 	}
- }
- #endif
-@@ -398,12 +384,10 @@ static inline void writesb(volatile void __iomem *addr, const void *buffer,
- static inline void writesw(volatile void __iomem *addr, const void *buffer,
- 			   unsigned int count)
- {
--	if (count) {
--		const u16 *buf = buffer;
-+	const u16 *buf = buffer;
- 
--		do {
--			__raw_writew(*buf++, addr);
--		} while (--count);
-+	while (count-- > 0) {
-+		__raw_writew(*buf++, addr);
- 	}
- }
- #endif
-@@ -413,12 +397,10 @@ static inline void writesw(volatile void __iomem *addr, const void *buffer,
- static inline void writesl(volatile void __iomem *addr, const void *buffer,
- 			   unsigned int count)
- {
--	if (count) {
--		const u32 *buf = buffer;
-+	const u32 *buf = buffer;
- 
--		do {
--			__raw_writel(*buf++, addr);
--		} while (--count);
-+	while (count-- > 0) {
-+		__raw_writel(*buf++, addr);
- 	}
- }
- #endif
-@@ -429,12 +411,10 @@ static inline void writesl(volatile void __iomem *addr, const void *buffer,
- static inline void writesq(volatile void __iomem *addr, const void *buffer,
- 			   unsigned int count)
- {
--	if (count) {
--		const u64 *buf = buffer;
-+	const u64 *buf = buffer;
- 
--		do {
--			__raw_writeq(*buf++, addr);
--		} while (--count);
-+	while (count-- > 0) {
-+		__raw_writeq(*buf++, addr);
- 	}
- }
- #endif
+For demonstration of secret memory usage we've created a userspace library
+
+https://git.kernel.org/pub/scm/linux/kernel/git/jejb/secret-memory-preloader.git
+
+that does two things: the first is act as a preloader for openssl to
+redirect all the OPENSSL_malloc calls to secret memory meaning any secret
+keys get automatically protected this way and the other thing it does is
+expose the API to the user who needs it. We anticipate that a lot of the
+use cases would be like the openssl one: many toolkits that deal with
+secret keys already have special handling for the memory to try to give
+them greater protection, so this would simply be pluggable into the
+toolkits without any need for user application modification.
+
+Hiding secret memory mappings behind an anonymous file allows (ab)use of
+the page cache for tracking pages allocated for the "secret" mappings as
+well as using address_space_operations for e.g. page migration callbacks.
+
+The anonymous file may be also used implicitly, like hugetlb files, to
+implement mmap(MAP_SECRET) and use the secret memory areas with "native" mm
+ABIs in the future.
+
+To limit fragmentation of the direct map to splitting only PUD-size pages,
+I've added an amortizing cache of PMD-size pages to each file descriptor
+that is used as an allocation pool for the secret memory areas.
+
+As the memory allocated by secretmem becomes unmovable, we use CMA to back
+large page caches so that page allocator won't be surprised by failing attempt
+to migrate these pages.
+
+v10:
+* Drop changes to arm64 compatibility layer
+* Add Roman's Ack for memcg accounting
+
+v9: https://lore.kernel.org/lkml/20201117162932.13649-1-rppt@kernel.org
+* Fix build with and without CONFIG_MEMCG
+* Update memcg accounting to avoid copying memcg_data, per Roman comments
+* Fix issues in secretmem_fault(), thanks Matthew
+* Do not wire up syscall in arm64 compatibility layer
+
+v8: https://lore.kernel.org/lkml/20201110151444.20662-1-rppt@kernel.org
+* Use CMA for all secretmem allocations as David suggested
+* Update memcg accounting after transtion to CMA
+* Prevent hibernation when there are active secretmem users
+* Add zeroing of the memory before releasing it back to cma/page allocator
+* Rebase on v5.10-rc2-mmotm-2020-11-07-21-40
+
+v7: https://lore.kernel.org/lkml/20201026083752.13267-1-rppt@kernel.org
+* Use set_direct_map() instead of __kernel_map_pages() to ensure error
+  handling in case the direct map update fails
+* Add accounting of large pages used to reduce the direct map fragmentation
+* Teach get_user_pages() and frieds to refuse get/pin secretmem pages
+
+v6: https://lore.kernel.org/lkml/20200924132904.1391-1-rppt@kernel.org
+* Silence the warning about missing syscall, thanks to Qian Cai
+* Replace spaces with tabs in Kconfig additions, per Randy
+* Add a selftest.
+
+Older history:
+v5: https://lore.kernel.org/lkml/20200916073539.3552-1-rppt@kernel.org
+v4: https://lore.kernel.org/lkml/20200818141554.13945-1-rppt@kernel.org
+v3: https://lore.kernel.org/lkml/20200804095035.18778-1-rppt@kernel.org
+v2: https://lore.kernel.org/lkml/20200727162935.31714-1-rppt@kernel.org
+v1: https://lore.kernel.org/lkml/20200720092435.17469-1-rppt@kernel.org
+
+Mike Rapoport (9):
+  mm: add definition of PMD_PAGE_ORDER
+  mmap: make mlock_future_check() global
+  set_memory: allow set_direct_map_*_noflush() for multiple pages
+  mm: introduce memfd_secret system call to create "secret" memory areas
+  secretmem: use PMD-size pages to amortize direct map fragmentation
+  secretmem: add memcg accounting
+  PM: hibernate: disable when there are active secretmem users
+  arch, mm: wire up memfd_secret system call were relevant
+  secretmem: test: add basic selftest for memfd_secret(2)
+
+ arch/Kconfig                              |   7 +
+ arch/arm64/include/asm/cacheflush.h       |   4 +-
+ arch/arm64/include/uapi/asm/unistd.h      |   1 +
+ arch/arm64/mm/pageattr.c                  |  10 +-
+ arch/riscv/include/asm/set_memory.h       |   4 +-
+ arch/riscv/include/asm/unistd.h           |   1 +
+ arch/riscv/mm/pageattr.c                  |   8 +-
+ arch/x86/Kconfig                          |   1 +
+ arch/x86/entry/syscalls/syscall_32.tbl    |   1 +
+ arch/x86/entry/syscalls/syscall_64.tbl    |   1 +
+ arch/x86/include/asm/set_memory.h         |   4 +-
+ arch/x86/mm/pat/set_memory.c              |   8 +-
+ fs/dax.c                                  |  11 +-
+ include/linux/pgtable.h                   |   3 +
+ include/linux/secretmem.h                 |  30 ++
+ include/linux/set_memory.h                |   4 +-
+ include/linux/syscalls.h                  |   1 +
+ include/uapi/asm-generic/unistd.h         |   6 +-
+ include/uapi/linux/magic.h                |   1 +
+ include/uapi/linux/secretmem.h            |   8 +
+ kernel/power/hibernate.c                  |   5 +-
+ kernel/power/snapshot.c                   |   4 +-
+ kernel/sys_ni.c                           |   2 +
+ mm/Kconfig                                |   5 +
+ mm/Makefile                               |   1 +
+ mm/filemap.c                              |   3 +-
+ mm/gup.c                                  |  10 +
+ mm/internal.h                             |   3 +
+ mm/mmap.c                                 |   5 +-
+ mm/secretmem.c                            | 446 ++++++++++++++++++++++
+ mm/vmalloc.c                              |   5 +-
+ scripts/checksyscalls.sh                  |   4 +
+ tools/testing/selftests/vm/.gitignore     |   1 +
+ tools/testing/selftests/vm/Makefile       |   3 +-
+ tools/testing/selftests/vm/memfd_secret.c | 298 +++++++++++++++
+ tools/testing/selftests/vm/run_vmtests    |  17 +
+ 36 files changed, 888 insertions(+), 38 deletions(-)
+ create mode 100644 include/linux/secretmem.h
+ create mode 100644 include/uapi/linux/secretmem.h
+ create mode 100644 mm/secretmem.c
+ create mode 100644 tools/testing/selftests/vm/memfd_secret.c
+
+
+base-commit: 9f8ce377d420db12b19d6a4f636fecbd88a725a5
+-- 
+2.28.0
+
