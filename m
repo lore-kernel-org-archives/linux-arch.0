@@ -4,42 +4,42 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DD452C8300E
-	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 17:08:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2889AC83012
+	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 17:08:18 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 89F3420857
+	by mail.kernel.org (Postfix) with ESMTP id E72962100A
 	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 17:08:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2390674AbgKXRIH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 24 Nov 2020 12:08:07 -0500
-Received: from mail-wm1-f66.google.com ([209.85.128.66]:51121 "EHLO
-        mail-wm1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390675AbgKXRIG (ORCPT
+        id S2390742AbgKXRII (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 24 Nov 2020 12:08:08 -0500
+Received: from mail-wm1-f42.google.com ([209.85.128.42]:55202 "EHLO
+        mail-wm1-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2390731AbgKXRIG (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Nov 2020 12:08:06 -0500
-Received: by mail-wm1-f66.google.com with SMTP id c198so3070830wmd.0;
-        Tue, 24 Nov 2020 09:08:02 -0800 (PST)
+Received: by mail-wm1-f42.google.com with SMTP id d142so3037264wmd.4;
+        Tue, 24 Nov 2020 09:08:04 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=5ffZGnFfG/i7fEcgkAsrxXNlo5GdKz18dLPh/88U9IU=;
-        b=ME8lq3TTuUGKAKkjOa4RKGhcmeev0vL5+/7zdmtfkMcr8ZP4v6fXsNZGPJ5tI37hZA
-         eiPRqnpUmK4b0XOxb2r7oXMw0zk1z8tkK0hEo0wfYLpHizLu+T6ZF3KcMyaNa7fHdPvC
-         2ya2XLdcfFlwCpIfFFmJimqabGksPBpL2H9XRICwd9j0iZyMDP37jr7QI6ETURgbxsAr
-         sOqwQwmFdU1wjkp/iQwnp6dNc1lbkTWucg7GHBTbHAXEhZD2ius0aRNngpBQDDEpNruA
-         9QCCEfl6uxP2KKUyupmK9XQcrzoJt4JsM3csqQ3amPRWtej/SmWu79lN4sZOtQjtphlD
-         eYxA==
-X-Gm-Message-State: AOAM533O0LY9qnmbR9pIzrl+Az6M+z/hvZiQ9Fass6MjjroGGGRAukUA
-        jPMWpKzmo3y7p8AfDYTnCKkTIIw4VkY=
-X-Google-Smtp-Source: ABdhPJwNAx8esns+9LhW4C9Cze4NzsfMzKDNqMcnyScN7Iu4DxanSLymHehkeJCauc2XjjLW/u0dlA==
-X-Received: by 2002:a1c:35c2:: with SMTP id c185mr5612923wma.74.1606237682063;
-        Tue, 24 Nov 2020 09:08:02 -0800 (PST)
+        bh=4GlVdwdA5EB25k3fSlwC9DjHq4FfGnf7gcREl/vUHnA=;
+        b=D+CP3eI/NPCmS1SMVirimaovPof3dESSkzpRQAokRw4OtZy0Hy1GBdfrTRd9I+S1q5
+         BX0U87m4+cds7kvGOn2dx7OGTOok27d0HB/2LdAIdE83PJXCW3OGC/jszR1MWmR3lbjj
+         dLvwWHitBzP1tBUbd0dYzt+agOkFv3Z9DCVZoEtfUKRuzPPlyLE6kV+Yq/O7kA92u85S
+         b1vSl+RY9oGS5cwQvka3H0YxkrcxzZA8jmC+w8LV7ipwhd+HTxTMxuZznEKXm8KQWKe0
+         g+LbgRqVvHZs5rFoy4DNY1TaB14Dz6wdtsmh0OaUptqdKfW4xVg2rR2Ss9owVmmNjjv2
+         ICZA==
+X-Gm-Message-State: AOAM533IkSAJALZ5FqgjGDAKEnG147f/Z5biKYWKc3iDRooOwRRGv09m
+        m6vGI5AvKDJ9JNqnbXAZe2/Hirve6TM=
+X-Google-Smtp-Source: ABdhPJwrbQsH2NsT3/fJoFyvOhkvKLdnoIq/n1W/bc/iZMH9VARGNCSwy5l58Ldxl6t+uJ5CRuwXCQ==
+X-Received: by 2002:a7b:cd11:: with SMTP id f17mr5547330wmj.127.1606237683966;
+        Tue, 24 Nov 2020 09:08:03 -0800 (PST)
 Received: from liuwe-devbox-debian-v2.j3c5onc20sse1dnehy4noqpfcg.zx.internal.cloudapp.net ([51.145.34.42])
-        by smtp.gmail.com with ESMTPSA id v20sm6419874wmh.44.2020.11.24.09.08.01
+        by smtp.gmail.com with ESMTPSA id v20sm6419874wmh.44.2020.11.24.09.08.03
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 24 Nov 2020 09:08:01 -0800 (PST)
+        Tue, 24 Nov 2020 09:08:03 -0800 (PST)
 From:   Wei Liu <wei.liu@kernel.org>
 To:     Linux on Hyper-V List <linux-hyperv@vger.kernel.org>
 Cc:     virtualization@lists.linux-foundation.org,
@@ -48,19 +48,18 @@ Cc:     virtualization@lists.linux-foundation.org,
         Vineeth Pillai <viremana@linux.microsoft.com>,
         Sunil Muthuswamy <sunilmut@microsoft.com>,
         Nuno Das Neves <nunodasneves@linux.microsoft.com>,
-        Wei Liu <wei.liu@kernel.org>, Rob Herring <robh@kernel.org>,
+        Wei Liu <wei.liu@kernel.org>,
         "K. Y. Srinivasan" <kys@microsoft.com>,
         Haiyang Zhang <haiyangz@microsoft.com>,
         Stephen Hemminger <sthemmin@microsoft.com>,
-        Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>,
-        Bjorn Helgaas <bhelgaas@google.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        linux-pci@vger.kernel.org (open list:PCI NATIVE HOST BRIDGE AND
-        ENDPOINT DRIVERS),
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        x86@kernel.org (maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)),
+        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
         linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
-Subject: [PATCH v3 12/17] asm-generic/hyperv: update hv_interrupt_entry
-Date:   Tue, 24 Nov 2020 17:07:39 +0000
-Message-Id: <20201124170744.112180-13-wei.liu@kernel.org>
+Subject: [PATCH v3 14/17] asm-generic/hyperv: import data structures for mapping device interrupts
+Date:   Tue, 24 Nov 2020 17:07:41 +0000
+Message-Id: <20201124170744.112180-15-wei.liu@kernel.org>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20201124170744.112180-1-wei.liu@kernel.org>
 References: <20201124170744.112180-1-wei.liu@kernel.org>
@@ -70,90 +69,90 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-We will soon use the same structure to handle IO-APIC interrupts as
-well. Introduce an enum to identify the source and a data structure for
-IO-APIC RTE.
-
-While at it, update pci-hyperv.c to use the enum.
-
-No functional change.
-
+Signed-off-by: Sunil Muthuswamy <sunilmut@microsoft.com>
+Co-Developed-by: Sunil Muthuswamy <sunilmut@microsoft.com>
 Signed-off-by: Wei Liu <wei.liu@kernel.org>
-Acked-by: Rob Herring <robh@kernel.org>
 ---
- drivers/pci/controller/pci-hyperv.c |  2 +-
- include/asm-generic/hyperv-tlfs.h   | 36 +++++++++++++++++++++++++++--
- 2 files changed, 35 insertions(+), 3 deletions(-)
+ arch/x86/include/asm/hyperv-tlfs.h | 13 +++++++++++
+ include/asm-generic/hyperv-tlfs.h  | 36 ++++++++++++++++++++++++++++++
+ 2 files changed, 49 insertions(+)
 
-diff --git a/drivers/pci/controller/pci-hyperv.c b/drivers/pci/controller/pci-hyperv.c
-index 03ed5cb1c4b2..59edc0bf00fe 100644
---- a/drivers/pci/controller/pci-hyperv.c
-+++ b/drivers/pci/controller/pci-hyperv.c
-@@ -1216,7 +1216,7 @@ static void hv_irq_unmask(struct irq_data *data)
- 	params = &hbus->retarget_msi_interrupt_params;
- 	memset(params, 0, sizeof(*params));
- 	params->partition_id = HV_PARTITION_ID_SELF;
--	params->int_entry.source = 1; /* MSI(-X) */
-+	params->int_entry.source = HV_INTERRUPT_SOURCE_MSI;
- 	hv_set_msi_entry_from_desc(&params->int_entry.msi_entry, msi_desc);
- 	params->device_id = (hbus->hdev->dev_instance.b[5] << 24) |
- 			   (hbus->hdev->dev_instance.b[4] << 16) |
-diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
-index 7e103be42799..8423bf53c237 100644
---- a/include/asm-generic/hyperv-tlfs.h
-+++ b/include/asm-generic/hyperv-tlfs.h
-@@ -480,6 +480,11 @@ struct hv_create_vp {
- 	u64 flags;
- } __packed;
- 
-+enum hv_interrupt_source {
-+	HV_INTERRUPT_SOURCE_MSI = 1, /* MSI and MSI-X */
-+	HV_INTERRUPT_SOURCE_IOAPIC,
-+};
-+
- union hv_msi_address_register {
- 	u32 as_uint32;
- 	struct {
-@@ -513,10 +518,37 @@ union hv_msi_entry {
- 	} __packed;
+diff --git a/arch/x86/include/asm/hyperv-tlfs.h b/arch/x86/include/asm/hyperv-tlfs.h
+index 41b628b9fb15..592c75e51e0f 100644
+--- a/arch/x86/include/asm/hyperv-tlfs.h
++++ b/arch/x86/include/asm/hyperv-tlfs.h
+@@ -526,6 +526,19 @@ struct hv_partition_assist_pg {
+ 	u32 tlb_lock_count;
  };
  
-+union hv_ioapic_rte {
-+	u64 as_uint64;
-+
-+	struct {
-+		u32 vector:8;
-+		u32 delivery_mode:3;
-+		u32 destination_mode:1;
-+		u32 delivery_status:1;
-+		u32 interrupt_polarity:1;
-+		u32 remote_irr:1;
-+		u32 trigger_mode:1;
-+		u32 interrupt_mask:1;
-+		u32 reserved1:15;
-+
-+		u32 reserved2:24;
-+		u32 destination_id:8;
-+	};
-+
-+	struct {
-+		u32 low_uint32;
-+		u32 high_uint32;
-+	};
-+} __packed;
-+
- struct hv_interrupt_entry {
--	u32 source;			/* 1 for MSI(-X) */
-+	u32 source;
- 	u32 reserved1;
--	union hv_msi_entry msi_entry;
-+	union {
-+		union hv_msi_entry msi_entry;
-+		union hv_ioapic_rte ioapic_rte;
-+	};
++enum hv_interrupt_type {
++	HV_X64_INTERRUPT_TYPE_FIXED             = 0x0000,
++	HV_X64_INTERRUPT_TYPE_LOWESTPRIORITY    = 0x0001,
++	HV_X64_INTERRUPT_TYPE_SMI               = 0x0002,
++	HV_X64_INTERRUPT_TYPE_REMOTEREAD        = 0x0003,
++	HV_X64_INTERRUPT_TYPE_NMI               = 0x0004,
++	HV_X64_INTERRUPT_TYPE_INIT              = 0x0005,
++	HV_X64_INTERRUPT_TYPE_SIPI              = 0x0006,
++	HV_X64_INTERRUPT_TYPE_EXTINT            = 0x0007,
++	HV_X64_INTERRUPT_TYPE_LOCALINT0         = 0x0008,
++	HV_X64_INTERRUPT_TYPE_LOCALINT1         = 0x0009,
++	HV_X64_INTERRUPT_TYPE_MAXIMUM           = 0x000A,
++};
+ 
+ #include <asm-generic/hyperv-tlfs.h>
+ 
+diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
+index 42ff1326c6bd..07efe0131fe3 100644
+--- a/include/asm-generic/hyperv-tlfs.h
++++ b/include/asm-generic/hyperv-tlfs.h
+@@ -152,6 +152,8 @@ struct ms_hyperv_tsc_page {
+ #define HVCALL_RETRIEVE_DEBUG_DATA		0x006a
+ #define HVCALL_RESET_DEBUG_SESSION		0x006b
+ #define HVCALL_ADD_LOGICAL_PROCESSOR		0x0076
++#define HVCALL_MAP_DEVICE_INTERRUPT		0x007c
++#define HVCALL_UNMAP_DEVICE_INTERRUPT		0x007d
+ #define HVCALL_RETARGET_INTERRUPT		0x007e
+ #define HVCALL_FLUSH_GUEST_PHYSICAL_ADDRESS_SPACE 0x00af
+ #define HVCALL_FLUSH_GUEST_PHYSICAL_ADDRESS_LIST 0x00b0
+@@ -702,4 +704,38 @@ union hv_device_id {
+ 	} acpi;
  } __packed;
  
- /*
++enum hv_interrupt_trigger_mode {
++	HV_INTERRUPT_TRIGGER_MODE_EDGE = 0,
++	HV_INTERRUPT_TRIGGER_MODE_LEVEL = 1,
++};
++
++struct hv_device_interrupt_descriptor {
++	u32 interrupt_type;
++	u32 trigger_mode;
++	u32 vector_count;
++	u32 reserved;
++	struct hv_device_interrupt_target target;
++} __packed;
++
++struct hv_input_map_device_interrupt {
++	u64 partition_id;
++	u64 device_id;
++	u64 flags;
++	struct hv_interrupt_entry logical_interrupt_entry;
++	struct hv_device_interrupt_descriptor interrupt_descriptor;
++} __packed;
++
++struct hv_output_map_device_interrupt {
++	struct hv_interrupt_entry interrupt_entry;
++} __packed;
++
++struct hv_input_unmap_device_interrupt {
++	u64 partition_id;
++	u64 device_id;
++	struct hv_interrupt_entry interrupt_entry;
++} __packed;
++
++#define HV_SOURCE_SHADOW_NONE               0x0
++#define HV_SOURCE_SHADOW_BRIDGE_BUS_RANGE   0x1
++
+ #endif
 -- 
 2.20.1
 
