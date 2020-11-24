@@ -4,35 +4,35 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 00C1DC2D0E4
-	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 15:51:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 00332C64E75
+	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 15:51:43 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9B23F206F7
-	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 15:51:41 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 92FEA206F7
+	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 15:51:42 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="XKiZgTcj"
+	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="YhnhzOvv"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2389978AbgKXPvS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 24 Nov 2020 10:51:18 -0500
-Received: from mail.kernel.org ([198.145.29.99]:50670 "EHLO mail.kernel.org"
+        id S2390004AbgKXPv0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 24 Nov 2020 10:51:26 -0500
+Received: from mail.kernel.org ([198.145.29.99]:50926 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2389087AbgKXPvS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Nov 2020 10:51:18 -0500
+        id S2390003AbgKXPv0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 24 Nov 2020 10:51:26 -0500
 Received: from localhost.localdomain (236.31.169.217.in-addr.arpa [217.169.31.236])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 23DD5206FB;
-        Tue, 24 Nov 2020 15:51:12 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id 26A5F2073C;
+        Tue, 24 Nov 2020 15:51:21 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1606233076;
-        bh=r7aIzkV79sW9lwnI001IdntPXJ3WVOrQn3ZZAvFQUNM=;
+        s=default; t=1606233085;
+        bh=JWAroebb1HCZItIPh9mrc9nfp/6O6+i/SBzDf+inaQ4=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=XKiZgTcj4JT+7ZtbrFR8C1Jzddq5aSZoO82jmQrdjgeRlKo4q2S+PMrNdEYpJZ9CQ
-         E1zGOEwTJHlwHeBLl1wk/YpGfBXkn1ygo3+o7hAUs/oSq4W8uhox2Jex/egfMGPnH6
-         Hf1ZzmZ92kAjW/uhqliAS8mYebqMWJGMCMB1LU2E=
+        b=YhnhzOvvsJpomNu0T5ASHMnDS7sfnVRR/A4efOtlYFr+Cy5T+OtILRGPnMlo6wZez
+         zS85xtQKOXcJYq+o4K6deKVSoQuvzLCNOCyc78a9ALua/2fYfqIytho+5y1Rpi46eO
+         fiv3c6FEaMIuI4mExATX+8kpX/05B5Qfjiwlq/CU=
 From:   Will Deacon <will@kernel.org>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
@@ -51,9 +51,9 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         Juri Lelli <juri.lelli@redhat.com>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         kernel-team@android.com
-Subject: [PATCH v4 07/14] sched: Introduce restrict_cpus_allowed_ptr() to limit task CPU affinity
-Date:   Tue, 24 Nov 2020 15:50:32 +0000
-Message-Id: <20201124155039.13804-8-will@kernel.org>
+Subject: [PATCH v4 09/14] cpuset: Don't use the cpu_possible_mask as a last resort for cgroup v1
+Date:   Tue, 24 Nov 2020 15:50:34 +0000
+Message-Id: <20201124155039.13804-10-will@kernel.org>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20201124155039.13804-1-will@kernel.org>
 References: <20201124155039.13804-1-will@kernel.org>
@@ -63,159 +63,41 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Asymmetric systems may not offer the same level of userspace ISA support
-across all CPUs, meaning that some applications cannot be executed by
-some CPUs. As a concrete example, upcoming arm64 big.LITTLE designs do
-not feature support for 32-bit applications on both clusters.
+If the scheduler cannot find an allowed CPU for a task,
+cpuset_cpus_allowed_fallback() will widen the affinity to cpu_possible_mask
+if cgroup v1 is in use.
 
-Although userspace can carefully manage the affinity masks for such
-tasks, one place where it is particularly problematic is execve()
-because the CPU on which the execve() is occurring may be incompatible
-with the new application image. In such a situation, it is desirable to
-restrict the affinity mask of the task and ensure that the new image is
-entered on a compatible CPU. From userspace's point of view, this looks
-the same as if the incompatible CPUs have been hotplugged off in its
-affinity mask.
+In preparation for allowing architectures to provide their own fallback
+mask, just return early if we're not using cgroup v2 and allow
+select_fallback_rq() to figure out the mask by itself.
 
-In preparation for restricting the affinity mask for compat tasks on
-arm64 systems without uniform support for 32-bit applications, introduce
-a restrict_cpus_allowed_ptr(), which allows the current affinity mask
-for a task to be shrunk to the intersection of a parameter mask.
-
+Cc: Li Zefan <lizefan@huawei.com>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Johannes Weiner <hannes@cmpxchg.org>
+Reviewed-by: Quentin Perret <qperret@google.com>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- include/linux/sched.h |  1 +
- kernel/sched/core.c   | 73 ++++++++++++++++++++++++++++++++++---------
- 2 files changed, 59 insertions(+), 15 deletions(-)
+ kernel/cgroup/cpuset.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 063cd120b459..1cd12c3ce9ee 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1631,6 +1631,7 @@ extern int task_can_attach(struct task_struct *p, const struct cpumask *cs_cpus_
- #ifdef CONFIG_SMP
- extern void do_set_cpus_allowed(struct task_struct *p, const struct cpumask *new_mask);
- extern int set_cpus_allowed_ptr(struct task_struct *p, const struct cpumask *new_mask);
-+extern int restrict_cpus_allowed_ptr(struct task_struct *p, const struct cpumask *mask);
- #else
- static inline void do_set_cpus_allowed(struct task_struct *p, const struct cpumask *new_mask)
+diff --git a/kernel/cgroup/cpuset.c b/kernel/cgroup/cpuset.c
+index 57b5b5d0a5fd..e970737c3ed2 100644
+--- a/kernel/cgroup/cpuset.c
++++ b/kernel/cgroup/cpuset.c
+@@ -3299,9 +3299,11 @@ void cpuset_cpus_allowed(struct task_struct *tsk, struct cpumask *pmask)
+ 
+ void cpuset_cpus_allowed_fallback(struct task_struct *tsk)
  {
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index d2003a7d5ab5..818c8f7bdf2a 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -1860,24 +1860,18 @@ void do_set_cpus_allowed(struct task_struct *p, const struct cpumask *new_mask)
- }
++	if (!is_in_v2_mode())
++		return; /* select_fallback_rq will try harder */
++
+ 	rcu_read_lock();
+-	do_set_cpus_allowed(tsk, is_in_v2_mode() ?
+-		task_cs(tsk)->cpus_allowed : cpu_possible_mask);
++	do_set_cpus_allowed(tsk, task_cs(tsk)->cpus_allowed);
+ 	rcu_read_unlock();
  
- /*
-- * Change a given task's CPU affinity. Migrate the thread to a
-- * proper CPU and schedule it away if the CPU it's executing on
-- * is removed from the allowed bitmask.
-- *
-- * NOTE: the caller must have a valid reference to the task, the
-- * task must not exit() & deallocate itself prematurely. The
-- * call is not atomic; no spinlocks may be held.
-+ * Called with both p->pi_lock and rq->lock held; drops both before returning.
-  */
--static int __set_cpus_allowed_ptr(struct task_struct *p,
--				  const struct cpumask *new_mask, bool check)
-+static int __set_cpus_allowed_ptr_locked(struct task_struct *p,
-+					 const struct cpumask *new_mask,
-+					 bool check,
-+					 struct rq *rq,
-+					 struct rq_flags *rf)
- {
- 	const struct cpumask *cpu_valid_mask = cpu_active_mask;
- 	unsigned int dest_cpu;
--	struct rq_flags rf;
--	struct rq *rq;
- 	int ret = 0;
- 
--	rq = task_rq_lock(p, &rf);
- 	update_rq_clock(rq);
- 
- 	if (p->flags & PF_KTHREAD) {
-@@ -1929,7 +1923,7 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
- 	if (task_running(rq, p) || p->state == TASK_WAKING) {
- 		struct migration_arg arg = { p, dest_cpu };
- 		/* Need help from migration thread: drop lock and wait. */
--		task_rq_unlock(rq, p, &rf);
-+		task_rq_unlock(rq, p, rf);
- 		stop_one_cpu(cpu_of(rq), migration_cpu_stop, &arg);
- 		return 0;
- 	} else if (task_on_rq_queued(p)) {
-@@ -1937,20 +1931,69 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
- 		 * OK, since we're going to drop the lock immediately
- 		 * afterwards anyway.
- 		 */
--		rq = move_queued_task(rq, &rf, p, dest_cpu);
-+		rq = move_queued_task(rq, rf, p, dest_cpu);
- 	}
- out:
--	task_rq_unlock(rq, p, &rf);
-+	task_rq_unlock(rq, p, rf);
- 
- 	return ret;
- }
- 
-+/*
-+ * Change a given task's CPU affinity. Migrate the thread to a
-+ * proper CPU and schedule it away if the CPU it's executing on
-+ * is removed from the allowed bitmask.
-+ *
-+ * NOTE: the caller must have a valid reference to the task, the
-+ * task must not exit() & deallocate itself prematurely. The
-+ * call is not atomic; no spinlocks may be held.
-+ */
-+static int __set_cpus_allowed_ptr(struct task_struct *p,
-+				  const struct cpumask *new_mask, bool check)
-+{
-+	struct rq_flags rf;
-+	struct rq *rq;
-+
-+	rq = task_rq_lock(p, &rf);
-+	return __set_cpus_allowed_ptr_locked(p, new_mask, check, rq, &rf);
-+}
-+
- int set_cpus_allowed_ptr(struct task_struct *p, const struct cpumask *new_mask)
- {
- 	return __set_cpus_allowed_ptr(p, new_mask, false);
- }
- EXPORT_SYMBOL_GPL(set_cpus_allowed_ptr);
- 
-+/*
-+ * Change a given task's CPU affinity to the intersection of its current
-+ * affinity mask and @subset_mask. If the resulting mask is empty, leave
-+ * the affinity unchanged and return -EINVAL.
-+ */
-+int restrict_cpus_allowed_ptr(struct task_struct *p,
-+			      const struct cpumask *subset_mask)
-+{
-+	struct rq_flags rf;
-+	struct rq *rq;
-+	cpumask_var_t new_mask;
-+	int retval;
-+
-+	if (!alloc_cpumask_var(&new_mask, GFP_KERNEL))
-+		return -ENOMEM;
-+
-+	rq = task_rq_lock(p, &rf);
-+	if (!cpumask_and(new_mask, &p->cpus_mask, subset_mask)) {
-+		task_rq_unlock(rq, p, &rf);
-+		retval = -EINVAL;
-+		goto out_free_new_mask;
-+	}
-+
-+	retval = __set_cpus_allowed_ptr_locked(p, new_mask, false, rq, &rf);
-+
-+out_free_new_mask:
-+	free_cpumask_var(new_mask);
-+	return retval;
-+}
-+
- void set_task_cpu(struct task_struct *p, unsigned int new_cpu)
- {
- #ifdef CONFIG_SCHED_DEBUG
+ 	/*
 -- 
 2.29.2.454.gaff20da3a2-goog
 
