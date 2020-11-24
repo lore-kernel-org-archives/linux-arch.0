@@ -4,35 +4,35 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CAF35C71155
-	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 15:51:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7CB2FC8300E
+	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 15:51:45 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6D53220738
-	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 15:51:44 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3073E20738
+	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 15:51:45 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="jZAqDxPf"
+	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="YkVT+zic"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2390038AbgKXPvg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 24 Nov 2020 10:51:36 -0500
-Received: from mail.kernel.org ([198.145.29.99]:51064 "EHLO mail.kernel.org"
+        id S2390035AbgKXPvn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 24 Nov 2020 10:51:43 -0500
+Received: from mail.kernel.org ([198.145.29.99]:51306 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390035AbgKXPvf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Nov 2020 10:51:35 -0500
+        id S2389866AbgKXPvn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 24 Nov 2020 10:51:43 -0500
 Received: from localhost.localdomain (236.31.169.217.in-addr.arpa [217.169.31.236])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 646D02086A;
-        Tue, 24 Nov 2020 15:51:31 +0000 (UTC)
+        by mail.kernel.org (Postfix) with ESMTPSA id DBE4E208CA;
+        Tue, 24 Nov 2020 15:51:38 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1606233094;
-        bh=deEZsI4JMfZft5nsFKUFREErfrnI08kQMrUiB+oeZmE=;
+        s=default; t=1606233102;
+        bh=NLrRi/9J8DaCVchkwFBH0cmOH7ieCC+y5agV9HnV2+E=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=jZAqDxPfY0CHfGP9qkIm9uA+pzT5bEH+/W5nd8/KT6OUaSR/R9lxlP6cDozzyYre9
-         Tgdoyau5VM1CQ6qiFuQQ5EId1gG4CPP1/nXJfROp/VPvMed5bpu13OyvzkBRsaSW9y
-         Vs8F/2gRZiBZPvxKvvoOhQnp6uL4xKpywLit4EXc=
+        b=YkVT+zic8vHSeVX8CyqGlQeJYCTc1ZAC4zwzlr99goZTXgEDP/bH5RFztFcHLoEOa
+         dvLcQfn33zCYuRjaz9nP0YsyjCl3h+7y0/9/RxczqYB6o0FchMBiYxfCcIYvc1XLFr
+         PFfy+ip7QqVrizAmIa2NICe8yg6kcY2xmmqg9dlM=
 From:   Will Deacon <will@kernel.org>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
@@ -51,9 +51,9 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         Juri Lelli <juri.lelli@redhat.com>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         kernel-team@android.com
-Subject: [PATCH v4 11/14] sched: Reject CPU affinity changes based on arch_task_cpu_possible_mask()
-Date:   Tue, 24 Nov 2020 15:50:36 +0000
-Message-Id: <20201124155039.13804-12-will@kernel.org>
+Subject: [PATCH v4 13/14] arm64: Implement arch_task_cpu_possible_mask()
+Date:   Tue, 24 Nov 2020 15:50:38 +0000
+Message-Id: <20201124155039.13804-14-will@kernel.org>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20201124155039.13804-1-will@kernel.org>
 References: <20201124155039.13804-1-will@kernel.org>
@@ -63,39 +63,39 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Reject explicit requests to change the affinity mask of a task via
-set_cpus_allowed_ptr() if the requested mask is not a subset of the
-mask returned by arch_task_cpu_possible_mask(). This ensures that the
-'cpus_mask' for a given task cannot contain CPUs which are incapable of
-executing it, except in cases where the affinity is forced.
+Provide an implementation of arch_task_cpu_possible_mask() so that we
+can prevent 64-bit-only cores being added to the 'cpus_mask' for compat
+tasks on systems with mismatched 32-bit support at EL0,
 
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- kernel/sched/core.c | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/arm64/include/asm/mmu_context.h | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 99992d0beb65..095deda50643 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -1877,6 +1877,7 @@ static int __set_cpus_allowed_ptr_locked(struct task_struct *p,
- 					 struct rq_flags *rf)
- {
- 	const struct cpumask *cpu_valid_mask = cpu_active_mask;
-+	const struct cpumask *cpu_allowed_mask = arch_task_cpu_possible_mask(p);
- 	unsigned int dest_cpu;
- 	int ret = 0;
+diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/asm/mmu_context.h
+index 0672236e1aea..641dff35a56f 100644
+--- a/arch/arm64/include/asm/mmu_context.h
++++ b/arch/arm64/include/asm/mmu_context.h
+@@ -251,6 +251,19 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
+ #define deactivate_mm(tsk,mm)	do { } while (0)
+ #define activate_mm(prev,next)	switch_mm(prev, next, current)
  
-@@ -1887,6 +1888,9 @@ static int __set_cpus_allowed_ptr_locked(struct task_struct *p,
- 		 * Kernel threads are allowed on online && !active CPUs
- 		 */
- 		cpu_valid_mask = cpu_online_mask;
-+	} else if (!cpumask_subset(new_mask, cpu_allowed_mask)) {
-+		ret = -EINVAL;
-+		goto out;
- 	}
++static inline const struct cpumask *
++arch_task_cpu_possible_mask(struct task_struct *p)
++{
++	if (!static_branch_unlikely(&arm64_mismatched_32bit_el0))
++		return cpu_possible_mask;
++
++	if (!is_compat_thread(task_thread_info(p)))
++		return cpu_possible_mask;
++
++	return system_32bit_el0_cpumask();
++}
++#define arch_task_cpu_possible_mask	arch_task_cpu_possible_mask
++
+ void verify_cpu_asid_bits(void);
+ void post_ttbr_update_workaround(void);
  
- 	/*
 -- 
 2.29.2.454.gaff20da3a2-goog
 
