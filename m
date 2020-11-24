@@ -2,123 +2,144 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 05188C63777
-	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 16:50:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 743A4C8300C
+	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 17:08:17 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B6304208B8
-	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 16:50:08 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="ZCuQvSCf"
+	by mail.kernel.org (Postfix) with ESMTP id 2445520715
+	for <linux-arch@archiver.kernel.org>; Tue, 24 Nov 2020 17:08:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1731531AbgKXQtr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 24 Nov 2020 11:49:47 -0500
-Received: from mail.kernel.org ([198.145.29.99]:52232 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726105AbgKXQtr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Nov 2020 11:49:47 -0500
-Received: from kernel.org (unknown [77.125.7.142])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id B0D65206D8;
-        Tue, 24 Nov 2020 16:49:34 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1606236586;
-        bh=ofUYlPrJWYYZntZI6e1UjFnjHWpt+ejZuqW8X4FikI4=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=ZCuQvSCf55hd5LYTHCkX7HoUl/qLUj9Aw9Qt2bN77Vq37ymtgqf1vlqa/54yGLfET
-         9NqEFDk66Auv1EyiIzF9GLhnJC21iAtMI/wvzWombNFNDkOObvxkdIL/h8j9OReeJM
-         eznOp2166MiDXEFDWf7MpCnskhIQaw8NFBBtv2Qk=
-Date:   Tue, 24 Nov 2020 18:49:30 +0200
-From:   Mike Rapoport <rppt@kernel.org>
-To:     Catalin Marinas <catalin.marinas@arm.com>
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Wilcox <willy@infradead.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Roman Gushchin <guro@fb.com>, Shuah Khan <shuah@kernel.org>,
+        id S2390733AbgKXRIE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 24 Nov 2020 12:08:04 -0500
+Received: from mail-wm1-f68.google.com ([209.85.128.68]:53600 "EHLO
+        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2390674AbgKXRID (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Nov 2020 12:08:03 -0500
+Received: by mail-wm1-f68.google.com with SMTP id p22so3046858wmg.3;
+        Tue, 24 Nov 2020 09:08:01 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=DAKijZroIKQByX8CE0+1w/bE11gheXfs1vD8PWKgeTU=;
+        b=RK2G1CpGGNya9WcKCxGm4lqqnwHChLZ9M0NBrvPzZe40gXC6CPTe5+WQms3dPjxI1E
+         7VjBQhF0lEkqaoTC4pfpUHXYuv72mXbzYNgY7K1gDdxew5aJbQnHbsI6a9857TzW7YS2
+         xlQWVnmAibXNNMxm6R7G9SElin3NG51R+hNZv6OUy4wtWABGR/FuJWFkkTpFiH24Uasb
+         6Ob8dofxqp0JGbsAB8NEzPek+JtGA/X1+LUExBx4M+LuqBCNQjYglPdnukUUDhNIyU96
+         utOdq1PH7kcFvOmrdhvVeaOOmb9W5aZreAoCxo1sgs+BSBi27/262G6iQeSxb3tkoCqh
+         49Dg==
+X-Gm-Message-State: AOAM5312YBAtFtd5BIdORlVuWhLAJfaYNqDuYPEdIcOkMP2KB3gzfQ7R
+        W3yRzP93zbU9afSxml1fu2OuG4XRrbg=
+X-Google-Smtp-Source: ABdhPJzuspN0QqJbsAekcMvy+bG487Tf/0vZ2st7hEJvszJ7Z3duEaK/KQiValK1UVYZhxQdfCTvUQ==
+X-Received: by 2002:a1c:660b:: with SMTP id a11mr5470751wmc.159.1606237681096;
+        Tue, 24 Nov 2020 09:08:01 -0800 (PST)
+Received: from liuwe-devbox-debian-v2.j3c5onc20sse1dnehy4noqpfcg.zx.internal.cloudapp.net ([51.145.34.42])
+        by smtp.gmail.com with ESMTPSA id v20sm6419874wmh.44.2020.11.24.09.08.00
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 24 Nov 2020 09:08:00 -0800 (PST)
+From:   Wei Liu <wei.liu@kernel.org>
+To:     Linux on Hyper-V List <linux-hyperv@vger.kernel.org>
+Cc:     virtualization@lists.linux-foundation.org,
+        Linux Kernel List <linux-kernel@vger.kernel.org>,
+        Michael Kelley <mikelley@microsoft.com>,
+        Vineeth Pillai <viremana@linux.microsoft.com>,
+        Sunil Muthuswamy <sunilmut@microsoft.com>,
+        Nuno Das Neves <nunodasneves@linux.microsoft.com>,
+        Wei Liu <wei.liu@kernel.org>,
+        "K. Y. Srinivasan" <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
         Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
-        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>
-Subject: Re: [PATCH v11 4/9] mm: introduce memfd_secret system call to create
- "secret" memory areas
-Message-ID: <20201124164930.GK8537@kernel.org>
-References: <20201124092556.12009-1-rppt@kernel.org>
- <20201124092556.12009-5-rppt@kernel.org>
- <20201124105947.GA5527@gaia>
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        x86@kernel.org (maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)),
+        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+        linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
+Subject: [PATCH v3 11/17] asm-generic/hyperv: update hv_msi_entry
+Date:   Tue, 24 Nov 2020 17:07:38 +0000
+Message-Id: <20201124170744.112180-12-wei.liu@kernel.org>
+X-Mailer: git-send-email 2.20.1
+In-Reply-To: <20201124170744.112180-1-wei.liu@kernel.org>
+References: <20201124170744.112180-1-wei.liu@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20201124105947.GA5527@gaia>
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Nov 24, 2020 at 10:59:48AM +0000, Catalin Marinas wrote:
-> Hi Mike,
-> 
-> On Tue, Nov 24, 2020 at 11:25:51AM +0200, Mike Rapoport wrote:
-> > +static vm_fault_t secretmem_fault(struct vm_fault *vmf)
-> > +{
-> > +	struct address_space *mapping = vmf->vma->vm_file->f_mapping;
+We will soon need to access fields inside the MSI address and MSI data
+fields. Introduce hv_msi_address_register and hv_msi_data_register.
 
-...
+Fix up one user of hv_msi_entry in mshyperv.h.
 
-> > +
-> > +		err = set_direct_map_invalid_noflush(page, 1);
-> > +		if (err)
-> > +			goto err_del_page_cache;
-> 
-> On arm64, set_direct_map_default_noflush() returns 0 if !rodata_full but
-> no pgtable changes happen since the linear map can be a mix of small and
-> huge pages. The arm64 implementation doesn't break large mappings. I
-> presume we don't want to tell the user that the designated memory is
-> "secret" but the kernel silently ignored it.
-> 
-> We could change the arm64 set_direct_map* to return an error, however, I
-> think it would be pretty unexpected for the user to get a fault when
-> trying to access it. It may be better to return a -ENOSYS or something
-> on the actual syscall if the fault-in wouldn't be allowed later.
-> 
-> Alternatively, we could make the linear map always use pages on arm64,
-> irrespective of other config or cmdline options (maybe not justified
-> unless we have clear memsecret users). Yet another idea is to get
-> set_direct_map* to break pmd/pud mappings into pte but that's not always
-> possible without a stop_machine() and potentially disabling the MMU.
+No functional change expected.
 
-My preference would be to check at secretmem initialization if
-set_direct_map_*() actually do anything and then return an error from
-the syscall if they are essentially nop.
+Signed-off-by: Wei Liu <wei.liu@kernel.org>
+---
+ arch/x86/include/asm/mshyperv.h   |  4 ++--
+ include/asm-generic/hyperv-tlfs.h | 28 ++++++++++++++++++++++++++--
+ 2 files changed, 28 insertions(+), 4 deletions(-)
 
-I'll update the patches with something like this in v12.
-
-> -- 
-> Catalin
-
+diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
+index 4e590a167160..cbee72550a12 100644
+--- a/arch/x86/include/asm/mshyperv.h
++++ b/arch/x86/include/asm/mshyperv.h
+@@ -257,8 +257,8 @@ static inline void hv_apic_init(void) {}
+ static inline void hv_set_msi_entry_from_desc(union hv_msi_entry *msi_entry,
+ 					      struct msi_desc *msi_desc)
+ {
+-	msi_entry->address = msi_desc->msg.address_lo;
+-	msi_entry->data = msi_desc->msg.data;
++	msi_entry->address.as_uint32 = msi_desc->msg.address_lo;
++	msi_entry->data.as_uint32 = msi_desc->msg.data;
+ }
+ 
+ #else /* CONFIG_HYPERV */
+diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
+index ec53570102f0..7e103be42799 100644
+--- a/include/asm-generic/hyperv-tlfs.h
++++ b/include/asm-generic/hyperv-tlfs.h
+@@ -480,12 +480,36 @@ struct hv_create_vp {
+ 	u64 flags;
+ } __packed;
+ 
++union hv_msi_address_register {
++	u32 as_uint32;
++	struct {
++		u32 reserved1:2;
++		u32 destination_mode:1;
++		u32 redirection_hint:1;
++		u32 reserved2:8;
++		u32 destination_id:8;
++		u32 msi_base:12;
++	};
++} __packed;
++
++union hv_msi_data_register {
++	u32 as_uint32;
++	struct {
++		u32 vector:8;
++		u32 delivery_mode:3;
++		u32 reserved1:3;
++		u32 level_assert:1;
++		u32 trigger_mode:1;
++		u32 reserved2:16;
++	};
++} __packed;
++
+ /* HvRetargetDeviceInterrupt hypercall */
+ union hv_msi_entry {
+ 	u64 as_uint64;
+ 	struct {
+-		u32 address;
+-		u32 data;
++		union hv_msi_address_register address;
++		union hv_msi_data_register data;
+ 	} __packed;
+ };
+ 
 -- 
-Sincerely yours,
-Mike.
+2.20.1
+
