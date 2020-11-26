@@ -7,46 +7,46 @@ X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7A5C4C64E7B
-	for <linux-arch@archiver.kernel.org>; Thu, 26 Nov 2020 12:12:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A1D56C56202
+	for <linux-arch@archiver.kernel.org>; Thu, 26 Nov 2020 12:12:49 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C1C4A20B80
-	for <linux-arch@archiver.kernel.org>; Thu, 26 Nov 2020 12:12:21 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 45D732087C
+	for <linux-arch@archiver.kernel.org>; Thu, 26 Nov 2020 12:12:49 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="W1TFRVvd"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="vBt34Bck"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2388955AbgKZMMR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 26 Nov 2020 07:12:17 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44586 "EHLO
+        id S2388728AbgKZMML (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 26 Nov 2020 07:12:11 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44580 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726321AbgKZMML (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Nov 2020 07:12:11 -0500
+        with ESMTP id S1731806AbgKZMMK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Nov 2020 07:12:10 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AEDD0C0613D4;
-        Thu, 26 Nov 2020 04:12:11 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 76F12C0617A7;
+        Thu, 26 Nov 2020 04:12:10 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=iHRAwfISjmDVO4YfqfbHVdJ2ZWVEpJxsSVYRxtpbcsQ=; b=W1TFRVvdOr3lqnjmu4Y3X0/O4K
-        qyYaWMnTjj3afueuAAHp0gS8+bjPsQpM5E1cRwSPhxFOM9A7aRRXp3o/JnStAwU6vy0cCjiBykvRU
-        XIUPUxUm0kXIjvuMDkam3L90Om+RBffrCXY7GSog/KMNwDJrXUqDE4A5uEWivj/m8Pt55wM+O6Ucn
-        7IttdTgHVwb12drQItluBFvQoZCiqlxfscVXFv7LKvsuuX0L6/jWRDymIweOz7bphA9gBgIqMIFGK
-        fzuo455MVRa9j9pCHxHKaNkANOgW+7Ls3HYw4Gwr9FKxPmgM+PZFQVBcfQnQna8YyJvchQM7+nFld
-        sL82ZTCA==;
+        bh=WXAvlj8sBk2RdzEpcLbJIMj6YxrEqCvZ8aLKdoJEykM=; b=vBt34BckTzuxfPdRs6WzS6jl4U
+        VMOgpb4TEclazpBWZFkBbC8RDZzxfyaCCsqZTH10v33Y9GOCdAchDmgd6bC8otUGCCPj1bOt0oACC
+        u10faOlb2zRaRVENzRze4mruA5lUFRcTwut9JpdIhzKkqPyyAet1vZRoUhpTwN3KsL6Xuh2qhDYsb
+        MNxFGsfN+kP/94UUc8oj7U/AWLpIgnf6qmwssN0L3COcdvoIaJNwgXkMSzyjn0zvb9KjalQIBX1Fq
+        5utgHyiFydFkKzl2tMDsnnLgOlK/BgCGb/3/drFLdfgrh8UTj+JUn/oJ6fDra3kDabeuw3NgnPvj5
+        IcE5bbnA==;
 Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
         by casper.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
-        id 1kiG7b-0000OI-SD; Thu, 26 Nov 2020 12:11:36 +0000
+        id 1kiG7c-0000OT-Ol; Thu, 26 Nov 2020 12:11:36 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id E009D3070F9;
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 1342330280E;
         Thu, 26 Nov 2020 13:11:34 +0100 (CET)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 05D712D167BEB; Thu, 26 Nov 2020 13:11:34 +0100 (CET)
-Message-ID: <20201126121121.301768209@infradead.org>
+        id EBF8E25F0FB42; Thu, 26 Nov 2020 13:11:33 +0100 (CET)
+Message-ID: <20201126121121.102580109@infradead.org>
 User-Agent: quilt/0.66
-Date:   Thu, 26 Nov 2020 13:01:19 +0100
+Date:   Thu, 26 Nov 2020 13:01:16 +0100
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     kan.liang@linux.intel.com, mingo@kernel.org, acme@kernel.org,
         mark.rutland@arm.com, alexander.shishkin@linux.intel.com,
@@ -59,7 +59,7 @@ Cc:     christophe.leroy@csgroup.eu, npiggin@gmail.com,
         linux-kernel@vger.kernel.org, ak@linux.intel.com,
         dave.hansen@intel.com, kirill.shutemov@linux.intel.com,
         peterz@infradead.org
-Subject: [PATCH v2 5/6] sparc64/mm: Implement pXX_leaf_size() support
+Subject: [PATCH v2 2/6] mm: Introduce pXX_leaf_size()
 References: <20201126120114.071913521@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -67,76 +67,38 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Sparc64 has non-pagetable aligned large page support; wire up the
-pXX_leaf_size() functions to report the correct pagetable page size.
+A number of architectures have non-pagetable aligned huge/large pages.
+For such architectures a leaf can actually be part of a larger entry.
 
-This enables PERF_SAMPLE_{DATA,CODE}_PAGE_SIZE to report accurate
-pagetable leaf sizes.
+Provide generic helpers to determine the size of a page-table leaf.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/sparc/include/asm/pgtable_64.h |   13 +++++++++++++
- arch/sparc/mm/hugetlbpage.c         |   19 +++++++++++++------
- 2 files changed, 26 insertions(+), 6 deletions(-)
+ include/linux/pgtable.h |   16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
 
---- a/arch/sparc/include/asm/pgtable_64.h
-+++ b/arch/sparc/include/asm/pgtable_64.h
-@@ -1121,6 +1121,19 @@ extern unsigned long cmdline_memory_size
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -1536,4 +1536,20 @@ typedef unsigned int pgtbl_mod_mask;
+ #define pmd_leaf(x)	0
+ #endif
  
- asmlinkage void do_sparc64_fault(struct pt_regs *regs);
- 
-+#ifdef CONFIG_HUGETLB_PAGE
++#ifndef pgd_leaf_size
++#define pgd_leaf_size(x) (1ULL << PGDIR_SHIFT)
++#endif
++#ifndef p4d_leaf_size
++#define p4d_leaf_size(x) P4D_SIZE
++#endif
++#ifndef pud_leaf_size
++#define pud_leaf_size(x) PUD_SIZE
++#endif
++#ifndef pmd_leaf_size
++#define pmd_leaf_size(x) PMD_SIZE
++#endif
++#ifndef pte_leaf_size
++#define pte_leaf_size(x) PAGE_SIZE
++#endif
 +
-+#define pud_leaf_size pud_leaf_size
-+extern unsigned long pud_leaf_size(pud_t pud);
-+
-+#define pmd_leaf_size pmd_leaf_size
-+extern unsigned long pmd_leaf_size(pmd_t pmd);
-+
-+#define pte_leaf_size pte_leaf_size
-+extern unsigned long pte_leaf_size(pte_t pte);
-+
-+#endif /* CONFIG_HUGETLB_PAGE */
-+
- #endif /* !(__ASSEMBLY__) */
- 
- #endif /* !(_SPARC64_PGTABLE_H) */
---- a/arch/sparc/mm/hugetlbpage.c
-+++ b/arch/sparc/mm/hugetlbpage.c
-@@ -247,14 +247,17 @@ static unsigned int sun4u_huge_tte_to_sh
- 	return shift;
- }
- 
--static unsigned int huge_tte_to_shift(pte_t entry)
-+static unsigned long tte_to_shift(pte_t entry)
- {
--	unsigned long shift;
--
- 	if (tlb_type == hypervisor)
--		shift = sun4v_huge_tte_to_shift(entry);
--	else
--		shift = sun4u_huge_tte_to_shift(entry);
-+		return sun4v_huge_tte_to_shift(entry);
-+
-+	return sun4u_huge_tte_to_shift(entry);
-+}
-+
-+static unsigned int huge_tte_to_shift(pte_t entry)
-+{
-+	unsigned long shift = tte_to_shift(entry);
- 
- 	if (shift == PAGE_SHIFT)
- 		WARN_ONCE(1, "tto_to_shift: invalid hugepage tte=0x%lx\n",
-@@ -272,6 +275,10 @@ static unsigned long huge_tte_to_size(pt
- 	return size;
- }
- 
-+unsigned long pud_leaf_size(pud_t pud) { return 1UL << tte_to_shift((pte_t)pud); }
-+unsigned long pmd_leaf_size(pmd_t pmd) { return 1UL << tte_to_shift((pte_t)pmd); }
-+unsigned long pte_leaf_size(pte_t pte) { return 1UL << tte_to_shift((pte_t)pte); }
-+
- pte_t *huge_pte_alloc(struct mm_struct *mm,
- 			unsigned long addr, unsigned long sz)
- {
+ #endif /* _LINUX_PGTABLE_H */
 
 
