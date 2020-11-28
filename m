@@ -2,158 +2,86 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 19AACC83012
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CAB68C83014
 	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:08:14 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id DC261221FF
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:08:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A417F221FF
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:08:14 +0000 (UTC)
+Authentication-Results: mail.kernel.org;
+	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="epX46Lo5"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2389906AbgK1VuL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S2389888AbgK1VuL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Sat, 28 Nov 2020 16:50:11 -0500
-Received: from mga02.intel.com ([134.134.136.20]:19349 "EHLO mga02.intel.com"
+Received: from mail.kernel.org ([198.145.29.99]:44578 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729533AbgK1S16 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 28 Nov 2020 13:27:58 -0500
-IronPort-SDR: OPOyZK1VZCtm/BBuZIpqX0JXtqLhMjp5uT/fRk3byxVsjAQ3AiAWZ2Su4mqrBuXDaudff1L3mF
- ASoqTe2vahHQ==
-X-IronPort-AV: E=McAfee;i="6000,8403,9819"; a="159537056"
-X-IronPort-AV: E=Sophos;i="5.78,377,1599548400"; 
-   d="scan'208";a="159537056"
-X-Amp-Result: SKIPPED(no attachment in message)
-X-Amp-File-Uploaded: False
-Received: from orsmga004.jf.intel.com ([10.7.209.38])
-  by orsmga101.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 28 Nov 2020 08:24:00 -0800
-IronPort-SDR: FDIYYBr2hlKPLMbEhzG7QTIT1dc8+Q0vPjFxJnrDDSbotYpzRlODAOgHg1F1ZOFB7gou8+8goX
- dGWqsJsDMvIw==
-X-IronPort-AV: E=Sophos;i="5.78,377,1599548400"; 
-   d="scan'208";a="480006706"
-Received: from jckaplan-mobl1.amr.corp.intel.com (HELO [10.212.23.254]) ([10.212.23.254])
-  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 28 Nov 2020 08:23:59 -0800
-Subject: Re: [PATCH v15 05/26] x86/cet/shstk: Add Kconfig option for user-mode
- Shadow Stack
-To:     Borislav Petkov <bp@alien8.de>
-Cc:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
-        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        Pengfei Xu <pengfei.xu@intel.com>
-References: <20201110162211.9207-1-yu-cheng.yu@intel.com>
- <20201110162211.9207-6-yu-cheng.yu@intel.com>
- <20201127171012.GD13163@zn.tnic>
-From:   "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
-Message-ID: <98e1b159-bf32-5c67-455b-f798023770ef@intel.com>
-Date:   Sat, 28 Nov 2020 08:23:59 -0800
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101
- Thunderbird/68.12.1
+        id S1732135AbgK1SBz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 28 Nov 2020 13:01:55 -0500
+Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id CEEBB246EA
+        for <linux-arch@vger.kernel.org>; Sat, 28 Nov 2020 17:55:50 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=default; t=1606586151;
+        bh=ZZhMRxdkDiUtjJhs9EzGkFNzkESkUN3IT5oRokS68Qo=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=epX46Lo5gyxVc+A48tcBI9o2KY5N0B8LeGVmlne+5FIJLCKzXxKJbO8s5nD3xgFEq
+         X4i5sPbFp4pWFdxVxrkkA2Zo+E6LU8KzScdnd4wUs/DuAJxVyePHnhRMsXt1NPg65k
+         bczZ20BbxsSWXKhjoKXb+3UfQFkWGyoh+eDumXHw=
+Received: by mail-wm1-f52.google.com with SMTP id h21so9875768wmb.2
+        for <linux-arch@vger.kernel.org>; Sat, 28 Nov 2020 09:55:50 -0800 (PST)
+X-Gm-Message-State: AOAM5328bSNkriDdYVDt37Fb2eYI/ZkJJXl40mJPnxyV61GaY77bsnaW
+        /BCbk1wo90+ZxeC7l51eceytLbrcm+qZGsCokVcpiQ==
+X-Google-Smtp-Source: ABdhPJzaqB8K8IiW/9cIJ/CJ9BqnrVUcLDZBaHBUttYrz8GGSHowF+hWwUHxhG80vPrg9fActeSCQFpfFgxQjqhRUUg=
+X-Received: by 2002:a1c:7e90:: with SMTP id z138mr436606wmc.49.1606586149355;
+ Sat, 28 Nov 2020 09:55:49 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <20201127171012.GD13163@zn.tnic>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <20201128160141.1003903-1-npiggin@gmail.com> <20201128160141.1003903-3-npiggin@gmail.com>
+In-Reply-To: <20201128160141.1003903-3-npiggin@gmail.com>
+From:   Andy Lutomirski <luto@kernel.org>
+Date:   Sat, 28 Nov 2020 09:55:37 -0800
+X-Gmail-Original-Message-ID: <CALCETrXYkbuJJnDv9ijfT+5tLQ2FOvvN1Ugoh5NwOy+zHp9HXA@mail.gmail.com>
+Message-ID: <CALCETrXYkbuJJnDv9ijfT+5tLQ2FOvvN1Ugoh5NwOy+zHp9HXA@mail.gmail.com>
+Subject: Re: [PATCH 2/8] x86: use exit_lazy_tlb rather than membarrier_mm_sync_core_before_usermode
+To:     Nicholas Piggin <npiggin@gmail.com>
+Cc:     LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>,
+        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Peter Zijlstra <peterz@infradead.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        Linux-MM <linux-mm@kvack.org>, Anton Blanchard <anton@ozlabs.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 11/27/2020 9:10 AM, Borislav Petkov wrote:
-> On Tue, Nov 10, 2020 at 08:21:50AM -0800, Yu-cheng Yu wrote:
->> +config X86_CET
->> +	def_bool n
->> +
->> +config ARCH_HAS_SHADOW_STACK
->> +	def_bool n
->> +
->> +config X86_SHADOW_STACK_USER
-> 
-> Is X86_SHADOW_STACK_KERNEL coming too?
-> 
-> Regardless, you can add it when it comes and you can use only X86_CET
-> for now and drop this one and simplify this pile of Kconfig symbols.
+On Sat, Nov 28, 2020 at 8:02 AM Nicholas Piggin <npiggin@gmail.com> wrote:
+>
+> And get rid of the generic sync_core_before_usermode facility. This is
+> functionally a no-op in the core scheduler code, but it also catches
+>
+> This helper is the wrong way around I think. The idea that membarrier
+> state requires a core sync before returning to user is the easy one
+> that does not need hiding behind membarrier calls. The gap in core
+> synchronization due to x86's sysret/sysexit and lazy tlb mode, is the
+> tricky detail that is better put in x86 lazy tlb code.
+>
+> Consider if an arch did not synchronize core in switch_mm either, then
+> membarrier_mm_sync_core_before_usermode would be in the wrong place
+> but arch specific mmu context functions would still be the right place.
+> There is also a exit_lazy_tlb case that is not covered by this call, which
+> could be a bugs (kthread use mm the membarrier process's mm then context
+> switch back to the process without switching mm or lazy mm switch).
+>
+> This makes lazy tlb code a bit more modular.
 
-We have X86_BRANCH_TRACKING_USER too.  My thought was, X86_CET means any 
-of kernel/user shadow stack/ibt.
-
-> 
->> +	prompt "Intel Shadow Stacks for user-mode"
->> +	def_bool n
->> +	depends on CPU_SUP_INTEL && X86_64
->> +	depends on AS_HAS_SHADOW_STACK
->> +	select ARCH_USES_HIGH_VMA_FLAGS
->> +	select X86_CET
->> +	select ARCH_HAS_SHADOW_STACK
->> +	help
->> +	  Shadow Stacks provides protection against program stack
->> +	  corruption.  It's a hardware feature.  This only matters
->> +	  if you have the right hardware.  It's a security hardening
->> +	  feature and apps must be enabled to use it.  You get no
->> +	  protection "for free" on old userspace.  The hardware can
->> +	  support user and kernel, but this option is for user space
->> +	  only.
->> +	  Support for this feature is only known to be present on
->> +	  processors released in 2020 or later.  CET features are also
->> +	  known to increase kernel text size by 3.7 KB.
-> 
-> This help text needs some rewriting. You can find an inspiration about
-> more adequate style in that same Kconfig file.
-> 
-
-I will work on it.
-
->> +
->> +	  If unsure, say N.
->> +
->>   config EFI
->>   	bool "EFI runtime service support"
->>   	depends on ACPI
->> diff --git a/scripts/as-x86_64-has-shadow-stack.sh b/scripts/as-x86_64-has-shadow-stack.sh
->> new file mode 100755
->> index 000000000000..fac1d363a1b8
->> --- /dev/null
->> +++ b/scripts/as-x86_64-has-shadow-stack.sh
->> @@ -0,0 +1,4 @@
->> +#!/bin/sh
->> +# SPDX-License-Identifier: GPL-2.0
->> +
->> +echo "wrussq %rax, (%rbx)" | $* -x assembler -c -
-> 
-> 						      2> /dev/null
-> 
-> otherwise you get
-> 
-> {standard input}: Assembler messages:
-> {standard input}:1: Error: no such instruction: `wrussq %rax,(%rbx)
-> 
-> on non-enlightened toolchains during build.
-> 
-
-Yes, I will fix this in the next revision.
-
-Yu-cheng
-
-> Thx.
-> 
-
+I have a couple of membarrier fixes that I want to send out today or
+tomorrow, and they might eliminate the need for this patch.  Let me
+think about this a little bit.  I'll cc you.  The existing code is way
+to subtle and the comments are far too confusing for me to be quickly
+confident about any of my conclusions :)
