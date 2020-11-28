@@ -2,162 +2,119 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-4.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C87DAC83013
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 290B3C83020
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:24 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9518921527
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:21 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 011AA2222C
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:23 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ijz5c75/"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="pAWIgWzJ"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1731366AbgK1VuR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 28 Nov 2020 16:50:17 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44640 "EHLO
+        id S1729393AbgK1VuP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 28 Nov 2020 16:50:15 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42398 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387413AbgK1THT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 14:07:19 -0500
+        with ESMTP id S1731556AbgK1Sw7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 13:52:59 -0500
 Received: from mail-pg1-x544.google.com (mail-pg1-x544.google.com [IPv6:2607:f8b0:4864:20::544])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 83C80C02A1B7;
-        Sat, 28 Nov 2020 07:26:23 -0800 (PST)
-Received: by mail-pg1-x544.google.com with SMTP id t3so6660602pgi.11;
-        Sat, 28 Nov 2020 07:26:23 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8179FC061A4F;
+        Fri, 27 Nov 2020 21:57:01 -0800 (PST)
+Received: by mail-pg1-x544.google.com with SMTP id t3so5892903pgi.11;
+        Fri, 27 Nov 2020 21:57:01 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=Wf66xeGBT+zLBJ325IKif/6Ivp+txfeM6xGRJ6CQfBE=;
-        b=ijz5c75/E/ELd5qQgEJTSiT2ArdpJ9bA3PqbAX6GvlMdjXweWhLfILo7qXEC1nBBCB
-         kiL7mvl+4JvgigcgzmmQWU6r8CFTjcR5F4nW6rOV7VSX3aBMX+jA2gLYrvke2pP52R6E
-         9hfHLSZPWV/d4spjtxIXptVb6ugMHWXtgfYxTHVySAWJTR+b0rqxYn2NCqDNPiTD03Ke
-         cPdqn1MUJz5Zr6yIMZcHwNlJWm9bD/6VUoaXcVxWdRuoAPSJqfBh3VEo8ZD8MrcGPXyK
-         1nLp7ZH1pU+U3eqJl8WS9Fo+49LWEK4bagk7cMGxWjXQbG+mEHrcIUj3p523q0J4Ymx1
-         3rtQ==
+        h=subject:to:cc:references:from:message-id:date:user-agent
+         :mime-version:in-reply-to:content-language:content-transfer-encoding;
+        bh=9pljJYqBFFJMT23aRvOkmjosrfPaZRUoII94EEjK9qU=;
+        b=pAWIgWzJiDXbACtUw0Rf9V31klbqZp0donc49T3DevUTgr5yZc7iqIvDFEwKYQ19yX
+         YzR6RuMRHh/QbKr75FfabgQCEuRWVuYDyMXcsJaHZ9bm6HrGaZuPDO9pw7UWKR4n6tDm
+         fXg/8UpA3r6drmwFG5YN7M0kk6TDwLaVQ8j6IqnUqhvRQICO9/XSElMRefZKgYnFLxsq
+         4UdGXA8XtmKglxID6DMAtZuulzWC7KD5+bd7Lcbo+q1LleNMFOBE2brIQRZSnhL2jz4s
+         7ozmachgSuSCf4E5p1X9njmjDhVSiesKbXHXfVW51ZbpXRjalYE+Ywbd3ETl5b7A8Of1
+         7P6g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=Wf66xeGBT+zLBJ325IKif/6Ivp+txfeM6xGRJ6CQfBE=;
-        b=rEfkJLCpUDuk4ZG87K+8Xzv1invKe0xhXMWS+h8/aerDF7l01gGUTXKK6mEUqFGupL
-         9kuG59m5v/7ZKCatipbWAGneI/7q7drqvtz6FrBSe1p9HyG2YAgjbUSh2z59tiUyFxMA
-         /JAVhH4TTKGhV8fG9GMdRRqo4vhhqYT/AucFVuleWh6qrIKL5Y85Hl9AXGon3/HPftkU
-         3g2DbFwt0J9QwCuH9V/d7Z41GJckgcnZqFlKOP/eiKglndF/yAkfayzJWsnZTYJpeVal
-         8YEhRQ+AyOjgXl3z9yESVu3v//7gLm0zF3BdaF6MmxYQqMR4rldb7qsF34zGoUanpdwO
-         cTag==
-X-Gm-Message-State: AOAM533IMmU4s1VGMDINZpCVGUHug4W9d+t+IdNjS0smDoxQQoawGdx7
-        zKCV2pQFF3eekfuNQcpnO7Y=
-X-Google-Smtp-Source: ABdhPJzeEOSEN3KeDp8OFJg9EFuSGss5z2RgYshFkeIZ0nmjG+43w6JLsJfj3kymtZAT+aAIMK/HZg==
-X-Received: by 2002:a63:7847:: with SMTP id t68mr10960254pgc.422.1606577183113;
-        Sat, 28 Nov 2020 07:26:23 -0800 (PST)
-Received: from bobo.ibm.com (193-116-103-132.tpgi.com.au. [193.116.103.132])
-        by smtp.gmail.com with ESMTPSA id d22sm15500173pjw.11.2020.11.28.07.26.18
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 28 Nov 2020 07:26:22 -0800 (PST)
-From:   Nicholas Piggin <npiggin@gmail.com>
-To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        Zefan Li <lizefan@huawei.com>,
-        Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
-        Christoph Hellwig <hch@infradead.org>,
-        Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v8 03/12] mm/vmalloc: rename vmap_*_range vmap_pages_*_range
-Date:   Sun, 29 Nov 2020 01:25:50 +1000
-Message-Id: <20201128152559.999540-4-npiggin@gmail.com>
-X-Mailer: git-send-email 2.23.0
-In-Reply-To: <20201128152559.999540-1-npiggin@gmail.com>
-References: <20201128152559.999540-1-npiggin@gmail.com>
+        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
+         :user-agent:mime-version:in-reply-to:content-language
+         :content-transfer-encoding;
+        bh=9pljJYqBFFJMT23aRvOkmjosrfPaZRUoII94EEjK9qU=;
+        b=eQrBrVL8QMoXzuivbWVaC1jTAmh4vH2XPLGt67h9Ojqs6veFDwV7NRwpD/OQydBeF9
+         WWRpt0I6pI9ucPXH2iOdP5NI+8SsPZ9icgYg9Z7/ZyijaS/MG7QEbX6rubntm5bB+4tA
+         L7AlzoepWqLrzWBrDFipr4n1iliK1b3vSRAS00bxBee/uF7bfcFvtknEMZ1WppP+fyH5
+         luZ32SXyeUS0G9waC+lO8LhmzsXqL2YrSIfqMvsZr50uTQvWpS1xyyoW6OBSXaw+4G3n
+         znjTwP8F5cbqBA2KLCjU9j8jxe/UCh9Kl4xB8gQrP9LtP3OBTvOnYoL9jgpXYT4Ked2m
+         8bKQ==
+X-Gm-Message-State: AOAM531f1slpq8YO3ZK/VEdqANfsJaspVuitMGEJNcWeQY/CaLDjIreg
+        xAK8Y1vzG4gfvFbLLBSF/xU=
+X-Google-Smtp-Source: ABdhPJzalDvif4YtaXVkhN9LAKKZUXXwCXAnRSqCKLQYo2zGE3B4VQsH2gjUeE+MBVvy3uCxJ8WVtw==
+X-Received: by 2002:a17:90b:1811:: with SMTP id lw17mr14391926pjb.105.1606543020911;
+        Fri, 27 Nov 2020 21:57:00 -0800 (PST)
+Received: from [192.168.11.5] (KD106167171201.ppp-bb.dion.ne.jp. [106.167.171.201])
+        by smtp.gmail.com with ESMTPSA id i10sm9550637pfk.206.2020.11.27.21.56.57
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 27 Nov 2020 21:57:00 -0800 (PST)
+Subject: Re: [PATCH memory-model 6/8] tools/memory-model: Add types to litmus
+ tests
+To:     "Paul E. McKenney" <paulmck@kernel.org>
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        kernel-team@fb.com, mingo@kernel.org, stern@rowland.harvard.edu,
+        parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org,
+        boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com,
+        j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
+        Akira Yokosawa <akiyks@gmail.com>
+References: <20201105215953.GA15309@paulmck-ThinkPad-P72>
+ <20201105220017.15410-6-paulmck@kernel.org>
+ <12e0baf4-b1c9-d674-1d4c-310e0a9b6343@gmail.com>
+ <20201105225605.GQ3249@paulmck-ThinkPad-P72>
+ <2acf8de5-efe9-a205-cb62-04c4774008c0@gmail.com>
+ <20201127154652.GU1437@paulmck-ThinkPad-P72>
+From:   Akira Yokosawa <akiyks@gmail.com>
+Message-ID: <78e1ccaf-9d35-b2a5-1865-fb0a76b3e57e@gmail.com>
+Date:   Sat, 28 Nov 2020 14:56:55 +0900
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
+ Thunderbird/68.10.0
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20201127154652.GU1437@paulmck-ThinkPad-P72>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The vmalloc mapper operates on a struct page * array rather than a
-linear physical address, re-name it to make this distinction clear.
+On Fri, 27 Nov 2020 07:46:52 -0800, Paul E. McKenney wrote:
+> On Wed, Nov 25, 2020 at 08:34:47PM +0900, Akira Yokosawa wrote:
+[...]
+>> Hi Paul,
+>>
+>> I'm seeing this patch still alive in the updated for-mingo-lkmm branch.
+>> Have you got some objection?
+> 
+> From git, which was not able to trivially revert.
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- mm/vmalloc.c | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+;-) ;-)
 
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index f85124e88bdb..42326dbffaf0 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -189,7 +189,7 @@ void unmap_kernel_range_noflush(unsigned long start, unsigned long size)
- 		arch_sync_kernel_mappings(start, end);
- }
- 
--static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
-+static int vmap_pages_pte_range(pmd_t *pmd, unsigned long addr,
- 		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
- 		pgtbl_mod_mask *mask)
- {
-@@ -217,7 +217,7 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
- 	return 0;
- }
- 
--static int vmap_pmd_range(pud_t *pud, unsigned long addr,
-+static int vmap_pages_pmd_range(pud_t *pud, unsigned long addr,
- 		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
- 		pgtbl_mod_mask *mask)
- {
-@@ -229,13 +229,13 @@ static int vmap_pmd_range(pud_t *pud, unsigned long addr,
- 		return -ENOMEM;
- 	do {
- 		next = pmd_addr_end(addr, end);
--		if (vmap_pte_range(pmd, addr, next, prot, pages, nr, mask))
-+		if (vmap_pages_pte_range(pmd, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (pmd++, addr = next, addr != end);
- 	return 0;
- }
- 
--static int vmap_pud_range(p4d_t *p4d, unsigned long addr,
-+static int vmap_pages_pud_range(p4d_t *p4d, unsigned long addr,
- 		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
- 		pgtbl_mod_mask *mask)
- {
-@@ -247,13 +247,13 @@ static int vmap_pud_range(p4d_t *p4d, unsigned long addr,
- 		return -ENOMEM;
- 	do {
- 		next = pud_addr_end(addr, end);
--		if (vmap_pmd_range(pud, addr, next, prot, pages, nr, mask))
-+		if (vmap_pages_pmd_range(pud, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (pud++, addr = next, addr != end);
- 	return 0;
- }
- 
--static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
-+static int vmap_pages_p4d_range(pgd_t *pgd, unsigned long addr,
- 		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
- 		pgtbl_mod_mask *mask)
- {
-@@ -265,7 +265,7 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
- 		return -ENOMEM;
- 	do {
- 		next = p4d_addr_end(addr, end);
--		if (vmap_pud_range(p4d, addr, next, prot, pages, nr, mask))
-+		if (vmap_pages_pud_range(p4d, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (p4d++, addr = next, addr != end);
- 	return 0;
-@@ -306,7 +306,7 @@ int map_kernel_range_noflush(unsigned long addr, unsigned long size,
- 		next = pgd_addr_end(addr, end);
- 		if (pgd_bad(*pgd))
- 			mask |= PGTBL_PGD_MODIFIED;
--		err = vmap_p4d_range(pgd, addr, next, prot, pages, &nr, &mask);
-+		err = vmap_pages_p4d_range(pgd, addr, next, prot, pages, &nr, &mask);
- 		if (err)
- 			return err;
- 	} while (pgd++, addr = next, addr != end);
--- 
-2.23.0
+>                                                   If you send me a
+> patch on top that removes the uneeded declarations and if someone
+> tests it with a klitmus run, I will take it for the merge window
+> following the upcoming one.
+
+Got it!
+I'm submitting a patch set in reply to this mail.
+
+1/2 is the removal of those redundant type declarations.
+2/2 is an obvious fix of typo I made in the klitmus7 compat table.
+
+        Thanks, Akira
+
+> 
+> 							Thanx, Paul
+> 
+>>         Thanks, Akira
+>>
 
