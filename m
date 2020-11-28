@@ -2,122 +2,199 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1278CC63798
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8C735C83022
 	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:24 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D225E20706
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:23 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 4A3842222C
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:24 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="akXhWtdI"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="u/jtzknF"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729658AbgK1VuQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 28 Nov 2020 16:50:16 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44324 "EHLO
+        id S1729285AbgK1VuP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 28 Nov 2020 16:50:15 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40028 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733074AbgK1TFP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 14:05:15 -0500
-Received: from mail-pf1-x433.google.com (mail-pf1-x433.google.com [IPv6:2607:f8b0:4864:20::433])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1D5F0C061A54;
-        Fri, 27 Nov 2020 22:01:55 -0800 (PST)
-Received: by mail-pf1-x433.google.com with SMTP id b10so4878104pfo.4;
-        Fri, 27 Nov 2020 22:01:55 -0800 (PST)
+        with ESMTP id S1730178AbgK1SiF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 13:38:05 -0500
+Received: from mail-pg1-x544.google.com (mail-pg1-x544.google.com [IPv6:2607:f8b0:4864:20::544])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6D6F2C0258F4;
+        Sat, 28 Nov 2020 08:02:19 -0800 (PST)
+Received: by mail-pg1-x544.google.com with SMTP id k11so6743747pgq.2;
+        Sat, 28 Nov 2020 08:02:19 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=subject:to:cc:references:from:message-id:date:user-agent
-         :mime-version:in-reply-to:content-language:content-transfer-encoding;
-        bh=FhECr7kZx6Fc6F/T39W8mVgPHiuG0xnk7fsqY4ZRTsU=;
-        b=akXhWtdIF75g3t2rcbr8+H3e717hmONzSYFHvb1+PebOnf/5A7ADV+f95GkdADp1Xw
-         rVQUYkEVRZ8oRV0itkLbKNIP8FARWM2G9Oti43BRWt/fFj17LD9N+TaEnSJvn/diDI9R
-         o7nwlSD0v5Ggzmu9AtOOTmGWCravvv90vDIgVs2xfg3Kgk9KWTX1tSMdNOMR7sgO/afz
-         RVDbY++Kcu6ttL3RymkNcBcijQomZ5CoELZ59DktjlzLHFmqnGNwkexhRE/W0BHGpW4E
-         gWISl0ieMQpfIUjAs133swgjqjqmPo7TlURAAsoRHYI8VC0Cv+noZIIb5xu8q73KZoin
-         le8g==
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=65OkZBDz2HAL7Su3DQky7EvOLeinu5tb1gf0ETLWceY=;
+        b=u/jtzknFAd1tAacYeJoy/46zj5ChdFT3xU8MZDR6BV1HUVh/2VSorfp/+xqvPHsPkn
+         A5kWjznZ0r5vU8waxfe1mqVhtjhfYM+MaOz88K1WoNyQZyYjMWkiGLgwLA3xK3WSa6Gq
+         FrlTNGIlqHWCl/be5jqC8aVx2VyfAfrUaer6LZ0ZQ/nNbXgJa/VHWb+e2mFD1wW/jxDa
+         IfrRS5GIsGLweCb8HbxwZksrk0lJRMKAEcFqCQtSF2EBIi7qeHLU8MfKOOiNLtDuaQj9
+         FYq964XIIM+e/xk1kgqKRlfVu9uv/c3RzDRXUBD5Oi2Uu4QAgEoknC8D/6A6B7cDDFbc
+         ZOtg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
-         :user-agent:mime-version:in-reply-to:content-language
-         :content-transfer-encoding;
-        bh=FhECr7kZx6Fc6F/T39W8mVgPHiuG0xnk7fsqY4ZRTsU=;
-        b=RFlg2GBS1OyPxopWeHZ63lob7Mg72mfv5i8Hxd9539V6ObWmCu3XXQKe02rPZhl7Ex
-         6YTpwh9S1FA2ciiyY06ZVU17ewJMqEqmf6cWhLE8+OaRM74OHhZPyq+gZv87noH9xWgO
-         zCnsra3MHtuQR2pKIn+PFOwyUQxCyH5gCzf46TwKY37QXeItCZoznWkhd4HsXvkGzNph
-         lXwGolyXezubeqM0lhJvnf59stQbWiXHPWmUfG4Rl7qlG396J3shB7t8h1NlLic4N4Md
-         fOjHvliAA2xsK6WbmhRgpOKea3Vm6EbLacAIbx7dyX2BnQOjhVoTDrvBW2V9G+bl+dah
-         9EWQ==
-X-Gm-Message-State: AOAM532fQPSFt41dFd1taBtSTTVZNtVIbXTEXLxagYhFXVrI0pN/mnxU
-        uF7n9VB2gEjAi4+LHyq9Whw=
-X-Google-Smtp-Source: ABdhPJwq5xtRf+P8uMYJh+O/eLqFZb5b2Dx2sWfW3jY+Q2qecyNpLon8OX1FH+sqel7MmIF5iYswXQ==
-X-Received: by 2002:a63:d058:: with SMTP id s24mr5780104pgi.297.1606543314795;
-        Fri, 27 Nov 2020 22:01:54 -0800 (PST)
-Received: from [192.168.11.5] (KD106167171201.ppp-bb.dion.ne.jp. [106.167.171.201])
-        by smtp.gmail.com with ESMTPSA id ie17sm12925088pjb.9.2020.11.27.22.01.51
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 27 Nov 2020 22:01:54 -0800 (PST)
-Subject: [PATCH 2/2] tools/memory-model: Fix typo in klitmus7 compatibility
- table
-To:     "Paul E. McKenney" <paulmck@kernel.org>
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        kernel-team@fb.com, mingo@kernel.org, stern@rowland.harvard.edu,
-        parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org,
-        boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com,
-        j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        Akira Yokosawa <akiyks@gmail.com>
-References: <20201105215953.GA15309@paulmck-ThinkPad-P72>
- <20201105220017.15410-6-paulmck@kernel.org>
- <12e0baf4-b1c9-d674-1d4c-310e0a9b6343@gmail.com>
- <20201105225605.GQ3249@paulmck-ThinkPad-P72>
- <2acf8de5-efe9-a205-cb62-04c4774008c0@gmail.com>
- <20201127154652.GU1437@paulmck-ThinkPad-P72>
- <78e1ccaf-9d35-b2a5-1865-fb0a76b3e57e@gmail.com>
-From:   Akira Yokosawa <akiyks@gmail.com>
-Message-ID: <0f7b4255-cb68-bb1e-6717-3b60a3020c36@gmail.com>
-Date:   Sat, 28 Nov 2020 15:01:49 +0900
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
- Thunderbird/68.10.0
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=65OkZBDz2HAL7Su3DQky7EvOLeinu5tb1gf0ETLWceY=;
+        b=fywcnwGNuSGoBmm8r6woiizBRiZnVeS5MW0nB2HaLJsQAKwppQe7USHzMeYwd6Isep
+         Hzw40ojhHMya1LYFoL+huTV0BwaWaUX3MHkZY92X4ERAhrFSHOvXBekCPa1LTLSOKu4t
+         N0qTkyJhRo7zsvc+er89RqIfv1zGKJhLFbUogZzIBQpKx4O3COzjUAd8y+CcEmVDI+tH
+         fTAfG3zjCTgIsGMkzOiAnQPfGC6HjwpNl/DRGqLi7aomqMg7I3lzbBvpwa0tkGkqcNIE
+         yGoDoe+8CC2pe5FW3A1t1XS7YfVp0mRMyTEt5lt8H9JmKr9sXf9BUCAl0VRZVHU9H21j
+         Md3A==
+X-Gm-Message-State: AOAM530x0jL/zpcnX9vSFq46WlYli7l7QirXnvyYIDJOhw0uvM/UwrzN
+        jm99vRov4gwAwtkQTdTtE+rVzhSFAgg=
+X-Google-Smtp-Source: ABdhPJwsxob0WXTuSWwVF1+ay5qDAtrGlbPGBtoVsiaD1Lu41q7ZrRVVVOcfY+0p8Z91jyXmyn1W1w==
+X-Received: by 2002:a17:90b:8d8:: with SMTP id ds24mr6227490pjb.129.1606579338854;
+        Sat, 28 Nov 2020 08:02:18 -0800 (PST)
+Received: from bobo.ibm.com (193-116-103-132.tpgi.com.au. [193.116.103.132])
+        by smtp.gmail.com with ESMTPSA id d4sm9762607pjz.28.2020.11.28.08.02.13
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 28 Nov 2020 08:02:17 -0800 (PST)
+From:   Nicholas Piggin <npiggin@gmail.com>
+To:     linux-kernel@vger.kernel.org
+Cc:     Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org,
+        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Peter Zijlstra <peterz@infradead.org>,
+        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
+Subject: [PATCH 6/8] lazy tlb: shoot lazies, a non-refcounting lazy tlb option
+Date:   Sun, 29 Nov 2020 02:01:39 +1000
+Message-Id: <20201128160141.1003903-7-npiggin@gmail.com>
+X-Mailer: git-send-email 2.23.0
+In-Reply-To: <20201128160141.1003903-1-npiggin@gmail.com>
+References: <20201128160141.1003903-1-npiggin@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <78e1ccaf-9d35-b2a5-1865-fb0a76b3e57e@gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From 4f577823fa60e14ae58caa2d3c0b2ced64e6eb43 Mon Sep 17 00:00:00 2001
-From: Akira Yokosawa <akiyks@gmail.com>
-Date: Sat, 28 Nov 2020 14:32:15 +0900
-Subject: [PATCH 2/2] tools/memory-model: Fix typo in klitmus7 compatibility table
+On big systems, the mm refcount can become highly contented when doing
+a lot of context switching with threaded applications (particularly
+switching between the idle thread and an application thread).
 
-klitmus7 of herdtools7 7.48 or earlier depends on ACCESS_ONCE(),
-which was removed in Linux v4.15.
-Fix the obvious typo in the table.
+Abandoning lazy tlb slows switching down quite a bit in the important
+user->idle->user cases, so so instead implement a non-refcounted scheme
+that causes __mmdrop() to IPI all CPUs in the mm_cpumask and shoot down
+any remaining lazy ones.
 
-Fixes: d075a78a5ab1 ("tools/memory-model/README: Expand dependency of klitmus7")
-Signed-off-by: Akira Yokosawa <akiyks@gmail.com>
+Shootdown IPIs are some concern, but they have not been observed to be
+a big problem with this scheme (the powerpc implementation generated
+314 additional interrupts on a 144 CPU system during a kernel compile).
+There are a number of strategies that could be employed to reduce IPIs
+if they turn out to be a problem for some workload.
+
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- tools/memory-model/README | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/Kconfig  | 13 +++++++++++++
+ kernel/fork.c | 53 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 66 insertions(+)
 
-diff --git a/tools/memory-model/README b/tools/memory-model/README
-index 39d08d1f0443..9a84c45504ab 100644
---- a/tools/memory-model/README
-+++ b/tools/memory-model/README
-@@ -51,7 +51,7 @@ klitmus7 Compatibility Table
- 	============  ==========
- 	target Linux  herdtools7
- 	------------  ----------
--	     -- 4.18  7.48 --
-+	     -- 4.14  7.48 --
- 	4.15 -- 4.19  7.49 --
- 	4.20 -- 5.5   7.54 --
- 	5.6  --       7.56 --
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 596bf589d74b..540e43aeefa4 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -440,6 +440,19 @@ config MMU_LAZY_TLB
+ config MMU_LAZY_TLB_REFCOUNT
+ 	def_bool y
+ 	depends on MMU_LAZY_TLB
++	depends on !MMU_LAZY_TLB_SHOOTDOWN
++
++config MMU_LAZY_TLB_SHOOTDOWN
++	bool
++	depends on MMU_LAZY_TLB
++	help
++	  Instead of refcounting the "lazy tlb" mm struct, which can cause
++	  contention with multi-threaded apps on large multiprocessor systems,
++	  this option causes __mmdrop to IPI all CPUs in the mm_cpumask and
++	  switch to init_mm if they were using the to-be-freed mm as the lazy
++	  tlb. To implement this, architectures must use _lazy_tlb variants of
++	  mm refcounting, and mm_cpumask must include at least all possible
++	  CPUs in which mm might be lazy.
+ 
+ config ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	bool
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 6d266388d380..e47312c2b48b 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -669,6 +669,54 @@ static void check_mm(struct mm_struct *mm)
+ #define allocate_mm()	(kmem_cache_alloc(mm_cachep, GFP_KERNEL))
+ #define free_mm(mm)	(kmem_cache_free(mm_cachep, (mm)))
+ 
++static void do_shoot_lazy_tlb(void *arg)
++{
++	struct mm_struct *mm = arg;
++
++	if (current->active_mm == mm) {
++		WARN_ON_ONCE(current->mm);
++		current->active_mm = &init_mm;
++		switch_mm(mm, &init_mm, current);
++		exit_lazy_tlb(mm, current);
++	}
++}
++
++static void do_check_lazy_tlb(void *arg)
++{
++	struct mm_struct *mm = arg;
++
++	WARN_ON_ONCE(current->active_mm == mm);
++}
++
++static void shoot_lazy_tlbs(struct mm_struct *mm)
++{
++	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_SHOOTDOWN)) {
++		/*
++		 * IPI overheads have not found to be expensive, but they could
++		 * be reduced in a number of possible ways, for example (in
++		 * roughly increasing order of complexity):
++		 * - A batch of mms requiring IPIs could be gathered and freed
++		 *   at once.
++		 * - CPUs could store their active mm somewhere that can be
++		 *   remotely checked without a lock, to filter out
++		 *   false-positives in the cpumask.
++		 * - After mm_users or mm_count reaches zero, switching away
++		 *   from the mm could clear mm_cpumask to reduce some IPIs
++		 *   (some batching or delaying would help).
++		 * - A delayed freeing and RCU-like quiescing sequence based on
++		 *   mm switching to avoid IPIs completely.
++		 */
++		on_each_cpu_mask(mm_cpumask(mm), do_shoot_lazy_tlb, (void *)mm, 1);
++		if (IS_ENABLED(CONFIG_DEBUG_VM))
++			on_each_cpu(do_check_lazy_tlb, (void *)mm, 1);
++	} else {
++		/*
++		 * In this case, lazy tlb mms are refounted and would not reach
++		 * __mmdrop until all CPUs have switched away and mmdrop()ed.
++		 */
++	}
++}
++
+ /*
+  * Called when the last reference to the mm
+  * is dropped: either by a lazy thread or by
+@@ -678,7 +726,12 @@ void __mmdrop(struct mm_struct *mm)
+ {
+ 	BUG_ON(mm == &init_mm);
+ 	WARN_ON_ONCE(mm == current->mm);
++
++	/* Ensure no CPUs are using this as their lazy tlb mm */
++	shoot_lazy_tlbs(mm);
++
+ 	WARN_ON_ONCE(mm == current->active_mm);
++
+ 	mm_free_pgd(mm);
+ 	destroy_context(mm);
+ 	mmu_notifier_subscriptions_destroy(mm);
 -- 
-2.17.1
-
+2.23.0
 
