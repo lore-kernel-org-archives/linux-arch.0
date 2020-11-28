@@ -2,176 +2,664 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-14.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 01952C71155
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:21 +0000 (UTC)
-Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C27DA20706
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3CAF3C64E7D
 	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:20 +0000 (UTC)
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by mail.kernel.org (Postfix) with ESMTP id E096420706
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:19 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="pH6PNRVu"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="hSwn3bqT"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730920AbgK1VuR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 28 Nov 2020 16:50:17 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44304 "EHLO
+        id S1730326AbgK1VuQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 28 Nov 2020 16:50:16 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44326 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387419AbgK1THZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 14:07:25 -0500
-Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CEDEFC02A1BB;
-        Sat, 28 Nov 2020 07:26:45 -0800 (PST)
-Received: by mail-pf1-x441.google.com with SMTP id n137so7048300pfd.3;
-        Sat, 28 Nov 2020 07:26:45 -0800 (PST)
+        with ESMTP id S1733087AbgK1TFQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 14:05:16 -0500
+Received: from mail-pf1-x42d.google.com (mail-pf1-x42d.google.com [IPv6:2607:f8b0:4864:20::42d])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1A51AC061A52;
+        Fri, 27 Nov 2020 22:00:16 -0800 (PST)
+Received: by mail-pf1-x42d.google.com with SMTP id q10so6303836pfn.0;
+        Fri, 27 Nov 2020 22:00:16 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=2t14GdngmnBtNB8+/S//c7VFoU994BC7ZHYuUgeTwNA=;
-        b=pH6PNRVuB8W6ejdkNH3ADRpKa2W1yQTGs2uU27Q8i7HpUKO3f9uyVcg2lRsJjmeWnr
-         CiWh29MZg2oMTns1m7LAECpYdglWBb9TEXCNmSY44Jwy/3iyE/MRgMHlIGdFSJgnet8U
-         emuQiBlCAi8w0ffhQXAYctwll7O/kyGHvFhQ0Z7RtYpYLlvN1gvIL0pL4v6vYzymtT1V
-         i3rIbiCybtP/Htpdz1JlFe+Ct15QTpTUtpdx9LPu4zt7b2JJ4oZXtEnOzKBqd+qE9mpz
-         PlrgKef1AmLQ8sJ9gD1dJDm0gPddF7toAYOAk+ufdiUyOMpg4lI+zkagdwDZCE3RFmKV
-         GGkQ==
+        h=subject:to:cc:references:from:message-id:date:user-agent
+         :mime-version:in-reply-to:content-language:content-transfer-encoding;
+        bh=zltUWle7M83ftFlMyw3AG1onuHKbL/RmBEkfbIulJ9U=;
+        b=hSwn3bqTaUCxNx3v2dsK1Pnjs8byW46qJbAzVFHFFQSS7Dfneo7xmVSnIngS9jelxD
+         H3FQe83aFGrtuJETRrhmrxfFn9xIF9DbglAM2XZVV+f5EtO2eW0jhrOHw00kSM3I489N
+         JhABUWtKjt03rgs7dWW8OTuvR1JQ8Zbe5TOrE5ZPVux9vIrPN4Lf5WNBHZmT471xRyqg
+         QrETXbZM6+R+quwpYnSvak4qUeUZkXlMErrEWqAoLIHgzZc6jugvUcdtzFe/Lqhky903
+         +igdcNIj3N9GyELB9NUhYOXK1SsB5hcuje1RyVUhLoMleAbrrL/CVlrcNSgzmK6H3ovE
+         +9NQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=2t14GdngmnBtNB8+/S//c7VFoU994BC7ZHYuUgeTwNA=;
-        b=GpGX4cbmjyHIFOUbax153aAhoHAD5fzQUqAbwfS7f85vQEY823nizyYZgt07vEZxAc
-         wnRefl8A/8S2fOY3WthynFvv8goSBRkPiGrGzris5qwrVeCrhHU4dAhEUknfQq4+RjX0
-         dO4oIejoGBxq+zuxoGWbRe53p0ykGN5jCRHolvh0OuJhCoNUrE5IdWX9DvuSwPaS0zZl
-         DxUQEAeJJPP8s+uvSbGzZV5BIYQHjzZV/ijaVYrYizId1adCiuSy7Ya+0ssEVelTxr3O
-         uY4hVqFIZYoWpgIFVylQWDYg+f+dnstbHBaCPzQkZWKb411DD5DQVEmB7ooAtS0ZAIA6
-         1Abw==
-X-Gm-Message-State: AOAM533fKIOJkcqYG2yNX6OSE0q/f+gNw5OnaBnOGmjyhuPXMK+K29G5
-        RRfCIILlzVe9CrOkYM6ZRd8=
-X-Google-Smtp-Source: ABdhPJwbSE66/EBjkO/guBAlsNqxs6UVD22zZF2Hggp9t9mmJq3WRouLuCXyrm4l63WYf2fRiPF/9w==
-X-Received: by 2002:a17:90b:350b:: with SMTP id ls11mr16480555pjb.193.1606577205467;
-        Sat, 28 Nov 2020 07:26:45 -0800 (PST)
-Received: from bobo.ibm.com (193-116-103-132.tpgi.com.au. [193.116.103.132])
-        by smtp.gmail.com with ESMTPSA id d22sm15500173pjw.11.2020.11.28.07.26.40
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 28 Nov 2020 07:26:44 -0800 (PST)
-From:   Nicholas Piggin <npiggin@gmail.com>
-To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        Zefan Li <lizefan@huawei.com>,
-        Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
-        Christoph Hellwig <hch@infradead.org>,
-        Christophe Leroy <christophe.leroy@csgroup.eu>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        linux-arm-kernel@lists.infradead.org
-Subject: [PATCH v8 07/12] arm64: inline huge vmap supported functions
-Date:   Sun, 29 Nov 2020 01:25:54 +1000
-Message-Id: <20201128152559.999540-8-npiggin@gmail.com>
-X-Mailer: git-send-email 2.23.0
-In-Reply-To: <20201128152559.999540-1-npiggin@gmail.com>
-References: <20201128152559.999540-1-npiggin@gmail.com>
+        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
+         :user-agent:mime-version:in-reply-to:content-language
+         :content-transfer-encoding;
+        bh=zltUWle7M83ftFlMyw3AG1onuHKbL/RmBEkfbIulJ9U=;
+        b=cwzv3jugAfFproib3KK8NidroUFHzdJRGHlSVpG6jq9+QKEPVLyG9qTf03hhVDUMkx
+         NLy0n4h5815HUkOYMBJhyE6+PusL1mvjo3NvKmaw04+KLCKEczMDwRCQiZVg0u8ypcRs
+         DX1RR5fbT7y3xcknMVBrKbdr9W9w8cYlJEtlsHOD/+QdqkksY/mBUgF1EOKpP8Ru19hC
+         Wd4YOROng5Lq/ZhZfpXXPxUxR9Gqkb1mDMnb6Qa3Wgxw0qxCj/330zhpYFRlKHu/5M2b
+         snAPe7zs6TJp0edWfsFU9bOiA2gMdp5jhrArWeJXk9DlLsnDeI48fjzhXFwVEr7Sr0/4
+         uqkQ==
+X-Gm-Message-State: AOAM533ADE/Uji3B2MSAFSaVE6XQc+FFgFDbWQcnYGYx8dsHvB/OEm6+
+        guJV0St/ozs+2uisH9FSgAs=
+X-Google-Smtp-Source: ABdhPJyuFIxLmgXJivVCtkq3WJyGVpuxnsJU3y3Z3M0juAmuDk1j8QTXjVWKVMQ+ysmusY46zvYrDg==
+X-Received: by 2002:a62:256:0:b029:18c:6905:d18d with SMTP id 83-20020a6202560000b029018c6905d18dmr10134142pfc.67.1606543215624;
+        Fri, 27 Nov 2020 22:00:15 -0800 (PST)
+Received: from [192.168.11.5] (KD106167171201.ppp-bb.dion.ne.jp. [106.167.171.201])
+        by smtp.gmail.com with ESMTPSA id q18sm9341455pfs.150.2020.11.27.22.00.11
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 27 Nov 2020 22:00:14 -0800 (PST)
+Subject: [PATCH 1/2] tools/memory-model: Remove redundant initialization in
+ litmus tests
+To:     "Paul E. McKenney" <paulmck@kernel.org>
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        kernel-team@fb.com, mingo@kernel.org, stern@rowland.harvard.edu,
+        parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org,
+        boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com,
+        j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
+        Akira Yokosawa <akiyks@gmail.com>
+References: <20201105215953.GA15309@paulmck-ThinkPad-P72>
+ <20201105220017.15410-6-paulmck@kernel.org>
+ <12e0baf4-b1c9-d674-1d4c-310e0a9b6343@gmail.com>
+ <20201105225605.GQ3249@paulmck-ThinkPad-P72>
+ <2acf8de5-efe9-a205-cb62-04c4774008c0@gmail.com>
+ <20201127154652.GU1437@paulmck-ThinkPad-P72>
+ <78e1ccaf-9d35-b2a5-1865-fb0a76b3e57e@gmail.com>
+From:   Akira Yokosawa <akiyks@gmail.com>
+Message-ID: <d3c88682-029f-d2ff-2887-9cdacee26882@gmail.com>
+Date:   Sat, 28 Nov 2020 15:00:09 +0900
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
+ Thunderbird/68.10.0
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <78e1ccaf-9d35-b2a5-1865-fb0a76b3e57e@gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This allows unsupported levels to be constant folded away, and so
-p4d_free_pud_page can be removed because it's no longer linked to.
+From 3a871845825d96a23d64be05b6cf6d4af2bae167 Mon Sep 17 00:00:00 2001
+From: Akira Yokosawa <akiyks@gmail.com>
+Date: Sat, 28 Nov 2020 08:43:45 +0900
+Subject: [PATCH 1/2] tools/memory-model: Remove redundant initialization in litmus tests
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: linux-arm-kernel@lists.infradead.org
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+This is a revert of commit 1947bfcf81a9 ("tools/memory-model: Add types
+to litmus tests") with conflict resolutions.
+
+klitmus7 [1] is aware of default types of "int" and "int*".
+It accepts litmus tests for herd7 without extra type info unless
+non-"int" variables are referenced by an "exists", "locations",
+or "filter" directive.
+
+[1]: Tested with klitmus7 versions 7.49 or later.
+
+Suggested-by: Paul E. McKenney <paulmck@kernel.org>
+Signed-off-by: Akira Yokosawa <akiyks@gmail.com>
 ---
- arch/arm64/include/asm/vmalloc.h | 23 ++++++++++++++++++++---
- arch/arm64/mm/mmu.c              | 26 --------------------------
- 2 files changed, 20 insertions(+), 29 deletions(-)
+ .../memory-model/litmus-tests/CoRR+poonceonce+Once.litmus  | 4 +---
+ .../memory-model/litmus-tests/CoRW+poonceonce+Once.litmus  | 4 +---
+ .../memory-model/litmus-tests/CoWR+poonceonce+Once.litmus  | 4 +---
+ tools/memory-model/litmus-tests/CoWW+poonceonce.litmus     | 4 +---
+ .../litmus-tests/IRIW+fencembonceonces+OnceOnce.litmus     | 5 +----
+ .../litmus-tests/IRIW+poonceonces+OnceOnce.litmus          | 5 +----
+ .../ISA2+pooncelock+pooncelock+pombonce.litmus             | 7 +------
+ tools/memory-model/litmus-tests/ISA2+poonceonces.litmus    | 6 +-----
+ ...SA2+pooncerelease+poacquirerelease+poacquireonce.litmus | 6 +-----
+ .../litmus-tests/LB+fencembonceonce+ctrlonceonce.litmus    | 5 +----
+ .../litmus-tests/LB+poacquireonce+pooncerelease.litmus     | 5 +----
+ tools/memory-model/litmus-tests/LB+poonceonces.litmus      | 5 +----
+ .../MP+fencewmbonceonce+fencermbonceonce.litmus            | 5 +----
+ .../litmus-tests/MP+onceassign+derefonce.litmus            | 4 +---
+ .../litmus-tests/MP+polockmbonce+poacquiresilsil.litmus    | 5 +----
+ .../litmus-tests/MP+polockonce+poacquiresilsil.litmus      | 5 +----
+ tools/memory-model/litmus-tests/MP+polocks.litmus          | 6 +-----
+ tools/memory-model/litmus-tests/MP+poonceonces.litmus      | 5 +----
+ .../litmus-tests/MP+pooncerelease+poacquireonce.litmus     | 5 +----
+ tools/memory-model/litmus-tests/MP+porevlocks.litmus       | 6 +-----
+ tools/memory-model/litmus-tests/R+fencembonceonces.litmus  | 5 +----
+ tools/memory-model/litmus-tests/R+poonceonces.litmus       | 5 +----
+ .../litmus-tests/S+fencewmbonceonce+poacquireonce.litmus   | 5 +----
+ tools/memory-model/litmus-tests/S+poonceonces.litmus       | 5 +----
+ tools/memory-model/litmus-tests/SB+fencembonceonces.litmus | 5 +----
+ tools/memory-model/litmus-tests/SB+poonceonces.litmus      | 5 +----
+ .../litmus-tests/SB+rfionceonce-poonceonces.litmus         | 5 +----
+ .../memory-model/litmus-tests/WRC+poonceonces+Once.litmus  | 5 +----
+ .../WRC+pooncerelease+fencermbonceonce+Once.litmus         | 5 +----
+ .../Z6.0+pooncelock+poonceLock+pombonce.litmus             | 7 +------
+ .../Z6.0+pooncelock+pooncelock+pombonce.litmus             | 7 +------
+ ...0+pooncerelease+poacquirerelease+fencembonceonce.litmus | 6 +-----
+ 32 files changed, 32 insertions(+), 134 deletions(-)
 
-diff --git a/arch/arm64/include/asm/vmalloc.h b/arch/arm64/include/asm/vmalloc.h
-index 597b40405319..fc9a12d6cc1a 100644
---- a/arch/arm64/include/asm/vmalloc.h
-+++ b/arch/arm64/include/asm/vmalloc.h
-@@ -4,9 +4,26 @@
- #include <asm/page.h>
+diff --git a/tools/memory-model/litmus-tests/CoRR+poonceonce+Once.litmus b/tools/memory-model/litmus-tests/CoRR+poonceonce+Once.litmus
+index 772544f03fb5..967f9f2a6226 100644
+--- a/tools/memory-model/litmus-tests/CoRR+poonceonce+Once.litmus
++++ b/tools/memory-model/litmus-tests/CoRR+poonceonce+Once.litmus
+@@ -7,9 +7,7 @@ C CoRR+poonceonce+Once
+  * reads from the same variable are ordered.
+  *)
  
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
--bool arch_vmap_p4d_supported(pgprot_t prot);
--bool arch_vmap_pud_supported(pgprot_t prot);
--bool arch_vmap_pmd_supported(pgprot_t prot);
-+static inline bool arch_vmap_p4d_supported(pgprot_t prot)
-+{
-+	return false;
-+}
-+
-+static inline bool arch_vmap_pud_supported(pgprot_t prot)
-+{
-+	/*
-+	 * Only 4k granule supports level 1 block mappings.
-+	 * SW table walks can't handle removal of intermediate entries.
-+	 */
-+	return IS_ENABLED(CONFIG_ARM64_4K_PAGES) &&
-+	       !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
-+}
-+
-+static inline bool arch_vmap_pmd_supported(pgprot_t prot)
-+{
-+	/* See arch_vmap_pud_supported() */
-+	return !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
-+}
- #endif
+-{
+-	int x;
+-}
++{}
  
- #endif /* _ASM_ARM64_VMALLOC_H */
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index 1b60079c1cef..0af5b5cfb9c6 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -1315,27 +1315,6 @@ void *__init fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot)
- 	return dt_virt;
- }
- 
--bool arch_vmap_p4d_supported(pgprot_t prot)
--{
--	return false;
--}
--
--bool arch_vmap_pud_supported(pgprot_t prot);
--{
--	/*
--	 * Only 4k granule supports level 1 block mappings.
--	 * SW table walks can't handle removal of intermediate entries.
--	 */
--	return IS_ENABLED(CONFIG_ARM64_4K_PAGES) &&
--	       !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
--}
--
--bool arch_vmap_pmd_supported(pgprot_t prot)
--{
--	/* See arch_vmap_pud_supported() */
--	return !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
--}
--
- int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
+ P0(int *x)
  {
- 	pud_t new_pud = pfn_pud(__phys_to_pfn(phys), mk_pud_sect_prot(prot));
-@@ -1427,11 +1406,6 @@ int pud_free_pmd_page(pud_t *pudp, unsigned long addr)
- 	return 1;
+diff --git a/tools/memory-model/litmus-tests/CoRW+poonceonce+Once.litmus b/tools/memory-model/litmus-tests/CoRW+poonceonce+Once.litmus
+index 5faae98f7ffb..4635739f3974 100644
+--- a/tools/memory-model/litmus-tests/CoRW+poonceonce+Once.litmus
++++ b/tools/memory-model/litmus-tests/CoRW+poonceonce+Once.litmus
+@@ -7,9 +7,7 @@ C CoRW+poonceonce+Once
+  * a given variable and a later write to that same variable are ordered.
+  *)
+ 
+-{
+-	int x;
+-}
++{}
+ 
+ P0(int *x)
+ {
+diff --git a/tools/memory-model/litmus-tests/CoWR+poonceonce+Once.litmus b/tools/memory-model/litmus-tests/CoWR+poonceonce+Once.litmus
+index 77c9cc9f8dc6..bb068c92d8da 100644
+--- a/tools/memory-model/litmus-tests/CoWR+poonceonce+Once.litmus
++++ b/tools/memory-model/litmus-tests/CoWR+poonceonce+Once.litmus
+@@ -7,9 +7,7 @@ C CoWR+poonceonce+Once
+  * given variable and a later read from that same variable are ordered.
+  *)
+ 
+-{
+-	int x;
+-}
++{}
+ 
+ P0(int *x)
+ {
+diff --git a/tools/memory-model/litmus-tests/CoWW+poonceonce.litmus b/tools/memory-model/litmus-tests/CoWW+poonceonce.litmus
+index 85ef746f511a..0d9f0a958799 100644
+--- a/tools/memory-model/litmus-tests/CoWW+poonceonce.litmus
++++ b/tools/memory-model/litmus-tests/CoWW+poonceonce.litmus
+@@ -7,9 +7,7 @@ C CoWW+poonceonce
+  * writes to the same variable are ordered.
+  *)
+ 
+-{
+-	int x;
+-}
++{}
+ 
+ P0(int *x)
+ {
+diff --git a/tools/memory-model/litmus-tests/IRIW+fencembonceonces+OnceOnce.litmus b/tools/memory-model/litmus-tests/IRIW+fencembonceonces+OnceOnce.litmus
+index 87aa900125ab..e729d2776e89 100644
+--- a/tools/memory-model/litmus-tests/IRIW+fencembonceonces+OnceOnce.litmus
++++ b/tools/memory-model/litmus-tests/IRIW+fencembonceonces+OnceOnce.litmus
+@@ -10,10 +10,7 @@ C IRIW+fencembonceonces+OnceOnce
+  * process?  This litmus test exercises LKMM's "propagation" rule.
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x)
+ {
+diff --git a/tools/memory-model/litmus-tests/IRIW+poonceonces+OnceOnce.litmus b/tools/memory-model/litmus-tests/IRIW+poonceonces+OnceOnce.litmus
+index f84022dca555..4b54dd6a6cd9 100644
+--- a/tools/memory-model/litmus-tests/IRIW+poonceonces+OnceOnce.litmus
++++ b/tools/memory-model/litmus-tests/IRIW+poonceonces+OnceOnce.litmus
+@@ -10,10 +10,7 @@ C IRIW+poonceonces+OnceOnce
+  * different process?
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x)
+ {
+diff --git a/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus b/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
+index 398f624daa77..094d58df7789 100644
+--- a/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
++++ b/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
+@@ -7,12 +7,7 @@ C ISA2+pooncelock+pooncelock+pombonce
+  * (in P0() and P1()) is visible to external process P2().
+  *)
+ 
+-{
+-	spinlock_t mylock;
+-	int x;
+-	int y;
+-	int z;
+-}
++{}
+ 
+ P0(int *x, int *y, spinlock_t *mylock)
+ {
+diff --git a/tools/memory-model/litmus-tests/ISA2+poonceonces.litmus b/tools/memory-model/litmus-tests/ISA2+poonceonces.litmus
+index 212a432ba16b..b321aa6f4ea5 100644
+--- a/tools/memory-model/litmus-tests/ISA2+poonceonces.litmus
++++ b/tools/memory-model/litmus-tests/ISA2+poonceonces.litmus
+@@ -9,11 +9,7 @@ C ISA2+poonceonces
+  * of the smp_load_acquire() invocations are replaced by READ_ONCE()?
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-	int z;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/ISA2+pooncerelease+poacquirerelease+poacquireonce.litmus b/tools/memory-model/litmus-tests/ISA2+pooncerelease+poacquirerelease+poacquireonce.litmus
+index 7afd85672ccd..025b0462ec9b 100644
+--- a/tools/memory-model/litmus-tests/ISA2+pooncerelease+poacquirerelease+poacquireonce.litmus
++++ b/tools/memory-model/litmus-tests/ISA2+pooncerelease+poacquirerelease+poacquireonce.litmus
+@@ -11,11 +11,7 @@ C ISA2+pooncerelease+poacquirerelease+poacquireonce
+  * (AKA non-rf) link, so release-acquire is all that is needed.
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-	int z;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/LB+fencembonceonce+ctrlonceonce.litmus b/tools/memory-model/litmus-tests/LB+fencembonceonce+ctrlonceonce.litmus
+index c8a93c7ee556..4727f5aaf03b 100644
+--- a/tools/memory-model/litmus-tests/LB+fencembonceonce+ctrlonceonce.litmus
++++ b/tools/memory-model/litmus-tests/LB+fencembonceonce+ctrlonceonce.litmus
+@@ -11,10 +11,7 @@ C LB+fencembonceonce+ctrlonceonce
+  * another control dependency and order would still be maintained.)
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/LB+poacquireonce+pooncerelease.litmus b/tools/memory-model/litmus-tests/LB+poacquireonce+pooncerelease.litmus
+index 2fa029568fa1..07b9904b0e49 100644
+--- a/tools/memory-model/litmus-tests/LB+poacquireonce+pooncerelease.litmus
++++ b/tools/memory-model/litmus-tests/LB+poacquireonce+pooncerelease.litmus
+@@ -8,10 +8,7 @@ C LB+poacquireonce+pooncerelease
+  * to the other?
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/LB+poonceonces.litmus b/tools/memory-model/litmus-tests/LB+poonceonces.litmus
+index 2107306e8625..74c49cb3c37b 100644
+--- a/tools/memory-model/litmus-tests/LB+poonceonces.litmus
++++ b/tools/memory-model/litmus-tests/LB+poonceonces.litmus
+@@ -7,10 +7,7 @@ C LB+poonceonces
+  * be prevented even with no explicit ordering?
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/MP+fencewmbonceonce+fencermbonceonce.litmus b/tools/memory-model/litmus-tests/MP+fencewmbonceonce+fencermbonceonce.litmus
+index c5c168d92973..f8ca1229857a 100644
+--- a/tools/memory-model/litmus-tests/MP+fencewmbonceonce+fencermbonceonce.litmus
++++ b/tools/memory-model/litmus-tests/MP+fencewmbonceonce+fencermbonceonce.litmus
+@@ -8,10 +8,7 @@ C MP+fencewmbonceonce+fencermbonceonce
+  * is usually better to use smp_store_release() and smp_load_acquire().
+  *)
+ 
+-{
+-	int buf;
+-	int flag;
+-}
++{}
+ 
+ P0(int *buf, int *flag) // Producer
+ {
+diff --git a/tools/memory-model/litmus-tests/MP+onceassign+derefonce.litmus b/tools/memory-model/litmus-tests/MP+onceassign+derefonce.litmus
+index 20ff62649f1e..d84160b9c1ae 100644
+--- a/tools/memory-model/litmus-tests/MP+onceassign+derefonce.litmus
++++ b/tools/memory-model/litmus-tests/MP+onceassign+derefonce.litmus
+@@ -10,9 +10,7 @@ C MP+onceassign+derefonce
+  *)
+ 
+ {
+-	int *p=y;
+-	int x;
+-	int y=0;
++p=y;
  }
  
--int p4d_free_pud_page(p4d_t *p4d, unsigned long addr)
+ P0(int *x, int **p) // Producer
+diff --git a/tools/memory-model/litmus-tests/MP+polockmbonce+poacquiresilsil.litmus b/tools/memory-model/litmus-tests/MP+polockmbonce+poacquiresilsil.litmus
+index 153917ad5dc9..ba91cc63e148 100644
+--- a/tools/memory-model/litmus-tests/MP+polockmbonce+poacquiresilsil.litmus
++++ b/tools/memory-model/litmus-tests/MP+polockmbonce+poacquiresilsil.litmus
+@@ -10,10 +10,7 @@ C MP+polockmbonce+poacquiresilsil
+  * executed before the lock was acquired (loosely speaking).
+  *)
+ 
 -{
--	return 0;	/* Don't attempt a block mapping */
+-	spinlock_t lo;
+-	int x;
 -}
--
- #ifdef CONFIG_MEMORY_HOTPLUG
- static void __remove_pgd_mapping(pgd_t *pgdir, unsigned long start, u64 size)
++{}
+ 
+ P0(spinlock_t *lo, int *x) // Producer
+ {
+diff --git a/tools/memory-model/litmus-tests/MP+polockonce+poacquiresilsil.litmus b/tools/memory-model/litmus-tests/MP+polockonce+poacquiresilsil.litmus
+index aad64397bb8c..a5ea3ed8f52e 100644
+--- a/tools/memory-model/litmus-tests/MP+polockonce+poacquiresilsil.litmus
++++ b/tools/memory-model/litmus-tests/MP+polockonce+poacquiresilsil.litmus
+@@ -10,10 +10,7 @@ C MP+polockonce+poacquiresilsil
+  * speaking).
+  *)
+ 
+-{
+-	spinlock_t lo;
+-	int x;
+-}
++{}
+ 
+ P0(spinlock_t *lo, int *x) // Producer
+ {
+diff --git a/tools/memory-model/litmus-tests/MP+polocks.litmus b/tools/memory-model/litmus-tests/MP+polocks.litmus
+index 21cbca6f3be4..e6af05f70069 100644
+--- a/tools/memory-model/litmus-tests/MP+polocks.litmus
++++ b/tools/memory-model/litmus-tests/MP+polocks.litmus
+@@ -11,11 +11,7 @@ C MP+polocks
+  * to see all prior accesses by those other CPUs.
+  *)
+ 
+-{
+-	spinlock_t mylock;
+-	int buf;
+-	int flag;
+-}
++{}
+ 
+ P0(int *buf, int *flag, spinlock_t *mylock) // Producer
+ {
+diff --git a/tools/memory-model/litmus-tests/MP+poonceonces.litmus b/tools/memory-model/litmus-tests/MP+poonceonces.litmus
+index 9f9769d647c7..ba9c99c6cf65 100644
+--- a/tools/memory-model/litmus-tests/MP+poonceonces.litmus
++++ b/tools/memory-model/litmus-tests/MP+poonceonces.litmus
+@@ -7,10 +7,7 @@ C MP+poonceonces
+  * no ordering at all?
+  *)
+ 
+-{
+-	int buf;
+-	int flag;
+-}
++{}
+ 
+ P0(int *buf, int *flag) // Producer
+ {
+diff --git a/tools/memory-model/litmus-tests/MP+pooncerelease+poacquireonce.litmus b/tools/memory-model/litmus-tests/MP+pooncerelease+poacquireonce.litmus
+index cbe28e733443..f174bfe61702 100644
+--- a/tools/memory-model/litmus-tests/MP+pooncerelease+poacquireonce.litmus
++++ b/tools/memory-model/litmus-tests/MP+pooncerelease+poacquireonce.litmus
+@@ -8,10 +8,7 @@ C MP+pooncerelease+poacquireonce
+  * pattern.
+  *)
+ 
+-{
+-	int buf;
+-	int flag;
+-}
++{}
+ 
+ P0(int *buf, int *flag) // Producer
+ {
+diff --git a/tools/memory-model/litmus-tests/MP+porevlocks.litmus b/tools/memory-model/litmus-tests/MP+porevlocks.litmus
+index 012041bd4feb..b9599141160e 100644
+--- a/tools/memory-model/litmus-tests/MP+porevlocks.litmus
++++ b/tools/memory-model/litmus-tests/MP+porevlocks.litmus
+@@ -11,11 +11,7 @@ C MP+porevlocks
+  * see all prior accesses by those other CPUs.
+  *)
+ 
+-{
+-	spinlock_t mylock;
+-	int buf;
+-	int flag;
+-}
++{}
+ 
+ P0(int *buf, int *flag, spinlock_t *mylock) // Consumer
+ {
+diff --git a/tools/memory-model/litmus-tests/R+fencembonceonces.litmus b/tools/memory-model/litmus-tests/R+fencembonceonces.litmus
+index af9463b39b4a..222a0b850b4a 100644
+--- a/tools/memory-model/litmus-tests/R+fencembonceonces.litmus
++++ b/tools/memory-model/litmus-tests/R+fencembonceonces.litmus
+@@ -9,10 +9,7 @@ C R+fencembonceonces
+  * cause the resulting test to be allowed.
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/R+poonceonces.litmus b/tools/memory-model/litmus-tests/R+poonceonces.litmus
+index bcd5574e304a..5386f128a131 100644
+--- a/tools/memory-model/litmus-tests/R+poonceonces.litmus
++++ b/tools/memory-model/litmus-tests/R+poonceonces.litmus
+@@ -8,10 +8,7 @@ C R+poonceonces
+  * store propagation delays.
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/S+fencewmbonceonce+poacquireonce.litmus b/tools/memory-model/litmus-tests/S+fencewmbonceonce+poacquireonce.litmus
+index c36341d1aed6..18479823cd6c 100644
+--- a/tools/memory-model/litmus-tests/S+fencewmbonceonce+poacquireonce.litmus
++++ b/tools/memory-model/litmus-tests/S+fencewmbonceonce+poacquireonce.litmus
+@@ -7,10 +7,7 @@ C S+fencewmbonceonce+poacquireonce
+  * store against a subsequent store?
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/S+poonceonces.litmus b/tools/memory-model/litmus-tests/S+poonceonces.litmus
+index 7775c23143a0..8c9c2f81a580 100644
+--- a/tools/memory-model/litmus-tests/S+poonceonces.litmus
++++ b/tools/memory-model/litmus-tests/S+poonceonces.litmus
+@@ -9,10 +9,7 @@ C S+poonceonces
+  * READ_ONCE(), is ordering preserved?
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/SB+fencembonceonces.litmus b/tools/memory-model/litmus-tests/SB+fencembonceonces.litmus
+index 833cdfeb7c09..ed5fff18d223 100644
+--- a/tools/memory-model/litmus-tests/SB+fencembonceonces.litmus
++++ b/tools/memory-model/litmus-tests/SB+fencembonceonces.litmus
+@@ -9,10 +9,7 @@ C SB+fencembonceonces
+  * suffice, but not much else.)
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/SB+poonceonces.litmus b/tools/memory-model/litmus-tests/SB+poonceonces.litmus
+index c92211ecbfdf..10d550730b25 100644
+--- a/tools/memory-model/litmus-tests/SB+poonceonces.litmus
++++ b/tools/memory-model/litmus-tests/SB+poonceonces.litmus
+@@ -8,10 +8,7 @@ C SB+poonceonces
+  * variable that the preceding process reads.
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/SB+rfionceonce-poonceonces.litmus b/tools/memory-model/litmus-tests/SB+rfionceonce-poonceonces.litmus
+index 84344b455eb7..04a16603660b 100644
+--- a/tools/memory-model/litmus-tests/SB+rfionceonce-poonceonces.litmus
++++ b/tools/memory-model/litmus-tests/SB+rfionceonce-poonceonces.litmus
+@@ -6,10 +6,7 @@ C SB+rfionceonce-poonceonces
+  * This litmus test demonstrates that LKMM is not fully multicopy atomic.
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x, int *y)
+ {
+diff --git a/tools/memory-model/litmus-tests/WRC+poonceonces+Once.litmus b/tools/memory-model/litmus-tests/WRC+poonceonces+Once.litmus
+index 431494708611..6a2bc12a1af1 100644
+--- a/tools/memory-model/litmus-tests/WRC+poonceonces+Once.litmus
++++ b/tools/memory-model/litmus-tests/WRC+poonceonces+Once.litmus
+@@ -8,10 +8,7 @@ C WRC+poonceonces+Once
+  * test has no ordering at all.
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x)
+ {
+diff --git a/tools/memory-model/litmus-tests/WRC+pooncerelease+fencermbonceonce+Once.litmus b/tools/memory-model/litmus-tests/WRC+pooncerelease+fencermbonceonce+Once.litmus
+index 554999c64db5..e9947250d7de 100644
+--- a/tools/memory-model/litmus-tests/WRC+pooncerelease+fencermbonceonce+Once.litmus
++++ b/tools/memory-model/litmus-tests/WRC+pooncerelease+fencermbonceonce+Once.litmus
+@@ -10,10 +10,7 @@ C WRC+pooncerelease+fencermbonceonce+Once
+  * is A-cumulative in LKMM.
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-}
++{}
+ 
+ P0(int *x)
+ {
+diff --git a/tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus b/tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus
+index 265a95ffef13..415248fb6699 100644
+--- a/tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus
++++ b/tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus
+@@ -9,12 +9,7 @@ C Z6.0+pooncelock+poonceLock+pombonce
+  * by CPUs not holding that lock.
+  *)
+ 
+-{
+-	spinlock_t mylock;
+-	int x;
+-	int y;
+-	int z;
+-}
++{}
+ 
+ P0(int *x, int *y, spinlock_t *mylock)
+ {
+diff --git a/tools/memory-model/litmus-tests/Z6.0+pooncelock+pooncelock+pombonce.litmus b/tools/memory-model/litmus-tests/Z6.0+pooncelock+pooncelock+pombonce.litmus
+index 0c9aea8e80df..10a2aa04cd07 100644
+--- a/tools/memory-model/litmus-tests/Z6.0+pooncelock+pooncelock+pombonce.litmus
++++ b/tools/memory-model/litmus-tests/Z6.0+pooncelock+pooncelock+pombonce.litmus
+@@ -8,12 +8,7 @@ C Z6.0+pooncelock+pooncelock+pombonce
+  * seen as ordered by a third process not holding that lock.
+  *)
+ 
+-{
+-	spinlock_t mylock;
+-	int x;
+-	int y;
+-	int z;
+-}
++{}
+ 
+ P0(int *x, int *y, spinlock_t *mylock)
+ {
+diff --git a/tools/memory-model/litmus-tests/Z6.0+pooncerelease+poacquirerelease+fencembonceonce.litmus b/tools/memory-model/litmus-tests/Z6.0+pooncerelease+poacquirerelease+fencembonceonce.litmus
+index 661f9aaa5791..88e70b87a683 100644
+--- a/tools/memory-model/litmus-tests/Z6.0+pooncerelease+poacquirerelease+fencembonceonce.litmus
++++ b/tools/memory-model/litmus-tests/Z6.0+pooncerelease+poacquirerelease+fencembonceonce.litmus
+@@ -14,11 +14,7 @@ C Z6.0+pooncerelease+poacquirerelease+fencembonceonce
+  * involving locking.)
+  *)
+ 
+-{
+-	int x;
+-	int y;
+-	int z;
+-}
++{}
+ 
+ P0(int *x, int *y)
  {
 -- 
-2.23.0
+2.17.1
+
 
