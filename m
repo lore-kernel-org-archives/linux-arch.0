@@ -5,59 +5,59 @@ X-Spam-Level:
 X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 09A64C71156
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5496AC83012
 	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:06:38 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B5DB1208D5
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:06:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 18255208D5
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:06:38 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ZhyQyF3x"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="tW/UKaZd"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1732128AbgK1VuT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 28 Nov 2020 16:50:19 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44750 "EHLO
+        id S1732006AbgK1VuU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 28 Nov 2020 16:50:20 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44638 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387441AbgK1TIH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 14:08:07 -0500
-Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 43E77C09B04E;
-        Sat, 28 Nov 2020 07:27:10 -0800 (PST)
-Received: by mail-pf1-x441.google.com with SMTP id w187so7047718pfd.5;
-        Sat, 28 Nov 2020 07:27:10 -0800 (PST)
+        with ESMTP id S2387452AbgK1TJe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 14:09:34 -0500
+Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1C538C02A1B8;
+        Sat, 28 Nov 2020 07:26:28 -0800 (PST)
+Received: by mail-pl1-x643.google.com with SMTP id f5so4076280plj.13;
+        Sat, 28 Nov 2020 07:26:28 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=DNjSlcfmF+OHlo4gVLmadoYUI7t/ZPA6392s3YiGIWc=;
-        b=ZhyQyF3xqUCTfNzTWjnt5F47H7u0baAN9fFtRmD3iym4ZXUMOqum0cQhh3hWOctZwj
-         gPht2kBh0BvlDlTsq8TVE/kd5SPzqm9X89p6ZfrT7H3C/ioyQY5tgO574Ym+INLe4FYc
-         s21mRxDd6DGVyMY1fWbws1Pq/YhrjXB32LaWupdtbDbaxsW0QfJbAiHeuVFfQKfuXwL4
-         4JshxsnUfWHqQSkk+FnO+m1Flu7Wg1g/bOkeKaOJwHSdKSQC2TLM6Ybi/1wfBU+oOXqX
-         Ncoe8p+vMg2cCr2cs0+3oYuDvraNpEh/P6BLPY5BbX1hBeAPkFfbcGcv4oiBi8Qqp35b
-         wWXg==
+        bh=0Y/hT12bvV3dyctfA7PHWDL72BJBoDG5OIVFWS0o/KA=;
+        b=tW/UKaZd95vUuanUfJ5qLuxowkG/xC7xuJz1Zg4tJDYSJIiiWVR2XdGL6fPv3SCUTV
+         CnkD3GknoGh21VqNGuqMYQm0xLFHFKUkPwAvdFuqNV635MdErY3LsF7cDkzv0/hMpB8e
+         uZ4eXZPI8sl5XFIhCqygue1d84be0rQN8gPXorpLchCKwgnZ9Z+o9sJEF7U7NmXs8XIt
+         pX16ltSTC8+GwR2bUmTDXyKiH2RyknYDyTrKGMQMKolUEAgWfXXnev48ytsVzGFvKvMl
+         oRQjX6p9usO6xSINpCspEeN6DeJMsyGFrNIZvUcs+/SRD8b2cHnvp7gYvduuN95sU9pC
+         2E1A==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=DNjSlcfmF+OHlo4gVLmadoYUI7t/ZPA6392s3YiGIWc=;
-        b=hpToaxFilG1HP9rpvu+QEXihaYA2Dqt9DGAVkoZzIu2pn/yYfAUoPT8ZXo0WfyQghJ
-         hX1tcyngkhKr7WNfis+eV5lS5qSQ8fhdZ4Bk33ZnSurvD+YgX6IYXkFcyxwJdxZ2r5p/
-         kqgpZ10f+GNHetZeErewPDUSg4DUX31wsbTuRVFTJmals/Oth4yGj9S2JhLnE1vvheZ3
-         kBdIsMHDVdsz/RgbQd+rZpxwkAIvhZSpugSqE2oN/6rfZOcqhr65ykHFNnNHGhkUOGba
-         UGVb+6XummAzCO4r5YgOW4xvke0qo1gKHWVHNVCvAx4p0th3F0eiIkl5/TO1sg4+8p9n
-         +fcg==
-X-Gm-Message-State: AOAM531iEzUzXwbwSgjsnu54tpYm8RppwKSvXC62Sxatp3V7NjNjc/W0
-        y10AZn8k2fmK4olBI1zOIP4=
-X-Google-Smtp-Source: ABdhPJyr33fJ1cRT/CXJUB52w14TzTSG2z78e+wqJpSmyHM7mMK5eJZP/z+qSOVYdPM5WOeIlQODnQ==
-X-Received: by 2002:a17:90a:1b6f:: with SMTP id q102mr16974828pjq.9.1606577229927;
-        Sat, 28 Nov 2020 07:27:09 -0800 (PST)
+        bh=0Y/hT12bvV3dyctfA7PHWDL72BJBoDG5OIVFWS0o/KA=;
+        b=pnvZ90EO699mlrlBtzMzviLLUk1sRX4bLSXy+QdqsrrKbj+hcE/S8rTEg86CqiM57h
+         9wZ/ASH4b00SxiSXu5zW0sIjtrEU+rzGY7FdP+VvQDz6qM1cHafZ685wWqlVIm2fOVDG
+         zwL9VrUvd7SEPQILp/+9dhLEUExOXIBzL/C8lJsH6nCZCcv00mpT73f5sKPd6Sa+idur
+         /dTkEPW+V6aToNLpsWolQV/7M65Dy8Stb9ZLU0H2N2gu+O9AL1hhdj+yVg23K8agLka7
+         BbBhhD3KXlrgnhOnWsBw2WW83959iQGkNMP0H2lvJEWF+z1h+GK0mFwSmzpwBQDOnEpb
+         PBAg==
+X-Gm-Message-State: AOAM533l3vbm/vOOzVUGHR4uoqe9e6rL/Hno1TLQO089cUphviZSoW83
+        Ldr6uYHxNVye+Q/IAsAmLTU=
+X-Google-Smtp-Source: ABdhPJxJRqYUgsqrLHuCJ5v20UBxkNUZFWmxEysdZxaQNY6UpQP+wkSSUKCePn6bj7OH8BrMHJ16Cg==
+X-Received: by 2002:a17:902:aa8e:b029:da:1c87:e1a7 with SMTP id d14-20020a170902aa8eb02900da1c87e1a7mr11542768plr.40.1606577187687;
+        Sat, 28 Nov 2020 07:26:27 -0800 (PST)
 Received: from bobo.ibm.com (193-116-103-132.tpgi.com.au. [193.116.103.132])
-        by smtp.gmail.com with ESMTPSA id d22sm15500173pjw.11.2020.11.28.07.27.05
+        by smtp.gmail.com with ESMTPSA id d22sm15500173pjw.11.2020.11.28.07.26.23
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 28 Nov 2020 07:27:09 -0800 (PST)
+        Sat, 28 Nov 2020 07:26:27 -0800 (PST)
 From:   Nicholas Piggin <npiggin@gmail.com>
 To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
 Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
@@ -66,9 +66,9 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
         Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
         Christoph Hellwig <hch@infradead.org>,
         Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v8 12/12] powerpc/64s/radix: Enable huge vmalloc mappings
-Date:   Sun, 29 Nov 2020 01:25:59 +1000
-Message-Id: <20201128152559.999540-13-npiggin@gmail.com>
+Subject: [PATCH v8 04/12] mm/ioremap: rename ioremap_*_range to vmap_*_range
+Date:   Sun, 29 Nov 2020 01:25:51 +1000
+Message-Id: <20201128152559.999540-5-npiggin@gmail.com>
 X-Mailer: git-send-email 2.23.0
 In-Reply-To: <20201128152559.999540-1-npiggin@gmail.com>
 References: <20201128152559.999540-1-npiggin@gmail.com>
@@ -78,38 +78,179 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Cc: linuxppc-dev@lists.ozlabs.org
+This will be used as a generic kernel virtual mapping function, so
+re-name it in preparation.
+
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- Documentation/admin-guide/kernel-parameters.txt | 2 ++
- arch/powerpc/Kconfig                            | 1 +
- 2 files changed, 3 insertions(+)
+ mm/ioremap.c | 64 +++++++++++++++++++++++++++-------------------------
+ 1 file changed, 33 insertions(+), 31 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 44fde25bb221..3538c750c583 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -3220,6 +3220,8 @@
+diff --git a/mm/ioremap.c b/mm/ioremap.c
+index 5fa1ab41d152..3f4d36f9745a 100644
+--- a/mm/ioremap.c
++++ b/mm/ioremap.c
+@@ -61,9 +61,9 @@ static inline int ioremap_pud_enabled(void) { return 0; }
+ static inline int ioremap_pmd_enabled(void) { return 0; }
+ #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
  
- 	nohugeiomap	[KNL,X86,PPC,ARM64] Disable kernel huge I/O mappings.
+-static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
+-		pgtbl_mod_mask *mask)
++static int vmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
++			phys_addr_t phys_addr, pgprot_t prot,
++			pgtbl_mod_mask *mask)
+ {
+ 	pte_t *pte;
+ 	u64 pfn;
+@@ -81,9 +81,8 @@ static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
+ 	return 0;
+ }
  
-+	nohugevmalloc	[PPC] Disable kernel huge vmalloc mappings.
+-static int ioremap_try_huge_pmd(pmd_t *pmd, unsigned long addr,
+-				unsigned long end, phys_addr_t phys_addr,
+-				pgprot_t prot)
++static int vmap_try_huge_pmd(pmd_t *pmd, unsigned long addr, unsigned long end,
++			phys_addr_t phys_addr, pgprot_t prot)
+ {
+ 	if (!ioremap_pmd_enabled())
+ 		return 0;
+@@ -103,9 +102,9 @@ static int ioremap_try_huge_pmd(pmd_t *pmd, unsigned long addr,
+ 	return pmd_set_huge(pmd, phys_addr, prot);
+ }
+ 
+-static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
+-		pgtbl_mod_mask *mask)
++static int vmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
++			phys_addr_t phys_addr, pgprot_t prot,
++			pgtbl_mod_mask *mask)
+ {
+ 	pmd_t *pmd;
+ 	unsigned long next;
+@@ -116,20 +115,19 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
+ 	do {
+ 		next = pmd_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot)) {
++		if (vmap_try_huge_pmd(pmd, addr, next, phys_addr, prot)) {
+ 			*mask |= PGTBL_PMD_MODIFIED;
+ 			continue;
+ 		}
+ 
+-		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot, mask))
++		if (vmap_pte_range(pmd, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (pmd++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+ }
+ 
+-static int ioremap_try_huge_pud(pud_t *pud, unsigned long addr,
+-				unsigned long end, phys_addr_t phys_addr,
+-				pgprot_t prot)
++static int vmap_try_huge_pud(pud_t *pud, unsigned long addr, unsigned long end,
++			phys_addr_t phys_addr, pgprot_t prot)
+ {
+ 	if (!ioremap_pud_enabled())
+ 		return 0;
+@@ -149,9 +147,9 @@ static int ioremap_try_huge_pud(pud_t *pud, unsigned long addr,
+ 	return pud_set_huge(pud, phys_addr, prot);
+ }
+ 
+-static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
+-		pgtbl_mod_mask *mask)
++static int vmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end,
++			phys_addr_t phys_addr, pgprot_t prot,
++			pgtbl_mod_mask *mask)
+ {
+ 	pud_t *pud;
+ 	unsigned long next;
+@@ -162,20 +160,19 @@ static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
+ 	do {
+ 		next = pud_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot)) {
++		if (vmap_try_huge_pud(pud, addr, next, phys_addr, prot)) {
+ 			*mask |= PGTBL_PUD_MODIFIED;
+ 			continue;
+ 		}
+ 
+-		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot, mask))
++		if (vmap_pmd_range(pud, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (pud++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+ }
+ 
+-static int ioremap_try_huge_p4d(p4d_t *p4d, unsigned long addr,
+-				unsigned long end, phys_addr_t phys_addr,
+-				pgprot_t prot)
++static int vmap_try_huge_p4d(p4d_t *p4d, unsigned long addr, unsigned long end,
++			phys_addr_t phys_addr, pgprot_t prot)
+ {
+ 	if (!ioremap_p4d_enabled())
+ 		return 0;
+@@ -195,9 +192,9 @@ static int ioremap_try_huge_p4d(p4d_t *p4d, unsigned long addr,
+ 	return p4d_set_huge(p4d, phys_addr, prot);
+ }
+ 
+-static inline int ioremap_p4d_range(pgd_t *pgd, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
+-		pgtbl_mod_mask *mask)
++static int vmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end,
++			phys_addr_t phys_addr, pgprot_t prot,
++			pgtbl_mod_mask *mask)
+ {
+ 	p4d_t *p4d;
+ 	unsigned long next;
+@@ -208,19 +205,19 @@ static inline int ioremap_p4d_range(pgd_t *pgd, unsigned long addr,
+ 	do {
+ 		next = p4d_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot)) {
++		if (vmap_try_huge_p4d(p4d, addr, next, phys_addr, prot)) {
+ 			*mask |= PGTBL_P4D_MODIFIED;
+ 			continue;
+ 		}
+ 
+-		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot, mask))
++		if (vmap_pud_range(p4d, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (p4d++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+ }
+ 
+-int ioremap_page_range(unsigned long addr,
+-		       unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++static int vmap_range(unsigned long addr, unsigned long end,
++			phys_addr_t phys_addr, pgprot_t prot)
+ {
+ 	pgd_t *pgd;
+ 	unsigned long start;
+@@ -235,8 +232,7 @@ int ioremap_page_range(unsigned long addr,
+ 	pgd = pgd_offset_k(addr);
+ 	do {
+ 		next = pgd_addr_end(addr, end);
+-		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot,
+-					&mask);
++		err = vmap_p4d_range(pgd, addr, next, phys_addr, prot, &mask);
+ 		if (err)
+ 			break;
+ 	} while (pgd++, phys_addr += (next - addr), addr = next, addr != end);
+@@ -249,6 +245,12 @@ int ioremap_page_range(unsigned long addr,
+ 	return err;
+ }
+ 
++int ioremap_page_range(unsigned long addr,
++		       unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++{
++	return vmap_range(addr, end, phys_addr, prot);
++}
 +
- 	nosmt		[KNL,S390] Disable symmetric multithreading (SMT).
- 			Equivalent to smt=1.
- 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index e9f13fe08492..ae10381dd324 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -178,6 +178,7 @@ config PPC
- 	select GENERIC_TIME_VSYSCALL
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_ARCH_HUGE_VMAP		if PPC_BOOK3S_64 && PPC_RADIX_MMU
-+	select HAVE_ARCH_HUGE_VMALLOC		if HAVE_ARCH_HUGE_VMAP
- 	select HAVE_ARCH_JUMP_LABEL
- 	select HAVE_ARCH_KASAN			if PPC32 && PPC_PAGE_SHIFT <= 14
- 	select HAVE_ARCH_KASAN_VMALLOC		if PPC32 && PPC_PAGE_SHIFT <= 14
+ #ifdef CONFIG_GENERIC_IOREMAP
+ void __iomem *ioremap_prot(phys_addr_t addr, size_t size, unsigned long prot)
+ {
 -- 
 2.23.0
 
