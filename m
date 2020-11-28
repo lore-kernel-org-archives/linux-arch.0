@@ -2,62 +2,61 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-10.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5143DC71155
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 60376C83027
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:27 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 27FDB22240
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:25 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 26940221FF
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:27 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ssXbLd8Y"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="CgE6KOyT"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728735AbgK1VuO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 28 Nov 2020 16:50:14 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39248 "EHLO
+        id S2389933AbgK1VuN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 28 Nov 2020 16:50:13 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38712 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729941AbgK1Sc6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 13:32:58 -0500
-Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 09D71C0258FD;
-        Sat, 28 Nov 2020 08:02:24 -0800 (PST)
-Received: by mail-pf1-x444.google.com with SMTP id b63so7069895pfg.12;
-        Sat, 28 Nov 2020 08:02:24 -0800 (PST)
+        with ESMTP id S1729747AbgK1S3k (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 13:29:40 -0500
+Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 90B34C0258EE;
+        Sat, 28 Nov 2020 08:01:51 -0800 (PST)
+Received: by mail-pf1-x441.google.com with SMTP id e8so7097822pfh.2;
+        Sat, 28 Nov 2020 08:01:51 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=qp8PGJSLWU/dwswnH2/0kSDHsb+wln5XeqPaVW1B5Z8=;
-        b=ssXbLd8YUR2ZIFy9Jd8hXHpF+Y+ZgoHlIRFX9zhsrsp+ZLU7bKlg7EuG2lSdedrjvR
-         wE/qE7l+MWwYSzP1wi8Op9LZacYNj0TFM33blDINJeQw3k661TnuMoVq1P9kWsUpYm2L
-         GU+Rh70ojG5i/bX6AWDs/ACxCKMtupmq6KLpdZta42wvOGpj65dxqcLBcKS1XebjeT2g
-         HWp9e3wV/L0EXL2Ys40bmy1FkuapWC6KRItPGmNgSBbEo8WylcMXRQEawZThlVjdjrJU
-         +e772jc+1LXeLO7pSn+jmxQ4ISH3MsydjpyvNtpmhbzBrVbHsQbAlOUzcGpBsv2LoBoI
-         u0RQ==
+        h=from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=2O6qcQHJ1HIADKlavbzosnF3a3wMtszkYQ/PuPl66qI=;
+        b=CgE6KOyTfg3utDcRpZdx3wNg5OyhBXbYyc7PH8oa6j60BTtpQLlHDpvZodUSgtskAv
+         kqzv+kzRC8gJVu60u38BrPXBYCz+1pEo0KvxCwXjcwsZBMYy4UyOWOY3pEIZ4CakN9AD
+         IlOOeUveQZn2f5Ib6HdtyeE6Xd8O/3Ajz61BxBQaI2kgQLf9g57ysabjeDv/7CTlsJSV
+         6GIrzobXL4pzBVG6qscprgZn16B+G8oGEPy3hSkuzq1R6I3T2JlwKWSi3WfN7MY57x/P
+         zPH8/jK+/t1BSRextQVoRrJHkVB9PMJuGQ9K8ajrDnT+LwE9dGk9paNd5x5WY4BqSCif
+         XnDA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=qp8PGJSLWU/dwswnH2/0kSDHsb+wln5XeqPaVW1B5Z8=;
-        b=Zd27p6H1b6AdNbJ4h0ROjRl6iMfZyJ7AaRshxf09pY5VlP/LI5L1jcxkYT750vbbLC
-         PRu5SOdT43r427VARWZOt6XnaAxcMFKzVlu0aUUEo/AjThoqMAiZ+nKKJUKOE/iOkB0a
-         7LZq4DexkZQ5VBMScxugNFO4WTAufPdtu3DWlr9AJhzmhW15VYbzv68u5chQaHcnkrOB
-         5x/IUI7I1WqlXbq/wLe8IVncF9T36L/hNKlzthPBddLQm6a3+HPi475s1JmGJEDX5G3L
-         aXVBn88R7irkjYM/MdgHfghmMiYOLsGbDzlywlSV9Etq/55vXQACVuY7bbrgJ0QvA/st
-         6Dcg==
-X-Gm-Message-State: AOAM533J6jJ/VPyHD5jwNDbr+VRSC+UyWBKSgierbt0/BBlbuU0ezsd3
-        VYKTryY8snH6QGDbbl1JDkwki9A+MLo=
-X-Google-Smtp-Source: ABdhPJw9UtKcgVJk5VujOdxJVrz6MfFXjvC+/8I9Mi89OeiWtMkzRMjtujCg4EGW63Zc1A5/CzokHQ==
-X-Received: by 2002:a63:4956:: with SMTP id y22mr11011753pgk.266.1606579343363;
-        Sat, 28 Nov 2020 08:02:23 -0800 (PST)
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=2O6qcQHJ1HIADKlavbzosnF3a3wMtszkYQ/PuPl66qI=;
+        b=sdnVo1Y4H/oHWneo5uGHyD9ra7RcE7/+VdI98aGK3dZWNbw3Bs46Ta7iBy1Ku0I84s
+         w97ejLL2WE0iIaY4pTmXA3aY6BeJp3xs7WanNEpMaS45qfabQLCLcatYe98NAct3fm1m
+         opuxTHND7DaKJAXJAExjvwCOGyjMkpIXKfJRT4dooWBEl6Mn0miQkmPExxYqN4CHk2WB
+         +3HwKrY0ZhSvr6JlThziiG1CxDkgqgNWfhsByKEauQOWgv2CMDahdOz2ulkrsx7IBbtx
+         u3MSTXUDzDDIHMQtPDIWV9tVEORlq4gC0hFHsv4vDP1egcJqClba+fyiO9p6BfCj/1zQ
+         GLjQ==
+X-Gm-Message-State: AOAM531NEUKXjc/wpmaX3r8IKsB4MCELi32eX7rhufAxiVzOTxSRvIZZ
+        2aITcwaBGyjCwp8Rop0U9UaO6gVxi7k=
+X-Google-Smtp-Source: ABdhPJwuiEos39Kd+yWnNTMmDC8yimmI7zJPon0FpMljcy6a+V40CGpf8EDqJAwgKioFXcJ84fR1pw==
+X-Received: by 2002:a17:90a:f695:: with SMTP id cl21mr16872124pjb.137.1606579310741;
+        Sat, 28 Nov 2020 08:01:50 -0800 (PST)
 Received: from bobo.ibm.com (193-116-103-132.tpgi.com.au. [193.116.103.132])
-        by smtp.gmail.com with ESMTPSA id d4sm9762607pjz.28.2020.11.28.08.02.19
+        by smtp.gmail.com with ESMTPSA id d4sm9762607pjz.28.2020.11.28.08.01.46
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 28 Nov 2020 08:02:23 -0800 (PST)
+        Sat, 28 Nov 2020 08:01:50 -0800 (PST)
 From:   Nicholas Piggin <npiggin@gmail.com>
 To:     linux-kernel@vger.kernel.org
 Cc:     Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org,
@@ -66,39 +65,69 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org,
         Peter Zijlstra <peterz@infradead.org>,
         linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
         linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
-Subject: [PATCH 7/8] powerpc: use lazy mm refcount helper functions
-Date:   Sun, 29 Nov 2020 02:01:40 +1000
-Message-Id: <20201128160141.1003903-8-npiggin@gmail.com>
+Subject: [PATCH 0/8] shoot lazy tlbs
+Date:   Sun, 29 Nov 2020 02:01:33 +1000
+Message-Id: <20201128160141.1003903-1-npiggin@gmail.com>
 X-Mailer: git-send-email 2.23.0
-In-Reply-To: <20201128160141.1003903-1-npiggin@gmail.com>
-References: <20201128160141.1003903-1-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Use _lazy_tlb functions for lazy mm refcounting in powerpc, to prepare
-to move to MMU_LAZY_TLB_SHOOTDOWN.
+This is a rebase now on top of Arnd's asm-generic tree, which has
+reduced most of the fluff from this patch series.
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/powerpc/kernel/smp.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+The x86 refactoring is still in the way a bit, I hope to get some
+movement on that rather than rebase the main patches off it, because
+I think it's a good cleanup. I think it could go in a generic
+mm/scheduler series if we get arch acks because it's really just
+refactoring wrappers.
 
-diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
-index 8c2857cbd960..93c0eaa6f4bf 100644
---- a/arch/powerpc/kernel/smp.c
-+++ b/arch/powerpc/kernel/smp.c
-@@ -1395,7 +1395,7 @@ void start_secondary(void *unused)
- {
- 	unsigned int cpu = raw_smp_processor_id();
- 
--	mmgrab(&init_mm);
-+	mmgrab_lazy_tlb(&init_mm);
- 	current->active_mm = &init_mm;
- 
- 	smp_store_cpu_info(cpu);
+The main result is reduced contention on lazy tlb mm refcount that
+helps very big systems.
+
+Thanks,
+Nick
+
+Nicholas Piggin (8):
+  lazy tlb: introduce exit_lazy_tlb
+  x86: use exit_lazy_tlb rather than
+    membarrier_mm_sync_core_before_usermode
+  x86: remove ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
+  lazy tlb: introduce lazy mm refcount helper functions
+  lazy tlb: allow lazy tlb mm switching to be configurable
+  lazy tlb: shoot lazies, a non-refcounting lazy tlb option
+  powerpc: use lazy mm refcount helper functions
+  powerpc/64s: enable MMU_LAZY_TLB_SHOOTDOWN
+
+ .../membarrier-sync-core/arch-support.txt     |  6 +-
+ arch/Kconfig                                  | 24 +++++
+ arch/arm/mach-rpc/ecard.c                     |  3 +-
+ arch/powerpc/Kconfig                          |  1 +
+ arch/powerpc/kernel/smp.c                     |  2 +-
+ arch/powerpc/mm/book3s64/radix_tlb.c          |  5 +-
+ arch/x86/Kconfig                              |  1 -
+ arch/x86/include/asm/mmu_context.h            | 27 ++++++
+ arch/x86/kernel/alternative.c                 |  2 +-
+ arch/x86/kernel/cpu/mce/core.c                |  2 +-
+ drivers/misc/sgi-gru/grufault.c               |  2 +-
+ drivers/misc/sgi-gru/gruhandles.c             |  2 +-
+ drivers/misc/sgi-gru/grukservices.c           |  2 +-
+ fs/exec.c                                     |  6 +-
+ include/asm-generic/mmu_context.h             | 21 ++++
+ include/linux/sched/mm.h                      | 34 ++++---
+ include/linux/sync_core.h                     | 21 ----
+ init/Kconfig                                  |  3 -
+ kernel/cpu.c                                  |  6 +-
+ kernel/exit.c                                 |  2 +-
+ kernel/fork.c                                 | 53 ++++++++++
+ kernel/kthread.c                              | 12 ++-
+ kernel/sched/core.c                           | 97 +++++++++++++------
+ kernel/sched/sched.h                          |  4 +-
+ 24 files changed, 247 insertions(+), 91 deletions(-)
+ delete mode 100644 include/linux/sync_core.h
+
 -- 
 2.23.0
 
