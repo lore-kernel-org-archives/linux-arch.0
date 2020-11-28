@@ -2,226 +2,158 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A1562C64E90
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:08:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 19AACC83012
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:08:14 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 668B02224C
+	by mail.kernel.org (Postfix) with ESMTP id DC261221FF
 	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:08:13 +0000 (UTC)
-Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="hAkQC7bx"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2389915AbgK1VuL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S2389906AbgK1VuL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Sat, 28 Nov 2020 16:50:11 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38466 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729592AbgK1S16 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 13:27:58 -0500
-Received: from mail-pf1-x442.google.com (mail-pf1-x442.google.com [IPv6:2607:f8b0:4864:20::442])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EE8BBC0258F1;
-        Sat, 28 Nov 2020 08:02:04 -0800 (PST)
-Received: by mail-pf1-x442.google.com with SMTP id w187so7095573pfd.5;
-        Sat, 28 Nov 2020 08:02:04 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=oqskVFo4rCcY4G7AX3q/Z2vOLhCcdMU13oOzjm6oOQI=;
-        b=hAkQC7bxM/rt+UgL+n2DK2GVPrv7Fvv8VOFfmVyChH9mG2M8V1dhWuexs7FMt4k/VH
-         00X2IJnPJZxukN07v+6IUoaQEfrLRCAqYOOlZ5fq8l1BvW7IrGtlw1huOZSLzz2y0SZx
-         3ChCeIKf/3CDuf5o8vxiVXRbP+dl0i3USN+GGPFeVf1n0aup+2heHkiGuTtTAlOIHxup
-         yVXQkUUka7ppthU1cQ04gq4WktB3u20vnaqT8BvQDxOruSqzz3f4f2+uoHUVHCc17E5Q
-         QRBdGNwQLOrc1P3jbriPiXC3R/Y7g87L4RcqcZA6HPgDlB6tEXZDAiIKBbkorJcDGkrE
-         lHsw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=oqskVFo4rCcY4G7AX3q/Z2vOLhCcdMU13oOzjm6oOQI=;
-        b=Xh8eG8cCm0GD3YosyqgkZOkQW0n7cXe/feI3DqhyA1gkJuNSNlJ3koyKsuiB28O2KR
-         EtwkY6UF4BjhHpqAopqRw0tIjgsCm2Mph4RJh8buMr6J6wtCF/khAlYDl0UlNLj9Ez6w
-         dOxp3uKaN+rPaxyHi/G0JaseArVwS5qNhdHcbFVLxIdmiS22dYSZSjkT0Ravmwhb0DiN
-         59cvrvwAry0eRuJgYkXiqF+wCoVRIiKjcIBnmtsl6re8+cFxEXd/rUfeDb4eiVrm53zP
-         8MmsVcFjFLuMNYGQHaWlsdXdn6yvaqkKCFDS9BRWVBXVOMB8QHz7tV08Csohv/bpn86C
-         BQ/w==
-X-Gm-Message-State: AOAM533YXSTWFCiA1jPKOt1qNwIn545R62/sAF4KEhdOL6kw2bkikvcq
-        zdooPW6EMf+gZtV+siOUPJNxU1CE0Ng=
-X-Google-Smtp-Source: ABdhPJzGaihamaR9rIxqQPEuAuhYCkZ5jY/oI8W/R+Ypcsv9gPzHWmICwyEssj9w/cCRebDK8ONgCg==
-X-Received: by 2002:a17:90a:f0d4:: with SMTP id fa20mr13620976pjb.129.1606579324386;
-        Sat, 28 Nov 2020 08:02:04 -0800 (PST)
-Received: from bobo.ibm.com (193-116-103-132.tpgi.com.au. [193.116.103.132])
-        by smtp.gmail.com with ESMTPSA id d4sm9762607pjz.28.2020.11.28.08.02.00
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 28 Nov 2020 08:02:04 -0800 (PST)
-From:   Nicholas Piggin <npiggin@gmail.com>
-To:     linux-kernel@vger.kernel.org
-Cc:     Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org,
-        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+Received: from mga02.intel.com ([134.134.136.20]:19349 "EHLO mga02.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729533AbgK1S16 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 28 Nov 2020 13:27:58 -0500
+IronPort-SDR: OPOyZK1VZCtm/BBuZIpqX0JXtqLhMjp5uT/fRk3byxVsjAQ3AiAWZ2Su4mqrBuXDaudff1L3mF
+ ASoqTe2vahHQ==
+X-IronPort-AV: E=McAfee;i="6000,8403,9819"; a="159537056"
+X-IronPort-AV: E=Sophos;i="5.78,377,1599548400"; 
+   d="scan'208";a="159537056"
+X-Amp-Result: SKIPPED(no attachment in message)
+X-Amp-File-Uploaded: False
+Received: from orsmga004.jf.intel.com ([10.7.209.38])
+  by orsmga101.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 28 Nov 2020 08:24:00 -0800
+IronPort-SDR: FDIYYBr2hlKPLMbEhzG7QTIT1dc8+Q0vPjFxJnrDDSbotYpzRlODAOgHg1F1ZOFB7gou8+8goX
+ dGWqsJsDMvIw==
+X-IronPort-AV: E=Sophos;i="5.78,377,1599548400"; 
+   d="scan'208";a="480006706"
+Received: from jckaplan-mobl1.amr.corp.intel.com (HELO [10.212.23.254]) ([10.212.23.254])
+  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 28 Nov 2020 08:23:59 -0800
+Subject: Re: [PATCH v15 05/26] x86/cet/shstk: Add Kconfig option for user-mode
+ Shadow Stack
+To:     Borislav Petkov <bp@alien8.de>
+Cc:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
+        linux-doc@vger.kernel.org, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
         Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
         Peter Zijlstra <peterz@infradead.org>,
-        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
-Subject: [PATCH 3/8] x86: remove ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
-Date:   Sun, 29 Nov 2020 02:01:36 +1000
-Message-Id: <20201128160141.1003903-4-npiggin@gmail.com>
-X-Mailer: git-send-email 2.23.0
-In-Reply-To: <20201128160141.1003903-1-npiggin@gmail.com>
-References: <20201128160141.1003903-1-npiggin@gmail.com>
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>,
+        Pengfei Xu <pengfei.xu@intel.com>
+References: <20201110162211.9207-1-yu-cheng.yu@intel.com>
+ <20201110162211.9207-6-yu-cheng.yu@intel.com>
+ <20201127171012.GD13163@zn.tnic>
+From:   "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
+Message-ID: <98e1b159-bf32-5c67-455b-f798023770ef@intel.com>
+Date:   Sat, 28 Nov 2020 08:23:59 -0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101
+ Thunderbird/68.12.1
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20201127171012.GD13163@zn.tnic>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Switch remaining x86-specific users to asm/sync_core.h, remove the
-linux/sync_core.h header and ARCH_ option.
+On 11/27/2020 9:10 AM, Borislav Petkov wrote:
+> On Tue, Nov 10, 2020 at 08:21:50AM -0800, Yu-cheng Yu wrote:
+>> +config X86_CET
+>> +	def_bool n
+>> +
+>> +config ARCH_HAS_SHADOW_STACK
+>> +	def_bool n
+>> +
+>> +config X86_SHADOW_STACK_USER
+> 
+> Is X86_SHADOW_STACK_KERNEL coming too?
+> 
+> Regardless, you can add it when it comes and you can use only X86_CET
+> for now and drop this one and simplify this pile of Kconfig symbols.
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/x86/Kconfig                    |  1 -
- arch/x86/kernel/alternative.c       |  2 +-
- arch/x86/kernel/cpu/mce/core.c      |  2 +-
- drivers/misc/sgi-gru/grufault.c     |  2 +-
- drivers/misc/sgi-gru/gruhandles.c   |  2 +-
- drivers/misc/sgi-gru/grukservices.c |  2 +-
- include/linux/sync_core.h           | 21 ---------------------
- init/Kconfig                        |  3 ---
- 8 files changed, 5 insertions(+), 30 deletions(-)
- delete mode 100644 include/linux/sync_core.h
+We have X86_BRANCH_TRACKING_USER too.  My thought was, X86_CET means any 
+of kernel/user shadow stack/ibt.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index f6946b81f74a..160d3ad90507 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -80,7 +80,6 @@ config X86
- 	select ARCH_HAS_SET_DIRECT_MAP
- 	select ARCH_HAS_STRICT_KERNEL_RWX
- 	select ARCH_HAS_STRICT_MODULE_RWX
--	select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
- 	select ARCH_HAS_SYSCALL_WRAPPER
- 	select ARCH_HAS_UBSAN_SANITIZE_ALL
- 	select ARCH_HAS_DEBUG_WX
-diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
-index 2400ad62f330..9a7ab08f4157 100644
---- a/arch/x86/kernel/alternative.c
-+++ b/arch/x86/kernel/alternative.c
-@@ -17,7 +17,7 @@
- #include <linux/kprobes.h>
- #include <linux/mmu_context.h>
- #include <linux/bsearch.h>
--#include <linux/sync_core.h>
-+#include <asm/sync_core.h>
- #include <asm/text-patching.h>
- #include <asm/alternative.h>
- #include <asm/sections.h>
-diff --git a/arch/x86/kernel/cpu/mce/core.c b/arch/x86/kernel/cpu/mce/core.c
-index 4102b866e7c0..282ea9942829 100644
---- a/arch/x86/kernel/cpu/mce/core.c
-+++ b/arch/x86/kernel/cpu/mce/core.c
-@@ -41,12 +41,12 @@
- #include <linux/irq_work.h>
- #include <linux/export.h>
- #include <linux/set_memory.h>
--#include <linux/sync_core.h>
- #include <linux/task_work.h>
- #include <linux/hardirq.h>
- 
- #include <asm/intel-family.h>
- #include <asm/processor.h>
-+#include <asm/sync_core.h>
- #include <asm/traps.h>
- #include <asm/tlbflush.h>
- #include <asm/mce.h>
-diff --git a/drivers/misc/sgi-gru/grufault.c b/drivers/misc/sgi-gru/grufault.c
-index 723825524ea0..48fd5b101de1 100644
---- a/drivers/misc/sgi-gru/grufault.c
-+++ b/drivers/misc/sgi-gru/grufault.c
-@@ -20,8 +20,8 @@
- #include <linux/io.h>
- #include <linux/uaccess.h>
- #include <linux/security.h>
--#include <linux/sync_core.h>
- #include <linux/prefetch.h>
-+#include <asm/sync_core.h>
- #include "gru.h"
- #include "grutables.h"
- #include "grulib.h"
-diff --git a/drivers/misc/sgi-gru/gruhandles.c b/drivers/misc/sgi-gru/gruhandles.c
-index 1d75d5e540bc..c8cba1c1b00f 100644
---- a/drivers/misc/sgi-gru/gruhandles.c
-+++ b/drivers/misc/sgi-gru/gruhandles.c
-@@ -16,7 +16,7 @@
- #define GRU_OPERATION_TIMEOUT	(((cycles_t) local_cpu_data->itc_freq)*10)
- #define CLKS2NSEC(c)		((c) *1000000000 / local_cpu_data->itc_freq)
- #else
--#include <linux/sync_core.h>
-+#include <asm/sync_core.h>
- #include <asm/tsc.h>
- #define GRU_OPERATION_TIMEOUT	((cycles_t) tsc_khz*10*1000)
- #define CLKS2NSEC(c)		((c) * 1000000 / tsc_khz)
-diff --git a/drivers/misc/sgi-gru/grukservices.c b/drivers/misc/sgi-gru/grukservices.c
-index 0ea923fe6371..860aea9deb45 100644
---- a/drivers/misc/sgi-gru/grukservices.c
-+++ b/drivers/misc/sgi-gru/grukservices.c
-@@ -16,11 +16,11 @@
- #include <linux/miscdevice.h>
- #include <linux/proc_fs.h>
- #include <linux/interrupt.h>
--#include <linux/sync_core.h>
- #include <linux/uaccess.h>
- #include <linux/delay.h>
- #include <linux/export.h>
- #include <asm/io_apic.h>
-+#include <asm/sync_core.h>
- #include "gru.h"
- #include "grulib.h"
- #include "grutables.h"
-diff --git a/include/linux/sync_core.h b/include/linux/sync_core.h
-deleted file mode 100644
-index 013da4b8b327..000000000000
---- a/include/linux/sync_core.h
-+++ /dev/null
-@@ -1,21 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef _LINUX_SYNC_CORE_H
--#define _LINUX_SYNC_CORE_H
--
--#ifdef CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
--#include <asm/sync_core.h>
--#else
--/*
-- * This is a dummy sync_core_before_usermode() implementation that can be used
-- * on all architectures which return to user-space through core serializing
-- * instructions.
-- * If your architecture returns to user-space through non-core-serializing
-- * instructions, you need to write your own functions.
-- */
--static inline void sync_core_before_usermode(void)
--{
--}
--#endif
--
--#endif /* _LINUX_SYNC_CORE_H */
--
-diff --git a/init/Kconfig b/init/Kconfig
-index 02d13ae27abb..82f9b5c937cb 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -2334,9 +2334,6 @@ source "kernel/Kconfig.locks"
- config ARCH_HAS_NON_OVERLAPPING_ADDRESS_SPACE
- 	bool
- 
--config ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
--	bool
--
- # It may be useful for an architecture to override the definitions of the
- # SYSCALL_DEFINE() and __SYSCALL_DEFINEx() macros in <linux/syscalls.h>
- # and the COMPAT_ variants in <linux/compat.h>, in particular to use a
--- 
-2.23.0
+> 
+>> +	prompt "Intel Shadow Stacks for user-mode"
+>> +	def_bool n
+>> +	depends on CPU_SUP_INTEL && X86_64
+>> +	depends on AS_HAS_SHADOW_STACK
+>> +	select ARCH_USES_HIGH_VMA_FLAGS
+>> +	select X86_CET
+>> +	select ARCH_HAS_SHADOW_STACK
+>> +	help
+>> +	  Shadow Stacks provides protection against program stack
+>> +	  corruption.  It's a hardware feature.  This only matters
+>> +	  if you have the right hardware.  It's a security hardening
+>> +	  feature and apps must be enabled to use it.  You get no
+>> +	  protection "for free" on old userspace.  The hardware can
+>> +	  support user and kernel, but this option is for user space
+>> +	  only.
+>> +	  Support for this feature is only known to be present on
+>> +	  processors released in 2020 or later.  CET features are also
+>> +	  known to increase kernel text size by 3.7 KB.
+> 
+> This help text needs some rewriting. You can find an inspiration about
+> more adequate style in that same Kconfig file.
+> 
+
+I will work on it.
+
+>> +
+>> +	  If unsure, say N.
+>> +
+>>   config EFI
+>>   	bool "EFI runtime service support"
+>>   	depends on ACPI
+>> diff --git a/scripts/as-x86_64-has-shadow-stack.sh b/scripts/as-x86_64-has-shadow-stack.sh
+>> new file mode 100755
+>> index 000000000000..fac1d363a1b8
+>> --- /dev/null
+>> +++ b/scripts/as-x86_64-has-shadow-stack.sh
+>> @@ -0,0 +1,4 @@
+>> +#!/bin/sh
+>> +# SPDX-License-Identifier: GPL-2.0
+>> +
+>> +echo "wrussq %rax, (%rbx)" | $* -x assembler -c -
+> 
+> 						      2> /dev/null
+> 
+> otherwise you get
+> 
+> {standard input}: Assembler messages:
+> {standard input}:1: Error: no such instruction: `wrussq %rax,(%rbx)
+> 
+> on non-enlightened toolchains during build.
+> 
+
+Yes, I will fix this in the next revision.
+
+Yu-cheng
+
+> Thx.
+> 
 
