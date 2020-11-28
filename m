@@ -2,62 +2,61 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-10.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D8E1AC63777
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7797AC63798
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:20 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 92B8B20706
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:19 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2B14621527
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:07:20 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="WC6wPXHT"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="r3NsuPL7"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2389934AbgK1VuQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 28 Nov 2020 16:50:16 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44198 "EHLO
+        id S1731546AbgK1VuR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 28 Nov 2020 16:50:17 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44302 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733209AbgK1TGp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 14:06:45 -0500
-Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EA428C02A1B6;
-        Sat, 28 Nov 2020 07:26:18 -0800 (PST)
-Received: by mail-pg1-x543.google.com with SMTP id m9so6688417pgb.4;
-        Sat, 28 Nov 2020 07:26:18 -0800 (PST)
+        with ESMTP id S2387426AbgK1THa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 14:07:30 -0500
+Received: from mail-pf1-x435.google.com (mail-pf1-x435.google.com [IPv6:2607:f8b0:4864:20::435])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 073ADC02A1B4;
+        Sat, 28 Nov 2020 07:26:09 -0800 (PST)
+Received: by mail-pf1-x435.google.com with SMTP id q10so7064987pfn.0;
+        Sat, 28 Nov 2020 07:26:09 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=a1tvGnEfaNu1rng4Q1t20sHjkYaWZdSh+BVKU9lSOv4=;
-        b=WC6wPXHTMZemAeUyu0JGuClO6wmo82GBportC4Vc1b7ZyXn4R9ou6tkEnwexLfBLMT
-         /PKnJPMyQQYEkSDCEN2T6x9O6EcI3hSENdRPYkpmSpdfe310NB0Q31E7zqX3HL75j9wY
-         U9eA26iB4gKzoTEaek9y7VNf2SGiYTKhDL5InJX7JVTjqPLlEEn/5Dfe6cYzOa7w9Uwt
-         aGOTYadRYHsJx9JAPCTdgdT079frSwMYWYL+t1TuouIW/p/VJ/ODVIlWekmYBoDkUxr9
-         9UMgfqqZOitGP3W9j3gjLV95JSJ7rWjY+nbiyevFMNusDZD77lDbQSADv6dcx5PSBBpx
-         pMkw==
+        h=from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=GHPYzM4jRC5rTtI6jITOYY+6mqWQDFCFmyVj9lbViqM=;
+        b=r3NsuPL716Gbgc91UvbQ7Phv454iWIU3Ws+yRn1NF8ztZyJQEC12d/w6ht7/hkUIB2
+         GQ7zk+ZsmiUP5fj1Y+CNw5ilGJdKf4uR1xAysGjstUx2EwVyBaj6ky+/iCCcGC0qaSsg
+         59lI7fxzzbMkqSVze/gFz01BoXbyZF1+wGQGjIzJk6gTPmzDzS20twqYprzF16NuikVx
+         Y/vMpPW187nLpKZmVnGk2UdsdFIN81xJkOTSUMC3UHpC1rmRNPfRfsv9f9hq2pLTO0of
+         tJBpJn8dn4aff5mwgKy4I/VDRXC6xdx0Q+4BBGlWQ3Xj4xlZ36ycPUhKIrWGWIsJCQ58
+         c74w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=a1tvGnEfaNu1rng4Q1t20sHjkYaWZdSh+BVKU9lSOv4=;
-        b=mSFZItg2SwEHChuEGWqEh7npVzHMWMBStKonVElSP4Q/zvC1Oss/unOgzjuGuAdFOs
-         Bss+TGseVWapliz0UwWORIinkjB5Onq/pP+0RpCrMtBWRdcfYl0ePqnxzzvrWUP9TUcg
-         4WBYleSe62lGz8zNRrJWLxM8eHlF0MW1AcdtSPL++6GgZSv85Rd4eNykmfiZN5JtlfRj
-         kDMwtkQL7HsVpmZQqPMgDCUCgdYIqZARRBFdQnFIvtSBuhQ5pXd/4UtEhyEos2xObGiZ
-         cCQ8Vt4/cVBLkIyL8ytBV+eobso8KKUyYTdLXNfy87kvVNg0rSIkMTqxicXOqeG06F6h
-         KhHQ==
-X-Gm-Message-State: AOAM5339y/aKjgj5cZTd1WNjF5JfwjvfE0mQZg4Vmt3nyYxkQQaVfoBt
-        11GTcMTGrf4w2o1lWFkNCKc=
-X-Google-Smtp-Source: ABdhPJzwJokMBj7YQcVjw/yvUqBDUzNCrnWHNIeBxJjSVn6cZOaMvc0Xn5fGL4TaXPE/v0i81ElK8g==
-X-Received: by 2002:a17:90a:178b:: with SMTP id q11mr16246038pja.132.1606577178587;
-        Sat, 28 Nov 2020 07:26:18 -0800 (PST)
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=GHPYzM4jRC5rTtI6jITOYY+6mqWQDFCFmyVj9lbViqM=;
+        b=av+4CakcD3DK+DZYwxGfc/fkewS2K09snFc0Xbm3WQctEcwt62PEqAVrEpUWlEjSS6
+         rlclgYi+M10DU2v6I808T+uIdwlHAuH0M3LrtdU18UM2GJxWd1AL7MVFvOMDI6IG4bkz
+         L9le1LMiAaN6cZzYtbqtDdDHCRXYQzKFKb+OlwYs+NfTm1IAH1scDbrAVOVtiZHcr5Ux
+         kP5dridIHuTkLr3V0/BVuGzq8eHWns0RbtOOg7RtAPl6Oq9NEGRXWl586iDeNgxktQVw
+         MMmGlKLSd2E9lE3rk2fpMHRhWeEQxGYM1rinH/L4Wjjqjn49y+JmBAZtRq493y7El3gK
+         u+Ag==
+X-Gm-Message-State: AOAM531YDAE94n+omI9woDr04YmcnB/BHwmio83DEijK0so3FCFEItAU
+        lBsDlkQ8oWFHytzkg++etxU=
+X-Google-Smtp-Source: ABdhPJzATmCEtGS9aoj2vYvtmzZ2I4PDKHAI5rV7JzJixtHGXrGtJ2A5RqcQYH/fOjEekJVYwlteoQ==
+X-Received: by 2002:aa7:8f09:0:b029:18c:4cc6:891d with SMTP id x9-20020aa78f090000b029018c4cc6891dmr11676493pfr.46.1606577169501;
+        Sat, 28 Nov 2020 07:26:09 -0800 (PST)
 Received: from bobo.ibm.com (193-116-103-132.tpgi.com.au. [193.116.103.132])
-        by smtp.gmail.com with ESMTPSA id d22sm15500173pjw.11.2020.11.28.07.26.14
+        by smtp.gmail.com with ESMTPSA id d22sm15500173pjw.11.2020.11.28.07.26.05
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 28 Nov 2020 07:26:18 -0800 (PST)
+        Sat, 28 Nov 2020 07:26:08 -0800 (PST)
 From:   Nicholas Piggin <npiggin@gmail.com>
 To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
 Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
@@ -66,132 +65,95 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
         Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
         Christoph Hellwig <hch@infradead.org>,
         Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v8 02/12] mm: apply_to_pte_range warn and fail if a large pte is encountered
-Date:   Sun, 29 Nov 2020 01:25:49 +1000
-Message-Id: <20201128152559.999540-3-npiggin@gmail.com>
+Subject: [PATCH v8 00/12] huge vmalloc mappings
+Date:   Sun, 29 Nov 2020 01:25:47 +1000
+Message-Id: <20201128152559.999540-1-npiggin@gmail.com>
 X-Mailer: git-send-email 2.23.0
-In-Reply-To: <20201128152559.999540-1-npiggin@gmail.com>
-References: <20201128152559.999540-1-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-apply_to_pte_range might mistake a large pte for bad, or treat it as a
-page table, resulting in a crash or corruption. Add a test to warn and
-return error if large entries are found.
+Hi Andrew,
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- mm/memory.c | 66 +++++++++++++++++++++++++++++++++++++++--------------
- 1 file changed, 49 insertions(+), 17 deletions(-)
+Please consider this for -mm.
 
-diff --git a/mm/memory.c b/mm/memory.c
-index c48f8df6e502..3d0f0bc5d573 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -2429,13 +2429,21 @@ static int apply_to_pmd_range(struct mm_struct *mm, pud_t *pud,
- 	}
- 	do {
- 		next = pmd_addr_end(addr, end);
--		if (create || !pmd_none_or_clear_bad(pmd)) {
--			err = apply_to_pte_range(mm, pmd, addr, next, fn, data,
--						 create, mask);
--			if (err)
--				break;
-+		if (pmd_none(*pmd) && !create)
-+			continue;
-+		if (WARN_ON_ONCE(pmd_leaf(*pmd)))
-+			return -EINVAL;
-+		if (!pmd_none(*pmd) && WARN_ON_ONCE(pmd_bad(*pmd))) {
-+			if (!create)
-+				continue;
-+			pmd_clear_bad(pmd);
- 		}
-+		err = apply_to_pte_range(mm, pmd, addr, next,
-+					 fn, data, create, mask);
-+		if (err)
-+			break;
- 	} while (pmd++, addr = next, addr != end);
-+
- 	return err;
- }
- 
-@@ -2457,13 +2465,21 @@ static int apply_to_pud_range(struct mm_struct *mm, p4d_t *p4d,
- 	}
- 	do {
- 		next = pud_addr_end(addr, end);
--		if (create || !pud_none_or_clear_bad(pud)) {
--			err = apply_to_pmd_range(mm, pud, addr, next, fn, data,
--						 create, mask);
--			if (err)
--				break;
-+		if (pud_none(*pud) && !create)
-+			continue;
-+		if (WARN_ON_ONCE(pud_leaf(*pud)))
-+			return -EINVAL;
-+		if (!pud_none(*pud) && WARN_ON_ONCE(pud_bad(*pud))) {
-+			if (!create)
-+				continue;
-+			pud_clear_bad(pud);
- 		}
-+		err = apply_to_pmd_range(mm, pud, addr, next,
-+					 fn, data, create, mask);
-+		if (err)
-+			break;
- 	} while (pud++, addr = next, addr != end);
-+
- 	return err;
- }
- 
-@@ -2485,13 +2501,21 @@ static int apply_to_p4d_range(struct mm_struct *mm, pgd_t *pgd,
- 	}
- 	do {
- 		next = p4d_addr_end(addr, end);
--		if (create || !p4d_none_or_clear_bad(p4d)) {
--			err = apply_to_pud_range(mm, p4d, addr, next, fn, data,
--						 create, mask);
--			if (err)
--				break;
-+		if (p4d_none(*p4d) && !create)
-+			continue;
-+		if (WARN_ON_ONCE(p4d_leaf(*p4d)))
-+			return -EINVAL;
-+		if (!p4d_none(*p4d) && WARN_ON_ONCE(p4d_bad(*p4d))) {
-+			if (!create)
-+				continue;
-+			p4d_clear_bad(p4d);
- 		}
-+		err = apply_to_pud_range(mm, p4d, addr, next,
-+					 fn, data, create, mask);
-+		if (err)
-+			break;
- 	} while (p4d++, addr = next, addr != end);
-+
- 	return err;
- }
- 
-@@ -2511,9 +2535,17 @@ static int __apply_to_page_range(struct mm_struct *mm, unsigned long addr,
- 	pgd = pgd_offset(mm, addr);
- 	do {
- 		next = pgd_addr_end(addr, end);
--		if (!create && pgd_none_or_clear_bad(pgd))
-+		if (pgd_none(*pgd) && !create)
- 			continue;
--		err = apply_to_p4d_range(mm, pgd, addr, next, fn, data, create, &mask);
-+		if (WARN_ON_ONCE(pgd_leaf(*pgd)))
-+			return -EINVAL;
-+		if (!pgd_none(*pgd) && WARN_ON_ONCE(pgd_bad(*pgd))) {
-+			if (!create)
-+				continue;
-+			pgd_clear_bad(pgd);
-+		}
-+		err = apply_to_p4d_range(mm, pgd, addr, next,
-+					 fn, data, create, &mask);
- 		if (err)
- 			break;
- 	} while (pgd++, addr = next, addr != end);
+Thanks,
+Nick
+
+Since v7:
+- Rebase, added some acks, compile fix
+- Removed "order=" from vmallocinfo, it's a bit confusing (nr_pages
+  is in small page size for compatibility).
+- Added arch_vmap_pmd_supported() test before starting to allocate
+  the large page, rather than only testing it when doing the map, to
+  avoid unsupported configs trying to allocate huge pages for no
+  reason.
+
+Since v6:
+- Fixed a false positive warning introduced in patch 2, found by
+  kbuild test robot.
+
+Since v5:
+- Split arch changes out better and make the constant folding work
+- Avoid most of the 80 column wrap, fix a reference to lib/ioremap.c
+- Fix compile error on some archs
+
+Since v4:
+- Fixed an off-by-page-order bug in v4
+- Several minor cleanups.
+- Added page order to /proc/vmallocinfo
+- Added hugepage to alloc_large_system_hage output.
+- Made an architecture config option, powerpc only for now.
+
+Since v3:
+- Fixed an off-by-one bug in a loop
+- Fix !CONFIG_HAVE_ARCH_HUGE_VMAP build fail
+- Hopefully this time fix the arm64 vmap stack bug, thanks Jonathan
+  Cameron for debugging the cause of this (hopefully).
+
+Since v2:
+- Rebased on vmalloc cleanups, split series into simpler pieces.
+- Fixed several compile errors and warnings
+- Keep the page array and accounting in small page units because
+  struct vm_struct is an interface (this should fix x86 vmap stack debug
+  assert). [Thanks Zefan]
+*** BLURB HERE ***
+
+Nicholas Piggin (12):
+  mm/vmalloc: fix vmalloc_to_page for huge vmap mappings
+  mm: apply_to_pte_range warn and fail if a large pte is encountered
+  mm/vmalloc: rename vmap_*_range vmap_pages_*_range
+  mm/ioremap: rename ioremap_*_range to vmap_*_range
+  mm: HUGE_VMAP arch support cleanup
+  powerpc: inline huge vmap supported functions
+  arm64: inline huge vmap supported functions
+  x86: inline huge vmap supported functions
+  mm: Move vmap_range from mm/ioremap.c to mm/vmalloc.c
+  mm/vmalloc: add vmap_range_noflush variant
+  mm/vmalloc: Hugepage vmalloc mappings
+  powerpc/64s/radix: Enable huge vmalloc mappings
+
+ .../admin-guide/kernel-parameters.txt         |   2 +
+ arch/Kconfig                                  |   4 +
+ arch/arm64/include/asm/vmalloc.h              |  25 +
+ arch/arm64/mm/mmu.c                           |  26 -
+ arch/powerpc/Kconfig                          |   1 +
+ arch/powerpc/include/asm/vmalloc.h            |  21 +
+ arch/powerpc/mm/book3s64/radix_pgtable.c      |  21 -
+ arch/x86/include/asm/vmalloc.h                |  23 +
+ arch/x86/mm/ioremap.c                         |  19 -
+ arch/x86/mm/pgtable.c                         |  13 -
+ include/linux/io.h                            |   9 -
+ include/linux/vmalloc.h                       |  10 +
+ init/main.c                                   |   1 -
+ mm/ioremap.c                                  | 225 +--------
+ mm/memory.c                                   |  66 ++-
+ mm/page_alloc.c                               |   5 +-
+ mm/vmalloc.c                                  | 453 +++++++++++++++---
+ 17 files changed, 529 insertions(+), 395 deletions(-)
+
 -- 
 2.23.0
 
