@@ -2,107 +2,178 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 23D94C3E8C5
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 00:38:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C55E1C64E7B
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:06:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D6AB72223F
-	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 00:38:19 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 72CF921534
+	for <linux-arch@archiver.kernel.org>; Sat, 28 Nov 2020 22:06:36 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="PgCGztmP"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="drVEkTTr"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729459AbgK1Ahg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 27 Nov 2020 19:37:36 -0500
-Received: from mail.kernel.org ([198.145.29.99]:47496 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730166AbgK1Ag6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Nov 2020 19:36:58 -0500
-Received: from mail-wr1-f43.google.com (mail-wr1-f43.google.com [209.85.221.43])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id D213922252
-        for <linux-arch@vger.kernel.org>; Sat, 28 Nov 2020 00:36:39 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1606523800;
-        bh=rlndTyZ07ltlrWHTqYBWYToR6dBHNbYRn2Phd8hj/mU=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=PgCGztmP82ygA1ZsSzxJ9a1GMWL3KxVVbaqgVpZRu4UprXuSXgSBiPfJQ5y5bvyI7
-         F6LsIl5VQzjrVSGbaCyzWfq47gwl3WwPPbHzBXigJnwqnw+855mvFGIGjZ0ubDAJFT
-         AYFDu+IPGTUGjMykmu4T5mxs3enNs2QrcoU08Lck=
-Received: by mail-wr1-f43.google.com with SMTP id m6so7203821wrg.7
-        for <linux-arch@vger.kernel.org>; Fri, 27 Nov 2020 16:36:39 -0800 (PST)
-X-Gm-Message-State: AOAM531Xk69Ag6gp3Iym3T5xyynDDDhHHP413dLRGxtGWzRcrLzsmjjw
-        ku01MiLJd04JFss0ojYWmcFieSsjW/hbZdt37HHpwA==
-X-Google-Smtp-Source: ABdhPJyHzaToMneHQIlE/CQuox4gGtAV1aibN/c+MmVJ3U1vZACyFpmgVNo/aQXl4esq+dTc1TYGAfgXUmiUr2S50zM=
-X-Received: by 2002:a5d:5482:: with SMTP id h2mr13958810wrv.18.1606523798379;
- Fri, 27 Nov 2020 16:36:38 -0800 (PST)
+        id S1728891AbgK1VuS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 28 Nov 2020 16:50:18 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43982 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2387434AbgK1THh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Nov 2020 14:07:37 -0500
+Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 71E84C02A1B5;
+        Sat, 28 Nov 2020 07:26:14 -0800 (PST)
+Received: by mail-pg1-x543.google.com with SMTP id f17so6676957pge.6;
+        Sat, 28 Nov 2020 07:26:14 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=Ls4Z+QtszsWeZpzsu5kDe+zUxHoBLiN8enIaEYCRRt8=;
+        b=drVEkTTrCOtir36Ci8iG5QpMvuGFOjCL2QXhy+CWnhEn7njj+5Zw0QPewWh4IfL6/+
+         lbxroZWD8THwfjPCk6ra/o2YV6dutR258cMBSGPq7aduL0ckag1wVHxasDRLfbOFDdNf
+         plsEBOLWNc5/uiB1X3sUug80bnx3paf7jnuLUsYR18D75Yf5QdUXKqxdaFddCf930MSJ
+         jDxLcr8uWE5ySnluNkW4W6GijJZ/MxGEY6sieCH4LChrPD1uZrHEWTf6nCwn/50xWzUK
+         YKbCGnoyV1lQzxjolDyo9rE5oIN6qCGUtKNSzByxKHKai3HjChXwzIRiGg/akuS+yx4J
+         zQsw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=Ls4Z+QtszsWeZpzsu5kDe+zUxHoBLiN8enIaEYCRRt8=;
+        b=hGoR7LYU2HKgOA+2OpaBuIrLBi0xuylsxsafMmp3SGigUh8TwxG33dlYGGHGFy0jtn
+         LnTWe7nyzLIvZ1Hvb1ZXbCOokc0FqjT84rh6w8MkFEkENeMI9AlL1pfjZvzXizePSsSd
+         oeLnGCWEALNdr3PrswEP38RWDzKBo+F6FYH5BLHQdnn2IjCpl00+sO9nWiRqjilyyC6J
+         RnLINoZv6rzgjL4lVPFjKXTwd9n42q6Sigf0i732CSjy7BcDDserqcB0HHg6YPW3R8u8
+         rXXnLWAw4O+JjJuwzsg7micS34TKewjjpjM6xQxBvETl+LIwoXhuHyNTHaYsYPyaYjk9
+         51zA==
+X-Gm-Message-State: AOAM532xrePqGQ9u+0AMsJsxkK0NOj+rU5nVPyK1yhHaUJLLfX5JgbPu
+        Ux0xfRbwIWOaoXpna51LX2k=
+X-Google-Smtp-Source: ABdhPJxzVq4dv/2aOv1eLf2qxZsQ5B6wDWqYIt2VFRKLkx2wofPlt9eaOXQEQGLRT5Rf3+zVpMbPBw==
+X-Received: by 2002:a62:f809:0:b029:18e:f528:76e6 with SMTP id d9-20020a62f8090000b029018ef52876e6mr11676378pfh.28.1606577174029;
+        Sat, 28 Nov 2020 07:26:14 -0800 (PST)
+Received: from bobo.ibm.com (193-116-103-132.tpgi.com.au. [193.116.103.132])
+        by smtp.gmail.com with ESMTPSA id d22sm15500173pjw.11.2020.11.28.07.26.09
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 28 Nov 2020 07:26:13 -0800 (PST)
+From:   Nicholas Piggin <npiggin@gmail.com>
+To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        Zefan Li <lizefan@huawei.com>,
+        Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        Christophe Leroy <christophe.leroy@csgroup.eu>
+Subject: [PATCH v8 01/12] mm/vmalloc: fix vmalloc_to_page for huge vmap mappings
+Date:   Sun, 29 Nov 2020 01:25:48 +1000
+Message-Id: <20201128152559.999540-2-npiggin@gmail.com>
+X-Mailer: git-send-email 2.23.0
+In-Reply-To: <20201128152559.999540-1-npiggin@gmail.com>
+References: <20201128152559.999540-1-npiggin@gmail.com>
 MIME-Version: 1.0
-References: <20201126155246.25961-1-jack@suse.cz> <CALCETrVaj6rnvqX2cxj3u++hg_XZD-Zo4iYUPTFDiwaO49xDrg@mail.gmail.com>
- <CAMzpN2gADAWBoTgKEgepCHVKoqOw3T_D_W30Q2-vJtQpfn0jwg@mail.gmail.com>
-In-Reply-To: <CAMzpN2gADAWBoTgKEgepCHVKoqOw3T_D_W30Q2-vJtQpfn0jwg@mail.gmail.com>
-From:   Andy Lutomirski <luto@kernel.org>
-Date:   Fri, 27 Nov 2020 16:36:24 -0800
-X-Gmail-Original-Message-ID: <CALCETrXS8e9BRcpmSYqE5_Cvrt96wUOWK_P2bFWUkD2BozPNbg@mail.gmail.com>
-Message-ID: <CALCETrXS8e9BRcpmSYqE5_Cvrt96wUOWK_P2bFWUkD2BozPNbg@mail.gmail.com>
-Subject: Re: [PATCH] fanotify: Fix fanotify_mark() on 32-bit x86
-To:     Brian Gerst <brgerst@gmail.com>
-Cc:     Andy Lutomirski <luto@kernel.org>, Jan Kara <jack@suse.cz>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Christoph Hellwig <hch@lst.de>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Will Deacon <will@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Linux FS Devel <linux-fsdevel@vger.kernel.org>,
-        X86 ML <x86@kernel.org>, Borislav Petkov <bp@alien8.de>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        stable <stable@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Nov 27, 2020 at 2:30 PM Brian Gerst <brgerst@gmail.com> wrote:
->
-> On Fri, Nov 27, 2020 at 1:13 PM Andy Lutomirski <luto@kernel.org> wrote:
-> >
-> > On Thu, Nov 26, 2020 at 7:52 AM Jan Kara <jack@suse.cz> wrote:
-> > >
-> > > Commit converting syscalls taking 64-bit arguments to new scheme of compat
-> > > handlers omitted converting fanotify_mark(2) which then broke the
-> > > syscall for 32-bit x86 builds. Add missed conversion. It is somewhat
-> > > cumbersome since we need to keep the original compat handler for all the
-> > > other 32-bit archs.
-> > >
-> >
-> > This is stupendously ugly.  I'm not really sure how this is supposed
-> > to work on any 32-bit arch.  I'm also not sure whether we should
-> > expect the SYSCALL_DEFINE macros to figure this out by themselves.
->
-> It works on 32-bit arches because the compiler implicitly uses
-> consecutive input registers or stack slots for 64-bit arguments, and
-> some arches have alignment requirements that result in hidden padding.
-> x86-32 is different now because parameters are passed in via pt_regs,
-> and the 64-bit value has to explicitly be reassembled from the high
-> and low 32-bit values, just like in the compat case.
->
+vmalloc_to_page returns NULL for addresses mapped by larger pages[*].
+Whether or not a vmap is huge depends on the architecture details,
+alignments, boot options, etc., which the caller can not be expected
+to know. Therefore HUGE_VMAP is a regression for vmalloc_to_page.
 
-That was my guess.
+This change teaches vmalloc_to_page about larger pages, and returns
+the struct page that corresponds to the offset within the large page.
+This makes the API agnostic to mapping implementation details.
 
-> I think the simplest way to handle this is add a wrapper in
-> arch/x86/kernel/sys_ia32.c with the other fs syscalls that need 64-bit
-> args.  That keeps this mess out of general code.
+[*] As explained by commit 029c54b095995 ("mm/vmalloc.c: huge-vmap:
+    fail gracefully on unexpected huge vmap mappings")
 
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ mm/vmalloc.c | 41 ++++++++++++++++++++++++++---------------
+ 1 file changed, 26 insertions(+), 15 deletions(-)
 
-Want to send a patch?
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 6ae491a8b210..f85124e88bdb 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -34,7 +34,7 @@
+ #include <linux/bitops.h>
+ #include <linux/rbtree_augmented.h>
+ #include <linux/overflow.h>
+-
++#include <linux/pgtable.h>
+ #include <linux/uaccess.h>
+ #include <asm/tlbflush.h>
+ #include <asm/shmparam.h>
+@@ -343,7 +343,9 @@ int is_vmalloc_or_module_addr(const void *x)
+ }
+ 
+ /*
+- * Walk a vmap address to the struct page it maps.
++ * Walk a vmap address to the struct page it maps. Huge vmap mappings will
++ * return the tail page that corresponds to the base page address, which
++ * matches small vmap mappings.
+  */
+ struct page *vmalloc_to_page(const void *vmalloc_addr)
+ {
+@@ -363,25 +365,33 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
+ 
+ 	if (pgd_none(*pgd))
+ 		return NULL;
++	if (WARN_ON_ONCE(pgd_leaf(*pgd)))
++		return NULL; /* XXX: no allowance for huge pgd */
++	if (WARN_ON_ONCE(pgd_bad(*pgd)))
++		return NULL;
++
+ 	p4d = p4d_offset(pgd, addr);
+ 	if (p4d_none(*p4d))
+ 		return NULL;
+-	pud = pud_offset(p4d, addr);
++	if (p4d_leaf(*p4d))
++		return p4d_page(*p4d) + ((addr & ~P4D_MASK) >> PAGE_SHIFT);
++	if (WARN_ON_ONCE(p4d_bad(*p4d)))
++		return NULL;
+ 
+-	/*
+-	 * Don't dereference bad PUD or PMD (below) entries. This will also
+-	 * identify huge mappings, which we may encounter on architectures
+-	 * that define CONFIG_HAVE_ARCH_HUGE_VMAP=y. Such regions will be
+-	 * identified as vmalloc addresses by is_vmalloc_addr(), but are
+-	 * not [unambiguously] associated with a struct page, so there is
+-	 * no correct value to return for them.
+-	 */
+-	WARN_ON_ONCE(pud_bad(*pud));
+-	if (pud_none(*pud) || pud_bad(*pud))
++	pud = pud_offset(p4d, addr);
++	if (pud_none(*pud))
++		return NULL;
++	if (pud_leaf(*pud))
++		return pud_page(*pud) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
++	if (WARN_ON_ONCE(pud_bad(*pud)))
+ 		return NULL;
++
+ 	pmd = pmd_offset(pud, addr);
+-	WARN_ON_ONCE(pmd_bad(*pmd));
+-	if (pmd_none(*pmd) || pmd_bad(*pmd))
++	if (pmd_none(*pmd))
++		return NULL;
++	if (pmd_leaf(*pmd))
++		return pmd_page(*pmd) + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
++	if (WARN_ON_ONCE(pmd_bad(*pmd)))
+ 		return NULL;
+ 
+ 	ptep = pte_offset_map(pmd, addr);
+@@ -389,6 +399,7 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
+ 	if (pte_present(pte))
+ 		page = pte_page(pte);
+ 	pte_unmap(ptep);
++
+ 	return page;
+ }
+ EXPORT_SYMBOL(vmalloc_to_page);
+-- 
+2.23.0
 
-I also wonder if there's a straightforward way to statically check
-this.  Maybe the syscall wrapper macros could be rigged up to avoid
-emitting the ia32 stubs if there is a u64 or s64 arg, so the build
-would fail if someone tries to stick one in the syscall tables.  I
-tried to do this, but I got a bit lost in the macro maze and my
-attempt didn't work.
-
---Andy
