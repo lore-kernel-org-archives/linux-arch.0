@@ -2,147 +2,199 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-9.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-26.2 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EF313C64E7B
-	for <linux-arch@archiver.kernel.org>; Tue,  1 Dec 2020 21:29:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E014EC64E7A
+	for <linux-arch@archiver.kernel.org>; Tue,  1 Dec 2020 21:38:24 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8403C21741
-	for <linux-arch@archiver.kernel.org>; Tue,  1 Dec 2020 21:29:02 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 84C2F2086A
+	for <linux-arch@archiver.kernel.org>; Tue,  1 Dec 2020 21:38:24 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (1024-bit key) header.d=kernel.org header.i=@kernel.org header.b="nWeVMLcS"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="dodU69bM"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725967AbgLAV2q (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 1 Dec 2020 16:28:46 -0500
-Received: from mail.kernel.org ([198.145.29.99]:48720 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725912AbgLAV2q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 1 Dec 2020 16:28:46 -0500
-Received: from willie-the-truck (236.31.169.217.in-addr.arpa [217.169.31.236])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 903E420870;
-        Tue,  1 Dec 2020 21:28:02 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=default; t=1606858085;
-        bh=jydMEXFzO2t7+Ckqr+Txcfmmvphc90YJ7puBAL7qT2g=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=nWeVMLcStfE7SiK55mRRUlPOIopGrLWwUwpF6yOo/TkHyPd6hOZ0mDwpHL1HFm459
-         vrhD8GWAQ4U2gaXC1J3++fW3Bmas8OIxiXPakhwyW4QZZjHWE7gZQQxzVaGrl3oAxm
-         zS0sn0zf66wWg3S6hprcUqxHbdRRYpRJAPfSw2fc=
-Date:   Tue, 1 Dec 2020 21:27:58 +0000
-From:   Will Deacon <will@kernel.org>
-To:     Andy Lutomirski <luto@kernel.org>
-Cc:     Catalin Marinas <catalin.marinas@arm.com>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@de.ibm.com>,
-        Dave Hansen <dave.hansen@intel.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>,
-        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-        Arnd Bergmann <arnd@arndb.de>,
+        id S1729405AbgLAVh7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 1 Dec 2020 16:37:59 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56238 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728676AbgLAVh7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2020 16:37:59 -0500
+Received: from mail-qk1-x74a.google.com (mail-qk1-x74a.google.com [IPv6:2607:f8b0:4864:20::74a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0EE9CC0617A7
+        for <linux-arch@vger.kernel.org>; Tue,  1 Dec 2020 13:37:13 -0800 (PST)
+Received: by mail-qk1-x74a.google.com with SMTP id 198so2466805qkj.7
+        for <linux-arch@vger.kernel.org>; Tue, 01 Dec 2020 13:37:13 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20161025;
+        h=sender:date:in-reply-to:message-id:mime-version:references:subject
+         :from:to:cc;
+        bh=VOfy7I+JfJNFr5nKa99p/PnWq1cmu5wGQSaePmGF9lo=;
+        b=dodU69bM2w4739uzVye+y4jtglX3kpRzjscI0GbwcduOaRiiAF4qIiLCdF1q6oX3wk
+         pUD5Ndeh73E2deG4Whw5KpplKyo+tERYmf13gaWfLYPGdA3PlmgrkbjNepiosHlzkLxk
+         bNPX9Mln5u4xxSb2ddOYEHu9vBV5aswLRqXq1YvmJGNA+UFionr74fPHqks/AmBjSG5K
+         wImLilm8AUw64QLRFpWry1xi+iqe+xBzAckeWyBEk70hGn1j6CtUCDU71oPM5PyxtS24
+         uxteYTrSE1Z32cdNjH3k9kEfWfQDveAyVC+dZStPY32Swa3uQRYzcILaUV3t8/keJNMz
+         No+w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
+         :references:subject:from:to:cc;
+        bh=VOfy7I+JfJNFr5nKa99p/PnWq1cmu5wGQSaePmGF9lo=;
+        b=O71ZzZEXfR/CIxGYjcF3GIYD8pUD+jxv2cZDN/LYObbgJ1L1hZUAESjXnz6FMfkPa1
+         vWBx0BsACv1kKnNEca8nN6zX9Pj4C5bGPdOOFUJ0VY08Oy1qgz8c0LTpBoyKBN8dkwgU
+         RVJkeK7Xzh+Gb1JM7ed2gRhMzaWoKjxB0veCi0duIjSCdJJ2QXDU8Bf7wuDIeauH/+Im
+         GN+j84hqDmU17hm2uk5vtbz3EudbkZmdc92zO2ULstA9q9j5vJ6b5U3IlqlHj+jqBs00
+         OLcYIl1rQsbJGIovLL9yGZpqbzLjwYetndBvadnoT11e4Of+18xBjDSqgtzx4AC7LmLz
+         VhXA==
+X-Gm-Message-State: AOAM531ZjzslzevgK8212woGY8wLHpzNLHDqaICBazCGhwn2nE8j4vQ6
+        3IGe2yVV+CKJpE488gj3D/IlocSrz5jr2a6lMIA=
+X-Google-Smtp-Source: ABdhPJx8i2LYOaIAUm1xZq5QecJCqb89qpX2sshqEwhakWHanNfyXjOyqmKUAn8b1Ee504d4LisYbH/jTs0JuebquqY=
+Sender: "samitolvanen via sendgmr" 
+        <samitolvanen@samitolvanen1.mtv.corp.google.com>
+X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
+ (user=samitolvanen job=sendgmr) by 2002:a0c:bd10:: with SMTP id
+ m16mr5440647qvg.15.1606858632172; Tue, 01 Dec 2020 13:37:12 -0800 (PST)
+Date:   Tue,  1 Dec 2020 13:36:52 -0800
+In-Reply-To: <20201201213707.541432-1-samitolvanen@google.com>
+Message-Id: <20201201213707.541432-2-samitolvanen@google.com>
+Mime-Version: 1.0
+References: <20201201213707.541432-1-samitolvanen@google.com>
+X-Mailer: git-send-email 2.29.2.576.ga3fc446d84-goog
+Subject: [PATCH v8 01/16] tracing: move function tracer options to Kconfig
+From:   Sami Tolvanen <samitolvanen@google.com>
+To:     Masahiro Yamada <masahiroy@kernel.org>,
+        Steven Rostedt <rostedt@goodmis.org>,
+        Will Deacon <will@kernel.org>
+Cc:     Josh Poimboeuf <jpoimboe@redhat.com>,
         Peter Zijlstra <peterz@infradead.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
-        Linux-MM <linux-mm@kvack.org>, Anton Blanchard <anton@ozlabs.org>
-Subject: Re: [PATCH 6/8] lazy tlb: shoot lazies, a non-refcounting lazy tlb
- option
-Message-ID: <20201201212758.GA28300@willie-the-truck>
-References: <20201128160141.1003903-1-npiggin@gmail.com>
- <20201128160141.1003903-7-npiggin@gmail.com>
- <CALCETrVXUbe8LfNn-Qs+DzrOQaiw+sFUg1J047yByV31SaTOZw@mail.gmail.com>
- <CALCETrWBtCfD+jZ3S+O8FK-HFPODuhbDEbbfWvS=-iPATNFAOA@mail.gmail.com>
- <CALCETrXAR_9EGaOF8ymVkZycxgZkYk0dR+NjEpTfVzdcS3sOVw@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrXAR_9EGaOF8ymVkZycxgZkYk0dR+NjEpTfVzdcS3sOVw@mail.gmail.com>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        Kees Cook <keescook@chromium.org>,
+        Nick Desaulniers <ndesaulniers@google.com>,
+        clang-built-linux@googlegroups.com,
+        kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org,
+        linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org,
+        Sami Tolvanen <samitolvanen@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Nov 30, 2020 at 10:31:51AM -0800, Andy Lutomirski wrote:
-> other arch folk: there's some background here:
-> 
-> https://lkml.kernel.org/r/CALCETrVXUbe8LfNn-Qs+DzrOQaiw+sFUg1J047yByV31SaTOZw@mail.gmail.com
-> 
-> On Sun, Nov 29, 2020 at 12:16 PM Andy Lutomirski <luto@kernel.org> wrote:
-> >
-> > On Sat, Nov 28, 2020 at 7:54 PM Andy Lutomirski <luto@kernel.org> wrote:
-> > >
-> > > On Sat, Nov 28, 2020 at 8:02 AM Nicholas Piggin <npiggin@gmail.com> wrote:
-> > > >
-> > > > On big systems, the mm refcount can become highly contented when doing
-> > > > a lot of context switching with threaded applications (particularly
-> > > > switching between the idle thread and an application thread).
-> > > >
-> > > > Abandoning lazy tlb slows switching down quite a bit in the important
-> > > > user->idle->user cases, so so instead implement a non-refcounted scheme
-> > > > that causes __mmdrop() to IPI all CPUs in the mm_cpumask and shoot down
-> > > > any remaining lazy ones.
-> > > >
-> > > > Shootdown IPIs are some concern, but they have not been observed to be
-> > > > a big problem with this scheme (the powerpc implementation generated
-> > > > 314 additional interrupts on a 144 CPU system during a kernel compile).
-> > > > There are a number of strategies that could be employed to reduce IPIs
-> > > > if they turn out to be a problem for some workload.
-> > >
-> > > I'm still wondering whether we can do even better.
-> > >
-> >
-> > Hold on a sec.. __mmput() unmaps VMAs, frees pagetables, and flushes
-> > the TLB.  On x86, this will shoot down all lazies as long as even a
-> > single pagetable was freed.  (Or at least it will if we don't have a
-> > serious bug, but the code seems okay.  We'll hit pmd_free_tlb, which
-> > sets tlb->freed_tables, which will trigger the IPI.)  So, on
-> > architectures like x86, the shootdown approach should be free.  The
-> > only way it ought to have any excess IPIs is if we have CPUs in
-> > mm_cpumask() that don't need IPI to free pagetables, which could
-> > happen on paravirt.
-> 
-> Indeed, on x86, we do this:
-> 
-> [   11.558844]  flush_tlb_mm_range.cold+0x18/0x1d
-> [   11.559905]  tlb_finish_mmu+0x10e/0x1a0
-> [   11.561068]  exit_mmap+0xc8/0x1a0
-> [   11.561932]  mmput+0x29/0xd0
-> [   11.562688]  do_exit+0x316/0xa90
-> [   11.563588]  do_group_exit+0x34/0xb0
-> [   11.564476]  __x64_sys_exit_group+0xf/0x10
-> [   11.565512]  do_syscall_64+0x34/0x50
-> 
-> and we have info->freed_tables set.
-> 
-> What are the architectures that have large systems like?
-> 
-> x86: we already zap lazies, so it should cost basically nothing to do
-> a little loop at the end of __mmput() to make sure that no lazies are
-> left.  If we care about paravirt performance, we could implement one
-> of the optimizations I mentioned above to fix up the refcounts instead
-> of sending an IPI to any remaining lazies.
-> 
-> arm64: AFAICT arm64's flush uses magic arm64 hardware support for
-> remote flushes, so any lazy mm references will still exist after
-> exit_mmap().  (arm64 uses lazy TLB, right?)  So this is kind of like
-> the x86 paravirt case.  Are there large enough arm64 systems that any
-> of this matters?
+Move function tracer options to Kconfig to make it easier to add
+new methods for generating __mcount_loc, and to make the options
+available also when building kernel modules.
 
-Yes, there are large arm64 systems where performance of TLB invalidation
-matters, but they're either niche (supercomputers) or not readily available
-(NUMA boxes).
+Note that FTRACE_MCOUNT_USE_* options are updated on rebuild and
+therefore, work even if the .config was generated in a different
+environment.
 
-But anyway, we blow away the TLB for everybody in tlb_finish_mmu() after
-freeing the page-tables. We have an optimisation to avoid flushing if
-we're just unmapping leaf entries when the mm is going away, but we don't
-have a choice once we get to actually reclaiming the page-tables.
+Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+---
+ Makefile               | 20 ++++++++------------
+ kernel/trace/Kconfig   | 16 ++++++++++++++++
+ scripts/Makefile.build |  6 ++----
+ 3 files changed, 26 insertions(+), 16 deletions(-)
 
-One thing I probably should mention, though, is that we don't maintain
-mm_cpumask() because we're not able to benefit from it and the atomic
-update is a waste of time.
+diff --git a/Makefile b/Makefile
+index 43ecedeb3f02..16b7f0890e75 100644
+--- a/Makefile
++++ b/Makefile
+@@ -849,12 +849,8 @@ KBUILD_CFLAGS += $(DEBUG_CFLAGS)
+ export DEBUG_CFLAGS
+ 
+ ifdef CONFIG_FUNCTION_TRACER
+-ifdef CONFIG_FTRACE_MCOUNT_RECORD
+-  # gcc 5 supports generating the mcount tables directly
+-  ifeq ($(call cc-option-yn,-mrecord-mcount),y)
+-    CC_FLAGS_FTRACE	+= -mrecord-mcount
+-    export CC_USING_RECORD_MCOUNT := 1
+-  endif
++ifdef CONFIG_FTRACE_MCOUNT_USE_CC
++  CC_FLAGS_FTRACE	+= -mrecord-mcount
+   ifdef CONFIG_HAVE_NOP_MCOUNT
+     ifeq ($(call cc-option-yn, -mnop-mcount),y)
+       CC_FLAGS_FTRACE	+= -mnop-mcount
+@@ -862,6 +858,12 @@ ifdef CONFIG_FTRACE_MCOUNT_RECORD
+     endif
+   endif
+ endif
++ifdef CONFIG_FTRACE_MCOUNT_USE_RECORDMCOUNT
++  ifdef CONFIG_HAVE_C_RECORDMCOUNT
++    BUILD_C_RECORDMCOUNT := y
++    export BUILD_C_RECORDMCOUNT
++  endif
++endif
+ ifdef CONFIG_HAVE_FENTRY
+   ifeq ($(call cc-option-yn, -mfentry),y)
+     CC_FLAGS_FTRACE	+= -mfentry
+@@ -871,12 +873,6 @@ endif
+ export CC_FLAGS_FTRACE
+ KBUILD_CFLAGS	+= $(CC_FLAGS_FTRACE) $(CC_FLAGS_USING)
+ KBUILD_AFLAGS	+= $(CC_FLAGS_USING)
+-ifdef CONFIG_DYNAMIC_FTRACE
+-	ifdef CONFIG_HAVE_C_RECORDMCOUNT
+-		BUILD_C_RECORDMCOUNT := y
+-		export BUILD_C_RECORDMCOUNT
+-	endif
+-endif
+ endif
+ 
+ # We trigger additional mismatches with less inlining
+diff --git a/kernel/trace/Kconfig b/kernel/trace/Kconfig
+index a4020c0b4508..927ad004888a 100644
+--- a/kernel/trace/Kconfig
++++ b/kernel/trace/Kconfig
+@@ -595,6 +595,22 @@ config FTRACE_MCOUNT_RECORD
+ 	depends on DYNAMIC_FTRACE
+ 	depends on HAVE_FTRACE_MCOUNT_RECORD
+ 
++config FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY
++	bool
++	depends on FTRACE_MCOUNT_RECORD
++
++config FTRACE_MCOUNT_USE_CC
++	def_bool y
++	depends on $(cc-option,-mrecord-mcount)
++	depends on !FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY
++	depends on FTRACE_MCOUNT_RECORD
++
++config FTRACE_MCOUNT_USE_RECORDMCOUNT
++	def_bool y
++	depends on !FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY
++	depends on !FTRACE_MCOUNT_USE_CC
++	depends on FTRACE_MCOUNT_RECORD
++
+ config TRACING_MAP
+ 	bool
+ 	depends on ARCH_HAVE_NMI_SAFE_CMPXCHG
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index ae647379b579..2175ddb1ee0c 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -178,8 +178,7 @@ cmd_modversions_c =								\
+ 	fi
+ endif
+ 
+-ifdef CONFIG_FTRACE_MCOUNT_RECORD
+-ifndef CC_USING_RECORD_MCOUNT
++ifdef CONFIG_FTRACE_MCOUNT_USE_RECORDMCOUNT
+ # compiler will not generate __mcount_loc use recordmcount or recordmcount.pl
+ ifdef BUILD_C_RECORDMCOUNT
+ ifeq ("$(origin RECORDMCOUNT_WARN)", "command line")
+@@ -206,8 +205,7 @@ recordmcount_source := $(srctree)/scripts/recordmcount.pl
+ endif # BUILD_C_RECORDMCOUNT
+ cmd_record_mcount = $(if $(findstring $(strip $(CC_FLAGS_FTRACE)),$(_c_flags)),	\
+ 	$(sub_cmd_record_mcount))
+-endif # CC_USING_RECORD_MCOUNT
+-endif # CONFIG_FTRACE_MCOUNT_RECORD
++endif # CONFIG_FTRACE_MCOUNT_USE_RECORDMCOUNT
+ 
+ ifdef CONFIG_STACK_VALIDATION
+ ifneq ($(SKIP_STACK_VALIDATION),1)
+-- 
+2.29.2.576.ga3fc446d84-goog
 
-Will
