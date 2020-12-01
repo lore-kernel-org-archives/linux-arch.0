@@ -3,28 +3,28 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
 X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E9D6DC71155
-	for <linux-arch@archiver.kernel.org>; Tue,  1 Dec 2020 19:24:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 95DC8C83016
+	for <linux-arch@archiver.kernel.org>; Tue,  1 Dec 2020 19:24:49 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9914F21741
-	for <linux-arch@archiver.kernel.org>; Tue,  1 Dec 2020 19:24:48 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 65B312168B
+	for <linux-arch@archiver.kernel.org>; Tue,  1 Dec 2020 19:24:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2392382AbgLATYc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 1 Dec 2020 14:24:32 -0500
-Received: from smtp-42ac.mail.infomaniak.ch ([84.16.66.172]:46879 "EHLO
-        smtp-42ac.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S2392385AbgLATYR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2020 14:24:17 -0500
+        id S2404346AbgLATYe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 1 Dec 2020 14:24:34 -0500
+Received: from smtp-bc0e.mail.infomaniak.ch ([45.157.188.14]:53277 "EHLO
+        smtp-bc0e.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2392399AbgLATYU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2020 14:24:20 -0500
 Received: from smtp-3-0001.mail.infomaniak.ch (unknown [10.4.36.108])
-        by smtp-3-3000.mail.infomaniak.ch (Postfix) with ESMTPS id 4ClsTB523MzlhdR2;
-        Tue,  1 Dec 2020 20:23:26 +0100 (CET)
+        by smtp-3-3000.mail.infomaniak.ch (Postfix) with ESMTPS id 4ClsTH563vzlhggH;
+        Tue,  1 Dec 2020 20:23:31 +0100 (CET)
 Received: from localhost (unknown [23.97.221.149])
-        by smtp-3-0001.mail.infomaniak.ch (Postfix) with ESMTPA id 4ClsT92XT8zlh8TC;
-        Tue,  1 Dec 2020 20:23:24 +0100 (CET)
+        by smtp-3-0001.mail.infomaniak.ch (Postfix) with ESMTPA id 4ClsTH2791zlh8T5;
+        Tue,  1 Dec 2020 20:23:31 +0100 (CET)
 From:   =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
 To:     James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>,
         "Serge E . Hallyn" <serge@hallyn.com>
@@ -45,11 +45,14 @@ Cc:     =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>,
         linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
         linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-kselftest@vger.kernel.org,
-        linux-security-module@vger.kernel.org, x86@kernel.org
-Subject: [PATCH v25 00/12] Landlock LSM
-Date:   Tue,  1 Dec 2020 20:23:10 +0100
-Message-Id: <20201201192322.213239-1-mic@digikod.net>
+        linux-security-module@vger.kernel.org, x86@kernel.org,
+        =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@linux.microsoft.com>
+Subject: [PATCH v25 03/12] landlock: Set up the security framework and manage credentials
+Date:   Tue,  1 Dec 2020 20:23:13 +0100
+Message-Id: <20201201192322.213239-4-mic@digikod.net>
 X-Mailer: git-send-email 2.29.2
+In-Reply-To: <20201201192322.213239-1-mic@digikod.net>
+References: <20201201192322.213239-1-mic@digikod.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -57,184 +60,298 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi,
+From: Mickaël Salaün <mic@linux.microsoft.com>
 
-This patch series mainly extend Landlock rules to store the whole access
-rights stack.  This enables to tie access rights with their respective
-layers to be able to have a sane semantic regardless of the previous
-enforced rulesets.  This also enables to get back the union of access
-rights when building a ruleset.  See layout1.interleaved_masked_accesses
-tests from tools/testing/selftests/landlock/fs_test.c for corner cases.
-Cf.
-https://lore.kernel.org/lkml/CAG48ez2cmsrZbUEmQmzPQugJikkvfs_MWmMizxmoyspCeXAXRQ@mail.gmail.com/
+Process's credentials point to a Landlock domain, which is underneath
+implemented with a ruleset.  In the following commits, this domain is
+used to check and enforce the ptrace and filesystem security policies.
+A domain is inherited from a parent to its child the same way a thread
+inherits a seccomp policy.
 
-The SLOC count is 1260 for security/landlock/ and 1711 for
-tools/testing/selftest/landlock/ .  Test coverage for security/landlock/
-is 94% of lines.  The code not covered only deals with internal kernel
-errors (e.g. memory allocation) and race conditions.
+Cc: James Morris <jmorris@namei.org>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Serge E. Hallyn <serge@hallyn.com>
+Signed-off-by: Mickaël Salaün <mic@linux.microsoft.com>
+Reviewed-by: Jann Horn <jannh@google.com>
+---
 
-The compiled documentation is available here:
-https://landlock.io/linux-doc/landlock-v25/userspace-api/landlock.html
+Changes since v23:
+* Add an early check for the current domain in hook_cred_free() to avoid
+  superfluous call.
+* Cosmetic cleanup to make the code more readable.
 
-This series can be applied on top of v5.10-rc6 .  This can be tested
-with CONFIG_SECURITY_LANDLOCK, CONFIG_SAMPLE_LANDLOCK and by prepending
-"landlock," to CONFIG_LSM.  This patch series can be found in a Git
-repository here:
-https://github.com/landlock-lsm/linux/commits/landlock-v25
-I would really appreciate constructive comments on this patch series.
+Changes since v22:
+* Add Reviewed-by: Jann Horn <jannh@google.com>
 
+Changes since v21:
+* Fix copyright dates.
 
-# Landlock LSM
+Changes since v17:
+* Constify returned domain pointers from landlock_get_current_domain()
+  and landlock_get_task_domain() helpers.
 
-The goal of Landlock is to enable to restrict ambient rights (e.g.
-global filesystem access) for a set of processes.  Because Landlock is a
-stackable LSM [1], it makes possible to create safe security sandboxes
-as new security layers in addition to the existing system-wide
-access-controls. This kind of sandbox is expected to help mitigate the
-security impact of bugs or unexpected/malicious behaviors in user-space
-applications. Landlock empowers any process, including unprivileged
-ones, to securely restrict themselves.
+Changes since v15:
+* Optimize landlocked() for current thread.
+* Display the greeting message when everything is initialized.
 
-Landlock is inspired by seccomp-bpf but instead of filtering syscalls
-and their raw arguments, a Landlock rule can restrict the use of kernel
-objects like file hierarchies, according to the kernel semantic.
-Landlock also takes inspiration from other OS sandbox mechanisms: XNU
-Sandbox, FreeBSD Capsicum or OpenBSD Pledge/Unveil.
+Changes since v14:
+* Uses pr_fmt from common.h .
+* Constify variables.
+* Remove useless NULL initialization.
 
-In this current form, Landlock misses some access-control features.
-This enables to minimize this patch series and ease review.  This series
-still addresses multiple use cases, especially with the combined use of
-seccomp-bpf: applications with built-in sandboxing, init systems,
-security sandbox tools and security-oriented APIs [2].
+Changes since v13:
+* totally get ride of the seccomp dependency
+* only keep credential management and LSM setup.
 
-Previous version:
-https://lore.kernel.org/lkml/20201112205141.775752-1-mic@digikod.net/
-
-[1] https://lore.kernel.org/lkml/50db058a-7dde-441b-a7f9-f6837fe8b69f@schaufler-ca.com/
-[2] https://lore.kernel.org/lkml/f646e1c7-33cf-333f-070c-0a40ad0468cd@digikod.net/
-
-
-Casey Schaufler (1):
-  LSM: Infrastructure management of the superblock
-
-Mickaël Salaün (11):
-  landlock: Add object management
-  landlock: Add ruleset and domain management
-  landlock: Set up the security framework and manage credentials
-  landlock: Add ptrace restrictions
-  fs,security: Add sb_delete hook
-  landlock: Support filesystem access-control
-  landlock: Add syscall implementations
-  arch: Wire up Landlock syscalls
-  selftests/landlock: Add user space tests
-  samples/landlock: Add a sandbox manager example
-  landlock: Add user and kernel documentation
-
- Documentation/security/index.rst              |    1 +
- Documentation/security/landlock.rst           |   79 +
- Documentation/userspace-api/index.rst         |    1 +
- Documentation/userspace-api/landlock.rst      |  280 +++
- MAINTAINERS                                   |   13 +
- arch/Kconfig                                  |    7 +
- arch/alpha/kernel/syscalls/syscall.tbl        |    3 +
- arch/arm/tools/syscall.tbl                    |    3 +
- arch/arm64/include/asm/unistd.h               |    2 +-
- arch/arm64/include/asm/unistd32.h             |    6 +
- arch/ia64/kernel/syscalls/syscall.tbl         |    3 +
- arch/m68k/kernel/syscalls/syscall.tbl         |    3 +
- arch/microblaze/kernel/syscalls/syscall.tbl   |    3 +
- arch/mips/kernel/syscalls/syscall_n32.tbl     |    3 +
- arch/mips/kernel/syscalls/syscall_n64.tbl     |    3 +
- arch/mips/kernel/syscalls/syscall_o32.tbl     |    3 +
- arch/parisc/kernel/syscalls/syscall.tbl       |    3 +
- arch/powerpc/kernel/syscalls/syscall.tbl      |    3 +
- arch/s390/kernel/syscalls/syscall.tbl         |    3 +
- arch/sh/kernel/syscalls/syscall.tbl           |    3 +
- arch/sparc/kernel/syscalls/syscall.tbl        |    3 +
- arch/um/Kconfig                               |    1 +
- arch/x86/entry/syscalls/syscall_32.tbl        |    3 +
- arch/x86/entry/syscalls/syscall_64.tbl        |    3 +
- arch/xtensa/kernel/syscalls/syscall.tbl       |    3 +
- fs/super.c                                    |    1 +
- include/linux/lsm_hook_defs.h                 |    1 +
- include/linux/lsm_hooks.h                     |    3 +
- include/linux/security.h                      |    4 +
- include/linux/syscalls.h                      |    7 +
- include/uapi/asm-generic/unistd.h             |    8 +-
- include/uapi/linux/landlock.h                 |  128 ++
- kernel/sys_ni.c                               |    5 +
- samples/Kconfig                               |    7 +
- samples/Makefile                              |    1 +
- samples/landlock/.gitignore                   |    1 +
- samples/landlock/Makefile                     |   15 +
- samples/landlock/sandboxer.c                  |  236 +++
- security/Kconfig                              |   11 +-
- security/Makefile                             |    2 +
- security/landlock/Kconfig                     |   21 +
- security/landlock/Makefile                    |    4 +
- security/landlock/common.h                    |   20 +
- security/landlock/cred.c                      |   46 +
- security/landlock/cred.h                      |   58 +
- security/landlock/fs.c                        |  635 ++++++
- security/landlock/fs.h                        |   60 +
- security/landlock/object.c                    |   67 +
- security/landlock/object.h                    |   91 +
- security/landlock/ptrace.c                    |  120 ++
- security/landlock/ptrace.h                    |   14 +
- security/landlock/ruleset.c                   |  427 ++++
- security/landlock/ruleset.h                   |  163 ++
- security/landlock/setup.c                     |   40 +
- security/landlock/setup.h                     |   18 +
- security/landlock/syscall.c                   |  426 ++++
- security/security.c                           |   51 +-
- security/selinux/hooks.c                      |   58 +-
- security/selinux/include/objsec.h             |    6 +
- security/selinux/ss/services.c                |    3 +-
- security/smack/smack.h                        |    6 +
- security/smack/smack_lsm.c                    |   35 +-
- tools/testing/selftests/Makefile              |    1 +
- tools/testing/selftests/landlock/.gitignore   |    2 +
- tools/testing/selftests/landlock/Makefile     |   24 +
- tools/testing/selftests/landlock/base_test.c  |  117 ++
- tools/testing/selftests/landlock/common.h     |  113 ++
- tools/testing/selftests/landlock/config       |    5 +
- tools/testing/selftests/landlock/fs_test.c    | 1798 +++++++++++++++++
- .../testing/selftests/landlock/ptrace_test.c  |  307 +++
- tools/testing/selftests/landlock/true.c       |    5 +
- 71 files changed, 5532 insertions(+), 77 deletions(-)
- create mode 100644 Documentation/security/landlock.rst
- create mode 100644 Documentation/userspace-api/landlock.rst
- create mode 100644 include/uapi/linux/landlock.h
- create mode 100644 samples/landlock/.gitignore
- create mode 100644 samples/landlock/Makefile
- create mode 100644 samples/landlock/sandboxer.c
- create mode 100644 security/landlock/Kconfig
- create mode 100644 security/landlock/Makefile
+Previous changes:
+https://lore.kernel.org/lkml/20191104172146.30797-4-mic@digikod.net/
+---
+ security/Kconfig           | 10 +++----
+ security/landlock/Makefile |  3 +-
+ security/landlock/common.h | 20 +++++++++++++
+ security/landlock/cred.c   | 46 ++++++++++++++++++++++++++++++
+ security/landlock/cred.h   | 58 ++++++++++++++++++++++++++++++++++++++
+ security/landlock/setup.c  | 31 ++++++++++++++++++++
+ security/landlock/setup.h  | 16 +++++++++++
+ 7 files changed, 178 insertions(+), 6 deletions(-)
  create mode 100644 security/landlock/common.h
  create mode 100644 security/landlock/cred.c
  create mode 100644 security/landlock/cred.h
- create mode 100644 security/landlock/fs.c
- create mode 100644 security/landlock/fs.h
- create mode 100644 security/landlock/object.c
- create mode 100644 security/landlock/object.h
- create mode 100644 security/landlock/ptrace.c
- create mode 100644 security/landlock/ptrace.h
- create mode 100644 security/landlock/ruleset.c
- create mode 100644 security/landlock/ruleset.h
  create mode 100644 security/landlock/setup.c
  create mode 100644 security/landlock/setup.h
- create mode 100644 security/landlock/syscall.c
- create mode 100644 tools/testing/selftests/landlock/.gitignore
- create mode 100644 tools/testing/selftests/landlock/Makefile
- create mode 100644 tools/testing/selftests/landlock/base_test.c
- create mode 100644 tools/testing/selftests/landlock/common.h
- create mode 100644 tools/testing/selftests/landlock/config
- create mode 100644 tools/testing/selftests/landlock/fs_test.c
- create mode 100644 tools/testing/selftests/landlock/ptrace_test.c
- create mode 100644 tools/testing/selftests/landlock/true.c
 
-
-base-commit: b65054597872ce3aefbc6a666385eabdf9e288da
+diff --git a/security/Kconfig b/security/Kconfig
+index 15a4342b5d01..0ced7fd33e4d 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -278,11 +278,11 @@ endchoice
+ 
+ config LSM
+ 	string "Ordered list of enabled LSMs"
+-	default "lockdown,yama,loadpin,safesetid,integrity,smack,selinux,tomoyo,apparmor,bpf" if DEFAULT_SECURITY_SMACK
+-	default "lockdown,yama,loadpin,safesetid,integrity,apparmor,selinux,smack,tomoyo,bpf" if DEFAULT_SECURITY_APPARMOR
+-	default "lockdown,yama,loadpin,safesetid,integrity,tomoyo,bpf" if DEFAULT_SECURITY_TOMOYO
+-	default "lockdown,yama,loadpin,safesetid,integrity,bpf" if DEFAULT_SECURITY_DAC
+-	default "lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,bpf"
++	default "landlock,lockdown,yama,loadpin,safesetid,integrity,smack,selinux,tomoyo,apparmor,bpf" if DEFAULT_SECURITY_SMACK
++	default "landlock,lockdown,yama,loadpin,safesetid,integrity,apparmor,selinux,smack,tomoyo,bpf" if DEFAULT_SECURITY_APPARMOR
++	default "landlock,lockdown,yama,loadpin,safesetid,integrity,tomoyo,bpf" if DEFAULT_SECURITY_TOMOYO
++	default "landlock,lockdown,yama,loadpin,safesetid,integrity,bpf" if DEFAULT_SECURITY_DAC
++	default "landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,bpf"
+ 	help
+ 	  A comma-separated list of LSMs, in initialization order.
+ 	  Any LSMs left off this list will be ignored. This can be
+diff --git a/security/landlock/Makefile b/security/landlock/Makefile
+index d846eba445bb..041ea242e627 100644
+--- a/security/landlock/Makefile
++++ b/security/landlock/Makefile
+@@ -1,3 +1,4 @@
+ obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
+ 
+-landlock-y := object.o ruleset.o
++landlock-y := setup.o object.o ruleset.o \
++	cred.o
+diff --git a/security/landlock/common.h b/security/landlock/common.h
+new file mode 100644
+index 000000000000..5dc0fe15707d
+--- /dev/null
++++ b/security/landlock/common.h
+@@ -0,0 +1,20 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Landlock LSM - Common constants and helpers
++ *
++ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2018-2020 ANSSI
++ */
++
++#ifndef _SECURITY_LANDLOCK_COMMON_H
++#define _SECURITY_LANDLOCK_COMMON_H
++
++#define LANDLOCK_NAME "landlock"
++
++#ifdef pr_fmt
++#undef pr_fmt
++#endif
++
++#define pr_fmt(fmt) LANDLOCK_NAME ": " fmt
++
++#endif /* _SECURITY_LANDLOCK_COMMON_H */
+diff --git a/security/landlock/cred.c b/security/landlock/cred.c
+new file mode 100644
+index 000000000000..76bd13ff85b9
+--- /dev/null
++++ b/security/landlock/cred.c
+@@ -0,0 +1,46 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Landlock LSM - Credential hooks
++ *
++ * Copyright © 2017-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2018-2020 ANSSI
++ */
++
++#include <linux/cred.h>
++#include <linux/lsm_hooks.h>
++
++#include "common.h"
++#include "cred.h"
++#include "ruleset.h"
++#include "setup.h"
++
++static int hook_cred_prepare(struct cred *const new,
++		const struct cred *const old, const gfp_t gfp)
++{
++	struct landlock_ruleset *const old_dom = landlock_cred(old)->domain;
++
++	if (old_dom) {
++		landlock_get_ruleset(old_dom);
++		landlock_cred(new)->domain = old_dom;
++	}
++	return 0;
++}
++
++static void hook_cred_free(struct cred *const cred)
++{
++	struct landlock_ruleset *const dom = landlock_cred(cred)->domain;
++
++	if (dom)
++		landlock_put_ruleset_deferred(dom);
++}
++
++static struct security_hook_list landlock_hooks[] __lsm_ro_after_init = {
++	LSM_HOOK_INIT(cred_prepare, hook_cred_prepare),
++	LSM_HOOK_INIT(cred_free, hook_cred_free),
++};
++
++__init void landlock_add_hooks_cred(void)
++{
++	security_add_hooks(landlock_hooks, ARRAY_SIZE(landlock_hooks),
++			LANDLOCK_NAME);
++}
+diff --git a/security/landlock/cred.h b/security/landlock/cred.h
+new file mode 100644
+index 000000000000..f059c5c49583
+--- /dev/null
++++ b/security/landlock/cred.h
+@@ -0,0 +1,58 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Landlock LSM - Credential hooks
++ *
++ * Copyright © 2019-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2019-2020 ANSSI
++ */
++
++#ifndef _SECURITY_LANDLOCK_CRED_H
++#define _SECURITY_LANDLOCK_CRED_H
++
++#include <linux/cred.h>
++#include <linux/init.h>
++#include <linux/rcupdate.h>
++
++#include "ruleset.h"
++#include "setup.h"
++
++struct landlock_cred_security {
++	struct landlock_ruleset *domain;
++};
++
++static inline struct landlock_cred_security *landlock_cred(
++		const struct cred *cred)
++{
++	return cred->security + landlock_blob_sizes.lbs_cred;
++}
++
++static inline const struct landlock_ruleset *landlock_get_current_domain(void)
++{
++	return landlock_cred(current_cred())->domain;
++}
++
++/*
++ * The call needs to come from an RCU read-side critical section.
++ */
++static inline const struct landlock_ruleset *landlock_get_task_domain(
++		const struct task_struct *const task)
++{
++	return landlock_cred(__task_cred(task))->domain;
++}
++
++static inline bool landlocked(const struct task_struct *const task)
++{
++	bool has_dom;
++
++	if (task == current)
++		return !!landlock_get_current_domain();
++
++	rcu_read_lock();
++	has_dom = !!landlock_get_task_domain(task);
++	rcu_read_unlock();
++	return has_dom;
++}
++
++__init void landlock_add_hooks_cred(void);
++
++#endif /* _SECURITY_LANDLOCK_CRED_H */
+diff --git a/security/landlock/setup.c b/security/landlock/setup.c
+new file mode 100644
+index 000000000000..39ee1766f175
+--- /dev/null
++++ b/security/landlock/setup.c
+@@ -0,0 +1,31 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Landlock LSM - Security framework setup
++ *
++ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2018-2020 ANSSI
++ */
++
++#include <linux/init.h>
++#include <linux/lsm_hooks.h>
++
++#include "common.h"
++#include "cred.h"
++#include "setup.h"
++
++struct lsm_blob_sizes landlock_blob_sizes __lsm_ro_after_init = {
++	.lbs_cred = sizeof(struct landlock_cred_security),
++};
++
++static int __init landlock_init(void)
++{
++	landlock_add_hooks_cred();
++	pr_info("Up and running.\n");
++	return 0;
++}
++
++DEFINE_LSM(LANDLOCK_NAME) = {
++	.name = LANDLOCK_NAME,
++	.init = landlock_init,
++	.blobs = &landlock_blob_sizes,
++};
+diff --git a/security/landlock/setup.h b/security/landlock/setup.h
+new file mode 100644
+index 000000000000..9fdbf33fcc33
+--- /dev/null
++++ b/security/landlock/setup.h
+@@ -0,0 +1,16 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Landlock LSM - Security framework setup
++ *
++ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2018-2020 ANSSI
++ */
++
++#ifndef _SECURITY_LANDLOCK_SETUP_H
++#define _SECURITY_LANDLOCK_SETUP_H
++
++#include <linux/lsm_hooks.h>
++
++extern struct lsm_blob_sizes landlock_blob_sizes;
++
++#endif /* _SECURITY_LANDLOCK_SETUP_H */
 -- 
 2.29.2
 
