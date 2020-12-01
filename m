@@ -2,68 +2,68 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-26.2 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
-	autolearn_force=no version=3.4.0
+	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0E516C83036
-	for <linux-arch@archiver.kernel.org>; Tue,  1 Dec 2020 21:39:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 86C60C83035
+	for <linux-arch@archiver.kernel.org>; Tue,  1 Dec 2020 21:39:48 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A68112085B
+	by mail.kernel.org (Postfix) with ESMTP id 2F5AB2085B
 	for <linux-arch@archiver.kernel.org>; Tue,  1 Dec 2020 21:39:48 +0000 (UTC)
 Authentication-Results: mail.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="vXHUajvU"
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="lDxihdeJ"
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2390156AbgLAVjp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 1 Dec 2020 16:39:45 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56466 "EHLO
+        id S2390273AbgLAVjm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 1 Dec 2020 16:39:42 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56372 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390137AbgLAVjd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2020 16:39:33 -0500
-Received: from mail-qv1-xf4a.google.com (mail-qv1-xf4a.google.com [IPv6:2607:f8b0:4864:20::f4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 35FE3C09425D
-        for <linux-arch@vger.kernel.org>; Tue,  1 Dec 2020 13:37:43 -0800 (PST)
-Received: by mail-qv1-xf4a.google.com with SMTP id l15so2203160qvu.8
-        for <linux-arch@vger.kernel.org>; Tue, 01 Dec 2020 13:37:43 -0800 (PST)
+        with ESMTP id S2390151AbgLAVjh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2020 16:39:37 -0500
+Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 11FE1C094267
+        for <linux-arch@vger.kernel.org>; Tue,  1 Dec 2020 13:37:48 -0800 (PST)
+Received: by mail-yb1-xb49.google.com with SMTP id x129so3996492ybg.12
+        for <linux-arch@vger.kernel.org>; Tue, 01 Dec 2020 13:37:48 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=sender:date:in-reply-to:message-id:mime-version:references:subject
          :from:to:cc;
-        bh=aPTc8wYkBIIZS9XLhaJqPHrVGew/rHRzWtLqs6SwnEk=;
-        b=vXHUajvUgn40LQCYOvZPKvqCWjM82atINdDHUGd5EhIZaxvZWNECR6Puf1wV/Xm1fz
-         RZFUluVJoen54/2OkeSIKDLooJAqo6nO6jmid/KnIY+pQsB0jUK1FLQCjzUfvDCGjqfW
-         5DsweDMH7mPM+webX4KoPPbT06j0wd8ib/BAqCtFcLiXN9fRxFfzVzezsrV61oCpnhyb
-         7uduG6UItD7EnvVpEffELx2wbLPqlD3Oqd6UlZIDNGhgDg+wEFbzFvokQCivtnRsGs7N
-         92Et/EOjPux1Tii1bL3i8/gTtmbaMJpflMTGhVRAPssOG6ib3nwdVtng5zkY0hoNy4H7
-         BGdg==
+        bh=IAko/M6Zt1aSlSrXq3lDXb64GB1qle9I29x8xbslmiM=;
+        b=lDxihdeJWmA2e6zRs4TGwE13O3VOmpH1sdyN7CY6HZcKARE8DZM0oCaAv6PGzLBfOm
+         /ZsEq2PPIQPCS7MFloSyMFj7kgAkVbls55naobKLn/H//1ss0itsdOqec9UmTUefWOkZ
+         OevqTXLVnJWnu1+9lA+fUkD3ZpM/Bc/Cp+H1CtYxrDQiJ2zLyi7mQrSw2Tg1RcvR5Pvc
+         MD3SFVwZjAlr2nZrrAuw1JZnaw4C+tIlbEJxCUwAQygLAddc8jWwS1H6U4ZPPTd1zOuh
+         GskRIIGrCvhTFuMt7A9YPnLuQPcn84b4pMM7zxhzZZSJJBkFobXmIeaBIWWVW35FDAmE
+         F+jQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=aPTc8wYkBIIZS9XLhaJqPHrVGew/rHRzWtLqs6SwnEk=;
-        b=jEgXP9XDflpaLkmOntXXA3q8+rdRGPjromdC2Ovz/G9nJ1nu1v4sMSRhQ5Seq12rIL
-         AGxfzBqqr7GPSjCUvazdT9YQ5kk8qhK/t1TsTI3hd0dQ1S7ahEiLJCMF5gxa/REngvKI
-         0k2VzyUWWFf+a69RvUwz/UkO2aRRsH50g98svUaSaalunQqEqmJk+9Zgmy/zlwJT8AbO
-         vSs5xT8JVTFK3FUO+RUnbQo81SPB0uTsD3HpOWbvGz4oc+/A2GwER3SCVFtPE/eDy9TI
-         +wmkSutR+V7iExeQ+A0g79E/Mi0mZFHzAVqc19Y9Rwt3j+Lj6WcecNseqVyvupKLJz5e
-         7Q2g==
-X-Gm-Message-State: AOAM533YvBrPuD5hbs+edxI/gGo9qAb9+etusQqerSg+Dsq9f1+DHyt5
-        yMmWLtoic/F9xdWegBUI8b2PyNhh/B2LRfkwrog=
-X-Google-Smtp-Source: ABdhPJx2UMQKvzPc9YbjuAcaOdZsXhK7RlcIM2M9pkfdRpnDBi+U9k28DqELenlSlo2tvxUYIND8c9jWK0Acmjv4ppQ=
+        bh=IAko/M6Zt1aSlSrXq3lDXb64GB1qle9I29x8xbslmiM=;
+        b=YO4+3p9gmv2ATRr3J8PZuILV1b8YyFcD5go8SrO6jwmY1gK0CPdxMbAO9LzjD575ev
+         ChxlTcX45QFVy21Sj5ZUn/aLzGX4JDh89Sg2orBmbZRrJ6UCnLr84msYetGFQjckul/E
+         hfSnnQEuSYKvrY920SEbU+YOegcIvAvd6I85ZfMPFCtjXfu1dlfuQICfVNkSVwOmUbZ1
+         5/O2qUCLwc3XdGebiMyIaM3jlMhEQiequuPiAnJwbbMVr7hT2TrAsjbu2uGu3sFY6tQa
+         q3mLDwy50fKwXkR9zbve2fjrZj3O3V1j2BFFc6v5E+PxOgYt/KRm7/2NXVVsoWSmXlye
+         rzHQ==
+X-Gm-Message-State: AOAM531FHS1vpU1Hj7BhRr6Vj4dvA+ek6WON3t5Po3lMQoq7EL/b5Fmk
+        KovlFzEZj1WNO/AErFgmjUs8CdShLn2fqRJkef0=
+X-Google-Smtp-Source: ABdhPJyD/SxDjfpLtYpnbWVyCumboZuxaJdYA+0/Z6lOz73HHAOHqcYxLyKCh9v/FKkBiugIvNe82fBMfluge4BLrG0=
 Sender: "samitolvanen via sendgmr" 
         <samitolvanen@samitolvanen1.mtv.corp.google.com>
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
- (user=samitolvanen job=sendgmr) by 2002:ad4:5685:: with SMTP id
- bc5mr5091015qvb.48.1606858662372; Tue, 01 Dec 2020 13:37:42 -0800 (PST)
-Date:   Tue,  1 Dec 2020 13:37:04 -0800
+ (user=samitolvanen job=sendgmr) by 2002:a5b:846:: with SMTP id
+ v6mr6465998ybq.436.1606858667278; Tue, 01 Dec 2020 13:37:47 -0800 (PST)
+Date:   Tue,  1 Dec 2020 13:37:06 -0800
 In-Reply-To: <20201201213707.541432-1-samitolvanen@google.com>
-Message-Id: <20201201213707.541432-14-samitolvanen@google.com>
+Message-Id: <20201201213707.541432-16-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20201201213707.541432-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.29.2.576.ga3fc446d84-goog
-Subject: [PATCH v8 13/16] drivers/misc/lkdtm: disable LTO for rodata.o
+Subject: [PATCH v8 15/16] arm64: disable recordmcount with DYNAMIC_FTRACE_WITH_REGS
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Masahiro Yamada <masahiroy@kernel.org>,
         Steven Rostedt <rostedt@goodmis.org>,
@@ -84,27 +84,36 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Disable LTO for rodata.o to allow objcopy to be used to
-manipulate sections.
+DYNAMIC_FTRACE_WITH_REGS uses -fpatchable-function-entry, which makes
+running recordmcount unnecessary as there are no mcount calls in object
+files, and __mcount_loc doesn't need to be generated.
+
+While there's normally no harm in running recordmcount even when it's
+not strictly needed, this won't work with LTO as we have LLVM bitcode
+instead of ELF objects.
+
+This change selects FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY, which
+disables recordmcount when patchable function entries are used instead.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-Acked-by: Kees Cook <keescook@chromium.org>
+Acked-by: Will Deacon <will@kernel.org>
 ---
- drivers/misc/lkdtm/Makefile | 1 +
- 1 file changed, 1 insertion(+)
+ arch/arm64/Kconfig | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/drivers/misc/lkdtm/Makefile b/drivers/misc/lkdtm/Makefile
-index c70b3822013f..dd4c936d4d73 100644
---- a/drivers/misc/lkdtm/Makefile
-+++ b/drivers/misc/lkdtm/Makefile
-@@ -13,6 +13,7 @@ lkdtm-$(CONFIG_LKDTM)		+= cfi.o
- 
- KASAN_SANITIZE_stackleak.o	:= n
- KCOV_INSTRUMENT_rodata.o	:= n
-+CFLAGS_REMOVE_rodata.o		+= $(CC_FLAGS_LTO)
- 
- OBJCOPYFLAGS :=
- OBJCOPYFLAGS_rodata_objcopy.o	:= \
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 1515f6f153a0..c7f07978f5b6 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -158,6 +158,8 @@ config ARM64
+ 	select HAVE_DYNAMIC_FTRACE
+ 	select HAVE_DYNAMIC_FTRACE_WITH_REGS \
+ 		if $(cc-option,-fpatchable-function-entry=2)
++	select FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY \
++		if DYNAMIC_FTRACE_WITH_REGS
+ 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 	select HAVE_FAST_GUP
+ 	select HAVE_FTRACE_MCOUNT_RECORD
 -- 
 2.29.2.576.ga3fc446d84-goog
 
