@@ -2,192 +2,125 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-4.0 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id ACF81C8300F
-	for <linux-arch@archiver.kernel.org>; Wed,  2 Dec 2020 02:51:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9FE71C64E7A
+	for <linux-arch@archiver.kernel.org>; Wed,  2 Dec 2020 02:54:44 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 58B7220C56
-	for <linux-arch@archiver.kernel.org>; Wed,  2 Dec 2020 02:51:21 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3E2482158C
+	for <linux-arch@archiver.kernel.org>; Wed,  2 Dec 2020 02:54:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727807AbgLBCus (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 1 Dec 2020 21:50:48 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47946 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727590AbgLBCur (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2020 21:50:47 -0500
-Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B6986C0613D6;
-        Tue,  1 Dec 2020 18:50:06 -0800 (PST)
-Received: by mail-pf1-x441.google.com with SMTP id x24so286461pfn.6;
-        Tue, 01 Dec 2020 18:50:06 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=date:from:subject:to:cc:references:in-reply-to:mime-version
-         :message-id:content-transfer-encoding;
-        bh=rrxTVjl50w/hvvFu6753KKn1qpO44MFkmA/m2ENQPW0=;
-        b=U3Sz0euxPXDrCmFLKwiYimm6yyBF1CGZXzT+k7baShme0K69SttxGDVElTYP7xD81J
-         2NwdKEYT3Zs9274B6kIHynUHQPZ00KgUdGXc5ha6W25qHfVhMjyjdck0nx62b5X0C5To
-         1P9o/31CYlfFtSMNCjiOGhQYR+PUawAmO+HbR9rqzp7uxjtqn81AbD7uKh21gQTcRclr
-         sKwpc0TgjomEW3W/Rh8pgDEiycq5f03ojFi19mo+lIT5VM/sT2AJ3raUjTw0OeqLxxxI
-         DeTkpxfBTV9HwMT81IfJ5wjehPhqTvkZsBC5tEDMDQr4JcEUe4akPkazAtZiJqIKHcrf
-         R1uQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:subject:to:cc:references:in-reply-to
-         :mime-version:message-id:content-transfer-encoding;
-        bh=rrxTVjl50w/hvvFu6753KKn1qpO44MFkmA/m2ENQPW0=;
-        b=GUZTJ0i9FRNulnA84s9vNrjFHDyWrjezX0ybZouULAdZaO1sAXoPcH8dfeQNwDgtp6
-         XBQsgEuWXyNUODdiF3tkgzQzZsYE+IydK53uv+dvgIuT6utUVqis4HL/JyZ3FNdDP2hf
-         1dX0fy81HUnh5Vksnz5IUg4tX9zVzqADNtHom2ynGbGIaTzB9kZqTxnmK+Mn6/EV0h7a
-         wCgjA57rRhjPLJ7vRakTemgbbBYKP1wpjlNlxSHi2X1N21In7GucYmDEMMC9rfCYlEIz
-         bq9GgkHsXiN2B6RjUvL5cthqtP+Aj0ThST6GeFPtLXNYBs8mHnCavuOVc2VG4aqzyXR2
-         GpIQ==
-X-Gm-Message-State: AOAM532IIplIkwTv5gj/ykR1B/a0bHbrWTFqnBcvSq05CsufPtVLkD4s
-        boG9YBksk94MuJdhtkl2y4BuH8b4wmAicA==
-X-Google-Smtp-Source: ABdhPJx49rJhgYL4DLrmhR3Y7knh5z14lnmGYVTfXlFaVAba7Ker02/OzbTVZiRE1EQln20cmYd6WQ==
-X-Received: by 2002:a62:188a:0:b029:19a:cdab:9841 with SMTP id 132-20020a62188a0000b029019acdab9841mr496648pfy.12.1606877406324;
-        Tue, 01 Dec 2020 18:50:06 -0800 (PST)
-Received: from localhost ([1.132.177.56])
-        by smtp.gmail.com with ESMTPSA id z17sm100444pjn.46.2020.12.01.18.50.04
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 01 Dec 2020 18:50:05 -0800 (PST)
-Date:   Wed, 02 Dec 2020 12:49:58 +1000
-From:   Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 1/8] lazy tlb: introduce exit_lazy_tlb
-To:     Andy Lutomirski <luto@kernel.org>
-Cc:     Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        Linux-MM <linux-mm@kvack.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
-        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-        Peter Zijlstra <peterz@infradead.org>, X86 ML <x86@kernel.org>
-References: <20201128160141.1003903-1-npiggin@gmail.com>
-        <20201128160141.1003903-2-npiggin@gmail.com>
-        <CALCETrVbFm7gZ7G_5DWa6UGYtCzZTQvC_CPRVDZ0Lb-tiMnjSg@mail.gmail.com>
-In-Reply-To: <CALCETrVbFm7gZ7G_5DWa6UGYtCzZTQvC_CPRVDZ0Lb-tiMnjSg@mail.gmail.com>
+        id S1727658AbgLBCyn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 1 Dec 2020 21:54:43 -0500
+Received: from condef-01.nifty.com ([202.248.20.66]:16984 "EHLO
+        condef-01.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727590AbgLBCyn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2020 21:54:43 -0500
+X-Greylist: delayed 396 seconds by postgrey-1.27 at vger.kernel.org; Tue, 01 Dec 2020 21:54:42 EST
+Received: from conssluserg-03.nifty.com ([10.126.8.82])by condef-01.nifty.com with ESMTP id 0B22iHKQ013099;
+        Wed, 2 Dec 2020 11:44:17 +0900
+Received: from mail-pf1-f182.google.com (mail-pf1-f182.google.com [209.85.210.182]) (authenticated)
+        by conssluserg-03.nifty.com with ESMTP id 0B22gx4q032295;
+        Wed, 2 Dec 2020 11:42:59 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conssluserg-03.nifty.com 0B22gx4q032295
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
+        s=dec2015msa; t=1606876979;
+        bh=//nWGYyIDtis41/3ZWUbaJfDU17XquHuh1VxESk+fpY=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=YhmiZCSWdh+h7s2WRTav0INDhIR0rcnW35LlnpIfVUtKyPSMmn+U17B/PK2aeTfa0
+         fTnIGUz3KTJn2M/uiSK20i3edyMDKfviF8pdQau6NsNFuR5b+RtdIG7+HHZ9VW1XBz
+         0GSmvELzZl434j3vtGAy0eAhTaGhMeqCKOAa5PHzgTqSpTWn8ylQtVj1qzI0S88FpS
+         5Qmc1v9gpgH4CSlyu1l3vJez8xoPDRUopIN9fnCrE1/m/NaN6WWHtUaRXetDnkb7Qh
+         ClAnpe17jQ5AWERHhKiobDQLrM8nw0OP1rORNoH9up9fs2A9pm23zlyZViLl2L/fJF
+         iti0WfF94tSpA==
+X-Nifty-SrcIP: [209.85.210.182]
+Received: by mail-pf1-f182.google.com with SMTP id y7so260820pfq.11;
+        Tue, 01 Dec 2020 18:42:59 -0800 (PST)
+X-Gm-Message-State: AOAM532sqHjnu2Q91CS7sGZ32cLRiVh074gCuaIH6ycxqvFH0zD3eZl0
+        lYqG4GbJRq0Bp/Odz0lqqnAuigEzabKBg/2cZxw=
+X-Google-Smtp-Source: ABdhPJzi9iDwIta7ZmCbotxfEvvd7Hv2CLzIMvLHO3nRGZI4HCgMqMJzj1Z+ul8DEREU6Yg0tTulHGqnbS5vWd1Hxg8=
+X-Received: by 2002:aa7:9606:0:b029:198:14c4:4f44 with SMTP id
+ q6-20020aa796060000b029019814c44f44mr748749pfg.80.1606876978646; Tue, 01 Dec
+ 2020 18:42:58 -0800 (PST)
 MIME-Version: 1.0
-Message-Id: <1606876111.f9oqzur49r.astroid@bobo.none>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+References: <20201118220731.925424-1-samitolvanen@google.com>
+ <20201130120130.GF24563@willie-the-truck> <202012010929.3788AF5@keescook>
+In-Reply-To: <202012010929.3788AF5@keescook>
+From:   Masahiro Yamada <masahiroy@kernel.org>
+Date:   Wed, 2 Dec 2020 11:42:21 +0900
+X-Gmail-Original-Message-ID: <CAK7LNASQPOGohtUyzBM6n54pzpLN35kDXC7VbvWzX8QWUmqq9g@mail.gmail.com>
+Message-ID: <CAK7LNASQPOGohtUyzBM6n54pzpLN35kDXC7VbvWzX8QWUmqq9g@mail.gmail.com>
+Subject: Re: [PATCH v7 00/17] Add support for Clang LTO
+To:     Kees Cook <keescook@chromium.org>
+Cc:     Will Deacon <will@kernel.org>,
+        Sami Tolvanen <samitolvanen@google.com>,
+        Steven Rostedt <rostedt@goodmis.org>,
+        Josh Poimboeuf <jpoimboe@redhat.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        Nick Desaulniers <ndesaulniers@google.com>,
+        clang-built-linux <clang-built-linux@googlegroups.com>,
+        Kernel Hardening <kernel-hardening@lists.openwall.com>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        linux-arm-kernel <linux-arm-kernel@lists.infradead.org>,
+        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        linux-pci@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Excerpts from Andy Lutomirski's message of November 29, 2020 10:38 am:
-> On Sat, Nov 28, 2020 at 8:01 AM Nicholas Piggin <npiggin@gmail.com> wrote=
-:
->>
->> This is called at points where a lazy mm is switched away or made not
->> lazy (by its owner switching back).
->>
->> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
->> ---
->>  arch/arm/mach-rpc/ecard.c            |  1 +
->>  arch/powerpc/mm/book3s64/radix_tlb.c |  1 +
->>  fs/exec.c                            |  6 ++++--
->>  include/asm-generic/mmu_context.h    | 21 +++++++++++++++++++++
->>  kernel/kthread.c                     |  1 +
->>  kernel/sched/core.c                  |  2 ++
->>  6 files changed, 30 insertions(+), 2 deletions(-)
->>
->> diff --git a/arch/arm/mach-rpc/ecard.c b/arch/arm/mach-rpc/ecard.c
->> index 827b50f1c73e..43eb1bfba466 100644
->> --- a/arch/arm/mach-rpc/ecard.c
->> +++ b/arch/arm/mach-rpc/ecard.c
->> @@ -253,6 +253,7 @@ static int ecard_init_mm(void)
->>         current->mm =3D mm;
->>         current->active_mm =3D mm;
->>         activate_mm(active_mm, mm);
->> +       exit_lazy_tlb(active_mm, current);
->>         mmdrop(active_mm);
->>         ecard_init_pgtables(mm);
->>         return 0;
->> diff --git a/arch/powerpc/mm/book3s64/radix_tlb.c b/arch/powerpc/mm/book=
-3s64/radix_tlb.c
->> index b487b489d4b6..ac3fec03926a 100644
->> --- a/arch/powerpc/mm/book3s64/radix_tlb.c
->> +++ b/arch/powerpc/mm/book3s64/radix_tlb.c
->> @@ -661,6 +661,7 @@ static void do_exit_flush_lazy_tlb(void *arg)
->>                 mmgrab(&init_mm);
->>                 current->active_mm =3D &init_mm;
->>                 switch_mm_irqs_off(mm, &init_mm, current);
->> +               exit_lazy_tlb(mm, current);
->>                 mmdrop(mm);
->>         }
->>
->> diff --git a/fs/exec.c b/fs/exec.c
->> index 547a2390baf5..4b4dea1bb7ba 100644
->> --- a/fs/exec.c
->> +++ b/fs/exec.c
->> @@ -1017,6 +1017,8 @@ static int exec_mmap(struct mm_struct *mm)
->>         if (!IS_ENABLED(CONFIG_ARCH_WANT_IRQS_OFF_ACTIVATE_MM))
->>                 local_irq_enable();
->>         activate_mm(active_mm, mm);
->> +       if (!old_mm)
->> +               exit_lazy_tlb(active_mm, tsk);
->>         if (IS_ENABLED(CONFIG_ARCH_WANT_IRQS_OFF_ACTIVATE_MM))
->>                 local_irq_enable();
->>         tsk->mm->vmacache_seqnum =3D 0;
->> @@ -1028,9 +1030,9 @@ static int exec_mmap(struct mm_struct *mm)
->>                 setmax_mm_hiwater_rss(&tsk->signal->maxrss, old_mm);
->>                 mm_update_next_owner(old_mm);
->>                 mmput(old_mm);
->> -               return 0;
->> +       } else {
->> +               mmdrop(active_mm);
->>         }
->> -       mmdrop(active_mm);
->=20
-> This looks like an unrelated change.
+On Wed, Dec 2, 2020 at 2:31 AM Kees Cook <keescook@chromium.org> wrote:
+>
+> On Mon, Nov 30, 2020 at 12:01:31PM +0000, Will Deacon wrote:
+> > Hi Sami,
+> >
+> > On Wed, Nov 18, 2020 at 02:07:14PM -0800, Sami Tolvanen wrote:
+> > > This patch series adds support for building the kernel with Clang's
+> > > Link Time Optimization (LTO). In addition to performance, the primary
+> > > motivation for LTO is to allow Clang's Control-Flow Integrity (CFI) to
+> > > be used in the kernel. Google has shipped millions of Pixel devices
+> > > running three major kernel versions with LTO+CFI since 2018.
+> > >
+> > > Most of the patches are build system changes for handling LLVM bitcode,
+> > > which Clang produces with LTO instead of ELF object files, postponing
+> > > ELF processing until a later stage, and ensuring initcall ordering.
+> > >
+> > > Note that v7 brings back arm64 support as Will has now staged the
+> > > prerequisite memory ordering patches [1], and drops x86_64 while we work
+> > > on fixing the remaining objtool warnings [2].
+> >
+> > Sounds like you're going to post a v8, but that's the plan for merging
+> > that? The arm64 parts look pretty good to me now.
+>
+> I haven't seen Masahiro comment on this in a while, so given the review
+> history and its use (for years now) in Android, I will carry v8 (assuming
+> all is fine with it) it in -next unless there are objections.
 
-I thought the old style was pointless and made me look twice to make=20
-sure we weren't mmdrop()ing the lazy.
 
->=20
->>         return 0;
->>  }
->>
->> diff --git a/include/asm-generic/mmu_context.h b/include/asm-generic/mmu=
-_context.h
->> index 91727065bacb..4626d0020e65 100644
->> --- a/include/asm-generic/mmu_context.h
->> +++ b/include/asm-generic/mmu_context.h
->> @@ -24,6 +24,27 @@ static inline void enter_lazy_tlb(struct mm_struct *m=
-m,
->>  }
->>  #endif
->>
->> +/*
->> + * exit_lazy_tlb - Called after switching away from a lazy TLB mode mm.
->> + *
->> + * mm:  the lazy mm context that was switched
->> + * tsk: the task that was switched to (with a non-lazy mm)
->> + *
->> + * mm may equal tsk->mm.
->> + * mm and tsk->mm will not be NULL.
->> + *
->> + * Note this is not symmetrical to enter_lazy_tlb, this is not
->> + * called when tasks switch into the lazy mm, it's called after the
->> + * lazy mm becomes non-lazy (either switched to a different mm or the
->> + * owner of the mm returns).
->> + */
->> +#ifndef exit_lazy_tlb
->> +static inline void exit_lazy_tlb(struct mm_struct *mm,
->=20
-> Maybe name this parameter prev_lazy_mm?
->=20
+What I dislike about this implementation is
+it cannot drop any unreachable function/data.
+(and it is completely different from GCC LTO)
 
-mm is better because it's the mm that we're "exiting lazy" from, the=20
-function name gives the context.
+This is not real LTO.
 
-prev might suggest it was the previous but it's the current one, or
-that we're switching to another mm but we may not be at all.
 
-Thanks,
-Nick
+
+
+> --
+> Kees Cook
+>
+> --
+> You received this message because you are subscribed to the Google Groups "Clang Built Linux" group.
+> To unsubscribe from this group and stop receiving emails from it, send an email to clang-built-linux+unsubscribe@googlegroups.com.
+> To view this discussion on the web visit https://groups.google.com/d/msgid/clang-built-linux/202012010929.3788AF5%40keescook.
+
+
+
+-- 
+Best Regards
+Masahiro Yamada
