@@ -2,128 +2,161 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-18.2 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
-	USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 53AC0C6369E
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 00:08:47 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 95928C64E7A
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 05:06:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EDFB5221EB
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 00:08:46 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 432CB2223C
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 05:06:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726137AbgLCAIq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 2 Dec 2020 19:08:46 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48102 "EHLO
+        id S1726125AbgLCFGX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Dec 2020 00:06:23 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37524 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725918AbgLCAIq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Dec 2020 19:08:46 -0500
-Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 37C42C0617A6
-        for <linux-arch@vger.kernel.org>; Wed,  2 Dec 2020 16:08:06 -0800 (PST)
-Received: by mail-pl1-x644.google.com with SMTP id j1so142141pld.3
-        for <linux-arch@vger.kernel.org>; Wed, 02 Dec 2020 16:08:06 -0800 (PST)
+        with ESMTP id S1726071AbgLCFGX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Dec 2020 00:06:23 -0500
+Received: from mail-wm1-x341.google.com (mail-wm1-x341.google.com [IPv6:2a00:1450:4864:20::341])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0DD72C061A4F
+        for <linux-arch@vger.kernel.org>; Wed,  2 Dec 2020 21:05:43 -0800 (PST)
+Received: by mail-wm1-x341.google.com with SMTP id g185so2424270wmf.3
+        for <linux-arch@vger.kernel.org>; Wed, 02 Dec 2020 21:05:42 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
+        d=amacapital-net.20150623.gappssmtp.com; s=20150623;
         h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=kEzbS1TJpZr1zlUaIzJZNjxvOX/ycdroxO9B6D39hfs=;
-        b=XgE4hFlRnyVhoAVXKZpoORytuCszXHlvqvjFiWoMfDwKLHMBAJiLtfdxPUF1Ds0rUD
-         hMy53TCCB3trdymTPnhD/EpvivzoOAAQAXZxETeYSC6+cHzGVMjT4trKGbcy7mVBPbhc
-         EU9XgJtJIhJthGXtFVvljVzi3G5x0AhpPonp2pZCSVp8N7AtEqRR1TIcbgMo+e0jsZ0Z
-         Hc665Mzj1QqTEsrYINBIu3TQZCrLkjHzzC62HS4Y70oidn18XQ6vsN8XwIZCJ0FsFltb
-         h9glLD+E7xt4OobgWoc6JZBfXamL35QVqKIzdutURzOaZO1KrXt6o7P69HgMN+nPfgD4
-         oNFw==
+         :cc:content-transfer-encoding;
+        bh=XUBoIVUFuTda74sYhc9AaUfIF0VYHNgbgX6L3CSfTWQ=;
+        b=FuUcSxWrRc7RgsOSwe/Ar1EO5Ff3N9odSv2XY0Zqm4g9XP/wOGYy94T5KC5HEmT6Zb
+         CllAZYKNVheNctLUSpCVA6zIh60iTARxAlH2IqE8hO8QtRArgPC4FG1cylYSpVKMkKqk
+         l/WPKsc5i7rBRvupJpVLvzY7Lu6Dye39+pVi0u97RbqVKvYtdT/QyH/uSImekLuKVcZI
+         H2TXJq9pUhq9WbHGZbspm0eqJESP82vmo4Z90qkMrkjglVKyU2w+Rac/C03QfedVdBX2
+         LYJ5cEWr8ojZ0eYqFB+t9XwtqTSSuxp1lTUuvAXfuVZpKCZbQNzq80tI6A6eI04Y+GWe
+         mHVQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=kEzbS1TJpZr1zlUaIzJZNjxvOX/ycdroxO9B6D39hfs=;
-        b=aorzTDviK7/DO+82W9UUGLBV2kRipTcnmvDomXtq9YUuarEGJV6JxSykKkdnfs2QxD
-         OU8guPnxbZYH+pL4k+fpiCzqcHvvnybJCS3RfDWXahvA/iZxov1jlmUQh8f5C/m57kAO
-         T1dgvMSqtMx5bAyv8lU6SDpvFpzGkmMHAohpHMHwpheqzQjCazqSQ1dpei+O4gcL7WKu
-         APR30gD4lTUnhFfyS/UDHqqHoShzVz9Ck1fQFWJb0a1PkfoTo9lrUZQSTzFb4Wc7gc8g
-         +ZuYMg2X4YEGC+dIoiCd20vU+DJf477x724u7wFwkKi6ENFJP5Aw8h8Py6HOZ7Fakx7o
-         8Dsw==
-X-Gm-Message-State: AOAM533GMaM5YbG5e7/yyNv+tgzjK/mfMnA0AZgsxyaoB9CXK6eKoU+z
-        TOAzaIIQoXF1U8HQV/0l3n5bzcmmC/K6R6h8YE4xPQ==
-X-Google-Smtp-Source: ABdhPJxh5zUiuI3zegBWmp1u5W+iEQWahGQXosx3cw1T/85XuGQ1Dy4mBr13tbY0tFMQnXyVMrg3wK85B+/nchXJ1Jw=
-X-Received: by 2002:a17:90a:2e8c:: with SMTP id r12mr413591pjd.101.1606954085432;
- Wed, 02 Dec 2020 16:08:05 -0800 (PST)
+         :message-id:subject:to:cc:content-transfer-encoding;
+        bh=XUBoIVUFuTda74sYhc9AaUfIF0VYHNgbgX6L3CSfTWQ=;
+        b=jYhDOCXjeGLc1bKOLdsmQ73piptPmi0mBZlvpqgHYI7W0MeDDfyGPmIKWjX1niqblV
+         AMYKH0uQ4bSXjdIEkacqWddayJtfOwXE7IRkD6YgwF8mlWGT6NYeS139D8EdfZcCTL8k
+         oLD+0cWS+dhePyDdir7SS7OimyMA+IjoEu167zFQ01HMLu+p6u7a11/GKL+Mv33LTRD/
+         Oc4LbGIln5avKteQyaRCDNDEQFJuStEYSm64sgJwZ8JbtPKPVtuD7W2hiYjTKC/MFIpo
+         OLAfHZumkTvmEXREPAd4Va+6TB5gO1wza2QROqI10FZO/ChrNwdj+x3LWEW0ZLyqPG4e
+         b7wA==
+X-Gm-Message-State: AOAM530hqUbk3HkNiH/VPikN5ONrSlb/AnlcHAd7oDcpQycPV4O0pFBP
+        EwjqIqRXMAD7ANP7vM9tHnybtY0HjUqR+Lv2NFBX1g==
+X-Google-Smtp-Source: ABdhPJw58yLVfBKzewS+37BuoRbKB9WSMia7+fhXYWK9vuZSkJTJI8hhAr2AGPTvmZJTPupRjW/sGVxlMYUtiS9xZq8=
+X-Received: by 2002:a1c:1d85:: with SMTP id d127mr1216271wmd.49.1606971941686;
+ Wed, 02 Dec 2020 21:05:41 -0800 (PST)
 MIME-Version: 1.0
-References: <20201201213707.541432-1-samitolvanen@google.com> <20201201213707.541432-3-samitolvanen@google.com>
-In-Reply-To: <20201201213707.541432-3-samitolvanen@google.com>
-From:   Nick Desaulniers <ndesaulniers@google.com>
-Date:   Wed, 2 Dec 2020 16:07:54 -0800
-Message-ID: <CAKwvOdmfbsTN6GtHwvkgJ=12mBhUzmAgSGtnvA-bRw4tYYZ+BQ@mail.gmail.com>
-Subject: Re: [PATCH v8 02/16] kbuild: add support for Clang LTO
-To:     Sami Tolvanen <samitolvanen@google.com>
-Cc:     Masahiro Yamada <masahiroy@kernel.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
+References: <20201128160141.1003903-1-npiggin@gmail.com> <20201128160141.1003903-7-npiggin@gmail.com>
+ <CALCETrVXUbe8LfNn-Qs+DzrOQaiw+sFUg1J047yByV31SaTOZw@mail.gmail.com>
+ <CALCETrWBtCfD+jZ3S+O8FK-HFPODuhbDEbbfWvS=-iPATNFAOA@mail.gmail.com>
+ <CALCETrXAR_9EGaOF8ymVkZycxgZkYk0dR+NjEpTfVzdcS3sOVw@mail.gmail.com> <1606879302.tdngvs3yq4.astroid@bobo.none>
+In-Reply-To: <1606879302.tdngvs3yq4.astroid@bobo.none>
+From:   Andy Lutomirski <luto@amacapital.net>
+Date:   Wed, 2 Dec 2020 21:05:30 -0800
+Message-ID: <CALCETrXi7YEk2KVSyXVuhUF_AYTqENx+XzYJqEhAYs=8oiSouA@mail.gmail.com>
+Subject: Re: [PATCH 6/8] lazy tlb: shoot lazies, a non-refcounting lazy tlb option
+To:     Nicholas Piggin <npiggin@gmail.com>
+Cc:     Christian Borntraeger <borntraeger@de.ibm.com>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Dave Hansen <dave.hansen@intel.com>,
+        Vasily Gorbik <gor@linux.ibm.com>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Andy Lutomirski <luto@kernel.org>,
         Will Deacon <will@kernel.org>,
-        Josh Poimboeuf <jpoimboe@redhat.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        clang-built-linux <clang-built-linux@googlegroups.com>,
-        Kernel Hardening <kernel-hardening@lists.openwall.com>,
+        Anton Blanchard <anton@ozlabs.org>,
+        Arnd Bergmann <arnd@arndb.de>,
         linux-arch <linux-arch@vger.kernel.org>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
         LKML <linux-kernel@vger.kernel.org>,
-        PCI <linux-pci@vger.kernel.org>
+        Linux-MM <linux-mm@kvack.org>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+        Peter Zijlstra <peterz@infradead.org>, X86 ML <x86@kernel.org>
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Dec 1, 2020 at 1:37 PM Sami Tolvanen <samitolvanen@google.com> wrote:
+> On Dec 1, 2020, at 7:47 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
 >
-> This change adds build system support for Clang's Link Time
-> Optimization (LTO). With -flto, instead of ELF object files, Clang
-> produces LLVM bitcode, which is compiled into native code at link
-> time, allowing the final binary to be optimized globally. For more
-> details, see:
+> =EF=BB=BFExcerpts from Andy Lutomirski's message of December 1, 2020 4:31=
+ am:
+>> other arch folk: there's some background here:
+>>
+>> https://lkml.kernel.org/r/CALCETrVXUbe8LfNn-Qs+DzrOQaiw+sFUg1J047yByV31S=
+aTOZw@mail.gmail.com
+>>
+>>> On Sun, Nov 29, 2020 at 12:16 PM Andy Lutomirski <luto@kernel.org> wrot=
+e:
+>>>
+>>> On Sat, Nov 28, 2020 at 7:54 PM Andy Lutomirski <luto@kernel.org> wrote=
+:
+>>>>
+>>>> On Sat, Nov 28, 2020 at 8:02 AM Nicholas Piggin <npiggin@gmail.com> wr=
+ote:
+>>>>>
+>>>>> On big systems, the mm refcount can become highly contented when doin=
+g
+>>>>> a lot of context switching with threaded applications (particularly
+>>>>> switching between the idle thread and an application thread).
+>>>>>
+>>>>> Abandoning lazy tlb slows switching down quite a bit in the important
+>>>>> user->idle->user cases, so so instead implement a non-refcounted sche=
+me
+>>>>> that causes __mmdrop() to IPI all CPUs in the mm_cpumask and shoot do=
+wn
+>>>>> any remaining lazy ones.
+>>>>>
+>>>>> Shootdown IPIs are some concern, but they have not been observed to b=
+e
+>>>>> a big problem with this scheme (the powerpc implementation generated
+>>>>> 314 additional interrupts on a 144 CPU system during a kernel compile=
+).
+>>>>> There are a number of strategies that could be employed to reduce IPI=
+s
+>>>>> if they turn out to be a problem for some workload.
+>>>>
+>>>> I'm still wondering whether we can do even better.
+>>>>
+>>>
+>>> Hold on a sec.. __mmput() unmaps VMAs, frees pagetables, and flushes
+>>> the TLB.  On x86, this will shoot down all lazies as long as even a
+>>> single pagetable was freed.  (Or at least it will if we don't have a
+>>> serious bug, but the code seems okay.  We'll hit pmd_free_tlb, which
+>>> sets tlb->freed_tables, which will trigger the IPI.)  So, on
+>>> architectures like x86, the shootdown approach should be free.  The
+>>> only way it ought to have any excess IPIs is if we have CPUs in
+>>> mm_cpumask() that don't need IPI to free pagetables, which could
+>>> happen on paravirt.
+>>
+>> Indeed, on x86, we do this:
+>>
+>> [   11.558844]  flush_tlb_mm_range.cold+0x18/0x1d
+>> [   11.559905]  tlb_finish_mmu+0x10e/0x1a0
+>> [   11.561068]  exit_mmap+0xc8/0x1a0
+>> [   11.561932]  mmput+0x29/0xd0
+>> [   11.562688]  do_exit+0x316/0xa90
+>> [   11.563588]  do_group_exit+0x34/0xb0
+>> [   11.564476]  __x64_sys_exit_group+0xf/0x10
+>> [   11.565512]  do_syscall_64+0x34/0x50
+>>
+>> and we have info->freed_tables set.
+>>
+>> What are the architectures that have large systems like?
+>>
+>> x86: we already zap lazies, so it should cost basically nothing to do
 >
->   https://llvm.org/docs/LinkTimeOptimization.html
+> This is not zapping lazies, this is freeing the user page tables.
 >
-> The Kconfig option CONFIG_LTO_CLANG is implemented as a choice,
-> which defaults to LTO being disabled. To use LTO, the architecture
-> must select ARCH_SUPPORTS_LTO_CLANG and support:
->
->   - compiling with Clang,
->   - compiling inline assembly with Clang's integrated assembler,
->   - and linking with LLD.
->
-> While using full LTO results in the best runtime performance, the
-> compilation is not scalable in time or memory. CONFIG_THINLTO
-> enables ThinLTO, which allows parallel optimization and faster
-> incremental builds. ThinLTO is used by default if the architecture
-> also selects ARCH_SUPPORTS_THINLTO:
->
->   https://clang.llvm.org/docs/ThinLTO.html
->
-> To enable LTO, LLVM tools must be used to handle bitcode files. The
-> easiest way is to pass the LLVM=1 option to make:
->
->   $ make LLVM=1 defconfig
->   $ scripts/config -e LTO_CLANG
->   $ make LLVM=1
->
-> Alternatively, at least the following LLVM tools must be used:
->
->   CC=clang LD=ld.lld AR=llvm-ar NM=llvm-nm
->
-> To prepare for LTO support with other compilers, common parts are
-> gated behind the CONFIG_LTO option, and LTO can be disabled for
-> specific files by filtering out CC_FLAGS_LTO.
->
-> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-> Reviewed-by: Kees Cook <keescook@chromium.org>
+> "lazy mm" is where a switch to a kernel thread takes on the
+> previous mm for its kernel mapping rather than switch to init_mm.
 
-Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
--- 
-Thanks,
-~Nick Desaulniers
+The intent of the code is to flush the TLB after freeing user pages
+tables, but, on bare metal, lazies get zapped as a side effect.
+
+Anyway, I'm going to send out a mockup of an alternative approach shortly.
