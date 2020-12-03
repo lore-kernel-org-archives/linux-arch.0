@@ -2,106 +2,104 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-31.2 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A02DBC4167B
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 15:57:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5E21EC4361A
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 17:06:34 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5028E207AA
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 15:57:38 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 040EE207AE
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 17:06:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2388116AbgLCP5d (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Dec 2020 10:57:33 -0500
-Received: from mga03.intel.com ([134.134.136.65]:37124 "EHLO mga03.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2387665AbgLCP5c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 3 Dec 2020 10:57:32 -0500
-IronPort-SDR: POaqQrNEu1R/xqUCFxYZViCqgp3vAy4i7gAw0+3dTVRe8xMIKqgHBXvsXd17x2jWMEGx949qR8
- 6hihZFcZvR6Q==
-X-IronPort-AV: E=McAfee;i="6000,8403,9824"; a="173309989"
-X-IronPort-AV: E=Sophos;i="5.78,389,1599548400"; 
-   d="scan'208";a="173309989"
-X-Amp-Result: SKIPPED(no attachment in message)
-X-Amp-File-Uploaded: False
-Received: from orsmga005.jf.intel.com ([10.7.209.41])
-  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Dec 2020 07:56:52 -0800
-IronPort-SDR: QTXfd0UHBF2xxeJDIPK47vgt29cm5V2RiGcTsfVJv4BzxpNEjVu0qx77u4M0SX02qmWYZpZdGW
- iEBaSxNFZ05g==
-X-IronPort-AV: E=Sophos;i="5.78,389,1599548400"; 
-   d="scan'208";a="550534058"
-Received: from sshellma-mobl.amr.corp.intel.com (HELO [10.212.138.60]) ([10.212.138.60])
-  by orsmga005-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Dec 2020 07:56:50 -0800
-Subject: Re: [PATCH v15 06/26] x86/mm: Change _PAGE_DIRTY to _PAGE_DIRTY_HW
-To:     Dave Hansen <dave.hansen@intel.com>, Borislav Petkov <bp@alien8.de>
-Cc:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
-        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        Pengfei Xu <pengfei.xu@intel.com>
-References: <20201110162211.9207-1-yu-cheng.yu@intel.com>
- <20201110162211.9207-7-yu-cheng.yu@intel.com> <20201203091910.GE3059@zn.tnic>
- <93eb0255-df5c-5cb3-654f-e74c1af956b2@intel.com>
-From:   "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
-Message-ID: <585009b4-537e-0fc9-ea4a-79210c96a514@intel.com>
-Date:   Thu, 3 Dec 2020 07:56:49 -0800
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101
- Thunderbird/68.12.1
-MIME-Version: 1.0
-In-Reply-To: <93eb0255-df5c-5cb3-654f-e74c1af956b2@intel.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+        id S1727100AbgLCRGd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Dec 2020 12:06:33 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36274 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726820AbgLCRGd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Dec 2020 12:06:33 -0500
+Received: from mail-qt1-x84a.google.com (mail-qt1-x84a.google.com [IPv6:2607:f8b0:4864:20::84a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2D1EEC061A4F
+        for <linux-arch@vger.kernel.org>; Thu,  3 Dec 2020 09:05:53 -0800 (PST)
+Received: by mail-qt1-x84a.google.com with SMTP id o12so2027613qtw.14
+        for <linux-arch@vger.kernel.org>; Thu, 03 Dec 2020 09:05:53 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20161025;
+        h=sender:date:message-id:mime-version:subject:from:to:cc;
+        bh=Qbrb8i2YfiEPDxlw+wvNXikUmpcEcy9BW/zou/d27Yk=;
+        b=ePOWK2/6kYVxket/SF6GfcbuPmPOmPzeA0baqmNP01ITblvLvShxFFmoPKNtQzqnFS
+         Ei4LY+4oiS1Imvj50qvIeZ36Eey3/jBj55dZ2Aqzy3cCb6pfDMjo7i/EorJB8qqI6IHD
+         fDXsbdfkGNlDikFblIPQX6pBzHAMcsH2pFYtJk3yX/xR88kg0xj5p5SsEw+evXlB2Weh
+         8MlQMNjgMg3ZyF+SM5K3RFg/t+ueLH0avRip+UruPkJMHnoAtkqQbheRgLVFuyQ4zI0j
+         5LOonZvHwrKTAthhe+z/0qOfrBebuMfH8Dmmvw4YMV7Tbg4Ev848ay/N3eEVwuzabYAo
+         w6Jg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:sender:date:message-id:mime-version:subject:from
+         :to:cc;
+        bh=Qbrb8i2YfiEPDxlw+wvNXikUmpcEcy9BW/zou/d27Yk=;
+        b=dBI0gC2i4ANxzzAhTSZHsQj2GqKHDW5pG5WLxX3BP8ESjkwN+8WBtmKSZP4gCglx8h
+         Ms5zTcKwV5liGOyUWZH6ZovzbOCluigQZh5BhfLdY8wtCOCnn1B1U5L3/hq/aI+jBvSB
+         4KCsn0PIwdRO3qggCYl3BB4aAvcMjsaLwDblVtjavblG8BdkoQpTjz5tPMzS8OsZFI0b
+         poFS/Qc8HX3pH6WPzallT3DtCYJvqxxpNPbBHcdjtxWSUOYlaFlIVSoa7KlY3Zm0mhv8
+         4rbQkqCjJDz8dZ4DE8U2dmLr/eYH0s28jdUZiod7rVWfXddDK2PNoJJy88qkmDaggq+a
+         G6LQ==
+X-Gm-Message-State: AOAM533ZPzz7znQIZ2n9rhqc5ElDMNZKNl/y3ND84m4xtJFMHDqXUBen
+        o1OHC7XyKa8aw6FSh1CgB3JPq0Lgqz7s
+X-Google-Smtp-Source: ABdhPJxGXVmtu+oxyefg+ZGKiE48BU6y2F2sV+Thn8pEv3LX2+dqa0OSHJPRXJkG6qV6uNtFPTOxRPh1qmvJ
+Sender: "maskray via sendgmr" <maskray@maskray1.svl.corp.google.com>
+X-Received: from maskray1.svl.corp.google.com ([2620:15c:2ce:0:a6ae:11ff:fe11:4abb])
+ (user=maskray job=sendgmr) by 2002:a0c:b18a:: with SMTP id
+ v10mr4180101qvd.46.1607015152255; Thu, 03 Dec 2020 09:05:52 -0800 (PST)
+Date:   Thu,  3 Dec 2020 09:05:29 -0800
+Message-Id: <20201203170529.1029105-1-maskray@google.com>
+Mime-Version: 1.0
+X-Mailer: git-send-email 2.29.2.576.ga3fc446d84-goog
+Subject: [PATCH] firmware_loader: Align .builtin_fw to 8
+From:   Fangrui Song <maskray@google.com>
+To:     Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Cc:     linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com,
+        Nathan Chancellor <natechancellor@gmail.com>,
+        Nick Desaulniers <ndesaulniers@google.com>,
+        Fangrui Song <maskray@google.com>,
+        kernel test robot <lkp@intel.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 12/3/2020 7:12 AM, Dave Hansen wrote:
-> On 12/3/20 1:19 AM, Borislav Petkov wrote:
->> On Tue, Nov 10, 2020 at 08:21:51AM -0800, Yu-cheng Yu wrote:
->>> Before introducing _PAGE_COW for non-hardware memory management purposes in
->>> the next patch, rename _PAGE_DIRTY to _PAGE_DIRTY_HW and _PAGE_BIT_DIRTY to
->>> _PAGE_BIT_DIRTY_HW to make meanings more clear.  There are no functional
->>> changes from this patch.
->> There's no guarantee for "next" or "this" patch when a patch gets
->> applied so reword your commit message pls.
->>
->> Also, I fail to understand here what _PAGE_DIRTY_HW makes more clear?
->> The page dirty bit is clear enough to me so why the churn?
-> 
-> Once upon a time in this set, we had:
-> 
-> 	_PAGE_DIRTY	(the old hardware bit)
-> and
-> 	_PAGE_DIRTY_SW	(the new shadow stack necessitated bit)
-> 
-> In *that* case, it made sense to change the name of the hardware one to
-> help differentiate them.  But, over time, we changed _PAGE_DIRTY_SW to
-> _PAGE_COW.
-> 
-> I think you're right.  The renaming is just churn now with the current
-> naming.
-> 
+arm64 references the start address of .builtin_fw (__start_builtin_fw)
+with a pair of R_AARCH64_ADR_PREL_PG_HI21/R_AARCH64_LDST64_ABS_LO12_NC
+relocations. The compiler is allowed to emit the
+R_AARCH64_LDST64_ABS_LO12_NC relocation because struct builtin_fw in
+include/linux/firmware.h is 8-byte aligned.
 
-Ok, I will drop this patch.
+The R_AARCH64_LDST64_ABS_LO12_NC relocation requires the address to be a
+multiple of 8, which may not be the case if .builtin_fw is empty.
+Unconditionally align .builtin_fw to fix the linker error.
+
+Fixes: 5658c76 ("firmware: allow firmware files to be built into kernel image")
+Link: https://github.com/ClangBuiltLinux/linux/issues/1204
+Reported-by: kernel test robot <lkp@intel.com>
+Signed-off-by: Fangrui Song <maskray@google.com>
+---
+ include/asm-generic/vmlinux.lds.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index b2b3d81b1535..3cd4bd1193ab 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -459,6 +459,7 @@
+ 	}								\
+ 									\
+ 	/* Built-in firmware blobs */					\
++	ALIGN_FUNCTION();						\
+ 	.builtin_fw        : AT(ADDR(.builtin_fw) - LOAD_OFFSET) {	\
+ 		__start_builtin_fw = .;					\
+ 		KEEP(*(.builtin_fw))					\
+-- 
+2.29.2.576.ga3fc446d84-goog
+
