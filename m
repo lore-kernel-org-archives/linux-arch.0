@@ -2,68 +2,67 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4EAFCC433FE
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 17:10:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 87E33C433FE
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 17:15:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id F3C91207A5
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 17:10:15 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 1DAB4206B6
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 17:15:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1731370AbgLCRKJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Dec 2020 12:10:09 -0500
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:17322 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726091AbgLCRKI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Dec 2020 12:10:08 -0500
-Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 0B3H3JMt112523;
-        Thu, 3 Dec 2020 12:08:49 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=date : from : to : cc :
- subject : message-id : references : mime-version : content-type :
- in-reply-to; s=pp1; bh=RpZiGUqqBd425B17pR2oKWRKVMv9NGPUj5cBEDRMzvo=;
- b=rA8HFWgJjvhpqS7KBBkqCi21TjJA9A5+bf5f2tXlIJn3HvC0ajhtopEVcoxIviNagG1t
- +b3xJyxksVkn85TgfYXHt7Z/m/G8aea5RUZu8thT0/ksyglfPptZNLOZCPX7atzXGz1O
- TeIpUgfy7HqpyhukBDeKMfAjWXdypzzo3Llejc9jP6o0rqcIeNo/nuKTPFILsQV5FOj2
- hmOvk0zCDp6bDjy7iS01U4hDSXzG/FxAb8/o6K+P67WanNCO5NRp3bK0bsqqQ5G2KOHg
- ZF2mhhiBRQRNmRybHkxk9xf305GN0s0KHV0mFny8N0nk/e+YBiC6p6IGfHSMITayU8E7 TA== 
-Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 35722vwpsp-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Thu, 03 Dec 2020 12:08:49 -0500
-Received: from m0098393.ppops.net (m0098393.ppops.net [127.0.0.1])
-        by pps.reinject (8.16.0.36/8.16.0.36) with SMTP id 0B3H4ALq117573;
-        Thu, 3 Dec 2020 12:08:44 -0500
-Received: from ppma06ams.nl.ibm.com (66.31.33a9.ip4.static.sl-reverse.com [169.51.49.102])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 35722vwpp9-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Thu, 03 Dec 2020 12:08:44 -0500
-Received: from pps.filterd (ppma06ams.nl.ibm.com [127.0.0.1])
-        by ppma06ams.nl.ibm.com (8.16.0.42/8.16.0.42) with SMTP id 0B3GqLrK005060;
-        Thu, 3 Dec 2020 17:03:41 GMT
-Received: from b06cxnps3075.portsmouth.uk.ibm.com (d06relay10.portsmouth.uk.ibm.com [9.149.109.195])
-        by ppma06ams.nl.ibm.com with ESMTP id 354fpdc7fv-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Thu, 03 Dec 2020 17:03:41 +0000
-Received: from d06av25.portsmouth.uk.ibm.com (d06av25.portsmouth.uk.ibm.com [9.149.105.61])
-        by b06cxnps3075.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 0B3H3coR23331098
-        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Thu, 3 Dec 2020 17:03:38 GMT
-Received: from d06av25.portsmouth.uk.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 3B2D111C058;
-        Thu,  3 Dec 2020 17:03:38 +0000 (GMT)
-Received: from d06av25.portsmouth.uk.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 4AA1C11C04C;
-        Thu,  3 Dec 2020 17:03:37 +0000 (GMT)
-Received: from oc3871087118.ibm.com (unknown [9.145.157.245])
-        by d06av25.portsmouth.uk.ibm.com (Postfix) with ESMTPS;
-        Thu,  3 Dec 2020 17:03:37 +0000 (GMT)
-Date:   Thu, 3 Dec 2020 18:03:35 +0100
-From:   Alexander Gordeev <agordeev@linux.ibm.com>
-To:     Andy Lutomirski <luto@kernel.org>
-Cc:     Will Deacon <will@kernel.org>,
+        id S1731487AbgLCRPF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Dec 2020 12:15:05 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37604 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731388AbgLCRPF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Dec 2020 12:15:05 -0500
+Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 13EC3C061A4E
+        for <linux-arch@vger.kernel.org>; Thu,  3 Dec 2020 09:14:25 -0800 (PST)
+Received: by mail-pl1-x643.google.com with SMTP id 4so1498468plk.5
+        for <linux-arch@vger.kernel.org>; Thu, 03 Dec 2020 09:14:25 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=amacapital-net.20150623.gappssmtp.com; s=20150623;
+        h=content-transfer-encoding:from:mime-version:subject:date:message-id
+         :references:cc:in-reply-to:to;
+        bh=jpxIDRJby02bDSmzqib9oh8ZXDBqI+2pH5k0P2lzdWM=;
+        b=aRJu1HO4xnNzb8jocw95sh/+CjsELYLpn2jhaJctdiBvV0Fo/IKe2d9DUjnFTVLurX
+         Zz5jY6puhccVi4/XYJcF7M1WWjBZ/WYrYvOH0BlxpJnlRQ5Gv20I5Qa54qDavxIpMqu7
+         46YMj6QXtaEh429/CwE53Heyk8rCED0kC2GVSiksY3g51x/NcNUwhV8nC9XoV+cO/mxt
+         4h3T5yaHfoFjomEoJs048LrdfUJhUseSC4iy7RdIuoRUVb60jBp4vPTph+8LXJR4h17K
+         q4oZzEwHYNz5a1MVWTTRm26Dfo5pZpVJIp2icQJRZ7CVgm0Yy3vM/31Kuj9RXfgsUNyL
+         FvEQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:content-transfer-encoding:from:mime-version
+         :subject:date:message-id:references:cc:in-reply-to:to;
+        bh=jpxIDRJby02bDSmzqib9oh8ZXDBqI+2pH5k0P2lzdWM=;
+        b=AYe2Pn6J5ZxBy6TUOMqA7WwXrxd78u+JJ8aN5dPbzINb6KkKJ3tScBkXr/nLrfC2lt
+         hNAZS2xEv7Zs8+1rBdX3xYc0+YUsbKJU7ulAus3MKk4GuP/M769hS9nOnhB/PnRjy5Xp
+         eJs+gxoYrRhV53C4P/U9RjXTW3KpfHsFRjbJo2vqYoNEJZWTI4el09QnbfRX6cqypgTp
+         R9tog0tP645P5N7DCbrGwPL2zS87eUyOUFMqjZ1iSqhZyE7nQ0iD8Bw5+FeIHQL4HfRM
+         BJf+9OWd2rnUoE0q68qDqNdduFm935ykyRVOn2sd0lVfu7ytjy0G6fmNyHS1lZwH0Qjn
+         JqQg==
+X-Gm-Message-State: AOAM533PGUGXa73uzXgaYhMt3nDmgWbvJD3lLh1WJzvo1A9yOmsbT6Yo
+        3EZWH2KYuVBXhU2d/anc8HFQfA==
+X-Google-Smtp-Source: ABdhPJwE4etOoyGMx9UOKs7yAhw7hgOhsifHtas0tGfE12clfk9l2UH+s+JZSLZnFMT+6hGUVEc2Aw==
+X-Received: by 2002:a17:90a:5988:: with SMTP id l8mr120805pji.82.1607015664612;
+        Thu, 03 Dec 2020 09:14:24 -0800 (PST)
+Received: from ?IPv6:2600:1010:b02c:6432:59d6:b4ed:32aa:4315? ([2600:1010:b02c:6432:59d6:b4ed:32aa:4315])
+        by smtp.gmail.com with ESMTPSA id t9sm30146pjq.46.2020.12.03.09.14.23
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 03 Dec 2020 09:14:23 -0800 (PST)
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+From:   Andy Lutomirski <luto@amacapital.net>
+Mime-Version: 1.0 (1.0)
+Subject: Re: [PATCH 6/8] lazy tlb: shoot lazies, a non-refcounting lazy tlb option
+Date:   Thu, 3 Dec 2020 09:14:22 -0800
+Message-Id: <E6BC2596-6087-49F2-8758-CA5598998BBE@amacapital.net>
+References: <20201203170332.GA27195@oc3871087118.ibm.com>
+Cc:     Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>,
         Catalin Marinas <catalin.marinas@arm.com>,
         Heiko Carstens <hca@linux.ibm.com>,
         Vasily Gorbik <gor@linux.ibm.com>,
@@ -77,130 +76,67 @@ Cc:     Will Deacon <will@kernel.org>,
         linux-arch <linux-arch@vger.kernel.org>,
         linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
         Linux-MM <linux-mm@kvack.org>, Anton Blanchard <anton@ozlabs.org>
-Subject: Re: [PATCH 6/8] lazy tlb: shoot lazies, a non-refcounting lazy tlb
- option
-Message-ID: <20201203170332.GA27195@oc3871087118.ibm.com>
-References: <20201128160141.1003903-1-npiggin@gmail.com>
- <20201128160141.1003903-7-npiggin@gmail.com>
- <CALCETrVXUbe8LfNn-Qs+DzrOQaiw+sFUg1J047yByV31SaTOZw@mail.gmail.com>
- <CALCETrWBtCfD+jZ3S+O8FK-HFPODuhbDEbbfWvS=-iPATNFAOA@mail.gmail.com>
- <CALCETrXAR_9EGaOF8ymVkZycxgZkYk0dR+NjEpTfVzdcS3sOVw@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrXAR_9EGaOF8ymVkZycxgZkYk0dR+NjEpTfVzdcS3sOVw@mail.gmail.com>
-User-Agent: Mutt/1.5.21 (2010-09-15)
-X-TM-AS-GCONF: 00
-X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.312,18.0.737
- definitions=2020-12-03_09:2020-12-03,2020-12-03 signatures=0
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 clxscore=1011 bulkscore=0
- mlxscore=0 impostorscore=0 suspectscore=0 malwarescore=0 adultscore=0
- phishscore=0 priorityscore=1501 lowpriorityscore=0 mlxlogscore=999
- spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2009150000 definitions=main-2012030100
+In-Reply-To: <20201203170332.GA27195@oc3871087118.ibm.com>
+To:     Alexander Gordeev <agordeev@linux.ibm.com>
+X-Mailer: iPhone Mail (18B121)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Nov 30, 2020 at 10:31:51AM -0800, Andy Lutomirski wrote:
-> other arch folk: there's some background here:
-> 
-> https://lkml.kernel.org/r/CALCETrVXUbe8LfNn-Qs+DzrOQaiw+sFUg1J047yByV31SaTOZw@mail.gmail.com
-> 
-> On Sun, Nov 29, 2020 at 12:16 PM Andy Lutomirski <luto@kernel.org> wrote:
-> >
-> > On Sat, Nov 28, 2020 at 7:54 PM Andy Lutomirski <luto@kernel.org> wrote:
-> > >
-> > > On Sat, Nov 28, 2020 at 8:02 AM Nicholas Piggin <npiggin@gmail.com> wrote:
-> > > >
-> > > > On big systems, the mm refcount can become highly contented when doing
-> > > > a lot of context switching with threaded applications (particularly
-> > > > switching between the idle thread and an application thread).
-> > > >
-> > > > Abandoning lazy tlb slows switching down quite a bit in the important
-> > > > user->idle->user cases, so so instead implement a non-refcounted scheme
-> > > > that causes __mmdrop() to IPI all CPUs in the mm_cpumask and shoot down
-> > > > any remaining lazy ones.
-> > > >
-> > > > Shootdown IPIs are some concern, but they have not been observed to be
-> > > > a big problem with this scheme (the powerpc implementation generated
-> > > > 314 additional interrupts on a 144 CPU system during a kernel compile).
-> > > > There are a number of strategies that could be employed to reduce IPIs
-> > > > if they turn out to be a problem for some workload.
-> > >
-> > > I'm still wondering whether we can do even better.
-> > >
-> >
-> > Hold on a sec.. __mmput() unmaps VMAs, frees pagetables, and flushes
-> > the TLB.  On x86, this will shoot down all lazies as long as even a
-> > single pagetable was freed.  (Or at least it will if we don't have a
-> > serious bug, but the code seems okay.  We'll hit pmd_free_tlb, which
-> > sets tlb->freed_tables, which will trigger the IPI.)  So, on
-> > architectures like x86, the shootdown approach should be free.  The
-> > only way it ought to have any excess IPIs is if we have CPUs in
-> > mm_cpumask() that don't need IPI to free pagetables, which could
-> > happen on paravirt.
-> 
-> Indeed, on x86, we do this:
-> 
-> [   11.558844]  flush_tlb_mm_range.cold+0x18/0x1d
-> [   11.559905]  tlb_finish_mmu+0x10e/0x1a0
-> [   11.561068]  exit_mmap+0xc8/0x1a0
-> [   11.561932]  mmput+0x29/0xd0
-> [   11.562688]  do_exit+0x316/0xa90
-> [   11.563588]  do_group_exit+0x34/0xb0
-> [   11.564476]  __x64_sys_exit_group+0xf/0x10
-> [   11.565512]  do_syscall_64+0x34/0x50
-> 
-> and we have info->freed_tables set.
-> 
-> What are the architectures that have large systems like?
-> 
-> x86: we already zap lazies, so it should cost basically nothing to do
-> a little loop at the end of __mmput() to make sure that no lazies are
-> left.  If we care about paravirt performance, we could implement one
-> of the optimizations I mentioned above to fix up the refcounts instead
-> of sending an IPI to any remaining lazies.
-> 
-> arm64: AFAICT arm64's flush uses magic arm64 hardware support for
-> remote flushes, so any lazy mm references will still exist after
-> exit_mmap().  (arm64 uses lazy TLB, right?)  So this is kind of like
-> the x86 paravirt case.  Are there large enough arm64 systems that any
-> of this matters?
-> 
-> s390x: The code has too many acronyms for me to understand it fully,
-> but I think it's more or less the same situation as arm64.  How big do
-> s390x systems come?
-> 
-> power: Ridiculously complicated, seems to vary by system and kernel config.
-> 
-> So, Nick, your unconditional IPI scheme is apparently a big
-> improvement for power, and it should be an improvement and have low
-> cost for x86.  On arm64 and s390x it will add more IPIs on process
-> exit but reduce contention on context switching depending on how lazy
 
-s390 does not invalidate TLBs per-CPU explicitly - we have special
-instructions for that. Those in turn initiate signalling to other
-CPUs, completely transparent to OS.
 
-Apart from mm_count, I am struggling to realize how the suggested
-scheme could change the the contention on s390 in connection with
-TLB. Could you clarify a bit here, please?
+> On Dec 3, 2020, at 9:09 AM, Alexander Gordeev <agordeev@linux.ibm.com> wro=
+te:
+>=20
+> =EF=BB=BFOn Mon, Nov 30, 2020 at 10:31:51AM -0800, Andy Lutomirski wrote:
+>> other arch folk: there's some background here:
 
-> TLB works.  I suppose we could try it for all architectures without
-> any further optimizations.  Or we could try one of the perhaps
-> excessively clever improvements I linked above.  arm64, s390x people,
-> what do you think?
+>=20
+>>=20
+>> power: Ridiculously complicated, seems to vary by system and kernel confi=
+g.
+>>=20
+>> So, Nick, your unconditional IPI scheme is apparently a big
+>> improvement for power, and it should be an improvement and have low
+>> cost for x86.  On arm64 and s390x it will add more IPIs on process
+>> exit but reduce contention on context switching depending on how lazy
+>=20
+> s390 does not invalidate TLBs per-CPU explicitly - we have special
+> instructions for that. Those in turn initiate signalling to other
+> CPUs, completely transparent to OS.
 
-I do not immediately see anything in the series that would harm
-performance on s390.
+Just to make sure I understand: this means that you broadcast flushes to all=
+ CPUs, not just a subset?
 
-We however use mm_cpumask to distinguish between local and global TLB
-flushes. With this series it looks like mm_cpumask is *required* to
-be consistent with lazy users. And that is something quite diffucult
-for us to adhere (at least in the foreseeable future).
+>=20
+> Apart from mm_count, I am struggling to realize how the suggested
+> scheme could change the the contention on s390 in connection with
+> TLB. Could you clarify a bit here, please?
 
-But actually keeping track of lazy users in a cpumask is something
-the generic code would rather do AFAICT.
+I=E2=80=99m just talking about mm_count. Maintaining mm_count is quite expen=
+sive on some workloads.
 
-Thanks!
+>=20
+>> TLB works.  I suppose we could try it for all architectures without
+>> any further optimizations.  Or we could try one of the perhaps
+>> excessively clever improvements I linked above.  arm64, s390x people,
+>> what do you think?
+>=20
+> I do not immediately see anything in the series that would harm
+> performance on s390.
+>=20
+> We however use mm_cpumask to distinguish between local and global TLB
+> flushes. With this series it looks like mm_cpumask is *required* to
+> be consistent with lazy users. And that is something quite diffucult
+> for us to adhere (at least in the foreseeable future).
+
+You don=E2=80=99t actually need to maintain mm_cpumask =E2=80=94 we could sc=
+an all CPUs instead.
+
+>=20
+> But actually keeping track of lazy users in a cpumask is something
+> the generic code would rather do AFAICT.
+
+The problem is that arches don=E2=80=99t agree on what the contents of mm_cp=
+umask should be.  Tracking a mask of exactly what the arch wants in generic c=
+ode is a nontrivial operation.
