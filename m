@@ -2,141 +2,78 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-17.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 87E33C433FE
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 17:15:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E69B9C4361A
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 18:01:44 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1DAB4206B6
-	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 17:15:06 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 89583207A2
+	for <linux-arch@archiver.kernel.org>; Thu,  3 Dec 2020 18:01:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1731487AbgLCRPF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 3 Dec 2020 12:15:05 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37604 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731388AbgLCRPF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Dec 2020 12:15:05 -0500
-Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 13EC3C061A4E
-        for <linux-arch@vger.kernel.org>; Thu,  3 Dec 2020 09:14:25 -0800 (PST)
-Received: by mail-pl1-x643.google.com with SMTP id 4so1498468plk.5
-        for <linux-arch@vger.kernel.org>; Thu, 03 Dec 2020 09:14:25 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=amacapital-net.20150623.gappssmtp.com; s=20150623;
-        h=content-transfer-encoding:from:mime-version:subject:date:message-id
-         :references:cc:in-reply-to:to;
-        bh=jpxIDRJby02bDSmzqib9oh8ZXDBqI+2pH5k0P2lzdWM=;
-        b=aRJu1HO4xnNzb8jocw95sh/+CjsELYLpn2jhaJctdiBvV0Fo/IKe2d9DUjnFTVLurX
-         Zz5jY6puhccVi4/XYJcF7M1WWjBZ/WYrYvOH0BlxpJnlRQ5Gv20I5Qa54qDavxIpMqu7
-         46YMj6QXtaEh429/CwE53Heyk8rCED0kC2GVSiksY3g51x/NcNUwhV8nC9XoV+cO/mxt
-         4h3T5yaHfoFjomEoJs048LrdfUJhUseSC4iy7RdIuoRUVb60jBp4vPTph+8LXJR4h17K
-         q4oZzEwHYNz5a1MVWTTRm26Dfo5pZpVJIp2icQJRZ7CVgm0Yy3vM/31Kuj9RXfgsUNyL
-         FvEQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:content-transfer-encoding:from:mime-version
-         :subject:date:message-id:references:cc:in-reply-to:to;
-        bh=jpxIDRJby02bDSmzqib9oh8ZXDBqI+2pH5k0P2lzdWM=;
-        b=AYe2Pn6J5ZxBy6TUOMqA7WwXrxd78u+JJ8aN5dPbzINb6KkKJ3tScBkXr/nLrfC2lt
-         hNAZS2xEv7Zs8+1rBdX3xYc0+YUsbKJU7ulAus3MKk4GuP/M769hS9nOnhB/PnRjy5Xp
-         eJs+gxoYrRhV53C4P/U9RjXTW3KpfHsFRjbJo2vqYoNEJZWTI4el09QnbfRX6cqypgTp
-         R9tog0tP645P5N7DCbrGwPL2zS87eUyOUFMqjZ1iSqhZyE7nQ0iD8Bw5+FeIHQL4HfRM
-         BJf+9OWd2rnUoE0q68qDqNdduFm935ykyRVOn2sd0lVfu7ytjy0G6fmNyHS1lZwH0Qjn
-         JqQg==
-X-Gm-Message-State: AOAM533PGUGXa73uzXgaYhMt3nDmgWbvJD3lLh1WJzvo1A9yOmsbT6Yo
-        3EZWH2KYuVBXhU2d/anc8HFQfA==
-X-Google-Smtp-Source: ABdhPJwE4etOoyGMx9UOKs7yAhw7hgOhsifHtas0tGfE12clfk9l2UH+s+JZSLZnFMT+6hGUVEc2Aw==
-X-Received: by 2002:a17:90a:5988:: with SMTP id l8mr120805pji.82.1607015664612;
-        Thu, 03 Dec 2020 09:14:24 -0800 (PST)
-Received: from ?IPv6:2600:1010:b02c:6432:59d6:b4ed:32aa:4315? ([2600:1010:b02c:6432:59d6:b4ed:32aa:4315])
-        by smtp.gmail.com with ESMTPSA id t9sm30146pjq.46.2020.12.03.09.14.23
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 03 Dec 2020 09:14:23 -0800 (PST)
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-From:   Andy Lutomirski <luto@amacapital.net>
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH 6/8] lazy tlb: shoot lazies, a non-refcounting lazy tlb option
-Date:   Thu, 3 Dec 2020 09:14:22 -0800
-Message-Id: <E6BC2596-6087-49F2-8758-CA5598998BBE@amacapital.net>
-References: <20201203170332.GA27195@oc3871087118.ibm.com>
-Cc:     Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@de.ibm.com>,
-        Dave Hansen <dave.hansen@intel.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>,
-        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Peter Zijlstra <peterz@infradead.org>,
+        id S1729059AbgLCSB2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 3 Dec 2020 13:01:28 -0500
+Received: from mail.kernel.org ([198.145.29.99]:48768 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725987AbgLCSB2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 3 Dec 2020 13:01:28 -0500
+X-Gm-Message-State: AOAM5321f7DpYRc/3XljT4snBNXu4t92Z7Cy1NX1ZuuS6hMURgggg1BS
+        q2eCvx4HnYdZH3LWN5wXFxgZ/avBPjK0X/AyUv4=
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1607018447;
+        bh=FABGuImVXsV+nr09JVj+zQ9EBUfuYv8QZ4jBa/qWBac=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=bt+9JRnhQoLVYlUpusbbJNU+Ng5xMD90OOXgJXqRmzPVaVUWlSo+PK5EIwXw7LlmJ
+         JrQz8RNpPhriWaWZtESgVLrqIvAZ4A48bS8lYWf7oL+ym7QRzuLtGlfoCLi0rHHEhy
+         9g5P5balbrxwlRJY3S7h6RZIjrZdxyvD5LIs9DE3PU9m1sFKzRuveJlmz9UwBnWnm9
+         shff21k87Gv0K/qKvlOhxypWbeINmJZI/RO+9lvo7QjuHmVKrfx14LvGISOzznmfd1
+         kXPa/+iMg1TcdluFPcA8cVWDLWHflkf9/coRITc0QiIaA4zvPQIIZefBK239cmxJ5k
+         nSKbGd2RGArvw==
+X-Google-Smtp-Source: ABdhPJww/O/H+p+GzCiMKDAw50e0c47HIgejwRdl9Wx7k1zFogrRwzl/MT69w0GZmNtYyrPjsCHPQjEM6YLRwx8fzP4=
+X-Received: by 2002:a05:6830:22d2:: with SMTP id q18mr276973otc.305.1607018446511;
+ Thu, 03 Dec 2020 10:00:46 -0800 (PST)
+MIME-Version: 1.0
+References: <20201203170529.1029105-1-maskray@google.com>
+In-Reply-To: <20201203170529.1029105-1-maskray@google.com>
+From:   Arnd Bergmann <arnd@kernel.org>
+Date:   Thu, 3 Dec 2020 19:00:30 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a3XiScgpL2cGy_e8-zK0U48Z0VMLJWDYKRM+BRUFC0TSg@mail.gmail.com>
+Message-ID: <CAK8P3a3XiScgpL2cGy_e8-zK0U48Z0VMLJWDYKRM+BRUFC0TSg@mail.gmail.com>
+Subject: Re: [PATCH] firmware_loader: Align .builtin_fw to 8
+To:     Fangrui Song <maskray@google.com>
+Cc:     Arnd Bergmann <arnd@arndb.de>,
         linux-arch <linux-arch@vger.kernel.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
-        Linux-MM <linux-mm@kvack.org>, Anton Blanchard <anton@ozlabs.org>
-In-Reply-To: <20201203170332.GA27195@oc3871087118.ibm.com>
-To:     Alexander Gordeev <agordeev@linux.ibm.com>
-X-Mailer: iPhone Mail (18B121)
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        clang-built-linux <clang-built-linux@googlegroups.com>,
+        Nathan Chancellor <natechancellor@gmail.com>,
+        Nick Desaulniers <ndesaulniers@google.com>,
+        kernel test robot <lkp@intel.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+On Thu, Dec 3, 2020 at 6:05 PM 'Fangrui Song' via Clang Built Linux
+<clang-built-linux@googlegroups.com> wrote:
+>
+> arm64 references the start address of .builtin_fw (__start_builtin_fw)
+> with a pair of R_AARCH64_ADR_PREL_PG_HI21/R_AARCH64_LDST64_ABS_LO12_NC
+> relocations. The compiler is allowed to emit the
+> R_AARCH64_LDST64_ABS_LO12_NC relocation because struct builtin_fw in
+> include/linux/firmware.h is 8-byte aligned.
+>
+> The R_AARCH64_LDST64_ABS_LO12_NC relocation requires the address to be a
+> multiple of 8, which may not be the case if .builtin_fw is empty.
+> Unconditionally align .builtin_fw to fix the linker error.
+>
+> Fixes: 5658c76 ("firmware: allow firmware files to be built into kernel image")
+> Link: https://github.com/ClangBuiltLinux/linux/issues/1204
+> Reported-by: kernel test robot <lkp@intel.com>
+> Signed-off-by: Fangrui Song <maskray@google.com>
 
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-> On Dec 3, 2020, at 9:09 AM, Alexander Gordeev <agordeev@linux.ibm.com> wro=
-te:
->=20
-> =EF=BB=BFOn Mon, Nov 30, 2020 at 10:31:51AM -0800, Andy Lutomirski wrote:
->> other arch folk: there's some background here:
-
->=20
->>=20
->> power: Ridiculously complicated, seems to vary by system and kernel confi=
-g.
->>=20
->> So, Nick, your unconditional IPI scheme is apparently a big
->> improvement for power, and it should be an improvement and have low
->> cost for x86.  On arm64 and s390x it will add more IPIs on process
->> exit but reduce contention on context switching depending on how lazy
->=20
-> s390 does not invalidate TLBs per-CPU explicitly - we have special
-> instructions for that. Those in turn initiate signalling to other
-> CPUs, completely transparent to OS.
-
-Just to make sure I understand: this means that you broadcast flushes to all=
- CPUs, not just a subset?
-
->=20
-> Apart from mm_count, I am struggling to realize how the suggested
-> scheme could change the the contention on s390 in connection with
-> TLB. Could you clarify a bit here, please?
-
-I=E2=80=99m just talking about mm_count. Maintaining mm_count is quite expen=
-sive on some workloads.
-
->=20
->> TLB works.  I suppose we could try it for all architectures without
->> any further optimizations.  Or we could try one of the perhaps
->> excessively clever improvements I linked above.  arm64, s390x people,
->> what do you think?
->=20
-> I do not immediately see anything in the series that would harm
-> performance on s390.
->=20
-> We however use mm_cpumask to distinguish between local and global TLB
-> flushes. With this series it looks like mm_cpumask is *required* to
-> be consistent with lazy users. And that is something quite diffucult
-> for us to adhere (at least in the foreseeable future).
-
-You don=E2=80=99t actually need to maintain mm_cpumask =E2=80=94 we could sc=
-an all CPUs instead.
-
->=20
-> But actually keeping track of lazy users in a cpumask is something
-> the generic code would rather do AFAICT.
-
-The problem is that arches don=E2=80=99t agree on what the contents of mm_cp=
-umask should be.  Tracking a mask of exactly what the arch wants in generic c=
-ode is a nontrivial operation.
+I found the same thing in randconfig testing, but you beat me to
+sending the fix.
