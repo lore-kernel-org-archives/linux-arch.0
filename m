@@ -2,523 +2,236 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0C25FC4167B
-	for <linux-arch@archiver.kernel.org>; Sat,  5 Dec 2020 06:59:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A2A01C4167B
+	for <linux-arch@archiver.kernel.org>; Sat,  5 Dec 2020 08:00:54 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E2B9622D58
-	for <linux-arch@archiver.kernel.org>; Sat,  5 Dec 2020 06:59:52 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7AD7522D6D
+	for <linux-arch@archiver.kernel.org>; Sat,  5 Dec 2020 08:00:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2387532AbgLEG7Z (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 5 Dec 2020 01:59:25 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48524 "EHLO
+        id S1728503AbgLEIAt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 5 Dec 2020 03:00:49 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57912 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387443AbgLEG7Z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2020 01:59:25 -0500
-Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CD24CC061A52;
-        Fri,  4 Dec 2020 22:58:44 -0800 (PST)
-Received: by mail-pf1-x441.google.com with SMTP id t8so5347205pfg.8;
-        Fri, 04 Dec 2020 22:58:44 -0800 (PST)
+        with ESMTP id S1726841AbgLEIAt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2020 03:00:49 -0500
+Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 05770C061A51;
+        Sat,  5 Dec 2020 00:00:09 -0800 (PST)
+Received: by mail-pg1-x542.google.com with SMTP id t37so5006666pga.7;
+        Sat, 05 Dec 2020 00:00:09 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=lRZepDZOFk10bQegSr670rdh7UW+D3+yhfDJQ0KUAZI=;
-        b=o+Zc9b/1KrMxlVfGkFkl+BbssxM7bQc350ndlo/QIX05kStVvt5mo+8yObCo/dHBvQ
-         Jv0EgCQd08L+XQUazZ83zn9VYQHgz1wz1o8cPfikxWN1dyHtqGoM7Z+LU1TAbtCV6qVy
-         1bE8x+InISioqdO8fu85kwFrFpItaQjhT0rF435p3kq/iB9/y0CU6VrXy8DSUY4Euir6
-         jTSkMpQHalnod8tOwjgiKtcmd1eMgg/LdeUNJAbKckDivjVmy2Vx2kZRzvCvfl5xpnCu
-         o8OWH0y2zk1WQ7zlN/Hy5kNTuW0kFq7M7pTQ5WYxAoQlHSEMa2f0aWISX3pE9riF0Gj8
-         oSkg==
+        h=date:from:subject:to:cc:references:in-reply-to:mime-version
+         :message-id:content-transfer-encoding;
+        bh=0masjBUaEdT8yhWPTiGZKXmGUQ0WDl0QMJjmOmFRbgI=;
+        b=Gc/gJZMQJsaxJezPjoIJ+l5Klj3CzVb5UfjGmnUDQ+DMJR1ckzh7xASLtrBAkakChE
+         Grl/mbVH7ZhodnKKNM2V9SyaZmqJG37yL3RpwHLG4q20CIoG0WuD8qDvAO8cK0/5pOI0
+         XLsxT4WCK17cUlrgT8NKnQ5XHp4ZttYAJyAOErwofFJmxZrdS7k60N/YEMuAPFjj724x
+         6Y3lOmK1Fa/4/jUmD8oygPoU6iU8yiVqkQIaS7YpdjpykZeVq+kx+BCFkvagYRVtu/LW
+         nNkXd6MTx3rnKjDArqwSiQDF0G/uOxtru2icj5A/knbFbSw4HW25IWRF8hP5S0xki7Ot
+         QuLw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=lRZepDZOFk10bQegSr670rdh7UW+D3+yhfDJQ0KUAZI=;
-        b=YZ2O7XFLpwGxK9bq98yJiATNB+i8+LEhg4c/KHAFEt9WsemRZNaPGrSPbKr7ixRKRo
-         F7xSRzqD4QZw5uV4PTSEz3MMB/V++FSH5bEFzPU+8vckv91OHAQxBjDDdBfAt8/hjMPw
-         l06eX7z8jugn+lTzilL5kwwdzBcvtLpBiccEq2AF41E0+2MSt1OLToigiD//sv08o7b4
-         lLKsPOwes0OKvArHkdQ3UrVk85W0X04aAHefyDpKFC4GyoLuQ7ZQl7YCy0mM8z7J57sN
-         kZP1cs6yZN+g4WLCxy3/44riUHsZmtI4vL9Kvzl7Bx5xsNJlpx+aBUNQvVAKntkU5xcM
-         xY+w==
-X-Gm-Message-State: AOAM533/aFGAUgdMxTR4G1nM4xVnyr8lKyVUb0J9jip4DTY8ApAxsWoz
-        FsiNiG9mEpeH1PAuL3Q8XZ8=
-X-Google-Smtp-Source: ABdhPJxrb67x3Gnv7/5cTUmtLQdbJLP6bJ+o2x3Seddk+PHjS9PwEyBkBrfa1SKhM5AYAvpqa12zMw==
-X-Received: by 2002:a63:4c5d:: with SMTP id m29mr1006255pgl.368.1607151524320;
-        Fri, 04 Dec 2020 22:58:44 -0800 (PST)
-Received: from bobo.ozlabs.ibm.com ([1.129.145.238])
-        by smtp.gmail.com with ESMTPSA id a14sm1110848pfl.141.2020.12.04.22.58.38
+        h=x-gm-message-state:date:from:subject:to:cc:references:in-reply-to
+         :mime-version:message-id:content-transfer-encoding;
+        bh=0masjBUaEdT8yhWPTiGZKXmGUQ0WDl0QMJjmOmFRbgI=;
+        b=VWg8uF5/Fhn8LpoJ/DED4ob4PzrRb6ybqQNoTX6y1QUBPoxhYbBTQezJezl6IJ2j8R
+         YtTgQy8PbYX5Afm6brJsKjlHIXSaRSQ3ox08xHPUE3djiCFsRx9c5eB6ZOfm4M7hDAZ8
+         yasRjpCT2xskjyBZmB7+4MSf/Qy1XJNX0QMKwADPXqjmUabBkVxpvb3/dA4Pbe33oRI8
+         87XAqjDJUreM/fjNjHnOjSOD+GGj6fA9xRrwPo6yT434ZA20A0MxXY/hDbkdEVvZdKwT
+         Zat7C7KMvI7EuSPLqC86xUibTbuyQ5B/qFkVFBOXW/LTZzDcbx9ExUHVkqQW6yzy7NMS
+         yRjQ==
+X-Gm-Message-State: AOAM531yg5P9wVBv31sSa+eu54on1hNeS8k7O8NS6gPKm0KumUR7wOQl
+        csOkJDBZwhs5DtyqKBMskHw=
+X-Google-Smtp-Source: ABdhPJxxq5hhiaL6DPOoOhrdsC1HhF8QISir8hTk4ZBkYS67jaUKjbr7sa21l559bUoRv8iVAoVSKg==
+X-Received: by 2002:a63:a55d:: with SMTP id r29mr10713433pgu.289.1607155208529;
+        Sat, 05 Dec 2020 00:00:08 -0800 (PST)
+Received: from localhost ([1.129.168.124])
+        by smtp.gmail.com with ESMTPSA id n5sm6278072pgm.29.2020.12.05.00.00.06
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 04 Dec 2020 22:58:43 -0800 (PST)
+        Sat, 05 Dec 2020 00:00:07 -0800 (PST)
+Date:   Sat, 05 Dec 2020 18:00:00 +1000
 From:   Nicholas Piggin <npiggin@gmail.com>
-To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        Zefan Li <lizefan@huawei.com>,
-        Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
-        Christoph Hellwig <hch@infradead.org>,
-        Christophe Leroy <christophe.leroy@csgroup.eu>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>
-Subject: [PATCH v9 11/12] mm/vmalloc: Hugepage vmalloc mappings
-Date:   Sat,  5 Dec 2020 16:57:24 +1000
-Message-Id: <20201205065725.1286370-12-npiggin@gmail.com>
-X-Mailer: git-send-email 2.23.0
-In-Reply-To: <20201205065725.1286370-1-npiggin@gmail.com>
-References: <20201205065725.1286370-1-npiggin@gmail.com>
+Subject: Re: [PATCH 2/8] x86: use exit_lazy_tlb rather than
+ membarrier_mm_sync_core_before_usermode
+To:     Andy Lutomirski <luto@kernel.org>
+Cc:     Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        LKML <linux-kernel@vger.kernel.org>,
+        Linux-MM <linux-mm@kvack.org>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+        Peter Zijlstra <peterz@infradead.org>, X86 ML <x86@kernel.org>
+References: <20201128160141.1003903-1-npiggin@gmail.com>
+        <20201128160141.1003903-3-npiggin@gmail.com>
+        <CALCETrXYkbuJJnDv9ijfT+5tLQ2FOvvN1Ugoh5NwOy+zHp9HXA@mail.gmail.com>
+        <1606876327.dyrhkih2kh.astroid@bobo.none>
+        <CALCETrV8Z5JdsP-Qa8B6y01LmXnSruOEWVt9_Un1RX1+nZuhxw@mail.gmail.com>
+In-Reply-To: <CALCETrV8Z5JdsP-Qa8B6y01LmXnSruOEWVt9_Un1RX1+nZuhxw@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Message-Id: <1607152918.fkgmomgfw9.astroid@bobo.none>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Support huge page vmalloc mappings. Config option HAVE_ARCH_HUGE_VMALLOC
-enables support on architectures that define HAVE_ARCH_HUGE_VMAP and
-supports PMD sized vmap mappings.
+Excerpts from Andy Lutomirski's message of December 3, 2020 3:09 pm:
+> On Tue, Dec 1, 2020 at 6:50 PM Nicholas Piggin <npiggin@gmail.com> wrote:
+>>
+>> Excerpts from Andy Lutomirski's message of November 29, 2020 3:55 am:
+>> > On Sat, Nov 28, 2020 at 8:02 AM Nicholas Piggin <npiggin@gmail.com> wr=
+ote:
+>> >>
+>> >> And get rid of the generic sync_core_before_usermode facility. This i=
+s
+>> >> functionally a no-op in the core scheduler code, but it also catches
+>> >>
+>> >> This helper is the wrong way around I think. The idea that membarrier
+>> >> state requires a core sync before returning to user is the easy one
+>> >> that does not need hiding behind membarrier calls. The gap in core
+>> >> synchronization due to x86's sysret/sysexit and lazy tlb mode, is the
+>> >> tricky detail that is better put in x86 lazy tlb code.
+>> >>
+>> >> Consider if an arch did not synchronize core in switch_mm either, the=
+n
+>> >> membarrier_mm_sync_core_before_usermode would be in the wrong place
+>> >> but arch specific mmu context functions would still be the right plac=
+e.
+>> >> There is also a exit_lazy_tlb case that is not covered by this call, =
+which
+>> >> could be a bugs (kthread use mm the membarrier process's mm then cont=
+ext
+>> >> switch back to the process without switching mm or lazy mm switch).
+>> >>
+>> >> This makes lazy tlb code a bit more modular.
+>> >
+>> > I have a couple of membarrier fixes that I want to send out today or
+>> > tomorrow, and they might eliminate the need for this patch.  Let me
+>> > think about this a little bit.  I'll cc you.  The existing code is way
+>> > to subtle and the comments are far too confusing for me to be quickly
+>> > confident about any of my conclusions :)
+>> >
+>>
+>> Thanks for the head's up. I'll have to have a better look through them
+>> but I don't know that it eliminates the need for this entirely although
+>> it might close some gaps and make this not a bug fix. The problem here
+>> is x86 code wanted something to be called when a lazy mm is unlazied,
+>> but it missed some spots and also the core scheduler doesn't need to
+>> know about those x86 details if it has this generic call that annotates
+>> the lazy handling better.
+>=20
+> I'll send v3 tomorrow.  They add more sync_core_before_usermode() callers=
+.
+>=20
+> Having looked at your patches a bunch and the membarrier code a bunch,
+> I don't think I like the approach of pushing this logic out into new
+> core functions called by arch code.  Right now, even with my
+> membarrier patches applied, understanding how (for example) the x86
+> switch_mm_irqs_off() plus the scheduler code provides the barriers
+> that membarrier needs is quite complicated, and it's not clear to me
+> that the code is even correct.  At the very least I'm pretty sure that
+> the x86 comments are misleading.
+>
+> With your patches, someone trying to
+> audit the code would have to follow core code calling into arch code
+> and back out into core code to figure out what's going on.  I think
+> the result is worse.
 
-vmalloc will attempt to allocate PMD-sized pages if allocating PMD size
-or larger, and fall back to small pages if that was unsuccessful.
+Sorry I missed this and rather than reply to the later version you
+have a bigger comment here.
 
-Architectures must ensure that any arch specific vmalloc allocations
-that require PAGE_SIZE mappings (e.g., module allocations vs strict
-module rwx) use the VM_NOHUGE flag to inhibit larger mappings.
+I disagree. Until now nobody following it noticed that the mm gets
+un-lazied in other cases, because that was not too clear from the
+code (only indirectly using non-standard terminology in the arch
+support document).
 
-When hugepage vmalloc mappings are enabled in the next patch, this
-reduces TLB misses by nearly 30x on a `git diff` workload on a 2-node
-POWER9 (59,800 -> 2,100) and reduces CPU cycles by 0.54%.
+In other words, membarrier needs a special sync to deal with the case=20
+when a kthread takes the mm. exit_lazy_tlb gives membarrier code that=20
+exact hook that it wants from the core scheduler code.
 
-This can result in more internal fragmentation and memory overhead for a
-given allocation, an option nohugevmalloc is added to disable at boot.
+>=20
+> I wrote this incomplete patch which takes the opposite approach (sorry
+> for whitespace damage):
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/Kconfig            |  10 +++
- include/linux/vmalloc.h |  18 ++++
- mm/page_alloc.c         |   5 +-
- mm/vmalloc.c            | 191 ++++++++++++++++++++++++++++++----------
- 4 files changed, 178 insertions(+), 46 deletions(-)
+That said, if you want to move the code entirely in the x86 arch from
+exit_lazy_tlb to switch_mm_irqs_off, it's trivial and touches no core
+code after my series :) and I would have no problem with doing that.
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 56b6ccc0e32d..d8f056fc27b4 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -662,6 +662,16 @@ config HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
- config HAVE_ARCH_HUGE_VMAP
- 	bool
- 
-+config HAVE_ARCH_HUGE_VMALLOC
-+	depends on HAVE_ARCH_HUGE_VMAP
-+	bool
-+	help
-+	  Archs that select this would be capable of PMD-sized vmaps (i.e.,
-+	  arch_vmap_pmd_supported() returns true), and they must make no
-+	  assumptions that vmalloc memory is mapped with PAGE_SIZE ptes. The
-+	  VM_NOHUGE flag can be used to prohibit arch-specific allocations from
-+	  using hugepages to help with this (e.g., modules may require it).
-+
- config ARCH_WANT_HUGE_PMD_SHARE
- 	bool
- 
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index a5ae791dc1e0..db018b531745 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -25,6 +25,7 @@ struct notifier_block;		/* in notifier.h */
- #define VM_NO_GUARD		0x00000040      /* don't add guard page */
- #define VM_KASAN		0x00000080      /* has allocated kasan shadow memory */
- #define VM_MAP_PUT_PAGES	0x00000100	/* put pages and free array in vfree */
-+#define VM_NOHUGE		0x00000200	/* force PAGE_SIZE pte mapping */
- 
- /*
-  * VM_KASAN is used slighly differently depending on CONFIG_KASAN_VMALLOC.
-@@ -59,6 +60,7 @@ struct vm_struct {
- 	unsigned long		size;
- 	unsigned long		flags;
- 	struct page		**pages;
-+	unsigned int		page_order;
- 	unsigned int		nr_pages;
- 	phys_addr_t		phys_addr;
- 	const void		*caller;
-@@ -196,6 +198,18 @@ static inline void set_vm_flush_reset_perms(void *addr)
- 	if (vm)
- 		vm->flags |= VM_FLUSH_RESET_PERMS;
- }
-+
-+static inline bool is_vm_area_hugepages(const void *addr)
-+{
-+	/*
-+	 * This may not 100% tell if the area is mapped with > PAGE_SIZE
-+	 * page table entries, if for some reason the architecture indicates
-+	 * larger sizes are available but decides not to use them, nothing
-+	 * prevents that. This only indicates the size of the physical page
-+	 * allocated in the vmalloc layer.
-+	 */
-+	return (find_vm_area(addr)->page_order > 0);
-+}
- #else
- static inline int
- map_kernel_range_noflush(unsigned long start, unsigned long size,
-@@ -212,6 +226,10 @@ unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
- static inline void set_vm_flush_reset_perms(void *addr)
- {
- }
-+static inline bool is_vm_area_hugepages(const void *addr)
-+{
-+	return false;
-+}
- #endif
- 
- /* for /dev/kmem */
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index eaa227a479e4..d907da0ad349 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -70,6 +70,7 @@
- #include <linux/psi.h>
- #include <linux/padata.h>
- #include <linux/khugepaged.h>
-+#include <linux/vmalloc.h>
- 
- #include <asm/sections.h>
- #include <asm/tlbflush.h>
-@@ -8171,6 +8172,7 @@ void *__init alloc_large_system_hash(const char *tablename,
- 	void *table = NULL;
- 	gfp_t gfp_flags;
- 	bool virt;
-+	bool huge;
- 
- 	/* allow the kernel cmdline to have a say */
- 	if (!numentries) {
-@@ -8238,6 +8240,7 @@ void *__init alloc_large_system_hash(const char *tablename,
- 		} else if (get_order(size) >= MAX_ORDER || hashdist) {
- 			table = __vmalloc(size, gfp_flags);
- 			virt = true;
-+			huge = is_vm_area_hugepages(table);
- 		} else {
- 			/*
- 			 * If bucketsize is not a power-of-two, we may free
-@@ -8254,7 +8257,7 @@ void *__init alloc_large_system_hash(const char *tablename,
- 
- 	pr_info("%s hash table entries: %ld (order: %d, %lu bytes, %s)\n",
- 		tablename, 1UL << log2qty, ilog2(size) - PAGE_SHIFT, size,
--		virt ? "vmalloc" : "linear");
-+		virt ? (huge ? "vmalloc hugepage" : "vmalloc") : "linear");
- 
- 	if (_hash_shift)
- 		*_hash_shift = log2qty;
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index ee9c3bee67f5..3800380b474f 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -42,6 +42,19 @@
- #include "internal.h"
- #include "pgalloc-track.h"
- 
-+#ifdef CONFIG_HAVE_ARCH_HUGE_VMALLOC
-+static bool __ro_after_init vmap_allow_huge = true;
-+
-+static int __init set_nohugevmalloc(char *str)
-+{
-+	vmap_allow_huge = false;
-+	return 0;
-+}
-+early_param("nohugevmalloc", set_nohugevmalloc);
-+#else /* CONFIG_HAVE_ARCH_HUGE_VMALLOC */
-+static const bool vmap_allow_huge = false;
-+#endif	/* CONFIG_HAVE_ARCH_HUGE_VMALLOC */
-+
- bool is_vmalloc_addr(const void *x)
- {
- 	unsigned long addr = (unsigned long)x;
-@@ -477,31 +490,12 @@ static int vmap_pages_p4d_range(pgd_t *pgd, unsigned long addr,
- 	return 0;
- }
- 
--/**
-- * map_kernel_range_noflush - map kernel VM area with the specified pages
-- * @addr: start of the VM area to map
-- * @size: size of the VM area to map
-- * @prot: page protection flags to use
-- * @pages: pages to map
-- *
-- * Map PFN_UP(@size) pages at @addr.  The VM area @addr and @size specify should
-- * have been allocated using get_vm_area() and its friends.
-- *
-- * NOTE:
-- * This function does NOT do any cache flushing.  The caller is responsible for
-- * calling flush_cache_vmap() on to-be-mapped areas before calling this
-- * function.
-- *
-- * RETURNS:
-- * 0 on success, -errno on failure.
-- */
--int map_kernel_range_noflush(unsigned long addr, unsigned long size,
--			     pgprot_t prot, struct page **pages)
-+static int vmap_small_pages_range_noflush(unsigned long addr, unsigned long end,
-+		pgprot_t prot, struct page **pages)
- {
- 	unsigned long start = addr;
--	unsigned long end = addr + size;
--	unsigned long next;
- 	pgd_t *pgd;
-+	unsigned long next;
- 	int err = 0;
- 	int nr = 0;
- 	pgtbl_mod_mask mask = 0;
-@@ -523,6 +517,65 @@ int map_kernel_range_noflush(unsigned long addr, unsigned long size,
- 	return 0;
- }
- 
-+static int vmap_pages_range_noflush(unsigned long addr, unsigned long end,
-+		pgprot_t prot, struct page **pages, unsigned int page_shift)
-+{
-+	unsigned int i, nr = (end - addr) >> PAGE_SHIFT;
-+
-+	WARN_ON(page_shift < PAGE_SHIFT);
-+
-+	if (page_shift == PAGE_SHIFT)
-+		return vmap_small_pages_range_noflush(addr, end, prot, pages);
-+
-+	for (i = 0; i < nr; i += 1U << (page_shift - PAGE_SHIFT)) {
-+		int err;
-+
-+		err = vmap_range_noflush(addr, addr + (1UL << page_shift),
-+					__pa(page_address(pages[i])), prot,
-+					page_shift);
-+		if (err)
-+			return err;
-+
-+		addr += 1UL << page_shift;
-+	}
-+
-+	return 0;
-+}
-+
-+static int vmap_pages_range(unsigned long addr, unsigned long end,
-+		pgprot_t prot, struct page **pages, unsigned int page_shift)
-+{
-+	int err;
-+
-+	err = vmap_pages_range_noflush(addr, end, prot, pages, page_shift);
-+	flush_cache_vmap(addr, end);
-+	return err;
-+}
-+
-+/**
-+ * map_kernel_range_noflush - map kernel VM area with the specified pages
-+ * @addr: start of the VM area to map
-+ * @size: size of the VM area to map
-+ * @prot: page protection flags to use
-+ * @pages: pages to map
-+ *
-+ * Map PFN_UP(@size) pages at @addr.  The VM area @addr and @size specify should
-+ * have been allocated using get_vm_area() and its friends.
-+ *
-+ * NOTE:
-+ * This function does NOT do any cache flushing.  The caller is responsible for
-+ * calling flush_cache_vmap() on to-be-mapped areas before calling this
-+ * function.
-+ *
-+ * RETURNS:
-+ * 0 on success, -errno on failure.
-+ */
-+int map_kernel_range_noflush(unsigned long addr, unsigned long size,
-+			     pgprot_t prot, struct page **pages)
-+{
-+	return vmap_pages_range_noflush(addr, addr + size, prot, pages, PAGE_SHIFT);
-+}
-+
- int map_kernel_range(unsigned long start, unsigned long size, pgprot_t prot,
- 		struct page **pages)
- {
-@@ -2400,6 +2453,7 @@ static inline void set_area_direct_map(const struct vm_struct *area,
- {
- 	int i;
- 
-+	/* HUGE_VMALLOC passes small pages to set_direct_map */
- 	for (i = 0; i < area->nr_pages; i++)
- 		if (page_address(area->pages[i]))
- 			set_direct_map(area->pages[i]);
-@@ -2433,11 +2487,12 @@ static void vm_remove_mappings(struct vm_struct *area, int deallocate_pages)
- 	 * map. Find the start and end range of the direct mappings to make sure
- 	 * the vm_unmap_aliases() flush includes the direct map.
- 	 */
--	for (i = 0; i < area->nr_pages; i++) {
-+	for (i = 0; i < area->nr_pages; i += 1U << area->page_order) {
- 		unsigned long addr = (unsigned long)page_address(area->pages[i]);
- 		if (addr) {
-+			unsigned long page_size = PAGE_SIZE << area->page_order;
- 			start = min(addr, start);
--			end = max(addr + PAGE_SIZE, end);
-+			end = max(addr + page_size, end);
- 			flush_dmap = 1;
- 		}
- 	}
-@@ -2480,11 +2535,11 @@ static void __vunmap(const void *addr, int deallocate_pages)
- 	if (deallocate_pages) {
- 		int i;
- 
--		for (i = 0; i < area->nr_pages; i++) {
-+		for (i = 0; i < area->nr_pages; i += 1U << area->page_order) {
- 			struct page *page = area->pages[i];
- 
- 			BUG_ON(!page);
--			__free_pages(page, 0);
-+			__free_pages(page, area->page_order);
- 		}
- 		atomic_long_sub(area->nr_pages, &nr_vmalloc_pages);
- 
-@@ -2674,12 +2729,17 @@ EXPORT_SYMBOL_GPL(vmap_pfn);
- #endif /* CONFIG_VMAP_PFN */
- 
- static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
--				 pgprot_t prot, int node)
-+				 pgprot_t prot, unsigned int page_shift,
-+				 int node)
- {
- 	const gfp_t nested_gfp = (gfp_mask & GFP_RECLAIM_MASK) | __GFP_ZERO;
--	unsigned int nr_pages = get_vm_area_size(area) >> PAGE_SHIFT;
--	unsigned int array_size = nr_pages * sizeof(struct page *), i;
-+	unsigned int page_order = page_shift - PAGE_SHIFT;
-+	unsigned long addr = (unsigned long)area->addr;
-+	unsigned long size = get_vm_area_size(area);
-+	unsigned int nr_small_pages = size >> PAGE_SHIFT;
-+	unsigned int array_size = nr_small_pages * sizeof(struct page *);
- 	struct page **pages;
-+	unsigned int i;
- 
- 	gfp_mask |= __GFP_NOWARN;
- 	if (!(gfp_mask & (GFP_DMA | GFP_DMA32)))
-@@ -2700,30 +2760,35 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
- 	}
- 
- 	area->pages = pages;
--	area->nr_pages = nr_pages;
-+	area->nr_pages = nr_small_pages;
-+	area->page_order = page_order;
- 
--	for (i = 0; i < area->nr_pages; i++) {
-+	/*
-+	 * Careful, we allocate and map page_order pages, but tracking is done
-+	 * per PAGE_SIZE page so as to keep the vm_struct APIs independent of
-+	 * the physical/mapped size.
-+	 */
-+	for (i = 0; i < area->nr_pages; i += 1U << page_order) {
- 		struct page *page;
-+		int p;
- 
--		if (node == NUMA_NO_NODE)
--			page = alloc_page(gfp_mask);
--		else
--			page = alloc_pages_node(node, gfp_mask, 0);
--
-+		page = alloc_pages_node(node, gfp_mask, page_order);
- 		if (unlikely(!page)) {
- 			/* Successfully allocated i pages, free them in __vfree() */
- 			area->nr_pages = i;
- 			atomic_long_add(area->nr_pages, &nr_vmalloc_pages);
- 			goto fail;
- 		}
--		area->pages[i] = page;
-+
-+		for (p = 0; p < (1U << page_order); p++)
-+			area->pages[i + p] = page + p;
-+
- 		if (gfpflags_allow_blocking(gfp_mask))
- 			cond_resched();
- 	}
- 	atomic_long_add(area->nr_pages, &nr_vmalloc_pages);
- 
--	if (map_kernel_range((unsigned long)area->addr, get_vm_area_size(area),
--			prot, pages) < 0)
-+	if (vmap_pages_range(addr, addr + size, prot, pages, page_shift) < 0)
- 		goto fail;
- 
- 	return area->addr;
-@@ -2731,7 +2796,7 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
- fail:
- 	warn_alloc(gfp_mask, NULL,
- 			  "vmalloc: allocation failure, allocated %ld of %ld bytes",
--			  (area->nr_pages*PAGE_SIZE), area->size);
-+			  (area->nr_pages*PAGE_SIZE), size);
- 	__vfree(area->addr);
- 	return NULL;
- }
-@@ -2762,19 +2827,44 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
- 	struct vm_struct *area;
- 	void *addr;
- 	unsigned long real_size = size;
-+	unsigned long real_align = align;
-+	unsigned int shift = PAGE_SHIFT;
- 
--	size = PAGE_ALIGN(size);
- 	if (!size || (size >> PAGE_SHIFT) > totalram_pages())
- 		goto fail;
- 
--	area = __get_vm_area_node(real_size, align, VM_ALLOC | VM_UNINITIALIZED |
-+	if (vmap_allow_huge && !(vm_flags & VM_NOHUGE) &&
-+			arch_vmap_pmd_supported(prot) &&
-+			(pgprot_val(prot) == pgprot_val(PAGE_KERNEL))) {
-+		unsigned long size_per_node;
-+
-+		/*
-+		 * Try huge pages. Only try for PAGE_KERNEL allocations,
-+		 * others like modules don't yet expect huge pages in
-+		 * their allocations due to apply_to_page_range not
-+		 * supporting them.
-+		 */
-+
-+		size_per_node = size;
-+		if (node == NUMA_NO_NODE)
-+			size_per_node /= num_online_nodes();
-+		if (size_per_node >= PMD_SIZE) {
-+			shift = PMD_SHIFT;
-+			align = max(real_align, 1UL << shift);
-+			size = ALIGN(real_size, 1UL << shift);
-+		}
-+	}
-+
-+again:
-+	size = PAGE_ALIGN(size);
-+	area = __get_vm_area_node(size, align, VM_ALLOC | VM_UNINITIALIZED |
- 				vm_flags, start, end, node, gfp_mask, caller);
- 	if (!area)
- 		goto fail;
- 
--	addr = __vmalloc_area_node(area, gfp_mask, prot, node);
-+	addr = __vmalloc_area_node(area, gfp_mask, prot, shift, node);
- 	if (!addr)
--		return NULL;
-+		goto fail;
- 
- 	/*
- 	 * In this function, newly allocated vm_struct has VM_UNINITIALIZED
-@@ -2788,8 +2878,19 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
- 	return addr;
- 
- fail:
--	warn_alloc(gfp_mask, NULL,
-+	if (shift > PAGE_SHIFT) {
-+		free_vm_area(area);
-+		shift = PAGE_SHIFT;
-+		align = real_align;
-+		size = real_size;
-+		goto again;
-+	}
-+
-+	if (!area) {
-+		/* Warn for area allocation, page allocations already warn */
-+		warn_alloc(gfp_mask, NULL,
- 			  "vmalloc: allocation failure: %lu bytes", real_size);
-+	}
- 	return NULL;
- }
- 
--- 
-2.23.0
+I suspect it might actually be more readable to go the other way and
+pull most of the real_prev =3D=3D next membarrier code into exit_lazy_tlb
+instead, but I could be wrong I don't know exactly how the x86 lazy
+state correlates with core lazy tlb state.
 
+Thanks,
+Nick
+
+>=20
+> commit 928b5c60e93f475934892d6e0b357ebf0a2bf87d
+> Author: Andy Lutomirski <luto@kernel.org>
+> Date:   Wed Dec 2 17:24:02 2020 -0800
+>=20
+>     [WIP] x86/mm: Handle unlazying membarrier core sync in the arch code
+>=20
+>     The core scheduler isn't a great place for
+>     membarrier_mm_sync_core_before_usermode() -- the core scheduler
+>     doesn't actually know whether we are lazy.  With the old code, if a
+>     CPU is running a membarrier-registered task, goes idle, gets unlazied
+>     via a TLB shootdown IPI, and switches back to the
+>     membarrier-registered task, it will do an unnecessary core sync.
+>=20
+>     Conveniently, x86 is the only architecture that does anything in this
+>     hook, so we can just move the code.
+>=20
+>     XXX: actually delete the old code.
+>=20
+>     Signed-off-by: Andy Lutomirski <luto@kernel.org>
+>=20
+> diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
+> index 3338a1feccf9..e27300fc865b 100644
+> --- a/arch/x86/mm/tlb.c
+> +++ b/arch/x86/mm/tlb.c
+> @@ -496,6 +496,8 @@ void switch_mm_irqs_off(struct mm_struct *prev,
+> struct mm_struct *next,
+>           * from one thread in a process to another thread in the same
+>           * process. No TLB flush required.
+>           */
+> +
+> +        // XXX: why is this okay wrt membarrier?
+>          if (!was_lazy)
+>              return;
+>=20
+> @@ -508,12 +510,24 @@ void switch_mm_irqs_off(struct mm_struct *prev,
+> struct mm_struct *next,
+>          smp_mb();
+>          next_tlb_gen =3D atomic64_read(&next->context.tlb_gen);
+>          if (this_cpu_read(cpu_tlbstate.ctxs[prev_asid].tlb_gen) =3D=3D
+> -                next_tlb_gen)
+> +            next_tlb_gen) {
+> +            /*
+> +             * We're reactivating an mm, and membarrier might
+> +             * need to serialize.  Tell membarrier.
+> +             */
+> +
+> +            // XXX: I can't understand the logic in
+> +            // membarrier_mm_sync_core_before_usermode().  What's
+> +            // the mm check for?
+> +            membarrier_mm_sync_core_before_usermode(next);
+>              return;
+> +        }
+>=20
+>          /*
+>           * TLB contents went out of date while we were in lazy
+>           * mode. Fall through to the TLB switching code below.
+> +         * No need for an explicit membarrier invocation -- the CR3
+> +         * write will serialize.
+>           */
+>          new_asid =3D prev_asid;
+>          need_flush =3D true;
+>=20
