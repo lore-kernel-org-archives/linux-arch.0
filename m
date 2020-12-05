@@ -5,57 +5,57 @@ X-Spam-Level:
 X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DC561C4361B
-	for <linux-arch@archiver.kernel.org>; Sat,  5 Dec 2020 06:59:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 45ED2C193FE
+	for <linux-arch@archiver.kernel.org>; Sat,  5 Dec 2020 06:59:53 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B191C22D2A
-	for <linux-arch@archiver.kernel.org>; Sat,  5 Dec 2020 06:59:52 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 1D00B2310A
+	for <linux-arch@archiver.kernel.org>; Sat,  5 Dec 2020 06:59:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2387485AbgLEG7T (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 5 Dec 2020 01:59:19 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48506 "EHLO
+        id S2387571AbgLEG7a (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 5 Dec 2020 01:59:30 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48538 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387443AbgLEG7T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2020 01:59:19 -0500
-Received: from mail-pg1-x544.google.com (mail-pg1-x544.google.com [IPv6:2607:f8b0:4864:20::544])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D04DCC061A51;
-        Fri,  4 Dec 2020 22:58:38 -0800 (PST)
-Received: by mail-pg1-x544.google.com with SMTP id t3so4928573pgi.11;
-        Fri, 04 Dec 2020 22:58:38 -0800 (PST)
+        with ESMTP id S2387443AbgLEG7a (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2020 01:59:30 -0500
+Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C5616C061A53;
+        Fri,  4 Dec 2020 22:58:49 -0800 (PST)
+Received: by mail-pl1-x643.google.com with SMTP id s2so4379047plr.9;
+        Fri, 04 Dec 2020 22:58:49 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=cxeoavWkBKpHEVfZRK3a60KePQvEOREDyC26QCPQwGc=;
-        b=ukqOtiGe7P2XNpwcoCHPv4PLVVLigIR0wfkbWLYHCk03Qwl78XRRc25X9C1RXu0jHe
-         71KyORclr783FXhdRwXEwnRYE8V5N9Dlyrpf+r1au98v+1tkhP1N6fl1HslUf7ZQ6F5a
-         XTq1ZFQ+e2jvjUGVPu2b86zd+bEI1VIn6WCJ/qjsEj8yxdBoHFWiVg+eMQZWOAY5xRFj
-         C11oel1teBnWh8SCk/mPyWyo/bfzkUXfP4dXdfU1VwuAWLs0NLmFg3F0v74OQujpFaki
-         9EIdB0FMiyQGzJUoI3N8vq5BLpK4IyZzsPMZT6nSzTsZ26MvND8g+ErfJa8+fsz1pJ2o
-         6LkQ==
+        bh=yJtR5xFkunhGW99GQOAU+TGQjkAsTnnQTxf07zcOvgs=;
+        b=F0AUUFvJuyPvisQotGkESCF08thwJoD8pLvQ56/LvEXslmEH0PbmpE3VoVsYHUPh5W
+         R4sViBSPmYFfv8z31pBurxkieAdobFffotdSKXfs+2S5OID6ZZ07rbUBM/zOjiNNjRsr
+         zRXHtgOhNfM9dDwmlzC1SpPNOSfdH3IMYzmJq72shpEdCADu3y8GX/BBhyMKh4OFH/nx
+         JDyVkGBQyzZGwfsyzWil2bss/hIM0VPEQHehTp01lUD6ikeVvH7yq/Jh/MZHF0igWAH4
+         QZjVQt0sjl4YqvkXzfsPZHwxpwiK/6DWxbxy+JfSP7qEsFVJoHAQmiRucUWNY0F2KecP
+         91GA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=cxeoavWkBKpHEVfZRK3a60KePQvEOREDyC26QCPQwGc=;
-        b=GMvY70pr+9C7mTD3zj+lNuLn0/VKKWVaPYQ3+6uBqDyuq9r/IYXUE39jwozmECq6kG
-         CTEBCv4q3sYKl4II1oqrroYwvD8gUwNT3pnUF26qRbXoFZBESgCdecd9iiGL+K6FJhUU
-         4AbkSEoI7Xb7lYdgGvvsJl4IZvXsrCDbbaKocK6Rzbvz6gPwTk0kWwu3ReXqXPFrfIRw
-         1ZpDEgKgB41hT3l867/fcGmZtWWz/Z79+Cy1cb3JQAr/SDc1kKyMbZcRW8F8iIGGwU3F
-         zgp18e8+DYdaYZkAr/D3xB/fYxq73mF+huvmr61bkef+DHrKWV+nYwC3bOhFR+hMgEKA
-         1mzg==
-X-Gm-Message-State: AOAM531Us6nqTyXRzRO3C4LuH10Uf8hbS7UmRQTlIWCuSOTz+YyGi8vd
-        lJ5aj//Fd7ij9ekELYOHiBA=
-X-Google-Smtp-Source: ABdhPJy4ceoebyQbTqB4fE0S1EBU/ZP1A2fSE/NXY9uIYYRFQfIy2FdDgibtFhuJU5XMFvZqvTYP+Q==
-X-Received: by 2002:aa7:8052:0:b029:196:4dbb:99fe with SMTP id y18-20020aa780520000b02901964dbb99femr7374783pfm.11.1607151518507;
-        Fri, 04 Dec 2020 22:58:38 -0800 (PST)
+        bh=yJtR5xFkunhGW99GQOAU+TGQjkAsTnnQTxf07zcOvgs=;
+        b=ghpDcIysLxd4Wz/sY2vySiRQ/xl2s7/7exnzI8QR0FjlqotDhWOw8y8sR8FU3b86RO
+         cSuZdADpYZ/CNoOzqKFCkvdpuCA9HS4pMRZnRWK7ZVEN6IZrxynd8g7hRdbLuc0icEh0
+         PnXIN0DEwjkaNkmQkO5ENPvK0gbIrTSFpxg5oqHP/GlB5a5wbROWCiNteeEuVoP/ziEB
+         jMoVNrUxI7OsEDWiJezNGS5f+w+8sIquVCKdBBgzFZeVl4UUatQWAf5zcMgmKX+Z+9xM
+         nZjtAculkP4QKlfq2X+qqlGQWScMLXKkn5NCKiLMZcOMVM777VODgjonTy2ZwCFSub2c
+         6TsQ==
+X-Gm-Message-State: AOAM533CNc97tzo2+UCHLsCsM05+yVbNOHwlCGH67YYpCM6ShtWkQouz
+        abwtuULJlwa6IqHBmQVskDA=
+X-Google-Smtp-Source: ABdhPJzkUWSPz0m3VE8zS2RyFMHsvOwCooTxRUR8sFq0DkwXmyrcWvagfoOGE71yDd28mcnPgNNnig==
+X-Received: by 2002:a17:90b:a53:: with SMTP id gw19mr7522366pjb.216.1607151529339;
+        Fri, 04 Dec 2020 22:58:49 -0800 (PST)
 Received: from bobo.ozlabs.ibm.com ([1.129.145.238])
-        by smtp.gmail.com with ESMTPSA id a14sm1110848pfl.141.2020.12.04.22.58.33
+        by smtp.gmail.com with ESMTPSA id a14sm1110848pfl.141.2020.12.04.22.58.44
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 04 Dec 2020 22:58:38 -0800 (PST)
+        Fri, 04 Dec 2020 22:58:49 -0800 (PST)
 From:   Nicholas Piggin <npiggin@gmail.com>
 To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
 Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
@@ -65,9 +65,9 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
         Christoph Hellwig <hch@infradead.org>,
         Christophe Leroy <christophe.leroy@csgroup.eu>,
         Rick Edgecombe <rick.p.edgecombe@intel.com>
-Subject: [PATCH v9 10/12] mm/vmalloc: add vmap_range_noflush variant
-Date:   Sat,  5 Dec 2020 16:57:23 +1000
-Message-Id: <20201205065725.1286370-11-npiggin@gmail.com>
+Subject: [PATCH v9 12/12] powerpc/64s/radix: Enable huge vmalloc mappings
+Date:   Sat,  5 Dec 2020 16:57:25 +1000
+Message-Id: <20201205065725.1286370-13-npiggin@gmail.com>
 X-Mailer: git-send-email 2.23.0
 In-Reply-To: <20201205065725.1286370-1-npiggin@gmail.com>
 References: <20201205065725.1286370-1-npiggin@gmail.com>
@@ -77,55 +77,63 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-As a side-effect, the order of flush_cache_vmap() and
-arch_sync_kernel_mappings() calls are switched, but that now matches
-the other callers in this file.
-
+Cc: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- mm/vmalloc.c | 16 +++++++++++++---
- 1 file changed, 13 insertions(+), 3 deletions(-)
+ Documentation/admin-guide/kernel-parameters.txt |  2 ++
+ arch/powerpc/Kconfig                            |  1 +
+ arch/powerpc/kernel/module.c                    | 13 +++++++++++--
+ 3 files changed, 14 insertions(+), 2 deletions(-)
 
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 2f236aeeac24..ee9c3bee67f5 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -235,7 +235,7 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end,
- 	return 0;
- }
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 44fde25bb221..3538c750c583 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -3220,6 +3220,8 @@
  
--int vmap_range(unsigned long addr, unsigned long end,
-+static int vmap_range_noflush(unsigned long addr, unsigned long end,
- 			phys_addr_t phys_addr, pgprot_t prot,
- 			unsigned int max_page_shift)
+ 	nohugeiomap	[KNL,X86,PPC,ARM64] Disable kernel huge I/O mappings.
+ 
++	nohugevmalloc	[PPC] Disable kernel huge vmalloc mappings.
++
+ 	nosmt		[KNL,S390] Disable symmetric multithreading (SMT).
+ 			Equivalent to smt=1.
+ 
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index e9f13fe08492..ae10381dd324 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -178,6 +178,7 @@ config PPC
+ 	select GENERIC_TIME_VSYSCALL
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select HAVE_ARCH_HUGE_VMAP		if PPC_BOOK3S_64 && PPC_RADIX_MMU
++	select HAVE_ARCH_HUGE_VMALLOC		if HAVE_ARCH_HUGE_VMAP
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select HAVE_ARCH_KASAN			if PPC32 && PPC_PAGE_SHIFT <= 14
+ 	select HAVE_ARCH_KASAN_VMALLOC		if PPC32 && PPC_PAGE_SHIFT <= 14
+diff --git a/arch/powerpc/kernel/module.c b/arch/powerpc/kernel/module.c
+index a211b0253cdb..bc2695eeeb4c 100644
+--- a/arch/powerpc/kernel/module.c
++++ b/arch/powerpc/kernel/module.c
+@@ -92,8 +92,17 @@ void *module_alloc(unsigned long size)
  {
-@@ -257,14 +257,24 @@ int vmap_range(unsigned long addr, unsigned long end,
- 			break;
- 	} while (pgd++, phys_addr += (next - addr), addr = next, addr != end);
+ 	BUILD_BUG_ON(TASK_SIZE > MODULES_VADDR);
  
--	flush_cache_vmap(start, end);
--
- 	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
- 		arch_sync_kernel_mappings(start, end);
- 
- 	return err;
+-	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END, GFP_KERNEL,
+-				    PAGE_KERNEL_EXEC, VM_FLUSH_RESET_PERMS, NUMA_NO_NODE,
++	/*
++	 * Don't do huge page allocations for modules yet until more testing
++	 * is done. STRICT_MODULE_RWX may require extra work to support this
++	 * too.
++	 */
++
++	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
++				    GFP_KERNEL,
++				    PAGE_KERNEL_EXEC,
++				    VM_NOHUGE | VM_FLUSH_RESET_PERMS,
++				    NUMA_NO_NODE,
+ 				    __builtin_return_address(0));
  }
- 
-+int vmap_range(unsigned long addr, unsigned long end,
-+			phys_addr_t phys_addr, pgprot_t prot,
-+			unsigned int max_page_shift)
-+{
-+	int err;
-+
-+	err = vmap_range_noflush(addr, end, phys_addr, prot, max_page_shift);
-+	flush_cache_vmap(addr, end);
-+
-+	return err;
-+}
-+
- static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
- 			     pgtbl_mod_mask *mask)
- {
+ #endif
 -- 
 2.23.0
 
