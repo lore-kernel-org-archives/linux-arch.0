@@ -6,18 +6,18 @@ X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 98CCEC3526C
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C1837C47435
 	for <linux-arch@archiver.kernel.org>; Tue,  8 Dec 2020 13:30:44 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7439E23AA8
+	by mail.kernel.org (Postfix) with ESMTP id AC14623AA8
 	for <linux-arch@archiver.kernel.org>; Tue,  8 Dec 2020 13:30:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729474AbgLHNaU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1729462AbgLHNaU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Tue, 8 Dec 2020 08:30:20 -0500
-Received: from mail.kernel.org ([198.145.29.99]:49434 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:49580 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728786AbgLHNaQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 8 Dec 2020 08:30:16 -0500
+        id S1726080AbgLHNaT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 8 Dec 2020 08:30:19 -0500
 From:   Will Deacon <will@kernel.org>
 Authentication-Results: mail.kernel.org; dkim=permerror (bad message/signature format)
 To:     linux-arm-kernel@lists.infradead.org
@@ -37,9 +37,9 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         Juri Lelli <juri.lelli@redhat.com>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         kernel-team@android.com
-Subject: [PATCH v5 09/15] sched: Reject CPU affinity changes based on task_cpu_possible_mask()
-Date:   Tue,  8 Dec 2020 13:28:29 +0000
-Message-Id: <20201208132835.6151-10-will@kernel.org>
+Subject: [PATCH v5 11/15] arm64: Implement task_cpu_possible_mask()
+Date:   Tue,  8 Dec 2020 13:28:31 +0000
+Message-Id: <20201208132835.6151-12-will@kernel.org>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20201208132835.6151-1-will@kernel.org>
 References: <20201208132835.6151-1-will@kernel.org>
@@ -49,40 +49,39 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Reject explicit requests to change the affinity mask of a task via
-set_cpus_allowed_ptr() if the requested mask is not a subset of the
-mask returned by task_cpu_possible_mask(). This ensures that the
-'cpus_mask' for a given task cannot contain CPUs which are incapable of
-executing it, except in cases where the affinity is forced.
+Provide an implementation of task_cpu_possible_mask() so that we can
+prevent 64-bit-only cores being added to the 'cpus_mask' for compat
+tasks on systems with mismatched 32-bit support at EL0,
 
-Reviewed-by: Quentin Perret <qperret@google.com>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- kernel/sched/core.c | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/arm64/include/asm/mmu_context.h | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 58474569a2ea..92ac3e53f50a 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -1875,6 +1875,7 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
- 				  const struct cpumask *new_mask, bool check)
- {
- 	const struct cpumask *cpu_valid_mask = cpu_active_mask;
-+	const struct cpumask *cpu_allowed_mask = task_cpu_possible_mask(p);
- 	unsigned int dest_cpu;
- 	struct rq_flags rf;
- 	struct rq *rq;
-@@ -1888,6 +1889,9 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
- 		 * Kernel threads are allowed on online && !active CPUs
- 		 */
- 		cpu_valid_mask = cpu_online_mask;
-+	} else if (!cpumask_subset(new_mask, cpu_allowed_mask)) {
-+		ret = -EINVAL;
-+		goto out;
- 	}
+diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/asm/mmu_context.h
+index 0672236e1aea..a5c917fa49aa 100644
+--- a/arch/arm64/include/asm/mmu_context.h
++++ b/arch/arm64/include/asm/mmu_context.h
+@@ -251,6 +251,19 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
+ #define deactivate_mm(tsk,mm)	do { } while (0)
+ #define activate_mm(prev,next)	switch_mm(prev, next, current)
  
- 	/*
++static inline const struct cpumask *
++task_cpu_possible_mask(struct task_struct *p)
++{
++	if (!static_branch_unlikely(&arm64_mismatched_32bit_el0))
++		return cpu_possible_mask;
++
++	if (!is_compat_thread(task_thread_info(p)))
++		return cpu_possible_mask;
++
++	return system_32bit_el0_cpumask();
++}
++#define task_cpu_possible_mask	task_cpu_possible_mask
++
+ void verify_cpu_asid_bits(void);
+ void post_ttbr_update_workaround(void);
+ 
 -- 
 2.29.2.576.ga3fc446d84-goog
 
