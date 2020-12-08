@@ -3,21 +3,21 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
 X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
-	USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 09E5AC19437
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5C623C1B0D9
 	for <linux-arch@archiver.kernel.org>; Tue,  8 Dec 2020 13:30:43 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CB63523AA9
-	for <linux-arch@archiver.kernel.org>; Tue,  8 Dec 2020 13:30:42 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2E7B223A79
+	for <linux-arch@archiver.kernel.org>; Tue,  8 Dec 2020 13:30:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729419AbgLHNaO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 8 Dec 2020 08:30:14 -0500
-Received: from mail.kernel.org ([198.145.29.99]:49188 "EHLO mail.kernel.org"
+        id S1729463AbgLHNaU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 8 Dec 2020 08:30:20 -0500
+Received: from mail.kernel.org ([198.145.29.99]:49582 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728786AbgLHNaO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 8 Dec 2020 08:30:14 -0500
+        id S1729461AbgLHNaT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 8 Dec 2020 08:30:19 -0500
 From:   Will Deacon <will@kernel.org>
 Authentication-Results: mail.kernel.org; dkim=permerror (bad message/signature format)
 To:     linux-arm-kernel@lists.infradead.org
@@ -37,9 +37,9 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         Juri Lelli <juri.lelli@redhat.com>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         kernel-team@android.com
-Subject: [PATCH v5 07/15] cpuset: Don't use the cpu_possible_mask as a last resort for cgroup v1
-Date:   Tue,  8 Dec 2020 13:28:27 +0000
-Message-Id: <20201208132835.6151-8-will@kernel.org>
+Subject: [PATCH v5 12/15] arm64: exec: Adjust affinity for compat tasks with mismatched 32-bit EL0
+Date:   Tue,  8 Dec 2020 13:28:32 +0000
+Message-Id: <20201208132835.6151-13-will@kernel.org>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20201208132835.6151-1-will@kernel.org>
 References: <20201208132835.6151-1-will@kernel.org>
@@ -49,41 +49,42 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-If the scheduler cannot find an allowed CPU for a task,
-cpuset_cpus_allowed_fallback() will widen the affinity to cpu_possible_mask
-if cgroup v1 is in use.
+When exec'ing a 32-bit task on a system with mismatched support for
+32-bit EL0, try to ensure that it starts life on a CPU that can actually
+run it.
 
-In preparation for allowing architectures to provide their own fallback
-mask, just return early if we're not using cgroup v2 and allow
-select_fallback_rq() to figure out the mask by itself.
-
-Cc: Li Zefan <lizefan@huawei.com>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Johannes Weiner <hannes@cmpxchg.org>
 Reviewed-by: Quentin Perret <qperret@google.com>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- kernel/cgroup/cpuset.c | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ arch/arm64/kernel/process.c | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
 
-diff --git a/kernel/cgroup/cpuset.c b/kernel/cgroup/cpuset.c
-index 57b5b5d0a5fd..e970737c3ed2 100644
---- a/kernel/cgroup/cpuset.c
-+++ b/kernel/cgroup/cpuset.c
-@@ -3299,9 +3299,11 @@ void cpuset_cpus_allowed(struct task_struct *tsk, struct cpumask *pmask)
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index 9a2532d848f0..da313b738c7c 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -633,8 +633,20 @@ void arch_setup_new_exec(void)
  
- void cpuset_cpus_allowed_fallback(struct task_struct *tsk)
- {
-+	if (!is_in_v2_mode())
-+		return; /* select_fallback_rq will try harder */
+ 	if (is_compat_task()) {
+ 		mmflags = MMCF_AARCH32;
+-		if (static_branch_unlikely(&arm64_mismatched_32bit_el0))
 +
- 	rcu_read_lock();
--	do_set_cpus_allowed(tsk, is_in_v2_mode() ?
--		task_cs(tsk)->cpus_allowed : cpu_possible_mask);
-+	do_set_cpus_allowed(tsk, task_cs(tsk)->cpus_allowed);
- 	rcu_read_unlock();
++		/*
++		 * Restrict the CPU affinity mask for a 32-bit task so that
++		 * it contains only 32-bit-capable CPUs.
++		 *
++		 * From the perspective of the task, this looks similar to
++		 * what would happen if the 64-bit-only CPUs were hot-unplugged
++		 * at the point of execve(), although we try a bit harder to
++		 * honour the cpuset hierarchy.
++		 */
++		if (static_branch_unlikely(&arm64_mismatched_32bit_el0)) {
++			force_compatible_cpus_allowed_ptr(current);
+ 			set_tsk_thread_flag(current, TIF_NOTIFY_RESUME);
++		}
+ 	}
  
- 	/*
+ 	current->mm->context.flags = mmflags;
 -- 
 2.29.2.576.ga3fc446d84-goog
 
