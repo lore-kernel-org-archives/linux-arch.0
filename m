@@ -2,29 +2,30 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A3527C4361B
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 15:58:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 31141C433FE
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 15:59:00 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6B42023B51
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 15:58:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E63A723B52
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 15:58:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730441AbgLIP5j (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Dec 2020 10:57:39 -0500
-Received: from david.siemens.de ([192.35.17.14]:58483 "EHLO david.siemens.de"
+        id S1729674AbgLIP67 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Dec 2020 10:58:59 -0500
+Received: from david.siemens.de ([192.35.17.14]:59031 "EHLO david.siemens.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730402AbgLIP5g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Dec 2020 10:57:36 -0500
+        id S1729303AbgLIP67 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Dec 2020 10:58:59 -0500
 Received: from mail1.siemens.de (mail1.siemens.de [139.23.33.14])
-        by david.siemens.de (8.15.2/8.15.2) with ESMTPS id 0B9EbMbS007438
+        by david.siemens.de (8.15.2/8.15.2) with ESMTPS id 0B9EbS7n007624
         (version=TLSv1.2 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Wed, 9 Dec 2020 15:37:22 +0100
+        Wed, 9 Dec 2020 15:37:28 +0100
 Received: from tsnlaptop.atstm41.nbgm.siemens.de ([144.145.220.34])
-        by mail1.siemens.de (8.15.2/8.15.2) with ESMTP id 0B9EbGp0002581;
-        Wed, 9 Dec 2020 15:37:16 +0100
+        by mail1.siemens.de (8.15.2/8.15.2) with ESMTP id 0B9EbGp2002581;
+        Wed, 9 Dec 2020 15:37:25 +0100
 From:   Erez Geva <erez.geva.ext@siemens.com>
 To:     netdev@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-arch@vger.kernel.org,
@@ -85,86 +86,148 @@ Cc:     Vinicius Costa Gomes <vinicius.gomes@intel.com>,
         Gisela Greinert <gisela.greinert@siemens.com>,
         Erez Geva <erez.geva.ext@siemens.com>,
         Erez Geva <ErezGeva2@gmail.com>
-Subject: [PATCH 0/3] Add sending TX hardware timestamp for TC ETF Qdisc
-Date:   Wed,  9 Dec 2020 15:37:03 +0100
-Message-Id: <20201209143707.13503-1-erez.geva.ext@siemens.com>
+Subject: [PATCH 2/3] Pass TX sending hardware timestamp to a socket's buffer.
+Date:   Wed,  9 Dec 2020 15:37:05 +0100
+Message-Id: <20201209143707.13503-3-erez.geva.ext@siemens.com>
 X-Mailer: git-send-email 2.20.1
+In-Reply-To: <20201209143707.13503-1-erez.geva.ext@siemens.com>
+References: <20201209143707.13503-1-erez.geva.ext@siemens.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add support for TX sending hardware timestamp with
- Traffic control Earliest TxTime First (ETF) Qdisc.
+Pass TX sending hardware timestamp from the socket layer to
+ a socket's buffer. The TC ETC Qdisc will pass it
+ to the interface network driver.
 
-Why do we need additional timestamp?
-Current ETF requires to synchronization the system clock
-to the PTP Hardware clock (PHC) we want to send through.
-But there are cases that we can not synchronize the system clock with
-the desired NIC PHC.
-1. We use several NICs with several PTP domains that our device
-   is not allowed to be PTP master of.
-2. We are using another clock source which we need for our system.
-   Yet our device is not allowed to be PTP master.
+ - Add the hardware timestamp to the IP cork, to support
+   the use of IP/UDP with the TX sending hardware timestamp
+   when sending through the TC ETF Qdisc
+ - Pass the TX sending hardware timestamp to a socket's buffer
+   using the hardware timestamp on the socket's buffer shared information.
 
-Regardless of the exact topology, as the Linux tradition is to allow
-the user the freedom to choose,
-we propose a patch that will add a hardware timestamp to the packet.
-The TC-ETF will use the first timestamp and compare it with
-the system clock while send the packet to the network interface driver
-with that hardware timestamp that is correlated with the PHC.
+ Note: The socket buffer's hardware timestamp is used by
+       the network interface driver to send the actual sending timestamp
+       back to the application.
+       The timestamp is used by the TC ETF before the buffer
+       arrives in the network interface driver.
 
-Note 1: we do encourage the users to synchronize the system clock with
-  a PTP clock. Synchronizing the system clock with a PTP clock will
-  reduce the frequency difference of the PHC and the system clock,
-  increase the accurecy and may enable the user to reduce the ETF delta.
+Signed-off-by: Erez Geva <erez.geva.ext@siemens.com>
+---
+ include/net/inet_sock.h | 1 +
+ net/ipv4/ip_output.c    | 2 ++
+ net/ipv4/raw.c          | 1 +
+ net/ipv6/ip6_output.c   | 2 ++
+ net/ipv6/raw.c          | 1 +
+ net/packet/af_packet.c  | 3 +++
+ 6 files changed, 10 insertions(+)
 
-Note 2: In our network usage models sending a frame has to be very
-  precise in relation to the PHC. Our user application does have
-  the exact send time as of PHC perspective so it is able
-  to provide the hw timestamp.
-
-Note 3: The user can estimate the clocks conversion error done
-  in the user application and add it to the delta setting of the ETF.
-
-The patches contain:
- 1. A new flag for the SO_TXTIME socket option.
- 2. A new cmsg header, SCM_HW_TXTIME to pass the TX hardware timestamp.
- 3. Add the hardware timestamp to the socket cookie and to the inet cork.
- 4. As ETF Qdisc is irrelevant to TCP, ignore the TCP.
- 5. A new flag to the ETF Qdisc setting that mandate
-    the use of the hardware timestamp in the SKB.
- 6. The ETF sort packets according to hardware timestamp,
-    Yet pass the packet to network interface driver based
-    on the system clock timestamp.
-
-Note 4: The socket buffer hardware timestamp is used by
-      the network interface driver to send the actual sending timestamp
-      back to the application. The timestamp is used by the TC ETF
-      before the socket buffer arrives in the network interface driver.
-
-Erez Geva (3):
-  Add TX sending hardware timestamp.
-  Pass TX sending hardware timestamp to a socket's buffer.
-  The TC ETF Qdisc pass the hardware timestamp to the interface driver.
-
- include/net/inet_sock.h           |  1 +
- include/net/sock.h                |  2 ++
- include/uapi/asm-generic/socket.h |  3 ++
- include/uapi/linux/net_tstamp.h   |  3 +-
- include/uapi/linux/pkt_sched.h    |  1 +
- net/core/sock.c                   |  9 +++++
- net/ipv4/ip_output.c              |  2 ++
- net/ipv4/raw.c                    |  1 +
- net/ipv6/ip6_output.c             |  2 ++
- net/ipv6/raw.c                    |  1 +
- net/packet/af_packet.c            |  3 ++
- net/sched/sch_etf.c               | 59 +++++++++++++++++++++++++------
- 12 files changed, 75 insertions(+), 12 deletions(-)
-
-
-base-commit: b65054597872ce3aefbc6a666385eabdf9e288da
+diff --git a/include/net/inet_sock.h b/include/net/inet_sock.h
+index 89163ef8cf4b..e74e8dabf63d 100644
+--- a/include/net/inet_sock.h
++++ b/include/net/inet_sock.h
+@@ -160,6 +160,7 @@ struct inet_cork {
+ 	char			priority;
+ 	__u16			gso_size;
+ 	u64			transmit_time;
++	u64			transmit_hw_time;
+ 	u32			mark;
+ };
+ 
+diff --git a/net/ipv4/ip_output.c b/net/ipv4/ip_output.c
+index 879b76ae4435..416598c864e3 100644
+--- a/net/ipv4/ip_output.c
++++ b/net/ipv4/ip_output.c
+@@ -1282,6 +1282,7 @@ static int ip_setup_cork(struct sock *sk, struct inet_cork *cork,
+ 	cork->mark = ipc->sockc.mark;
+ 	cork->priority = ipc->priority;
+ 	cork->transmit_time = ipc->sockc.transmit_time;
++	cork->transmit_hw_time = ipc->sockc.transmit_hw_time;
+ 	cork->tx_flags = 0;
+ 	sock_tx_timestamp(sk, ipc->sockc.tsflags, &cork->tx_flags);
+ 
+@@ -1545,6 +1546,7 @@ struct sk_buff *__ip_make_skb(struct sock *sk,
+ 	skb->priority = (cork->tos != -1) ? cork->priority: sk->sk_priority;
+ 	skb->mark = cork->mark;
+ 	skb->tstamp = cork->transmit_time;
++	skb_hwtstamps(skb)->hwtstamp = ns_to_ktime(cork->transmit_hw_time);
+ 	/*
+ 	 * Steal rt from cork.dst to avoid a pair of atomic_inc/atomic_dec
+ 	 * on dst refcount
+diff --git a/net/ipv4/raw.c b/net/ipv4/raw.c
+index 7d26e0f8bdae..213a47fb2df8 100644
+--- a/net/ipv4/raw.c
++++ b/net/ipv4/raw.c
+@@ -378,6 +378,7 @@ static int raw_send_hdrinc(struct sock *sk, struct flowi4 *fl4,
+ 	skb->priority = sk->sk_priority;
+ 	skb->mark = sockc->mark;
+ 	skb->tstamp = sockc->transmit_time;
++	skb_hwtstamps(skb)->hwtstamp = ns_to_ktime(sockc->transmit_hw_time);
+ 	skb_dst_set(skb, &rt->dst);
+ 	*rtp = NULL;
+ 
+diff --git a/net/ipv6/ip6_output.c b/net/ipv6/ip6_output.c
+index 749ad72386b2..8cff05f5aa8a 100644
+--- a/net/ipv6/ip6_output.c
++++ b/net/ipv6/ip6_output.c
+@@ -1375,6 +1375,7 @@ static int ip6_setup_cork(struct sock *sk, struct inet_cork_full *cork,
+ 	cork->base.length = 0;
+ 
+ 	cork->base.transmit_time = ipc6->sockc.transmit_time;
++	cork->base.transmit_hw_time = ipc6->sockc.transmit_hw_time;
+ 
+ 	return 0;
+ }
+@@ -1841,6 +1842,7 @@ struct sk_buff *__ip6_make_skb(struct sock *sk,
+ 	skb->mark = cork->base.mark;
+ 
+ 	skb->tstamp = cork->base.transmit_time;
++	skb_hwtstamps(skb)->hwtstamp = ns_to_ktime(cork->base.transmit_hw_time);
+ 
+ 	skb_dst_set(skb, dst_clone(&rt->dst));
+ 	IP6_UPD_PO_STATS(net, rt->rt6i_idev, IPSTATS_MIB_OUT, skb->len);
+diff --git a/net/ipv6/raw.c b/net/ipv6/raw.c
+index 6e4ab80a3b94..417f21867782 100644
+--- a/net/ipv6/raw.c
++++ b/net/ipv6/raw.c
+@@ -648,6 +648,7 @@ static int rawv6_send_hdrinc(struct sock *sk, struct msghdr *msg, int length,
+ 	skb->priority = sk->sk_priority;
+ 	skb->mark = sockc->mark;
+ 	skb->tstamp = sockc->transmit_time;
++	skb_hwtstamps(skb)->hwtstamp = ns_to_ktime(sockc->transmit_hw_time);
+ 
+ 	skb_put(skb, length);
+ 	skb_reset_network_header(skb);
+diff --git a/net/packet/af_packet.c b/net/packet/af_packet.c
+index 7a18ffff8551..c762d5bcecc2 100644
+--- a/net/packet/af_packet.c
++++ b/net/packet/af_packet.c
+@@ -1986,6 +1986,7 @@ static int packet_sendmsg_spkt(struct socket *sock, struct msghdr *msg,
+ 	skb->priority = sk->sk_priority;
+ 	skb->mark = sk->sk_mark;
+ 	skb->tstamp = sockc.transmit_time;
++	skb_hwtstamps(skb)->hwtstamp = ns_to_ktime(sockc.transmit_hw_time);
+ 
+ 	skb_setup_tx_timestamp(skb, sockc.tsflags);
+ 
+@@ -2500,6 +2501,7 @@ static int tpacket_fill_skb(struct packet_sock *po, struct sk_buff *skb,
+ 	skb->priority = po->sk.sk_priority;
+ 	skb->mark = po->sk.sk_mark;
+ 	skb->tstamp = sockc->transmit_time;
++	skb_hwtstamps(skb)->hwtstamp = ns_to_ktime(sockc->transmit_hw_time);
+ 	skb_setup_tx_timestamp(skb, sockc->tsflags);
+ 	skb_zcopy_set_nouarg(skb, ph.raw);
+ 
+@@ -2975,6 +2977,7 @@ static int packet_snd(struct socket *sock, struct msghdr *msg, size_t len)
+ 	skb->priority = sk->sk_priority;
+ 	skb->mark = sockc.mark;
+ 	skb->tstamp = sockc.transmit_time;
++	skb_hwtstamps(skb)->hwtstamp = ns_to_ktime(sockc.transmit_hw_time);
+ 
+ 	if (has_vnet_hdr) {
+ 		err = virtio_net_hdr_to_skb(skb, &vnet_hdr, vio_le());
 -- 
 2.20.1
 
