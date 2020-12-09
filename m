@@ -2,113 +2,128 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2174BC19425
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 09:21:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 92E9AC433FE
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 11:11:26 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id DCC2A23B6B
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 09:21:08 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3EBB9233A1
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 11:11:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728994AbgLIJUs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Dec 2020 04:20:48 -0500
-Received: from mail.kernel.org ([198.145.29.99]:46210 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728168AbgLIJUn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Dec 2020 04:20:43 -0500
-X-Gm-Message-State: AOAM531J7Vg2u3e+CBbPAenvEGJyNqC8iDKRrnvpUX2SnKx7dTPh5H8g
-        dh9avPGHi+9OQW0Tjk25o6W1etXtw4fXqm8t5tI=
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1607505602;
-        bh=sq+XLLMMI02zOMjuS3XQlCpve1fu802tRE6ExZV+b3g=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=mz1eKySbhCwGkbLV5t4HHdidZSNRp8ep2zj81vQ3dh0zvGWrkZC0vdC/U4Z5jPmAH
-         RsnTv6T8UkgUu3/DI8noayHdoA5IW63jffV5Yigv6x4ThqUS8S8XXZBgjRo6/2V22P
-         Neet2n07dy7/2tSKL+VrUxyP820lngLG2tooHpd+2HtBgqaq710EfFpFaqc523AR0p
-         aKPqdimRV+XlnE7kRLf2ZjBWup+qF8eoxeo74A3Zu9WXLDv+QFuqON9l++c0Zo8DMI
-         XEzYRXAuANnx15CcJncBhcD2Qvq/D17T937D5R9aqTdMwgRshpTexvfuqVGmqAwMey
-         nLGve9ysgUwXw==
-X-Google-Smtp-Source: ABdhPJzy1WH7QEwYKyjZFMswZieiJpvEKVPf4nSKGRTcgXdAouLHKE27qdaJY2tvlSq5f0mibXd6i944QYu2cZlqE1k=
-X-Received: by 2002:aca:44d:: with SMTP id 74mr1104225oie.4.1607505601280;
- Wed, 09 Dec 2020 01:20:01 -0800 (PST)
+        id S1730180AbgLILLZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Dec 2020 06:11:25 -0500
+Received: from mout.kundenserver.de ([217.72.192.73]:51103 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729951AbgLILLZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Dec 2020 06:11:25 -0500
+Received: from [192.168.1.155] ([77.2.91.93]) by mrelayeu.kundenserver.de
+ (mreue108 [212.227.15.183]) with ESMTPSA (Nemesis) id
+ 1MulyX-1jwv380R1P-00rlHc; Wed, 09 Dec 2020 12:08:53 +0100
+To:     "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        linux-arch@vger.kernel.org, linux-usb@vger.kernel.org,
+        stern@rowland.harvard.edu
+From:   "Enrico Weigelt, metux IT consult" <info@metux.net>
+Subject: RFC: arch: shall we have generic readl_be()/writel_be()/... or
+ in_be32()/out_be32() ?
+Message-ID: <da9cb964-18a7-bff1-1249-b0df24daa05e@metux.net>
+Date:   Wed, 9 Dec 2020 12:08:51 +0100
+User-Agent: Mozilla/5.0 (X11; Linux i686 on x86_64; rv:68.0) Gecko/20100101
+ Thunderbird/68.12.0
 MIME-Version: 1.0
-References: <20201201213707.541432-1-samitolvanen@google.com>
- <CAK8P3a1WEAo2SEgKUEs3SB7n7QeeHa0=cx_nO==rDK0jjDArow@mail.gmail.com>
- <CABCJKueCHo2RYfx_A21m+=d1gQLR9QsOOxCsHFeicCqyHkb-Kg@mail.gmail.com> <20201209045554.fxlzrmxknakl2gdr@google.com>
-In-Reply-To: <20201209045554.fxlzrmxknakl2gdr@google.com>
-From:   Arnd Bergmann <arnd@kernel.org>
-Date:   Wed, 9 Dec 2020 10:19:44 +0100
-X-Gmail-Original-Message-ID: <CAK8P3a1p8yKMKXB1cUpy-5PjehJGPX0SPNEx4VsMmqgOeR6fZg@mail.gmail.com>
-Message-ID: <CAK8P3a1p8yKMKXB1cUpy-5PjehJGPX0SPNEx4VsMmqgOeR6fZg@mail.gmail.com>
-Subject: Re: [PATCH v8 00/16] Add support for Clang LTO
-To:     Fangrui Song <maskray@google.com>
-Cc:     Sami Tolvanen <samitolvanen@google.com>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Will Deacon <will@kernel.org>,
-        Josh Poimboeuf <jpoimboe@redhat.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        clang-built-linux <clang-built-linux@googlegroups.com>,
-        Kernel Hardening <kernel-hardening@lists.openwall.com>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        linux-pci <linux-pci@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Language: tl
+Content-Transfer-Encoding: 8bit
+X-Provags-ID: V03:K1:NeeEluc1dgyWIOb+oZp0crg/UcTSy3+6IkLzN1fzggvaaZpoByf
+ PplFI1sHeZu9TPPYijNtxBaxj4PF7RgT+GMnS0muoGxvXdOzKA11/MGckZltQCLMs7LOKgm
+ ucURQrXZDt3QuyHne6aFS1AunvGiqIj9mXg2y7w6B+DzDDGektuLu5X8yTfU0o31WbB4pJK
+ 0ZyQUbIx/8DIAHCXgVcWA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:14Aufr6ugO4=:SPFyjCMRZJ4zAE5q2tFCue
+ Dz+MdUnk+HWTWiGUMyqipNa8nW3R/kvCY3/XamWinP8k9FeWZ4PmGke7s0A8cIz3PvRvqSZom
+ QLtvzoc+jVPFK4DO9C+Cq0bcgAdNFtadXwtMjWp/OqIbtM1Q+flNemjYDXE5+Vy6RhllQqBQ2
+ 6eKqGZyNU6U7n4MQww8m38aRMTCPsmW2PR/w4rY0tBY0KdVTyTT8Rm3++JQKn7a0M+Jj/TnR9
+ NVADLycZ1gZsHACwJZED5gijvFvGs1YPSv4TUrhdoo7YhUXt40TUysNENBSEdFQWi67DvGbMB
+ Bx1KHZEe6j13bGSuyOb850xxGEgTD8Dl8ilCRI0xvr5PjppqE6tIeJja1hQOAvvWiDTIeJCY9
+ NDJo3UOIPSYiJV2Boo93FV3bG+eU+JVuApy8MIF/h9s+UE8YyyeuTXrSA6gso
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Dec 9, 2020 at 5:56 AM 'Fangrui Song' via Clang Built Linux
-<clang-built-linux@googlegroups.com> wrote:
-> On 2020-12-08, 'Sami Tolvanen' via Clang Built Linux wrote:
-> >On Tue, Dec 8, 2020 at 4:15 AM Arnd Bergmann <arnd@kernel.org> wrote:
-> >> So far I have
-> >> not managed to get a working build out of it, the main problem so far being
-> >> that it is really slow to build because the link stage only uses one CPU.
-> >> These are the other issues I've seen so far:
->
-> ld.lld ThinLTO uses the number of (physical cores enabled by affinity) by default.
+Hello folks,
 
-Ah, I see.  Do you know if it's also possible to do something like
--flto=jobserver
-to integrate better with the kernel build system?
 
-I tend to run multiple builds under a top-level makefile with 'make
--j30' in order
-to use 30 of the 32 threads and leave the scheduling to jobserver instead of
-the kernel. If the linker itself is multithreaded but the jobserver
-thinks it is a
-single thread, could end up with 30 concurrent linkers each trying to use
-16 cores.
+while trying to make some more drivers compile-test'able, i've
+discovered some arch specific calls in here, eg.:
 
-> >> - CONFIG_CPU_BIG_ENDIAN doesn't seem to work with lld, and LTO
-> >>   doesn't work with ld.bfd.
-> >>   I've added a CPU_LITTLE_ENDIAN dependency to
-> >>   ARCH_SUPPORTS_LTO_CLANG{,THIN}
-> >
-> >Ah, good point. I'll fix this in v9.
->
-> Full/Thin LTO should work with GNU ld and gold with LLVMgold.so built from
-> llvm-project (https://llvm.org/docs/GoldPlugin.html ). You'll need to make sure
-> that LLVMgold.so is newer than clang. (Newer clang may introduce bitcode
-> attributes which are unrecognizable by older LLVMgold.so/ld.lld)
 
-The current patch series requires LLD:
+In file included from
+/home/nekrad/src/apu2-dev/pkg/kernel.apu2.git/drivers/usb/host/ehci-spear.c:23:
+/home/nekrad/src/apu2-dev/pkg/kernel.apu2.git/drivers/usb/host/ehci.h:
+In function 'ehci_readl':
+/home/nekrad/src/apu2-dev/pkg/kernel.apu2.git/drivers/usb/host/ehci.h:743:3:
+error: implicit declaration of function 'readl_be'; did you mean
+'readsb'? [-Werror=implicit-function-declaration]
+  743 |   readl_be(regs) :
+      |   ^~~~~~~~
+      |   readsb
+/home/nekrad/src/apu2-dev/pkg/kernel.apu2.git/drivers/usb/host/ehci.h:
+In function 'ehci_writel':
+/home/nekrad/src/apu2-dev/pkg/kernel.apu2.git/drivers/usb/host/ehci.h:767:3:
+error: implicit declaration of function 'writel_be'; did you mean
+'writesb'? [-Werror=implicit-function-declaration]
+  767 |   writel_be(val, regs) :
+      |   ^~~~~~~~~
+      |   writesb
+In file included from
+/home/nekrad/src/apu2-dev/pkg/kernel.apu2.git/drivers/usb/host/ehci-hcd.c:97:
+/home/nekrad/src/apu2-dev/pkg/kernel.apu2.git/drivers/usb/host/ehci.h:
+In function 'ehci_readl':
+/home/nekrad/src/apu2-dev/pkg/kernel.apu2.git/drivers/usb/host/ehci.h:743:3:
+error: implicit declaration of function 'readl_be'; did you mean
+'readsb'? [-Werror=implicit-function-declaration]
+  743 |   readl_be(regs) :
+      |   ^~~~~~~~
+      |   readsb
+/home/nekrad/src/apu2-dev/pkg/kernel.apu2.git/drivers/usb/host/ehci.h:
+In function 'ehci_writel':
+/home/nekrad/src/apu2-dev/pkg/kernel.apu2.git/drivers/usb/host/ehci.h:767:3:
+error: implicit declaration of function 'writel_be'; did you mean
+'writesb'? [-Werror=implicit-function-declaration]
+  767 |   writel_be(val, regs) :
+      |   ^~~~~~~~~
+      |   writesb
 
-config HAS_LTO_CLANG
-       def_bool y
-       depends on CC_IS_CLANG && CLANG_VERSION >= 110000 && LD_IS_LLD
 
-Is this something we should change then, or try to keep it simple with the
-current approach, leaving LTO disabled for big-endian builds and hosts without
-a working lld?
+It seems that only few archs (microblaze, ppc, sparc) define them.
 
-       Arnd
+Also drivers/usb/host/ehci.h defines them, but only for one particular
+arch/subarch.
+
+IIRC, these funcs are for accessing hw registers that are in BEs, so
+BE cpus can do direct access, while LE cpus need to do a conversion.
+
+OTOH, we also have in_be32() / out_be32. They seem to do quite the same
+thing, referenced much more often, but also just defined on a few archs.
+
+
+I believe we should have generic functions, that all archs implement
+(possibly doing automatic conversion, if necessary), which are used
+by everybody else.
+
+What's your oppionion on that ?
+
+
+thanks,
+
+--mtx
+
+-- 
+---
+Hinweis: unverschlüsselte E-Mails können leicht abgehört und manipuliert
+werden ! Für eine vertrauliche Kommunikation senden Sie bitte ihren
+GPG/PGP-Schlüssel zu.
+---
+Enrico Weigelt, metux IT consult
+Free software and Linux embedded engineering
+info@metux.net -- +49-151-27565287
