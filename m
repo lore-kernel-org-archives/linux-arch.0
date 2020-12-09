@@ -2,420 +2,284 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-21.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
-	USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C2CFBC4361B
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 19:41:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 09AD9C4361B
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 20:20:22 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7BDFD23C91
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 19:41:54 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B736523A22
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 20:20:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1731918AbgLITls (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Dec 2020 14:41:48 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54578 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728588AbgLIT3r (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Dec 2020 14:29:47 -0500
-Received: from smtp-8fa9.mail.infomaniak.ch (smtp-8fa9.mail.infomaniak.ch [IPv6:2001:1600:3:17::8fa9])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BA132C0613D6
-        for <linux-arch@vger.kernel.org>; Wed,  9 Dec 2020 11:28:51 -0800 (PST)
-Received: from smtp-2-0000.mail.infomaniak.ch (unknown [10.5.36.107])
-        by smtp-2-3000.mail.infomaniak.ch (Postfix) with ESMTPS id 4CrnCj6kPCzlhBbm;
-        Wed,  9 Dec 2020 20:28:49 +0100 (CET)
-Received: from localhost (unknown [23.97.221.149])
-        by smtp-2-0000.mail.infomaniak.ch (Postfix) with ESMTPA id 4CrnCh2rLszlppyf;
-        Wed,  9 Dec 2020 20:28:48 +0100 (CET)
-From:   =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-To:     James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>,
-        "Serge E . Hallyn" <serge@hallyn.com>
-Cc:     =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@amacapital.net>,
-        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+        id S1727894AbgLIUTk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Dec 2020 15:19:40 -0500
+Received: from mail-eopbgr40051.outbound.protection.outlook.com ([40.107.4.51]:47778
+        "EHLO EUR03-DB5-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725972AbgLIUT1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Dec 2020 15:19:27 -0500
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=hZ91AHcwyvWKGsueP+FNvQZrPNkRg+DcUeLvX1s1jLU02davvyGcOVHwc9NoXsutzwVv31qGixBNt3tKB+r1wMYnbi31NGN80dMRfUQgmyFbzFfXvLXVVTuZPYZ/+GY47NS3EckS+SzCVM1IMgk799wn2idHkBhcRcESBvDHpQXTg4D+7+efrwFvWt3XeiW8ccEMwkyoPTIANLYox2Tb0gHYwEH3dLXXLDmrljzEjyasATruecmp06bB1I7hg8SjeEpCsKeNhGueS06Fz8TGckUYEK9sF/5gXK81Cb4fQrSDFPsLl//1VWUEceZqyqsW45Xb8OmUP0MabmtXPZQTAA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=NxEBd7tvGe2tOeCLr2Qdmj02Eqy3nOACux4pE2AjU/8=;
+ b=HsUMaaiEMsR8itZfRXKJiVpEmmi8827rAPGNQj3HsKrsGfRNykiviOuw9OmH8RJOsh9Ab41b1TLdFYw5ADVnH+57Nyrcn4qZOK+uwHPdwU72AwXWggqGZcDHdcuMJZ0KR08NebvcsWKZMDDpROOYYQMYSxOT0fzocVwbBd2o1dvNx3VkPJNvVQEONA0tls5fza5E2Kt6Dz3Gm+ky1+vI7sLOhL8ekFeK5q1MZZpUP8CmmKBJQrK4TDNMj4xlAEvIWWP1STBYq/R5bIkDC8cufvup+gADxgsxXFn++lhnI/s2qyv2ZRt7zCjKF3g+T/321e/dGYiGTECuMJB+YoVBlw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=siemens.com; dmarc=pass action=none header.from=siemens.com;
+ dkim=pass header.d=siemens.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=siemens.onmicrosoft.com; s=selector1-siemens-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=NxEBd7tvGe2tOeCLr2Qdmj02Eqy3nOACux4pE2AjU/8=;
+ b=cYfqC7UJ09iTJBLjv+QaCuWdlrK+MS9I8yx8Bjk18k4qo4OiqKV3c7N6ppeb3QmRSWAHotHDIehQpziPv0hyFaJjQ2DKqMfXvoe9b1f45FvJXdR7WO+GnDU2pj8Ss2F5PtRST50cJSPIZyiOdp/e0TGZK6JFCOtqC1yTP2Hhn+s=
+Received: from VI1PR10MB2446.EURPRD10.PROD.OUTLOOK.COM (2603:10a6:803:7c::28)
+ by VI1PR10MB3277.EURPRD10.PROD.OUTLOOK.COM (2603:10a6:803:135::23) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3632.17; Wed, 9 Dec
+ 2020 20:18:42 +0000
+Received: from VI1PR10MB2446.EURPRD10.PROD.OUTLOOK.COM
+ ([fe80::c4f9:99d0:c75:bc2f]) by VI1PR10MB2446.EURPRD10.PROD.OUTLOOK.COM
+ ([fe80::c4f9:99d0:c75:bc2f%7]) with mapi id 15.20.3654.013; Wed, 9 Dec 2020
+ 20:18:42 +0000
+From:   "Geva, Erez" <erez.geva.ext@siemens.com>
+To:     Willem de Bruijn <willemdebruijn.kernel@gmail.com>
+CC:     Network Development <netdev@vger.kernel.org>,
+        linux-kernel <linux-kernel@vger.kernel.org>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>,
         Arnd Bergmann <arnd@arndb.de>,
-        Casey Schaufler <casey@schaufler-ca.com>,
-        Jeff Dike <jdike@addtoit.com>,
-        Jonathan Corbet <corbet@lwn.net>,
+        Cong Wang <xiyou.wangcong@gmail.com>,
+        "David S . Miller" <davem@davemloft.net>,
+        Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>,
+        Jakub Kicinski <kuba@kernel.org>,
+        Jamal Hadi Salim <jhs@mojatatu.com>,
+        Jiri Pirko <jiri@resnulli.us>,
+        Alexei Starovoitov <ast@kernel.org>,
+        Colin Ian King <colin.king@canonical.com>,
+        Daniel Borkmann <daniel@iogearbox.net>,
+        Eric Dumazet <edumazet@google.com>,
+        Eyal Birger <eyal.birger@gmail.com>,
+        "Gustavo A . R . Silva" <gustavoars@kernel.org>,
+        Jakub Sitnicki <jakub@cloudflare.com>,
+        John Ogness <john.ogness@linutronix.de>,
+        Jon Rosen <jrosen@cisco.com>,
         Kees Cook <keescook@chromium.org>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Richard Weinberger <richard@nod.at>,
-        Shuah Khan <shuah@kernel.org>,
-        Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>,
-        kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
-        linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-kselftest@vger.kernel.org,
-        linux-security-module@vger.kernel.org, x86@kernel.org,
-        =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@linux.microsoft.com>
-Subject: [PATCH v26 01/12] landlock: Add object management
-Date:   Wed,  9 Dec 2020 20:28:28 +0100
-Message-Id: <20201209192839.1396820-2-mic@digikod.net>
-X-Mailer: git-send-email 2.29.2
-In-Reply-To: <20201209192839.1396820-1-mic@digikod.net>
-References: <20201209192839.1396820-1-mic@digikod.net>
+        Marc Kleine-Budde <mkl@pengutronix.de>,
+        Martin KaFai Lau <kafai@fb.com>,
+        Matthieu Baerts <matthieu.baerts@tessares.net>,
+        Andrei Vagin <avagin@gmail.com>,
+        Dmitry Safonov <0x7f454c46@gmail.com>,
+        "Eric W . Biederman" <ebiederm@xmission.com>,
+        Ingo Molnar <mingo@kernel.org>,
+        John Stultz <john.stultz@linaro.org>,
+        Miaohe Lin <linmiaohe@huawei.com>,
+        Michal Kubecek <mkubecek@suse.cz>,
+        Or Cohen <orcohen@paloaltonetworks.com>,
+        Oleg Nesterov <oleg@redhat.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Richard Cochran <richardcochran@gmail.com>,
+        Stefan Schmidt <stefan@datenfreihafen.org>,
+        Xie He <xie.he.0141@gmail.com>,
+        Stephen Boyd <sboyd@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Vladis Dronov <vdronov@redhat.com>,
+        Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+        Frederic Weisbecker <frederic@kernel.org>,
+        Vinicius Costa Gomes <vinicius.gomes@intel.com>,
+        Vedang Patel <vedang.patel@intel.com>,
+        "Molzahn, Ines" <ines.molzahn@siemens.com>,
+        "Sudler, Simon" <simon.sudler@siemens.com>,
+        "Meisinger, Andreas" <andreas.meisinger@siemens.com>,
+        "Bucher, Andreas" <andreas.bucher@siemens.com>,
+        "henning.schild@siemens.com" <henning.schild@siemens.com>,
+        "jan.kiszka@siemens.com" <jan.kiszka@siemens.com>,
+        "Zirkler, Andreas" <andreas.zirkler@siemens.com>,
+        "Sakic, Ermin" <ermin.sakic@siemens.com>,
+        "anninh.nguyen@siemens.com" <anninh.nguyen@siemens.com>,
+        "Saenger, Michael" <michael.saenger@siemens.com>,
+        "Maehringer, Bernd" <bernd.maehringer@siemens.com>,
+        "gisela.greinert@siemens.com" <gisela.greinert@siemens.com>,
+        Erez Geva <ErezGeva2@gmail.com>
+Subject: Re: [PATCH 1/3] Add TX sending hardware timestamp.
+Thread-Topic: [PATCH 1/3] Add TX sending hardware timestamp.
+Thread-Index: AQHWzjjS+JtwwiLyJkKEw3ObDmZ1g6nu2GGAgAAIlICAACaHgIAAFaqA
+Date:   Wed, 9 Dec 2020 20:18:42 +0000
+Message-ID: <VI1PR10MB2446ACEACAE1F3671682407FABCC0@VI1PR10MB2446.EURPRD10.PROD.OUTLOOK.COM>
+References: <20201209143707.13503-1-erez.geva.ext@siemens.com>
+ <20201209143707.13503-2-erez.geva.ext@siemens.com>
+ <CA+FuTScWkYn0Ur+aSuz1cREbQJO0fB6powOm8PFxze4v8JwBaw@mail.gmail.com>
+ <VI1PR10MB244654C4B42E47DB5EBE0B05ABCC0@VI1PR10MB2446.EURPRD10.PROD.OUTLOOK.COM>
+ <CA+FuTSd7oB0qO707W6htvs=FOJn10cgSQ4_iGFz4Sk9URXtZiw@mail.gmail.com>
+In-Reply-To: <CA+FuTSd7oB0qO707W6htvs=FOJn10cgSQ4_iGFz4Sk9URXtZiw@mail.gmail.com>
+Accept-Language: en-GB, en-DE, he-IL, en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+msip_labels: MSIP_Label_a59b6cd5-d141-4a33-8bf1-0ca04484304f_Enabled=true;
+ MSIP_Label_a59b6cd5-d141-4a33-8bf1-0ca04484304f_SetDate=2020-12-09T20:18:39Z;
+ MSIP_Label_a59b6cd5-d141-4a33-8bf1-0ca04484304f_Method=Standard;
+ MSIP_Label_a59b6cd5-d141-4a33-8bf1-0ca04484304f_Name=restricted-default;
+ MSIP_Label_a59b6cd5-d141-4a33-8bf1-0ca04484304f_SiteId=38ae3bcd-9579-4fd4-adda-b42e1495d55a;
+ MSIP_Label_a59b6cd5-d141-4a33-8bf1-0ca04484304f_ActionId=eae03ecb-24cb-4829-918f-ef7d28c5c1f5;
+ MSIP_Label_a59b6cd5-d141-4a33-8bf1-0ca04484304f_ContentBits=0
+document_confidentiality: Restricted
+authentication-results: gmail.com; dkim=none (message not signed)
+ header.d=none;gmail.com; dmarc=none action=none header.from=siemens.com;
+x-originating-ip: [165.225.26.246]
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-ht: Tenant
+x-ms-office365-filtering-correlation-id: d77a14db-569e-40a2-e265-08d89c7f9fa0
+x-ms-traffictypediagnostic: VI1PR10MB3277:
+x-ld-processed: 38ae3bcd-9579-4fd4-adda-b42e1495d55a,ExtAddr
+x-ms-exchange-transport-forked: True
+x-microsoft-antispam-prvs: <VI1PR10MB32774E0833A088019BD0D354ABCC0@VI1PR10MB3277.EURPRD10.PROD.OUTLOOK.COM>
+x-ms-oob-tlc-oobclassifiers: OLM:8882;
+x-ms-exchange-senderadcheck: 1
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info: jcaM/U8qXpcfpv6/u68IMySPmiuKuV01UA61BolfGuesWJDiwkF9LIsuQ26Pyj4v2Q90sWDQVQfm8ub5L3O8KarTp+mBRZq8iEDzChzlt2B44D+ifnSsDZ1Y+Pc/UCLy1O2fKqH7uV0Vaqhda7l4PnU4bmXwuhZd9UBiA9fobh9x2zX6EPjZ9l8vleip2CZYHSjcnQRCQ9VcppgyezWHkNyuUarsiFMJLYxof1LPmIonRSqV0JJ4gk8EgHGQbGOXbneZdh/iZBFwOTIeAWV0kPb103KRn+qZ07qRaB6kpkzBSxbhb9yaDPpUYNTob93fL+rFKJ3ccS4q5d66FS94Ug==
+x-forefront-antispam-report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:VI1PR10MB2446.EURPRD10.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(4636009)(376002)(346002)(366004)(136003)(86362001)(66556008)(66476007)(71200400001)(64756008)(7416002)(6506007)(66946007)(4326008)(54906003)(76116006)(7406005)(83380400001)(186003)(6916009)(9686003)(33656002)(8676002)(66446008)(8936002)(508600001)(53546011)(2906002)(5660300002)(7696005)(52536014)(55236004)(26005)(55016002);DIR:OUT;SFP:1101;
+x-ms-exchange-antispam-messagedata: =?utf-8?B?R1pyazhPMllhOU1OMU90ZEdPNlYwdFNXb21mK29LRHh3amVXOEZNOE5kN05a?=
+ =?utf-8?B?VGNrU0RpU2MzYVU1WVVDLzVqa3puaDlPcWhEZW9LclFKaTdTTWxTZ1Y4U2w2?=
+ =?utf-8?B?WFQ4UzA4eVN6Q2ttU05rcE1aalRIS3ZRbmlYZjU2Zm9LWGZURGxJc2lJcVJr?=
+ =?utf-8?B?Mm5TUVhiM2RnSUpDMzZab0pKdTZQdS9uS2czeWNtTW9KSXozb0lPcENjS0Nj?=
+ =?utf-8?B?RllyM1BLVTNHMnd3Zm9WbDljYm5yTVVEdGo5ZFEwUXlQamdWU1IvM2hCUmxv?=
+ =?utf-8?B?azlUWWVkSlhOMDlmMGcxd2FIVFNVbUNKdWhucDVpbkJWZldrNE5PZUw1bjZP?=
+ =?utf-8?B?M3VadTJqamY1bXBNOWhraEcyTjhyVzJJN2UrVWE0SlFOMWJsQzV5d1JlUEp3?=
+ =?utf-8?B?azd2dTdiY2J0eVlqYXI5WUlGSEI2Nm1McGZNY3JBdzdld1Y3eUJHZi9ZTVJF?=
+ =?utf-8?B?NFZYNWVXdzlrOVZQRHdqallsbVFhNExFd0JZeXVJR3VSSXlBZUkwbEdSRVp2?=
+ =?utf-8?B?V2NiVXZXTmpYMnlTeVRRRUJEZjlpVlBhdlVuNXVPSEFTZmE4YlJFZHlpemR5?=
+ =?utf-8?B?c0VJTWwwMWtBdzhnUTI5aE5POFlqMDBEWGJpaWw3dXg3cnFpTDVqRGRXVmhr?=
+ =?utf-8?B?OUlPbkJDMTI3a2FDckc5YkpTU3V4bjFTOXBpdWJ2NFNMcnZnZFBiM08xOXlu?=
+ =?utf-8?B?bVNWSTdaSGFqcnE1aUdwL0Vmc09RVnlLWER3bkJ5QnNkUnMySStlR1c1Y1JO?=
+ =?utf-8?B?L3pYUXBrb2huVnVLK1B6eXJPM0llRjZTQnJ0eG5LZkFwSmVtRXQwaEFyVjVQ?=
+ =?utf-8?B?REN5bENkSkcwMi9XOVJoTkE0SkJ0MjVSSUVrTE1jcFRSUDFqakVRU3A0R0p2?=
+ =?utf-8?B?b2VBYnU4MEZ6blJnenQ4bENEaWhvakZWamhTTjlGT3BJKzBZZmJLUm95R2di?=
+ =?utf-8?B?V0RkZUdGSlMyeVltZUZabVpvdUpObWR1VXhtWUt2WmZhYmpFYlhBTTFHa1ZG?=
+ =?utf-8?B?bHVRcWlUWnpaQ1lqVmRYUTQyL3dZaXk0ZWRYOG45NkprWjRJSWttMDY4QXZj?=
+ =?utf-8?B?bWs1OUpTMHlQU2JtQ2FuQTBhbVpUbndUakFGUWxlZVB5WjZETkJuRFRwNmZG?=
+ =?utf-8?B?QitCa01xeHpyekdPSUlsNzJxWnNWaVl1TU54TFZJeVZERVBXR3pxaFhkK0Jm?=
+ =?utf-8?B?ZUwydVcxWVpJNWI1M0JhY3dCT3pJNDJHUVVEeVdmMEt1ZDdWQkpHVm96MTdO?=
+ =?utf-8?B?cU0ycjY1NDlSQXoyNWN0VUxqdXJlUmtVQXMyaVh5VzdMWDFyS2JJcm5QNTdi?=
+ =?utf-8?Q?+oXVwdU9Tep0c=3D?=
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <9D0B420A82BE7D4596E33B5DFB16B6D5@EURPRD10.PROD.OUTLOOK.COM>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+X-OriginatorOrg: siemens.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: VI1PR10MB2446.EURPRD10.PROD.OUTLOOK.COM
+X-MS-Exchange-CrossTenant-Network-Message-Id: d77a14db-569e-40a2-e265-08d89c7f9fa0
+X-MS-Exchange-CrossTenant-originalarrivaltime: 09 Dec 2020 20:18:42.2857
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 38ae3bcd-9579-4fd4-adda-b42e1495d55a
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: MVZQG9UV2ag8NL1ksT9ET8XYMxebQ+gNV7KcjVj+woYdLf5yYcSSbWIQrFZx+85skM/gtn2So+s9unuAnlxxzy8pc/nSp2X7vwwFQ9hxlIo=
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: VI1PR10MB3277
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Mickaël Salaün <mic@linux.microsoft.com>
-
-A Landlock object enables to identify a kernel object (e.g. an inode).
-A Landlock rule is a set of access rights allowed on an object.  Rules
-are grouped in rulesets that may be tied to a set of processes (i.e.
-subjects) to enforce a scoped access-control (i.e. a domain).
-
-Because Landlock's goal is to empower any process (especially
-unprivileged ones) to sandbox themselves, we cannot rely on a
-system-wide object identification such as file extended attributes.
-Indeed, we need innocuous, composable and modular access-controls.
-
-The main challenge with these constraints is to identify kernel objects
-while this identification is useful (i.e. when a security policy makes
-use of this object).  But this identification data should be freed once
-no policy is using it.  This ephemeral tagging should not and may not be
-written in the filesystem.  We then need to manage the lifetime of a
-rule according to the lifetime of its objects.  To avoid a global lock,
-this implementation make use of RCU and counters to safely reference
-objects.
-
-A following commit uses this generic object management for inodes.
-
-Cc: James Morris <jmorris@namei.org>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Serge E. Hallyn <serge@hallyn.com>
-Signed-off-by: Mickaël Salaün <mic@linux.microsoft.com>
-Reviewed-by: Jann Horn <jannh@google.com>
----
-
-Changes since v24:
-* Fix typo in comment (spotted by Jann Horn).
-* Add Reviewed-by: Jann Horn <jannh@google.com>
-
-Changes since v23:
-* Update landlock_create_object() to return error codes instead of NULL.
-  This help error handling in callers.
-* When using make oldconfig with a previous configuration already
-  including the CONFIG_LSM variable, no question is asked to update its
-  content.  Update the Kconfig help to warn about LSM stacking
-  configuration.
-* Constify variable (spotted by Vincent Dagonneau).
-
-Changes since v22:
-* Fix spelling (spotted by Jann Horn).
-
-Changes since v21:
-* Update Kconfig help.
-* Clean up comments.
-
-Changes since v18:
-* Account objects to kmemcg.
-
-Changes since v14:
-* Simplify the object, rule and ruleset management at the expense of a
-  less aggressive memory freeing (contributed by Jann Horn, with
-  additional modifications):
-  - Remove object->list aggregating the rules tied to an object.
-  - Remove landlock_get_object(), landlock_drop_object(),
-    {get,put}_object_cleaner() and landlock_rule_is_disabled().
-  - Rewrite landlock_put_object() to use a more simple mechanism
-    (no tricky RCU).
-  - Replace enum landlock_object_type and landlock_release_object() with
-    landlock_object_underops->release()
-  - Adjust unions and Sparse annotations.
-  Cf. https://lore.kernel.org/lkml/CAG48ez21bEn0wL1bbmTiiu8j9jP5iEWtHOwz4tURUJ+ki0ydYw@mail.gmail.com/
-* Merge struct landlock_rule into landlock_ruleset_elem to simplify the
-  rule management.
-* Constify variables.
-* Improve kernel documentation.
-* Cosmetic variable renames.
-* Remove the "default" in the Kconfig (suggested by Jann Horn).
-* Only use refcount_inc() through getter helpers.
-* Update Kconfig description.
-
-Changes since v13:
-* New dedicated implementation, removing the need for eBPF.
-
-Previous changes:
-https://lore.kernel.org/lkml/20190721213116.23476-6-mic@digikod.net/
----
- MAINTAINERS                | 10 +++++
- security/Kconfig           |  1 +
- security/Makefile          |  2 +
- security/landlock/Kconfig  | 21 +++++++++
- security/landlock/Makefile |  3 ++
- security/landlock/object.c | 67 ++++++++++++++++++++++++++++
- security/landlock/object.h | 91 ++++++++++++++++++++++++++++++++++++++
- 7 files changed, 195 insertions(+)
- create mode 100644 security/landlock/Kconfig
- create mode 100644 security/landlock/Makefile
- create mode 100644 security/landlock/object.c
- create mode 100644 security/landlock/object.h
-
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 6f474153dbec..dc718573317e 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -9827,6 +9827,16 @@ F:	net/core/sock_map.c
- F:	net/ipv4/tcp_bpf.c
- F:	net/ipv4/udp_bpf.c
- 
-+LANDLOCK SECURITY MODULE
-+M:	Mickaël Salaün <mic@digikod.net>
-+L:	linux-security-module@vger.kernel.org
-+S:	Supported
-+W:	https://landlock.io
-+T:	git https://github.com/landlock-lsm/linux.git
-+F:	security/landlock/
-+K:	landlock
-+K:	LANDLOCK
-+
- LANTIQ / INTEL Ethernet drivers
- M:	Hauke Mehrtens <hauke@hauke-m.de>
- L:	netdev@vger.kernel.org
-diff --git a/security/Kconfig b/security/Kconfig
-index 7561f6f99f1d..15a4342b5d01 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -238,6 +238,7 @@ source "security/loadpin/Kconfig"
- source "security/yama/Kconfig"
- source "security/safesetid/Kconfig"
- source "security/lockdown/Kconfig"
-+source "security/landlock/Kconfig"
- 
- source "security/integrity/Kconfig"
- 
-diff --git a/security/Makefile b/security/Makefile
-index 3baf435de541..c688f4907a1b 100644
---- a/security/Makefile
-+++ b/security/Makefile
-@@ -13,6 +13,7 @@ subdir-$(CONFIG_SECURITY_LOADPIN)	+= loadpin
- subdir-$(CONFIG_SECURITY_SAFESETID)    += safesetid
- subdir-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown
- subdir-$(CONFIG_BPF_LSM)		+= bpf
-+subdir-$(CONFIG_SECURITY_LANDLOCK)		+= landlock
- 
- # always enable default capabilities
- obj-y					+= commoncap.o
-@@ -32,6 +33,7 @@ obj-$(CONFIG_SECURITY_SAFESETID)       += safesetid/
- obj-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown/
- obj-$(CONFIG_CGROUPS)			+= device_cgroup.o
- obj-$(CONFIG_BPF_LSM)			+= bpf/
-+obj-$(CONFIG_SECURITY_LANDLOCK)	+= landlock/
- 
- # Object integrity file lists
- subdir-$(CONFIG_INTEGRITY)		+= integrity
-diff --git a/security/landlock/Kconfig b/security/landlock/Kconfig
-new file mode 100644
-index 000000000000..ea58e6208afa
---- /dev/null
-+++ b/security/landlock/Kconfig
-@@ -0,0 +1,21 @@
-+# SPDX-License-Identifier: GPL-2.0-only
-+
-+config SECURITY_LANDLOCK
-+	bool "Landlock support"
-+	depends on SECURITY
-+	select SECURITY_PATH
-+	help
-+	  Landlock is a safe sandboxing mechanism which enables processes to
-+	  restrict themselves (and their future children) by gradually
-+	  enforcing tailored access control policies.  A security policy is a
-+	  set of access rights (e.g. open a file in read-only, make a
-+	  directory, etc.) tied to a file hierarchy.  Such policy can be configured
-+	  and enforced by any processes for themselves thanks to dedicated system
-+	  calls: landlock_create_ruleset(), landlock_add_rule(), and
-+	  landlock_enforce_ruleset_current().
-+
-+	  See Documentation/userspace-api/landlock.rst for further information.
-+
-+	  If you are unsure how to answer this question, answer N.  Otherwise, you
-+	  should also prepend "landlock," to the content of CONFIG_LSM to enable
-+	  Landlock at boot time.
-diff --git a/security/landlock/Makefile b/security/landlock/Makefile
-new file mode 100644
-index 000000000000..cb6deefbf4c0
---- /dev/null
-+++ b/security/landlock/Makefile
-@@ -0,0 +1,3 @@
-+obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
-+
-+landlock-y := object.o
-diff --git a/security/landlock/object.c b/security/landlock/object.c
-new file mode 100644
-index 000000000000..d674fdf9ff04
---- /dev/null
-+++ b/security/landlock/object.c
-@@ -0,0 +1,67 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Landlock LSM - Object management
-+ *
-+ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ */
-+
-+#include <linux/bug.h>
-+#include <linux/compiler_types.h>
-+#include <linux/err.h>
-+#include <linux/kernel.h>
-+#include <linux/rcupdate.h>
-+#include <linux/refcount.h>
-+#include <linux/slab.h>
-+#include <linux/spinlock.h>
-+
-+#include "object.h"
-+
-+struct landlock_object *landlock_create_object(
-+		const struct landlock_object_underops *const underops,
-+		void *const underobj)
-+{
-+	struct landlock_object *new_object;
-+
-+	if (WARN_ON_ONCE(!underops || !underobj))
-+		return ERR_PTR(-ENOENT);
-+	new_object = kzalloc(sizeof(*new_object), GFP_KERNEL_ACCOUNT);
-+	if (!new_object)
-+		return ERR_PTR(-ENOMEM);
-+	refcount_set(&new_object->usage, 1);
-+	spin_lock_init(&new_object->lock);
-+	new_object->underops = underops;
-+	new_object->underobj = underobj;
-+	return new_object;
-+}
-+
-+/*
-+ * The caller must own the object (i.e. thanks to object->usage) to safely put
-+ * it.
-+ */
-+void landlock_put_object(struct landlock_object *const object)
-+{
-+	/*
-+	 * The call to @object->underops->release(object) might sleep, e.g.
-+	 * because of iput().
-+	 */
-+	might_sleep();
-+	if (!object)
-+		return;
-+
-+	/*
-+	 * If the @object's refcount cannot drop to zero, we can just decrement
-+	 * the refcount without holding a lock. Otherwise, the decrement must
-+	 * happen under @object->lock for synchronization with things like
-+	 * get_inode_object().
-+	 */
-+	if (refcount_dec_and_lock(&object->usage, &object->lock)) {
-+		__acquire(&object->lock);
-+		/*
-+		 * With @object->lock initially held, remove the reference from
-+		 * @object->underobj to @object (if it still exists).
-+		 */
-+		object->underops->release(object);
-+		kfree_rcu(object, rcu_free);
-+	}
-+}
-diff --git a/security/landlock/object.h b/security/landlock/object.h
-new file mode 100644
-index 000000000000..1d6edbf939e2
---- /dev/null
-+++ b/security/landlock/object.h
-@@ -0,0 +1,91 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Landlock LSM - Object management
-+ *
-+ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ */
-+
-+#ifndef _SECURITY_LANDLOCK_OBJECT_H
-+#define _SECURITY_LANDLOCK_OBJECT_H
-+
-+#include <linux/compiler_types.h>
-+#include <linux/refcount.h>
-+#include <linux/spinlock.h>
-+
-+struct landlock_object;
-+
-+/**
-+ * struct landlock_object_underops - Operations on an underlying object
-+ */
-+struct landlock_object_underops {
-+	/**
-+	 * @release: Releases the underlying object (e.g. iput() for an inode).
-+	 */
-+	void (*release)(struct landlock_object *const object)
-+		__releases(object->lock);
-+};
-+
-+/**
-+ * struct landlock_object - Security blob tied to a kernel object
-+ *
-+ * The goal of this structure is to enable to tie a set of ephemeral access
-+ * rights (pertaining to different domains) to a kernel object (e.g an inode)
-+ * in a safe way.  This imply to handle concurrent use and modification.
-+ *
-+ * The lifetime of a &struct landlock_object depends of the rules referring to
-+ * it.
-+ */
-+struct landlock_object {
-+	/**
-+	 * @usage: This counter is used to tie an object to the rules matching
-+	 * it or to keep it alive while adding a new rule.  If this counter
-+	 * reaches zero, this struct must not be modified, but this counter can
-+	 * still be read from within an RCU read-side critical section.  When
-+	 * adding a new rule to an object with a usage counter of zero, we must
-+	 * wait until the pointer to this object is set to NULL (or recycled).
-+	 */
-+	refcount_t usage;
-+	/**
-+	 * @lock: Guards against concurrent modifications.  This lock must be
-+	 * held from the time @usage drops to zero until any weak references
-+	 * from @underobj to this object have been cleaned up.
-+	 *
-+	 * Lock ordering: inode->i_lock nests inside this.
-+	 */
-+	spinlock_t lock;
-+	/**
-+	 * @underobj: Used when cleaning up an object and to mark an object as
-+	 * tied to its underlying kernel structure.  This pointer is protected
-+	 * by @lock.  Cf. landlock_release_inodes() and release_inode().
-+	 */
-+	void *underobj;
-+	union {
-+		/**
-+		 * @rcu_free: Enables lockless use of @usage, @lock and
-+		 * @underobj from within an RCU read-side critical section.
-+		 * @rcu_free and @underops are only used by
-+		 * landlock_put_object().
-+		 */
-+		struct rcu_head rcu_free;
-+		/**
-+		 * @underops: Enables landlock_put_object() to release the
-+		 * underlying object (e.g. inode).
-+		 */
-+		const struct landlock_object_underops *underops;
-+	};
-+};
-+
-+struct landlock_object *landlock_create_object(
-+		const struct landlock_object_underops *const underops,
-+		void *const underobj);
-+
-+void landlock_put_object(struct landlock_object *const object);
-+
-+static inline void landlock_get_object(struct landlock_object *const object)
-+{
-+	if (object)
-+		refcount_inc(&object->usage);
-+}
-+
-+#endif /* _SECURITY_LANDLOCK_OBJECT_H */
--- 
-2.29.2
-
+DQpPbiAwOS8xMi8yMDIwIDE4OjM3LCBXaWxsZW0gZGUgQnJ1aWpuIHdyb3RlOg0KPiBPbiBXZWQs
+IERlYyA5LCAyMDIwIGF0IDEwOjI1IEFNIEdldmEsIEVyZXogPGVyZXouZ2V2YS5leHRAc2llbWVu
+cy5jb20+IHdyb3RlOg0KPj4NCj4+DQo+PiBPbiAwOS8xMi8yMDIwIDE1OjQ4LCBXaWxsZW0gZGUg
+QnJ1aWpuIHdyb3RlOg0KPj4+IE9uIFdlZCwgRGVjIDksIDIwMjAgYXQgOTozNyBBTSBFcmV6IEdl
+dmEgPGVyZXouZ2V2YS5leHRAc2llbWVucy5jb20+IHdyb3RlOg0KPj4+Pg0KPj4+PiBDb25maWd1
+cmUgYW5kIHNlbmQgVFggc2VuZGluZyBoYXJkd2FyZSB0aW1lc3RhbXAgZnJvbQ0KPj4+PiAgICB1
+c2VyIHNwYWNlIGFwcGxpY2F0aW9uIHRvIHRoZSBzb2NrZXQgbGF5ZXIsDQo+Pj4+ICAgIHRvIHBy
+b3ZpZGUgdG8gdGhlIFRDIEVUQyBRZGlzYywgYW5kIHBhc3MgaXQgdG8NCj4+Pj4gICAgdGhlIGlu
+dGVyZmFjZSBuZXR3b3JrIGRyaXZlci4NCj4+Pj4NCj4+Pj4gICAgLSBOZXcgZmxhZyBmb3IgdGhl
+IFNPX1RYVElNRSBzb2NrZXQgb3B0aW9uLg0KPj4+PiAgICAtIE5ldyBhY2Nlc3MgYXV4aWxpYXJ5
+IGRhdGEgaGVhZGVyIHRvIHBhc3MgdGhlDQo+Pj4+ICAgICAgVFggc2VuZGluZyBoYXJkd2FyZSB0
+aW1lc3RhbXAuDQo+Pj4+ICAgIC0gQWRkIHRoZSBoYXJkd2FyZSB0aW1lc3RhbXAgdG8gdGhlIHNv
+Y2tldCBjb29raWUuDQo+Pj4+ICAgIC0gQ29weSB0aGUgVFggc2VuZGluZyBoYXJkd2FyZSB0aW1l
+c3RhbXAgdG8gdGhlIHNvY2tldCBjb29raWUuDQo+Pj4+DQo+Pj4+IFNpZ25lZC1vZmYtYnk6IEVy
+ZXogR2V2YSA8ZXJlei5nZXZhLmV4dEBzaWVtZW5zLmNvbT4NCj4+Pg0KPj4+IEhhcmR3YXJlIG9m
+ZmxvYWQgb2YgcGFjaW5nIGlzIGRlZmluaXRlbHkgdXNlZnVsLg0KPj4+DQo+PiBUaGFua3MgZm9y
+IHlvdXIgY29tbWVudC4NCj4+IEkgYWdyZWUsIGl0IGlzIG5vdCBsaW1pdGVkIG9mIHVzZS4NCj4+
+DQo+Pj4gSSBkb24ndCB0aGluayB0aGlzIG5lZWRzIGEgbmV3IHNlcGFyYXRlIGgvdyB2YXJpYW50
+IG9mIFNPX1RYVElNRS4NCj4+Pg0KPj4gSSBvbmx5IGV4dGVuZCBTT19UWFRJTUUuDQo+IA0KPiBU
+aGUgcGF0Y2hzZXQgcGFzc2VzIGEgc2VwYXJhdGUgdGltZXN0YW1wIGZyb20gc2tiLT50c3RhbXAg
+YWxvbmcNCj4gdGhyb3VnaCB0aGUgaXAgY29va2llLCBjb3JrICh0cmFuc21pdF9od190aW1lKSBh
+bmQgd2l0aCB0aGUgc2tiIGluDQo+IHNoaW5mby4NCj4gDQo+IEkgZG9uJ3Qgc2VlIHRoZSBuZWVk
+IGZvciB0d28gdGltZXN0YW1wcywgb25lIHRpZWQgdG8gc29mdHdhcmUgYW5kIG9uZQ0KPiB0byBo
+YXJkd2FyZS4gV2hlbiB3b3VsZCB3ZSB3YW50IHRvIHBhY2UgdHdpY2U/DQoNCkFzIHRoZSBOZXQt
+TGluayB1c2VzIHN5c3RlbSBjbG9jayBhbmQgdGhlIG5ldHdvcmsgaW50ZXJmYWNlIGhhcmR3YXJl
+IHVzZXMgaXQncyBvd24gUEhDLg0KVGhlIGN1cnJlbnQgRVRGIGRlcGVuZHMgb24gc3luY2hyb25p
+emluZyB0aGUgc3lzdGVtIGNsb2NrIGFuZCB0aGUgUEhDLg0KIA0KPj4+IEluZGVlZCwgd2Ugd2Fu
+dCBwYWNpbmcgb2ZmbG9hZCB0byB3b3JrIGZvciBleGlzdGluZyBhcHBsaWNhdGlvbnMuDQo+Pj4N
+Cj4+IEFzIHRoZSBjb252ZXJzaW9uIG9mIHRoZSBQSEMgYW5kIHRoZSBzeXN0ZW0gY2xvY2sgaXMg
+ZHluYW1pYyBvdmVyIHRpbWUuDQo+PiBIb3cgZG8geW91IHByb3BzZSB0byBhY2hpdmUgaXQ/DQo+
+IA0KPiBDYW4geW91IGVsYWJvcmF0ZSBvbiB0aGlzIGNvbmNlcm4/DQoNClVzaW5nIHNpbmdsZSB0
+aW1lIHN0YW1wIGhhdmUgMyBwb3NzaWJsZSBzb2x1dGlvbnM6DQoNCjEuIEN1cnJlbnQgc29sdXRp
+b24sIHN5bmNocm9uaXplIHRoZSBzeXN0ZW0gY2xvY2sgYW5kIHRoZSBQSEMuDQogICAgQXBwbGlj
+YXRpb24gdXNlcyB0aGUgc3lzdGVtIGNsb2NrLg0KICAgIFRoZSBFVEYgY2FuIHVzZSB0aGUgc3lz
+dGVtIGNsb2NrIGZvciBvcmRlcmluZyBhbmQgcGFzcyB0aGUgcGFja2V0IHRvIHRoZSBkcml2ZXIg
+b24gdGltZQ0KICAgIFRoZSBuZXR3b3JrIGludGVyZmFjZSBoYXJkd2FyZSBjb21wYXJlIHRoZSB0
+aW1lLXN0YW1wIHRvIHRoZSBQSEMuDQoNCjIuIFRoZSBhcHBsaWNhdGlvbiBjb252ZXJ0IHRoZSBQ
+SEMgdGltZS1zdGFtcCB0byBzeXN0ZW0gY2xvY2sgYmFzZWQuDQogICAgIFRoZSBFVEYgd29ya3Mg
+YXMgc29sdXRpb24gMQ0KICAgICBUaGUgbmV0d29yayBkcml2ZXIgY29udmVydCB0aGUgc3lzdGVt
+IGNsb2NrIHRpbWUtc3RhbXAgYmFjayB0byBQSEMgdGltZS1zdGFtcC4NCiAgICAgVGhpcyBzb2x1
+dGlvbiBuZWVkIGEgbmV3IE5ldC1MaW5rIGZsYWcgYW5kIG1vZGlmeSB0aGUgcmVsZXZhbnQgbmV0
+d29yayBkcml2ZXJzLg0KICAgICBZZXQgdGhpcyBzb2x1dGlvbiBoYXZlIDIgcHJvYmxlbXM6DQog
+ICAgICogQXMgYXBwbGljYXRpb25zIHRvZGF5IGFyZSBub3QgYXdhcmUgdGhhdCBzeXN0ZW0gY2xv
+Y2sgYW5kIFBIQyBhcmUgbm90IHN5bmNocm9uaXplZCBhbmQNCiAgICAgICAgdGhlcmVmb3JlIGRv
+IG5vdCBwZXJmb3JtIGFueSBjb252ZXJzaW9uLCBtb3N0IG9mIHRoZW0gb25seSB1c2UgdGhlIHN5
+c3RlbSBjbG9jay4NCiAgICAgKiBBcyB0aGUgY29udmVyc2lvbiBpbiB0aGUgbmV0d29yayBkcml2
+ZXIgaGFwcGVucyB+MzAwIC0gNjAwIG1pY3Jvc2Vjb25kcyBhZnRlciANCiAgICAgICAgdGhlIGFw
+cGxpY2F0aW9uIHNlbmQgdGhlIHBhY2tldC4NCiAgICAgICAgQW5kIGFzIHRoZSBQSEMgYW5kIHN5
+c3RlbSBjbG9jayBmcmVxdWVuY2llcyBhbmQgb2Zmc2V0IGNhbiBjaGFuZ2UgZHVyaW5nIHRoaXMg
+cGVyaW9kLg0KICAgICAgICBUaGUgY29udmVyc2lvbiB3aWxsIHByb2R1Y2UgYSBkaWZmZXJlbnQg
+UEhDIHRpbWUtc3RhbXAgZnJvbSB0aGUgYXBwbGljYXRpb24gb3JpZ2luYWwgdGltZS1zdGFtcC4N
+CiAgICAgICAgV2UgcmVxdWlyZSBhIHByZWNlc3Npb24gb2YgMSBuYW5vc2Vjb25kcyBvZiB0aGUg
+UEhDIHRpbWUtc3RhbXAuDQoNCjMuIFRoZSBhcHBsaWNhdGlvbiB1c2VzIFBIQyB0aW1lLXN0YW1w
+IGZvciBza2ItPnRzdGFtcA0KICAgIFRoZSBFVEYgY29udmVydCB0aGUgIFBIQyB0aW1lLXN0YW1w
+IHRvIHN5c3RlbSBjbG9jayB0aW1lLXN0YW1wLg0KICAgIFRoaXMgc29sdXRpb24gcmVxdWlyZSBp
+bXBsZW1lbnRhdGlvbnMgb24gc3VwcG9ydGluZyByZWFkaW5nIFBIQyBjbG9ja3MNCiAgICBmcm9t
+IElSUS9rZXJuZWwgdGhyZWFkIGNvbnRleHQgaW4ga2VybmVsIHNwYWNlLg0KDQpKdXN0IGZvciBj
+bGFyaWZpY2F0aW9uOg0KRVRGIGFzIGFsbCBOZXQtTGluaywgb25seSB1c2VzIHN5c3RlbSBjbG9j
+ayAodGhlIFRBSSkNClRoZSBuZXR3b3JrIGludGVyZmFjZSBoYXJkd2FyZSBvbmx5IHVzZXMgdGhl
+IFBIQy4NCk5vciBOZXQtTGluayBuZWl0aGVyIHRoZSBkcml2ZXIgcGVyZm9ybSBhbnkgY29udmVy
+c2lvbnMuDQpUaGUgS2VybmVsIGRvZXMgbm90IHByb3ZpZGUgYW5kIGNsb2NrIGNvbnZlcnNpb24g
+YmVzaWRlIHN5c3RlbSBjbG9jay4NCkxpbnV4IGtlcm5lbCBpcyBhIHNpbmdsZSBjbG9jayBzeXN0
+ZW0uDQoNCj4gDQo+IFRoZSBzaW1wbGVzdCBzb2x1dGlvbiBmb3Igb2ZmbG9hZGluZyBwYWNpbmcg
+d291bGQgYmUgdG8gaW50ZXJwcmV0DQo+IHNrYi0+dHN0YW1wIGVpdGhlciBmb3Igc29mdHdhcmUg
+cGFjaW5nLCBvciBza2lwIHNvZnR3YXJlIHBhY2luZyBpZiB0aGUNCj4gZGV2aWNlIGFkdmVydGlz
+ZXMgYSBORVRJRl9GIGhhcmR3YXJlIHBhY2luZyBmZWF0dXJlLg0KDQpUaGF0IHdpbGwgZGVmeSB0
+aGUgcHVycG9zZSBvZiBFVEYuDQpFVEYgZXhpc3QgZm9yIG9yZGVyaW5nIHBhY2tldHMuDQpXaHkg
+c2hvdWxkIHRoZSBkZXZpY2UgZHJpdmVyIGRlZmVyIGl0Pw0KU2ltcGx5IGRvIG5vdCB1c2UgdGhl
+IFFESVNDIGZvciB0aGlzIGludGVyZmFjZS4NCg0KPiANCj4gQ2xvY2tiYXNlIGlzIGFuIGlzc3Vl
+LiBUaGUgZGV2aWNlIGRyaXZlciBtYXkgaGF2ZSB0byBjb252ZXJ0IHRvDQo+IHdoYXRldmVyIGZv
+cm1hdCB0aGUgZGV2aWNlIGV4cGVjdHMgd2hlbiBjb3B5aW5nIHNrYi0+dHN0YW1wIGluIHRoZQ0K
+PiBkZXZpY2UgdHggZGVzY3JpcHRvci4NCg0KV2UgZG8gaG9wZSBvdXIgZGVmaW5pdGlvbiBpcyBj
+bGVhci4NCkluIHRoZSBjdXJyZW50IGtlcm5lbCBza2ItPnRzdGFtcCB1c2VzIHN5c3RlbSBjbG9j
+ay4NClRoZSBoYXJkd2FyZSB0aW1lLXN0YW1wIGlzIFBIQyBiYXNlZCwgYXMgaXQgaXMgdXNlZCB0
+b2RheSBmb3IgUFRQIHR3byBzdGVwcy4NCldlIG9ubHkgcHJvcG9zZSB0byB1c2UgdGhlIHNhbWUg
+aGFyZHdhcmUgdGltZS1zdGFtcC4NCg0KUGFzc2luZyB0aGUgaGFyZHdhcmUgdGltZS1zdGFtcCB0
+byB0aGUgc2tiLT50c3RhbXAgbWlnaHQgc2VlbXMgYSBiaXQgdHJpY2t5DQpUaGUgZ2FvbCBpcyB0
+aGUgbGVhdmUgdGhlIGRyaXZlciB1bmF3YXJlIHRvIHdoZXRoZXIgd2UNCiogU3luY2hyb25pemlu
+ZyB0aGUgUEhDIGFuZCBzeXN0ZW0gY2xvY2sNCiogVGhlIEVURiBwYXNzIHRoZSBoYXJkd2FyZSB0
+aW1lLXN0YW1wIHRvIHNrYi0+dHN0YW1wDQpPbmx5IHRoZSBhcHBsaWNhdGlvbnMgYW5kIHRoZSBF
+VEYgYXJlIGF3YXJlLg0KVGhlIGFwcGxpY2F0aW9uIGNhbiBkZXRlY3QgYnkgY2hlY2tpbmcgdGhl
+IEVURiBmbGFnLg0KVGhlIEVURiBmbGFncyBhcmUgcGFydCBvZiB0aGUgbmV0d29yayBhZG1pbmlz
+dHJhdGlvbi4NClRoYXQgYWxzbyBjb25maWd1cmUgdGhlIFBUUCBhbmQgdGhlIHN5c3RlbSBjbG9j
+ayBzeW5jaHJvbml6YXRpb24uDQoNCj4gDQo+Pg0KPj4+IEl0IG9ubHkgcmVxdWlyZXMgdGhhdCBw
+YWNpbmcgcWRpc2NzLCBib3RoIHNjaF9ldGYgYW5kIHNjaF9mcSwNCj4+PiBvcHRpb25hbGx5IHNr
+aXAgcXVldWluZyBpbiB0aGVpciAuZW5xdWV1ZSBjYWxsYmFjayBhbmQgaW5zdGVhZCBhbGxvdw0K
+Pj4+IHRoZSBza2IgdG8gcGFzcyB0byB0aGUgZGV2aWNlIGRyaXZlciBhcyBpcywgd2l0aCBza2It
+PnRzdGFtcCBzZXQuIE9ubHkNCj4+PiB0byBkZXZpY2VzIHRoYXQgYWR2ZXJ0aXNlIHN1cHBvcnQg
+Zm9yIGgvdyBwYWNpbmcgb2ZmbG9hZC4NCj4+Pg0KPj4gSSBkaWQgbm90IHVzZSAiRmFpciBRdWV1
+ZSB0cmFmZmljIHBvbGljaW5nIi4NCj4+IEFzIGZvciBFVEYsIGl0IGlzIGFsbCBhYm91dCBvcmRl
+cmluZyBwYWNrZXRzIGZyb20gZGlmZmVyZW50IGFwcGxpY2F0aW9ucy4NCj4+IEhvdyBjYW4gd2Ug
+YWNoaXZlIGl0IHdpdGggc2tpcGluZyBxdWV1aW5nPw0KPj4gQ291bGQgeW91IGVsYWJvcmF0ZSBv
+biB0aGlzIHBvaW50Pw0KPiANCj4gVGhlIHFkaXNjIGNhbiBvbmx5IGRlZmVyIHBhY2luZyB0byBo
+YXJkd2FyZSBpZiBoYXJkd2FyZSBjYW4gZW5zdXJlIHRoZQ0KPiBzYW1lIGludmFyaWFudHMgb24g
+b3JkZXJpbmcsIG9mIGNvdXJzZS4NCg0KWWVzLCB0aGlzIGlzIHdoeSB3ZSBzdWdnZXN0IEVURiBv
+cmRlciBwYWNrZXRzIHVzaW5nIHRoZSBoYXJkd2FyZSB0aW1lLXN0YW1wLg0KQW5kIHBhc3MgdGhl
+IHBhY2tldCBiYXNlZCBvbiBzeXN0ZW0gdGltZS4NClNvIEVURiBxdWVyeSB0aGUgc3lzdGVtIGNs
+b2NrIG9ubHkgYW5kIG5vdCB0aGUgUEhDLg0KDQo+IA0KPiBCdHc6IHRoaXMgaXMgcXVpdGUgYSBs
+b25nIGxpc3Qgb2YgQ0M6cw0KPiANCkkgbmVlZCB0byB1cGRhdGUgbXkgY29tcGFueSBjb2xsZWFn
+dWVzIGFzIHdlbGwgYXMgdGhlIExpbnV4IGdyb3VwLg0K
