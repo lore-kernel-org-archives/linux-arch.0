@@ -2,31 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-11.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 18E28C433FE
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 15:55:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A3527C4361B
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 15:58:37 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D8C2C2251E
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 15:55:57 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6B42023B51
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 15:58:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1731870AbgLIPzc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Dec 2020 10:55:32 -0500
-Received: from goliath.siemens.de ([192.35.17.28]:45088 "EHLO
-        goliath.siemens.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729877AbgLIPz2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Dec 2020 10:55:28 -0500
-X-Greylist: delayed 4530 seconds by postgrey-1.27 at vger.kernel.org; Wed, 09 Dec 2020 10:55:21 EST
+        id S1730441AbgLIP5j (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Dec 2020 10:57:39 -0500
+Received: from david.siemens.de ([192.35.17.14]:58483 "EHLO david.siemens.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730402AbgLIP5g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Dec 2020 10:57:36 -0500
 Received: from mail1.siemens.de (mail1.siemens.de [139.23.33.14])
-        by goliath.siemens.de (8.15.2/8.15.2) with ESMTPS id 0B9EbVs3007322
+        by david.siemens.de (8.15.2/8.15.2) with ESMTPS id 0B9EbMbS007438
         (version=TLSv1.2 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Wed, 9 Dec 2020 15:37:31 +0100
+        Wed, 9 Dec 2020 15:37:22 +0100
 Received: from tsnlaptop.atstm41.nbgm.siemens.de ([144.145.220.34])
-        by mail1.siemens.de (8.15.2/8.15.2) with ESMTP id 0B9EbGp3002581;
-        Wed, 9 Dec 2020 15:37:28 +0100
+        by mail1.siemens.de (8.15.2/8.15.2) with ESMTP id 0B9EbGp0002581;
+        Wed, 9 Dec 2020 15:37:16 +0100
 From:   Erez Geva <erez.geva.ext@siemens.com>
 To:     netdev@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-arch@vger.kernel.org,
@@ -87,169 +85,86 @@ Cc:     Vinicius Costa Gomes <vinicius.gomes@intel.com>,
         Gisela Greinert <gisela.greinert@siemens.com>,
         Erez Geva <erez.geva.ext@siemens.com>,
         Erez Geva <ErezGeva2@gmail.com>
-Subject: [PATCH 3/3] The TC ETF Qdisc pass the hardware timestamp to the interface driver.
-Date:   Wed,  9 Dec 2020 15:37:06 +0100
-Message-Id: <20201209143707.13503-4-erez.geva.ext@siemens.com>
+Subject: [PATCH 0/3] Add sending TX hardware timestamp for TC ETF Qdisc
+Date:   Wed,  9 Dec 2020 15:37:03 +0100
+Message-Id: <20201209143707.13503-1-erez.geva.ext@siemens.com>
 X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20201209143707.13503-1-erez.geva.ext@siemens.com>
-References: <20201209143707.13503-1-erez.geva.ext@siemens.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The ETF pass the TX sending hardware timestamp to
- the network interface driver.
+Add support for TX sending hardware timestamp with
+ Traffic control Earliest TxTime First (ETF) Qdisc.
 
-  - Add new flag to the ETF Qdisc setting that mandate
-    the use of the hardware timestamp in a socket's buffer.
-  - The ETF Qdisc pass the TX sending hardware timestamp to the
-    network interface driver.
+Why do we need additional timestamp?
+Current ETF requires to synchronization the system clock
+to the PTP Hardware clock (PHC) we want to send through.
+But there are cases that we can not synchronize the system clock with
+the desired NIC PHC.
+1. We use several NICs with several PTP domains that our device
+   is not allowed to be PTP master of.
+2. We are using another clock source which we need for our system.
+   Yet our device is not allowed to be PTP master.
 
-Signed-off-by: Erez Geva <erez.geva.ext@siemens.com>
----
- include/uapi/linux/pkt_sched.h |  1 +
- net/sched/sch_etf.c            | 59 +++++++++++++++++++++++++++-------
- 2 files changed, 49 insertions(+), 11 deletions(-)
+Regardless of the exact topology, as the Linux tradition is to allow
+the user the freedom to choose,
+we propose a patch that will add a hardware timestamp to the packet.
+The TC-ETF will use the first timestamp and compare it with
+the system clock while send the packet to the network interface driver
+with that hardware timestamp that is correlated with the PHC.
 
-diff --git a/include/uapi/linux/pkt_sched.h b/include/uapi/linux/pkt_sched.h
-index 9e7c2c607845..51e2b57bfa81 100644
---- a/include/uapi/linux/pkt_sched.h
-+++ b/include/uapi/linux/pkt_sched.h
-@@ -1056,6 +1056,7 @@ struct tc_etf_qopt {
- #define TC_ETF_DEADLINE_MODE_ON	_BITUL(0)
- #define TC_ETF_OFFLOAD_ON	_BITUL(1)
- #define TC_ETF_SKIP_SOCK_CHECK	_BITUL(2)
-+#define TC_ETF_USE_HW_TIMESTAMP _BITUL(3)
- };
- 
- enum {
-diff --git a/net/sched/sch_etf.c b/net/sched/sch_etf.c
-index c48f91075b5c..67eace3e180f 100644
---- a/net/sched/sch_etf.c
-+++ b/net/sched/sch_etf.c
-@@ -23,11 +23,13 @@
- #define DEADLINE_MODE_IS_ON(x) ((x)->flags & TC_ETF_DEADLINE_MODE_ON)
- #define OFFLOAD_IS_ON(x) ((x)->flags & TC_ETF_OFFLOAD_ON)
- #define SKIP_SOCK_CHECK_IS_SET(x) ((x)->flags & TC_ETF_SKIP_SOCK_CHECK)
-+#define USE_HW_TIMESTAMP(x) ((x)->flags & TC_ETF_USE_HW_TIMESTAMP)
- 
- struct etf_sched_data {
- 	bool offload;
- 	bool deadline_mode;
- 	bool skip_sock_check;
-+	bool use_hw_timestamp;
- 	int clockid;
- 	int queue;
- 	s32 delta; /* in ns */
-@@ -75,7 +77,7 @@ static inline int validate_input_params(struct tc_etf_qopt *qopt,
- static bool is_packet_valid(struct Qdisc *sch, struct sk_buff *nskb)
- {
- 	struct etf_sched_data *q = qdisc_priv(sch);
--	ktime_t txtime = nskb->tstamp;
-+	ktime_t hwtxtime, txtime = nskb->tstamp;
- 	struct sock *sk = nskb->sk;
- 	ktime_t now;
- 
-@@ -88,6 +90,9 @@ static bool is_packet_valid(struct Qdisc *sch, struct sk_buff *nskb)
- 	if (!sock_flag(sk, SOCK_TXTIME))
- 		return false;
- 
-+	if (!q->use_hw_timestamp != !sock_flag(sk, SOCK_HW_TXTIME))
-+		return false;
-+
- 	/* We don't perform crosstimestamping.
- 	 * Drop if packet's clockid differs from qdisc's.
- 	 */
-@@ -99,7 +104,11 @@ static bool is_packet_valid(struct Qdisc *sch, struct sk_buff *nskb)
- 
- skip:
- 	now = q->get_time();
--	if (ktime_before(txtime, now) || ktime_before(txtime, q->last))
-+	if (q->use_hw_timestamp)
-+		hwtxtime = skb_hwtstamps(nskb)->hwtstamp;
-+	else
-+		hwtxtime = txtime;
-+	if (ktime_before(txtime, now) || ktime_before(hwtxtime, q->last))
- 		return false;
- 
- 	return true;
-@@ -173,16 +182,33 @@ static int etf_enqueue_timesortedlist(struct sk_buff *nskb, struct Qdisc *sch,
- 		return qdisc_drop(nskb, sch, to_free);
- 	}
- 
--	while (*p) {
--		struct sk_buff *skb;
-+	if (q->use_hw_timestamp) {
-+		ktime_t hwtxtime = skb_hwtstamps(nskb)->hwtstamp;
-+
-+		while (*p) {
-+			struct sk_buff *skb;
- 
--		parent = *p;
--		skb = rb_to_skb(parent);
--		if (ktime_compare(txtime, skb->tstamp) >= 0) {
--			p = &parent->rb_right;
--			leftmost = false;
--		} else {
--			p = &parent->rb_left;
-+			parent = *p;
-+			skb = rb_to_skb(parent);
-+			if (ktime_compare(hwtxtime, skb_hwtstamps(skb)->hwtstamp) >= 0) {
-+				p = &parent->rb_right;
-+				leftmost = false;
-+			} else {
-+				p = &parent->rb_left;
-+			}
-+		}
-+	} else {
-+		while (*p) {
-+			struct sk_buff *skb;
-+
-+			parent = *p;
-+			skb = rb_to_skb(parent);
-+			if (ktime_compare(txtime, skb->tstamp) >= 0) {
-+				p = &parent->rb_right;
-+				leftmost = false;
-+			} else {
-+				p = &parent->rb_left;
-+			}
- 		}
- 	}
- 	rb_link_node(&nskb->rbnode, parent, p);
-@@ -245,6 +271,10 @@ static void timesortedlist_remove(struct Qdisc *sch, struct sk_buff *skb)
- 
- 	qdisc_bstats_update(sch, skb);
- 
-+	/* Pass hardware time to driver and to last */
-+	if (q->use_hw_timestamp)
-+		skb->tstamp = skb_hwtstamps(skb)->hwtstamp;
-+
- 	q->last = skb->tstamp;
- 
- 	sch->q.qlen--;
-@@ -393,6 +423,10 @@ static int etf_init(struct Qdisc *sch, struct nlattr *opt,
- 	q->offload = OFFLOAD_IS_ON(qopt);
- 	q->deadline_mode = DEADLINE_MODE_IS_ON(qopt);
- 	q->skip_sock_check = SKIP_SOCK_CHECK_IS_SET(qopt);
-+	q->use_hw_timestamp = USE_HW_TIMESTAMP(qopt);
-+	/* deadline mode can not coexist with using hardware time */
-+	if (q->use_hw_timestamp && q->deadline_mode)
-+		return -EOPNOTSUPP;
- 
- 	switch (q->clockid) {
- 	case CLOCK_REALTIME:
-@@ -484,6 +518,9 @@ static int etf_dump(struct Qdisc *sch, struct sk_buff *skb)
- 	if (q->skip_sock_check)
- 		opt.flags |= TC_ETF_SKIP_SOCK_CHECK;
- 
-+	if (q->use_hw_timestamp)
-+		opt.flags |= TC_ETF_USE_HW_TIMESTAMP;
-+
- 	if (nla_put(skb, TCA_ETF_PARMS, sizeof(opt), &opt))
- 		goto nla_put_failure;
- 
+Note 1: we do encourage the users to synchronize the system clock with
+  a PTP clock. Synchronizing the system clock with a PTP clock will
+  reduce the frequency difference of the PHC and the system clock,
+  increase the accurecy and may enable the user to reduce the ETF delta.
+
+Note 2: In our network usage models sending a frame has to be very
+  precise in relation to the PHC. Our user application does have
+  the exact send time as of PHC perspective so it is able
+  to provide the hw timestamp.
+
+Note 3: The user can estimate the clocks conversion error done
+  in the user application and add it to the delta setting of the ETF.
+
+The patches contain:
+ 1. A new flag for the SO_TXTIME socket option.
+ 2. A new cmsg header, SCM_HW_TXTIME to pass the TX hardware timestamp.
+ 3. Add the hardware timestamp to the socket cookie and to the inet cork.
+ 4. As ETF Qdisc is irrelevant to TCP, ignore the TCP.
+ 5. A new flag to the ETF Qdisc setting that mandate
+    the use of the hardware timestamp in the SKB.
+ 6. The ETF sort packets according to hardware timestamp,
+    Yet pass the packet to network interface driver based
+    on the system clock timestamp.
+
+Note 4: The socket buffer hardware timestamp is used by
+      the network interface driver to send the actual sending timestamp
+      back to the application. The timestamp is used by the TC ETF
+      before the socket buffer arrives in the network interface driver.
+
+Erez Geva (3):
+  Add TX sending hardware timestamp.
+  Pass TX sending hardware timestamp to a socket's buffer.
+  The TC ETF Qdisc pass the hardware timestamp to the interface driver.
+
+ include/net/inet_sock.h           |  1 +
+ include/net/sock.h                |  2 ++
+ include/uapi/asm-generic/socket.h |  3 ++
+ include/uapi/linux/net_tstamp.h   |  3 +-
+ include/uapi/linux/pkt_sched.h    |  1 +
+ net/core/sock.c                   |  9 +++++
+ net/ipv4/ip_output.c              |  2 ++
+ net/ipv4/raw.c                    |  1 +
+ net/ipv6/ip6_output.c             |  2 ++
+ net/ipv6/raw.c                    |  1 +
+ net/packet/af_packet.c            |  3 ++
+ net/sched/sch_etf.c               | 59 +++++++++++++++++++++++++------
+ 12 files changed, 75 insertions(+), 12 deletions(-)
+
+
+base-commit: b65054597872ce3aefbc6a666385eabdf9e288da
 -- 
 2.20.1
 
