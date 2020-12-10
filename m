@@ -2,258 +2,294 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C52FCC433FE
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 22:43:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E5AEBC433FE
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Dec 2020 01:05:42 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9381023D21
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Dec 2020 22:43:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 991EA239FD
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Dec 2020 01:05:42 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2388630AbgLIWY3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Dec 2020 17:24:29 -0500
-Received: from mga18.intel.com ([134.134.136.126]:14575 "EHLO mga18.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388579AbgLIWY2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Dec 2020 17:24:28 -0500
-IronPort-SDR: W29K+S1q9XGB1XKk0FAHoYZORudZQxNwMf8u8TXe81cN/26NulvVcsQxCOvx9lMA0cvf3HkG/N
- ccpmksf6FgVg==
-X-IronPort-AV: E=McAfee;i="6000,8403,9830"; a="161918053"
-X-IronPort-AV: E=Sophos;i="5.78,407,1599548400"; 
-   d="scan'208";a="161918053"
-Received: from fmsmga008.fm.intel.com ([10.253.24.58])
-  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 09 Dec 2020 14:23:47 -0800
-IronPort-SDR: fM0s9NYnyLtNqOEtHE4E6E+On1XQakNwFK7obEuee3NbyIdao3qJcA2TZsLOdPz7rGOPhpMo3/
- pCUZ7ArrTc/Q==
-X-IronPort-AV: E=Sophos;i="5.78,407,1599548400"; 
-   d="scan'208";a="318543507"
-Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by fmsmga008-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 09 Dec 2020 14:23:46 -0800
-From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
-To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Borislav Petkov <bp@alien8.de>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
-        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        Pengfei Xu <pengfei.xu@intel.com>
-Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v16 01/26] Documentation/x86: Add CET description
-Date:   Wed,  9 Dec 2020 14:22:55 -0800
-Message-Id: <20201209222320.1724-2-yu-cheng.yu@intel.com>
-X-Mailer: git-send-email 2.21.0
-In-Reply-To: <20201209222320.1724-1-yu-cheng.yu@intel.com>
-References: <20201209222320.1724-1-yu-cheng.yu@intel.com>
+        id S1731575AbgLJBFN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Dec 2020 20:05:13 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50030 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731357AbgLJBFJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Dec 2020 20:05:09 -0500
+Received: from mail-ua1-x943.google.com (mail-ua1-x943.google.com [IPv6:2607:f8b0:4864:20::943])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B3D66C0613CF
+        for <linux-arch@vger.kernel.org>; Wed,  9 Dec 2020 17:04:28 -0800 (PST)
+Received: by mail-ua1-x943.google.com with SMTP id 4so1163220uap.8
+        for <linux-arch@vger.kernel.org>; Wed, 09 Dec 2020 17:04:28 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=yB16PIlbuGxFsiWV8oZf3gYq1QL0L6wWKXHXLLEyFBM=;
+        b=tjLJkPuP9VfGGRRESQGgX8Vsp+QNvwZ9qRgzUTQsftZyC/WO3uWzhAYg9n8G4vTQF5
+         fqsx/X485RXHYLPw7yftHthBxXC0Re42wDIxHN2tCNoNXgfVBx2Sb5MstdjJ+iyv7/9W
+         peXWVD0C+8EsJJ58i4Jyrkf2zlxR+cbAaRoBVXvEyiBFikSUl8G3mZKf4GYcMrOaREWV
+         3vkECCeGZJN9l8RE01cL131+yBD3cghhLTQLSwsf0gRCIgyJBhQ7CACHmqa3ykormvwN
+         vGLJjMNF3taa+q89aJJ1yXr4fLLuhFizGdAsWrF+QcFLoI2STXG0Ct88fjJjKo5nWftQ
+         FwLw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=yB16PIlbuGxFsiWV8oZf3gYq1QL0L6wWKXHXLLEyFBM=;
+        b=IAgXZ93RiZpsgSAgV08oanVq1rrz8HJWUU4X/odwesB40p2bwJeBD7fgywN2NMjapY
+         97Dt9clHbSC32nHH3a1VC58MiWMK8uPLpuC96VKv5p1XavA6Ex/qS+34Hskpp1XABkyi
+         dVzqQxPM2VdqrpmhwzkBChEtYCJOg9Uo6SIcCjTZoanhE9HejBTvQUmy9I2hXihALYfx
+         sJqx8rKO9ZyULBH5kCUx5teoY1rY2MLVz89ohJgRETc6pDMSmovGhq9Vq34wWE9GpMFL
+         p6zvsn8UU4P4lqhCEgpFP8I3dIP5mC/wo7N3doH0/QPpeMzO75SaVH9W4LZvnWko4bNt
+         JMMA==
+X-Gm-Message-State: AOAM533yzQRHJS8TY6wGEEgHkk+GaHk6jNH3uo9IRrOPjjp43VZs+cFk
+        uaM6lzSpxjtj2U/6tg+2hmFujV4BbolDyw==
+X-Google-Smtp-Source: ABdhPJy0G1GMrA+uOp2KtsEQktnkVqlXG3slXkhkhI4M9Ki+7wGcgID+wcVtrp+6ODR8nMs8ow5+Tw==
+X-Received: by 2002:ab0:240c:: with SMTP id f12mr5049750uan.117.1607562266973;
+        Wed, 09 Dec 2020 17:04:26 -0800 (PST)
+Received: from mail-vs1-f44.google.com (mail-vs1-f44.google.com. [209.85.217.44])
+        by smtp.gmail.com with ESMTPSA id f1sm335502vkb.46.2020.12.09.17.04.24
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 09 Dec 2020 17:04:24 -0800 (PST)
+Received: by mail-vs1-f44.google.com with SMTP id u7so1972928vsg.11
+        for <linux-arch@vger.kernel.org>; Wed, 09 Dec 2020 17:04:24 -0800 (PST)
+X-Received: by 2002:a05:6102:1173:: with SMTP id k19mr5046476vsg.51.1607562263528;
+ Wed, 09 Dec 2020 17:04:23 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20201209143707.13503-1-erez.geva.ext@siemens.com>
+ <20201209143707.13503-2-erez.geva.ext@siemens.com> <CA+FuTScWkYn0Ur+aSuz1cREbQJO0fB6powOm8PFxze4v8JwBaw@mail.gmail.com>
+ <VI1PR10MB244654C4B42E47DB5EBE0B05ABCC0@VI1PR10MB2446.EURPRD10.PROD.OUTLOOK.COM>
+ <CA+FuTSd7oB0qO707W6htvs=FOJn10cgSQ4_iGFz4Sk9URXtZiw@mail.gmail.com> <VI1PR10MB2446ACEACAE1F3671682407FABCC0@VI1PR10MB2446.EURPRD10.PROD.OUTLOOK.COM>
+In-Reply-To: <VI1PR10MB2446ACEACAE1F3671682407FABCC0@VI1PR10MB2446.EURPRD10.PROD.OUTLOOK.COM>
+From:   Willem de Bruijn <willemdebruijn.kernel@gmail.com>
+Date:   Wed, 9 Dec 2020 20:03:47 -0500
+X-Gmail-Original-Message-ID: <CA+FuTSd-YRc6aGsudgaeSHwmAb_748ay1ssip64G1jeE=mKwmg@mail.gmail.com>
+Message-ID: <CA+FuTSd-YRc6aGsudgaeSHwmAb_748ay1ssip64G1jeE=mKwmg@mail.gmail.com>
+Subject: Re: [PATCH 1/3] Add TX sending hardware timestamp.
+To:     "Geva, Erez" <erez.geva.ext@siemens.com>
+Cc:     Willem de Bruijn <willemdebruijn.kernel@gmail.com>,
+        Network Development <netdev@vger.kernel.org>,
+        linux-kernel <linux-kernel@vger.kernel.org>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Cong Wang <xiyou.wangcong@gmail.com>,
+        "David S . Miller" <davem@davemloft.net>,
+        Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>,
+        Jakub Kicinski <kuba@kernel.org>,
+        Jamal Hadi Salim <jhs@mojatatu.com>,
+        Jiri Pirko <jiri@resnulli.us>,
+        Alexei Starovoitov <ast@kernel.org>,
+        Colin Ian King <colin.king@canonical.com>,
+        Daniel Borkmann <daniel@iogearbox.net>,
+        Eric Dumazet <edumazet@google.com>,
+        Eyal Birger <eyal.birger@gmail.com>,
+        "Gustavo A . R . Silva" <gustavoars@kernel.org>,
+        Jakub Sitnicki <jakub@cloudflare.com>,
+        John Ogness <john.ogness@linutronix.de>,
+        Jon Rosen <jrosen@cisco.com>,
+        Kees Cook <keescook@chromium.org>,
+        Marc Kleine-Budde <mkl@pengutronix.de>,
+        Martin KaFai Lau <kafai@fb.com>,
+        Matthieu Baerts <matthieu.baerts@tessares.net>,
+        Andrei Vagin <avagin@gmail.com>,
+        Dmitry Safonov <0x7f454c46@gmail.com>,
+        "Eric W . Biederman" <ebiederm@xmission.com>,
+        Ingo Molnar <mingo@kernel.org>,
+        John Stultz <john.stultz@linaro.org>,
+        Miaohe Lin <linmiaohe@huawei.com>,
+        Michal Kubecek <mkubecek@suse.cz>,
+        Or Cohen <orcohen@paloaltonetworks.com>,
+        Oleg Nesterov <oleg@redhat.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Richard Cochran <richardcochran@gmail.com>,
+        Stefan Schmidt <stefan@datenfreihafen.org>,
+        Xie He <xie.he.0141@gmail.com>,
+        Stephen Boyd <sboyd@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Vladis Dronov <vdronov@redhat.com>,
+        Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+        Frederic Weisbecker <frederic@kernel.org>,
+        Vinicius Costa Gomes <vinicius.gomes@intel.com>,
+        Vedang Patel <vedang.patel@intel.com>,
+        "Molzahn, Ines" <ines.molzahn@siemens.com>,
+        "Sudler, Simon" <simon.sudler@siemens.com>,
+        "Meisinger, Andreas" <andreas.meisinger@siemens.com>,
+        "Bucher, Andreas" <andreas.bucher@siemens.com>,
+        "henning.schild@siemens.com" <henning.schild@siemens.com>,
+        "jan.kiszka@siemens.com" <jan.kiszka@siemens.com>,
+        "Zirkler, Andreas" <andreas.zirkler@siemens.com>,
+        "Sakic, Ermin" <ermin.sakic@siemens.com>,
+        "anninh.nguyen@siemens.com" <anninh.nguyen@siemens.com>,
+        "Saenger, Michael" <michael.saenger@siemens.com>,
+        "Maehringer, Bernd" <bernd.maehringer@siemens.com>,
+        "gisela.greinert@siemens.com" <gisela.greinert@siemens.com>,
+        Erez Geva <ErezGeva2@gmail.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Explain no_user_shstk/no_user_ibt kernel parameters, and introduce a new
-document on Control-flow Enforcement Technology (CET).
+On Wed, Dec 9, 2020 at 3:57 PM Geva, Erez <erez.geva.ext@siemens.com> wrote:
+>
+>
+> On 09/12/2020 18:37, Willem de Bruijn wrote:
+> > On Wed, Dec 9, 2020 at 10:25 AM Geva, Erez <erez.geva.ext@siemens.com> wrote:
+> >>
+> >>
+> >> On 09/12/2020 15:48, Willem de Bruijn wrote:
+> >>> On Wed, Dec 9, 2020 at 9:37 AM Erez Geva <erez.geva.ext@siemens.com> wrote:
+> >>>>
+> >>>> Configure and send TX sending hardware timestamp from
+> >>>>    user space application to the socket layer,
+> >>>>    to provide to the TC ETC Qdisc, and pass it to
+> >>>>    the interface network driver.
+> >>>>
+> >>>>    - New flag for the SO_TXTIME socket option.
+> >>>>    - New access auxiliary data header to pass the
+> >>>>      TX sending hardware timestamp.
+> >>>>    - Add the hardware timestamp to the socket cookie.
+> >>>>    - Copy the TX sending hardware timestamp to the socket cookie.
+> >>>>
+> >>>> Signed-off-by: Erez Geva <erez.geva.ext@siemens.com>
+> >>>
+> >>> Hardware offload of pacing is definitely useful.
+> >>>
+> >> Thanks for your comment.
+> >> I agree, it is not limited of use.
+> >>
+> >>> I don't think this needs a new separate h/w variant of SO_TXTIME.
+> >>>
+> >> I only extend SO_TXTIME.
+> >
+> > The patchset passes a separate timestamp from skb->tstamp along
+> > through the ip cookie, cork (transmit_hw_time) and with the skb in
+> > shinfo.
+> >
+> > I don't see the need for two timestamps, one tied to software and one
+> > to hardware. When would we want to pace twice?
+>
+> As the Net-Link uses system clock and the network interface hardware uses it's own PHC.
+> The current ETF depends on synchronizing the system clock and the PHC.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- .../admin-guide/kernel-parameters.txt         |   6 +
- Documentation/x86/index.rst                   |   1 +
- Documentation/x86/intel_cet.rst               | 136 ++++++++++++++++++
- 3 files changed, 143 insertions(+)
- create mode 100644 Documentation/x86/intel_cet.rst
+If I understand correctly, essentially you are trying to achieve a
+single delivery time. The need for two separate timestamps passed
+along is only because the kernel is unable to do the time base
+conversion. Else, ETF could program the qdisc watchdog in system time
+and later, on dequeue, convert skb->tstamp to the h/w time base before
+passing it to the device.
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 44fde25bb221..ac47921db6d8 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -3197,6 +3197,12 @@
- 			noexec=on: enable non-executable mappings (default)
- 			noexec=off: disable non-executable mappings
- 
-+	no_user_shstk	[X86-64] Disable Shadow Stack for user-mode
-+			applications
-+
-+	no_user_ibt	[X86-64] Disable Indirect Branch Tracking for user-mode
-+			applications
-+
- 	nosmap		[X86,PPC]
- 			Disable SMAP (Supervisor Mode Access Prevention)
- 			even if it is supported by processor.
-diff --git a/Documentation/x86/index.rst b/Documentation/x86/index.rst
-index b224d12c880b..e88dcea4300b 100644
---- a/Documentation/x86/index.rst
-+++ b/Documentation/x86/index.rst
-@@ -21,6 +21,7 @@ x86-specific Documentation
-    tlb
-    mtrr
-    pat
-+   intel_cet
-    intel-iommu
-    intel_txt
-    amd-memory-encryption
-diff --git a/Documentation/x86/intel_cet.rst b/Documentation/x86/intel_cet.rst
-new file mode 100644
-index 000000000000..c362b16f2858
---- /dev/null
-+++ b/Documentation/x86/intel_cet.rst
-@@ -0,0 +1,136 @@
-+.. SPDX-License-Identifier: GPL-2.0
-+
-+=========================================
-+Control-flow Enforcement Technology (CET)
-+=========================================
-+
-+[1] Overview
-+============
-+
-+Control-flow Enforcement Technology (CET) is an Intel processor feature
-+that provides protection against return/jump-oriented programming (ROP)
-+attacks.  It can be set up to protect both applications and the kernel.
-+Only user-mode protection is implemented in the 64-bit kernel, including
-+support for running legacy 32-bit applications.
-+
-+CET introduces Shadow Stack and Indirect Branch Tracking.  Shadow stack is
-+a secondary stack allocated from memory and cannot be directly modified by
-+applications.  When executing a CALL instruction, the processor pushes the
-+return address to both the normal stack and the shadow stack.  Upon
-+function return, the processor pops the shadow stack copy and compares it
-+to the normal stack copy.  If the two differ, the processor raises a
-+control-protection fault.  Indirect branch tracking verifies indirect
-+CALL/JMP targets are intended as marked by the compiler with 'ENDBR'
-+opcodes.
-+
-+There is a Kconfig option:
-+
-+    X86_CET_USER.
-+
-+To build a CET-enabled kernel, Binutils v2.31 and GCC v8.1 or LLVM v10.0.1
-+or later are required.  To build a CET-enabled application, GLIBC v2.28 or
-+later is also required.
-+
-+There are two command-line options for disabling CET features::
-+
-+    no_user_shstk - disables user shadow stack, and
-+    no_user_ibt   - disables user indirect branch tracking.
-+
-+At run time, /proc/cpuinfo shows CET features if the processor supports
-+CET.
-+
-+[2] Application Enabling
-+========================
-+
-+An application's CET capability is marked in its ELF header and can be
-+verified from readelf/llvm-readelf output:
-+
-+    readelf -n <application> | grep -a SHSTK
-+        properties: x86 feature: IBT, SHSTK
-+
-+If an application supports CET and is statically linked, it will run with
-+CET protection.  If the application needs any shared libraries, the loader
-+checks all dependencies and enables CET when all requirements are met.
-+
-+[3] Backward Compatibility
-+==========================
-+
-+GLIBC provides a few CET tunables via the GLIBC_TUNABLES environment
-+variable:
-+
-+GLIBC_TUNABLES=glibc.tune.hwcaps=-SHSTK,-IBT
-+    Turn off SHSTK/IBT.
-+
-+GLIBC_TUNABLES=glibc.tune.x86_shstk=<on, permissive>
-+    This controls how dlopen() handles SHSTK legacy libraries::
-+
-+        on         - continue with SHSTK enabled;
-+        permissive - continue with SHSTK off.
-+
-+Details can be found in the GLIBC manual pages.
-+
-+[4] CET arch_prctl()'s
-+======================
-+
-+Several arch_prctl()'s have been added for CET:
-+
-+arch_prctl(ARCH_X86_CET_STATUS, u64 *addr)
-+    Return CET feature status.
-+
-+    The parameter 'addr' is a pointer to a user buffer.
-+    On returning to the caller, the kernel fills the following
-+    information::
-+
-+        *addr       = shadow stack/indirect branch tracking status
-+        *(addr + 1) = shadow stack base address
-+        *(addr + 2) = shadow stack size
-+
-+arch_prctl(ARCH_X86_CET_DISABLE, unsigned int features)
-+    Disable shadow stack and/or indirect branch tracking as specified in
-+    'features'.  Return -EPERM if CET is locked.
-+
-+arch_prctl(ARCH_X86_CET_LOCK)
-+    Lock in all CET features.  They cannot be turned off afterwards.
-+
-+Note:
-+  There is no CET-enabling arch_prctl function.  By design, CET is enabled
-+  automatically if the binary and the system can support it.
-+
-+[5] The implementation of the Shadow Stack
-+==========================================
-+
-+Shadow Stack size
-+-----------------
-+
-+A task's shadow stack is allocated from memory to a fixed size of
-+MIN(RLIMIT_STACK, 4 GB).  In other words, the shadow stack is allocated to
-+the maximum size of the normal stack, but capped to 4 GB.  However,
-+a compat-mode application's address space is smaller, each of its thread's
-+shadow stack size is MIN(1/4 RLIMIT_STACK, 4 GB).
-+
-+Signal
-+------
-+
-+The main program and its signal handlers use the same shadow stack.
-+Because the shadow stack stores only return addresses, a large shadow
-+stack covers the condition that both the program stack and the signal
-+alternate stack run out.
-+
-+The kernel creates a restore token for the shadow stack restoring address
-+and verifies that token when restoring from the signal handler.
-+
-+Fork
-+----
-+
-+The shadow stack's vma has VM_SHSTK flag set; its PTEs are required to be
-+read-only and dirty.  When a shadow stack PTE is not RO and dirty, a
-+shadow access triggers a page fault with the shadow stack access bit set
-+in the page fault error code.
-+
-+When a task forks a child, its shadow stack PTEs are copied and both the
-+parent's and the child's shadow stack PTEs are cleared of the dirty bit.
-+Upon the next shadow stack access, the resulting shadow stack page fault
-+is handled by page copy/re-use.
-+
-+When a pthread child is created, the kernel allocates a new shadow stack
-+for the new thread.
--- 
-2.21.0
+It's still not entirely clear to me why the packet has to be held by
+ETF initially first, if it is held until delivery time by hardware
+later. But more on that below.
 
+So far, the use case sounds a bit narrow and the use of two timestamp
+fields for a single delivery event a bit of a hack. And that does
+impose a cost in the hot path of many workloads by adding a field the
+ip cookie, cork and writing to (possibly cold) skb_shinfo for every
+packet.
+
+> >>> Indeed, we want pacing offload to work for existing applications.
+> >>>
+> >> As the conversion of the PHC and the system clock is dynamic over time.
+> >> How do you propse to achive it?
+> >
+> > Can you elaborate on this concern?
+>
+> Using single time stamp have 3 possible solutions:
+>
+> 1. Current solution, synchronize the system clock and the PHC.
+>     Application uses the system clock.
+>     The ETF can use the system clock for ordering and pass the packet to the driver on time
+>     The network interface hardware compare the time-stamp to the PHC.
+>
+> 2. The application convert the PHC time-stamp to system clock based.
+>      The ETF works as solution 1
+>      The network driver convert the system clock time-stamp back to PHC time-stamp.
+>      This solution need a new Net-Link flag and modify the relevant network drivers.
+>      Yet this solution have 2 problems:
+>      * As applications today are not aware that system clock and PHC are not synchronized and
+>         therefore do not perform any conversion, most of them only use the system clock.
+>      * As the conversion in the network driver happens ~300 - 600 microseconds after
+>         the application send the packet.
+>         And as the PHC and system clock frequencies and offset can change during this period.
+>         The conversion will produce a different PHC time-stamp from the application original time-stamp.
+>         We require a precession of 1 nanoseconds of the PHC time-stamp.
+>
+> 3. The application uses PHC time-stamp for skb->tstamp
+>     The ETF convert the  PHC time-stamp to system clock time-stamp.
+>     This solution require implementations on supporting reading PHC clocks
+>     from IRQ/kernel thread context in kernel space.
+
+ETF has to release the packet well in advance of the hardware
+timestamp for the packet to arrive at the device on time. In practice
+I would expect this delta parameter to be at least at usec timescale.
+That gives some wiggly room with regard to s/w tstamp, at least.
+
+If changes in clock distance are relatively infrequent, could this
+clock diff be a qdisc parameter, updated infrequently outside the
+packet path?
+
+It would even be preferable if the qdisc and core stack could be
+ignorant of such hardware clocks and the time base is converted by the
+device driver when encoding skb->tstamp into the tx descriptor. Is the
+device hardware clock readable by the driver? (I don't know which
+exact device you're targeting). From the above, it sounds like this is
+not trivial.
+
+> Just for clarification:
+> ETF as all Net-Link, only uses system clock (the TAI)
+> The network interface hardware only uses the PHC.
+> Nor Net-Link neither the driver perform any conversions.
+> The Kernel does not provide and clock conversion beside system clock.
+> Linux kernel is a single clock system.
+>
+> >
+> > The simplest solution for offloading pacing would be to interpret
+> > skb->tstamp either for software pacing, or skip software pacing if the
+> > device advertises a NETIF_F hardware pacing feature.
+>
+> That will defy the purpose of ETF.
+> ETF exist for ordering packets.
+> Why should the device driver defer it?
+> Simply do not use the QDISC for this interface.
+
+ETF queues packets until their delivery time is reached. It does not
+order for any other reason than to calculate the next qdisc watchdog
+event, really.
+
+If h/w can do the same and the driver can convert skb->tstamp to the
+right timebase, indeed no qdisc is needed for pacing. But there may be
+a need for selective h/w offload if h/w has additional constraints,
+such as on the number of packets outstanding or time horizon.
+
+> >> I did not use "Fair Queue traffic policing".
+> >> As for ETF, it is all about ordering packets from different applications.
+> >> How can we achive it with skiping queuing?
+> >> Could you elaborate on this point?
+
+On which note: with this patch set all applications have to agree to
+use either h/w or system time base when sorting by delivery time in
+etf_enqueue_timesortedlist. I imagine that in practice that makes this
+h/w mode a qdisc used by a single process?
+
+> >
+> > The qdisc can only defer pacing to hardware if hardware can ensure the
+> > same invariants on ordering, of course.
+>
+> Yes, this is why we suggest ETF order packets using the hardware time-stamp.
+> And pass the packet based on system time.
+> So ETF query the system clock only and not the PHC.
+>
+> >
+> > Btw: this is quite a long list of CC:s
+> >
+> I need to update my company colleagues as well as the Linux group.
+
+Of course. But even ignoring your colleagues this is still quite a
+large list (> 40).
