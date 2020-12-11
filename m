@@ -2,66 +2,66 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-26.2 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
-	autolearn_force=no version=3.4.0
+	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 639FCC4361B
-	for <linux-arch@archiver.kernel.org>; Fri, 11 Dec 2020 20:18:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 73F5CC4361B
+	for <linux-arch@archiver.kernel.org>; Fri, 11 Dec 2020 20:21:10 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1A22B23E1B
-	for <linux-arch@archiver.kernel.org>; Fri, 11 Dec 2020 20:18:52 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 274C023F38
+	for <linux-arch@archiver.kernel.org>; Fri, 11 Dec 2020 20:21:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2390354AbgLKSsn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 11 Dec 2020 13:48:43 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56258 "EHLO
+        id S2406217AbgLKSso (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 11 Dec 2020 13:48:44 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56356 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2404795AbgLKSsa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Dec 2020 13:48:30 -0500
-Received: from mail-qv1-xf49.google.com (mail-qv1-xf49.google.com [IPv6:2607:f8b0:4864:20::f49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2B885C0619E3
-        for <linux-arch@vger.kernel.org>; Fri, 11 Dec 2020 10:46:54 -0800 (PST)
-Received: by mail-qv1-xf49.google.com with SMTP id h1so7028579qvr.7
-        for <linux-arch@vger.kernel.org>; Fri, 11 Dec 2020 10:46:54 -0800 (PST)
+        with ESMTP id S2406079AbgLKSsb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Dec 2020 13:48:31 -0500
+Received: from mail-pg1-x549.google.com (mail-pg1-x549.google.com [IPv6:2607:f8b0:4864:20::549])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 05FD5C0611D0
+        for <linux-arch@vger.kernel.org>; Fri, 11 Dec 2020 10:46:46 -0800 (PST)
+Received: by mail-pg1-x549.google.com with SMTP id o17so7102639pgm.18
+        for <linux-arch@vger.kernel.org>; Fri, 11 Dec 2020 10:46:46 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=sender:date:in-reply-to:message-id:mime-version:references:subject
          :from:to:cc;
-        bh=B5HJdqCXUeL43UIVLVZJnxtwrYZ/thw26FrV4EWKXXk=;
-        b=CI1Z1ksraZ9iV323F1+iZqU11ohoR7PeCXzqdRVa+VPq1uQ3aVlILlGyCMggutWSZh
-         toLJVqMi1M53AWHDdaW4XL+FYrTYFeGJoBHf5coo7gwbFzOhZJL8v1qpLIOTb3z8aV1q
-         LU62sjLP3/2xVwScgJOjKxlGys5dCTJXM7F9pbwXc3Us7y1Bms4nmyLFiAyAGs8raRLu
-         mCsKDkGu/2yqUolqiz63Y9CA2BRHkf8FRGTon8/JBgKj4dTg9k2vBkMRQRW0bWup9J5Z
-         B9KEUS2NCp+GN2iFEIoblQjbVITiJ1piXgw1hDZ29L9ZLU1esZxkERsW394RCsQNRyy0
-         8b3Q==
+        bh=IWPxRCPjFejanLxpgRG3fapg45p9YOPZWT66lZNPqfI=;
+        b=NmW10Ys2Tgg9pvNOzRC87vTxzQN/QNTXAjHd7AFTV8ok00h9tGhhYMLsRuxKeNhXDl
+         iMPagwzzegEY0NAWkP8VdeyEnPICgOM5AE4FTcCbPPAinuDjGz68sbCLgXPYhkRq1Pep
+         /oDzt2sWciOe12Hb0BMOoaCF9qAfZgz+jdivhEhkTAz3ohV7gcdM13QrPXPixLmDjCSe
+         nTPKcCoKQq0gq3xcii2Dkj1W1xDXw/X3VKykyVsM1VgUoEe62p+1hemZShAFUHpH1Tsi
+         8OfLqN3hCowWbgVvrwWk8fm6stKJ1NblXBwjNE+NVf/Ofnn3fkAOASnNgDC94IzGVftK
+         2nnw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=B5HJdqCXUeL43UIVLVZJnxtwrYZ/thw26FrV4EWKXXk=;
-        b=KNOxQvMAvwhEZbgAJaInEPHiHOV69wPmCFUayDx+8U1U/fi3cdJXlV7HSnfTO4M5fu
-         CHDK+Pb/qSTDEtRu52ZYSnHJKkFv6zbwJ4q9Z89Xgc+62ruV+7m41W7KMCqZRulABxHJ
-         cV7RJZbXMFKcM73aCpVPw9/bFNOT/0jya/rw6MVlFyjPhwZKDLRqsMoUIzyvU3dv+bYP
-         52owMLpOO5poJaQpMjMrr2KKZhTsjvX2HBkzsT4TO9AwEyvN1oj69gDdflAkHmDXapCv
-         4xPTGr5E24Ao3NNq/tOv/KLnBxuvi/qfFVAV93JbasQT6CYEbkuuy+8Qk+o3rIx2gqqk
-         4RBQ==
-X-Gm-Message-State: AOAM5335tKpYHv7TOzia8jqrj2u2jqMsIb2VLHQ5Cw9yt2jsczs6O4Ir
-        Cv1aQzpKNlHKyQLNssAclluddzoDOwKsFUICMto=
-X-Google-Smtp-Source: ABdhPJwrma1lcyBdkKY9Fn3d/aj96Xjbcqm6ANOmxB5F+S78NXSz4LS+Jidn8aXBd6ggUskWzgWXGBBPQ7DVfOBFzGY=
+        bh=IWPxRCPjFejanLxpgRG3fapg45p9YOPZWT66lZNPqfI=;
+        b=cyHTiIaUu++SbR7RA3J6en1h2QtOh181O5bKoN6CRfYXXSQ4bScEz9q0vZYXZ3rTCA
+         FXJ4cxHUTK4h2soGIWDWP6B/Sva/VCbpUmFjwxz/8VSO0+CjRF7udLzL2Np4fmUlB3ND
+         Q5/Dpz8d2zP2IuinLhY+lH7/yvir3uFtYV/qQJhx5VnKB7mPe+hiud7gfSPqvpqCPJH1
+         aKtA9qbkfDq0Pm97YIKo2Epu3aO4Y7P+Zsv6onwazgAYqAyJOtzvB7wUvVzPR7SEZXLa
+         yB5nl0C6xQ67yKU6iqMD3kEqn5I0mS2I9/l7PztrOfLG9AaSVXaUHI6xSl7cLsDWlS/c
+         DoGQ==
+X-Gm-Message-State: AOAM5319i+mF8nE+2D0DDa7LHjVLkpr+T78HQ8+dfHghmgGKN2efipXi
+        L9xeABLhyRX4zXQY/Wcig60LZnLHYiHvvhbqeI0=
+X-Google-Smtp-Source: ABdhPJzm7bBo2qDvtUgK6v6rrLGQ/0dJj/ATzhcF3Fgu3P9N3k/LVow1+5c7Y8w8YkEUkh1r4Djckvq7KIZM8TNXHU4=
 Sender: "samitolvanen via sendgmr" 
         <samitolvanen@samitolvanen1.mtv.corp.google.com>
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:f693:9fff:fef4:1b6d])
- (user=samitolvanen job=sendgmr) by 2002:a0c:e312:: with SMTP id
- s18mr17700151qvl.60.1607712413271; Fri, 11 Dec 2020 10:46:53 -0800 (PST)
-Date:   Fri, 11 Dec 2020 10:46:26 -0800
+ (user=samitolvanen job=sendgmr) by 2002:a17:90a:8b94:: with SMTP id
+ z20mr136813pjn.1.1607712405109; Fri, 11 Dec 2020 10:46:45 -0800 (PST)
+Date:   Fri, 11 Dec 2020 10:46:22 -0800
 In-Reply-To: <20201211184633.3213045-1-samitolvanen@google.com>
-Message-Id: <20201211184633.3213045-10-samitolvanen@google.com>
+Message-Id: <20201211184633.3213045-6-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20201211184633.3213045-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.29.2.576.ga3fc446d84-goog
-Subject: [PATCH v9 09/16] PCI: Fix PREL32 relocations for LTO
+Subject: [PATCH v9 05/16] kbuild: lto: merge module sections
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Masahiro Yamada <masahiroy@kernel.org>,
         Steven Rostedt <rostedt@goodmis.org>,
@@ -82,58 +82,52 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-With Clang's Link Time Optimization (LTO), the compiler can rename
-static functions to avoid global naming collisions. As PCI fixup
-functions are typically static, renaming can break references
-to them in inline assembly. This change adds a global stub to
-DECLARE_PCI_FIXUP_SECTION to fix the issue when PREL32 relocations
-are used.
+LLD always splits sections with LTO, which increases module sizes. This
+change adds linker script rules to merge the split sections in the final
+module.
 
+Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-Acked-by: Bjorn Helgaas <bhelgaas@google.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- include/linux/pci.h | 19 ++++++++++++++-----
- 1 file changed, 14 insertions(+), 5 deletions(-)
+ scripts/module.lds.S | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 22207a79762c..5b8505a5ca5f 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -1912,19 +1912,28 @@ enum pci_fixup_pass {
- };
+diff --git a/scripts/module.lds.S b/scripts/module.lds.S
+index 69b9b71a6a47..18d5b8423635 100644
+--- a/scripts/module.lds.S
++++ b/scripts/module.lds.S
+@@ -23,6 +23,30 @@ SECTIONS {
+ 	.init_array		0 : ALIGN(8) { *(SORT(.init_array.*)) *(.init_array) }
  
- #ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
--#define __DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
--				    class_shift, hook)			\
--	__ADDRESSABLE(hook)						\
-+#define ___DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
-+				    class_shift, hook, stub)		\
-+	void stub(struct pci_dev *dev);					\
-+	void stub(struct pci_dev *dev)					\
-+	{ 								\
-+		hook(dev); 						\
-+	}								\
- 	asm(".section "	#sec ", \"a\"				\n"	\
- 	    ".balign	16					\n"	\
- 	    ".short "	#vendor ", " #device "			\n"	\
- 	    ".long "	#class ", " #class_shift "		\n"	\
--	    ".long "	#hook " - .				\n"	\
-+	    ".long "	#stub " - .				\n"	\
- 	    ".previous						\n");
+ 	__jump_table		0 : ALIGN(8) { KEEP(*(__jump_table)) }
 +
-+#define __DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
-+				  class_shift, hook, stub)		\
-+	___DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
-+				  class_shift, hook, stub)
- #define DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
- 				  class_shift, hook)			\
- 	__DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
--				  class_shift, hook)
-+				  class_shift, hook, __UNIQUE_ID(hook))
- #else
- /* Anonymous variables would be nice... */
- #define DECLARE_PCI_FIXUP_SECTION(section, name, vendor, device, class,	\
++	__patchable_function_entries : { *(__patchable_function_entries) }
++
++	/*
++	 * With CONFIG_LTO_CLANG, LLD always enables -fdata-sections and
++	 * -ffunction-sections, which increases the size of the final module.
++	 * Merge the split sections in the final binary.
++	 */
++	.bss : {
++		*(.bss .bss.[0-9a-zA-Z_]*)
++		*(.bss..L*)
++	}
++
++	.data : {
++		*(.data .data.[0-9a-zA-Z_]*)
++		*(.data..L*)
++	}
++
++	.rodata : {
++		*(.rodata .rodata.[0-9a-zA-Z_]*)
++		*(.rodata..L*)
++	}
++
++	.text : { *(.text .text.[0-9a-zA-Z_]*) }
+ }
+ 
+ /* bring in arch-specific sections */
 -- 
 2.29.2.576.ga3fc446d84-goog
 
