@@ -2,37 +2,33 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-17.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 98E75C4361B
-	for <linux-arch@archiver.kernel.org>; Thu, 17 Dec 2020 15:00:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D7D00C2BB9A
+	for <linux-arch@archiver.kernel.org>; Thu, 17 Dec 2020 15:01:41 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 45953235FD
-	for <linux-arch@archiver.kernel.org>; Thu, 17 Dec 2020 15:00:58 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9B3E4235F9
+	for <linux-arch@archiver.kernel.org>; Thu, 17 Dec 2020 15:01:41 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728156AbgLQPAm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 17 Dec 2020 10:00:42 -0500
-Received: from mail.kernel.org ([198.145.29.99]:60282 "EHLO mail.kernel.org"
+        id S1728493AbgLQPBj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 17 Dec 2020 10:01:39 -0500
+Received: from foss.arm.com ([217.140.110.172]:40786 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728118AbgLQPAm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 17 Dec 2020 10:00:42 -0500
-Date:   Thu, 17 Dec 2020 14:59:54 +0000
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1608217201;
-        bh=SryEihmoGHKC5r1tLLVQJV4OdHijgIVYH18Si4+ZQUE=;
-        h=From:To:Cc:Subject:References:In-Reply-To:From;
-        b=N22OMxb+xaAjqkpCj4d3MHixRyNQhPXV6rdtIQ15RNVqNQeprGTLVAd20egsnrxJY
-         uOSYgL8oU5NSCqc52q24+/d0n6RFicWy26aoTiR8Ohqb2TMnSA7YqXYaDDA06T3h9R
-         evanQ6FiSR/bOONjtVrKzXXJgMedjO686WaL35XToPghTZB9DrIeuBzUQtJAQqzIqa
-         43uHKXNHr1PPswqSI592mhRYcyvFB3ppLEhUPpag9ct0eabMRS/H0zmH4RDiCyv+HG
-         ue7W0nBnopnMCer75U/CLVzAxUXfkEQ9tq31m1EgzuxwbwD/J1tZfCQWUm2ZNY4SAq
-         x2wufl1GC+/OA==
-From:   Will Deacon <will@kernel.org>
+        id S1728086AbgLQPBj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 17 Dec 2020 10:01:39 -0500
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 6A48130E;
+        Thu, 17 Dec 2020 07:00:53 -0800 (PST)
+Received: from e107158-lin.cambridge.arm.com (e107158-lin.cambridge.arm.com [10.1.194.78])
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id F036B3F66B;
+        Thu, 17 Dec 2020 07:00:50 -0800 (PST)
+Date:   Thu, 17 Dec 2020 15:00:48 +0000
+From:   Qais Yousef <qais.yousef@arm.com>
 To:     Peter Zijlstra <peterz@infradead.org>
-Cc:     Qais Yousef <qais.yousef@arm.com>,
+Cc:     Will Deacon <will@kernel.org>,
         linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org,
         Catalin Marinas <catalin.marinas@arm.com>,
@@ -49,21 +45,20 @@ Cc:     Qais Yousef <qais.yousef@arm.com>,
         kernel-team@android.com
 Subject: Re: [PATCH v5 07/15] cpuset: Don't use the cpu_possible_mask as a
  last resort for cgroup v1
-Message-ID: <20201217145954.GA17881@willie-the-truck>
+Message-ID: <20201217150048.d6enq5hhchvh32hz@e107158-lin.cambridge.arm.com>
 References: <20201208132835.6151-1-will@kernel.org>
  <20201208132835.6151-8-will@kernel.org>
  <20201217121552.ds7g2icvqp5nvtha@e107158-lin.cambridge.arm.com>
  <20201217134401.GY3040@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
 In-Reply-To: <20201217134401.GY3040@hirez.programming.kicks-ass.net>
-User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Dec 17, 2020 at 02:44:01PM +0100, Peter Zijlstra wrote:
+On 12/17/20 14:44, Peter Zijlstra wrote:
 > On Thu, Dec 17, 2020 at 12:15:52PM +0000, Qais Yousef wrote:
 > > On 12/08/20 13:28, Will Deacon wrote:
 > > > If the scheduler cannot find an allowed CPU for a task,
@@ -109,8 +104,21 @@ On Thu, Dec 17, 2020 at 02:44:01PM +0100, Peter Zijlstra wrote:
 > 
 > Or at least, that's how I read the patch.
 
-I think Qais a point with v2 though: if task_cs(tsk)->cpus_allowed
-contains 64-bit-only CPUs, then we're in trouble here. I should be
-taking the intersection with the task_cpu_possible_mask() for the task.
+Okay I can see that if v2 has effectively empty mask for the 32bit tasks, then
+we'll fallback to the 'possible' switch case where we set
+task_cpu_possible_mask().
 
-Will
+But how about when task_cs(tsk)->cpus_allowed contains partially invalid cpus?
+
+The search for a candidate cpu will return a correct dest_cpu, but the actual
+cpu_mask of the task will contain invalid cpus that could be picked up later,
+no? Shouldn't we
+
+	cpumask_and(mask, task_cs(tsk)->cpus_allowed, task_cpu_possible_mask())
+
+to remove those invalid cpus?
+
+Thanks
+
+--
+Qais Yousef
