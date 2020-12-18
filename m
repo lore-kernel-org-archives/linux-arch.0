@@ -7,21 +7,21 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 09C2AC2BBD4
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:36:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 29134C3526F
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:36:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D308023AC2
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:36:34 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id F1E9223A62
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:36:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728113AbgLROfS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Dec 2020 09:35:18 -0500
-Received: from mout.kundenserver.de ([212.227.126.135]:51407 "EHLO
+        id S1728788AbgLROgH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Dec 2020 09:36:07 -0500
+Received: from mout.kundenserver.de ([212.227.126.134]:47299 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728029AbgLROfS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Dec 2020 09:35:18 -0500
+        with ESMTP id S1728119AbgLROfV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Dec 2020 09:35:21 -0500
 Received: from orion.localdomain ([95.115.54.243]) by mrelayeu.kundenserver.de
  (mreue009 [212.227.15.167]) with ESMTPSA (Nemesis) id
- 1MZkxj-1kcoFa2LHL-00WjtE; Fri, 18 Dec 2020 15:32:09 +0100
+ 1MlwBf-1kQWgo0nzP-00j24e; Fri, 18 Dec 2020 15:32:13 +0100
 From:   "Enrico Weigelt, metux IT consult" <info@metux.net>
 To:     linux-kernel@vger.kernel.org
 Cc:     mark.rutland@arm.com, alexander.shishkin@linux.intel.com,
@@ -41,23 +41,23 @@ Cc:     mark.rutland@arm.com, alexander.shishkin@linux.intel.com,
         linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
         linux-gpio@vger.kernel.org, linux-omap@vger.kernel.org,
         linux-arch@vger.kernel.org
-Subject: [PATCH 15/23] arch: mips: use generic irq error counter
-Date:   Fri, 18 Dec 2020 15:31:14 +0100
-Message-Id: <20201218143122.19459-16-info@metux.net>
+Subject: [PATCH 17/23] arch: arm: use generic irq error counter
+Date:   Fri, 18 Dec 2020 15:31:16 +0100
+Message-Id: <20201218143122.19459-18-info@metux.net>
 X-Mailer: git-send-email 2.11.0
 In-Reply-To: <20201218143122.19459-1-info@metux.net>
 References: <20201218143122.19459-1-info@metux.net>
-X-Provags-ID: V03:K1:U1Ak/9ScsjyFYX+WGDIYoVojkUNJ6hF+6wQxy6ce5gvk0M/i13b
- SVB5QU3OxoK0sJirLk2hgpuDD5n/JYh/T2EFuvyBTl6yh+DCHdYmEjapCEbp3DrXQ0sRbQv
- c8Dou65hAanyqc6UaE7VWDeWLPY6L1bCKlGijc7ufXI6CJfft/mT1EcOT5lNJZbpRwsaL9z
- zDxX7z54+xWPR1RsNEiSg==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:CkN31NN0Y5c=:AkDwN4dOYkg4/ced8F1Bdm
- 5tOHX+znKJ5CD/TRaL7An0fEWZAAzaCg1TFznZK0zwFF/FYNyfUDKLqN/VF91yuWGFVnN7Smj
- hmRq8ii8MDeQ+3fXgkWmdJEIOG29Cni2VzHIHzXqx6bmSyzQLawN+/M3zmly+KAkNqeaoshmY
- MngMn3QXDhMzO6IOMh2TjIc4UhzyBJpVEPrhWm7lSfJQRvkJ/HRl64jHUEyMM4PBegzSlSbfp
- rw/NqTu1O9RhpCqOTGdzgsWTVl/MIBVs7LHEDlpNlzY7qn1mDpsGpD0mvS3dq6P6jIufTwimz
- 1b9qQmMQgYxZHTdrQl1lGuq0Z+DOZdC2b8OFG52QUIRiC9OIbgXGywjVl4rh+omrKU/7lUYL0
- i9kzID1mTYV3HC9dwsgrBWdf5gn7jIQoaRLdgWY+cp2RYQGii4lSr/277g3Jg
+X-Provags-ID: V03:K1:3SwIe0eO46CaJ5EoqMiX//gtX9bqQxyAhXLbP4/gz2GYyvjZ2Cb
+ e7VCsHyTIhYbQmhKAxhT3mj64mNwoJPgzTdg41XdH3zeVx6oSMrNX8BMXGcIsxlzOPpwTdJ
+ QPs7bYAr35zZd3PpIZiH7JApQsvFbkvqbv15imk3fseX8MAR9Bof6Yvzgi0vL2qnFJqjFSO
+ +1Fl682AJzqT0h8vOWnFw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:FpYA9py1SLs=:7EMuIumlJwF6EAWdI1huM/
+ U2YTteDL2sd8MAXN30P7bcmsnzZ/B1612n3oZanzaRD9+Ue1XwbicYWhuC1Vwhx/7O21Vg3g7
+ RnRjxSv13kdOrBXFPyihNI2IcXTRS4nkLluii+JXoA1fqmEOreplj7Ih6+v9ZEIMo1yKTtYww
+ DiAweeloTQJY5J60vfvpAICNi75XFV+Lb3EWUmma3GLSgeGTUvp/3IZu9dq4USm2v589eY5yV
+ uihxlEA4WE09xu9wlzx7m88q9n9jBB4H71GwVepD+6UI7FSItEznfktktYfSAPbDwgdUBRv6d
+ wZoDUZtfev/ySaoqBjOZOp+TK/4DsDFteHi7lvEjETiCatdmSDGWyK+SnWIQTyWB9UszPC5TU
+ wn2E0e5nmisTNbFxPXhSX6bWOQ3lLHMPUCyvUFirWm5+0eO94Q5WyF0xF5aMR
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -67,177 +67,103 @@ by all callers of ack_bad_irq(), in order to remove duplicate code.
 
 Signed-off-by: Enrico Weigelt, metux IT consult <info@metux.net>
 ---
- arch/mips/include/asm/hw_irq.h | 4 ----
- arch/mips/kernel/irq-gt641xx.c | 3 ++-
- arch/mips/kernel/irq.c         | 7 +++----
- arch/mips/sni/rm200.c          | 3 ++-
- arch/mips/vr41xx/common/icu.c  | 3 ++-
- arch/mips/vr41xx/common/irq.c  | 5 +++--
- drivers/gpio/gpio-vr41xx.c     | 4 ++--
- 7 files changed, 14 insertions(+), 15 deletions(-)
+ arch/arm/include/asm/hardirq.h  | 2 +-
+ arch/arm/include/asm/hw_irq.h   | 6 ------
+ arch/arm/kernel/irq.c           | 6 ++----
+ drivers/irqchip/irq-omap-intc.c | 5 ++---
+ 4 files changed, 5 insertions(+), 14 deletions(-)
 
-diff --git a/arch/mips/include/asm/hw_irq.h b/arch/mips/include/asm/hw_irq.h
-index 9e8ef5994c9c..b75fe2c4377f 100644
---- a/arch/mips/include/asm/hw_irq.h
-+++ b/arch/mips/include/asm/hw_irq.h
-@@ -8,10 +8,6 @@
- #ifndef __ASM_HW_IRQ_H
- #define __ASM_HW_IRQ_H
+diff --git a/arch/arm/include/asm/hardirq.h b/arch/arm/include/asm/hardirq.h
+index 706efafbf972..d9ae8998240d 100644
+--- a/arch/arm/include/asm/hardirq.h
++++ b/arch/arm/include/asm/hardirq.h
+@@ -5,7 +5,7 @@
+ #include <asm/irq.h>
  
--#include <linux/atomic.h>
+ #define __ARCH_IRQ_EXIT_IRQS_DISABLED	1
+-#define ack_bad_irq ack_bad_irq
++#define ack_bad_irq(irq)
+ 
+ #include <asm-generic/hardirq.h>
+ 
+diff --git a/arch/arm/include/asm/hw_irq.h b/arch/arm/include/asm/hw_irq.h
+index 5305c7e33aee..adbbeb11b930 100644
+--- a/arch/arm/include/asm/hw_irq.h
++++ b/arch/arm/include/asm/hw_irq.h
+@@ -5,12 +5,6 @@
+ #ifndef _ARCH_ARM_HW_IRQ_H
+ #define _ARCH_ARM_HW_IRQ_H
+ 
+-static inline void ack_bad_irq(int irq)
+-{
+-	extern unsigned long irq_err_count;
+-	irq_err_count++;
+-}
 -
--extern atomic_t irq_err_count;
+ #define ARCH_IRQ_INIT_FLAGS	(IRQ_NOREQUEST | IRQ_NOPROBE)
+ 
+ #endif
+diff --git a/arch/arm/kernel/irq.c b/arch/arm/kernel/irq.c
+index 698b6f636156..72c3b8ce74db 100644
+--- a/arch/arm/kernel/irq.c
++++ b/arch/arm/kernel/irq.c
+@@ -32,7 +32,7 @@
+ #include <linux/kallsyms.h>
+ #include <linux/proc_fs.h>
+ #include <linux/export.h>
 -
- /*
-  * interrupt-retrigger: NOP for now. This may not be appropriate for all
-  * machines, we'll see ...
-diff --git a/arch/mips/kernel/irq-gt641xx.c b/arch/mips/kernel/irq-gt641xx.c
-index 93bcf5736a6f..e2c877287bee 100644
---- a/arch/mips/kernel/irq-gt641xx.c
-+++ b/arch/mips/kernel/irq-gt641xx.c
-@@ -11,6 +11,7 @@
- #include <linux/types.h>
- 
- #include <asm/gt64120.h>
 +#include <asm-generic/irq-err.h>
+ #include <asm/hardware/cache-l2x0.h>
+ #include <asm/hardware/cache-uniphier.h>
+ #include <asm/outercache.h>
+@@ -41,8 +41,6 @@
+ #include <asm/mach/irq.h>
+ #include <asm/mach/time.h>
  
- #define GT641XX_IRQ_TO_BIT(irq) (1U << (irq - GT641XX_IRQ_BASE))
- 
-@@ -97,7 +98,7 @@ void gt641xx_irq_dispatch(void)
- 		}
- 	}
- 
--	atomic_inc(&irq_err_count);
-+	irq_err_inc();
- }
- 
- void __init gt641xx_irq_init(void)
-diff --git a/arch/mips/kernel/irq.c b/arch/mips/kernel/irq.c
-index c98be305fab6..3ea3e4280648 100644
---- a/arch/mips/kernel/irq.c
-+++ b/arch/mips/kernel/irq.c
-@@ -8,6 +8,7 @@
-  * Copyright (C) 1992 Linus Torvalds
-  * Copyright (C) 1994 - 2000 Ralf Baechle
-  */
-+#include <asm-generic/irq-err.h>
- #include <linux/kernel.h>
- #include <linux/delay.h>
- #include <linux/init.h>
-@@ -27,17 +28,15 @@
- 
- void *irq_stack[NR_CPUS];
- 
--atomic_t irq_err_count;
+-unsigned long irq_err_count;
 -
  int arch_show_interrupts(struct seq_file *p, int prec)
  {
--	seq_printf(p, "%*s: %10u\n", prec, "ERR", atomic_read(&irq_err_count));
-+	seq_printf(p, "%*s: %10u\n", prec, "ERR", irq_err_get());
+ #ifdef CONFIG_FIQ
+@@ -51,7 +49,7 @@ int arch_show_interrupts(struct seq_file *p, int prec)
+ #ifdef CONFIG_SMP
+ 	show_ipi_list(p, prec);
+ #endif
+-	seq_printf(p, "%*s: %10lu\n", prec, "Err", irq_err_count);
++	seq_printf(p, "%*s: %10lu\n", prec, "Err", irq_err_get());
  	return 0;
  }
  
- asmlinkage void spurious_interrupt(void)
- {
--	atomic_inc(&irq_err_count);
-+	irq_err_inc();
- }
- 
- void __init init_IRQ(void)
-diff --git a/arch/mips/sni/rm200.c b/arch/mips/sni/rm200.c
-index d84744ca871d..c61d60a4dcc5 100644
---- a/arch/mips/sni/rm200.c
-+++ b/arch/mips/sni/rm200.c
-@@ -21,6 +21,7 @@
- #include <asm/sni.h>
- #include <asm/time.h>
- #include <asm/irq_cpu.h>
-+#include <asm-generic/irq-err.h>
- 
- #define RM200_I8259A_IRQ_BASE 32
- 
-@@ -270,7 +271,7 @@ void sni_rm200_mask_and_ack_8259A(struct irq_data *d)
- 			       "spurious RM200 8259A interrupt: IRQ%d.\n", irq);
- 			spurious_irq_mask |= irqmask;
- 		}
--		atomic_inc(&irq_err_count);
-+		irq_err_inc();
- 		/*
- 		 * Theoretically we do not have to handle this IRQ,
- 		 * but in Linux this does not cause problems and is
-diff --git a/arch/mips/vr41xx/common/icu.c b/arch/mips/vr41xx/common/icu.c
-index 7b7f25b4b057..462f559ad978 100644
---- a/arch/mips/vr41xx/common/icu.c
-+++ b/arch/mips/vr41xx/common/icu.c
-@@ -27,6 +27,7 @@
- #include <asm/io.h>
- #include <asm/vr41xx/irq.h>
- #include <asm/vr41xx/vr41xx.h>
-+#include <asm-generic/irq-err.h>
- 
- static void __iomem *icu1_base;
- static void __iomem *icu2_base;
-@@ -640,7 +641,7 @@ static int icu_get_irq(unsigned int irq)
- 
- 	printk(KERN_ERR "spurious ICU interrupt: %04x,%04x\n", pend1, pend2);
- 
--	atomic_inc(&irq_err_count);
-+	irq_err_inc();
- 
- 	return -1;
- }
-diff --git a/arch/mips/vr41xx/common/irq.c b/arch/mips/vr41xx/common/irq.c
-index 8f68446ff2d9..b2580de08e25 100644
---- a/arch/mips/vr41xx/common/irq.c
-+++ b/arch/mips/vr41xx/common/irq.c
-@@ -10,6 +10,7 @@
- 
- #include <asm/irq_cpu.h>
- #include <asm/vr41xx/irq.h>
-+#include <asm-generic/irq-err.h>
- 
- typedef struct irq_cascade {
- 	int (*get_irq)(unsigned int);
-@@ -46,7 +47,7 @@ static void irq_dispatch(unsigned int irq)
- 	irq_cascade_t *cascade;
- 
- 	if (irq >= NR_IRQS) {
--		atomic_inc(&irq_err_count);
-+		irq_err_inc();
- 		return;
- 	}
- 
-@@ -66,7 +67,7 @@ static void irq_dispatch(unsigned int irq)
- 		ret = cascade->get_irq(irq);
- 		irq = ret;
- 		if (ret < 0)
--			atomic_inc(&irq_err_count);
-+			irq_err_inc();
- 		else
- 			irq_dispatch(irq);
- 		if (!irqd_irq_disabled(idata) && chip->irq_unmask)
-diff --git a/drivers/gpio/gpio-vr41xx.c b/drivers/gpio/gpio-vr41xx.c
-index 98cd715ccc33..c1dbd933d291 100644
---- a/drivers/gpio/gpio-vr41xx.c
-+++ b/drivers/gpio/gpio-vr41xx.c
-@@ -18,7 +18,7 @@
- #include <linux/platform_device.h>
- #include <linux/spinlock.h>
- #include <linux/types.h>
+diff --git a/drivers/irqchip/irq-omap-intc.c b/drivers/irqchip/irq-omap-intc.c
+index d360a6eddd6d..2682c6e814c2 100644
+--- a/drivers/irqchip/irq-omap-intc.c
++++ b/drivers/irqchip/irq-omap-intc.c
+@@ -15,7 +15,7 @@
+ #include <linux/init.h>
+ #include <linux/interrupt.h>
+ #include <linux/io.h>
 -
 +#include <asm-generic/irq-err.h>
- #include <asm/vr41xx/giu.h>
- #include <asm/vr41xx/irq.h>
- #include <asm/vr41xx/vr41xx.h>
-@@ -217,7 +217,7 @@ static int giu_get_irq(unsigned int irq)
- 	printk(KERN_ERR "spurious GIU interrupt: %04x(%04x),%04x(%04x)\n",
- 	       maskl, pendl, maskh, pendh);
+ #include <asm/exception.h>
+ #include <linux/irqchip.h>
+ #include <linux/irqdomain.h>
+@@ -328,7 +328,6 @@ static int __init omap_init_irq(u32 base, struct device_node *node)
+ static asmlinkage void __exception_irq_entry
+ omap_intc_handle_irq(struct pt_regs *regs)
+ {
+-	extern unsigned long irq_err_count;
+ 	u32 irqnr;
  
--	atomic_inc(&irq_err_count);
-+	irq_err_inc();
- 
- 	return -EINVAL;
- }
+ 	irqnr = intc_readl(INTC_SIR);
+@@ -351,7 +350,7 @@ omap_intc_handle_irq(struct pt_regs *regs)
+ 	 */
+ 	if (unlikely((irqnr & SPURIOUSIRQ_MASK) == SPURIOUSIRQ_MASK)) {
+ 		pr_err_once("%s: spurious irq!\n", __func__);
+-		irq_err_count++;
++		irq_err_inc();
+ 		omap_ack_irq(NULL);
+ 		return;
+ 	}
 -- 
 2.11.0
 
