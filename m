@@ -7,21 +7,21 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id ED451C352A2
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:37:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F309CC2BBD4
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:37:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C93E923AAA
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:37:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id BA08723AC1
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:37:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727035AbgLROgp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Dec 2020 09:36:45 -0500
-Received: from mout.kundenserver.de ([212.227.126.130]:53589 "EHLO
+        id S1726356AbgLROgy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Dec 2020 09:36:54 -0500
+Received: from mout.kundenserver.de ([212.227.126.187]:50289 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727964AbgLROfN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Dec 2020 09:35:13 -0500
+        with ESMTP id S1727843AbgLROfL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Dec 2020 09:35:11 -0500
 Received: from orion.localdomain ([95.115.54.243]) by mrelayeu.kundenserver.de
  (mreue009 [212.227.15.167]) with ESMTPSA (Nemesis) id
- 1MjSHa-1kO2md3GAM-00ky1B; Fri, 18 Dec 2020 15:32:05 +0100
+ 1MORN0-1kRYuy1Knu-00PuPN; Fri, 18 Dec 2020 15:32:02 +0100
 From:   "Enrico Weigelt, metux IT consult" <info@metux.net>
 To:     linux-kernel@vger.kernel.org
 Cc:     mark.rutland@arm.com, alexander.shishkin@linux.intel.com,
@@ -41,23 +41,23 @@ Cc:     mark.rutland@arm.com, alexander.shishkin@linux.intel.com,
         linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
         linux-gpio@vger.kernel.org, linux-omap@vger.kernel.org,
         linux-arch@vger.kernel.org
-Subject: [PATCH 13/23] arch: generic: drop misleading warning on spurious IRQ
-Date:   Fri, 18 Dec 2020 15:31:12 +0100
-Message-Id: <20201218143122.19459-14-info@metux.net>
+Subject: [PATCH 11/23] arch: sparc: drop misleading warning on spurious IRQ
+Date:   Fri, 18 Dec 2020 15:31:10 +0100
+Message-Id: <20201218143122.19459-12-info@metux.net>
 X-Mailer: git-send-email 2.11.0
 In-Reply-To: <20201218143122.19459-1-info@metux.net>
 References: <20201218143122.19459-1-info@metux.net>
-X-Provags-ID: V03:K1:M8aLFwZQt8q/gF3VPIe1M+mslyreXcwR+vIpx4HR0fXlsa/ah7/
- +gpub2bmnwbbfk2vmmd6wqU45nrLu4R8WoBDzlf/sEt8wti8ZNkB2N2Sn2RULrqS35jZqVv
- znY27DxrEH8DcfZBtVtCCD8FZ+9L/4eAR8+CpjqGf2MloaS+b2sZc2tB/+AISxdJcTKKsXj
- JY+ucp7lvJopx9QUjLklw==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:Q1EC+mZUefQ=:GWO/RZjVZ6sQFibA31f9Li
- ecpis2odSRaO8+Go9GXugExpCogb5QHG6jNXU6SjPi/S/x+bzgo7UbVx4UfZCEt1pCuR65h8T
- BfLchQL8Ga2M+Z4iVE76JpqiYI8iKFmB2FWytSxVjIo5JoYZclIhl0xwm1kdd+EeYZJ7ayZ9m
- R05/FDLyX0pws33QW/IDqCovyrlVQPrNyzee0JLBBepkm4Nkv+L7RVBdzzbSnee1qaGSW7Jlt
- i0yymjKfv/qQsx/0NNcIRAMnvLLXUWmWR1Lf1l8XwnftGUWgjM9ryakDKd/sDz3pnwavpUbef
- yDHmiqJ+iHZL+JG6mq6tJdTLwzxduVYn6IlDZR8hMTr1Yy0x3ubJgbfDwnAr9agzmf1S63WpX
- vVVl/hcXPLDGnMprSZjAOlXYJSfmfOU81FiRdChJw1XfU4b6e6p0euhp/z3ez
+X-Provags-ID: V03:K1:vpXcdJ5flfT9UMPnHgs6T5l9jtGqBDr3f0tC6p5Rjwsvidh10dx
+ d0ToT43G0U3IwpJaBGtCswd9oef4Qd4eA0CAixsHtd5euXXJNxA9w1nGeD2/Gx6uxbiGLS0
+ tGewaqJssGqjA707NEZ8gDxxCE6ENgCktLf2r4JFNKn28o5k4rGK9s6JDW+QdfaOEf7J3lv
+ xxUqavLjRvPdJSifMz8RA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:FAaCbJXPe/U=:euCZpYb16hzPdr0rOmUHvc
+ Mbl+JbbJacqEK9NS1X93hWQ41jQUrJHb+lZ1iEOJt9HdnBQK73zA80gWDm5dUlkD4XzE25f4y
+ iZAdXdl5Ah1QrxTSxe1Y9y9A+egjNscrkz9H9OjKHRyGuUxTp8qXnHzfp2syekussaP0P6Z2a
+ gK3PCoS98+1XjVpv1rbiX7wTafMlpOeqHCPCX7GADLBTi797dxPRr9WMG/Fbu+uKKqXyJkHah
+ jk51z873TwfbS+nMdLwkCU7zed0CiUFDHQ4QQUj0LFQxO1Hff0WZ447MWp3VaDYP+tDznjwrf
+ Cf8Msp2xoXen16t6PctzlKTRT0MuKxO0wNlYwE+AwG2kgMTqJuSnpzJKj8Amk6YSEoRB0LaJO
+ M2X2I0yt2w7VdDkA4pX0Tq421hrWkI6UhRpBP480D9vrnUkMmL2ONPeAnwhyx
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -74,21 +74,38 @@ we just don't need to duplicate this in each single arch. So just drop it.
 
 Signed-off-by: Enrico Weigelt, metux IT consult <info@metux.net>
 ---
- include/asm-generic/hardirq.h | 1 -
- 1 file changed, 1 deletion(-)
+ arch/sparc/include/asm/hardirq_64.h | 2 +-
+ arch/sparc/kernel/irq_64.c          | 5 -----
+ 2 files changed, 1 insertion(+), 6 deletions(-)
 
-diff --git a/include/asm-generic/hardirq.h b/include/asm-generic/hardirq.h
-index 7317e8258b48..f5a0240cbf52 100644
---- a/include/asm-generic/hardirq.h
-+++ b/include/asm-generic/hardirq.h
-@@ -19,7 +19,6 @@ DECLARE_PER_CPU_ALIGNED(irq_cpustat_t, irq_stat);
- #ifndef ack_bad_irq
- static inline void ack_bad_irq(unsigned int irq)
- {
--	printk(KERN_CRIT "unexpected IRQ trap at vector %02x\n", irq);
- }
- #endif
+diff --git a/arch/sparc/include/asm/hardirq_64.h b/arch/sparc/include/asm/hardirq_64.h
+index 75b92bfe04b5..874151f520de 100644
+--- a/arch/sparc/include/asm/hardirq_64.h
++++ b/arch/sparc/include/asm/hardirq_64.h
+@@ -14,6 +14,6 @@
+ #define local_softirq_pending_ref \
+ 	__cpu_data.__softirq_pending
  
+-void ack_bad_irq(unsigned int irq);
++#define ack_bad_irq(irq)
+ 
+ #endif /* !(__SPARC64_HARDIRQ_H) */
+diff --git a/arch/sparc/kernel/irq_64.c b/arch/sparc/kernel/irq_64.c
+index 3ec9f1402aad..ea2a52f7fe53 100644
+--- a/arch/sparc/kernel/irq_64.c
++++ b/arch/sparc/kernel/irq_64.c
+@@ -284,11 +284,6 @@ static unsigned int sysino_exists(u32 devhandle, unsigned int devino)
+ 	return irq;
+ }
+ 
+-void ack_bad_irq(unsigned int irq)
+-{
+-	pr_crit("BAD IRQ ack %d\n", irq);
+-}
+-
+ void irq_install_pre_handler(int irq,
+ 			     void (*func)(unsigned int, void *, void *),
+ 			     void *arg1, void *arg2)
 -- 
 2.11.0
 
