@@ -2,26 +2,26 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-13.9 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,UNWANTED_LANGUAGE_BODY,
+	URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3CE08C3527E
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 74BC5C352A2
 	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:36:03 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 20AE323AC4
+	by mail.kernel.org (Postfix) with ESMTP id 5194723AC4
 	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:36:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728564AbgLROfm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Dec 2020 09:35:42 -0500
-Received: from mout.kundenserver.de ([212.227.126.134]:48969 "EHLO
+        id S1728576AbgLROfn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Dec 2020 09:35:43 -0500
+Received: from mout.kundenserver.de ([212.227.126.134]:43585 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728196AbgLROfX (ORCPT
+        with ESMTP id S1728029AbgLROfX (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Dec 2020 09:35:23 -0500
 Received: from orion.localdomain ([95.115.54.243]) by mrelayeu.kundenserver.de
  (mreue009 [212.227.15.167]) with ESMTPSA (Nemesis) id
- 1MO9qz-1kSO7t2hRp-00OXUo; Fri, 18 Dec 2020 15:32:16 +0100
+ 1MpUQm-1kHyFH35FU-00pvpv; Fri, 18 Dec 2020 15:32:07 +0100
 From:   "Enrico Weigelt, metux IT consult" <info@metux.net>
 To:     linux-kernel@vger.kernel.org
 Cc:     mark.rutland@arm.com, alexander.shishkin@linux.intel.com,
@@ -41,95 +41,136 @@ Cc:     mark.rutland@arm.com, alexander.shishkin@linux.intel.com,
         linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
         linux-gpio@vger.kernel.org, linux-omap@vger.kernel.org,
         linux-arch@vger.kernel.org
-Subject: [PATCH 19/23] arch: c6x: use generic irq error counter
-Date:   Fri, 18 Dec 2020 15:31:18 +0100
-Message-Id: <20201218143122.19459-20-info@metux.net>
+Subject: [PATCH 14/23] kernel: generic counter for interrupt errors
+Date:   Fri, 18 Dec 2020 15:31:13 +0100
+Message-Id: <20201218143122.19459-15-info@metux.net>
 X-Mailer: git-send-email 2.11.0
 In-Reply-To: <20201218143122.19459-1-info@metux.net>
 References: <20201218143122.19459-1-info@metux.net>
-X-Provags-ID: V03:K1:bUKbPuD/IE863dGqQP/aUVD3gMjanOmJq5smfk4HYWrMLwZeTSB
- k45+tw0yA/1Jgzwos83k90orLCs83aroaMpeBB39uP1uMMStvQ9QhtXMH4BYz0IipHOkY0v
- kH2GQ3WJCiarTYQXG5Q2sadZG2E46xZvuqbjZ+YUOPphysIBTTbyIiz3i3rbydpQdeWrHaA
- LVhGNnbvccZshL+Bhd3sQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:vf+aytBGJWs=:r2eZwHED7IQmg6gl03ucQ8
- l/17rxJDH3Q0EehshvVMk0IPYVvjvVR1C65/GN46yrjD3HCMOP/rrIcikwR5HIgVGjphssKtc
- o1lv+fPa0+Hc94H5Hrr/VIr7xmqV3jwm/vnqCzDlsUPvneuBzmfR3qpEB8UAYM1h9ScjXoC2l
- MKQTwfAiMlD7plZW+Ee/8vfC1criUczadakTuunPoNaWsDY1eyC+81GByepRkc1iQUKybJcMl
- ZfT5eVrVcfhx4kg56Z6SbUPfyHAapCnNNYUJo0WSq16JFSLA6qZunWCcuhqFj0NJmHWstMF+B
- 1mDqxGu7XYmAbhrPklXsi0ZwpczbVtKfKbBJMPT4YOecjG+Y3G6ewvh1UD6PrIxn5E5d54uln
- v2eQWiQMuctBB13Iev8txxMZUc5iK4R0+3okQnQhFKSsiqpo7859MSe15Do6+
+X-Provags-ID: V03:K1:Gw/bTtXok8p4vHk5nFrQVdFJ5MnOqVYTkF8qTqw26vjFIHJCyDK
+ gWsI7rxnKihIOBi2JvYSwf+jSyWv5F+CX1+be0BzmKQrBr3azK9kodLyNb33JKW/mMhCjsj
+ CRdMozs58Ybrwu5DzpMGw+pON0xSJpSE4ZeNixUusENMyncAeVENXSEGQGxvzLQqD8SXw6H
+ 2brEnhBShdNjRMc3ZWXiA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:IvDb0vCjKHw=:+26MMkVB/QLEF9LqzmJqJq
+ gOmWB/hkRyWf9K9+YpOnE6/IsiVzUe3h8hVdk37yTgE1wrWp1dM9IMvWFDjirSORFXg2zRoqb
+ onrR+fOHpR/aoO060PlrUsvxz8SxmywyHG/fJk6Bw9F58Mw+Iu2RztYyO2iDoobQezyCvU8nu
+ Bt80Oxqb8xfFoxGrcn6js/zYH24qrp5tSbs/XbF8iPT8L3QH+miIBh2sCsG1Nm5BKvKWS7Hrq
+ dIoTgaqijW5BGaacT01S37khgMPnvZobjkv1Uk9xSgxgSakDg56BY3JjpyAtSFGTDjxtbXrqG
+ mqWEPJWclB5j0pKsqmKU23r2gb7/KurkTNxRc8+ufvsvpW4W5kdtOM2iNSNiurTOPDZxqddXj
+ 64Qz4Yigw3ixveE26VUWTA9PfQIeXMBGObhUKlN3zt/eaSNDA2vk46WEnBhsb
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Use the newly introduced irq error counter, that's already maintained
-by all callers of ack_bad_irq(), in order to remove duplicate code.
+We currently have counters for spurious interrupt spread over all the
+individual architectures. Mostly done in the arch's ack_bad_irq(),
+sometimes also in arch specific drivers.
+
+It's time to consolidate this code duplication:
+
+  * introduce a global counter and inlined accessors
+  * increase the counter in all call sites of ack_bad_irq()
+  * subsequent patches will transform the individual archs one by one
 
 Signed-off-by: Enrico Weigelt, metux IT consult <info@metux.net>
 ---
- arch/c6x/include/asm/hardirq.h |  3 ---
- arch/c6x/include/asm/irq.h     |  2 --
- arch/c6x/kernel/irq.c          | 11 ++---------
- 3 files changed, 2 insertions(+), 14 deletions(-)
+ include/asm-generic/irq-err.h | 17 +++++++++++++++++
+ kernel/irq/dummychip.c        |  2 ++
+ kernel/irq/handle.c           |  4 ++++
+ kernel/irq/irqdesc.c          |  2 ++
+ 4 files changed, 25 insertions(+)
+ create mode 100644 include/asm-generic/irq-err.h
 
-diff --git a/arch/c6x/include/asm/hardirq.h b/arch/c6x/include/asm/hardirq.h
-index f37d07d31040..f70f6113e53a 100644
---- a/arch/c6x/include/asm/hardirq.h
-+++ b/arch/c6x/include/asm/hardirq.h
-@@ -9,9 +9,6 @@
- #ifndef _ASM_C6X_HARDIRQ_H
- #define _ASM_C6X_HARDIRQ_H
+diff --git a/include/asm-generic/irq-err.h b/include/asm-generic/irq-err.h
+new file mode 100644
+index 000000000000..33c75eb50c10
+--- /dev/null
++++ b/include/asm-generic/irq-err.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_GENERIC_IRQ_ERR_H
++#define __ASM_GENERIC_IRQ_ERR_H
++
++extern atomic_t irq_err_counter;
++
++static inline void irq_err_inc(void)
++{
++	atomic_inc(&irq_err_counter);
++}
++
++static inline int irq_err_get(void)
++{
++	return atomic_read(&irq_err_counter);
++}
++
++#endif /* __ASM_GENERIC_IRQ_ERR_H */
+diff --git a/kernel/irq/dummychip.c b/kernel/irq/dummychip.c
+index 0b0cdf206dc4..93585dab9bd0 100644
+--- a/kernel/irq/dummychip.c
++++ b/kernel/irq/dummychip.c
+@@ -8,6 +8,7 @@
+ #include <linux/interrupt.h>
+ #include <linux/irq.h>
+ #include <linux/export.h>
++#include <asm-generic/irq-err.h>
  
--extern void ack_bad_irq(int irq);
--#define ack_bad_irq ack_bad_irq
--
- #include <asm-generic/hardirq.h>
+ #include "internals.h"
  
- #endif /* _ASM_C6X_HARDIRQ_H */
-diff --git a/arch/c6x/include/asm/irq.h b/arch/c6x/include/asm/irq.h
-index 9da4d1afd0d7..f42c5747c3ee 100644
---- a/arch/c6x/include/asm/irq.h
-+++ b/arch/c6x/include/asm/irq.h
-@@ -45,6 +45,4 @@ struct pt_regs;
+@@ -20,6 +21,7 @@ static void ack_bad(struct irq_data *data)
+ 	struct irq_desc *desc = irq_data_to_desc(data);
  
- extern asmlinkage void c6x_do_IRQ(unsigned int prio, struct pt_regs *regs);
+ 	print_irq_desc(data->irq, desc);
++	irq_err_inc();
+ 	ack_bad_irq(data->irq);
+ }
  
--extern unsigned long irq_err_count;
--
- #endif /* _ASM_C6X_IRQ_H */
-diff --git a/arch/c6x/kernel/irq.c b/arch/c6x/kernel/irq.c
-index b9f7cfa2ed21..9f9d798925de 100644
---- a/arch/c6x/kernel/irq.c
-+++ b/arch/c6x/kernel/irq.c
-@@ -21,12 +21,10 @@
- #include <linux/of_irq.h>
+diff --git a/kernel/irq/handle.c b/kernel/irq/handle.c
+index 762a928e18f9..ad90f5a56c3a 100644
+--- a/kernel/irq/handle.c
++++ b/kernel/irq/handle.c
+@@ -13,11 +13,14 @@
+ #include <linux/sched.h>
  #include <linux/interrupt.h>
  #include <linux/kernel_stat.h>
--
 +#include <asm-generic/irq-err.h>
- #include <asm/megamod-pic.h>
- #include <asm/special_insns.h>
  
--unsigned long irq_err_count;
--
- static DEFINE_RAW_SPINLOCK(core_irq_lock);
+ #include <trace/events/irq.h>
  
- static void mask_core_irq(struct irq_data *data)
-@@ -114,13 +112,8 @@ void __init init_IRQ(void)
- 	set_creg(ICR, 0xfff0);
+ #include "internals.h"
+ 
++atomic_t irq_err_counter;
++
+ #ifdef CONFIG_GENERIC_IRQ_MULTI_HANDLER
+ void (*handle_arch_irq)(struct pt_regs *) __ro_after_init;
+ #endif
+@@ -34,6 +37,7 @@ void handle_bad_irq(struct irq_desc *desc)
+ 
+ 	print_irq_desc(irq, desc);
+ 	kstat_incr_irqs_this_cpu(desc);
++	irq_err_inc();
+ 	ack_bad_irq(irq);
  }
+ EXPORT_SYMBOL_GPL(handle_bad_irq);
+diff --git a/kernel/irq/irqdesc.c b/kernel/irq/irqdesc.c
+index 62a381351775..6192672be4d2 100644
+--- a/kernel/irq/irqdesc.c
++++ b/kernel/irq/irqdesc.c
+@@ -16,6 +16,7 @@
+ #include <linux/bitmap.h>
+ #include <linux/irqdomain.h>
+ #include <linux/sysfs.h>
++#include <asm-generic/irq-err.h>
  
--void ack_bad_irq(int irq)
--{
--	irq_err_count++;
--}
--
- int arch_show_interrupts(struct seq_file *p, int prec)
- {
--	seq_printf(p, "%*s: %10lu\n", prec, "Err", irq_err_count);
-+	seq_printf(p, "%*s: %10lu\n", prec, "Err", irq_err_get());
- 	return 0;
- }
+ #include "internals.h"
+ 
+@@ -684,6 +685,7 @@ int __handle_domain_irq(struct irq_domain *domain, unsigned int hwirq,
+ 		if (printk_ratelimit())
+ 			pr_warn("spurious IRQ: irq=%d hwirq=%d nr_irqs=%d\n",
+ 				irq, hwirq, nr_irqs);
++		irq_err_inc();
+ 		ack_bad_irq(irq);
+ 		ret = -EINVAL;
+ 	} else {
 -- 
 2.11.0
 
