@@ -2,174 +2,114 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
-	autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 78EB3C4361B
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:09:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EF974C2BBD4
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:35:10 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 443C5239EE
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:09:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B296E23A84
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Dec 2020 14:35:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1725775AbgLROIs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Dec 2020 09:08:48 -0500
-Received: from pegase1.c-s.fr ([93.17.236.30]:19929 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725535AbgLROIs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 Dec 2020 09:08:48 -0500
-Received: from localhost (mailhub1-int [192.168.12.234])
-        by localhost (Postfix) with ESMTP id 4Cy9gL3Ck1z9txvg;
-        Fri, 18 Dec 2020 15:07:58 +0100 (CET)
-X-Virus-Scanned: Debian amavisd-new at c-s.fr
-Received: from pegase1.c-s.fr ([192.168.12.234])
-        by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
-        with ESMTP id 5Ndh04yO9aS3; Fri, 18 Dec 2020 15:07:58 +0100 (CET)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase1.c-s.fr (Postfix) with ESMTP id 4Cy9gL1tj2z9txvB;
-        Fri, 18 Dec 2020 15:07:58 +0100 (CET)
-Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id B41FD8B783;
-        Fri, 18 Dec 2020 15:07:59 +0100 (CET)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id ynTuRuN7N3DG; Fri, 18 Dec 2020 15:07:59 +0100 (CET)
-Received: from po17688vm.idsi0.si.c-s.fr (unknown [192.168.204.43])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 5C2E88B75F;
-        Fri, 18 Dec 2020 15:07:59 +0100 (CET)
-Received: by po17688vm.idsi0.si.c-s.fr (Postfix, from userid 0)
-        id F030266868; Fri, 18 Dec 2020 14:07:58 +0000 (UTC)
-Message-Id: <320d7a9ed7b379a6e0edf16d539bc22447272e65.1608299993.git.christophe.leroy@csgroup.eu>
-From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH] mm: Remove arch_remap() and mm-arch-hooks.h
-To:     Arnd Bergmann <arnd@arndb.de>,
-        Andrew Morton <akpm@linux-foundation.org>
-Cc:     Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>,
-        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
-        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-um@lists.infradead.org, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org
-Date:   Fri, 18 Dec 2020 14:07:58 +0000 (UTC)
+        id S1727866AbgLROfK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Dec 2020 09:35:10 -0500
+Received: from mout.kundenserver.de ([212.227.126.187]:56373 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727662AbgLROfJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Dec 2020 09:35:09 -0500
+Received: from orion.localdomain ([95.115.54.243]) by mrelayeu.kundenserver.de
+ (mreue009 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1N5G1V-1k7L7Y3etB-0116tK; Fri, 18 Dec 2020 15:31:50 +0100
+From:   "Enrico Weigelt, metux IT consult" <info@metux.net>
+To:     linux-kernel@vger.kernel.org
+Cc:     mark.rutland@arm.com, alexander.shishkin@linux.intel.com,
+        jolsa@redhat.com, namhyung@kernel.org, catalin.marinas@arm.com,
+        will@kernel.org, msalter@redhat.com, jacquiot.aurelien@gmail.com,
+        gerg@linux-m68k.org, geert@linux-m68k.org,
+        tsbogend@alpha.franken.de, James.Bottomley@HansenPartnership.com,
+        deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org,
+        ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net,
+        tglx@linutronix.de, bp@alien8.de, x86@kernel.org, hpa@zytor.com,
+        linus.walleij@linaro.org, bgolaszewski@baylibre.com,
+        maz@kernel.org, tony@atomide.com, arnd@arndb.de,
+        linux-alpha@vger.kernel.org, linux-c6x-dev@linux-c6x.org,
+        linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
+        linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
+        linux-gpio@vger.kernel.org, linux-omap@vger.kernel.org,
+        linux-arch@vger.kernel.org
+Subject: [PATCH 05/23] arch: ia64: drop misleading warning on spurious IRQ
+Date:   Fri, 18 Dec 2020 15:31:04 +0100
+Message-Id: <20201218143122.19459-6-info@metux.net>
+X-Mailer: git-send-email 2.11.0
+In-Reply-To: <20201218143122.19459-1-info@metux.net>
+References: <20201218143122.19459-1-info@metux.net>
+X-Provags-ID: V03:K1:qnMCRRlYz3iyZZIxed2PdpOh9lZoshxB8GShF8Dv5f884PMzhlA
+ rgGET+r1LOZnPvEOElYtWvVtMeqma1PT6MAm+LyDreI+nOr4o8KfnR1Sfy8JSaEoh/faF3N
+ mrLr75Iv7ypE9eo+ty0Tfs5nujHLVGldONLbTa7Q1Q55yE3p4fTjay0i5z65zYWsxWyrY8j
+ wdxS9QtIcELSO8KinnzKQ==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:hEIvj0u6eNU=:Fotl5KfVQ9DkUfRBzyG236
+ z/v5oxv76HGlDvlwKxUPTZ+J/aiWp+XWF/kaGHdjv+IJqG/iu5JTRILDf5Pp0Pe6m9rrmBgTa
+ BPn3060l3hEUj0pTfRb4kiaMAWT36TdQ0WLNOR0ZvhV5jSOO2SuKAuO/9yDCHul1P56WocZYQ
+ m6ozUElHwYzMrzcxMhmoQuIiNyMlmYjhOh3JpzTxU0C1lYVRoaYbJUB3y8SQ1D82iuBockN+X
+ rZRUjOoIzpyBbSrmqY8qUbR75erprCtatSW2DOY8E+1PAHqBJLrkVo4+/8p33VW41Yz1GwNGK
+ iO4xjTuivZQWUc700sPaIwQbgYC9G9nXOOEowcnoPyrv3Xko+pWDDZ2KXSvjx9QKu46KRvRfZ
+ 7FnsAYtylPkalUN295WkJKOHMC4I5hj63PTgpeme12O4Qn6Yb/gw3f/VhkYyT
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-powerpc was the last provider of arch_remap() and the last
-user of mm-arch-hooks.h.
+The warning in ack_bad_irq() is misleading in several ways:
+* the term "vector" isn't quite correct
+* the printing format isn't consistent across the archs: some print decimal,
+  some hex, some hex w/o "0x" prefix.
+* the printed linux irq isn't meaningful in all cases - we actually would
+  want it to print the hw irq.
 
-Since commit 526a9c4a7234 ("powerpc/vdso: Provide vdso_remap()"),
-arch_remap() hence mm-arch-hooks.h are not used anymore.
+Since all call sites already print out more detailed and correct information,
+we just don't need to duplicate this in each single arch. So just drop it.
 
-Remove them.
-
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+Signed-off-by: Enrico Weigelt, metux IT consult <info@metux.net>
 ---
- arch/um/include/asm/Kbuild          |  1 -
- include/asm-generic/Kbuild          |  1 -
- include/asm-generic/mm-arch-hooks.h | 16 ----------------
- include/linux/mm-arch-hooks.h       | 22 ----------------------
- mm/mremap.c                         |  3 ---
- 5 files changed, 43 deletions(-)
- delete mode 100644 include/asm-generic/mm-arch-hooks.h
- delete mode 100644 include/linux/mm-arch-hooks.h
+ arch/ia64/include/asm/hardirq.h | 2 +-
+ arch/ia64/kernel/irq.c          | 9 ---------
+ 2 files changed, 1 insertion(+), 10 deletions(-)
 
-diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
-index 1c63b260ecc4..314979467db1 100644
---- a/arch/um/include/asm/Kbuild
-+++ b/arch/um/include/asm/Kbuild
-@@ -14,7 +14,6 @@ generic-y += irq_regs.h
- generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += mcs_spinlock.h
--generic-y += mm-arch-hooks.h
- generic-y += mmiowb.h
- generic-y += module.lds.h
- generic-y += param.h
-diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
-index 4365b9aa3e3f..e867eb3058d5 100644
---- a/include/asm-generic/Kbuild
-+++ b/include/asm-generic/Kbuild
-@@ -34,7 +34,6 @@ mandatory-y += kmap_size.h
- mandatory-y += kprobes.h
- mandatory-y += linkage.h
- mandatory-y += local.h
--mandatory-y += mm-arch-hooks.h
- mandatory-y += mmiowb.h
- mandatory-y += mmu.h
- mandatory-y += mmu_context.h
-diff --git a/include/asm-generic/mm-arch-hooks.h b/include/asm-generic/mm-arch-hooks.h
-deleted file mode 100644
-index 5ff0e5193f85..000000000000
---- a/include/asm-generic/mm-arch-hooks.h
-+++ /dev/null
-@@ -1,16 +0,0 @@
--/*
-- * Architecture specific mm hooks
+diff --git a/arch/ia64/include/asm/hardirq.h b/arch/ia64/include/asm/hardirq.h
+index ccde7c2ba00f..dddaafaf84e0 100644
+--- a/arch/ia64/include/asm/hardirq.h
++++ b/arch/ia64/include/asm/hardirq.h
+@@ -22,6 +22,6 @@
+ 
+ extern void __iomem *ipi_base_addr;
+ 
+-void ack_bad_irq(unsigned int irq);
++#define ack_bad_irq(irq)
+ 
+ #endif /* _ASM_IA64_HARDIRQ_H */
+diff --git a/arch/ia64/kernel/irq.c b/arch/ia64/kernel/irq.c
+index ecef17c7c35b..1365c7cf2095 100644
+--- a/arch/ia64/kernel/irq.c
++++ b/arch/ia64/kernel/irq.c
+@@ -28,15 +28,6 @@
+ #include <asm/xtp.h>
+ 
+ /*
+- * 'what should we do if we get a hw irq event on an illegal vector'.
+- * each architecture has to answer this themselves.
 - */
--
--#ifndef _ASM_GENERIC_MM_ARCH_HOOKS_H
--#define _ASM_GENERIC_MM_ARCH_HOOKS_H
--
--/*
-- * This file should be included through arch/../include/asm/Kbuild for
-- * the architecture which doesn't need specific mm hooks.
-- *
-- * In that case, the generic hooks defined in include/linux/mm-arch-hooks.h
-- * are used.
-- */
--
--#endif /* _ASM_GENERIC_MM_ARCH_HOOKS_H */
-diff --git a/include/linux/mm-arch-hooks.h b/include/linux/mm-arch-hooks.h
-deleted file mode 100644
-index 9c4bedc95504..000000000000
---- a/include/linux/mm-arch-hooks.h
-+++ /dev/null
-@@ -1,22 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0-only */
--/*
-- * Generic mm no-op hooks.
-- *
-- * Copyright (C) 2015, IBM Corporation
-- * Author: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-- */
--#ifndef _LINUX_MM_ARCH_HOOKS_H
--#define _LINUX_MM_ARCH_HOOKS_H
--
--#include <asm/mm-arch-hooks.h>
--
--#ifndef arch_remap
--static inline void arch_remap(struct mm_struct *mm,
--			      unsigned long old_start, unsigned long old_end,
--			      unsigned long new_start, unsigned long new_end)
+-void ack_bad_irq(unsigned int irq)
 -{
+-	printk(KERN_ERR "Unexpected irq vector 0x%x on CPU %u!\n", irq, smp_processor_id());
 -}
--#define arch_remap arch_remap
--#endif
 -
--#endif /* _LINUX_MM_ARCH_HOOKS_H */
-diff --git a/mm/mremap.c b/mm/mremap.c
-index c5590afe7165..e43696a91260 100644
---- a/mm/mremap.c
-+++ b/mm/mremap.c
-@@ -22,7 +22,6 @@
- #include <linux/syscalls.h>
- #include <linux/mmu_notifier.h>
- #include <linux/uaccess.h>
--#include <linux/mm-arch-hooks.h>
- #include <linux/userfaultfd_k.h>
+-/*
+  * Interrupt statistics:
+  */
  
- #include <asm/cacheflush.h>
-@@ -560,8 +559,6 @@ static unsigned long move_vma(struct vm_area_struct *vma,
- 		new_addr = err;
- 	} else {
- 		mremap_userfaultfd_prep(new_vma, uf);
--		arch_remap(mm, old_addr, old_addr + old_len,
--			   new_addr, new_addr + new_len);
- 	}
- 
- 	/* Conceal VM_ACCOUNT so old reservation is not undone */
 -- 
-2.25.0
+2.11.0
 
