@@ -2,270 +2,276 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-14.2 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	UNWANTED_LANGUAGE_BODY,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E3014C3526C
-	for <linux-arch@archiver.kernel.org>; Sun, 20 Dec 2020 15:40:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7D378C3526F
+	for <linux-arch@archiver.kernel.org>; Sun, 20 Dec 2020 15:40:30 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B97FB2311F
-	for <linux-arch@archiver.kernel.org>; Sun, 20 Dec 2020 15:40:11 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 46C5A23AC1
+	for <linux-arch@archiver.kernel.org>; Sun, 20 Dec 2020 15:40:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727672AbgLTPkK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 20 Dec 2020 10:40:10 -0500
-Received: from mail.kernel.org ([198.145.29.99]:44856 "EHLO mail.kernel.org"
+        id S1727761AbgLTPkT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 20 Dec 2020 10:40:19 -0500
+Received: from mail.kernel.org ([198.145.29.99]:44906 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727667AbgLTPkK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 20 Dec 2020 10:40:10 -0500
+        id S1727711AbgLTPkS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 20 Dec 2020 10:40:18 -0500
 From:   guoren@kernel.org
 Authentication-Results: mail.kernel.org; dkim=permerror (bad message/signature format)
 To:     guoren@kernel.org, arnd@arndb.de
 Cc:     linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org,
         linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Arnd Bergmann <arnd@kernel.org>,
-        "Paul E . McKenney" <paulmck@kernel.org>
-Subject: [PATCH v2 1/5] csky: Remove custom asm/atomic.h implementation
-Date:   Sun, 20 Dec 2020 15:39:19 +0000
-Message-Id: <1608478763-60148-1-git-send-email-guoren@kernel.org>
+        Peter Zijlstra k <peterz@infradead.org>
+Subject: [PATCH v2 5/5] csky: Cleanup asm/spinlock.h
+Date:   Sun, 20 Dec 2020 15:39:23 +0000
+Message-Id: <1608478763-60148-5-git-send-email-guoren@kernel.org>
 X-Mailer: git-send-email 2.7.4
+In-Reply-To: <1608478763-60148-1-git-send-email-guoren@kernel.org>
+References: <1608478763-60148-1-git-send-email-guoren@kernel.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-Use generic atomic implementation based on cmpxchg. So remove csky
-asm/atomic.h.
+There are two implementation of spinlock in arch/csky:
+ - simple one (NR_CPU = 1,2)
+ - tick's one (NR_CPU = 3,4)
+Remove the simple one.
 
+There is already smp_mb in spinlock, so remove the definition of
+smp_mb__after_spinlock.
+
+Link: https://lore.kernel.org/linux-csky/20200807081253.GD2674@hirez.programming.kicks-ass.net/#t
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Arnd Bergmann <arnd@kernel.org>
-Cc: Paul E. McKenney <paulmck@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>k
+Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/csky/include/asm/atomic.h | 212 -----------------------------------------
- 1 file changed, 212 deletions(-)
- delete mode 100644 arch/csky/include/asm/atomic.h
+ arch/csky/Kconfig                      |   2 +-
+ arch/csky/include/asm/spinlock.h       | 167 ---------------------------------
+ arch/csky/include/asm/spinlock_types.h |  10 --
+ 3 files changed, 1 insertion(+), 178 deletions(-)
 
-diff --git a/arch/csky/include/asm/atomic.h b/arch/csky/include/asm/atomic.h
-deleted file mode 100644
-index e369d73..00000000
---- a/arch/csky/include/asm/atomic.h
-+++ /dev/null
-@@ -1,212 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index e254dc2..5ebb05a 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -7,7 +7,7 @@ config CSKY
+ 	select ARCH_HAS_SYNC_DMA_FOR_CPU
+ 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+ 	select ARCH_USE_BUILTIN_BSWAP
+-	select ARCH_USE_QUEUED_RWLOCKS if NR_CPUS>2
++	select ARCH_USE_QUEUED_RWLOCKS
+ 	select ARCH_WANT_FRAME_POINTERS if !CPU_CK610
+ 	select ARCH_WANT_DEFAULT_TOPDOWN_MMAP_LAYOUT
+ 	select COMMON_CLK
+diff --git a/arch/csky/include/asm/spinlock.h b/arch/csky/include/asm/spinlock.h
+index 7cf3f2b..69f5aa2 100644
+--- a/arch/csky/include/asm/spinlock.h
++++ b/arch/csky/include/asm/spinlock.h
+@@ -6,8 +6,6 @@
+ #include <linux/spinlock_types.h>
+ #include <asm/barrier.h>
+ 
+-#ifdef CONFIG_QUEUED_RWLOCKS
 -
--#ifndef __ASM_CSKY_ATOMIC_H
--#define __ASM_CSKY_ATOMIC_H
+ /*
+  * Ticket-based spin-locking.
+  */
+@@ -88,169 +86,4 @@ static inline int arch_spin_is_contended(arch_spinlock_t *lock)
+ 
+ #include <asm/qrwlock.h>
+ 
+-/* See include/linux/spinlock.h */
+-#define smp_mb__after_spinlock()	smp_mb()
 -
--#include <linux/version.h>
--#include <asm/cmpxchg.h>
--#include <asm/barrier.h>
+-#else /* CONFIG_QUEUED_RWLOCKS */
 -
--#ifdef CONFIG_CPU_HAS_LDSTEX
--
--#define __atomic_add_unless __atomic_add_unless
--static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+-/*
+- * Test-and-set spin-locking.
+- */
+-static inline void arch_spin_lock(arch_spinlock_t *lock)
 -{
--	unsigned long tmp, ret;
--
--	smp_mb();
+-	u32 *p = &lock->lock;
+-	u32 tmp;
 -
 -	asm volatile (
--	"1:	ldex.w		%0, (%3) \n"
--	"	mov		%1, %0   \n"
--	"	cmpne		%0, %4   \n"
--	"	bf		2f	 \n"
--	"	add		%0, %2   \n"
--	"	stex.w		%0, (%3) \n"
--	"	bez		%0, 1b   \n"
--	"2:				 \n"
--		: "=&r" (tmp), "=&r" (ret)
--		: "r" (a), "r"(&v->counter), "r"(u)
--		: "memory");
+-		"1:	ldex.w		%0, (%1) \n"
+-		"	bnez		%0, 1b   \n"
+-		"	movi		%0, 1    \n"
+-		"	stex.w		%0, (%1) \n"
+-		"	bez		%0, 1b   \n"
+-		: "=&r" (tmp)
+-		: "r"(p)
+-		: "cc");
+-	smp_mb();
+-}
 -
--	if (ret != u)
+-static inline void arch_spin_unlock(arch_spinlock_t *lock)
+-{
+-	smp_mb();
+-	WRITE_ONCE(lock->lock, 0);
+-}
+-
+-static inline int arch_spin_trylock(arch_spinlock_t *lock)
+-{
+-	u32 *p = &lock->lock;
+-	u32 tmp;
+-
+-	asm volatile (
+-		"1:	ldex.w		%0, (%1) \n"
+-		"	bnez		%0, 2f   \n"
+-		"	movi		%0, 1    \n"
+-		"	stex.w		%0, (%1) \n"
+-		"	bez		%0, 1b   \n"
+-		"	movi		%0, 0    \n"
+-		"2:				 \n"
+-		: "=&r" (tmp)
+-		: "r"(p)
+-		: "cc");
+-
+-	if (!tmp)
 -		smp_mb();
 -
--	return ret;
+-	return !tmp;
 -}
 -
--#define ATOMIC_OP(op, c_op)						\
--static inline void atomic_##op(int i, atomic_t *v)			\
--{									\
--	unsigned long tmp;						\
--									\
--	asm volatile (							\
--	"1:	ldex.w		%0, (%2) \n"				\
--	"	" #op "		%0, %1   \n"				\
--	"	stex.w		%0, (%2) \n"				\
--	"	bez		%0, 1b   \n"				\
--		: "=&r" (tmp)						\
--		: "r" (i), "r"(&v->counter)				\
--		: "memory");						\
--}
+-#define arch_spin_is_locked(x)	(READ_ONCE((x)->lock) != 0)
 -
--#define ATOMIC_OP_RETURN(op, c_op)					\
--static inline int atomic_##op##_return(int i, atomic_t *v)		\
--{									\
--	unsigned long tmp, ret;						\
--									\
--	smp_mb();							\
--	asm volatile (							\
--	"1:	ldex.w		%0, (%3) \n"				\
--	"	" #op "		%0, %2   \n"				\
--	"	mov		%1, %0   \n"				\
--	"	stex.w		%0, (%3) \n"				\
--	"	bez		%0, 1b   \n"				\
--		: "=&r" (tmp), "=&r" (ret)				\
--		: "r" (i), "r"(&v->counter)				\
--		: "memory");						\
--	smp_mb();							\
--									\
--	return ret;							\
--}
--
--#define ATOMIC_FETCH_OP(op, c_op)					\
--static inline int atomic_fetch_##op(int i, atomic_t *v)			\
--{									\
--	unsigned long tmp, ret;						\
--									\
--	smp_mb();							\
--	asm volatile (							\
--	"1:	ldex.w		%0, (%3) \n"				\
--	"	mov		%1, %0   \n"				\
--	"	" #op "		%0, %2   \n"				\
--	"	stex.w		%0, (%3) \n"				\
--	"	bez		%0, 1b   \n"				\
--		: "=&r" (tmp), "=&r" (ret)				\
--		: "r" (i), "r"(&v->counter)				\
--		: "memory");						\
--	smp_mb();							\
--									\
--	return ret;							\
--}
--
--#else /* CONFIG_CPU_HAS_LDSTEX */
--
--#include <linux/irqflags.h>
--
--#define __atomic_add_unless __atomic_add_unless
--static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+-/*
+- * read lock/unlock/trylock
+- */
+-static inline void arch_read_lock(arch_rwlock_t *lock)
 -{
--	unsigned long tmp, ret, flags;
--
--	raw_local_irq_save(flags);
+-	u32 *p = &lock->lock;
+-	u32 tmp;
 -
 -	asm volatile (
--	"	ldw		%0, (%3) \n"
--	"	mov		%1, %0   \n"
--	"	cmpne		%0, %4   \n"
--	"	bf		2f	 \n"
--	"	add		%0, %2   \n"
--	"	stw		%0, (%3) \n"
--	"2:				 \n"
--		: "=&r" (tmp), "=&r" (ret)
--		: "r" (a), "r"(&v->counter), "r"(u)
--		: "memory");
--
--	raw_local_irq_restore(flags);
--
--	return ret;
+-		"1:	ldex.w		%0, (%1) \n"
+-		"	blz		%0, 1b   \n"
+-		"	addi		%0, 1    \n"
+-		"	stex.w		%0, (%1) \n"
+-		"	bez		%0, 1b   \n"
+-		: "=&r" (tmp)
+-		: "r"(p)
+-		: "cc");
+-	smp_mb();
 -}
 -
--#define ATOMIC_OP(op, c_op)						\
--static inline void atomic_##op(int i, atomic_t *v)			\
--{									\
--	unsigned long tmp, flags;					\
--									\
--	raw_local_irq_save(flags);					\
--									\
--	asm volatile (							\
--	"	ldw		%0, (%2) \n"				\
--	"	" #op "		%0, %1   \n"				\
--	"	stw		%0, (%2) \n"				\
--		: "=&r" (tmp)						\
--		: "r" (i), "r"(&v->counter)				\
--		: "memory");						\
--									\
--	raw_local_irq_restore(flags);					\
+-static inline void arch_read_unlock(arch_rwlock_t *lock)
+-{
+-	u32 *p = &lock->lock;
+-	u32 tmp;
+-
+-	smp_mb();
+-	asm volatile (
+-		"1:	ldex.w		%0, (%1) \n"
+-		"	subi		%0, 1    \n"
+-		"	stex.w		%0, (%1) \n"
+-		"	bez		%0, 1b   \n"
+-		: "=&r" (tmp)
+-		: "r"(p)
+-		: "cc");
 -}
 -
--#define ATOMIC_OP_RETURN(op, c_op)					\
--static inline int atomic_##op##_return(int i, atomic_t *v)		\
--{									\
--	unsigned long tmp, ret, flags;					\
--									\
--	raw_local_irq_save(flags);					\
--									\
--	asm volatile (							\
--	"	ldw		%0, (%3) \n"				\
--	"	" #op "		%0, %2   \n"				\
--	"	stw		%0, (%3) \n"				\
--	"	mov		%1, %0   \n"				\
--		: "=&r" (tmp), "=&r" (ret)				\
--		: "r" (i), "r"(&v->counter)				\
--		: "memory");						\
--									\
--	raw_local_irq_restore(flags);					\
--									\
--	return ret;							\
+-static inline int arch_read_trylock(arch_rwlock_t *lock)
+-{
+-	u32 *p = &lock->lock;
+-	u32 tmp;
+-
+-	asm volatile (
+-		"1:	ldex.w		%0, (%1) \n"
+-		"	blz		%0, 2f   \n"
+-		"	addi		%0, 1    \n"
+-		"	stex.w		%0, (%1) \n"
+-		"	bez		%0, 1b   \n"
+-		"	movi		%0, 0    \n"
+-		"2:				 \n"
+-		: "=&r" (tmp)
+-		: "r"(p)
+-		: "cc");
+-
+-	if (!tmp)
+-		smp_mb();
+-
+-	return !tmp;
 -}
 -
--#define ATOMIC_FETCH_OP(op, c_op)					\
--static inline int atomic_fetch_##op(int i, atomic_t *v)			\
--{									\
--	unsigned long tmp, ret, flags;					\
--									\
--	raw_local_irq_save(flags);					\
--									\
--	asm volatile (							\
--	"	ldw		%0, (%3) \n"				\
--	"	mov		%1, %0   \n"				\
--	"	" #op "		%0, %2   \n"				\
--	"	stw		%0, (%3) \n"				\
--		: "=&r" (tmp), "=&r" (ret)				\
--		: "r" (i), "r"(&v->counter)				\
--		: "memory");						\
--									\
--	raw_local_irq_restore(flags);					\
--									\
--	return ret;							\
+-/*
+- * write lock/unlock/trylock
+- */
+-static inline void arch_write_lock(arch_rwlock_t *lock)
+-{
+-	u32 *p = &lock->lock;
+-	u32 tmp;
+-
+-	asm volatile (
+-		"1:	ldex.w		%0, (%1) \n"
+-		"	bnez		%0, 1b   \n"
+-		"	subi		%0, 1    \n"
+-		"	stex.w		%0, (%1) \n"
+-		"	bez		%0, 1b   \n"
+-		: "=&r" (tmp)
+-		: "r"(p)
+-		: "cc");
+-	smp_mb();
 -}
 -
--#endif /* CONFIG_CPU_HAS_LDSTEX */
+-static inline void arch_write_unlock(arch_rwlock_t *lock)
+-{
+-	smp_mb();
+-	WRITE_ONCE(lock->lock, 0);
+-}
 -
--#define atomic_add_return atomic_add_return
--ATOMIC_OP_RETURN(add, +)
--#define atomic_sub_return atomic_sub_return
--ATOMIC_OP_RETURN(sub, -)
+-static inline int arch_write_trylock(arch_rwlock_t *lock)
+-{
+-	u32 *p = &lock->lock;
+-	u32 tmp;
 -
--#define atomic_fetch_add atomic_fetch_add
--ATOMIC_FETCH_OP(add, +)
--#define atomic_fetch_sub atomic_fetch_sub
--ATOMIC_FETCH_OP(sub, -)
--#define atomic_fetch_and atomic_fetch_and
--ATOMIC_FETCH_OP(and, &)
--#define atomic_fetch_or atomic_fetch_or
--ATOMIC_FETCH_OP(or, |)
--#define atomic_fetch_xor atomic_fetch_xor
--ATOMIC_FETCH_OP(xor, ^)
+-	asm volatile (
+-		"1:	ldex.w		%0, (%1) \n"
+-		"	bnez		%0, 2f   \n"
+-		"	subi		%0, 1    \n"
+-		"	stex.w		%0, (%1) \n"
+-		"	bez		%0, 1b   \n"
+-		"	movi		%0, 0    \n"
+-		"2:				 \n"
+-		: "=&r" (tmp)
+-		: "r"(p)
+-		: "cc");
 -
--#define atomic_and atomic_and
--ATOMIC_OP(and, &)
--#define atomic_or atomic_or
--ATOMIC_OP(or, |)
--#define atomic_xor atomic_xor
--ATOMIC_OP(xor, ^)
+-	if (!tmp)
+-		smp_mb();
 -
--#undef ATOMIC_FETCH_OP
--#undef ATOMIC_OP_RETURN
--#undef ATOMIC_OP
+-	return !tmp;
+-}
 -
--#include <asm-generic/atomic.h>
+-#endif /* CONFIG_QUEUED_RWLOCKS */
+ #endif /* __ASM_CSKY_SPINLOCK_H */
+diff --git a/arch/csky/include/asm/spinlock_types.h b/arch/csky/include/asm/spinlock_types.h
+index 88b8243..8ff0f6f 100644
+--- a/arch/csky/include/asm/spinlock_types.h
++++ b/arch/csky/include/asm/spinlock_types.h
+@@ -22,16 +22,6 @@ typedef struct {
+ 
+ #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
+ 
+-#ifdef CONFIG_QUEUED_RWLOCKS
+ #include <asm-generic/qrwlock_types.h>
+ 
+-#else /* CONFIG_NR_CPUS > 2 */
 -
--#endif /* __ASM_CSKY_ATOMIC_H */
+-typedef struct {
+-	u32 lock;
+-} arch_rwlock_t;
+-
+-#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
+-
+-#endif /* CONFIG_QUEUED_RWLOCKS */
+ #endif /* __ASM_CSKY_SPINLOCK_TYPES_H */
 -- 
 2.7.4
 
