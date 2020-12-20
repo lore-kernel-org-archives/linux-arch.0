@@ -6,18 +6,18 @@ X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1A544C3526C
-	for <linux-arch@archiver.kernel.org>; Sun, 20 Dec 2020 15:13:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E3014C3526C
+	for <linux-arch@archiver.kernel.org>; Sun, 20 Dec 2020 15:40:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E4E37230FD
-	for <linux-arch@archiver.kernel.org>; Sun, 20 Dec 2020 15:13:18 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B97FB2311F
+	for <linux-arch@archiver.kernel.org>; Sun, 20 Dec 2020 15:40:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727655AbgLTPNS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 20 Dec 2020 10:13:18 -0500
-Received: from mail.kernel.org ([198.145.29.99]:39318 "EHLO mail.kernel.org"
+        id S1727672AbgLTPkK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 20 Dec 2020 10:40:10 -0500
+Received: from mail.kernel.org ([198.145.29.99]:44856 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727590AbgLTPNS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 20 Dec 2020 10:13:18 -0500
+        id S1727667AbgLTPkK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 20 Dec 2020 10:40:10 -0500
 From:   guoren@kernel.org
 Authentication-Results: mail.kernel.org; dkim=permerror (bad message/signature format)
 To:     guoren@kernel.org, arnd@arndb.de
@@ -27,8 +27,8 @@ Cc:     linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org,
         Arnd Bergmann <arnd@kernel.org>,
         "Paul E . McKenney" <paulmck@kernel.org>
 Subject: [PATCH v2 1/5] csky: Remove custom asm/atomic.h implementation
-Date:   Sun, 20 Dec 2020 15:12:22 +0000
-Message-Id: <1608477146-60070-1-git-send-email-guoren@kernel.org>
+Date:   Sun, 20 Dec 2020 15:39:19 +0000
+Message-Id: <1608478763-60148-1-git-send-email-guoren@kernel.org>
 X-Mailer: git-send-email 2.7.4
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
