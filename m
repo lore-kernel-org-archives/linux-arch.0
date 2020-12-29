@@ -7,31 +7,31 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 76830C433E6
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:35:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A57A6C433DB
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:35:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 52F1222209
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:35:19 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6FAFF2229C
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:35:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727193AbgL2VfD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Dec 2020 16:35:03 -0500
-Received: from mga03.intel.com ([134.134.136.65]:11891 "EHLO mga03.intel.com"
+        id S1727294AbgL2VfT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 29 Dec 2020 16:35:19 -0500
+Received: from mga09.intel.com ([134.134.136.24]:31873 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726634AbgL2Vda (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Dec 2020 16:33:30 -0500
-IronPort-SDR: vcnDB6M018wPdVqM8vCq7Vqj5oAsI8+d5TZBl29GTDuzqd7b9cRIlcsnTyzqZIQKZ8RJ0jwT1X
- N0iVXT4qOxQg==
-X-IronPort-AV: E=McAfee;i="6000,8403,9849"; a="176640521"
+        id S1727250AbgL2VfR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 Dec 2020 16:35:17 -0500
+IronPort-SDR: GRTS3S3TxjjnHaMnq96s1/gdHRczAtc9Svdu4AMSyXI0Cwp183RuLKHW5sZ3NwW3KoOEwzjx1s
+ xapKWzR199vA==
+X-IronPort-AV: E=McAfee;i="6000,8403,9849"; a="176695627"
 X-IronPort-AV: E=Sophos;i="5.78,459,1599548400"; 
-   d="scan'208";a="176640521"
+   d="scan'208";a="176695627"
 Received: from orsmga008.jf.intel.com ([10.7.209.65])
-  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:32:22 -0800
-IronPort-SDR: j13N8E9XHMcV/WRTGcgWjlHw0WUXJIXKK4VcsVYNZR9GWdPFXf5UT1GvBgWmG6FnXqRdpDStip
- 09KmImfaBZ5g==
+  by orsmga102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:34:20 -0800
+IronPort-SDR: EBqVUruKrLL9PCjCNgGQ0Hqf2tWRGQJTHACWCirAETqjSWPR+fxkD1HPMPrOBCIv0+8HYd30Lw
+ KvaTBjT4S+6A==
 X-IronPort-AV: E=Sophos;i="5.78,459,1599548400"; 
-   d="scan'208";a="376189603"
+   d="scan'208";a="376190126"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:32:22 -0800
+  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:34:19 -0800
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -60,96 +60,110 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Weijiang Yang <weijiang.yang@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v17 10/26] x86/mm: Update pte_modify for _PAGE_COW
-Date:   Tue, 29 Dec 2020 13:30:37 -0800
-Message-Id: <20201229213053.16395-11-yu-cheng.yu@intel.com>
+Subject: [PATCH v17 3/7] x86/cet/ibt: Handle signals for Indirect Branch Tracking
+Date:   Tue, 29 Dec 2020 13:33:46 -0800
+Message-Id: <20201229213350.17010-4-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
-In-Reply-To: <20201229213053.16395-1-yu-cheng.yu@intel.com>
-References: <20201229213053.16395-1-yu-cheng.yu@intel.com>
+In-Reply-To: <20201229213350.17010-1-yu-cheng.yu@intel.com>
+References: <20201229213350.17010-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The read-only and Dirty PTE has been used to indicate copy-on-write pages.
-However, newer x86 processors also regard a read-only and Dirty PTE as a
-shadow stack page.  In order to separate the two, the software-defined
-_PAGE_COW is created to replace _PAGE_DIRTY for the copy-on-write case, and
-pte_*() are updated.
+When an indirect CALL/JMP instruction is executed and before it reaches
+the target, it is in 'WAIT_ENDBR' status, which can be read from
+MSR_IA32_U_CET.  The status is part of a task's status before a signal is
+raised and preserved in the signal frame.  It is restored for sigreturn.
 
-Pte_modify() changes a PTE to 'newprot', but it doesn't use the pte_*().
-Introduce fixup_dirty_pte(), which sets a dirty PTE, based on _PAGE_RW,
-to either _PAGE_DIRTY or _PAGE_COW.
-
-Apply the same changes to pmd_modify().
+IBT state machine is described in Intel SDM Vol. 1, Sec. 18.3.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/include/asm/pgtable.h | 33 +++++++++++++++++++++++++++++++++
- 1 file changed, 33 insertions(+)
+ arch/x86/kernel/cet.c        | 27 +++++++++++++++++++++++++--
+ arch/x86/kernel/fpu/signal.c |  8 +++++---
+ 2 files changed, 30 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index 61e4d3b17d87..666c25ab9564 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -723,6 +723,21 @@ static inline pmd_t pmd_mkinvalid(pmd_t pmd)
+diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+index fff0b35ed0d9..68d602aecb1c 100644
+--- a/arch/x86/kernel/cet.c
++++ b/arch/x86/kernel/cet.c
+@@ -295,6 +295,13 @@ void cet_restore_signal(struct sc_ext *sc_ext)
+ 		msr_val |= CET_SHSTK_EN;
+ 	}
  
- static inline u64 flip_protnone_guard(u64 oldval, u64 val, u64 mask);
- 
-+static inline pteval_t fixup_dirty_pte(pteval_t pteval)
-+{
-+	pte_t pte = __pte(pteval);
++	if (cet->ibt_enabled) {
++		msr_val |= (CET_ENDBR_EN | CET_NO_TRACK_EN);
 +
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && pte_dirty(pte)) {
-+		pte = pte_mkclean(pte);
-+
-+		if (pte_flags(pte) & _PAGE_RW)
-+			pte = pte_set_flags(pte, _PAGE_DIRTY);
-+		else
-+			pte = pte_set_flags(pte, _PAGE_COW);
++		if (sc_ext->wait_endbr)
++			msr_val |= CET_WAIT_ENDBR;
 +	}
-+	return pte_val(pte);
-+}
 +
- static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ 	if (test_thread_flag(TIF_NEED_FPU_LOAD))
+ 		cet_user_state->user_cet = msr_val;
+ 	else
+@@ -335,9 +342,25 @@ int cet_setup_signal(bool ia32, unsigned long rstor_addr, struct sc_ext *sc_ext)
+ 		sc_ext->ssp = new_ssp;
+ 	}
+ 
+-	if (ssp) {
++	if (ssp || cet->ibt_enabled) {
++
+ 		start_update_msrs();
+-		wrmsrl(MSR_IA32_PL3_SSP, ssp);
++
++		if (ssp)
++			wrmsrl(MSR_IA32_PL3_SSP, ssp);
++
++		if (cet->ibt_enabled) {
++			u64 r;
++
++			rdmsrl(MSR_IA32_U_CET, r);
++
++			if (r & CET_WAIT_ENDBR) {
++				sc_ext->wait_endbr = 1;
++				r &= ~CET_WAIT_ENDBR;
++				wrmsrl(MSR_IA32_U_CET, r);
++			}
++		}
++
+ 		end_update_msrs();
+ 	}
+ 
+diff --git a/arch/x86/kernel/fpu/signal.c b/arch/x86/kernel/fpu/signal.c
+index d5d02b34f516..50f28b37e093 100644
+--- a/arch/x86/kernel/fpu/signal.c
++++ b/arch/x86/kernel/fpu/signal.c
+@@ -57,7 +57,8 @@ int save_cet_to_sigframe(int ia32, void __user *fp, unsigned long restorer)
  {
- 	pteval_t val = pte_val(pte), oldval = val;
-@@ -733,16 +748,34 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ 	int err = 0;
+ 
+-	if (!current->thread.cet.shstk_size)
++	if (!current->thread.cet.shstk_size &&
++	    !current->thread.cet.ibt_enabled)
+ 		return 0;
+ 
+ 	if (fp) {
+@@ -89,7 +90,8 @@ static int get_cet_from_sigframe(int ia32, void __user *fp, struct sc_ext *ext)
+ 
+ 	memset(ext, 0, sizeof(*ext));
+ 
+-	if (!current->thread.cet.shstk_size)
++	if (!current->thread.cet.shstk_size &&
++	    !current->thread.cet.ibt_enabled)
+ 		return 0;
+ 
+ 	if (fp) {
+@@ -577,7 +579,7 @@ static unsigned long fpu__alloc_sigcontext_ext(unsigned long sp)
+ 	 * sigcontext_ext is at: fpu + fpu_user_xstate_size +
+ 	 * FP_XSTATE_MAGIC2_SIZE, then aligned to 8.
  	 */
- 	val &= _PAGE_CHG_MASK;
- 	val |= check_pgprot(newprot) & ~_PAGE_CHG_MASK;
-+	val = fixup_dirty_pte(val);
- 	val = flip_protnone_guard(oldval, val, PTE_PFN_MASK);
- 	return __pte(val);
- }
+-	if (cet->shstk_size)
++	if (cet->shstk_size || cet->ibt_enabled)
+ 		sp -= (sizeof(struct sc_ext) + 8);
  
-+static inline int pmd_write(pmd_t pmd);
-+static inline pmdval_t fixup_dirty_pmd(pmdval_t pmdval)
-+{
-+	pmd_t pmd = __pmd(pmdval);
-+
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && pmd_dirty(pmd)) {
-+		pmd = pmd_mkclean(pmd);
-+
-+		if (pmd_flags(pmd) & _PAGE_RW)
-+			pmd = pmd_set_flags(pmd, _PAGE_DIRTY);
-+		else
-+			pmd = pmd_set_flags(pmd, _PAGE_COW);
-+	}
-+	return pmd_val(pmd);
-+}
-+
- static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
- {
- 	pmdval_t val = pmd_val(pmd), oldval = val;
- 
- 	val &= _HPAGE_CHG_MASK;
- 	val |= check_pgprot(newprot) & ~_HPAGE_CHG_MASK;
-+	val = fixup_dirty_pmd(val);
- 	val = flip_protnone_guard(oldval, val, PHYSICAL_PMD_PAGE_MASK);
- 	return __pmd(val);
- }
+ 	return sp;
 -- 
 2.21.0
 
