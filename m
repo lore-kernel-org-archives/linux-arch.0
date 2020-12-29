@@ -7,31 +7,31 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9B5B9C433E9
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:36:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E7A8AC433DB
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:36:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6FE39221F8
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:36:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C15F6221F8
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:36:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727180AbgL2VfC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Dec 2020 16:35:02 -0500
-Received: from mga09.intel.com ([134.134.136.24]:31879 "EHLO mga09.intel.com"
+        id S1726583AbgL2VdT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 29 Dec 2020 16:33:19 -0500
+Received: from mga03.intel.com ([134.134.136.65]:11899 "EHLO mga03.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727178AbgL2VfC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Dec 2020 16:35:02 -0500
-IronPort-SDR: P+f7hh+qy/PqlOdjO2+bBQXpIZLuQ/N8yTStyPqyfmhLW4Bpp77rx01C6TYwtq1gQAV9CgFjfv
- cn5lEv7MScFA==
-X-IronPort-AV: E=McAfee;i="6000,8403,9849"; a="176695624"
+        id S1726348AbgL2VdR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 Dec 2020 16:33:17 -0500
+IronPort-SDR: uQlGD/LVazicW6SOxTSuqqBDssfFojRI3T7riTkmnUTHE4ajUeCU1EpGdNDKUaP5r5Z0DPUcmm
+ JsFlcM+ew4Cg==
+X-IronPort-AV: E=McAfee;i="6000,8403,9849"; a="176640514"
 X-IronPort-AV: E=Sophos;i="5.78,459,1599548400"; 
-   d="scan'208";a="176695624"
+   d="scan'208";a="176640514"
 Received: from orsmga008.jf.intel.com ([10.7.209.65])
-  by orsmga102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:34:19 -0800
-IronPort-SDR: B3pp8q6t6f4Au5z71zci1T6Jd1F6sBzYGXabRGX46R4TVqHBLIHX7g94inSZD3fhgR7gJ2p7Aa
- fXAXTqgS8q3g==
+  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:32:21 -0800
+IronPort-SDR: c8yKiUFr+bZHk1PCQ+/0og9ZXMsjmVnMH7uyO9JfckwIYLlVcSA4eHuqeQj5+3lHnqE+Cr7aB0
+ ZpaBNIfLlegw==
 X-IronPort-AV: E=Sophos;i="5.78,459,1599548400"; 
-   d="scan'208";a="376190123"
+   d="scan'208";a="376189591"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:34:19 -0800
+  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:32:20 -0800
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -59,97 +59,74 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Dave Martin <Dave.Martin@arm.com>,
         Weijiang Yang <weijiang.yang@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>
-Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v17 2/7] x86/cet/ibt: User-mode Indirect Branch Tracking support
-Date:   Tue, 29 Dec 2020 13:33:45 -0800
-Message-Id: <20201229213350.17010-3-yu-cheng.yu@intel.com>
+Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>, Christoph Hellwig <hch@lst.de>
+Subject: [PATCH v17 07/26] x86/mm: Remove _PAGE_DIRTY from kernel RO pages
+Date:   Tue, 29 Dec 2020 13:30:34 -0800
+Message-Id: <20201229213053.16395-8-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
-In-Reply-To: <20201229213350.17010-1-yu-cheng.yu@intel.com>
-References: <20201229213350.17010-1-yu-cheng.yu@intel.com>
+In-Reply-To: <20201229213053.16395-1-yu-cheng.yu@intel.com>
+References: <20201229213053.16395-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Introduce user-mode Indirect Branch Tracking (IBT) support.  Add routines
-for the setup/disable of IBT.
+The x86 family of processors do not directly create read-only and Dirty
+PTEs.  These PTEs are created by software.  One such case is that kernel
+read-only pages are historically setup as Dirty.
+
+New processors that support Shadow Stack regard read-only and Dirty PTEs as
+shadow stack pages.  This results in ambiguity between shadow stack and
+kernel read-only pages.  To resolve this, removed Dirty from kernel read-
+only pages.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Christoph Hellwig <hch@lst.de>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/x86/include/asm/cet.h |  3 +++
- arch/x86/kernel/cet.c      | 33 +++++++++++++++++++++++++++++++++
- 2 files changed, 36 insertions(+)
+ arch/x86/include/asm/pgtable_types.h | 6 +++---
+ arch/x86/mm/pat/set_memory.c         | 2 +-
+ 2 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
-index 5e44605ae9c5..7ee1e712463a 100644
---- a/arch/x86/include/asm/cet.h
-+++ b/arch/x86/include/asm/cet.h
-@@ -15,6 +15,7 @@ struct cet_status {
- 	unsigned long	shstk_base;
- 	unsigned long	shstk_size;
- 	unsigned int	locked:1;
-+	unsigned int	ibt_enabled:1;
- };
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index 394757ee030a..b8b79d618bbc 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -194,10 +194,10 @@ enum page_cache_mode {
+ #define _KERNPG_TABLE		 (__PP|__RW|   0|___A|   0|___D|   0|   0| _ENC)
+ #define _PAGE_TABLE_NOENC	 (__PP|__RW|_USR|___A|   0|___D|   0|   0)
+ #define _PAGE_TABLE		 (__PP|__RW|_USR|___A|   0|___D|   0|   0| _ENC)
+-#define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|___D|   0|___G)
+-#define __PAGE_KERNEL_ROX	 (__PP|   0|   0|___A|   0|___D|   0|___G)
++#define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|   0|   0|___G)
++#define __PAGE_KERNEL_ROX	 (__PP|   0|   0|___A|   0|   0|   0|___G)
+ #define __PAGE_KERNEL_NOCACHE	 (__PP|__RW|   0|___A|__NX|___D|   0|___G| __NC)
+-#define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|___D|   0|___G)
++#define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|   0|   0|___G)
+ #define __PAGE_KERNEL_LARGE	 (__PP|__RW|   0|___A|__NX|___D|_PSE|___G)
+ #define __PAGE_KERNEL_LARGE_EXEC (__PP|__RW|   0|___A|   0|___D|_PSE|___G)
+ #define __PAGE_KERNEL_WP	 (__PP|__RW|   0|___A|__NX|___D|   0|___G| __WP)
+diff --git a/arch/x86/mm/pat/set_memory.c b/arch/x86/mm/pat/set_memory.c
+index 16f878c26667..6bebb95a6988 100644
+--- a/arch/x86/mm/pat/set_memory.c
++++ b/arch/x86/mm/pat/set_memory.c
+@@ -1932,7 +1932,7 @@ int set_memory_nx(unsigned long addr, int numpages)
  
- #ifdef CONFIG_X86_CET_USER
-@@ -26,6 +27,8 @@ void cet_free_shstk(struct task_struct *p);
- int cet_verify_rstor_token(bool ia32, unsigned long ssp, unsigned long *new_ssp);
- void cet_restore_signal(struct sc_ext *sc);
- int cet_setup_signal(bool ia32, unsigned long rstor, struct sc_ext *sc);
-+int cet_setup_ibt(void);
-+void cet_disable_ibt(void);
- #else
- static inline int prctl_cet(int option, u64 arg2) { return -EINVAL; }
- static inline int cet_setup_thread_shstk(struct task_struct *p,
-diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
-index feb466dc2ea8..fff0b35ed0d9 100644
---- a/arch/x86/kernel/cet.c
-+++ b/arch/x86/kernel/cet.c
-@@ -13,6 +13,8 @@
- #include <linux/uaccess.h>
- #include <linux/sched/signal.h>
- #include <linux/compat.h>
-+#include <linux/vmalloc.h>
-+#include <linux/bitops.h>
- #include <asm/msr.h>
- #include <asm/user.h>
- #include <asm/fpu/internal.h>
-@@ -341,3 +343,34 @@ int cet_setup_signal(bool ia32, unsigned long rstor_addr, struct sc_ext *sc_ext)
- 
- 	return 0;
+ int set_memory_ro(unsigned long addr, int numpages)
+ {
+-	return change_page_attr_clear(&addr, numpages, __pgprot(_PAGE_RW), 0);
++	return change_page_attr_clear(&addr, numpages, __pgprot(_PAGE_RW | _PAGE_DIRTY), 0);
  }
-+
-+int cet_setup_ibt(void)
-+{
-+	u64 msr_val;
-+
-+	if (!static_cpu_has(X86_FEATURE_IBT))
-+		return -EOPNOTSUPP;
-+
-+	start_update_msrs();
-+	rdmsrl(MSR_IA32_U_CET, msr_val);
-+	msr_val |= (CET_ENDBR_EN | CET_NO_TRACK_EN);
-+	wrmsrl(MSR_IA32_U_CET, msr_val);
-+	end_update_msrs();
-+	current->thread.cet.ibt_enabled = 1;
-+	return 0;
-+}
-+
-+void cet_disable_ibt(void)
-+{
-+	u64 msr_val;
-+
-+	if (!static_cpu_has(X86_FEATURE_IBT))
-+		return;
-+
-+	start_update_msrs();
-+	rdmsrl(MSR_IA32_U_CET, msr_val);
-+	msr_val &= ~CET_ENDBR_EN;
-+	wrmsrl(MSR_IA32_U_CET, msr_val);
-+	end_update_msrs();
-+	current->thread.cet.ibt_enabled = 0;
-+}
+ 
+ int set_memory_rw(unsigned long addr, int numpages)
 -- 
 2.21.0
 
