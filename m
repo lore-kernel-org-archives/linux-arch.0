@@ -5,33 +5,33 @@ X-Spam-Level:
 X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C48B0C4160E
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:33:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7D09EC43381
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:34:00 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A916222209
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:33:32 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5ADA4222BB
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:34:00 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726636AbgL2Vd3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Dec 2020 16:33:29 -0500
-Received: from mga03.intel.com ([134.134.136.65]:11917 "EHLO mga03.intel.com"
+        id S1726687AbgL2Vde (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 29 Dec 2020 16:33:34 -0500
+Received: from mga03.intel.com ([134.134.136.65]:11899 "EHLO mga03.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726256AbgL2Vd2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Dec 2020 16:33:28 -0500
-IronPort-SDR: wTUi32IBytf5GfjGo+5LlDu11boIO8OrJy84euVX4DCAt2vXMr8P4W78VMjznmxnMSLeUQHjVq
- WsacBSFWwR8A==
-X-IronPort-AV: E=McAfee;i="6000,8403,9849"; a="176640520"
+        id S1726681AbgL2Vdd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 Dec 2020 16:33:33 -0500
+IronPort-SDR: OJhgBBcytDEwYEZp9QbHE3WPDP7UF+N+kBaOhWdkoIMvDd4WF+NyEV0vmanaNmrfPPTyAPqLVQ
+ MgaZEwuJ3LQg==
+X-IronPort-AV: E=McAfee;i="6000,8403,9849"; a="176640527"
 X-IronPort-AV: E=Sophos;i="5.78,459,1599548400"; 
-   d="scan'208";a="176640520"
+   d="scan'208";a="176640527"
 Received: from orsmga008.jf.intel.com ([10.7.209.65])
-  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:32:22 -0800
-IronPort-SDR: pDU9e3y+yAJBvX4tR1KjWFwbW+zMK8qZsZIhlplN2BC2zs5cJ3GF69dTPBKKHj/rwhz1k9T8Fy
- 5QTFX7sqL+GQ==
+  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:32:24 -0800
+IronPort-SDR: pLmyBoP+WeKHExoK/AnORgHkjDio4M5xj0z6uEFkPWngH4cG7sDMxJJeIKprZxjiSIYWuz0qca
+ dtSOEvbb6WGA==
 X-IronPort-AV: E=Sophos;i="5.78,459,1599548400"; 
-   d="scan'208";a="376189600"
+   d="scan'208";a="376189612"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:32:21 -0800
+  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:32:23 -0800
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -59,17 +59,10 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Dave Martin <Dave.Martin@arm.com>,
         Weijiang Yang <weijiang.yang@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>
-Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>,
-        David Airlie <airlied@linux.ie>,
-        Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
-        Jani Nikula <jani.nikula@linux.intel.com>,
-        Daniel Vetter <daniel@ffwll.ch>,
-        Rodrigo Vivi <rodrigo.vivi@intel.com>,
-        Zhenyu Wang <zhenyuw@linux.intel.com>,
-        Zhi Wang <zhi.a.wang@intel.com>
-Subject: [PATCH v17 09/26] drm/i915/gvt: Change _PAGE_DIRTY to _PAGE_DIRTY_BITS
-Date:   Tue, 29 Dec 2020 13:30:36 -0800
-Message-Id: <20201229213053.16395-10-yu-cheng.yu@intel.com>
+Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v17 12/26] mm: Introduce VM_SHSTK for shadow stack memory
+Date:   Tue, 29 Dec 2020 13:30:39 -0800
+Message-Id: <20201229213053.16395-13-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20201229213053.16395-1-yu-cheng.yu@intel.com>
 References: <20201229213053.16395-1-yu-cheng.yu@intel.com>
@@ -79,35 +72,77 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-After the introduction of _PAGE_COW, a modified page's PTE can have either
-_PAGE_DIRTY or _PAGE_COW.  Change _PAGE_DIRTY to _PAGE_DIRTY_BITS.
+A shadow stack PTE must be read-only and have _PAGE_DIRTY set.  However,
+read-only and Dirty PTEs also exist for copy-on-write (COW) pages.  These
+two cases are handled differently for page faults.  Introduce VM_SHSTK to
+track shadow stack VMAs.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
-Cc: David Airlie <airlied@linux.ie>
-Cc: Joonas Lahtinen <joonas.lahtinen@linux.intel.com>
-Cc: Jani Nikula <jani.nikula@linux.intel.com>
-Cc: Daniel Vetter <daniel@ffwll.ch>
-Cc: Rodrigo Vivi <rodrigo.vivi@intel.com>
-Cc: Zhenyu Wang <zhenyuw@linux.intel.com>
-Cc: Zhi Wang <zhi.a.wang@intel.com>
 ---
- drivers/gpu/drm/i915/gvt/gtt.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/x86/mm/mmap.c | 2 ++
+ fs/proc/task_mmu.c | 3 +++
+ include/linux/mm.h | 8 ++++++++
+ 3 files changed, 13 insertions(+)
 
-diff --git a/drivers/gpu/drm/i915/gvt/gtt.c b/drivers/gpu/drm/i915/gvt/gtt.c
-index 897c007ea96a..937b6083b2dc 100644
---- a/drivers/gpu/drm/i915/gvt/gtt.c
-+++ b/drivers/gpu/drm/i915/gvt/gtt.c
-@@ -1216,7 +1216,7 @@ static int split_2MB_gtt_entry(struct intel_vgpu *vgpu,
- 	}
+diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
+index c90c20904a60..a22c6b6fc607 100644
+--- a/arch/x86/mm/mmap.c
++++ b/arch/x86/mm/mmap.c
+@@ -165,6 +165,8 @@ unsigned long get_mmap_base(int is_legacy)
  
- 	/* Clear dirty field. */
--	se->val64 &= ~_PAGE_DIRTY;
-+	se->val64 &= ~_PAGE_DIRTY_BITS;
+ const char *arch_vma_name(struct vm_area_struct *vma)
+ {
++	if (vma->vm_flags & VM_SHSTK)
++		return "[shadow stack]";
+ 	return NULL;
+ }
  
- 	ops->clear_pse(se);
- 	ops->clear_ips(se);
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index ee5a235b3056..89fe097241d4 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -661,6 +661,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+ 		[ilog2(VM_PKEY_BIT4)]	= "",
+ #endif
+ #endif /* CONFIG_ARCH_HAS_PKEYS */
++#ifdef CONFIG_X86_CET_USER
++		[ilog2(VM_SHSTK)]	= "ss",
++#endif
+ 	};
+ 	size_t i;
+ 
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 5299b90a6c40..d7e8b75505e6 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -305,11 +305,13 @@ extern unsigned int kobjsize(const void *objp);
+ #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures */
++#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+ #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+ #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+ #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
+ #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
++#define VM_HIGH_ARCH_5	BIT(VM_HIGH_ARCH_BIT_5)
+ #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
+ 
+ #ifdef CONFIG_ARCH_HAS_PKEYS
+@@ -325,6 +327,12 @@ extern unsigned int kobjsize(const void *objp);
+ #endif
+ #endif /* CONFIG_ARCH_HAS_PKEYS */
+ 
++#ifdef CONFIG_X86_CET_USER
++# define VM_SHSTK	VM_HIGH_ARCH_5
++#else
++# define VM_SHSTK	VM_NONE
++#endif
++
+ #if defined(CONFIG_X86)
+ # define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+ #elif defined(CONFIG_PPC)
 -- 
 2.21.0
 
