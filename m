@@ -2,217 +2,496 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
+	USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 94111C433E6
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:36:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B74EAC433E0
+	for <linux-arch@archiver.kernel.org>; Mon,  4 Jan 2021 12:34:48 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6773C22209
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Dec 2020 21:36:40 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 73F25207AE
+	for <linux-arch@archiver.kernel.org>; Mon,  4 Jan 2021 12:34:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726285AbgL2Vc6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Dec 2020 16:32:58 -0500
-Received: from mga03.intel.com ([134.134.136.65]:11891 "EHLO mga03.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726185AbgL2Vc6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Dec 2020 16:32:58 -0500
-IronPort-SDR: 0ip6FS/7jORhMaslJr2sDc0UydizneZKN3RYcaPLUVjWLpCMw0MEqkfefulSgWfN+DKP2rM0pV
- ISwq6vU0Z7+A==
-X-IronPort-AV: E=McAfee;i="6000,8403,9849"; a="176640497"
-X-IronPort-AV: E=Sophos;i="5.78,459,1599548400"; 
-   d="scan'208";a="176640497"
-Received: from orsmga008.jf.intel.com ([10.7.209.65])
-  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:32:17 -0800
-IronPort-SDR: siHl44mb3vT51tRq6qDm9TUMZ0HJXUQKOYOqK0PkXQYdAkRx2ameqqXPYPJ+bM7a1iE9qvqs+k
- eImvm7bWBZJA==
-X-IronPort-AV: E=Sophos;i="5.78,459,1599548400"; 
-   d="scan'208";a="376189558"
-Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Dec 2020 13:32:16 -0800
-From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
-To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Borislav Petkov <bp@alien8.de>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
-        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        Pengfei Xu <pengfei.xu@intel.com>
-Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v17 00/26] Control-flow Enforcement: Shadow Stack
-Date:   Tue, 29 Dec 2020 13:30:27 -0800
-Message-Id: <20201229213053.16395-1-yu-cheng.yu@intel.com>
-X-Mailer: git-send-email 2.21.0
+        id S1726098AbhADMes (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 4 Jan 2021 07:34:48 -0500
+Received: from szxga06-in.huawei.com ([45.249.212.32]:9953 "EHLO
+        szxga06-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726008AbhADMer (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jan 2021 07:34:47 -0500
+Received: from DGGEMS407-HUB.china.huawei.com (unknown [172.30.72.60])
+        by szxga06-in.huawei.com (SkyGuard) with ESMTP id 4D8Zm9499Mzj1mf;
+        Mon,  4 Jan 2021 20:33:13 +0800 (CST)
+Received: from [10.174.177.80] (10.174.177.80) by
+ DGGEMS407-HUB.china.huawei.com (10.3.19.207) with Microsoft SMTP Server id
+ 14.3.498.0; Mon, 4 Jan 2021 20:33:50 +0800
+Subject: Re: [PATCH v9 05/12] mm: HUGE_VMAP arch support cleanup
+To:     Nicholas Piggin <npiggin@gmail.com>, <linux-mm@kvack.org>,
+        Andrew Morton <akpm@linux-foundation.org>
+CC:     <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
+        <linuxppc-dev@lists.ozlabs.org>, Zefan Li <lizefan@huawei.com>,
+        "Jonathan Cameron" <Jonathan.Cameron@Huawei.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        Christophe Leroy <christophe.leroy@csgroup.eu>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        "Will Deacon" <will@kernel.org>,
+        <linux-arm-kernel@lists.infradead.org>,
+        "Thomas Gleixner" <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>,
+        "Borislav Petkov" <bp@alien8.de>, <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>
+References: <20201205065725.1286370-1-npiggin@gmail.com>
+ <20201205065725.1286370-6-npiggin@gmail.com>
+From:   Ding Tianhong <dingtianhong@huawei.com>
+Message-ID: <c7eb5ba6-1187-d82f-d74c-0ca2c8ae8faf@huawei.com>
+Date:   Mon, 4 Jan 2021 20:33:49 +0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.3.2
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20201205065725.1286370-6-npiggin@gmail.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
+X-Originating-IP: [10.174.177.80]
+X-CFilter-Loop: Reflected
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Control-flow Enforcement (CET) is a new Intel processor feature that blocks
-return/jump-oriented programming attacks.  Details are in "Intel 64 and
-IA-32 Architectures Software Developer's Manual" [1].
+On 2020/12/5 14:57, Nicholas Piggin wrote:
+> This changes the awkward approach where architectures provide init
+> functions to determine which levels they can provide large mappings for,
+> to one where the arch is queried for each call.
+> 
+> This removes code and indirection, and allows constant-folding of dead
+> code for unsupported levels.
+> 
+> This also adds a prot argument to the arch query. This is unused
+> currently but could help with some architectures (e.g., some powerpc
+> processors can't map uncacheable memory with large pages).
+> 
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Borislav Petkov <bp@alien8.de>
+> Cc: x86@kernel.org
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Acked-by: Catalin Marinas <catalin.marinas@arm.com> [arm64]
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
+>  arch/arm64/include/asm/vmalloc.h         |  8 +++
+>  arch/arm64/mm/mmu.c                      | 10 +--
+>  arch/powerpc/include/asm/vmalloc.h       |  8 +++
+>  arch/powerpc/mm/book3s64/radix_pgtable.c |  8 +--
+>  arch/x86/include/asm/vmalloc.h           |  7 ++
+>  arch/x86/mm/ioremap.c                    | 10 +--
+>  include/linux/io.h                       |  9 ---
+>  include/linux/vmalloc.h                  |  6 ++
+>  init/main.c                              |  1 -
+>  mm/ioremap.c                             | 88 +++++++++---------------
+>  10 files changed, 77 insertions(+), 78 deletions(-)
+> 
+> diff --git a/arch/arm64/include/asm/vmalloc.h b/arch/arm64/include/asm/vmalloc.h
+> index 2ca708ab9b20..597b40405319 100644
+> --- a/arch/arm64/include/asm/vmalloc.h
+> +++ b/arch/arm64/include/asm/vmalloc.h
+> @@ -1,4 +1,12 @@
+>  #ifndef _ASM_ARM64_VMALLOC_H
+>  #define _ASM_ARM64_VMALLOC_H
+>  
+> +#include <asm/page.h>
+> +
+> +#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
+> +bool arch_vmap_p4d_supported(pgprot_t prot);
+> +bool arch_vmap_pud_supported(pgprot_t prot);
+> +bool arch_vmap_pmd_supported(pgprot_t prot);
+> +#endif
+> +
+>  #endif /* _ASM_ARM64_VMALLOC_H */
+> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+> index ca692a815731..1b60079c1cef 100644
+> --- a/arch/arm64/mm/mmu.c
+> +++ b/arch/arm64/mm/mmu.c
+> @@ -1315,12 +1315,12 @@ void *__init fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot)
+>  	return dt_virt;
+>  }
+>  
+> -int __init arch_ioremap_p4d_supported(void)
+> +bool arch_vmap_p4d_supported(pgprot_t prot)
+>  {
+> -	return 0;
+> +	return false;
+>  }
+>  
 
-CET can protect applications and the kernel.  This series enables only
-application-level protection, and has three parts:
+I think you should put this function in the CONFIG_HAVE_ARCH_HUGE_VMAP, otherwise it may break the compile when disable the CONFIG_HAVE_ARCH_HUGE_VMAP, the same
+as the x86 and ppc.
 
-  - Shadow stack [2],
-  - Indirect branch tracking [3], and
-  - Selftests [4].
+Ding
 
-I have run tests on these patches for quite some time, and they have been
-very stable.  Linux distributions with CET are available now, and Intel
-processors with CET are already on the market.  It would be nice if CET
-support can be accepted into the kernel.  I will be working to address any
-issues should they come up.
-
-Changes in v17:
-- Rebase to v5.11-rc1.
-
-[1] Intel 64 and IA-32 Architectures Software Developer's Manual:
-
-    https://software.intel.com/en-us/download/intel-64-and-ia-32-
-    architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4
-
-[2] CET Shadow Stack patches v16:
-
-    https://lkml.kernel.org/r/20201209222320.1724-1-yu-cheng.yu@intel.com/
-
-[3] Indirect Branch Tracking patches v16.
-
-    https://lkml.kernel.org/r/20201209222752.2911-1-yu-cheng.yu@intel.com/
-
-[4] I am holding off the selftests changes and working to get Acked-by's.
-    The earlier version of the selftests patches:
-
-    https://lkml.kernel.org/r/20200521211720.20236-1-yu-cheng.yu@intel.com/
-
-[5] The kernel ptrace patch is tested with an Intel-internal updated GDB.
-    I am holding off the kernel ptrace patch to re-test it with my earlier
-    patch for fixing regset holes.
-
-Yu-cheng Yu (26):
-  Documentation/x86: Add CET description
-  x86/cet/shstk: Add Kconfig option for user-mode control-flow
-    protection
-  x86/cpufeatures: Add CET CPU feature flags for Control-flow
-    Enforcement Technology (CET)
-  x86/cpufeatures: Introduce X86_FEATURE_CET and setup functions
-  x86/fpu/xstate: Introduce CET MSR and XSAVES supervisor states
-  x86/cet: Add control-protection fault handler
-  x86/mm: Remove _PAGE_DIRTY from kernel RO pages
-  x86/mm: Introduce _PAGE_COW
-  drm/i915/gvt: Change _PAGE_DIRTY to _PAGE_DIRTY_BITS
-  x86/mm: Update pte_modify for _PAGE_COW
-  x86/mm: Update ptep_set_wrprotect() and pmdp_set_wrprotect() for
-    transition from _PAGE_DIRTY to _PAGE_COW
-  mm: Introduce VM_SHSTK for shadow stack memory
-  x86/mm: Shadow Stack page fault error checking
-  x86/mm: Update maybe_mkwrite() for shadow stack
-  mm: Fixup places that call pte_mkwrite() directly
-  mm: Add guard pages around a shadow stack.
-  mm/mmap: Add shadow stack pages to memory accounting
-  mm: Update can_follow_write_pte() for shadow stack
-  mm: Re-introduce vm_flags to do_mmap()
-  x86/cet/shstk: User-mode shadow stack support
-  x86/cet/shstk: Handle signals for shadow stack
-  binfmt_elf: Define GNU_PROPERTY_X86_FEATURE_1_AND properties
-  ELF: Introduce arch_setup_elf_property()
-  x86/cet/shstk: Handle thread shadow stack
-  x86/cet/shstk: Add arch_prctl functions for shadow stack
-  mm: Introduce PROT_SHSTK for shadow stack
-
- .../admin-guide/kernel-parameters.txt         |   6 +
- Documentation/x86/index.rst                   |   1 +
- Documentation/x86/intel_cet.rst               | 136 +++++++
- arch/arm64/include/asm/elf.h                  |   5 +
- arch/x86/Kconfig                              |  28 ++
- arch/x86/Kconfig.assembler                    |   5 +
- arch/x86/ia32/ia32_signal.c                   |  17 +
- arch/x86/include/asm/cet.h                    |  42 +++
- arch/x86/include/asm/cpufeatures.h            |   4 +-
- arch/x86/include/asm/disabled-features.h      |  17 +-
- arch/x86/include/asm/elf.h                    |  13 +
- arch/x86/include/asm/fpu/internal.h           |  10 +
- arch/x86/include/asm/fpu/types.h              |  23 +-
- arch/x86/include/asm/fpu/xstate.h             |   6 +-
- arch/x86/include/asm/idtentry.h               |   4 +
- arch/x86/include/asm/mman.h                   |  83 +++++
- arch/x86/include/asm/mmu_context.h            |   3 +
- arch/x86/include/asm/msr-index.h              |  19 +
- arch/x86/include/asm/page_64_types.h          |  10 +
- arch/x86/include/asm/pgtable.h                | 202 ++++++++++-
- arch/x86/include/asm/pgtable_types.h          |  48 ++-
- arch/x86/include/asm/processor.h              |   5 +
- arch/x86/include/asm/special_insns.h          |  32 ++
- arch/x86/include/asm/trap_pf.h                |   2 +
- arch/x86/include/uapi/asm/mman.h              |  28 +-
- arch/x86/include/uapi/asm/prctl.h             |   4 +
- arch/x86/include/uapi/asm/processor-flags.h   |   2 +
- arch/x86/include/uapi/asm/sigcontext.h        |   9 +
- arch/x86/kernel/Makefile                      |   2 +
- arch/x86/kernel/cet.c                         | 343 ++++++++++++++++++
- arch/x86/kernel/cet_prctl.c                   |  68 ++++
- arch/x86/kernel/cpu/common.c                  |  40 +-
- arch/x86/kernel/cpu/cpuid-deps.c              |   2 +
- arch/x86/kernel/fpu/signal.c                  | 100 +++++
- arch/x86/kernel/fpu/xstate.c                  |  10 +-
- arch/x86/kernel/idt.c                         |   4 +
- arch/x86/kernel/process.c                     |  14 +-
- arch/x86/kernel/process_64.c                  |  32 ++
- arch/x86/kernel/signal.c                      |  10 +
- arch/x86/kernel/signal_compat.c               |   2 +-
- arch/x86/kernel/traps.c                       |  59 +++
- arch/x86/mm/fault.c                           |  19 +
- arch/x86/mm/mmap.c                            |   2 +
- arch/x86/mm/pat/set_memory.c                  |   2 +-
- arch/x86/mm/pgtable.c                         |  25 ++
- drivers/gpu/drm/i915/gvt/gtt.c                |   2 +-
- fs/aio.c                                      |   2 +-
- fs/binfmt_elf.c                               |   4 +
- fs/proc/task_mmu.c                            |   3 +
- include/linux/elf.h                           |   6 +
- include/linux/mm.h                            |  38 +-
- include/linux/pgtable.h                       |  35 ++
- include/uapi/asm-generic/siginfo.h            |   3 +-
- include/uapi/linux/elf.h                      |   9 +
- ipc/shm.c                                     |   2 +-
- mm/gup.c                                      |   8 +-
- mm/huge_memory.c                              |  10 +-
- mm/memory.c                                   |   5 +-
- mm/migrate.c                                  |   3 +-
- mm/mmap.c                                     |  23 +-
- mm/mprotect.c                                 |   2 +-
- mm/nommu.c                                    |   4 +-
- mm/util.c                                     |   2 +-
- 63 files changed, 1576 insertions(+), 83 deletions(-)
- create mode 100644 Documentation/x86/intel_cet.rst
- create mode 100644 arch/x86/include/asm/cet.h
- create mode 100644 arch/x86/include/asm/mman.h
- create mode 100644 arch/x86/kernel/cet.c
- create mode 100644 arch/x86/kernel/cet_prctl.c
-
--- 
-2.21.0
+> -int __init arch_ioremap_pud_supported(void)
+> +bool arch_vmap_pud_supported(pgprot_t prot);
+>  {
+>  	/*
+>  	 * Only 4k granule supports level 1 block mappings.
+> @@ -1330,9 +1330,9 @@ int __init arch_ioremap_pud_supported(void)
+>  	       !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
+>  }
+>  
+> -int __init arch_ioremap_pmd_supported(void)
+> +bool arch_vmap_pmd_supported(pgprot_t prot)
+>  {
+> -	/* See arch_ioremap_pud_supported() */
+> +	/* See arch_vmap_pud_supported() */
+>  	return !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
+>  }
+>  
+> diff --git a/arch/powerpc/include/asm/vmalloc.h b/arch/powerpc/include/asm/vmalloc.h
+> index b992dfaaa161..105abb73f075 100644
+> --- a/arch/powerpc/include/asm/vmalloc.h
+> +++ b/arch/powerpc/include/asm/vmalloc.h
+> @@ -1,4 +1,12 @@
+>  #ifndef _ASM_POWERPC_VMALLOC_H
+>  #define _ASM_POWERPC_VMALLOC_H
+>  
+> +#include <asm/page.h>
+> +
+> +#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
+> +bool arch_vmap_p4d_supported(pgprot_t prot);
+> +bool arch_vmap_pud_supported(pgprot_t prot);
+> +bool arch_vmap_pmd_supported(pgprot_t prot);
+> +#endif
+> +
+>  #endif /* _ASM_POWERPC_VMALLOC_H */
+> diff --git a/arch/powerpc/mm/book3s64/radix_pgtable.c b/arch/powerpc/mm/book3s64/radix_pgtable.c
+> index 3adcf730f478..ab426fc0cd4b 100644
+> --- a/arch/powerpc/mm/book3s64/radix_pgtable.c
+> +++ b/arch/powerpc/mm/book3s64/radix_pgtable.c
+> @@ -1121,13 +1121,13 @@ void radix__ptep_modify_prot_commit(struct vm_area_struct *vma,
+>  	set_pte_at(mm, addr, ptep, pte);
+>  }
+>  
+> -int __init arch_ioremap_pud_supported(void)
+> +bool arch_vmap_pud_supported(pgprot_t prot)
+>  {
+>  	/* HPT does not cope with large pages in the vmalloc area */
+>  	return radix_enabled();
+>  }
+>  
+> -int __init arch_ioremap_pmd_supported(void)
+> +bool arch_vmap_pmd_supported(pgprot_t prot)
+>  {
+>  	return radix_enabled();
+>  }
+> @@ -1221,7 +1221,7 @@ int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+>  	return 1;
+>  }
+>  
+> -int __init arch_ioremap_p4d_supported(void)
+> +bool arch_vmap_p4d_supported(pgprot_t prot)
+>  {
+> -	return 0;
+> +	return false;
+>  }
+> diff --git a/arch/x86/include/asm/vmalloc.h b/arch/x86/include/asm/vmalloc.h
+> index 29837740b520..094ea2b565f3 100644
+> --- a/arch/x86/include/asm/vmalloc.h
+> +++ b/arch/x86/include/asm/vmalloc.h
+> @@ -1,6 +1,13 @@
+>  #ifndef _ASM_X86_VMALLOC_H
+>  #define _ASM_X86_VMALLOC_H
+>  
+> +#include <asm/page.h>
+>  #include <asm/pgtable_areas.h>
+>  
+> +#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
+> +bool arch_vmap_p4d_supported(pgprot_t prot);
+> +bool arch_vmap_pud_supported(pgprot_t prot);
+> +bool arch_vmap_pmd_supported(pgprot_t prot);
+> +#endif
+> +
+>  #endif /* _ASM_X86_VMALLOC_H */
+> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+> index 9e5ccc56f8e0..762b5ff4edad 100644
+> --- a/arch/x86/mm/ioremap.c
+> +++ b/arch/x86/mm/ioremap.c
+> @@ -481,21 +481,21 @@ void iounmap(volatile void __iomem *addr)
+>  }
+>  EXPORT_SYMBOL(iounmap);
+>  
+> -int __init arch_ioremap_p4d_supported(void)
+> +bool arch_vmap_p4d_supported(pgprot_t prot)
+>  {
+> -	return 0;
+> +	return false;
+>  }
+>  
+> -int __init arch_ioremap_pud_supported(void)
+> +bool arch_vmap_pud_supported(pgprot_t prot)
+>  {
+>  #ifdef CONFIG_X86_64
+>  	return boot_cpu_has(X86_FEATURE_GBPAGES);
+>  #else
+> -	return 0;
+> +	return false;
+>  #endif
+>  }
+>  
+> -int __init arch_ioremap_pmd_supported(void)
+> +bool arch_vmap_pmd_supported(pgprot_t prot)
+>  {
+>  	return boot_cpu_has(X86_FEATURE_PSE);
+>  }
+> diff --git a/include/linux/io.h b/include/linux/io.h
+> index 8394c56babc2..f1effd4d7a3c 100644
+> --- a/include/linux/io.h
+> +++ b/include/linux/io.h
+> @@ -31,15 +31,6 @@ static inline int ioremap_page_range(unsigned long addr, unsigned long end,
+>  }
+>  #endif
+>  
+> -#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
+> -void __init ioremap_huge_init(void);
+> -int arch_ioremap_p4d_supported(void);
+> -int arch_ioremap_pud_supported(void);
+> -int arch_ioremap_pmd_supported(void);
+> -#else
+> -static inline void ioremap_huge_init(void) { }
+> -#endif
+> -
+>  /*
+>   * Managed iomap interface
+>   */
+> diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+> index 938eaf9517e2..b3218ba0904d 100644
+> --- a/include/linux/vmalloc.h
+> +++ b/include/linux/vmalloc.h
+> @@ -85,6 +85,12 @@ struct vmap_area {
+>  	};
+>  };
+>  
+> +#ifndef CONFIG_HAVE_ARCH_HUGE_VMAP
+> +static inline bool arch_vmap_p4d_supported(pgprot_t prot) { return false; }
+> +static inline bool arch_vmap_pud_supported(pgprot_t prot) { return false; }
+> +static inline bool arch_vmap_pmd_supported(pgprot_t prot) { return false; }
+> +#endif
+> +
+>  /*
+>   *	Highlevel APIs for driver use
+>   */
+> diff --git a/init/main.c b/init/main.c
+> index 20baced721ad..5bd2f4f41d30 100644
+> --- a/init/main.c
+> +++ b/init/main.c
+> @@ -833,7 +833,6 @@ static void __init mm_init(void)
+>  	pgtable_init();
+>  	debug_objects_mem_init();
+>  	vmalloc_init();
+> -	ioremap_huge_init();
+>  	/* Should be run before the first non-init thread is created */
+>  	init_espfix_bsp();
+>  	/* Should be run after espfix64 is set up. */
+> diff --git a/mm/ioremap.c b/mm/ioremap.c
+> index 3f4d36f9745a..c67f91164401 100644
+> --- a/mm/ioremap.c
+> +++ b/mm/ioremap.c
+> @@ -16,49 +16,16 @@
+>  #include "pgalloc-track.h"
+>  
+>  #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
+> -static int __read_mostly ioremap_p4d_capable;
+> -static int __read_mostly ioremap_pud_capable;
+> -static int __read_mostly ioremap_pmd_capable;
+> -static int __read_mostly ioremap_huge_disabled;
+> +static bool __ro_after_init iomap_max_page_shift = PAGE_SHIFT;
+>  
+>  static int __init set_nohugeiomap(char *str)
+>  {
+> -	ioremap_huge_disabled = 1;
+> +	iomap_max_page_shift = P4D_SHIFT;
+>  	return 0;
+>  }
+>  early_param("nohugeiomap", set_nohugeiomap);
+> -
+> -void __init ioremap_huge_init(void)
+> -{
+> -	if (!ioremap_huge_disabled) {
+> -		if (arch_ioremap_p4d_supported())
+> -			ioremap_p4d_capable = 1;
+> -		if (arch_ioremap_pud_supported())
+> -			ioremap_pud_capable = 1;
+> -		if (arch_ioremap_pmd_supported())
+> -			ioremap_pmd_capable = 1;
+> -	}
+> -}
+> -
+> -static inline int ioremap_p4d_enabled(void)
+> -{
+> -	return ioremap_p4d_capable;
+> -}
+> -
+> -static inline int ioremap_pud_enabled(void)
+> -{
+> -	return ioremap_pud_capable;
+> -}
+> -
+> -static inline int ioremap_pmd_enabled(void)
+> -{
+> -	return ioremap_pmd_capable;
+> -}
+> -
+> -#else	/* !CONFIG_HAVE_ARCH_HUGE_VMAP */
+> -static inline int ioremap_p4d_enabled(void) { return 0; }
+> -static inline int ioremap_pud_enabled(void) { return 0; }
+> -static inline int ioremap_pmd_enabled(void) { return 0; }
+> +#else /* CONFIG_HAVE_ARCH_HUGE_VMAP */
+> +static const bool iomap_max_page_shift = PAGE_SHIFT;
+>  #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
+>  
+>  static int vmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
+> @@ -82,9 +49,13 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
+>  }
+>  
+>  static int vmap_try_huge_pmd(pmd_t *pmd, unsigned long addr, unsigned long end,
+> -			phys_addr_t phys_addr, pgprot_t prot)
+> +			phys_addr_t phys_addr, pgprot_t prot,
+> +			unsigned int max_page_shift)
+>  {
+> -	if (!ioremap_pmd_enabled())
+> +	if (max_page_shift < PMD_SHIFT)
+> +		return 0;
+> +
+> +	if (!arch_vmap_pmd_supported(prot))
+>  		return 0;
+>  
+>  	if ((end - addr) != PMD_SIZE)
+> @@ -104,7 +75,7 @@ static int vmap_try_huge_pmd(pmd_t *pmd, unsigned long addr, unsigned long end,
+>  
+>  static int vmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
+>  			phys_addr_t phys_addr, pgprot_t prot,
+> -			pgtbl_mod_mask *mask)
+> +			unsigned int max_page_shift, pgtbl_mod_mask *mask)
+>  {
+>  	pmd_t *pmd;
+>  	unsigned long next;
+> @@ -115,7 +86,7 @@ static int vmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
+>  	do {
+>  		next = pmd_addr_end(addr, end);
+>  
+> -		if (vmap_try_huge_pmd(pmd, addr, next, phys_addr, prot)) {
+> +		if (vmap_try_huge_pmd(pmd, addr, next, phys_addr, prot, max_page_shift)) {
+>  			*mask |= PGTBL_PMD_MODIFIED;
+>  			continue;
+>  		}
+> @@ -127,9 +98,13 @@ static int vmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
+>  }
+>  
+>  static int vmap_try_huge_pud(pud_t *pud, unsigned long addr, unsigned long end,
+> -			phys_addr_t phys_addr, pgprot_t prot)
+> +			phys_addr_t phys_addr, pgprot_t prot,
+> +			unsigned int max_page_shift)
+>  {
+> -	if (!ioremap_pud_enabled())
+> +	if (max_page_shift < PUD_SHIFT)
+> +		return 0;
+> +
+> +	if (!arch_vmap_pud_supported(prot))
+>  		return 0;
+>  
+>  	if ((end - addr) != PUD_SIZE)
+> @@ -149,7 +124,7 @@ static int vmap_try_huge_pud(pud_t *pud, unsigned long addr, unsigned long end,
+>  
+>  static int vmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end,
+>  			phys_addr_t phys_addr, pgprot_t prot,
+> -			pgtbl_mod_mask *mask)
+> +			unsigned int max_page_shift, pgtbl_mod_mask *mask)
+>  {
+>  	pud_t *pud;
+>  	unsigned long next;
+> @@ -160,21 +135,25 @@ static int vmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end,
+>  	do {
+>  		next = pud_addr_end(addr, end);
+>  
+> -		if (vmap_try_huge_pud(pud, addr, next, phys_addr, prot)) {
+> +		if (vmap_try_huge_pud(pud, addr, next, phys_addr, prot, max_page_shift)) {
+>  			*mask |= PGTBL_PUD_MODIFIED;
+>  			continue;
+>  		}
+>  
+> -		if (vmap_pmd_range(pud, addr, next, phys_addr, prot, mask))
+> +		if (vmap_pmd_range(pud, addr, next, phys_addr, prot, max_page_shift, mask))
+>  			return -ENOMEM;
+>  	} while (pud++, phys_addr += (next - addr), addr = next, addr != end);
+>  	return 0;
+>  }
+>  
+>  static int vmap_try_huge_p4d(p4d_t *p4d, unsigned long addr, unsigned long end,
+> -			phys_addr_t phys_addr, pgprot_t prot)
+> +			phys_addr_t phys_addr, pgprot_t prot,
+> +			unsigned int max_page_shift)
+>  {
+> -	if (!ioremap_p4d_enabled())
+> +	if (max_page_shift < P4D_SHIFT)
+> +		return 0;
+> +
+> +	if (!arch_vmap_p4d_supported(prot))
+>  		return 0;
+>  
+>  	if ((end - addr) != P4D_SIZE)
+> @@ -194,7 +173,7 @@ static int vmap_try_huge_p4d(p4d_t *p4d, unsigned long addr, unsigned long end,
+>  
+>  static int vmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end,
+>  			phys_addr_t phys_addr, pgprot_t prot,
+> -			pgtbl_mod_mask *mask)
+> +			unsigned int max_page_shift, pgtbl_mod_mask *mask)
+>  {
+>  	p4d_t *p4d;
+>  	unsigned long next;
+> @@ -205,19 +184,20 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end,
+>  	do {
+>  		next = p4d_addr_end(addr, end);
+>  
+> -		if (vmap_try_huge_p4d(p4d, addr, next, phys_addr, prot)) {
+> +		if (vmap_try_huge_p4d(p4d, addr, next, phys_addr, prot, max_page_shift)) {
+>  			*mask |= PGTBL_P4D_MODIFIED;
+>  			continue;
+>  		}
+>  
+> -		if (vmap_pud_range(p4d, addr, next, phys_addr, prot, mask))
+> +		if (vmap_pud_range(p4d, addr, next, phys_addr, prot, max_page_shift, mask))
+>  			return -ENOMEM;
+>  	} while (p4d++, phys_addr += (next - addr), addr = next, addr != end);
+>  	return 0;
+>  }
+>  
+>  static int vmap_range(unsigned long addr, unsigned long end,
+> -			phys_addr_t phys_addr, pgprot_t prot)
+> +			phys_addr_t phys_addr, pgprot_t prot,
+> +			unsigned int max_page_shift)
+>  {
+>  	pgd_t *pgd;
+>  	unsigned long start;
+> @@ -232,7 +212,7 @@ static int vmap_range(unsigned long addr, unsigned long end,
+>  	pgd = pgd_offset_k(addr);
+>  	do {
+>  		next = pgd_addr_end(addr, end);
+> -		err = vmap_p4d_range(pgd, addr, next, phys_addr, prot, &mask);
+> +		err = vmap_p4d_range(pgd, addr, next, phys_addr, prot, max_page_shift, &mask);
+>  		if (err)
+>  			break;
+>  	} while (pgd++, phys_addr += (next - addr), addr = next, addr != end);
+> @@ -248,7 +228,7 @@ static int vmap_range(unsigned long addr, unsigned long end,
+>  int ioremap_page_range(unsigned long addr,
+>  		       unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
+>  {
+> -	return vmap_range(addr, end, phys_addr, prot);
+> +	return vmap_range(addr, end, phys_addr, prot, iomap_max_page_shift);
+>  }
+>  
+>  #ifdef CONFIG_GENERIC_IOREMAP
+> 
 
