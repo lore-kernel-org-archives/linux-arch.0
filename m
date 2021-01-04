@@ -2,111 +2,106 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 27DD9C433DB
-	for <linux-arch@archiver.kernel.org>; Mon,  4 Jan 2021 20:09:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 179C9C433E6
+	for <linux-arch@archiver.kernel.org>; Mon,  4 Jan 2021 20:09:38 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E5727221F8
-	for <linux-arch@archiver.kernel.org>; Mon,  4 Jan 2021 20:09:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D6C0622225
+	for <linux-arch@archiver.kernel.org>; Mon,  4 Jan 2021 20:09:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728040AbhADUJE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 4 Jan 2021 15:09:04 -0500
-Received: from relay2-d.mail.gandi.net ([217.70.183.194]:53675 "EHLO
-        relay2-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726492AbhADUJE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jan 2021 15:09:04 -0500
-X-Originating-IP: 90.112.190.212
-Received: from debian.home (lfbn-gre-1-231-212.w90-112.abo.wanadoo.fr [90.112.190.212])
-        (Authenticated sender: alex@ghiti.fr)
-        by relay2-d.mail.gandi.net (Postfix) with ESMTPSA id 4135E40007;
-        Mon,  4 Jan 2021 20:08:20 +0000 (UTC)
-From:   Alexandre Ghiti <alex@ghiti.fr>
-To:     Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Zong Li <zong.li@sifive.com>, Anup Patel <anup@brainfault.org>,
-        Christoph Hellwig <hch@lst.de>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, linux-efi@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org,
-        linux-kernel@vger.kernel.org
-Cc:     Alexandre Ghiti <alex@ghiti.fr>
-Subject: [RFC PATCH 09/12] riscv: Allow user to downgrade to sv39 when hw supports sv48
-Date:   Mon,  4 Jan 2021 14:58:37 -0500
-Message-Id: <20210104195840.1593-10-alex@ghiti.fr>
-X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20210104195840.1593-1-alex@ghiti.fr>
-References: <20210104195840.1593-1-alex@ghiti.fr>
+        id S1725921AbhADUJK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 4 Jan 2021 15:09:10 -0500
+Received: from mga11.intel.com ([192.55.52.93]:35243 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725840AbhADUJK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 4 Jan 2021 15:09:10 -0500
+IronPort-SDR: s5K+C27vyajcSgtzMVnYrTLDOOpnV7CQ717Anbodlk4hEBc58Jr90+l/mVWCNKMVWVq+xu0vZ2
+ i68jNCNbwLcw==
+X-IronPort-AV: E=McAfee;i="6000,8403,9854"; a="173494318"
+X-IronPort-AV: E=Sophos;i="5.78,474,1599548400"; 
+   d="scan'208";a="173494318"
+Received: from orsmga002.jf.intel.com ([10.7.209.21])
+  by fmsmga102.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 04 Jan 2021 12:08:29 -0800
+IronPort-SDR: urpI8d5B4JN9RjNmAOAUe5lL7HXhD3ElEk+4b7L539xEbw5mo/rkDiYv+M0N4sNtH00csg4QQ/
+ mzFVpqGchYdw==
+X-IronPort-AV: E=Sophos;i="5.78,474,1599548400"; 
+   d="scan'208";a="360892786"
+Received: from yyu32-mobl1.amr.corp.intel.com (HELO [10.209.103.116]) ([10.209.103.116])
+  by orsmga002-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 04 Jan 2021 12:08:28 -0800
+Subject: Re: [PATCH v17 00/26] Control-flow Enforcement: Shadow Stack
+To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
+        linux-doc@vger.kernel.org, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>,
+        Pengfei Xu <pengfei.xu@intel.com>, x86-patch-review@intel.com,
+        "Schlobohm, Bruce" <bruce.schlobohm@intel.com>
+References: <20201229213053.16395-1-yu-cheng.yu@intel.com>
+From:   "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
+Message-ID: <0a475c4c-58b0-0da7-8889-a0dbbc7d0fdc@intel.com>
+Date:   Mon, 4 Jan 2021 12:08:27 -0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.6.0
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20201229213053.16395-1-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This is made possible by using the mmu-type property of the cpu node of
-the device tree.
+On 12/29/2020 1:30 PM, Yu-cheng Yu wrote:
+> Control-flow Enforcement (CET) is a new Intel processor feature that blocks
+> return/jump-oriented programming attacks.  Details are in "Intel 64 and
+> IA-32 Architectures Software Developer's Manual" [1].
+> 
+> CET can protect applications and the kernel.  This series enables only
+> application-level protection, and has three parts:
+> 
+>    - Shadow stack [2],
+>    - Indirect branch tracking [3], and
+>    - Selftests [4].
+> 
+> I have run tests on these patches for quite some time, and they have been
+> very stable.  Linux distributions with CET are available now, and Intel
+> processors with CET are already on the market.  It would be nice if CET
+> support can be accepted into the kernel.  I will be working to address any
+> issues should they come up.
+> 
+> Changes in v17:
+> - Rebase to v5.11-rc1.
 
-By default, the kernel will boot with 4-level page table if the hw supports
-it but it can be interesting for the user to select 3-level page table as
-it is less memory consuming and faster since it requires less memory
-accesses in case of a TLB miss.
+Hi Reviewers,
 
-Signed-off-by: Alexandre Ghiti <alex@ghiti.fr>
-Reviewed-by: Anup Patel <anup@brainfault.org>
----
- arch/riscv/mm/init.c | 26 ++++++++++++++++++++++++--
- 1 file changed, 24 insertions(+), 2 deletions(-)
+After a few revisions/re-bases, I have dropped some Reviewed-by tags. 
+This revision is only a re-base to the latest Linus tree.  Please kindly 
+comment if there are anything still not resolved, and I appreciate very 
+much Reviewed-by/Acked-by tags to satisfactory patches.
 
-diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
-index cb23a30d9af3..f9a99cb1870b 100644
---- a/arch/riscv/mm/init.c
-+++ b/arch/riscv/mm/init.c
-@@ -550,10 +550,32 @@ void disable_pgtable_l4(void)
-  * then read SATP to see if the configuration was taken into account
-  * meaning sv48 is supported.
-  */
--asmlinkage __init void set_satp_mode(uintptr_t load_pa)
-+asmlinkage __init void set_satp_mode(uintptr_t load_pa, uintptr_t dtb_pa)
- {
- 	u64 identity_satp, hw_satp;
-+	int cpus_node;
- 
-+	/* 1/ Check if the user asked for sv39 explicitly in the device tree */
-+	cpus_node = fdt_path_offset((void *)dtb_pa, "/cpus");
-+	if (cpus_node >= 0) {
-+		int node;
-+
-+		fdt_for_each_subnode(node, (void *)dtb_pa, cpus_node) {
-+			const char *mmu_type = fdt_getprop((void *)dtb_pa, node,
-+							"mmu-type", NULL);
-+			if (!mmu_type)
-+				continue;
-+
-+			if (!strcmp(mmu_type, "riscv,sv39")) {
-+				disable_pgtable_l4();
-+				return;
-+			}
-+
-+			break;
-+		}
-+	}
-+
-+	/* 2/ Determine if the HW supports sv48: if not, fallback to sv39 */
- 	create_pgd_mapping(early_pg_dir, load_pa, (uintptr_t)early_pud,
- 			   PGDIR_SIZE, PAGE_TABLE);
- 	create_pud_mapping(early_pud, load_pa, (uintptr_t)early_pmd,
-@@ -611,7 +633,7 @@ asmlinkage void __init setup_vm(uintptr_t dtb_pa)
- #endif
- 
- #if defined(CONFIG_64BIT) && !defined(CONFIG_MAXPHYSMEM_2GB)
--	set_satp_mode(load_pa);
-+	set_satp_mode(load_pa, dtb_pa);
- #endif
- 
- 	kernel_virt_addr = KERNEL_VIRT_ADDR;
--- 
-2.20.1
-
+--
+Thanks,
+Yu-cheng
