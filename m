@@ -7,28 +7,28 @@ X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B63DBC433E9
-	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:55:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 67A5CC4332D
+	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:55:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 780C22333F
-	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:55:10 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 255582333D
+	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:55:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728073AbhAGLyp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 7 Jan 2021 06:54:45 -0500
-Received: from mail-40136.protonmail.ch ([185.70.40.136]:14170 "EHLO
-        mail-40136.protonmail.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728008AbhAGLyp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jan 2021 06:54:45 -0500
-Date:   Thu, 07 Jan 2021 11:53:55 +0000
+        id S1728026AbhAGLzI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 7 Jan 2021 06:55:08 -0500
+Received: from mail-02.mail-europe.com ([51.89.119.103]:47440 "EHLO
+        mail-02.mail-europe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726229AbhAGLzI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jan 2021 06:55:08 -0500
+Date:   Thu, 07 Jan 2021 11:53:39 +0000
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=pm.me; s=protonmail;
-        t=1610020441; bh=Yi9X+eUEsj/PoAs0Ktl/IbvqOd3Iq8nO46nm6Q1y7o8=;
+        t=1610020422; bh=Hhk9OJTluJ5KWBmdxz+W1q3+eakKWb3hNy44poTwuNA=;
         h=Date:To:From:Cc:Reply-To:Subject:In-Reply-To:References:From;
-        b=olch6uOdeXf81zieTiFd4h4w+2qI8kBFfpV4nb4jEmg59GwerED1uRcSnqoiEcKbA
-         iXvjaXQT+e30EtH1gsdlB7UaDFzaD9NHI3qiMe+49kIbnrh2H9dJsGF/EhIfGAvPiB
-         omBDZJ88L9owcLFIxIfOh87KHx4xxDMyGTjjapllxvzh2oDfjgy1hZd76e254FeH5y
-         YLw61PJDRn1uAE+zqNPjGkBvk7Dmi/gQYNpw4cLdBml/l2ND8WEVrkagb5T4SCIJAN
-         rYN7xCt3aNCOZhxqsi2b6MPUR2+V0nWPnLyDZJv8vEd9jrSH3SzvMkdBDf/iSE8WEn
-         G+VPjAMK7R/IQ==
+        b=fNwtMedXF25w4D6Gc1wLYSdha5TARfQofG7W6sH6yPib5LZRmgURbBVzk1GIMlfWk
+         RnP9ou4sSMskz1rH4uBe7POGLY1F32+MNcEp9InxtiU2CjIezDI3cz3TLTuGK0cam1
+         WyuK2Ws01tAPY76x3JayCG891EFgtEeClWTBQrqaBebr9aJMcsCwgpo8YRSZVa1Bx0
+         BCahPws6NjHgnggJMnLv/oALCPKcoL/CXZGmiMe7ukhY/TMW1+KxGc9O93ruQsuh1C
+         31Pi7pmPccs2tr0svhaT3alr/YCjFoU1RD8iuguGZKN7aJLbM5m8v2yv0RLCeTK4ZT
+         geiXsjq9EMiSA==
 To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>
 From:   Alexander Lobakin <alobakin@pm.me>
 Cc:     Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>,
@@ -47,10 +47,10 @@ Cc:     Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>,
         linux-arch@vger.kernel.org, stable@vger.kernel.org,
         clang-built-linux@googlegroups.com
 Reply-To: Alexander Lobakin <alobakin@pm.me>
-Subject: [PATCH v3 mips-next 3/7] MIPS: properly stop .eh_frame generation
-Message-ID: <20210107115329.281266-3-alobakin@pm.me>
-In-Reply-To: <20210107115329.281266-1-alobakin@pm.me>
-References: <20210107115120.281008-1-alobakin@pm.me> <20210107115329.281266-1-alobakin@pm.me>
+Subject: [PATCH v3 mips-next 1/7] MIPS: vmlinux.lds.S: add missing PAGE_ALIGNED_DATA() section
+Message-ID: <20210107115329.281266-1-alobakin@pm.me>
+In-Reply-To: <20210107115120.281008-1-alobakin@pm.me>
+References: <20210107115120.281008-1-alobakin@pm.me>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: quoted-printable
@@ -58,75 +58,63 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Commit 866b6a89c6d1 ("MIPS: Add DWARF unwinding to assembly") added
--fno-asynchronous-unwind-tables to KBUILD_CFLAGS to prevent compiler
-from emitting .eh_frame symbols.
-However, as MIPS heavily uses CFI, that's not enough. Use the
-approach taken for x86 (as it also uses CFI) and explicitly put CFI
-symbols into the .debug_frame section (except for VDSO).
-This allows us to drop .eh_frame from DISCARDS as it's no longer
-being generated.
+MIPS uses its own declaration of rwdata, and thus it should be kept
+in sync with the asm-generic one. Currently PAGE_ALIGNED_DATA() is
+missing from the linker script, which emits the following ld
+warnings:
 
-Fixes: 866b6a89c6d1 ("MIPS: Add DWARF unwinding to assembly")
-Suggested-by: Kees Cook <keescook@chromium.org>
+mips-alpine-linux-musl-ld: warning: orphan section
+`.data..page_aligned' from `arch/mips/kernel/vdso.o' being placed
+in section `.data..page_aligned'
+mips-alpine-linux-musl-ld: warning: orphan section
+`.data..page_aligned' from `arch/mips/vdso/vdso-image.o' being placed
+in section `.data..page_aligned'
+
+Add the necessary declaration, so the mentioned structures will be
+placed in vmlinux as intended:
+
+ffffffff80630580 D __end_once
+ffffffff80630580 D __start___dyndbg
+ffffffff80630580 D __start_once
+ffffffff80630580 D __stop___dyndbg
+ffffffff80634000 d mips_vdso_data
+ffffffff80638000 d vdso_data
+ffffffff80638580 D _gp
+ffffffff8063c000 T __init_begin
+ffffffff8063c000 D _edata
+ffffffff8063c000 T _sinittext
+
+->
+
+ffffffff805a4000 D __end_init_task
+ffffffff805a4000 D __nosave_begin
+ffffffff805a4000 D __nosave_end
+ffffffff805a4000 d mips_vdso_data
+ffffffff805a8000 d vdso_data
+ffffffff805ac000 D mmlist_lock
+ffffffff805ac080 D tasklist_lock
+
+Fixes: ebb5e78cc634 ("MIPS: Initial implementation of a VDSO")
+Cc: stable@vger.kernel.org # 4.4+
 Signed-off-by: Alexander Lobakin <alobakin@pm.me>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/mips/include/asm/asm.h    | 18 ++++++++++++++++++
- arch/mips/kernel/vmlinux.lds.S |  1 -
- 2 files changed, 18 insertions(+), 1 deletion(-)
+ arch/mips/kernel/vmlinux.lds.S | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/mips/include/asm/asm.h b/arch/mips/include/asm/asm.h
-index 3682d1a0bb80..908f6d6ae24b 100644
---- a/arch/mips/include/asm/asm.h
-+++ b/arch/mips/include/asm/asm.h
-@@ -20,10 +20,27 @@
- #include <asm/sgidefs.h>
- #include <asm/asm-eva.h>
-=20
-+#ifndef __VDSO__
-+/*
-+ * Emit CFI data in .debug_frame sections, not .eh_frame sections.
-+ * We don't do DWARF unwinding at runtime, so only the offline DWARF
-+ * information is useful to anyone. Note we should change this if we
-+ * ever decide to enable DWARF unwinding at runtime.
-+ */
-+#define CFI_SECTIONS=09.cfi_sections .debug_frame
-+#else
-+ /*
-+  * For the vDSO, emit both runtime unwind information and debug
-+  * symbols for the .dbg file.
-+  */
-+#define CFI_SECTIONS=09.cfi_sections .debug_frame, .eh_frame
-+#endif
-+
- /*
-  * LEAF - declare leaf routine
-  */
- #define LEAF(symbol)=09=09=09=09=09\
-+=09=09CFI_SECTIONS;=09=09=09=09\
- =09=09.globl=09symbol;=09=09=09=09\
- =09=09.align=092;=09=09=09=09\
- =09=09.type=09symbol, @function;=09=09\
-@@ -36,6 +53,7 @@ symbol:=09=09.frame=09sp, 0, ra;=09=09=09\
-  * NESTED - declare nested routine entry point
-  */
- #define NESTED(symbol, framesize, rpc)=09=09=09\
-+=09=09CFI_SECTIONS;=09=09=09=09\
- =09=09.globl=09symbol;=09=09=09=09\
- =09=09.align=092;=09=09=09=09\
- =09=09.type=09symbol, @function;=09=09\
 diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.=
 S
-index 16468957cba2..0f4e46ea4458 100644
+index 5e97e9d02f98..83e27a181206 100644
 --- a/arch/mips/kernel/vmlinux.lds.S
 +++ b/arch/mips/kernel/vmlinux.lds.S
-@@ -225,6 +225,5 @@ SECTIONS
- =09=09*(.options)
- =09=09*(.pdr)
- =09=09*(.reginfo)
--=09=09*(.eh_frame)
- =09}
- }
+@@ -90,6 +90,7 @@ SECTIONS
+=20
+ =09=09INIT_TASK_DATA(THREAD_SIZE)
+ =09=09NOSAVE_DATA
++=09=09PAGE_ALIGNED_DATA(PAGE_SIZE)
+ =09=09CACHELINE_ALIGNED_DATA(1 << CONFIG_MIPS_L1_CACHE_SHIFT)
+ =09=09READ_MOSTLY_DATA(1 << CONFIG_MIPS_L1_CACHE_SHIFT)
+ =09=09DATA_DATA
 --=20
 2.30.0
 
