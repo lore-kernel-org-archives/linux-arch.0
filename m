@@ -7,28 +7,28 @@ X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8F29CC43332
+	by smtp.lore.kernel.org (Postfix) with ESMTP id ECB74C43217
 	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:55:42 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 61E4723341
+	by mail.kernel.org (Postfix) with ESMTP id C582E2333F
 	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:55:42 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728149AbhAGLz1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 7 Jan 2021 06:55:27 -0500
-Received: from mail-40136.protonmail.ch ([185.70.40.136]:39869 "EHLO
-        mail-40136.protonmail.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728130AbhAGLz1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jan 2021 06:55:27 -0500
-Date:   Thu, 07 Jan 2021 11:54:18 +0000
+        id S1726514AbhAGLzc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 7 Jan 2021 06:55:32 -0500
+Received: from mail-02.mail-europe.com ([51.89.119.103]:47454 "EHLO
+        mail-02.mail-europe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728049AbhAGLzb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jan 2021 06:55:31 -0500
+Date:   Thu, 07 Jan 2021 11:54:01 +0000
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=pm.me; s=protonmail;
-        t=1610020462; bh=tAhGyp2geX19Adc0pmsweHYMg6GqMIq+Zk7djwr/y7M=;
+        t=1610020448; bh=1iHiRQzHqAO/hOdIJm7931oVSjvi8g99iSxotTA/NNE=;
         h=Date:To:From:Cc:Reply-To:Subject:In-Reply-To:References:From;
-        b=amg/7JOJnqFWWVQp/gxCX6tnUeBa8j16Rk1uTsVynSGorkosoyeIqnL7nLDtgPxp2
-         T1Q9+3BAYT41ifEM/+EtsI4ntgGbrbFZH7vigGO+RpZ99dnjPrSshSJzDBWBOfs5La
-         /ZoLyuHNVd9hJ+mUXXQsIhoOooqoIerVtfG6AMoRs29Aa5AxieIiBFaSRdhcAfJCjJ
-         ENKwogm6sCOq//rikZZipdJlQ/8cTW6/yXGuJRdOiM3VleUB1r8W0e7UmgFWOxgWXw
-         zJOFS8HZze4RvM29KSSxqYIraXrZvN/AMTFDF1+hm0hF7ZuFMxc0YGrYWJ5e0UDsA3
-         4FH+hCykb4pzg==
+        b=h9iDE6kYHoQBexkMbRaeK54YzGi6+A5II9aLhoDuUgm9dAgTgIfDEJGYmr1UC2yIZ
+         JREQr544tOE1P32+AuHWzTO5MRYqHkYBz1c9dE0WDWNm608M5Awd90cTG3Cnb/IxGo
+         gYlMIVh2tb3kQMwghxTHGFtxhzqXHh7/vuRXYCTaet0z8uvPzSkJTJBJPTQIuD8DTF
+         e7nnotl5SZ+TKjpCirUVXeE7esPQt874qFPiteLNySMNysyOtATkdySQ4yXZFH4spw
+         CCXyRY/GZIKfSymZrdNz9h0ndUR9p+LZSS9HbBeCmgJ32pPsEUSj8DS50Pm7Odo4vL
+         7EkzefXyUDKtg==
 To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>
 From:   Alexander Lobakin <alobakin@pm.me>
 Cc:     Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>,
@@ -47,8 +47,8 @@ Cc:     Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>,
         linux-arch@vger.kernel.org, stable@vger.kernel.org,
         clang-built-linux@googlegroups.com
 Reply-To: Alexander Lobakin <alobakin@pm.me>
-Subject: [PATCH v3 mips-next 6/7] vmlinux.lds.h: catch compound literals into data and BSS
-Message-ID: <20210107115329.281266-6-alobakin@pm.me>
+Subject: [PATCH v3 mips-next 4/7] MIPS: vmlinux.lds.S: catch bad .rel.dyn at link time
+Message-ID: <20210107115329.281266-4-alobakin@pm.me>
 In-Reply-To: <20210107115329.281266-1-alobakin@pm.me>
 References: <20210107115120.281008-1-alobakin@pm.me> <20210107115329.281266-1-alobakin@pm.me>
 MIME-Version: 1.0
@@ -58,57 +58,43 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When building kernel with LD_DEAD_CODE_DATA_ELIMINATION, LLVM stack
-generates separate sections for compound literals, just like in case
-with enabled LTO [0]:
+Catch any symbols placed in .rel.dyn and check for these sections
+to be zero-sized at link time.
+Eliminates following ld warning:
 
-ld.lld: warning: drivers/built-in.a(mtd/nand/spi/gigadevice.o):
-(.data..compoundliteral.14) is being placed in
-'.data..compoundliteral.14'
-ld.lld: warning: drivers/built-in.a(mtd/nand/spi/gigadevice.o):
-(.data..compoundliteral.15) is being placed in
-'.data..compoundliteral.15'
-ld.lld: warning: drivers/built-in.a(mtd/nand/spi/gigadevice.o):
-(.data..compoundliteral.16) is being placed in
-'.data..compoundliteral.16'
-ld.lld: warning: drivers/built-in.a(mtd/nand/spi/gigadevice.o):
-(.data..compoundliteral.17) is being placed in
-'.data..compoundliteral.17'
+mips-alpine-linux-musl-ld: warning: orphan section `.rel.dyn'
+from `init/main.o' being placed in section `.rel.dyn'
 
-[...]
+Adopted from x86/kernel/vmlinux.lds.S.
 
-Handle this by adding the related sections to generic definitions
-as suggested by Sami [0].
-
-[0] https://lore.kernel.org/lkml/20201211184633.3213045-3-samitolvanen@goog=
-le.com
-
-Suggested-by: Kees Cook <keescook@chromium.org>
+Suggested-by: Fangrui Song <maskray@google.com>
 Signed-off-by: Alexander Lobakin <alobakin@pm.me>
 ---
- include/asm-generic/vmlinux.lds.h | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/mips/kernel/vmlinux.lds.S | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinu=
-x.lds.h
-index b2b3d81b1535..5f2f5b1db84f 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -95,10 +95,10 @@
-  */
- #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
- #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
--#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX*
-+#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..L* .data..compoundliter=
-al*
- #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
--#define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]*
--#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
-+#define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]* .rodata..L*
-+#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral*
- #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
- #else
- #define TEXT_MAIN .text
+diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.=
+S
+index 0f4e46ea4458..0f736d60d43e 100644
+--- a/arch/mips/kernel/vmlinux.lds.S
++++ b/arch/mips/kernel/vmlinux.lds.S
+@@ -226,4 +226,15 @@ SECTIONS
+ =09=09*(.pdr)
+ =09=09*(.reginfo)
+ =09}
++
++=09/*
++=09 * Sections that should stay zero sized, which is safer to
++=09 * explicitly check instead of blindly discarding.
++=09 */
++
++=09.rel.dyn : {
++=09=09*(.rel.*)
++=09=09*(.rel_*)
++=09}
++=09ASSERT(SIZEOF(.rel.dyn) =3D=3D 0, "Unexpected run-time relocations (.re=
+l) detected!")
+ }
 --=20
 2.30.0
 
