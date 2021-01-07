@@ -2,36 +2,36 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 57058C433DB
-	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:52:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2680EC4332B
+	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:54:44 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 211F623340
-	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:52:48 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id CFCC72333D
+	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:54:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726338AbhAGLwc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 7 Jan 2021 06:52:32 -0500
-Received: from mail-40131.protonmail.ch ([185.70.40.131]:40163 "EHLO
-        mail-40131.protonmail.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725960AbhAGLwc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jan 2021 06:52:32 -0500
-Date:   Thu, 07 Jan 2021 11:51:44 +0000
+        id S1726437AbhAGLyh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 7 Jan 2021 06:54:37 -0500
+Received: from mail-40136.protonmail.ch ([185.70.40.136]:26319 "EHLO
+        mail-40136.protonmail.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726073AbhAGLyh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jan 2021 06:54:37 -0500
+Date:   Thu, 07 Jan 2021 11:53:47 +0000
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=pm.me; s=protonmail;
-        t=1610020309; bh=DrNPDCI5aGCF7b5CZJNTzFjDzr4fV3uFR8hbRikrekQ=;
-        h=Date:To:From:Cc:Reply-To:Subject:From;
-        b=JhDu74CyZxiVoZN4SNG2Dkh/eCyKWE5abJFrIB64wNs9O3PTPr/nkrNkFhaTYSz7Q
-         XmIvNsASTb/ZXQRL619zcgYqvc4/EWHculnh8KvIpUQ8zXzeplsUIOYM5RKjI8Duwd
-         ZdqU/SL7kBa298cfB9stEHEqihsfv/TpB7AffQyEDnzHT9MZURxf9XbMggbyxVWkWR
-         thxNXMXZu1k1hU0q9CTeBfInpU9799VtsxvU77sGgYLTSEv1b7TgR1WsaEKRS6R+yG
-         ehOE5mz0aGApWhSAjHEjzQMbq2mp8IA970qAi27WPQp0tsXRRV4iDb37UP5gv0UKS9
-         R3EMzrTs7FDtg==
+        t=1610020434; bh=012vDHOxvqVPo52Yrh8ZCe0PscXXJoRaQmC+Qol94bs=;
+        h=Date:To:From:Cc:Reply-To:Subject:In-Reply-To:References:From;
+        b=i5uzE6dEay+n9oB4Ha9x/Bs3DGWcLR4jx8PQ0SGSMzWu2ZWPwxJVMdBGFV1E8aK6Q
+         o+Pfj5c9RnGaj6rLxtfZOC1g1tY4txEHA6igfXQSmA7AbTuy2/Fy9loJDpkob/5/7m
+         208L/Ww9Mo8ERAqXwyUFibi4QB8kA+vu30v93S832oFg4vn4TvNjbEvKDmWiX2HV/B
+         vcUVVoYlU69Pq1tVH/xSTAPq83rt0+2V6lmcW0QFjJFhDqd3Bww+m87Gp8yzQsuErx
+         wj8mrqgQtKiSSW7ffLZYw+u77+w3Bmys9hpBU7Wh3HtwjGiPQKPI6N9q/tNZIIEVq3
+         O9IQ+NkMJa7Jg==
 To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>
 From:   Alexander Lobakin <alobakin@pm.me>
-Cc:     Arnd Bergmann <arnd@arndb.de>,
+Cc:     Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>,
         Nathan Chancellor <natechancellor@gmail.com>,
         Nick Desaulniers <ndesaulniers@google.com>,
         Fangrui Song <maskray@google.com>,
@@ -47,8 +47,10 @@ Cc:     Arnd Bergmann <arnd@arndb.de>,
         linux-arch@vger.kernel.org, stable@vger.kernel.org,
         clang-built-linux@googlegroups.com
 Reply-To: Alexander Lobakin <alobakin@pm.me>
-Subject: [PATCH v3 mips-next 0/7] MIPS: vmlinux.lds.S sections fixes & cleanup
-Message-ID: <20210107115120.281008-1-alobakin@pm.me>
+Subject: [PATCH v3 mips-next 2/7] MIPS: vmlinux.lds.S: add ".gnu.attributes" to DISCARDS
+Message-ID: <20210107115329.281266-2-alobakin@pm.me>
+In-Reply-To: <20210107115329.281266-1-alobakin@pm.me>
+References: <20210107115120.281008-1-alobakin@pm.me> <20210107115329.281266-1-alobakin@pm.me>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: quoted-printable
@@ -56,52 +58,34 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This series hunts the problems discovered after manual enabling of
-ARCH_WANT_LD_ORPHAN_WARN. Notably:
- - adds the missing PAGE_ALIGNED_DATA() section affecting VDSO
-   placement (marked for stable);
- - properly stops .eh_frame section generation.
+Discard GNU attributes (MIPS FP type, GNU Hash etc.) at link time
+as kernel doesn't use it at all.
+Solves a dozen of the following ld warnings (one per every file):
 
-Compile and runtime tested on MIPS32R2 CPS board with no issues
-using two different toolkits:
- - Binutils 2.35.1, GCC 10.2.0;
- - LLVM stack 11.0.0.
+mips-alpine-linux-musl-ld: warning: orphan section `.gnu.attributes'
+from `arch/mips/kernel/head.o' being placed in section
+`.gnu.attributes'
+mips-alpine-linux-musl-ld: warning: orphan section `.gnu.attributes'
+from `init/main.o' being placed in section `.gnu.attributes'
 
-Since v2 [1]:
- - stop discarding .eh_frame and just prevent it from generating
-   (Kees);
- - drop redundant sections assertions (Fangrui);
- - place GOT table in .text instead of asserting as it's not empty
-   when building with LLVM (Nathan);
- - catch compound literals in generic definitions when building with
-   LD_DEAD_CODE_DATA_ELIMINATION (Kees);
- - collect two Reviewed-bys (Kees).
+Signed-off-by: Alexander Lobakin <alobakin@pm.me>
+---
+ arch/mips/kernel/vmlinux.lds.S | 1 +
+ 1 file changed, 1 insertion(+)
 
-Since v1 [0]:
- - catch .got entries too as LLD may produce it (Nathan);
- - check for unwanted sections to be zero-sized instead of
-   discarding (Fangrui).
-
-[0] https://lore.kernel.org/linux-mips/20210104121729.46981-1-alobakin@pm.m=
-e
-[1] https://lore.kernel.org/linux-mips/20210106200713.31840-1-alobakin@pm.m=
-e
-
-Alexander Lobakin (7):
-  MIPS: vmlinux.lds.S: add missing PAGE_ALIGNED_DATA() section
-  MIPS: vmlinux.lds.S: add ".gnu.attributes" to DISCARDS
-  MIPS: properly stop .eh_frame generation
-  MIPS: vmlinux.lds.S: catch bad .rel.dyn at link time
-  MIPS: vmlinux.lds.S: explicitly declare .got table
-  vmlinux.lds.h: catch compound literals into data and BSS
-  MIPS: select ARCH_WANT_LD_ORPHAN_WARN
-
- arch/mips/Kconfig                 |  1 +
- arch/mips/include/asm/asm.h       | 18 ++++++++++++++++++
- arch/mips/kernel/vmlinux.lds.S    | 15 ++++++++++++++-
- include/asm-generic/vmlinux.lds.h |  6 +++---
- 4 files changed, 36 insertions(+), 4 deletions(-)
-
+diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.=
+S
+index 83e27a181206..16468957cba2 100644
+--- a/arch/mips/kernel/vmlinux.lds.S
++++ b/arch/mips/kernel/vmlinux.lds.S
+@@ -221,6 +221,7 @@ SECTIONS
+ =09=09/* ABI crap starts here */
+ =09=09*(.MIPS.abiflags)
+ =09=09*(.MIPS.options)
++=09=09*(.gnu.attributes)
+ =09=09*(.options)
+ =09=09*(.pdr)
+ =09=09*(.reginfo)
 --=20
 2.30.0
 
