@@ -2,43 +2,43 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-10.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id ECB74C43217
-	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:55:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D32E0C4332E
+	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 12:31:13 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C582E2333F
-	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 11:55:42 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AEC3723358
+	for <linux-arch@archiver.kernel.org>; Thu,  7 Jan 2021 12:31:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726514AbhAGLzc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 7 Jan 2021 06:55:32 -0500
-Received: from mail-02.mail-europe.com ([51.89.119.103]:47454 "EHLO
-        mail-02.mail-europe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728049AbhAGLzb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jan 2021 06:55:31 -0500
-Date:   Thu, 07 Jan 2021 11:54:01 +0000
+        id S1728201AbhAGMaz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 7 Jan 2021 07:30:55 -0500
+Received: from mail-40134.protonmail.ch ([185.70.40.134]:44469 "EHLO
+        mail-40134.protonmail.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728188AbhAGMaz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jan 2021 07:30:55 -0500
+Date:   Thu, 07 Jan 2021 12:30:08 +0000
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=pm.me; s=protonmail;
-        t=1610020448; bh=1iHiRQzHqAO/hOdIJm7931oVSjvi8g99iSxotTA/NNE=;
+        t=1610022611; bh=e3bnSwSnCE4VZ3KFWoriT36YdZpDmKtvitn1N44EPZE=;
         h=Date:To:From:Cc:Reply-To:Subject:In-Reply-To:References:From;
-        b=h9iDE6kYHoQBexkMbRaeK54YzGi6+A5II9aLhoDuUgm9dAgTgIfDEJGYmr1UC2yIZ
-         JREQr544tOE1P32+AuHWzTO5MRYqHkYBz1c9dE0WDWNm608M5Awd90cTG3Cnb/IxGo
-         gYlMIVh2tb3kQMwghxTHGFtxhzqXHh7/vuRXYCTaet0z8uvPzSkJTJBJPTQIuD8DTF
-         e7nnotl5SZ+TKjpCirUVXeE7esPQt874qFPiteLNySMNysyOtATkdySQ4yXZFH4spw
-         CCXyRY/GZIKfSymZrdNz9h0ndUR9p+LZSS9HbBeCmgJ32pPsEUSj8DS50Pm7Odo4vL
-         7EkzefXyUDKtg==
+        b=XCLeYds6RzSh90AdJ1CaF4KFV3CHWPyxMwMhTa83qQc7MJ+JXPWLc+/UvPMcxndVL
+         UiIFs1v1aKyG7f+cHiMq0XOWCY5IprIKS53oJ8y2+6AGa6QfX0PBurvT/8qz+F9HHz
+         bLFgEVtQ8WvHyC+JvYTUjZwDYrrr5WIa6smG/oVCwR3QsHqwrxRa26XWHEqYUStDnV
+         vaImFwahpngARKQ2Tzzgva60b/NBSfy4khM8l8epRK6+VyShEk6i/Okcwx/sn8Ochk
+         26aHQbFY5oF817lW77n3OgIvBrlf5MlXKDJd3khCX9vwmc5yS697cb+qX+xCRtr3Vs
+         RQaI2SRl9GiOQ==
 To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>
 From:   Alexander Lobakin <alobakin@pm.me>
-Cc:     Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>,
+Cc:     Alexander Lobakin <alobakin@pm.me>, Arnd Bergmann <arnd@arndb.de>,
+        Kees Cook <keescook@chromium.org>,
         Nathan Chancellor <natechancellor@gmail.com>,
         Nick Desaulniers <ndesaulniers@google.com>,
         Fangrui Song <maskray@google.com>,
         Huacai Chen <chenhuacai@kernel.org>,
         Pei Huang <huangpei@loongson.cn>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Alexander Lobakin <alobakin@pm.me>,
         Sami Tolvanen <samitolvanen@google.com>,
         Ingo Molnar <mingo@kernel.org>,
         Ralf Baechle <ralf@linux-mips.org>,
@@ -47,10 +47,10 @@ Cc:     Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>,
         linux-arch@vger.kernel.org, stable@vger.kernel.org,
         clang-built-linux@googlegroups.com
 Reply-To: Alexander Lobakin <alobakin@pm.me>
-Subject: [PATCH v3 mips-next 4/7] MIPS: vmlinux.lds.S: catch bad .rel.dyn at link time
-Message-ID: <20210107115329.281266-4-alobakin@pm.me>
-In-Reply-To: <20210107115329.281266-1-alobakin@pm.me>
-References: <20210107115120.281008-1-alobakin@pm.me> <20210107115329.281266-1-alobakin@pm.me>
+Subject: Re: [PATCH v3 mips-next 0/7] MIPS: vmlinux.lds.S sections fixes & cleanup
+Message-ID: <20210107122944.353565-1-alobakin@pm.me>
+In-Reply-To: <20210107115120.281008-1-alobakin@pm.me>
+References: <20210107115120.281008-1-alobakin@pm.me>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: quoted-printable
@@ -58,44 +58,58 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Catch any symbols placed in .rel.dyn and check for these sections
-to be zero-sized at link time.
-Eliminates following ld warning:
+> This series hunts the problems discovered after manual enabling of
+> ARCH_WANT_LD_ORPHAN_WARN. Notably:
+>  - adds the missing PAGE_ALIGNED_DATA() section affecting VDSO
+>    placement (marked for stable);
+>  - properly stops .eh_frame section generation.
+>=20
+> Compile and runtime tested on MIPS32R2 CPS board with no issues
+> using two different toolkits:
+>  - Binutils 2.35.1, GCC 10.2.0;
+>  - LLVM stack 11.0.0.
+>=20
+> Since v2 [1]:
+>  - stop discarding .eh_frame and just prevent it from generating
+>    (Kees);
+>  - drop redundant sections assertions (Fangrui);
+>  - place GOT table in .text instead of asserting as it's not empty
+>    when building with LLVM (Nathan);
+>  - catch compound literals in generic definitions when building with
+>    LD_DEAD_CODE_DATA_ELIMINATION (Kees);
+>  - collect two Reviewed-bys (Kees).
+>=20
+> Since v1 [0]:
+>  - catch .got entries too as LLD may produce it (Nathan);
+>  - check for unwanted sections to be zero-sized instead of
+>    discarding (Fangrui).
+>=20
+> [0] https://lore.kernel.org/linux-mips/20210104121729.46981-1-alobakin@pm=
+.me
+> [1] https://lore.kernel.org/linux-mips/20210106200713.31840-1-alobakin@pm=
+.me
+>=20
+> Alexander Lobakin (7):
+>   MIPS: vmlinux.lds.S: add missing PAGE_ALIGNED_DATA() section
+>   MIPS: vmlinux.lds.S: add ".gnu.attributes" to DISCARDS
+>   MIPS: properly stop .eh_frame generation
 
-mips-alpine-linux-musl-ld: warning: orphan section `.rel.dyn'
-from `init/main.o' being placed in section `.rel.dyn'
+Well, GNU fails to build VDSO with this patch... Sorry, sending
+v4 now.
 
-Adopted from x86/kernel/vmlinux.lds.S.
+>   MIPS: vmlinux.lds.S: catch bad .rel.dyn at link time
+>   MIPS: vmlinux.lds.S: explicitly declare .got table
+>   vmlinux.lds.h: catch compound literals into data and BSS
+>   MIPS: select ARCH_WANT_LD_ORPHAN_WARN
+>=20
+>  arch/mips/Kconfig                 |  1 +
+>  arch/mips/include/asm/asm.h       | 18 ++++++++++++++++++
+>  arch/mips/kernel/vmlinux.lds.S    | 15 ++++++++++++++-
+>  include/asm-generic/vmlinux.lds.h |  6 +++---
+>  4 files changed, 36 insertions(+), 4 deletions(-)
+>=20
+> --
+> 2.30.0
 
-Suggested-by: Fangrui Song <maskray@google.com>
-Signed-off-by: Alexander Lobakin <alobakin@pm.me>
----
- arch/mips/kernel/vmlinux.lds.S | 11 +++++++++++
- 1 file changed, 11 insertions(+)
-
-diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.=
-S
-index 0f4e46ea4458..0f736d60d43e 100644
---- a/arch/mips/kernel/vmlinux.lds.S
-+++ b/arch/mips/kernel/vmlinux.lds.S
-@@ -226,4 +226,15 @@ SECTIONS
- =09=09*(.pdr)
- =09=09*(.reginfo)
- =09}
-+
-+=09/*
-+=09 * Sections that should stay zero sized, which is safer to
-+=09 * explicitly check instead of blindly discarding.
-+=09 */
-+
-+=09.rel.dyn : {
-+=09=09*(.rel.*)
-+=09=09*(.rel_*)
-+=09}
-+=09ASSERT(SIZEOF(.rel.dyn) =3D=3D 0, "Unexpected run-time relocations (.re=
-l) detected!")
- }
---=20
-2.30.0
-
+Al
 
