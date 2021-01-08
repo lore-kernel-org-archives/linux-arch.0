@@ -8,55 +8,55 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E8952C433E0
-	for <linux-arch@archiver.kernel.org>; Fri,  8 Jan 2021 21:18:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 09920C433E9
+	for <linux-arch@archiver.kernel.org>; Fri,  8 Jan 2021 21:20:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id BC76C23A9D
-	for <linux-arch@archiver.kernel.org>; Fri,  8 Jan 2021 21:18:27 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D59D123A80
+	for <linux-arch@archiver.kernel.org>; Fri,  8 Jan 2021 21:20:05 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729481AbhAHVSM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 8 Jan 2021 16:18:12 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33960 "EHLO
+        id S1729463AbhAHVUD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 8 Jan 2021 16:20:03 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34246 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729452AbhAHVSM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jan 2021 16:18:12 -0500
+        with ESMTP id S1728940AbhAHVUD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jan 2021 16:20:03 -0500
 Received: from mail-qk1-x72e.google.com (mail-qk1-x72e.google.com [IPv6:2607:f8b0:4864:20::72e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9E4BDC061786;
-        Fri,  8 Jan 2021 13:17:31 -0800 (PST)
-Received: by mail-qk1-x72e.google.com with SMTP id 186so9807720qkj.3;
-        Fri, 08 Jan 2021 13:17:31 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B2407C061793;
+        Fri,  8 Jan 2021 13:19:22 -0800 (PST)
+Received: by mail-qk1-x72e.google.com with SMTP id f26so9827319qka.0;
+        Fri, 08 Jan 2021 13:19:22 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=date:from:to:cc:subject:message-id:references:mime-version
          :content-disposition:in-reply-to;
-        bh=CwnmURqbXWi83+YJ2u0BfQ7YOsLloUGg9mtui9lPXE4=;
-        b=NmZdsAfKHe+255PDndngVtKAu8nMd2MXHttlqF5HxQ45ZAGa/mNYrYpfHamJYuZgXl
-         qyI2TRugzunZHHus/iRK/ZWD7Obx5ZiOiuf8V2ea76rwDLH+BWXZIUVzHXbhkVZclZzG
-         S8u9q8PO10jcQUZkIGqKXDMNaggK/xl5lrkYhT2NYP6F9lGjhUORxa1QoLE//En6pd/4
-         S/FX0ZNzchl27Fzu/llHmIVhh8sNdMhYnrGtgy26ayrTz42NFcXsEMMwOHTmF4uZFyLs
-         uV15EYT6Wp5d8oSinBhwOHMg+2zihEnwQwR2z+ETl4jLiIsifubLzZPUwv375BE/BEPm
-         vYmA==
+        bh=hnXLl4sHbKEop6wOqXRNzmI1tuKMV2HMaSYRF/O+288=;
+        b=unfNElP7xA2Sx2i4/PYLes/KURdHDgTBaRSIhvDyW1dATgDtcLx8X7bdS3KdW8COcH
+         hq46bxmUjaPgcv5cHp0eTddMSVvu9fj1f772wnAxJwi9gGEhY6aXcHu/rcx/DKMdp4Bt
+         USaMgeXqktWYH8f78nEQv0dP4ftyWtZ1eyVIsZveFCwBwOw/DhqO/Xc8przOBA5FDTjm
+         XehhfkW/vSUFay0ft5eiEvAOMB7MJBXTV99GFXbu7r+4diYhqjJbT6f4bZkQpqf5ifvc
+         UE7pZArnW+Sl+dBeWuqLc6mYCfvzmRCZAoGu4kCdSW4bdq5BZRNdAKvsOwweEPzLdDKw
+         aBlg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:from:to:cc:subject:message-id:references
          :mime-version:content-disposition:in-reply-to;
-        bh=CwnmURqbXWi83+YJ2u0BfQ7YOsLloUGg9mtui9lPXE4=;
-        b=a1sEj93XrNU5sIMVf1BCsaC00iV6Z9hjnOwsGptgjsQxI110TCE78LFuGpfNVuQJhF
-         qhe6f/Ma54hknULt88MzZcEtPFb2Jl+y8ynqVMV76keZQhnGcQM9SS6VNL4DX6nrS8aN
-         J1JwtIRybEIjU2Y2gXtZ4YTiQ8/Fgnp7eky79gmmL+ZafAZcDWynd2PKB9hgaCfbQ9MA
-         5jVXy+ESFyCtSru87mWaOfQCMUqbFSaB4Ppkc7AJb7RTzHLVgLnBi1NbVHK8mKI0lXFe
-         0o0DMBK2iLEuBr0JILD8UttUAtM5ccywCOmLyslkYm02VnrdseKeYpMpfLwG5ZvKe9SN
-         klfg==
-X-Gm-Message-State: AOAM531Um/AUMUxP33Ofcl0vf2T4BhYwdZBlkvLzgG94PgiPxlLrxzbX
-        O49iv7c90NbkRM6XdSBHdGc=
-X-Google-Smtp-Source: ABdhPJwYeJUt6gB0gAwhAnxzXp2NRRU8FBnM8XYYTz56YtbWM7wJOLi/BpXWdEJ/8lynUZTreKO2Eg==
-X-Received: by 2002:a37:c442:: with SMTP id h2mr5841601qkm.283.1610140650847;
-        Fri, 08 Jan 2021 13:17:30 -0800 (PST)
+        bh=hnXLl4sHbKEop6wOqXRNzmI1tuKMV2HMaSYRF/O+288=;
+        b=gdv2gPfPejbrZgovXh2iMfzTXDumJTsZpIZrYOJvFPF/OwPMj/pjWcAFJl+lxgLNO4
+         biy+HQSdtmxksit3Gl/KpTgH1YwGj2flxkr5vRyAzI/M1kDnaFpFE34uL4FUIUhwzJ6i
+         JaEcc05UYccKNIgfSlGwwe0JLoHHt3UjPwKxhdazbeGZ2FhRsb/7pdT8Lf5Ol8GoADsR
+         E5mohBIDwb/dniXadVKnubo4H7BCz6GTxwWht7Fq8a9be/Ztml2BQEBgReBmnu4Q9sZK
+         /YwACuUi+GiEH++4M2vmjHtxUFoyl+Fpttpyn2KBWrDczO8jChepfr9kHr+Yauj7K3bO
+         KI/g==
+X-Gm-Message-State: AOAM530dX5nyn4xNiyVAEel9Gb9jRgeK8IL8cWzET8ajmPQ8RB6CFDQx
+        GHOhw5i2Otzq/1w5mNoYJ5E=
+X-Google-Smtp-Source: ABdhPJxdd6u4Oceg1KPjIbdklnamT9CZ5Zdtmx32wCgErkWYrB9pYGhZFRq1edyAuj4fGTauhEeq0Q==
+X-Received: by 2002:a05:620a:ec5:: with SMTP id x5mr5797597qkm.143.1610140761875;
+        Fri, 08 Jan 2021 13:19:21 -0800 (PST)
 Received: from ubuntu-m3-large-x86 ([2604:1380:45f1:1d00::1])
-        by smtp.gmail.com with ESMTPSA id a9sm5412026qkk.39.2021.01.08.13.17.29
+        by smtp.gmail.com with ESMTPSA id p128sm5732545qkb.101.2021.01.08.13.19.20
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 08 Jan 2021 13:17:30 -0800 (PST)
-Date:   Fri, 8 Jan 2021 14:17:28 -0700
+        Fri, 08 Jan 2021 13:19:21 -0800 (PST)
+Date:   Fri, 8 Jan 2021 14:19:19 -0700
 From:   Nathan Chancellor <natechancellor@gmail.com>
 To:     Alexander Lobakin <alobakin@pm.me>
 Cc:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
@@ -74,50 +74,45 @@ Cc:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
         linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-arch@vger.kernel.org, stable@vger.kernel.org,
         clang-built-linux@googlegroups.com
-Subject: Re: [PATCH v4 mips-next 5/7] MIPS: vmlinux.lds.S: explicitly declare
- .got table
-Message-ID: <20210108211728.GE2547542@ubuntu-m3-large-x86>
+Subject: Re: [PATCH v4 mips-next 7/7] MIPS: select ARCH_WANT_LD_ORPHAN_WARN
+Message-ID: <20210108211919.GG2547542@ubuntu-m3-large-x86>
 References: <20210107123331.354075-1-alobakin@pm.me>
  <20210107132010.463129-1-alobakin@pm.me>
- <20210107132010.463129-2-alobakin@pm.me>
+ <20210107132010.463129-4-alobakin@pm.me>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20210107132010.463129-2-alobakin@pm.me>
+In-Reply-To: <20210107132010.463129-4-alobakin@pm.me>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Jan 07, 2021 at 01:20:49PM +0000, Alexander Lobakin wrote:
-> LLVM stack generates GOT table when building the kernel:
+On Thu, Jan 07, 2021 at 01:21:02PM +0000, Alexander Lobakin wrote:
+> Now, after that all the sections are explicitly described and
+> declared in vmlinux.lds.S, we can enable ld orphan warnings to
+> prevent from missing any new sections in future.
 > 
-> ld.lld: warning: <internal>:(.got) is being placed in '.got'
-> 
-> According to the debug assertions, it's not zero-sized and thus
-> can't be handled the same way as .rel.dyn (like it's done for x86).
-> Use the ARM/ARM64 path here and place it at the end of .text section.
-> 
-> Reported-by: Nathan Chancellor <natechancellor@gmail.com>
 > Signed-off-by: Alexander Lobakin <alobakin@pm.me>
+> Reviewed-by: Kees Cook <keescook@chromium.org>
 
 Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
 
 > ---
->  arch/mips/kernel/vmlinux.lds.S | 1 +
+>  arch/mips/Kconfig | 1 +
 >  1 file changed, 1 insertion(+)
 > 
-> diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.S
-> index 0f736d60d43e..4709959f6985 100644
-> --- a/arch/mips/kernel/vmlinux.lds.S
-> +++ b/arch/mips/kernel/vmlinux.lds.S
-> @@ -69,6 +69,7 @@ SECTIONS
->  		*(.text.*)
->  		*(.fixup)
->  		*(.gnu.warning)
-> +		*(.got)
->  	} :text = 0
->  	_etext = .;	/* End of text section */
->  
+> diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+> index d68df1febd25..d3e64cc0932b 100644
+> --- a/arch/mips/Kconfig
+> +++ b/arch/mips/Kconfig
+> @@ -18,6 +18,7 @@ config MIPS
+>  	select ARCH_USE_QUEUED_SPINLOCKS
+>  	select ARCH_WANT_DEFAULT_TOPDOWN_MMAP_LAYOUT if MMU
+>  	select ARCH_WANT_IPC_PARSE_VERSION
+> +	select ARCH_WANT_LD_ORPHAN_WARN
+>  	select BUILDTIME_TABLE_SORT
+>  	select CLONE_BACKWARDS
+>  	select CPU_NO_EFFICIENT_FFS if (TARGET_ISA_REV < 1)
 > -- 
 > 2.30.0
 > 
