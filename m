@@ -7,28 +7,28 @@ X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 448A6C4332D
-	for <linux-arch@archiver.kernel.org>; Sun, 10 Jan 2021 11:58:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 81366C433E0
+	for <linux-arch@archiver.kernel.org>; Sun, 10 Jan 2021 11:58:14 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 0A582238E5
+	by mail.kernel.org (Postfix) with ESMTP id 5F822238E5
 	for <linux-arch@archiver.kernel.org>; Sun, 10 Jan 2021 11:58:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726826AbhAJL5u (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 10 Jan 2021 06:57:50 -0500
-Received: from mail-40134.protonmail.ch ([185.70.40.134]:24696 "EHLO
-        mail-40134.protonmail.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726608AbhAJL5i (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Jan 2021 06:57:38 -0500
-Date:   Sun, 10 Jan 2021 11:56:41 +0000
+        id S1726398AbhAJL5z (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 10 Jan 2021 06:57:55 -0500
+Received: from mail-40131.protonmail.ch ([185.70.40.131]:12094 "EHLO
+        mail-40131.protonmail.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726341AbhAJL5z (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Jan 2021 06:57:55 -0500
+Date:   Sun, 10 Jan 2021 11:57:01 +0000
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=pm.me; s=protonmail;
-        t=1610279803; bh=RlF1lh7iHyBsNtm+h3Fc1S3Q2TDvtrRsAKToRMl4zRY=;
+        t=1610279826; bh=9X9TtaxhK4MsjM77KJSI8oMJqQq5vrXLNYznXkmw+KE=;
         h=Date:To:From:Cc:Reply-To:Subject:In-Reply-To:References:From;
-        b=YhwP9l3YFs/Snyz4zF4eru6TnU1fWkw+3mw05LcJzw+A3v/4q+HzkCZmy+g1nV7lm
-         7HvbK69qKcd/5KCyoCYYbIt1rGvG52946+v7bWKtgW3nuO35q91Nqzmrb5SavkVYl9
-         uxvveKgPQvxNkNuxjbo9cODYeRG3vPkqqf+jqScRAM4XRf2y0Aaac0PZgebeBHC57r
-         ywACjMxtw2/JlIfjWxqyizqN/xg6706DNTKmLkOfUwBnMlhun7Ex78fp63/yETFmWv
-         QjfKlkH3bcokvSVNsc41/JjLdqPMSlB8f+SpiSxxlfhYJe3BQ0JvGSy6uo/5Ez0stH
-         WsW13QZyflgYg==
+        b=VWdf7Pv7GU3OQbBGG8mq7oifuAMWGLdcebsIIG0VJqMxSXYWA6gYp1trUxbhMZ+5u
+         kVyNdxORjLV6pYYeEAt6F0oaCveQfzOzGwU6VCUm5JY6fBBTKCLG5A+vsbVobGdD1M
+         dw0HwQbsYF+S0LX/wNy5iJpN8AdYDgEjD02cs75IDkccGGttqWhlEaSpRa2g44ibS5
+         8vVFHMj6zFg/wICE8+oFGRAPIIRXwh74CipLniLykFRLxz1VyA398AN4TCfL0eOdbZ
+         o2p6KtspEKAzSMpEB5Kn4e25nYWgS07hV/52/4LIpt5iy+FFGZiuDZJfGy0jrpwtTV
+         70Ox9sSoqMfSg==
 To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>
 From:   Alexander Lobakin <alobakin@pm.me>
 Cc:     Arnd Bergmann <arnd@arndb.de>,
@@ -46,8 +46,8 @@ Cc:     Arnd Bergmann <arnd@arndb.de>,
         linux-arch@vger.kernel.org, stable@vger.kernel.org,
         clang-built-linux@googlegroups.com
 Reply-To: Alexander Lobakin <alobakin@pm.me>
-Subject: [PATCH v5 mips-next 6/9] MIPS: vmlinux.lds.S: explicitly declare .got table
-Message-ID: <20210110115546.30970-6-alobakin@pm.me>
+Subject: [PATCH v5 mips-next 9/9] MIPS: select ARCH_WANT_LD_ORPHAN_WARN
+Message-ID: <20210110115546.30970-9-alobakin@pm.me>
 In-Reply-To: <20210110115546.30970-1-alobakin@pm.me>
 References: <20210110115245.30762-1-alobakin@pm.me> <20210110115546.30970-1-alobakin@pm.me>
 MIME-Version: 1.0
@@ -57,36 +57,29 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-LLVM stack generates GOT table when building the kernel:
+Now, after that all the sections are explicitly described and
+declared in vmlinux.lds.S, we can enable ld orphan warnings to
+prevent from missing any new sections in future.
 
-ld.lld: warning: <internal>:(.got) is being placed in '.got'
-
-According to the debug assertions, it's not zero-sized and thus can't
-be handled the way it's done for x86.
-Also use the ARM64 path here and place it at the end of .text section.
-
-Reported-by: Nathan Chancellor <natechancellor@gmail.com>
 Signed-off-by: Alexander Lobakin <alobakin@pm.me>
 Reviewed-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
 ---
- arch/mips/kernel/vmlinux.lds.S | 2 ++
- 1 file changed, 2 insertions(+)
+ arch/mips/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.=
-S
-index 70bba1ff08da..c1c345be04ff 100644
---- a/arch/mips/kernel/vmlinux.lds.S
-+++ b/arch/mips/kernel/vmlinux.lds.S
-@@ -68,6 +68,8 @@ SECTIONS
- =09=09SOFTIRQENTRY_TEXT
- =09=09*(.fixup)
- =09=09*(.gnu.warning)
-+=09=09. =3D ALIGN(16);
-+=09=09*(.got)=09/* Global offset table */
- =09} :text =3D 0
- =09_etext =3D .;=09/* End of text section */
-=20
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index d68df1febd25..d3e64cc0932b 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -18,6 +18,7 @@ config MIPS
+ =09select ARCH_USE_QUEUED_SPINLOCKS
+ =09select ARCH_WANT_DEFAULT_TOPDOWN_MMAP_LAYOUT if MMU
+ =09select ARCH_WANT_IPC_PARSE_VERSION
++=09select ARCH_WANT_LD_ORPHAN_WARN
+ =09select BUILDTIME_TABLE_SORT
+ =09select CLONE_BACKWARDS
+ =09select CPU_NO_EFFICIENT_FFS if (TARGET_ISA_REV < 1)
 --=20
 2.30.0
 
