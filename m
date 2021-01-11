@@ -2,117 +2,134 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A1EE0C433DB
-	for <linux-arch@archiver.kernel.org>; Sun, 10 Jan 2021 11:58:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E437CC433E0
+	for <linux-arch@archiver.kernel.org>; Mon, 11 Jan 2021 01:28:54 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 73BB72395A
-	for <linux-arch@archiver.kernel.org>; Sun, 10 Jan 2021 11:58:14 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id BA68B223E8
+	for <linux-arch@archiver.kernel.org>; Mon, 11 Jan 2021 01:28:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726832AbhAJL5w (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 10 Jan 2021 06:57:52 -0500
-Received: from mail-40131.protonmail.ch ([185.70.40.131]:58482 "EHLO
-        mail-40131.protonmail.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726819AbhAJL5w (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Jan 2021 06:57:52 -0500
-Date:   Sun, 10 Jan 2021 11:56:47 +0000
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=pm.me; s=protonmail;
-        t=1610279810; bh=x8cRNNoQDUio05HqY97IXykwYEnNtBTKUh4spQvRTkU=;
-        h=Date:To:From:Cc:Reply-To:Subject:In-Reply-To:References:From;
-        b=Vn6/a5xZo9524H3sJXKD1skGlwNWJBKpxsaQlelflZWpiRO6mvcpRXbkqWhE1penm
-         ndkAzPHQ6OJZnJMzz1W6177XAau2X1iZiwugVn1rACTV1Typ9lpvgpFAZQ9moC2R5d
-         SoyJ4LnYL/PbTdyrTiw92NsZf8ayY1ZA44dtUgQN9XX6hp+EbnFKmC9kgotXWQ3U3P
-         nxwov3RXk0ZzC8oYRrLAsmhVLmFA+7dPmPQeJCIvf4+jcbtukzYFduFdFK5CX7B6M0
-         xPyUxcRog1HRkHy3MIgZgnMDgH79NpMZVKdPNMBecY7x9TT6tCZeKTYerByMaaXvu4
-         7D83kWhj3y2eg==
-To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-From:   Alexander Lobakin <alobakin@pm.me>
-Cc:     Arnd Bergmann <arnd@arndb.de>,
-        Nathan Chancellor <natechancellor@gmail.com>,
+        id S1726350AbhAKB2y (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 10 Jan 2021 20:28:54 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40038 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726151AbhAKB2x (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Jan 2021 20:28:53 -0500
+Received: from mail-il1-x133.google.com (mail-il1-x133.google.com [IPv6:2607:f8b0:4864:20::133])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 84306C061786;
+        Sun, 10 Jan 2021 17:28:13 -0800 (PST)
+Received: by mail-il1-x133.google.com with SMTP id e7so1532598ili.2;
+        Sun, 10 Jan 2021 17:28:13 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=RAxSHTZDZlT6yDjj0fm6U/ExdlmA3H8wyIJvn7l+DzI=;
+        b=qSv/XpjfVT/EuN9MhavzUKyDjfAu2YH8znDEpJAL4hh2eaUqLmi/aRqM+mSHmNsc8S
+         NlVdtopuesiO8cs4IM2xmvXTDoW6AYlEleBpmMS+2H7+UphFBa7DtArJELLVFnjKTey5
+         AxIDqkE62mF0gxHkuZcOUF3+DwNt86h/RT7X4idOVscFCSjs2sSuCqt/3kYxqebsQDGy
+         HKncjElq4v7GpGuVhSNZwHPZgsCvuYMgPwUKb2M6ssmjVQ7eSTAozjkln9IchTwaEhcJ
+         j/gohOag6umPBdfhpBEpKMtpqfPRuCcL1/wOy4tDhJWtIUBt0B+PaZRJhQocTTaAqkX7
+         xhhQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=RAxSHTZDZlT6yDjj0fm6U/ExdlmA3H8wyIJvn7l+DzI=;
+        b=LE8PrOwfhbvKEwnItVw5bSDw7wnwkIhMRjKTb0f+YLyY5CSiJBm2E85J+ZVk//q8Wc
+         yS+yuITNaRgTUUH1poXFfuLZtnLk9gzjCsYG2gXtkyjinpsAYYM9iuYiNvzhafhLGF4c
+         GBoakPRi9e+MXE6ND4O/1rVpfDEytaWh8okXXBRhb7g10FmBaJi6bsr6c9mULBzly54/
+         ubNfM6AfDwAvucvhSDQyu76CKoIC+JCspPHYN0BN7QIA5stBfFySW9Pep2xGGVeEqCtA
+         Ovuo5hjg/TnnDt8l893/UfHKiwzFm9pD/qErPO4+8XfsZ4iE8pb6unmS+Odi4Kgs1Hbc
+         bn3A==
+X-Gm-Message-State: AOAM530zIkU0mrAPq1H6oFpFbOIW8luy42hMt6NQJ+KCMQzq0YR5RwG3
+        0DG+d8tKdMJYTbu+pufuPNM=
+X-Google-Smtp-Source: ABdhPJzdENz7nIvxsLGzkDfRnGYxQIVnzJO6KI6K2yb50R26SbYPDHBjZV5oG1VS2aCkHvkz6i3Q3g==
+X-Received: by 2002:a92:9f0a:: with SMTP id u10mr14002915ili.158.1610328492662;
+        Sun, 10 Jan 2021 17:28:12 -0800 (PST)
+Received: from ubuntu-m3-large-x86 ([2604:1380:45f1:1d00::1])
+        by smtp.gmail.com with ESMTPSA id b12sm14065824ilc.21.2021.01.10.17.28.11
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sun, 10 Jan 2021 17:28:11 -0800 (PST)
+Date:   Sun, 10 Jan 2021 18:28:09 -0700
+From:   Nathan Chancellor <natechancellor@gmail.com>
+To:     Alexander Lobakin <alobakin@pm.me>
+Cc:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Arnd Bergmann <arnd@arndb.de>,
         Nick Desaulniers <ndesaulniers@google.com>,
         Huacai Chen <chenhuacai@kernel.org>,
         Pei Huang <huangpei@loongson.cn>,
         Kees Cook <keescook@chromium.org>,
-        Alexander Lobakin <alobakin@pm.me>,
         Fangrui Song <maskray@google.com>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
         Ralf Baechle <ralf@linux-mips.org>,
         Corey Minyard <cminyard@mvista.com>,
         linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-arch@vger.kernel.org, stable@vger.kernel.org,
-        clang-built-linux@googlegroups.com,
-        Sami Tolvanen <samitolvanen@google.com>
-Reply-To: Alexander Lobakin <alobakin@pm.me>
-Subject: [PATCH v5 mips-next 7/9] vmlinux.lds.h: catch compound literals into data and BSS
-Message-ID: <20210110115546.30970-7-alobakin@pm.me>
-In-Reply-To: <20210110115546.30970-1-alobakin@pm.me>
-References: <20210110115245.30762-1-alobakin@pm.me> <20210110115546.30970-1-alobakin@pm.me>
+        clang-built-linux@googlegroups.com
+Subject: Re: [PATCH v5 mips-next 5/9] MIPS: vmlinux.lds.S: explicitly catch
+ .rel.dyn symbols
+Message-ID: <20210111012809.GA2918900@ubuntu-m3-large-x86>
+References: <20210110115245.30762-1-alobakin@pm.me>
+ <20210110115546.30970-1-alobakin@pm.me>
+ <20210110115546.30970-5-alobakin@pm.me>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210110115546.30970-5-alobakin@pm.me>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When building kernel with LD_DEAD_CODE_DATA_ELIMINATION, LLVM stack
-generates separate sections for compound literals, just like in case
-with enabled LTO [0]:
+On Sun, Jan 10, 2021 at 11:56:34AM +0000, Alexander Lobakin wrote:
+> According to linker warnings, both GCC and LLVM generate '.rel.dyn'
+> symbols:
+> 
+> mips-alpine-linux-musl-ld: warning: orphan section `.rel.dyn'
+> from `init/main.o' being placed in section `.rel.dyn'
+> 
+> Link-time assertion shows that this section is sometimes empty,
+> sometimes not, depending on machine bitness and the compiler [0]:
+> 
+>   LD      .tmp_vmlinux.kallsyms1
+> mips64-linux-gnu-ld: Unexpected run-time relocations (.rel) detected!
+> 
+> Just use the ARM64 approach and declare it in vmlinux.lds.S closer
+> to __init_end.
+> 
+> [0] https://lore.kernel.org/linux-mips/20210109111259.GA4213@alpha.franken.de
+> 
+> Reported-by: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+> Signed-off-by: Alexander Lobakin <alobakin@pm.me>
 
-ld.lld: warning: drivers/built-in.a(mtd/nand/spi/gigadevice.o):
-(.data..compoundliteral.14) is being placed in
-'.data..compoundliteral.14'
-ld.lld: warning: drivers/built-in.a(mtd/nand/spi/gigadevice.o):
-(.data..compoundliteral.15) is being placed in
-'.data..compoundliteral.15'
-ld.lld: warning: drivers/built-in.a(mtd/nand/spi/gigadevice.o):
-(.data..compoundliteral.16) is being placed in
-'.data..compoundliteral.16'
-ld.lld: warning: drivers/built-in.a(mtd/nand/spi/gigadevice.o):
-(.data..compoundliteral.17) is being placed in
-'.data..compoundliteral.17'
-
-[...]
-
-Handle this by adding the related sections to generic definitions
-as suggested by Sami [0].
-
-[0] https://lore.kernel.org/lkml/20201211184633.3213045-3-samitolvanen@goog=
-le.com
-
-Suggested-by: Sami Tolvanen <samitolvanen@google.com>
-Suggested-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Alexander Lobakin <alobakin@pm.me>
-Reviewed-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
----
- include/asm-generic/vmlinux.lds.h | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinu=
-x.lds.h
-index b2b3d81b1535..5f2f5b1db84f 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -95,10 +95,10 @@
-  */
- #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
- #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
--#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX*
-+#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..L* .data..compoundliter=
-al*
- #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
--#define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]*
--#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
-+#define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]* .rodata..L*
-+#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral*
- #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
- #else
- #define TEXT_MAIN .text
---=20
-2.30.0
-
-
+> ---
+>  arch/mips/kernel/vmlinux.lds.S | 5 +++++
+>  1 file changed, 5 insertions(+)
+> 
+> diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.S
+> index 10d8f0dcb76b..70bba1ff08da 100644
+> --- a/arch/mips/kernel/vmlinux.lds.S
+> +++ b/arch/mips/kernel/vmlinux.lds.S
+> @@ -137,6 +137,11 @@ SECTIONS
+>  	PERCPU_SECTION(1 << CONFIG_MIPS_L1_CACHE_SHIFT)
+>  #endif
+>  
+> +	.rel.dyn : ALIGN(8) {
+> +		*(.rel)
+> +		*(.rel*)
+> +	}
+> +
+>  #ifdef CONFIG_MIPS_ELF_APPENDED_DTB
+>  	.appended_dtb : AT(ADDR(.appended_dtb) - LOAD_OFFSET) {
+>  		*(.appended_dtb)
+> -- 
+> 2.30.0
+> 
+> 
