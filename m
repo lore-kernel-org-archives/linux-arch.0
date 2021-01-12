@@ -2,151 +2,82 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7516FC433E0
-	for <linux-arch@archiver.kernel.org>; Mon, 11 Jan 2021 20:58:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DD2CCC433DB
+	for <linux-arch@archiver.kernel.org>; Tue, 12 Jan 2021 00:56:14 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2374822CF7
-	for <linux-arch@archiver.kernel.org>; Mon, 11 Jan 2021 20:58:58 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 99CBD2253A
+	for <linux-arch@archiver.kernel.org>; Tue, 12 Jan 2021 00:56:14 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728715AbhAKU6V (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 11 Jan 2021 15:58:21 -0500
-Received: from mail-40134.protonmail.ch ([185.70.40.134]:45064 "EHLO
-        mail-40134.protonmail.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728704AbhAKU6U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jan 2021 15:58:20 -0500
-Date:   Mon, 11 Jan 2021 20:57:25 +0000
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=pm.me; s=protonmail;
-        t=1610398657; bh=423czqlXYO6cyt2pvAdEvcmUk4C4FxO/GExpCv7aBhM=;
-        h=Date:To:From:Cc:Reply-To:Subject:In-Reply-To:References:From;
-        b=dKDO7F+tdwzxF97ZxwMYSL4RZdRIfEJ7fdVw7R+H5Yl3BXfxLuchuMdWlPl0VrA4Q
-         ciraikiocq7nnzvIqgDtQra9docDLxlWfsWcj6sKaq54aIm+vLWd2BE39I2KTgOukm
-         cWVg03Mo1ReSb4qU0K9BNE0+PLK8cQBw4Fwmjpw6ARjhxZ/nvOOrhguyZ7Q2PAJXKM
-         6xp1bPRrf+o7skGbTZpnLBXSMRq+ideRn1t06+wSZtoLfjsCo4emJZ/uizqNCqUs1e
-         er8Fsgyp7Fk5VSQifGrHKodyJ9Ah4MohRFqP/cSWJ8P072GPm0npPBigwB7oOqkoKQ
-         cHpLCkjWkYyXA==
-To:     Kees Cook <keescook@chromium.org>
-From:   Alexander Lobakin <alobakin@pm.me>
-Cc:     Alexander Lobakin <alobakin@pm.me>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        id S1726236AbhALAYh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 11 Jan 2021 19:24:37 -0500
+Received: from mga14.intel.com ([192.55.52.115]:29965 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2404238AbhALAK0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 11 Jan 2021 19:10:26 -0500
+IronPort-SDR: 4WkjVdCVtSs4tpYTIl+Oru/a85CxppNMem/874N/QAWKFowtW91gsdxpnkxHf6q9HiJ2x3jM9/
+ wWCRfLfdI+Jg==
+X-IronPort-AV: E=McAfee;i="6000,8403,9861"; a="177183523"
+X-IronPort-AV: E=Sophos;i="5.79,339,1602572400"; 
+   d="scan'208";a="177183523"
+Received: from fmsmga008.fm.intel.com ([10.253.24.58])
+  by fmsmga103.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 11 Jan 2021 16:09:46 -0800
+IronPort-SDR: MZ6o279zdJ2hukSqNJAelzE0N3EoPSuST80JVMJ0lG7cLsw+cOmSn4be9Fxg2PwEjeSvp7bcPZ
+ 612cCvl1Cu1Q==
+X-IronPort-AV: E=Sophos;i="5.79,339,1602572400"; 
+   d="scan'208";a="352799931"
+Received: from yyu32-mobl1.amr.corp.intel.com (HELO [10.212.197.241]) ([10.212.197.241])
+  by fmsmga008-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 11 Jan 2021 16:09:43 -0800
+Subject: Re: [PATCH v17 04/26] x86/cpufeatures: Introduce X86_FEATURE_CET and
+ setup functions
+To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
+        linux-doc@vger.kernel.org, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
         Arnd Bergmann <arnd@arndb.de>,
-        Nathan Chancellor <natechancellor@gmail.com>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Huacai Chen <chenhuacai@kernel.org>,
-        Pei Huang <huangpei@loongson.cn>,
-        Fangrui Song <maskray@google.com>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Ralf Baechle <ralf@linux-mips.org>,
-        Corey Minyard <cminyard@mvista.com>,
-        linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, stable@vger.kernel.org,
-        clang-built-linux@googlegroups.com
-Reply-To: Alexander Lobakin <alobakin@pm.me>
-Subject: Re: [PATCH v5 mips-next 0/9] MIPS: vmlinux.lds.S sections fixes & cleanup
-Message-ID: <20210111205649.18263-1-alobakin@pm.me>
-In-Reply-To: <202101111153.AE5123B6@keescook>
-References: <20210110115245.30762-1-alobakin@pm.me> <202101111153.AE5123B6@keescook>
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>,
+        Pengfei Xu <pengfei.xu@intel.com>
+References: <20201229213053.16395-5-yu-cheng.yu@intel.com>
+ <20210111230900.5916-1-yu-cheng.yu@intel.com>
+From:   "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
+Message-ID: <f88d2211-d314-5d9c-9471-a54c412525e0@intel.com>
+Date:   Mon, 11 Jan 2021 16:09:42 -0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.6.0
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <20210111230900.5916-1-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Kees Cook <keescook@chromium.org>
-Date: Mon, 11 Jan 2021 11:53:39 -0800
+This is a minor revision of the original [PATCH v17 04/26] patch.  The 
+purpose of the revision is to address Boris' comment earlier by doing 
+setup_force_cpu_cap(X86_FEATURE_CET) in bsp_init_intel().
 
-> On Sun, Jan 10, 2021 at 11:53:50AM +0000, Alexander Lobakin wrote:
->> This series hunts the problems discovered after manual enabling of
->> ARCH_WANT_LD_ORPHAN_WARN. Notably:
->>  - adds the missing PAGE_ALIGNED_DATA() section affecting VDSO
->>    placement (marked for stable);
->>  - stops blind catching of orphan text sections with .text.*
->>    directive;
->>  - properly stops .eh_frame section generation.
->>
->> Compile and runtime tested on MIPS32R2 CPS board with no issues
->> using two different toolkits:
->>  - Binutils 2.35.1, GCC 10.2.1 (with Alpine patches);
->>  - LLVM stack: 11.0.0 and from latest Git snapshot.
->>
->> Since v4 [3]:
->>  - new: drop redundant .text.cps-vec creation and blind inclusion
->>    of orphan text sections via .text.* directive in vmlinux.lds.S;
->>  - don't assert SIZEOF(.rel.dyn) as it's reported that it may be not
->>    empty on certain machines and compilers (Thomas);
->>  - align GOT table like it's done for ARM64;
->>  - new: catch UBSAN's "unnamed data" sections in generic definitions
->>    when building with LD_DEAD_CODE_DATA_ELIMINATION;
->>  - collect Reviewed-bys (Kees, Nathan).
->
-> Looks good; which tree will this land through?
-
-linux-mips/mips-next I guess, since 7 of 9 patches are related only
-to this architecture.
-This might need Arnd's Acked-bys or Reviewed-by for the two that
-refer include/asm-generic, let's see what Thomas think.
-
-> -Kees
->
->>
->> Since v3 [2]:
->>  - fix the third patch as GNU stack emits .rel.dyn into VDSO for
->>    some reason if .cfi_sections is specified.
->>
->> Since v2 [1]:
->>  - stop discarding .eh_frame and just prevent it from generating
->>    (Kees);
->>  - drop redundant sections assertions (Fangrui);
->>  - place GOT table in .text instead of asserting as it's not empty
->>    when building with LLVM (Nathan);
->>  - catch compound literals in generic definitions when building with
->>    LD_DEAD_CODE_DATA_ELIMINATION (Kees);
->>  - collect two Reviewed-bys (Kees).
->>
->> Since v1 [0]:
->>  - catch .got entries too as LLD may produce it (Nathan);
->>  - check for unwanted sections to be zero-sized instead of
->>    discarding (Fangrui).
->>
->> [0] https://lore.kernel.org/linux-mips/20210104121729.46981-1-alobakin@p=
-m.me
->> [1] https://lore.kernel.org/linux-mips/20210106200713.31840-1-alobakin@p=
-m.me
->> [2] https://lore.kernel.org/linux-mips/20210107115120.281008-1-alobakin@=
-pm.me
->> [3] https://lore.kernel.org/linux-mips/20210107123331.354075-1-alobakin@=
-pm.me
->>
->> Alexander Lobakin (9):
->>   MIPS: vmlinux.lds.S: add missing PAGE_ALIGNED_DATA() section
->>   MIPS: CPS: don't create redundant .text.cps-vec section
->>   MIPS: vmlinux.lds.S: add ".gnu.attributes" to DISCARDS
->>   MIPS: properly stop .eh_frame generation
->>   MIPS: vmlinux.lds.S: explicitly catch .rel.dyn symbols
->>   MIPS: vmlinux.lds.S: explicitly declare .got table
->>   vmlinux.lds.h: catch compound literals into data and BSS
->>   vmlinux.lds.h: catch UBSAN's "unnamed data" into data
->>   MIPS: select ARCH_WANT_LD_ORPHAN_WARN
->>
->>  arch/mips/Kconfig                 |  1 +
->>  arch/mips/include/asm/asm.h       | 18 ++++++++++++++++++
->>  arch/mips/kernel/cps-vec.S        |  1 -
->>  arch/mips/kernel/vmlinux.lds.S    | 11 +++++++++--
->>  include/asm-generic/vmlinux.lds.h |  6 +++---
->>  5 files changed, 31 insertions(+), 6 deletions(-)
->>
->> --
->> 2.30.0
->>
->>
->
-> --
-> Kees Cook
-
-Al
-
+--
+Yu-cheng
