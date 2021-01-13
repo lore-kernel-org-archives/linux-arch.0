@@ -2,130 +2,128 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-18.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
-	USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 58A69C43332
-	for <linux-arch@archiver.kernel.org>; Thu, 14 Jan 2021 01:55:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8ED6DC4361A
+	for <linux-arch@archiver.kernel.org>; Thu, 14 Jan 2021 02:12:22 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2B01C23442
-	for <linux-arch@archiver.kernel.org>; Thu, 14 Jan 2021 01:55:50 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5BFE3235FA
+	for <linux-arch@archiver.kernel.org>; Thu, 14 Jan 2021 02:12:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726742AbhANBzp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 13 Jan 2021 20:55:45 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45288 "EHLO
+        id S1730131AbhANCMH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 13 Jan 2021 21:12:07 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51634 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729614AbhAMXuZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jan 2021 18:50:25 -0500
-Received: from mail-pg1-x534.google.com (mail-pg1-x534.google.com [IPv6:2607:f8b0:4864:20::534])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 082B8C0617A6
-        for <linux-arch@vger.kernel.org>; Wed, 13 Jan 2021 15:27:22 -0800 (PST)
-Received: by mail-pg1-x534.google.com with SMTP id g15so2483142pgu.9
-        for <linux-arch@vger.kernel.org>; Wed, 13 Jan 2021 15:27:22 -0800 (PST)
+        with ESMTP id S1729238AbhAMWIy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jan 2021 17:08:54 -0500
+Received: from mail-ed1-x52e.google.com (mail-ed1-x52e.google.com [IPv6:2a00:1450:4864:20::52e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EE7A1C061575;
+        Wed, 13 Jan 2021 14:07:48 -0800 (PST)
+Received: by mail-ed1-x52e.google.com with SMTP id h16so3610363edt.7;
+        Wed, 13 Jan 2021 14:07:48 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=Rhh6w6PnAshqzzDi7tIorGSnjSwjXHOfLfkdJH6Oxgk=;
-        b=UsAe64kOAc8ogK7jOBzOesd7Gj13f2B4Po8m+3R3dmVXJk6pEq3gYcmuaRd7El09bO
-         Pp9zCxf2v08t8ZWzssQTx0k0WdOnBcT3jgcHctNfwEtJoZYm3e3My7kUgzf5amFidX7U
-         3RAcgUTqJ/nW4n7VBXamre7h42HseZwdwLdsy8OXsvbzJcBMowDxF2ZoCDZz1+kzzXJv
-         j704xO1uL9COVu3l3LUelEPeCyK9q/+k0NcEh72F2vqTVL5V6wFlhm4hKS66EXiGDsqT
-         OIP8nNh5erhaKpw9pbAOhJIe0W3K8OMJi6dJhV32YQQE5oiccvLsW6hzifztteos5F4h
-         cXyw==
+        d=gmail.com; s=20161025;
+        h=sender:from:to:cc:subject:references:date:in-reply-to:message-id
+         :user-agent:mime-version;
+        bh=Fjx4x9CJD2wWjKON/wheiuq+1EzL46Iryc22xTN24oY=;
+        b=va4GwRxtMiYIKSA/SqIIQIDY1vPL/tulMkOywZckEhLZbkhHpEMpYvfhLrH13087EN
+         kXM2l8Jf61kJJXZttzxj3aSr3wdcXQ3NiOK/1XYg5lwTvXKffuuaxQKICLn8mwRhoiez
+         7KNyrcUunR+dYvmVagw8isyRG7MvR5ZtxwcoZgoSZ5lKIx5/3EejSzfQlYdS0zYagmev
+         cPIsk0AJvOACpUU+da4NawTYTwixhknA+O6n4rxx5TmITa1OIsGTEg86Y9Xol9aSUYWP
+         tJMSk0r8RKd98RiFQc/HOsUK2zSr4NVbZSraJ+tgb4CMpTMF87CAs02UeyIbmSdq3xqG
+         KXgg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=Rhh6w6PnAshqzzDi7tIorGSnjSwjXHOfLfkdJH6Oxgk=;
-        b=CJvOoMlJFRa7eGmQneibZzeG3Lx3TU690DQ+FH4oQ2PM8+S8Q382rfbtmYgSPY9WB5
-         XrVyyr49MYQ4XAtjinjGZOC6IwScAAhJpqCXlU7vJEi+QfDJ4BX7K/xSRhjmivXzEBxq
-         tNeYZ47td7jDE19GR4yn3EqV7EGmEMCW7yLCvGVgqb+wTbz4q3UnwQ7gEaCjJ5jyc15V
-         1qBYImBeP3YZN/38wlhfmMfAwCcZHlnR01WLW7aEEVnd/CKkZBZ50fmgPw0xvx7YFP+y
-         qlw/OI3thQCFiOwzinLFHnfzB2wz0YL4xCtS2BoILk4Z43fX6TvZa96bOluV3SEFAKlY
-         0dTw==
-X-Gm-Message-State: AOAM5316opVs+Cs3PrbpjcK/2YHzIqGzxK+SY1n/QPuUMt0K/prp+WdJ
-        LJB1WQbgkfyLAr4ohh/qsIYuFE9EeHumHmlCcV7BVw==
-X-Google-Smtp-Source: ABdhPJynbg/QsB8oO89RHz2rLF3RFS5Hrqec+YsAoymztXcghiURgnIYfZbNXYr16Sz5/nfz/+3mrTX2fRX2z2LbEqI=
-X-Received: by 2002:a63:1142:: with SMTP id 2mr4397001pgr.263.1610580441323;
- Wed, 13 Jan 2021 15:27:21 -0800 (PST)
+        h=x-gm-message-state:sender:from:to:cc:subject:references:date
+         :in-reply-to:message-id:user-agent:mime-version;
+        bh=Fjx4x9CJD2wWjKON/wheiuq+1EzL46Iryc22xTN24oY=;
+        b=CgL744oy/hNzjwT+pI2yPFgx/+Puvk6q77KeUomTOp+295yPR3OOx7vLkfZDSDy5oG
+         jfJTWcfyp3zh8SsKCSWyNNmwsg1AQF8ncUghoH+HvlMkLDkuDwKSR1GkCa1tB8KqpyAW
+         gREANaDlXFZf9vlGc4dmWxedLRnmi/8k+P8xbw5UoFfD3qcg4/rIM69BJPY/lj8UDKTt
+         5m/C3yRFMD2soCxlNj64mN4pEUtXNN/0uPUHeC+7kkmmMfNL52XhA2BLs6vYiDiUrUgS
+         72G3T5OKsN3A8+oDIUifpyd3rBOdi4kZ0EWnwZVuTAY80OgWfR/j6zwZhRMtpeONnMij
+         1Uuw==
+X-Gm-Message-State: AOAM5306Qnw2RRvtxbXM6S1qy5591Xvo7x83IA2xWh90bsgA2M3CDA4R
+        Mo0akocU3CxF5CQewKt0ojPok9SlO30=
+X-Google-Smtp-Source: ABdhPJxUKBGh3JepPbB6R+MrqeDdFx9YTBcgjZ4Pvjh9UD5YwM/YStAH0Z8jRgQKOwNMRp6Mt1XMwQ==
+X-Received: by 2002:a50:c34b:: with SMTP id q11mr449809edb.214.1610575667713;
+        Wed, 13 Jan 2021 14:07:47 -0800 (PST)
+Received: from dell.be.48ers.dk (d51A5BC31.access.telenet.be. [81.165.188.49])
+        by smtp.gmail.com with ESMTPSA id b14sm1403781edu.3.2021.01.13.14.07.46
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 13 Jan 2021 14:07:46 -0800 (PST)
+Sender: Peter Korsgaard <jacmet@gmail.com>
+Received: from peko by dell.be.48ers.dk with local (Exim 4.92)
+        (envelope-from <peter@korsgaard.com>)
+        id 1kzoIr-0004d2-QY; Wed, 13 Jan 2021 23:07:45 +0100
+From:   Peter Korsgaard <peter@korsgaard.com>
+To:     Vineet Gupta <vgupta@synopsys.com>
+Cc:     Petr Mladek <pmladek@suse.com>, linux-arch@vger.kernel.org,
+        Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>,
+        John Ogness <john.ogness@linutronix.de>,
+        Shreyas Joshi <shreyas.joshi@biamp.com>,
+        linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>,
+        Sergey Senozhatsky <sergey.senozhatsky@gmail.com>,
+        Thomas Petazzoni <thomas.petazzoni@bootlin.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        buildroot@busybox.net, arcml <linux-snps-arc@lists.infradead.org>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        shreyasjoshi15@gmail.com, Guenter Roeck <linux@roeck-us.net>
+Subject: Re: ARC no console output (was Re: [PATCH 1/2] init/console: Use ttynull as a fallback when there is no console)
+References: <20201111135450.11214-1-pmladek@suse.com>
+        <20201111135450.11214-2-pmladek@suse.com>
+        <d2a3b3c0-e548-7dd1-730f-59bc5c04e191@synopsys.com>
+        <8735zdm86m.fsf@jogness.linutronix.de>
+        <50ade852-c598-6476-1f4b-9a3f8d11d143@synopsys.com>
+        <X/c/ONCYz2QQdvOP@alley>
+        <466644f5-bed7-caef-9fcd-e66208f65545@synopsys.com>
+Date:   Wed, 13 Jan 2021 23:07:45 +0100
+In-Reply-To: <466644f5-bed7-caef-9fcd-e66208f65545@synopsys.com> (Vineet
+        Gupta's message of "Thu, 7 Jan 2021 09:58:05 -0800")
+Message-ID: <87turkfq32.fsf@dell.be.48ers.dk>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
-References: <20210113003235.716547-1-ndesaulniers@google.com>
- <20210113003235.716547-3-ndesaulniers@google.com> <CA+icZUV6pNP1AN_JEhqon6Hgk3Yfq0_VNghvRX0N9mw6pGtpVw@mail.gmail.com>
-In-Reply-To: <CA+icZUV6pNP1AN_JEhqon6Hgk3Yfq0_VNghvRX0N9mw6pGtpVw@mail.gmail.com>
-From:   Nick Desaulniers <ndesaulniers@google.com>
-Date:   Wed, 13 Jan 2021 15:27:09 -0800
-Message-ID: <CAKwvOdm40Z3YutxwWyV922XdchN7Dz+v9kJNjF13vKxNUXrJnQ@mail.gmail.com>
-Subject: Re: [PATCH v4 2/3] Kbuild: make DWARF version a choice
-To:     Sedat Dilek <sedat.dilek@gmail.com>
-Cc:     Masahiro Yamada <masahiroy@kernel.org>,
-        Nathan Chancellor <natechancellor@gmail.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        Clang-Built-Linux ML <clang-built-linux@googlegroups.com>,
-        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Jakub Jelinek <jakub@redhat.com>,
-        Fangrui Song <maskray@google.com>,
-        Caroline Tice <cmtice@google.com>,
-        Nick Clifton <nickc@redhat.com>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Sedat,
-Thanks for testing, and congrats on https://lwn.net/Articles/839772/.
-I always appreciate you taking the time to help test my work, and
-other Clang+Linux kernel patches!
+>>>>> "Vineet" == Vineet Gupta <vgupta@synopsys.com> writes:
 
-On Wed, Jan 13, 2021 at 1:24 PM Sedat Dilek <sedat.dilek@gmail.com> wrote:
->
-> On Wed, Jan 13, 2021 at 1:32 AM Nick Desaulniers
-> <ndesaulniers@google.com> wrote:
-> >
-> > --- a/Makefile
-> > +++ b/Makefile
-> > @@ -826,12 +826,16 @@ else
-> >  DEBUG_CFLAGS   += -g
-> >  endif
-> >
-> > -ifneq ($(LLVM_IAS),1)
-> > -KBUILD_AFLAGS  += -Wa,-gdwarf-2
-> > +dwarf-version-$(CONFIG_DEBUG_INFO_DWARF2) := 2
-> > +dwarf-version-$(CONFIG_DEBUG_INFO_DWARF4) := 4
-> > +DEBUG_CFLAGS   += -gdwarf-$(dwarf-version-y)
+ > On 1/7/21 9:04 AM, Petr Mladek wrote:
+ >> On Thu 2021-01-07 08:43:16, Vineet Gupta wrote:
+ >>> Hi John,
+ >>> 
+ >>> On 1/7/21 1:02 AM, John Ogness wrote:
+ >>>> Hi Vineet,
+ >>>> 
+ >>>> On 2021-01-06, Vineet Gupta <vgupta@synopsys.com> wrote:
+ >>>>> This breaks ARC booting (no output on console).
+ >>>> 
+ >>>> Could you provide the kernel boot arguments that you use? This series is
+ >>>> partly about addressing users that have used boot arguments that are
+ >>>> technically incorrect (even if had worked). Seeing the boot arguments of
+ >>>> users that are not experiencing problems may help to reveal some of the
+ >>>> unusual console usages until now.
+ >>> 
+ >>> 
+ >>> Kernel command line: earlycon=uart8250,mmio32,0xf0005000,115200n8
+ >>> console=ttyS0,115200n8 debug print-fatal-signals=1
+ >> 
+ >> This is strange, the problematic patch should use ttynull
+ >> only as a fallback. It should not be used when a particular console
+ >> is defined on the command line.
 
-^ DEBUG_CFLAGS are set for everyone (all toolchains) if
-CONFIG_DEBUG_INFO is defined.
+ > What happens in my case is console_on_rootfs() doesn't find
+ > /dev/console and switching to ttynull. /dev is not present because
+ > devtmpfs doesn't automount for initramfs.
 
-> > +ifneq ($(dwarf-version-y)$(LLVM_IAS),21)
+But our initramfs/cpio logic ensures that the initramfs has a static
+/dev/console device node, so how can that be?
 
-^ "If not using dwarf 2 and LLVM_IAS=1", ie. CONFIG_DEBUG_INFO_DWARF5
-&& CONFIG_CC_IS_GCC
+https://git.buildroot.net/buildroot/tree/fs/cpio/cpio.mk#n25
 
-> > +# Binutils 2.35+ required for -gdwarf-4+ support.
-> > +dwarf-aflag    := $(call as-option,-Wa$(comma)-gdwarf-$(dwarf-version-y))
-> > +ifdef CONFIG_CC_IS_CLANG
-
-^ "if clang"
-
-> > +DEBUG_CFLAGS   += $(dwarf-aflag)
-> >  endif
->
-> Why is that "ifdef CONFIG_CC_IS_CLANG"?
-
-That's what Arvind requested on v2, IIUC:
-https://lore.kernel.org/lkml/X8psgMuL4jMjP%2FOy@rani.riverdale.lan/
-
-> When I use GCC v10.2.1 DEBUG_CFLAGS are not set.
-
-You should have -gdwarf-4 (and not -Wa,-gwarf-4) set for DEBUG_CFLAGS
-when compiling with GCC and enabling CONFIG_DEBUG_INFO_DWARF4. Can you
-please confirm? (Perhaps you may have accidentally disabled
-CONFIG_DEBUG_INFO by rerunning `make defconfig`?)
 -- 
-Thanks,
-~Nick Desaulniers
+Bye, Peter Korsgaard
