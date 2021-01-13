@@ -2,88 +2,93 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-19.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2FEC1C433E9
-	for <linux-arch@archiver.kernel.org>; Wed, 13 Jan 2021 10:58:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 30ADEC43332
+	for <linux-arch@archiver.kernel.org>; Wed, 13 Jan 2021 11:01:27 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C0E89233A2
-	for <linux-arch@archiver.kernel.org>; Wed, 13 Jan 2021 10:58:33 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id DE5B222210
+	for <linux-arch@archiver.kernel.org>; Wed, 13 Jan 2021 11:01:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727050AbhAMK6W (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 13 Jan 2021 05:58:22 -0500
-Received: from us-smtp-delivery-124.mimecast.com ([63.128.21.124]:51248 "EHLO
-        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726459AbhAMK6W (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 Jan 2021 05:58:22 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1610535415;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=5mnxdraFFc27NKPKaDd5/PxGNaQDZhdz3BpuYoF4+jY=;
-        b=L9hjAuz1SkydBjNl7kLF2U2t8tP/uDZ+UCH8YGUWXbCcDB6IXw17lnrinXd+eaAWtskNb/
-        dysfWCdh/8j8hwfqqSC8i9RBIycUhBUK0WehhAKjlygayzLXhV2J2rn0bmsxVrW3IoVPNK
-        EQQMIOwosWwfgslSGoUZkWvH+aXXt1w=
-Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
- [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
- us-mta-270-52fHE9t9Mq2VGNsItg2Cnw-1; Wed, 13 Jan 2021 05:56:52 -0500
-X-MC-Unique: 52fHE9t9Mq2VGNsItg2Cnw-1
-Received: from smtp.corp.redhat.com (int-mx05.intmail.prod.int.phx2.redhat.com [10.5.11.15])
-        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
-        (No client certificate requested)
-        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id D44E918C8C02;
-        Wed, 13 Jan 2021 10:56:48 +0000 (UTC)
-Received: from warthog.procyon.org.uk (ovpn-112-8.rdu2.redhat.com [10.10.112.8])
-        by smtp.corp.redhat.com (Postfix) with ESMTP id 05A086A914;
-        Wed, 13 Jan 2021 10:56:44 +0000 (UTC)
-Organization: Red Hat UK Ltd. Registered Address: Red Hat UK Ltd, Amberley
-        Place, 107-111 Peascod Street, Windsor, Berkshire, SI4 1TE, United
-        Kingdom.
-        Registered in England and Wales under Company Registration No. 3798903
-From:   David Howells <dhowells@redhat.com>
-In-Reply-To: <e6bd9820-8b77-57fc-f318-9b928e4d951b@schaufler-ca.com>
-References: <e6bd9820-8b77-57fc-f318-9b928e4d951b@schaufler-ca.com> <1610099389-28329-1-git-send-email-pnagar@codeaurora.org> <0f467390-e018-6051-0014-ab475ed76863@schaufler-ca.com> <dab6357acbd63edd53099d106d111bf4@codeaurora.org>
-To:     Casey Schaufler <casey@schaufler-ca.com>
-Cc:     dhowells@redhat.com, pnagar@codeaurora.org, arnd@arndb.de,
-        jmorris@namei.org, serge@hallyn.com, paul@paul-moore.com,
-        stephen.smalley.work@gmail.com, eparis@parisplace.org,
-        linux-security-module@vger.kernel.org, selinux@vger.kernel.org,
-        linux-arch@vger.kernel.org, psodagud@codeaurora.org,
-        nmardana@codeaurora.org, dsule@codeaurora.org,
-        Joe Perches <joe@perches.com>, Miguel Ojeda <ojeda@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
+        id S1727667AbhAMLBM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 13 Jan 2021 06:01:12 -0500
+Received: from mail.kernel.org ([198.145.29.99]:38844 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727624AbhAMLBL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Jan 2021 06:01:11 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 3C344235E4;
+        Wed, 13 Jan 2021 10:59:30 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1610535570;
+        bh=7SV1Wf2cFeBmyKYHN4PvxFbldMRcWaVnyyuX1AnarXg=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=jaTx/lCPLSeff37VJI9Yr0ga83qchFGKD7Df8bbk6VmWbWcoOXlEzQaqmiliPvGmJ
+         OMAqdjH6KH6IytBqX5JIVRdTVvYpO9l8f4yL9oiVEHf0KEtITHY/kwV/Vzp+KNbZhI
+         uiIzgQ+HPREo63B5roTTnOlzvxeg+1X4EMvnj91ESRAGRdYK7fb49fao/56VsKeJ3a
+         M6r9dwMKQ8+u2eMKkzTgvJNv20AejljQ6EruRZo0qZlceQIjsgPFh1Ipg9cuaDyEYV
+         O17ofYv0bFFtYitmmkRHfg07C/8PwUhCr8ELzz8T2H7WwM5N9nt1xHjeZ53k5f3FQx
+         Zqr6hmOS5G4SA==
+Received: by mail.kernel.org with local (Exim 4.94)
+        (envelope-from <mchehab@kernel.org>)
+        id 1kzds7-00DpGh-PF; Wed, 13 Jan 2021 11:59:27 +0100
+From:   Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+To:     Linux Doc Mailing List <linux-doc@vger.kernel.org>
+Cc:     Mauro Carvalho Chehab <mchehab+huawei@kernel.org>,
+        "Jonathan Corbet" <corbet@lwn.net>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        Akira Yokosawa <akiyks@gmail.com>,
+        Alan Stern <stern@rowland.harvard.edu>,
+        Andrea Parri <parri.andrea@gmail.com>,
+        Boqun Feng <boqun.feng@gmail.com>,
+        Daniel Lustig <dlustig@nvidia.com>,
+        David Howells <dhowells@redhat.com>,
+        Jade Alglave <j.alglave@ucl.ac.uk>,
+        Joel Fernandes <joel@joelfernandes.org>,
+        Luc Maranget <luc.maranget@inria.fr>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org
-Subject: Re: [RFC PATCH v2] selinux: security: Move selinux_state to a separate page
+Subject: [PATCH 19/24] doc: update rcu_dereference.rst reference
+Date:   Wed, 13 Jan 2021 11:59:20 +0100
+Message-Id: <e2293b68eefdd00ea0f4795bc0672ef70f8627e2.1610535350.git.mchehab+huawei@kernel.org>
+X-Mailer: git-send-email 2.29.2
+In-Reply-To: <cover.1610535349.git.mchehab+huawei@kernel.org>
+References: <cover.1610535349.git.mchehab+huawei@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <2646560.1610535404.1@warthog.procyon.org.uk>
-Date:   Wed, 13 Jan 2021 10:56:44 +0000
-Message-ID: <2646561.1610535404@warthog.procyon.org.uk>
-X-Scanned-By: MIMEDefang 2.79 on 10.5.11.15
+Content-Transfer-Encoding: 8bit
+Sender: Mauro Carvalho Chehab <mchehab@kernel.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Casey Schaufler <casey@schaufler-ca.com> wrote:
+Changeset b00aedf978aa ("doc: Convert to rcu_dereference.txt to rcu_dereference.rst")
+renamed: Documentation/RCU/rcu_dereference.txt
+to: Documentation/RCU/rcu_dereference.rst.
 
-> >> How would this interact with or complement __read_mostly?
-> >>
-> > Currently, the mechanism we are working on developing is
-> > independent of __read_mostly. This is something we can look more into
-> > while working further on the mechanism.
-> 
-> Please either integrate the two or explain how they differ.
-> It appears that you haven't considered how you might exploit
-> or expand the existing mechanism.
+Update its cross-reference accordingly.
 
-I think __read_mostly is about grouping stuff together that's rarely going to
-be read to make the CPU's data cache more efficient.  It doesn't stop people
-writing to such a variable.
+Signed-off-by: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+---
+ tools/memory-model/Documentation/glossary.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-David
+diff --git a/tools/memory-model/Documentation/glossary.txt b/tools/memory-model/Documentation/glossary.txt
+index b2da6365be63..6f3d16dbf467 100644
+--- a/tools/memory-model/Documentation/glossary.txt
++++ b/tools/memory-model/Documentation/glossary.txt
+@@ -19,7 +19,7 @@ Address Dependency:  When the address of a later memory access is computed
+ 	 from the value returned by the rcu_dereference() on line 2, the
+ 	 address dependency extends from that rcu_dereference() to that
+ 	 "p->a".  In rare cases, optimizing compilers can destroy address
+-	 dependencies.	Please see Documentation/RCU/rcu_dereference.txt
++	 dependencies.	Please see Documentation/RCU/rcu_dereference.rst
+ 	 for more information.
+ 
+ 	 See also "Control Dependency" and "Data Dependency".
+-- 
+2.29.2
 
