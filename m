@@ -2,199 +2,168 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-23.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 42572C433DB
-	for <linux-arch@archiver.kernel.org>; Thu, 14 Jan 2021 02:18:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C4151C4332B
+	for <linux-arch@archiver.kernel.org>; Thu, 14 Jan 2021 03:23:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 075A5235F8
-	for <linux-arch@archiver.kernel.org>; Thu, 14 Jan 2021 02:18:11 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 873E5236F9
+	for <linux-arch@archiver.kernel.org>; Thu, 14 Jan 2021 03:23:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726808AbhAMVNf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 13 Jan 2021 16:13:35 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39176 "EHLO
+        id S1727184AbhANDWu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 13 Jan 2021 22:22:50 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34580 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729026AbhAMVJS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jan 2021 16:09:18 -0500
-Received: from sipsolutions.net (s3.sipsolutions.net [IPv6:2a01:4f8:191:4433::2])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EC8B4C061786
-        for <linux-arch@vger.kernel.org>; Wed, 13 Jan 2021 13:09:53 -0800 (PST)
-Received: by sipsolutions.net with esmtpsa (TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_256_GCM:256)
-        (Exim 4.94)
-        (envelope-from <johannes@sipsolutions.net>)
-        id 1kznOp-005vHf-SI; Wed, 13 Jan 2021 22:09:51 +0100
-From:   Johannes Berg <johannes@sipsolutions.net>
-To:     linux-um@lists.infradead.org
-Cc:     linux-arch@vger.kernel.org, Johannes Berg <johannes.berg@intel.com>
-Subject: [PATCH 1/3] um: separate child and parent errors in clone stub
-Date:   Wed, 13 Jan 2021 22:09:42 +0100
-Message-Id: <20210113220944.7732f6bfd3bb.Ib87c91b49d57d27314cf444696273da6d8463e9c@changeid>
-X-Mailer: git-send-email 2.26.2
+        with ESMTP id S1728047AbhANDWq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jan 2021 22:22:46 -0500
+Received: from mail-lf1-x134.google.com (mail-lf1-x134.google.com [IPv6:2a00:1450:4864:20::134])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8DD11C0617A4
+        for <linux-arch@vger.kernel.org>; Wed, 13 Jan 2021 19:21:58 -0800 (PST)
+Received: by mail-lf1-x134.google.com with SMTP id a12so6005103lfl.6
+        for <linux-arch@vger.kernel.org>; Wed, 13 Jan 2021 19:21:58 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20161025;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc:content-transfer-encoding;
+        bh=vBKhWUt1LhGAbz4nnRDMUBnzWjuIyMjEZqvvewkWv1c=;
+        b=NaIVV7JM8xDZ1C/WCKEpyacKuGqEWPxP6vpebXWTWTzzL1T6CKyVM2e5z2n7D/dkwY
+         0shB76+ANbIpUlcIUeIlgXWuxwBl4Dyl25ILehT0lz0wm7yTqX9ZIbQXm/DJfYRSCTQq
+         /sA0p0frlZZqD8gLu4OIEuYj/VZyM0tLnHmDr5eYJQShu0NvHJqDf+OBxKv13kzaAZYX
+         BKPcpiI95E7gIXeB67td0Oc3RAzsdxKmv69JEPxyF4yL8cUJ9eCfNPAIO3k+pEHxYnVm
+         SlUg67QRFzYrVnG54RRpwBYMbN+Hw0PAn/grXz5aewJztLd/C/Rs7zXzpbzCt6BKz28m
+         3tgw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc:content-transfer-encoding;
+        bh=vBKhWUt1LhGAbz4nnRDMUBnzWjuIyMjEZqvvewkWv1c=;
+        b=MlPw4j4KgQ7kxZTnmEzOvlbL1Wlgq+K1IYM56QlFaJpc/FCGty36pUfHdYAi0W7JYk
+         ScDsC1QMcMI3p/JYWnGPfAWGLD0sl5gnVrzSVeYQu1pPNytnGUiVgf0hvlBB+HxsypFv
+         yB2n7gaq5iniZrxJcs6FjVswMsTTBP4Ip+vtYLyQpU9bKfifY8uNh9c2YKn1Hb+NC/5x
+         i/V0BZb9TtpafHzlTP4K0mW+Kdx6ze+ESAoIHXLA0vRWYw7JvqFEmB+GT5/3G3Ojs8Ge
+         L7jO+qzMABLISrKVXlTSw4doSLU4zWpmVHfaMjbSkcrAsU4Q043PA02DrvOIbPpRNo2N
+         6Bgw==
+X-Gm-Message-State: AOAM532d+haP2aqnzUfkrLRyFVS3rTjaCcmEXfYO0wwXbN3A63R5BuhN
+        /8yHiLzZSAF9MuruobOBZpfCJgtcuDxJxqWsP6ZwOA==
+X-Google-Smtp-Source: ABdhPJyC/YkIU5Vr2XJQiVDPrgVLFbaYhJ6+pm2t5TLIpN9FVFsVdXVKpsifVVwckoCM1Y2ngeh/f+jtPiuasry3Q0U=
+X-Received: by 2002:a19:8053:: with SMTP id b80mr2516185lfd.74.1610594516694;
+ Wed, 13 Jan 2021 19:21:56 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20201209192839.1396820-1-mic@digikod.net> <20201209192839.1396820-12-mic@digikod.net>
+In-Reply-To: <20201209192839.1396820-12-mic@digikod.net>
+From:   Jann Horn <jannh@google.com>
+Date:   Thu, 14 Jan 2021 04:21:30 +0100
+Message-ID: <CAG48ez2yQNvcCrmCCBZKy_cxoZzNgremxWMia1YHsgaj4edqrA@mail.gmail.com>
+Subject: Re: [PATCH v26 11/12] samples/landlock: Add a sandbox manager example
+To:     =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
+Cc:     James Morris <jmorris@namei.org>,
+        "Serge E . Hallyn" <serge@hallyn.com>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@amacapital.net>,
+        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Casey Schaufler <casey@schaufler-ca.com>,
+        Jeff Dike <jdike@addtoit.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Richard Weinberger <richard@nod.at>,
+        Shuah Khan <shuah@kernel.org>,
+        Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>,
+        Kernel Hardening <kernel-hardening@lists.openwall.com>,
+        Linux API <linux-api@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
+        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
+        kernel list <linux-kernel@vger.kernel.org>,
+        "open list:KERNEL SELFTEST FRAMEWORK" 
+        <linux-kselftest@vger.kernel.org>,
+        linux-security-module <linux-security-module@vger.kernel.org>,
+        "the arch/x86 maintainers" <x86@kernel.org>,
+        =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@linux.microsoft.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Johannes Berg <johannes.berg@intel.com>
+On Wed, Dec 9, 2020 at 8:29 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.net> w=
+rote:
+> Add a basic sandbox tool to launch a command which can only access a
+> whitelist of file hierarchies in a read-only or read-write way.
 
-If the two are mixed up, then it looks as though the parent
-returned an error if the child failed (before) the mmap(),
-and then the resulting process never gets killed. Fix this
-by splitting the child and parent errors, reporting and
-using them appropriately.
+I have to admit that I didn't really look at this closely before
+because it's just sample code... but I guess I should. You can add
 
-Signed-off-by: Johannes Berg <johannes.berg@intel.com>
----
- arch/um/include/shared/skas/stub-data.h |  2 +-
- arch/um/kernel/skas/clone.c             | 25 +++++++++++--------------
- arch/um/os-Linux/skas/process.c         | 23 +++++++++++++----------
- arch/x86/um/shared/sysdep/stub_32.h     |  2 +-
- arch/x86/um/shared/sysdep/stub_64.h     |  2 +-
- 5 files changed, 27 insertions(+), 27 deletions(-)
+Reviewed-by: Jann Horn <jannh@google.com>
 
-diff --git a/arch/um/include/shared/skas/stub-data.h b/arch/um/include/shared/skas/stub-data.h
-index 6b01d97a9386..5e3ade3fb38b 100644
---- a/arch/um/include/shared/skas/stub-data.h
-+++ b/arch/um/include/shared/skas/stub-data.h
-@@ -11,7 +11,7 @@
- struct stub_data {
- 	unsigned long offset;
- 	int fd;
--	long err;
-+	long parent_err, child_err;
- };
- 
- #endif
-diff --git a/arch/um/kernel/skas/clone.c b/arch/um/kernel/skas/clone.c
-index bfb70c456b30..7c592c788cbf 100644
---- a/arch/um/kernel/skas/clone.c
-+++ b/arch/um/kernel/skas/clone.c
-@@ -24,29 +24,26 @@
- void __attribute__ ((__section__ (".__syscall_stub")))
- stub_clone_handler(void)
- {
--	struct stub_data *data = (struct stub_data *) STUB_DATA;
-+	int stack;
-+	struct stub_data *data = (void *) ((unsigned long)&stack & ~(UM_KERN_PAGE_SIZE - 1));
- 	long err;
- 
- 	err = stub_syscall2(__NR_clone, CLONE_PARENT | CLONE_FILES | SIGCHLD,
--			    STUB_DATA + UM_KERN_PAGE_SIZE / 2 - sizeof(void *));
--	if (err != 0)
--		goto out;
-+			    (unsigned long)data + UM_KERN_PAGE_SIZE / 2 - sizeof(void *));
-+	if (err) {
-+		data->parent_err = err;
-+		goto done;
-+	}
- 
- 	err = stub_syscall4(__NR_ptrace, PTRACE_TRACEME, 0, 0, 0);
--	if (err)
--		goto out;
-+	if (err) {
-+		data->child_err = err;
-+		goto done;
-+	}
- 
- 	remap_stack(data->fd, data->offset);
- 	goto done;
- 
-- out:
--	/*
--	 * save current result.
--	 * Parent: pid;
--	 * child: retcode of mmap already saved and it jumps around this
--	 * assignment
--	 */
--	data->err = err;
-  done:
- 	trap_myself();
- }
-diff --git a/arch/um/os-Linux/skas/process.c b/arch/um/os-Linux/skas/process.c
-index d910e25c273e..623b0aeadf4c 100644
---- a/arch/um/os-Linux/skas/process.c
-+++ b/arch/um/os-Linux/skas/process.c
-@@ -545,8 +545,14 @@ int copy_context_skas0(unsigned long new_stack, int pid)
- 	 * and child's mmap2 calls
- 	 */
- 	*data = ((struct stub_data) {
--			.offset	= MMAP_OFFSET(new_offset),
--			.fd     = new_fd
-+		.offset	= MMAP_OFFSET(new_offset),
-+		.fd     = new_fd,
-+		.parent_err = -ESRCH,
-+		.child_err = 0,
-+	});
-+
-+	*child_data = ((struct stub_data) {
-+		.child_err = -ESRCH,
- 	});
- 
- 	err = ptrace_setregs(pid, thread_regs);
-@@ -564,9 +570,6 @@ int copy_context_skas0(unsigned long new_stack, int pid)
- 		return err;
- 	}
- 
--	/* set a well known return code for detection of child write failure */
--	child_data->err = 12345678;
--
- 	/*
- 	 * Wait, until parent has finished its work: read child's pid from
- 	 * parent's stack, and check, if bad result.
-@@ -581,7 +584,7 @@ int copy_context_skas0(unsigned long new_stack, int pid)
- 
- 	wait_stub_done(pid);
- 
--	pid = data->err;
-+	pid = data->parent_err;
- 	if (pid < 0) {
- 		printk(UM_KERN_ERR "copy_context_skas0 - stub-parent reports "
- 		       "error %d\n", -pid);
-@@ -593,10 +596,10 @@ int copy_context_skas0(unsigned long new_stack, int pid)
- 	 * child's stack and check it.
- 	 */
- 	wait_stub_done(pid);
--	if (child_data->err != STUB_DATA) {
--		printk(UM_KERN_ERR "copy_context_skas0 - stub-child reports "
--		       "error %ld\n", child_data->err);
--		err = child_data->err;
-+	if (child_data->child_err != STUB_DATA) {
-+		printk(UM_KERN_ERR "copy_context_skas0 - stub-child %d reports "
-+		       "error %ld\n", pid, data->child_err);
-+		err = data->child_err;
- 		goto out_kill;
- 	}
- 
-diff --git a/arch/x86/um/shared/sysdep/stub_32.h b/arch/x86/um/shared/sysdep/stub_32.h
-index 51fd256c75f0..8ea69211e53c 100644
---- a/arch/x86/um/shared/sysdep/stub_32.h
-+++ b/arch/x86/um/shared/sysdep/stub_32.h
-@@ -86,7 +86,7 @@ static inline void remap_stack(int fd, unsigned long offset)
- 			    "d" (PROT_READ | PROT_WRITE),
- 			    "S" (MAP_FIXED | MAP_SHARED), "D" (fd),
- 			    "a" (offset),
--			    "i" (&((struct stub_data *) STUB_DATA)->err)
-+			    "i" (&((struct stub_data *) STUB_DATA)->child_err)
- 			  : "memory");
- }
- 
-diff --git a/arch/x86/um/shared/sysdep/stub_64.h b/arch/x86/um/shared/sysdep/stub_64.h
-index 994df93c5ed3..b7b8b8e4359d 100644
---- a/arch/x86/um/shared/sysdep/stub_64.h
-+++ b/arch/x86/um/shared/sysdep/stub_64.h
-@@ -92,7 +92,7 @@ static inline void remap_stack(long fd, unsigned long offset)
- 			    "d" (PROT_READ | PROT_WRITE),
-                             "g" (MAP_FIXED | MAP_SHARED), "g" (fd),
- 			    "g" (offset),
--			    "i" (&((struct stub_data *) STUB_DATA)->err)
-+			    "i" (&((struct stub_data *) STUB_DATA)->child_err)
- 			  : __syscall_clobber, "r10", "r8", "r9" );
- }
- 
--- 
-2.26.2
+if you fix the following nits:
 
+[...]
+> diff --git a/samples/Kconfig b/samples/Kconfig
+[...]
+> +config SAMPLE_LANDLOCK
+> +       bool "Build Landlock sample code"
+> +       depends on HEADERS_INSTALL
+> +       help
+> +         Build a simple Landlock sandbox manager able to launch a proces=
+s
+> +         restricted by a user-defined filesystem access control.
+
+nit: s/filesystem access control/filesystem access control policy/
+
+[...]
+> diff --git a/samples/landlock/sandboxer.c b/samples/landlock/sandboxer.c
+[...]
+> +/*
+> + * Simple Landlock sandbox manager able to launch a process restricted b=
+y a
+> + * user-defined filesystem access control.
+
+nit: s/filesystem access control/filesystem access control policy/
+
+[...]
+> +int main(const int argc, char *const argv[], char *const *const envp)
+> +{
+[...]
+> +       if (argc < 2) {
+[...]
+> +               fprintf(stderr, "* %s: list of paths allowed to be used i=
+n a read-only way.\n",
+> +                               ENV_FS_RO_NAME);
+> +               fprintf(stderr, "* %s: list of paths allowed to be used i=
+n a read-write way.\n",
+> +                               ENV_FS_RO_NAME);
+
+s/ENV_FS_RO_NAME/ENV_FS_RW_NAME/
+
+> +               fprintf(stderr, "\nexample:\n"
+> +                               "%s=3D\"/bin:/lib:/usr:/proc:/etc:/dev/ur=
+andom\" "
+> +                               "%s=3D\"/dev/null:/dev/full:/dev/zero:/de=
+v/pts:/tmp\" "
+> +                               "%s bash -i\n",
+> +                               ENV_FS_RO_NAME, ENV_FS_RW_NAME, argv[0]);
+> +               return 1;
+> +       }
+> +
+> +       ruleset_fd =3D landlock_create_ruleset(&ruleset_attr, sizeof(rule=
+set_attr), 0);
+> +       if (ruleset_fd < 0) {
+> +               perror("Failed to create a ruleset");
+> +               switch (errno) {
+
+(Just as a note: In theory perror() can change the value of errno, as
+far as I know - so AFAIK you'd theoretically have to do something
+like:
+
+int errno_ =3D errno;
+perror("...");
+switch (errno_) {
+ ...
+}
+
+I'll almost certainly work fine as-is in practice though.)
