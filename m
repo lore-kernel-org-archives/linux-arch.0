@@ -2,236 +2,162 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BF7FAC43332
-	for <linux-arch@archiver.kernel.org>; Fri, 15 Jan 2021 21:08:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4F61EC433E6
+	for <linux-arch@archiver.kernel.org>; Fri, 15 Jan 2021 21:15:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9E6EA239D1
-	for <linux-arch@archiver.kernel.org>; Fri, 15 Jan 2021 21:08:01 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 17827239E4
+	for <linux-arch@archiver.kernel.org>; Fri, 15 Jan 2021 21:15:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727975AbhAOVHq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 15 Jan 2021 16:07:46 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37432 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730665AbhAOVHn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jan 2021 16:07:43 -0500
-Received: from mail-pl1-x649.google.com (mail-pl1-x649.google.com [IPv6:2607:f8b0:4864:20::649])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 49E04C06179E
-        for <linux-arch@vger.kernel.org>; Fri, 15 Jan 2021 13:06:26 -0800 (PST)
-Received: by mail-pl1-x649.google.com with SMTP id d1so6340124plh.13
-        for <linux-arch@vger.kernel.org>; Fri, 15 Jan 2021 13:06:26 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=sender:date:in-reply-to:message-id:mime-version:references:subject
-         :from:to:cc;
-        bh=hLpMcuoMrHdKRuRQ10ZvVy2SGH1r/TsEXPc2P6puki0=;
-        b=dhblPhm4OIYmnwojsilrkFNxLqnupCh8eqOh5LRrpET0mTWlLnA6wQQksaxWijQR+1
-         mRa83zB0XYQrBHpmkiNRu57SzRLWrnCK1qCWLrXt9Au1AHOHqSze7KcEEZnCld8zX1Cf
-         q+zIKt3b/wFQRYFxLUtFFH9ApV9pPaRTQ95eAODEWRdEdaGckeUR6R7quwpjA48d81CO
-         T2YGnyGubzHG51nQ98xBiO7HPw4SEuiBa+yGX9Xpi2dOhHm5ua7QHpW6uSvuECAB0gO4
-         9qWvu/UeqKxH+547BHZ1AEhTTFcKhld+T7qL5GC0bfl+Jrk13Ms6Q1fZxRRu4eFlU1uG
-         AUfg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:sender:date:in-reply-to:message-id:mime-version
-         :references:subject:from:to:cc;
-        bh=hLpMcuoMrHdKRuRQ10ZvVy2SGH1r/TsEXPc2P6puki0=;
-        b=pInO5jVCLGt4Vrg5YEm7dTzh4zc1K7y0lVn+Zne28n+wIZ/OKgVhZQiX8L4+8KzsGw
-         NHRTsR2Fa3/PTtRaIGdlYERj/6SRIwDeA4BV3jpwUQybQs8XU2yYLq0Tz2E5ch7KG6/N
-         tYDU9IO+y2h8EOG46dpOGTWoBxUzn/EjvalJ9ZOXbjGRJGPu8JMleN8gL6ElAFehRikI
-         ZisH/lyr7fUjw+tTgwPEfGCIH2McBeRn8w1jEtwpoQYsp/l6v6s5tjR3ccKyEIRuHsP8
-         LZh6QqWvCFI1rUSFFBHiSSzxnCwAg8QLYQQUqkrYWtlu5WL5C0x4HOvGWts06fvSfGKT
-         CNHw==
-X-Gm-Message-State: AOAM532hdAocRQVi+KUOocHfxSCDqV1+QZ9IareyrUI6DqyAj4wBQoVo
-        cMf2rv0tVWuvb0fZmkdA0DPuuAQ+7u0vTnsxdzw=
-X-Google-Smtp-Source: ABdhPJx66z8uzMvlVuqxImT5TzGK+DQYWVmYK/Tkl801JARkDCZZyy45AmaejkSVd9hROPaUxLjLtx6vQWXwJE22EQA=
-Sender: "ndesaulniers via sendgmr" 
-        <ndesaulniers@ndesaulniers1.mtv.corp.google.com>
-X-Received: from ndesaulniers1.mtv.corp.google.com ([2620:15c:211:202:f693:9fff:fef4:4d25])
- (user=ndesaulniers job=sendgmr) by 2002:a62:ac09:0:b029:1a9:dd65:2f46 with
- SMTP id v9-20020a62ac090000b02901a9dd652f46mr14422249pfe.15.1610744785693;
- Fri, 15 Jan 2021 13:06:25 -0800 (PST)
-Date:   Fri, 15 Jan 2021 13:06:16 -0800
-In-Reply-To: <20210115210616.404156-1-ndesaulniers@google.com>
-Message-Id: <20210115210616.404156-4-ndesaulniers@google.com>
-Mime-Version: 1.0
-References: <20210115210616.404156-1-ndesaulniers@google.com>
-X-Mailer: git-send-email 2.30.0.284.gd98b1dd5eaa7-goog
-Subject: [PATCH v5 3/3] Kbuild: implement support for DWARF v5
-From:   Nick Desaulniers <ndesaulniers@google.com>
-To:     Masahiro Yamada <masahiroy@kernel.org>
-Cc:     Nathan Chancellor <natechancellor@gmail.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Sedat Dilek <sedat.dilek@gmail.com>,
-        linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com,
-        linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org,
-        Jakub Jelinek <jakub@redhat.com>,
-        Fangrui Song <maskray@google.com>,
-        Caroline Tice <cmtice@google.com>,
-        Nick Clifton <nickc@redhat.com>, Yonghong Song <yhs@fb.com>,
-        Jiri Olsa <jolsa@kernel.org>,
-        Andrii Nakryiko <andrii@kernel.org>,
-        Arnaldo Carvalho de Melo <acme@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Arvind Sankar <nivedita@alum.mit.edu>
-Content-Type: text/plain; charset="UTF-8"
+        id S1725943AbhAOVP6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 15 Jan 2021 16:15:58 -0500
+Received: from mga18.intel.com ([134.134.136.126]:45764 "EHLO mga18.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725772AbhAOVP5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 Jan 2021 16:15:57 -0500
+IronPort-SDR: VEr5Qk2rEoDw2m9faC4pKP8EbC/mEuWr+Z+1421do1hA02bVxMDKLTZUHCvZpmGua7FkkSTJ/X
+ r2gPayINdYmg==
+X-IronPort-AV: E=McAfee;i="6000,8403,9865"; a="166277108"
+X-IronPort-AV: E=Sophos;i="5.79,350,1602572400"; 
+   d="scan'208";a="166277108"
+Received: from fmsmga002.fm.intel.com ([10.253.24.26])
+  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Jan 2021 13:15:15 -0800
+IronPort-SDR: GF4VNj/rfZHCUuhZlfp8BElW8w7/P1PwclGxRzbXTs+r/avtUDf6f38YL9ieSYTOyjmT5/Spxp
+ 6z4zJ92xbbGw==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.79,350,1602572400"; 
+   d="scan'208";a="401418967"
+Received: from chang-linux-3.sc.intel.com ([172.25.66.175])
+  by fmsmga002.fm.intel.com with ESMTP; 15 Jan 2021 13:15:15 -0800
+From:   "Chang S. Bae" <chang.seok.bae@intel.com>
+To:     bp@suse.de, tglx@linutronix.de, mingo@kernel.org, luto@kernel.org,
+        x86@kernel.org
+Cc:     len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
+        Dave.Martin@arm.com, jannh@google.com, mpe@ellerman.id.au,
+        tony.luck@intel.com, ravi.v.shankar@intel.com,
+        libc-alpha@sourceware.org, linux-arch@vger.kernel.org,
+        linux-api@vger.kernel.org, linux-kernel@vger.kernel.org,
+        chang.seok.bae@intel.com, Fenghua Yu <fenghua.yu@intel.com>
+Subject: [PATCH v4 2/4] x86/elf: Support a new ELF aux vector AT_MINSIGSTKSZ
+Date:   Fri, 15 Jan 2021 13:10:36 -0800
+Message-Id: <20210115211038.2072-3-chang.seok.bae@intel.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20210115211038.2072-1-chang.seok.bae@intel.com>
+References: <20210115211038.2072-1-chang.seok.bae@intel.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-DWARF v5 is the latest standard of the DWARF debug info format.
+Historically, signal.h defines MINSIGSTKSZ (2KB) and SIGSTKSZ (8KB), for
+use by all architectures with sigaltstack(2). Over time, the hardware state
+size grew, but these constants did not evolve. Today, literal use of these
+constants on several architectures may result in signal stack overflow, and
+thus user data corruption.
 
-Feature detection of DWARF5 is onerous, especially given that we've
-removed $(AS), so we must query $(CC) for DWARF5 assembler directive
-support.
+A few years ago, the ARM team addressed this issue by establishing
+getauxval(AT_MINSIGSTKSZ), such that the kernel can supply at runtime value
+that is an appropriate replacement on the current and future hardware.
 
-The DWARF version of a binary can be validated with:
-$ llvm-dwarfdump vmlinux | head -n 4 | grep version
-or
-$ readelf --debug-dump=info vmlinux 2>/dev/null | grep Version
+Add getauxval(AT_MINSIGSTKSZ) support to x86, analogous to the support
+added for ARM in commit 94b07c1f8c39 ("arm64: signal: Report signal frame
+size to userspace via auxv").
 
-DWARF5 wins significantly in terms of size when mixed with compression
-(CONFIG_DEBUG_INFO_COMPRESSED).
-
-363M    vmlinux.clang12.dwarf5.compressed
-434M    vmlinux.clang12.dwarf4.compressed
-439M    vmlinux.clang12.dwarf2.compressed
-457M    vmlinux.clang12.dwarf5
-536M    vmlinux.clang12.dwarf4
-548M    vmlinux.clang12.dwarf2
-
-515M    vmlinux.gcc10.2.dwarf5.compressed
-599M    vmlinux.gcc10.2.dwarf4.compressed
-624M    vmlinux.gcc10.2.dwarf2.compressed
-630M    vmlinux.gcc10.2.dwarf5
-765M    vmlinux.gcc10.2.dwarf4
-809M    vmlinux.gcc10.2.dwarf2
-
-Though the quality of debug info is harder to quantify; size is not a
-proxy for quality.
-
-Jakub notes:
-  All [GCC] 5.1 - 6.x did was start accepting -gdwarf-5 as experimental
-  option that enabled some small DWARF subset (initially only a few
-  DW_LANG_* codes newly added to DWARF5 drafts).  Only GCC 7 (released
-  after DWARF 5 has been finalized) started emitting DWARF5 section
-  headers and got most of the DWARF5 changes in...
-
-Version check GCC so that we don't need to worry about the difference in
-command line args between GNU readelf and llvm-readelf/llvm-dwarfdump to
-validate the DWARF Version in the assembler feature detection script.
-
-GNU `as` only recently gained support for specifying -gdwarf-5, so when
-compiling with Clang but without Clang's integrated assembler
-(LLVM_IAS=1 is not set), explicitly add -Wa,-gdwarf-5 to DEBUG_CFLAGS.
-
-Disabled for now if CONFIG_DEBUG_INFO_BTF is set; pahole doesn't yet
-recognize the new additions to the DWARF debug info. Thanks to Sedat for
-the report.
-
-Link: http://www.dwarfstd.org/doc/DWARF5.pdf
-Reported-by: Sedat Dilek <sedat.dilek@gmail.com>
-Suggested-by: Arvind Sankar <nivedita@alum.mit.edu>
-Suggested-by: Caroline Tice <cmtice@google.com>
-Suggested-by: Fangrui Song <maskray@google.com>
-Suggested-by: Jakub Jelinek <jakub@redhat.com>
-Suggested-by: Masahiro Yamada <masahiroy@kernel.org>
-Suggested-by: Nathan Chancellor <natechancellor@gmail.com>
-Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
+Reported-by: Florian Weimer <fweimer@redhat.com>
+Fixes: c2bc11f10a39 ("x86, AVX-512: Enable AVX-512 States Context Switch")
+Signed-off-by: Chang S. Bae <chang.seok.bae@intel.com>
+Reviewed-by: Len Brown <len.brown@intel.com>
+Cc: H.J. Lu <hjl.tools@gmail.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Dave Martin <Dave.Martin@arm.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: x86@kernel.org
+Cc: libc-alpha@sourceware.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-api@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Link: https://bugzilla.kernel.org/show_bug.cgi?id=153531
 ---
- Makefile                          |  6 ++++++
- include/asm-generic/vmlinux.lds.h |  6 +++++-
- lib/Kconfig.debug                 | 18 ++++++++++++++++++
- scripts/test_dwarf5_support.sh    |  8 ++++++++
- 4 files changed, 37 insertions(+), 1 deletion(-)
- create mode 100755 scripts/test_dwarf5_support.sh
+ arch/x86/include/asm/elf.h         | 4 ++++
+ arch/x86/include/uapi/asm/auxvec.h | 6 ++++--
+ arch/x86/kernel/signal.c           | 5 +++++
+ 3 files changed, 13 insertions(+), 2 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index 4eb3bf7ee974..1dcea03861ef 100644
---- a/Makefile
-+++ b/Makefile
-@@ -828,10 +828,16 @@ endif
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index b9a5d488f1a5..044b024abea1 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -311,6 +311,7 @@ do {									\
+ 		NEW_AUX_ENT(AT_SYSINFO,	VDSO_ENTRY);			\
+ 		NEW_AUX_ENT(AT_SYSINFO_EHDR, VDSO_CURRENT_BASE);	\
+ 	}								\
++	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());			\
+ } while (0)
  
- dwarf-version-$(CONFIG_DEBUG_INFO_DWARF2) := 2
- dwarf-version-$(CONFIG_DEBUG_INFO_DWARF4) := 4
-+dwarf-version-$(CONFIG_DEBUG_INFO_DWARF5) := 5
- DEBUG_CFLAGS	+= -gdwarf-$(dwarf-version-y)
- # Binutils 2.35+ required for -gdwarf-4+ support.
- dwarf-aflag	:= $(call as-option,-Wa$(comma)-gdwarf-$(dwarf-version-y))
- KBUILD_AFLAGS	+= $(dwarf-aflag)
-+ifdef CONFIG_CC_IS_CLANG
-+ifneq ($(LLVM_IAS),1)
-+DEBUG_CFLAGS	+= $(dwarf-aflag)
-+endif
-+endif
+ /*
+@@ -327,6 +328,7 @@ extern unsigned long task_size_32bit(void);
+ extern unsigned long task_size_64bit(int full_addr_space);
+ extern unsigned long get_mmap_base(int is_legacy);
+ extern bool mmap_address_hint_valid(unsigned long addr, unsigned long len);
++extern unsigned long get_sigframe_size(void);
  
- ifdef CONFIG_DEBUG_INFO_REDUCED
- DEBUG_CFLAGS	+= $(call cc-option, -femit-struct-debug-baseonly) \
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 49944f00d2b3..37dc4110875e 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -843,7 +843,11 @@
- 		.debug_types	0 : { *(.debug_types) }			\
- 		/* DWARF 5 */						\
- 		.debug_macro	0 : { *(.debug_macro) }			\
--		.debug_addr	0 : { *(.debug_addr) }
-+		.debug_addr	0 : { *(.debug_addr) }			\
-+		.debug_line_str	0 : { *(.debug_line_str) }		\
-+		.debug_loclists	0 : { *(.debug_loclists) }		\
-+		.debug_rnglists	0 : { *(.debug_rnglists) }		\
-+		.debug_str_offsets	0 : { *(.debug_str_offsets) }
+ #ifdef CONFIG_X86_32
  
- /* Stabs debugging sections. */
- #define STABS_DEBUG							\
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index e80770fac4f0..658f32ec0c05 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -273,6 +273,24 @@ config DEBUG_INFO_DWARF4
- 	  It makes the debug information larger, but it significantly
- 	  improves the success of resolving variables in gdb on optimized code.
+@@ -348,6 +350,7 @@ do {									\
+ 	if (vdso64_enabled)						\
+ 		NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
+ 			    (unsigned long __force)current->mm->context.vdso); \
++	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());			\
+ } while (0)
  
-+config DEBUG_INFO_DWARF5
-+	bool "Generate DWARF Version 5 debuginfo"
-+	depends on GCC_VERSION >= 50000 || CC_IS_CLANG
-+	depends on CC_IS_GCC || $(success,$(srctree)/scripts/test_dwarf5_support.sh $(CC) $(CLANG_FLAGS))
-+	depends on !DEBUG_INFO_BTF
-+	help
-+	  Generate DWARF v5 debug info. Requires binutils 2.35, gcc 5.0+ (gcc
-+	  5.0+ accepts the -gdwarf-5 flag but only had partial support for some
-+	  draft features until 7.0), and gdb 8.0+.
+ /* As a historical oddity, the x32 and x86_64 vDSOs are controlled together. */
+@@ -356,6 +359,7 @@ do {									\
+ 	if (vdso64_enabled)						\
+ 		NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
+ 			    (unsigned long __force)current->mm->context.vdso); \
++	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());			\
+ } while (0)
+ 
+ #define AT_SYSINFO		32
+diff --git a/arch/x86/include/uapi/asm/auxvec.h b/arch/x86/include/uapi/asm/auxvec.h
+index 580e3c567046..edd7808060e6 100644
+--- a/arch/x86/include/uapi/asm/auxvec.h
++++ b/arch/x86/include/uapi/asm/auxvec.h
+@@ -10,11 +10,13 @@
+ #endif
+ #define AT_SYSINFO_EHDR		33
+ 
++#define AT_MINSIGSTKSZ		51
 +
-+	  Changes to the structure of debug info in Version 5 allow for around
-+	  15-18% savings in resulting image and debug info section sizes as
-+	  compared to DWARF Version 4. DWARF Version 5 standardizes previous
-+	  extensions such as accelerators for symbol indexing and the format
-+	  for fission (.dwo/.dwp) files. Users may not want to select this
-+	  config if they rely on tooling that has not yet been updated to
-+	  support DWARF Version 5.
-+
- endchoice # "DWARF version"
+ /* entries in ARCH_DLINFO: */
+ #if defined(CONFIG_IA32_EMULATION) || !defined(CONFIG_X86_64)
+-# define AT_VECTOR_SIZE_ARCH 2
++# define AT_VECTOR_SIZE_ARCH 3
+ #else /* else it's non-compat x86-64 */
+-# define AT_VECTOR_SIZE_ARCH 1
++# define AT_VECTOR_SIZE_ARCH 2
+ #endif
  
- config DEBUG_INFO_BTF
-diff --git a/scripts/test_dwarf5_support.sh b/scripts/test_dwarf5_support.sh
-new file mode 100755
-index 000000000000..1a00484d0b2e
---- /dev/null
-+++ b/scripts/test_dwarf5_support.sh
-@@ -0,0 +1,8 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0
+ #endif /* _ASM_X86_AUXVEC_H */
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 138a9f5b78d8..761d856f8ef7 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -716,6 +716,11 @@ void __init init_sigframe_size(void)
+ 	max_frame_size = round_up(max_frame_size, FRAME_ALIGNMENT);
+ }
+ 
++unsigned long get_sigframe_size(void)
++{
++	return max_frame_size;
++}
 +
-+# Test that assembler accepts -gdwarf-5 and .file 0 directives, which were bugs
-+# in binutils < 2.35.
-+# https://sourceware.org/bugzilla/show_bug.cgi?id=25612
-+# https://sourceware.org/bugzilla/show_bug.cgi?id=25614
-+echo '.file 0 "filename"' | $* -gdwarf-5 -Wa,-gdwarf-5 -c -x assembler -o /dev/null -
+ static inline int is_ia32_compat_frame(struct ksignal *ksig)
+ {
+ 	return IS_ENABLED(CONFIG_IA32_EMULATION) &&
 -- 
-2.30.0.284.gd98b1dd5eaa7-goog
+2.17.1
 
