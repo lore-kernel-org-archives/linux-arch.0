@@ -2,127 +2,74 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EFABAC43381
-	for <linux-arch@archiver.kernel.org>; Fri, 15 Jan 2021 14:48:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2CD5EC433E6
+	for <linux-arch@archiver.kernel.org>; Fri, 15 Jan 2021 17:04:41 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B57E623772
-	for <linux-arch@archiver.kernel.org>; Fri, 15 Jan 2021 14:48:08 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id F0C202313E
+	for <linux-arch@archiver.kernel.org>; Fri, 15 Jan 2021 17:04:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728586AbhAOOry (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 15 Jan 2021 09:47:54 -0500
-Received: from elvis.franken.de ([193.175.24.41]:53938 "EHLO elvis.franken.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732175AbhAOOry (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 Jan 2021 09:47:54 -0500
-Received: from uucp (helo=alpha)
-        by elvis.franken.de with local-bsmtp (Exim 3.36 #1)
-        id 1l0QNY-0006aU-02; Fri, 15 Jan 2021 15:47:08 +0100
-Received: by alpha.franken.de (Postfix, from userid 1000)
-        id CCB8EC057E; Fri, 15 Jan 2021 15:40:37 +0100 (CET)
-Date:   Fri, 15 Jan 2021 15:40:37 +0100
-From:   Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-To:     Alexander Lobakin <alobakin@pm.me>
-Cc:     Arnd Bergmann <arnd@arndb.de>,
-        Nathan Chancellor <natechancellor@gmail.com>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Huacai Chen <chenhuacai@kernel.org>,
-        Pei Huang <huangpei@loongson.cn>,
-        Kees Cook <keescook@chromium.org>,
-        Fangrui Song <maskray@google.com>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Ralf Baechle <ralf@linux-mips.org>,
-        Corey Minyard <cminyard@mvista.com>,
-        linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, stable@vger.kernel.org,
-        clang-built-linux@googlegroups.com
-Subject: Re: [PATCH v5 mips-next 0/9] MIPS: vmlinux.lds.S sections fixes &
- cleanup
-Message-ID: <20210115144037.GC15166@alpha.franken.de>
-References: <20210110115245.30762-1-alobakin@pm.me>
+        id S1726137AbhAOREh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 15 Jan 2021 12:04:37 -0500
+Received: from szxga05-in.huawei.com ([45.249.212.191]:11024 "EHLO
+        szxga05-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725910AbhAOREh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jan 2021 12:04:37 -0500
+Received: from DGGEMS405-HUB.china.huawei.com (unknown [172.30.72.59])
+        by szxga05-in.huawei.com (SkyGuard) with ESMTP id 4DHSDB5GBfzj8Gd;
+        Sat, 16 Jan 2021 01:02:50 +0800 (CST)
+Received: from localhost.localdomain (10.69.192.58) by
+ DGGEMS405-HUB.china.huawei.com (10.3.19.205) with Microsoft SMTP Server id
+ 14.3.498.0; Sat, 16 Jan 2021 01:03:47 +0800
+From:   John Garry <john.garry@huawei.com>
+To:     <catalin.marinas@arm.com>, <will@kernel.org>, <arnd@arndb.de>,
+        <akpm@linux-foundation.org>, <xuwei5@hisilicon.com>,
+        <lorenzo.pieralisi@arm.com>, <helgaas@kernel.org>,
+        <jiaxun.yang@flygoat.com>, <song.bao.hua@hisilicon.com>
+CC:     <linux-arm-kernel@lists.infradead.org>,
+        <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
+        <linux-mips@vger.kernel.org>, <linux-pci@vger.kernel.org>,
+        <linuxarm@openeuler.org>, John Garry <john.garry@huawei.com>
+Subject: [PATCH RFC 1/4] arm64: io: Introduce IO_SPACE_BASE
+Date:   Sat, 16 Jan 2021 00:58:46 +0800
+Message-ID: <1610729929-188490-2-git-send-email-john.garry@huawei.com>
+X-Mailer: git-send-email 2.8.1
+In-Reply-To: <1610729929-188490-1-git-send-email-john.garry@huawei.com>
+References: <1610729929-188490-1-git-send-email-john.garry@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210110115245.30762-1-alobakin@pm.me>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+Content-Type: text/plain
+X-Originating-IP: [10.69.192.58]
+X-CFilter-Loop: Reflected
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Jan 10, 2021 at 11:53:50AM +0000, Alexander Lobakin wrote:
-> This series hunts the problems discovered after manual enabling of
-> ARCH_WANT_LD_ORPHAN_WARN. Notably:
->  - adds the missing PAGE_ALIGNED_DATA() section affecting VDSO
->    placement (marked for stable);
->  - stops blind catching of orphan text sections with .text.*
->    directive;
->  - properly stops .eh_frame section generation.
-> 
-> Compile and runtime tested on MIPS32R2 CPS board with no issues
-> using two different toolkits:
->  - Binutils 2.35.1, GCC 10.2.1 (with Alpine patches);
->  - LLVM stack: 11.0.0 and from latest Git snapshot.
-> 
-> Since v4 [3]:
->  - new: drop redundant .text.cps-vec creation and blind inclusion
->    of orphan text sections via .text.* directive in vmlinux.lds.S;
->  - don't assert SIZEOF(.rel.dyn) as it's reported that it may be not
->    empty on certain machines and compilers (Thomas);
->  - align GOT table like it's done for ARM64;
->  - new: catch UBSAN's "unnamed data" sections in generic definitions
->    when building with LD_DEAD_CODE_DATA_ELIMINATION;
->  - collect Reviewed-bys (Kees, Nathan).
-> 
-> Since v3 [2]:
->  - fix the third patch as GNU stack emits .rel.dyn into VDSO for
->    some reason if .cfi_sections is specified.
-> 
-> Since v2 [1]:
->  - stop discarding .eh_frame and just prevent it from generating
->    (Kees);
->  - drop redundant sections assertions (Fangrui);
->  - place GOT table in .text instead of asserting as it's not empty
->    when building with LLVM (Nathan);
->  - catch compound literals in generic definitions when building with
->    LD_DEAD_CODE_DATA_ELIMINATION (Kees);
->  - collect two Reviewed-bys (Kees).
-> 
-> Since v1 [0]:
->  - catch .got entries too as LLD may produce it (Nathan);
->  - check for unwanted sections to be zero-sized instead of
->    discarding (Fangrui).
-> 
-> [0] https://lore.kernel.org/linux-mips/20210104121729.46981-1-alobakin@pm.me
-> [1] https://lore.kernel.org/linux-mips/20210106200713.31840-1-alobakin@pm.me
-> [2] https://lore.kernel.org/linux-mips/20210107115120.281008-1-alobakin@pm.me
-> [3] https://lore.kernel.org/linux-mips/20210107123331.354075-1-alobakin@pm.me
-> 
-> Alexander Lobakin (9):
->   MIPS: vmlinux.lds.S: add missing PAGE_ALIGNED_DATA() section
->   MIPS: CPS: don't create redundant .text.cps-vec section
->   MIPS: vmlinux.lds.S: add ".gnu.attributes" to DISCARDS
->   MIPS: properly stop .eh_frame generation
->   MIPS: vmlinux.lds.S: explicitly catch .rel.dyn symbols
->   MIPS: vmlinux.lds.S: explicitly declare .got table
->   vmlinux.lds.h: catch compound literals into data and BSS
->   vmlinux.lds.h: catch UBSAN's "unnamed data" into data
->   MIPS: select ARCH_WANT_LD_ORPHAN_WARN
-> 
->  arch/mips/Kconfig                 |  1 +
->  arch/mips/include/asm/asm.h       | 18 ++++++++++++++++++
->  arch/mips/kernel/cps-vec.S        |  1 -
->  arch/mips/kernel/vmlinux.lds.S    | 11 +++++++++--
->  include/asm-generic/vmlinux.lds.h |  6 +++---
->  5 files changed, 31 insertions(+), 6 deletions(-)
+Introduce IO_SPACE_BASE, which is the base address of the IO port region.
 
-applied to mips-next.
+0x10000 is chosen intentionally to exclude legacy ISA IO port address
+range.
 
-Thoomas.
+Signed-off-by: John Garry <john.garry@huawei.com>
+---
+ arch/arm64/include/asm/io.h | 1 +
+ 1 file changed, 1 insertion(+)
 
+diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
+index fd172c41df90..2bcf55704bee 100644
+--- a/arch/arm64/include/asm/io.h
++++ b/arch/arm64/include/asm/io.h
+@@ -148,6 +148,7 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
+ #define arch_has_dev_port()	(1)
+ #define IO_SPACE_LIMIT		(PCI_IO_SIZE - 1)
+ #define PCI_IOBASE		((void __iomem *)PCI_IO_START)
++#define IO_SPACE_BASE		(0x10000)
+ 
+ /*
+  * String version of I/O memory access operations.
 -- 
-Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
-good idea.                                                [ RFC1925, 2.3 ]
+2.26.2
+
