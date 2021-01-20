@@ -2,137 +2,159 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+X-Spam-Status: No, score=-19.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 41AFBC433DB
-	for <linux-arch@archiver.kernel.org>; Tue, 19 Jan 2021 21:09:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 01485C433E9
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 02:27:51 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 13103206EC
-	for <linux-arch@archiver.kernel.org>; Tue, 19 Jan 2021 21:09:43 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9F61E2251D
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 02:27:50 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2388318AbhASStN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 19 Jan 2021 13:49:13 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41528 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2391743AbhASR7j (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2021 12:59:39 -0500
-Received: from mail-wm1-x336.google.com (mail-wm1-x336.google.com [IPv6:2a00:1450:4864:20::336])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 71DE6C061573;
-        Tue, 19 Jan 2021 09:58:59 -0800 (PST)
-Received: by mail-wm1-x336.google.com with SMTP id e15so581563wme.0;
-        Tue, 19 Jan 2021 09:58:59 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=Ud39rUOwi9a+eDdinAxLAEakzSkS3TdE+RD/bhNorzQ=;
-        b=VXR7vmWGIj2jjxYIWeOws2Wl7U9SiEVahWjLU/e+0eN82PYKaoRniIiDIRK7msShQ0
-         TBfAjeteW6riRRxAoQrjol1Z6EUC/OjkammyFdgHunOCrZtHA2/S6gDYFPSGopFWjlWD
-         glIrEMHhg+sYx/tZy/MByl3pxJr2XDyca5U6qecQ1fxzE4VbsVInnwY68Cy3NeeBetN/
-         9o4sKysDN9draRqQv1uBTFPEB8XXm+9dllwXobePv0iuIlgVkSFYjY6Ds/ssTN7xfL/U
-         58ts6kr6GPaC4gKFgM5/Li01b/rMBs7Fkqrpp0/rQojH4NAGkbMsjrn9ZPgWSxc4g3yd
-         Rrwg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=Ud39rUOwi9a+eDdinAxLAEakzSkS3TdE+RD/bhNorzQ=;
-        b=BW9amq7I1zUq+i6ZaJzxa6EtekYENN5TFsyYHbsvB0w3VeXHNKvqhBDIVBot9GfGzK
-         6WBwyCVxS6YcBFwsbolgry4SQuy9KUXhguTCFOCc6CeTZu1IoWhKzc4hfSDueNDyMgBH
-         wcaQQ/2mB2W3jdy6FdNnRqDSGGEDE47hgZulMBKz2thOsQg6RHoU5deDILyyW+1Rj5G8
-         22pgJ3Azj7EB28P0qyHoBZ17j3otdiZi8raA4YCuk7/c9cH8TJa4tURNVqAWFNvaksc7
-         9TjzzdKQPXBdY4ljmB9IcBR68duI0xdnXNyqKIeUXIT99W95VwYLE2iUmD1m8HiGP8ai
-         KZcA==
-X-Gm-Message-State: AOAM5336rHo/LXhbzlFLETMeW98zj5bkG1XO5Yxef33EeudffoavmtBn
-        0HYhHFTr36FMhdJtMZNte5hC6VIFA/OTPnva
-X-Google-Smtp-Source: ABdhPJxJX9Y5y3EIyEHi9aNLRaU90KBI2X7LlLhhRsr/PehD6xzCuAqiAzYfgdq2RgPg9LZ6ZsBpSg==
-X-Received: by 2002:a05:600c:3548:: with SMTP id i8mr747653wmq.104.1611079137762;
-        Tue, 19 Jan 2021 09:58:57 -0800 (PST)
-Received: from anparri.mshome.net (host-79-50-177-118.retail.telecomitalia.it. [79.50.177.118])
-        by smtp.gmail.com with ESMTPSA id h125sm5899312wmh.16.2021.01.19.09.58.55
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 19 Jan 2021 09:58:57 -0800 (PST)
-From:   "Andrea Parri (Microsoft)" <parri.andrea@gmail.com>
-To:     linux-kernel@vger.kernel.org
-Cc:     "K . Y . Srinivasan" <kys@microsoft.com>,
-        Haiyang Zhang <haiyangz@microsoft.com>,
-        Stephen Hemminger <sthemmin@microsoft.com>,
-        Wei Liu <wei.liu@kernel.org>,
-        Michael Kelley <mikelley@microsoft.com>,
-        Tianyu Lan <Tianyu.Lan@microsoft.com>,
-        Saruhan Karademir <skarade@microsoft.com>,
-        Juan Vazquez <juvazq@microsoft.com>,
-        linux-hyperv@vger.kernel.org,
-        "Andrea Parri (Microsoft)" <parri.andrea@gmail.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-        "David S. Miller" <davem@davemloft.net>,
-        Jakub Kicinski <kuba@kernel.org>, x86@kernel.org,
-        linux-arch@vger.kernel.org, netdev@vger.kernel.org
-Subject: [PATCH 0/4] Drivers: hv: vmbus: Restrict devices and configurations on 'isolated' guests
-Date:   Tue, 19 Jan 2021 18:58:37 +0100
-Message-Id: <20210119175841.22248-1-parri.andrea@gmail.com>
-X-Mailer: git-send-email 2.25.1
+        id S1727677AbhATB2Y (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 19 Jan 2021 20:28:24 -0500
+Received: from mail.kernel.org ([198.145.29.99]:47354 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729973AbhATB2O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Jan 2021 20:28:14 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id DEF1123339;
+        Wed, 20 Jan 2021 01:26:31 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1611105992;
+        bh=gGUduK6MdbqDUC7gU/Os07HogcN1GBUxcwWnvsA0Gz8=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=re3HOL3kisEQN3mHesF5PEzfplBhA+/pa4zcM2TLmkc3VOwSLUg7A7jaTqHHAnhnO
+         TeBust6mBptUheQDihZ/43dwexgie518GReIBjBkeQyS5UE5adlbUO/jxRZLH+MBKk
+         rFtN9/8jj+LwK6TRkgsHWrJ1NVRqmnkCmXmmLtghVhx7waxtbW9yeiPT7xO1E4Fzba
+         UEkNmv4LbggDYeKo7T6NNjjcB0uSU+QKyJwcmzHck7loU2oYY6UWiK43k3+mGCBiMw
+         CC25eHUl2fDp0C7iRC3MV9psOtW9fUMzuhYOZ8x5yjv+zP/vK9/64whzo3q2KtWRFs
+         Dhc4bFqGZMa8Q==
+From:   Sasha Levin <sashal@kernel.org>
+To:     linux-kernel@vger.kernel.org, stable@vger.kernel.org
+Cc:     Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Sasha Levin <sashal@kernel.org>,
+        linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+        clang-built-linux@googlegroups.com
+Subject: [PATCH AUTOSEL 5.10 23/45] arm64: make atomic helpers __always_inline
+Date:   Tue, 19 Jan 2021 20:25:40 -0500
+Message-Id: <20210120012602.769683-23-sashal@kernel.org>
+X-Mailer: git-send-email 2.27.0
+In-Reply-To: <20210120012602.769683-1-sashal@kernel.org>
+References: <20210120012602.769683-1-sashal@kernel.org>
 MIME-Version: 1.0
+X-stable: review
+X-Patchwork-Hint: Ignore
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi all,
+From: Arnd Bergmann <arnd@arndb.de>
 
-To reduce the footprint of the code that will be exercised, and hence
-the exposure to bugs and vulnerabilities, restrict configurations and
-devices on 'isolated' VMs.
+[ Upstream commit c35a824c31834d947fb99b0c608c1b9f922b4ba0 ]
 
-Specs of the Isolation Configuration leaf (cf. patch #1) were derived
-from internal discussions with the Hyper-V team and, AFAICT, they are
-not publicly available yet.
+With UBSAN enabled and building with clang, there are occasionally
+warnings like
 
-The series has some minor/naming conflict with on-going work aimed at
-enabling SNP VMs on Hyper-V[1]; such conflicts can be addressed later
-at the right time.
+WARNING: modpost: vmlinux.o(.text+0xc533ec): Section mismatch in reference from the function arch_atomic64_or() to the variable .init.data:numa_nodes_parsed
+The function arch_atomic64_or() references
+the variable __initdata numa_nodes_parsed.
+This is often because arch_atomic64_or lacks a __initdata
+annotation or the annotation of numa_nodes_parsed is wrong.
 
-Applies to hyperv-next.
+for functions that end up not being inlined as intended but operating
+on __initdata variables. Mark these as __always_inline, along with
+the corresponding asm-generic wrappers.
 
-Thanks,
-  Andrea
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Will Deacon <will@kernel.org>
+Link: https://lore.kernel.org/r/20210108092024.4034860-1-arnd@kernel.org
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+---
+ arch/arm64/include/asm/atomic.h     | 10 +++++-----
+ include/asm-generic/bitops/atomic.h |  6 +++---
+ 2 files changed, 8 insertions(+), 8 deletions(-)
 
-[1] https://github.com/lantianyu/linux # cvm
-
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Jakub Kicinski <kuba@kernel.org>
-Cc: x86@kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: netdev@vger.kernel.org
-
-Andrea Parri (Microsoft) (4):
-  x86/hyperv: Load/save the Isolation Configuration leaf
-  Drivers: hv: vmbus: Restrict vmbus_devices on isolated guests
-  Drivers: hv: vmbus: Enforce 'VMBus version >= 5.2' on isolated guests
-  hv_netvsc: Restrict configurations on isolated guests
-
- arch/x86/hyperv/hv_init.c          | 15 +++++++++++++
- arch/x86/include/asm/hyperv-tlfs.h | 15 +++++++++++++
- arch/x86/kernel/cpu/mshyperv.c     |  9 ++++++++
- drivers/hv/channel_mgmt.c          | 36 ++++++++++++++++++++++++++++++
- drivers/hv/connection.c            | 13 +++++++++++
- drivers/net/hyperv/netvsc.c        | 21 ++++++++++++++---
- include/asm-generic/hyperv-tlfs.h  |  1 +
- include/asm-generic/mshyperv.h     |  5 +++++
- include/linux/hyperv.h             |  1 +
- 9 files changed, 113 insertions(+), 3 deletions(-)
-
+diff --git a/arch/arm64/include/asm/atomic.h b/arch/arm64/include/asm/atomic.h
+index 015ddffaf6caa..b56a4b2bc2486 100644
+--- a/arch/arm64/include/asm/atomic.h
++++ b/arch/arm64/include/asm/atomic.h
+@@ -17,7 +17,7 @@
+ #include <asm/lse.h>
+ 
+ #define ATOMIC_OP(op)							\
+-static inline void arch_##op(int i, atomic_t *v)			\
++static __always_inline void arch_##op(int i, atomic_t *v)		\
+ {									\
+ 	__lse_ll_sc_body(op, i, v);					\
+ }
+@@ -32,7 +32,7 @@ ATOMIC_OP(atomic_sub)
+ #undef ATOMIC_OP
+ 
+ #define ATOMIC_FETCH_OP(name, op)					\
+-static inline int arch_##op##name(int i, atomic_t *v)			\
++static __always_inline int arch_##op##name(int i, atomic_t *v)		\
+ {									\
+ 	return __lse_ll_sc_body(op##name, i, v);			\
+ }
+@@ -56,7 +56,7 @@ ATOMIC_FETCH_OPS(atomic_sub_return)
+ #undef ATOMIC_FETCH_OPS
+ 
+ #define ATOMIC64_OP(op)							\
+-static inline void arch_##op(long i, atomic64_t *v)			\
++static __always_inline void arch_##op(long i, atomic64_t *v)		\
+ {									\
+ 	__lse_ll_sc_body(op, i, v);					\
+ }
+@@ -71,7 +71,7 @@ ATOMIC64_OP(atomic64_sub)
+ #undef ATOMIC64_OP
+ 
+ #define ATOMIC64_FETCH_OP(name, op)					\
+-static inline long arch_##op##name(long i, atomic64_t *v)		\
++static __always_inline long arch_##op##name(long i, atomic64_t *v)	\
+ {									\
+ 	return __lse_ll_sc_body(op##name, i, v);			\
+ }
+@@ -94,7 +94,7 @@ ATOMIC64_FETCH_OPS(atomic64_sub_return)
+ #undef ATOMIC64_FETCH_OP
+ #undef ATOMIC64_FETCH_OPS
+ 
+-static inline long arch_atomic64_dec_if_positive(atomic64_t *v)
++static __always_inline long arch_atomic64_dec_if_positive(atomic64_t *v)
+ {
+ 	return __lse_ll_sc_body(atomic64_dec_if_positive, v);
+ }
+diff --git a/include/asm-generic/bitops/atomic.h b/include/asm-generic/bitops/atomic.h
+index dd90c9792909d..0e7316a86240b 100644
+--- a/include/asm-generic/bitops/atomic.h
++++ b/include/asm-generic/bitops/atomic.h
+@@ -11,19 +11,19 @@
+  * See Documentation/atomic_bitops.txt for details.
+  */
+ 
+-static inline void set_bit(unsigned int nr, volatile unsigned long *p)
++static __always_inline void set_bit(unsigned int nr, volatile unsigned long *p)
+ {
+ 	p += BIT_WORD(nr);
+ 	atomic_long_or(BIT_MASK(nr), (atomic_long_t *)p);
+ }
+ 
+-static inline void clear_bit(unsigned int nr, volatile unsigned long *p)
++static __always_inline void clear_bit(unsigned int nr, volatile unsigned long *p)
+ {
+ 	p += BIT_WORD(nr);
+ 	atomic_long_andnot(BIT_MASK(nr), (atomic_long_t *)p);
+ }
+ 
+-static inline void change_bit(unsigned int nr, volatile unsigned long *p)
++static __always_inline void change_bit(unsigned int nr, volatile unsigned long *p)
+ {
+ 	p += BIT_WORD(nr);
+ 	atomic_long_xor(BIT_MASK(nr), (atomic_long_t *)p);
 -- 
-2.25.1
+2.27.0
 
