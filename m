@@ -5,67 +5,67 @@ X-Spam-Level:
 X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EED7CC433E0
-	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 03:32:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F21A2C4332B
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 03:34:53 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A92A222573
-	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 03:32:52 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B8AD52312B
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 03:34:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728723AbhATDc0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 19 Jan 2021 22:32:26 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39104 "EHLO
+        id S1729224AbhATC3e (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 19 Jan 2021 21:29:34 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38974 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732015AbhATC3s (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2021 21:29:48 -0500
-Received: from mail-pl1-x635.google.com (mail-pl1-x635.google.com [IPv6:2607:f8b0:4864:20::635])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A1E75C061575
-        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2021 18:29:33 -0800 (PST)
-Received: by mail-pl1-x635.google.com with SMTP id x18so11682194pln.6
-        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2021 18:29:33 -0800 (PST)
+        with ESMTP id S1729965AbhATC2f (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2021 21:28:35 -0500
+Received: from mail-pj1-x102c.google.com (mail-pj1-x102c.google.com [IPv6:2607:f8b0:4864:20::102c])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D8802C0613C1
+        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2021 18:27:53 -0800 (PST)
+Received: by mail-pj1-x102c.google.com with SMTP id my11so2364234pjb.1
+        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2021 18:27:53 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=n/dbbS0rMlpQp00koX4eBauIdFcCxHN4tLYTcu+aBbI=;
-        b=Yu3XAmShQwGA9NbbMUP0V6TpATKelYqfitBamIpxlRYWx3HITJzOKhwxIuILKipYyr
-         vwL3tH3iFcsyDxVk42a7u1Av5eDbwZIBRarXcDDEgBXqQ0X3HkE65azocsR1MUaFt5BE
-         yj/93j5U+dI9S6rCBAv6X7ClS6HIKQqKb8nbxBSBfXUL66h3yZ+KD3c0gy6REHT3Paby
-         pjpvVXl8YDK2llxlRbnyRGaXkBse1qSPsZ41v8zUu1f9roNXrmkS2gmKKzmy8tVcAJ5Z
-         XFccGI3W8sTjzUwaxnp7eMS8okKfIZJBbz3jCfj3o+0bfkA8Exz6WOuOg1uhtldocAxe
-         nJ3A==
+        bh=5r5bI8A65LN2SI4myGsB2aomb7p4f4PRN/9IrfOYQGw=;
+        b=khJbnrwkWyvFb5tUPJ7leMw1h7O+x77ma+2G4vr9L4baP55QPgcmBDx42yPzFsYmYK
+         ESKk3o407rV3WcV4/n7iBLVMsAzIQFhr2mH7VHH8GYnWcjFn22Kc1iVYnFRSOwmm2vxE
+         MHmUBuzs6EEwsbgaicn2n9Wgd2KuDHeId9ki9+i2l1zIHGQSTuoj0klHCdvd+9gVuFmF
+         BlX5+371/JtuiYS61aSua7Gh0SqqAF6gUbcFvFgxHey62da1j0GeOAbTDxdzDov0+tgH
+         I7uktJzR6emDTlMy3HVbpG5/WeMEZ9PzkmC7FIYbIbbD2zkxn4yt/mkriMTaOmqXihfs
+         NyAQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=n/dbbS0rMlpQp00koX4eBauIdFcCxHN4tLYTcu+aBbI=;
-        b=bwyUx46/nyaAax+qLh+HZAli8FvWMs1bk2akYm9kX+W3E9JvnRVFFhprL40b6k2VUL
-         bFVHOxgF/AfDq1Y0iNIzirewV9Ztz1Ocg2UEbtb29liul0tF2Njt1r1ITu6qwvQxJhkx
-         /2DwI0+vozPyTkbWLyOSwqLDkVCjC2+J6/bFhwyVFTrIYRo1u4Bs/0OqRGGtEFthBqN/
-         McJ+pFLU4NUogSFaryBekWCSbUoh07W9KvLN5xbb5OKGa4K6ZyGggbOONgs3+ZMbJqFe
-         40KFtFafKKQm+9peFRmoQXYFOVXjpkVlVnGqiDjtXVnUY6yU9hETdPQCyYsVbLVJ9iK8
-         j48A==
-X-Gm-Message-State: AOAM532ylrl2CjLbEjsZkIGtB2CEAasuEfM7MlBGlPM2wkGY/2HaofaD
-        PPIsu0iCBlbKTBlcHAFbXjSu/+T64F3Qp4reeQo=
-X-Google-Smtp-Source: ABdhPJwsUtX6KtjCCrsv6R3BCj/oMIfRCSL6+b7hUdJHYrJxzW7aiHN+khBbrOmfzMsvkt/SpI5wig==
-X-Received: by 2002:a17:902:5991:b029:de:a709:ffda with SMTP id p17-20020a1709025991b02900dea709ffdamr7689240pli.63.1611109773034;
-        Tue, 19 Jan 2021 18:29:33 -0800 (PST)
+        bh=5r5bI8A65LN2SI4myGsB2aomb7p4f4PRN/9IrfOYQGw=;
+        b=U5XrqHgA/lMcstXlaIYa8559feoJjCABe1KkoJtcX+wIJJed30ccHgDO5BQrJ356bh
+         1mAw32gmImMzn2LVG1vVLJtX2YmPGMS9/whRyvUS5EXGMFeMj+f9R7keAGLDgF2f4ujB
+         etUYm6A1TZGHDrzosAhJk6zdN7ylixo1JHhaQc5ln+wLDuxokxQX89+66eODGcOfwO1u
+         jIu6ob0zqYhG+KCS88SseRvrn+ixQhCr+yYz67asbhaMwm3YZECDhFMRn0b6VI9nj9RJ
+         Hr2yKnfaotB3OSP7/7Oo+JQ3DxBrSk2I/f8cHjyIoFyZyZGKUEUbUJWwY0em+RP+biI2
+         zifg==
+X-Gm-Message-State: AOAM533ErskORR6M/Sa6JN89U1ZYguIlle5gI8HteA0kifq3hiJm2NVq
+        lyG85QKcEHZGklck1HeH7W4=
+X-Google-Smtp-Source: ABdhPJzVeuKu9Dd37ocJGzEKWEkh6elw1a/G9plpRyMu8857zzzEn3iqT9pDzs/m0E0jd5oHTPwgmA==
+X-Received: by 2002:a17:902:8f91:b029:de:302e:cfda with SMTP id z17-20020a1709028f91b02900de302ecfdamr7521459plo.69.1611109673185;
+        Tue, 19 Jan 2021 18:27:53 -0800 (PST)
 Received: from earth-mac.local (219x123x138x129.ap219.ftth.ucom.ne.jp. [219.123.138.129])
-        by smtp.gmail.com with ESMTPSA id 197sm349261pgg.43.2021.01.19.18.29.31
+        by smtp.gmail.com with ESMTPSA id a2sm355030pgi.8.2021.01.19.18.27.52
         (version=TLS1_2 cipher=ECDHE-ECDSA-CHACHA20-POLY1305 bits=256/256);
-        Tue, 19 Jan 2021 18:29:32 -0800 (PST)
+        Tue, 19 Jan 2021 18:27:52 -0800 (PST)
 Received: by earth-mac.local (Postfix, from userid 501)
-        id 34E6820442D3F1; Wed, 20 Jan 2021 11:29:30 +0900 (JST)
+        id 6770120442D294; Wed, 20 Jan 2021 11:27:50 +0900 (JST)
 From:   Hajime Tazaki <thehajime@gmail.com>
 To:     linux-um@lists.infradead.org, jdike@addtoit.com, richard@nod.at,
         anton.ivanov@cambridgegreys.com
 Cc:     thehajime@gmail.com, tavi.purdila@gmail.com, retrage01@gmail.com,
         linux-kernel-library@freelists.org, linux-arch@vger.kernel.org
-Subject: [RFC v8 16/20] um: host: add utilities functions
-Date:   Wed, 20 Jan 2021 11:27:21 +0900
-Message-Id: <8416d4b2f5c5510bfa3162cf04bae181c13d3f6e.1611103406.git.thehajime@gmail.com>
+Subject: [RFC v8 02/20] um: move arch/um/os-Linux dir to tools/um/uml
+Date:   Wed, 20 Jan 2021 11:27:07 +0900
+Message-Id: <a1e04393b966ec467f2ef91e8941e700ca5d80fc.1611103406.git.thehajime@gmail.com>
 X-Mailer: git-send-email 2.20.1 (Apple Git-117)
 In-Reply-To: <cover.1611103406.git.thehajime@gmail.com>
 References: <cover.1611103406.git.thehajime@gmail.com>
@@ -75,274 +75,426 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add basic utility functions for getting a string from a kernel error
-code and a fprintf like function that uses the host print
-operation. The latter is useful for informing the user about errors
-that occur in the host library.
+This patch moves underlying OS dependent part under arch/um to tools/um
+directory so that arch/um code does not need to build host build
+facilities (e.g., libc).
 
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
 ---
- tools/um/include/lkl.h |  23 +++++
- tools/um/lib/Build     |   3 +
- tools/um/lib/utils.c   | 205 +++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 231 insertions(+)
- create mode 100644 tools/um/lib/Build
- create mode 100644 tools/um/lib/utils.c
+ arch/um/Makefile                              |  3 +-
+ arch/um/drivers/Makefile                      |  2 +
+ .../um/{os-Linux => }/drivers/ethertap_kern.c |  0
+ arch/um/{os-Linux => }/drivers/tuntap_kern.c  |  0
+ .../drivers => include/shared}/etap.h         |  0
+ arch/um/include/shared/init.h                 |  5 ++
+ .../drivers => include/shared}/tuntap.h       |  0
+ arch/um/kernel/Makefile                       |  1 +
+ arch/um/{os-Linux => kernel}/user_syms.c      |  0
+ arch/um/os-Linux/Makefile                     | 21 --------
+ arch/um/os-Linux/drivers/Makefile             | 13 -----
+ tools/um/Makefile                             |  4 +-
+ tools/um/uml/Build                            | 50 +++++++++++++++++++
+ tools/um/uml/drivers/Build                    | 10 ++++
+ .../um/uml}/drivers/ethertap_user.c           |  0
+ .../um/uml}/drivers/tuntap_user.c             |  0
+ {arch/um/os-Linux => tools/um/uml}/elf_aux.c  |  0
+ {arch/um/os-Linux => tools/um/uml}/execvp.c   |  4 --
+ {arch/um/os-Linux => tools/um/uml}/file.c     |  0
+ {arch/um/os-Linux => tools/um/uml}/helper.c   |  0
+ {arch/um/os-Linux => tools/um/uml}/irq.c      |  0
+ {arch/um/os-Linux => tools/um/uml}/main.c     |  0
+ {arch/um/os-Linux => tools/um/uml}/mem.c      |  0
+ {arch/um/os-Linux => tools/um/uml}/process.c  |  0
+ .../um/os-Linux => tools/um/uml}/registers.c  |  0
+ {arch/um/os-Linux => tools/um/uml}/sigio.c    |  0
+ {arch/um/os-Linux => tools/um/uml}/signal.c   |  0
+ .../skas/Makefile => tools/um/uml/skas/Build  |  6 +--
+ {arch/um/os-Linux => tools/um/uml}/skas/mem.c |  0
+ .../os-Linux => tools/um/uml}/skas/process.c  |  3 +-
+ {arch/um/os-Linux => tools/um/uml}/start_up.c |  0
+ {arch/um/os-Linux => tools/um/uml}/time.c     |  0
+ {arch/um/os-Linux => tools/um/uml}/tty.c      |  0
+ {arch/um/os-Linux => tools/um/uml}/umid.c     |  0
+ {arch/um/os-Linux => tools/um/uml}/util.c     |  0
+ 35 files changed, 73 insertions(+), 49 deletions(-)
+ rename arch/um/{os-Linux => }/drivers/ethertap_kern.c (100%)
+ rename arch/um/{os-Linux => }/drivers/tuntap_kern.c (100%)
+ rename arch/um/{os-Linux/drivers => include/shared}/etap.h (100%)
+ rename arch/um/{os-Linux/drivers => include/shared}/tuntap.h (100%)
+ rename arch/um/{os-Linux => kernel}/user_syms.c (100%)
+ delete mode 100644 arch/um/os-Linux/Makefile
+ delete mode 100644 arch/um/os-Linux/drivers/Makefile
+ create mode 100644 tools/um/uml/drivers/Build
+ rename {arch/um/os-Linux => tools/um/uml}/drivers/ethertap_user.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/drivers/tuntap_user.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/elf_aux.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/execvp.c (98%)
+ rename {arch/um/os-Linux => tools/um/uml}/file.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/helper.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/irq.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/main.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/mem.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/process.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/registers.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/sigio.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/signal.c (100%)
+ rename arch/um/os-Linux/skas/Makefile => tools/um/uml/skas/Build (56%)
+ rename {arch/um/os-Linux => tools/um/uml}/skas/mem.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/skas/process.c (99%)
+ rename {arch/um/os-Linux => tools/um/uml}/start_up.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/time.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/tty.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/umid.c (100%)
+ rename {arch/um/os-Linux => tools/um/uml}/util.c (100%)
 
-diff --git a/tools/um/include/lkl.h b/tools/um/include/lkl.h
-index 2417ed5ccf71..97da2d11502f 100644
---- a/tools/um/include/lkl.h
-+++ b/tools/um/include/lkl.h
-@@ -27,6 +27,29 @@ extern "C" {
- #undef class
- #endif
+diff --git a/arch/um/Makefile b/arch/um/Makefile
+index 48fbbc3a0032..bce0cccae085 100644
+--- a/arch/um/Makefile
++++ b/arch/um/Makefile
+@@ -24,8 +24,7 @@ OS := $(shell uname -s)
+ SHELL := /bin/bash
  
-+/**
-+ * lkl_printf - print a message via the host print operation
-+ *
-+ * @fmt: printf like format string
-+ */
-+int lkl_printf(const char *fmt, ...);
+ core-y			+= $(ARCH_DIR)/kernel/		\
+-			   $(ARCH_DIR)/drivers/		\
+-			   $(ARCH_DIR)/os-$(OS)/
++			   $(ARCH_DIR)/drivers/
+ 
+ MODE_INCLUDE	+= -I$(srctree)/$(ARCH_DIR)/include/shared/skas
+ 
+diff --git a/arch/um/drivers/Makefile b/arch/um/drivers/Makefile
+index 2a249f619467..ae96c83e312d 100644
+--- a/arch/um/drivers/Makefile
++++ b/arch/um/drivers/Makefile
+@@ -48,6 +48,8 @@ obj-$(CONFIG_UML_NET_VECTOR) += vector.o
+ obj-$(CONFIG_UML_NET_VDE) += vde.o
+ obj-$(CONFIG_UML_NET_MCAST) += umcast.o
+ obj-$(CONFIG_UML_NET_PCAP) += pcap.o
++obj-$(CONFIG_UML_NET_ETHERTAP) += ethertap_kern.o
++obj-$(CONFIG_UML_NET_TUNTAP) += tuntap_kern.o
+ obj-$(CONFIG_UML_NET) += net.o 
+ obj-$(CONFIG_MCONSOLE) += mconsole.o
+ obj-$(CONFIG_MMAPPER) += mmapper_kern.o 
+diff --git a/arch/um/os-Linux/drivers/ethertap_kern.c b/arch/um/drivers/ethertap_kern.c
+similarity index 100%
+rename from arch/um/os-Linux/drivers/ethertap_kern.c
+rename to arch/um/drivers/ethertap_kern.c
+diff --git a/arch/um/os-Linux/drivers/tuntap_kern.c b/arch/um/drivers/tuntap_kern.c
+similarity index 100%
+rename from arch/um/os-Linux/drivers/tuntap_kern.c
+rename to arch/um/drivers/tuntap_kern.c
+diff --git a/arch/um/os-Linux/drivers/etap.h b/arch/um/include/shared/etap.h
+similarity index 100%
+rename from arch/um/os-Linux/drivers/etap.h
+rename to arch/um/include/shared/etap.h
+diff --git a/arch/um/include/shared/init.h b/arch/um/include/shared/init.h
+index 1a659e2e8cc3..fa2d3138d497 100644
+--- a/arch/um/include/shared/init.h
++++ b/arch/um/include/shared/init.h
+@@ -41,7 +41,12 @@
+ typedef int (*initcall_t)(void);
+ typedef void (*exitcall_t)(void);
+ 
++#ifndef __UM_HOST__
+ #include <linux/compiler_types.h>
++#else
++#define __used                          __attribute__((__used__))
++#define __section(S)                    __attribute__((__section__(#S)))
++#endif
+ 
+ /* These are for everybody (although not all archs will actually
+    discard it in modules) */
+diff --git a/arch/um/os-Linux/drivers/tuntap.h b/arch/um/include/shared/tuntap.h
+similarity index 100%
+rename from arch/um/os-Linux/drivers/tuntap.h
+rename to arch/um/include/shared/tuntap.h
+diff --git a/arch/um/kernel/Makefile b/arch/um/kernel/Makefile
+index 5aa882011e04..9b63831a69e1 100644
+--- a/arch/um/kernel/Makefile
++++ b/arch/um/kernel/Makefile
+@@ -24,6 +24,7 @@ obj-$(CONFIG_GPROF)	+= gprof_syms.o
+ obj-$(CONFIG_GCOV)	+= gmon_syms.o
+ obj-$(CONFIG_EARLY_PRINTK) += early_printk.o
+ obj-$(CONFIG_STACKTRACE) += stacktrace.o
++obj-y += user_syms.o
+ 
+ USER_OBJS := config.o
+ 
+diff --git a/arch/um/os-Linux/user_syms.c b/arch/um/kernel/user_syms.c
+similarity index 100%
+rename from arch/um/os-Linux/user_syms.c
+rename to arch/um/kernel/user_syms.c
+diff --git a/arch/um/os-Linux/Makefile b/arch/um/os-Linux/Makefile
+deleted file mode 100644
+index 77ac50baa3f8..000000000000
+--- a/arch/um/os-Linux/Makefile
++++ /dev/null
+@@ -1,21 +0,0 @@
+-# SPDX-License-Identifier: GPL-2.0
+-# 
+-# Copyright (C) 2000 - 2007 Jeff Dike (jdike@{addtoit,linux.intel}.com)
+-#
+-
+-# Don't instrument UML-specific code
+-KCOV_INSTRUMENT                := n
+-
+-obj-y = execvp.o file.o helper.o irq.o main.o mem.o process.o \
+-	registers.o sigio.o signal.o start_up.o time.o tty.o \
+-	umid.o user_syms.o util.o drivers/ skas/
+-
+-CFLAGS_signal.o += -Wframe-larger-than=4096
+-
+-obj-$(CONFIG_ARCH_REUSE_HOST_VSYSCALL_AREA) += elf_aux.o
+-
+-USER_OBJS := $(user-objs-y) elf_aux.o execvp.o file.o helper.o irq.o \
+-	main.o mem.o process.o registers.o sigio.o signal.o start_up.o time.o \
+-	tty.o umid.o util.o
+-
+-include arch/um/scripts/Makefile.rules
+diff --git a/arch/um/os-Linux/drivers/Makefile b/arch/um/os-Linux/drivers/Makefile
+deleted file mode 100644
+index d79e75f1b69a..000000000000
+--- a/arch/um/os-Linux/drivers/Makefile
++++ /dev/null
+@@ -1,13 +0,0 @@
+-# SPDX-License-Identifier: GPL-2.0
+-# 
+-# Copyright (C) 2000, 2002 Jeff Dike (jdike@karaya.com)
+-#
+-
+-ethertap-objs := ethertap_kern.o ethertap_user.o
+-tuntap-objs := tuntap_kern.o tuntap_user.o
+-
+-obj-y = 
+-obj-$(CONFIG_UML_NET_ETHERTAP) += ethertap.o
+-obj-$(CONFIG_UML_NET_TUNTAP) += tuntap.o
+-
+-include arch/um/scripts/Makefile.rules
+diff --git a/tools/um/Makefile b/tools/um/Makefile
+index 2b4e6b63355b..0fdf77261e74 100644
+--- a/tools/um/Makefile
++++ b/tools/um/Makefile
+@@ -50,7 +50,7 @@ $(objtree)/linux.o:
+ $(OUTPUT)lib/linux.o: $(objtree)/linux.o
+ 	$(Q)cp $(objtree)/linux.o $(OUTPUT)lib/linux.o
+ 
+-$(OUTPUT)liblinux.a: $(OUTPUT)lib/linux.o $(OUTPUT)uml/liblinux-in.o
++$(OUTPUT)liblinux.a: $(OUTPUT)lib/linux.o $(OUTPUT)uml/liblinux-in.o $(OUTPUT)lib/liblinux-in.o
+ 	$(QUIET_AR)$(AR) -rc $@ $^
+ 
+ # rule to link programs
+@@ -58,7 +58,7 @@ $(OUTPUT)%: $(OUTPUT)%-in.o $(OUTPUT)liblinux.a
+ 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(LDFLAGS_$(notdir $*)-y) -o $@ $^ $(LDLIBS) $(LDLIBS_$(notdir $*)-y)
+ 
+ # rule to build objects
+-$(OUTPUT)%-in.o: FORCE
++$(OUTPUT)%-in.o: $(OUTPUT)lib/linux.o FORCE
+ 	$(Q)$(MAKE) -f $(srctree)/tools/build/Makefile.build dir=$(patsubst %/,%,$(dir $*)) obj=$(notdir $*)
+ 
+ RM := rm -f
+diff --git a/tools/um/uml/Build b/tools/um/uml/Build
+index e69de29bb2d1..0e629c9cb8eb 100644
+--- a/tools/um/uml/Build
++++ b/tools/um/uml/Build
+@@ -0,0 +1,50 @@
++# SPDX-License-Identifier: GPL-2.0
++#
++# Copyright (C) 2000 - 2007 Jeff Dike (jdike@{addtoit,linux.intel}.com)
++#
 +
-+/**
-+ * lkl_strerror - returns a string describing the given error code
-+ *
-+ * @err - error code
-+ * @returns - string for the given error code
-+ */
-+const char *lkl_strerror(int err);
++# Don't instrument UML-specific code
++KCOV_INSTRUMENT                := n
 +
-+/**
-+ * lkl_perror - prints a string describing the given error code
-+ *
-+ * @msg - prefix for the error message
-+ * @err - error code
-+ */
-+void lkl_perror(char *msg, int err);
-+
- #if __LKL__BITS_PER_LONG == 64
- #define lkl_sys_fstatat lkl_sys_newfstatat
- #define lkl_sys_fstat lkl_sys_newfstat
-diff --git a/tools/um/lib/Build b/tools/um/lib/Build
-new file mode 100644
-index 000000000000..77acd6f55e76
---- /dev/null
-+++ b/tools/um/lib/Build
-@@ -0,0 +1,3 @@
 +include $(objtree)/include/config/auto.conf
 +
-+liblinux-$(CONFIG_UMMODE_LIB) += utils.o
-diff --git a/tools/um/lib/utils.c b/tools/um/lib/utils.c
++liblinux-y += execvp.o file.o helper.o irq.o main.o mem.o process.o \
++	registers.o sigio.o signal.o start_up.o time.o tty.o \
++	umid.o util.o drivers/ skas/
++
++CFLAGS_signal.o += -Wframe-larger-than=4096
++
++liblinux-$(CONFIG_ARCH_REUSE_HOST_VSYSCALL_AREA) += elf_aux.o
++
++export O = $(srctree)
++objtree := $(O)
++# reset CFLAGS
++CFLAGS := -g -O2
++
++# from arch/um/Makefile
++ARCH_DIR := arch/um
++HEADER_ARCH 	:= x86
++HOST_DIR := arch/$(HEADER_ARCH)
++ifdef CONFIG_64BIT
++  KBUILD_CFLAGS += -mcmodel=large
++endif
++KBUILD_CFLAGS += $(CFLAGS) $(CFLAGS-y) -D__arch_um__ \
++	$(ARCH_INCLUDE) $(MODE_INCLUDE) -Dvmap=kernel_vmap	\
++	-Dlongjmp=kernel_longjmp -Dsetjmp=kernel_setjmp \
++	-Din6addr_loopback=kernel_in6addr_loopback \
++	-Din6addr_any=kernel_in6addr_any -Dstrrchr=kernel_strrchr
++SHARED_HEADERS	:= $(ARCH_DIR)/include/shared
++MODE_INCLUDE	+= -I$(srctree)/$(ARCH_DIR)/include/shared/skas
++ARCH_INCLUDE	:= -I$(srctree)/$(SHARED_HEADERS)
++ARCH_INCLUDE	+= -I$(srctree)/$(HOST_DIR)/um/shared
++KBUILD_CPPFLAGS += -I$(srctree)/$(HOST_DIR)/um
++USER_CFLAGS := $(patsubst $(KERNEL_DEFINES),,$(patsubst -I%,,$(KBUILD_CFLAGS))) \
++		$(ARCH_INCLUDE) $(MODE_INCLUDE) $(filter -I%,$(CFLAGS)) \
++		-D_FILE_OFFSET_BITS=64 -idirafter $(srctree)/include/uapi \
++		-idirafter $(objtree)/include -D__KERNEL__ -D__UM_HOST__
++
++# from Makefile-os-Linux
++USER_CFLAGS += -D_GNU_SOURCE -D_LARGEFILE64_SOURCE
++
++# from Makefile.rules
++CFLAGS += $(USER_CFLAGS) -include $(srctree)/tools/include/linux/kern_levels.h -include user.h $(CFLAGS_$(basetarget).o)
+diff --git a/tools/um/uml/drivers/Build b/tools/um/uml/drivers/Build
 new file mode 100644
-index 000000000000..3b38e1a95124
+index 000000000000..c7a8eaa97d72
 --- /dev/null
-+++ b/tools/um/lib/utils.c
-@@ -0,0 +1,205 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#include <stdarg.h>
-+#include <stdio.h>
-+#include <string.h>
-+#include <lkl_host.h>
++++ b/tools/um/uml/drivers/Build
+@@ -0,0 +1,10 @@
++# SPDX-License-Identifier: GPL-2.0
++#
++# Copyright (C) 2000, 2002 Jeff Dike (jdike@karaya.com)
++#
 +
-+static const char * const lkl_err_strings[] = {
-+	[0]			= "Success",
-+	[LKL_EPERM]		= "Operation not permitted",
-+	[LKL_ENOENT]		= "No such file or directory",
-+	[LKL_ESRCH]		= "No such process",
-+	[LKL_EINTR]		= "Interrupted system call",
-+	[LKL_EIO]		= "I/O error",
-+	[LKL_ENXIO]		= "No such device or address",
-+	[LKL_E2BIG]		= "Argument list too long",
-+	[LKL_ENOEXEC]		= "Exec format error",
-+	[LKL_EBADF]		= "Bad file number",
-+	[LKL_ECHILD]		= "No child processes",
-+	[LKL_EAGAIN]		= "Try again",
-+	[LKL_ENOMEM]		= "Out of memory",
-+	[LKL_EACCES]		= "Permission denied",
-+	[LKL_EFAULT]		= "Bad address",
-+	[LKL_ENOTBLK]		= "Block device required",
-+	[LKL_EBUSY]		= "Device or resource busy",
-+	[LKL_EEXIST]		= "File exists",
-+	[LKL_EXDEV]		= "Cross-device link",
-+	[LKL_ENODEV]		= "No such device",
-+	[LKL_ENOTDIR]		= "Not a directory",
-+	[LKL_EISDIR]		= "Is a directory",
-+	[LKL_EINVAL]		= "Invalid argument",
-+	[LKL_ENFILE]		= "File table overflow",
-+	[LKL_EMFILE]		= "Too many open files",
-+	[LKL_ENOTTY]		= "Not a typewriter",
-+	[LKL_ETXTBSY]		= "Text file busy",
-+	[LKL_EFBIG]		= "File too large",
-+	[LKL_ENOSPC]		= "No space left on device",
-+	[LKL_ESPIPE]		= "Illegal seek",
-+	[LKL_EROFS]		= "Read-only file system",
-+	[LKL_EMLINK]		= "Too many links",
-+	[LKL_EPIPE]		= "Broken pipe",
-+	[LKL_EDOM]		= "Math argument out of domain of func",
-+	[LKL_ERANGE]		= "Math result not representable",
-+	[LKL_EDEADLK]		= "Resource deadlock would occur",
-+	[LKL_ENAMETOOLONG]	= "File name too long",
-+	[LKL_ENOLCK]		= "No record locks available",
-+	[LKL_ENOSYS]		= "Invalid system call number",
-+	[LKL_ENOTEMPTY]		= "Directory not empty",
-+	[LKL_ELOOP]		= "Too many symbolic links encountered",
-+	[LKL_ENOMSG]		= "No message of desired type",
-+	[LKL_EIDRM]		= "Identifier removed",
-+	[LKL_ECHRNG]		= "Channel number out of range",
-+	[LKL_EL2NSYNC]		= "Level 2 not synchronized",
-+	[LKL_EL3HLT]		= "Level 3 halted",
-+	[LKL_EL3RST]		= "Level 3 reset",
-+	[LKL_ELNRNG]		= "Link number out of range",
-+	[LKL_EUNATCH]		= "Protocol driver not attached",
-+	[LKL_ENOCSI]		= "No CSI structure available",
-+	[LKL_EL2HLT]		= "Level 2 halted",
-+	[LKL_EBADE]		= "Invalid exchange",
-+	[LKL_EBADR]		= "Invalid request descriptor",
-+	[LKL_EXFULL]		= "Exchange full",
-+	[LKL_ENOANO]		= "No anode",
-+	[LKL_EBADRQC]		= "Invalid request code",
-+	[LKL_EBADSLT]		= "Invalid slot",
-+	[LKL_EBFONT]		= "Bad font file format",
-+	[LKL_ENOSTR]		= "Device not a stream",
-+	[LKL_ENODATA]		= "No data available",
-+	[LKL_ETIME]		= "Timer expired",
-+	[LKL_ENOSR]		= "Out of streams resources",
-+	[LKL_ENONET]		= "Machine is not on the network",
-+	[LKL_ENOPKG]		= "Package not installed",
-+	[LKL_EREMOTE]		= "Object is remote",
-+	[LKL_ENOLINK]		= "Link has been severed",
-+	[LKL_EADV]		= "Advertise error",
-+	[LKL_ESRMNT]		= "Srmount error",
-+	[LKL_ECOMM]		= "Communication error on send",
-+	[LKL_EPROTO]		= "Protocol error",
-+	[LKL_EMULTIHOP]		= "Multihop attempted",
-+	[LKL_EDOTDOT]		= "RFS specific error",
-+	[LKL_EBADMSG]		= "Not a data message",
-+	[LKL_EOVERFLOW]		= "Value too large for defined data type",
-+	[LKL_ENOTUNIQ]		= "Name not unique on network",
-+	[LKL_EBADFD]		= "File descriptor in bad state",
-+	[LKL_EREMCHG]		= "Remote address changed",
-+	[LKL_ELIBACC]		= "Can not access a needed shared library",
-+	[LKL_ELIBBAD]		= "Accessing a corrupted shared library",
-+	[LKL_ELIBSCN]		= ".lib section in a.out corrupted",
-+	[LKL_ELIBMAX]		= "Attempting to link in too many shared libraries",
-+	[LKL_ELIBEXEC]		= "Cannot exec a shared library directly",
-+	[LKL_EILSEQ]		= "Illegal byte sequence",
-+	[LKL_ERESTART]		= "Interrupted system call should be restarted",
-+	[LKL_ESTRPIPE]		= "Streams pipe error",
-+	[LKL_EUSERS]		= "Too many users",
-+	[LKL_ENOTSOCK]		= "Socket operation on non-socket",
-+	[LKL_EDESTADDRREQ]	= "Destination address required",
-+	[LKL_EMSGSIZE]		= "Message too long",
-+	[LKL_EPROTOTYPE]	= "Protocol wrong type for socket",
-+	[LKL_ENOPROTOOPT]	= "Protocol not available",
-+	[LKL_EPROTONOSUPPORT]	= "Protocol not supported",
-+	[LKL_ESOCKTNOSUPPORT]	= "Socket type not supported",
-+	[LKL_EOPNOTSUPP]	= "Operation not supported on transport endpoint",
-+	[LKL_EPFNOSUPPORT]	= "Protocol family not supported",
-+	[LKL_EAFNOSUPPORT]	= "Address family not supported by protocol",
-+	[LKL_EADDRINUSE]	= "Address already in use",
-+	[LKL_EADDRNOTAVAIL]	= "Cannot assign requested address",
-+	[LKL_ENETDOWN]		= "Network is down",
-+	[LKL_ENETUNREACH]	= "Network is unreachable",
-+	[LKL_ENETRESET]		= "Network dropped connection because of reset",
-+	[LKL_ECONNABORTED]	= "Software caused connection abort",
-+	[LKL_ECONNRESET]	= "Connection reset by peer",
-+	[LKL_ENOBUFS]		= "No buffer space available",
-+	[LKL_EISCONN]		= "Transport endpoint is already connected",
-+	[LKL_ENOTCONN]		= "Transport endpoint is not connected",
-+	[LKL_ESHUTDOWN]		= "Cannot send after transport endpoint shutdown",
-+	[LKL_ETOOMANYREFS]	= "Too many references: cannot splice",
-+	[LKL_ETIMEDOUT]		= "Connection timed out",
-+	[LKL_ECONNREFUSED]	= "Connection refused",
-+	[LKL_EHOSTDOWN]		= "Host is down",
-+	[LKL_EHOSTUNREACH]	= "No route to host",
-+	[LKL_EALREADY]		= "Operation already in progress",
-+	[LKL_EINPROGRESS]	= "Operation now in progress",
-+	[LKL_ESTALE]		= "Stale file handle",
-+	[LKL_EUCLEAN]		= "Structure needs cleaning",
-+	[LKL_ENOTNAM]		= "Not a XENIX named type file",
-+	[LKL_ENAVAIL]		= "No XENIX semaphores available",
-+	[LKL_EISNAM]		= "Is a named type file",
-+	[LKL_EREMOTEIO]		= "Remote I/O error",
-+	[LKL_EDQUOT]		= "Quota exceeded",
-+	[LKL_ENOMEDIUM]		= "No medium found",
-+	[LKL_EMEDIUMTYPE]	= "Wrong medium type",
-+	[LKL_ECANCELED]		= "Operation Canceled",
-+	[LKL_ENOKEY]		= "Required key not available",
-+	[LKL_EKEYEXPIRED]	= "Key has expired",
-+	[LKL_EKEYREVOKED]	= "Key has been revoked",
-+	[LKL_EKEYREJECTED]	= "Key was rejected by service",
-+	[LKL_EOWNERDEAD]	= "Owner died",
-+	[LKL_ENOTRECOVERABLE]	= "State not recoverable",
-+	[LKL_ERFKILL]		= "Operation not possible due to RF-kill",
-+	[LKL_EHWPOISON]		= "Memory page has hardware error",
-+};
++include $(objtree)/include/config/auto.conf
 +
-+const char *lkl_strerror(int err)
-+{
-+	if (err < 0)
-+		err = -err;
 +
-+	if ((size_t)err >= sizeof(lkl_err_strings) / sizeof(const char *))
-+		return "Bad error code";
-+
-+	return lkl_err_strings[err];
-+}
-+
-+void lkl_perror(char *msg, int err)
-+{
-+	const char *err_msg = lkl_strerror(err);
-+	/* We need to use 'real' printf because lkl_print can
-+	 * be turned off when debugging is off.
-+	 */
-+	lkl_printf("%s: %s\n", msg, err_msg);
-+}
-+
-+static int lkl_vprintf(const char *fmt, va_list args)
-+{
-+	int n;
-+	char *buffer;
-+	va_list copy;
-+
-+	va_copy(copy, args);
-+	n = vsnprintf(NULL, 0, fmt, copy);
-+	va_end(copy);
-+
-+	buffer = lkl_mem_alloc(n + 1);
-+	if (!buffer)
-+		return (-1);
-+
-+	vsnprintf(buffer, n + 1, fmt, args);
-+
-+	lkl_print(buffer, n);
-+	lkl_mem_free(buffer);
-+
-+	return n;
-+}
-+
-+int lkl_printf(const char *fmt, ...)
-+{
-+	int n;
-+	va_list args;
-+
-+	va_start(args, fmt);
-+	n = lkl_vprintf(fmt, args);
-+	va_end(args);
-+
-+	return n;
-+}
-+
-+void lkl_bug(const char *fmt, ...)
-+{
-+	va_list args;
-+
-+	va_start(args, fmt);
-+	lkl_vprintf(fmt, args);
-+	va_end(args);
-+
-+	lkl_panic();
-+}
++liblinux-$(CONFIG_UML_NET_ETHERTAP) += ethertap_user.o
++liblinux-$(CONFIG_UML_NET_TUNTAP) += tuntap_user.o
+diff --git a/arch/um/os-Linux/drivers/ethertap_user.c b/tools/um/uml/drivers/ethertap_user.c
+similarity index 100%
+rename from arch/um/os-Linux/drivers/ethertap_user.c
+rename to tools/um/uml/drivers/ethertap_user.c
+diff --git a/arch/um/os-Linux/drivers/tuntap_user.c b/tools/um/uml/drivers/tuntap_user.c
+similarity index 100%
+rename from arch/um/os-Linux/drivers/tuntap_user.c
+rename to tools/um/uml/drivers/tuntap_user.c
+diff --git a/arch/um/os-Linux/elf_aux.c b/tools/um/uml/elf_aux.c
+similarity index 100%
+rename from arch/um/os-Linux/elf_aux.c
+rename to tools/um/uml/elf_aux.c
+diff --git a/arch/um/os-Linux/execvp.c b/tools/um/uml/execvp.c
+similarity index 98%
+rename from arch/um/os-Linux/execvp.c
+rename to tools/um/uml/execvp.c
+index 84a0777c2a45..c105e0e7b778 100644
+--- a/arch/um/os-Linux/execvp.c
++++ b/tools/um/uml/execvp.c
+@@ -26,12 +26,8 @@
+ #include <errno.h>
+ #include <limits.h>
+ 
+-#ifndef TEST
+-#include <um_malloc.h>
+-#else
+ #include <stdio.h>
+ #define um_kmalloc malloc
+-#endif
+ #include <os.h>
+ 
+ /* Execute FILE, searching in the `PATH' environment variable if it contains
+diff --git a/arch/um/os-Linux/file.c b/tools/um/uml/file.c
+similarity index 100%
+rename from arch/um/os-Linux/file.c
+rename to tools/um/uml/file.c
+diff --git a/arch/um/os-Linux/helper.c b/tools/um/uml/helper.c
+similarity index 100%
+rename from arch/um/os-Linux/helper.c
+rename to tools/um/uml/helper.c
+diff --git a/arch/um/os-Linux/irq.c b/tools/um/uml/irq.c
+similarity index 100%
+rename from arch/um/os-Linux/irq.c
+rename to tools/um/uml/irq.c
+diff --git a/arch/um/os-Linux/main.c b/tools/um/uml/main.c
+similarity index 100%
+rename from arch/um/os-Linux/main.c
+rename to tools/um/uml/main.c
+diff --git a/arch/um/os-Linux/mem.c b/tools/um/uml/mem.c
+similarity index 100%
+rename from arch/um/os-Linux/mem.c
+rename to tools/um/uml/mem.c
+diff --git a/arch/um/os-Linux/process.c b/tools/um/uml/process.c
+similarity index 100%
+rename from arch/um/os-Linux/process.c
+rename to tools/um/uml/process.c
+diff --git a/arch/um/os-Linux/registers.c b/tools/um/uml/registers.c
+similarity index 100%
+rename from arch/um/os-Linux/registers.c
+rename to tools/um/uml/registers.c
+diff --git a/arch/um/os-Linux/sigio.c b/tools/um/uml/sigio.c
+similarity index 100%
+rename from arch/um/os-Linux/sigio.c
+rename to tools/um/uml/sigio.c
+diff --git a/arch/um/os-Linux/signal.c b/tools/um/uml/signal.c
+similarity index 100%
+rename from arch/um/os-Linux/signal.c
+rename to tools/um/uml/signal.c
+diff --git a/arch/um/os-Linux/skas/Makefile b/tools/um/uml/skas/Build
+similarity index 56%
+rename from arch/um/os-Linux/skas/Makefile
+rename to tools/um/uml/skas/Build
+index c4566e788815..5fc9d62df863 100644
+--- a/arch/um/os-Linux/skas/Makefile
++++ b/tools/um/uml/skas/Build
+@@ -3,8 +3,4 @@
+ # Copyright (C) 2002 - 2007 Jeff Dike (jdike@{linux.intel,addtoit}.com)
+ #
+ 
+-obj-y := mem.o process.o
+-
+-USER_OBJS := $(obj-y)
+-
+-include arch/um/scripts/Makefile.rules
++liblinux-y += mem.o process.o
+diff --git a/arch/um/os-Linux/skas/mem.c b/tools/um/uml/skas/mem.c
+similarity index 100%
+rename from arch/um/os-Linux/skas/mem.c
+rename to tools/um/uml/skas/mem.c
+diff --git a/arch/um/os-Linux/skas/process.c b/tools/um/uml/skas/process.c
+similarity index 99%
+rename from arch/um/os-Linux/skas/process.c
+rename to tools/um/uml/skas/process.c
+index 0621d521208e..0af44c2857b8 100644
+--- a/arch/um/os-Linux/skas/process.c
++++ b/tools/um/uml/skas/process.c
+@@ -21,7 +21,6 @@
+ #include <registers.h>
+ #include <skas.h>
+ #include <sysdep/stub.h>
+-#include <linux/threads.h>
+ 
+ int is_skas_winch(int pid, int fd, void *data)
+ {
+@@ -248,7 +247,7 @@ static int userspace_tramp(void *stack)
+ 	return 0;
+ }
+ 
+-int userspace_pid[NR_CPUS];
++int userspace_pid[UM_NR_CPUS];
+ 
+ /**
+  * start_userspace() - prepare a new userspace process
+diff --git a/arch/um/os-Linux/start_up.c b/tools/um/uml/start_up.c
+similarity index 100%
+rename from arch/um/os-Linux/start_up.c
+rename to tools/um/uml/start_up.c
+diff --git a/arch/um/os-Linux/time.c b/tools/um/uml/time.c
+similarity index 100%
+rename from arch/um/os-Linux/time.c
+rename to tools/um/uml/time.c
+diff --git a/arch/um/os-Linux/tty.c b/tools/um/uml/tty.c
+similarity index 100%
+rename from arch/um/os-Linux/tty.c
+rename to tools/um/uml/tty.c
+diff --git a/arch/um/os-Linux/umid.c b/tools/um/uml/umid.c
+similarity index 100%
+rename from arch/um/os-Linux/umid.c
+rename to tools/um/uml/umid.c
+diff --git a/arch/um/os-Linux/util.c b/tools/um/uml/util.c
+similarity index 100%
+rename from arch/um/os-Linux/util.c
+rename to tools/um/uml/util.c
 -- 
 2.21.0 (Apple Git-122.2)
 
