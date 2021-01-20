@@ -2,36 +2,35 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+X-Spam-Status: No, score=-19.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,UNWANTED_LANGUAGE_BODY,
-	URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable autolearn_force=no
-	version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B0B59C4332E
-	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 18:12:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5ADC0C433E0
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 18:12:55 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 908E5233F6
-	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 18:12:01 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2D912233FA
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 18:12:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726586AbhATSIN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 20 Jan 2021 13:08:13 -0500
-Received: from mail.kernel.org ([198.145.29.99]:44428 "EHLO mail.kernel.org"
+        id S2391921AbhATSMh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 20 Jan 2021 13:12:37 -0500
+Received: from mail.kernel.org ([198.145.29.99]:44108 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2391879AbhATSHq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 20 Jan 2021 13:07:46 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 9CC5C233F7;
-        Wed, 20 Jan 2021 18:06:55 +0000 (UTC)
+        id S2391406AbhATSHQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 20 Jan 2021 13:07:16 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id C46FD23122;
+        Wed, 20 Jan 2021 18:06:26 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1611166024;
-        bh=AcBjDgtxR1LKDo9uhtPZ88hRkunrxv7liFNZGJj2KnE=;
+        s=k20201202; t=1611165995;
+        bh=yaiGaY9CsCce4ziujW0DI0CJqQEDns2mxFIXWr5A2d8=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=UhJD/xbb2VWHwQ5SXzQYODEoKn+aM7WeGHZlRsvADEy58hkcp/R05bDFfz4sSgAGS
-         eVY01xSSgCcsEKyBdFcAiI+1YuBqDv67NH3iaVK0aQKzYKjLCsLWMHlEV2al3pYnl5
-         XdprWI9OYabAOGfngFJo8r600ShBFMlwsUexjpaDxjQIFyCWQuYzKpu/eTU4qnLn+P
-         IF4ODUbGz2hGTQClblomVUAI3Q8ZcWXk0D1MJcEfEkP1CMPs7PH7jOgUT8H/WWPE4O
-         99CE+dTGLrB+yRVqv84za+flwfyjsyx2NrNjrcQ30rI/61vOdESDmX/6/dM9Xysag9
-         I1HxBIYYLgPQA==
+        b=eZ5X0CQgaT+uie3JXh7KjvrBoH+7Ekdr3l2OhBzSFotcM4YEP/XAGrsPARQKDfMza
+         O23UyQ5LxQtwX2nPQBId5SpFWhAlofCSfidz/10Pqs2LpopcecwmdQuW5+ZlK01aoj
+         V53wFKvBVddXgrCi2fEdvdIexeRrr1Hm7PTIx+putCNvAXfV49I2UxOyjruCgBoAUl
+         yT+3Fc4L4TwJl+BFqtlVxkSh1kOfIfU6o9UY4nXP1PfIkmI/FdGDzObQAz05r+26Bz
+         uuBjD0LmqGZ7CJUbGaf1oa/oIPkk1QXY+v4njtTO2ei8FVjUeH6wfKvTHEsj4Bq9JC
+         KSp34b58SuuvQ==
 From:   Mike Rapoport <rppt@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -67,9 +66,9 @@ Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
         linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
         x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
         Palmer Dabbelt <palmerdabbelt@google.com>
-Subject: [PATCH v15 04/11] set_memory: allow set_direct_map_*_noflush() for multiple pages
-Date:   Wed, 20 Jan 2021 20:06:05 +0200
-Message-Id: <20210120180612.1058-5-rppt@kernel.org>
+Subject: [PATCH v15 01/11] mm: add definition of PMD_PAGE_ORDER
+Date:   Wed, 20 Jan 2021 20:06:02 +0200
+Message-Id: <20210120180612.1058-2-rppt@kernel.org>
 X-Mailer: git-send-email 2.28.0
 In-Reply-To: <20210120180612.1058-1-rppt@kernel.org>
 References: <20210120180612.1058-1-rppt@kernel.org>
@@ -81,34 +80,33 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Mike Rapoport <rppt@linux.ibm.com>
 
-The underlying implementations of set_direct_map_invalid_noflush() and
-set_direct_map_default_noflush() allow updating multiple contiguous pages
-at once.
+The definition of PMD_PAGE_ORDER denoting the number of base pages in the
+second-level leaf page is already used by DAX and maybe handy in other
+cases as well.
 
-Add numpages parameter to set_direct_map_*_noflush() to expose this ability
-with these APIs.
+Several architectures already have definition of PMD_ORDER as the size of
+second level page table, so to avoid conflict with these definitions use
+PMD_PAGE_ORDER name and update DAX respectively.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>	[arm64]
+Reviewed-by: David Hildenbrand <david@redhat.com>
 Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Cc: Andy Lutomirski <luto@kernel.org>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Borislav Petkov <bp@alien8.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Christopher Lameter <cl@linux.com>
 Cc: Dan Williams <dan.j.williams@intel.com>
 Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Hildenbrand <david@redhat.com>
 Cc: Elena Reshetova <elena.reshetova@intel.com>
-Cc: Hagen Paul Pfeifer <hagen@jauu.net>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: James Bottomley <jejb@linux.ibm.com>
 Cc: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Mark Rutland <mark.rutland@arm.com>
 Cc: Matthew Wilcox <willy@infradead.org>
+Cc: Mark Rutland <mark.rutland@arm.com>
 Cc: Michael Kerrisk <mtk.manpages@gmail.com>
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: Palmer Dabbelt <palmerdabbelt@google.com>
 Cc: Paul Walmsley <paul.walmsley@sifive.com>
 Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>
@@ -118,224 +116,77 @@ Cc: Shuah Khan <shuah@kernel.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Tycho Andersen <tycho@tycho.ws>
 Cc: Will Deacon <will@kernel.org>
+Cc: Hagen Paul Pfeifer <hagen@jauu.net>
+Cc: Palmer Dabbelt <palmerdabbelt@google.com>
 ---
- arch/arm64/include/asm/cacheflush.h |  4 ++--
- arch/arm64/mm/pageattr.c            | 10 ++++++----
- arch/riscv/include/asm/set_memory.h |  4 ++--
- arch/riscv/mm/pageattr.c            |  8 ++++----
- arch/x86/include/asm/set_memory.h   |  4 ++--
- arch/x86/mm/pat/set_memory.c        |  8 ++++----
- include/linux/set_memory.h          |  4 ++--
- kernel/power/snapshot.c             |  4 ++--
- mm/vmalloc.c                        |  5 +++--
- 9 files changed, 27 insertions(+), 24 deletions(-)
+ fs/dax.c                | 11 ++++-------
+ include/linux/pgtable.h |  3 +++
+ 2 files changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm64/include/asm/cacheflush.h b/arch/arm64/include/asm/cacheflush.h
-index 45217f21f1fe..d3598419a284 100644
---- a/arch/arm64/include/asm/cacheflush.h
-+++ b/arch/arm64/include/asm/cacheflush.h
-@@ -138,8 +138,8 @@ static __always_inline void __flush_icache_all(void)
+diff --git a/fs/dax.c b/fs/dax.c
+index 26d5dcd2d69e..0f109eb16196 100644
+--- a/fs/dax.c
++++ b/fs/dax.c
+@@ -49,9 +49,6 @@ static inline unsigned int pe_order(enum page_entry_size pe_size)
+ #define PG_PMD_COLOUR	((PMD_SIZE >> PAGE_SHIFT) - 1)
+ #define PG_PMD_NR	(PMD_SIZE >> PAGE_SHIFT)
  
- int set_memory_valid(unsigned long addr, int numpages, int enable);
+-/* The order of a PMD entry */
+-#define PMD_ORDER	(PMD_SHIFT - PAGE_SHIFT)
+-
+ static wait_queue_head_t wait_table[DAX_WAIT_TABLE_ENTRIES];
  
--int set_direct_map_invalid_noflush(struct page *page);
--int set_direct_map_default_noflush(struct page *page);
-+int set_direct_map_invalid_noflush(struct page *page, int numpages);
-+int set_direct_map_default_noflush(struct page *page, int numpages);
- bool kernel_page_present(struct page *page);
- 
- #include <asm-generic/cacheflush.h>
-diff --git a/arch/arm64/mm/pageattr.c b/arch/arm64/mm/pageattr.c
-index 92eccaf595c8..b53ef37bf95a 100644
---- a/arch/arm64/mm/pageattr.c
-+++ b/arch/arm64/mm/pageattr.c
-@@ -148,34 +148,36 @@ int set_memory_valid(unsigned long addr, int numpages, int enable)
- 					__pgprot(PTE_VALID));
- }
- 
--int set_direct_map_invalid_noflush(struct page *page)
-+int set_direct_map_invalid_noflush(struct page *page, int numpages)
+ static int __init init_dax_wait_table(void)
+@@ -98,7 +95,7 @@ static bool dax_is_locked(void *entry)
+ static unsigned int dax_entry_order(void *entry)
  {
- 	struct page_change_data data = {
- 		.set_mask = __pgprot(0),
- 		.clear_mask = __pgprot(PTE_VALID),
- 	};
-+	unsigned long size = PAGE_SIZE * numpages;
- 
- 	if (!debug_pagealloc_enabled() && !rodata_full)
- 		return 0;
- 
- 	return apply_to_page_range(&init_mm,
- 				   (unsigned long)page_address(page),
--				   PAGE_SIZE, change_page_range, &data);
-+				   size, change_page_range, &data);
- }
- 
--int set_direct_map_default_noflush(struct page *page)
-+int set_direct_map_default_noflush(struct page *page, int numpages)
- {
- 	struct page_change_data data = {
- 		.set_mask = __pgprot(PTE_VALID | PTE_WRITE),
- 		.clear_mask = __pgprot(PTE_RDONLY),
- 	};
-+	unsigned long size = PAGE_SIZE * numpages;
- 
- 	if (!debug_pagealloc_enabled() && !rodata_full)
- 		return 0;
- 
- 	return apply_to_page_range(&init_mm,
- 				   (unsigned long)page_address(page),
--				   PAGE_SIZE, change_page_range, &data);
-+				   size, change_page_range, &data);
- }
- 
- #ifdef CONFIG_DEBUG_PAGEALLOC
-diff --git a/arch/riscv/include/asm/set_memory.h b/arch/riscv/include/asm/set_memory.h
-index 211eb8244a45..1aaf2720b8f6 100644
---- a/arch/riscv/include/asm/set_memory.h
-+++ b/arch/riscv/include/asm/set_memory.h
-@@ -26,8 +26,8 @@ static inline void protect_kernel_text_data(void) {};
- static inline int set_memory_rw_nx(unsigned long addr, int numpages) { return 0; }
- #endif
- 
--int set_direct_map_invalid_noflush(struct page *page);
--int set_direct_map_default_noflush(struct page *page);
-+int set_direct_map_invalid_noflush(struct page *page, int numpages);
-+int set_direct_map_default_noflush(struct page *page, int numpages);
- bool kernel_page_present(struct page *page);
- 
- #endif /* __ASSEMBLY__ */
-diff --git a/arch/riscv/mm/pageattr.c b/arch/riscv/mm/pageattr.c
-index 5e49e4b4a4cc..9618181b70be 100644
---- a/arch/riscv/mm/pageattr.c
-+++ b/arch/riscv/mm/pageattr.c
-@@ -156,11 +156,11 @@ int set_memory_nx(unsigned long addr, int numpages)
- 	return __set_memory(addr, numpages, __pgprot(0), __pgprot(_PAGE_EXEC));
- }
- 
--int set_direct_map_invalid_noflush(struct page *page)
-+int set_direct_map_invalid_noflush(struct page *page, int numpages)
- {
- 	int ret;
- 	unsigned long start = (unsigned long)page_address(page);
--	unsigned long end = start + PAGE_SIZE;
-+	unsigned long end = start + PAGE_SIZE * numpages;
- 	struct pageattr_masks masks = {
- 		.set_mask = __pgprot(0),
- 		.clear_mask = __pgprot(_PAGE_PRESENT)
-@@ -173,11 +173,11 @@ int set_direct_map_invalid_noflush(struct page *page)
- 	return ret;
- }
- 
--int set_direct_map_default_noflush(struct page *page)
-+int set_direct_map_default_noflush(struct page *page, int numpages)
- {
- 	int ret;
- 	unsigned long start = (unsigned long)page_address(page);
--	unsigned long end = start + PAGE_SIZE;
-+	unsigned long end = start + PAGE_SIZE * numpages;
- 	struct pageattr_masks masks = {
- 		.set_mask = PAGE_KERNEL,
- 		.clear_mask = __pgprot(0)
-diff --git a/arch/x86/include/asm/set_memory.h b/arch/x86/include/asm/set_memory.h
-index 4352f08bfbb5..6224cb291f6c 100644
---- a/arch/x86/include/asm/set_memory.h
-+++ b/arch/x86/include/asm/set_memory.h
-@@ -80,8 +80,8 @@ int set_pages_wb(struct page *page, int numpages);
- int set_pages_ro(struct page *page, int numpages);
- int set_pages_rw(struct page *page, int numpages);
- 
--int set_direct_map_invalid_noflush(struct page *page);
--int set_direct_map_default_noflush(struct page *page);
-+int set_direct_map_invalid_noflush(struct page *page, int numpages);
-+int set_direct_map_default_noflush(struct page *page, int numpages);
- bool kernel_page_present(struct page *page);
- 
- extern int kernel_set_to_readonly;
-diff --git a/arch/x86/mm/pat/set_memory.c b/arch/x86/mm/pat/set_memory.c
-index 16f878c26667..d157fd617c99 100644
---- a/arch/x86/mm/pat/set_memory.c
-+++ b/arch/x86/mm/pat/set_memory.c
-@@ -2184,14 +2184,14 @@ static int __set_pages_np(struct page *page, int numpages)
- 	return __change_page_attr_set_clr(&cpa, 0);
- }
- 
--int set_direct_map_invalid_noflush(struct page *page)
-+int set_direct_map_invalid_noflush(struct page *page, int numpages)
- {
--	return __set_pages_np(page, 1);
-+	return __set_pages_np(page, numpages);
- }
- 
--int set_direct_map_default_noflush(struct page *page)
-+int set_direct_map_default_noflush(struct page *page, int numpages)
- {
--	return __set_pages_p(page, 1);
-+	return __set_pages_p(page, numpages);
- }
- 
- #ifdef CONFIG_DEBUG_PAGEALLOC
-diff --git a/include/linux/set_memory.h b/include/linux/set_memory.h
-index fe1aa4e54680..c650f82db813 100644
---- a/include/linux/set_memory.h
-+++ b/include/linux/set_memory.h
-@@ -15,11 +15,11 @@ static inline int set_memory_nx(unsigned long addr, int numpages) { return 0; }
- #endif
- 
- #ifndef CONFIG_ARCH_HAS_SET_DIRECT_MAP
--static inline int set_direct_map_invalid_noflush(struct page *page)
-+static inline int set_direct_map_invalid_noflush(struct page *page, int numpages)
- {
+ 	if (xa_to_value(entry) & DAX_PMD)
+-		return PMD_ORDER;
++		return PMD_PAGE_ORDER;
  	return 0;
  }
--static inline int set_direct_map_default_noflush(struct page *page)
-+static inline int set_direct_map_default_noflush(struct page *page, int numpages)
+ 
+@@ -1470,7 +1467,7 @@ static vm_fault_t dax_iomap_pmd_fault(struct vm_fault *vmf, pfn_t *pfnp,
  {
- 	return 0;
- }
-diff --git a/kernel/power/snapshot.c b/kernel/power/snapshot.c
-index d63560e1cf87..64b7aab9aee4 100644
---- a/kernel/power/snapshot.c
-+++ b/kernel/power/snapshot.c
-@@ -86,7 +86,7 @@ static inline void hibernate_restore_unprotect_page(void *page_address) {}
- static inline void hibernate_map_page(struct page *page)
- {
- 	if (IS_ENABLED(CONFIG_ARCH_HAS_SET_DIRECT_MAP)) {
--		int ret = set_direct_map_default_noflush(page);
-+		int ret = set_direct_map_default_noflush(page, 1);
+ 	struct vm_area_struct *vma = vmf->vma;
+ 	struct address_space *mapping = vma->vm_file->f_mapping;
+-	XA_STATE_ORDER(xas, &mapping->i_pages, vmf->pgoff, PMD_ORDER);
++	XA_STATE_ORDER(xas, &mapping->i_pages, vmf->pgoff, PMD_PAGE_ORDER);
+ 	unsigned long pmd_addr = vmf->address & PMD_MASK;
+ 	bool write = vmf->flags & FAULT_FLAG_WRITE;
+ 	bool sync;
+@@ -1529,7 +1526,7 @@ static vm_fault_t dax_iomap_pmd_fault(struct vm_fault *vmf, pfn_t *pfnp,
+ 	 * entry is already in the array, for instance), it will return
+ 	 * VM_FAULT_FALLBACK.
+ 	 */
+-	entry = grab_mapping_entry(&xas, mapping, PMD_ORDER);
++	entry = grab_mapping_entry(&xas, mapping, PMD_PAGE_ORDER);
+ 	if (xa_is_internal(entry)) {
+ 		result = xa_to_internal(entry);
+ 		goto fallback;
+@@ -1695,7 +1692,7 @@ dax_insert_pfn_mkwrite(struct vm_fault *vmf, pfn_t pfn, unsigned int order)
+ 	if (order == 0)
+ 		ret = vmf_insert_mixed_mkwrite(vmf->vma, vmf->address, pfn);
+ #ifdef CONFIG_FS_DAX_PMD
+-	else if (order == PMD_ORDER)
++	else if (order == PMD_PAGE_ORDER)
+ 		ret = vmf_insert_pfn_pmd(vmf, pfn, FAULT_FLAG_WRITE);
+ #endif
+ 	else
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index 8fcdfa52eb4b..ea5c4102c23e 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -28,6 +28,9 @@
+ #define USER_PGTABLES_CEILING	0UL
+ #endif
  
- 		if (ret)
- 			pr_warn_once("Failed to remap page\n");
-@@ -99,7 +99,7 @@ static inline void hibernate_unmap_page(struct page *page)
- {
- 	if (IS_ENABLED(CONFIG_ARCH_HAS_SET_DIRECT_MAP)) {
- 		unsigned long addr = (unsigned long)page_address(page);
--		int ret  = set_direct_map_invalid_noflush(page);
-+		int ret = set_direct_map_invalid_noflush(page, 1);
- 
- 		if (ret)
- 			pr_warn_once("Failed to remap page\n");
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index d5f2a84e488a..1da9cd1d0758 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -2195,13 +2195,14 @@ struct vm_struct *remove_vm_area(const void *addr)
- }
- 
- static inline void set_area_direct_map(const struct vm_struct *area,
--				       int (*set_direct_map)(struct page *page))
-+				       int (*set_direct_map)(struct page *page,
-+							     int numpages))
- {
- 	int i;
- 
- 	for (i = 0; i < area->nr_pages; i++)
- 		if (page_address(area->pages[i]))
--			set_direct_map(area->pages[i]);
-+			set_direct_map(area->pages[i], 1);
- }
- 
- /* Handle removing and resetting vm mappings related to the vm_struct. */
++/* Number of base pages in a second level leaf page */
++#define PMD_PAGE_ORDER	(PMD_SHIFT - PAGE_SHIFT)
++
+ /*
+  * A page table page can be thought of an array like this: pXd_t[PTRS_PER_PxD]
+  *
 -- 
 2.28.0
 
