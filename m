@@ -2,159 +2,162 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C9001C43331
-	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 13:47:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 940BAC433E0
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 15:22:51 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9DD5223371
-	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 13:47:36 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 61EA72336D
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 15:22:51 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2388783AbhATM6n (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 20 Jan 2021 07:58:43 -0500
-Received: from mail-wm1-f49.google.com ([209.85.128.49]:53482 "EHLO
-        mail-wm1-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389146AbhATMPA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2021 07:15:00 -0500
-Received: by mail-wm1-f49.google.com with SMTP id j18so2660041wmi.3;
-        Wed, 20 Jan 2021 04:14:19 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=jgoWHWZJp95oZbUGT1gHoY/N870o7iAvx/CdWeU6WPw=;
-        b=ClGBYmkD9kwavZYkOsP9rQlPhxO5hLl7ddbt9mKjCodeUnprXhO5YCxmVjkqoBZTcH
-         QuJsR6KOHC9sqkYnUzuqh/ZCKioZtfYt0c+DGyCzJJppDe6NxSHUyTNkomFz69068gV2
-         8uQXNCIR8rOn5RpiqZzGgEKofoA5HuPGqUItrobPXN1ukx8U25s6TwQzZBUKYpYdX6db
-         Dy8FlPInTlPMatfEfQrkna1NvMLAPWoKHdE4VpkxodNHGjuQEWEBUnp+s2lX7hILyWVT
-         Qxldr8iC7HrTorFjCkShQWb/ZkMQ9E4uAHbBwjRnsxGka+J7K/Y9o/bLDuv+jov1ymQ8
-         4hVQ==
-X-Gm-Message-State: AOAM532aGgyHTU86NzGtIsGx0ki4Db7UKzWZBsOl0cN3eHwsLa0tZoFp
-        thZY/EfW+tDZOC0wDwrGjirUyi6QHUo=
-X-Google-Smtp-Source: ABdhPJwXXybGJuDqcgkz3mLUi9tCTNLF/blBEclrZWKQbzm75DdiePexF9OjweaYsGHB49KCS5zuKg==
-X-Received: by 2002:a05:600c:214d:: with SMTP id v13mr4081518wml.186.1611144075582;
-        Wed, 20 Jan 2021 04:01:15 -0800 (PST)
-Received: from liuwe-devbox-debian-v2.j3c5onc20sse1dnehy4noqpfcg.zx.internal.cloudapp.net ([51.145.34.42])
-        by smtp.gmail.com with ESMTPSA id x17sm3747671wro.40.2021.01.20.04.01.14
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 20 Jan 2021 04:01:15 -0800 (PST)
-From:   Wei Liu <wei.liu@kernel.org>
-To:     Linux on Hyper-V List <linux-hyperv@vger.kernel.org>
-Cc:     virtualization@lists.linux-foundation.org,
-        Linux Kernel List <linux-kernel@vger.kernel.org>,
-        Michael Kelley <mikelley@microsoft.com>,
-        Vineeth Pillai <viremana@linux.microsoft.com>,
-        Sunil Muthuswamy <sunilmut@microsoft.com>,
-        Nuno Das Neves <nunodasneves@linux.microsoft.com>,
-        pasha.tatashin@soleen.com, Wei Liu <wei.liu@kernel.org>,
-        Rob Herring <robh@kernel.org>,
-        "K. Y. Srinivasan" <kys@microsoft.com>,
-        Haiyang Zhang <haiyangz@microsoft.com>,
-        Stephen Hemminger <sthemmin@microsoft.com>,
-        Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>,
-        Bjorn Helgaas <bhelgaas@google.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        linux-pci@vger.kernel.org (open list:PCI NATIVE HOST BRIDGE AND
-        ENDPOINT DRIVERS),
-        linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
-Subject: [PATCH v5 12/16] asm-generic/hyperv: update hv_interrupt_entry
-Date:   Wed, 20 Jan 2021 12:00:54 +0000
-Message-Id: <20210120120058.29138-13-wei.liu@kernel.org>
-X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20210120120058.29138-1-wei.liu@kernel.org>
-References: <20210120120058.29138-1-wei.liu@kernel.org>
+        id S2390367AbhATPLi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 20 Jan 2021 10:11:38 -0500
+Received: from mail.kernel.org ([198.145.29.99]:48730 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2390990AbhATPGO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 20 Jan 2021 10:06:14 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 7A01A23356;
+        Wed, 20 Jan 2021 15:05:14 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1611155125;
+        bh=9874V4EQF8pGhQeRtiLlHuHTZWGypK1q+CZx02TXhZM=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=uVer5+wzd/VviGPx62NgeNadLX736EMkLOQOVHuy+k8sx0BcR+ivCEkKsnZIoxtnT
+         GpWkXKSHUVrX3tMi+iQiZNVYUchhp0zB4TrjPy0CuHAyWgurs4kWeeuPwxfawgBGve
+         xWg9JGEgJG54bZgaB141RZ4cuaX9zxlmp5uYxxVFC9vITcsuqfvwAakLkytsiWOGfL
+         pNtcU5EE62T/qNQ15LxVmcJccjD7XRVg6hOvj3C8536te+4LBKab+YM8J44PRYhLZX
+         NgPhXfCDCBlcUFMljfwDktrV1a/D2LNFJaqimj3Xi9rVUzUTR1HHM4iQVtrs0WE0Q2
+         /+v3XgxNylKfQ==
+Date:   Wed, 20 Jan 2021 17:05:10 +0200
+From:   Mike Rapoport <rppt@kernel.org>
+To:     Matthew Wilcox <willy@infradead.org>
+Cc:     Andrew Morton <akpm@linux-foundation.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        David Hildenbrand <david@redhat.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Roman Gushchin <guro@fb.com>,
+        Shakeel Butt <shakeelb@google.com>,
+        Shuah Khan <shuah@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>
+Subject: Re: [PATCH v14 05/10] mm: introduce memfd_secret system call to
+ create "secret" memory areas
+Message-ID: <20210120150510.GO1106298@kernel.org>
+References: <20201203062949.5484-1-rppt@kernel.org>
+ <20201203062949.5484-6-rppt@kernel.org>
+ <20210119202213.GI2260413@casper.infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210119202213.GI2260413@casper.infradead.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-We will soon use the same structure to handle IO-APIC interrupts as
-well. Introduce an enum to identify the source and a data structure for
-IO-APIC RTE.
-
-While at it, update pci-hyperv.c to use the enum.
-
-No functional change.
-
-Signed-off-by: Wei Liu <wei.liu@kernel.org>
-Acked-by: Rob Herring <robh@kernel.org>
----
- drivers/pci/controller/pci-hyperv.c |  2 +-
- include/asm-generic/hyperv-tlfs.h   | 36 +++++++++++++++++++++++++++--
- 2 files changed, 35 insertions(+), 3 deletions(-)
-
-diff --git a/drivers/pci/controller/pci-hyperv.c b/drivers/pci/controller/pci-hyperv.c
-index 6db8d96a78eb..87aa62ee0368 100644
---- a/drivers/pci/controller/pci-hyperv.c
-+++ b/drivers/pci/controller/pci-hyperv.c
-@@ -1216,7 +1216,7 @@ static void hv_irq_unmask(struct irq_data *data)
- 	params = &hbus->retarget_msi_interrupt_params;
- 	memset(params, 0, sizeof(*params));
- 	params->partition_id = HV_PARTITION_ID_SELF;
--	params->int_entry.source = 1; /* MSI(-X) */
-+	params->int_entry.source = HV_INTERRUPT_SOURCE_MSI;
- 	hv_set_msi_entry_from_desc(&params->int_entry.msi_entry, msi_desc);
- 	params->device_id = (hbus->hdev->dev_instance.b[5] << 24) |
- 			   (hbus->hdev->dev_instance.b[4] << 16) |
-diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
-index 7e103be42799..8423bf53c237 100644
---- a/include/asm-generic/hyperv-tlfs.h
-+++ b/include/asm-generic/hyperv-tlfs.h
-@@ -480,6 +480,11 @@ struct hv_create_vp {
- 	u64 flags;
- } __packed;
+On Tue, Jan 19, 2021 at 08:22:13PM +0000, Matthew Wilcox wrote:
+> On Thu, Dec 03, 2020 at 08:29:44AM +0200, Mike Rapoport wrote:
+> > +static vm_fault_t secretmem_fault(struct vm_fault *vmf)
+> > +{
+> > +	struct address_space *mapping = vmf->vma->vm_file->f_mapping;
+> > +	struct inode *inode = file_inode(vmf->vma->vm_file);
+> > +	pgoff_t offset = vmf->pgoff;
+> > +	vm_fault_t ret = 0;
+> > +	unsigned long addr;
+> > +	struct page *page;
+> > +	int err;
+> > +
+> > +	if (((loff_t)vmf->pgoff << PAGE_SHIFT) >= i_size_read(inode))
+> > +		return vmf_error(-EINVAL);
+> > +
+> > +	page = find_get_page(mapping, offset);
+> > +	if (!page) {
+> > +
+> > +		page = secretmem_alloc_page(vmf->gfp_mask);
+> > +		if (!page)
+> > +			return vmf_error(-ENOMEM);
+> 
+> Just use VM_FAULT_OOM directly.
  
-+enum hv_interrupt_source {
-+	HV_INTERRUPT_SOURCE_MSI = 1, /* MSI and MSI-X */
-+	HV_INTERRUPT_SOURCE_IOAPIC,
-+};
-+
- union hv_msi_address_register {
- 	u32 as_uint32;
- 	struct {
-@@ -513,10 +518,37 @@ union hv_msi_entry {
- 	} __packed;
- };
+Ok.
+
+> > +		err = add_to_page_cache(page, mapping, offset, vmf->gfp_mask);
+> > +		if (unlikely(err))
+> > +			goto err_put_page;
+> 
+> What if the error is EEXIST because somebody else raced with you to add
+> a new page to the page cache?
+
+Right, for -EEXIST I need a retry here, thanks.
+
+> > +		err = set_direct_map_invalid_noflush(page, 1);
+> > +		if (err)
+> > +			goto err_del_page_cache;
+> 
+> Does this work correctly if somebody else has a reference to the page
+> in the meantime?
+
+Yes, it does. If somebody else won the race that page was dropped from the
+direct map and this call would be essentially a nop. And anyway, the very
+next patch changes the way pages are removed from the direct map ;-)
+
+> > +		addr = (unsigned long)page_address(page);
+> > +		flush_tlb_kernel_range(addr, addr + PAGE_SIZE);
+> > +
+> > +		__SetPageUptodate(page);
+> 
+> Once you've added it to the cache, somebody else can come along and try
+> to lock it.  They will set PageWaiter.  Now you call __SetPageUptodate
+> and wipe out their PageWaiter bit.  So you won't wake them up when you
+> unlock.
+> 
+> You can call __SetPageUptodate before adding it to the page cache,
+> but once it's visible to another thread, you can't do that.
+
+Will fix.
+
+> > +		ret = VM_FAULT_LOCKED;
+> > +	}
+> > +
+> > +	vmf->page = page;
+> 
+> You're supposed to return the page locked, so use find_lock_page() instead
+> of find_get_page().
+
+Ok/
  
-+union hv_ioapic_rte {
-+	u64 as_uint64;
-+
-+	struct {
-+		u32 vector:8;
-+		u32 delivery_mode:3;
-+		u32 destination_mode:1;
-+		u32 delivery_status:1;
-+		u32 interrupt_polarity:1;
-+		u32 remote_irr:1;
-+		u32 trigger_mode:1;
-+		u32 interrupt_mask:1;
-+		u32 reserved1:15;
-+
-+		u32 reserved2:24;
-+		u32 destination_id:8;
-+	};
-+
-+	struct {
-+		u32 low_uint32;
-+		u32 high_uint32;
-+	};
-+} __packed;
-+
- struct hv_interrupt_entry {
--	u32 source;			/* 1 for MSI(-X) */
-+	u32 source;
- 	u32 reserved1;
--	union hv_msi_entry msi_entry;
-+	union {
-+		union hv_msi_entry msi_entry;
-+		union hv_ioapic_rte ioapic_rte;
-+	};
- } __packed;
- 
- /*
+> > +	return ret;
+> > +
+> > +err_del_page_cache:
+> > +	delete_from_page_cache(page);
+> > +err_put_page:
+> > +	put_page(page);
+> > +	return vmf_error(err);
+> > +}
+
 -- 
-2.20.1
-
+Sincerely yours,
+Mike.
