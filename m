@@ -6,40 +6,40 @@ X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 40CB7C433DB
-	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 12:58:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CE35EC433E9
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 12:58:52 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E9B5023359
-	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 12:58:22 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A5CEE2333C
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 12:58:52 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2388747AbhATM6P (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 20 Jan 2021 07:58:15 -0500
-Received: from mail-wm1-f51.google.com ([209.85.128.51]:50874 "EHLO
-        mail-wm1-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389312AbhATML5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2021 07:11:57 -0500
-Received: by mail-wm1-f51.google.com with SMTP id 190so2669029wmz.0;
-        Wed, 20 Jan 2021 04:11:40 -0800 (PST)
+        id S2388769AbhATM60 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 20 Jan 2021 07:58:26 -0500
+Received: from mail-ej1-f48.google.com ([209.85.218.48]:45207 "EHLO
+        mail-ej1-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2387423AbhATMNK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2021 07:13:10 -0500
+Received: by mail-ej1-f48.google.com with SMTP id ke15so25518785ejc.12;
+        Wed, 20 Jan 2021 04:12:53 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=+I7gc45xFJIk2c97apTvkR8acQbtMFTm1lgQrn5j0J4=;
-        b=Y/9V0nY1bXWeHoa+peSU4ps3VkvRfgOObvKcq9rWpF06A/sdx4krI51A7LRFHFQI4X
-         iAApm8fiyvwNNyTtrd09TwsSyHf01ANzDYItqjZqkj7CbIWynp3X2EXMDnfBxZ/+AA1l
-         DY5sS0yu1HAcVF81EbFscdIb96YrMAYQJN9DcUmbtxlCMbTr8G68yHMgkShena7ebu+p
-         eyctDJt6T7v3N85HXmxktsOHRZrgdKAv8+3t89FFhZXVPnylmIO722VRciWoviN43SLC
-         g/XGWyIIWoRVRML0mywS5d9zlcW+/FCyR0CD5wy6AdT5ERSdlgSIvGFdhlUuf2xor3oV
-         boZw==
-X-Gm-Message-State: AOAM531Z+NvnUZ1uSvlBNPtDdQdO2M20rN1POsKAq5DfcRzYX6LDqDKk
-        HVWOEGpqvwsUKZf0oHGSLY8Qvezs8qs=
-X-Google-Smtp-Source: ABdhPJwOtLh3i30qS8UIHprE6HaVcYPLbuYLi648Wm0I8iypqUdEDDC4RmIdv2pwlCQgGE5q+8r5eQ==
-X-Received: by 2002:a7b:ce92:: with SMTP id q18mr1599037wmj.113.1611144062899;
-        Wed, 20 Jan 2021 04:01:02 -0800 (PST)
+        bh=iSy+7CaWmr7dYr0SNSPrl+Q/2IeK6S5L4pZcI30bMis=;
+        b=FUQCQvWxqgQWQYx8f9yWPxMUXtfJTGZmug1dUrElIHVknht9U/I3LqLytqhvtUiFPf
+         1wk6QRz66lBdg11GLkgEmQ1ZC21mr85nKqY1T8/SvUdbrMNK1pvONyL6/pA9uw2WwiZc
+         EMY5GBrwi8Qr7znq+RxdevvN+5DZRbz8aH1veWtyOuVPUM60lUr+TKJhXRTyLqOrDK8v
+         +AvNDqSWKM0Rt0hBzH8yA+Cm1KJ66OJ7n/DL64j/1RAkfLvZGlCizPDVEIx359gizLKh
+         9kYxYJl4IfNBXkGugfPl67RFCM4H4mCbnUWZqEwZAnKN0XvrmNmDC3WjLavelt3tralS
+         zKTA==
+X-Gm-Message-State: AOAM5303S0JT/69xjRXZNJPPgbPJVxh8fUJ8gnknxPj9AWvxvqwhbmr0
+        gbiO83wsqQ5FKbxN+KrgB0PO8uB2K8E=
+X-Google-Smtp-Source: ABdhPJw5vOkhmDj9Q+Ge0U4oH6WN1q0Res6scwIRD9dAZ10+vSr1rePaXgFDbWJizW6o0ZK2YR/7HQ==
+X-Received: by 2002:a5d:6983:: with SMTP id g3mr9082864wru.168.1611144076449;
+        Wed, 20 Jan 2021 04:01:16 -0800 (PST)
 Received: from liuwe-devbox-debian-v2.j3c5onc20sse1dnehy4noqpfcg.zx.internal.cloudapp.net ([51.145.34.42])
-        by smtp.gmail.com with ESMTPSA id x17sm3747671wro.40.2021.01.20.04.01.01
+        by smtp.gmail.com with ESMTPSA id x17sm3747671wro.40.2021.01.20.04.01.15
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 20 Jan 2021 04:01:01 -0800 (PST)
+        Wed, 20 Jan 2021 04:01:16 -0800 (PST)
 From:   Wei Liu <wei.liu@kernel.org>
 To:     Linux on Hyper-V List <linux-hyperv@vger.kernel.org>
 Cc:     virtualization@lists.linux-foundation.org,
@@ -49,15 +49,14 @@ Cc:     virtualization@lists.linux-foundation.org,
         Sunil Muthuswamy <sunilmut@microsoft.com>,
         Nuno Das Neves <nunodasneves@linux.microsoft.com>,
         pasha.tatashin@soleen.com, Wei Liu <wei.liu@kernel.org>,
-        Vitaly Kuznetsov <vkuznets@redhat.com>,
         "K. Y. Srinivasan" <kys@microsoft.com>,
         Haiyang Zhang <haiyangz@microsoft.com>,
         Stephen Hemminger <sthemmin@microsoft.com>,
         Arnd Bergmann <arnd@arndb.de>,
         linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
-Subject: [PATCH v5 01/16] asm-generic/hyperv: change HV_CPU_POWER_MANAGEMENT to HV_CPU_MANAGEMENT
-Date:   Wed, 20 Jan 2021 12:00:43 +0000
-Message-Id: <20210120120058.29138-2-wei.liu@kernel.org>
+Subject: [PATCH v5 13/16] asm-generic/hyperv: introduce hv_device_id and auxiliary structures
+Date:   Wed, 20 Jan 2021 12:00:55 +0000
+Message-Id: <20210120120058.29138-14-wei.liu@kernel.org>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20210120120058.29138-1-wei.liu@kernel.org>
 References: <20210120120058.29138-1-wei.liu@kernel.org>
@@ -67,27 +66,106 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This makes the name match Hyper-V TLFS.
+We will need to identify the device we want Microsoft Hypervisor to
+manipulate.  Introduce the data structures for that purpose.
 
+They will be used in a later patch.
+
+Signed-off-by: Sunil Muthuswamy <sunilmut@microsoft.com>
+Co-Developed-by: Sunil Muthuswamy <sunilmut@microsoft.com>
 Signed-off-by: Wei Liu <wei.liu@kernel.org>
-Reviewed-by: Vitaly Kuznetsov <vkuznets@redhat.com>
 ---
- include/asm-generic/hyperv-tlfs.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/asm-generic/hyperv-tlfs.h | 79 +++++++++++++++++++++++++++++++
+ 1 file changed, 79 insertions(+)
 
 diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
-index e73a11850055..e6903589a82a 100644
+index 8423bf53c237..42ff1326c6bd 100644
 --- a/include/asm-generic/hyperv-tlfs.h
 +++ b/include/asm-generic/hyperv-tlfs.h
-@@ -88,7 +88,7 @@
- #define HV_CONNECT_PORT				BIT(7)
- #define HV_ACCESS_STATS				BIT(8)
- #define HV_DEBUGGING				BIT(11)
--#define HV_CPU_POWER_MANAGEMENT			BIT(12)
-+#define HV_CPU_MANAGEMENT			BIT(12)
+@@ -623,4 +623,83 @@ struct hv_set_vp_registers_input {
+ 	} element[];
+ } __packed;
  
- 
- /*
++enum hv_device_type {
++	HV_DEVICE_TYPE_LOGICAL = 0,
++	HV_DEVICE_TYPE_PCI = 1,
++	HV_DEVICE_TYPE_IOAPIC = 2,
++	HV_DEVICE_TYPE_ACPI = 3,
++};
++
++typedef u16 hv_pci_rid;
++typedef u16 hv_pci_segment;
++typedef u64 hv_logical_device_id;
++union hv_pci_bdf {
++	u16 as_uint16;
++
++	struct {
++		u8 function:3;
++		u8 device:5;
++		u8 bus;
++	};
++} __packed;
++
++union hv_pci_bus_range {
++	u16 as_uint16;
++
++	struct {
++		u8 subordinate_bus;
++		u8 secondary_bus;
++	};
++} __packed;
++
++union hv_device_id {
++	u64 as_uint64;
++
++	struct {
++		u64 :62;
++		u64 device_type:2;
++	};
++
++	/* HV_DEVICE_TYPE_LOGICAL */
++	struct {
++		u64 id:62;
++		u64 device_type:2;
++	} logical;
++
++	/* HV_DEVICE_TYPE_PCI */
++	struct {
++		union {
++			hv_pci_rid rid;
++			union hv_pci_bdf bdf;
++		};
++
++		hv_pci_segment segment;
++		union hv_pci_bus_range shadow_bus_range;
++
++		u16 phantom_function_bits:2;
++		u16 source_shadow:1;
++
++		u16 rsvdz0:11;
++		u16 device_type:2;
++	} pci;
++
++	/* HV_DEVICE_TYPE_IOAPIC */
++	struct {
++		u8 ioapic_id;
++		u8 rsvdz0;
++		u16 rsvdz1;
++		u16 rsvdz2;
++
++		u16 rsvdz3:14;
++		u16 device_type:2;
++	} ioapic;
++
++	/* HV_DEVICE_TYPE_ACPI */
++	struct {
++		u32 input_mapping_base;
++		u32 input_mapping_count:30;
++		u32 device_type:2;
++	} acpi;
++} __packed;
++
+ #endif
 -- 
 2.20.1
 
