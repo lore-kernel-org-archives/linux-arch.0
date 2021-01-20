@@ -2,547 +2,313 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-20.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,INCLUDES_PULL_REQUEST,
-	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
-	USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 35E35C4332D
-	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 03:34:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EECD6C433DB
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 03:35:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 0F84A22573
-	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 03:34:54 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A622823109
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jan 2021 03:35:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1731950AbhATC3b (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 19 Jan 2021 21:29:31 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38922 "EHLO
+        id S1728099AbhATDfK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 19 Jan 2021 22:35:10 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39104 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729224AbhATC2U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2021 21:28:20 -0500
-Received: from mail-pj1-x1029.google.com (mail-pj1-x1029.google.com [IPv6:2607:f8b0:4864:20::1029])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D1461C061757
-        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2021 18:27:39 -0800 (PST)
-Received: by mail-pj1-x1029.google.com with SMTP id m5so1176242pjv.5
-        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2021 18:27:39 -0800 (PST)
+        with ESMTP id S1731936AbhATC3a (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2021 21:29:30 -0500
+Received: from mail-pj1-x1030.google.com (mail-pj1-x1030.google.com [IPv6:2607:f8b0:4864:20::1030])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 33A95C06179C
+        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2021 18:29:13 -0800 (PST)
+Received: by mail-pj1-x1030.google.com with SMTP id y12so1202391pji.1
+        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2021 18:29:13 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=xmX908JENsIXDrEuDymsi+FvEW13oaUohjpobi1D9g4=;
-        b=DYqc0rK++mSjK9zWY3Hn25MhlWE0ZyNQekd3rVmaee6yC8pzSYsyKDkAiqed3zoXye
-         VyEU98eJmECkaRhvM9QRbb+GgMrA4NIJYd6laFvasrNeBF/biMC7fbui4V2fBSsV49Kz
-         +7L0bZe6iEzGTF+N8o0RmUf4OJYkTawW7ssOL1XgkY8TLfo7GiaYm1z+F52C+VDvSp5U
-         +Wnyf/e/Po9rEYG04XqowaPCS6kv9sUYBhyxUEDj4CwdQPhsaM7Vw9o8/IQ3jS9iePam
-         Ibe9ZO2O/CPhFzBd2cMMUXvNOQtODdYlkoY2zJ/hQBQIWV+NuDllyEHVKYnTY9DnXfly
-         ipCA==
+        bh=Ypgiu6q1Iz0Yn4IRUnjyh+oh2jFCd4nbbIEvAdriWkc=;
+        b=C0e6cnygwKk6Y9XF6vxQ0vcFiifcdTbW181s5RjoVPl40L+dcFnwKQIC9limi/xs/U
+         sNanCYEPYLBBbLw8ltoZ3WwQ0rsCklPI78VpBZ8FfsUwiqSeQrzzYlWDHigtbQsrDkFY
+         FdFo38RvEBbZ+7AR9pS4WfG392jtmEA2KRXM1XYWdcLf3FjkiyB2ANofLYQFQ3Rhe5tu
+         L0jIqqaspaCJ7EwhLawyrYLO4/sXXJHu7PFzX36WUh9+pLIXB+IBU+JKaL6kXYGq/WNH
+         34Q2jdhKlPxBCGbKR6mTzd5zEgL/wouzZs/RyMakq6Su/gUHE0lwLjexiHse+PnFHY8x
+         1BkA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=xmX908JENsIXDrEuDymsi+FvEW13oaUohjpobi1D9g4=;
-        b=jZA1W5tBghkyMd3bipOyDItodEI8qn3aQ/I9Mg1Yx5FR+/t///JZnCJq048HoKnBSr
-         CPzqRmXfKK0EnnUFOYbH4xE2nLXvMa7NgjFPqUgDNgUoYpE4jcJqaNgucANK0ltT12b4
-         VS34uWmVgnCgqnvr2vcIWUOWe+dH68VUYjNdEWqTmliyPogWQswdX4ceYrixy6rCagI4
-         DIv54JdDOonUdk68TNX4mhO3ynKfm1m0nzMevnkn8shbilzrZV215lCPan9iSxAVu04N
-         z8bbeifTp1iD3AItEBssa9VBAMohz1yhY5HvI36Xwt5ZEawlqfnesldLKTAq1IULhXB7
-         HqLg==
-X-Gm-Message-State: AOAM533L+woQh+j5Wgr50iHgL0fo0lVzFFEFHALZKmbXRXVJ/YtnWUB+
-        nvysv1TmAjgnXA8OgIDFE+I=
-X-Google-Smtp-Source: ABdhPJxvrx4G9jyn55O6bB/Z7HSP8HjG7sIXrm2A4GpA7Sd6y4lzBL8DA/LGDvTtpEkNWSCCOWiihA==
-X-Received: by 2002:a17:902:ed88:b029:de:86f9:3e09 with SMTP id e8-20020a170902ed88b02900de86f93e09mr7593378plj.38.1611109659043;
-        Tue, 19 Jan 2021 18:27:39 -0800 (PST)
+        bh=Ypgiu6q1Iz0Yn4IRUnjyh+oh2jFCd4nbbIEvAdriWkc=;
+        b=VOp28T9GL5GF75rizbnU2WYfGVsxNMyvpg/ON1KceUXLSXLI8oI9hD1JHB1pEbcst+
+         d0rGtOti/zAMhweHjNX64TxAA5/Xqwq1NdoFod6jOFuGdLn2b4eW3AogMylsibbA12K5
+         p+rzkCwzAeItaNQZwAvbkxodQGlOu6ENoHChHSIJvb7p+Ijkd4JvCuoTcYnoku7JVfqL
+         YhoVjp9rNgbSTEbpbGC4Iwldy7x2z8HeSpFNbV+Qmd6ddASfd6ID4wZR2TJ0cPH62KXW
+         gRm2PwA6GUN4C0vkaYXGYCEgTZUfXHiaI1QuXnKIzuFtVADwDMp2UApnJe2lFeV0v91W
+         pSqg==
+X-Gm-Message-State: AOAM533pWaCBcx97ajtWY+WtqfGShTTp29i8Et8s0yI3Ppr+x2ctML4z
+        sd/dFf7N+h1SSwMHU1wyQnY=
+X-Google-Smtp-Source: ABdhPJzqa8uR2DbbFBTVcxjURcmO3NvsV+8B+mYGJjsVv8miCKayaFHrS0wExD8jC00JTzpvWbJzDw==
+X-Received: by 2002:a17:90a:e396:: with SMTP id b22mr2935724pjz.155.1611109752672;
+        Tue, 19 Jan 2021 18:29:12 -0800 (PST)
 Received: from earth-mac.local (219x123x138x129.ap219.ftth.ucom.ne.jp. [219.123.138.129])
-        by smtp.gmail.com with ESMTPSA id 21sm378356pfx.84.2021.01.19.18.27.37
+        by smtp.gmail.com with ESMTPSA id 6sm389592pfz.34.2021.01.19.18.29.10
         (version=TLS1_2 cipher=ECDHE-ECDSA-CHACHA20-POLY1305 bits=256/256);
-        Tue, 19 Jan 2021 18:27:38 -0800 (PST)
+        Tue, 19 Jan 2021 18:29:11 -0800 (PST)
 Received: by earth-mac.local (Postfix, from userid 501)
-        id 340EA20442D28F; Wed, 20 Jan 2021 11:27:36 +0900 (JST)
+        id 8E67F20442D38F; Wed, 20 Jan 2021 11:29:08 +0900 (JST)
 From:   Hajime Tazaki <thehajime@gmail.com>
 To:     linux-um@lists.infradead.org, jdike@addtoit.com, richard@nod.at,
         anton.ivanov@cambridgegreys.com
 Cc:     thehajime@gmail.com, tavi.purdila@gmail.com, retrage01@gmail.com,
         linux-kernel-library@freelists.org, linux-arch@vger.kernel.org
-Subject: [RFC v8 00/20] Unifying LKL into UML
-Date:   Wed, 20 Jan 2021 11:27:05 +0900
-Message-Id: <cover.1611103406.git.thehajime@gmail.com>
+Subject: [RFC v8 12/20] um: lkl: initialization and cleanup
+Date:   Wed, 20 Jan 2021 11:27:17 +0900
+Message-Id: <031847ceca73023566fba8e84433a615eac6a2f3.1611103406.git.thehajime@gmail.com>
 X-Mailer: git-send-email 2.20.1 (Apple Git-117)
-In-Reply-To: <cover.1601960644.git.thehajime@gmail.com>
-References: <cover.1601960644.git.thehajime@gmail.com>
+In-Reply-To: <cover.1611103406.git.thehajime@gmail.com>
+References: <cover.1611103406.git.thehajime@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This is another spin of the unification of LKL into UML.  Updated and
-fixed comments from our v7 patches.  The summary is listed in the
-changelog below.
+Add the lkl_start_kernel and lkl_sys_halt APIs that start and
+respectively stops the Linux kernel.
 
-Note that the whole patchset requires the patch "um: ubd: fix command
-line handling of ubd" to be correctly tested, which I previously
-submitted.
+lkl_start_kernel creates a separate threads that will run the initial
+and idle kernel thread. It waits for the kernel to complete
+initialization before returning, to avoid races with system calls
+issues by the host application.
 
+During the setup phase, we create "/init" in initial ramfs root
+filesystem to avoid mounting the "real" rootfs since ramfs is good
+enough for now.
 
-Changes in rfc v8:
-- stop using the term "nommu" mode, "library" mode instead
-- generic atomic64 rewrite to use gcc builtin atomics
-- use kernel-doc format for comments
-- stop using a collection of function pointer (struct lkl_host_operations),
-  but weak functions
-- use python3, not python
-- use c99 initializers for strerror
-- add comments/descriptions about thread implementation
-- remove redundant Kconfig entries (RAID6_PQ_BENCHMARK, STACKTRACE_SUPPORT,
-  etc)
-- refine code comments
-- stop using NPROC for the internal -j flag
-- remove make argument of "UMMODE=library"
-- preserve the vmlinux file as it is
-- rework commit history with reasonable files
-- rework test framework using kselftest (tools/testing/selftests/um/)
-- add documentation, MAINTAINERS
+lkl_sys_halt will shutdown the kernel, terminate all threads and
+free all host resources used by the kernel before returning.
 
-
-Changes in rfc v7:
-- preserve `make ARCH=um` syntax to build UML
-- introduce `make ARCH=um UMMODE=library` to build library mode
-- fix undefined symbols issue during modpost
-- clean up makefiles (arch/um, tools/um)
-
-Changes in rfc v6:
-- rebase with the current linus tree
-
-Changes in rfc v5:
-- rewrite whole patchset from scratch
-- move arch-dependent code of arch/um and arch/x86/um to tools/um
- - mainly code under os-Linux/ involved
- - introduce 2-stage build (kernel, and host-dependent parts)
- - clean up vmlinux.lds.S
-- put LKL-specific implementations as a SUBARCH under arch/um/nommu
-- introduce !CONFIG_MMU in arch/um
-- use struct arch_thread and arch_switch_to() for subarch-specific
-  thread implementation
-- integrate with the IRQ infrastructure of UML
-- tested with block device drivers (ubd) for the proof
-
-Changes in rfc v4: (https://lwn.net/Articles/816276/)
-- Rebase on the current uml/master branch
-- Fix IRQ handling (bug fix)
-- drop a patch for CONFIG_GENERIC_ATOMIC64 (comment by Peter Zijlstra)
-- implement vector net driver for UMMODE_LIB (comment by Anton)
-- clean up uapi headers to avoid duplicates
-- clean up IRQ handling code (comment by Anton)
-- fix error handling in test code (comments by David Disseldorp)
-
-Changes in rfc v3:
-- use UML drivers (net, block) from LKL programs
-- drop virtio device implementations
-- drop mingw32 (Windows) host
-- drop android (arm/aarch64) host
-- drop FreeBSD (x86_64) host
-- drop LD_PRELOAD (hijack) support
-- update milestone
-
-rfc v2:
-- use UMMODE instead of SUBARCH to switch UML or LKL
-- tools/lkl directory is still there. I confirmed we can move under arch/um
-  (e.g., arch/um/lkl/hosts).  I will move it IF this is preferable.
-- drop several patches involved non-uml directory
-- drop several patches which are not required
-- refine commit logs
-- document updated
-
-
-
-
-LKL (Linux Kernel Library) is aiming to allow reusing the Linux kernel code
-as extensively as possible with minimal effort and reduced maintenance
-overhead.
-
-Examples of how LKL can be used are: creating userspace applications
-(running on Linux and other operating systems) that can read or write Linux
-filesystems or can use the Linux networking stack, creating kernel drivers
-for other operating systems that can read Linux filesystems, bootloaders
-support for reading/writing Linux filesystems, etc.
-
-With LKL, the kernel code is compiled into an object file that can be
-directly linked by applications. The API offered by LKL is based on the
-Linux system call interface.
-
-LKL is originally implemented as an architecture port in arch/lkl, but this
-series of commits tries to integrate this into arch/um as one of the mode
-of UML.  This was discussed during RFC email of LKL (*1).
-
-The latest LKL version can be found at https://github.com/lkl/linux
-
-Milestone
-=========
-This patches is a first step toward upstreaming *library mode* of
-Linux kernel, but we think we need to have several steps toward our
-goal, describing in the below.
-
-
-Milestone 1: LKL lib on top of UML
- * Kernel - Host build split
- -  Build UML as a relocatable object using the UML's kernel linker script.
- -  Move the ptrace and other well isolated os code out of arch/um to
-    tools/um
- -  Use standard host toolchain to create a static library stripped of
-    the ptrace code. Use standard host toolchain to build the main UML
-    executable.
- -  Add library init API that creates the UML kernel process and starts
-    UML.
- * System calls APIs
- -  Add new system call interface based on UML's irq facility.
- -  Use the LKL scripts to export the required headers to create system
-    calls APIs that use the UML system calls infrastructure.
- -  Keep the underlying host and driver operations (threads, irqs, etc.)
-    as they are now in UML.
- * Boot test
- -  Port the LKL boot test to verify that we are able to programatically
-    issue system calls.
-
-Milestone 2: add virtio disk support
- * Export asm/io.h operations to host/os. Create IO access operations
-   and redirect them to weak os_ variants that use the current UML
-   implementation.
- * Add the LKL IO access layer including generic virtio handling and the
-   virtio block device code.
- * Port LKL disk test and disk apps (lklfuse, fs2tar, cptofs)
-
-Milestone 3: new arch ports
-  * Abstract the system call / IRQ mode the move the implementation to host
-  * Abstract the thread model and move the implementation to host
-  * Add LKL thread model and LKL ports
-
-
-Building LKL the host library and LKL applications
-==================================================
-
-% make ARCH=um SUBARCH=lkl defconfig
-% make ARCH=um SUBARCH=lkl
-
-will build LKL as a object file, it will install it in
-tools/um/libtogether with the headers files in tools/um/include then
-will build the host library, tests and a few of application examples:
-
-* tools/testing/selftests/um/boot.c - a simple applications that uses
-  LKL and exercises the basic LKL APIs
-
-* tools/testing/selftests/um/disk.c - a simple applications that tests
-  LKL and exercises the basic filesystem-related LKL APIs
-
-Those tests can run with the following kselftest command:
-
-    $ make ARCH=um SUBARCH=lkl TARGETS="um" kselftest
-
-Supported hosts
-===============
-
-Currently LKL supports Linux userspace applications. New hosts can be added
-relatively easy if the host supports gcc and GNU ld. Previous versions of
-LKL supported Windows kernel and Haiku kernel hosts, and we also have WIP
-patches with rump-hypercall interface, used in UEFI, as well as macOS
-userspace (part of POSIX).
-
-There is also musl-libc port for LKL, which might be interested in for some
-folks.
-
-
-Further readings about LKL
-=========================
-
-- Discussion in github LKL issue
-https://github.com/lkl/linux/issues/304
-
-- LKL (an article)
-https://www.researchgate.net/profile/Nicolae_Tapus2/publication/224164682_LKL_The_Linux_kernel_library/links/02bfe50fd921ab4f7c000000.pdf
-
-*1 RFC email to LKML (back in 2015)
-https://www.mail-archive.com/linux-kernel@vger.kernel.org/msg1012277.html
-
-
-Please review the following changes for suitability for inclusion. If you have
-any objections or suggestions for improvement, please respond to the patches. If
-you agree with the changes, please provide your Acked-by.
-
-The following changes since commit 19c329f6808995b142b3966301f217c831e7cf31:
-
-  Linux 5.11-rc4 (2021-01-17 16:37:05 -0800)
-
-are available in the Git repository at:
-
-  git://github.com/thehajime/linux 043677211bb5562397c511911e7861c3e217611b
-  https://github.com/thehajime/linux/tree/uml-lkl-5.11rc4-v8
-
-Hajime Tazaki (18):
-  um: move arch/um/os-Linux dir to tools/um/uml
-  um: move arch/x86/um/os-Linux to tools/um/uml/
-  um: extend arch_switch_to for alternate SUBARCH
-  um: add UML library mode
-  um: lkl: host interface
-  um: lkl: memory handling
-  um: lkl: kernel thread support
-  um: lkl: system call interface and application API
-  um: lkl: basic console support
-  um: lkl: initialization and cleanup
-  um: lkl: integrate with irq infrastructure of UML
-  um: lkl: plug in the build system
-  um: host: add library mode build for ARCH=um
-  um: host: add utilities functions
-  um: host: posix host operations
-  selftests/um: lkl: add test programs for library mode of UML
-  um: lkl: add block device support of UML
-  um: lkl: add documentation
-
-Octavian Purdila (2):
-  um: split build in kernel and host parts
-  um: implement os_initcalls and os_exitcalls
-
- Documentation/virt/uml/lkl.txt                |  48 ++
- MAINTAINERS                                   |  10 +
- arch/um/Kconfig                               |  37 +-
- arch/um/Makefile                              |  41 +-
- arch/um/configs/lkl_defconfig                 |  73 +++
- arch/um/drivers/Makefile                      |  10 +-
- .../um/{os-Linux => }/drivers/ethertap_kern.c |   0
- arch/um/{os-Linux => }/drivers/tuntap_kern.c  |   0
- arch/um/include/asm/common.lds.S              |  99 ----
- arch/um/include/asm/host_ops.h                |   9 +
- arch/um/include/asm/mmu.h                     |   3 +
- arch/um/include/asm/mmu_context.h             |  10 +
- arch/um/include/asm/page.h                    |  15 +
- arch/um/include/asm/pgtable.h                 |  27 +
- arch/um/include/asm/thread_info.h             |  24 +
- arch/um/include/asm/uaccess.h                 |   6 +
- arch/um/include/asm/xor.h                     |   3 +-
- arch/um/include/shared/as-layout.h            |   1 +
- .../drivers => include/shared}/etap.h         |   0
- arch/um/include/shared/init.h                 |  19 +-
- arch/um/include/shared/os.h                   |   1 +
- .../drivers => include/shared}/tuntap.h       |   0
- arch/um/kernel/Makefile                       |  13 +-
- arch/um/kernel/dyn.lds.S                      | 171 -------
- arch/um/kernel/irq.c                          |  13 +
- arch/um/kernel/process.c                      |  14 +-
- arch/um/kernel/reboot.c                       |   5 +
- arch/um/kernel/time.c                         |   2 +
- arch/um/kernel/um_arch.c                      |  16 +
- arch/um/kernel/uml.lds.S                      | 115 -----
- arch/um/{os-Linux => kernel}/user_syms.c      |   0
- arch/um/kernel/vmlinux.lds.S                  |  92 +++-
- arch/um/lkl/Makefile                          |   2 +
- arch/um/lkl/Makefile.um                       |  18 +
- arch/um/lkl/include/asm/Kbuild                |   7 +
- arch/um/lkl/include/asm/archparam.h           |   1 +
- arch/um/lkl/include/asm/atomic.h              |  11 +
- arch/um/lkl/include/asm/atomic64.h            |  91 ++++
- arch/um/lkl/include/asm/cpu.h                 |  15 +
- arch/um/lkl/include/asm/elf.h                 |  19 +
- arch/um/lkl/include/asm/mm_context.h          |   8 +
- arch/um/lkl/include/asm/processor.h           |  48 ++
- arch/um/lkl/include/asm/ptrace.h              |  21 +
- arch/um/lkl/include/asm/sched.h               |  23 +
- arch/um/lkl/include/asm/segment.h             |   9 +
- arch/um/lkl/include/asm/syscall_wrapper.h     |  57 +++
- arch/um/lkl/include/asm/syscalls.h            |  15 +
- arch/um/lkl/include/uapi/asm/Kbuild           |   6 +
- arch/um/lkl/include/uapi/asm/bitsperlong.h    |  16 +
- arch/um/lkl/include/uapi/asm/byteorder.h      |  13 +
- arch/um/lkl/include/uapi/asm/host_ops.h       | 280 +++++++++++
- arch/um/lkl/include/uapi/asm/sigcontext.h     |  12 +
- arch/um/lkl/include/uapi/asm/syscalls.h       | 301 ++++++++++++
- arch/um/lkl/include/uapi/asm/unistd.h         |  17 +
- arch/um/lkl/um/Kconfig                        |  21 +
- arch/um/lkl/um/Makefile                       |   4 +
- arch/um/lkl/um/bootmem.c                      | 107 ++++
- arch/um/lkl/um/console.c                      |  41 ++
- arch/um/lkl/um/cpu.c                          | 269 ++++++++++
- arch/um/lkl/um/delay.c                        |  31 ++
- arch/um/lkl/um/setup.c                        | 179 +++++++
- arch/um/lkl/um/shared/sysdep/archsetjmp.h     |  13 +
- arch/um/lkl/um/shared/sysdep/faultinfo.h      |   8 +
- arch/um/lkl/um/shared/sysdep/kernel-offsets.h |  12 +
- arch/um/lkl/um/shared/sysdep/mcontext.h       |   9 +
- arch/um/lkl/um/shared/sysdep/ptrace.h         |  42 ++
- arch/um/lkl/um/shared/sysdep/ptrace_user.h    |   7 +
- arch/um/lkl/um/syscalls.c                     | 193 ++++++++
- arch/um/lkl/um/threads.c                      | 261 ++++++++++
- arch/um/lkl/um/unimplemented.c                |  70 +++
- arch/um/lkl/um/user_constants.h               |  13 +
- arch/um/os-Linux/Makefile                     |  21 -
- arch/um/os-Linux/drivers/Makefile             |  13 -
- arch/um/scripts/headers_install.py            | 200 ++++++++
- arch/x86/um/Makefile                          |   2 +-
- arch/x86/um/os-Linux/Makefile                 |  13 -
- arch/x86/um/ptrace_32.c                       |   2 +-
- arch/x86/um/syscalls_64.c                     |   2 +-
- scripts/headers_install.sh                    |   6 +-
- scripts/link-vmlinux.sh                       |  42 +-
- tools/testing/selftests/Makefile              |   3 +
- tools/testing/selftests/um/Makefile           |  16 +
- tools/testing/selftests/um/boot.c             | 376 ++++++++++++++
- tools/testing/selftests/um/cla.c              | 159 ++++++
- tools/testing/selftests/um/cla.h              |  33 ++
- tools/testing/selftests/um/disk-ext4.sh       |   6 +
- tools/testing/selftests/um/disk-vfat.sh       |   6 +
- tools/testing/selftests/um/disk.c             | 166 +++++++
- tools/testing/selftests/um/disk.sh            |  67 +++
- tools/testing/selftests/um/test.c             | 128 +++++
- tools/testing/selftests/um/test.h             |  72 +++
- tools/testing/selftests/um/test.sh            | 181 +++++++
- tools/um/.gitignore                           |   1 +
- tools/um/Makefile                             |  76 +++
- tools/um/Targets                              |   9 +
- tools/um/include/lkl.h                        | 364 ++++++++++++++
- tools/um/include/lkl_host.h                   |  19 +
- tools/um/lib/Build                            |   7 +
- tools/um/lib/fs.c                             | 461 ++++++++++++++++++
- tools/um/lib/jmp_buf.c                        |  14 +
- tools/um/lib/posix-host.c                     | 273 +++++++++++
- tools/um/lib/utils.c                          | 207 ++++++++
- tools/um/uml/Build                            |  59 +++
- tools/um/uml/drivers/Build                    |  10 +
- .../um/uml}/drivers/ethertap_user.c           |   0
- .../um/uml}/drivers/tuntap_user.c             |   0
- {arch/um/os-Linux => tools/um/uml}/elf_aux.c  |   0
- {arch/um/os-Linux => tools/um/uml}/execvp.c   |   4 -
- {arch/um/os-Linux => tools/um/uml}/file.c     |   0
- {arch/um/os-Linux => tools/um/uml}/helper.c   |   0
- {arch/um/os-Linux => tools/um/uml}/irq.c      |   0
- tools/um/uml/lkl/Build                        |   1 +
- tools/um/uml/lkl/registers.c                  |  21 +
- tools/um/uml/lkl/unimplemented.c              |  21 +
- {arch/um/os-Linux => tools/um/uml}/main.c     |   0
- {arch/um/os-Linux => tools/um/uml}/mem.c      |   0
- {arch/um/os-Linux => tools/um/uml}/process.c  |   2 +
- .../um/os-Linux => tools/um/uml}/registers.c  |   0
- {arch/um/os-Linux => tools/um/uml}/sigio.c    |   0
- {arch/um/os-Linux => tools/um/uml}/signal.c   |  12 +-
- .../skas/Makefile => tools/um/uml/skas/Build  |   6 +-
- {arch/um/os-Linux => tools/um/uml}/skas/mem.c |   0
- .../os-Linux => tools/um/uml}/skas/process.c  |   3 +-
- {arch/um/os-Linux => tools/um/uml}/start_up.c |   0
- {arch/um/os-Linux => tools/um/uml}/time.c     |   0
- {arch/um/os-Linux => tools/um/uml}/tty.c      |   0
- {arch/um/os-Linux => tools/um/uml}/umid.c     |   0
- {arch/um/os-Linux => tools/um/uml}/util.c     |  26 +
- tools/um/uml/x86/Build                        |  11 +
- .../os-Linux => tools/um/uml/x86}/mcontext.c  |   0
- .../um/os-Linux => tools/um/uml/x86}/prctl.c  |   0
- .../os-Linux => tools/um/uml/x86}/registers.c |   0
- .../os-Linux => tools/um/uml/x86}/task_size.c |   0
- .../um/os-Linux => tools/um/uml/x86}/tls.c    |   0
- 134 files changed, 5743 insertions(+), 525 deletions(-)
- create mode 100644 Documentation/virt/uml/lkl.txt
- create mode 100644 arch/um/configs/lkl_defconfig
- rename arch/um/{os-Linux => }/drivers/ethertap_kern.c (100%)
- rename arch/um/{os-Linux => }/drivers/tuntap_kern.c (100%)
- delete mode 100644 arch/um/include/asm/common.lds.S
- create mode 100644 arch/um/include/asm/host_ops.h
- rename arch/um/{os-Linux/drivers => include/shared}/etap.h (100%)
- rename arch/um/{os-Linux/drivers => include/shared}/tuntap.h (100%)
- delete mode 100644 arch/um/kernel/dyn.lds.S
- delete mode 100644 arch/um/kernel/uml.lds.S
- rename arch/um/{os-Linux => kernel}/user_syms.c (100%)
- create mode 100644 arch/um/lkl/Makefile
- create mode 100644 arch/um/lkl/Makefile.um
- create mode 100644 arch/um/lkl/include/asm/Kbuild
- create mode 100644 arch/um/lkl/include/asm/archparam.h
- create mode 100644 arch/um/lkl/include/asm/atomic.h
- create mode 100644 arch/um/lkl/include/asm/atomic64.h
- create mode 100644 arch/um/lkl/include/asm/cpu.h
- create mode 100644 arch/um/lkl/include/asm/elf.h
- create mode 100644 arch/um/lkl/include/asm/mm_context.h
- create mode 100644 arch/um/lkl/include/asm/processor.h
- create mode 100644 arch/um/lkl/include/asm/ptrace.h
- create mode 100644 arch/um/lkl/include/asm/sched.h
- create mode 100644 arch/um/lkl/include/asm/segment.h
- create mode 100644 arch/um/lkl/include/asm/syscall_wrapper.h
- create mode 100644 arch/um/lkl/include/asm/syscalls.h
- create mode 100644 arch/um/lkl/include/uapi/asm/Kbuild
- create mode 100644 arch/um/lkl/include/uapi/asm/bitsperlong.h
- create mode 100644 arch/um/lkl/include/uapi/asm/byteorder.h
- create mode 100644 arch/um/lkl/include/uapi/asm/host_ops.h
- create mode 100644 arch/um/lkl/include/uapi/asm/sigcontext.h
- create mode 100644 arch/um/lkl/include/uapi/asm/syscalls.h
- create mode 100644 arch/um/lkl/include/uapi/asm/unistd.h
- create mode 100644 arch/um/lkl/um/Kconfig
- create mode 100644 arch/um/lkl/um/Makefile
- create mode 100644 arch/um/lkl/um/bootmem.c
- create mode 100644 arch/um/lkl/um/console.c
- create mode 100644 arch/um/lkl/um/cpu.c
- create mode 100644 arch/um/lkl/um/delay.c
+Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
+Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
+---
+ arch/um/lkl/include/uapi/asm/host_ops.h |  20 +++
+ arch/um/lkl/um/setup.c                  | 162 ++++++++++++++++++++++++
+ tools/um/uml/process.c                  |   2 +
+ 3 files changed, 184 insertions(+)
  create mode 100644 arch/um/lkl/um/setup.c
- create mode 100644 arch/um/lkl/um/shared/sysdep/archsetjmp.h
- create mode 100644 arch/um/lkl/um/shared/sysdep/faultinfo.h
- create mode 100644 arch/um/lkl/um/shared/sysdep/kernel-offsets.h
- create mode 100644 arch/um/lkl/um/shared/sysdep/mcontext.h
- create mode 100644 arch/um/lkl/um/shared/sysdep/ptrace.h
- create mode 100644 arch/um/lkl/um/shared/sysdep/ptrace_user.h
- create mode 100644 arch/um/lkl/um/syscalls.c
- create mode 100644 arch/um/lkl/um/threads.c
- create mode 100644 arch/um/lkl/um/unimplemented.c
- create mode 100644 arch/um/lkl/um/user_constants.h
- delete mode 100644 arch/um/os-Linux/Makefile
- delete mode 100644 arch/um/os-Linux/drivers/Makefile
- create mode 100755 arch/um/scripts/headers_install.py
- delete mode 100644 arch/x86/um/os-Linux/Makefile
- create mode 100644 tools/testing/selftests/um/Makefile
- create mode 100644 tools/testing/selftests/um/boot.c
- create mode 100644 tools/testing/selftests/um/cla.c
- create mode 100644 tools/testing/selftests/um/cla.h
- create mode 100755 tools/testing/selftests/um/disk-ext4.sh
- create mode 100755 tools/testing/selftests/um/disk-vfat.sh
- create mode 100644 tools/testing/selftests/um/disk.c
- create mode 100755 tools/testing/selftests/um/disk.sh
- create mode 100644 tools/testing/selftests/um/test.c
- create mode 100644 tools/testing/selftests/um/test.h
- create mode 100644 tools/testing/selftests/um/test.sh
- create mode 100644 tools/um/.gitignore
- create mode 100644 tools/um/Makefile
- create mode 100644 tools/um/Targets
- create mode 100644 tools/um/include/lkl.h
- create mode 100644 tools/um/include/lkl_host.h
- create mode 100644 tools/um/lib/Build
- create mode 100644 tools/um/lib/fs.c
- create mode 100644 tools/um/lib/jmp_buf.c
- create mode 100644 tools/um/lib/posix-host.c
- create mode 100644 tools/um/lib/utils.c
- create mode 100644 tools/um/uml/Build
- create mode 100644 tools/um/uml/drivers/Build
- rename {arch/um/os-Linux => tools/um/uml}/drivers/ethertap_user.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/drivers/tuntap_user.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/elf_aux.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/execvp.c (98%)
- rename {arch/um/os-Linux => tools/um/uml}/file.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/helper.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/irq.c (100%)
- create mode 100644 tools/um/uml/lkl/Build
- create mode 100644 tools/um/uml/lkl/registers.c
- create mode 100644 tools/um/uml/lkl/unimplemented.c
- rename {arch/um/os-Linux => tools/um/uml}/main.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/mem.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/process.c (99%)
- rename {arch/um/os-Linux => tools/um/uml}/registers.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/sigio.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/signal.c (96%)
- rename arch/um/os-Linux/skas/Makefile => tools/um/uml/skas/Build (56%)
- rename {arch/um/os-Linux => tools/um/uml}/skas/mem.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/skas/process.c (99%)
- rename {arch/um/os-Linux => tools/um/uml}/start_up.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/time.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/tty.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/umid.c (100%)
- rename {arch/um/os-Linux => tools/um/uml}/util.c (89%)
- create mode 100644 tools/um/uml/x86/Build
- rename {arch/x86/um/os-Linux => tools/um/uml/x86}/mcontext.c (100%)
- rename {arch/x86/um/os-Linux => tools/um/uml/x86}/prctl.c (100%)
- rename {arch/x86/um/os-Linux => tools/um/uml/x86}/registers.c (100%)
- rename {arch/x86/um/os-Linux => tools/um/uml/x86}/task_size.c (100%)
- rename {arch/x86/um/os-Linux => tools/um/uml/x86}/tls.c (100%)
 
+diff --git a/arch/um/lkl/include/uapi/asm/host_ops.h b/arch/um/lkl/include/uapi/asm/host_ops.h
+index 976fc4301b3d..85d7d4790602 100644
+--- a/arch/um/lkl/include/uapi/asm/host_ops.h
++++ b/arch/um/lkl/include/uapi/asm/host_ops.h
+@@ -252,4 +252,24 @@ void *lkl_tls_get(struct lkl_tls_key *key);
+  */
+ void lkl_print(const char *str, int len);
+ 
++/**
++ * lkl_panic - called during a kernel panic
++ *
++ */
++void lkl_panic(void);
++
++/**
++ * lkl_start_kernel() - registers the host operations and starts the kernel
++ *
++ * @ops: pointer to host operations
++ * @fmt: format for command line string that is going to be used to
++ * generate the Linux kernel command line
++ *
++ * Return: 0 if there is no error; otherwise non-zero value returns.
++ *
++ * The function returns only after the kernel is shutdown with lkl_sys_halt.
++ */
++int lkl_start_kernel(struct lkl_host_operations *ops,
++		     const char *fmt, ...);
++
+ #endif
+diff --git a/arch/um/lkl/um/setup.c b/arch/um/lkl/um/setup.c
+new file mode 100644
+index 000000000000..ba8338d4fc23
+--- /dev/null
++++ b/arch/um/lkl/um/setup.c
+@@ -0,0 +1,162 @@
++// SPDX-License-Identifier: GPL-2.0
++#include <linux/binfmts.h>
++#include <linux/init.h>
++#include <linux/init_task.h>
++#include <linux/personality.h>
++#include <linux/reboot.h>
++#include <linux/fs.h>
++#include <linux/start_kernel.h>
++#include <linux/fdtable.h>
++#include <linux/tick.h>
++#include <linux/kernel.h>
++#include <linux/console.h>
++#include <asm/host_ops.h>
++#include <asm/irq.h>
++#include <asm/unistd.h>
++#include <asm/syscalls.h>
++#include <asm/cpu.h>
++#include <os.h>
++#include <as-layout.h>
++
++
++static void *init_sem;
++static int is_running;
++
++
++struct lkl_host_operations *lkl_ops;
++
++long lkl_panic_blink(int state)
++{
++	lkl_panic();
++	return 0;
++}
++
++static void __init *lkl_run_kernel(void *arg)
++{
++
++	panic_blink = lkl_panic_blink;
++
++	threads_init();
++	lkl_cpu_get();
++	start_kernel();
++
++	return NULL;
++}
++
++int __init lkl_start_kernel(struct lkl_host_operations *ops,
++			    const char *fmt, ...)
++{
++	int ret;
++
++	lkl_ops = ops;
++
++	init_sem = lkl_sem_alloc(0);
++	if (!init_sem)
++		return -ENOMEM;
++
++	ret = lkl_cpu_init();
++	if (ret)
++		goto out_free_init_sem;
++
++	ret = lkl_thread_create(lkl_run_kernel, NULL);
++	if (!ret) {
++		ret = -ENOMEM;
++		goto out_free_init_sem;
++	}
++
++	lkl_sem_down(init_sem);
++	lkl_sem_free(init_sem);
++	current_thread_info()->task->thread.arch.tid = lkl_thread_self();
++	lkl_cpu_change_owner(current_thread_info()->task->thread.arch.tid);
++
++	lkl_cpu_put();
++	is_running = 1;
++
++	return 0;
++
++out_free_init_sem:
++	lkl_sem_free(init_sem);
++
++	return ret;
++}
++
++int lkl_is_running(void)
++{
++	return is_running;
++}
++
++
++long lkl_sys_halt(void)
++{
++	long err;
++	long params[6] = {LINUX_REBOOT_MAGIC1,
++		LINUX_REBOOT_MAGIC2, LINUX_REBOOT_CMD_RESTART, };
++
++	err = lkl_syscall(__NR_reboot, params);
++	if (err < 0)
++		return err;
++
++	is_running = false;
++
++	lkl_cpu_wait_shutdown();
++
++	syscalls_cleanup();
++	threads_cleanup();
++	/* Shutdown the clockevents source. */
++	tick_suspend_local();
++	free_mem();
++	lkl_thread_join(current_thread_info()->task->thread.arch.tid);
++
++	return 0;
++}
++
++
++static int lkl_run_init(struct linux_binprm *bprm);
++
++static struct linux_binfmt lkl_run_init_binfmt = {
++	.module		= THIS_MODULE,
++	.load_binary	= lkl_run_init,
++};
++
++static int lkl_run_init(struct linux_binprm *bprm)
++{
++	int ret;
++
++	if (strcmp("/init", bprm->filename) != 0)
++		return -EINVAL;
++
++	ret = begin_new_exec(bprm);
++	if (ret)
++		return ret;
++	set_personality(PER_LINUX);
++	setup_new_exec(bprm);
++
++	set_binfmt(&lkl_run_init_binfmt);
++
++	init_pid_ns.child_reaper = 0;
++
++	syscalls_init();
++
++	lkl_sem_up(init_sem);
++	lkl_thread_exit();
++
++	return 0;
++}
++
++
++/* skip mounting the "real" rootfs. ramfs is good enough. */
++static int __init fs_setup(void)
++{
++	int fd, flags = 0;
++
++	if (force_o_largefile())
++		flags |= O_LARGEFILE;
++	fd = do_sys_open(AT_FDCWD, "/init", O_CREAT | flags, 0700);
++	WARN_ON(fd < 0);
++	close_fd(fd);
++
++	register_binfmt(&lkl_run_init_binfmt);
++
++	return 0;
++}
++late_initcall(fs_setup);
+diff --git a/tools/um/uml/process.c b/tools/um/uml/process.c
+index e52dd37ddadc..c39d914e80ac 100644
+--- a/tools/um/uml/process.c
++++ b/tools/um/uml/process.c
+@@ -114,6 +114,8 @@ void os_kill_process(int pid, int reap_child)
+ 
+ void os_kill_ptraced_process(int pid, int reap_child)
+ {
++	if (pid == 0)
++		return;
+ 	kill(pid, SIGKILL);
+ 	ptrace(PTRACE_KILL, pid);
+ 	ptrace(PTRACE_CONT, pid);
 -- 
 2.21.0 (Apple Git-122.2)
 
