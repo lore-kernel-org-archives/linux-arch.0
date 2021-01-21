@@ -2,217 +2,98 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 33BF4C4332B
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 47EF5C43381
 	for <linux-arch@archiver.kernel.org>; Thu, 21 Jan 2021 00:59:17 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1123D23602
+	by mail.kernel.org (Postfix) with ESMTP id 2C61A2389B
 	for <linux-arch@archiver.kernel.org>; Thu, 21 Jan 2021 00:59:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1733001AbhAUA6U (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 20 Jan 2021 19:58:20 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36954 "EHLO
+        id S1733121AbhAUA6W (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 20 Jan 2021 19:58:22 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38114 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2392380AbhAUAKV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2021 19:10:21 -0500
-Received: from mail-qt1-x832.google.com (mail-qt1-x832.google.com [IPv6:2607:f8b0:4864:20::832])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BBF35C061798;
-        Wed, 20 Jan 2021 16:06:42 -0800 (PST)
-Received: by mail-qt1-x832.google.com with SMTP id r9so360682qtp.11;
-        Wed, 20 Jan 2021 16:06:42 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=EJvVbTcrFXhal00Em+TPrjdhMeNVT/fqvfLLy70dJMA=;
-        b=vWXwiNJ+21L5NEAcfTJmnhSL+ca7W/dNzSA0tHOF6ctG1i3z5n4FSbFYnxtaZrR9Kh
-         QjVy8Jh2Am8Z92TXHZRypNlqkefGFQtSusL0K++LpxONvZDQo0eFqK0oJ2lEl/45CRM1
-         u+pm8Va4XWVGO98mkSD0pse4jEYTHvwGD4OpmsCDndOSgyLTmdLPsYNKy5TQeJKlnZiU
-         cOj2LpXcBUQxU9GLNF1y7Ow0FoeuexvQ9aJoIesaEW0rOnSykNBIVw4hcnehcN9f02h3
-         4ixz1k+SkNiIJDj6EREawv9zhd17ejqFPmosZtYBPyBNPcps75wadIV5QKB3IX0TgQDW
-         n+vQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=EJvVbTcrFXhal00Em+TPrjdhMeNVT/fqvfLLy70dJMA=;
-        b=RdbEY0Wz9gyhu0zdEWBmgd+ttu6FLfMO0QAKKNKt4mI9mKpbJiCfv8zwdo+/pPYG9M
-         5bmyRMf+vD59IBIy4ea/RYhtKzSAIjQp/2GOEEaGwm1HoGnSNFjHxUVDTmy9zT0JDlow
-         CpV0wDyn4WlNeVKEYqilQALcIMIqiXPD/da4j6HHzrKeUKRRPW2564R3Fxwy4lMAwtNk
-         VD/c9/UeTtJPWkeNWfCbD5c+0wvZqffkfKM2IC83LKyQ+ytbMF+qmiMJZDvy95zJW79Y
-         z9iff+Ye1RHM6lc0GZVw77IickfdvZ66SjQ0mXsZ/4IuxxI+WKmy1WEC7urUs2vAekh+
-         unkg==
-X-Gm-Message-State: AOAM531Z/+i7/8jR7tLRpJaH8O7M036wAPFAvByjVw2EBl5I/wQ0cZ6e
-        UbWDrPTFOHNxno3wR4xHhMM=
-X-Google-Smtp-Source: ABdhPJzyA0gTkmmj57pbH5DOx/IkC97OqDS83dP13BmJv9Nnz4vmLR/AQG7HSaZwFjqG70KYKkP4DA==
-X-Received: by 2002:ac8:5e83:: with SMTP id r3mr11322397qtx.261.1611187601929;
-        Wed, 20 Jan 2021 16:06:41 -0800 (PST)
-Received: from localhost (d27-96-190-162.evv.wideopenwest.com. [96.27.162.190])
-        by smtp.gmail.com with ESMTPSA id i41sm2421673qtc.33.2021.01.20.16.06.41
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 20 Jan 2021 16:06:41 -0800 (PST)
-From:   Yury Norov <yury.norov@gmail.com>
-To:     linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org,
-        linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
-Cc:     Yury Norov <yury.norov@gmail.com>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>,
-        Dennis Zhou <dennis@kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Wolfram Sang <wsa+renesas@sang-engineering.com>,
-        David Sterba <dsterba@suse.com>,
-        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        Stefano Brivio <sbrivio@redhat.com>,
-        "Ma, Jianpeng" <jianpeng.ma@intel.com>,
-        Wei Yang <richard.weiyang@linux.alibaba.com>,
-        Josh Poimboeuf <jpoimboe@redhat.com>,
-        Rasmus Villemoes <rasmus.villemoes@prevas.dk>
-Subject: [PATCH 5/6] lib: add fast path for find_next_*_bit()
-Date:   Wed, 20 Jan 2021 16:06:29 -0800
-Message-Id: <20210121000630.371883-6-yury.norov@gmail.com>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20210121000630.371883-1-yury.norov@gmail.com>
-References: <20210121000630.371883-1-yury.norov@gmail.com>
+        with ESMTP id S2392874AbhAUAPt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2021 19:15:49 -0500
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2187CC061575;
+        Wed, 20 Jan 2021 16:15:04 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=cwu2zXGrhPIC6ERSbgMr9vODEIjubNUIY3egpnasEkM=; b=Titc2oh6mm6H8HrBnURdMCnuAy
+        B7tmu7WO5lk/dTol8pnvJFj1ALNIg2a0ayyvvXkEw9Hp66wKGgQ/BlGHZARXS97TlLGZY8EiZPMmA
+        ut30VcvnrKuPicxn8sbUQh1rQkfX6UOTVdhCPtU2awociCaRbIMPQ6MoLPRkjOOtwQ9FsIa0xGjnZ
+        /CSZq9i88CQi3WQl2rKH0j35vKzcRO3qR1A3h4r5WrMR6t4JOLRaCJ41q5mPTRUZf67Q1bFGxlKNx
+        5TkXSuCjJgxzJqjcJLYOACHaEtsrrVT7zqfOOOSI8cncXQ7oKbdLlZuACe9kpbaLDbLfrC+jRu/zm
+        xaT3mp2g==;
+Received: from willy by casper.infradead.org with local (Exim 4.94 #2 (Red Hat Linux))
+        id 1l2Nah-00GNk2-9O; Thu, 21 Jan 2021 00:12:57 +0000
+Date:   Thu, 21 Jan 2021 00:12:47 +0000
+From:   Matthew Wilcox <willy@infradead.org>
+To:     Mike Rapoport <rppt@kernel.org>
+Cc:     Andrew Morton <akpm@linux-foundation.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        David Hildenbrand <david@redhat.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Roman Gushchin <guro@fb.com>,
+        Shakeel Butt <shakeelb@google.com>,
+        Shuah Khan <shuah@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
+        Palmer Dabbelt <palmerdabbelt@google.com>
+Subject: Re: [PATCH v15 07/11] secretmem: use PMD-size pages to amortize
+ direct map fragmentation
+Message-ID: <20210121001247.GN2260413@casper.infradead.org>
+References: <20210120180612.1058-1-rppt@kernel.org>
+ <20210120180612.1058-8-rppt@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210120180612.1058-8-rppt@kernel.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Similarly to bitmap functions, find_next_*_bit() users will benefit
-if we'll handle a case of bitmaps that fit into a single word. In the
-very best case, the compiler may replace a function call with a
-single ffs or ffz instruction.
+On Wed, Jan 20, 2021 at 08:06:08PM +0200, Mike Rapoport wrote:
+> +static int secretmem_pool_increase(struct secretmem_ctx *ctx, gfp_t gfp)
+>  {
+> +	unsigned long nr_pages = (1 << PMD_PAGE_ORDER);
+> +	struct gen_pool *pool = ctx->pool;
+> +	unsigned long addr;
+> +	struct page *page;
+> +	int err;
+> +
+> +	page = cma_alloc(secretmem_cma, nr_pages, PMD_SIZE, gfp & __GFP_NOWARN);
+> +	if (!page)
+> +		return -ENOMEM;
 
-Signed-off-by: Yury Norov <yury.norov@gmail.com>
----
- include/asm-generic/bitops/find.h | 39 +++++++++++++++++++++++++++++++
- include/asm-generic/bitops/le.h   | 28 ++++++++++++++++++++++
- 2 files changed, 67 insertions(+)
-
-diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-index 7ad70dab8e93..d45096069011 100644
---- a/include/asm-generic/bitops/find.h
-+++ b/include/asm-generic/bitops/find.h
-@@ -20,6 +20,18 @@ static inline
- unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
- 			    unsigned long offset)
- {
-+	if (small_const_nbits(size)) {
-+		unsigned long val;
-+
-+		if (unlikely(offset >= size))
-+			return size;
-+
-+		val = *addr & BITMAP_FIRST_WORD_MASK(offset)
-+				& BITMAP_LAST_WORD_MASK(size);
-+
-+		return val ? __ffs(val) : size;
-+	}
-+
- 	return _find_next_bit(addr, NULL, size, offset, 0UL, 0);
- }
- #endif
-@@ -40,6 +52,18 @@ unsigned long find_next_and_bit(const unsigned long *addr1,
- 		const unsigned long *addr2, unsigned long size,
- 		unsigned long offset)
- {
-+	if (small_const_nbits(size)) {
-+		unsigned long val;
-+
-+		if (unlikely(offset >= size))
-+			return size;
-+
-+		val = *addr1 & *addr2 & BITMAP_FIRST_WORD_MASK(offset)
-+				      & BITMAP_LAST_WORD_MASK(size);
-+
-+		return val ? __ffs(val) : size;
-+	}
-+
- 	return _find_next_bit(addr1, addr2, size, offset, 0UL, 0);
- }
- #endif
-@@ -58,6 +82,21 @@ static inline
- unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
- 				 unsigned long offset)
- {
-+	if (small_const_nbits(size)) {
-+		unsigned long val, idx;
-+
-+		if (unlikely(offset >= size))
-+			return size;
-+
-+		val = *addr | ~BITMAP_FIRST_WORD_MASK(offset);
-+		if (val == ~0UL)
-+			return size;
-+
-+		idx = ffz(val);
-+
-+		return idx < size ? idx : size;
-+	}
-+
- 	return _find_next_bit(addr, NULL, size, offset, ~0UL, 0);
- }
- #endif
-diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
-index 4cf44ea16ec0..f4a76d3d145f 100644
---- a/include/asm-generic/bitops/le.h
-+++ b/include/asm-generic/bitops/le.h
-@@ -5,6 +5,7 @@
- #include <asm/types.h>
- #include <asm/byteorder.h>
- #include <asm-generic/bitops/find.h>
-+#include <linux/swab.h>
- 
- #if defined(__LITTLE_ENDIAN)
- 
-@@ -37,6 +38,21 @@ static inline
- unsigned long find_next_zero_bit_le(const void *addr, unsigned
- 		long size, unsigned long offset)
- {
-+	if (small_const_nbits(size)) {
-+		unsigned long val = *(const unsigned long *)addr, idx;
-+
-+		if (unlikely(offset >= size))
-+			return size;
-+
-+		val = swab(val) | ~BITMAP_FIRST_WORD_MASK(offset);
-+		if (val == ~0UL)
-+			return size;
-+
-+		idx = ffz(val);
-+
-+		return idx < size ? idx : size;
-+	}
-+
- 	return _find_next_bit(addr, NULL, size, offset, ~0UL, 1);
- }
- #endif
-@@ -46,6 +62,18 @@ static inline
- unsigned long find_next_bit_le(const void *addr, unsigned
- 		long size, unsigned long offset)
- {
-+	if (small_const_nbits(size)) {
-+		unsigned long val = *(const unsigned long *)addr;
-+
-+		if (unlikely(offset >= size))
-+			return size;
-+
-+		val = swab(val) & BITMAP_FIRST_WORD_MASK(offset)
-+				& BITMAP_LAST_WORD_MASK(size);
-+
-+		return val ? __ffs(val) : size;
-+	}
-+
- 	return _find_next_bit(addr, NULL, size, offset, 0UL, 1);
- }
- #endif
--- 
-2.25.1
+Does cma_alloc() zero the pages it allocates?  If not, where do we avoid
+leaking kernel memory to userspace?
 
