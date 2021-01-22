@@ -2,131 +2,199 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-17.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C9312C433DB
-	for <linux-arch@archiver.kernel.org>; Fri, 22 Jan 2021 14:43:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7D7B2C433DB
+	for <linux-arch@archiver.kernel.org>; Fri, 22 Jan 2021 15:03:29 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 94F02239D1
-	for <linux-arch@archiver.kernel.org>; Fri, 22 Jan 2021 14:43:09 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 394F923AC2
+	for <linux-arch@archiver.kernel.org>; Fri, 22 Jan 2021 15:03:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728658AbhAVOmp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 22 Jan 2021 09:42:45 -0500
-Received: from mail.kernel.org ([198.145.29.99]:39546 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728414AbhAVOm0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 Jan 2021 09:42:26 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 183BA23444;
-        Fri, 22 Jan 2021 14:41:43 +0000 (UTC)
-Date:   Fri, 22 Jan 2021 14:41:41 +0000
-From:   Catalin Marinas <catalin.marinas@arm.com>
-To:     Andrey Konovalov <andreyknvl@google.com>
-Cc:     Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        Linux Memory Management List <linux-mm@kvack.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Will Deacon <will@kernel.org>,
-        Dave P Martin <Dave.Martin@arm.com>,
-        Vincenzo Frascino <vincenzo.frascino@arm.com>,
-        Szabolcs Nagy <szabolcs.nagy@arm.com>,
-        Kevin Brodsky <kevin.brodsky@arm.com>,
-        Peter Collingbourne <pcc@google.com>
-Subject: Re: [PATCH v4 24/26] arm64: mte: Introduce early param to disable
- MTE support
-Message-ID: <20210122144141.GE8567@gaia>
-References: <20200515171612.1020-1-catalin.marinas@arm.com>
- <20200515171612.1020-25-catalin.marinas@arm.com>
- <CAAeHK+y=8iD_nvXFFerXcZbH=pjLFQbUP_+Ftayj-t9r9h8Ghg@mail.gmail.com>
+        id S1729081AbhAVPDI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 22 Jan 2021 10:03:08 -0500
+Received: from us-smtp-delivery-124.mimecast.com ([63.128.21.124]:23129 "EHLO
+        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1729058AbhAVPDA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 Jan 2021 10:03:00 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1611327691;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=BKzcxPUR2jhhc0R2WEFUXJm7hKrjjWAOGp3ZV18Fm8U=;
+        b=ISasN/ktSR4yocOj26Yi67otEbr03NR1+S2yHn8SPFTjs04+YAFgvEpPnLaYj7AQKRpaSJ
+        fTyT7rjrTh9fTcM8qmv+u2gI3TEdS6rLgTS8AQQGlZL5S7mjLxC7luoxdSHZlKDLZr1/EM
+        ZSDwD6UC0DbiNTbcJbnb4aO4C78OWQM=
+Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
+ [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
+ us-mta-432-Q2OnEu_tO7WNHpoNSVMMJA-1; Fri, 22 Jan 2021 10:01:27 -0500
+X-MC-Unique: Q2OnEu_tO7WNHpoNSVMMJA-1
+Received: from smtp.corp.redhat.com (int-mx04.intmail.prod.int.phx2.redhat.com [10.5.11.14])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+        (No client certificate requested)
+        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 70D94806661;
+        Fri, 22 Jan 2021 15:01:25 +0000 (UTC)
+Received: from fuller.cnet (ovpn-112-4.gru2.redhat.com [10.97.112.4])
+        by smtp.corp.redhat.com (Postfix) with ESMTPS id 2B3365DA33;
+        Fri, 22 Jan 2021 15:01:18 +0000 (UTC)
+Received: by fuller.cnet (Postfix, from userid 1000)
+        id 0DA054178901; Fri, 22 Jan 2021 12:00:01 -0300 (-03)
+Date:   Fri, 22 Jan 2021 12:00:00 -0300
+From:   Marcelo Tosatti <mtosatti@redhat.com>
+To:     Frederic Weisbecker <frederic@kernel.org>
+Cc:     Alex Belits <abelits@marvell.com>,
+        Prasun Kapoor <pkapoor@marvell.com>,
+        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
+        "davem@davemloft.net" <davem@davemloft.net>,
+        "trix@redhat.com" <trix@redhat.com>,
+        "mingo@kernel.org" <mingo@kernel.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "rostedt@goodmis.org" <rostedt@goodmis.org>,
+        "peterx@redhat.com" <peterx@redhat.com>,
+        "tglx@linutronix.de" <tglx@linutronix.de>,
+        "nitesh@redhat.com" <nitesh@redhat.com>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "will@kernel.org" <will@kernel.org>,
+        "peterz@infradead.org" <peterz@infradead.org>,
+        "leon@sidebranch.com" <leon@sidebranch.com>,
+        "linux-arm-kernel@lists.infradead.org" 
+        <linux-arm-kernel@lists.infradead.org>,
+        "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
+        "pauld@redhat.com" <pauld@redhat.com>,
+        "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Subject: Re: [EXT] Re: [PATCH v5 9/9] task_isolation: kick_all_cpus_sync:
+ don't kick isolated cpus
+Message-ID: <20210122150000.GA69079@fuller.cnet>
+References: <8d887e59ca713726f4fcb25a316e1e932b02823e.camel@marvell.com>
+ <3236b13f42679031960c5605be20664e90e75223.camel@marvell.com>
+ <20201123222907.GC1751@lothringen>
+ <c65ac23c1c408614110635c33eaf4ace98da4343.camel@marvell.com>
+ <20201123232106.GD1751@lothringen>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAAeHK+y=8iD_nvXFFerXcZbH=pjLFQbUP_+Ftayj-t9r9h8Ghg@mail.gmail.com>
+In-Reply-To: <20201123232106.GD1751@lothringen>
 User-Agent: Mutt/1.10.1 (2018-07-13)
+X-Scanned-By: MIMEDefang 2.79 on 10.5.11.14
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Jan 21, 2021 at 08:37:18PM +0100, Andrey Konovalov wrote:
-> On Fri, May 15, 2020 at 7:17 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
-> > For performance analysis it may be desirable to disable MTE altogether
-> > via an early param. Introduce arm64.mte_disable and, if true, filter out
-> > the sanitised ID_AA64PFR1_EL1.MTE field to avoid exposing the HWCAP to
-> > user.
-> >
-> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Cc: Will Deacon <will@kernel.org>
-> > ---
-> >
-> > Notes:
-> >     New in v4.
-> >
-> >  Documentation/admin-guide/kernel-parameters.txt |  4 ++++
-> >  arch/arm64/kernel/cpufeature.c                  | 11 +++++++++++
-> >  2 files changed, 15 insertions(+)
-> >
-> > diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-> > index f2a93c8679e8..7436e7462b85 100644
-> > --- a/Documentation/admin-guide/kernel-parameters.txt
-> > +++ b/Documentation/admin-guide/kernel-parameters.txt
-> > @@ -373,6 +373,10 @@
-> >         arcrimi=        [HW,NET] ARCnet - "RIM I" (entirely mem-mapped) cards
-> >                         Format: <io>,<irq>,<nodeID>
-> >
-> > +       arm64.mte_disable=
-> > +                       [ARM64] Disable Linux support for the Memory
-> > +                       Tagging Extension (both user and in-kernel).
-> > +
-> >         ataflop=        [HW,M68k]
-> >
-> >         atarimouse=     [HW,MOUSE] Atari Mouse
-> > diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-> > index aaadc1cbc006..f7596830694f 100644
-> > --- a/arch/arm64/kernel/cpufeature.c
-> > +++ b/arch/arm64/kernel/cpufeature.c
-> > @@ -126,12 +126,23 @@ static void cpu_enable_cnp(struct arm64_cpu_capabilities const *cap);
-> >  static bool __system_matches_cap(unsigned int n);
-> >
-> >  #ifdef CONFIG_ARM64_MTE
-> > +static bool mte_disable;
-> > +
-> > +static int __init arm64_mte_disable(char *buf)
-> > +{
-> > +       return strtobool(buf, &mte_disable);
-> > +}
-> > +early_param("arm64.mte_disable", arm64_mte_disable);
-> > +
-> >  s64 mte_ftr_filter(const struct arm64_ftr_bits *ftrp, s64 val)
-> >  {
-> >         struct device_node *np;
-> >         static bool memory_checked = false;
-> >         static bool mte_capable = true;
-> >
-> > +       if (mte_disable)
-> > +               return ID_AA64PFR1_MTE_NI;
-> > +
-> >         /* EL0-only MTE is not supported by Linux, don't expose it */
-> >         if (val < ID_AA64PFR1_MTE)
-> >                 return ID_AA64PFR1_MTE_NI;
+On Tue, Nov 24, 2020 at 12:21:06AM +0100, Frederic Weisbecker wrote:
+> On Mon, Nov 23, 2020 at 10:39:34PM +0000, Alex Belits wrote:
+> > 
+> > On Mon, 2020-11-23 at 23:29 +0100, Frederic Weisbecker wrote:
+> > > External Email
+> > > 
+> > > -------------------------------------------------------------------
+> > > ---
+> > > On Mon, Nov 23, 2020 at 05:58:42PM +0000, Alex Belits wrote:
+> > > > From: Yuri Norov <ynorov@marvell.com>
+> > > > 
+> > > > Make sure that kick_all_cpus_sync() does not call CPUs that are
+> > > > running
+> > > > isolated tasks.
+> > > > 
+> > > > Signed-off-by: Yuri Norov <ynorov@marvell.com>
+> > > > [abelits@marvell.com: use safe task_isolation_cpumask()
+> > > > implementation]
+> > > > Signed-off-by: Alex Belits <abelits@marvell.com>
+> > > > ---
+> > > >  kernel/smp.c | 14 +++++++++++++-
+> > > >  1 file changed, 13 insertions(+), 1 deletion(-)
+> > > > 
+> > > > diff --git a/kernel/smp.c b/kernel/smp.c
+> > > > index 4d17501433be..b2faecf58ed0 100644
+> > > > --- a/kernel/smp.c
+> > > > +++ b/kernel/smp.c
+> > > > @@ -932,9 +932,21 @@ static void do_nothing(void *unused)
+> > > >   */
+> > > >  void kick_all_cpus_sync(void)
+> > > >  {
+> > > > +	struct cpumask mask;
+> > > > +
+> > > >  	/* Make sure the change is visible before we kick the cpus */
+> > > >  	smp_mb();
+> > > > -	smp_call_function(do_nothing, NULL, 1);
+> > > > +
+> > > > +	preempt_disable();
+> > > > +#ifdef CONFIG_TASK_ISOLATION
+> > > > +	cpumask_clear(&mask);
+> > > > +	task_isolation_cpumask(&mask);
+> > > > +	cpumask_complement(&mask, &mask);
+> > > > +#else
+> > > > +	cpumask_setall(&mask);
+> > > > +#endif
+> > > > +	smp_call_function_many(&mask, do_nothing, NULL, 1);
+> > > > +	preempt_enable();
+> > > 
+> > > Same comment about IPIs here.
+> > 
+> > This is different from timers. The original design was based on the
+> > idea that every CPU should be able to enter kernel at any time and run
+> > kernel code with no additional preparation. Then the only solution is
+> > to always do full broadcast and require all CPUs to process it.
+> > 
+> > What I am trying to introduce is the idea of CPU that is not likely to
+> > run kernel code any soon, and can afford to go through an additional
+> > synchronization procedure on the next entry into kernel. The
+> > synchronization is not skipped, it simply happens later, early in
+> > kernel entry code.
+
+Perhaps a bitmask of pending flushes makes more sense? 
+static_key_enable IPIs is one of the users, but for its case it would 
+be necessary to differentiate between in-kernel mode and out of kernel 
+mode atomically (since i-cache flush must be performed if isolated CPU 
+is in kernel mode).
+
+> Ah I see, this is ordered that way:
 > 
-> While this patch didn't land upstream, we need an MTE kill-switch for
-> Android GKI. Is this patch OK to take as is? Is it still valid?
+> ll_isol_flags = ISOLATED
+> 
+>          CPU 0                                CPU 1
+>     ------------------                       -----------------
+>                                             // kernel entry
+>     data_to_sync = 1                        ll_isol_flags = ISOLATED_BROKEN
+>     smp_mb()                                smp_mb()
+>     if ll_isol_flags(CPU 1) == ISOLATED     READ data_to_sync
+>          smp_call(CPU 1)
 
-As you noticed, this code no longer exists. The CPUID is checked early
-during boot in proc.S, before the MMU is enabled, as you need to set up
-the MAIR register.
+Since isolated mode with syscalls is a desired feature, having a
+separate atomic with in_kernel_mode = 0/1 (that is set/cleared 
+on kernel entry / kernel exit, while on TIF_TASK_ISOLATION), would be
+necessary (and a similar race-free logic as above).
 
-Now, what do you mean by kill switch? There are multiple levels at which
-one can disable MTE or some of its effects: memory type (MAIR) level,
-tag allocation (TCR_EL1.ATA), tag checking (SCTLR_EL1.TCF). Apart from
-the latter, all the other bits are cached in the TLB which make them
-more problematic to toggle at run-time.
+> You should document that, ie: explain why what you're doing is safe.
+> 
+> Also Beware though that the data to sync in question doesn't need to be visible
+> in the entry code before task_isolation_kernel_enter(). You need to audit all
+> the callers of kick_all_cpus_sync().
 
-For the kernel, we can currently disable tag checking via the kasan
-command line options. For user-space, we don't have a kill switch
-specific to MTE, however one can disable the tagged addr ABI and
-presumably the C library will avoid generating tagged heap pointers.
+Cscope tag: flush_icache_range
+   #   line  filename / context / line
+   1     96  arch/arc/kernel/jump_label.c <<arch_jump_label_transform>>
+             flush_icache_range(entry->code, entry->code + JUMP_LABEL_NOP_SIZE);
 
--- 
-Catalin
+This case would be OK for delayed processing before kernel entry, as long as
+no code before task_isolation_kernel_enter can be modified (which i am
+not sure about).
+
+But:
+
+  36     28  arch/ia64/include/asm/cacheflush.h <<flush_icache_user_page>>
+             flush_icache_range(_addr, _addr + (len)); \
+
+Is less certain.
+
+Alex do you recall if arch_jump_label_transform was the only offender or 
+there were others as well? (suppose handling only the ones which matter
+in production at the moment, and later fixing individual ones makes most
+sense).
+
+
+
