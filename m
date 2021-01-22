@@ -2,133 +2,167 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-20.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-10.5 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6FABFC43333
-	for <linux-arch@archiver.kernel.org>; Fri, 22 Jan 2021 19:35:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EA485C433E6
+	for <linux-arch@archiver.kernel.org>; Fri, 22 Jan 2021 21:57:43 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4BE4823B00
-	for <linux-arch@archiver.kernel.org>; Fri, 22 Jan 2021 19:35:58 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id BE82B23B1B
+	for <linux-arch@archiver.kernel.org>; Fri, 22 Jan 2021 21:57:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1728353AbhAVTTk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 22 Jan 2021 14:19:40 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55096 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730711AbhAVTE5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Jan 2021 14:04:57 -0500
-Received: from mail-ua1-x92e.google.com (mail-ua1-x92e.google.com [IPv6:2607:f8b0:4864:20::92e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 44A55C0613D6
-        for <linux-arch@vger.kernel.org>; Fri, 22 Jan 2021 11:04:17 -0800 (PST)
-Received: by mail-ua1-x92e.google.com with SMTP id g5so2158433uak.10
-        for <linux-arch@vger.kernel.org>; Fri, 22 Jan 2021 11:04:17 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=chromium.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=GFbt9Q9FleVVeCUdG8Si9d40jYAPeifwLGkQip6/tp8=;
-        b=bwkqMmtPpa0+udzg9ETiNx73TRyndCyCrlakaQuOQthA2L6u5Glut8WN0ctvVCZioq
-         TVN/8anvwUYb7z5zcqkACTfECL8PLOxixSmHvOdoNmLOsMQETDnhQVmXgRcPUJ/VS9Lj
-         3wI8/WchMgWlIT0ZTvUgWaLO3iyoiSVdUeeYk=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=GFbt9Q9FleVVeCUdG8Si9d40jYAPeifwLGkQip6/tp8=;
-        b=it7xRiPG1aN8MJ4tpCFGZGLWvSNKhB37g1uvaLSYKgPivxl0z3FvtSHCYHG/ujEHyl
-         DyAB3g5PDzciFOaXsDvE3YpWEPNPC8oVH5eDxrlX4XzyURzf7qzXTAeiZJrLv86sCrvS
-         xzT2iiZ6c4P62ORStNyKP1OcRP2rzri5YktuMAWUs1zm61TVCMZ1iShDPlDH5uWFr7zB
-         FQmBbCYVbkfn2A+CeRhLgBixx0EsY+cCkdFAOGDdzyY/IKVQA+tYGKxT5Jy5tJnEtIbu
-         aXTFX8aW7lLvWDIub9BnsRXn/tirU6hZNJV4A27vqPbUQnt/2NJty/IY0plmVcAYGj9a
-         fU/w==
-X-Gm-Message-State: AOAM532AfT5ENHytSeGIYdYQ7a5I0VcJePivwNc/Q3TUYwv0RuXZDldy
-        wj/fuRUG2uS+FcwemFEKlbQZ4mvgS2xTrQ==
-X-Google-Smtp-Source: ABdhPJwf1VVdznDcEtHKa+/cdBU4xCk/FzYw0lSRVEhp6EZJF4jNTG4OklxNP2gediav3nB6GWPq1g==
-X-Received: by 2002:ab0:7848:: with SMTP id y8mr1791672uaq.143.1611342256267;
-        Fri, 22 Jan 2021 11:04:16 -0800 (PST)
-Received: from mail-vs1-f42.google.com (mail-vs1-f42.google.com. [209.85.217.42])
-        by smtp.gmail.com with ESMTPSA id v189sm1457334vkg.9.2021.01.22.11.04.14
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 22 Jan 2021 11:04:15 -0800 (PST)
-Received: by mail-vs1-f42.google.com with SMTP id n18so3569117vsa.12
-        for <linux-arch@vger.kernel.org>; Fri, 22 Jan 2021 11:04:14 -0800 (PST)
-X-Received: by 2002:a67:ed09:: with SMTP id l9mr237347vsp.4.1611342254067;
- Fri, 22 Jan 2021 11:04:14 -0800 (PST)
-MIME-Version: 1.0
-References: <20201203202737.7c4wrifqafszyd5y@google.com> <20201208054646.2913063-1-maskray@google.com>
- <CAD=FV=WWSniXCaC+vAKRa1fCZB4_dbaejwq+NCF56aZFYE-Xsg@mail.gmail.com> <CAKwvOdkFpqEDvJ5b9wpwEhnOdh-YJ8GxCc33JcHXqNRDnO=RfQ@mail.gmail.com>
-In-Reply-To: <CAKwvOdkFpqEDvJ5b9wpwEhnOdh-YJ8GxCc33JcHXqNRDnO=RfQ@mail.gmail.com>
-From:   Doug Anderson <dianders@chromium.org>
-Date:   Fri, 22 Jan 2021 11:04:02 -0800
-X-Gmail-Original-Message-ID: <CAD=FV=XUuo3OaDVOnFiczUTeyKt1moX7nQ+XEX_HiDpv2f3k8A@mail.gmail.com>
-Message-ID: <CAD=FV=XUuo3OaDVOnFiczUTeyKt1moX7nQ+XEX_HiDpv2f3k8A@mail.gmail.com>
-Subject: Re: [PATCH v2] firmware_loader: Align .builtin_fw to 8
-To:     Nick Desaulniers <ndesaulniers@google.com>
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
-        Fangrui Song <maskray@google.com>,
+        id S1730402AbhAVV4N (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 22 Jan 2021 16:56:13 -0500
+Received: from mga01.intel.com ([192.55.52.88]:50183 "EHLO mga01.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730000AbhAVVzl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 Jan 2021 16:55:41 -0500
+IronPort-SDR: 9q3S4emmk4xclOw/YXm/yZII8Ovg/ah2F38SDUKp0EqM6nryCd3wUb4PA09QOpFP4aklCGwW0H
+ duX7C1HTlQhA==
+X-IronPort-AV: E=McAfee;i="6000,8403,9872"; a="198274442"
+X-IronPort-AV: E=Sophos;i="5.79,367,1602572400"; 
+   d="scan'208";a="198274442"
+Received: from fmsmga004.fm.intel.com ([10.253.24.48])
+  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jan 2021 13:54:55 -0800
+IronPort-SDR: QgzfLeU+SScNpiuZ2ShHor3Mk1anNcKXZI/IncTCR7ogj4sTRd8kBKfwZPHV0PQyfLDml4sqvL
+ fM8zo+rax78Q==
+X-IronPort-AV: E=Sophos;i="5.79,367,1602572400"; 
+   d="scan'208";a="400976899"
+Received: from yyu32-mobl1.amr.corp.intel.com (HELO [10.212.79.184]) ([10.212.79.184])
+  by fmsmga004-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jan 2021 13:54:54 -0800
+Subject: Re: [PATCH v17 08/26] x86/mm: Introduce _PAGE_COW
+To:     David Laight <David.Laight@ACULAB.COM>,
+        'Randy Dunlap' <rdunlap@infradead.org>,
+        Borislav Petkov <bp@alien8.de>
+Cc:     "x86@kernel.org" <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
+        "linux-mm@kvack.org" <linux-mm@kvack.org>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
         Arnd Bergmann <arnd@arndb.de>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        clang-built-linux <clang-built-linux@googlegroups.com>,
-        Nathan Chancellor <natechancellor@gmail.com>,
-        kernel test robot <lkp@intel.com>
-Content-Type: text/plain; charset="UTF-8"
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
+        Peter Zijlstra <peterz@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>,
+        Pengfei Xu <pengfei.xu@intel.com>
+References: <20201229213053.16395-1-yu-cheng.yu@intel.com>
+ <20201229213053.16395-9-yu-cheng.yu@intel.com>
+ <20210121184405.GE32060@zn.tnic>
+ <b4d4bec7-504e-2443-4cf3-0801b179000f@intel.com>
+ <cd9d04ab66d144b7942b5030d9813115@AcuMS.aculab.com>
+ <9344cd90-1818-a716-91d2-2b85df01347b@infradead.org>
+ <b6eda0f414f34634b4e1aca80c4b5d5d@AcuMS.aculab.com>
+From:   "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
+Message-ID: <1b9cd39a-fe66-d237-b847-2b62ff1477e7@intel.com>
+Date:   Fri, 22 Jan 2021 13:54:53 -0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.6.1
+MIME-Version: 1.0
+In-Reply-To: <b6eda0f414f34634b4e1aca80c4b5d5d@AcuMS.aculab.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi,
+On 1/21/2021 2:32 PM, David Laight wrote:
+> From: Randy Dunlap
+>> Sent: 21 January 2021 22:19
+>>
+>> On 1/21/21 2:16 PM, David Laight wrote:
+>>> From: Yu, Yu-cheng
+>>>>
+>>>> On 1/21/2021 10:44 AM, Borislav Petkov wrote:
+>>>>> On Tue, Dec 29, 2020 at 01:30:35PM -0800, Yu-cheng Yu wrote:
+>>>> [...]
+>>>>>> @@ -343,6 +349,16 @@ static inline pte_t pte_mkold(pte_t pte)
+>>>>>>
+>>>>>>    static inline pte_t pte_wrprotect(pte_t pte)
+>>>>>>    {
+>>>>>> +	/*
+>>>>>> +	 * Blindly clearing _PAGE_RW might accidentally create
+>>>>>> +	 * a shadow stack PTE (RW=0, Dirty=1).  Move the hardware
+>>>>>> +	 * dirty value to the software bit.
+>>>>>> +	 */
+>>>>>> +	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
+>>>>>> +		pte.pte |= (pte.pte & _PAGE_DIRTY) >> _PAGE_BIT_DIRTY << _PAGE_BIT_COW;
+>>>>>
+>>>>> Why the unreadable shifting when you can simply do:
+>>>>>
+>>>>>                   if (pte.pte & _PAGE_DIRTY)
+>>>>>                           pte.pte |= _PAGE_COW;
+>>>>>
+>>>
+>>>>> ?
+>>>>
+>>>> It clears _PAGE_DIRTY and sets _PAGE_COW.  That is,
+>>>>
+>>>> if (pte.pte & _PAGE_DIRTY) {
+>>>> 	pte.pte &= ~_PAGE_DIRTY;
+>>>> 	pte.pte |= _PAGE_COW;
+>>>> }
+>>>>
+>>>> So, shifting makes resulting code more efficient.
+>>>
+>>> Does the compiler manage to do one shift?
+>>>
+>>> How can it clear anything?
+>>
+>> It could shift it off either end since there are both << and >>.
+> 
+> It is still:
+> 	pte.pte |= xxxxxxx;
+> 
+>>> There is only an |= against the target.
+>>>
+>>> Something horrid with ^= might set and clear.
+> 
+> It could be 4 instructions:
+> 	is_dirty = pte.pte & PAGE_DIRTY;
+> 	pte.pte &= ~PAGE_DIRTY; // or pte.pte ^= is_dirty
+> 	is_cow = is_dirty << (BIT_COW - BIT_DIRTY); // or equivalent >>
+> 	pte.pte |= is_cow;
+> provided you've a three operand form for one of the first two instructions.
+> Something like ARM might manage to merge the last two as well.
+> But the register dependency chain length may matter more than
+> the number of instructions.
+> The above is likely to be three long.
 
-On Tue, Jan 5, 2021 at 11:20 AM Nick Desaulniers
-<ndesaulniers@google.com> wrote:
->
-> On Tue, Jan 5, 2021 at 9:45 AM Doug Anderson <dianders@chromium.org> wrote:
-> >
-> > Hi,
-> >
-> > On Mon, Dec 7, 2020 at 9:49 PM Fangrui Song <maskray@google.com> wrote:
-> > >
-> > > arm64 references the start address of .builtin_fw (__start_builtin_fw)
-> > > with a pair of R_AARCH64_ADR_PREL_PG_HI21/R_AARCH64_LDST64_ABS_LO12_NC
-> > > relocations. The compiler is allowed to emit the
-> > > R_AARCH64_LDST64_ABS_LO12_NC relocation because struct builtin_fw in
-> > > include/linux/firmware.h is 8-byte aligned.
-> > >
-> > > The R_AARCH64_LDST64_ABS_LO12_NC relocation requires the address to be a
-> > > multiple of 8, which may not be the case if .builtin_fw is empty.
-> > > Unconditionally align .builtin_fw to fix the linker error. 32-bit
-> > > architectures could use ALIGN(4) but that would add unnecessary
-> > > complexity, so just use ALIGN(8).
-> > >
-> > > Fixes: 5658c76 ("firmware: allow firmware files to be built into kernel image")
-> > > Link: https://github.com/ClangBuiltLinux/linux/issues/1204
-> > > Reported-by: kernel test robot <lkp@intel.com>
-> > > Signed-off-by: Fangrui Song <maskray@google.com>
-> > > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> > >
-> > > ---
-> > > Change in v2:
-> > > * Use output section alignment instead of inappropriate ALIGN_FUNCTION()
-> > > ---
-> > >  include/asm-generic/vmlinux.lds.h | 2 +-
-> > >  1 file changed, 1 insertion(+), 1 deletion(-)
-> >
-> > Tested-by: Douglas Anderson <dianders@chromium.org>
-> >
-> > For whatever reason this is hitting developers on Chrome OS a whole
-> > lot suddenly.  Any chance it could be landed?  Which tree should it go
-> > through?
->
-> Andrew,
-> Would you mind picking up this patch for us, please?
-> https://lore.kernel.org/lkml/20201208054646.2913063-1-maskray@google.com/
+I see what you are saying.  The patch is like...
 
-I just synced today and I'm still hitting this error when building
-mainline.  Perhaps Andrew is busy and someone else can pick it up?
-It'd be nice to get this into v5.11
+	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
+		pte.pte |= (pte.pte & _PAGE_DIRTY) >> _PAGE_BIT_DIRTY << _PAGE_BIT_COW;
+		pte = pte_clear_flags(pte, _PAGE_DIRTY);
+	}
 
--Doug
+It is not necessary to do the shifting.  I will make it, simply,
+
+if (pte.pte & _PAGE_DIRTY) {
+	pte.pte &= ~PAGE_DIRTY;
+	pte.pte |= _PAGE_COW;
+}
+
+Thanks for your comments.
+
+--
+Yu-cheng
