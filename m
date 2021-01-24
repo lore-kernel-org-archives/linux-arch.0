@@ -2,176 +2,75 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-10.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 12494C433E0
-	for <linux-arch@archiver.kernel.org>; Sun, 24 Jan 2021 08:30:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0B71AC433E0
+	for <linux-arch@archiver.kernel.org>; Sun, 24 Jan 2021 11:33:27 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D0DB322838
-	for <linux-arch@archiver.kernel.org>; Sun, 24 Jan 2021 08:30:52 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id CAF5122C9C
+	for <linux-arch@archiver.kernel.org>; Sun, 24 Jan 2021 11:33:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726571AbhAXIae (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 24 Jan 2021 03:30:34 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53960 "EHLO
+        id S1726451AbhAXLdK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 24 Jan 2021 06:33:10 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38024 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726623AbhAXIYW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 24 Jan 2021 03:24:22 -0500
-Received: from mail-pl1-x635.google.com (mail-pl1-x635.google.com [IPv6:2607:f8b0:4864:20::635])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 51123C06178A;
-        Sun, 24 Jan 2021 00:23:34 -0800 (PST)
-Received: by mail-pl1-x635.google.com with SMTP id s15so5729729plr.9;
-        Sun, 24 Jan 2021 00:23:34 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=XdOBo5hMulSSxEYd/6YmwlJTZSrkouBXlfopwP0/Zc4=;
-        b=o5l/DCVSCaxUEl6ZWA1anhN4/cxw3MkSyb+QZwdaivP6WeAYkl8rUCScGtQxmbJDDA
-         n+MhvBH/u3vKGyrqfIs/NROmznkxDGeLh77YSkfE90KH4IAcp7XF40rgXHpPJXh/FtVx
-         QBWJjW1+RxiBCRJswIDB+VySgrbidOM5UUl7stEEWOXo2UgtRpQTIF86xL5v8R1XiP0M
-         O80Zq64Gro5u4QhH/tHJj1dbKyMjjc9THLxn2k4GnWiAtTsO44QJFz/28tOod0FOX6SX
-         Q/wryIF0ZxiAFSz2jSvlmoJO/78asliunkKRZSorL/5BicTxWS1TTX2fr4PVWxmkPz6f
-         Pqcg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=XdOBo5hMulSSxEYd/6YmwlJTZSrkouBXlfopwP0/Zc4=;
-        b=WBEygUh7EBAlnz/JvafE6LqR9b0YY4oua4flBmiy33x+Flh/FAOmpAHllCq8Vy7WvZ
-         Tz1RS9yNJj1pGjtum76IllrV+v3KtZoyqsA4yIIWN53g9Hv3rv242KfDVkfsp3pdqKHu
-         MOcDr7XWOLaHHR1ww25Nd/0cpu9KT5xc3D4X0zGKMyj1C80lPwXLgacAjWlm9PQNJtHi
-         PvChh1v/SEYDglQqfMpe473VIB4rD7fy03XGDjCKxB5nsF5lsYz2UrS6n79loWM5pTOe
-         4IOLjeOL4ri2XJt3QJkuG+ojdOVOzXDtZo2fwui5O8JwQPGUfyjJXgSeyiu5LqYGTFUc
-         4Kzg==
-X-Gm-Message-State: AOAM531b3ai8w0r4vtm5OZPUS48UoSArXrh4cViHEcJ+TinwV/d+CMQt
-        MsIXbDpXCpxRazv7QslebMk=
-X-Google-Smtp-Source: ABdhPJx6GFbCQ6szgbTg/K7X7HKG3gfdSjXkRRdgzuwadHjoBdmePc1daU9pjAxjKKOpTJ6Vyv2z/Q==
-X-Received: by 2002:a17:902:d2c1:b029:de:7c38:f86a with SMTP id n1-20020a170902d2c1b02900de7c38f86amr4700511plc.83.1611476613887;
-        Sun, 24 Jan 2021 00:23:33 -0800 (PST)
-Received: from bobo.ozlabs.ibm.com ([124.170.13.62])
-        by smtp.gmail.com with ESMTPSA id gb12sm11799757pjb.51.2021.01.24.00.23.28
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 24 Jan 2021 00:23:33 -0800 (PST)
-From:   Nicholas Piggin <npiggin@gmail.com>
-To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        Zefan Li <lizefan@huawei.com>,
-        Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
+        with ESMTP id S1726367AbhAXLdK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 24 Jan 2021 06:33:10 -0500
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8C67FC061573;
+        Sun, 24 Jan 2021 03:32:29 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=Mqa32asZZp18V8r6vs5C2A7h2wwBEtaIVqomz3yUGRQ=; b=qk0PisdW5PxD45qYqKoEnTKmPp
+        WGAn2tGrYEtYqZX8q3ah10/j0LWTe7sSPmfEdXvB3YKoYQ0vxAe7okj1TOJRunIoR+6fUu2WF28MC
+        0bL9lqlRSvq0StcMloP9NdW/uEOT3Jp0xT9dKU7nQucG42BYoSJz9VhYEZFwmZ3aTNPMBkr2yrd0A
+        qxU9gyj6ymumpsfwl4hKJeqOR7IYpzWiqfTGj1GL/PMQyhGKgdRMscNKersh3RXZa4v4Dtuh1ZuDJ
+        Jegr4m4bq4urBmJht4IP+XpPMAVwgO8whUdwl8n3wRPWOoBQGcjdJET4eWP/p4IHpsuXCBst5RQLm
+        nWNb4tCA==;
+Received: from hch by casper.infradead.org with local (Exim 4.94 #2 (Red Hat Linux))
+        id 1l3dcN-002udt-CX; Sun, 24 Jan 2021 11:31:46 +0000
+Date:   Sun, 24 Jan 2021 11:31:43 +0000
+From:   Christoph Hellwig <hch@infradead.org>
+To:     Nicholas Piggin <npiggin@gmail.com>
+Cc:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, Zefan Li <lizefan@huawei.com>,
+        Jonathan Cameron <Jonathan.Cameron@huawei.com>,
         Christoph Hellwig <hch@infradead.org>,
         Christophe Leroy <christophe.leroy@csgroup.eu>,
         Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Ding Tianhong <dingtianhong@huawei.com>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        linux-arm-kernel@lists.infradead.org
-Subject: [PATCH v10 07/12] arm64: inline huge vmap supported functions
-Date:   Sun, 24 Jan 2021 18:22:25 +1000
-Message-Id: <20210124082230.2118861-8-npiggin@gmail.com>
-X-Mailer: git-send-email 2.23.0
-In-Reply-To: <20210124082230.2118861-1-npiggin@gmail.com>
+        Ding Tianhong <dingtianhong@huawei.com>
+Subject: Re: [PATCH v10 01/12] mm/vmalloc: fix vmalloc_to_page for huge vmap
+ mappings
+Message-ID: <20210124113143.GA694255@infradead.org>
 References: <20210124082230.2118861-1-npiggin@gmail.com>
+ <20210124082230.2118861-2-npiggin@gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210124082230.2118861-2-npiggin@gmail.com>
+X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This allows unsupported levels to be constant folded away, and so
-p4d_free_pud_page can be removed because it's no longer linked to.
+On Sun, Jan 24, 2021 at 06:22:19PM +1000, Nicholas Piggin wrote:
+> vmalloc_to_page returns NULL for addresses mapped by larger pages[*].
+> Whether or not a vmap is huge depends on the architecture details,
+> alignments, boot options, etc., which the caller can not be expected
+> to know. Therefore HUGE_VMAP is a regression for vmalloc_to_page.
+> 
+> This change teaches vmalloc_to_page about larger pages, and returns
+> the struct page that corresponds to the offset within the large page.
+> This makes the API agnostic to mapping implementation details.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: linux-arm-kernel@lists.infradead.org
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/arm64/include/asm/vmalloc.h | 23 ++++++++++++++++++++---
- arch/arm64/mm/mmu.c              | 26 --------------------------
- 2 files changed, 20 insertions(+), 29 deletions(-)
+Maybe enable instead of fix would be better in the subject line?
 
-diff --git a/arch/arm64/include/asm/vmalloc.h b/arch/arm64/include/asm/vmalloc.h
-index 597b40405319..fc9a12d6cc1a 100644
---- a/arch/arm64/include/asm/vmalloc.h
-+++ b/arch/arm64/include/asm/vmalloc.h
-@@ -4,9 +4,26 @@
- #include <asm/page.h>
- 
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
--bool arch_vmap_p4d_supported(pgprot_t prot);
--bool arch_vmap_pud_supported(pgprot_t prot);
--bool arch_vmap_pmd_supported(pgprot_t prot);
-+static inline bool arch_vmap_p4d_supported(pgprot_t prot)
-+{
-+	return false;
-+}
-+
-+static inline bool arch_vmap_pud_supported(pgprot_t prot)
-+{
-+	/*
-+	 * Only 4k granule supports level 1 block mappings.
-+	 * SW table walks can't handle removal of intermediate entries.
-+	 */
-+	return IS_ENABLED(CONFIG_ARM64_4K_PAGES) &&
-+	       !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
-+}
-+
-+static inline bool arch_vmap_pmd_supported(pgprot_t prot)
-+{
-+	/* See arch_vmap_pud_supported() */
-+	return !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
-+}
- #endif
- 
- #endif /* _ASM_ARM64_VMALLOC_H */
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index f6614c378792..ab9ba7c36dae 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -1313,27 +1313,6 @@ void *__init fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot)
- 	return dt_virt;
- }
- 
--bool arch_vmap_p4d_supported(pgprot_t prot)
--{
--	return false;
--}
--
--bool arch_vmap_pud_supported(pgprot_t prot);
--{
--	/*
--	 * Only 4k granule supports level 1 block mappings.
--	 * SW table walks can't handle removal of intermediate entries.
--	 */
--	return IS_ENABLED(CONFIG_ARM64_4K_PAGES) &&
--	       !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
--}
--
--bool arch_vmap_pmd_supported(pgprot_t prot)
--{
--	/* See arch_vmap_pud_supported() */
--	return !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
--}
--
- int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
- {
- 	pud_t new_pud = pfn_pud(__phys_to_pfn(phys), mk_pud_sect_prot(prot));
-@@ -1425,11 +1404,6 @@ int pud_free_pmd_page(pud_t *pudp, unsigned long addr)
- 	return 1;
- }
- 
--int p4d_free_pud_page(p4d_t *p4d, unsigned long addr)
--{
--	return 0;	/* Don't attempt a block mapping */
--}
--
- #ifdef CONFIG_MEMORY_HOTPLUG
- static void __remove_pgd_mapping(pgd_t *pgdir, unsigned long start, u64 size)
- {
--- 
-2.23.0
+Otherwise this looks good:
 
+Reviewed-by: Christoph Hellwig <hch@lst.de>
