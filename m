@@ -2,105 +2,113 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	MENTIONS_GIT_HOSTING,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7449DC433E6
-	for <linux-arch@archiver.kernel.org>; Mon, 25 Jan 2021 15:51:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7947AC433DB
+	for <linux-arch@archiver.kernel.org>; Mon, 25 Jan 2021 17:04:18 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 38A42221EB
-	for <linux-arch@archiver.kernel.org>; Mon, 25 Jan 2021 15:51:43 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 4A19D22B3B
+	for <linux-arch@archiver.kernel.org>; Mon, 25 Jan 2021 17:04:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730550AbhAYPvk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 25 Jan 2021 10:51:40 -0500
-Received: from pegase1.c-s.fr ([93.17.236.30]:33499 "EHLO pegase1.c-s.fr"
+        id S1728898AbhAYRCc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 25 Jan 2021 12:02:32 -0500
+Received: from mx2.suse.de ([195.135.220.15]:50368 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730436AbhAYPvi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 25 Jan 2021 10:51:38 -0500
-Received: from localhost (mailhub1-int [192.168.12.234])
-        by localhost (Postfix) with ESMTP id 4DPN7n2tc9z9tycp;
-        Mon, 25 Jan 2021 09:19:33 +0100 (CET)
-X-Virus-Scanned: Debian amavisd-new at c-s.fr
-Received: from pegase1.c-s.fr ([192.168.12.234])
-        by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
-        with ESMTP id r9zd72zybLeJ; Mon, 25 Jan 2021 09:19:33 +0100 (CET)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase1.c-s.fr (Postfix) with ESMTP id 4DPN7n1rTrz9tyck;
-        Mon, 25 Jan 2021 09:19:33 +0100 (CET)
-Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 3ECA78B780;
-        Mon, 25 Jan 2021 09:19:38 +0100 (CET)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id 9YHVHQQQx1xl; Mon, 25 Jan 2021 09:19:38 +0100 (CET)
-Received: from [172.25.230.103] (po15451.idsi0.si.c-s.fr [172.25.230.103])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id EC7C48B75F;
-        Mon, 25 Jan 2021 09:19:37 +0100 (CET)
-Subject: Re: [PATCH v10 05/12] mm: HUGE_VMAP arch support cleanup
-To:     Christoph Hellwig <hch@infradead.org>,
-        Nicholas Piggin <npiggin@gmail.com>
-Cc:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>,
-        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, Zefan Li <lizefan@huawei.com>,
-        Jonathan Cameron <Jonathan.Cameron@huawei.com>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Ding Tianhong <dingtianhong@huawei.com>,
+        id S1729996AbhAYRCL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 25 Jan 2021 12:02:11 -0500
+X-Virus-Scanned: by amavisd-new at test-mx.suse.de
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
+        t=1611594083; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=Vhg3ZuXdxoTlKTck/oJokadNWML4/97msM+l8PPW1KQ=;
+        b=ekr2Ky1dZoRqi6ycGHVcexZtgRdu4MDaulztS70s8hHeoDI4yFro/m5BDFgGJjh7XxGRcq
+        OdP/PJmINTbjpgXdHy4MQI8TR0XvbgfyJK1DIbaE0IJT4yiv7duwl7QsRrI2lC9GQ+4fV8
+        Fl+xfN24YgfeX+iBNh+IKs3bk8PeCaI=
+Received: from relay2.suse.de (unknown [195.135.221.27])
+        by mx2.suse.de (Postfix) with ESMTP id 4907CAD7A;
+        Mon, 25 Jan 2021 17:01:23 +0000 (UTC)
+Date:   Mon, 25 Jan 2021 18:01:22 +0100
+From:   Michal Hocko <mhocko@suse.com>
+To:     Mike Rapoport <rppt@kernel.org>
+Cc:     Andrew Morton <akpm@linux-foundation.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
         Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        linux-arm-kernel@lists.infradead.org,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        David Hildenbrand <david@redhat.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Matthew Wilcox <willy@infradead.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Roman Gushchin <guro@fb.com>,
+        Shakeel Butt <shakeelb@google.com>,
+        Shuah Khan <shuah@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
-References: <20210124082230.2118861-1-npiggin@gmail.com>
- <20210124082230.2118861-6-npiggin@gmail.com>
- <20210124114008.GE694255@infradead.org>
-From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-Message-ID: <eaa411c5-c3c1-ff87-a671-4059324d0ee1@csgroup.eu>
-Date:   Mon, 25 Jan 2021 09:19:35 +0100
-User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:78.0) Gecko/20100101
- Thunderbird/78.6.1
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
+        Palmer Dabbelt <palmerdabbelt@google.com>
+Subject: Re: [PATCH v16 06/11] mm: introduce memfd_secret system call to
+ create "secret" memory areas
+Message-ID: <20210125170122.GU827@dhcp22.suse.cz>
+References: <20210121122723.3446-1-rppt@kernel.org>
+ <20210121122723.3446-7-rppt@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20210124114008.GE694255@infradead.org>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210121122723.3446-7-rppt@kernel.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-
-
-Le 24/01/2021 à 12:40, Christoph Hellwig a écrit :
->> diff --git a/arch/arm64/include/asm/vmalloc.h b/arch/arm64/include/asm/vmalloc.h
->> index 2ca708ab9b20..597b40405319 100644
->> --- a/arch/arm64/include/asm/vmalloc.h
->> +++ b/arch/arm64/include/asm/vmalloc.h
->> @@ -1,4 +1,12 @@
->>   #ifndef _ASM_ARM64_VMALLOC_H
->>   #define _ASM_ARM64_VMALLOC_H
->>   
->> +#include <asm/page.h>
->> +
->> +#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
->> +bool arch_vmap_p4d_supported(pgprot_t prot);
->> +bool arch_vmap_pud_supported(pgprot_t prot);
->> +bool arch_vmap_pmd_supported(pgprot_t prot);
->> +#endif
+On Thu 21-01-21 14:27:18, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
 > 
-> Shouldn't the be inlines or macros?  Also it would be useful
-> if the architectures would not have to override all functions
-> but just those that are it actually implements?
+> Introduce "memfd_secret" system call with the ability to create memory
+> areas visible only in the context of the owning process and not mapped not
+> only to other processes but in the kernel page tables as well.
 > 
-> Also lots of > 80 char lines in the patch.
+> The user will create a file descriptor using the memfd_secret() system
+> call. The memory areas created by mmap() calls from this file descriptor
+> will be unmapped from the kernel direct map and they will be only mapped in
+> the page table of the owning mm.
 > 
+> The secret memory remains accessible in the process context using uaccess
+> primitives, but it is not accessible using direct/linear map addresses.
+> 
+> Functions in the follow_page()/get_user_page() family will refuse to return
+> a page that belongs to the secret memory area.
+> 
+> A page that was a part of the secret memory area is cleared when it is
+> freed.
+> 
+> The following example demonstrates creation of a secret mapping (error
+> handling is omitted):
+> 
+> 	fd = memfd_secret(0);
+> 	ftruncate(fd, MAP_SIZE);
+> 	ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-Since https://github.com/linuxppc/linux/commit/bdc48fa11e46f867ea4d75fa59ee87a7f48be144
-this 80 char limit is not strongly enforced anymore.
-
-Allthough 80 is still the prefered limit, code is often more readable with a slightly longer single 
-line that with lines splited.
-
-Christophe
+I do not see any access control or permission model for this feature.
+Is this feature generally safe to anybody?
+-- 
+Michal Hocko
+SUSE Labs
