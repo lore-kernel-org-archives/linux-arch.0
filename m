@@ -2,149 +2,63 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-10.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 904FFC43381
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 16:39:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9A5C3C433E9
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 17:21:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5832722795
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 16:39:12 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7AF9B2083E
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 17:21:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1730623AbhAZJX3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Jan 2021 04:23:29 -0500
-Received: from mx2.suse.de ([195.135.220.15]:57472 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2389361AbhAZJTr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 26 Jan 2021 04:19:47 -0500
-X-Virus-Scanned: by amavisd-new at test-mx.suse.de
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
-        t=1611652532; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-         mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=8+K0oyxRY1+vhNkSeXzm8M4Y2R64gVVtCdOHelIF+V8=;
-        b=kShKTVasjKcQgyk49obmmqJEv3Z3d6D+KjtCoEjGXxzkEZlE9pddLwPnfiYIY421ESnwFk
-        s121ANy6h6Uf22zm4fCv1pqav6eTOcya5rAIE9EhMH1YsS7w7Ixp5ITIzE4PQfYNNMffQz
-        Deb5a3d+IUk2PpGiCwbgFZJfGrBkuvI=
-Received: from relay2.suse.de (unknown [195.135.221.27])
-        by mx2.suse.de (Postfix) with ESMTP id 36ABFB293;
-        Tue, 26 Jan 2021 09:15:32 +0000 (UTC)
-Date:   Tue, 26 Jan 2021 10:15:27 +0100
-From:   Michal Hocko <mhocko@suse.com>
-To:     Mike Rapoport <rppt@kernel.org>
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Wilcox <willy@infradead.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
+        id S1730199AbhAZRU4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Jan 2021 12:20:56 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57432 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388118AbhAZGnO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2021 01:43:14 -0500
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6875DC061573;
+        Mon, 25 Jan 2021 22:42:33 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=l2WBiCb5duYJRA9nKpihqrJOH1Qjg6utSrFiu8qAdtc=; b=XFJjQnlOmKPrpamUOymOwxeLZG
+        nTEr98Y7kNW8QS5NHaW0kkQddRAz7PSPmxL1BCFZYqcJNmVKoJ8teXKWfyx4f40ItG0mruV2CyAGH
+        BOWfEHlkBnTxTy2pdd/F79fQFpq92dPzOFmamckYfdzBf7viCXEBvVan0E7NvO4el4jaibngUVac5
+        UdbkRLkdIdTutyOG5Dv+VM7xpSDv5u8qqGHfK09SHX7Ir38+s1trQuozDDKgoerCBfxnt08NiWL2o
+        KdjcWatSfxwUNXhgtC3+Odn06CKkk1MDqSlnk+oiPoDbqxT0B1eOouyPg+lMvwrlWE/f3P1T+gmZ8
+        cPzaRC5w==;
+Received: from hch by casper.infradead.org with local (Exim 4.94 #2 (Red Hat Linux))
+        id 1l4I1j-005CI6-0T; Tue, 26 Jan 2021 06:40:59 +0000
+Date:   Tue, 26 Jan 2021 06:40:35 +0000
+From:   Christoph Hellwig <hch@infradead.org>
+To:     Nicholas Piggin <npiggin@gmail.com>
+Cc:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org,
+        Jonathan Cameron <Jonathan.Cameron@huawei.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        Christophe Leroy <christophe.leroy@csgroup.eu>,
         Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Roman Gushchin <guro@fb.com>,
-        Shakeel Butt <shakeelb@google.com>,
-        Shuah Khan <shuah@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
-        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
-        Palmer Dabbelt <palmerdabbelt@google.com>
-Subject: Re: [PATCH v16 08/11] secretmem: add memcg accounting
-Message-ID: <20210126091527.GG827@dhcp22.suse.cz>
-References: <20210121122723.3446-1-rppt@kernel.org>
- <20210121122723.3446-9-rppt@kernel.org>
- <20210125165451.GT827@dhcp22.suse.cz>
- <20210125213817.GM6332@kernel.org>
- <20210126073142.GY827@dhcp22.suse.cz>
- <20210126085654.GO6332@kernel.org>
+        Ding Tianhong <dingtianhong@huawei.com>
+Subject: Re: [PATCH v11 04/13] mm/ioremap: rename ioremap_*_range to
+ vmap_*_range
+Message-ID: <20210126064035.GA1236944@infradead.org>
+References: <20210126044510.2491820-1-npiggin@gmail.com>
+ <20210126044510.2491820-5-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20210126085654.GO6332@kernel.org>
+In-Reply-To: <20210126044510.2491820-5-npiggin@gmail.com>
+X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue 26-01-21 10:56:54, Mike Rapoport wrote:
-> On Tue, Jan 26, 2021 at 08:31:42AM +0100, Michal Hocko wrote:
-> > On Mon 25-01-21 23:38:17, Mike Rapoport wrote:
-> > > On Mon, Jan 25, 2021 at 05:54:51PM +0100, Michal Hocko wrote:
-> > > > On Thu 21-01-21 14:27:20, Mike Rapoport wrote:
-> > > > > From: Mike Rapoport <rppt@linux.ibm.com>
-> > > > > 
-> > > > > Account memory consumed by secretmem to memcg. The accounting is updated
-> > > > > when the memory is actually allocated and freed.
-> > > > 
-> > > > What does this mean?
-> > > 
-> > > That means that the accounting is updated when secretmem does cma_alloc()
-> > > and cma_relase().
-> > > 
-> > > > What are the lifetime rules?
-> > > 
-> > > Hmm, what do you mean by lifetime rules?
-> > 
-> > OK, so let's start by reservation time (mmap time right?) then the
-> > instantiation time (faulting in memory). What if the calling process of
-> > the former has a different memcg context than the later. E.g. when you
-> > send your fd or inherited fd over fork will move to a different memcg.
-> > 
-> > What about freeing path? E.g. when you punch a hole in the middle of
-> > a mapping?
-> > 
-> > Please make sure to document all this.
->  
-> So, does something like this answer your question:
-> 
-> ---
-> The memory cgroup is charged when secremem allocates pages from CMA to
-> increase large pages pool during ->fault() processing.
+Looks good,
 
-OK so that is when the memory is faulted in. Good that is a standard
-model we have. The memcg context of the creator of the secret memory is
-not really important. So whoever has created is not charged.
-
-> The pages are uncharged from memory cgroup when they are released back to
-> CMA at the time secretme inode is evicted.
-> ---
-
-so effectivelly when they are unmapped, right? This is similar to
-anonymous memory.
-
-As I've said it would be really great to have this life cycle documented
-properly.
-
-> > Please note that this all is a user visible stuff that will become PITA
-> > (if possible) to change later on. You should really have strong
-> > arguments in your justification here.
-> 
-> I think that adding a dedicated counter for few 2M areas per container is
-> not worth the churn. 
-
-What kind of churn you have in mind? What is the downside?
-
-> When we'll get to the point that secretmem can be used to back the entire
-> guest memory we can add a new counter and it does not seem to PITA to me.
-
-What does really prevent a larger use with this implementation?
-
--- 
-Michal Hocko
-SUSE Labs
+Reviewed-by: Christoph Hellwig <hch@lst.de>
