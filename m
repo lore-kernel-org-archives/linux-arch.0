@@ -6,34 +6,35 @@ X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
 	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2D4A3C433E6
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 09:52:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 85076C433E0
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 10:21:24 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id ED45823101
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 09:52:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3E72622B37
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 10:21:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1727151AbhAZJuT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Jan 2021 04:50:19 -0500
-Received: from mx2.suse.de ([195.135.220.15]:51674 "EHLO mx2.suse.de"
+        id S2403784AbhAZKVT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Jan 2021 05:21:19 -0500
+Received: from mx2.suse.de ([195.135.220.15]:43358 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2391617AbhAZJtv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 26 Jan 2021 04:49:51 -0500
+        id S2390944AbhAZKUj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 26 Jan 2021 05:20:39 -0500
 X-Virus-Scanned: by amavisd-new at test-mx.suse.de
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
-        t=1611654544; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+        t=1611656392; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
          mime-version:mime-version:content-type:content-type:
          in-reply-to:in-reply-to:references:references;
-        bh=osw4L0DyfBtcvVTgNeZhtou4RLCF+glHhzfn0pNfjYg=;
-        b=umFtaF7Xp+88tywWv+IHw+GChi1pbTz5a0a/jUxktvgzyCsZINaZZCBo497bleXWAM+EaU
-        GR3gp9zDi+MvoS/Bfup9r+ocJQrD+2eLOJm6arv0yMnJpQ/n5l0mmiAHda+EzLGkIzOcSy
-        pFLJXF60F17xvk+8Oxor/2Ezl2/NIsE=
+        bh=FkBlpLaDLCjmZaDvBj+nmc1/By5Jyg5M7J+fO4B7Whk=;
+        b=mtCxn6j0A/mh0LBKPiDz4ztviV4HkdrzPqf3uj9oB4ypZic601FKrti0WVEckGQnRr99Cd
+        49ulTY0OojdKvVqB8DyMLyGtVT3l1L6HWwjvOsiIsbmeTyXT7T1PhEh7zUswGx3af0EVxk
+        q5DAUvY+as7fxIaUNVFBvFArUNaDp8E=
 Received: from relay2.suse.de (unknown [195.135.221.27])
-        by mx2.suse.de (Postfix) with ESMTP id D1727AC4F;
-        Tue, 26 Jan 2021 09:49:03 +0000 (UTC)
-Date:   Tue, 26 Jan 2021 10:49:03 +0100
+        by mx2.suse.de (Postfix) with ESMTP id 4B6D6AE40;
+        Tue, 26 Jan 2021 10:19:52 +0000 (UTC)
+Date:   Tue, 26 Jan 2021 11:19:50 +0100
 From:   Michal Hocko <mhocko@suse.com>
-To:     Mike Rapoport <rppt@kernel.org>
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
+To:     David Hildenbrand <david@redhat.com>
+Cc:     Mike Rapoport <rppt@kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
         Alexander Viro <viro@zeniv.linux.org.uk>,
         Andy Lutomirski <luto@kernel.org>,
         Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
@@ -41,7 +42,6 @@ Cc:     Andrew Morton <akpm@linux-foundation.org>,
         Christopher Lameter <cl@linux.com>,
         Dan Williams <dan.j.williams@intel.com>,
         Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
         Elena Reshetova <elena.reshetova@intel.com>,
         "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
         James Bottomley <jejb@linux.ibm.com>,
@@ -68,7 +68,7 @@ Cc:     Andrew Morton <akpm@linux-foundation.org>,
         Palmer Dabbelt <palmerdabbelt@google.com>
 Subject: Re: [PATCH v16 06/11] mm: introduce memfd_secret system call to
  create "secret" memory areas
-Message-ID: <20210126094903.GI827@dhcp22.suse.cz>
+Message-ID: <20210126101950.GJ827@dhcp22.suse.cz>
 References: <20210121122723.3446-1-rppt@kernel.org>
  <20210121122723.3446-7-rppt@kernel.org>
  <20210125170122.GU827@dhcp22.suse.cz>
@@ -77,89 +77,24 @@ References: <20210121122723.3446-1-rppt@kernel.org>
  <20210126083311.GN6332@kernel.org>
  <20210126090013.GF827@dhcp22.suse.cz>
  <20210126092011.GP6332@kernel.org>
+ <20210126094903.GI827@dhcp22.suse.cz>
+ <23850371-a19f-51fa-d813-6e78624ee8f8@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20210126092011.GP6332@kernel.org>
+In-Reply-To: <23850371-a19f-51fa-d813-6e78624ee8f8@redhat.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue 26-01-21 11:20:11, Mike Rapoport wrote:
-> On Tue, Jan 26, 2021 at 10:00:13AM +0100, Michal Hocko wrote:
-> > On Tue 26-01-21 10:33:11, Mike Rapoport wrote:
-> > > On Tue, Jan 26, 2021 at 08:16:14AM +0100, Michal Hocko wrote:
-> > > > On Mon 25-01-21 23:36:18, Mike Rapoport wrote:
-> > > > > On Mon, Jan 25, 2021 at 06:01:22PM +0100, Michal Hocko wrote:
-> > > > > > On Thu 21-01-21 14:27:18, Mike Rapoport wrote:
-> > > > > > > From: Mike Rapoport <rppt@linux.ibm.com>
-> > > > > > > 
-> > > > > > > Introduce "memfd_secret" system call with the ability to create memory
-> > > > > > > areas visible only in the context of the owning process and not mapped not
-> > > > > > > only to other processes but in the kernel page tables as well.
-> > > > > > > 
-> > > > > > > The user will create a file descriptor using the memfd_secret() system
-> > > > > > > call. The memory areas created by mmap() calls from this file descriptor
-> > > > > > > will be unmapped from the kernel direct map and they will be only mapped in
-> > > > > > > the page table of the owning mm.
-> > > > > > > 
-> > > > > > > The secret memory remains accessible in the process context using uaccess
-> > > > > > > primitives, but it is not accessible using direct/linear map addresses.
-> > > > > > > 
-> > > > > > > Functions in the follow_page()/get_user_page() family will refuse to return
-> > > > > > > a page that belongs to the secret memory area.
-> > > > > > > 
-> > > > > > > A page that was a part of the secret memory area is cleared when it is
-> > > > > > > freed.
-> > > > > > > 
-> > > > > > > The following example demonstrates creation of a secret mapping (error
-> > > > > > > handling is omitted):
-> > > > > > > 
-> > > > > > > 	fd = memfd_secret(0);
-> > > > > > > 	ftruncate(fd, MAP_SIZE);
-> > > > > > > 	ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-> > > > > > 
-> > > > > > I do not see any access control or permission model for this feature.
-> > > > > > Is this feature generally safe to anybody?
-> > > > > 
-> > > > > The mappings obey memlock limit. Besides, this feature should be enabled
-> > > > > explicitly at boot with the kernel parameter that says what is the maximal
-> > > > > memory size secretmem can consume.
-> > > > 
-> > > > Why is such a model sufficient and future proof? I mean even when it has
-> > > > to be enabled by an admin it is still all or nothing approach. Mlock
-> > > > limit is not really useful because it is per mm rather than per user.
-> > > > 
-> > > > Is there any reason why this is allowed for non-privileged processes?
-> > > > Maybe this has been discussed in the past but is there any reason why
-> > > > this cannot be done by a special device which will allow to provide at
-> > > > least some permission policy?
-> > >  
-> > > Why this should not be allowed for non-privileged processes? This behaves
-> > > similarly to mlocked memory, so I don't see a reason why secretmem should
-> > > have different permissions model.
-> > 
-> > Because appart from the reclaim aspect it fragments the direct mapping
-> > IIUC. That might have an impact on all others, right?
+On Tue 26-01-21 10:53:08, David Hildenbrand wrote:
+[...]
+> I assume you've seen the benchmark results provided by Xing Zhengjun
 > 
-> It does fragment the direct map, but first it only splits 1G pages to 2M
-> pages and as was discussed several times already it's not that clear which
-> page size in the direct map is the best and this is very much workload
-> dependent.
+> https://lore.kernel.org/linux-mm/213b4567-46ce-f116-9cdf-bbd0c884eb3c@linux.intel.com/
 
-I do appreciate this has been discussed but this changelog is not
-specific on any of that reasoning and I am pretty sure nobody will
-remember details in few years in the future. Also some numbers would be
-appropriate.
+I was not. Thanks for the pointer. I will have a look.
 
-> These are the results of the benchmarks I've run with the default direct
-> mapping covered with 1G pages, with disabled 1G pages using "nogbpages" in
-> the kernel command line and with the entire direct map forced to use 4K
-> pages using a simple patch to arch/x86/mm/init.c.
-> 
-> https://docs.google.com/spreadsheets/d/1tdD-cu8e93vnfGsTFxZ5YdaEfs2E1GELlvWNOGkJV2U/edit?usp=sharing
-
-A good start for the data I am asking above.
 -- 
 Michal Hocko
 SUSE Labs
