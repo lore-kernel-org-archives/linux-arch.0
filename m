@@ -2,132 +2,116 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 361E1C433E0
-	for <linux-arch@archiver.kernel.org>; Wed, 27 Jan 2021 06:30:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id ABC3EC433E0
+	for <linux-arch@archiver.kernel.org>; Wed, 27 Jan 2021 07:45:07 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CD91420679
-	for <linux-arch@archiver.kernel.org>; Wed, 27 Jan 2021 06:30:58 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 64A002073C
+	for <linux-arch@archiver.kernel.org>; Wed, 27 Jan 2021 07:45:07 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231252AbhA0GaR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 27 Jan 2021 01:30:17 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51700 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231572AbhA0GSm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2021 01:18:42 -0500
-Received: from mail-il1-x132.google.com (mail-il1-x132.google.com [IPv6:2607:f8b0:4864:20::132])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4A35FC06174A;
-        Tue, 26 Jan 2021 22:18:02 -0800 (PST)
-Received: by mail-il1-x132.google.com with SMTP id y17so737536ili.12;
-        Tue, 26 Jan 2021 22:18:02 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=ECfYTa8g/RycDbRtH0Yn068mLUNU/nijcXJNyLlgQgY=;
-        b=eDw4roxzk2VITFd9zUB48hbCgR9FB1N9cd2g7I7ayoi9LWIjrpHZgrtvgIJBSfLWD+
-         eorNCdswJvZUQCPzFRzbQsAtKdztjr+cJ9Vd8+UR07mCBr2qHA1JymoLnCHRd696NvjX
-         uOslp6y4BKiKdhVlS9Xixpsphrh0P5jTOcZW74OvAyp9ddPsm7HrHyFrlK8EPVoXdPr9
-         +8Fk6Ovf1qUAeQYwwDPXLdCMonkMPUicaCPS30q3znj1XuWuN6WusHvbQugQtBd4pwOr
-         CthT7yQagTUJYu4zCDYmybJqqDOjzu0HMCLt9RqPyqdBl6Pf8bFwMJ4LNdWOwXPDXSZ3
-         ywrg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=ECfYTa8g/RycDbRtH0Yn068mLUNU/nijcXJNyLlgQgY=;
-        b=VhvWj1CZQjREbXo41XK7cQ40FTjsXQJNWQNJFU28gcGwLw9qpuFUnK2DwZGmUZeymw
-         EKk4/TMUREWTNAPxYQ8dkQ+nNN4pUBO7r5l4dwuCoI80I8N5Tw9QX6ovA38UFyqscdLI
-         QO3XME0q5rNlQO8+8NfZSBfiNh3QmIjdhr3CUFWSndG5lUIMgQuPC+tY+rbyhb+It46j
-         iNKM2reb35DgSOHaP399nF2JjPDrC4el652ZklOGg5NFOXNSM/jf/XIr0s8wccXLQNBH
-         NLItd/iiD2cJtc0QeIgCBuz23OgimtHDrH1w6DAJx0kHChGo7HYe9sDJDGhDC8DaZnPl
-         TE6Q==
-X-Gm-Message-State: AOAM531WXF/VDzLjlsv5jboQaEtdzm+Zy5I5yamcHewOwzW+Ya3K9qW5
-        iLy9tBVszc7pLzU8mYZDZKgS/buBFjUftQ==
-X-Google-Smtp-Source: ABdhPJz82JoqeNCni7Sw0B4tNgZbCVA/qBL4J2zNUePZmXzJdMP0M/BzJxS+yDG9sz+arplzdzsBlQ==
-X-Received: by 2002:a92:a803:: with SMTP id o3mr2618129ilh.82.1611728281311;
-        Tue, 26 Jan 2021 22:18:01 -0800 (PST)
-Received: from frodo.mearth (c-24-9-77-57.hsd1.co.comcast.net. [24.9.77.57])
-        by smtp.googlemail.com with ESMTPSA id r6sm547556ilt.56.2021.01.26.22.18.00
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 26 Jan 2021 22:18:00 -0800 (PST)
-From:   Jim Cromie <jim.cromie@gmail.com>
-To:     linux-kernel@vger.kernel.org
-Cc:     Jim Cromie <jim.cromie@gmail.com>, Arnd Bergmann <arnd@arndb.de>,
-        linux-arch@vger.kernel.org
-Subject: [PATCH 19/20] dyndbg: try conditional linker expression in KEEP - RFC
-Date:   Tue, 26 Jan 2021 23:17:52 -0700
-Message-Id: <20210127061752.120083-1-jim.cromie@gmail.com>
-X-Mailer: git-send-email 2.29.2
+        id S317186AbhAZXgg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Jan 2021 18:36:36 -0500
+Received: from mga18.intel.com ([134.134.136.126]:20783 "EHLO mga18.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2389898AbhAZRHf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 26 Jan 2021 12:07:35 -0500
+IronPort-SDR: 9wuXSXAJ/fTnUCYvNVky7DM26HdRJlCUxFyLAx1+wFQwT0Ner8vwQY5NSzxsCcgR6uhcBZabko
+ BSkpd4Ytrd7g==
+X-IronPort-AV: E=McAfee;i="6000,8403,9876"; a="167603534"
+X-IronPort-AV: E=Sophos;i="5.79,375,1602572400"; 
+   d="scan'208";a="167603534"
+Received: from orsmga004.jf.intel.com ([10.7.209.38])
+  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 26 Jan 2021 08:43:54 -0800
+IronPort-SDR: eGwpQ92J/sX81sqArYH6+QIHP+J0S4EMZTaaYIKsSJxcLe0QKMCKSSF3yj0bW41zDIEqCl3g42
+ x8Jj9aQHSdrg==
+X-IronPort-AV: E=Sophos;i="5.79,375,1602572400"; 
+   d="scan'208";a="504585840"
+Received: from yyu32-mobl1.amr.corp.intel.com (HELO [10.212.153.84]) ([10.212.153.84])
+  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 26 Jan 2021 08:43:51 -0800
+Subject: Re: [PATCH v17 11/26] x86/mm: Update ptep_set_wrprotect() and
+ pmdp_set_wrprotect() for transition from _PAGE_DIRTY to _PAGE_COW
+To:     Peter Zijlstra <peterz@infradead.org>,
+        Borislav Petkov <bp@alien8.de>
+Cc:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
+        linux-doc@vger.kernel.org, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>,
+        Pengfei Xu <pengfei.xu@intel.com>
+References: <20201229213053.16395-1-yu-cheng.yu@intel.com>
+ <20201229213053.16395-12-yu-cheng.yu@intel.com>
+ <20210125182709.GC23290@zn.tnic>
+ <YA/W63sob0keoD+i@hirez.programming.kicks-ass.net>
+ <YA/jlOuNpcPPNHA1@hirez.programming.kicks-ass.net>
+From:   "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
+Message-ID: <2f69ab09-57e8-6da0-07ab-5b885758fc27@intel.com>
+Date:   Tue, 26 Jan 2021 08:43:51 -0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.6.1
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <YA/jlOuNpcPPNHA1@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This is the last patch in v3 of patchest Ive sent previously:
-v2: https://lore.kernel.org/lkml/?q=Cromie+v2+00%2F19+2020-12-25+-Re
+On 1/26/2021 1:40 AM, Peter Zijlstra wrote:
+> On Tue, Jan 26, 2021 at 09:46:36AM +0100, Peter Zijlstra wrote:
+>> On Mon, Jan 25, 2021 at 07:27:09PM +0100, Borislav Petkov wrote:
+>>
+>>>> +		pte_t old_pte, new_pte;
+>>>> +
+>>>> +		do {
+>>>> +			old_pte = READ_ONCE(*ptep);
+>>>> +			new_pte = pte_wrprotect(old_pte);
+>>>
+>>> Maybe I'm missing something but those two can happen outside of the
+>>> loop, no? Or is *ptep somehow changing concurrently while the loop is
+>>> doing the CMPXCHG and you need to recreate it each time?
+>>>
+>>> IOW, you can generate upfront and do the empty loop...
+>>>
+>>>> +
+>>>> +		} while (!try_cmpxchg(&ptep->pte, &old_pte.pte, new_pte.pte));
+>>>> +
+>>>> +		return;
+>>>> +	}
+>>
+>> Empty loop would be wrong, but that wants to be written like:
+>>
+>> 	old_pte = READ_ONCE(*ptep);
+>> 	do {
+>> 		new_pte = pte_wrprotect(old_pte);
+>> 	} while (try_cmpxchg(&ptep->pte, &old_pte.pte, new_pte.pte));
+> 
+> ! went missing, too early, moar wake-up juice.
+> 
+>> Since try_cmpxchg() will update old_pte on failure.
 
-It isolates my only issue now, Id appreciate advice, and dont want to
-distract you with the 18 previous commits.
+Thanks Peter!  I will fix that.
 
-Im trying to use ? : inside a KEEP(*(expression)) to only include
-A_header when A has content.
-
-IE:
-  KEEP(*( A ? A_header : ))
-
-It fails with inscrutable linker error.
-  GEN     modules.builtin
-  LD      .tmp_vmlinux.kallsyms1
-ld:./arch/x86/kernel/vmlinux.lds:46: syntax error
-
-Is this possible by other modes of expression ?
-
-I tried inserting {} 1st, that failed, appearing to foreclose any
-foreach-like construct.  I also tried () around each term, and a
-preceding, embedded "_loc=.;" statement to test the parser.
-
-I didnt try doing this with 2 separate KEEPs; while it would be
-simple, it defeats the adjacency guaranteed by *(.text .rdata), which
-is the point of this.
-
-If this were to be possible, it opens up interesting options to
-statically construct table headers, and possibly even tree structures
-in the linker script.  Id use it to add 1 header for each module, and
-strip a column out of the table.
-
-Ive pulled binutils to take a look at the source; having never done
-anything bison-ish, I anticipate a long study without some focused
-primer knowledge.
-
-Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
----
- include/asm-generic/vmlinux.lds.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 87868c5a980a..6198cc850f9b 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -329,10 +329,10 @@
- #define DYNAMIC_DEBUG_DATA()						\
- 	. = ALIGN(8);							\
- 	__start___dyndbg_sites = .;					\
--	KEEP(*(__dyndbg_sites .gnu.linkonce.*.dyndbg_site))			\
-+	KEEP(*(__dyndbg_sites ? .gnu.linkonce.*.dyndbg_site : ))	\
- 	__stop___dyndbg_sites = .;					\
- 	__start___dyndbg = .;						\
--	KEEP(*(__dyndbg .gnu.linkonce.*.dyndbg))				\
-+	KEEP(*(__dyndbg ? .gnu.linkonce.*.dyndbg : ))			\
- 	__stop___dyndbg = .;
- #else
- #define DYNAMIC_DEBUG_DATA()
--- 
-2.29.2
-
+--
+Yu-cheng
