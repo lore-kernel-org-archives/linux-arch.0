@@ -8,181 +8,157 @@ X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0B790C433E0
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 09:48:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D6E08C433E6
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 09:51:34 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id BAB7E23110
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 09:48:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 914912251D
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 09:51:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1731161AbhAZJs1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Jan 2021 04:48:27 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40504 "EHLO
+        id S2391392AbhAZJvH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Jan 2021 04:51:07 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41088 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2391276AbhAZJsI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2021 04:48:08 -0500
-Received: from mail-pg1-x535.google.com (mail-pg1-x535.google.com [IPv6:2607:f8b0:4864:20::535])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9357CC06174A;
-        Tue, 26 Jan 2021 01:47:28 -0800 (PST)
-Received: by mail-pg1-x535.google.com with SMTP id g15so11134669pgu.9;
-        Tue, 26 Jan 2021 01:47:28 -0800 (PST)
+        with ESMTP id S2390746AbhAZJuv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2021 04:50:51 -0500
+Received: from mail-pg1-x52e.google.com (mail-pg1-x52e.google.com [IPv6:2607:f8b0:4864:20::52e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 305DDC0613D6;
+        Tue, 26 Jan 2021 01:50:11 -0800 (PST)
+Received: by mail-pg1-x52e.google.com with SMTP id p18so11139735pgm.11;
+        Tue, 26 Jan 2021 01:50:11 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=date:from:subject:to:cc:references:in-reply-to:mime-version
          :message-id:content-transfer-encoding;
-        bh=SPAzPMHTUwMywoI0YQ3zzW5m1bqgTd/Dm/sAyJYiZoU=;
-        b=W2PrIvrIVmdbuaEdejTXL/7FLIJb/5mP1qpGdgnJtEEGw7NLZ+e/FI97ohHsWVDipd
-         5dF8C5mNdVkZUqB8JfAS7PVUERPWq0KWNurxULF9TUHwuvDN0DeZRbbdCL34p8Gvz4rL
-         lmYEI8nq984fQtKOef6ZAELQJyH11zFN8f4BrI4A2zhXFdY6nTsAOBxwfPyggbwFRezg
-         fqippu/BO5P96Mb8WjAFpfV2A8YAsRcRl8N4VBP7YTcQzZte9XHY+e/2unQxKMhd6eSy
-         UmIiqO7KXZL6uSq5C2Wr8+0OKovo+QEy7YhcRTzibFN1n3rz7n4oqURRM4erA2+Pfj+/
-         3vRA==
+        bh=0BoP+OYH6EXdZxnw4jTi+ce0h1kJJ+YvrP995HEeEfk=;
+        b=HAPMFftRZxQG/fBZeVQHKpfYqezKjPzUFWYma5LOeOZuhMrSgaQnFghwR82Hi0Tcad
+         6i4fqeK0OEgAe0lPjMHX+w/LEXKabwaw3WgD+7gti+Eq3I7UGN+6+YRRaTKc5T6KgGFT
+         x+FH14E2Wga0siPTYUQdnIEKHn+e2plYn73AjOkuryD4Sp/FSHEuDne1lLKJVidRQtNt
+         obqeveTlFYP05jEmDI0GDr5yXXaz9RQ4vG8/zio/JQSQ+/5P7bwkD8IJjsswZP/7emSG
+         r4VtW5DBjjmSYLx8gY9cAkgVlI/TN/bJJNxZzeydR0tM7Q0sJIlZvG5IcVD30HdqeCXI
+         GG4Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:from:subject:to:cc:references:in-reply-to
          :mime-version:message-id:content-transfer-encoding;
-        bh=SPAzPMHTUwMywoI0YQ3zzW5m1bqgTd/Dm/sAyJYiZoU=;
-        b=JyN2bTF+sm2Xr84SuTvJoEZbff4ya2QqFWyrbpx9lTUku2W2ZNGGKxGYjEAe4VAaLu
-         x3k2sXaaZRCzSErK54himzCcZXARTNZT9F7dExq0pzdijOMzcUaMweJJZQayYigOk82v
-         3nd4LJAwSEOe3fynxUxZZK32bBb6K/KTOZYo5aCUGXSEK3f2+UWhIX0ztxgkF/BCTcbL
-         Oav6Epsh50Ty6ZAg/sVEmLl4CH9B8KhW5VZdMfkPuWmT3De8VkgS1QkviVluNY/7moJF
-         FDZcWamuhzG83fTHNvKMl2yEmQBST5tc07SYjCMuwYeTlvfDG/esHMDhM0DGkA65Z4vk
-         pqZg==
-X-Gm-Message-State: AOAM530Q1JNy9CCaTdVjDBkPf+P9mGg+OrjNAry4yJv6jpGH7ffRMmAs
-        AeyVFcXXRBoUqyeIOXOSNWM=
-X-Google-Smtp-Source: ABdhPJw2MXPKRaA2kctx6FW3cVhePx8H93ZknPUe2RtbSEpjbwM/uc3AYcTkxnbnOic06K/F2HkFzQ==
-X-Received: by 2002:a62:54c3:0:b029:1bc:731c:dfc1 with SMTP id i186-20020a6254c30000b02901bc731cdfc1mr4627362pfb.20.1611654448148;
-        Tue, 26 Jan 2021 01:47:28 -0800 (PST)
+        bh=0BoP+OYH6EXdZxnw4jTi+ce0h1kJJ+YvrP995HEeEfk=;
+        b=YooTI0/33TN9V53TRNs+qRrMK0VH0lvfblPpJHp2Ya9wMLzN7rRS3QhjTY/FZg8DFY
+         4cM8wtna3dcLoC/VGJh3CWJ5oKa7/yj1kO1MafqyQkkziIJ1XJ8gpIbwuhdIzQqUmVVV
+         Q2CI6mcu4c4CLAP7Hm1YhzeKeEfgU/VQPshajkFdYf8Iw8GOEPIXntNaukvQux9IRVgp
+         HjSszteuwf64mj9U1PpEeJMuvNCWtT6KTnmcH6cT1OzPLdmTU9alvUNBpuIJb1gX+VZU
+         r1WHp5vANrGGzbwxUXD9zh7OUe7HtJc/5mRqJbFrXt4E9jdmQxZPGS1rDvyNL3KdDUFD
+         t8+w==
+X-Gm-Message-State: AOAM531kXYHSO34/A1ljVsHBLh2cI7naboWrdOXqdo1IQMAWXxjfiFH5
+        2R1zdK8Ren3CLW6TUiBUTSs=
+X-Google-Smtp-Source: ABdhPJzy2Ur7IdM2ZfVTsqMbS5tBjuUgvkwINi0xes7/ASkks7ScG4l9nU4ZAYkMr3Wud5aCblU1YA==
+X-Received: by 2002:aa7:8b0f:0:b029:1c0:e782:ba29 with SMTP id f15-20020aa78b0f0000b02901c0e782ba29mr4498133pfd.37.1611654610729;
+        Tue, 26 Jan 2021 01:50:10 -0800 (PST)
 Received: from localhost (192.156.221.203.dial.dynamic.acc50-nort-cbr.comindico.com.au. [203.221.156.192])
-        by smtp.gmail.com with ESMTPSA id v21sm1095752pfn.80.2021.01.26.01.47.26
+        by smtp.gmail.com with ESMTPSA id c11sm17063325pfl.185.2021.01.26.01.50.09
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 26 Jan 2021 01:47:27 -0800 (PST)
-Date:   Tue, 26 Jan 2021 19:47:22 +1000
+        Tue, 26 Jan 2021 01:50:10 -0800 (PST)
+Date:   Tue, 26 Jan 2021 19:50:05 +1000
 From:   Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v11 12/13] mm/vmalloc: Hugepage vmalloc mappings
+Subject: RE: [PATCH v10 11/12] mm/vmalloc: Hugepage vmalloc mappings
 To:     Andrew Morton <akpm@linux-foundation.org>,
-        Ding Tianhong <dingtianhong@huawei.com>, linux-mm@kvack.org
-Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
+        'Christophe Leroy' <christophe.leroy@csgroup.eu>,
+        David Laight <David.Laight@ACULAB.COM>,
+        "linux-mm@kvack.org" <linux-mm@kvack.org>
+Cc:     Ding Tianhong <dingtianhong@huawei.com>,
         Christoph Hellwig <hch@infradead.org>,
         Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>,
+        =?iso-8859-1?q?Zefan=0A?= Li <lizefan@huawei.com>,
         Rick Edgecombe <rick.p.edgecombe@intel.com>
-References: <20210126044510.2491820-1-npiggin@gmail.com>
-        <20210126044510.2491820-13-npiggin@gmail.com>
-        <0f360e6e-6d34-19ce-6c76-a17a5f4f7fc3@huawei.com>
-In-Reply-To: <0f360e6e-6d34-19ce-6c76-a17a5f4f7fc3@huawei.com>
+References: <20210124082230.2118861-1-npiggin@gmail.com>
+        <20210124082230.2118861-12-npiggin@gmail.com>
+        <933352bd-dcf3-c483-4d7a-07afe1116cf1@csgroup.eu>
+        <7749b310046c4b9baa07037af1d97d87@AcuMS.aculab.com>
+In-Reply-To: <7749b310046c4b9baa07037af1d97d87@AcuMS.aculab.com>
 MIME-Version: 1.0
-Message-Id: <1611653945.t3oot63nwn.astroid@bobo.none>
+Message-Id: <1611654541.je6x6v0xw5.astroid@bobo.none>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Excerpts from Ding Tianhong's message of January 26, 2021 4:59 pm:
-> On 2021/1/26 12:45, Nicholas Piggin wrote:
->> Support huge page vmalloc mappings. Config option HAVE_ARCH_HUGE_VMALLOC
->> enables support on architectures that define HAVE_ARCH_HUGE_VMAP and
->> supports PMD sized vmap mappings.
+Excerpts from David Laight's message of January 25, 2021 10:24 pm:
+> From: Christophe Leroy
+>> Sent: 25 January 2021 09:15
 >>=20
->> vmalloc will attempt to allocate PMD-sized pages if allocating PMD size
->> or larger, and fall back to small pages if that was unsuccessful.
+>> Le 24/01/2021 =C3=A0 09:22, Nicholas Piggin a =C3=A9crit=C2=A0:
+>> > Support huge page vmalloc mappings. Config option HAVE_ARCH_HUGE_VMALL=
+OC
+>> > enables support on architectures that define HAVE_ARCH_HUGE_VMAP and
+>> > supports PMD sized vmap mappings.
+>> >
+>> > vmalloc will attempt to allocate PMD-sized pages if allocating PMD siz=
+e
+>> > or larger, and fall back to small pages if that was unsuccessful.
+>> >
+>> > Architectures must ensure that any arch specific vmalloc allocations
+>> > that require PAGE_SIZE mappings (e.g., module allocations vs strict
+>> > module rwx) use the VM_NOHUGE flag to inhibit larger mappings.
+>> >
+>> > When hugepage vmalloc mappings are enabled in the next patch, this
+>> > reduces TLB misses by nearly 30x on a `git diff` workload on a 2-node
+>> > POWER9 (59,800 -> 2,100) and reduces CPU cycles by 0.54%.
+>> >
+>> > This can result in more internal fragmentation and memory overhead for=
+ a
+>> > given allocation, an option nohugevmalloc is added to disable at boot.
+>> >
+>> > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+>> > ---
+>> >   arch/Kconfig            |  10 +++
+>> >   include/linux/vmalloc.h |  18 ++++
+>> >   mm/page_alloc.c         |   5 +-
+>> >   mm/vmalloc.c            | 192 ++++++++++++++++++++++++++++++--------=
+--
+>> >   4 files changed, 177 insertions(+), 48 deletions(-)
+>> >
 >>=20
->> Architectures must ensure that any arch specific vmalloc allocations
->> that require PAGE_SIZE mappings (e.g., module allocations vs strict
->> module rwx) use the VM_NOHUGE flag to inhibit larger mappings.
+>> > diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+>> > index 0377e1d059e5..eef61e0f5170 100644
+>> > --- a/mm/vmalloc.c
+>> > +++ b/mm/vmalloc.c
 >>=20
->> When hugepage vmalloc mappings are enabled in the next patch, this
->> reduces TLB misses by nearly 30x on a `git diff` workload on a 2-node
->> POWER9 (59,800 -> 2,100) and reduces CPU cycles by 0.54%.
+>> > @@ -2691,15 +2746,18 @@ EXPORT_SYMBOL_GPL(vmap_pfn);
+>> >   #endif /* CONFIG_VMAP_PFN */
+>> >
+>> >   static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_m=
+ask,
+>> > -				 pgprot_t prot, int node)
+>> > +				 pgprot_t prot, unsigned int page_shift,
+>> > +				 int node)
+>> >   {
+>> >   	const gfp_t nested_gfp =3D (gfp_mask & GFP_RECLAIM_MASK) | __GFP_ZE=
+RO;
+>> > -	unsigned int nr_pages =3D get_vm_area_size(area) >> PAGE_SHIFT;
+>> > -	unsigned long array_size;
+>> > -	unsigned int i;
+>> > +	unsigned int page_order =3D page_shift - PAGE_SHIFT;
+>> > +	unsigned long addr =3D (unsigned long)area->addr;
+>> > +	unsigned long size =3D get_vm_area_size(area);
+>> > +	unsigned int nr_small_pages =3D size >> PAGE_SHIFT;
+>> >   	struct page **pages;
+>> > +	unsigned int i;
+>> >
+>> > -	array_size =3D (unsigned long)nr_pages * sizeof(struct page *);
+>> > +	array_size =3D (unsigned long)nr_small_pages * sizeof(struct page *)=
+;
 >>=20
->> This can result in more internal fragmentation and memory overhead for a
->> given allocation, an option nohugevmalloc is added to disable at boot.
+>> array_size() is a function in include/linux/overflow.h
 >>=20
->> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
->> ---
->>  arch/Kconfig            |  11 ++
->>  include/linux/vmalloc.h |  21 ++++
->>  mm/page_alloc.c         |   5 +-
->>  mm/vmalloc.c            | 215 +++++++++++++++++++++++++++++++---------
->>  4 files changed, 205 insertions(+), 47 deletions(-)
->>=20
->> diff --git a/arch/Kconfig b/arch/Kconfig
->> index 24862d15f3a3..eef170e0c9b8 100644
->> --- a/arch/Kconfig
->> +++ b/arch/Kconfig
->> @@ -724,6 +724,17 @@ config HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
->>  config HAVE_ARCH_HUGE_VMAP
->>  	bool
->> =20
->> +#
->> +#  Archs that select this would be capable of PMD-sized vmaps (i.e.,
->> +#  arch_vmap_pmd_supported() returns true), and they must make no assum=
-ptions
->> +#  that vmalloc memory is mapped with PAGE_SIZE ptes. The VM_NO_HUGE_VM=
-AP flag
->> +#  can be used to prohibit arch-specific allocations from using hugepag=
-es to
->> +#  help with this (e.g., modules may require it).
->> +#
->> +config HAVE_ARCH_HUGE_VMALLOC
->> +	depends on HAVE_ARCH_HUGE_VMAP
->> +	bool
->> +
->>  config ARCH_WANT_HUGE_PMD_SHARE
->>  	bool
->> =20
->> diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
->> index 99ea72d547dc..93270adf5db5 100644
->> --- a/include/linux/vmalloc.h
->> +++ b/include/linux/vmalloc.h
->> @@ -25,6 +25,7 @@ struct notifier_block;		/* in notifier.h */
->>  #define VM_NO_GUARD		0x00000040      /* don't add guard page */
->>  #define VM_KASAN		0x00000080      /* has allocated kasan shadow memory =
-*/
->>  #define VM_MAP_PUT_PAGES	0x00000100	/* put pages and free array in vfre=
-e */
->> +#define VM_NO_HUGE_VMAP		0x00000200	/* force PAGE_SIZE pte mapping */
->>=20
->>  /*
->>   * VM_KASAN is used slighly differently depending on CONFIG_KASAN_VMALL=
-OC.
->> @@ -59,6 +60,9 @@ struct vm_struct {
->>  	unsigned long		size;
->>  	unsigned long		flags;
->>  	struct page		**pages;
->> +#ifdef CONFIG_HAVE_ARCH_HUGE_VMALLOC
->> +	unsigned int		page_order;
->> +#endif
->>  	unsigned int		nr_pages;
->>  	phys_addr_t		phys_addr;
->>  	const void		*caller;
-> Hi Nicholas:
+>> For some reason, it breaks the build with your series.
 >=20
-> Give a suggestion :)
->=20
-> The page order was only used to indicate the huge page flag for vm area, =
-and only valid when
-> size bigger than PMD_SIZE, so can we use the vm flgas to instead of that,=
- just like define the
-> new flag named VM_HUGEPAGE, it would not break the vm struct, and it is e=
-asier for me to backport the serious
-> patches to our own branches. (Base on the lts version).
+> I can't see the replacement definition for array_size.
+> The old local variable is deleted.
 
-Hmm, it might be possible. I'm not sure if 1GB vmallocs will be used any=20
-time soon (or maybe they will for edge case configurations? It would be=20
-trivial to add support for).
-
-The other concern I have is that Christophe IIRC was asking about=20
-implementing a mapping for PPC which used TLB mappings that were=20
-different than kernel page table tree size. Although I guess we could=20
-deal with that when it comes.
-
-I like the flexibility of page_order though. How hard would it be for=20
-you to do the backport with VM_HUGEPAGE yourself?
-
-I should also say, thanks for all the review and testing from the Huawei=20
-team. Do you have an x86 patch?
+Yeah I saw that after taking another look. Must have sent in a bad diff.=20
+The v11 fixed that and a couple of other compile issues.
 
 Thanks,
 Nick
