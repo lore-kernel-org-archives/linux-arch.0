@@ -2,503 +2,217 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
-	USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,PDS_BAD_THREAD_QP_64,
+	SPF_HELO_NONE,SPF_PASS autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BD5BAC433DB
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 18:41:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 57D85C433E0
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 20:11:23 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8B80822228
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 18:41:29 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 17CCC22241
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 20:11:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1729438AbhAZRUt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Jan 2021 12:20:49 -0500
-Received: from szxga05-in.huawei.com ([45.249.212.191]:11590 "EHLO
-        szxga05-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730199AbhAZGKb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2021 01:10:31 -0500
-Received: from DGGEMS403-HUB.china.huawei.com (unknown [172.30.72.58])
-        by szxga05-in.huawei.com (SkyGuard) with ESMTP id 4DPx9Y07cczMQ80;
-        Tue, 26 Jan 2021 14:08:01 +0800 (CST)
-Received: from [10.174.177.80] (10.174.177.80) by
- DGGEMS403-HUB.china.huawei.com (10.3.19.203) with Microsoft SMTP Server id
- 14.3.498.0; Tue, 26 Jan 2021 14:07:54 +0800
-Subject: Re: [PATCH v11 05/13] mm: HUGE_VMAP arch support cleanup
-To:     Nicholas Piggin <npiggin@gmail.com>, <linux-mm@kvack.org>,
-        Andrew Morton <akpm@linux-foundation.org>
-CC:     <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
-        <linuxppc-dev@lists.ozlabs.org>,
-        Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
-        Christoph Hellwig <hch@infradead.org>,
-        Christophe Leroy <christophe.leroy@csgroup.eu>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        "Will Deacon" <will@kernel.org>,
-        <linux-arm-kernel@lists.infradead.org>,
-        "Thomas Gleixner" <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>,
-        "Borislav Petkov" <bp@alien8.de>, <x86@kernel.org>,
-        "H. Peter Anvin" <hpa@zytor.com>
-References: <20210126044510.2491820-1-npiggin@gmail.com>
- <20210126044510.2491820-6-npiggin@gmail.com>
-From:   Ding Tianhong <dingtianhong@huawei.com>
-Message-ID: <4dd92193-a5d8-545a-6503-d3db25ceb6e1@huawei.com>
-Date:   Tue, 26 Jan 2021 14:07:54 +0800
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
- Thunderbird/78.3.2
+        id S1732664AbhAZFZd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Jan 2021 00:25:33 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46768 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729050AbhAZBcX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jan 2021 20:32:23 -0500
+Received: from NAM12-MW2-obe.outbound.protection.outlook.com (mail-mw2nam12on2071f.outbound.protection.outlook.com [IPv6:2a01:111:f400:fe5a::71f])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D1C97C0698CD;
+        Mon, 25 Jan 2021 17:22:14 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=hcqiZsP6PKfa8SB1pp+xfBK22pS50jNp0Ytehi2+AV0iZV45G+9ax16nVFIJC3lRgo+P69MkSlA8ma7HXUHTp5S2/btke+xniLU5ioMubHeCA6W5312yUFOF24+9OPk8QOkteGo3t7mEDVHrGnej36J/4iz+oynlXTfN/ZsrGJQZmfi9AVuhRLLYDIfEosPCNvcjjTzbNNYf7bgKx9OscVctQCVpoYkGXTS14wFrQfE0LEZBrPuDmLMvQVIikPtlhBgpYEOpxWGvLuioYMkmkgjWCtD8sbXkJEiMZgAbRP3izmm65uIPPCX6dhroceh/ORkzwKKBWJ4r7INkt4EcKg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=lX/hGgumZ/PzceBmuA/w3bmhqMpAGJembZU9oI6HysE=;
+ b=S00BqOsie2EeV4jpjb79Z9i7yD7E72+0B7BgEFzoLZlRH1q343U/DZOp7pfoIsfHBoLh49CjqxCWCO680ph2D/YU/6ICVN0WqKIWsie6vfptcmOJ1iJrzH37bK7sgZ1DR0rpNLUArDmPHu5B8WZbu/2XckG8DNtjOudlkCIRwe7ItwQ8a7ZAj61cxUY4QzALpLO+0+4Z1VHuR/PlgUyBjwiWZqQRu4m4Hwusbfwm4iZePZVXmfGBpZvyGfMLYLTDP1qQE+M+ISWKl7YFY8jZqaM2YR4moX8TVNLyMxzv5JaHzlcKh6Qj2x4GqKU/oBlgwOpHiNlKOLguggT1+hwCjQ==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=microsoft.com; dmarc=pass action=none
+ header.from=microsoft.com; dkim=pass header.d=microsoft.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=lX/hGgumZ/PzceBmuA/w3bmhqMpAGJembZU9oI6HysE=;
+ b=cD9d6WMH7FJp0aYF3WjfZLCKp1Lph2e3tZtes92aAvIRb3lH0QssuH+oUpeyII0jet+qTZgtYIG96c+F3JxwDoYWaP2jW1zYje5YumAKFE3tUaBtR796b3cgiJg2I81jVxxKyB+55rORgI+u6qszJa4LW09sXPArwj39IcxcT80=
+Received: from (2603:10b6:301:7c::11) by
+ MWHPR2101MB0873.namprd21.prod.outlook.com (2603:10b6:301:7e::19) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3825.6; Tue, 26 Jan
+ 2021 01:22:10 +0000
+Received: from MWHPR21MB1593.namprd21.prod.outlook.com
+ ([fe80::9c8:94c9:faf1:17c2]) by MWHPR21MB1593.namprd21.prod.outlook.com
+ ([fe80::9c8:94c9:faf1:17c2%9]) with mapi id 15.20.3825.003; Tue, 26 Jan 2021
+ 01:22:10 +0000
+From:   Michael Kelley <mikelley@microsoft.com>
+To:     Wei Liu <wei.liu@kernel.org>,
+        Linux on Hyper-V List <linux-hyperv@vger.kernel.org>
+CC:     "virtualization@lists.linux-foundation.org" 
+        <virtualization@lists.linux-foundation.org>,
+        Linux Kernel List <linux-kernel@vger.kernel.org>,
+        Vineeth Pillai <viremana@linux.microsoft.com>,
+        Sunil Muthuswamy <sunilmut@microsoft.com>,
+        Nuno Das Neves <nunodasneves@linux.microsoft.com>,
+        "pasha.tatashin@soleen.com" <pasha.tatashin@soleen.com>,
+        KY Srinivasan <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+        "open list:GENERIC INCLUDE/ASM HEADER FILES" 
+        <linux-arch@vger.kernel.org>
+Subject: RE: [PATCH v5 11/16] asm-generic/hyperv: update hv_msi_entry
+Thread-Topic: [PATCH v5 11/16] asm-generic/hyperv: update hv_msi_entry
+Thread-Index: AQHW7yP207XtrKRjgkqkN3kDOaxu3Ko5JNXA
+Date:   Tue, 26 Jan 2021 01:22:09 +0000
+Message-ID: <MWHPR21MB1593A7574C6F05858C7DCEE1D7BC9@MWHPR21MB1593.namprd21.prod.outlook.com>
+References: <20210120120058.29138-1-wei.liu@kernel.org>
+ <20210120120058.29138-12-wei.liu@kernel.org>
+In-Reply-To: <20210120120058.29138-12-wei.liu@kernel.org>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+msip_labels: MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Enabled=true;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_SetDate=2021-01-26T01:22:08Z;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Method=Standard;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Name=Internal;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_SiteId=72f988bf-86f1-41af-91ab-2d7cd011db47;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_ActionId=efc6fad5-d6d6-426d-8944-e00d52b8c29e;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_ContentBits=0
+authentication-results: kernel.org; dkim=none (message not signed)
+ header.d=none;kernel.org; dmarc=none action=none header.from=microsoft.com;
+x-originating-ip: [66.75.126.197]
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-ht: Tenant
+x-ms-office365-filtering-correlation-id: edc3c7ac-1b67-4bf5-91b7-08d8c198cd83
+x-ms-traffictypediagnostic: MWHPR2101MB0873:
+x-ms-exchange-transport-forked: True
+x-microsoft-antispam-prvs: <MWHPR2101MB0873F549F24FAA9112FC9D64D7BC9@MWHPR2101MB0873.namprd21.prod.outlook.com>
+x-ms-oob-tlc-oobclassifiers: OLM:1728;
+x-ms-exchange-senderadcheck: 1
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info: 2MSkzifEV8vpWMGyH4vzB9K4AGDDuWiTNill0CLOhx4Ey0XQ3N0Q5L85kvK7JaC7uMod+4MoSe/oUL9rTmtmXL2t57L1GYMA0gYg6FuE7gGDJxl4vpIIstdOjQbJQ9gJc1ZkJveIL3MnmOwOU/hAN+nlYIVHjjUb+E+pGY8mVYrExG7diq/DjefYtEsE2Lb7pfHtUJs1bK7h4xjaMYrVjZRnMkW0J9+haM72FgVywgz6iI2pbfIVDSB15HiWEstlSLHt5K+H7wyjztGHdfSK/BSi9WYdKg3XSZHorrKQ0aaMVbMp76uZaknN8/x0foFM+TDnDLdHasKWE24qcEbEc6JUrZi4nDH6GKQ3fcCSNyB81tEe+z7ODbwsoplESBQYBxbDzVoAAtRmDh6BtBl6aJkxTFViRtiAgQ1X9EtBWgqPaZ4c5pxfGQAmfBBlOedtC79soOS/fj0hSkZf2dJ+fw83CX0P/Rro7jD3MWCm3ja2Qyc3Qt4RQPvL+xiaGawvyPlNrhPeCKRx34kiYeDE/gJe0sdRB5v6wS6fYKczveVST9asYukyMKlvmtfwnaD2
+x-forefront-antispam-report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:MWHPR21MB1593.namprd21.prod.outlook.com;PTR:;CAT:NONE;SFS:(4636009)(366004)(346002)(136003)(396003)(376002)(39860400002)(478600001)(52536014)(66446008)(71200400001)(55016002)(8936002)(7416002)(54906003)(4326008)(66946007)(76116006)(64756008)(110136005)(83380400001)(9686003)(66476007)(66556008)(86362001)(7696005)(6506007)(8990500004)(82960400001)(82950400001)(33656002)(8676002)(26005)(186003)(316002)(10290500003)(5660300002)(2906002)(41533002);DIR:OUT;SFP:1102;
+x-ms-exchange-antispam-messagedata: =?us-ascii?Q?8nhR8qRN3JB7L4FPm9cArUws2554Hu7NhZEyhrEZZC1EUFWGuMw8dx4SFBge?=
+ =?us-ascii?Q?10NiCVwaAMz06MjKnFNx9TlBYdsvXdx1yrU89rNRfX67OS9WZL6jYrfrIqVx?=
+ =?us-ascii?Q?ALM6sqWZeO2uOTYD93jMVj6z5yt3hXA6PtD+rNP0p1qRoIefiPDRY9fR+8hK?=
+ =?us-ascii?Q?CeXDajUdU+wb17UdqYnswIIqxckjH/BqGWNr9mrycfBewYHwHG9YpJij4cNd?=
+ =?us-ascii?Q?T65ZpI+7CgGtoKe2/x2z0kOBKbjxooLMYIcxzGo97d1LNTSgjssHeB2I7Qob?=
+ =?us-ascii?Q?bo5dYJdGq80R2geODOpGLROk3blj4BYM4pVUPUMcHZ14hDjgX7Ajpv5GTeVN?=
+ =?us-ascii?Q?Wwruwil6Y7reoCiL56W+p0NmuJE3Ex9Fu53qUGba4TVchfyANiZMjivaUHs+?=
+ =?us-ascii?Q?5ukG+aluUW0R8qK4qkJuZHmcvlGgzZTIY3d1jC6fIRqTtzfPK+qS04lJ6zJm?=
+ =?us-ascii?Q?04xmrnYzI8T86yRDubZB7kjKXCiW6KfoVeqS3GZt6c3kcy/0Z7bE+XCFedup?=
+ =?us-ascii?Q?K/EL17HZcABS18y9gCFFw8ijs+UjxUfTAw76AHn6ExVGS0SSz3RfnofaOQat?=
+ =?us-ascii?Q?ETs/XFKcO1vsIGHcuD4EjgUcKZwK1iPWsahv0s3ItwqbeH/yS0s+rZTYzlp1?=
+ =?us-ascii?Q?KO6GeFrHoj5coBCJ0lebsSgRIo5k3fyXOl/Yf/TgTej2LTlNesasNibxKHVz?=
+ =?us-ascii?Q?xJ3QZXJoqXRrnZivLM+9p1jUc/UsTMgigq1b/uM4YFLy2Lr/n5ydhS1F7nml?=
+ =?us-ascii?Q?6/Nj4WFW0lDrhza07jGE4ZkzjF3xsH2eV0kqUROUKSX9NCnlVtQqFc4itm3c?=
+ =?us-ascii?Q?ybeGCAF5AvXN/lpkkylqlT13YzMkXq/Og02UKfEufhZbE98V8MNpn1fxCWOx?=
+ =?us-ascii?Q?kME9RKeXsgU5/k5osgSq0AOW5VL/NeKYJxA9kTto4+1PipP1Fl7cp352JH5z?=
+ =?us-ascii?Q?GVyYCmJJd1n7LjmGWyCCRpYyry2xgqDm8+LZ+sxv4L+y4pyLkIa0B8h+kzf4?=
+ =?us-ascii?Q?dD9fru5Wh3h349eyd/giD5yYY8eqjmvH/BoyewIlFYxRrFBaXtVwI4/IaAWl?=
+ =?us-ascii?Q?GZ3vaHFQ?=
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-In-Reply-To: <20210126044510.2491820-6-npiggin@gmail.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
-X-Originating-IP: [10.174.177.80]
-X-CFilter-Loop: Reflected
+X-OriginatorOrg: microsoft.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: MWHPR21MB1593.namprd21.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: edc3c7ac-1b67-4bf5-91b7-08d8c198cd83
+X-MS-Exchange-CrossTenant-originalarrivaltime: 26 Jan 2021 01:22:09.7987
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 72f988bf-86f1-41af-91ab-2d7cd011db47
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: eOSeh9+p7I3W3JijcvUYnqv24ShEJeNiFkpzmJul9RRfRKD1DTM6mP/3iV07OGfm21Sz1vGVyT4nVDwODGfA7dKrrArUjKAM7ocS353HBFc=
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: MWHPR2101MB0873
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Reviewed-by: Ding Tianhong <dingtianhong@huawei.com>
-
-On 2021/1/26 12:45, Nicholas Piggin wrote:
-> This changes the awkward approach where architectures provide init
-> functions to determine which levels they can provide large mappings for,
-> to one where the arch is queried for each call.
-> 
-> This removes code and indirection, and allows constant-folding of dead
-> code for unsupported levels.
-> 
-> This also adds a prot argument to the arch query. This is unused
-> currently but could help with some architectures (e.g., some powerpc
-> processors can't map uncacheable memory with large pages).
-> 
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Borislav Petkov <bp@alien8.de>
-> Cc: x86@kernel.org
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Acked-by: Catalin Marinas <catalin.marinas@arm.com> [arm64]
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+From: Wei Liu <wei.liu@kernel.org> Sent: Wednesday, January 20, 2021 4:01 A=
+M
+>=20
+> We will soon need to access fields inside the MSI address and MSI data
+> fields. Introduce hv_msi_address_register and hv_msi_data_register.
+>=20
+> Fix up one user of hv_msi_entry in mshyperv.h.
+>=20
+> No functional change expected.
+>=20
+> Signed-off-by: Wei Liu <wei.liu@kernel.org>
 > ---
->  arch/arm64/include/asm/vmalloc.h         |  8 ++
->  arch/arm64/mm/mmu.c                      | 10 +--
->  arch/powerpc/include/asm/vmalloc.h       |  8 ++
->  arch/powerpc/mm/book3s64/radix_pgtable.c |  8 +-
->  arch/x86/include/asm/vmalloc.h           |  7 ++
->  arch/x86/mm/ioremap.c                    | 12 +--
->  include/linux/io.h                       |  9 ---
->  include/linux/vmalloc.h                  |  6 ++
->  init/main.c                              |  1 -
->  mm/ioremap.c                             | 94 ++++++++++--------------
->  10 files changed, 85 insertions(+), 78 deletions(-)
-> 
-> diff --git a/arch/arm64/include/asm/vmalloc.h b/arch/arm64/include/asm/vmalloc.h
-> index 2ca708ab9b20..597b40405319 100644
-> --- a/arch/arm64/include/asm/vmalloc.h
-> +++ b/arch/arm64/include/asm/vmalloc.h
-> @@ -1,4 +1,12 @@
->  #ifndef _ASM_ARM64_VMALLOC_H
->  #define _ASM_ARM64_VMALLOC_H
->  
-> +#include <asm/page.h>
+>  arch/x86/include/asm/mshyperv.h   |  4 ++--
+>  include/asm-generic/hyperv-tlfs.h | 28 ++++++++++++++++++++++++++--
+>  2 files changed, 28 insertions(+), 4 deletions(-)
+>=20
+> diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyp=
+erv.h
+> index 4e590a167160..cbee72550a12 100644
+> --- a/arch/x86/include/asm/mshyperv.h
+> +++ b/arch/x86/include/asm/mshyperv.h
+> @@ -257,8 +257,8 @@ static inline void hv_apic_init(void) {}
+>  static inline void hv_set_msi_entry_from_desc(union hv_msi_entry *msi_en=
+try,
+>  					      struct msi_desc *msi_desc)
+>  {
+> -	msi_entry->address =3D msi_desc->msg.address_lo;
+> -	msi_entry->data =3D msi_desc->msg.data;
+> +	msi_entry->address.as_uint32 =3D msi_desc->msg.address_lo;
+> +	msi_entry->data.as_uint32 =3D msi_desc->msg.data;
+>  }
+>=20
+>  #else /* CONFIG_HYPERV */
+> diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hype=
+rv-tlfs.h
+> index ec53570102f0..7e103be42799 100644
+> --- a/include/asm-generic/hyperv-tlfs.h
+> +++ b/include/asm-generic/hyperv-tlfs.h
+> @@ -480,12 +480,36 @@ struct hv_create_vp {
+>  	u64 flags;
+>  } __packed;
+>=20
+> +union hv_msi_address_register {
+> +	u32 as_uint32;
+> +	struct {
+> +		u32 reserved1:2;
+> +		u32 destination_mode:1;
+> +		u32 redirection_hint:1;
+> +		u32 reserved2:8;
+> +		u32 destination_id:8;
+> +		u32 msi_base:12;
+> +	};
+> +} __packed;
 > +
-> +#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-> +bool arch_vmap_p4d_supported(pgprot_t prot);
-> +bool arch_vmap_pud_supported(pgprot_t prot);
-> +bool arch_vmap_pmd_supported(pgprot_t prot);
-> +#endif
+> +union hv_msi_data_register {
+> +	u32 as_uint32;
+> +	struct {
+> +		u32 vector:8;
+> +		u32 delivery_mode:3;
+> +		u32 reserved1:3;
+> +		u32 level_assert:1;
+> +		u32 trigger_mode:1;
+> +		u32 reserved2:16;
+> +	};
+> +} __packed;
 > +
->  #endif /* _ASM_ARM64_VMALLOC_H */
-> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-> index ae0c3d023824..1613d290cbd1 100644
-> --- a/arch/arm64/mm/mmu.c
-> +++ b/arch/arm64/mm/mmu.c
-> @@ -1313,12 +1313,12 @@ void *__init fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot)
->  	return dt_virt;
->  }
->  
-> -int __init arch_ioremap_p4d_supported(void)
-> +bool arch_vmap_p4d_supported(pgprot_t prot)
->  {
-> -	return 0;
-> +	return false;
->  }
->  
-> -int __init arch_ioremap_pud_supported(void)
-> +bool arch_vmap_pud_supported(pgprot_t prot)
->  {
->  	/*
->  	 * Only 4k granule supports level 1 block mappings.
-> @@ -1328,9 +1328,9 @@ int __init arch_ioremap_pud_supported(void)
->  	       !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
->  }
->  
-> -int __init arch_ioremap_pmd_supported(void)
-> +bool arch_vmap_pmd_supported(pgprot_t prot)
->  {
-> -	/* See arch_ioremap_pud_supported() */
-> +	/* See arch_vmap_pud_supported() */
->  	return !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
->  }
->  
-> diff --git a/arch/powerpc/include/asm/vmalloc.h b/arch/powerpc/include/asm/vmalloc.h
-> index b992dfaaa161..105abb73f075 100644
-> --- a/arch/powerpc/include/asm/vmalloc.h
-> +++ b/arch/powerpc/include/asm/vmalloc.h
-> @@ -1,4 +1,12 @@
->  #ifndef _ASM_POWERPC_VMALLOC_H
->  #define _ASM_POWERPC_VMALLOC_H
->  
-> +#include <asm/page.h>
-> +
-> +#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-> +bool arch_vmap_p4d_supported(pgprot_t prot);
-> +bool arch_vmap_pud_supported(pgprot_t prot);
-> +bool arch_vmap_pmd_supported(pgprot_t prot);
-> +#endif
-> +
->  #endif /* _ASM_POWERPC_VMALLOC_H */
-> diff --git a/arch/powerpc/mm/book3s64/radix_pgtable.c b/arch/powerpc/mm/book3s64/radix_pgtable.c
-> index 98f0b243c1ab..743807fc210f 100644
-> --- a/arch/powerpc/mm/book3s64/radix_pgtable.c
-> +++ b/arch/powerpc/mm/book3s64/radix_pgtable.c
-> @@ -1082,13 +1082,13 @@ void radix__ptep_modify_prot_commit(struct vm_area_struct *vma,
->  	set_pte_at(mm, addr, ptep, pte);
->  }
->  
-> -int __init arch_ioremap_pud_supported(void)
-> +bool arch_vmap_pud_supported(pgprot_t prot)
->  {
->  	/* HPT does not cope with large pages in the vmalloc area */
->  	return radix_enabled();
->  }
->  
-> -int __init arch_ioremap_pmd_supported(void)
-> +bool arch_vmap_pmd_supported(pgprot_t prot)
->  {
->  	return radix_enabled();
->  }
-> @@ -1182,7 +1182,7 @@ int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
->  	return 1;
->  }
->  
-> -int __init arch_ioremap_p4d_supported(void)
-> +bool arch_vmap_p4d_supported(pgprot_t prot)
->  {
-> -	return 0;
-> +	return false;
->  }
-> diff --git a/arch/x86/include/asm/vmalloc.h b/arch/x86/include/asm/vmalloc.h
-> index 29837740b520..094ea2b565f3 100644
-> --- a/arch/x86/include/asm/vmalloc.h
-> +++ b/arch/x86/include/asm/vmalloc.h
-> @@ -1,6 +1,13 @@
->  #ifndef _ASM_X86_VMALLOC_H
->  #define _ASM_X86_VMALLOC_H
->  
-> +#include <asm/page.h>
->  #include <asm/pgtable_areas.h>
->  
-> +#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-> +bool arch_vmap_p4d_supported(pgprot_t prot);
-> +bool arch_vmap_pud_supported(pgprot_t prot);
-> +bool arch_vmap_pmd_supported(pgprot_t prot);
-> +#endif
-> +
->  #endif /* _ASM_X86_VMALLOC_H */
-> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-> index 9e5ccc56f8e0..fbaf0c447986 100644
-> --- a/arch/x86/mm/ioremap.c
-> +++ b/arch/x86/mm/ioremap.c
-> @@ -481,24 +481,26 @@ void iounmap(volatile void __iomem *addr)
->  }
->  EXPORT_SYMBOL(iounmap);
->  
-> -int __init arch_ioremap_p4d_supported(void)
-> +#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-> +bool arch_vmap_p4d_supported(pgprot_t prot)
->  {
-> -	return 0;
-> +	return false;
->  }
->  
-> -int __init arch_ioremap_pud_supported(void)
-> +bool arch_vmap_pud_supported(pgprot_t prot)
->  {
->  #ifdef CONFIG_X86_64
->  	return boot_cpu_has(X86_FEATURE_GBPAGES);
->  #else
-> -	return 0;
-> +	return false;
->  #endif
->  }
->  
-> -int __init arch_ioremap_pmd_supported(void)
-> +bool arch_vmap_pmd_supported(pgprot_t prot)
->  {
->  	return boot_cpu_has(X86_FEATURE_PSE);
->  }
-> +#endif
->  
->  /*
->   * Convert a physical pointer to a virtual kernel pointer for /dev/mem
-> diff --git a/include/linux/io.h b/include/linux/io.h
-> index 8394c56babc2..f1effd4d7a3c 100644
-> --- a/include/linux/io.h
-> +++ b/include/linux/io.h
-> @@ -31,15 +31,6 @@ static inline int ioremap_page_range(unsigned long addr, unsigned long end,
->  }
->  #endif
->  
-> -#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-> -void __init ioremap_huge_init(void);
-> -int arch_ioremap_p4d_supported(void);
-> -int arch_ioremap_pud_supported(void);
-> -int arch_ioremap_pmd_supported(void);
-> -#else
-> -static inline void ioremap_huge_init(void) { }
-> -#endif
-> -
->  /*
->   * Managed iomap interface
->   */
-> diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-> index 80c0181c411d..00bd62bd701e 100644
-> --- a/include/linux/vmalloc.h
-> +++ b/include/linux/vmalloc.h
-> @@ -83,6 +83,12 @@ struct vmap_area {
->  	};
+>  /* HvRetargetDeviceInterrupt hypercall */
+>  union hv_msi_entry {
+>  	u64 as_uint64;
+>  	struct {
+> -		u32 address;
+> -		u32 data;
+> +		union hv_msi_address_register address;
+> +		union hv_msi_data_register data;
+>  	} __packed;
 >  };
->  
-> +#ifndef CONFIG_HAVE_ARCH_HUGE_VMAP
-> +static inline bool arch_vmap_p4d_supported(pgprot_t prot) { return false; }
-> +static inline bool arch_vmap_pud_supported(pgprot_t prot) { return false; }
-> +static inline bool arch_vmap_pmd_supported(pgprot_t prot) { return false; }
-> +#endif
-> +
->  /*
->   *	Highlevel APIs for driver use
->   */
-> diff --git a/init/main.c b/init/main.c
-> index c68d784376ca..bf9389e5b2e4 100644
-> --- a/init/main.c
-> +++ b/init/main.c
-> @@ -834,7 +834,6 @@ static void __init mm_init(void)
->  	pgtable_init();
->  	debug_objects_mem_init();
->  	vmalloc_init();
-> -	ioremap_huge_init();
->  	/* Should be run before the first non-init thread is created */
->  	init_espfix_bsp();
->  	/* Should be run after espfix64 is set up. */
-> diff --git a/mm/ioremap.c b/mm/ioremap.c
-> index 3f4d36f9745a..3264d0203785 100644
-> --- a/mm/ioremap.c
-> +++ b/mm/ioremap.c
-> @@ -16,49 +16,16 @@
->  #include "pgalloc-track.h"
->  
->  #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-> -static int __read_mostly ioremap_p4d_capable;
-> -static int __read_mostly ioremap_pud_capable;
-> -static int __read_mostly ioremap_pmd_capable;
-> -static int __read_mostly ioremap_huge_disabled;
-> +static bool __ro_after_init iomap_max_page_shift = PAGE_SHIFT;
->  
->  static int __init set_nohugeiomap(char *str)
->  {
-> -	ioremap_huge_disabled = 1;
-> +	iomap_max_page_shift = P4D_SHIFT;
->  	return 0;
->  }
->  early_param("nohugeiomap", set_nohugeiomap);
-> -
-> -void __init ioremap_huge_init(void)
-> -{
-> -	if (!ioremap_huge_disabled) {
-> -		if (arch_ioremap_p4d_supported())
-> -			ioremap_p4d_capable = 1;
-> -		if (arch_ioremap_pud_supported())
-> -			ioremap_pud_capable = 1;
-> -		if (arch_ioremap_pmd_supported())
-> -			ioremap_pmd_capable = 1;
-> -	}
-> -}
-> -
-> -static inline int ioremap_p4d_enabled(void)
-> -{
-> -	return ioremap_p4d_capable;
-> -}
-> -
-> -static inline int ioremap_pud_enabled(void)
-> -{
-> -	return ioremap_pud_capable;
-> -}
-> -
-> -static inline int ioremap_pmd_enabled(void)
-> -{
-> -	return ioremap_pmd_capable;
-> -}
-> -
-> -#else	/* !CONFIG_HAVE_ARCH_HUGE_VMAP */
-> -static inline int ioremap_p4d_enabled(void) { return 0; }
-> -static inline int ioremap_pud_enabled(void) { return 0; }
-> -static inline int ioremap_pmd_enabled(void) { return 0; }
-> +#else /* CONFIG_HAVE_ARCH_HUGE_VMAP */
-> +static const bool iomap_max_page_shift = PAGE_SHIFT;
->  #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
->  
->  static int vmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
-> @@ -82,9 +49,13 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
->  }
->  
->  static int vmap_try_huge_pmd(pmd_t *pmd, unsigned long addr, unsigned long end,
-> -			phys_addr_t phys_addr, pgprot_t prot)
-> +			phys_addr_t phys_addr, pgprot_t prot,
-> +			unsigned int max_page_shift)
->  {
-> -	if (!ioremap_pmd_enabled())
-> +	if (max_page_shift < PMD_SHIFT)
-> +		return 0;
-> +
-> +	if (!arch_vmap_pmd_supported(prot))
->  		return 0;
->  
->  	if ((end - addr) != PMD_SIZE)
-> @@ -104,7 +75,7 @@ static int vmap_try_huge_pmd(pmd_t *pmd, unsigned long addr, unsigned long end,
->  
->  static int vmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
->  			phys_addr_t phys_addr, pgprot_t prot,
-> -			pgtbl_mod_mask *mask)
-> +			unsigned int max_page_shift, pgtbl_mod_mask *mask)
->  {
->  	pmd_t *pmd;
->  	unsigned long next;
-> @@ -115,7 +86,8 @@ static int vmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
->  	do {
->  		next = pmd_addr_end(addr, end);
->  
-> -		if (vmap_try_huge_pmd(pmd, addr, next, phys_addr, prot)) {
-> +		if (vmap_try_huge_pmd(pmd, addr, next, phys_addr, prot,
-> +					max_page_shift)) {
->  			*mask |= PGTBL_PMD_MODIFIED;
->  			continue;
->  		}
-> @@ -127,9 +99,13 @@ static int vmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
->  }
->  
->  static int vmap_try_huge_pud(pud_t *pud, unsigned long addr, unsigned long end,
-> -			phys_addr_t phys_addr, pgprot_t prot)
-> +			phys_addr_t phys_addr, pgprot_t prot,
-> +			unsigned int max_page_shift)
->  {
-> -	if (!ioremap_pud_enabled())
-> +	if (max_page_shift < PUD_SHIFT)
-> +		return 0;
-> +
-> +	if (!arch_vmap_pud_supported(prot))
->  		return 0;
->  
->  	if ((end - addr) != PUD_SIZE)
-> @@ -149,7 +125,7 @@ static int vmap_try_huge_pud(pud_t *pud, unsigned long addr, unsigned long end,
->  
->  static int vmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end,
->  			phys_addr_t phys_addr, pgprot_t prot,
-> -			pgtbl_mod_mask *mask)
-> +			unsigned int max_page_shift, pgtbl_mod_mask *mask)
->  {
->  	pud_t *pud;
->  	unsigned long next;
-> @@ -160,21 +136,27 @@ static int vmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end,
->  	do {
->  		next = pud_addr_end(addr, end);
->  
-> -		if (vmap_try_huge_pud(pud, addr, next, phys_addr, prot)) {
-> +		if (vmap_try_huge_pud(pud, addr, next, phys_addr, prot,
-> +					max_page_shift)) {
->  			*mask |= PGTBL_PUD_MODIFIED;
->  			continue;
->  		}
->  
-> -		if (vmap_pmd_range(pud, addr, next, phys_addr, prot, mask))
-> +		if (vmap_pmd_range(pud, addr, next, phys_addr, prot,
-> +					max_page_shift, mask))
->  			return -ENOMEM;
->  	} while (pud++, phys_addr += (next - addr), addr = next, addr != end);
->  	return 0;
->  }
->  
->  static int vmap_try_huge_p4d(p4d_t *p4d, unsigned long addr, unsigned long end,
-> -			phys_addr_t phys_addr, pgprot_t prot)
-> +			phys_addr_t phys_addr, pgprot_t prot,
-> +			unsigned int max_page_shift)
->  {
-> -	if (!ioremap_p4d_enabled())
-> +	if (max_page_shift < P4D_SHIFT)
-> +		return 0;
-> +
-> +	if (!arch_vmap_p4d_supported(prot))
->  		return 0;
->  
->  	if ((end - addr) != P4D_SIZE)
-> @@ -194,7 +176,7 @@ static int vmap_try_huge_p4d(p4d_t *p4d, unsigned long addr, unsigned long end,
->  
->  static int vmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end,
->  			phys_addr_t phys_addr, pgprot_t prot,
-> -			pgtbl_mod_mask *mask)
-> +			unsigned int max_page_shift, pgtbl_mod_mask *mask)
->  {
->  	p4d_t *p4d;
->  	unsigned long next;
-> @@ -205,19 +187,22 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end,
->  	do {
->  		next = p4d_addr_end(addr, end);
->  
-> -		if (vmap_try_huge_p4d(p4d, addr, next, phys_addr, prot)) {
-> +		if (vmap_try_huge_p4d(p4d, addr, next, phys_addr, prot,
-> +					max_page_shift)) {
->  			*mask |= PGTBL_P4D_MODIFIED;
->  			continue;
->  		}
->  
-> -		if (vmap_pud_range(p4d, addr, next, phys_addr, prot, mask))
-> +		if (vmap_pud_range(p4d, addr, next, phys_addr, prot,
-> +					max_page_shift, mask))
->  			return -ENOMEM;
->  	} while (p4d++, phys_addr += (next - addr), addr = next, addr != end);
->  	return 0;
->  }
->  
->  static int vmap_range(unsigned long addr, unsigned long end,
-> -			phys_addr_t phys_addr, pgprot_t prot)
-> +			phys_addr_t phys_addr, pgprot_t prot,
-> +			unsigned int max_page_shift)
->  {
->  	pgd_t *pgd;
->  	unsigned long start;
-> @@ -232,7 +217,8 @@ static int vmap_range(unsigned long addr, unsigned long end,
->  	pgd = pgd_offset_k(addr);
->  	do {
->  		next = pgd_addr_end(addr, end);
-> -		err = vmap_p4d_range(pgd, addr, next, phys_addr, prot, &mask);
-> +		err = vmap_p4d_range(pgd, addr, next, phys_addr, prot,
-> +					max_page_shift, &mask);
->  		if (err)
->  			break;
->  	} while (pgd++, phys_addr += (next - addr), addr = next, addr != end);
-> @@ -248,7 +234,7 @@ static int vmap_range(unsigned long addr, unsigned long end,
->  int ioremap_page_range(unsigned long addr,
->  		       unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
->  {
-> -	return vmap_range(addr, end, phys_addr, prot);
-> +	return vmap_range(addr, end, phys_addr, prot, iomap_max_page_shift);
->  }
->  
->  #ifdef CONFIG_GENERIC_IOREMAP
-> 
+>=20
+> --
+> 2.20.1
 
+Reviewed-by: Michael Kelley <mikelley@microsoft.com>
