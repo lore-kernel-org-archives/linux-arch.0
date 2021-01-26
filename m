@@ -2,122 +2,152 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham autolearn_force=no
+X-Spam-Status: No, score=-12.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A4892C433E0
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 11:59:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E81E1C433E9
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 11:59:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 78D1A2311C
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 11:59:02 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id BAFDF2311C
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Jan 2021 11:59:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S2405307AbhAZL6n (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Jan 2021 06:58:43 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40246 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2405079AbhAZL5y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2021 06:57:54 -0500
-Received: from mail-wm1-x32e.google.com (mail-wm1-x32e.google.com [IPv6:2a00:1450:4864:20::32e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8F7BAC06174A;
-        Tue, 26 Jan 2021 03:57:06 -0800 (PST)
-Received: by mail-wm1-x32e.google.com with SMTP id i9so2517477wmq.1;
-        Tue, 26 Jan 2021 03:57:06 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=bC1xZCmdZ+IRgftlF79fVLCQMAhOapBGa0B/um1CcO8=;
-        b=NvLuiFaNEsDhP1ZT0XPyH0ZKdRAsqatHGT5unjbajWjdArRkVDJVOK62L8+MNYZaqW
-         ldu05rKhXRBtGlL4Az5POr82yGwm34tbWZ9UHGXmTB3bC6AzbbLIlqiZ4/L54/6+4fUX
-         IYC9WPWKNOyCffsVRWDF3A5tN8acJt6m1pTsS47ER1JX6kCgHeUHHIKyhoOR1XVSVMZc
-         siTtM4OBn+or7zkXn4pT2u+vMXAwsC7viaHq9bYco+ytZ5lCW9+fnLY7KZZPVZMDu75C
-         JY5jT3Xb+jfFmG6AsueC050KJxcZv63tj6ufNyjUkKrffTPpQM6i5iEJJvhh6M7nbEfu
-         yXtw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=bC1xZCmdZ+IRgftlF79fVLCQMAhOapBGa0B/um1CcO8=;
-        b=TUJM54xfwBIQXRQKqpULdZCZsfEfxk61604TBzdguf1OXR71bXHCHJD9hto5//zpMu
-         MEN1+F4JKqBTk38TPckrK+vsjpHHylI+J+upQdv4bc1Sd76KdhutkLBVzGGcFXs+K1Mq
-         BqBxBIR9M0i1IMsMXIx7kKLmAwy8kH6pdg7ndmn033DJ4lJaNpKMEyzPlNYDVpok9yCG
-         ZQXHBkhWDvBwmmLuUdne05RkcybWclIdQE5AKMzTFBvvrt9ookhwFCO5VC9j8xoJJ6U6
-         jQum9jXKB6VhpFps8kXtZ5XOj7mWyXe4ydg5ca+D0FaY5qS9CEF8rSPcn/UC0+BrQbVb
-         WbDQ==
-X-Gm-Message-State: AOAM533lReK9EzcVTH5CjYSYP4EgA+d5UJVHXt9ay+jgJbuBOfmdiI8r
-        aunldcwyJ0XHsGcOeaVJxRpwx2okq9Slo+dc
-X-Google-Smtp-Source: ABdhPJxAGmp/2Q5U5eZgPzQBNLYgAVOsmF0XfLf4kQKtFcTGrEYhjftqslWZDJ2Pry78yUQ6ZA5CXw==
-X-Received: by 2002:a1c:4984:: with SMTP id w126mr4262426wma.139.1611662224976;
-        Tue, 26 Jan 2021 03:57:04 -0800 (PST)
-Received: from anparri.mshome.net (host-95-238-70-33.retail.telecomitalia.it. [95.238.70.33])
-        by smtp.gmail.com with ESMTPSA id z185sm3330283wmb.0.2021.01.26.03.57.03
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 26 Jan 2021 03:57:04 -0800 (PST)
-From:   "Andrea Parri (Microsoft)" <parri.andrea@gmail.com>
-To:     linux-kernel@vger.kernel.org
-Cc:     "K . Y . Srinivasan" <kys@microsoft.com>,
-        Haiyang Zhang <haiyangz@microsoft.com>,
-        Stephen Hemminger <sthemmin@microsoft.com>,
-        Wei Liu <wei.liu@kernel.org>,
-        Michael Kelley <mikelley@microsoft.com>,
-        linux-hyperv@vger.kernel.org,
-        Tianyu Lan <Tianyu.Lan@microsoft.com>,
-        Saruhan Karademir <skarade@microsoft.com>,
-        Juan Vazquez <juvazq@microsoft.com>,
-        "Andrea Parri (Microsoft)" <parri.andrea@gmail.com>,
+        id S2405338AbhAZL6q (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Jan 2021 06:58:46 -0500
+Received: from us-smtp-delivery-124.mimecast.com ([63.128.21.124]:30582 "EHLO
+        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2405044AbhAZL6m (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 26 Jan 2021 06:58:42 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1611662235;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=qjJ7EBIraH0kcBiHWVTNphRxbXFU8GNfvJrsoVivTWk=;
+        b=V8WD8NCMWlFDx9o6YzcO4I4dENQNX15Lz56GUb71wwvfnEUCghoGq2WMCpCus3UksH4ryw
+        zGNU8VB40n7JCwxI/iYewHuZuQskrP2EPqwOLVMVQm7Din2QT7woVj7CSLOVIA2dubHziT
+        gr4NL1JD2oKEm1+KynWmZgRhW0U44EU=
+Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
+ [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
+ us-mta-344-Ryg-fxAdMkms-vm90M751Q-1; Tue, 26 Jan 2021 06:57:11 -0500
+X-MC-Unique: Ryg-fxAdMkms-vm90M751Q-1
+Received: from smtp.corp.redhat.com (int-mx05.intmail.prod.int.phx2.redhat.com [10.5.11.15])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+        (No client certificate requested)
+        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 9F94E107ACF6;
+        Tue, 26 Jan 2021 11:57:06 +0000 (UTC)
+Received: from [10.36.114.192] (ovpn-114-192.ams2.redhat.com [10.36.114.192])
+        by smtp.corp.redhat.com (Postfix) with ESMTP id B16B65D751;
+        Tue, 26 Jan 2021 11:56:49 +0000 (UTC)
+To:     Michal Hocko <mhocko@suse.com>, Mike Rapoport <rppt@kernel.org>
+Cc:     Andrew Morton <akpm@linux-foundation.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Matthew Wilcox <willy@infradead.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Roman Gushchin <guro@fb.com>,
+        Shakeel Butt <shakeelb@google.com>,
+        Shuah Khan <shuah@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-        "David S. Miller" <davem@davemloft.net>,
-        Jakub Kicinski <kuba@kernel.org>, x86@kernel.org,
-        linux-arch@vger.kernel.org, netdev@vger.kernel.org
-Subject: [PATCH v2 0/4] Drivers: hv: vmbus: Restrict devices and configurations on 'isolated' guests
-Date:   Tue, 26 Jan 2021 12:56:37 +0100
-Message-Id: <20210126115641.2527-1-parri.andrea@gmail.com>
-X-Mailer: git-send-email 2.25.1
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
+        Palmer Dabbelt <palmerdabbelt@google.com>
+References: <20210121122723.3446-1-rppt@kernel.org>
+ <20210121122723.3446-8-rppt@kernel.org> <20210126114657.GL827@dhcp22.suse.cz>
+From:   David Hildenbrand <david@redhat.com>
+Organization: Red Hat GmbH
+Subject: Re: [PATCH v16 07/11] secretmem: use PMD-size pages to amortize
+ direct map fragmentation
+Message-ID: <303f348d-e494-e386-d1f5-14505b5da254@redhat.com>
+Date:   Tue, 26 Jan 2021 12:56:48 +0100
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.5.0
 MIME-Version: 1.0
+In-Reply-To: <20210126114657.GL827@dhcp22.suse.cz>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
 Content-Transfer-Encoding: 8bit
+X-Scanned-By: MIMEDefang 2.79 on 10.5.11.15
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Changes since v1 [1]:
-  - improve/add logging (Haiyang Zhang)
-  - move NVSC version check after version negotiation (Haiyang Zhang)
+On 26.01.21 12:46, Michal Hocko wrote:
+> On Thu 21-01-21 14:27:19, Mike Rapoport wrote:
+>> From: Mike Rapoport <rppt@linux.ibm.com>
+>>
+>> Removing a PAGE_SIZE page from the direct map every time such page is
+>> allocated for a secret memory mapping will cause severe fragmentation of
+>> the direct map. This fragmentation can be reduced by using PMD-size pages
+>> as a pool for small pages for secret memory mappings.
+>>
+>> Add a gen_pool per secretmem inode and lazily populate this pool with
+>> PMD-size pages.
+>>
+>> As pages allocated by secretmem become unmovable, use CMA to back large
+>> page caches so that page allocator won't be surprised by failing attempt to
+>> migrate these pages.
+>>
+>> The CMA area used by secretmem is controlled by the "secretmem=" kernel
+>> parameter. This allows explicit control over the memory available for
+>> secretmem and provides upper hard limit for secretmem consumption.
+> 
+> OK, so I have finally had a look at this closer and this is really not
+> acceptable. I have already mentioned that in a response to other patch
+> but any task is able to deprive access to secret memory to other tasks
+> and cause OOM killer which wouldn't really recover ever and potentially
+> panic the system. Now you could be less drastic and only make SIGBUS on
+> fault but that would be still quite terrible. There is a very good
+> reason why hugetlb implements is non-trivial reservation system to avoid
+> exactly these problems.
+> 
+> So unless I am really misreading the code
+> Nacked-by: Michal Hocko <mhocko@suse.com>
+> 
+> That doesn't mean I reject the whole idea. There are some details to
+> sort out as mentioned elsewhere but you cannot really depend on
+> pre-allocated pool which can fail at a fault time like that.
 
-[1] https://lkml.kernel.org/r/20210119175841.22248-1-parri.andrea@gmail.com
+So, to do it similar to hugetlbfs (e.g., with CMA), there would have to 
+be a mechanism to actually try pre-reserving (e.g., from the CMA area), 
+at which point in time the pages would get moved to the secretmem pool, 
+and a mechanism for mmap() etc. to "reserve" from these secretmem pool, 
+such that there are guarantees at fault time?
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Jakub Kicinski <kuba@kernel.org>
-Cc: x86@kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: netdev@vger.kernel.org
+What we have right now feels like some kind of overcommit (reading, as 
+overcommiting huge pages, so we might get SIGBUS at fault time).
 
-Andrea Parri (Microsoft) (4):
-  x86/hyperv: Load/save the Isolation Configuration leaf
-  Drivers: hv: vmbus: Restrict vmbus_devices on isolated guests
-  Drivers: hv: vmbus: Enforce 'VMBus version >= 5.2' on isolated guests
-  hv_netvsc: Restrict configurations on isolated guests
-
- arch/x86/hyperv/hv_init.c          | 15 +++++++++++++
- arch/x86/include/asm/hyperv-tlfs.h | 15 +++++++++++++
- arch/x86/kernel/cpu/mshyperv.c     |  9 ++++++++
- drivers/hv/channel_mgmt.c          | 36 ++++++++++++++++++++++++++++++
- drivers/hv/connection.c            | 13 +++++++++++
- drivers/net/hyperv/netvsc.c        | 27 +++++++++++++++++++---
- include/asm-generic/hyperv-tlfs.h  |  1 +
- include/asm-generic/mshyperv.h     |  5 +++++
- include/linux/hyperv.h             |  1 +
- 9 files changed, 119 insertions(+), 3 deletions(-)
+TBH, the SIGBUS thingy doesn't sound terrible to me - if this behavior 
+is to be expected right now by applications using it and they can handle 
+it - no guarantees. I fully agree that some kind of 
+reservation/guarantee mechanism would be preferable.
 
 -- 
-2.25.1
+Thanks,
+
+David / dhildenb
 
