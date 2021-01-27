@@ -3,178 +3,135 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
 X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8E8CCC433DB
-	for <linux-arch@archiver.kernel.org>; Wed, 27 Jan 2021 07:59:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 81A28C43381
+	for <linux-arch@archiver.kernel.org>; Wed, 27 Jan 2021 10:30:27 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2F20C2074A
-	for <linux-arch@archiver.kernel.org>; Wed, 27 Jan 2021 07:59:33 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3A853206F4
+	for <linux-arch@archiver.kernel.org>; Wed, 27 Jan 2021 10:30:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S316670AbhAZX1r (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Jan 2021 18:27:47 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60518 "EHLO
+        id S235784AbhA0KaS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 27 Jan 2021 05:30:18 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48844 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727048AbhAZEqI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jan 2021 23:46:08 -0500
-Received: from mail-pj1-x1034.google.com (mail-pj1-x1034.google.com [IPv6:2607:f8b0:4864:20::1034])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B0949C061574;
-        Mon, 25 Jan 2021 20:45:28 -0800 (PST)
-Received: by mail-pj1-x1034.google.com with SMTP id u4so1499865pjn.4;
-        Mon, 25 Jan 2021 20:45:28 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=IAGZ24gl2Qq21L5texPauM9MwHRvT0M695yCq/x8JN4=;
-        b=r5m+8HgMhvEyXy0SKmCmYGPSRN95fyNYZusyA1YuYU3n05B3ZjDrMOplOqs877NgsC
-         rkqipLxEmcsedCua3mKQ6cK8CpSj2FR689YxzIYNLR66UlpOWlMKM++dUIf5TNmCS4Ip
-         BCJtZHpY2bpXFlzKIpsKFfE2W7CJexg5Jz7qj1EdYxPbyJEAGETkmbYyymLqEcWdYRdd
-         UaPcJ+tFeQfSEG49Bz863pl849JKbYr1e0zWJNURKoYbDPSXOmtymeslkmq7B6tDz+9k
-         cUKCT8ogrgT/Ys2dPVsn7yXsI5g5if93s2uFVdV2pmt38Q1fSUR3hh+5Rbdyl29lLb6C
-         vE2A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=IAGZ24gl2Qq21L5texPauM9MwHRvT0M695yCq/x8JN4=;
-        b=EGyEe+CqJAYhym95yi8nogLVbZLLjFlrLZQnDqqtHngNyeTYTIe9lSthrbyBsnYwsV
-         qHfq3rcER/qZbXEuGwN0PPb76BwNM6c9V9eYgvN6CdNh+sRp4u3AZ6vP3oMRbywtzcGx
-         BNkQgDzMOMvgxi+R5EwEl40sd8pFHPmxZA2bi5LLl/jgjUR5JyR5lB8rTU13vUx391gj
-         u62B+LFDcrLpJDLe4QQs7eniHhmeZ5OAjI6XBVN+73IChepEk/xiylvg/YQTAQG0yzUG
-         VHlfm3cfYwlK9NzTSdFiZ6YUgpgs0zHHktZwKPQEtr8EyhPFaunL7EfiP7f8kC3E6OpP
-         TGYg==
-X-Gm-Message-State: AOAM533Oi8+N/YwHPoaz+4mFPZmuYsW4pfA1ItViqjjPtdofATMHaZiG
-        pN8aVvhqv0hZGBKWBqCkt2w=
-X-Google-Smtp-Source: ABdhPJzHsAcq7MkeFSaq9mIhWqqMYoFS8IittEHd7d7ST2OchI77XYTxIzztBo1Xcc7rtQY9nLkkdw==
-X-Received: by 2002:a17:90a:928d:: with SMTP id n13mr4039991pjo.12.1611636328340;
-        Mon, 25 Jan 2021 20:45:28 -0800 (PST)
-Received: from bobo.ozlabs.ibm.com (192.156.221.203.dial.dynamic.acc50-nort-cbr.comindico.com.au. [203.221.156.192])
-        by smtp.gmail.com with ESMTPSA id 68sm19272293pfg.90.2021.01.25.20.45.23
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 25 Jan 2021 20:45:27 -0800 (PST)
-From:   Nicholas Piggin <npiggin@gmail.com>
-To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+        with ESMTP id S235746AbhA0K1A (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2021 05:27:00 -0500
+Received: from ozlabs.org (ozlabs.org [IPv6:2401:3900:2:1::2])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9DA9AC06174A;
+        Wed, 27 Jan 2021 02:26:19 -0800 (PST)
+Received: from authenticated.ozlabs.org (localhost [127.0.0.1])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange ECDHE (P-256) server-signature RSA-PSS (4096 bits) server-digest SHA256)
+        (No client certificate requested)
+        by mail.ozlabs.org (Postfix) with ESMTPSA id 4DQfrx33xvz9sW8;
+        Wed, 27 Jan 2021 21:26:09 +1100 (AEDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=ellerman.id.au;
+        s=201909; t=1611743176;
+        bh=zryxgSLQjWiTOLD0UNSsw16+SrNjwYCl/LrpeqtsbiY=;
+        h=From:To:Cc:Subject:In-Reply-To:References:Date:From;
+        b=DyrsykGhL7Xp3tlspIoxzVoyNszca4ctJbln+LsxEzARiBiP2f7oa45V0QTswDfoc
+         Cl5PRnAjD2cK63emo/Vlk7y7TVbZ96PKRzJR+YEOEso3cSKEJ6sMw1AVZ0TNPJtTiG
+         efL77s8j0uGdHOawkZ51ugE8To6++G7bAG06R3VqR5izgvxz9DDbbPpVPIcMJ2Vqmx
+         ICV6oIorPqbZ0+s8wzXSWX06bDGo2IRutQoRcfqUOhcWoi1WUlFKe97S3kG2l2OmVQ
+         oS3xdg+yplepHRFmZPj2/TgwqxzIjNtApPn5VXrBZfprp5TDyBnCCucNMXptgoEmRO
+         bdpnitg9VTrzQ==
+From:   Michael Ellerman <mpe@ellerman.id.au>
+To:     Nicholas Piggin <npiggin@gmail.com>, linux-mm@kvack.org,
+        Andrew Morton <akpm@linux-foundation.org>
 Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
         linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
         Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
         Christoph Hellwig <hch@infradead.org>,
         Christophe Leroy <christophe.leroy@csgroup.eu>,
         Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Ding Tianhong <dingtianhong@huawei.com>,
-        Christoph Hellwig <hch@lst.de>
-Subject: [PATCH v11 01/13] mm/vmalloc: fix HUGE_VMAP regression by enabling huge pages in vmalloc_to_page
-Date:   Tue, 26 Jan 2021 14:44:58 +1000
-Message-Id: <20210126044510.2491820-2-npiggin@gmail.com>
-X-Mailer: git-send-email 2.23.0
-In-Reply-To: <20210126044510.2491820-1-npiggin@gmail.com>
-References: <20210126044510.2491820-1-npiggin@gmail.com>
+        Ding Tianhong <dingtianhong@huawei.com>
+Subject: Re: [PATCH v11 13/13] powerpc/64s/radix: Enable huge vmalloc mappings
+In-Reply-To: <20210126044510.2491820-14-npiggin@gmail.com>
+References: <20210126044510.2491820-1-npiggin@gmail.com> <20210126044510.2491820-14-npiggin@gmail.com>
+Date:   Wed, 27 Jan 2021 21:26:08 +1100
+Message-ID: <87mtwuptfj.fsf@mpe.ellerman.id.au>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-vmalloc_to_page returns NULL for addresses mapped by larger pages[*].
-Whether or not a vmap is huge depends on the architecture details,
-alignments, boot options, etc., which the caller can not be expected
-to know. Therefore HUGE_VMAP is a regression for vmalloc_to_page.
+Nicholas Piggin <npiggin@gmail.com> writes:
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
 
-This change teaches vmalloc_to_page about larger pages, and returns
-the struct page that corresponds to the offset within the large page.
-This makes the API agnostic to mapping implementation details.
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
 
-[*] As explained by commit 029c54b095995 ("mm/vmalloc.c: huge-vmap:
-    fail gracefully on unexpected huge vmap mappings")
+cheers
 
-Reviewed-by: Christoph Hellwig <hch@lst.de>
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- mm/vmalloc.c | 41 ++++++++++++++++++++++++++---------------
- 1 file changed, 26 insertions(+), 15 deletions(-)
-
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index e6f352bf0498..62372f9e0167 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -34,7 +34,7 @@
- #include <linux/bitops.h>
- #include <linux/rbtree_augmented.h>
- #include <linux/overflow.h>
--
-+#include <linux/pgtable.h>
- #include <linux/uaccess.h>
- #include <asm/tlbflush.h>
- #include <asm/shmparam.h>
-@@ -343,7 +343,9 @@ int is_vmalloc_or_module_addr(const void *x)
- }
- 
- /*
-- * Walk a vmap address to the struct page it maps.
-+ * Walk a vmap address to the struct page it maps. Huge vmap mappings will
-+ * return the tail page that corresponds to the base page address, which
-+ * matches small vmap mappings.
-  */
- struct page *vmalloc_to_page(const void *vmalloc_addr)
- {
-@@ -363,25 +365,33 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
- 
- 	if (pgd_none(*pgd))
- 		return NULL;
-+	if (WARN_ON_ONCE(pgd_leaf(*pgd)))
-+		return NULL; /* XXX: no allowance for huge pgd */
-+	if (WARN_ON_ONCE(pgd_bad(*pgd)))
-+		return NULL;
-+
- 	p4d = p4d_offset(pgd, addr);
- 	if (p4d_none(*p4d))
- 		return NULL;
--	pud = pud_offset(p4d, addr);
-+	if (p4d_leaf(*p4d))
-+		return p4d_page(*p4d) + ((addr & ~P4D_MASK) >> PAGE_SHIFT);
-+	if (WARN_ON_ONCE(p4d_bad(*p4d)))
-+		return NULL;
- 
--	/*
--	 * Don't dereference bad PUD or PMD (below) entries. This will also
--	 * identify huge mappings, which we may encounter on architectures
--	 * that define CONFIG_HAVE_ARCH_HUGE_VMAP=y. Such regions will be
--	 * identified as vmalloc addresses by is_vmalloc_addr(), but are
--	 * not [unambiguously] associated with a struct page, so there is
--	 * no correct value to return for them.
--	 */
--	WARN_ON_ONCE(pud_bad(*pud));
--	if (pud_none(*pud) || pud_bad(*pud))
-+	pud = pud_offset(p4d, addr);
-+	if (pud_none(*pud))
-+		return NULL;
-+	if (pud_leaf(*pud))
-+		return pud_page(*pud) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
-+	if (WARN_ON_ONCE(pud_bad(*pud)))
- 		return NULL;
-+
- 	pmd = pmd_offset(pud, addr);
--	WARN_ON_ONCE(pmd_bad(*pmd));
--	if (pmd_none(*pmd) || pmd_bad(*pmd))
-+	if (pmd_none(*pmd))
-+		return NULL;
-+	if (pmd_leaf(*pmd))
-+		return pmd_page(*pmd) + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
-+	if (WARN_ON_ONCE(pmd_bad(*pmd)))
- 		return NULL;
- 
- 	ptep = pte_offset_map(pmd, addr);
-@@ -389,6 +399,7 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
- 	if (pte_present(pte))
- 		page = pte_page(pte);
- 	pte_unmap(ptep);
-+
- 	return page;
- }
- EXPORT_SYMBOL(vmalloc_to_page);
--- 
-2.23.0
-
+>  .../admin-guide/kernel-parameters.txt         |  2 ++
+>  arch/powerpc/Kconfig                          |  1 +
+>  arch/powerpc/kernel/module.c                  | 21 +++++++++++++++----
+>  3 files changed, 20 insertions(+), 4 deletions(-)
+>
+> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+> index a10b545c2070..d62df53e5200 100644
+> --- a/Documentation/admin-guide/kernel-parameters.txt
+> +++ b/Documentation/admin-guide/kernel-parameters.txt
+> @@ -3225,6 +3225,8 @@
+>  
+>  	nohugeiomap	[KNL,X86,PPC,ARM64] Disable kernel huge I/O mappings.
+>  
+> +	nohugevmalloc	[PPC] Disable kernel huge vmalloc mappings.
+> +
+>  	nosmt		[KNL,S390] Disable symmetric multithreading (SMT).
+>  			Equivalent to smt=1.
+>  
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index 107bb4319e0e..781da6829ab7 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -181,6 +181,7 @@ config PPC
+>  	select GENERIC_GETTIMEOFDAY
+>  	select HAVE_ARCH_AUDITSYSCALL
+>  	select HAVE_ARCH_HUGE_VMAP		if PPC_BOOK3S_64 && PPC_RADIX_MMU
+> +	select HAVE_ARCH_HUGE_VMALLOC		if HAVE_ARCH_HUGE_VMAP
+>  	select HAVE_ARCH_JUMP_LABEL
+>  	select HAVE_ARCH_KASAN			if PPC32 && PPC_PAGE_SHIFT <= 14
+>  	select HAVE_ARCH_KASAN_VMALLOC		if PPC32 && PPC_PAGE_SHIFT <= 14
+> diff --git a/arch/powerpc/kernel/module.c b/arch/powerpc/kernel/module.c
+> index a211b0253cdb..07026335d24d 100644
+> --- a/arch/powerpc/kernel/module.c
+> +++ b/arch/powerpc/kernel/module.c
+> @@ -87,13 +87,26 @@ int module_finalize(const Elf_Ehdr *hdr,
+>  	return 0;
+>  }
+>  
+> -#ifdef MODULES_VADDR
+>  void *module_alloc(unsigned long size)
+>  {
+> +	unsigned long start = VMALLOC_START;
+> +	unsigned long end = VMALLOC_END;
+> +
+> +#ifdef MODULES_VADDR
+>  	BUILD_BUG_ON(TASK_SIZE > MODULES_VADDR);
+> +	start = MODULES_VADDR;
+> +	end = MODULES_END;
+> +#endif
+> +
+> +	/*
+> +	 * Don't do huge page allocations for modules yet until more testing
+> +	 * is done. STRICT_MODULE_RWX may require extra work to support this
+> +	 * too.
+> +	 */
+>  
+> -	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END, GFP_KERNEL,
+> -				    PAGE_KERNEL_EXEC, VM_FLUSH_RESET_PERMS, NUMA_NO_NODE,
+> +	return __vmalloc_node_range(size, 1, start, end, GFP_KERNEL,
+> +				    PAGE_KERNEL_EXEC,
+> +				    VM_NO_HUGE_VMAP | VM_FLUSH_RESET_PERMS,
+> +				    NUMA_NO_NODE,
+>  				    __builtin_return_address(0));
+>  }
+> -#endif
+> -- 
+> 2.23.0
