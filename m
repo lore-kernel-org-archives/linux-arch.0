@@ -2,153 +2,93 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 62F87C433E0
-	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 08:07:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 62235C433E0
+	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 08:19:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1D71B64DA1
-	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 08:07:15 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 236A56146D
+	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 08:19:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231467AbhA1ICh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 28 Jan 2021 03:02:37 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44186 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232194AbhA1IAI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jan 2021 03:00:08 -0500
-Received: from mail-lj1-x22a.google.com (mail-lj1-x22a.google.com [IPv6:2a00:1450:4864:20::22a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9FDD3C061574;
-        Wed, 27 Jan 2021 23:59:21 -0800 (PST)
-Received: by mail-lj1-x22a.google.com with SMTP id l12so5212385ljc.3;
-        Wed, 27 Jan 2021 23:59:21 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=subject:to:cc:references:from:organization:message-id:date
-         :user-agent:mime-version:in-reply-to:content-language
-         :content-transfer-encoding;
-        bh=ZhLAAud3HvOatZc8bWa160+GGDrtwAXLfmrfPeaVYS8=;
-        b=iipPbsfxZVCoeVKuars96HlwaPhNMoxff6kXibVhpITK1M6liR5Y9O7+S15Bs18l09
-         qlUtM1wTfg9Ou6I6g23AZm7cVsi8afl9ywua8K9yMdO5bZr9nt5kjWGTXEGzGKuOa9/g
-         1XUmU2pb08XIkn2+EUpygz+rpS2BWuStq+kp1Z0L+RWjtUcubBnlDUTz5WKp9v7710os
-         SLNWgHiJ3JIV+8IAHjWh/nhAgSk/YRdA5r5xJzX10KabfIVPeT0lFPft9QR1HE2XX97r
-         YL6s2qMMPrVFtgVS0PASinY6oq3v5br43OEKFxy7K4ebWVUxXV6rGDy0rY0fMsVaCwye
-         p0Aw==
+        id S231387AbhA1ISP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 28 Jan 2021 03:18:15 -0500
+Received: from mail-oi1-f181.google.com ([209.85.167.181]:44346 "EHLO
+        mail-oi1-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231511AbhA1ISB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jan 2021 03:18:01 -0500
+Received: by mail-oi1-f181.google.com with SMTP id n7so5156687oic.11;
+        Thu, 28 Jan 2021 00:17:45 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:subject:to:cc:references:from:organization
-         :message-id:date:user-agent:mime-version:in-reply-to
-         :content-language:content-transfer-encoding;
-        bh=ZhLAAud3HvOatZc8bWa160+GGDrtwAXLfmrfPeaVYS8=;
-        b=pN7U5ayKK/5sWgKJajDwgbMe8oZmnkj5Fp3s/iZsY8CifS6Me08uX7SipdDw7CeoaR
-         VNhn9E8cDytM0IiGEhtWtbZQ3AZHvUBjewbZI/W2/DiGl6yTN+tkIFu5DH3YyCu9+hh7
-         gYwRud3ruesYNpda2PE4F5GUgYufPY36wAuJHucDDYEOj9iA9jf0gZwuvIdEh5lMRoFu
-         XsyVOFe0TZfOgVYTZSeasCbEMasthSzVQKCYq67+0Zw622MibMPyXxLYsPF0lPSr8nny
-         ACdv1rCn5x1fzDLWnCQq8SH8N71clIGzP2IsncPEASzOippulsQn2V6yADX/lq+HRxhJ
-         4k1w==
-X-Gm-Message-State: AOAM531I4BQCnba6xiWms7ArJFMKyRLi6vQyzQ6xe9GguVVj3rr1bglc
-        SKZRRshpTzk13W+xiVHNGFXC9zXZSYhsgQ==
-X-Google-Smtp-Source: ABdhPJyNhfosDqTVmWD8kXJOJ9HDxIw2bv3pFQwo469kI3mpp/ZSh90Ay+X1biZCj8UPTr2AxhJ8ug==
-X-Received: by 2002:a2e:b6cc:: with SMTP id m12mr7769208ljo.401.1611820759903;
-        Wed, 27 Jan 2021 23:59:19 -0800 (PST)
-Received: from [192.168.1.100] ([178.176.79.159])
-        by smtp.gmail.com with ESMTPSA id z23sm1635056ljj.25.2021.01.27.23.59.18
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Wed, 27 Jan 2021 23:59:19 -0800 (PST)
-Subject: Re: [PATCH 02/27] x86/syscalls: fix -Wmissing-prototypes warnings
- from COND_SYSCALL()
-To:     Masahiro Yamada <masahiroy@kernel.org>, linux-arch@vger.kernel.org,
-        x86@kernel.org
-Cc:     linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
-        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-        linux-sh@vger.kernel.org, linux-um@lists.infradead.org,
-        linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org,
-        sparclinux@vger.kernel.org
-References: <20210128005110.2613902-1-masahiroy@kernel.org>
- <20210128005110.2613902-3-masahiroy@kernel.org>
-From:   Sergei Shtylyov <sergei.shtylyov@gmail.com>
-Organization: Brain-dead Software
-Message-ID: <dd37a7f2-55e1-2e96-0c93-4a40980b8ef2@gmail.com>
-Date:   Thu, 28 Jan 2021 10:59:07 +0300
-User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64; rv:78.0) Gecko/20100101
- Thunderbird/78.6.1
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=TL3tp80ch5Ojmt15uhmuDBGqfvQ8YwjAwOvbZ3H5gho=;
+        b=tY3YuKIqmRaJkzI6nyvtPbLy7yOjbbcQeeta0rppuamco2UVGIKwuoYnzU/mS2cuCa
+         Ibamgeb2O5+vQdjjnN696vcSzs8mC7ZXmKlofm53bFYUcaL1+aOq7YvQO+PguzMUch8W
+         yvlkCIm8ATu4GO/qmCHI7dAF1AENN008sW7eJNY1mjmigcole/y8mHbOzYE8wWoLWFDg
+         coeLdrhY2B7iJaFDSxQPGjmmaRf1xGOsuRO+JkmqZG1/0V0Ee0d8bqapmcXHL6awaUYO
+         eicZlAtaA/2pKlzF/fwB6oAt1G507kOpCrW0M1r6L3raHHiTTwFHDTKGo/Z7CYJouJXo
+         PkCQ==
+X-Gm-Message-State: AOAM530ZiPFrc2eXuKfnEVWqVmWGMlkhvzMgONMyEbJTJpybRxE6DULP
+        qnDHyS/Yd+Cepqo4PYhqh8wV12Oi65jHiCdObok=
+X-Google-Smtp-Source: ABdhPJyaplo6/NZAAIS02LBbY6W1dLxYDZ/X0XB3GuIXLfaRgiB9Cco71R6713OCRdUcK2cT17+0m9PEdnGKkCz70nI=
+X-Received: by 2002:aca:1219:: with SMTP id 25mr5943005ois.54.1611821840178;
+ Thu, 28 Jan 2021 00:17:20 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <20210128005110.2613902-3-masahiroy@kernel.org>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <20210128005110.2613902-1-masahiroy@kernel.org> <20210128005110.2613902-13-masahiroy@kernel.org>
+In-Reply-To: <20210128005110.2613902-13-masahiroy@kernel.org>
+From:   Geert Uytterhoeven <geert@linux-m68k.org>
+Date:   Thu, 28 Jan 2021 09:17:09 +0100
+Message-ID: <CAMuHMdV_AHcnGoVToHLXa95JEd4wcL3eTqYfk6=7Ou0W8VJR5w@mail.gmail.com>
+Subject: Re: [PATCH 12/27] m68k: syscalls: switch to generic syscalltbl.sh
+To:     Masahiro Yamada <masahiroy@kernel.org>
+Cc:     Linux-Arch <linux-arch@vger.kernel.org>,
+        "the arch/x86 maintainers" <x86@kernel.org>,
+        "open list:TENSILICA XTENSA PORT (xtensa)" 
+        <linux-xtensa@linux-xtensa.org>,
+        "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>,
+        Parisc List <linux-parisc@vger.kernel.org>,
+        linux-kbuild <linux-kbuild@vger.kernel.org>,
+        Linux-sh list <linux-sh@vger.kernel.org>,
+        linux-um <linux-um@lists.infradead.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        alpha <linux-alpha@vger.kernel.org>,
+        sparclinux <sparclinux@vger.kernel.org>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hello!
+Hi Yamada-san,
 
-On 28.01.2021 3:50, Masahiro Yamada wrote:
-
-> Building kernel/sys_ni.c with W=1 omits tons of -Wmissing-prototypes
-
-    Emits?
-
-> warnings.
-> 
-> $ make W=1 kernel/sys_ni.o
->    [ snip ]
->    CC      kernel/sys_ni.o
-> In file included from kernel/sys_ni.c:10:
-> ./arch/x86/include/asm/syscall_wrapper.h:83:14: warning: no previous prototype for '__x64_sys_io_setup' [-Wmissing-prototypes]
->     83 |  __weak long __##abi##_##name(const struct pt_regs *__unused) \
->        |              ^~
-> ./arch/x86/include/asm/syscall_wrapper.h:100:2: note: in expansion of macro '__COND_SYSCALL'
->    100 |  __COND_SYSCALL(x64, sys_##name)
->        |  ^~~~~~~~~~~~~~
-> ./arch/x86/include/asm/syscall_wrapper.h:256:2: note: in expansion of macro '__X64_COND_SYSCALL'
->    256 |  __X64_COND_SYSCALL(name)     \
->        |  ^~~~~~~~~~~~~~~~~~
-> kernel/sys_ni.c:39:1: note: in expansion of macro 'COND_SYSCALL'
->     39 | COND_SYSCALL(io_setup);
->        | ^~~~~~~~~~~~
-> ./arch/x86/include/asm/syscall_wrapper.h:83:14: warning: no previous prototype for '__ia32_sys_io_setup' [-Wmissing-prototypes]
->     83 |  __weak long __##abi##_##name(const struct pt_regs *__unused) \
->        |              ^~
-> ./arch/x86/include/asm/syscall_wrapper.h:120:2: note: in expansion of macro '__COND_SYSCALL'
->    120 |  __COND_SYSCALL(ia32, sys_##name)
->        |  ^~~~~~~~~~~~~~
-> ./arch/x86/include/asm/syscall_wrapper.h:257:2: note: in expansion of macro '__IA32_COND_SYSCALL'
->    257 |  __IA32_COND_SYSCALL(name)
->        |  ^~~~~~~~~~~~~~~~~~~
-> kernel/sys_ni.c:39:1: note: in expansion of macro 'COND_SYSCALL'
->     39 | COND_SYSCALL(io_setup);
->        | ^~~~~~~~~~~~
->    ...
-> 
-> __SYS_STUB0() and __SYS_STUBx() defined a few lines above have forward
-> declarations. Let's do likewise for __COND_SYSCALL() to fix the
-> warnings.
-> 
+On Thu, Jan 28, 2021 at 1:54 AM Masahiro Yamada <masahiroy@kernel.org> wrote:
+> As of v5.11-rc1, 12 architectures duplicate similar shell scripts in
+> order to generate syscall table headers. My goal is to unify them into
+> the single scripts/syscalltbl.sh.
+>
+> This commit converts m68k to use scripts/syscalltbl.sh.
+>
 > Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
-> ---
-> 
->   arch/x86/include/asm/syscall_wrapper.h | 1 +
->   1 file changed, 1 insertion(+)
-> 
-> diff --git a/arch/x86/include/asm/syscall_wrapper.h b/arch/x86/include/asm/syscall_wrapper.h
-> index a84333adeef2..80c08c7d5e72 100644
-> --- a/arch/x86/include/asm/syscall_wrapper.h
-> +++ b/arch/x86/include/asm/syscall_wrapper.h
-> @@ -80,6 +80,7 @@ extern long __ia32_sys_ni_syscall(const struct pt_regs *regs);
->   	}
->   
->   #define __COND_SYSCALL(abi, name)					\
-> +	__weak long __##abi##_##name(const struct pt_regs *__unused);	\
->   	__weak long __##abi##_##name(const struct pt_regs *__unused)	\
 
-    Aren't these two lines identical?
+Thanks a lot!
 
-[...]
+Tested-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-MBR, Sergei
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
