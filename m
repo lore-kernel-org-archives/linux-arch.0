@@ -2,66 +2,80 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.3 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
-	SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C3C9DC433DB
-	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 18:26:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CF5A8C433DB
+	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 20:16:34 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8719164E22
-	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 18:26:06 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 88BB564E02
+	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 20:16:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231201AbhA1SZz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 28 Jan 2021 13:25:55 -0500
-Received: from mail.kernel.org ([198.145.29.99]:39190 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S231862AbhA1SUT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 28 Jan 2021 13:20:19 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPS id CA90B64E28;
-        Thu, 28 Jan 2021 18:16:55 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1611857815;
-        bh=EdUwL/QDhFhONKjS8Ixd/ah7+ex2+S6R0CxzmeI3nis=;
-        h=Subject:From:In-Reply-To:References:Date:To:Cc:From;
-        b=RqLZT9MSQ5F9QJHn3EGf0dwq8hOxg5YF/NyPJ9pjd8HhPLK6JKeU0WZ8iyGoUDZ7v
-         wDRnaBe38PTGY3TWGO58QCqwNiJpIboD4bNCKeLE44gnxtN7tjFoTYppELZXSp3Fz6
-         FJiY6yw32xgEl/3Tqerz3p/pNhwn76xTyaMzQqX8KnnsIxibBtx0o71djWzHRPMA64
-         No0PdCCAKwe22aZ5L6NWbf4+DeJuhhB1Xy2I7hIazyPamtE3w3jOM7B/uXQQur1dLe
-         F9ItytYZheqLvM0NK6ks88iZo1vYAH7671S194PVl5FRSAOmsp1nxkHn3o8TwxiqZF
-         KqP9V8JBUUsmg==
-Subject: Re: [GIT PULL] asm-generic/ia64 fixes, mark as orphaned
-From:   pr-tracker-bot@kernel.org
-In-Reply-To: <CAK8P3a2+tvr6O7LxF8M6sJ-e-NmbijAmXt13FPEvOXtY_PSgPQ@mail.gmail.com>
-References: <CAK8P3a2+tvr6O7LxF8M6sJ-e-NmbijAmXt13FPEvOXtY_PSgPQ@mail.gmail.com>
-X-PR-Tracked-List-Id: <linux-kernel.vger.kernel.org>
-X-PR-Tracked-Message-Id: <CAK8P3a2+tvr6O7LxF8M6sJ-e-NmbijAmXt13FPEvOXtY_PSgPQ@mail.gmail.com>
-X-PR-Tracked-Remote: git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-fixes-v5.11
-X-PR-Tracked-Commit-Id: 96ec72a3425d1515b69b7f9dc34a4a6ce5862a37
-X-PR-Merge-Tree: torvalds/linux.git
-X-PR-Merge-Refname: refs/heads/master
-X-PR-Merge-Commit-Id: 228345bf98cd78f91d007478a51f9a471489e44a
-Message-Id: <161185781579.19532.14632163617295027701.pr-tracker-bot@kernel.org>
-Date:   Thu, 28 Jan 2021 18:16:55 +0000
-To:     Arnd Bergmann <arnd@kernel.org>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        id S229825AbhA1UQd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 28 Jan 2021 15:16:33 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:32830 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229739AbhA1UQ0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jan 2021 15:16:26 -0500
+Received: from mail-ej1-x636.google.com (mail-ej1-x636.google.com [IPv6:2a00:1450:4864:20::636])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B77D2C061786
+        for <linux-arch@vger.kernel.org>; Thu, 28 Jan 2021 12:15:45 -0800 (PST)
+Received: by mail-ej1-x636.google.com with SMTP id ox12so9712479ejb.2
+        for <linux-arch@vger.kernel.org>; Thu, 28 Jan 2021 12:15:45 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=kylehuey.com; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=8KYRxCq+VijaHyGm3nspszs6+isH7KSG4Ik6j3Av93c=;
+        b=B58P+9oOAaIsSpBC4lg74dzWJKJ3ybSV89M2L0Mp9OjaJ3bTLg3t6Az7ItGGNz0wFz
+         lBdFpDS2UvNVVdTxyUf55Gm1rnuSCuf2KHNBzO34+YUYI6z8pl4eqTYZMGNIdObs1G0R
+         9hgnwmYVSGshMAzPNxInKmudVEP5kdMlo059wq7Gs3y+BxnRP1JioJbuUjTatu/PGO0D
+         5w+8ImILu00Uc1gM/mmV863bVzkc0JTXRr/SNyHFkgxhQCNf/U2iGonexjT37/G1SZJy
+         15kYwJbkM+GXn6OeO87JLuJuG0xuw5E/tZnkqsJQxWZ2wLK3p/bTqg0R6EDQr6rlAOiH
+         LDhw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=8KYRxCq+VijaHyGm3nspszs6+isH7KSG4Ik6j3Av93c=;
+        b=TK6cTFVbbt4GpXlr7WxZf3D2q9KOC8qz/LcQJEM4RLEDnt3b80BltGvF7MpN+4okkw
+         q0RuDymiki4OUr5IFaavSLlB5eawOn4p8IHK6nVY5rDhh5wRnPXicYszwhTDAidshrEo
+         hWXhfwFxxbHdz26wg4a0450XjnX1HCt9Hw9A+H75D7Ep+YCeMxv0awXomsyi+i01QR17
+         GeeVSTDMtWXfd0FR8xl/HTMzqaH4Bq9QX2jRM96cATe+pqUGTKPiHLa9mMT5gkYUzJbV
+         FLZqoAqcZqMjZrWeywSiENm4vH8plDeBRFsaPl6MXVftBN1XpsOY9Y2XUNWQSuAoiP9b
+         DKAg==
+X-Gm-Message-State: AOAM531mxu3yvKV6bamXtAqszmj3tcfFMAM9oNeA0iwyXkxQZE/7y9at
+        jRIq7nIr/0aQGzXVIO4uRyijVRAa35BpzVtSm2pxRA==
+X-Google-Smtp-Source: ABdhPJzrAjJJP8ciZP1YuWUVcouJS1kYbZeC3mzFP3+/fTGLdsLLmBkGaDddFt2JuDlToQ2cA6VFjKPoHC8UKp4Pefk=
+X-Received: by 2002:a17:906:9342:: with SMTP id p2mr1214159ejw.300.1611864944451;
+ Thu, 28 Jan 2021 12:15:44 -0800 (PST)
+MIME-Version: 1.0
+References: <CAP045Arw973KWCiHqXmRJ3QxH8o84on-t8Nm6NyEYXDpicF7JA@mail.gmail.com>
+ <CAHk-=wiVj-0zV8ePHZ2rGFErJAYkRb3FZ8K9aYus6is0bALL5A@mail.gmail.com>
+In-Reply-To: <CAHk-=wiVj-0zV8ePHZ2rGFErJAYkRb3FZ8K9aYus6is0bALL5A@mail.gmail.com>
+From:   Kyle Huey <me@kylehuey.com>
+Date:   Thu, 28 Jan 2021 12:15:32 -0800
+Message-ID: <CAP045ApuTzezCto0sqqeyPsgXOtrY9pgWvVk2k4ptmcDjYL=jA@mail.gmail.com>
+Subject: Re: [PATCH] ptrace: restore the previous single step reporting behavior
+To:     Linus Torvalds <torvalds@linux-foundation.org>
+Cc:     Thomas Gleixner <tglx@linutronix.de>,
+        Andy Lutomirski <luto@kernel.org>, kernel@collabora.com,
+        Gabriel Krisman Bertazi <krisman@collabora.com>,
+        linux-arch <linux-arch@vger.kernel.org>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>,
-        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-        linux-arch <linux-arch@vger.kernel.org>
+        yshuiv7@gmail.com, "Robert O'Callahan" <rocallahan@gmail.com>,
+        "the arch/x86 maintainers" <x86@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The pull request you sent on Thu, 28 Jan 2021 16:35:55 +0100:
+On Thu, Jan 28, 2021 at 11:10 AM Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> You should have pointed to the actual patch.
 
-> git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-fixes-v5.11
+Sorry, I broke the reply threading in my mail client.
 
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/228345bf98cd78f91d007478a51f9a471489e44a
-
-Thank you!
-
--- 
-Deet-doot-dot, I am a bot.
-https://korg.docs.kernel.org/prtracker.html
+- Kyle
