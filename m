@@ -7,32 +7,32 @@ X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 890D5C433DB
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AA8BBC43381
 	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 00:58:19 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5659664DD4
+	by mail.kernel.org (Postfix) with ESMTP id 876CC64DD5
 	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 00:58:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231400AbhA1A53 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 27 Jan 2021 19:57:29 -0500
-Received: from conuserg-12.nifty.com ([210.131.2.79]:29017 "EHLO
+        id S231283AbhA1A6J (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 27 Jan 2021 19:58:09 -0500
+Received: from conuserg-12.nifty.com ([210.131.2.79]:29009 "EHLO
         conuserg-12.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231159AbhA1A4O (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2021 19:56:14 -0500
+        with ESMTP id S231127AbhA1A4S (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2021 19:56:18 -0500
 Received: from oscar.flets-west.jp (softbank126026094251.bbtec.net [126.26.94.251]) (authenticated)
-        by conuserg-12.nifty.com with ESMTP id 10S0pjIf024172;
-        Thu, 28 Jan 2021 09:51:58 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-12.nifty.com 10S0pjIf024172
+        by conuserg-12.nifty.com with ESMTP id 10S0pjId024172;
+        Thu, 28 Jan 2021 09:51:55 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-12.nifty.com 10S0pjId024172
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1611795119;
-        bh=rBLp71LtjpuuJPTZfY8wyXr/eNgPWxVdIzAA/RbYs94=;
+        s=dec2015msa; t=1611795116;
+        bh=0wK9wMP5DA5hWrKVSjv1k6dHQdgZowMRN8OJeDAeIIQ=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=ncmaBvIdvqCtN37U8UilCIrLG5daIG+MpFyR0DOzscMmQhXASvCj2Ve/Y+J+efscl
-         wknNeFIzr8RuBoBmpcuEDisXwXqK8AKVkge6et4MSslEx8cU26I9R56kxfyT8K+TJm
-         BX2rBEuM64LRbu6Nb70V2XfOX5OUqnyDJo6L0ibHK/kvaocSMuYTM14N5gpssXYPFd
-         DKXhpUuqI05Jv+mwacNLSA1T3ioDONJ7L5x4bPukIbs4kFMhHw47qBhwreq0jyWw9R
-         m1G3adstD3R/OymtgbTjouC66AUUW64KI6eYXlvQgpfIH7bCEBXfv6Ei4GI7ZiK2oB
-         BzKWztL08/vFQ==
+        b=gaOy9TgnBSVVLeD67bjyTNjPgVIu1DdQvjDeR4cwaGDkKZ1X54G7IzIxaRbTK/YE9
+         aLCuPPmZK/EBSo8ssRKBjAV52LwzTKH5hMwlV9DeU+DRadSfn0l6H19mEWnjktclI9
+         4+fWOfGP94ZNf3J9/g+31swyuDgQN8bK2D/Pz9aFVFhqMlLsMzihALzcILEB5LaP7+
+         rZK9YDnJw1rFntMmClijlVDzr2tnnz7U+uV8+ATtuKjLPLNpH244Mec1fQcwQWqD1z
+         pSTTaJPQybOBJACP19AnWGE9IOgYDnirsdp03yySLZ1V401fEwHuzYNeaefilOdQco
+         RDpqiX1srvwOQ==
 X-Nifty-SrcIP: [126.26.94.251]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-arch@vger.kernel.org, x86@kernel.org
@@ -43,9 +43,9 @@ Cc:     linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-sh@vger.kernel.org, linux-um@lists.infradead.org,
         linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org,
         sparclinux@vger.kernel.org, Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 10/27] ia64: syscalls: switch to generic syscalltbl.sh
-Date:   Thu, 28 Jan 2021 09:50:52 +0900
-Message-Id: <20210128005110.2613902-11-masahiroy@kernel.org>
+Subject: [PATCH 08/27] alpha: syscalls: switch to generic syscalltbl.sh
+Date:   Thu, 28 Jan 2021 09:50:50 +0900
+Message-Id: <20210128005110.2613902-9-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20210128005110.2613902-1-masahiroy@kernel.org>
 References: <20210128005110.2613902-1-masahiroy@kernel.org>
@@ -59,37 +59,21 @@ As of v5.11-rc1, 12 architectures duplicate similar shell scripts in
 order to generate syscall table headers. My goal is to unify them into
 the single scripts/syscalltbl.sh.
 
-This commit converts ia64 to use scripts/syscalltbl.sh.
+This commit converts alpha to use scripts/syscalltbl.sh.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- arch/ia64/kernel/entry.S                |  3 +--
- arch/ia64/kernel/syscalls/Makefile      |  8 ++-----
- arch/ia64/kernel/syscalls/syscalltbl.sh | 32 -------------------------
- 3 files changed, 3 insertions(+), 40 deletions(-)
- delete mode 100644 arch/ia64/kernel/syscalls/syscalltbl.sh
+ arch/alpha/kernel/syscalls/Makefile      |  7 ++----
+ arch/alpha/kernel/syscalls/syscalltbl.sh | 32 ------------------------
+ arch/alpha/kernel/systbls.S              |  3 +--
+ 3 files changed, 3 insertions(+), 39 deletions(-)
+ delete mode 100644 arch/alpha/kernel/syscalls/syscalltbl.sh
 
-diff --git a/arch/ia64/kernel/entry.S b/arch/ia64/kernel/entry.S
-index e98e3dafffd8..5eba3fb2e311 100644
---- a/arch/ia64/kernel/entry.S
-+++ b/arch/ia64/kernel/entry.S
-@@ -1420,10 +1420,9 @@ END(ftrace_stub)
- 
- #endif /* CONFIG_FUNCTION_TRACER */
- 
--#define __SYSCALL(nr, entry, nargs) data8 entry
-+#define __SYSCALL(nr, entry) data8 entry
- 	.rodata
- 	.align 8
- 	.globl sys_call_table
- sys_call_table:
- #include <asm/syscall_table.h>
--#undef __SYSCALL
-diff --git a/arch/ia64/kernel/syscalls/Makefile b/arch/ia64/kernel/syscalls/Makefile
-index b9bfd186295f..3f7e0bfae7e3 100644
---- a/arch/ia64/kernel/syscalls/Makefile
-+++ b/arch/ia64/kernel/syscalls/Makefile
+diff --git a/arch/alpha/kernel/syscalls/Makefile b/arch/alpha/kernel/syscalls/Makefile
+index 1c42d2d2926d..6610130c67bc 100644
+--- a/arch/alpha/kernel/syscalls/Makefile
++++ b/arch/alpha/kernel/syscalls/Makefile
 @@ -7,7 +7,7 @@ _dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')	\
  
  syscall := $(srctree)/$(src)/syscall.tbl
@@ -99,7 +83,7 @@ index b9bfd186295f..3f7e0bfae7e3 100644
  
  quiet_cmd_syshdr = SYSHDR  $@
        cmd_syshdr = $(CONFIG_SHELL) '$(syshdr)' '$<' '$@'	\
-@@ -16,16 +16,12 @@ quiet_cmd_syshdr = SYSHDR  $@
+@@ -16,10 +16,7 @@ quiet_cmd_syshdr = SYSHDR  $@
  		   '$(syshdr_offset_$(basetarget))'
  
  quiet_cmd_systbl = SYSTBL  $@
@@ -107,20 +91,14 @@ index b9bfd186295f..3f7e0bfae7e3 100644
 -		   '$(systbl_abis_$(basetarget))'		\
 -		   '$(systbl_abi_$(basetarget))'		\
 -		   '$(systbl_offset_$(basetarget))'
-+      cmd_systbl = $(CONFIG_SHELL) $(systbl) $< $@ "" 1024
++      cmd_systbl = $(CONFIG_SHELL) $(systbl) $< $@
  
- syshdr_offset_unistd_64 := __NR_Linux
- $(uapi)/unistd_64.h: $(syscall) $(syshdr) FORCE
+ $(uapi)/unistd_32.h: $(syscall) $(syshdr) FORCE
  	$(call if_changed,syshdr)
- 
--systbl_offset_syscall_table := 1024
- $(kapi)/syscall_table.h: $(syscall) $(systbl) FORCE
- 	$(call if_changed,systbl)
- 
-diff --git a/arch/ia64/kernel/syscalls/syscalltbl.sh b/arch/ia64/kernel/syscalls/syscalltbl.sh
+diff --git a/arch/alpha/kernel/syscalls/syscalltbl.sh b/arch/alpha/kernel/syscalls/syscalltbl.sh
 deleted file mode 100644
 index 85d78d9309ad..000000000000
---- a/arch/ia64/kernel/syscalls/syscalltbl.sh
+--- a/arch/alpha/kernel/syscalls/syscalltbl.sh
 +++ /dev/null
 @@ -1,32 +0,0 @@
 -#!/bin/sh
@@ -155,6 +133,22 @@ index 85d78d9309ad..000000000000
 -		nxt=$((nr+1))
 -	done
 -) > "$out"
+diff --git a/arch/alpha/kernel/systbls.S b/arch/alpha/kernel/systbls.S
+index 9704f22ed5e3..68f3e4f329eb 100644
+--- a/arch/alpha/kernel/systbls.S
++++ b/arch/alpha/kernel/systbls.S
+@@ -7,10 +7,9 @@
+ 
+ #include <asm/unistd.h>
+ 
+-#define __SYSCALL(nr, entry, nargs) .quad entry
++#define __SYSCALL(nr, entry) .quad entry
+ 	.data
+ 	.align 3
+ 	.globl sys_call_table
+ sys_call_table:
+ #include <asm/syscall_table.h>
+-#undef __SYSCALL
 -- 
 2.27.0
 
