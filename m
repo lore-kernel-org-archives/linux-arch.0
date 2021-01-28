@@ -2,138 +2,162 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-14.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D0566C433DB
-	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 08:02:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9FD77C433E0
+	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 08:03:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7554564DDF
-	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 08:02:30 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 4BFD964DD8
+	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 08:03:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232114AbhA1IAz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 28 Jan 2021 03:00:55 -0500
-Received: from mx2.suse.de ([195.135.220.15]:53210 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S232200AbhA1IAJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 28 Jan 2021 03:00:09 -0500
-X-Virus-Scanned: by amavisd-new at test-mx.suse.de
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
-        t=1611820740; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-         mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=Sq6KOdfLPXiwAuLXOW7YjreGdGoulD4muuz4Tw4c0dA=;
-        b=BBuX1zyPDBli1wq3/9ieGxAyz7RNNE/U3jwTMZy/jhv7Vz+6hkiEhsZ79YzZbH8kl5y2Bm
-        A9arQ9DBK0SAyY7kgadriTJZxWkFGt/xnQF6rpi0s9gD2VaxeLaXb3fFpVR4Dc2f3dqqCc
-        OMJ50VBVtpJWHyvl89S1QLIePOScOWk=
-Received: from relay2.suse.de (unknown [195.135.221.27])
-        by mx2.suse.de (Postfix) with ESMTP id D57F3AD18;
-        Thu, 28 Jan 2021 07:58:59 +0000 (UTC)
-Date:   Thu, 28 Jan 2021 08:58:58 +0100
-From:   Michal Hocko <mhocko@suse.com>
-To:     Roman Gushchin <guro@fb.com>
-Cc:     Matthew Wilcox <willy@infradead.org>,
-        Mike Rapoport <rppt@kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Shakeel Butt <shakeelb@google.com>,
-        Shuah Khan <shuah@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
-        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
-        Palmer Dabbelt <palmerdabbelt@google.com>
-Subject: Re: [PATCH v16 08/11] secretmem: add memcg accounting
-Message-ID: <YBJuwqItjCemDN5L@dhcp22.suse.cz>
-References: <20210121122723.3446-1-rppt@kernel.org>
- <20210121122723.3446-9-rppt@kernel.org>
- <20210125165451.GT827@dhcp22.suse.cz>
- <20210125213817.GM6332@kernel.org>
- <20210126144838.GL308988@casper.infradead.org>
- <20210126150555.GU827@dhcp22.suse.cz>
- <20210127184213.GA919963@carbon.dhcp.thefacebook.com>
+        id S231966AbhA1ICl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 28 Jan 2021 03:02:41 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44486 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232223AbhA1IB1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jan 2021 03:01:27 -0500
+Received: from mail-lf1-x130.google.com (mail-lf1-x130.google.com [IPv6:2a00:1450:4864:20::130])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5CF0CC061574;
+        Thu, 28 Jan 2021 00:00:43 -0800 (PST)
+Received: by mail-lf1-x130.google.com with SMTP id e2so2760963lfj.13;
+        Thu, 28 Jan 2021 00:00:43 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=subject:from:to:cc:references:organization:message-id:date
+         :user-agent:mime-version:in-reply-to:content-language
+         :content-transfer-encoding;
+        bh=gnZ/GDloV555+OnWhNxGUyFa3V1UNr+TUyX9DCKmvmo=;
+        b=BvV+OmW8dWjmNJDvcrvjzcva8OWBy7a8Wldf3TYz+i6X3QYbdYVdx8XtO5leAkHTrU
+         w3YMC/VHtwxm1x/Ic4nsp2y26eWjsO1yakRgVNAsk/+vPQ3tFI4ORflBdiqudTUbNQ15
+         4udiNHAeivKX5c5MMjdj7/0f+Ywbb21vVg6oz3mMUyOwECoUO5sTQ+F7gyKkdUAVhOze
+         vsQP8Kn/mYUO89v8SJNtfvxDDv5uZaZ+sphCBYtGqh9qpfbAr39PdAciszAdWiMDq33U
+         CM0tCQ9qP6AgV+zPptT62EH2DQH0UbsDLxpsVPp63My+wTEFFdBYjDtMPkofAyv61LZq
+         z8DA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:subject:from:to:cc:references:organization
+         :message-id:date:user-agent:mime-version:in-reply-to
+         :content-language:content-transfer-encoding;
+        bh=gnZ/GDloV555+OnWhNxGUyFa3V1UNr+TUyX9DCKmvmo=;
+        b=K4RmJ5kFOcEdWQgZ3ZDvDa4E0LzNWkgiuJ3/ko5vTbsdDWwIjmLKQwdVv00MNNidzr
+         oC5o9ck9SgesCG4hHdZCni+UaRGtTd+rNX7xMM+4V+aXNLPBBU9eY9XmjWreVNGuP2g+
+         lQNZFkU9bPsQKZi6VH2hdHiFSwUu3IUTWu7hSTpMWTlr0IXCCC6W38f4joH5HWOvmbpM
+         iIyKwJnIml0Yu13zhFw9tGHjr454WSiNYcEJL1uiledEonwXy1QYq3h9pCqZBIBT8Bcf
+         VFym+6EF0YBsOWJondnrTLXoLc4MXbPVY0jPmx1dbnNDNI9cLDcFSkIffFfnGwr5s/AF
+         jYlg==
+X-Gm-Message-State: AOAM530wMLlXv9x1XIytZshcggobDbXI966tkRV5USly/On/xpsnEssv
+        IXwOkkLM58pMy0+S3NLrEv0VmCxqeopthA==
+X-Google-Smtp-Source: ABdhPJx0NmJx1f9alnrCE9Umt15J9iBGC/sPqz1LULvUs4CMEHAB23hGApY2DMjRufppP/iSttVSHw==
+X-Received: by 2002:ac2:4907:: with SMTP id n7mr4218547lfi.213.1611820841569;
+        Thu, 28 Jan 2021 00:00:41 -0800 (PST)
+Received: from [192.168.1.100] ([178.176.79.159])
+        by smtp.gmail.com with ESMTPSA id b18sm1359053lfj.140.2021.01.28.00.00.40
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 28 Jan 2021 00:00:41 -0800 (PST)
+Subject: Re: [PATCH 02/27] x86/syscalls: fix -Wmissing-prototypes warnings
+ from COND_SYSCALL()
+From:   Sergei Shtylyov <sergei.shtylyov@gmail.com>
+To:     Masahiro Yamada <masahiroy@kernel.org>, linux-arch@vger.kernel.org,
+        x86@kernel.org
+Cc:     linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linux-sh@vger.kernel.org, linux-um@lists.infradead.org,
+        linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org,
+        sparclinux@vger.kernel.org
+References: <20210128005110.2613902-1-masahiroy@kernel.org>
+ <20210128005110.2613902-3-masahiroy@kernel.org>
+ <dd37a7f2-55e1-2e96-0c93-4a40980b8ef2@gmail.com>
+Organization: Brain-dead Software
+Message-ID: <605cea27-bd69-5b21-f285-2d3d0f6abd23@gmail.com>
+Date:   Thu, 28 Jan 2021 11:00:29 +0300
+User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.6.1
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210127184213.GA919963@carbon.dhcp.thefacebook.com>
+In-Reply-To: <dd37a7f2-55e1-2e96-0c93-4a40980b8ef2@gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed 27-01-21 10:42:13, Roman Gushchin wrote:
-> On Tue, Jan 26, 2021 at 04:05:55PM +0100, Michal Hocko wrote:
-> > On Tue 26-01-21 14:48:38, Matthew Wilcox wrote:
-> > > On Mon, Jan 25, 2021 at 11:38:17PM +0200, Mike Rapoport wrote:
-> > > > I cannot use __GFP_ACCOUNT because cma_alloc() does not use gfp.
-> > > > Besides, kmem accounting with __GFP_ACCOUNT does not seem
-> > > > to update stats and there was an explicit request for statistics:
-> > > >  
-> > > > https://lore.kernel.org/lkml/CALo0P13aq3GsONnZrksZNU9RtfhMsZXGWhK1n=xYJWQizCd4Zw@mail.gmail.com/
-> > > > 
-> > > > As for (ab)using NR_SLAB_UNRECLAIMABLE_B, as it was already discussed here:
-> > > > 
-> > > > https://lore.kernel.org/lkml/20201129172625.GD557259@kernel.org/
-> > > > 
-> > > > I think that a dedicated stats counter would be too much at the moment and
-> > > > NR_SLAB_UNRECLAIMABLE_B is the only explicit stat for unreclaimable memory.
-> > > 
-> > > That's not true -- Mlocked is also unreclaimable.  And doesn't this
-> > > feel more like mlocked memory than unreclaimable slab?  It's also
-> > > Unevictable, so could be counted there instead.
-> > 
-> > yes, that is indeed true, except the unreclaimable counter is tracking
-> > the unevictable LRUs. These pages are not on any LRU and that can cause
-> > some confusion. Maybe they shouldn't be so special and they should live
-> > on unevistable LRU and get their stats automagically.
-> > 
-> > I definitely do agree that this would be a better fit than NR_SLAB
-> > abuse. But considering that this is somehow even more special than mlock
-> > then a dedicated counter sounds as even better fit.
-> 
-> I think it depends on how large these areas will be in practice.
-> If they will be measured in single or double digits MBs, a separate entry
-> is hardly a good choice: because of the batching the displayed value
-> will be in the noise range, plus every new vmstat item adds to the
-> struct mem_cgroup size.
-> 
-> If it will be measured in GBs, of course, a separate counter is preferred.
-> So I'd suggest to go with NR_SLAB (which should have been named NR_KMEM)
-> as now and conditionally switch to a separate counter later.
+On 28.01.2021 10:59, Sergei Shtylyov wrote:
 
-I really do not think the overall usage matters when it comes to abusing
-other counters. Changing this in future will be always tricky and there
-always be our favorite "Can this break userspace" question. Yes we dared
-to change meaning of some counters but this is not generally possible.
-Just have a look how accounting shmem as a page cache has turned out
-being much more tricky than many like.
+[...]
+>> Building kernel/sys_ni.c with W=1 omits tons of -Wmissing-prototypes
+> 
+>     Emits?
+> 
+>> warnings.
+>>
+>> $ make W=1 kernel/sys_ni.o
+>>    [ snip ]
+>>    CC      kernel/sys_ni.o
+>> In file included from kernel/sys_ni.c:10:
+>> ./arch/x86/include/asm/syscall_wrapper.h:83:14: warning: no previous 
+>> prototype for '__x64_sys_io_setup' [-Wmissing-prototypes]
+>>     83 |  __weak long __##abi##_##name(const struct pt_regs *__unused) \
+>>        |              ^~
+>> ./arch/x86/include/asm/syscall_wrapper.h:100:2: note: in expansion of macro 
+>> '__COND_SYSCALL'
+>>    100 |  __COND_SYSCALL(x64, sys_##name)
+>>        |  ^~~~~~~~~~~~~~
+>> ./arch/x86/include/asm/syscall_wrapper.h:256:2: note: in expansion of macro 
+>> '__X64_COND_SYSCALL'
+>>    256 |  __X64_COND_SYSCALL(name)     \
+>>        |  ^~~~~~~~~~~~~~~~~~
+>> kernel/sys_ni.c:39:1: note: in expansion of macro 'COND_SYSCALL'
+>>     39 | COND_SYSCALL(io_setup);
+>>        | ^~~~~~~~~~~~
+>> ./arch/x86/include/asm/syscall_wrapper.h:83:14: warning: no previous 
+>> prototype for '__ia32_sys_io_setup' [-Wmissing-prototypes]
+>>     83 |  __weak long __##abi##_##name(const struct pt_regs *__unused) \
+>>        |              ^~
+>> ./arch/x86/include/asm/syscall_wrapper.h:120:2: note: in expansion of macro 
+>> '__COND_SYSCALL'
+>>    120 |  __COND_SYSCALL(ia32, sys_##name)
+>>        |  ^~~~~~~~~~~~~~
+>> ./arch/x86/include/asm/syscall_wrapper.h:257:2: note: in expansion of macro 
+>> '__IA32_COND_SYSCALL'
+>>    257 |  __IA32_COND_SYSCALL(name)
+>>        |  ^~~~~~~~~~~~~~~~~~~
+>> kernel/sys_ni.c:39:1: note: in expansion of macro 'COND_SYSCALL'
+>>     39 | COND_SYSCALL(io_setup);
+>>        | ^~~~~~~~~~~~
+>>    ...
+>>
+>> __SYS_STUB0() and __SYS_STUBx() defined a few lines above have forward
+>> declarations. Let's do likewise for __COND_SYSCALL() to fix the
+>> warnings.
+>>
+>> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+>> ---
+>>
+>>   arch/x86/include/asm/syscall_wrapper.h | 1 +
+>>   1 file changed, 1 insertion(+)
+>>
+>> diff --git a/arch/x86/include/asm/syscall_wrapper.h 
+>> b/arch/x86/include/asm/syscall_wrapper.h
+>> index a84333adeef2..80c08c7d5e72 100644
+>> --- a/arch/x86/include/asm/syscall_wrapper.h
+>> +++ b/arch/x86/include/asm/syscall_wrapper.h
+>> @@ -80,6 +80,7 @@ extern long __ia32_sys_ni_syscall(const struct pt_regs 
+>> *regs);
+>>       }
+>>   #define __COND_SYSCALL(abi, name)                    \
+>> +    __weak long __##abi##_##name(const struct pt_regs *__unused);    \
+>>       __weak long __##abi##_##name(const struct pt_regs *__unused)    \
+> 
+>     Aren't these two lines identical?
 
-Really if a separate counter is a big deal, for which I do not see any
-big reason, then this should be accounted as unevictable (as suggested
-by Matthew) and ideally pages of those mappings should be sitting in the
-unevictable LRU as well unless there is a strong reason against.
--- 
-Michal Hocko
-SUSE Labs
+     Ah, got it! :-)
+
+[...]
+
+MBR, Sergei
