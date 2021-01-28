@@ -4,35 +4,35 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C0F1CC433E6
-	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 01:00:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 50CB0C433DB
+	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 01:02:12 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9A9D364DD0
-	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 01:00:56 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 1B6C864DD8
+	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 01:02:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231521AbhA1BAh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 27 Jan 2021 20:00:37 -0500
-Received: from conuserg-12.nifty.com ([210.131.2.79]:29758 "EHLO
+        id S231230AbhA1BB6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 27 Jan 2021 20:01:58 -0500
+Received: from conuserg-12.nifty.com ([210.131.2.79]:29714 "EHLO
         conuserg-12.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231184AbhA1A6J (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2021 19:58:09 -0500
+        with ESMTP id S231144AbhA1A6H (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2021 19:58:07 -0500
 Received: from oscar.flets-west.jp (softbank126026094251.bbtec.net [126.26.94.251]) (authenticated)
-        by conuserg-12.nifty.com with ESMTP id 10S0pjIp024172;
-        Thu, 28 Jan 2021 09:52:11 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-12.nifty.com 10S0pjIp024172
+        by conuserg-12.nifty.com with ESMTP id 10S0pjIv024172;
+        Thu, 28 Jan 2021 09:52:18 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-12.nifty.com 10S0pjIv024172
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1611795132;
-        bh=xnCcs8cQeR65mYxAXRygpHq8fmY2l/DPGOA0eURTtGA=;
+        s=dec2015msa; t=1611795139;
+        bh=uPhzuxw9OJNtYZM2tsUx4a7eaa9t1FqlJVYIBoMhXhU=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=VQa61D2eVbJw2ph1el2FGgGaJxIZhTCwKDjS93z6VreXDeEVdv1BIWZ319QP+f9Rg
-         RaGoFRLKQreVHJMFk/1iHmEVehSzqHFRnbMsQA6XCN/iQHushaVrs0CcY3RrPWmqss
-         B8DKCI6QCjC/JXg8fggksARVTZ/O/2J/vJxJyBB+zihDlB3oRMCZAJrCmE+Ewx0zxE
-         +VxlLoy0jMAJsjcYLb7KVf29RVO2GY7ryj7hLajKflcY9MshzRU3/uZwU7L4vCgdrJ
-         OxtMwM2QAyL4gW4ghKiR/OAFq19C0s+CcBoxczjPb1vSrE4YsxbUO88QK9pX1ff8on
-         CTed2kNOJhqJQ==
+        b=2I/l911DRFMahGMRrLX/icxR6Mi0fEG+1qCwc6h6UE7MNnIIW/D/qGbbSOZ3ILzr7
+         7kA0kSNBcXghXDqtEiAslJfNZyuJu7eddW9UA/Io7yR8mZRx0AuqvlClvC8+vz17a6
+         m5Dl6xZpsLDotala34FOnVXEQDlPsvt4JXDP2l/QMKqCaWQKZTpYxBbScYD4uYqZxg
+         6KUSW1EQigP1cb1FqsmY/zv4ApEHGDmntPVIgwI9QOgay6EuE1fbkZobVR6Fb9sf2Y
+         sU4uGqGJuQbFx+zyPfQidHYlKRtPXuwC0e99a0JbLppMoKLaDMEPdXB86Vah6CePtc
+         TyY51Dc+YW9EA==
 X-Nifty-SrcIP: [126.26.94.251]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-arch@vger.kernel.org, x86@kernel.org
@@ -43,9 +43,9 @@ Cc:     linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-sh@vger.kernel.org, linux-um@lists.infradead.org,
         linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org,
         sparclinux@vger.kernel.org, Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 20/27] sh: syscalls: switch to generic syscalltbl.sh
-Date:   Thu, 28 Jan 2021 09:51:02 +0900
-Message-Id: <20210128005110.2613902-21-masahiroy@kernel.org>
+Subject: [PATCH 26/27] xtensa: add missing FORCE and fix 'targets' to make if_changed work
+Date:   Thu, 28 Jan 2021 09:51:08 +0900
+Message-Id: <20210128005110.2613902-27-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20210128005110.2613902-1-masahiroy@kernel.org>
 References: <20210128005110.2613902-1-masahiroy@kernel.org>
@@ -55,83 +55,50 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-As of v5.11-rc1, 12 architectures duplicate similar shell scripts in
-order to generate syscall table headers. My goal is to unify them into
-the single scripts/syscalltbl.sh.
+The rules in this Makefile cannot detect the command line change because
+the prerequisite 'FORCE' is missing.
 
-This commit converts sh to use scripts/syscalltbl.sh.
+Adding 'FORCE' will result in the headers being rebuilt every time
+because the 'targets' addition is also wrong; the file paths in
+'targets' must be relative to the current Makefile.
+
+Fix all of them so the if_changed rules work correctly.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- arch/sh/kernel/syscalls/Makefile      |  7 ++----
- arch/sh/kernel/syscalls/syscalltbl.sh | 32 ---------------------------
- 2 files changed, 2 insertions(+), 37 deletions(-)
- delete mode 100644 arch/sh/kernel/syscalls/syscalltbl.sh
+ arch/xtensa/kernel/syscalls/Makefile | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
 
-diff --git a/arch/sh/kernel/syscalls/Makefile b/arch/sh/kernel/syscalls/Makefile
-index 1c42d2d2926d..6610130c67bc 100644
---- a/arch/sh/kernel/syscalls/Makefile
-+++ b/arch/sh/kernel/syscalls/Makefile
-@@ -7,7 +7,7 @@ _dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')	\
+diff --git a/arch/xtensa/kernel/syscalls/Makefile b/arch/xtensa/kernel/syscalls/Makefile
+index 659faefdcb1d..1c42d2d2926d 100644
+--- a/arch/xtensa/kernel/syscalls/Makefile
++++ b/arch/xtensa/kernel/syscalls/Makefile
+@@ -21,18 +21,19 @@ quiet_cmd_systbl = SYSTBL  $@
+ 		   '$(systbl_abi_$(basetarget))'		\
+ 		   '$(systbl_offset_$(basetarget))'
  
- syscall := $(srctree)/$(src)/syscall.tbl
- syshdr := $(srctree)/$(src)/syscallhdr.sh
--systbl := $(srctree)/$(src)/syscalltbl.sh
-+systbl := $(srctree)/scripts/syscalltbl.sh
- 
- quiet_cmd_syshdr = SYSHDR  $@
-       cmd_syshdr = $(CONFIG_SHELL) '$(syshdr)' '$<' '$@'	\
-@@ -16,10 +16,7 @@ quiet_cmd_syshdr = SYSHDR  $@
- 		   '$(syshdr_offset_$(basetarget))'
- 
- quiet_cmd_systbl = SYSTBL  $@
--      cmd_systbl = $(CONFIG_SHELL) '$(systbl)' '$<' '$@'	\
--		   '$(systbl_abis_$(basetarget))'		\
--		   '$(systbl_abi_$(basetarget))'		\
--		   '$(systbl_offset_$(basetarget))'
-+      cmd_systbl = $(CONFIG_SHELL) $(systbl) $< $@
- 
- $(uapi)/unistd_32.h: $(syscall) $(syshdr) FORCE
+-$(uapi)/unistd_32.h: $(syscall) $(syshdr)
++$(uapi)/unistd_32.h: $(syscall) $(syshdr) FORCE
  	$(call if_changed,syshdr)
-diff --git a/arch/sh/kernel/syscalls/syscalltbl.sh b/arch/sh/kernel/syscalls/syscalltbl.sh
-deleted file mode 100644
-index 904b8e6e625d..000000000000
---- a/arch/sh/kernel/syscalls/syscalltbl.sh
-+++ /dev/null
-@@ -1,32 +0,0 @@
--#!/bin/sh
--# SPDX-License-Identifier: GPL-2.0
--
--in="$1"
--out="$2"
--my_abis=`echo "($3)" | tr ',' '|'`
--my_abi="$4"
--offset="$5"
--
--emit() {
--	t_nxt="$1"
--	t_nr="$2"
--	t_entry="$3"
--
--	while [ $t_nxt -lt $t_nr ]; do
--		printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
--		t_nxt=$((t_nxt+1))
--	done
--	printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
--}
--
--grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
--	nxt=0
--	if [ -z "$offset" ]; then
--		offset=0
--	fi
--
--	while read nr abi name entry ; do
--		emit $((nxt+offset)) $((nr+offset)) $entry
--		nxt=$((nr+1))
--	done
--) > "$out"
+ 
+-$(kapi)/syscall_table.h: $(syscall) $(systbl)
++$(kapi)/syscall_table.h: $(syscall) $(systbl) FORCE
+ 	$(call if_changed,systbl)
+ 
+ uapisyshdr-y		+= unistd_32.h
+ kapisyshdr-y		+= syscall_table.h
+ 
+-targets	+= $(uapisyshdr-y) $(kapisyshdr-y)
++uapisyshdr-y	:= $(addprefix $(uapi)/, $(uapisyshdr-y))
++kapisyshdr-y	:= $(addprefix $(kapi)/, $(kapisyshdr-y))
++targets		+= $(addprefix ../../../../, $(uapisyshdr-y) $(kapisyshdr-y))
+ 
+ PHONY += all
+-all: $(addprefix $(uapi)/,$(uapisyshdr-y))
+-all: $(addprefix $(kapi)/,$(kapisyshdr-y))
++all: $(uapisyshdr-y) $(kapisyshdr-y)
+ 	@:
 -- 
 2.27.0
 
