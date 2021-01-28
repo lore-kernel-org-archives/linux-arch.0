@@ -2,166 +2,138 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
-	USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A3430C433E0
-	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 03:14:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D0566C433DB
+	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 08:02:30 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 78C1764DD3
-	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 03:14:20 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7554564DDF
+	for <linux-arch@archiver.kernel.org>; Thu, 28 Jan 2021 08:02:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229913AbhA1DOT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 27 Jan 2021 22:14:19 -0500
-Received: from szxga05-in.huawei.com ([45.249.212.191]:12038 "EHLO
-        szxga05-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229578AbhA1DOS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2021 22:14:18 -0500
-Received: from DGGEMS402-HUB.china.huawei.com (unknown [172.30.72.58])
-        by szxga05-in.huawei.com (SkyGuard) with ESMTP id 4DR59Y4L1szMR3L;
-        Thu, 28 Jan 2021 11:12:01 +0800 (CST)
-Received: from [10.174.177.80] (10.174.177.80) by
- DGGEMS402-HUB.china.huawei.com (10.3.19.202) with Microsoft SMTP Server id
- 14.3.498.0; Thu, 28 Jan 2021 11:13:20 +0800
-Subject: Re: [PATCH v11 01/13] mm/vmalloc: fix HUGE_VMAP regression by
- enabling huge pages in vmalloc_to_page
-To:     Nicholas Piggin <npiggin@gmail.com>, <linux-mm@kvack.org>,
-        Andrew Morton <akpm@linux-foundation.org>
-CC:     <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
-        <linuxppc-dev@lists.ozlabs.org>,
-        Jonathan Cameron <Jonathan.Cameron@Huawei.com>,
-        Christoph Hellwig <hch@infradead.org>,
-        Christophe Leroy <christophe.leroy@csgroup.eu>,
+        id S232114AbhA1IAz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 28 Jan 2021 03:00:55 -0500
+Received: from mx2.suse.de ([195.135.220.15]:53210 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S232200AbhA1IAJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 28 Jan 2021 03:00:09 -0500
+X-Virus-Scanned: by amavisd-new at test-mx.suse.de
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
+        t=1611820740; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=Sq6KOdfLPXiwAuLXOW7YjreGdGoulD4muuz4Tw4c0dA=;
+        b=BBuX1zyPDBli1wq3/9ieGxAyz7RNNE/U3jwTMZy/jhv7Vz+6hkiEhsZ79YzZbH8kl5y2Bm
+        A9arQ9DBK0SAyY7kgadriTJZxWkFGt/xnQF6rpi0s9gD2VaxeLaXb3fFpVR4Dc2f3dqqCc
+        OMJ50VBVtpJWHyvl89S1QLIePOScOWk=
+Received: from relay2.suse.de (unknown [195.135.221.27])
+        by mx2.suse.de (Postfix) with ESMTP id D57F3AD18;
+        Thu, 28 Jan 2021 07:58:59 +0000 (UTC)
+Date:   Thu, 28 Jan 2021 08:58:58 +0100
+From:   Michal Hocko <mhocko@suse.com>
+To:     Roman Gushchin <guro@fb.com>
+Cc:     Matthew Wilcox <willy@infradead.org>,
+        Mike Rapoport <rppt@kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        David Hildenbrand <david@redhat.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
         Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Christoph Hellwig <hch@lst.de>
-References: <20210126044510.2491820-1-npiggin@gmail.com>
- <20210126044510.2491820-2-npiggin@gmail.com>
-From:   Ding Tianhong <dingtianhong@huawei.com>
-Message-ID: <2dcbe2c9-c968-4895-fc43-c40dfe9f06d3@huawei.com>
-Date:   Thu, 28 Jan 2021 11:13:20 +0800
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
- Thunderbird/78.3.2
+        Shakeel Butt <shakeelb@google.com>,
+        Shuah Khan <shuah@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
+        Palmer Dabbelt <palmerdabbelt@google.com>
+Subject: Re: [PATCH v16 08/11] secretmem: add memcg accounting
+Message-ID: <YBJuwqItjCemDN5L@dhcp22.suse.cz>
+References: <20210121122723.3446-1-rppt@kernel.org>
+ <20210121122723.3446-9-rppt@kernel.org>
+ <20210125165451.GT827@dhcp22.suse.cz>
+ <20210125213817.GM6332@kernel.org>
+ <20210126144838.GL308988@casper.infradead.org>
+ <20210126150555.GU827@dhcp22.suse.cz>
+ <20210127184213.GA919963@carbon.dhcp.thefacebook.com>
 MIME-Version: 1.0
-In-Reply-To: <20210126044510.2491820-2-npiggin@gmail.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
-X-Originating-IP: [10.174.177.80]
-X-CFilter-Loop: Reflected
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210127184213.GA919963@carbon.dhcp.thefacebook.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 2021/1/26 12:44, Nicholas Piggin wrote:
-> vmalloc_to_page returns NULL for addresses mapped by larger pages[*].
-> Whether or not a vmap is huge depends on the architecture details,
-> alignments, boot options, etc., which the caller can not be expected
-> to know. Therefore HUGE_VMAP is a regression for vmalloc_to_page.
+On Wed 27-01-21 10:42:13, Roman Gushchin wrote:
+> On Tue, Jan 26, 2021 at 04:05:55PM +0100, Michal Hocko wrote:
+> > On Tue 26-01-21 14:48:38, Matthew Wilcox wrote:
+> > > On Mon, Jan 25, 2021 at 11:38:17PM +0200, Mike Rapoport wrote:
+> > > > I cannot use __GFP_ACCOUNT because cma_alloc() does not use gfp.
+> > > > Besides, kmem accounting with __GFP_ACCOUNT does not seem
+> > > > to update stats and there was an explicit request for statistics:
+> > > >  
+> > > > https://lore.kernel.org/lkml/CALo0P13aq3GsONnZrksZNU9RtfhMsZXGWhK1n=xYJWQizCd4Zw@mail.gmail.com/
+> > > > 
+> > > > As for (ab)using NR_SLAB_UNRECLAIMABLE_B, as it was already discussed here:
+> > > > 
+> > > > https://lore.kernel.org/lkml/20201129172625.GD557259@kernel.org/
+> > > > 
+> > > > I think that a dedicated stats counter would be too much at the moment and
+> > > > NR_SLAB_UNRECLAIMABLE_B is the only explicit stat for unreclaimable memory.
+> > > 
+> > > That's not true -- Mlocked is also unreclaimable.  And doesn't this
+> > > feel more like mlocked memory than unreclaimable slab?  It's also
+> > > Unevictable, so could be counted there instead.
+> > 
+> > yes, that is indeed true, except the unreclaimable counter is tracking
+> > the unevictable LRUs. These pages are not on any LRU and that can cause
+> > some confusion. Maybe they shouldn't be so special and they should live
+> > on unevistable LRU and get their stats automagically.
+> > 
+> > I definitely do agree that this would be a better fit than NR_SLAB
+> > abuse. But considering that this is somehow even more special than mlock
+> > then a dedicated counter sounds as even better fit.
 > 
-> This change teaches vmalloc_to_page about larger pages, and returns
-> the struct page that corresponds to the offset within the large page.
-> This makes the API agnostic to mapping implementation details.
+> I think it depends on how large these areas will be in practice.
+> If they will be measured in single or double digits MBs, a separate entry
+> is hardly a good choice: because of the batching the displayed value
+> will be in the noise range, plus every new vmstat item adds to the
+> struct mem_cgroup size.
 > 
-> [*] As explained by commit 029c54b095995 ("mm/vmalloc.c: huge-vmap:
->     fail gracefully on unexpected huge vmap mappings")
-> 
-> Reviewed-by: Christoph Hellwig <hch@lst.de>
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
-> ---
->  mm/vmalloc.c | 41 ++++++++++++++++++++++++++---------------
->  1 file changed, 26 insertions(+), 15 deletions(-)
-> 
-> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-> index e6f352bf0498..62372f9e0167 100644
-> --- a/mm/vmalloc.c
-> +++ b/mm/vmalloc.c
-> @@ -34,7 +34,7 @@
->  #include <linux/bitops.h>
->  #include <linux/rbtree_augmented.h>
->  #include <linux/overflow.h>
-> -
-> +#include <linux/pgtable.h>
->  #include <linux/uaccess.h>
->  #include <asm/tlbflush.h>
->  #include <asm/shmparam.h>
-> @@ -343,7 +343,9 @@ int is_vmalloc_or_module_addr(const void *x)
->  }
->  
->  /*
-> - * Walk a vmap address to the struct page it maps.
-> + * Walk a vmap address to the struct page it maps. Huge vmap mappings will
-> + * return the tail page that corresponds to the base page address, which
-> + * matches small vmap mappings.
->   */
->  struct page *vmalloc_to_page(const void *vmalloc_addr)
->  {
-> @@ -363,25 +365,33 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
->  
->  	if (pgd_none(*pgd))
->  		return NULL;
-> +	if (WARN_ON_ONCE(pgd_leaf(*pgd)))
-> +		return NULL; /* XXX: no allowance for huge pgd */
-> +	if (WARN_ON_ONCE(pgd_bad(*pgd)))
-> +		return NULL;
-> +
->  	p4d = p4d_offset(pgd, addr);
->  	if (p4d_none(*p4d))
->  		return NULL;
-> -	pud = pud_offset(p4d, addr);
-> +	if (p4d_leaf(*p4d))
-> +		return p4d_page(*p4d) + ((addr & ~P4D_MASK) >> PAGE_SHIFT);
-> +	if (WARN_ON_ONCE(p4d_bad(*p4d)))
-> +		return NULL;
->  
-> -	/*
-> -	 * Don't dereference bad PUD or PMD (below) entries. This will also
-> -	 * identify huge mappings, which we may encounter on architectures
-> -	 * that define CONFIG_HAVE_ARCH_HUGE_VMAP=y. Such regions will be
-> -	 * identified as vmalloc addresses by is_vmalloc_addr(), but are
-> -	 * not [unambiguously] associated with a struct page, so there is
-> -	 * no correct value to return for them.
-> -	 */
-> -	WARN_ON_ONCE(pud_bad(*pud));
-> -	if (pud_none(*pud) || pud_bad(*pud))
-> +	pud = pud_offset(p4d, addr);
-> +	if (pud_none(*pud))
-> +		return NULL;
-> +	if (pud_leaf(*pud))
-> +		return pud_page(*pud) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
+> If it will be measured in GBs, of course, a separate counter is preferred.
+> So I'd suggest to go with NR_SLAB (which should have been named NR_KMEM)
+> as now and conditionally switch to a separate counter later.
 
-Hi Nicho:
+I really do not think the overall usage matters when it comes to abusing
+other counters. Changing this in future will be always tricky and there
+always be our favorite "Can this break userspace" question. Yes we dared
+to change meaning of some counters but this is not generally possible.
+Just have a look how accounting shmem as a page cache has turned out
+being much more tricky than many like.
 
-/builds/1mzfdQzleCy69KZFb5qHNSEgabZ/mm/vmalloc.c: In function 'vmalloc_to_page':
-/builds/1mzfdQzleCy69KZFb5qHNSEgabZ/include/asm-generic/pgtable-nop4d-hack.h:48:27: error: implicit declaration of function 'pud_page'; did you mean 'put_page'? [-Werror=implicit-function-declaration]
-   48 | #define pgd_page(pgd)    (pud_page((pud_t){ pgd }))
-      |                           ^~~~~~~~
-
-the pug_page is not defined for aarch32 when enabling 2-level page config, it break the system building.
-
-
-> +	if (WARN_ON_ONCE(pud_bad(*pud)))
->  		return NULL;
-> +
->  	pmd = pmd_offset(pud, addr);
-> -	WARN_ON_ONCE(pmd_bad(*pmd));
-> -	if (pmd_none(*pmd) || pmd_bad(*pmd))
-> +	if (pmd_none(*pmd))
-> +		return NULL;
-> +	if (pmd_leaf(*pmd))
-> +		return pmd_page(*pmd) + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
-> +	if (WARN_ON_ONCE(pmd_bad(*pmd)))
->  		return NULL;
->  
->  	ptep = pte_offset_map(pmd, addr);
-> @@ -389,6 +399,7 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
->  	if (pte_present(pte))
->  		page = pte_page(pte);
->  	pte_unmap(ptep);
-> +
->  	return page;
->  }
->  EXPORT_SYMBOL(vmalloc_to_page);
-> 
-
+Really if a separate counter is a big deal, for which I do not see any
+big reason, then this should be accounted as unevictable (as suggested
+by Matthew) and ideally pages of those mappings should be sitting in the
+unevictable LRU as well unless there is a strong reason against.
+-- 
+Michal Hocko
+SUSE Labs
