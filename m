@@ -7,199 +7,147 @@ X-Spam-Status: No, score=-7.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
 	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8C95AC433E0
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Jan 2021 21:21:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8CA36C433E0
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Jan 2021 21:29:44 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2228764E0C
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Jan 2021 21:21:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 170C664E00
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Jan 2021 21:29:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232808AbhA2VVE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 29 Jan 2021 16:21:04 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44476 "EHLO
+        id S233327AbhA2V3m (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 29 Jan 2021 16:29:42 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46258 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232781AbhA2VVD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jan 2021 16:21:03 -0500
-Received: from mail-il1-x12d.google.com (mail-il1-x12d.google.com [IPv6:2607:f8b0:4864:20::12d])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4FA43C061573;
-        Fri, 29 Jan 2021 13:20:23 -0800 (PST)
-Received: by mail-il1-x12d.google.com with SMTP id p8so9817341ilg.3;
-        Fri, 29 Jan 2021 13:20:23 -0800 (PST)
+        with ESMTP id S233484AbhA2V3d (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jan 2021 16:29:33 -0500
+Received: from mail-io1-xd2e.google.com (mail-io1-xd2e.google.com [IPv6:2607:f8b0:4864:20::d2e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9090EC061573;
+        Fri, 29 Jan 2021 13:28:31 -0800 (PST)
+Received: by mail-io1-xd2e.google.com with SMTP id d13so10846413ioy.4;
+        Fri, 29 Jan 2021 13:28:31 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=mime-version:references:in-reply-to:reply-to:from:date:message-id
-         :subject:to:cc;
-        bh=/Jt06ny6ITPJGXSastjfT3IhLkcolmmMoDppTdivYms=;
-        b=CyT2dKXCi2ClKsYEYgWZ1tKSBtaIL/mF8HT0XPizh5NFK6NUe4RMx98uxAs14tYtz3
-         A0TOvZGOXHtZtQTfMxHvjXpMm011z882st9qXQGTKGGQuJpUgyq+V8plsWHoEyFBC2+Y
-         4rGjbwBjBdM3JRNgM1sK+1W5FMt2JjY/l4eD+BGIRQaxAYjZtcXn40RqkHDTFLqBihxm
-         g0anpGBO769UPrKNdQOVpL7mn+3FUfmSisVxjYWV30hWrPIzAuzsTNfkz/x0vZjifKIG
-         QSq7iXGw5RGRUayFilfzKGwWQUuTJFRJRXyTvdiFBO8RuDBqqCNEZGS6N5Bn3Z8UZ8DM
-         huhA==
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=iKpEQgZS1QCYwcoVA/IcLJsT/QZzUi4/M7PsXGgpQfE=;
+        b=fMRZFK4ep5zSIRr70ydxpadj/9KtuXo9IlmMEwZ6aSBmmveC0Kz+0vmK1ixQQC/7Dj
+         qTJVh5F+GLeCkuf41AJz1lOvFQ2EKeYDkywPzv93VmDy76NGDbC4hM6Jz6JaAv04VqXj
+         5mX4Z3nEzvkJuXl4k0bGt1bMZhEByd2J0lAFiApkCUsNEORaDgcXtmoSEf/gJnGryNsm
+         M/iRbEHi03TsNCLtiy+nzqn3QJHBqCCkyszrVeY7L+A1akugY+wMl7wNM4ORmgnJxWIB
+         Dmhbg/tO6wMnLD80Bfd+NynUkV4ToUW2V5318Ycg8GVEZhEDerA5AWIemBVmvJ2iGmTR
+         VG1Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:reply-to
-         :from:date:message-id:subject:to:cc;
-        bh=/Jt06ny6ITPJGXSastjfT3IhLkcolmmMoDppTdivYms=;
-        b=oDavQa6SiRDbpAtK/M61QXozsQQafHlfDy57aIQfW8KjfSYRdXXXpePgqUDL6WE7if
-         eHYbgP5lg+Tuv6zlGz/f/REZqUSAsAq9LVICmHr2xwTxwCwlEBhNTzHID8RQNspVJi0y
-         PtNUgTs5+zclseuljXaYejlvN08622pwJ+hk4SIQONwA0un8Xk7BHDlHh3ff0d80oSaB
-         jDdGDIb8hEPAkyQ64XlXvPeWsIrKJ3g0RGkU0aLkXY5t2i9uAI2SAn5tmaJ7W7sWmrbB
-         SBCp9JLckA2f9fEUPX2L676LT2ddtQNS8E/iYqctR0nVm2ELGksSn3BmBHrYlN5Y+EYq
-         8oHQ==
-X-Gm-Message-State: AOAM533q5s5V2v9q44UHNLAa9qR7M9ke0jLkKa1v4BD4idvKTdk5Q+c+
-        dZ1reID/s3h7qYjOHVLmHElY+uMCmmBsBogg/Q0=
-X-Google-Smtp-Source: ABdhPJyNHnb+Pm3K/AnVpy6FQQkFCkfLxnclM7VPSkDuMoq78n9GBja/qto73XkaUvcgU0S5wedJsDHuWBgZOED7vSA=
-X-Received: by 2002:a92:c80b:: with SMTP id v11mr4445392iln.215.1611955222408;
- Fri, 29 Jan 2021 13:20:22 -0800 (PST)
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=iKpEQgZS1QCYwcoVA/IcLJsT/QZzUi4/M7PsXGgpQfE=;
+        b=JNvs1xdOwz4bZTjU8d76FaJTDCuFqt8Ri/M89MObsWr5b7BunU2L4Qxyoff5mM048G
+         IqmXrKnmsJgQ5NgSYM3CDNRCv0h9O+oQQo+h0xWbUnyYXAYlhr40mf6PkQaPnVqboAOe
+         Ipx0lmEeI/jfJ+vssvJpyeRhnts8PMWGnwmIrmx+s63CSAMOa4OyzxkSShTK+X288fh9
+         Sl32rmqRdD7vyjp/Os+SeVCT9RtXMjobAaVDHBoQVOZEwhTZyZy1knyHpbN147Ut/M2M
+         1uw1pCNVuOW/PlVV+js9NR46OPM5pMQfo7MnbGVBzi4cYCXOjXazUAOtfCvZXDqwDLhT
+         hNHw==
+X-Gm-Message-State: AOAM531UCpqNA/eYvLum2TJLXZVWbPbqcx/EPVilcjYL8B9+By2pTHvu
+        G0XNaT2QbNMkCY2PDUe+Ehtd8OGBhFWBhSCrmDQ=
+X-Google-Smtp-Source: ABdhPJxQHThyPfYaf7dcZ8ePzMFtwOJvGemJiselxNzpqvhf5JHQn1G8eLTOO/AEnjalkFd2AazRdzRyVOSIgCGs158=
+X-Received: by 2002:a05:6638:1344:: with SMTP id u4mr5560181jad.86.1611955711081;
+ Fri, 29 Jan 2021 13:28:31 -0800 (PST)
 MIME-Version: 1.0
-References: <20210129194318.2125748-1-ndesaulniers@google.com>
- <20210129194318.2125748-3-ndesaulniers@google.com> <CA+icZUX4q-JhCo+UZ9T3FhbC_gso-oaB0OR9KdH5iEpoGZyqVw@mail.gmail.com>
- <CAKwvOdnj1Np62+eOiTOCRXSW6GLSv4hmvtWaz=0aTZEEot_dhw@mail.gmail.com>
- <CA+icZUWsyjDY58ZZ0MAVfWqBJ8FUSpM6=_5aqPcRTfX2W8Y-+Q@mail.gmail.com>
- <CAKwvOd=mHvEtto37rzFMfsFYe2e-Cp2MAiyRYxHWPdc-HbT8EA@mail.gmail.com> <CA+icZUWxK9fdV8PNGqbQrOFmSZ2Ts4nNqfVMMNUh5u79Ld7hjA@mail.gmail.com>
-In-Reply-To: <CA+icZUWxK9fdV8PNGqbQrOFmSZ2Ts4nNqfVMMNUh5u79Ld7hjA@mail.gmail.com>
-Reply-To: sedat.dilek@gmail.com
-From:   Sedat Dilek <sedat.dilek@gmail.com>
-Date:   Fri, 29 Jan 2021 22:20:10 +0100
-Message-ID: <CA+icZUUo6URpxHh6_Tppv9_Z1dyhGDB2OqSCY3yRw72aA0EbMQ@mail.gmail.com>
-Subject: Re: [PATCH v6 2/2] Kbuild: implement support for DWARF v5
-To:     Nick Desaulniers <ndesaulniers@google.com>
-Cc:     Masahiro Yamada <masahiroy@kernel.org>,
-        Nathan Chancellor <natechancellor@gmail.com>,
+References: <20210129204528.2118168-1-yury.norov@gmail.com>
+ <20210129204528.2118168-4-yury.norov@gmail.com> <CAHp75VcSc=myrcvyBOkaUDguR6aPjJAFFXi2iSvmU21+1664Hw@mail.gmail.com>
+In-Reply-To: <CAHp75VcSc=myrcvyBOkaUDguR6aPjJAFFXi2iSvmU21+1664Hw@mail.gmail.com>
+From:   Yury Norov <yury.norov@gmail.com>
+Date:   Fri, 29 Jan 2021 13:28:20 -0800
+Message-ID: <CAAH8bW_Gt+0bC=S2HtR_B3cH-KGJQQaUQ0z0xn=aZCtBzy43yQ@mail.gmail.com>
+Subject: Re: [PATCH 2/5] bits_per_long.h: introduce SMALL_CONST() macro
+To:     Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc:     linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux-SH <linux-sh@vger.kernel.org>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>,
+        Dennis Zhou <dennis@kernel.org>,
         Andrew Morton <akpm@linux-foundation.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        Clang-Built-Linux ML <clang-built-linux@googlegroups.com>,
-        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Jakub Jelinek <jakub@redhat.com>,
-        Fangrui Song <maskray@google.com>,
-        Caroline Tice <cmtice@google.com>,
-        Nick Clifton <nickc@redhat.com>, Yonghong Song <yhs@fb.com>,
-        Jiri Olsa <jolsa@kernel.org>,
-        Andrii Nakryiko <andrii@kernel.org>,
-        Arnaldo Carvalho de Melo <acme@kernel.org>,
-        Arvind Sankar <nivedita@alum.mit.edu>
+        Wolfram Sang <wsa+renesas@sang-engineering.com>,
+        David Sterba <dsterba@suse.com>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Stefano Brivio <sbrivio@redhat.com>,
+        "Ma, Jianpeng" <jianpeng.ma@intel.com>,
+        Wei Yang <richard.weiyang@linux.alibaba.com>,
+        Josh Poimboeuf <jpoimboe@redhat.com>,
+        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jan 29, 2021 at 10:13 PM Sedat Dilek <sedat.dilek@gmail.com> wrote:
+On Fri, Jan 29, 2021 at 1:11 PM Andy Shevchenko
+<andy.shevchenko@gmail.com> wrote:
 >
-> On Fri, Jan 29, 2021 at 10:09 PM Nick Desaulniers
-> <ndesaulniers@google.com> wrote:
+> On Fri, Jan 29, 2021 at 10:49 PM Yury Norov <yury.norov@gmail.com> wrote:
 > >
-> > On Fri, Jan 29, 2021 at 12:55 PM Sedat Dilek <sedat.dilek@gmail.com> wrote:
-> > >
-> > > On Fri, Jan 29, 2021 at 9:48 PM Nick Desaulniers
-> > > <ndesaulniers@google.com> wrote:
-> > > >
-> > > > On Fri, Jan 29, 2021 at 12:41 PM Sedat Dilek <sedat.dilek@gmail.com> wrote:
-> > > > >
-> > > > > On Fri, Jan 29, 2021 at 8:43 PM Nick Desaulniers
-> > > > > <ndesaulniers@google.com> wrote:
-> > > > > >
-> > > > > > diff --git a/Makefile b/Makefile
-> > > > > > index 20141cd9319e..bed8b3b180b8 100644
-> > > > > > --- a/Makefile
-> > > > > > +++ b/Makefile
-> > > > > > @@ -832,8 +832,20 @@ endif
-> > > > > >
-> > > > > >  dwarf-version-$(CONFIG_DEBUG_INFO_DWARF2) := 2
-> > > > > >  dwarf-version-$(CONFIG_DEBUG_INFO_DWARF4) := 4
-> > > > > > +dwarf-version-$(CONFIG_DEBUG_INFO_DWARF5) := 5
-> > > > > >  DEBUG_CFLAGS   += -gdwarf-$(dwarf-version-y)
-> > > > > >
-> > > > > > +# If using clang without the integrated assembler, we need to explicitly tell
-> > > > > > +# GAS that we will be feeding it DWARF v5 assembler directives. Kconfig should
-> > > > > > +# detect whether the version of GAS supports DWARF v5.
-> > > > > > +ifdef CONFIG_CC_IS_CLANG
-> > > > > > +ifneq ($(LLVM_IAS),1)
-> > > > > > +ifeq ($(dwarf-version-y),5)
-> > > > > > +DEBUG_CFLAGS   += -Wa,-gdwarf-5
-> > > > >
-> > > > > I noticed double "-g -gdwarf-5 -g -gdwarf-5" (a different issue) and
-> > > > > that's why I looked again into the top-level Makefile.
-> > > >
-> > > > That's...unexpected.  I don't see where that could be coming from.
-> > > > Can you tell me please what is the precise command line invocation of
-> > > > make and which source file you observed this on so that I can
-> > > > reproduce?
-> > > >
-> > >
-> > > That's everywhere...
-> > >
-> > > $ zstdgrep --color '\-g -gdwarf-5 -g -gdwarf-5'
-> > > build-log_5.11.0-rc5-8-amd64-clang12-lto.txt.zst
-> > > | wc -l
-> > > 29529
+> > Many algorithms become simplier if they are passed with relatively small
+>
+> simpler
+>
+> > input values. One example is bitmap operations when the whole bitmap fits
+> > into one word. To implement such simplifications, linux/bitmap.h declares
+> > small_const_nbits() macro.
 > >
-> > I'm not able to reproduce.
+> > Other subsystems may also benefit from optimizations of this sort, like
+> > find_bit API in the following patches. So it looks helpful to generalize
+> > the macro and extend it's visibility.
+>
+> > It should probably go to linux/kernel.h, but doing that creates circular
+> > dependencies. So put it in asm-generic/bitsperlong.h.
+>
+> No, no, please leave kernel.h alone. It's already quite a mess.
+>
+> And this shouldn't be in the commit message either.
+>
+> ...
+>
+> > -       if (small_const_nbits(nbits))
+> > +       if (SMALL_CONST(nbits - 1))
+>
+> Not sure if we need to rename it.
+
+Lower case for generic macro kind of breaking the rules.
+
+Behaviour has changed too. Before it was:
+0 < VAL <= 32
+Now it's
+0 <= VAL < 32
+Which is better for generic macro.
+
+So changing the name looks reasonable to me.
+
+> ...
+>
+> > --- a/include/linux/bits.h
+> > +++ b/include/linux/bits.h
+> > @@ -37,7 +37,7 @@
+> >  #define GENMASK(h, l) \
+> >         (GENMASK_INPUT_CHECK(h, l) + __GENMASK(h, l))
 > >
-> > $ make LLVM=1 -j72 V=1 2>&1 | grep dwarf
-> > ...
-> > clang ... -g -gdwarf-5 -Wa,-gdwarf-5 ...
-> > ...
-> >
-> > $ make LLVM=1 LLVM_IAS=1 -j72 V=1 2>&1 | grep dwarf
-> > ...
-> > clang ... -g -gdwarf-5 ...
-> > ...
-> >
+> > -#define BITS_FIRST(nr)         GENMASK(nr), 0)
+> > +#define BITS_FIRST(nr)         GENMASK((nr), 0)
 >
-> Hmm...
->
-> I do not see in my current build "-Wa,-gdwarf-5" is passed with v6.
->
-> $ grep '\-Wa,-gdwarf-5' build-log_5.11.0-rc5-10-amd64-clang12-lto-pgo.txt
-> [ empty ]
->
+> How come?!
 
-That's the diff v5 -> v6...
+git send-email wrong_dir/000*
+Will resubmit today later.
 
-[ Makefile ]
-
-@@ -826,16 +829,23 @@ else
- DEBUG_CFLAGS += -g
- endif
-
-+ifneq ($(LLVM_IAS),1)
-+KBUILD_AFLAGS += -Wa,-gdwarf-2
-+endif
-+
- dwarf-version-$(CONFIG_DEBUG_INFO_DWARF2) := 2
- dwarf-version-$(CONFIG_DEBUG_INFO_DWARF4) := 4
- dwarf-version-$(CONFIG_DEBUG_INFO_DWARF5) := 5
- DEBUG_CFLAGS += -gdwarf-$(dwarf-version-y)
--# Binutils 2.35+ required for -gdwarf-4+ support.
--dwarf-aflag := $(call as-option,-Wa$(comma)-gdwarf-$(dwarf-version-y))
--KBUILD_AFLAGS += $(dwarf-aflag)
-+
-+# If using clang without the integrated assembler, we need to explicitly tell
-+# GAS that we will be feeding it DWARF v5 assembler directives. Kconfig should
-+# detect whether the version of GAS supports DWARF v5.
- ifdef CONFIG_CC_IS_CLANG
- ifneq ($(LLVM_IAS),1)
--DEBUG_CFLAGS += $(dwarf-aflag)
-+ifeq ($(dwarf-version-y),5)
-+DEBUG_CFLAGS += -Wa,-gdwarf-5
-+endif
- endif
- endif
-
-There is no more a dwarf-aflag / KBUILD_AFLAGS += $(dwarf-aflag) used.
-
-- Sedat -
-
+> ...
 >
-> - Sedat
+> > diff --git a/tools/include/asm-generic/bitsperlong.h b/tools/include/asm-generic/bitsperlong.h
+> > index 8f2283052333..432d272baf27 100644
+> > --- a/tools/include/asm-generic/bitsperlong.h
+> > +++ b/tools/include/asm-generic/bitsperlong.h
 >
+> I think a tools update would be better to have in a separate patch.
 >
->
->
-> > Can you tell me please what is the precise command line invocation of
-> > make and which source file you observed this on so that I can
-> > reproduce?
-> > --
-> > Thanks,
-> > ~Nick Desaulniers
+> --
+> With Best Regards,
+> Andy Shevchenko
