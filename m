@@ -2,97 +2,152 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
+X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D62DCC433E0
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Jan 2021 20:58:46 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 081A1C433E6
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Jan 2021 21:01:13 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7990064E06
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Jan 2021 20:58:46 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id BEC4964E0A
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Jan 2021 21:01:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232918AbhA2U6o (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 29 Jan 2021 15:58:44 -0500
-Received: from us-smtp-delivery-124.mimecast.com ([63.128.21.124]:42580 "EHLO
-        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S233343AbhA2U6l (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 29 Jan 2021 15:58:41 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1611953835;
-        h=from:from:reply-to:reply-to:subject:subject:date:date:
-         message-id:message-id:to:to:cc:cc:mime-version:mime-version:
-         content-type:content-type:in-reply-to:in-reply-to:  references:references;
-        bh=jJAl8faLaTXKp5DstykPQouYkGkdmrA8uwwSrWLNEdw=;
-        b=YVNQpP1Iw/6Opz/4f6R0KS1JlwojnVGrb2C5fUgiYUT5MhjWdid8aUVzRzimyT6OKil1xp
-        aGAXJ1q8hT+6R1h/vMAa653Fk9YJOaCqx7r0wUOW9ZOJZoC9Ta4XrJCwe1yJy1CA8uVmIH
-        1ZfZAJpbZGr/Tu+irIL1MNBJoqC+pxw=
-Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
- [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
- us-mta-584-4jqVEabdM_mz1KST0Orp4A-1; Fri, 29 Jan 2021 15:57:11 -0500
-X-MC-Unique: 4jqVEabdM_mz1KST0Orp4A-1
-Received: from smtp.corp.redhat.com (int-mx02.intmail.prod.int.phx2.redhat.com [10.5.11.12])
-        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
-        (No client certificate requested)
-        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 047F1107ACE3;
-        Fri, 29 Jan 2021 20:57:09 +0000 (UTC)
-Received: from tucnak.zalov.cz (ovpn-112-64.ams2.redhat.com [10.36.112.64])
-        by smtp.corp.redhat.com (Postfix) with ESMTPS id 7BA7960BE2;
-        Fri, 29 Jan 2021 20:57:08 +0000 (UTC)
-Received: from tucnak.zalov.cz (localhost [127.0.0.1])
-        by tucnak.zalov.cz (8.16.1/8.16.1) with ESMTPS id 10TKv4KA2368399
-        (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-        Fri, 29 Jan 2021 21:57:05 +0100
-Received: (from jakub@localhost)
-        by tucnak.zalov.cz (8.16.1/8.16.1/Submit) id 10TKv2Kg2368396;
-        Fri, 29 Jan 2021 21:57:02 +0100
-Date:   Fri, 29 Jan 2021 21:57:02 +0100
-From:   Jakub Jelinek <jakub@redhat.com>
-To:     Nick Desaulniers <ndesaulniers@google.com>
-Cc:     Sedat Dilek <sedat.dilek@gmail.com>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Nathan Chancellor <natechancellor@gmail.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        Clang-Built-Linux ML <clang-built-linux@googlegroups.com>,
-        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Fangrui Song <maskray@google.com>,
-        Caroline Tice <cmtice@google.com>,
-        Nick Clifton <nickc@redhat.com>, Yonghong Song <yhs@fb.com>,
-        Jiri Olsa <jolsa@kernel.org>,
-        Andrii Nakryiko <andrii@kernel.org>,
-        Arnaldo Carvalho de Melo <acme@kernel.org>,
-        Arvind Sankar <nivedita@alum.mit.edu>
-Subject: Re: [PATCH v6 2/2] Kbuild: implement support for DWARF v5
-Message-ID: <20210129205702.GS4020736@tucnak>
-Reply-To: Jakub Jelinek <jakub@redhat.com>
-References: <20210129194318.2125748-1-ndesaulniers@google.com>
- <20210129194318.2125748-3-ndesaulniers@google.com>
- <CA+icZUX4q-JhCo+UZ9T3FhbC_gso-oaB0OR9KdH5iEpoGZyqVw@mail.gmail.com>
- <CAKwvOdnj1Np62+eOiTOCRXSW6GLSv4hmvtWaz=0aTZEEot_dhw@mail.gmail.com>
+        id S233276AbhA2VBK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 29 Jan 2021 16:01:10 -0500
+Received: from mga12.intel.com ([192.55.52.136]:64688 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S232727AbhA2VBI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 29 Jan 2021 16:01:08 -0500
+IronPort-SDR: vXS/hO6kujbaw1whoVnolbDxtjOrFww35Q2b3+T1/XuJuuT2/Jr6WrWHMNapDlRGVT8li6KBUY
+ 76AqTkxV9phQ==
+X-IronPort-AV: E=McAfee;i="6000,8403,9879"; a="159650397"
+X-IronPort-AV: E=Sophos;i="5.79,386,1602572400"; 
+   d="scan'208";a="159650397"
+Received: from fmsmga006.fm.intel.com ([10.253.24.20])
+  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Jan 2021 13:00:22 -0800
+IronPort-SDR: 9tkKt6WDhBnDpkEW+q/LEAZYVNapMQx+x5H6RZhh3dY/pnMUHenVdE9QC8IBieUWp/6yPEoZMV
+ 6DtpUK94EkYQ==
+X-IronPort-AV: E=Sophos;i="5.79,386,1602572400"; 
+   d="scan'208";a="576586174"
+Received: from bkmossma-mobl.amr.corp.intel.com (HELO [10.209.175.74]) ([10.209.175.74])
+  by fmsmga006-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Jan 2021 13:00:20 -0800
+Subject: Re: [NEEDS-REVIEW] [PATCH v18 05/25] x86/fpu/xstate: Introduce CET
+ MSR and XSAVES supervisor states
+To:     Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
+        linux-doc@vger.kernel.org, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>,
+        Pengfei Xu <pengfei.xu@intel.com>,
+        Andrew Cooper <andrew.cooper3@citrix.com>
+References: <20210127212524.10188-1-yu-cheng.yu@intel.com>
+ <20210127212524.10188-6-yu-cheng.yu@intel.com>
+From:   Dave Hansen <dave.hansen@intel.com>
+Autocrypt: addr=dave.hansen@intel.com; keydata=
+ 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
+ z5cecg==
+Message-ID: <7793b36e-6386-3f2e-36ca-b7ca988a88c9@intel.com>
+Date:   Fri, 29 Jan 2021 13:00:19 -0800
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
+ Thunderbird/68.10.0
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAKwvOdnj1Np62+eOiTOCRXSW6GLSv4hmvtWaz=0aTZEEot_dhw@mail.gmail.com>
-X-Scanned-By: MIMEDefang 2.79 on 10.5.11.12
+In-Reply-To: <20210127212524.10188-6-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jan 29, 2021 at 12:48:11PM -0800, Nick Desaulniers wrote:
-> > Should this be...?
-> >
-> > KBUILD_AFLAGS += -Wa,-gdwarf-5
-> 
-> No; under the set of conditions Clang is compiling .c to .S with DWARF
-> v5 assembler directives. GAS will choke unless told -gdwarf-5 via
-> -Wa,-gdwarf-5 for .c source files, hence it is a C flag, not an A
+On 1/27/21 1:25 PM, Yu-cheng Yu wrote:
+> @@ -135,6 +135,8 @@ enum xfeature {
+>  #define XFEATURE_MASK_PT		(1 << XFEATURE_PT_UNIMPLEMENTED_SO_FAR)
+>  #define XFEATURE_MASK_PKRU		(1 << XFEATURE_PKRU)
+>  #define XFEATURE_MASK_PASID		(1 << XFEATURE_PASID)
+> +#define XFEATURE_MASK_CET_USER		(1 << XFEATURE_CET_USER)
+> +#define XFEATURE_MASK_CET_KERNEL	(1 << XFEATURE_CET_KERNEL)
+>  #define XFEATURE_MASK_LBR		(1 << XFEATURE_LBR)
+>  
+>  #define XFEATURE_MASK_FPSSE		(XFEATURE_MASK_FP | XFEATURE_MASK_SSE)
+> @@ -237,6 +239,23 @@ struct pkru_state {
+>  	u32				pad;
+>  } __packed;
+>  
+> +/*
+> + * State component 11 is Control-flow Enforcement user states
+> + */
+> +struct cet_user_state {
+> +	u64 user_cet;			/* user control-flow settings */
+> +	u64 user_ssp;			/* user shadow stack pointer */
+> +};
 
-Wasn't that fixed in GAS?
-https://sourceware.org/bugzilla/show_bug.cgi?id=27195
+Andy Cooper just mentioned on IRC about this nugget in the spec:
 
-	Jakub
+	XRSTORS on CET state will do reserved bit and canonicality
+	checks on the state in similar manner as done by the WRMSR to
+	these state elements.
 
+We're using copy_kernel_to_xregs_err(), so the #GP *should* be OK.
+Could we prove this out in practice, please?
