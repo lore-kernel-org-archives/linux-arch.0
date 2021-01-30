@@ -8,54 +8,54 @@ X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 01066C433DB
-	for <linux-arch@archiver.kernel.org>; Sat, 30 Jan 2021 19:19:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8C57EC433E0
+	for <linux-arch@archiver.kernel.org>; Sat, 30 Jan 2021 19:19:53 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id BFD7264E11
-	for <linux-arch@archiver.kernel.org>; Sat, 30 Jan 2021 19:19:44 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 646BC64E13
+	for <linux-arch@archiver.kernel.org>; Sat, 30 Jan 2021 19:19:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232013AbhA3TTR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 30 Jan 2021 14:19:17 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42992 "EHLO
+        id S232528AbhA3TTm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 30 Jan 2021 14:19:42 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43068 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232463AbhA3TSq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 30 Jan 2021 14:18:46 -0500
-Received: from mail-qt1-x82f.google.com (mail-qt1-x82f.google.com [IPv6:2607:f8b0:4864:20::82f])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 41C55C061794;
-        Sat, 30 Jan 2021 11:17:29 -0800 (PST)
-Received: by mail-qt1-x82f.google.com with SMTP id t14so9290927qto.8;
-        Sat, 30 Jan 2021 11:17:29 -0800 (PST)
+        with ESMTP id S232171AbhA3TTG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 30 Jan 2021 14:19:06 -0500
+Received: from mail-qt1-x82e.google.com (mail-qt1-x82e.google.com [IPv6:2607:f8b0:4864:20::82e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7D3E3C0617AA;
+        Sat, 30 Jan 2021 11:17:31 -0800 (PST)
+Received: by mail-qt1-x82e.google.com with SMTP id h16so8199777qth.11;
+        Sat, 30 Jan 2021 11:17:31 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=p9qhc9BYAtLY8EP7loxZVXO/bWo6OC7wmeVoXeXbjIA=;
-        b=f+HbBhAc1svnrCehEix/8kOJHnAknl0p1A3aQ/a+ykeOjZ2vbQujKJbkD/wkmQqTQC
-         26S86zrvLTJcOkI5qmRPOtWwXie5i3ZJn80MCPHIEYPzJyaTyYMQY+NL/Qqszz/oZ4+U
-         o+sqmSO3C7MrIMTH3hbE6EeLZwQXRakA7VAr6rlWGMwx/8PHwDuiep/m/sHQRaUbOrMU
-         xH8emf7HLDJwnxMvPPdlOkMhbibpJ8GU2XhCDkBcevHYlCK9zGuptNQky0K22GPZRjSM
-         sT+abrp2h6ysYTFJqoEFq1Z8hos+avveH9+wSJK9uBJcTC11DymyHi18Mb6XDEKWWrzd
-         U2zQ==
+        bh=CrAmvRDdAl33DSpHjA5XcZUSXoY21DiogAG2ynD5om4=;
+        b=L+wtCVRFdftJyNxjUlUwxHuQlSPoxvr5f2BonNocXlpsvaf/fvDLsiMHi9/7BF3FGR
+         fHu6SEBjHfH8sfr/JaSox1NriSUIomGNYee4IpTGDot1p0gKtEWupimgUcsq+szRfhMr
+         4SMOqF7Bon6i2dh+bAA7Ysw8t0USZuAuTvkwoY1N37RocgQKZJbyN+AY3IQcBRTc2nsr
+         Kix1n0bx94WY/AsEmbZiniBZEhmY+4vCCMIgFPXx89BnBhqxuXW5+pLzQS8OJufuSaCC
+         yXaVWiChJiEhRR+u6YLCtcSNTngngB3P++/hy2e4cmyMN21K6Qnmm0CaLPxqVo6m0Ug9
+         5+xQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=p9qhc9BYAtLY8EP7loxZVXO/bWo6OC7wmeVoXeXbjIA=;
-        b=jejd3qsjMpGIxWzdOfSqINDifL7so4ZFHC2zBbKxUN1RN9dWuowiXK0Zi3jxhU9yQ8
-         lG9h8nzftp4e/Yj9OUlWfqAibS1vUuj2kIwgX3z7C8fwHTLQL8uTJzLDxGu+uHiNadzA
-         v+QRmkNHdthOYrRZZji0toFyaaEwUkGlPynNHu3GZUSnzgKTKbJGeJPzQdCvJHNjFL9r
-         iuMUv7g57Dq0QtydRDFUUQ3s3+suvM9QKC0OkvaLzHQeZzRjkuQcBOCD2KSd+29DBeuE
-         RiBAWDMPhLsBqe4Gqlwvy2V7rI6LNI4//4Jpq9vNhsQ5APxYjMLM4VTsAfaXTKnoR8u0
-         AC5g==
-X-Gm-Message-State: AOAM530Src6l57nlAIRNtXFqUFopziL3Zk4oC4scTLpHg25VRBEhGz7b
-        JCOGOI2dpJ50hiW1PGXo098=
-X-Google-Smtp-Source: ABdhPJySiz6OieCqZ2nBEFcl7kkAFACt+3LPmwb3+NjWqwB6dOPJP0X0Oa0Ze5QTlJiqVWQNY0vcSA==
-X-Received: by 2002:ac8:1109:: with SMTP id c9mr9030204qtj.120.1612034248416;
-        Sat, 30 Jan 2021 11:17:28 -0800 (PST)
+        bh=CrAmvRDdAl33DSpHjA5XcZUSXoY21DiogAG2ynD5om4=;
+        b=P5VFyinEWz1WiCaVGIdqgDb3VqSfvJR8o/1ZdClj8SmGYufzY7FT73RsGX4UH48lhw
+         4Zb+w0gOksXwELQKZa3FdzUyOuzmIumOqfwVGHZny/HOe5L61HiyJWCDqLt+nBdMBAuh
+         xBh+uk/73PfJC3ILhrURZ4yZbt6KZVXxsDLC/Pml2esreqKFkCni2+QO7Yp0xEGOR7ac
+         q/Q6hYFYqNQB/BEoSOrCx4cpTBs5a3nx2dgPHW5tZT8BU+GRFoporu76KaxayOUwhH2b
+         MBTUAxYgq3A41RQnTg+RWWFXDOquCCrm5E7IWENfG8rIIpDfnq9mvD4ptIfXvg71se3F
+         tLnQ==
+X-Gm-Message-State: AOAM530yxWIYTBiL5glJ6t5TqEsfpa9uK33UDtalT6hxtUJf55gFYegK
+        eKOSuOMFUO0Jcp5MMlBu2X8=
+X-Google-Smtp-Source: ABdhPJxa36sZmDJPtqezzoP0XV3lQt1JIdIaV55LPu5GsSt6faVQkre3cX+Co4z+sh8UeZZYW8rJww==
+X-Received: by 2002:a05:622a:303:: with SMTP id q3mr9077138qtw.235.1612034250704;
+        Sat, 30 Jan 2021 11:17:30 -0800 (PST)
 Received: from localhost (d27-96-190-162.evv.wideopenwest.com. [96.27.162.190])
-        by smtp.gmail.com with ESMTPSA id w28sm8997054qtv.93.2021.01.30.11.17.27
+        by smtp.gmail.com with ESMTPSA id u65sm9498777qkb.58.2021.01.30.11.17.30
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 30 Jan 2021 11:17:27 -0800 (PST)
+        Sat, 30 Jan 2021 11:17:30 -0800 (PST)
 From:   Yury Norov <yury.norov@gmail.com>
 To:     linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org,
         linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
@@ -74,9 +74,9 @@ Cc:     Yury Norov <yury.norov@gmail.com>,
         Josh Poimboeuf <jpoimboe@redhat.com>,
         John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
         Joe Perches <joe@perches.com>
-Subject: [PATCH 5/8] bitsperlong.h: introduce SMALL_CONST() macro
-Date:   Sat, 30 Jan 2021 11:17:16 -0800
-Message-Id: <20210130191719.7085-6-yury.norov@gmail.com>
+Subject: [PATCH 7/8] lib: add fast path for find_next_*_bit()
+Date:   Sat, 30 Jan 2021 11:17:18 -0800
+Message-Id: <20210130191719.7085-8-yury.norov@gmail.com>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20210130191719.7085-1-yury.norov@gmail.com>
 References: <20210130191719.7085-1-yury.norov@gmail.com>
@@ -86,275 +86,174 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Many algorithms become simpler if they are passed with relatively small
-input values. One example is bitmap operations when the whole bitmap fits
-into one word. To implement such simplifications, linux/bitmap.h declares
-small_const_nbits() macro.
-
-Other subsystems may also benefit from optimizations of this sort, like
-find_bit API in the following patches. So it looks helpful to generalize
-the macro and extend it's visibility.
+Similarly to bitmap functions, find_next_*_bit() users will benefit
+if we'll handle a case of bitmaps that fit into a single word. In the
+very best case, the compiler may replace a function call with a
+single ffs or ffz instruction.
 
 Signed-off-by: Yury Norov <yury.norov@gmail.com>
 ---
- include/asm-generic/bitsperlong.h       |  2 ++
- include/linux/bitmap.h                  | 33 +++++++++++--------------
- tools/include/asm-generic/bitsperlong.h |  2 ++
- tools/include/linux/bitmap.h            | 19 ++++++--------
- 4 files changed, 27 insertions(+), 29 deletions(-)
+ include/asm-generic/bitops/find.h       | 30 +++++++++++++++++++++++++
+ include/asm-generic/bitops/le.h         | 21 +++++++++++++++++
+ tools/include/asm-generic/bitops/find.h | 30 +++++++++++++++++++++++++
+ 3 files changed, 81 insertions(+)
 
-diff --git a/include/asm-generic/bitsperlong.h b/include/asm-generic/bitsperlong.h
-index 3905c1c93dc2..0eeb77544f1d 100644
---- a/include/asm-generic/bitsperlong.h
-+++ b/include/asm-generic/bitsperlong.h
-@@ -23,4 +23,6 @@
- #define BITS_PER_LONG_LONG 64
- #endif
- 
-+#define SMALL_CONST(n) (__builtin_constant_p(n) && (unsigned long)(n) < BITS_PER_LONG)
+diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+index 7ad70dab8e93..8bd7a33a889d 100644
+--- a/include/asm-generic/bitops/find.h
++++ b/include/asm-generic/bitops/find.h
+@@ -20,6 +20,16 @@ static inline
+ unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
+ 			    unsigned long offset)
+ {
++	if (SMALL_CONST(size - 1)) {
++		unsigned long val;
 +
- #endif /* __ASM_GENERIC_BITS_PER_LONG */
-diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
-index adf7bd9f0467..e89f1dace846 100644
---- a/include/linux/bitmap.h
-+++ b/include/linux/bitmap.h
-@@ -224,9 +224,6 @@ extern int bitmap_print_to_pagebuf(bool list, char *buf,
-  * so make such users (should any ever turn up) call the out-of-line
-  * versions.
-  */
--#define small_const_nbits(nbits) \
--	(__builtin_constant_p(nbits) && (nbits) <= BITS_PER_LONG && (nbits) > 0)
--
- static inline void bitmap_zero(unsigned long *dst, unsigned int nbits)
- {
- 	unsigned int len = BITS_TO_LONGS(nbits) * sizeof(unsigned long);
-@@ -278,7 +275,7 @@ extern void bitmap_to_arr32(u32 *buf, const unsigned long *bitmap,
- static inline int bitmap_and(unsigned long *dst, const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return (*dst = *src1 & *src2 & BITS_FIRST(nbits - 1)) != 0;
- 	return __bitmap_and(dst, src1, src2, nbits);
- }
-@@ -286,7 +283,7 @@ static inline int bitmap_and(unsigned long *dst, const unsigned long *src1,
- static inline void bitmap_or(unsigned long *dst, const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		*dst = *src1 | *src2;
- 	else
- 		__bitmap_or(dst, src1, src2, nbits);
-@@ -295,7 +292,7 @@ static inline void bitmap_or(unsigned long *dst, const unsigned long *src1,
- static inline void bitmap_xor(unsigned long *dst, const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		*dst = *src1 ^ *src2;
- 	else
- 		__bitmap_xor(dst, src1, src2, nbits);
-@@ -304,7 +301,7 @@ static inline void bitmap_xor(unsigned long *dst, const unsigned long *src1,
- static inline int bitmap_andnot(unsigned long *dst, const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return (*dst = *src1 & ~(*src2) & BITS_FIRST(nbits - 1)) != 0;
- 	return __bitmap_andnot(dst, src1, src2, nbits);
- }
-@@ -312,7 +309,7 @@ static inline int bitmap_andnot(unsigned long *dst, const unsigned long *src1,
- static inline void bitmap_complement(unsigned long *dst, const unsigned long *src,
- 			unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		*dst = ~(*src);
- 	else
- 		__bitmap_complement(dst, src, nbits);
-@@ -328,7 +325,7 @@ static inline void bitmap_complement(unsigned long *dst, const unsigned long *sr
- static inline int bitmap_equal(const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return !((*src1 ^ *src2) & BITS_FIRST(nbits - 1));
- 	if (__builtin_constant_p(nbits & BITMAP_MEM_MASK) &&
- 	    IS_ALIGNED(nbits, BITMAP_MEM_ALIGNMENT))
-@@ -350,7 +347,7 @@ static inline bool bitmap_or_equal(const unsigned long *src1,
- 				   const unsigned long *src3,
- 				   unsigned int nbits)
- {
--	if (!small_const_nbits(nbits))
-+	if (!SMALL_CONST(nbits - 1))
- 		return __bitmap_or_equal(src1, src2, src3, nbits);
- 
- 	return !(((*src1 | *src2) ^ *src3) & BITS_FIRST(nbits - 1));
-@@ -359,7 +356,7 @@ static inline bool bitmap_or_equal(const unsigned long *src1,
- static inline int bitmap_intersects(const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return ((*src1 & *src2) & BITS_FIRST(nbits - 1)) != 0;
- 	else
- 		return __bitmap_intersects(src1, src2, nbits);
-@@ -368,7 +365,7 @@ static inline int bitmap_intersects(const unsigned long *src1,
- static inline int bitmap_subset(const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return !((*src1 & ~(*src2)) & BITS_FIRST(nbits - 1));
- 	else
- 		return __bitmap_subset(src1, src2, nbits);
-@@ -376,7 +373,7 @@ static inline int bitmap_subset(const unsigned long *src1,
- 
- static inline bool bitmap_empty(const unsigned long *src, unsigned nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return !(*src & BITS_FIRST(nbits - 1));
- 
- 	return find_first_bit(src, nbits) == nbits;
-@@ -384,7 +381,7 @@ static inline bool bitmap_empty(const unsigned long *src, unsigned nbits)
- 
- static inline bool bitmap_full(const unsigned long *src, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return !(~(*src) & BITS_FIRST(nbits - 1));
- 
- 	return find_first_zero_bit(src, nbits) == nbits;
-@@ -392,7 +389,7 @@ static inline bool bitmap_full(const unsigned long *src, unsigned int nbits)
- 
- static __always_inline int bitmap_weight(const unsigned long *src, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return hweight_long(*src & BITS_FIRST(nbits - 1));
- 	return __bitmap_weight(src, nbits);
- }
-@@ -428,7 +425,7 @@ static __always_inline void bitmap_clear(unsigned long *map, unsigned int start,
- static inline void bitmap_shift_right(unsigned long *dst, const unsigned long *src,
- 				unsigned int shift, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		*dst = (*src & BITS_FIRST(nbits - 1)) >> shift;
- 	else
- 		__bitmap_shift_right(dst, src, shift, nbits);
-@@ -437,7 +434,7 @@ static inline void bitmap_shift_right(unsigned long *dst, const unsigned long *s
- static inline void bitmap_shift_left(unsigned long *dst, const unsigned long *src,
- 				unsigned int shift, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		*dst = (*src << shift) & BITS_FIRST(nbits - 1);
- 	else
- 		__bitmap_shift_left(dst, src, shift, nbits);
-@@ -449,7 +446,7 @@ static inline void bitmap_replace(unsigned long *dst,
- 				  const unsigned long *mask,
- 				  unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		*dst = (*old & ~(*mask)) | (*new & *mask);
- 	else
- 		__bitmap_replace(dst, old, new, mask, nbits);
-diff --git a/tools/include/asm-generic/bitsperlong.h b/tools/include/asm-generic/bitsperlong.h
-index 8f2283052333..432d272baf27 100644
---- a/tools/include/asm-generic/bitsperlong.h
-+++ b/tools/include/asm-generic/bitsperlong.h
-@@ -18,4 +18,6 @@
- #define BITS_PER_LONG_LONG 64
- #endif
- 
-+#define SMALL_CONST(n) (__builtin_constant_p(n) && (unsigned long)(n) < BITS_PER_LONG)
++		if (unlikely(offset >= size))
++			return size;
 +
- #endif /* __ASM_GENERIC_BITS_PER_LONG */
-diff --git a/tools/include/linux/bitmap.h b/tools/include/linux/bitmap.h
-index b6e8430c8bc9..fdc0b64bbdbf 100644
---- a/tools/include/linux/bitmap.h
-+++ b/tools/include/linux/bitmap.h
-@@ -19,12 +19,9 @@ int __bitmap_equal(const unsigned long *bitmap1,
- 		   const unsigned long *bitmap2, unsigned int bits);
- void bitmap_clear(unsigned long *map, unsigned int start, int len);
- 
--#define small_const_nbits(nbits) \
--	(__builtin_constant_p(nbits) && (nbits) <= BITS_PER_LONG)
--
- static inline void bitmap_zero(unsigned long *dst, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		*dst = 0UL;
- 	else {
- 		int len = BITS_TO_LONGS(nbits) * sizeof(unsigned long);
-@@ -35,7 +32,7 @@ static inline void bitmap_zero(unsigned long *dst, unsigned int nbits)
- static inline void bitmap_fill(unsigned long *dst, unsigned int nbits)
- {
- 	unsigned int nlongs = BITS_TO_LONGS(nbits);
--	if (!small_const_nbits(nbits)) {
-+	if (!SMALL_CONST(nbits - 1)) {
- 		unsigned int len = (nlongs - 1) * sizeof(unsigned long);
- 		memset(dst, 0xff,  len);
- 	}
-@@ -44,7 +41,7 @@ static inline void bitmap_fill(unsigned long *dst, unsigned int nbits)
- 
- static inline int bitmap_empty(const unsigned long *src, unsigned nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return !(*src & BITS_FIRST(nbits - 1));
- 
- 	return find_first_bit(src, nbits) == nbits;
-@@ -52,7 +49,7 @@ static inline int bitmap_empty(const unsigned long *src, unsigned nbits)
- 
- static inline int bitmap_full(const unsigned long *src, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return !(~(*src) & BITS_FIRST(nbits - 1));
- 
- 	return find_first_zero_bit(src, nbits) == nbits;
-@@ -60,7 +57,7 @@ static inline int bitmap_full(const unsigned long *src, unsigned int nbits)
- 
- static inline int bitmap_weight(const unsigned long *src, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return hweight_long(*src & BITS_FIRST(nbits - 1));
- 	return __bitmap_weight(src, nbits);
++		val = *addr & GENMASK(size - 1, offset);
++		return val ? __ffs(val) : size;
++	}
++
+ 	return _find_next_bit(addr, NULL, size, offset, 0UL, 0);
  }
-@@ -68,7 +65,7 @@ static inline int bitmap_weight(const unsigned long *src, unsigned int nbits)
- static inline void bitmap_or(unsigned long *dst, const unsigned long *src1,
- 			     const unsigned long *src2, unsigned int nbits)
+ #endif
+@@ -40,6 +50,16 @@ unsigned long find_next_and_bit(const unsigned long *addr1,
+ 		const unsigned long *addr2, unsigned long size,
+ 		unsigned long offset)
  {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		*dst = *src1 | *src2;
- 	else
- 		__bitmap_or(dst, src1, src2, nbits);
-@@ -146,7 +143,7 @@ size_t bitmap_scnprintf(unsigned long *bitmap, unsigned int nbits,
- static inline int bitmap_and(unsigned long *dst, const unsigned long *src1,
- 			     const unsigned long *src2, unsigned int nbits)
- {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return (*dst = *src1 & *src2 & BITS_FIRST(nbits - 1)) != 0;
- 	return __bitmap_and(dst, src1, src2, nbits);
++	if (SMALL_CONST(size - 1)) {
++		unsigned long val;
++
++		if (unlikely(offset >= size))
++			return size;
++
++		val = *addr1 & *addr2 & GENMASK(size - 1, offset);
++		return val ? __ffs(val) : size;
++	}
++
+ 	return _find_next_bit(addr1, addr2, size, offset, 0UL, 0);
  }
-@@ -162,7 +159,7 @@ static inline int bitmap_and(unsigned long *dst, const unsigned long *src1,
- static inline int bitmap_equal(const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
+ #endif
+@@ -58,6 +78,16 @@ static inline
+ unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
+ 				 unsigned long offset)
  {
--	if (small_const_nbits(nbits))
-+	if (SMALL_CONST(nbits - 1))
- 		return !((*src1 ^ *src2) & BITS_FIRST(nbits - 1));
- 	if (__builtin_constant_p(nbits & BITMAP_MEM_MASK) &&
- 	    IS_ALIGNED(nbits, BITMAP_MEM_ALIGNMENT))
++	if (SMALL_CONST(size - 1)) {
++		unsigned long val;
++
++		if (unlikely(offset >= size))
++			return size;
++
++		val = *addr | ~GENMASK(size - 1, offset);
++		return val == ~0UL ? size : ffz(val);
++	}
++
+ 	return _find_next_bit(addr, NULL, size, offset, ~0UL, 0);
+ }
+ #endif
+diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
+index 21305f6cea0b..18ebcf639d7f 100644
+--- a/include/asm-generic/bitops/le.h
++++ b/include/asm-generic/bitops/le.h
+@@ -5,6 +5,7 @@
+ #include <asm-generic/bitops/find.h>
+ #include <asm/types.h>
+ #include <asm/byteorder.h>
++#include <linux/swab.h>
+ 
+ #if defined(__LITTLE_ENDIAN)
+ 
+@@ -37,6 +38,16 @@ static inline
+ unsigned long find_next_zero_bit_le(const void *addr, unsigned
+ 		long size, unsigned long offset)
+ {
++	if (SMALL_CONST(size)) {
++		unsigned long val = *(const unsigned long *)addr;
++
++		if (unlikely(offset >= size))
++			return size;
++
++		val = swab(val) | ~GENMASK(size - 1, offset);
++		return val == ~0UL ? size : ffz(val);
++	}
++
+ 	return _find_next_bit(addr, NULL, size, offset, ~0UL, 1);
+ }
+ #endif
+@@ -46,6 +57,16 @@ static inline
+ unsigned long find_next_bit_le(const void *addr, unsigned
+ 		long size, unsigned long offset)
+ {
++	if (SMALL_CONST(size)) {
++		unsigned long val = *(const unsigned long *)addr;
++
++		if (unlikely(offset >= size))
++			return size;
++
++		val = swab(val) & GENMASK(size - 1, offset);
++		return val ? __ffs(val) : size;
++	}
++
+ 	return _find_next_bit(addr, NULL, size, offset, 0UL, 1);
+ }
+ #endif
+diff --git a/tools/include/asm-generic/bitops/find.h b/tools/include/asm-generic/bitops/find.h
+index 9fe62d10b084..eff868bd22f8 100644
+--- a/tools/include/asm-generic/bitops/find.h
++++ b/tools/include/asm-generic/bitops/find.h
+@@ -20,6 +20,16 @@ static inline
+ unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
+ 			    unsigned long offset)
+ {
++	if (SMALL_CONST(size - 1)) {
++		unsigned long val;
++
++		if (unlikely(offset >= size))
++			return size;
++
++		val = *addr & GENMASK(size - 1, offset);
++		return val ? __ffs(val) : size;
++	}
++
+ 	return _find_next_bit(addr, NULL, size, offset, 0UL, 0);
+ }
+ #endif
+@@ -40,6 +50,16 @@ unsigned long find_next_and_bit(const unsigned long *addr1,
+ 		const unsigned long *addr2, unsigned long size,
+ 		unsigned long offset)
+ {
++	if (SMALL_CONST(size - 1)) {
++		unsigned long val;
++
++		if (unlikely(offset >= size))
++			return size;
++
++		val = *addr1 & *addr2 & GENMASK(size - 1, offset);
++		return val ? __ffs(val) : size;
++	}
++
+ 	return _find_next_bit(addr1, addr2, size, offset, 0UL, 0);
+ }
+ #endif
+@@ -58,6 +78,16 @@ static inline
+ unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
+ 				 unsigned long offset)
+ {
++	if (SMALL_CONST(size - 1)) {
++		unsigned long val;
++
++		if (unlikely(offset >= size))
++			return size;
++
++		val = *addr | ~GENMASK(size - 1, offset);
++		return val == ~0UL ? size : ffz(val);
++	}
++
+ 	return _find_next_bit(addr, NULL, size, offset, ~0UL, 0);
+ }
+ #endif
 -- 
 2.25.1
 
