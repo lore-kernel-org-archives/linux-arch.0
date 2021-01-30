@@ -2,109 +2,110 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_IN_DEF_DKIM_WL
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 075CAC433E6
-	for <linux-arch@archiver.kernel.org>; Sat, 30 Jan 2021 10:18:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id ECFA8C433E9
+	for <linux-arch@archiver.kernel.org>; Sat, 30 Jan 2021 19:18:08 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A4B2864E05
-	for <linux-arch@archiver.kernel.org>; Sat, 30 Jan 2021 10:18:48 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C117664E13
+	for <linux-arch@archiver.kernel.org>; Sat, 30 Jan 2021 19:18:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231733AbhA3KSE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 30 Jan 2021 05:18:04 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60316 "EHLO
+        id S232320AbhA3TSH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 30 Jan 2021 14:18:07 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42828 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232902AbhA3Arn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jan 2021 19:47:43 -0500
-Received: from mail-pl1-x633.google.com (mail-pl1-x633.google.com [IPv6:2607:f8b0:4864:20::633])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A726FC0617A7
-        for <linux-arch@vger.kernel.org>; Fri, 29 Jan 2021 16:46:13 -0800 (PST)
-Received: by mail-pl1-x633.google.com with SMTP id g3so6306584plp.2
-        for <linux-arch@vger.kernel.org>; Fri, 29 Jan 2021 16:46:13 -0800 (PST)
+        with ESMTP id S232288AbhA3TSE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 30 Jan 2021 14:18:04 -0500
+Received: from mail-qk1-x72f.google.com (mail-qk1-x72f.google.com [IPv6:2607:f8b0:4864:20::72f])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 72825C0613D6;
+        Sat, 30 Jan 2021 11:17:24 -0800 (PST)
+Received: by mail-qk1-x72f.google.com with SMTP id d85so12243737qkg.5;
+        Sat, 30 Jan 2021 11:17:24 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=sOYufdKif/Scq2e39hV/4HV4zK+OLCAmzma8mjBFh2U=;
-        b=Wo0ro2Zy8l1+MQXIt8UlVk5b6AplAXNdT6fsrb1zdWgJxtT15PaLgslD8sAUfzRAXw
-         cts9oMJtp5dFVyjMtdnwhlpt6tOrxbnuAMnTcYxxU/NDjNvUMXCF+IgEIgBZ8g8VWnUm
-         y6a4HSKvO0kPhzfKtp3zrEJG6YYPStkeHjijWIAH2mjTMyOHLF6YI329QCLHOI32+ecZ
-         4LII6Wv4g+Zs4PeziTIpqeUwTtY90X7Jx3kG+hgDXC3YN2y8UooN7Ixjkeobv+A+EFWJ
-         +01KxUkWillNj8avz/zzwkFjuwknN11Wpe3M00D6eLhHqBImGhEoeS8z1QpwqeuV4sLz
-         +tjQ==
+        d=gmail.com; s=20161025;
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=iYiQfFq/A5BR3ytboda9uqIsF/im+3k0MVGIuMp7ujI=;
+        b=SWZHt8afF+bUg7hz5AK6ufFfR/vccmv++nacOxTzAUOWuHUzr0NxSRBZ7Nhqv0N/38
+         wZFL9lKeCTHsPJiFWQRdv3PQ4q9CCJwbfTBMp33EfZyNA9kKR1NxspUzLVG2FjJ4/5sY
+         /eV5UxIjMT6saqoPvlDv6q4y09iP8ysVL+YpPL7ipJf9bySlY5rfFqsozV1CVd6OOupP
+         ogFa6HRyZO2UHtiS6ro+YxkKPkgjT7C9o5TCN/pkZ670dvwWf50TuY0i4NhXx/2A9Hwh
+         88QRZm6qd8mdiZUDddvd582Qthaqc5245aK8eoJ4R+tuxIZJbZmekNW3ZcXOPUKpp/Es
+         45Ag==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=sOYufdKif/Scq2e39hV/4HV4zK+OLCAmzma8mjBFh2U=;
-        b=CAMGW6thO5kz+CbRKVEloHx0NUkWpX2uOUMTwR+9ZOwcfwpeOVkZyiEaXFUlikAq8s
-         NCXEcLrKeDh7eiIh3j6AhVMm8YHEJaHw/G4KajTiG4QZAB05WhFN3P7cRrEHwAYow2Mf
-         6nDb/Hlj5aeAWyNE0Uv5RdEYK2Za9csmmniIb+DKIPAXjw/CBylAOc7jVlFCSgf7HRkN
-         DgcTv0fIZ4DwV46rJAIo+WVj69v86wuNVi60dkG9oAFUmyyJ4H0qST/Mgxm25jd5o/aB
-         to5Bj/6/k4mfmobsi33xX9LZwLdVLLVBo3yeCorF3FfR24M41/dTAZtSm34r73JUncP0
-         p4Fw==
-X-Gm-Message-State: AOAM531JjlS/rQdHv/v7+JAQDLiOKktkeQqyjU6xBCr28YStDP8K0fNJ
-        2miVNfl/RBZTfJ6CnYiqMvPW1OwIAvu69mCa3CpMQA==
-X-Google-Smtp-Source: ABdhPJx7TQwRJujg6Rf1/nJXAq+yZpWh+nkOZ6cCyjORiT8vUbQP5fbUn6tjd8b8ruQik8LP/r3Z9rCvG324klwKDNo=
-X-Received: by 2002:a17:902:ed94:b029:de:8844:a650 with SMTP id
- e20-20020a170902ed94b02900de8844a650mr6915188plj.56.1611967573031; Fri, 29
- Jan 2021 16:46:13 -0800 (PST)
-MIME-Version: 1.0
-References: <20210129194318.2125748-1-ndesaulniers@google.com> <CA+icZUXpn_VKePTpnEhcpuSxPkuQTSKYfsVeMbxU9-rBp1ZJXw@mail.gmail.com>
-In-Reply-To: <CA+icZUXpn_VKePTpnEhcpuSxPkuQTSKYfsVeMbxU9-rBp1ZJXw@mail.gmail.com>
-From:   Nick Desaulniers <ndesaulniers@google.com>
-Date:   Fri, 29 Jan 2021 16:46:02 -0800
-Message-ID: <CAKwvOdniSiaBkGOO32ZuGCv=1SBwaqdRsHUo31n+O+g0ek5P_Q@mail.gmail.com>
-Subject: Re: [PATCH v6 0/2] Kbuild: DWARF v5 support
-To:     Sedat Dilek <sedat.dilek@gmail.com>
-Cc:     Masahiro Yamada <masahiroy@kernel.org>,
-        Nathan Chancellor <natechancellor@gmail.com>,
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=iYiQfFq/A5BR3ytboda9uqIsF/im+3k0MVGIuMp7ujI=;
+        b=Myj8NQbLSRbADgFbWSz3NhF67djj6vMN6FSo1b8CFCnlcsk42RmTxbyePkKX0pnXjU
+         kUpDr7WIfQlhwhxEE+ni0/DAD6hYyemirGmlfYdI+17CkbOCESZpjVi10RJtyBYUjiC3
+         6+ji3OD6krnEEDXQm1mfCR7xpkrJjqZGZQAhZ3pUJ/hDBuEhtIwH4i2O5dBXNwFsioZp
+         ccYoYIADIGxT3lV/I0YzArJbNSAdq74w/+p3VGh9KlGp4NC72gA3UNWuhoPzc5L16Hni
+         15QYPzx5YhKnUpdxN5b5KHLPTWasCPICrRQ6PG9RC5x50GetSTj2kvXCWM2AsQ9vx5cq
+         P7FQ==
+X-Gm-Message-State: AOAM5313D/kZT4l+KdOw5kuWqm6SAwqg46cBWu3d3Ted4Derq9vM7O+T
+        +XVOH9kEI9zdBq01HFXHoq0=
+X-Google-Smtp-Source: ABdhPJyhF5sM0r3+bGB/gd20doSeBcG2SJucdkNA81U7bleGmrppTt6Gs7pR5c+MSjB/UgXRTINP7w==
+X-Received: by 2002:a37:be04:: with SMTP id o4mr9686463qkf.336.1612034243691;
+        Sat, 30 Jan 2021 11:17:23 -0800 (PST)
+Received: from localhost (d27-96-190-162.evv.wideopenwest.com. [96.27.162.190])
+        by smtp.gmail.com with ESMTPSA id t17sm9130830qtq.57.2021.01.30.11.17.23
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 30 Jan 2021 11:17:23 -0800 (PST)
+From:   Yury Norov <yury.norov@gmail.com>
+To:     linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org,
+        linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Cc:     Yury Norov <yury.norov@gmail.com>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>,
+        Dennis Zhou <dennis@kernel.org>,
         Andrew Morton <akpm@linux-foundation.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        Clang-Built-Linux ML <clang-built-linux@googlegroups.com>,
-        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Jakub Jelinek <jakub@redhat.com>,
-        Fangrui Song <maskray@google.com>,
-        Caroline Tice <cmtice@google.com>,
-        Nick Clifton <nickc@redhat.com>, Yonghong Song <yhs@fb.com>,
-        Jiri Olsa <jolsa@kernel.org>,
-        Andrii Nakryiko <andrii@kernel.org>,
-        Arnaldo Carvalho de Melo <acme@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+        Wolfram Sang <wsa+renesas@sang-engineering.com>,
+        David Sterba <dsterba@suse.com>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Stefano Brivio <sbrivio@redhat.com>,
+        "Ma, Jianpeng" <jianpeng.ma@intel.com>,
+        Wei Yang <richard.weiyang@linux.alibaba.com>,
+        Josh Poimboeuf <jpoimboe@redhat.com>,
+        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+        Joe Perches <joe@perches.com>
+Subject: [PATCH 1/8] tools: disable -Wno-type-limits
+Date:   Sat, 30 Jan 2021 11:17:12 -0800
+Message-Id: <20210130191719.7085-2-yury.norov@gmail.com>
+X-Mailer: git-send-email 2.25.1
+In-Reply-To: <20210130191719.7085-1-yury.norov@gmail.com>
+References: <20210130191719.7085-1-yury.norov@gmail.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jan 29, 2021 at 4:08 PM Sedat Dilek <sedat.dilek@gmail.com> wrote:
->
-> On Fri, Jan 29, 2021 at 8:43 PM Nick Desaulniers
-> <ndesaulniers@google.com> wrote:
-> >
-> > DWARF v5 is the latest standard of the DWARF debug info format.
-> >
-> > DWARF5 wins significantly in terms of size and especially so when mixed
-> > with compression (CONFIG_DEBUG_INFO_COMPRESSED).
-> >
-> > Link: http://www.dwarfstd.org/doc/DWARF5.pdf
-> >
-> > Patch 1 is a cleanup that lays the ground work and isn't DWARF
-> > v5 specific.
-> > Patch 2 implements Kconfig and Kbuild support for DWARFv5.
-> >
->
-> When you will do a v7...
->
-> Can you look also at places where we have hardcoded DWARF-2 handling...
+GENMASK(h, l) may be passed with unsigned types. In such case,
+this warning is generated for example in case GENMASK(h, 0)
 
-Ah, sorry, I just saw this now, after sending v7.  Can we wait to
-purge DWARF v2 until after we have DWARF v5?
+Signed-off-by: Yury Norov <yury.norov@gmail.com>
+---
+ tools/scripts/Makefile.include | 1 +
+ 1 file changed, 1 insertion(+)
 
-In fact, if they are orthogonal like I suspect, why don't you send
-some patches and I will help you test them?
+diff --git a/tools/scripts/Makefile.include b/tools/scripts/Makefile.include
+index 1358e89cdf7d..58bb319624f6 100644
+--- a/tools/scripts/Makefile.include
++++ b/tools/scripts/Makefile.include
+@@ -38,6 +38,7 @@ EXTRA_WARNINGS += -Wswitch-enum
+ EXTRA_WARNINGS += -Wundef
+ EXTRA_WARNINGS += -Wwrite-strings
+ EXTRA_WARNINGS += -Wformat
++EXTRA_WARNINGS += -Wno-type-limits
+ 
+ CC_NO_CLANG := $(shell $(CC) -dM -E -x c /dev/null | grep -Fq "__clang__"; echo $$?)
+ 
 -- 
-Thanks,
-~Nick Desaulniers
+2.25.1
+
