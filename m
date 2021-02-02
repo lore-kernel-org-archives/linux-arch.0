@@ -8,54 +8,54 @@ X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E9FAFC43381
-	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 11:06:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D7574C43381
+	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 11:06:49 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C2AE264DDC
-	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 11:06:23 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AF53564DBA
+	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 11:06:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229525AbhBBLGU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 2 Feb 2021 06:06:20 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40246 "EHLO
+        id S230033AbhBBLGd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 2 Feb 2021 06:06:33 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40294 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229787AbhBBLGK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2021 06:06:10 -0500
-Received: from mail-pg1-x535.google.com (mail-pg1-x535.google.com [IPv6:2607:f8b0:4864:20::535])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 168FDC06174A;
-        Tue,  2 Feb 2021 03:05:30 -0800 (PST)
-Received: by mail-pg1-x535.google.com with SMTP id j2so13013955pgl.0;
-        Tue, 02 Feb 2021 03:05:30 -0800 (PST)
+        with ESMTP id S229876AbhBBLGW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2021 06:06:22 -0500
+Received: from mail-pg1-x531.google.com (mail-pg1-x531.google.com [IPv6:2607:f8b0:4864:20::531])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 61502C0613ED;
+        Tue,  2 Feb 2021 03:05:41 -0800 (PST)
+Received: by mail-pg1-x531.google.com with SMTP id o16so14673438pgg.5;
+        Tue, 02 Feb 2021 03:05:41 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=vAbu4uylyD/1yZsJCHQjYIcITelz2x29iNZ/QiXVtA4=;
-        b=XB61lX1Z4jTiaTn6F2TEgL9yy2HEpkCa4LEy14gBY61wcjtayhfijNdSUiYWEKnC0b
-         Gr4gY14wuTx4N3GPxjmBQgPPbflA14HDXrkIMpvUCKjUM+ZvCd2V9RHJLqhnnykGpnmi
-         ii4PbA6qaK5JS6pCJ08xdnIfLVbWR+I/7jOtTWQu7ZOjGOtox6vyFQ269nfVDTSaBGKF
-         73ya1YZU3m7dknQ7mYnJLQ+8idRn2Jf81SlidA9eaXQzYa3JAWDtCWGnZMbrQeUPMtKF
-         QnBcajgu8RWGcSenhBxa7ensCih8tLH9hK6GnxPxKBbZO5ySSgTv2JlKOx8Hg/NpJG7s
-         R/4Q==
+        bh=ySt43gO6smkJkMCT6Ltah9Oe/TqPH3vOFFL48JryRJY=;
+        b=Ski/mw3ycAZzNEp1UFr21+Cp/tNP720PSzUmqurvkfBxoQDFOdHtb4Yi9eWBxNV6x6
+         +MRDgMmXeeeNXkN7h69Vv/YGtRQLoU4gu68PmAX+iaTFwRtw9feFBK3kxowjty+NfCGp
+         wJjG4o7DoJQQWFnArGBu5VU1V+eurx/xHhFcfkDApot8q70HeCSOc4DXv4SA4HYlkMP5
+         aWmudl313UR7gg+iskpcCreNkld6pnmpoNr28vpuMtEdfcl2TZVn0y60J0qqWDltN55q
+         XJvGP8M1YI80tvPBQoEmf+W/oHq0c9FiT0+i8Ge9NUcoYfr2KGb3cBm0THh/VuMwAdiU
+         kUpA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=vAbu4uylyD/1yZsJCHQjYIcITelz2x29iNZ/QiXVtA4=;
-        b=sLNaVEjXV6M8Jo2IZrV0U4ISKhzJxvYv9KdDduIFY3/dqmke75xEKiXgxj/83BhDQ3
-         5++8OwSGh+wSKexFmoMF9Op1qY7x7WleONwO1+w8FLZKe0V5ULAINYdxU0cg9C6paXhN
-         +8a/QL80osjD++WpKBrJgrAtTcH1tCe2it055muYbWA/a0PsEuqIb1kAiBB5raqNd2Nq
-         Hh4vBKWMV2Cl39v2v5Ma4wF3aW58sFhqI3qdgbyIVUBScLBBML5yz5IHk/ZiVcozqmjw
-         hdyZVTHlPnioPZUKKJcD7IhuYXDfJ+MRaXaJw38ojOOOcT/KEClIxGuK03MaWf/oD+qY
-         EO9w==
-X-Gm-Message-State: AOAM531y69dzc83KOvDIb1bHG4BNms+o7/quNWoAadFgShXfPT2SO1EZ
-        b5XbG9unzaRFSzUNZioi9mw=
-X-Google-Smtp-Source: ABdhPJxVMcdgA1+Y8LqXd2e61PK20uUftYJf8JWfAFkTyxXbbKor8wFP6q9LQTBVsxFGjf6kJasOew==
-X-Received: by 2002:aa7:9694:0:b029:1bc:d0ba:10ff with SMTP id f20-20020aa796940000b02901bcd0ba10ffmr20855469pfk.18.1612263929711;
-        Tue, 02 Feb 2021 03:05:29 -0800 (PST)
+        bh=ySt43gO6smkJkMCT6Ltah9Oe/TqPH3vOFFL48JryRJY=;
+        b=YDuwzbBXdbzlfANnJZ1rZmV8gtxrVowKXH+lsilDcMO1xNnUiwAgPFO3KRJrv1BlmP
+         q8Gv3nVMVlmtW0dM7/l78R8pSbD4n/76iEsQz+PXuUNH7kWfLBwjc3Vngg16flQfmaEL
+         TsESiDaryqBkj0yxPFy2x2Fq/UgEnEudqunhvdnQvYVKSnJ8i1mdF6EHnu8OPa/UGqiG
+         /1ME+GNNziUfynminOEKRq4RjiYg4eeU1t4wTpGuF91BUfUBl0mbT6h573mXbze9yEcm
+         TW+Xd6NJAA2Gln+OeFU6VmVMXWlP+ts6OVG2bQo5h+F32Fdjkx6yEbgvKP1gyHJxzjKQ
+         NYvA==
+X-Gm-Message-State: AOAM531V02E+yrOtKQ5kXMIvzSKKpLjJ9FeayXAJ7xFGaby/YMIS4NFt
+        VIG1EQ2w3u9u46vfmxUOv4U=
+X-Google-Smtp-Source: ABdhPJwEplkRosODeeIhv4PGeJvnvUh/GUzz0oBoKUwaxDzsLdjnBDFwwq84HqP/lXvnmbarkKvPng==
+X-Received: by 2002:a63:5705:: with SMTP id l5mr21883663pgb.415.1612263941041;
+        Tue, 02 Feb 2021 03:05:41 -0800 (PST)
 Received: from bobo.ozlabs.ibm.com (60-242-11-44.static.tpgi.com.au. [60.242.11.44])
-        by smtp.gmail.com with ESMTPSA id g19sm3188979pfk.113.2021.02.02.03.05.24
+        by smtp.gmail.com with ESMTPSA id g19sm3188979pfk.113.2021.02.02.03.05.35
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 02 Feb 2021 03:05:29 -0800 (PST)
+        Tue, 02 Feb 2021 03:05:40 -0800 (PST)
 From:   Nicholas Piggin <npiggin@gmail.com>
 To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
 Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
@@ -65,11 +65,11 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
         Christophe Leroy <christophe.leroy@csgroup.eu>,
         Rick Edgecombe <rick.p.edgecombe@intel.com>,
         Ding Tianhong <dingtianhong@huawei.com>,
-        Russell King <linux@armlinux.org.uk>,
-        linux-arm-kernel@lists.infradead.org
-Subject: [PATCH v12 01/14] ARM: mm: add missing pud_page define to 2-level page tables
-Date:   Tue,  2 Feb 2021 21:05:02 +1000
-Message-Id: <20210202110515.3575274-2-npiggin@gmail.com>
+        Miaohe Lin <linmiaohe@huawei.com>,
+        Christoph Hellwig <hch@lst.de>
+Subject: [PATCH v12 03/14] mm: apply_to_pte_range warn and fail if a large pte is encountered
+Date:   Tue,  2 Feb 2021 21:05:04 +1000
+Message-Id: <20210202110515.3575274-4-npiggin@gmail.com>
 X-Mailer: git-send-email 2.23.0
 In-Reply-To: <20210202110515.3575274-1-npiggin@gmail.com>
 References: <20210202110515.3575274-1-npiggin@gmail.com>
@@ -79,46 +79,122 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-ARM uses its own PMD folding scheme which is missing pud_page which
-should just pass through to pmd_page. Move this from the 3-level
-page table to common header.
+apply_to_pte_range might mistake a large pte for bad, or treat it as a
+page table, resulting in a crash or corruption. Add a test to warn and
+return error if large entries are found.
 
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Ding Tianhong <dingtianhong@huawei.com>
-Cc: linux-arm-kernel@lists.infradead.org
+Reviewed-by: Miaohe Lin <linmiaohe@huawei.com>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/arm/include/asm/pgtable-3level.h | 2 --
- arch/arm/include/asm/pgtable.h        | 3 +++
- 2 files changed, 3 insertions(+), 2 deletions(-)
+ mm/memory.c | 66 +++++++++++++++++++++++++++++++++++++++--------------
+ 1 file changed, 49 insertions(+), 17 deletions(-)
 
-diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/pgtable-3level.h
-index 2b85d175e999..d4edab51a77c 100644
---- a/arch/arm/include/asm/pgtable-3level.h
-+++ b/arch/arm/include/asm/pgtable-3level.h
-@@ -186,8 +186,6 @@ static inline pte_t pte_mkspecial(pte_t pte)
- 
- #define pmd_write(pmd)		(pmd_isclear((pmd), L_PMD_SECT_RDONLY))
- #define pmd_dirty(pmd)		(pmd_isset((pmd), L_PMD_SECT_DIRTY))
--#define pud_page(pud)		pmd_page(__pmd(pud_val(pud)))
--#define pud_write(pud)		pmd_write(__pmd(pud_val(pud)))
- 
- #define pmd_hugewillfault(pmd)	(!pmd_young(pmd) || !pmd_write(pmd))
- #define pmd_thp_or_huge(pmd)	(pmd_huge(pmd) || pmd_trans_huge(pmd))
-diff --git a/arch/arm/include/asm/pgtable.h b/arch/arm/include/asm/pgtable.h
-index c02f24400369..d63a5bb6bd0c 100644
---- a/arch/arm/include/asm/pgtable.h
-+++ b/arch/arm/include/asm/pgtable.h
-@@ -166,6 +166,9 @@ extern struct page *empty_zero_page;
- 
- extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
- 
-+#define pud_page(pud)		pmd_page(__pmd(pud_val(pud)))
-+#define pud_write(pud)		pmd_write(__pmd(pud_val(pud)))
+diff --git a/mm/memory.c b/mm/memory.c
+index feff48e1465a..672e39a72788 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -2440,13 +2440,21 @@ static int apply_to_pmd_range(struct mm_struct *mm, pud_t *pud,
+ 	}
+ 	do {
+ 		next = pmd_addr_end(addr, end);
+-		if (create || !pmd_none_or_clear_bad(pmd)) {
+-			err = apply_to_pte_range(mm, pmd, addr, next, fn, data,
+-						 create, mask);
+-			if (err)
+-				break;
++		if (pmd_none(*pmd) && !create)
++			continue;
++		if (WARN_ON_ONCE(pmd_leaf(*pmd)))
++			return -EINVAL;
++		if (!pmd_none(*pmd) && WARN_ON_ONCE(pmd_bad(*pmd))) {
++			if (!create)
++				continue;
++			pmd_clear_bad(pmd);
+ 		}
++		err = apply_to_pte_range(mm, pmd, addr, next,
++					 fn, data, create, mask);
++		if (err)
++			break;
+ 	} while (pmd++, addr = next, addr != end);
 +
- #define pmd_none(pmd)		(!pmd_val(pmd))
+ 	return err;
+ }
  
- static inline pte_t *pmd_page_vaddr(pmd_t pmd)
+@@ -2468,13 +2476,21 @@ static int apply_to_pud_range(struct mm_struct *mm, p4d_t *p4d,
+ 	}
+ 	do {
+ 		next = pud_addr_end(addr, end);
+-		if (create || !pud_none_or_clear_bad(pud)) {
+-			err = apply_to_pmd_range(mm, pud, addr, next, fn, data,
+-						 create, mask);
+-			if (err)
+-				break;
++		if (pud_none(*pud) && !create)
++			continue;
++		if (WARN_ON_ONCE(pud_leaf(*pud)))
++			return -EINVAL;
++		if (!pud_none(*pud) && WARN_ON_ONCE(pud_bad(*pud))) {
++			if (!create)
++				continue;
++			pud_clear_bad(pud);
+ 		}
++		err = apply_to_pmd_range(mm, pud, addr, next,
++					 fn, data, create, mask);
++		if (err)
++			break;
+ 	} while (pud++, addr = next, addr != end);
++
+ 	return err;
+ }
+ 
+@@ -2496,13 +2512,21 @@ static int apply_to_p4d_range(struct mm_struct *mm, pgd_t *pgd,
+ 	}
+ 	do {
+ 		next = p4d_addr_end(addr, end);
+-		if (create || !p4d_none_or_clear_bad(p4d)) {
+-			err = apply_to_pud_range(mm, p4d, addr, next, fn, data,
+-						 create, mask);
+-			if (err)
+-				break;
++		if (p4d_none(*p4d) && !create)
++			continue;
++		if (WARN_ON_ONCE(p4d_leaf(*p4d)))
++			return -EINVAL;
++		if (!p4d_none(*p4d) && WARN_ON_ONCE(p4d_bad(*p4d))) {
++			if (!create)
++				continue;
++			p4d_clear_bad(p4d);
+ 		}
++		err = apply_to_pud_range(mm, p4d, addr, next,
++					 fn, data, create, mask);
++		if (err)
++			break;
+ 	} while (p4d++, addr = next, addr != end);
++
+ 	return err;
+ }
+ 
+@@ -2522,9 +2546,17 @@ static int __apply_to_page_range(struct mm_struct *mm, unsigned long addr,
+ 	pgd = pgd_offset(mm, addr);
+ 	do {
+ 		next = pgd_addr_end(addr, end);
+-		if (!create && pgd_none_or_clear_bad(pgd))
++		if (pgd_none(*pgd) && !create)
+ 			continue;
+-		err = apply_to_p4d_range(mm, pgd, addr, next, fn, data, create, &mask);
++		if (WARN_ON_ONCE(pgd_leaf(*pgd)))
++			return -EINVAL;
++		if (!pgd_none(*pgd) && WARN_ON_ONCE(pgd_bad(*pgd))) {
++			if (!create)
++				continue;
++			pgd_clear_bad(pgd);
++		}
++		err = apply_to_p4d_range(mm, pgd, addr, next,
++					 fn, data, create, &mask);
+ 		if (err)
+ 			break;
+ 	} while (pgd++, addr = next, addr != end);
 -- 
 2.23.0
 
