@@ -2,131 +2,188 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-7.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.5 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A7C2CC433E9
-	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 14:47:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9BE8CC433E9
+	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 15:06:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5F71364D99
-	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 14:47:41 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 719B764F64
+	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 15:06:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234389AbhBBOra (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 2 Feb 2021 09:47:30 -0500
-Received: from us-smtp-delivery-124.mimecast.com ([63.128.21.124]:59513 "EHLO
-        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S232314AbhBBOgR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2021 09:36:17 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1612276490;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         content-transfer-encoding:content-transfer-encoding:
-         in-reply-to:in-reply-to:references:references;
-        bh=DMQGIZBX3ZSdULucq6YnujqHSWIcTSgvTL7Om1Dz16I=;
-        b=HeWY0SPO9I+w5Nf+A+iM49ag+whqu8UMhO8LZco7RNs53hs/EThOp8rBytRQH6JMGBn4Un
-        /buq07FhlDMxn4pVzg2YkXjXbr6wYeFZShDsq87RQUUZbGwWmHLcd+TbLsDmI9Z/KP3efp
-        HU2dw6gqwo5QU2CSBKcBjBkmfZQCR4s=
-Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
- [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
- us-mta-464-dkvrsbKJMeCl98dqyoVbLw-1; Tue, 02 Feb 2021 09:34:48 -0500
-X-MC-Unique: dkvrsbKJMeCl98dqyoVbLw-1
-Received: from smtp.corp.redhat.com (int-mx04.intmail.prod.int.phx2.redhat.com [10.5.11.14])
-        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
-        (No client certificate requested)
-        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 0E886184DBF0;
-        Tue,  2 Feb 2021 14:34:44 +0000 (UTC)
-Received: from [10.36.114.148] (ovpn-114-148.ams2.redhat.com [10.36.114.148])
-        by smtp.corp.redhat.com (Postfix) with ESMTP id 505D15D9C6;
-        Tue,  2 Feb 2021 14:34:36 +0000 (UTC)
-Subject: Re: [PATCH v16 07/11] secretmem: use PMD-size pages to amortize
- direct map fragmentation
-To:     Michal Hocko <mhocko@suse.com>
-Cc:     Mike Rapoport <rppt@kernel.org>,
-        James Bottomley <jejb@linux.ibm.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Wilcox <willy@infradead.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Roman Gushchin <guro@fb.com>,
-        Shakeel Butt <shakeelb@google.com>,
-        Shuah Khan <shuah@kernel.org>,
+        id S234800AbhBBPFo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 2 Feb 2021 10:05:44 -0500
+Received: from mail-wr1-f46.google.com ([209.85.221.46]:36517 "EHLO
+        mail-wr1-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S234936AbhBBPEj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2021 10:04:39 -0500
+Received: by mail-wr1-f46.google.com with SMTP id 6so20813460wri.3;
+        Tue, 02 Feb 2021 07:04:21 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to:user-agent;
+        bh=iVYfyMGBBAdTwlcTSqM4uE3+4I43aqu6Fgew0A9CUJo=;
+        b=mFab0TAT4rf17zoJsCwDhYWKGjt2vNQnR4sUsVBV8kINshGedIeHKsjONAL79j+bj3
+         zUJMRcw4e0bZeteVcC8nZfr6/YQOpgf0Rk3s/pbKopV1EFZb3r2X7bH4jTXLaZ8p1TLi
+         jmQmpaChKuPFzq4c4o1QvbSGwNMoTBuMGrUD5lN6aXVpVQWRH5YVQXNfvjWEmsfNK7XH
+         +WWfTawVzwslAv/O3AAt+bcG0uvUdln19rf1UzCE3+r3pbOFCxbwzlCn2IL4bXMjHuz2
+         tSQrf0o0BkmBqxkHpZrKI59x6lTFp64aS6d0+8E6v1ujRASd1H6XVjG0xi1DC74q4qEU
+         MFLg==
+X-Gm-Message-State: AOAM5327wX+UXrMKyGmd1SxPnYrFUtyoYMId1o9K4Z7r+oOdAAqVfXXC
+        2U1ca5KEv00d9o8sw+qZVD8=
+X-Google-Smtp-Source: ABdhPJzZC+iTEVoSjeOCsdq0a216h8yyFQ8OwFveadeqHCEB8hpTo/BBt1NUI/bDNVAowd+d4xZLnQ==
+X-Received: by 2002:adf:f183:: with SMTP id h3mr24722949wro.30.1612278236320;
+        Tue, 02 Feb 2021 07:03:56 -0800 (PST)
+Received: from liuwe-devbox-debian-v2 ([51.145.34.42])
+        by smtp.gmail.com with ESMTPSA id r13sm3840262wmh.9.2021.02.02.07.03.54
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 02 Feb 2021 07:03:55 -0800 (PST)
+Date:   Tue, 2 Feb 2021 15:03:53 +0000
+From:   Wei Liu <wei.liu@kernel.org>
+To:     Michael Kelley <mikelley@microsoft.com>
+Cc:     Wei Liu <wei.liu@kernel.org>,
+        Linux on Hyper-V List <linux-hyperv@vger.kernel.org>,
+        "virtualization@lists.linux-foundation.org" 
+        <virtualization@lists.linux-foundation.org>,
+        Linux Kernel List <linux-kernel@vger.kernel.org>,
+        Vineeth Pillai <viremana@linux.microsoft.com>,
+        Sunil Muthuswamy <sunilmut@microsoft.com>,
+        Nuno Das Neves <nunodasneves@linux.microsoft.com>,
+        "pasha.tatashin@soleen.com" <pasha.tatashin@soleen.com>,
+        Lillian Grassin-Drake <Lillian.GrassinDrake@microsoft.com>,
+        KY Srinivasan <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
         Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
-        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
-        Palmer Dabbelt <palmerdabbelt@google.com>
-References: <73738cda43236b5ac2714e228af362b67a712f5d.camel@linux.ibm.com>
- <YBPF8ETGBHUzxaZR@dhcp22.suse.cz>
- <6de6b9f9c2d28eecc494e7db6ffbedc262317e11.camel@linux.ibm.com>
- <YBkcyQsky2scjEcP@dhcp22.suse.cz> <20210202124857.GN242749@kernel.org>
- <6653288a-dd02-f9de-ef6a-e8d567d71d53@redhat.com>
- <YBlUXdwV93xMIff6@dhcp22.suse.cz>
- <211f0214-1868-a5be-9428-7acfc3b73993@redhat.com>
- <YBlgCl8MQuuII22w@dhcp22.suse.cz>
- <d4fe580a-ef0e-e13f-9ee4-16fb8b6d65dd@redhat.com>
- <YBlicIupOyPF9f3D@dhcp22.suse.cz>
-From:   David Hildenbrand <david@redhat.com>
-Organization: Red Hat GmbH
-Message-ID: <95625b83-f7e2-b27a-2b99-d231338047fb@redhat.com>
-Date:   Tue, 2 Feb 2021 15:34:29 +0100
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.5.0
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+        "open list:GENERIC INCLUDE/ASM HEADER FILES" 
+        <linux-arch@vger.kernel.org>
+Subject: Re: [PATCH v5 07/16] x86/hyperv: extract partition ID from Microsoft
+ Hypervisor if necessary
+Message-ID: <20210202150353.6npksy7tobrvfqlt@liuwe-devbox-debian-v2>
+References: <20210120120058.29138-1-wei.liu@kernel.org>
+ <20210120120058.29138-8-wei.liu@kernel.org>
+ <MWHPR21MB15932CD9CB9DA046EFFBA310D7BC9@MWHPR21MB1593.namprd21.prod.outlook.com>
 MIME-Version: 1.0
-In-Reply-To: <YBlicIupOyPF9f3D@dhcp22.suse.cz>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-X-Scanned-By: MIMEDefang 2.79 on 10.5.11.14
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <MWHPR21MB15932CD9CB9DA046EFFBA310D7BC9@MWHPR21MB1593.namprd21.prod.outlook.com>
+User-Agent: NeoMutt/20180716
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 02.02.21 15:32, Michal Hocko wrote:
-> On Tue 02-02-21 15:26:20, David Hildenbrand wrote:
->> On 02.02.21 15:22, Michal Hocko wrote:
->>> On Tue 02-02-21 15:12:21, David Hildenbrand wrote:
->>> [...]
->>>> I think secretmem behaves much more like longterm GUP right now
->>>> ("unmigratable", "lifetime controlled by user space", "cannot go on
->>>> CMA/ZONE_MOVABLE"). I'd either want to reasonably well control/limit it or
->>>> make it behave more like mlocked pages.
->>>
->>> I thought I have already asked but I must have forgotten. Is there any
->>> actual reason why the memory is not movable? Timing attacks?
->>
->> I think the reason is simple: no direct map, no copying of memory.
+On Tue, Jan 26, 2021 at 12:48:37AM +0000, Michael Kelley wrote:
+> From: Wei Liu <wei.liu@kernel.org> Sent: Wednesday, January 20, 2021 4:01 AM
+> > 
+> > We will need the partition ID for executing some hypercalls later.
+> > 
+> > Signed-off-by: Lillian Grassin-Drake <ligrassi@microsoft.com>
+> > Co-Developed-by: Sunil Muthuswamy <sunilmut@microsoft.com>
+> > Signed-off-by: Wei Liu <wei.liu@kernel.org>
+> > ---
+> > v3:
+> > 1. Make hv_get_partition_id static.
+> > 2. Change code structure a bit.
+> > ---
+> >  arch/x86/hyperv/hv_init.c         | 27 +++++++++++++++++++++++++++
+> >  arch/x86/include/asm/mshyperv.h   |  2 ++
+> >  include/asm-generic/hyperv-tlfs.h |  6 ++++++
+> >  3 files changed, 35 insertions(+)
+> > 
+> > diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+> > index 6f4cb40e53fe..fc9941bd8653 100644
+> > --- a/arch/x86/hyperv/hv_init.c
+> > +++ b/arch/x86/hyperv/hv_init.c
+> > @@ -26,6 +26,9 @@
+> >  #include <linux/syscore_ops.h>
+> >  #include <clocksource/hyperv_timer.h>
+> > 
+> > +u64 hv_current_partition_id = ~0ull;
+> > +EXPORT_SYMBOL_GPL(hv_current_partition_id);
+> > +
+> >  void *hv_hypercall_pg;
+> >  EXPORT_SYMBOL_GPL(hv_hypercall_pg);
+> > 
+> > @@ -331,6 +334,25 @@ static struct syscore_ops hv_syscore_ops = {
+> >  	.resume		= hv_resume,
+> >  };
+> > 
+> > +static void __init hv_get_partition_id(void)
+> > +{
+> > +	struct hv_get_partition_id *output_page;
+> > +	u16 status;
+> > +	unsigned long flags;
+> > +
+> > +	local_irq_save(flags);
+> > +	output_page = *this_cpu_ptr(hyperv_pcpu_output_arg);
+> > +	status = hv_do_hypercall(HVCALL_GET_PARTITION_ID, NULL, output_page) &
+> > +		HV_HYPERCALL_RESULT_MASK;
+> > +	if (status != HV_STATUS_SUCCESS) {
 > 
-> This is an implementation detail though and not something terribly hard
-> to add on top later on. I was more worried there would be really
-> fundamental reason why this is not possible. E.g. security implications.
+> Across the Hyper-V code in Linux, the way we check the hypercall result
+> is very inconsistent.  IMHO, the and'ing of hv_do_hypercall() with 
+> HV_HYPERCALL_RESULT_MASK so that status can be a u16 is stylistically
+> a bit unusual.
+> 
+> I'd like to see the hypercall result being stored into a u64 local variable.
+> Then the subsequent test for the status should 'and' the u64 with
+> HV_HYPERCALL_RESULT_MASK to determine the result code.
+> I've made a note to go fix the places that aren't doing it that way.
+> 
 
-I don't remember all the details. Let's see what Mike thinks regarding 
-migration (e.g., security concerns).
+I will fold in the following diff in the next version. I will also check
+if there are other instances in this patch series that need fixing.
+Pretty sure there are a few.
 
--- 
-Thanks,
+diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+index fc9941bd8653..6064f64a1295 100644
+--- a/arch/x86/hyperv/hv_init.c
++++ b/arch/x86/hyperv/hv_init.c
+@@ -337,14 +337,13 @@ static struct syscore_ops hv_syscore_ops = {
+ static void __init hv_get_partition_id(void)
+ {
+        struct hv_get_partition_id *output_page;
+-       u16 status;
++       u64 status;
+        unsigned long flags;
 
-David / dhildenb
+        local_irq_save(flags);
+        output_page = *this_cpu_ptr(hyperv_pcpu_output_arg);
+-       status = hv_do_hypercall(HVCALL_GET_PARTITION_ID, NULL, output_page) &
+-               HV_HYPERCALL_RESULT_MASK;
+-       if (status != HV_STATUS_SUCCESS) {
++       status = hv_do_hypercall(HVCALL_GET_PARTITION_ID, NULL, output_page);
++       if ((status & HV_HYPERCALL_RESULT_MASK) != HV_STATUS_SUCCESS) {
+                /* No point in proceeding if this failed */
+                pr_err("Failed to get partition ID: %d\n", status);
+                BUG();
+> > +		/* No point in proceeding if this failed */
+> > +		pr_err("Failed to get partition ID: %d\n", status);
+> > +		BUG();
+> > +	}
+> > +	hv_current_partition_id = output_page->partition_id;
+> > +	local_irq_restore(flags);
+> > +}
+> > +
+> >  /*
+> >   * This function is to be invoked early in the boot sequence after the
+> >   * hypervisor has been detected.
+> > @@ -426,6 +448,11 @@ void __init hyperv_init(void)
+> > 
+> >  	register_syscore_ops(&hv_syscore_ops);
+> > 
+> > +	if (cpuid_ebx(HYPERV_CPUID_FEATURES) & HV_ACCESS_PARTITION_ID)
+> > +		hv_get_partition_id();
+> 
+> Another place where the EBX value saved into the ms_hyperv structure
+> could be used.
 
+If you're okay with my response earlier, this will be handled later in
+another patch (series).
+
+Wei.
