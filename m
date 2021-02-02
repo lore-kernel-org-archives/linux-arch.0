@@ -8,54 +8,54 @@ X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 32D4BC433E0
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9D6CFC43381
 	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 11:07:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EE78B64DAF
-	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 11:07:10 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 670B664E06
+	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 11:07:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230094AbhBBLGw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 2 Feb 2021 06:06:52 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40382 "EHLO
+        id S230189AbhBBLHH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 2 Feb 2021 06:07:07 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40436 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230064AbhBBLGq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2021 06:06:46 -0500
-Received: from mail-pl1-x632.google.com (mail-pl1-x632.google.com [IPv6:2607:f8b0:4864:20::632])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A2E17C061788;
-        Tue,  2 Feb 2021 03:05:52 -0800 (PST)
-Received: by mail-pl1-x632.google.com with SMTP id b17so12263740plz.6;
-        Tue, 02 Feb 2021 03:05:52 -0800 (PST)
+        with ESMTP id S230115AbhBBLHA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2021 06:07:00 -0500
+Received: from mail-pl1-x62e.google.com (mail-pl1-x62e.google.com [IPv6:2607:f8b0:4864:20::62e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E232CC061573;
+        Tue,  2 Feb 2021 03:06:06 -0800 (PST)
+Received: by mail-pl1-x62e.google.com with SMTP id a16so639750plh.8;
+        Tue, 02 Feb 2021 03:06:06 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=6i477Y4/Hjf81827AmPcW/5fBy/HecfjLNga9cgITPM=;
-        b=tJ+hiLe/7vtRCK9ViXhjxmznQgemOUrs/qlNHXQMGQetHcTocSUaJ3IPyUVQG05JrI
-         RXMC5xBlz0sHMxQOqkzv3gQZ9NAuHrkEcDoxFb4R5ExkKYEsCyxTrqjyoSHxMnh5YYqa
-         FT+pgHfd7iir+07bRoGHJQfqcuH9Gm0TLl47Su0T7R54CL6Am9+bCzXAkqSr0BzbDwZL
-         io4mM38cMfdoOhcAN3hekmhsBos66tmINNIV3Xv0JpO4lK4tx2/9bCSohqT0vqNfQuil
-         xr306f8ms2/73NEG86xyvwa1LJLl0GMInny1eQmTnZeWJvlPFhxOUDpWEDk8KZezaCqs
-         buMQ==
+        bh=6FRU9caWwWjvnrqszVqRsss5Upxnc33B3OfV8qLPoO8=;
+        b=BLtpKFo+BgRlVpQQW3j8ZC4sQb7LUbMNxR9OvdZjYaGP3RrS6ZT9VkH/tfNgwrPXtW
+         9rwl2g6E+WtOCQt4/ObVgzVNxX+JaJcrhE+itbc2msKRMNrNHilpd0PU73XKs0V+U665
+         3QmQ7blDhtImH6Q9CMppiW4wQHpLr6snoHRrZ60Nlh5mWe4r+7Jyj3qraTpur6KnSx+S
+         cSR3FiRUoSyITY3FZ1B/ieQp/GcyFpRs33NQJKPasX5U0hcIswq23D/F49PA1cvS3voZ
+         PPjdbU7uFiZS0BOgFJHqfSD0MQ4VxgWB05EQgTr9dfCdKCSpP9Q/2WQYgwSw7WirAe41
+         9wkw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=6i477Y4/Hjf81827AmPcW/5fBy/HecfjLNga9cgITPM=;
-        b=SXJEn9OOn9ldm72Z9JAGKa1wOsHW4o5F2vPx28vJDR+vYANkKi2KYbxLA4siuux1eH
-         BzgW1P2wuBHJTpxsyXEflryC1D/GAq2I4rQL9HjKaqDyOwMlfIstPNkA5ajV0pJGgFCt
-         fUgK15wteIAUhHC/NnxzYQEJAvsqkL4BJoraDeMmYWJXMtuM9p+8KeEmm5+xuT2L7GZ2
-         uxzt2pFgeTanvizu3YNbwKEqzmVG7RGo+ApHWWzRoSwvXcFXJd/XkE+Xmh5hmkl1Zs0L
-         FN1pKenfvwOBBE6XGZgLgmOE7uSu4NhOufwnWg1RVXcztiRpqiAb4EbwOLkNKuOQG7nG
-         WdOA==
-X-Gm-Message-State: AOAM531PAEvBCkwtOSoXEYZ6JD9uody0leOBmfC/Bt5h3slgcjXqQzzq
-        uccGN54zVwjo3fmocsJPtIk=
-X-Google-Smtp-Source: ABdhPJzaUeY8J2NAbiHVx5dg85C1O8mM1zSkP/hFM2SHRNc9ovfPcEd2esecLkG3JyZ3yn8gOiC3uQ==
-X-Received: by 2002:a17:902:8507:b029:df:e400:a404 with SMTP id bj7-20020a1709028507b02900dfe400a404mr22073862plb.83.1612263952255;
-        Tue, 02 Feb 2021 03:05:52 -0800 (PST)
+        bh=6FRU9caWwWjvnrqszVqRsss5Upxnc33B3OfV8qLPoO8=;
+        b=aw/VC43JH9cifNnUx3OkBZuX7A4sf/wbEMV4Z4mh7XpdvgqlrMC1iRHYCXajTHbF9D
+         O6TdAL6PcLvjVl75cLTYvH4+7dpcP+eRvqjDk+HDa430Sj3cbJH637IkbcLqTQLQwRo0
+         1QK86D/xY/7uAWwb4E8Uw2P3QUGyaRNIMdz6mL1Q+uIsByikwGkcDcuKdziLptHj6s/x
+         H6MT+/cZ2gGJ4FXiWRJO01v1/z2Ohd7Aa2OVT0GiO6yJuMUgdu4ghv1Bk02xcizQ3gE8
+         ruXPlcbmNc11OSPl7TFLl/oJcFSQUR6ohOCVBPAB4BG+u9KBERZ+qLW51fDVKZLIir/S
+         1mKw==
+X-Gm-Message-State: AOAM531S79j9p/4fCX1of+H02jnWYroVMekCL0YwpQLqkZf9R0texsjs
+        Fl/LqR0v1zJuMMZGzKXc1XA=
+X-Google-Smtp-Source: ABdhPJxy5wuhLIGB5shBbmYaQt0JzKzJciEj6N12Zja8o8hEmPFloC9t+TSQo+EwkfIa1vbuWeaUdg==
+X-Received: by 2002:a17:90a:6c26:: with SMTP id x35mr3834636pjj.52.1612263966435;
+        Tue, 02 Feb 2021 03:06:06 -0800 (PST)
 Received: from bobo.ozlabs.ibm.com (60-242-11-44.static.tpgi.com.au. [60.242.11.44])
-        by smtp.gmail.com with ESMTPSA id g19sm3188979pfk.113.2021.02.02.03.05.46
+        by smtp.gmail.com with ESMTPSA id g19sm3188979pfk.113.2021.02.02.03.06.01
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 02 Feb 2021 03:05:51 -0800 (PST)
+        Tue, 02 Feb 2021 03:06:05 -0800 (PST)
 From:   Nicholas Piggin <npiggin@gmail.com>
 To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
 Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
@@ -65,11 +65,10 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
         Christophe Leroy <christophe.leroy@csgroup.eu>,
         Rick Edgecombe <rick.p.edgecombe@intel.com>,
         Ding Tianhong <dingtianhong@huawei.com>,
-        Miaohe Lin <linmiaohe@huawei.com>,
-        Christoph Hellwig <hch@lst.de>
-Subject: [PATCH v12 05/14] mm/ioremap: rename ioremap_*_range to vmap_*_range
-Date:   Tue,  2 Feb 2021 21:05:06 +1000
-Message-Id: <20210202110515.3575274-6-npiggin@gmail.com>
+        Michael Ellerman <mpe@ellerman.id.au>
+Subject: [PATCH v12 07/14] powerpc: inline huge vmap supported functions
+Date:   Tue,  2 Feb 2021 21:05:08 +1000
+Message-Id: <20210202110515.3575274-8-npiggin@gmail.com>
 X-Mailer: git-send-email 2.23.0
 In-Reply-To: <20210202110515.3575274-1-npiggin@gmail.com>
 References: <20210202110515.3575274-1-npiggin@gmail.com>
@@ -79,181 +78,86 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This will be used as a generic kernel virtual mapping function, so
-re-name it in preparation.
+This allows unsupported levels to be constant folded away, and so
+p4d_free_pud_page can be removed because it's no longer linked to.
 
-Reviewed-by: Miaohe Lin <linmiaohe@huawei.com>
-Reviewed-by: Christoph Hellwig <hch@lst.de>
+Cc: linuxppc-dev@lists.ozlabs.org
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- mm/ioremap.c | 64 +++++++++++++++++++++++++++-------------------------
- 1 file changed, 33 insertions(+), 31 deletions(-)
+ arch/powerpc/include/asm/vmalloc.h       | 19 ++++++++++++++++---
+ arch/powerpc/mm/book3s64/radix_pgtable.c | 21 ---------------------
+ 2 files changed, 16 insertions(+), 24 deletions(-)
 
-diff --git a/mm/ioremap.c b/mm/ioremap.c
-index 5fa1ab41d152..3f4d36f9745a 100644
---- a/mm/ioremap.c
-+++ b/mm/ioremap.c
-@@ -61,9 +61,9 @@ static inline int ioremap_pud_enabled(void) { return 0; }
- static inline int ioremap_pmd_enabled(void) { return 0; }
- #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
+diff --git a/arch/powerpc/include/asm/vmalloc.h b/arch/powerpc/include/asm/vmalloc.h
+index 105abb73f075..3f0c153befb0 100644
+--- a/arch/powerpc/include/asm/vmalloc.h
++++ b/arch/powerpc/include/asm/vmalloc.h
+@@ -1,12 +1,25 @@
+ #ifndef _ASM_POWERPC_VMALLOC_H
+ #define _ASM_POWERPC_VMALLOC_H
  
--static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
--		pgtbl_mod_mask *mask)
-+static int vmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
-+			phys_addr_t phys_addr, pgprot_t prot,
-+			pgtbl_mod_mask *mask)
- {
- 	pte_t *pte;
- 	u64 pfn;
-@@ -81,9 +81,8 @@ static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
- 	return 0;
- }
++#include <asm/mmu.h>
+ #include <asm/page.h>
  
--static int ioremap_try_huge_pmd(pmd_t *pmd, unsigned long addr,
--				unsigned long end, phys_addr_t phys_addr,
--				pgprot_t prot)
-+static int vmap_try_huge_pmd(pmd_t *pmd, unsigned long addr, unsigned long end,
-+			phys_addr_t phys_addr, pgprot_t prot)
- {
- 	if (!ioremap_pmd_enabled())
- 		return 0;
-@@ -103,9 +102,9 @@ static int ioremap_try_huge_pmd(pmd_t *pmd, unsigned long addr,
- 	return pmd_set_huge(pmd, phys_addr, prot);
- }
- 
--static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
--		pgtbl_mod_mask *mask)
-+static int vmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
-+			phys_addr_t phys_addr, pgprot_t prot,
-+			pgtbl_mod_mask *mask)
- {
- 	pmd_t *pmd;
- 	unsigned long next;
-@@ -116,20 +115,19 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
- 	do {
- 		next = pmd_addr_end(addr, end);
- 
--		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot)) {
-+		if (vmap_try_huge_pmd(pmd, addr, next, phys_addr, prot)) {
- 			*mask |= PGTBL_PMD_MODIFIED;
- 			continue;
- 		}
- 
--		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot, mask))
-+		if (vmap_pte_range(pmd, addr, next, phys_addr, prot, mask))
- 			return -ENOMEM;
- 	} while (pmd++, phys_addr += (next - addr), addr = next, addr != end);
- 	return 0;
- }
- 
--static int ioremap_try_huge_pud(pud_t *pud, unsigned long addr,
--				unsigned long end, phys_addr_t phys_addr,
--				pgprot_t prot)
-+static int vmap_try_huge_pud(pud_t *pud, unsigned long addr, unsigned long end,
-+			phys_addr_t phys_addr, pgprot_t prot)
- {
- 	if (!ioremap_pud_enabled())
- 		return 0;
-@@ -149,9 +147,9 @@ static int ioremap_try_huge_pud(pud_t *pud, unsigned long addr,
- 	return pud_set_huge(pud, phys_addr, prot);
- }
- 
--static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
--		pgtbl_mod_mask *mask)
-+static int vmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end,
-+			phys_addr_t phys_addr, pgprot_t prot,
-+			pgtbl_mod_mask *mask)
- {
- 	pud_t *pud;
- 	unsigned long next;
-@@ -162,20 +160,19 @@ static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
- 	do {
- 		next = pud_addr_end(addr, end);
- 
--		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot)) {
-+		if (vmap_try_huge_pud(pud, addr, next, phys_addr, prot)) {
- 			*mask |= PGTBL_PUD_MODIFIED;
- 			continue;
- 		}
- 
--		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot, mask))
-+		if (vmap_pmd_range(pud, addr, next, phys_addr, prot, mask))
- 			return -ENOMEM;
- 	} while (pud++, phys_addr += (next - addr), addr = next, addr != end);
- 	return 0;
- }
- 
--static int ioremap_try_huge_p4d(p4d_t *p4d, unsigned long addr,
--				unsigned long end, phys_addr_t phys_addr,
--				pgprot_t prot)
-+static int vmap_try_huge_p4d(p4d_t *p4d, unsigned long addr, unsigned long end,
-+			phys_addr_t phys_addr, pgprot_t prot)
- {
- 	if (!ioremap_p4d_enabled())
- 		return 0;
-@@ -195,9 +192,9 @@ static int ioremap_try_huge_p4d(p4d_t *p4d, unsigned long addr,
- 	return p4d_set_huge(p4d, phys_addr, prot);
- }
- 
--static inline int ioremap_p4d_range(pgd_t *pgd, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
--		pgtbl_mod_mask *mask)
-+static int vmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end,
-+			phys_addr_t phys_addr, pgprot_t prot,
-+			pgtbl_mod_mask *mask)
- {
- 	p4d_t *p4d;
- 	unsigned long next;
-@@ -208,19 +205,19 @@ static inline int ioremap_p4d_range(pgd_t *pgd, unsigned long addr,
- 	do {
- 		next = p4d_addr_end(addr, end);
- 
--		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot)) {
-+		if (vmap_try_huge_p4d(p4d, addr, next, phys_addr, prot)) {
- 			*mask |= PGTBL_P4D_MODIFIED;
- 			continue;
- 		}
- 
--		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot, mask))
-+		if (vmap_pud_range(p4d, addr, next, phys_addr, prot, mask))
- 			return -ENOMEM;
- 	} while (p4d++, phys_addr += (next - addr), addr = next, addr != end);
- 	return 0;
- }
- 
--int ioremap_page_range(unsigned long addr,
--		       unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
-+static int vmap_range(unsigned long addr, unsigned long end,
-+			phys_addr_t phys_addr, pgprot_t prot)
- {
- 	pgd_t *pgd;
- 	unsigned long start;
-@@ -235,8 +232,7 @@ int ioremap_page_range(unsigned long addr,
- 	pgd = pgd_offset_k(addr);
- 	do {
- 		next = pgd_addr_end(addr, end);
--		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot,
--					&mask);
-+		err = vmap_p4d_range(pgd, addr, next, phys_addr, prot, &mask);
- 		if (err)
- 			break;
- 	} while (pgd++, phys_addr += (next - addr), addr = next, addr != end);
-@@ -249,6 +245,12 @@ int ioremap_page_range(unsigned long addr,
- 	return err;
- }
- 
-+int ioremap_page_range(unsigned long addr,
-+		       unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
+ #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
+-bool arch_vmap_p4d_supported(pgprot_t prot);
+-bool arch_vmap_pud_supported(pgprot_t prot);
+-bool arch_vmap_pmd_supported(pgprot_t prot);
++static inline bool arch_vmap_p4d_supported(pgprot_t prot)
 +{
-+	return vmap_range(addr, end, phys_addr, prot);
++	return false;
 +}
 +
- #ifdef CONFIG_GENERIC_IOREMAP
- void __iomem *ioremap_prot(phys_addr_t addr, size_t size, unsigned long prot)
++static inline bool arch_vmap_pud_supported(pgprot_t prot)
++{
++	/* HPT does not cope with large pages in the vmalloc area */
++	return radix_enabled();
++}
++
++static inline bool arch_vmap_pmd_supported(pgprot_t prot)
++{
++	return radix_enabled();
++}
+ #endif
+ 
+ #endif /* _ASM_POWERPC_VMALLOC_H */
+diff --git a/arch/powerpc/mm/book3s64/radix_pgtable.c b/arch/powerpc/mm/book3s64/radix_pgtable.c
+index 743807fc210f..8da62afccee5 100644
+--- a/arch/powerpc/mm/book3s64/radix_pgtable.c
++++ b/arch/powerpc/mm/book3s64/radix_pgtable.c
+@@ -1082,22 +1082,6 @@ void radix__ptep_modify_prot_commit(struct vm_area_struct *vma,
+ 	set_pte_at(mm, addr, ptep, pte);
+ }
+ 
+-bool arch_vmap_pud_supported(pgprot_t prot)
+-{
+-	/* HPT does not cope with large pages in the vmalloc area */
+-	return radix_enabled();
+-}
+-
+-bool arch_vmap_pmd_supported(pgprot_t prot)
+-{
+-	return radix_enabled();
+-}
+-
+-int p4d_free_pud_page(p4d_t *p4d, unsigned long addr)
+-{
+-	return 0;
+-}
+-
+ int pud_set_huge(pud_t *pud, phys_addr_t addr, pgprot_t prot)
  {
+ 	pte_t *ptep = (pte_t *)pud;
+@@ -1181,8 +1165,3 @@ int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+ 
+ 	return 1;
+ }
+-
+-bool arch_vmap_p4d_supported(pgprot_t prot)
+-{
+-	return false;
+-}
 -- 
 2.23.0
 
