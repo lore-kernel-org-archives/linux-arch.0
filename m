@@ -2,146 +2,143 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.5 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8F1A8C433DB
-	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 17:06:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0982AC433DB
+	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 17:27:58 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 60BEF64F7E
-	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 17:06:02 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AD66264F4D
+	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 17:27:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237208AbhBBRFi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 2 Feb 2021 12:05:38 -0500
-Received: from mail-wm1-f47.google.com ([209.85.128.47]:40292 "EHLO
-        mail-wm1-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237166AbhBBRDc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2021 12:03:32 -0500
-Received: by mail-wm1-f47.google.com with SMTP id c127so2922274wmf.5;
-        Tue, 02 Feb 2021 09:03:16 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to:user-agent;
-        bh=DD+251eGktrSTImPGVbBwQ3z1hqdMBWG31qVIVIXP5o=;
-        b=fStGpbTmQ9RsYNxFFwZdQVV0O/3zB+ex7Q625Arm2BpuT+VPQSAXF7DIyrCJgg7zUj
-         i2FRWye1CguYTlBxKf17U/i9+YF38zmLd5oyMj2FWwNC0WsqkF2xhr4TQweMmNLGhWSi
-         hQEweJiIVEVFde7oKSu3sMgKppFK553YzcGS27/KidRx1s9wQNs4P2YSwffwRdJkiqAl
-         H9UXrW8U+QxjhcVl42lt1aPElfD2upiuDnp7joVj1q/UtVMDgGpqCn+MIwqCCl7CZUuk
-         4DBXD85K+MnXLqtS9KkR8GKLL0xZAsiJNsZEIZRyBDYKgK/PXvZVvobnbSjm8Bph/nQx
-         3i4Q==
-X-Gm-Message-State: AOAM532xSER91QRvq77oMlhc4OvIXSbkjKGWHdrB3hHVmPi/0k6OYznY
-        F+SJkcDzZBFKX9izvMJECoc=
-X-Google-Smtp-Source: ABdhPJwsEMGnEjA/NKpbirU1u3HMobdNK7rrUiV5kMJbI1JoH9E/2vjXHtijtgxHb7IEQSN6sjawmQ==
-X-Received: by 2002:a7b:c041:: with SMTP id u1mr4506508wmc.161.1612285370649;
-        Tue, 02 Feb 2021 09:02:50 -0800 (PST)
-Received: from liuwe-devbox-debian-v2 ([51.145.34.42])
-        by smtp.gmail.com with ESMTPSA id r17sm18597208wro.46.2021.02.02.09.02.49
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 02 Feb 2021 09:02:50 -0800 (PST)
-Date:   Tue, 2 Feb 2021 17:02:48 +0000
-From:   Wei Liu <wei.liu@kernel.org>
-To:     Michael Kelley <mikelley@microsoft.com>
-Cc:     Wei Liu <wei.liu@kernel.org>,
-        Linux on Hyper-V List <linux-hyperv@vger.kernel.org>,
-        "virtualization@lists.linux-foundation.org" 
-        <virtualization@lists.linux-foundation.org>,
-        Linux Kernel List <linux-kernel@vger.kernel.org>,
-        Vineeth Pillai <viremana@linux.microsoft.com>,
-        Sunil Muthuswamy <sunilmut@microsoft.com>,
-        Nuno Das Neves <nunodasneves@linux.microsoft.com>,
-        "pasha.tatashin@soleen.com" <pasha.tatashin@soleen.com>,
-        KY Srinivasan <kys@microsoft.com>,
-        Haiyang Zhang <haiyangz@microsoft.com>,
-        Stephen Hemminger <sthemmin@microsoft.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        "open list:GENERIC INCLUDE/ASM HEADER FILES" 
-        <linux-arch@vger.kernel.org>
-Subject: Re: [PATCH v5 13/16] asm-generic/hyperv: introduce hv_device_id and
- auxiliary structures
-Message-ID: <20210202170248.4hds554cyxpuayqc@liuwe-devbox-debian-v2>
-References: <20210120120058.29138-1-wei.liu@kernel.org>
- <20210120120058.29138-14-wei.liu@kernel.org>
- <MWHPR21MB1593959647DA60219E19C25ED7BC9@MWHPR21MB1593.namprd21.prod.outlook.com>
+        id S236206AbhBBR12 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 2 Feb 2021 12:27:28 -0500
+Received: from us-smtp-delivery-124.mimecast.com ([63.128.21.124]:23500 "EHLO
+        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S234058AbhBBOOH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2021 09:14:07 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1612275160;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=mAXEVjxGkaVgIUFhfXA1HRN3FgtOlJcIpAQw2h/beVM=;
+        b=eKDUxb1+pqSJGwixp0bJb9IpFbLQ2YWSNtr9y6B5b9tHnfKB8XWwqMi4lg2wcz689fqN+7
+        ixbEtjubRl8BQ3SthB9ROO4tXppvD18dReUGmXO7MA7mXPXT1SkBZZqlAPN5rjZaPaek3k
+        ft4gaH36hp6hgsL1Zdqrv2sUA+94Msc=
+Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
+ [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
+ us-mta-460-DO7GaD-qPMSuJ9daYkp31A-1; Tue, 02 Feb 2021 09:12:35 -0500
+X-MC-Unique: DO7GaD-qPMSuJ9daYkp31A-1
+Received: from smtp.corp.redhat.com (int-mx01.intmail.prod.int.phx2.redhat.com [10.5.11.11])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+        (No client certificate requested)
+        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id B117B100A8E8;
+        Tue,  2 Feb 2021 14:12:30 +0000 (UTC)
+Received: from [10.36.114.148] (ovpn-114-148.ams2.redhat.com [10.36.114.148])
+        by smtp.corp.redhat.com (Postfix) with ESMTP id 6CE915B4A7;
+        Tue,  2 Feb 2021 14:12:22 +0000 (UTC)
+To:     Michal Hocko <mhocko@suse.com>
+Cc:     Mike Rapoport <rppt@kernel.org>,
+        James Bottomley <jejb@linux.ibm.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Matthew Wilcox <willy@infradead.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Roman Gushchin <guro@fb.com>,
+        Shakeel Butt <shakeelb@google.com>,
+        Shuah Khan <shuah@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
+        Palmer Dabbelt <palmerdabbelt@google.com>
+References: <303f348d-e494-e386-d1f5-14505b5da254@redhat.com>
+ <20210126120823.GM827@dhcp22.suse.cz> <20210128092259.GB242749@kernel.org>
+ <YBK1kqL7JA7NePBQ@dhcp22.suse.cz>
+ <73738cda43236b5ac2714e228af362b67a712f5d.camel@linux.ibm.com>
+ <YBPF8ETGBHUzxaZR@dhcp22.suse.cz>
+ <6de6b9f9c2d28eecc494e7db6ffbedc262317e11.camel@linux.ibm.com>
+ <YBkcyQsky2scjEcP@dhcp22.suse.cz> <20210202124857.GN242749@kernel.org>
+ <6653288a-dd02-f9de-ef6a-e8d567d71d53@redhat.com>
+ <YBlUXdwV93xMIff6@dhcp22.suse.cz>
+From:   David Hildenbrand <david@redhat.com>
+Organization: Red Hat GmbH
+Subject: Re: [PATCH v16 07/11] secretmem: use PMD-size pages to amortize
+ direct map fragmentation
+Message-ID: <211f0214-1868-a5be-9428-7acfc3b73993@redhat.com>
+Date:   Tue, 2 Feb 2021 15:12:21 +0100
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.5.0
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <MWHPR21MB1593959647DA60219E19C25ED7BC9@MWHPR21MB1593.namprd21.prod.outlook.com>
-User-Agent: NeoMutt/20180716
+In-Reply-To: <YBlUXdwV93xMIff6@dhcp22.suse.cz>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+X-Scanned-By: MIMEDefang 2.79 on 10.5.11.11
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Jan 26, 2021 at 01:26:52AM +0000, Michael Kelley wrote:
-> From: Wei Liu <wei.liu@kernel.org> Sent: Wednesday, January 20, 2021 4:01 AM
-> > 
-> > We will need to identify the device we want Microsoft Hypervisor to
-> > manipulate.  Introduce the data structures for that purpose.
-> > 
-> > They will be used in a later patch.
-> > 
-> > Signed-off-by: Sunil Muthuswamy <sunilmut@microsoft.com>
-> > Co-Developed-by: Sunil Muthuswamy <sunilmut@microsoft.com>
-> > Signed-off-by: Wei Liu <wei.liu@kernel.org>
-> > ---
-> >  include/asm-generic/hyperv-tlfs.h | 79 +++++++++++++++++++++++++++++++
-> >  1 file changed, 79 insertions(+)
-> > 
-> > diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
-> > index 8423bf53c237..42ff1326c6bd 100644
-> > --- a/include/asm-generic/hyperv-tlfs.h
-> > +++ b/include/asm-generic/hyperv-tlfs.h
-> > @@ -623,4 +623,83 @@ struct hv_set_vp_registers_input {
-> >  	} element[];
-> >  } __packed;
-> > 
-> > +enum hv_device_type {
-> > +	HV_DEVICE_TYPE_LOGICAL = 0,
-> > +	HV_DEVICE_TYPE_PCI = 1,
-> > +	HV_DEVICE_TYPE_IOAPIC = 2,
-> > +	HV_DEVICE_TYPE_ACPI = 3,
-> > +};
-> > +
-> > +typedef u16 hv_pci_rid;
-> > +typedef u16 hv_pci_segment;
-> > +typedef u64 hv_logical_device_id;
-> > +union hv_pci_bdf {
-> > +	u16 as_uint16;
-> > +
-> > +	struct {
-> > +		u8 function:3;
-> > +		u8 device:5;
-> > +		u8 bus;
-> > +	};
-> > +} __packed;
-> > +
-> > +union hv_pci_bus_range {
-> > +	u16 as_uint16;
-> > +
-> > +	struct {
-> > +		u8 subordinate_bus;
-> > +		u8 secondary_bus;
-> > +	};
-> > +} __packed;
-> > +
-> > +union hv_device_id {
-> > +	u64 as_uint64;
-> > +
-> > +	struct {
-> > +		u64 :62;
-> > +		u64 device_type:2;
-> > +	};
+On 02.02.21 14:32, Michal Hocko wrote:
+> On Tue 02-02-21 14:14:09, David Hildenbrand wrote:
+> [...]
+>> As already expressed, I dislike allowing user space to consume an unlimited
+>> number unmovable/unmigratable allocations. We already have that in some
+>> cases with huge pages (when the arch does not support migration) - but there
+>> we can at least manage the consumption using the whole max/reserved/free/...
+>> infrastructure. In addition, adding arch support for migration shouldn't be
+>> too complicated.
 > 
-> Are the above 4 lines extraneous junk? 
-> If not, a comment would be helpful.  And we
-> would normally label the 62 bit field as 
-> "reserved0" or something similar.
-> 
+> Well, mlock is not too different here as well. Hugepages are arguably an
+> easier model because it requires an explicit pre-configuration by an
+> admin. Mlock doesn't have anything like that. Please also note that
+> while mlock pages are migrateable by default, this is not the case in
+> general because they can be configured to disalow migration to prevent
+> from minor page faults as some workloads require that (e.g. RT).
 
-No. It is not junk. I got this from a header in tree.
+Yeah, however that is a very special case. In most cases mlock() simply 
+prevents swapping, you still have movable pages you can place anywhere 
+you like (including on ZONE_MOVABLE).
 
-I am inclined to just drop this hunk. If that breaks things, I will use
-"reserved0".
+> Another example is ramdisk or even tmpfs (with swap storage depleted or
+> not configured). Both are PITA from the OOM POV but they are manageable
+> if people are careful.
 
-Wei.
+Right, but again, special cases - e.g., tmpfs explicitly has to be resized.
+
+> If secretmem behaves along those existing models
+> then we know what to expect at least.
+
+I think secretmem behaves much more like longterm GUP right now 
+("unmigratable", "lifetime controlled by user space", "cannot go on 
+CMA/ZONE_MOVABLE"). I'd either want to reasonably well control/limit it 
+or make it behave more like mlocked pages.
+
+-- 
+Thanks,
+
+David / dhildenb
+
