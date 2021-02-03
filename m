@@ -5,33 +5,33 @@ X-Spam-Level:
 X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 75C7DC433DB
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 23:03:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0D3BDC43381
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 23:04:09 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3D73264F4D
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 23:03:17 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B796E64E3D
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 23:04:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232801AbhBCXDK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Feb 2021 18:03:10 -0500
+        id S233255AbhBCXDw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Feb 2021 18:03:52 -0500
 Received: from mga06.intel.com ([134.134.136.31]:30209 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S233367AbhBCXAz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Feb 2021 18:00:55 -0500
-IronPort-SDR: lKb4PS0YE6retGEMN1B5y/p1gI0pteKf2nMhROegs/Mmal0aGSY7PHdjeDAzR0Cn3Z26rOdegS
- t33CoKDCV6eA==
-X-IronPort-AV: E=McAfee;i="6000,8403,9884"; a="242642704"
+        id S233591AbhBCXCx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Feb 2021 18:02:53 -0500
+IronPort-SDR: OPZnYxQSa7Pnw+FnPjW2tcVWOILEwTnZvvuUeHZmWk2E6i0HHm8x0dC29E8dxxJQXaZ0qd6Y7H
+ PeTtR370s/7A==
+X-IronPort-AV: E=McAfee;i="6000,8403,9884"; a="242642710"
 X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="242642704"
+   d="scan'208";a="242642710"
 Received: from orsmga008.jf.intel.com ([10.7.209.65])
-  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:59:39 -0800
-IronPort-SDR: E50y0zVOJoAXf8wHnsbw0iz/sctU/iMcQSmD9kVOXywIud+dNaP6D7BuiZY0VL6C8s55kMXMFc
- x4FavLVR1b1g==
+  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:59:43 -0800
+IronPort-SDR: 0Bj1lQC6b8Istb399+hTMKe8nEFRobb64fLPwc9AmnvWaLrvsox0jAgg1z1V4SqkWipBKrbAv3
+ e2sxyOZTwh4Q==
 X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="392697936"
+   d="scan'208";a="392698020"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:59:37 -0800
+  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:59:42 -0800
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -60,9 +60,9 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Weijiang Yang <weijiang.yang@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v19 1/7] x86/cet/ibt: Update Kconfig for user-mode Indirect Branch Tracking
-Date:   Wed,  3 Feb 2021 14:58:56 -0800
-Message-Id: <20210203225902.479-2-yu-cheng.yu@intel.com>
+Subject: [PATCH v19 6/7] x86/vdso/32: Add ENDBR32 to __kernel_vsyscall entry point
+Date:   Wed,  3 Feb 2021 14:59:01 -0800
+Message-Id: <20210203225902.479-7-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20210203225902.479-1-yu-cheng.yu@intel.com>
 References: <20210203225902.479-1-yu-cheng.yu@intel.com>
@@ -72,30 +72,31 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Indirect branch tracking is a hardware security feature that verifies near
-indirect call/jump instructions arrive at intended targets, which are
-labeled by the compiler with ENDBR opcodes.  If such instructions reach
-unlabeled locations, the processor raises control-protection faults.
+From: "H.J. Lu" <hjl.tools@gmail.com>
 
-Check the compiler is up-to-date at config time.
+Add ENDBR32 to __kernel_vsyscall entry point.
 
+Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Acked-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/Kconfig | 1 +
- 1 file changed, 1 insertion(+)
+ arch/x86/entry/vdso/vdso32/system_call.S | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 4628d4dadd34..63b878c4e4c6 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1962,6 +1962,7 @@ config X86_CET
- 	def_bool n
- 	depends on X86_64
- 	depends on AS_WRUSS
-+	depends on $(cc-option,-fcf-protection)
- 	select ARCH_USES_HIGH_VMA_FLAGS
- 	select ARCH_HAS_SHADOW_STACK
- 	select ARCH_MAYBE_MKWRITE
+diff --git a/arch/x86/entry/vdso/vdso32/system_call.S b/arch/x86/entry/vdso/vdso32/system_call.S
+index de1fff7188aa..f19eaec3de3b 100644
+--- a/arch/x86/entry/vdso/vdso32/system_call.S
++++ b/arch/x86/entry/vdso/vdso32/system_call.S
+@@ -14,6 +14,9 @@
+ 	ALIGN
+ __kernel_vsyscall:
+ 	CFI_STARTPROC
++#ifdef CONFIG_X86_CET
++	endbr32
++#endif
+ 	/*
+ 	 * Reshuffle regs so that all of any of the entry instructions
+ 	 * will preserve enough state.
 -- 
 2.21.0
 
