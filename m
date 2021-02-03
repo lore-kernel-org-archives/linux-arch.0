@@ -2,196 +2,153 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 965D9C433E6
-	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 19:20:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3076FC433DB
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 03:20:50 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 605AB64E45
-	for <linux-arch@archiver.kernel.org>; Tue,  2 Feb 2021 19:20:53 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id F3CB164F69
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 03:20:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239726AbhBBTUX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 2 Feb 2021 14:20:23 -0500
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:56780 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S237941AbhBBS5T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2021 13:57:19 -0500
-Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 112Iqm6i191657;
-        Tue, 2 Feb 2021 13:55:51 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=message-id : subject :
- from : reply-to : to : cc : date : in-reply-to : references : content-type
- : mime-version : content-transfer-encoding; s=pp1;
- bh=f9zxCUw4M03BQ4ynBUOKWIG13PioNXDzHmOyFa7Yr50=;
- b=tGajUAV7nYMnOgvJ5XNDB+HPM04G6aJ4uyjJERBKE6JseyoiPK4ybLmz+xUMeF8A3ZvV
- 9CfgO1s4p/sWRTklZ/KBtXbyyaPSzcfHlGVLfsiesYbCjVINSb+2+ZSghFuAtlP+5PYP
- 1tDcLnZhDFH4d67b0vpQDKhAQj5nPXzfzvVe2pWz6p1vmBP5dlo0H/g8bmWucwiktluQ
- 4dF2nFgI9gYwGl5wdHr2aEN9XgChXUJmOhGJKG7TPXfSW1tejjZNletMaQBAMopJusM2
- WhMHFRJU7YZhPmNPJYYNTpO+11nR6aUDaj7QMRSQAP9T67mCdO2bXla32F4Zi+GZHxSP dg== 
-Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 36fcd60231-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 02 Feb 2021 13:55:51 -0500
-Received: from m0098416.ppops.net (m0098416.ppops.net [127.0.0.1])
-        by pps.reinject (8.16.0.36/8.16.0.36) with SMTP id 112Ir8MT196513;
-        Tue, 2 Feb 2021 13:55:51 -0500
-Received: from ppma01wdc.us.ibm.com (fd.55.37a9.ip4.static.sl-reverse.com [169.55.85.253])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 36fcd6022n-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 02 Feb 2021 13:55:50 -0500
-Received: from pps.filterd (ppma01wdc.us.ibm.com [127.0.0.1])
-        by ppma01wdc.us.ibm.com (8.16.0.42/8.16.0.42) with SMTP id 112IkXHS016248;
-        Tue, 2 Feb 2021 18:55:50 GMT
-Received: from b03cxnp08026.gho.boulder.ibm.com (b03cxnp08026.gho.boulder.ibm.com [9.17.130.18])
-        by ppma01wdc.us.ibm.com with ESMTP id 36eyucmt0m-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 02 Feb 2021 18:55:49 +0000
-Received: from b03ledav004.gho.boulder.ibm.com (b03ledav004.gho.boulder.ibm.com [9.17.130.235])
-        by b03cxnp08026.gho.boulder.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 112ItlXY24641948
-        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Tue, 2 Feb 2021 18:55:48 GMT
-Received: from b03ledav004.gho.boulder.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id E42A67805C;
-        Tue,  2 Feb 2021 18:55:47 +0000 (GMT)
-Received: from b03ledav004.gho.boulder.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 6E0857805E;
-        Tue,  2 Feb 2021 18:55:41 +0000 (GMT)
-Received: from jarvis.int.hansenpartnership.com (unknown [9.85.153.205])
-        by b03ledav004.gho.boulder.ibm.com (Postfix) with ESMTP;
-        Tue,  2 Feb 2021 18:55:41 +0000 (GMT)
-Message-ID: <f26a17366194880d58e67d10cb5d7d7fdf2f3c19.camel@linux.ibm.com>
-Subject: Re: [PATCH v16 07/11] secretmem: use PMD-size pages to amortize
- direct map fragmentation
-From:   James Bottomley <jejb@linux.ibm.com>
-Reply-To: jejb@linux.ibm.com
-To:     Mike Rapoport <rppt@kernel.org>,
-        David Hildenbrand <david@redhat.com>
-Cc:     Michal Hocko <mhocko@suse.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Wilcox <willy@infradead.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Roman Gushchin <guro@fb.com>,
-        Shakeel Butt <shakeelb@google.com>,
-        Shuah Khan <shuah@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
-        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
-        Palmer Dabbelt <palmerdabbelt@google.com>
-Date:   Tue, 02 Feb 2021 10:55:40 -0800
-In-Reply-To: <20210202181546.GO242749@kernel.org>
-References: <6de6b9f9c2d28eecc494e7db6ffbedc262317e11.camel@linux.ibm.com>
-         <YBkcyQsky2scjEcP@dhcp22.suse.cz> <20210202124857.GN242749@kernel.org>
-         <6653288a-dd02-f9de-ef6a-e8d567d71d53@redhat.com>
-         <YBlUXdwV93xMIff6@dhcp22.suse.cz>
-         <211f0214-1868-a5be-9428-7acfc3b73993@redhat.com>
-         <YBlgCl8MQuuII22w@dhcp22.suse.cz>
-         <d4fe580a-ef0e-e13f-9ee4-16fb8b6d65dd@redhat.com>
-         <YBlicIupOyPF9f3D@dhcp22.suse.cz>
-         <95625b83-f7e2-b27a-2b99-d231338047fb@redhat.com>
-         <20210202181546.GO242749@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
-User-Agent: Evolution 3.34.4 
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-X-TM-AS-GCONF: 00
-X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.369,18.0.737
- definitions=2021-02-02_09:2021-02-02,2021-02-02 signatures=0
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 mlxscore=0 malwarescore=0
- bulkscore=0 spamscore=0 phishscore=0 adultscore=0 mlxlogscore=530
- clxscore=1015 suspectscore=0 lowpriorityscore=0 priorityscore=1501
- impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2009150000 definitions=main-2102020118
+        id S232662AbhBCDTf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 2 Feb 2021 22:19:35 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51864 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232520AbhBCDRH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2021 22:17:07 -0500
+Received: from mail-pf1-x42c.google.com (mail-pf1-x42c.google.com [IPv6:2607:f8b0:4864:20::42c])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 267EEC061788
+        for <linux-arch@vger.kernel.org>; Tue,  2 Feb 2021 19:04:47 -0800 (PST)
+Received: by mail-pf1-x42c.google.com with SMTP id w14so15739772pfi.2
+        for <linux-arch@vger.kernel.org>; Tue, 02 Feb 2021 19:04:47 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=dabbelt-com.20150623.gappssmtp.com; s=20150623;
+        h=date:subject:in-reply-to:cc:from:to:message-id:mime-version
+         :content-transfer-encoding;
+        bh=Vdh1Qq63m3XfmV6DImv16T62V42d9pjMQXcqf3Ym7EI=;
+        b=wgBkFphGweD3WECMTHTmbOH4w02odKqMUOdnQM3s7BMucZQ6IIzBeW7ZeyOq+iZ4kB
+         wGo9RbJlt91NeM+RFug+FuigT1br4iUJD1XRBbLgwqpiEYiph8kX8ZDK1MPFcwAz7Y0L
+         sNwZdy79RqP/gxQr+bCa0iYka6cCIunrnfrkrI8TmJE3wHBNq7jXaW4eWd+N+P9zAJcy
+         ci4Dex33qOWS7OBKeXfnx1BVBimDM/qJzmQrsM0Pl7WQDt48lKnbl2FjvmZQqMNAV8r6
+         KHkx4Ui8jlzbsHtJPl0xn88GCpFThOZPPHBhR61MQygy4rks7yJ026chqYViX0T7eSFL
+         sAcA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:subject:in-reply-to:cc:from:to:message-id
+         :mime-version:content-transfer-encoding;
+        bh=Vdh1Qq63m3XfmV6DImv16T62V42d9pjMQXcqf3Ym7EI=;
+        b=t2jsyD4A4xe2FYzeXd+3D/UDGDrVh2kqPCu1bBzeQXPfUnL5Mw494kTXhR5aSqnOYy
+         5lhLyA3s/klSyCds+fqAVV7cYk9mM0Pzjj6JYtXbz5aQOP1s299EYnLQtuHCXkt0OqTr
+         ZE/ya2UAhjVWgQVXAn0ilyFoaE+AcqkOAQWUknIQmViwb0Wt8KfNa3gqzZVNEcc3kJBc
+         b7w/Dt1xAMlk+4yFYdwfAjwtnz8H5MJjq34n2KRqbrCT5ADCjqt/3JYEru2Eek+151iD
+         xAOG5lffYSGLuXsauZy8Xscm25WjFL7RXUoEG8+TB6RBU2Of5FK/jGAagvUsCYK23GHg
+         9vyA==
+X-Gm-Message-State: AOAM531Y7mLZuvH/D+YVEA5QSMsmEpWhHHOk3QRusSDX3M1PBM1h5PHb
+        5R3yrxJFkTS9MpF69CW6sQqelw==
+X-Google-Smtp-Source: ABdhPJyuyGSBM/5g+/5Iuy++F6uNnW110xi5tioCbX0ogE3WZP9UD91lzEs7Nrq937k1kDrynd8ykw==
+X-Received: by 2002:a63:4444:: with SMTP id t4mr1256237pgk.329.1612321486466;
+        Tue, 02 Feb 2021 19:04:46 -0800 (PST)
+Received: from localhost (76-210-143-223.lightspeed.sntcca.sbcglobal.net. [76.210.143.223])
+        by smtp.gmail.com with ESMTPSA id lf4sm334800pjb.0.2021.02.02.19.04.45
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 02 Feb 2021 19:04:45 -0800 (PST)
+Date:   Tue, 02 Feb 2021 19:04:45 -0800 (PST)
+X-Google-Original-Date: Tue, 02 Feb 2021 18:39:17 PST (-0800)
+Subject:     Re: [RFC PATCH 00/12] Introduce sv48 support without relocable kernel
+In-Reply-To: <f38979dc-9f8c-6fce-6b1b-70e5f110e14c@ghiti.fr>
+CC:     Paul Walmsley <paul.walmsley@sifive.com>, zong.li@sifive.com,
+        anup@brainfault.org, Christoph Hellwig <hch@lst.de>,
+        ardb@kernel.org, Arnd Bergmann <arnd@arndb.de>,
+        linux-efi@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org
+From:   Palmer Dabbelt <palmer@dabbelt.com>
+To:     alex@ghiti.fr
+Message-ID: <mhng-68df8416-8592-48e2-9040-56135ff3bc1d@penguin>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, 2021-02-02 at 20:15 +0200, Mike Rapoport wrote:
-> On Tue, Feb 02, 2021 at 03:34:29PM +0100, David Hildenbrand wrote:
-> > On 02.02.21 15:32, Michal Hocko wrote:
-> > > On Tue 02-02-21 15:26:20, David Hildenbrand wrote:
-> > > > On 02.02.21 15:22, Michal Hocko wrote:
-> > > > > On Tue 02-02-21 15:12:21, David Hildenbrand wrote:
-> > > > > [...]
-> > > > > > I think secretmem behaves much more like longterm GUP right
-> > > > > > now
-> > > > > > ("unmigratable", "lifetime controlled by user space",
-> > > > > > "cannot go on
-> > > > > > CMA/ZONE_MOVABLE"). I'd either want to reasonably well
-> > > > > > control/limit it or
-> > > > > > make it behave more like mlocked pages.
-> > > > > 
-> > > > > I thought I have already asked but I must have forgotten. Is
-> > > > > there any
-> > > > > actual reason why the memory is not movable? Timing attacks?
-> > > > 
-> > > > I think the reason is simple: no direct map, no copying of
-> > > > memory.
-> > > 
-> > > This is an implementation detail though and not something
-> > > terribly hard
-> > > to add on top later on. I was more worried there would be really
-> > > fundamental reason why this is not possible. E.g. security
-> > > implications.
-> > 
-> > I don't remember all the details. Let's see what Mike thinks
-> > regarding
-> > migration (e.g., security concerns).
-> 
-> Thanks for considering me a security expert :-)
-> 
-> Yet, I cannot estimate how dangerous is the temporal exposure of
-> this data to the kernel via the direct map in the simple
-> map/copy/unmap
-> sequence.
+On Sat, 30 Jan 2021 01:33:20 PST (-0800), alex@ghiti.fr wrote:
+> Hi Palmer,
+>
+> On 1/4/21 2:58 PM, Alexandre Ghiti wrote:
+>> This patchset, contrary to the previous versions, allows to have a single
+>> kernel for sv39 and sv48 without being relocatable.
+>>
+>> The idea comes from Arnd Bergmann who suggested to do the same as x86,
+>> that is mapping the kernel to the end of the address space, which allows
+>> the kernel to be linked at the same address for both sv39 and sv48 and
+>> then does not require to be relocated at runtime.
+>>
+>> This is an RFC because I need to at least rebase a few commits and add
+>> documentation. The most interesting patches where I expect feedbacks are
+>> 1/12, 2/12 and 8/12. Note that moving the kernel out of the linear
+>> mapping and sv48 support can be separate patchsets, I share them together
+>> today to show that it works (this patchset is rebased on top of v5.10).
+>>
+>> If we agree about the overall idea, I'll rebase my relocatable patchset
+>> on top of that and then KASLR implementation from Zong will be greatly
+>> simplified since moving the kernel out of the linear mapping will avoid
+>> to copy the kernel physically.
+>>
+>> This implements sv48 support at runtime. The kernel will try to
+>> boot with 4-level page table and will fallback to 3-level if the HW does not
+>> support it. Folding the 4th level into a 3-level page table has almost no
+>> cost at runtime.
+>>
+>> Finally, the user can now ask for sv39 explicitly by using the device-tree
+>> which will reduce memory footprint and reduce the number of memory accesses
+>> in case of TLB miss.
+>>
+>> Alexandre Ghiti (12):
+>>    riscv: Move kernel mapping outside of linear mapping
+>>    riscv: Protect the kernel linear mapping
+>>    riscv: Get rid of compile time logic with MAX_EARLY_MAPPING_SIZE
+>>    riscv: Allow to dynamically define VA_BITS
+>>    riscv: Simplify MAXPHYSMEM config
+>>    riscv: Prepare ptdump for vm layout dynamic addresses
+>>    asm-generic: Prepare for riscv use of pud_alloc_one and pud_free
+>>    riscv: Implement sv48 support
+>>    riscv: Allow user to downgrade to sv39 when hw supports sv48
+>>    riscv: Use pgtable_l4_enabled to output mmu type in cpuinfo
+>>    riscv: Explicit comment about user virtual address space size
+>>    riscv: Improve virtual kernel memory layout dump
+>>
+>>   arch/riscv/Kconfig                      |  34 +--
+>>   arch/riscv/boot/loader.lds.S            |   3 +-
+>>   arch/riscv/include/asm/csr.h            |   3 +-
+>>   arch/riscv/include/asm/fixmap.h         |   3 +
+>>   arch/riscv/include/asm/page.h           |  33 ++-
+>>   arch/riscv/include/asm/pgalloc.h        |  40 +++
+>>   arch/riscv/include/asm/pgtable-64.h     | 104 ++++++-
+>>   arch/riscv/include/asm/pgtable.h        |  68 +++--
+>>   arch/riscv/include/asm/sparsemem.h      |   6 +-
+>>   arch/riscv/kernel/cpu.c                 |  23 +-
+>>   arch/riscv/kernel/head.S                |   6 +-
+>>   arch/riscv/kernel/module.c              |   4 +-
+>>   arch/riscv/kernel/vmlinux.lds.S         |   3 +-
+>>   arch/riscv/mm/context.c                 |   2 +-
+>>   arch/riscv/mm/init.c                    | 376 ++++++++++++++++++++----
+>>   arch/riscv/mm/physaddr.c                |   2 +-
+>>   arch/riscv/mm/ptdump.c                  |  56 +++-
+>>   drivers/firmware/efi/libstub/efi-stub.c |   2 +-
+>>   include/asm-generic/pgalloc.h           |  24 +-
+>>   include/linux/sizes.h                   |   3 +-
+>>   20 files changed, 648 insertions(+), 147 deletions(-)
+>>
+>
+> Any thought about the idea ? Is it going in the right direction ? I have
+> fixed quite a few things since I posted this so don't bother giving this
+> patchset a full review.
 
-Well the safest security statement is that we never expose the data to
-the kernel because it's a very clean security statement and easy to
-enforce.  It's also the easiest threat model to analyse.   Once we do
-start exposing the secret to the kernel it alters the threat profile
-and the analysis and obviously potentially provides the ROP gadget to
-an attacker to do the same.  Instinct tells me that the loss of
-security doesn't really make up for the ability to swap or migrate but
-if there were a case for doing the latter, it would have to be a
-security policy of the user (i.e. a user should be able to decide their
-data is too sensitive to expose to the kernel).
-
-> More secure way would be to map source and destination in a different
-> page table rather than in the direct map, similarly to the way
-> text_poke() on x86 does.
-
-I think doing this would have much less of an impact on the security
-posture because it's already theoretically possible to have kmap
-restore access to the kernel.
-
-James
-
-
-> I've left the migration callback empty for now because it can be
-> added on top and its implementation would depend on the way we do (or
-> do not do) pooling.
-> 
-
-
+My only real issue was the relocation stuff, which appears to be fixed.  I 
+haven't had the time to look at the patches, but it wouldn't hurt to send 
+another revision.  The best bet might be to just wait until 5.11 and send on 
+top of that, it's too late for this one anyway and that'll be a stable base to 
+test from.
