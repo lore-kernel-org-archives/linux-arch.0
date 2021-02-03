@@ -5,33 +5,33 @@ X-Spam-Level:
 X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8DDFBC433DB
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C649EC433E0
 	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 22:58:43 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4051464E38
+	by mail.kernel.org (Postfix) with ESMTP id 694B764F4D
 	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 22:58:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233253AbhBCW6H (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Feb 2021 17:58:07 -0500
-Received: from mga06.intel.com ([134.134.136.31]:30210 "EHLO mga06.intel.com"
+        id S233311AbhBCW6c (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Feb 2021 17:58:32 -0500
+Received: from mga06.intel.com ([134.134.136.31]:30209 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S233231AbhBCW5v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Feb 2021 17:57:51 -0500
-IronPort-SDR: kxBvEZUcfjW5uCkp4v1Zvet28KfEbjqoy+biNtsBOuaIf1FHxfHe48NFqdkC1r+G9xVPt7QWNc
- uS8K7nnz6GOQ==
-X-IronPort-AV: E=McAfee;i="6000,8403,9884"; a="242642358"
+        id S233234AbhBCW6A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Feb 2021 17:58:00 -0500
+IronPort-SDR: M370wfm+y0ffpPWBZEKTg+DDmK/90lma1RqiBBAV7IQdhrgksSiAH8av7HBkxnmnQ+1FqfSawx
+ tsCZXY7cewFQ==
+X-IronPort-AV: E=McAfee;i="6000,8403,9884"; a="242642361"
 X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="242642358"
+   d="scan'208";a="242642361"
 Received: from orsmga004.jf.intel.com ([10.7.209.38])
-  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:56:25 -0800
-IronPort-SDR: VxMDgpo8ntl1NOx640K14CRRqjsfKgSI1oiQTtUvFoD6drw3sEFcgbTJmR1I6LERWTFeV2oOI+
- b6Z6Liu/264A==
+  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:56:27 -0800
+IronPort-SDR: SCq0rYLGCTlnoX4DLRB9aYCg54EYLToAa2tWmDC4ME3ZhgHwiXx3C5LkdsxOUec5Q5s7B28U62
+ 2X0n9b4JgX1A==
 X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="507921105"
+   d="scan'208";a="507921113"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:56:25 -0800
+  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:56:26 -0800
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -60,9 +60,9 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Weijiang Yang <weijiang.yang@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v19 10/25] x86/mm: Update pte_modify for _PAGE_COW
-Date:   Wed,  3 Feb 2021 14:55:32 -0800
-Message-Id: <20210203225547.32221-11-yu-cheng.yu@intel.com>
+Subject: [PATCH v19 12/25] mm: Introduce VM_SHSTK for shadow stack memory
+Date:   Wed,  3 Feb 2021 14:55:34 -0800
+Message-Id: <20210203225547.32221-13-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20210203225547.32221-1-yu-cheng.yu@intel.com>
 References: <20210203225547.32221-1-yu-cheng.yu@intel.com>
@@ -72,84 +72,77 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The read-only and Dirty PTE has been used to indicate copy-on-write pages.
-However, newer x86 processors also regard a read-only and Dirty PTE as a
-shadow stack page.  In order to separate the two, the software-defined
-_PAGE_COW is created to replace _PAGE_DIRTY for the copy-on-write case, and
-pte_*() are updated.
-
-Pte_modify() changes a PTE to 'newprot', but it doesn't use the pte_*().
-Introduce fixup_dirty_pte(), which sets a dirty PTE, based on _PAGE_RW,
-to either _PAGE_DIRTY or _PAGE_COW.
-
-Apply the same changes to pmd_modify().
+A shadow stack PTE must be read-only and have _PAGE_DIRTY set.  However,
+read-only and Dirty PTEs also exist for copy-on-write (COW) pages.  These
+two cases are handled differently for page faults.  Introduce VM_SHSTK to
+track shadow stack VMAs.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/include/asm/pgtable.h | 33 +++++++++++++++++++++++++++++++++
- 1 file changed, 33 insertions(+)
+ arch/x86/mm/mmap.c | 2 ++
+ fs/proc/task_mmu.c | 3 +++
+ include/linux/mm.h | 8 ++++++++
+ 3 files changed, 13 insertions(+)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index 4b0ec61510dc..4a7fd3e5b7df 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -726,6 +726,21 @@ static inline pmd_t pmd_mkinvalid(pmd_t pmd)
+diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
+index c90c20904a60..a22c6b6fc607 100644
+--- a/arch/x86/mm/mmap.c
++++ b/arch/x86/mm/mmap.c
+@@ -165,6 +165,8 @@ unsigned long get_mmap_base(int is_legacy)
  
- static inline u64 flip_protnone_guard(u64 oldval, u64 val, u64 mask);
- 
-+static inline pteval_t fixup_dirty_pte(pteval_t pteval)
-+{
-+	pte_t pte = __pte(pteval);
-+
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && pte_dirty(pte)) {
-+		pte = pte_mkclean(pte);
-+
-+		if (pte_flags(pte) & _PAGE_RW)
-+			pte = pte_set_flags(pte, _PAGE_DIRTY);
-+		else
-+			pte = pte_set_flags(pte, _PAGE_COW);
-+	}
-+	return pte_val(pte);
-+}
-+
- static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ const char *arch_vma_name(struct vm_area_struct *vma)
  {
- 	pteval_t val = pte_val(pte), oldval = val;
-@@ -736,16 +751,34 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
- 	 */
- 	val &= _PAGE_CHG_MASK;
- 	val |= check_pgprot(newprot) & ~_PAGE_CHG_MASK;
-+	val = fixup_dirty_pte(val);
- 	val = flip_protnone_guard(oldval, val, PTE_PFN_MASK);
- 	return __pte(val);
++	if (vma->vm_flags & VM_SHSTK)
++		return "[shadow stack]";
+ 	return NULL;
  }
  
-+static inline int pmd_write(pmd_t pmd);
-+static inline pmdval_t fixup_dirty_pmd(pmdval_t pmdval)
-+{
-+	pmd_t pmd = __pmd(pmdval);
-+
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && pmd_dirty(pmd)) {
-+		pmd = pmd_mkclean(pmd);
-+
-+		if (pmd_flags(pmd) & _PAGE_RW)
-+			pmd = pmd_set_flags(pmd, _PAGE_DIRTY);
-+		else
-+			pmd = pmd_set_flags(pmd, _PAGE_COW);
-+	}
-+	return pmd_val(pmd);
-+}
-+
- static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
- {
- 	pmdval_t val = pmd_val(pmd), oldval = val;
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index 602e3a52884d..59623dcd92bb 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -661,6 +661,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+ 		[ilog2(VM_PKEY_BIT4)]	= "",
+ #endif
+ #endif /* CONFIG_ARCH_HAS_PKEYS */
++#ifdef CONFIG_X86_CET
++		[ilog2(VM_SHSTK)]	= "ss",
++#endif
+ 	};
+ 	size_t i;
  
- 	val &= _HPAGE_CHG_MASK;
- 	val |= check_pgprot(newprot) & ~_HPAGE_CHG_MASK;
-+	val = fixup_dirty_pmd(val);
- 	val = flip_protnone_guard(oldval, val, PHYSICAL_PMD_PAGE_MASK);
- 	return __pmd(val);
- }
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index ecdf8a8cd6ae..7be5f8b874aa 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -312,11 +312,13 @@ extern unsigned int kobjsize(const void *objp);
+ #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures */
++#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+ #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+ #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+ #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
+ #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
++#define VM_HIGH_ARCH_5	BIT(VM_HIGH_ARCH_BIT_5)
+ #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
+ 
+ #ifdef CONFIG_ARCH_HAS_PKEYS
+@@ -332,6 +334,12 @@ extern unsigned int kobjsize(const void *objp);
+ #endif
+ #endif /* CONFIG_ARCH_HAS_PKEYS */
+ 
++#ifdef CONFIG_X86_CET
++# define VM_SHSTK	VM_HIGH_ARCH_5
++#else
++# define VM_SHSTK	VM_NONE
++#endif
++
+ #if defined(CONFIG_X86)
+ # define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+ #elif defined(CONFIG_PPC)
 -- 
 2.21.0
 
