@@ -2,39 +2,38 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.4 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2D599C433E9
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 22:29:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D82BAC433E0
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 22:57:19 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 0061464F64
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 22:29:49 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A3E1564F4D
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 22:57:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232411AbhBCW3d (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Feb 2021 17:29:33 -0500
-Received: from mga18.intel.com ([134.134.136.126]:44941 "EHLO mga18.intel.com"
+        id S232880AbhBCW5D (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Feb 2021 17:57:03 -0500
+Received: from mga06.intel.com ([134.134.136.31]:30209 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S232201AbhBCW3c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Feb 2021 17:29:32 -0500
-IronPort-SDR: qCnO0xfovv3BelUrCDlUnNmfqHusXdVcXEQsOE7kbiDRIjlXTDZ8+wNahfWg/PBR4Bm0s+gcgb
- ogZYZMEI+Rag==
-X-IronPort-AV: E=McAfee;i="6000,8403,9884"; a="168811528"
+        id S232867AbhBCW5D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Feb 2021 17:57:03 -0500
+IronPort-SDR: Ni/F9M3wU5WiBOFENdpqlyFnVeQbhznkm4ZuAOj8G5UyY+Vq6M3yPu3guRjFvenLAWg5XfYy+k
+ MjxvXuokEX+A==
+X-IronPort-AV: E=McAfee;i="6000,8403,9884"; a="242642346"
 X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="168811528"
-Received: from orsmga003.jf.intel.com ([10.7.209.27])
-  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:28:48 -0800
-IronPort-SDR: teAHso16AhsuO/DSh9wwnpQvwEfuXc8bhQHU+KbBseRyIWT4j15au9I7BKs1vITYb4rh6MgfvA
- BREiF+xDa61g==
+   d="scan'208";a="242642346"
+Received: from orsmga004.jf.intel.com ([10.7.209.38])
+  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:56:21 -0800
+IronPort-SDR: yOgTmwwF+VBVInVTzo9DS/ZHpr+IqAsrsxyhfO4VmsnizxpRISWautvZTWaby2OUP3IwXnzl/k
+ 2EHj+i4QBlBg==
 X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="356920008"
-Received: from yyu32-mobl1.amr.corp.intel.com (HELO [10.212.43.162]) ([10.212.43.162])
-  by orsmga003-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:28:46 -0800
-Subject: Re: [PATCH v18 24/25] x86/cet/shstk: Add arch_prctl functions for
- shadow stack
-To:     Dave Hansen <dave.hansen@intel.com>, x86@kernel.org,
-        "H. Peter Anvin" <hpa@zytor.com>,
+   d="scan'208";a="507921063"
+Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
+  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:56:21 -0800
+From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
+To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
         Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
         linux-doc@vger.kernel.org, linux-mm@kvack.org,
@@ -60,72 +59,95 @@ To:     Dave Hansen <dave.hansen@intel.com>, x86@kernel.org,
         Dave Martin <Dave.Martin@arm.com>,
         Weijiang Yang <weijiang.yang@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>
-References: <20210127212524.10188-1-yu-cheng.yu@intel.com>
- <20210127212524.10188-25-yu-cheng.yu@intel.com>
- <ba39586d-25b6-6ea5-19c3-adf17b59f910@intel.com>
- <761ae8ce-0560-24cc-e6f7-684475cb3708@intel.com>
- <6720b1a9-f785-dbbd-1f0e-8c9090be2069@intel.com>
- <a7ef2df2-815f-9994-11b7-026afe45094f@intel.com>
-From:   "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
-Message-ID: <c68f0f9b-2e56-6ca6-511d-58acd3d96ff2@intel.com>
-Date:   Wed, 3 Feb 2021 14:28:45 -0800
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
- Thunderbird/78.7.0
+Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v19 03/25] x86/cpufeatures: Add CET CPU feature flags for Control-flow Enforcement Technology (CET)
+Date:   Wed,  3 Feb 2021 14:55:25 -0800
+Message-Id: <20210203225547.32221-4-yu-cheng.yu@intel.com>
+X-Mailer: git-send-email 2.21.0
+In-Reply-To: <20210203225547.32221-1-yu-cheng.yu@intel.com>
+References: <20210203225547.32221-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <a7ef2df2-815f-9994-11b7-026afe45094f@intel.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 2/3/2021 2:11 PM, Dave Hansen wrote:
-> On 2/3/21 1:54 PM, Yu, Yu-cheng wrote:
->> On 1/29/2021 10:56 AM, Yu, Yu-cheng wrote:
->>> On 1/29/2021 9:07 AM, Dave Hansen wrote:
->>>> On 1/27/21 1:25 PM, Yu-cheng Yu wrote:
->>>>> +    if (!IS_ENABLED(CONFIG_X86_CET))
->>>>> +        return -EOPNOTSUPP;
->>>>
->>>> Let's ignore glibc for a moment.  What error code *should* the kernel be
->>>> returning here?  errno(3) says:
->>>>
->>>>          EOPNOTSUPP      Operation not supported on socket (POSIX.1)
->>>> ...
->>>>          ENOTSUP         Operation not supported (POSIX.1)
->>>>
->>>
->>> Yeah, other places in kernel use ENOTSUPP.  This seems to be out of
->>> line.  And since the issue is long-existing, applications already know
->>> how to deal with it.  I should have made that argument.  Change it to
->>> ENOTSUPP.
->>
->> When I make the change, checkpatch says...
->>
->> WARNING: ENOTSUPP is not a SUSV4 error code, prefer EOPNOTSUPP
->> #128: FILE: arch/x86/kernel/cet_prctl.c:33:
->> +        return -ENOTSUPP;
->>
->> Do we want to reconsider?
-> 
-> I'm not sure I trust checkpatch over manpages.  I had to google "SUSV4".
->   I'm not sure it matters at *all* for a 100% Linux-specific interface.
-> 
-> ENOTSUPP does seem less popular lately:
-> 
->> $ git diff v5.0.. kernel/ arch/ drivers/ | grep ^+.*return.*E.*NO.*SUP.*\; | grep -o -- -E.*\; | sort | uniq -c | sort -n
->> ... noise
->>       61 -EOPNOTSUPP);
->>      260 -ENOTSUPP;
->>     1577 -EOPNOTSUPP;
-> 
-> but far from unused.  That might be due to checkpatch spew more than
-> anything.
-> 
+Add CPU feature flags for Control-flow Enforcement Technology (CET).
 
-Maybe I will keep it ENOTSUPP for now.  If any logical reason should 
-come up, I will be happy to change it again.  Thanks!
+CPUID.(EAX=7,ECX=0):ECX[bit 7] Shadow stack
+CPUID.(EAX=7,ECX=0):EDX[bit 20] Indirect Branch Tracking
 
---
-Yu-cheng
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/include/asm/cpufeatures.h       |  2 ++
+ arch/x86/include/asm/disabled-features.h | 12 ++++++++++--
+ arch/x86/kernel/cpu/cpuid-deps.c         |  2 ++
+ 3 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
+index 84b887825f12..292fe87b26b3 100644
+--- a/arch/x86/include/asm/cpufeatures.h
++++ b/arch/x86/include/asm/cpufeatures.h
+@@ -345,6 +345,7 @@
+ #define X86_FEATURE_OSPKE		(16*32+ 4) /* OS Protection Keys Enable */
+ #define X86_FEATURE_WAITPKG		(16*32+ 5) /* UMONITOR/UMWAIT/TPAUSE Instructions */
+ #define X86_FEATURE_AVX512_VBMI2	(16*32+ 6) /* Additional AVX512 Vector Bit Manipulation Instructions */
++#define X86_FEATURE_SHSTK		(16*32+ 7) /* Shadow Stack */
+ #define X86_FEATURE_GFNI		(16*32+ 8) /* Galois Field New Instructions */
+ #define X86_FEATURE_VAES		(16*32+ 9) /* Vector AES */
+ #define X86_FEATURE_VPCLMULQDQ		(16*32+10) /* Carry-Less Multiplication Double Quadword */
+@@ -377,6 +378,7 @@
+ #define X86_FEATURE_TSXLDTRK		(18*32+16) /* TSX Suspend Load Address Tracking */
+ #define X86_FEATURE_PCONFIG		(18*32+18) /* Intel PCONFIG */
+ #define X86_FEATURE_ARCH_LBR		(18*32+19) /* Intel ARCH LBR */
++#define X86_FEATURE_IBT			(18*32+20) /* Indirect Branch Tracking */
+ #define X86_FEATURE_AVX512_FP16		(18*32+23) /* AVX512 FP16 */
+ #define X86_FEATURE_SPEC_CTRL		(18*32+26) /* "" Speculation Control (IBRS + IBPB) */
+ #define X86_FEATURE_INTEL_STIBP		(18*32+27) /* "" Single Thread Indirect Branch Predictors */
+diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
+index 7947cb1782da..a66e7f34b788 100644
+--- a/arch/x86/include/asm/disabled-features.h
++++ b/arch/x86/include/asm/disabled-features.h
+@@ -68,6 +68,14 @@
+ # define DISABLE_SGX	(1 << (X86_FEATURE_SGX & 31))
+ #endif
+ 
++#ifdef CONFIG_X86_CET
++#define DISABLE_SHSTK	0
++#define DISABLE_IBT	0
++#else
++#define DISABLE_SHSTK	(1 << (X86_FEATURE_SHSTK & 31))
++#define DISABLE_IBT	(1 << (X86_FEATURE_IBT & 31))
++#endif
++
+ /*
+  * Make sure to add features to the correct mask
+  */
+@@ -88,9 +96,9 @@
+ #define DISABLED_MASK14	0
+ #define DISABLED_MASK15	0
+ #define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_UMIP| \
+-			 DISABLE_ENQCMD)
++			 DISABLE_ENQCMD|DISABLE_SHSTK)
+ #define DISABLED_MASK17	0
+-#define DISABLED_MASK18	0
++#define DISABLED_MASK18	(DISABLE_IBT)
+ #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 19)
+ 
+ #endif /* _ASM_X86_DISABLED_FEATURES_H */
+diff --git a/arch/x86/kernel/cpu/cpuid-deps.c b/arch/x86/kernel/cpu/cpuid-deps.c
+index 42af31b64c2c..52d9a682a0e6 100644
+--- a/arch/x86/kernel/cpu/cpuid-deps.c
++++ b/arch/x86/kernel/cpu/cpuid-deps.c
+@@ -72,6 +72,8 @@ static const struct cpuid_dep cpuid_deps[] = {
+ 	{ X86_FEATURE_AVX512_FP16,		X86_FEATURE_AVX512BW  },
+ 	{ X86_FEATURE_ENQCMD,			X86_FEATURE_XSAVES    },
+ 	{ X86_FEATURE_PER_THREAD_MBA,		X86_FEATURE_MBA       },
++	{ X86_FEATURE_SHSTK,			X86_FEATURE_XSAVES    },
++	{ X86_FEATURE_IBT,			X86_FEATURE_XSAVES    },
+ 	{}
+ };
+ 
+-- 
+2.21.0
+
