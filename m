@@ -2,126 +2,147 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.1 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,PDS_BTC_ID,
-	PDS_LITECOIN_ID,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.4 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EFD50C433E0
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 17:30:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9B89DC433E6
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 19:56:37 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A814364DF6
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 17:30:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6922164F60
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 19:56:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232173AbhBCR2F (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Feb 2021 12:28:05 -0500
-Received: from mga06.intel.com ([134.134.136.31]:4056 "EHLO mga06.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S231458AbhBCR2C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Feb 2021 12:28:02 -0500
-IronPort-SDR: Wqj/6Lb6Bw8ddYYlNE0gGDbE7U7TzjhqD66GXa/y8gPBW8i14GAk8/KFoBzqEMHSP+L/ZPrEPI
- +4pjHgn2nSAQ==
-X-IronPort-AV: E=McAfee;i="6000,8403,9884"; a="242592372"
-X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="242592372"
-Received: from fmsmga004.fm.intel.com ([10.253.24.48])
-  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 09:27:20 -0800
-IronPort-SDR: oA3PaKU9GGXLkN4skpI8G0zZ4UhSSLoR9DRe6hQucbEG5o+5YjsqiWfNaxB3rPrX2+LHoGRZ/K
- mexo0SkdBtGA==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="406723651"
-Received: from chang-linux-3.sc.intel.com ([172.25.66.175])
-  by fmsmga004.fm.intel.com with ESMTP; 03 Feb 2021 09:27:19 -0800
-From:   "Chang S. Bae" <chang.seok.bae@intel.com>
-To:     bp@suse.de, tglx@linutronix.de, mingo@kernel.org, luto@kernel.org,
-        x86@kernel.org
-Cc:     len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
-        Dave.Martin@arm.com, jannh@google.com, mpe@ellerman.id.au,
-        carlos@redhat.com, tony.luck@intel.com, ravi.v.shankar@intel.com,
-        libc-alpha@sourceware.org, linux-arch@vger.kernel.org,
-        linux-api@vger.kernel.org, linux-kernel@vger.kernel.org,
-        chang.seok.bae@intel.com
-Subject: [PATCH v5 0/5] x86: Improve Minimum Alternate Stack Size
-Date:   Wed,  3 Feb 2021 09:22:37 -0800
-Message-Id: <20210203172242.29644-1-chang.seok.bae@intel.com>
-X-Mailer: git-send-email 2.17.1
+        id S231321AbhBCT4U (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Feb 2021 14:56:20 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41176 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230122AbhBCT4R (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2021 14:56:17 -0500
+Received: from merlin.infradead.org (merlin.infradead.org [IPv6:2001:8b0:10b:1231::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 906A7C061573;
+        Wed,  3 Feb 2021 11:55:37 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=merlin.20170209; h=Content-Transfer-Encoding:Content-Type:
+        In-Reply-To:MIME-Version:Date:Message-ID:From:References:Cc:To:Subject:Sender
+        :Reply-To:Content-ID:Content-Description;
+        bh=lZIM2DPH255woCpuEYzpAbqOgqBRxAkE8W2SBU4ewJE=; b=ceCUCEaJD39WM5gPnzKJ8wCMMB
+        luJoynXfntKH0PrBYD0kV1boOM9EYOyikVf1bjeNLMp+UGrLsgPi/id7egUyvAw1XP2smeHy1aHvB
+        THbPIkej5ErUCXA1NJhHsy9Sy58pIDNM5U1INSPEEMp3hay4Mzyul/jY5dhFLyIux8lRst/i7Xhff
+        eN0djcpHrWSFX4bf2MlxDBJEtxfjmeXnDyZkydj3I+GPHP5y5kGCdEbAbjI/wEBSZpwvhfi7qh6LY
+        ZRkz88wlLjuctiw2HWUek5QMoiFZmg4e630jPWnPaXnaL+b9dY3em0hinWaB7lFlsH9QUOY5EWGWB
+        6Hg+KPqQ==;
+Received: from [2601:1c0:6280:3f0::aec2]
+        by merlin.infradead.org with esmtpsa (Exim 4.92.3 #3 (Red Hat Linux))
+        id 1l7OFM-0003dU-EK; Wed, 03 Feb 2021 19:55:28 +0000
+Subject: Re: memory_model.h:64:14: error: implicit declaration of function
+ 'page_to_section'
+To:     Naresh Kamboju <naresh.kamboju@linaro.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux Next Mailing List <linux-next@vger.kernel.org>,
+        linux-mm <linux-mm@kvack.org>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        lkft-triage@lists.linaro.org, linux-mips@vger.kernel.org,
+        Linux-sh list <linux-sh@vger.kernel.org>,
+        Mike Rapoport <rppt@kernel.org>
+Cc:     Stephen Rothwell <sfr@canb.auug.org.au>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Pavel Tatashin <pasha.tatashin@oracle.com>
+References: <CA+G9fYv-=GdpLK3-6M9P4J1N-4ypS=GO8T2N15JFWXSmsG1adQ@mail.gmail.com>
+From:   Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <201a2712-d708-7f83-9272-730b32e7a842@infradead.org>
+Date:   Wed, 3 Feb 2021 11:55:22 -0800
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.4.0
+MIME-Version: 1.0
+In-Reply-To: <CA+G9fYv-=GdpLK3-6M9P4J1N-4ypS=GO8T2N15JFWXSmsG1adQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-During signal entry, the kernel pushes data onto the normal userspace
-stack. On x86, the data pushed onto the user stack includes XSAVE state,
-which has grown over time as new features and larger registers have been
-added to the architecture.
+On 2/3/21 7:51 AM, Naresh Kamboju wrote:
+> Linux next tag 20210203 the mips and sh builds failed due to below errors.
+> Following builds failed with gcc-8, gcc-9 and gcc-10,
+>   - mips (cavium_octeon_defconfig)
+>   - sh (defconfig)
+>   - sh (shx3_defconfig)
+> 
+> make --silent --keep-going --jobs=8
+> O=/home/tuxbuild/.cache/tuxmake/builds/1/tmp ARCH=mips
+> CROSS_COMPILE=mips-linux-gnu- 'CC=sccache mips-linux-gnu-gcc'
+> 'HOSTCC=sccache gcc' uImage.gz
+> In file included from arch/mips/include/asm/page.h:258,
+>                  from arch/mips/include/asm/io.h:29,
+>                  from include/linux/io.h:13,
+>                  from arch/mips/include/asm/mips-cps.h:10,
+>                  from arch/mips/include/asm/smp-ops.h:16,
+>                  from arch/mips/include/asm/smp.h:21,
+>                  from include/linux/smp.h:84,
+>                  from arch/mips/include/asm/cpu-type.h:12,
+>                  from arch/mips/include/asm/timex.h:19,
+>                  from include/linux/timex.h:65,
+>                  from include/linux/time32.h:13,
+>                  from include/linux/time.h:60,
+>                  from include/linux/compat.h:10,
+>                  from arch/mips/kernel/asm-offsets.c:12:
+> include/linux/mm.h: In function 'is_pinnable_page':
+> include/asm-generic/memory_model.h:64:14: error: implicit declaration
+> of function 'page_to_section'; did you mean 'present_section'?
+> [-Werror=implicit-function-declaration]
+>   int __sec = page_to_section(__pg);   \
+>               ^~~~~~~~~~~~~~~
+> include/asm-generic/memory_model.h:81:21: note: in expansion of macro
+> '__page_to_pfn'
+>  #define page_to_pfn __page_to_pfn
+>                      ^~~~~~~~~~~~~
+> include/linux/mm.h:1135:15: note: in expansion of macro 'page_to_pfn'
+>    is_zero_pfn(page_to_pfn(page));
+>                ^~~~~~~~~~~
+> In file included from arch/mips/kernel/asm-offsets.c:15:
+> include/linux/mm.h: At top level:
+> include/linux/mm.h:1512:29: error: conflicting types for 'page_to_section'
+>  static inline unsigned long page_to_section(const struct page *page)
+>                              ^~~~~~~~~~~~~~~
+> Steps to reproduce:
+> --------------------------
+> # TuxMake is a command line tool and Python library that provides
+> # portable and repeatable Linux kernel builds across a variety of
+> # architectures, toolchains, kernel configurations, and make targets.
+> #
+> # TuxMake supports the concept of runtimes.
+> # See https://docs.tuxmake.org/runtimes/, for that to work it requires
+> # that you install podman or docker on your system.
+> #
+> # To install tuxmake on your system globally:
+> # sudo pip3 install -U tuxmake
+> #
+> # See https://docs.tuxmake.org/ for complete documentation.
+> 
+> 
+> tuxmake --runtime podman --target-arch mips --toolchain gcc-10
+> --kconfig cavium_octeon_defconfig
 
-MINSIGSTKSZ is a constant provided in the kernel signal.h headers and
-typically distributed in lib-dev(el) packages, e.g. [1]. Its value is
-compiled into programs and is part of the user/kernel ABI. The MINSIGSTKSZ
-constant indicates to userspace how much data the kernel expects to push on
-the user stack, [2][3].
+Looks to me like this is due to <linux/mm.h>:
 
-However, this constant is much too small and does not reflect recent
-additions to the architecture. For instance, when AVX-512 states are in
-use, the signal frame size can be 3.5KB while MINSIGSTKSZ remains 2KB.
+#if defined(CONFIG_SPARSEMEM) && !defined(CONFIG_SPARSEMEM_VMEMMAP)
+#define SECTION_IN_PAGE_FLAGS
+#endif
 
-The bug report [4] explains this as an ABI issue. The small MINSIGSTKSZ can
-cause user stack overflow when delivering a signal.
 
-In this series, we suggest a couple of things:
-1. Provide a variable minimum stack size to userspace, as a similar
-   approach to [5]
-2. Avoid using a too-small alternate stack
+with
+CONFIG_SPARSEMEM=y
+CONFIG_SPARSEMEM_EXTREME=y
+CONFIG_SPARSEMEM_VMEMMAP_ENABLE=y
+# CONFIG_SPARSEMEM_VMEMMAP is not set
 
-Changes from v4 [9]:
-* Moved the aux vector define to the generic header (Carlos O'Donell)
 
-Changes from v3 [8]:
-* Updated the changelog (Borislav Petkov)
-* Revised the test messages again (Borislav Petkov)
-
-Changes from v2 [7]:
-* Simplified the sigaltstack overflow prevention (Jann Horn)
-* Renamed fpstate size helper with cleanup (Borislav Petkov)
-* Cleaned up the signframe struct size defines (Borislav Petkov)
-* Revised the selftest messages (Borislav Petkov)
-* Revised a changelog (Borislav Petkov)
-
-Changes from v1 [6]:
-* Took stack alignment into account for sigframe size (Dave Martin)
-
-[1]: https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/bits/sigstack.h;h=b9dca794da09
-3dc4d41d39db9851d444e1b54d9b;hb=HEAD
-[2]: https://www.gnu.org/software/libc/manual/html_node/Signal-Stack.html
-[3]: https://man7.org/linux/man-pages/man2/sigaltstack.2.html
-[4]: https://bugzilla.kernel.org/show_bug.cgi?id=153531
-[5]: https://blog.linuxplumbersconf.org/2017/ocw/system/presentations/4671/original/plumbers-dm-2017.pdf
-[6]: https://lore.kernel.org/lkml/20200929205746.6763-1-chang.seok.bae@intel.com/
-[7]: https://lore.kernel.org/lkml/20201119190237.626-1-chang.seok.bae@intel.com/
-[8]: https://lore.kernel.org/lkml/20201223015312.4882-1-chang.seok.bae@intel.com/
-[9]: https://lore.kernel.org/lkml/20210115211038.2072-1-chang.seok.bae@intel.com/
-
-Chang S. Bae (5):
-  uapi: Move the aux vector AT_MINSIGSTKSZ define to uapi
-  x86/signal: Introduce helpers to get the maximum signal frame size
-  x86/elf: Support a new ELF aux vector AT_MINSIGSTKSZ
-  x86/signal: Detect and prevent an alternate signal stack overflow
-  selftest/x86/signal: Include test cases for validating sigaltstack
-
- arch/arm64/include/uapi/asm/auxvec.h      |   1 -
- arch/x86/include/asm/elf.h                |   4 +
- arch/x86/include/asm/fpu/signal.h         |   2 +
- arch/x86/include/asm/sigframe.h           |   2 +
- arch/x86/include/uapi/asm/auxvec.h        |   4 +-
- arch/x86/kernel/cpu/common.c              |   3 +
- arch/x86/kernel/fpu/signal.c              |  19 ++++
- arch/x86/kernel/signal.c                  |  69 +++++++++++-
- include/uapi/linux/auxvec.h               |   1 +
- tools/testing/selftests/x86/Makefile      |   2 +-
- tools/testing/selftests/x86/sigaltstack.c | 128 ++++++++++++++++++++++
- 11 files changed, 227 insertions(+), 8 deletions(-)
- create mode 100644 tools/testing/selftests/x86/sigaltstack.c
+I'm still digging.
 
 -- 
-2.17.1
+~Randy
 
