@@ -2,37 +2,38 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-13.9 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,UNWANTED_LANGUAGE_BODY,
+	URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 84D98C433E0
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 17:29:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CE413C433DB
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 17:30:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3684464F4B
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 17:29:18 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8070E64DF6
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 17:30:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232619AbhBCR26 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Feb 2021 12:28:58 -0500
-Received: from mga06.intel.com ([134.134.136.31]:4061 "EHLO mga06.intel.com"
+        id S232282AbhBCR2G (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Feb 2021 12:28:06 -0500
+Received: from mga06.intel.com ([134.134.136.31]:4059 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S232100AbhBCR2W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Feb 2021 12:28:22 -0500
-IronPort-SDR: +mWdKhSBZ0syVFWUSNPLG1zIwlOD/6M2d7aQxIggnszvI4q2we80lGbMd/GCWlQomkf6wIv86g
- h141FEKBVrbw==
-X-IronPort-AV: E=McAfee;i="6000,8403,9884"; a="242592398"
+        id S231486AbhBCR2C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Feb 2021 12:28:02 -0500
+IronPort-SDR: cUZWd+DWcbV5kdFuQIuq54M/wUx1AUi4FaqxNfMTttYlo+71DV17ONXO/mW12DoA5HDM46GgwR
+ 5VwlRZSmjNdg==
+X-IronPort-AV: E=McAfee;i="6000,8403,9884"; a="242592377"
 X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="242592398"
+   d="scan'208";a="242592377"
 Received: from fmsmga004.fm.intel.com ([10.253.24.48])
-  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 09:27:25 -0800
-IronPort-SDR: j3K4wtu89Nl2hvGQaYaWQWRke/PwVv9R2+HghHNEav9sN6DmYsFOI74EFHVKii4LrUk8B73u25
- 2jfRz+6hRxCg==
+  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 09:27:21 -0800
+IronPort-SDR: Zai1BmQvbq3jyby+nkQruNCl9QuP/uC4qAGcVTVQo34i1MgpLZsnPeBoV6Ssqizf3Lw9tsF2t2
+ HeiWMdRh3u1g==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="406723692"
+   d="scan'208";a="406723661"
 Received: from chang-linux-3.sc.intel.com ([172.25.66.175])
-  by fmsmga004.fm.intel.com with ESMTP; 03 Feb 2021 09:27:25 -0800
+  by fmsmga004.fm.intel.com with ESMTP; 03 Feb 2021 09:27:20 -0800
 From:   "Chang S. Bae" <chang.seok.bae@intel.com>
 To:     bp@suse.de, tglx@linutronix.de, mingo@kernel.org, luto@kernel.org,
         x86@kernel.org
@@ -41,11 +42,10 @@ Cc:     len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
         carlos@redhat.com, tony.luck@intel.com, ravi.v.shankar@intel.com,
         libc-alpha@sourceware.org, linux-arch@vger.kernel.org,
         linux-api@vger.kernel.org, linux-kernel@vger.kernel.org,
-        chang.seok.bae@intel.com, Borislav Petkov <bp@alien8.de>,
-        linux-kselftest@vger.kernel.org
-Subject: [PATCH v5 5/5] selftest/x86/signal: Include test cases for validating sigaltstack
-Date:   Wed,  3 Feb 2021 09:22:42 -0800
-Message-Id: <20210203172242.29644-6-chang.seok.bae@intel.com>
+        chang.seok.bae@intel.com, linux-arm-kernel@lists.infradead.org
+Subject: [PATCH v5 1/5] uapi: Move the aux vector AT_MINSIGSTKSZ define to uapi
+Date:   Wed,  3 Feb 2021 09:22:38 -0800
+Message-Id: <20210203172242.29644-2-chang.seok.bae@intel.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20210203172242.29644-1-chang.seok.bae@intel.com>
 References: <20210203172242.29644-1-chang.seok.bae@intel.com>
@@ -53,174 +53,51 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The test measures the kernel's signal delivery with different (enough vs.
-insufficient) stack sizes.
+Move the AT_MINSIGSTKSZ definition to generic Linux from arm64. It is
+already used as generic ABI in glibc's generic elf.h, and this move will
+prevent future namespace conflicts. In particular, x86 will re-use this
+generic definition.
 
 Signed-off-by: Chang S. Bae <chang.seok.bae@intel.com>
 Reviewed-by: Len Brown <len.brown@intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: x86@kernel.org
-Cc: linux-kselftest@vger.kernel.org
+Cc: Carlos O'Donell <carlos@redhat.com>
+Cc: Dave Martin <Dave.Martin@arm.com>
+Cc: libc-alpha@sourceware.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-api@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org
 ---
-Changes from v3:
-* Revised test messages again (Borislav Petkov)
-
-Changes from v2:
-* Revised test messages (Borislav Petkov)
+Change from v4:
+* Added as a new patch (Carlos O'Donell)
 ---
- tools/testing/selftests/x86/Makefile      |   2 +-
- tools/testing/selftests/x86/sigaltstack.c | 128 ++++++++++++++++++++++
- 2 files changed, 129 insertions(+), 1 deletion(-)
- create mode 100644 tools/testing/selftests/x86/sigaltstack.c
+ arch/arm64/include/uapi/asm/auxvec.h | 1 -
+ include/uapi/linux/auxvec.h          | 1 +
+ 2 files changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/tools/testing/selftests/x86/Makefile b/tools/testing/selftests/x86/Makefile
-index 333980375bc7..65bba2ae86ee 100644
---- a/tools/testing/selftests/x86/Makefile
-+++ b/tools/testing/selftests/x86/Makefile
-@@ -13,7 +13,7 @@ CAN_BUILD_WITH_NOPIE := $(shell ./check_cc.sh $(CC) trivial_program.c -no-pie)
- TARGETS_C_BOTHBITS := single_step_syscall sysret_ss_attrs syscall_nt test_mremap_vdso \
- 			check_initial_reg_state sigreturn iopl ioperm \
- 			test_vsyscall mov_ss_trap \
--			syscall_arg_fault fsgsbase_restore
-+			syscall_arg_fault fsgsbase_restore sigaltstack
- TARGETS_C_32BIT_ONLY := entry_from_vm86 test_syscall_vdso unwind_vdso \
- 			test_FCMOV test_FCOMI test_FISTTP \
- 			vdso_restorer
-diff --git a/tools/testing/selftests/x86/sigaltstack.c b/tools/testing/selftests/x86/sigaltstack.c
-new file mode 100644
-index 000000000000..f689af75e979
---- /dev/null
-+++ b/tools/testing/selftests/x86/sigaltstack.c
-@@ -0,0 +1,128 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+
-+#define _GNU_SOURCE
-+#include <signal.h>
-+#include <stdio.h>
-+#include <stdbool.h>
-+#include <string.h>
-+#include <err.h>
-+#include <errno.h>
-+#include <limits.h>
-+#include <sys/mman.h>
-+#include <sys/auxv.h>
-+#include <sys/prctl.h>
-+#include <sys/resource.h>
-+#include <setjmp.h>
-+
-+/* sigaltstack()-enforced minimum stack */
-+#define ENFORCED_MINSIGSTKSZ	2048
-+
-+#ifndef AT_MINSIGSTKSZ
-+#  define AT_MINSIGSTKSZ	51
-+#endif
-+
-+static int nerrs;
-+
-+static bool sigalrm_expected;
-+
-+static unsigned long at_minstack_size;
-+
-+static void sethandler(int sig, void (*handler)(int, siginfo_t *, void *),
-+		       int flags)
-+{
-+	struct sigaction sa;
-+
-+	memset(&sa, 0, sizeof(sa));
-+	sa.sa_sigaction = handler;
-+	sa.sa_flags = SA_SIGINFO | flags;
-+	sigemptyset(&sa.sa_mask);
-+	if (sigaction(sig, &sa, 0))
-+		err(1, "sigaction");
-+}
-+
-+static void clearhandler(int sig)
-+{
-+	struct sigaction sa;
-+
-+	memset(&sa, 0, sizeof(sa));
-+	sa.sa_handler = SIG_DFL;
-+	sigemptyset(&sa.sa_mask);
-+	if (sigaction(sig, &sa, 0))
-+		err(1, "sigaction");
-+}
-+
-+static int setup_altstack(void *start, unsigned long size)
-+{
-+	stack_t ss;
-+
-+	memset(&ss, 0, sizeof(ss));
-+	ss.ss_size = size;
-+	ss.ss_sp = start;
-+
-+	return sigaltstack(&ss, NULL);
-+}
-+
-+static jmp_buf jmpbuf;
-+
-+static void sigsegv(int sig, siginfo_t *info, void *ctx_void)
-+{
-+	if (sigalrm_expected) {
-+		printf("[FAIL]\tWrong signal delivered: SIGSEGV (expected SIGALRM).");
-+		nerrs++;
-+	} else {
-+		printf("[OK]\tSIGSEGV signal delivered.\n");
-+	}
-+
-+	siglongjmp(jmpbuf, 1);
-+}
-+
-+static void sigalrm(int sig, siginfo_t *info, void *ctx_void)
-+{
-+	if (!sigalrm_expected) {
-+		printf("[FAIL]\tWrong signal delivered: SIGALRM (expected SIGSEGV).");
-+		nerrs++;
-+	} else {
-+		printf("[OK]\tSIGALRM signal delivered.\n");
-+	}
-+}
-+
-+static void test_sigaltstack(void *altstack, unsigned long size)
-+{
-+	if (setup_altstack(altstack, size))
-+		err(1, "sigaltstack()");
-+
-+	sigalrm_expected = (size > at_minstack_size) ? true : false;
-+
-+	sethandler(SIGSEGV, sigsegv, 0);
-+	sethandler(SIGALRM, sigalrm, SA_ONSTACK);
-+
-+	if (!sigsetjmp(jmpbuf, 1)) {
-+		printf("[RUN]\tTest an alternate signal stack of %ssufficient size.\n",
-+		       sigalrm_expected ? "" : "in");
-+		printf("\tRaise SIGALRM. %s is expected to be delivered.\n",
-+		       sigalrm_expected ? "It" : "SIGSEGV");
-+		raise(SIGALRM);
-+	}
-+
-+	clearhandler(SIGALRM);
-+	clearhandler(SIGSEGV);
-+}
-+
-+int main(void)
-+{
-+	void *altstack;
-+
-+	at_minstack_size = getauxval(AT_MINSIGSTKSZ);
-+
-+	altstack = mmap(NULL, at_minstack_size + SIGSTKSZ, PROT_READ | PROT_WRITE,
-+			MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
-+	if (altstack == MAP_FAILED)
-+		err(1, "mmap()");
-+
-+	if ((ENFORCED_MINSIGSTKSZ + 1) < at_minstack_size)
-+		test_sigaltstack(altstack, ENFORCED_MINSIGSTKSZ + 1);
-+
-+	test_sigaltstack(altstack, at_minstack_size + SIGSTKSZ);
-+
-+	return nerrs == 0 ? 0 : 1;
-+}
+diff --git a/arch/arm64/include/uapi/asm/auxvec.h b/arch/arm64/include/uapi/asm/auxvec.h
+index 743c0b84fd30..767d710c92aa 100644
+--- a/arch/arm64/include/uapi/asm/auxvec.h
++++ b/arch/arm64/include/uapi/asm/auxvec.h
+@@ -19,7 +19,6 @@
+ 
+ /* vDSO location */
+ #define AT_SYSINFO_EHDR	33
+-#define AT_MINSIGSTKSZ	51	/* stack needed for signal delivery */
+ 
+ #define AT_VECTOR_SIZE_ARCH 2 /* entries in ARCH_DLINFO */
+ 
+diff --git a/include/uapi/linux/auxvec.h b/include/uapi/linux/auxvec.h
+index abe5f2b6581b..cc4fa77bd2a7 100644
+--- a/include/uapi/linux/auxvec.h
++++ b/include/uapi/linux/auxvec.h
+@@ -33,5 +33,6 @@
+ 
+ #define AT_EXECFN  31	/* filename of program */
+ 
++#define AT_MINSIGSTKSZ	51	/* stack needed for signal delivery  */
+ 
+ #endif /* _UAPI_LINUX_AUXVEC_H */
 -- 
 2.17.1
 
