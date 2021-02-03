@@ -2,252 +2,190 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-23.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED,USER_IN_DEF_DKIM_WL autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E8967C433E9
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 23:18:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C67CBC433E0
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 23:18:23 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A431764F6C
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 23:18:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7C94364F55
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Feb 2021 23:18:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233175AbhBCXR3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Feb 2021 18:17:29 -0500
-Received: from mga06.intel.com ([134.134.136.31]:30210 "EHLO mga06.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S233166AbhBCW5W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Feb 2021 17:57:22 -0500
-IronPort-SDR: nARl3GWdGIuKem4O3yQVdYXXwL1bXrEoZuR1fOjLP3DSZaVbnkxl8qMQzleVQj5gB4t5pKE7aL
- pVeZ+v8kLZGQ==
-X-IronPort-AV: E=McAfee;i="6000,8403,9884"; a="242642349"
-X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="242642349"
-Received: from orsmga004.jf.intel.com ([10.7.209.38])
-  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:56:22 -0800
-IronPort-SDR: 3b5hp+qOT1ck8IO8AvH7KwQKM+OQpYNzjLDRmN4oYWWcIuzzyBJeSJe7v6L04kL7rGX+58njyF
- jDrox4MKWABA==
-X-IronPort-AV: E=Sophos;i="5.79,399,1602572400"; 
-   d="scan'208";a="507921082"
-Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Feb 2021 14:56:22 -0800
-From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
-To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Borislav Petkov <bp@alien8.de>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
-        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        Pengfei Xu <pengfei.xu@intel.com>
-Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v19 05/25] x86/fpu/xstate: Introduce CET MSR and XSAVES supervisor states
-Date:   Wed,  3 Feb 2021 14:55:27 -0800
-Message-Id: <20210203225547.32221-6-yu-cheng.yu@intel.com>
-X-Mailer: git-send-email 2.21.0
-In-Reply-To: <20210203225547.32221-1-yu-cheng.yu@intel.com>
-References: <20210203225547.32221-1-yu-cheng.yu@intel.com>
+        id S233141AbhBCXSC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Feb 2021 18:18:02 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56202 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S233883AbhBCXRS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2021 18:17:18 -0500
+Received: from mail-pg1-x52d.google.com (mail-pg1-x52d.google.com [IPv6:2607:f8b0:4864:20::52d])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0B95BC0613ED
+        for <linux-arch@vger.kernel.org>; Wed,  3 Feb 2021 15:16:38 -0800 (PST)
+Received: by mail-pg1-x52d.google.com with SMTP id r38so779664pgk.13
+        for <linux-arch@vger.kernel.org>; Wed, 03 Feb 2021 15:16:37 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20161025;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc:content-transfer-encoding;
+        bh=wll2IwjnBP1ph+olB4IOjZDnzGBUCfeA4SIYv2XGwvY=;
+        b=L805BloRtBtPlJIIokA0buZ9FzfGZwJCsIbvjlgsLGB4UVShVw05gdvo8m41brHXWy
+         b9SuUS8kL1Re6gQ3Et/tLjDlqUmw9hSqsUydFnf6n+SrGOzkgydTgRA1rhjC+7GmMAjN
+         Hj3qhphMEI+bsWHlBwha58ateol6XcHO/EUBdlDD09GWSQEmehAPy/rZM3sNrIAJDQvl
+         ugYLw4+tsXvqaEYGAlIVlzuBC+jGMHWQsd4qSqYt72VUixNO8IDG8uHjURkLFoKBZRAg
+         wQ85GiAlF5/T3Mu6AC83aUt9QNqinr56PIJLskxDJj+Hoxx8wJCZt4x94ldlfT11IMUN
+         D2MA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc:content-transfer-encoding;
+        bh=wll2IwjnBP1ph+olB4IOjZDnzGBUCfeA4SIYv2XGwvY=;
+        b=ouh2eY2GK7JU1ob89k099n2vWIuMXE7kQ8Y9qUYtwd8NVw2+AEi7blJDVmemhg+RzD
+         dH141oyXjqk4CA5a3R9PPxr3MMnMGE9kW9qXbHQx0anFjd2+O7qjF4HvLdA82T9NZRZA
+         aE3ELFE9mvqkxuncnDmU7i5+qx2SIhlF2xg0ZSIcVIBjoIyvM2x9OH0BTJZDtMKkNr2o
+         ZdnS0QqoWG8/Lxl4pc00Yropj0iCJyeLONNz9/qTi5lwMmN9+wZiREs4QfFxGC6b/WjP
+         HQJ0NSBP4U0Jj+ztjk2GEHEAInCyb+cNlKfeqz4aX5XP8ZuODJrbS2wUNTtyabDNLdNu
+         3YKw==
+X-Gm-Message-State: AOAM530fB6N0yEDcNofPQRBlgxPd1TY4fuTK6YOt0To4A1G9XtOZ6X9B
+        bit6vUstqhPv3pDWulAazg6tE51tpoEwwMWj0PY2KQ==
+X-Google-Smtp-Source: ABdhPJzJqfGaHJq2+ldqU34HwtWmuioZbE1mfnsdG3PMKurMneO3/jhV3Y1DFK4wKF5E7LWNv5iglwn5lhJUI7IiFvU=
+X-Received: by 2002:a62:838d:0:b029:1ba:9b85:2eac with SMTP id
+ h135-20020a62838d0000b02901ba9b852eacmr5312098pfe.36.1612394197279; Wed, 03
+ Feb 2021 15:16:37 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20210130004401.2528717-1-ndesaulniers@google.com>
+ <20210130004401.2528717-2-ndesaulniers@google.com> <20210130015222.GC2709570@localhost>
+ <CAK7LNARfu-wqW9hfnoeeahiNPbwt4xhoWdxXtK8qjVfEi=7OOg@mail.gmail.com>
+In-Reply-To: <CAK7LNARfu-wqW9hfnoeeahiNPbwt4xhoWdxXtK8qjVfEi=7OOg@mail.gmail.com>
+From:   Nick Desaulniers <ndesaulniers@google.com>
+Date:   Wed, 3 Feb 2021 15:16:24 -0800
+Message-ID: <CAKwvOd=YVDS8tjnN6kFqe2FAhfSzVg870VsSvkNuvVZ7X6BrVg@mail.gmail.com>
+Subject: Re: [PATCH v7 1/2] Kbuild: make DWARF version a choice
+To:     Masahiro Yamada <masahiroy@kernel.org>
+Cc:     Nathan Chancellor <nathan@kernel.org>,
+        Nathan Chancellor <natechancellor@gmail.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Sedat Dilek <sedat.dilek@gmail.com>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        clang-built-linux <clang-built-linux@googlegroups.com>,
+        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Jakub Jelinek <jakub@redhat.com>,
+        Fangrui Song <maskray@google.com>,
+        Caroline Tice <cmtice@google.com>,
+        Nick Clifton <nickc@redhat.com>, Yonghong Song <yhs@fb.com>,
+        Jiri Olsa <jolsa@kernel.org>,
+        Andrii Nakryiko <andrii@kernel.org>,
+        Arnaldo Carvalho de Melo <acme@kernel.org>,
+        Arvind Sankar <nivedita@alum.mit.edu>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Control-flow Enforcement Technology (CET) introduces these MSRs:
+On Wed, Feb 3, 2021 at 2:24 PM Masahiro Yamada <masahiroy@kernel.org> wrote=
+:
+>
+> On Sat, Jan 30, 2021 at 10:52 AM Nathan Chancellor <nathan@kernel.org> wr=
+ote:
+> >
+> > On Fri, Jan 29, 2021 at 04:44:00PM -0800, Nick Desaulniers wrote:
+> > > Modifies CONFIG_DEBUG_INFO_DWARF4 to be a member of a choice which is
+> > > the default. Does so in a way that's forward compatible with existing
+> > > configs, and makes adding future versions more straightforward.
+> > >
+> > > GCC since ~4.8 has defaulted to this DWARF version implicitly.
+> > >
+> > > Suggested-by: Arvind Sankar <nivedita@alum.mit.edu>
+> > > Suggested-by: Fangrui Song <maskray@google.com>
+> > > Suggested-by: Nathan Chancellor <nathan@kernel.org>
+> > > Suggested-by: Masahiro Yamada <masahiroy@kernel.org>
+> > > Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
+> >
+> > One comment below:
+> >
+> > Reviewed-by: Nathan Chancellor <nathan@kernel.org>
+> >
+> > > ---
+> > >  Makefile          |  5 ++---
+> > >  lib/Kconfig.debug | 16 +++++++++++-----
+> > >  2 files changed, 13 insertions(+), 8 deletions(-)
+> > >
+> > > diff --git a/Makefile b/Makefile
+> > > index 95ab9856f357..d2b4980807e0 100644
+> > > --- a/Makefile
+> > > +++ b/Makefile
+> > > @@ -830,9 +830,8 @@ ifneq ($(LLVM_IAS),1)
+> > >  KBUILD_AFLAGS        +=3D -Wa,-gdwarf-2
+> >
+> > It is probably worth a comment somewhere that assembly files will still
+> > have DWARF v2.
+>
+> I agree.
+> Please noting the reason will be helpful.
 
-    MSR_IA32_U_CET (user-mode CET settings),
-    MSR_IA32_PL3_SSP (user-mode shadow stack pointer),
+Via a comment in the source, or in the commit message?
 
-    MSR_IA32_PL0_SSP (kernel-mode shadow stack pointer),
-    MSR_IA32_PL1_SSP (Privilege Level 1 shadow stack pointer),
-    MSR_IA32_PL2_SSP (Privilege Level 2 shadow stack pointer),
-    MSR_IA32_S_CET (kernel-mode CET settings),
-    MSR_IA32_INT_SSP_TAB (exception shadow stack table).
+>
+> Could you summarize Jakub's comment in short?
+> https://patchwork.kernel.org/project/linux-kbuild/patch/20201022012106.18=
+75129-1-ndesaulniers@google.com/#23727667
 
-The two user-mode MSRs belong to XFEATURE_CET_USER.  The first three of
-kernel-mode MSRs belong to XFEATURE_CET_KERNEL.  Both XSAVES states are
-supervisor states.  This means that there is no direct, unprivileged access
-to these states, making it harder for an attacker to subvert CET.
+Via a comment in the source, or in the commit message?
 
-For sigreturn and future ptrace() support, shadow stack address and MSR
-reserved bits are checked before written to the supervisor states.
+> One more question.
+>
+>
+> Can we remove -g option like follows?
+>
+>
+>  ifdef CONFIG_DEBUG_INFO_SPLIT
+>  DEBUG_CFLAGS   +=3D -gsplit-dwarf
+> -else
+> -DEBUG_CFLAGS   +=3D -g
+>  endif
+>
+>
+>
+>
+>
+> In the current mainline code,
+> -g is the only debug option
+> if CONFIG_DEBUG_INFO_DWARF4 is disabled.
+>
+>
+> The GCC manual says:
+> https://gcc.gnu.org/onlinedocs/gcc-10.2.0/gcc/Debugging-Options.html#Debu=
+gging-Options
+>
+>
+> -g
+>
+>     Produce debugging information in the operating system=E2=80=99s
+>     native format (stabs, COFF, XCOFF, or DWARF).
+>     GDB can work with this debugging information.
+>
+>
+> Of course, we expect the -g option will produce
+> the debug info in the DWARF format.
+>
+>
+>
+>
+>
+> With this patch set applied, it is very explicit.
+>
+> Only the format type, but also the version.
+>
+> The compiler will be given either
+> -gdwarf-4 or -gdwarf-5,
+> making the -g option redundant, I think.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/include/asm/fpu/types.h  | 23 +++++++++++++++++++++--
- arch/x86/include/asm/fpu/xstate.h |  6 ++++--
- arch/x86/include/asm/msr-index.h  | 19 +++++++++++++++++++
- arch/x86/kernel/fpu/xstate.c      | 10 +++++++++-
- 4 files changed, 53 insertions(+), 5 deletions(-)
-
-diff --git a/arch/x86/include/asm/fpu/types.h b/arch/x86/include/asm/fpu/types.h
-index f5a38a5f3ae1..035eb0ec665e 100644
---- a/arch/x86/include/asm/fpu/types.h
-+++ b/arch/x86/include/asm/fpu/types.h
-@@ -115,8 +115,8 @@ enum xfeature {
- 	XFEATURE_PT_UNIMPLEMENTED_SO_FAR,
- 	XFEATURE_PKRU,
- 	XFEATURE_PASID,
--	XFEATURE_RSRVD_COMP_11,
--	XFEATURE_RSRVD_COMP_12,
-+	XFEATURE_CET_USER,
-+	XFEATURE_CET_KERNEL,
- 	XFEATURE_RSRVD_COMP_13,
- 	XFEATURE_RSRVD_COMP_14,
- 	XFEATURE_LBR,
-@@ -135,6 +135,8 @@ enum xfeature {
- #define XFEATURE_MASK_PT		(1 << XFEATURE_PT_UNIMPLEMENTED_SO_FAR)
- #define XFEATURE_MASK_PKRU		(1 << XFEATURE_PKRU)
- #define XFEATURE_MASK_PASID		(1 << XFEATURE_PASID)
-+#define XFEATURE_MASK_CET_USER		(1 << XFEATURE_CET_USER)
-+#define XFEATURE_MASK_CET_KERNEL	(1 << XFEATURE_CET_KERNEL)
- #define XFEATURE_MASK_LBR		(1 << XFEATURE_LBR)
- 
- #define XFEATURE_MASK_FPSSE		(XFEATURE_MASK_FP | XFEATURE_MASK_SSE)
-@@ -237,6 +239,23 @@ struct pkru_state {
- 	u32				pad;
- } __packed;
- 
-+/*
-+ * State component 11 is Control-flow Enforcement user states
-+ */
-+struct cet_user_state {
-+	u64 user_cet;			/* user control-flow settings */
-+	u64 user_ssp;			/* user shadow stack pointer */
-+};
-+
-+/*
-+ * State component 12 is Control-flow Enforcement kernel states
-+ */
-+struct cet_kernel_state {
-+	u64 kernel_ssp;			/* kernel shadow stack */
-+	u64 pl1_ssp;			/* privilege level 1 shadow stack */
-+	u64 pl2_ssp;			/* privilege level 2 shadow stack */
-+};
-+
- /*
-  * State component 15: Architectural LBR configuration state.
-  * The size of Arch LBR state depends on the number of LBRs (lbr_depth).
-diff --git a/arch/x86/include/asm/fpu/xstate.h b/arch/x86/include/asm/fpu/xstate.h
-index 47a92232d595..582f3575e0bd 100644
---- a/arch/x86/include/asm/fpu/xstate.h
-+++ b/arch/x86/include/asm/fpu/xstate.h
-@@ -35,7 +35,8 @@
- 				      XFEATURE_MASK_BNDCSR)
- 
- /* All currently supported supervisor features */
--#define XFEATURE_MASK_SUPERVISOR_SUPPORTED (XFEATURE_MASK_PASID)
-+#define XFEATURE_MASK_SUPERVISOR_SUPPORTED (XFEATURE_MASK_PASID | \
-+					    XFEATURE_MASK_CET_USER)
- 
- /*
-  * A supervisor state component may not always contain valuable information,
-@@ -62,7 +63,8 @@
-  * Unsupported supervisor features. When a supervisor feature in this mask is
-  * supported in the future, move it to the supported supervisor feature mask.
-  */
--#define XFEATURE_MASK_SUPERVISOR_UNSUPPORTED (XFEATURE_MASK_PT)
-+#define XFEATURE_MASK_SUPERVISOR_UNSUPPORTED (XFEATURE_MASK_PT | \
-+					      XFEATURE_MASK_CET_KERNEL)
- 
- /* All supervisor states including supported and unsupported states. */
- #define XFEATURE_MASK_SUPERVISOR_ALL (XFEATURE_MASK_SUPERVISOR_SUPPORTED | \
-diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
-index 546d6ecf0a35..fae6b3ea1f6d 100644
---- a/arch/x86/include/asm/msr-index.h
-+++ b/arch/x86/include/asm/msr-index.h
-@@ -933,4 +933,23 @@
- #define MSR_VM_IGNNE                    0xc0010115
- #define MSR_VM_HSAVE_PA                 0xc0010117
- 
-+/* Control-flow Enforcement Technology MSRs */
-+#define MSR_IA32_U_CET		0x6a0 /* user mode cet setting */
-+#define MSR_IA32_S_CET		0x6a2 /* kernel mode cet setting */
-+#define CET_SHSTK_EN		BIT_ULL(0)
-+#define CET_WRSS_EN		BIT_ULL(1)
-+#define CET_ENDBR_EN		BIT_ULL(2)
-+#define CET_LEG_IW_EN		BIT_ULL(3)
-+#define CET_NO_TRACK_EN		BIT_ULL(4)
-+#define CET_SUPPRESS_DISABLE	BIT_ULL(5)
-+#define CET_RESERVED		(BIT_ULL(6) | BIT_ULL(7) | BIT_ULL(8) | BIT_ULL(9))
-+#define CET_SUPPRESS		BIT_ULL(10)
-+#define CET_WAIT_ENDBR		BIT_ULL(11)
-+
-+#define MSR_IA32_PL0_SSP	0x6a4 /* kernel shadow stack pointer */
-+#define MSR_IA32_PL1_SSP	0x6a5 /* ring-1 shadow stack pointer */
-+#define MSR_IA32_PL2_SSP	0x6a6 /* ring-2 shadow stack pointer */
-+#define MSR_IA32_PL3_SSP	0x6a7 /* user shadow stack pointer */
-+#define MSR_IA32_INT_SSP_TAB	0x6a8 /* exception shadow stack table */
-+
- #endif /* _ASM_X86_MSR_INDEX_H */
-diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
-index 5d8047441a0a..22eedf8066bf 100644
---- a/arch/x86/kernel/fpu/xstate.c
-+++ b/arch/x86/kernel/fpu/xstate.c
-@@ -38,6 +38,8 @@ static const char *xfeature_names[] =
- 	"Processor Trace (unused)"	,
- 	"Protection Keys User registers",
- 	"PASID state",
-+	"Control-flow User registers"	,
-+	"Control-flow Kernel registers"	,
- 	"unknown xstate feature"	,
- };
- 
-@@ -53,6 +55,8 @@ static short xsave_cpuid_features[] __initdata = {
- 	X86_FEATURE_INTEL_PT,
- 	X86_FEATURE_PKU,
- 	X86_FEATURE_ENQCMD,
-+	X86_FEATURE_CET, /* XFEATURE_CET_USER */
-+	X86_FEATURE_CET, /* XFEATURE_CET_KERNEL */
- };
- 
- /*
-@@ -321,6 +325,8 @@ static void __init print_xstate_features(void)
- 	print_xstate_feature(XFEATURE_MASK_Hi16_ZMM);
- 	print_xstate_feature(XFEATURE_MASK_PKRU);
- 	print_xstate_feature(XFEATURE_MASK_PASID);
-+	print_xstate_feature(XFEATURE_MASK_CET_USER);
-+	print_xstate_feature(XFEATURE_MASK_CET_KERNEL);
- }
- 
- /*
-@@ -596,6 +602,8 @@ static void check_xstate_against_struct(int nr)
- 	XCHECK_SZ(sz, nr, XFEATURE_Hi16_ZMM,  struct avx_512_hi16_state);
- 	XCHECK_SZ(sz, nr, XFEATURE_PKRU,      struct pkru_state);
- 	XCHECK_SZ(sz, nr, XFEATURE_PASID,     struct ia32_pasid_state);
-+	XCHECK_SZ(sz, nr, XFEATURE_CET_USER,   struct cet_user_state);
-+	XCHECK_SZ(sz, nr, XFEATURE_CET_KERNEL, struct cet_kernel_state);
- 
- 	/*
- 	 * Make *SURE* to add any feature numbers in below if
-@@ -605,7 +613,7 @@ static void check_xstate_against_struct(int nr)
- 	if ((nr < XFEATURE_YMM) ||
- 	    (nr >= XFEATURE_MAX) ||
- 	    (nr == XFEATURE_PT_UNIMPLEMENTED_SO_FAR) ||
--	    ((nr >= XFEATURE_RSRVD_COMP_11) && (nr <= XFEATURE_LBR))) {
-+	    ((nr >= XFEATURE_RSRVD_COMP_13) && (nr <= XFEATURE_LBR))) {
- 		WARN_ONCE(1, "no structure for xstate: %d\n", nr);
- 		XSTATE_WARN_ON(1);
- 	}
--- 
-2.21.0
-
+Can I provide that as a separate patch?  I don't want any breakage
+from that to delay DWARF v5 support further.  If so, should it be the
+first patch or last?
+--=20
+Thanks,
+~Nick Desaulniers
