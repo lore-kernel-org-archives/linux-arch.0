@@ -7,52 +7,52 @@ X-Spam-Status: No, score=-11.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8AB2DC433E9
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Feb 2021 20:18:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 933FFC433DB
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Feb 2021 20:18:30 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 52E6960202
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Feb 2021 20:18:16 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 499AB60202
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Feb 2021 20:18:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239395AbhBDTyQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 4 Feb 2021 14:54:16 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38906 "EHLO
+        id S236985AbhBDTx7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 4 Feb 2021 14:53:59 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38896 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239113AbhBDTwC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Feb 2021 14:52:02 -0500
-Received: from mail-pf1-x42b.google.com (mail-pf1-x42b.google.com [IPv6:2607:f8b0:4864:20::42b])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6732AC061222
-        for <linux-arch@vger.kernel.org>; Thu,  4 Feb 2021 11:50:23 -0800 (PST)
-Received: by mail-pf1-x42b.google.com with SMTP id d26so1535319pfn.5
-        for <linux-arch@vger.kernel.org>; Thu, 04 Feb 2021 11:50:23 -0800 (PST)
+        with ESMTP id S238249AbhBDTvf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Feb 2021 14:51:35 -0500
+Received: from mail-pl1-x632.google.com (mail-pl1-x632.google.com [IPv6:2607:f8b0:4864:20::632])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 50A9CC06178C
+        for <linux-arch@vger.kernel.org>; Thu,  4 Feb 2021 11:50:06 -0800 (PST)
+Received: by mail-pl1-x632.google.com with SMTP id y10so2322913plk.7
+        for <linux-arch@vger.kernel.org>; Thu, 04 Feb 2021 11:50:06 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=chromium.org; s=google;
         h=date:from:to:cc:subject:message-id:references:mime-version
          :content-disposition:in-reply-to;
-        bh=OCBNpOzMc8CAOBfAgX/jLAhp/SQecCvHp/iShWPRCZQ=;
-        b=UzKHJoHstJUn1+EShPvxaJaqClm9LA26kdmfw9zDnAdyzrAY6CqEgnlW45I0CJthX4
-         DDUOM1Ntq+iwMd+/8nEiBF24eu4IJc41zF9EcSwZWNb05Nf6D9yLHf7Eb2Pyi63otlod
-         3RwHieM8ryVd+jiq/SMM936MFgxNwHfq3RlWc=
+        bh=iBLMSCpzZcV26JDbm3Tk5TNwyOXOFPL+xJ3FCBgJOmc=;
+        b=KyXxS/2xKJybcjPjmedT7sMpt9sCUlQgZi1EhPWosNSp79EUf68HPjqOdC8eSZP+6T
+         79C8OvKn7CzmZWMokBs2i0HnigmaZ9loo+T7R5/Li0/H5ESiyaQDa7J6saI4f2qoPOZe
+         FbJkQSX9K2yoM/hr85Q6/ePU+9uqQU8vk/iwk=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:from:to:cc:subject:message-id:references
          :mime-version:content-disposition:in-reply-to;
-        bh=OCBNpOzMc8CAOBfAgX/jLAhp/SQecCvHp/iShWPRCZQ=;
-        b=lnIUVacyP0KV11aUFCDEMgMciLDGLPPJLu4Rbk+K9bFlMJCWzegsO2KVhOtkMvSdbP
-         P+asJ0YB4xHGKIyakviKqkEaL9pI1m4DRwgMnaVdraZ45tPnGlaHFkq8U9lCYItdO4xy
-         gve4enEQzSYNHjpZXx+ijyhEnWcXSguGN6IhaEZO2B6BBWFtIF/OIfmNvuHRMN0XnAxb
-         bppvxurGXxbji1tporkgLpKRoVtyMPuJPhdIoDogtx41mAsBzm0sgXk6/2xe2AYvfF/b
-         q84qzA3qgN+eCu5i3u2NxR71M8eNCb1LIMFAbZm0znQcEnYzMk4GV/NM6J+ca99yI/+2
-         uS9w==
-X-Gm-Message-State: AOAM530kjg3B5E27IfCIRz1c6EjVxEJFH0AOXf2rR0AyuZIlY9fCYM1i
-        GFrj9BsDdW7SUH0Ec9g1L9U+pA==
-X-Google-Smtp-Source: ABdhPJwi3qGotMQdzbjuJor6PdBiBP52TZP1QRJ9SqH5R+oUXMnOHkiFLvDUNqFp4od9u/7BXFE1Fw==
-X-Received: by 2002:a63:794a:: with SMTP id u71mr592348pgc.91.1612468222994;
-        Thu, 04 Feb 2021 11:50:22 -0800 (PST)
+        bh=iBLMSCpzZcV26JDbm3Tk5TNwyOXOFPL+xJ3FCBgJOmc=;
+        b=FjqlF3hChTpdQdboSbR2U7WZ8gVkPvCbzSOtNv4sxmnJnwRkMsrKMiUS/LW6+oF3K9
+         ghKBNZ4cbgIop886U54uaaivMzu0XRZvoFslYkE6tLltObEjEOpByrXRsLSfgPYD9ByN
+         2+SVUQOcK3RbPLU/VPqnG/rXalsN9u+cRM3LId9O+gtis+uTi/nPsC+uf0o8Tonx5lZe
+         EJxelA5JX+5cuGoZArtm3JMDjmPCKeYuaFsve0nfPMamAEfK6z1rCyTvnJK1RotDdu54
+         x9IQnn4B8anV9MCnZ914kbf8Cb0H7lQp3OzTL3ZWeLCxFxDCEUcNKWm1T/Z6xVnbBfWn
+         QYOg==
+X-Gm-Message-State: AOAM531XrMHt3Adm9GUlKpKoXBW/gZuxQog93W7giKOovLohR+/lpRPq
+        leBZqZjc0kFe6mv5iH/FT6xLOA==
+X-Google-Smtp-Source: ABdhPJxua1tNWSGKQMHDctfR/EJ5HVJZgKa0i2RmDdeE+oFlQXkcMFPwElJCu+Wj04jC5RzqPm8IZQ==
+X-Received: by 2002:a17:90a:71c1:: with SMTP id m1mr592331pjs.48.1612468205972;
+        Thu, 04 Feb 2021 11:50:05 -0800 (PST)
 Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
-        by smtp.gmail.com with ESMTPSA id r7sm6299408pfc.26.2021.02.04.11.50.21
+        by smtp.gmail.com with ESMTPSA id o4sm6029930pjs.57.2021.02.04.11.50.04
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 04 Feb 2021 11:50:22 -0800 (PST)
-Date:   Thu, 4 Feb 2021 11:50:21 -0800
+        Thu, 04 Feb 2021 11:50:05 -0800 (PST)
+Date:   Thu, 4 Feb 2021 11:50:03 -0800
 From:   Kees Cook <keescook@chromium.org>
 To:     Yu-cheng Yu <yu-cheng.yu@intel.com>
 Cc:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
@@ -80,26 +80,24 @@ Cc:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Dave Martin <Dave.Martin@arm.com>,
         Weijiang Yang <weijiang.yang@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>
-Subject: Re: [PATCH v19 5/7] x86/cet/ibt: Update arch_prctl functions for
- Indirect Branch Tracking
-Message-ID: <202102041150.6186296C3@keescook>
+Subject: Re: [PATCH v19 2/7] x86/cet/ibt: User-mode Indirect Branch Tracking
+ support
+Message-ID: <202102041150.1390D8B9@keescook>
 References: <20210203225902.479-1-yu-cheng.yu@intel.com>
- <20210203225902.479-6-yu-cheng.yu@intel.com>
+ <20210203225902.479-3-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20210203225902.479-6-yu-cheng.yu@intel.com>
+In-Reply-To: <20210203225902.479-3-yu-cheng.yu@intel.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Feb 03, 2021 at 02:59:00PM -0800, Yu-cheng Yu wrote:
-> From: "H.J. Lu" <hjl.tools@gmail.com>
+On Wed, Feb 03, 2021 at 02:58:57PM -0800, Yu-cheng Yu wrote:
+> Introduce user-mode Indirect Branch Tracking (IBT) support.  Add routines
+> for the setup/disable of IBT.
 > 
-> Update ARCH_X86_CET_STATUS and ARCH_X86_CET_DISABLE for Indirect Branch
-> Tracking.
-> 
-> Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 
 Reviewed-by: Kees Cook <keescook@chromium.org>
 
