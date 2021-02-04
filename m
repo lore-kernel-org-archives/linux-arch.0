@@ -2,305 +2,210 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
+X-Spam-Status: No, score=-5.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,PDS_BAD_THREAD_QP_64,SPF_HELO_NONE,SPF_PASS autolearn=no
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 32C77C433E0
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Feb 2021 16:39:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A2A9CC433E0
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Feb 2021 16:47:43 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E2FF864F53
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Feb 2021 16:39:11 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5B14764DA3
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Feb 2021 16:47:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237266AbhBDQiH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 4 Feb 2021 11:38:07 -0500
-Received: from mail.kernel.org ([198.145.29.99]:47458 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S238150AbhBDQeK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 4 Feb 2021 11:34:10 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 520B964DEC;
-        Thu,  4 Feb 2021 16:33:24 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1612456404;
-        bh=ClwfZ4bh/g+nDNHgsihWdg81VOoI6Tov34mfQwcVTiQ=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=FXJLCgVbcsBwD/eZ2udPLpIYTL9uP8O29EGdVxivSMxmjmE0GO9EcpugGPE/QJiEV
-         zKIpmSXdsrxzwDZbAg85DQz4oAJx3r9PuJtDGPTSk/k2KuCwRlwZ0VRCfNUJ1rVUvB
-         hySWqBMjpK+QxNB5KE203FEA/r7zsENWQUsFmfPrTf1FdgokpLN0+3TtXwfME3POLf
-         wEssOD76gxpUHRU0MOnpr2G+zJe12xs4FGJ1aD17oGpLNF5brMaT5P6BHoIxtlI8LI
-         gMdO4X41HVyQVaXgHIUuidkSfoJaqViMnCATdTDeB0WNxegWqjx4nIakKv7v6Jcr7E
-         F/wVGxToP0j+A==
-Received: by quaco.ghostprotocols.net (Postfix, from userid 1000)
-        id F3F6840513; Thu,  4 Feb 2021 13:33:19 -0300 (-03)
-Date:   Thu, 4 Feb 2021 13:33:19 -0300
-From:   Arnaldo Carvalho de Melo <acme@kernel.org>
-To:     Chris Murphy <lists@colorremedies.com>
-Cc:     bpf <bpf@vger.kernel.org>, Jiri Olsa <jolsa@kernel.org>,
-        dwarves@vger.kernel.org,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Yonghong Song <yhs@fb.com>,
-        Andrii Nakryiko <andrii@kernel.org>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Nathan Chancellor <natechancellor@gmail.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        Clang-Built-Linux ML <clang-built-linux@googlegroups.com>,
-        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Jakub Jelinek <jakub@redhat.com>,
-        Fangrui Song <maskray@google.com>,
-        Caroline Tice <cmtice@google.com>,
-        Nick Clifton <nickc@redhat.com>
-Subject: [FIXED] Re: 5:11: in-kernel BTF is malformed
-Message-ID: <20210204163319.GD910119@kernel.org>
-References: <CAJCQCtSQLc0VHqO4BY_-YB2OmCNNmHCS6fNdQKmMWGn2v=Jpdw@mail.gmail.com>
- <CAJCQCtRHOidM7Vps1JQSpZA14u+B5fR860FwZB=eb1wYjTpqDw@mail.gmail.com>
- <CAEf4BzZ4oTB0-JizHe1VaCk2V+Jb9jJoTznkgh6CjE5VxNVqbg@mail.gmail.com>
- <CAJCQCtRw6UWGGvjn0x__godYKYQXXmtyQys4efW2Pb84Q5q8Eg@mail.gmail.com>
- <20210204010038.GA854763@kernel.org>
- <CAJCQCtQfgRp78_WSrSHLNUUYNCyOCH=vo10nVZW_cyMjpZiNJg@mail.gmail.com>
- <CAEf4Bza4XQxpS7VTNWGk6Rz-iUwZemF6+iAVBA_yvrWnV0k8Qg@mail.gmail.com>
- <CAJCQCtRDJ_uiJcanP_p+y6Kz76c4P-EmndMyfHN5f4rtkgYhjA@mail.gmail.com>
- <20210204132625.GB910119@kernel.org>
+        id S237009AbhBDQrQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 4 Feb 2021 11:47:16 -0500
+Received: from mail-dm6nam10on2132.outbound.protection.outlook.com ([40.107.93.132]:64512
+        "EHLO NAM10-DM6-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S238136AbhBDQrD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 4 Feb 2021 11:47:03 -0500
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=WYEA0Z4aGqW4hi0xqUtDLUSQ6mWyJ8diJkhK5sAdmOr4QtmkrdwZHU5ZOoQHSsoUA6Cki/ZDKjCFeeYM4fGcnMZVsDGm0MsHJNAWLlZbwMUhM7Ox36x2Kn0NJt57Czpnbr7/q7Zl6oqF27R3XuMI4XFyng4hK4PQqDEJlHC55aIlRs3S36IK+tu7KikMxNT8t5Bd54riEpwwTZmu0Wy+uIiuLkVkid50LqgJjNknedIDK91QiOVFZYYf/COYQ1zm82xZzRiaZIeaUUacsTu0fxTIUlimxoNK7BM/j0l/p/MuoFXsRui4A4avoo/xzygHHQG9PhjMCqNzwvluwZTCcA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=+fmllhiJL868aD5I8hJGzKfZ7SNim/ZdzlMRxKubEuc=;
+ b=BxLyMPPZkCcoGobvnXJ7PMKcZCZK/+K3etyPEs9H3430y1OGSMmdvOaFth9Ud8ae2RDsS9SU/5PBqskRL+GMl/QitGL/G7IL2fiXUFZS2+/oqEFQaOrIM9yiiK+We9Rn45T9UzSiicug5DyW0ptAAzAzhC9t06L99GHd3qaqebUJv3f0+8OVlKlm57UCdyCbgHnnsCzyoru14A77kUyB1MWXe2AIDSm3cs+4zgwCZJNVkQaKigbLjet7zOtHbqQK0QzQtKIUipky1krUAVGMUq0ZDXh3UgDmKA2Htf+J9MhRF23mbf1XBluuwbauX86wqLmFijBWVYIakE6KumO11Q==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=microsoft.com; dmarc=pass action=none
+ header.from=microsoft.com; dkim=pass header.d=microsoft.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=+fmllhiJL868aD5I8hJGzKfZ7SNim/ZdzlMRxKubEuc=;
+ b=UkyGdaqePc44ckJSeepATg+NGTiczdFoTIbR2x+Z9bxxgHDPZdqMx61tdbGRSVftWaBlum45OA+PjhX9ddxG5WuM7T9CN77C6ckG6eQDyYRM3JdwNBH9VLpJe3FEKWwOVmaoZehuBqnuvLk885lFgs7yO63i+fTBwf6c21wy0gU=
+Received: from (2603:10b6:301:7c::11) by
+ MW4PR21MB1874.namprd21.prod.outlook.com (2603:10b6:303:73::9) with Microsoft
+ SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.20.3846.3; Thu, 4 Feb 2021 16:46:15 +0000
+Received: from MWHPR21MB1593.namprd21.prod.outlook.com
+ ([fe80::9c8:94c9:faf1:17c2]) by MWHPR21MB1593.namprd21.prod.outlook.com
+ ([fe80::9c8:94c9:faf1:17c2%9]) with mapi id 15.20.3846.006; Thu, 4 Feb 2021
+ 16:46:14 +0000
+From:   Michael Kelley <mikelley@microsoft.com>
+To:     Wei Liu <wei.liu@kernel.org>, Arnd Bergmann <arnd@kernel.org>
+CC:     Linux on Hyper-V List <linux-hyperv@vger.kernel.org>,
+        "virtualization@lists.linux-foundation.org" 
+        <virtualization@lists.linux-foundation.org>,
+        Linux Kernel List <linux-kernel@vger.kernel.org>,
+        Vineeth Pillai <viremana@linux.microsoft.com>,
+        Sunil Muthuswamy <sunilmut@microsoft.com>,
+        Nuno Das Neves <nunodasneves@linux.microsoft.com>,
+        "pasha.tatashin@soleen.com" <pasha.tatashin@soleen.com>,
+        KY Srinivasan <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        "open list:GENERIC INCLUDE/ASM HEADER FILES" 
+        <linux-arch@vger.kernel.org>
+Subject: RE: [PATCH v5 13/16] asm-generic/hyperv: introduce hv_device_id and
+ auxiliary structures
+Thread-Topic: [PATCH v5 13/16] asm-generic/hyperv: introduce hv_device_id and
+ auxiliary structures
+Thread-Index: AQHW7yP3XhY0LOeCcky/eXuYzxnTqao5JVQwgAwG2wCAAVXDgIAABquAgAAFXwCAAb2OcA==
+Date:   Thu, 4 Feb 2021 16:46:14 +0000
+Message-ID: <MWHPR21MB1593E9C0DAF03C9B651D15FBD7B39@MWHPR21MB1593.namprd21.prod.outlook.com>
+References: <20210120120058.29138-1-wei.liu@kernel.org>
+ <20210120120058.29138-14-wei.liu@kernel.org>
+ <MWHPR21MB1593959647DA60219E19C25ED7BC9@MWHPR21MB1593.namprd21.prod.outlook.com>
+ <20210202170248.4hds554cyxpuayqc@liuwe-devbox-debian-v2>
+ <20210203132601.ftpwgs57qtok47cg@liuwe-devbox-debian-v2>
+ <CAK8P3a0m8jEij-RdP1PTcNcJW2+mXQ1dA4=s+JLXhnv+NyFiHw@mail.gmail.com>
+ <20210203140906.g35zr7366hh7p5f3@liuwe-devbox-debian-v2>
+In-Reply-To: <20210203140906.g35zr7366hh7p5f3@liuwe-devbox-debian-v2>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+msip_labels: MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Enabled=true;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_SetDate=2021-02-04T16:46:13Z;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Method=Standard;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Name=Internal;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_SiteId=72f988bf-86f1-41af-91ab-2d7cd011db47;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_ActionId=650ddec4-4cf3-4e24-8b94-27b26c42fb3c;
+ MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_ContentBits=0
+authentication-results: kernel.org; dkim=none (message not signed)
+ header.d=none;kernel.org; dmarc=none action=none header.from=microsoft.com;
+x-originating-ip: [24.22.167.197]
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-ht: Tenant
+x-ms-office365-filtering-correlation-id: ce517e70-8b76-46ea-758d-08d8c92c6301
+x-ms-traffictypediagnostic: MW4PR21MB1874:
+x-ms-exchange-transport-forked: True
+x-microsoft-antispam-prvs: <MW4PR21MB1874714BE877DD3E444FB5B5D7B39@MW4PR21MB1874.namprd21.prod.outlook.com>
+x-ms-oob-tlc-oobclassifiers: OLM:8882;
+x-ms-exchange-senderadcheck: 1
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info: CQlf28DwhaeQ/++jo7N3rzsaOUd2H5+OvkAx2v3vgx2wgPlvQxB/mYetWLCeB2MeeGunyVfPbQIVR1lcT2vsraw6K0NKG2KQucCYhVdSE7ZlDkmKgm8U3YB2jvS1HpvehKVTjOgarpkwIC+OtJGlIoOH4ElgsKDNsV/JEgm99HORBWp3HrYP3j2t9aHHOPcNu3uUTnU7+/tUvI7WwseUmYSML8Rrrd7YHY5WuOFuVOdsdmP9k6zQndkDMlkSnYa3XOVVqoAf0YC8dOf6CNRSMPo72TX7jJd3y2eXr/eA/0lZUYZdZimHh6opfNyA9TV+YZRQPz/7wkeZq0KTiMaxsIQ08qBUGYQ5fF87a3MbsRP5aWiaT+68aIrzNtvDt0p6B7uSdOmox+g3zZkIVhYwunuDOxsRc8tC2gA75n6HBGTth+Vv9sGLV7JFN9W4oXajn2on7j2lIIhF+VJ+qjBDHYnAJg/CedYQliufLYV00mMcxSHkfUwxfsj+q+Bz+CM5He8q/YB1+HkP4puIqI6j7A+/M076zb76hFAEs34kzR3FF3ItVWT4zN0txxWLRh+6
+x-forefront-antispam-report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:MWHPR21MB1593.namprd21.prod.outlook.com;PTR:;CAT:NONE;SFS:(4636009)(366004)(346002)(136003)(39860400002)(396003)(376002)(71200400001)(83380400001)(4326008)(76116006)(53546011)(82960400001)(82950400001)(52536014)(64756008)(66446008)(66556008)(66476007)(8676002)(66946007)(5660300002)(26005)(55016002)(9686003)(86362001)(8990500004)(10290500003)(8936002)(316002)(2906002)(478600001)(33656002)(7696005)(54906003)(110136005)(6506007)(186003)(41533002);DIR:OUT;SFP:1102;
+x-ms-exchange-antispam-messagedata: =?us-ascii?Q?vguOHSziFoucmR78902z0Nar/MjbTjp4yaR999vT5L6P5BIPDil77NRDKaYV?=
+ =?us-ascii?Q?Wzq23M3BX44EeGEiX1ssqJt8Mp43EyMFVzZDhO+5IuKGFa39MZXiRVGRomZi?=
+ =?us-ascii?Q?t3pJK6mHdUUsDUYCiqM851469mkD6W3wdY2xLNnVYRo8A6bBhuRreSOtoOAS?=
+ =?us-ascii?Q?fsscO0KLvRucJMPoAXUfpYldmDdzgY8mXwRrDhDKFzqwJYC4MCUo2WoUBrNo?=
+ =?us-ascii?Q?nFxrYIzUh7VdsUeBXrt4x86ajlAZgteDEhXzVZuEKYWu+YDPhnL+/h7tPOBF?=
+ =?us-ascii?Q?xSMSyDg9iNMaLUZ/960sd6w2XrDK+tahOb93jOkBxklIcILv7LQ7CMfPFzGU?=
+ =?us-ascii?Q?6pV4FsQEPYo3kBKp83hdwqkSiyRCI6Mz3CVa0aNFfo4jleoeP9BkcKEGeAP/?=
+ =?us-ascii?Q?PoXGk676wAVMEgo+F6EfR/c7j0kwMB2aLow/hXyOCEyYXMTlhi+lOWfM1cdb?=
+ =?us-ascii?Q?Kel4MFUDnR0SPMQ4i0LH79GBq+vuXcAhFS7p1Teb/HjrFCoci9twnkd0ASF1?=
+ =?us-ascii?Q?HMYbMm95pB3yMwGjktlgDj5LzGaejHGeBWedEpXkw2BKmxtzCvy++un2k07S?=
+ =?us-ascii?Q?EAhCw24AZMG6vJMhAlJ1YNvSOrEetTbK3owdLAUWDJGI5dsRtOB4hmY0xCTP?=
+ =?us-ascii?Q?O0VOXLHqL8jfvwhWZOdckAfdOTG6mpTtFiQqQi9JvzGpc6TT19R/8N031/dp?=
+ =?us-ascii?Q?6TBlSsIj4s+CdYrjuTj9t0XX3mwI5jRi9Xp7bEAQT5zJ9QtWO4zyo+PNX+Ws?=
+ =?us-ascii?Q?auX3Y35uVGpp8ucBgaG3FwUp1ehtOlnJrezBXeek+afdbCBGk2ZMlcs4iJky?=
+ =?us-ascii?Q?r4mf/qkuMdTpIBN4p35LYrzgieBBaCp9rRTNLQdj7nMvkt/KwbU/o9RVsvIa?=
+ =?us-ascii?Q?37KuG2wR3N1PkOpXVFNGtTk+1FPgSoGLymq3gnR5UW2KE/D7t0Zcl9orTg7V?=
+ =?us-ascii?Q?W1BZsW9hfldSWfjvexgUoexiiKZGdzqeVwLhtBoZv5Y4HjarlcMTMtutzLK8?=
+ =?us-ascii?Q?shXVBp1tSu4tK/WtK1vPzOxCYZ3ZhMGHTGWVfA8I9kjQkmDwAeB0bCNxCEwR?=
+ =?us-ascii?Q?yry6lcswQVT461mY+pRE7IElIk/4IfSEd+KzeeOnUDidLcc9dp8dRSDK2TZS?=
+ =?us-ascii?Q?ngTqicvhtUzXCJM4Jwzg/1gdObOfMiv0SPGhzewJTPVfNQO+dWnIACeJRQtE?=
+ =?us-ascii?Q?NP+eU1HuNTkRpccFaQMOnRqietKOWxzTggyqrqazXjucFeNOmIa7x44yq5E3?=
+ =?us-ascii?Q?x9/Igq0BizzINTNEBmikigp+Al28CwMI7f44jMjw1hyLpIf6XfIsR0vEFkwp?=
+ =?us-ascii?Q?v3Pdq2w2ZIJOvf8U5yMYzc7Q?=
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210204132625.GB910119@kernel.org>
-X-Url:  http://acmel.wordpress.com
+X-OriginatorOrg: microsoft.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: MWHPR21MB1593.namprd21.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: ce517e70-8b76-46ea-758d-08d8c92c6301
+X-MS-Exchange-CrossTenant-originalarrivaltime: 04 Feb 2021 16:46:14.8110
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 72f988bf-86f1-41af-91ab-2d7cd011db47
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: HhTimow/kBox0In2o22jnXnHTEEHLI9M+nbt/1Vg/0/eYgSe9A0qDNLcVfCkWa/NlDX4fZHk+aFABW+bgibKCa+qeEagPAQD0KIPzGgAcN4=
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: MW4PR21MB1874
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Em Thu, Feb 04, 2021 at 10:26:25AM -0300, Arnaldo Carvalho de Melo escreveu:
-> Em Wed, Feb 03, 2021 at 07:10:52PM -0700, Chris Murphy escreveu:
-> > On Wed, Feb 3, 2021 at 7:05 PM Andrii Nakryiko <andrii.nakryiko@gmail.com> wrote:
-> > > So it's a bitfield offset breakage that should be fixed in pahole 1.20.
- 
-> > Rawhide is currently still on
-> > dwarves-1.19-2.fc34.x86_64
- 
-> > This might also be related:
-> > https://bugzilla.redhat.com/show_bug.cgi?id=1922707#c9
- 
-> With about to be released pahole v1.20 it all seems to work, tldr;
- 
-> [root@seventh ~]# ~acme/git/pahole/btfdiff /lib/modules/`uname -r`/build/vmlinux
-> [root@seventh ~]#
- 
-> Same thing. I'll do more tests after some errands, but I've put the pre-release
-> rpm packages for 1.20 at:
- 
-> http://vger.kernel.org/~acme/pahole/rpms/1.20-0/RPMS/x86_64/Packages/
- 
-> Can you please try it with gcc 11?
+From: Wei Liu <wei.liu@kernel.org> Sent: Wednesday, February 3, 2021 6:09 A=
+M
+>=20
+> On Wed, Feb 03, 2021 at 02:49:53PM +0100, Arnd Bergmann wrote:
+> > On Wed, Feb 3, 2021 at 2:26 PM Wei Liu <wei.liu@kernel.org> wrote:
+> > > On Tue, Feb 02, 2021 at 05:02:48PM +0000, Wei Liu wrote:
+> > > > On Tue, Jan 26, 2021 at 01:26:52AM +0000, Michael Kelley wrote:
+> > > > > From: Wei Liu <wei.liu@kernel.org> Sent: Wednesday, January 20, 2=
+021 4:01 AM
+> > > > > > +union hv_device_id {
+> > > > > > + u64 as_uint64;
+> > > > > > +
+> > > > > > + struct {
+> > > > > > +         u64 :62;
+> > > > > > +         u64 device_type:2;
+> > > > > > + };
+> > > > >
+> > > > > Are the above 4 lines extraneous junk?
+> > > > > If not, a comment would be helpful.  And we
+> > > > > would normally label the 62 bit field as
+> > > > > "reserved0" or something similar.
+> > > > >
+> > > >
+> > > > No. It is not junk. I got this from a header in tree.
+> > > >
+> > > > I am inclined to just drop this hunk. If that breaks things, I will=
+ use
+> > > > "reserved0".
+> > > >
+> > >
+> > > It turns out adding reserved0 is required. Dropping this hunk does no=
+t
+> > > work.
+> >
+> > Generally speaking, bitfields are not great for specifying binary inter=
+faces,
+> > as the actual bit order can differ by architecture. The normal way we g=
+et
+> > around it in the kernel is to use basic integer types and define macros
+> > for bit masks. Ideally, each such field should also be marked with a
+> > particular endianess as __le64 or __be64, in case this is ever used wit=
+h
+> > an Arm guest running a big-endian kernel.
+>=20
+> Thanks for the information.
+>=20
+> I think we will need to wait until Microsoft Hypervisor clearly defines
+> the endianess in its header(s) before we can make changes to the copy in
+> Linux.
+>=20
+> >
+> > That said, if you do not care about the specific order of the bits, hav=
+ing
+> > anonymous bitfields for the reserved members is fine, I don't see a
+> > reason to name it as reserved.
+>=20
+> Michael, let me know what you think. I'm not too fussed either way.
+>=20
+> Wei.
 
-Looking at the original source code in the kernel:
+I'm OK either way.  In the Hyper-V code we've typically given such
+fields a name rather than leave them anonymous, which is why it stuck
+out.
 
-        /* Used for emulating ABI behavior of previous Linux versions: */
-        unsigned int                    personality;
+Michael
 
-        /* Scheduler bits, serialized by scheduler locks: */
-        unsigned                        sched_reset_on_fork:1;
-        unsigned                        sched_contributes_to_load:1;
-        unsigned                        sched_migrated:1;
-#ifdef CONFIG_PSI
-        unsigned                        sched_psi_wake_requeue:1;
-#endif
-
-        /* Force alignment to the next boundary: */
-        unsigned                        :0;
-
-        /* Unserialized, strictly 'current' */
-
-        /*
-         * This field must not be in the scheduler word above due to wakelist
-         * queueing no longer being serialized by p->on_cpu. However:
-         *
-         * p->XXX = X;                  ttwu()
-         * schedule()                     if (p->on_rq && ..) // false
-         *   smp_mb__after_spinlock();    if (smp_load_acquire(&p->on_cpu) && //true
-         *   deactivate_task()                ttwu_queue_wakelist())
-         *     p->on_rq = 0;                    p->sched_remote_wakeup = Y;
-         *
-         * guarantees all stores of 'current' are visible before
-         * ->sched_remote_wakeup gets used, so it can be in this word.
-         */
-        unsigned                        sched_remote_wakeup:1;
-
-        /* Bit to tell LSMs we're in execve(): */
-        unsigned                        in_execve:1;
-        unsigned                        in_iowait:1;
-
-Then the 'struct task_struct' as reconstructed by pahole from:
-  
-  $ ls -la /sys/kernel/btf/vmlinux
-  -r--r--r--. 1 root root 4560322 Feb  4 10:16 /sys/kernel/btf/vmlinux
-  $ ls -lah /sys/kernel/btf/vmlinux
-  -r--r--r--. 1 root root 4.4M Feb  4 10:16 /sys/kernel/btf/vmlinux
-  $
-
-That was generated by 'pahole -J' from the default DWARF version
-generated by gcc 11, we see that 'unsigned :0;' preserved (and that
-isn't directly encoded in DWARF, so, to produce source code from it the
-tool needs to add that "manually") and the byte offset (not
-DW_AT_data_member_location isn't provided in such case) calculated from
-the DW_AT_bit_offset (DWARF4/5 only stuff):
-
-[acme@seventh perf]$ readelf -wi ../build/v5.11.0-rc6+/vmlinux | grep -m1 sched_reset_on_fork -A40 | grep -v DW_AT_decl_
-    <1149>   DW_AT_name        : (indirect string, offset: 0x53da): sched_reset_on_fork
-    <1151>   DW_AT_type        : <0x69>
-    <1155>   DW_AT_bit_size    : 1
-    <1155>   DW_AT_data_bit_offset: 18208
- <2><1157>: Abbrev Number: 29 (DW_TAG_member)
-    <1158>   DW_AT_name        : (indirect string, offset: 0x3940): sched_contributes_to_load
-    <1160>   DW_AT_type        : <0x69>
-    <1164>   DW_AT_bit_size    : 1
-    <1164>   DW_AT_data_bit_offset: 18209
- <2><1166>: Abbrev Number: 29 (DW_TAG_member)
-    <1167>   DW_AT_name        : (indirect string, offset: 0x4883): sched_migrated
-    <116f>   DW_AT_type        : <0x69>
-    <1173>   DW_AT_bit_size    : 1
-    <1173>   DW_AT_data_bit_offset: 18210
- <2><1175>: Abbrev Number: 29 (DW_TAG_member)
-    <1176>   DW_AT_name        : (indirect string, offset: 0x3245): sched_psi_wake_requeue
-    <117e>   DW_AT_type        : <0x69>
-    <1182>   DW_AT_bit_size    : 1
-    <1182>   DW_AT_data_bit_offset: 18211
- <2><1184>: Abbrev Number: 29 (DW_TAG_member)
-    <1185>   DW_AT_name        : (indirect string, offset: 0xe4b): sched_remote_wakeup
-    <118d>   DW_AT_type        : <0x69>
-    <1191>   DW_AT_bit_size    : 1
-    <1191>   DW_AT_data_bit_offset: 18240
- <2><1193>: Abbrev Number: 29 (DW_TAG_member)
-    <1194>   DW_AT_name        : (indirect string, offset: 0x3ad4): in_execve
-[acme@seventh perf]$ 
-
-Looking at the options passed to gcc:
-
-[acme@seventh perf]$ readelf -wi ../build/v5.11.0-rc6+/vmlinux | grep DW_AT_producer -m2
-    <1c>   DW_AT_producer    : (indirect string, offset: 0x51): GNU AS 2.35.1
-    <2f>   DW_AT_producer    : (indirect string, offset: 0x124a): GNU C89 11.0.0 20210123 (Red Hat 11.0.0-0) -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -m64 -mno-80387 -mno-fp-ret-in-387 -mpreferred-stack-boundary=3 -mskip-rax-setup -mtune=generic -mno-red-zone -mcmodel=kernel -mindirect-branch=thunk-extern -mindirect-branch-register -mrecord-mcount -mfentry -march=x86-64 -g -O2 -std=gnu90 -fno-strict-aliasing -fno-common -fshort-wchar -fno-PIE -falign-jumps=1 -falign-loops=1 -fno-asynchronous-unwind-tables -fno-jump-tables -fno-delete-null-pointer-checks -fno-allow-store-data-races -fno-strict-overflow -fstack-check=no -fconserve-stack -fcf-protection=none -fno-stack-protector -fno-builtin
-[acme@seventh perf]$
-
-its just plain '-g'
-
-Also using pahole's friend, fullcircle, we can see that it uses pfunct
-to generate a compileable .c file from the DWARF thing, building it with
-the same set of options used to build a .o file and then compares the
-degugging info in the .c generated from the debugging info and checks
-it matches, i.e. full circle.
-
-[acme@seventh tmp]$ cp ~/git/build/v5.11.0-rc6+/net/ipv4/tcp.o .
-[acme@seventh tmp]$ pahole -C task_struct tcp.o | tail
-
-	/* --- cacheline 194 boundary (12416 bytes) --- */
-	struct thread_struct       thread __attribute__((__aligned__(64))); /* 12416  4352 */
-
-	/* size: 16768, cachelines: 262, members: 252 */
-	/* sum members: 16579, holes: 22, sum holes: 173 */
-	/* sum bitfield members: 77 bits, bit holes: 2, sum bit holes: 51 bits */
-	/* paddings: 4, sum paddings: 21 */
-	/* forced alignments: 8, forced holes: 2, sum forced holes: 96 */
-} __attribute__((__aligned__(64)));
-[acme@seventh tmp]$
-[acme@seventh tmp]$ ~acme/git/pahole/fullcircle tcp.o
-[acme@seventh tmp]$
-
-For reference, here is the script:
-
-  https://git.kernel.org/pub/scm/devel/pahole/pahole.git/tree/fullcircle
-
-Then the next test is to build and use tools/bpf/runqslower/ that uses
-CO-RE, i.e. it touches task_struct fields, etc, after building it:
-
-[root@seventh linux]# tools/bpf/runqslower/.output/runqslower
-Tracing run queue latency higher than 10000 us
-TIME     COMM             PID           LAT(us)
-
-And on the other terminal:
-
-[root@seventh ~]# bpftool prog | grep handle__sched -A3
-93: type 26  name handle__sched_w  tag 77e6e21acbdbb0f6  gpl
-	loaded_at 2021-02-04T13:22:32-0300  uid 0
-	xlated 152B  jited 93B  memlock 4096B  map_ids 23,21
-	btf_id 194
-95: type 26  name handle__sched_w  tag 77e6e21acbdbb0f6  gpl
-	loaded_at 2021-02-04T13:22:32-0300  uid 0
-	xlated 152B  jited 93B  memlock 4096B  map_ids 23,21
-	btf_id 194
-96: type 26  name handle__sched_s  tag 1c25b248d7358175  gpl
-	loaded_at 2021-02-04T13:22:32-0300  uid 0
-	xlated 560B  jited 332B  memlock 4096B  map_ids 23,21,22
-	btf_id 194
-[root@seventh ~]#
-
-Ok, system is running smoothly, lets try with a lower threshold:
-
-[root@seventh linux]# tools/bpf/runqslower/.output/runqslower 1000
-Tracing run queue latency higher than 1000 us
-TIME     COMM             PID           LAT(us)
-13:24:31 swapper/3        5070             1405
-13:24:31 swapper/2        2037             1369
-13:24:31 swapper/3        5070             1263
-13:24:32 swapper/0        645              1384
-13:24:32 swapper/1        881              1384
-13:24:32 abrt-dump-journ  5070             2064
-13:24:32 systemd-journal  882              2135
-13:24:32 abrt-dump-journ  645              2240
-13:24:32 runqslower       2947             1317
-13:24:32 iceccd           3839             1451
-13:24:32 runqslower       241              1500
-13:24:32 rcu_sched        5070             1794
-13:24:32 swapper/2        176              1369
-^C
-[root@seventh linux]#
-
-And furthermore:
-
-[root@seventh linux]# file tools/bpf/runqslower/.output/runqslower.bpf.o
-tools/bpf/runqslower/.output/runqslower.bpf.o: ELF 64-bit LSB relocatable, eBPF, version 1 (SYSV), not stripped
-[root@seventh linux]# eu-readelf -winfo tools/bpf/runqslower/.output/runqslower.bpf.o
-eu-readelf: cannot get debug context descriptor: No DWARF information found
-[root@seventh linux]#
-[root@seventh linux]# pahole -C task_struct tools/bpf/runqslower/.output/runqslower.bpf.o > BTF.generated-by-clang-for-a-BPF.target
-[root@seventh linux]# pahole task_struct > BTF.generated-by-pahole-J-from-default-DWWARF-generated-by-gcc11-for-a-x86_64.target
-[root@seventh linux]# diff -u BTF.generated-by-clang-for-a-BPF.target BTF.generated-by-pahole-J-from-default-DWWARF-generated-by-gcc11-for-a-x86_64.target
---- BTF.generated-by-clang-for-a-BPF.target	2021-02-04 13:26:16.215883852 -0300
-+++ BTF.generated-by-pahole-J-from-default-DWWARF-generated-by-gcc11-for-a-x86_64.target	2021-02-04 13:27:07.483184784 -0300
-@@ -49,8 +49,8 @@
- 	/* --- cacheline 30 boundary (1920 bytes) was 56 bytes ago --- */
- 	void *                     migration_pending;    /*  1976     8 */
- 	/* --- cacheline 31 boundary (1984 bytes) --- */
--	unsigned short             migration_disabled;   /*  1984     2 */
--	unsigned short             migration_flags;      /*  1986     2 */
-+	short unsigned int         migration_disabled;   /*  1984     2 */
-+	short unsigned int         migration_flags;      /*  1986     2 */
-
- 	/* XXX 4 bytes hole, try to pack */
-
-@@ -284,8 +284,8 @@
- 	struct list_head           perf_event_list;      /*  7016    16 */
- 	struct mempolicy *         mempolicy;            /*  7032     8 */
- 	/* --- cacheline 110 boundary (7040 bytes) --- */
--	short                      il_prev;              /*  7040     2 */
--	short                      pref_node_fork;       /*  7042     2 */
-+	short int                  il_prev;              /*  7040     2 */
-+	short int                  pref_node_fork;       /*  7042     2 */
- 	int                        numa_scan_seq;        /*  7044     4 */
- 	unsigned int               numa_scan_period;     /*  7048     4 */
- 	unsigned int               numa_scan_period_max; /*  7052     4 */
-[root@seventh linux]#
-
-Not really a difference, but I'll check if I can remove this annoyance
-in > 1.20 :-)
-
-[root@seventh linux]# clang -v |& head -1
-clang version 12.0.0 (https://github.com/llvm/llvm-project 87369c626114ae17f4c637635c119e6de0856a9a)
-[root@seventh linux]#
-
-So I think that for the problems related to building the kernel with gcc
-11 in Fedora Rawhide using the default that is now DWARF5, pahole 1.20
-is good to go and I'll tag it now.
-
-- Arnaldo
+>=20
+> >
+> >       Arnd
