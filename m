@@ -2,245 +2,247 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-18.8 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+X-Spam-Status: No, score=-18.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable autolearn_force=no
-	version=3.4.0
+	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
+	USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 847EDC4332E
-	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 12:13:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2420EC433DB
+	for <linux-arch@archiver.kernel.org>; Fri,  5 Feb 2021 00:05:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6811B64E58
-	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 12:13:08 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id EB6E864FB6
+	for <linux-arch@archiver.kernel.org>; Fri,  5 Feb 2021 00:05:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231520AbhBJMMk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 10 Feb 2021 07:12:40 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39808 "EHLO
+        id S231476AbhBEAFf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 4 Feb 2021 19:05:35 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37326 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231665AbhBJMKb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2021 07:10:31 -0500
-Received: from mail-wm1-x336.google.com (mail-wm1-x336.google.com [IPv6:2a00:1450:4864:20::336])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AA7BAC0611C2
-        for <linux-arch@vger.kernel.org>; Wed, 10 Feb 2021 04:04:39 -0800 (PST)
-Received: by mail-wm1-x336.google.com with SMTP id j11so1613042wmi.3
-        for <linux-arch@vger.kernel.org>; Wed, 10 Feb 2021 04:04:39 -0800 (PST)
+        with ESMTP id S231459AbhBEAFd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Feb 2021 19:05:33 -0500
+Received: from mail-pg1-x534.google.com (mail-pg1-x534.google.com [IPv6:2607:f8b0:4864:20::534])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C6565C06178C
+        for <linux-arch@vger.kernel.org>; Thu,  4 Feb 2021 16:04:53 -0800 (PST)
+Received: by mail-pg1-x534.google.com with SMTP id r38so3243451pgk.13
+        for <linux-arch@vger.kernel.org>; Thu, 04 Feb 2021 16:04:53 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=cloudflare.com; s=google;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=7YlFkcwEzuK8xj1bqWFb4J+pbM9jNy7GJX0y3deB8As=;
-        b=syPwiZlFCfO6MHc40aH33LzcMM6KfDmzRv+D2pLSH5QhqhfJeAI8pcSdpGXIuefrhT
-         QANrLqzWqVKdKDRMI9LkGu7/nHBiH+rC1ieNTWfFHSmkspO5VBaxfKVXb2X2Squ8dPwc
-         gqbcZAWKlW0ioCr6UjiF2eRNBO1Q7kMUruhv0=
+        d=google.com; s=20161025;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=WuuWQCiwdV87iW0z7KxVY5BTEgeNizYr5qdipOfxXnc=;
+        b=hJu87bCSyR1Kv3ijwZbkKNvs01VCINeDtrWjeRxX0TBc8YFS0tk3FKL/zdwi5VP7td
+         PlI3K7mcZso4bJEOtv2rLoBj6TsGxU5HNATT/olyMpUxY4HRuKpdwLeygD5lQ8xJXyOp
+         8asM747S5Mmf6ZQXTnIFYFS2YDOaPVm7uCVnAZHlVeCEVMxQ/t1wP3+dug/EL2QxGaN6
+         venL6y4MmxsBhkB5uiilZ5lgZBP8TP8wJsjgmE9Nxna2IKtbRPWfJKVmMg86FnHWsU3p
+         boUZ8oswAq6lgYMKhYI1r5M8OCCIaXcU2dNcitOPz+jh/6ehx6tlLGeezWQwGD5UU9Ze
+         SQNQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=7YlFkcwEzuK8xj1bqWFb4J+pbM9jNy7GJX0y3deB8As=;
-        b=lPGrMCxw0OWQdDVQyI6iMLodhfR0jWazatnEUDnRQXrJQsyc2wBs2IV+Oyxewo7hVM
-         22XJSqAp3rHQ8AYUBjgRxEhhWe8n7s9EeLsPdtP/q/xsJvwh3VAetBDpLvLByw68a4Vx
-         cAeNqM/dObDwW/ZXz7t44tvzKeW20t0TYgJIsVMF2gRrP9GT0QzwzMNLBmJ9CY0ErV6K
-         UrkjeHhb5pO84ZxvnlBKmbp1y86Rt5hcZjdvnXeKsfeGrvsFnufRu45zSg/6xw7AP4H9
-         PYi+th6/GceIXstiez0hnrNIN9sUmizJFu9NHw2jFCxONjXzmZQnUH4s+MH9pPnJNlvH
-         UJkg==
-X-Gm-Message-State: AOAM531sisiD4j03kOYVREOtuaaUW633AT6xDNn9YMGn1h/xBq4w1G0c
-        1k8G09ZYUKaAOjqwqVnv67rquQ==
-X-Google-Smtp-Source: ABdhPJzWH8Tw+178GsaKwHlgz0XiwPg9erze0gT5N1I/sfwQGjRhxr9XRlOCiSD9NdzdTDxtpCscUA==
-X-Received: by 2002:a1c:f70c:: with SMTP id v12mr2614677wmh.77.1612958678358;
-        Wed, 10 Feb 2021 04:04:38 -0800 (PST)
-Received: from antares.lan (c.3.c.9.d.d.c.e.0.a.6.8.a.9.e.c.f.f.6.2.a.5.a.7.0.b.8.0.1.0.0.2.ip6.arpa. [2001:8b0:7a5a:26ff:ce9a:86a0:ecdd:9c3c])
-        by smtp.gmail.com with ESMTPSA id j7sm2837854wrp.72.2021.02.10.04.04.37
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 10 Feb 2021 04:04:38 -0800 (PST)
-From:   Lorenz Bauer <lmb@cloudflare.com>
-To:     Richard Henderson <rth@twiddle.net>,
-        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
-        Matt Turner <mattst88@gmail.com>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
-        Helge Deller <deller@gmx.de>,
-        "David S. Miller" <davem@davemloft.net>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Alexei Starovoitov <ast@kernel.org>,
-        Daniel Borkmann <daniel@iogearbox.net>,
-        Andrii Nakryiko <andrii@kernel.org>,
-        Jakub Kicinski <kuba@kernel.org>
-Cc:     kernel-team@cloudflare.com, Lorenz Bauer <lmb@cloudflare.com>,
-        linux-api@vger.kernel.org, linux-alpha@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
-        linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org,
-        linux-arch@vger.kernel.org, netdev@vger.kernel.org,
-        bpf@vger.kernel.org
-Subject: [PATCH bpf 1/4] net: add SO_NETNS_COOKIE socket option
-Date:   Wed, 10 Feb 2021 12:04:22 +0000
-Message-Id: <20210210120425.53438-2-lmb@cloudflare.com>
-X-Mailer: git-send-email 2.27.0
-In-Reply-To: <20210210120425.53438-1-lmb@cloudflare.com>
-References: <20210210120425.53438-1-lmb@cloudflare.com>
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=WuuWQCiwdV87iW0z7KxVY5BTEgeNizYr5qdipOfxXnc=;
+        b=P2YN45vU9vHQYHxpT/taUv8F+xpg4UvqG5efoo/2szNTRSNgNRLSPeUolxHs2UsMyX
+         XbfT6runE0tfVjKsZK/ul32+4J+EaLqR8i9EJN4nYuPVy8zHBbdSt0xKFaR09BjyuNqN
+         7pAjhKB0pOJjxbhrmPTbQc4TkoKdbMxflVCKqzBqN2/ebX07+c7l779NXRwU3OlL/EKB
+         Er2ZhWcFW0u3es3ooCWMhCcZPYPKgl9QDVb4n3W0wVWblhfNscJ/MY/TjFtBIe0W4JtN
+         uCiVi5CLN8X1K3V/Z51HwdvQiTlFVnDFNHPbn/O39p8MWUcp3E608g34yRk2CNVcaPFZ
+         WdVA==
+X-Gm-Message-State: AOAM532E7NPStgriNqXUkKtf8Hq3ModtIoIiCT8eJeASYrchPCCANU71
+        jvQBum9+1cuG12KhHdXUJ5amZzPRGN29EbEW/cQlYA==
+X-Google-Smtp-Source: ABdhPJxiqPOP+t9zseOEfIyIpqMaTUgdxO3foYKfOGifXc4uOhxBTBoT0OVMHzFKRSkn1upcNYcLbnRumZUT3uow9Yg=
+X-Received: by 2002:a62:838d:0:b029:1ba:9b85:2eac with SMTP id
+ h135-20020a62838d0000b02901ba9b852eacmr1917244pfe.36.1612483492832; Thu, 04
+ Feb 2021 16:04:52 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20210115210616.404156-1-ndesaulniers@google.com>
+ <CA+icZUVp+JNq89uc_DyWC6zh5=kLtUr7eOxHizfFggnEVGJpqw@mail.gmail.com>
+ <7354583d-de40-b6b9-6534-a4f4c038230f@fb.com> <CAKwvOd=5iR0JONwDb6ypD7dzzjOS3Uj0CjcyYqPF48eK4Pi90Q@mail.gmail.com>
+ <12b6c2ca-4cf7-4edd-faf2-72e3cb59c00e@fb.com> <20210117201500.GO457607@kernel.org>
+ <CAKwvOdmniAMZD0LiFdr5N8eOwHqNFED2Pd=pwOFF2Y8eSRXUHA@mail.gmail.com>
+ <CAEf4Bzbn1app3LZ1oah5ARn81j5RMNxRRHPVAkeY3h_0q7+7fg@mail.gmail.com>
+ <CAKwvOdmrVdxbEHdOFA8x+Q2yDWOfChZzBc6nR3rdaM8R3LsxfQ@mail.gmail.com> <CAEf4Bzbs5sDTB6w1D4LpKLGjY5sCCUnRUsU84Ccn8DoL352j1g@mail.gmail.com>
+In-Reply-To: <CAEf4Bzbs5sDTB6w1D4LpKLGjY5sCCUnRUsU84Ccn8DoL352j1g@mail.gmail.com>
+From:   Nick Desaulniers <ndesaulniers@google.com>
+Date:   Thu, 4 Feb 2021 16:04:40 -0800
+Message-ID: <CAKwvOdk-4_Pt=DKFokDpG8L58xj4J-=PPrgSLEZnYs7VJu1jZA@mail.gmail.com>
+Subject: Re: [PATCH v5 0/3] Kbuild: DWARF v5 support
+To:     Andrii Nakryiko <andrii.nakryiko@gmail.com>
+Cc:     Arnaldo Carvalho de Melo <acme@kernel.org>,
+        Yonghong Song <yhs@fb.com>,
+        Andrii Nakryiko <andrii@kernel.org>,
+        Jiri Olsa <jolsa@kernel.org>,
+        Sedat Dilek <sedat.dilek@gmail.com>,
+        Nathan Chancellor <natechancellor@gmail.com>,
+        Clang-Built-Linux ML <clang-built-linux@googlegroups.com>,
+        Fangrui Song <maskray@google.com>, bpf <bpf@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-We need to distinguish which network namespace a socket belongs to.
-BPF has the useful bpf_get_netns_cookie helper for this, but accessing
-it from user space isn't possible. Add a read-only socket option that
-returns the netns cookie, similar to SO_COOKIE. If network namespaces
-are disabled, SO_NETNS_COOKIE returns the cookie of init_net.
+Moving a bunch of folks + lists to BCC.
 
-The BPF helpers change slightly: instead of returning 0 when network
-namespaces are disabled we return the init_net cookie as for the
-socket option.
+On Thu, Feb 4, 2021 at 3:54 PM Andrii Nakryiko
+<andrii.nakryiko@gmail.com> wrote:
+>
+> On Wed, Feb 3, 2021 at 7:13 PM Nick Desaulniers <ndesaulniers@google.com> wrote:
+> >
+> > On Wed, Feb 3, 2021 at 6:58 PM Andrii Nakryiko
+> > <andrii.nakryiko@gmail.com> wrote:
+> > >
+> > > On Wed, Feb 3, 2021 at 5:31 PM Nick Desaulniers <ndesaulniers@google.com> wrote:
+> > > >
+> > > > On Sun, Jan 17, 2021 at 12:14 PM Arnaldo Carvalho de Melo
+> > > > <acme@kernel.org> wrote:
+> > > > >
+> > > > > Em Fri, Jan 15, 2021 at 03:43:06PM -0800, Yonghong Song escreveu:
+> > > > > >
+> > > > > >
+> > > > > > On 1/15/21 3:34 PM, Nick Desaulniers wrote:
+> > > > > > > On Fri, Jan 15, 2021 at 3:24 PM Yonghong Song <yhs@fb.com> wrote:
+> > > > > > > >
+> > > > > > > >
+> > > > > > > >
+> > > > > > > > On 1/15/21 1:53 PM, Sedat Dilek wrote:
+> > > > > > > > > En plus, I encountered breakage with GCC v10.2.1 and LLVM=1 and
+> > > > > > > > > CONFIG_DEBUG_INFO_DWARF4.
+> > > > > > > > > So might be good to add a "depends on !DEBUG_INFO_BTF" in this combination.
+> > > > > > >
+> > > > > > > Can you privately send me your configs that repro? Maybe I can isolate
+> > > > > > > it to a set of configs?
+> > > > > > >
+> > > > > > > >
+> > > > > > > > I suggested not to add !DEBUG_INFO_BTF to CONFIG_DEBUG_INFO_DWARF4.
+> > > > > > > > It is not there before and adding this may suddenly break some users.
+> > > > > > > >
+> > > > > > > > If certain combination of gcc/llvm does not work for
+> > > > > > > > CONFIG_DEBUG_INFO_DWARF4 with pahole, this is a bug bpf community
+> > > > > > > > should fix.
+> > > > > > >
+> > > > > > > Is there a place I should report bugs?
+> > > > > >
+> > > > > > You can send bug report to Arnaldo Carvalho de Melo <acme@kernel.org>,
+> > > > > > dwarves@vger.kernel.org and bpf@vger.kernel.org.
+> > > > >
+> > > > > I'm coming back from vacation, will try to read the messages and see if
+> > > > > I can fix this.
+> > > >
+> > > > IDK about DWARF v4; that seems to work for me.  I was previously observing
+> > > > https://bugzilla.redhat.com/show_bug.cgi?id=1922698
+> > > > with DWARF v5.  I just re-pulled the latest pahole, rebuilt, and no
+> > > > longer see that warning.
+> > > >
+> > > > I now observe a different set.  I plan on attending "BPF office hours
+> > > > tomorrow morning," but if anyone wants a sneak peak of the errors and
+> > > > how to reproduce:
+> > > > https://gist.github.com/nickdesaulniers/ae8c9efbe4da69b1cf0dce138c1d2781
+> > > >
+> > >
+> > > Is there another (easy) way to get your patch set without the b4 tool?
+> > > Is your patch set present in some patchworks instance, so that I can
+> > > download it in mbox format, for example?
+> >
+> > $ wget https://lore.kernel.org/lkml/20210130004401.2528717-2-ndesaulniers@google.com/raw
+> > -O - | git am
+> > $ wget https://lore.kernel.org/lkml/20210130004401.2528717-3-ndesaulniers@google.com/raw
+> > -O - | git am
+> >
+> > If you haven't tried b4 yet, it's quite nice.  Hard to go back.  Lore
+> > also has mbox.gz links.  Not sure about patchwork.
+> >
+>
+> Ok, I managed to apply that on linux-next, but I can't get past this:
+>
+> ld.lld: error: undefined symbol: pa_trampoline_start
+> >>> referenced by arch/x86/realmode/rm/header.o:(real_mode_header)
 
-Cc: linux-api@vger.kernel.org
-Signed-off-by: Lorenz Bauer <lmb@cloudflare.com>
----
- arch/alpha/include/uapi/asm/socket.h  |  2 ++
- arch/mips/include/uapi/asm/socket.h   |  2 ++
- arch/parisc/include/uapi/asm/socket.h |  2 ++
- arch/sparc/include/uapi/asm/socket.h  |  2 ++
- include/linux/sock_diag.h             | 20 ++++++++++++++++++++
- include/uapi/asm-generic/socket.h     |  2 ++
- net/core/filter.c                     |  9 ++++-----
- net/core/sock.c                       |  7 +++++++
- 8 files changed, 41 insertions(+), 5 deletions(-)
+Thanks for testing and the report. Do you have a .config you can send
+me to reproduce?
 
-diff --git a/arch/alpha/include/uapi/asm/socket.h b/arch/alpha/include/uapi/asm/socket.h
-index 57420356ce4c..6b3daba60987 100644
---- a/arch/alpha/include/uapi/asm/socket.h
-+++ b/arch/alpha/include/uapi/asm/socket.h
-@@ -127,6 +127,8 @@
- #define SO_PREFER_BUSY_POLL	69
- #define SO_BUSY_POLL_BUDGET	70
- 
-+#define SO_NETNS_COOKIE		71
-+
- #if !defined(__KERNEL__)
- 
- #if __BITS_PER_LONG == 64
-diff --git a/arch/mips/include/uapi/asm/socket.h b/arch/mips/include/uapi/asm/socket.h
-index 2d949969313b..cdf404a831b2 100644
---- a/arch/mips/include/uapi/asm/socket.h
-+++ b/arch/mips/include/uapi/asm/socket.h
-@@ -138,6 +138,8 @@
- #define SO_PREFER_BUSY_POLL	69
- #define SO_BUSY_POLL_BUDGET	70
- 
-+#define SO_NETNS_COOKIE		71
-+
- #if !defined(__KERNEL__)
- 
- #if __BITS_PER_LONG == 64
-diff --git a/arch/parisc/include/uapi/asm/socket.h b/arch/parisc/include/uapi/asm/socket.h
-index f60904329bbc..5b5351cdcb33 100644
---- a/arch/parisc/include/uapi/asm/socket.h
-+++ b/arch/parisc/include/uapi/asm/socket.h
-@@ -119,6 +119,8 @@
- #define SO_PREFER_BUSY_POLL	0x4043
- #define SO_BUSY_POLL_BUDGET	0x4044
- 
-+#define SO_NETNS_COOKIE		0x4045
-+
- #if !defined(__KERNEL__)
- 
- #if __BITS_PER_LONG == 64
-diff --git a/arch/sparc/include/uapi/asm/socket.h b/arch/sparc/include/uapi/asm/socket.h
-index 848a22fbac20..ff79db753dce 100644
---- a/arch/sparc/include/uapi/asm/socket.h
-+++ b/arch/sparc/include/uapi/asm/socket.h
-@@ -120,6 +120,8 @@
- #define SO_PREFER_BUSY_POLL	 0x0048
- #define SO_BUSY_POLL_BUDGET	 0x0049
- 
-+#define SO_NETNS_COOKIE		 0x004a
-+
- #if !defined(__KERNEL__)
- 
- 
-diff --git a/include/linux/sock_diag.h b/include/linux/sock_diag.h
-index 0b9ecd8cf979..6e88436097b1 100644
---- a/include/linux/sock_diag.h
-+++ b/include/linux/sock_diag.h
-@@ -38,6 +38,26 @@ static inline u64 sock_gen_cookie(struct sock *sk)
- 	return cookie;
- }
- 
-+static inline u64 __sock_gen_netns_cookie(struct sock *sk)
-+{
-+#ifdef CONFIG_NET_NS
-+	return __net_gen_cookie(sk->sk_net.net);
-+#else
-+	return __net_gen_cookie(&init_net);
-+#endif
-+}
-+
-+static inline u64 sock_gen_netns_cookie(struct sock *sk)
-+{
-+	u64 cookie;
-+
-+	preempt_disable();
-+	cookie = __sock_gen_netns_cookie(sk);
-+	preempt_enable();
-+
-+	return cookie;
-+}
-+
- int sock_diag_check_cookie(struct sock *sk, const __u32 *cookie);
- void sock_diag_save_cookie(struct sock *sk, __u32 *cookie);
- 
-diff --git a/include/uapi/asm-generic/socket.h b/include/uapi/asm-generic/socket.h
-index 4dcd13d097a9..d588c244ec2f 100644
---- a/include/uapi/asm-generic/socket.h
-+++ b/include/uapi/asm-generic/socket.h
-@@ -122,6 +122,8 @@
- #define SO_PREFER_BUSY_POLL	69
- #define SO_BUSY_POLL_BUDGET	70
- 
-+#define SO_NETNS_COOKIE		71
-+
- #if !defined(__KERNEL__)
- 
- #if __BITS_PER_LONG == 64 || (defined(__x86_64__) && defined(__ILP32__))
-diff --git a/net/core/filter.c b/net/core/filter.c
-index e15d4741719a..51f47b6913f1 100644
---- a/net/core/filter.c
-+++ b/net/core/filter.c
-@@ -4645,11 +4645,10 @@ static const struct bpf_func_proto bpf_get_socket_cookie_sock_ops_proto = {
- 
- static u64 __bpf_get_netns_cookie(struct sock *sk)
- {
--#ifdef CONFIG_NET_NS
--	return __net_gen_cookie(sk ? sk->sk_net.net : &init_net);
--#else
--	return 0;
--#endif
-+	if (sk)
-+		return __sock_gen_netns_cookie(sk);
-+
-+	return __net_gen_cookie(&init_net);
- }
- 
- BPF_CALL_1(bpf_get_netns_cookie_sock, struct sock *, ctx)
-diff --git a/net/core/sock.c b/net/core/sock.c
-index bbcd4b97eddd..2db201c210ca 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -1606,6 +1606,13 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
- 		v.val = sk->sk_bound_dev_if;
- 		break;
- 
-+	case SO_NETNS_COOKIE:
-+		lv = sizeof(u64);
-+		if (len < lv)
-+			return -EINVAL;
-+		v.val64 = sock_gen_netns_cookie(sk);
-+		break;
-+
- 	default:
- 		/* We implement the SO_SNDLOWAT etc to not be settable
- 		 * (1003.1g 7).
+>
+> ld.lld: error: undefined symbol: pa_trampoline_header
+> >>> referenced by arch/x86/realmode/rm/header.o:(real_mode_header)
+>
+> ld.lld: error: undefined symbol: pa_trampoline_pgd
+> >>> referenced by arch/x86/realmode/rm/header.o:(real_mode_header)
+> >>> referenced by trampoline_64.S:142 (/data/users/andriin/linux/arch/x86/realmode/rm/trampoline_64.S:142)
+> >>>               arch/x86/realmode/rm/trampoline_64.o:(startup_32)
+>
+> ld.lld: error: undefined symbol: pa_wakeup_start
+> >>> referenced by arch/x86/realmode/rm/header.o:(real_mode_header)
+>
+> ld.lld: error: undefined symbol: pa_wakeup_header
+> >>> referenced by arch/x86/realmode/rm/header.o:(real_mode_header)
+>
+> ld.lld: error: undefined symbol: pa_machine_real_restart_asm
+> >>> referenced by arch/x86/realmode/rm/header.o:(real_mode_header)
+>
+> ld.lld: error: undefined symbol: pa_startup_32
+> >>> referenced by trampoline_64.S:77 (/data/users/andriin/linux/arch/x86/realmode/rm/trampoline_64.S:77)
+> >>>               arch/x86/realmode/rm/trampoline_64.o:(trampoline_start)
+>
+> ld.lld: error: undefined symbol: pa_tr_flags
+> >>> referenced by trampoline_64.S:124 (/data/users/andriin/linux/arch/x86/realmode/rm/trampoline_64.S:124)
+> >>>               arch/x86/realmode/rm/trampoline_64.o:(startup_32)
+>
+> ld.lld: error: undefined symbol: pa_tr_cr4
+> >>> referenced by trampoline_64.S:138 (/data/users/andriin/linux/arch/x86/realmode/rm/trampoline_64.S:138)
+> >>>               arch/x86/realmode/rm/trampoline_64.o:(startup_32)
+>
+> ld.lld: error: undefined symbol: pa_tr_efer
+> >>> referenced by trampoline_64.S:146 (/data/users/andriin/linux/arch/x86/realmode/rm/trampoline_64.S:146)
+> >>>               arch/x86/realmode/rm/trampoline_64.o:(startup_32)
+> >>> referenced by trampoline_64.S:147 (/data/users/andriin/linux/arch/x86/realmode/rm/trampoline_64.S:147)
+> >>>               arch/x86/realmode/rm/trampoline_64.o:(startup_32)
+>
+> ld.lld: error: undefined symbol: pa_startup_64
+> >>> referenced by trampoline_64.S:161 (/data/users/andriin/linux/arch/x86/realmode/rm/trampoline_64.S:161)
+> >>>               arch/x86/realmode/rm/trampoline_64.o:(startup_32)
+>
+> ld.lld: error: undefined symbol: pa_tr_gdt
+> >>> referenced by arch/x86/realmode/rm/trampoline_64.o:(tr_gdt)
+> >>> referenced by reboot.S:28 (/data/users/andriin/linux/arch/x86/realmode/rm/reboot.S:28)
+> >>>               arch/x86/realmode/rm/reboot.o:(machine_real_restart_asm)
+>
+> ld.lld: error: undefined symbol: pa_machine_real_restart_paging_off
+> >>> referenced by reboot.S:34 (/data/users/andriin/linux/arch/x86/realmode/rm/reboot.S:34)
+> >>>               arch/x86/realmode/rm/reboot.o:(machine_real_restart_asm)
+>
+> ld.lld: error: undefined symbol: pa_machine_real_restart_idt
+> >>> referenced by reboot.S:47 (/data/users/andriin/linux/arch/x86/realmode/rm/reboot.S:47)
+> >>>               arch/x86/realmode/rm/reboot.o:(machine_real_restart_asm)
+>
+> ld.lld: error: undefined symbol: pa_machine_real_restart_gdt
+> >>> referenced by reboot.S:54 (/data/users/andriin/linux/arch/x86/realmode/rm/reboot.S:54)
+> >>>               arch/x86/realmode/rm/reboot.o:(machine_real_restart_asm)
+> >>> referenced by arch/x86/realmode/rm/reboot.o:(machine_real_restart_gdt)
+>
+> ld.lld: error: undefined symbol: pa_wakeup_gdt
+> >>> referenced by arch/x86/realmode/rm/wakeup_asm.o:(wakeup_gdt)
+>   CC      arch/x86/mm/numa_64.o
+>   CC      arch/x86/mm/amdtopology.o
+>   HOSTCC  arch/x86/entry/vdso/vdso2c
+> make[4]: *** [arch/x86/realmode/rm/realmode.elf] Error 1
+> make[3]: *** [arch/x86/realmode/rm/realmode.bin] Error 2
+> make[2]: *** [arch/x86/realmode] Error 2
+> make[2]: *** Waiting for unfinished jobs....
+>
+>
+> Hopefully Arnaldo will have better luck.
+>
+>
+>
+> > >
+> > > >
+> > > > (FWIW: some other folks are hitting issues now with kernel's lack of
+> > > > DWARF v5 support: https://bugzilla.redhat.com/show_bug.cgi?id=1922707)
+> >
+> >
+> > --
+> > Thanks,
+> > ~Nick Desaulniers
+
+
+
 -- 
-2.27.0
-
+Thanks,
+~Nick Desaulniers
