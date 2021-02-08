@@ -2,111 +2,101 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-11.3 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 78EE2C433E0
-	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 16:27:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 64F1BC433E6
+	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 18:17:03 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3400F64E87
-	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 16:27:17 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 38D4F60232
+	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 18:17:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234316AbhBHQ1I (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 8 Feb 2021 11:27:08 -0500
-Received: from mx2.suse.de ([195.135.220.15]:40894 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S234340AbhBHQ03 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 8 Feb 2021 11:26:29 -0500
-X-Virus-Scanned: by amavisd-new at test-mx.suse.de
-Received: from relay2.suse.de (unknown [195.135.221.27])
-        by mx2.suse.de (Postfix) with ESMTP id EC98CAD6A;
-        Mon,  8 Feb 2021 16:25:46 +0000 (UTC)
-Date:   Mon, 8 Feb 2021 17:25:43 +0100
-From:   Borislav Petkov <bp@suse.de>
-To:     AC <achirvasub@gmail.com>
-Cc:     Andrey Ryabinin <aryabinin@virtuozzo.com>,
+        id S235363AbhBHSQj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 8 Feb 2021 13:16:39 -0500
+Received: from us-smtp-delivery-124.mimecast.com ([63.128.21.124]:24707 "EHLO
+        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S235390AbhBHSOg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Feb 2021 13:14:36 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1612807989;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=Vna1UpISDhhzy62RgmCODV7iVBrOXqSLXKC77p47hCA=;
+        b=LyDZuhy3/HjZnQ9XW1+R10EzJ1it0mTLMHi1UEKCSAsqMx2Cw+scJ46m9DCOnDefxLyKmd
+        AlPNJDr3+lGKiAmbQvh3LUxgAv3BnJq9JAEy0ImZ0Sj7sn0wnGy5tIOf+gNd99Tu1cof2N
+        4SOb+Q/fS6eEDMVxegddrvui5QiQNDc=
+Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
+ [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
+ us-mta-152-LIm0O2BmNA-BWgTWAaL5AQ-1; Mon, 08 Feb 2021 13:13:07 -0500
+X-MC-Unique: LIm0O2BmNA-BWgTWAaL5AQ-1
+Received: from smtp.corp.redhat.com (int-mx02.intmail.prod.int.phx2.redhat.com [10.5.11.12])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+        (No client certificate requested)
+        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id A8B141936B65;
+        Mon,  8 Feb 2021 18:13:04 +0000 (UTC)
+Received: from treble (ovpn-118-142.rdu2.redhat.com [10.10.118.142])
+        by smtp.corp.redhat.com (Postfix) with ESMTPS id 9924860C04;
+        Mon,  8 Feb 2021 18:13:02 +0000 (UTC)
+Date:   Mon, 8 Feb 2021 12:12:59 -0600
+From:   Josh Poimboeuf <jpoimboe@redhat.com>
+To:     Borislav Petkov <bp@suse.de>
+Cc:     AC <achirvasub@gmail.com>,
+        Andrey Ryabinin <aryabinin@virtuozzo.com>,
         Alexander Potapenko <glider@google.com>,
         Dmitry Vyukov <dvyukov@google.com>,
         Marco Elver <elver@google.com>, Arnd Bergmann <arnd@arndb.de>,
         linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        kasan-dev@googlegroups.com, jpoimboe@redhat.com, nborisov@suse.com,
+        kasan-dev@googlegroups.com, nborisov@suse.com,
         seth.forshee@canonical.com, yamada.masahiro@socionext.com
-Subject: [PATCH] x86/build: Disable CET instrumentation in the kernel for
+Subject: Re: [PATCH] x86/build: Disable CET instrumentation in the kernel for
  32-bit too
-Message-ID: <20210208162543.GH17908@zn.tnic>
+Message-ID: <20210208181259.hwmnoldx627jhvlm@treble>
 References: <YCB4Sgk5g5B2Nu09@arch-chirva.localdomain>
  <YCCFGc97d2U5yUS7@arch-chirva.localdomain>
  <YCCIgMHkzh/xT4ex@arch-chirva.localdomain>
  <20210208121227.GD17908@zn.tnic>
  <82FA27E6-A46F-41E2-B7D3-2FEBEA8A4D70@gmail.com>
+ <20210208162543.GH17908@zn.tnic>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <82FA27E6-A46F-41E2-B7D3-2FEBEA8A4D70@gmail.com>
+In-Reply-To: <20210208162543.GH17908@zn.tnic>
+X-Scanned-By: MIMEDefang 2.79 on 10.5.11.12
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Feb 08, 2021 at 10:19:33AM -0500, AC wrote:
-> That did fix it, thank you!
+On Mon, Feb 08, 2021 at 05:25:43PM +0100, Borislav Petkov wrote:
+> On Mon, Feb 08, 2021 at 10:19:33AM -0500, AC wrote:
+> > That did fix it, thank you!
+> 
+> Thanks!
+> 
+> ---
+> From: Borislav Petkov <bp@suse.de>
+> Date: Mon, 8 Feb 2021 16:43:30 +0100
+> Subject: [PATCH] x86/build: Disable CET instrumentation in the kernel for 32-bit too
+> 
+> Commit
+> 
+>   20bf2b378729 ("x86/build: Disable CET instrumentation in the kernel")
+> 
+> disabled CET instrumentation which gets added by default by the Ubuntu
+> gcc9 and 10 by default, but did that only for 64-bit builds. It would
+> still fail when building a 32-bit target. So disable CET for all x86
+> builds.
+> 
+> Fixes: 20bf2b378729 ("x86/build: Disable CET instrumentation in the kernel")
+> Reported-by: AC <achirvasub@gmail.com>
+> Signed-off-by: Borislav Petkov <bp@suse.de>
+> Tested-by: AC <achirvasub@gmail.com>
+> Link: https://lkml.kernel.org/r/YCCIgMHkzh/xT4ex@arch-chirva.localdomain
 
-Thanks!
-
----
-From: Borislav Petkov <bp@suse.de>
-Date: Mon, 8 Feb 2021 16:43:30 +0100
-Subject: [PATCH] x86/build: Disable CET instrumentation in the kernel for 32-bit too
-
-Commit
-
-  20bf2b378729 ("x86/build: Disable CET instrumentation in the kernel")
-
-disabled CET instrumentation which gets added by default by the Ubuntu
-gcc9 and 10 by default, but did that only for 64-bit builds. It would
-still fail when building a 32-bit target. So disable CET for all x86
-builds.
-
-Fixes: 20bf2b378729 ("x86/build: Disable CET instrumentation in the kernel")
-Reported-by: AC <achirvasub@gmail.com>
-Signed-off-by: Borislav Petkov <bp@suse.de>
-Tested-by: AC <achirvasub@gmail.com>
-Link: https://lkml.kernel.org/r/YCCIgMHkzh/xT4ex@arch-chirva.localdomain
----
- arch/x86/Makefile | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/arch/x86/Makefile b/arch/x86/Makefile
-index 109c7f86483c..b9f58b8993b3 100644
---- a/arch/x86/Makefile
-+++ b/arch/x86/Makefile
-@@ -50,6 +50,9 @@ export BITS
- KBUILD_CFLAGS += -mno-sse -mno-mmx -mno-sse2 -mno-3dnow
- KBUILD_CFLAGS += $(call cc-option,-mno-avx,)
- 
-+# Intel CET isn't enabled in the kernel
-+KBUILD_CFLAGS += $(call cc-option,-fcf-protection=none)
-+
- ifeq ($(CONFIG_X86_32),y)
-         BITS := 32
-         UTS_MACHINE := i386
-@@ -120,9 +123,6 @@ else
- 
-         KBUILD_CFLAGS += -mno-red-zone
-         KBUILD_CFLAGS += -mcmodel=kernel
--
--	# Intel CET isn't enabled in the kernel
--	KBUILD_CFLAGS += $(call cc-option,-fcf-protection=none)
- endif
- 
- ifdef CONFIG_X86_X32
--- 
-2.29.2
+Acked-by: Josh Poimboeuf <jpoimboe@redhat.com>
 
 -- 
-Regards/Gruss,
-    Boris.
+Josh
 
-SUSE Software Solutions Germany GmbH, GF: Felix Imendörffer, HRB 36809, AG Nürnberg
