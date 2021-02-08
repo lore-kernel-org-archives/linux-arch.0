@@ -2,157 +2,192 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,TRACKER_ID,URIBL_BLOCKED
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-19.6 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A57FFC433DB
-	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 00:41:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 246D7C433E9
+	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 08:52:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6FA4A64E3A
-	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 00:41:32 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C043164E3F
+	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 08:52:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229564AbhBHAlQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 7 Feb 2021 19:41:16 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34752 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229537AbhBHAlQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 7 Feb 2021 19:41:16 -0500
-Received: from mail-qt1-x833.google.com (mail-qt1-x833.google.com [IPv6:2607:f8b0:4864:20::833])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C0D12C06174A;
-        Sun,  7 Feb 2021 16:40:35 -0800 (PST)
-Received: by mail-qt1-x833.google.com with SMTP id o21so421464qtr.3;
-        Sun, 07 Feb 2021 16:40:35 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=date:from:to:cc:subject:message-id:references:mime-version
-         :content-disposition:content-transfer-encoding:in-reply-to;
-        bh=k8kyS5NcNbcb+l8f+ny89WYmgXi+Pxs4HtJo/I4TE4I=;
-        b=UJfgwkWdAAifQT4DY2OMLzkk7qvAZILoIKw5GzS5a66OtKqunDtGw+eB+VsmoZiGBt
-         Cib9sNEW1FBaRGAN3vmYtVLKJfbJH846utlOTQQrMaefyx3cx7Jb07RwsoqLHWtdgZYr
-         eHuCkbZU6QH/HSWUumQDZHBng/MbdKBXlqRtvRkV5HooJ5pwOCI9T1gKLRslkn8mxVQF
-         Mv8f+Sb74YrbC5L9U4APBrIRQ+dwbZcMbAF0L25ZLOWixyydSt+/FvWqBNDvm5Diuapg
-         +SwsDO5/uot5qwiBcY/xc3yGx86kD528v09Kf/4AgoD1E25ltmNknQvH6thRg9nDmfWy
-         QcbQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:content-transfer-encoding
-         :in-reply-to;
-        bh=k8kyS5NcNbcb+l8f+ny89WYmgXi+Pxs4HtJo/I4TE4I=;
-        b=cN3LBGU8bKWhL+TCKCEIujCdcMMdzG/NVk0jefONxBtN8T5fMo7wJZdRjbvFzTVUrI
-         E3g7ywbL8MAbul5F/1ufVtRpryDoWA1rM/7sKUszp0/QExCp2rUmg4cheyKFDl+jU7jF
-         kIiL5UD8XO9S285KEduivBG+p1k67NG6t82AVWt8IQp8ngcupTvz6jYvGHfqCGicDF0N
-         PlzfBCoPq2Dd37flp2O0s6zzlpHhDrCyI6lrbaatq2mg03pGHqpDdq59HG7sDOXawFbU
-         dFG2/TMkWIWrEn7WaH4I/QBpivoAkfS/4a168ovhfV9f/pXS/Jf7CODZ6QkbThbdYT8L
-         b2mw==
-X-Gm-Message-State: AOAM532T8mXmHtqc5YPcinwxOnXSeWL4uXQDWoeWiR+cH7ElT+BBtSJS
-        y30Eo0D5AQB5ARE7IFFug0I=
-X-Google-Smtp-Source: ABdhPJwefXRxSbzlMJ6lWQO+HtxryFVZCyNgQtm3RGVB2HZeDA1Lx2WKkFEIc6i2my9zY0lUeKefIQ==
-X-Received: by 2002:ac8:5887:: with SMTP id t7mr13538561qta.182.1612744834574;
-        Sun, 07 Feb 2021 16:40:34 -0800 (PST)
-Received: from arch-chirva.localdomain (pool-68-133-6-116.bflony.fios.verizon.net. [68.133.6.116])
-        by smtp.gmail.com with ESMTPSA id t71sm15755390qka.86.2021.02.07.16.40.33
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 07 Feb 2021 16:40:34 -0800 (PST)
-Date:   Sun, 7 Feb 2021 19:40:32 -0500
-From:   Stuart Little <achirvasub@gmail.com>
-To:     Andrey Ryabinin <aryabinin@virtuozzo.com>,
-        Alexander Potapenko <glider@google.com>,
-        Dmitry Vyukov <dvyukov@google.com>,
-        Marco Elver <elver@google.com>, Arnd Bergmann <arnd@arndb.de>
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        kasan-dev@googlegroups.com, jpoimboe@redhat.com, nborisov@suse.com,
-        bp@suse.de, seth.forshee@canonical.com,
-        yamada.masahiro@socionext.com
-Subject: Re: PROBLEM: 5.11.0-rc7 fails =?utf-8?Q?to?=
- =?utf-8?Q?_compile_with_error=3A_=E2=80=98-mindirect-branch=E2=80=99_and_?=
- =?utf-8?B?4oCYLWZjZi1wcm90ZWN0aW9u4oCZ?= are not compatible
-Message-ID: <YCCIgMHkzh/xT4ex@arch-chirva.localdomain>
-References: <YCB4Sgk5g5B2Nu09@arch-chirva.localdomain>
- <YCCFGc97d2U5yUS7@arch-chirva.localdomain>
+        id S230423AbhBHIwQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 8 Feb 2021 03:52:16 -0500
+Received: from mail.kernel.org ([198.145.29.99]:42010 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S229894AbhBHIu3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 8 Feb 2021 03:50:29 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 8034464E9D;
+        Mon,  8 Feb 2021 08:49:37 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1612774188;
+        bh=yaiGaY9CsCce4ziujW0DI0CJqQEDns2mxFIXWr5A2d8=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=MCVHz/sU8tkI/zw4GzszduQhPv9gAG0nrt8AAKqY9XB66WpAzBCav7aPBYvPtpe8i
+         +b6W+XWoXjbgkj2RNq2pZtZTy7Sw7O4VpJ8xxHOYJ+HRzSDuRMWwWdaNIW0XoIkA0O
+         2d5HGaYdPMBSVnsitHkg+GQK9HAiwF0kn17pFc5YSJA1tKIVa1ocq9Bk4AlctMaRCM
+         2DC9J36M7+UlrHzEQ1qSRms8CCp3cJw6pwBhw/pUN8V03P0wUE6p/usc5OIfcx/dVO
+         u/vWsT69f4sq3T0N9lxJIyEpimkFjXFJ3phXtJqYGGbL+6JbT7g36464ztamPvCI60
+         Wj2OVzPYFSf6g==
+From:   Mike Rapoport <rppt@kernel.org>
+To:     Andrew Morton <akpm@linux-foundation.org>
+Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        David Hildenbrand <david@redhat.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Matthew Wilcox <willy@infradead.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Michal Hocko <mhocko@suse.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Mike Rapoport <rppt@kernel.org>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Roman Gushchin <guro@fb.com>,
+        Shakeel Butt <shakeelb@google.com>,
+        Shuah Khan <shuah@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
+        Palmer Dabbelt <palmerdabbelt@google.com>
+Subject: [PATCH v17 01/10] mm: add definition of PMD_PAGE_ORDER
+Date:   Mon,  8 Feb 2021 10:49:11 +0200
+Message-Id: <20210208084920.2884-2-rppt@kernel.org>
+X-Mailer: git-send-email 2.28.0
+In-Reply-To: <20210208084920.2884-1-rppt@kernel.org>
+References: <20210208084920.2884-1-rppt@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <YCCFGc97d2U5yUS7@arch-chirva.localdomain>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-And for good measure: reverting that commit 
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-20bf2b378729c4a0366a53e2018a0b70ace94bcd
+The definition of PMD_PAGE_ORDER denoting the number of base pages in the
+second-level leaf page is already used by DAX and maybe handy in other
+cases as well.
 
-flagged by the bisect right on top of the current tree compiles fine. 
+Several architectures already have definition of PMD_ORDER as the size of
+second level page table, so to avoid conflict with these definitions use
+PMD_PAGE_ORDER name and update DAX respectively.
 
-On Sun, Feb 07, 2021 at 07:26:01PM -0500, Stuart Little wrote:
-> The result of the bisect on the issue reported in the previous message:
-> 
-> --- cut ---
-> 
-> 20bf2b378729c4a0366a53e2018a0b70ace94bcd is the first bad commit
-> commit 20bf2b378729c4a0366a53e2018a0b70ace94bcd
-> Author: Josh Poimboeuf <jpoimboe@redhat.com>
-> Date:   Thu Jan 28 15:52:19 2021 -0600
-> 
->     x86/build: Disable CET instrumentation in the kernel
->     
->     With retpolines disabled, some configurations of GCC, and specifically
->     the GCC versions 9 and 10 in Ubuntu will add Intel CET instrumentation
->     to the kernel by default. That breaks certain tracing scenarios by
->     adding a superfluous ENDBR64 instruction before the fentry call, for
->     functions which can be called indirectly.
->     
->     CET instrumentation isn't currently necessary in the kernel, as CET is
->     only supported in user space. Disable it unconditionally and move it
->     into the x86's Makefile as CET/CFI... enablement should be a per-arch
->     decision anyway.
->     
->      [ bp: Massage and extend commit message. ]
->     
->     Fixes: 29be86d7f9cb ("kbuild: add -fcf-protection=none when using retpoline flags")
->     Reported-by: Nikolay Borisov <nborisov@suse.com>
->     Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
->     Signed-off-by: Borislav Petkov <bp@suse.de>
->     Reviewed-by: Nikolay Borisov <nborisov@suse.com>
->     Tested-by: Nikolay Borisov <nborisov@suse.com>
->     Cc: <stable@vger.kernel.org>
->     Cc: Seth Forshee <seth.forshee@canonical.com>
->     Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
->     Link: https://lkml.kernel.org/r/20210128215219.6kct3h2eiustncws@treble
-> 
->  Makefile          | 6 ------
->  arch/x86/Makefile | 3 +++
->  2 files changed, 3 insertions(+), 6 deletions(-)
-> 
-> --- end ---
-> 
-> On Sun, Feb 07, 2021 at 06:31:22PM -0500, Stuart Little wrote:
-> > I am trying to compile on an x86_64 host for a 32-bit system; my config is at
-> > 
-> > https://termbin.com/v8jl
-> > 
-> > I am getting numerous errors of the form
-> > 
-> > ./include/linux/kasan-checks.h:17:1: error: ‘-mindirect-branch’ and ‘-fcf-protection’ are not compatible
-> > 
-> > and
-> > 
-> > ./include/linux/kcsan-checks.h:143:6: error: ‘-mindirect-branch’ and ‘-fcf-protection’ are not compatible
-> > 
-> > and
-> > 
-> > ./arch/x86/include/asm/arch_hweight.h:16:1: error: ‘-mindirect-branch’ and ‘-fcf-protection’ are not compatible
-> > 
-> > (those include files indicated whom I should add to this list; apologies if this reaches you in error).
-> > 
-> > The full log of the build is at
-> > 
-> > https://termbin.com/wbgs
-> > 
-> > ---
-> > 
-> > 5.11.0-rc6 built fine last week on this same setup. 
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Reviewed-by: David Hildenbrand <david@redhat.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Christopher Lameter <cl@linux.com>
+Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Elena Reshetova <elena.reshetova@intel.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: James Bottomley <jejb@linux.ibm.com>
+Cc: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Matthew Wilcox <willy@infradead.org>
+Cc: Mark Rutland <mark.rutland@arm.com>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>
+Cc: Roman Gushchin <guro@fb.com>
+Cc: Shakeel Butt <shakeelb@google.com>
+Cc: Shuah Khan <shuah@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Tycho Andersen <tycho@tycho.ws>
+Cc: Will Deacon <will@kernel.org>
+Cc: Hagen Paul Pfeifer <hagen@jauu.net>
+Cc: Palmer Dabbelt <palmerdabbelt@google.com>
+---
+ fs/dax.c                | 11 ++++-------
+ include/linux/pgtable.h |  3 +++
+ 2 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/fs/dax.c b/fs/dax.c
+index 26d5dcd2d69e..0f109eb16196 100644
+--- a/fs/dax.c
++++ b/fs/dax.c
+@@ -49,9 +49,6 @@ static inline unsigned int pe_order(enum page_entry_size pe_size)
+ #define PG_PMD_COLOUR	((PMD_SIZE >> PAGE_SHIFT) - 1)
+ #define PG_PMD_NR	(PMD_SIZE >> PAGE_SHIFT)
+ 
+-/* The order of a PMD entry */
+-#define PMD_ORDER	(PMD_SHIFT - PAGE_SHIFT)
+-
+ static wait_queue_head_t wait_table[DAX_WAIT_TABLE_ENTRIES];
+ 
+ static int __init init_dax_wait_table(void)
+@@ -98,7 +95,7 @@ static bool dax_is_locked(void *entry)
+ static unsigned int dax_entry_order(void *entry)
+ {
+ 	if (xa_to_value(entry) & DAX_PMD)
+-		return PMD_ORDER;
++		return PMD_PAGE_ORDER;
+ 	return 0;
+ }
+ 
+@@ -1470,7 +1467,7 @@ static vm_fault_t dax_iomap_pmd_fault(struct vm_fault *vmf, pfn_t *pfnp,
+ {
+ 	struct vm_area_struct *vma = vmf->vma;
+ 	struct address_space *mapping = vma->vm_file->f_mapping;
+-	XA_STATE_ORDER(xas, &mapping->i_pages, vmf->pgoff, PMD_ORDER);
++	XA_STATE_ORDER(xas, &mapping->i_pages, vmf->pgoff, PMD_PAGE_ORDER);
+ 	unsigned long pmd_addr = vmf->address & PMD_MASK;
+ 	bool write = vmf->flags & FAULT_FLAG_WRITE;
+ 	bool sync;
+@@ -1529,7 +1526,7 @@ static vm_fault_t dax_iomap_pmd_fault(struct vm_fault *vmf, pfn_t *pfnp,
+ 	 * entry is already in the array, for instance), it will return
+ 	 * VM_FAULT_FALLBACK.
+ 	 */
+-	entry = grab_mapping_entry(&xas, mapping, PMD_ORDER);
++	entry = grab_mapping_entry(&xas, mapping, PMD_PAGE_ORDER);
+ 	if (xa_is_internal(entry)) {
+ 		result = xa_to_internal(entry);
+ 		goto fallback;
+@@ -1695,7 +1692,7 @@ dax_insert_pfn_mkwrite(struct vm_fault *vmf, pfn_t pfn, unsigned int order)
+ 	if (order == 0)
+ 		ret = vmf_insert_mixed_mkwrite(vmf->vma, vmf->address, pfn);
+ #ifdef CONFIG_FS_DAX_PMD
+-	else if (order == PMD_ORDER)
++	else if (order == PMD_PAGE_ORDER)
+ 		ret = vmf_insert_pfn_pmd(vmf, pfn, FAULT_FLAG_WRITE);
+ #endif
+ 	else
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index 8fcdfa52eb4b..ea5c4102c23e 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -28,6 +28,9 @@
+ #define USER_PGTABLES_CEILING	0UL
+ #endif
+ 
++/* Number of base pages in a second level leaf page */
++#define PMD_PAGE_ORDER	(PMD_SHIFT - PAGE_SHIFT)
++
+ /*
+  * A page table page can be thought of an array like this: pXd_t[PTRS_PER_PxD]
+  *
+-- 
+2.28.0
+
