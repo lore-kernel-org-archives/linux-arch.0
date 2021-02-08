@@ -2,37 +2,49 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-19.6 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.1 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0FD2EC433E0
-	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 08:55:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 899BAC433DB
+	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 09:31:44 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C207064E8B
-	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 08:55:26 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3C33A64E7B
+	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 09:31:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230515AbhBHIzE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 8 Feb 2021 03:55:04 -0500
-Received: from mail.kernel.org ([198.145.29.99]:43412 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230377AbhBHIwr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 8 Feb 2021 03:52:47 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 92AE864EA7;
-        Mon,  8 Feb 2021 08:51:11 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1612774283;
-        bh=8GoM0ZYqUn/qb8LoFe3IehC6umF0GBgToY93utoh7DI=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=ozStLFiYAFPTLnpaj77FiVCdgrASvuRwWETBZvA0HvNpZtEobymtPdW9qLAlRAcmD
-         hQGLaslwSiimz3T/NYpu7ZwtwhyRN0aydqlAt3B+Iw6MdL/Q6BpS4cVYssLw4WBiK6
-         MMQnvsrdsa77MbbVDMWbMyKA7V6lZ/yJQPjNFrXkEGcLTtoRtHYxyDx0ZG12EoNqYY
-         DLTTRvTdC9QwsvGhhNofifcshmB7w06g8Gsyq2iI4dhnDt8DTm4DY0elNf5IJU1qsV
-         PDaVicmwf3kPBcGim0jlcqb+4xYnpliQUxHC8WlrBP+XI5lpZfwPJNnpjDWMb2l6uT
-         Md88wAHEvPwGw==
-From:   Mike Rapoport <rppt@kernel.org>
-To:     Andrew Morton <akpm@linux-foundation.org>
+        id S231473AbhBHJbH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 8 Feb 2021 04:31:07 -0500
+Received: from us-smtp-delivery-124.mimecast.com ([63.128.21.124]:32227 "EHLO
+        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S231582AbhBHJ3E (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Feb 2021 04:29:04 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1612776456;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=dgUd+2G1OxW5XPBZGlc3z4gNM80hK8Gpg3YPMpWSREs=;
+        b=WOE/LplJn/hGVf7nGElyOmmsYJpBXmZQ1+/wrQ8XGnxccHhjkbtP5DOQKV7kWZKXvrtm9S
+        bB20+qMKqE3o1Doz+gyjxINBHi0qWGLc0Bdoh6s/f8AzpxR+tJq8X7z/C+CoNJ2duYGJVK
+        Hjdy7zRduKgEjcqYndWddzyU9Z8OY/A=
+Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
+ [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
+ us-mta-304-wOalByIhNImBr91I-hxz5g-1; Mon, 08 Feb 2021 04:27:32 -0500
+X-MC-Unique: wOalByIhNImBr91I-hxz5g-1
+Received: from smtp.corp.redhat.com (int-mx02.intmail.prod.int.phx2.redhat.com [10.5.11.12])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+        (No client certificate requested)
+        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 9EAF41934101;
+        Mon,  8 Feb 2021 09:27:27 +0000 (UTC)
+Received: from [10.36.113.240] (ovpn-113-240.ams2.redhat.com [10.36.113.240])
+        by smtp.corp.redhat.com (Postfix) with ESMTP id 80D2660C05;
+        Mon,  8 Feb 2021 09:27:19 +0000 (UTC)
+Subject: Re: [PATCH v17 00/10] mm: introduce memfd_secret system call to
+ create "secret" memory areas
+To:     Mike Rapoport <rppt@kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
         Andy Lutomirski <luto@kernel.org>,
         Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
@@ -40,7 +52,6 @@ Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
         Christopher Lameter <cl@linux.com>,
         Dan Williams <dan.j.williams@intel.com>,
         Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
         Elena Reshetova <elena.reshetova@intel.com>,
         "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
         James Bottomley <jejb@linux.ibm.com>,
@@ -49,7 +60,6 @@ Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
         Mark Rutland <mark.rutland@arm.com>,
         Michal Hocko <mhocko@suse.com>,
         Mike Rapoport <rppt@linux.ibm.com>,
-        Mike Rapoport <rppt@kernel.org>,
         Michael Kerrisk <mtk.manpages@gmail.com>,
         Palmer Dabbelt <palmer@dabbelt.com>,
         Paul Walmsley <paul.walmsley@sifive.com>,
@@ -65,155 +75,104 @@ Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
         linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
         linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
         linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, Palmer Dabbelt <palmerdabbelt@google.com>,
-        Hagen Paul Pfeifer <hagen@jauu.net>
-Subject: [PATCH v17 09/10] arch, mm: wire up memfd_secret system call where relevant
-Date:   Mon,  8 Feb 2021 10:49:19 +0200
-Message-Id: <20210208084920.2884-10-rppt@kernel.org>
-X-Mailer: git-send-email 2.28.0
-In-Reply-To: <20210208084920.2884-1-rppt@kernel.org>
+        x86@kernel.org
 References: <20210208084920.2884-1-rppt@kernel.org>
+From:   David Hildenbrand <david@redhat.com>
+Organization: Red Hat GmbH
+Message-ID: <4996348d-5710-d77d-bb14-d84e370b4a5c@redhat.com>
+Date:   Mon, 8 Feb 2021 10:27:18 +0100
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.5.0
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20210208084920.2884-1-rppt@kernel.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+X-Scanned-By: MIMEDefang 2.79 on 10.5.11.12
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On 08.02.21 09:49, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
+> 
+> Hi,
+> 
+> @Andrew, this is based on v5.11-rc5-mmotm-2021-01-27-23-30, with secretmem
+> and related patches dropped from there, I can rebase whatever way you
+> prefer.
+> 
+> This is an implementation of "secret" mappings backed by a file descriptor.
+> 
+> The file descriptor backing secret memory mappings is created using a
+> dedicated memfd_secret system call The desired protection mode for the
+> memory is configured using flags parameter of the system call. The mmap()
+> of the file descriptor created with memfd_secret() will create a "secret"
+> memory mapping. The pages in that mapping will be marked as not present in
+> the direct map and will be present only in the page table of the owning mm.
+> 
+> Although normally Linux userspace mappings are protected from other users,
+> such secret mappings are useful for environments where a hostile tenant is
+> trying to trick the kernel into giving them access to other tenants
+> mappings.
+> 
+> Additionally, in the future the secret mappings may be used as a mean to
+> protect guest memory in a virtual machine host.
+> 
+> For demonstration of secret memory usage we've created a userspace library
+> 
+> https://git.kernel.org/pub/scm/linux/kernel/git/jejb/secret-memory-preloader.git
+> 
+> that does two things: the first is act as a preloader for openssl to
+> redirect all the OPENSSL_malloc calls to secret memory meaning any secret
+> keys get automatically protected this way and the other thing it does is
+> expose the API to the user who needs it. We anticipate that a lot of the
+> use cases would be like the openssl one: many toolkits that deal with
+> secret keys already have special handling for the memory to try to give
+> them greater protection, so this would simply be pluggable into the
+> toolkits without any need for user application modification.
+> 
+> Hiding secret memory mappings behind an anonymous file allows usage of
+> the page cache for tracking pages allocated for the "secret" mappings as
+> well as using address_space_operations for e.g. page migration callbacks.
+> 
+> The anonymous file may be also used implicitly, like hugetlb files, to
+> implement mmap(MAP_SECRET) and use the secret memory areas with "native" mm
+> ABIs in the future.
+> 
+> Removing of the pages from the direct map may cause its fragmentation on
+> architectures that use large pages to map the physical memory which affects
+> the system performance. However, the original Kconfig text for
+> CONFIG_DIRECT_GBPAGES said that gigabyte pages in the direct map "... can
+> improve the kernel's performance a tiny bit ..." (commit 00d1c5e05736
+> ("x86: add gbpages switches")) and the recent report [1] showed that "...
+> although 1G mappings are a good default choice, there is no compelling
+> evidence that it must be the only choice". Hence, it is sufficient to have
+> secretmem disabled by default with the ability of a system administrator to
+> enable it at boot time.
+> 
+> In addition, there is also a long term goal to improve management of the
+> direct map.
 
-Wire up memfd_secret system call on architectures that define
-ARCH_HAS_SET_DIRECT_MAP, namely arm64, risc-v and x86.
+Some questions (and request to document the answers) as we now allow to 
+have unmovable allocations all over the place and I don't see a single 
+comment regarding that in the cover letter:
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Christopher Lameter <cl@linux.com>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Hildenbrand <david@redhat.com>
-Cc: Elena Reshetova <elena.reshetova@intel.com>
-Cc: Hagen Paul Pfeifer <hagen@jauu.net>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: James Bottomley <jejb@linux.ibm.com>
-Cc: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Mark Rutland <mark.rutland@arm.com>
-Cc: Matthew Wilcox <willy@infradead.org>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Cc: Roman Gushchin <guro@fb.com>
-Cc: Shakeel Butt <shakeelb@google.com>
-Cc: Shuah Khan <shuah@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Tycho Andersen <tycho@tycho.ws>
-Cc: Will Deacon <will@kernel.org>
----
- arch/arm64/include/uapi/asm/unistd.h   | 1 +
- arch/riscv/include/asm/unistd.h        | 1 +
- arch/x86/entry/syscalls/syscall_32.tbl | 1 +
- arch/x86/entry/syscalls/syscall_64.tbl | 1 +
- include/linux/syscalls.h               | 1 +
- include/uapi/asm-generic/unistd.h      | 6 +++++-
- scripts/checksyscalls.sh               | 4 ++++
- 7 files changed, 14 insertions(+), 1 deletion(-)
+1. How will the issue of plenty of unmovable allocations for user space 
+be tackled in the future?
 
-diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
-index f83a70e07df8..ce2ee8f1e361 100644
---- a/arch/arm64/include/uapi/asm/unistd.h
-+++ b/arch/arm64/include/uapi/asm/unistd.h
-@@ -20,5 +20,6 @@
- #define __ARCH_WANT_SET_GET_RLIMIT
- #define __ARCH_WANT_TIME32_SYSCALLS
- #define __ARCH_WANT_SYS_CLONE3
-+#define __ARCH_WANT_MEMFD_SECRET
- 
- #include <asm-generic/unistd.h>
-diff --git a/arch/riscv/include/asm/unistd.h b/arch/riscv/include/asm/unistd.h
-index 977ee6181dab..6c316093a1e5 100644
---- a/arch/riscv/include/asm/unistd.h
-+++ b/arch/riscv/include/asm/unistd.h
-@@ -9,6 +9,7 @@
-  */
- 
- #define __ARCH_WANT_SYS_CLONE
-+#define __ARCH_WANT_MEMFD_SECRET
- 
- #include <uapi/asm/unistd.h>
- 
-diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index a1c9f496fca6..34f04076a140 100644
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -447,3 +447,4 @@
- 440	i386	process_madvise		sys_process_madvise
- 441	i386	epoll_pwait2		sys_epoll_pwait2		compat_sys_epoll_pwait2
- 442	i386	mount_setattr		sys_mount_setattr
-+443	i386	memfd_secret		sys_memfd_secret
-diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-index 7bf01cbe582f..bd3783edf27f 100644
---- a/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -364,6 +364,7 @@
- 440	common	process_madvise		sys_process_madvise
- 441	common	epoll_pwait2		sys_epoll_pwait2
- 442	common	mount_setattr		sys_mount_setattr
-+443	common	memfd_secret		sys_memfd_secret
- 
- #
- # Due to a historical design error, certain syscalls are numbered differently
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index cd7b5c817ba2..ad7ac9717884 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -1041,6 +1041,7 @@ asmlinkage long sys_pidfd_send_signal(int pidfd, int sig,
- 				       siginfo_t __user *info,
- 				       unsigned int flags);
- asmlinkage long sys_pidfd_getfd(int pidfd, int fd, unsigned int flags);
-+asmlinkage long sys_memfd_secret(unsigned long flags);
- 
- /*
-  * Architecture-specific system calls
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index ce58cff99b66..7ac0732dbaa4 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -863,9 +863,13 @@ __SYSCALL(__NR_process_madvise, sys_process_madvise)
- __SC_COMP(__NR_epoll_pwait2, sys_epoll_pwait2, compat_sys_epoll_pwait2)
- #define __NR_mount_setattr 442
- __SYSCALL(__NR_mount_setattr, sys_mount_setattr)
-+#ifdef __ARCH_WANT_MEMFD_SECRET
-+#define __NR_memfd_secret 443
-+__SYSCALL(__NR_memfd_secret, sys_memfd_secret)
-+#endif
- 
- #undef __NR_syscalls
--#define __NR_syscalls 443
-+#define __NR_syscalls 444
- 
- /*
-  * 32 bit systems traditionally used different
-diff --git a/scripts/checksyscalls.sh b/scripts/checksyscalls.sh
-index a18b47695f55..b7609958ee36 100755
---- a/scripts/checksyscalls.sh
-+++ b/scripts/checksyscalls.sh
-@@ -40,6 +40,10 @@ cat << EOF
- #define __IGNORE_setrlimit	/* setrlimit */
- #endif
- 
-+#ifndef __ARCH_WANT_MEMFD_SECRET
-+#define __IGNORE_memfd_secret
-+#endif
-+
- /* Missing flags argument */
- #define __IGNORE_renameat	/* renameat2 */
- 
+2. How has this issue been documented? E.g., interaction with 
+ZONE_MOVABLE and CMA, alloc_conig_range()/alloc_contig_pages?.
+
+3. How are the plans to support migration in the future and which 
+interface changes will be required? (Michal mentioned some good points 
+to make this configurable via the interface, we should plan ahead and 
+document)
+
+Thanks!
+
 -- 
-2.28.0
+Thanks,
+
+David / dhildenb
 
