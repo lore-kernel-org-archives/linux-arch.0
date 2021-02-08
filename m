@@ -2,93 +2,109 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.5 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
+	USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2BDD5C433E0
-	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 18:22:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C0B59C433E0
+	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 18:23:29 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EA91864E84
-	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 18:22:26 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5F44064E37
+	for <linux-arch@archiver.kernel.org>; Mon,  8 Feb 2021 18:23:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233582AbhBHSWK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 8 Feb 2021 13:22:10 -0500
-Received: from mail.skyhub.de ([5.9.137.197]:42148 "EHLO mail.skyhub.de"
+        id S230444AbhBHSWY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 8 Feb 2021 13:22:24 -0500
+Received: from pegase1.c-s.fr ([93.17.236.30]:35234 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S233251AbhBHSVA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 8 Feb 2021 13:21:00 -0500
-Received: from zn.tnic (p200300ec2f073f0023a6d1f14b392727.dip0.t-ipconnect.de [IPv6:2003:ec:2f07:3f00:23a6:d1f1:4b39:2727])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.skyhub.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 7CAD61EC04D1;
-        Mon,  8 Feb 2021 19:20:12 +0100 (CET)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=dkim;
-        t=1612808412;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         content-transfer-encoding:in-reply-to:in-reply-to:  references:references;
-        bh=qeF+mQeeKnzlVS28rZchr2a9Z1+kGh/ZuRWejrk4LHk=;
-        b=RyHFSrVqG/V+VmsocywmZDdM4WcsK//kIh7Oaaiji5e3Gs2wJIJKSn8xv1kgJANIL1D8N1
-        ShAAXcxGx5SBiCN96gwGM5AFDdhXJJVn/0/Jgmv2e0kDuGVm9DLVbGfgiK4fA2MNrngX7Z
-        aB9OHNbXk/TJCLE6MbJLJELNmqpiNHw=
-Date:   Mon, 8 Feb 2021 19:20:09 +0100
-From:   Borislav Petkov <bp@alien8.de>
-To:     "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
-Cc:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
-        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        Pengfei Xu <pengfei.xu@intel.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>
-Subject: Re: [PATCH v19 06/25] x86/cet: Add control-protection fault handler
-Message-ID: <20210208182009.GE18227@zn.tnic>
-References: <20210203225547.32221-1-yu-cheng.yu@intel.com>
- <20210203225547.32221-7-yu-cheng.yu@intel.com>
- <20210205135927.GH17488@zn.tnic>
- <2d829cba-784e-635a-e0c5-a7b334fa9b40@intel.com>
+        id S235484AbhBHSVQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 8 Feb 2021 13:21:16 -0500
+Received: from localhost (mailhub1-int [192.168.12.234])
+        by localhost (Postfix) with ESMTP id 4DZD102Hn6zB09Zb;
+        Mon,  8 Feb 2021 18:44:20 +0100 (CET)
+X-Virus-Scanned: Debian amavisd-new at c-s.fr
+Received: from pegase1.c-s.fr ([192.168.12.234])
+        by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
+        with ESMTP id CNsTdCz66tzp; Mon,  8 Feb 2021 18:44:20 +0100 (CET)
+Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
+        by pegase1.c-s.fr (Postfix) with ESMTP id 4DZD101NMQzB09ZZ;
+        Mon,  8 Feb 2021 18:44:20 +0100 (CET)
+Received: from localhost (localhost [127.0.0.1])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id ABEFB8B7B3;
+        Mon,  8 Feb 2021 18:44:25 +0100 (CET)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from messagerie.si.c-s.fr ([127.0.0.1])
+        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
+        with ESMTP id Xw3J-TpXLojL; Mon,  8 Feb 2021 18:44:25 +0100 (CET)
+Received: from [192.168.4.90] (unknown [192.168.4.90])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id D98298B7B2;
+        Mon,  8 Feb 2021 18:44:24 +0100 (CET)
+Subject: Re: [PATCH] MIPS: make userspace mapping young by default
+To:     Andrew Morton <akpm@linux-foundation.org>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+Cc:     Huang Pei <huangpei@loongson.cn>, ambrosehua@gmail.com,
+        Bibo Mao <maobibo@loongson.cn>, linux-mips@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Paul Burton <paulburton@kernel.org>,
+        Li Xuefeng <lixuefeng@loongson.cn>,
+        Yang Tiezhu <yangtiezhu@loongson.cn>,
+        Gao Juxin <gaojuxin@loongson.cn>,
+        Fuxin Zhang <zhangfx@lemote.com>,
+        Huacai Chen <chenhc@lemote.com>,
+        Nicholas Piggin <npiggin@gmail.com>
+References: <20210204013942.8398-1-huangpei@loongson.cn>
+ <20210204152239.GA14292@alpha.franken.de>
+ <20210205154105.32bb13df439aa49b7fc167e7@linux-foundation.org>
+From:   Christophe Leroy <christophe.leroy@csgroup.eu>
+Message-ID: <30b3fcb5-a60d-228f-15d2-cd182953de45@csgroup.eu>
+Date:   Mon, 8 Feb 2021 18:44:22 +0100
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.7.0
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <2d829cba-784e-635a-e0c5-a7b334fa9b40@intel.com>
+In-Reply-To: <20210205154105.32bb13df439aa49b7fc167e7@linux-foundation.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Feb 05, 2021 at 10:00:21AM -0800, Yu, Yu-cheng wrote:
-> The ratelimit here is only for #CP, and its rate is not counted together
-> with other types of faults.  If a task gets here, it will exit.  The only
-> condition the ratelimit will trigger is when multiple tasks hit #CP at once,
-> which is unlikely.  Are you suggesting that we do not need the ratelimit
-> here?
 
-I'm trying to first find out why is it there.
 
-Is this something you've hit during testing and thought, oh well, this
-needs a ratelimit or was it added just because?
+Le 06/02/2021 à 00:41, Andrew Morton a écrit :
+> On Thu, 4 Feb 2021 16:22:39 +0100 Thomas Bogendoerfer <tsbogend@alpha.franken.de> wrote:
+> 
+>> On Thu, Feb 04, 2021 at 09:39:42AM +0800, Huang Pei wrote:
+>>> MIPS page fault path(except huge page) takes 3 exceptions (1 TLB Miss
+>>> + 2 TLB Invalid), butthe second TLB Invalid exception is just
+>>> triggered by __update_tlb from do_page_fault writing tlb without
+>>> _PAGE_VALID set. With this patch, user space mapping prot is made
+>>> young by default (with both _PAGE_VALID and _PAGE_YOUNG set),
+>>> and it only take 1 TLB Miss + 1 TLB Invalid exception
+>>>
+>>> Remove pte_sw_mkyoung without polluting MM code and make page fault
+>>> delay of MIPS on par with other architecture
+>>>
+>>> Signed-off-by: Huang Pei <huangpei@loongson.cn>
+>>> ---
+>>>   arch/mips/mm/cache.c    | 30 ++++++++++++++++--------------
+>>>   include/linux/pgtable.h |  8 --------
+>>>   mm/memory.c             |  3 ---
+>>>   3 files changed, 16 insertions(+), 25 deletions(-)
+>>
+>> Acked-by: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+>>
+>> Andrew, can you take this patch through your tree ?
+> 
+> Sure.  I'll drop Christophe's "mm/memory.c: remove pte_sw_mkyoung()"
+> (https://lkml.kernel.org/r/f302ef92c48d1f08a0459aaee1c568ca11213814.1612345700.git.christophe.leroy@csgroup.eu)
+> in favour of this one.
+> 
 
--- 
-Regards/Gruss,
-    Boris.
+Pitty. My patch was improving page faults on powerpc/32. That one is only addressing MIPS.
 
-https://people.kernel.org/tglx/notes-about-netiquette
+Any plan to take the series from Nick 
+https://patchwork.kernel.org/project/linux-mm/list/?series=404539 ?
+
+Christophe
