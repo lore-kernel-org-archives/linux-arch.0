@@ -2,84 +2,147 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-9.5 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+	NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 14042C433E0
-	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 14:14:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id ECDEFC433E6
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 14:52:28 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C627064E7A
-	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 14:14:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AC05E64E6C
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 14:52:28 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231362AbhBJOOK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 10 Feb 2021 09:14:10 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38010 "EHLO
+        id S231481AbhBJOwU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 10 Feb 2021 09:52:20 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46360 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230494AbhBJONU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2021 09:13:20 -0500
-Received: from baptiste.telenet-ops.be (baptiste.telenet-ops.be [IPv6:2a02:1800:120:4::f00:13])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B0E19C061794
-        for <linux-arch@vger.kernel.org>; Wed, 10 Feb 2021 06:11:46 -0800 (PST)
-Received: from ramsan.of.borg ([84.195.186.194])
-        by baptiste.telenet-ops.be with bizsmtp
-        id TSBi2400s4C55Sk01SBiBq; Wed, 10 Feb 2021 15:11:45 +0100
-Received: from rox.of.borg ([192.168.97.57])
-        by ramsan.of.borg with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <geert@linux-m68k.org>)
-        id 1l9qDW-005Hss-76; Wed, 10 Feb 2021 15:11:42 +0100
-Received: from geert by rox.of.borg with local (Exim 4.93)
-        (envelope-from <geert@linux-m68k.org>)
-        id 1l9qDV-006JqZ-Oe; Wed, 10 Feb 2021 15:11:41 +0100
-From:   Geert Uytterhoeven <geert+renesas@glider.be>
-To:     Russell King <linux@armlinux.org.uk>,
-        Michal Simek <monstr@monstr.eu>, Arnd Bergmann <arnd@arndb.de>
-Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org,
-        Geert Uytterhoeven <geert+renesas@glider.be>
-Subject: [PATCH 0/4] Remove checks for gcc < 4
-Date:   Wed, 10 Feb 2021 15:11:36 +0100
-Message-Id: <20210210141140.1506212-1-geert+renesas@glider.be>
-X-Mailer: git-send-email 2.25.1
+        with ESMTP id S229888AbhBJOwS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2021 09:52:18 -0500
+Received: from mail-wm1-x334.google.com (mail-wm1-x334.google.com [IPv6:2a00:1450:4864:20::334])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9FEEDC06174A;
+        Wed, 10 Feb 2021 06:51:36 -0800 (PST)
+Received: by mail-wm1-x334.google.com with SMTP id m1so2069215wml.2;
+        Wed, 10 Feb 2021 06:51:36 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=subject:to:cc:references:from:message-id:date:user-agent
+         :mime-version:in-reply-to:content-language:content-transfer-encoding;
+        bh=zjhXKo3lnsUCaAO03EAAKy7XedvCevX8vo7EKjAoj3Q=;
+        b=jJ8LF025NOB5tTRRmh45iSwVNW9BiH2jesDquvAlwBgGfOycUUj9SneIWmt0+ZsKNg
+         G4jfNkdmBdVwNrf6KziMjZyDhDfsh0VTabiZ88CqjMSEyWAAB9KcF0LqWF574ojQJWfB
+         uEcBjTGL5J1sN7VltBi5masq/ykxXWJ71FekRuG1mMOVHDXcYAaB69OZ0pm/EZyGUojM
+         E8ghijNjy9n51CKDhciWDBttcc7mGU9VLnekLrNRsHhHEJw6eo3kNbDjNnFbJryP9S1m
+         HqCjtV55tT0SgA+5jTrOqavLEvYCCRxhlE/v9SL/9kkxp+24Qjc3js9+kLYBwSORR2i+
+         /jyg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
+         :user-agent:mime-version:in-reply-to:content-language
+         :content-transfer-encoding;
+        bh=zjhXKo3lnsUCaAO03EAAKy7XedvCevX8vo7EKjAoj3Q=;
+        b=N0NSqR7UJcDgyWO/9pfk5rjy2qj1WSru0YnBPESxmPdaloVurwSjVrzHn/driXgDQM
+         X8PTlMUwGV+XNd5qs0dXNxnTsJb5M30fE0w1ArsgkhiUCZyzeLEKkWGsNvSNAeZDsDnX
+         ilsW5+XVTDaY3mNDCphDp2uNFHELY4tVL2cXhPNbbLhOnEWaB+BRJQcbq3KNieNy//VO
+         8JjWI6bEwRS/C7W1WLSfxk9xnAtS4qYzAK3/pvxkpZYWoqoGbDSbwTsGVMnr/77IJIis
+         sjUfvH2B6MKjv03KQhYOiSCqc7V+f63nn4HtGvWg4cBZ8VZngZoV4983t1EGrM7v8cd9
+         R7gA==
+X-Gm-Message-State: AOAM531BYnuYLAHIBaTrzjxGkPbQjsCpPNQkflsWWmmPHZW69fhi1GwZ
+        2VZSz06yZmbgh2SjqBfr8yxc40ffyFE=
+X-Google-Smtp-Source: ABdhPJzD1UwIOcK8QlbA/opY/7S8Oipu5m0gukv+y2QgFJwbqk6JJMIT/ifLddt6Wbwu5S+4rtPxqA==
+X-Received: by 2002:a1c:67c3:: with SMTP id b186mr3336454wmc.24.1612968695135;
+        Wed, 10 Feb 2021 06:51:35 -0800 (PST)
+Received: from [192.168.1.101] ([37.170.168.78])
+        by smtp.gmail.com with ESMTPSA id v15sm4054700wra.61.2021.02.10.06.51.33
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 10 Feb 2021 06:51:34 -0800 (PST)
+Subject: Re: [PATCH bpf 1/4] net: add SO_NETNS_COOKIE socket option
+To:     Lorenz Bauer <lmb@cloudflare.com>,
+        Richard Henderson <rth@twiddle.net>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+        Helge Deller <deller@gmx.de>,
+        "David S. Miller" <davem@davemloft.net>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Alexei Starovoitov <ast@kernel.org>,
+        Daniel Borkmann <daniel@iogearbox.net>,
+        Andrii Nakryiko <andrii@kernel.org>,
+        Jakub Kicinski <kuba@kernel.org>
+Cc:     kernel-team@cloudflare.com, linux-api@vger.kernel.org,
+        linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
+        netdev@vger.kernel.org, bpf@vger.kernel.org
+References: <20210210120425.53438-1-lmb@cloudflare.com>
+ <20210210120425.53438-2-lmb@cloudflare.com>
+From:   Eric Dumazet <eric.dumazet@gmail.com>
+Message-ID: <a922e31d-efce-35c3-c584-cf1bdcf93c5d@gmail.com>
+Date:   Wed, 10 Feb 2021 15:51:32 +0100
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.6.1
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20210210120425.53438-2-lmb@cloudflare.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-	Hi all,
 
-This patch removes the few remaining checks for gcc < 4, which is no
-longer supported for building the kernel.
 
-All four patches can be applied independently.
+On 2/10/21 1:04 PM, Lorenz Bauer wrote:
+> We need to distinguish which network namespace a socket belongs to.
+> BPF has the useful bpf_get_netns_cookie helper for this, but accessing
+> it from user space isn't possible. Add a read-only socket option that
+> returns the netns cookie, similar to SO_COOKIE. If network namespaces
+> are disabled, SO_NETNS_COOKIE returns the cookie of init_net.
+> 
+> The BPF helpers change slightly: instead of returning 0 when network
+> namespaces are disabled we return the init_net cookie as for the
+> socket option.
+> 
+> Cc: linux-api@vger.kernel.org
+> Signed-off-by: Lorenz Bauer <lmb@cloudflare.com>
+> ---
 
-Thanks!
+...
 
-Geert Uytterhoeven (4):
-  ARM: div64: Remove always-true __div64_const32_is_OK() duplicate
-  ARM: unified: Remove check for gcc < 4
-  asm-generic: div64: Remove always-true __div64_const32_is_OK()
-  microblaze: Remove support for gcc < 4
+>  
+> +static inline u64 __sock_gen_netns_cookie(struct sock *sk)
+> +{
+> +#ifdef CONFIG_NET_NS
+> +	return __net_gen_cookie(sk->sk_net.net);
+> +#else
+> +	return __net_gen_cookie(&init_net);
+> +#endif
+> +}
+> +
+> +static inline u64 sock_gen_netns_cookie(struct sock *sk)
+> +{
+> +	u64 cookie;
+> +
+> +	preempt_disable();
+> +	cookie = __sock_gen_netns_cookie(sk);
+> +	preempt_enable();
+> +
+> +	return cookie;
+> +}
+> +
+> 
 
- arch/arm/include/asm/div64.h    | 11 -----------
- arch/arm/include/asm/unified.h  |  4 ----
- arch/microblaze/kernel/module.c | 26 --------------------------
- include/asm-generic/div64.h     | 14 ++++----------
- 4 files changed, 4 insertions(+), 51 deletions(-)
+I suggest we make net->net_cookie a mere u64 initialized in setup_net(),
+instead of having to preempt_disable() around reading it.
 
--- 
-2.25.1
+(Here and in your patch 2/4)
 
-Gr{oetje,eeting}s,
+Your patches would be much simpler.
 
-						Geert
+Cleanup patch :
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+https://patchwork.kernel.org/project/netdevbpf/patch/20210210144144.24284-1-eric.dumazet@gmail.com/
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+
