@@ -7,41 +7,41 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8D25EC433DB
-	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 14:13:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 39EB4C43381
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 14:14:09 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 357DE64E6F
-	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 14:13:08 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id F16C864D9E
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 14:14:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231124AbhBJOM7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 10 Feb 2021 09:12:59 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37832 "EHLO
+        id S232087AbhBJOOC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 10 Feb 2021 09:14:02 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38000 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232009AbhBJOMd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2021 09:12:33 -0500
-Received: from baptiste.telenet-ops.be (baptiste.telenet-ops.be [IPv6:2a02:1800:120:4::f00:13])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6BBFDC061786
+        with ESMTP id S232022AbhBJONP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2021 09:13:15 -0500
+Received: from andre.telenet-ops.be (andre.telenet-ops.be [IPv6:2a02:1800:120:4::f00:15])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7E753C06178B
         for <linux-arch@vger.kernel.org>; Wed, 10 Feb 2021 06:11:46 -0800 (PST)
 Received: from ramsan.of.borg ([84.195.186.194])
-        by baptiste.telenet-ops.be with bizsmtp
-        id TSBk240074C55Sk01SBkC7; Wed, 10 Feb 2021 15:11:44 +0100
+        by andre.telenet-ops.be with bizsmtp
+        id TSBj2400s4C55Sk01SBjmn; Wed, 10 Feb 2021 15:11:44 +0100
 Received: from rox.of.borg ([192.168.97.57])
         by ramsan.of.borg with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         (Exim 4.93)
         (envelope-from <geert@linux-m68k.org>)
-        id 1l9qDX-005Hsy-Lj; Wed, 10 Feb 2021 15:11:43 +0100
+        id 1l9qDX-005Ht0-8l; Wed, 10 Feb 2021 15:11:43 +0100
 Received: from geert by rox.of.borg with local (Exim 4.93)
         (envelope-from <geert@linux-m68k.org>)
-        id 1l9qDW-006Jqh-RT; Wed, 10 Feb 2021 15:11:42 +0100
+        id 1l9qDW-006Jqr-Sp; Wed, 10 Feb 2021 15:11:42 +0100
 From:   Geert Uytterhoeven <geert+renesas@glider.be>
 To:     Russell King <linux@armlinux.org.uk>,
         Michal Simek <monstr@monstr.eu>, Arnd Bergmann <arnd@arndb.de>
 Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org,
         Geert Uytterhoeven <geert+renesas@glider.be>
-Subject: [PATCH 2/4] ARM: unified: Remove check for gcc < 4
-Date:   Wed, 10 Feb 2021 15:11:38 +0100
-Message-Id: <20210210141140.1506212-3-geert+renesas@glider.be>
+Subject: [PATCH 4/4] microblaze: Remove support for gcc < 4
+Date:   Wed, 10 Feb 2021 15:11:40 +0100
+Message-Id: <20210210141140.1506212-5-geert+renesas@glider.be>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20210210141140.1506212-1-geert+renesas@glider.be>
 References: <20210210141140.1506212-1-geert+renesas@glider.be>
@@ -52,29 +52,69 @@ List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 Since commit cafa0010cd51fb71 ("Raise the minimum required gcc version
-to 4.6"), the kernel can no longer be compiled using gcc-3.
-Hence this condition is never true, and the check can thus be removed.
+to 4.6") , the kernel can no longer be compiled using gcc-3.
+Hence drop support code for gcc-3.
 
 Signed-off-by: Geert Uytterhoeven <geert+renesas@glider.be>
 ---
- arch/arm/include/asm/unified.h | 4 ----
- 1 file changed, 4 deletions(-)
+ arch/microblaze/kernel/module.c | 26 --------------------------
+ 1 file changed, 26 deletions(-)
 
-diff --git a/arch/arm/include/asm/unified.h b/arch/arm/include/asm/unified.h
-index 1e2c3eb043535f7b..ce9689118dbb945b 100644
---- a/arch/arm/include/asm/unified.h
-+++ b/arch/arm/include/asm/unified.h
-@@ -24,10 +24,6 @@ __asm__(".syntax unified");
- 
- #ifdef CONFIG_THUMB2_KERNEL
- 
+diff --git a/arch/microblaze/kernel/module.c b/arch/microblaze/kernel/module.c
+index 9f12e3c2bb42a319..e5db3a57b9e30d9e 100644
+--- a/arch/microblaze/kernel/module.c
++++ b/arch/microblaze/kernel/module.c
+@@ -24,9 +24,6 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
+ 	Elf32_Sym *sym;
+ 	unsigned long int *location;
+ 	unsigned long int value;
 -#if __GNUC__ < 4
--#error Thumb-2 kernel requires gcc >= 4
+-	unsigned long int old_value;
 -#endif
--
- /* The CPSR bit describing the instruction set (Thumb) */
- #define PSR_ISETSTATE	PSR_T_BIT
  
+ 	pr_debug("Applying add relocation section %u to %u\n",
+ 		relsec, sechdrs[relsec].sh_info);
+@@ -49,40 +46,17 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
+ 		 */
+ 
+ 		case R_MICROBLAZE_32:
+-#if __GNUC__ < 4
+-			old_value = *location;
+-			*location = value + old_value;
+-
+-			pr_debug("R_MICROBLAZE_32 (%08lx->%08lx)\n",
+-				old_value, value);
+-#else
+ 			*location = value;
+-#endif
+ 			break;
+ 
+ 		case R_MICROBLAZE_64:
+-#if __GNUC__ < 4
+-			/* Split relocs only required/used pre gcc4.1.1 */
+-			old_value = ((location[0] & 0x0000FFFF) << 16) |
+-					(location[1] & 0x0000FFFF);
+-			value += old_value;
+-#endif
+ 			location[0] = (location[0] & 0xFFFF0000) |
+ 					(value >> 16);
+ 			location[1] = (location[1] & 0xFFFF0000) |
+ 					(value & 0xFFFF);
+-#if __GNUC__ < 4
+-			pr_debug("R_MICROBLAZE_64 (%08lx->%08lx)\n",
+-				old_value, value);
+-#endif
+ 			break;
+ 
+ 		case R_MICROBLAZE_64_PCREL:
+-#if __GNUC__ < 4
+-			old_value = (location[0] & 0xFFFF) << 16 |
+-				(location[1] & 0xFFFF);
+-			value -= old_value;
+-#endif
+ 			value -= (unsigned long int)(location) + 4;
+ 			location[0] = (location[0] & 0xFFFF0000) |
+ 					(value >> 16);
 -- 
 2.25.1
 
