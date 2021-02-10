@@ -2,128 +2,146 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 24DD1C433E0
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Feb 2021 21:45:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F0DC1C433E0
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 12:10:58 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C6F2D64EE4
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Feb 2021 21:45:00 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A921964E0D
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Feb 2021 12:10:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234050AbhBIVoo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 9 Feb 2021 16:44:44 -0500
-Received: from mx2.suse.de ([195.135.220.15]:49484 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S234036AbhBIUtB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 9 Feb 2021 15:49:01 -0500
-X-Virus-Scanned: by amavisd-new at test-mx.suse.de
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
-        t=1612901312; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-         mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=utBmzEHnMldk+xybu3FUHQ/4GijdaViYwt5S9/fMX5g=;
-        b=TjFv3w1m/0Glle7o/mpLcPWsTy958OLjFP0MF4y2grgkrogeIq5dCnnfB5BszcW5ggUnqY
-        LL4MV1a1lL2B5WOEu6FaOYZ3DET/TzX9b1n3q4/VP0Y/08QiHTyolRop/Pd6AqhLXBScSy
-        PBnAIDa+ir2IADhVPtKtqxwjkXo403U=
-Received: from relay2.suse.de (unknown [195.135.221.27])
-        by mx2.suse.de (Postfix) with ESMTP id AC40AADF0;
-        Tue,  9 Feb 2021 20:08:32 +0000 (UTC)
-Date:   Tue, 9 Feb 2021 21:08:31 +0100
-From:   Michal Hocko <mhocko@suse.com>
-To:     David Hildenbrand <david@redhat.com>
-Cc:     Mike Rapoport <rppt@kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Wilcox <willy@infradead.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Roman Gushchin <guro@fb.com>,
-        Shakeel Butt <shakeelb@google.com>,
-        Shuah Khan <shuah@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        id S231438AbhBJMKf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 10 Feb 2021 07:10:35 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39370 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230368AbhBJMIb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2021 07:08:31 -0500
+Received: from mail-wm1-x32a.google.com (mail-wm1-x32a.google.com [IPv6:2a00:1450:4864:20::32a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 87834C061356
+        for <linux-arch@vger.kernel.org>; Wed, 10 Feb 2021 04:04:37 -0800 (PST)
+Received: by mail-wm1-x32a.google.com with SMTP id w4so1611627wmi.4
+        for <linux-arch@vger.kernel.org>; Wed, 10 Feb 2021 04:04:37 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=cloudflare.com; s=google;
+        h=from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=+9PeUG6v1r8aFGi6ORK3pCJUjeurz7TuWVSE9CMni0c=;
+        b=vefKpoHHE9JY7wsXqdCVcvzKivbYRTXzF+0dgJaRh4tzwGHJlFAPcT6iyCPjtVk/QO
+         2nbSc5689PqMRWiH0mYBu5uUXuBmmxhvZbfVsxAu4AYbT9KkUXLQ8GUARAWnmp4QnaYC
+         qrzOL4EoDzuwTZWyGC0rpjwwcObKmnDgs1a7A=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=+9PeUG6v1r8aFGi6ORK3pCJUjeurz7TuWVSE9CMni0c=;
+        b=pkhMFpy7mPuOfMimrDt0LmRGWHFWedaGQfEDtA01aGXfMOgUVPsSZR0L5fTmjrrO+F
+         flKbvfOPdK6fauuqpQpjxz5xFN4Nbycyz7KcsczyeoIkXt9p5yv6biXFjDgyR8Njxmwd
+         MWGQqSFaMedXGoBeUuV8TjePT9F6RjxzvVU3lYwxorMH9ZGO6WSskHM0kIrNnJcQLOwr
+         HDrwrOVAzjkh1yT+T7P7xoHOOHI40VvkyEnczjTISryXksMrF1JVPn5U+6bUySKcEAqv
+         qSh51DxQb/eEOEhw/NKFTzDurlcNSEPjRHsJ349LpD9Iyk4VdSDK65eg1HPOOZvvnKO2
+         xRtw==
+X-Gm-Message-State: AOAM5335LmmZaoIxrbOuQRF0HfU1QF0gO2BODfSueDJlyFt+u+7pXaMd
+        bnIBwKTpjIYAtqpMyExoK/2ubg==
+X-Google-Smtp-Source: ABdhPJwpmZw+y59+QzJHB79z4KhJzeSBdFZ5h0S1sHnxAqBTLAPp1GIONJS8JzIW2wEz2gPnFzl8PA==
+X-Received: by 2002:a1c:9851:: with SMTP id a78mr2600203wme.66.1612958676276;
+        Wed, 10 Feb 2021 04:04:36 -0800 (PST)
+Received: from antares.lan (c.3.c.9.d.d.c.e.0.a.6.8.a.9.e.c.f.f.6.2.a.5.a.7.0.b.8.0.1.0.0.2.ip6.arpa. [2001:8b0:7a5a:26ff:ce9a:86a0:ecdd:9c3c])
+        by smtp.gmail.com with ESMTPSA id j7sm2837854wrp.72.2021.02.10.04.04.35
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 10 Feb 2021 04:04:35 -0800 (PST)
+From:   Lorenz Bauer <lmb@cloudflare.com>
+To:     Alexei Starovoitov <ast@kernel.org>,
+        Daniel Borkmann <daniel@iogearbox.net>,
+        Andrii Nakryiko <andrii@kernel.org>
+Cc:     kernel-team@cloudflare.com, Lorenz Bauer <lmb@cloudflare.com>,
+        bpf@vger.kernel.org, linux-alpha@vger.kernel.org,
         linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org
-Subject: Re: [PATCH v17 00/10] mm: introduce memfd_secret system call to
- create "secret" memory areas
-Message-ID: <YCLrv86O0ZoKhfN0@dhcp22.suse.cz>
-References: <20210208211326.GV242749@kernel.org>
- <1F6A73CF-158A-4261-AA6C-1F5C77F4F326@redhat.com>
- <YCJO8zLq8YkXGy8B@dhcp22.suse.cz>
- <662b5871-b461-0896-697f-5e903c23d7b9@redhat.com>
- <YCJbmR11ikrWKaU8@dhcp22.suse.cz>
- <c1e5e7b6-3360-ddc4-2ff5-0e79515ee23a@redhat.com>
- <YCKNMqu8/g0OofqU@dhcp22.suse.cz>
- <8cbfe2c3-cfc6-72e0-bab1-852f80e20684@redhat.com>
+        linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-kselftest@vger.kernel.org, linux-mips@vger.kernel.org,
+        linux-parisc@vger.kernel.org, netdev@vger.kernel.org,
+        sparclinux@vger.kernel.org
+Subject: [PATCH bpf 0/4] Expose network namespace cookies to user space
+Date:   Wed, 10 Feb 2021 12:04:21 +0000
+Message-Id: <20210210120425.53438-1-lmb@cloudflare.com>
+X-Mailer: git-send-email 2.27.0
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <8cbfe2c3-cfc6-72e0-bab1-852f80e20684@redhat.com>
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue 09-02-21 17:17:22, David Hildenbrand wrote:
-> On 09.02.21 14:25, Michal Hocko wrote:
-> > On Tue 09-02-21 11:23:35, David Hildenbrand wrote:
-> > [...]
-> > > I am constantly trying to fight for making more stuff MOVABLE instead of
-> > > going into the other direction (e.g., because it's easier to implement,
-> > > which feels like the wrong direction).
-> > > 
-> > > Maybe I am the only person that really cares about ZONE_MOVABLE these days
-> > > :) I can't stop such new stuff from popping up, so at least I want it to be
-> > > documented.
-> > 
-> > MOVABLE zone is certainly an important thing to keep working. And there
-> > is still quite a lot of work on the way. But as I've said this is more
-> > of a outlier than a norm. On the other hand movable zone is kinda hard
-> > requirement for a lot of application and it is to be expected that
-> > many features will be less than 100% compatible.  Some usecases even
-> > impossible. That's why I am arguing that we should have a central
-> > document where the movable zone is documented with all the potential
-> > problems we have encountered over time and explicitly state which
-> > features are fully/partially incompatible.
-> > 
-> 
-> I'll send a mail during the next weeks to gather current restrictions to
-> document them (and include my brain dump). We might see more excessive use
-> of ZONE_MOVABLE in the future and as history told us, of CMA as well. We
-> really should start documenting/caring.
+We're working on a user space control plane for the BPF sk_lookup
+hook [1]. The hook attaches to a network namespace and allows
+control over which socket receives a new connection / packet.
 
-Excellent! Thanks a lot. I will do my best to help reviewing that.
+Roughly, applications can give a socket to our user space component
+to participate in custom bind semantics. This creates an edge case
+where  an application can provide us with a socket that lives in
+a different network namespace than our BPF sk_lookup program.
+We'd like to return an error in this case.
 
-> @Mike, it would be sufficient for me if one of your patches at least mention
-> the situation in the description like
-> 
-> "Please note that secretmem currently behaves much more like long-term GUP
-> instead of mlocked memory; secretmem is unmovable memory directly
-> consumed/controlled by user space. secretmem cannot be placed onto
-> ZONE_MOVABLE/CMA.
+Additionally, we have some user space state that is tied to the
+network namespace. We currently use the inode of the nsfs entry
+in a directory name, but this is suffers from inode reuse.
 
-Sounds good to me.
+I'm proposing to fix both of these issues by adding a new
+SO_NETNS_COOKIE socket option as well as a NS_GET_COOKIE ioctl.
+Using these we get a stable, unique identifier for a network
+namespace and check whether a socket belongs to the "correct"
+namespace.
+
+NS_GET_COOKIE could be renamed to NS_GET_NET_COOKIE. I kept the
+name generic because it seems like other namespace types could
+benefit from a cookie as well.
+
+I'm trying to land this via the bpf tree since this is where the
+netns cookie originated, please let me know if this isn't
+appropriate.
+
+1: https://www.kernel.org/doc/html/latest/bpf/prog_sk_lookup.html
+
+Cc: bpf@vger.kernel.org
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-fsdevel@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-kselftest@vger.kernel.org
+Cc: linux-mips@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org
+Cc: netdev@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
+
+Lorenz Bauer (4):
+  net: add SO_NETNS_COOKIE socket option
+  nsfs: add an ioctl to discover the network namespace cookie
+  tools/testing: add test for NS_GET_COOKIE
+  tools/testing: add a selftest for SO_NETNS_COOKIE
+
+ arch/alpha/include/uapi/asm/socket.h          |  2 +
+ arch/mips/include/uapi/asm/socket.h           |  2 +
+ arch/parisc/include/uapi/asm/socket.h         |  2 +
+ arch/sparc/include/uapi/asm/socket.h          |  2 +
+ fs/nsfs.c                                     |  9 +++
+ include/linux/sock_diag.h                     | 20 ++++++
+ include/net/net_namespace.h                   | 11 ++++
+ include/uapi/asm-generic/socket.h             |  2 +
+ include/uapi/linux/nsfs.h                     |  2 +
+ net/core/filter.c                             |  9 ++-
+ net/core/sock.c                               |  7 +++
+ tools/testing/selftests/net/.gitignore        |  1 +
+ tools/testing/selftests/net/Makefile          |  2 +-
+ tools/testing/selftests/net/so_netns_cookie.c | 61 +++++++++++++++++++
+ tools/testing/selftests/nsfs/.gitignore       |  1 +
+ tools/testing/selftests/nsfs/Makefile         |  2 +-
+ tools/testing/selftests/nsfs/netns.c          | 57 +++++++++++++++++
+ 17 files changed, 185 insertions(+), 7 deletions(-)
+ create mode 100644 tools/testing/selftests/net/so_netns_cookie.c
+ create mode 100644 tools/testing/selftests/nsfs/netns.c
 
 -- 
-Michal Hocko
-SUSE Labs
+2.27.0
+
