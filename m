@@ -2,126 +2,161 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.4 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
+	USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F03F6C43381
-	for <linux-arch@archiver.kernel.org>; Thu, 11 Feb 2021 12:35:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7E6D7C433E0
+	for <linux-arch@archiver.kernel.org>; Thu, 11 Feb 2021 18:08:07 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C080364E95
-	for <linux-arch@archiver.kernel.org>; Thu, 11 Feb 2021 12:35:55 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C2BEA64E01
+	for <linux-arch@archiver.kernel.org>; Thu, 11 Feb 2021 18:07:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230071AbhBKMfn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 11 Feb 2021 07:35:43 -0500
-Received: from mx2.suse.de ([195.135.220.15]:55912 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S231278AbhBKMbc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Feb 2021 07:31:32 -0500
-X-Virus-Scanned: by amavisd-new at test-mx.suse.de
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
-        t=1613046645; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-         mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=osI3lOxyWNnCWMwYvgacjyYRqS8PdApBu7r+l9GS1F8=;
-        b=FGCfa/BPAaNMnKzWYBfMoLB55bV/2nWROmax5NShmeaFHcKLO/NerKPjx1ctr7FJZ/MDlK
-        j39ZM2jnxpVR1DSUloBxejptFaGKNBgYEvf5Z1x0XO+JtJwHMbCmw7POQPPk2NJN9eW5Lk
-        zmKurgl8D3XiuDQywu6d2sTB6/qoOf8=
-Received: from relay2.suse.de (unknown [195.135.221.27])
-        by mx2.suse.de (Postfix) with ESMTP id A9902ACD4;
-        Thu, 11 Feb 2021 12:30:45 +0000 (UTC)
-Date:   Thu, 11 Feb 2021 13:30:42 +0100
-From:   Michal Hocko <mhocko@suse.com>
-To:     Mike Rapoport <rppt@kernel.org>
-Cc:     Mike Rapoport <rppt@linux.ibm.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Wilcox <willy@infradead.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Roman Gushchin <guro@fb.com>,
-        Shakeel Butt <shakeelb@google.com>,
-        Shuah Khan <shuah@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
-        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
-        Palmer Dabbelt <palmerdabbelt@google.com>
-Subject: Re: [PATCH v17 07/10] mm: introduce memfd_secret system call to
- create "secret" memory areas
-Message-ID: <YCUjck0I8qgjB24i@dhcp22.suse.cz>
-References: <20210208084920.2884-1-rppt@kernel.org>
- <20210208084920.2884-8-rppt@kernel.org>
- <YCEXMgXItY7xMbIS@dhcp22.suse.cz>
- <20210208212605.GX242749@kernel.org>
- <YCJMDBss8Qhha7g9@dhcp22.suse.cz>
- <20210209090938.GP299309@linux.ibm.com>
- <YCKLVzBR62+NtvyF@dhcp22.suse.cz>
- <20210211071319.GF242749@kernel.org>
- <YCTtSrCEvuBug2ap@dhcp22.suse.cz>
- <20210211112008.GH242749@kernel.org>
+        id S230005AbhBKR6w (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 11 Feb 2021 12:58:52 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56186 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229961AbhBKR4P (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Feb 2021 12:56:15 -0500
+Received: from mail-ej1-x633.google.com (mail-ej1-x633.google.com [IPv6:2a00:1450:4864:20::633])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D2852C0613D6
+        for <linux-arch@vger.kernel.org>; Thu, 11 Feb 2021 09:55:33 -0800 (PST)
+Received: by mail-ej1-x633.google.com with SMTP id lg21so11413996ejb.3
+        for <linux-arch@vger.kernel.org>; Thu, 11 Feb 2021 09:55:33 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=monstr-eu.20150623.gappssmtp.com; s=20150623;
+        h=subject:to:cc:references:from:message-id:date:user-agent
+         :mime-version:in-reply-to:content-language:content-transfer-encoding;
+        bh=0pCiUpeBCgfpgLcOixXyMaSRCIE6sLsL8S3aPB3A1Nk=;
+        b=HeDif2XiXW0gIR/nSH+Ff81eWsT3unuN2il6MYQENm81dIPu9ZEv6DQmXsFiyarW/E
+         UuqRHRgndgNesCGAh8GQufF7YugahdZzCsyolVu5QT91ej07R7ArAlltahenuFa+nTqy
+         k/DOxllhUSBqR4lDuj9WMVOSylyiqNLGaJl3WyzfEQn2Ftm3/iwKJJbq2UWq6cPcuFR7
+         IppSm9OAh0K+8VIl12BFYndJOqLCCxFfDtax1enQaA0+vTVkkJTS3nyCVCT7NUebJkcT
+         wtmBhfUWrdhT3RadOSwxiRUvvzfV4A+3K9cyg2HFrOYoGeEt86IckSeDieAvdUMZOCw+
+         uzDw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
+         :user-agent:mime-version:in-reply-to:content-language
+         :content-transfer-encoding;
+        bh=0pCiUpeBCgfpgLcOixXyMaSRCIE6sLsL8S3aPB3A1Nk=;
+        b=YrcV3fmi4Ux4bh5qqZfW1XFyuP34SwULI0r0yfRTeJQu3ASzmXGuEX7Rt1c0Web10f
+         KHZj6mKtXN3heSkosQNtC4LgStBzMd+wD6rLpleXgIVaP9qJSxtLeM+ZONQK/n7qMj4W
+         8ICS5PBGix86mOIyBeiQMvS0tc4zJPl0sOsCbKwJ8JM8b4ApLcEhU9AyPrLhpo6eslNU
+         SQWaOL2GQ4jtrZvCU/ve4/tKyPqLfeyNaJsEUKBt7kr1sx55qds+tD4PTmP2ph8trEum
+         FRDctxAfihgs2bLT4sbK7HMVlrofZHK7RYyrLTxpuiXALZdw9IACOq9nwX6+MGZ/7ZZI
+         5BAQ==
+X-Gm-Message-State: AOAM532iwDs5GDFN3MY0CJmvUysCyNFfupBe5vkFpFEfu5b2kAZNxe95
+        ac9urL/Bb6jJW1vSTkqt1100wg==
+X-Google-Smtp-Source: ABdhPJwQdtfNm5nZvjceAOzmmGCdMaSZl/CqH6DTGxgPqq7Z4GkOwRqQmeBrzORpe/zl38s7IazJkA==
+X-Received: by 2002:a17:906:184e:: with SMTP id w14mr9887272eje.56.1613066132520;
+        Thu, 11 Feb 2021 09:55:32 -0800 (PST)
+Received: from [192.168.0.105] (nat-35.starnet.cz. [178.255.168.35])
+        by smtp.gmail.com with ESMTPSA id g16sm4884187ejo.107.2021.02.11.09.55.31
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 11 Feb 2021 09:55:31 -0800 (PST)
+Subject: Re: [PATCH 4/4] microblaze: Remove support for gcc < 4
+To:     Geert Uytterhoeven <geert+renesas@glider.be>,
+        Russell King <linux@armlinux.org.uk>,
+        Arnd Bergmann <arnd@arndb.de>
+Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org
+References: <20210210141140.1506212-1-geert+renesas@glider.be>
+ <20210210141140.1506212-5-geert+renesas@glider.be>
+From:   Michal Simek <monstr@monstr.eu>
+Message-ID: <1b072177-e212-67ce-7d72-c3d526a480f9@monstr.eu>
+Date:   Thu, 11 Feb 2021 18:55:30 +0100
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.7.1
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210211112008.GH242749@kernel.org>
+In-Reply-To: <20210210141140.1506212-5-geert+renesas@glider.be>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu 11-02-21 13:20:08, Mike Rapoport wrote:
-[...]
-> Sealing is anyway controlled via fcntl() and I don't think
-> MFD_ALLOW_SEALING makes much sense for the secretmem because it is there to
-> prevent rogue file sealing in tmpfs/hugetlbfs.
 
-This doesn't really match my understanding. The primary usecase for the
-sealing is to safely and predictably coordinate over shared memory. I
-absolutely do not see why this would be incompatible with an additional
-requirement to unmap the memory from the kernel to prevent additional
-interference from the kernel side. Quite contrary it looks like a very
-nice extension to this model.
- 
-> As for the huge pages, I'm not sure at all that supporting huge pages in
-> secretmem will involve hugetlbfs.
 
-Have a look how hugetlb proliferates through our MM APIs. I strongly
-suspect this is strong signal that this won't be any different.
-
-> And even if yes, adding SECRETMEM_HUGE
-> flag seems to me less confusing than saying "from kernel x.y you can use
-> MFD_CREATE | MFD_SECRET | MFD_HUGE" etc for all possible combinations.
-
-I really fail to see your point. This is a standard model we have. It is
-quite natural that flags are added. Moreover adding a new syscall will
-not make it any less of a problem.
-
-> > I by no means do not insist one way or the other but from what I have
-> > seen so far I have a feeling that the interface hasn't been thought
-> > through enough.
+On 2/10/21 3:11 PM, Geert Uytterhoeven wrote:
+> Since commit cafa0010cd51fb71 ("Raise the minimum required gcc version
+> to 4.6") , the kernel can no longer be compiled using gcc-3.
+> Hence drop support code for gcc-3.
 > 
-> It has been, but we have different thoughts about it ;-)
+> Signed-off-by: Geert Uytterhoeven <geert+renesas@glider.be>
+> ---
+>  arch/microblaze/kernel/module.c | 26 --------------------------
+>  1 file changed, 26 deletions(-)
+> 
+> diff --git a/arch/microblaze/kernel/module.c b/arch/microblaze/kernel/module.c
+> index 9f12e3c2bb42a319..e5db3a57b9e30d9e 100644
+> --- a/arch/microblaze/kernel/module.c
+> +++ b/arch/microblaze/kernel/module.c
+> @@ -24,9 +24,6 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
+>  	Elf32_Sym *sym;
+>  	unsigned long int *location;
+>  	unsigned long int value;
+> -#if __GNUC__ < 4
+> -	unsigned long int old_value;
+> -#endif
+>  
+>  	pr_debug("Applying add relocation section %u to %u\n",
+>  		relsec, sechdrs[relsec].sh_info);
+> @@ -49,40 +46,17 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
+>  		 */
+>  
+>  		case R_MICROBLAZE_32:
+> -#if __GNUC__ < 4
+> -			old_value = *location;
+> -			*location = value + old_value;
+> -
+> -			pr_debug("R_MICROBLAZE_32 (%08lx->%08lx)\n",
+> -				old_value, value);
+> -#else
+>  			*location = value;
+> -#endif
+>  			break;
+>  
+>  		case R_MICROBLAZE_64:
+> -#if __GNUC__ < 4
+> -			/* Split relocs only required/used pre gcc4.1.1 */
+> -			old_value = ((location[0] & 0x0000FFFF) << 16) |
+> -					(location[1] & 0x0000FFFF);
+> -			value += old_value;
+> -#endif
+>  			location[0] = (location[0] & 0xFFFF0000) |
+>  					(value >> 16);
+>  			location[1] = (location[1] & 0xFFFF0000) |
+>  					(value & 0xFFFF);
+> -#if __GNUC__ < 4
+> -			pr_debug("R_MICROBLAZE_64 (%08lx->%08lx)\n",
+> -				old_value, value);
+> -#endif
+>  			break;
+>  
+>  		case R_MICROBLAZE_64_PCREL:
+> -#if __GNUC__ < 4
+> -			old_value = (location[0] & 0xFFFF) << 16 |
+> -				(location[1] & 0xFFFF);
+> -			value -= old_value;
+> -#endif
+>  			value -= (unsigned long int)(location) + 4;
+>  			location[0] = (location[0] & 0xFFFF0000) |
+>  					(value >> 16);
+> 
 
-Then you must be carrying a lot of implicit knowledge which I want you
-to document.
+Applied.
+
+Thanks,
+Michal
+
 -- 
-Michal Hocko
-SUSE Labs
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Xilinx Microblaze
+Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
+
+
