@@ -2,373 +2,233 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D3E4AC433DB
-	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 19:14:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C8F53C433E6
+	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 19:17:08 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8197564F78
-	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 19:14:56 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8628E64F18
+	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 19:17:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233916AbhBYTOg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 25 Feb 2021 14:14:36 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56932 "EHLO
+        id S234468AbhBYTQ6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 25 Feb 2021 14:16:58 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58276 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234379AbhBYTMZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Feb 2021 14:12:25 -0500
-Received: from smtp-bc09.mail.infomaniak.ch (smtp-bc09.mail.infomaniak.ch [IPv6:2001:1600:3:17::bc09])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 92C92C06178A
-        for <linux-arch@vger.kernel.org>; Thu, 25 Feb 2021 11:08:10 -0800 (PST)
-Received: from smtp-3-0001.mail.infomaniak.ch (unknown [10.4.36.108])
-        by smtp-2-3000.mail.infomaniak.ch (Postfix) with ESMTPS id 4Dmj0K6qFszMqQj6;
-        Thu, 25 Feb 2021 20:05:05 +0100 (CET)
-Received: from localhost (unknown [23.97.221.149])
-        by smtp-3-0001.mail.infomaniak.ch (Postfix) with ESMTPA id 4Dmj0K4ZpLzlh8T8;
-        Thu, 25 Feb 2021 20:05:05 +0100 (CET)
-From:   =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-To:     James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>,
-        "Serge E . Hallyn" <serge@hallyn.com>
-Cc:     =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Andy Lutomirski <luto@amacapital.net>,
-        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Casey Schaufler <casey@schaufler-ca.com>,
-        Jeff Dike <jdike@addtoit.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Richard Weinberger <richard@nod.at>,
-        Shuah Khan <shuah@kernel.org>,
-        Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>,
-        kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
-        linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-kselftest@vger.kernel.org,
-        linux-security-module@vger.kernel.org, x86@kernel.org,
-        =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@linux.microsoft.com>
-Subject: [PATCH v29 09/12] arch: Wire up Landlock syscalls
-Date:   Thu, 25 Feb 2021 20:06:11 +0100
-Message-Id: <20210225190614.2181147-10-mic@digikod.net>
-X-Mailer: git-send-email 2.30.0
-In-Reply-To: <20210225190614.2181147-1-mic@digikod.net>
-References: <20210225190614.2181147-1-mic@digikod.net>
+        with ESMTP id S233844AbhBYTOz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Feb 2021 14:14:55 -0500
+Received: from mail-io1-xd33.google.com (mail-io1-xd33.google.com [IPv6:2607:f8b0:4864:20::d33])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DA3FAC061574;
+        Thu, 25 Feb 2021 11:13:51 -0800 (PST)
+Received: by mail-io1-xd33.google.com with SMTP id u8so7035633ior.13;
+        Thu, 25 Feb 2021 11:13:51 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:references:in-reply-to:reply-to:from:date:message-id
+         :subject:to:cc;
+        bh=2TSVfMnhT7SJL8aJySBCB2X+rytLQ5KjriPICMJNCuA=;
+        b=L4cnc+ZL13Np3eVNmMr9LItYPGw5JCmepuSDo9PwLnhfwfxrwGCs7PX4tOv7Dturej
+         uraF4K/l/D873gFVKtLo2901A9oLB5uAI1z+s/52ADTXEEbwI2MQxYzLzZLhClEBXxAt
+         5vnDufgeuyChh/+FXDYK9QUa9+EzFoDnkbgB6RI81FN2Xb9YHIBcvcxTSSfp5WcxpeO9
+         QiKEgjm3Xm7vu6kEYIWFwybaMFgsyeXqBV5K81b+GWYHagE361Lg7JGIe2GjDp+X0fFg
+         AcVwxIlQnmpg7q1sAsU0ejqXBbf73UJcEQPjhRv8qFK9PmP42Q4zDOJFzSNzR8/bLxnI
+         iQZQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:reply-to
+         :from:date:message-id:subject:to:cc;
+        bh=2TSVfMnhT7SJL8aJySBCB2X+rytLQ5KjriPICMJNCuA=;
+        b=erQEzmRPN7k9/p39aJuucf2tRz7NRJmdGsQv1xi7pv6v6lbflxSxc2Rw+3MnAKMxFg
+         xGcen++iKer4BSOR5DaOnKM2Cl1shvdWYRGOOOehrMIc88D4jBtNBjVzHAo8nVAKWC8E
+         lXdAqETo8JIB4tWGBPsleWlEVnDDX/zFJIj37crMStnPc6gEpzQHaMUSoCLpyJ1yiEsD
+         mJVwvJZl/qQVAZaz3ikxBci44Ag2vPQuvBWj+j98DfBsJ6EC14j3tDEACEKRIBs5TMoj
+         E4chSMg7fUGTM4fNPu6fNBXY4K9E7EKIf8yqzW7eFu2IJ2shYO4AsClIhJG/ovGSwCb+
+         POTw==
+X-Gm-Message-State: AOAM532R0NOD2fLLvOMQZYQLjILm3ypC9ja2QXzv9ev3zkOwY/2Exl7d
+        t1qPh3IzoTxFRiqJGqCq1btvP2S1OB48nPAZUZ5gUCpar0KW+Q==
+X-Google-Smtp-Source: ABdhPJwrYXJjs33T4TojfbQp76hLJz5njsBp8ZBlufhyWurJJOFCwaE4Kzu11MTJ2tkgPurhBf1Rk432U4lVrEwH2LQ=
+X-Received: by 2002:a5e:c10b:: with SMTP id v11mr3939134iol.75.1614280431094;
+ Thu, 25 Feb 2021 11:13:51 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+References: <20210205202220.2748551-1-ndesaulniers@google.com>
+In-Reply-To: <20210205202220.2748551-1-ndesaulniers@google.com>
+Reply-To: sedat.dilek@gmail.com
+From:   Sedat Dilek <sedat.dilek@gmail.com>
+Date:   Thu, 25 Feb 2021 20:13:39 +0100
+Message-ID: <CA+icZUWDCz-7ZqqXWBq4K+EcKaqbThDD2XAUOhkGwUFVnfWd3w@mail.gmail.com>
+Subject: Re: [PATCH v9 0/3] Kbuild: DWARF v5 support
+To:     Nick Desaulniers <ndesaulniers@google.com>
+Cc:     Masahiro Yamada <masahiroy@kernel.org>,
+        Nathan Chancellor <natechancellor@gmail.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        linux-kernel@vger.kernel.org,
+        Clang-Built-Linux ML <clang-built-linux@googlegroups.com>,
+        linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org,
+        Jakub Jelinek <jakub@redhat.com>,
+        Fangrui Song <maskray@google.com>,
+        Caroline Tice <cmtice@google.com>,
+        Nick Clifton <nickc@redhat.com>, Yonghong Song <yhs@fb.com>,
+        Jiri Olsa <jolsa@kernel.org>,
+        Andrii Nakryiko <andrii@kernel.org>,
+        Arnaldo Carvalho de Melo <acme@kernel.org>,
+        Arvind Sankar <nivedita@alum.mit.edu>,
+        Chris Murphy <bugzilla@colorremedies.com>,
+        Mark Wielaard <mark@klomp.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Mickaël Salaün <mic@linux.microsoft.com>
+On Fri, Feb 5, 2021 at 9:22 PM Nick Desaulniers <ndesaulniers@google.com> wrote:
+>
+> DWARF v5 is the latest standard of the DWARF debug info format.
+>
+> DWARF5 wins significantly in terms of size and especially so when mixed
+> with compression (CONFIG_DEBUG_INFO_COMPRESSED).
+>
+> Link: http://www.dwarfstd.org/doc/DWARF5.pdf
+>
 
-Wire up the following system calls for all architectures:
-* landlock_create_ruleset(2)
-* landlock_add_rule(2)
-* landlock_restrict_self(2)
+Accepted into mainline via kbuild-v5.12.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: James Morris <jmorris@namei.org>
-Cc: Jann Horn <jannh@google.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Serge E. Hallyn <serge@hallyn.com>
-Signed-off-by: Mickaël Salaün <mic@linux.microsoft.com>
-Link: https://lore.kernel.org/r/20210225190614.2181147-10-mic@digikod.net
----
+- Sedat -
 
-Changes since v27:
-* Rename landlock_enforce_ruleset_self(2) to landlock_restrict_self(2).
-* Cosmetic fix: align TBL enries.
+[1] https://git.kernel.org/linus/6fbd6cf85a3be127454a1ad58525a3adcf8612ab
 
-Changes since v26:
-* Rename landlock_enforce_ruleset_current(2) to
-  landlock_enforce_ruleset_self(2).
-
-Changes since v25:
-* Rebase and leave space for the new epoll_pwait2(2) and memfd_secret(2)
-  from -next.
-
-Changes since v21:
-* Rebase and leave space for watch_mount(2) from -next.
-
-Changes since v20:
-* Remove landlock_get_features(2).
-* Decrease syscall numbers to stick to process_madvise(2) in -next.
-* Rename landlock_enforce_ruleset(2) to
-  landlock_enforce_ruleset_current(2).
-
-Changes since v19:
-* Increase syscall numbers by 4 to leave space for new ones (in
-  linux-next): watch_mount(2), watch_sb(2), fsinfo(2) and
-  process_madvise(2) (requested by Arnd Bergmann).
-* Replace the previous multiplexor landlock(2) with 4 syscalls:
-  landlock_get_features(2), landlock_create_ruleset(2),
-  landlock_add_rule(2) and landlock_enforce_ruleset(2).
-
-Changes since v18:
-* Increase the syscall number because of the new faccessat2(2).
-
-Changes since v14:
-* Add all architectures.
-
-Changes since v13:
-* New implementation.
----
- arch/alpha/kernel/syscalls/syscall.tbl      | 3 +++
- arch/arm/tools/syscall.tbl                  | 3 +++
- arch/arm64/include/asm/unistd.h             | 2 +-
- arch/arm64/include/asm/unistd32.h           | 6 ++++++
- arch/ia64/kernel/syscalls/syscall.tbl       | 3 +++
- arch/m68k/kernel/syscalls/syscall.tbl       | 3 +++
- arch/microblaze/kernel/syscalls/syscall.tbl | 3 +++
- arch/mips/kernel/syscalls/syscall_n32.tbl   | 3 +++
- arch/mips/kernel/syscalls/syscall_n64.tbl   | 3 +++
- arch/mips/kernel/syscalls/syscall_o32.tbl   | 3 +++
- arch/parisc/kernel/syscalls/syscall.tbl     | 3 +++
- arch/powerpc/kernel/syscalls/syscall.tbl    | 3 +++
- arch/s390/kernel/syscalls/syscall.tbl       | 3 +++
- arch/sh/kernel/syscalls/syscall.tbl         | 3 +++
- arch/sparc/kernel/syscalls/syscall.tbl      | 3 +++
- arch/x86/entry/syscalls/syscall_32.tbl      | 3 +++
- arch/x86/entry/syscalls/syscall_64.tbl      | 3 +++
- arch/xtensa/kernel/syscalls/syscall.tbl     | 3 +++
- include/uapi/asm-generic/unistd.h           | 8 +++++++-
- 19 files changed, 62 insertions(+), 2 deletions(-)
-
-diff --git a/arch/alpha/kernel/syscalls/syscall.tbl b/arch/alpha/kernel/syscalls/syscall.tbl
-index a6617067dbe6..362995308f2f 100644
---- a/arch/alpha/kernel/syscalls/syscall.tbl
-+++ b/arch/alpha/kernel/syscalls/syscall.tbl
-@@ -481,3 +481,6 @@
- 549	common	faccessat2			sys_faccessat2
- 550	common	process_madvise			sys_process_madvise
- 551	common	epoll_pwait2			sys_epoll_pwait2
-+554	common	landlock_create_ruleset		sys_landlock_create_ruleset
-+555	common	landlock_add_rule		sys_landlock_add_rule
-+556	common	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
-index 20e1170e2e0a..9952e8999e84 100644
---- a/arch/arm/tools/syscall.tbl
-+++ b/arch/arm/tools/syscall.tbl
-@@ -455,3 +455,6 @@
- 439	common	faccessat2			sys_faccessat2
- 440	common	process_madvise			sys_process_madvise
- 441	common	epoll_pwait2			sys_epoll_pwait2
-+444	common	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	common	landlock_add_rule		sys_landlock_add_rule
-+446	common	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-index 86a9d7b3eabe..727bfc3be99b 100644
---- a/arch/arm64/include/asm/unistd.h
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -38,7 +38,7 @@
- #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE + 5)
- #define __ARM_NR_COMPAT_END		(__ARM_NR_COMPAT_BASE + 0x800)
- 
--#define __NR_compat_syscalls		442
-+#define __NR_compat_syscalls		447
- #endif
- 
- #define __ARCH_WANT_SYS_CLONE
-diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
-index cccfbbefbf95..d4a4b0212d95 100644
---- a/arch/arm64/include/asm/unistd32.h
-+++ b/arch/arm64/include/asm/unistd32.h
-@@ -891,6 +891,12 @@ __SYSCALL(__NR_faccessat2, sys_faccessat2)
- __SYSCALL(__NR_process_madvise, sys_process_madvise)
- #define __NR_epoll_pwait2 441
- __SYSCALL(__NR_epoll_pwait2, compat_sys_epoll_pwait2)
-+#define __NR_landlock_create_ruleset 444
-+__SYSCALL(__NR_landlock_create_ruleset, sys_landlock_create_ruleset)
-+#define __NR_landlock_add_rule 445
-+__SYSCALL(__NR_landlock_add_rule, sys_landlock_add_rule)
-+#define __NR_landlock_restrict_self 446
-+__SYSCALL(__NR_landlock_restrict_self, sys_landlock_restrict_self)
- 
- /*
-  * Please add new compat syscalls above this comment and update
-diff --git a/arch/ia64/kernel/syscalls/syscall.tbl b/arch/ia64/kernel/syscalls/syscall.tbl
-index bfc00f2bd437..8c3a78ab7452 100644
---- a/arch/ia64/kernel/syscalls/syscall.tbl
-+++ b/arch/ia64/kernel/syscalls/syscall.tbl
-@@ -362,3 +362,6 @@
- 439	common	faccessat2			sys_faccessat2
- 440	common	process_madvise			sys_process_madvise
- 441	common	epoll_pwait2			sys_epoll_pwait2
-+444	common	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	common	landlock_add_rule		sys_landlock_add_rule
-+446	common	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/m68k/kernel/syscalls/syscall.tbl b/arch/m68k/kernel/syscalls/syscall.tbl
-index 7fe4e45c864c..e6031010de80 100644
---- a/arch/m68k/kernel/syscalls/syscall.tbl
-+++ b/arch/m68k/kernel/syscalls/syscall.tbl
-@@ -441,3 +441,6 @@
- 439	common	faccessat2			sys_faccessat2
- 440	common	process_madvise			sys_process_madvise
- 441	common	epoll_pwait2			sys_epoll_pwait2
-+444	common	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	common	landlock_add_rule		sys_landlock_add_rule
-+446	common	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/microblaze/kernel/syscalls/syscall.tbl b/arch/microblaze/kernel/syscalls/syscall.tbl
-index a522adf194ab..3a65c43a12d3 100644
---- a/arch/microblaze/kernel/syscalls/syscall.tbl
-+++ b/arch/microblaze/kernel/syscalls/syscall.tbl
-@@ -447,3 +447,6 @@
- 439	common	faccessat2			sys_faccessat2
- 440	common	process_madvise			sys_process_madvise
- 441	common	epoll_pwait2			sys_epoll_pwait2
-+444	common	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	common	landlock_add_rule		sys_landlock_add_rule
-+446	common	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/mips/kernel/syscalls/syscall_n32.tbl b/arch/mips/kernel/syscalls/syscall_n32.tbl
-index 0f03ad223f33..ee30d85a4d56 100644
---- a/arch/mips/kernel/syscalls/syscall_n32.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_n32.tbl
-@@ -380,3 +380,6 @@
- 439	n32	faccessat2			sys_faccessat2
- 440	n32	process_madvise			sys_process_madvise
- 441	n32	epoll_pwait2			compat_sys_epoll_pwait2
-+444	n32	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	n32	landlock_add_rule		sys_landlock_add_rule
-+446	n32	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/mips/kernel/syscalls/syscall_n64.tbl b/arch/mips/kernel/syscalls/syscall_n64.tbl
-index 91649690b52f..1d9be24211c4 100644
---- a/arch/mips/kernel/syscalls/syscall_n64.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_n64.tbl
-@@ -356,3 +356,6 @@
- 439	n64	faccessat2			sys_faccessat2
- 440	n64	process_madvise			sys_process_madvise
- 441	n64	epoll_pwait2			sys_epoll_pwait2
-+444	n64	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	n64	landlock_add_rule		sys_landlock_add_rule
-+446	n64	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/mips/kernel/syscalls/syscall_o32.tbl b/arch/mips/kernel/syscalls/syscall_o32.tbl
-index 4bad0c40aed6..4c11606099b9 100644
---- a/arch/mips/kernel/syscalls/syscall_o32.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_o32.tbl
-@@ -429,3 +429,6 @@
- 439	o32	faccessat2			sys_faccessat2
- 440	o32	process_madvise			sys_process_madvise
- 441	o32	epoll_pwait2			sys_epoll_pwait2		compat_sys_epoll_pwait2
-+444	o32	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	o32	landlock_add_rule		sys_landlock_add_rule
-+446	o32	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
-index 6bcc31966b44..357251a1d5fd 100644
---- a/arch/parisc/kernel/syscalls/syscall.tbl
-+++ b/arch/parisc/kernel/syscalls/syscall.tbl
-@@ -439,3 +439,6 @@
- 439	common	faccessat2			sys_faccessat2
- 440	common	process_madvise			sys_process_madvise
- 441	common	epoll_pwait2			sys_epoll_pwait2		compat_sys_epoll_pwait2
-+444	common	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	common	landlock_add_rule		sys_landlock_add_rule
-+446	common	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/powerpc/kernel/syscalls/syscall.tbl b/arch/powerpc/kernel/syscalls/syscall.tbl
-index f744eb5cba88..c2410e5c3d12 100644
---- a/arch/powerpc/kernel/syscalls/syscall.tbl
-+++ b/arch/powerpc/kernel/syscalls/syscall.tbl
-@@ -531,3 +531,6 @@
- 439	common	faccessat2			sys_faccessat2
- 440	common	process_madvise			sys_process_madvise
- 441	common	epoll_pwait2			sys_epoll_pwait2		compat_sys_epoll_pwait2
-+444	common	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	common	landlock_add_rule		sys_landlock_add_rule
-+446	common	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/s390/kernel/syscalls/syscall.tbl b/arch/s390/kernel/syscalls/syscall.tbl
-index d443423495e5..223c54f07c7f 100644
---- a/arch/s390/kernel/syscalls/syscall.tbl
-+++ b/arch/s390/kernel/syscalls/syscall.tbl
-@@ -444,3 +444,6 @@
- 439  common	faccessat2		sys_faccessat2			sys_faccessat2
- 440  common	process_madvise		sys_process_madvise		sys_process_madvise
- 441  common	epoll_pwait2		sys_epoll_pwait2		compat_sys_epoll_pwait2
-+444  common	landlock_create_ruleset	sys_landlock_create_ruleset	sys_landlock_create_ruleset
-+445  common	landlock_add_rule	sys_landlock_add_rule		sys_landlock_add_rule
-+446  common	landlock_restrict_self	sys_landlock_restrict_self	sys_landlock_restrict_self
-diff --git a/arch/sh/kernel/syscalls/syscall.tbl b/arch/sh/kernel/syscalls/syscall.tbl
-index 9df40ac0ebc0..dccb0375dac2 100644
---- a/arch/sh/kernel/syscalls/syscall.tbl
-+++ b/arch/sh/kernel/syscalls/syscall.tbl
-@@ -444,3 +444,6 @@
- 439	common	faccessat2			sys_faccessat2
- 440	common	process_madvise			sys_process_madvise
- 441	common	epoll_pwait2			sys_epoll_pwait2
-+444	common	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	common	landlock_add_rule		sys_landlock_add_rule
-+446	common	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/sparc/kernel/syscalls/syscall.tbl b/arch/sparc/kernel/syscalls/syscall.tbl
-index 40d8c7cd8298..12e0ff1b4b5f 100644
---- a/arch/sparc/kernel/syscalls/syscall.tbl
-+++ b/arch/sparc/kernel/syscalls/syscall.tbl
-@@ -487,3 +487,6 @@
- 439	common	faccessat2			sys_faccessat2
- 440	common	process_madvise			sys_process_madvise
- 441	common	epoll_pwait2			sys_epoll_pwait2		compat_sys_epoll_pwait2
-+444	common	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	common	landlock_add_rule		sys_landlock_add_rule
-+446	common	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index 874aeacde2dd..ccffc9e15369 100644
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -446,3 +446,6 @@
- 439	i386	faccessat2		sys_faccessat2
- 440	i386	process_madvise		sys_process_madvise
- 441	i386	epoll_pwait2		sys_epoll_pwait2		compat_sys_epoll_pwait2
-+444	i386	landlock_create_ruleset	sys_landlock_create_ruleset
-+445	i386	landlock_add_rule	sys_landlock_add_rule
-+446	i386	landlock_restrict_self	sys_landlock_restrict_self
-diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-index 78672124d28b..3b86f33306e3 100644
---- a/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -363,6 +363,9 @@
- 439	common	faccessat2		sys_faccessat2
- 440	common	process_madvise		sys_process_madvise
- 441	common	epoll_pwait2		sys_epoll_pwait2
-+444	common	landlock_create_ruleset	sys_landlock_create_ruleset
-+445	common	landlock_add_rule	sys_landlock_add_rule
-+446	common	landlock_restrict_self	sys_landlock_restrict_self
- 
- #
- # Due to a historical design error, certain syscalls are numbered differently
-diff --git a/arch/xtensa/kernel/syscalls/syscall.tbl b/arch/xtensa/kernel/syscalls/syscall.tbl
-index 46116a28eeed..6f0ba2369280 100644
---- a/arch/xtensa/kernel/syscalls/syscall.tbl
-+++ b/arch/xtensa/kernel/syscalls/syscall.tbl
-@@ -412,3 +412,6 @@
- 439	common	faccessat2			sys_faccessat2
- 440	common	process_madvise			sys_process_madvise
- 441	common	epoll_pwait2			sys_epoll_pwait2
-+444	common	landlock_create_ruleset		sys_landlock_create_ruleset
-+445	common	landlock_add_rule		sys_landlock_add_rule
-+446	common	landlock_restrict_self		sys_landlock_restrict_self
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 728752917785..1351ee0da3d3 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -861,9 +861,15 @@ __SYSCALL(__NR_faccessat2, sys_faccessat2)
- __SYSCALL(__NR_process_madvise, sys_process_madvise)
- #define __NR_epoll_pwait2 441
- __SC_COMP(__NR_epoll_pwait2, sys_epoll_pwait2, compat_sys_epoll_pwait2)
-+#define __NR_landlock_create_ruleset 444
-+__SYSCALL(__NR_landlock_create_ruleset, sys_landlock_create_ruleset)
-+#define __NR_landlock_add_rule 445
-+__SYSCALL(__NR_landlock_add_rule, sys_landlock_add_rule)
-+#define __NR_landlock_restrict_self 446
-+__SYSCALL(__NR_landlock_restrict_self, sys_landlock_restrict_self)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 442
-+#define __NR_syscalls 447
- 
- /*
-  * 32 bit systems traditionally used different
--- 
-2.30.0
-
+> Patch 1 places the DWARF v5 sections explicitly in the kernel linker
+> script.
+> Patch 2 modifies Kconfig for DEBUG_INFO_DWARF4 to be used as a fallback.
+> Patch 3 adds an explicit Kconfig for DWARF v5 for clang and older GCC
+> where the implicit default DWARF version is not 5.
+>
+> Changes from v8:
+> * Separate out the linker script changes (from v7 0002). Put those
+>   first. Carry Reviewed by and tested by tags.  Least contentious part
+>   of the series. Tagged for stable; otherwise users upgrading to GCC 11
+>   may find orphan section warnings from the implicit default DWARF
+>   version changing and generating the new debug info sections.
+> * Add CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT in 0002, make it the
+>   default rather than CONFIG_DEBUG_INFO_DWARF4, as per Mark, Jakub,
+>   Arvind.
+> * Drop reviewed by and tested by tags for 0002 and 0003; sorry
+>   reviewers/testers, but I view that as a big change. I will buy you
+>   beers if you're fatigued, AND for the help so far. I appreciate you.
+> * Rework commit one lines, and commit messages somewhat.
+> * Remove Kconfig help text about v4 being "bigger."
+> * I didn't touch the BTF config from v8, but suggest the BTF folks
+>   consider
+>   https://lore.kernel.org/bpf/20210111180609.713998-1-natechancellor@gmail.com/
+>   that way we can express via Kconfig that older version of pahole are
+>   in conflict with other Kconfig options.
+>
+> Changes from v7:
+> (Strictly commit message changes)
+> * Pick up Nathan's reviewed by tags for both patches.
+> * Add note about only modifying compiler dwarf info, not assembler dwarf
+>   info, as per Nathan.
+> * Add link to Red Hat bug report and Chris' reported by on patch 2.
+> * Add more info from Jakub on patch 2 commit message.
+> * Reorder info about validating version, noting the tree is not "clean"
+>   in the sense that parts mess up existing CFLAGS, or don't use
+>   DEBUG_CFLAGS. I will not be adding such cleanups to this series. They
+>   can be done AFTER.
+> * Update note about 2.35.2 (rather than include the full text Jakub
+>   wrote on it in https://patchwork.kernel.org/project/linux-kbuild/patch/20201022012106.1875129-1-ndesaulniers@google.com/#23727667).
+> * Add note that GCC 11 has changed the implicit default version.
+>
+> Changes from v6:
+> * Reorder sections from linker script to match order from BFD's internal
+>   linker script.
+> * Add .debug_names section, as per Fangrui.
+> * Drop CONFIG_DEBUG_INFO_DWARF2. Patch 0001 becomes a menu with 1
+>   choice. GCC's implicit default version of DWARF has been DWARF v4
+>   since ~4.8.
+> * Modify the test script to check for the presence of
+>   https://sourceware.org/bugzilla/show_bug.cgi?id=27195.
+> * Drop the clang without integrated assembler block in
+>   0002. Bumps the version requirement for GAS to 2.35.2, which isn't
+>   released yet (but should be released soon).  Folks looking to test
+>   with clang but without the integrated assembler should fetch
+>   binutils-gdb, build it from source, add a symlink to
+>   binutils-gdb/gas/as-new to binutils-gdb/gas/as, then prefix
+>   binutils-gdb/gas/as to their $PATH when building the kernel.
+>
+> Changes from v5:
+> * Drop previous patch 1, it has been accepted into kbuild:
+>   https://git.kernel.org/pub/scm/linux/kernel/git/masahiroy/linux-kbuild.git/commit/?h=kbuild&id=3f4d8ce271c7082be75bacbcbd2048aa78ce2b44
+> * Trying to set -Wa,-gdwarf-4 in the earlier patch was the source of
+>   additional complexity. Drop it that part of the patch. We can revisit
+>   clang without the integrated assembler setting -Wa,-gdwarf-4 later.
+>   That is a separate problem from generally supporting DWARF v5.
+> * Rework the final patch for clang without the integrated assembler.
+>   -Wa,-gdwarf-5 is required for DWARF5 in that case otherwise GAS will
+>   not accept the assembler directives clang produces from C code when
+>   generating asm.
+>
+> Changes from v4:
+> * drop set -e from script as per Nathan.
+> * add dependency on !CONFIG_DEBUG_INFO_BTF for DWARF v5 as per Sedat.
+> * Move LLVM_IAS=1 complexity from patch 2 to patch 3 as per Arvind and
+>   Masahiro. Sorry it took me a few tries to understand the point (I
+>   might still not), but it looks much cleaner this way. Sorry Nathan, I
+>   did not carry forward your previous reviews as a result, but I would
+>   appreciate if you could look again.
+> * Add Nathan's reviewed by tag to patch 1.
+> * Reword commit message for patch 3 to mention LLVM_IAS=1 and -gdwarf-5
+>   binutils addition later, and BTF issue.
+> * I still happen to see a pahole related error spew for the combination
+>   of:
+>   * LLVM=1
+>   * LLVM_IAS=1
+>   * CONFIG_DEBUG_INFO_DWARF4
+>   * CONFIG_DEBUG_INFO_BTF
+>   Though they're non-fatal to the build. I'm not sure yet why removing
+>   any one of the above prevents the warning spew. Maybe we'll need a v6.
+>
+> Changes from v3:
+>
+> Changes as per Arvind:
+> * only add -Wa,-gdwarf-5 for (LLVM=1|CC=clang)+LLVM_IAS=0 builds.
+> * add -gdwarf-5 to Kconfig shell script.
+> * only run Kconfig shell script for Clang.
+>
+> Apologies to Sedat and Nathan; I appreciate previous testing/review, but
+> I did no carry forward your Tested-by and Reviewed-by tags, as the
+> patches have changed too much IMO.
+>
+> Changes from v2:
+> * Drop two of the earlier patches that have been accepted already.
+> * Add measurements with GCC 10.2 to commit message.
+> * Update help text as per Arvind with help from Caroline.
+> * Improve case/wording between DWARF Versions as per Masahiro.
+>
+> Changes from the RFC:
+> * split patch in 3 patch series, include Fangrui's patch, too.
+> * prefer `DWARF vX` format, as per Fangrui.
+> * use spaces between assignment in Makefile as per Masahiro.
+> * simplify setting dwarf-version-y as per Masahiro.
+> * indent `prompt` in Kconfig change as per Masahiro.
+> * remove explicit default in Kconfig as per Masahiro.
+> * add comments to test_dwarf5_support.sh.
+> * change echo in test_dwarf5_support.sh as per Masahiro.
+> * remove -u from test_dwarf5_support.sh as per Masahiro.
+> * add a -gdwarf-5 cc-option check to Kconfig as per Jakub.
+>
+> Nick Desaulniers (3):
+>   vmlinux.lds.h: add DWARF v5 sections
+>   Kbuild: make DWARF version a choice
+>   Kconfig: allow explicit opt in to DWARF v5
+>
+>  Makefile                          |  6 ++--
+>  include/asm-generic/vmlinux.lds.h |  7 ++++-
+>  lib/Kconfig.debug                 | 48 +++++++++++++++++++++++++++----
+>  scripts/test_dwarf5_support.sh    |  8 ++++++
+>  4 files changed, 61 insertions(+), 8 deletions(-)
+>  create mode 100755 scripts/test_dwarf5_support.sh
+>
+> --
+> 2.30.0.365.g02bc693789-goog
+>
