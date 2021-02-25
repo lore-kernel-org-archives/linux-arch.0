@@ -2,155 +2,99 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 71AF1C43381
-	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 16:05:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DC5B9C433E0
+	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 17:20:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2D2E964ECE
-	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 16:05:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A88F464F19
+	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 17:20:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233242AbhBYQFb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 25 Feb 2021 11:05:31 -0500
-Received: from conuserg-12.nifty.com ([210.131.2.79]:53233 "EHLO
-        conuserg-12.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233207AbhBYQFB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Feb 2021 11:05:01 -0500
-Received: from oscar.flets-west.jp (softbank126026090165.bbtec.net [126.26.90.165]) (authenticated)
-        by conuserg-12.nifty.com with ESMTP id 11PG2sqH028425;
-        Fri, 26 Feb 2021 01:02:55 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-12.nifty.com 11PG2sqH028425
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1614268975;
-        bh=kD6YYQcfazkFFrleiT3XOphcGqp8KWUK68CUpacxPEc=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=FH+djl+aoq0KwOxV5O+3XLczQhmeYEdHT+Rapnrd04mkFZGwsg1Qd9Co+eCE7sRD1
-         NEK5pEpGaq679ElSocJZSnj+Dy4HfnmFC1VFyYVok2BZDwfXhmXZJHlY7BQEeWpcfA
-         tIdRxYq/DI9OHfG1EwnVf33iHbGHMK3tJqCYSJW7XKuDP41caqlTuIAttYSg+pZ3nd
-         CZC2ycG83FHq8Fue19zcn6ZPWRhm4LOxgSRXq/5Bgq4WfKxzSSQusZx1mR8hpinKa5
-         46zsngJALHGMOS5xQtffu6ev/dAOVwEdDuwPIZR9cvgFL0+F3m8OeZ4AhlduthkY/J
-         e9a+KmHYLJ81A==
-X-Nifty-SrcIP: [126.26.90.165]
-From:   Masahiro Yamada <masahiroy@kernel.org>
-To:     linux-kbuild@vger.kernel.org
-Cc:     Christoph Hellwig <hch@lst.de>,
+        id S229566AbhBYRUV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 25 Feb 2021 12:20:21 -0500
+Received: from pb-smtp2.pobox.com ([64.147.108.71]:50724 "EHLO
+        pb-smtp2.pobox.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229491AbhBYRUV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Feb 2021 12:20:21 -0500
+Received: from pb-smtp2.pobox.com (unknown [127.0.0.1])
+        by pb-smtp2.pobox.com (Postfix) with ESMTP id 6399C9E9D8;
+        Thu, 25 Feb 2021 12:19:38 -0500 (EST)
+        (envelope-from nico@fluxnic.net)
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed; d=pobox.com; h=date:from:to
+        :cc:subject:in-reply-to:message-id:references:mime-version
+        :content-type; s=sasl; bh=23dtnOUfzLyDX+KW1V2mmBc/9V0=; b=H4Brws
+        TZSHzddWSKivCGfqVGCqQ88W3DJggqpWSJQLjEH8HQsMhD2So5e5QmQkCPYj8iCy
+        iFnpbqKYcjtW7Kdz12+s0V3KoFN+LrWYhWM7Qyc++gTHWp5Rl0StNAGNuyX4GYzr
+        LBaQOjTiXI6bMum7/n32YuGBTJP4WakTEyfEk=
+Received: from pb-smtp2.nyi.icgroup.com (unknown [127.0.0.1])
+        by pb-smtp2.pobox.com (Postfix) with ESMTP id 5C07A9E9D6;
+        Thu, 25 Feb 2021 12:19:38 -0500 (EST)
+        (envelope-from nico@fluxnic.net)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed; d=fluxnic.net;
+ h=date:from:to:cc:subject:in-reply-to:message-id:references:mime-version:content-type; s=2016-12.pbsmtp; bh=n8NygWpegxhLZX877LB3tSwxmKQuyH4sXRAP1vuz7oQ=; b=hh7xvP+hjmn279jUavnDgocmjN/Z3vnhifsJ+CMWWGXDAT6HUHjaX48/Z22fz89en00mXpoHOTRL70JxhT0wCrJT7XPEuQQSs1plC8SJ+ytH0T/AOC8/qLuOkW6UtVssSfvn3qx6jhQndnDdLLjsPHjR8ZrhjxcyY3YEyhRzpDE=
+Received: from yoda.home (unknown [24.203.50.76])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by pb-smtp2.pobox.com (Postfix) with ESMTPSA id C11A89E9D5;
+        Thu, 25 Feb 2021 12:19:37 -0500 (EST)
+        (envelope-from nico@fluxnic.net)
+Received: from xanadu.home (xanadu.home [192.168.2.2])
+        by yoda.home (Postfix) with ESMTPSA id C5C622DA0082;
+        Thu, 25 Feb 2021 12:19:36 -0500 (EST)
+Date:   Thu, 25 Feb 2021 12:19:36 -0500 (EST)
+From:   Nicolas Pitre <nico@fluxnic.net>
+To:     Masahiro Yamada <masahiroy@kernel.org>
+cc:     linux-kbuild@vger.kernel.org, Christoph Hellwig <hch@lst.de>,
         Linus Torvalds <torvalds@linux-foundation.org>,
-        Jessica Yu <jeyu@kernel.org>, Nicolas Pitre <nico@fluxnic.net>,
+        Jessica Yu <jeyu@kernel.org>,
         Sami Tolvanen <samitolvanen@google.com>,
-        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 1/4] kbuild: fix UNUSED_KSYMS_WHITELIST for Clang LTO
-Date:   Fri, 26 Feb 2021 01:02:43 +0900
-Message-Id: <20210225160247.2959903-2-masahiroy@kernel.org>
-X-Mailer: git-send-email 2.27.0
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [PATCH 0/4] kbuild: build speed improvment of
+ CONFIG_TRIM_UNUSED_KSYMS
 In-Reply-To: <20210225160247.2959903-1-masahiroy@kernel.org>
+Message-ID: <r3584n3-sq21-qo49-9sp5-r3qp6o611s55@syhkavp.arg>
 References: <20210225160247.2959903-1-masahiroy@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
+X-Pobox-Relay-ID: A343518A-778D-11EB-8355-74DE23BA3BAF-78420484!pb-smtp2.pobox.com
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Commit fbe078d397b4 ("kbuild: lto: add a default list of used symbols")
-does not work as expected if the .config file has already specified
-CONFIG_UNUSED_KSYMS_WHITELIST="my/own/white/list" before enabling
-CONFIG_LTO_CLANG.
+On Fri, 26 Feb 2021, Masahiro Yamada wrote:
 
-So, the user-supplied whitelist and LTO-specific white list must be
-independent of each other.
+> 
+> Now CONFIG_TRIM_UNUSED_KSYMS is revived, but Linus is still unhappy
+> about the build speed.
+> 
+> I re-implemented this feature, and the build time cost is now
+> almost unnoticeable level.
+> 
+> I hope this makes Linus happy.
 
-I refactored the shell script so CONFIG_MODVERSIONS and CONFIG_CLANG_LTO
-handle whitelists in the same way.
+:-)
 
-Fixes: fbe078d397b4 ("kbuild: lto: add a default list of used symbols")
-Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
----
+I'm surprised to see that Linus is using this feature. When disabled 
+(the default) this should have had no impact on the build time.
 
- init/Kconfig                    |  1 -
- scripts/gen_autoksyms.sh        | 33 ++++++++++++++++++++++++---------
- scripts/lto-used-symbollist.txt |  5 -----
- 3 files changed, 24 insertions(+), 15 deletions(-)
- delete mode 100644 scripts/lto-used-symbollist.txt
+This feature provides a nice security advantage by significantly 
+reducing the kernel input surface. And people are using that also to 
+better what third party vendor can and cannot do with a distro kernel, 
+etc. But that's not the reason why I implemented this feature in the 
+first place.
 
-diff --git a/init/Kconfig b/init/Kconfig
-index 0bf5b340b80e..351161326e3c 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -2277,7 +2277,6 @@ config TRIM_UNUSED_KSYMS
- config UNUSED_KSYMS_WHITELIST
- 	string "Whitelist of symbols to keep in ksymtab"
- 	depends on TRIM_UNUSED_KSYMS
--	default "scripts/lto-used-symbollist.txt" if LTO_CLANG
- 	help
- 	  By default, all unused exported symbols will be un-exported from the
- 	  build when TRIM_UNUSED_KSYMS is selected.
-diff --git a/scripts/gen_autoksyms.sh b/scripts/gen_autoksyms.sh
-index d54dfba15bf2..b74d5949fea6 100755
---- a/scripts/gen_autoksyms.sh
-+++ b/scripts/gen_autoksyms.sh
-@@ -19,7 +19,24 @@ esac
- # We need access to CONFIG_ symbols
- . include/config/auto.conf
- 
--ksym_wl=/dev/null
-+needed_symbols=
-+
-+# Special case for modversions (see modpost.c)
-+if [ -n "$CONFIG_MODVERSIONS" ]; then
-+	needed_symbols="$needed_symbols module_layout"
-+fi
-+
-+# With CONFIG_LTO_CLANG, LLVM bitcode has not yet been compiled into a binary
-+# when the .mod files are generated, which means they don't yet contain
-+# references to certain symbols that will be present in the final binaries.
-+if [ -n "$CONFIG_LTO_CLANG" ]; then
-+	# intrinsic functions
-+	needed_symbols="$needed_symbols memcpy memmove memset"
-+	# stack protector symbols
-+	needed_symbols="$needed_symbols __stack_chk_fail __stack_chk_guard"
-+fi
-+
-+ksym_wl=
- if [ -n "$CONFIG_UNUSED_KSYMS_WHITELIST" ]; then
- 	# Use 'eval' to expand the whitelist path and check if it is relative
- 	eval ksym_wl="$CONFIG_UNUSED_KSYMS_WHITELIST"
-@@ -40,16 +57,14 @@ cat > "$output_file" << EOT
- EOT
- 
- [ -f modules.order ] && modlist=modules.order || modlist=/dev/null
--sed 's/ko$/mod/' $modlist |
--xargs -n1 sed -n -e '2{s/ /\n/g;/^$/!p;}' -- |
--cat - "$ksym_wl" |
-+
-+{
-+	sed 's/ko$/mod/' $modlist | xargs -n1 sed -n -e '2p'
-+	echo "$needed_symbols"
-+	[ -n "$ksym_wl" ] && cat "$ksym_wl"
-+} | sed -e 's/ /\n/g' | sed -n -e '/^$/!p' |
- # Remove the dot prefix for ppc64; symbol names with a dot (.) hold entry
- # point addresses.
- sed -e 's/^\.//' |
- sort -u |
- sed -e 's/\(.*\)/#define __KSYM_\1 1/' >> "$output_file"
--
--# Special case for modversions (see modpost.c)
--if [ -n "$CONFIG_MODVERSIONS" ]; then
--	echo "#define __KSYM_module_layout 1" >> "$output_file"
--fi
-diff --git a/scripts/lto-used-symbollist.txt b/scripts/lto-used-symbollist.txt
-deleted file mode 100644
-index 38e7bb9ebaae..000000000000
---- a/scripts/lto-used-symbollist.txt
-+++ /dev/null
-@@ -1,5 +0,0 @@
--memcpy
--memmove
--memset
--__stack_chk_fail
--__stack_chk_guard
--- 
-2.27.0
+My primary goal was to efficiently reduce the kernel binary size using 
+LTO even with kernel modules enabled. Each EXPORT_SYMBOL() created a 
+symbol dependency that prevented LTO from optimizing out the related 
+code even though a tiny fraction of those exported symbols were needed.
 
+The idea behind the recursion was to catch those cases where disabling 
+an exported symbol within a module would optimize out references to more 
+exported symbols that, in turn, could be disabled and possibly trigger 
+yet more code elimination. There is no way that can be achieved without 
+extra compiler passes in a recursive manner.
+
+
+Nicolas
