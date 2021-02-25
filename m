@@ -2,188 +2,597 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.0 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6D2A3C43381
-	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 19:14:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1950AC433E0
+	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 19:14:17 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2BD7A64F6F
-	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 19:14:06 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B5D7264F6B
+	for <linux-arch@archiver.kernel.org>; Thu, 25 Feb 2021 19:14:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233819AbhBYTN6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 25 Feb 2021 14:13:58 -0500
-Received: from conssluserg-02.nifty.com ([210.131.2.81]:35782 "EHLO
-        conssluserg-02.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234039AbhBYTK4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Feb 2021 14:10:56 -0500
-Received: from mail-pg1-f172.google.com (mail-pg1-f172.google.com [209.85.215.172]) (authenticated)
-        by conssluserg-02.nifty.com with ESMTP id 11PJ9Bkd013829;
-        Fri, 26 Feb 2021 04:09:11 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conssluserg-02.nifty.com 11PJ9Bkd013829
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1614280152;
-        bh=zg1EEkrl/wm9+TnhN4C32Tty7U9ZLaDHf5C7lX9aPew=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=1xgeBpZ3CUbQ/fWk3kKZX6sHSLKL2GUlmmPqnwen6i0bvDJXbDMJi+SC9qxhnGFtD
-         1b/enygjOZ0cgPYM3i6EdgaZA+tRPdhdovhhyYwwaICZmj1C6eqYZxT0mI0P17jhCA
-         dHpE2SFjRwvPAQCcqtf24ZWYPXqj6RbVIG5A3jwq2FTWLrPbDtarR3ZN6YwNTsVqUc
-         SEQuL2LlaERn1arlxOew3EPyR4EHUlnAj6BvsE/5nNnZTdn34dVTP7JQnm8CnNoJft
-         ECTLam3yIqCNGIN4OvnbqApPO6Er2xdJcnSrWwZwSRiiNCGklwFMBksm4oBapUVNDI
-         v4phVsR3VzxSw==
-X-Nifty-SrcIP: [209.85.215.172]
-Received: by mail-pg1-f172.google.com with SMTP id e6so4434429pgk.5;
-        Thu, 25 Feb 2021 11:09:11 -0800 (PST)
-X-Gm-Message-State: AOAM530LIJXf0ls4NimBqqsz7ijk80FY2D1OHV2uheiOl1autYyfvLei
-        X94zBw2C/mB9Tiqt3nVOA5GE+AIQ+x4s+hr50ns=
-X-Google-Smtp-Source: ABdhPJzS1WbAxMEt7joUmN9ZapNyyOeIYXnC+SmaepLH4w9wg3+sUyEHzRmu8OE6ooVIgiIVRH7yqtpc/I4PUKaelTE=
-X-Received: by 2002:a62:d454:0:b029:1ed:a6d6:539d with SMTP id
- u20-20020a62d4540000b02901eda6d6539dmr4660956pfl.63.1614280150840; Thu, 25
- Feb 2021 11:09:10 -0800 (PST)
+        id S233603AbhBYTOB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 25 Feb 2021 14:14:01 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56602 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S233755AbhBYTLD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Feb 2021 14:11:03 -0500
+Received: from smtp-8faa.mail.infomaniak.ch (smtp-8faa.mail.infomaniak.ch [IPv6:2001:1600:4:17::8faa])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 14CEFC0698C0
+        for <linux-arch@vger.kernel.org>; Thu, 25 Feb 2021 11:07:44 -0800 (PST)
+Received: from smtp-3-0001.mail.infomaniak.ch (unknown [10.4.36.108])
+        by smtp-3-3000.mail.infomaniak.ch (Postfix) with ESMTPS id 4Dmj0D27dbzMq3Y4;
+        Thu, 25 Feb 2021 20:05:00 +0100 (CET)
+Received: from localhost (unknown [23.97.221.149])
+        by smtp-3-0001.mail.infomaniak.ch (Postfix) with ESMTPA id 4Dmj0C6Vhjzlh8T8;
+        Thu, 25 Feb 2021 20:04:59 +0100 (CET)
+From:   =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
+To:     James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>,
+        "Serge E . Hallyn" <serge@hallyn.com>
+Cc:     =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Andy Lutomirski <luto@amacapital.net>,
+        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Casey Schaufler <casey@schaufler-ca.com>,
+        Jeff Dike <jdike@addtoit.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Richard Weinberger <richard@nod.at>,
+        Shuah Khan <shuah@kernel.org>,
+        Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>,
+        kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
+        linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-kselftest@vger.kernel.org,
+        linux-security-module@vger.kernel.org, x86@kernel.org,
+        John Johansen <john.johansen@canonical.com>,
+        =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@linux.microsoft.com>,
+        Stephen Smalley <stephen.smalley.work@gmail.com>
+Subject: [PATCH v29 05/12] LSM: Infrastructure management of the superblock
+Date:   Thu, 25 Feb 2021 20:06:07 +0100
+Message-Id: <20210225190614.2181147-6-mic@digikod.net>
+X-Mailer: git-send-email 2.30.0
+In-Reply-To: <20210225190614.2181147-1-mic@digikod.net>
+References: <20210225190614.2181147-1-mic@digikod.net>
 MIME-Version: 1.0
-References: <20210225160247.2959903-1-masahiroy@kernel.org>
- <20210225160247.2959903-2-masahiroy@kernel.org> <CABCJKufovCMH9iyA9hFjq1Pt4VNWEPid+rqNWtTvYPTC19LfeA@mail.gmail.com>
-In-Reply-To: <CABCJKufovCMH9iyA9hFjq1Pt4VNWEPid+rqNWtTvYPTC19LfeA@mail.gmail.com>
-From:   Masahiro Yamada <masahiroy@kernel.org>
-Date:   Fri, 26 Feb 2021 04:08:33 +0900
-X-Gmail-Original-Message-ID: <CAK7LNASVrpN2CoUZt7Yj++wTv2C1vMioA4nAZkHLrPkQGGLj9g@mail.gmail.com>
-Message-ID: <CAK7LNASVrpN2CoUZt7Yj++wTv2C1vMioA4nAZkHLrPkQGGLj9g@mail.gmail.com>
-Subject: Re: [PATCH 1/4] kbuild: fix UNUSED_KSYMS_WHITELIST for Clang LTO
-To:     Sami Tolvanen <samitolvanen@google.com>
-Cc:     linux-kbuild <linux-kbuild@vger.kernel.org>,
-        Christoph Hellwig <hch@lst.de>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Jessica Yu <jeyu@kernel.org>, Nicolas Pitre <nico@fluxnic.net>,
-        LKML <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Arnd Bergmann <arnd@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Feb 26, 2021 at 2:46 AM Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> Hi Masahiro,
->
-> On Thu, Feb 25, 2021 at 8:03 AM Masahiro Yamada <masahiroy@kernel.org> wrote:
-> >
-> > Commit fbe078d397b4 ("kbuild: lto: add a default list of used symbols")
-> > does not work as expected if the .config file has already specified
-> > CONFIG_UNUSED_KSYMS_WHITELIST="my/own/white/list" before enabling
-> > CONFIG_LTO_CLANG.
-> >
-> > So, the user-supplied whitelist and LTO-specific white list must be
-> > independent of each other.
-> >
-> > I refactored the shell script so CONFIG_MODVERSIONS and CONFIG_CLANG_LTO
-> > handle whitelists in the same way.
-> >
-> > Fixes: fbe078d397b4 ("kbuild: lto: add a default list of used symbols")
-> > Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
-> > ---
-> >
-> >  init/Kconfig                    |  1 -
-> >  scripts/gen_autoksyms.sh        | 33 ++++++++++++++++++++++++---------
-> >  scripts/lto-used-symbollist.txt |  5 -----
-> >  3 files changed, 24 insertions(+), 15 deletions(-)
-> >  delete mode 100644 scripts/lto-used-symbollist.txt
->
-> > +
-> > +ksym_wl=
-> >  if [ -n "$CONFIG_UNUSED_KSYMS_WHITELIST" ]; then
-> >         # Use 'eval' to expand the whitelist path and check if it is relative
-> >         eval ksym_wl="$CONFIG_UNUSED_KSYMS_WHITELIST"
-> > @@ -40,16 +57,14 @@ cat > "$output_file" << EOT
-> >  EOT
-> >
-> >  [ -f modules.order ] && modlist=modules.order || modlist=/dev/null
-> > -sed 's/ko$/mod/' $modlist |
-> > -xargs -n1 sed -n -e '2{s/ /\n/g;/^$/!p;}' -- |
-> > -cat - "$ksym_wl" |
-> > +
-> > +{
-> > +       sed 's/ko$/mod/' $modlist | xargs -n1 sed -n -e '2p'
-> > +       echo "$needed_symbols"
-> > +       [ -n "$ksym_wl" ] && cat "$ksym_wl"
-> > +} | sed -e 's/ /\n/g' | sed -n -e '/^$/!p' |
-> >  # Remove the dot prefix for ppc64; symbol names with a dot (.) hold entry
-> >  # point addresses.
-> >  sed -e 's/^\.//' |
-> >  sort -u |
-> >  sed -e 's/\(.*\)/#define __KSYM_\1 1/' >> "$output_file"
-> > -
-> > -# Special case for modversions (see modpost.c)
-> > -if [ -n "$CONFIG_MODVERSIONS" ]; then
-> > -       echo "#define __KSYM_module_layout 1" >> "$output_file"
-> > -fi
-> > diff --git a/scripts/lto-used-symbollist.txt b/scripts/lto-used-symbollist.txt
-> > deleted file mode 100644
-> > index 38e7bb9ebaae..000000000000
-> > --- a/scripts/lto-used-symbollist.txt
-> > +++ /dev/null
-> > @@ -1,5 +0,0 @@
-> > -memcpy
-> > -memmove
-> > -memset
-> > -__stack_chk_fail
-> > -__stack_chk_guard
-> > --
-> > 2.27.0
-> >
-> >
-> > diff --git a/init/Kconfig b/init/Kconfig
-> > index 0bf5b340b80e..351161326e3c 100644
-> > --- a/init/Kconfig
-> > +++ b/init/Kconfig
-> > @@ -2277,7 +2277,6 @@ config TRIM_UNUSED_KSYMS
-> >  config UNUSED_KSYMS_WHITELIST
-> >         string "Whitelist of symbols to keep in ksymtab"
-> >         depends on TRIM_UNUSED_KSYMS
-> > -       default "scripts/lto-used-symbollist.txt" if LTO_CLANG
-> >         help
-> >           By default, all unused exported symbols will be un-exported from the
-> >           build when TRIM_UNUSED_KSYMS is selected.
-> > diff --git a/scripts/gen_autoksyms.sh b/scripts/gen_autoksyms.sh
-> > index d54dfba15bf2..b74d5949fea6 100755
-> > --- a/scripts/gen_autoksyms.sh
-> > +++ b/scripts/gen_autoksyms.sh
-> > @@ -19,7 +19,24 @@ esac
-> >  # We need access to CONFIG_ symbols
-> >  . include/config/auto.conf
-> >
-> > -ksym_wl=/dev/null
-> > +needed_symbols=
-> > +
-> > +# Special case for modversions (see modpost.c)
-> > +if [ -n "$CONFIG_MODVERSIONS" ]; then
-> > +       needed_symbols="$needed_symbols module_layout"
-> > +fi
-> > +
-> > +# With CONFIG_LTO_CLANG, LLVM bitcode has not yet been compiled into a binary
-> > +# when the .mod files are generated, which means they don't yet contain
-> > +# references to certain symbols that will be present in the final binaries.
-> > +if [ -n "$CONFIG_LTO_CLANG" ]; then
-> > +       # intrinsic functions
-> > +       needed_symbols="$needed_symbols memcpy memmove memset"
-> > +       # stack protector symbols
-> > +       needed_symbols="$needed_symbols __stack_chk_fail __stack_chk_guard"
-> > +fi
->
-> Thank you for the patch!
->
-> Arnd just reported that _mcount is also needed with some
-> configurations. Would you mind including that in the next version?
->
-> https://lore.kernel.org/r/20210225143456.3829513-1-arnd@kernel.org/
+From: Casey Schaufler <casey@schaufler-ca.com>
 
-Sure, I can even pick it up
-although that patch was not addressed to me or kbuild ML.
+Move management of the superblock->sb_security blob out of the
+individual security modules and into the security infrastructure.
+Instead of allocating the blobs from within the modules, the modules
+tell the infrastructure how much space is required, and the space is
+allocated there.
 
+Cc: Kees Cook <keescook@chromium.org>
+Cc: John Johansen <john.johansen@canonical.com>
+Signed-off-by: Casey Schaufler <casey@schaufler-ca.com>
+Signed-off-by: Mickaël Salaün <mic@linux.microsoft.com>
+Reviewed-by: Stephen Smalley <stephen.smalley.work@gmail.com>
+Acked-by: Serge Hallyn <serge@hallyn.com>
+Link: https://lore.kernel.org/r/20210225190614.2181147-6-mic@digikod.net
+---
 
+Changes since v28:
+* Add Acked-by Serge Hallyn.
 
+Changes since v26:
+* Rebase on commit b159e86b5a2a ("selinux: drop super_block backpointer
+  from superblock_security_struct").  No change in the patch itself,
+  only a trivial conflict because of an updated nearby line in
+  selinux_set_mnt_opts() variable declarations.
+
+Changes since v20:
+* Remove all Reviewed-by except Stephen Smalley:
+  https://lore.kernel.org/lkml/CAEjxPJ7ARJO57MBW66=xsBzMMRb=9uLgqocK5eskHCaiVMx7Vw@mail.gmail.com/
+* Cosmetic fix in the commit message.
+
+Changes since v17:
+* Rebase the original LSM stacking patch from v5.3 to v5.7: I fixed some
+  diff conflicts caused by code moves and function renames in
+  selinux/include/objsec.h and selinux/hooks.c .  I checked that it
+  builds but I didn't test the changes for SELinux nor SMACK.
+  https://lore.kernel.org/r/20190829232935.7099-2-casey@schaufler-ca.com
+---
+ include/linux/lsm_hooks.h         |  1 +
+ security/security.c               | 46 ++++++++++++++++++++----
+ security/selinux/hooks.c          | 58 ++++++++++++-------------------
+ security/selinux/include/objsec.h |  6 ++++
+ security/selinux/ss/services.c    |  3 +-
+ security/smack/smack.h            |  6 ++++
+ security/smack/smack_lsm.c        | 35 +++++--------------
+ 7 files changed, 85 insertions(+), 70 deletions(-)
+
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index bdfc8a76a4f7..f1f98c4c7c29 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -1572,6 +1572,7 @@ struct lsm_blob_sizes {
+ 	int	lbs_cred;
+ 	int	lbs_file;
+ 	int	lbs_inode;
++	int	lbs_superblock;
+ 	int	lbs_ipc;
+ 	int	lbs_msg_msg;
+ 	int	lbs_task;
+diff --git a/security/security.c b/security/security.c
+index 401663b5b70e..8a9932174ad3 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -203,6 +203,7 @@ static void __init lsm_set_blob_sizes(struct lsm_blob_sizes *needed)
+ 	lsm_set_blob_size(&needed->lbs_inode, &blob_sizes.lbs_inode);
+ 	lsm_set_blob_size(&needed->lbs_ipc, &blob_sizes.lbs_ipc);
+ 	lsm_set_blob_size(&needed->lbs_msg_msg, &blob_sizes.lbs_msg_msg);
++	lsm_set_blob_size(&needed->lbs_superblock, &blob_sizes.lbs_superblock);
+ 	lsm_set_blob_size(&needed->lbs_task, &blob_sizes.lbs_task);
+ }
+ 
+@@ -333,12 +334,13 @@ static void __init ordered_lsm_init(void)
+ 	for (lsm = ordered_lsms; *lsm; lsm++)
+ 		prepare_lsm(*lsm);
+ 
+-	init_debug("cred blob size     = %d\n", blob_sizes.lbs_cred);
+-	init_debug("file blob size     = %d\n", blob_sizes.lbs_file);
+-	init_debug("inode blob size    = %d\n", blob_sizes.lbs_inode);
+-	init_debug("ipc blob size      = %d\n", blob_sizes.lbs_ipc);
+-	init_debug("msg_msg blob size  = %d\n", blob_sizes.lbs_msg_msg);
+-	init_debug("task blob size     = %d\n", blob_sizes.lbs_task);
++	init_debug("cred blob size       = %d\n", blob_sizes.lbs_cred);
++	init_debug("file blob size       = %d\n", blob_sizes.lbs_file);
++	init_debug("inode blob size      = %d\n", blob_sizes.lbs_inode);
++	init_debug("ipc blob size        = %d\n", blob_sizes.lbs_ipc);
++	init_debug("msg_msg blob size    = %d\n", blob_sizes.lbs_msg_msg);
++	init_debug("superblock blob size = %d\n", blob_sizes.lbs_superblock);
++	init_debug("task blob size       = %d\n", blob_sizes.lbs_task);
+ 
+ 	/*
+ 	 * Create any kmem_caches needed for blobs
+@@ -670,6 +672,27 @@ static void __init lsm_early_task(struct task_struct *task)
+ 		panic("%s: Early task alloc failed.\n", __func__);
+ }
+ 
++/**
++ * lsm_superblock_alloc - allocate a composite superblock blob
++ * @sb: the superblock that needs a blob
++ *
++ * Allocate the superblock blob for all the modules
++ *
++ * Returns 0, or -ENOMEM if memory can't be allocated.
++ */
++static int lsm_superblock_alloc(struct super_block *sb)
++{
++	if (blob_sizes.lbs_superblock == 0) {
++		sb->s_security = NULL;
++		return 0;
++	}
++
++	sb->s_security = kzalloc(blob_sizes.lbs_superblock, GFP_KERNEL);
++	if (sb->s_security == NULL)
++		return -ENOMEM;
++	return 0;
++}
++
+ /*
+  * The default value of the LSM hook is defined in linux/lsm_hook_defs.h and
+  * can be accessed with:
+@@ -867,12 +890,21 @@ int security_fs_context_parse_param(struct fs_context *fc, struct fs_parameter *
+ 
+ int security_sb_alloc(struct super_block *sb)
+ {
+-	return call_int_hook(sb_alloc_security, 0, sb);
++	int rc = lsm_superblock_alloc(sb);
++
++	if (unlikely(rc))
++		return rc;
++	rc = call_int_hook(sb_alloc_security, 0, sb);
++	if (unlikely(rc))
++		security_sb_free(sb);
++	return rc;
+ }
+ 
+ void security_sb_free(struct super_block *sb)
+ {
+ 	call_void_hook(sb_free_security, sb);
++	kfree(sb->s_security);
++	sb->s_security = NULL;
+ }
+ 
+ void security_free_mnt_opts(void **mnt_opts)
+diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
+index af2994adf9dd..ba27ddc5e38b 100644
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -322,7 +322,7 @@ static void inode_free_security(struct inode *inode)
+ 
+ 	if (!isec)
+ 		return;
+-	sbsec = inode->i_sb->s_security;
++	sbsec = selinux_superblock(inode->i_sb);
+ 	/*
+ 	 * As not all inode security structures are in a list, we check for
+ 	 * empty list outside of the lock to make sure that we won't waste
+@@ -340,13 +340,6 @@ static void inode_free_security(struct inode *inode)
+ 	}
+ }
+ 
+-static void superblock_free_security(struct super_block *sb)
+-{
+-	struct superblock_security_struct *sbsec = sb->s_security;
+-	sb->s_security = NULL;
+-	kfree(sbsec);
+-}
+-
+ struct selinux_mnt_opts {
+ 	const char *fscontext, *context, *rootcontext, *defcontext;
+ };
+@@ -458,7 +451,7 @@ static int selinux_is_genfs_special_handling(struct super_block *sb)
+ 
+ static int selinux_is_sblabel_mnt(struct super_block *sb)
+ {
+-	struct superblock_security_struct *sbsec = sb->s_security;
++	struct superblock_security_struct *sbsec = selinux_superblock(sb);
+ 
+ 	/*
+ 	 * IMPORTANT: Double-check logic in this function when adding a new
+@@ -535,7 +528,7 @@ static int sb_check_xattr_support(struct super_block *sb)
+ 
+ static int sb_finish_set_opts(struct super_block *sb)
+ {
+-	struct superblock_security_struct *sbsec = sb->s_security;
++	struct superblock_security_struct *sbsec = selinux_superblock(sb);
+ 	struct dentry *root = sb->s_root;
+ 	struct inode *root_inode = d_backing_inode(root);
+ 	int rc = 0;
+@@ -626,7 +619,7 @@ static int selinux_set_mnt_opts(struct super_block *sb,
+ 				unsigned long *set_kern_flags)
+ {
+ 	const struct cred *cred = current_cred();
+-	struct superblock_security_struct *sbsec = sb->s_security;
++	struct superblock_security_struct *sbsec = selinux_superblock(sb);
+ 	struct dentry *root = sb->s_root;
+ 	struct selinux_mnt_opts *opts = mnt_opts;
+ 	struct inode_security_struct *root_isec;
+@@ -863,8 +856,8 @@ static int selinux_set_mnt_opts(struct super_block *sb,
+ static int selinux_cmp_sb_context(const struct super_block *oldsb,
+ 				    const struct super_block *newsb)
+ {
+-	struct superblock_security_struct *old = oldsb->s_security;
+-	struct superblock_security_struct *new = newsb->s_security;
++	struct superblock_security_struct *old = selinux_superblock(oldsb);
++	struct superblock_security_struct *new = selinux_superblock(newsb);
+ 	char oldflags = old->flags & SE_MNTMASK;
+ 	char newflags = new->flags & SE_MNTMASK;
+ 
+@@ -896,8 +889,9 @@ static int selinux_sb_clone_mnt_opts(const struct super_block *oldsb,
+ 					unsigned long *set_kern_flags)
+ {
+ 	int rc = 0;
+-	const struct superblock_security_struct *oldsbsec = oldsb->s_security;
+-	struct superblock_security_struct *newsbsec = newsb->s_security;
++	const struct superblock_security_struct *oldsbsec =
++						selinux_superblock(oldsb);
++	struct superblock_security_struct *newsbsec = selinux_superblock(newsb);
+ 
+ 	int set_fscontext =	(oldsbsec->flags & FSCONTEXT_MNT);
+ 	int set_context =	(oldsbsec->flags & CONTEXT_MNT);
+@@ -1076,7 +1070,7 @@ static int show_sid(struct seq_file *m, u32 sid)
+ 
+ static int selinux_sb_show_options(struct seq_file *m, struct super_block *sb)
+ {
+-	struct superblock_security_struct *sbsec = sb->s_security;
++	struct superblock_security_struct *sbsec = selinux_superblock(sb);
+ 	int rc;
+ 
+ 	if (!(sbsec->flags & SE_SBINITIALIZED))
+@@ -1427,7 +1421,7 @@ static int inode_doinit_with_dentry(struct inode *inode, struct dentry *opt_dent
+ 	if (isec->sclass == SECCLASS_FILE)
+ 		isec->sclass = inode_mode_to_security_class(inode->i_mode);
+ 
+-	sbsec = inode->i_sb->s_security;
++	sbsec = selinux_superblock(inode->i_sb);
+ 	if (!(sbsec->flags & SE_SBINITIALIZED)) {
+ 		/* Defer initialization until selinux_complete_init,
+ 		   after the initial policy is loaded and the security
+@@ -1778,7 +1772,8 @@ selinux_determine_inode_label(const struct task_security_struct *tsec,
+ 				 const struct qstr *name, u16 tclass,
+ 				 u32 *_new_isid)
+ {
+-	const struct superblock_security_struct *sbsec = dir->i_sb->s_security;
++	const struct superblock_security_struct *sbsec =
++						selinux_superblock(dir->i_sb);
+ 
+ 	if ((sbsec->flags & SE_SBINITIALIZED) &&
+ 	    (sbsec->behavior == SECURITY_FS_USE_MNTPOINT)) {
+@@ -1809,7 +1804,7 @@ static int may_create(struct inode *dir,
+ 	int rc;
+ 
+ 	dsec = inode_security(dir);
+-	sbsec = dir->i_sb->s_security;
++	sbsec = selinux_superblock(dir->i_sb);
+ 
+ 	sid = tsec->sid;
+ 
+@@ -1958,7 +1953,7 @@ static int superblock_has_perm(const struct cred *cred,
+ 	struct superblock_security_struct *sbsec;
+ 	u32 sid = cred_sid(cred);
+ 
+-	sbsec = sb->s_security;
++	sbsec = selinux_superblock(sb);
+ 	return avc_has_perm(&selinux_state,
+ 			    sid, sbsec->sid, SECCLASS_FILESYSTEM, perms, ad);
+ }
+@@ -2587,11 +2582,7 @@ static void selinux_bprm_committed_creds(struct linux_binprm *bprm)
+ 
+ static int selinux_sb_alloc_security(struct super_block *sb)
+ {
+-	struct superblock_security_struct *sbsec;
+-
+-	sbsec = kzalloc(sizeof(struct superblock_security_struct), GFP_KERNEL);
+-	if (!sbsec)
+-		return -ENOMEM;
++	struct superblock_security_struct *sbsec = selinux_superblock(sb);
+ 
+ 	mutex_init(&sbsec->lock);
+ 	INIT_LIST_HEAD(&sbsec->isec_head);
+@@ -2599,16 +2590,10 @@ static int selinux_sb_alloc_security(struct super_block *sb)
+ 	sbsec->sid = SECINITSID_UNLABELED;
+ 	sbsec->def_sid = SECINITSID_FILE;
+ 	sbsec->mntpoint_sid = SECINITSID_UNLABELED;
+-	sb->s_security = sbsec;
+ 
+ 	return 0;
+ }
+ 
+-static void selinux_sb_free_security(struct super_block *sb)
+-{
+-	superblock_free_security(sb);
+-}
+-
+ static inline int opt_len(const char *s)
+ {
+ 	bool open_quote = false;
+@@ -2687,7 +2672,7 @@ static int selinux_sb_eat_lsm_opts(char *options, void **mnt_opts)
+ static int selinux_sb_remount(struct super_block *sb, void *mnt_opts)
+ {
+ 	struct selinux_mnt_opts *opts = mnt_opts;
+-	struct superblock_security_struct *sbsec = sb->s_security;
++	struct superblock_security_struct *sbsec = selinux_superblock(sb);
+ 	u32 sid;
+ 	int rc;
+ 
+@@ -2925,7 +2910,7 @@ static int selinux_inode_init_security(struct inode *inode, struct inode *dir,
+ 	int rc;
+ 	char *context;
+ 
+-	sbsec = dir->i_sb->s_security;
++	sbsec = selinux_superblock(dir->i_sb);
+ 
+ 	newsid = tsec->create_sid;
+ 
+@@ -3226,7 +3211,7 @@ static int selinux_inode_setxattr(struct dentry *dentry, const char *name,
+ 	if (!selinux_initialized(&selinux_state))
+ 		return (inode_owner_or_capable(inode) ? 0 : -EPERM);
+ 
+-	sbsec = inode->i_sb->s_security;
++	sbsec = selinux_superblock(inode->i_sb);
+ 	if (!(sbsec->flags & SBLABEL_MNT))
+ 		return -EOPNOTSUPP;
+ 
+@@ -3468,13 +3453,14 @@ static int selinux_inode_setsecurity(struct inode *inode, const char *name,
+ 				     const void *value, size_t size, int flags)
+ {
+ 	struct inode_security_struct *isec = inode_security_novalidate(inode);
+-	struct superblock_security_struct *sbsec = inode->i_sb->s_security;
++	struct superblock_security_struct *sbsec;
+ 	u32 newsid;
+ 	int rc;
+ 
+ 	if (strcmp(name, XATTR_SELINUX_SUFFIX))
+ 		return -EOPNOTSUPP;
+ 
++	sbsec = selinux_superblock(inode->i_sb);
+ 	if (!(sbsec->flags & SBLABEL_MNT))
+ 		return -EOPNOTSUPP;
+ 
+@@ -6970,6 +6956,7 @@ struct lsm_blob_sizes selinux_blob_sizes __lsm_ro_after_init = {
+ 	.lbs_inode = sizeof(struct inode_security_struct),
+ 	.lbs_ipc = sizeof(struct ipc_security_struct),
+ 	.lbs_msg_msg = sizeof(struct msg_security_struct),
++	.lbs_superblock = sizeof(struct superblock_security_struct),
+ };
+ 
+ #ifdef CONFIG_PERF_EVENTS
+@@ -7070,7 +7057,6 @@ static struct security_hook_list selinux_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(bprm_committing_creds, selinux_bprm_committing_creds),
+ 	LSM_HOOK_INIT(bprm_committed_creds, selinux_bprm_committed_creds),
+ 
+-	LSM_HOOK_INIT(sb_free_security, selinux_sb_free_security),
+ 	LSM_HOOK_INIT(sb_free_mnt_opts, selinux_free_mnt_opts),
+ 	LSM_HOOK_INIT(sb_remount, selinux_sb_remount),
+ 	LSM_HOOK_INIT(sb_kern_mount, selinux_sb_kern_mount),
+diff --git a/security/selinux/include/objsec.h b/security/selinux/include/objsec.h
+index ca4d7ab6a835..2953132408bf 100644
+--- a/security/selinux/include/objsec.h
++++ b/security/selinux/include/objsec.h
+@@ -188,4 +188,10 @@ static inline u32 current_sid(void)
+ 	return tsec->sid;
+ }
+ 
++static inline struct superblock_security_struct *selinux_superblock(
++					const struct super_block *superblock)
++{
++	return superblock->s_security + selinux_blob_sizes.lbs_superblock;
++}
++
+ #endif /* _SELINUX_OBJSEC_H_ */
+diff --git a/security/selinux/ss/services.c b/security/selinux/ss/services.c
+index 3438d0130378..9cea2e6c809f 100644
+--- a/security/selinux/ss/services.c
++++ b/security/selinux/ss/services.c
+@@ -47,6 +47,7 @@
+ #include <linux/sched.h>
+ #include <linux/audit.h>
+ #include <linux/vmalloc.h>
++#include <linux/lsm_hooks.h>
+ #include <net/netlabel.h>
+ 
+ #include "flask.h"
+@@ -2875,7 +2876,7 @@ int security_fs_use(struct selinux_state *state, struct super_block *sb)
+ 	struct sidtab *sidtab;
+ 	int rc = 0;
+ 	struct ocontext *c;
+-	struct superblock_security_struct *sbsec = sb->s_security;
++	struct superblock_security_struct *sbsec = selinux_superblock(sb);
+ 	const char *fstype = sb->s_type->name;
+ 
+ 	if (!selinux_initialized(state)) {
+diff --git a/security/smack/smack.h b/security/smack/smack.h
+index a9768b12716b..7077b18c79ec 100644
+--- a/security/smack/smack.h
++++ b/security/smack/smack.h
+@@ -357,6 +357,12 @@ static inline struct smack_known **smack_ipc(const struct kern_ipc_perm *ipc)
+ 	return ipc->security + smack_blob_sizes.lbs_ipc;
+ }
+ 
++static inline struct superblock_smack *smack_superblock(
++					const struct super_block *superblock)
++{
++	return superblock->s_security + smack_blob_sizes.lbs_superblock;
++}
++
+ /*
+  * Is the directory transmuting?
+  */
+diff --git a/security/smack/smack_lsm.c b/security/smack/smack_lsm.c
+index f69c3dd9a0c6..767084dc2c29 100644
+--- a/security/smack/smack_lsm.c
++++ b/security/smack/smack_lsm.c
+@@ -535,12 +535,7 @@ static int smack_syslog(int typefrom_file)
+  */
+ static int smack_sb_alloc_security(struct super_block *sb)
+ {
+-	struct superblock_smack *sbsp;
+-
+-	sbsp = kzalloc(sizeof(struct superblock_smack), GFP_KERNEL);
+-
+-	if (sbsp == NULL)
+-		return -ENOMEM;
++	struct superblock_smack *sbsp = smack_superblock(sb);
+ 
+ 	sbsp->smk_root = &smack_known_floor;
+ 	sbsp->smk_default = &smack_known_floor;
+@@ -549,22 +544,10 @@ static int smack_sb_alloc_security(struct super_block *sb)
+ 	/*
+ 	 * SMK_SB_INITIALIZED will be zero from kzalloc.
+ 	 */
+-	sb->s_security = sbsp;
+ 
+ 	return 0;
+ }
+ 
+-/**
+- * smack_sb_free_security - free a superblock blob
+- * @sb: the superblock getting the blob
+- *
+- */
+-static void smack_sb_free_security(struct super_block *sb)
+-{
+-	kfree(sb->s_security);
+-	sb->s_security = NULL;
+-}
+-
+ struct smack_mnt_opts {
+ 	const char *fsdefault, *fsfloor, *fshat, *fsroot, *fstransmute;
+ };
+@@ -772,7 +755,7 @@ static int smack_set_mnt_opts(struct super_block *sb,
+ {
+ 	struct dentry *root = sb->s_root;
+ 	struct inode *inode = d_backing_inode(root);
+-	struct superblock_smack *sp = sb->s_security;
++	struct superblock_smack *sp = smack_superblock(sb);
+ 	struct inode_smack *isp;
+ 	struct smack_known *skp;
+ 	struct smack_mnt_opts *opts = mnt_opts;
+@@ -871,7 +854,7 @@ static int smack_set_mnt_opts(struct super_block *sb,
+  */
+ static int smack_sb_statfs(struct dentry *dentry)
+ {
+-	struct superblock_smack *sbp = dentry->d_sb->s_security;
++	struct superblock_smack *sbp = smack_superblock(dentry->d_sb);
+ 	int rc;
+ 	struct smk_audit_info ad;
+ 
+@@ -905,7 +888,7 @@ static int smack_bprm_creds_for_exec(struct linux_binprm *bprm)
+ 	if (isp->smk_task == NULL || isp->smk_task == bsp->smk_task)
+ 		return 0;
+ 
+-	sbsp = inode->i_sb->s_security;
++	sbsp = smack_superblock(inode->i_sb);
+ 	if ((sbsp->smk_flags & SMK_SB_UNTRUSTED) &&
+ 	    isp->smk_task != sbsp->smk_root)
+ 		return 0;
+@@ -1157,7 +1140,7 @@ static int smack_inode_rename(struct inode *old_inode,
+  */
+ static int smack_inode_permission(struct inode *inode, int mask)
+ {
+-	struct superblock_smack *sbsp = inode->i_sb->s_security;
++	struct superblock_smack *sbsp = smack_superblock(inode->i_sb);
+ 	struct smk_audit_info ad;
+ 	int no_block = mask & MAY_NOT_BLOCK;
+ 	int rc;
+@@ -1398,7 +1381,7 @@ static int smack_inode_removexattr(struct dentry *dentry, const char *name)
+ 	 */
+ 	if (strcmp(name, XATTR_NAME_SMACK) == 0) {
+ 		struct super_block *sbp = dentry->d_sb;
+-		struct superblock_smack *sbsp = sbp->s_security;
++		struct superblock_smack *sbsp = smack_superblock(sbp);
+ 
+ 		isp->smk_inode = sbsp->smk_default;
+ 	} else if (strcmp(name, XATTR_NAME_SMACKEXEC) == 0)
+@@ -1668,7 +1651,7 @@ static int smack_mmap_file(struct file *file,
+ 	isp = smack_inode(file_inode(file));
+ 	if (isp->smk_mmap == NULL)
+ 		return 0;
+-	sbsp = file_inode(file)->i_sb->s_security;
++	sbsp = smack_superblock(file_inode(file)->i_sb);
+ 	if (sbsp->smk_flags & SMK_SB_UNTRUSTED &&
+ 	    isp->smk_mmap != sbsp->smk_root)
+ 		return -EACCES;
+@@ -3283,7 +3266,7 @@ static void smack_d_instantiate(struct dentry *opt_dentry, struct inode *inode)
+ 		return;
+ 
+ 	sbp = inode->i_sb;
+-	sbsp = sbp->s_security;
++	sbsp = smack_superblock(sbp);
+ 	/*
+ 	 * We're going to use the superblock default label
+ 	 * if there's no label on the file.
+@@ -4696,6 +4679,7 @@ struct lsm_blob_sizes smack_blob_sizes __lsm_ro_after_init = {
+ 	.lbs_inode = sizeof(struct inode_smack),
+ 	.lbs_ipc = sizeof(struct smack_known *),
+ 	.lbs_msg_msg = sizeof(struct smack_known *),
++	.lbs_superblock = sizeof(struct superblock_smack),
+ };
+ 
+ static struct security_hook_list smack_hooks[] __lsm_ro_after_init = {
+@@ -4707,7 +4691,6 @@ static struct security_hook_list smack_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(fs_context_parse_param, smack_fs_context_parse_param),
+ 
+ 	LSM_HOOK_INIT(sb_alloc_security, smack_sb_alloc_security),
+-	LSM_HOOK_INIT(sb_free_security, smack_sb_free_security),
+ 	LSM_HOOK_INIT(sb_free_mnt_opts, smack_free_mnt_opts),
+ 	LSM_HOOK_INIT(sb_eat_lsm_opts, smack_sb_eat_lsm_opts),
+ 	LSM_HOOK_INIT(sb_statfs, smack_sb_statfs),
 -- 
-Best Regards
-Masahiro Yamada
+2.30.0
+
