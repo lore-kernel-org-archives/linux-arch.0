@@ -2,134 +2,145 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-9.0 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6141BC433DB
-	for <linux-arch@archiver.kernel.org>; Fri, 26 Feb 2021 07:06:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AE605C433E6
+	for <linux-arch@archiver.kernel.org>; Sat, 27 Feb 2021 06:21:31 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 17CBF64EB7
-	for <linux-arch@archiver.kernel.org>; Fri, 26 Feb 2021 07:06:32 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6E16464E85
+	for <linux-arch@archiver.kernel.org>; Sat, 27 Feb 2021 06:21:31 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230134AbhBZHGM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 26 Feb 2021 02:06:12 -0500
-Received: from conssluserg-05.nifty.com ([210.131.2.90]:48295 "EHLO
-        conssluserg-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229886AbhBZHGA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Feb 2021 02:06:00 -0500
-Received: from mail-pj1-f44.google.com (mail-pj1-f44.google.com [209.85.216.44]) (authenticated)
-        by conssluserg-05.nifty.com with ESMTP id 11Q74khb013013;
-        Fri, 26 Feb 2021 16:04:47 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conssluserg-05.nifty.com 11Q74khb013013
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1614323087;
-        bh=x/mGpk1ym04OHsIfCCiDKSuFig6JjVl/bLcEZ8JxD60=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=Xkgdf5MvmR6hgS+8QPHNJl+H8QSjIvfT9Mwu8ClGIaUhJxVbfCbwamjymkXJzsgyS
-         LUKo0osm44bGDjIH/Wq1sLz8Pd1Prj4Zr3ZhC7Z5PSzFDlo03hzd0ccy1ziXl25HV2
-         akQXdin3Os4gvIe4DoUcbNBM2J8i9z17jmi6/JbDbBfZQezVIm8iDDO+4siycNH6x4
-         iAL34HjVQgApq6fL9n57LWbNV0WuiA+MvYtJ36uxgWddwzZWVB2zunMfXXZw1Tupyz
-         B4IG1b54gWbGvmOuj5zPPs63ao8pnQk4Csg0FXlnjsz3jo2xS/BKbIvq3gyC0DcRuE
-         8F++jiJHVRCiw==
-X-Nifty-SrcIP: [209.85.216.44]
-Received: by mail-pj1-f44.google.com with SMTP id t9so5449278pjl.5;
-        Thu, 25 Feb 2021 23:04:47 -0800 (PST)
-X-Gm-Message-State: AOAM533qPRbNTzRT+SnLdsbsr4mNkOrfhB7TajAuSn2mbAybNYb35MNg
-        KwDRPDy+w2YAwVTJd4cxU5BVGPc4umMLvxucXBA=
-X-Google-Smtp-Source: ABdhPJzp5pGZsGqBQHf0ap1RmLLZMw8yZd4cNsh1RkqQA4Uhk+8hUUC6gMR/ojA1XI0Cpoi+gVXJzr00cMyMWlIC1lM=
-X-Received: by 2002:a17:902:e891:b029:e4:20d3:3d5c with SMTP id
- w17-20020a170902e891b02900e420d33d5cmr2002613plg.71.1614323086227; Thu, 25
- Feb 2021 23:04:46 -0800 (PST)
+        id S229752AbhB0GVP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 27 Feb 2021 01:21:15 -0500
+Received: from mail.loongson.cn ([114.242.206.163]:50100 "EHLO loongson.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S229751AbhB0GVN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 27 Feb 2021 01:21:13 -0500
+Received: from localhost.localdomain (unknown [182.149.162.140])
+        by mail.loongson.cn (Coremail) with SMTP id AQAAf9BxTeyQ5DlgFIwQAA--.4572S3;
+        Sat, 27 Feb 2021 14:20:13 +0800 (CST)
+From:   Huang Pei <huangpei@loongson.cn>
+To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        ambrosehua@gmail.com
+Cc:     Bibo Mao <maobibo@loongson.cn>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org, Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Paul Burton <paulburton@kernel.org>,
+        Li Xuefeng <lixuefeng@loongson.cn>,
+        Yang Tiezhu <yangtiezhu@loongson.cn>,
+        Gao Juxin <gaojuxin@loongson.cn>,
+        Fuxin Zhang <zhangfx@lemote.com>,
+        Huacai Chen <chenhc@lemote.com>
+Subject: [PATCH] MIPS: clean up CONFIG_MIPS_PGD_C0_CONTEXT handling
+Date:   Sat, 27 Feb 2021 06:19:44 +0000
+Message-Id: <20210227061944.266415-2-huangpei@loongson.cn>
+X-Mailer: git-send-email 2.25.1
+In-Reply-To: <20210227061944.266415-1-huangpei@loongson.cn>
+References: <20210227061944.266415-1-huangpei@loongson.cn>
 MIME-Version: 1.0
-References: <20210225160247.2959903-5-masahiroy@kernel.org>
- <202102260245.2UUwdoDK-lkp@intel.com> <CAK7LNAQ4gpD=wuASq42r+MznVeFo8wz0m=YMzmBLL67fdtOFpw@mail.gmail.com>
- <CABCJKucvBBgi8zXe12+rCkv0p0ozpBGr5=9Q139k8EErMYUBwQ@mail.gmail.com>
-In-Reply-To: <CABCJKucvBBgi8zXe12+rCkv0p0ozpBGr5=9Q139k8EErMYUBwQ@mail.gmail.com>
-From:   Masahiro Yamada <masahiroy@kernel.org>
-Date:   Fri, 26 Feb 2021 16:04:09 +0900
-X-Gmail-Original-Message-ID: <CAK7LNAT5hqdkkbuS3y=VYF4utTUMsvowOFzsgXimW6ZKBcYs5A@mail.gmail.com>
-Message-ID: <CAK7LNAT5hqdkkbuS3y=VYF4utTUMsvowOFzsgXimW6ZKBcYs5A@mail.gmail.com>
-Subject: Re: [PATCH 4/4] kbuild: re-implement CONFIG_TRIM_UNUSED_KSYMS to make
- it work in one-pass
-To:     Sami Tolvanen <samitolvanen@google.com>
-Cc:     kernel test robot <lkp@intel.com>,
-        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
-        kbuild-all@lists.01.org, Christoph Hellwig <hch@lst.de>,
-        Jessica Yu <jeyu@kernel.org>, Nicolas Pitre <nico@fluxnic.net>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+X-CM-TRANSID: AQAAf9BxTeyQ5DlgFIwQAA--.4572S3
+X-Coremail-Antispam: 1UD129KBjvJXoW7ZrWrtw15KF4kWr4fArWfAFb_yoW5JFy5pa
+        srJ3WDGr4Uur15ury5AFWkWF4rtayDAa98ZFsrK3sI9FWjqF109w1xGrs0yF1DCFZ7AF4x
+        Wr4YgFyYyFnFkw7anT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+        9KBjDU0xBIdaVrnRJUUUPK14x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_Jr4l82xGYIkIc2
+        x26xkF7I0E14v26r4j6ryUM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2z4x0
+        Y4vE2Ix0cI8IcVAFwI0_Jr0_JF4l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Gr0_Cr1l84
+        ACjcxK6I8E87Iv67AKxVW8Jr0_Cr1UM28EF7xvwVC2z280aVCY1x0267AKxVW8Jr0_Cr1U
+        M2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40Ex7xfMcIj6xIIjx
+        v20xvE14v26r1j6r18McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4IkC6x0Yz7v_Jr0_Gr1l
+        F7xvr2IYc2Ij64vIr41lF7I21c0EjII2zVCS5cI20VAGYxC7M4IIrI8v6xkF7I0E8cxan2
+        IY04v7MxkIecxEwVAFwVW8AwCF04k20xvY0x0EwIxGrwCFx2IqxVCFs4IE7xkEbVWUJVW8
+        JwC20s026c02F40E14v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E67AF67kF1V
+        AFwI0_Jw0_GFylIxkGc2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVWUJVWUCwCI42IY6xII
+        jxv20xvEc7CjxVAFwI0_Gr0_Cr1lIxAIcVCF04k26cxKx2IYs7xG6r1j6r1xMIIF0xvEx4
+        A2jsIE14v26r1j6r4UMIIF0xvEx4A2jsIEc7CjxVAFwI0_Gr0_Gr1UYxBIdaVFxhVjvjDU
+        0xZFpf9x0JUjD73UUUUU=
+X-CM-SenderInfo: xkxd0whshlqz5rrqw2lrqou0/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Feb 26, 2021 at 6:20 AM Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> Hi Masahiro,
->
-> On Thu, Feb 25, 2021 at 12:07 PM Masahiro Yamada <masahiroy@kernel.org> wrote:
-> >
-> > On Fri, Feb 26, 2021 at 3:47 AM kernel test robot <lkp@intel.com> wrote:
-> > >
-> > > Hi Masahiro,
-> > >
-> > > I love your patch! Perhaps something to improve:
-> > >
-> > > [auto build test WARNING on linus/master]
-> > > [also build test WARNING on next-20210225]
-> > > [cannot apply to kbuild/for-next asm-generic/master arm64/for-next/core m68k/for-next openrisc/for-next hp-parisc/for-next arc/for-next uclinux-h8/h8300-next nios2/for-linus v5.11]
-> > > [If your patch is applied to the wrong git tree, kindly drop us a note.
-> > > And when submitting patch, we suggest to use '--base' as documented in
-> > > https://git-scm.com/docs/git-format-patch]
-> > >
-> > > url:    https://github.com/0day-ci/linux/commits/Masahiro-Yamada/kbuild-build-speed-improvment-of-CONFIG_TRIM_UNUSED_KSYMS/20210226-000929
-> > > base:   https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git 29c395c77a9a514c5857c45ceae2665e9bd99ac7
-> > > config: powerpc-mpc8313_rdb_defconfig (attached as .config)
-> > > compiler: powerpc-linux-gcc (GCC) 9.3.0
-> > > reproduce (this is a W=1 build):
-> > >         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
-> > >         chmod +x ~/bin/make.cross
-> > >         # https://github.com/0day-ci/linux/commit/014940331790a8cd9bee92c7201494ec3217201e
-> > >         git remote add linux-review https://github.com/0day-ci/linux
-> > >         git fetch --no-tags linux-review Masahiro-Yamada/kbuild-build-speed-improvment-of-CONFIG_TRIM_UNUSED_KSYMS/20210226-000929
-> > >         git checkout 014940331790a8cd9bee92c7201494ec3217201e
-> > >         # save the attached .config to linux build tree
-> > >         COMPILER_INSTALL_PATH=$HOME/0day COMPILER=gcc-9.3.0 make.cross ARCH=powerpc
-> > >
-> > > If you fix the issue, kindly add following tag as appropriate
-> > > Reported-by: kernel test robot <lkp@intel.com>
-> > >
-> > > All warnings (new ones prefixed by >>):
-> > >
-> > > >> scripts/module.lds.S:7:5: warning: "CONFIG_TRIM_UNUSED_KSYMS" is not defined, evaluates to 0 [-Wundef]
-> >
-> > Thanks. This should be #ifdef, of course.
->
-> I applied this series and changed these from #if to #ifdef, but I
-> still see the following build error with TRIM_UNUSED_KSYMS +
-> OF_UNITTEST:
->
-> In file included from drivers/of/unittest-data/testcases.dtb.S:1:
-> ../include/asm-generic/vmlinux.lds.h:54:10: fatal error:
-> 'generated/keep-ksyms.h' file not found
-> #include <generated/keep-ksyms.h>
->          ^~~~~~~~~~~~~~~~~~~~~~~~
-> 1 error generated.
->
-> This is with x86_64_defconfig and scripts/config -e OF -e OF_UNITTEST
-> -e TRIM_UNUSED_KSYMS.
->
-> Sami
+CP0 Context has enough room for wraping pgd into its 41-bit PTEBase field.
 
-Thanks. I will fix it.
-I will come back with v2
-probably after v5.12-rc1 is tagged.
++. For XPHYS, the trick is that pgd is 4kB aligned, and the PABITS <= 48,
+only save 48 - 12 + 5(for bit[63:59]) = 41 bits, aka. :
 
+   bit[63:59] | 0000 0000 000 |  bit[47:12] | 0000 0000 0000
 
++. for CKSEG0, only save 29 - 12 = 17 bits
 
++. use CAC_BASE for accessing bit[63:59] of pgd
 
++. let CONFIG_MIPS_PGD_C0_CONTEXT depend on 64bit, and protect
+build_fast_mips_refill_handler from 32bit building
 
+Signed-off-by: Huang Pei <huangpei@loongson.cn>
+---
+ arch/mips/Kconfig    |  1 +
+ arch/mips/mm/tlbex.c | 11 ++++++-----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 2000bb2b0220..517509ad8596 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -2142,6 +2142,7 @@ config CPU_SUPPORTS_HUGEPAGES
+ 	depends on !(32BIT && (ARCH_PHYS_ADDR_T_64BIT || EVA))
+ config MIPS_PGD_C0_CONTEXT
+ 	bool
++	depends on 64BIT
+ 	default y if 64BIT && (CPU_MIPSR2 || CPU_MIPSR6) && !CPU_XLP
+ 
+ #
+diff --git a/arch/mips/mm/tlbex.c b/arch/mips/mm/tlbex.c
+index a7521b8f7658..5bb9724578f7 100644
+--- a/arch/mips/mm/tlbex.c
++++ b/arch/mips/mm/tlbex.c
+@@ -848,8 +848,8 @@ void build_get_pmde64(u32 **p, struct uasm_label **l, struct uasm_reloc **r,
+ 		/* Clear lower 23 bits of context. */
+ 		uasm_i_dins(p, ptr, 0, 0, 23);
+ 
+-		/* 1 0	1 0 1  << 6  xkphys cached */
+-		uasm_i_ori(p, ptr, ptr, 0x540);
++		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
++		uasm_i_ori(p, ptr, ptr, (CAC_BASE >> 53));
+ 		uasm_i_drotr(p, ptr, ptr, 11);
+ #elif defined(CONFIG_SMP)
+ 		UASM_i_CPUID_MFC0(p, ptr, SMP_CPUID_REG);
+@@ -1106,6 +1106,7 @@ struct mips_huge_tlb_info {
+ 	bool need_reload_pte;
+ };
+ 
++#ifdef CONFIG_64BIT
+ static struct mips_huge_tlb_info
+ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
+ 			       struct uasm_reloc **r, unsigned int tmp,
+@@ -1164,8 +1165,8 @@ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
+ 
+ 	if (pgd_reg == -1) {
+ 		vmalloc_branch_delay_filled = 1;
+-		/* 1 0	1 0 1  << 6  xkphys cached */
+-		uasm_i_ori(p, ptr, ptr, 0x540);
++		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
++		uasm_i_ori(p, ptr, ptr, (CAC_BASE >> 53));
+ 		uasm_i_drotr(p, ptr, ptr, 11);
+ 	}
+ 
+@@ -1292,7 +1293,7 @@ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
+ 
+ 	return rv;
+ }
+-
++#endif
+ /*
+  * For a 64-bit kernel, we are using the 64-bit XTLB refill exception
+  * because EXL == 0.  If we wrap, we can also use the 32 instruction
 -- 
-Best Regards
-Masahiro Yamada
+2.25.1
+
