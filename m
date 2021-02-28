@@ -2,223 +2,245 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-24.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,INCLUDES_PULL_REQUEST,
+	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
+	USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9B886C4332B
-	for <linux-arch@archiver.kernel.org>; Sat, 27 Feb 2021 17:18:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8A631C433DB
+	for <linux-arch@archiver.kernel.org>; Sun, 28 Feb 2021 03:44:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7F49364E84
-	for <linux-arch@archiver.kernel.org>; Sat, 27 Feb 2021 17:18:17 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 4EC7E64E4A
+	for <linux-arch@archiver.kernel.org>; Sun, 28 Feb 2021 03:44:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230211AbhB0RPq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 27 Feb 2021 12:15:46 -0500
-Received: from mga01.intel.com ([192.55.52.88]:57209 "EHLO mga01.intel.com"
+        id S230107AbhB1Dns (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 27 Feb 2021 22:43:48 -0500
+Received: from mail.kernel.org ([198.145.29.99]:48996 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230268AbhB0ROC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 27 Feb 2021 12:14:02 -0500
-IronPort-SDR: tw3H3bZuaRd7AbB8cFV0pDa8CfA6F6L393+Z5x9Lyrl1x1S/MPexC1XxB33+rHjDMKp0j8NBSd
- F+izY7Fxa9Vw==
-X-IronPort-AV: E=McAfee;i="6000,8403,9908"; a="205700339"
-X-IronPort-AV: E=Sophos;i="5.81,211,1610438400"; 
-   d="scan'208";a="205700339"
-Received: from fmsmga001.fm.intel.com ([10.253.24.23])
-  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 27 Feb 2021 09:03:59 -0800
-IronPort-SDR: jjUT0bBHq70eA876l+D/JDSv8H8x21dxlKPjsUXN+XO6GBtaSmXvOR4Fly7Hn+gghLsPePKzsG
- 9UzKoA8cmlug==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="5.81,211,1610438400"; 
-   d="scan'208";a="503906857"
-Received: from chang-linux-3.sc.intel.com ([172.25.66.175])
-  by fmsmga001.fm.intel.com with ESMTP; 27 Feb 2021 09:03:59 -0800
-From:   "Chang S. Bae" <chang.seok.bae@intel.com>
-To:     bp@suse.de, tglx@linutronix.de, mingo@kernel.org, luto@kernel.org,
-        x86@kernel.org
-Cc:     len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
-        Dave.Martin@arm.com, jannh@google.com, mpe@ellerman.id.au,
-        carlos@redhat.com, tony.luck@intel.com, ravi.v.shankar@intel.com,
-        libc-alpha@sourceware.org, linux-arch@vger.kernel.org,
-        linux-api@vger.kernel.org, linux-kernel@vger.kernel.org,
-        chang.seok.bae@intel.com, linux-kselftest@vger.kernel.org
-Subject: [PATCH v6 6/6] selftest/x86/signal: Include test cases for validating sigaltstack
-Date:   Sat, 27 Feb 2021 08:59:11 -0800
-Message-Id: <20210227165911.32757-7-chang.seok.bae@intel.com>
-X-Mailer: git-send-email 2.17.1
-In-Reply-To: <20210227165911.32757-1-chang.seok.bae@intel.com>
-References: <20210227165911.32757-1-chang.seok.bae@intel.com>
+        id S230090AbhB1Dnq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 27 Feb 2021 22:43:46 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 833BB64E38;
+        Sun, 28 Feb 2021 03:43:03 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1614483784;
+        bh=iSYg3PQmQzHSmYCsrbphy/ikk+I0jqnR2OgkaYvOyfE=;
+        h=From:To:Cc:Subject:Date:From;
+        b=V/sAaOkZGP6CBQSb9z9KVyt3Pa1ismuXdj7pOH4ZIcUnooVQScqbMcwCmynAi6J1j
+         jcssNeJkKWOe0e7+AQH3Gelpfn3GVsZETp0uKfQTuHJuNob6mLc7tqas6Pk7IoM4kK
+         9bnVEZr3+4/rI3vdR6xu6A7v6NR7NMPMieQb3eCdBIHXX0LTbeUxjfXohTLfvr8034
+         u2Eh663Nsqb640guioaCqMT9qcVv38oZoj1Z/XAMuL7Mdg8dN4PBU+m0V+3RW6afio
+         lhGCN/1dajrRBqc9INUs/V+CYmNge5pwJNuzRXCEN9Xjf4/1pcjhsogq/RrC1bSuBb
+         f3TsTA0iYthVQ==
+From:   guoren@kernel.org
+To:     torvalds@linux-foundation.org
+Cc:     arnd@arndb.de, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-csky@vger.kernel.org
+Subject: [GIT PULL] csky changes for v5.12-rc1
+Date:   Sun, 28 Feb 2021 11:43:00 +0800
+Message-Id: <20210228034300.1090149-1-guoren@kernel.org>
+X-Mailer: git-send-email 2.25.1
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The test measures the kernel's signal delivery with different (enough vs.
-insufficient) stack sizes.
+Hi Linus,
 
-Signed-off-by: Chang S. Bae <chang.seok.bae@intel.com>
-Reviewed-by: Len Brown <len.brown@intel.com>
-Cc: x86@kernel.org
-Cc: linux-kselftest@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
----
-Changes from v3:
-* Revised test messages again (Borislav Petkov)
+The following changes since commit 7c53f6b671f4aba70ff15e1b05148b10d58c2837:
 
-Changes from v2:
-* Revised test messages (Borislav Petkov)
----
- tools/testing/selftests/x86/Makefile      |   2 +-
- tools/testing/selftests/x86/sigaltstack.c | 128 ++++++++++++++++++++++
- 2 files changed, 129 insertions(+), 1 deletion(-)
- create mode 100644 tools/testing/selftests/x86/sigaltstack.c
+  Linux 5.11-rc3 (2021-01-10 14:34:50 -0800)
 
-diff --git a/tools/testing/selftests/x86/Makefile b/tools/testing/selftests/x86/Makefile
-index 333980375bc7..65bba2ae86ee 100644
---- a/tools/testing/selftests/x86/Makefile
-+++ b/tools/testing/selftests/x86/Makefile
-@@ -13,7 +13,7 @@ CAN_BUILD_WITH_NOPIE := $(shell ./check_cc.sh $(CC) trivial_program.c -no-pie)
- TARGETS_C_BOTHBITS := single_step_syscall sysret_ss_attrs syscall_nt test_mremap_vdso \
- 			check_initial_reg_state sigreturn iopl ioperm \
- 			test_vsyscall mov_ss_trap \
--			syscall_arg_fault fsgsbase_restore
-+			syscall_arg_fault fsgsbase_restore sigaltstack
- TARGETS_C_32BIT_ONLY := entry_from_vm86 test_syscall_vdso unwind_vdso \
- 			test_FCMOV test_FCOMI test_FISTTP \
- 			vdso_restorer
-diff --git a/tools/testing/selftests/x86/sigaltstack.c b/tools/testing/selftests/x86/sigaltstack.c
-new file mode 100644
-index 000000000000..f689af75e979
---- /dev/null
-+++ b/tools/testing/selftests/x86/sigaltstack.c
-@@ -0,0 +1,128 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+
-+#define _GNU_SOURCE
-+#include <signal.h>
-+#include <stdio.h>
-+#include <stdbool.h>
-+#include <string.h>
-+#include <err.h>
-+#include <errno.h>
-+#include <limits.h>
-+#include <sys/mman.h>
-+#include <sys/auxv.h>
-+#include <sys/prctl.h>
-+#include <sys/resource.h>
-+#include <setjmp.h>
-+
-+/* sigaltstack()-enforced minimum stack */
-+#define ENFORCED_MINSIGSTKSZ	2048
-+
-+#ifndef AT_MINSIGSTKSZ
-+#  define AT_MINSIGSTKSZ	51
-+#endif
-+
-+static int nerrs;
-+
-+static bool sigalrm_expected;
-+
-+static unsigned long at_minstack_size;
-+
-+static void sethandler(int sig, void (*handler)(int, siginfo_t *, void *),
-+		       int flags)
-+{
-+	struct sigaction sa;
-+
-+	memset(&sa, 0, sizeof(sa));
-+	sa.sa_sigaction = handler;
-+	sa.sa_flags = SA_SIGINFO | flags;
-+	sigemptyset(&sa.sa_mask);
-+	if (sigaction(sig, &sa, 0))
-+		err(1, "sigaction");
-+}
-+
-+static void clearhandler(int sig)
-+{
-+	struct sigaction sa;
-+
-+	memset(&sa, 0, sizeof(sa));
-+	sa.sa_handler = SIG_DFL;
-+	sigemptyset(&sa.sa_mask);
-+	if (sigaction(sig, &sa, 0))
-+		err(1, "sigaction");
-+}
-+
-+static int setup_altstack(void *start, unsigned long size)
-+{
-+	stack_t ss;
-+
-+	memset(&ss, 0, sizeof(ss));
-+	ss.ss_size = size;
-+	ss.ss_sp = start;
-+
-+	return sigaltstack(&ss, NULL);
-+}
-+
-+static jmp_buf jmpbuf;
-+
-+static void sigsegv(int sig, siginfo_t *info, void *ctx_void)
-+{
-+	if (sigalrm_expected) {
-+		printf("[FAIL]\tWrong signal delivered: SIGSEGV (expected SIGALRM).");
-+		nerrs++;
-+	} else {
-+		printf("[OK]\tSIGSEGV signal delivered.\n");
-+	}
-+
-+	siglongjmp(jmpbuf, 1);
-+}
-+
-+static void sigalrm(int sig, siginfo_t *info, void *ctx_void)
-+{
-+	if (!sigalrm_expected) {
-+		printf("[FAIL]\tWrong signal delivered: SIGALRM (expected SIGSEGV).");
-+		nerrs++;
-+	} else {
-+		printf("[OK]\tSIGALRM signal delivered.\n");
-+	}
-+}
-+
-+static void test_sigaltstack(void *altstack, unsigned long size)
-+{
-+	if (setup_altstack(altstack, size))
-+		err(1, "sigaltstack()");
-+
-+	sigalrm_expected = (size > at_minstack_size) ? true : false;
-+
-+	sethandler(SIGSEGV, sigsegv, 0);
-+	sethandler(SIGALRM, sigalrm, SA_ONSTACK);
-+
-+	if (!sigsetjmp(jmpbuf, 1)) {
-+		printf("[RUN]\tTest an alternate signal stack of %ssufficient size.\n",
-+		       sigalrm_expected ? "" : "in");
-+		printf("\tRaise SIGALRM. %s is expected to be delivered.\n",
-+		       sigalrm_expected ? "It" : "SIGSEGV");
-+		raise(SIGALRM);
-+	}
-+
-+	clearhandler(SIGALRM);
-+	clearhandler(SIGSEGV);
-+}
-+
-+int main(void)
-+{
-+	void *altstack;
-+
-+	at_minstack_size = getauxval(AT_MINSIGSTKSZ);
-+
-+	altstack = mmap(NULL, at_minstack_size + SIGSTKSZ, PROT_READ | PROT_WRITE,
-+			MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
-+	if (altstack == MAP_FAILED)
-+		err(1, "mmap()");
-+
-+	if ((ENFORCED_MINSIGSTKSZ + 1) < at_minstack_size)
-+		test_sigaltstack(altstack, ENFORCED_MINSIGSTKSZ + 1);
-+
-+	test_sigaltstack(altstack, at_minstack_size + SIGSTKSZ);
-+
-+	return nerrs == 0 ? 0 : 1;
-+}
--- 
-2.17.1
+are available in the Git repository at:
 
+  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.12-rc1
+
+for you to fetch changes up to 6607aa6f6b68fc9b5955755f1b1be125cf2a9d03:
+
+  csky: Fixup compile error (2021-02-27 22:04:14 +0800)
+
+----------------------------------------------------------------
+arch/csky patches for 5.12-rc1
+
+Features:
+ - Add new memory layout 2.5G(user):1.5G(kernel)
+ - Add kmemleak support
+ - Reconstruct VDSO framework
+   Add VDSO with GENERIC_GETTIMEOFDAY,
+   GENERIC_TIME_VSYSCALL, HAVE_GENERIC_VDSO
+ - Add faulthandler_disabled() check
+ - Support(Fixup) swapon
+ - Add(Fixup) _PAGE_ACCESSED for default pgprot
+ - abort uaccess retries upon fatal signal (From arm)
+
+Fixup & Optimization:
+ - Fixup perf probe failed
+ - Fixup show_regs doesn't contain regs->usp
+ - Remove custom asm/atomic.h implementation
+ - Fixup barrier design
+ - Fixup futex SMP implementation
+ - Fixup asm/cmpxchg.h with correct ordering barrier
+ - Cleanup asm/spinlock.h
+ - Fixup PTE global for 2.5:1.5 virtual memory
+ - Remove prologue of page fault handler in entry.S
+ - Fix TLB maintenance synchronization problem
+ - Add show_tlb for CPU_CK860 debug
+ - Fixup FAULT_FLAG_XXX param for handle_mm_fault
+ - Fixup update_mmu_cache called with user io mapping
+ - Fixup do_page_fault parent irq status
+ - Fix a size determination in gpr_get()
+ - pgtable.h: Coding convention
+ - kprobe: Fixup code in simulate without 'long'
+ - Fixup pfn_valid error with wrong max_mapnr
+ - use free_initmem_default() in free_initmem()
+ - Fixup compile error
+
+----------------------------------------------------------------
+David Hildenbrand (1):
+      csky: use free_initmem_default() in free_initmem()
+
+Guo Ren (27):
+      csky: Add memory layout 2.5G(user):1.5G(kernel)
+      csky: Fixup perf probe failed
+      csky: Fixup show_regs doesn't contain regs->usp
+      csky: Remove custom asm/atomic.h implementation
+      csky: Fixup barrier design
+      csky: Fixup futex SMP implementation
+      csky: Fixup asm/cmpxchg.h with correct ordering barrier
+      csky: Cleanup asm/spinlock.h
+      csky: Fixup PTE global for 2.5:1.5 virtual memory
+      csky: Remove prologue of page fault handler in entry.S
+      csky: Add kmemleak support
+      csky: Fix TLB maintenance synchronization problem
+      csky: Add show_tlb for CPU_CK860 debug
+      csky: Fixup FAULT_FLAG_XXX param for handle_mm_fault
+      csky: Fixup update_mmu_cache called with user io mapping
+      csky: Add faulthandler_disabled() check
+      csky: Fixup do_page_fault parent irq status
+      csky: Sync riscv mm/fault.c for easy maintenance
+      csky: mm: abort uaccess retries upon fatal signal
+      csky: Reconstruct VDSO framework
+      csky: Fixup _PAGE_ACCESSED for default pgprot
+      csky: pgtable.h: Coding convention
+      csky: Fixup swapon
+      csky: kprobe: Fixup code in simulate without 'long'
+      csky: Add VDSO with GENERIC_GETTIMEOFDAY, GENERIC_TIME_VSYSCALL, HAVE_GENERIC_VDSO
+      csky: Fixup pfn_valid error with wrong max_mapnr
+      csky: Fixup compile error
+
+Tian Tao (1):
+      csky: remove unused including <linux/version.h>
+
+Zhenzhong Duan (1):
+      csky: Fix a size determination in gpr_get()
+
+ arch/csky/Kconfig                         |  24 +-
+ arch/csky/abiv1/inc/abi/cacheflush.h      |   1 -
+ arch/csky/abiv1/inc/abi/ckmmu.h           |  10 +-
+ arch/csky/abiv1/inc/abi/entry.h           |   1 -
+ arch/csky/abiv1/inc/abi/page.h            |   1 -
+ arch/csky/abiv1/inc/abi/pgtable-bits.h    |  40 +--
+ arch/csky/abiv1/inc/abi/reg_ops.h         |   1 -
+ arch/csky/abiv1/inc/abi/regdef.h          |   6 +-
+ arch/csky/abiv1/inc/abi/string.h          |   1 -
+ arch/csky/abiv1/inc/abi/switch_context.h  |   1 -
+ arch/csky/abiv1/inc/abi/vdso.h            |  18 +-
+ arch/csky/abiv2/cacheflush.c              |   3 +
+ arch/csky/abiv2/inc/abi/ckmmu.h           |  44 +++-
+ arch/csky/abiv2/inc/abi/entry.h           |  20 +-
+ arch/csky/abiv2/inc/abi/fpu.h             |   1 -
+ arch/csky/abiv2/inc/abi/page.h            |   1 -
+ arch/csky/abiv2/inc/abi/pgtable-bits.h    |  37 ++-
+ arch/csky/abiv2/inc/abi/reg_ops.h         |   1 -
+ arch/csky/abiv2/inc/abi/regdef.h          |   6 +-
+ arch/csky/abiv2/inc/abi/switch_context.h  |   1 -
+ arch/csky/abiv2/inc/abi/vdso.h            |  20 +-
+ arch/csky/abiv2/sysdep.h                  |   1 -
+ arch/csky/include/asm/addrspace.h         |   1 -
+ arch/csky/include/asm/atomic.h            | 212 ----------------
+ arch/csky/include/asm/barrier.h           |  83 +++++--
+ arch/csky/include/asm/bitops.h            |   1 -
+ arch/csky/include/asm/bug.h               |   3 +-
+ arch/csky/include/asm/cacheflush.h        |   1 -
+ arch/csky/include/asm/checksum.h          |   1 -
+ arch/csky/include/asm/clocksource.h       |   8 +
+ arch/csky/include/asm/cmpxchg.h           |  27 ++-
+ arch/csky/include/asm/elf.h               |   1 -
+ arch/csky/include/asm/fixmap.h            |   1 -
+ arch/csky/include/asm/ftrace.h            |   1 -
+ arch/csky/include/asm/futex.h             | 121 ++++++++++
+ arch/csky/include/asm/highmem.h           |   1 -
+ arch/csky/include/asm/io.h                |   1 -
+ arch/csky/include/asm/memory.h            |   2 +-
+ arch/csky/include/asm/mmu.h               |   1 -
+ arch/csky/include/asm/mmu_context.h       |  10 +-
+ arch/csky/include/asm/page.h              |   2 +-
+ arch/csky/include/asm/perf_event.h        |   1 -
+ arch/csky/include/asm/pgalloc.h           |   3 +-
+ arch/csky/include/asm/pgtable.h           |  80 +++---
+ arch/csky/include/asm/processor.h         |   3 +-
+ arch/csky/include/asm/ptrace.h            |   1 -
+ arch/csky/include/asm/segment.h           |   3 +-
+ arch/csky/include/asm/shmparam.h          |   1 -
+ arch/csky/include/asm/spinlock.h          | 167 -------------
+ arch/csky/include/asm/spinlock_types.h    |  10 -
+ arch/csky/include/asm/string.h            |   1 -
+ arch/csky/include/asm/switch_to.h         |   1 -
+ arch/csky/include/asm/syscalls.h          |   1 -
+ arch/csky/include/asm/thread_info.h       |   2 -
+ arch/csky/include/asm/tlb.h               |   1 -
+ arch/csky/include/asm/tlbflush.h          |   1 -
+ arch/csky/include/asm/traps.h             |   1 -
+ arch/csky/include/asm/uaccess.h           |   1 -
+ arch/csky/include/asm/unistd.h            |   1 -
+ arch/csky/include/asm/vdso.h              |  21 +-
+ arch/csky/include/asm/vdso/clocksource.h  |   9 +
+ arch/csky/include/asm/vdso/gettimeofday.h | 114 +++++++++
+ arch/csky/include/asm/vdso/processor.h    |  12 +
+ arch/csky/include/asm/vdso/vsyscall.h     |  22 ++
+ arch/csky/include/uapi/asm/byteorder.h    |   1 -
+ arch/csky/include/uapi/asm/perf_regs.h    |   1 -
+ arch/csky/include/uapi/asm/ptrace.h       |   1 -
+ arch/csky/include/uapi/asm/sigcontext.h   |   1 -
+ arch/csky/include/uapi/asm/unistd.h       |   1 -
+ arch/csky/kernel/Makefile                 |   2 +-
+ arch/csky/kernel/atomic.S                 |  24 +-
+ arch/csky/kernel/entry.S                  | 106 +-------
+ arch/csky/kernel/head.S                   |  10 +-
+ arch/csky/kernel/perf_event.c             |   4 +-
+ arch/csky/kernel/probes/simulate-insn.c   |  22 +-
+ arch/csky/kernel/ptrace.c                 | 128 +++++++++-
+ arch/csky/kernel/setup.c                  |  18 +-
+ arch/csky/kernel/signal.c                 |   4 +-
+ arch/csky/kernel/smp.c                    |   7 +-
+ arch/csky/kernel/traps.c                  |  10 +-
+ arch/csky/kernel/vdso.c                   | 127 ++++++----
+ arch/csky/kernel/vdso/.gitignore          |   4 +
+ arch/csky/kernel/vdso/Makefile            |  72 ++++++
+ arch/csky/kernel/vdso/note.S              |  12 +
+ arch/csky/kernel/vdso/rt_sigreturn.S      |  14 ++
+ arch/csky/kernel/vdso/so2s.sh             |   5 +
+ arch/csky/kernel/vdso/vdso.S              |  16 ++
+ arch/csky/kernel/vdso/vdso.lds.S          |  58 +++++
+ arch/csky/kernel/vdso/vgettimeofday.c     |  28 +++
+ arch/csky/kernel/vmlinux.lds.S            |   2 +-
+ arch/csky/mm/fault.c                      | 388 ++++++++++++++++++------------
+ arch/csky/mm/init.c                       |  56 +++--
+ arch/csky/mm/tlb.c                        |  42 +++-
+ include/linux/cpuhotplug.h                |   1 +
+ 94 files changed, 1347 insertions(+), 992 deletions(-)
+ delete mode 100644 arch/csky/include/asm/atomic.h
+ create mode 100644 arch/csky/include/asm/clocksource.h
+ create mode 100644 arch/csky/include/asm/futex.h
+ create mode 100644 arch/csky/include/asm/vdso/clocksource.h
+ create mode 100644 arch/csky/include/asm/vdso/gettimeofday.h
+ create mode 100644 arch/csky/include/asm/vdso/processor.h
+ create mode 100644 arch/csky/include/asm/vdso/vsyscall.h
+ create mode 100644 arch/csky/kernel/vdso/.gitignore
+ create mode 100644 arch/csky/kernel/vdso/Makefile
+ create mode 100644 arch/csky/kernel/vdso/note.S
+ create mode 100644 arch/csky/kernel/vdso/rt_sigreturn.S
+ create mode 100755 arch/csky/kernel/vdso/so2s.sh
+ create mode 100644 arch/csky/kernel/vdso/vdso.S
+ create mode 100644 arch/csky/kernel/vdso/vdso.lds.S
+ create mode 100644 arch/csky/kernel/vdso/vgettimeofday.c
