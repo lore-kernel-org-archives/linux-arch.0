@@ -2,92 +2,82 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.2 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_IN_DEF_DKIM_WL
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 208A6C41620
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Mar 2021 05:38:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5ACA1C28E8A
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Mar 2021 05:38:07 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id F403F64EC3
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Mar 2021 05:38:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3029064EC3
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Mar 2021 05:38:07 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1354186AbhCCF1j (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 00:27:39 -0500
-Received: from pegase1.c-s.fr ([93.17.236.30]:44261 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1352011AbhCBRvJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 2 Mar 2021 12:51:09 -0500
-Received: from localhost (mailhub1-int [192.168.12.234])
-        by localhost (Postfix) with ESMTP id 4DqkXv5h6Lz9v1C5;
-        Tue,  2 Mar 2021 18:25:19 +0100 (CET)
-X-Virus-Scanned: Debian amavisd-new at c-s.fr
-Received: from pegase1.c-s.fr ([192.168.12.234])
-        by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
-        with ESMTP id iMobo7Uj95lP; Tue,  2 Mar 2021 18:25:19 +0100 (CET)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase1.c-s.fr (Postfix) with ESMTP id 4DqkXv07VPz9v1C4;
-        Tue,  2 Mar 2021 18:25:19 +0100 (CET)
-Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id BB7A38B75F;
-        Tue,  2 Mar 2021 18:25:20 +0100 (CET)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id oLcqukm6Bo_U; Tue,  2 Mar 2021 18:25:20 +0100 (CET)
-Received: from po16121vm.idsi0.si.c-s.fr (unknown [192.168.4.90])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 77FDD8B7B6;
-        Tue,  2 Mar 2021 18:25:20 +0100 (CET)
-Received: by localhost.localdomain (Postfix, from userid 0)
-        id 5247C674A2; Tue,  2 Mar 2021 17:25:20 +0000 (UTC)
-Message-Id: <e1a498d02d47ec2420b404bd5f3e4a00fc628532.1614705851.git.christophe.leroy@csgroup.eu>
-In-Reply-To: <cover.1614705851.git.christophe.leroy@csgroup.eu>
-References: <cover.1614705851.git.christophe.leroy@csgroup.eu>
-From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v2 4/7] cmdline: Add capability to prepend the command line
-To:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        id S1354209AbhCCF2b (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 00:28:31 -0500
+Received: from alln-iport-5.cisco.com ([173.37.142.92]:58491 "EHLO
+        alln-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1577341AbhCBSug (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Mar 2021 13:50:36 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=cisco.com; i=@cisco.com; l=483; q=dns/txt; s=iport;
+  t=1614711035; x=1615920635;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:in-reply-to;
+  bh=i+Gz80jPEL08iRfyqDTBuTMykYMo9F/a3XftoJvNPyg=;
+  b=Cqwi5NgR14dT0tjykMJS5orxtZmqf4UkoPRNL33BJW/sI4qAigjrDLhz
+   MhsoUwTTcnAaE0VRd1aXEPolyh3NJNgcCjjU/H5BGsTnLrDXX9fKFQ3D2
+   tTmqLdY1xerb7HsTuUugwfvpEaHaUL58x4dd4aAZd5edmRA2SE39aREPZ
+   4=;
+X-IPAS-Result: =?us-ascii?q?A0AHAAAVdz5gmIoNJK1iGgEBAQEBAQEBAQEDAQEBARIBA?=
+ =?us-ascii?q?QEBAgIBAQEBQIE+AgEBAQELAYN2ATkxlh2PehaMOwsBAQENAQE0BAEBhE0Cg?=
+ =?us-ascii?q?XoCJTcGDgIDAQEBAwIDAQEBAQUBAQECAQYEFAEBAQEBAQEBhkOGRQEFOj8QC?=
+ =?us-ascii?q?xguPBsGE4JwgwitBXSBNIkmgUQigRYBjUImHIFJQoQrPogIgisEpDibe4MGg?=
+ =?us-ascii?q?R+acjEQgxWgMbZyAgQGBQIWgWoigVkzGggbFYMkUBkNjjiOUCADLzgCBgoBA?=
+ =?us-ascii?q?QMJjBMBAQ?=
+X-IronPort-Anti-Spam-Filtered: true
+X-IronPort-AV: E=Sophos;i="5.81,217,1610409600"; 
+   d="scan'208";a="673161766"
+Received: from alln-core-5.cisco.com ([173.36.13.138])
+  by alln-iport-5.cisco.com with ESMTP/TLS/DHE-RSA-SEED-SHA; 02 Mar 2021 17:35:25 +0000
+Received: from zorba ([10.24.9.198])
+        by alln-core-5.cisco.com (8.15.2/8.15.2) with ESMTPS id 122HZNSi008144
+        (version=TLSv1.2 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO);
+        Tue, 2 Mar 2021 17:35:25 GMT
+Date:   Tue, 2 Mar 2021 09:35:23 -0800
+From:   Daniel Walker <danielwa@cisco.com>
+To:     Christophe Leroy <christophe.leroy@csgroup.eu>
+Cc:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
         Paul Mackerras <paulus@samba.org>,
-        Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com,
-        robh@kernel.org, daniel@gimpelevich.san-francisco.ca.us
-Cc:     linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        Michael Ellerman <mpe@ellerman.id.au>, robh@kernel.org,
+        daniel@gimpelevich.san-francisco.ca.us,
+        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
         linux-arch@vger.kernel.org, devicetree@vger.kernel.org
-Date:   Tue,  2 Mar 2021 17:25:20 +0000 (UTC)
+Subject: Re: [PATCH v2 0/7] Improve boot command line handling
+Message-ID: <20210302173523.GE109100@zorba>
+References: <cover.1614705851.git.christophe.leroy@csgroup.eu>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <cover.1614705851.git.christophe.leroy@csgroup.eu>
+X-Outbound-SMTP-Client: 10.24.9.198, [10.24.9.198]
+X-Outbound-Node: alln-core-5.cisco.com
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This patchs adds an option of prepend a text to the command
-line instead of appending it.
+On Tue, Mar 02, 2021 at 05:25:16PM +0000, Christophe Leroy wrote:
+> The purpose of this series is to improve and enhance the
+> handling of kernel boot arguments.
+> 
+> It is first focussed on powerpc but also extends the capability
+> for other arches.
+> 
+> This is based on suggestion from Daniel Walker <danielwa@cisco.com>
+> 
 
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
----
- include/linux/cmdline.h | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
-index ae3610bb0ee2..144346051e01 100644
---- a/include/linux/cmdline.h
-+++ b/include/linux/cmdline.h
-@@ -31,7 +31,7 @@ static __always_inline size_t cmdline_strlcat(char *dest, const char *src, size_
- }
- 
- /*
-- * This function will append a builtin command line to the command
-+ * This function will append or prepend a builtin command line to the command
-  * line provided by the bootloader. Kconfig options can be used to alter
-  * the behavior of this builtin command line.
-  * @dest: The destination of the final appended/prepended string.
-@@ -50,6 +50,9 @@ static __always_inline void cmdline_build(char *dest, const char *src, size_t le
- 		cmdline_strlcat(dest, CONFIG_CMDLINE, length);
- 		return;
- 	}
-+
-+	if (IS_ENABLED(CONFIG_CMDLINE_PREPEND) && sizeof(CONFIG_CMDLINE) > 1)
-+		cmdline_strlcat(dest, CONFIG_CMDLINE " ", length);
- #endif
- 	if (dest != src)
- 		cmdline_strlcat(dest, src, length);
--- 
-2.25.0
+I don't see a point in your changes at this time. My changes are much more
+mature, and you changes don't really make improvements.
 
+Daniel
