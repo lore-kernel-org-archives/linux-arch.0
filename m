@@ -8,46 +8,46 @@ X-Spam-Status: No, score=-18.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EEC7AC2BA1A
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Mar 2021 05:38:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C336FC2BA4C
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Mar 2021 05:38:10 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C8B6B64EBB
-	for <linux-arch@archiver.kernel.org>; Wed,  3 Mar 2021 05:38:09 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9386E64EC0
+	for <linux-arch@archiver.kernel.org>; Wed,  3 Mar 2021 05:38:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1450120AbhCCFaC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 00:30:02 -0500
-Received: from mail-eopbgr680110.outbound.protection.outlook.com ([40.107.68.110]:55297
-        "EHLO NAM04-BN3-obe.outbound.protection.outlook.com"
+        id S1450138AbhCCFaf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 00:30:35 -0500
+Received: from mail-bn7nam10on2111.outbound.protection.outlook.com ([40.107.92.111]:60513
+        "EHLO NAM10-BN7-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1350988AbhCBVmL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 2 Mar 2021 16:42:11 -0500
+        id S1351064AbhCBVmM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 2 Mar 2021 16:42:12 -0500
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=QKfiaxgvfxwNCTtJBFw6JfFV2cy2Ck9e2fcDvBgh+I7ZKgMEgQ2kFtBm5wCIQzbdB2aOReHjo27ymYrAIcLxsaZ2os7QjgqN41vNd83rA+kcXchT+2uUDlN1arhX90lBTMP9fYi8A+GHcY25hXxjmVYoZpR3DolustxjleobaKOHu28aGpNAemcpKeeWE4FWoBAR5DgT/n1XlScJt1NhaA5s0G4yyB2D9+/yR1w76VM8fFjK4kzHy/jJEI5g91XWA76wPD/F90o0pwvRrmtVmfShUlFepfn4qra+EHWwudCx1at3uWYey9fx5kInIx/KtdMh8TUAl/R+UB53+mm/RA==
+ b=XOcTsWYdvpJ0sd9HfHOaNgjpKN6S77al2/XirvVhXCFze1lYsOj9DS4V/thLhU8E8BY7E/HScNQzY0EPLVnYN3k/pdzLBQmhOvQqJ7harJXVoS7u6UUn8z382ZA0nGTJX47qtMoaXTzYxAUx8k41d20fG0pjWP5jJFR442xB5rNnmqNkJ/qm7QFHr/FDBidxXtaDyQXXiOWRLNue+y9CAn7+W6pmi0aDy0O4eUjkrhUz4KIhor9Jz8QrgfaPdrDub0su7AXp0DLubtCkjCQS9yNhiJmrhp8eLIX1BL5O7ZqI+2/8fUFW5ZmRF98+F5luyQHutQj975rNUq0zZr2fPw==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector9901;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=kkG1fv5Dl2Yq9bMEvhktXrkc18Hztqx47lG9aGHC4DU=;
- b=PjIJJsDJeHzPRbPrkzw8sCBX/5q6Uazs4HyNv9K9sFWGKpJK6CL94VNfdWzvQ6NEDYJ2A7X9SCkQPPztpjDlksTX9VZBzZFKjOGdzToFiCNbMeJvpbSylug65GLtZ+ArHUpRJ7NhaYBwqaPG/zABGzhixxli1873gzptPX8zQqI8Nef/BUeAbF7TtkWDFgA8sMxrSgdK3MGZjUj7jOw+IT1e5Gm2ArFsXbk5bZNPTM5sHbX2AFratcmYwDENa3aGmHUQAKvsbS1MPPimB6CCml2q6S0qFEfh+DlNdBMKe/WtHwX79A3LkszpGNovWNbj9qyML+II0Y9G2RwMJSUTtQ==
+ bh=kOSlRrmF2a1+jZH8NlOCSQmvdLLqXAlfIC6Z1FQHh6k=;
+ b=Bphm9lzvx7UoaBZW2jL4rlqXPCpJngbBmVKt8ymbiMsb9Ja4NSOF/JlCW1X/E2hIlFEgR0urKEi0CqxJZ0HfNyWR9rshoTPIy1m7GG5ggj+FXOyqkp0KYCm9SnbPUaKNoHCG9PhcChH+gCAsc9EOxTxU3PiHUQ/n5sx/M5/1GxFDa9i+4KNtXFL+XvKN9Ia9WYD+tRUgMsZA1bozIByiOzZ1WvKgPrRnuxUFHkU8z9qMsqIFMouZ5ZUoXeERbj7Df3WFRTWudWHShLQXbl4sSbrDfwL9TfzYPLPILvav9e41huEpATfFj07+SVPcjoveSz+FyEejcnZCKr8XOdYQXQ==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=microsoft.com; dmarc=pass action=none
  header.from=microsoft.com; dkim=pass header.d=microsoft.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=selector2;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=kkG1fv5Dl2Yq9bMEvhktXrkc18Hztqx47lG9aGHC4DU=;
- b=b25Ziek4iJ4DA/+oP+gOr7rDnHg0s3o++pbwNqqsNe/5EPHzqrjoOu/cDblAkG0W2/im4O+DPrHZKMsf0278R3K3TDFDXzMN6aRBvjHXRInf2pXn4T65h+SUy5NUHaNbQrjubiOI76yMFe/ef1SgQZKewA/kXEn08bP/l/iRunc=
+ bh=kOSlRrmF2a1+jZH8NlOCSQmvdLLqXAlfIC6Z1FQHh6k=;
+ b=WtAkHcB50G18y/ufF2GYBzpsANbIJj2FJ20e8WvPq/Z1y4DBkXlLS4ha+jm39Y/2Y9itnRHUx0dZ6NfFoDIwSM/VPahhPwcAy/bjr0BdI6xgIs5/B02SnA9ytt3PuHdplHzFTt+KM20UXwB2K5q/Qd2FotFKAaj9jHjmBCkkZJA=
 Authentication-Results: microsoft.com; dkim=none (message not signed)
  header.d=none;microsoft.com; dmarc=none action=none
  header.from=microsoft.com;
 Received: from DM6PR21MB1514.namprd21.prod.outlook.com (2603:10b6:5:22d::11)
- by DM6PR21MB1739.namprd21.prod.outlook.com (2603:10b6:5:cb::21) with
+ by DM5PR21MB0153.namprd21.prod.outlook.com (2603:10b6:3:a5::16) with
  Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3890.1; Tue, 2 Mar
- 2021 21:38:51 +0000
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3912.11; Tue, 2 Mar
+ 2021 21:39:02 +0000
 Received: from DM6PR21MB1514.namprd21.prod.outlook.com
  ([fe80::1c32:e52a:6a36:3ff]) by DM6PR21MB1514.namprd21.prod.outlook.com
  ([fe80::1c32:e52a:6a36:3ff%4]) with mapi id 15.20.3912.016; Tue, 2 Mar 2021
- 21:38:51 +0000
+ 21:39:02 +0000
 From:   Michael Kelley <mikelley@microsoft.com>
 To:     sthemmin@microsoft.com, kys@microsoft.com, wei.liu@kernel.org,
         tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com,
@@ -55,9 +55,9 @@ To:     sthemmin@microsoft.com, kys@microsoft.com, wei.liu@kernel.org,
         linux-hyperv@vger.kernel.org
 Cc:     mikelley@microsoft.com, linux-kernel@vger.kernel.org,
         x86@kernel.org, linux-arch@vger.kernel.org
-Subject: [PATCH v3 03/10] Drivers: hv: Redo Hyper-V synthetic MSR get/set functions
-Date:   Tue,  2 Mar 2021 13:38:15 -0800
-Message-Id: <1614721102-2241-4-git-send-email-mikelley@microsoft.com>
+Subject: [PATCH v3 10/10] clocksource/drivers/hyper-v: Move handling of STIMER0 interrupts
+Date:   Tue,  2 Mar 2021 13:38:22 -0800
+Message-Id: <1614721102-2241-11-git-send-email-mikelley@microsoft.com>
 X-Mailer: git-send-email 1.8.3.1
 In-Reply-To: <1614721102-2241-1-git-send-email-mikelley@microsoft.com>
 References: <1614721102-2241-1-git-send-email-mikelley@microsoft.com>
@@ -68,513 +68,420 @@ X-ClientProxiedBy: MWHPR03CA0005.namprd03.prod.outlook.com
  (2603:10b6:5:22d::11)
 MIME-Version: 1.0
 X-MS-Exchange-MessageSentRepresentingType: 1
-Received: from mhkdev.corp.microsoft.com (131.107.159.16) by MWHPR03CA0005.namprd03.prod.outlook.com (2603:10b6:300:117::15) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3890.19 via Frontend Transport; Tue, 2 Mar 2021 21:38:50 +0000
+Received: from mhkdev.corp.microsoft.com (131.107.159.16) by MWHPR03CA0005.namprd03.prod.outlook.com (2603:10b6:300:117::15) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3890.19 via Frontend Transport; Tue, 2 Mar 2021 21:39:01 +0000
 X-MS-PublicTrafficType: Email
 X-MS-Office365-Filtering-HT: Tenant
-X-MS-Office365-Filtering-Correlation-Id: 34b77a8e-4ec5-4717-b94e-08d8ddc3924c
-X-MS-TrafficTypeDiagnostic: DM6PR21MB1739:
+X-MS-Office365-Filtering-Correlation-Id: afabff8b-56db-4b39-cd1e-08d8ddc3987c
+X-MS-TrafficTypeDiagnostic: DM5PR21MB0153:
 X-MS-Exchange-Transport-Forked: True
-X-Microsoft-Antispam-PRVS: <DM6PR21MB173910A586797F07BC89C783D7999@DM6PR21MB1739.namprd21.prod.outlook.com>
-X-MS-Oob-TLC-OOBClassifiers: OLM:9508;
+X-Microsoft-Antispam-PRVS: <DM5PR21MB0153F87CB15B166FF5B773A7D7999@DM5PR21MB0153.namprd21.prod.outlook.com>
+X-MS-Oob-TLC-OOBClassifiers: OLM:8882;
 X-MS-Exchange-SenderADCheck: 1
 X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info: DUGorxBmYR4pRH3MtIan9kolso4mNQDNkmW+HZtg0d1QXijRXUNBSWgbPzWvHbIetidVsLF+CvqyGanRcTuC7Eub1xUQ3NR5VftZcFYvs5Q/cV4Re6ap6uEWzckZokyb11MafeCE6df6fjam/5b2/PkzP5LgPNBPH655Xkx4uRAX60W6fFbRh3cx87g4Iw7G7VdIxcF4DwJFWWenH+3y/8k+kcS1tijmbl12Gn9YD/zRHdbvf+STy4XuAPPVEYgdXoF76QsyGk+0Afrk7iVCboaNEavRIJBLW3THKz9sa2Esu1cPd2fhbxGy3+3S7VTNkkqT7Ho2wt0BlGchZrI28G+kCjUjGM/M3RAEe0ydKtI0gjuekhmO0rwkwTIJrS92u6gz7qFEBCxpyi0QkDDHrlgp6zBgYZebMPYmyHr3ChGjfs3KCp40NnYu5UmPlwK3C5wRZLRAADgdpFdi0gXZckl211OeMX4yu1kXps9aRFnUtf/NpY7dhdlZevofAyS7Vqme1gEfseQN0xpuG7ddXxUFw750dhUHpDzGsuaQUK6LgO2rRFtlVnRAsa0JgwO9
-X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:DM6PR21MB1514.namprd21.prod.outlook.com;PTR:;CAT:NONE;SFS:(4636009)(39860400002)(376002)(366004)(136003)(396003)(346002)(82960400001)(956004)(36756003)(82950400001)(8676002)(66476007)(6666004)(921005)(26005)(83380400001)(66946007)(478600001)(186003)(6486002)(7696005)(16526019)(8936002)(316002)(2616005)(52116002)(4326008)(2906002)(5660300002)(10290500003)(7416002)(86362001)(66556008)(30864003);DIR:OUT;SFP:1102;
-X-MS-Exchange-AntiSpam-MessageData: =?us-ascii?Q?R6Lkjs7OAuFhcMh+YsSpYfVgTQUh3acx/mCiJnuL46M9q8kkcWpWC+bIv6kx?=
- =?us-ascii?Q?jRMrhqjTGKlHgybHQndvi0/d2J/0Fw9Xp8XtKQ74IwN9ACrZBYhkaBr5bpgG?=
- =?us-ascii?Q?bBNFrTne2hNIXW08T5wm+B9cdw4m2OzJ7i42DKPqH5OgpYoiQ9XCsjk8MAUz?=
- =?us-ascii?Q?Ap/7KP9Cg0+mTiLlsIvCi0ETz48PmGe257r+Zid7jb1mZH0Ig+9oibeR3BMy?=
- =?us-ascii?Q?vAlC1FpNFdqUIjidAxf7e/6j0mzMeke+WRrLowf/xjAzuCnS99kzIfkRdFlY?=
- =?us-ascii?Q?2sKpdmIxMKHUFfEIgLUc/2R+e+WoI857JFt2iwZnq5gPAUFYSDg4b+FfZ3mn?=
- =?us-ascii?Q?DH/dCxCvMVMejf9yA9YsJFXAmlB4wBZzqfoy4pQtv/My/UTKZSaR1YR3EdhT?=
- =?us-ascii?Q?2i5RU6NP1HpjSff/L6LJXthiWzG0fUKAO8u5S9eyG53NnwtLPE3k9LgY0k4E?=
- =?us-ascii?Q?inDAcC8Oq7E4yHH2ibGDd6U9GMDez1mKJQuid9q1dWEGlUduDAabEtd5ctWN?=
- =?us-ascii?Q?ApTjoqTkLK545Lr8VA4Xpu2/gbEjFWrrdgI/x3EXg7kcn/ig8zYf73E10Qls?=
- =?us-ascii?Q?Hw6a2ZG7cE8zkTVA3yNh236onW3Ayj0uAEWS14kwoqvh84PVXxjMJmf9rscc?=
- =?us-ascii?Q?0lkTLhFFeCmGdfi8WZdxzCdFkLDCl/ML1j4ewPsPeog0ErsB7Ixcw5CE+/yj?=
- =?us-ascii?Q?AVxGdZTyEx9GDaf8Szuz/x2C9OZ7Bl6HPtvNMcXayNoEZVQ1YN36MTSzTQjD?=
- =?us-ascii?Q?x/o/7C6kSajMmWso/ztNnMwukA++YC37UBdoPLys3zqEWrXtt5sIefg0bBS1?=
- =?us-ascii?Q?BEETNuH4OtkTN++h2dSsL81iC1jjizk7s4TydvSGI5PTtnnpnrIE6jMNQuks?=
- =?us-ascii?Q?H2eXSpvWx2156H4515N7qAqMlrPMQkrTv4ZjklY1KBRujQxhPdmZNqGcM9o9?=
- =?us-ascii?Q?j+B10DnLvS3XajoyLjP3w185dtXWMflxtycDYbC92pqSmzIYCUkABuP46jtj?=
- =?us-ascii?Q?XoKsI7QewQpuyPGnG7jbbtYDvq/ot52zX+jIsf7qCKmWrnOgj7KaP+DntJMy?=
- =?us-ascii?Q?1M7sG33jy6K8rt11gBXWGWHRedXCPHrTp0nY185vFRH24PtkkcMF1v4L70in?=
- =?us-ascii?Q?3F4GRmJqxsyupSb6lQNxR9JdmeyMj6duSpOO/5i2xFim7ytkxbRQXklliFJS?=
- =?us-ascii?Q?KIRiIum3MIwPW4ahnC70x+kp+if2sfNiRNYWlq4fauhzW+3CQtivNQ2cnQgD?=
- =?us-ascii?Q?hwEXj21CKzJGRcmU8XFYgZrXbLkqHjkFWVZkjdBQ7+IJSOg5Gmf4M37r376I?=
- =?us-ascii?Q?9lRCrd5QPfwgfgApjOBY47Jn?=
+X-Microsoft-Antispam-Message-Info: Fer4qunjxLeQ9mSI0IqU65d+b2IwKElkfQwqQSkHryARJMs96L7FEAnRzeFuPMQnvlgbI5BEFIfW8nMAzKD7Cmw0buiRHKKiXdPDIHTC49TKfpCeVh/8NduyChjGvJS90Oq/VjtiOIIgmLN0NpCk4hX7mBZszFHhEMTja45/h5TBK7JKxouzZT457B29H+nb35eEUteLw9NvDG9q9y+bY4zukUGxmaK0qJoFX6Z6Dve2myDl0qRfmDK22hZhpodDckEpBk3Ucg3QE4iJZDMr4Z0qEKB0WaJKSf/BDwfeJlZdxOuzw32qoOUPKELsy9SYqmH10YdMxgavaqP32GOJLmECxejwVGNswBoGqL6XuMrRq87j6J6S3aqKYWVhKXQqopm9F9qMMeLCO8sx3NgNrTzDxeJ0p+pP3zcamCPoCpkW6t5WTNSJGrc6RSLmpOr26lGTAhmXYytrF92jsiPVxNzPwfLyG920b/FcfnQrnqVDEdK//Lr0yH2592Le0vA27sndgEokh2DxW7mjWsBbNWl5E4KAKtoLYYsBg+I0T6J066IcIw4EiwQuPIwhBLV8
+X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:DM6PR21MB1514.namprd21.prod.outlook.com;PTR:;CAT:NONE;SFS:(4636009)(136003)(346002)(396003)(39860400002)(366004)(376002)(6486002)(16526019)(82950400001)(478600001)(10290500003)(186003)(82960400001)(956004)(5660300002)(52116002)(4326008)(2616005)(26005)(921005)(36756003)(8936002)(66476007)(83380400001)(66556008)(8676002)(66946007)(7416002)(86362001)(2906002)(30864003)(316002)(7696005)(6666004);DIR:OUT;SFP:1102;
+X-MS-Exchange-AntiSpam-MessageData: =?us-ascii?Q?sMnS3KT05SdrezEVxFPCJU8WFvz/KipqhqKuQRbZwa/uGVdUD08t/f4PJ9fW?=
+ =?us-ascii?Q?Jij3tclGUGX78Y5hFBrFJjtO0mbIav7wCzUMk5klkLv4nwOzaWQCcbUrg9BL?=
+ =?us-ascii?Q?CMw3qBc4PUn5ji+2vhZk3sc1BhPxMRh7OXehXQJk7NL3i5Vy323p7Rej5z0C?=
+ =?us-ascii?Q?9WgUwKvXpvthZFjOg//K+bTxD3IHBlVfKywII8fobe9pdqzvhv9uSF2/t6Mu?=
+ =?us-ascii?Q?WTsq55DIS1tRjZy9XIkLkDyXrwIIlzIxHNkiiyOiLr5k6eH1TQ/sH1JRghVp?=
+ =?us-ascii?Q?zPK/3YYO0xPiFsFvH4OlWxMfKBVJDV/W0GByMxzFnp6u40S8G5E1/c8haX5t?=
+ =?us-ascii?Q?5jdV+20s8GT/8/Y0cHGV87ygSS9i9XuUAaFBmjGbXnpcI4p3+fldcefj5keg?=
+ =?us-ascii?Q?xBRTkgfXouPMc7takiaWEp67EdEx/M9XN4520n0I1xIMBcBM5qJPJ0rMnCCU?=
+ =?us-ascii?Q?BKt4hnAuR4zM9dvaUX8ZMbhrUghiM+sa4lauZ0GPlZpfrzbm/jX1UIXNgP0R?=
+ =?us-ascii?Q?qzbR+hCO0d6c8SB7QhDNt+fqsNt0vgCw9NAxUSHDRXZPv+z8dH/adgWyvSWQ?=
+ =?us-ascii?Q?5J/8gtdEIwQM8IwsU2GX7cMRNNVl6FYCVTqX1XTqmWY21IiNd/WeZV9eDLMP?=
+ =?us-ascii?Q?iLIxwkrSabIMmUSyaVa+dsR8JrP4b3zCBQAKqCsRdhz3OljOnkL+R7+Kf5u3?=
+ =?us-ascii?Q?7Ps9YJv6Ys+EHmIVDnxKfMtmEsKuENuP0ilErPKBMh354gLrYDF3YUHMjyal?=
+ =?us-ascii?Q?TqlkzNXbsr//LKOcWE8BKaqyKrURB9Gi7hBo2auPCPN5cOwLa1KWJr9Zjk18?=
+ =?us-ascii?Q?jIKe56jGaVL2s32dxhWH5BV69kmT6gzQQggHpfkN5IfsBykpcWgROlx/xycv?=
+ =?us-ascii?Q?sBPzo1bMYdOYHEdF3vAxYiiGGSzBGRa+LTSkcaEp8QeUjn/B6jNoAn5xPs3q?=
+ =?us-ascii?Q?Le+XMSyVeVHv+vMN+k+o9ZrU3aYsZp25adhRuloYsa5nYamCF7jEc3FffT88?=
+ =?us-ascii?Q?LCRgzN6vgn33sb94fK58u1l9NesM6tybheMGhrmQJUfZNUiyTGsa+1FbQf1t?=
+ =?us-ascii?Q?7YP6GmzFZjq4MiJidkWMxye+oSQ6qMjvR7TTgGlWrbU6uz63JqZ71D72q/GC?=
+ =?us-ascii?Q?ab3popGcva8oEYBqUA4PEfZYCvJFGCIMvxUeuEHF9Cc5DprISFBYopUaAnh+?=
+ =?us-ascii?Q?6HlKXwalDd4K74asz2JosENV1rj4Tc7ONIoH5dDP09M5H/QpXPjISUECSkY9?=
+ =?us-ascii?Q?OrI/zRhkRIuDhfALlcEcbdtCZ8X45/JvicdpT63RGys0s+SBL5c0LqqDpAW3?=
+ =?us-ascii?Q?rWAUJcMk2TRz68dcsLWfiQY4?=
 X-OriginatorOrg: microsoft.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 34b77a8e-4ec5-4717-b94e-08d8ddc3924c
+X-MS-Exchange-CrossTenant-Network-Message-Id: afabff8b-56db-4b39-cd1e-08d8ddc3987c
 X-MS-Exchange-CrossTenant-AuthSource: DM6PR21MB1514.namprd21.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 02 Mar 2021 21:38:51.7082
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 02 Mar 2021 21:39:02.1085
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: 72f988bf-86f1-41af-91ab-2d7cd011db47
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: jART/nrgxP7IW9EZ8T4o6DR6nXvrAjIF/FIQDNFRN9VXSCwqHgH/9yGTVHGkQ1MbaGYlbQREfxy5J/k5nC9xAw==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM6PR21MB1739
+X-MS-Exchange-CrossTenant-UserPrincipalName: 4GDNCeMn67gEM/bLTZySkU47i3oQCaOupJSsNZU8Jj8w9a4+jWwVuSZjZeTXjzWnk5r53KmVKm8y6UxxKW3LeQ==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM5PR21MB0153
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Current code defines a separate get and set macro for each Hyper-V
-synthetic MSR used by the VMbus driver. Furthermore, the get macro
-can't be converted to a standard function because the second argument
-is modified in place, which is somewhat bad form.
+STIMER0 interrupts are most naturally modeled as per-cpu IRQs. But
+because x86/x64 doesn't have per-cpu IRQs, the core STIMER0 interrupt
+handling machinery is done in code under arch/x86 and Linux IRQs are
+not used. Adding support for ARM64 means adding equivalent code
+using per-cpu IRQs under arch/arm64.
 
-Redo this by providing a single get and a single set function that
-take a parameter specifying the MSR to be operated on. Fixup usage
-of the get function. Calling locations are no more complex than before,
-but the code under arch/x86 and the upcoming code under arch/arm64
-is significantly simplified.
-
-Also standardize the names of Hyper-V synthetic MSRs that are
-architecture neutral. But keep the old x86-specific names as aliases
-that can be removed later when all references (particularly in KVM
-code) have been cleaned up in a separate patch series.
+A better model is to treat per-cpu IRQs as the normal path (which it is
+for modern architectures), and the x86/x64 path as the exception. Do this
+by incorporating standard Linux per-cpu IRQ allocation into the main
+SITMER0 driver code, and bypass it in the x86/x64 exception case. For
+x86/x64, special case code is retained under arch/x86, but no STIMER0
+interrupt handling code is needed under arch/arm64.
 
 No functional change.
 
 Signed-off-by: Michael Kelley <mikelley@microsoft.com>
-Reviewed-by: Boqun Feng <boqun.feng@gmail.com>
 ---
  arch/x86/hyperv/hv_init.c          |   2 +-
- arch/x86/include/asm/hyperv-tlfs.h | 102 +++++++++++++++++++++++--------------
- arch/x86/include/asm/mshyperv.h    |  39 ++++----------
- drivers/clocksource/hyperv_timer.c |  26 +++++-----
- drivers/hv/hv.c                    |  37 ++++++++------
- drivers/hv/vmbus_drv.c             |   2 +-
- include/asm-generic/mshyperv.h     |   2 +-
- 7 files changed, 110 insertions(+), 100 deletions(-)
+ arch/x86/include/asm/mshyperv.h    |   4 -
+ arch/x86/kernel/cpu/mshyperv.c     |  10 +--
+ drivers/clocksource/hyperv_timer.c | 168 +++++++++++++++++++++++++------------
+ include/asm-generic/mshyperv.h     |   5 --
+ include/clocksource/hyperv_timer.h |   3 +-
+ 6 files changed, 120 insertions(+), 72 deletions(-)
 
 diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-index 4bdb344..94d52c5 100644
+index 9af4f8a..9d10025 100644
 --- a/arch/x86/hyperv/hv_init.c
 +++ b/arch/x86/hyperv/hv_init.c
-@@ -75,7 +75,7 @@ static int hv_cpu_init(unsigned int cpu)
- 		*output_arg = page_address(pg + 1);
- 	}
+@@ -327,7 +327,7 @@ static void __init hv_stimer_setup_percpu_clockev(void)
+ 	 * Ignore any errors in setting up stimer clockevents
+ 	 * as we can run with the LAPIC timer as a fallback.
+ 	 */
+-	(void)hv_stimer_alloc();
++	(void)hv_stimer_alloc(false);
  
--	hv_get_vp_index(msr_vp_index);
-+	msr_vp_index = hv_get_register(HV_REGISTER_VP_INDEX);
- 
- 	hv_vp_index[smp_processor_id()] = msr_vp_index;
- 
-diff --git a/arch/x86/include/asm/hyperv-tlfs.h b/arch/x86/include/asm/hyperv-tlfs.h
-index 68b38a2..606f5cc 100644
---- a/arch/x86/include/asm/hyperv-tlfs.h
-+++ b/arch/x86/include/asm/hyperv-tlfs.h
-@@ -156,7 +156,7 @@ enum hv_isolation_type {
- #define HV_X64_MSR_HYPERCALL			0x40000001
- 
- /* MSR used to provide vcpu index */
--#define HV_X64_MSR_VP_INDEX			0x40000002
-+#define HV_REGISTER_VP_INDEX			0x40000002
- 
- /* MSR used to reset the guest OS. */
- #define HV_X64_MSR_RESET			0x40000003
-@@ -165,10 +165,10 @@ enum hv_isolation_type {
- #define HV_X64_MSR_VP_RUNTIME			0x40000010
- 
- /* MSR used to read the per-partition time reference counter */
--#define HV_X64_MSR_TIME_REF_COUNT		0x40000020
-+#define HV_REGISTER_TIME_REF_COUNT		0x40000020
- 
- /* A partition's reference time stamp counter (TSC) page */
--#define HV_X64_MSR_REFERENCE_TSC		0x40000021
-+#define HV_REGISTER_REFERENCE_TSC		0x40000021
- 
- /* MSR used to retrieve the TSC frequency */
- #define HV_X64_MSR_TSC_FREQUENCY		0x40000022
-@@ -183,50 +183,50 @@ enum hv_isolation_type {
- #define HV_X64_MSR_VP_ASSIST_PAGE		0x40000073
- 
- /* Define synthetic interrupt controller model specific registers. */
--#define HV_X64_MSR_SCONTROL			0x40000080
--#define HV_X64_MSR_SVERSION			0x40000081
--#define HV_X64_MSR_SIEFP			0x40000082
--#define HV_X64_MSR_SIMP				0x40000083
--#define HV_X64_MSR_EOM				0x40000084
--#define HV_X64_MSR_SINT0			0x40000090
--#define HV_X64_MSR_SINT1			0x40000091
--#define HV_X64_MSR_SINT2			0x40000092
--#define HV_X64_MSR_SINT3			0x40000093
--#define HV_X64_MSR_SINT4			0x40000094
--#define HV_X64_MSR_SINT5			0x40000095
--#define HV_X64_MSR_SINT6			0x40000096
--#define HV_X64_MSR_SINT7			0x40000097
--#define HV_X64_MSR_SINT8			0x40000098
--#define HV_X64_MSR_SINT9			0x40000099
--#define HV_X64_MSR_SINT10			0x4000009A
--#define HV_X64_MSR_SINT11			0x4000009B
--#define HV_X64_MSR_SINT12			0x4000009C
--#define HV_X64_MSR_SINT13			0x4000009D
--#define HV_X64_MSR_SINT14			0x4000009E
--#define HV_X64_MSR_SINT15			0x4000009F
-+#define HV_REGISTER_SCONTROL			0x40000080
-+#define HV_REGISTER_SVERSION			0x40000081
-+#define HV_REGISTER_SIEFP			0x40000082
-+#define HV_REGISTER_SIMP			0x40000083
-+#define HV_REGISTER_EOM				0x40000084
-+#define HV_REGISTER_SINT0			0x40000090
-+#define HV_REGISTER_SINT1			0x40000091
-+#define HV_REGISTER_SINT2			0x40000092
-+#define HV_REGISTER_SINT3			0x40000093
-+#define HV_REGISTER_SINT4			0x40000094
-+#define HV_REGISTER_SINT5			0x40000095
-+#define HV_REGISTER_SINT6			0x40000096
-+#define HV_REGISTER_SINT7			0x40000097
-+#define HV_REGISTER_SINT8			0x40000098
-+#define HV_REGISTER_SINT9			0x40000099
-+#define HV_REGISTER_SINT10			0x4000009A
-+#define HV_REGISTER_SINT11			0x4000009B
-+#define HV_REGISTER_SINT12			0x4000009C
-+#define HV_REGISTER_SINT13			0x4000009D
-+#define HV_REGISTER_SINT14			0x4000009E
-+#define HV_REGISTER_SINT15			0x4000009F
- 
- /*
-  * Synthetic Timer MSRs. Four timers per vcpu.
-  */
--#define HV_X64_MSR_STIMER0_CONFIG		0x400000B0
--#define HV_X64_MSR_STIMER0_COUNT		0x400000B1
--#define HV_X64_MSR_STIMER1_CONFIG		0x400000B2
--#define HV_X64_MSR_STIMER1_COUNT		0x400000B3
--#define HV_X64_MSR_STIMER2_CONFIG		0x400000B4
--#define HV_X64_MSR_STIMER2_COUNT		0x400000B5
--#define HV_X64_MSR_STIMER3_CONFIG		0x400000B6
--#define HV_X64_MSR_STIMER3_COUNT		0x400000B7
-+#define HV_REGISTER_STIMER0_CONFIG		0x400000B0
-+#define HV_REGISTER_STIMER0_COUNT		0x400000B1
-+#define HV_REGISTER_STIMER1_CONFIG		0x400000B2
-+#define HV_REGISTER_STIMER1_COUNT		0x400000B3
-+#define HV_REGISTER_STIMER2_CONFIG		0x400000B4
-+#define HV_REGISTER_STIMER2_COUNT		0x400000B5
-+#define HV_REGISTER_STIMER3_CONFIG		0x400000B6
-+#define HV_REGISTER_STIMER3_COUNT		0x400000B7
- 
- /* Hyper-V guest idle MSR */
- #define HV_X64_MSR_GUEST_IDLE			0x400000F0
- 
- /* Hyper-V guest crash notification MSR's */
--#define HV_X64_MSR_CRASH_P0			0x40000100
--#define HV_X64_MSR_CRASH_P1			0x40000101
--#define HV_X64_MSR_CRASH_P2			0x40000102
--#define HV_X64_MSR_CRASH_P3			0x40000103
--#define HV_X64_MSR_CRASH_P4			0x40000104
--#define HV_X64_MSR_CRASH_CTL			0x40000105
-+#define HV_REGISTER_CRASH_P0			0x40000100
-+#define HV_REGISTER_CRASH_P1			0x40000101
-+#define HV_REGISTER_CRASH_P2			0x40000102
-+#define HV_REGISTER_CRASH_P3			0x40000103
-+#define HV_REGISTER_CRASH_P4			0x40000104
-+#define HV_REGISTER_CRASH_CTL			0x40000105
- 
- /* TSC emulation after migration */
- #define HV_X64_MSR_REENLIGHTENMENT_CONTROL	0x40000106
-@@ -236,6 +236,32 @@ enum hv_isolation_type {
- /* TSC invariant control */
- #define HV_X64_MSR_TSC_INVARIANT_CONTROL	0x40000118
- 
-+/* Register name aliases for temporary compatibility */
-+#define HV_X64_MSR_STIMER0_COUNT	HV_REGISTER_STIMER0_COUNT
-+#define HV_X64_MSR_STIMER0_CONFIG	HV_REGISTER_STIMER0_CONFIG
-+#define HV_X64_MSR_STIMER1_COUNT	HV_REGISTER_STIMER1_COUNT
-+#define HV_X64_MSR_STIMER1_CONFIG	HV_REGISTER_STIMER1_CONFIG
-+#define HV_X64_MSR_STIMER2_COUNT	HV_REGISTER_STIMER2_COUNT
-+#define HV_X64_MSR_STIMER2_CONFIG	HV_REGISTER_STIMER2_CONFIG
-+#define HV_X64_MSR_STIMER3_COUNT	HV_REGISTER_STIMER3_COUNT
-+#define HV_X64_MSR_STIMER3_CONFIG	HV_REGISTER_STIMER3_CONFIG
-+#define HV_X64_MSR_SCONTROL		HV_REGISTER_SCONTROL
-+#define HV_X64_MSR_SVERSION		HV_REGISTER_SVERSION
-+#define HV_X64_MSR_SIMP			HV_REGISTER_SIMP
-+#define HV_X64_MSR_SIEFP		HV_REGISTER_SIEFP
-+#define HV_X64_MSR_VP_INDEX		HV_REGISTER_VP_INDEX
-+#define HV_X64_MSR_EOM			HV_REGISTER_EOM
-+#define HV_X64_MSR_SINT0		HV_REGISTER_SINT0
-+#define HV_X64_MSR_SINT15		HV_REGISTER_SINT15
-+#define HV_X64_MSR_CRASH_P0		HV_REGISTER_CRASH_P0
-+#define HV_X64_MSR_CRASH_P1		HV_REGISTER_CRASH_P1
-+#define HV_X64_MSR_CRASH_P2		HV_REGISTER_CRASH_P2
-+#define HV_X64_MSR_CRASH_P3		HV_REGISTER_CRASH_P3
-+#define HV_X64_MSR_CRASH_P4		HV_REGISTER_CRASH_P4
-+#define HV_X64_MSR_CRASH_CTL		HV_REGISTER_CRASH_CTL
-+#define HV_X64_MSR_TIME_REF_COUNT	HV_REGISTER_TIME_REF_COUNT
-+#define HV_X64_MSR_REFERENCE_TSC	HV_REGISTER_REFERENCE_TSC
-+
- /*
-  * Declare the MSR used to setup pages used to communicate with the hypervisor.
-  */
+ 	/*
+ 	 * Still register the LAPIC timer, because the direct-mode STIMER is
 diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-index ef6e968..2590ce5 100644
+index 5433312..6d4891b 100644
 --- a/arch/x86/include/asm/mshyperv.h
 +++ b/arch/x86/include/asm/mshyperv.h
-@@ -14,41 +14,22 @@ typedef int (*hyperv_fill_flush_list_func)(
- 		struct hv_guest_mapping_flush_list *flush,
- 		void *data);
+@@ -31,10 +31,6 @@ static inline u64 hv_get_register(unsigned int reg)
  
--#define hv_init_timer(timer, tick) \
--	wrmsrl(HV_X64_MSR_STIMER0_COUNT + (2*timer), tick)
--#define hv_init_timer_config(timer, val) \
--	wrmsrl(HV_X64_MSR_STIMER0_CONFIG + (2*timer), val)
--
--#define hv_get_simp(val) rdmsrl(HV_X64_MSR_SIMP, val)
--#define hv_set_simp(val) wrmsrl(HV_X64_MSR_SIMP, val)
--
--#define hv_get_siefp(val) rdmsrl(HV_X64_MSR_SIEFP, val)
--#define hv_set_siefp(val) wrmsrl(HV_X64_MSR_SIEFP, val)
--
--#define hv_get_synic_state(val) rdmsrl(HV_X64_MSR_SCONTROL, val)
--#define hv_set_synic_state(val) wrmsrl(HV_X64_MSR_SCONTROL, val)
-+static inline void hv_set_register(unsigned int reg, u64 value)
-+{
-+	wrmsrl(reg, value);
-+}
+ void hyperv_vector_handler(struct pt_regs *regs);
  
--#define hv_get_vp_index(index) rdmsrl(HV_X64_MSR_VP_INDEX, index)
-+static inline u64 hv_get_register(unsigned int reg)
-+{
-+	u64 value;
- 
--#define hv_signal_eom() wrmsrl(HV_X64_MSR_EOM, 0)
-+	rdmsrl(reg, value);
-+	return value;
-+}
- 
--#define hv_get_synint_state(int_num, val) \
--	rdmsrl(HV_X64_MSR_SINT0 + int_num, val)
--#define hv_set_synint_state(int_num, val) \
--	wrmsrl(HV_X64_MSR_SINT0 + int_num, val)
- #define hv_recommend_using_aeoi() \
- 	(!(ms_hyperv.hints & HV_DEPRECATING_AEOI_RECOMMENDED))
- 
--#define hv_get_crash_ctl(val) \
--	rdmsrl(HV_X64_MSR_CRASH_CTL, val)
+-static inline void hv_enable_stimer0_percpu_irq(int irq) {}
+-static inline void hv_disable_stimer0_percpu_irq(int irq) {}
 -
--#define hv_get_time_ref_count(val) \
--	rdmsrl(HV_X64_MSR_TIME_REF_COUNT, val)
 -
--#define hv_get_reference_tsc(val) \
--	rdmsrl(HV_X64_MSR_REFERENCE_TSC, val)
--#define hv_set_reference_tsc(val) \
--	wrmsrl(HV_X64_MSR_REFERENCE_TSC, val)
- #define hv_set_clocksource_vdso(val) \
- 	((val).vdso_clock_mode = VDSO_CLOCKMODE_HVCLOCK)
- #define hv_enable_vdso_clocksource() \
+ #if IS_ENABLED(CONFIG_HYPERV)
+ extern int hyperv_init_cpuhp;
+ 
+diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
+index 41fd84a..cebed53 100644
+--- a/arch/x86/kernel/cpu/mshyperv.c
++++ b/arch/x86/kernel/cpu/mshyperv.c
+@@ -90,21 +90,17 @@ void hv_remove_vmbus_handler(void)
+ 	set_irq_regs(old_regs);
+ }
+ 
+-int hv_setup_stimer0_irq(int *irq, int *vector, void (*handler)(void))
++/* For x86/x64, override weak placeholders in hyperv_timer.c */
++void hv_setup_stimer0_handler(void (*handler)(void))
+ {
+-	*vector = HYPERV_STIMER0_VECTOR;
+-	*irq = -1;   /* Unused on x86/x64 */
+ 	hv_stimer0_handler = handler;
+-	return 0;
+ }
+-EXPORT_SYMBOL_GPL(hv_setup_stimer0_irq);
+ 
+-void hv_remove_stimer0_irq(int irq)
++void hv_remove_stimer0_handler(void)
+ {
+ 	/* We have no way to deallocate the interrupt gate */
+ 	hv_stimer0_handler = NULL;
+ }
+-EXPORT_SYMBOL_GPL(hv_remove_stimer0_irq);
+ 
+ void hv_setup_kexec_handler(void (*handler)(void))
+ {
 diff --git a/drivers/clocksource/hyperv_timer.c b/drivers/clocksource/hyperv_timer.c
-index 269a691..c73c127 100644
+index 7a9030c..ce94f78 100644
 --- a/drivers/clocksource/hyperv_timer.c
 +++ b/drivers/clocksource/hyperv_timer.c
-@@ -68,14 +68,14 @@ static int hv_ce_set_next_event(unsigned long delta,
+@@ -18,6 +18,9 @@
+ #include <linux/sched_clock.h>
+ #include <linux/mm.h>
+ #include <linux/cpuhotplug.h>
++#include <linux/interrupt.h>
++#include <linux/irq.h>
++#include <linux/acpi.h>
+ #include <clocksource/hyperv_timer.h>
+ #include <asm/hyperv-tlfs.h>
+ #include <asm/mshyperv.h>
+@@ -43,14 +46,13 @@
+  */
+ static bool direct_mode_enabled;
  
- 	current_tick = hv_read_reference_counter();
- 	current_tick += delta;
--	hv_init_timer(0, current_tick);
-+	hv_set_register(HV_REGISTER_STIMER0_COUNT, current_tick);
- 	return 0;
- }
+-static int stimer0_irq;
+-static int stimer0_vector;
++static int stimer0_irq = -1;
+ static int stimer0_message_sint;
++static DEFINE_PER_CPU(long, stimer0_evt);
  
- static int hv_ce_shutdown(struct clock_event_device *evt)
+ /*
+- * ISR for when stimer0 is operating in Direct Mode.  Direct Mode
+- * does not use VMbus or any VMbus messages, so process here and not
+- * in the VMbus driver code.
++ * Common code for stimer0 interrupts coming via Direct Mode or
++ * as a VMbus message.
+  */
+ void hv_stimer0_isr(void)
  {
--	hv_init_timer(0, 0);
--	hv_init_timer_config(0, 0);
-+	hv_set_register(HV_REGISTER_STIMER0_COUNT, 0);
-+	hv_set_register(HV_REGISTER_STIMER0_CONFIG, 0);
- 	if (direct_mode_enabled)
- 		hv_disable_stimer0_percpu_irq(stimer0_irq);
- 
-@@ -105,7 +105,7 @@ static int hv_ce_set_oneshot(struct clock_event_device *evt)
- 		timer_cfg.direct_mode = 0;
- 		timer_cfg.sintx = stimer0_message_sint;
- 	}
--	hv_init_timer_config(0, timer_cfg.as_uint64);
-+	hv_set_register(HV_REGISTER_STIMER0_CONFIG, timer_cfg.as_uint64);
- 	return 0;
+@@ -61,6 +63,16 @@ void hv_stimer0_isr(void)
  }
+ EXPORT_SYMBOL_GPL(hv_stimer0_isr);
  
-@@ -331,7 +331,7 @@ static u64 notrace read_hv_clock_tsc(void)
- 	u64 current_tick = hv_read_tsc_page(hv_get_tsc_page());
- 
- 	if (current_tick == U64_MAX)
--		hv_get_time_ref_count(current_tick);
-+		current_tick = hv_get_register(HV_REGISTER_TIME_REF_COUNT);
- 
- 	return current_tick;
- }
-@@ -352,9 +352,9 @@ static void suspend_hv_clock_tsc(struct clocksource *arg)
- 	u64 tsc_msr;
- 
- 	/* Disable the TSC page */
--	hv_get_reference_tsc(tsc_msr);
-+	tsc_msr = hv_get_register(HV_REGISTER_REFERENCE_TSC);
- 	tsc_msr &= ~BIT_ULL(0);
--	hv_set_reference_tsc(tsc_msr);
-+	hv_set_register(HV_REGISTER_REFERENCE_TSC, tsc_msr);
- }
- 
- 
-@@ -364,10 +364,10 @@ static void resume_hv_clock_tsc(struct clocksource *arg)
- 	u64 tsc_msr;
- 
- 	/* Re-enable the TSC page */
--	hv_get_reference_tsc(tsc_msr);
-+	tsc_msr = hv_get_register(HV_REGISTER_REFERENCE_TSC);
- 	tsc_msr &= GENMASK_ULL(11, 0);
- 	tsc_msr |= BIT_ULL(0) | (u64)phys_addr;
--	hv_set_reference_tsc(tsc_msr);
-+	hv_set_register(HV_REGISTER_REFERENCE_TSC, tsc_msr);
- }
- 
- static int hv_cs_enable(struct clocksource *cs)
-@@ -389,14 +389,12 @@ static int hv_cs_enable(struct clocksource *cs)
- 
- static u64 notrace read_hv_clock_msr(void)
- {
--	u64 current_tick;
- 	/*
- 	 * Read the partition counter to get the current tick count. This count
- 	 * is set to 0 when the partition is created and is incremented in
- 	 * 100 nanosecond units.
- 	 */
--	hv_get_time_ref_count(current_tick);
--	return current_tick;
-+	return hv_get_register(HV_REGISTER_TIME_REF_COUNT);
- }
- 
- static u64 notrace read_hv_clock_msr_cs(struct clocksource *arg)
-@@ -439,10 +437,10 @@ static bool __init hv_init_tsc_clocksource(void)
- 	 * (which already has at least the low 12 bits set to zero since
- 	 * it is page aligned). Also set the "enable" bit, which is bit 0.
- 	 */
--	hv_get_reference_tsc(tsc_msr);
-+	tsc_msr = hv_get_register(HV_REGISTER_REFERENCE_TSC);
- 	tsc_msr &= GENMASK_ULL(11, 0);
- 	tsc_msr = tsc_msr | 0x1 | (u64)phys_addr;
--	hv_set_reference_tsc(tsc_msr);
-+	hv_set_register(HV_REGISTER_REFERENCE_TSC, tsc_msr);
- 
- 	hv_set_clocksource_vdso(hyperv_cs_tsc);
- 	clocksource_register_hz(&hyperv_cs_tsc, NSEC_PER_SEC/100);
-diff --git a/drivers/hv/hv.c b/drivers/hv/hv.c
-index cca8d5e..0c1fa69 100644
---- a/drivers/hv/hv.c
-+++ b/drivers/hv/hv.c
-@@ -198,34 +198,36 @@ void hv_synic_enable_regs(unsigned int cpu)
- 	union hv_synic_scontrol sctrl;
- 
- 	/* Setup the Synic's message page */
--	hv_get_simp(simp.as_uint64);
-+	simp.as_uint64 = hv_get_register(HV_REGISTER_SIMP);
- 	simp.simp_enabled = 1;
- 	simp.base_simp_gpa = virt_to_phys(hv_cpu->synic_message_page)
- 		>> HV_HYP_PAGE_SHIFT;
- 
--	hv_set_simp(simp.as_uint64);
-+	hv_set_register(HV_REGISTER_SIMP, simp.as_uint64);
- 
- 	/* Setup the Synic's event page */
--	hv_get_siefp(siefp.as_uint64);
-+	siefp.as_uint64 = hv_get_register(HV_REGISTER_SIEFP);
- 	siefp.siefp_enabled = 1;
- 	siefp.base_siefp_gpa = virt_to_phys(hv_cpu->synic_event_page)
- 		>> HV_HYP_PAGE_SHIFT;
- 
--	hv_set_siefp(siefp.as_uint64);
-+	hv_set_register(HV_REGISTER_SIEFP, siefp.as_uint64);
- 
- 	/* Setup the shared SINT. */
--	hv_get_synint_state(VMBUS_MESSAGE_SINT, shared_sint.as_uint64);
-+	shared_sint.as_uint64 = hv_get_register(HV_REGISTER_SINT0 +
-+					VMBUS_MESSAGE_SINT);
- 
- 	shared_sint.vector = hv_get_vector();
- 	shared_sint.masked = false;
- 	shared_sint.auto_eoi = hv_recommend_using_aeoi();
--	hv_set_synint_state(VMBUS_MESSAGE_SINT, shared_sint.as_uint64);
-+	hv_set_register(HV_REGISTER_SINT0 + VMBUS_MESSAGE_SINT,
-+				shared_sint.as_uint64);
- 
- 	/* Enable the global synic bit */
--	hv_get_synic_state(sctrl.as_uint64);
-+	sctrl.as_uint64 = hv_get_register(HV_REGISTER_SCONTROL);
- 	sctrl.enable = 1;
- 
--	hv_set_synic_state(sctrl.as_uint64);
-+	hv_set_register(HV_REGISTER_SCONTROL, sctrl.as_uint64);
- }
- 
- int hv_synic_init(unsigned int cpu)
-@@ -247,32 +249,35 @@ void hv_synic_disable_regs(unsigned int cpu)
- 	union hv_synic_siefp siefp;
- 	union hv_synic_scontrol sctrl;
- 
--	hv_get_synint_state(VMBUS_MESSAGE_SINT, shared_sint.as_uint64);
-+	shared_sint.as_uint64 = hv_get_register(HV_REGISTER_SINT0 +
-+					VMBUS_MESSAGE_SINT);
- 
- 	shared_sint.masked = 1;
- 
- 	/* Need to correctly cleanup in the case of SMP!!! */
- 	/* Disable the interrupt */
--	hv_set_synint_state(VMBUS_MESSAGE_SINT, shared_sint.as_uint64);
-+	hv_set_register(HV_REGISTER_SINT0 + VMBUS_MESSAGE_SINT,
-+				shared_sint.as_uint64);
- 
--	hv_get_simp(simp.as_uint64);
-+	simp.as_uint64 = hv_get_register(HV_REGISTER_SIMP);
- 	simp.simp_enabled = 0;
- 	simp.base_simp_gpa = 0;
- 
--	hv_set_simp(simp.as_uint64);
-+	hv_set_register(HV_REGISTER_SIMP, simp.as_uint64);
- 
--	hv_get_siefp(siefp.as_uint64);
-+	siefp.as_uint64 = hv_get_register(HV_REGISTER_SIEFP);
- 	siefp.siefp_enabled = 0;
- 	siefp.base_siefp_gpa = 0;
- 
--	hv_set_siefp(siefp.as_uint64);
-+	hv_set_register(HV_REGISTER_SIEFP, siefp.as_uint64);
- 
- 	/* Disable the global synic bit */
--	hv_get_synic_state(sctrl.as_uint64);
-+	sctrl.as_uint64 = hv_get_register(HV_REGISTER_SCONTROL);
- 	sctrl.enable = 0;
--	hv_set_synic_state(sctrl.as_uint64);
-+	hv_set_register(HV_REGISTER_SCONTROL, sctrl.as_uint64);
- }
- 
++/*
++ * stimer0 interrupt handler for architectures that support
++ * per-cpu interrupts, which also implies Direct Mode.
++ */
++static irqreturn_t hv_stimer0_percpu_isr(int irq, void *dev_id)
++{
++	hv_stimer0_isr();
++	return IRQ_HANDLED;
++}
 +
- int hv_synic_cleanup(unsigned int cpu)
+ static int hv_ce_set_next_event(unsigned long delta,
+ 				struct clock_event_device *evt)
  {
- 	struct vmbus_channel *channel, *sc;
-diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
-index 10dce9f..9e63170 100644
---- a/drivers/hv/vmbus_drv.c
-+++ b/drivers/hv/vmbus_drv.c
-@@ -1521,7 +1521,7 @@ static int vmbus_bus_init(void)
- 		 * Register for panic kmsg callback only if the right
- 		 * capability is supported by the hypervisor.
- 		 */
--		hv_get_crash_ctl(hyperv_crash_ctl);
-+		hyperv_crash_ctl = hv_get_register(HV_REGISTER_CRASH_CTL);
- 		if (hyperv_crash_ctl & HV_CRASH_CTL_CRASH_NOTIFY_MSG)
- 			hv_kmsg_dump_register();
+@@ -76,8 +88,8 @@ static int hv_ce_shutdown(struct clock_event_device *evt)
+ {
+ 	hv_set_register(HV_REGISTER_STIMER0_COUNT, 0);
+ 	hv_set_register(HV_REGISTER_STIMER0_CONFIG, 0);
+-	if (direct_mode_enabled)
+-		hv_disable_stimer0_percpu_irq(stimer0_irq);
++	if (direct_mode_enabled && stimer0_irq >= 0)
++		disable_percpu_irq(stimer0_irq);
  
+ 	return 0;
+ }
+@@ -95,8 +107,9 @@ static int hv_ce_set_oneshot(struct clock_event_device *evt)
+ 		 * on the specified hardware vector/IRQ.
+ 		 */
+ 		timer_cfg.direct_mode = 1;
+-		timer_cfg.apic_vector = stimer0_vector;
+-		hv_enable_stimer0_percpu_irq(stimer0_irq);
++		timer_cfg.apic_vector = HYPERV_STIMER0_VECTOR;
++		if (stimer0_irq >= 0)
++			enable_percpu_irq(stimer0_irq, IRQ_TYPE_NONE);
+ 	} else {
+ 		/*
+ 		 * When it expires, the timer will generate a VMbus message,
+@@ -169,10 +182,58 @@ int hv_stimer_cleanup(unsigned int cpu)
+ }
+ EXPORT_SYMBOL_GPL(hv_stimer_cleanup);
+ 
++/*
++ * These placeholders are overridden by arch specific code on
++ * architectures that need special setup of the stimer0 IRQ because
++ * they don't support per-cpu IRQs (such as x86/x64).
++ */
++void __weak hv_setup_stimer0_handler(void (*handler)(void))
++{
++};
++
++void __weak hv_remove_stimer0_handler(void)
++{
++};
++
++/* Called only on architectures with per-cpu IRQs (i.e., not x86/x64) */
++static int hv_setup_stimer0_irq(void)
++{
++	int ret;
++
++	ret = acpi_register_gsi(NULL, HYPERV_STIMER0_VECTOR,
++			ACPI_EDGE_SENSITIVE, ACPI_ACTIVE_HIGH);
++	if (ret < 0) {
++		pr_err("Can't register Hyper-V stimer0 GSI. Error %d", ret);
++		return ret;
++	}
++	stimer0_irq = ret;
++
++	ret = request_percpu_irq(stimer0_irq, hv_stimer0_percpu_isr,
++		"Hyper-V stimer0", &stimer0_evt);
++	if (ret) {
++		pr_err("Can't request Hyper-V stimer0 IRQ %d. Error %d",
++			stimer0_irq, ret);
++		acpi_unregister_gsi(stimer0_irq);
++		stimer0_irq = -1;
++	}
++	return ret;
++}
++
++static void hv_remove_stimer0_irq(void)
++{
++	if (stimer0_irq == -1) {
++		hv_remove_stimer0_handler();
++	} else {
++		free_percpu_irq(stimer0_irq, &stimer0_evt);
++		acpi_unregister_gsi(stimer0_irq);
++		stimer0_irq = -1;
++	}
++}
++
+ /* hv_stimer_alloc - Global initialization of the clockevent and stimer0 */
+-int hv_stimer_alloc(void)
++int hv_stimer_alloc(bool have_percpu_irqs)
+ {
+-	int ret = 0;
++	int ret;
+ 
+ 	/*
+ 	 * Synthetic timers are always available except on old versions of
+@@ -188,29 +249,37 @@ int hv_stimer_alloc(void)
+ 
+ 	direct_mode_enabled = ms_hyperv.misc_features &
+ 			HV_STIMER_DIRECT_MODE_AVAILABLE;
+-	if (direct_mode_enabled) {
+-		ret = hv_setup_stimer0_irq(&stimer0_irq, &stimer0_vector,
+-				hv_stimer0_isr);
++
++	/*
++	 * If Direct Mode isn't enabled, the remainder of the initialization
++	 * is done later by hv_stimer_legacy_init()
++	 */
++	if (!direct_mode_enabled)
++		return 0;
++
++	if (have_percpu_irqs) {
++		ret = hv_setup_stimer0_irq();
+ 		if (ret)
+-			goto free_percpu;
++			goto free_clock_event;
++	} else {
++		hv_setup_stimer0_handler(hv_stimer0_isr);
++	}
+ 
+-		/*
+-		 * Since we are in Direct Mode, stimer initialization
+-		 * can be done now with a CPUHP value in the same range
+-		 * as other clockevent devices.
+-		 */
+-		ret = cpuhp_setup_state(CPUHP_AP_HYPERV_TIMER_STARTING,
+-				"clockevents/hyperv/stimer:starting",
+-				hv_stimer_init, hv_stimer_cleanup);
+-		if (ret < 0)
+-			goto free_stimer0_irq;
++	/*
++	 * Since we are in Direct Mode, stimer initialization
++	 * can be done now with a CPUHP value in the same range
++	 * as other clockevent devices.
++	 */
++	ret = cpuhp_setup_state(CPUHP_AP_HYPERV_TIMER_STARTING,
++			"clockevents/hyperv/stimer:starting",
++			hv_stimer_init, hv_stimer_cleanup);
++	if (ret < 0) {
++		hv_remove_stimer0_irq();
++		goto free_clock_event;
+ 	}
+ 	return ret;
+ 
+-free_stimer0_irq:
+-	hv_remove_stimer0_irq(stimer0_irq);
+-	stimer0_irq = 0;
+-free_percpu:
++free_clock_event:
+ 	free_percpu(hv_clock_event);
+ 	hv_clock_event = NULL;
+ 	return ret;
+@@ -254,23 +323,6 @@ void hv_stimer_legacy_cleanup(unsigned int cpu)
+ }
+ EXPORT_SYMBOL_GPL(hv_stimer_legacy_cleanup);
+ 
+-
+-/* hv_stimer_free - Free global resources allocated by hv_stimer_alloc() */
+-void hv_stimer_free(void)
+-{
+-	if (!hv_clock_event)
+-		return;
+-
+-	if (direct_mode_enabled) {
+-		cpuhp_remove_state(CPUHP_AP_HYPERV_TIMER_STARTING);
+-		hv_remove_stimer0_irq(stimer0_irq);
+-		stimer0_irq = 0;
+-	}
+-	free_percpu(hv_clock_event);
+-	hv_clock_event = NULL;
+-}
+-EXPORT_SYMBOL_GPL(hv_stimer_free);
+-
+ /*
+  * Do a global cleanup of clockevents for the cases of kexec and
+  * vmbus exit
+@@ -287,12 +339,17 @@ void hv_stimer_global_cleanup(void)
+ 		hv_stimer_legacy_cleanup(cpu);
+ 	}
+ 
+-	/*
+-	 * If Direct Mode is enabled, the cpuhp teardown callback
+-	 * (hv_stimer_cleanup) will be run on all CPUs to stop the
+-	 * stimers.
+-	 */
+-	hv_stimer_free();
++	if (!hv_clock_event)
++		return;
++
++	if (direct_mode_enabled) {
++		cpuhp_remove_state(CPUHP_AP_HYPERV_TIMER_STARTING);
++		hv_remove_stimer0_irq();
++		stimer0_irq = -1;
++	}
++	free_percpu(hv_clock_event);
++	hv_clock_event = NULL;
++
+ }
+ EXPORT_SYMBOL_GPL(hv_stimer_global_cleanup);
+ 
+@@ -457,9 +514,14 @@ static bool __init hv_init_tsc_clocksource(void)
+ 	 * Hyper-V Reference TSC rating, causing the generic TSC to be used.
+ 	 * TSC_INVARIANT is not offered on ARM64, so the Hyper-V Reference
+ 	 * TSC will be preferred over the virtualized ARM64 arch counter.
++	 * While the Hyper-V MSR clocksource won't be used since the
++	 * Reference TSC clocksource is present, change its rating as
++	 * well for consistency.
+ 	 */
+-	if (ms_hyperv.features & HV_ACCESS_TSC_INVARIANT)
++	if (ms_hyperv.features & HV_ACCESS_TSC_INVARIANT) {
+ 		hyperv_cs_tsc.rating = 250;
++		hyperv_cs_msr.rating = 250;
++	}
+ 
+ 	hv_read_reference_counter = read_hv_clock_tsc;
+ 	phys_addr = virt_to_phys(hv_get_tsc_page());
 diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-index 694b5bc..163d8b0 100644
+index 43dc371..69e7fe0 100644
 --- a/include/asm-generic/mshyperv.h
 +++ b/include/asm-generic/mshyperv.h
-@@ -88,7 +88,7 @@ static inline void vmbus_signal_eom(struct hv_message *msg, u32 old_msg_type)
- 		 * possibly deliver another msg from the
- 		 * hypervisor
- 		 */
--		hv_signal_eom();
-+		hv_set_register(HV_REGISTER_EOM, 0);
- 	}
- }
+@@ -183,9 +183,4 @@ static inline int cpumask_to_vpset(struct hv_vpset *vpset,
+ static inline void hyperv_cleanup(void) {}
+ #endif /* CONFIG_HYPERV */
  
+-#if IS_ENABLED(CONFIG_HYPERV)
+-extern int hv_setup_stimer0_irq(int *irq, int *vector, void (*handler)(void));
+-extern void hv_remove_stimer0_irq(int irq);
+-#endif
+-
+ #endif
+diff --git a/include/clocksource/hyperv_timer.h b/include/clocksource/hyperv_timer.h
+index 34eef083..b6774aa 100644
+--- a/include/clocksource/hyperv_timer.h
++++ b/include/clocksource/hyperv_timer.h
+@@ -21,8 +21,7 @@
+ #define HV_MIN_DELTA_TICKS 1
+ 
+ /* Routines called by the VMbus driver */
+-extern int hv_stimer_alloc(void);
+-extern void hv_stimer_free(void);
++extern int hv_stimer_alloc(bool have_percpu_irqs);
+ extern int hv_stimer_cleanup(unsigned int cpu);
+ extern void hv_stimer_legacy_init(unsigned int cpu, int sint);
+ extern void hv_stimer_legacy_cleanup(unsigned int cpu);
 -- 
 1.8.3.1
 
