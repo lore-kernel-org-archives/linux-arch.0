@@ -2,163 +2,101 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6B187C15513
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A21BBC47247
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:34 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 50B9664F16
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8A14164F56
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239928AbhCDAtR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 19:49:17 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44946 "EHLO
+        id S240276AbhCDAtX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 19:49:23 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50550 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239338AbhCCR3a (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Mar 2021 12:29:30 -0500
-Received: from mail.skyhub.de (mail.skyhub.de [IPv6:2a01:4f8:190:11c2::b:1457])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 84C8FC061764;
-        Wed,  3 Mar 2021 09:27:00 -0800 (PST)
-Received: from zn.tnic (p200300ec2f086d000d273eec19a1f357.dip0.t-ipconnect.de [IPv6:2003:ec:2f08:6d00:d27:3eec:19a1:f357])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.skyhub.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id D6C9B1EC0300;
-        Wed,  3 Mar 2021 18:26:57 +0100 (CET)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=dkim;
-        t=1614792418;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         content-transfer-encoding:in-reply-to:in-reply-to:  references:references;
-        bh=4ibLcnOd4K0tYTtc82E0TWwQeSANPgQebYcD/0eumSw=;
-        b=fZN/EdJwGpouJQ1EYJJuFKYMPR3wGDQgjNMM/pTBNKL59wEOirstsgN7mKM8OyeoyKou1i
-        HGktvIYgCwElZrpEtMPzSViQ6wOytsMrrX738nFT6eAj1GoSTfQHGXvVd8SHtaowHM5TAR
-        eEiSsLKgC1unJF+Xny+UH7GSFR/ThdA=
-Date:   Wed, 3 Mar 2021 18:26:52 +0100
-From:   Borislav Petkov <bp@alien8.de>
-To:     "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
-Cc:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
-        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        Pengfei Xu <pengfei.xu@intel.com>,
-        Haitao Huang <haitao.huang@intel.com>
-Subject: Re: [PATCH v21 08/26] x86/mm: Introduce _PAGE_COW
-Message-ID: <20210303172652.GF22305@zn.tnic>
-References: <20210217222730.15819-1-yu-cheng.yu@intel.com>
- <20210217222730.15819-9-yu-cheng.yu@intel.com>
- <20210301155234.GF6699@zn.tnic>
- <167f58a3-20ef-7210-1d66-cf25f4a9bbef@intel.com>
+        with ESMTP id S1390880AbhCCWSY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Mar 2021 17:18:24 -0500
+Received: from mail-qk1-x736.google.com (mail-qk1-x736.google.com [IPv6:2607:f8b0:4864:20::736])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EFFA6C061764;
+        Wed,  3 Mar 2021 14:17:43 -0800 (PST)
+Received: by mail-qk1-x736.google.com with SMTP id n79so14194531qke.3;
+        Wed, 03 Mar 2021 14:17:43 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=F+DfskWs3VLBseDXeXC3pvAy/cUkavN22n3rVw/q6VA=;
+        b=VOEsiTE+wYmonPb9dLZ6uXp9SsbWfVePmK1H0UozjpdPD7luFAwgAR3z14UoYr8i2t
+         vcl0QJz6HTaSYgIt3e7FgKz7XDxEM43iMSwRP80CM0/ldqhw9XGOV03Wgio2EvwmyJpL
+         WDH1gxCmy9M1ZpRXMri6VWQTv1o0npXOpDMuGIJZ5BCE1l+q42RRgtBxI7ClgcD+d+2H
+         VNuqFTDlZdPZ68ubDLAOXH2hGzI/RlZ0kKliGdlfUuLMgVqkbQ13c5pt52sIrRdliQQV
+         A8ALT92ZrkUrM+5/qvYt6uOW6PEVP0S0tKD5tCYVdpWibi36rKNJ3QJA5K0FHe7vB23o
+         ca0Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=F+DfskWs3VLBseDXeXC3pvAy/cUkavN22n3rVw/q6VA=;
+        b=HU0vnzQdI+i+dp1iKwdOHp7AmoHIWgLWmBQYulGMZ57S5/SZ3rWvpr9ULjxg7FaLkN
+         fk/0kRBE4rAGew7uNJ7Ug3bwWP8hirhJtfEVu4grXXWxDNJsSCqCIvJVQIV3JuLg7rD4
+         wRrClXcebnOdf5zzgJx7f74JS8vn1Er0lNRWFhqUMns04nzGn6jIxsiYOgZ4E9iaivEk
+         XOteqzAAy3XDy8EVSXGybKXkWXDPSnfwiB+bhM1G3f+uwdzvrek14/6fTfJwGhqVCcHN
+         BwF8i92N0ypLyYYCRcKSXLkbNg8oncjFhXZv71ko8B5YEOz5NnYcudCDmfk+Iio1FKSf
+         i8Cg==
+X-Gm-Message-State: AOAM533peBQKzS05FzoHtaTK7I+Np/En2+yBHbCZPHj2NLVYl0BkQAY3
+        cwpQXowx5Et/mKOAwjV3hhifxkuI0gY=
+X-Google-Smtp-Source: ABdhPJwUGaxbBpfrRs/6hYOb4muFNXNpylJrvUpk7d1r1icNmdvfR1Ft/bl/0LxT3qr3mFWRVYG8AQ==
+X-Received: by 2002:a37:ef15:: with SMTP id j21mr1219197qkk.385.1614809863097;
+        Wed, 03 Mar 2021 14:17:43 -0800 (PST)
+Received: from localhost ([76.73.146.210])
+        by smtp.gmail.com with ESMTPSA id g186sm17728405qke.0.2021.03.03.14.17.42
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 03 Mar 2021 14:17:42 -0800 (PST)
+Date:   Wed, 3 Mar 2021 14:17:41 -0800
+From:   Yury Norov <yury.norov@gmail.com>
+To:     Will Deacon <will@kernel.org>
+Cc:     Catalin Marinas <catalin.marinas@arm.com>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Alexander Lobakin <alobakin@pm.me>,
+        Alexey Klimov <aklimov@redhat.com>,
+        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-mips@vger.kernel.org
+Subject: Re: [RESEND PATCH 1/2] ARM64: enable GENERIC_FIND_FIRST_BIT
+Message-ID: <20210303221741.GA2013084@yury-ThinkPad>
+References: <20210225135700.1381396-1-yury.norov@gmail.com>
+ <20210225135700.1381396-2-yury.norov@gmail.com>
+ <20210225140205.GA13297@willie-the-truck>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <167f58a3-20ef-7210-1d66-cf25f4a9bbef@intel.com>
+In-Reply-To: <20210225140205.GA13297@willie-the-truck>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Mar 02, 2021 at 03:46:31PM -0800, Yu, Yu-cheng wrote:
-> There is a problem of doing that: pmd_write() is defined after this
-> function.  Maybe we can declare it first, or leave this as-is?
+On Thu, Feb 25, 2021 at 02:02:06PM +0000, Will Deacon wrote:
+> On Thu, Feb 25, 2021 at 05:56:59AM -0800, Yury Norov wrote:
+> > diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> > index 31bd885b79eb..5596eab04092 100644
+> > --- a/arch/arm64/Kconfig
+> > +++ b/arch/arm64/Kconfig
+> > @@ -108,6 +108,7 @@ config ARM64
+> >  	select GENERIC_CPU_AUTOPROBE
+> >  	select GENERIC_CPU_VULNERABILITIES
+> >  	select GENERIC_EARLY_IOREMAP
+> > +	select GENERIC_FIND_FIRST_BIT
+> >  	select GENERIC_IDLE_POLL_SETUP
+> >  	select GENERIC_IRQ_IPI
+> >  	select GENERIC_IRQ_MULTI_HANDLER
+> 
+> Acked-by: Will Deacon <will@kernel.org>
+> 
+> Catalin can pick this up later in the cycle.
+> 
+> Will
 
-Or a third option: you lift those two functions in a prepatch and then
-in this patch use them directly.
-
-Combined diff ontop:
-
----
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index 1a6c0784af0a..b7e4d031ce22 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -209,6 +209,18 @@ static inline int pte_write(pte_t pte)
- 	return (pte_flags(pte) & _PAGE_RW) || pte_shstk(pte);
- }
- 
-+#define pmd_write pmd_write
-+static inline int pmd_write(pmd_t pmd)
-+{
-+	return (pmd_flags(pmd) & _PAGE_RW) || pmd_shstk(pmd);
-+}
-+
-+#define pud_write pud_write
-+static inline int pud_write(pud_t pud)
-+{
-+	return pud_flags(pud) & _PAGE_RW;
-+}
-+
- static inline int pte_huge(pte_t pte)
- {
- 	return pte_flags(pte) & _PAGE_PSE;
-@@ -540,7 +552,7 @@ static inline pmd_t pmd_mkdirty(pmd_t pmd)
- 	pmdval_t dirty = _PAGE_DIRTY;
- 
- 	/* Avoid creating (HW)Dirty=1, Write=0 PMDs */
--	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && !(pmd_flags(pmd) & _PAGE_RW))
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && !pmd_write(pmd))
- 		dirty = _PAGE_COW;
- 
- 	return pmd_set_flags(pmd, dirty | _PAGE_SOFT_DIRTY);
-@@ -636,7 +648,7 @@ static inline pud_t pud_mkdirty(pud_t pud)
- 	pudval_t dirty = _PAGE_DIRTY;
- 
- 	/* Avoid creating (HW)Dirty=1, Write=0 PUDs */
--	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && !(pud_flags(pud) & _PAGE_RW))
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && !pud_write(pud))
- 		dirty = _PAGE_COW;
- 
- 	return pud_set_flags(pud, dirty | _PAGE_SOFT_DIRTY);
-@@ -1273,12 +1285,6 @@ extern int pmdp_clear_flush_young(struct vm_area_struct *vma,
- 				  unsigned long address, pmd_t *pmdp);
- 
- 
--#define pmd_write pmd_write
--static inline int pmd_write(pmd_t pmd)
--{
--	return (pmd_flags(pmd) & _PAGE_RW) || pmd_shstk(pmd);
--}
--
- #define __HAVE_ARCH_PMDP_HUGE_GET_AND_CLEAR
- static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm, unsigned long addr,
- 				       pmd_t *pmdp)
-@@ -1300,12 +1306,6 @@ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
- 	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
- }
- 
--#define pud_write pud_write
--static inline int pud_write(pud_t pud)
--{
--	return pud_flags(pud) & _PAGE_RW;
--}
--
- #ifndef pmdp_establish
- #define pmdp_establish pmdp_establish
- static inline pmd_t pmdp_establish(struct vm_area_struct *vma,
-
--- 
-Regards/Gruss,
-    Boris.
-
-https://people.kernel.org/tglx/notes-about-netiquette
+Ping?
