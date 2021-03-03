@@ -2,143 +2,166 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_IN_DEF_DKIM_WL
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
+	USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 95608C1551F
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7437EC1551C
 	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:33 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7688464F11
+	by mail.kernel.org (Postfix) with ESMTP id 5644B64F88
 	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234278AbhCDAtX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 19:49:23 -0500
-Received: from rcdn-iport-9.cisco.com ([173.37.86.80]:2909 "EHLO
-        rcdn-iport-9.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1580955AbhCCS65 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Mar 2021 13:58:57 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=cisco.com; i=@cisco.com; l=2586; q=dns/txt; s=iport;
-  t=1614797935; x=1616007535;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:content-transfer-encoding:in-reply-to;
-  bh=NhiyH3foSNEt6lkCV9u0ibo4udmRICreeAo5BgksPTA=;
-  b=cWROdOooLRakjip97rCirB8wN/6FzqqPcSO7bRm8TAbdmJT/SwzaRuq2
-   5JshQxeiLzwmCsx112yhzgrbPEKVzXIPN6EMvZ6juAlUOkoq6b0j7MpMh
-   oUp4urFB554BDD9Y7+9u9Hy3gjFjE0VnN8QYY33lyZycxyyodT/oHr48P
-   E=;
-X-IronPort-Anti-Spam-Filtered: true
-X-IronPort-Anti-Spam-Result: =?us-ascii?q?A0BOAwB12j9g/5NdJa1iHAEBAQEBAQc?=
- =?us-ascii?q?BARIBAQQEAQFAgU+CK3ZWATkxlh6PehaMOwsBAQENAQEjEQQBAYEUgzQDAgK?=
- =?us-ascii?q?BegIlOBMCAwEBCwEBBQEBAQIBBgRxhWENhkQBAQEDATIBRhALEgYuPA0OBhM?=
- =?us-ascii?q?bglaCZiEPrT10gTSEPwELAYRTgT4GIoEWjUMmHIFJQoQrPoJcBBeHPASCRoE?=
- =?us-ascii?q?7c4IBkEuCS4otm3uDBoEfiCCSUjEQgyeKT5VQoBKSGg2EOQIEBgUCFoFrI4F?=
- =?us-ascii?q?XMxoIGxU7gjUBMxMMMRkNlyKFZiADLwIBAQEzAgYBCQEBAwmMEwEB?=
-X-IronPort-AV: E=Sophos;i="5.81,220,1610409600"; 
-   d="scan'208";a="778466374"
-Received: from rcdn-core-11.cisco.com ([173.37.93.147])
-  by rcdn-iport-9.cisco.com with ESMTP/TLS/DHE-RSA-SEED-SHA; 03 Mar 2021 18:53:10 +0000
-Received: from zorba ([10.24.1.194])
-        by rcdn-core-11.cisco.com (8.15.2/8.15.2) with ESMTPS id 123Ir8xP021729
-        (version=TLSv1.2 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO);
-        Wed, 3 Mar 2021 18:53:10 GMT
-Date:   Wed, 3 Mar 2021 10:53:08 -0800
-From:   Daniel Walker <danielwa@cisco.com>
-To:     Christophe Leroy <christophe.leroy@csgroup.eu>
-Cc:     Rob Herring <robh@kernel.org>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        id S240250AbhCDAtV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 19:49:21 -0500
+Received: from pegase1.c-s.fr ([93.17.236.30]:61453 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S234278AbhCCSVZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Mar 2021 13:21:25 -0500
+Received: from localhost (mailhub1-int [192.168.12.234])
+        by localhost (Postfix) with ESMTP id 4DrLpz2xdqz9tylR;
+        Wed,  3 Mar 2021 18:39:39 +0100 (CET)
+X-Virus-Scanned: Debian amavisd-new at c-s.fr
+Received: from pegase1.c-s.fr ([192.168.12.234])
+        by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
+        with ESMTP id YBZwzXhxA9In; Wed,  3 Mar 2021 18:39:39 +0100 (CET)
+Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
+        by pegase1.c-s.fr (Postfix) with ESMTP id 4DrLpz09Xkz9tylQ;
+        Wed,  3 Mar 2021 18:39:39 +0100 (CET)
+Received: from localhost (localhost [127.0.0.1])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 264978B7E8;
+        Wed,  3 Mar 2021 18:39:39 +0100 (CET)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from messagerie.si.c-s.fr ([127.0.0.1])
+        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
+        with ESMTP id oNwRvWSyIn_a; Wed,  3 Mar 2021 18:39:39 +0100 (CET)
+Received: from [192.168.4.90] (unknown [192.168.4.90])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 609DB8B7E6;
+        Wed,  3 Mar 2021 18:39:38 +0100 (CET)
+Subject: Re: [PATCH v2 1/7] cmdline: Add generic function to build command
+ line.
+To:     Will Deacon <will@kernel.org>
+Cc:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
         Paul Mackerras <paulus@samba.org>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Daniel Gimpelevich <daniel@gimpelevich.san-francisco.ca.us>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
-        "open list:GENERIC INCLUDE/ASM HEADER FILES" 
-        <linux-arch@vger.kernel.org>, devicetree@vger.kernel.org,
-        Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v2 0/7] Improve boot command line handling
-Message-ID: <20210303185308.GH109100@zorba>
+        Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com,
+        robh@kernel.org, daniel@gimpelevich.san-francisco.ca.us,
+        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-arch@vger.kernel.org, devicetree@vger.kernel.org
 References: <cover.1614705851.git.christophe.leroy@csgroup.eu>
- <20210302173523.GE109100@zorba>
- <CAL_JsqJ7U8QAbJe3zkZiFPJN4PveHz5TZoPk2S8qQWB6cm5e5Q@mail.gmail.com>
- <20210303173908.GG109100@zorba>
- <59b054e8-d85b-fd87-c94d-691af748a2f5@csgroup.eu>
+ <d8cf7979ad986de45301b39a757c268d9df19f35.1614705851.git.christophe.leroy@csgroup.eu>
+ <20210303172810.GA19713@willie-the-truck>
+From:   Christophe Leroy <christophe.leroy@csgroup.eu>
+Message-ID: <a0cfef11-efba-2e5c-6f58-ed63a2c3bfa0@csgroup.eu>
+Date:   Wed, 3 Mar 2021 18:38:16 +0100
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.7.1
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
+In-Reply-To: <20210303172810.GA19713@willie-the-truck>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <59b054e8-d85b-fd87-c94d-691af748a2f5@csgroup.eu>
-X-Outbound-SMTP-Client: 10.24.1.194, [10.24.1.194]
-X-Outbound-Node: rcdn-core-11.cisco.com
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Mar 03, 2021 at 07:07:45PM +0100, Christophe Leroy wrote:
+
+
+Le 03/03/2021 Ã  18:28, Will Deacon a Ã©critÂ :
+> On Tue, Mar 02, 2021 at 05:25:17PM +0000, Christophe Leroy wrote:
+>> This code provides architectures with a way to build command line
+>> based on what is built in the kernel and what is handed over by the
+>> bootloader, based on selected compile-time options.
+>>
+>> Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+>> ---
+>>   include/linux/cmdline.h | 62 +++++++++++++++++++++++++++++++++++++++++
+>>   1 file changed, 62 insertions(+)
+>>   create mode 100644 include/linux/cmdline.h
+>>
+>> diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
+>> new file mode 100644
+>> index 000000000000..ae3610bb0ee2
+>> --- /dev/null
+>> +++ b/include/linux/cmdline.h
+>> @@ -0,0 +1,62 @@
+>> +/* SPDX-License-Identifier: GPL-2.0 */
+>> +#ifndef _LINUX_CMDLINE_H
+>> +#define _LINUX_CMDLINE_H
+>> +
+>> +static __always_inline size_t cmdline_strlen(const char *s)
+>> +{
+>> +	const char *sc;
+>> +
+>> +	for (sc = s; *sc != '\0'; ++sc)
+>> +		; /* nothing */
+>> +	return sc - s;
+>> +}
+>> +
+>> +static __always_inline size_t cmdline_strlcat(char *dest, const char *src, size_t count)
+>> +{
+>> +	size_t dsize = cmdline_strlen(dest);
+>> +	size_t len = cmdline_strlen(src);
+>> +	size_t res = dsize + len;
+>> +
+>> +	/* This would be a bug */
+>> +	if (dsize >= count)
+>> +		return count;
+>> +
+>> +	dest += dsize;
+>> +	count -= dsize;
+>> +	if (len >= count)
+>> +		len = count - 1;
+>> +	memcpy(dest, src, len);
+>> +	dest[len] = 0;
+>> +	return res;
+>> +}
 > 
+> Why are these needed instead of using strlen and strlcat directly?
+
+Because on powerpc (at least), it will be used in prom_init, it is very early in the boot and KASAN 
+shadow memory is not set up yet so calling generic string functions would crash the board.
+
 > 
-> Le 03/03/2021 à 18:39, Daniel Walker a écrit :
-> > On Tue, Mar 02, 2021 at 08:01:01PM -0600, Rob Herring wrote:
-> > > +Will D
-> > > 
-> > > On Tue, Mar 2, 2021 at 11:36 AM Daniel Walker <danielwa@cisco.com> wrote:
-> > > > 
-> > > > On Tue, Mar 02, 2021 at 05:25:16PM +0000, Christophe Leroy wrote:
-> > > > > The purpose of this series is to improve and enhance the
-> > > > > handling of kernel boot arguments.
-> > > > > 
-> > > > > It is first focussed on powerpc but also extends the capability
-> > > > > for other arches.
-> > > > > 
-> > > > > This is based on suggestion from Daniel Walker <danielwa@cisco.com>
-> > > > > 
-> > > > 
-> > > > 
-> > > > I don't see a point in your changes at this time. My changes are much more
-> > > > mature, and you changes don't really make improvements.
-> > > 
-> > > Not really a helpful comment. What we merge here will be from whomever
-> > > is persistent and timely in their efforts. But please, work together
-> > > on a common solution.
-> > > 
-> > > This one meets my requirements of moving the kconfig and code out of
-> > > the arches, supports prepend/append, and is up to date.
-> > 
-> > 
-> > Maintainers are capable of merging whatever they want to merge. However, I
-> > wouldn't make hasty choices. The changes I've been submitting have been deployed
-> > on millions of router instances and are more feature rich.
-> > 
-> > I believe I worked with you on this change, or something like it,
-> > 
-> > https://lkml.org/lkml/2019/3/19/970
-> > 
-> > I don't think Christophe has even addressed this.
+>> +/*
+>> + * This function will append a builtin command line to the command
+>> + * line provided by the bootloader. Kconfig options can be used to alter
+>> + * the behavior of this builtin command line.
+>> + * @dest: The destination of the final appended/prepended string.
+>> + * @src: The starting string or NULL if there isn't one. Must not equal dest.
+>> + * @length: the length of dest buffer.
+>> + */
+>> +static __always_inline void cmdline_build(char *dest, const char *src, size_t length)
+>> +{
+>> +	if (length <= 0)
+>> +		return;
+>> +
+>> +	dest[0] = 0;
+>> +
+>> +#ifdef CONFIG_CMDLINE
+>> +	if (IS_ENABLED(CONFIG_CMDLINE_FORCE) || !src || !src[0]) {
+>> +		cmdline_strlcat(dest, CONFIG_CMDLINE, length);
+>> +		return;
+>> +	}
+>> +#endif
 > 
-> I thing I have, see https://patchwork.ozlabs.org/project/linuxppc-dev/patch/3b4291271ce4af4941a771e5af5cbba3c8fa1b2a.1614705851.git.christophe.leroy@csgroup.eu/
+> CONFIG_CMDLINE_FORCE implies CONFIG_CMDLINE, and even if it didn't,
+> CONFIG_CMDLINE is at worst an empty string. Can you drop the #ifdef?
+
+Ah yes, since cbe46bd4f510 ("powerpc: remove CONFIG_CMDLINE #ifdef mess") it is feasible. I can 
+change that now.
+
 > 
-> If you see something missing in that patch, can you tell me.
- 
-Ok, must have missed that one.
-
-
-> > I've converted many
-> > architectures, and Cisco uses my changes on at least 4 different
-> > architecture. With products deployed and tested.
+>> +	if (dest != src)
+>> +		cmdline_strlcat(dest, src, length);
+>> +#ifdef CONFIG_CMDLINE
+>> +	if (IS_ENABLED(CONFIG_CMDLINE_EXTEND) && sizeof(CONFIG_CMDLINE) > 1)
+>> +		cmdline_strlcat(dest, " " CONFIG_CMDLINE, length);
+>> +#endif
 > 
-> As far as we know, only powerpc was converted in the last series you
-> submitted, see
-> https://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=98106&state=*
+> Likewise, but also I'm not sure why the sizeof() is required.
 
+It is to avoid adding a white space at the end of the command line when CONFIG_CMDLINE is empty. But 
+maybe it doesn't matter ?
 
-Me and others submitted my changes many times, and other architectures have been included. The patch
-you submitted I've submitted similar at Rob's request years ago.
-
-Here a fuller submissions some time ago,
-
-https://lore.kernel.org/patchwork/cover/992768/
-
-You've only been involved in prior powerpc only submissions.
-
-Daniel
+Christophe
