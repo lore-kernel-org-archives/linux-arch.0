@@ -2,260 +2,325 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 48B61C15512
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C3471C433E6
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:30 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 27FF464EF4
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AD3F164F52
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233405AbhCDAtQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 19:49:16 -0500
-Received: from us-smtp-delivery-124.mimecast.com ([216.205.24.124]:20875 "EHLO
-        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1348125AbhCCRHU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Mar 2021 12:07:20 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1614791153;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=nYbzimg8dKv1Dc6JVUggNyLLrfw9P2fj+f+gK8edcwA=;
-        b=aIrSkLtNVZHdu3PVOCx8IhxVodQLtsv6rAuA/wcnHLj0C4TGJHcRUS107zRij9NAAbw4Vx
-        dI6IEIHwRB7uLNKZXRMrAe2dSqp1UpDrGizTzYhthIb25XIvmuaffTvfpB+1/rKFzdoLUC
-        cATzPKo5WDWYA+kQwhD2aTZYDpkYIGU=
-Received: from mail-ej1-f72.google.com (mail-ej1-f72.google.com
- [209.85.218.72]) (Using TLS) by relay.mimecast.com with ESMTP id
- us-mta-603-oseQ_TPYPk2DYi7Eb865PA-1; Wed, 03 Mar 2021 12:05:52 -0500
-X-MC-Unique: oseQ_TPYPk2DYi7Eb865PA-1
-Received: by mail-ej1-f72.google.com with SMTP id n25so10776779ejd.5
-        for <linux-arch@vger.kernel.org>; Wed, 03 Mar 2021 09:05:51 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:in-reply-to:references:date
-         :message-id:mime-version;
-        bh=nYbzimg8dKv1Dc6JVUggNyLLrfw9P2fj+f+gK8edcwA=;
-        b=k4vhAaKDI5JDH7Ti0WARo0ATZJ2UlDrGhP4Jtwkj9PX2eoFvc1nZk1u2aSKLAhEgEX
-         w9F4jXUVbfRuNQdeGMxRM8wDkCIcTOlUhb/AjYIcQU1r90RnGfooS4efJGYzJirJYWso
-         QqwPKo8EOztc09T36UrYzGKwehl3kgvjCZnmEzSMQ0j7mWgsdcfjbdxrKrOhmAMc8zyo
-         GQmCKqXF7/0FhqdH2wQdCZHo1WO2yKfvJhHfgDtyNpophkLoeVUWI3A8aKIe3rReWJn0
-         0czro+Qtc1hMpioyupqWqrVxsIav1ghcrlR7q2XLjC7C3G3gZUi5TGfZ/603SBDO9xT+
-         EvSw==
-X-Gm-Message-State: AOAM530rBtqcKgfnvRNLBg3QneiZC7F6jwi/eew9Fq6/4ktwWh0B0wpX
-        QlUo3cB7IIDEBlXdewQEk/Jx85P0+m0Sm1vnYSHijI6Mh/6T8DZpP/WXWDJ4/l740rF7UifF152
-        8jlyQqOBMQwGy0KtBEaYctw==
-X-Received: by 2002:a17:906:cd05:: with SMTP id oz5mr20298399ejb.345.1614791150880;
-        Wed, 03 Mar 2021 09:05:50 -0800 (PST)
-X-Google-Smtp-Source: ABdhPJxSEHE8qNcUe8Bv5sgBBypQgxqUH4qqklAdaHhUH7IEnd5FUR0Qc4gVsdQoUl7i0uiKZR16Gw==
-X-Received: by 2002:a17:906:cd05:: with SMTP id oz5mr20298369ejb.345.1614791150699;
-        Wed, 03 Mar 2021 09:05:50 -0800 (PST)
-Received: from vitty.brq.redhat.com (g-server-2.ign.cz. [91.219.240.2])
-        by smtp.gmail.com with ESMTPSA id 14sm21488216ejy.11.2021.03.03.09.05.49
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 03 Mar 2021 09:05:50 -0800 (PST)
-From:   Vitaly Kuznetsov <vkuznets@redhat.com>
-To:     Tianyu Lan <ltykernel@gmail.com>, kys@microsoft.com,
-        haiyangz@microsoft.com, sthemmin@microsoft.com, wei.liu@kernel.org,
-        tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org,
-        hpa@zytor.com, arnd@arndb.de
-Cc:     Tianyu Lan <Tianyu.Lan@microsoft.com>,
-        linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, thomas.lendacky@amd.com,
-        brijesh.singh@amd.com, sunilmut@microsoft.com
-Subject: Re: [RFC PATCH 3/12] x86/HV: Initialize GHCB page and shared memory
- boundary
-In-Reply-To: <20210228150315.2552437-4-ltykernel@gmail.com>
-References: <20210228150315.2552437-1-ltykernel@gmail.com>
- <20210228150315.2552437-4-ltykernel@gmail.com>
-Date:   Wed, 03 Mar 2021 18:05:48 +0100
-Message-ID: <87sg5ccglv.fsf@vitty.brq.redhat.com>
+        id S238186AbhCDAtN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 19:49:13 -0500
+Received: from mail.kernel.org ([198.145.29.99]:50054 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1346275AbhCCQ0Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Mar 2021 11:26:16 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 3499364EE4;
+        Wed,  3 Mar 2021 16:23:14 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1614788606;
+        bh=6b+ZR7FjQvlDr4jXaWCA00myeSkXgeo8Jm0+Vd2uO+U=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=YHeQbLIcDKvS2ckCbMg6k+t1IysBN45ZxZP/MMJoTxp3cd+oixDyqB+eoyd84yzF+
+         3k1Ft0hUp8zAyLWpW2uZTEAlPqk1ai+BH61Gg0ONbznoZjyC+QAQNym6EsrzhB0O/M
+         D08ZIqGfx/qKr38497ZhZvri9D/Nbc8R8zP3kAgkTTZmE+mR+WrvUWd3aLAg+xH/1x
+         eIZAALd/WGP1FWFZo4jW68g6iRI/lnpa0wBOU+kHbrPFXXca2YG4nqEvLc+XxafH7s
+         FsSpl9izxiUJs6Klybx63D1BfMoiCOa1QbCpu8KLom+GxW4ACueMy9kJLhmJj364Qx
+         Pjou0FB3EuGlQ==
+From:   Mike Rapoport <rppt@kernel.org>
+To:     Andrew Morton <akpm@linux-foundation.org>
+Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        David Hildenbrand <david@redhat.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Matthew Wilcox <willy@infradead.org>,
+        Matthew Garrett <mjg59@srcf.ucam.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Michal Hocko <mhocko@suse.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Mike Rapoport <rppt@kernel.org>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Roman Gushchin <guro@fb.com>,
+        Shakeel Butt <shakeelb@google.com>,
+        Shuah Khan <shuah@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
+        Palmer Dabbelt <palmerdabbelt@google.com>
+Subject: [PATCH v18 5/9] set_memory: allow querying whether set_direct_map_*() is actually enabled
+Date:   Wed,  3 Mar 2021 18:22:05 +0200
+Message-Id: <20210303162209.8609-6-rppt@kernel.org>
+X-Mailer: git-send-email 2.28.0
+In-Reply-To: <20210303162209.8609-1-rppt@kernel.org>
+References: <20210303162209.8609-1-rppt@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Tianyu Lan <ltykernel@gmail.com> writes:
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-> From: Tianyu Lan <Tianyu.Lan@microsoft.com>
->
-> Hyper-V exposes GHCB page via SEV ES GHCB MSR for SNP guest
-> to communicate with hypervisor. Map GHCB page for all
-> cpus to read/write MSR register and submit hvcall request
-> via GHCB. Hyper-V also exposes shared memory boundary via
-> cpuid HYPERV_CPUID_ISOLATION_CONFIG and store it in the
-> shared_gpa_boundary of ms_hyperv struct. This prepares
-> to share memory with host for SNP guest.
->
+On arm64, set_direct_map_*() functions may return 0 without actually
+changing the linear map.  This behaviour can be controlled using kernel
+parameters, so we need a way to determine at runtime whether calls to
+set_direct_map_invalid_noflush() and set_direct_map_default_noflush() have
+any effect.
 
-It seems the patch could be split into two: per-cpu GHCB setup and
-shared memory boundary setup as these changes seem to be independent.
+Extend set_memory API with can_set_direct_map() function that allows
+checking if calling set_direct_map_*() will actually change the page
+table, replace several occurrences of open coded checks in arm64 with the
+new function and provide a generic stub for architectures that always
+modify page tables upon calls to set_direct_map APIs.
 
-> Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
-> ---
->  arch/x86/hyperv/hv_init.c      | 52 +++++++++++++++++++++++++++++++---
->  arch/x86/kernel/cpu/mshyperv.c |  2 ++
->  include/asm-generic/mshyperv.h | 14 ++++++++-
->  3 files changed, 63 insertions(+), 5 deletions(-)
->
-> diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-> index 0db5137d5b81..90e65fbf4c58 100644
-> --- a/arch/x86/hyperv/hv_init.c
-> +++ b/arch/x86/hyperv/hv_init.c
-> @@ -82,6 +82,9 @@ static int hv_cpu_init(unsigned int cpu)
->  	struct hv_vp_assist_page **hvp = &hv_vp_assist_page[smp_processor_id()];
->  	void **input_arg;
->  	struct page *pg;
-> +	u64 ghcb_gpa;
-> +	void *ghcb_va;
-> +	void **ghcb_base;
->  
->  	/* hv_cpu_init() can be called with IRQs disabled from hv_resume() */
->  	pg = alloc_pages(irqs_disabled() ? GFP_ATOMIC : GFP_KERNEL, hv_root_partition ? 1 : 0);
-> @@ -128,6 +131,17 @@ static int hv_cpu_init(unsigned int cpu)
->  		wrmsrl(HV_X64_MSR_VP_ASSIST_PAGE, val);
->  	}
->  
-> +	if (ms_hyperv.ghcb_base) {
-> +		rdmsrl(MSR_AMD64_SEV_ES_GHCB, ghcb_gpa);
-> +
-> +		ghcb_va = ioremap_cache(ghcb_gpa, HV_HYP_PAGE_SIZE);
+[arnd@arndb.de: arm64: kfence: fix header inclusion ]
 
-Do we actually need to do ioremap_cache() and not ioremap_uc() for GHCB?
-(just wondering)
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Reviewed-by: David Hildenbrand <david@redhat.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Christopher Lameter <cl@linux.com>
+Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Elena Reshetova <elena.reshetova@intel.com>
+Cc: Hagen Paul Pfeifer <hagen@jauu.net>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: James Bottomley <jejb@linux.ibm.com>
+Cc: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Mark Rutland <mark.rutland@arm.com>
+Cc: Matthew Wilcox <willy@infradead.org>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: Palmer Dabbelt <palmerdabbelt@google.com>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>
+Cc: Roman Gushchin <guro@fb.com>
+Cc: Shakeel Butt <shakeelb@google.com>
+Cc: Shuah Khan <shuah@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Tycho Andersen <tycho@tycho.ws>
+Cc: Will Deacon <will@kernel.org>
+---
+ arch/arm64/include/asm/Kbuild       |  1 -
+ arch/arm64/include/asm/cacheflush.h |  6 ------
+ arch/arm64/include/asm/kfence.h     |  2 +-
+ arch/arm64/include/asm/set_memory.h | 17 +++++++++++++++++
+ arch/arm64/kernel/machine_kexec.c   |  1 +
+ arch/arm64/mm/mmu.c                 |  6 +++---
+ arch/arm64/mm/pageattr.c            | 13 +++++++++----
+ include/linux/set_memory.h          | 12 ++++++++++++
+ 8 files changed, 43 insertions(+), 15 deletions(-)
+ create mode 100644 arch/arm64/include/asm/set_memory.h
 
-> +		if (!ghcb_va)
-> +			return -ENOMEM;
-> +
-> +		ghcb_base = (void **)this_cpu_ptr(ms_hyperv.ghcb_base);
-> +		*ghcb_base = ghcb_va;
-> +	}
-> +
->  	return 0;
->  }
->  
-> @@ -223,6 +237,7 @@ static int hv_cpu_die(unsigned int cpu)
->  	unsigned long flags;
->  	void **input_arg;
->  	void *pg;
-> +	void **ghcb_va = NULL;
->  
->  	local_irq_save(flags);
->  	input_arg = (void **)this_cpu_ptr(hyperv_pcpu_input_arg);
-> @@ -236,6 +251,13 @@ static int hv_cpu_die(unsigned int cpu)
->  		*output_arg = NULL;
->  	}
->  
-> +	if (ms_hyperv.ghcb_base) {
-> +		ghcb_va = (void **)this_cpu_ptr(ms_hyperv.ghcb_base);
-> +		if (*ghcb_va)
-> +			iounmap(*ghcb_va);
-> +		*ghcb_va = NULL;
-> +	}
-> +
->  	local_irq_restore(flags);
->  
->  	free_pages((unsigned long)pg, hv_root_partition ? 1 : 0);
-> @@ -372,6 +394,9 @@ void __init hyperv_init(void)
->  	u64 guest_id, required_msrs;
->  	union hv_x64_msr_hypercall_contents hypercall_msr;
->  	int cpuhp, i;
-> +	u64 ghcb_gpa;
-> +	void *ghcb_va;
-> +	void **ghcb_base;
->  
->  	if (x86_hyper_type != X86_HYPER_MS_HYPERV)
->  		return;
-> @@ -432,9 +457,24 @@ void __init hyperv_init(void)
->  			VMALLOC_END, GFP_KERNEL, PAGE_KERNEL_ROX,
->  			VM_FLUSH_RESET_PERMS, NUMA_NO_NODE,
->  			__builtin_return_address(0));
-> -	if (hv_hypercall_pg == NULL) {
-> -		wrmsrl(HV_X64_MSR_GUEST_OS_ID, 0);
-> -		goto remove_cpuhp_state;
-> +	if (hv_hypercall_pg == NULL)
-> +		goto clean_guest_os_id;
-> +
-> +	if (hv_isolation_type_snp()) {
-> +		ms_hyperv.ghcb_base = alloc_percpu(void *);
-> +		if (!ms_hyperv.ghcb_base)
-> +			goto clean_guest_os_id;
-> +
-> +		rdmsrl(MSR_AMD64_SEV_ES_GHCB, ghcb_gpa);
-> +		ghcb_va = ioremap_cache(ghcb_gpa, HV_HYP_PAGE_SIZE);
-> +		if (!ghcb_va) {
-> +			free_percpu(ms_hyperv.ghcb_base);
-> +			ms_hyperv.ghcb_base = NULL;
-> +			goto clean_guest_os_id;
-> +		}
-> +
-> +		ghcb_base = (void **)this_cpu_ptr(ms_hyperv.ghcb_base);
-> +		*ghcb_base = ghcb_va;
->  	}
->  
->  	rdmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-> @@ -499,7 +539,8 @@ void __init hyperv_init(void)
->  
->  	return;
->  
-> -remove_cpuhp_state:
-> +clean_guest_os_id:
-> +	wrmsrl(HV_X64_MSR_GUEST_OS_ID, 0);
->  	cpuhp_remove_state(cpuhp);
->  free_vp_assist_page:
->  	kfree(hv_vp_assist_page);
-> @@ -528,6 +569,9 @@ void hyperv_cleanup(void)
->  	 */
->  	hv_hypercall_pg = NULL;
->  
-> +	if (ms_hyperv.ghcb_base)
-> +		free_percpu(ms_hyperv.ghcb_base);
-> +
->  	/* Reset the hypercall page */
->  	hypercall_msr.as_uint64 = 0;
->  	wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-> diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
-> index 347c32eac8fd..d6c363456cbf 100644
-> --- a/arch/x86/kernel/cpu/mshyperv.c
-> +++ b/arch/x86/kernel/cpu/mshyperv.c
-> @@ -330,6 +330,8 @@ static void __init ms_hyperv_init_platform(void)
->  	if (ms_hyperv.features_b & HV_ISOLATION) {
->  		ms_hyperv.isolation_config_a = cpuid_eax(HYPERV_CPUID_ISOLATION_CONFIG);
->  		ms_hyperv.isolation_config_b = cpuid_ebx(HYPERV_CPUID_ISOLATION_CONFIG);
-> +		ms_hyperv.shared_gpa_boundary =
-> +			(u64)1 << ms_hyperv.shared_gpa_boundary_bits;
->  
->  		pr_info("Hyper-V: Isolation Config: Group A 0x%x, Group B 0x%x\n",
->  			ms_hyperv.isolation_config_a, ms_hyperv.isolation_config_b);
-> diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-> index dff58a3db5d5..ad0e33776668 100644
-> --- a/include/asm-generic/mshyperv.h
-> +++ b/include/asm-generic/mshyperv.h
-> @@ -34,7 +34,19 @@ struct ms_hyperv_info {
->  	u32 max_vp_index;
->  	u32 max_lp_index;
->  	u32 isolation_config_a;
-> -	u32 isolation_config_b;
-> +	union
-> +	{
-> +		u32 isolation_config_b;;
-> +		struct {
-> +			u32 cvm_type : 4;
-> +			u32 Reserved11 : 1;
-> +			u32 shared_gpa_boundary_active : 1;
-> +			u32 shared_gpa_boundary_bits : 6;
-> +			u32 Reserved12 : 20;
-> +		};
-> +	};
-> +	void  __percpu **ghcb_base;
-> +	u64 shared_gpa_boundary;
->  };
->  extern struct ms_hyperv_info ms_hyperv;
-
+diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+index 07ac208edc89..73aa25843f65 100644
+--- a/arch/arm64/include/asm/Kbuild
++++ b/arch/arm64/include/asm/Kbuild
+@@ -3,5 +3,4 @@ generic-y += early_ioremap.h
+ generic-y += mcs_spinlock.h
+ generic-y += qrwlock.h
+ generic-y += qspinlock.h
+-generic-y += set_memory.h
+ generic-y += user.h
+diff --git a/arch/arm64/include/asm/cacheflush.h b/arch/arm64/include/asm/cacheflush.h
+index ace2c3d7ae7e..4e3c13799735 100644
+--- a/arch/arm64/include/asm/cacheflush.h
++++ b/arch/arm64/include/asm/cacheflush.h
+@@ -131,12 +131,6 @@ static __always_inline void __flush_icache_all(void)
+ 	dsb(ish);
+ }
+ 
+-int set_memory_valid(unsigned long addr, int numpages, int enable);
+-
+-int set_direct_map_invalid_noflush(struct page *page, int numpages);
+-int set_direct_map_default_noflush(struct page *page, int numpages);
+-bool kernel_page_present(struct page *page);
+-
+ #include <asm-generic/cacheflush.h>
+ 
+ #endif /* __ASM_CACHEFLUSH_H */
+diff --git a/arch/arm64/include/asm/kfence.h b/arch/arm64/include/asm/kfence.h
+index d061176d57ea..aa855c6a0ae6 100644
+--- a/arch/arm64/include/asm/kfence.h
++++ b/arch/arm64/include/asm/kfence.h
+@@ -8,7 +8,7 @@
+ #ifndef __ASM_KFENCE_H
+ #define __ASM_KFENCE_H
+ 
+-#include <asm/cacheflush.h>
++#include <asm/set_memory.h>
+ 
+ static inline bool arch_kfence_init_pool(void) { return true; }
+ 
+diff --git a/arch/arm64/include/asm/set_memory.h b/arch/arm64/include/asm/set_memory.h
+new file mode 100644
+index 000000000000..ecb6b0f449ab
+--- /dev/null
++++ b/arch/arm64/include/asm/set_memory.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++
++#ifndef _ASM_ARM64_SET_MEMORY_H
++#define _ASM_ARM64_SET_MEMORY_H
++
++#include <asm-generic/set_memory.h>
++
++bool can_set_direct_map(void);
++#define can_set_direct_map can_set_direct_map
++
++int set_memory_valid(unsigned long addr, int numpages, int enable);
++
++int set_direct_map_invalid_noflush(struct page *page, int numpages);
++int set_direct_map_default_noflush(struct page *page, int numpages);
++bool kernel_page_present(struct page *page);
++
++#endif /* _ASM_ARM64_SET_MEMORY_H */
+diff --git a/arch/arm64/kernel/machine_kexec.c b/arch/arm64/kernel/machine_kexec.c
+index 90a335c74442..0ec94e718724 100644
+--- a/arch/arm64/kernel/machine_kexec.c
++++ b/arch/arm64/kernel/machine_kexec.c
+@@ -11,6 +11,7 @@
+ #include <linux/kernel.h>
+ #include <linux/kexec.h>
+ #include <linux/page-flags.h>
++#include <linux/set_memory.h>
+ #include <linux/smp.h>
+ 
+ #include <asm/cacheflush.h>
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index 3802cfbdd20d..9243ea9f4e9f 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -22,6 +22,7 @@
+ #include <linux/io.h>
+ #include <linux/mm.h>
+ #include <linux/vmalloc.h>
++#include <linux/set_memory.h>
+ 
+ #include <asm/barrier.h>
+ #include <asm/cputype.h>
+@@ -492,7 +493,7 @@ static void __init map_mem(pgd_t *pgdp)
+ 	int flags = 0;
+ 	u64 i;
+ 
+-	if (rodata_full || crash_mem_map || debug_pagealloc_enabled())
++	if (can_set_direct_map() || crash_mem_map)
+ 		flags = NO_BLOCK_MAPPINGS | NO_CONT_MAPPINGS;
+ 
+ 	/*
+@@ -1470,8 +1471,7 @@ int arch_add_memory(int nid, u64 start, u64 size,
+ 	 * KFENCE requires linear map to be mapped at page granularity, so that
+ 	 * it is possible to protect/unprotect single pages in the KFENCE pool.
+ 	 */
+-	if (rodata_full || debug_pagealloc_enabled() ||
+-	    IS_ENABLED(CONFIG_KFENCE))
++	if (can_set_direct_map() || IS_ENABLED(CONFIG_KFENCE))
+ 		flags = NO_BLOCK_MAPPINGS | NO_CONT_MAPPINGS;
+ 
+ 	__create_pgd_mapping(swapper_pg_dir, start, __phys_to_virt(start),
+diff --git a/arch/arm64/mm/pageattr.c b/arch/arm64/mm/pageattr.c
+index b53ef37bf95a..d505172265b0 100644
+--- a/arch/arm64/mm/pageattr.c
++++ b/arch/arm64/mm/pageattr.c
+@@ -19,6 +19,11 @@ struct page_change_data {
+ 
+ bool rodata_full __ro_after_init = IS_ENABLED(CONFIG_RODATA_FULL_DEFAULT_ENABLED);
+ 
++bool can_set_direct_map(void)
++{
++	return rodata_full || debug_pagealloc_enabled();
++}
++
+ static int change_page_range(pte_t *ptep, unsigned long addr, void *data)
+ {
+ 	struct page_change_data *cdata = data;
+@@ -156,7 +161,7 @@ int set_direct_map_invalid_noflush(struct page *page, int numpages)
+ 	};
+ 	unsigned long size = PAGE_SIZE * numpages;
+ 
+-	if (!debug_pagealloc_enabled() && !rodata_full)
++	if (!can_set_direct_map())
+ 		return 0;
+ 
+ 	return apply_to_page_range(&init_mm,
+@@ -172,7 +177,7 @@ int set_direct_map_default_noflush(struct page *page, int numpages)
+ 	};
+ 	unsigned long size = PAGE_SIZE * numpages;
+ 
+-	if (!debug_pagealloc_enabled() && !rodata_full)
++	if (!can_set_direct_map())
+ 		return 0;
+ 
+ 	return apply_to_page_range(&init_mm,
+@@ -183,7 +188,7 @@ int set_direct_map_default_noflush(struct page *page, int numpages)
+ #ifdef CONFIG_DEBUG_PAGEALLOC
+ void __kernel_map_pages(struct page *page, int numpages, int enable)
+ {
+-	if (!debug_pagealloc_enabled() && !rodata_full)
++	if (!can_set_direct_map())
+ 		return;
+ 
+ 	set_memory_valid((unsigned long)page_address(page), numpages, enable);
+@@ -208,7 +213,7 @@ bool kernel_page_present(struct page *page)
+ 	pte_t *ptep;
+ 	unsigned long addr = (unsigned long)page_address(page);
+ 
+-	if (!debug_pagealloc_enabled() && !rodata_full)
++	if (!can_set_direct_map())
+ 		return true;
+ 
+ 	pgdp = pgd_offset_k(addr);
+diff --git a/include/linux/set_memory.h b/include/linux/set_memory.h
+index c650f82db813..7b4b6626032d 100644
+--- a/include/linux/set_memory.h
++++ b/include/linux/set_memory.h
+@@ -28,7 +28,19 @@ static inline bool kernel_page_present(struct page *page)
+ {
+ 	return true;
+ }
++#else /* CONFIG_ARCH_HAS_SET_DIRECT_MAP */
++/*
++ * Some architectures, e.g. ARM64 can disable direct map modifications at
++ * boot time. Let them overrive this query.
++ */
++#ifndef can_set_direct_map
++static inline bool can_set_direct_map(void)
++{
++	return true;
++}
++#define can_set_direct_map can_set_direct_map
+ #endif
++#endif /* CONFIG_ARCH_HAS_SET_DIRECT_MAP */
+ 
+ #ifndef set_mce_nospec
+ static inline int set_mce_nospec(unsigned long pfn, bool unmap)
 -- 
-Vitaly
+2.28.0
 
