@@ -2,116 +2,223 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_IN_DEF_DKIM_WL
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A9D87C15515
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C56CEC1550F
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:30 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8C30B64F52
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9C5E564F7B
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240029AbhCDAtS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 19:49:18 -0500
-Received: from rcdn-iport-5.cisco.com ([173.37.86.76]:57126 "EHLO
-        rcdn-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1577095AbhCCRsH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Mar 2021 12:48:07 -0500
-X-Greylist: delayed 332 seconds by postgrey-1.27 at vger.kernel.org; Wed, 03 Mar 2021 12:48:06 EST
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=cisco.com; i=@cisco.com; l=1566; q=dns/txt; s=iport;
-  t=1614793686; x=1616003286;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=HwSDExt/4yEwWWICTamnjrNRGaKwzVnKFGtN23ZY2jQ=;
-  b=QCRRa7IJKmkboQ6L8eCUHhCwrWLyQCErEraRlf3v6sqF73x6Y3ohBw4D
-   12hyfJO0jH42m1WsrXVNWqOwRLrg9MxBvc2LBtYhsMdD77SVBYxAeP/5o
-   E0Pg4H4/6kjf4LtvCexZ8HqF5/ubGA6+jMq/RC5SXwsELxpw84zcTX8gT
-   8=;
-X-IronPort-Anti-Spam-Filtered: true
-X-IronPort-Anti-Spam-Result: =?us-ascii?q?A0BKAwCgyD9g/5BdJa1iHAEBAQEBAQc?=
- =?us-ascii?q?BARIBAQQEAQFAgU+CK3ZWATkxlh2PehaMOwsBAQENAQEkEAQBAYRNAoF6AiU?=
- =?us-ascii?q?4EwIDAQELAQEFAQEBAgEGBHGFYQ2GRQEFOj8QCxIGLjwNDgYTG4JWgwcPrUV?=
- =?us-ascii?q?0gTSEPwGEX4E+BiKBFo1DJhyBSUKEKz6KMwSCRoE7gnSQS4JLii2be4MGgR+?=
- =?us-ascii?q?IIJJSMRCDJ4pPlVCgEpZgAgQGBQIWgWsjgVczGggbFYMkHzEZDZcihWYgAy8?=
- =?us-ascii?q?4AgYKAQEDCYwTAQE?=
-X-IronPort-AV: E=Sophos;i="5.81,220,1610409600"; 
-   d="scan'208";a="598970073"
-Received: from rcdn-core-8.cisco.com ([173.37.93.144])
-  by rcdn-iport-5.cisco.com with ESMTP/TLS/DHE-RSA-SEED-SHA; 03 Mar 2021 17:39:14 +0000
-Received: from zorba ([10.24.1.194])
-        by rcdn-core-8.cisco.com (8.15.2/8.15.2) with ESMTPS id 123Hd88Y022034
-        (version=TLSv1.2 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO);
-        Wed, 3 Mar 2021 17:39:12 GMT
-Date:   Wed, 3 Mar 2021 09:39:08 -0800
-From:   Daniel Walker <danielwa@cisco.com>
-To:     Rob Herring <robh@kernel.org>
-Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@samba.org>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Daniel Gimpelevich <daniel@gimpelevich.san-francisco.ca.us>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
-        "open list:GENERIC INCLUDE/ASM HEADER FILES" 
-        <linux-arch@vger.kernel.org>, devicetree@vger.kernel.org,
-        Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v2 0/7] Improve boot command line handling
-Message-ID: <20210303173908.GG109100@zorba>
-References: <cover.1614705851.git.christophe.leroy@csgroup.eu>
- <20210302173523.GE109100@zorba>
- <CAL_JsqJ7U8QAbJe3zkZiFPJN4PveHz5TZoPk2S8qQWB6cm5e5Q@mail.gmail.com>
+        id S237875AbhCDAtN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 19:49:13 -0500
+Received: from mail.kernel.org ([198.145.29.99]:50056 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1346279AbhCCQ0Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Mar 2021 11:26:16 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id DB23664ED7;
+        Wed,  3 Mar 2021 16:23:37 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1614788628;
+        bh=xidrDhecGP6CNp1WbvEb+2by3BdO1w+m3Yqw9X4ZQKU=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=tNtqLs272LmTWPImnmDa7KBFiBC4TQdgRv5ieOdhPBuHU24cUpJwgDIVa9ImRcXt3
+         +D2Xxn5mu/dwiyPTikLZ5WG4U7s65gMHWJykrawzmFFidQhAKbnweVAqzciIBa39AD
+         bYPlnC3hRVLouSLXMvsRBKwz0Iy7A/ijcH2oe23eJvFvszDee+tjwhIi2+bKWMlQzU
+         YOHSBPEQ8gSb/pzaj9f9YN3GFKIay3FczR7H8ummNW0+C1JuKXErey1KetJ+dkH9cX
+         kE+eqSxeOTl8oCNXuoIFCC7JHT245VfX3hHSy/RQvhEbT9h6U1em9Nr+1+X3euExO5
+         DuFp/dFKedl7g==
+From:   Mike Rapoport <rppt@kernel.org>
+To:     Andrew Morton <akpm@linux-foundation.org>
+Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        David Hildenbrand <david@redhat.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Matthew Wilcox <willy@infradead.org>,
+        Matthew Garrett <mjg59@srcf.ucam.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Michal Hocko <mhocko@suse.com>,
+        Mike Rapoport <rppt@linux.ibm.com>,
+        Mike Rapoport <rppt@kernel.org>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Roman Gushchin <guro@fb.com>,
+        Shakeel Butt <shakeelb@google.com>,
+        Shuah Khan <shuah@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
+        Palmer Dabbelt <palmerdabbelt@google.com>
+Subject: [PATCH v18 7/9] PM: hibernate: disable when there are active secretmem users
+Date:   Wed,  3 Mar 2021 18:22:07 +0200
+Message-Id: <20210303162209.8609-8-rppt@kernel.org>
+X-Mailer: git-send-email 2.28.0
+In-Reply-To: <20210303162209.8609-1-rppt@kernel.org>
+References: <20210303162209.8609-1-rppt@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAL_JsqJ7U8QAbJe3zkZiFPJN4PveHz5TZoPk2S8qQWB6cm5e5Q@mail.gmail.com>
-X-Outbound-SMTP-Client: 10.24.1.194, [10.24.1.194]
-X-Outbound-Node: rcdn-core-8.cisco.com
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Mar 02, 2021 at 08:01:01PM -0600, Rob Herring wrote:
-> +Will D
-> 
-> On Tue, Mar 2, 2021 at 11:36 AM Daniel Walker <danielwa@cisco.com> wrote:
-> >
-> > On Tue, Mar 02, 2021 at 05:25:16PM +0000, Christophe Leroy wrote:
-> > > The purpose of this series is to improve and enhance the
-> > > handling of kernel boot arguments.
-> > >
-> > > It is first focussed on powerpc but also extends the capability
-> > > for other arches.
-> > >
-> > > This is based on suggestion from Daniel Walker <danielwa@cisco.com>
-> > >
-> >
-> >
-> > I don't see a point in your changes at this time. My changes are much more
-> > mature, and you changes don't really make improvements.
-> 
-> Not really a helpful comment. What we merge here will be from whomever
-> is persistent and timely in their efforts. But please, work together
-> on a common solution.
-> 
-> This one meets my requirements of moving the kconfig and code out of
-> the arches, supports prepend/append, and is up to date.
+From: Mike Rapoport <rppt@linux.ibm.com>
 
+It is unsafe to allow saving of secretmem areas to the hibernation
+snapshot as they would be visible after the resume and this essentially
+will defeat the purpose of secret memory mappings.
 
-Maintainers are capable of merging whatever they want to merge. However, I
-wouldn't make hasty choices. The changes I've been submitting have been deployed
-on millions of router instances and are more feature rich.
+Prevent hibernation whenever there are active secret memory users.
 
-I believe I worked with you on this change, or something like it,
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Christopher Lameter <cl@linux.com>
+Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Hildenbrand <david@redhat.com>
+Cc: Elena Reshetova <elena.reshetova@intel.com>
+Cc: Hagen Paul Pfeifer <hagen@jauu.net>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: James Bottomley <jejb@linux.ibm.com>
+Cc: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Mark Rutland <mark.rutland@arm.com>
+Cc: Matthew Wilcox <willy@infradead.org>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: Palmer Dabbelt <palmerdabbelt@google.com>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>
+Cc: Roman Gushchin <guro@fb.com>
+Cc: Shakeel Butt <shakeelb@google.com>
+Cc: Shuah Khan <shuah@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Tycho Andersen <tycho@tycho.ws>
+Cc: Will Deacon <will@kernel.org>
+---
+ include/linux/secretmem.h |  6 ++++++
+ kernel/power/hibernate.c  |  5 ++++-
+ mm/secretmem.c            | 15 +++++++++++++++
+ 3 files changed, 25 insertions(+), 1 deletion(-)
 
-https://lkml.org/lkml/2019/3/19/970
+diff --git a/include/linux/secretmem.h b/include/linux/secretmem.h
+index 70e7db9f94fe..907a6734059c 100644
+--- a/include/linux/secretmem.h
++++ b/include/linux/secretmem.h
+@@ -6,6 +6,7 @@
+ 
+ bool vma_is_secretmem(struct vm_area_struct *vma);
+ bool page_is_secretmem(struct page *page);
++bool secretmem_active(void);
+ 
+ #else
+ 
+@@ -19,6 +20,11 @@ static inline bool page_is_secretmem(struct page *page)
+ 	return false;
+ }
+ 
++static inline bool secretmem_active(void)
++{
++	return false;
++}
++
+ #endif /* CONFIG_SECRETMEM */
+ 
+ #endif /* _LINUX_SECRETMEM_H */
+diff --git a/kernel/power/hibernate.c b/kernel/power/hibernate.c
+index da0b41914177..559acef3fddb 100644
+--- a/kernel/power/hibernate.c
++++ b/kernel/power/hibernate.c
+@@ -31,6 +31,7 @@
+ #include <linux/genhd.h>
+ #include <linux/ktime.h>
+ #include <linux/security.h>
++#include <linux/secretmem.h>
+ #include <trace/events/power.h>
+ 
+ #include "power.h"
+@@ -81,7 +82,9 @@ void hibernate_release(void)
+ 
+ bool hibernation_available(void)
+ {
+-	return nohibernate == 0 && !security_locked_down(LOCKDOWN_HIBERNATION);
++	return nohibernate == 0 &&
++		!security_locked_down(LOCKDOWN_HIBERNATION) &&
++		!secretmem_active();
+ }
+ 
+ /**
+diff --git a/mm/secretmem.c b/mm/secretmem.c
+index fa6738e860c2..f2ae3f32a193 100644
+--- a/mm/secretmem.c
++++ b/mm/secretmem.c
+@@ -40,6 +40,13 @@ module_param_named(enable, secretmem_enable, bool, 0400);
+ MODULE_PARM_DESC(secretmem_enable,
+ 		 "Enable secretmem and memfd_secret(2) system call");
+ 
++static atomic_t secretmem_users;
++
++bool secretmem_active(void)
++{
++	return !!atomic_read(&secretmem_users);
++}
++
+ static vm_fault_t secretmem_fault(struct vm_fault *vmf)
+ {
+ 	struct address_space *mapping = vmf->vma->vm_file->f_mapping;
+@@ -94,6 +101,12 @@ static const struct vm_operations_struct secretmem_vm_ops = {
+ 	.fault = secretmem_fault,
+ };
+ 
++static int secretmem_release(struct inode *inode, struct file *file)
++{
++	atomic_dec(&secretmem_users);
++	return 0;
++}
++
+ static int secretmem_mmap(struct file *file, struct vm_area_struct *vma)
+ {
+ 	unsigned long len = vma->vm_end - vma->vm_start;
+@@ -116,6 +129,7 @@ bool vma_is_secretmem(struct vm_area_struct *vma)
+ }
+ 
+ static const struct file_operations secretmem_fops = {
++	.release	= secretmem_release,
+ 	.mmap		= secretmem_mmap,
+ };
+ 
+@@ -212,6 +226,7 @@ SYSCALL_DEFINE1(memfd_secret, unsigned long, flags)
+ 	file->f_flags |= O_LARGEFILE;
+ 
+ 	fd_install(fd, file);
++	atomic_inc(&secretmem_users);
+ 	return fd;
+ 
+ err_put_fd:
+-- 
+2.28.0
 
-I don't think Christophe has even addressed this. I've converted many
-architectures, and Cisco uses my changes on at least 4 different
-architecture. With products deployed and tested.
-
-I will resubmit my changes as soon as I can.
-
-Daniel
