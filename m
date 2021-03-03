@@ -2,223 +2,144 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+X-Spam-Status: No, score=-17.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C56CEC1550F
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BBE64C468BF
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:32 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9C5E564F7B
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:30 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 85D0F64F11
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237875AbhCDAtN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 19:49:13 -0500
-Received: from mail.kernel.org ([198.145.29.99]:50056 "EHLO mail.kernel.org"
+        id S240190AbhCDAtU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 19:49:20 -0500
+Received: from mail.kernel.org ([198.145.29.99]:51594 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1346279AbhCCQ0Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Mar 2021 11:26:16 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id DB23664ED7;
-        Wed,  3 Mar 2021 16:23:37 +0000 (UTC)
+        id S1578569AbhCCSRi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Mar 2021 13:17:38 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 6ABCE64EE4;
+        Wed,  3 Mar 2021 18:16:55 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1614788628;
-        bh=xidrDhecGP6CNp1WbvEb+2by3BdO1w+m3Yqw9X4ZQKU=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=tNtqLs272LmTWPImnmDa7KBFiBC4TQdgRv5ieOdhPBuHU24cUpJwgDIVa9ImRcXt3
-         +D2Xxn5mu/dwiyPTikLZ5WG4U7s65gMHWJykrawzmFFidQhAKbnweVAqzciIBa39AD
-         bYPlnC3hRVLouSLXMvsRBKwz0Iy7A/ijcH2oe23eJvFvszDee+tjwhIi2+bKWMlQzU
-         YOHSBPEQ8gSb/pzaj9f9YN3GFKIay3FczR7H8ummNW0+C1JuKXErey1KetJ+dkH9cX
-         kE+eqSxeOTl8oCNXuoIFCC7JHT245VfX3hHSy/RQvhEbT9h6U1em9Nr+1+X3euExO5
-         DuFp/dFKedl7g==
-From:   Mike Rapoport <rppt@kernel.org>
-To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Wilcox <willy@infradead.org>,
-        Matthew Garrett <mjg59@srcf.ucam.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Michal Hocko <mhocko@suse.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Mike Rapoport <rppt@kernel.org>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Roman Gushchin <guro@fb.com>,
-        Shakeel Butt <shakeelb@google.com>,
-        Shuah Khan <shuah@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
-        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
-        Palmer Dabbelt <palmerdabbelt@google.com>
-Subject: [PATCH v18 7/9] PM: hibernate: disable when there are active secretmem users
-Date:   Wed,  3 Mar 2021 18:22:07 +0200
-Message-Id: <20210303162209.8609-8-rppt@kernel.org>
-X-Mailer: git-send-email 2.28.0
-In-Reply-To: <20210303162209.8609-1-rppt@kernel.org>
-References: <20210303162209.8609-1-rppt@kernel.org>
+        s=k20201202; t=1614795417;
+        bh=AOrfOeNzmKqgCV3QhzN1PwHQin34TBisdVgEG/rfN5s=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=JU0c7LsMblIR5/z1TFN8se4jRW7FE3kakg1n9P4kbsLBCFjGXqHV6ug4bTktO4RZq
+         w4tNa3+4oSkml+MAwznFMbaNrrXyikantXWv7d0WndnhfhbVFat2dEfWC1yyU+Th5T
+         ynPRtt+JonwZAS21aGAn2OcTP4nOnvkC9KVlGBBKE88ckH7DJf6zkriAFHeM8ELNmp
+         MoxKjCIj/TEE7Rk18Z1fdbqXYEHy3TbfZGGq3uepxhxCjyOapHMi1sKuWjMelOiwEX
+         r51wZO44eldb++Q7itPvHz8IdYnuyt1fC7oPCkvnXp1nEcLPTvV2AHwnAAcfr6Qm18
+         JbEPWkrwnqRYQ==
+Date:   Wed, 3 Mar 2021 18:16:52 +0000
+From:   Will Deacon <will@kernel.org>
+To:     Christophe Leroy <christophe.leroy@csgroup.eu>
+Cc:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com,
+        robh@kernel.org, daniel@gimpelevich.san-francisco.ca.us,
+        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-arch@vger.kernel.org, devicetree@vger.kernel.org
+Subject: Re: [PATCH v2 1/7] cmdline: Add generic function to build command
+ line.
+Message-ID: <20210303181651.GE19713@willie-the-truck>
+References: <cover.1614705851.git.christophe.leroy@csgroup.eu>
+ <d8cf7979ad986de45301b39a757c268d9df19f35.1614705851.git.christophe.leroy@csgroup.eu>
+ <20210303172810.GA19713@willie-the-truck>
+ <a0cfef11-efba-2e5c-6f58-ed63a2c3bfa0@csgroup.eu>
+ <20210303174627.GC19713@willie-the-truck>
+ <dc6576ac-44ff-7db4-d718-7565b83f50b8@csgroup.eu>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <dc6576ac-44ff-7db4-d718-7565b83f50b8@csgroup.eu>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On Wed, Mar 03, 2021 at 06:57:09PM +0100, Christophe Leroy wrote:
+> Le 03/03/2021 à 18:46, Will Deacon a écrit :
+> > On Wed, Mar 03, 2021 at 06:38:16PM +0100, Christophe Leroy wrote:
+> > > Le 03/03/2021 à 18:28, Will Deacon a écrit :
+> > > > On Tue, Mar 02, 2021 at 05:25:17PM +0000, Christophe Leroy wrote:
+> > > > > This code provides architectures with a way to build command line
+> > > > > based on what is built in the kernel and what is handed over by the
+> > > > > bootloader, based on selected compile-time options.
+> > > > > 
+> > > > > Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+> > > > > ---
+> > > > >    include/linux/cmdline.h | 62 +++++++++++++++++++++++++++++++++++++++++
+> > > > >    1 file changed, 62 insertions(+)
+> > > > >    create mode 100644 include/linux/cmdline.h
+> > > > > 
+> > > > > diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
+> > > > > new file mode 100644
+> > > > > index 000000000000..ae3610bb0ee2
+> > > > > --- /dev/null
+> > > > > +++ b/include/linux/cmdline.h
+> > > > > @@ -0,0 +1,62 @@
+> > > > > +/* SPDX-License-Identifier: GPL-2.0 */
+> > > > > +#ifndef _LINUX_CMDLINE_H
+> > > > > +#define _LINUX_CMDLINE_H
+> > > > > +
+> > > > > +static __always_inline size_t cmdline_strlen(const char *s)
+> > > > > +{
+> > > > > +	const char *sc;
+> > > > > +
+> > > > > +	for (sc = s; *sc != '\0'; ++sc)
+> > > > > +		; /* nothing */
+> > > > > +	return sc - s;
+> > > > > +}
+> > > > > +
+> > > > > +static __always_inline size_t cmdline_strlcat(char *dest, const char *src, size_t count)
+> > > > > +{
+> > > > > +	size_t dsize = cmdline_strlen(dest);
+> > > > > +	size_t len = cmdline_strlen(src);
+> > > > > +	size_t res = dsize + len;
+> > > > > +
+> > > > > +	/* This would be a bug */
+> > > > > +	if (dsize >= count)
+> > > > > +		return count;
+> > > > > +
+> > > > > +	dest += dsize;
+> > > > > +	count -= dsize;
+> > > > > +	if (len >= count)
+> > > > > +		len = count - 1;
+> > > > > +	memcpy(dest, src, len);
+> > > > > +	dest[len] = 0;
+> > > > > +	return res;
+> > > > > +}
+> > > > 
+> > > > Why are these needed instead of using strlen and strlcat directly?
+> > > 
+> > > Because on powerpc (at least), it will be used in prom_init, it is very
+> > > early in the boot and KASAN shadow memory is not set up yet so calling
+> > > generic string functions would crash the board.
+> > 
+> > Hmm. We deliberately setup a _really_ early shadow on arm64 for this, can
+> > you not do something similar? Failing that, I think it would be better to
+> > offer the option for an arch to implement cmdline_*, but have then point to
+> > the normal library routines by default.
+> 
+> I don't think it is possible to setup an earlier early shadow.
+> 
+> At the point we are in prom_init, the code is not yet relocated at the
+> address it was linked for, and it is running with the MMU set by the
+> bootloader, I can't imagine being able to setup MMU entries for the early
+> shadow KASAN yet without breaking everything.
 
-It is unsafe to allow saving of secretmem areas to the hibernation
-snapshot as they would be visible after the resume and this essentially
-will defeat the purpose of secret memory mappings.
+That's very similar to us; we're not relocated, although we are at least
+in control of the MMU (which is using a temporary set of page-tables).
 
-Prevent hibernation whenever there are active secret memory users.
+> Is it really worth trying to point to the normal library routines by default
+> ? It is really only a few lines of code hence only not many bytes, and
+> anyway they are in __init section so they get discarded at the end.
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Christopher Lameter <cl@linux.com>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Hildenbrand <david@redhat.com>
-Cc: Elena Reshetova <elena.reshetova@intel.com>
-Cc: Hagen Paul Pfeifer <hagen@jauu.net>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: James Bottomley <jejb@linux.ibm.com>
-Cc: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Mark Rutland <mark.rutland@arm.com>
-Cc: Matthew Wilcox <willy@infradead.org>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: Palmer Dabbelt <palmerdabbelt@google.com>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Cc: Roman Gushchin <guro@fb.com>
-Cc: Shakeel Butt <shakeelb@google.com>
-Cc: Shuah Khan <shuah@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Tycho Andersen <tycho@tycho.ws>
-Cc: Will Deacon <will@kernel.org>
----
- include/linux/secretmem.h |  6 ++++++
- kernel/power/hibernate.c  |  5 ++++-
- mm/secretmem.c            | 15 +++++++++++++++
- 3 files changed, 25 insertions(+), 1 deletion(-)
+I would prefer to use the normal routines by default and allow architectures
+to override them based on their needs, otherwise we'll end up trying to
+maintain a "lowest-common-dominator" set of string routines that can be
+safely run in whatever different constraints different architectures have.
 
-diff --git a/include/linux/secretmem.h b/include/linux/secretmem.h
-index 70e7db9f94fe..907a6734059c 100644
---- a/include/linux/secretmem.h
-+++ b/include/linux/secretmem.h
-@@ -6,6 +6,7 @@
- 
- bool vma_is_secretmem(struct vm_area_struct *vma);
- bool page_is_secretmem(struct page *page);
-+bool secretmem_active(void);
- 
- #else
- 
-@@ -19,6 +20,11 @@ static inline bool page_is_secretmem(struct page *page)
- 	return false;
- }
- 
-+static inline bool secretmem_active(void)
-+{
-+	return false;
-+}
-+
- #endif /* CONFIG_SECRETMEM */
- 
- #endif /* _LINUX_SECRETMEM_H */
-diff --git a/kernel/power/hibernate.c b/kernel/power/hibernate.c
-index da0b41914177..559acef3fddb 100644
---- a/kernel/power/hibernate.c
-+++ b/kernel/power/hibernate.c
-@@ -31,6 +31,7 @@
- #include <linux/genhd.h>
- #include <linux/ktime.h>
- #include <linux/security.h>
-+#include <linux/secretmem.h>
- #include <trace/events/power.h>
- 
- #include "power.h"
-@@ -81,7 +82,9 @@ void hibernate_release(void)
- 
- bool hibernation_available(void)
- {
--	return nohibernate == 0 && !security_locked_down(LOCKDOWN_HIBERNATION);
-+	return nohibernate == 0 &&
-+		!security_locked_down(LOCKDOWN_HIBERNATION) &&
-+		!secretmem_active();
- }
- 
- /**
-diff --git a/mm/secretmem.c b/mm/secretmem.c
-index fa6738e860c2..f2ae3f32a193 100644
---- a/mm/secretmem.c
-+++ b/mm/secretmem.c
-@@ -40,6 +40,13 @@ module_param_named(enable, secretmem_enable, bool, 0400);
- MODULE_PARM_DESC(secretmem_enable,
- 		 "Enable secretmem and memfd_secret(2) system call");
- 
-+static atomic_t secretmem_users;
-+
-+bool secretmem_active(void)
-+{
-+	return !!atomic_read(&secretmem_users);
-+}
-+
- static vm_fault_t secretmem_fault(struct vm_fault *vmf)
- {
- 	struct address_space *mapping = vmf->vma->vm_file->f_mapping;
-@@ -94,6 +101,12 @@ static const struct vm_operations_struct secretmem_vm_ops = {
- 	.fault = secretmem_fault,
- };
- 
-+static int secretmem_release(struct inode *inode, struct file *file)
-+{
-+	atomic_dec(&secretmem_users);
-+	return 0;
-+}
-+
- static int secretmem_mmap(struct file *file, struct vm_area_struct *vma)
- {
- 	unsigned long len = vma->vm_end - vma->vm_start;
-@@ -116,6 +129,7 @@ bool vma_is_secretmem(struct vm_area_struct *vma)
- }
- 
- static const struct file_operations secretmem_fops = {
-+	.release	= secretmem_release,
- 	.mmap		= secretmem_mmap,
- };
- 
-@@ -212,6 +226,7 @@ SYSCALL_DEFINE1(memfd_secret, unsigned long, flags)
- 	file->f_flags |= O_LARGEFILE;
- 
- 	fd_install(fd, file);
-+	atomic_inc(&secretmem_users);
- 	return fd;
- 
- err_put_fd:
--- 
-2.28.0
-
+Will
