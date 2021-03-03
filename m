@@ -2,154 +2,183 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+X-Spam-Status: No, score=-17.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7AFF8C1550C
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BF908C468C0
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6421164EF4
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:30 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A253464EE1
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234887AbhCDAtL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 19:49:11 -0500
-Received: from mail.kernel.org ([198.145.29.99]:46330 "EHLO mail.kernel.org"
+        id S240041AbhCDAtS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 19:49:18 -0500
+Received: from mail.kernel.org ([198.145.29.99]:37982 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S237517AbhCCQXe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Mar 2021 11:23:34 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 1C28564EFC;
-        Wed,  3 Mar 2021 16:22:40 +0000 (UTC)
+        id S1381444AbhCCR6p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Mar 2021 12:58:45 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id E84F664EF3;
+        Wed,  3 Mar 2021 17:57:50 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1614788571;
-        bh=X/1ny8uglVuhfpYmrp6Fc32vjqohkdMv8EZUozNZySc=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=kyJa4OCSK43iTrFITQPoqKtpiDK0T+REEpq4p1Mh6+pUce21iER5SwDElH+oFQbIh
-         Z6zBY5QKkhea+XXH73zsfScmO8VM7FbDyudJ3bj+l9ox8botngiAbrronlv1T9OB6G
-         ZZ56/Tp908vg6XBZpeVQshQOfMW88Emr4d3r3zplUGA2EBK6QYSnLKVDU5gY6CE65E
-         VAO5DVx37EtLg7/37j64q3v4HKizGtazm6D5IbYz65fNOQJxYIb/cKaWCPrO8Hu8Aj
-         eCyWRhBjGp4EUR3A67hU7MOjKgs2Tm7uL6FLZdArMbZCUDdtwvjecGvhwDFwKzSmH6
-         0fRpSofH+sEZQ==
-From:   Mike Rapoport <rppt@kernel.org>
-To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Wilcox <willy@infradead.org>,
-        Matthew Garrett <mjg59@srcf.ucam.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Michal Hocko <mhocko@suse.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Mike Rapoport <rppt@kernel.org>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Roman Gushchin <guro@fb.com>,
-        Shakeel Butt <shakeelb@google.com>,
-        Shuah Khan <shuah@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
-        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
-        Palmer Dabbelt <palmerdabbelt@google.com>
-Subject: [PATCH v18 2/9] mmap: make mlock_future_check() global
-Date:   Wed,  3 Mar 2021 18:22:02 +0200
-Message-Id: <20210303162209.8609-3-rppt@kernel.org>
-X-Mailer: git-send-email 2.28.0
-In-Reply-To: <20210303162209.8609-1-rppt@kernel.org>
-References: <20210303162209.8609-1-rppt@kernel.org>
+        s=k20201202; t=1614794273;
+        bh=XiWtpvFdZtLasbYDnPMoaZrCEvuZWPwRJJFIHcVSAgI=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=oUNo++Truj2opgcatZeFPggIi0sEc4hm48HzynYHr4Tb1dQSG/rMPpJCFh1F7mP1A
+         jm1WGw3A90IbuKwhndDReALRE/vt2Fi9mL8L80RYG3xwBoT3eo527n/A94oWV9yBi6
+         CyZDO2YLDH50+Xh678C08XKF/KCebqKndgOZXxH1XMasvkgX0xfXrZqsfXaL0ZeX85
+         JzsvLXbmZwus5a9gzm2whJem5b08bJvZZO8+pk5OnzthZojefUFQFlZgfxhomvISFJ
+         tar+2wSsspQ8x3Jo5d85R99ALZZTaE4wc4w80RPvPPP7ox9yW2R6BjVysoHHwjMhAu
+         LqpIZrYE5Lj9g==
+Date:   Wed, 3 Mar 2021 17:57:47 +0000
+From:   Will Deacon <will@kernel.org>
+To:     Christophe Leroy <christophe.leroy@csgroup.eu>
+Cc:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com,
+        robh@kernel.org, daniel@gimpelevich.san-francisco.ca.us,
+        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-arch@vger.kernel.org, devicetree@vger.kernel.org
+Subject: Re: [PATCH v2 6/7] cmdline: Gives architectures opportunity to use
+ generically defined boot cmdline manipulation
+Message-ID: <20210303175747.GD19713@willie-the-truck>
+References: <cover.1614705851.git.christophe.leroy@csgroup.eu>
+ <2eb6fad3470256fff5c9f33cd876f344abb1628b.1614705851.git.christophe.leroy@csgroup.eu>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <2eb6fad3470256fff5c9f33cd876f344abb1628b.1614705851.git.christophe.leroy@csgroup.eu>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On Tue, Mar 02, 2021 at 05:25:22PM +0000, Christophe Leroy wrote:
+> Most architectures have similar boot command line manipulation
+> options. This patchs adds the definition in init/Kconfig, gated by
+> CONFIG_HAVE_CMDLINE that the architectures can select to use them.
+> 
+> In order to use this, a few architectures will have to change their
+> CONFIG options:
+> - riscv has to replace CMDLINE_FALLBACK by CMDLINE_FROM_BOOTLOADER
+> - architectures using CONFIG_CMDLINE_OVERRIDE or
+> CONFIG_CMDLINE_OVERWRITE have to replace them by CONFIG_CMDLINE_FORCE.
+> 
+> Architectures also have to define CONFIG_DEFAULT_CMDLINE.
+> 
+> Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+> ---
+>  init/Kconfig | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 56 insertions(+)
+> 
+> diff --git a/init/Kconfig b/init/Kconfig
+> index 22946fe5ded9..a0f2ad9467df 100644
+> --- a/init/Kconfig
+> +++ b/init/Kconfig
+> @@ -117,6 +117,62 @@ config INIT_ENV_ARG_LIMIT
+>  	  Maximum of each of the number of arguments and environment
+>  	  variables passed to init from the kernel command line.
+>  
+> +config HAVE_CMDLINE
+> +	bool
+> +
+> +config CMDLINE_BOOL
+> +	bool "Default bootloader kernel arguments"
+> +	depends on HAVE_CMDLINE
+> +	help
+> +	  On some platforms, there is currently no way for the boot loader to
+> +	  pass arguments to the kernel. For these platforms, you can supply
+> +	  some command-line options at build time by entering them here.  In
+> +	  most cases you will need to specify the root device here.
 
-It will be used by the upcoming secret memory implementation.
+Why is this needed as well as CMDLINE_FROM_BOOTLOADER? IIUC, the latter
+will use CONFIG_CMDLINE if it fails to get anything from the bootloader,
+which sounds like the same scenario.
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Christopher Lameter <cl@linux.com>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Hildenbrand <david@redhat.com>
-Cc: Elena Reshetova <elena.reshetova@intel.com>
-Cc: Hagen Paul Pfeifer <hagen@jauu.net>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: James Bottomley <jejb@linux.ibm.com>
-Cc: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Mark Rutland <mark.rutland@arm.com>
-Cc: Matthew Wilcox <willy@infradead.org>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: Palmer Dabbelt <palmerdabbelt@google.com>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Cc: Roman Gushchin <guro@fb.com>
-Cc: Shakeel Butt <shakeelb@google.com>
-Cc: Shuah Khan <shuah@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Tycho Andersen <tycho@tycho.ws>
-Cc: Will Deacon <will@kernel.org>
----
- mm/internal.h | 3 +++
- mm/mmap.c     | 5 ++---
- 2 files changed, 5 insertions(+), 3 deletions(-)
+> +config CMDLINE
+> +	string "Initial kernel command string"
 
-diff --git a/mm/internal.h b/mm/internal.h
-index 9902648f2206..8e9c660f33ca 100644
---- a/mm/internal.h
-+++ b/mm/internal.h
-@@ -353,6 +353,9 @@ static inline void munlock_vma_pages_all(struct vm_area_struct *vma)
- extern void mlock_vma_page(struct page *page);
- extern unsigned int munlock_vma_page(struct page *page);
- 
-+extern int mlock_future_check(struct mm_struct *mm, unsigned long flags,
-+			      unsigned long len);
-+
- /*
-  * Clear the page's PageMlocked().  This can be useful in a situation where
-  * we want to unconditionally remove a page from the pagecache -- e.g.,
-diff --git a/mm/mmap.c b/mm/mmap.c
-index 3f287599a7a3..f989aa170de4 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -1346,9 +1346,8 @@ static inline unsigned long round_hint_to_min(unsigned long hint)
- 	return hint;
- }
- 
--static inline int mlock_future_check(struct mm_struct *mm,
--				     unsigned long flags,
--				     unsigned long len)
-+int mlock_future_check(struct mm_struct *mm, unsigned long flags,
-+		       unsigned long len)
- {
- 	unsigned long locked, lock_limit;
- 
--- 
-2.28.0
+s/Initial/Default
 
+which is then consistent with the rest of the text here.
+
+> +	depends on CMDLINE_BOOL
+
+Ah, so this is a bit different and I don't think lines-up with the
+CMDLINE_BOOL help text.
+
+> +	default DEFAULT_CMDLINE
+> +	help
+> +	  On some platforms, there is currently no way for the boot loader to
+> +	  pass arguments to the kernel. For these platforms, you can supply
+> +	  some command-line options at build time by entering them here.  In
+> +	  most cases you will need to specify the root device here.
+
+(same stale text)
+
+> +choice
+> +	prompt "Kernel command line type" if CMDLINE != ""
+> +	default CMDLINE_FROM_BOOTLOADER
+> +	help
+> +	  Selects the way you want to use the default kernel arguments.
+
+How about:
+
+"Determines how the default kernel arguments are combined with any
+ arguments passed by the bootloader"
+
+> +config CMDLINE_FROM_BOOTLOADER
+> +	bool "Use bootloader kernel arguments if available"
+> +	help
+> +	  Uses the command-line options passed by the boot loader. If
+> +	  the boot loader doesn't provide any, the default kernel command
+> +	  string provided in CMDLINE will be used.
+> +
+> +config CMDLINE_EXTEND
+
+Can we rename this to CMDLINE_APPEND, please? There is code in the tree
+which disagrees about what CMDLINE_EXTEND means, so that will need be
+to be updated to be consistent (e.g. the EFI stub parsing order). Having
+the generic option with a different name means we won't accidentally end
+up with the same inconsistent behaviours.
+
+> +	bool "Extend bootloader kernel arguments"
+
+"Append to the bootloader kernel arguments"
+
+> +	help
+> +	  The default kernel command string will be appended to the
+> +	  command-line arguments provided during boot.
+
+s/provided during boot/provided by the bootloader/
+
+> +
+> +config CMDLINE_PREPEND
+> +	bool "Prepend bootloader kernel arguments"
+
+"Prepend to the bootloader kernel arguments"
+
+> +	help
+> +	  The default kernel command string will be prepend to the
+> +	  command-line arguments provided during boot.
+
+s/prepend/prepended/
+s/provided during boot/provided by the bootloader/
+
+> +
+> +config CMDLINE_FORCE
+> +	bool "Always use the default kernel command string"
+> +	help
+> +	  Always use the default kernel command string, even if the boot
+> +	  loader passes other arguments to the kernel.
+> +	  This is useful if you cannot or don't want to change the
+> +	  command-line options your boot loader passes to the kernel.
+
+I find the "This is useful if ..." sentence really confusing, perhaps just
+remove it? I'd then tweak it to be:
+
+  "Always use the default kernel command string, ignoring any arguments
+   provided by the bootloader."
+
+Will
