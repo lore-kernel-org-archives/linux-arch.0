@@ -2,101 +2,191 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+X-Spam-Status: No, score=-15.3 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
-	autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
+	USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A21BBC47247
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CC6F7C15517
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8A14164F56
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:34 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B656364F52
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240276AbhCDAtX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 19:49:23 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50550 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1390880AbhCCWSY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Mar 2021 17:18:24 -0500
-Received: from mail-qk1-x736.google.com (mail-qk1-x736.google.com [IPv6:2607:f8b0:4864:20::736])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EFFA6C061764;
-        Wed,  3 Mar 2021 14:17:43 -0800 (PST)
-Received: by mail-qk1-x736.google.com with SMTP id n79so14194531qke.3;
-        Wed, 03 Mar 2021 14:17:43 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=date:from:to:cc:subject:message-id:references:mime-version
-         :content-disposition:in-reply-to;
-        bh=F+DfskWs3VLBseDXeXC3pvAy/cUkavN22n3rVw/q6VA=;
-        b=VOEsiTE+wYmonPb9dLZ6uXp9SsbWfVePmK1H0UozjpdPD7luFAwgAR3z14UoYr8i2t
-         vcl0QJz6HTaSYgIt3e7FgKz7XDxEM43iMSwRP80CM0/ldqhw9XGOV03Wgio2EvwmyJpL
-         WDH1gxCmy9M1ZpRXMri6VWQTv1o0npXOpDMuGIJZ5BCE1l+q42RRgtBxI7ClgcD+d+2H
-         VNuqFTDlZdPZ68ubDLAOXH2hGzI/RlZ0kKliGdlfUuLMgVqkbQ13c5pt52sIrRdliQQV
-         A8ALT92ZrkUrM+5/qvYt6uOW6PEVP0S0tKD5tCYVdpWibi36rKNJ3QJA5K0FHe7vB23o
-         ca0Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to;
-        bh=F+DfskWs3VLBseDXeXC3pvAy/cUkavN22n3rVw/q6VA=;
-        b=HU0vnzQdI+i+dp1iKwdOHp7AmoHIWgLWmBQYulGMZ57S5/SZ3rWvpr9ULjxg7FaLkN
-         fk/0kRBE4rAGew7uNJ7Ug3bwWP8hirhJtfEVu4grXXWxDNJsSCqCIvJVQIV3JuLg7rD4
-         wRrClXcebnOdf5zzgJx7f74JS8vn1Er0lNRWFhqUMns04nzGn6jIxsiYOgZ4E9iaivEk
-         XOteqzAAy3XDy8EVSXGybKXkWXDPSnfwiB+bhM1G3f+uwdzvrek14/6fTfJwGhqVCcHN
-         BwF8i92N0ypLyYYCRcKSXLkbNg8oncjFhXZv71ko8B5YEOz5NnYcudCDmfk+Iio1FKSf
-         i8Cg==
-X-Gm-Message-State: AOAM533peBQKzS05FzoHtaTK7I+Np/En2+yBHbCZPHj2NLVYl0BkQAY3
-        cwpQXowx5Et/mKOAwjV3hhifxkuI0gY=
-X-Google-Smtp-Source: ABdhPJwUGaxbBpfrRs/6hYOb4muFNXNpylJrvUpk7d1r1icNmdvfR1Ft/bl/0LxT3qr3mFWRVYG8AQ==
-X-Received: by 2002:a37:ef15:: with SMTP id j21mr1219197qkk.385.1614809863097;
-        Wed, 03 Mar 2021 14:17:43 -0800 (PST)
-Received: from localhost ([76.73.146.210])
-        by smtp.gmail.com with ESMTPSA id g186sm17728405qke.0.2021.03.03.14.17.42
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 03 Mar 2021 14:17:42 -0800 (PST)
-Date:   Wed, 3 Mar 2021 14:17:41 -0800
-From:   Yury Norov <yury.norov@gmail.com>
+        id S240044AbhCDAtS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 19:49:18 -0500
+Received: from pegase1.c-s.fr ([93.17.236.30]:3482 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1352260AbhCCR6r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Mar 2021 12:58:47 -0500
+Received: from localhost (mailhub1-int [192.168.12.234])
+        by localhost (Postfix) with ESMTP id 4DrMCF1XV1z9v4QZ;
+        Wed,  3 Mar 2021 18:57:13 +0100 (CET)
+X-Virus-Scanned: Debian amavisd-new at c-s.fr
+Received: from pegase1.c-s.fr ([192.168.12.234])
+        by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
+        with ESMTP id QezXv5b5bs7A; Wed,  3 Mar 2021 18:57:13 +0100 (CET)
+Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
+        by pegase1.c-s.fr (Postfix) with ESMTP id 4DrMCD6mvcz9ttC2;
+        Wed,  3 Mar 2021 18:57:12 +0100 (CET)
+Received: from localhost (localhost [127.0.0.1])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 3CFC08B7DB;
+        Wed,  3 Mar 2021 18:57:13 +0100 (CET)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from messagerie.si.c-s.fr ([127.0.0.1])
+        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
+        with ESMTP id HfuXNu-LNDVW; Wed,  3 Mar 2021 18:57:13 +0100 (CET)
+Received: from [192.168.4.90] (unknown [192.168.4.90])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 3EC2D8B7E6;
+        Wed,  3 Mar 2021 18:57:12 +0100 (CET)
+Subject: Re: [PATCH v2 1/7] cmdline: Add generic function to build command
+ line.
 To:     Will Deacon <will@kernel.org>
-Cc:     Catalin Marinas <catalin.marinas@arm.com>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Alexander Lobakin <alobakin@pm.me>,
-        Alexey Klimov <aklimov@redhat.com>,
-        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-mips@vger.kernel.org
-Subject: Re: [RESEND PATCH 1/2] ARM64: enable GENERIC_FIND_FIRST_BIT
-Message-ID: <20210303221741.GA2013084@yury-ThinkPad>
-References: <20210225135700.1381396-1-yury.norov@gmail.com>
- <20210225135700.1381396-2-yury.norov@gmail.com>
- <20210225140205.GA13297@willie-the-truck>
+Cc:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com,
+        robh@kernel.org, daniel@gimpelevich.san-francisco.ca.us,
+        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-arch@vger.kernel.org, devicetree@vger.kernel.org
+References: <cover.1614705851.git.christophe.leroy@csgroup.eu>
+ <d8cf7979ad986de45301b39a757c268d9df19f35.1614705851.git.christophe.leroy@csgroup.eu>
+ <20210303172810.GA19713@willie-the-truck>
+ <a0cfef11-efba-2e5c-6f58-ed63a2c3bfa0@csgroup.eu>
+ <20210303174627.GC19713@willie-the-truck>
+From:   Christophe Leroy <christophe.leroy@csgroup.eu>
+Message-ID: <dc6576ac-44ff-7db4-d718-7565b83f50b8@csgroup.eu>
+Date:   Wed, 3 Mar 2021 18:57:09 +0100
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.7.1
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210225140205.GA13297@willie-the-truck>
+In-Reply-To: <20210303174627.GC19713@willie-the-truck>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Feb 25, 2021 at 02:02:06PM +0000, Will Deacon wrote:
-> On Thu, Feb 25, 2021 at 05:56:59AM -0800, Yury Norov wrote:
-> > diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> > index 31bd885b79eb..5596eab04092 100644
-> > --- a/arch/arm64/Kconfig
-> > +++ b/arch/arm64/Kconfig
-> > @@ -108,6 +108,7 @@ config ARM64
-> >  	select GENERIC_CPU_AUTOPROBE
-> >  	select GENERIC_CPU_VULNERABILITIES
-> >  	select GENERIC_EARLY_IOREMAP
-> > +	select GENERIC_FIND_FIRST_BIT
-> >  	select GENERIC_IDLE_POLL_SETUP
-> >  	select GENERIC_IRQ_IPI
-> >  	select GENERIC_IRQ_MULTI_HANDLER
-> 
-> Acked-by: Will Deacon <will@kernel.org>
-> 
-> Catalin can pick this up later in the cycle.
-> 
-> Will
 
-Ping?
+
+Le 03/03/2021 à 18:46, Will Deacon a écrit :
+> On Wed, Mar 03, 2021 at 06:38:16PM +0100, Christophe Leroy wrote:
+>> Le 03/03/2021 à 18:28, Will Deacon a écrit :
+>>> On Tue, Mar 02, 2021 at 05:25:17PM +0000, Christophe Leroy wrote:
+>>>> This code provides architectures with a way to build command line
+>>>> based on what is built in the kernel and what is handed over by the
+>>>> bootloader, based on selected compile-time options.
+>>>>
+>>>> Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+>>>> ---
+>>>>    include/linux/cmdline.h | 62 +++++++++++++++++++++++++++++++++++++++++
+>>>>    1 file changed, 62 insertions(+)
+>>>>    create mode 100644 include/linux/cmdline.h
+>>>>
+>>>> diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
+>>>> new file mode 100644
+>>>> index 000000000000..ae3610bb0ee2
+>>>> --- /dev/null
+>>>> +++ b/include/linux/cmdline.h
+>>>> @@ -0,0 +1,62 @@
+>>>> +/* SPDX-License-Identifier: GPL-2.0 */
+>>>> +#ifndef _LINUX_CMDLINE_H
+>>>> +#define _LINUX_CMDLINE_H
+>>>> +
+>>>> +static __always_inline size_t cmdline_strlen(const char *s)
+>>>> +{
+>>>> +	const char *sc;
+>>>> +
+>>>> +	for (sc = s; *sc != '\0'; ++sc)
+>>>> +		; /* nothing */
+>>>> +	return sc - s;
+>>>> +}
+>>>> +
+>>>> +static __always_inline size_t cmdline_strlcat(char *dest, const char *src, size_t count)
+>>>> +{
+>>>> +	size_t dsize = cmdline_strlen(dest);
+>>>> +	size_t len = cmdline_strlen(src);
+>>>> +	size_t res = dsize + len;
+>>>> +
+>>>> +	/* This would be a bug */
+>>>> +	if (dsize >= count)
+>>>> +		return count;
+>>>> +
+>>>> +	dest += dsize;
+>>>> +	count -= dsize;
+>>>> +	if (len >= count)
+>>>> +		len = count - 1;
+>>>> +	memcpy(dest, src, len);
+>>>> +	dest[len] = 0;
+>>>> +	return res;
+>>>> +}
+>>>
+>>> Why are these needed instead of using strlen and strlcat directly?
+>>
+>> Because on powerpc (at least), it will be used in prom_init, it is very
+>> early in the boot and KASAN shadow memory is not set up yet so calling
+>> generic string functions would crash the board.
+> 
+> Hmm. We deliberately setup a _really_ early shadow on arm64 for this, can
+> you not do something similar? Failing that, I think it would be better to
+> offer the option for an arch to implement cmdline_*, but have then point to
+> the normal library routines by default.
+
+I don't think it is possible to setup an earlier early shadow.
+
+At the point we are in prom_init, the code is not yet relocated at the address it was linked for, 
+and it is running with the MMU set by the bootloader, I can't imagine being able to setup MMU 
+entries for the early shadow KASAN yet without breaking everything.
+
+Is it really worth trying to point to the normal library routines by default ? It is really only a 
+few lines of code hence only not many bytes, and anyway they are in __init section so they get 
+discarded at the end.
+
+> 
+>>>> +/*
+>>>> + * This function will append a builtin command line to the command
+>>>> + * line provided by the bootloader. Kconfig options can be used to alter
+>>>> + * the behavior of this builtin command line.
+>>>> + * @dest: The destination of the final appended/prepended string.
+>>>> + * @src: The starting string or NULL if there isn't one. Must not equal dest.
+>>>> + * @length: the length of dest buffer.
+>>>> + */
+>>>> +static __always_inline void cmdline_build(char *dest, const char *src, size_t length)
+>>>> +{
+>>>> +	if (length <= 0)
+>>>> +		return;
+>>>> +
+>>>> +	dest[0] = 0;
+>>>> +
+>>>> +#ifdef CONFIG_CMDLINE
+>>>> +	if (IS_ENABLED(CONFIG_CMDLINE_FORCE) || !src || !src[0]) {
+>>>> +		cmdline_strlcat(dest, CONFIG_CMDLINE, length);
+>>>> +		return;
+>>>> +	}
+>>>> +#endif
+>>>
+>>> CONFIG_CMDLINE_FORCE implies CONFIG_CMDLINE, and even if it didn't,
+>>> CONFIG_CMDLINE is at worst an empty string. Can you drop the #ifdef?
+>>
+>> Ah yes, since cbe46bd4f510 ("powerpc: remove CONFIG_CMDLINE #ifdef mess") it
+>> is feasible. I can change that now.
+>>
+>>>
+>>>> +	if (dest != src)
+>>>> +		cmdline_strlcat(dest, src, length);
+>>>> +#ifdef CONFIG_CMDLINE
+>>>> +	if (IS_ENABLED(CONFIG_CMDLINE_EXTEND) && sizeof(CONFIG_CMDLINE) > 1)
+>>>> +		cmdline_strlcat(dest, " " CONFIG_CMDLINE, length);
+>>>> +#endif
+>>>
+>>> Likewise, but also I'm not sure why the sizeof() is required.
+>>
+>> It is to avoid adding a white space at the end of the command line when
+>> CONFIG_CMDLINE is empty. But maybe it doesn't matter ?
+> 
+> If CONFIG_CMDLINE is empty, I don't think you can select
+> CONFIG_CMDLINE_EXTEND (but even if you could, I don't think it matters).
+
+Ok I'll simplify that when I re-spin.
+
+Christophe
