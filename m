@@ -2,343 +2,116 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,UNWANTED_LANGUAGE_BODY,
-	URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-13.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_IN_DEF_DKIM_WL
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9ED79C4646B
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A9D87C15515
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8C56B64EE1
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:30 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8C30B64F52
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236319AbhCDAtM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 19:49:12 -0500
-Received: from mail.kernel.org ([198.145.29.99]:46922 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S238886AbhCCQYv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Mar 2021 11:24:51 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 8C7D764EEB;
-        Wed,  3 Mar 2021 16:23:03 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1614788594;
-        bh=3L5LfgX8YQZHs8RhJs3aUV3Lp9pUuH2HcdGSCfQz7w8=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=ZGfvsZGZQAM599zQUIVcrTqth2yu+GJIaidUQ1VxQKtyB4kVeRNubHlrvDGzmHjrb
-         P8e1H/vG0/zaY55hqTarALIx9hq7kKeE175hk0vnoCLpEej7OzEfhmvY+mOUHDc2o3
-         CW4yk4ob8BGnQ2Ij/D4eL5k36utJUK/ySgdRHlEI9JI6MXgiH8/XquGySEjL2b651m
-         +5gHVUeyrsTGyJC7csSVRUFbpDqELxLTTVNNoC91CQ6p1sASqfFEM9qXWN9RKGa6Bo
-         b1cgGZPzWU9ZoNbd5PxwYd0Caw1zQMCebLmUxFfqKSh3htleCbNw/Y4+zDUNrWJe9a
-         SfFXg++8K8MSg==
-From:   Mike Rapoport <rppt@kernel.org>
-To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Wilcox <willy@infradead.org>,
-        Matthew Garrett <mjg59@srcf.ucam.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Michal Hocko <mhocko@suse.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Mike Rapoport <rppt@kernel.org>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Roman Gushchin <guro@fb.com>,
-        Shakeel Butt <shakeelb@google.com>,
-        Shuah Khan <shuah@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
-        linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, Hagen Paul Pfeifer <hagen@jauu.net>,
-        Palmer Dabbelt <palmerdabbelt@google.com>
-Subject: [PATCH v18 4/9] set_memory: allow set_direct_map_*_noflush() for multiple pages
-Date:   Wed,  3 Mar 2021 18:22:04 +0200
-Message-Id: <20210303162209.8609-5-rppt@kernel.org>
-X-Mailer: git-send-email 2.28.0
-In-Reply-To: <20210303162209.8609-1-rppt@kernel.org>
-References: <20210303162209.8609-1-rppt@kernel.org>
+        id S240029AbhCDAtS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 19:49:18 -0500
+Received: from rcdn-iport-5.cisco.com ([173.37.86.76]:57126 "EHLO
+        rcdn-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1577095AbhCCRsH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Mar 2021 12:48:07 -0500
+X-Greylist: delayed 332 seconds by postgrey-1.27 at vger.kernel.org; Wed, 03 Mar 2021 12:48:06 EST
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=cisco.com; i=@cisco.com; l=1566; q=dns/txt; s=iport;
+  t=1614793686; x=1616003286;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:in-reply-to;
+  bh=HwSDExt/4yEwWWICTamnjrNRGaKwzVnKFGtN23ZY2jQ=;
+  b=QCRRa7IJKmkboQ6L8eCUHhCwrWLyQCErEraRlf3v6sqF73x6Y3ohBw4D
+   12hyfJO0jH42m1WsrXVNWqOwRLrg9MxBvc2LBtYhsMdD77SVBYxAeP/5o
+   E0Pg4H4/6kjf4LtvCexZ8HqF5/ubGA6+jMq/RC5SXwsELxpw84zcTX8gT
+   8=;
+X-IronPort-Anti-Spam-Filtered: true
+X-IronPort-Anti-Spam-Result: =?us-ascii?q?A0BKAwCgyD9g/5BdJa1iHAEBAQEBAQc?=
+ =?us-ascii?q?BARIBAQQEAQFAgU+CK3ZWATkxlh2PehaMOwsBAQENAQEkEAQBAYRNAoF6AiU?=
+ =?us-ascii?q?4EwIDAQELAQEFAQEBAgEGBHGFYQ2GRQEFOj8QCxIGLjwNDgYTG4JWgwcPrUV?=
+ =?us-ascii?q?0gTSEPwGEX4E+BiKBFo1DJhyBSUKEKz6KMwSCRoE7gnSQS4JLii2be4MGgR+?=
+ =?us-ascii?q?IIJJSMRCDJ4pPlVCgEpZgAgQGBQIWgWsjgVczGggbFYMkHzEZDZcihWYgAy8?=
+ =?us-ascii?q?4AgYKAQEDCYwTAQE?=
+X-IronPort-AV: E=Sophos;i="5.81,220,1610409600"; 
+   d="scan'208";a="598970073"
+Received: from rcdn-core-8.cisco.com ([173.37.93.144])
+  by rcdn-iport-5.cisco.com with ESMTP/TLS/DHE-RSA-SEED-SHA; 03 Mar 2021 17:39:14 +0000
+Received: from zorba ([10.24.1.194])
+        by rcdn-core-8.cisco.com (8.15.2/8.15.2) with ESMTPS id 123Hd88Y022034
+        (version=TLSv1.2 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO);
+        Wed, 3 Mar 2021 17:39:12 GMT
+Date:   Wed, 3 Mar 2021 09:39:08 -0800
+From:   Daniel Walker <danielwa@cisco.com>
+To:     Rob Herring <robh@kernel.org>
+Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Daniel Gimpelevich <daniel@gimpelevich.san-francisco.ca.us>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        "open list:GENERIC INCLUDE/ASM HEADER FILES" 
+        <linux-arch@vger.kernel.org>, devicetree@vger.kernel.org,
+        Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v2 0/7] Improve boot command line handling
+Message-ID: <20210303173908.GG109100@zorba>
+References: <cover.1614705851.git.christophe.leroy@csgroup.eu>
+ <20210302173523.GE109100@zorba>
+ <CAL_JsqJ7U8QAbJe3zkZiFPJN4PveHz5TZoPk2S8qQWB6cm5e5Q@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAL_JsqJ7U8QAbJe3zkZiFPJN4PveHz5TZoPk2S8qQWB6cm5e5Q@mail.gmail.com>
+X-Outbound-SMTP-Client: 10.24.1.194, [10.24.1.194]
+X-Outbound-Node: rcdn-core-8.cisco.com
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On Tue, Mar 02, 2021 at 08:01:01PM -0600, Rob Herring wrote:
+> +Will D
+> 
+> On Tue, Mar 2, 2021 at 11:36 AM Daniel Walker <danielwa@cisco.com> wrote:
+> >
+> > On Tue, Mar 02, 2021 at 05:25:16PM +0000, Christophe Leroy wrote:
+> > > The purpose of this series is to improve and enhance the
+> > > handling of kernel boot arguments.
+> > >
+> > > It is first focussed on powerpc but also extends the capability
+> > > for other arches.
+> > >
+> > > This is based on suggestion from Daniel Walker <danielwa@cisco.com>
+> > >
+> >
+> >
+> > I don't see a point in your changes at this time. My changes are much more
+> > mature, and you changes don't really make improvements.
+> 
+> Not really a helpful comment. What we merge here will be from whomever
+> is persistent and timely in their efforts. But please, work together
+> on a common solution.
+> 
+> This one meets my requirements of moving the kconfig and code out of
+> the arches, supports prepend/append, and is up to date.
 
-The underlying implementations of set_direct_map_invalid_noflush() and
-set_direct_map_default_noflush() allow updating multiple contiguous pages
-at once.
 
-Add numpages parameter to set_direct_map_*_noflush() to expose this
-ability with these APIs.
+Maintainers are capable of merging whatever they want to merge. However, I
+wouldn't make hasty choices. The changes I've been submitting have been deployed
+on millions of router instances and are more feature rich.
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>	[arm64]
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Christopher Lameter <cl@linux.com>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Hildenbrand <david@redhat.com>
-Cc: Elena Reshetova <elena.reshetova@intel.com>
-Cc: Hagen Paul Pfeifer <hagen@jauu.net>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: James Bottomley <jejb@linux.ibm.com>
-Cc: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Mark Rutland <mark.rutland@arm.com>
-Cc: Matthew Wilcox <willy@infradead.org>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: Palmer Dabbelt <palmerdabbelt@google.com>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Cc: Roman Gushchin <guro@fb.com>
-Cc: Shakeel Butt <shakeelb@google.com>
-Cc: Shuah Khan <shuah@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Tycho Andersen <tycho@tycho.ws>
-Cc: Will Deacon <will@kernel.org>
----
- arch/arm64/include/asm/cacheflush.h |  4 ++--
- arch/arm64/mm/pageattr.c            | 10 ++++++----
- arch/riscv/include/asm/set_memory.h |  4 ++--
- arch/riscv/mm/pageattr.c            |  8 ++++----
- arch/x86/include/asm/set_memory.h   |  4 ++--
- arch/x86/mm/pat/set_memory.c        |  8 ++++----
- include/linux/set_memory.h          |  4 ++--
- kernel/power/snapshot.c             |  4 ++--
- mm/vmalloc.c                        |  5 +++--
- 9 files changed, 27 insertions(+), 24 deletions(-)
+I believe I worked with you on this change, or something like it,
 
-diff --git a/arch/arm64/include/asm/cacheflush.h b/arch/arm64/include/asm/cacheflush.h
-index 52e5c1623224..ace2c3d7ae7e 100644
---- a/arch/arm64/include/asm/cacheflush.h
-+++ b/arch/arm64/include/asm/cacheflush.h
-@@ -133,8 +133,8 @@ static __always_inline void __flush_icache_all(void)
- 
- int set_memory_valid(unsigned long addr, int numpages, int enable);
- 
--int set_direct_map_invalid_noflush(struct page *page);
--int set_direct_map_default_noflush(struct page *page);
-+int set_direct_map_invalid_noflush(struct page *page, int numpages);
-+int set_direct_map_default_noflush(struct page *page, int numpages);
- bool kernel_page_present(struct page *page);
- 
- #include <asm-generic/cacheflush.h>
-diff --git a/arch/arm64/mm/pageattr.c b/arch/arm64/mm/pageattr.c
-index 92eccaf595c8..b53ef37bf95a 100644
---- a/arch/arm64/mm/pageattr.c
-+++ b/arch/arm64/mm/pageattr.c
-@@ -148,34 +148,36 @@ int set_memory_valid(unsigned long addr, int numpages, int enable)
- 					__pgprot(PTE_VALID));
- }
- 
--int set_direct_map_invalid_noflush(struct page *page)
-+int set_direct_map_invalid_noflush(struct page *page, int numpages)
- {
- 	struct page_change_data data = {
- 		.set_mask = __pgprot(0),
- 		.clear_mask = __pgprot(PTE_VALID),
- 	};
-+	unsigned long size = PAGE_SIZE * numpages;
- 
- 	if (!debug_pagealloc_enabled() && !rodata_full)
- 		return 0;
- 
- 	return apply_to_page_range(&init_mm,
- 				   (unsigned long)page_address(page),
--				   PAGE_SIZE, change_page_range, &data);
-+				   size, change_page_range, &data);
- }
- 
--int set_direct_map_default_noflush(struct page *page)
-+int set_direct_map_default_noflush(struct page *page, int numpages)
- {
- 	struct page_change_data data = {
- 		.set_mask = __pgprot(PTE_VALID | PTE_WRITE),
- 		.clear_mask = __pgprot(PTE_RDONLY),
- 	};
-+	unsigned long size = PAGE_SIZE * numpages;
- 
- 	if (!debug_pagealloc_enabled() && !rodata_full)
- 		return 0;
- 
- 	return apply_to_page_range(&init_mm,
- 				   (unsigned long)page_address(page),
--				   PAGE_SIZE, change_page_range, &data);
-+				   size, change_page_range, &data);
- }
- 
- #ifdef CONFIG_DEBUG_PAGEALLOC
-diff --git a/arch/riscv/include/asm/set_memory.h b/arch/riscv/include/asm/set_memory.h
-index 6887b3d9f371..018e26732940 100644
---- a/arch/riscv/include/asm/set_memory.h
-+++ b/arch/riscv/include/asm/set_memory.h
-@@ -26,8 +26,8 @@ static inline void protect_kernel_text_data(void) {}
- static inline int set_memory_rw_nx(unsigned long addr, int numpages) { return 0; }
- #endif
- 
--int set_direct_map_invalid_noflush(struct page *page);
--int set_direct_map_default_noflush(struct page *page);
-+int set_direct_map_invalid_noflush(struct page *page, int numpages);
-+int set_direct_map_default_noflush(struct page *page, int numpages);
- bool kernel_page_present(struct page *page);
- 
- #endif /* __ASSEMBLY__ */
-diff --git a/arch/riscv/mm/pageattr.c b/arch/riscv/mm/pageattr.c
-index 5e49e4b4a4cc..9618181b70be 100644
---- a/arch/riscv/mm/pageattr.c
-+++ b/arch/riscv/mm/pageattr.c
-@@ -156,11 +156,11 @@ int set_memory_nx(unsigned long addr, int numpages)
- 	return __set_memory(addr, numpages, __pgprot(0), __pgprot(_PAGE_EXEC));
- }
- 
--int set_direct_map_invalid_noflush(struct page *page)
-+int set_direct_map_invalid_noflush(struct page *page, int numpages)
- {
- 	int ret;
- 	unsigned long start = (unsigned long)page_address(page);
--	unsigned long end = start + PAGE_SIZE;
-+	unsigned long end = start + PAGE_SIZE * numpages;
- 	struct pageattr_masks masks = {
- 		.set_mask = __pgprot(0),
- 		.clear_mask = __pgprot(_PAGE_PRESENT)
-@@ -173,11 +173,11 @@ int set_direct_map_invalid_noflush(struct page *page)
- 	return ret;
- }
- 
--int set_direct_map_default_noflush(struct page *page)
-+int set_direct_map_default_noflush(struct page *page, int numpages)
- {
- 	int ret;
- 	unsigned long start = (unsigned long)page_address(page);
--	unsigned long end = start + PAGE_SIZE;
-+	unsigned long end = start + PAGE_SIZE * numpages;
- 	struct pageattr_masks masks = {
- 		.set_mask = PAGE_KERNEL,
- 		.clear_mask = __pgprot(0)
-diff --git a/arch/x86/include/asm/set_memory.h b/arch/x86/include/asm/set_memory.h
-index 4352f08bfbb5..6224cb291f6c 100644
---- a/arch/x86/include/asm/set_memory.h
-+++ b/arch/x86/include/asm/set_memory.h
-@@ -80,8 +80,8 @@ int set_pages_wb(struct page *page, int numpages);
- int set_pages_ro(struct page *page, int numpages);
- int set_pages_rw(struct page *page, int numpages);
- 
--int set_direct_map_invalid_noflush(struct page *page);
--int set_direct_map_default_noflush(struct page *page);
-+int set_direct_map_invalid_noflush(struct page *page, int numpages);
-+int set_direct_map_default_noflush(struct page *page, int numpages);
- bool kernel_page_present(struct page *page);
- 
- extern int kernel_set_to_readonly;
-diff --git a/arch/x86/mm/pat/set_memory.c b/arch/x86/mm/pat/set_memory.c
-index 16f878c26667..d157fd617c99 100644
---- a/arch/x86/mm/pat/set_memory.c
-+++ b/arch/x86/mm/pat/set_memory.c
-@@ -2184,14 +2184,14 @@ static int __set_pages_np(struct page *page, int numpages)
- 	return __change_page_attr_set_clr(&cpa, 0);
- }
- 
--int set_direct_map_invalid_noflush(struct page *page)
-+int set_direct_map_invalid_noflush(struct page *page, int numpages)
- {
--	return __set_pages_np(page, 1);
-+	return __set_pages_np(page, numpages);
- }
- 
--int set_direct_map_default_noflush(struct page *page)
-+int set_direct_map_default_noflush(struct page *page, int numpages)
- {
--	return __set_pages_p(page, 1);
-+	return __set_pages_p(page, numpages);
- }
- 
- #ifdef CONFIG_DEBUG_PAGEALLOC
-diff --git a/include/linux/set_memory.h b/include/linux/set_memory.h
-index fe1aa4e54680..c650f82db813 100644
---- a/include/linux/set_memory.h
-+++ b/include/linux/set_memory.h
-@@ -15,11 +15,11 @@ static inline int set_memory_nx(unsigned long addr, int numpages) { return 0; }
- #endif
- 
- #ifndef CONFIG_ARCH_HAS_SET_DIRECT_MAP
--static inline int set_direct_map_invalid_noflush(struct page *page)
-+static inline int set_direct_map_invalid_noflush(struct page *page, int numpages)
- {
- 	return 0;
- }
--static inline int set_direct_map_default_noflush(struct page *page)
-+static inline int set_direct_map_default_noflush(struct page *page, int numpages)
- {
- 	return 0;
- }
-diff --git a/kernel/power/snapshot.c b/kernel/power/snapshot.c
-index d63560e1cf87..64b7aab9aee4 100644
---- a/kernel/power/snapshot.c
-+++ b/kernel/power/snapshot.c
-@@ -86,7 +86,7 @@ static inline void hibernate_restore_unprotect_page(void *page_address) {}
- static inline void hibernate_map_page(struct page *page)
- {
- 	if (IS_ENABLED(CONFIG_ARCH_HAS_SET_DIRECT_MAP)) {
--		int ret = set_direct_map_default_noflush(page);
-+		int ret = set_direct_map_default_noflush(page, 1);
- 
- 		if (ret)
- 			pr_warn_once("Failed to remap page\n");
-@@ -99,7 +99,7 @@ static inline void hibernate_unmap_page(struct page *page)
- {
- 	if (IS_ENABLED(CONFIG_ARCH_HAS_SET_DIRECT_MAP)) {
- 		unsigned long addr = (unsigned long)page_address(page);
--		int ret  = set_direct_map_invalid_noflush(page);
-+		int ret = set_direct_map_invalid_noflush(page, 1);
- 
- 		if (ret)
- 			pr_warn_once("Failed to remap page\n");
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 4f5f8c907897..8ab83fbecadd 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -2195,13 +2195,14 @@ struct vm_struct *remove_vm_area(const void *addr)
- }
- 
- static inline void set_area_direct_map(const struct vm_struct *area,
--				       int (*set_direct_map)(struct page *page))
-+				       int (*set_direct_map)(struct page *page,
-+							     int numpages))
- {
- 	int i;
- 
- 	for (i = 0; i < area->nr_pages; i++)
- 		if (page_address(area->pages[i]))
--			set_direct_map(area->pages[i]);
-+			set_direct_map(area->pages[i], 1);
- }
- 
- /* Handle removing and resetting vm mappings related to the vm_struct. */
--- 
-2.28.0
+https://lkml.org/lkml/2019/3/19/970
 
+I don't think Christophe has even addressed this. I've converted many
+architectures, and Cisco uses my changes on at least 4 different
+architecture. With products deployed and tested.
+
+I will resubmit my changes as soon as I can.
+
+Daniel
