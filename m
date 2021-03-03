@@ -2,81 +2,143 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_IN_DEF_DKIM_WL
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7DC25C15524
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 95608C1551F
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:33 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5F30764F2B
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:34 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7688464F11
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240391AbhCDAtZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 19:49:25 -0500
-Received: from mail.kernel.org ([198.145.29.99]:44330 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1453108AbhCDAqZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Mar 2021 19:46:25 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 21EAB64E46;
-        Thu,  4 Mar 2021 00:45:45 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1614818745;
-        bh=vY63ALyHnCU3yIchUivHVRlQm2FBgsf0ZMsWNzYWYNg=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=HsuCQnuBa9AAyugWDPWEuZzkaHeYsQ9oiZqT/mJYbooy8kNXR4c7rRgMosXIyYD0X
-         a332T0F0ftDDKXqjJ9kHvmbf/M6Rl1D8Xmf5UyV42X/YqIIreoGkYFjYb6yR2RFrB6
-         4HsN5v2vdsLAEZs+JDlWp4wIRHkzrho8N+xaA0s4QwdHrKg039z0GArhR8SptfMxhO
-         cCmdxUCEdueq/ww2ZmNAXL8AIxWcmYwucVgJT4t7yN8BvOFSRhVgfCkR/Bbcocx9MN
-         pvsamwe4/IMPGjhjVCKCJOwPGka7AGB9VgGnT0aj8jpoVrhaPlr0bYRSLLTl4MOuXt
-         8uKFboUwt/ouw==
-From:   paulmck@kernel.org
-To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        kernel-team@fb.com, mingo@kernel.org
-Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
-        peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
-        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        akiyks@gmail.com,
-        Mauro Carvalho Chehab <mchehab+huawei@kernel.org>,
-        "Paul E . McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model 1/3] doc: Update rcu_dereference.rst reference
-Date:   Wed,  3 Mar 2021 16:45:41 -0800
-Message-Id: <20210304004543.25364-1-paulmck@kernel.org>
-X-Mailer: git-send-email 2.9.5
-In-Reply-To: <20210304004438.GA25271@paulmck-ThinkPad-P72>
-References: <20210304004438.GA25271@paulmck-ThinkPad-P72>
+        id S234278AbhCDAtX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 19:49:23 -0500
+Received: from rcdn-iport-9.cisco.com ([173.37.86.80]:2909 "EHLO
+        rcdn-iport-9.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1580955AbhCCS65 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Mar 2021 13:58:57 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=cisco.com; i=@cisco.com; l=2586; q=dns/txt; s=iport;
+  t=1614797935; x=1616007535;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:content-transfer-encoding:in-reply-to;
+  bh=NhiyH3foSNEt6lkCV9u0ibo4udmRICreeAo5BgksPTA=;
+  b=cWROdOooLRakjip97rCirB8wN/6FzqqPcSO7bRm8TAbdmJT/SwzaRuq2
+   5JshQxeiLzwmCsx112yhzgrbPEKVzXIPN6EMvZ6juAlUOkoq6b0j7MpMh
+   oUp4urFB554BDD9Y7+9u9Hy3gjFjE0VnN8QYY33lyZycxyyodT/oHr48P
+   E=;
+X-IronPort-Anti-Spam-Filtered: true
+X-IronPort-Anti-Spam-Result: =?us-ascii?q?A0BOAwB12j9g/5NdJa1iHAEBAQEBAQc?=
+ =?us-ascii?q?BARIBAQQEAQFAgU+CK3ZWATkxlh6PehaMOwsBAQENAQEjEQQBAYEUgzQDAgK?=
+ =?us-ascii?q?BegIlOBMCAwEBCwEBBQEBAQIBBgRxhWENhkQBAQEDATIBRhALEgYuPA0OBhM?=
+ =?us-ascii?q?bglaCZiEPrT10gTSEPwELAYRTgT4GIoEWjUMmHIFJQoQrPoJcBBeHPASCRoE?=
+ =?us-ascii?q?7c4IBkEuCS4otm3uDBoEfiCCSUjEQgyeKT5VQoBKSGg2EOQIEBgUCFoFrI4F?=
+ =?us-ascii?q?XMxoIGxU7gjUBMxMMMRkNlyKFZiADLwIBAQEzAgYBCQEBAwmMEwEB?=
+X-IronPort-AV: E=Sophos;i="5.81,220,1610409600"; 
+   d="scan'208";a="778466374"
+Received: from rcdn-core-11.cisco.com ([173.37.93.147])
+  by rcdn-iport-9.cisco.com with ESMTP/TLS/DHE-RSA-SEED-SHA; 03 Mar 2021 18:53:10 +0000
+Received: from zorba ([10.24.1.194])
+        by rcdn-core-11.cisco.com (8.15.2/8.15.2) with ESMTPS id 123Ir8xP021729
+        (version=TLSv1.2 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO);
+        Wed, 3 Mar 2021 18:53:10 GMT
+Date:   Wed, 3 Mar 2021 10:53:08 -0800
+From:   Daniel Walker <danielwa@cisco.com>
+To:     Christophe Leroy <christophe.leroy@csgroup.eu>
+Cc:     Rob Herring <robh@kernel.org>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Daniel Gimpelevich <daniel@gimpelevich.san-francisco.ca.us>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        "open list:GENERIC INCLUDE/ASM HEADER FILES" 
+        <linux-arch@vger.kernel.org>, devicetree@vger.kernel.org,
+        Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v2 0/7] Improve boot command line handling
+Message-ID: <20210303185308.GH109100@zorba>
+References: <cover.1614705851.git.christophe.leroy@csgroup.eu>
+ <20210302173523.GE109100@zorba>
+ <CAL_JsqJ7U8QAbJe3zkZiFPJN4PveHz5TZoPk2S8qQWB6cm5e5Q@mail.gmail.com>
+ <20210303173908.GG109100@zorba>
+ <59b054e8-d85b-fd87-c94d-691af748a2f5@csgroup.eu>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <59b054e8-d85b-fd87-c94d-691af748a2f5@csgroup.eu>
+X-Outbound-SMTP-Client: 10.24.1.194, [10.24.1.194]
+X-Outbound-Node: rcdn-core-11.cisco.com
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-
-Changeset b00aedf978aa ("doc: Convert to rcu_dereference.txt to rcu_dereference.rst")
-renamed: Documentation/RCU/rcu_dereference.txt
-to: Documentation/RCU/rcu_dereference.rst.
-
-Update its cross-reference accordingly.
-
-Signed-off-by: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
----
- tools/memory-model/Documentation/glossary.txt | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/tools/memory-model/Documentation/glossary.txt b/tools/memory-model/Documentation/glossary.txt
-index b2da636..6f3d16d 100644
---- a/tools/memory-model/Documentation/glossary.txt
-+++ b/tools/memory-model/Documentation/glossary.txt
-@@ -19,7 +19,7 @@ Address Dependency:  When the address of a later memory access is computed
- 	 from the value returned by the rcu_dereference() on line 2, the
- 	 address dependency extends from that rcu_dereference() to that
- 	 "p->a".  In rare cases, optimizing compilers can destroy address
--	 dependencies.	Please see Documentation/RCU/rcu_dereference.txt
-+	 dependencies.	Please see Documentation/RCU/rcu_dereference.rst
- 	 for more information.
+On Wed, Mar 03, 2021 at 07:07:45PM +0100, Christophe Leroy wrote:
+> 
+> 
+> Le 03/03/2021 à 18:39, Daniel Walker a écrit :
+> > On Tue, Mar 02, 2021 at 08:01:01PM -0600, Rob Herring wrote:
+> > > +Will D
+> > > 
+> > > On Tue, Mar 2, 2021 at 11:36 AM Daniel Walker <danielwa@cisco.com> wrote:
+> > > > 
+> > > > On Tue, Mar 02, 2021 at 05:25:16PM +0000, Christophe Leroy wrote:
+> > > > > The purpose of this series is to improve and enhance the
+> > > > > handling of kernel boot arguments.
+> > > > > 
+> > > > > It is first focussed on powerpc but also extends the capability
+> > > > > for other arches.
+> > > > > 
+> > > > > This is based on suggestion from Daniel Walker <danielwa@cisco.com>
+> > > > > 
+> > > > 
+> > > > 
+> > > > I don't see a point in your changes at this time. My changes are much more
+> > > > mature, and you changes don't really make improvements.
+> > > 
+> > > Not really a helpful comment. What we merge here will be from whomever
+> > > is persistent and timely in their efforts. But please, work together
+> > > on a common solution.
+> > > 
+> > > This one meets my requirements of moving the kconfig and code out of
+> > > the arches, supports prepend/append, and is up to date.
+> > 
+> > 
+> > Maintainers are capable of merging whatever they want to merge. However, I
+> > wouldn't make hasty choices. The changes I've been submitting have been deployed
+> > on millions of router instances and are more feature rich.
+> > 
+> > I believe I worked with you on this change, or something like it,
+> > 
+> > https://lkml.org/lkml/2019/3/19/970
+> > 
+> > I don't think Christophe has even addressed this.
+> 
+> I thing I have, see https://patchwork.ozlabs.org/project/linuxppc-dev/patch/3b4291271ce4af4941a771e5af5cbba3c8fa1b2a.1614705851.git.christophe.leroy@csgroup.eu/
+> 
+> If you see something missing in that patch, can you tell me.
  
- 	 See also "Control Dependency" and "Data Dependency".
--- 
-2.9.5
+Ok, must have missed that one.
 
+
+> > I've converted many
+> > architectures, and Cisco uses my changes on at least 4 different
+> > architecture. With products deployed and tested.
+> 
+> As far as we know, only powerpc was converted in the last series you
+> submitted, see
+> https://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=98106&state=*
+
+
+Me and others submitted my changes many times, and other architectures have been included. The patch
+you submitted I've submitted similar at Rob's request years ago.
+
+Here a fuller submissions some time ago,
+
+https://lore.kernel.org/patchwork/cover/992768/
+
+You've only been involved in prior powerpc only submissions.
+
+Daniel
