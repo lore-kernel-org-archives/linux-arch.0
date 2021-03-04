@@ -2,33 +2,33 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-21.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
+	USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 332F2C43333
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9CC02C43603
 	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:43:17 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1E83464FF0
+	by mail.kernel.org (Postfix) with ESMTP id 7A40164FF4
 	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:43:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240384AbhCDVma (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 4 Mar 2021 16:42:30 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43774 "EHLO
+        id S240635AbhCDVmb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 4 Mar 2021 16:42:31 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43786 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S240602AbhCDVmK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 16:42:10 -0500
+        with ESMTP id S240616AbhCDVmN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 16:42:13 -0500
 Received: from mail.marcansoft.com (marcansoft.com [IPv6:2a01:298:fe:f::2])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 99404C061762;
-        Thu,  4 Mar 2021 13:41:29 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D14E7C061764;
+        Thu,  4 Mar 2021 13:41:32 -0800 (PST)
 Received: from [127.0.0.1] (localhost [127.0.0.1])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
         (No client certificate requested)
         (Authenticated sender: hector@marcansoft.com)
-        by mail.marcansoft.com (Postfix) with ESMTPSA id 944174260C;
-        Thu,  4 Mar 2021 21:41:21 +0000 (UTC)
+        by mail.marcansoft.com (Postfix) with ESMTPSA id 4B5C6426F5;
+        Thu,  4 Mar 2021 21:41:07 +0000 (UTC)
 From:   Hector Martin <marcan@marcan.st>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
@@ -52,9 +52,9 @@ Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
         devicetree@vger.kernel.org, linux-serial@vger.kernel.org,
         linux-doc@vger.kernel.org, linux-samsung-soc@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: [RFT PATCH v3 17/27] arm64: Kconfig: Introduce CONFIG_ARCH_APPLE
-Date:   Fri,  5 Mar 2021 06:38:52 +0900
-Message-Id: <20210304213902.83903-18-marcan@marcan.st>
+Subject: [RFT PATCH v3 15/27] dt-bindings: interrupt-controller: Add DT bindings for apple-aic
+Date:   Fri,  5 Mar 2021 06:38:50 +0900
+Message-Id: <20210304213902.83903-16-marcan@marcan.st>
 X-Mailer: git-send-email 2.30.0
 In-Reply-To: <20210304213902.83903-1-marcan@marcan.st>
 References: <20210304213902.83903-1-marcan@marcan.st>
@@ -64,46 +64,146 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This adds a Kconfig option to toggle support for Apple ARM SoCs.
-At this time this targets the M1 and later "Apple Silicon" Mac SoCs.
+AIC is the Apple Interrupt Controller found on Apple ARM SoCs, such as
+the M1.
 
 Signed-off-by: Hector Martin <marcan@marcan.st>
+Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 ---
- arch/arm64/Kconfig.platforms | 8 ++++++++
- arch/arm64/configs/defconfig | 1 +
- 2 files changed, 9 insertions(+)
+ .../interrupt-controller/apple,aic.yaml       | 88 +++++++++++++++++++
+ MAINTAINERS                                   |  1 +
+ .../interrupt-controller/apple-aic.h          | 15 ++++
+ 3 files changed, 104 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/interrupt-controller/apple,aic.yaml
+ create mode 100644 include/dt-bindings/interrupt-controller/apple-aic.h
 
-diff --git a/arch/arm64/Kconfig.platforms b/arch/arm64/Kconfig.platforms
-index cdfd5fed457f..c2b5791e3d69 100644
---- a/arch/arm64/Kconfig.platforms
-+++ b/arch/arm64/Kconfig.platforms
-@@ -36,6 +36,14 @@ config ARCH_ALPINE
- 	  This enables support for the Annapurna Labs Alpine
- 	  Soc family.
- 
-+config ARCH_APPLE
-+	bool "Apple Silicon SoC family"
-+	select APPLE_AIC
-+	select ARM64_FIQ_SUPPORT
-+	help
-+	  This enables support for Apple's in-house ARM SoC family, starting
-+	  with the Apple M1.
+diff --git a/Documentation/devicetree/bindings/interrupt-controller/apple,aic.yaml b/Documentation/devicetree/bindings/interrupt-controller/apple,aic.yaml
+new file mode 100644
+index 000000000000..cf6c091a07b1
+--- /dev/null
++++ b/Documentation/devicetree/bindings/interrupt-controller/apple,aic.yaml
+@@ -0,0 +1,88 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/interrupt-controller/apple,aic.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
 +
- config ARCH_BCM2835
- 	bool "Broadcom BCM2835 family"
- 	select TIMER_OF
-diff --git a/arch/arm64/configs/defconfig b/arch/arm64/configs/defconfig
-index d612f633b771..54fb257e55f7 100644
---- a/arch/arm64/configs/defconfig
-+++ b/arch/arm64/configs/defconfig
-@@ -31,6 +31,7 @@ CONFIG_ARCH_ACTIONS=y
- CONFIG_ARCH_AGILEX=y
- CONFIG_ARCH_SUNXI=y
- CONFIG_ARCH_ALPINE=y
-+CONFIG_ARCH_APPLE=y
- CONFIG_ARCH_BCM2835=y
- CONFIG_ARCH_BCM4908=y
- CONFIG_ARCH_BCM_IPROC=y
++title: Apple Interrupt Controller
++
++maintainers:
++  - Hector Martin <marcan@marcan.st>
++
++description: |
++  The Apple Interrupt Controller is a simple interrupt controller present on
++  Apple ARM SoC platforms, including various iPhone and iPad devices and the
++  "Apple Silicon" Macs.
++
++  It provides the following features:
++
++  - Level-triggered hardware IRQs wired to SoC blocks
++    - Single mask bit per IRQ
++    - Per-IRQ affinity setting
++    - Automatic masking on event delivery (auto-ack)
++    - Software triggering (ORed with hw line)
++  - 2 per-CPU IPIs (meant as "self" and "other", but they are interchangeable
++    if not symmetric)
++  - Automatic prioritization (single event/ack register per CPU, lower IRQs =
++    higher priority)
++  - Automatic masking on ack
++  - Default "this CPU" register view and explicit per-CPU views
++
++  This device also represents the FIQ interrupt sources on platforms using AIC,
++  which do not go through a discrete interrupt controller.
++
++allOf:
++  - $ref: /schemas/interrupt-controller.yaml#
++
++properties:
++  compatible:
++    items:
++      - const: apple,t8103-aic
++      - const: apple,aic
++
++  interrupt-controller: true
++
++  '#interrupt-cells':
++    const: 3
++    description: |
++      The 1st cell contains the interrupt type:
++        - 0: Hardware IRQ
++        - 1: FIQ
++
++      The 2nd cell contains the interrupt number.
++        - HW IRQs: interrupt number
++        - FIQs:
++          - 0: physical HV timer
++          - 1: virtual HV timer
++          - 2: physical guest timer
++          - 3: virtual guest timer
++
++      The 3rd cell contains the interrupt flags. This is normally
++      IRQ_TYPE_LEVEL_HIGH (4).
++
++  reg:
++    description: |
++      Specifies base physical address and size of the AIC registers.
++    maxItems: 1
++
++required:
++  - compatible
++  - '#interrupt-cells'
++  - interrupt-controller
++  - reg
++
++additionalProperties: false
++
++examples:
++  - |
++    soc {
++        #address-cells = <2>;
++        #size-cells = <2>;
++
++        aic: interrupt-controller@23b100000 {
++            compatible = "apple,t8103-aic", "apple,aic";
++            #interrupt-cells = <3>;
++            interrupt-controller;
++            reg = <0x2 0x3b100000 0x0 0x8000>;
++        };
++    };
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 3a352c687d4b..744e086d28cd 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -1646,6 +1646,7 @@ B:	https://github.com/AsahiLinux/linux/issues
+ C:	irc://chat.freenode.net/asahi-dev
+ T:	git https://github.com/AsahiLinux/linux.git
+ F:	Documentation/devicetree/bindings/arm/apple.yaml
++F:	Documentation/devicetree/bindings/interrupt-controller/apple,aic.yaml
+ F:	arch/arm64/include/asm/sysreg_apple.h
+ 
+ ARM/ARTPEC MACHINE SUPPORT
+diff --git a/include/dt-bindings/interrupt-controller/apple-aic.h b/include/dt-bindings/interrupt-controller/apple-aic.h
+new file mode 100644
+index 000000000000..9ac56a7e6d3f
+--- /dev/null
++++ b/include/dt-bindings/interrupt-controller/apple-aic.h
+@@ -0,0 +1,15 @@
++/* SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause */
++#ifndef _DT_BINDINGS_INTERRUPT_CONTROLLER_APPLE_AIC_H
++#define _DT_BINDINGS_INTERRUPT_CONTROLLER_APPLE_AIC_H
++
++#include <dt-bindings/interrupt-controller/irq.h>
++
++#define AIC_IRQ	0
++#define AIC_FIQ	1
++
++#define AIC_TMR_HV_PHYS		0
++#define AIC_TMR_HV_VIRT		1
++#define AIC_TMR_GUEST_PHYS	2
++#define AIC_TMR_GUEST_VIRT	3
++
++#endif
 -- 
 2.30.0
 
