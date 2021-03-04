@@ -7,28 +7,26 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D3379C43381
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:44:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D8BAEC4332B
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:48:40 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A272265007
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:44:58 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 95B1B64FFD
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:48:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241188AbhCDVoG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 4 Mar 2021 16:44:06 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44178 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229478AbhCDVn5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 16:43:57 -0500
-Received: from mail.marcansoft.com (marcansoft.com [IPv6:2a01:298:fe:f::2])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DD434C06175F;
-        Thu,  4 Mar 2021 13:43:16 -0800 (PST)
+        id S241116AbhCDVry (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 4 Mar 2021 16:47:54 -0500
+Received: from marcansoft.com ([212.63.210.85]:36204 "EHLO mail.marcansoft.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S231640AbhCDVri (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 4 Mar 2021 16:47:38 -0500
+X-Greylist: delayed 448 seconds by postgrey-1.27 at vger.kernel.org; Thu, 04 Mar 2021 16:47:38 EST
 Received: from [127.0.0.1] (localhost [127.0.0.1])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
         (No client certificate requested)
         (Authenticated sender: hector@marcansoft.com)
-        by mail.marcansoft.com (Postfix) with ESMTPSA id C87394271B;
-        Thu,  4 Mar 2021 21:42:25 +0000 (UTC)
+        by mail.marcansoft.com (Postfix) with ESMTPSA id CE7DE425B1;
+        Thu,  4 Mar 2021 21:40:02 +0000 (UTC)
 From:   Hector Martin <marcan@marcan.st>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
@@ -52,9 +50,9 @@ Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
         devicetree@vger.kernel.org, linux-serial@vger.kernel.org,
         linux-doc@vger.kernel.org, linux-samsung-soc@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: [RFT PATCH v3 26/27] dt-bindings: display: Add apple,simple-framebuffer
-Date:   Fri,  5 Mar 2021 06:39:01 +0900
-Message-Id: <20210304213902.83903-27-marcan@marcan.st>
+Subject: [RFT PATCH v3 06/27] dt-bindings: timer: arm,arch_timer: Add interrupt-names support
+Date:   Fri,  5 Mar 2021 06:38:41 +0900
+Message-Id: <20210304213902.83903-7-marcan@marcan.st>
 X-Mailer: git-send-email 2.30.0
 In-Reply-To: <20210304213902.83903-1-marcan@marcan.st>
 References: <20210304213902.83903-1-marcan@marcan.st>
@@ -64,40 +62,50 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Apple SoCs run firmware that sets up a simplefb-compatible framebuffer
-for us. Add a compatible for it, and two missing supported formats.
+Not all platforms provide the same set of timers/interrupts, and Linux
+only needs one (plus kvm/guest ones); some platforms are working around
+this by using dummy fake interrupts. Implementing interrupt-names allows
+the devicetree to specify an arbitrary set of available interrupts, so
+the timer code can pick the right one.
+
+This also adds the hyp-virt timer/interrupt, which was previously not
+expressed in the fixed 4-interrupt form.
 
 Signed-off-by: Hector Martin <marcan@marcan.st>
 ---
- .../devicetree/bindings/display/simple-framebuffer.yaml      | 5 +++++
- 1 file changed, 5 insertions(+)
+ .../devicetree/bindings/timer/arm,arch_timer.yaml  | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
 
-diff --git a/Documentation/devicetree/bindings/display/simple-framebuffer.yaml b/Documentation/devicetree/bindings/display/simple-framebuffer.yaml
-index eaf8c54fcf50..c2499a7906f5 100644
---- a/Documentation/devicetree/bindings/display/simple-framebuffer.yaml
-+++ b/Documentation/devicetree/bindings/display/simple-framebuffer.yaml
-@@ -54,6 +54,7 @@ properties:
-   compatible:
-     items:
-       - enum:
-+          - apple,simple-framebuffer
-           - allwinner,simple-framebuffer
-           - amlogic,simple-framebuffer
-       - const: simple-framebuffer
-@@ -84,9 +85,13 @@ properties:
-       Format of the framebuffer:
-         * `a8b8g8r8` - 32-bit pixels, d[31:24]=a, d[23:16]=b, d[15:8]=g, d[7:0]=r
-         * `r5g6b5` - 16-bit pixels, d[15:11]=r, d[10:5]=g, d[4:0]=b
-+        * `x2r10g10b10` - 32-bit pixels, d[29:20]=r, d[19:10]=g, d[9:0]=b
-+        * `x8r8g8b8` - 32-bit pixels, d[23:16]=r, d[15:8]=g, d[7:0]=b
-     enum:
-       - a8b8g8r8
-       - r5g6b5
-+      - x2r10g10b10
-+      - x8r8g8b8
+diff --git a/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml b/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml
+index 2c75105c1398..ebe9b0bebe41 100644
+--- a/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml
++++ b/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml
+@@ -34,11 +34,25 @@ properties:
+               - arm,armv8-timer
  
-   display:
-     $ref: /schemas/types.yaml#/definitions/phandle
+   interrupts:
++    minItems: 1
++    maxItems: 5
+     items:
+       - description: secure timer irq
+       - description: non-secure timer irq
+       - description: virtual timer irq
+       - description: hypervisor timer irq
++      - description: hypervisor virtual timer irq
++
++  interrupt-names:
++    minItems: 1
++    maxItems: 5
++    items:
++      enum:
++        - phys-secure
++        - phys
++        - virt
++        - hyp-phys
++        - hyp-virt
+ 
+   clock-frequency:
+     description: The frequency of the main counter, in Hz. Should be present
 -- 
 2.30.0
 
