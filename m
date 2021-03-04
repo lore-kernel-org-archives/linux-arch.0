@@ -7,28 +7,28 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4BDEFC4360C
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0A57AC4321A
 	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:42:45 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 36DA964F84
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:42:45 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id EE7536500F
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:42:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240433AbhCDVmA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 4 Mar 2021 16:42:00 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43714 "EHLO
+        id S239121AbhCDVl7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 4 Mar 2021 16:41:59 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43666 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S240388AbhCDVlz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 16:41:55 -0500
+        with ESMTP id S236866AbhCDVlm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 16:41:42 -0500
 Received: from mail.marcansoft.com (marcansoft.com [IPv6:2a01:298:fe:f::2])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 99C2AC06175F;
-        Thu,  4 Mar 2021 13:41:14 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BE288C061574;
+        Thu,  4 Mar 2021 13:41:01 -0800 (PST)
 Received: from [127.0.0.1] (localhost [127.0.0.1])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
         (No client certificate requested)
         (Authenticated sender: hector@marcansoft.com)
-        by mail.marcansoft.com (Postfix) with ESMTPSA id 2AA9E4260C;
-        Thu,  4 Mar 2021 21:40:23 +0000 (UTC)
+        by mail.marcansoft.com (Postfix) with ESMTPSA id EA1C0425B5;
+        Thu,  4 Mar 2021 21:40:09 +0000 (UTC)
 From:   Hector Martin <marcan@marcan.st>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
@@ -51,11 +51,10 @@ Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
         "David S. Miller" <davem@davemloft.net>,
         devicetree@vger.kernel.org, linux-serial@vger.kernel.org,
         linux-doc@vger.kernel.org, linux-samsung-soc@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>
-Subject: [RFT PATCH v3 09/27] docs: driver-api: device-io: Document I/O access functions
-Date:   Fri,  5 Mar 2021 06:38:44 +0900
-Message-Id: <20210304213902.83903-10-marcan@marcan.st>
+        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: [RFT PATCH v3 07/27] arm64: arch_timer: implement support for interrupt-names
+Date:   Fri,  5 Mar 2021 06:38:42 +0900
+Message-Id: <20210304213902.83903-8-marcan@marcan.st>
 X-Mailer: git-send-email 2.30.0
 In-Reply-To: <20210304213902.83903-1-marcan@marcan.st>
 References: <20210304213902.83903-1-marcan@marcan.st>
@@ -65,165 +64,81 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Arnd Bergmann <arnd@arndb.de>
+This allows the devicetree to correctly represent the available set of
+timers, which varies from device to device, without the need for fake
+dummy interrupts for unavailable slots.
 
-This adds more detailed descriptions of the various read/write
-primitives available for use with I/O memory/ports.
+Also add the hyp-virt timer/PPI, which is not currently used, but worth
+representing.
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Hector Martin <marcan@marcan.st>
+Reviewed-by: Tony Lindgren <tony@atomide.com>
 ---
- Documentation/driver-api/device-io.rst | 138 +++++++++++++++++++++++++
- 1 file changed, 138 insertions(+)
+ drivers/clocksource/arm_arch_timer.c | 24 +++++++++++++++++++++---
+ include/clocksource/arm_arch_timer.h |  1 +
+ 2 files changed, 22 insertions(+), 3 deletions(-)
 
-diff --git a/Documentation/driver-api/device-io.rst b/Documentation/driver-api/device-io.rst
-index 764963876d08..b20864b3ddc7 100644
---- a/Documentation/driver-api/device-io.rst
-+++ b/Documentation/driver-api/device-io.rst
-@@ -146,6 +146,144 @@ There are also equivalents to memcpy. The ins() and
- outs() functions copy bytes, words or longs to the given
- port.
+diff --git a/drivers/clocksource/arm_arch_timer.c b/drivers/clocksource/arm_arch_timer.c
+index d0177824c518..ee2501a17697 100644
+--- a/drivers/clocksource/arm_arch_timer.c
++++ b/drivers/clocksource/arm_arch_timer.c
+@@ -63,6 +63,14 @@ struct arch_timer {
+ static u32 arch_timer_rate;
+ static int arch_timer_ppi[ARCH_TIMER_MAX_TIMER_PPI];
  
-+__iomem pointer tokens
-+======================
++static const char *arch_timer_ppi_names[ARCH_TIMER_MAX_TIMER_PPI] = {
++	[ARCH_TIMER_PHYS_SECURE_PPI]	= "phys-secure",
++	[ARCH_TIMER_PHYS_NONSECURE_PPI]	= "phys",
++	[ARCH_TIMER_VIRT_PPI]		= "virt",
++	[ARCH_TIMER_HYP_PPI]		= "hyp-phys",
++	[ARCH_TIMER_HYP_VIRT_PPI]	= "hyp-virt",
++};
 +
-+The data type for an MMIO address is an ``__iomem`` qualified pointer, such as
-+``void __iomem *reg``. On most architectures it is a regular pointer that
-+points to a virtual memory address and can be offset or dereferenced, but in
-+portable code, it must only be passed from and to functions that explicitly
-+operated on an ``__iomem`` token, in particular the ioremap() and
-+readl()/writel() functions. The 'sparse' semantic code checker can be used to
-+verify that this is done correctly.
+ static struct clock_event_device __percpu *arch_timer_evt;
+ 
+ static enum arch_timer_ppi_nr arch_timer_uses_ppi = ARCH_TIMER_VIRT_PPI;
+@@ -1280,8 +1288,9 @@ static void __init arch_timer_populate_kvm_info(void)
+ 
+ static int __init arch_timer_of_init(struct device_node *np)
+ {
+-	int i, ret;
++	int i, irq, ret;
+ 	u32 rate;
++	bool has_names;
+ 
+ 	if (arch_timers_present & ARCH_TIMER_TYPE_CP15) {
+ 		pr_warn("multiple nodes in dt, skipping\n");
+@@ -1289,8 +1298,17 @@ static int __init arch_timer_of_init(struct device_node *np)
+ 	}
+ 
+ 	arch_timers_present |= ARCH_TIMER_TYPE_CP15;
+-	for (i = ARCH_TIMER_PHYS_SECURE_PPI; i < ARCH_TIMER_MAX_TIMER_PPI; i++)
+-		arch_timer_ppi[i] = irq_of_parse_and_map(np, i);
 +
-+While on most architectures, ioremap() creates a page table entry for an
-+uncached virtual address pointing to the physical MMIO address, some
-+architectures require special instructions for MMIO, and the ``__iomem`` pointer
-+just encodes the physical address or an offsettable cookie that is interpreted
-+by readl()/writel().
++	has_names = of_property_read_bool(np, "interrupt-names");
 +
-+Differences between I/O access functions
-+========================================
-+
-+readq(), readl(), readw(), readb(), writeq(), writel(), writew(), writeb()
-+
-+  These are the most generic accessors, providing serialization against other
-+  MMIO accesses and DMA accesses as well as fixed endianness for accessing
-+  little-endian PCI devices and on-chip peripherals. Portable device drivers
-+  should generally use these for any access to ``__iomem`` pointers.
-+
-+  Note that posted writes are not strictly ordered against a spinlock, see
-+  Documentation/driver-api/io_ordering.rst.
-+
-+readq_relaxed(), readl_relaxed(), readw_relaxed(), readb_relaxed(),
-+writeq_relaxed(), writel_relaxed(), writew_relaxed(), writeb_relaxed()
-+
-+  On architectures that require an expensive barrier for serializing against
-+  DMA, these "relaxed" versions of the MMIO accessors only serialize against
-+  each other, but contain a less expensive barrier operation. A device driver
-+  might use these in a particularly performance sensitive fast path, with a
-+  comment that explains why the usage in a specific location is safe without
-+  the extra barriers.
-+
-+  See memory-barriers.txt for a more detailed discussion on the precise ordering
-+  guarantees of the non-relaxed and relaxed versions.
-+
-+ioread64(), ioread32(), ioread16(), ioread8(),
-+iowrite64(), iowrite32(), iowrite16(), iowrite8()
-+
-+  These are an alternative to the normal readl()/writel() functions, with almost
-+  identical behavior, but they can also operate on ``__iomem`` tokens returned
-+  for mapping PCI I/O space with pci_iomap() or ioport_map(). On architectures
-+  that require special instructions for I/O port access, this adds a small
-+  overhead for an indirect function call implemented in lib/iomap.c, while on
-+  other architectures, these are simply aliases.
-+
-+ioread64be(), ioread32be(), ioread16be()
-+iowrite64be(), iowrite32be(), iowrite16be()
-+
-+  These behave in the same way as the ioread32()/iowrite32() family, but with
-+  reversed byte order, for accessing devices with big-endian MMIO registers.
-+  Device drivers that can operate on either big-endian or little-endian
-+  registers may have to implement a custom wrapper function that picks one or
-+  the other depending on which device was found.
-+
-+  Note: On some architectures, the normal readl()/writel() functions
-+  traditionally assume that devices are the same endianness as the CPU, while
-+  using a hardware byte-reverse on the PCI bus when running a big-endian kernel.
-+  Drivers that use readl()/writel() this way are generally not portable, but
-+  tend to be limited to a particular SoC.
-+
-+hi_lo_readq(), lo_hi_readq(), hi_lo_readq_relaxed(), lo_hi_readq_relaxed(),
-+ioread64_lo_hi(), ioread64_hi_lo(), ioread64be_lo_hi(), ioread64be_hi_lo(),
-+hi_lo_writeq(), lo_hi_writeq(), hi_lo_writeq_relaxed(), lo_hi_writeq_relaxed(),
-+iowrite64_lo_hi(), iowrite64_hi_lo(), iowrite64be_lo_hi(), iowrite64be_hi_lo()
-+
-+  Some device drivers have 64-bit registers that cannot be accessed atomically
-+  on 32-bit architectures but allow two consecutive 32-bit accesses instead.
-+  Since it depends on the particular device which of the two halves has to be
-+  accessed first, a helper is provided for each combination of 64-bit accessors
-+  with either low/high or high/low word ordering. A device driver must include
-+  either <linux/io-64-nonatomic-lo-hi.h> or <linux/io-64-nonatomic-hi-lo.h> to
-+  get the function definitions along with helpers that redirect the normal
-+  readq()/writeq() to them on architectures that do not provide 64-bit access
-+  natively.
-+
-+__raw_readq(), __raw_readl(), __raw_readw(), __raw_readb(),
-+__raw_writeq(), __raw_writel(), __raw_writew(), __raw_writeb()
-+
-+  These are low-level MMIO accessors without barriers or byteorder changes and
-+  architecture specific behavior. Accesses are usually atomic in the sense that
-+  a four-byte __raw_readl() does not get split into individual byte loads, but
-+  multiple consecutive accesses can be combined on the bus. In portable code, it
-+  is only safe to use these to access memory behind a device bus but not MMIO
-+  registers, as there are no ordering guarantees with regard to other MMIO
-+  accesses or even spinlocks. The byte order is generally the same as for normal
-+  memory, so unlike the other functions, these can be used to copy data between
-+  kernel memory and device memory.
-+
-+inl(), inw(), inb(), outl(), outw(), outb()
-+
-+  PCI I/O port resources traditionally require separate helpers as they are
-+  implemented using special instructions on the x86 architecture. On most other
-+  architectures, these are mapped to readl()/writel() style accessors
-+  internally, usually pointing to a fixed area in virtual memory. Instead of an
-+  ``__iomem`` pointer, the address is a 32-bit integer token to identify a port
-+  number. PCI requires I/O port access to be non-posted, meaning that an outb()
-+  must complete before the following code executes, while a normal writeb() may
-+  still be in progress. On architectures that correctly implement this, I/O port
-+  access is therefore ordered against spinlocks. Many non-x86 PCI host bridge
-+  implementations and CPU architectures however fail to implement non-posted I/O
-+  space on PCI, so they can end up being posted on such hardware.
-+
-+  In some architectures, the I/O port number space has a 1:1 mapping to
-+  ``__iomem`` pointers, but this is not recommended and device drivers should
-+  not rely on that for portability. Similarly, an I/O port number as described
-+  in a PCI base address register may not correspond to the port number as seen
-+  by a device driver. Portable drivers need to read the port number for the
-+  resource provided by the kernel.
-+
-+  There are no direct 64-bit I/O port accessors, but pci_iomap() in combination
-+  with ioread64/iowrite64 can be used instead.
-+
-+inl_p(), inw_p(), inb_p(), outl_p(), outw_p(), outb_p()
-+
-+  On ISA devices that require specific timing, the _p versions of the I/O
-+  accessors add a small delay. On architectures that do not have ISA buses,
-+  these are aliases to the normal inb/outb helpers.
-+
-+readsq, readsl, readsw, readsb
-+writesq, writesl, writesw, writesb
-+ioread64_rep, ioread32_rep, ioread16_rep, ioread8_rep
-+iowrite64_rep, iowrite32_rep, iowrite16_rep, iowrite8_rep
-+insl, insw, insb, outsl, outsw, outsb
-+
-+  These are helpers that access the same address multiple times, usually to copy
-+  data between kernel memory byte stream and a FIFO buffer. Unlike the normal
-+  MMIO accessors, these do not perform a byteswap on big-endian kernels, so the
-+  first byte in the FIFO register corresponds to the first byte in the memory
-+  buffer regardless of the architecture.
-+
- Public Functions Provided
- =========================
++	for (i = ARCH_TIMER_PHYS_SECURE_PPI; i < ARCH_TIMER_MAX_TIMER_PPI; i++) {
++		if (has_names)
++			irq = of_irq_get_byname(np, arch_timer_ppi_names[i]);
++		else
++			irq = of_irq_get(np, i);
++		if (irq > 0)
++			arch_timer_ppi[i] = irq;
++	}
+ 
+ 	arch_timer_populate_kvm_info();
+ 
+diff --git a/include/clocksource/arm_arch_timer.h b/include/clocksource/arm_arch_timer.h
+index 1d68d5613dae..73c7139c866f 100644
+--- a/include/clocksource/arm_arch_timer.h
++++ b/include/clocksource/arm_arch_timer.h
+@@ -32,6 +32,7 @@ enum arch_timer_ppi_nr {
+ 	ARCH_TIMER_PHYS_NONSECURE_PPI,
+ 	ARCH_TIMER_VIRT_PPI,
+ 	ARCH_TIMER_HYP_PPI,
++	ARCH_TIMER_HYP_VIRT_PPI,
+ 	ARCH_TIMER_MAX_TIMER_PPI
+ };
  
 -- 
 2.30.0
