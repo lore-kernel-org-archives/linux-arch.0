@@ -2,33 +2,33 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,UPPERCASE_50_75,URIBL_BLOCKED,
-	USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D79E1C43332
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:42:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4BDEFC4360C
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:42:45 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C07E464FF1
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:42:44 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 36DA964F84
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:42:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239851AbhCDVl7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 4 Mar 2021 16:41:59 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43692 "EHLO
+        id S240433AbhCDVmA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 4 Mar 2021 16:42:00 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43714 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S240384AbhCDVls (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 16:41:48 -0500
+        with ESMTP id S240388AbhCDVlz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 16:41:55 -0500
 Received: from mail.marcansoft.com (marcansoft.com [IPv6:2a01:298:fe:f::2])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3820AC061756;
-        Thu,  4 Mar 2021 13:41:08 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 99C2AC06175F;
+        Thu,  4 Mar 2021 13:41:14 -0800 (PST)
 Received: from [127.0.0.1] (localhost [127.0.0.1])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
         (No client certificate requested)
         (Authenticated sender: hector@marcansoft.com)
-        by mail.marcansoft.com (Postfix) with ESMTPSA id 305BA426F3;
-        Thu,  4 Mar 2021 21:40:59 +0000 (UTC)
+        by mail.marcansoft.com (Postfix) with ESMTPSA id 2AA9E4260C;
+        Thu,  4 Mar 2021 21:40:23 +0000 (UTC)
 From:   Hector Martin <marcan@marcan.st>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
@@ -51,10 +51,11 @@ Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
         "David S. Miller" <davem@davemloft.net>,
         devicetree@vger.kernel.org, linux-serial@vger.kernel.org,
         linux-doc@vger.kernel.org, linux-samsung-soc@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: [RFT PATCH v3 14/27] arm64: move ICH_ sysreg bits from arm-gic-v3.h to sysreg.h
-Date:   Fri,  5 Mar 2021 06:38:49 +0900
-Message-Id: <20210304213902.83903-15-marcan@marcan.st>
+        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        Arnd Bergmann <arnd@arndb.de>
+Subject: [RFT PATCH v3 09/27] docs: driver-api: device-io: Document I/O access functions
+Date:   Fri,  5 Mar 2021 06:38:44 +0900
+Message-Id: <20210304213902.83903-10-marcan@marcan.st>
 X-Mailer: git-send-email 2.30.0
 In-Reply-To: <20210304213902.83903-1-marcan@marcan.st>
 References: <20210304213902.83903-1-marcan@marcan.st>
@@ -64,160 +65,166 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-These definitions are in arm-gic-v3.h for historical reasons which no
-longer apply. Move them to sysreg.h so the AIC driver can use them, as
-it needs to peek into vGIC registers to deal with the GIC maintentance
-interrupt.
+From: Arnd Bergmann <arnd@arndb.de>
 
+This adds more detailed descriptions of the various read/write
+primitives available for use with I/O memory/ports.
+
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Hector Martin <marcan@marcan.st>
 ---
- arch/arm64/include/asm/sysreg.h    | 60 ++++++++++++++++++++++++++++++
- include/linux/irqchip/arm-gic-v3.h | 56 ----------------------------
- 2 files changed, 60 insertions(+), 56 deletions(-)
+ Documentation/driver-api/device-io.rst | 138 +++++++++++++++++++++++++
+ 1 file changed, 138 insertions(+)
 
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-index dfd4edbfe360..645926490ada 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -1024,6 +1024,66 @@
- #define TRFCR_ELx_ExTRE			BIT(1)
- #define TRFCR_ELx_E0TRE			BIT(0)
+diff --git a/Documentation/driver-api/device-io.rst b/Documentation/driver-api/device-io.rst
+index 764963876d08..b20864b3ddc7 100644
+--- a/Documentation/driver-api/device-io.rst
++++ b/Documentation/driver-api/device-io.rst
+@@ -146,6 +146,144 @@ There are also equivalents to memcpy. The ins() and
+ outs() functions copy bytes, words or longs to the given
+ port.
  
++__iomem pointer tokens
++======================
 +
-+/* GIC Hypervisor interface registers */
-+/* ICH_MISR_EL2 bit definitions */
-+#define ICH_MISR_EOI		(1 << 0)
-+#define ICH_MISR_U		(1 << 1)
++The data type for an MMIO address is an ``__iomem`` qualified pointer, such as
++``void __iomem *reg``. On most architectures it is a regular pointer that
++points to a virtual memory address and can be offset or dereferenced, but in
++portable code, it must only be passed from and to functions that explicitly
++operated on an ``__iomem`` token, in particular the ioremap() and
++readl()/writel() functions. The 'sparse' semantic code checker can be used to
++verify that this is done correctly.
 +
-+/* ICH_LR*_EL2 bit definitions */
-+#define ICH_LR_VIRTUAL_ID_MASK	((1ULL << 32) - 1)
++While on most architectures, ioremap() creates a page table entry for an
++uncached virtual address pointing to the physical MMIO address, some
++architectures require special instructions for MMIO, and the ``__iomem`` pointer
++just encodes the physical address or an offsettable cookie that is interpreted
++by readl()/writel().
 +
-+#define ICH_LR_EOI		(1ULL << 41)
-+#define ICH_LR_GROUP		(1ULL << 60)
-+#define ICH_LR_HW		(1ULL << 61)
-+#define ICH_LR_STATE		(3ULL << 62)
-+#define ICH_LR_PENDING_BIT	(1ULL << 62)
-+#define ICH_LR_ACTIVE_BIT	(1ULL << 63)
-+#define ICH_LR_PHYS_ID_SHIFT	32
-+#define ICH_LR_PHYS_ID_MASK	(0x3ffULL << ICH_LR_PHYS_ID_SHIFT)
-+#define ICH_LR_PRIORITY_SHIFT	48
-+#define ICH_LR_PRIORITY_MASK	(0xffULL << ICH_LR_PRIORITY_SHIFT)
++Differences between I/O access functions
++========================================
 +
-+/* ICH_HCR_EL2 bit definitions */
-+#define ICH_HCR_EN		(1 << 0)
-+#define ICH_HCR_UIE		(1 << 1)
-+#define ICH_HCR_NPIE		(1 << 3)
-+#define ICH_HCR_TC		(1 << 10)
-+#define ICH_HCR_TALL0		(1 << 11)
-+#define ICH_HCR_TALL1		(1 << 12)
-+#define ICH_HCR_EOIcount_SHIFT	27
-+#define ICH_HCR_EOIcount_MASK	(0x1f << ICH_HCR_EOIcount_SHIFT)
++readq(), readl(), readw(), readb(), writeq(), writel(), writew(), writeb()
 +
-+/* ICH_VMCR_EL2 bit definitions */
-+#define ICH_VMCR_ACK_CTL_SHIFT	2
-+#define ICH_VMCR_ACK_CTL_MASK	(1 << ICH_VMCR_ACK_CTL_SHIFT)
-+#define ICH_VMCR_FIQ_EN_SHIFT	3
-+#define ICH_VMCR_FIQ_EN_MASK	(1 << ICH_VMCR_FIQ_EN_SHIFT)
-+#define ICH_VMCR_CBPR_SHIFT	4
-+#define ICH_VMCR_CBPR_MASK	(1 << ICH_VMCR_CBPR_SHIFT)
-+#define ICH_VMCR_EOIM_SHIFT	9
-+#define ICH_VMCR_EOIM_MASK	(1 << ICH_VMCR_EOIM_SHIFT)
-+#define ICH_VMCR_BPR1_SHIFT	18
-+#define ICH_VMCR_BPR1_MASK	(7 << ICH_VMCR_BPR1_SHIFT)
-+#define ICH_VMCR_BPR0_SHIFT	21
-+#define ICH_VMCR_BPR0_MASK	(7 << ICH_VMCR_BPR0_SHIFT)
-+#define ICH_VMCR_PMR_SHIFT	24
-+#define ICH_VMCR_PMR_MASK	(0xffUL << ICH_VMCR_PMR_SHIFT)
-+#define ICH_VMCR_ENG0_SHIFT	0
-+#define ICH_VMCR_ENG0_MASK	(1 << ICH_VMCR_ENG0_SHIFT)
-+#define ICH_VMCR_ENG1_SHIFT	1
-+#define ICH_VMCR_ENG1_MASK	(1 << ICH_VMCR_ENG1_SHIFT)
++  These are the most generic accessors, providing serialization against other
++  MMIO accesses and DMA accesses as well as fixed endianness for accessing
++  little-endian PCI devices and on-chip peripherals. Portable device drivers
++  should generally use these for any access to ``__iomem`` pointers.
 +
-+/* ICH_VTR_EL2 bit definitions */
-+#define ICH_VTR_PRI_BITS_SHIFT	29
-+#define ICH_VTR_PRI_BITS_MASK	(7 << ICH_VTR_PRI_BITS_SHIFT)
-+#define ICH_VTR_ID_BITS_SHIFT	23
-+#define ICH_VTR_ID_BITS_MASK	(7 << ICH_VTR_ID_BITS_SHIFT)
-+#define ICH_VTR_SEIS_SHIFT	22
-+#define ICH_VTR_SEIS_MASK	(1 << ICH_VTR_SEIS_SHIFT)
-+#define ICH_VTR_A3V_SHIFT	21
-+#define ICH_VTR_A3V_MASK	(1 << ICH_VTR_A3V_SHIFT)
++  Note that posted writes are not strictly ordered against a spinlock, see
++  Documentation/driver-api/io_ordering.rst.
 +
- #ifdef __ASSEMBLY__
++readq_relaxed(), readl_relaxed(), readw_relaxed(), readb_relaxed(),
++writeq_relaxed(), writel_relaxed(), writew_relaxed(), writeb_relaxed()
++
++  On architectures that require an expensive barrier for serializing against
++  DMA, these "relaxed" versions of the MMIO accessors only serialize against
++  each other, but contain a less expensive barrier operation. A device driver
++  might use these in a particularly performance sensitive fast path, with a
++  comment that explains why the usage in a specific location is safe without
++  the extra barriers.
++
++  See memory-barriers.txt for a more detailed discussion on the precise ordering
++  guarantees of the non-relaxed and relaxed versions.
++
++ioread64(), ioread32(), ioread16(), ioread8(),
++iowrite64(), iowrite32(), iowrite16(), iowrite8()
++
++  These are an alternative to the normal readl()/writel() functions, with almost
++  identical behavior, but they can also operate on ``__iomem`` tokens returned
++  for mapping PCI I/O space with pci_iomap() or ioport_map(). On architectures
++  that require special instructions for I/O port access, this adds a small
++  overhead for an indirect function call implemented in lib/iomap.c, while on
++  other architectures, these are simply aliases.
++
++ioread64be(), ioread32be(), ioread16be()
++iowrite64be(), iowrite32be(), iowrite16be()
++
++  These behave in the same way as the ioread32()/iowrite32() family, but with
++  reversed byte order, for accessing devices with big-endian MMIO registers.
++  Device drivers that can operate on either big-endian or little-endian
++  registers may have to implement a custom wrapper function that picks one or
++  the other depending on which device was found.
++
++  Note: On some architectures, the normal readl()/writel() functions
++  traditionally assume that devices are the same endianness as the CPU, while
++  using a hardware byte-reverse on the PCI bus when running a big-endian kernel.
++  Drivers that use readl()/writel() this way are generally not portable, but
++  tend to be limited to a particular SoC.
++
++hi_lo_readq(), lo_hi_readq(), hi_lo_readq_relaxed(), lo_hi_readq_relaxed(),
++ioread64_lo_hi(), ioread64_hi_lo(), ioread64be_lo_hi(), ioread64be_hi_lo(),
++hi_lo_writeq(), lo_hi_writeq(), hi_lo_writeq_relaxed(), lo_hi_writeq_relaxed(),
++iowrite64_lo_hi(), iowrite64_hi_lo(), iowrite64be_lo_hi(), iowrite64be_hi_lo()
++
++  Some device drivers have 64-bit registers that cannot be accessed atomically
++  on 32-bit architectures but allow two consecutive 32-bit accesses instead.
++  Since it depends on the particular device which of the two halves has to be
++  accessed first, a helper is provided for each combination of 64-bit accessors
++  with either low/high or high/low word ordering. A device driver must include
++  either <linux/io-64-nonatomic-lo-hi.h> or <linux/io-64-nonatomic-hi-lo.h> to
++  get the function definitions along with helpers that redirect the normal
++  readq()/writeq() to them on architectures that do not provide 64-bit access
++  natively.
++
++__raw_readq(), __raw_readl(), __raw_readw(), __raw_readb(),
++__raw_writeq(), __raw_writel(), __raw_writew(), __raw_writeb()
++
++  These are low-level MMIO accessors without barriers or byteorder changes and
++  architecture specific behavior. Accesses are usually atomic in the sense that
++  a four-byte __raw_readl() does not get split into individual byte loads, but
++  multiple consecutive accesses can be combined on the bus. In portable code, it
++  is only safe to use these to access memory behind a device bus but not MMIO
++  registers, as there are no ordering guarantees with regard to other MMIO
++  accesses or even spinlocks. The byte order is generally the same as for normal
++  memory, so unlike the other functions, these can be used to copy data between
++  kernel memory and device memory.
++
++inl(), inw(), inb(), outl(), outw(), outb()
++
++  PCI I/O port resources traditionally require separate helpers as they are
++  implemented using special instructions on the x86 architecture. On most other
++  architectures, these are mapped to readl()/writel() style accessors
++  internally, usually pointing to a fixed area in virtual memory. Instead of an
++  ``__iomem`` pointer, the address is a 32-bit integer token to identify a port
++  number. PCI requires I/O port access to be non-posted, meaning that an outb()
++  must complete before the following code executes, while a normal writeb() may
++  still be in progress. On architectures that correctly implement this, I/O port
++  access is therefore ordered against spinlocks. Many non-x86 PCI host bridge
++  implementations and CPU architectures however fail to implement non-posted I/O
++  space on PCI, so they can end up being posted on such hardware.
++
++  In some architectures, the I/O port number space has a 1:1 mapping to
++  ``__iomem`` pointers, but this is not recommended and device drivers should
++  not rely on that for portability. Similarly, an I/O port number as described
++  in a PCI base address register may not correspond to the port number as seen
++  by a device driver. Portable drivers need to read the port number for the
++  resource provided by the kernel.
++
++  There are no direct 64-bit I/O port accessors, but pci_iomap() in combination
++  with ioread64/iowrite64 can be used instead.
++
++inl_p(), inw_p(), inb_p(), outl_p(), outw_p(), outb_p()
++
++  On ISA devices that require specific timing, the _p versions of the I/O
++  accessors add a small delay. On architectures that do not have ISA buses,
++  these are aliases to the normal inb/outb helpers.
++
++readsq, readsl, readsw, readsb
++writesq, writesl, writesw, writesb
++ioread64_rep, ioread32_rep, ioread16_rep, ioread8_rep
++iowrite64_rep, iowrite32_rep, iowrite16_rep, iowrite8_rep
++insl, insw, insb, outsl, outsw, outsb
++
++  These are helpers that access the same address multiple times, usually to copy
++  data between kernel memory byte stream and a FIFO buffer. Unlike the normal
++  MMIO accessors, these do not perform a byteswap on big-endian kernels, so the
++  first byte in the FIFO register corresponds to the first byte in the memory
++  buffer regardless of the architecture.
++
+ Public Functions Provided
+ =========================
  
- 	.irp	num,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30
-diff --git a/include/linux/irqchip/arm-gic-v3.h b/include/linux/irqchip/arm-gic-v3.h
-index f6d092fdb93d..81cbf85f73de 100644
---- a/include/linux/irqchip/arm-gic-v3.h
-+++ b/include/linux/irqchip/arm-gic-v3.h
-@@ -575,67 +575,11 @@
- #define ICC_SRE_EL1_DFB			(1U << 1)
- #define ICC_SRE_EL1_SRE			(1U << 0)
- 
--/*
-- * Hypervisor interface registers (SRE only)
-- */
--#define ICH_LR_VIRTUAL_ID_MASK		((1ULL << 32) - 1)
--
--#define ICH_LR_EOI			(1ULL << 41)
--#define ICH_LR_GROUP			(1ULL << 60)
--#define ICH_LR_HW			(1ULL << 61)
--#define ICH_LR_STATE			(3ULL << 62)
--#define ICH_LR_PENDING_BIT		(1ULL << 62)
--#define ICH_LR_ACTIVE_BIT		(1ULL << 63)
--#define ICH_LR_PHYS_ID_SHIFT		32
--#define ICH_LR_PHYS_ID_MASK		(0x3ffULL << ICH_LR_PHYS_ID_SHIFT)
--#define ICH_LR_PRIORITY_SHIFT		48
--#define ICH_LR_PRIORITY_MASK		(0xffULL << ICH_LR_PRIORITY_SHIFT)
--
- /* These are for GICv2 emulation only */
- #define GICH_LR_VIRTUALID		(0x3ffUL << 0)
- #define GICH_LR_PHYSID_CPUID_SHIFT	(10)
- #define GICH_LR_PHYSID_CPUID		(7UL << GICH_LR_PHYSID_CPUID_SHIFT)
- 
--#define ICH_MISR_EOI			(1 << 0)
--#define ICH_MISR_U			(1 << 1)
--
--#define ICH_HCR_EN			(1 << 0)
--#define ICH_HCR_UIE			(1 << 1)
--#define ICH_HCR_NPIE			(1 << 3)
--#define ICH_HCR_TC			(1 << 10)
--#define ICH_HCR_TALL0			(1 << 11)
--#define ICH_HCR_TALL1			(1 << 12)
--#define ICH_HCR_EOIcount_SHIFT		27
--#define ICH_HCR_EOIcount_MASK		(0x1f << ICH_HCR_EOIcount_SHIFT)
--
--#define ICH_VMCR_ACK_CTL_SHIFT		2
--#define ICH_VMCR_ACK_CTL_MASK		(1 << ICH_VMCR_ACK_CTL_SHIFT)
--#define ICH_VMCR_FIQ_EN_SHIFT		3
--#define ICH_VMCR_FIQ_EN_MASK		(1 << ICH_VMCR_FIQ_EN_SHIFT)
--#define ICH_VMCR_CBPR_SHIFT		4
--#define ICH_VMCR_CBPR_MASK		(1 << ICH_VMCR_CBPR_SHIFT)
--#define ICH_VMCR_EOIM_SHIFT		9
--#define ICH_VMCR_EOIM_MASK		(1 << ICH_VMCR_EOIM_SHIFT)
--#define ICH_VMCR_BPR1_SHIFT		18
--#define ICH_VMCR_BPR1_MASK		(7 << ICH_VMCR_BPR1_SHIFT)
--#define ICH_VMCR_BPR0_SHIFT		21
--#define ICH_VMCR_BPR0_MASK		(7 << ICH_VMCR_BPR0_SHIFT)
--#define ICH_VMCR_PMR_SHIFT		24
--#define ICH_VMCR_PMR_MASK		(0xffUL << ICH_VMCR_PMR_SHIFT)
--#define ICH_VMCR_ENG0_SHIFT		0
--#define ICH_VMCR_ENG0_MASK		(1 << ICH_VMCR_ENG0_SHIFT)
--#define ICH_VMCR_ENG1_SHIFT		1
--#define ICH_VMCR_ENG1_MASK		(1 << ICH_VMCR_ENG1_SHIFT)
--
--#define ICH_VTR_PRI_BITS_SHIFT		29
--#define ICH_VTR_PRI_BITS_MASK		(7 << ICH_VTR_PRI_BITS_SHIFT)
--#define ICH_VTR_ID_BITS_SHIFT		23
--#define ICH_VTR_ID_BITS_MASK		(7 << ICH_VTR_ID_BITS_SHIFT)
--#define ICH_VTR_SEIS_SHIFT		22
--#define ICH_VTR_SEIS_MASK		(1 << ICH_VTR_SEIS_SHIFT)
--#define ICH_VTR_A3V_SHIFT		21
--#define ICH_VTR_A3V_MASK		(1 << ICH_VTR_A3V_SHIFT)
--
- #define ICC_IAR1_EL1_SPURIOUS		0x3ff
- 
- #define ICC_SRE_EL2_SRE			(1 << 0)
 -- 
 2.30.0
 
