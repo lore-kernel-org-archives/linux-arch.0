@@ -7,28 +7,28 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DE242C43142
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:43:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 433A6C41621
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:43:18 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B830264FFD
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:43:17 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 33B4165000
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:43:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240726AbhCDVmb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 4 Mar 2021 16:42:31 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43806 "EHLO
+        id S240647AbhCDVmc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 4 Mar 2021 16:42:32 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43804 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S240647AbhCDVmR (ORCPT
+        with ESMTP id S240646AbhCDVmR (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 16:42:17 -0500
 Received: from mail.marcansoft.com (marcansoft.com [IPv6:2a01:298:fe:f::2])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D6F8AC0613D7;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B269DC061765;
         Thu,  4 Mar 2021 13:41:36 -0800 (PST)
 Received: from [127.0.0.1] (localhost [127.0.0.1])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
         (No client certificate requested)
         (Authenticated sender: hector@marcansoft.com)
-        by mail.marcansoft.com (Postfix) with ESMTPSA id EDD4A42524;
-        Thu,  4 Mar 2021 21:40:45 +0000 (UTC)
+        by mail.marcansoft.com (Postfix) with ESMTPSA id AE9594261F;
+        Thu,  4 Mar 2021 21:41:28 +0000 (UTC)
 From:   Hector Martin <marcan@marcan.st>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
@@ -52,9 +52,9 @@ Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
         devicetree@vger.kernel.org, linux-serial@vger.kernel.org,
         linux-doc@vger.kernel.org, linux-samsung-soc@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: [RFT PATCH v3 12/27] of/address: Add infrastructure to declare MMIO as non-posted
-Date:   Fri,  5 Mar 2021 06:38:47 +0900
-Message-Id: <20210304213902.83903-13-marcan@marcan.st>
+Subject: [RFT PATCH v3 18/27] tty: serial: samsung_tty: Separate S3C64XX ops structure
+Date:   Fri,  5 Mar 2021 06:38:53 +0900
+Message-Id: <20210304213902.83903-19-marcan@marcan.st>
 X-Mailer: git-send-email 2.30.0
 In-Reply-To: <20210304213902.83903-1-marcan@marcan.st>
 References: <20210304213902.83903-1-marcan@marcan.st>
@@ -64,142 +64,149 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This implements the 'nonposted-mmio' and 'posted-mmio' boolean
-properties. Placing these properties in a bus marks all child devices as
-requiring non-posted or posted MMIO mappings. If no such properties are
-found, the default is posted MMIO.
+Instead of patching a single global ops structure depending on the port
+type, use a separate s3c64xx_serial_ops for the S3C64XX type. This
+allows us to mark the structures as const.
 
-of_mmio_is_nonposted() performs the tree walking to determine if a given
-device has requested non-posted MMIO.
-
-of_address_to_resource() uses this to set the IORESOURCE_MEM_NONPOSTED
-flag on resources that require non-posted MMIO.
-
-of_iomap() and of_io_request_and_map() then use this flag to pick the
-correct ioremap() variant.
-
-This mechanism is currently restricted to Apple ARM platforms, as an
-optimization.
+Also split out s3c64xx_serial_shutdown into a separate function now that
+we have a separate ops structure; this avoids excessive branching
+control flow and mirrors s3c64xx_serial_startup. tx_claimed and
+rx_claimed are only used in the S3C24XX functions.
 
 Signed-off-by: Hector Martin <marcan@marcan.st>
 ---
- drivers/of/address.c       | 72 ++++++++++++++++++++++++++++++++++++--
- include/linux/of_address.h |  1 +
- 2 files changed, 71 insertions(+), 2 deletions(-)
+ drivers/tty/serial/samsung_tty.c | 71 ++++++++++++++++++++++++--------
+ 1 file changed, 54 insertions(+), 17 deletions(-)
 
-diff --git a/drivers/of/address.c b/drivers/of/address.c
-index 73ddf2540f3f..6114dceb1ba6 100644
---- a/drivers/of/address.c
-+++ b/drivers/of/address.c
-@@ -847,6 +847,9 @@ static int __of_address_to_resource(struct device_node *dev,
- 		return -EINVAL;
- 	memset(r, 0, sizeof(struct resource));
+diff --git a/drivers/tty/serial/samsung_tty.c b/drivers/tty/serial/samsung_tty.c
+index 8ae3e03fbd8c..78dc6e9240fb 100644
+--- a/drivers/tty/serial/samsung_tty.c
++++ b/drivers/tty/serial/samsung_tty.c
+@@ -1098,27 +1098,36 @@ static void s3c24xx_serial_shutdown(struct uart_port *port)
+ 	struct s3c24xx_uart_port *ourport = to_ourport(port);
  
-+	if (of_mmio_is_nonposted(dev))
-+		flags |= IORESOURCE_MEM_NONPOSTED;
-+
- 	r->start = taddr;
- 	r->end = taddr + size - 1;
- 	r->flags = flags;
-@@ -896,7 +899,10 @@ void __iomem *of_iomap(struct device_node *np, int index)
- 	if (of_address_to_resource(np, index, &res))
- 		return NULL;
+ 	if (ourport->tx_claimed) {
+-		if (!s3c24xx_serial_has_interrupt_mask(port))
+-			free_irq(ourport->tx_irq, ourport);
++		free_irq(ourport->tx_irq, ourport);
+ 		ourport->tx_enabled = 0;
+ 		ourport->tx_claimed = 0;
+ 		ourport->tx_mode = 0;
+ 	}
  
--	return ioremap(res.start, resource_size(&res));
-+	if (res.flags & IORESOURCE_MEM_NONPOSTED)
-+		return ioremap_np(res.start, resource_size(&res));
-+	else
-+		return ioremap(res.start, resource_size(&res));
- }
- EXPORT_SYMBOL(of_iomap);
+ 	if (ourport->rx_claimed) {
+-		if (!s3c24xx_serial_has_interrupt_mask(port))
+-			free_irq(ourport->rx_irq, ourport);
++		free_irq(ourport->rx_irq, ourport);
+ 		ourport->rx_claimed = 0;
+ 		ourport->rx_enabled = 0;
+ 	}
  
-@@ -928,7 +934,11 @@ void __iomem *of_io_request_and_map(struct device_node *np, int index,
- 	if (!request_mem_region(res.start, resource_size(&res), name))
- 		return IOMEM_ERR_PTR(-EBUSY);
+-	/* Clear pending interrupts and mask all interrupts */
+-	if (s3c24xx_serial_has_interrupt_mask(port)) {
+-		free_irq(port->irq, ourport);
++	if (ourport->dma)
++		s3c24xx_serial_release_dma(ourport);
  
--	mem = ioremap(res.start, resource_size(&res));
-+	if (res.flags & IORESOURCE_MEM_NONPOSTED)
-+		mem = ioremap_np(res.start, resource_size(&res));
-+	else
-+		mem = ioremap(res.start, resource_size(&res));
-+
- 	if (!mem) {
- 		release_mem_region(res.start, resource_size(&res));
- 		return IOMEM_ERR_PTR(-ENOMEM);
-@@ -1094,3 +1104,61 @@ bool of_dma_is_coherent(struct device_node *np)
- 	return false;
- }
- EXPORT_SYMBOL_GPL(of_dma_is_coherent);
-+
-+static bool of_nonposted_mmio_quirk(void)
-+{
-+	if (IS_ENABLED(CONFIG_ARCH_APPLE)) {
-+		/* To save cycles, we cache the result for global "Apple ARM" setting */
-+		static int quirk_state = -1;
-+
-+		/* Make quirk cached */
-+		if (quirk_state < 0)
-+			quirk_state = of_machine_is_compatible("apple,arm-platform");
-+		return !!quirk_state;
-+	}
-+	return false;
+-		wr_regl(port, S3C64XX_UINTP, 0xf);
+-		wr_regl(port, S3C64XX_UINTM, 0xf);
+-	}
++	ourport->tx_in_progress = 0;
 +}
 +
-+/**
-+ * of_mmio_is_nonposted - Check if device uses non-posted MMIO
-+ * @np:	device node
-+ *
-+ * Returns true if the "nonposted-mmio" property was found for
-+ * the device's bus or a parent. "posted-mmio" has the opposite
-+ * effect, terminating recursion and overriding any
-+ * "nonposted-mmio" properties in parent buses.
-+ *
-+ * Recursion terminates if reach a non-translatable boundary
-+ * (a node without a 'ranges' property).
-+ *
-+ * This is currently only enabled on Apple ARM devices, as an
-+ * optimization.
-+ */
-+bool of_mmio_is_nonposted(struct device_node *np)
++static void s3c64xx_serial_shutdown(struct uart_port *port)
 +{
-+	struct device_node *node;
-+	struct device_node *parent;
++	struct s3c24xx_uart_port *ourport = to_ourport(port);
 +
-+	if (!of_nonposted_mmio_quirk())
-+		return false;
++	ourport->tx_enabled = 0;
++	ourport->tx_mode = 0;
++	ourport->rx_enabled = 0;
 +
-+	node = of_get_parent(np);
++	free_irq(port->irq, ourport);
 +
-+	while (node) {
-+		if (!of_property_read_bool(node, "ranges")) {
-+			break;
-+		} else if (of_property_read_bool(node, "nonposted-mmio")) {
-+			of_node_put(node);
-+			return true;
-+		} else if (of_property_read_bool(node, "posted-mmio")) {
-+			break;
-+		}
-+		parent = of_get_parent(node);
-+		of_node_put(node);
-+		node = parent;
++	wr_regl(port, S3C64XX_UINTP, 0xf);
++	wr_regl(port, S3C64XX_UINTM, 0xf);
+ 
+ 	if (ourport->dma)
+ 		s3c24xx_serial_release_dma(ourport);
+@@ -1193,9 +1202,7 @@ static int s3c64xx_serial_startup(struct uart_port *port)
+ 
+ 	/* For compatibility with s3c24xx Soc's */
+ 	ourport->rx_enabled = 1;
+-	ourport->rx_claimed = 1;
+ 	ourport->tx_enabled = 0;
+-	ourport->tx_claimed = 1;
+ 
+ 	spin_lock_irqsave(&port->lock, flags);
+ 
+@@ -1608,7 +1615,7 @@ static void s3c24xx_serial_put_poll_char(struct uart_port *port,
+ 			 unsigned char c);
+ #endif
+ 
+-static struct uart_ops s3c24xx_serial_ops = {
++static const struct uart_ops s3c24xx_serial_ops = {
+ 	.pm		= s3c24xx_serial_pm,
+ 	.tx_empty	= s3c24xx_serial_tx_empty,
+ 	.get_mctrl	= s3c24xx_serial_get_mctrl,
+@@ -1631,6 +1638,29 @@ static struct uart_ops s3c24xx_serial_ops = {
+ #endif
+ };
+ 
++static const struct uart_ops s3c64xx_serial_ops = {
++	.pm		= s3c24xx_serial_pm,
++	.tx_empty	= s3c24xx_serial_tx_empty,
++	.get_mctrl	= s3c24xx_serial_get_mctrl,
++	.set_mctrl	= s3c24xx_serial_set_mctrl,
++	.stop_tx	= s3c24xx_serial_stop_tx,
++	.start_tx	= s3c24xx_serial_start_tx,
++	.stop_rx	= s3c24xx_serial_stop_rx,
++	.break_ctl	= s3c24xx_serial_break_ctl,
++	.startup	= s3c64xx_serial_startup,
++	.shutdown	= s3c64xx_serial_shutdown,
++	.set_termios	= s3c24xx_serial_set_termios,
++	.type		= s3c24xx_serial_type,
++	.release_port	= s3c24xx_serial_release_port,
++	.request_port	= s3c24xx_serial_request_port,
++	.config_port	= s3c24xx_serial_config_port,
++	.verify_port	= s3c24xx_serial_verify_port,
++#if defined(CONFIG_SERIAL_SAMSUNG_CONSOLE) && defined(CONFIG_CONSOLE_POLL)
++	.poll_get_char = s3c24xx_serial_get_poll_char,
++	.poll_put_char = s3c24xx_serial_put_poll_char,
++#endif
++};
++
+ static struct uart_driver s3c24xx_uart_drv = {
+ 	.owner		= THIS_MODULE,
+ 	.driver_name	= "s3c2410_serial",
+@@ -1868,10 +1898,6 @@ static int s3c24xx_serial_init_port(struct s3c24xx_uart_port *ourport,
+ 	/* setup info for port */
+ 	port->dev	= &platdev->dev;
+ 
+-	/* Startup sequence is different for s3c64xx and higher SoC's */
+-	if (s3c24xx_serial_has_interrupt_mask(port))
+-		s3c24xx_serial_ops.startup = s3c64xx_serial_startup;
+-
+ 	port->uartclk = 1;
+ 
+ 	if (cfg->uart_flags & UPF_CONS_FLOW) {
+@@ -2019,6 +2045,17 @@ static int s3c24xx_serial_probe(struct platform_device *pdev)
+ 			dev_get_platdata(&pdev->dev) :
+ 			ourport->drv_data->def_cfg;
+ 
++	switch (ourport->info->type) {
++	case PORT_S3C2410:
++	case PORT_S3C2412:
++	case PORT_S3C2440:
++		ourport->port.ops = &s3c24xx_serial_ops;
++		break;
++	case PORT_S3C6400:
++		ourport->port.ops = &s3c64xx_serial_ops;
++		break;
 +	}
 +
-+	of_node_put(node);
-+	return false;
-+}
-+EXPORT_SYMBOL_GPL(of_mmio_is_nonposted);
-diff --git a/include/linux/of_address.h b/include/linux/of_address.h
-index 88bc943405cd..88f6333fee6c 100644
---- a/include/linux/of_address.h
-+++ b/include/linux/of_address.h
-@@ -62,6 +62,7 @@ extern struct of_pci_range *of_pci_range_parser_one(
- 					struct of_pci_range_parser *parser,
- 					struct of_pci_range *range);
- extern bool of_dma_is_coherent(struct device_node *np);
-+extern bool of_mmio_is_nonposted(struct device_node *np);
- #else /* CONFIG_OF_ADDRESS */
- static inline void __iomem *of_io_request_and_map(struct device_node *device,
- 						  int index, const char *name)
+ 	if (np) {
+ 		of_property_read_u32(np,
+ 			"samsung,uart-fifosize", &ourport->port.fifosize);
 -- 
 2.30.0
 
