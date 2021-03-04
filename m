@@ -2,119 +2,173 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+X-Spam-Status: No, score=-21.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
+	USER_AGENT_GIT autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8743CC433DB
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 13:22:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 03107C433E6
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:41:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 621D964F09
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 13:22:10 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D4B2F64FF9
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:41:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233075AbhCDNVY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 4 Mar 2021 08:21:24 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47934 "EHLO
+        id S239901AbhCDVl0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 4 Mar 2021 16:41:26 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43550 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232942AbhCDNVJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 08:21:09 -0500
-Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A31A2C06175F;
-        Thu,  4 Mar 2021 05:20:29 -0800 (PST)
-Received: by mail-pj1-x1042.google.com with SMTP id jx13so6569208pjb.1;
-        Thu, 04 Mar 2021 05:20:29 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=7TuebsGZ7PfFLh+7VtFFI1adnwVCzaRy+r3d2bkdQFc=;
-        b=ezgmgckKXwMf1XnQDpICKsBKNtIMTaEjBtWq2osVrPLrJBXdavfge9eoYCtdZCCzSa
-         MCH+ayceOvwj0c2+KGgjKphFRufEr1GqkU5H20NTxwuLtZcMQ19p7e8t+y1oL4SyqoFk
-         /Werxajx3XgBNvxdAJH+WqIlW5wuRAZ8f8owXo3hBvLGqQ6wnJc5lQeEH1m3yCyvGDAY
-         0QnpMK0qOJJivxyCm8QrYhlVrFg3bt5spfQsoEZGavewM5F4hOPsIZa+8ipbGxUsZmq4
-         Asfb0undkcPDPe916S51XllzdpWRW9av5aTC/zC/vz2idEcyEdOCZ2T4nTBsWlo30r6c
-         4/6Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=7TuebsGZ7PfFLh+7VtFFI1adnwVCzaRy+r3d2bkdQFc=;
-        b=X12+b5l5ox1mlljXQM1GTP8xD6/r2Yvw9FGWHISnWK6OPel/K7Um+4ulQM+UT7nl0T
-         NNDUbRuT+YDMTGMLs3jFCAK0ZDxWKdcFMyFGyOtfs6QT9o7kfmp759YhMEX+238cQlq2
-         fFpdIJQsTMP44q7IraoaxDC7dNHbIXUPjKnjFgaeRJUvZK8c4N1TGDkY2DZZVeglTOC0
-         /xI2xmOeX+NwE+QIkJXObWnkaH230DUlaU44zSLW9PCChpN1xuKdH3OQyvJpMr4jwPTA
-         Q6eSntJgIgDD5rDMUp0ANv4atyiQvl5oB1VRLN6xhEOofH6TVj1NAtk0QieK7xzSDtta
-         DhAQ==
-X-Gm-Message-State: AOAM53392WLCEjyMORQ3NJYOp7tskhf+ePAN7Jp1txU5XEyAx+ZthulX
-        puJ6H4BmZ1fD6AaYCxSdSC8=
-X-Google-Smtp-Source: ABdhPJw5mop7Q05iwGPVDPv/TV7muVAYEl+QpfM+dzp7wGwLuxJ9xrmHLzyFf9+5Z90KHfNnJQiWeA==
-X-Received: by 2002:a17:902:ea09:b029:e3:a720:b83 with SMTP id s9-20020a170902ea09b02900e3a7200b83mr4023689plg.51.1614864028293;
-        Thu, 04 Mar 2021 05:20:28 -0800 (PST)
-Received: from localhost.localdomain ([178.236.46.205])
-        by smtp.gmail.com with ESMTPSA id u9sm26809374pgc.59.2021.03.04.05.20.25
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 04 Mar 2021 05:20:27 -0800 (PST)
-From:   menglong8.dong@gmail.com
-X-Google-Original-From: zhang.yunkai@zte.com.cn
-To:     aneesh.kumar@linux.ibm.com
-Cc:     will@kernel.org, akpm@linux-foundation.org, npiggin@gmail.com,
-        peterz@infradead.org, ysato@users.sourceforge.jp, dalias@libc.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linux-sh@vger.kernel.org, linux-kernel@vger.kernel.org,
-        Zhang Yunkai <zhang.yunkai@zte.com.cn>
-Subject: [PATCH] sh: remove duplicate include in tlb.h
-Date:   Thu,  4 Mar 2021 05:20:20 -0800
-Message-Id: <20210304132020.196811-1-zhang.yunkai@zte.com.cn>
-X-Mailer: git-send-email 2.25.1
+        with ESMTP id S240135AbhCDVlM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 16:41:12 -0500
+X-Greylist: delayed 62 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Thu, 04 Mar 2021 13:40:31 PST
+Received: from mail.marcansoft.com (marcansoft.com [IPv6:2a01:298:fe:f::2])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BD230C061760;
+        Thu,  4 Mar 2021 13:40:31 -0800 (PST)
+Received: from [127.0.0.1] (localhost [127.0.0.1])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+        (No client certificate requested)
+        (Authenticated sender: hector@marcansoft.com)
+        by mail.marcansoft.com (Postfix) with ESMTPSA id 6C000424BA;
+        Thu,  4 Mar 2021 21:39:41 +0000 (UTC)
+From:   Hector Martin <marcan@marcan.st>
+To:     linux-arm-kernel@lists.infradead.org
+Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
+        Rob Herring <robh@kernel.org>, Arnd Bergmann <arnd@kernel.org>,
+        Olof Johansson <olof@lixom.net>,
+        Krzysztof Kozlowski <krzk@kernel.org>,
+        Mark Kettenis <mark.kettenis@xs4all.nl>,
+        Tony Lindgren <tony@atomide.com>,
+        Mohamed Mediouni <mohamed.mediouni@caramail.com>,
+        Stan Skowronek <stan@corellium.com>,
+        Alexander Graf <graf@amazon.com>,
+        Will Deacon <will@kernel.org>,
+        Linus Walleij <linus.walleij@linaro.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Andy Shevchenko <andy.shevchenko@gmail.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        "David S. Miller" <davem@davemloft.net>,
+        devicetree@vger.kernel.org, linux-serial@vger.kernel.org,
+        linux-doc@vger.kernel.org, linux-samsung-soc@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: [RFT PATCH v3 03/27] dt-bindings: arm: apple: Add bindings for Apple ARM platforms
+Date:   Fri,  5 Mar 2021 06:38:38 +0900
+Message-Id: <20210304213902.83903-4-marcan@marcan.st>
+X-Mailer: git-send-email 2.30.0
+In-Reply-To: <20210304213902.83903-1-marcan@marcan.st>
+References: <20210304213902.83903-1-marcan@marcan.st>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Zhang Yunkai <zhang.yunkai@zte.com.cn>
+This introduces bindings for all three 2020 Apple M1 devices:
 
-'asm-generic/tlb.h' included in 'asm/tlb.h' is duplicated.
+* apple,j274 - Mac mini (M1, 2020)
+* apple,j293 - MacBook Pro (13-inch, M1, 2020)
+* apple,j313 - MacBook Air (M1, 2020)
 
-Signed-off-by: Zhang Yunkai <zhang.yunkai@zte.com.cn>
+Signed-off-by: Hector Martin <marcan@marcan.st>
 ---
- arch/sh/include/asm/tlb.h | 10 ++--------
- 1 file changed, 2 insertions(+), 8 deletions(-)
+ .../devicetree/bindings/arm/apple.yaml        | 64 +++++++++++++++++++
+ MAINTAINERS                                   | 10 +++
+ 2 files changed, 74 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/arm/apple.yaml
 
-diff --git a/arch/sh/include/asm/tlb.h b/arch/sh/include/asm/tlb.h
-index 360f713d009b..aeb8915e9254 100644
---- a/arch/sh/include/asm/tlb.h
-+++ b/arch/sh/include/asm/tlb.h
-@@ -4,12 +4,11 @@
+diff --git a/Documentation/devicetree/bindings/arm/apple.yaml b/Documentation/devicetree/bindings/arm/apple.yaml
+new file mode 100644
+index 000000000000..1e772c85206c
+--- /dev/null
++++ b/Documentation/devicetree/bindings/arm/apple.yaml
+@@ -0,0 +1,64 @@
++# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/arm/apple.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: Apple ARM Machine Device Tree Bindings
++
++maintainers:
++  - Hector Martin <marcan@marcan.st>
++
++description: |
++  ARM platforms using SoCs designed by Apple Inc., branded "Apple Silicon".
++
++  This currently includes devices based on the "M1" SoC, starting with the
++  three Mac models released in late 2020:
++
++  - Mac mini (M1, 2020)
++  - MacBook Pro (13-inch, M1, 2020)
++  - MacBook Air (M1, 2020)
++
++  The compatible property should follow this format:
++
++  compatible = "apple,<targettype>", "apple,<socid>", "apple,arm-platform";
++
++  <targettype> represents the board/device and comes from the `target-type`
++  property of the root node of the Apple Device Tree, lowercased. It can be
++  queried on macOS using the following command:
++
++  $ ioreg -d2 -l | grep target-type
++
++  <socid> is the lowercased SoC ID. Apple uses at least *five* different
++  names for their SoCs:
++
++  - Marketing name ("M1")
++  - Internal name ("H13G")
++  - Codename ("Tonga")
++  - SoC ID ("T8103")
++  - Package/IC part number ("APL1102")
++
++  Devicetrees should use the lowercased SoC ID, to avoid confusion if
++  multiple SoCs share the same marketing name. This can be obtained from
++  the `compatible` property of the arm-io node of the Apple Device Tree,
++  which can be queried as follows on macOS:
++
++  $ ioreg -n arm-io | grep compatible
++
++properties:
++  $nodename:
++    const: "/"
++  compatible:
++    oneOf:
++      - description: Apple M1 SoC based platforms
++        items:
++          - enum:
++              - apple,j274 # Mac mini (M1, 2020)
++              - apple,j293 # MacBook Pro (13-inch, M1, 2020)
++              - apple,j313 # MacBook Air (M1, 2020)
++          - const: apple,t8103
++          - const: apple,arm-platform
++
++additionalProperties: true
++
++...
+diff --git a/MAINTAINERS b/MAINTAINERS
+index d92f85ca831d..aec14fbd61b8 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -1637,6 +1637,16 @@ F:	arch/arm/mach-alpine/
+ F:	arch/arm64/boot/dts/amazon/
+ F:	drivers/*/*alpine*
  
- #ifndef __ASSEMBLY__
- #include <linux/pagemap.h>
-+#include <asm-generic/tlb.h>
- 
- #ifdef CONFIG_MMU
- #include <linux/swap.h>
- 
--#include <asm-generic/tlb.h>
--
- #if defined(CONFIG_CPU_SH4)
- extern void tlb_wire_entry(struct vm_area_struct *, unsigned long, pte_t);
- extern void tlb_unwire_entry(void);
-@@ -24,12 +23,7 @@ static inline void tlb_unwire_entry(void)
- {
- 	BUG();
- }
--#endif
--
--#else /* CONFIG_MMU */
--
--#include <asm-generic/tlb.h>
--
-+#endif /* CONFIG_CPU_SH4 */
- #endif /* CONFIG_MMU */
- #endif /* __ASSEMBLY__ */
- #endif /* __ASM_SH_TLB_H */
++ARM/APPLE MACHINE SUPPORT
++M:	Hector Martin <marcan@marcan.st>
++L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
++S:	Maintained
++W:	https://asahilinux.org
++B:	https://github.com/AsahiLinux/linux/issues
++C:	irc://chat.freenode.net/asahi-dev
++T:	git https://github.com/AsahiLinux/linux.git
++F:	Documentation/devicetree/bindings/arm/apple.yaml
++
+ ARM/ARTPEC MACHINE SUPPORT
+ M:	Jesper Nilsson <jesper.nilsson@axis.com>
+ M:	Lars Persson <lars.persson@axis.com>
 -- 
-2.25.1
+2.30.0
 
