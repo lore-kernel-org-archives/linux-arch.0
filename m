@@ -2,73 +2,132 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=ham autolearn_force=no
+X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BDDA5C3F694
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BA201C433DB
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 01:16:12 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A470D64F3A
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:33 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 918EF65002
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 01:16:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239842AbhCDAtX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 19:49:23 -0500
-Received: from mail.kernel.org ([198.145.29.99]:43574 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1453090AbhCDApT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Mar 2021 19:45:19 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id CA19D64E56;
-        Thu,  4 Mar 2021 00:44:38 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1614818678;
-        bh=8wUvzvMV9XoVLQ9s0QU1nWZT0dd0CJC4pPcE0vc7trM=;
-        h=Date:From:To:Cc:Subject:Reply-To:From;
-        b=m8qrEh7xqoIYY6TjnJNQ7ZbWIo1Kg/RgdA872Sx4xSw3erYLxdIayemAOBHQlp3E5
-         DMWjn4xVnWUDcfmJ7ovzxu1+vZpQ4hc5+O20Zh+fAIAr/qcygPOZHhBy6w8ALNeFpE
-         TZbfysXoDDyw8EM6C4sYeMftcfjd0a8SZFVuX7Fl6Z4gWYQQ050rfgehENApz8yOFc
-         d2FuXHZmaRH1dCQYLe0qRney71YDfvFPkyU4v+Zj3ZQ0fs9ceuBn3kQZGy0E7TqsEA
-         /j44JFY7YmLKvsCBNzktW+3YYYO0A/zOnvjVg1BvZ9CBrZfk8yC+D+c2vbmxigXoGh
-         fB/hikz2W6MHA==
-Received: by paulmck-ThinkPad-P72.home (Postfix, from userid 1000)
-        id 780663522591; Wed,  3 Mar 2021 16:44:38 -0800 (PST)
-Date:   Wed, 3 Mar 2021 16:44:38 -0800
-From:   "Paul E. McKenney" <paulmck@kernel.org>
-To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        kernel-team@fb.com, mingo@kernel.org
-Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
-        peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
-        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        akiyks@gmail.com
-Subject: [PATCH memory-model 0/3] LKMM updates for v5.13
-Message-ID: <20210304004438.GA25271@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
+        id S239693AbhCDBPV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 20:15:21 -0500
+Received: from mail.loongson.cn ([114.242.206.163]:35286 "EHLO loongson.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1450754AbhCDBHY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Mar 2021 20:07:24 -0500
+Received: from ambrosehua-HP-xw6600-Workstation (unknown [182.149.162.140])
+        by mail.loongson.cn (Coremail) with SMTP id AQAAf9Ax6dWPMkBg7hMUAA--.6296S2;
+        Thu, 04 Mar 2021 09:06:25 +0800 (CST)
+Date:   Thu, 4 Mar 2021 09:06:23 +0800
+From:   Huang Pei <huangpei@loongson.cn>
+To:     "Maciej W. Rozycki" <macro@orcam.me.uk>
+Cc:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        ambrosehua@gmail.com, Bibo Mao <maobibo@loongson.cn>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org, Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Paul Burton <paulburton@kernel.org>,
+        Li Xuefeng <lixuefeng@loongson.cn>,
+        Yang Tiezhu <yangtiezhu@loongson.cn>,
+        Gao Juxin <gaojuxin@loongson.cn>,
+        Fuxin Zhang <zhangfx@lemote.com>,
+        Huacai Chen <chenhc@lemote.com>
+Subject: Re: [PATCH] MIPS: clean up CONFIG_MIPS_PGD_C0_CONTEXT handling
+Message-ID: <20210304010623.4tyzpzgllsdy3ssg@ambrosehua-HP-xw6600-Workstation>
+References: <20210227061944.266415-1-huangpei@loongson.cn>
+ <20210227061944.266415-2-huangpei@loongson.cn>
+ <alpine.DEB.2.21.2102282346400.44210@angie.orcam.me.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-User-Agent: Mutt/1.9.4 (2018-02-28)
+In-Reply-To: <alpine.DEB.2.21.2102282346400.44210@angie.orcam.me.uk>
+User-Agent: NeoMutt/20171215
+X-CM-TRANSID: AQAAf9Ax6dWPMkBg7hMUAA--.6296S2
+X-Coremail-Antispam: 1UD129KBjvJXoW7ZFyxXrWUXFW8ZryxCr1xXwb_yoW8ur1xpa
+        95t3WkGr4jvryjgrZIvFZ8Xr4Fqw4qk3s0vFnFqF9xtFWjgFyrGFs7Gr1S9rn8AFs2ya17
+        WryYgFy5uF1Iyw7anT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+        9KBjDU0xBIdaVrnRJUUUvC14x267AKxVW8JVW5JwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
+        1l84ACjcxK6xIIjxv20xvE14v26r4j6ryUM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4j
+        6F4UM28EF7xvwVC2z280aVAFwI0_Gr1j6F4UJwA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_Gr
+        1j6F4UJwAS0I0E0xvYzxvE52x082IY62kv0487Mc02F40EFcxC0VAKzVAqx4xG6I80ewAv
+        7VC0I7IYx2IY67AKxVWUJVWUGwAv7VC2z280aVAFwI0_Jr0_Gr1lOx8S6xCaFVCjc4AY6r
+        1j6r4UM4x0Y48IcVAKI48JM4x0x7Aq67IIx4CEVc8vx2IErcIFxwACI402YVCY1x02628v
+        n2kIc2xKxwCY02Avz4vE14v_KwCF04k20xvY0x0EwIxGrwCFx2IqxVCFs4IE7xkEbVWUJV
+        W8JwC20s026c02F40E14v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E67AF67kF
+        1VAFwI0_Jw0_GFylIxkGc2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVWUJVWUCwCI42IY6x
+        IIjxv20xvEc7CjxVAFwI0_Gr0_Cr1lIxAIcVCF04k26cxKx2IYs7xG6rW3Jr0E3s1lIxAI
+        cVC2z280aVAFwI0_Jr0_Gr1lIxAIcVC2z280aVCY1x0267AKxVW8JVW8JrUvcSsGvfC2Kf
+        nxnUUI43ZEXa7VUbLiSPUUUUU==
+X-CM-SenderInfo: xkxd0whshlqz5rrqw2lrqou0/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hello!
+Hi, 
+On Mon, Mar 01, 2021 at 12:00:28AM +0100, Maciej W. Rozycki wrote:
+> On Sat, 27 Feb 2021, Huang Pei wrote:
+> 
+> > index 2000bb2b0220..517509ad8596 100644
+> > --- a/arch/mips/Kconfig
+> > +++ b/arch/mips/Kconfig
+> > @@ -2142,6 +2142,7 @@ config CPU_SUPPORTS_HUGEPAGES
+> >  	depends on !(32BIT && (ARCH_PHYS_ADDR_T_64BIT || EVA))
+> >  config MIPS_PGD_C0_CONTEXT
+> >  	bool
+> > +	depends on 64BIT
+> >  	default y if 64BIT && (CPU_MIPSR2 || CPU_MIPSR6) && !CPU_XLP
+> 
+>  I guess you want:
+> 
+> 	default y if (CPU_MIPSR2 || CPU_MIPSR6) && !CPU_XLP
+> 
+> at the same time too.  Otherwise you have cruft left behind.
+> 
+Yes, it is much better
+> > diff --git a/arch/mips/mm/tlbex.c b/arch/mips/mm/tlbex.c
+> > index a7521b8f7658..5bb9724578f7 100644
+> > --- a/arch/mips/mm/tlbex.c
+> > +++ b/arch/mips/mm/tlbex.c
+> > @@ -1106,6 +1106,7 @@ struct mips_huge_tlb_info {
+> >  	bool need_reload_pte;
+> >  };
+> >  
+> > +#ifdef CONFIG_64BIT
+> >  static struct mips_huge_tlb_info
+> >  build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
+> >  			       struct uasm_reloc **r, unsigned int tmp,
+> 
+>  Does it actually build without a warning for !CONFIG_64BIT given the 
+> reference below?
 
-This series contains LKMM updates:
+No, my bad, my first reaction when seeing "IS_ENABLED(CONFIG_64BIT)" is
+"#ifdef CONFIG_64BIT"
+> 
+> > @@ -1164,8 +1165,8 @@ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
+> >  
+> >  	if (pgd_reg == -1) {
+> >  		vmalloc_branch_delay_filled = 1;
+> > -		/* 1 0	1 0 1  << 6  xkphys cached */
+> > -		uasm_i_ori(p, ptr, ptr, 0x540);
+> > +		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
+> > +		uasm_i_ori(p, ptr, ptr, (CAC_BASE >> 53));
+> 
+>  Instead I'd paper the issue over by casting the constant to `s64'.
+> 
+>  Or better yet fixed it properly by defining CAC_BASE, etc. as `unsigned
+> long long' long rather than `unsigned long' to stop all this nonsense 
+> (e.g. PHYS_TO_XKPHYS already casts the result to `s64').  Thomas, WDYT?
+Sorry, I do not get it , on MIPS32, how can CAC_BASE be unsigned long
+long ?
 
-1.	Update rcu_dereference.rst reference, courtesy of Mauro Carvalho
-	Chehab.
 
-2.	tools/memory-model: Remove reference to atomic_ops.rst, courtesy
-	of Akira Yokosawa.
+If this did not work, how about one step back, just explicit comment
+wihtout "(CAC_BASE << 53)" ?
+> 
+>   Maciej
 
-3.	tools/memory-model: Add access-marking documentation.
-
-						Thanx, Paul
-
-------------------------------------------------------------------------
-
- access-marking.txt |  474 +++++++++++++++++++++++++++++++++++++++++++++++++++++
- glossary.txt       |    2 
- simple.txt         |    1 
- 3 files changed, 475 insertions(+), 2 deletions(-)
