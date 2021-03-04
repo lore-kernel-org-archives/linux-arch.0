@@ -2,165 +2,77 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-17.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 939DBC15514
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3CACBC43381
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:34 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 78DE164F16
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 18A4A64F39
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 00:49:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239977AbhCDAtR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 19:49:17 -0500
-Received: from mail.kernel.org ([198.145.29.99]:57598 "EHLO mail.kernel.org"
+        id S240370AbhCDAtY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 Mar 2021 19:49:24 -0500
+Received: from mail.kernel.org ([198.145.29.99]:44350 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1573650AbhCCRrO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Mar 2021 12:47:14 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 3E69D64DE8;
-        Wed,  3 Mar 2021 17:46:31 +0000 (UTC)
+        id S1453109AbhCDAqZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Mar 2021 19:46:25 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 50B1664E68;
+        Thu,  4 Mar 2021 00:45:45 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1614793593;
-        bh=zHovqmMgSn4g07KjIGQ3GddG/B+TRQhDfe0NCPpSiOw=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=hEUphPQ96zB/JRoKj9iukjVpFhvPt4O78R/PYwyDsJJCuX1/CS7JwuaoOEH35BCPO
-         PEMEGix9ooCQgp+hbOQENw6SUK1IIm3A+lgyfgp9fpoN7xLENjzuVQ/IUCSakK6oSK
-         XQps8gJRFEm9e2XueANVMhnqazwsU74buqS5004WiXZ5wgyPciFIwXLyh5Azi/QItx
-         +AesAOBL75e28NostLCcUZSnCgvmKjyQGAU/RK9j0tJTyNqgkCclwj8OXUwZlNE4qe
-         JFgAyqC+yZgWr6PSWugGHZKML8mrpCCSajWidxc5wfwh3wy38w9ngkj0ZCq03C4UCi
-         gh11pwSWVe6dQ==
-Date:   Wed, 3 Mar 2021 17:46:28 +0000
-From:   Will Deacon <will@kernel.org>
-To:     Christophe Leroy <christophe.leroy@csgroup.eu>
-Cc:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@samba.org>,
-        Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com,
-        robh@kernel.org, daniel@gimpelevich.san-francisco.ca.us,
-        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-arch@vger.kernel.org, devicetree@vger.kernel.org
-Subject: Re: [PATCH v2 1/7] cmdline: Add generic function to build command
- line.
-Message-ID: <20210303174627.GC19713@willie-the-truck>
-References: <cover.1614705851.git.christophe.leroy@csgroup.eu>
- <d8cf7979ad986de45301b39a757c268d9df19f35.1614705851.git.christophe.leroy@csgroup.eu>
- <20210303172810.GA19713@willie-the-truck>
- <a0cfef11-efba-2e5c-6f58-ed63a2c3bfa0@csgroup.eu>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <a0cfef11-efba-2e5c-6f58-ed63a2c3bfa0@csgroup.eu>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+        s=k20201202; t=1614818745;
+        bh=9gdwnfqsC2457dBQy8GQaMstZlLOSamyaKUpu7JI2VU=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=BQI2316GZDnn+TcyHzKC6n8RES8Jp2dZd5tXWsoIVI5qotJZn6uXmRFiHI9sj9t6M
+         wJSC31nOIuLv2EJnO9+QiUFQ6hzg5JwR8ZXSn/csRWJ/moUB4xZxJsPvtFQ2zCFZL6
+         r6MgkCRM+0WuNNyY2UyPNj3cK3BwX1DezBufg6f5LTaktOBTC6pARgDF/qjbiDVuvJ
+         NUgvpi4TK2cXgzzJd85HKPItX9thyrvL+0l5pmcQ8KyN7xp+3mtgMRz2vtSbDWHlkh
+         F0nHsvcUHAL38aoCLehArTUgPUeoZ16Yd9I1Crr3CHT8uGlC/IItaFcHPyFsb4UAq5
+         F3iFZlvmerAxw==
+From:   paulmck@kernel.org
+To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        kernel-team@fb.com, mingo@kernel.org
+Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
+        peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
+        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
+        akiyks@gmail.com, "Paul E . McKenney" <paulmck@kernel.org>
+Subject: [PATCH memory-model 2/3] tools/memory-model: Remove reference to atomic_ops.rst
+Date:   Wed,  3 Mar 2021 16:45:42 -0800
+Message-Id: <20210304004543.25364-2-paulmck@kernel.org>
+X-Mailer: git-send-email 2.9.5
+In-Reply-To: <20210304004438.GA25271@paulmck-ThinkPad-P72>
+References: <20210304004438.GA25271@paulmck-ThinkPad-P72>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Mar 03, 2021 at 06:38:16PM +0100, Christophe Leroy wrote:
-> Le 03/03/2021 à 18:28, Will Deacon a écrit :
-> > On Tue, Mar 02, 2021 at 05:25:17PM +0000, Christophe Leroy wrote:
-> > > This code provides architectures with a way to build command line
-> > > based on what is built in the kernel and what is handed over by the
-> > > bootloader, based on selected compile-time options.
-> > > 
-> > > Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
-> > > ---
-> > >   include/linux/cmdline.h | 62 +++++++++++++++++++++++++++++++++++++++++
-> > >   1 file changed, 62 insertions(+)
-> > >   create mode 100644 include/linux/cmdline.h
-> > > 
-> > > diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
-> > > new file mode 100644
-> > > index 000000000000..ae3610bb0ee2
-> > > --- /dev/null
-> > > +++ b/include/linux/cmdline.h
-> > > @@ -0,0 +1,62 @@
-> > > +/* SPDX-License-Identifier: GPL-2.0 */
-> > > +#ifndef _LINUX_CMDLINE_H
-> > > +#define _LINUX_CMDLINE_H
-> > > +
-> > > +static __always_inline size_t cmdline_strlen(const char *s)
-> > > +{
-> > > +	const char *sc;
-> > > +
-> > > +	for (sc = s; *sc != '\0'; ++sc)
-> > > +		; /* nothing */
-> > > +	return sc - s;
-> > > +}
-> > > +
-> > > +static __always_inline size_t cmdline_strlcat(char *dest, const char *src, size_t count)
-> > > +{
-> > > +	size_t dsize = cmdline_strlen(dest);
-> > > +	size_t len = cmdline_strlen(src);
-> > > +	size_t res = dsize + len;
-> > > +
-> > > +	/* This would be a bug */
-> > > +	if (dsize >= count)
-> > > +		return count;
-> > > +
-> > > +	dest += dsize;
-> > > +	count -= dsize;
-> > > +	if (len >= count)
-> > > +		len = count - 1;
-> > > +	memcpy(dest, src, len);
-> > > +	dest[len] = 0;
-> > > +	return res;
-> > > +}
-> > 
-> > Why are these needed instead of using strlen and strlcat directly?
-> 
-> Because on powerpc (at least), it will be used in prom_init, it is very
-> early in the boot and KASAN shadow memory is not set up yet so calling
-> generic string functions would crash the board.
+From: Akira Yokosawa <akiyks@gmail.com>
 
-Hmm. We deliberately setup a _really_ early shadow on arm64 for this, can
-you not do something similar? Failing that, I think it would be better to
-offer the option for an arch to implement cmdline_*, but have then point to
-the normal library routines by default.
+atomic_ops.rst was removed by commit f0400a77ebdc ("atomic: Delete
+obsolete documentation").
+Remove the broken link in tools/memory-model/Documentation/simple.txt.
 
-> > > +/*
-> > > + * This function will append a builtin command line to the command
-> > > + * line provided by the bootloader. Kconfig options can be used to alter
-> > > + * the behavior of this builtin command line.
-> > > + * @dest: The destination of the final appended/prepended string.
-> > > + * @src: The starting string or NULL if there isn't one. Must not equal dest.
-> > > + * @length: the length of dest buffer.
-> > > + */
-> > > +static __always_inline void cmdline_build(char *dest, const char *src, size_t length)
-> > > +{
-> > > +	if (length <= 0)
-> > > +		return;
-> > > +
-> > > +	dest[0] = 0;
-> > > +
-> > > +#ifdef CONFIG_CMDLINE
-> > > +	if (IS_ENABLED(CONFIG_CMDLINE_FORCE) || !src || !src[0]) {
-> > > +		cmdline_strlcat(dest, CONFIG_CMDLINE, length);
-> > > +		return;
-> > > +	}
-> > > +#endif
-> > 
-> > CONFIG_CMDLINE_FORCE implies CONFIG_CMDLINE, and even if it didn't,
-> > CONFIG_CMDLINE is at worst an empty string. Can you drop the #ifdef?
-> 
-> Ah yes, since cbe46bd4f510 ("powerpc: remove CONFIG_CMDLINE #ifdef mess") it
-> is feasible. I can change that now.
-> 
-> > 
-> > > +	if (dest != src)
-> > > +		cmdline_strlcat(dest, src, length);
-> > > +#ifdef CONFIG_CMDLINE
-> > > +	if (IS_ENABLED(CONFIG_CMDLINE_EXTEND) && sizeof(CONFIG_CMDLINE) > 1)
-> > > +		cmdline_strlcat(dest, " " CONFIG_CMDLINE, length);
-> > > +#endif
-> > 
-> > Likewise, but also I'm not sure why the sizeof() is required.
-> 
-> It is to avoid adding a white space at the end of the command line when
-> CONFIG_CMDLINE is empty. But maybe it doesn't matter ?
+Cc: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Akira Yokosawa <akiyks@gmail.com>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+---
+ tools/memory-model/Documentation/simple.txt | 1 -
+ 1 file changed, 1 deletion(-)
 
-If CONFIG_CMDLINE is empty, I don't think you can select
-CONFIG_CMDLINE_EXTEND (but even if you could, I don't think it matters).
+diff --git a/tools/memory-model/Documentation/simple.txt b/tools/memory-model/Documentation/simple.txt
+index 81e1a0e..4c789ec 100644
+--- a/tools/memory-model/Documentation/simple.txt
++++ b/tools/memory-model/Documentation/simple.txt
+@@ -189,7 +189,6 @@ Additional information may be found in these files:
+ 
+ Documentation/atomic_t.txt
+ Documentation/atomic_bitops.txt
+-Documentation/core-api/atomic_ops.rst
+ Documentation/core-api/refcount-vs-atomic.rst
+ 
+ Reading code using these primitives is often also quite helpful.
+-- 
+2.9.5
 
-Will
