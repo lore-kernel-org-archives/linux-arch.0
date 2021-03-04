@@ -2,33 +2,33 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-21.8 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
-	USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B0BE3C4360C
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7ED84C43333
 	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:44:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9C4D76500C
+	by mail.kernel.org (Postfix) with ESMTP id 6CCEE65007
 	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 21:44:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240951AbhCDVnf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S240970AbhCDVnf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Thu, 4 Mar 2021 16:43:35 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44044 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44056 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S240922AbhCDVnW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 16:43:22 -0500
+        with ESMTP id S240923AbhCDVnY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 16:43:24 -0500
 Received: from mail.marcansoft.com (marcansoft.com [IPv6:2a01:298:fe:f::2])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 31876C061574;
-        Thu,  4 Mar 2021 13:42:40 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 42FE3C061756;
+        Thu,  4 Mar 2021 13:42:44 -0800 (PST)
 Received: from [127.0.0.1] (localhost [127.0.0.1])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
         (No client certificate requested)
         (Authenticated sender: hector@marcansoft.com)
-        by mail.marcansoft.com (Postfix) with ESMTPSA id E3EF042720;
-        Thu,  4 Mar 2021 21:42:32 +0000 (UTC)
+        by mail.marcansoft.com (Postfix) with ESMTPSA id 0C02E426FC;
+        Thu,  4 Mar 2021 21:41:49 +0000 (UTC)
 From:   Hector Martin <marcan@marcan.st>
 To:     linux-arm-kernel@lists.infradead.org
 Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
@@ -52,9 +52,9 @@ Cc:     Hector Martin <marcan@marcan.st>, Marc Zyngier <maz@kernel.org>,
         devicetree@vger.kernel.org, linux-serial@vger.kernel.org,
         linux-doc@vger.kernel.org, linux-samsung-soc@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: [RFT PATCH v3 27/27] arm64: apple: Add initial Apple Mac mini (M1, 2020) devicetree
-Date:   Fri,  5 Mar 2021 06:39:02 +0900
-Message-Id: <20210304213902.83903-28-marcan@marcan.st>
+Subject: [RFT PATCH v3 21/27] tty: serial: samsung_tty: IRQ rework
+Date:   Fri,  5 Mar 2021 06:38:56 +0900
+Message-Id: <20210304213902.83903-22-marcan@marcan.st>
 X-Mailer: git-send-email 2.30.0
 In-Reply-To: <20210304213902.83903-1-marcan@marcan.st>
 References: <20210304213902.83903-1-marcan@marcan.st>
@@ -64,253 +64,131 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This currently supports:
+* Split out s3c24xx_serial_tx_chars from s3c24xx_serial_tx_irq,
+  where only the latter acquires the port lock. This will be necessary
+  on platforms which have edge-triggered IRQs, as we need to call
+  s3c24xx_serial_tx_chars to kick off transmission from outside IRQ
+  context, with the port lock held.
 
-* SMP (via spin-tables)
-* AIC IRQs
-* Serial (with earlycon)
-* Framebuffer
-
-A number of properties are dynamic, and based on system firmware
-decisions that vary from version to version. These are expected
-to be filled in by the loader.
+* Rename s3c24xx_serial_rx_chars to s3c24xx_serial_rx_irq for
+  consistency with the above. All it does now is call two other
+  functions anyway.
 
 Signed-off-by: Hector Martin <marcan@marcan.st>
 ---
- MAINTAINERS                              |   1 +
- arch/arm64/boot/dts/Makefile             |   1 +
- arch/arm64/boot/dts/apple/Makefile       |   2 +
- arch/arm64/boot/dts/apple/t8103-j274.dts |  45 ++++++++
- arch/arm64/boot/dts/apple/t8103.dtsi     | 135 +++++++++++++++++++++++
- 5 files changed, 184 insertions(+)
- create mode 100644 arch/arm64/boot/dts/apple/Makefile
- create mode 100644 arch/arm64/boot/dts/apple/t8103-j274.dts
- create mode 100644 arch/arm64/boot/dts/apple/t8103.dtsi
+ drivers/tty/serial/samsung_tty.c | 34 +++++++++++++++++++-------------
+ 1 file changed, 20 insertions(+), 14 deletions(-)
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 28bd46f4f7a7..d5e4d93a536a 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -1647,6 +1647,7 @@ C:	irc://chat.freenode.net/asahi-dev
- T:	git https://github.com/AsahiLinux/linux.git
- F:	Documentation/devicetree/bindings/arm/apple.yaml
- F:	Documentation/devicetree/bindings/interrupt-controller/apple,aic.yaml
-+F:	arch/arm64/boot/dts/apple/
- F:	arch/arm64/include/asm/sysreg_apple.h
- F:	drivers/irqchip/irq-apple-aic.c
- F:	include/dt-bindings/interrupt-controller/apple-aic.h
-diff --git a/arch/arm64/boot/dts/Makefile b/arch/arm64/boot/dts/Makefile
-index f1173cd93594..639e01a4d855 100644
---- a/arch/arm64/boot/dts/Makefile
-+++ b/arch/arm64/boot/dts/Makefile
-@@ -6,6 +6,7 @@ subdir-y += amazon
- subdir-y += amd
- subdir-y += amlogic
- subdir-y += apm
-+subdir-y += apple
- subdir-y += arm
- subdir-y += bitmain
- subdir-y += broadcom
-diff --git a/arch/arm64/boot/dts/apple/Makefile b/arch/arm64/boot/dts/apple/Makefile
-new file mode 100644
-index 000000000000..cbbd701ebf05
---- /dev/null
-+++ b/arch/arm64/boot/dts/apple/Makefile
-@@ -0,0 +1,2 @@
-+# SPDX-License-Identifier: GPL-2.0
-+dtb-$(CONFIG_ARCH_APPLE) += t8103-j274.dtb
-diff --git a/arch/arm64/boot/dts/apple/t8103-j274.dts b/arch/arm64/boot/dts/apple/t8103-j274.dts
-new file mode 100644
-index 000000000000..8afc2ed70361
---- /dev/null
-+++ b/arch/arm64/boot/dts/apple/t8103-j274.dts
-@@ -0,0 +1,45 @@
-+// SPDX-License-Identifier: GPL-2.0+ OR MIT
-+/*
-+ * Apple Mac mini (M1, 2020)
-+ *
-+ * target-type: J174
-+ *
-+ * Copyright The Asahi Linux Contributors
-+ */
+diff --git a/drivers/tty/serial/samsung_tty.c b/drivers/tty/serial/samsung_tty.c
+index 39b2eb165bdc..7106eb238d8c 100644
+--- a/drivers/tty/serial/samsung_tty.c
++++ b/drivers/tty/serial/samsung_tty.c
+@@ -827,7 +827,7 @@ static irqreturn_t s3c24xx_serial_rx_chars_pio(void *dev_id)
+ 	return IRQ_HANDLED;
+ }
+ 
+-static irqreturn_t s3c24xx_serial_rx_chars(int irq, void *dev_id)
++static irqreturn_t s3c24xx_serial_rx_irq(int irq, void *dev_id)
+ {
+ 	struct s3c24xx_uart_port *ourport = dev_id;
+ 
+@@ -836,16 +836,12 @@ static irqreturn_t s3c24xx_serial_rx_chars(int irq, void *dev_id)
+ 	return s3c24xx_serial_rx_chars_pio(dev_id);
+ }
+ 
+-static irqreturn_t s3c24xx_serial_tx_chars(int irq, void *id)
++static void s3c24xx_serial_tx_chars(struct s3c24xx_uart_port *ourport)
+ {
+-	struct s3c24xx_uart_port *ourport = id;
+ 	struct uart_port *port = &ourport->port;
+ 	struct circ_buf *xmit = &port->state->xmit;
+-	unsigned long flags;
+ 	int count, dma_count = 0;
+ 
+-	spin_lock_irqsave(&port->lock, flags);
+-
+ 	count = CIRC_CNT_TO_END(xmit->head, xmit->tail, UART_XMIT_SIZE);
+ 
+ 	if (ourport->dma && ourport->dma->tx_chan &&
+@@ -862,7 +858,7 @@ static irqreturn_t s3c24xx_serial_tx_chars(int irq, void *id)
+ 		wr_reg(port, S3C2410_UTXH, port->x_char);
+ 		port->icount.tx++;
+ 		port->x_char = 0;
+-		goto out;
++		return;
+ 	}
+ 
+ 	/* if there isn't anything more to transmit, or the uart is now
+@@ -871,7 +867,7 @@ static irqreturn_t s3c24xx_serial_tx_chars(int irq, void *id)
+ 
+ 	if (uart_circ_empty(xmit) || uart_tx_stopped(port)) {
+ 		s3c24xx_serial_stop_tx(port);
+-		goto out;
++		return;
+ 	}
+ 
+ 	/* try and drain the buffer... */
+@@ -893,7 +889,7 @@ static irqreturn_t s3c24xx_serial_tx_chars(int irq, void *id)
+ 
+ 	if (!count && dma_count) {
+ 		s3c24xx_serial_start_tx_dma(ourport, dma_count);
+-		goto out;
++		return;
+ 	}
+ 
+ 	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS) {
+@@ -904,8 +900,18 @@ static irqreturn_t s3c24xx_serial_tx_chars(int irq, void *id)
+ 
+ 	if (uart_circ_empty(xmit))
+ 		s3c24xx_serial_stop_tx(port);
++}
 +
-+/dts-v1/;
++static irqreturn_t s3c24xx_serial_tx_irq(int irq, void *id)
++{
++	struct s3c24xx_uart_port *ourport = id;
++	struct uart_port *port = &ourport->port;
++	unsigned long flags;
 +
-+#include "t8103.dtsi"
++	spin_lock_irqsave(&port->lock, flags);
 +
-+/ {
-+	compatible = "apple,j274", "apple,t8103", "apple,arm-platform";
-+	model = "Apple Mac mini (M1, 2020)";
-+
-+	aliases {
-+		serial0 = &serial0;
-+	};
-+
-+	chosen {
-+		#address-cells = <2>;
-+		#size-cells = <2>;
-+		ranges;
-+
-+		stdout-path = "serial0";
-+
-+		framebuffer0: framebuffer@0 {
-+			compatible = "apple,simple-framebuffer", "simple-framebuffer";
-+			reg = <0 0 0 0>; /* To be filled by loader */
-+			/* Format properties will be added by loader */
-+			status = "disabled";
-+		};
-+	};
-+
-+	memory@800000000 {
-+		device_type = "memory";
-+		reg = <0x8 0 0x2 0>; /* To be filled by loader */
-+	};
-+};
-+
-+&serial0 {
-+	status = "okay";
-+};
-diff --git a/arch/arm64/boot/dts/apple/t8103.dtsi b/arch/arm64/boot/dts/apple/t8103.dtsi
-new file mode 100644
-index 000000000000..aac9e4e6abc5
---- /dev/null
-+++ b/arch/arm64/boot/dts/apple/t8103.dtsi
-@@ -0,0 +1,135 @@
-+// SPDX-License-Identifier: GPL-2.0+ OR MIT
-+/*
-+ * Apple T8103 "M1" SoC
-+ *
-+ * Other names: H13G, "Tonga"
-+ *
-+ * Copyright The Asahi Linux Contributors
-+ */
-+
-+#include <dt-bindings/interrupt-controller/apple-aic.h>
-+#include <dt-bindings/interrupt-controller/irq.h>
-+
-+/ {
-+	compatible = "apple,t8103", "apple,arm-platform";
-+
-+	#address-cells = <2>;
-+	#size-cells = <2>;
-+
-+	cpus {
-+		#address-cells = <2>;
-+		#size-cells = <0>;
-+
-+		cpu0: cpu@0 {
-+			compatible = "apple,icestorm";
-+			device_type = "cpu";
-+			reg = <0x0 0x0>;
-+			enable-method = "spin-table";
-+			cpu-release-addr = <0 0>; /* To be filled by loader */
-+		};
-+
-+		cpu1: cpu@1 {
-+			compatible = "apple,icestorm";
-+			device_type = "cpu";
-+			reg = <0x0 0x1>;
-+			enable-method = "spin-table";
-+			cpu-release-addr = <0 0>; /* To be filled by loader */
-+		};
-+
-+		cpu2: cpu@2 {
-+			compatible = "apple,icestorm";
-+			device_type = "cpu";
-+			reg = <0x0 0x2>;
-+			enable-method = "spin-table";
-+			cpu-release-addr = <0 0>; /* To be filled by loader */
-+		};
-+
-+		cpu3: cpu@3 {
-+			compatible = "apple,icestorm";
-+			device_type = "cpu";
-+			reg = <0x0 0x3>;
-+			enable-method = "spin-table";
-+			cpu-release-addr = <0 0>; /* To be filled by loader */
-+		};
-+
-+		cpu4: cpu@10100 {
-+			compatible = "apple,firestorm";
-+			device_type = "cpu";
-+			reg = <0x0 0x10100>;
-+			enable-method = "spin-table";
-+			cpu-release-addr = <0 0>; /* To be filled by loader */
-+		};
-+
-+		cpu5: cpu@10101 {
-+			compatible = "apple,firestorm";
-+			device_type = "cpu";
-+			reg = <0x0 0x10101>;
-+			enable-method = "spin-table";
-+			cpu-release-addr = <0 0>; /* To be filled by loader */
-+		};
-+
-+		cpu6: cpu@10102 {
-+			compatible = "apple,firestorm";
-+			device_type = "cpu";
-+			reg = <0x0 0x10102>;
-+			enable-method = "spin-table";
-+			cpu-release-addr = <0 0>; /* To be filled by loader */
-+		};
-+
-+		cpu7: cpu@10103 {
-+			compatible = "apple,firestorm";
-+			device_type = "cpu";
-+			reg = <0x0 0x10103>;
-+			enable-method = "spin-table";
-+			cpu-release-addr = <0 0>; /* To be filled by loader */
-+		};
-+	};
-+
-+	timer {
-+		compatible = "arm,armv8-timer";
-+		interrupt-parent = <&aic>;
-+		interrupt-names = "hyp-phys", "hyp-virt", "phys", "virt";
-+		interrupts = <AIC_FIQ AIC_TMR_HV_PHYS IRQ_TYPE_LEVEL_HIGH>,
-+			     <AIC_FIQ AIC_TMR_HV_VIRT IRQ_TYPE_LEVEL_HIGH>,
-+			     <AIC_FIQ AIC_TMR_GUEST_PHYS IRQ_TYPE_LEVEL_HIGH>,
-+			     <AIC_FIQ AIC_TMR_GUEST_VIRT IRQ_TYPE_LEVEL_HIGH>;
-+	};
-+
-+	clk24: clock-24m {
-+		compatible = "fixed-clock";
-+		#clock-cells = <0>;
-+		clock-frequency = <24000000>;
-+		clock-output-names = "clk24";
-+	};
-+
-+	soc {
-+		compatible = "simple-bus";
-+		#address-cells = <2>;
-+		#size-cells = <2>;
-+
-+		ranges;
-+		nonposted-mmio;
-+
-+		aic: interrupt-controller@23b100000 {
-+			compatible = "apple,t8103-aic", "apple,aic";
-+			#interrupt-cells = <3>;
-+			interrupt-controller;
-+			reg = <0x2 0x3b100000 0x0 0x8000>;
-+		};
-+
-+		serial0: serial@235200000 {
-+			compatible = "apple,s5l-uart";
-+			reg = <0x2 0x35200000 0x0 0x1000>;
-+			reg-io-width = <4>;
-+			interrupt-parent = <&aic>;
-+			interrupts = <AIC_IRQ 605 IRQ_TYPE_LEVEL_HIGH>;
-+			/*
-+			 * TODO: figure out the clocking properly, there may
-+			 * be a third selectable clock.
-+			 */
-+			clocks = <&clk24>, <&clk24>;
-+			clock-names = "uart", "clk_uart_baud0";
-+			status = "disabled";
-+		};
-+	};
-+};
++	s3c24xx_serial_tx_chars(ourport);
+ 
+-out:
+ 	spin_unlock_irqrestore(&port->lock, flags);
+ 	return IRQ_HANDLED;
+ }
+@@ -919,11 +925,11 @@ static irqreturn_t s3c64xx_serial_handle_irq(int irq, void *id)
+ 	irqreturn_t ret = IRQ_HANDLED;
+ 
+ 	if (pend & S3C64XX_UINTM_RXD_MSK) {
+-		ret = s3c24xx_serial_rx_chars(irq, id);
++		ret = s3c24xx_serial_rx_irq(irq, id);
+ 		wr_regl(port, S3C64XX_UINTP, S3C64XX_UINTM_RXD_MSK);
+ 	}
+ 	if (pend & S3C64XX_UINTM_TXD_MSK) {
+-		ret = s3c24xx_serial_tx_chars(irq, id);
++		ret = s3c24xx_serial_tx_irq(irq, id);
+ 		wr_regl(port, S3C64XX_UINTP, S3C64XX_UINTM_TXD_MSK);
+ 	}
+ 	return ret;
+@@ -1155,7 +1161,7 @@ static int s3c24xx_serial_startup(struct uart_port *port)
+ 
+ 	ourport->rx_enabled = 1;
+ 
+-	ret = request_irq(ourport->rx_irq, s3c24xx_serial_rx_chars, 0,
++	ret = request_irq(ourport->rx_irq, s3c24xx_serial_rx_irq, 0,
+ 			  s3c24xx_serial_portname(port), ourport);
+ 
+ 	if (ret != 0) {
+@@ -1169,7 +1175,7 @@ static int s3c24xx_serial_startup(struct uart_port *port)
+ 
+ 	ourport->tx_enabled = 1;
+ 
+-	ret = request_irq(ourport->tx_irq, s3c24xx_serial_tx_chars, 0,
++	ret = request_irq(ourport->tx_irq, s3c24xx_serial_tx_irq, 0,
+ 			  s3c24xx_serial_portname(port), ourport);
+ 
+ 	if (ret) {
 -- 
 2.30.0
 
