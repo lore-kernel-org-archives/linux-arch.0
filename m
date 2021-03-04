@@ -2,78 +2,119 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4F59AC433DB
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 01:42:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8743CC433DB
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 13:22:10 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1315B65077
-	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 01:42:48 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 621D964F09
+	for <linux-arch@archiver.kernel.org>; Thu,  4 Mar 2021 13:22:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233877AbhCDBmr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 Mar 2021 20:42:47 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38320 "EHLO
+        id S233075AbhCDNVY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 4 Mar 2021 08:21:24 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47934 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233692AbhCDBmU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Mar 2021 20:42:20 -0500
-Received: from angie.orcam.me.uk (angie.orcam.me.uk [IPv6:2001:4190:8020::4])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 7A0DCC061756
-        for <linux-arch@vger.kernel.org>; Wed,  3 Mar 2021 17:41:39 -0800 (PST)
-Received: by angie.orcam.me.uk (Postfix, from userid 500)
-        id 72ACF92009C; Thu,  4 Mar 2021 02:40:54 +0100 (CET)
-Received: from localhost (localhost [127.0.0.1])
-        by angie.orcam.me.uk (Postfix) with ESMTP id 6DCAD92009B;
-        Thu,  4 Mar 2021 02:40:54 +0100 (CET)
-Date:   Thu, 4 Mar 2021 02:40:54 +0100 (CET)
-From:   "Maciej W. Rozycki" <macro@orcam.me.uk>
-To:     Huang Pei <huangpei@loongson.cn>
-cc:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        ambrosehua@gmail.com, Bibo Mao <maobibo@loongson.cn>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Paul Burton <paulburton@kernel.org>,
-        Li Xuefeng <lixuefeng@loongson.cn>,
-        Yang Tiezhu <yangtiezhu@loongson.cn>,
-        Gao Juxin <gaojuxin@loongson.cn>,
-        Fuxin Zhang <zhangfx@lemote.com>,
-        Huacai Chen <chenhc@lemote.com>
-Subject: Re: [PATCH] MIPS: clean up CONFIG_MIPS_PGD_C0_CONTEXT handling
-In-Reply-To: <20210304010623.4tyzpzgllsdy3ssg@ambrosehua-HP-xw6600-Workstation>
-Message-ID: <alpine.DEB.2.21.2103040227500.19637@angie.orcam.me.uk>
-References: <20210227061944.266415-1-huangpei@loongson.cn> <20210227061944.266415-2-huangpei@loongson.cn> <alpine.DEB.2.21.2102282346400.44210@angie.orcam.me.uk> <20210304010623.4tyzpzgllsdy3ssg@ambrosehua-HP-xw6600-Workstation>
-User-Agent: Alpine 2.21 (DEB 202 2017-01-01)
+        with ESMTP id S232942AbhCDNVJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2021 08:21:09 -0500
+Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A31A2C06175F;
+        Thu,  4 Mar 2021 05:20:29 -0800 (PST)
+Received: by mail-pj1-x1042.google.com with SMTP id jx13so6569208pjb.1;
+        Thu, 04 Mar 2021 05:20:29 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=7TuebsGZ7PfFLh+7VtFFI1adnwVCzaRy+r3d2bkdQFc=;
+        b=ezgmgckKXwMf1XnQDpICKsBKNtIMTaEjBtWq2osVrPLrJBXdavfge9eoYCtdZCCzSa
+         MCH+ayceOvwj0c2+KGgjKphFRufEr1GqkU5H20NTxwuLtZcMQ19p7e8t+y1oL4SyqoFk
+         /Werxajx3XgBNvxdAJH+WqIlW5wuRAZ8f8owXo3hBvLGqQ6wnJc5lQeEH1m3yCyvGDAY
+         0QnpMK0qOJJivxyCm8QrYhlVrFg3bt5spfQsoEZGavewM5F4hOPsIZa+8ipbGxUsZmq4
+         Asfb0undkcPDPe916S51XllzdpWRW9av5aTC/zC/vz2idEcyEdOCZ2T4nTBsWlo30r6c
+         4/6Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=7TuebsGZ7PfFLh+7VtFFI1adnwVCzaRy+r3d2bkdQFc=;
+        b=X12+b5l5ox1mlljXQM1GTP8xD6/r2Yvw9FGWHISnWK6OPel/K7Um+4ulQM+UT7nl0T
+         NNDUbRuT+YDMTGMLs3jFCAK0ZDxWKdcFMyFGyOtfs6QT9o7kfmp759YhMEX+238cQlq2
+         fFpdIJQsTMP44q7IraoaxDC7dNHbIXUPjKnjFgaeRJUvZK8c4N1TGDkY2DZZVeglTOC0
+         /xI2xmOeX+NwE+QIkJXObWnkaH230DUlaU44zSLW9PCChpN1xuKdH3OQyvJpMr4jwPTA
+         Q6eSntJgIgDD5rDMUp0ANv4atyiQvl5oB1VRLN6xhEOofH6TVj1NAtk0QieK7xzSDtta
+         DhAQ==
+X-Gm-Message-State: AOAM53392WLCEjyMORQ3NJYOp7tskhf+ePAN7Jp1txU5XEyAx+ZthulX
+        puJ6H4BmZ1fD6AaYCxSdSC8=
+X-Google-Smtp-Source: ABdhPJw5mop7Q05iwGPVDPv/TV7muVAYEl+QpfM+dzp7wGwLuxJ9xrmHLzyFf9+5Z90KHfNnJQiWeA==
+X-Received: by 2002:a17:902:ea09:b029:e3:a720:b83 with SMTP id s9-20020a170902ea09b02900e3a7200b83mr4023689plg.51.1614864028293;
+        Thu, 04 Mar 2021 05:20:28 -0800 (PST)
+Received: from localhost.localdomain ([178.236.46.205])
+        by smtp.gmail.com with ESMTPSA id u9sm26809374pgc.59.2021.03.04.05.20.25
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 04 Mar 2021 05:20:27 -0800 (PST)
+From:   menglong8.dong@gmail.com
+X-Google-Original-From: zhang.yunkai@zte.com.cn
+To:     aneesh.kumar@linux.ibm.com
+Cc:     will@kernel.org, akpm@linux-foundation.org, npiggin@gmail.com,
+        peterz@infradead.org, ysato@users.sourceforge.jp, dalias@libc.org,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org,
+        linux-sh@vger.kernel.org, linux-kernel@vger.kernel.org,
+        Zhang Yunkai <zhang.yunkai@zte.com.cn>
+Subject: [PATCH] sh: remove duplicate include in tlb.h
+Date:   Thu,  4 Mar 2021 05:20:20 -0800
+Message-Id: <20210304132020.196811-1-zhang.yunkai@zte.com.cn>
+X-Mailer: git-send-email 2.25.1
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, 4 Mar 2021, Huang Pei wrote:
+From: Zhang Yunkai <zhang.yunkai@zte.com.cn>
 
-> > > @@ -1164,8 +1165,8 @@ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
-> > >  
-> > >  	if (pgd_reg == -1) {
-> > >  		vmalloc_branch_delay_filled = 1;
-> > > -		/* 1 0	1 0 1  << 6  xkphys cached */
-> > > -		uasm_i_ori(p, ptr, ptr, 0x540);
-> > > +		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
-> > > +		uasm_i_ori(p, ptr, ptr, (CAC_BASE >> 53));
-> > 
-> >  Instead I'd paper the issue over by casting the constant to `s64'.
-> > 
-> >  Or better yet fixed it properly by defining CAC_BASE, etc. as `unsigned
-> > long long' long rather than `unsigned long' to stop all this nonsense 
-> > (e.g. PHYS_TO_XKPHYS already casts the result to `s64').  Thomas, WDYT?
-> Sorry, I do not get it , on MIPS32, how can CAC_BASE be unsigned long
-> long ?
+'asm-generic/tlb.h' included in 'asm/tlb.h' is duplicated.
 
- By using the `ULL' suffix with constants.  It won't change code produced, 
-because they are unsigned anyway and the compiler will truncate them with 
-no change to the actual value to fit in narrower data types as needed, but 
-it will silence the warnings.
+Signed-off-by: Zhang Yunkai <zhang.yunkai@zte.com.cn>
+---
+ arch/sh/include/asm/tlb.h | 10 ++--------
+ 1 file changed, 2 insertions(+), 8 deletions(-)
 
-  Maciej
+diff --git a/arch/sh/include/asm/tlb.h b/arch/sh/include/asm/tlb.h
+index 360f713d009b..aeb8915e9254 100644
+--- a/arch/sh/include/asm/tlb.h
++++ b/arch/sh/include/asm/tlb.h
+@@ -4,12 +4,11 @@
+ 
+ #ifndef __ASSEMBLY__
+ #include <linux/pagemap.h>
++#include <asm-generic/tlb.h>
+ 
+ #ifdef CONFIG_MMU
+ #include <linux/swap.h>
+ 
+-#include <asm-generic/tlb.h>
+-
+ #if defined(CONFIG_CPU_SH4)
+ extern void tlb_wire_entry(struct vm_area_struct *, unsigned long, pte_t);
+ extern void tlb_unwire_entry(void);
+@@ -24,12 +23,7 @@ static inline void tlb_unwire_entry(void)
+ {
+ 	BUG();
+ }
+-#endif
+-
+-#else /* CONFIG_MMU */
+-
+-#include <asm-generic/tlb.h>
+-
++#endif /* CONFIG_CPU_SH4 */
+ #endif /* CONFIG_MMU */
+ #endif /* __ASSEMBLY__ */
+ #endif /* __ASM_SH_TLB_H */
+-- 
+2.25.1
+
