@@ -2,65 +2,31 @@ Return-Path: <SRS0=VMqq=ID=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 44A20C433E9
-	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 15:18:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8D35EC43381
+	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 15:20:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1B17965090
-	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 15:18:59 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 56ED665092
+	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 15:20:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229616AbhCEPS2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 5 Mar 2021 10:18:28 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44832 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229528AbhCEPSL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Mar 2021 10:18:11 -0500
-Received: from mail-pf1-x42c.google.com (mail-pf1-x42c.google.com [IPv6:2607:f8b0:4864:20::42c])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E258AC061574;
-        Fri,  5 Mar 2021 07:18:10 -0800 (PST)
-Received: by mail-pf1-x42c.google.com with SMTP id t29so2233875pfg.11;
-        Fri, 05 Mar 2021 07:18:10 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=GXgybONIV8Un/qYPL7SKvbrjGoX85mO1+G2xJKWHF3E=;
-        b=sD7+gFdq32Xgi82kLRFU8pXvDETXmXWFq5ktrjMXiKtsFmc3tkBTGl9OPNcRVS5S1b
-         IQ8Qy9pw5yhF+GRTj/D4QgtyP/q4b3ystH7neC7qz6vtSMyvO6BSxV7KiAUQcNTr4UTi
-         5KzToosJ1xdv0MJzEJ4ZWNTmXIdCIvacx//eXGz1ybbrCC2aMRzLyvynSO6siknF4F2D
-         NCPyOWqq6NtQjMtp/YeP3aFWj3ZOoB+dz1yNVlYk9dPrEnwszpngqSI+Hp8GP8mYfmOS
-         mKVoPJc3PEXRPc3oJnF3AMEg+DsH7/RF4pfDcZAGq/vKTIQf/GubK/io8czwxLxuvav4
-         sBPQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=GXgybONIV8Un/qYPL7SKvbrjGoX85mO1+G2xJKWHF3E=;
-        b=WvRFsvYVU2u5jPxosEObfUKDPza5H9fyj2Qp4OqJPq8rmd78J0Cq+NaOZYBynZwFli
-         QQIPZOPkOMrRLxsvzBz14bwA84RvG+MpagVR8ozFcY20ZWy4D2lwakfQOVwYHRUZMHrt
-         54f7Q5O+Z9Bd0/OuARim1Z7VlOIzd4Ef9Pe9XDBjssEfpqmlOusGTHhrR0PEBQcaKCRA
-         dbN088QBKxfKljeXUoYgRAQ00gp/hN/ARDM0bqzEWHFwcTMaMwSRDZpdNsBaHmF2gcf4
-         o1R0+8DoDhACzweY16hmFI9flmTxX8c/gCmr0DG8KUNjX3MTIkPBjok78/4kIXgFN1jr
-         ezgA==
-X-Gm-Message-State: AOAM5321AoS/If88BiOw0o0ln9HeyG4mNTR14y7/W3PEJJmBTj7rZoY6
-        Gfw9OKuWwS/9YrPUcmoPOJBo+CvurSLVACHHx3Y=
-X-Google-Smtp-Source: ABdhPJyUU6I/nYiB5+xIlT+woCy/dtsvBTSu8eJVmQJh5/G5wQS/XU/eYDIMbG6chJU3ZJn8dUFbp5bYBMEgzydMDww=
-X-Received: by 2002:a05:6a00:854:b029:1b7:6233:c5f with SMTP id
- q20-20020a056a000854b02901b762330c5fmr9460771pfk.73.1614957490271; Fri, 05
- Mar 2021 07:18:10 -0800 (PST)
-MIME-Version: 1.0
-References: <20210304213902.83903-1-marcan@marcan.st> <20210304213902.83903-22-marcan@marcan.st>
-In-Reply-To: <20210304213902.83903-22-marcan@marcan.st>
-From:   Andy Shevchenko <andy.shevchenko@gmail.com>
-Date:   Fri, 5 Mar 2021 17:17:54 +0200
-Message-ID: <CAHp75Vc+t9_FNHZ0xYNaJ1+Ny+FFeZKA79abxV2NAsZvpBh3Bg@mail.gmail.com>
-Subject: Re: [RFT PATCH v3 21/27] tty: serial: samsung_tty: IRQ rework
-To:     Hector Martin <marcan@marcan.st>
+        id S229976AbhCEPUE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 5 Mar 2021 10:20:04 -0500
+Received: from marcansoft.com ([212.63.210.85]:58814 "EHLO mail.marcansoft.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S229650AbhCEPTp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Mar 2021 10:19:45 -0500
+Received: from [127.0.0.1] (localhost [127.0.0.1])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+        (No client certificate requested)
+        (Authenticated sender: marcan@marcan.st)
+        by mail.marcansoft.com (Postfix) with ESMTPSA id C160E3FA28;
+        Fri,  5 Mar 2021 15:19:36 +0000 (UTC)
+To:     Andy Shevchenko <andy.shevchenko@gmail.com>
 Cc:     linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>,
         Marc Zyngier <maz@kernel.org>, Rob Herring <robh@kernel.org>,
         Arnd Bergmann <arnd@kernel.org>,
@@ -85,148 +51,70 @@ Cc:     linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>,
         Linux Samsung SOC <linux-samsung-soc@vger.kernel.org>,
         Linux-Arch <linux-arch@vger.kernel.org>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+References: <20210304213902.83903-1-marcan@marcan.st>
+ <20210304213902.83903-9-marcan@marcan.st>
+ <CAHp75Ven4piceFaBhn1kc=vtwM4o-GXmz3eAZoNhU8w+iP5qxQ@mail.gmail.com>
+From:   Hector Martin <marcan@marcan.st>
+Subject: Re: [RFT PATCH v3 08/27] asm-generic/io.h: Add a non-posted variant
+ of ioremap()
+Message-ID: <03f75e1f-3b3a-95a7-0298-c616dfed54ec@marcan.st>
+Date:   Sat, 6 Mar 2021 00:19:34 +0900
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.6.0
+MIME-Version: 1.0
+In-Reply-To: <CAHp75Ven4piceFaBhn1kc=vtwM4o-GXmz3eAZoNhU8w+iP5qxQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: es-ES
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Mar 4, 2021 at 11:41 PM Hector Martin <marcan@marcan.st> wrote:
->
-> * Split out s3c24xx_serial_tx_chars from s3c24xx_serial_tx_irq,
->   where only the latter acquires the port lock. This will be necessary
->   on platforms which have edge-triggered IRQs, as we need to call
->   s3c24xx_serial_tx_chars to kick off transmission from outside IRQ
->   context, with the port lock held.
->
-> * Rename s3c24xx_serial_rx_chars to s3c24xx_serial_rx_irq for
->   consistency with the above. All it does now is call two other
->   functions anyway.
->
-> Signed-off-by: Hector Martin <marcan@marcan.st>
-> ---
->  drivers/tty/serial/samsung_tty.c | 34 +++++++++++++++++++-------------
->  1 file changed, 20 insertions(+), 14 deletions(-)
->
-> diff --git a/drivers/tty/serial/samsung_tty.c b/drivers/tty/serial/samsung_tty.c
-> index 39b2eb165bdc..7106eb238d8c 100644
-> --- a/drivers/tty/serial/samsung_tty.c
-> +++ b/drivers/tty/serial/samsung_tty.c
-> @@ -827,7 +827,7 @@ static irqreturn_t s3c24xx_serial_rx_chars_pio(void *dev_id)
->         return IRQ_HANDLED;
->  }
->
-> -static irqreturn_t s3c24xx_serial_rx_chars(int irq, void *dev_id)
-> +static irqreturn_t s3c24xx_serial_rx_irq(int irq, void *dev_id)
->  {
->         struct s3c24xx_uart_port *ourport = dev_id;
->
-> @@ -836,16 +836,12 @@ static irqreturn_t s3c24xx_serial_rx_chars(int irq, void *dev_id)
->         return s3c24xx_serial_rx_chars_pio(dev_id);
->  }
->
-> -static irqreturn_t s3c24xx_serial_tx_chars(int irq, void *id)
-> +static void s3c24xx_serial_tx_chars(struct s3c24xx_uart_port *ourport)
->  {
-> -       struct s3c24xx_uart_port *ourport = id;
->         struct uart_port *port = &ourport->port;
->         struct circ_buf *xmit = &port->state->xmit;
-> -       unsigned long flags;
->         int count, dma_count = 0;
->
-> -       spin_lock_irqsave(&port->lock, flags);
-> -
->         count = CIRC_CNT_TO_END(xmit->head, xmit->tail, UART_XMIT_SIZE);
->
->         if (ourport->dma && ourport->dma->tx_chan &&
-> @@ -862,7 +858,7 @@ static irqreturn_t s3c24xx_serial_tx_chars(int irq, void *id)
->                 wr_reg(port, S3C2410_UTXH, port->x_char);
->                 port->icount.tx++;
->                 port->x_char = 0;
-> -               goto out;
-> +               return;
->         }
->
->         /* if there isn't anything more to transmit, or the uart is now
-> @@ -871,7 +867,7 @@ static irqreturn_t s3c24xx_serial_tx_chars(int irq, void *id)
->
->         if (uart_circ_empty(xmit) || uart_tx_stopped(port)) {
->                 s3c24xx_serial_stop_tx(port);
-> -               goto out;
-> +               return;
->         }
->
->         /* try and drain the buffer... */
-> @@ -893,7 +889,7 @@ static irqreturn_t s3c24xx_serial_tx_chars(int irq, void *id)
->
->         if (!count && dma_count) {
->                 s3c24xx_serial_start_tx_dma(ourport, dma_count);
-> -               goto out;
-> +               return;
->         }
->
->         if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS) {
-> @@ -904,8 +900,18 @@ static irqreturn_t s3c24xx_serial_tx_chars(int irq, void *id)
->
->         if (uart_circ_empty(xmit))
->                 s3c24xx_serial_stop_tx(port);
-> +}
-> +
-> +static irqreturn_t s3c24xx_serial_tx_irq(int irq, void *id)
-> +{
-> +       struct s3c24xx_uart_port *ourport = id;
-> +       struct uart_port *port = &ourport->port;
-> +       unsigned long flags;
-> +
+On 05/03/2021 23.45, Andy Shevchenko wrote:
+> On Thu, Mar 4, 2021 at 11:40 PM Hector Martin <marcan@marcan.st> wrote:
+>>
+>> ARM64 currently defaults to posted MMIO (nGnRnE), but some devices
+>> require the use of non-posted MMIO (nGnRE). Introduce a new ioremap()
+>> variant to handle this case. ioremap_np() is aliased to ioremap() by
+>> default on arches that do not implement this variant.
+> 
+> Hmm... But isn't it basically a requirement to those device drivers to
+> use readX()/writeX() instead of readX_relaxed() / writeX_relaxed()?
 
+No, the write ops used do not matter. It's just that on these Apple SoCs 
+the fabric requires the mappings to be nGnRnE, else it just throws 
+SErrors on all writes and ignores them.
 
-> +       spin_lock_irqsave(&port->lock, flags);
-> +
-> +       s3c24xx_serial_tx_chars(ourport);
->
-> -out:
->         spin_unlock_irqrestore(&port->lock, flags);
+The difference between _relaxed and not is barrier behavior with regards 
+to DMA/memory accesses; this applies regardless of whether the writes 
+are E or nE. You can have relaxed accesses with nGnRnE and then you 
+would still have race conditions if you do not have a barrier between 
+the MMIO and accessing DMA memory. What nGnRnE buys you (on 
+platforms/buses where it works properly) is that you do need a dummy 
+read after a write to ensure completion.
 
-Add a separate change that removes flags from the spin lock in the IRQ handler.
+All of this is to some extent moot on these SoCs; it's not that we need 
+the drivers to use nGnRnE for some correctness reason, it's that the 
+SoCs force us to use it or else everything breaks, which was the 
+motivation for this change. But since on most other SoCs both are valid 
+options, this does allow some other drivers/platforms to opt into nGnRnE 
+if they have a good reason to do so.
 
->         return IRQ_HANDLED;
->  }
-> @@ -919,11 +925,11 @@ static irqreturn_t s3c64xx_serial_handle_irq(int irq, void *id)
->         irqreturn_t ret = IRQ_HANDLED;
->
->         if (pend & S3C64XX_UINTM_RXD_MSK) {
-> -               ret = s3c24xx_serial_rx_chars(irq, id);
-> +               ret = s3c24xx_serial_rx_irq(irq, id);
->                 wr_regl(port, S3C64XX_UINTP, S3C64XX_UINTM_RXD_MSK);
->         }
->         if (pend & S3C64XX_UINTM_TXD_MSK) {
-> -               ret = s3c24xx_serial_tx_chars(irq, id);
-> +               ret = s3c24xx_serial_tx_irq(irq, id);
->                 wr_regl(port, S3C64XX_UINTP, S3C64XX_UINTM_TXD_MSK);
->         }
->         return ret;
-> @@ -1155,7 +1161,7 @@ static int s3c24xx_serial_startup(struct uart_port *port)
->
->         ourport->rx_enabled = 1;
->
-> -       ret = request_irq(ourport->rx_irq, s3c24xx_serial_rx_chars, 0,
-> +       ret = request_irq(ourport->rx_irq, s3c24xx_serial_rx_irq, 0,
->                           s3c24xx_serial_portname(port), ourport);
->
->         if (ret != 0) {
-> @@ -1169,7 +1175,7 @@ static int s3c24xx_serial_startup(struct uart_port *port)
->
->         ourport->tx_enabled = 1;
->
-> -       ret = request_irq(ourport->tx_irq, s3c24xx_serial_tx_chars, 0,
-> +       ret = request_irq(ourport->tx_irq, s3c24xx_serial_tx_irq, 0,
->                           s3c24xx_serial_portname(port), ourport);
->
->         if (ret) {
-> --
-> 2.30.0
->
+Though you just made me notice two mistakes in the commit description: 
+first, it describes the old v2 version, for v3 I made ioremap_np() just 
+return NULL on arches that don't implement it. Second, nGnRnE and nGnRE 
+are backwards. Oops. I'll fix it for the next version.
 
+>>   #define IORESOURCE_MEM_32BIT           (3<<3)
+>>   #define IORESOURCE_MEM_SHADOWABLE      (1<<5)  /* dup: IORESOURCE_SHADOWABLE */
+>>   #define IORESOURCE_MEM_EXPANSIONROM    (1<<6)
+>> +#define IORESOURCE_MEM_NONPOSTED       (1<<7)
+> 
+> Not sure it's the right location (in a bit field) for this flag.
+
+Do you have a better suggestion? It seemed logical to put it here, as a 
+flag on memory-type I/O resources.
 
 -- 
-With Best Regards,
-Andy Shevchenko
+Hector Martin (marcan@marcan.st)
+Public Key: https://mrcn.st/pub
