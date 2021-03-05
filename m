@@ -2,131 +2,107 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-10.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4A23DC43332
-	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 10:21:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D055DC43381
+	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 10:23:58 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 31F9F64F4F
-	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 10:21:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A09B564F5F
+	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 10:23:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229615AbhCEKUk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 5 Mar 2021 05:20:40 -0500
-Received: from mail.loongson.cn ([114.242.206.163]:49266 "EHLO loongson.cn"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S229899AbhCEKUZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Mar 2021 05:20:25 -0500
-Received: from localhost.localdomain (unknown [182.149.161.105])
-        by mail.loongson.cn (Coremail) with SMTP id AQAAf9Dxr9fCBUJgPcwUAA--.6604S3;
-        Fri, 05 Mar 2021 18:19:52 +0800 (CST)
-From:   Huang Pei <huangpei@loongson.cn>
-To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        ambrosehua@gmail.com
-Cc:     Bibo Mao <maobibo@loongson.cn>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Paul Burton <paulburton@kernel.org>,
-        Li Xuefeng <lixuefeng@loongson.cn>,
-        Yang Tiezhu <yangtiezhu@loongson.cn>,
-        Gao Juxin <gaojuxin@loongson.cn>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Jinyang He <hejinyang@loongson.cn>,
-        "Maciej W . Rozycki" <macro@orcam.me.uk>,
-        Steven Rostedt <rostedt@goodmis.org>
-Subject: [PATCH 1/4] MIPS: replace -pg with CC_FLAGS_FTRACE
-Date:   Fri,  5 Mar 2021 18:19:30 +0800
-Message-Id: <20210305101933.9799-2-huangpei@loongson.cn>
-X-Mailer: git-send-email 2.17.1
-In-Reply-To: <20210305101933.9799-1-huangpei@loongson.cn>
-References: <20210305101933.9799-1-huangpei@loongson.cn>
-X-CM-TRANSID: AQAAf9Dxr9fCBUJgPcwUAA--.6604S3
-X-Coremail-Antispam: 1UD129KBjvJXoW7CrWxCw43AF48try7Zr13urg_yoW5Jryxpa
-        nak3Z7Xw4xurW8Kr92yFyUZrsrArWvqrW0qF9rKryUJFySvFnYgr4xtFy5tr95WryxJa48
-        W348WF47JrySv3JanT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-        9KBjDU0xBIdaVrnRJUUUPC14x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_Jr4l82xGYIkIc2
-        x26xkF7I0E14v26r4j6ryUM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2z4x0
-        Y4vE2Ix0cI8IcVAFwI0_Xr0_Ar1l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Gr1j6F4UJw
-        A2z4x0Y4vEx4A2jsIE14v26rxl6s0DM28EF7xvwVC2z280aVCY1x0267AKxVW0oVCq3wAS
-        0I0E0xvYzxvE52x082IY62kv0487Mc02F40EFcxC0VAKzVAqx4xG6I80ewAv7VC0I7IYx2
-        IY67AKxVWUGVWUXwAv7VC2z280aVAFwI0_Jr0_Gr1lOx8S6xCaFVCjc4AY6r1j6r4UM4x0
-        Y48IcxkI7VAKI48JM4x0x7Aq67IIx4CEVc8vx2IErcIFxwACI402YVCY1x02628vn2kIc2
-        xKxwCY02Avz4vE14v_Gw1l42xK82IYc2Ij64vIr41l4I8I3I0E4IkC6x0Yz7v_Jr0_Gr1l
-        x2IqxVAqx4xG67AKxVWUJVWUGwC20s026x8GjcxK67AKxVWUGVWUWwC2zVAF1VAY17CE14
-        v26r4a6rW5MIIYrxkI7VAKI48JMIIF0xvE2Ix0cI8IcVAFwI0_Jr0_JF4lIxAIcVC0I7IY
-        x2IY6xkF7I0E14v26r4j6F4UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I8E87
-        Iv67AKxVWUJVW8JwCI42IY6I8E87Iv6xkF7I0E14v26r4UJVWxJrUvcSsGvfC2KfnxnUUI
-        43ZEXa7VUjWv37UUUUU==
-X-CM-SenderInfo: xkxd0whshlqz5rrqw2lrqou0/
+        id S229578AbhCEKXX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 5 Mar 2021 05:23:23 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38006 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229563AbhCEKXD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Mar 2021 05:23:03 -0500
+Received: from mail-lf1-x12a.google.com (mail-lf1-x12a.google.com [IPv6:2a00:1450:4864:20::12a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 89F70C061762
+        for <linux-arch@vger.kernel.org>; Fri,  5 Mar 2021 02:23:02 -0800 (PST)
+Received: by mail-lf1-x12a.google.com with SMTP id q25so2710299lfc.8
+        for <linux-arch@vger.kernel.org>; Fri, 05 Mar 2021 02:23:02 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linaro.org; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=LfHQxtXLpgHzWWehAxy54rgqvbReyYhSet51OAulNz0=;
+        b=kD6/l/0Vi2BEoQPUIUTVfySLU+oGOH8dhaVp52y9xqPK9vrBGwOXrYPqAdVsioaq7Q
+         BSVl0SrF2rmu7/8jAVon7ihnGEcn1/xFoZERo0vcXrkf23f2qRZ3HXS5Mj9uOvek+Cdu
+         TzxpO49nda2QldHAqLTx7lZ38Vwou2bm+b276mzMWUNqeyqT/F6ZuHInNRj3pp6VaVJF
+         Hb0KdVNazzZiWHllpGCCXqyTs/i7KImP3DmYD9uOvCawQxqaWjw7S8a8D9F7wSpS9oU+
+         Mk2IXHel6lwAq2blqHQayb642ZFEC+pJQpyAsFDWWhbf5xNWING9veK8vpg+s+EXiYUA
+         oAeg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=LfHQxtXLpgHzWWehAxy54rgqvbReyYhSet51OAulNz0=;
+        b=LjHV0vpU/CVWsndZ7dOha3dIAuW4X0ZaSBR2JRY6l34Y7isXH9XFbHVus0SNHtjgPc
+         JLFPSvKI5F09Ufi9Mv9OngQmT9DvQzff9P4OHa497n0Z+rXVRe06TWTpf3dzK89M9p25
+         o/CPr9FOJA+TZAUwvTHYknxE0fiM3d3axyJFywxNOVFB60M3Bgbla80VI5Fq5LpMpICo
+         O+DAoBgDMpxBJLZ6Apnvhtgzk71YYvGdZRRldjleioNW+VJOjMjWx3aQM0Y5I+6kRELg
+         uralOk9UfHdnY50VqfCCh9RCMo9iZxh0TiCOWuTH23GeVVE5NLHX5PzLXyvmvT5YfvUh
+         e2hQ==
+X-Gm-Message-State: AOAM530XocpDObSsSbKG8eYPxj/6EImYNay8IgUfuWRV/apWfs2V0dcO
+        9kerzRNAr+aBNw48qD8/Rmrzh6A+S3lVJo/zlsss8w==
+X-Google-Smtp-Source: ABdhPJx+i531/mdEEsILHSu2PXPp+jA1Jld7y10Dq0JMoPYIdD19rJgXaEDARwuiGdh9W28fAuFk1UFedpx77+cLayM=
+X-Received: by 2002:a05:6512:243:: with SMTP id b3mr1467597lfo.529.1614939780828;
+ Fri, 05 Mar 2021 02:23:00 -0800 (PST)
+MIME-Version: 1.0
+References: <20210304213902.83903-1-marcan@marcan.st> <20210304213902.83903-10-marcan@marcan.st>
+In-Reply-To: <20210304213902.83903-10-marcan@marcan.st>
+From:   Linus Walleij <linus.walleij@linaro.org>
+Date:   Fri, 5 Mar 2021 11:22:49 +0100
+Message-ID: <CACRpkdZ7S=9nSZ9EknYVRAdY7-teHWXjZ6CRB6UGOnALV0UgXg@mail.gmail.com>
+Subject: Re: [RFT PATCH v3 09/27] docs: driver-api: device-io: Document I/O
+ access functions
+To:     Hector Martin <marcan@marcan.st>
+Cc:     Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        Marc Zyngier <maz@kernel.org>, Rob Herring <robh@kernel.org>,
+        Arnd Bergmann <arnd@kernel.org>,
+        Olof Johansson <olof@lixom.net>,
+        Krzysztof Kozlowski <krzk@kernel.org>,
+        Mark Kettenis <mark.kettenis@xs4all.nl>,
+        Tony Lindgren <tony@atomide.com>,
+        Mohamed Mediouni <mohamed.mediouni@caramail.com>,
+        Stan Skowronek <stan@corellium.com>,
+        Alexander Graf <graf@amazon.com>,
+        Will Deacon <will@kernel.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Andy Shevchenko <andy.shevchenko@gmail.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        "David S. Miller" <davem@davemloft.net>,
+        "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS" 
+        <devicetree@vger.kernel.org>,
+        "open list:SERIAL DRIVERS" <linux-serial@vger.kernel.org>,
+        Linux Doc Mailing List <linux-doc@vger.kernel.org>,
+        linux-samsung-soc <linux-samsung-soc@vger.kernel.org>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Signed-off-by: Huang Pei <huangpei@loongson.cn>
----
- arch/mips/boot/compressed/Makefile | 2 +-
- arch/mips/kernel/Makefile          | 8 ++++----
- arch/mips/vdso/Makefile            | 4 ++--
- 3 files changed, 7 insertions(+), 7 deletions(-)
+On Thu, Mar 4, 2021 at 10:40 PM Hector Martin <marcan@marcan.st> wrote:
 
-diff --git a/arch/mips/boot/compressed/Makefile b/arch/mips/boot/compressed/Makefile
-index d66511825fe1..8fc9ceeec709 100644
---- a/arch/mips/boot/compressed/Makefile
-+++ b/arch/mips/boot/compressed/Makefile
-@@ -18,7 +18,7 @@ include $(srctree)/arch/mips/Kbuild.platforms
- BOOT_HEAP_SIZE := 0x400000
- 
- # Disable Function Tracer
--KBUILD_CFLAGS := $(filter-out -pg, $(KBUILD_CFLAGS))
-+KBUILD_CFLAGS := $(filter-out $(CC_FLAGS_FTRACE), $(KBUILD_CFLAGS))
- 
- KBUILD_CFLAGS := $(filter-out -fstack-protector, $(KBUILD_CFLAGS))
- 
-diff --git a/arch/mips/kernel/Makefile b/arch/mips/kernel/Makefile
-index 2a05b923f579..33e31ea10234 100644
---- a/arch/mips/kernel/Makefile
-+++ b/arch/mips/kernel/Makefile
-@@ -17,10 +17,10 @@ obj-y		+= cpu-probe.o
- endif
- 
- ifdef CONFIG_FUNCTION_TRACER
--CFLAGS_REMOVE_ftrace.o = -pg
--CFLAGS_REMOVE_early_printk.o = -pg
--CFLAGS_REMOVE_perf_event.o = -pg
--CFLAGS_REMOVE_perf_event_mipsxx.o = -pg
-+CFLAGS_REMOVE_ftrace.o = $(CC_FLAGS_FTRACE)
-+CFLAGS_REMOVE_early_printk.o = $(CC_FLAGS_FTRACE)
-+CFLAGS_REMOVE_perf_event.o = $(CC_FLAGS_FTRACE)
-+CFLAGS_REMOVE_perf_event_mipsxx.o = $(CC_FLAGS_FTRACE)
- endif
- 
- obj-$(CONFIG_CEVT_BCM1480)	+= cevt-bcm1480.o
-diff --git a/arch/mips/vdso/Makefile b/arch/mips/vdso/Makefile
-index 5810cc12bc1d..f21cf88f7ae3 100644
---- a/arch/mips/vdso/Makefile
-+++ b/arch/mips/vdso/Makefile
-@@ -49,7 +49,7 @@ CFLAGS_vgettimeofday-o32.o = -include $(srctree)/$(src)/config-n32-o32-env.c -in
- CFLAGS_vgettimeofday-n32.o = -include $(srctree)/$(src)/config-n32-o32-env.c -include $(c-gettimeofday-y)
- endif
- 
--CFLAGS_REMOVE_vgettimeofday.o = -pg
-+CFLAGS_REMOVE_vgettimeofday.o = $(CC_FLAGS_FTRACE)
- 
- ifdef CONFIG_MIPS_DISABLE_VDSO
-   ifndef CONFIG_MIPS_LD_CAN_LINK_VDSO
-@@ -63,7 +63,7 @@ ldflags-y := -Bsymbolic --no-undefined -soname=linux-vdso.so.1 \
- 	$(filter -E%,$(KBUILD_CFLAGS)) -nostdlib -shared \
- 	-G 0 --eh-frame-hdr --hash-style=sysv --build-id=sha1 -T
- 
--CFLAGS_REMOVE_vdso.o = -pg
-+CFLAGS_REMOVE_vdso.o = $(CC_FLAGS_FTRACE)
- 
- GCOV_PROFILE := n
- UBSAN_SANITIZE := n
--- 
-2.17.1
+> From: Arnd Bergmann <arnd@arndb.de>
+>
+> This adds more detailed descriptions of the various read/write
+> primitives available for use with I/O memory/ports.
+>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Hector Martin <marcan@marcan.st>
 
+Excellent work!
+Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+
+Yours,
+Linus Walleij
