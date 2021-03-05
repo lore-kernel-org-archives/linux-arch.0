@@ -2,37 +2,56 @@ Return-Path: <SRS0=VMqq=ID=vger.kernel.org=linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-11.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A41B6C433E9
-	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 15:56:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EEC2DC433DB
+	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 16:06:20 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 77D356508C
-	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 15:56:39 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C3AC86508D
+	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 16:06:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229861AbhCEP4H (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 5 Mar 2021 10:56:07 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52948 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229631AbhCEPzu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Mar 2021 10:55:50 -0500
-Received: from mail.marcansoft.com (marcansoft.com [IPv6:2a01:298:fe:f::2])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 899A5C061574;
-        Fri,  5 Mar 2021 07:55:49 -0800 (PST)
-Received: from [127.0.0.1] (localhost [127.0.0.1])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (4096 bits))
-        (No client certificate requested)
-        (Authenticated sender: marcan@marcan.st)
-        by mail.marcansoft.com (Postfix) with ESMTPSA id 1F24142037;
-        Fri,  5 Mar 2021 15:55:40 +0000 (UTC)
+        id S230211AbhCEQFt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 5 Mar 2021 11:05:49 -0500
+Received: from mail.kernel.org ([198.145.29.99]:58324 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S231150AbhCEQFW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Mar 2021 11:05:22 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 45B7365092;
+        Fri,  5 Mar 2021 16:05:22 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1614960322;
+        bh=ChyQh3jUOf3mpcLiwmUiTp3mAW4ljibFzKZwZJvYMcg=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=TaVWfxx4/vllC7hR6YYISHmND4Na36dmQm1N7qtCjMqLrOljM3V4QVNTIJr2Q7MzX
+         8Mdq1njeGpl00EUjSWfKgk5KOmIoNd0BIGbuZx6U1oQY5+7DU3KGWUeiSta1GOHZAl
+         zw2h4zndDgOaeFsFrI+v6I6ZmRks5IiVdtT7YjuYcN/MMibqGV+QqWudpCusRoVN7J
+         r5cf4v/UlOh/381LqQhLzLxmPZmenrTNwALp3rDJ7ju/rTDDGShcgc7RTz2M7QwwOx
+         YxCJDPqhTkDLQEKTNEHtEKofYboTBlMvJsV99zUz6QESINCFUmHsgfFInqmtFsiDtf
+         +KbobAmBDhlNg==
+Received: by mail-ej1-f46.google.com with SMTP id w1so4440407ejf.11;
+        Fri, 05 Mar 2021 08:05:22 -0800 (PST)
+X-Gm-Message-State: AOAM531weEzW8sJSNcbA8txXXKYvQDTDEA+25tJjnHAgHdV9McM5OVoE
+        ObExncvd6cKulToQG/AmAzCXCZYpCRdXU1WxVA==
+X-Google-Smtp-Source: ABdhPJwUc4XxP2OrKgKoWP3l/xIeHgoelPjOuT9cmvaXTMfKex+qDw3goxqSBhbjX88yTcUVjAFeGozCqyLLXTE1hAc=
+X-Received: by 2002:a17:906:c405:: with SMTP id u5mr2843037ejz.341.1614960320807;
+ Fri, 05 Mar 2021 08:05:20 -0800 (PST)
+MIME-Version: 1.0
+References: <20210304213902.83903-1-marcan@marcan.st> <20210304213902.83903-13-marcan@marcan.st>
+ <CAHp75VdGYDDCRBRmd3O3Mt1opgDdwuRBoS1E=vaVc45h9eR-0w@mail.gmail.com>
+In-Reply-To: <CAHp75VdGYDDCRBRmd3O3Mt1opgDdwuRBoS1E=vaVc45h9eR-0w@mail.gmail.com>
+From:   Rob Herring <robh@kernel.org>
+Date:   Fri, 5 Mar 2021 10:05:08 -0600
+X-Gmail-Original-Message-ID: <CAL_JsqJsYMUpzH-2kEjQ-bDYAcxAB5Jgjp-2awjs3z00f3Gs+Q@mail.gmail.com>
+Message-ID: <CAL_JsqJsYMUpzH-2kEjQ-bDYAcxAB5Jgjp-2awjs3z00f3Gs+Q@mail.gmail.com>
+Subject: Re: [RFT PATCH v3 12/27] of/address: Add infrastructure to declare
+ MMIO as non-posted
 To:     Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc:     linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>,
-        Marc Zyngier <maz@kernel.org>, Rob Herring <robh@kernel.org>,
-        Arnd Bergmann <arnd@kernel.org>,
+Cc:     Hector Martin <marcan@marcan.st>,
+        linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>,
+        Marc Zyngier <maz@kernel.org>, Arnd Bergmann <arnd@kernel.org>,
         Olof Johansson <olof@lixom.net>,
         Krzysztof Kozlowski <krzk@kernel.org>,
         Mark Kettenis <mark.kettenis@xs4all.nl>,
@@ -54,99 +73,80 @@ Cc:     linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>,
         Linux Samsung SOC <linux-samsung-soc@vger.kernel.org>,
         Linux-Arch <linux-arch@vger.kernel.org>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-References: <20210304213902.83903-1-marcan@marcan.st>
- <20210304213902.83903-13-marcan@marcan.st>
- <CAHp75VdGYDDCRBRmd3O3Mt1opgDdwuRBoS1E=vaVc45h9eR-0w@mail.gmail.com>
-From:   Hector Martin <marcan@marcan.st>
-Subject: Re: [RFT PATCH v3 12/27] of/address: Add infrastructure to declare
- MMIO as non-posted
-Message-ID: <04ea35d6-cd7d-d6de-75ae-59b1e0c77f04@marcan.st>
-Date:   Sat, 6 Mar 2021 00:55:39 +0900
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.6.0
-MIME-Version: 1.0
-In-Reply-To: <CAHp75VdGYDDCRBRmd3O3Mt1opgDdwuRBoS1E=vaVc45h9eR-0w@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: es-ES
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 06/03/2021 00.13, Andy Shevchenko wrote:
->> @@ -896,7 +899,10 @@ void __iomem *of_iomap(struct device_node *np, int index)
->>          if (of_address_to_resource(np, index, &res))
->>                  return NULL;
->>
->> -       return ioremap(res.start, resource_size(&res));
->> +       if (res.flags & IORESOURCE_MEM_NONPOSTED)
->> +               return ioremap_np(res.start, resource_size(&res));
->> +       else
->> +               return ioremap(res.start, resource_size(&res));
-> 
+On Fri, Mar 5, 2021 at 9:13 AM Andy Shevchenko
+<andy.shevchenko@gmail.com> wrote:
+>
+> On Thu, Mar 4, 2021 at 11:40 PM Hector Martin <marcan@marcan.st> wrote:
+> >
+> > This implements the 'nonposted-mmio' and 'posted-mmio' boolean
+> > properties. Placing these properties in a bus marks all child devices as
+> > requiring non-posted or posted MMIO mappings. If no such properties are
+> > found, the default is posted MMIO.
+> >
+> > of_mmio_is_nonposted() performs the tree walking to determine if a given
+> > device has requested non-posted MMIO.
+> >
+> > of_address_to_resource() uses this to set the IORESOURCE_MEM_NONPOSTED
+> > flag on resources that require non-posted MMIO.
+> >
+> > of_iomap() and of_io_request_and_map() then use this flag to pick the
+> > correct ioremap() variant.
+> >
+> > This mechanism is currently restricted to Apple ARM platforms, as an
+> > optimization.
+>
+> ...
+>
+> > @@ -896,7 +899,10 @@ void __iomem *of_iomap(struct device_node *np, int index)
+> >         if (of_address_to_resource(np, index, &res))
+> >                 return NULL;
+> >
+> > -       return ioremap(res.start, resource_size(&res));
+> > +       if (res.flags & IORESOURCE_MEM_NONPOSTED)
+> > +               return ioremap_np(res.start, resource_size(&res));
+> > +       else
+> > +               return ioremap(res.start, resource_size(&res));
+>
 > This doesn't sound right. Why _np is so exceptional? Why don't we have
 > other flavours (it also rings a bell to my previous comment that the
 > flag in ioresource is not in the right place)?
-
-This is different from other variants, because until now *drivers* have 
-made the choice of what ioremap mode to use based on device requirements 
-(which means ioremap() 99% of the time, and then framebuffers and other 
-memory-ish things such use something else). Now we have a *SoC fabric* 
-that is calling the shots on what ioremap mode we have to use - and 
-*every* non-PCIe driver needs to use ioremap_np() on these SoCs, or they 
-break. So it seems a lot cleaner to make the choice for drivers here to 
-upgrade ioremap() to ioremap_np() for SoCs that need it.
-
-If we don't do something like this here or in otherwise common code, 
-we'd have to have an open-coded "if apple then ioremap_np, else ioremap" 
-in every driver that runs on-die devices on these SoCs, even ones that 
-are otherwise standard and need few or no Apple-specific quirks.
-
-We're still going to have to patch some drivers to use managed APIs that 
-can properly hit this conditional (like I did for samsung_tty) in cases 
-where they currently don't, but that's a lot cleaner than an open-coded 
-conditional, I think (and often comes with other benefits anyway).
-
-Note that wholesale making ioremap() behave like ioremap_np() at the 
-arch level as as SoC quirk is not an option - for extenal PCIe devices, 
-we still need to use ioremap(). We tried this approach initially but it 
-doesn't work. Hence we arrived at this solution which describes the 
-required mode in the devicetree, at the bus level (which makes sense, 
-since that represents the fabric), and then these wrappers can use that 
-information, carried over via the bit in struct device, to pick the 
-right ioremap mode.
-
-It doesn't really make sense to include the other variants here, because 
-_np is strictly stronger than the default. Downgrading ioremap to any 
-other variant would break most drivers, badly. However, upgrading to 
-ioremap_np() is always correct (if possibly slower), on platforms where 
-it is allowed by the bus. In fact, I bet that on many systems nGnRE 
-already behaves like nGnRnE anyway. I don't know why Apple didn't just 
-allow nGnRE mappings to work (behaving like nGnRnE) instead of making 
-them explode, which is the whole reason we have to do this.
-
->> +       while (node) {
->> +               if (!of_property_read_bool(node, "ranges")) {
->> +                       break;
->> +               } else if (of_property_read_bool(node, "nonposted-mmio")) {
->> +                       of_node_put(node);
->> +                       return true;
->> +               } else if (of_property_read_bool(node, "posted-mmio")) {
->> +                       break;
->> +               }
->> +               parent = of_get_parent(node);
->> +               of_node_put(node);
->> +               node = parent;
->> +       }
-> 
+>
+> ...
+>
+> > +       if (res.flags & IORESOURCE_MEM_NONPOSTED)
+> > +               mem = ioremap_np(res.start, resource_size(&res));
+> > +       else
+> > +               mem = ioremap(res.start, resource_size(&res));
+> > +
+>
+> Ditto.
+>
+> ...
+>
+> > +       while (node) {
+> > +               if (!of_property_read_bool(node, "ranges")) {
+> > +                       break;
+> > +               } else if (of_property_read_bool(node, "nonposted-mmio")) {
+> > +                       of_node_put(node);
+> > +                       return true;
+> > +               } else if (of_property_read_bool(node, "posted-mmio")) {
+> > +                       break;
+> > +               }
+> > +               parent = of_get_parent(node);
+> > +               of_node_put(node);
+> > +               node = parent;
+> > +       }
+>
 > I believe above can be slightly optimized. Don't we have helpers to
 > traverse to all parents?
 
-Keep in mind the logic here is that it stops on the first instance of 
-either property, and does not traverse non-translatable boundaries. Are 
-there helpers that can implement this kind of complex logic? It's not a 
-simple recursive property lookup.
+We don't. I only found a handful of cases mostly in arch/powerpc.
+Given that and this series is big enough already, I don't think we
+need a helper as part of it. But patches welcome.
 
--- 
-Hector Martin (marcan@marcan.st)
-Public Key: https://mrcn.st/pub
+Rob
