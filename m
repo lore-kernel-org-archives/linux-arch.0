@@ -4,84 +4,79 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 377E0C433DB
-	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 16:10:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8B8FBC4332D
+	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 16:17:38 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 01E5A6508B
-	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 16:10:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5F0BF650A0
+	for <linux-arch@archiver.kernel.org>; Fri,  5 Mar 2021 16:17:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231256AbhCEQKG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 5 Mar 2021 11:10:06 -0500
-Received: from mga04.intel.com ([192.55.52.120]:13875 "EHLO mga04.intel.com"
+        id S229682AbhCEQRF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 5 Mar 2021 11:17:05 -0500
+Received: from marcansoft.com ([212.63.210.85]:45302 "EHLO mail.marcansoft.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230525AbhCEPmD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Mar 2021 10:42:03 -0500
-IronPort-SDR: h+hvCEIS5InekBwwtEUf9sfVt7rSC2alLX0EG+1u7b2u2aHLYP4P8UX+Y+nudA2mZu0BAakgFI
- PK0JbOFg5Cyw==
-X-IronPort-AV: E=McAfee;i="6000,8403,9914"; a="185262821"
-X-IronPort-AV: E=Sophos;i="5.81,225,1610438400"; 
-   d="scan'208";a="185262821"
-Received: from orsmga008.jf.intel.com ([10.7.209.65])
-  by fmsmga104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 05 Mar 2021 07:41:59 -0800
-IronPort-SDR: 2yGt/3QzPDUR/vFTYp9fAGjodIvlP+jFUdJ2O2BL4z7B2UaB1DFgd+rO17jcCnz0etf70GBbhR
- FpRkAYw2GQkw==
-X-IronPort-AV: E=Sophos;i="5.81,225,1610438400"; 
-   d="scan'208";a="408343831"
-Received: from luetzenk-mobl.ger.corp.intel.com (HELO btopel-mobl.ger.intel.com) ([10.249.43.131])
-  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 05 Mar 2021 07:41:53 -0800
-Subject: Re: [PATCH] tools/memory-model: Fix smp_mb__after_spinlock() spelling
-To:     Alan Stern <stern@rowland.harvard.edu>,
-        =?UTF-8?B?QmrDtnJuIFTDtnBlbA==?= <bjorn.topel@gmail.com>
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Andrea Parri <parri.andrea@gmail.com>,
+        id S230372AbhCEQQy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Mar 2021 11:16:54 -0500
+Received: from [127.0.0.1] (localhost [127.0.0.1])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+        (No client certificate requested)
+        (Authenticated sender: marcan@marcan.st)
+        by mail.marcansoft.com (Postfix) with ESMTPSA id A3A373FA1B;
+        Fri,  5 Mar 2021 16:16:45 +0000 (UTC)
+To:     Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc:     linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>,
+        Marc Zyngier <maz@kernel.org>, Rob Herring <robh@kernel.org>,
+        Arnd Bergmann <arnd@kernel.org>,
+        Olof Johansson <olof@lixom.net>,
+        Krzysztof Kozlowski <krzk@kernel.org>,
+        Mark Kettenis <mark.kettenis@xs4all.nl>,
+        Tony Lindgren <tony@atomide.com>,
+        Mohamed Mediouni <mohamed.mediouni@caramail.com>,
+        Stan Skowronek <stan@corellium.com>,
+        Alexander Graf <graf@amazon.com>,
         Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Daniel Lustig <dlustig@nvidia.com>,
-        Joel Fernandes <joel@joelfernandes.org>
-References: <20210305102823.415900-1-bjorn.topel@gmail.com>
- <20210305153655.GC38200@rowland.harvard.edu>
-From:   =?UTF-8?B?QmrDtnJuIFTDtnBlbA==?= <bjorn.topel@intel.com>
-Message-ID: <e90fee12-a29e-cddb-5db3-24d92d4e03f8@intel.com>
-Date:   Fri, 5 Mar 2021 16:41:49 +0100
+        Linus Walleij <linus.walleij@linaro.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        "David S. Miller" <davem@davemloft.net>,
+        devicetree <devicetree@vger.kernel.org>,
+        "open list:SERIAL DRIVERS" <linux-serial@vger.kernel.org>,
+        Linux Documentation List <linux-doc@vger.kernel.org>,
+        Linux Samsung SOC <linux-samsung-soc@vger.kernel.org>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+References: <20210304213902.83903-1-marcan@marcan.st>
+ <20210304213902.83903-22-marcan@marcan.st>
+ <CAHp75Vc+t9_FNHZ0xYNaJ1+Ny+FFeZKA79abxV2NAsZvpBh3Bg@mail.gmail.com>
+From:   Hector Martin <marcan@marcan.st>
+Subject: Re: [RFT PATCH v3 21/27] tty: serial: samsung_tty: IRQ rework
+Message-ID: <535ff48e-160e-4ba4-23ac-54e478a2f3ee@marcan.st>
+Date:   Sat, 6 Mar 2021 01:16:43 +0900
 User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.7.1
+ Thunderbird/78.6.0
 MIME-Version: 1.0
-In-Reply-To: <20210305153655.GC38200@rowland.harvard.edu>
+In-Reply-To: <CAHp75Vc+t9_FNHZ0xYNaJ1+Ny+FFeZKA79abxV2NAsZvpBh3Bg@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
+Content-Language: es-ES
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 2021-03-05 16:36, Alan Stern wrote:
-> On Fri, Mar 05, 2021 at 11:28:23AM +0100, Björn Töpel wrote:
->> From: Björn Töpel <bjorn.topel@intel.com>
->>
->> A misspelled invokation of git-grep, revealed that
-> -------------------^
-> 
-> Smetimes my brain is a little slow...  Do you confirm that this is a
-> joke?
->
+On 06/03/2021 00.17, Andy Shevchenko wrote:
+> Add a separate change that removes flags from the spin lock in the IRQ handler.
 
-I wish, Alan. I wish.
+This commit should have no functional changes; I am just splitting an 
+existing function into two, where one takes the lock and the other does 
+the work. Do you mean using a different locking function? I'm not 
+entirely sure what you're suggesting.
 
-Looks like I can only spel function names correctly.
-
-
-Have a nice weekend!
-Björn
-
-
-> Alan
-> 
+-- 
+Hector Martin (marcan@marcan.st)
+Public Key: https://mrcn.st/pub
