@@ -2,91 +2,137 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7DA87C4332B
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Mar 2021 07:37:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 398E6C433E6
+	for <linux-arch@archiver.kernel.org>; Tue,  9 Mar 2021 08:03:12 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 34CC8652A4
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Mar 2021 07:37:10 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E81C565272
+	for <linux-arch@archiver.kernel.org>; Tue,  9 Mar 2021 08:03:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229916AbhCIHgh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 9 Mar 2021 02:36:37 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53738 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229873AbhCIHgU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Mar 2021 02:36:20 -0500
-Received: from mail.sf-mail.de (mail.sf-mail.de [IPv6:2a01:4f8:1c17:6fae:616d:6c69:616d:6c69])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3F39BC061763
-        for <linux-arch@vger.kernel.org>; Mon,  8 Mar 2021 23:36:19 -0800 (PST)
-Received: (qmail 20754 invoked from network); 9 Mar 2021 07:35:49 -0000
-Received: from mail.sf-mail.de ([2a01:4f8:1c17:6fae:616d:6c69:616d:6c69]:45468 HELO webmail.sf-mail.de) (auth=eike@sf-mail.de)
-        by mail.sf-mail.de (Qsmtpd 0.37dev) with (TLS_AES_256_GCM_SHA384 encrypted) ESMTPSA
-        for <david@redhat.com>; Tue, 09 Mar 2021 08:35:49 +0100
-MIME-Version: 1.0
-Date:   Tue, 09 Mar 2021 08:35:44 +0100
-From:   Rolf Eike Beer <eike-kernel@sf-tec.de>
-To:     David Hildenbrand <david@redhat.com>
-Cc:     linux-kernel@vger.kernel.org, linux-mm@kvack.org,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Arnd Bergmann <arnd@arndb.de>, Michal Hocko <mhocko@suse.com>,
-        Oscar Salvador <osalvador@suse.de>,
-        Matthew Wilcox <willy@infradead.org>,
-        Andrea Arcangeli <aarcange@redhat.com>,
-        Minchan Kim <minchan@kernel.org>, Jann Horn <jannh@google.com>,
-        Jason Gunthorpe <jgg@ziepe.ca>,
-        Dave Hansen <dave.hansen@intel.com>,
-        Hugh Dickins <hughd@google.com>,
-        Rik van Riel <riel@surriel.com>,
-        "Michael S . Tsirkin" <mst@redhat.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
-        Vlastimil Babka <vbabka@suse.cz>,
-        Richard Henderson <rth@twiddle.net>,
-        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
-        Matt Turner <mattst88@gmail.com>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-        Helge Deller <deller@gmx.de>, Chris Zankel <chris@zankel.net>,
-        Max Filippov <jcmvbkbc@gmail.com>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Peter Xu <peterx@redhat.com>, linux-alpha@vger.kernel.org,
-        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-        linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org,
-        Linux API <linux-api@vger.kernel.org>
-Subject: Re: [PATCH RFCv2] mm/madvise: introduce MADV_POPULATE_(READ|WRITE) to
- prefault/prealloc memory
-In-Reply-To: <20210308164520.18323-1-david@redhat.com>
-References: <20210308164520.18323-1-david@redhat.com>
-User-Agent: Roundcube Webmail/1.4.11
-Message-ID: <6ecd754406fffe851be6543025203b6b@sf-tec.de>
-X-Sender: eike-kernel@sf-tec.de
-Content-Type: text/plain; charset=US-ASCII;
- format=flowed
-Content-Transfer-Encoding: 7bit
+        id S229553AbhCIICh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 9 Mar 2021 03:02:37 -0500
+Received: from mail.loongson.cn ([114.242.206.163]:60974 "EHLO loongson.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S229555AbhCIIC2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 9 Mar 2021 03:02:28 -0500
+Received: from localhost.localdomain (unknown [222.209.9.50])
+        by mail.loongson.cn (Coremail) with SMTP id AQAAf9BxTeyEK0dgyU0XAA--.7938S3;
+        Tue, 09 Mar 2021 16:02:19 +0800 (CST)
+From:   Huang Pei <huangpei@loongson.cn>
+To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        ambrosehua@gmail.com
+Cc:     Bibo Mao <maobibo@loongson.cn>, linux-mips@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Paul Burton <paulburton@kernel.org>,
+        Li Xuefeng <lixuefeng@loongson.cn>,
+        Yang Tiezhu <yangtiezhu@loongson.cn>,
+        Gao Juxin <gaojuxin@loongson.cn>,
+        Huacai Chen <chenhuacai@loongson.cn>,
+        Jinyang He <hejinyang@loongson.cn>
+Subject: [PATCH 1/2] MIPS: clean up CONFIG_MIPS_PGD_C0_CONTEXT handling
+Date:   Tue,  9 Mar 2021 16:02:09 +0800
+Message-Id: <20210309080210.25561-2-huangpei@loongson.cn>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20210309080210.25561-1-huangpei@loongson.cn>
+References: <20210309080210.25561-1-huangpei@loongson.cn>
+X-CM-TRANSID: AQAAf9BxTeyEK0dgyU0XAA--.7938S3
+X-Coremail-Antispam: 1UD129KBjvJXoWxJrW5Gw4xGF1rurW3Aw48Crg_yoW8KF13p3
+        92v3WkGr4xur98ur98ZFWkWrs5tayDAa90vF1DKas09FWqqFnYvw4fJwsIyF1DGFZ7Ja1x
+        WrZ0qry5JrnF9w7anT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+        9KBjDU0xBIdaVrnRJUUUPG14x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_Jr4l82xGYIkIc2
+        x26xkF7I0E14v26r4j6ryUM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2z4x0
+        Y4vE2Ix0cI8IcVAFwI0_Xr0_Ar1l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Cr0_Gr1UM2
+        8EF7xvwVC2z280aVAFwI0_Cr1j6rxdM28EF7xvwVC2z280aVCY1x0267AKxVW0oVCq3wAS
+        0I0E0xvYzxvE52x082IY62kv0487Mc02F40EFcxC0VAKzVAqx4xG6I80ewAv7VC0I7IYx2
+        IY67AKxVWUJVWUGwAv7VC2z280aVAFwI0_Jr0_Gr1lOx8S6xCaFVCjc4AY6r1j6r4UM4x0
+        Y48IcxkI7VAKI48JM4x0x7Aq67IIx4CEVc8vx2IErcIFxwACI402YVCY1x02628vn2kIc2
+        xKxwCY02Avz4vE14v_GFyl42xK82IYc2Ij64vIr41l4I8I3I0E4IkC6x0Yz7v_Jr0_Gr1l
+        x2IqxVAqx4xG67AKxVWUJVWUGwC20s026x8GjcxK67AKxVWUGVWUWwC2zVAF1VAY17CE14
+        v26r1q6r43MIIYrxkI7VAKI48JMIIF0xvE2Ix0cI8IcVAFwI0_Jr0_JF4lIxAIcVC0I7IY
+        x2IY6xkF7I0E14v26r4j6F4UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I8E87
+        Iv67AKxVWUJVW8JwCI42IY6I8E87Iv6xkF7I0E14v26r4j6r4UJbIYCTnIWIevJa73UjIF
+        yTuYvjfUjVbyDUUUU
+X-CM-SenderInfo: xkxd0whshlqz5rrqw2lrqou0/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-> diff --git a/mm/internal.h b/mm/internal.h
-> index 9902648f2206..a5c4ed23b1db 100644
-> --- a/mm/internal.h
-> +++ b/mm/internal.h
-> @@ -340,6 +340,9 @@ void __vma_unlink_list(struct mm_struct *mm,
-> struct vm_area_struct *vma);
->  #ifdef CONFIG_MMU
->  extern long populate_vma_page_range(struct vm_area_struct *vma,
->  		unsigned long start, unsigned long end, int *nonblocking);
-> +extern long faultin_vma_page_range(struct vm_area_struct *vma,
-> +				   unsigned long start, unsigned long end,
-> +				   bool write, int *nonblocking);
->  extern void munlock_vma_pages_range(struct vm_area_struct *vma,
->  			unsigned long start, unsigned long end);
->  static inline void munlock_vma_pages_all(struct vm_area_struct *vma)
++. LOONGSON64 use 0x98xx_xxxx_xxxx_xxxx as xphys cached
 
-The parameter name does not match the one in the implementation.
++. let CONFIG_MIPS_PGD_C0_CONTEXT depend on 64bit
 
-Otherwise the implementation looks fine AFAICT.
++. cast CAC_BASE into u64 to silence warning on MIPS32
 
-Eike
+CP0 Context has enough room for wraping pgd into its 41-bit PTEBase field.
+
++. For XPHYS, the trick is that pgd is 4kB aligned, and the PABITS <= 48,
+only save 48 - 12 + 5(for bit[63:59]) = 41 bits, aka. :
+
+   bit[63:59] | 0000 0000 000 |  bit[47:12] | 0000 0000 0000
+
++. for CKSEG0, only save 29 - 12 = 17 bits
+
+Signed-off-by: Huang Pei <huangpei@loongson.cn>
+---
+ arch/mips/Kconfig    |  3 ++-
+ arch/mips/mm/tlbex.c | 10 +++++-----
+ 2 files changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 2000bb2b0220..5741dae35b74 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -2142,7 +2142,8 @@ config CPU_SUPPORTS_HUGEPAGES
+ 	depends on !(32BIT && (ARCH_PHYS_ADDR_T_64BIT || EVA))
+ config MIPS_PGD_C0_CONTEXT
+ 	bool
+-	default y if 64BIT && (CPU_MIPSR2 || CPU_MIPSR6) && !CPU_XLP
++	depends on 64BIT
++	default y if (CPU_MIPSR2 || CPU_MIPSR6) && !CPU_XLP
+ 
+ #
+ # Set to y for ptrace access to watch registers.
+diff --git a/arch/mips/mm/tlbex.c b/arch/mips/mm/tlbex.c
+index a7521b8f7658..591cfa0fca02 100644
+--- a/arch/mips/mm/tlbex.c
++++ b/arch/mips/mm/tlbex.c
+@@ -848,8 +848,8 @@ void build_get_pmde64(u32 **p, struct uasm_label **l, struct uasm_reloc **r,
+ 		/* Clear lower 23 bits of context. */
+ 		uasm_i_dins(p, ptr, 0, 0, 23);
+ 
+-		/* 1 0	1 0 1  << 6  xkphys cached */
+-		uasm_i_ori(p, ptr, ptr, 0x540);
++		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
++		uasm_i_ori(p, ptr, ptr, ((u64)(CAC_BASE) >> 53));
+ 		uasm_i_drotr(p, ptr, ptr, 11);
+ #elif defined(CONFIG_SMP)
+ 		UASM_i_CPUID_MFC0(p, ptr, SMP_CPUID_REG);
+@@ -1164,8 +1164,9 @@ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
+ 
+ 	if (pgd_reg == -1) {
+ 		vmalloc_branch_delay_filled = 1;
+-		/* 1 0	1 0 1  << 6  xkphys cached */
+-		uasm_i_ori(p, ptr, ptr, 0x540);
++		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
++		uasm_i_ori(p, ptr, ptr, ((u64)(CAC_BASE) >> 53));
++
+ 		uasm_i_drotr(p, ptr, ptr, 11);
+ 	}
+ 
+@@ -1292,7 +1293,6 @@ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
+ 
+ 	return rv;
+ }
+-
+ /*
+  * For a 64-bit kernel, we are using the 64-bit XTLB refill exception
+  * because EXL == 0.  If we wrap, we can also use the 32 instruction
+-- 
+2.17.1
+
