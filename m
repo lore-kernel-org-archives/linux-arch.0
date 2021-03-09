@@ -7,32 +7,32 @@ X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3A881C433E9
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 122ACC433E6
 	for <linux-arch@archiver.kernel.org>; Tue,  9 Mar 2021 15:19:28 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 07E3665272
+	by mail.kernel.org (Postfix) with ESMTP id C2B8865274
 	for <linux-arch@archiver.kernel.org>; Tue,  9 Mar 2021 15:19:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231670AbhCIPSx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 9 Mar 2021 10:18:53 -0500
-Received: from conuserg-09.nifty.com ([210.131.2.76]:31185 "EHLO
+        id S231674AbhCIPSy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 9 Mar 2021 10:18:54 -0500
+Received: from conuserg-09.nifty.com ([210.131.2.76]:31186 "EHLO
         conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231969AbhCIPS1 (ORCPT
+        with ESMTP id S231975AbhCIPS1 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Mar 2021 10:18:27 -0500
 Received: from localhost.localdomain (133-32-232-101.west.xps.vectant.ne.jp [133.32.232.101]) (authenticated)
-        by conuserg-09.nifty.com with ESMTP id 129FHiTg030658;
-        Wed, 10 Mar 2021 00:17:48 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-09.nifty.com 129FHiTg030658
+        by conuserg-09.nifty.com with ESMTP id 129FHiTd030658;
+        Wed, 10 Mar 2021 00:17:45 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-09.nifty.com 129FHiTd030658
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1615303068;
-        bh=r71y+AUxa/wzY3HGAOw/Hv/yHZgfi9z2nUjKyYbaVPA=;
+        s=dec2015msa; t=1615303066;
+        bh=aiZL314cCgH6pTtZI6W6PU8ZHJmV18CncdIR5eQC6Fg=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=LMkdLWh09zNrqCExiZIrv2+lAjaz1szHIzNg9/P1CO9bSo+j7dkJMWRIBYTFGFeGm
-         qHKYGyY34FJ7TRep/rJ14p5DXgyWSQC6ZSwepbsuoEmmhDbTEKNAz4yh6zIFUOu9h3
-         tkEB6MAkPz/OezTrodwJObCLE9qxo+/1jNKWn2UgkjhUlIh4iwLcBIzOX33cq/U2Nd
-         ZOfKT8fGYy2SAd9YxogBXawByyIqPb3FtWXmvjToiohKCKghEA4Sj7Qae+kK+3U6d5
-         9QJifDrC3u4TLGOYEyAfxZMtuhHuwLdLYsKo9u0pH+WWBgWbxkTzZN2bROoXy2rhhF
-         74ZvJW1JbCzjA==
+        b=sra+heZ7kORAq5P/K68lyyqZQjtoJfrhauSin9UyhFdvCwa+Uv+t+axs0pFsLm5b8
+         bGh6VqJWglTUDo8HgAm9AMN35eaiJPZmszccabI85+EkaolmClebLvyp6iyzk0H04b
+         JZmGNVBXzibKH7jPIXFuupNDA8tnAu44RbGZVw+83cRKNwR5cEn7m6vH6vBTvyuAWQ
+         h7pv8AQXjKYKzRQu6JP0O40PQTnmvGc2Xba8MUdrR0PiQD3bs4L5R5ktP9XLTS5CL0
+         BTHP0VaZP+2/MBfOmaoIgPJovzKqwumhLP7V00BoUPQgDMiMeEd+p7IuDsXVxfafHL
+         DKU9LJGq/aHTA==
 X-Nifty-SrcIP: [133.32.232.101]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
@@ -41,9 +41,9 @@ Cc:     Christoph Hellwig <hch@lst.de>,
         Jessica Yu <jeyu@kernel.org>, Nicolas Pitre <nico@fluxnic.net>,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH v2 4/4] kbuild: remove guarding from TRIM_UNUSED_KSYMS
-Date:   Wed, 10 Mar 2021 00:17:37 +0900
-Message-Id: <20210309151737.345722-5-masahiroy@kernel.org>
+Subject: [PATCH v2 1/4] export.h: make __ksymtab_strings per-symbol section
+Date:   Wed, 10 Mar 2021 00:17:34 +0900
+Message-Id: <20210309151737.345722-2-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20210309151737.345722-1-masahiroy@kernel.org>
 References: <20210309151737.345722-1-masahiroy@kernel.org>
@@ -53,35 +53,83 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Now that the build time cost of this option is unnoticeable level,
-revert the following two:
+The export symbol tables are placed on own sections (__ksymtab*+<sym>)
+and sorted by SORT (an alias of SORT_BY_NAME) because the module
+subsystem uses the binary search for symbol resolution.
 
-  a555bdd0c58c ("Kbuild: enable TRIM_UNUSED_KSYMS again, with some guarding")
-  5cf0fd591f2e ("Kbuild: disable TRIM_UNUSED_KSYMS option")
+We did not have a good reason to do so for __ksymtab_strings, but
+now I have.
+
+To make CONFIG_TRIM_UNUSED_KSYMS work in one-pass, the linker needs
+to trim unused strings of symbols and namespaces. To allow per-symbol
+keep/drop choice, __ksymtab_strings must be placed on own sections.
+
+This keeps the string unification introduced by commit ce2b617ce8cb
+("export.h: reduce __ksymtab_strings string duplication by using "MS"
+section flags").
+
+For example, the empty namespaces share the same address.
+
+  $ nm -n vmlinux
+  [ snip ]
+  ffffffff8233b6aa r __kstrtabns_IO_APIC_get_PCI_irq_vector
+  ffffffff8233b6aa r __kstrtabns_I_BDEV
+  ffffffff8233b6aa r __kstrtabns_LZ4_decompress_fast
+  ffffffff8233b6aa r __kstrtabns_LZ4_decompress_fast_continue
+  ffffffff8233b6aa r __kstrtabns_LZ4_decompress_fast_usingDict
+    ...
+
+I confirmed no size change in vmlinux.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
-Changes in v2:
-  - New patch
+(no changes since v1)
 
- init/Kconfig | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ include/asm-generic/export.h      | 2 +-
+ include/asm-generic/vmlinux.lds.h | 2 +-
+ include/linux/export.h            | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/init/Kconfig b/init/Kconfig
-index 22946fe5ded9..0cbdc20b9322 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -2265,8 +2265,7 @@ config MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS
- 	  If unsure, say N.
- 
- config TRIM_UNUSED_KSYMS
--	bool "Trim unused exported kernel symbols" if EXPERT
--	depends on !COMPILE_TEST
-+	bool "Trim unused exported kernel symbols"
- 	help
- 	  The kernel and some modules make many symbols available for
- 	  other modules to use via EXPORT_SYMBOL() and variants. Depending
+diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+index 07a36a874dca..e847f1fde367 100644
+--- a/include/asm-generic/export.h
++++ b/include/asm-generic/export.h
+@@ -39,7 +39,7 @@
+ __ksymtab_\name:
+ 	__put \val, __kstrtab_\name
+ 	.previous
+-	.section __ksymtab_strings,"aMS",%progbits,1
++	.section __ksymtab_strings+\name,"aMS",%progbits,1
+ __kstrtab_\name:
+ 	.asciz "\name"
+ 	.previous
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 0331d5d49551..6ce6dcabdccf 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -513,7 +513,7 @@
+ 									\
+ 	/* Kernel symbol table: strings */				\
+         __ksymtab_strings : AT(ADDR(__ksymtab_strings) - LOAD_OFFSET) {	\
+-		*(__ksymtab_strings)					\
++		*(__ksymtab_strings+*)					\
+ 	}								\
+ 									\
+ 	/* __*init sections */						\
+diff --git a/include/linux/export.h b/include/linux/export.h
+index 6271a5d9c988..01e6ab19b226 100644
+--- a/include/linux/export.h
++++ b/include/linux/export.h
+@@ -99,7 +99,7 @@ struct kernel_symbol {
+ 	extern const char __kstrtab_##sym[];					\
+ 	extern const char __kstrtabns_##sym[];					\
+ 	__CRC_SYMBOL(sym, sec);							\
+-	asm("	.section \"__ksymtab_strings\",\"aMS\",%progbits,1	\n"	\
++	asm("	.section \"__ksymtab_strings+" #sym "\",\"aMS\",%progbits,1\n"	\
+ 	    "__kstrtab_" #sym ":					\n"	\
+ 	    "	.asciz 	\"" #sym "\"					\n"	\
+ 	    "__kstrtabns_" #sym ":					\n"	\
 -- 
 2.27.0
 
