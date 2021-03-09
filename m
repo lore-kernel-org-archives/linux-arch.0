@@ -2,116 +2,112 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.0 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 21F61C43332
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Mar 2021 15:19:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4F833C433E0
+	for <linux-arch@archiver.kernel.org>; Tue,  9 Mar 2021 15:41:00 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id F157461581
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Mar 2021 15:19:28 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 044AF65238
+	for <linux-arch@archiver.kernel.org>; Tue,  9 Mar 2021 15:40:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231984AbhCIPSy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 9 Mar 2021 10:18:54 -0500
-Received: from conuserg-09.nifty.com ([210.131.2.76]:31498 "EHLO
-        conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232007AbhCIPSr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Mar 2021 10:18:47 -0500
-Received: from localhost.localdomain (133-32-232-101.west.xps.vectant.ne.jp [133.32.232.101]) (authenticated)
-        by conuserg-09.nifty.com with ESMTP id 129FHiTc030658;
-        Wed, 10 Mar 2021 00:17:45 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-09.nifty.com 129FHiTc030658
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1615303065;
-        bh=KwJfPDaf46fObQ+3n3hTs9UggnffeJCU/zgw2qw2iLg=;
-        h=From:To:Cc:Subject:Date:From;
-        b=CbDkADy7F/hicCOfVFlYOTLhDTRY2rChGyMdh5iMWL+jIEDJf1Uz6t9g2jAWmaDzS
-         wMuHRsmwDBjUWQn4Foqn4btIgnZAoUoA1tiMniEJpPKbVmjw2VQYrPsnHKHhXUs5Ck
-         jiT0ugQVm6xAEElIubWk7PSZkmIzC7OHE01viBpdP/Kwu8o3jXfrY5VHNmkFGI7vz7
-         0FNgBjLtyQDKudtwaooIJKwr6oeRiqZrNtDGKoJmBJ1+kXg7SS3HH7NrFiONHssh/r
-         F4eQtf7rdmsn1JttEaNVxEaAmJnwRYRhLFdyD3bECS/Qy192DEussYcmoh9GomF/B2
-         O0rkMNnTWfmGg==
-X-Nifty-SrcIP: [133.32.232.101]
-From:   Masahiro Yamada <masahiroy@kernel.org>
-To:     linux-kbuild@vger.kernel.org
-Cc:     Christoph Hellwig <hch@lst.de>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Jessica Yu <jeyu@kernel.org>, Nicolas Pitre <nico@fluxnic.net>,
-        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH v2 0/4] kbuild: build speed improvement of CONFIG_TRIM_UNUSED_KSYMS
-Date:   Wed, 10 Mar 2021 00:17:33 +0900
-Message-Id: <20210309151737.345722-1-masahiroy@kernel.org>
-X-Mailer: git-send-email 2.27.0
+        id S231663AbhCIPk2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 9 Mar 2021 10:40:28 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45864 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231916AbhCIPkX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Mar 2021 10:40:23 -0500
+Received: from mail-lj1-x22f.google.com (mail-lj1-x22f.google.com [IPv6:2a00:1450:4864:20::22f])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A361AC061763
+        for <linux-arch@vger.kernel.org>; Tue,  9 Mar 2021 07:40:21 -0800 (PST)
+Received: by mail-lj1-x22f.google.com with SMTP id h4so21241157ljl.0
+        for <linux-arch@vger.kernel.org>; Tue, 09 Mar 2021 07:40:21 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linaro.org; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=lu+kK3nSAEUTNwnDM4pW2WC6uWJJmrapOL1I+PVvtnU=;
+        b=RGZPUNMxbSls/6ut21Ur6KbghdWogF4sL+NXMIA9cKyeKwNKL0Hz0mhyFsSXv/OBtb
+         jnTPF5TJwRfP2h3ns1CWqPwbvZ4FlR8eSaemHeyxekynGvXftNVUqM65k0VzJehBmDiy
+         owGLAG6He59RMMoToMWvTXpswEBmJpDEWhPBCvrtWjGEFW10PpYT6vEhruku3/ccszps
+         RiZ0KG+sggU/vWnMvLxnqun6CIJ+9PI9QkRuasLDeWjdRis4tG9zoBRBzMgZyJc7uNlS
+         tDF2cw3jmG11uhRjhoVDbmrssDArdZ/i28IYjqFlv8rJaqbzR0I9MClkeGzwb4zyqUyh
+         kn4g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=lu+kK3nSAEUTNwnDM4pW2WC6uWJJmrapOL1I+PVvtnU=;
+        b=C9D8XXQ+2tpCI0cJQUkLWU2cgFUg/qOKBumvl1hmkfjf6KbkJ5gBfBwdBElwf0KMrH
+         GA42W/eD9+r4h6cegflnRIo/acqpKaMuf9cg51toGfiJfLaXneru27FvsHtNjZo8SNd/
+         GWTy0STNPTHu+/2F8YCgkA8v1eJZ8G8KciCPaMTCsxWzIy5XZ11NVR+vZWdKx9Yusasa
+         cEW0uXb2Ko+q8PpXvKeKDCvhWQMDsyOAzT1c0qW8xcPq9+fDMqoLVS1zsNwnM9Pc8qmA
+         B1HdN+lw/8oJTJzrx5QfUzxh/ktPzHEBTq4ouXoyiiEbWC89pM+jRxiO9NYMDtxtXtKO
+         7PHg==
+X-Gm-Message-State: AOAM531JC/FjE7sg+PrLn3vRs9a6/mWGDDma0buFSmUBbbHnxgdY8uzj
+        aMPu/xeruWwALKeXum1I4dX+OXMTn5DcNMtpUx4mtQ==
+X-Google-Smtp-Source: ABdhPJwEI7sL2ZOe/ozOi+pJFvTfLuJFts7EVCGgPZapWZODVntgxp5IN5ZQc/HGdbEc0f45tW7JoT/HzKQUQHQUuLQ=
+X-Received: by 2002:a2e:864a:: with SMTP id i10mr16814623ljj.467.1615304420049;
+ Tue, 09 Mar 2021 07:40:20 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20210304213902.83903-1-marcan@marcan.st> <20210304213902.83903-13-marcan@marcan.st>
+ <CAL_JsqJF2Hz=4U7FR_GOSjCxqt3dpf-CAWFNfsSrDjDLpHqgCA@mail.gmail.com>
+ <6e4880b3-1fb6-0cbf-c1a5-7a46fd9ccf62@marcan.st> <CAK8P3a0Hmwt-ywzS-2eEmqyQ0v2SxLsLxFwfTUoWwbzCrBNhsQ@mail.gmail.com>
+ <CAL_JsqJHRM59GC3FjvaGLCELemy1uspnGvTEFH6q0OdyBPVSjA@mail.gmail.com>
+ <CAK8P3a0_GBB-VYFO5NaySyBJDN2Ra-WMH4WfFrnzgOejmJVG8g@mail.gmail.com>
+ <20210308211306.GA2920998@robh.at.kernel.org> <CACRpkdZd_PU-W37szfGL7J2RYWhZzXdX342vt93H7mWXdh5iHA@mail.gmail.com>
+ <CAK8P3a104VXhPHuWaJVEw3uMEp3rSEHsFJ6w2sW4FhNjiQ2VQQ@mail.gmail.com>
+In-Reply-To: <CAK8P3a104VXhPHuWaJVEw3uMEp3rSEHsFJ6w2sW4FhNjiQ2VQQ@mail.gmail.com>
+From:   Linus Walleij <linus.walleij@linaro.org>
+Date:   Tue, 9 Mar 2021 16:40:09 +0100
+Message-ID: <CACRpkdYSFGF1crqDnwB_UbEXV8q5xqx7n8VHCyKYjCpy1PMK8A@mail.gmail.com>
+Subject: Re: [RFT PATCH v3 12/27] of/address: Add infrastructure to declare
+ MMIO as non-posted
+To:     Arnd Bergmann <arnd@kernel.org>
+Cc:     Rob Herring <robh@kernel.org>, Hector Martin <marcan@marcan.st>,
+        linux-arm-kernel <linux-arm-kernel@lists.infradead.org>,
+        Marc Zyngier <maz@kernel.org>, Olof Johansson <olof@lixom.net>,
+        Krzysztof Kozlowski <krzk@kernel.org>,
+        Mark Kettenis <mark.kettenis@xs4all.nl>,
+        Tony Lindgren <tony@atomide.com>,
+        Mohamed Mediouni <mohamed.mediouni@caramail.com>,
+        Stan Skowronek <stan@corellium.com>,
+        Alexander Graf <graf@amazon.com>,
+        Will Deacon <will@kernel.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Andy Shevchenko <andy.shevchenko@gmail.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        "David S. Miller" <davem@davemloft.net>,
+        DTML <devicetree@vger.kernel.org>,
+        "open list:SERIAL DRIVERS" <linux-serial@vger.kernel.org>,
+        Linux Doc Mailing List <linux-doc@vger.kernel.org>,
+        linux-samsung-soc <linux-samsung-soc@vger.kernel.org>,
+        "open list:GENERIC INCLUDE/ASM HEADER FILES" 
+        <linux-arch@vger.kernel.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+On Tue, Mar 9, 2021 at 1:41 PM Arnd Bergmann <arnd@kernel.org> wrote:
 
-Now CONFIG_TRIM_UNUSED_KSYMS is revived, but Linus is still unhappy
-about the build speed.
+> - A driver writer may want to choose between posted and
+>   nonposted mmio based on performance considerations:
+>   if writes are never serialized, posted writes should always
+>   be faster. However, if the driver uses a spinlock to serialize
+>   writes, then a nonposted write is likely faster than a posted
+>   write followed by a read that serializes the spin_unlock.
+>   In this case we want the driver to explicitly pick one over
+>   the other, and not have rely on bus specific magic.
 
-I re-implemented this feature, and the build time cost is now
-almost unnoticeable level.
+OK then I am all for having drivers explicitly choose access
+method. Openness to speed optimization is a well established
+Linux kernel design principle.
 
-
-(no changes since v1)
-
-Masahiro Yamada (4):
-  export.h: make __ksymtab_strings per-symbol section
-  kbuild: separate out vmlinux.lds generation
-  kbuild: re-implement CONFIG_TRIM_UNUSED_KSYMS to make it work in
-    one-pass
-  kbuild: remove guarding from TRIM_UNUSED_KSYMS
-
- Makefile                                      | 34 ++++-----
- arch/alpha/kernel/Makefile                    |  3 +-
- arch/arc/kernel/Makefile                      |  3 +-
- arch/arm/kernel/Makefile                      |  3 +-
- arch/arm64/kernel/Makefile                    |  3 +-
- arch/arm64/kvm/hyp/nvhe/hyp.lds.S             |  1 +
- arch/csky/kernel/Makefile                     |  3 +-
- arch/h8300/kernel/Makefile                    |  2 +-
- arch/hexagon/kernel/Makefile                  |  3 +-
- arch/ia64/kernel/Makefile                     |  3 +-
- arch/m68k/kernel/Makefile                     |  2 +-
- arch/microblaze/kernel/Makefile               |  3 +-
- arch/mips/kernel/Makefile                     |  3 +-
- arch/nds32/kernel/Makefile                    |  3 +-
- arch/nios2/kernel/Makefile                    |  2 +-
- arch/openrisc/kernel/Makefile                 |  3 +-
- arch/parisc/kernel/Makefile                   |  3 +-
- arch/powerpc/kernel/Makefile                  |  2 +-
- arch/powerpc/kernel/vdso32/vdso32.lds.S       |  1 +
- arch/powerpc/kernel/vdso64/vdso64.lds.S       |  1 +
- arch/riscv/kernel/Makefile                    |  2 +-
- arch/s390/kernel/Makefile                     |  3 +-
- arch/s390/purgatory/purgatory.lds.S           |  1 +
- arch/sh/kernel/Makefile                       |  3 +-
- arch/sparc/kernel/Makefile                    |  2 +-
- arch/um/kernel/Makefile                       |  2 +-
- arch/x86/kernel/Makefile                      |  2 +-
- arch/xtensa/kernel/Makefile                   |  3 +-
- include/asm-generic/export.h                  | 25 +------
- include/asm-generic/vmlinux.lds.h             | 13 ++--
- include/linux/export.h                        | 56 ++++----------
- include/linux/ksyms.lds.h                     | 22 ++++++
- init/Kconfig                                  |  3 +-
- scripts/Makefile.build                        |  7 +-
- scripts/Makefile.lib                          |  1 +
- scripts/adjust_autoksyms.sh                   | 73 -------------------
- .../{gen_autoksyms.sh => gen-keep-ksyms.sh}   | 43 ++++++++---
- scripts/gen_ksymdeps.sh                       | 25 -------
- scripts/module.lds.S                          | 23 +++---
- 39 files changed, 152 insertions(+), 238 deletions(-)
- create mode 100644 include/linux/ksyms.lds.h
- delete mode 100755 scripts/adjust_autoksyms.sh
- rename scripts/{gen_autoksyms.sh => gen-keep-ksyms.sh} (66%)
- delete mode 100755 scripts/gen_ksymdeps.sh
-
--- 
-2.27.0
-
+Yours,
+Linus Walleij
