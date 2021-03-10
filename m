@@ -7,31 +7,31 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E8532C2BB53
-	for <linux-arch@archiver.kernel.org>; Wed, 10 Mar 2021 22:02:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 96348C3F694
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Mar 2021 22:02:16 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D7CD064FC6
-	for <linux-arch@archiver.kernel.org>; Wed, 10 Mar 2021 22:02:15 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7440D65006
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Mar 2021 22:02:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233994AbhCJWBt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 10 Mar 2021 17:01:49 -0500
-Received: from mga04.intel.com ([192.55.52.120]:4738 "EHLO mga04.intel.com"
+        id S232417AbhCJWBu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 10 Mar 2021 17:01:50 -0500
+Received: from mga09.intel.com ([134.134.136.24]:59075 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S233732AbhCJWBR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Mar 2021 17:01:17 -0500
-IronPort-SDR: c8QPIk9/qWp74G86h13oPRtNMZMcq9cdoKPn6VdPbal3B72oGnHCxavEq8Cg1US2cz6CIW4K0M
- IZUyQ8ezmcEg==
-X-IronPort-AV: E=McAfee;i="6000,8403,9919"; a="186193148"
+        id S233770AbhCJWBT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Mar 2021 17:01:19 -0500
+IronPort-SDR: BgSGaPQq39zWQIRv9DWCMO7xOmXSJV48ipcMp97HYyHywROuJvVuI5LMDPRI2QYaXrHNfgjZiy
+ X2jsMMEKzo0w==
+X-IronPort-AV: E=McAfee;i="6000,8403,9919"; a="188670051"
 X-IronPort-AV: E=Sophos;i="5.81,238,1610438400"; 
-   d="scan'208";a="186193148"
+   d="scan'208";a="188670051"
 Received: from fmsmga008.fm.intel.com ([10.253.24.58])
-  by fmsmga104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Mar 2021 14:01:16 -0800
-IronPort-SDR: njtsSk19GN3lb38YGBKmUP6V/1+IdW7HU6sKSEJz+FTxwS8XbZq76mEnUVrOTpKeL0/fY/YWvX
- 2ipdjX+xOFyg==
+  by orsmga102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Mar 2021 14:01:19 -0800
+IronPort-SDR: gHFCr952tBYYg2Q1b5fLyqzJpAyuUOOCrtO3SoUjDewS7bADLwQCmOtX5N3fjG/vyzJ8XEvvrF
+ urLvdDSqvF4Q==
 X-IronPort-AV: E=Sophos;i="5.81,238,1610438400"; 
-   d="scan'208";a="403847633"
+   d="scan'208";a="403847661"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by fmsmga008-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Mar 2021 14:01:16 -0800
+  by fmsmga008-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Mar 2021 14:01:18 -0800
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -60,10 +60,12 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Weijiang Yang <weijiang.yang@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>,
         Haitao Huang <haitao.huang@intel.com>
-Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v22 17/28] mm: Add guard pages around a shadow stack.
-Date:   Wed, 10 Mar 2021 14:00:35 -0800
-Message-Id: <20210310220046.15866-18-yu-cheng.yu@intel.com>
+Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>,
+        Mark Brown <broonie@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH v22 24/28] ELF: Introduce arch_setup_elf_property()
+Date:   Wed, 10 Mar 2021 14:00:42 -0800
+Message-Id: <20210310220046.15866-25-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20210310220046.15866-1-yu-cheng.yu@intel.com>
 References: <20210310220046.15866-1-yu-cheng.yu@intel.com>
@@ -73,92 +75,178 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-INCSSP(Q/D) increments shadow stack pointer and 'pops and discards' the
-first and the last elements in the range, effectively touches those memory
-areas.
+An ELF file's .note.gnu.property indicates arch features supported by the
+file.  These features are extracted by arch_parse_elf_property() and stored
+in 'arch_elf_state'.
 
-The maximum moving distance by INCSSPQ is 255 * 8 = 2040 bytes and
-255 * 4 = 1020 bytes by INCSSPD.  Both ranges are far from PAGE_SIZE.
-Thus, putting a gap page on both ends of a shadow stack prevents INCSSP,
-CALL, and RET from going beyond.
+Introduce x86 feature definitions and arch_setup_elf_property(), which
+enables such features.  The first use-case of this function is Shadow
+Stack.
+
+ARM64 is the other arch that has ARCH_USE_GNU_PROPERTY and arch_parse_elf_
+property().  Add arch_setup_elf_property() for it.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
+Cc: Mark Brown <broonie@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Dave Martin <Dave.Martin@arm.com>
 ---
- arch/x86/include/asm/page_64_types.h | 10 ++++++++++
- include/linux/mm.h                   | 24 ++++++++++++++++++++----
- 2 files changed, 30 insertions(+), 4 deletions(-)
+ arch/arm64/include/asm/elf.h |  5 +++++
+ arch/x86/Kconfig             |  2 ++
+ arch/x86/include/asm/elf.h   | 13 +++++++++++++
+ arch/x86/kernel/process_64.c | 32 ++++++++++++++++++++++++++++++++
+ fs/binfmt_elf.c              |  4 ++++
+ include/linux/elf.h          |  6 ++++++
+ include/uapi/linux/elf.h     |  9 +++++++++
+ 7 files changed, 71 insertions(+)
 
-diff --git a/arch/x86/include/asm/page_64_types.h b/arch/x86/include/asm/page_64_types.h
-index 64297eabad63..23e3d880ce6c 100644
---- a/arch/x86/include/asm/page_64_types.h
-+++ b/arch/x86/include/asm/page_64_types.h
-@@ -115,4 +115,14 @@
- #define KERNEL_IMAGE_SIZE	(512 * 1024 * 1024)
- #endif
+diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+index 8d1c8dcb87fd..d37bc7915935 100644
+--- a/arch/arm64/include/asm/elf.h
++++ b/arch/arm64/include/asm/elf.h
+@@ -281,6 +281,11 @@ static inline int arch_parse_elf_property(u32 type, const void *data,
+ 	return 0;
+ }
  
-+/*
-+ * Shadow stack pointer is moved by CALL, RET, and INCSSP(Q/D).  INCSSPQ
-+ * moves shadow stack pointer up to 255 * 8 = ~2 KB (~1KB for INCSSPD) and
-+ * touches the first and the last element in the range, which triggers a
-+ * page fault if the range is not in a shadow stack.  Because of this,
-+ * creating 4-KB guard pages around a shadow stack prevents these
-+ * instructions from going beyond.
-+ */
-+#define ARCH_SHADOW_STACK_GUARD_GAP PAGE_SIZE
++static inline int arch_setup_elf_property(struct arch_elf_state *arch)
++{
++	return 0;
++}
 +
- #endif /* _ASM_X86_PAGE_64_DEFS_H */
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index d739d339e1af..e363173f7634 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2598,6 +2598,10 @@ extern vm_fault_t filemap_page_mkwrite(struct vm_fault *vmf);
- int __must_check write_one_page(struct page *page);
- void task_dirty_inc(struct task_struct *tsk);
+ static inline int arch_elf_pt_proc(void *ehdr, void *phdr,
+ 				   struct file *f, bool is_interp,
+ 				   struct arch_elf_state *state)
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 102212025993..2c93178262f5 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1955,6 +1955,8 @@ config X86_CET
+ 	depends on ARCH_HAS_SHADOW_STACK
+ 	select ARCH_USES_HIGH_VMA_FLAGS
+ 	select ARCH_MAYBE_MKWRITE
++	select ARCH_USE_GNU_PROPERTY
++	select ARCH_BINFMT_ELF_STATE
+ 	help
+ 	  Control-flow protection is a set of hardware features which place
+ 	  additional restrictions on indirect branches.  These help
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index 9224d40cdefe..6a131047be8a 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -390,6 +390,19 @@ extern int compat_arch_setup_additional_pages(struct linux_binprm *bprm,
  
-+#ifndef ARCH_SHADOW_STACK_GUARD_GAP
-+#define ARCH_SHADOW_STACK_GUARD_GAP 0
+ extern bool arch_syscall_is_vdso_sigreturn(struct pt_regs *regs);
+ 
++#ifdef CONFIG_ARCH_BINFMT_ELF_STATE
++struct arch_elf_state {
++	unsigned int gnu_property;
++};
++
++#define INIT_ARCH_ELF_STATE {	\
++	.gnu_property = 0,	\
++}
++
++#define arch_elf_pt_proc(ehdr, phdr, elf, interp, state) (0)
++#define arch_check_elf(ehdr, interp, interp_ehdr, state) (0)
 +#endif
 +
- extern unsigned long stack_guard_gap;
- /* Generic expand stack which grows the stack according to GROWS{UP,DOWN} */
- extern int expand_stack(struct vm_area_struct *vma, unsigned long address);
-@@ -2630,9 +2634,15 @@ static inline struct vm_area_struct * find_vma_intersection(struct mm_struct * m
- static inline unsigned long vm_start_gap(struct vm_area_struct *vma)
+ /* Do not change the values. See get_align_mask() */
+ enum align_flags {
+ 	ALIGN_VA_32	= BIT(0),
+diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+index d08307df69ad..cda830b0f7ee 100644
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -835,3 +835,35 @@ unsigned long KSTK_ESP(struct task_struct *task)
  {
- 	unsigned long vm_start = vma->vm_start;
-+	unsigned long gap = 0;
- 
--	if (vma->vm_flags & VM_GROWSDOWN) {
--		vm_start -= stack_guard_gap;
-+	if (vma->vm_flags & VM_GROWSDOWN)
-+		gap = stack_guard_gap;
-+	else if (vma->vm_flags & VM_SHSTK)
-+		gap = ARCH_SHADOW_STACK_GUARD_GAP;
+ 	return task_pt_regs(task)->sp;
+ }
 +
-+	if (gap != 0) {
-+		vm_start -= gap;
- 		if (vm_start > vma->vm_start)
- 			vm_start = 0;
- 	}
-@@ -2642,9 +2652,15 @@ static inline unsigned long vm_start_gap(struct vm_area_struct *vma)
- static inline unsigned long vm_end_gap(struct vm_area_struct *vma)
++#ifdef CONFIG_ARCH_USE_GNU_PROPERTY
++int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
++			    bool compat, struct arch_elf_state *state)
++{
++	if (type != GNU_PROPERTY_X86_FEATURE_1_AND)
++		return 0;
++
++	if (datasz != sizeof(unsigned int))
++		return -ENOEXEC;
++
++	state->gnu_property = *(unsigned int *)data;
++	return 0;
++}
++
++int arch_setup_elf_property(struct arch_elf_state *state)
++{
++	int r = 0;
++
++	if (!IS_ENABLED(CONFIG_X86_CET))
++		return r;
++
++	memset(&current->thread.cet, 0, sizeof(struct cet_status));
++
++	if (static_cpu_has(X86_FEATURE_SHSTK)) {
++		if (state->gnu_property & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
++			r = cet_setup_shstk();
++	}
++
++	return r;
++}
++#endif
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index b12ba98ae9f5..fa665eceba04 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -1248,6 +1248,10 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 
+ 	set_binfmt(&elf_format);
+ 
++	retval = arch_setup_elf_property(&arch_state);
++	if (retval < 0)
++		goto out;
++
+ #ifdef ARCH_HAS_SETUP_ADDITIONAL_PAGES
+ 	retval = ARCH_SETUP_ADDITIONAL_PAGES(bprm, elf_ex, !!interpreter);
+ 	if (retval < 0)
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index c9a46c4e183b..be04d15e937f 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -92,9 +92,15 @@ static inline int arch_parse_elf_property(u32 type, const void *data,
  {
- 	unsigned long vm_end = vma->vm_end;
-+	unsigned long gap = 0;
+ 	return 0;
+ }
 +
-+	if (vma->vm_flags & VM_GROWSUP)
-+		gap = stack_guard_gap;
-+	else if (vma->vm_flags & VM_SHSTK)
-+		gap = ARCH_SHADOW_STACK_GUARD_GAP;
++static inline int arch_setup_elf_property(struct arch_elf_state *arch)
++{
++	return 0;
++}
+ #else
+ extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
+ 				   bool compat, struct arch_elf_state *arch);
++extern int arch_setup_elf_property(struct arch_elf_state *arch);
+ #endif
  
--	if (vma->vm_flags & VM_GROWSUP) {
--		vm_end += stack_guard_gap;
-+	if (gap != 0) {
-+		vm_end += gap;
- 		if (vm_end < vma->vm_end)
- 			vm_end = -PAGE_SIZE;
- 	}
+ #ifdef CONFIG_ARCH_HAVE_ELF_PROT
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index 30f68b42eeb5..24ba55ba8278 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -455,4 +455,13 @@ typedef struct elf64_note {
+ /* Bits for GNU_PROPERTY_AARCH64_FEATURE_1_BTI */
+ #define GNU_PROPERTY_AARCH64_FEATURE_1_BTI	(1U << 0)
+ 
++/* .note.gnu.property types for x86: */
++#define GNU_PROPERTY_X86_FEATURE_1_AND		0xc0000002
++
++/* Bits for GNU_PROPERTY_X86_FEATURE_1_AND */
++#define GNU_PROPERTY_X86_FEATURE_1_IBT		0x00000001
++#define GNU_PROPERTY_X86_FEATURE_1_SHSTK	0x00000002
++#define GNU_PROPERTY_X86_FEATURE_1_VALID (GNU_PROPERTY_X86_FEATURE_1_IBT | \
++					   GNU_PROPERTY_X86_FEATURE_1_SHSTK)
++
+ #endif /* _UAPI_LINUX_ELF_H */
 -- 
 2.21.0
 
