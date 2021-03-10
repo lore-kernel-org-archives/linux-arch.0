@@ -5,61 +5,61 @@ X-Spam-Level:
 X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=ham autolearn_force=no
-	version=3.4.0
+	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E2F82C4332D
-	for <linux-arch@archiver.kernel.org>; Wed, 10 Mar 2021 10:42:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 73E3FC433DB
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Mar 2021 10:42:58 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6E7AA64FF6
-	for <linux-arch@archiver.kernel.org>; Wed, 10 Mar 2021 10:42:57 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 543A564FE1
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Mar 2021 10:42:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231811AbhCJKmX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 10 Mar 2021 05:42:23 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38608 "EHLO
+        id S232603AbhCJKmY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 10 Mar 2021 05:42:24 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38638 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232548AbhCJKl6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Mar 2021 05:41:58 -0500
-Received: from mail-qk1-x749.google.com (mail-qk1-x749.google.com [IPv6:2607:f8b0:4864:20::749])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4C82DC06174A
-        for <linux-arch@vger.kernel.org>; Wed, 10 Mar 2021 02:41:58 -0800 (PST)
-Received: by mail-qk1-x749.google.com with SMTP id b127so10629009qkf.19
-        for <linux-arch@vger.kernel.org>; Wed, 10 Mar 2021 02:41:58 -0800 (PST)
+        with ESMTP id S232598AbhCJKmD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Mar 2021 05:42:03 -0500
+Received: from mail-qk1-x74a.google.com (mail-qk1-x74a.google.com [IPv6:2607:f8b0:4864:20::74a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 16D66C06174A
+        for <linux-arch@vger.kernel.org>; Wed, 10 Mar 2021 02:42:03 -0800 (PST)
+Received: by mail-qk1-x74a.google.com with SMTP id h21so12432538qkl.12
+        for <linux-arch@vger.kernel.org>; Wed, 10 Mar 2021 02:42:03 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=dOVfTFewU2OVBxfkqxI1NPon3rxqJk0MP/D8NHNSqQA=;
-        b=q1jQ16YbsnqIDBn5nBGRtDoStGi+RN0sGNM2jXfR0WlnzZ0m1QJ+LuURos4FjT52Oj
-         j5GJfLS9NZbPypEgX45w2ZaWBBIqOUxMg4w/QA7kuYIyM6DGtddI7j14cXsB1uOKooJR
-         xlLaN3QhYFUnc8tqDxrGszVCHf4LntSANKCervuZRhsRtUNTLSQ1BRUG2wOJXiyZRqNT
-         jZYMfmSKEODrH/cBBMftUMy1ScyCkdUUwpGw2QU3syBSWkCd+bFPsH53rNOacPywjo72
-         Azvh9Fk7EBMxvXkTblPINbobb5NEaGoZTrRk4PK32kIHSJtJgoINr+KfcHX+qfPyXaU5
-         6Vdw==
+        bh=MwMG/Kl+Surl9jPDmtCK7rCt1fJ8HAEyxyLN1urbLCM=;
+        b=mybq0plUmvYmI72EWYXiOTM/z+pmWe/T7eOI5ncxtQXULTQ/eIjS4yMr79NE5RLEoU
+         BDqnmznSj/VfvFVMtKJs+1SSQpY6JPOBG8JS/bqL3OIMjVNE7suld3CaDuKskjM3ApjZ
+         X/jhXLzlo3vYCNwFPkuw+B1u+9AEXl6/D8GVFvcQFq9cnr4jHSERZVbrx0o8m3MSbrMv
+         SAOpqnUmeubvpYOTtcHrw1ynnvMgBNxZZgPJ7zlnpWr22vnRA6qMfuK6pPsMqZS/7Irn
+         497QpzekPMKfCwIG3l0DRSnRgxzQZRGF61/4ocpwSx3ZJU+Q0fepqNepcHpltjfNvb+b
+         Ds7w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=dOVfTFewU2OVBxfkqxI1NPon3rxqJk0MP/D8NHNSqQA=;
-        b=Hnbz5v+rRpi7rjoYeIwHeLAzE+VS40OZWF9Il9ubUBlt+uOI18xvmzENiTYl0NyCqs
-         ECc0PQh/CuEQMdxFawLD/rwZ375DqhSEKuym2DyaWEfoUUtZqBORemTvL6/ko3T7NJhK
-         N5YRiYtqc7gBlVh0Gf6D5dofKsdGkYypVYR0dHd1NUm3CFs4Edn2wgoLUg7HQ3CoaRzR
-         x5g9x+OxeI64OLQxwgKM07e1h9N2vt2faDBsouGk7y9HJ7GIrnIBBWwKEOg51Bswkdg8
-         I0VK7JXJDEtVUIKtohAZJpKIPsNMGK/Re3zwSmf2cDq6/474AOmfZ6Jrhvu0tbhaaO+6
-         qcWA==
-X-Gm-Message-State: AOAM533rj2tWYd8THlJ+346pw3RvvhyIFHCT9w3GXyQKyDKun2nv7kTw
-        DnrV+MmMIdY7NEMor0DxWIK+xnZuSg==
-X-Google-Smtp-Source: ABdhPJw2duZKZHANH9M/H/FlahCExA+5z683QS7WBEwd4bOLuqI3t5lqneYmFDDGv4KnW0XshRNEvwlpQg==
+        bh=MwMG/Kl+Surl9jPDmtCK7rCt1fJ8HAEyxyLN1urbLCM=;
+        b=msa4pPdycvoKk7F7lSVRoTdwoHfnjgeFzZiAKCgm3jwu5KoI0XNj2PDarco99/ga2r
+         n+zotWMaK2Y6JIlBdgPi3frU2Aehs8Kx81o9PJw2+fpJRwywm5Gfq/1wERbcs1u2W2jZ
+         frqWnGNEmf3r1jqGcWjh2lPRf4Hj9vw9UY9/6oHIqwLwZT3m1g1aXT3ZlI/Cr4XG2ufK
+         Ns3JL1lgl4KrBWeqtmRV244C7L7V2OJG4/l5Hlap0R57FDCzwmt4V4WzEY9f4rcAo32D
+         mKHCUs6GFINalmFKKALR/lrDt5B+jQgvFS9+xeDn8ZTUsavFzd7V9chA/Jy3eeLooYJM
+         zQIA==
+X-Gm-Message-State: AOAM533ce0+orzaWT1St6jrPvccUefXjMM8rCqBPBC5kRqzEBHqdLL3Y
+        fmv8PrYPFOI+jZPnhra4mWbIGZnYmA==
+X-Google-Smtp-Source: ABdhPJyh6J1KNJC8N7PIOcGv/D8kM2z9fZ1+ioUy4PGqKbYgUIWbpbWVJTzSZv3In2DrIJwc9zqYibtbPw==
 X-Received: from elver.muc.corp.google.com ([2a00:79e0:15:13:e995:ac0b:b57c:49a4])
- (user=elver job=sendgmr) by 2002:ad4:4991:: with SMTP id t17mr2036844qvx.33.1615372917507;
- Wed, 10 Mar 2021 02:41:57 -0800 (PST)
-Date:   Wed, 10 Mar 2021 11:41:34 +0100
+ (user=elver job=sendgmr) by 2002:ad4:5a14:: with SMTP id ei20mr2068906qvb.1.1615372922271;
+ Wed, 10 Mar 2021 02:42:02 -0800 (PST)
+Date:   Wed, 10 Mar 2021 11:41:36 +0100
 In-Reply-To: <20210310104139.679618-1-elver@google.com>
-Message-Id: <20210310104139.679618-4-elver@google.com>
+Message-Id: <20210310104139.679618-6-elver@google.com>
 Mime-Version: 1.0
 References: <20210310104139.679618-1-elver@google.com>
 X-Mailer: git-send-email 2.30.1.766.gb4fecdf3b7-goog
-Subject: [PATCH RFC v2 3/8] perf/core: Add support for event removal on exec
+Subject: [PATCH RFC v2 5/8] perf/core: Add support for SIGTRAP on perf events
 From:   Marco Elver <elver@google.com>
 To:     elver@google.com, peterz@infradead.org,
         alexander.shishkin@linux.intel.com, acme@kernel.org,
@@ -77,106 +77,111 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Adds bit perf_event_attr::remove_on_exec, to support removing an event
-from a task on exec.
+Adds bit perf_event_attr::sigtrap, which can be set to cause events to
+send SIGTRAP (with si_code TRAP_PERF) to the task where the event
+occurred. To distinguish perf events and allow user space to decode
+si_perf (if set), the event type is set in si_errno.
 
-This option supports the case where an event is supposed to be
-process-wide only, and should not propagate beyond exec, to limit
-monitoring to the original process image only.
+The primary motivation is to support synchronous signals on perf events
+in the task where an event (such as breakpoints) triggered.
 
+Link: https://lore.kernel.org/lkml/YBv3rAT566k+6zjg@hirez.programming.kicks-ass.net/
+Suggested-by: Peter Zijlstra <peterz@infradead.org>
+Acked-by: Dmitry Vyukov <dvyukov@google.com>
 Signed-off-by: Marco Elver <elver@google.com>
 ---
 v2:
-* Add patch to series.
+* Use atomic_set(&event_count, 1), since it must always be 0 in
+  perf_pending_event_disable().
+* Implicitly restrict inheriting events if sigtrap, but the child was
+  cloned with CLONE_CLEAR_SIGHAND, because it is not generally safe if
+  the child cleared all signal handlers to continue sending SIGTRAP.
 ---
  include/uapi/linux/perf_event.h |  3 ++-
- kernel/events/core.c            | 45 +++++++++++++++++++++++++++++++++
- 2 files changed, 47 insertions(+), 1 deletion(-)
+ kernel/events/core.c            | 28 +++++++++++++++++++++++++++-
+ 2 files changed, 29 insertions(+), 2 deletions(-)
 
 diff --git a/include/uapi/linux/perf_event.h b/include/uapi/linux/perf_event.h
-index 813efb65fea8..8c5b9f5ad63f 100644
+index 8c5b9f5ad63f..3a4dbb1688f0 100644
 --- a/include/uapi/linux/perf_event.h
 +++ b/include/uapi/linux/perf_event.h
-@@ -390,7 +390,8 @@ struct perf_event_attr {
- 				text_poke      :  1, /* include text poke events */
+@@ -391,7 +391,8 @@ struct perf_event_attr {
  				build_id       :  1, /* use build id in mmap2 events */
  				inherit_thread :  1, /* children only inherit if cloned with CLONE_THREAD */
--				__reserved_1   : 28;
-+				remove_on_exec :  1, /* event is removed from task on exec */
-+				__reserved_1   : 27;
+ 				remove_on_exec :  1, /* event is removed from task on exec */
+-				__reserved_1   : 27;
++				sigtrap        :  1, /* send synchronous SIGTRAP on event */
++				__reserved_1   : 26;
  
  	union {
  		__u32		wakeup_events;	  /* wakeup every n events */
 diff --git a/kernel/events/core.c b/kernel/events/core.c
-index a8382e6c907c..bc9e6e35e414 100644
+index bc9e6e35e414..e70c411b0b16 100644
 --- a/kernel/events/core.c
 +++ b/kernel/events/core.c
-@@ -4195,6 +4195,46 @@ static void perf_event_enable_on_exec(int ctxn)
- 		put_ctx(clone_ctx);
+@@ -6328,6 +6328,17 @@ void perf_event_wakeup(struct perf_event *event)
+ 	}
  }
  
-+static void perf_remove_from_owner(struct perf_event *event);
-+static void perf_event_exit_event(struct perf_event *child_event,
-+				  struct perf_event_context *child_ctx,
-+				  struct task_struct *child);
-+
-+/*
-+ * Removes all events from the current task that have been marked
-+ * remove-on-exec, and feeds their values back to parent events.
-+ */
-+static void perf_event_remove_on_exec(void)
++static void perf_sigtrap(struct perf_event *event)
 +{
-+	int ctxn;
++	struct kernel_siginfo info;
 +
-+	for_each_task_context_nr(ctxn) {
-+		struct perf_event_context *ctx;
-+		struct perf_event *event, *next;
-+
-+		ctx = perf_pin_task_context(current, ctxn);
-+		if (!ctx)
-+			continue;
-+		mutex_lock(&ctx->mutex);
-+
-+		list_for_each_entry_safe(event, next, &ctx->event_list, event_entry) {
-+			if (!event->attr.remove_on_exec)
-+				continue;
-+
-+			if (!is_kernel_event(event))
-+				perf_remove_from_owner(event);
-+			perf_remove_from_context(event, DETACH_GROUP);
-+			/*
-+			 * Remove the event and feed back its values to the
-+			 * parent event.
-+			 */
-+			perf_event_exit_event(event, ctx, current);
-+		}
-+		mutex_unlock(&ctx->mutex);
-+		put_ctx(ctx);
-+	}
++	clear_siginfo(&info);
++	info.si_signo = SIGTRAP;
++	info.si_code = TRAP_PERF;
++	info.si_errno = event->attr.type;
++	force_sig_info(&info);
 +}
 +
- struct perf_read_data {
- 	struct perf_event *event;
- 	bool group;
-@@ -7519,6 +7559,8 @@ void perf_event_exec(void)
- 				   true);
- 	}
- 	rcu_read_unlock();
-+
-+	perf_event_remove_on_exec();
- }
+ static void perf_pending_event_disable(struct perf_event *event)
+ {
+ 	int cpu = READ_ONCE(event->pending_disable);
+@@ -6337,6 +6348,13 @@ static void perf_pending_event_disable(struct perf_event *event)
  
- struct remote_output {
-@@ -11600,6 +11642,9 @@ static int perf_copy_attr(struct perf_event_attr __user *uattr,
- 	if (!attr->inherit && attr->inherit_thread)
+ 	if (cpu == smp_processor_id()) {
+ 		WRITE_ONCE(event->pending_disable, -1);
++
++		if (event->attr.sigtrap) {
++			atomic_set(&event->event_limit, 1); /* rearm event */
++			perf_sigtrap(event);
++			return;
++		}
++
+ 		perf_event_disable_local(event);
+ 		return;
+ 	}
+@@ -11367,6 +11385,9 @@ perf_event_alloc(struct perf_event_attr *attr, int cpu,
+ 
+ 	event->state		= PERF_EVENT_STATE_INACTIVE;
+ 
++	if (event->attr.sigtrap)
++		atomic_set(&event->event_limit, 1);
++
+ 	if (task) {
+ 		event->attach_state = PERF_ATTACH_TASK;
+ 		/*
+@@ -11645,6 +11666,9 @@ static int perf_copy_attr(struct perf_event_attr __user *uattr,
+ 	if (attr->remove_on_exec && attr->enable_on_exec)
  		return -EINVAL;
  
-+	if (attr->remove_on_exec && attr->enable_on_exec)
++	if (attr->sigtrap && !attr->remove_on_exec)
 +		return -EINVAL;
 +
  out:
  	return ret;
  
+@@ -12874,7 +12898,9 @@ inherit_task_group(struct perf_event *event, struct task_struct *parent,
+ 	struct perf_event_context *child_ctx;
+ 
+ 	if (!event->attr.inherit ||
+-	    (event->attr.inherit_thread && !(clone_flags & CLONE_THREAD))) {
++	    (event->attr.inherit_thread && !(clone_flags & CLONE_THREAD)) ||
++	    /* Do not inherit if sigtrap and signal handlers were cleared. */
++	    (event->attr.sigtrap && (clone_flags & CLONE_CLEAR_SIGHAND))) {
+ 		*inherited_all = 0;
+ 		return 0;
+ 	}
 -- 
 2.30.1.766.gb4fecdf3b7-goog
 
