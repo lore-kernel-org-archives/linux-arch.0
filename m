@@ -8,58 +8,58 @@ X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BD5EBC4360C
-	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 00:50:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E7A3EC43332
+	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 00:50:48 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9DDAC64F92
-	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 00:50:49 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B12A864F9E
+	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 00:50:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231651AbhCLAuS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 11 Mar 2021 19:50:18 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52230 "EHLO
+        id S231486AbhCLAuR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 11 Mar 2021 19:50:17 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52160 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231681AbhCLAtw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Mar 2021 19:49:52 -0500
-Received: from mail-qt1-x84a.google.com (mail-qt1-x84a.google.com [IPv6:2607:f8b0:4864:20::84a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5B47CC061574
-        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 16:49:52 -0800 (PST)
-Received: by mail-qt1-x84a.google.com with SMTP id b18so3030288qte.21
-        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 16:49:52 -0800 (PST)
+        with ESMTP id S231527AbhCLAtp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Mar 2021 19:49:45 -0500
+Received: from mail-qv1-xf4a.google.com (mail-qv1-xf4a.google.com [IPv6:2607:f8b0:4864:20::f4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D82CDC061760
+        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 16:49:44 -0800 (PST)
+Received: by mail-qv1-xf4a.google.com with SMTP id bt20so7550107qvb.0
+        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 16:49:44 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=sXIP93k7c8DVrjXtTxj/fkzV3wLZlyNPf+yLEPo7wRE=;
-        b=mtaO9P67TJP45ojSK27tXo13IqOLlDN5Do+q8NG4//IHMLdFX+TlJ0yAD85OgHDHft
-         IV/qU1Fk/J6kVcbC65lo7Ay/XsODQomhEe1LZO8JVY91xpxbEWn7mnMF6ozdBE6gtxeG
-         TVP5gwBfy6iSfOJ3WccgbTihVCrZtVtkL4U7o1ZFGTcb7dn62ug4AzvIwiinUpTkWeQz
-         t91K/KwGP7ANbPLFV1Lg1+3R8mXKS6B5NSjRBUh+zIRMcPA+0EWH40iXDGlfFI1N0+v9
-         s2cZP8RMW4pYDgDNvF+rrzN/fT5uHPXzQ803CSr1JXQP08IdhB8gye8ibnO8y9/FsYuL
-         b3Qg==
+        bh=ECTrvoO9KldCfD8hhCsvcspErQHIUuuHBqQ2YK+RGVo=;
+        b=wW+1hJj1hFqCk4rTpcwuBRw62x+A3vHis0Oz5tBAJYHzlXekVI5fCb4CRuFvioi1v8
+         Mh7hYB9AcKeYBbYe1goSlW2jh4jRNczZ50/cIvHXEQ7ZvYFUlJ2UW0wkI493Qhde1FYO
+         6pLN6ClfnYejsqp0oEwmGUo8DiPRFkt8XUU5nKtpWtewS9sJUGEekHLT4Tc4fNpo5Xjv
+         mpKtrgupIsEYAT+X4F4UKvy4K/AyDXWX4jIYTycY5aYcneVJLoUhiOAcvCtUoWt2ePSz
+         Q9zfzeGbLMmxYteDuFtsZTLdQWkZGVmJ6eMArA+j86MRORN5REegAy0i8e2HidZSQHB7
+         s7mQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=sXIP93k7c8DVrjXtTxj/fkzV3wLZlyNPf+yLEPo7wRE=;
-        b=CvoJJE2OaBoGEjFuExI8zUEHmlokq9lF9MS0UDBBNvL+9ZMxDX43oVuvE14qKEQFe1
-         gZ9M/XwxF+4dmxG78H43oxCoIDLVnJafDyx41N8ZTezkxjA2hxrhbQFbBlK9/JcJyiUC
-         Abm6TXXADSkCmDnHDE8HflvcvO3VfnzzkSg1DliSHolNNwfj5fJXiBiX0bI1vpeY8A7D
-         QA5R13Cm4NO0OwKaOa+Ifh4vES7B6mXOhGfQJ1R7uKYXsNpPYvxng0i+MYZL3ZgqXx7C
-         woJQQ79qamIIy1Zqujc3GXJGyEY2b1sqj9qCNA4kXFEuaRTaTqFr8JpyCriHSzA0SqP2
-         9e9w==
-X-Gm-Message-State: AOAM5321hJtAGrOo4QFyK/VDGc0FIbuDiJfBD1ITfn7WEwvE5NNtNIkQ
-        TTyYgsudWRD7Nm+Pv4+TN2Ke4zrmtP8kuGdbfw8=
-X-Google-Smtp-Source: ABdhPJzXMuYXkgN2WuqAdQ1salNLwv1mgxPH25fvp7ZocNaBgCeLvuP/MBua0CMHO5On1yO8RvH+zhV5TNT/H5rMXt0=
+        bh=ECTrvoO9KldCfD8hhCsvcspErQHIUuuHBqQ2YK+RGVo=;
+        b=iwMLEZ7VQ1F0GXhj2x9ebXW/bQdpmIHPjowViZnnVGZdJtLh+s4p7oBSASlOyFyk6O
+         RURbE3HCbFaRQdeYBDA2JqSfVdxBeQZSODsT9BUZ3/13UvC0Y1C9WvCY6TvkvAeQipTj
+         MEIDrmUvj2WgLRpayg3lwMfu1STjC4VV34m9U23NlOet8vYP7ohk/qEk0h1MspEytQCD
+         dNb+GHnwibs/UBb5vox0FxTn/qCfIF4XRZnnIzCvC6WLu5FB2GGzgPJJUCYBs3r2nd7o
+         EFSmC1mPqHBeUvxKcCOC93NW04hGfWBYwsk+LhDfQcTXHXa4yrV9mTTo33lMpF+EJzwG
+         L4dw==
+X-Gm-Message-State: AOAM530i01Y7Vu60hWufrgf9ILlp8jcjOBf9AsAgGPGwPxV+ZbnyfFEw
+        V0JmkfqUBIVjAKzXvezrzVJPmqM5vhW2eBGRs90=
+X-Google-Smtp-Source: ABdhPJytXg5BTjwe45Q3r7eqpSZES0F+YXxX5W/l9U8XvamBe9sQnbAHhU6LdjW/F5/J+RERUpGWGLvVN/OI8YfDR1o=
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:c86b:8269:af92:55a])
- (user=samitolvanen job=sendgmr) by 2002:ad4:4c83:: with SMTP id
- bs3mr10040851qvb.41.1615510191555; Thu, 11 Mar 2021 16:49:51 -0800 (PST)
-Date:   Thu, 11 Mar 2021 16:49:18 -0800
+ (user=samitolvanen job=sendgmr) by 2002:a0c:b89a:: with SMTP id
+ y26mr10213572qvf.49.1615510184064; Thu, 11 Mar 2021 16:49:44 -0800 (PST)
+Date:   Thu, 11 Mar 2021 16:49:14 -0800
 In-Reply-To: <20210312004919.669614-1-samitolvanen@google.com>
-Message-Id: <20210312004919.669614-17-samitolvanen@google.com>
+Message-Id: <20210312004919.669614-13-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20210312004919.669614-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.31.0.rc2.261.g7f71774620-goog
-Subject: [PATCH 16/17] KVM: arm64: Disable CFI for nVHE
+Subject: [PATCH 12/17] arm64: implement __va_function
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Kees Cook <keescook@chromium.org>
 Cc:     Nathan Chancellor <nathan@kernel.org>,
@@ -77,30 +77,42 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Disable CFI for the nVHE code to avoid address space confusion.
+With CONFIG_CFI_CLANG, the compiler replaces function addresses in
+instrumented C code with jump table addresses. This change implements
+the __va_function() macro, which returns the actual function address
+instead.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 ---
- arch/arm64/kvm/hyp/nvhe/Makefile | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/arm64/include/asm/memory.h | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
 
-diff --git a/arch/arm64/kvm/hyp/nvhe/Makefile b/arch/arm64/kvm/hyp/nvhe/Makefile
-index a6707df4f6c0..fb24a0f022ad 100644
---- a/arch/arm64/kvm/hyp/nvhe/Makefile
-+++ b/arch/arm64/kvm/hyp/nvhe/Makefile
-@@ -75,9 +75,9 @@ quiet_cmd_hyprel = HYPREL  $@
- quiet_cmd_hypcopy = HYPCOPY $@
-       cmd_hypcopy = $(OBJCOPY) --prefix-symbols=__kvm_nvhe_ $< $@
+diff --git a/arch/arm64/include/asm/memory.h b/arch/arm64/include/asm/memory.h
+index c759faf7a1ff..4defa9dc3cc5 100644
+--- a/arch/arm64/include/asm/memory.h
++++ b/arch/arm64/include/asm/memory.h
+@@ -321,6 +321,21 @@ static inline void *phys_to_virt(phys_addr_t x)
+ #define virt_to_pfn(x)		__phys_to_pfn(__virt_to_phys((unsigned long)(x)))
+ #define sym_to_pfn(x)		__phys_to_pfn(__pa_symbol(x))
  
--# Remove ftrace and Shadow Call Stack CFLAGS.
--# This is equivalent to the 'notrace' and '__noscs' annotations.
--KBUILD_CFLAGS := $(filter-out $(CC_FLAGS_FTRACE) $(CC_FLAGS_SCS), $(KBUILD_CFLAGS))
-+# Remove ftrace, Shadow Call Stack, and CFI CFLAGS.
-+# This is equivalent to the 'notrace', '__noscs', and '__nocfi' annotations.
-+KBUILD_CFLAGS := $(filter-out $(CC_FLAGS_FTRACE) $(CC_FLAGS_SCS) $(CC_FLAGS_CFI), $(KBUILD_CFLAGS))
- 
- # KVM nVHE code is run at a different exception code with a different map, so
- # compiler instrumentation that inserts callbacks or checks into the code may
++#ifdef CONFIG_CFI_CLANG
++/*
++ * With CONFIG_CFI_CLANG, the compiler replaces function address
++ * references with the address of the function's CFI jump table
++ * entry. The __va_function macro always returns the address of the
++ * actual function instead.
++ */
++#define __va_function(x) ({						\
++	void *addr;							\
++	asm("adrp %0, " __stringify(x) "\n\t"				\
++	    "add  %0, %0, :lo12:" __stringify(x) : "=r" (addr));	\
++	addr;								\
++})
++#endif
++
+ /*
+  *  virt_to_page(x)	convert a _valid_ virtual address to struct page *
+  *  virt_addr_valid(x)	indicates whether a virtual address is valid
 -- 
 2.31.0.rc2.261.g7f71774620-goog
 
