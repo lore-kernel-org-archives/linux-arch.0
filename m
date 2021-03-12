@@ -5,54 +5,54 @@ X-Spam-Level:
 X-Spam-Status: No, score=-11.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 82C81C43331
-	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 02:44:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 43017C43381
+	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 02:46:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6D83E64F91
-	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 02:44:27 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0D9DA64F6B
+	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 02:46:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231624AbhCLCn4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 11 Mar 2021 21:43:56 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48286 "EHLO
+        id S231543AbhCLCpe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 11 Mar 2021 21:45:34 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48694 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231197AbhCLCna (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Mar 2021 21:43:30 -0500
-Received: from mail-pj1-x1032.google.com (mail-pj1-x1032.google.com [IPv6:2607:f8b0:4864:20::1032])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 24E4EC061574
-        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 18:43:30 -0800 (PST)
-Received: by mail-pj1-x1032.google.com with SMTP id j6-20020a17090adc86b02900cbfe6f2c96so10349819pjv.1
-        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 18:43:30 -0800 (PST)
+        with ESMTP id S231486AbhCLCpT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Mar 2021 21:45:19 -0500
+Received: from mail-pf1-x433.google.com (mail-pf1-x433.google.com [IPv6:2607:f8b0:4864:20::433])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3A0E1C061574
+        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 18:45:19 -0800 (PST)
+Received: by mail-pf1-x433.google.com with SMTP id a188so874537pfb.4
+        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 18:45:19 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=chromium.org; s=google;
         h=date:from:to:cc:subject:message-id:references:mime-version
          :content-disposition:in-reply-to;
-        bh=/xpt2hBBtW7abKxiGDhtHzeOxtHyWoss9DJQhg+zWHw=;
-        b=fS3ImwrxxM2DE3EPiSqkkSbtg7AkezrPZEd01kE1dWcZszmGj9zSpFTelfDiqstTga
-         WftPqqERieBGyxCVAYbjYrgDbk6A5YKAfLzSpkArBkvYk41+DSZTjZOqaRsE43dgsGh6
-         xNgvTqcdZWxl1z22bhI6cbBrEqddMCMIaR2WM=
+        bh=AssdNLgVnE+ciH4+zO5lxL3YhHsnzigu9rKdFnlTKlk=;
+        b=hIQlmeCWP7pIGfJ5QNK11xJD01Ah5yhUwvyA2ww7yhNm+fTC+X7nXsvxCf/cfPJkw8
+         nkcI9fivFzWEt/maVUeYndiFDn25FO8B7W04AYR/UDOt3gRYjRZzQNUCnbTnncwE0cZP
+         XqXc4TvxtdB2n7+7RQIxaEFd3VdXAy+vdwy6o=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:from:to:cc:subject:message-id:references
          :mime-version:content-disposition:in-reply-to;
-        bh=/xpt2hBBtW7abKxiGDhtHzeOxtHyWoss9DJQhg+zWHw=;
-        b=WjxBdCYZn/k8sq7xvV+dkzJjubW36g0XSdo0lC/UeAlcQx9sCxIsCH1Ue8Zn0GAgA9
-         35+sS2FApbPob7zX5sIpyok+c61xE02tuLcFxOUilH/1kim20xfAekkbpqGLF5U2gY4s
-         ftE+2pAnvMT8m5SD2BMSeGj1F+bizujk0dx092As4dTfKidKWgXX9lnQMj1DvhYqnsuB
-         uW2JCgyZKh5z9P38lewgjq59homk0VLhBwXWEktkIp1tbXnAHDOXDRVhB5d1wbe7fKxZ
-         fEFkTO2U+Kn95GneKv2/yXyYCRAIjjfN+rnSt9s46k9kyTgKrYHxEnQjDm6kNZBTi/GI
-         FD3w==
-X-Gm-Message-State: AOAM530TdVAmpGkmEpsjzyc7ieH+T1UbuoDqTrSLwwMQ1d+QSjrFlbCv
-        8/QdkANvGl3ixwObprkOBz4Cmg==
-X-Google-Smtp-Source: ABdhPJwJNeCPNAMR2ch3Yz24PwKhscrbLVrh74rWQAy51W9PeIe5O7weL/Cd+eYEYu9YKFOgM7LJSw==
-X-Received: by 2002:a17:90b:686:: with SMTP id m6mr11513193pjz.26.1615517009803;
-        Thu, 11 Mar 2021 18:43:29 -0800 (PST)
+        bh=AssdNLgVnE+ciH4+zO5lxL3YhHsnzigu9rKdFnlTKlk=;
+        b=JUVwRWLKHl9L0j0aPfCxhsnz1AbH6Zn/tyQfzE7953Ytzx62g5uo+U43MxINs0uWCY
+         NZshKGW7Hke2YIOOlWxs10ZOxotfG+F1PDaB7Ic2XdZlSBY6BZjmg0ArZX9pjM3J+Fqr
+         fZlBXOivbBwISW7WvjAFd4fTOmRBFlY67EUnsrRQrwCu+JZla9SKyrFs/VD/iie2+0ej
+         lQuO3+ZTaXf9RRsStJI49r8qo42zsRP3xjovCAynX2xXUNWLYfJnZ81XMCTC1Ekl1ECT
+         iGJgbkeBjG+Mi6RMZA2s7MWQg1+F3S0Ex1PT/CQp9k0D24coFJAxnfxX/06c0m5q/o01
+         /hYw==
+X-Gm-Message-State: AOAM5321kVwU944Uxy8l2k1oqBDJtgZCeHd40vIygvZDHpbor3Z4iods
+        9xfphh/NOAhM2K2EYCJQMndyvQ==
+X-Google-Smtp-Source: ABdhPJxI0qWCdvIWD0Iv1exumtIeT9fGoJnsI5bP8+qNI3aaTbYLPtnoi/Tg5jl4840YLUIassNTiw==
+X-Received: by 2002:a63:1e0a:: with SMTP id e10mr9855197pge.3.1615517118872;
+        Thu, 11 Mar 2021 18:45:18 -0800 (PST)
 Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
-        by smtp.gmail.com with ESMTPSA id s19sm3652536pfh.168.2021.03.11.18.43.29
+        by smtp.gmail.com with ESMTPSA id 14sm3673048pfo.141.2021.03.11.18.45.18
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 11 Mar 2021 18:43:29 -0800 (PST)
-Date:   Thu, 11 Mar 2021 18:43:28 -0800
+        Thu, 11 Mar 2021 18:45:18 -0800 (PST)
+Date:   Thu, 11 Mar 2021 18:45:17 -0800
 From:   Kees Cook <keescook@chromium.org>
 To:     Sami Tolvanen <samitolvanen@google.com>
 Cc:     Nathan Chancellor <nathan@kernel.org>,
@@ -64,28 +64,22 @@ Cc:     Nathan Chancellor <nathan@kernel.org>,
         linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-kbuild@vger.kernel.org, linux-pci@vger.kernel.org,
         linux-kernel@vger.kernel.org
-Subject: Re: [PATCH 06/17] kthread: cfi: disable callback pointer check with
- modules
-Message-ID: <202103111843.9456B460@keescook>
+Subject: Re: [PATCH 08/17] bpf: disable CFI in dispatcher functions
+Message-ID: <202103111845.3A6EEB3E43@keescook>
 References: <20210312004919.669614-1-samitolvanen@google.com>
- <20210312004919.669614-7-samitolvanen@google.com>
+ <20210312004919.669614-9-samitolvanen@google.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20210312004919.669614-7-samitolvanen@google.com>
+In-Reply-To: <20210312004919.669614-9-samitolvanen@google.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Mar 11, 2021 at 04:49:08PM -0800, Sami Tolvanen wrote:
-> With CONFIG_CFI_CLANG, a callback function passed to
-> __kthread_queue_delayed_work from a module points to a jump table
-> entry defined in the module instead of the one used in the core
-> kernel, which breaks function address equality in this check:
-> 
->   WARN_ON_ONCE(timer->function != kthread_delayed_work_timer_fn);
-> 
-> Disable the warning when CFI and modules are enabled.
+On Thu, Mar 11, 2021 at 04:49:10PM -0800, Sami Tolvanen wrote:
+> BPF dispatcher functions are patched at runtime to perform direct
+> instead of indirect calls. Disable CFI for the dispatcher functions to
+> avoid conflicts.
 > 
 > Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 
