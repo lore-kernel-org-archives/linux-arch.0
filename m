@@ -2,66 +2,59 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+X-Spam-Status: No, score=-16.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
-	version=3.4.0
+	URIBL_BLOCKED autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7377AC41518
-	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 00:50:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E2DD1C433E6
+	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 02:40:09 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6334264F82
-	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 00:50:50 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B183164F95
+	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 02:40:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231696AbhCLAuV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 11 Mar 2021 19:50:21 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52176 "EHLO
+        id S231313AbhCLCjh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 11 Mar 2021 21:39:37 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47350 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231269AbhCLAtr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Mar 2021 19:49:47 -0500
-Received: from mail-qv1-xf49.google.com (mail-qv1-xf49.google.com [IPv6:2607:f8b0:4864:20::f49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BEA3BC061761
-        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 16:49:46 -0800 (PST)
-Received: by mail-qv1-xf49.google.com with SMTP id d26so16439985qve.7
-        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 16:49:46 -0800 (PST)
+        with ESMTP id S230494AbhCLCj0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Mar 2021 21:39:26 -0500
+Received: from mail-pl1-x633.google.com (mail-pl1-x633.google.com [IPv6:2607:f8b0:4864:20::633])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2F796C061764
+        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 18:39:26 -0800 (PST)
+Received: by mail-pl1-x633.google.com with SMTP id w7so7725696pll.8
+        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 18:39:26 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=date:in-reply-to:message-id:mime-version:references:subject:from:to
-         :cc;
-        bh=ke/VK9feKGHIOdGZ0pPiwCA0H+8ezangCBgEAIc7UY8=;
-        b=VEua8fI/YdbAAV+4vZE9LkkG6NVxbYTi4fRLVAQJzfNMohxQByrtWWMZlXvS9RQ8nE
-         GCrQlGX4ECvM7L+7ShVYOcebSOytlurJV/W9GzVfy61t+13vR6iXIT3v1UZ+jyY1BeYR
-         wQBYv8Oduzu+jPwNxOmMrTIBK+k2MNhOngjZrb+3mtmR/N463wuAVgjpNO6QMyDQdlGp
-         fI74iB6pZmXATCWJHIMEIE1ELSESldUwtkUQ2woIlKymiMBAFWY/gPsczmQVWcgpL4RE
-         PHiq5RzAAWrUYckK7pQsqJHgN14P5xf7CIR+jMOOtqlEeil1THtozna5tLtZEutzgSAp
-         /elQ==
+        d=chromium.org; s=google;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=djQZd3ysyoSutQHrswnBnuimUYSb59dZwog3T2MV0T0=;
+        b=mLI4wibQX2QDrTDp0g3oVwAnp8g8JH2ZHX3coY+tloIS7hQDHaHg7O3U0tqNyPkaXm
+         8rDqn7xBBo4XHsB+a2U3CBHCbqJ61M0ldpB/4IwR6Z3ug6eLs539FiVfed3DGaRV2ZTJ
+         k+65bJQ0eM8Sc9pNW/ZbuOFd1znR6iQPephC8=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:in-reply-to:message-id:mime-version
-         :references:subject:from:to:cc;
-        bh=ke/VK9feKGHIOdGZ0pPiwCA0H+8ezangCBgEAIc7UY8=;
-        b=qKkpIDsfA/mECdzIr9gJk9Qs/fBzp3hre3A/aRCrM+0imRXttbLGv67YOC/K9W5kwy
-         2vg3rjsCujRwPENVSdShPGzCRNGZ9hvCTMliAOnKckvDLpv0b3/DgS2ThBrce4PfpVSJ
-         LoVETu1P5cxYrTpF4zgjKudUK9WSQHRTvoeRQP8KPPG7Zwtt8oXnGi/0kXoICfJtH9ND
-         bSQzwWnaYyYcxpxQNY/3lxWp+oQAdpVJ7C0y8jGY4P0Di9koWN2KQeKjvdWsj6sSORwu
-         ++E8L/eYMqo+jHxNR0Cqe8EEKfQUxAmRlkiogvZeN5hYc6/yCT4PwyM6P6KwB6xR+Lp6
-         Iyng==
-X-Gm-Message-State: AOAM532NkzvgREczjloDVw8VW/75lV79HCYr/Mp9ueUzsqVKkI3/qhDd
-        pOskCQqXQopCk3ycyLFnzWQcN/noQsUCIpAAHSg=
-X-Google-Smtp-Source: ABdhPJw9/Or/m/d2Vf6GucTmLluSf9xWrzOAepUCSiA4XOaY4VEMXGgCLe1+OE/2N7m70B9Io8cg6/HlLs/UXYJfABA=
-X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:c86b:8269:af92:55a])
- (user=samitolvanen job=sendgmr) by 2002:ad4:5901:: with SMTP id
- ez1mr9997276qvb.38.1615510185992; Thu, 11 Mar 2021 16:49:45 -0800 (PST)
-Date:   Thu, 11 Mar 2021 16:49:15 -0800
-In-Reply-To: <20210312004919.669614-1-samitolvanen@google.com>
-Message-Id: <20210312004919.669614-14-samitolvanen@google.com>
-Mime-Version: 1.0
-References: <20210312004919.669614-1-samitolvanen@google.com>
-X-Mailer: git-send-email 2.31.0.rc2.261.g7f71774620-goog
-Subject: [PATCH 13/17] arm64: use __pa_function
-From:   Sami Tolvanen <samitolvanen@google.com>
-To:     Kees Cook <keescook@chromium.org>
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=djQZd3ysyoSutQHrswnBnuimUYSb59dZwog3T2MV0T0=;
+        b=RF+kBu7Hc6oKZ/kszzobXnjCnH18gvTqKDGI84I5Ck/2A8ZovCw0qsWUgX1GzM1kRt
+         v3d4m7BlvjvS4odGx1c2HpuktYf6hcPTC31BF8kkBHWpnV/yTk2mJIKsAyrBOGoY3REL
+         1/Zdc4y8dgj8qZTAV9/blGe4w3K5dF/Df4GqdKprmwtsdjIRWx9mFnW/P8GnrNINWnTY
+         Zpaqb8lJlYvjRWqdYWnZ0f0Z6RhBqGIfSx296eOgjrvLO3lQs7rap7bdC0Yxqeyv6Scs
+         NQNy3GumbFP7Y+PzDnL0fLK6i8YZJPdBiPB/fPm0OWKB7Dm+1/kJQb7hCZYY2D0s+49O
+         TsZQ==
+X-Gm-Message-State: AOAM533HqJZcfWasYtsHaDan6Ie3XLl+YOpez2BZRM70NPs475ERB3Wj
+        xbiyoN5wHepx33Bodf3yAnJzmA==
+X-Google-Smtp-Source: ABdhPJyXid/WhlRRi3IuEn/gj018RDIJnIysnt+MQKHLqWW7jwLJATluPmfQx4YLScgrHSTI05ABow==
+X-Received: by 2002:a17:902:344:b029:e4:a7ab:2e55 with SMTP id 62-20020a1709020344b02900e4a7ab2e55mr11594605pld.63.1615516765493;
+        Thu, 11 Mar 2021 18:39:25 -0800 (PST)
+Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
+        by smtp.gmail.com with ESMTPSA id k127sm3858828pfd.63.2021.03.11.18.39.24
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 11 Mar 2021 18:39:24 -0800 (PST)
+Date:   Thu, 11 Mar 2021 18:39:23 -0800
+From:   Kees Cook <keescook@chromium.org>
+To:     Sami Tolvanen <samitolvanen@google.com>
 Cc:     Nathan Chancellor <nathan@kernel.org>,
         Nick Desaulniers <ndesaulniers@google.com>,
         Masahiro Yamada <masahiroy@kernel.org>,
@@ -70,110 +63,95 @@ Cc:     Nathan Chancellor <nathan@kernel.org>,
         bpf@vger.kernel.org, linux-hardening@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-kbuild@vger.kernel.org, linux-pci@vger.kernel.org,
-        linux-kernel@vger.kernel.org,
-        Sami Tolvanen <samitolvanen@google.com>
-Content-Type: text/plain; charset="UTF-8"
+        linux-kernel@vger.kernel.org
+Subject: Re: [PATCH 04/17] module: cfi: ensure __cfi_check alignment
+Message-ID: <202103111837.813997B4@keescook>
+References: <20210312004919.669614-1-samitolvanen@google.com>
+ <20210312004919.669614-5-samitolvanen@google.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210312004919.669614-5-samitolvanen@google.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-With CONFIG_CFI_CLANG, the compiler replaces function address
-references with the address of the function's CFI jump table
-entry. This means that __pa_symbol(function) returns the physical
-address of the jump table entry, which can lead to address space
-confusion as the jump table points to the function's virtual
-address. Therefore, use the __pa_function() macro to ensure we are
-always taking the address of the actual function instead.
+On Thu, Mar 11, 2021 at 04:49:06PM -0800, Sami Tolvanen wrote:
+> CONFIG_CFI_CLANG_SHADOW assumes the __cfi_check() function is page
+> aligned and at the beginning of the .text section. While Clang would
+> normally align the function correctly, it fails to do so for modules
+> with no executable code.
+> 
+> This change ensures the correct __cfi_check() location and
+> alignment. It also discards the .eh_frame section, which Clang can
+> generate with certain sanitizers, such as CFI.
+> 
+> Link: https://bugs.llvm.org/show_bug.cgi?id=46293
+> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+> ---
+>  scripts/module.lds.S | 14 +++++++++++++-
+>  1 file changed, 13 insertions(+), 1 deletion(-)
+> 
+> diff --git a/scripts/module.lds.S b/scripts/module.lds.S
+> index 168cd27e6122..552ddb084f76 100644
+> --- a/scripts/module.lds.S
+> +++ b/scripts/module.lds.S
+> @@ -3,10 +3,13 @@
+>   * Archs are free to supply their own linker scripts.  ld will
+>   * combine them automatically.
+>   */
+> +#include <asm/page.h>
+> +
+>  SECTIONS {
+>  	/DISCARD/ : {
+>  		*(.discard)
+>  		*(.discard.*)
+> +		*(.eh_frame)
+>  	}
+>  
+>  	__ksymtab		0 : { *(SORT(___ksymtab+*)) }
+> @@ -40,7 +43,16 @@ SECTIONS {
+>  		*(.rodata..L*)
+>  	}
+>  
+> -	.text : { *(.text .text.[0-9a-zA-Z_]*) }
+> +#ifdef CONFIG_CFI_CLANG
+> +	/*
+> +	 * With CFI_CLANG, ensure __cfi_check is at the beginning of the
+> +	 * .text section, and that the section is aligned to page size.
+> +	 */
+> +	.text : ALIGN(PAGE_SIZE) {
+> +		*(.text.__cfi_check)
+> +		*(.text .text.[0-9a-zA-Z_]* .text..L.cfi*)
+> +	}
+> +#endif
 
-Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
----
- arch/arm64/include/asm/mmu_context.h      | 2 +-
- arch/arm64/kernel/acpi_parking_protocol.c | 2 +-
- arch/arm64/kernel/cpu-reset.h             | 2 +-
- arch/arm64/kernel/cpufeature.c            | 2 +-
- arch/arm64/kernel/psci.c                  | 3 ++-
- arch/arm64/kernel/smp_spin_table.c        | 2 +-
- 6 files changed, 7 insertions(+), 6 deletions(-)
+Whoops, I think this reverts to the default .text declaration when
+CONFIG_CFI_CLANG is unset.
 
-diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/asm/mmu_context.h
-index 70ce8c1d2b07..519d535532be 100644
---- a/arch/arm64/include/asm/mmu_context.h
-+++ b/arch/arm64/include/asm/mmu_context.h
-@@ -157,7 +157,7 @@ static inline void cpu_replace_ttbr1(pgd_t *pgdp)
- 		ttbr1 |= TTBR_CNP_BIT;
- 	}
- 
--	replace_phys = (void *)__pa_symbol(idmap_cpu_replace_ttbr1);
-+	replace_phys = (void *)__pa_function(idmap_cpu_replace_ttbr1);
- 
- 	cpu_install_idmap();
- 	replace_phys(ttbr1);
-diff --git a/arch/arm64/kernel/acpi_parking_protocol.c b/arch/arm64/kernel/acpi_parking_protocol.c
-index e7c941d8340d..e7f3af6043c5 100644
---- a/arch/arm64/kernel/acpi_parking_protocol.c
-+++ b/arch/arm64/kernel/acpi_parking_protocol.c
-@@ -99,7 +99,7 @@ static int acpi_parking_protocol_cpu_boot(unsigned int cpu)
- 	 * that read this address need to convert this address to the
- 	 * Boot-Loader's endianness before jumping.
- 	 */
--	writeq_relaxed(__pa_symbol(secondary_entry), &mailbox->entry_point);
-+	writeq_relaxed(__pa_function(secondary_entry), &mailbox->entry_point);
- 	writel_relaxed(cpu_entry->gic_cpu_id, &mailbox->cpu_id);
- 
- 	arch_send_wakeup_ipi_mask(cpumask_of(cpu));
-diff --git a/arch/arm64/kernel/cpu-reset.h b/arch/arm64/kernel/cpu-reset.h
-index ed50e9587ad8..dfba8cf921e5 100644
---- a/arch/arm64/kernel/cpu-reset.h
-+++ b/arch/arm64/kernel/cpu-reset.h
-@@ -22,7 +22,7 @@ static inline void __noreturn cpu_soft_restart(unsigned long entry,
- 
- 	unsigned long el2_switch = !is_kernel_in_hyp_mode() &&
- 		is_hyp_mode_available();
--	restart = (void *)__pa_symbol(__cpu_soft_restart);
-+	restart = (void *)__pa_function(__cpu_soft_restart);
- 
- 	cpu_install_idmap();
- 	restart(el2_switch, entry, arg0, arg1, arg2);
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index 066030717a4c..7ec1c2ccdc0b 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -1460,7 +1460,7 @@ kpti_install_ng_mappings(const struct arm64_cpu_capabilities *__unused)
- 	if (arm64_use_ng_mappings)
- 		return;
- 
--	remap_fn = (void *)__pa_symbol(idmap_kpti_install_ng_mappings);
-+	remap_fn = (void *)__pa_function(idmap_kpti_install_ng_mappings);
- 
- 	cpu_install_idmap();
- 	remap_fn(cpu, num_online_cpus(), __pa_symbol(swapper_pg_dir));
-diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
-index 62d2bda7adb8..bfb1a6f8282d 100644
---- a/arch/arm64/kernel/psci.c
-+++ b/arch/arm64/kernel/psci.c
-@@ -38,7 +38,8 @@ static int __init cpu_psci_cpu_prepare(unsigned int cpu)
- 
- static int cpu_psci_cpu_boot(unsigned int cpu)
- {
--	int err = psci_ops.cpu_on(cpu_logical_map(cpu), __pa_symbol(secondary_entry));
-+	int err = psci_ops.cpu_on(cpu_logical_map(cpu),
-+				  __pa_function(secondary_entry));
- 	if (err)
- 		pr_err("failed to boot CPU%d (%d)\n", cpu, err);
- 
-diff --git a/arch/arm64/kernel/smp_spin_table.c b/arch/arm64/kernel/smp_spin_table.c
-index 056772c26098..a80ff9092e86 100644
---- a/arch/arm64/kernel/smp_spin_table.c
-+++ b/arch/arm64/kernel/smp_spin_table.c
-@@ -88,7 +88,7 @@ static int smp_spin_table_cpu_prepare(unsigned int cpu)
- 	 * boot-loader's endianness before jumping. This is mandated by
- 	 * the boot protocol.
- 	 */
--	writeq_relaxed(__pa_symbol(secondary_holding_pen), release_addr);
-+	writeq_relaxed(__pa_function(secondary_holding_pen), release_addr);
- 	__flush_dcache_area((__force void *)release_addr,
- 			    sizeof(*release_addr));
- 
+I think the only thing that needs the ifdef is the ALIGN, yes? Perhaps
+something like this?
+
+#ifdef CONFIG_CFI_CLANG
+# define ALIGN_CFI ALIGN(PAGE_SIZE)
+#else
+# define ALIGN_CFI
+#endif
+
+	.text : ALIGN_CFI {
+		*(.text.__cfi_check)
+		*(.text .text.[0-9a-zA-Z_]* .text..L.cfi*)
+	}
+
+
+-Kees
+
+>  }
+>  
+>  /* bring in arch-specific sections */
+> -- 
+> 2.31.0.rc2.261.g7f71774620-goog
+> 
+
 -- 
-2.31.0.rc2.261.g7f71774620-goog
-
+Kees Cook
