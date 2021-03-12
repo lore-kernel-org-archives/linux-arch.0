@@ -2,119 +2,154 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 78CA1C432C3
-	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 10:35:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0B544C433E6
+	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 15:29:33 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 66CC065039
-	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 10:35:20 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D64F164F8F
+	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 15:29:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233446AbhCLKeq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 12 Mar 2021 05:34:46 -0500
-Received: from elvis.franken.de ([193.175.24.41]:52591 "EHLO elvis.franken.de"
+        id S231351AbhCLP2u (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 12 Mar 2021 10:28:50 -0500
+Received: from mout.gmx.net ([212.227.17.20]:58795 "EHLO mout.gmx.net"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S233398AbhCLKem (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 12 Mar 2021 05:34:42 -0500
-Received: from uucp (helo=alpha)
-        by elvis.franken.de with local-bsmtp (Exim 3.36 #1)
-        id 1lKf7u-0007WV-00; Fri, 12 Mar 2021 11:34:38 +0100
-Received: by alpha.franken.de (Postfix, from userid 1000)
-        id 406CCC1D54; Fri, 12 Mar 2021 11:24:10 +0100 (CET)
-Date:   Fri, 12 Mar 2021 11:24:10 +0100
-From:   Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-To:     Huang Pei <huangpei@loongson.cn>
-Cc:     ambrosehua@gmail.com, Bibo Mao <maobibo@loongson.cn>,
-        linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Paul Burton <paulburton@kernel.org>,
-        Li Xuefeng <lixuefeng@loongson.cn>,
-        Yang Tiezhu <yangtiezhu@loongson.cn>,
-        Gao Juxin <gaojuxin@loongson.cn>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Jinyang He <hejinyang@loongson.cn>
-Subject: Re: [PATCH 1/2] MIPS: clean up CONFIG_MIPS_PGD_C0_CONTEXT handling
-Message-ID: <20210312102410.GA7027@alpha.franken.de>
-References: <20210309080210.25561-1-huangpei@loongson.cn>
- <20210309080210.25561-2-huangpei@loongson.cn>
+        id S230302AbhCLP2e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 12 Mar 2021 10:28:34 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=gmx.net;
+        s=badeba3b8450; t=1615562901;
+        bh=5kxWxnJH6TxGILTbWiEuWrtMiE4DpLAno4eP5DaAVnM=;
+        h=X-UI-Sender-Class:From:To:Cc:Subject:Date;
+        b=kiKXOysos2SmX0B8pydGx/TlqeNKGYPZVqafF9L5KKf1Al2XFMky8lQfp1MKLafQR
+         u/QUfHptnDrDwR7jBurSje/dRs7eWKoCvC+Tz3VLm8bFRNSY83gukQN+tuzcSAODwF
+         IZKra52x10JkVmVRzlG1owQNUrmao7pr1QvPzkEI=
+X-UI-Sender-Class: 01bb95c1-4bf8-414a-932a-4f6e2808ef9c
+Received: from longitude ([37.201.215.134]) by mail.gmx.net (mrgmx104
+ [212.227.17.168]) with ESMTPSA (Nemesis) id 1MeU0q-1lutsH2fjA-00aZGP; Fri, 12
+ Mar 2021 16:28:21 +0100
+From:   =?UTF-8?q?Jonathan=20Neusch=C3=A4fer?= <j.neuschaefer@gmx.net>
+To:     linux-doc@vger.kernel.org
+Cc:     linux-arch@vger.kernel.org,
+        =?UTF-8?q?Jonathan=20Neusch=C3=A4fer?= <j.neuschaefer@gmx.net>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org
+Subject: [RFC PATCH] docs: Group arch-specific documentation under "CPU Architectures"
+Date:   Fri, 12 Mar 2021 16:28:03 +0100
+Message-Id: <20210312152804.2110703-1-j.neuschaefer@gmx.net>
+X-Mailer: git-send-email 2.30.1
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210309080210.25561-2-huangpei@loongson.cn>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+X-Provags-ID: V03:K1:8ebQTw4lZ+rVZ5nvFoAmTj5OAS3v/fSaT0/jFvCvQVpD2gpKnVw
+ DilHPjUKk0X3YA+e0yFNd1JIULXgIiQL40MkLj7dZA8ysVSSilzZ7qMxg0HWQZ1wZq9/0K3
+ AlikEl29YsjY9T29dZz7XsfV1x5rdiUHqcVejJieZkb79pkNISCbXGhKVp5K9eocWVNHWNb
+ CCflKytTdcFSBiCjkTG9A==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:uihwH/s/73s=:+hoH2NdeT68B6TmcizC9x1
+ TXVdHUe+JqESQt16Cq5/oXL3DvFyFqeaXccPt9272v//kgr3m8I0HKN4pRVradhhqBazITH7z
+ BbDh82hc+C6xAu1YOOl/p58eCju57v2gzTnsTnIk3KJBaFXpo0gOUT01yse58b2Gb0TLHmP3B
+ iO8qd4J12Wkpa/Nfs/y7NWqqO6bUrRiUQVHiuhAst9cBuXHRD1PYYx6y4KwAuTjYb6hQ/Rxsu
+ 4Rh7HBmuXbztjNUPCa1/AbxuAiiivPP3OlMWQW1sJIijtCfksooewFj0nnHAoynHoLyynUkun
+ t7RGGKqiPEQHhHHpzpJvVZJ9NNDhGoiRMeh//UM8cVa6rYYMma2SPhXVJk/qSTyAikR6LbV4N
+ pouSs8E9SSJWIj6CfbEn7BMDuaWfDS0ZRMjlecjFRrgopGIbOjg1XNZesVdGqhfbiaZd/shtG
+ AsOwJORRB9VMct6kVmuYcX4AfHQ5M9VEbN4ivte5AaQjT4ir1Xj8kt5slQuR2CZfwdNT2KHYs
+ wmru5aU2NjA2wff8w7VcDcb/bf9G9hp+Ja78L4MemUNHGE58bgAIUtePAP9eCp7jU1zZ5K7IC
+ 94guYKUzco1RFQa3/Mhw+T2PK8021yuCHoF8lwcPt/q1jy+xssVya+koF1aBOWK9pkfjA8f/R
+ l5ZsYi/Zl4oZ4lLN/SnKD2i+q6cPvMru0mG9BjYePiTHwchhHlsDRG4Fq0dO+Xj9OjqSngkzU
+ aMc0KVWmjwEupvidUCE+dXxuIwMiLE0bzmsokMK3PDoTKCDvSVKzYORAKsl5L3x4VyOXMc/9F
+ OtjA0VL0FSNja1T1BVrci/JdSpkHG27IJCCohsnGiksPsKAC849jSCMly54uYsmxeXUoPoAdo
+ +ABCTXVJnsJjMza5TP8Q==
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Mar 09, 2021 at 04:02:09PM +0800, Huang Pei wrote:
-> +. LOONGSON64 use 0x98xx_xxxx_xxxx_xxxx as xphys cached
-> 
-> +. let CONFIG_MIPS_PGD_C0_CONTEXT depend on 64bit
-> 
-> +. cast CAC_BASE into u64 to silence warning on MIPS32
-> 
-> CP0 Context has enough room for wraping pgd into its 41-bit PTEBase field.
-> 
-> +. For XPHYS, the trick is that pgd is 4kB aligned, and the PABITS <= 48,
-> only save 48 - 12 + 5(for bit[63:59]) = 41 bits, aka. :
-> 
->    bit[63:59] | 0000 0000 000 |  bit[47:12] | 0000 0000 0000
-> 
-> +. for CKSEG0, only save 29 - 12 = 17 bits
+To declutter the top-level table of contents (the side bar), this
+patch reduces the architecture-specfic documentation to one top-level
+item, "CPU Architectures".
 
-you are explaining what you are doing, but not why you are doing this.
-So why are you doing this ?
+Signed-off-by: Jonathan Neusch=C3=A4fer <j.neuschaefer@gmx.net>
+=2D--
 
->  #
->  # Set to y for ptrace access to watch registers.
-> diff --git a/arch/mips/mm/tlbex.c b/arch/mips/mm/tlbex.c
-> index a7521b8f7658..591cfa0fca02 100644
-> --- a/arch/mips/mm/tlbex.c
-> +++ b/arch/mips/mm/tlbex.c
-> @@ -848,8 +848,8 @@ void build_get_pmde64(u32 **p, struct uasm_label **l, struct uasm_reloc **r,
->  		/* Clear lower 23 bits of context. */
->  		uasm_i_dins(p, ptr, 0, 0, 23);
->  
-> -		/* 1 0	1 0 1  << 6  xkphys cached */
-> -		uasm_i_ori(p, ptr, ptr, 0x540);
-> +		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
-> +		uasm_i_ori(p, ptr, ptr, ((u64)(CAC_BASE) >> 53));
+As a side effect, the TOC in index.html effectively gets one level of
+detail less. This could be fixed by specifying ':maxdepth: 3'.
+=2D--
+ Documentation/arch.rst  | 26 ++++++++++++++++++++++++++
+ Documentation/index.rst | 20 ++------------------
+ 2 files changed, 28 insertions(+), 18 deletions(-)
+ create mode 100644 Documentation/arch.rst
 
-you want to use bits 63..59 but picking bits 63..53 with this.  While
-bits 58..53 are probably 0, wouldn't it make also sense to mask them out ?
+diff --git a/Documentation/arch.rst b/Documentation/arch.rst
+new file mode 100644
+index 0000000000000..f10bd32a5972e
+=2D-- /dev/null
++++ b/Documentation/arch.rst
+@@ -0,0 +1,26 @@
++.. SPDX-License-Identifier: GPL-2.0
++
++CPU Architectures
++=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
++
++These books provide programming details about architecture-specific
++implementation.
++
++.. toctree::
++   :maxdepth: 2
++
++   arm/index
++   arm64/index
++   ia64/index
++   m68k/index
++   mips/index
++   nios2/index
++   openrisc/index
++   parisc/index
++   powerpc/index
++   riscv/index
++   s390/index
++   sh/index
++   sparc/index
++   x86/index
++   xtensa/index
+diff --git a/Documentation/index.rst b/Documentation/index.rst
+index 31f2adc8542dc..54ce34fd6fbda 100644
+=2D-- a/Documentation/index.rst
++++ b/Documentation/index.rst
+@@ -149,27 +149,11 @@ Architecture-agnostic documentation
+ Architecture-specific documentation
+ -----------------------------------
 
->  		uasm_i_drotr(p, ptr, ptr, 11);
->  #elif defined(CONFIG_SMP)
->  		UASM_i_CPUID_MFC0(p, ptr, SMP_CPUID_REG);
-> @@ -1164,8 +1164,9 @@ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
->  
->  	if (pgd_reg == -1) {
->  		vmalloc_branch_delay_filled = 1;
-> -		/* 1 0	1 0 1  << 6  xkphys cached */
-> -		uasm_i_ori(p, ptr, ptr, 0x540);
-> +		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
-> +		uasm_i_ori(p, ptr, ptr, ((u64)(CAC_BASE) >> 53));
-> +
->  		uasm_i_drotr(p, ptr, ptr, 11);
->  	}
->  
-> @@ -1292,7 +1293,6 @@ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
->  
->  	return rv;
->  }
-> -
->  /*
+-These books provide programming details about architecture-specific
+-implementation.
+-
+ .. toctree::
+    :maxdepth: 2
 
-why are you removing this empty line ? I'd prefer that it stays there...
+-   arm/index
+-   arm64/index
+-   ia64/index
+-   m68k/index
+-   mips/index
+-   nios2/index
+-   openrisc/index
+-   parisc/index
+-   powerpc/index
+-   riscv/index
+-   s390/index
+-   sh/index
+-   sparc/index
+-   x86/index
+-   xtensa/index
++   arch
++
 
->   * For a 64-bit kernel, we are using the 64-bit XTLB refill exception
->   * because EXL == 0.  If we wrap, we can also use the 32 instruction
-> -- 
-> 2.17.1
+ Other documentation
+ -------------------
+=2D-
+2.30.1
 
--- 
-Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
-good idea.                                                [ RFC1925, 2.3 ]
