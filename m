@@ -5,61 +5,61 @@ X-Spam-Level:
 X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=ham autolearn_force=no
+	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D8FB8C28E86
-	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 00:50:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 984F1C4646B
+	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 00:50:20 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C14D464F90
-	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 00:50:18 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 804BB64F95
+	for <linux-arch@archiver.kernel.org>; Fri, 12 Mar 2021 00:50:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231644AbhCLAtt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 11 Mar 2021 19:49:49 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52112 "EHLO
+        id S231247AbhCLAts (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 11 Mar 2021 19:49:48 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52052 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231434AbhCLAtk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Mar 2021 19:49:40 -0500
+        with ESMTP id S231367AbhCLAtd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Mar 2021 19:49:33 -0500
 Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DA6AAC061761
-        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 16:49:39 -0800 (PST)
-Received: by mail-yb1-xb4a.google.com with SMTP id v62so27554505ybb.15
-        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 16:49:39 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6CC0FC061764
+        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 16:49:32 -0800 (PST)
+Received: by mail-yb1-xb4a.google.com with SMTP id s187so27784530ybs.22
+        for <linux-arch@vger.kernel.org>; Thu, 11 Mar 2021 16:49:32 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=hZWFZEGgf1oZzErhLvCwgFyCsdD04UtwuSm9OP/0yUI=;
-        b=Myro43SMeYOTa+WlzxzudU7eRPbu2ZVl8J8nRnzEoOQCBBm3PCLLf2sU0IZZ/5wdgL
-         6s09Ubalx38FLGVf/eCIGLb6Fxk2xPluM7RNfSrZrKf+QEf6uwB3e7Ls8xTHhADuegJ+
-         VaUEyy4XM4BSfLzqZRkrTc113UMZizSYNcaTtog7go6NGMN7gQJLW3mihenOtsxEfPZ5
-         aviGLWHZKCqpW+v9kwflw4luMiyATlEPkHjoQvPYiajbHGXL5cibGvRvQG4F/KjJisJK
-         9I9zahguY2brjGuGSwZC71bTjTKJ24MgzucykCVAS+x/TR9IPmmraiKlc5G5TBTtt+pN
-         eQgQ==
+        bh=Y+bQ/FvCUm3fvBgel5uQUEfp5fAIz/0D/2shjtjBBOQ=;
+        b=XH46gyIVQlOmQFd/RmNS2UiHhzUpt2qt03RTF06Xnae6iCcw0dFPqWjKTPco+qP/Zx
+         fB/uJw66ANkZSXLpgPZzsNiuQ09DnyCviGcpTgD8pTRezXmUpwZek+cB7Y/HvGxA8qch
+         dFOUqeeMZ918ZEBhrbuNcNxKi6PRldR02Suyv0Yn8UZyobwAbNbMX7d8KutkSzRsxDGm
+         0S6hbtJQ8Ws4a+nW+Glvo6IMRSySbHIstPjzQXpwjaBdZ61ql+77Yzbd9C2HqajlQ9bT
+         al24/Uv71xlS2VCq05aPDtCBcnEMCW+8us1rt97YOCFL3l3qREf0N5Bb4Jekm29kn/qK
+         q9Xg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=hZWFZEGgf1oZzErhLvCwgFyCsdD04UtwuSm9OP/0yUI=;
-        b=KVtQJ7xQG9rRRIR6jRxZb4FB1dmR5hFBqCVU924fw4MgReFmExve1K8bc9AxTJ2lT3
-         0EthzsjsV2gtryWUJcw9fcRIek9JP2vlgFI/8SViulrL7dsOdR535w+d0L6WfzmfUKY5
-         OUrhHoIPjwW+g3hM+VEsBikhMmAvYdrxQtktdvbi/wgpaSIxoa2ANCDfTfmDUwGzqDhB
-         2yiuLdxRFpr0Fsd8R/8d6GNWf9LhbLGDXm2QoATwb/fiXnzjLZCJ/a8RH2+RyCr7+KVw
-         VipbxUNo7QR918h8iobBSA/nlRmR5Xv88Ls68Zk4igvzLzzEr0+FM4KmKsBhKVNoeQrz
-         QCuA==
-X-Gm-Message-State: AOAM530QimhB5Oo2T9SO9BdLe5hEbPI6CKyuX3zZMSzuw6S3UPIUVG5X
-        vm1uyCrVa5exg9zdxCHWbaWMxog88DB+l0UwnrM=
-X-Google-Smtp-Source: ABdhPJyUTzKzhlJJScc7b96k8P6UFF7tfvUlrsyiNN1iQd9CLMxgBI+ybk0/Hoqr01MMDE6QMpxcpK7+1qa3BIyQYDc=
+        bh=Y+bQ/FvCUm3fvBgel5uQUEfp5fAIz/0D/2shjtjBBOQ=;
+        b=C5KeTyd7DBdLlwHY0xdnMC97UbGokXg/YmSL9OilmNrZJHa1wLJRvuAsXfrgYjRKIa
+         fGyheqd1p87X02u8tmuyOpDvvBZtAgT1AUGTuSHN/Iilg23mYT5KNEbz7KdzmPGhkPAR
+         hmNA/FQgIK90ixPWj8JCqRqQzmVz7pFPzpjwwDmEO/PDQoVRTGhB9izpLBUbv38aefpJ
+         T98BKcZG8Q3ZNZQKdkh7ESMLNU0m0nB085RWkW4rOrqjviOSXaP8aYizTW9KogzeDgZY
+         6uvtgOBsK3qlpjkdDKl0D3+m018J8T6qyeOh9S8NQoFnRd3jCVZE1suJkm49t0ylIRrS
+         MX9w==
+X-Gm-Message-State: AOAM532XEyaFFejhWTeFvYlInOTAI3wpCMNzzUEKmGDegS2GiZ//vXxg
+        57NEoLOqE/SOZlSf2yFucI2tcCWzat+oT/OEeE8=
+X-Google-Smtp-Source: ABdhPJx7qHHoiwHh7Mz2oYX8+DonjBOnAMdcSWoE+4sImbjhV4Eew8XMTramdbIeYBSUSqj6zA5bpTyw6U5L5XSs8WU=
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:c86b:8269:af92:55a])
- (user=samitolvanen job=sendgmr) by 2002:a25:880c:: with SMTP id
- c12mr15536827ybl.399.1615510179139; Thu, 11 Mar 2021 16:49:39 -0800 (PST)
-Date:   Thu, 11 Mar 2021 16:49:12 -0800
+ (user=samitolvanen job=sendgmr) by 2002:a25:1d88:: with SMTP id
+ d130mr15900461ybd.446.1615510171706; Thu, 11 Mar 2021 16:49:31 -0800 (PST)
+Date:   Thu, 11 Mar 2021 16:49:08 -0800
 In-Reply-To: <20210312004919.669614-1-samitolvanen@google.com>
-Message-Id: <20210312004919.669614-11-samitolvanen@google.com>
+Message-Id: <20210312004919.669614-7-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20210312004919.669614-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.31.0.rc2.261.g7f71774620-goog
-Subject: [PATCH 10/17] lkdtm: use __va_function
+Subject: [PATCH 06/17] kthread: cfi: disable callback pointer check with modules
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Kees Cook <keescook@chromium.org>
 Cc:     Nathan Chancellor <nathan@kernel.org>,
@@ -77,29 +77,39 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-To ensure we take the actual address of a function in kernel text, use
-__va_function. Otherwise, with CONFIG_CFI_CLANG, the compiler replaces
-the address with a pointer to the CFI jump table, which is actually in
-the module when compiled with CONFIG_LKDTM=m.
+With CONFIG_CFI_CLANG, a callback function passed to
+__kthread_queue_delayed_work from a module points to a jump table
+entry defined in the module instead of the one used in the core
+kernel, which breaks function address equality in this check:
+
+  WARN_ON_ONCE(timer->function != kthread_delayed_work_timer_fn);
+
+Disable the warning when CFI and modules are enabled.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 ---
- drivers/misc/lkdtm/usercopy.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ kernel/kthread.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/misc/lkdtm/usercopy.c b/drivers/misc/lkdtm/usercopy.c
-index 109e8d4302c1..d173d6175c87 100644
---- a/drivers/misc/lkdtm/usercopy.c
-+++ b/drivers/misc/lkdtm/usercopy.c
-@@ -314,7 +314,7 @@ void lkdtm_USERCOPY_KERNEL(void)
+diff --git a/kernel/kthread.c b/kernel/kthread.c
+index 1578973c5740..af5fee350586 100644
+--- a/kernel/kthread.c
++++ b/kernel/kthread.c
+@@ -963,7 +963,13 @@ static void __kthread_queue_delayed_work(struct kthread_worker *worker,
+ 	struct timer_list *timer = &dwork->timer;
+ 	struct kthread_work *work = &dwork->work;
  
- 	pr_info("attempting bad copy_to_user from kernel text: %px\n",
- 		vm_mmap);
--	if (copy_to_user((void __user *)user_addr, vm_mmap,
-+	if (copy_to_user((void __user *)user_addr, __va_function(vm_mmap),
- 			 unconst + PAGE_SIZE)) {
- 		pr_warn("copy_to_user failed, but lacked Oops\n");
- 		goto free_user;
+-	WARN_ON_ONCE(timer->function != kthread_delayed_work_timer_fn);
++	/*
++	 * With CFI, timer->function can point to a jump table entry in a module,
++	 * which fails the comparison. Disable the warning if CFI and modules are
++	 * both enabled.
++	 */
++	if (!IS_ENABLED(CONFIG_CFI_CLANG) || !IS_ENABLED(CONFIG_MODULES))
++		WARN_ON_ONCE(timer->function != kthread_delayed_work_timer_fn);
+ 
+ 	/*
+ 	 * If @delay is 0, queue @dwork->work immediately.  This is for
 -- 
 2.31.0.rc2.261.g7f71774620-goog
 
