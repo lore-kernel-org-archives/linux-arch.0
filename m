@@ -2,95 +2,95 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BBD0BC433E0
-	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 01:19:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B3DCCC433E0
+	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 01:41:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9044D64F43
-	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 01:19:21 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7B26E64F49
+	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 01:41:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229968AbhCMBSt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 12 Mar 2021 20:18:49 -0500
-Received: from mail.loongson.cn ([114.242.206.163]:52388 "EHLO loongson.cn"
+        id S232880AbhCMBkb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 12 Mar 2021 20:40:31 -0500
+Received: from mail.loongson.cn ([114.242.206.163]:55520 "EHLO loongson.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S232257AbhCMBSV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 12 Mar 2021 20:18:21 -0500
-Received: from ambrosehua-HP-xw6600-Workstation (unknown [222.209.9.50])
-        by mail.loongson.cn (Coremail) with SMTP id AQAAf9AxGdbQEkxg0agYAA--.9492S2;
-        Sat, 13 Mar 2021 09:18:09 +0800 (CST)
-Date:   Sat, 13 Mar 2021 09:18:08 +0800
+        id S232942AbhCMBkB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 12 Mar 2021 20:40:01 -0500
+Received: from localhost.localdomain (unknown [222.209.9.50])
+        by mail.loongson.cn (Coremail) with SMTP id AQAAf9AxKdbcF0xgiakYAA--.9125S3;
+        Sat, 13 Mar 2021 09:39:49 +0800 (CST)
 From:   Huang Pei <huangpei@loongson.cn>
-To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-Cc:     ambrosehua@gmail.com, Bibo Mao <maobibo@loongson.cn>,
-        linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, Jiaxun Yang <jiaxun.yang@flygoat.com>,
+To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        ambrosehua@gmail.com
+Cc:     Bibo Mao <maobibo@loongson.cn>, linux-mips@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
         Paul Burton <paulburton@kernel.org>,
         Li Xuefeng <lixuefeng@loongson.cn>,
         Yang Tiezhu <yangtiezhu@loongson.cn>,
         Gao Juxin <gaojuxin@loongson.cn>,
         Huacai Chen <chenhuacai@loongson.cn>,
         Jinyang He <hejinyang@loongson.cn>
-Subject: Re: [PATCH 1/2] MIPS: clean up CONFIG_MIPS_PGD_C0_CONTEXT handling
-Message-ID: <20210313011807.hwnwo3olqnxvgjsh@ambrosehua-HP-xw6600-Workstation>
-References: <20210309080210.25561-1-huangpei@loongson.cn>
- <20210309080210.25561-2-huangpei@loongson.cn>
- <20210312102410.GA7027@alpha.franken.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210312102410.GA7027@alpha.franken.de>
-User-Agent: NeoMutt/20171215
-X-CM-TRANSID: AQAAf9AxGdbQEkxg0agYAA--.9492S2
-X-Coremail-Antispam: 1UD129KBjvJXoWxXw4DGrW3Zr13GrW3JrWDArb_yoW5Zw43p3
-        4Sga1kCw4Ivr15ZryUta1DXw4rtw4qyFZ5Wr1Igr909rWqqF1v9w48GrsIyrn7CF1kWF1x
-        ZF4jqFyYkr1DKaUanT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-        9KBjDU0xBIdaVrnRJUUUvC14x267AKxVW8JVW5JwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
-        1l84ACjcxK6xIIjxv20xvE14v26r1j6r1xM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4j
-        6F4UM28EF7xvwVC2z280aVAFwI0_Cr0_Gr1UM28EF7xvwVC2z280aVCY1x0267AKxVW8Jr
-        0_Cr1UM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40Ex7xfMcIj
-        6xIIjxv20xvE14v26r1j6r18McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4IkC6x0Yz7v_Jr
-        0_Gr1lF7xvr2IY64vIr41lF7I21c0EjII2zVCS5cI20VAGYxC7M4IIrI8v6xkF7I0E8cxa
-        n2IY04v7MxkIecxEwVAFwVWkMxAIw28IcxkI7VAKI48JMxC20s026xCaFVCjc4AY6r1j6r
-        4UMI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWlx4CE17CEb7AF
-        67AKxVWUtVW8ZwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26r1j6r1xMIIF0xvE2I
-        x0cI8IcVCY1x0267AKxVW8JVWxJwCI42IY6xAIw20EY4v20xvaj40_Wr1j6rW3Jr1lIxAI
-        cVC2z280aVAFwI0_Jr0_Gr1lIxAIcVC2z280aVCY1x0267AKxVW8JVW8JrUvcSsGvfC2Kf
-        nxnUUI43ZEXa7VUbLiSPUUUUU==
+Subject: [PATCH] MIPS: clean up CONFIG_MIPS_PGD_C0_CONTEXT handling
+Date:   Sat, 13 Mar 2021 09:39:27 +0800
+Message-Id: <20210313013927.26733-2-huangpei@loongson.cn>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20210313013927.26733-1-huangpei@loongson.cn>
+References: <20210313013927.26733-1-huangpei@loongson.cn>
+X-CM-TRANSID: AQAAf9AxKdbcF0xgiakYAA--.9125S3
+X-Coremail-Antispam: 1UD129KBjvJXoWxXrWfAF47Zr1xCw48ZFykuFg_yoW5Xr43p3
+        92q3WkGr47Zr98Zry5Aa4kXr4rta90y390vF4DKr909FWqqFn0934rJwnIyF1DGFs7Ga1x
+        Xrs0gFW5Jr9F9w7anT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+        9KBjDU0xBIdaVrnRJUUUPG14x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_Jr4l82xGYIkIc2
+        x26xkF7I0E14v26r4j6ryUM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2z4x0
+        Y4vE2Ix0cI8IcVAFwI0_JFI_Gr1l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Gr0_Cr1l84
+        ACjcxK6I8E87Iv67AKxVWxJVW8Jr1l84ACjcxK6I8E87Iv6xkF7I0E14v26r4UJVWxJr1l
+        e2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2j2WlYx0E2Ix0cI
+        8IcVAFwI0_Jr0_Jr4lYx0Ex4A2jsIE14v26r1j6r4UMcvjeVCFs4IE7xkEbVWUJVW8JwAC
+        jcxG0xvY0x0EwIxGrwACjI8F5VA0II8E6IAqYI8I648v4I1lFIxGxcIEc7CjxVA2Y2ka0x
+        kIwI1lc2xSY4AK67AK6w4l42xK82IYc2Ij64vIr41l4I8I3I0E4IkC6x0Yz7v_Jr0_Gr1l
+        x2IqxVAqx4xG67AKxVWUJVWUGwC20s026x8GjcxK67AKxVWUGVWUWwC2zVAF1VAY17CE14
+        v26r1q6r43MIIYrxkI7VAKI48JMIIF0xvE2Ix0cI8IcVAFwI0_Jr0_JF4lIxAIcVC0I7IY
+        x2IY6xkF7I0E14v26r4j6F4UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I8E87
+        Iv67AKxVWUJVW8JwCI42IY6I8E87Iv6xkF7I0E14v26r4j6r4UJbIYCTnIWIevJa73UjIF
+        yTuYvjfU8BMKDUUUU
 X-CM-SenderInfo: xkxd0whshlqz5rrqw2lrqou0/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi, my calculate is wrong, but the result is right
++. LOONGSON64 use 0x98xx_xxxx_xxxx_xxxx as xphys cached, instread of
+0xa8xx_xxxx_xxxx_xxxx
 
++. let CONFIG_MIPS_PGD_C0_CONTEXT depend on 64bit
 
-Here is the new one:
++. cast CAC_BASE into u64 to silence warning on MIPS32
 
 CP0 Context has enough room for wraping pgd into its 41-bit PTEBase field.
 
 +. For XPHYS, the trick is that pgd is 4kB aligned, and the PABITS <= 53,
-only save 53 - 12 = 41 bit
+only save 53 - 12 = 41 bits, aka :
 
-   bit[63:59] | 0000 00 |  bit[52:12] | 0000 0000 0000
+   bit[63:59] | 0000 00 |  bit[53:12] | 0000 0000 0000
 
 +. for CKSEG0, only save 29 - 12 = 17 bits
 
-So, when switch pgd, only save bit[52:12] or bit[28:12] into CP0 Context's
-bit[63:23], see following asm generated at runtime, ao hold pgd
-
-	.set	push
-	.set	noreorder
+when switching pgd, only need to save bit[53:12] or bit[28:12] into
+CP0 Context's bit[63:23], see folling asm generated at run time
 
 tlbmiss_handler_setup_pgd:
+	.set	push
+	.set	noreorder
 
 	dsra	a2, a0, 29
 	move	a3, a0
 	dins	a0, zero, 29, 35
-	daddiu	a2, a2, 4
+	daddiu	a2, a2, 4	//for CKSEG0, a2 from 0xfffffffffffffffc
+				//into 0
 
 	movn	a0, a3, a2
 	dsll	a0, a0, 11
@@ -99,82 +99,60 @@ tlbmiss_handler_setup_pgd:
 
 	.set	pop
 
-when used pgd at page walking
+when using it on page walking
 
 	dmfc0	k0, CP0_CONTEXT
-	dins	k0, k0, 0, 23	         //zero badv2 
-	ori	k0, k0, (CAC_BASE >> 53) //*prefix* with bit[63:59]
-	drotr	k0, k0, 11		 // kick it at right position
+	dins	k0, zero, 0, 23	         // zero badv2
+	ori	k0, k0, (CAC_BASE >> 53) // *prefix* with bit[63:59]
+	drotr	k0, k0, 11		 // kick it in the right place
 
+Signed-off-by: Huang Pei <huangpei@loongson.cn>
+---
+ arch/mips/Kconfig    | 3 ++-
+ arch/mips/mm/tlbex.c | 9 +++++----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
 
-On Fri, Mar 12, 2021 at 11:24:10AM +0100, Thomas Bogendoerfer wrote:
-> On Tue, Mar 09, 2021 at 04:02:09PM +0800, Huang Pei wrote:
-> > +. LOONGSON64 use 0x98xx_xxxx_xxxx_xxxx as xphys cached
-> > 
-> > +. let CONFIG_MIPS_PGD_C0_CONTEXT depend on 64bit
-> > 
-> > +. cast CAC_BASE into u64 to silence warning on MIPS32
-> > 
-> > CP0 Context has enough room for wraping pgd into its 41-bit PTEBase field.
-> > 
-> > +. For XPHYS, the trick is that pgd is 4kB aligned, and the PABITS <= 48,
-> > only save 48 - 12 + 5(for bit[63:59]) = 41 bits, aka. :
-> > 
-> >    bit[63:59] | 0000 0000 000 |  bit[47:12] | 0000 0000 0000
-> > 
-> > +. for CKSEG0, only save 29 - 12 = 17 bits
-> 
-> you are explaining what you are doing, but not why you are doing this.
-> So why are you doing this ?
-> 
-> >  #
-> >  # Set to y for ptrace access to watch registers.
-> > diff --git a/arch/mips/mm/tlbex.c b/arch/mips/mm/tlbex.c
-> > index a7521b8f7658..591cfa0fca02 100644
-> > --- a/arch/mips/mm/tlbex.c
-> > +++ b/arch/mips/mm/tlbex.c
-> > @@ -848,8 +848,8 @@ void build_get_pmde64(u32 **p, struct uasm_label **l, struct uasm_reloc **r,
-> >  		/* Clear lower 23 bits of context. */
-> >  		uasm_i_dins(p, ptr, 0, 0, 23);
-> >  
-> > -		/* 1 0	1 0 1  << 6  xkphys cached */
-> > -		uasm_i_ori(p, ptr, ptr, 0x540);
-> > +		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
-> > +		uasm_i_ori(p, ptr, ptr, ((u64)(CAC_BASE) >> 53));
-> 
-> you want to use bits 63..59 but picking bits 63..53 with this.  While
-> bits 58..53 are probably 0, wouldn't it make also sense to mask them out ?
-> 
-> >  		uasm_i_drotr(p, ptr, ptr, 11);
-> >  #elif defined(CONFIG_SMP)
-> >  		UASM_i_CPUID_MFC0(p, ptr, SMP_CPUID_REG);
-> > @@ -1164,8 +1164,9 @@ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
-> >  
-> >  	if (pgd_reg == -1) {
-> >  		vmalloc_branch_delay_filled = 1;
-> > -		/* 1 0	1 0 1  << 6  xkphys cached */
-> > -		uasm_i_ori(p, ptr, ptr, 0x540);
-> > +		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
-> > +		uasm_i_ori(p, ptr, ptr, ((u64)(CAC_BASE) >> 53));
-> > +
-> >  		uasm_i_drotr(p, ptr, ptr, 11);
-> >  	}
-> >  
-> > @@ -1292,7 +1293,6 @@ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
-> >  
-> >  	return rv;
-> >  }
-> > -
-> >  /*
-> 
-> why are you removing this empty line ? I'd prefer that it stays there...
-> 
-> >   * For a 64-bit kernel, we are using the 64-bit XTLB refill exception
-> >   * because EXL == 0.  If we wrap, we can also use the 32 instruction
-> > -- 
-> > 2.17.1
-> 
-> -- 
-> Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
-> good idea.                                                [ RFC1925, 2.3 ]
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 2000bb2b0220..5741dae35b74 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -2142,7 +2142,8 @@ config CPU_SUPPORTS_HUGEPAGES
+ 	depends on !(32BIT && (ARCH_PHYS_ADDR_T_64BIT || EVA))
+ config MIPS_PGD_C0_CONTEXT
+ 	bool
+-	default y if 64BIT && (CPU_MIPSR2 || CPU_MIPSR6) && !CPU_XLP
++	depends on 64BIT
++	default y if (CPU_MIPSR2 || CPU_MIPSR6) && !CPU_XLP
+ 
+ #
+ # Set to y for ptrace access to watch registers.
+diff --git a/arch/mips/mm/tlbex.c b/arch/mips/mm/tlbex.c
+index a7521b8f7658..cfaf710096c9 100644
+--- a/arch/mips/mm/tlbex.c
++++ b/arch/mips/mm/tlbex.c
+@@ -848,8 +848,8 @@ void build_get_pmde64(u32 **p, struct uasm_label **l, struct uasm_reloc **r,
+ 		/* Clear lower 23 bits of context. */
+ 		uasm_i_dins(p, ptr, 0, 0, 23);
+ 
+-		/* 1 0	1 0 1  << 6  xkphys cached */
+-		uasm_i_ori(p, ptr, ptr, 0x540);
++		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
++		uasm_i_ori(p, ptr, ptr, ((u64)(CAC_BASE) >> 53));
+ 		uasm_i_drotr(p, ptr, ptr, 11);
+ #elif defined(CONFIG_SMP)
+ 		UASM_i_CPUID_MFC0(p, ptr, SMP_CPUID_REG);
+@@ -1164,8 +1164,9 @@ build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
+ 
+ 	if (pgd_reg == -1) {
+ 		vmalloc_branch_delay_filled = 1;
+-		/* 1 0	1 0 1  << 6  xkphys cached */
+-		uasm_i_ori(p, ptr, ptr, 0x540);
++		/* insert bit[63:59] of CAC_BASE into bit[11:6] of ptr */
++		uasm_i_ori(p, ptr, ptr, ((u64)(CAC_BASE) >> 53));
++
+ 		uasm_i_drotr(p, ptr, ptr, 11);
+ 	}
+ 
+-- 
+2.17.1
 
