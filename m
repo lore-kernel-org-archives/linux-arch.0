@@ -2,107 +2,162 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C21DAC433E0
-	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 09:27:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4CDC3C433E6
+	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 09:29:29 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 947BC64F1D
-	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 09:27:51 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2268F64F21
+	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 09:29:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233155AbhCMJ1T (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 13 Mar 2021 04:27:19 -0500
-Received: from relay5-d.mail.gandi.net ([217.70.183.197]:45627 "EHLO
-        relay5-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233011AbhCMJ0v (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Mar 2021 04:26:51 -0500
-X-Originating-IP: 2.7.49.219
-Received: from [192.168.1.100] (lfbn-lyo-1-457-219.w2-7.abo.wanadoo.fr [2.7.49.219])
+        id S233329AbhCMJ24 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 13 Mar 2021 04:28:56 -0500
+Received: from relay10.mail.gandi.net ([217.70.178.230]:53323 "EHLO
+        relay10.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S233295AbhCMJ2a (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Mar 2021 04:28:30 -0500
+Received: from debian.home (lfbn-lyo-1-457-219.w2-7.abo.wanadoo.fr [2.7.49.219])
         (Authenticated sender: alex@ghiti.fr)
-        by relay5-d.mail.gandi.net (Postfix) with ESMTPSA id 8C6861C0008;
-        Sat, 13 Mar 2021 09:26:47 +0000 (UTC)
-Subject: Re: [PATCH 0/3] Move kernel mapping outside the linear mapping
-To:     Palmer Dabbelt <palmer@dabbelt.com>
-Cc:     corbet@lwn.net, Paul Walmsley <paul.walmsley@sifive.com>,
-        aou@eecs.berkeley.edu, Arnd Bergmann <arnd@arndb.de>,
-        aryabinin@virtuozzo.com, glider@google.com, dvyukov@google.com,
-        linux-doc@vger.kernel.org, linux-riscv@lists.infradead.org,
-        linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org
-References: <mhng-cf5d29ec-e941-4579-8c42-2c11799a8f2f@penguin>
-From:   Alex Ghiti <alex@ghiti.fr>
-Message-ID: <0bb85388-c4e1-523a-9bf3-0ccec6c4041e@ghiti.fr>
-Date:   Sat, 13 Mar 2021 04:26:47 -0500
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.7.1
+        by relay10.mail.gandi.net (Postfix) with ESMTPSA id 20414240003;
+        Sat, 13 Mar 2021 09:28:22 +0000 (UTC)
+From:   Alexandre Ghiti <alex@ghiti.fr>
+To:     Jonathan Corbet <corbet@lwn.net>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andrey Ryabinin <aryabinin@virtuozzo.com>,
+        Alexander Potapenko <glider@google.com>,
+        Dmitry Vyukov <dvyukov@google.com>, linux-doc@vger.kernel.org,
+        linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
+        kasan-dev@googlegroups.com, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org
+Cc:     Alexandre Ghiti <alex@ghiti.fr>, Anup Patel <anup@brainfault.org>
+Subject: [PATCH v2 3/3] riscv: Prepare ptdump for vm layout dynamic addresses
+Date:   Sat, 13 Mar 2021 04:25:09 -0500
+Message-Id: <20210313092509.4918-4-alex@ghiti.fr>
+X-Mailer: git-send-email 2.20.1
+In-Reply-To: <20210313092509.4918-1-alex@ghiti.fr>
+References: <20210313092509.4918-1-alex@ghiti.fr>
 MIME-Version: 1.0
-In-Reply-To: <mhng-cf5d29ec-e941-4579-8c42-2c11799a8f2f@penguin>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Palmer,
+This is a preparatory patch for sv48 support that will introduce
+dynamic PAGE_OFFSET.
 
-Le 3/9/21 à 9:54 PM, Palmer Dabbelt a écrit :
-> On Thu, 25 Feb 2021 00:04:50 PST (-0800), alex@ghiti.fr wrote:
->> I decided to split sv48 support in small series to ease the review.
->>
->> This patchset pushes the kernel mapping (modules and BPF too) to the last
->> 4GB of the 64bit address space, this allows to:
->> - implement relocatable kernel (that will come later in another
->>   patchset) that requires to move the kernel mapping out of the linear
->>   mapping to avoid to copy the kernel at a different physical address.
->> - have a single kernel that is not relocatable (and then that avoids the
->>   performance penalty imposed by PIC kernel) for both sv39 and sv48.
->>
->> The first patch implements this behaviour, the second patch introduces a
->> documentation that describes the virtual address space layout of the 
->> 64bit
->> kernel and the last patch is taken from my sv48 series where I simply 
->> added
->> the dump of the modules/kernel/BPF mapping.
->>
->> I removed the Reviewed-by on the first patch since it changed enough from
->> last time and deserves a second look.
->>
->> Alexandre Ghiti (3):
->>   riscv: Move kernel mapping outside of linear mapping
->>   Documentation: riscv: Add documentation that describes the VM layout
->>   riscv: Prepare ptdump for vm layout dynamic addresses
->>
->>  Documentation/riscv/index.rst       |  1 +
->>  Documentation/riscv/vm-layout.rst   | 61 ++++++++++++++++++++++
->>  arch/riscv/boot/loader.lds.S        |  3 +-
->>  arch/riscv/include/asm/page.h       | 18 ++++++-
->>  arch/riscv/include/asm/pgtable.h    | 37 +++++++++----
->>  arch/riscv/include/asm/set_memory.h |  1 +
->>  arch/riscv/kernel/head.S            |  3 +-
->>  arch/riscv/kernel/module.c          |  6 +--
->>  arch/riscv/kernel/setup.c           |  3 ++
->>  arch/riscv/kernel/vmlinux.lds.S     |  3 +-
->>  arch/riscv/mm/fault.c               | 13 +++++
->>  arch/riscv/mm/init.c                | 81 +++++++++++++++++++++++------
->>  arch/riscv/mm/kasan_init.c          |  9 ++++
->>  arch/riscv/mm/physaddr.c            |  2 +-
->>  arch/riscv/mm/ptdump.c              | 67 +++++++++++++++++++-----
->>  15 files changed, 258 insertions(+), 50 deletions(-)
->>  create mode 100644 Documentation/riscv/vm-layout.rst
-> 
-> This generally looks good, but I'm getting a bunch of checkpatch 
-> warnings and some conflicts, do you mind fixing those up (and including 
-> your other kasan patch, as that's likely to conflict)?
+Dynamic PAGE_OFFSET implies that all zones (vmalloc, vmemmap, fixaddr...)
+whose addresses depend on PAGE_OFFSET become dynamic and can't be used
+to statically initialize the array used by ptdump to identify the
+different zones of the vm layout.
 
+Signed-off-by: Alexandre Ghiti <alex@ghiti.fr>
+Reviewed-by: Anup Patel <anup@brainfault.org>
+---
+ arch/riscv/mm/ptdump.c | 67 ++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 55 insertions(+), 12 deletions(-)
 
-I fixed a few checkpatch warnings and rebased on top of for-next but had 
-not conflicts.
+diff --git a/arch/riscv/mm/ptdump.c b/arch/riscv/mm/ptdump.c
+index ace74dec7492..aa1b3bce61ab 100644
+--- a/arch/riscv/mm/ptdump.c
++++ b/arch/riscv/mm/ptdump.c
+@@ -58,29 +58,52 @@ struct ptd_mm_info {
+ 	unsigned long end;
+ };
+ 
++enum address_markers_idx {
++#ifdef CONFIG_KASAN
++	KASAN_SHADOW_START_NR,
++	KASAN_SHADOW_END_NR,
++#endif
++	FIXMAP_START_NR,
++	FIXMAP_END_NR,
++	PCI_IO_START_NR,
++	PCI_IO_END_NR,
++#ifdef CONFIG_SPARSEMEM_VMEMMAP
++	VMEMMAP_START_NR,
++	VMEMMAP_END_NR,
++#endif
++	VMALLOC_START_NR,
++	VMALLOC_END_NR,
++	PAGE_OFFSET_NR,
++	MODULES_MAPPING_NR,
++	KERNEL_MAPPING_NR,
++	END_OF_SPACE_NR
++};
++
+ static struct addr_marker address_markers[] = {
+ #ifdef CONFIG_KASAN
+-	{KASAN_SHADOW_START,	"Kasan shadow start"},
+-	{KASAN_SHADOW_END,	"Kasan shadow end"},
++	{0, "Kasan shadow start"},
++	{0, "Kasan shadow end"},
+ #endif
+-	{FIXADDR_START,		"Fixmap start"},
+-	{FIXADDR_TOP,		"Fixmap end"},
+-	{PCI_IO_START,		"PCI I/O start"},
+-	{PCI_IO_END,		"PCI I/O end"},
++	{0, "Fixmap start"},
++	{0, "Fixmap end"},
++	{0, "PCI I/O start"},
++	{0, "PCI I/O end"},
+ #ifdef CONFIG_SPARSEMEM_VMEMMAP
+-	{VMEMMAP_START,		"vmemmap start"},
+-	{VMEMMAP_END,		"vmemmap end"},
++	{0, "vmemmap start"},
++	{0, "vmemmap end"},
+ #endif
+-	{VMALLOC_START,		"vmalloc() area"},
+-	{VMALLOC_END,		"vmalloc() end"},
+-	{PAGE_OFFSET,		"Linear mapping"},
++	{0, "vmalloc() area"},
++	{0, "vmalloc() end"},
++	{0, "Linear mapping"},
++	{0, "Modules mapping"},
++	{0, "Kernel mapping (kernel, BPF)"},
+ 	{-1, NULL},
+ };
+ 
+ static struct ptd_mm_info kernel_ptd_info = {
+ 	.mm		= &init_mm,
+ 	.markers	= address_markers,
+-	.base_addr	= KERN_VIRT_START,
++	.base_addr	= 0,
+ 	.end		= ULONG_MAX,
+ };
+ 
+@@ -335,6 +358,26 @@ static int ptdump_init(void)
+ {
+ 	unsigned int i, j;
+ 
++#ifdef CONFIG_KASAN
++	address_markers[KASAN_SHADOW_START_NR].start_address = KASAN_SHADOW_START;
++	address_markers[KASAN_SHADOW_END_NR].start_address = KASAN_SHADOW_END;
++#endif
++	address_markers[FIXMAP_START_NR].start_address = FIXADDR_START;
++	address_markers[FIXMAP_END_NR].start_address = FIXADDR_TOP;
++	address_markers[PCI_IO_START_NR].start_address = PCI_IO_START;
++	address_markers[PCI_IO_END_NR].start_address = PCI_IO_END;
++#ifdef CONFIG_SPARSEMEM_VMEMMAP
++	address_markers[VMEMMAP_START_NR].start_address = VMEMMAP_START;
++	address_markers[VMEMMAP_END_NR].start_address = VMEMMAP_END;
++#endif
++	address_markers[VMALLOC_START_NR].start_address = VMALLOC_START;
++	address_markers[VMALLOC_END_NR].start_address = VMALLOC_END;
++	address_markers[PAGE_OFFSET_NR].start_address = PAGE_OFFSET;
++	address_markers[MODULES_MAPPING_NR].start_address = MODULES_VADDR;
++	address_markers[KERNEL_MAPPING_NR].start_address = kernel_virt_addr;
++
++	kernel_ptd_info.base_addr = KERN_VIRT_START;
++
+ 	for (i = 0; i < ARRAY_SIZE(pg_level); i++)
+ 		for (j = 0; j < ARRAY_SIZE(pte_bits); j++)
+ 			pg_level[i].mask |= pte_bits[j].mask;
+-- 
+2.20.1
 
-I have just sent the v2.
-
-Thanks,
-
-Alex
