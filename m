@@ -2,117 +2,130 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6D0ABC43603
-	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 06:43:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 051CDC433DB
+	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 08:24:41 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 427BB64F1C
-	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 06:43:25 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id CDF7264F25
+	for <linux-arch@archiver.kernel.org>; Sat, 13 Mar 2021 08:24:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232431AbhCMGmu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 13 Mar 2021 01:42:50 -0500
-Received: from mail.loongson.cn ([114.242.206.163]:42738 "EHLO loongson.cn"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S232462AbhCMGmk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 13 Mar 2021 01:42:40 -0500
-Received: from localhost.localdomain (unknown [222.209.9.50])
-        by mail.loongson.cn (Coremail) with SMTP id AQAAf9AxGda4XkxgjLUYAA--.9506S7;
-        Sat, 13 Mar 2021 14:42:16 +0800 (CST)
-From:   Huang Pei <huangpei@loongson.cn>
-To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        ambrosehua@gmail.com
-Cc:     Bibo Mao <maobibo@loongson.cn>, linux-mips@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Paul Burton <paulburton@kernel.org>,
-        Li Xuefeng <lixuefeng@loongson.cn>,
-        Yang Tiezhu <yangtiezhu@loongson.cn>,
-        Gao Juxin <gaojuxin@loongson.cn>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Jinyang He <hejinyang@loongson.cn>,
-        "Maciej W . Rozycki" <macro@orcam.me.uk>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Jisheng Zhang <Jisheng.Zhang@synaptics.com>,
-        Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH 5/6] ftrace: introduce FTRACE_IP_EXTENSION
-Date:   Sat, 13 Mar 2021 14:41:48 +0800
-Message-Id: <20210313064149.29276-6-huangpei@loongson.cn>
-X-Mailer: git-send-email 2.17.1
-In-Reply-To: <20210313064149.29276-1-huangpei@loongson.cn>
-References: <20210313064149.29276-1-huangpei@loongson.cn>
-X-CM-TRANSID: AQAAf9AxGda4XkxgjLUYAA--.9506S7
-X-Coremail-Antispam: 1UD129KBjvJXoW7Kw43Xw4rWFyrtFyfur45Jrb_yoW8AF15pF
-        9rC3WkGFWxJFWqkryv93s5Gr9rCw4kZrW7Ga9rGw4Yqr9xtF1vgrnFvrs2vr1xJrZ7GFWa
-        vFyj9ryUCw4UZFDanT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-        9KBjDU0xBIdaVrnRJUUUmI14x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_JF0E3s1l82xGYI
-        kIc2x26xkF7I0E14v26ryj6s0DM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2
-        z4x0Y4vE2Ix0cI8IcVAFwI0_Gr0_Xr1l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Gr1j6F
-        4UJwA2z4x0Y4vEx4A2jsIE14v26r4UJVWxJr1l84ACjcxK6I8E87Iv6xkF7I0E14v26F4U
-        JVW0owAS0I0E0xvYzxvE52x082IY62kv0487Mc02F40EFcxC0VAKzVAqx4xG6I80ewAv7V
-        C0I7IYx2IY67AKxVWUJVWUGwAv7VC2z280aVAFwI0_Jr0_Gr1lOx8S6xCaFVCjc4AY6r1j
-        6r4UM4x0Y48IcxkI7VAKI48JM4x0x7Aq67IIx4CEVc8vx2IErcIFxwACI402YVCY1x0262
-        8vn2kIc2xKxwCY02Avz4vE14v_GF1l42xK82IYc2Ij64vIr41l4I8I3I0E4IkC6x0Yz7v_
-        Jr0_Gr1lx2IqxVAqx4xG67AKxVWUJVWUGwC20s026x8GjcxK67AKxVWUGVWUWwC2zVAF1V
-        AY17CE14v26r4a6rW5MIIYrxkI7VAKI48JMIIF0xvE2Ix0cI8IcVAFwI0_JFI_Gr1lIxAI
-        cVC0I7IYx2IY6xkF7I0E14v26r4UJVWxJr1lIxAIcVCF04k26cxKx2IYs7xG6r1j6r1xMI
-        IF0xvEx4A2jsIE14v26r1j6r4UMIIF0xvEx4A2jsIEc7CjxVAFwI0_Gr1j6F4UJbIYCTnI
-        WIevJa73UjIFyTuYvjfUn5l8UUUUU
-X-CM-SenderInfo: xkxd0whshlqz5rrqw2lrqou0/
+        id S233155AbhCMIYI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 13 Mar 2021 03:24:08 -0500
+Received: from relay12.mail.gandi.net ([217.70.178.232]:33515 "EHLO
+        relay12.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232999AbhCMIXv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Mar 2021 03:23:51 -0500
+Received: from [192.168.1.100] (lfbn-lyo-1-457-219.w2-7.abo.wanadoo.fr [2.7.49.219])
+        (Authenticated sender: alex@ghiti.fr)
+        by relay12.mail.gandi.net (Postfix) with ESMTPSA id 24807200003;
+        Sat, 13 Mar 2021 08:23:44 +0000 (UTC)
+Subject: Re: [PATCH 2/3] Documentation: riscv: Add documentation that
+ describes the VM layout
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     David Hildenbrand <david@redhat.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Andrey Ryabinin <aryabinin@virtuozzo.com>,
+        Alexander Potapenko <glider@google.com>,
+        Dmitry Vyukov <dvyukov@google.com>,
+        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
+        linux-riscv <linux-riscv@lists.infradead.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        kasan-dev <kasan-dev@googlegroups.com>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux-MM <linux-mm@kvack.org>,
+        Linus Walleij <linus.walleij@linaro.org>
+References: <20210225080453.1314-1-alex@ghiti.fr>
+ <20210225080453.1314-3-alex@ghiti.fr>
+ <5279e97c-3841-717c-2a16-c249a61573f9@redhat.com>
+ <7d9036d9-488b-47cc-4673-1b10c11baad0@ghiti.fr>
+ <CAK8P3a3mVDwJG6k7PZEKkteszujP06cJf8Zqhq43F0rNsU=h4g@mail.gmail.com>
+ <236a9788-8093-9876-a024-b0ad0d672c72@ghiti.fr>
+ <CAK8P3a1+vSoEBqHPzj9S07B7h-Xuwvccpsh1pnn+1xJmS3UdbA@mail.gmail.com>
+From:   Alex Ghiti <alex@ghiti.fr>
+Message-ID: <50109729-9a86-6b49-b608-dd5c8eb2d88e@ghiti.fr>
+Date:   Sat, 13 Mar 2021 03:23:44 -0500
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.7.1
+MIME-Version: 1.0
+In-Reply-To: <CAK8P3a1+vSoEBqHPzj9S07B7h-Xuwvccpsh1pnn+1xJmS3UdbA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Jisheng Zhang <Jisheng.Zhang@synaptics.com>
+Hi Arnd,
 
-On some architectures, the DYNAMIC_FTRACE_WITH_REGS is implemented by
-gcc's -fpatchable-function-entry option. Take arm64 for example, arm64
-makes use of GCC -fpatchable-function-entry=2 option to insert two
-nops. When the function is traced, the first nop will be modified to
-the LR saver, then the second nop to "bl <ftrace-entry>". we need to
-update ftrace_location() to recognise these two instructions  as being
-part of ftrace. To do this, we introduce FTRACE_IP_EXTENSION to let
-ftrace_location search IP, IP + FTRACE_IP_EXTENSION range.
+Le 3/11/21 à 3:42 AM, Arnd Bergmann a écrit :
+> On Wed, Mar 10, 2021 at 8:12 PM Alex Ghiti <alex@ghiti.fr> wrote:
+>> Le 3/10/21 à 6:42 AM, Arnd Bergmann a écrit :
+>>> On Thu, Feb 25, 2021 at 12:56 PM Alex Ghiti <alex@ghiti.fr> wrote:
+>>>>
+>>>> Le 2/25/21 à 5:34 AM, David Hildenbrand a écrit :
+>>>>>                     |            |                  |         |> +
+>>>>> ffffffc000000000 | -256    GB | ffffffc7ffffffff |   32 GB | kasan
+>>>>>> +   ffffffcefee00000 | -196    GB | ffffffcefeffffff |    2 MB | fixmap
+>>>>>> +   ffffffceff000000 | -196    GB | ffffffceffffffff |   16 MB | PCI io
+>>>>>> +   ffffffcf00000000 | -196    GB | ffffffcfffffffff |    4 GB | vmemmap
+>>>>>> +   ffffffd000000000 | -192    GB | ffffffdfffffffff |   64 GB |
+>>>>>> vmalloc/ioremap space
+>>>>>> +   ffffffe000000000 | -128    GB | ffffffff7fffffff |  126 GB |
+>>>>>> direct mapping of all physical memory
+>>>>>
+>>>>> ^ So you could never ever have more than 126 GB, correct?
+>>>>>
+>>>>> I assume that's nothing new.
+>>>>>
+>>>>
+>>>> Before this patch, the limit was 128GB, so in my sense, there is nothing
+>>>> new. If ever we want to increase that limit, we'll just have to lower
+>>>> PAGE_OFFSET, there is still some unused virtual addresses after kasan
+>>>> for example.
+>>>
+>>> Linus Walleij is looking into changing the arm32 code to have the kernel
+>>> direct map inside of the vmalloc area, which would be another place
+>>> that you could use here. It would be nice to not have too many different
+>>> ways of doing this, but I'm not sure how hard it would be to rework your
+>>> code, or if there are any downsides of doing this.
+>>
+>> This was what my previous version did: https://lkml.org/lkml/2020/6/7/28.
+>>
+>> This approach was not welcomed very well and it fixed only the problem
+>> of the implementation of relocatable kernel. The second issue I'm trying
+>> to resolve here is to support both 3 and 4 level page tables using the
+>> same kernel without being relocatable (which would introduce performance
+>> penalty). I can't do it when the kernel mapping is in the vmalloc region
+>> since vmalloc region relies on PAGE_OFFSET which is different on both 3
+>> and 4 level page table and that would then require the kernel to be
+>> relocatable.
+> 
+> Ok, I see.
+> 
+> I suppose it might work if you moved the direct-map to the lowest
+> address and the vmalloc area (incorporating the kernel mapping,
+> modules, pio, and fixmap at fixed addresses) to the very top of the
+> address space, but you probably already considered and rejected
+> that for other reasons.
+> 
 
-Signed-off-by: Jisheng Zhang <Jisheng.Zhang@synaptics.com>
-Suggested-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
----
- include/linux/ftrace.h | 4 ++++
- kernel/trace/ftrace.c  | 2 +-
- 2 files changed, 5 insertions(+), 1 deletion(-)
+Yes I considered it...when you re-proposed it :) I'm not opposed to your 
+solution in the vmalloc region but I can't find any advantage over the 
+current solution, are there ? That would harmonize with Linus's work, 
+but then we'd be quite different from x86 address space.
 
-diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
-index 1bd3a0356ae4..c1e1fbde8a04 100644
---- a/include/linux/ftrace.h
-+++ b/include/linux/ftrace.h
-@@ -20,6 +20,10 @@
- 
- #include <asm/ftrace.h>
- 
-+#ifndef FTRACE_IP_EXTENSION
-+#define  FTRACE_IP_EXTENSION 0
-+#endif
-+
- /*
-  * If the arch supports passing the variable contents of
-  * function_trace_op as the third parameter back from the
-diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
-index 9c1bba8cc51b..a6f0e3db2479 100644
---- a/kernel/trace/ftrace.c
-+++ b/kernel/trace/ftrace.c
-@@ -1583,7 +1583,7 @@ unsigned long ftrace_location_range(unsigned long start, unsigned long end)
-  */
- unsigned long ftrace_location(unsigned long ip)
- {
--	return ftrace_location_range(ip, ip);
-+	return ftrace_location_range(ip, ip + FTRACE_IP_EXTENSION);
- }
- 
- /**
--- 
-2.17.1
+And by the way, thanks for having suggested the current solution in a 
+previous conversation :)
 
+Thanks again,
+
+Alex
+
+>           Arnd
+> 
