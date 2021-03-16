@@ -7,181 +7,107 @@ X-Spam-Status: No, score=-0.5 required=3.0 tests=BAYES_00,DKIM_ADSP_CUSTOM_MED,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
 	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A61C0C433E6
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 01:19:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 64417C433E6
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 01:20:15 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7D72664F91
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 01:19:43 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 389AC64F91
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 01:20:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229929AbhCPBTL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 15 Mar 2021 21:19:11 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50672 "EHLO
+        id S229814AbhCPBTn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 15 Mar 2021 21:19:43 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50846 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231793AbhCPBSs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Mar 2021 21:18:48 -0400
-Received: from mail-pj1-x1035.google.com (mail-pj1-x1035.google.com [IPv6:2607:f8b0:4864:20::1035])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9BDB5C06174A
-        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:18:48 -0700 (PDT)
-Received: by mail-pj1-x1035.google.com with SMTP id lr10-20020a17090b4b8ab02900dd61b95c5eso481153pjb.4
-        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:18:48 -0700 (PDT)
+        with ESMTP id S231376AbhCPBTg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Mar 2021 21:19:36 -0400
+Received: from mail-pj1-x1031.google.com (mail-pj1-x1031.google.com [IPv6:2607:f8b0:4864:20::1031])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0A978C06174A
+        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:19:36 -0700 (PDT)
+Received: by mail-pj1-x1031.google.com with SMTP id x7-20020a17090a2b07b02900c0ea793940so498534pjc.2
+        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:19:36 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=date:message-id:from:to:cc:subject:in-reply-to:references
-         :user-agent:mime-version:content-transfer-encoding;
-        bh=/8lmvByipjfFKZqd/CMYEIc8BwNMpqTTcKBqCWwRymw=;
-        b=rU+yypaZNAn0qJB0tOjW/fsx8mn68YzSIZxpwgcd/uye29FzMO/Dt8lsdORFnJ9nn+
-         HRzmuXz8+xCsRZSI2wbkrP/3lzP4xInPDYS2U3hGE/TrDg8ha5NR/40YITnoC56cWN6n
-         lAgotf9WrXAjo6DrqS0QZNXWpnWH/Mes7wrzHlgdd/sQH8DzXtFhO9wJyzWXMA2M8TRS
-         jqoBz6IvB8J4/pWwllz9p3S8meHgH26vSqSqk74dqGCRb1paDfPB0I475Tdm0QetyZlT
-         ClnA1/TJr8jv3uu75hqwbgy20wE61gUuq8TREfFAAN5QI1HWYIhGwRNIHY0h5eH/mH9Z
-         KOzQ==
+         :user-agent:mime-version;
+        bh=/aONdzdEHJjSkJXSlFiFKYoN0KeuFnC9kVYyzxSJi0A=;
+        b=RqD2ASXEl6CSFthKXJ1Din5qSGTxQXlk4NmPlfBPAVpWph7E3KsycUerhyp1ltrO2H
+         yjSGaXVW/1b5rPZjWEQkzBg9kGU5bYjR5gsfSBCIebpipzjYTRAlpN6d+zdZ10w3hYU/
+         QD9Me1n/PlGmiTGicRBR5u8yOkv5EgHvj0eTUK4kmDuadMXXdHT7BLbDqXleqktLM8uS
+         DtBNnMkh//3X2lS5ezr/u7s+r/L0UjF+7TgEoa/r1vPWjgUoLpR4s4B+2GmhXEVgnXhA
+         9tNRqGSmFyrjXi0TbcKpPhoCxj+Dv4ecWav4sGEiF7CV7BOHXOz5m9yQnFlVTH1CmxnS
+         XByg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:message-id:from:to:cc:subject:in-reply-to
-         :references:user-agent:mime-version:content-transfer-encoding;
-        bh=/8lmvByipjfFKZqd/CMYEIc8BwNMpqTTcKBqCWwRymw=;
-        b=Trf6nRio+5elzWeMEyhNkkdm8l0dbzAov8NpfiYl+WFhTa7F30NGs7w6F+3VmORbOy
-         717PbF++xfuqxGeh4jA7MOrHy0VymIC3N7wyB6lIGO/6gfklQpF9tpytOmE5Is3Nk48U
-         41WFJUVRNBPmqMov6DvVsVzUHFvC+dCtf/aFNfOXiW3lO82n+XIJVr23RdySYOgfc9D2
-         hu1yCSqfsg+hq4dofEZea9NTT90BN2gkfyE6uBLu8BvTu8NElDqjHzHv2JlxYZYg6iXz
-         T9dQ6g51dQJbXe8MnZfOU565r1olbiUw85Wwvt/NGPSoB2vt/7XoF99P3WfUkUHfTuvY
-         PIHQ==
-X-Gm-Message-State: AOAM5319QBRwiirZy0eKytJQAdw5po9uLPe6xRNfpqjV19tgZGMDhUEs
-        jm/g//uqPG/G+vUdALdcWRE=
-X-Google-Smtp-Source: ABdhPJwxX7hbZ/cQjvYUDq9xqyudLKBWGui8BPOdmajjrfDk2jSz1I1wwwgkmdbbGtw0qHm4pAd+XQ==
-X-Received: by 2002:a17:90b:4d0c:: with SMTP id mw12mr2109432pjb.216.1615857528112;
-        Mon, 15 Mar 2021 18:18:48 -0700 (PDT)
+         :references:user-agent:mime-version;
+        bh=/aONdzdEHJjSkJXSlFiFKYoN0KeuFnC9kVYyzxSJi0A=;
+        b=R2uLlC/IpvOOemrg/VW6LY6q/PChH5U3K1I3qE+uH031X3UE615JEZ1eGhlexZW2Fa
+         0CmnRYDWUtpkMsCuLT73+BgcoNnOeIwWX6VMXpWqlpTWKInMhATsQFPq7LGXMhAUCv/P
+         PK4/yT+bdekqYeps08ph+Bavsycm9OELCdSwjnV61Gbu6nD0+Ll+6Lq3jyV+SES+iPSl
+         SS/gx5YfCE9lULWx8c0ojAKWkhNrVHrRJVVuNRgYeDp7gF62RRThL9pTyl9A/DScDuvN
+         7iUczRkXrOXg3oUoxlLRKLAU09phH0rODcxCMSM9GdO4+HkfN4MCGj9vAmNVYgY3ffPl
+         HUNw==
+X-Gm-Message-State: AOAM531UznyJw82s2yCQavS5kZU94P+iHpeStWv9krD99dw0fCpfLrnZ
+        mXCQH/VDeWjs0gINfNm0WBg=
+X-Google-Smtp-Source: ABdhPJxS3ha9tndIexBTUnNy1ZCXPto5LrXeXHtc9HHfL6R2I1j/OZJtt/5F3syN991kdl42GknAYA==
+X-Received: by 2002:a17:902:14e:b029:e4:9648:83e6 with SMTP id 72-20020a170902014eb02900e4964883e6mr13719344plb.68.1615857575554;
+        Mon, 15 Mar 2021 18:19:35 -0700 (PDT)
 Received: from sun.local.gmail.com (219x123x138x129.ap219.ftth.ucom.ne.jp. [219.123.138.129])
-        by smtp.gmail.com with ESMTPSA id 14sm14725025pfo.141.2021.03.15.18.18.45
+        by smtp.gmail.com with ESMTPSA id r30sm14174775pgu.86.2021.03.15.18.19.33
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 15 Mar 2021 18:18:47 -0700 (PDT)
-Date:   Tue, 16 Mar 2021 10:18:47 +0900
-Message-ID: <m27dm7c2vc.wl-thehajime@gmail.com>
+        Mon, 15 Mar 2021 18:19:35 -0700 (PDT)
+Date:   Tue, 16 Mar 2021 10:19:33 +0900
+Message-ID: <m235wvc2u2.wl-thehajime@gmail.com>
 From:   Hajime Tazaki <thehajime@gmail.com>
 To:     johannes@sipsolutions.net
 Cc:     linux-um@lists.infradead.org, jdike@addtoit.com, richard@nod.at,
         anton.ivanov@cambridgegreys.com, tavi.purdila@gmail.com,
         linux-kernel-library@freelists.org, linux-arch@vger.kernel.org,
         retrage01@gmail.com
-Subject: Re: [RFC v8 09/20] um: lkl: kernel thread support
-In-Reply-To: <d1d37b2a05fe0ebffca23e1aff1c7f6a5a5d87fd.camel@sipsolutions.net>
+Subject: Re: [RFC v8 11/20] um: lkl: basic console support
+In-Reply-To: <1aebaecdb4c5b3e62f5a89618b9d13f237d6b3c1.camel@sipsolutions.net>
 References: <cover.1611103406.git.thehajime@gmail.com>
-        <3aecd66b9314f2b435fb6df029dc5829bf8c50ff.1611103406.git.thehajime@gmail.com>
-        <d1d37b2a05fe0ebffca23e1aff1c7f6a5a5d87fd.camel@sipsolutions.net>
+        <5ec3a7157f7d96943b5701f8d57e102181cd56d2.1611103406.git.thehajime@gmail.com>
+        <1aebaecdb4c5b3e62f5a89618b9d13f237d6b3c1.camel@sipsolutions.net>
 User-Agent: Wanderlust/2.15.9 (Almost Unreal) Emacs/27.1 Mule/6.0 (HANACHIRUSATO)
 MIME-Version: 1.0 (generated by SEMI-EPG 1.14.7 - "Harue")
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=US-ASCII
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 
-On Mon, 15 Mar 2021 02:01:20 +0900,
+On Mon, 15 Mar 2021 05:42:52 +0900,
 Johannes Berg wrote:
->=20
-> On Wed, 2021-01-20 at 11:27 +0900, Hajime Tazaki wrote:
->=20
-> > +void __weak subarch_cpu_idle(void)
-> > +{
-> > +}
-> > +
-> > =A0void arch_cpu_idle(void)
-> > =A0{
-> > =A0	cpu_tasks[current_thread_info()->cpu].pid =3D os_getpid();
-> > =A0	um_idle_sleep();
-> > +	subarch_cpu_idle();
->=20
->=20
-> Not sure that belongs into this patch in the first place, but wouldn't
-> it make some sense to move the um_idle_sleep() into the
-> subarch_cpu_idle() so LKL (or apps using it) can get full control?
+> 
+> 
+> > 
+> > -obj-y := stdio_console.o fd.o chan_kern.o chan_user.o line.o
+> > +ifndef CONFIG_UMMODE_LIB
+> > +obj-y := stdio_console.o
+> > +else
+> > +obj-y :=
+> > +endif
+> > +obj-y += fd.o chan_kern.o chan_user.o line.o
+> 
+> Might nicer to do via Kconfig, such as
+> 
+> config STDIO_CONSOLE
+> 	def_bool y
+> 	depends on !UMMODE_LIB
+> 
+> and then
+> 
+> obj-$(CONFIG_STDIO_CONSOLE) += stdio_console.o
+> 
+> here. Similar to CONFIG_STDDER_CONSOLE, after all.
 
-Agree.  I'll move that part to um_idle_sleep.
+Agree.  I'll fix them.
 
-> > +/*
-> > + * This structure is used to get access to the "LKL CPU" that allows u=
-s to run
-> > + * Linux code. Because we have to deal with various synchronization re=
-quirements
-> > + * between idle thread, system calls, interrupts, "reentrancy", CPU sh=
-utdown,
-> > + * imbalance wake up (i.e. acquire the CPU from one thread and release=
- it from
-> > + * another), we can't use a simple synchronization mechanism such as (=
-recursive)
-> > + * mutex or semaphore. Instead, we use a mutex and a bunch of status d=
-ata plus a
-> > + * semaphore.
-> > + */
->=20
-> Honestly, some of that documentation, and perhaps even the whole API for
-> LKL feels like it should come earlier in the series.
->=20
-> E.g. now here I see all those lkl_mutex_lock() (where btw documentation
-> doesn't always match the function name), so you *don't* have the
-> function ops pointer struct anymore?
+> > +/**
+> > + * lkl_print - optional operation that receives console messages
+> 
+> How is it optional? I don't see you having a __weak definition?
 
-I will check the inconsistency of names.
-# and, yes, we don't have function ops anymore.
-
-> It'd be nice to have some high-level view of what applications *must*
-> do, and what they *can* do, at the beginning of this series.
-
-agree.
-
-> > +	 *
-> > +	 * This algorithm assumes that we never have more the MAX_THREADS
-> > +	 * requesting CPU access.
-> > +	 */
-> > +	#define MAX_THREADS 1000000
->=20
-> What implications does that value have? It seems several orders of
-> magnitude too large?
-
-I guess this is a kind of random number, but will justify (or make it
-smaller) after some investigation.
-
-> > +static int __cpu_try_get_lock(int n)
-> > +{
-> > +	lkl_thread_t self;
-> > +
-> > +	if (__sync_fetch_and_add(&cpu.shutdown_gate, n) >=3D MAX_THREADS)
-> > +		return -2;
->=20
-> Feels like that could be some kind of enum here instead of -2 and -1 and
-> all that magic.
-
-agree; I will update with an enum.
-
-> > +	/* when somebody holds a lock, sleep until released,
-> > +	 * with obtaining a semaphore (cpu.sem)
-> > +	 */
->=20
-> nit: /*
->       * use this comment style
->       */
-
-thanks, it should be. will fix this.
-
-> > +void switch_threads(jmp_buf *me, jmp_buf *you)
-> > +{
-> > +	/* NOP */
-> > +}
->=20
-> Why, actually?
-
-Our threads doesn't use the UML jmp_buf (use pthread instead) so, this
-function has to do nothing.
-
-We can add a comment of this here.
-
-> Again, goes back to the high-level design thing I alluded to above, but
-> it's not clear to me why you need idle (which implies you're running the
-> scheduler) but not this (which implies you're *not* running the
-> scheduler)?
-
-okay, will write a separate document for the high-level description of
-what this is.
+Optional is misleading...  I will fix the comment.
 
 -- Hajime
