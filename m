@@ -5,34 +5,34 @@ X-Spam-Level:
 X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E6BA9C43331
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 06:58:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 55403C43333
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 06:58:19 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9FB426524C
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 06:58:18 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 387F965241
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 06:58:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235795AbhCPG5q (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 16 Mar 2021 02:57:46 -0400
-Received: from mga07.intel.com ([134.134.136.100]:44607 "EHLO mga07.intel.com"
+        id S235806AbhCPG5s (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 16 Mar 2021 02:57:48 -0400
+Received: from mga07.intel.com ([134.134.136.100]:44618 "EHLO mga07.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S233953AbhCPG5V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 16 Mar 2021 02:57:21 -0400
-IronPort-SDR: Mw+eWhDn1oxnlMO+Xt8mk6gG+VEgfD3PSXjZbe84Y1rmLO5sqqOF1LDkmu5AL9AcMFRW9VGeTT
- LAyLlShpGAKg==
-X-IronPort-AV: E=McAfee;i="6000,8403,9924"; a="253227833"
+        id S233961AbhCPG5W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 16 Mar 2021 02:57:22 -0400
+IronPort-SDR: J5DTteurI4pf87p3K7k9z1/7JNED6cBNKXZw9tNTLxErRF77pp6t1Rv4pOzdPGGvQ+LaSB8UDr
+ nly3bekmlOjA==
+X-IronPort-AV: E=McAfee;i="6000,8403,9924"; a="253227835"
 X-IronPort-AV: E=Sophos;i="5.81,251,1610438400"; 
-   d="scan'208";a="253227833"
+   d="scan'208";a="253227835"
 Received: from fmsmga001.fm.intel.com ([10.253.24.23])
   by orsmga105.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2021 23:57:12 -0700
-IronPort-SDR: NMYTvEyo2WZGBs1Dhzw2mzP54vYgwD0jU53YJqgcDdT38OtUnisYx4tBq1s8tYr/oe/VNS7hYW
- Jjjk4xXot8xA==
+IronPort-SDR: Vb+RlfAxgnOJKXH1GrA4XtO0/DdzBF7w1NUXhEXYGZn8sdiTs9AcQycHbGoltm1IVefpupyg8U
+ CytpmuGo5J0g==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="5.81,251,1610438400"; 
-   d="scan'208";a="511296080"
+   d="scan'208";a="511296089"
 Received: from chang-linux-3.sc.intel.com ([172.25.66.175])
-  by fmsmga001.fm.intel.com with ESMTP; 15 Mar 2021 23:57:11 -0700
+  by fmsmga001.fm.intel.com with ESMTP; 15 Mar 2021 23:57:12 -0700
 From:   "Chang S. Bae" <chang.seok.bae@intel.com>
 To:     bp@suse.de, tglx@linutronix.de, mingo@kernel.org, luto@kernel.org,
         x86@kernel.org
@@ -41,11 +41,10 @@ Cc:     len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
         carlos@redhat.com, tony.luck@intel.com, ravi.v.shankar@intel.com,
         libc-alpha@sourceware.org, linux-arch@vger.kernel.org,
         linux-api@vger.kernel.org, linux-kernel@vger.kernel.org,
-        chang.seok.bae@intel.com, Fenghua Yu <fenghua.yu@intel.com>,
-        linux-doc@vger.kernel.org
-Subject: [PATCH v7 3/6] x86/elf: Support a new ELF aux vector AT_MINSIGSTKSZ
-Date:   Mon, 15 Mar 2021 23:52:12 -0700
-Message-Id: <20210316065215.23768-4-chang.seok.bae@intel.com>
+        chang.seok.bae@intel.com, linux-kselftest@vger.kernel.org
+Subject: [PATCH v7 6/6] selftest/x86/signal: Include test cases for validating sigaltstack
+Date:   Mon, 15 Mar 2021 23:52:15 -0700
+Message-Id: <20210316065215.23768-7-chang.seok.bae@intel.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20210316065215.23768-1-chang.seok.bae@intel.com>
 References: <20210316065215.23768-1-chang.seok.bae@intel.com>
@@ -53,190 +52,173 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Historically, signal.h defines MINSIGSTKSZ (2KB) and SIGSTKSZ (8KB), for
-use by all architectures with sigaltstack(2). Over time, the hardware state
-size grew, but these constants did not evolve. Today, literal use of these
-constants on several architectures may result in signal stack overflow, and
-thus user data corruption.
+The test measures the kernel's signal delivery with different (enough vs.
+insufficient) stack sizes.
 
-A few years ago, the ARM team addressed this issue by establishing
-getauxval(AT_MINSIGSTKSZ). This enables the kernel to supply at runtime
-value that is an appropriate replacement on the current and future
-hardware.
-
-Add getauxval(AT_MINSIGSTKSZ) support to x86, analogous to the support
-added for ARM in commit 94b07c1f8c39 ("arm64: signal: Report signal frame
-size to userspace via auxv").
-
-Also, include a documentation to describe x86-specific auxiliary vectors.
-
-Reported-by: Florian Weimer <fweimer@redhat.com>
-Fixes: c2bc11f10a39 ("x86, AVX-512: Enable AVX-512 States Context Switch")
 Signed-off-by: Chang S. Bae <chang.seok.bae@intel.com>
 Reviewed-by: Len Brown <len.brown@intel.com>
-Cc: H.J. Lu <hjl.tools@gmail.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: Dave Martin <Dave.Martin@arm.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
 Cc: x86@kernel.org
-Cc: libc-alpha@sourceware.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-api@vger.kernel.org
-Cc: linux-doc@vger.kernel.org
+Cc: linux-kselftest@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
-Link: https://bugzilla.kernel.org/show_bug.cgi?id=153531
 ---
-Changes from v6:
-* Revised the documentation and fixed the build issue. (Borislav Petkov)
-* Fixed the vertical alignment of '\'. (Borislav Petkov)
+Changes from v3:
+* Revised test messages again (Borislav Petkov)
 
-Changes from v5:
-* Added a documentation.
+Changes from v2:
+* Revised test messages (Borislav Petkov)
 ---
- Documentation/x86/elf_auxvec.rst   | 53 ++++++++++++++++++++++++++++++
- Documentation/x86/index.rst        |  1 +
- arch/x86/include/asm/elf.h         |  4 +++
- arch/x86/include/uapi/asm/auxvec.h |  4 +--
- arch/x86/kernel/signal.c           |  5 +++
- 5 files changed, 65 insertions(+), 2 deletions(-)
- create mode 100644 Documentation/x86/elf_auxvec.rst
+ tools/testing/selftests/x86/Makefile      |   2 +-
+ tools/testing/selftests/x86/sigaltstack.c | 128 ++++++++++++++++++++++
+ 2 files changed, 129 insertions(+), 1 deletion(-)
+ create mode 100644 tools/testing/selftests/x86/sigaltstack.c
 
-diff --git a/Documentation/x86/elf_auxvec.rst b/Documentation/x86/elf_auxvec.rst
+diff --git a/tools/testing/selftests/x86/Makefile b/tools/testing/selftests/x86/Makefile
+index 333980375bc7..65bba2ae86ee 100644
+--- a/tools/testing/selftests/x86/Makefile
++++ b/tools/testing/selftests/x86/Makefile
+@@ -13,7 +13,7 @@ CAN_BUILD_WITH_NOPIE := $(shell ./check_cc.sh $(CC) trivial_program.c -no-pie)
+ TARGETS_C_BOTHBITS := single_step_syscall sysret_ss_attrs syscall_nt test_mremap_vdso \
+ 			check_initial_reg_state sigreturn iopl ioperm \
+ 			test_vsyscall mov_ss_trap \
+-			syscall_arg_fault fsgsbase_restore
++			syscall_arg_fault fsgsbase_restore sigaltstack
+ TARGETS_C_32BIT_ONLY := entry_from_vm86 test_syscall_vdso unwind_vdso \
+ 			test_FCMOV test_FCOMI test_FISTTP \
+ 			vdso_restorer
+diff --git a/tools/testing/selftests/x86/sigaltstack.c b/tools/testing/selftests/x86/sigaltstack.c
 new file mode 100644
-index 000000000000..6c75b26f5efb
+index 000000000000..f689af75e979
 --- /dev/null
-+++ b/Documentation/x86/elf_auxvec.rst
-@@ -0,0 +1,53 @@
-+.. SPDX-License-Identifier: GPL-2.0
++++ b/tools/testing/selftests/x86/sigaltstack.c
+@@ -0,0 +1,128 @@
++// SPDX-License-Identifier: GPL-2.0-only
 +
-+==================================
-+x86-specific ELF Auxiliary Vectors
-+==================================
++#define _GNU_SOURCE
++#include <signal.h>
++#include <stdio.h>
++#include <stdbool.h>
++#include <string.h>
++#include <err.h>
++#include <errno.h>
++#include <limits.h>
++#include <sys/mman.h>
++#include <sys/auxv.h>
++#include <sys/prctl.h>
++#include <sys/resource.h>
++#include <setjmp.h>
 +
-+This document describes the semantics of the x86 auxiliary vectors.
++/* sigaltstack()-enforced minimum stack */
++#define ENFORCED_MINSIGSTKSZ	2048
 +
-+Introduction
-+============
++#ifndef AT_MINSIGSTKSZ
++#  define AT_MINSIGSTKSZ	51
++#endif
 +
-+ELF Auxiliary vectors enable the kernel to efficiently provide
-+configuration specific parameters to userspace. In this example, a program
-+allocates an alternate stack based on the kernel-provided size::
++static int nerrs;
 +
-+   #include <sys/auxv.h>
-+   #include <elf.h>
-+   #include <signal.h>
-+   #include <stdlib.h>
-+   #include <assert.h>
-+   #include <err.h>
++static bool sigalrm_expected;
 +
-+   #ifndef AT_MINSIGSTKSZ
-+   #define AT_MINSIGSTKSZ	51
-+   #endif
++static unsigned long at_minstack_size;
 +
-+   ....
-+   stack_t ss;
-+
-+   ss.ss_sp = malloc(ss.ss_size);
-+   assert(ss.ss_sp);
-+
-+   ss.ss_size = getauxval(AT_MINSIGSTKSZ) + SIGSTKSZ;
-+   ss.ss_flags = 0;
-+
-+   if (sigaltstack(&ss, NULL))
-+        err(1, "sigaltstack");
-+
-+
-+The exposed auxiliary vectors
-+=============================
-+
-+AT_SYSINFO is used for locating the vsyscall entry point.  It is not
-+exported on 64-bit mode.
-+
-+AT_SYSINFO_EHDR is the start address of the page containing the vDSO.
-+
-+AT_MINSIGSTKSZ denotes the minimum stack size required by the kernel to
-+deliver a signal to user-space.  AT_MINSIGSTKSZ comprehends the space
-+consumed by the kernel to accommodate the user context for the current
-+hardware configuration.  It does not comprehend subsequent user-space stack
-+consumption, which must be added by the user.  (e.g. Above, user-space adds
-+SIGSTKSZ to AT_MINSIGSTKSZ.)
-diff --git a/Documentation/x86/index.rst b/Documentation/x86/index.rst
-index 4693e192b447..d58614d5cde6 100644
---- a/Documentation/x86/index.rst
-+++ b/Documentation/x86/index.rst
-@@ -35,3 +35,4 @@ x86-specific Documentation
-    sva
-    sgx
-    features
-+   elf_auxvec
-diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
-index 9224d40cdefe..18d9b1117871 100644
---- a/arch/x86/include/asm/elf.h
-+++ b/arch/x86/include/asm/elf.h
-@@ -312,6 +312,7 @@ do {									\
- 		NEW_AUX_ENT(AT_SYSINFO,	VDSO_ENTRY);			\
- 		NEW_AUX_ENT(AT_SYSINFO_EHDR, VDSO_CURRENT_BASE);	\
- 	}								\
-+	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());		\
- } while (0)
- 
- /*
-@@ -328,6 +329,7 @@ extern unsigned long task_size_32bit(void);
- extern unsigned long task_size_64bit(int full_addr_space);
- extern unsigned long get_mmap_base(int is_legacy);
- extern bool mmap_address_hint_valid(unsigned long addr, unsigned long len);
-+extern unsigned long get_sigframe_size(void);
- 
- #ifdef CONFIG_X86_32
- 
-@@ -349,6 +351,7 @@ do {									\
- 	if (vdso64_enabled)						\
- 		NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
- 			    (unsigned long __force)current->mm->context.vdso); \
-+	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());		\
- } while (0)
- 
- /* As a historical oddity, the x32 and x86_64 vDSOs are controlled together. */
-@@ -357,6 +360,7 @@ do {									\
- 	if (vdso64_enabled)						\
- 		NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
- 			    (unsigned long __force)current->mm->context.vdso); \
-+	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_sigframe_size());		\
- } while (0)
- 
- #define AT_SYSINFO		32
-diff --git a/arch/x86/include/uapi/asm/auxvec.h b/arch/x86/include/uapi/asm/auxvec.h
-index 580e3c567046..6beb55bbefa4 100644
---- a/arch/x86/include/uapi/asm/auxvec.h
-+++ b/arch/x86/include/uapi/asm/auxvec.h
-@@ -12,9 +12,9 @@
- 
- /* entries in ARCH_DLINFO: */
- #if defined(CONFIG_IA32_EMULATION) || !defined(CONFIG_X86_64)
--# define AT_VECTOR_SIZE_ARCH 2
-+# define AT_VECTOR_SIZE_ARCH 3
- #else /* else it's non-compat x86-64 */
--# define AT_VECTOR_SIZE_ARCH 1
-+# define AT_VECTOR_SIZE_ARCH 2
- #endif
- 
- #endif /* _ASM_X86_AUXVEC_H */
-diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-index 800243afd1ef..0d24f64d0145 100644
---- a/arch/x86/kernel/signal.c
-+++ b/arch/x86/kernel/signal.c
-@@ -716,6 +716,11 @@ void __init init_sigframe_size(void)
- 	max_frame_size = round_up(max_frame_size, FRAME_ALIGNMENT);
- }
- 
-+unsigned long get_sigframe_size(void)
++static void sethandler(int sig, void (*handler)(int, siginfo_t *, void *),
++		       int flags)
 +{
-+	return max_frame_size;
++	struct sigaction sa;
++
++	memset(&sa, 0, sizeof(sa));
++	sa.sa_sigaction = handler;
++	sa.sa_flags = SA_SIGINFO | flags;
++	sigemptyset(&sa.sa_mask);
++	if (sigaction(sig, &sa, 0))
++		err(1, "sigaction");
 +}
 +
- static inline int is_ia32_compat_frame(struct ksignal *ksig)
- {
- 	return IS_ENABLED(CONFIG_IA32_EMULATION) &&
++static void clearhandler(int sig)
++{
++	struct sigaction sa;
++
++	memset(&sa, 0, sizeof(sa));
++	sa.sa_handler = SIG_DFL;
++	sigemptyset(&sa.sa_mask);
++	if (sigaction(sig, &sa, 0))
++		err(1, "sigaction");
++}
++
++static int setup_altstack(void *start, unsigned long size)
++{
++	stack_t ss;
++
++	memset(&ss, 0, sizeof(ss));
++	ss.ss_size = size;
++	ss.ss_sp = start;
++
++	return sigaltstack(&ss, NULL);
++}
++
++static jmp_buf jmpbuf;
++
++static void sigsegv(int sig, siginfo_t *info, void *ctx_void)
++{
++	if (sigalrm_expected) {
++		printf("[FAIL]\tWrong signal delivered: SIGSEGV (expected SIGALRM).");
++		nerrs++;
++	} else {
++		printf("[OK]\tSIGSEGV signal delivered.\n");
++	}
++
++	siglongjmp(jmpbuf, 1);
++}
++
++static void sigalrm(int sig, siginfo_t *info, void *ctx_void)
++{
++	if (!sigalrm_expected) {
++		printf("[FAIL]\tWrong signal delivered: SIGALRM (expected SIGSEGV).");
++		nerrs++;
++	} else {
++		printf("[OK]\tSIGALRM signal delivered.\n");
++	}
++}
++
++static void test_sigaltstack(void *altstack, unsigned long size)
++{
++	if (setup_altstack(altstack, size))
++		err(1, "sigaltstack()");
++
++	sigalrm_expected = (size > at_minstack_size) ? true : false;
++
++	sethandler(SIGSEGV, sigsegv, 0);
++	sethandler(SIGALRM, sigalrm, SA_ONSTACK);
++
++	if (!sigsetjmp(jmpbuf, 1)) {
++		printf("[RUN]\tTest an alternate signal stack of %ssufficient size.\n",
++		       sigalrm_expected ? "" : "in");
++		printf("\tRaise SIGALRM. %s is expected to be delivered.\n",
++		       sigalrm_expected ? "It" : "SIGSEGV");
++		raise(SIGALRM);
++	}
++
++	clearhandler(SIGALRM);
++	clearhandler(SIGSEGV);
++}
++
++int main(void)
++{
++	void *altstack;
++
++	at_minstack_size = getauxval(AT_MINSIGSTKSZ);
++
++	altstack = mmap(NULL, at_minstack_size + SIGSTKSZ, PROT_READ | PROT_WRITE,
++			MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
++	if (altstack == MAP_FAILED)
++		err(1, "mmap()");
++
++	if ((ENFORCED_MINSIGSTKSZ + 1) < at_minstack_size)
++		test_sigaltstack(altstack, ENFORCED_MINSIGSTKSZ + 1);
++
++	test_sigaltstack(altstack, at_minstack_size + SIGSTKSZ);
++
++	return nerrs == 0 ? 0 : 1;
++}
 -- 
 2.17.1
 
