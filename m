@@ -2,152 +2,125 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-17.3 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_SANE_1 autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B0B5CC4332D
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 06:58:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CF6C4C433E0
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 08:18:22 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 856C065251
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 06:58:18 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8597064FE0
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 08:18:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235776AbhCPG5s (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 16 Mar 2021 02:57:48 -0400
-Received: from mga07.intel.com ([134.134.136.100]:44615 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S233947AbhCPG5V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 16 Mar 2021 02:57:21 -0400
-IronPort-SDR: YAy3cE5X1njBS5Zd2MuLxyzwGxk9KGtpqMZxG0rmU+XPEJAQ6Z2Se/sK3N1J+h4kKTPQH1B46Q
- Zdsn26FJNfOw==
-X-IronPort-AV: E=McAfee;i="6000,8403,9924"; a="253227834"
-X-IronPort-AV: E=Sophos;i="5.81,251,1610438400"; 
-   d="scan'208";a="253227834"
-Received: from fmsmga001.fm.intel.com ([10.253.24.23])
-  by orsmga105.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2021 23:57:12 -0700
-IronPort-SDR: EYIjEIIZkRC/ss4huiFmKexYFxB4fMZXc9S0tqodZ12MaAth+8Idhqi+j7dONcWReiat8kLdfW
- 20KL9SmixRnQ==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="5.81,251,1610438400"; 
-   d="scan'208";a="511296083"
-Received: from chang-linux-3.sc.intel.com ([172.25.66.175])
-  by fmsmga001.fm.intel.com with ESMTP; 15 Mar 2021 23:57:12 -0700
-From:   "Chang S. Bae" <chang.seok.bae@intel.com>
-To:     bp@suse.de, tglx@linutronix.de, mingo@kernel.org, luto@kernel.org,
-        x86@kernel.org
-Cc:     len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
-        Dave.Martin@arm.com, jannh@google.com, mpe@ellerman.id.au,
-        carlos@redhat.com, tony.luck@intel.com, ravi.v.shankar@intel.com,
-        libc-alpha@sourceware.org, linux-arch@vger.kernel.org,
-        linux-api@vger.kernel.org, linux-kernel@vger.kernel.org,
-        chang.seok.bae@intel.com, linux-kselftest@vger.kernel.org
-Subject: [PATCH v7 4/6] selftest/sigaltstack: Use the AT_MINSIGSTKSZ aux vector if available
-Date:   Mon, 15 Mar 2021 23:52:13 -0700
-Message-Id: <20210316065215.23768-5-chang.seok.bae@intel.com>
-X-Mailer: git-send-email 2.17.1
-In-Reply-To: <20210316065215.23768-1-chang.seok.bae@intel.com>
-References: <20210316065215.23768-1-chang.seok.bae@intel.com>
+        id S234341AbhCPIRv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 16 Mar 2021 04:17:51 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55930 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S234332AbhCPIR2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Mar 2021 04:17:28 -0400
+Received: from mail-ej1-x636.google.com (mail-ej1-x636.google.com [IPv6:2a00:1450:4864:20::636])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id ADD54C061756
+        for <linux-arch@vger.kernel.org>; Tue, 16 Mar 2021 01:17:27 -0700 (PDT)
+Received: by mail-ej1-x636.google.com with SMTP id bm21so70612250ejb.4
+        for <linux-arch@vger.kernel.org>; Tue, 16 Mar 2021 01:17:27 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=rasmusvillemoes.dk; s=google;
+        h=subject:to:cc:references:from:message-id:date:user-agent
+         :mime-version:in-reply-to:content-language:content-transfer-encoding;
+        bh=p9kC/FfaYsWrKdpd44ySqOr9EeItGYJ7tqAoRplpcIw=;
+        b=EFjyEtLu7bg1hNv+88oPUzWFOq+7jZJ1JjL06HqzKU/TlfkEl1+HRe4/aFCgmsHASK
+         l4L9IRJYPnHUI5TnHzB51mEyaEH2wA1K+JGeag2qgdeECYLIpkSEFh70xoCt/tTGodcd
+         8ACpxYRZgaf4XJHaxUUuyAvrWxr92vlxsRsFQ=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
+         :user-agent:mime-version:in-reply-to:content-language
+         :content-transfer-encoding;
+        bh=p9kC/FfaYsWrKdpd44ySqOr9EeItGYJ7tqAoRplpcIw=;
+        b=At3vgMsVn0HIKNJI2EedGuK6V6F8bo6zYDpK9vPtFHMmlDD2QV4Zep+ZtIglsY+6Xo
+         VXsq1vpJGprW4uDx60MASmqaxf5+XF6deu4nIKF8XRGogy4yJPRtVeffowydcZRsdmo5
+         PsPEuR4RH8f3QjzPIM3GyydEua+cEe6stkrIvxJgQJAtnWWEVXfa+Plmm3fFARLNmlNK
+         FEMc3LDxcHLFToNYB6YnkBvrovXMnJehYCv9KO/N1Xd105HWEuqHSuqTqrchDsutZLSt
+         7QuuYDhpz9TYNNKT116nDpTxtugiSTPfj0/pVt9zxm0nzGSEhTQgod0aqeUJb8wFPs3L
+         O9XQ==
+X-Gm-Message-State: AOAM530UldEVnr5/TXLZKg4WPqjxUroNmzBTyp1pUFPW7iTsh+dDv4wF
+        4sNh0veV8aOWKD1lEpflS9Sguw==
+X-Google-Smtp-Source: ABdhPJwhMeO22Wisys4V+O8q3o0fM/7YfKkWeuBs/dpVq2nKIcG5cqRzvmDIEMex6Byh+X4q3Gsohw==
+X-Received: by 2002:a17:906:5902:: with SMTP id h2mr28099654ejq.416.1615882646474;
+        Tue, 16 Mar 2021 01:17:26 -0700 (PDT)
+Received: from [192.168.1.149] ([80.208.71.248])
+        by smtp.gmail.com with ESMTPSA id u13sm8931351ejy.31.2021.03.16.01.17.25
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 16 Mar 2021 01:17:26 -0700 (PDT)
+Subject: Re: [PATCH 01/13] tools: disable -Wno-type-limits
+To:     Yury Norov <yury.norov@gmail.com>, linux-kernel@vger.kernel.org
+Cc:     linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org,
+        linux-sh@vger.kernel.org, Alexey Klimov <aklimov@redhat.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Arnd Bergmann <arnd@arndb.de>, David Sterba <dsterba@suse.com>,
+        Dennis Zhou <dennis@kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Jianpeng Ma <jianpeng.ma@intel.com>,
+        Joe Perches <joe@perches.com>,
+        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+        Josh Poimboeuf <jpoimboe@redhat.com>,
+        Rich Felker <dalias@libc.org>,
+        Stefano Brivio <sbrivio@redhat.com>,
+        Wei Yang <richard.weiyang@linux.alibaba.com>,
+        Wolfram Sang <wsa+renesas@sang-engineering.com>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>
+References: <20210316015424.1999082-1-yury.norov@gmail.com>
+ <20210316015424.1999082-2-yury.norov@gmail.com>
+From:   Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Message-ID: <2ec71f83-f903-2775-bf04-7f0a83c9f4cb@rasmusvillemoes.dk>
+Date:   Tue, 16 Mar 2021 09:17:24 +0100
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.7.1
+MIME-Version: 1.0
+In-Reply-To: <20210316015424.1999082-2-yury.norov@gmail.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The SIGSTKSZ constant may not represent enough stack size in some
-architectures as the hardware state size grows.
+On 16/03/2021 02.54, Yury Norov wrote:
+> GENMASK(h, l) may be passed with unsigned types. In such case, type-limits
+> warning is generated for example in case of GENMASK(h, 0).
+> 
+> Signed-off-by: Yury Norov <yury.norov@gmail.com>
+> ---
+>  tools/scripts/Makefile.include | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/tools/scripts/Makefile.include b/tools/scripts/Makefile.include
+> index 84dbf61a7eca..15e99905cb7d 100644
+> --- a/tools/scripts/Makefile.include
+> +++ b/tools/scripts/Makefile.include
+> @@ -38,6 +38,7 @@ EXTRA_WARNINGS += -Wswitch-enum
+>  EXTRA_WARNINGS += -Wundef
+>  EXTRA_WARNINGS += -Wwrite-strings
+>  EXTRA_WARNINGS += -Wformat
+> +EXTRA_WARNINGS += -Wno-type-limits
+>
 
-Use getauxval(AT_MINSIGSTKSZ) to increase the stack size.
+I don't like that kind of collateral damage. I seem to recall another
+instance where a macro was instead rewritten to avoid triggering the
+type-limits warning (with a comment explaining the uglyness). Something like
 
-Signed-off-by: Chang S. Bae <chang.seok.bae@intel.com>
-Reviewed-by: Len Brown <len.brown@intel.com>
-Cc: linux-kselftest@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
----
-Changes from v5:
-* Added as a new patch.
----
- tools/testing/selftests/sigaltstack/sas.c | 20 +++++++++++++++-----
- 1 file changed, 15 insertions(+), 5 deletions(-)
+foo > bar      is the same as
+!(foo <= bar)  which is the same as
+!(foo == bar || foo < bar)
 
-diff --git a/tools/testing/selftests/sigaltstack/sas.c b/tools/testing/selftests/sigaltstack/sas.c
-index 8934a3766d20..c53b070755b6 100644
---- a/tools/testing/selftests/sigaltstack/sas.c
-+++ b/tools/testing/selftests/sigaltstack/sas.c
-@@ -17,6 +17,7 @@
- #include <string.h>
- #include <assert.h>
- #include <errno.h>
-+#include <sys/auxv.h>
- 
- #include "../kselftest.h"
- 
-@@ -24,6 +25,11 @@
- #define SS_AUTODISARM  (1U << 31)
- #endif
- 
-+#ifndef AT_MINSIGSTKSZ
-+#define AT_MINSIGSTKSZ	51
-+#endif
-+
-+static unsigned int stack_size;
- static void *sstack, *ustack;
- static ucontext_t uc, sc;
- static const char *msg = "[OK]\tStack preserved";
-@@ -47,7 +53,7 @@ void my_usr1(int sig, siginfo_t *si, void *u)
- #endif
- 
- 	if (sp < (unsigned long)sstack ||
--			sp >= (unsigned long)sstack + SIGSTKSZ) {
-+			sp >= (unsigned long)sstack + stack_size) {
- 		ksft_exit_fail_msg("SP is not on sigaltstack\n");
- 	}
- 	/* put some data on stack. other sighandler will try to overwrite it */
-@@ -108,6 +114,10 @@ int main(void)
- 	stack_t stk;
- 	int err;
- 
-+	/* Make sure more than the required minimum. */
-+	stack_size = getauxval(AT_MINSIGSTKSZ) + SIGSTKSZ;
-+	ksft_print_msg("[NOTE]\tthe stack size is %lu\n", stack_size);
-+
- 	ksft_print_header();
- 	ksft_set_plan(3);
- 
-@@ -117,7 +127,7 @@ int main(void)
- 	sigaction(SIGUSR1, &act, NULL);
- 	act.sa_sigaction = my_usr2;
- 	sigaction(SIGUSR2, &act, NULL);
--	sstack = mmap(NULL, SIGSTKSZ, PROT_READ | PROT_WRITE,
-+	sstack = mmap(NULL, stack_size, PROT_READ | PROT_WRITE,
- 		      MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
- 	if (sstack == MAP_FAILED) {
- 		ksft_exit_fail_msg("mmap() - %s\n", strerror(errno));
-@@ -139,7 +149,7 @@ int main(void)
- 	}
- 
- 	stk.ss_sp = sstack;
--	stk.ss_size = SIGSTKSZ;
-+	stk.ss_size = stack_size;
- 	stk.ss_flags = SS_ONSTACK | SS_AUTODISARM;
- 	err = sigaltstack(&stk, NULL);
- 	if (err) {
-@@ -161,7 +171,7 @@ int main(void)
- 		}
- 	}
- 
--	ustack = mmap(NULL, SIGSTKSZ, PROT_READ | PROT_WRITE,
-+	ustack = mmap(NULL, stack_size, PROT_READ | PROT_WRITE,
- 		      MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
- 	if (ustack == MAP_FAILED) {
- 		ksft_exit_fail_msg("mmap() - %s\n", strerror(errno));
-@@ -170,7 +180,7 @@ int main(void)
- 	getcontext(&uc);
- 	uc.uc_link = NULL;
- 	uc.uc_stack.ss_sp = ustack;
--	uc.uc_stack.ss_size = SIGSTKSZ;
-+	uc.uc_stack.ss_size = stack_size;
- 	makecontext(&uc, switch_fn, 0);
- 	raise(SIGUSR1);
- 
--- 
-2.17.1
+Dunno if that would work here, but if it did, it would have the bonus
+that when somebody builds the kernel proper with Wtype-limits enabled
+(maybe W=1 or W=2) there would be no false positives from GENMASK to
+wade through.
 
+Alternatively, we really should consider making use of _Pragma to
+locally disable/re-enable certain warnings.
+
+Rasmus
