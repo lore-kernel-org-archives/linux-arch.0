@@ -2,72 +2,72 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-0.5 required=3.0 tests=BAYES_00,DKIM_ADSP_CUSTOM_MED,
+X-Spam-Status: No, score=-5.5 required=3.0 tests=BAYES_00,DKIM_ADSP_CUSTOM_MED,
 	DKIM_INVALID,DKIM_SIGNED,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C4747C433E0
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E4296C433E9
 	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 01:18:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8C93764F94
+	by mail.kernel.org (Postfix) with ESMTP id BEEBD64FA6
 	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 01:18:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232223AbhCPBSI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 15 Mar 2021 21:18:08 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50494 "EHLO
+        id S230397AbhCPBSH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 15 Mar 2021 21:18:07 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50442 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231376AbhCPBSB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Mar 2021 21:18:01 -0400
-Received: from mail-pf1-x436.google.com (mail-pf1-x436.google.com [IPv6:2607:f8b0:4864:20::436])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3D423C06174A
-        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:18:01 -0700 (PDT)
-Received: by mail-pf1-x436.google.com with SMTP id x21so6410907pfa.3
-        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:18:01 -0700 (PDT)
+        with ESMTP id S234278AbhCPBRq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Mar 2021 21:17:46 -0400
+Received: from mail-pg1-x52c.google.com (mail-pg1-x52c.google.com [IPv6:2607:f8b0:4864:20::52c])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 750D1C06174A
+        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:17:46 -0700 (PDT)
+Received: by mail-pg1-x52c.google.com with SMTP id o16so4548012pgu.3
+        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:17:46 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=date:message-id:from:to:cc:subject:in-reply-to:references
          :user-agent:mime-version;
-        bh=qhcuYdoOMtV0w4cVzRWN1fajWGcUJ8HbjTsCeMUOnIM=;
-        b=ae6bZCdsqozefryLiEyTDBBld41fLCIpwH1QBXqZ6DSjKtW9mvE0Ge8nRgCgGlBtBJ
-         2OYfY3r7s2hqCZLjiRTAV24k3WYWSIqto5uxZORtxbObSPzG2ZMovDb3keGctARCS/nd
-         KYTzMZEZwWoAvmj+VK7yAN08raZKC6SGRp1SIEH6R2dBrvwFCD+NXEEUgzlUDl6+zyHf
-         m77+n6CEhQ0BglbnX/mMVc9XHNwKbLL/3Zk1QtFIOzePQDIixJO0GYJxvMmD8UVtVkMe
-         LEOJxwJypz5dGP6ps3hjUTOWIIzTJyPoEo12A6Lud/5XunZCTNpqI73w4dIUogeCQc1u
-         WW7g==
+        bh=Sph6AbO38eZpjPHbAVWcmHuYYjTcu+vxy91BdosdlVM=;
+        b=VUFP4FrPW+k4EN2pQyEmAs8weLEv/Sc1JXEOaOk5zlhjoSOkS+JzKYxL2FksFHCqRU
+         d00qNcL5O6+8mH3kP6XVcn4mv8Xdy3rlfpkC/zc94q9r/1sdAa3yHgTOMCeaVULt2EiR
+         yxjay1lIow3jUY5yGiZSrZmahUt1SK9MhWAQEF/u/4Ezmrc0Uw3tZ5SA5A+ecmCuOJQu
+         TNqyIB4PorEsM2zA25LO1s0rDl6ewLn6kuxlt5q6D9mu0jUqIxWjTAN/gA7ZC2diDOSB
+         iXSl01mUHVXF1ysyetpLYhLrX8koes2PnIGJWk1Ch8l/2rVPqExFIsOJT18agVVUtIBL
+         0qnQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:message-id:from:to:cc:subject:in-reply-to
          :references:user-agent:mime-version;
-        bh=qhcuYdoOMtV0w4cVzRWN1fajWGcUJ8HbjTsCeMUOnIM=;
-        b=pPa1uSJwPPh6ju6b9Ow3XHgyhLT04hzkOmQRtxaGu7JWVsOh64h0aOTJ2oVBc45IRf
-         PWhBk9coCodgsz0l8cUWVoKNGabnNvkVDTO+D7kgv0YRktt7geN5m/vrOOaPTO9OPfx7
-         uikxxaSQfVZlyOL+HsabsnL9odZpEGB7rvU4H0wREXi9tPu1FgSv+J6LI6Aekf8BGLHz
-         3NGWato0t8euHyn9+37Tjby/QJdcJOqO6lQpuQqaUx1NnEcXdjxnUMUiXl1gjqPd5/eA
-         8hLzTG2vSqh0a2m9z4D1ONcH4x2Gu7v2amFWyX0pSEZCk7DrpP4N2QWG++h9Ut8DTnee
-         IiZg==
-X-Gm-Message-State: AOAM531CxeaNwtuENDMYOce+aNlUCB3PvhMnXnr7aeIfWvJQFtD0ZJqt
-        FhYbRHRRFXcu66wevAd4r6s=
-X-Google-Smtp-Source: ABdhPJy7PQTqnis1Eor4iHnDhpTpOtWzi5kulryRhMkHEzb98lNTNBbpkaTUH2rrgh5Kx5N1mVzQiQ==
-X-Received: by 2002:a63:2c8f:: with SMTP id s137mr1557657pgs.51.1615857480769;
-        Mon, 15 Mar 2021 18:18:00 -0700 (PDT)
+        bh=Sph6AbO38eZpjPHbAVWcmHuYYjTcu+vxy91BdosdlVM=;
+        b=K8h3uImwW40lcEcEJlZ9lCacuW9Dw90VE5YkFUeehouY+QtE2UUXKB06FpsBbmi1SD
+         dEGsK9Tgr71u/jKO5ZdBk8XD8qlxsmxioVu+yBPNUqqnDVthhQrQbex7zbeGAmLMMowR
+         kshSwPmcdYRGB60KAFPhXtxGBBd3AIiJAeTbhRaq7ORnLuCsXHyu2xzkdjX9FkYuZcuV
+         1n/PDfVdmV3zVrO3YbeisPEY6DUebjGuLnojvAYDo1MaqVKCwR21RgcE7j2aX3pi8Ksr
+         5JPyDjrct5ySJ+ewpg+eP/CG5NHeoXpYuPXDGob8/+5i7E+xD2b8Mlh2a7PVD3ZfjMXs
+         cAPA==
+X-Gm-Message-State: AOAM530BtSo55pBFAAvyZzIU9KceevqCMb0OpITasBicl63bHTgHsCFM
+        /aMF1ekUu85WkYt3slx570M=
+X-Google-Smtp-Source: ABdhPJzSg8KS/xvqQB+EYb+ystSg4SNroUVAhKf5YQ9JtKbG7dDSI6nwRwKdbcIY6hmEf0i4TxbYkA==
+X-Received: by 2002:a62:aa0a:0:b029:1ef:fe5:b172 with SMTP id e10-20020a62aa0a0000b02901ef0fe5b172mr12649748pff.9.1615857465909;
+        Mon, 15 Mar 2021 18:17:45 -0700 (PDT)
 Received: from sun.local.gmail.com (219x123x138x129.ap219.ftth.ucom.ne.jp. [219.123.138.129])
-        by smtp.gmail.com with ESMTPSA id 202sm14290188pfu.46.2021.03.15.18.17.58
+        by smtp.gmail.com with ESMTPSA id a20sm15442708pfl.97.2021.03.15.18.17.43
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 15 Mar 2021 18:18:00 -0700 (PDT)
-Date:   Tue, 16 Mar 2021 10:17:59 +0900
-Message-ID: <m2a6r3c2wo.wl-thehajime@gmail.com>
+        Mon, 15 Mar 2021 18:17:45 -0700 (PDT)
+Date:   Tue, 16 Mar 2021 10:17:44 +0900
+Message-ID: <m2blbjc2x3.wl-thehajime@gmail.com>
 From:   Hajime Tazaki <thehajime@gmail.com>
 To:     johannes@sipsolutions.net
 Cc:     linux-um@lists.infradead.org, jdike@addtoit.com, richard@nod.at,
         anton.ivanov@cambridgegreys.com, tavi.purdila@gmail.com,
         linux-kernel-library@freelists.org, linux-arch@vger.kernel.org,
         retrage01@gmail.com
-Subject: Re: [RFC v8 07/20] um: lkl: host interface
-In-Reply-To: <e18da756e9efcae8489c658907b62d68f0969da0.camel@sipsolutions.net>
+Subject: Re: [RFC v8 06/20] um: add UML library mode
+In-Reply-To: <ad59d36bc01805bd6f2d2e63e52d85f948b0c7f6.camel@sipsolutions.net>
 References: <cover.1611103406.git.thehajime@gmail.com>
-        <f149135f1943eb81998d54c923c10ebffb0b4518.1611103406.git.thehajime@gmail.com>
-        <e18da756e9efcae8489c658907b62d68f0969da0.camel@sipsolutions.net>
+        <30b989750979c00b5ceec4fe5faa6fb8332212d5.1611103406.git.thehajime@gmail.com>
+        <ad59d36bc01805bd6f2d2e63e52d85f948b0c7f6.camel@sipsolutions.net>
 User-Agent: Wanderlust/2.15.9 (Almost Unreal) Emacs/27.1 Mule/6.0 (HANACHIRUSATO)
 MIME-Version: 1.0 (generated by SEMI-EPG 1.14.7 - "Harue")
 Content-Type: text/plain; charset=US-ASCII
@@ -76,31 +76,149 @@ List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 
-On Mon, 15 Mar 2021 01:50:27 +0900,
+On Mon, 15 Mar 2021 01:49:19 +0900,
 Johannes Berg wrote:
 > 
+> On Wed, 2021-01-20 at 11:27 +0900, Hajime Tazaki wrote:
+> > 
+> > +++ b/arch/um/lkl/include/asm/atomic.h
+> > @@ -0,0 +1,11 @@
+> > +/* SPDX-License-Identifier: GPL-2.0 */
+> > +#ifndef __UM_LIBMODE_ATOMIC_H
+> > +#define __UM_LIBMODE_ATOMIC_H
+> > +
+> > +#include <asm-generic/atomic.h>
+> > +
+> > +#ifndef CONFIG_GENERIC_ATOMIC64
+> > +#include "atomic64.h"
+> > +#endif /* !CONFIG_GENERIC_ATOMIC64 */
 > 
-> > +/**
-> > + * struct lkl_host_operations - host operations used by the Linux kernel
-> > + *
-> > + * These operations must be provided by a host library or by the application
-> > + * itself.
-> > + *
-> > + */
-> > +struct lkl_host_operations {
-> > +};
+> That's not actually configurable, is it? When is this on or off?
+
+This is off when CONFIG_64BIT is off, because in that case (!64BIT) we
+use generic atomic64 facility of in-kernel.
+
+> > +static inline void cpu_relax(void)
+> > +{
+> > +	unsigned long flags;
+> > +
+> > +	/* since this is usually called in a tight loop waiting for some
+> > +	 * external condition (e.g. jiffies) lets run interrupts now to allow
+> > +	 * the external condition to propagate
+> > +	 */
+> > +	local_irq_save(flags);
+> > +	local_irq_restore(flags);
 > 
-> IIRC, in previous reviews we discussed this and you said you'd look at
-> just making those extern functions, instead of function pointers, since
-> realistically there's no use in being able to switch these at runtime.
-> What happened to that? Any particular reason not to?
+> Hmm?
+> 
+> If interrupts are enabled, then you'll get them anyway, and if not, then
+> this does nothing?
 
-Yes, I followed your suggestion that we just use functions instead of
-function pointers ([17/20]).
+You might be right; the original LKL does yield-like operation if this
+function is called, but this might not be the case after the
+integration with UML.  I will investigate this and fix it.
 
-Though we won't use pointers, we still need this structure to inform
-userspace side (of LKL) to kernel. [19/20], block device
-implementation uses this.
+
+> > +static inline void arch_copy_thread(struct arch_thread *from,
+> > +				    struct arch_thread *to)
+> > +{
+> > +	panic("unimplemented %s: fork isn't supported yet", __func__);
+> > +}
+> 
+> "yet" seems kind of misleading - I mean, it really *won't* be, since
+> that's basically what UML is, no?
+> 
+> I mean, in principle, nothing actually stops you from building a
+> linux.so instead of linux binary, and having main() renamed to
+> linux_main() so the application can start up whenever it needs to, or
+> something like that?
+
+I commented this in the reply-thread of the [00/20] patch.
+
+> > diff --git a/arch/um/lkl/include/uapi/asm/bitsperlong.h b/arch/um/lkl/include/uapi/asm/bitsperlong.h
+> > new file mode 100644
+> > index 000000000000..f6657ba0ff9b
+> > --- /dev/null
+> > +++ b/arch/um/lkl/include/uapi/asm/bitsperlong.h
+> > @@ -0,0 +1,13 @@
+> > +/* SPDX-License-Identifier: GPL-2.0 */
+> > +#ifndef __UM_LIBMODE_UAPI_BITSPERLONG_H
+> > +#define __UM_LIBMODE_UAPI_BITSPERLONG_H
+> > +
+> > +#ifdef CONFIG_64BIT
+> > +#define __BITS_PER_LONG 64
+> > +#else
+> > +#define __BITS_PER_LONG 32
+> > +#endif
+> > +
+> > +#include <asm-generic/bitsperlong.h>
+> 
+> First, that include does nothing.
+
+We followed the way of arch/x86 (and other archs) for this.
+
+This actually includes include/asm-generic/bitsperlong.h, which does
+something I think.
+
+> Second, the comment there says:
+> 
+> /*
+>  * There seems to be no way of detecting this automatically from user
+>  * space, so 64 bit architectures should override this in their
+>  * bitsperlong.h. In particular, an architecture that supports
+>  * both 32 and 64 bit user space must not rely on CONFIG_64BIT
+>  * to decide it, but rather check a compiler provided macro.
+>  */
+> 
+> 
+> So you're doing exactly what it says *not* to?
+> 
+> In fact, that totally makes sense - I mean, this is *uapi* and
+> applications don't have access to CONFIG_ defines etc.
+
+Sorry, this patch is wrong. There is additional diff in [10/20], which
+should be in the same patch here, which eliminates not to rely on
+CONFIG_*.
+
+I will fix this.
+ 
+> Do you expose that somehow to LKL users that makes this OK-ish? But it's
+> still very confusing, and you've not made sure the necessary header is
+> actually included. IIUC, lkl builds a (shared?) library, so it won't
+> really work this way?
+>
+> > +++ b/arch/um/lkl/include/uapi/asm/byteorder.h
+> > @@ -0,0 +1,11 @@
+> > +/* SPDX-License-Identifier: GPL-2.0 */
+> > +#ifndef __UM_LIBMODE_UAPI_BYTEORDER_H
+> > +#define __UM_LIBMODE_UAPI_BYTEORDER_H
+> > +
+> > +#if defined(CONFIG_BIG_ENDIAN)
+> > +#include <linux/byteorder/big_endian.h>
+> 
+> Same here.
+
+Same problem here; we should not split this in the patch and [10/20].
+Will fix this too.
+
+> > +++ b/arch/um/lkl/um/delay.c
+> > @@ -0,0 +1,31 @@
+> > +// SPDX-License-Identifier: GPL-2.0
+> > +#include <linux/jiffies.h>
+> > +#include <linux/delay.h>
+> > +#include <os.h>
+> > +
+> > +void __ndelay(unsigned long nsecs)
+> > +{
+> > +	long long start = os_nsecs();
+> > +
+> > +	while (os_nsecs() < start + nsecs)
+> > +		;
+> 
+> At least do something like cpu_relax()? Although ... you made that do
+> nothing, so you probably want an arch-specific thing here?
+
+I think this isn't efficient at all, but portable enough, which is
+(sub)arch-specific requirement.
 
 -- Hajime
-
