@@ -5,33 +5,33 @@ X-Spam-Level:
 X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6B927C4361A
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 15:12:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3F31AC2BA1E
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 15:12:29 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 40901650B1
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 15:12:28 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 09321650BE
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 15:12:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237794AbhCPPLk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 16 Mar 2021 11:11:40 -0400
-Received: from mga18.intel.com ([134.134.136.126]:62728 "EHLO mga18.intel.com"
+        id S234439AbhCPPLn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 16 Mar 2021 11:11:43 -0400
+Received: from mga01.intel.com ([192.55.52.88]:38747 "EHLO mga01.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S234485AbhCPPL3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 16 Mar 2021 11:11:29 -0400
-IronPort-SDR: shirYE1bxsUC173LgUDi/jj8cI5sZbOVQitCSGG5ELFnC2Sy9WHsl7ykogCUuz5jrNxhIQRJzd
- MZWlGj2RZ5tA==
-X-IronPort-AV: E=McAfee;i="6000,8403,9924"; a="176871718"
+        id S235051AbhCPPLa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 16 Mar 2021 11:11:30 -0400
+IronPort-SDR: 625Z30NPD5ieLHlfiBMnQ7yqXkXHaLnUeKa2RUZXDTfoFuV5ppjQU5CVWBkW0Qp5W+cO4bqOKd
+ et2HSYrLlCOg==
+X-IronPort-AV: E=McAfee;i="6000,8403,9924"; a="209212673"
 X-IronPort-AV: E=Sophos;i="5.81,251,1610438400"; 
-   d="scan'208";a="176871718"
+   d="scan'208";a="209212673"
 Received: from fmsmga008.fm.intel.com ([10.253.24.58])
-  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 16 Mar 2021 08:11:27 -0700
-IronPort-SDR: 8uLuGSsfb6haAEg3nbh590mkF+vY9M13Lz1D9jmF7Yaj+weg7CX4YsiDBUQU2plxaYwVG/i/+a
- DaX7tPr9a4XQ==
+  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 16 Mar 2021 08:11:30 -0700
+IronPort-SDR: 4f4emykvjjgpYOMp+uA/WqTf6P1Zvtb6Vy2ILdmfxE4eNCY4rzpUF+Pnmn6+FL8rUbs12Djvey
+ wLGaCyDiJ8NQ==
 X-IronPort-AV: E=Sophos;i="5.81,251,1610438400"; 
-   d="scan'208";a="405570246"
+   d="scan'208";a="405570294"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by fmsmga008-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 16 Mar 2021 08:11:26 -0700
+  by fmsmga008-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 16 Mar 2021 08:11:30 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -61,9 +61,9 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Pengfei Xu <pengfei.xu@intel.com>,
         Haitao Huang <haitao.huang@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v23 04/28] x86/cpufeatures: Introduce X86_FEATURE_CET and setup functions
-Date:   Tue, 16 Mar 2021 08:10:30 -0700
-Message-Id: <20210316151054.5405-5-yu-cheng.yu@intel.com>
+Subject: [PATCH v23 15/28] x86/mm: Update maybe_mkwrite() for shadow stack
+Date:   Tue, 16 Mar 2021 08:10:41 -0700
+Message-Id: <20210316151054.5405-16-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20210316151054.5405-1-yu-cheng.yu@intel.com>
 References: <20210316151054.5405-1-yu-cheng.yu@intel.com>
@@ -73,123 +73,138 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Introduce a software-defined X86_FEATURE_CET, which indicates either Shadow
-Stack or Indirect Branch Tracking (or both) is present.  Also introduce
-related cpu init/setup functions.
+When serving a page fault, maybe_mkwrite() makes a PTE writable if its vma
+has VM_WRITE.
+
+A shadow stack vma has VM_SHSTK.  Its PTEs have _PAGE_DIRTY, but not
+_PAGE_WRITE.  In fork(), _PAGE_DIRTY is cleared to effect copy-on-write,
+and in page fault, _PAGE_DIRTY is restored and the shadow stack page is
+writable again.
+
+Update maybe_mkwrite() by introducing arch_maybe_mkwrite(), which sets
+_PAGE_DIRTY for a shadow stack PTE.
+
+Apply the same changes to maybe_pmd_mkwrite().
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/include/asm/cpufeatures.h          |  2 +-
- arch/x86/include/asm/disabled-features.h    |  5 ++++-
- arch/x86/include/uapi/asm/processor-flags.h |  2 ++
- arch/x86/kernel/cpu/common.c                | 14 ++++++++++++++
- arch/x86/kernel/cpu/intel.c                 |  3 +++
- 5 files changed, 24 insertions(+), 2 deletions(-)
+ arch/x86/Kconfig        |  4 ++++
+ arch/x86/mm/pgtable.c   | 18 ++++++++++++++++++
+ include/linux/mm.h      |  2 ++
+ include/linux/pgtable.h | 24 ++++++++++++++++++++++++
+ mm/huge_memory.c        |  2 ++
+ 5 files changed, 50 insertions(+)
 
-diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-index bf861fc89fef..d771e62677de 100644
---- a/arch/x86/include/asm/cpufeatures.h
-+++ b/arch/x86/include/asm/cpufeatures.h
-@@ -108,7 +108,7 @@
- #define X86_FEATURE_EXTD_APICID		( 3*32+26) /* Extended APICID (8 bits) */
- #define X86_FEATURE_AMD_DCM		( 3*32+27) /* AMD multi-node processor */
- #define X86_FEATURE_APERFMPERF		( 3*32+28) /* P-State hardware coordination feedback capability (APERF/MPERF MSRs) */
--/* free					( 3*32+29) */
-+#define X86_FEATURE_CET			( 3*32+29) /* Control-flow enforcement */
- #define X86_FEATURE_NONSTOP_TSC_S3	( 3*32+30) /* TSC doesn't stop in S3 state */
- #define X86_FEATURE_TSC_KNOWN_FREQ	( 3*32+31) /* TSC has known frequency */
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index bdfecc17c2d3..102212025993 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1945,12 +1945,16 @@ config X86_SGX
+ config ARCH_HAS_SHADOW_STACK
+ 	def_bool n
  
-diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
-index 914b353fe75c..b9a73b882cf9 100644
---- a/arch/x86/include/asm/disabled-features.h
-+++ b/arch/x86/include/asm/disabled-features.h
-@@ -71,9 +71,11 @@
- #ifdef CONFIG_X86_CET
- #define DISABLE_SHSTK	0
- #define DISABLE_IBT	0
-+#define DISABLE_CET	0
- #else
- #define DISABLE_SHSTK	(1 << (X86_FEATURE_SHSTK & 31))
- #define DISABLE_IBT	(1 << (X86_FEATURE_IBT & 31))
-+#define DISABLE_CET	(1 << (X86_FEATURE_CET & 31))
++config ARCH_MAYBE_MKWRITE
++	def_bool n
++
+ config X86_CET
+ 	prompt "Intel Control-flow protection for user-mode"
+ 	def_bool n
+ 	depends on AS_WRUSS
+ 	depends on ARCH_HAS_SHADOW_STACK
+ 	select ARCH_USES_HIGH_VMA_FLAGS
++	select ARCH_MAYBE_MKWRITE
+ 	help
+ 	  Control-flow protection is a set of hardware features which place
+ 	  additional restrictions on indirect branches.  These help
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index f6a9e2e36642..0f4fbf51a9fc 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -610,6 +610,24 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
+ }
  #endif
  
- /*
-@@ -82,7 +84,8 @@
- #define DISABLED_MASK0	(DISABLE_VME)
- #define DISABLED_MASK1	0
- #define DISABLED_MASK2	0
--#define DISABLED_MASK3	(DISABLE_CYRIX_ARR|DISABLE_CENTAUR_MCR|DISABLE_K6_MTRR)
-+#define DISABLED_MASK3	(DISABLE_CYRIX_ARR|DISABLE_CENTAUR_MCR|DISABLE_K6_MTRR| \
-+			 DISABLE_CET)
- #define DISABLED_MASK4	(DISABLE_PCID)
- #define DISABLED_MASK5	0
- #define DISABLED_MASK6	0
-diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
-index bcba3c643e63..a8df907e8017 100644
---- a/arch/x86/include/uapi/asm/processor-flags.h
-+++ b/arch/x86/include/uapi/asm/processor-flags.h
-@@ -130,6 +130,8 @@
- #define X86_CR4_SMAP		_BITUL(X86_CR4_SMAP_BIT)
- #define X86_CR4_PKE_BIT		22 /* enable Protection Keys support */
- #define X86_CR4_PKE		_BITUL(X86_CR4_PKE_BIT)
-+#define X86_CR4_CET_BIT		23 /* enable Control-flow Enforcement */
-+#define X86_CR4_CET		_BITUL(X86_CR4_CET_BIT)
- 
- /*
-  * x86-64 Task Priority Register, CR8
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index ab640abe26b6..6bd07727089e 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -510,6 +510,14 @@ static __init int setup_disable_pku(char *arg)
- __setup("nopku", setup_disable_pku);
- #endif /* CONFIG_X86_64 */
- 
-+static __always_inline void setup_cet(struct cpuinfo_x86 *c)
++#ifdef CONFIG_ARCH_MAYBE_MKWRITE
++pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
 +{
-+	if (!cpu_feature_enabled(X86_FEATURE_CET))
-+		return;
-+
-+	cr4_set_bits(X86_CR4_CET);
++	if (likely(vma->vm_flags & VM_SHSTK))
++		pte = pte_mkwrite_shstk(pte);
++	return pte;
 +}
 +
- /*
-  * Some CPU features depend on higher CPUID levels, which may not always
-  * be available due to CPUID level capping or broken virtualization
-@@ -1255,6 +1263,11 @@ static void __init cpu_parse_early_param(void)
- 	if (cmdline_find_option_bool(boot_command_line, "noxsaves"))
- 		setup_clear_cpu_cap(X86_FEATURE_XSAVES);
- 
-+	if (cmdline_find_option_bool(boot_command_line, "no_user_shstk"))
-+		setup_clear_cpu_cap(X86_FEATURE_SHSTK);
-+	if (cmdline_find_option_bool(boot_command_line, "no_user_ibt"))
-+		setup_clear_cpu_cap(X86_FEATURE_IBT);
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
++{
++	if (likely(vma->vm_flags & VM_SHSTK))
++		pmd = pmd_mkwrite_shstk(pmd);
++	return pmd;
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++#endif /* CONFIG_ARCH_MAYBE_MKWRITE */
 +
- 	arglen = cmdline_find_option(boot_command_line, "clearcpuid", arg, sizeof(arg));
- 	if (arglen <= 0)
- 		return;
-@@ -1594,6 +1607,7 @@ static void identify_cpu(struct cpuinfo_x86 *c)
- 
- 	x86_init_rdrand(c);
- 	setup_pku(c);
-+	setup_cet(c);
- 
- 	/*
- 	 * Clear/Set all flags overridden by options, need do it
-diff --git a/arch/x86/kernel/cpu/intel.c b/arch/x86/kernel/cpu/intel.c
-index 0e422a544835..2e11d9555e9b 100644
---- a/arch/x86/kernel/cpu/intel.c
-+++ b/arch/x86/kernel/cpu/intel.c
-@@ -334,6 +334,9 @@ static void early_init_intel(struct cpuinfo_x86 *c)
- 
- static void bsp_init_intel(struct cpuinfo_x86 *c)
+ /**
+  * reserve_top_address - reserves a hole in the top of kernel address space
+  * @reserve - size of hole to reserve
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index a6c18c5752d6..af805ffde48e 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -997,6 +997,8 @@ static inline pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
  {
-+	if (cpu_has(c, X86_FEATURE_SHSTK) || cpu_has(c, X86_FEATURE_IBT))
-+		setup_force_cpu_cap(X86_FEATURE_CET);
+ 	if (likely(vma->vm_flags & VM_WRITE))
+ 		pte = pte_mkwrite(pte);
++	else
++		pte = arch_maybe_mkwrite(pte, vma);
+ 	return pte;
+ }
+ 
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index 5e772392a379..cbd98484c4f1 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -1446,6 +1446,30 @@ static inline bool arch_has_pfn_modify_check(void)
+ }
+ #endif /* !_HAVE_ARCH_PFN_MODIFY_ALLOWED */
+ 
++#ifdef CONFIG_MMU
++#ifdef CONFIG_ARCH_MAYBE_MKWRITE
++pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma);
 +
- 	resctrl_cpu_detect(c);
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma);
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++
++#else /* !CONFIG_ARCH_MAYBE_MKWRITE */
++static inline pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
++{
++	return pte;
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static inline pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
++{
++	return pmd;
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++
++#endif /* CONFIG_ARCH_MAYBE_MKWRITE */
++#endif /* CONFIG_MMU */
++
+ /*
+  * Architecture PAGE_KERNEL_* fallbacks
+  *
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index ae907a9c2050..e79c1220a349 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -482,6 +482,8 @@ pmd_t maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
+ {
+ 	if (likely(vma->vm_flags & VM_WRITE))
+ 		pmd = pmd_mkwrite(pmd);
++	else
++		pmd = arch_maybe_pmd_mkwrite(pmd, vma);
+ 	return pmd;
  }
  
 -- 
