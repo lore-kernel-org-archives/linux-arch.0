@@ -4,70 +4,70 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-0.5 required=3.0 tests=BAYES_00,DKIM_ADSP_CUSTOM_MED,
 	DKIM_INVALID,DKIM_SIGNED,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A21ABC433E0
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 01:18:07 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C4747C433E0
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 01:18:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6C1FA64F7F
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 01:18:07 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8C93764F94
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Mar 2021 01:18:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231279AbhCPBRg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 15 Mar 2021 21:17:36 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50336 "EHLO
+        id S232223AbhCPBSI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 15 Mar 2021 21:18:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50494 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234182AbhCPBRS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Mar 2021 21:17:18 -0400
-Received: from mail-pl1-x633.google.com (mail-pl1-x633.google.com [IPv6:2607:f8b0:4864:20::633])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 056ACC06174A
-        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:17:18 -0700 (PDT)
-Received: by mail-pl1-x633.google.com with SMTP id s7so16165703plg.5
-        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:17:18 -0700 (PDT)
+        with ESMTP id S231376AbhCPBSB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Mar 2021 21:18:01 -0400
+Received: from mail-pf1-x436.google.com (mail-pf1-x436.google.com [IPv6:2607:f8b0:4864:20::436])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3D423C06174A
+        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:18:01 -0700 (PDT)
+Received: by mail-pf1-x436.google.com with SMTP id x21so6410907pfa.3
+        for <linux-arch@vger.kernel.org>; Mon, 15 Mar 2021 18:18:01 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=date:message-id:from:to:cc:subject:in-reply-to:references
          :user-agent:mime-version;
-        bh=1m020LAKRTpRXtfbDLGiNE6QtJTxoR7ZdPVcePetA50=;
-        b=aeVkMuasnoYSpNzhf0Nb6yVl/J8ocMLjGDlRDFlK0J15/0Brr52n9pphfXpGTj/DQP
-         /rJ2ladMqqetJ/qrImSWCyTJ4oD3/e0MAjxy0A7f2AW3e6ylTkudvrUzTMCdiFsJSC1P
-         ZGZDThoRnWL8qenROkVd/+xSJyeJ1JnOKuvl2gHSnqIP4p+1b4Fkq83+fIEJ/fBX17M6
-         mNYWJ05dGC1jAljspSB9pEbDpt/zQ1NLVwVXKJ40Lyg/ohxoa9Til8Lh3oVbUd2a8rAV
-         i4By5QspfaMy76D57SW4Y8nJswm3q1dlzj2K16ydaAzDrREMAmSbflu09+qLWgp+1NZE
-         g8MQ==
+        bh=qhcuYdoOMtV0w4cVzRWN1fajWGcUJ8HbjTsCeMUOnIM=;
+        b=ae6bZCdsqozefryLiEyTDBBld41fLCIpwH1QBXqZ6DSjKtW9mvE0Ge8nRgCgGlBtBJ
+         2OYfY3r7s2hqCZLjiRTAV24k3WYWSIqto5uxZORtxbObSPzG2ZMovDb3keGctARCS/nd
+         KYTzMZEZwWoAvmj+VK7yAN08raZKC6SGRp1SIEH6R2dBrvwFCD+NXEEUgzlUDl6+zyHf
+         m77+n6CEhQ0BglbnX/mMVc9XHNwKbLL/3Zk1QtFIOzePQDIixJO0GYJxvMmD8UVtVkMe
+         LEOJxwJypz5dGP6ps3hjUTOWIIzTJyPoEo12A6Lud/5XunZCTNpqI73w4dIUogeCQc1u
+         WW7g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:message-id:from:to:cc:subject:in-reply-to
          :references:user-agent:mime-version;
-        bh=1m020LAKRTpRXtfbDLGiNE6QtJTxoR7ZdPVcePetA50=;
-        b=qGVatdohYcVcktHYL4KYCuAIl82EmT/+FVZbt57Y7b+DHBKNDDKqB+z3hp8uCH+R+L
-         dS1pNIG6DJ6V/G4SbVo3xg8hS9jXSDli/OgSKqMOQ+08yyNhM9ENhK3w1tc3tqqiyxm4
-         0TGfY1ihjAkSF+Vna/UZm2LcmQfTr4lpLCNoZLKODWPP4rEPQ0L6znhcadXotQUzPcr8
-         o4aUF1SWCSFsJvkETp7lopTIQlMAIrla7po/08/kDLng9/z4QJ79cniynZr79++P4lBO
-         qv8rN9dSqo5i97n7alDqRqkP1HX+pWE571T9XzFTJFAr0qPHz696TqfCGjdHdJtuog/L
-         oiuQ==
-X-Gm-Message-State: AOAM531vSqA3MUmKqElQwpyzcP3vsFHCcSHZRJWmzOUMjWyC7o9gB818
-        jiYdL6PtlljOzFyPld7Bg9qVFEMQdwvR3g==
-X-Google-Smtp-Source: ABdhPJyb3TOPV9OFGZGx+U9lYSlbHEpzz2Aq53bYkLF3avtmA9LJLMcC1zfZ154M/ac+fVAXE0xivw==
-X-Received: by 2002:a17:90b:154c:: with SMTP id ig12mr1941262pjb.184.1615857437463;
-        Mon, 15 Mar 2021 18:17:17 -0700 (PDT)
+        bh=qhcuYdoOMtV0w4cVzRWN1fajWGcUJ8HbjTsCeMUOnIM=;
+        b=pPa1uSJwPPh6ju6b9Ow3XHgyhLT04hzkOmQRtxaGu7JWVsOh64h0aOTJ2oVBc45IRf
+         PWhBk9coCodgsz0l8cUWVoKNGabnNvkVDTO+D7kgv0YRktt7geN5m/vrOOaPTO9OPfx7
+         uikxxaSQfVZlyOL+HsabsnL9odZpEGB7rvU4H0wREXi9tPu1FgSv+J6LI6Aekf8BGLHz
+         3NGWato0t8euHyn9+37Tjby/QJdcJOqO6lQpuQqaUx1NnEcXdjxnUMUiXl1gjqPd5/eA
+         8hLzTG2vSqh0a2m9z4D1ONcH4x2Gu7v2amFWyX0pSEZCk7DrpP4N2QWG++h9Ut8DTnee
+         IiZg==
+X-Gm-Message-State: AOAM531CxeaNwtuENDMYOce+aNlUCB3PvhMnXnr7aeIfWvJQFtD0ZJqt
+        FhYbRHRRFXcu66wevAd4r6s=
+X-Google-Smtp-Source: ABdhPJy7PQTqnis1Eor4iHnDhpTpOtWzi5kulryRhMkHEzb98lNTNBbpkaTUH2rrgh5Kx5N1mVzQiQ==
+X-Received: by 2002:a63:2c8f:: with SMTP id s137mr1557657pgs.51.1615857480769;
+        Mon, 15 Mar 2021 18:18:00 -0700 (PDT)
 Received: from sun.local.gmail.com (219x123x138x129.ap219.ftth.ucom.ne.jp. [219.123.138.129])
-        by smtp.gmail.com with ESMTPSA id m6sm14827498pff.197.2021.03.15.18.17.14
+        by smtp.gmail.com with ESMTPSA id 202sm14290188pfu.46.2021.03.15.18.17.58
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 15 Mar 2021 18:17:16 -0700 (PDT)
-Date:   Tue, 16 Mar 2021 10:17:15 +0900
-Message-ID: <m2czvzc2xw.wl-thehajime@gmail.com>
+        Mon, 15 Mar 2021 18:18:00 -0700 (PDT)
+Date:   Tue, 16 Mar 2021 10:17:59 +0900
+Message-ID: <m2a6r3c2wo.wl-thehajime@gmail.com>
 From:   Hajime Tazaki <thehajime@gmail.com>
 To:     johannes@sipsolutions.net
 Cc:     linux-um@lists.infradead.org, jdike@addtoit.com, richard@nod.at,
         anton.ivanov@cambridgegreys.com, tavi.purdila@gmail.com,
         linux-kernel-library@freelists.org, linux-arch@vger.kernel.org,
         retrage01@gmail.com
-Subject: Re: [RFC v8 00/20] Unifying LKL into UML
-In-Reply-To: <d357fbd075319d8b32667323bc545e3e5e8e8a21.camel@sipsolutions.net>
-References: <cover.1601960644.git.thehajime@gmail.com>
-        <cover.1611103406.git.thehajime@gmail.com>
-        <d357fbd075319d8b32667323bc545e3e5e8e8a21.camel@sipsolutions.net>
+Subject: Re: [RFC v8 07/20] um: lkl: host interface
+In-Reply-To: <e18da756e9efcae8489c658907b62d68f0969da0.camel@sipsolutions.net>
+References: <cover.1611103406.git.thehajime@gmail.com>
+        <f149135f1943eb81998d54c923c10ebffb0b4518.1611103406.git.thehajime@gmail.com>
+        <e18da756e9efcae8489c658907b62d68f0969da0.camel@sipsolutions.net>
 User-Agent: Wanderlust/2.15.9 (Almost Unreal) Emacs/27.1 Mule/6.0 (HANACHIRUSATO)
 MIME-Version: 1.0 (generated by SEMI-EPG 1.14.7 - "Harue")
 Content-Type: text/plain; charset=US-ASCII
@@ -76,143 +76,31 @@ List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 
-Hello,
-
-First of all, thanks for all the comments to the patchset which has
-been a bit stale.  I'll reply them.
-
-On Mon, 15 Mar 2021 06:03:19 +0900,
+On Mon, 15 Mar 2021 01:50:27 +0900,
 Johannes Berg wrote:
 > 
-> Hi,
 > 
-> So I'm still a bit lost here with this, and what exactly you're doing in
-> places.
+> > +/**
+> > + * struct lkl_host_operations - host operations used by the Linux kernel
+> > + *
+> > + * These operations must be provided by a host library or by the application
+> > + * itself.
+> > + *
+> > + */
+> > +struct lkl_host_operations {
+> > +};
 > 
-> For example, you simulate a single CPU ("depends on !SMP", and anyway
-> UML only supports that right now), yet on the other hand do a *LOT* of
-> extra work with lkl_sem, lkl_thread, lkl_mutex, and all that. It's not
-> clear to me why? Are you trying to model kernel threads as actual
-> userspace pthreads, but then run only one at a time by way of exclusive
-> locking?
-> 
-> I think we probably need a bit more architecture introduction here in
-> the cover letter or the documentation patch. The doc patch basically
-> just explains what it does, but not how it does anything, or why it was
-> done in this way.
+> IIRC, in previous reviews we discussed this and you said you'd look at
+> just making those extern functions, instead of function pointers, since
+> realistically there's no use in being able to switch these at runtime.
+> What happened to that? Any particular reason not to?
 
-We didn't write down the details, which are already described in the
-LKL's paper (*1).  But I think we can extract/summarize some of
-important information from the paper to the document so that the
-design is more understandable.
+Yes, I followed your suggestion that we just use functions instead of
+function pointers ([17/20]).
 
-*1 LKL's paper (pointer is also in the cover letter)
-https://www.researchgate.net/profile/Nicolae_Tapus2/publication/224164682_LKL_The_Linux_kernel_library/links/02bfe50fd921ab4f7c000000.pdf
-
-> For example, I'm asking myself:
->  * Why NOMMU? UML doesn't really do _much_ with memory protection unless
->    you add userspace, which you don't have.
-
-
-My interpretation of MMU/NOMMU is like this;
-
-With (emulated) MMU architecture you will have more smooth integration
-with other subsystems of kernel tree, because some subsystems/features
-are written with "#ifdef CONFIG_MMU".  While NOMMU doesn't, it will
-bring a simplified design with better portability.
-
-LKL takes rather to benefit better portability.
-
->  * Why pthreads and all? You already require jump_buf, so UML's
->    switch_threads() ought to be just fine for scheduling? It almost
->    seems like you're doing this just so you can serialize against "other
->    threads" (application threads), but wouldn't that trivially be
->    handled by the application? You could let it hook into switch_to() or
->    something, but why should a single "LKL" CPU ever require multiple
->    threads? Seems to me that the userspace could be required to
->    "lkl_run()" or so (vs. lkl_start()). Heck, you could even exit
->    lkl_run() every time you switch tasks in the kernel, and leave
->    scheduling the kernel vs. the application entirely up to the
->    application? (A trivial application would be simply doing something
->    like "while (1) { lkl_run(); pause(); }" mimicking the idle loop of
->    UML.
-
-There is a description about this design choice in the LKL paper (*1);
-
-  "implementations based on setjmp - longjmp require usage of a single
-  stack space partitioned between all threads. As the Linux kernel
-  uses deep stacks (especially in the VFS layer), in an environment
-  with small stack sizes (e.g. inside another operating system's
-  kernel) this will place a very low limit on the number of possible
-  threads."
-
-(from page 2, Section II, 2) Thread Support)
-
-This is a reason of using pthread as a context primitive.
-
-And instead of manually doing lkl_run() to schedule threads and
-relying on host scheduler, LKL associates each kernel thread with a
-host-provided semaphore so that Linux scheduler has a control of host
-scheduler (prepared by pthread).
-
-This is also described (and hasn't changed since then) in the paper *1
-(from page 2, Section II, 3) Thread Switching).
-
-> And - kind of the theme behind all these questions - why is this not
-> making UML actually be a binary that uses LKL? If the design were like
-> what I'm alluding to above, that should actually be possible? Why should
-> it not be possible? Why would it not be desirable? (I'm actually
-> thinking that might be really useful to some of the things I'm doing.)
-> Yes, if the application actually supports userspace running then it has
-> som limitations on what it can do (in particular wrt. signals etc.), but
-> that could be documented and would be OK?
-
-Let me try to describe how I think why not just generate liblinux.so
-from current UML.
-
-Making UML to build a library, which has been a long wanted features,
-can be started;
-
-
-I think there are several functions which the library offers;
-
-- applications can link the library and call functions in the library
-- the library will be used as a replacement of libc.a for syscall operations
-
-to design that with UML, what we need to do are;
-
-1) change Makefile to output liblinux.a
-we faced linker script issue, which is related with generating
-relocatable object in the middle.
-
-2) make the linker-script clean with 2-stage build
-we fix the linker issues of (1)
-
-3) expose syscall as a function call
-conflicts names (link-time and compile-time conflicts)
-
-4) header rename, object localization
-to fix the issue (3)
-
-This is a common set of modifications to a library of UML.
-
-Other parts are a choice of design, I believe.
-Because a library is more _reusable_ than an executable (by it means), the
-choice of LKL is to be portable, which the current UML doesn't pursue it
-extensibly (focus on intel platforms).  Thus, 
-
-5) memory: NOMMU
-6) schedule (of irq/thread): pthread-based rather than setjmp/longjmp
-
-
-Implementing with alternate options 5) and 6) (MMU, jmpbuf) diminishes
-the strength of LKL, which we would like to avoid.  But as you
-mentioned, nothing prevents us to implement the alternate options 5)
-and 6) so, we can share the common part (1-4) if we will start to
-implement.
-
-I hope this makes it a bit clear, but let me know if you found
-anything unclear.
+Though we won't use pointers, we still need this structure to inform
+userspace side (of LKL) to kernel. [19/20], block device
+implementation uses this.
 
 -- Hajime
 
