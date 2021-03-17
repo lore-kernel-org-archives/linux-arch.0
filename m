@@ -8,54 +8,54 @@ X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A62BAC4332E
-	for <linux-arch@archiver.kernel.org>; Wed, 17 Mar 2021 06:26:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C34AAC433E0
+	for <linux-arch@archiver.kernel.org>; Wed, 17 Mar 2021 06:26:34 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 86ED264F6B
-	for <linux-arch@archiver.kernel.org>; Wed, 17 Mar 2021 06:26:03 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 883C264F8C
+	for <linux-arch@archiver.kernel.org>; Wed, 17 Mar 2021 06:26:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230245AbhCQGZd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 17 Mar 2021 02:25:33 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33902 "EHLO
+        id S230192AbhCQG0D (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 17 Mar 2021 02:26:03 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33968 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230192AbhCQGZ0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Mar 2021 02:25:26 -0400
-Received: from mail-pg1-x536.google.com (mail-pg1-x536.google.com [IPv6:2607:f8b0:4864:20::536])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A5964C06174A;
-        Tue, 16 Mar 2021 23:25:26 -0700 (PDT)
-Received: by mail-pg1-x536.google.com with SMTP id l2so24192988pgb.1;
-        Tue, 16 Mar 2021 23:25:26 -0700 (PDT)
+        with ESMTP id S230385AbhCQGZo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Mar 2021 02:25:44 -0400
+Received: from mail-pf1-x430.google.com (mail-pf1-x430.google.com [IPv6:2607:f8b0:4864:20::430])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 423C8C06175F;
+        Tue, 16 Mar 2021 23:25:44 -0700 (PDT)
+Received: by mail-pf1-x430.google.com with SMTP id h3so407343pfr.12;
+        Tue, 16 Mar 2021 23:25:44 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=80Po72abxrqXJsVTjT2d7/68A0xoEHKX9fHFXJoIAvk=;
-        b=JAmTOolWiVpo5iFh4Edp0oj5LSlEJYBtZtvpKoHs/S1GD0gx1eFqaVhYl9JEdsGNFS
-         739yXAV75PNjMjic5dq0IbTB2j4RWAD4v8Rnvmt4FxbkyOUukGOOFAjLoCiC2wzq05i4
-         5vQYHXbymK3fjEmZ7jcCrSauWdLhHskrIUX7jeC/PtYXGMOKQvWFNjr+00E1NV2SWvsK
-         4dpMWa9gDInoiDmvAl/1J80lsb0SPsTkrURLvuxpW7ocdCk4xpEMe4K5CWFvnCVJltKE
-         /la9r99LSLY3b5B+bCQB2SYD8HjjPoGZLKZN9NUHaQ5VrkXLzgB5idoI8OPWE16CwrF7
-         SQuQ==
+        bh=xD9CZCqfp6oOH0TENXfs67JbMzL04aaTtGQqYYdMF/Y=;
+        b=ABPFYdpLbjkf6zwF7B72Zaoi9pvfhFCoeGzDoVnTUKtm1yxN+kjAmc19B52QXi3lvF
+         wyZ8mEa7+Z+XStechgQYeu68Oxg3e6YrtrwlsgauDrOgV9/dLSYi6EFh0iLlvJi+xK1c
+         kemMMu3Tm1xpoSPk3gB/phos27rP+OAcxHQ7tcFYNsjL2aTUapJFt6H4vDw+e4jgSoVh
+         P1wUghjc6pah1T5/sOy26izKRVqvDKRh/l814l9hBzcXarn1BgQaL9gXxk9vF27KrvXd
+         mAk8GKmMdZJbjov4CW8U/FxCgsvHMrxt70JhlVODRNo20Owg2NoTAnmKZfgZjc9cIdVf
+         axog==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=80Po72abxrqXJsVTjT2d7/68A0xoEHKX9fHFXJoIAvk=;
-        b=QrA2y7RP479LRaKVu4hCiTKz54MDAQus4Z0Bad/6jY1m7qETwIt0TPTtxU/nE0Ab8C
-         a5qNMevLufQbE/1S0Yi6RcPivglxms7fGTmk5pWUhDMKQ/4PYDPsIHwz7jBIE9jaTy4s
-         fC8PIPDrpq9jAiFAbpX+3E77uXGUH1z+d3wjxiepkx/cOuKdhIT/4X0jPsnzmF5Jgsor
-         XUWlklSDgBCb471sGr0F2uq/VKNwqs3m942bdi/x9rtcPz0ZMPromVHLzECqLXEZu9Dp
-         z4vk9mNj/M08Ht1G/BLPnudogzmTTJl/2ZBmkgR5M7ShJMBDb352Nf9KtZXOdbxM5heX
-         HgpQ==
-X-Gm-Message-State: AOAM532DholI+0TfyOCCNCQ4EDfy80I+e51stpMWJp40+l77z5pz68Vr
-        oHLmUxM0/FA+3k5YXoUgKCI=
-X-Google-Smtp-Source: ABdhPJwlFMT1KRAdDYK4lyGgozRTPX92bcYxejTdYdTXfuOCsRuG3aynQ5KZ8r0Agwq3wG940xYyag==
-X-Received: by 2002:a63:e5e:: with SMTP id 30mr1364996pgo.181.1615962326152;
-        Tue, 16 Mar 2021 23:25:26 -0700 (PDT)
+        bh=xD9CZCqfp6oOH0TENXfs67JbMzL04aaTtGQqYYdMF/Y=;
+        b=eEQMzNS5PPBxaZl0KFkJlO5pznZw+tnRPo3u9a8IVadJB9uz5PMo+vu3VatWgdv+5R
+         czpr923ySFkXu4UZUvbnRuNxL3AeNqlnnNxn62Vf+P4g8+QNLCNxo/LCO//RPnQLcaJ0
+         e/QuXGLZudyVLcKIMcOnoTrnsWnZAyMe71reUl6+eTWY9Sgk+JNR0TPvlEzr28a0WwEH
+         0WSFAT1QtRz5ITvdCaMdwKOokrB8iAp+udg0/sHzFKwIwd3SES5Vt4m7wddrzopImGvp
+         0YoASsIRQBP5QgU6mVnxjnW/GIVhBa2NxQuD4LcCiBczDFtRVHo4zCY/Xsz1SCJlMBnQ
+         cw1Q==
+X-Gm-Message-State: AOAM533Y5FaNhueXcyDXw/hm2Y4J+hoNwBOYJT7g/+dkYK2rI/ffAOTf
+        G9x0ah374a7I62t/vHJRTAk=
+X-Google-Smtp-Source: ABdhPJwLFoYHkHHTweADUvQkyZeGoreDRgE78Md0c3eS25/BwdXU+gAdtbvWckprWOjaLchflfPI+A==
+X-Received: by 2002:aa7:991a:0:b029:201:b736:c556 with SMTP id z26-20020aa7991a0000b0290201b736c556mr2961901pff.8.1615962343854;
+        Tue, 16 Mar 2021 23:25:43 -0700 (PDT)
 Received: from bobo.ozlabs.ibm.com (58-6-239-121.tpgi.com.au. [58.6.239.121])
-        by smtp.gmail.com with ESMTPSA id s19sm17959620pfh.168.2021.03.16.23.25.19
+        by smtp.gmail.com with ESMTPSA id s19sm17959620pfh.168.2021.03.16.23.25.38
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 16 Mar 2021 23:25:25 -0700 (PDT)
+        Tue, 16 Mar 2021 23:25:43 -0700 (PDT)
 From:   Nicholas Piggin <npiggin@gmail.com>
 To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
 Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
@@ -65,12 +65,10 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
         Christophe Leroy <christophe.leroy@csgroup.eu>,
         Rick Edgecombe <rick.p.edgecombe@intel.com>,
         Ding Tianhong <dingtianhong@huawei.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH v13 09/14] x86: inline huge vmap supported functions
-Date:   Wed, 17 Mar 2021 16:23:57 +1000
-Message-Id: <20210317062402.533919-10-npiggin@gmail.com>
+        Christoph Hellwig <hch@lst.de>
+Subject: [PATCH v13 12/14] mm/vmalloc: add vmap_range_noflush variant
+Date:   Wed, 17 Mar 2021 16:24:00 +1000
+Message-Id: <20210317062402.533919-13-npiggin@gmail.com>
 X-Mailer: git-send-email 2.23.0
 In-Reply-To: <20210317062402.533919-1-npiggin@gmail.com>
 References: <20210317062402.533919-1-npiggin@gmail.com>
@@ -80,121 +78,56 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This allows unsupported levels to be constant folded away, and so
-p4d_free_pud_page can be removed because it's no longer linked to.
+As a side-effect, the order of flush_cache_vmap() and
+arch_sync_kernel_mappings() calls are switched, but that now matches
+the other callers in this file.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: x86@kernel.org
-Cc: "H. Peter Anvin" <hpa@zytor.com>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/x86/include/asm/vmalloc.h | 22 +++++++++++++++++++---
- arch/x86/mm/ioremap.c          | 21 ---------------------
- arch/x86/mm/pgtable.c          | 13 -------------
- 3 files changed, 19 insertions(+), 37 deletions(-)
+ mm/vmalloc.c | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/vmalloc.h b/arch/x86/include/asm/vmalloc.h
-index 094ea2b565f3..e714b00fc0ca 100644
---- a/arch/x86/include/asm/vmalloc.h
-+++ b/arch/x86/include/asm/vmalloc.h
-@@ -1,13 +1,29 @@
- #ifndef _ASM_X86_VMALLOC_H
- #define _ASM_X86_VMALLOC_H
- 
-+#include <asm/cpufeature.h>
- #include <asm/page.h>
- #include <asm/pgtable_areas.h>
- 
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
--bool arch_vmap_p4d_supported(pgprot_t prot);
--bool arch_vmap_pud_supported(pgprot_t prot);
--bool arch_vmap_pmd_supported(pgprot_t prot);
-+static inline bool arch_vmap_p4d_supported(pgprot_t prot)
-+{
-+	return false;
-+}
-+
-+static inline bool arch_vmap_pud_supported(pgprot_t prot)
-+{
-+#ifdef CONFIG_X86_64
-+	return boot_cpu_has(X86_FEATURE_GBPAGES);
-+#else
-+	return false;
-+#endif
-+}
-+
-+static inline bool arch_vmap_pmd_supported(pgprot_t prot)
-+{
-+	return boot_cpu_has(X86_FEATURE_PSE);
-+}
- #endif
- 
- #endif /* _ASM_X86_VMALLOC_H */
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index fbaf0c447986..12c686c65ea9 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -481,27 +481,6 @@ void iounmap(volatile void __iomem *addr)
- }
- EXPORT_SYMBOL(iounmap);
- 
--#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
--bool arch_vmap_p4d_supported(pgprot_t prot)
--{
--	return false;
--}
--
--bool arch_vmap_pud_supported(pgprot_t prot)
--{
--#ifdef CONFIG_X86_64
--	return boot_cpu_has(X86_FEATURE_GBPAGES);
--#else
--	return false;
--#endif
--}
--
--bool arch_vmap_pmd_supported(pgprot_t prot)
--{
--	return boot_cpu_has(X86_FEATURE_PSE);
--}
--#endif
--
- /*
-  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
-  * access
-diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index f6a9e2e36642..d27cf69e811d 100644
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -780,14 +780,6 @@ int pmd_clear_huge(pmd_t *pmd)
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 53414959845d..9455dba58b0e 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -240,7 +240,7 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end,
  	return 0;
  }
  
--/*
-- * Until we support 512GB pages, skip them in the vmap area.
-- */
--int p4d_free_pud_page(p4d_t *p4d, unsigned long addr)
--{
--	return 0;
--}
--
- #ifdef CONFIG_X86_64
- /**
-  * pud_free_pmd_page - Clear pud entry and free pmd page.
-@@ -861,11 +853,6 @@ int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+-int vmap_range(unsigned long addr, unsigned long end,
++static int vmap_range_noflush(unsigned long addr, unsigned long end,
+ 			phys_addr_t phys_addr, pgprot_t prot,
+ 			unsigned int max_page_shift)
+ {
+@@ -263,14 +263,24 @@ int vmap_range(unsigned long addr, unsigned long end,
+ 			break;
+ 	} while (pgd++, phys_addr += (next - addr), addr = next, addr != end);
  
- #else /* !CONFIG_X86_64 */
- 
--int pud_free_pmd_page(pud_t *pud, unsigned long addr)
--{
--	return pud_none(*pud);
--}
+-	flush_cache_vmap(start, end);
 -
- /*
-  * Disable free page handling on x86-PAE. This assures that ioremap()
-  * does not update sync'd pmd entries. See vmalloc_sync_one().
+ 	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
+ 		arch_sync_kernel_mappings(start, end);
+ 
+ 	return err;
+ }
+ 
++int vmap_range(unsigned long addr, unsigned long end,
++			phys_addr_t phys_addr, pgprot_t prot,
++			unsigned int max_page_shift)
++{
++	int err;
++
++	err = vmap_range_noflush(addr, end, phys_addr, prot, max_page_shift);
++	flush_cache_vmap(addr, end);
++
++	return err;
++}
++
+ static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
+ 			     pgtbl_mod_mask *mask)
+ {
 -- 
 2.23.0
 
