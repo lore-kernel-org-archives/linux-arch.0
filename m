@@ -5,57 +5,57 @@ X-Spam-Level:
 X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E7A60C433E6
-	for <linux-arch@archiver.kernel.org>; Wed, 17 Mar 2021 06:26:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 28FE5C4332E
+	for <linux-arch@archiver.kernel.org>; Wed, 17 Mar 2021 06:26:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B714E64F96
+	by mail.kernel.org (Postfix) with ESMTP id 03E5E64FB5
 	for <linux-arch@archiver.kernel.org>; Wed, 17 Mar 2021 06:26:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230196AbhCQG0C (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 17 Mar 2021 02:26:02 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33924 "EHLO
+        id S230369AbhCQG0F (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 17 Mar 2021 02:26:05 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34014 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230205AbhCQGZc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Mar 2021 02:25:32 -0400
-Received: from mail-pj1-x1029.google.com (mail-pj1-x1029.google.com [IPv6:2607:f8b0:4864:20::1029])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 509DEC06174A;
-        Tue, 16 Mar 2021 23:25:32 -0700 (PDT)
-Received: by mail-pj1-x1029.google.com with SMTP id kr3-20020a17090b4903b02900c096fc01deso766820pjb.4;
-        Tue, 16 Mar 2021 23:25:32 -0700 (PDT)
+        with ESMTP id S230430AbhCQGZ4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Mar 2021 02:25:56 -0400
+Received: from mail-pj1-x1034.google.com (mail-pj1-x1034.google.com [IPv6:2607:f8b0:4864:20::1034])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 03FC3C06174A;
+        Tue, 16 Mar 2021 23:25:56 -0700 (PDT)
+Received: by mail-pj1-x1034.google.com with SMTP id f2-20020a17090a4a82b02900c67bf8dc69so2660250pjh.1;
+        Tue, 16 Mar 2021 23:25:55 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=oZYPzoCQS87jB7WmWdNUk0Mp+gSQWT5jT3H4y8xrQ2c=;
-        b=TemPJTyQirvubOQVp3MTVqgduToCHRC+WNtWDBd6YrW98l1Pd+GeF5AvIKJwKAnEFa
-         yoWOuLxS2MA+6CX8FJxOiK2ys/TT5n4G6fkmV7xRVbBVqBss3vGasubJo06SqMRyMcEC
-         rUAxNhjzINp1/H7KVCEMcIAtX29iO4FV0nKYYbflWw+F34Vnxre2juX4Xpw0AX/kfJQp
-         SEBRqHX0rVUPuOmzT35UM+FwVicG7cWE0RYYldxgae5QjWiIMZeQCqQyxtkA1izVvi5s
-         BYCSCPYJwBDLG3YCkSIY9ln+PCe3pj3SchbvdduAJ/OIKyStEpLtwlTuzqiZ4jIgo5Y2
-         3sQg==
+        bh=WZnEda0T3pGShx0QqEfgouMD/KA4MVCDJ6OoGinC0gE=;
+        b=fLYlcSfNjjYf4im0CmwXX9uFu0R6/2elBdnUDdyYVOlkYQAe04v1WgcG7ZIGlpljT9
+         SLjBuUq0fzfMpOxz7InlDaQ4plALW4GVs7HLjWHat3QIhZxnYNHZKbTvtG9NtKWzC/5E
+         /MHpVEnov74/4Jb2KNQKv3r6lRMpiz4IbCFj6ozscN3pw0QWY/OlApapX32lg8ev/Geb
+         idkPjx22igBJf+xnGC6bLxyblUbSdNaRC7JGRPDPnfOVbd0+5lLwOns57KjSaIMeIuI7
+         UL6xeHwUjI8k8Z0g/0VRjA1ERirFFmiNfgZyWk+OUGKwFDiOhV1yCAI+/3GySAB0aDgU
+         Xo8Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=oZYPzoCQS87jB7WmWdNUk0Mp+gSQWT5jT3H4y8xrQ2c=;
-        b=sMv9f8grFAA+E+oFUX6OLBpGRiRNCu/TYGlvIHfdNdHzZVy6qUooKoXyD8rTwmAFwh
-         y6NT6e24b/vk95vF3tOrkV7FdABngNfy5zi+h5A1Dq76RO8Vz1gvjS2IkExBj1VMbDqX
-         pCBy7pJcXqopUxMpMCRTTCiQxSe/ciau4R1GNWMt6/q+ah9YirLsy64gPsc/ZobitcLj
-         XtXavQ6iaA2WVJKJPCvinWhz2LHQqODXC+/8WgmmuTIfSVDMddUHYSo/g7M4+dbdT6Uk
-         Zk51TpQpCiGMlcrorKoLiUJ+XBhaBhdMauQBB6MXRHj1L4BCQ7nGMe6OC2c0h3YgbXUV
-         SCSA==
-X-Gm-Message-State: AOAM530H0QgzqMtNqjjurhL19LpX7wp5LLaepqJUkJu+Cf15GnoNpsVy
-        +0d+hX4OLvOq304olaiaM0A=
-X-Google-Smtp-Source: ABdhPJxtEqE1tM+WOJOAPCcFt+4coTsAHZiBsWq0FVUjYiDsAWrpBV0tiygByrlVKECbzjDzhh0yOg==
-X-Received: by 2002:a17:90a:a898:: with SMTP id h24mr2906137pjq.9.1615962331915;
-        Tue, 16 Mar 2021 23:25:31 -0700 (PDT)
+        bh=WZnEda0T3pGShx0QqEfgouMD/KA4MVCDJ6OoGinC0gE=;
+        b=OY3wOTPj+Q2Mp3sSZK94peHdF5dHv1oSYpv33qE8qN3nBXG7mRIkNcybg/Ab8ycfqN
+         7Tkh0Rw9MbOp3CLO4SKYUBx8h8WOtIW0BKEKb0YgNk7yfq4PVLRywxqZSMJgzjpNt4rx
+         8eAsCdByP8f8FckdELAyhMCLOspY8bCg4gWaJLozVsOs2y8lUaYPLo2IEAo7Lv2y3g+1
+         mUFEwhLxs8l3Qrt/DXJu6a7qHsYzwtrzuF51Xk4uUlCWOXxKxkbJUFAsO+3NJcu7GR0S
+         rtiBqeAxaKx3WOeJv4znPbGas2UNX/e6MaP+RRptZRQQRrqP2WcuupPA7VG9513Wq/co
+         S0PA==
+X-Gm-Message-State: AOAM532ckFNy/co6vMEA92wLRD3Aghbu+hYQmlYk4mzDZ8m96rvlYnHB
+        h7sSvsP39xGuodXXtpfuwIE=
+X-Google-Smtp-Source: ABdhPJyRI+bGimVthTrlN06P4ADDSwiZIZdfQrOqluFmWVNVhhZm6lHvDqdPI9QCbgNXHKtlH+H10g==
+X-Received: by 2002:a17:902:b60d:b029:e6:7a9:7f4 with SMTP id b13-20020a170902b60db02900e607a907f4mr2850305pls.3.1615962355626;
+        Tue, 16 Mar 2021 23:25:55 -0700 (PDT)
 Received: from bobo.ozlabs.ibm.com (58-6-239-121.tpgi.com.au. [58.6.239.121])
-        by smtp.gmail.com with ESMTPSA id s19sm17959620pfh.168.2021.03.16.23.25.26
+        by smtp.gmail.com with ESMTPSA id s19sm17959620pfh.168.2021.03.16.23.25.49
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 16 Mar 2021 23:25:31 -0700 (PDT)
+        Tue, 16 Mar 2021 23:25:55 -0700 (PDT)
 From:   Nicholas Piggin <npiggin@gmail.com>
 To:     linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
 Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
@@ -65,10 +65,11 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org,
         Christophe Leroy <christophe.leroy@csgroup.eu>,
         Rick Edgecombe <rick.p.edgecombe@intel.com>,
         Ding Tianhong <dingtianhong@huawei.com>,
-        Christoph Hellwig <hch@lst.de>
-Subject: [PATCH v13 10/14] mm/vmalloc: provide fallback arch huge vmap support functions
-Date:   Wed, 17 Mar 2021 16:23:58 +1000
-Message-Id: <20210317062402.533919-11-npiggin@gmail.com>
+        linuxppc-dev@lists.ozlabs.org,
+        Michael Ellerman <mpe@ellerman.id.au>
+Subject: [PATCH v13 14/14] powerpc/64s/radix: Enable huge vmalloc mappings
+Date:   Wed, 17 Mar 2021 16:24:02 +1000
+Message-Id: <20210317062402.533919-15-npiggin@gmail.com>
 X-Mailer: git-send-email 2.23.0
 In-Reply-To: <20210317062402.533919-1-npiggin@gmail.com>
 References: <20210317062402.533919-1-npiggin@gmail.com>
@@ -78,148 +79,87 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-If an architecture doesn't support a particular page table level as
-a huge vmap page size then allow it to skip defining the support
-query function.
+This reduces TLB misses by nearly 30x on a `git diff` workload on a
+2-node POWER9 (59,800 -> 2,100) and reduces CPU cycles by 0.54%, due
+to vfs hashes being allocated with 2MB pages.
 
-Suggested-by: Christoph Hellwig <hch@lst.de>
+Cc: linuxppc-dev@lists.ozlabs.org
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/arm64/include/asm/vmalloc.h   |  7 +++----
- arch/powerpc/include/asm/vmalloc.h |  7 +++----
- arch/x86/include/asm/vmalloc.h     | 13 +++++--------
- include/linux/vmalloc.h            | 24 ++++++++++++++++++++----
- 4 files changed, 31 insertions(+), 20 deletions(-)
+ .../admin-guide/kernel-parameters.txt         |  2 ++
+ arch/powerpc/Kconfig                          |  1 +
+ arch/powerpc/kernel/module.c                  | 22 +++++++++++++++----
+ 3 files changed, 21 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/include/asm/vmalloc.h b/arch/arm64/include/asm/vmalloc.h
-index fc9a12d6cc1a..7a22aeea9bb5 100644
---- a/arch/arm64/include/asm/vmalloc.h
-+++ b/arch/arm64/include/asm/vmalloc.h
-@@ -4,11 +4,8 @@
- #include <asm/page.h>
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 04545725f187..1f481f904895 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -3243,6 +3243,8 @@
  
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
--static inline bool arch_vmap_p4d_supported(pgprot_t prot)
--{
--	return false;
--}
+ 	nohugeiomap	[KNL,X86,PPC,ARM64] Disable kernel huge I/O mappings.
  
-+#define arch_vmap_pud_supported arch_vmap_pud_supported
- static inline bool arch_vmap_pud_supported(pgprot_t prot)
- {
- 	/*
-@@ -19,11 +16,13 @@ static inline bool arch_vmap_pud_supported(pgprot_t prot)
- 	       !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
- }
- 
-+#define arch_vmap_pmd_supported arch_vmap_pmd_supported
- static inline bool arch_vmap_pmd_supported(pgprot_t prot)
- {
- 	/* See arch_vmap_pud_supported() */
- 	return !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
- }
++	nohugevmalloc	[PPC] Disable kernel huge vmalloc mappings.
 +
- #endif
+ 	nosmt		[KNL,S390] Disable symmetric multithreading (SMT).
+ 			Equivalent to smt=1.
  
- #endif /* _ASM_ARM64_VMALLOC_H */
-diff --git a/arch/powerpc/include/asm/vmalloc.h b/arch/powerpc/include/asm/vmalloc.h
-index 3f0c153befb0..4c69ece52a31 100644
---- a/arch/powerpc/include/asm/vmalloc.h
-+++ b/arch/powerpc/include/asm/vmalloc.h
-@@ -5,21 +5,20 @@
- #include <asm/page.h>
- 
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
--static inline bool arch_vmap_p4d_supported(pgprot_t prot)
--{
--	return false;
--}
- 
-+#define arch_vmap_pud_supported arch_vmap_pud_supported
- static inline bool arch_vmap_pud_supported(pgprot_t prot)
- {
- 	/* HPT does not cope with large pages in the vmalloc area */
- 	return radix_enabled();
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 386ae12d8523..b7cade9566da 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -181,6 +181,7 @@ config PPC
+ 	select GENERIC_GETTIMEOFDAY
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select HAVE_ARCH_HUGE_VMAP		if PPC_BOOK3S_64 && PPC_RADIX_MMU
++	select HAVE_ARCH_HUGE_VMALLOC		if HAVE_ARCH_HUGE_VMAP
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select HAVE_ARCH_KASAN			if PPC32 && PPC_PAGE_SHIFT <= 14
+ 	select HAVE_ARCH_KASAN_VMALLOC		if PPC32 && PPC_PAGE_SHIFT <= 14
+diff --git a/arch/powerpc/kernel/module.c b/arch/powerpc/kernel/module.c
+index a211b0253cdb..cdb2d88c54e7 100644
+--- a/arch/powerpc/kernel/module.c
++++ b/arch/powerpc/kernel/module.c
+@@ -8,6 +8,7 @@
+ #include <linux/moduleloader.h>
+ #include <linux/err.h>
+ #include <linux/vmalloc.h>
++#include <linux/mm.h>
+ #include <linux/bug.h>
+ #include <asm/module.h>
+ #include <linux/uaccess.h>
+@@ -87,13 +88,26 @@ int module_finalize(const Elf_Ehdr *hdr,
+ 	return 0;
  }
  
-+#define arch_vmap_pmd_supported arch_vmap_pmd_supported
- static inline bool arch_vmap_pmd_supported(pgprot_t prot)
+-#ifdef MODULES_VADDR
+ void *module_alloc(unsigned long size)
  {
- 	return radix_enabled();
- }
++	unsigned long start = VMALLOC_START;
++	unsigned long end = VMALLOC_END;
 +
- #endif
++#ifdef MODULES_VADDR
+ 	BUILD_BUG_ON(TASK_SIZE > MODULES_VADDR);
++	start = MODULES_VADDR;
++	end = MODULES_END;
++#endif
++
++	/*
++	 * Don't do huge page allocations for modules yet until more testing
++	 * is done. STRICT_MODULE_RWX may require extra work to support this
++	 * too.
++	 */
  
- #endif /* _ASM_POWERPC_VMALLOC_H */
-diff --git a/arch/x86/include/asm/vmalloc.h b/arch/x86/include/asm/vmalloc.h
-index e714b00fc0ca..49ce331f3ac6 100644
---- a/arch/x86/include/asm/vmalloc.h
-+++ b/arch/x86/include/asm/vmalloc.h
-@@ -6,24 +6,21 @@
- #include <asm/pgtable_areas.h>
- 
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
--static inline bool arch_vmap_p4d_supported(pgprot_t prot)
--{
--	return false;
--}
- 
-+#ifdef CONFIG_X86_64
-+#define arch_vmap_pud_supported arch_vmap_pud_supported
- static inline bool arch_vmap_pud_supported(pgprot_t prot)
- {
--#ifdef CONFIG_X86_64
- 	return boot_cpu_has(X86_FEATURE_GBPAGES);
--#else
--	return false;
+-	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END, GFP_KERNEL,
+-				    PAGE_KERNEL_EXEC, VM_FLUSH_RESET_PERMS, NUMA_NO_NODE,
++	return __vmalloc_node_range(size, 1, start, end, GFP_KERNEL,
++				    PAGE_KERNEL_EXEC,
++				    VM_NO_HUGE_VMAP | VM_FLUSH_RESET_PERMS,
++				    NUMA_NO_NODE,
+ 				    __builtin_return_address(0));
+ }
 -#endif
- }
-+#endif
- 
-+#define arch_vmap_pmd_supported arch_vmap_pmd_supported
- static inline bool arch_vmap_pmd_supported(pgprot_t prot)
- {
- 	return boot_cpu_has(X86_FEATURE_PSE);
- }
-+
- #endif
- 
- #endif /* _ASM_X86_VMALLOC_H */
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 4b897a4a408b..82b45e1f28ff 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -78,10 +78,26 @@ struct vmap_area {
- 	};
- };
- 
--#ifndef CONFIG_HAVE_ARCH_HUGE_VMAP
--static inline bool arch_vmap_p4d_supported(pgprot_t prot) { return false; }
--static inline bool arch_vmap_pud_supported(pgprot_t prot) { return false; }
--static inline bool arch_vmap_pmd_supported(pgprot_t prot) { return false; }
-+/* archs that select HAVE_ARCH_HUGE_VMAP should override one or more of these */
-+#ifndef arch_vmap_p4d_supported
-+static inline bool arch_vmap_p4d_supported(pgprot_t prot)
-+{
-+	return false;
-+}
-+#endif
-+
-+#ifndef arch_vmap_pud_supported
-+static inline bool arch_vmap_pud_supported(pgprot_t prot)
-+{
-+	return false;
-+}
-+#endif
-+
-+#ifndef arch_vmap_pmd_supported
-+static inline bool arch_vmap_pmd_supported(pgprot_t prot)
-+{
-+	return false;
-+}
- #endif
- 
- /*
 -- 
 2.23.0
 
