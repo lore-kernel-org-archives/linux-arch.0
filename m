@@ -2,132 +2,531 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-4.0 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C4E57C433E6
-	for <linux-arch@archiver.kernel.org>; Wed, 17 Mar 2021 10:45:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C3B02C4332E
+	for <linux-arch@archiver.kernel.org>; Wed, 17 Mar 2021 11:08:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 90C5764F45
-	for <linux-arch@archiver.kernel.org>; Wed, 17 Mar 2021 10:45:03 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B2B9664F7F
+	for <linux-arch@archiver.kernel.org>; Wed, 17 Mar 2021 11:08:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229943AbhCQKoc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 17 Mar 2021 06:44:32 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34742 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229644AbhCQKoT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Mar 2021 06:44:19 -0400
-Received: from mail-wr1-x42b.google.com (mail-wr1-x42b.google.com [IPv6:2a00:1450:4864:20::42b])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BB91BC06174A;
-        Wed, 17 Mar 2021 03:44:18 -0700 (PDT)
-Received: by mail-wr1-x42b.google.com with SMTP id v11so1290699wro.7;
-        Wed, 17 Mar 2021 03:44:18 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=sender:date:from:to:cc:subject:message-id:references:mime-version
-         :content-disposition:in-reply-to;
-        bh=Bn90u44fy8L7FazXOSgNFKkR48EmU94fLQ8Y07NnDbg=;
-        b=RookSN63CvIIb59cAjK0gkYTO2VoPpDwYkO5C4Mf4smeR2XbSEdgmY6GSS7qSum7QG
-         bQZ2/C/LB2OAkIMlIt11q5glM6MddtfYSvxiZbQ4ioHduesNUy3EWcdCOpuScZvjQ4IH
-         1Jba/B62kF3Byf57FIL/HB//GH6Gntzo3cLY0wbxK1zQkiGcJpyH8w/P3oiQre7oyQD+
-         nqvSajOLwrOJka2syyzG6h0nLbTWdvsm9U3+gwdRYi4gejCzn3DdZihhhGUO7xpRkJjM
-         OqVRxt+jVXVJ0ojSwRbiyIUTKr4/zrEMSWFrYP+DAdqqmuk1UzONGgyldg22kDEvEUvQ
-         x5jQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:sender:date:from:to:cc:subject:message-id
-         :references:mime-version:content-disposition:in-reply-to;
-        bh=Bn90u44fy8L7FazXOSgNFKkR48EmU94fLQ8Y07NnDbg=;
-        b=Y+SGaMEt0JRAunhiDSBgDSt+Hh+MaABdWi2ZDaM1Rpryt3A858QK8yY1uzEBWpG+Xr
-         DLKnMpg9nMho0aQha3IsKnZadvMtsnLOzKZmAaPPoacBDTgxiVIhRHr97bg/mqzMaKSx
-         XPsNI6PWrT6L72K6OwRic6LdfA6fVGVlBHbwMD4BVxi0DX3/cA0OLlN1BFSJilx0ZRaK
-         hswoDiUrD6luvtoQW4FGhhO+h7CJkVflQvEZthstfK+mV4YCCDpGpKSLpV9nX6ykA9UP
-         xiHHM3ftnO/FFBdWtZijCd2nPg9pVAbBLERjmfps66cGVyZprjRcjxo2Ou0ud1/BA93Y
-         KFzA==
-X-Gm-Message-State: AOAM53162zy6JJaOxoAtiV+tycTIKRNpHQXy5PKrcm7X4HxW/RKdilo+
-        NAkEEDJyUuHAZOlCYSYOicE=
-X-Google-Smtp-Source: ABdhPJzMIr4AJ4UN6QhUkf9RjJgTZhqswu3fbGhNtj+qV4sOmO3SCxJg6IEQ/jBzMi23oJWP+3NezQ==
-X-Received: by 2002:a05:6000:1acd:: with SMTP id i13mr1921557wry.48.1615977857523;
-        Wed, 17 Mar 2021 03:44:17 -0700 (PDT)
-Received: from gmail.com (54033286.catv.pool.telekom.hu. [84.3.50.134])
-        by smtp.gmail.com with ESMTPSA id h13sm2026914wmq.29.2021.03.17.03.44.16
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 17 Mar 2021 03:44:17 -0700 (PDT)
-Sender: Ingo Molnar <mingo.kernel.org@gmail.com>
-Date:   Wed, 17 Mar 2021 11:44:15 +0100
-From:   Ingo Molnar <mingo@kernel.org>
-To:     "Chang S. Bae" <chang.seok.bae@intel.com>
-Cc:     bp@suse.de, tglx@linutronix.de, luto@kernel.org, x86@kernel.org,
-        len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
-        Dave.Martin@arm.com, jannh@google.com, mpe@ellerman.id.au,
-        carlos@redhat.com, tony.luck@intel.com, ravi.v.shankar@intel.com,
-        libc-alpha@sourceware.org, linux-arch@vger.kernel.org,
-        linux-api@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v7 0/6] x86: Improve Minimum Alternate Stack Size
-Message-ID: <20210317104415.GA692070@gmail.com>
-References: <20210316065215.23768-1-chang.seok.bae@intel.com>
- <20210317100640.GC1724119@gmail.com>
+        id S231280AbhCQLIE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 17 Mar 2021 07:08:04 -0400
+Received: from us-smtp-delivery-124.mimecast.com ([170.10.133.124]:47694 "EHLO
+        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S231197AbhCQLH5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 17 Mar 2021 07:07:57 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1615979277;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=JUrAWjnaXtOl0vBkf8wm9P65zktxxDiHBQk5OwJyeRk=;
+        b=C9FWd3X3QD8TFj4WjuWMKsRL3omxOyiYPX8Fz/Ht1RC31/xqzzbw2aWBMVMOyCAegHNUIG
+        T83/8/0XqXX4wfzvn5gPmR3I2h0RRRqxfBCI/w4eDOE6w/cC9uma1RDMU6HOOcNPhaQuAd
+        luHcZAWXKyh6Zg0My9i4ZZSewJhedWo=
+Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
+ [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
+ us-mta-256-2lOAHLkyNmCfIwwlE3vclQ-1; Wed, 17 Mar 2021 07:07:53 -0400
+X-MC-Unique: 2lOAHLkyNmCfIwwlE3vclQ-1
+Received: from smtp.corp.redhat.com (int-mx01.intmail.prod.int.phx2.redhat.com [10.5.11.11])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+        (No client certificate requested)
+        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 43C771009456;
+        Wed, 17 Mar 2021 11:07:49 +0000 (UTC)
+Received: from t480s.redhat.com (ovpn-112-124.ams2.redhat.com [10.36.112.124])
+        by smtp.corp.redhat.com (Postfix) with ESMTP id 361316C333;
+        Wed, 17 Mar 2021 11:07:35 +0000 (UTC)
+From:   David Hildenbrand <david@redhat.com>
+To:     linux-kernel@vger.kernel.org
+Cc:     linux-mm@kvack.org, David Hildenbrand <david@redhat.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Arnd Bergmann <arnd@arndb.de>, Michal Hocko <mhocko@suse.com>,
+        Oscar Salvador <osalvador@suse.de>,
+        Matthew Wilcox <willy@infradead.org>,
+        Andrea Arcangeli <aarcange@redhat.com>,
+        Minchan Kim <minchan@kernel.org>, Jann Horn <jannh@google.com>,
+        Jason Gunthorpe <jgg@ziepe.ca>,
+        Dave Hansen <dave.hansen@intel.com>,
+        Hugh Dickins <hughd@google.com>,
+        Rik van Riel <riel@surriel.com>,
+        "Michael S . Tsirkin" <mst@redhat.com>,
+        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
+        Vlastimil Babka <vbabka@suse.cz>,
+        Richard Henderson <rth@twiddle.net>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+        Helge Deller <deller@gmx.de>, Chris Zankel <chris@zankel.net>,
+        Max Filippov <jcmvbkbc@gmail.com>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Peter Xu <peterx@redhat.com>,
+        Rolf Eike Beer <eike-kernel@sf-tec.de>,
+        Shuah Khan <shuah@kernel.org>, linux-alpha@vger.kernel.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org,
+        linux-kselftest@vger.kernel.org,
+        Linux API <linux-api@vger.kernel.org>
+Subject: [PATCH v1 5/5] selftests/vm: add test for MADV_POPULATE_(READ|WRITE)
+Date:   Wed, 17 Mar 2021 12:06:44 +0100
+Message-Id: <20210317110644.25343-6-david@redhat.com>
+In-Reply-To: <20210317110644.25343-1-david@redhat.com>
+References: <20210317110644.25343-1-david@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210317100640.GC1724119@gmail.com>
+Content-Transfer-Encoding: 8bit
+X-Scanned-By: MIMEDefang 2.79 on 10.5.11.11
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+Let's add a simple test for MADV_POPULATE_READ and MADV_POPULATE_WRITE,
+verifying some error handling, that population works, and that softdirty
+tracking works as expected. For now, limit the test to private anonymous
+memory.
 
-* Ingo Molnar <mingo@kernel.org> wrote:
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Michal Hocko <mhocko@suse.com>
+Cc: Oscar Salvador <osalvador@suse.de>
+Cc: Matthew Wilcox (Oracle) <willy@infradead.org>
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: Jann Horn <jannh@google.com>
+Cc: Jason Gunthorpe <jgg@ziepe.ca>
+Cc: Dave Hansen <dave.hansen@intel.com>
+Cc: Hugh Dickins <hughd@google.com>
+Cc: Rik van Riel <riel@surriel.com>
+Cc: Michael S. Tsirkin <mst@redhat.com>
+Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Vlastimil Babka <vbabka@suse.cz>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
+Cc: Helge Deller <deller@gmx.de>
+Cc: Chris Zankel <chris@zankel.net>
+Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Mike Kravetz <mike.kravetz@oracle.com>
+Cc: Peter Xu <peterx@redhat.com>
+Cc: Rolf Eike Beer <eike-kernel@sf-tec.de>
+Cc: Shuah Khan <shuah@kernel.org>
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-mips@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kselftest@vger.kernel.org
+Cc: Linux API <linux-api@vger.kernel.org>
+Signed-off-by: David Hildenbrand <david@redhat.com>
+---
+ tools/testing/selftests/vm/.gitignore      |   1 +
+ tools/testing/selftests/vm/Makefile        |   1 +
+ tools/testing/selftests/vm/madv_populate.c | 342 +++++++++++++++++++++
+ tools/testing/selftests/vm/run_vmtests.sh  |  16 +
+ 4 files changed, 360 insertions(+)
+ create mode 100644 tools/testing/selftests/vm/madv_populate.c
 
-> 
-> * Chang S. Bae <chang.seok.bae@intel.com> wrote:
-> 
-> > During signal entry, the kernel pushes data onto the normal userspace
-> > stack. On x86, the data pushed onto the user stack includes XSAVE state,
-> > which has grown over time as new features and larger registers have been
-> > added to the architecture.
-> > 
-> > MINSIGSTKSZ is a constant provided in the kernel signal.h headers and
-> > typically distributed in lib-dev(el) packages, e.g. [1]. Its value is
-> > compiled into programs and is part of the user/kernel ABI. The MINSIGSTKSZ
-> > constant indicates to userspace how much data the kernel expects to push on
-> > the user stack, [2][3].
-> > 
-> > However, this constant is much too small and does not reflect recent
-> > additions to the architecture. For instance, when AVX-512 states are in
-> > use, the signal frame size can be 3.5KB while MINSIGSTKSZ remains 2KB.
-> > 
-> > The bug report [4] explains this as an ABI issue. The small MINSIGSTKSZ can
-> > cause user stack overflow when delivering a signal.
-> 
-> >   uapi: Define the aux vector AT_MINSIGSTKSZ
-> >   x86/signal: Introduce helpers to get the maximum signal frame size
-> >   x86/elf: Support a new ELF aux vector AT_MINSIGSTKSZ
-> >   selftest/sigaltstack: Use the AT_MINSIGSTKSZ aux vector if available
-> >   x86/signal: Detect and prevent an alternate signal stack overflow
-> >   selftest/x86/signal: Include test cases for validating sigaltstack
-> 
-> So this looks really complicated, is this justified?
-> 
-> Why not just internally round up sigaltstack size if it's too small? 
-> This would be more robust, as it would fix applications that use 
-> MINSIGSTKSZ but don't use the new AT_MINSIGSTKSZ facility.
-> 
-> I.e. does AT_MINSIGSTKSZ have any other uses than avoiding the 
-> segfault if MINSIGSTKSZ is used to create a small signal stack?
+diff --git a/tools/testing/selftests/vm/.gitignore b/tools/testing/selftests/vm/.gitignore
+index b4fc0148360e..c9a5dd1adf7d 100644
+--- a/tools/testing/selftests/vm/.gitignore
++++ b/tools/testing/selftests/vm/.gitignore
+@@ -24,3 +24,4 @@ hmm-tests
+ local_config.*
+ protection_keys_32
+ protection_keys_64
++madv_populate
+diff --git a/tools/testing/selftests/vm/Makefile b/tools/testing/selftests/vm/Makefile
+index d42115e4284d..4851f3f84575 100644
+--- a/tools/testing/selftests/vm/Makefile
++++ b/tools/testing/selftests/vm/Makefile
+@@ -42,6 +42,7 @@ TEST_GEN_FILES += on-fault-limit
+ TEST_GEN_FILES += thuge-gen
+ TEST_GEN_FILES += transhuge-stress
+ TEST_GEN_FILES += userfaultfd
++TEST_GEN_FILES += madv_populate
+ 
+ ifeq ($(MACHINE),x86_64)
+ CAN_BUILD_I386 := $(shell ./../x86/check_cc.sh $(CC) ../x86/trivial_32bit_program.c -m32)
+diff --git a/tools/testing/selftests/vm/madv_populate.c b/tools/testing/selftests/vm/madv_populate.c
+new file mode 100644
+index 000000000000..b959e4ebdad4
+--- /dev/null
++++ b/tools/testing/selftests/vm/madv_populate.c
+@@ -0,0 +1,342 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MADV_POPULATE_READ and MADV_POPULATE_WRITE tests
++ *
++ * Copyright 2021, Red Hat, Inc.
++ *
++ * Author(s): David Hildenbrand <david@redhat.com>
++ */
++#define _GNU_SOURCE
++#include <stdlib.h>
++#include <string.h>
++#include <stdbool.h>
++#include <stdint.h>
++#include <unistd.h>
++#include <errno.h>
++#include <fcntl.h>
++#include <sys/mman.h>
++
++#include "../kselftest.h"
++
++#if defined(MADV_POPULATE_READ) && defined(MADV_POPULATE_WRITE)
++
++/*
++ * For now, we're using 2 MiB of private anonymous memory for all tests.
++ */
++#define SIZE (2 * 1024 * 1024)
++
++static size_t pagesize;
++
++static uint64_t pagemap_get_entry(int fd, char *start)
++{
++	const unsigned long pfn = (unsigned long)start / pagesize;
++	uint64_t entry;
++	int ret;
++
++	ret = pread(fd, &entry, sizeof(entry), pfn * sizeof(entry));
++	if (ret != sizeof(entry))
++		ksft_exit_fail_msg("reading pagemap failed\n");
++	return entry;
++}
++
++static bool pagemap_is_populated(int fd, char *start)
++{
++	uint64_t entry = pagemap_get_entry(fd, start);
++
++	/* Present or swapped. */
++	return entry & 0xc000000000000000ull;
++}
++
++static bool pagemap_is_softdirty(int fd, char *start)
++{
++	uint64_t entry = pagemap_get_entry(fd, start);
++
++	return entry & 0x0080000000000000ull;
++}
++
++static void sense_support(void)
++{
++	char *addr;
++	int ret;
++
++	addr = mmap(0, pagesize, PROT_READ | PROT_WRITE,
++		    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
++	if (!addr)
++		ksft_exit_fail_msg("mmap failed\n");
++
++	ret = madvise(addr, pagesize, MADV_POPULATE_READ);
++	if (ret)
++		ksft_exit_skip("MADV_POPULATE_READ is not available\n");
++
++	ret = madvise(addr, pagesize, MADV_POPULATE_WRITE);
++	if (ret)
++		ksft_exit_skip("MADV_POPULATE_WRITE is not available\n");
++
++	munmap(addr, pagesize);
++}
++
++static void test_prot_read(void)
++{
++	char *addr;
++	int ret;
++
++	ksft_print_msg("[RUN] %s\n", __func__);
++
++	addr = mmap(0, SIZE, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
++	if (addr == MAP_FAILED)
++		ksft_exit_fail_msg("mmap failed\n");
++
++	ret = madvise(addr, SIZE, MADV_POPULATE_READ);
++	ksft_test_result(!ret, "MADV_POPULATE_READ with PROT_READ\n");
++
++	ret = madvise(addr, SIZE, MADV_POPULATE_WRITE);
++	ksft_test_result(ret == -1 && errno == EINVAL,
++			 "MADV_POPULATE_WRITE with PROT_READ\n");
++
++	munmap(addr, SIZE);
++}
++
++static void test_prot_write(void)
++{
++	char *addr;
++	int ret;
++
++	ksft_print_msg("[RUN] %s\n", __func__);
++
++	addr = mmap(0, SIZE, PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
++	if (addr == MAP_FAILED)
++		ksft_exit_fail_msg("mmap failed\n");
++
++	ret = madvise(addr, SIZE, MADV_POPULATE_READ);
++	ksft_test_result(ret == -1 && errno == EINVAL,
++			 "MADV_POPULATE_READ with PROT_WRITE\n");
++
++	ret = madvise(addr, SIZE, MADV_POPULATE_WRITE);
++	ksft_test_result(!ret, "MADV_POPULATE_WRITE with PROT_WRITE\n");
++
++	munmap(addr, SIZE);
++}
++
++static void test_holes(void)
++{
++	char *addr;
++	int ret;
++
++	ksft_print_msg("[RUN] %s\n", __func__);
++
++	addr = mmap(0, SIZE, PROT_READ | PROT_WRITE,
++		    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
++	if (addr == MAP_FAILED)
++		ksft_exit_fail_msg("mmap failed\n");
++	ret = munmap(addr + pagesize, pagesize);
++	if (ret)
++		ksft_exit_fail_msg("munmap failed\n");
++
++	/* Hole in the middle */
++	ret = madvise(addr, SIZE, MADV_POPULATE_READ);
++	ksft_test_result(ret == -1 && errno == ENOMEM,
++			 "MADV_POPULATE_READ with holes in the middle\n");
++	ret = madvise(addr, SIZE, MADV_POPULATE_WRITE);
++	ksft_test_result(ret == -1 && errno == ENOMEM,
++			 "MADV_POPULATE_WRITE with holes in the middle\n");
++
++	/* Hole at end */
++	ret = madvise(addr, 2 * pagesize, MADV_POPULATE_READ);
++	ksft_test_result(ret == -1 && errno == ENOMEM,
++			 "MADV_POPULATE_READ with holes at the end\n");
++	ret = madvise(addr, 2 * pagesize, MADV_POPULATE_WRITE);
++	ksft_test_result(ret == -1 && errno == ENOMEM,
++			 "MADV_POPULATE_WRITE with holes at the end\n");
++
++	/* Hole at beginning */
++	ret = madvise(addr + pagesize, pagesize, MADV_POPULATE_READ);
++	ksft_test_result(ret == -1 && errno == ENOMEM,
++			 "MADV_POPULATE_READ with holes at the beginning\n");
++	ret = madvise(addr + pagesize, pagesize, MADV_POPULATE_WRITE);
++	ksft_test_result(ret == -1 && errno == ENOMEM,
++			 "MADV_POPULATE_WRITE with holes at the beginning\n");
++
++	munmap(addr, SIZE);
++}
++
++static bool range_is_populated(char *start, ssize_t size)
++{
++	int fd = open("/proc/self/pagemap", O_RDONLY);
++	bool ret = true;
++
++	if (fd < 0)
++		ksft_exit_fail_msg("opening pagemap failed\n");
++	for (; size > 0 && ret; size -= pagesize, start += pagesize)
++		if (!pagemap_is_populated(fd, start))
++			ret = false;
++	close(fd);
++	return ret;
++}
++
++static bool range_is_not_populated(char *start, ssize_t size)
++{
++	int fd = open("/proc/self/pagemap", O_RDONLY);
++	bool ret = true;
++
++	if (fd < 0)
++		ksft_exit_fail_msg("opening pagemap failed\n");
++	for (; size > 0 && ret; size -= pagesize, start += pagesize)
++		if (pagemap_is_populated(fd, start))
++			ret = false;
++	close(fd);
++	return ret;
++}
++
++static void test_populate_read(void)
++{
++	char *addr;
++	int ret;
++
++	ksft_print_msg("[RUN] %s\n", __func__);
++
++	addr = mmap(0, SIZE, PROT_READ | PROT_WRITE,
++		    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
++	if (addr == MAP_FAILED)
++		ksft_exit_fail_msg("mmap failed\n");
++	ksft_test_result(range_is_not_populated(addr, SIZE),
++			 "range initially not populated\n");
++
++	ret = madvise(addr, SIZE, MADV_POPULATE_READ);
++	ksft_test_result(!ret, "MADV_POPULATE_READ\n");
++	ksft_test_result(range_is_populated(addr, SIZE),
++			 "range is populated\n");
++
++	munmap(addr, SIZE);
++}
++
++static void test_populate_write(void)
++{
++	char *addr;
++	int ret;
++
++	ksft_print_msg("[RUN] %s\n", __func__);
++
++	addr = mmap(0, SIZE, PROT_READ | PROT_WRITE,
++		    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
++	if (addr == MAP_FAILED)
++		ksft_exit_fail_msg("mmap failed\n");
++	ksft_test_result(range_is_not_populated(addr, SIZE),
++			 "range initially not populated\n");
++
++	ret = madvise(addr, SIZE, MADV_POPULATE_WRITE);
++	ksft_test_result(!ret, "MADV_POPULATE_WRITE\n");
++	ksft_test_result(range_is_populated(addr, SIZE),
++			 "range is populated\n");
++
++	munmap(addr, SIZE);
++}
++
++static bool range_is_softdirty(char *start, ssize_t size)
++{
++	int fd = open("/proc/self/pagemap", O_RDONLY);
++	bool ret = true;
++
++	if (fd < 0)
++		ksft_exit_fail_msg("opening pagemap failed\n");
++	for (; size > 0 && ret; size -= pagesize, start += pagesize)
++		if (!pagemap_is_softdirty(fd, start))
++			ret = false;
++	close(fd);
++	return ret;
++}
++
++static bool range_is_not_softdirty(char *start, ssize_t size)
++{
++	int fd = open("/proc/self/pagemap", O_RDONLY);
++	bool ret = true;
++
++	if (fd < 0)
++		ksft_exit_fail_msg("opening pagemap failed\n");
++	for (; size > 0 && ret; size -= pagesize, start += pagesize)
++		if (pagemap_is_softdirty(fd, start))
++			ret = false;
++	close(fd);
++	return ret;
++}
++
++static void clear_softdirty(void)
++{
++	int fd = open("/proc/self/clear_refs", O_WRONLY);
++	const char *ctrl = "4";
++	int ret;
++
++	if (fd < 0)
++		ksft_exit_fail_msg("opening clear_refs failed\n");
++	ret = write(fd, ctrl, strlen(ctrl));
++	if (ret != strlen(ctrl))
++		ksft_exit_fail_msg("writing clear_refs failed\n");
++	close(fd);
++}
++
++static void test_softdirty(void)
++{
++	char *addr;
++	int ret;
++
++	ksft_print_msg("[RUN] %s\n", __func__);
++
++	addr = mmap(0, SIZE, PROT_READ | PROT_WRITE,
++		    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
++	if (addr == MAP_FAILED)
++		ksft_exit_fail_msg("mmap failed\n");
++
++	/* Clear any softdirty bits. */
++	clear_softdirty();
++	ksft_test_result(range_is_not_softdirty(addr, SIZE),
++			 "range is not softdirty\n");
++
++	/* Populating READ should set softdirty. */
++	ret = madvise(addr, SIZE, MADV_POPULATE_READ);
++	ksft_test_result(!ret, "MADV_POPULATE_READ\n");
++	ksft_test_result(range_is_not_softdirty(addr, SIZE),
++			 "range is not softdirty\n");
++
++	/* Populating WRITE should set softdirty. */
++	ret = madvise(addr, SIZE, MADV_POPULATE_WRITE);
++	ksft_test_result(!ret, "MADV_POPULATE_WRITE\n");
++	ksft_test_result(range_is_softdirty(addr, SIZE),
++			 "range is softdirty\n");
++
++	munmap(addr, SIZE);
++}
++
++int main(int argc, char **argv)
++{
++	int err;
++
++	pagesize = getpagesize();
++
++	ksft_print_header();
++	ksft_set_plan(21);
++
++	sense_support();
++	test_prot_read();
++	test_prot_write();
++	test_holes();
++	test_populate_read();
++	test_populate_write();
++	test_softdirty();
++
++	err = ksft_get_fail_cnt();
++	if (err)
++		ksft_exit_fail_msg("%d out of %d tests failed\n",
++				   err, ksft_test_num());
++	return ksft_exit_pass();
++}
++
++#else /* defined(MADV_POPULATE_READ) && defined(MADV_POPULATE_WRITE) */
++
++#warning "missing MADV_POPULATE_READ or MADV_POPULATE_WRITE definition"
++
++int main(int argc, char **argv)
++{
++	ksft_print_header();
++	ksft_exit_skip("MADV_POPULATE_READ or MADV_POPULATE_WRITE not defined\n");
++}
++
++#endif /* defined(MADV_POPULATE_READ) && defined(MADV_POPULATE_WRITE) */
+diff --git a/tools/testing/selftests/vm/run_vmtests.sh b/tools/testing/selftests/vm/run_vmtests.sh
+index e953f3cd9664..955782d138ab 100755
+--- a/tools/testing/selftests/vm/run_vmtests.sh
++++ b/tools/testing/selftests/vm/run_vmtests.sh
+@@ -346,4 +346,20 @@ else
+ 	exitcode=1
+ fi
+ 
++echo "--------------------------------------------------------"
++echo "running MADV_POPULATE_READ and MADV_POPULATE_WRITE tests"
++echo "--------------------------------------------------------"
++./madv_populate
++ret_val=$?
++
++if [ $ret_val -eq 0 ]; then
++	echo "[PASS]"
++elif [ $ret_val -eq $ksft_skip ]; then
++	echo "[SKIP]"
++	exitcode=$ksft_skip
++else
++	echo "[FAIL]"
++	exitcode=1
++fi
++
+ exit $exitcode
+-- 
+2.29.2
 
-I.e. if the kernel sees a too small ->ss_size in sigaltstack() it 
-would ignore ->ss_sp and mmap() a new sigaltstack instead and use that 
-for the signal handler stack.
-
-This would automatically make MINSIGSTKSZ - and other too small sizes 
-work today, and in the future.
-
-But the question is, is there user-space usage of sigaltstacks that 
-relies on controlling or reading the contents of the stack?
-
-longjmp using programs perhaps?
-
-Thanks,
-
-	Ingo
