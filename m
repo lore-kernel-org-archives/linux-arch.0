@@ -8,58 +8,59 @@ X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0666BC2BB1F
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6E840C2BB56
 	for <linux-arch@archiver.kernel.org>; Thu, 18 Mar 2021 17:12:44 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E4700601FF
-	for <linux-arch@archiver.kernel.org>; Thu, 18 Mar 2021 17:12:43 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 53A70601FF
+	for <linux-arch@archiver.kernel.org>; Thu, 18 Mar 2021 17:12:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232351AbhCRRMV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 18 Mar 2021 13:12:21 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33296 "EHLO
+        id S232256AbhCRRMX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 18 Mar 2021 13:12:23 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33344 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232273AbhCRRLg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Mar 2021 13:11:36 -0400
-Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 586B3C061763
-        for <linux-arch@vger.kernel.org>; Thu, 18 Mar 2021 10:11:36 -0700 (PDT)
-Received: by mail-yb1-xb4a.google.com with SMTP id v92so6515977ybi.12
-        for <linux-arch@vger.kernel.org>; Thu, 18 Mar 2021 10:11:36 -0700 (PDT)
+        with ESMTP id S232290AbhCRRLm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Mar 2021 13:11:42 -0400
+Received: from mail-pj1-x1049.google.com (mail-pj1-x1049.google.com [IPv6:2607:f8b0:4864:20::1049])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1E565C061760
+        for <linux-arch@vger.kernel.org>; Thu, 18 Mar 2021 10:11:42 -0700 (PDT)
+Received: by mail-pj1-x1049.google.com with SMTP id h17so13484008pjz.3
+        for <linux-arch@vger.kernel.org>; Thu, 18 Mar 2021 10:11:42 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=79m/4wCgeIzY0Vch1mQ9hDd2/YXny1QOhs6kFFYl+qs=;
-        b=Zik1d3CnZxputVsmGGlAexPLSHJF1N30aQsZC+A49EjAjI41rgMguWULbVHOZuBdPg
-         OQ23FZI5e5lc19k+4wnAGEPbO8ubc3ZLNnH9lf488/mljubW7d/4qBvIEQToXTW14lVr
-         j0ydpHrAO7UAeKBGZTfKjWqNRXa/+aUW3W/Q9xyReJ+HkSh4ZyfQQVf2jl2YoJPNmYgP
-         U8ED0ly++E/R2SKQ5gcXdYQm5bK3aQwaQuAnd0Qz5u7IAaAg9I7S+5U/IZnXR62c9V5n
-         WF5Km9LoVXhtHm9tlACHHs0O6slXVTwziecp89dN+AoViSwFfPOMP88Mo91j0UqUKlOJ
-         Dbbw==
+        bh=pXHCPErazdX/nDg2/nb6QksjLfEFTtrkU2uTHlahGRs=;
+        b=Jby0dukBhmBgpcZA/U36PC7iwDl1fv9sQJbWlIVJR6zC612oDIVCBEc9ib6jIIxa0Z
+         h5H6tDnzD6sQrwQMtWQSrqnjf3jc+BTx3l1kMPLJSmJpjBwlNsG6Ieg3A9gk5xckevvW
+         iDnyS60I+9Am2qOYj40KEO3FE6Xz316ybVZVYMUe9gMTHsS1+xCHi/MC2DH9I4fhZO+C
+         d515fn/284/aSzYDxgzvA0yX3tKbC3EzzU7nrrgOVnfFeSfAsc2UQmp2/rPxZf9k5Vlq
+         1aqhpEgyS537j0Tsx8A/UMEZWjWvxC3GlheGZ6yYXmPEt9TCJDaVY5VxmGIulC5HNXVb
+         35Wg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=79m/4wCgeIzY0Vch1mQ9hDd2/YXny1QOhs6kFFYl+qs=;
-        b=Rp027bORZ4HivDUfeEvZMwDsRg7Iy4ttNgYNVABiwEbs0rxiBIUl599w4Kz8Tsj8vi
-         i1N6rB11w4PA9uA3QV1puFQS6mo2u4mcYcPl4zUyLz2eeHGENqGcmT6e0mDtJQohaqaD
-         r+kz5SNM8MBqL9me+VxfC5nORar1vessribVXIAiyCtQjC42uzOoX65UWd3O687L0mht
-         /KZtSWvdTwOYIzvqb91ibS2ucw8irdeSqUsS+dWq+mxPgbLwNxkCsfKJ573VpmyFfmzk
-         Kbh5jUW6ZFNVoTnoALx7Q3MpfM1STrjQeOM8xTleCiLIIc+uSEzIl82qtljrKimd0UKF
-         SE/w==
-X-Gm-Message-State: AOAM532pr9nZsHXwNTIX5RvEyZwd4TwJypuC+CQgoz1hLfjLhny5Ehpi
-        7KliZxb0DvJQiNsIjyBLHveLZxZwaNU1Gz/VmVA=
-X-Google-Smtp-Source: ABdhPJyhrd+ijbcKHuUHxkloDz8fmR6k/s2L31mWKV23xRXPA0zTKRcjoj602FSIswWJW0IQy4bbshoZ/FsRp3uVBzQ=
+        bh=pXHCPErazdX/nDg2/nb6QksjLfEFTtrkU2uTHlahGRs=;
+        b=PhakSaFeI3+M6u8/7QR7AbZ1bwua4H0pfCqh9/37gfCoqCW+DsToloE6HH3pk8C6a2
+         CE+Rc7eIZ2llXpCc0/muY8CAy3MNb0NYdhHpQPeNQo9hc8HyHWefu5i1057Cwu3M7iAM
+         4Njl1R68yoZNYYUYWxcTWtVL9chqPxzvKjDXNd/YNUq0TwJzSw7J7o+6qUIV9gLGKYTn
+         r51rEvaXxBV9LRgDw+xElCu4Kjesve5sJwgDL3hjEShVCQDfMe/BsDVxtQR4XTSnuw7r
+         YeRx3xcVK5Ew1V5+h0YbWYETSZzxHIczSWgOuZY3H9+l8/VrVLIRzDTTo3suzDKjy2cr
+         fO1A==
+X-Gm-Message-State: AOAM531VYi/cKMI0MtricrCE+41MiEKmQX/VWf3HM5VSMzBra9hj/Mlu
+        +bsr+C0RbM/Oq/YH997xnqrYH7zTQolCQyggxvQ=
+X-Google-Smtp-Source: ABdhPJz7QmlOkNqtn9QR9fE9OonDa8rHz2twqoehDg1I2GIjzKha//VEA73ZQxvmwzcKfV3ni3UGXnqikRS1ctkOawE=
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:c0d7:a7ba:fb41:a35a])
- (user=samitolvanen job=sendgmr) by 2002:a25:ab11:: with SMTP id
- u17mr494297ybi.192.1616087495554; Thu, 18 Mar 2021 10:11:35 -0700 (PDT)
-Date:   Thu, 18 Mar 2021 10:11:03 -0700
+ (user=samitolvanen job=sendgmr) by 2002:a62:ea19:0:b029:1ee:5911:c516 with
+ SMTP id t25-20020a62ea190000b02901ee5911c516mr4956591pfh.67.1616087501527;
+ Thu, 18 Mar 2021 10:11:41 -0700 (PDT)
+Date:   Thu, 18 Mar 2021 10:11:06 -0700
 In-Reply-To: <20210318171111.706303-1-samitolvanen@google.com>
-Message-Id: <20210318171111.706303-10-samitolvanen@google.com>
+Message-Id: <20210318171111.706303-13-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20210318171111.706303-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.31.0.291.g576ba9dcdaf-goog
-Subject: [PATCH v2 09/17] lib/list_sort: fix function type mismatches
+Subject: [PATCH v2 12/17] arm64: implement __va_function
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Kees Cook <keescook@chromium.org>
 Cc:     Nathan Chancellor <nathan@kernel.org>,
@@ -78,52 +79,43 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Casting the comparison function to a different type trips indirect
-call Control-Flow Integrity (CFI) checking. Remove the additional
-consts from cmp_func, and the now unneeded casts.
+With CONFIG_CFI_CLANG, the compiler replaces function addresses in
+instrumented C code with jump table addresses. This change implements
+the __va_function() macro, which returns the actual function address
+instead.
 
-Fixes: 043b3f7b6388 ("lib/list_sort: simplify and remove MAX_LIST_LENGTH_BITS")
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- lib/list_sort.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/arm64/include/asm/memory.h | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
 
-diff --git a/lib/list_sort.c b/lib/list_sort.c
-index 52f0c258c895..b14accf4ef83 100644
---- a/lib/list_sort.c
-+++ b/lib/list_sort.c
-@@ -8,7 +8,7 @@
- #include <linux/list.h>
+diff --git a/arch/arm64/include/asm/memory.h b/arch/arm64/include/asm/memory.h
+index 0aabc3be9a75..9a4887808681 100644
+--- a/arch/arm64/include/asm/memory.h
++++ b/arch/arm64/include/asm/memory.h
+@@ -321,6 +321,21 @@ static inline void *phys_to_virt(phys_addr_t x)
+ #define virt_to_pfn(x)		__phys_to_pfn(__virt_to_phys((unsigned long)(x)))
+ #define sym_to_pfn(x)		__phys_to_pfn(__pa_symbol(x))
  
- typedef int __attribute__((nonnull(2,3))) (*cmp_func)(void *,
--		struct list_head const *, struct list_head const *);
-+		struct list_head *, struct list_head *);
- 
++#ifdef CONFIG_CFI_CLANG
++/*
++ * With CONFIG_CFI_CLANG, the compiler replaces function address
++ * references with the address of the function's CFI jump table
++ * entry. The __va_function macro always returns the address of the
++ * actual function instead.
++ */
++#define __va_function(x) ({						\
++	void *addr;							\
++	asm("adrp %0, " __stringify(x) "\n\t"				\
++	    "add  %0, %0, :lo12:" __stringify(x) : "=r" (addr));	\
++	addr;								\
++})
++#endif
++
  /*
-  * Returns a list organized in an intermediate format suited
-@@ -227,7 +227,7 @@ void list_sort(void *priv, struct list_head *head,
- 		if (likely(bits)) {
- 			struct list_head *a = *tail, *b = a->prev;
- 
--			a = merge(priv, (cmp_func)cmp, b, a);
-+			a = merge(priv, cmp, b, a);
- 			/* Install the merged result in place of the inputs */
- 			a->prev = b->prev;
- 			*tail = a;
-@@ -249,10 +249,10 @@ void list_sort(void *priv, struct list_head *head,
- 
- 		if (!next)
- 			break;
--		list = merge(priv, (cmp_func)cmp, pending, list);
-+		list = merge(priv, cmp, pending, list);
- 		pending = next;
- 	}
- 	/* The final merge, rebuilding prev links */
--	merge_final(priv, (cmp_func)cmp, head, pending, list);
-+	merge_final(priv, cmp, head, pending, list);
- }
- EXPORT_SYMBOL(list_sort);
+  *  virt_to_page(x)	convert a _valid_ virtual address to struct page *
+  *  virt_addr_valid(x)	indicates whether a virtual address is valid
 -- 
 2.31.0.291.g576ba9dcdaf-goog
 
