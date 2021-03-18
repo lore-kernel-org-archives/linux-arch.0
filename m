@@ -5,62 +5,61 @@ X-Spam-Level:
 X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
-	autolearn_force=no version=3.4.0
+	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 61D99C2BA13
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A7EA2C2BA2B
 	for <linux-arch@archiver.kernel.org>; Thu, 18 Mar 2021 17:12:14 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4D0AE64F30
+	by mail.kernel.org (Postfix) with ESMTP id 7FE8F64F40
 	for <linux-arch@archiver.kernel.org>; Thu, 18 Mar 2021 17:12:14 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232278AbhCRRLh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 18 Mar 2021 13:11:37 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33168 "EHLO
+        id S232302AbhCRRLj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 18 Mar 2021 13:11:39 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33228 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232282AbhCRRLX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Mar 2021 13:11:23 -0400
-Received: from mail-pl1-x649.google.com (mail-pl1-x649.google.com [IPv6:2607:f8b0:4864:20::649])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D6D22C06175F
-        for <linux-arch@vger.kernel.org>; Thu, 18 Mar 2021 10:11:22 -0700 (PDT)
-Received: by mail-pl1-x649.google.com with SMTP id q11so21204820plx.22
-        for <linux-arch@vger.kernel.org>; Thu, 18 Mar 2021 10:11:22 -0700 (PDT)
+        with ESMTP id S232312AbhCRRL3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Mar 2021 13:11:29 -0400
+Received: from mail-pg1-x54a.google.com (mail-pg1-x54a.google.com [IPv6:2607:f8b0:4864:20::54a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 78110C061761
+        for <linux-arch@vger.kernel.org>; Thu, 18 Mar 2021 10:11:29 -0700 (PDT)
+Received: by mail-pg1-x54a.google.com with SMTP id m5so15578516pgp.13
+        for <linux-arch@vger.kernel.org>; Thu, 18 Mar 2021 10:11:29 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=PeAEi4QdQeJS0R2WYWNNntX7QF/OnwnEUYEO8FB/zZI=;
-        b=p+VrkP1bqZI10VP8EeeZrzzfoI1GjtWoEBRuBE726XK/gDRTExpkpo8vfdSH/r6qQ2
-         fOHKt1juhQxrQX6cPPMTifNTZixG8rFVdvoGNuSuYPxjZVs2EkOF1lcit3KaS49mPZ8z
-         IQOBi7STpHBUIWzQ5ZbW05JFEpfzqGDRrLWE4nIbfgbgwW0f2a/6+/NvWVZQIPm96o7N
-         I++3MhM7OLsD8NpuK5qhBdlWedJp3H/fYNTk/el3qX4LG+Jk4NRA79tjSVy1YmmYUQk0
-         1tj5qVOJAW3NP909IVQvUiiUoKjnZ8ZK9jEGED8pRZSAEUtB/GBEOGKsqXsDo/bIKAnn
-         RFjw==
+        bh=kAxWBGQQ6gb1U0MwyH2aGrnOUTzFGjVGvgXGkxVH/cc=;
+        b=liAOU1cNxrOdNR8Mq2wdteZcuX/4GGjEvmX6VRt8SJpT8g5c/zhTtCrqOcNoXot7R8
+         p1HymEJCx3U3MjDN37R8LlebJ9vtc4QS37r5hp/DGkgrykkjdb6C0qRALyJRp89Eas+i
+         1jen8r3xd9zt0zZr9UzvlAfpmAxoBZYbpK/OgNk6ZT++341DfmQovKhP11YgxnbvZlFr
+         X2tspDFVyGouwBpmAV27otQ74JTSYb7fKQKADR7cZWYj2chJWJ1DBwJw5EPogGOtdPZa
+         AwlGuQfVzacKapISpv2yS7Uq+JqnRv+I7YVKuASx+mIC9EZrru5DgEP2qNx7a2dWt6C4
+         aL+g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=PeAEi4QdQeJS0R2WYWNNntX7QF/OnwnEUYEO8FB/zZI=;
-        b=D1obvukFP5uBPbmhYg2heLI8aBhv93mRSeuW+xKz/S67eOwTcKrSY9prZqk2xkyqwr
-         NKGhPp3ecLFwsFqQvgLJrCkAvmLnkgCTC0Am2ovzt6ia4Pl7b1AHsG1ycd2KYJ5T8JvL
-         oH6kGeGtNaPOuZvphAaiEPez97n31pr+tlMsxe5rTdGF5ikAfM0qSRa4kwZhrMIcIEry
-         qdARed+nvx0tOSYoZyr79g4R/Dj7Xh/xKl9ZgtJ6TEj8WVwmDXXMhFIPaN3zgYZ5zJ2h
-         s1Sd0ht2sAQijGc8NLtdU9VbzTWpo8yrVZrVIpEVF996OthGFJLHOzzzBfkyLD4y1st1
-         A4hw==
-X-Gm-Message-State: AOAM533shNyyV1G4CUBcH3G0S0th/KqKjx2Iipwu2hna9SNqUBGeFomF
-        pX9hgd0nernLhksdBjN44GkGw3HDsPaP1mqu1QA=
-X-Google-Smtp-Source: ABdhPJx8cHucnyP+Aa+4tX9UaXIRGtXiznnlELJLcS5vzBI/KUq73zcAaMJL61KmuRuPI9myO+PJeQ6WezcQTaT+iSM=
+        bh=kAxWBGQQ6gb1U0MwyH2aGrnOUTzFGjVGvgXGkxVH/cc=;
+        b=CYXn/pTpgNj9d7N4cVSdIcR9KjcMUA/V2kV84K7TRYCNZOEib4w6N1p5Ghw3aje3eb
+         1Efr9ZyGeb49J+DuJYxqvDkK5FNB4+dETbcEVug4vE8Qy48VXhq3aYC2Qqqpz/BvutP3
+         Rkq6FLH0xDlmGTM7R4GKpINwafUGwfBBAp69C0UZqbWuqSXsr1hXr1BTd3W2oHaHdSmx
+         gy0c2/7Oz/Htcfc2ZwmaxbHOxr6cSWhHVuFwmGnSDyZOAvk1vNhadeI1712noX4tC3Tg
+         /HXY2DLVJyy72Agf11+94mKfBrz2buv4SCSVeEs2JLYxSK+LBFJDSoGJFDZ6EUyMosg9
+         bkWg==
+X-Gm-Message-State: AOAM533rfSj7W9j4W6SKof9s48uWkj4vQGKDLPId70ONWSGVcE3quoZx
+        /aeE6vw0DzvJRoxGO/MI3yvFiAx0SLktYKFIEdM=
+X-Google-Smtp-Source: ABdhPJxKWbdiJmcD8GxmltL5n/GfUdjB9vzaW7o7vy1vsfJ4+SqraPewncqhBQztkA9cts228yKyAQm40viIg6HomOI=
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:c0d7:a7ba:fb41:a35a])
- (user=samitolvanen job=sendgmr) by 2002:a17:902:7401:b029:e4:5992:e64a with
- SMTP id g1-20020a1709027401b02900e45992e64amr10565108pll.75.1616087482135;
- Thu, 18 Mar 2021 10:11:22 -0700 (PDT)
-Date:   Thu, 18 Mar 2021 10:10:57 -0700
+ (user=samitolvanen job=sendgmr) by 2002:a17:90a:b311:: with SMTP id
+ d17mr5522830pjr.228.1616087488845; Thu, 18 Mar 2021 10:11:28 -0700 (PDT)
+Date:   Thu, 18 Mar 2021 10:11:00 -0700
 In-Reply-To: <20210318171111.706303-1-samitolvanen@google.com>
-Message-Id: <20210318171111.706303-4-samitolvanen@google.com>
+Message-Id: <20210318171111.706303-7-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20210318171111.706303-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.31.0.291.g576ba9dcdaf-goog
-Subject: [PATCH v2 03/17] mm: add generic __va_function and __pa_function macros
+Subject: [PATCH v2 06/17] kthread: use WARN_ON_FUNCTION_MISMATCH
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Kees Cook <keescook@chromium.org>
 Cc:     Nathan Chancellor <nathan@kernel.org>,
@@ -79,44 +78,35 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-With CONFIG_CFI_CLANG, the compiler replaces function addresses
-in instrumented C code with jump table addresses. This means that
-__pa_symbol(function) returns the physical address of the jump table
-entry instead of the actual function, which may not work as the jump
-table code will immediately jump to a virtual address that may not be
-mapped.
+With CONFIG_CFI_CLANG, a callback function passed to
+__kthread_queue_delayed_work from a module points to a jump table
+entry defined in the module instead of the one used in the core
+kernel, which breaks function address equality in this check:
 
-To avoid this address space confusion, this change adds generic
-definitions for __va_function and __pa_function, which architectures
-that support CFI can override. The typical implementation of the
-__va_function macro would use inline assembly to take the function
-address, which avoids compiler instrumentation.
+  WARN_ON_ONCE(timer->function != ktead_delayed_work_timer_fn);
+
+Use WARN_ON_FUNCTION_MISMATCH() instead to disable the warning
+when CFI and modules are both enabled.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- include/linux/mm.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ kernel/kthread.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 64a71bf20536..a0d285cd59ce 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -116,6 +116,14 @@ extern int mmap_rnd_compat_bits __read_mostly;
- #define __pa_symbol(x)  __pa(RELOC_HIDE((unsigned long)(x), 0))
- #endif
+diff --git a/kernel/kthread.c b/kernel/kthread.c
+index 1578973c5740..a1972eba2917 100644
+--- a/kernel/kthread.c
++++ b/kernel/kthread.c
+@@ -963,7 +963,8 @@ static void __kthread_queue_delayed_work(struct kthread_worker *worker,
+ 	struct timer_list *timer = &dwork->timer;
+ 	struct kthread_work *work = &dwork->work;
  
-+#ifndef __va_function
-+#define __va_function(x) (x)
-+#endif
-+
-+#ifndef __pa_function
-+#define __pa_function(x) __pa_symbol(__va_function(x))
-+#endif
-+
- #ifndef page_to_virt
- #define page_to_virt(x)	__va(PFN_PHYS(page_to_pfn(x)))
- #endif
+-	WARN_ON_ONCE(timer->function != kthread_delayed_work_timer_fn);
++	WARN_ON_FUNCTION_MISMATCH(timer->function,
++				  kthread_delayed_work_timer_fn);
+ 
+ 	/*
+ 	 * If @delay is 0, queue @dwork->work immediately.  This is for
 -- 
 2.31.0.291.g576ba9dcdaf-goog
 
