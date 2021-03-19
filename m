@@ -2,117 +2,145 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 20449C433DB
-	for <linux-arch@archiver.kernel.org>; Fri, 19 Mar 2021 10:40:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7A338C433E0
+	for <linux-arch@archiver.kernel.org>; Fri, 19 Mar 2021 11:07:38 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D49EC64EEC
-	for <linux-arch@archiver.kernel.org>; Fri, 19 Mar 2021 10:40:50 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 400DF64F69
+	for <linux-arch@archiver.kernel.org>; Fri, 19 Mar 2021 11:07:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229736AbhCSKkR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 19 Mar 2021 06:40:17 -0400
-Received: from mail.kernel.org ([198.145.29.99]:50382 "EHLO mail.kernel.org"
+        id S229926AbhCSLHH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 19 Mar 2021 07:07:07 -0400
+Received: from pegase1.c-s.fr ([93.17.236.30]:11281 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229640AbhCSKkB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Mar 2021 06:40:01 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id C5CF464E6B;
-        Fri, 19 Mar 2021 10:39:59 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
-        s=korg; t=1616150400;
-        bh=upXug4xn2cSMI3wX/C88hwIqnigSyE+kWd7XvhtAWx0=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=fQb6LIQ+LxulZcdqI5di1q2vhaiBCfkZzN/03rB+k9dHwWyRKyPN/OOsr8N61AUbo
-         G3jMqaXi6SkyXAdKwTI7qhfei+qX80s/hsKBQhHzn1eaPqbDtXf652VHZ/ku150Gmx
-         xZ1JdJjteMr9mPTKNoaojWKGPIZgJD50OblpFWD4=
-Date:   Fri, 19 Mar 2021 11:39:57 +0100
-From:   Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-To:     Nicolas Boichat <drinkcat@chromium.org>
-Cc:     stable@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>,
-        Alexandre Chartre <alexandre.chartre@oracle.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Christopher Li <sparse@chrisli.org>,
-        Daniel Axtens <dja@axtens.net>,
-        Masahiro Yamada <yamada.masahiro@socionext.com>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Michal Marek <michal.lkml@markovi.net>,
-        "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
+        id S230028AbhCSLGz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 Mar 2021 07:06:55 -0400
+Received: from localhost (mailhub1-int [192.168.12.234])
+        by localhost (Postfix) with ESMTP id 4F21LN3rcpz9tx8x;
+        Fri, 19 Mar 2021 12:06:52 +0100 (CET)
+X-Virus-Scanned: Debian amavisd-new at c-s.fr
+Received: from pegase1.c-s.fr ([192.168.12.234])
+        by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
+        with ESMTP id vgoaZZS2DZvn; Fri, 19 Mar 2021 12:06:52 +0100 (CET)
+Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
+        by pegase1.c-s.fr (Postfix) with ESMTP id 4F21LN2vq6z9tx8v;
+        Fri, 19 Mar 2021 12:06:52 +0100 (CET)
+Received: from localhost (localhost [127.0.0.1])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 0A2E08B977;
+        Fri, 19 Mar 2021 12:06:53 +0100 (CET)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from messagerie.si.c-s.fr ([127.0.0.1])
+        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
+        with ESMTP id txeP4JywZ2j8; Fri, 19 Mar 2021 12:06:52 +0100 (CET)
+Received: from po16121vm.idsi0.si.c-s.fr (unknown [192.168.4.90])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 399798B974;
+        Fri, 19 Mar 2021 12:06:51 +0100 (CET)
+Received: by po16121vm.idsi0.si.c-s.fr (Postfix, from userid 0)
+        id A6175675FF; Fri, 19 Mar 2021 11:06:50 +0000 (UTC)
+Message-Id: <b05bf434ee13c76bc9df5f02653a10db5e7b54e5.1616151715.git.christophe.leroy@csgroup.eu>
+In-Reply-To: <cover.1616151715.git.christophe.leroy@csgroup.eu>
+References: <cover.1616151715.git.christophe.leroy@csgroup.eu>
+From:   Christophe Leroy <christophe.leroy@csgroup.eu>
+Subject: [PATCH 01/10] signal: Add unsafe_get_compat_sigset()
+To:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
         Paul Mackerras <paulus@samba.org>,
-        Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org,
-        linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-sparse@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Subject: Re: [for-stable-4.19 PATCH 1/2] vmlinux.lds.h: Create section for
- protection against instrumentation
-Message-ID: <YFR/fQIePjDQcO5W@kroah.com>
-References: <20210318235416.794798-1-drinkcat@chromium.org>
- <20210319075410.for-stable-4.19.1.I222f801866f71be9f7d85e5b10665cd4506d78ec@changeid>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210319075410.for-stable-4.19.1.I222f801866f71be9f7d85e5b10665cd4506d78ec@changeid>
+        Michael Ellerman <mpe@ellerman.id.au>, cmr@codefail.de
+Cc:     linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-arch@vger.kernel.org
+Date:   Fri, 19 Mar 2021 11:06:50 +0000 (UTC)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Mar 19, 2021 at 07:54:15AM +0800, Nicolas Boichat wrote:
-> From: Thomas Gleixner <tglx@linutronix.de>
-> 
-> commit 6553896666433e7efec589838b400a2a652b3ffa upstream.
-> 
-> Some code pathes, especially the low level entry code, must be protected
-> against instrumentation for various reasons:
-> 
->  - Low level entry code can be a fragile beast, especially on x86.
-> 
->  - With NO_HZ_FULL RCU state needs to be established before using it.
-> 
-> Having a dedicated section for such code allows to validate with tooling
-> that no unsafe functions are invoked.
-> 
-> Add the .noinstr.text section and the noinstr attribute to mark
-> functions. noinstr implies notrace. Kprobes will gain a section check
-> later.
-> 
-> Provide also a set of markers: instrumentation_begin()/end()
-> 
-> These are used to mark code inside a noinstr function which calls
-> into regular instrumentable text section as safe.
-> 
-> The instrumentation markers are only active when CONFIG_DEBUG_ENTRY is
-> enabled as the end marker emits a NOP to prevent the compiler from merging
-> the annotation points. This means the objtool verification requires a
-> kernel compiled with this option.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
-> Acked-by: Peter Zijlstra <peterz@infradead.org>
-> Link: https://lkml.kernel.org/r/20200505134100.075416272@linutronix.de
-> 
-> [Nicolas: context conflicts in:
-> 	arch/powerpc/kernel/vmlinux.lds.S
-> 	include/asm-generic/vmlinux.lds.h
-> 	include/linux/compiler.h
-> 	include/linux/compiler_types.h]
-> Signed-off-by: Nicolas Boichat <drinkcat@chromium.org>
+In the same way as commit 14026b94ccfe ("signal: Add
+unsafe_put_compat_sigset()"), this time add
+unsafe_get_compat_sigset() macro which is the 'unsafe'
+version of get_compat_sigset()
 
-Did you build this on x86?
+For the bigendian, use unsafe_get_user() directly
+to avoid intermediate copy through the stack.
 
-I get the following build error:
+For the littleendian, use a straight unsafe_copy_from_user().
 
-ld:./arch/x86/kernel/vmlinux.lds:20: syntax error
+This commit adds the generic fallback for unsafe_copy_from_user().
+Architectures wanting to use unsafe_get_compat_sigset() have to
+make sure they have their own unsafe_copy_from_user().
 
-And that line looks like:
+Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+---
+ include/linux/compat.h  | 35 +++++++++++++++++++++++++++++++++++
+ include/linux/uaccess.h |  1 +
+ 2 files changed, 36 insertions(+)
 
- . = ALIGN(8); *(.text.hot .text.hot.*) *(.text .text.fixup) *(.text.unlikely .text.unlikely.*) *(.text.unknown .text.unknown.*) . = ALIGN(8); __noinstr_text_start = .; *(.__attribute__((noinline)) __attribute__((no_instrument_function)) __attribute((__section__(".noinstr.text"))).text) __noinstr_text_end = .; *(.text..refcount) *(.ref.text) *(.meminit.text*) *(.memexit.text*)
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 6e65be753603..5112c3e35782 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -465,6 +465,34 @@ put_compat_sigset(compat_sigset_t __user *compat, const sigset_t *set,
+ 		unsafe_put_user(__s->sig[0], &__c->sig[0], label);	\
+ 	}								\
+ } while (0)
++
++#define unsafe_get_compat_sigset(set, compat, label) do {		\
++	const compat_sigset_t __user *__c = compat;			\
++	compat_sigset_word hi, lo;					\
++	sigset_t *__s = set;						\
++									\
++	switch (_NSIG_WORDS) {						\
++	case 4:								\
++		unsafe_get_user(lo, &__c->sig[7], label);		\
++		unsafe_get_user(hi, &__c->sig[6], label);		\
++		__s->sig[3] = hi | (((long)lo) << 32);			\
++		fallthrough;						\
++	case 3:								\
++		unsafe_get_user(lo, &__c->sig[5], label);		\
++		unsafe_get_user(hi, &__c->sig[4], label);		\
++		__s->sig[2] = hi | (((long)lo) << 32);			\
++		fallthrough;						\
++	case 2:								\
++		unsafe_get_user(lo, &__c->sig[3], label);		\
++		unsafe_get_user(hi, &__c->sig[2], label);		\
++		__s->sig[1] = hi | (((long)lo) << 32);			\
++		fallthrough;						\
++	case 1:								\
++		unsafe_get_user(lo, &__c->sig[1], label);		\
++		unsafe_get_user(hi, &__c->sig[0], label);		\
++		__s->sig[0] = hi | (((long)lo) << 32);			\
++	}								\
++} while (0)
+ #else
+ #define unsafe_put_compat_sigset(compat, set, label) do {		\
+ 	compat_sigset_t __user *__c = compat;				\
+@@ -472,6 +500,13 @@ put_compat_sigset(compat_sigset_t __user *compat, const sigset_t *set,
+ 									\
+ 	unsafe_copy_to_user(__c, __s, sizeof(*__c), label);		\
+ } while (0)
++
++#define unsafe_get_compat_sigset(set, compat, label) do {		\
++	const compat_sigset_t __user *__c = compat;			\
++	sigset_t *__s = set;						\
++									\
++	unsafe_copy_from_user(__s, __c, sizeof(*__c), label);		\
++} while (0)
+ #endif
+ 
+ extern int compat_ptrace_request(struct task_struct *child,
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index c7c6e8b8344d..c05e903cef02 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -397,6 +397,7 @@ long strnlen_user_nofault(const void __user *unsafe_addr, long count);
+ #define unsafe_get_user(x,p,e) unsafe_op_wrap(__get_user(x,p),e)
+ #define unsafe_put_user(x,p,e) unsafe_op_wrap(__put_user(x,p),e)
+ #define unsafe_copy_to_user(d,s,l,e) unsafe_op_wrap(__copy_to_user(d,s,l),e)
++#define unsafe_copy_from_user(d,s,l,e) unsafe_op_wrap(__copy_from_user(d,s,l),e)
+ static inline unsigned long user_access_save(void) { return 0UL; }
+ static inline void user_access_restore(unsigned long flags) { }
+ #endif
+-- 
+2.25.0
 
-So I'm going to drop both of these patches from the queue.
-
-thanks,
-
-greg k-h
