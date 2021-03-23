@@ -2,115 +2,121 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 315E3C4363E
-	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:41:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9C4F7C433E0
+	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:51:01 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EF5B1619D6
-	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:41:12 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 75F7E619D4
+	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:51:01 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233615AbhCWUkh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 23 Mar 2021 16:40:37 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44992 "EHLO
+        id S233069AbhCWUu2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 23 Mar 2021 16:50:28 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47164 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233487AbhCWUkF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Mar 2021 16:40:05 -0400
-Received: from mail-qt1-x849.google.com (mail-qt1-x849.google.com [IPv6:2607:f8b0:4864:20::849])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 53560C0613DD
-        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:04 -0700 (PDT)
-Received: by mail-qt1-x849.google.com with SMTP id f26so1953411qtq.17
-        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:04 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=date:in-reply-to:message-id:mime-version:references:subject:from:to
-         :cc;
-        bh=hHyY7qre9OXEm5PJ4BWXLYwsH5KdHQkHk/skTedwvAs=;
-        b=XrXpk80QpW18uEoFzgTskAcjmvDwp4KkI6czCZLCI2LllpcLlxdrxTo1ItDmNHN8O3
-         bTKrEPYdAX8nqjUwEIjMGeZsRGCVSfDL1H2a3iHP2ngOiAKHMzDoZoN0zJI6U4uE7k4F
-         VmweQXHEF/+JfAZFlAnZ8tr59hnNtlg0Zu2hks4+H3cinnrhxWtfOBc/gs/UrtgKxOLm
-         BhVL1pP08EBbqj7+0X2iUTjwgv413Vz8hEc3BGPp0zOsqaAbAJtmiERhqTuyjM44Skll
-         xAU/PM/Gg5Aoxn2Inc/k5V8U3wmSxVTzMEVnRHN2lA+v/IcNPy7/8t7fb9X4R/xp1aHQ
-         xZhg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:in-reply-to:message-id:mime-version
-         :references:subject:from:to:cc;
-        bh=hHyY7qre9OXEm5PJ4BWXLYwsH5KdHQkHk/skTedwvAs=;
-        b=oZ40n7fFDKw83U8chEqszifYChvsqEc1QC5r0jObHYMKJpB/iWosDT7OfG27RnmFlX
-         J0wzrWeuWtFChLsoOxnuA9UJE3g3plnVYiXdxXJd+msRj8uokSob2rhBzwzLM4v5ZtuP
-         rMvPVNIq7TErDtdiHkEht/4bteV38OW6U4f8cM2RgAjKI6JW2jUuNUYW/vie0h+DsQqa
-         wzrbAYtynqRNJPF2lo87egDB29tsDnmgCjgDiegE8KgldCUr53Z47rQSYUiCqjDvxRai
-         E2TZg0ixUEbGcmWWj4sPnMWYkxZZmdhycEEh06cJEx1h0xn24trSlS4wxQE5FpWA1xQD
-         AaZA==
-X-Gm-Message-State: AOAM533B2maOS2O7sXP4rqLIc642Ck46X1E/tpk5Sq7gVwDoqIBkIrtL
-        MHipZcMnnzW6DYMzV1pskZC6I7u52UFFxWIu97I=
-X-Google-Smtp-Source: ABdhPJzK5aKSbLwoPjOa/fZ+4wQdl/i/PHvrBqs1DnRZn9DH8KD/9yfcQQbrZv/qBxwpr5GT4qC2fq5WQsc1rIzUeMY=
-X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:e9a3:260d:763b:67dc])
- (user=samitolvanen job=sendgmr) by 2002:ad4:542b:: with SMTP id
- g11mr7093888qvt.47.1616532003425; Tue, 23 Mar 2021 13:40:03 -0700 (PDT)
-Date:   Tue, 23 Mar 2021 13:39:37 -0700
-In-Reply-To: <20210323203946.2159693-1-samitolvanen@google.com>
-Message-Id: <20210323203946.2159693-9-samitolvanen@google.com>
-Mime-Version: 1.0
-References: <20210323203946.2159693-1-samitolvanen@google.com>
-X-Mailer: git-send-email 2.31.0.291.g576ba9dcdaf-goog
-Subject: [PATCH v3 08/17] bpf: disable CFI in dispatcher functions
-From:   Sami Tolvanen <samitolvanen@google.com>
-To:     Kees Cook <keescook@chromium.org>
-Cc:     Nathan Chancellor <nathan@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Will Deacon <will@kernel.org>, Jessica Yu <jeyu@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Christoph Hellwig <hch@infradead.org>,
-        Peter Zijlstra <peterz@infradead.org>, bpf@vger.kernel.org,
-        linux-hardening@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org,
-        linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org,
-        Sami Tolvanen <samitolvanen@google.com>
-Content-Type: text/plain; charset="UTF-8"
+        with ESMTP id S233317AbhCWUuB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Mar 2021 16:50:01 -0400
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2B57FC061574;
+        Tue, 23 Mar 2021 13:50:01 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=desiato.20200630; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=n2keAYHmYw/YVTL7PvtDv0VPnQ+WyrD9i93/IeDB6CA=; b=L6fFr3JWTwXIPut2SRcVTu4FAx
+        f3EA5NxGBDrrzXHWQc9lfvvoWVF7oob30Y7BKgoWWVUhu6PMYnOBTYrK0rT6rUdwsuxpOykK3t9Lm
+        g5yioVj+5OsOZgj6mvNMy88muwwL9yku3YQnPyDLwSsyvd4ITbDsyvSPJnHUfABaa13sEgPZDKccL
+        PrOl/sIMX6/UDFdP3sQhV9jJo3xy3fwPMGdoUYEcQ8d8EpJ4kkxT3dabmNMXKiHlhz9+DXFOdnp60
+        unf0lFBU3bnZUI9nT67zraE8+KWhJLkjZiFjFOWRn6+mL79EYClAFTqdHS+Y5Y72vKi4Blj/AUCkM
+        vL0Ve5sw==;
+Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=worktop.programming.kicks-ass.net)
+        by desiato.infradead.org with esmtpsa (Exim 4.94 #2 (Red Hat Linux))
+        id 1lOny1-00FjQ9-6j; Tue, 23 Mar 2021 20:49:33 +0000
+Received: by worktop.programming.kicks-ass.net (Postfix, from userid 1000)
+        id 26CE79864DD; Tue, 23 Mar 2021 21:49:32 +0100 (CET)
+Date:   Tue, 23 Mar 2021 21:49:32 +0100
+From:   Peter Zijlstra <peterz@infradead.org>
+To:     "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
+Cc:     Borislav Petkov <bp@alien8.de>, x86@kernel.org,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
+        linux-doc@vger.kernel.org, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>,
+        Pengfei Xu <pengfei.xu@intel.com>,
+        Haitao Huang <haitao.huang@intel.com>
+Subject: Re: [PATCH v23 00/28] Control-flow Enforcement: Shadow Stack
+Message-ID: <20210323204932.GC4746@worktop.programming.kicks-ass.net>
+References: <20210316151054.5405-1-yu-cheng.yu@intel.com>
+ <20210316211552.GU4746@worktop.programming.kicks-ass.net>
+ <adb72123-e8b3-c022-47da-b8c423952caf@intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <adb72123-e8b3-c022-47da-b8c423952caf@intel.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-BPF dispatcher functions are patched at runtime to perform direct
-instead of indirect calls. Disable CFI for the dispatcher functions to
-avoid conflicts.
+On Fri, Mar 19, 2021 at 02:43:04PM -0700, Yu, Yu-cheng wrote:
+> On 3/16/2021 2:15 PM, Peter Zijlstra wrote:
+> > On Tue, Mar 16, 2021 at 08:10:26AM -0700, Yu-cheng Yu wrote:
+> > > Control-flow Enforcement (CET) is a new Intel processor feature that blocks
+> > > return/jump-oriented programming attacks.  Details are in "Intel 64 and
+> > > IA-32 Architectures Software Developer's Manual" [1].
+> > > 
+> > > CET can protect applications and the kernel.  This series enables only
+> > > application-level protection, and has three parts:
+> > > 
+> > >    - Shadow stack [2],
+> > >    - Indirect branch tracking [3], and
+> > >    - Selftests [4].
+> > 
+> > CET is marketing; afaict SS and IBT are 100% independent and there's no
+> > reason what so ever to have them share any code, let alone a Kconfig
+> > knob.
+> > > In fact, I think all of this would improve is you remove the CET name
+> > from all of this entirely. Put this series under CONFIG_X86_SHSTK (or
+> > _SS) and use CONFIG_X86_IBT for the other one.
+> > 
+> > Similarly with the .c file.
+> > 
+> > All this CET business is just pure confusion.
+> > 
+> 
+> What about this, we bring back CONFIG_X86_SHSTK and CONFIG_X86_IBT.
+> For the CET name itself, can we change it to CFE (Control Flow Enforcement),
+> or just CF?
 
-Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
- include/linux/bpf.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+Carry Flag :-)
 
-diff --git a/include/linux/bpf.h b/include/linux/bpf.h
-index cccaef1088ea..9acdca574527 100644
---- a/include/linux/bpf.h
-+++ b/include/linux/bpf.h
-@@ -635,7 +635,7 @@ struct bpf_dispatcher {
- 	struct bpf_ksym ksym;
- };
- 
--static __always_inline unsigned int bpf_dispatcher_nop_func(
-+static __always_inline __nocfi unsigned int bpf_dispatcher_nop_func(
- 	const void *ctx,
- 	const struct bpf_insn *insnsi,
- 	unsigned int (*bpf_func)(const void *,
-@@ -663,7 +663,7 @@ void bpf_trampoline_put(struct bpf_trampoline *tr);
- }
- 
- #define DEFINE_BPF_DISPATCHER(name)					\
--	noinline unsigned int bpf_dispatcher_##name##_func(		\
-+	noinline __nocfi unsigned int bpf_dispatcher_##name##_func(	\
- 		const void *ctx,					\
- 		const struct bpf_insn *insnsi,				\
- 		unsigned int (*bpf_func)(const void *,			\
--- 
-2.31.0.291.g576ba9dcdaf-goog
+> In signal handling, ELF header parsing and arch_prctl(), shadow stack and
+> IBT pretty much share the same code.  It is better not to split them into
+> two sets of files.
 
+Aside from redoing the UAPI we're stuck with that I suppose :/ And since
+I think the CET name is all over the UAPI, you might as well keep it for
+the kernel part of it as well :-(
+
+But if there's sufficient !UAPI bits it might still make sense to also
+have ibt.c and shstk.c
