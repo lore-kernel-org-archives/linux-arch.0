@@ -8,58 +8,59 @@ X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7C488C43462
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BD02CC43331
 	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:41:10 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 578CD619D3
+	by mail.kernel.org (Postfix) with ESMTP id AD245619DD
 	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:41:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233532AbhCWUkk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 23 Mar 2021 16:40:40 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44946 "EHLO
+        id S233555AbhCWUkm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 23 Mar 2021 16:40:42 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45016 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233527AbhCWUkM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Mar 2021 16:40:12 -0400
-Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B2E22C061574
-        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:11 -0700 (PDT)
-Received: by mail-yb1-xb49.google.com with SMTP id x10so3830658ybr.11
-        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:11 -0700 (PDT)
+        with ESMTP id S233554AbhCWUkP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Mar 2021 16:40:15 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6952CC0613D9
+        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:15 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id x10so3830801ybr.11
+        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:15 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=pXHCPErazdX/nDg2/nb6QksjLfEFTtrkU2uTHlahGRs=;
-        b=jFt+TBSDKrmbmcTGUS3Zh3LQfQ9h6g78j1z40AyKg7NaLPpZHn37Ldl7vtccRAf8UV
-         GppokLpY6wTAB+Sle9DrxlzNvmD7RLVB1LrLtLP+DoPSdOHThcUhWPgZsZMHr1AypqJp
-         2ausF2iw7I06q65bPHkkK5uKHVdZZ+ckMEmm7IBf/pcXpGFOQXgKf2NyXu+UF4y2zTd2
-         ycqljJ06Wbbus0bG5F1C0bgOjXenQJWv7VPFmvmSNViXRdLRYpO43wanLsM7EnyPPUa4
-         y3y0OHiuMRejUijcBoHlT618Iy/tBMRleGTHHjCIOalK/zQVBqz//LPDgG2CS2s+wtjo
-         u2Nw==
+        bh=qy/qpaQcjeJGAGSX/SJfdvrV6+xztRS9WV/l31kV3fo=;
+        b=p9ojVOb7QdO7JLZj9S/1SqPGP8MeifFmkf1e6TNJokU+4X+mDo0s3TIOhU1rmJD0gQ
+         C3q3EV251sFO4e//IgvNjn6P29FqOur3szQsT80WVJVAgcgLC/L4gp8LF+fgzMkzOMdQ
+         qK0XZckG24gPmdHwXF6V6z62Qj29O8AjeBevFbC/8BXBEoj5BXdSL0u6CL6w5E92BGE7
+         +vtDECL4yMlxuZ35+QWL2+CnrRi7FlCo5jHCQ87YudtBBhNKSZWNcK4Kl6XHbFJXUSPL
+         qDxp8oIjW07ybSAxf6LQQ6rDchJmoirsp7IIZbdM6z6gMba2BAhKKUVuDpzy54UcfqSt
+         3+kA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=pXHCPErazdX/nDg2/nb6QksjLfEFTtrkU2uTHlahGRs=;
-        b=CELjIb1B7OP5/LUVayVcT3yPazqA9YA4ILPMuLvnQOJSTvC/sbrNa3GIiv82JCQJhy
-         k+UFcZcF+YyityCuV5xtTfYVAiib3ubtoe7WmKtdXEs5X8fzgWy5cw1iqOS1qYyT29r7
-         +WoP3o7Bk+x0v8uOTrje3Bg8uOYO6vt4oIqRnbXIvLedNnDOwNjRmG3oa4/aIDspyolu
-         xNDSLfxTSKm4LGwV5zR7Ed7frNVnfKe3WtY9IfOIo1Co3/HLUgo1jlNnrvFo2xvfJNfX
-         jbwop33dBfsCDiMd/skx07lYbzloffF4cyjnqljUAUyoel+2ZW4W+Occq0vJ8QYtVtJJ
-         1XYw==
-X-Gm-Message-State: AOAM531iLqJlpK96sBWwS2efoCZ93CzbBpRGqe57zg4k4/Er3DDMiOSm
-        b1C/ZkloaJOI4iqjif/T7xISAA7rZy7FRCQbnQU=
-X-Google-Smtp-Source: ABdhPJy23IA9Pmn2B2QQVPkwdw9dKjsA0O0LWinFUMBV4532ZUThiTX267nWH6v33xCXfAmR7YR5nPY/6Ir/NDlbC70=
+        bh=qy/qpaQcjeJGAGSX/SJfdvrV6+xztRS9WV/l31kV3fo=;
+        b=atarjLiUaoHRjNKF0x66dJwAgx+2ztRtD7iJJxo376kTvnEDP38xuAmLw5AGh9c09k
+         KYSqxRuqxVo+K4lKOKcmgvlkxoqUQBYWSLpGs6ChnidlAQKSu7f/QXRLBvLncYiLyma3
+         Qaee+oWJBVd/a+mlokkfNQZeLpFNUb/dcQb2lFiDbGZI8owh0d2QGOcROyChzV/n8pbW
+         /Tu71+zmhRMjfRIjFJ9Ywu6p04gzv81d66+R+modthx1R8vs7lRGc3VRE3LRWQPYUXI0
+         5P7VQCJQYjlDHXU9u+vckfxnTFu13zmmYRuhm7z/Sspnb7CGxxLzf+HInupBOMYwoONx
+         VQdA==
+X-Gm-Message-State: AOAM532v+o2y3mEBjQeSZq4naS7PYuj0rwFJ40EHzdBUZrOoFsvE08BZ
+        5U8oSNjbWqWVEAg8nKpWBjqcWTrYgvqU7WI6Dak=
+X-Google-Smtp-Source: ABdhPJynHOWSO11EeejwuL7BmZY2Zs5wB2dBb0RO3vU6HGkp4hd57n5miL7y+94vuamNMAUwpzA/HtJp7Bz7P8/50B8=
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:e9a3:260d:763b:67dc])
- (user=samitolvanen job=sendgmr) by 2002:a25:d3d3:: with SMTP id
- e202mr58822ybf.283.1616532011040; Tue, 23 Mar 2021 13:40:11 -0700 (PDT)
-Date:   Tue, 23 Mar 2021 13:39:41 -0700
+ (user=samitolvanen job=sendgmr) by 2002:a25:da48:: with SMTP id
+ n69mr74886ybf.47.1616532014644; Tue, 23 Mar 2021 13:40:14 -0700 (PDT)
+Date:   Tue, 23 Mar 2021 13:39:43 -0700
 In-Reply-To: <20210323203946.2159693-1-samitolvanen@google.com>
-Message-Id: <20210323203946.2159693-13-samitolvanen@google.com>
+Message-Id: <20210323203946.2159693-15-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20210323203946.2159693-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.31.0.291.g576ba9dcdaf-goog
-Subject: [PATCH v3 12/17] arm64: implement __va_function
+Subject: [PATCH v3 14/17] arm64: add __nocfi to functions that jump to a
+ physical address
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Kees Cook <keescook@chromium.org>
 Cc:     Nathan Chancellor <nathan@kernel.org>,
@@ -79,43 +80,64 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-With CONFIG_CFI_CLANG, the compiler replaces function addresses in
-instrumented C code with jump table addresses. This change implements
-the __va_function() macro, which returns the actual function address
-instead.
+Disable CFI checking for functions that switch to linear mapping and
+make an indirect call to a physical address, since the compiler only
+understands virtual addresses and the CFI check for such indirect calls
+would always fail.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm64/include/asm/memory.h | 15 +++++++++++++++
- 1 file changed, 15 insertions(+)
+ arch/arm64/include/asm/mmu_context.h | 2 +-
+ arch/arm64/kernel/cpu-reset.h        | 8 ++++----
+ arch/arm64/kernel/cpufeature.c       | 2 +-
+ 3 files changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/arch/arm64/include/asm/memory.h b/arch/arm64/include/asm/memory.h
-index 0aabc3be9a75..9a4887808681 100644
---- a/arch/arm64/include/asm/memory.h
-+++ b/arch/arm64/include/asm/memory.h
-@@ -321,6 +321,21 @@ static inline void *phys_to_virt(phys_addr_t x)
- #define virt_to_pfn(x)		__phys_to_pfn(__virt_to_phys((unsigned long)(x)))
- #define sym_to_pfn(x)		__phys_to_pfn(__pa_symbol(x))
+diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/asm/mmu_context.h
+index 16cc9a694bb2..270ba8761a23 100644
+--- a/arch/arm64/include/asm/mmu_context.h
++++ b/arch/arm64/include/asm/mmu_context.h
+@@ -119,7 +119,7 @@ static inline void cpu_install_idmap(void)
+  * Atomically replaces the active TTBR1_EL1 PGD with a new VA-compatible PGD,
+  * avoiding the possibility of conflicting TLB entries being allocated.
+  */
+-static inline void cpu_replace_ttbr1(pgd_t *pgdp)
++static inline void __nocfi cpu_replace_ttbr1(pgd_t *pgdp)
+ {
+ 	typedef void (ttbr_replace_func)(phys_addr_t);
+ 	extern ttbr_replace_func idmap_cpu_replace_ttbr1;
+diff --git a/arch/arm64/kernel/cpu-reset.h b/arch/arm64/kernel/cpu-reset.h
+index dfba8cf921e5..a05bda363272 100644
+--- a/arch/arm64/kernel/cpu-reset.h
++++ b/arch/arm64/kernel/cpu-reset.h
+@@ -13,10 +13,10 @@
+ void __cpu_soft_restart(unsigned long el2_switch, unsigned long entry,
+ 	unsigned long arg0, unsigned long arg1, unsigned long arg2);
  
-+#ifdef CONFIG_CFI_CLANG
-+/*
-+ * With CONFIG_CFI_CLANG, the compiler replaces function address
-+ * references with the address of the function's CFI jump table
-+ * entry. The __va_function macro always returns the address of the
-+ * actual function instead.
-+ */
-+#define __va_function(x) ({						\
-+	void *addr;							\
-+	asm("adrp %0, " __stringify(x) "\n\t"				\
-+	    "add  %0, %0, :lo12:" __stringify(x) : "=r" (addr));	\
-+	addr;								\
-+})
-+#endif
-+
- /*
-  *  virt_to_page(x)	convert a _valid_ virtual address to struct page *
-  *  virt_addr_valid(x)	indicates whether a virtual address is valid
+-static inline void __noreturn cpu_soft_restart(unsigned long entry,
+-					       unsigned long arg0,
+-					       unsigned long arg1,
+-					       unsigned long arg2)
++static inline void __noreturn __nocfi cpu_soft_restart(unsigned long entry,
++						       unsigned long arg0,
++						       unsigned long arg1,
++						       unsigned long arg2)
+ {
+ 	typeof(__cpu_soft_restart) *restart;
+ 
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 7ec1c2ccdc0b..473212ff4d70 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -1443,7 +1443,7 @@ static bool unmap_kernel_at_el0(const struct arm64_cpu_capabilities *entry,
+ }
+ 
+ #ifdef CONFIG_UNMAP_KERNEL_AT_EL0
+-static void
++static void __nocfi
+ kpti_install_ng_mappings(const struct arm64_cpu_capabilities *__unused)
+ {
+ 	typedef void (kpti_remap_fn)(int, int, phys_addr_t);
 -- 
 2.31.0.291.g576ba9dcdaf-goog
 
