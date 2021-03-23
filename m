@@ -8,58 +8,58 @@ X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5E757C43616
-	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:41:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 315E3C4363E
+	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:41:13 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4AE6F619D6
+	by mail.kernel.org (Postfix) with ESMTP id EF5B1619D6
 	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:41:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233569AbhCWUkq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 23 Mar 2021 16:40:46 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45014 "EHLO
+        id S233615AbhCWUkh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 23 Mar 2021 16:40:37 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44992 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233586AbhCWUkZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Mar 2021 16:40:25 -0400
-Received: from mail-qv1-xf49.google.com (mail-qv1-xf49.google.com [IPv6:2607:f8b0:4864:20::f49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 74D42C0613F0
-        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:21 -0700 (PDT)
-Received: by mail-qv1-xf49.google.com with SMTP id ev19so21437qvb.7
-        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:21 -0700 (PDT)
+        with ESMTP id S233487AbhCWUkF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Mar 2021 16:40:05 -0400
+Received: from mail-qt1-x849.google.com (mail-qt1-x849.google.com [IPv6:2607:f8b0:4864:20::849])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 53560C0613DD
+        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:04 -0700 (PDT)
+Received: by mail-qt1-x849.google.com with SMTP id f26so1953411qtq.17
+        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:04 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=WZ2fsTX5FLJhX01BulIdj9aVU+u+1SaaqVDcWrlk7vo=;
-        b=ec/02RNqMxC3NtjfEqCKWLv4qwmQTmHrkXsCeNO2KBn8qSqKzTE24FKGqfuKH+TVkK
-         X/VKFkbL4vsRYCrPeFIrZP8DeiwqKS96n7WGnqpK5r2/VAz0Iab+2cnLr9ixgbVx3i2+
-         bJO7ki2MVhZqoAWHQEzmE5B7oTVS3IIOSVMH6lZh48SF/0j7bgW6jHNwPIk8gKuBLJqR
-         4qQ5N4v6mKVofR2cSUqiTSphpJlczKzRN+vOPaGMsYJ3GFsS6r9eXFPtqA3WSVhoq05F
-         zPIbSYNFmagSwu4VxL+cE8EfslHOGZyTYBOn5X3fzMMM4mw38aQ1r1FrLS9fBfhCQ2tj
-         1law==
+        bh=hHyY7qre9OXEm5PJ4BWXLYwsH5KdHQkHk/skTedwvAs=;
+        b=XrXpk80QpW18uEoFzgTskAcjmvDwp4KkI6czCZLCI2LllpcLlxdrxTo1ItDmNHN8O3
+         bTKrEPYdAX8nqjUwEIjMGeZsRGCVSfDL1H2a3iHP2ngOiAKHMzDoZoN0zJI6U4uE7k4F
+         VmweQXHEF/+JfAZFlAnZ8tr59hnNtlg0Zu2hks4+H3cinnrhxWtfOBc/gs/UrtgKxOLm
+         BhVL1pP08EBbqj7+0X2iUTjwgv413Vz8hEc3BGPp0zOsqaAbAJtmiERhqTuyjM44Skll
+         xAU/PM/Gg5Aoxn2Inc/k5V8U3wmSxVTzMEVnRHN2lA+v/IcNPy7/8t7fb9X4R/xp1aHQ
+         xZhg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=WZ2fsTX5FLJhX01BulIdj9aVU+u+1SaaqVDcWrlk7vo=;
-        b=tXhauMr77F4vMb8LgJIUOLDpyCGYYyi4ZDJqZsgaJmoXDg0KvbmosV8UmJF0gBI1ma
-         PUX5G7teU16U89k/Yunm9UwOfTg7s7PoGiBncQ7c0AluSCsNCHSpWucuv4si6KhTTQ03
-         wtp8Xr2bHcy55N9U6LQFk2RTYfXwFOJCoCGAwLbXzXBZSLOuURK42++V09SyzKsc1tUD
-         utSA/RAwFYFtV1aZk3x7bnKThGZ5H0gL+q8mDjs+WL70aTiZJmmhtGjbYi65oL9GA+ML
-         SdmdghjsAd2SmCkRMTcplOY5kEfRIkRZFOtRl3We1vvpHTVe9ynfq3K268YLB4dIjYJY
-         58JA==
-X-Gm-Message-State: AOAM531JzeYrA7bcNLtQlCNpbFIrpvL5rJruvg0Yb6OrPnf9S56nDShp
-        0EcY4x6tW8sTuZWOxmAiOTHdWvj1cLxmY8WDOBk=
-X-Google-Smtp-Source: ABdhPJyxpPvs3kGL5X0rhxaceHJDwoHelX5/WOAlmnNB1fMlzzx1j3iwVr8PFhB1zHKJQ3nkMRVGiRyWH5xdyb6dFU8=
+        bh=hHyY7qre9OXEm5PJ4BWXLYwsH5KdHQkHk/skTedwvAs=;
+        b=oZ40n7fFDKw83U8chEqszifYChvsqEc1QC5r0jObHYMKJpB/iWosDT7OfG27RnmFlX
+         J0wzrWeuWtFChLsoOxnuA9UJE3g3plnVYiXdxXJd+msRj8uokSob2rhBzwzLM4v5ZtuP
+         rMvPVNIq7TErDtdiHkEht/4bteV38OW6U4f8cM2RgAjKI6JW2jUuNUYW/vie0h+DsQqa
+         wzrbAYtynqRNJPF2lo87egDB29tsDnmgCjgDiegE8KgldCUr53Z47rQSYUiCqjDvxRai
+         E2TZg0ixUEbGcmWWj4sPnMWYkxZZmdhycEEh06cJEx1h0xn24trSlS4wxQE5FpWA1xQD
+         AaZA==
+X-Gm-Message-State: AOAM533B2maOS2O7sXP4rqLIc642Ck46X1E/tpk5Sq7gVwDoqIBkIrtL
+        MHipZcMnnzW6DYMzV1pskZC6I7u52UFFxWIu97I=
+X-Google-Smtp-Source: ABdhPJzK5aKSbLwoPjOa/fZ+4wQdl/i/PHvrBqs1DnRZn9DH8KD/9yfcQQbrZv/qBxwpr5GT4qC2fq5WQsc1rIzUeMY=
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:e9a3:260d:763b:67dc])
- (user=samitolvanen job=sendgmr) by 2002:a0c:bec3:: with SMTP id
- f3mr6577376qvj.49.1616532020445; Tue, 23 Mar 2021 13:40:20 -0700 (PDT)
-Date:   Tue, 23 Mar 2021 13:39:46 -0700
+ (user=samitolvanen job=sendgmr) by 2002:ad4:542b:: with SMTP id
+ g11mr7093888qvt.47.1616532003425; Tue, 23 Mar 2021 13:40:03 -0700 (PDT)
+Date:   Tue, 23 Mar 2021 13:39:37 -0700
 In-Reply-To: <20210323203946.2159693-1-samitolvanen@google.com>
-Message-Id: <20210323203946.2159693-18-samitolvanen@google.com>
+Message-Id: <20210323203946.2159693-9-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20210323203946.2159693-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.31.0.291.g576ba9dcdaf-goog
-Subject: [PATCH v3 17/17] arm64: allow CONFIG_CFI_CLANG to be selected
+Subject: [PATCH v3 08/17] bpf: disable CFI in dispatcher functions
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Kees Cook <keescook@chromium.org>
 Cc:     Nathan Chancellor <nathan@kernel.org>,
@@ -79,26 +79,38 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Select ARCH_SUPPORTS_CFI_CLANG to allow CFI to be enabled.
+BPF dispatcher functions are patched at runtime to perform direct
+instead of indirect calls. Disable CFI for the dispatcher functions to
+avoid conflicts.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm64/Kconfig | 1 +
- 1 file changed, 1 insertion(+)
+ include/linux/bpf.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 5656e7aacd69..2eefdbc3e3c9 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -75,6 +75,7 @@ config ARM64
- 	select ARCH_SUPPORTS_SHADOW_CALL_STACK if CC_HAVE_SHADOW_CALL_STACK
- 	select ARCH_SUPPORTS_LTO_CLANG if CPU_LITTLE_ENDIAN
- 	select ARCH_SUPPORTS_LTO_CLANG_THIN
-+	select ARCH_SUPPORTS_CFI_CLANG
- 	select ARCH_SUPPORTS_ATOMIC_RMW
- 	select ARCH_SUPPORTS_INT128 if CC_HAS_INT128 && (GCC_VERSION >= 50000 || CC_IS_CLANG)
- 	select ARCH_SUPPORTS_NUMA_BALANCING
+diff --git a/include/linux/bpf.h b/include/linux/bpf.h
+index cccaef1088ea..9acdca574527 100644
+--- a/include/linux/bpf.h
++++ b/include/linux/bpf.h
+@@ -635,7 +635,7 @@ struct bpf_dispatcher {
+ 	struct bpf_ksym ksym;
+ };
+ 
+-static __always_inline unsigned int bpf_dispatcher_nop_func(
++static __always_inline __nocfi unsigned int bpf_dispatcher_nop_func(
+ 	const void *ctx,
+ 	const struct bpf_insn *insnsi,
+ 	unsigned int (*bpf_func)(const void *,
+@@ -663,7 +663,7 @@ void bpf_trampoline_put(struct bpf_trampoline *tr);
+ }
+ 
+ #define DEFINE_BPF_DISPATCHER(name)					\
+-	noinline unsigned int bpf_dispatcher_##name##_func(		\
++	noinline __nocfi unsigned int bpf_dispatcher_##name##_func(	\
+ 		const void *ctx,					\
+ 		const struct bpf_insn *insnsi,				\
+ 		unsigned int (*bpf_func)(const void *,			\
 -- 
 2.31.0.291.g576ba9dcdaf-goog
 
