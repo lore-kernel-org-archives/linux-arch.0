@@ -8,58 +8,58 @@ X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D82F9C433F2
-	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:41:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7103CC43446
+	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:41:09 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C6CF2619EA
-	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:41:08 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5D43A619CB
+	for <linux-arch@archiver.kernel.org>; Tue, 23 Mar 2021 20:41:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233439AbhCWUkf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 23 Mar 2021 16:40:35 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44934 "EHLO
+        id S233629AbhCWUki (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 23 Mar 2021 16:40:38 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45016 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233476AbhCWUj7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Mar 2021 16:39:59 -0400
+        with ESMTP id S233508AbhCWUkI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Mar 2021 16:40:08 -0400
 Received: from mail-qk1-x749.google.com (mail-qk1-x749.google.com [IPv6:2607:f8b0:4864:20::749])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D8BA2C0613DB
-        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:39:58 -0700 (PDT)
-Received: by mail-qk1-x749.google.com with SMTP id y9so121074qki.14
-        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:39:58 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F034FC0613E7
+        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:07 -0700 (PDT)
+Received: by mail-qk1-x749.google.com with SMTP id p133so114349qka.17
+        for <linux-arch@vger.kernel.org>; Tue, 23 Mar 2021 13:40:07 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=EKy6eSpRty5bSmZbwR30NkKAGzsTESRLoXrAS0NLKzs=;
-        b=SHiuDwK39cZpUPhp4hdoHOuGGDuRvdgVruquA5OhzT20BoTxNAsr9v4IssAUSm++Wu
-         Gdigd5fbbNiaLy/ry4ApwbLMVFLE/K8FS9T8hHmeF+HMjwCwC1pX53Mm0BNeat42pW6A
-         vudqk7VvICGdH7ZzkH/77tQzcGfMs8BokGif9s1iaTr4/OXPToVBkScJWmDX17YliXvx
-         qqE/rODtG05P0dv7CE4/9UcCl0G27AKyydISoJgw84bjphFaaOWXGCFldHhaDhA0vXjv
-         6uLVLqt6EaTZd1uB/NSBl+SDtBiFuBudKFH8Sf5XHxGzWkbtxux1it75UPI4B3F4MoBR
-         bzIw==
+        bh=xIKsEDWi8EL1j5NSYc2uWQA3l5Y2NiXXcLT9TovNhRQ=;
+        b=CgO/iSD/xRAdG2p+rJSIXqPZiKxGiKV2KoCvVGLUH2ZMIqkf574rj//FtCji3y0utT
+         6lKsLLQNF9ZBDCdsLOxtHp++EYzY5pP2mxldfH597xr3rQ4xUq9h8H5ZqqqHCXkA5Woj
+         AW4sxR0WuNwk6mjflnE1PSnqER0YBsuwjwXu3Ld7LoONyiCQrMHMa5vxLqAxT+oS7dew
+         573+hZHKrFPSsuuYfRH4A915CMBtXOIjkDVY3SgKsQFOEMK30MSps4h+NJvmkF2xbtOc
+         I9PZSHpWCV2Y3qKuZASiPEN0Gbhj4D7LoWjpCn9ubP4M+BIswdDkzinaS2z4pXhbM2te
+         iBHg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=EKy6eSpRty5bSmZbwR30NkKAGzsTESRLoXrAS0NLKzs=;
-        b=hK4J8QUWeyyKbl9oZG+CdgymOCSshWZBAXzlGkLgcJ33oRK04g1OxWF9Mn2g4fopwS
-         nr68AZhzGYqfInyJUZgPaBYWZTVyx1X5eQLLOY0PMvZSwd6FC+VS2kQyx9CAqUWPO6N/
-         0/d3GzIlzAUaqtfuvtBhcVfMIj6OXrJhziWuhvDygv/StX6bh9U4wGNdmzIqFMlbsRRk
-         SmzNOTzGmh0H0RahkY8lXr3vdgPZl7kBzHmfD8f8d/YMedt/nrtB7Sh3rjC0FqEtuXin
-         0ag+1B1qhAbnWPNDitAQUNoXiE2nrHENKvue0IzGGttCvah/ZvmcJTroxk5ppmgXKLDt
-         EkPQ==
-X-Gm-Message-State: AOAM533UUfTbKdgXXi5WoqdabBQfQl70dpbSDg0SA8B/YJej7arGe7pS
-        OC9QAHZf5NFpCCk7OPn22gblFH63UP9KDX3cCxU=
-X-Google-Smtp-Source: ABdhPJzHeOXxkC8OlUHUZt0DqSgHN9t2rhpi+pE22x1dKho2TmMlfck6McMlcAxQskeb4L29PcbGG9gfenN7WPTbeOU=
+        bh=xIKsEDWi8EL1j5NSYc2uWQA3l5Y2NiXXcLT9TovNhRQ=;
+        b=VuECfxIl7v8fVIydWLIC7ojReb9wEbMd0XhWE0bhdl/jJmhH2e/5MpsM0r5CT69Mv3
+         bWiD6o+Z1cr8cdvhbDusiXhl2DqR1VGcpaxqHFl54s25+NnMURNk6JMjib0l3TQPCt3S
+         uvaHAKtz0fQ7X83K5cuJZLlaEAZCCtcj84eLmrbewXxHYTNN/oWoQdo0V1PeyCTGGWY5
+         lBlXu5/S8VeMa7qLDDPhqsCDPG3MzWVQ6QNw/tOFJlQFnFV74K7uMWJW8p0/Uh+5EIQk
+         nkG/c0A1ZsidhzIR+2MbUEyW97s1tjGSG+u6vSafr+fIbV/ZNCudQKHYyqQ+RVeTeLX0
+         pvqw==
+X-Gm-Message-State: AOAM532LRVNENYvX/CwSqr8akEHXN8AYY6c+/1P1MOszso5Y/u5mSoVH
+        cySJ6aGc0qwR2lIXJ92b6x0a8WsNzkM3wHs/idE=
+X-Google-Smtp-Source: ABdhPJxb7WUXqQY1HKNj9KDKWZ2mX+BL8U6d8oevhZ712uyBxXvQItdJYqzQ+dKFDvxGu4W+35Xr/uYgxKxus3pnNFc=
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:e9a3:260d:763b:67dc])
- (user=samitolvanen job=sendgmr) by 2002:ad4:5887:: with SMTP id
- dz7mr198051qvb.12.1616531998043; Tue, 23 Mar 2021 13:39:58 -0700 (PDT)
-Date:   Tue, 23 Mar 2021 13:39:34 -0700
+ (user=samitolvanen job=sendgmr) by 2002:a0c:e9c7:: with SMTP id
+ q7mr159305qvo.7.1616532007142; Tue, 23 Mar 2021 13:40:07 -0700 (PDT)
+Date:   Tue, 23 Mar 2021 13:39:39 -0700
 In-Reply-To: <20210323203946.2159693-1-samitolvanen@google.com>
-Message-Id: <20210323203946.2159693-6-samitolvanen@google.com>
+Message-Id: <20210323203946.2159693-11-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20210323203946.2159693-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.31.0.291.g576ba9dcdaf-goog
-Subject: [PATCH v3 05/17] workqueue: use WARN_ON_FUNCTION_MISMATCH
+Subject: [PATCH v3 10/17] lkdtm: use __va_function
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Kees Cook <keescook@chromium.org>
 Cc:     Nathan Chancellor <nathan@kernel.org>,
@@ -79,34 +79,30 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-With CONFIG_CFI_CLANG, a callback function passed to
-__queue_delayed_work from a module points to a jump table entry
-defined in the module instead of the one used in the core kernel,
-which breaks function address equality in this check:
-
-  WARN_ON_ONCE(timer->function != delayed_work_timer_fn);
-
-Use WARN_ON_FUNCTION_MISMATCH() instead to disable the warning
-when CFI and modules are both enabled.
+To ensure we take the actual address of a function in kernel text, use
+__va_function. Otherwise, with CONFIG_CFI_CLANG, the compiler replaces
+the address with a pointer to the CFI jump table, which is actually in
+the module when compiled with CONFIG_LKDTM=m.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+Acked-by: Kees Cook <keescook@chromium.org>
 ---
- kernel/workqueue.c | 2 +-
+ drivers/misc/lkdtm/usercopy.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/kernel/workqueue.c b/kernel/workqueue.c
-index 0d150da252e8..03fe07d2f39f 100644
---- a/kernel/workqueue.c
-+++ b/kernel/workqueue.c
-@@ -1630,7 +1630,7 @@ static void __queue_delayed_work(int cpu, struct workqueue_struct *wq,
- 	struct work_struct *work = &dwork->work;
+diff --git a/drivers/misc/lkdtm/usercopy.c b/drivers/misc/lkdtm/usercopy.c
+index 109e8d4302c1..d173d6175c87 100644
+--- a/drivers/misc/lkdtm/usercopy.c
++++ b/drivers/misc/lkdtm/usercopy.c
+@@ -314,7 +314,7 @@ void lkdtm_USERCOPY_KERNEL(void)
  
- 	WARN_ON_ONCE(!wq);
--	WARN_ON_ONCE(timer->function != delayed_work_timer_fn);
-+	WARN_ON_FUNCTION_MISMATCH(timer->function, delayed_work_timer_fn);
- 	WARN_ON_ONCE(timer_pending(timer));
- 	WARN_ON_ONCE(!list_empty(&work->entry));
- 
+ 	pr_info("attempting bad copy_to_user from kernel text: %px\n",
+ 		vm_mmap);
+-	if (copy_to_user((void __user *)user_addr, vm_mmap,
++	if (copy_to_user((void __user *)user_addr, __va_function(vm_mmap),
+ 			 unconst + PAGE_SIZE)) {
+ 		pr_warn("copy_to_user failed, but lacked Oops\n");
+ 		goto free_user;
 -- 
 2.31.0.291.g576ba9dcdaf-goog
 
