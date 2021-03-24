@@ -5,61 +5,62 @@ X-Spam-Level:
 X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable
+	URIBL_BLOCKED,USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id ADD0EC433DB
-	for <linux-arch@archiver.kernel.org>; Wed, 24 Mar 2021 11:26:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 11FA7C433E2
+	for <linux-arch@archiver.kernel.org>; Wed, 24 Mar 2021 11:26:40 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7C9D8619FF
+	by mail.kernel.org (Postfix) with ESMTP id CC56761A15
 	for <linux-arch@archiver.kernel.org>; Wed, 24 Mar 2021 11:26:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234901AbhCXL0G (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 24 Mar 2021 07:26:06 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38090 "EHLO
+        id S234944AbhCXL0I (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 24 Mar 2021 07:26:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38120 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234954AbhCXLZf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Mar 2021 07:25:35 -0400
-Received: from mail-qv1-xf4a.google.com (mail-qv1-xf4a.google.com [IPv6:2607:f8b0:4864:20::f4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C40BAC0613DE
-        for <linux-arch@vger.kernel.org>; Wed, 24 Mar 2021 04:25:34 -0700 (PDT)
-Received: by mail-qv1-xf4a.google.com with SMTP id bt20so1140166qvb.0
-        for <linux-arch@vger.kernel.org>; Wed, 24 Mar 2021 04:25:34 -0700 (PDT)
+        with ESMTP id S235016AbhCXLZl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Mar 2021 07:25:41 -0400
+Received: from mail-qk1-x749.google.com (mail-qk1-x749.google.com [IPv6:2607:f8b0:4864:20::749])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1FC8BC0613E0
+        for <linux-arch@vger.kernel.org>; Wed, 24 Mar 2021 04:25:39 -0700 (PDT)
+Received: by mail-qk1-x749.google.com with SMTP id g18so1325292qki.15
+        for <linux-arch@vger.kernel.org>; Wed, 24 Mar 2021 04:25:39 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=ZaFjuV65eN1OuecHxLplhRFaC9JE/oD9gdApL7zOyoc=;
-        b=INRWAnDFjQHl9/RukpTLZhaogKEqtoMcGfqJGugCueBrm/zLoIyRAkGWVVk4EmJ938
-         bYjNRccpCGaXkdzrT4HCmvG9xJ8gMDNVMhZbtCTTkdkWy3bQmjG7OYptEH2QQtJf2LvQ
-         lmwoqoX9J27C4QxQOG7j3tr9dpZGgXD1mc+PjFiCYXT8KYRoDeJ30H/KpIlEhfDQcW48
-         68rMPa+mJJSjbuUC87lgK5QN/Nct7cj+8u/cpQJwvKjPEyZf940CFTyvc1UdohmkimoT
-         pNwSZhk6sqQdBDThE/g0y6+nljiO7CWZrjUEgl2ZO2RTTXoSoYOFnXC8tBR8m2kocphB
-         brHA==
+        bh=HS48mvwd8rP5r5QtY6Nl7hL+mujJTvxqfvePWFa/JD8=;
+        b=Py8NGJoFehXfWdBtxEsQIg3arTREWx/fYu/2sDHs90x7x50j12TXpdRRbL+vcDdsAR
+         1wK1wV65CdTBdU2ncvFtOqcQWmQI8tH8d27qxJsJ+a0UYTWM7p83cULTyYIE9Mf1lhx+
+         Z85cPi0h41A1fR1JgqE/QqJi/fT2vOkCYeBonfoN2WsupSvzn4W2LyHv45glj6KjJKi5
+         i4EpeuOefyN0MTXb3gh4u4F8/gYs70eKu2AsC1h+p6tBZ4hRh9OiMP6H1o9nKpL7hk7Q
+         DPVyo7ExsG/Az/hwnEOe4NGkLVBJFvopLttNWslxLyXr40WjTHQ5aiBlGtt+OwOJZwf8
+         FgpQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=ZaFjuV65eN1OuecHxLplhRFaC9JE/oD9gdApL7zOyoc=;
-        b=s6BDh8xbpwsj76TZknBrFV7BbCGynccHcQvVBUeI5cGlLUKQ2V5zqFQB0oy07U/HjQ
-         tLJKrXgki7SoaKuounXlXvy6e07wciEBIz271quzbrUAD4F/OWFJpPjdNz5/MA6sv/C7
-         lnCP6q3FvFKNEJKp8NdvGYvH1lqmhk45n6OXtDzg2oY5E+X9QCIFu0otblwlNSyhVEKt
-         5Eb4lHPzOxUVmq4sWvgHb0qJ5uNgUrPLRU2lH+QNlVOAx4Yx7fKaki87yNi5fChso9Pm
-         dGUzu1HAWicQKSudfkoG4pp3w7M6B6u6AP9fvXGoYP7gcLHPNbzhl6++0gmNNwvjmBvr
-         Nfxg==
-X-Gm-Message-State: AOAM533wEzmcTsNbsF2Y7mC0tr4t7EMOvtl9wENb919x+7D32iYgsd56
-        QTQ7JzMZ3uavA8yZLn7T9Uv6hXA5Kg==
-X-Google-Smtp-Source: ABdhPJxqIhdR7kOtPGmKVTdUpKMXrnpQ8vxCIUjm2EkZ42vzHH7tq5dwJZOM6zWcwf4Zy5KDbqG+3butoA==
+        bh=HS48mvwd8rP5r5QtY6Nl7hL+mujJTvxqfvePWFa/JD8=;
+        b=syf7iFeTO7lamKPmpnkZ4+aOumSFdMirykJni7RH3AsPTT76yByxtUlRNb7vrYsqk6
+         RAoL5/fF9bxlq097ufpR9PQFqNX2i/U2q+RWcT4wtDGJgtfdRrrAuGX+Vwx+Eqtss78w
+         gNXZlSKmuHtBKEEg36QwjNeWo+Kv6OSM4zFGmJOCmXX+SXnpkWw0vGvOhR6hFb/xqM02
+         7b1XoKvuMJM6ndLtPmlLI+ojvmg2qH18OQepoBgvBvAjnawWNfm3Wa5+W3SixXd/pP6x
+         uLK9ZYIhtxPr++mEuksxDVOhU9IQ8cOnE3Rp1zAqEaZK7AZ/6qAjB60HUsm9Q/u4/mSc
+         LRjg==
+X-Gm-Message-State: AOAM530RakhcXMNdQhzmCuze0n63+9BDsWDcU7MIAl97Guuz81dHPIQA
+        sW9ccWUAuq3DhK3Ta4hyj57uam6w4Q==
+X-Google-Smtp-Source: ABdhPJxW0hfGUHwXACrmXI9nLXyGRqSXDK6EeEVfMXerK8+OuRGGlPsU7KqU7zN1ya27Qc5kbrO8qr9y1w==
 X-Received: from elver.muc.corp.google.com ([2a00:79e0:15:13:6489:b3f0:4af:af0])
- (user=elver job=sendgmr) by 2002:a0c:f7d1:: with SMTP id f17mr2286719qvo.38.1616585133964;
- Wed, 24 Mar 2021 04:25:33 -0700 (PDT)
-Date:   Wed, 24 Mar 2021 12:24:58 +0100
+ (user=elver job=sendgmr) by 2002:a0c:bf12:: with SMTP id m18mr2542326qvi.40.1616585138327;
+ Wed, 24 Mar 2021 04:25:38 -0700 (PDT)
+Date:   Wed, 24 Mar 2021 12:25:00 +0100
 In-Reply-To: <20210324112503.623833-1-elver@google.com>
-Message-Id: <20210324112503.623833-7-elver@google.com>
+Message-Id: <20210324112503.623833-9-elver@google.com>
 Mime-Version: 1.0
 References: <20210324112503.623833-1-elver@google.com>
 X-Mailer: git-send-email 2.31.0.291.g576ba9dcdaf-goog
-Subject: [PATCH v3 06/11] perf: Add support for SIGTRAP on perf events
+Subject: [PATCH v3 08/11] selftests/perf_events: Add kselftest for
+ process-wide sigtrap handling
 From:   Marco Elver <elver@google.com>
 To:     elver@google.com, peterz@infradead.org,
         alexander.shishkin@linux.intel.com, acme@kernel.org,
@@ -77,111 +78,283 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Adds bit perf_event_attr::sigtrap, which can be set to cause events to
-send SIGTRAP (with si_code TRAP_PERF) to the task where the event
-occurred. To distinguish perf events and allow user space to decode
-si_perf (if set), the event type is set in si_errno.
+Add a kselftest for testing process-wide perf events with synchronous
+SIGTRAP on events (using breakpoints). In particular, we want to test
+that changes to the event propagate to all children, and the SIGTRAPs
+are in fact synchronously sent to the thread where the event occurred.
 
-The primary motivation is to support synchronous signals on perf events
-in the task where an event (such as breakpoints) triggered.
+Note: The "signal_stress" test case is also added later in the series to
+perf tool's built-in tests. The test here is more elaborate in that
+respect, which on one hand avoids bloating the perf tool unnecessarily,
+but we also benefit from structured tests with TAP-compliant output that
+the kselftest framework provides.
 
-Link: https://lore.kernel.org/lkml/YBv3rAT566k+6zjg@hirez.programming.kicks-ass.net/
-Suggested-by: Peter Zijlstra <peterz@infradead.org>
-Acked-by: Dmitry Vyukov <dvyukov@google.com>
 Signed-off-by: Marco Elver <elver@google.com>
 ---
-v2:
-* Use atomic_set(&event_count, 1), since it must always be 0 in
-  perf_pending_event_disable().
-* Implicitly restrict inheriting events if sigtrap, but the child was
-  cloned with CLONE_CLEAR_SIGHAND, because it is not generally safe if
-  the child cleared all signal handlers to continue sending SIGTRAP.
----
- include/uapi/linux/perf_event.h |  3 ++-
- kernel/events/core.c            | 28 +++++++++++++++++++++++++++-
- 2 files changed, 29 insertions(+), 2 deletions(-)
+v3:
+* Fix for latest libc signal.h.
 
-diff --git a/include/uapi/linux/perf_event.h b/include/uapi/linux/perf_event.h
-index 8c5b9f5ad63f..3a4dbb1688f0 100644
---- a/include/uapi/linux/perf_event.h
-+++ b/include/uapi/linux/perf_event.h
-@@ -391,7 +391,8 @@ struct perf_event_attr {
- 				build_id       :  1, /* use build id in mmap2 events */
- 				inherit_thread :  1, /* children only inherit if cloned with CLONE_THREAD */
- 				remove_on_exec :  1, /* event is removed from task on exec */
--				__reserved_1   : 27;
-+				sigtrap        :  1, /* send synchronous SIGTRAP on event */
-+				__reserved_1   : 26;
- 
- 	union {
- 		__u32		wakeup_events;	  /* wakeup every n events */
-diff --git a/kernel/events/core.c b/kernel/events/core.c
-index b6434697c516..1e4c949bf75f 100644
---- a/kernel/events/core.c
-+++ b/kernel/events/core.c
-@@ -6391,6 +6391,17 @@ void perf_event_wakeup(struct perf_event *event)
- 	}
- }
- 
-+static void perf_sigtrap(struct perf_event *event)
-+{
-+	struct kernel_siginfo info;
+v2:
+* Patch added to series.
+---
+ .../testing/selftests/perf_events/.gitignore  |   2 +
+ tools/testing/selftests/perf_events/Makefile  |   6 +
+ tools/testing/selftests/perf_events/config    |   1 +
+ tools/testing/selftests/perf_events/settings  |   1 +
+ .../selftests/perf_events/sigtrap_threads.c   | 206 ++++++++++++++++++
+ 5 files changed, 216 insertions(+)
+ create mode 100644 tools/testing/selftests/perf_events/.gitignore
+ create mode 100644 tools/testing/selftests/perf_events/Makefile
+ create mode 100644 tools/testing/selftests/perf_events/config
+ create mode 100644 tools/testing/selftests/perf_events/settings
+ create mode 100644 tools/testing/selftests/perf_events/sigtrap_threads.c
+
+diff --git a/tools/testing/selftests/perf_events/.gitignore b/tools/testing/selftests/perf_events/.gitignore
+new file mode 100644
+index 000000000000..4dc43e1bd79c
+--- /dev/null
++++ b/tools/testing/selftests/perf_events/.gitignore
+@@ -0,0 +1,2 @@
++# SPDX-License-Identifier: GPL-2.0-only
++sigtrap_threads
+diff --git a/tools/testing/selftests/perf_events/Makefile b/tools/testing/selftests/perf_events/Makefile
+new file mode 100644
+index 000000000000..973a2c39ca83
+--- /dev/null
++++ b/tools/testing/selftests/perf_events/Makefile
+@@ -0,0 +1,6 @@
++# SPDX-License-Identifier: GPL-2.0
++CFLAGS += -Wl,-no-as-needed -Wall -I../../../../usr/include
++LDFLAGS += -lpthread
 +
-+	clear_siginfo(&info);
-+	info.si_signo = SIGTRAP;
-+	info.si_code = TRAP_PERF;
-+	info.si_errno = event->attr.type;
-+	force_sig_info(&info);
++TEST_GEN_PROGS := sigtrap_threads
++include ../lib.mk
+diff --git a/tools/testing/selftests/perf_events/config b/tools/testing/selftests/perf_events/config
+new file mode 100644
+index 000000000000..ba58ff2203e4
+--- /dev/null
++++ b/tools/testing/selftests/perf_events/config
+@@ -0,0 +1 @@
++CONFIG_PERF_EVENTS=y
+diff --git a/tools/testing/selftests/perf_events/settings b/tools/testing/selftests/perf_events/settings
+new file mode 100644
+index 000000000000..6091b45d226b
+--- /dev/null
++++ b/tools/testing/selftests/perf_events/settings
+@@ -0,0 +1 @@
++timeout=120
+diff --git a/tools/testing/selftests/perf_events/sigtrap_threads.c b/tools/testing/selftests/perf_events/sigtrap_threads.c
+new file mode 100644
+index 000000000000..398717e2991a
+--- /dev/null
++++ b/tools/testing/selftests/perf_events/sigtrap_threads.c
+@@ -0,0 +1,206 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Test for perf events with SIGTRAP across all threads.
++ *
++ * Copyright (C) 2021, Google LLC.
++ */
++
++#define _GNU_SOURCE
++
++/* We need the latest siginfo from the kernel repo. */
++#include <sys/types.h>
++#include <asm/siginfo.h>
++#define __have_siginfo_t 1
++#define __have_sigval_t 1
++#define __have_sigevent_t 1
++#define __siginfo_t_defined
++#define __sigval_t_defined
++#define __sigevent_t_defined
++#define _BITS_SIGINFO_CONSTS_H 1
++#define _BITS_SIGEVENT_CONSTS_H 1
++
++#include <stdbool.h>
++#include <stddef.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <linux/hw_breakpoint.h>
++#include <linux/perf_event.h>
++#include <pthread.h>
++#include <signal.h>
++#include <sys/ioctl.h>
++#include <sys/syscall.h>
++#include <unistd.h>
++
++#include "../kselftest_harness.h"
++
++#define NUM_THREADS 5
++
++/* Data shared between test body, threads, and signal handler. */
++static struct {
++	int tids_want_signal;		/* Which threads still want a signal. */
++	int signal_count;		/* Sanity check number of signals received. */
++	volatile int iterate_on;	/* Variable to set breakpoint on. */
++	siginfo_t first_siginfo;	/* First observed siginfo_t. */
++} ctx;
++
++static struct perf_event_attr make_event_attr(bool enabled, volatile void *addr)
++{
++	struct perf_event_attr attr = {
++		.type		= PERF_TYPE_BREAKPOINT,
++		.size		= sizeof(attr),
++		.sample_period	= 1,
++		.disabled	= !enabled,
++		.bp_addr	= (long)addr,
++		.bp_type	= HW_BREAKPOINT_RW,
++		.bp_len		= HW_BREAKPOINT_LEN_1,
++		.inherit	= 1, /* Children inherit events ... */
++		.inherit_thread = 1, /* ... but only cloned with CLONE_THREAD. */
++		.remove_on_exec = 1, /* Required by sigtrap. */
++		.sigtrap	= 1, /* Request synchronous SIGTRAP on event. */
++	};
++	return attr;
 +}
 +
- static void perf_pending_event_disable(struct perf_event *event)
- {
- 	int cpu = READ_ONCE(event->pending_disable);
-@@ -6400,6 +6411,13 @@ static void perf_pending_event_disable(struct perf_event *event)
- 
- 	if (cpu == smp_processor_id()) {
- 		WRITE_ONCE(event->pending_disable, -1);
++static void sigtrap_handler(int signum, siginfo_t *info, void *ucontext)
++{
++	if (info->si_code != TRAP_PERF) {
++		fprintf(stderr, "%s: unexpected si_code %d\n", __func__, info->si_code);
++		return;
++	}
 +
-+		if (event->attr.sigtrap) {
-+			atomic_set(&event->event_limit, 1); /* rearm event */
-+			perf_sigtrap(event);
-+			return;
-+		}
++	/*
++	 * The data in siginfo_t we're interested in should all be the same
++	 * across threads.
++	 */
++	if (!__atomic_fetch_add(&ctx.signal_count, 1, __ATOMIC_RELAXED))
++		ctx.first_siginfo = *info;
++	__atomic_fetch_sub(&ctx.tids_want_signal, syscall(__NR_gettid), __ATOMIC_RELAXED);
++}
 +
- 		perf_event_disable_local(event);
- 		return;
- 	}
-@@ -11428,6 +11446,9 @@ perf_event_alloc(struct perf_event_attr *attr, int cpu,
- 
- 	event->state		= PERF_EVENT_STATE_INACTIVE;
- 
-+	if (event->attr.sigtrap)
-+		atomic_set(&event->event_limit, 1);
++static void *test_thread(void *arg)
++{
++	pthread_barrier_t *barrier = (pthread_barrier_t *)arg;
++	pid_t tid = syscall(__NR_gettid);
++	int iter;
++	int i;
 +
- 	if (task) {
- 		event->attach_state = PERF_ATTACH_TASK;
- 		/*
-@@ -11706,6 +11727,9 @@ static int perf_copy_attr(struct perf_event_attr __user *uattr,
- 	if (attr->remove_on_exec && attr->enable_on_exec)
- 		return -EINVAL;
- 
-+	if (attr->sigtrap && !attr->remove_on_exec)
-+		return -EINVAL;
++	pthread_barrier_wait(barrier);
 +
- out:
- 	return ret;
- 
-@@ -12932,7 +12956,9 @@ inherit_task_group(struct perf_event *event, struct task_struct *parent,
- 	struct perf_event_context *child_ctx;
- 
- 	if (!event->attr.inherit ||
--	    (event->attr.inherit_thread && !(clone_flags & CLONE_THREAD))) {
-+	    (event->attr.inherit_thread && !(clone_flags & CLONE_THREAD)) ||
-+	    /* Do not inherit if sigtrap and signal handlers were cleared. */
-+	    (event->attr.sigtrap && (clone_flags & CLONE_CLEAR_SIGHAND))) {
- 		*inherited_all = 0;
- 		return 0;
- 	}
++	__atomic_fetch_add(&ctx.tids_want_signal, tid, __ATOMIC_RELAXED);
++	iter = ctx.iterate_on; /* read */
++	for (i = 0; i < iter - 1; i++) {
++		__atomic_fetch_add(&ctx.tids_want_signal, tid, __ATOMIC_RELAXED);
++		ctx.iterate_on = iter; /* idempotent write */
++	}
++
++	return NULL;
++}
++
++FIXTURE(sigtrap_threads)
++{
++	struct sigaction oldact;
++	pthread_t threads[NUM_THREADS];
++	pthread_barrier_t barrier;
++	int fd;
++};
++
++FIXTURE_SETUP(sigtrap_threads)
++{
++	struct perf_event_attr attr = make_event_attr(false, &ctx.iterate_on);
++	struct sigaction action = {};
++	int i;
++
++	memset(&ctx, 0, sizeof(ctx));
++
++	/* Initialize sigtrap handler. */
++	action.sa_flags = SA_SIGINFO | SA_NODEFER;
++	action.sa_sigaction = sigtrap_handler;
++	sigemptyset(&action.sa_mask);
++	ASSERT_EQ(sigaction(SIGTRAP, &action, &self->oldact), 0);
++
++	/* Initialize perf event. */
++	self->fd = syscall(__NR_perf_event_open, &attr, 0, -1, -1, PERF_FLAG_FD_CLOEXEC);
++	ASSERT_NE(self->fd, -1);
++
++	/* Spawn threads inheriting perf event. */
++	pthread_barrier_init(&self->barrier, NULL, NUM_THREADS + 1);
++	for (i = 0; i < NUM_THREADS; i++)
++		ASSERT_EQ(pthread_create(&self->threads[i], NULL, test_thread, &self->barrier), 0);
++}
++
++FIXTURE_TEARDOWN(sigtrap_threads)
++{
++	pthread_barrier_destroy(&self->barrier);
++	close(self->fd);
++	sigaction(SIGTRAP, &self->oldact, NULL);
++}
++
++static void run_test_threads(struct __test_metadata *_metadata,
++			     FIXTURE_DATA(sigtrap_threads) *self)
++{
++	int i;
++
++	pthread_barrier_wait(&self->barrier);
++	for (i = 0; i < NUM_THREADS; i++)
++		ASSERT_EQ(pthread_join(self->threads[i], NULL), 0);
++}
++
++TEST_F(sigtrap_threads, remain_disabled)
++{
++	run_test_threads(_metadata, self);
++	EXPECT_EQ(ctx.signal_count, 0);
++	EXPECT_NE(ctx.tids_want_signal, 0);
++}
++
++TEST_F(sigtrap_threads, enable_event)
++{
++	EXPECT_EQ(ioctl(self->fd, PERF_EVENT_IOC_ENABLE, 0), 0);
++	run_test_threads(_metadata, self);
++
++	EXPECT_EQ(ctx.signal_count, NUM_THREADS);
++	EXPECT_EQ(ctx.tids_want_signal, 0);
++	EXPECT_EQ(ctx.first_siginfo.si_addr, &ctx.iterate_on);
++	EXPECT_EQ(ctx.first_siginfo.si_errno, PERF_TYPE_BREAKPOINT);
++	EXPECT_EQ(ctx.first_siginfo.si_perf, (HW_BREAKPOINT_LEN_1 << 16) | HW_BREAKPOINT_RW);
++
++	/* Check enabled for parent. */
++	ctx.iterate_on = 0;
++	EXPECT_EQ(ctx.signal_count, NUM_THREADS + 1);
++}
++
++/* Test that modification propagates to all inherited events. */
++TEST_F(sigtrap_threads, modify_and_enable_event)
++{
++	struct perf_event_attr new_attr = make_event_attr(true, &ctx.iterate_on);
++
++	EXPECT_EQ(ioctl(self->fd, PERF_EVENT_IOC_MODIFY_ATTRIBUTES, &new_attr), 0);
++	run_test_threads(_metadata, self);
++
++	EXPECT_EQ(ctx.signal_count, NUM_THREADS);
++	EXPECT_EQ(ctx.tids_want_signal, 0);
++	EXPECT_EQ(ctx.first_siginfo.si_addr, &ctx.iterate_on);
++	EXPECT_EQ(ctx.first_siginfo.si_errno, PERF_TYPE_BREAKPOINT);
++	EXPECT_EQ(ctx.first_siginfo.si_perf, (HW_BREAKPOINT_LEN_1 << 16) | HW_BREAKPOINT_RW);
++
++	/* Check enabled for parent. */
++	ctx.iterate_on = 0;
++	EXPECT_EQ(ctx.signal_count, NUM_THREADS + 1);
++}
++
++/* Stress test event + signal handling. */
++TEST_F(sigtrap_threads, signal_stress)
++{
++	ctx.iterate_on = 3000;
++
++	EXPECT_EQ(ioctl(self->fd, PERF_EVENT_IOC_ENABLE, 0), 0);
++	run_test_threads(_metadata, self);
++	EXPECT_EQ(ioctl(self->fd, PERF_EVENT_IOC_DISABLE, 0), 0);
++
++	EXPECT_EQ(ctx.signal_count, NUM_THREADS * ctx.iterate_on);
++	EXPECT_EQ(ctx.tids_want_signal, 0);
++	EXPECT_EQ(ctx.first_siginfo.si_addr, &ctx.iterate_on);
++	EXPECT_EQ(ctx.first_siginfo.si_errno, PERF_TYPE_BREAKPOINT);
++	EXPECT_EQ(ctx.first_siginfo.si_perf, (HW_BREAKPOINT_LEN_1 << 16) | HW_BREAKPOINT_RW);
++}
++
++TEST_HARNESS_MAIN
 -- 
 2.31.0.291.g576ba9dcdaf-goog
 
