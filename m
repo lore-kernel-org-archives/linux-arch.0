@@ -4,48 +4,48 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CEB68C433DB
-	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 13:46:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0BA37C433E2
+	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 13:46:49 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8938261A21
-	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 13:46:19 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B67A061A1E
+	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 13:46:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230290AbhCZNqA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 26 Mar 2021 09:46:00 -0400
-Received: from pegase1.c-s.fr ([93.17.236.30]:27933 "EHLO pegase1.c-s.fr"
+        id S230374AbhCZNqQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 26 Mar 2021 09:46:16 -0400
+Received: from pegase1.c-s.fr ([93.17.236.30]:62640 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230098AbhCZNpZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 26 Mar 2021 09:45:25 -0400
+        id S230213AbhCZNp1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 26 Mar 2021 09:45:27 -0400
 Received: from localhost (mailhub1-int [192.168.12.234])
-        by localhost (Postfix) with ESMTP id 4F6NWT4TPXz9v03D;
-        Fri, 26 Mar 2021 14:44:53 +0100 (CET)
+        by localhost (Postfix) with ESMTP id 4F6NWX5nkqz9v03K;
+        Fri, 26 Mar 2021 14:44:56 +0100 (CET)
 X-Virus-Scanned: Debian amavisd-new at c-s.fr
 Received: from pegase1.c-s.fr ([192.168.12.234])
         by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
-        with ESMTP id EEqTBNdfHvPX; Fri, 26 Mar 2021 14:44:53 +0100 (CET)
+        with ESMTP id WOLvZloR3Ccc; Fri, 26 Mar 2021 14:44:56 +0100 (CET)
 Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase1.c-s.fr (Postfix) with ESMTP id 4F6NWT3Zrwz9v03B;
-        Fri, 26 Mar 2021 14:44:53 +0100 (CET)
+        by pegase1.c-s.fr (Postfix) with ESMTP id 4F6NWX4v6mz9v03B;
+        Fri, 26 Mar 2021 14:44:56 +0100 (CET)
 Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 58E9A8B8C9;
-        Fri, 26 Mar 2021 14:44:54 +0100 (CET)
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 627FB8B8C9;
+        Fri, 26 Mar 2021 14:44:57 +0100 (CET)
 X-Virus-Scanned: amavisd-new at c-s.fr
 Received: from messagerie.si.c-s.fr ([127.0.0.1])
         by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id Yai4PS5jsljR; Fri, 26 Mar 2021 14:44:54 +0100 (CET)
+        with ESMTP id 6OaEXOQG2IEm; Fri, 26 Mar 2021 14:44:57 +0100 (CET)
 Received: from po16121vm.idsi0.si.c-s.fr (unknown [192.168.4.90])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 0171D8B8C7;
-        Fri, 26 Mar 2021 14:44:53 +0100 (CET)
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 147E38B8C7;
+        Fri, 26 Mar 2021 14:44:57 +0100 (CET)
 Received: by po16121vm.idsi0.si.c-s.fr (Postfix, from userid 0)
-        id 80E9967611; Fri, 26 Mar 2021 13:44:54 +0000 (UTC)
-Message-Id: <3561ef609d471949454d58f969c036f97f596211.1616765870.git.christophe.leroy@csgroup.eu>
+        id 94C9867611; Fri, 26 Mar 2021 13:44:57 +0000 (UTC)
+Message-Id: <d583d618d93e723165b1145f9d4ec2981b61ca04.1616765870.git.christophe.leroy@csgroup.eu>
 In-Reply-To: <cover.1616765869.git.christophe.leroy@csgroup.eu>
 References: <cover.1616765869.git.christophe.leroy@csgroup.eu>
 From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v3 07/17] hexagon: Convert to GENERIC_CMDLINE
+Subject: [PATCH v3 10/17] openrisc: Convert to GENERIC_CMDLINE
 To:     will@kernel.org, danielwa@cisco.com, robh@kernel.org,
         daniel@gimpelevich.san-francisco.ca.us
 Cc:     linux-arch@vger.kernel.org, devicetree@vger.kernel.org,
@@ -57,7 +57,7 @@ Cc:     linux-arch@vger.kernel.org, devicetree@vger.kernel.org,
         linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org,
         x86@kernel.org, linux-xtensa@linux-xtensa.org,
         linux-sh@vger.kernel.org, sparclinux@vger.kernel.org
-Date:   Fri, 26 Mar 2021 13:44:54 +0000 (UTC)
+Date:   Fri, 26 Mar 2021 13:44:57 +0000 (UTC)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -66,81 +66,37 @@ This converts the architecture to GENERIC_CMDLINE.
 
 Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
 ---
- arch/hexagon/Kconfig        | 11 +----------
- arch/hexagon/kernel/setup.c | 10 ++--------
- 2 files changed, 3 insertions(+), 18 deletions(-)
+ arch/openrisc/Kconfig | 10 +---------
+ 1 file changed, 1 insertion(+), 9 deletions(-)
 
-diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
-index 44a409967af1..1e69c99bae6b 100644
---- a/arch/hexagon/Kconfig
-+++ b/arch/hexagon/Kconfig
-@@ -18,6 +18,7 @@ config HEXAGON
- 	select HAVE_PERF_EVENTS
- 	# GENERIC_ALLOCATOR is used by dma_alloc_coherent()
- 	select GENERIC_ALLOCATOR
+diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
+index 591acc5990dc..ca1d0f18fe16 100644
+--- a/arch/openrisc/Kconfig
++++ b/arch/openrisc/Kconfig
+@@ -25,6 +25,7 @@ config OPENRISC
+ 	select HAVE_UID16
+ 	select GENERIC_ATOMIC64
+ 	select GENERIC_CLOCKEVENTS_BROADCAST
 +	select GENERIC_CMDLINE
- 	select GENERIC_IRQ_SHOW
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_TRACEHOOK
-@@ -91,16 +92,6 @@ config HEXAGON_ARCH_VERSION
- 	int "Architecture version"
- 	default 2
+ 	select GENERIC_STRNCPY_FROM_USER
+ 	select GENERIC_STRNLEN_USER
+ 	select GENERIC_SMP_IDLE_THREAD
+@@ -162,15 +163,6 @@ config OPENRISC_HAVE_SHADOW_GPRS
+ 	  On SMP systems, this feature is mandatory.
+ 	  On a unicore system it's safe to say N here if you are unsure.
  
 -config CMDLINE
 -	string "Default kernel command string"
 -	default ""
 -	help
--	  On some platforms, there is currently no way for the boot loader
--	  to pass arguments to the kernel. For these, you should supply some
--	  command-line options at build time by entering them here.  At a
--	  minimum, you should specify the memory size and the root device
--	  (e.g., mem=64M root=/dev/nfs).
+-	  On some architectures there is currently no way for the boot loader
+-	  to pass arguments to the kernel. For these architectures, you should
+-	  supply some command-line options at build time by entering them
+-	  here.
 -
- config SMP
- 	bool "Multi-Processing support"
- 	help
-diff --git a/arch/hexagon/kernel/setup.c b/arch/hexagon/kernel/setup.c
-index 1880d9beaf2b..be586cea4076 100644
---- a/arch/hexagon/kernel/setup.c
-+++ b/arch/hexagon/kernel/setup.c
-@@ -13,6 +13,7 @@
- #include <linux/seq_file.h>
- #include <linux/console.h>
- #include <linux/of_fdt.h>
-+#include <linux/cmdline.h>
- #include <asm/io.h>
- #include <asm/sections.h>
- #include <asm/setup.h>
-@@ -22,7 +23,6 @@
- #include <asm/time.h>
+ menu "Debugging options"
  
- char cmd_line[COMMAND_LINE_SIZE];
--static char default_command_line[COMMAND_LINE_SIZE] __initdata = CONFIG_CMDLINE;
- 
- int on_simulator;
- 
-@@ -38,8 +38,6 @@ void calibrate_delay(void)
- 
- void __init setup_arch(char **cmdline_p)
- {
--	char *p = &external_cmdline_buffer;
--
- 	/*
- 	 * These will eventually be pulled in via either some hypervisor
- 	 * or devicetree description.  Hardwiring for now.
-@@ -65,11 +63,7 @@ void __init setup_arch(char **cmdline_p)
- 	else
- 		on_simulator = 0;
- 
--	if (p[0] != '\0')
--		strlcpy(boot_command_line, p, COMMAND_LINE_SIZE);
--	else
--		strlcpy(boot_command_line, default_command_line,
--			COMMAND_LINE_SIZE);
-+	cmdline_build(boot_command_line, external_cmdline_buffer, COMMAND_LINE_SIZE);
- 
- 	/*
- 	 * boot_command_line and the value set up by setup_arch
+ config JUMP_UPON_UNHANDLED_EXCEPTION
 -- 
 2.25.0
 
