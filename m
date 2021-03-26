@@ -2,76 +2,104 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_SANE_2 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3F0B9C433DB
-	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 14:24:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6814CC433C1
+	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 14:40:00 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 11FB161A24
-	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 14:24:03 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 26DC261A05
+	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 14:40:00 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230104AbhCZOXb convert rfc822-to-8bit (ORCPT
-        <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 26 Mar 2021 10:23:31 -0400
-Received: from mail.kernel.org ([198.145.29.99]:46956 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230076AbhCZOXY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 26 Mar 2021 10:23:24 -0400
-Received: from gandalf.local.home (cpe-66-24-58-225.stny.res.rr.com [66.24.58.225])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 8087261A24;
-        Fri, 26 Mar 2021 14:23:22 +0000 (UTC)
-Date:   Fri, 26 Mar 2021 10:23:21 -0400
-From:   Steven Rostedt <rostedt@goodmis.org>
-To:     Huang Pei <huangpei@loongson.cn>
-Cc:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        ambrosehua@gmail.com, Bibo Mao <maobibo@loongson.cn>,
-        linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Paul Burton <paulburton@kernel.org>,
-        Li Xuefeng <lixuefeng@loongson.cn>,
-        Yang Tiezhu <yangtiezhu@loongson.cn>,
-        Gao Juxin <gaojuxin@loongson.cn>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Jinyang He <hejinyang@loongson.cn>,
-        "Maciej W . Rozycki" <macro@orcam.me.uk>,
-        Jisheng Zhang <Jisheng.Zhang@synaptics.com>,
-        Masami Hiramatsu <mhiramat@kernel.org>,
-        "Naveen N . Rao" <naveen.n.rao@linux.vnet.ibm.com>
-Subject: Re: [PATCH 4/6] kprobes/ftrace: Use ftrace_location() when
- [dis]arming probes
-Message-ID: <20210326102321.666afcc5@gandalf.local.home>
-In-Reply-To: <F3EABE66-8F6A-4F12-A8D7-E5653C616AA4@loongson.cn>
-References: <20210313064149.29276-1-huangpei@loongson.cn>
-        <20210313064149.29276-5-huangpei@loongson.cn>
-        <20210325154433.7ed7e56a@gandalf.local.home>
-        <F3EABE66-8F6A-4F12-A8D7-E5653C616AA4@loongson.cn>
-X-Mailer: Claws Mail 3.17.8 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+        id S230237AbhCZOj1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 26 Mar 2021 10:39:27 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53586 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230044AbhCZOjN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2021 10:39:13 -0400
+Received: from bombadil.infradead.org (bombadil.infradead.org [IPv6:2607:7c80:54:e::133])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2AC91C0613AA;
+        Fri, 26 Mar 2021 07:39:13 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
+        MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
+        :Reply-To:Content-Type:Content-ID:Content-Description;
+        bh=7gG07jJWdVdkveJTg0m/JRPJ+82hLCG/BeQINxDX6bU=; b=D0aRvZfUwo4S5aaCsJt561vjqM
+        xaOTDqqsYCfGC25oUmioZexS8odCWf3uARtuUQGiuIKThTV5mYEfMPFHN/0Spsff+MrDYZv8TXLQP
+        PJeY4TOdB437fk7H/dCXxvaEvdZDLk99kZt3pDcJikdEeR9gVlBl91iVG5Dr+RHOuRiG0rhSBAPpG
+        ugsSvI20mRLSN7CXP1owGVW/FBNDmzXrR+Nnzxm7LU/k17Js3TAtzxuyr7aMymvve5r5N/hUX/2Th
+        sfIPFFMKKFFVp85fcpS40i7HKn9o8s39mE8CRL/cYOw2j7B4emzTxY29I5IegFuL6rBdz15cpJqKU
+        T4zrs2PA==;
+Received: from [213.208.157.35] (helo=localhost)
+        by bombadil.infradead.org with esmtpsa (Exim 4.94 #2 (Red Hat Linux))
+        id 1lPnbz-005U6v-WC; Fri, 26 Mar 2021 14:38:58 +0000
+From:   Christoph Hellwig <hch@lst.de>
+To:     "Eric W. Biederman" <ebiederm@xmission.com>,
+        Al Viro <viro@zeniv.linux.org.uk>
+Cc:     Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>,
+        Luis Chamberlain <mcgrof@kernel.org>,
+        linux-arm-kernel@lists.infradead.org, x86@kernel.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
+        sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: [PATCH 2/4] exec: remove compat_do_execve
+Date:   Fri, 26 Mar 2021 15:38:29 +0100
+Message-Id: <20210326143831.1550030-3-hch@lst.de>
+X-Mailer: git-send-email 2.30.1
+In-Reply-To: <20210326143831.1550030-1-hch@lst.de>
+References: <20210326143831.1550030-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Transfer-Encoding: 8bit
+X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by bombadil.infradead.org. See http://www.infradead.org/rpr.html
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, 26 Mar 2021 22:12:18 +0800
-Huang Pei <huangpei@loongson.cn> wrote:
+Just call compat_do_execve instead.
 
-> Patch 4/5 is from arm64’s KPROBES_ON_FTRACE,  I think which is needed by
-> all RISC with both KPROBES_ON_FTRACE and -fpatchable-function-entry.
-> 
-> But since V7, no further patches are released, what protocol should I follow if
-> I need these two patches?
-> 
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ fs/exec.c | 17 +----------------
+ 1 file changed, 1 insertion(+), 16 deletions(-)
 
-If you need this patch, just resend it, but with the proper author. If you
-look at the thread I linked to, Jisheng pointed out that the From line that
-held the proper author was missing from the patch.
-
-You'll need that.
-
--- Steve
+diff --git a/fs/exec.c b/fs/exec.c
+index b63fb020909075..06e07278b456fa 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1990,21 +1990,6 @@ static int do_execveat(int fd, struct filename *filename,
+ }
+ 
+ #ifdef CONFIG_COMPAT
+-static int compat_do_execve(struct filename *filename,
+-	const compat_uptr_t __user *__argv,
+-	const compat_uptr_t __user *__envp)
+-{
+-	struct user_arg_ptr argv = {
+-		.is_compat = true,
+-		.ptr.compat = __argv,
+-	};
+-	struct user_arg_ptr envp = {
+-		.is_compat = true,
+-		.ptr.compat = __envp,
+-	};
+-	return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
+-}
+-
+ static int compat_do_execveat(int fd, struct filename *filename,
+ 			      const compat_uptr_t __user *__argv,
+ 			      const compat_uptr_t __user *__envp,
+@@ -2072,7 +2057,7 @@ COMPAT_SYSCALL_DEFINE3(execve, const char __user *, filename,
+ 	const compat_uptr_t __user *, argv,
+ 	const compat_uptr_t __user *, envp)
+ {
+-	return compat_do_execve(getname(filename), argv, envp);
++	return compat_do_execveat(AT_FDCWD, getname(filename), argv, envp, 0);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE5(execveat, int, fd,
+-- 
+2.30.1
 
