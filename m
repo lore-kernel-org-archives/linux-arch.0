@@ -7,155 +7,96 @@ X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0D117C433C1
-	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 13:48:24 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5132DC433DB
+	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 14:03:32 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CB29C61A24
-	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 13:48:23 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2CAD161A1E
+	for <linux-arch@archiver.kernel.org>; Fri, 26 Mar 2021 14:03:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230237AbhCZNqa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 26 Mar 2021 09:46:30 -0400
-Received: from pegase1.c-s.fr ([93.17.236.30]:30423 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230221AbhCZNpa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 26 Mar 2021 09:45:30 -0400
-Received: from localhost (mailhub1-int [192.168.12.234])
-        by localhost (Postfix) with ESMTP id 4F6NWY5C3mz9v03L;
-        Fri, 26 Mar 2021 14:44:57 +0100 (CET)
-X-Virus-Scanned: Debian amavisd-new at c-s.fr
-Received: from pegase1.c-s.fr ([192.168.12.234])
-        by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
-        with ESMTP id 4mW1M94fWAEi; Fri, 26 Mar 2021 14:44:57 +0100 (CET)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase1.c-s.fr (Postfix) with ESMTP id 4F6NWY4Gn8z9v03B;
-        Fri, 26 Mar 2021 14:44:57 +0100 (CET)
-Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 6E7728B8C7;
-        Fri, 26 Mar 2021 14:44:58 +0100 (CET)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id lzygznqtzRZ7; Fri, 26 Mar 2021 14:44:58 +0100 (CET)
-Received: from po16121vm.idsi0.si.c-s.fr (unknown [192.168.4.90])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 1C1488B8C9;
-        Fri, 26 Mar 2021 14:44:58 +0100 (CET)
-Received: by po16121vm.idsi0.si.c-s.fr (Postfix, from userid 0)
-        id 9B96867611; Fri, 26 Mar 2021 13:44:58 +0000 (UTC)
-Message-Id: <46745e07b04139a22b5bd01dc37df97e6981e643.1616765870.git.christophe.leroy@csgroup.eu>
-In-Reply-To: <cover.1616765869.git.christophe.leroy@csgroup.eu>
-References: <cover.1616765869.git.christophe.leroy@csgroup.eu>
-From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v3 11/17] riscv: Convert to GENERIC_CMDLINE
-To:     will@kernel.org, danielwa@cisco.com, robh@kernel.org,
-        daniel@gimpelevich.san-francisco.ca.us
-Cc:     linux-arch@vger.kernel.org, devicetree@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org,
-        linux-arm-kernel@lists.infradead.org,
-        microblaze <monstr@monstr.eu>, linux-mips@vger.kernel.org,
-        nios2 <ley.foon.tan@intel.com>, openrisc@lists.librecores.org,
-        linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, linux-xtensa@linux-xtensa.org,
-        linux-sh@vger.kernel.org, sparclinux@vger.kernel.org
-Date:   Fri, 26 Mar 2021 13:44:58 +0000 (UTC)
+        id S229671AbhCZODB convert rfc822-to-8bit (ORCPT
+        <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 26 Mar 2021 10:03:01 -0400
+Received: from mail.loongson.cn ([114.242.206.163]:48892 "EHLO loongson.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S229871AbhCZOCf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 26 Mar 2021 10:02:35 -0400
+Received: from [192.168.1.111] (unknown [175.152.148.180])
+        by mail.loongson.cn (Coremail) with SMTP id AQAAf9Dxr8tU6V1gRRgBAA--.961S2;
+        Fri, 26 Mar 2021 22:01:58 +0800 (CST)
+Content-Type: text/plain;
+        charset=us-ascii
+Mime-Version: 1.0 (Mac OS X Mail 13.4 \(3608.120.23.2.4\))
+Subject: Re: [PATCH 2/6] MIPS: move FTRACE_SYSCALLS from ftrace.c into
+ syscall.c
+From:   Huang Pei <huangpei@loongson.cn>
+In-Reply-To: <20210325153845.759b242e@gandalf.local.home>
+Date:   Fri, 26 Mar 2021 22:01:56 +0800
+Cc:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        ambrosehua@gmail.com, Bibo Mao <maobibo@loongson.cn>,
+        linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org, Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Paul Burton <paulburton@kernel.org>,
+        Li Xuefeng <lixuefeng@loongson.cn>,
+        Yang Tiezhu <yangtiezhu@loongson.cn>,
+        Gao Juxin <gaojuxin@loongson.cn>,
+        Huacai Chen <chenhuacai@loongson.cn>,
+        Jinyang He <hejinyang@loongson.cn>,
+        "Maciej W . Rozycki" <macro@orcam.me.uk>,
+        Jisheng Zhang <Jisheng.Zhang@synaptics.com>,
+        Masami Hiramatsu <mhiramat@kernel.org>
+Content-Transfer-Encoding: 8BIT
+Message-Id: <BE3DCFBC-7FF1-4636-8625-6A985A8341BC@loongson.cn>
+References: <20210313064149.29276-1-huangpei@loongson.cn>
+ <20210313064149.29276-3-huangpei@loongson.cn>
+ <20210325153845.759b242e@gandalf.local.home>
+To:     Steven Rostedt <rostedt@goodmis.org>
+X-Mailer: Apple Mail (2.3608.120.23.2.4)
+X-CM-TRANSID: AQAAf9Dxr8tU6V1gRRgBAA--.961S2
+X-Coremail-Antispam: 1UD129KBjvdXoW7JrW7Gw1DCF4rWrWrAw4Dtwb_yoWkXrcEyF
+        WxKFyvkw1UtFn5JFW5tr4rXFy3Ww45Xw4kZ3WqgrW5ZasxJa1DJFWDtrW3Xr1xXF18XFs0
+        yw1fAryxtw12qjkaLaAFLSUrUUUUUb8apTn2vfkv8UJUUUU8Yxn0WfASr-VFAUDa7-sFnT
+        9fnUUIcSsGvfJTRUUUbVxFF20E14v26ryj6rWUM7CY07I20VC2zVCF04k26cxKx2IYs7xG
+        6rWj6s0DM7CIcVAFz4kK6r1j6r18M28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8w
+        A2z4x0Y4vE2Ix0cI8IcVAFwI0_Jr0_JF4l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Gr0_
+        Cr1l84ACjcxK6I8E87Iv67AKxVW0oVCq3wA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_GcCE3s
+        1le2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2j2WlYx0E2Ix0
+        cI8IcVAFwI0_Jr0_Jr4lYx0Ex4A2jsIE14v26r1j6r4UMcvjeVCFs4IE7xkEbVWUJVW8Jw
+        ACjcxG0xvY0x0EwIxGrwACjI8F5VA0II8E6IAqYI8I648v4I1lFIxGxcIEc7CjxVA2Y2ka
+        0xkIwI1lc2xSY4AK67AK6ry5MxAIw28IcxkI7VAKI48JMxC20s026xCaFVCjc4AY6r1j6r
+        4UMI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWlx4CE17CEb7AF
+        67AKxVW8ZVWrXwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26r1j6r1xMIIF0xvE2I
+        x0cI8IcVCY1x0267AKxVW8JVWxJwCI42IY6xAIw20EY4v20xvaj40_WFyUJVCq3wCI42IY
+        6I8E87Iv67AKxVWUJVW8JwCI42IY6I8E87Iv6xkF7I0E14v26r4j6r4UJbIYCTnIWIevJa
+        73UjIFyTuYvjfUYXdjDUUUU
+X-CM-SenderInfo: xkxd0whshlqz5rrqw2lrqou0/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This converts the architecture to GENERIC_CMDLINE.
+I was intended to add -fpatchable-function-entry based new ftrace implementation in parallel 
+with old -pg based one, which is enabled by supported gcc version at build time, since 
 
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
----
- arch/riscv/Kconfig        | 44 +--------------------------------------
- arch/riscv/kernel/setup.c |  5 ++---
- 2 files changed, 3 insertions(+), 46 deletions(-)
++. the fix for -fpatchable-function-entry is not merge into upstream; 
 
-diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 87d7b52f278f..3dbd50bed037 100644
---- a/arch/riscv/Kconfig
-+++ b/arch/riscv/Kconfig
-@@ -39,6 +39,7 @@ config RISCV
- 	select EDAC_SUPPORT
- 	select GENERIC_ARCH_TOPOLOGY if SMP
- 	select GENERIC_ATOMIC64 if !64BIT
-+	select GENERIC_CMDLINE
- 	select GENERIC_EARLY_IOREMAP
- 	select GENERIC_GETTIMEOFDAY if HAVE_GENERIC_VDSO
- 	select GENERIC_IOREMAP
-@@ -390,49 +391,6 @@ endmenu
- 
- menu "Boot options"
- 
--config CMDLINE
--	string "Built-in kernel command line"
--	help
--	  For most platforms, the arguments for the kernel's command line
--	  are provided at run-time, during boot. However, there are cases
--	  where either no arguments are being provided or the provided
--	  arguments are insufficient or even invalid.
--
--	  When that occurs, it is possible to define a built-in command
--	  line here and choose how the kernel should use it later on.
--
--choice
--	prompt "Built-in command line usage" if CMDLINE != ""
--	default CMDLINE_FALLBACK
--	help
--	  Choose how the kernel will handle the provided built-in command
--	  line.
--
--config CMDLINE_FALLBACK
--	bool "Use bootloader kernel arguments if available"
--	help
--	  Use the built-in command line as fallback in case we get nothing
--	  during boot. This is the default behaviour.
--
--config CMDLINE_EXTEND
--	bool "Extend bootloader kernel arguments"
--	help
--	  The command-line arguments provided during boot will be
--	  appended to the built-in command line. This is useful in
--	  cases where the provided arguments are insufficient and
--	  you don't want to or cannot modify them.
--
--
--config CMDLINE_FORCE
--	bool "Always use the default kernel command string"
--	help
--	  Always use the built-in command line, even if we get one during
--	  boot. This is useful in case you need to override the provided
--	  command line on systems where you don't have or want control
--	  over it.
--
--endchoice
--
- config EFI_STUB
- 	bool
- 
-diff --git a/arch/riscv/kernel/setup.c b/arch/riscv/kernel/setup.c
-index f8f15332caa2..e7c91ee478d1 100644
---- a/arch/riscv/kernel/setup.c
-+++ b/arch/riscv/kernel/setup.c
-@@ -20,6 +20,7 @@
- #include <linux/swiotlb.h>
- #include <linux/smp.h>
- #include <linux/efi.h>
-+#include <linux/cmdline.h>
- 
- #include <asm/cpu_ops.h>
- #include <asm/early_ioremap.h>
-@@ -228,10 +229,8 @@ static void __init parse_dtb(void)
- 	}
- 
- 	pr_err("No DTB passed to the kernel\n");
--#ifdef CONFIG_CMDLINE_FORCE
--	strlcpy(boot_command_line, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
-+	cmdline_build(boot_command_line, NULL, COMMAND_LINE_SIZE);
- 	pr_info("Forcing kernel command line to: %s\n", boot_command_line);
--#endif
- }
- 
- void __init setup_arch(char **cmdline_p)
--- 
-2.25.0
++. the -fpatchable-function-entry does not support static function tracing which is rarely used today, 
+which is only implemented in the old -pg based implementation;
+
+Move FTRACE_SYSCALLS into syscall.c, so both new and old implementation can easily be switched
+freely. When everything is all right, old one can be easily removed, and that is patch 1/2/3 intended for
+
+> On Mar 26, 2021, at 3:38 AM, Steven Rostedt <rostedt@goodmis.org> wrote:
+> 
+> On Sat, 13 Mar 2021 14:41:45 +0800
+> Huang Pei <huangpei@loongson.cn> wrote:
+> 
+> Why?
+> 
+> -- Steve
+> 
+>> Signed-off-by: Huang Pei <huangpei@loongson.cn>
+>> ---
+>> arch/mips/kernel/Makefile  |  1 -
+>> arch/mips/kernel/ftrace.c  | 33 ---------------------------------
+>> arch/mips/kernel/syscall.c | 32 ++++++++++++++++++++++++++++++++
+>> 3 files changed, 32 insertions(+), 34 deletions(-)
 
