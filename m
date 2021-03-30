@@ -2,147 +2,162 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-23.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-2.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AEBF8C433E3
-	for <linux-arch@archiver.kernel.org>; Tue, 30 Mar 2021 18:24:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 454C9C433C1
+	for <linux-arch@archiver.kernel.org>; Tue, 30 Mar 2021 22:36:25 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7B394619CF
-	for <linux-arch@archiver.kernel.org>; Tue, 30 Mar 2021 18:24:35 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 12536619C2
+	for <linux-arch@archiver.kernel.org>; Tue, 30 Mar 2021 22:36:25 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232798AbhC3SX7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 30 Mar 2021 14:23:59 -0400
-Received: from alln-iport-5.cisco.com ([173.37.142.92]:38405 "EHLO
-        alln-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232786AbhC3SXp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Mar 2021 14:23:45 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=cisco.com; i=@cisco.com; l=2604; q=dns/txt; s=iport;
-  t=1617128625; x=1618338225;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=xMStwoujyvRVt+OuzbkoYXvA32+qhvWOh/uecqwPFaM=;
-  b=HOKvwhRGp1THDDrVjcq0hqrsPhQf9jhzOj6t2M25Zty6l28YVrQm/gpt
-   yEjqgSvQ1fHwc6HMYoJ8rWqfIz1F4I/3xbaSxUEGMuMTZViAfhyEPNDEs
-   sX/53oxhy3KC+CbX1f4inK0aPjnmsHsBhVaQsNHEjsybZUlVbG6IzTgc6
-   U=;
-X-IPAS-Result: =?us-ascii?q?A0ADAAC0a2NgmJldJa1aGgEBAQEBAQEBAQEDAQEBARIBA?=
- =?us-ascii?q?QEBAgIBAQEBQIE8BQEBAQELAYN2ATkxjGWJLpAIFopFgXwLAQEBDQEBNAQBA?=
- =?us-ascii?q?YRQAoF6AiU0CQ4CAwEBAQMCAwEBAQEBBQEBAQIBBgQUAQEBAQEBAQGGQ4ZFA?=
- =?us-ascii?q?QIDOj8QCxguPBsGE4JwgwirOXWBNIkLgUQigRcBjUkmHIFJQoESgm4uPoo2B?=
- =?us-ascii?q?IJHgQ6CMCyUAYpMmw6BFIMRgSObNjEQpEK4EgIEBgUCFoFUOIFbMxoIGxWDJ?=
- =?us-ascii?q?FAZDY44jk8hAy84AgYKAQEDCYZaLIIZAQE?=
-IronPort-HdrOrdr: A9a23:OGIYBqgWvJdablCjWRAu+Iu5lnBQXmcji2hD6mlwRA09T+Wzna
- mV88gz/xnylToXRTUMmcqYPrOBXHPb8vdOkOwsFJ2lWxTrv3btEZF64eLZsl/dMgD36+I178
- 1dWodkDtmYNzVHpOb8pDK1CtMxhOSAmZrY4dv261dIYUVUZ7p77wF/YzzrcXFeYAVdH5I2GN
- 69y6N8xgaIQngcYsSlCnRtZYGqzOHjr57obQULABQq8mC17Q+A0qLwEBSTw34lPQ9n/LFKyw
- T4uj28wLm/uPemzRKZ8Gnf4/1t6b3c4+oGItCQgc4ILTipsCKUXcBKXr2Puy1dmpDJ1GoX
-X-IronPort-Anti-Spam-Filtered: true
-X-IronPort-AV: E=Sophos;i="5.81,291,1610409600"; 
-   d="scan'208";a="689174954"
-Received: from rcdn-core-2.cisco.com ([173.37.93.153])
-  by alln-iport-5.cisco.com with ESMTP/TLS/DHE-RSA-SEED-SHA; 30 Mar 2021 18:23:43 +0000
-Received: from zorba ([10.24.8.123])
-        by rcdn-core-2.cisco.com (8.15.2/8.15.2) with ESMTPS id 12UINdP0017615
-        (version=TLSv1.2 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO);
-        Tue, 30 Mar 2021 18:23:41 GMT
-Date:   Tue, 30 Mar 2021 11:23:39 -0700
-From:   Daniel Walker <danielwa@cisco.com>
-To:     "H. Nikolaus Schaller" <hns@goldelico.com>
-Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>, will@kernel.org,
-        Rob Herring <robh@kernel.org>,
-        daniel@gimpelevich.san-francisco.ca.us, linux-arch@vger.kernel.org,
-        devicetree <devicetree@vger.kernel.org>,
-        linuxppc-dev@lists.ozlabs.org,
+        id S232924AbhC3Wfw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 30 Mar 2021 18:35:52 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37824 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232985AbhC3WfS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Mar 2021 18:35:18 -0400
+Received: from mail-pj1-x102f.google.com (mail-pj1-x102f.google.com [IPv6:2607:f8b0:4864:20::102f])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4D8C0C061574;
+        Tue, 30 Mar 2021 15:35:18 -0700 (PDT)
+Received: by mail-pj1-x102f.google.com with SMTP id w8so8487932pjf.4;
+        Tue, 30 Mar 2021 15:35:18 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=MIKmUtb8xO+Dq6yKmOyCR/vq4cKBspfYEllac90t9ag=;
+        b=u7XY8xoVgbo8DgwHawUEw/3qA/7IKbnKlWt2hjLE7MtthU8JObswEgN2cDtIX89igu
+         UFK/ZOQwBENrZIH3xfFYVhXUCz4yRASvQOOaLFjaxHjXZJ2Twn/zgR0DDpGv/pG6w5M7
+         slD9Sc9vt5A1uiHNm64YralGtKOZ9mgov1MEdGTdmo58K+i/OudXj5gpQa0wXILTk5gp
+         8NIXyPBtIhKuIJj4zDqsqMNBjSWys1s0jknABPSDMKoPnKFPLjzZ6Ak1TpIlgcC+nCdw
+         nCKwHJ8Xa8vTgufrtKp3xnHcO0IIxI5f2uDnJVhIpIvzfDOwv+v4prtROYXsoCZbXaCl
+         H/GA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=MIKmUtb8xO+Dq6yKmOyCR/vq4cKBspfYEllac90t9ag=;
+        b=BA2iEaGuJHYvhpw8BAW4EzdC21R19+WZDXJ3veT8pjYg/dJ15iRddeeLCv5m0Fca/L
+         dQhg6ACGDNYYNy1mTmuB99pYUPZFmH9WLmLejzDIcfon4FdmHAz67BAVHT5C/KB6UoIm
+         TbEJeBMsKA0t2Uh1ltW1x0+yY3//4fasnTENgKt7mova3l9SyeBxzvnhCNhPR+jGRbZi
+         5OsrZvAwzymLFSP7PRI21fSlSA23bAIDjEy6aXBlajWhqpH2rSbKIulktnycbKIFyio0
+         xG0TIJKQ+CMQqLqdqxlKMqxqE24WySfaCWzmTiPfx3ysTtFomYCsgFRY4aG3ZiyU6jS9
+         q+2g==
+X-Gm-Message-State: AOAM5325bJ5BmL2IdVbe/mhPWNzFO5ocob7ZBheoThuvmd8GJJVeHZFV
+        jtqFkgKGrnxrTwq/w2BDZ/8=
+X-Google-Smtp-Source: ABdhPJxqxS2YDuahl9PNg4VAillcg0SzefNJodUtgbgZj+qPO8g6vAlXW4UHUCHopV7NROqeoTUwOw==
+X-Received: by 2002:a17:90a:c902:: with SMTP id v2mr511004pjt.144.1617143717745;
+        Tue, 30 Mar 2021 15:35:17 -0700 (PDT)
+Received: from localhost (g139.124-45-193.ppp.wakwak.ne.jp. [124.45.193.139])
+        by smtp.gmail.com with ESMTPSA id w5sm218189pge.55.2021.03.30.15.35.16
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 30 Mar 2021 15:35:16 -0700 (PDT)
+Date:   Wed, 31 Mar 2021 07:35:14 +0900
+From:   Stafford Horne <shorne@gmail.com>
+To:     Peter Zijlstra <peterz@infradead.org>
+Cc:     Guo Ren <guoren@kernel.org>,
+        linux-riscv <linux-riscv@lists.infradead.org>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-arm-kernel <linux-arm-kernel@lists.infradead.org>,
-        microblaze <monstr@monstr.eu>,
-        linux-mips <linux-mips@vger.kernel.org>,
-        nios2 <ley.foon.tan@intel.com>, openrisc@lists.librecores.org,
-        linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, linux-xtensa@linux-xtensa.org,
-        linux-sh@vger.kernel.org, sparclinux@vger.kernel.org
-Subject: Re: [PATCH v3 01/17] cmdline: Add generic function to build command
- line.
-Message-ID: <20210330182339.GU109100@zorba>
-References: <cover.1616765869.git.christophe.leroy@csgroup.eu>
- <878228ad88df38f8914c7aa25dede3ed05c50f48.1616765869.git.christophe.leroy@csgroup.eu>
- <20210330172714.GR109100@zorba>
- <D8C1FBF6-E5C0-4233-BCB8-694274EA28F9@goldelico.com>
+        linux-csky@vger.kernel.org,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Guo Ren <guoren@linux.alibaba.com>,
+        Will Deacon <will@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+        Waiman Long <longman@redhat.com>,
+        Arnd Bergmann <arnd@arndb.de>, Anup Patel <anup@brainfault.org>
+Subject: Re: [PATCH v4 3/4] locking/qspinlock: Add
+ ARCH_USE_QUEUED_SPINLOCKS_XCHG32
+Message-ID: <20210330223514.GE1171117@lianli.shorne-pla.net>
+References: <1616868399-82848-1-git-send-email-guoren@kernel.org>
+ <1616868399-82848-4-git-send-email-guoren@kernel.org>
+ <YGGGqftfr872/4CU@hirez.programming.kicks-ass.net>
+ <CAJF2gTQNV+_txMHJw0cmtS-xcnuaCja-F7XBuOL_J0yN39c+uQ@mail.gmail.com>
+ <YGG5c4QGq6q+lKZI@hirez.programming.kicks-ass.net>
+ <CAJF2gTQUe237NY-kh+4_Yk4DTFJmA5_xgNQ5+BMpFZpUDUEYdw@mail.gmail.com>
+ <YGHM2/s4FpWZiEQ6@hirez.programming.kicks-ass.net>
+ <CAJF2gTRncV1+GT7nBpYkvfpyaG57o9ecaHBjoR6gEQAkG2ELrg@mail.gmail.com>
+ <YGNNCEAMSWbBU+hd@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <D8C1FBF6-E5C0-4233-BCB8-694274EA28F9@goldelico.com>
-X-Outbound-SMTP-Client: 10.24.8.123, [10.24.8.123]
-X-Outbound-Node: rcdn-core-2.cisco.com
+In-Reply-To: <YGNNCEAMSWbBU+hd@hirez.programming.kicks-ass.net>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Mar 30, 2021 at 08:07:30PM +0200, H. Nikolaus Schaller wrote:
+On Tue, Mar 30, 2021 at 06:08:40PM +0200, Peter Zijlstra wrote:
+> On Tue, Mar 30, 2021 at 11:13:55AM +0800, Guo Ren wrote:
+> > On Mon, Mar 29, 2021 at 8:50 PM Peter Zijlstra <peterz@infradead.org> wrote:
+> > >
+> > > On Mon, Mar 29, 2021 at 08:01:41PM +0800, Guo Ren wrote:
+> > > > u32 a = 0x55aa66bb;
+> > > > u16 *ptr = &a;
+> > > >
+> > > > CPU0                       CPU1
+> > > > =========             =========
+> > > > xchg16(ptr, new)     while(1)
+> > > >                                     WRITE_ONCE(*(ptr + 1), x);
+> > > >
+> > > > When we use lr.w/sc.w implement xchg16, it'll cause CPU0 deadlock.
+> > >
+> > > Then I think your LL/SC is broken.
+> > >
+> > > That also means you really don't want to build super complex locking
+> > > primitives on top, because that live-lock will percolate through.
 > 
-> > Am 30.03.2021 um 19:27 schrieb Daniel Walker <danielwa@cisco.com>:
-> > 
-> > On Fri, Mar 26, 2021 at 01:44:48PM +0000, Christophe Leroy wrote:
-> >> This code provides architectures with a way to build command line
-> >> based on what is built in the kernel and what is handed over by the
-> >> bootloader, based on selected compile-time options.
-> >> 
-> >> Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
-> >> ---
-> >> v3:
-> >> - Addressed comments from Will
-> >> - Added capability to have src == dst
-> >> ---
-> >> include/linux/cmdline.h | 57 +++++++++++++++++++++++++++++++++++++++++
-> >> 1 file changed, 57 insertions(+)
-> >> create mode 100644 include/linux/cmdline.h
-> >> 
-> >> diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
-> >> new file mode 100644
-> >> index 000000000000..dea87edd41be
-> >> --- /dev/null
-> >> +++ b/include/linux/cmdline.h
-> >> @@ -0,0 +1,57 @@
-> >> +/* SPDX-License-Identifier: GPL-2.0 */
-> >> +#ifndef _LINUX_CMDLINE_H
-> >> +#define _LINUX_CMDLINE_H
-> >> +
-> >> +#include <linux/string.h>
-> >> +
-> >> +/* Allow architectures to override strlcat, powerpc can't use strings so early */
-> >> +#ifndef cmdline_strlcat
-> >> +#define cmdline_strlcat strlcat
-> >> +#endif
-> >> +
-> >> +/*
-> >> + * This function will append or prepend a builtin command line to the command
-> >> + * line provided by the bootloader. Kconfig options can be used to alter
-> >> + * the behavior of this builtin command line.
-> >> + * @dst: The destination of the final appended/prepended string.
-> >> + * @src: The starting string or NULL if there isn't one.
-> >> + * @len: the length of dest buffer.
-> >> + */
-> > 
-> > Append or prepend ? Cisco requires both at the same time. This is why my
-> > implementation provides both. I can't use this with both at once.
+> > Do you mean the below implementation has live-lock risk?
+> > +static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
+> > +{
+> > +       u32 old, new, val = atomic_read(&lock->val);
+> > +
+> > +       for (;;) {
+> > +               new = (val & _Q_LOCKED_PENDING_MASK) | tail;
+> > +               old = atomic_cmpxchg(&lock->val, val, new);
+> > +               if (old == val)
+> > +                       break;
+> > +
+> > +               val = old;
+> > +       }
+> > +       return old;
+> > +}
 > 
-> Just an idea: what about defining CMDLINE as a pattern where e.g. "$$" or "%%"
-> is replaced by the boot loader command line?
+> That entirely depends on the architecture (and cmpxchg() impementation).
 > 
-> Then you can formulate replace, prepend, append, prepend+append with a single
-> CONFIG setting.
+> There are a number of cases:
 > 
-> It may be a little more complex in code (scanning for the pattern and replacing
-> it and take care to temporary memory) but IMHO it could be worth to consider.
+>  * architecture has cmpxchg() instruction (x86, s390, sparc, etc.).
+> 
+>   - architecture provides fwd progress (x86)
+>   - architecture requires backoff for progress (sparc)
+> 
+>  * architecture does not have cmpxchg, and implements it using LL/SC.
+> 
+>   and here things get *really* interesting, because while an
+>   architecture can have LL/SC fwd progress, that does not translate into
+>   cmpxchg() also having the same guarantees and all bets are off.
+> 
+> The real bummer is that C can do cmpxchg(), but there is no way it can
+> do LL/SC. And even if we'd teach C how to do LL/SC, it couldn't be
+> generic because architectures lacking it can't emulate it using
+> cmpxchg() (there's a fun class of bugs there).
+> 
+> So while the above code might be the best we can do in generic code,
+> it's really up to the architecture to make it work.
 
-In some cases this code could be used extremely early in boot up. For example in the
-prom_init.c powerpc code, or in efi changes. The flexibility to find and replace
-like that is not always an option due to the nature of the environment. It's not
-impossible of course.
+I just want to chime in here, there may be a better spot in the thread to
+mention this but, for OpenRISC I did implement some generic 8/16-bit xchg code
+which I have on my todo list somwhere to replace the other generic
+implementations like that in mips.
 
-Daniel
+  arch/openrisc/include/asm/cmpxchg.h
+
+The idea would be that architectures just implement these methods:
+
+  long cmpxchg_u32(*ptr,old,new)
+  long xchg_u32(*ptr,val)
+
+Then the rest of the generic header would implement cmpxchg.
+
+-Stafford
