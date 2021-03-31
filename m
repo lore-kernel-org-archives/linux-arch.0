@@ -4,33 +4,33 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8B68EC433ED
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BEF9EC43603
 	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 14:32:55 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6F1CE60FF2
+	by mail.kernel.org (Postfix) with ESMTP id A713661004
 	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 14:32:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235836AbhCaOcU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 31 Mar 2021 10:32:20 -0400
-Received: from mail.kernel.org ([198.145.29.99]:43738 "EHLO mail.kernel.org"
+        id S236109AbhCaOcW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 31 Mar 2021 10:32:22 -0400
+Received: from mail.kernel.org ([198.145.29.99]:43944 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S236056AbhCaObz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 31 Mar 2021 10:31:55 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id AE45660FF1;
-        Wed, 31 Mar 2021 14:31:44 +0000 (UTC)
+        id S236091AbhCaOcT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 Mar 2021 10:32:19 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id F176760FF1;
+        Wed, 31 Mar 2021 14:32:12 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1617201114;
-        bh=ZlgshpaCoA6zGi17OQe5KtXtUjgmxHsHhFE58+U5sOg=;
+        s=k20201202; t=1617201139;
+        bh=ET6mHFYyqB1SBq1ewQ1GZzs5w6YT4Vz0URxeLviz9rs=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=LFUJQ+P1xzQmaWQX8Swd0sEBGp6ODLnJGpzRzYpYmHK8ilk5c7PQAsgb4tqXDyJn4
-         C8rYJIkzX5VwZ6DSngDJkzHCIPfe6zBDSfkXd3axY2xtONndhSnaMRJbEBI2nh3QN+
-         FlBTndTouquw7fxhbY/3+9mmhXJHVVPYqIOz367B3GbxZJ9sD6fKUW6qcC0nc5Vmh7
-         DsDqlI0e38DpWOpASf1pHsgfg2hPt7gwSaexx+iGLJVpymN7V8K6NzB6/pGOW4KqMG
-         x6Sn6wZUrDToJQbAaynuurLgXGrc7YkieAd2kd5v4yOGIUWGWPDartHFmFTMyEvaSM
-         05tSWZo4NrEww==
+        b=Dy4lrqNV7m0Yy2r05bp8XCPUAC8z34FNeWbsZGbTVJ+lgmHiGOSKMdqGkne7CRoBG
+         h0aP6WRVV3BKhLHvmSQDrzflE0xWl0GYT7L60PDBgOBiqmYcbTKt2Bu9uZKJRZaUsC
+         JLg3lic8aznTBUZTOQL+OKg8JNXlyE4WjU8cBh3xHk++jJEXBQtzEiQLzHnfiNCq/B
+         g0HKpMzU6FVFUg006DAIrSZXocPI/6dxOd8xDDjfBpSviR9gXQWC7FD1n/kNq2jEoY
+         ZMcJKFPvCAztLJ9A87rOz+Mc+atT+903XzdCNzQmHX5+m1XwlVwCQPi/iackWOsnMS
+         W85nWlUX/+dvg==
 From:   guoren@kernel.org
 To:     guoren@kernel.org
 Cc:     linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
@@ -39,12 +39,10 @@ Cc:     linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
         openrisc@lists.librecores.org, sparclinux@vger.kernel.org,
         Guo Ren <guoren@linux.alibaba.com>,
         Peter Zijlstra <peterz@infradead.org>,
-        Will Deacon <will@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-        Waiman Long <longman@redhat.com>,
-        Arnd Bergmann <arnd@arndb.de>, Anup Patel <anup@brainfault.org>
-Subject: [PATCH v6 1/9] locking/qspinlock: Add ARCH_USE_QUEUED_SPINLOCKS_XCHG32
-Date:   Wed, 31 Mar 2021 14:30:32 +0000
-Message-Id: <1617201040-83905-2-git-send-email-guoren@kernel.org>
+        Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH v6 4/9] csky: locks: Optimize coding convention
+Date:   Wed, 31 Mar 2021 14:30:35 +0000
+Message-Id: <1617201040-83905-5-git-send-email-guoren@kernel.org>
 X-Mailer: git-send-email 2.7.4
 In-Reply-To: <1617201040-83905-1-git-send-email-guoren@kernel.org>
 References: <1617201040-83905-1-git-send-email-guoren@kernel.org>
@@ -54,119 +52,68 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-Some architectures don't have sub-word swap atomic instruction,
-they only have the full word's one.
+ - Using smp_cond_load_acquire in arch_spin_lock by Peter's
+   advice.
+ - Using __smp_acquire_fence in arch_spin_trylock
+ - Using smp_store_release in arch_spin_unlock
 
-The sub-word swap only improve the performance when:
-NR_CPUS < 16K
- *  0- 7: locked byte
- *     8: pending
- *  9-15: not used
- * 16-17: tail index
- * 18-31: tail cpu (+1)
+All above are just coding conventions and won't affect the
+function.
 
-The 9-15 bits are wasted to use xchg16 in xchg_tail.
+TODO in smp_cond_load_acquire for architecture:
+ - current csky only has:
+   lr.w val, <p0>
+   sc.w <p0>. val2
+   (Any other stores to p0 will let sc.w failed)
 
-Please let architecture select xchg16/xchg32 to implement
-xchg_tail.
+ - But smp_cond_load_acquire need:
+   lr.w val, <p0>
+   wfe
+   (Any stores to p0 will send the event to let wfe retired)
 
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Link: https://lore.kernel.org/linux-riscv/CAAhSdy1JHLUFwu7RuCaQ+RUWRBks2KsDva7EpRt8--4ZfofSUQ@mail.gmail.com/T/#m13adac285b7f51f4f879a5d6b65753ecb1a7524e
 Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will@kernel.org>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Waiman Long <longman@redhat.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Anup Patel <anup@brainfault.org>
 ---
- kernel/Kconfig.locks       |  3 +++
- kernel/locking/qspinlock.c | 46 +++++++++++++++++++++-----------------
- 2 files changed, 28 insertions(+), 21 deletions(-)
+ arch/csky/include/asm/spinlock.h | 11 ++++-------
+ 1 file changed, 4 insertions(+), 7 deletions(-)
 
-diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
-index 3de8fd11873b..d02f1261f73f 100644
---- a/kernel/Kconfig.locks
-+++ b/kernel/Kconfig.locks
-@@ -239,6 +239,9 @@ config LOCK_SPIN_ON_OWNER
- config ARCH_USE_QUEUED_SPINLOCKS
- 	bool
+diff --git a/arch/csky/include/asm/spinlock.h b/arch/csky/include/asm/spinlock.h
+index 69f5aa249c5f..69677167977a 100644
+--- a/arch/csky/include/asm/spinlock.h
++++ b/arch/csky/include/asm/spinlock.h
+@@ -26,10 +26,8 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
+ 		: "r"(p), "r"(ticket_next)
+ 		: "cc");
  
-+config ARCH_USE_QUEUED_SPINLOCKS_XCHG32
-+	bool
-+
- config QUEUED_SPINLOCKS
- 	def_bool y if ARCH_USE_QUEUED_SPINLOCKS
- 	depends on SMP
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index cbff6ba53d56..4bfaa969bd15 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -163,26 +163,6 @@ static __always_inline void clear_pending_set_locked(struct qspinlock *lock)
- 	WRITE_ONCE(lock->locked_pending, _Q_LOCKED_VAL);
- }
- 
--/*
-- * xchg_tail - Put in the new queue tail code word & retrieve previous one
-- * @lock : Pointer to queued spinlock structure
-- * @tail : The new queue tail code word
-- * Return: The previous queue tail code word
-- *
-- * xchg(lock, tail), which heads an address dependency
-- *
-- * p,*,* -> n,*,* ; prev = xchg(lock, node)
-- */
--static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
--{
--	/*
--	 * We can use relaxed semantics since the caller ensures that the
--	 * MCS node is properly initialized before updating the tail.
--	 */
--	return (u32)xchg_relaxed(&lock->tail,
--				 tail >> _Q_TAIL_OFFSET) << _Q_TAIL_OFFSET;
--}
+-	while (lockval.tickets.next != lockval.tickets.owner)
+-		lockval.tickets.owner = READ_ONCE(lock->tickets.owner);
 -
- #else /* _Q_PENDING_BITS == 8 */
+-	smp_mb();
++	smp_cond_load_acquire(&lock->tickets.owner,
++					VAL == lockval.tickets.next);
+ }
  
- /**
-@@ -206,6 +186,30 @@ static __always_inline void clear_pending_set_locked(struct qspinlock *lock)
+ static inline int arch_spin_trylock(arch_spinlock_t *lock)
+@@ -55,15 +53,14 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
+ 	} while (!res);
+ 
+ 	if (!contended)
+-		smp_mb();
++		__smp_acquire_fence();
+ 
+ 	return !contended;
+ }
+ 
+ static inline void arch_spin_unlock(arch_spinlock_t *lock)
  {
- 	atomic_add(-_Q_PENDING_VAL + _Q_LOCKED_VAL, &lock->val);
+-	smp_mb();
+-	WRITE_ONCE(lock->tickets.owner, lock->tickets.owner + 1);
++	smp_store_release(&lock->tickets.owner, lock->tickets.owner + 1);
  }
-+#endif /* _Q_PENDING_BITS == 8 */
-+
-+#if _Q_PENDING_BITS == 8 && !defined(CONFIG_ARCH_USE_QUEUED_SPINLOCKS_XCHG32)
-+/*
-+ * xchg_tail - Put in the new queue tail code word & retrieve previous one
-+ * @lock : Pointer to queued spinlock structure
-+ * @tail : The new queue tail code word
-+ * Return: The previous queue tail code word
-+ *
-+ * xchg(lock, tail), which heads an address dependency
-+ *
-+ * p,*,* -> n,*,* ; prev = xchg(lock, node)
-+ */
-+static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
-+{
-+	/*
-+	 * We can use relaxed semantics since the caller ensures that the
-+	 * MCS node is properly initialized before updating the tail.
-+	 */
-+	return (u32)xchg_relaxed(&lock->tail,
-+				 tail >> _Q_TAIL_OFFSET) << _Q_TAIL_OFFSET;
-+}
-+
-+#else
  
- /**
-  * xchg_tail - Put in the new queue tail code word & retrieve previous one
-@@ -236,7 +240,7 @@ static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
- 	}
- 	return old;
- }
--#endif /* _Q_PENDING_BITS == 8 */
-+#endif
- 
- /**
-  * queued_fetch_set_pending_acquire - fetch the whole lock value and set pending
+ static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
 -- 
 2.17.1
 
