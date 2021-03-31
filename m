@@ -5,61 +5,61 @@ X-Spam-Level:
 X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
+	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2E4A7C001BD
-	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 21:28:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 126D5C001E2
+	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 21:28:54 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 18BCB61077
+	by mail.kernel.org (Postfix) with ESMTP id DF6F16108D
 	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 21:28:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232831AbhCaV2T (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 31 Mar 2021 17:28:19 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51866 "EHLO
+        id S232975AbhCaV2V (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 31 Mar 2021 17:28:21 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51916 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232844AbhCaV1s (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Mar 2021 17:27:48 -0400
-Received: from mail-qk1-x74a.google.com (mail-qk1-x74a.google.com [IPv6:2607:f8b0:4864:20::74a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4E628C061760
-        for <linux-arch@vger.kernel.org>; Wed, 31 Mar 2021 14:27:48 -0700 (PDT)
-Received: by mail-qk1-x74a.google.com with SMTP id y9so2357578qki.14
-        for <linux-arch@vger.kernel.org>; Wed, 31 Mar 2021 14:27:48 -0700 (PDT)
+        with ESMTP id S230073AbhCaV1z (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Mar 2021 17:27:55 -0400
+Received: from mail-qt1-x849.google.com (mail-qt1-x849.google.com [IPv6:2607:f8b0:4864:20::849])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DB260C06174A
+        for <linux-arch@vger.kernel.org>; Wed, 31 Mar 2021 14:27:54 -0700 (PDT)
+Received: by mail-qt1-x849.google.com with SMTP id a11so1944757qtd.4
+        for <linux-arch@vger.kernel.org>; Wed, 31 Mar 2021 14:27:54 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=RWJ9aQhTl20nw/R5RXPJl7NDj1C/UnL5LrldsenTslw=;
-        b=OI2BXN7KaQv0FSebUTwCneDYkgM3EAclc0LW8tfWF13e9tAHbT6S7IOhSWAvQZLEnM
-         JINs3HBpLvp6Qvodp3XPXwpa2AY4B6TKaD777pUzRWtoTAYeD1ocUHZu2HycU4zx1Kmv
-         TNPKwT23uSIbpB+4L8uGbr3k4clT4tWUBKmb6FlOF1Rr6P3NPk9yRjsBi/8/WqNqXQ91
-         l8FNow8wvarKsgb5E8LUZNePMtfEnTyG4gLYP5Kv+xRbrPTbyVM2AH1BrU969hKl7202
-         it/AECGlU/1SsjxKqzkPukkeE7jMpt1aJJc+o2/Ob3guLAV3RI2sN0Iy2pgsPxnRnjo4
-         2KMg==
+        bh=qAbADIQAzXUoq/ElYpa9rjjQHxphEP8wPywcql//gEU=;
+        b=BIwBbz27li9nhzZOJpPItRxIEwjbJxKUY6UbYU5CqvzA6WV2OyusxpPuP2GbqEKsF4
+         wPUN1Q4or2K+m1thBQd2qBYnnhno/+HEhUjZP6mN++bKuXujnCF7ElDczhg5KqD0DiHQ
+         hAtx85mO6qIZNWn2hkAtwUeoT/7iOQYyLpsYMn5GkmPZR/+IClF4QAklOY48jwFmIUYr
+         aQsEWMT4TYApAtAL/gjYcoyIEfUpYswWr1684dszxQxu7VwcvcTCnnc8GPEf+Ef5ZYIf
+         aeqjPvWk/ub/50LBqjLxSVw1zYmdKi8DPaVfSVN+0mUmPWgG8aIRBCTvTk4SH2B+EppC
+         /dgg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=RWJ9aQhTl20nw/R5RXPJl7NDj1C/UnL5LrldsenTslw=;
-        b=LZ6d2ZeVhmHJaey7QbAZM4LFQHXht51Rmpvk4SqlrxvF7IIoAxUzz2Q0UWeo6eO7Yl
-         KvbDnaQnqLuB3KbodFOFojTafsa1OGOz1hLAO298Z2BEKSEUiRd30Avkm8vyaxbDmeh9
-         foUcZd+7fe84JMUa88Ou1krOBntsApZvDJIRZHwcy37+vImV2uhkpK+eRH1SBqt/eP7g
-         BSTVL0j96VzBGZCkuARbwLCfw0bNijZ6Tchljt4Ck+LdD1JC4l0wwhvFB/6UVu1oysws
-         wYVLIBF1L6beLInmpMbVuwCxCnOoE/bwuEdZe1Eq/vfAf1/aFMqN2AV/VaQZR7L3VWDE
-         mF8w==
-X-Gm-Message-State: AOAM530hJ5ASYfrSXq2/dKKj892gIvW9KaB5iAqXH+G6guHPxV6QbnyT
-        QjRu8477dq3tmyE7CKtqRpmU9mLFOpk2AGFD5jM=
-X-Google-Smtp-Source: ABdhPJwgeYfpiU4TaL+sNYk8JQhgUoPaRCwg5+9HCoLujfPlRhTT1jZ0jK2Sqbbps882JdAhQwjOAlmdak1l08CL8Lw=
+        bh=qAbADIQAzXUoq/ElYpa9rjjQHxphEP8wPywcql//gEU=;
+        b=quZEoQ8frgv5grgXrJHogEw0XPE+CxpXwashkjWp5xnmIOacc9ig+lD5L+Edj6Pa3B
+         0iOtL5V1s23lt3WQdQcUUpqWUr+Wzi5TP3Xfs6w8eUdJz913PP1RSk59BlW9wJVakR2k
+         nT6OF/eel6mkdAIQ71wQL4ZCEYmX8CUM3oMYSuPvy+MifRCFNLOH2hV7zLZVaN4JmAMZ
+         sfBxaKVntM/qWc2uCN1dL0xJSpzwjhmqPG9REAEDTyElT+Rv7mF/+Bi23ZifbG82at2R
+         fEvKPhc6b4sUCLF6XCvJtt++r3Ly+fvpp8940e/cWeAOd1FxCQga/pP7hsFtZTto83rt
+         TO+g==
+X-Gm-Message-State: AOAM531flCoe2BUapD2jqFp5mmJ4SNPR/Ho3x2ahMNTrItMaYq5x0cT1
+        lmU3LuvATGXoK23csSGZ/zFRNvbffqVZhzkuwzA=
+X-Google-Smtp-Source: ABdhPJwBmNvm14+TDBMdxtVUmeFtuXceFyrO8XCaMzs+ImrOy+72TpNn3ja8CYb7Rf87hbMIOM4aIfmuWPGKh8vvqRQ=
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:7933:7015:a5d5:3835])
- (user=samitolvanen job=sendgmr) by 2002:a0c:b410:: with SMTP id
- u16mr5255799qve.8.1617226067444; Wed, 31 Mar 2021 14:27:47 -0700 (PDT)
-Date:   Wed, 31 Mar 2021 14:27:16 -0700
+ (user=samitolvanen job=sendgmr) by 2002:ad4:5614:: with SMTP id
+ ca20mr4929242qvb.37.1617226074055; Wed, 31 Mar 2021 14:27:54 -0700 (PDT)
+Date:   Wed, 31 Mar 2021 14:27:19 -0700
 In-Reply-To: <20210331212722.2746212-1-samitolvanen@google.com>
-Message-Id: <20210331212722.2746212-13-samitolvanen@google.com>
+Message-Id: <20210331212722.2746212-16-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20210331212722.2746212-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.31.0.291.g576ba9dcdaf-goog
-Subject: [PATCH v4 12/17] arm64: implement function_nocfi
+Subject: [PATCH v4 15/17] arm64: add __nocfi to __apply_alternatives
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Kees Cook <keescook@chromium.org>
 Cc:     Nathan Chancellor <nathan@kernel.org>,
@@ -81,43 +81,33 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-With CONFIG_CFI_CLANG, the compiler replaces function addresses in
-instrumented C code with jump table addresses. This change implements
-the function_nocfi() macro, which returns the actual function address
-instead.
+__apply_alternatives makes indirect calls to functions whose address
+is taken in assembly code using the alternative_cb macro. With
+non-canonical CFI, the compiler won't replace these function
+references with the jump table addresses, which trips CFI. Disable CFI
+checking in the function to work around the issue.
 
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm64/include/asm/memory.h | 15 +++++++++++++++
- 1 file changed, 15 insertions(+)
+ arch/arm64/kernel/alternative.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/memory.h b/arch/arm64/include/asm/memory.h
-index 0aabc3be9a75..b55410afd3d1 100644
---- a/arch/arm64/include/asm/memory.h
-+++ b/arch/arm64/include/asm/memory.h
-@@ -321,6 +321,21 @@ static inline void *phys_to_virt(phys_addr_t x)
- #define virt_to_pfn(x)		__phys_to_pfn(__virt_to_phys((unsigned long)(x)))
- #define sym_to_pfn(x)		__phys_to_pfn(__pa_symbol(x))
+diff --git a/arch/arm64/kernel/alternative.c b/arch/arm64/kernel/alternative.c
+index 1184c44ea2c7..abc84636af07 100644
+--- a/arch/arm64/kernel/alternative.c
++++ b/arch/arm64/kernel/alternative.c
+@@ -133,8 +133,8 @@ static void clean_dcache_range_nopatch(u64 start, u64 end)
+ 	} while (cur += d_size, cur < end);
+ }
  
-+#ifdef CONFIG_CFI_CLANG
-+/*
-+ * With CONFIG_CFI_CLANG, the compiler replaces function address
-+ * references with the address of the function's CFI jump table
-+ * entry. The function_nocfi macro always returns the address of the
-+ * actual function instead.
-+ */
-+#define function_nocfi(x) ({						\
-+	void *addr;							\
-+	asm("adrp %0, " __stringify(x) "\n\t"				\
-+	    "add  %0, %0, :lo12:" __stringify(x) : "=r" (addr));	\
-+	addr;								\
-+})
-+#endif
-+
- /*
-  *  virt_to_page(x)	convert a _valid_ virtual address to struct page *
-  *  virt_addr_valid(x)	indicates whether a virtual address is valid
+-static void __apply_alternatives(void *alt_region,  bool is_module,
+-				 unsigned long *feature_mask)
++static void __nocfi __apply_alternatives(void *alt_region,  bool is_module,
++					 unsigned long *feature_mask)
+ {
+ 	struct alt_instr *alt;
+ 	struct alt_region *region = alt_region;
 -- 
 2.31.0.291.g576ba9dcdaf-goog
 
