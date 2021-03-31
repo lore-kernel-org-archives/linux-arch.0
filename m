@@ -2,130 +2,277 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 86C9AC433B4
-	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 14:32:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6D024C43460
+	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 14:32:55 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 66D5560FF3
-	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 14:32:20 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 4C23A60FF0
+	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 14:32:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235957AbhCaObt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 31 Mar 2021 10:31:49 -0400
-Received: from mail.kernel.org ([198.145.29.99]:43552 "EHLO mail.kernel.org"
+        id S235630AbhCaOcU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 31 Mar 2021 10:32:20 -0400
+Received: from mail.kernel.org ([198.145.29.99]:43822 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S235630AbhCaObo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 31 Mar 2021 10:31:44 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 01F3760FF0;
-        Wed, 31 Mar 2021 14:31:36 +0000 (UTC)
+        id S236058AbhCaOcE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 Mar 2021 10:32:04 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 7888360FF2;
+        Wed, 31 Mar 2021 14:31:55 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1617201104;
-        bh=Oq2p2++lqOERCPM++AATk5Rdw/3Ja6gaVMhRgPIzPF0=;
-        h=From:To:Cc:Subject:Date:From;
-        b=nzY/wb74M0jYfXHnZiSzoI4o7pq5Y3fTkzio1WdfkdRKufUohKQwkm1PBLN3tufHE
-         9OgAOpE32h2+T9nnF1ZCPS1coRoUrCzNA6DyKMuNSxpqkRqMIdROAGSe2CoLT6u0u0
-         /1h66strn7saF1NEJrq8/A+Hy2dp6ib8IsgmKIVMt9rrPFl0WEWvgcqy/N+E6U5hwm
-         TGkr8KWwp9XlnInAw2drOXo7N61mG3GRNZ4E45pXzIx/rRrUYdKrtzVzakE1zxYrUT
-         pBm1qXLMVF5/zB174lV3VS47Fv+LLoFhQ33oZLj5e8FJszP+LGNs4UTY3rumbNQKgY
-         KMQvZq5datBQg==
+        s=k20201202; t=1617201123;
+        bh=RHIlCNf2j+Ok+QoigsRs+Vcz1qgiomFS7YnCplj9JuE=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=dPuOxmtFctYjRRZ8ZsFXdkVm3ey0e4eKibhuMVz/H93DxYB+l2YAKE0sNjf5c4Amq
+         R2EUZathjHL8eJWGgmBep/jUdvPIC81slkBlaaEEu+bbAhm0+sDkNWSfEthl4HKQa8
+         o7Y1TSKdLBH+xvReULmR8D4lar8O0oJpCCRT5pSq7Tx5c9w/N2LMfUlR59dK+3KYcv
+         IiOwh8wJDxWZ52UNK8brQjldk4eFkS4xUJ0zlBuXtb/YsRnR9CkQQccH7KraHp6ugu
+         +nV2dJOTF22m7eSj0IkD9M7aQ0PhloUG4xmkYvTqKKkpwRkb53wXRYzgORtAxgj2EK
+         80/lYiDdp2P0Q==
 From:   guoren@kernel.org
 To:     guoren@kernel.org
 Cc:     linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
         linux-csky@vger.kernel.org, linux-arch@vger.kernel.org,
         linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org,
         openrisc@lists.librecores.org, sparclinux@vger.kernel.org,
-        Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH v6 0/9] riscv: Add qspinlock/qrwlock
-Date:   Wed, 31 Mar 2021 14:30:31 +0000
-Message-Id: <1617201040-83905-1-git-send-email-guoren@kernel.org>
+        Michael Clark <michaeljclark@mac.com>,
+        Guo Ren <guoren@linux.alibaba.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Anup Patel <anup@brainfault.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Palmer Dabbelt <palmerdabbelt@google.com>
+Subject: [PATCH v6 2/9] riscv: Convert custom spinlock/rwlock to generic qspinlock/qrwlock
+Date:   Wed, 31 Mar 2021 14:30:33 +0000
+Message-Id: <1617201040-83905-3-git-send-email-guoren@kernel.org>
 X-Mailer: git-send-email 2.7.4
+In-Reply-To: <1617201040-83905-1-git-send-email-guoren@kernel.org>
+References: <1617201040-83905-1-git-send-email-guoren@kernel.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Guo Ren <guoren@linux.alibaba.com>
+From: Michael Clark <michaeljclark@mac.com>
 
-Current riscv is still using baby spinlock implementation. It'll cause
-fairness and cache line bouncing problems. Many people are involved
-and pay the efforts to improve it:
+Update the RISC-V port to use the generic qspinlock and qrwlock.
 
- - The first version of patch was made in 2019.1:
-   https://lore.kernel.org/linux-riscv/20190211043829.30096-1-michaeljclark@mac.com/#r
+This patch requires support for xchg_xtail for full-word which
+are added by a previous patch:
 
- - The second version was made in 2020.11:
-   https://lore.kernel.org/linux-riscv/1606225437-22948-2-git-send-email-guoren@kernel.org/
+Guo added select ARCH_USE_QUEUED_SPINLOCKS_XCHG32 in Kconfig
 
- - A good discussion at Platform HSC.2021-03-08:
-   https://drive.google.com/drive/folders/1ooqdnIsYx7XKor5O1XTtM6D1CHp4hc0p
+Guo fixed up compile error which made by below include sequence:
++#include <asm/qrwlock.h>
++#include <asm/qspinlock.h>
 
- - A good discussion on V4 in mailling list:
-   https://lore.kernel.org/linux-riscv/1616868399-82848-1-git-send-email-guoren@kernel.org/T/#t
-
- - Openrisc's maintainer want to implement arch_cmpxchg infrastructure.
-   https://lore.kernel.org/linux-riscv/1616868399-82848-1-git-send-email-guoren@kernel.org/T/#m11b712fb6a4fda043811b1f4c3d61446951ed65a
-
-Hope your comments and Tested-by or Co-developed-by or Reviewed-by ...
-
-Let's kick the qspinlock into riscv right now (Also for the
-architecture which hasn't xchg16 atomic instruction.)
-
-Change V6:
- - Add  ticket-lock for riscv, default is qspinlock
- - Keep ticket-lock for csky,  default is ticketlock
- - Using smp_cond_load for riscv ticket-lock
- - Optimize csky ticketlock with smp_cond_load, store_release
- - Add PPC_LBARX_LWARX for powerpc 
-
-Change V5:
- - Fixup #endif comment typo by Waiman
- - Remove cmpxchg coding convention patches which will get into a
-   separate patchset later by Arnd's advice
- - Try to involve more architectures in the discussion
-
-Change V4:
- - Remove custom sub-word xchg implementation
- - Add ARCH_USE_QUEUED_SPINLOCKS_XCHG32 in locking/qspinlock
-
-Change V3:
- - Coding convention by Peter Zijlstra's advices
-
-Change V2:
- - Coding convention in cmpxchg.h
- - Re-implement short xchg
- - Remove char & cmpxchg implementations
-
-Guo Ren (8):
-  locking/qspinlock: Add ARCH_USE_QUEUED_SPINLOCKS_XCHG32
-  riscv: locks: Introduce ticket-based spinlock implementation
-  csky: locks: Optimize coding convention
-  csky: Convert custom spinlock/rwlock to generic qspinlock/qrwlock
-  openrisc: qspinlock: Add ARCH_USE_QUEUED_SPINLOCKS_XCHG32
-  sparc: qspinlock: Add ARCH_USE_QUEUED_SPINLOCKS_XCHG32
-  xtensa: qspinlock: Add ARCH_USE_QUEUED_SPINLOCKS_XCHG32
-  powerpc/qspinlock: Add ARCH_USE_QUEUED_SPINLOCKS_XCHG32
-
-Michael Clark (1):
-  riscv: Convert custom spinlock/rwlock to generic qspinlock/qrwlock
-
- arch/csky/Kconfig                       |   8 ++
- arch/csky/include/asm/Kbuild            |   2 +
- arch/csky/include/asm/spinlock.h        |  15 +--
- arch/csky/include/asm/spinlock_types.h  |   4 +
- arch/openrisc/Kconfig                   |   1 +
- arch/powerpc/Kconfig                    |   1 +
- arch/riscv/Kconfig                      |   8 ++
+Signed-off-by: Michael Clark <michaeljclark@mac.com>
+Co-developed-by: Guo Ren <guoren@linux.alibaba.com>
+Tested-by: Guo Ren <guoren@linux.alibaba.com>
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Link: https://lore.kernel.org/linux-riscv/20190211043829.30096-3-michaeljclark@mac.com/
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Anup Patel <anup@brainfault.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Palmer Dabbelt <palmerdabbelt@google.com>
+---
+ arch/riscv/Kconfig                      |   3 +
  arch/riscv/include/asm/Kbuild           |   3 +
- arch/riscv/include/asm/spinlock.h       | 158 +++++++++---------------
- arch/riscv/include/asm/spinlock_types.h |  26 ++--
- arch/sparc/Kconfig                      |   1 +
- arch/xtensa/Kconfig                     |   1 +
- kernel/Kconfig.locks                    |   3 +
- kernel/locking/qspinlock.c              |  46 +++----
- 14 files changed, 142 insertions(+), 135 deletions(-)
+ arch/riscv/include/asm/spinlock.h       | 126 +-----------------------
+ arch/riscv/include/asm/spinlock_types.h |  15 +--
+ 4 files changed, 11 insertions(+), 136 deletions(-)
 
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 87d7b52f278f..67cc65ba1ea1 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -33,6 +33,9 @@ config RISCV
+ 	select ARCH_WANT_DEFAULT_TOPDOWN_MMAP_LAYOUT if MMU
+ 	select ARCH_WANT_FRAME_POINTERS
+ 	select ARCH_WANT_HUGE_PMD_SHARE if 64BIT
++	select ARCH_USE_QUEUED_RWLOCKS
++	select ARCH_USE_QUEUED_SPINLOCKS
++	select ARCH_USE_QUEUED_SPINLOCKS_XCHG32
+ 	select CLONE_BACKWARDS
+ 	select CLINT_TIMER if !MMU
+ 	select COMMON_CLK
+diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
+index 445ccc97305a..750c1056b90f 100644
+--- a/arch/riscv/include/asm/Kbuild
++++ b/arch/riscv/include/asm/Kbuild
+@@ -3,5 +3,8 @@ generic-y += early_ioremap.h
+ generic-y += extable.h
+ generic-y += flat.h
+ generic-y += kvm_para.h
++generic-y += mcs_spinlock.h
++generic-y += qrwlock.h
++generic-y += qspinlock.h
+ generic-y += user.h
+ generic-y += vmlinux.lds.h
+diff --git a/arch/riscv/include/asm/spinlock.h b/arch/riscv/include/asm/spinlock.h
+index f4f7fa1b7ca8..a557de67a425 100644
+--- a/arch/riscv/include/asm/spinlock.h
++++ b/arch/riscv/include/asm/spinlock.h
+@@ -7,129 +7,7 @@
+ #ifndef _ASM_RISCV_SPINLOCK_H
+ #define _ASM_RISCV_SPINLOCK_H
+ 
+-#include <linux/kernel.h>
+-#include <asm/current.h>
+-#include <asm/fence.h>
+-
+-/*
+- * Simple spin lock operations.  These provide no fairness guarantees.
+- */
+-
+-/* FIXME: Replace this with a ticket lock, like MIPS. */
+-
+-#define arch_spin_is_locked(x)	(READ_ONCE((x)->lock) != 0)
+-
+-static inline void arch_spin_unlock(arch_spinlock_t *lock)
+-{
+-	smp_store_release(&lock->lock, 0);
+-}
+-
+-static inline int arch_spin_trylock(arch_spinlock_t *lock)
+-{
+-	int tmp = 1, busy;
+-
+-	__asm__ __volatile__ (
+-		"	amoswap.w %0, %2, %1\n"
+-		RISCV_ACQUIRE_BARRIER
+-		: "=r" (busy), "+A" (lock->lock)
+-		: "r" (tmp)
+-		: "memory");
+-
+-	return !busy;
+-}
+-
+-static inline void arch_spin_lock(arch_spinlock_t *lock)
+-{
+-	while (1) {
+-		if (arch_spin_is_locked(lock))
+-			continue;
+-
+-		if (arch_spin_trylock(lock))
+-			break;
+-	}
+-}
+-
+-/***********************************************************/
+-
+-static inline void arch_read_lock(arch_rwlock_t *lock)
+-{
+-	int tmp;
+-
+-	__asm__ __volatile__(
+-		"1:	lr.w	%1, %0\n"
+-		"	bltz	%1, 1b\n"
+-		"	addi	%1, %1, 1\n"
+-		"	sc.w	%1, %1, %0\n"
+-		"	bnez	%1, 1b\n"
+-		RISCV_ACQUIRE_BARRIER
+-		: "+A" (lock->lock), "=&r" (tmp)
+-		:: "memory");
+-}
+-
+-static inline void arch_write_lock(arch_rwlock_t *lock)
+-{
+-	int tmp;
+-
+-	__asm__ __volatile__(
+-		"1:	lr.w	%1, %0\n"
+-		"	bnez	%1, 1b\n"
+-		"	li	%1, -1\n"
+-		"	sc.w	%1, %1, %0\n"
+-		"	bnez	%1, 1b\n"
+-		RISCV_ACQUIRE_BARRIER
+-		: "+A" (lock->lock), "=&r" (tmp)
+-		:: "memory");
+-}
+-
+-static inline int arch_read_trylock(arch_rwlock_t *lock)
+-{
+-	int busy;
+-
+-	__asm__ __volatile__(
+-		"1:	lr.w	%1, %0\n"
+-		"	bltz	%1, 1f\n"
+-		"	addi	%1, %1, 1\n"
+-		"	sc.w	%1, %1, %0\n"
+-		"	bnez	%1, 1b\n"
+-		RISCV_ACQUIRE_BARRIER
+-		"1:\n"
+-		: "+A" (lock->lock), "=&r" (busy)
+-		:: "memory");
+-
+-	return !busy;
+-}
+-
+-static inline int arch_write_trylock(arch_rwlock_t *lock)
+-{
+-	int busy;
+-
+-	__asm__ __volatile__(
+-		"1:	lr.w	%1, %0\n"
+-		"	bnez	%1, 1f\n"
+-		"	li	%1, -1\n"
+-		"	sc.w	%1, %1, %0\n"
+-		"	bnez	%1, 1b\n"
+-		RISCV_ACQUIRE_BARRIER
+-		"1:\n"
+-		: "+A" (lock->lock), "=&r" (busy)
+-		:: "memory");
+-
+-	return !busy;
+-}
+-
+-static inline void arch_read_unlock(arch_rwlock_t *lock)
+-{
+-	__asm__ __volatile__(
+-		RISCV_RELEASE_BARRIER
+-		"	amoadd.w x0, %1, %0\n"
+-		: "+A" (lock->lock)
+-		: "r" (-1)
+-		: "memory");
+-}
+-
+-static inline void arch_write_unlock(arch_rwlock_t *lock)
+-{
+-	smp_store_release(&lock->lock, 0);
+-}
++#include <asm/qspinlock.h>
++#include <asm/qrwlock.h>
+ 
+ #endif /* _ASM_RISCV_SPINLOCK_H */
+diff --git a/arch/riscv/include/asm/spinlock_types.h b/arch/riscv/include/asm/spinlock_types.h
+index f398e7638dd6..d033a973f287 100644
+--- a/arch/riscv/include/asm/spinlock_types.h
++++ b/arch/riscv/include/asm/spinlock_types.h
+@@ -6,20 +6,11 @@
+ #ifndef _ASM_RISCV_SPINLOCK_TYPES_H
+ #define _ASM_RISCV_SPINLOCK_TYPES_H
+ 
+-#ifndef __LINUX_SPINLOCK_TYPES_H
++#if !defined(__LINUX_SPINLOCK_TYPES_H) && !defined(_ASM_RISCV_SPINLOCK_H)
+ # error "please don't include this file directly"
+ #endif
+ 
+-typedef struct {
+-	volatile unsigned int lock;
+-} arch_spinlock_t;
+-
+-#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
+-
+-typedef struct {
+-	volatile unsigned int lock;
+-} arch_rwlock_t;
+-
+-#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
++#include <asm-generic/qspinlock_types.h>
++#include <asm-generic/qrwlock_types.h>
+ 
+ #endif /* _ASM_RISCV_SPINLOCK_TYPES_H */
 -- 
 2.17.1
 
