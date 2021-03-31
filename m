@@ -5,61 +5,61 @@ X-Spam-Level:
 X-Spam-Status: No, score=-26.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no
+	USER_AGENT_GIT,USER_IN_DEF_DKIM_WL autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9A7B9C43611
-	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 21:28:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1C594C4361B
+	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 21:28:51 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7C86161075
+	by mail.kernel.org (Postfix) with ESMTP id EF9D061076
 	for <linux-arch@archiver.kernel.org>; Wed, 31 Mar 2021 21:28:50 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232406AbhCaV2N (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 31 Mar 2021 17:28:13 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51764 "EHLO
+        id S232624AbhCaV2P (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 31 Mar 2021 17:28:15 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51760 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231620AbhCaV1e (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Mar 2021 17:27:34 -0400
-Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6C406C06175F
-        for <linux-arch@vger.kernel.org>; Wed, 31 Mar 2021 14:27:32 -0700 (PDT)
-Received: by mail-yb1-xb49.google.com with SMTP id 71so562022ybl.0
-        for <linux-arch@vger.kernel.org>; Wed, 31 Mar 2021 14:27:32 -0700 (PDT)
+        with ESMTP id S232686AbhCaV1i (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Mar 2021 17:27:38 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 310D7C0613D8
+        for <linux-arch@vger.kernel.org>; Wed, 31 Mar 2021 14:27:38 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id v186so3653366ybe.5
+        for <linux-arch@vger.kernel.org>; Wed, 31 Mar 2021 14:27:38 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20161025;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=lJzARyoTFHSeDeqATvX4eu9oF56GjO0aovkcTYMeCXE=;
-        b=EkwKQyMZdT5HfDUmkAZVrW7DWLH3qdU+R/FHZTPqq5IKj3NSExJ7rO5G826Zfp25Du
-         4SeLWwQdtvXJZTK7h4ZZ28yesbAdVRYaYD0+nkzkzzHCLmsSAl5G+DxlpNEm8A2HbV14
-         tjDJKbgnnBAN8zUjWqqu5EfJrrMMTPcc3Vp3MbyGSfKz3w+5QkjRKPTYJiaUHVyIfGAH
-         Uw2KSLbyUziDQJrTtbRd5qayoZXfFGV/ul1u7MZ+aVnD/YxBbkoVM8AG04ixf/ZBdxFM
-         lnSgkOrXFZ4W6piai3EFaSnpzVwD5YS8KMAEeWGT9UwcCv3eo8BVkIjR90//1hltbdO1
-         WtJQ==
+        bh=i1PxfqvHNAZaUSY0Wt2J9hLbKLkB/NragVXsh/CJXkk=;
+        b=CgrLOqIhy6I4HPpgcvaJ2Kf5auntmv+ua+he8hCf1xZOx39XpJXZZQKDjnLwMtvYdc
+         Coi9ppbfXIt+chJQ+QAqS+uMcGf3PwWgeivSHwdv4kpzv+rr2THIbfrCVVg6whJabjHV
+         2SJxgs1puZMWys7KvUR5E+GbWAG2gwUT/GVAk45+lS65j4BBiznnMwegCCuQHsgryS2u
+         QzL22ZL9lFhVWUNp8q+UhG8SLH8hbhdY0GCTNzBAfacJ68xebK4pOQ0ZV2n5FHyUqPaj
+         SKhOoLjlOqVTxE7XxST/QkBjkfCEkkv080ZLYXfJXOwteQgLmCab9Xy/VvS1MHxuU5DN
+         Wx1g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=lJzARyoTFHSeDeqATvX4eu9oF56GjO0aovkcTYMeCXE=;
-        b=LF4CYCql6HUSsC7K57SOG+olgWilY/zUjU7GUs7+3KQ+g0Vq3azNy87F13ZeBoxfW8
-         QC5mmhafFt9zKfLz3UXrKlpg+uWkQNrbnreAZqreFSRVGVYz4RLeJDre9oLQKC1nmdck
-         RItaDWqUsLNd/qQgExx8fZKTf0XBe4tk/mKORNGl5tC8qkyYzN9ulKGhudCj+6Rl8B0g
-         91M7ZEO+Sf7NKfJqMhKnitBux+/hErpSGPq5MNosLfK3FRu93NrElAGMdsglwPOUniBV
-         VR2qVYsI1BU87ZHDqFbczY8uK62alHDwnss9hCDqoQr7hSlNY0MteCTXGNWOd/b01Wx7
-         TWIw==
-X-Gm-Message-State: AOAM532TlM63/jPrL6w0XfcKHzj4ozlKo1yVxbETpYiV6dm0+Rmg4Te1
-        WInU4/4OwM3xvjFfktdp6rSMsyRkSYMCccBMaYg=
-X-Google-Smtp-Source: ABdhPJyd8HcE5E535kHQ1N5nE+6FNp3+tY1VY7IhXOwntRLaet3Jq1vErDdNDQFRye3uE6pJ+4BkgjDjLB/yQDl1VBo=
+        bh=i1PxfqvHNAZaUSY0Wt2J9hLbKLkB/NragVXsh/CJXkk=;
+        b=OQew4ys74OnXeG1MOFJ79Ot7IWkVqmyrjxg31qEaIphu9sVlne6s84Ifu2ecgoN+Qr
+         mau7NvOKaxP1sTtfmLn3lFukPmesKKFXX6WfivyOgb2BQ/sglq0t2O5WcR/HjpKm/3yt
+         4x/La1grrALstoVkqWgB8Mq+st8cET0agTICAxRXnhKSaf20wyVIcQ3FdkxfDoNjS3FF
+         epo7Uf/4r1dqpf2YWU616EOMqBc4WbJ3DvisCV149cMCQh0Inl26Hoadb0DUp6por4Qq
+         Q/MVOI6W/Gg0wV03EiyBvPBGY0RNJKAOuV9Ki+/azBIf1VFjFrvJH2QV6vjH9NNq1ppa
+         jhZQ==
+X-Gm-Message-State: AOAM533xPI3YUTYo+Yn5tpm4OFY1kzB0mLVNZjaQ4fRJWJ0+YVUovN6W
+        a6RQjs1CtYpU7C2UXhz3AsY7Jyv8ikTZz+AwlOE=
+X-Google-Smtp-Source: ABdhPJwLdAoVrfnuDHDuevSolHBmZu5plw9zwt9KPh0wtZT3FBVDe5eapKH2T6ID9dt0hQP3DBYLyas9XQhdZJ5fFFM=
 X-Received: from samitolvanen1.mtv.corp.google.com ([2620:15c:201:2:7933:7015:a5d5:3835])
- (user=samitolvanen job=sendgmr) by 2002:a25:5006:: with SMTP id
- e6mr7725488ybb.109.1617226051633; Wed, 31 Mar 2021 14:27:31 -0700 (PDT)
-Date:   Wed, 31 Mar 2021 14:27:08 -0700
+ (user=samitolvanen job=sendgmr) by 2002:a5b:5c7:: with SMTP id
+ w7mr7418520ybp.164.1617226057459; Wed, 31 Mar 2021 14:27:37 -0700 (PDT)
+Date:   Wed, 31 Mar 2021 14:27:11 -0700
 In-Reply-To: <20210331212722.2746212-1-samitolvanen@google.com>
-Message-Id: <20210331212722.2746212-5-samitolvanen@google.com>
+Message-Id: <20210331212722.2746212-8-samitolvanen@google.com>
 Mime-Version: 1.0
 References: <20210331212722.2746212-1-samitolvanen@google.com>
 X-Mailer: git-send-email 2.31.0.291.g576ba9dcdaf-goog
-Subject: [PATCH v4 04/17] module: ensure __cfi_check alignment
+Subject: [PATCH v4 07/17] kallsyms: strip ThinLTO hashes from static functions
 From:   Sami Tolvanen <samitolvanen@google.com>
 To:     Kees Cook <keescook@chromium.org>
 Cc:     Nathan Chancellor <nathan@kernel.org>,
@@ -81,65 +81,133 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-CONFIG_CFI_CLANG_SHADOW assumes the __cfi_check() function is page
-aligned and at the beginning of the .text section. While Clang would
-normally align the function correctly, it fails to do so for modules
-with no executable code.
+With CONFIG_CFI_CLANG and ThinLTO, Clang appends a hash to the names
+of all static functions not marked __used. This can break userspace
+tools that don't expect the function name to change, so strip out the
+hash from the output.
 
-This change ensures the correct __cfi_check() location and
-alignment. It also discards the .eh_frame section, which Clang can
-generate with certain sanitizers, such as CFI.
-
-Link: https://bugs.llvm.org/show_bug.cgi?id=46293
+Suggested-by: Jack Pham <jackp@codeaurora.org>
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
-Acked-by: Jessica Yu <jeyu@kernel.org>
 ---
- scripts/module.lds.S | 20 +++++++++++++++++++-
- 1 file changed, 19 insertions(+), 1 deletion(-)
+ kernel/kallsyms.c | 55 ++++++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 50 insertions(+), 5 deletions(-)
 
-diff --git a/scripts/module.lds.S b/scripts/module.lds.S
-index 168cd27e6122..2ba9e5ce71df 100644
---- a/scripts/module.lds.S
-+++ b/scripts/module.lds.S
-@@ -3,10 +3,21 @@
-  * Archs are free to supply their own linker scripts.  ld will
-  * combine them automatically.
-  */
-+#include <asm/page.h>
-+
-+#ifdef CONFIG_CFI_CLANG
-+# define ALIGN_CFI 		ALIGN(PAGE_SIZE)
-+# define SANITIZER_DISCARDS	*(.eh_frame)
-+#else
-+# define ALIGN_CFI
-+# define SANITIZER_DISCARDS
-+#endif
-+
- SECTIONS {
- 	/DISCARD/ : {
- 		*(.discard)
- 		*(.discard.*)
-+		SANITIZER_DISCARDS
- 	}
- 
- 	__ksymtab		0 : { *(SORT(___ksymtab+*)) }
-@@ -40,7 +51,14 @@ SECTIONS {
- 		*(.rodata..L*)
- 	}
- 
--	.text : { *(.text .text.[0-9a-zA-Z_]*) }
-+	/*
-+	 * With CONFIG_CFI_CLANG, we assume __cfi_check is at the beginning
-+	 * of the .text section, and is aligned to PAGE_SIZE.
-+	 */
-+	.text : ALIGN_CFI {
-+		*(.text.__cfi_check)
-+		*(.text .text.[0-9a-zA-Z_]* .text..L.cfi*)
-+	}
+diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
+index 8043a90aa50e..c851ca0ed357 100644
+--- a/kernel/kallsyms.c
++++ b/kernel/kallsyms.c
+@@ -161,6 +161,27 @@ static unsigned long kallsyms_sym_address(int idx)
+ 	return kallsyms_relative_base - 1 - kallsyms_offsets[idx];
  }
  
- /* bring in arch-specific sections */
++#if defined(CONFIG_CFI_CLANG) && defined(CONFIG_LTO_CLANG_THIN)
++/*
++ * LLVM appends a hash to static function names when ThinLTO and CFI are
++ * both enabled, i.e. foo() becomes foo$707af9a22804d33c81801f27dcfe489b.
++ * This causes confusion and potentially breaks user space tools, so we
++ * strip the suffix from expanded symbol names.
++ */
++static inline bool cleanup_symbol_name(char *s)
++{
++	char *res;
++
++	res = strrchr(s, '$');
++	if (res)
++		*res = '\0';
++
++	return res != NULL;
++}
++#else
++static inline bool cleanup_symbol_name(char *s) { return false; }
++#endif
++
+ /* Lookup the address for this symbol. Returns 0 if not found. */
+ unsigned long kallsyms_lookup_name(const char *name)
+ {
+@@ -173,6 +194,9 @@ unsigned long kallsyms_lookup_name(const char *name)
+ 
+ 		if (strcmp(namebuf, name) == 0)
+ 			return kallsyms_sym_address(i);
++
++		if (cleanup_symbol_name(namebuf) && strcmp(namebuf, name) == 0)
++			return kallsyms_sym_address(i);
+ 	}
+ 	return module_kallsyms_lookup_name(name);
+ }
+@@ -303,7 +327,9 @@ const char *kallsyms_lookup(unsigned long addr,
+ 				       namebuf, KSYM_NAME_LEN);
+ 		if (modname)
+ 			*modname = NULL;
+-		return namebuf;
++
++		ret = namebuf;
++		goto found;
+ 	}
+ 
+ 	/* See if it's in a module or a BPF JITed image. */
+@@ -316,11 +342,16 @@ const char *kallsyms_lookup(unsigned long addr,
+ 	if (!ret)
+ 		ret = ftrace_mod_address_lookup(addr, symbolsize,
+ 						offset, modname, namebuf);
++
++found:
++	cleanup_symbol_name(namebuf);
+ 	return ret;
+ }
+ 
+ int lookup_symbol_name(unsigned long addr, char *symname)
+ {
++	int res;
++
+ 	symname[0] = '\0';
+ 	symname[KSYM_NAME_LEN - 1] = '\0';
+ 
+@@ -331,15 +362,23 @@ int lookup_symbol_name(unsigned long addr, char *symname)
+ 		/* Grab name */
+ 		kallsyms_expand_symbol(get_symbol_offset(pos),
+ 				       symname, KSYM_NAME_LEN);
+-		return 0;
++		goto found;
+ 	}
+ 	/* See if it's in a module. */
+-	return lookup_module_symbol_name(addr, symname);
++	res = lookup_module_symbol_name(addr, symname);
++	if (res)
++		return res;
++
++found:
++	cleanup_symbol_name(symname);
++	return 0;
+ }
+ 
+ int lookup_symbol_attrs(unsigned long addr, unsigned long *size,
+ 			unsigned long *offset, char *modname, char *name)
+ {
++	int res;
++
+ 	name[0] = '\0';
+ 	name[KSYM_NAME_LEN - 1] = '\0';
+ 
+@@ -351,10 +390,16 @@ int lookup_symbol_attrs(unsigned long addr, unsigned long *size,
+ 		kallsyms_expand_symbol(get_symbol_offset(pos),
+ 				       name, KSYM_NAME_LEN);
+ 		modname[0] = '\0';
+-		return 0;
++		goto found;
+ 	}
+ 	/* See if it's in a module. */
+-	return lookup_module_symbol_attrs(addr, size, offset, modname, name);
++	res = lookup_module_symbol_attrs(addr, size, offset, modname, name);
++	if (res)
++		return res;
++
++found:
++	cleanup_symbol_name(name);
++	return 0;
+ }
+ 
+ /* Look up a kernel symbol and return it in a text buffer. */
 -- 
 2.31.0.291.g576ba9dcdaf-goog
 
