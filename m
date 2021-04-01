@@ -2,134 +2,278 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-2.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-18.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	UNPARSEABLE_RELAY,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 13943C43460
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 09:51:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 289BCC47068
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 17:45:56 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D632C6108B
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 09:51:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 1649861368
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 17:45:56 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233670AbhDAJvC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 1 Apr 2021 05:51:02 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42846 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233383AbhDAJus (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Apr 2021 05:50:48 -0400
-Received: from mail-pf1-x42e.google.com (mail-pf1-x42e.google.com [IPv6:2607:f8b0:4864:20::42e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 317C4C0613E6;
-        Thu,  1 Apr 2021 02:50:48 -0700 (PDT)
-Received: by mail-pf1-x42e.google.com with SMTP id 11so1063936pfn.9;
-        Thu, 01 Apr 2021 02:50:48 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=8rfhvrhvTSo4JLkNVbcKkmfjeWHgVESw491Efee+3BA=;
-        b=DgZNbxa2Nf9HfWBlDfyrAYIIyoODQOGfK33DUNfoe/5yf/0CPsXXiUeOU1zdlWL3DY
-         Lj1pM/R2SN13dSDU0P+q8KSQvr299Q8/szD0H0xnneBKoZpxONZ0yNLM0F68VdN6VFNt
-         YABDidfiKPZxkLjJgPGsSWkPKR44UcG06kYu3+XppXpgMgo+/OlNwY+aw4JBiAF3Y19H
-         50TG32w/hAKgMqvgDUIuIeEvE4ILakado5t9ECcby1HvAtcUqGVCuf7jCArDD+pJB3JY
-         li4K1RPo6fCDbYQmCSUB1QzQ2ddSEo8qY8rEo3zaSJ0wMF0iAH9l7THDgq7nab3SksqI
-         3wuw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=8rfhvrhvTSo4JLkNVbcKkmfjeWHgVESw491Efee+3BA=;
-        b=KfXgwwyG11tqNlQhS0tE5mL22qjFXQmzSbtAAgAXdOw5MDj0b3KzAlPfJY5/lJ1YJO
-         6p85ujrdaBfOkFRQT/YY1Ho8zNM/MzYTif/KhRwwo5G/ot8ip0HdS0PAM8Xk4oD4aFHT
-         oMHkNXtrImbe8g0eia9jGHMpsUOK23Xh8TeGIT8E63SIjEAA31dgVubhgkG9FzfDZqB9
-         O1lziya8UwFDnhKSWWdx2bD7CnTZ9ZXM686Yk/u55xng6ZyLSrQjRdqwifT7G+rP4VwA
-         HLjYNZLw+JzR/qqNTFiJz/5wEGF61GjLlzNJB2ucW+s4JuJfnMi1Boxb2yBRrnZlzkU3
-         SyzQ==
-X-Gm-Message-State: AOAM531BQwYQPM3R0EDadJIy/cu9yKXvrYb0HrnjetPT8zsS5zGrKLS3
-        fiEzkL8dfFj0iaN5AmCnj33bYqhhmxO/G7lHB6U=
-X-Google-Smtp-Source: ABdhPJz7j2nNz9qv2IrtVW/D1sczbGytNy6sUXKazkSOyi/BCDvfs085s+kcA1f8g4roqF80H2yZItYyeLaoK65/of8=
-X-Received: by 2002:a62:7c43:0:b029:1ef:20ce:ba36 with SMTP id
- x64-20020a627c430000b02901ef20ceba36mr6887135pfc.40.1617270647711; Thu, 01
- Apr 2021 02:50:47 -0700 (PDT)
+        id S234849AbhDARpt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 1 Apr 2021 13:45:49 -0400
+Received: from userp2120.oracle.com ([156.151.31.85]:46394 "EHLO
+        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S234598AbhDARiV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Apr 2021 13:38:21 -0400
+Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
+        by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 131FOg5e070032;
+        Thu, 1 Apr 2021 15:32:30 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : cc :
+ subject : date : message-id : in-reply-to : references : mime-version :
+ content-transfer-encoding; s=corp-2020-01-29;
+ bh=7xXbGt6ipWzN0FZkyp189L12QPq4brrACDlQEhO9jOc=;
+ b=Orh7DWiSEkhi46sVS8uD9de2qKn2XqMAqtNz4svvpuR/SkEjuK3wjbxNx3w5F3qvVrgP
+ vlVolgRr906BHJ1Ac5AQIjfwSdjyDR+pr3c818rmSpX87bTV+lC4zUC8dBD6+qtcrp8s
+ guIz26iMUKR3F8nErtxCJzsKd8e3Q3k4Fa/kRDNJuEdpiCji0jUwh8TjvstjdQEGRZXT
+ Y1FQuNm2/a1b5Y14xXv5LLvWWWrBDjj5+IndJNWTw1Pk3jCSsPpUkyKC7PmJMBBme/9Q
+ HUbGmi7H7/sDa/yFxQ7Pngs7S0ZHVj2S4AXd6Ozu9BQ9hbiSvHYZO1VhNIgMra0573dt xQ== 
+Received: from aserp3030.oracle.com (aserp3030.oracle.com [141.146.126.71])
+        by userp2120.oracle.com with ESMTP id 37n2a029c3-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Thu, 01 Apr 2021 15:32:30 +0000
+Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
+        by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 131FLwuQ024262;
+        Thu, 1 Apr 2021 15:32:28 GMT
+Received: from userv0121.oracle.com (userv0121.oracle.com [156.151.31.72])
+        by aserp3030.oracle.com with ESMTP id 37n2asea1v-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Thu, 01 Apr 2021 15:32:28 +0000
+Received: from abhmp0017.oracle.com (abhmp0017.oracle.com [141.146.116.23])
+        by userv0121.oracle.com (8.14.4/8.13.8) with ESMTP id 131FWFjn011670;
+        Thu, 1 Apr 2021 15:32:15 GMT
+Received: from neelam.us.oracle.com (/10.152.128.16)
+        by default (Oracle Beehive Gateway v4.0)
+        with ESMTP ; Thu, 01 Apr 2021 08:32:15 -0700
+From:   Alex Kogan <alex.kogan@oracle.com>
+To:     linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com,
+        will.deacon@arm.com, arnd@arndb.de, longman@redhat.com,
+        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de,
+        hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com,
+        jglauber@marvell.com
+Cc:     steven.sistare@oracle.com, daniel.m.jordan@oracle.com,
+        alex.kogan@oracle.com, dave.dice@oracle.com
+Subject: [PATCH v14 4/6] locking/qspinlock: Introduce starvation avoidance into CNA
+Date:   Thu,  1 Apr 2021 11:31:54 -0400
+Message-Id: <20210401153156.1165900-5-alex.kogan@oracle.com>
+X-Mailer: git-send-email 2.25.1
+In-Reply-To: <20210401153156.1165900-1-alex.kogan@oracle.com>
+References: <20210401153156.1165900-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
-References: <20210401003153.97325-1-yury.norov@gmail.com> <CAHp75VdzRXPsQ7Jvivm5UU+mfkgQ_0rmnegp04v-v9fwrjdrqg@mail.gmail.com>
- <CAK8P3a2EGc4BS7UTyC6=ySgLEoyqbswh1Gh_=M21NmhRThssYQ@mail.gmail.com>
-In-Reply-To: <CAK8P3a2EGc4BS7UTyC6=ySgLEoyqbswh1Gh_=M21NmhRThssYQ@mail.gmail.com>
-From:   Andy Shevchenko <andy.shevchenko@gmail.com>
-Date:   Thu, 1 Apr 2021 12:50:31 +0300
-Message-ID: <CAHp75VdTndAD1gyLE_e8m9AaxrRMCNpYEu22+tWe1xrAz8oKBw@mail.gmail.com>
-Subject: Re: [PATCH v6 00/12] lib/find_bit: fast path for small bitmaps
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     Yury Norov <yury.norov@gmail.com>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        linux-m68k <linux-m68k@lists.linux-m68k.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        Linux-SH <linux-sh@vger.kernel.org>,
-        Alexey Klimov <aklimov@redhat.com>,
-        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        David Sterba <dsterba@suse.com>,
-        Dennis Zhou <dennis@kernel.org>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Jianpeng Ma <jianpeng.ma@intel.com>,
-        Joe Perches <joe@perches.com>,
-        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-        Josh Poimboeuf <jpoimboe@redhat.com>,
-        Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-        Rich Felker <dalias@libc.org>,
-        Stefano Brivio <sbrivio@redhat.com>,
-        Wei Yang <richard.weiyang@linux.alibaba.com>,
-        Wolfram Sang <wsa+renesas@sang-engineering.com>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+X-Proofpoint-IMR: 1
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9941 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 spamscore=0
+ suspectscore=0 bulkscore=0 mlxscore=0 adultscore=0 malwarescore=0
+ phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2103310000 definitions=main-2104010104
+X-Proofpoint-GUID: SxpQz_8HPk0JH92ICcz0JyiH62VRzll5
+X-Proofpoint-ORIG-GUID: SxpQz_8HPk0JH92ICcz0JyiH62VRzll5
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9941 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 impostorscore=0 adultscore=0
+ clxscore=1015 mlxlogscore=999 phishscore=0 bulkscore=0 priorityscore=1501
+ spamscore=0 malwarescore=0 mlxscore=0 lowpriorityscore=0 suspectscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2103310000
+ definitions=main-2104010104
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Apr 1, 2021 at 12:29 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Thu, Apr 1, 2021 at 11:16 AM Andy Shevchenko
-> <andy.shevchenko@gmail.com> wrote:
-> >
-> > On Thu, Apr 1, 2021 at 3:36 AM Yury Norov <yury.norov@gmail.com> wrote:
-> > >
-> > > Bitmap operations are much simpler and faster in case of small bitmaps
-> > > which fit into a single word. In linux/bitmap.c we have a machinery that
-> > > allows compiler to replace actual function call with a few instructions
-> > > if bitmaps passed into the function are small and their size is known at
-> > > compile time.
-> > >
-> > > find_*_bit() API lacks this functionality; but users will benefit from it
-> > > a lot. One important example is cpumask subsystem when
-> > > NR_CPUS <= BITS_PER_LONG.
-> >
-> > Cool, thanks!
-> >
-> > I guess it's assumed to go via Andrew's tree.
-> >
-> > But after that since you are about to be a maintainer of this, I think
-> > it would make sense to send PRs directly to Linus. I would recommend
-> > creating an official tree (followed by an update in the MAINTAINERS)
-> > and connecting it to Linux next (usually done by email to Stephen).
->
-> It depends on how often we expect to see updates to this. I have not
-> followed the changes as closely as I should have, but I can also
-> merge them through the asm-generic tree for this time so Andrew
-> has to carry fewer patches for this.
->
-> I normally don't have a lot of material for asm-generic either, half
-> the time there are no pull requests at all for a given release. I would
-> expect future changes to the bitmap implementation to only need
-> an occasional bugfix, which could go through either the asm-generic
-> tree or through mm and doesn't need another separate pull request.
->
-> If it turns out to be a tree that needs regular updates every time,
-> then having a top level repository in linux-next would be appropriate.
+Keep track of the time the thread at the head of the secondary queue
+has been waiting, and force inter-node handoff once this time passes
+a preset threshold. The default value for the threshold (10ms) can be
+overridden with the new kernel boot command-line option
+"numa_spinlock_threshold". The ms value is translated internally to the
+nearest rounded-up jiffies.
 
-Agree. asm-generic may serve for this. My worries are solely about how
-much burden we add on Andrew's shoulders.
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+Reviewed-by: Waiman Long <longman@redhat.com>
+---
+ .../admin-guide/kernel-parameters.txt         |  9 ++
+ kernel/locking/qspinlock_cna.h                | 96 ++++++++++++++++---
+ 2 files changed, 93 insertions(+), 12 deletions(-)
 
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index ace55afd4441..5c959631a8c8 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -3485,6 +3485,15 @@
+ 			Not specifying this option is equivalent to
+ 			numa_spinlock=auto.
+ 
++	numa_spinlock_threshold=	[NUMA, PV_OPS]
++			Set the time threshold in milliseconds for the
++			number of intra-node lock hand-offs before the
++			NUMA-aware spinlock is forced to be passed to
++			a thread on another NUMA node.	Valid values
++			are in the [1..100] range. Smaller values result
++			in a more fair, but less performant spinlock,
++			and vice versa. The default value is 10.
++
+ 	numa_zonelist_order= [KNL, BOOT] Select zonelist order for NUMA.
+ 			'node', 'default' can be specified
+ 			This can be set from sysctl after boot.
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+index d689861a7b3d..0513360c11fe 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -37,6 +37,12 @@
+  * gradually filter the primary queue, leaving only waiters running on the same
+  * preferred NUMA node.
+  *
++ * We change the NUMA node preference after a waiter at the head of the
++ * secondary queue spins for a certain amount of time (10ms, by default).
++ * We do that by flushing the secondary queue into the head of the primary queue,
++ * effectively changing the preference to the NUMA node of the waiter at the head
++ * of the secondary queue at the time of the flush.
++ *
+  * For more details, see https://arxiv.org/abs/1810.05600.
+  *
+  * Authors: Alex Kogan <alex.kogan@oracle.com>
+@@ -49,13 +55,33 @@ struct cna_node {
+ 	u16			real_numa_node;
+ 	u32			encoded_tail;	/* self */
+ 	u32			partial_order;	/* enum val */
++	s32			start_time;
+ };
+ 
+ enum {
+ 	LOCAL_WAITER_FOUND,
+ 	LOCAL_WAITER_NOT_FOUND,
++	FLUSH_SECONDARY_QUEUE
+ };
+ 
++/*
++ * Controls the threshold time in ms (default = 10) for intra-node lock
++ * hand-offs before the NUMA-aware variant of spinlock is forced to be
++ * passed to a thread on another NUMA node. The default setting can be
++ * changed with the "numa_spinlock_threshold" boot option.
++ */
++#define MSECS_TO_JIFFIES(m)	\
++	(((m) + (MSEC_PER_SEC / HZ) - 1) / (MSEC_PER_SEC / HZ))
++static int intra_node_handoff_threshold __ro_after_init = MSECS_TO_JIFFIES(10);
++
++static inline bool intra_node_threshold_reached(struct cna_node *cn)
++{
++	s32 current_time = (s32)jiffies;
++	s32 threshold = cn->start_time + intra_node_handoff_threshold;
++
++	return current_time - threshold > 0;
++}
++
+ static void __init cna_init_nodes_per_cpu(unsigned int cpu)
+ {
+ 	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
+@@ -99,6 +125,7 @@ static __always_inline void cna_init_node(struct mcs_spinlock *node)
+ 
+ 	cn->numa_node = cn->real_numa_node;
+ 	cn->partial_order = LOCAL_WAITER_FOUND;
++	cn->start_time = 0;
+ }
+ 
+ /*
+@@ -198,8 +225,15 @@ static void cna_splice_next(struct mcs_spinlock *node,
+ 
+ 	/* stick `next` on the secondary queue tail */
+ 	if (node->locked <= 1) { /* if secondary queue is empty */
++		struct cna_node *cn = (struct cna_node *)node;
++
+ 		/* create secondary queue */
+ 		next->next = next;
++
++		cn->start_time = (s32)jiffies;
++		/* make sure start_time != 0 iff secondary queue is not empty */
++		if (!cn->start_time)
++			cn->start_time = 1;
+ 	} else {
+ 		/* add to the tail of the secondary queue */
+ 		struct mcs_spinlock *tail_2nd = decode_tail(node->locked);
+@@ -250,11 +284,17 @@ static void cna_order_queue(struct mcs_spinlock *node)
+ static __always_inline u32 cna_wait_head_or_lock(struct qspinlock *lock,
+ 						 struct mcs_spinlock *node)
+ {
+-	/*
+-	 * Try and put the time otherwise spent spin waiting on
+-	 * _Q_LOCKED_PENDING_MASK to use by sorting our lists.
+-	 */
+-	cna_order_queue(node);
++	struct cna_node *cn = (struct cna_node *)node;
++
++	if (!cn->start_time || !intra_node_threshold_reached(cn)) {
++		/*
++		 * Try and put the time otherwise spent spin waiting on
++		 * _Q_LOCKED_PENDING_MASK to use by sorting our lists.
++		 */
++		cna_order_queue(node);
++	} else {
++		cn->partial_order = FLUSH_SECONDARY_QUEUE;
++	}
+ 
+ 	return 0; /* we lied; we didn't wait, go do so now */
+ }
+@@ -270,13 +310,28 @@ static inline void cna_lock_handoff(struct mcs_spinlock *node,
+ 	if (partial_order == LOCAL_WAITER_NOT_FOUND)
+ 		cna_order_queue(node);
+ 
+-	/*
+-	 * We have a local waiter, either real or fake one;
+-	 * reload @next in case it was changed by cna_order_queue().
+-	 */
+-	next = node->next;
+-	if (node->locked > 1)
+-		val = node->locked;	/* preseve secondary queue */
++	if (partial_order != FLUSH_SECONDARY_QUEUE) {
++		/*
++		 * We have a local waiter, either real or fake one;
++		 * reload @next in case it was changed by cna_order_queue().
++		 */
++		next = node->next;
++		if (node->locked > 1) {
++			val = node->locked;     /* preseve secondary queue */
++			((struct cna_node *)next)->start_time = cn->start_time;
++		}
++	} else {
++		/*
++		 * We decided to flush the secondary queue;
++		 * this can only happen if that queue is not empty.
++		 */
++		WARN_ON(node->locked <= 1);
++		/*
++		 * Splice the secondary queue onto the primary queue and pass the lock
++		 * to the longest waiting remote waiter.
++		 */
++		next = cna_splice_head(NULL, 0, node, next);
++	}
+ 
+ 	arch_mcs_lock_handoff(&next->locked, val);
+ }
+@@ -328,3 +383,20 @@ void __init cna_configure_spin_lock_slowpath(void)
+ 
+ 	pr_info("Enabling CNA spinlock\n");
+ }
++
++static int __init numa_spinlock_threshold_setup(char *str)
++{
++	int param;
++
++	if (get_option(&str, &param)) {
++		/* valid value is between 1 and 100 */
++		if (param <= 0 || param > 100)
++			return 0;
++
++		intra_node_handoff_threshold = msecs_to_jiffies(param);
++		return 1;
++	}
++
++	return 0;
++}
++__setup("numa_spinlock_threshold=", numa_spinlock_threshold_setup);
 -- 
-With Best Regards,
-Andy Shevchenko
+2.24.3 (Apple Git-128)
+
