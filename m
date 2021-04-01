@@ -2,263 +2,158 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 10D1FC001BB
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 00:33:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 02E77C43461
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 02:16:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D561061055
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 00:33:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id ADE546108E
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 02:16:05 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233192AbhDAAci (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 31 Mar 2021 20:32:38 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35136 "EHLO
+        id S233030AbhDACP3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 31 Mar 2021 22:15:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57274 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233077AbhDAAcI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Mar 2021 20:32:08 -0400
-Received: from mail-qv1-xf35.google.com (mail-qv1-xf35.google.com [IPv6:2607:f8b0:4864:20::f35])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 073F2C06175F;
-        Wed, 31 Mar 2021 17:32:08 -0700 (PDT)
-Received: by mail-qv1-xf35.google.com with SMTP id q12so241777qvc.8;
-        Wed, 31 Mar 2021 17:32:07 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=gxk1x20X1hnopKqSpU5fRPKa2nNYpg8SC0ATwCXnGOY=;
-        b=iDfEDccou2dL1t8r+QrK51cNoAiX2OPuSvlEnLZt0B5H9AhOq6m9oMKC3Uv66Vpcf2
-         0hrWbZRruD+S3pM5H2DwjUde2HSbaiR+APtwrBWyznYUDiBgGup7Jk9fir96Iuems0uc
-         aPE6Ai5CGAz4OjaFVLrNMV5gmEil/+HIb0VrrTJpQQfZHOGrbrZ4NvOv+mHCrsyd0nlA
-         Dgc1leIrFmLN/tZCC75I1QiqjRAXQotUvMEst1oaZZAnJ3Bgs6RuR21pI2QXgoJyf7jC
-         jdZDYUNBc1XZx+dFnksdby4Asc9/MO1gOB56oF2dppQ0GLuShjYxgVqCO5I38YA6vYs+
-         le0g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=gxk1x20X1hnopKqSpU5fRPKa2nNYpg8SC0ATwCXnGOY=;
-        b=YjnEyYblr28V24mCP+gxkdxxUhCwXN+SK89tPvCXuxgnwiry4LjTmBu0eTkLoU6mxE
-         HMl8txQre8HwTizUn29fl7RMLbm/FaaDfAmie+IWo7eSIPcIW1JCNrs9JP0fOtoywnRv
-         VCu1Y/u56m49lCAGabwYAEipebtfGQIrQmQ+gnRUU8mZBFNB25S1wbxdXd3EgHmYOutN
-         Dwbfao5xICaD8LsU5lfF+gLFW0YHvBWJfNXM99zUx6W12vZHiPuVi3vV+vy4JfFRhpSs
-         WlhTp5XsLqLLsonMck5fgxLEL0mjrs77oDcfX2blmxTEkcrINscHLS6LxIv11P5KgiKI
-         E5Sw==
-X-Gm-Message-State: AOAM533GB/+2gsneHNVKPuDj+FsoAvJU7KtTGJn96BZtxs9LoD+W7OrQ
-        9jBDHeCy9f9ZUIZ3pLG0BVhfuIDkoPLjGg==
-X-Google-Smtp-Source: ABdhPJxpDEohmf8RrWI+qZ1o2e1vtGgE92f3rXHNVVQTVhAdgQNCbWXn0xHdk1KZXmuFG5AMIWCDfA==
-X-Received: by 2002:ad4:5629:: with SMTP id cb9mr5833336qvb.62.1617237126876;
-        Wed, 31 Mar 2021 17:32:06 -0700 (PDT)
-Received: from localhost ([207.98.216.60])
-        by smtp.gmail.com with ESMTPSA id 19sm1425205qtt.32.2021.03.31.17.32.06
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 31 Mar 2021 17:32:06 -0700 (PDT)
-From:   Yury Norov <yury.norov@gmail.com>
-To:     linux-kernel@vger.kernel.org,
-        Andrew Morton <akpm@linux-foundation.org>
-Cc:     Yury Norov <yury.norov@gmail.com>, linux-m68k@lists.linux-m68k.org,
-        linux-arch@vger.kernel.org, linux-sh@vger.kernel.org,
-        Alexey Klimov <aklimov@redhat.com>,
-        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        Arnd Bergmann <arnd@arndb.de>, David Sterba <dsterba@suse.com>,
-        Dennis Zhou <dennis@kernel.org>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Jianpeng Ma <jianpeng.ma@intel.com>,
-        Joe Perches <joe@perches.com>,
-        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-        Josh Poimboeuf <jpoimboe@redhat.com>,
-        Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-        Rich Felker <dalias@libc.org>,
-        Stefano Brivio <sbrivio@redhat.com>,
-        Wei Yang <richard.weiyang@linux.alibaba.com>,
-        Wolfram Sang <wsa+renesas@sang-engineering.com>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH 10/12] lib: add fast path for find_first_*_bit() and find_last_bit()
-Date:   Wed, 31 Mar 2021 17:31:51 -0700
-Message-Id: <20210401003153.97325-11-yury.norov@gmail.com>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20210401003153.97325-1-yury.norov@gmail.com>
-References: <20210401003153.97325-1-yury.norov@gmail.com>
+        with ESMTP id S232994AbhDACPV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Mar 2021 22:15:21 -0400
+Received: from zeniv-ca.linux.org.uk (zeniv-ca.linux.org.uk [IPv6:2607:5300:60:148a::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8AD14C061574;
+        Wed, 31 Mar 2021 19:15:19 -0700 (PDT)
+Received: from viro by zeniv-ca.linux.org.uk with local (Exim 4.94 #2 (Red Hat Linux))
+        id 1lRmr7-001X2U-Bm; Thu, 01 Apr 2021 02:14:45 +0000
+Date:   Thu, 1 Apr 2021 02:14:45 +0000
+From:   Al Viro <viro@zeniv.linux.org.uk>
+To:     =?iso-8859-1?Q?Micka=EBl_Sala=FCn?= <mic@digikod.net>
+Cc:     Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Andy Lutomirski <luto@amacapital.net>,
+        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Casey Schaufler <casey@schaufler-ca.com>,
+        David Howells <dhowells@redhat.com>,
+        Jeff Dike <jdike@addtoit.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Richard Weinberger <richard@nod.at>,
+        Shuah Khan <shuah@kernel.org>,
+        Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>,
+        kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
+        linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-kselftest@vger.kernel.org,
+        linux-security-module@vger.kernel.org, x86@kernel.org,
+        =?iso-8859-1?Q?Micka=EBl_Sala=FCn?= <mic@linux.microsoft.com>,
+        James Morris <jmorris@namei.org>,
+        "Serge E . Hallyn" <serge@hallyn.com>
+Subject: Re: [PATCH v31 07/12] landlock: Support filesystem access-control
+Message-ID: <YGUslUPwp85Zrp4t@zeniv-ca.linux.org.uk>
+References: <20210324191520.125779-1-mic@digikod.net>
+ <20210324191520.125779-8-mic@digikod.net>
+ <d2764451-8970-6cbd-e2bf-254a42244ffc@digikod.net>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <d2764451-8970-6cbd-e2bf-254a42244ffc@digikod.net>
+Sender: Al Viro <viro@ftp.linux.org.uk>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Similarly to bitmap functions, users would benefit if we'll handle
-a case of small-size bitmaps that fit into a single word.
+On Wed, Mar 31, 2021 at 07:33:50PM +0200, Mickaël Salaün wrote:
 
-While here, move the find_last_bit() declaration to bitops/find.h
-where other find_*_bit() functions sit.
+> > +static inline u64 unmask_layers(
+> > +		const struct landlock_ruleset *const domain,
+> > +		const struct path *const path, const u32 access_request,
+> > +		u64 layer_mask)
+> > +{
+> > +	const struct landlock_rule *rule;
+> > +	const struct inode *inode;
+> > +	size_t i;
+> > +
+> > +	if (d_is_negative(path->dentry))
+> > +		/* Continues to walk while there is no mapped inode. */
+				     ^^^^^
+Odd comment, that...
 
-Signed-off-by: Yury Norov <yury.norov@gmail.com>
-Acked-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
----
- include/asm-generic/bitops/find.h | 50 ++++++++++++++++++++++++++++---
- include/linux/bitops.h            | 12 --------
- lib/find_bit.c                    | 12 ++++----
- 3 files changed, 52 insertions(+), 22 deletions(-)
+> > +static int check_access_path(const struct landlock_ruleset *const domain,
+> > +		const struct path *const path, u32 access_request)
+> > +{
 
-diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-index 4148c74a1e4d..0d132ee2a291 100644
---- a/include/asm-generic/bitops/find.h
-+++ b/include/asm-generic/bitops/find.h
-@@ -5,6 +5,9 @@
- extern unsigned long _find_next_bit(const unsigned long *addr1,
- 		const unsigned long *addr2, unsigned long nbits,
- 		unsigned long start, unsigned long invert, unsigned long le);
-+extern unsigned long _find_first_bit(const unsigned long *addr, unsigned long size);
-+extern unsigned long _find_first_zero_bit(const unsigned long *addr, unsigned long size);
-+extern unsigned long _find_last_bit(const unsigned long *addr, unsigned long size);
- 
- #ifndef find_next_bit
- /**
-@@ -102,8 +105,17 @@ unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
-  * Returns the bit number of the first set bit.
-  * If no bits are set, returns @size.
-  */
--extern unsigned long find_first_bit(const unsigned long *addr,
--				    unsigned long size);
-+static inline
-+unsigned long find_first_bit(const unsigned long *addr, unsigned long size)
-+{
-+	if (small_const_nbits(size)) {
-+		unsigned long val = *addr & GENMASK(size - 1, 0);
-+
-+		return val ? __ffs(val) : size;
-+	}
-+
-+	return _find_first_bit(addr, size);
-+}
- 
- /**
-  * find_first_zero_bit - find the first cleared bit in a memory region
-@@ -113,8 +125,17 @@ extern unsigned long find_first_bit(const unsigned long *addr,
-  * Returns the bit number of the first cleared bit.
-  * If no bits are zero, returns @size.
-  */
--extern unsigned long find_first_zero_bit(const unsigned long *addr,
--					 unsigned long size);
-+static inline
-+unsigned long find_first_zero_bit(const unsigned long *addr, unsigned long size)
-+{
-+	if (small_const_nbits(size)) {
-+		unsigned long val = *addr | ~GENMASK(size - 1, 0);
-+
-+		return val == ~0UL ? size : ffz(val);
-+	}
-+
-+	return _find_first_zero_bit(addr, size);
-+}
- #else /* CONFIG_GENERIC_FIND_FIRST_BIT */
- 
- #ifndef find_first_bit
-@@ -126,6 +147,27 @@ extern unsigned long find_first_zero_bit(const unsigned long *addr,
- 
- #endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
- 
-+#ifndef find_last_bit
-+/**
-+ * find_last_bit - find the last set bit in a memory region
-+ * @addr: The address to start the search at
-+ * @size: The number of bits to search
-+ *
-+ * Returns the bit number of the last set bit, or size.
-+ */
-+static inline
-+unsigned long find_last_bit(const unsigned long *addr, unsigned long size)
-+{
-+	if (small_const_nbits(size)) {
-+		unsigned long val = *addr & GENMASK(size - 1, 0);
-+
-+		return val ? __fls(val) : size;
-+	}
-+
-+	return _find_last_bit(addr, size);
-+}
-+#endif
-+
- /**
-  * find_next_clump8 - find next 8-bit clump with set bits in a memory region
-  * @clump: location to store copy of found clump
-diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-index a5a48303b0f1..26bf15e6cd35 100644
---- a/include/linux/bitops.h
-+++ b/include/linux/bitops.h
-@@ -286,17 +286,5 @@ static __always_inline void __assign_bit(long nr, volatile unsigned long *addr,
- })
- #endif
- 
--#ifndef find_last_bit
--/**
-- * find_last_bit - find the last set bit in a memory region
-- * @addr: The address to start the search at
-- * @size: The number of bits to search
-- *
-- * Returns the bit number of the last set bit, or size.
-- */
--extern unsigned long find_last_bit(const unsigned long *addr,
--				   unsigned long size);
--#endif
--
- #endif /* __KERNEL__ */
- #endif
-diff --git a/lib/find_bit.c b/lib/find_bit.c
-index b03a101367f8..0f8e2e369b1d 100644
---- a/lib/find_bit.c
-+++ b/lib/find_bit.c
-@@ -75,7 +75,7 @@ EXPORT_SYMBOL(_find_next_bit);
- /*
-  * Find the first set bit in a memory region.
-  */
--unsigned long find_first_bit(const unsigned long *addr, unsigned long size)
-+unsigned long _find_first_bit(const unsigned long *addr, unsigned long size)
- {
- 	unsigned long idx;
- 
-@@ -86,14 +86,14 @@ unsigned long find_first_bit(const unsigned long *addr, unsigned long size)
- 
- 	return size;
- }
--EXPORT_SYMBOL(find_first_bit);
-+EXPORT_SYMBOL(_find_first_bit);
- #endif
- 
- #ifndef find_first_zero_bit
- /*
-  * Find the first cleared bit in a memory region.
-  */
--unsigned long find_first_zero_bit(const unsigned long *addr, unsigned long size)
-+unsigned long _find_first_zero_bit(const unsigned long *addr, unsigned long size)
- {
- 	unsigned long idx;
- 
-@@ -104,11 +104,11 @@ unsigned long find_first_zero_bit(const unsigned long *addr, unsigned long size)
- 
- 	return size;
- }
--EXPORT_SYMBOL(find_first_zero_bit);
-+EXPORT_SYMBOL(_find_first_zero_bit);
- #endif
- 
- #ifndef find_last_bit
--unsigned long find_last_bit(const unsigned long *addr, unsigned long size)
-+unsigned long _find_last_bit(const unsigned long *addr, unsigned long size)
- {
- 	if (size) {
- 		unsigned long val = BITMAP_LAST_WORD_MASK(size);
-@@ -124,7 +124,7 @@ unsigned long find_last_bit(const unsigned long *addr, unsigned long size)
- 	}
- 	return size;
- }
--EXPORT_SYMBOL(find_last_bit);
-+EXPORT_SYMBOL(_find_last_bit);
- #endif
- 
- unsigned long find_next_clump8(unsigned long *clump, const unsigned long *addr,
--- 
-2.25.1
+> > +	walker_path = *path;
+> > +	path_get(&walker_path);
 
+> > +	while (true) {
+> > +		struct dentry *parent_dentry;
+> > +
+> > +		layer_mask = unmask_layers(domain, &walker_path,
+> > +				access_request, layer_mask);
+> > +		if (layer_mask == 0) {
+> > +			/* Stops when a rule from each layer grants access. */
+> > +			allowed = true;
+> > +			break;
+> > +		}
+> > +
+> > +jump_up:
+> > +		if (walker_path.dentry == walker_path.mnt->mnt_root) {
+> > +			if (follow_up(&walker_path)) {
+> > +				/* Ignores hidden mount points. */
+> > +				goto jump_up;
+> > +			} else {
+> > +				/*
+> > +				 * Stops at the real root.  Denies access
+> > +				 * because not all layers have granted access.
+> > +				 */
+> > +				allowed = false;
+> > +				break;
+> > +			}
+> > +		}
+> > +		if (unlikely(IS_ROOT(walker_path.dentry))) {
+> > +			/*
+> > +			 * Stops at disconnected root directories.  Only allows
+> > +			 * access to internal filesystems (e.g. nsfs, which is
+> > +			 * reachable through /proc/<pid>/ns/<namespace>).
+> > +			 */
+> > +			allowed = !!(walker_path.mnt->mnt_flags & MNT_INTERNAL);
+> > +			break;
+> > +		}
+> > +		parent_dentry = dget_parent(walker_path.dentry);
+> > +		dput(walker_path.dentry);
+> > +		walker_path.dentry = parent_dentry;
+> > +	}
+> > +	path_put(&walker_path);
+> > +	return allowed ? 0 : -EACCES;
+
+That's a whole lot of grabbing/dropping references...  I realize that it's
+an utterly tactless question, but... how costly it is?  IOW, do you have
+profiling data?
+
+> > +/*
+> > + * pivot_root(2), like mount(2), changes the current mount namespace.  It must
+> > + * then be forbidden for a landlocked process.
+
+... and cross-directory rename(2) can change the tree topology.  Do you ban that
+as well?
+
+[snip]
+
+> > +static int hook_path_rename(const struct path *const old_dir,
+> > +		struct dentry *const old_dentry,
+> > +		const struct path *const new_dir,
+> > +		struct dentry *const new_dentry)
+> > +{
+> > +	const struct landlock_ruleset *const dom =
+> > +		landlock_get_current_domain();
+> > +
+> > +	if (!dom)
+> > +		return 0;
+> > +	/* The mount points are the same for old and new paths, cf. EXDEV. */
+> > +	if (old_dir->dentry != new_dir->dentry)
+> > +		/* For now, forbids reparenting. */
+> > +		return -EACCES;
+
+You do, apparently, and not in a way that would have the userland fall
+back to copy+unlink.  Lovely...  Does e.g. git survive such restriction?
+Same question for your average package build...
