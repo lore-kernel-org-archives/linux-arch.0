@@ -2,167 +2,196 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_NONE,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F0000C4361B
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 17:46:07 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5CC21C433ED
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 17:52:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id DB45761284
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 17:46:07 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3AC436101A
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 17:52:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234596AbhDARpu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 1 Apr 2021 13:45:50 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57172 "EHLO
+        id S234548AbhDARv4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 1 Apr 2021 13:51:56 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58406 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234638AbhDARii (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Apr 2021 13:38:38 -0400
-Received: from mail.marcansoft.com (marcansoft.com [IPv6:2a01:298:fe:f::2])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8B8AAC035470;
-        Thu,  1 Apr 2021 06:16:42 -0700 (PDT)
-Received: from [127.0.0.1] (localhost [127.0.0.1])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-        (No client certificate requested)
-        (Authenticated sender: marcan@marcan.st)
-        by mail.marcansoft.com (Postfix) with ESMTPSA id D249442715;
-        Thu,  1 Apr 2021 13:16:32 +0000 (UTC)
-To:     Will Deacon <will@kernel.org>
-Cc:     linux-arm-kernel@lists.infradead.org,
-        Marc Zyngier <maz@kernel.org>, Rob Herring <robh@kernel.org>,
-        Arnd Bergmann <arnd@kernel.org>,
-        Olof Johansson <olof@lixom.net>,
-        Krzysztof Kozlowski <krzk@kernel.org>,
-        Mark Kettenis <mark.kettenis@xs4all.nl>,
-        Tony Lindgren <tony@atomide.com>,
-        Mohamed Mediouni <mohamed.mediouni@caramail.com>,
-        Stan Skowronek <stan@corellium.com>,
-        Alexander Graf <graf@amazon.com>,
-        Linus Walleij <linus.walleij@linaro.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Andy Shevchenko <andy.shevchenko@gmail.com>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        with ESMTP id S236535AbhDARpZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Apr 2021 13:45:25 -0400
+Received: from smtp-bc09.mail.infomaniak.ch (smtp-bc09.mail.infomaniak.ch [IPv6:2001:1600:3:17::bc09])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DE077C03117F;
+        Thu,  1 Apr 2021 10:11:06 -0700 (PDT)
+Received: from smtp-3-0001.mail.infomaniak.ch (unknown [10.4.36.108])
+        by smtp-2-3000.mail.infomaniak.ch (Postfix) with ESMTPS id 4FB8pb136rzMqMD8;
+        Thu,  1 Apr 2021 19:11:03 +0200 (CEST)
+Received: from ns3096276.ip-94-23-54.eu (unknown [23.97.221.149])
+        by smtp-3-0001.mail.infomaniak.ch (Postfix) with ESMTPA id 4FB8pQ6Nzrzlh8TN;
+        Thu,  1 Apr 2021 19:10:54 +0200 (CEST)
+Subject: Re: [PATCH v31 07/12] landlock: Support filesystem access-control
+To:     Al Viro <viro@zeniv.linux.org.uk>
+Cc:     Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Andy Lutomirski <luto@amacapital.net>,
+        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Casey Schaufler <casey@schaufler-ca.com>,
+        David Howells <dhowells@redhat.com>,
+        Jeff Dike <jdike@addtoit.com>,
         Jonathan Corbet <corbet@lwn.net>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christoph Hellwig <hch@infradead.org>,
-        "David S. Miller" <davem@davemloft.net>,
-        devicetree@vger.kernel.org, linux-serial@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-samsung-soc@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-References: <20210304213902.83903-1-marcan@marcan.st>
- <20210304213902.83903-17-marcan@marcan.st>
- <20210324195742.GA13474@willie-the-truck>
- <3564ed98-6ad6-7ddd-01d2-36d7f5af90e0@marcan.st>
- <20210329120442.GA3636@willie-the-truck>
-From:   Hector Martin <marcan@marcan.st>
-Subject: Re: [RFT PATCH v3 16/27] irqchip/apple-aic: Add support for the Apple
- Interrupt Controller
-Message-ID: <5ff8eef3-6943-d3c8-cd6f-3dcb44158fab@marcan.st>
-Date:   Thu, 1 Apr 2021 22:16:30 +0900
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.6.0
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Richard Weinberger <richard@nod.at>,
+        Shuah Khan <shuah@kernel.org>,
+        Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>,
+        kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
+        linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-kselftest@vger.kernel.org,
+        linux-security-module@vger.kernel.org, x86@kernel.org,
+        =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@linux.microsoft.com>,
+        James Morris <jmorris@namei.org>,
+        "Serge E . Hallyn" <serge@hallyn.com>
+References: <20210324191520.125779-1-mic@digikod.net>
+ <20210324191520.125779-8-mic@digikod.net>
+ <d2764451-8970-6cbd-e2bf-254a42244ffc@digikod.net>
+ <YGUslUPwp85Zrp4t@zeniv-ca.linux.org.uk>
+From:   =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Message-ID: <84e1cd29-0f09-1ed4-c680-65ca8c6988a3@digikod.net>
+Date:   Thu, 1 Apr 2021 19:12:05 +0200
+User-Agent: 
 MIME-Version: 1.0
-In-Reply-To: <20210329120442.GA3636@willie-the-truck>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: es-ES
+In-Reply-To: <YGUslUPwp85Zrp4t@zeniv-ca.linux.org.uk>
+Content-Type: text/plain; charset=iso-8859-15
+Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Will,
 
-On 29/03/2021 21.04, Will Deacon wrote:
->> One CPU still needs to be able to mutate the flags of another CPU to fire an
->> IPI; AIUI the per-cpu ops are *not* atomic for concurrent access by multiple
->> CPUs, and in fact there is no API for that, only for "this CPU".
+On 01/04/2021 04:14, Al Viro wrote:
+> On Wed, Mar 31, 2021 at 07:33:50PM +0200, Mickaël Salaün wrote:
 > 
-> Huh, I really thought we had an API for that, but you're right. Oh well! But
-> I'd still suggest a per-cpu atomic_t in that case, rather than the array.
+>>> +static inline u64 unmask_layers(
+>>> +		const struct landlock_ruleset *const domain,
+>>> +		const struct path *const path, const u32 access_request,
+>>> +		u64 layer_mask)
+>>> +{
+>>> +	const struct landlock_rule *rule;
+>>> +	const struct inode *inode;
+>>> +	size_t i;
+>>> +
+>>> +	if (d_is_negative(path->dentry))
+>>> +		/* Continues to walk while there is no mapped inode. */
+> 				     ^^^^^
+> Odd comment, that...
 
-Yeah, after digging into the per-cpu stuff earlier and understanding how 
-it works, I agree that a per-cpu atomic makes sense here. Switched it to 
-that (which simplified out a bunch of smp_processor_id() calls too). Thanks!
+I'll replace that with something more appropriate, e.g. "Ignore
+nonexistent leafs".
 
->>> I think a more idiomatic (and portable) way to do this would be to use
->>> the relaxed accessors, but with smp_mb__after_atomic() between them. Do you
->>> have a good reason for _not_ doing it like that?
->>
->> Not particularly, other than symmetry with the case below.
 > 
-> I think it would be better not to rely on arm64-specific ordering unless
-> there's a good reason to.
-
-Sounds reasonable, I'll switch to the barrier version.
-
->> We do need the return data here, and the release semantics (or another
->> barrier before it). But the read below can be made relaxed and a barrier
->> used instead, and then the same patern above except with a plain
->> atomic_or().
+>>> +static int check_access_path(const struct landlock_ruleset *const domain,
+>>> +		const struct path *const path, u32 access_request)
+>>> +{
 > 
-> Yes, I think using atomic_fetch_or() followed by atomic_read() would be
-> best (obviously with the relevant comments!)
-
-atomic_fetch_or_release is sufficient here (atomic_fetch_or is stronger; 
-atomic_fetch_or_relaxed would not be strong enough as this needs to be 
-ordered after any writes prior to sending the IPI; in this case release 
-semantics also make logical sense).
-
->> It is ordered, right? As the comment says, it "needs to be ordered after the
->> aic_ic_write() above". atomic_fetch_andnot() is *supposed* to be fully
->> ordered and that should include against the writel_relaxed() on
->> AIC_IPI_FLAG. On ARM it turns out it's not quite fully ordered, but the
->> acquire semantics of the read half are sufficient for this case, as they
->> guarantee the flags are always read after the FIQ has been ACKed.
+>>> +	walker_path = *path;
+>>> +	path_get(&walker_path);
 > 
-> Sorry, I missed that the answer to my question was already written in the
-> comment. However, I'm still a bit unsure about whether the memory barriers
-> give you what you need here. The barrier in atomic_fetch_andnot() will
-> order the previous aic_ic_write(AIC_IPI_ACK) for the purposes of other
-> CPUs reading those locations, but it doesn't say anything about when the
-> interrupt controller actually changes state after the Ack.
+>>> +	while (true) {
+>>> +		struct dentry *parent_dentry;
+>>> +
+>>> +		layer_mask = unmask_layers(domain, &walker_path,
+>>> +				access_request, layer_mask);
+>>> +		if (layer_mask == 0) {
+>>> +			/* Stops when a rule from each layer grants access. */
+>>> +			allowed = true;
+>>> +			break;
+>>> +		}
+>>> +
+>>> +jump_up:
+>>> +		if (walker_path.dentry == walker_path.mnt->mnt_root) {
+>>> +			if (follow_up(&walker_path)) {
+>>> +				/* Ignores hidden mount points. */
+>>> +				goto jump_up;
+>>> +			} else {
+>>> +				/*
+>>> +				 * Stops at the real root.  Denies access
+>>> +				 * because not all layers have granted access.
+>>> +				 */
+>>> +				allowed = false;
+>>> +				break;
+>>> +			}
+>>> +		}
+>>> +		if (unlikely(IS_ROOT(walker_path.dentry))) {
+>>> +			/*
+>>> +			 * Stops at disconnected root directories.  Only allows
+>>> +			 * access to internal filesystems (e.g. nsfs, which is
+>>> +			 * reachable through /proc/<pid>/ns/<namespace>).
+>>> +			 */
+>>> +			allowed = !!(walker_path.mnt->mnt_flags & MNT_INTERNAL);
+>>> +			break;
+>>> +		}
+>>> +		parent_dentry = dget_parent(walker_path.dentry);
+>>> +		dput(walker_path.dentry);
+>>> +		walker_path.dentry = parent_dentry;
+>>> +	}
+>>> +	path_put(&walker_path);
+>>> +	return allowed ? 0 : -EACCES;
 > 
-> Given that the AIC is mapped Device-nGnRnE, the Arm ARM offers:
+> That's a whole lot of grabbing/dropping references...  I realize that it's
+> an utterly tactless question, but... how costly it is?  IOW, do you have
+> profiling data?
+
+It looks like a legitimate question.
+
+First, Landlock may not be appropriate for every workloads. The
+check_access_path()'s complexity is now linear, which is a consequence
+of the "unprivileged" target (i.e. multiple layers of file hierarchies).
+Adding caching should help a lot to improve performance (i.e. limit the
+path walking), but it will come with future improvements.
+
+I profiled a "find" loop on the linux-5.12-rc3 source tree in a tmpfs
+(and with cached entries): openat(2) calls spend ~30% of their time in
+check_access_path() with a base directory of one parent (/linux) and
+~45% with a base directory of ten parents (/1/2/3/4/5/6/7/8/9/linux).
+Overall, the performance impact is between 3.0% (with a minimum depth of
+1) and 5.4% (with a minimum depth of 10) of the full execution time of
+these worse case scenarios, which are ~4800 openat(2) calls. This is not
+a surprise and doesn't seem so bad without optimization.
+
+
 > 
->    | Additionally, for Device-nGnRnE memory, a read or write of a Location
->    | in a Memory-mapped peripheral that exhibits side-effects is complete
->    | only when the read or write both:
->    |
->    | * Can begin to affect the state of the Memory-mapped peripheral.
->    | * Can trigger all associated side-effects, whether they affect other
->    |   peripheral devices, PEs, or memory.
+>>> +/*
+>>> + * pivot_root(2), like mount(2), changes the current mount namespace.  It must
+>>> + * then be forbidden for a landlocked process.
 > 
-> so without AIC documentation I can't tell whether completion of the Ack write
-> just begins the process of an Ack (in which case we might need something like
-> a read-back), or whether the write response back from the AIC only occurs once
-> the Ack has taken effect. Any ideas?
+> ... and cross-directory rename(2) can change the tree topology.  Do you ban that
+> as well?
+> 
+> [snip]
+> 
+>>> +static int hook_path_rename(const struct path *const old_dir,
+>>> +		struct dentry *const old_dentry,
+>>> +		const struct path *const new_dir,
+>>> +		struct dentry *const new_dentry)
+>>> +{
+>>> +	const struct landlock_ruleset *const dom =
+>>> +		landlock_get_current_domain();
+>>> +
+>>> +	if (!dom)
+>>> +		return 0;
+>>> +	/* The mount points are the same for old and new paths, cf. EXDEV. */
+>>> +	if (old_dir->dentry != new_dir->dentry)
+>>> +		/* For now, forbids reparenting. */
+>>> +		return -EACCES;
+> 
+> You do, apparently, and not in a way that would have the userland fall
+> back to copy+unlink.  Lovely...  Does e.g. git survive such restriction?
+> Same question for your average package build...
 
-Ahh, you're talking about latency within AIC itself... I obviously don't 
-have an authoritative answer to this, though the hardware designer in me 
-wants to say this really ought to be single-cycle type stuff that isn't 
-internally pipelined in a way that would create races.
+As explained in the documentation, there is some limitations that make
+this first step not appropriate for all use cases. I'll use EXDEV to
+gracefully forbid reparenting, which gives a chance to userspace to deal
+with that. It may not be enough for package management though. I plan to
+address such limitation with future evolutions.
 
-I tried to set up an SMP test case for the atomic-to-AIC sequence in 
-m1n1, but unfortunately I couldn't hit the race window in deliberately 
-racy code (i.e. ack after clearing flags) without widening it even 
-further with at least one dummy load in between, and of course I didn't 
-experience any races with the proper code either.
-
-What I can say is that a simple set IPI; ack IPI (in adjacent str 
-instructions) sequence always yields a cleared IPI, and the converse 
-always yields a set IPI. So if there is latency to the operations it 
-seems it would at least be the same for sets and acks and would imply 
-readbacks block, which should still yield equivalently correct results. 
-But of course this is a single-CPU test, so it is not fully 
-representative of what could happen in an SMP scenario.
-
-At this point all I can say is I'm inclined to shrug and say we have no 
-evidence of this being something that can happen, and it shouldn't in 
-sane hardware, and hope for the best :-)
-
-Thanks,
--- 
-Hector Martin (marcan@marcan.st)
-Public Key: https://mrcn.st/pub
+Thanks for these suggestions.
