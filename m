@@ -2,196 +2,239 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-17.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5CC21C433ED
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 17:52:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3AA17C43460
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 17:52:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3AC436101A
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 17:52:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 09F36610D2
+	for <linux-arch@archiver.kernel.org>; Thu,  1 Apr 2021 17:52:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234548AbhDARv4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 1 Apr 2021 13:51:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58406 "EHLO
+        id S234670AbhDARv7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 1 Apr 2021 13:51:59 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59576 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236535AbhDARpZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Apr 2021 13:45:25 -0400
-Received: from smtp-bc09.mail.infomaniak.ch (smtp-bc09.mail.infomaniak.ch [IPv6:2001:1600:3:17::bc09])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DE077C03117F;
-        Thu,  1 Apr 2021 10:11:06 -0700 (PDT)
-Received: from smtp-3-0001.mail.infomaniak.ch (unknown [10.4.36.108])
-        by smtp-2-3000.mail.infomaniak.ch (Postfix) with ESMTPS id 4FB8pb136rzMqMD8;
-        Thu,  1 Apr 2021 19:11:03 +0200 (CEST)
-Received: from ns3096276.ip-94-23-54.eu (unknown [23.97.221.149])
-        by smtp-3-0001.mail.infomaniak.ch (Postfix) with ESMTPA id 4FB8pQ6Nzrzlh8TN;
-        Thu,  1 Apr 2021 19:10:54 +0200 (CEST)
-Subject: Re: [PATCH v31 07/12] landlock: Support filesystem access-control
-To:     Al Viro <viro@zeniv.linux.org.uk>
-Cc:     Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Andy Lutomirski <luto@amacapital.net>,
-        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Casey Schaufler <casey@schaufler-ca.com>,
-        David Howells <dhowells@redhat.com>,
-        Jeff Dike <jdike@addtoit.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Richard Weinberger <richard@nod.at>,
-        Shuah Khan <shuah@kernel.org>,
-        Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>,
-        kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
-        linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-kselftest@vger.kernel.org,
-        linux-security-module@vger.kernel.org, x86@kernel.org,
-        =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@linux.microsoft.com>,
-        James Morris <jmorris@namei.org>,
-        "Serge E . Hallyn" <serge@hallyn.com>
-References: <20210324191520.125779-1-mic@digikod.net>
- <20210324191520.125779-8-mic@digikod.net>
- <d2764451-8970-6cbd-e2bf-254a42244ffc@digikod.net>
- <YGUslUPwp85Zrp4t@zeniv-ca.linux.org.uk>
-From:   =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
-Message-ID: <84e1cd29-0f09-1ed4-c680-65ca8c6988a3@digikod.net>
-Date:   Thu, 1 Apr 2021 19:12:05 +0200
-User-Agent: 
+        with ESMTP id S236919AbhDARth (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Apr 2021 13:49:37 -0400
+Received: from mail-io1-xd34.google.com (mail-io1-xd34.google.com [IPv6:2607:f8b0:4864:20::d34])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 46170C0617AB;
+        Thu,  1 Apr 2021 04:28:05 -0700 (PDT)
+Received: by mail-io1-xd34.google.com with SMTP id k8so1797603iop.12;
+        Thu, 01 Apr 2021 04:28:05 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=moOyGRcGHar9YNt0N/Y7uFjPvSME0sZl6mnpRsX5JvU=;
+        b=ifnqDCESEWCwygu7Q8TcEEjwG35Ap4TGL1lIxVlgSIHnbzmG25rF7VK74GW/oT/Lgh
+         2UJ9bIQNzSDOlkch2hOCYH1HpIqOco9idX9WVqPyouTWaS8Ou04kvDlzHghlRMp4jHPf
+         nskapKeDijNI6NmbdwMQ0kmLLDvSqDkg1MFJwvHTqGAGSsKLk5VXeqNC5Euy8zgxYvnF
+         O3TzXfeLmGd9cTk7Hw7vPqePTLusUXV5nmy1w7nHwPPWrDqSZAM1o5RCdXpXwBhAZ9SF
+         he5bn3R+I/nx5KU477ajaxMPDRxH3dbiHtmAvkpsU7i0mKguLtw3QMN4BcDqvQv0/j90
+         uHKg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=moOyGRcGHar9YNt0N/Y7uFjPvSME0sZl6mnpRsX5JvU=;
+        b=kHhW+NJQO3z63t/oCc+6zGf8AhETEZabjnLpYw4FXB7iG35u2fc30tSO9+tVymtdeO
+         JCZR4QmFL2OiI2jMiJtoP2SMWn5RqjrP44sa28ft7G9tJTaiA4X9EHEWFqVA0Ar4mipk
+         n6hla3mMHMPc8TZH+MM0mvvKcI+23znEY2u5STX/UNw6u3ht/SqfNyPb+Ena2CRvWejR
+         +L/KpN+IHXcU89bDuES+8zB0zTOIsEPqvBIMHvMWov6IPyDqTLpzd327x/8S8uZ1ZOkD
+         DeRbmcYYbytKkn2lcyBYR8rLd6kSQpOZiIzqN7Rh2LMhQYGKexuX9LRYa46cXxvzx1tc
+         GxMg==
+X-Gm-Message-State: AOAM533BHM4sBB3om+ON/d6xRvL0Ngl+Z9InSujeZmgYvMPWUq852m7t
+        QmngFRiMURBi+ppQAVJTVqDd6RXKeWfiu1OMJGSClh+xhZrFLA==
+X-Google-Smtp-Source: ABdhPJxhpMPww1OveGSHxepFu4l+A0e2gZ/exiHFMOBtsrHDLLr9n61X8fXz/bnSkzdlVx94sCa1xegT1QRnmXoNsps=
+X-Received: by 2002:a05:6602:21cd:: with SMTP id c13mr6082518ioc.44.1617275764762;
+ Thu, 01 Apr 2021 04:16:04 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <YGUslUPwp85Zrp4t@zeniv-ca.linux.org.uk>
-Content-Type: text/plain; charset=iso-8859-15
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+References: <cover.1615038553.git.syednwaris@gmail.com> <4c259d34b5943bf384fd3cb0d98eccf798a34f0f.1615038553.git.syednwaris@gmail.com>
+ <36db7be3-73b6-c822-02e8-13e3864b0463@xilinx.com> <CAMpxmJUv0iU0Ntmks1f6ThDAG6x_eJLYYCaDSjy+1Syedzc5dQ@mail.gmail.com>
+ <DM6PR02MB53863852A28F782B0942ECD8AF7C9@DM6PR02MB5386.namprd02.prod.outlook.com>
+In-Reply-To: <DM6PR02MB53863852A28F782B0942ECD8AF7C9@DM6PR02MB5386.namprd02.prod.outlook.com>
+From:   Syed Nayyar Waris <syednwaris@gmail.com>
+Date:   Thu, 1 Apr 2021 16:45:52 +0530
+Message-ID: <CACG_h5q6P5NiNByttQ-NZvq8x3GCTKfSU=Yyywk7PcO6_=i2Mw@mail.gmail.com>
+Subject: Re: [PATCH v3 3/3] gpio: xilinx: Utilize generic bitmap_get_value and _set_value
+To:     Bartosz Golaszewski <bgolaszewski@baylibre.com>
+Cc:     Michal Simek <michals@xilinx.com>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        William Breathitt Gray <vilhelm.gray@gmail.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Robert Richter <rrichter@marvell.com>,
+        Linus Walleij <linus.walleij@linaro.org>,
+        Masahiro Yamada <yamada.masahiro@socionext.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Zhang Rui <rui.zhang@intel.com>,
+        Daniel Lezcano <daniel.lezcano@linaro.org>,
+        Amit Kucheria <amit.kucheria@verdurent.com>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        linux-gpio <linux-gpio@vger.kernel.org>,
+        LKML <linux-kernel@vger.kernel.org>,
+        arm-soc <linux-arm-kernel@lists.infradead.org>,
+        linux-pm <linux-pm@vger.kernel.org>,
+        Srinivas Goud <sgoud@xilinx.com>,
+        Srinivas Neeli <sneeli@xilinx.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+On Wed, Mar 31, 2021 at 8:56 PM Srinivas Neeli <sneeli@xilinx.com> wrote:
+>
+> Hi,
+>
+> > -----Original Message-----
+> > From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
+> > Sent: Friday, March 26, 2021 10:58 PM
+> > To: Michal Simek <michals@xilinx.com>
+> > Cc: Syed Nayyar Waris <syednwaris@gmail.com>; Srinivas Neeli
+> > <sneeli@xilinx.com>; Andy Shevchenko
+> > <andriy.shevchenko@linux.intel.com>; William Breathitt Gray
+> > <vilhelm.gray@gmail.com>; Arnd Bergmann <arnd@arndb.de>; Robert
+> > Richter <rrichter@marvell.com>; Linus Walleij <linus.walleij@linaro.org>;
+> > Masahiro Yamada <yamada.masahiro@socionext.com>; Andrew Morton
+> > <akpm@linux-foundation.org>; Zhang Rui <rui.zhang@intel.com>; Daniel
+> > Lezcano <daniel.lezcano@linaro.org>; Amit Kucheria
+> > <amit.kucheria@verdurent.com>; Linux-Arch <linux-arch@vger.kernel.org>;
+> > linux-gpio <linux-gpio@vger.kernel.org>; LKML <linux-
+> > kernel@vger.kernel.org>; arm-soc <linux-arm-kernel@lists.infradead.org>;
+> > linux-pm <linux-pm@vger.kernel.org>; Srinivas Goud <sgoud@xilinx.com>
+> > Subject: Re: [PATCH v3 3/3] gpio: xilinx: Utilize generic bitmap_get_value and
+> > _set_value
+> >
+> > On Mon, Mar 8, 2021 at 8:13 AM Michal Simek <michal.simek@xilinx.com>
+> > wrote:
+> > >
+> > >
+> > >
+> > > On 3/6/21 3:06 PM, Syed Nayyar Waris wrote:
+> > > > This patch reimplements the xgpio_set_multiple() function in
+> > > > drivers/gpio/gpio-xilinx.c to use the new generic functions:
+> > > > bitmap_get_value() and bitmap_set_value(). The code is now simpler
+> > > > to read and understand. Moreover, instead of looping for each bit in
+> > > > xgpio_set_multiple() function, now we can check each channel at a
+> > > > time and save cycles.
+> > > >
+> > > > Cc: Bartosz Golaszewski <bgolaszewski@baylibre.com>
+> > > > Cc: Michal Simek <michal.simek@xilinx.com>
+> > > > Signed-off-by: Syed Nayyar Waris <syednwaris@gmail.com>
+> > > > Acked-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+> > > > ---
+> > > >  drivers/gpio/gpio-xilinx.c | 63
+> > > > +++++++++++++++++++-------------------
+> > > >  1 file changed, 32 insertions(+), 31 deletions(-)
+> > > >
+> > > > diff --git a/drivers/gpio/gpio-xilinx.c b/drivers/gpio/gpio-xilinx.c
+> > > > index be539381fd82..8445e69cf37b 100644
+> > > > --- a/drivers/gpio/gpio-xilinx.c
+> > > > +++ b/drivers/gpio/gpio-xilinx.c
+> > > > @@ -15,6 +15,7 @@
+> > > >  #include <linux/of_device.h>
+> > > >  #include <linux/of_platform.h>
+> > > >  #include <linux/slab.h>
+> > > > +#include "gpiolib.h"
+> > > >
+> > > >  /* Register Offset Definitions */
+> > > >  #define XGPIO_DATA_OFFSET   (0x0)    /* Data register  */
+> > > > @@ -141,37 +142,37 @@ static void xgpio_set_multiple(struct
+> > > > gpio_chip *gc, unsigned long *mask,  {
+> > > >       unsigned long flags;
+> > > >       struct xgpio_instance *chip = gpiochip_get_data(gc);
+> > > > -     int index = xgpio_index(chip, 0);
+> > > > -     int offset, i;
+> > > > -
+> > > > -     spin_lock_irqsave(&chip->gpio_lock[index], flags);
+> > > > -
+> > > > -     /* Write to GPIO signals */
+> > > > -     for (i = 0; i < gc->ngpio; i++) {
+> > > > -             if (*mask == 0)
+> > > > -                     break;
+> > > > -             /* Once finished with an index write it out to the register */
+> > > > -             if (index !=  xgpio_index(chip, i)) {
+> > > > -                     xgpio_writereg(chip->regs + XGPIO_DATA_OFFSET +
+> > > > -                                    index * XGPIO_CHANNEL_OFFSET,
+> > > > -                                    chip->gpio_state[index]);
+> > > > -                     spin_unlock_irqrestore(&chip->gpio_lock[index], flags);
+> > > > -                     index =  xgpio_index(chip, i);
+> > > > -                     spin_lock_irqsave(&chip->gpio_lock[index], flags);
+> > > > -             }
+> > > > -             if (__test_and_clear_bit(i, mask)) {
+> > > > -                     offset =  xgpio_offset(chip, i);
+> > > > -                     if (test_bit(i, bits))
+> > > > -                             chip->gpio_state[index] |= BIT(offset);
+> > > > -                     else
+> > > > -                             chip->gpio_state[index] &= ~BIT(offset);
+> > > > -             }
+> > > > -     }
+> > > > -
+> > > > -     xgpio_writereg(chip->regs + XGPIO_DATA_OFFSET +
+> > > > -                    index * XGPIO_CHANNEL_OFFSET, chip->gpio_state[index]);
+> > > > -
+> > > > -     spin_unlock_irqrestore(&chip->gpio_lock[index], flags);
+> > > > +     u32 *const state = chip->gpio_state;
+> > > > +     unsigned int *const width = chip->gpio_width;
+> > > > +
+> > > > +     DECLARE_BITMAP(old, 64);
+> > > > +     DECLARE_BITMAP(new, 64);
+> > > > +     DECLARE_BITMAP(changed, 64);
+> > > > +
+> > > > +     spin_lock_irqsave(&chip->gpio_lock[0], flags);
+> > > > +     spin_lock(&chip->gpio_lock[1]);
+> > > > +
+> > > > +     bitmap_set_value(old, 64, state[0], width[0], 0);
+> > > > +     bitmap_set_value(old, 64, state[1], width[1], width[0]);
+> > > > +     bitmap_replace(new, old, bits, mask, gc->ngpio);
+> > > > +
+> > > > +     bitmap_set_value(old, 64, state[0], 32, 0);
+> > > > +     bitmap_set_value(old, 64, state[1], 32, 32);
+> > > > +     state[0] = bitmap_get_value(new, 0, width[0]);
+> > > > +     state[1] = bitmap_get_value(new, width[0], width[1]);
+> > > > +     bitmap_set_value(new, 64, state[0], 32, 0);
+> > > > +     bitmap_set_value(new, 64, state[1], 32, 32);
+> > > > +     bitmap_xor(changed, old, new, 64);
+> > > > +
+> > > > +     if (((u32 *)changed)[0])
+> > > > +             xgpio_writereg(chip->regs + XGPIO_DATA_OFFSET,
+> > > > +                             state[0]);
+> > > > +     if (((u32 *)changed)[1])
+> > > > +             xgpio_writereg(chip->regs + XGPIO_DATA_OFFSET +
+> > > > +                             XGPIO_CHANNEL_OFFSET, state[1]);
+> > > > +
+> > > > +     spin_unlock(&chip->gpio_lock[1]);
+> > > > +     spin_unlock_irqrestore(&chip->gpio_lock[0], flags);
+> > > >  }
+> > > >
+> > > >  /**
+> > > >
+> > >
+> > > Srinivas N: Can you please test this code?
+> > >
+> > > Thanks,
+> > > Michal
+> >
+> > Hey, any chance of getting that Tested-by?
+> I tested patches with few modifications in code (spin_lock handling and merge conflict).
+> functionality wise it's working fine.
+>
+> >
+> > Bart
 
-On 01/04/2021 04:14, Al Viro wrote:
-> On Wed, Mar 31, 2021 at 07:33:50PM +0200, Mickaël Salaün wrote:
-> 
->>> +static inline u64 unmask_layers(
->>> +		const struct landlock_ruleset *const domain,
->>> +		const struct path *const path, const u32 access_request,
->>> +		u64 layer_mask)
->>> +{
->>> +	const struct landlock_rule *rule;
->>> +	const struct inode *inode;
->>> +	size_t i;
->>> +
->>> +	if (d_is_negative(path->dentry))
->>> +		/* Continues to walk while there is no mapped inode. */
-> 				     ^^^^^
-> Odd comment, that...
+Hi Bartosz,
 
-I'll replace that with something more appropriate, e.g. "Ignore
-nonexistent leafs".
+May I please know the URL of the tree that you are using. I had been
+using the tree below for submitting this patchset on GPIO to you.
+https://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-gpio.git
 
-> 
->>> +static int check_access_path(const struct landlock_ruleset *const domain,
->>> +		const struct path *const path, u32 access_request)
->>> +{
-> 
->>> +	walker_path = *path;
->>> +	path_get(&walker_path);
-> 
->>> +	while (true) {
->>> +		struct dentry *parent_dentry;
->>> +
->>> +		layer_mask = unmask_layers(domain, &walker_path,
->>> +				access_request, layer_mask);
->>> +		if (layer_mask == 0) {
->>> +			/* Stops when a rule from each layer grants access. */
->>> +			allowed = true;
->>> +			break;
->>> +		}
->>> +
->>> +jump_up:
->>> +		if (walker_path.dentry == walker_path.mnt->mnt_root) {
->>> +			if (follow_up(&walker_path)) {
->>> +				/* Ignores hidden mount points. */
->>> +				goto jump_up;
->>> +			} else {
->>> +				/*
->>> +				 * Stops at the real root.  Denies access
->>> +				 * because not all layers have granted access.
->>> +				 */
->>> +				allowed = false;
->>> +				break;
->>> +			}
->>> +		}
->>> +		if (unlikely(IS_ROOT(walker_path.dentry))) {
->>> +			/*
->>> +			 * Stops at disconnected root directories.  Only allows
->>> +			 * access to internal filesystems (e.g. nsfs, which is
->>> +			 * reachable through /proc/<pid>/ns/<namespace>).
->>> +			 */
->>> +			allowed = !!(walker_path.mnt->mnt_flags & MNT_INTERNAL);
->>> +			break;
->>> +		}
->>> +		parent_dentry = dget_parent(walker_path.dentry);
->>> +		dput(walker_path.dentry);
->>> +		walker_path.dentry = parent_dentry;
->>> +	}
->>> +	path_put(&walker_path);
->>> +	return allowed ? 0 : -EACCES;
-> 
-> That's a whole lot of grabbing/dropping references...  I realize that it's
-> an utterly tactless question, but... how costly it is?  IOW, do you have
-> profiling data?
+I think I am using the wrong tree. On which tree should I base my
+patches on for my next  (v4) submission? Should I use the tree below?
+:
+https://git.kernel.org/pub/scm/linux/kernel/git/brgl/linux.git
 
-It looks like a legitimate question.
-
-First, Landlock may not be appropriate for every workloads. The
-check_access_path()'s complexity is now linear, which is a consequence
-of the "unprivileged" target (i.e. multiple layers of file hierarchies).
-Adding caching should help a lot to improve performance (i.e. limit the
-path walking), but it will come with future improvements.
-
-I profiled a "find" loop on the linux-5.12-rc3 source tree in a tmpfs
-(and with cached entries): openat(2) calls spend ~30% of their time in
-check_access_path() with a base directory of one parent (/linux) and
-~45% with a base directory of ten parents (/1/2/3/4/5/6/7/8/9/linux).
-Overall, the performance impact is between 3.0% (with a minimum depth of
-1) and 5.4% (with a minimum depth of 10) of the full execution time of
-these worse case scenarios, which are ~4800 openat(2) calls. This is not
-a surprise and doesn't seem so bad without optimization.
-
-
-> 
->>> +/*
->>> + * pivot_root(2), like mount(2), changes the current mount namespace.  It must
->>> + * then be forbidden for a landlocked process.
-> 
-> ... and cross-directory rename(2) can change the tree topology.  Do you ban that
-> as well?
-> 
-> [snip]
-> 
->>> +static int hook_path_rename(const struct path *const old_dir,
->>> +		struct dentry *const old_dentry,
->>> +		const struct path *const new_dir,
->>> +		struct dentry *const new_dentry)
->>> +{
->>> +	const struct landlock_ruleset *const dom =
->>> +		landlock_get_current_domain();
->>> +
->>> +	if (!dom)
->>> +		return 0;
->>> +	/* The mount points are the same for old and new paths, cf. EXDEV. */
->>> +	if (old_dir->dentry != new_dir->dentry)
->>> +		/* For now, forbids reparenting. */
->>> +		return -EACCES;
-> 
-> You do, apparently, and not in a way that would have the userland fall
-> back to copy+unlink.  Lovely...  Does e.g. git survive such restriction?
-> Same question for your average package build...
-
-As explained in the documentation, there is some limitations that make
-this first step not appropriate for all use cases. I'll use EXDEV to
-gracefully forbid reparenting, which gives a chance to userspace to deal
-with that. It may not be enough for package management though. I plan to
-address such limitation with future evolutions.
-
-Thanks for these suggestions.
+Regards
+Syed Nayyar Waris
