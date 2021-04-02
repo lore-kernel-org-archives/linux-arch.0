@@ -7,45 +7,45 @@ X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1F460C43462
-	for <linux-arch@archiver.kernel.org>; Fri,  2 Apr 2021 15:18:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2DD2AC4360C
+	for <linux-arch@archiver.kernel.org>; Fri,  2 Apr 2021 15:18:41 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EDFC561056
-	for <linux-arch@archiver.kernel.org>; Fri,  2 Apr 2021 15:18:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 086256115B
+	for <linux-arch@archiver.kernel.org>; Fri,  2 Apr 2021 15:18:41 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236127AbhDBPSc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 2 Apr 2021 11:18:32 -0400
-Received: from pegase1.c-s.fr ([93.17.236.30]:61689 "EHLO pegase1.c-s.fr"
+        id S236231AbhDBPSk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 2 Apr 2021 11:18:40 -0400
+Received: from pegase1.c-s.fr ([93.17.236.30]:49818 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S235952AbhDBPS0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 2 Apr 2021 11:18:26 -0400
+        id S235500AbhDBPSQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 2 Apr 2021 11:18:16 -0400
 Received: from localhost (mailhub1-int [192.168.12.234])
-        by localhost (Postfix) with ESMTP id 4FBkG52l3Hz9v2lx;
-        Fri,  2 Apr 2021 17:18:21 +0200 (CEST)
+        by localhost (Postfix) with ESMTP id 4FBkFt4S04z9v2lv;
+        Fri,  2 Apr 2021 17:18:10 +0200 (CEST)
 X-Virus-Scanned: Debian amavisd-new at c-s.fr
 Received: from pegase1.c-s.fr ([192.168.12.234])
         by localhost (pegase1.c-s.fr [192.168.12.234]) (amavisd-new, port 10024)
-        with ESMTP id GzDR9N0g0Rpg; Fri,  2 Apr 2021 17:18:21 +0200 (CEST)
+        with ESMTP id sA0hud0WLToF; Fri,  2 Apr 2021 17:18:10 +0200 (CEST)
 Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase1.c-s.fr (Postfix) with ESMTP id 4FBkG519y8z9v2ls;
-        Fri,  2 Apr 2021 17:18:21 +0200 (CEST)
+        by pegase1.c-s.fr (Postfix) with ESMTP id 4FBkFt3brMz9v2ls;
+        Fri,  2 Apr 2021 17:18:10 +0200 (CEST)
 Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id F0A0F8BB7C;
-        Fri,  2 Apr 2021 17:18:22 +0200 (CEST)
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 68B998BB7B;
+        Fri,  2 Apr 2021 17:18:12 +0200 (CEST)
 X-Virus-Scanned: amavisd-new at c-s.fr
 Received: from messagerie.si.c-s.fr ([127.0.0.1])
         by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id JBXhU7_Qtg1N; Fri,  2 Apr 2021 17:18:22 +0200 (CEST)
+        with ESMTP id b-4XVonvcJNM; Fri,  2 Apr 2021 17:18:12 +0200 (CEST)
 Received: from po16121vm.idsi0.si.c-s.fr (unknown [192.168.4.90])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 789078BB7D;
-        Fri,  2 Apr 2021 17:18:22 +0200 (CEST)
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id EB36D8BB79;
+        Fri,  2 Apr 2021 17:18:11 +0200 (CEST)
 Received: by po16121vm.idsi0.si.c-s.fr (Postfix, from userid 0)
-        id 5513E67989; Fri,  2 Apr 2021 15:18:22 +0000 (UTC)
-Message-Id: <349128c2baa37dfcafb61a10d4e6c62f93cfe881.1617375803.git.christophe.leroy@csgroup.eu>
+        id C79AA67989; Fri,  2 Apr 2021 15:18:11 +0000 (UTC)
+Message-Id: <1180421ba35993f4a533708b91c93f1da07d14dc.1617375802.git.christophe.leroy@csgroup.eu>
 In-Reply-To: <cover.1617375802.git.christophe.leroy@csgroup.eu>
 References: <cover.1617375802.git.christophe.leroy@csgroup.eu>
 From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: [PATCH v4 20/20] cmdline: Remove CONFIG_CMDLINE_EXTEND
+Subject: [PATCH v4 10/20] hexagon: Convert to GENERIC_CMDLINE
 To:     will@kernel.org, danielwa@cisco.com, robh@kernel.org,
         daniel@gimpelevich.san-francisco.ca.us, arnd@kernel.org,
         akpm@linux-foundation.org
@@ -59,52 +59,90 @@ Cc:     linux-arch@vger.kernel.org, devicetree@vger.kernel.org,
         x86@kernel.org, linux-xtensa@linux-xtensa.org,
         linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
         linux-mm@kvack.org
-Date:   Fri,  2 Apr 2021 15:18:22 +0000 (UTC)
+Date:   Fri,  2 Apr 2021 15:18:11 +0000 (UTC)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-All architectures providing CONFIG_CMDLINE_EXTEND
-are now converted to GENERIC_CMDLINE.
-
-This configuration item is not used anymore, drop it.
+This converts the architecture to GENERIC_CMDLINE.
 
 Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
 ---
- include/linux/cmdline.h | 2 +-
- init/Kconfig            | 6 ------
- 2 files changed, 1 insertion(+), 7 deletions(-)
+ arch/hexagon/Kconfig        | 11 +----------
+ arch/hexagon/kernel/setup.c | 10 ++--------
+ 2 files changed, 3 insertions(+), 18 deletions(-)
 
-diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
-index a0773dc365c7..020028e2bdf0 100644
---- a/include/linux/cmdline.h
-+++ b/include/linux/cmdline.h
-@@ -36,7 +36,7 @@ static __always_inline bool __cmdline_build(char *dst, const char *src)
+diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
+index 44a409967af1..1e69c99bae6b 100644
+--- a/arch/hexagon/Kconfig
++++ b/arch/hexagon/Kconfig
+@@ -18,6 +18,7 @@ config HEXAGON
+ 	select HAVE_PERF_EVENTS
+ 	# GENERIC_ALLOCATOR is used by dma_alloc_coherent()
+ 	select GENERIC_ALLOCATOR
++	select GENERIC_CMDLINE
+ 	select GENERIC_IRQ_SHOW
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_TRACEHOOK
+@@ -91,16 +92,6 @@ config HEXAGON_ARCH_VERSION
+ 	int "Architecture version"
+ 	default 2
  
- 	len = cmdline_strlcat(dst, src, COMMAND_LINE_SIZE);
- 
--	if (IS_ENABLED(CONFIG_CMDLINE_EXTEND))
-+	if (IS_ENABLED(CONFIG_CMDLINE_APPEND))
- 		len = cmdline_strlcat(dst, " " CONFIG_CMDLINE, COMMAND_LINE_SIZE);
- 
- 	if (len < COMMAND_LINE_SIZE - 1)
-diff --git a/init/Kconfig b/init/Kconfig
-index af0d84662cc2..fa002e3765ab 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -163,12 +163,6 @@ config CMDLINE_FORCE
- 	  arguments provided by the bootloader.
- endchoice
- 
--config CMDLINE_EXTEND
--	bool
--	default CMDLINE_APPEND
+-config CMDLINE
+-	string "Default kernel command string"
+-	default ""
 -	help
--	  To be removed once all architectures are converted to generic CMDLINE
+-	  On some platforms, there is currently no way for the boot loader
+-	  to pass arguments to the kernel. For these, you should supply some
+-	  command-line options at build time by entering them here.  At a
+-	  minimum, you should specify the memory size and the root device
+-	  (e.g., mem=64M root=/dev/nfs).
 -
- config COMPILE_TEST
- 	bool "Compile also drivers which will not load"
- 	depends on HAS_IOMEM
+ config SMP
+ 	bool "Multi-Processing support"
+ 	help
+diff --git a/arch/hexagon/kernel/setup.c b/arch/hexagon/kernel/setup.c
+index 1880d9beaf2b..78641ce219e2 100644
+--- a/arch/hexagon/kernel/setup.c
++++ b/arch/hexagon/kernel/setup.c
+@@ -13,6 +13,7 @@
+ #include <linux/seq_file.h>
+ #include <linux/console.h>
+ #include <linux/of_fdt.h>
++#include <linux/cmdline.h>
+ #include <asm/io.h>
+ #include <asm/sections.h>
+ #include <asm/setup.h>
+@@ -22,7 +23,6 @@
+ #include <asm/time.h>
+ 
+ char cmd_line[COMMAND_LINE_SIZE];
+-static char default_command_line[COMMAND_LINE_SIZE] __initdata = CONFIG_CMDLINE;
+ 
+ int on_simulator;
+ 
+@@ -38,8 +38,6 @@ void calibrate_delay(void)
+ 
+ void __init setup_arch(char **cmdline_p)
+ {
+-	char *p = &external_cmdline_buffer;
+-
+ 	/*
+ 	 * These will eventually be pulled in via either some hypervisor
+ 	 * or devicetree description.  Hardwiring for now.
+@@ -65,11 +63,7 @@ void __init setup_arch(char **cmdline_p)
+ 	else
+ 		on_simulator = 0;
+ 
+-	if (p[0] != '\0')
+-		strlcpy(boot_command_line, p, COMMAND_LINE_SIZE);
+-	else
+-		strlcpy(boot_command_line, default_command_line,
+-			COMMAND_LINE_SIZE);
++	cmdline_build(boot_command_line, external_cmdline_buffer);
+ 
+ 	/*
+ 	 * boot_command_line and the value set up by setup_arch
 -- 
 2.25.0
 
