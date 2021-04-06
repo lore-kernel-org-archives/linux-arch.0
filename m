@@ -4,142 +4,107 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-6.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BE5FBC433B4
-	for <linux-arch@archiver.kernel.org>; Mon,  5 Apr 2021 16:46:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9C73EC433B4
+	for <linux-arch@archiver.kernel.org>; Tue,  6 Apr 2021 03:50:53 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9E491613B4
-	for <linux-arch@archiver.kernel.org>; Mon,  5 Apr 2021 16:46:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 742A3611EE
+	for <linux-arch@archiver.kernel.org>; Tue,  6 Apr 2021 03:50:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229823AbhDEQqS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 5 Apr 2021 12:46:18 -0400
-Received: from mail.kernel.org ([198.145.29.99]:44622 "EHLO mail.kernel.org"
+        id S242379AbhDFDu7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 5 Apr 2021 23:50:59 -0400
+Received: from mail.kernel.org ([198.145.29.99]:50998 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229559AbhDEQqS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 5 Apr 2021 12:46:18 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 9DE86613B5;
-        Mon,  5 Apr 2021 16:46:11 +0000 (UTC)
+        id S233639AbhDFDu7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 5 Apr 2021 23:50:59 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id D895D611EE;
+        Tue,  6 Apr 2021 03:50:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1617641172;
-        bh=nvXi4hYjQxujRN4W9KX3qS1fYgktkx9tedrpn6VjnDc=;
+        s=k20201202; t=1617681052;
+        bh=szRR4JcrQICDR26E7y2EmbZ8ojtgg1rHPlcrE0/d3ls=;
         h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=rxzmJBZuBld5sJKFtIgFhtxZ/SkoFA5kpaeIJGbV1LBQRbvXVRsr/fyhSC45Is36i
-         ILR3x8Zz7Qy0N5gswtym1dMsn1nSzGVkFE3N3wn5rRx4vVs1tPvnzUYe87peyCf8W3
-         FKkSEERRWusqJkqMmtn2YKobrF7nFTMDFUlF3/1WhFct/9Wl80LPi+RNP31Pz7RPRN
-         H6d1XFXgY6T1xqpZmqF0MPWjMhGhc03fYNEvE+5EtJf6IrQPWUA+3ZGFkMQ6Ll7sWc
-         gXxkRJrQ5IOUjUM6TywkaaGEYD64CgmYoLlS5/F7+9JVGwETERUrtDnrw7e/30Im5j
-         AWlC0lesAknZw==
-Received: by mail-lj1-f178.google.com with SMTP id u4so13306792ljo.6;
-        Mon, 05 Apr 2021 09:46:11 -0700 (PDT)
-X-Gm-Message-State: AOAM530oPbo+CJ1nq+sJI7ZFE1CmawpaYFQ1iz1+IB3IfAGnhxLAmnHe
-        uSselKKVxyQ5dajNb2lKnTmlaK2Qus1tGYZl3iU=
-X-Google-Smtp-Source: ABdhPJw0FTyLwg6e/Tk15+o6HkD8pB40TY7P5ksg6HGPRcBX1Fy6riyYpCNQKZz84He3ZLobLKsH9V3hAX6HoOnLlIA=
-X-Received: by 2002:a2e:a7d4:: with SMTP id x20mr16378736ljp.285.1617641169881;
- Mon, 05 Apr 2021 09:46:09 -0700 (PDT)
+        b=Xh7LyhlX8SgYtaHo207MEW2YT8a8f1clTe8y0Yi2E7VuF9cUTfe3JNTF/XGwPyFR1
+         7J0Gpiyo8cIbAloHohpmQUYB4YgDXxaKIbx9OdCUDVq2Mfr7ffFqOl5g2SeEDwbRJp
+         kjeZVx00J+1BGWp5Uu85JuFeWRfHJDIk+Y9CTprTvQJ9+wtB9KeZgyeXFLxGYq+9UD
+         oUYNEKYxSHPACshu3nkz63R73hwAtR4zoTEqdh2ulp7EwSnwEN/5VZNrTZIXtGpeHz
+         C6yA+io5tq4xzb/4cKCGwLiVQjlYVXb7m29lq4j4/n9F1YwCFYKJZyxY5au3/vHiU6
+         Uz++RocqdA5lQ==
+Received: by mail-lf1-f46.google.com with SMTP id o126so20585175lfa.0;
+        Mon, 05 Apr 2021 20:50:51 -0700 (PDT)
+X-Gm-Message-State: AOAM533DWFYAOKbErtDhkmiv6Pt+TRtpTW4b1FbvGxLSC0Oa/IfKgI9I
+        udcqeKbkCI64nwa3zJq+0s/jfwjLDha9qFtXmbM=
+X-Google-Smtp-Source: ABdhPJxz7vekhbYxQi/US2gfIUiFffiADC+caHLoxoXMbnk8SvvFWk5EFQrEYzPpfuBRSNV+B6LNPvDCyqdYyVLCZPM=
+X-Received: by 2002:a19:f501:: with SMTP id j1mr20502473lfb.231.1617681050232;
+ Mon, 05 Apr 2021 20:50:50 -0700 (PDT)
 MIME-Version: 1.0
 References: <1616868399-82848-1-git-send-email-guoren@kernel.org>
  <1616868399-82848-4-git-send-email-guoren@kernel.org> <YGGGqftfr872/4CU@hirez.programming.kicks-ass.net>
  <CAJF2gTQNV+_txMHJw0cmtS-xcnuaCja-F7XBuOL_J0yN39c+uQ@mail.gmail.com>
  <YGG5c4QGq6q+lKZI@hirez.programming.kicks-ass.net> <CAJF2gTQUe237NY-kh+4_Yk4DTFJmA5_xgNQ5+BMpFZpUDUEYdw@mail.gmail.com>
  <YGHM2/s4FpWZiEQ6@hirez.programming.kicks-ass.net> <CAJF2gTRncV1+GT7nBpYkvfpyaG57o9ecaHBjoR6gEQAkG2ELrg@mail.gmail.com>
- <4d0dbaa0-1f96-470c-0ed0-04f6827ea384@redhat.com>
-In-Reply-To: <4d0dbaa0-1f96-470c-0ed0-04f6827ea384@redhat.com>
+ <YGNNCEAMSWbBU+hd@hirez.programming.kicks-ass.net> <20210330223514.GE1171117@lianli.shorne-pla.net>
+ <CAK8P3a0hj2pYr-CuNJkjO==RafZ=J+6kCo4HTWEwvvRXPcngJA@mail.gmail.com>
+In-Reply-To: <CAK8P3a0hj2pYr-CuNJkjO==RafZ=J+6kCo4HTWEwvvRXPcngJA@mail.gmail.com>
 From:   Guo Ren <guoren@kernel.org>
-Date:   Tue, 6 Apr 2021 00:45:58 +0800
-X-Gmail-Original-Message-ID: <CAJF2gTRN2FLUbJzwsgitMg2j3sMRcq5a1Gm5dTQivuiakmAdOQ@mail.gmail.com>
-Message-ID: <CAJF2gTRN2FLUbJzwsgitMg2j3sMRcq5a1Gm5dTQivuiakmAdOQ@mail.gmail.com>
+Date:   Tue, 6 Apr 2021 11:50:38 +0800
+X-Gmail-Original-Message-ID: <CAJF2gTRxPMURTE3M5WMQ_0q1yZ6K8nraGsFjGLUmpG9nYS_hng@mail.gmail.com>
+Message-ID: <CAJF2gTRxPMURTE3M5WMQ_0q1yZ6K8nraGsFjGLUmpG9nYS_hng@mail.gmail.com>
 Subject: Re: [PATCH v4 3/4] locking/qspinlock: Add ARCH_USE_QUEUED_SPINLOCKS_XCHG32
-To:     Waiman Long <longman@redhat.com>
-Cc:     Peter Zijlstra <peterz@infradead.org>,
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     Stafford Horne <shorne@gmail.com>,
+        Peter Zijlstra <peterz@infradead.org>,
         linux-riscv <linux-riscv@lists.infradead.org>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
         linux-csky@vger.kernel.org,
         linux-arch <linux-arch@vger.kernel.org>,
         Guo Ren <guoren@linux.alibaba.com>,
         Will Deacon <will@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-        Arnd Bergmann <arnd@arndb.de>, Anup Patel <anup@brainfault.org>
+        Waiman Long <longman@redhat.com>,
+        Anup Patel <anup@brainfault.org>
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Mar 30, 2021 at 10:09 PM Waiman Long <longman@redhat.com> wrote:
+On Wed, Mar 31, 2021 at 3:23 PM Arnd Bergmann <arnd@arndb.de> wrote:
 >
-> On 3/29/21 11:13 PM, Guo Ren wrote:
-> > On Mon, Mar 29, 2021 at 8:50 PM Peter Zijlstra <peterz@infradead.org> wrote:
-> >> On Mon, Mar 29, 2021 at 08:01:41PM +0800, Guo Ren wrote:
-> >>> u32 a = 0x55aa66bb;
-> >>> u16 *ptr = &a;
-> >>>
-> >>> CPU0                       CPU1
-> >>> =========             =========
-> >>> xchg16(ptr, new)     while(1)
-> >>>                                      WRITE_ONCE(*(ptr + 1), x);
-> >>>
-> >>> When we use lr.w/sc.w implement xchg16, it'll cause CPU0 deadlock.
-> >> Then I think your LL/SC is broken.
-> >>
-> >> That also means you really don't want to build super complex locking
-> >> primitives on top, because that live-lock will percolate through.
-> > Do you mean the below implementation has live-lock risk?
-> > +static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
-> > +{
-> > +       u32 old, new, val = atomic_read(&lock->val);
-> > +
-> > +       for (;;) {
-> > +               new = (val & _Q_LOCKED_PENDING_MASK) | tail;
-> > +               old = atomic_cmpxchg(&lock->val, val, new);
-> > +               if (old == val)
-> > +                       break;
-> > +
-> > +               val = old;
-> > +       }
-> > +       return old;
-> > +}
-> If there is a continuous stream of incoming spinlock takers, it is
-> possible that some cpus may have to wait a long time to set the tail
-> right. However, this should only happen on artificial workload. I doubt
-> it will happen with real workload or with limit number of cpus.
-Yes, I think is ok for LR/SC in riscv, becasue
+> On Wed, Mar 31, 2021 at 12:35 AM Stafford Horne <shorne@gmail.com> wrote:
+> >
+> > I just want to chime in here, there may be a better spot in the thread to
+> > mention this but, for OpenRISC I did implement some generic 8/16-bit xchg code
+> > which I have on my todo list somwhere to replace the other generic
+> > implementations like that in mips.
+> >
+> >   arch/openrisc/include/asm/cmpxchg.h
+> >
+> > The idea would be that architectures just implement these methods:
+> >
+> >   long cmpxchg_u32(*ptr,old,new)
+> >   long xchg_u32(*ptr,val)
+> >
+> > Then the rest of the generic header would implement cmpxchg.
+>
+> I like the idea of generalizing it a little further. I'd suggest staying a
+> little closer to the existing naming here though, as we already have
+> cmpxchg() for the type-agnostic version, and cmpxchg64() for the
+> fixed-length 64-bit version.
+>
+> I think a nice interface between architecture-specific and architecture
+> independent code would be to have architectures provide
+> arch_cmpxchg32()/arch_xchg32() as the most basic version, as well
+> as arch_cmpxchg8()/arch_cmpxchg16()/arch_xchg8()/arch_xchg16()
+> if they have instructions for those.
+>
+> The common code can then build cmpxchg16()/xchg16() on top of
+> either the 16-bit or the 32-bit primitives, and build the cmpxchg()/xchg()
+> wrapper around those (or alternatively we can decide to have them
+> only deal with fixed-32-bit and long/pointer sized atomics).
+I think these emulation codes are suitable for some architectures but not riscv.
 
-CPU0 LR
-CPU1 LR
-CPU0 SC //success
-CPU1 SC //fail
-
-or
-
-CPU0 LR
-CPU1 LR
-CPU1 SC //success
-CPU0 SC //fail
-
-So always one store condition would success. I think it's OK.
-
-> >
-> >> Step 1 would be to get your architecute fixed such that it can provide
-> >> fwd progress guarantees for LL/SC. Otherwise there's absolutely no point
-> >> in building complex systems with it.
-> > Quote Waiman's comment [1] on xchg16 optimization:
-> >
-> > "This optimization is needed to make the qspinlock achieve performance
-> > parity with ticket spinlock at light load."
-> >
-> > [1] https://lore.kernel.org/kvm/1429901803-29771-6-git-send-email-Waiman.Long@hp.com/
-> >
-> > So for a non-xhg16 machine:
-> >   - ticket-lock for small numbers of CPUs
-> >   - qspinlock for large numbers of CPUs
-> >
-> > Okay, I'll put all of them into the next patch :P
-> >
-> It is true that qspinlock may not offer much advantage when the number
-> of cpus is small. It shines for systems with many cpus. You may use
-> NR_CPUS to determine if the default should be ticket or qspinlock with
-> user override. To determine the right NR_CPUS threshold, you may need to
-> run on real SMP RISCV systems to find out.
-I Agree
+We shouldn't export xchg16/cmpxchg16(emulated by lr.w/sc.w) in riscv,
+We should forbid these sub-word atomic primitive and lets the
+programmers consider their atomic design.
 
 -- 
 Best Regards
