@@ -2,199 +2,135 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0C6E8C433ED
-	for <linux-arch@archiver.kernel.org>; Wed,  7 Apr 2021 08:37:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5A712C433B4
+	for <linux-arch@archiver.kernel.org>; Wed,  7 Apr 2021 08:47:08 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D6AA3613A3
-	for <linux-arch@archiver.kernel.org>; Wed,  7 Apr 2021 08:37:38 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2CA97611CC
+	for <linux-arch@archiver.kernel.org>; Wed,  7 Apr 2021 08:47:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231650AbhDGIhr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 7 Apr 2021 04:37:47 -0400
-Received: from mail.kernel.org ([198.145.29.99]:56850 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S241558AbhDGIhq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Apr 2021 04:37:46 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id B9EE561246;
-        Wed,  7 Apr 2021 08:37:36 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
-        s=korg; t=1617784657;
-        bh=VLHHF4FT8jy86pEu9hfAxz3hbvkycVgr55CKmTBjz90=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=jx9GXNJbN+qI1oL/v6izGOA9ZjafdpY+0jUB15wAIR8cGxQzsFtLuZ6StF6xNw0t5
-         k7ceLTv/Zz65f9E+EACiSYOSmXPrNSctssRY5mBzSglf3UaUQlcOdQERIUYuf+GpSs
-         wihX2X0/BQ29/ZGThdCD8Kg7a6yZTVfM+m1fEekA=
-Date:   Wed, 7 Apr 2021 10:37:35 +0200
-From:   Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-To:     Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Cc:     Geert Uytterhoeven <geert@linux-m68k.org>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Michal Marek <michal.lkml@markovi.net>,
-        linux-kbuild <linux-kbuild@vger.kernel.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        "David S. Miller" <davem@davemloft.net>,
-        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christian Borntraeger <borntraeger@de.ibm.com>,
-        Greentime Hu <green.hu@gmail.com>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Helge Deller <deller@gmx.de>, Ingo Molnar <mingo@redhat.com>,
-        Ley Foon Tan <ley.foon.tan@intel.com>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Nick Hu <nickhu@andestech.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Rich Felker <dalias@libc.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Vincent Chen <deanbo422@gmail.com>,
-        Will Deacon <will@kernel.org>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        the arch/x86 maintainers <x86@kernel.org>
-Subject: Re: [PATCH 00/20] kbuild: unify the install.sh script usage
-Message-ID: <YG1vTx5XtgMeA9kX@kroah.com>
-References: <20210407053419.449796-1-gregkh@linuxfoundation.org>
- <CAMuHMdWGnr1wK3yZdLovxmVQT1yc2DR+J6FwQyCLxQS-Bp29Rw@mail.gmail.com>
- <YG1jSj7BiDscHBhz@kroah.com>
- <20210407080229.GF1463@shell.armlinux.org.uk>
- <YG1oQRc1ayGEI+4G@kroah.com>
- <20210407081436.GG1463@shell.armlinux.org.uk>
+        id S1349656AbhDGIrO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 7 Apr 2021 04:47:14 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56906 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1349709AbhDGIrD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Apr 2021 04:47:03 -0400
+Received: from mail-pf1-x432.google.com (mail-pf1-x432.google.com [IPv6:2607:f8b0:4864:20::432])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 02CB5C06174A;
+        Wed,  7 Apr 2021 01:46:54 -0700 (PDT)
+Received: by mail-pf1-x432.google.com with SMTP id y16so318496pfc.5;
+        Wed, 07 Apr 2021 01:46:53 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=NZttKhZHU6qaVsRmUnPJpvZt0Hi/pFu56dbeZNbDXtU=;
+        b=UDQs+QKztlc50Xzz9tDRt+AdeuvS//lqLAuKnWXU/KpkdRIyYns185alJd77pimmOQ
+         Rm+SXfRq7Nbp44iFj09DlIBP8pB9Q/wr1Jktw0TsONZCLU6cUjKoAcBW9MELgEDcm9Fe
+         pjdoHv/Z1K75roAdGxxxm60OLnxr6B3j/huNdwRUOBcR/NfWwdJ0T2Ry1GSBSm5M8gQG
+         cPX3YXLL7dtqUWW4/37Lsyk3k7L76r1KootJDPbDvQIsbhQfbSpG/LRrVUU53kFzKElU
+         mZPAf+0lfHR42X+g8hHRO6PYug2sgsVVq7CJaXGQetXBqPCEBbWZWj0if+0XEWIBGBV8
+         f3cA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=NZttKhZHU6qaVsRmUnPJpvZt0Hi/pFu56dbeZNbDXtU=;
+        b=U6xGKAfqxrLQgJHPe8FmLF8x8gAHUPieu4V5pp/CReJ9GyzSX7OxC13PhDrWxFcuBe
+         p+9uywwNqYWqNFlvhv/DwkYgjcNSaVUavom7Y2H3iu/7hryQwVpvtRFxBiKyelypWZBM
+         XmUZqei/7l8wblDlpP0TenIP6K+m/cXFStjyIjcU2V2QQkmLIJkBcVFCtqo3szb6A5FK
+         y9NHvPsQnWrmpnPV1SYsfvrvy+b7jV8bbligwQjcSU5O/HQl/YTv09NzjkNigG1y20XT
+         u1n89YwY7faLBOL4CLLaVrqcJxrWMuueTDsdMTdtKCp7HePLkIzD596S6B9iYSNhAlN2
+         HtkA==
+X-Gm-Message-State: AOAM531S82T3LQNp51YK3OHnBH50CMnAve9+VKkWDXoWcn+2oT/6ajEm
+        gEQVmIbqutQQmub8myghsy5hC2PGm63Mb7qygDI=
+X-Google-Smtp-Source: ABdhPJyOREH8pH5Yw3mdnLvelVM7fjh26m8MXKE2FHM7iVCNEkdX6M5hYPv1kbA5tQgLzWX2dL38Pt50r64dgAgPi18=
+X-Received: by 2002:a63:3e4b:: with SMTP id l72mr2244351pga.203.1617785213524;
+ Wed, 07 Apr 2021 01:46:53 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="NnUXjuPNDGsCsqaY"
-Content-Disposition: inline
-In-Reply-To: <20210407081436.GG1463@shell.armlinux.org.uk>
+References: <20210406133158.73700-1-andriy.shevchenko@linux.intel.com> <202104061143.E11D2D0@keescook>
+In-Reply-To: <202104061143.E11D2D0@keescook>
+From:   Andy Shevchenko <andy.shevchenko@gmail.com>
+Date:   Wed, 7 Apr 2021 11:46:37 +0300
+Message-ID: <CAHp75Ve+11u=dtNTO8BCohOJHGWSMJtb1nGCOrNde7bXaD4ehA@mail.gmail.com>
+Subject: Re: [PATCH v1 1/1] kernel.h: Split out panic and oops helpers
+To:     Kees Cook <keescook@chromium.org>
+Cc:     Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Joerg Roedel <jroedel@suse.de>, Wei Liu <wei.liu@kernel.org>,
+        Michael Kelley <mikelley@microsoft.com>,
+        Mike Rapoport <rppt@kernel.org>,
+        Corey Minyard <cminyard@mvista.com>,
+        Bjorn Andersson <bjorn.andersson@linaro.org>,
+        Mathieu Poirier <mathieu.poirier@linaro.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>,
+        Vlastimil Babka <vbabka@suse.cz>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        "Steven Rostedt (VMware)" <rostedt@goodmis.org>,
+        "open list:LINUX FOR POWERPC PA SEMI PWRFICIENT" 
+        <linuxppc-dev@lists.ozlabs.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux on Hyper-V List <linux-hyperv@vger.kernel.org>,
+        openipmi-developer@lists.sourceforge.net,
+        linux-remoteproc@vger.kernel.org,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        kexec@lists.infradead.org, rcu@vger.kernel.org,
+        Linux FS Devel <linux-fsdevel@vger.kernel.org>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        "K. Y. Srinivasan" <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
+        Corey Minyard <minyard@acm.org>,
+        Ohad Ben-Cohen <ohad@wizery.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Eric Biederman <ebiederm@xmission.com>,
+        Josh Triplett <josh@joshtriplett.org>,
+        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+        Lai Jiangshan <jiangshanlai@gmail.com>,
+        Joel Fernandes <joel@joelfernandes.org>,
+        Luis Chamberlain <mcgrof@kernel.org>,
+        Iurii Zaikin <yzaikin@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+On Wed, Apr 7, 2021 at 11:17 AM Kees Cook <keescook@chromium.org> wrote:
+>
+> On Tue, Apr 06, 2021 at 04:31:58PM +0300, Andy Shevchenko wrote:
+> > kernel.h is being used as a dump for all kinds of stuff for a long time.
+> > Here is the attempt to start cleaning it up by splitting out panic and
+> > oops helpers.
+> >
+> > At the same time convert users in header and lib folder to use new header.
+> > Though for time being include new header back to kernel.h to avoid twisted
+> > indirected includes for existing users.
+> >
+> > Signed-off-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+>
+> I like it! Do you have a multi-arch CI to do allmodconfig builds to
+> double-check this?
 
---NnUXjuPNDGsCsqaY
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Unfortunately no, I rely on plenty of bots that are harvesting mailing lists.
 
-On Wed, Apr 07, 2021 at 09:14:36AM +0100, Russell King - ARM Linux admin wrote:
-> On Wed, Apr 07, 2021 at 10:07:29AM +0200, Greg Kroah-Hartman wrote:
-> > On Wed, Apr 07, 2021 at 09:02:29AM +0100, Russell King - ARM Linux admin wrote:
-> > > On Wed, Apr 07, 2021 at 09:46:18AM +0200, Greg Kroah-Hartman wrote:
-> > > > On Wed, Apr 07, 2021 at 09:18:11AM +0200, Geert Uytterhoeven wrote:
-> > > > > Hi Greg,
-> > > > > 
-> > > > > Thanks for your series!
-> > > > > 
-> > > > > On Wed, Apr 7, 2021 at 7:34 AM Greg Kroah-Hartman
-> > > > > <gregkh@linuxfoundation.org> wrote:
-> > > > > > Almost every architecture has copied the "install.sh" script that
-> > > > > > originally came with i386, and modified it in very tiny ways.  This
-> > > > > > patch series unifies all of these scripts into one single script to
-> > > > > > allow people to understand how to correctly install a kernel, and fixes
-> > > > > > up some issues regarding trying to install a kernel to a path with
-> > > > > > spaces in it.
-> > > > > >
-> > > > > > Note that not all architectures actually seem to have any type of way to
-> > > > > > install a kernel, they must rely on external scripts or tools which
-> > > > > > feels odd as everything should be included here in the main repository.
-> > > > > > I'll work on trying to figure out the missing architecture issues
-> > > > > > afterward.
-> > > > > 
-> > > > > I'll bite ;-)
-> > > > > 
-> > > > > Does anyone actually use these scripts (outside of x86)?
-> > > 
-> > > Yes, every time I build a kernel. My kernel build system involves
-> > > typing "kbuild <flags> <dirname> <machines...>" and the kernel gets
-> > > built in ../build/<dirname>. When the build completes, it gets
-> > > installed into ~/systems/<dirname>, tar'd up, and copied to the
-> > > destination machines, unpacked, installed as appropriate, and
-> > > the machine rebooted if requested.
-> > > 
-> > > The installation step is done via the ~/bin/installkernel script.
-> > 
-> > So you don't use install.sh at all except to invoke your local script.
-> 
-> It depends where the kernel is being built; it has been used in the
-> past (one will notice that the arm32 version is not a direct copy of
-> the x86 version, and never was - it was modified from day 1.) It's
-> placement and naming of the files in /boot is still used today, which
-> is slightly different from the x86 version.
+But I will appreciate it if somebody can run this through various build tests.
 
-The placement depends on the caller to the script, so that's not an
-issue here.  The name for the output does differ from x86, but the
-"common" script handles all of that (or it should, if not I messed up.)
+> Acked-by: Kees Cook <keescook@chromium.org>
 
-Attached below is the common scripts/install.sh that this patch series
-produces at the end of it, if you want to check to see if I missed
-anything for your arch.
+Thanks!
 
-thanks,
 
-greg k-h
-
---NnUXjuPNDGsCsqaY
-Content-Type: application/x-sh
-Content-Disposition: attachment; filename="install.sh"
-Content-Transfer-Encoding: quoted-printable
-
-#!/bin/sh=0A# SPDX-License-Identifier: GPL-2.0=0A#=0A# Copyright (C) 1995 b=
-y Linus Torvalds=0A# Copyright (C) 2021 Greg Kroah-Hartman=0A#=0A# Adapted =
-=66rom code in arch/i386/boot/Makefile by H. Peter Anvin=0A# Adapted from c=
-ode in arch/i386/boot/install.sh by Russell King=0A# Adapted from code in a=
-rch/arm/boot/install.sh by Stuart Menefy=0A#=0A# "make install" script for =
-Linux to be used by all architectures.=0A#=0A# Arguments:=0A#   $1 - kernel=
- version=0A#   $2 - kernel image file=0A#   $3 - kernel map file=0A#   $4 -=
- default install path (blank if root directory)=0A#=0A# Installs the built =
-kernel image and map and symbol file in the specified=0A# install location.=
-  If no install path is selected, the files will be placed=0A# in the root =
-directory.=0A#=0A# The name of the kernel image will be "vmlinux-VERSION" f=
-or uncompressed=0A# kernels or "vmlinuz-VERSION' for compressed kernels.=0A=
-#=0A# The kernel map file will be named "System.map-VERSION"=0A#=0A# Note, =
-not all architectures seem to like putting the VERSION number in the=0A# fi=
-le name, see below in the script for a list of those that do not.  For=0A# =
-those that do not the "-VERSION" will not be present in the file name.=0A#=
-=0A# If there is currently a kernel image or kernel map file present with t=
-he name=0A# of the file to be copied to the location, it will be renamed to=
- contain a=0A# ".old" suffix.=0A#=0A# If ~/bin/${INSTALLKERNEL} or /sbin/${=
-INSTALLKERNEL} is executable, execution=0A# will be passed to that program =
-instead of this one to allow for distro or=0A# system specific installation=
- scripts to be used.=0A=0Averify () {=0A	if [ ! -f "$1" ]; then=0A		echo ""=
-                                                   1>&2=0A		echo " *** Miss=
-ing file: $1"                              1>&2=0A		echo ' *** You need to =
-run "make" before "make install".' 1>&2=0A		echo ""                        =
-                           1>&2=0A		exit 1=0A 	fi=0A}=0A=0Ainstall () {=0A	=
-install_source=3D${1}=0A	install_target=3D${2}=0A=0A	echo "installing '${in=
-stall_source}' to '${install_target}'"=0A=0A	# if the target is already pre=
-sent, move it to a .old filename=0A	if [ -f "${install_target}" ]; then=0A	=
-	mv "${install_target}" "${install_target}".old=0A	fi=0A	cat "${install_sou=
-rce}" > "${install_target}"=0A}=0A=0A# Make sure the files actually exist=
-=0Averify "$2"=0Averify "$3"=0A=0A# User may have a custom install script=
-=0Aif [ -x ~/bin/"${INSTALLKERNEL}" ]; then exec ~/bin/"${INSTALLKERNEL}" "=
-$@"; fi=0Aif [ -x /sbin/"${INSTALLKERNEL}" ]; then exec /sbin/"${INSTALLKER=
-NEL}" "$@"; fi=0A=0Abase=3D$(basename "$2")=0Aif [ "$base" =3D "bzImage" ] =
-||=0A   [ "$base" =3D "Image.gz" ] ||=0A   [ "$base" =3D "vmlinux.gz" ] ||=
-=0A   [ "$base" =3D "vmlinuz" ] ||=0A   [ "$base" =3D "zImage" ] ; then=0A	=
-# Compressed install=0A	echo "Installing compressed kernel"=0A	base=3Dvmlin=
-uz=0Aelse=0A	# Normal install=0A	echo "Installing normal kernel"=0A	base=3D=
-vmlinux=0Afi=0A=0A# Some architectures name their files based on version nu=
-mber, and=0A# others do not.  Call out the ones that do not to make it obvi=
-ous.=0Acase "${ARCH}" in=0A	ia64 | m68k | nios2 | powerpc | sparc | x86)=0A=
-		version=3D""=0A		;;=0A	*)=0A		version=3D"-${1}"=0A		;;=0Aesac=0A=0Ainstal=
-l "$2" "$4"/"$base""$version"=0Ainstall "$3" "$4"/System.map"$version"=0Asy=
-nc=0A=0A# Some architectures like to call specific bootloader "helper" prog=
-rams:=0Acase "${ARCH}" in=0A	arm)=0A		if [ -x /sbin/loadmap ]; then=0A			/s=
-bin/loadmap=0A		else=0A			echo "You have to install it yourself"=0A		fi=0A	=
-	;;=0A	ia64)=0A		if [ -x /usr/sbin/elilo ]; then=0A			/usr/sbin/elilo=0A		f=
-i=0A		;;=0A	powerpc)=0A		# powerpc installation can list other boot targets=
- after the=0A		# install path that should be copied to the correct location=
-=0A		path=3D$4=0A		shift 4=0A		while [ $# -ne 0 ]; do=0A			image_name=3D$(b=
-asename "$1")=0A			install "$1" "$path"/"$image_name"=0A			shift=0A		done;=
-=0A		sync=0A		;;=0A	x86)=0A		if [ -x /sbin/lilo ]; then=0A			/sbin/lilo=0A	=
-	elif [ -x /etc/lilo/install ]; then=0A			/etc/lilo/install=0A		else=0A			e=
-cho "Cannot find LILO, ensure your bootloader knows of the new kernel image=
-=2E"=0A		fi=0A		;;=0Aesac=0A
---NnUXjuPNDGsCsqaY--
+-- 
+With Best Regards,
+Andy Shevchenko
