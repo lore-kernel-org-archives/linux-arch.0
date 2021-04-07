@@ -8,36 +8,36 @@ X-Spam-Status: No, score=-18.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8CFEBC433B4
-	for <linux-arch@archiver.kernel.org>; Wed,  7 Apr 2021 05:34:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8055DC43461
+	for <linux-arch@archiver.kernel.org>; Wed,  7 Apr 2021 05:34:57 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 67D0D613D2
-	for <linux-arch@archiver.kernel.org>; Wed,  7 Apr 2021 05:34:56 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 60CD2613CD
+	for <linux-arch@archiver.kernel.org>; Wed,  7 Apr 2021 05:34:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1348719AbhDGFfE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 7 Apr 2021 01:35:04 -0400
-Received: from mail.kernel.org ([198.145.29.99]:38418 "EHLO mail.kernel.org"
+        id S1348734AbhDGFfF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 7 Apr 2021 01:35:05 -0400
+Received: from mail.kernel.org ([198.145.29.99]:38348 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1345238AbhDGFfE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1345241AbhDGFfE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Wed, 7 Apr 2021 01:35:04 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 98CEC613CE;
-        Wed,  7 Apr 2021 05:34:53 +0000 (UTC)
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 20C19613B8;
+        Wed,  7 Apr 2021 05:34:50 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
-        s=korg; t=1617773694;
-        bh=yzTHByr3GvboIW/T6xufocsK6BWzHcPe3Ttz3XpWwHw=;
+        s=korg; t=1617773691;
+        bh=nADdg6PM/j4BMDvlY9mRZPDHGBnkM2Jn+KFDAec2UDE=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=Q2v8znZRcentw4aDHVudeeDQ/PA3S8rVznRDTSOlpd+Z+N5RX14c8NJkCp6RxqaRX
-         tHlK9Xuu5BXh93xQMg1XF8tfkCxs6WiBjNLBOr/ML8ScWSILeZxioURieZH9XApQuZ
-         zRGEnxLoKQcU/2n6F8/c0HMu3d3pKEB7qKHNND8E=
+        b=xKPdKMGmCnJqujbtVQPFWFBrjKsYjxexM8pJMjYN9Sppty8vctYiBQ9lIL6oxC5Ih
+         HkAI4ZTZgJjmCrrw6Dln6p4xlKD586JvV7kcwH0Wn2fLSYNI/e5xyokeBZZWQVvNMr
+         vpLOg92uNdZFeLU0H7nCo7H16hXq+cQwrTSX2by0=
 From:   Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 To:     Masahiro Yamada <masahiroy@kernel.org>,
         Michal Marek <michal.lkml@markovi.net>
 Cc:     linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 06/20] kbuild: scripts/install.sh: handle compressed/uncompressed kernel images
-Date:   Wed,  7 Apr 2021 07:34:05 +0200
-Message-Id: <20210407053419.449796-7-gregkh@linuxfoundation.org>
+Subject: [PATCH 02/20] kbuild: scripts/install.sh: properly quote all variables
+Date:   Wed,  7 Apr 2021 07:34:01 +0200
+Message-Id: <20210407053419.449796-3-gregkh@linuxfoundation.org>
 X-Mailer: git-send-email 2.31.1
 In-Reply-To: <20210407053419.449796-1-gregkh@linuxfoundation.org>
 References: <20210407053419.449796-1-gregkh@linuxfoundation.org>
@@ -47,44 +47,51 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-For x86, the default kernel image is compressed, but other architectures
-allowed both compressed and uncompressed kernel images to be built.  Add
-a test to detect which one this is, and either name the output file
-"vmlinuz" for a compressed image, or "vmlinux" for an uncompressed
-image.
+A few variables are quoted to handle spaces in directory names, but not
+all of them.  Properly quote everything so that the kernel build can
+handle working correctly with directory names with spaces.
 
-For x86 this change is a no-op, but other architectures depend on this.
+This change makes the script "shellcheck" clean now.
 
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 ---
- scripts/install.sh | 14 ++++++++++++--
- 1 file changed, 12 insertions(+), 2 deletions(-)
+ scripts/install.sh | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
 
 diff --git a/scripts/install.sh b/scripts/install.sh
-index 2adcb993efa2..72dc4c81013e 100644
+index d13ec1c38640..c183d6ddd00c 100644
 --- a/scripts/install.sh
 +++ b/scripts/install.sh
-@@ -49,8 +49,18 @@ verify "$3"
- if [ -x ~/bin/"${INSTALLKERNEL}" ]; then exec ~/bin/"${INSTALLKERNEL}" "$@"; fi
- if [ -x /sbin/"${INSTALLKERNEL}" ]; then exec /sbin/"${INSTALLKERNEL}" "$@"; fi
+@@ -33,21 +33,21 @@ verify "$3"
  
--# Default install - same as make zlilo
--install "$2" "$4"/vmlinuz
-+base=$(basename "$2")
-+if [ "$base" = "bzImage" ]; then
-+	# Compressed install
-+	echo "Installing compressed kernel"
-+	base=vmlinuz
-+else
-+	# Normal install
-+	echo "Installing normal kernel"
-+	base=vmlinux
-+fi
-+
-+install "$2" "$4"/"$base"
- install "$3" "$4"/System.map
- sync
+ # User may have a custom install script
  
+-if [ -x ~/bin/${INSTALLKERNEL} ]; then exec ~/bin/${INSTALLKERNEL} "$@"; fi
+-if [ -x /sbin/${INSTALLKERNEL} ]; then exec /sbin/${INSTALLKERNEL} "$@"; fi
++if [ -x ~/bin/"${INSTALLKERNEL}" ]; then exec ~/bin/"${INSTALLKERNEL}" "$@"; fi
++if [ -x /sbin/"${INSTALLKERNEL}" ]; then exec /sbin/"${INSTALLKERNEL}" "$@"; fi
+ 
+ # Default install - same as make zlilo
+ 
+-if [ -f $4/vmlinuz ]; then
+-	mv $4/vmlinuz $4/vmlinuz.old
++if [ -f "$4"/vmlinuz ]; then
++	mv "$4"/vmlinuz "$4"/vmlinuz.old
+ fi
+ 
+-if [ -f $4/System.map ]; then
+-	mv $4/System.map $4/System.old
++if [ -f "$4"/System.map ]; then
++	mv "$4"/System.map "$4"/System.old
+ fi
+ 
+-cat $2 > $4/vmlinuz
+-cp $3 $4/System.map
++cat "$2" > "$4"/vmlinuz
++cp "$3" "$4"/System.map
+ 
+ if [ -x /sbin/lilo ]; then
+        /sbin/lilo
 -- 
 2.31.1
 
