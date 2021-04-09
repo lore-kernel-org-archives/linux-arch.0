@@ -2,563 +2,324 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E90F5C43460
-	for <linux-arch@archiver.kernel.org>; Fri,  9 Apr 2021 06:18:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3CDEAC43460
+	for <linux-arch@archiver.kernel.org>; Fri,  9 Apr 2021 06:23:08 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B779261179
-	for <linux-arch@archiver.kernel.org>; Fri,  9 Apr 2021 06:18:54 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0894161008
+	for <linux-arch@archiver.kernel.org>; Fri,  9 Apr 2021 06:23:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233320AbhDIGTF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 9 Apr 2021 02:19:05 -0400
-Received: from mslow1.mail.gandi.net ([217.70.178.240]:40937 "EHLO
-        mslow1.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233310AbhDIGTF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2021 02:19:05 -0400
-Received: from relay6-d.mail.gandi.net (unknown [217.70.183.198])
-        by mslow1.mail.gandi.net (Postfix) with ESMTP id E61E5D8926;
-        Fri,  9 Apr 2021 06:16:44 +0000 (UTC)
-X-Originating-IP: 81.185.169.105
-Received: from localhost.localdomain (105.169.185.81.rev.sfr.net [81.185.169.105])
-        (Authenticated sender: alex@ghiti.fr)
-        by relay6-d.mail.gandi.net (Postfix) with ESMTPSA id CC9D3C000A;
-        Fri,  9 Apr 2021 06:16:17 +0000 (UTC)
-From:   Alexandre Ghiti <alex@ghiti.fr>
-To:     Jonathan Corbet <corbet@lwn.net>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>,
+        id S233335AbhDIGXT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 9 Apr 2021 02:23:19 -0400
+Received: from mail.kernel.org ([198.145.29.99]:33744 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S229715AbhDIGXS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 9 Apr 2021 02:23:18 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id B90B261057;
+        Fri,  9 Apr 2021 06:23:03 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+        s=korg; t=1617949385;
+        bh=mJ2iIVENJVBOnN2uXfAcyB/K8aKm5K5QHhvwNyApuAU=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+        b=csPjYedzWhmuKBGMU155cpHTdZItXq65aNVGkrX9cDOfKgzfcWV1yVZ7+8tq01r+z
+         ODfCoIhkGumpTuUlBz+43/5MvpO/6M0D+77/eRG+VIJ27eTKjfLfS57BTaW5YITUdh
+         97swMkpU38QBpyu9C25OZZIPhXniOvfHNvdymBZE=
+Date:   Thu, 8 Apr 2021 23:23:03 -0700
+From:   Andrew Morton <akpm@linux-foundation.org>
+To:     Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc:     Kees Cook <keescook@chromium.org>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Joerg Roedel <jroedel@suse.de>, Wei Liu <wei.liu@kernel.org>,
+        Michael Kelley <mikelley@microsoft.com>,
+        Mike Rapoport <rppt@kernel.org>,
+        Corey Minyard <cminyard@mvista.com>,
+        Bjorn Andersson <bjorn.andersson@linaro.org>,
+        Mathieu Poirier <mathieu.poirier@linaro.org>,
+        Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>,
+        Vlastimil Babka <vbabka@suse.cz>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        "Steven Rostedt (VMware)" <rostedt@goodmis.org>,
+        "open list:LINUX FOR POWERPC PA SEMI PWRFICIENT" 
+        <linuxppc-dev@lists.ozlabs.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux on Hyper-V List <linux-hyperv@vger.kernel.org>,
+        openipmi-developer@lists.sourceforge.net,
+        linux-remoteproc@vger.kernel.org,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        kexec@lists.infradead.org, rcu@vger.kernel.org,
+        Linux FS Devel <linux-fsdevel@vger.kernel.org>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        "K. Y. Srinivasan" <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
+        Corey Minyard <minyard@acm.org>,
+        Ohad Ben-Cohen <ohad@wizery.com>,
         Arnd Bergmann <arnd@arndb.de>,
-        Andrey Ryabinin <aryabinin@virtuozzo.com>,
-        Alexander Potapenko <glider@google.com>,
-        Dmitry Vyukov <dvyukov@google.com>, linux-doc@vger.kernel.org,
-        linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
-        kasan-dev@googlegroups.com, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org
-Cc:     Alexandre Ghiti <alex@ghiti.fr>
-Subject: [PATCH v4 1/3] riscv: Move kernel mapping outside of linear mapping
-Date:   Fri,  9 Apr 2021 02:14:58 -0400
-Message-Id: <20210409061500.14673-2-alex@ghiti.fr>
-X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20210409061500.14673-1-alex@ghiti.fr>
-References: <20210409061500.14673-1-alex@ghiti.fr>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        Eric Biederman <ebiederm@xmission.com>,
+        Josh Triplett <josh@joshtriplett.org>,
+        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+        Lai Jiangshan <jiangshanlai@gmail.com>,
+        Joel Fernandes <joel@joelfernandes.org>,
+        Luis Chamberlain <mcgrof@kernel.org>,
+        Iurii Zaikin <yzaikin@google.com>
+Subject: Re: [PATCH v1 1/1] kernel.h: Split out panic and oops helpers
+Message-Id: <20210408232303.453749e0e6fb0adfa8545440@linux-foundation.org>
+In-Reply-To: <CAHp75Ve+11u=dtNTO8BCohOJHGWSMJtb1nGCOrNde7bXaD4ehA@mail.gmail.com>
+References: <20210406133158.73700-1-andriy.shevchenko@linux.intel.com>
+        <202104061143.E11D2D0@keescook>
+        <CAHp75Ve+11u=dtNTO8BCohOJHGWSMJtb1nGCOrNde7bXaD4ehA@mail.gmail.com>
+X-Mailer: Sylpheed 3.5.1 (GTK+ 2.24.31; x86_64-pc-linux-gnu)
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This is a preparatory patch for relocatable kernel and sv48 support.
+On Wed, 7 Apr 2021 11:46:37 +0300 Andy Shevchenko <andy.shevchenko@gmail.com> wrote:
 
-The kernel used to be linked at PAGE_OFFSET address therefore we could use
-the linear mapping for the kernel mapping. But the relocated kernel base
-address will be different from PAGE_OFFSET and since in the linear mapping,
-two different virtual addresses cannot point to the same physical address,
-the kernel mapping needs to lie outside the linear mapping so that we don't
-have to copy it at the same physical offset.
+> On Wed, Apr 7, 2021 at 11:17 AM Kees Cook <keescook@chromium.org> wrote:
+> >
+> > On Tue, Apr 06, 2021 at 04:31:58PM +0300, Andy Shevchenko wrote:
+> > > kernel.h is being used as a dump for all kinds of stuff for a long time.
+> > > Here is the attempt to start cleaning it up by splitting out panic and
+> > > oops helpers.
+> > >
+> > > At the same time convert users in header and lib folder to use new header.
+> > > Though for time being include new header back to kernel.h to avoid twisted
+> > > indirected includes for existing users.
+> > >
+> > > Signed-off-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+> >
+> > I like it! Do you have a multi-arch CI to do allmodconfig builds to
+> > double-check this?
+> 
+> Unfortunately no, I rely on plenty of bots that are harvesting mailing lists.
+> 
+> But I will appreciate it if somebody can run this through various build tests.
+> 
 
-The kernel mapping is moved to the last 2GB of the address space, BPF
-is now always after the kernel and modules use the 2GB memory range right
-before the kernel, so BPF and modules regions do not overlap. KASLR
-implementation will simply have to move the kernel in the last 2GB range
-and just take care of leaving enough space for BPF.
+um, did you try x86_64 allmodconfig?
 
-In addition, by moving the kernel to the end of the address space, both
-sv39 and sv48 kernels will be exactly the same without needing to be
-relocated at runtime.
+I'm up to
+kernelh-split-out-panic-and-oops-helpers-fix-fix-fix-fix-fix-fix-fix.patch
+and counting.
 
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Alexandre Ghiti <alex@ghiti.fr>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: kernelh-split-out-panic-and-oops-helpers-fix
+
+more files need panic_notifier.h
+
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
- arch/riscv/boot/loader.lds.S        |  3 +-
- arch/riscv/include/asm/page.h       | 17 +++++-
- arch/riscv/include/asm/pgtable.h    | 37 ++++++++----
- arch/riscv/include/asm/set_memory.h |  1 +
- arch/riscv/kernel/head.S            |  3 +-
- arch/riscv/kernel/module.c          |  6 +-
- arch/riscv/kernel/setup.c           |  5 ++
- arch/riscv/kernel/vmlinux.lds.S     |  3 +-
- arch/riscv/mm/fault.c               | 13 +++++
- arch/riscv/mm/init.c                | 87 ++++++++++++++++++++++-------
- arch/riscv/mm/kasan_init.c          |  9 +++
- arch/riscv/mm/physaddr.c            |  2 +-
- 12 files changed, 146 insertions(+), 40 deletions(-)
 
-diff --git a/arch/riscv/boot/loader.lds.S b/arch/riscv/boot/loader.lds.S
-index 47a5003c2e28..62d94696a19c 100644
---- a/arch/riscv/boot/loader.lds.S
-+++ b/arch/riscv/boot/loader.lds.S
-@@ -1,13 +1,14 @@
- /* SPDX-License-Identifier: GPL-2.0 */
+ arch/x86/xen/enlighten.c        |    1 +
+ drivers/video/fbdev/hyperv_fb.c |    1 +
+ 2 files changed, 2 insertions(+)
+
+--- a/arch/x86/xen/enlighten.c~kernelh-split-out-panic-and-oops-helpers-fix
++++ a/arch/x86/xen/enlighten.c
+@@ -6,6 +6,7 @@
+ #include <linux/cpu.h>
+ #include <linux/kexec.h>
+ #include <linux/slab.h>
++#include <linux/panic_notifier.h>
  
- #include <asm/page.h>
-+#include <asm/pgtable.h>
+ #include <xen/xen.h>
+ #include <xen/features.h>
+--- a/drivers/video/fbdev/hyperv_fb.c~kernelh-split-out-panic-and-oops-helpers-fix
++++ a/drivers/video/fbdev/hyperv_fb.c
+@@ -52,6 +52,7 @@
+ #include <linux/completion.h>
+ #include <linux/fb.h>
+ #include <linux/pci.h>
++#include <linux/panic_notifier.h>
+ #include <linux/efi.h>
+ #include <linux/console.h>
  
- OUTPUT_ARCH(riscv)
- ENTRY(_start)
- 
- SECTIONS
- {
--	. = PAGE_OFFSET;
-+	. = KERNEL_LINK_ADDR;
- 
- 	.payload : {
- 		*(.payload)
-diff --git a/arch/riscv/include/asm/page.h b/arch/riscv/include/asm/page.h
-index adc9d26f3d75..22cfb2be60dc 100644
---- a/arch/riscv/include/asm/page.h
-+++ b/arch/riscv/include/asm/page.h
-@@ -90,15 +90,28 @@ typedef struct page *pgtable_t;
- 
- #ifdef CONFIG_MMU
- extern unsigned long va_pa_offset;
-+extern unsigned long va_kernel_pa_offset;
- extern unsigned long pfn_base;
- #define ARCH_PFN_OFFSET		(pfn_base)
- #else
- #define va_pa_offset		0
-+#define va_kernel_pa_offset	0
- #define ARCH_PFN_OFFSET		(PAGE_OFFSET >> PAGE_SHIFT)
- #endif /* CONFIG_MMU */
- 
--#define __pa_to_va_nodebug(x)	((void *)((unsigned long) (x) + va_pa_offset))
--#define __va_to_pa_nodebug(x)	((unsigned long)(x) - va_pa_offset)
-+extern unsigned long kernel_virt_addr;
-+
-+#define linear_mapping_pa_to_va(x)	((void *)((unsigned long)(x) + va_pa_offset))
-+#define kernel_mapping_pa_to_va(x)	((void *)((unsigned long)(x) + va_kernel_pa_offset))
-+#define __pa_to_va_nodebug(x)		linear_mapping_pa_to_va(x)
-+
-+#define linear_mapping_va_to_pa(x)	((unsigned long)(x) - va_pa_offset)
-+#define kernel_mapping_va_to_pa(x)	((unsigned long)(x) - va_kernel_pa_offset)
-+#define __va_to_pa_nodebug(x)	({						\
-+	unsigned long _x = x;							\
-+	(_x < kernel_virt_addr) ?						\
-+		linear_mapping_va_to_pa(_x) : kernel_mapping_va_to_pa(_x);	\
-+	})
- 
- #ifdef CONFIG_DEBUG_VIRTUAL
- extern phys_addr_t __virt_to_phys(unsigned long x);
-diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
-index ebf817c1bdf4..80e63a93e903 100644
---- a/arch/riscv/include/asm/pgtable.h
-+++ b/arch/riscv/include/asm/pgtable.h
-@@ -11,23 +11,30 @@
- 
- #include <asm/pgtable-bits.h>
- 
--#ifndef __ASSEMBLY__
--
--/* Page Upper Directory not used in RISC-V */
--#include <asm-generic/pgtable-nopud.h>
--#include <asm/page.h>
--#include <asm/tlbflush.h>
--#include <linux/mm_types.h>
-+#ifndef CONFIG_MMU
-+#define KERNEL_LINK_ADDR	PAGE_OFFSET
-+#else
- 
--#ifdef CONFIG_MMU
-+#define ADDRESS_SPACE_END	(UL(-1))
-+/*
-+ * Leave 2GB for kernel and BPF at the end of the address space
-+ */
-+#define KERNEL_LINK_ADDR	(ADDRESS_SPACE_END - SZ_2G + 1)
- 
- #define VMALLOC_SIZE     (KERN_VIRT_SIZE >> 1)
- #define VMALLOC_END      (PAGE_OFFSET - 1)
- #define VMALLOC_START    (PAGE_OFFSET - VMALLOC_SIZE)
- 
-+/* KASLR should leave at least 128MB for BPF after the kernel */
- #define BPF_JIT_REGION_SIZE	(SZ_128M)
--#define BPF_JIT_REGION_START	(PAGE_OFFSET - BPF_JIT_REGION_SIZE)
--#define BPF_JIT_REGION_END	(VMALLOC_END)
-+#define BPF_JIT_REGION_START	PFN_ALIGN((unsigned long)&_end)
-+#define BPF_JIT_REGION_END	(BPF_JIT_REGION_START + BPF_JIT_REGION_SIZE)
-+
-+/* Modules always live before the kernel */
-+#ifdef CONFIG_64BIT
-+#define MODULES_VADDR	(PFN_ALIGN((unsigned long)&_end) - SZ_2G)
-+#define MODULES_END	(PFN_ALIGN((unsigned long)&_start))
-+#endif
- 
- /*
-  * Roughly size the vmemmap space to be large enough to fit enough
-@@ -57,9 +64,16 @@
- #define FIXADDR_SIZE     PGDIR_SIZE
- #endif
- #define FIXADDR_START    (FIXADDR_TOP - FIXADDR_SIZE)
--
- #endif
- 
-+#ifndef __ASSEMBLY__
-+
-+/* Page Upper Directory not used in RISC-V */
-+#include <asm-generic/pgtable-nopud.h>
-+#include <asm/page.h>
-+#include <asm/tlbflush.h>
-+#include <linux/mm_types.h>
-+
- #ifdef CONFIG_64BIT
- #include <asm/pgtable-64.h>
- #else
-@@ -484,6 +498,7 @@ static inline int ptep_clear_flush_young(struct vm_area_struct *vma,
- 
- #define kern_addr_valid(addr)   (1) /* FIXME */
- 
-+extern char _start[];
- extern void *dtb_early_va;
- extern uintptr_t dtb_early_pa;
- void setup_bootmem(void);
-diff --git a/arch/riscv/include/asm/set_memory.h b/arch/riscv/include/asm/set_memory.h
-index 6887b3d9f371..a9c56776fa0e 100644
---- a/arch/riscv/include/asm/set_memory.h
-+++ b/arch/riscv/include/asm/set_memory.h
-@@ -17,6 +17,7 @@ int set_memory_x(unsigned long addr, int numpages);
- int set_memory_nx(unsigned long addr, int numpages);
- int set_memory_rw_nx(unsigned long addr, int numpages);
- void protect_kernel_text_data(void);
-+void protect_kernel_linear_mapping_text_rodata(void);
- #else
- static inline int set_memory_ro(unsigned long addr, int numpages) { return 0; }
- static inline int set_memory_rw(unsigned long addr, int numpages) { return 0; }
-diff --git a/arch/riscv/kernel/head.S b/arch/riscv/kernel/head.S
-index f5a9bad86e58..6cb05f22e52a 100644
---- a/arch/riscv/kernel/head.S
-+++ b/arch/riscv/kernel/head.S
-@@ -69,7 +69,8 @@ pe_head_start:
- #ifdef CONFIG_MMU
- relocate:
- 	/* Relocate return address */
--	li a1, PAGE_OFFSET
-+	la a1, kernel_virt_addr
-+	REG_L a1, 0(a1)
- 	la a2, _start
- 	sub a1, a1, a2
- 	add ra, ra, a1
-diff --git a/arch/riscv/kernel/module.c b/arch/riscv/kernel/module.c
-index 104fba889cf7..ce153771e5e9 100644
---- a/arch/riscv/kernel/module.c
-+++ b/arch/riscv/kernel/module.c
-@@ -408,12 +408,10 @@ int apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
- }
- 
- #if defined(CONFIG_MMU) && defined(CONFIG_64BIT)
--#define VMALLOC_MODULE_START \
--	 max(PFN_ALIGN((unsigned long)&_end - SZ_2G), VMALLOC_START)
- void *module_alloc(unsigned long size)
- {
--	return __vmalloc_node_range(size, 1, VMALLOC_MODULE_START,
--				    VMALLOC_END, GFP_KERNEL,
-+	return __vmalloc_node_range(size, 1, MODULES_VADDR,
-+				    MODULES_END, GFP_KERNEL,
- 				    PAGE_KERNEL_EXEC, 0, NUMA_NO_NODE,
- 				    __builtin_return_address(0));
- }
-diff --git a/arch/riscv/kernel/setup.c b/arch/riscv/kernel/setup.c
-index e85bacff1b50..30e4af0fd50c 100644
---- a/arch/riscv/kernel/setup.c
-+++ b/arch/riscv/kernel/setup.c
-@@ -265,6 +265,11 @@ void __init setup_arch(char **cmdline_p)
- 
- 	if (IS_ENABLED(CONFIG_STRICT_KERNEL_RWX))
- 		protect_kernel_text_data();
-+
-+#if defined(CONFIG_64BIT) && defined(CONFIG_MMU)
-+	protect_kernel_linear_mapping_text_rodata();
-+#endif
-+
- #ifdef CONFIG_SWIOTLB
- 	swiotlb_init(1);
- #endif
-diff --git a/arch/riscv/kernel/vmlinux.lds.S b/arch/riscv/kernel/vmlinux.lds.S
-index de03cb22d0e9..0726c05e0336 100644
---- a/arch/riscv/kernel/vmlinux.lds.S
-+++ b/arch/riscv/kernel/vmlinux.lds.S
-@@ -4,7 +4,8 @@
-  * Copyright (C) 2017 SiFive
+_
+
+
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: kernelh-split-out-panic-and-oops-helpers-fix-fix
+
+arch/x86/purgatory/purgatory.c needs kernel.h
+
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ arch/x86/purgatory/purgatory.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+--- a/arch/x86/purgatory/purgatory.c~kernelh-split-out-panic-and-oops-helpers-fix-fix
++++ a/arch/x86/purgatory/purgatory.c
+@@ -8,6 +8,7 @@
+  *       Vivek Goyal <vgoyal@redhat.com>
   */
  
--#define LOAD_OFFSET PAGE_OFFSET
-+#include <asm/pgtable.h>
-+#define LOAD_OFFSET KERNEL_LINK_ADDR
- #include <asm/vmlinux.lds.h>
- #include <asm/page.h>
- #include <asm/cache.h>
-diff --git a/arch/riscv/mm/fault.c b/arch/riscv/mm/fault.c
-index 8f17519208c7..1b14d523a95c 100644
---- a/arch/riscv/mm/fault.c
-+++ b/arch/riscv/mm/fault.c
-@@ -231,6 +231,19 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
- 		return;
- 	}
- 
-+#ifdef CONFIG_64BIT
-+	/*
-+	 * Modules in 64bit kernels lie in their own virtual region which is not
-+	 * in the vmalloc region, but dealing with page faults in this region
-+	 * or the vmalloc region amounts to doing the same thing: checking that
-+	 * the mapping exists in init_mm.pgd and updating user page table, so
-+	 * just use vmalloc_fault.
-+	 */
-+	if (unlikely(addr >= MODULES_VADDR && addr < MODULES_END)) {
-+		vmalloc_fault(regs, code, addr);
-+		return;
-+	}
-+#endif
- 	/* Enable interrupts if they were enabled in the parent context. */
- 	if (likely(regs->status & SR_PIE))
- 		local_irq_enable();
-diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
-index 7f5036fbee8c..093f3a96ecfc 100644
---- a/arch/riscv/mm/init.c
-+++ b/arch/riscv/mm/init.c
-@@ -25,6 +25,9 @@
- 
- #include "../kernel/head.h"
- 
-+unsigned long kernel_virt_addr = KERNEL_LINK_ADDR;
-+EXPORT_SYMBOL(kernel_virt_addr);
-+
- unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)]
- 							__page_aligned_bss;
- EXPORT_SYMBOL(empty_zero_page);
-@@ -88,6 +91,8 @@ static void print_vm_layout(void)
- 		  (unsigned long)VMALLOC_END);
- 	print_mlm("lowmem", (unsigned long)PAGE_OFFSET,
- 		  (unsigned long)high_memory);
-+	print_mlm("kernel", (unsigned long)KERNEL_LINK_ADDR,
-+		  (unsigned long)ADDRESS_SPACE_END);
- }
- #else
- static void print_vm_layout(void) { }
-@@ -116,8 +121,13 @@ void __init setup_bootmem(void)
- 	/* The maximal physical memory size is -PAGE_OFFSET. */
- 	memblock_enforce_memory_limit(-PAGE_OFFSET);
- 
--	/* Reserve from the start of the kernel to the end of the kernel */
--	memblock_reserve(vmlinux_start, vmlinux_end - vmlinux_start);
-+	/*
-+	 * Reserve from the start of the kernel to the end of the kernel
-+	 * and make sure we align the reservation on PMD_SIZE since we will
-+	 * map the kernel in the linear mapping as read-only: we do not want
-+	 * any allocation to happen between _end and the next pmd aligned page.
-+	 */
-+	memblock_reserve(vmlinux_start, (vmlinux_end - vmlinux_start + PMD_SIZE - 1) & PMD_MASK);
- 
- 	/*
- 	 * memblock allocator is not aware of the fact that last 4K bytes of
-@@ -152,8 +162,12 @@ void __init setup_bootmem(void)
- #ifdef CONFIG_MMU
- static struct pt_alloc_ops pt_ops;
- 
-+/* Offset between linear mapping virtual address and kernel load address */
- unsigned long va_pa_offset;
- EXPORT_SYMBOL(va_pa_offset);
-+/* Offset between kernel mapping virtual address and kernel load address */
-+unsigned long va_kernel_pa_offset;
-+EXPORT_SYMBOL(va_kernel_pa_offset);
- unsigned long pfn_base;
- EXPORT_SYMBOL(pfn_base);
- 
-@@ -257,7 +271,7 @@ static pmd_t *get_pmd_virt_late(phys_addr_t pa)
- 
- static phys_addr_t __init alloc_pmd_early(uintptr_t va)
- {
--	BUG_ON((va - PAGE_OFFSET) >> PGDIR_SHIFT);
-+	BUG_ON((va - kernel_virt_addr) >> PGDIR_SHIFT);
- 
- 	return (uintptr_t)early_pmd;
- }
-@@ -372,17 +386,32 @@ static uintptr_t __init best_map_size(phys_addr_t base, phys_addr_t size)
- #error "setup_vm() is called from head.S before relocate so it should not use absolute addressing."
- #endif
- 
-+uintptr_t load_pa, load_sz;
-+
-+static void __init create_kernel_page_table(pgd_t *pgdir, uintptr_t map_size)
-+{
-+	uintptr_t va, end_va;
-+
-+	end_va = kernel_virt_addr + load_sz;
-+	for (va = kernel_virt_addr; va < end_va; va += map_size)
-+		create_pgd_mapping(pgdir, va,
-+				   load_pa + (va - kernel_virt_addr),
-+				   map_size, PAGE_KERNEL_EXEC);
-+}
-+
- asmlinkage void __init setup_vm(uintptr_t dtb_pa)
- {
--	uintptr_t va, pa, end_va;
--	uintptr_t load_pa = (uintptr_t)(&_start);
--	uintptr_t load_sz = (uintptr_t)(&_end) - load_pa;
-+	uintptr_t pa;
- 	uintptr_t map_size;
- #ifndef __PAGETABLE_PMD_FOLDED
- 	pmd_t fix_bmap_spmd, fix_bmap_epmd;
- #endif
-+	load_pa = (uintptr_t)(&_start);
-+	load_sz = (uintptr_t)(&_end) - load_pa;
- 
- 	va_pa_offset = PAGE_OFFSET - load_pa;
-+	va_kernel_pa_offset = kernel_virt_addr - load_pa;
-+
- 	pfn_base = PFN_DOWN(load_pa);
- 
- 	/*
-@@ -410,26 +439,22 @@ asmlinkage void __init setup_vm(uintptr_t dtb_pa)
- 	create_pmd_mapping(fixmap_pmd, FIXADDR_START,
- 			   (uintptr_t)fixmap_pte, PMD_SIZE, PAGE_TABLE);
- 	/* Setup trampoline PGD and PMD */
--	create_pgd_mapping(trampoline_pg_dir, PAGE_OFFSET,
-+	create_pgd_mapping(trampoline_pg_dir, kernel_virt_addr,
- 			   (uintptr_t)trampoline_pmd, PGDIR_SIZE, PAGE_TABLE);
--	create_pmd_mapping(trampoline_pmd, PAGE_OFFSET,
-+	create_pmd_mapping(trampoline_pmd, kernel_virt_addr,
- 			   load_pa, PMD_SIZE, PAGE_KERNEL_EXEC);
- #else
- 	/* Setup trampoline PGD */
--	create_pgd_mapping(trampoline_pg_dir, PAGE_OFFSET,
-+	create_pgd_mapping(trampoline_pg_dir, kernel_virt_addr,
- 			   load_pa, PGDIR_SIZE, PAGE_KERNEL_EXEC);
- #endif
- 
- 	/*
--	 * Setup early PGD covering entire kernel which will allows
-+	 * Setup early PGD covering entire kernel which will allow
- 	 * us to reach paging_init(). We map all memory banks later
- 	 * in setup_vm_final() below.
- 	 */
--	end_va = PAGE_OFFSET + load_sz;
--	for (va = PAGE_OFFSET; va < end_va; va += map_size)
--		create_pgd_mapping(early_pg_dir, va,
--				   load_pa + (va - PAGE_OFFSET),
--				   map_size, PAGE_KERNEL_EXEC);
-+	create_kernel_page_table(early_pg_dir, map_size);
- 
- #ifndef __PAGETABLE_PMD_FOLDED
- 	/* Setup early PMD for DTB */
-@@ -444,7 +469,12 @@ asmlinkage void __init setup_vm(uintptr_t dtb_pa)
- 			   pa + PMD_SIZE, PMD_SIZE, PAGE_KERNEL);
- 	dtb_early_va = (void *)DTB_EARLY_BASE_VA + (dtb_pa & (PMD_SIZE - 1));
- #else /* CONFIG_BUILTIN_DTB */
--	dtb_early_va = __va(dtb_pa);
-+	/*
-+	 * __va can't be used since it would return a linear mapping address
-+	 * whereas dtb_early_va will be used before setup_vm_final installs
-+	 * the linear mapping.
-+	 */
-+	dtb_early_va = kernel_mapping_pa_to_va(dtb_pa);
- #endif /* CONFIG_BUILTIN_DTB */
- #else
- #ifndef CONFIG_BUILTIN_DTB
-@@ -456,7 +486,7 @@ asmlinkage void __init setup_vm(uintptr_t dtb_pa)
- 			   pa + PGDIR_SIZE, PGDIR_SIZE, PAGE_KERNEL);
- 	dtb_early_va = (void *)DTB_EARLY_BASE_VA + (dtb_pa & (PGDIR_SIZE - 1));
- #else /* CONFIG_BUILTIN_DTB */
--	dtb_early_va = __va(dtb_pa);
-+	dtb_early_va = kernel_mapping_pa_to_va(dtb_pa);
- #endif /* CONFIG_BUILTIN_DTB */
- #endif
- 	dtb_early_pa = dtb_pa;
-@@ -492,6 +522,22 @@ asmlinkage void __init setup_vm(uintptr_t dtb_pa)
- #endif
- }
- 
-+#ifdef CONFIG_64BIT
-+void protect_kernel_linear_mapping_text_rodata(void)
-+{
-+	unsigned long text_start = (unsigned long)lm_alias(_start);
-+	unsigned long init_text_start = (unsigned long)lm_alias(__init_text_begin);
-+	unsigned long rodata_start = (unsigned long)lm_alias(__start_rodata);
-+	unsigned long data_start = (unsigned long)lm_alias(_data);
-+
-+	set_memory_ro(text_start, (init_text_start - text_start) >> PAGE_SHIFT);
-+	set_memory_nx(text_start, (init_text_start - text_start) >> PAGE_SHIFT);
-+
-+	set_memory_ro(rodata_start, (data_start - rodata_start) >> PAGE_SHIFT);
-+	set_memory_nx(rodata_start, (data_start - rodata_start) >> PAGE_SHIFT);
-+}
-+#endif
-+
- static void __init setup_vm_final(void)
- {
- 	uintptr_t va, map_size;
-@@ -513,7 +559,7 @@ static void __init setup_vm_final(void)
- 			   __pa_symbol(fixmap_pgd_next),
- 			   PGDIR_SIZE, PAGE_TABLE);
- 
--	/* Map all memory banks */
-+	/* Map all memory banks in the linear mapping */
- 	for_each_mem_range(i, &start, &end) {
- 		if (start >= end)
- 			break;
-@@ -525,10 +571,13 @@ static void __init setup_vm_final(void)
- 		for (pa = start; pa < end; pa += map_size) {
- 			va = (uintptr_t)__va(pa);
- 			create_pgd_mapping(swapper_pg_dir, va, pa,
--					   map_size, PAGE_KERNEL_EXEC);
-+					   map_size, PAGE_KERNEL);
- 		}
- 	}
- 
-+	/* Map the kernel */
-+	create_kernel_page_table(swapper_pg_dir, PMD_SIZE);
-+
- 	/* Clear fixmap PTE and PMD mappings */
- 	clear_fixmap(FIX_PTE);
- 	clear_fixmap(FIX_PMD);
-diff --git a/arch/riscv/mm/kasan_init.c b/arch/riscv/mm/kasan_init.c
-index 2c39f0386673..28f4d52cf17e 100644
---- a/arch/riscv/mm/kasan_init.c
-+++ b/arch/riscv/mm/kasan_init.c
-@@ -171,6 +171,10 @@ void __init kasan_init(void)
- 	phys_addr_t _start, _end;
- 	u64 i;
- 
-+	/*
-+	 * Populate all kernel virtual address space with kasan_early_shadow_page
-+	 * except for the linear mapping and the modules/kernel/BPF mapping.
-+	 */
- 	kasan_populate_early_shadow((void *)KASAN_SHADOW_START,
- 				    (void *)kasan_mem_to_shadow((void *)
- 								VMEMMAP_END));
-@@ -183,6 +187,7 @@ void __init kasan_init(void)
- 			(void *)kasan_mem_to_shadow((void *)VMALLOC_START),
- 			(void *)kasan_mem_to_shadow((void *)VMALLOC_END));
- 
-+	/* Populate the linear mapping */
- 	for_each_mem_range(i, &_start, &_end) {
- 		void *start = (void *)__va(_start);
- 		void *end = (void *)__va(_end);
-@@ -193,6 +198,10 @@ void __init kasan_init(void)
- 		kasan_populate(kasan_mem_to_shadow(start), kasan_mem_to_shadow(end));
- 	};
- 
-+	/* Populate kernel, BPF, modules mapping */
-+	kasan_populate(kasan_mem_to_shadow((const void *)MODULES_VADDR),
-+		       kasan_mem_to_shadow((const void *)BPF_JIT_REGION_END));
-+
- 	for (i = 0; i < PTRS_PER_PTE; i++)
- 		set_pte(&kasan_early_shadow_pte[i],
- 			mk_pte(virt_to_page(kasan_early_shadow_page),
-diff --git a/arch/riscv/mm/physaddr.c b/arch/riscv/mm/physaddr.c
-index e8e4dcd39fed..35703d5ef5fd 100644
---- a/arch/riscv/mm/physaddr.c
-+++ b/arch/riscv/mm/physaddr.c
-@@ -23,7 +23,7 @@ EXPORT_SYMBOL(__virt_to_phys);
- 
- phys_addr_t __phys_addr_symbol(unsigned long x)
- {
--	unsigned long kernel_start = (unsigned long)PAGE_OFFSET;
-+	unsigned long kernel_start = (unsigned long)kernel_virt_addr;
- 	unsigned long kernel_end = (unsigned long)_end;
- 
- 	/*
--- 
-2.20.1
++#include <linux/kernel.h>
+ #include <linux/bug.h>
+ #include <crypto/sha2.h>
+ #include <asm/purgatory.h>
+_
 
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: kernelh-split-out-panic-and-oops-helpers-fix-fix-fix
+
+drivers/clk/analogbits/wrpll-cln28hpc.c needs minmax.h, math.h and limits.h
+
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ drivers/clk/analogbits/wrpll-cln28hpc.c |    4 ++++
+ 1 file changed, 4 insertions(+)
+
+--- a/drivers/clk/analogbits/wrpll-cln28hpc.c~kernelh-split-out-panic-and-oops-helpers-fix-fix-fix
++++ a/drivers/clk/analogbits/wrpll-cln28hpc.c
+@@ -25,6 +25,10 @@
+ #include <linux/err.h>
+ #include <linux/log2.h>
+ #include <linux/math64.h>
++#include <linux/minmax.h>
++#include <linux/math.h>
++#include <linux/limits.h>
++
+ #include <linux/clk/analogbits-wrpll-cln28hpc.h>
+ 
+ /* MIN_INPUT_FREQ: minimum input clock frequency, in Hz (Fref_min) */
+_
+
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: kernelh-split-out-panic-and-oops-helpers-fix-fix-fix-fix
+
+drivers/misc/pvpanic/pvpanic.c needs panic_notifier.h
+
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ drivers/misc/pvpanic/pvpanic.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+--- a/drivers/misc/pvpanic/pvpanic.c~kernelh-split-out-panic-and-oops-helpers-fix-fix-fix-fix
++++ a/drivers/misc/pvpanic/pvpanic.c
+@@ -13,6 +13,7 @@
+ #include <linux/mod_devicetable.h>
+ #include <linux/module.h>
+ #include <linux/platform_device.h>
++#include <linux/panic_notifier.h>
+ #include <linux/types.h>
+ #include <linux/cdev.h>
+ #include <linux/list.h>
+_
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: kernelh-split-out-panic-and-oops-helpers-fix-fix-fix-fix-fix
+
+fix drivers/misc/pvpanic/pvpanic.c and drivers/net/ipa/ipa_smp2p.c
+
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ drivers/net/ipa/ipa_smp2p.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+--- a/drivers/net/ipa/ipa_smp2p.c~kernelh-split-out-panic-and-oops-helpers-fix-fix-fix-fix-fix
++++ a/drivers/net/ipa/ipa_smp2p.c
+@@ -8,6 +8,7 @@
+ #include <linux/device.h>
+ #include <linux/interrupt.h>
+ #include <linux/notifier.h>
++#include <linux/panic_notifier.h>
+ #include <linux/soc/qcom/smem.h>
+ #include <linux/soc/qcom/smem_state.h>
+ 
+_
+
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: kernelh-split-out-panic-and-oops-helpers-fix-fix-fix-fix-fix-fix
+
+fix drivers/power/reset/ltc2952-poweroff.c and drivers/misc/bcm-vk/bcm_vk_dev.c
+
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ drivers/misc/bcm-vk/bcm_vk_dev.c       |    1 +
+ drivers/power/reset/ltc2952-poweroff.c |    1 +
+ 2 files changed, 2 insertions(+)
+
+--- a/drivers/power/reset/ltc2952-poweroff.c~kernelh-split-out-panic-and-oops-helpers-fix-fix-fix-fix-fix-fix
++++ a/drivers/power/reset/ltc2952-poweroff.c
+@@ -52,6 +52,7 @@
+ #include <linux/slab.h>
+ #include <linux/kmod.h>
+ #include <linux/module.h>
++#include <linux/panic_notifier.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/gpio/consumer.h>
+ #include <linux/reboot.h>
+--- a/drivers/misc/bcm-vk/bcm_vk_dev.c~kernelh-split-out-panic-and-oops-helpers-fix-fix-fix-fix-fix-fix
++++ a/drivers/misc/bcm-vk/bcm_vk_dev.c
+@@ -9,6 +9,7 @@
+ #include <linux/fs.h>
+ #include <linux/idr.h>
+ #include <linux/interrupt.h>
++#include <linux/panic_notifier.h>
+ #include <linux/kref.h>
+ #include <linux/module.h>
+ #include <linux/mutex.h>
+_
+
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: kernelh-split-out-panic-and-oops-helpers-fix-fix-fix-fix-fix-fix-fix
+
+fix drivers/leds/trigger/ledtrig-panic.c and drivers/firmware/google/gsmi.c
+
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ drivers/firmware/google/gsmi.c       |    1 +
+ drivers/leds/trigger/ledtrig-panic.c |    1 +
+ 2 files changed, 2 insertions(+)
+
+--- a/drivers/leds/trigger/ledtrig-panic.c~kernelh-split-out-panic-and-oops-helpers-fix-fix-fix-fix-fix-fix-fix
++++ a/drivers/leds/trigger/ledtrig-panic.c
+@@ -8,6 +8,7 @@
+ #include <linux/kernel.h>
+ #include <linux/init.h>
+ #include <linux/notifier.h>
++#include <linux/panic_notifier.h>
+ #include <linux/leds.h>
+ #include "../leds.h"
+ 
+--- a/drivers/firmware/google/gsmi.c~kernelh-split-out-panic-and-oops-helpers-fix-fix-fix-fix-fix-fix-fix
++++ a/drivers/firmware/google/gsmi.c
+@@ -19,6 +19,7 @@
+ #include <linux/dma-mapping.h>
+ #include <linux/fs.h>
+ #include <linux/slab.h>
++#include <linux/panic_notifier.h>
+ #include <linux/ioctl.h>
+ #include <linux/acpi.h>
+ #include <linux/io.h>
+_
+
+
+and.... drivers/leds/trigger/ledtrig-heartbeat.c as well.
+
+I'll drop it.
