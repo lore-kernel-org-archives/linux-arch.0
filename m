@@ -2,166 +2,66 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 62D74C433B4
-	for <linux-arch@archiver.kernel.org>; Fri,  9 Apr 2021 06:27:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CE5A6C433B4
+	for <linux-arch@archiver.kernel.org>; Fri,  9 Apr 2021 06:37:40 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3CB4561178
-	for <linux-arch@archiver.kernel.org>; Fri,  9 Apr 2021 06:27:01 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8E1AB61182
+	for <linux-arch@archiver.kernel.org>; Fri,  9 Apr 2021 06:37:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233251AbhDIG1N (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 9 Apr 2021 02:27:13 -0400
-Received: from mslow1.mail.gandi.net ([217.70.178.240]:34207 "EHLO
-        mslow1.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231515AbhDIG1M (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2021 02:27:12 -0400
-Received: from relay9-d.mail.gandi.net (unknown [217.70.183.199])
-        by mslow1.mail.gandi.net (Postfix) with ESMTP id 49471C6409;
-        Fri,  9 Apr 2021 06:18:55 +0000 (UTC)
-X-Originating-IP: 81.185.169.105
-Received: from localhost.localdomain (105.169.185.81.rev.sfr.net [81.185.169.105])
-        (Authenticated sender: alex@ghiti.fr)
-        by relay9-d.mail.gandi.net (Postfix) with ESMTPSA id BFF84FF803;
-        Fri,  9 Apr 2021 06:18:28 +0000 (UTC)
-From:   Alexandre Ghiti <alex@ghiti.fr>
-To:     Jonathan Corbet <corbet@lwn.net>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andrey Ryabinin <aryabinin@virtuozzo.com>,
-        Alexander Potapenko <glider@google.com>,
-        Dmitry Vyukov <dvyukov@google.com>, linux-doc@vger.kernel.org,
-        linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
-        kasan-dev@googlegroups.com, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org
-Cc:     Alexandre Ghiti <alex@ghiti.fr>, Anup Patel <anup@brainfault.org>
-Subject: [PATCH v4 3/3] riscv: Prepare ptdump for vm layout dynamic addresses
-Date:   Fri,  9 Apr 2021 02:15:00 -0400
-Message-Id: <20210409061500.14673-4-alex@ghiti.fr>
-X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20210409061500.14673-1-alex@ghiti.fr>
-References: <20210409061500.14673-1-alex@ghiti.fr>
+        id S229715AbhDIGhw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 9 Apr 2021 02:37:52 -0400
+Received: from mail.kernel.org ([198.145.29.99]:37560 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S231515AbhDIGhv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 9 Apr 2021 02:37:51 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 9741F61184;
+        Fri,  9 Apr 2021 06:37:38 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
+        s=korg; t=1617950259;
+        bh=EtQ/gzYGp5NP4QVNQHPkaitLS88uJCVu4FYhHw4EZlM=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=V00TpJ0nXQoPQBfXFWwpv2X+LpH4kI/qYjJamhh4EpqGfXjN5dR1cNB3YsUFHX90S
+         FCXgFL+ty3GL83FJ3Ltn4qPD7c+eUqIPTNDES0/acrnXRgfq7AhN42dqPMsUwhJzQo
+         yw5wYsKZ8i9rdR6kDmcaNVs/SfW0LVQVwmzyCkKE=
+Date:   Fri, 9 Apr 2021 08:37:36 +0200
+From:   Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+To:     Kees Cook <keescook@chromium.org>
+Cc:     Masahiro Yamada <masahiroy@kernel.org>,
+        Michal Marek <michal.lkml@markovi.net>,
+        linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>,
+        linux-arm-kernel@lists.infradead.org
+Subject: Re: [PATCH 09/20] kbuild: arm64: use common install script
+Message-ID: <YG/2MKfa19d2sF6l@kroah.com>
+References: <20210407053419.449796-1-gregkh@linuxfoundation.org>
+ <20210407053419.449796-10-gregkh@linuxfoundation.org>
+ <202104082007.88622E72F@keescook>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <202104082007.88622E72F@keescook>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This is a preparatory patch for sv48 support that will introduce
-dynamic PAGE_OFFSET.
+On Thu, Apr 08, 2021 at 08:08:18PM -0700, Kees Cook wrote:
+> On Wed, Apr 07, 2021 at 07:34:08AM +0200, Greg Kroah-Hartman wrote:
+> > The common scripts/install.sh script will now work for arm65, no changes
+> 
+> nit: arm64
 
-Dynamic PAGE_OFFSET implies that all zones (vmalloc, vmemmap, fixaddr...)
-whose addresses depend on PAGE_OFFSET become dynamic and can't be used
-to statically initialize the array used by ptdump to identify the
-different zones of the vm layout.
+Hah!
 
-Signed-off-by: Alexandre Ghiti <alex@ghiti.fr>
-Reviewed-by: Anup Patel <anup@brainfault.org>
----
- arch/riscv/mm/ptdump.c | 67 ++++++++++++++++++++++++++++++++++--------
- 1 file changed, 55 insertions(+), 12 deletions(-)
+Thanks for the reviews, I'll be doing a new series soon based on
+Masahiro's reviews.
 
-diff --git a/arch/riscv/mm/ptdump.c b/arch/riscv/mm/ptdump.c
-index ace74dec7492..aa1b3bce61ab 100644
---- a/arch/riscv/mm/ptdump.c
-+++ b/arch/riscv/mm/ptdump.c
-@@ -58,29 +58,52 @@ struct ptd_mm_info {
- 	unsigned long end;
- };
- 
-+enum address_markers_idx {
-+#ifdef CONFIG_KASAN
-+	KASAN_SHADOW_START_NR,
-+	KASAN_SHADOW_END_NR,
-+#endif
-+	FIXMAP_START_NR,
-+	FIXMAP_END_NR,
-+	PCI_IO_START_NR,
-+	PCI_IO_END_NR,
-+#ifdef CONFIG_SPARSEMEM_VMEMMAP
-+	VMEMMAP_START_NR,
-+	VMEMMAP_END_NR,
-+#endif
-+	VMALLOC_START_NR,
-+	VMALLOC_END_NR,
-+	PAGE_OFFSET_NR,
-+	MODULES_MAPPING_NR,
-+	KERNEL_MAPPING_NR,
-+	END_OF_SPACE_NR
-+};
-+
- static struct addr_marker address_markers[] = {
- #ifdef CONFIG_KASAN
--	{KASAN_SHADOW_START,	"Kasan shadow start"},
--	{KASAN_SHADOW_END,	"Kasan shadow end"},
-+	{0, "Kasan shadow start"},
-+	{0, "Kasan shadow end"},
- #endif
--	{FIXADDR_START,		"Fixmap start"},
--	{FIXADDR_TOP,		"Fixmap end"},
--	{PCI_IO_START,		"PCI I/O start"},
--	{PCI_IO_END,		"PCI I/O end"},
-+	{0, "Fixmap start"},
-+	{0, "Fixmap end"},
-+	{0, "PCI I/O start"},
-+	{0, "PCI I/O end"},
- #ifdef CONFIG_SPARSEMEM_VMEMMAP
--	{VMEMMAP_START,		"vmemmap start"},
--	{VMEMMAP_END,		"vmemmap end"},
-+	{0, "vmemmap start"},
-+	{0, "vmemmap end"},
- #endif
--	{VMALLOC_START,		"vmalloc() area"},
--	{VMALLOC_END,		"vmalloc() end"},
--	{PAGE_OFFSET,		"Linear mapping"},
-+	{0, "vmalloc() area"},
-+	{0, "vmalloc() end"},
-+	{0, "Linear mapping"},
-+	{0, "Modules mapping"},
-+	{0, "Kernel mapping (kernel, BPF)"},
- 	{-1, NULL},
- };
- 
- static struct ptd_mm_info kernel_ptd_info = {
- 	.mm		= &init_mm,
- 	.markers	= address_markers,
--	.base_addr	= KERN_VIRT_START,
-+	.base_addr	= 0,
- 	.end		= ULONG_MAX,
- };
- 
-@@ -335,6 +358,26 @@ static int ptdump_init(void)
- {
- 	unsigned int i, j;
- 
-+#ifdef CONFIG_KASAN
-+	address_markers[KASAN_SHADOW_START_NR].start_address = KASAN_SHADOW_START;
-+	address_markers[KASAN_SHADOW_END_NR].start_address = KASAN_SHADOW_END;
-+#endif
-+	address_markers[FIXMAP_START_NR].start_address = FIXADDR_START;
-+	address_markers[FIXMAP_END_NR].start_address = FIXADDR_TOP;
-+	address_markers[PCI_IO_START_NR].start_address = PCI_IO_START;
-+	address_markers[PCI_IO_END_NR].start_address = PCI_IO_END;
-+#ifdef CONFIG_SPARSEMEM_VMEMMAP
-+	address_markers[VMEMMAP_START_NR].start_address = VMEMMAP_START;
-+	address_markers[VMEMMAP_END_NR].start_address = VMEMMAP_END;
-+#endif
-+	address_markers[VMALLOC_START_NR].start_address = VMALLOC_START;
-+	address_markers[VMALLOC_END_NR].start_address = VMALLOC_END;
-+	address_markers[PAGE_OFFSET_NR].start_address = PAGE_OFFSET;
-+	address_markers[MODULES_MAPPING_NR].start_address = MODULES_VADDR;
-+	address_markers[KERNEL_MAPPING_NR].start_address = kernel_virt_addr;
-+
-+	kernel_ptd_info.base_addr = KERN_VIRT_START;
-+
- 	for (i = 0; i < ARRAY_SIZE(pg_level); i++)
- 		for (j = 0; j < ARRAY_SIZE(pte_bits); j++)
- 			pg_level[i].mask |= pte_bits[j].mask;
--- 
-2.20.1
+thanks,
 
+greg k-h
