@@ -2,119 +2,117 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+X-Spam-Status: No, score=-9.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+	NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id ADEF5C43462
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Apr 2021 12:37:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B137AC43460
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Apr 2021 12:54:17 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8FA11611AB
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Apr 2021 12:37:12 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8F05B611AC
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Apr 2021 12:54:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232774AbhDOMhd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 15 Apr 2021 08:37:33 -0400
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:39594 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S230526AbhDOMhc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Apr 2021 08:37:32 -0400
-Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 13FCXsVF099429;
-        Thu, 15 Apr 2021 08:37:06 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
- : date : message-id : in-reply-to : references : content-transfer-encoding
- : mime-version; s=pp1; bh=HMPYMkryMb2kTZkA18o3q6gtYsEChN9GPADDwYneUJ0=;
- b=WmrFK5cwrCV6VF0rndsxi4BBSO9Hjv3sMqQJ5LqrTUJhDt1CBrMM7P8kYTBwlsQW9Ng8
- ouxCQLh6ncf68dH30vp6oZhkD7sa/oxXr8aDS/52TvSzEJRoBOBHjHbsS/4WfFBqB1Jj
- JG6bpUGOd3vf0UmMYmGlPzN2Z+hrlVsgYlUmi0FA0/2SQYNbh/0YI1OKvUZMFZpZhv/a
- 7gdWmKoRBtaRrXV2/C2XD9fX4BfNupIAKlNVSUUEfZUZ6iGTjgoGchk8Bm65xhF4/L87
- ZiW6IojzqBLix4JevcfKDWm4dQmlwmcxET5egi3JgFo7k6uCA0d5NlQ7CEKRUQtef208 5Q== 
-Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 37x46xsk10-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Thu, 15 Apr 2021 08:37:05 -0400
-Received: from m0098420.ppops.net (m0098420.ppops.net [127.0.0.1])
-        by pps.reinject (8.16.0.43/8.16.0.43) with SMTP id 13FCZ0hB107550;
-        Thu, 15 Apr 2021 08:37:05 -0400
-Received: from ppma04fra.de.ibm.com (6a.4a.5195.ip4.static.sl-reverse.com [149.81.74.106])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 37x46xsk04-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Thu, 15 Apr 2021 08:37:05 -0400
-Received: from pps.filterd (ppma04fra.de.ibm.com [127.0.0.1])
-        by ppma04fra.de.ibm.com (8.16.0.43/8.16.0.43) with SMTP id 13FCYpUa030008;
-        Thu, 15 Apr 2021 12:37:03 GMT
-Received: from b06avi18626390.portsmouth.uk.ibm.com (b06avi18626390.portsmouth.uk.ibm.com [9.149.26.192])
-        by ppma04fra.de.ibm.com with ESMTP id 37u3n8a2wn-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Thu, 15 Apr 2021 12:37:03 +0000
-Received: from b06wcsmtp001.portsmouth.uk.ibm.com (b06wcsmtp001.portsmouth.uk.ibm.com [9.149.105.160])
-        by b06avi18626390.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 13FCacgT34472320
-        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Thu, 15 Apr 2021 12:36:38 GMT
-Received: from b06wcsmtp001.portsmouth.uk.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 0F55EA405F;
-        Thu, 15 Apr 2021 12:37:01 +0000 (GMT)
-Received: from b06wcsmtp001.portsmouth.uk.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id B22B2A4062;
-        Thu, 15 Apr 2021 12:37:00 +0000 (GMT)
-Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
-        by b06wcsmtp001.portsmouth.uk.ibm.com (Postfix) with ESMTP;
-        Thu, 15 Apr 2021 12:37:00 +0000 (GMT)
-From:   Niklas Schnelle <schnelle@linux.ibm.com>
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     Nathan Chancellor <nathan@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org
-Subject: [PATCH v2 1/2] sparc: explicitly set PCI_IOBASE to 0
-Date:   Thu, 15 Apr 2021 14:36:59 +0200
-Message-Id: <20210415123700.3030728-2-schnelle@linux.ibm.com>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20210415123700.3030728-1-schnelle@linux.ibm.com>
-References: <20210415123700.3030728-1-schnelle@linux.ibm.com>
-X-TM-AS-GCONF: 00
-X-Proofpoint-GUID: UH8Oq1wFhxxs2JuaBJUiGztD2skqcCnW
-X-Proofpoint-ORIG-GUID: 4WEs6BoKg6j-ubOXxz_x3y0rpGy1Wz8x
-Content-Transfer-Encoding: 8bit
-X-Proofpoint-UnRewURL: 0 URL was un-rewritten
+        id S232650AbhDOMyi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 15 Apr 2021 08:54:38 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45836 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231482AbhDOMyh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Apr 2021 08:54:37 -0400
+Received: from mail-pl1-x634.google.com (mail-pl1-x634.google.com [IPv6:2607:f8b0:4864:20::634])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C9463C061574;
+        Thu, 15 Apr 2021 05:54:14 -0700 (PDT)
+Received: by mail-pl1-x634.google.com with SMTP id y2so12002072plg.5;
+        Thu, 15 Apr 2021 05:54:14 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=subject:to:cc:references:from:message-id:date:user-agent
+         :mime-version:in-reply-to:content-language:content-transfer-encoding;
+        bh=nFBhJEMWSCHQ9ckRhICUqHp2tzOkLKl41yxYxmXNW8k=;
+        b=hoY2qyhaWOmcHAUhxLhqdl2UUYQFP2mZvbngLFNzsYmVwketTssI/OEzMrR5vrSYcz
+         bB1MpB5zVdkmSDk927+vAXQSP+0TkGL2CkD2Iz/SuAgoYQ8jb4Jx3FeGHZm0dL/1pLUR
+         IacekCQbE4Ohc/0K1F8WUD5gcpaslZovW66owGnAmKU7W13oJtUNjHOJHB3Em8jD3BAD
+         E7+lJL7tX79QdZ6BdhmHx9s05DEbvXfVc8/ZCXEYV43UxyAMj6uJu7EDF1XP1ExWTc2G
+         vhQ5Nl/ZMybAB50qIqEc8UzgfsZAwuUYFBxAA0SRZr1gsyX7QYfAT1dj+b000dxnu9ot
+         aGfA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
+         :user-agent:mime-version:in-reply-to:content-language
+         :content-transfer-encoding;
+        bh=nFBhJEMWSCHQ9ckRhICUqHp2tzOkLKl41yxYxmXNW8k=;
+        b=ane4kd3ClwTQ4O5T2gYDr+TKrdRxyqp4oiGdATTdpI+Yj6VpZWQbsaXojd9JYtxHxT
+         2/bxW1TBbg84HWBFdnByX5pThF9wY+ZyQETfvFE1ZFehswtMZsEHlXmYSTLmJ3UABKa/
+         +Jfbbmdq7satdgXBpBAS4zJ2Luv79Gnwiip5Xamvj72qWxWNmkb7i0sK8Eqq29WPgGsN
+         H4+Wsj9Ekxgx/VoUE+zezPXsmwUUhhz78t4qOk8KRQxDnNXaskL+AT0GmHgRd9hM27I0
+         OwlxWzI4nxf2RF9iU0R4u7b0CN5IyMA5qNWJyUzbtdWFhcCTcfI3tVDTNC/AxijbCFO0
+         VekQ==
+X-Gm-Message-State: AOAM530RJa96+7yDvTDmSv2OUK7sPBPFIP2ssPt5DuUySXuD0zIyitpt
+        e7y24NzbrqkXXzV+vHA3RaQ=
+X-Google-Smtp-Source: ABdhPJwMxGoxf76RvLc0tJT4UxlfrSX+Msz1jyTk5WaW6qqtbrg+lXaAsPVl/Z3ij+VVeCxsB22jnQ==
+X-Received: by 2002:a17:90a:2c4b:: with SMTP id p11mr3951409pjm.75.1618491254408;
+        Thu, 15 Apr 2021 05:54:14 -0700 (PDT)
+Received: from ?IPv6:2404:f801:0:6:8000::a31c? ([2404:f801:9000:1a:efeb::a31c])
+        by smtp.gmail.com with ESMTPSA id h68sm2136897pfe.111.2021.04.15.05.54.05
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 15 Apr 2021 05:54:13 -0700 (PDT)
+Subject: Re: [Resend RFC PATCH V2 08/12] UIO/Hyper-V: Not load UIO HV driver
+ in the isolation VM.
+To:     Stephen Hemminger <stephen@networkplumber.org>,
+        Greg KH <gregkh@linuxfoundation.org>
+Cc:     kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com,
+        wei.liu@kernel.org, tglx@linutronix.de, mingo@redhat.com,
+        bp@alien8.de, x86@kernel.org, hpa@zytor.com, arnd@arndb.de,
+        akpm@linux-foundation.org, konrad.wilk@oracle.com, hch@lst.de,
+        m.szyprowski@samsung.com, robin.murphy@arm.com, joro@8bytes.org,
+        will@kernel.org, davem@davemloft.net, kuba@kernel.org,
+        jejb@linux.ibm.com, martin.petersen@oracle.com,
+        Tianyu Lan <Tianyu.Lan@microsoft.com>,
+        iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org,
+        linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-mm@kvack.org, linux-scsi@vger.kernel.org,
+        netdev@vger.kernel.org, vkuznets@redhat.com,
+        thomas.lendacky@amd.com, brijesh.singh@amd.com,
+        sunilmut@microsoft.com
+References: <20210414144945.3460554-1-ltykernel@gmail.com>
+ <20210414144945.3460554-9-ltykernel@gmail.com> <YHcOL+HlEoh5jPb8@kroah.com>
+ <20210414091738.3df4bed5@hermes.local>
+From:   Tianyu Lan <ltykernel@gmail.com>
+Message-ID: <ce231753-2946-6b07-4b52-9ca07e9120ee@gmail.com>
+Date:   Thu, 15 Apr 2021 20:54:04 +0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.9.1
 MIME-Version: 1.0
-X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.391,18.0.761
- definitions=2021-04-15_04:2021-04-15,2021-04-15 signatures=0
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 priorityscore=1501
- malwarescore=0 mlxscore=0 impostorscore=0 adultscore=0 clxscore=1015
- lowpriorityscore=0 bulkscore=0 mlxlogscore=899 suspectscore=0 spamscore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2104060000 definitions=main-2104150084
+In-Reply-To: <20210414091738.3df4bed5@hermes.local>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Instead of relying on the fallback in asm-generic/io.h which sets
-PCI_IOBASE 0 if it is not defined set it explicitly.
+Hi Stephen:
+	Thanks for your review.
 
-Link: https://lore.kernel.org/lkml/CAK8P3a3PK9zyeP4ymELtc2ZYnymECoACiigw9Za+pvSJpCk5=g@mail.gmail.com/
-Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
----
- arch/sparc/include/asm/io.h | 4 ++++
- 1 file changed, 4 insertions(+)
 
-diff --git a/arch/sparc/include/asm/io.h b/arch/sparc/include/asm/io.h
-index 2eefa526b38f..100992ba1317 100644
---- a/arch/sparc/include/asm/io.h
-+++ b/arch/sparc/include/asm/io.h
-@@ -1,6 +1,10 @@
- /* SPDX-License-Identifier: GPL-2.0 */
- #ifndef ___ASM_SPARC_IO_H
- #define ___ASM_SPARC_IO_H
-+
-+/* On LEON I/O Space is accessed through low iomem */
-+#define PCI_IOBASE ((void __iomem *)0)
-+
- #if defined(__sparc__) && defined(__arch64__)
- #include <asm/io_64.h>
- #else
--- 
-2.25.1
+On 4/15/2021 12:17 AM, Stephen Hemminger wrote:
+> On Wed, 14 Apr 2021 17:45:51 +0200
+> Greg KH <gregkh@linuxfoundation.org> wrote:
+> 
+>> On Wed, Apr 14, 2021 at 10:49:41AM -0400, Tianyu Lan wrote:
+>>> From: Tianyu Lan <Tianyu.Lan@microsoft.com>
+>>>
+>>> UIO HV driver should not load in the isolation VM for security reason.
+>>> Return ENOTSUPP in the hv_uio_probe() in the isolation VM.
+>>>
+>>> Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
+> 
+> This is debatable, in isolation VM's shouldn't userspace take responsibility
+> to validate host communication. If that is an issue please participate with
+> the DPDK community (main user of this) to make sure netvsc userspace driver
+> has the required checks.
+> 
 
+Agree. Will report back to secure team and apply request to add change 
+in userspace netvsc driver. Thanks for advise.
