@@ -2,166 +2,187 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1B577C433ED
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Apr 2021 22:20:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 19A04C43460
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Apr 2021 22:43:46 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id F163761152
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Apr 2021 22:20:36 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id DB5B061026
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Apr 2021 22:43:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235143AbhDOWUy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 15 Apr 2021 18:20:54 -0400
-Received: from mga14.intel.com ([192.55.52.115]:22384 "EHLO mga14.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S237026AbhDOWSW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Apr 2021 18:18:22 -0400
-IronPort-SDR: jjw4xVsXSZ7+6UPbxn9LC4z5+sAoOXaM0oGENlIK56sK9O/BhD6uV3VopK3EtKu7S38NahOJ3v
- ry6Uv9tbJKlg==
-X-IronPort-AV: E=McAfee;i="6200,9189,9955"; a="194513398"
-X-IronPort-AV: E=Sophos;i="5.82,225,1613462400"; 
-   d="scan'208";a="194513398"
-Received: from fmsmga003.fm.intel.com ([10.253.24.29])
-  by fmsmga103.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Apr 2021 15:15:41 -0700
-IronPort-SDR: tfqI8ZqkLdWgkO5CqWxX4t4sTzCKsF9NHc+PbAGSBkiO5L6gRhPaSGQvX9zQhF0M4rQZwFdXvx
- /PDXGJ/D238w==
-X-IronPort-AV: E=Sophos;i="5.82,225,1613462400"; 
-   d="scan'208";a="451270959"
-Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Apr 2021 15:15:41 -0700
-From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
-To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Borislav Petkov <bp@alien8.de>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
-        Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        Pengfei Xu <pengfei.xu@intel.com>,
-        Haitao Huang <haitao.huang@intel.com>
-Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH v25 28/30] mm: Move arch_calc_vm_prot_bits() to arch/x86/include/asm/mman.h
-Date:   Thu, 15 Apr 2021 15:14:17 -0700
-Message-Id: <20210415221419.31835-29-yu-cheng.yu@intel.com>
-X-Mailer: git-send-email 2.21.0
-In-Reply-To: <20210415221419.31835-1-yu-cheng.yu@intel.com>
-References: <20210415221419.31835-1-yu-cheng.yu@intel.com>
+        id S237358AbhDOWoI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 15 Apr 2021 18:44:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33850 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S237357AbhDOWoH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Apr 2021 18:44:07 -0400
+Received: from mail-pl1-x631.google.com (mail-pl1-x631.google.com [IPv6:2607:f8b0:4864:20::631])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6E599C061756
+        for <linux-arch@vger.kernel.org>; Thu, 15 Apr 2021 15:43:42 -0700 (PDT)
+Received: by mail-pl1-x631.google.com with SMTP id 20so8968268pll.7
+        for <linux-arch@vger.kernel.org>; Thu, 15 Apr 2021 15:43:42 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=axtens.net; s=google;
+        h=from:to:cc:subject:in-reply-to:references:date:message-id
+         :mime-version;
+        bh=JY3LY8etXyosEeu5nfWlhvzebGDT/edrkrlKplV2R0Q=;
+        b=LGwG/jXjcqstX7vCLunH2tlSTh6FEg3VqmVYhhwaWMbz1gRpN9Dc+pKMBttZG4F2eH
+         +nk8aBQ2fPJnJhVZ2Nv5ytsKTlagBaosP37szFwCRj8Ib0f+ZQBXZ6lPne4jFGq86Bs7
+         Yl/AWNZNO+DwuQ/A/1FVG7uXMXFQ0Bg71mqpI=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:in-reply-to:references:date
+         :message-id:mime-version;
+        bh=JY3LY8etXyosEeu5nfWlhvzebGDT/edrkrlKplV2R0Q=;
+        b=YUY2r/ywmav2Cz07YZ+fooE1OClvkc9IaGrV2Pl5NChcKGvnmA+hltGV649x6rmUyk
+         ZqpneuQYSiC/1BuwY+x6HlkxHDQWUDNeQOoC6ehJI6y1R7TNby4eiWkZMqxvlUN23dhS
+         c/oWV2J0HhnTdLka3/4u0ejYhfuzYHjyg8I7vYsWTmSV3MKiFS2DoveNpKtFMAACbjfG
+         SQGF6Jh6gvZfJiar7rZFUJFjAWeqo3Fz/LWDhowBzfwtuZ9UN0k6Q0jJyoPN7d93nSUV
+         dCjxN5DujSj18p2cMyP3/AmcljQrKR4p0pl/K4tg1mVLNDLZd2lN0HNt0r5VcjeXgyap
+         nbjg==
+X-Gm-Message-State: AOAM532DlRcwqXG/MxoximkbYTP7+EBZj+TPwBC3XY2EohjDOlKQKXx8
+        Ri1Y7Ha6HSsTQMlh4K7v84/5QxOaotj1wQ==
+X-Google-Smtp-Source: ABdhPJyqfJG8J3NRw4PtXWUZy53AS96UfvtUYllUApPaRqPEmjx1X+9e6E5OLIVUTnR/j6EwfW2Icg==
+X-Received: by 2002:a17:90a:17a3:: with SMTP id q32mr6358434pja.224.1618526621918;
+        Thu, 15 Apr 2021 15:43:41 -0700 (PDT)
+Received: from localhost (2001-44b8-111e-5c00-3f8b-a64e-9a27-b872.static.ipv6.internode.on.net. [2001:44b8:111e:5c00:3f8b:a64e:9a27:b872])
+        by smtp.gmail.com with ESMTPSA id h22sm2980650pfn.55.2021.04.15.15.43.40
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 15 Apr 2021 15:43:41 -0700 (PDT)
+From:   Daniel Axtens <dja@axtens.net>
+To:     Christophe Leroy <christophe.leroy@csgroup.eu>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Steven Price <steven.price@arm.com>, akpm@linux-foundation.org
+Cc:     linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linux-riscv@lists.infradead.org, x86@kernel.org, linux-mm@kvack.org
+Subject: Re: [PATCH v1 1/5] mm: pagewalk: Fix walk for hugepage tables
+In-Reply-To: <733408f48b1ed191f53518123ee6fc6d42287cc6.1618506910.git.christophe.leroy@csgroup.eu>
+References: <cover.1618506910.git.christophe.leroy@csgroup.eu> <733408f48b1ed191f53518123ee6fc6d42287cc6.1618506910.git.christophe.leroy@csgroup.eu>
+Date:   Fri, 16 Apr 2021 08:43:38 +1000
+Message-ID: <877dl3184l.fsf@dja-thinkpad.axtens.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-To prepare the introduction of PROT_SHSTK and be consistent with other
-architectures, move arch_vm_get_page_prot() and arch_calc_vm_prot_bits() to
-arch/x86/include/asm/mman.h.
+Hi Christophe,
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/x86/include/asm/mman.h      | 30 ++++++++++++++++++++++++++++++
- arch/x86/include/uapi/asm/mman.h | 27 +++------------------------
- 2 files changed, 33 insertions(+), 24 deletions(-)
- create mode 100644 arch/x86/include/asm/mman.h
+> Pagewalk ignores hugepd entries and walk down the tables
+> as if it was traditionnal entries, leading to crazy result.
+>
+> Add walk_hugepd_range() and use it to walk hugepage tables.
+>
+> Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+> ---
+>  mm/pagewalk.c | 54 +++++++++++++++++++++++++++++++++++++++++++++------
+>  1 file changed, 48 insertions(+), 6 deletions(-)
+>
+> diff --git a/mm/pagewalk.c b/mm/pagewalk.c
+> index e81640d9f177..410a9d8f7572 100644
+> --- a/mm/pagewalk.c
+> +++ b/mm/pagewalk.c
+> @@ -58,6 +58,32 @@ static int walk_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
+>  	return err;
+>  }
+>  
+> +static int walk_hugepd_range(hugepd_t *phpd, unsigned long addr,
+> +			     unsigned long end, struct mm_walk *walk, int pdshift)
+> +{
+> +	int err = 0;
+> +#ifdef CONFIG_ARCH_HAS_HUGEPD
+> +	const struct mm_walk_ops *ops = walk->ops;
+> +	int shift = hugepd_shift(*phpd);
+> +	int page_size = 1 << shift;
+> +
+> +	if (addr & (page_size - 1))
+> +		return 0;
+> +
+> +	for (;;) {
+> +		pte_t *pte = hugepte_offset(*phpd, addr, pdshift);
+> +
+> +		err = ops->pte_entry(pte, addr, addr + page_size, walk);
+> +		if (err)
+> +			break;
+> +		if (addr >= end - page_size)
+> +			break;
+> +		addr += page_size;
+> +	}
 
-diff --git a/arch/x86/include/asm/mman.h b/arch/x86/include/asm/mman.h
-new file mode 100644
-index 000000000000..629f6c81263a
---- /dev/null
-+++ b/arch/x86/include/asm/mman.h
-@@ -0,0 +1,30 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _ASM_X86_MMAN_H
-+#define _ASM_X86_MMAN_H
-+
-+#include <linux/mm.h>
-+#include <uapi/asm/mman.h>
-+
-+#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
-+/*
-+ * Take the 4 protection key bits out of the vma->vm_flags
-+ * value and turn them in to the bits that we can put in
-+ * to a pte.
-+ *
-+ * Only override these if Protection Keys are available
-+ * (which is only on 64-bit).
-+ */
-+#define arch_vm_get_page_prot(vm_flags)	__pgprot(	\
-+		((vm_flags) & VM_PKEY_BIT0 ? _PAGE_PKEY_BIT0 : 0) |	\
-+		((vm_flags) & VM_PKEY_BIT1 ? _PAGE_PKEY_BIT1 : 0) |	\
-+		((vm_flags) & VM_PKEY_BIT2 ? _PAGE_PKEY_BIT2 : 0) |	\
-+		((vm_flags) & VM_PKEY_BIT3 ? _PAGE_PKEY_BIT3 : 0))
-+
-+#define arch_calc_vm_prot_bits(prot, key) (		\
-+		((key) & 0x1 ? VM_PKEY_BIT0 : 0) |      \
-+		((key) & 0x2 ? VM_PKEY_BIT1 : 0) |      \
-+		((key) & 0x4 ? VM_PKEY_BIT2 : 0) |      \
-+		((key) & 0x8 ? VM_PKEY_BIT3 : 0))
-+#endif
-+
-+#endif /* _ASM_X86_MMAN_H */
-diff --git a/arch/x86/include/uapi/asm/mman.h b/arch/x86/include/uapi/asm/mman.h
-index d4a8d0424bfb..3ce1923e6ed9 100644
---- a/arch/x86/include/uapi/asm/mman.h
-+++ b/arch/x86/include/uapi/asm/mman.h
-@@ -1,31 +1,10 @@
- /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--#ifndef _ASM_X86_MMAN_H
--#define _ASM_X86_MMAN_H
-+#ifndef _UAPI_ASM_X86_MMAN_H
-+#define _UAPI_ASM_X86_MMAN_H
- 
- #define MAP_32BIT	0x40		/* only give out 32bit addresses */
- 
--#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
--/*
-- * Take the 4 protection key bits out of the vma->vm_flags
-- * value and turn them in to the bits that we can put in
-- * to a pte.
-- *
-- * Only override these if Protection Keys are available
-- * (which is only on 64-bit).
-- */
--#define arch_vm_get_page_prot(vm_flags)	__pgprot(	\
--		((vm_flags) & VM_PKEY_BIT0 ? _PAGE_PKEY_BIT0 : 0) |	\
--		((vm_flags) & VM_PKEY_BIT1 ? _PAGE_PKEY_BIT1 : 0) |	\
--		((vm_flags) & VM_PKEY_BIT2 ? _PAGE_PKEY_BIT2 : 0) |	\
--		((vm_flags) & VM_PKEY_BIT3 ? _PAGE_PKEY_BIT3 : 0))
--
--#define arch_calc_vm_prot_bits(prot, key) (		\
--		((key) & 0x1 ? VM_PKEY_BIT0 : 0) |      \
--		((key) & 0x2 ? VM_PKEY_BIT1 : 0) |      \
--		((key) & 0x4 ? VM_PKEY_BIT2 : 0) |      \
--		((key) & 0x8 ? VM_PKEY_BIT3 : 0))
--#endif
- 
- #include <asm-generic/mman.h>
- 
--#endif /* _ASM_X86_MMAN_H */
-+#endif /* _UAPI_ASM_X86_MMAN_H */
--- 
-2.21.0
+Initially I thought this was a somewhat unintuitive way to structure
+this loop, but I see it parallels the structure of walk_pte_range_inner,
+so I think the consistency is worth it.
 
+I notice the pte walking code potentially takes some locks: does this
+code need to do that?
+
+arch/powerpc/mm/hugetlbpage.c says that hugepds are protected by the
+mm->page_table_lock, but I don't think we're taking it in this code.
+
+> +#endif
+> +	return err;
+> +}
+> +
+>  static int walk_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
+>  			  struct mm_walk *walk)
+>  {
+> @@ -108,7 +134,10 @@ static int walk_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
+>  				goto again;
+>  		}
+>  
+> -		err = walk_pte_range(pmd, addr, next, walk);
+> +		if (is_hugepd(__hugepd(pmd_val(*pmd))))
+> +			err = walk_hugepd_range((hugepd_t *)pmd, addr, next, walk, PMD_SHIFT);
+> +		else
+> +			err = walk_pte_range(pmd, addr, next, walk);
+>  		if (err)
+>  			break;
+>  	} while (pmd++, addr = next, addr != end);
+> @@ -157,7 +186,10 @@ static int walk_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end,
+>  		if (pud_none(*pud))
+>  			goto again;
+>  
+> -		err = walk_pmd_range(pud, addr, next, walk);
+> +		if (is_hugepd(__hugepd(pud_val(*pud))))
+> +			err = walk_hugepd_range((hugepd_t *)pud, addr, next, walk, PUD_SHIFT);
+> +		else
+> +			err = walk_pmd_range(pud, addr, next, walk);
+
+I'm a bit worried you might end up calling into walk_hugepd_range with
+ops->pte_entry == NULL, and then jumping to 0.
+
+static int walk_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end,
+			  struct mm_walk *walk)
+{
+...
+        pud = pud_offset(p4d, addr);
+	do {
+                ...
+                if ((!walk->vma && (pud_leaf(*pud) || !pud_present(*pud))) ||
+		    walk->action == ACTION_CONTINUE ||
+		    !(ops->pmd_entry || ops->pte_entry)) <<< THIS CHECK
+			continue;
+                ...
+		if (is_hugepd(__hugepd(pud_val(*pud))))
+			err = walk_hugepd_range((hugepd_t *)pud, addr, next, walk, PUD_SHIFT);
+		else
+			err = walk_pmd_range(pud, addr, next, walk);
+		if (err)
+			break;
+	} while (pud++, addr = next, addr != end);
+
+walk_pud_range will proceed if there is _either_ an ops->pmd_entry _or_
+an ops->pte_entry, but walk_hugepd_range will call ops->pte_entry
+unconditionally.
+
+The same issue applies to walk_{p4d,pgd}_range...
+
+Kind regards,
+Daniel
