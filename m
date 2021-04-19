@@ -2,63 +2,102 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 93F04C433B4
-	for <linux-arch@archiver.kernel.org>; Mon, 19 Apr 2021 06:36:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 06D2DC43462
+	for <linux-arch@archiver.kernel.org>; Mon, 19 Apr 2021 08:06:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7613D61157
-	for <linux-arch@archiver.kernel.org>; Mon, 19 Apr 2021 06:36:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D95566113C
+	for <linux-arch@archiver.kernel.org>; Mon, 19 Apr 2021 08:06:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237563AbhDSGhF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 19 Apr 2021 02:37:05 -0400
-Received: from verein.lst.de ([213.95.11.211]:45287 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230002AbhDSGhE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Apr 2021 02:37:04 -0400
-Received: by verein.lst.de (Postfix, from userid 2407)
-        id 030166736F; Mon, 19 Apr 2021 08:36:31 +0200 (CEST)
-Date:   Mon, 19 Apr 2021 08:36:30 +0200
-From:   Christoph Hellwig <hch@lst.de>
-To:     Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc:     Tianyu Lan <ltykernel@gmail.com>, kys@microsoft.com,
-        haiyangz@microsoft.com, sthemmin@microsoft.com, wei.liu@kernel.org,
-        tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org,
-        hpa@zytor.com, arnd@arndb.de, akpm@linux-foundation.org,
-        gregkh@linuxfoundation.org, hch@lst.de, m.szyprowski@samsung.com,
-        robin.murphy@arm.com, joro@8bytes.org, will@kernel.org,
-        davem@davemloft.net, kuba@kernel.org, jejb@linux.ibm.com,
-        martin.petersen@oracle.com, Tianyu Lan <Tianyu.Lan@microsoft.com>,
-        iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org,
-        linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-mm@kvack.org, linux-scsi@vger.kernel.org,
-        netdev@vger.kernel.org, vkuznets@redhat.com,
-        thomas.lendacky@amd.com, brijesh.singh@amd.com,
-        sunilmut@microsoft.com
-Subject: Re: [Resend RFC PATCH V2 07/12] HV/Vmbus: Initialize VMbus ring
- buffer for Isolation VM
-Message-ID: <20210419063630.GA18882@lst.de>
-References: <20210414144945.3460554-1-ltykernel@gmail.com> <20210414144945.3460554-8-ltykernel@gmail.com> <YHig78Xra5tEQhMD@dhcp-10-154-102-149.vpn.oracle.com>
+        id S238048AbhDSIGs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 19 Apr 2021 04:06:48 -0400
+Received: from mail-vs1-f44.google.com ([209.85.217.44]:43683 "EHLO
+        mail-vs1-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232055AbhDSIGr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Apr 2021 04:06:47 -0400
+Received: by mail-vs1-f44.google.com with SMTP id l11so8651162vsr.10;
+        Mon, 19 Apr 2021 01:06:15 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=xwvYd/DWaoOJ1HtbW/KpV/JDzyp2vv8uTX1cZfUsEX0=;
+        b=WE6ACUin04eD5KWWLPRBVBGjhNo9gZgxYIloZ16zynsUKpF0wiEoXRIEkAMZ19i6L9
+         C9ZlcJ2fipFD1Z+AxDsOq430l1yUweOAOB6e4AtS2KgQRXGg1O0ifQwMxPWcsfqXLDgF
+         sa8OoBpGpl9CAjsIqt6RdyjCDo2Rm/jdf15Y3MJEhEFMgLVcPq+nhf3Zlz4qVJmFuIJN
+         iO7WrXqsFEX7FeZwvR427WuWfRMxQKC7sYz8GKkeY/cg054+/dZ79J2dYic0TOt6R5kI
+         vkxVe4tBARsubx3KCCT1Net7zkzcpX2RQY2bToUzG4vkrSCO7Xel5pidJMqtPdes69ut
+         0O/w==
+X-Gm-Message-State: AOAM532L3eG1rqDSRBnO1mXgdcLACHM1Qg3zN+53ub9FFFllq45HggVZ
+        +b+/hl6t5wtnLe/zVDYkhhnMZQ0uDq6r8nkF0Co=
+X-Google-Smtp-Source: ABdhPJwwUt9O9+bqGQiINGMpCOolsxRJEQXUZKEY13VJPOONKEyBuZYNCnA4RxtIjZn4JPkquDdN6rbln/JdNExFnKQ=
+X-Received: by 2002:a05:6102:814:: with SMTP id g20mr319846vsb.42.1618819575411;
+ Mon, 19 Apr 2021 01:06:15 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <YHig78Xra5tEQhMD@dhcp-10-154-102-149.vpn.oracle.com>
-User-Agent: Mutt/1.5.17 (2007-11-01)
+References: <1618550254-14511-1-git-send-email-anshuman.khandual@arm.com>
+In-Reply-To: <1618550254-14511-1-git-send-email-anshuman.khandual@arm.com>
+From:   Geert Uytterhoeven <geert@linux-m68k.org>
+Date:   Mon, 19 Apr 2021 10:06:04 +0200
+Message-ID: <CAMuHMdXhUV00tdULpJNS5mohfWZx38+kNWv60x_tjiJPz1qR9g@mail.gmail.com>
+Subject: Re: [PATCH V2] mm: Define default value for FIRST_USER_ADDRESS
+To:     Anshuman Khandual <anshuman.khandual@arm.com>
+Cc:     Linux MM <linux-mm@kvack.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Richard Henderson <rth@twiddle.net>,
+        Vineet Gupta <vgupta@synopsys.com>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>, Guo Ren <guoren@kernel.org>,
+        Brian Cain <bcain@codeaurora.org>,
+        Michal Simek <monstr@monstr.eu>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Ley Foon Tan <ley.foon.tan@intel.com>,
+        Jonas Bonn <jonas@southpole.se>,
+        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+        Stafford Horne <shorne@gmail.com>,
+        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Christophe Leroy <christophe.leroy@csgroup.eu>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        "David S. Miller" <davem@davemloft.net>,
+        Jeff Dike <jdike@addtoit.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Chris Zankel <chris@zankel.net>, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Apr 15, 2021 at 04:24:15PM -0400, Konrad Rzeszutek Wilk wrote:
-> So you are exposing these two:
->  EXPORT_SYMBOL_GPL(get_vm_area);
->  EXPORT_SYMBOL_GPL(ioremap_page_range);
-> 
-> But if you used vmap wouldn't you get the same thing for free?
+On Fri, Apr 16, 2021 at 7:17 AM Anshuman Khandual
+<anshuman.khandual@arm.com> wrote:
+> Currently most platforms define FIRST_USER_ADDRESS as 0UL duplication the
+> same code all over. Instead just define a generic default value (i.e 0UL)
+> for FIRST_USER_ADDRESS and let the platforms override when required. This
+> makes it much cleaner with reduced code.
+>
+> The default FIRST_USER_ADDRESS here would be skipped in <linux/pgtable.h>
+> when the given platform overrides its value via <asm/pgtable.h>.
 
-Yes, this needs to go into some vmap version, preferably reusing the
-existing code in kernel/dma/remap.c.
+> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
 
-Exporting get_vm_area is a complete dealbreaker and not going to happen.
-We worked hard on not exposing it to modules.
+>  arch/m68k/include/asm/pgtable_mm.h           | 1 -
+
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
