@@ -2,106 +2,90 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 18A0DC43461
-	for <linux-arch@archiver.kernel.org>; Mon, 19 Apr 2021 11:27:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C10F9C433B4
+	for <linux-arch@archiver.kernel.org>; Mon, 19 Apr 2021 11:45:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E535F601FD
-	for <linux-arch@archiver.kernel.org>; Mon, 19 Apr 2021 11:27:17 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9EDA261246
+	for <linux-arch@archiver.kernel.org>; Mon, 19 Apr 2021 11:45:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233329AbhDSL1p (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 19 Apr 2021 07:27:45 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33480 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232530AbhDSL1o (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Apr 2021 07:27:44 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A08BDC06174A;
-        Mon, 19 Apr 2021 04:27:14 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=8kRAoc0QBubKYge5PVOcpXOSqRAXAMW8YeZW9/WtJU8=; b=Q4iGwzjsJleF1GjQOjyti4BwEQ
-        kMflgbMlKiSgpC29OgqfVgGrZttP1HwPBGt8N93ehv3ya+xnOskH/kBy+D0N5vT5yUe/+g1v9z/Ma
-        Cp4tIDAseOedgjInQg5yHqOEvZbooQDFHeYs8Sryde6A4fQ5slcDMthytLKrH2OJz/4qJDzam9eBn
-        p6bjarnH+CdB1hRK/wAvjCp96Ow2EiDF9/3ydKwZwqane+/kvenBjEPU7O5eAiYLGTdXKzhzt0PGo
-        DvZtg4i6iUXZmGxEIMN7nGJNjQ60ITQJypATNUfusbk15xxeHMt+n9rKsreyAJad/2eA7Z5Mlaiyn
-        rBuUX32A==;
-Received: from willy by casper.infradead.org with local (Exim 4.94 #2 (Red Hat Linux))
-        id 1lYRza-00Dec0-Ty; Mon, 19 Apr 2021 11:23:12 +0000
-Date:   Mon, 19 Apr 2021 12:23:02 +0100
-From:   Matthew Wilcox <willy@infradead.org>
-To:     Mike Rapoport <rppt@kernel.org>
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christopher Lameter <cl@linux.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        David Hildenbrand <david@redhat.com>,
-        Elena Reshetova <elena.reshetova@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-        James Bottomley <jejb@linux.ibm.com>,
-        "Kirill A. Shutemov" <kirill@shutemov.name>,
-        Matthew Garrett <mjg59@srcf.ucam.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Michal Hocko <mhocko@suse.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Michael Kerrisk <mtk.manpages@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Roman Gushchin <guro@fb.com>,
-        Shakeel Butt <shakeelb@google.com>,
-        Shuah Khan <shuah@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
-        Yury Norov <yury.norov@gmail.com>, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
-        x86@kernel.org, kernel test robot <oliver.sang@intel.com>
-Subject: Re: [PATCH] secretmem: optimize page_is_secretmem()
-Message-ID: <20210419112302.GX2531743@casper.infradead.org>
-References: <20210419084218.7466-1-rppt@kernel.org>
+        id S238774AbhDSLq1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 19 Apr 2021 07:46:27 -0400
+Received: from mout.kundenserver.de ([212.227.126.130]:37137 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S238744AbhDSLq0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Apr 2021 07:46:26 -0400
+Received: from mail-wr1-f49.google.com ([209.85.221.49]) by
+ mrelayeu.kundenserver.de (mreue011 [213.165.67.97]) with ESMTPSA (Nemesis) id
+ 1MOQyE-1l9e4F06Pu-00Prg5; Mon, 19 Apr 2021 13:45:53 +0200
+Received: by mail-wr1-f49.google.com with SMTP id j5so32720883wrn.4;
+        Mon, 19 Apr 2021 04:45:52 -0700 (PDT)
+X-Gm-Message-State: AOAM530QKBOUUSndPbMfEemTC1qgG6pY9ZIATFppttSdjjs3iLfa7qq8
+        mrnsztQMMJnegneShc7YtiTpKp+nE+LRRLpYS/E=
+X-Google-Smtp-Source: ABdhPJwEqpvEXhMjLLqp97csmcwNcY1rK/VijtLf0UEkkA3KI3NlkzigrzsU6Qsva0ZTIp6OfFYbsu+GilDGIMNVtJQ=
+X-Received: by 2002:adf:db4f:: with SMTP id f15mr14108786wrj.99.1618832752710;
+ Mon, 19 Apr 2021 04:45:52 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210419084218.7466-1-rppt@kernel.org>
+References: <1618634729-88821-1-git-send-email-guoren@kernel.org> <1618634729-88821-2-git-send-email-guoren@kernel.org>
+In-Reply-To: <1618634729-88821-2-git-send-email-guoren@kernel.org>
+From:   Arnd Bergmann <arnd@arndb.de>
+Date:   Mon, 19 Apr 2021 13:45:36 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a1ygwS7jTXqYXCfppEEonCASqG_5GM9O_AtE9YgdgNqVQ@mail.gmail.com>
+Message-ID: <CAK8P3a1ygwS7jTXqYXCfppEEonCASqG_5GM9O_AtE9YgdgNqVQ@mail.gmail.com>
+Subject: Re: [PATCH v2 (RESEND) 2/2] riscv: atomic: Using ARCH_ATOMIC in asm/atomic.h
+To:     Guo Ren <guoren@kernel.org>
+Cc:     Peter Zijlstra <peterz@infradead.org>,
+        linux-riscv <linux-riscv@lists.infradead.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        linux-csky@vger.kernel.org,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Guo Ren <guoren@linux.alibaba.com>,
+        Anup Patel <anup@brainfault.org>,
+        Palmer Dabbelt <palmerdabbelt@google.com>
+Content-Type: text/plain; charset="UTF-8"
+X-Provags-ID: V03:K1:/v+Ntzuu+oEx7mXJs+9U83ipuch3R+HU1Mc5V4Vwtb3/cDrBTM5
+ MVydlzM2hUQ0SLrNEW0zWMNtxHILFpROn6evPse6X3VSR2wuvlnDWjjEPJwMouh6P4VbiQ0
+ sUltmWKc8GhWWBG4XXIUwffYcsGPMKyj6kBbGfhzqxegwbRvYVHHRijB0BD3ohmKNUkQGGM
+ /oJ/772ZMfAZD2At0kygQ==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:r+QeLt5zhcY=:vxainJgUAu4xe+666gbgYF
+ a+Bs/fCihEyKI8xCSBB6K7EAyGbZUr21GmmoxLAtjpfyOUdZHsQJJB4CogRTlEPzcV543z9L7
+ gX8q29c84D70h5AK+nPfaTCXlCG+OntQWvh6Vv7D0cRyiuno6HzEczpEkcY7rjG2GW/trz+8h
+ kA2l3tUsBk7mPOlW3+MYx8bM33PcktiCXvpTWsqMdLjmtucqVRaRZ8ro7VDTFJcA1irDj4io7
+ gevh1CZXRf49ZKc1+ZuQB7Kas3rKmydJErysVP6V3uJzh0U1vAEbStrFyCeXJtGgpVuBc/wfV
+ x+jh/PxxgFwOS9l8Wdx53bHKlAJ/MujhFWlY+6ZXhZt9sa0TrE0e7QcLUw71loXlTTZnkomaT
+ /ZDzFztDO0BbIcRq59fw28hm7+EMghyAhRPRfVLL1kHcEk9W50eRC4vK9OObpWo7UqrNljXFk
+ EbntW6FAF6QcDRuCOsEIKxQKwKL+M0Qvf4QIX/jAOCfIzd4b8zzbb5DEHqKgLwB9gbveKLTLs
+ dYBwG2CFEjXAYjspmVkf6I=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Apr 19, 2021 at 11:42:18AM +0300, Mike Rapoport wrote:
-> The perf profile of the test indicated that the regression is caused by
-> page_is_secretmem() called from gup_pte_range() (inlined by gup_pgd_range):
+On Sat, Apr 17, 2021 at 6:45 AM <guoren@kernel.org> wrote:
+> +#define arch_atomic_read(v)                    __READ_ONCE((v)->counter)
+> +#define arch_atomic_set(v, i)                  __WRITE_ONCE(((v)->counter), (i))
 
-Uhh ... you're calling it in the wrong place!
+> +#define ATOMIC64_INIT                          ATOMIC_INIT
+> +#define arch_atomic64_read                     arch_atomic_read
+> +#define arch_atomic64_set                      arch_atomic_set
+>  #endif
 
-                VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
-                page = pte_page(pte);
+I think it's a bit confusing to define arch_atomic64_read() etc in terms
+of arch_atomic_read(), given that they operate on different types.
 
-                if (page_is_secretmem(page))
-                        goto pte_unmap;
+IMHO the clearest would be to define both in terms of the open-coded
+version you have for the 32-bit atomics.
 
-                head = try_grab_compound_head(page, 1, flags);
-                if (!head)
-                        goto pte_unmap;
+Also, given that all three architectures (x86, arm64, riscv) use the same
+definitions for the six macros above, maybe those can just get moved
+into a common file with a possible override?
 
-So you're calling page_is_secretmem() on a struct page without having
-a refcount on it.  That is definitely not allowed.  secretmem seems to
-be full of these kinds of races; I know this isn't the first one I've
-seen in it.  I don't think this patchset is ready for this merge window.
+x86 uses an inline function here instead of the macro. This would also
+be my preference, but it may add complexity to avoid circular header
+dependencies.
 
-With that fixed, you'll have a head page that you can use for testing,
-which means you don't need to test PageCompound() (because you know the
-page isn't PageTail), you can just test PageHead().
+The rest of this patch looks good to me.
+
+        Arnd
