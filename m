@@ -2,54 +2,82 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 63940C43460
-	for <linux-arch@archiver.kernel.org>; Tue, 20 Apr 2021 14:39:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 38E90C433B4
+	for <linux-arch@archiver.kernel.org>; Tue, 20 Apr 2021 14:49:56 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 208DF613CA
-	for <linux-arch@archiver.kernel.org>; Tue, 20 Apr 2021 14:39:59 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E40E9613C9
+	for <linux-arch@archiver.kernel.org>; Tue, 20 Apr 2021 14:49:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232834AbhDTOk3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 20 Apr 2021 10:40:29 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53838 "EHLO
+        id S232304AbhDTOuZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 20 Apr 2021 10:50:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56008 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232504AbhDTOk2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Apr 2021 10:40:28 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2CE80C06174A;
-        Tue, 20 Apr 2021 07:39:57 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=JdFnlCKsPAkRgtWeQVKwem1FA1yZRVTt5cXvtYatp2Y=; b=gsSKE/y4OtsBGW0P+XDa6g5Ykj
-        IXgIWd5IQmkJC4SIOTiLkPZ7CPRcONM+B4Ml7M+jjLVIM8/keo7CZCFoH9NpkQ8pHEM8/NMCPQKKm
-        fMljFdwE/liyCFkZx/p7RYvXK9fMY4QUOlpPkg5w0HiAmeHcB3d3cPlIA1w36VQ4ZvGfRmqvNWlsZ
-        5dKha4TjqnWLTmxXtvAYyQVFfiz6e7a9tzNQsEsMXuj7DXTx+QIZ5iuhT2NXNVqea2zAHusrVzMSi
-        y4+s3BirRckeNm3u0ptiBAhEQibKjHoipYyOISezT4MhPGqBh7FvXS9A+5GGh+2YUbTgLmLodJfdP
-        qwKllvTQ==;
-Received: from hch by casper.infradead.org with local (Exim 4.94 #2 (Red Hat Linux))
-        id 1lYrWA-00FH6e-Om; Tue, 20 Apr 2021 14:38:48 +0000
-Date:   Tue, 20 Apr 2021 15:38:22 +0100
-From:   Christoph Hellwig <hch@infradead.org>
-To:     guoren@kernel.org
-Cc:     arnd@arndb.de, linux-riscv@lists.infradead.org,
-        linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org,
-        linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
-Subject: Re: [PATCH 1/3] nds32: Cleanup deprecated function strlen_user
-Message-ID: <20210420143822.GA3640266@infradead.org>
+        with ESMTP id S231682AbhDTOuX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Apr 2021 10:50:23 -0400
+Received: from zeniv-ca.linux.org.uk (zeniv-ca.linux.org.uk [IPv6:2607:5300:60:148a::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5B981C06174A;
+        Tue, 20 Apr 2021 07:49:51 -0700 (PDT)
+Received: from viro by zeniv-ca.linux.org.uk with local (Exim 4.94 #2 (Red Hat Linux))
+        id 1lYrh8-006oXm-Sg; Tue, 20 Apr 2021 14:49:43 +0000
+Date:   Tue, 20 Apr 2021 14:49:42 +0000
+From:   Al Viro <viro@zeniv.linux.org.uk>
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     Guo Ren <guoren@kernel.org>,
+        linux-riscv <linux-riscv@lists.infradead.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        linux-csky@vger.kernel.org,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Guo Ren <guoren@linux.alibaba.com>
+Subject: Re: [PATCH 2/3] nios2: Cleanup deprecated function strlen_user
+Message-ID: <YH7qBjuC4UIfwE8X@zeniv-ca.linux.org.uk>
 References: <1618925829-90071-1-git-send-email-guoren@kernel.org>
+ <1618925829-90071-2-git-send-email-guoren@kernel.org>
+ <CAK8P3a1aNDomNiX7W1USWnmdw1VR21ALX7NvJYGW9LBO+jvA4A@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1618925829-90071-1-git-send-email-guoren@kernel.org>
-X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
+In-Reply-To: <CAK8P3a1aNDomNiX7W1USWnmdw1VR21ALX7NvJYGW9LBO+jvA4A@mail.gmail.com>
+Sender: Al Viro <viro@ftp.linux.org.uk>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Can you also clean up the reference to strlen_user in the comments
-in the ia64 and mips code, please?
+On Tue, Apr 20, 2021 at 04:32:33PM +0200, Arnd Bergmann wrote:
+> On Tue, Apr 20, 2021 at 3:37 PM <guoren@kernel.org> wrote:
+> >
+> > From: Guo Ren <guoren@linux.alibaba.com>
+> >
+> > $ grep strlen_user * -r
+> > arch/csky/include/asm/uaccess.h:#define strlen_user(str) strnlen_user(str, 32767)
+> > arch/csky/lib/usercopy.c: * strlen_user: - Get the size of a string in user space.
+> > arch/ia64/lib/strlen.S: // Please note that in the case of strlen() as opposed to strlen_user()
+> > arch/mips/lib/strnlen_user.S: *  make strlen_user and strnlen_user access the first few KSEG0
+> > arch/nds32/include/asm/uaccess.h:extern __must_check long strlen_user(const char __user * str);
+> > arch/nios2/include/asm/uaccess.h:extern __must_check long strlen_user(const char __user *str);
+> > arch/riscv/include/asm/uaccess.h:extern long __must_check strlen_user(const char __user *str);
+> > kernel/trace/trace_probe_tmpl.h:static nokprobe_inline int fetch_store_strlen_user(unsigned long addr);
+> > kernel/trace/trace_probe_tmpl.h:                        ret += fetch_store_strlen_user(val + code->offset);
+> > kernel/trace/trace_uprobe.c:fetch_store_strlen_user(unsigned long addr)
+> > kernel/trace/trace_kprobe.c:fetch_store_strlen_user(unsigned long addr)
+> > kernel/trace/trace_kprobe.c:            return fetch_store_strlen_user(addr);
+> 
+> I would suggest using "grep strlen_user * -rw", to let the whole-word match
+> filter out the irrelevant ones for the changelog.
+> 
+> > See grep result, nobody uses it.
+> >
+> > Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> 
+> All three patches
+> 
+> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+> 
+> Do you want me to pick them up in the asm-generic tree?
+
+Might make sense to check -next from time to time...  See
+a0d8d552783b "whack-a-mole: kill strlen_user() (again)" in there
