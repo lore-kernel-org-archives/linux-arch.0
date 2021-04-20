@@ -2,92 +2,155 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
 	SPF_HELO_NONE,SPF_PASS autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3E5C1C433B4
-	for <linux-arch@archiver.kernel.org>; Tue, 20 Apr 2021 14:32:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AE2DEC43460
+	for <linux-arch@archiver.kernel.org>; Tue, 20 Apr 2021 14:39:46 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 04E7F613C9
-	for <linux-arch@archiver.kernel.org>; Tue, 20 Apr 2021 14:32:52 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7FA89613CD
+	for <linux-arch@archiver.kernel.org>; Tue, 20 Apr 2021 14:39:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232682AbhDTOdX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 20 Apr 2021 10:33:23 -0400
-Received: from mout.kundenserver.de ([212.227.126.133]:48509 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232084AbhDTOdX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Apr 2021 10:33:23 -0400
-Received: from mail-wr1-f49.google.com ([209.85.221.49]) by
- mrelayeu.kundenserver.de (mreue010 [213.165.67.97]) with ESMTPSA (Nemesis) id
- 1MfHUx-1m14VV2I1b-00gtTc; Tue, 20 Apr 2021 16:32:50 +0200
-Received: by mail-wr1-f49.google.com with SMTP id g9so21818755wrx.0;
-        Tue, 20 Apr 2021 07:32:50 -0700 (PDT)
-X-Gm-Message-State: AOAM531l6p1bx2AuzWfLJ+YHixKGTLIvE0uYmFNBYEMuLpWpS0nPHWCw
-        /mioWGa90qeuaAZZH1qt3b3NxQIZSMYmKzZ9wOM=
-X-Google-Smtp-Source: ABdhPJx9jCblaoPk1DZ/dDmC1vuUbz/Q0EccVnjqd/GOO86aSxcff75LZUey862d3CFtrmxEPKH5z/JxdSICQeP55A0=
-X-Received: by 2002:adf:e483:: with SMTP id i3mr21737991wrm.286.1618929170116;
- Tue, 20 Apr 2021 07:32:50 -0700 (PDT)
+        id S232813AbhDTOkR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 20 Apr 2021 10:40:17 -0400
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:64568 "EHLO
+        mx0b-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S232726AbhDTOkQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Apr 2021 10:40:16 -0400
+Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 13KEYEU4188508;
+        Tue, 20 Apr 2021 10:38:51 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=date : from : to : cc :
+ subject : message-id : references : mime-version : content-type :
+ in-reply-to; s=pp1; bh=1jeherxRnMSg7FyeAYqHTi4W24TU1khc9Hr7Df89RfE=;
+ b=juxvMo1jK+pFf2jaH/XC6Rka4oXBMv1yDd1B51lvkBAiG56tu+fPwJHFU2uPfZ0fNnhq
+ Vc44rm6i81iuSzwIYf/lyB5sHqAC+ndaeTbvqFTtwI8KV1dmQucr2qtZRD7XUHcXYp9I
+ C7f59zN1Em0LrvLuj0aoKREFsUKfrzdDNZM5kFroLE295BPDu45TBSrcThDEE5NS5j8P
+ FpH7W/+VqooxruuN/WP9USkapzkT7IqSR2ONrYmSyAk5fnMRzoD3BPYBqqLY0p4AB5Wf
+ 5iyRWZDIT3we0SsohCyq5WErJbsCwoFZlOLTwQHZGGdwUKQDcAWZzfPs8faV1EV4/DxH AQ== 
+Received: from pps.reinject (localhost [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 381w1aravg-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Tue, 20 Apr 2021 10:38:51 -0400
+Received: from m0098417.ppops.net (m0098417.ppops.net [127.0.0.1])
+        by pps.reinject (8.16.0.43/8.16.0.43) with SMTP id 13KEZHSI193231;
+        Tue, 20 Apr 2021 10:38:50 -0400
+Received: from ppma05fra.de.ibm.com (6c.4a.5195.ip4.static.sl-reverse.com [149.81.74.108])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 381w1arau7-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Tue, 20 Apr 2021 10:38:50 -0400
+Received: from pps.filterd (ppma05fra.de.ibm.com [127.0.0.1])
+        by ppma05fra.de.ibm.com (8.16.0.43/8.16.0.43) with SMTP id 13KEcEuD028074;
+        Tue, 20 Apr 2021 14:38:47 GMT
+Received: from b06avi18878370.portsmouth.uk.ibm.com (b06avi18878370.portsmouth.uk.ibm.com [9.149.26.194])
+        by ppma05fra.de.ibm.com with ESMTP id 37yqa88yr5-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Tue, 20 Apr 2021 14:38:47 +0000
+Received: from d06av22.portsmouth.uk.ibm.com (d06av22.portsmouth.uk.ibm.com [9.149.105.58])
+        by b06avi18878370.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 13KEcL4D24707424
+        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Tue, 20 Apr 2021 14:38:21 GMT
+Received: from d06av22.portsmouth.uk.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id A536B4C04E;
+        Tue, 20 Apr 2021 14:38:44 +0000 (GMT)
+Received: from d06av22.portsmouth.uk.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id 42ABE4C040;
+        Tue, 20 Apr 2021 14:38:40 +0000 (GMT)
+Received: from linux.ibm.com (unknown [9.145.82.136])
+        by d06av22.portsmouth.uk.ibm.com (Postfix) with ESMTPS;
+        Tue, 20 Apr 2021 14:38:40 +0000 (GMT)
+Date:   Tue, 20 Apr 2021 17:38:38 +0300
+From:   Mike Rapoport <rppt@linux.ibm.com>
+To:     Mike Rapoport <rppt@kernel.org>
+Cc:     Andrew Morton <akpm@linux-foundation.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Christopher Lameter <cl@linux.com>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        David Hildenbrand <david@redhat.com>,
+        Elena Reshetova <elena.reshetova@intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
+        James Bottomley <jejb@linux.ibm.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Matthew Wilcox <willy@infradead.org>,
+        Matthew Garrett <mjg59@srcf.ucam.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Michal Hocko <mhocko@suse.com>,
+        Michael Kerrisk <mtk.manpages@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
+        Rick Edgecombe <rick.p.edgecombe@intel.com>,
+        Roman Gushchin <guro@fb.com>,
+        Shakeel Butt <shakeelb@google.com>,
+        Shuah Khan <shuah@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Tycho Andersen <tycho@tycho.ws>, Will Deacon <will@kernel.org>,
+        Yury Norov <yury.norov@gmail.com>, linux-api@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-nvdimm@lists.01.org, linux-riscv@lists.infradead.org,
+        x86@kernel.org
+Subject: Re: [PATCH v2 0/2] secretmem: optimize page_is_secretmem()
+Message-ID: <YH7nbrF1/AAYl83C@linux.ibm.com>
+References: <20210420131611.8259-1-rppt@kernel.org>
 MIME-Version: 1.0
-References: <1618925829-90071-1-git-send-email-guoren@kernel.org> <1618925829-90071-2-git-send-email-guoren@kernel.org>
-In-Reply-To: <1618925829-90071-2-git-send-email-guoren@kernel.org>
-From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Tue, 20 Apr 2021 16:32:33 +0200
-X-Gmail-Original-Message-ID: <CAK8P3a1aNDomNiX7W1USWnmdw1VR21ALX7NvJYGW9LBO+jvA4A@mail.gmail.com>
-Message-ID: <CAK8P3a1aNDomNiX7W1USWnmdw1VR21ALX7NvJYGW9LBO+jvA4A@mail.gmail.com>
-Subject: Re: [PATCH 2/3] nios2: Cleanup deprecated function strlen_user
-To:     Guo Ren <guoren@kernel.org>
-Cc:     linux-riscv <linux-riscv@lists.infradead.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-csky@vger.kernel.org,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Guo Ren <guoren@linux.alibaba.com>
-Content-Type: text/plain; charset="UTF-8"
-X-Provags-ID: V03:K1:lqvcbbgDyrkm3OAb+MFZOfHRrUOr3/tVk7wOi+VJSnZM6e1z0UL
- laXHvAitfihF2W4V9Bt6/nZc1iGjaMnKSefbPDWRSFJqwoMSjbF4BCbJb8Y7PrPPvU9QGo2
- BU2nS4ITULtaX63G0qcp2cPHZ63mi5Z1FoprJ4YuGH8Sa88aeInC61llWs3P3K5u6idCnoU
- i1/Dy6saOJKQbw7yAE1Wg==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:XkbHRZbCywI=:Svhcd1f+8MuKuQp9aMUC5o
- LKmOgmHCjvY/xQ2PF+/OE68OZjRiJ8kuSx3L+BwbA2ezodPjC4eRh5AM7y+CxyuV1IucW0SgO
- /wlWELdvBcrUDrK0CA08XC1QlveihzuI4d4ZlkxLDGofoSYPiVhF+n1T2rDezz52KaFbInjoz
- 50VmogAmmDURsmMt1l1V8niRIztrQfFdFYwF+bVLEPTNUC0R8j/WbxBt9ZzrV1YwmTmEpqPcv
- 150sCjTCQYluFHxdixAT1GBqBe9mCJLxVKYn6nxs6YYvqihu0l5zAtkKez/Q1E2bCPI/xrrt8
- HuRFTCgCPKdukwjczL8UtlCjbGRXA2ukVf0v1ORvIdELavWNDakrDvP6cLWQwtdRHxHjJdzto
- Ajc0u6XCtWPNbJRh2s0mitlEjCUnAwr3Z46MbBU13DLa/X5g54TWpzyAbJK783gbXhqFypaSQ
- iJ//qkpENTwDa8DuE6WW4MYM8Y2ZZI1SlFyLj667o85zlsB/OqHnOFZNfbnKD+bPpnlbmpvJX
- YmRHgUuo5nrnPyJdCvpf8g=
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210420131611.8259-1-rppt@kernel.org>
+X-TM-AS-GCONF: 00
+X-Proofpoint-ORIG-GUID: ykIKx2v24XcE8hdhy3CCJKBREf-GjgWi
+X-Proofpoint-GUID: Pj2aG0WuO0RRhchqs65IoRlcq6udec95
+X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.391,18.0.761
+ definitions=2021-04-20_06:2021-04-20,2021-04-20 signatures=0
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 mlxscore=0 clxscore=1015
+ bulkscore=0 impostorscore=0 spamscore=0 mlxlogscore=931 adultscore=0
+ suspectscore=0 priorityscore=1501 phishscore=0 lowpriorityscore=0
+ malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2104060000 definitions=main-2104200109
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Apr 20, 2021 at 3:37 PM <guoren@kernel.org> wrote:
->
-> From: Guo Ren <guoren@linux.alibaba.com>
->
-> $ grep strlen_user * -r
-> arch/csky/include/asm/uaccess.h:#define strlen_user(str) strnlen_user(str, 32767)
-> arch/csky/lib/usercopy.c: * strlen_user: - Get the size of a string in user space.
-> arch/ia64/lib/strlen.S: // Please note that in the case of strlen() as opposed to strlen_user()
-> arch/mips/lib/strnlen_user.S: *  make strlen_user and strnlen_user access the first few KSEG0
-> arch/nds32/include/asm/uaccess.h:extern __must_check long strlen_user(const char __user * str);
-> arch/nios2/include/asm/uaccess.h:extern __must_check long strlen_user(const char __user *str);
-> arch/riscv/include/asm/uaccess.h:extern long __must_check strlen_user(const char __user *str);
-> kernel/trace/trace_probe_tmpl.h:static nokprobe_inline int fetch_store_strlen_user(unsigned long addr);
-> kernel/trace/trace_probe_tmpl.h:                        ret += fetch_store_strlen_user(val + code->offset);
-> kernel/trace/trace_uprobe.c:fetch_store_strlen_user(unsigned long addr)
-> kernel/trace/trace_kprobe.c:fetch_store_strlen_user(unsigned long addr)
-> kernel/trace/trace_kprobe.c:            return fetch_store_strlen_user(addr);
+It seems I've messed this posting entirely :(
 
-I would suggest using "grep strlen_user * -rw", to let the whole-word match
-filter out the irrelevant ones for the changelog.
+Please ignore it, sorry for the noise.
 
-> See grep result, nobody uses it.
->
-> Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
+On Tue, Apr 20, 2021 at 04:16:07PM +0300, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
+> 
+> Hi,
+> 
+> This is an updated version of page_is_secretmem() changes.
+> This is based on v5.12-rc7-mmots-2021-04-15-16-28.
+> 
+> @Andrew, please let me know if you'd like me to rebase it differently or
+> resend the entire set.
+> 
+> v2:
+> * move the check for secretmem page in gup_pte_range after we get a
+>   reference to the page, per Matthew.
+> 
+> Mike Rapoport (2):
+>   secretmem/gup: don't check if page is secretmem without reference
+>   secretmem: optimize page_is_secretmem()
+> 
+>  include/linux/secretmem.h | 26 +++++++++++++++++++++++++-
+>  mm/gup.c                  |  6 +++---
+>  mm/secretmem.c            | 12 +-----------
+>  3 files changed, 29 insertions(+), 15 deletions(-)
+> 
+> -- 
+> 2.28.0
+> 
 
-All three patches
-
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
-
-Do you want me to pick them up in the asm-generic tree?
+-- 
+Sincerely yours,
+Mike.
