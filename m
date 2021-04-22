@@ -2,74 +2,128 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5654DC433B4
-	for <linux-arch@archiver.kernel.org>; Thu, 22 Apr 2021 08:29:47 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 50340C433B4
+	for <linux-arch@archiver.kernel.org>; Thu, 22 Apr 2021 08:46:26 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1CAE8613D1
-	for <linux-arch@archiver.kernel.org>; Thu, 22 Apr 2021 08:29:47 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 1D1FB6145D
+	for <linux-arch@archiver.kernel.org>; Thu, 22 Apr 2021 08:46:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230341AbhDVIaU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 22 Apr 2021 04:30:20 -0400
-Received: from elvis.franken.de ([193.175.24.41]:36452 "EHLO elvis.franken.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230270AbhDVIaS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Apr 2021 04:30:18 -0400
-Received: from uucp (helo=alpha)
-        by elvis.franken.de with local-bsmtp (Exim 3.36 #1)
-        id 1lZUiU-0004Jz-00; Thu, 22 Apr 2021 10:29:42 +0200
-Received: by alpha.franken.de (Postfix, from userid 1000)
-        id B575AC0925; Thu, 22 Apr 2021 09:56:45 +0200 (CEST)
-Date:   Thu, 22 Apr 2021 09:56:45 +0200
-From:   Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-To:     "Maciej W. Rozycki" <macro@orcam.me.uk>
-Cc:     "H. Nikolaus Schaller" <hns@goldelico.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Huacai Chen <chenhuacai@kernel.org>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        linux-arch@vger.kernel.org, linux-mips@vger.kernel.org,
-        linux-kernel@vger.kernel.org
-Subject: Re: [PATCH 4/4] MIPS: Avoid DIVU in `__div64_32' is result would be
- zero
-Message-ID: <20210422075645.GA5996@alpha.franken.de>
-References: <alpine.DEB.2.21.2104200044060.44318@angie.orcam.me.uk>
- <alpine.DEB.2.21.2104200331110.44318@angie.orcam.me.uk>
- <284CBC37-0F4F-4077-A172-7E47C90B8B43@goldelico.com>
- <alpine.DEB.2.21.2104211810200.44318@angie.orcam.me.uk>
+        id S235482AbhDVIq7 convert rfc822-to-8bit (ORCPT
+        <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 22 Apr 2021 04:46:59 -0400
+Received: from eu-smtp-delivery-151.mimecast.com ([185.58.85.151]:45445 "EHLO
+        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S235508AbhDVIq5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Apr 2021 04:46:57 -0400
+Received: from AcuMS.aculab.com (156.67.243.121 [156.67.243.121]) (Using
+ TLS) by relay.mimecast.com with ESMTP id
+ uk-mta-80-mYnYClkmMvq7hiPeIZodaQ-1; Thu, 22 Apr 2021 09:46:19 +0100
+X-MC-Unique: mYnYClkmMvq7hiPeIZodaQ-1
+Received: from AcuMS.Aculab.com (fd9f:af1c:a25b:0:994c:f5c2:35d6:9b65) by
+ AcuMS.aculab.com (fd9f:af1c:a25b:0:994c:f5c2:35d6:9b65) with Microsoft SMTP
+ Server (TLS) id 15.0.1497.2; Thu, 22 Apr 2021 09:46:14 +0100
+Received: from AcuMS.Aculab.com ([fe80::994c:f5c2:35d6:9b65]) by
+ AcuMS.aculab.com ([fe80::994c:f5c2:35d6:9b65%12]) with mapi id
+ 15.00.1497.015; Thu, 22 Apr 2021 09:46:14 +0100
+From:   David Laight <David.Laight@ACULAB.COM>
+To:     "'Chang S. Bae'" <chang.seok.bae@intel.com>,
+        "bp@suse.de" <bp@suse.de>,
+        "tglx@linutronix.de" <tglx@linutronix.de>,
+        "mingo@kernel.org" <mingo@kernel.org>,
+        "luto@kernel.org" <luto@kernel.org>,
+        "x86@kernel.org" <x86@kernel.org>
+CC:     "len.brown@intel.com" <len.brown@intel.com>,
+        "dave.hansen@intel.com" <dave.hansen@intel.com>,
+        "hjl.tools@gmail.com" <hjl.tools@gmail.com>,
+        "Dave.Martin@arm.com" <Dave.Martin@arm.com>,
+        "jannh@google.com" <jannh@google.com>,
+        "mpe@ellerman.id.au" <mpe@ellerman.id.au>,
+        "carlos@redhat.com" <carlos@redhat.com>,
+        "tony.luck@intel.com" <tony.luck@intel.com>,
+        "ravi.v.shankar@intel.com" <ravi.v.shankar@intel.com>,
+        "libc-alpha@sourceware.org" <libc-alpha@sourceware.org>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Subject: RE: [PATCH v8 5/6] x86/signal: Detect and prevent an alternate signal
+ stack overflow
+Thread-Topic: [PATCH v8 5/6] x86/signal: Detect and prevent an alternate
+ signal stack overflow
+Thread-Index: AQHXNzOfB++Ln2WD/U+jOvjJUzWT2qrAORRg
+Date:   Thu, 22 Apr 2021 08:46:14 +0000
+Message-ID: <854d6aefdf604b559e37e82669b5e67f@AcuMS.aculab.com>
+References: <20210422044856.27250-1-chang.seok.bae@intel.com>
+ <20210422044856.27250-6-chang.seok.bae@intel.com>
+In-Reply-To: <20210422044856.27250-6-chang.seok.bae@intel.com>
+Accept-Language: en-GB, en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+x-ms-exchange-transport-fromentityheader: Hosted
+x-originating-ip: [10.202.205.107]
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.2104211810200.44318@angie.orcam.me.uk>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+Authentication-Results: relay.mimecast.com;
+        auth=pass smtp.auth=C51A453 smtp.mailfrom=david.laight@aculab.com
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: aculab.com
+Content-Language: en-US
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Apr 21, 2021 at 06:16:18PM +0200, Maciej W. Rozycki wrote:
-> On Wed, 21 Apr 2021, H. Nikolaus Schaller wrote:
+From: Chang S. Bae
+> Sent: 22 April 2021 05:49
 > 
-> > > We already check the high part of the divident against zero to avoid the 
-> > 
-> > nit-picking: s/divident/dividend/
+> The kernel pushes context on to the userspace stack to prepare for the
+> user's signal handler. When the user has supplied an alternate signal
+> stack, via sigaltstack(2), it is easy for the kernel to verify that the
+> stack size is sufficient for the current hardware context.
 > 
->  Umm, I find this embarassing (and I hesitated reaching for a dictionary 
-> to double-check the spelling!).  Indeed why would this be different from 
-> subtrahend or minuend?
+> Check if writing the hardware context to the alternate stack will exceed
+> it's size. If yes, then instead of corrupting user-data and proceeding with
+> the original signal handler, an immediate SIGSEGV signal is delivered.
+
+What happens if SIGSEGV is caught?
+
+> Refactor the stack pointer check code from on_sig_stack() and use the new
+> helper.
 > 
->  Thomas, as this mistake has spread across three out of these patches,
-> both in change descriptions and actual code, would you mind dropping the 
-> series from mips-next altogether and I'll respin the series with all 
-> these issues corrected?
+> While the kernel allows new source code to discover and use a sufficient
+> alternate signal stack size, this check is still necessary to protect
+> binaries with insufficient alternate signal stack size from data
+> corruption.
+...
+> diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
+> index 3f6a0fcaa10c..ae60f838ebb9 100644
+> --- a/include/linux/sched/signal.h
+> +++ b/include/linux/sched/signal.h
+> @@ -537,6 +537,17 @@ static inline int kill_cad_pid(int sig, int priv)
+>  #define SEND_SIG_NOINFO ((struct kernel_siginfo *) 0)
+>  #define SEND_SIG_PRIV	((struct kernel_siginfo *) 1)
+> 
+> +static inline int __on_sig_stack(unsigned long sp)
+> +{
+> +#ifdef CONFIG_STACK_GROWSUP
+> +	return sp >= current->sas_ss_sp &&
+> +		sp - current->sas_ss_sp < current->sas_ss_size;
+> +#else
+> +	return sp > current->sas_ss_sp &&
+> +		sp - current->sas_ss_sp <= current->sas_ss_size;
+> +#endif
+> +}
+> +
 
-I'm sorry, but I don't rebase mips-next and the patches have been pushed
-out before I received this mail.
+Those don't look different enough.
 
-Thomas.
+	David
 
--- 
-Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
-good idea.                                                [ RFC1925, 2.3 ]
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
+
