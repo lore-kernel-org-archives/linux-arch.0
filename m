@@ -2,68 +2,96 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C5AB6C433B4
-	for <linux-arch@archiver.kernel.org>; Wed, 21 Apr 2021 19:04:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 320D4C43460
+	for <linux-arch@archiver.kernel.org>; Thu, 22 Apr 2021 04:54:18 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 934F461455
-	for <linux-arch@archiver.kernel.org>; Wed, 21 Apr 2021 19:04:16 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 1423461453
+	for <linux-arch@archiver.kernel.org>; Thu, 22 Apr 2021 04:54:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S245147AbhDUTEr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 21 Apr 2021 15:04:47 -0400
-Received: from angie.orcam.me.uk ([157.25.102.26]:39368 "EHLO
-        angie.orcam.me.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239751AbhDUTEq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Apr 2021 15:04:46 -0400
-Received: by angie.orcam.me.uk (Postfix, from userid 500)
-        id D056F92009D; Wed, 21 Apr 2021 21:04:10 +0200 (CEST)
-Received: from localhost (localhost [127.0.0.1])
-        by angie.orcam.me.uk (Postfix) with ESMTP id CAD8792009C;
-        Wed, 21 Apr 2021 21:04:10 +0200 (CEST)
-Date:   Wed, 21 Apr 2021 21:04:10 +0200 (CEST)
-From:   "Maciej W. Rozycki" <macro@orcam.me.uk>
-To:     "H. Nikolaus Schaller" <hns@goldelico.com>
-cc:     Arnd Bergmann <arnd@arndb.de>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Huacai Chen <chenhuacai@kernel.org>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        linux-arch@vger.kernel.org, linux-mips@vger.kernel.org,
-        linux-kernel@vger.kernel.org
-Subject: Re: [PATCH 0/4] Reinstate and improve MIPS `do_div' implementation
-In-Reply-To: <51BC7C74-68BF-4A8E-8CFB-DB4EBBC89706@goldelico.com>
-Message-ID: <alpine.DEB.2.21.2104211904490.44318@angie.orcam.me.uk>
-References: <alpine.DEB.2.21.2104200044060.44318@angie.orcam.me.uk> <51BC7C74-68BF-4A8E-8CFB-DB4EBBC89706@goldelico.com>
-User-Agent: Alpine 2.21 (DEB 202 2017-01-01)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+        id S229578AbhDVEyv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 22 Apr 2021 00:54:51 -0400
+Received: from mga18.intel.com ([134.134.136.126]:45527 "EHLO mga18.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S229533AbhDVEyu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Apr 2021 00:54:50 -0400
+IronPort-SDR: o7fhuytSAjo6pZXvHaKkMiugOGlaCRfjQG660x3ImHrBKz6T0Iq6EohNKd+CzX5hvC7ckAfl2J
+ 2ttca/W7ohhQ==
+X-IronPort-AV: E=McAfee;i="6200,9189,9961"; a="183311513"
+X-IronPort-AV: E=Sophos;i="5.82,241,1613462400"; 
+   d="scan'208";a="183311513"
+Received: from fmsmga001.fm.intel.com ([10.253.24.23])
+  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 21 Apr 2021 21:54:15 -0700
+IronPort-SDR: P0DlGVpZ8pz/xSNAlJpFfT4ZAUa7ab7o7dTD92FVDrCEGFToaHNKnhJmuFPcSgn/bLMSPw17lP
+ Z6t4H08TZgLQ==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.82,241,1613462400"; 
+   d="scan'208";a="524515402"
+Received: from chang-linux-3.sc.intel.com ([172.25.66.175])
+  by fmsmga001.fm.intel.com with ESMTP; 21 Apr 2021 21:54:15 -0700
+From:   "Chang S. Bae" <chang.seok.bae@intel.com>
+To:     bp@suse.de, tglx@linutronix.de, mingo@kernel.org, luto@kernel.org,
+        x86@kernel.org
+Cc:     len.brown@intel.com, dave.hansen@intel.com, hjl.tools@gmail.com,
+        Dave.Martin@arm.com, jannh@google.com, mpe@ellerman.id.au,
+        carlos@redhat.com, tony.luck@intel.com, ravi.v.shankar@intel.com,
+        libc-alpha@sourceware.org, linux-arch@vger.kernel.org,
+        linux-api@vger.kernel.org, linux-kernel@vger.kernel.org,
+        chang.seok.bae@intel.com, linux-arm-kernel@lists.infradead.org
+Subject: [PATCH v8 1/6] uapi: Define the aux vector AT_MINSIGSTKSZ
+Date:   Wed, 21 Apr 2021 21:48:51 -0700
+Message-Id: <20210422044856.27250-2-chang.seok.bae@intel.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20210422044856.27250-1-chang.seok.bae@intel.com>
+References: <20210422044856.27250-1-chang.seok.bae@intel.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, 21 Apr 2021, H. Nikolaus Schaller wrote:
+Define the AT_MINSIGSTKSZ in generic Linux. It is already used as generic
+ABI in glibc's generic elf.h, and this define will prevent future namespace
+conflicts. In particular, x86 is also using this generic definition.
 
-> > In the end I have included four patches on this occasion: 1/4 is the test 
-> > module, 2/4 is an inline documentation fix/clarification for the `do_div' 
-> > wrapper, 3/4 enables the MIPS `__div64_32' backend and 4/4 adds a small 
-> > performance improvement to it.
-> 
-> How can I apply them to the kernel? There is something wrong which makes
-> git am fail.
+Signed-off-by: Chang S. Bae <chang.seok.bae@intel.com>
+Reviewed-by: Len Brown <len.brown@intel.com>
+Cc: Carlos O'Donell <carlos@redhat.com>
+Cc: Dave Martin <Dave.Martin@arm.com>
+Cc: libc-alpha@sourceware.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-api@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org
+---
+Change from v6:
+* Revised the comment. (Borislav Petkov)
 
- I don't know.  The changes were made against vanilla 5.12-rc7, but then 
-the pieces affected have not changed for ages.  FWIW I can `git am' the 
-series as received back just fine.
+Change from v5:
+* Reverted the arm64 change. (Dave Martin and Will Deacon)
+* Massaged the changelog.
 
-> > These changes have been verified with a DECstation system with an R3400 
-> > MIPS I processor @40MHz and a MTI Malta system with a 5Kc MIPS64 processor 
-> > @160MHz.
-> 
-> I'd like to test on ~320 MHz JZ4730.
+Change from v4:
+* Added as a new patch (Carlos O'Donell)
+---
+ include/uapi/linux/auxvec.h | 3 +++
+ 1 file changed, 3 insertions(+)
 
- Sure, I'd love to hear how this code performs with other implementations.  
+diff --git a/include/uapi/linux/auxvec.h b/include/uapi/linux/auxvec.h
+index abe5f2b6581b..c7e502bf5a6f 100644
+--- a/include/uapi/linux/auxvec.h
++++ b/include/uapi/linux/auxvec.h
+@@ -33,5 +33,8 @@
+ 
+ #define AT_EXECFN  31	/* filename of program */
+ 
++#ifndef AT_MINSIGSTKSZ
++#define AT_MINSIGSTKSZ	51	/* minimal stack size for signal delivery */
++#endif
+ 
+ #endif /* _UAPI_LINUX_AUXVEC_H */
+-- 
+2.17.1
 
-  Maciej
