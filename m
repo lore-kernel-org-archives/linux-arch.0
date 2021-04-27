@@ -2,36 +2,36 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4DC11C43600
-	for <linux-arch@archiver.kernel.org>; Tue, 27 Apr 2021 20:44:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3371BC43617
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Apr 2021 20:44:40 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 226E9613FB
-	for <linux-arch@archiver.kernel.org>; Tue, 27 Apr 2021 20:44:38 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 07E5861401
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Apr 2021 20:44:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239152AbhD0UpT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 27 Apr 2021 16:45:19 -0400
-Received: from mga05.intel.com ([192.55.52.43]:31779 "EHLO mga05.intel.com"
+        id S239127AbhD0UpW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 27 Apr 2021 16:45:22 -0400
+Received: from mga05.intel.com ([192.55.52.43]:31782 "EHLO mga05.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S239111AbhD0UpI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Apr 2021 16:45:08 -0400
-IronPort-SDR: IVd0gfdTirlumbgQef5BaHEB8O3yC1JzJH+aehNoVZyeCMyOV1KsAJW3W3d9Jb3xuLKXTmcZEg
- z25fKCdW/sgA==
-X-IronPort-AV: E=McAfee;i="6200,9189,9967"; a="281922459"
+        id S239128AbhD0UpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Apr 2021 16:45:12 -0400
+IronPort-SDR: T5spPuKFAtHQMLcQrVxU9tQGEvzjK//W+irHG5EzGzUYCT8fEEdCAdQQ/65nnW+EBQ2JxQhk7/
+ L+/+7ps7/JzQ==
+X-IronPort-AV: E=McAfee;i="6200,9189,9967"; a="281922464"
 X-IronPort-AV: E=Sophos;i="5.82,255,1613462400"; 
-   d="scan'208";a="281922459"
+   d="scan'208";a="281922464"
 Received: from orsmga001.jf.intel.com ([10.7.209.18])
-  by fmsmga105.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 27 Apr 2021 13:44:11 -0700
-IronPort-SDR: aUWQgeFi1WwBEOmzfnlYum8c6FP6jdDZZT8yZvx27Erb1lYmKik6XfXYOEqGM4ZSX5Cr8vjhMm
- /VzHF4qwLtgQ==
+  by fmsmga105.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 27 Apr 2021 13:44:12 -0700
+IronPort-SDR: fhIQad1STiOfMO1Xl7m7hbTbq5zRyOnKXEPM5z/eyo+DYYh0yiHi5PmW/8xS+Hul1JCotpf8Kf
+ rUsRrFJTFOzA==
 X-IronPort-AV: E=Sophos;i="5.82,255,1613462400"; 
-   d="scan'208";a="465623460"
+   d="scan'208";a="465623473"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by orsmga001-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 27 Apr 2021 13:44:10 -0700
+  by orsmga001-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 27 Apr 2021 13:44:11 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -61,10 +61,17 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Pengfei Xu <pengfei.xu@intel.com>,
         Haitao Huang <haitao.huang@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH v26 08/30] x86/mm: Move pmd_write(), pud_write() up in the file
-Date:   Tue, 27 Apr 2021 13:42:53 -0700
-Message-Id: <20210427204315.24153-9-yu-cheng.yu@intel.com>
+        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
+        David Airlie <airlied@linux.ie>,
+        Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
+        Jani Nikula <jani.nikula@linux.intel.com>,
+        Daniel Vetter <daniel@ffwll.ch>,
+        Rodrigo Vivi <rodrigo.vivi@intel.com>,
+        Zhenyu Wang <zhenyuw@linux.intel.com>,
+        Zhi Wang <zhi.a.wang@intel.com>
+Subject: [PATCH v26 10/30] drm/i915/gvt: Change _PAGE_DIRTY to _PAGE_DIRTY_BITS
+Date:   Tue, 27 Apr 2021 13:42:55 -0700
+Message-Id: <20210427204315.24153-11-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20210427204315.24153-1-yu-cheng.yu@intel.com>
 References: <20210427204315.24153-1-yu-cheng.yu@intel.com>
@@ -74,65 +81,36 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-To prepare the introduction of _PAGE_COW, move pmd_write() and
-pud_write() up in the file, so that they can be used by other
-helpers below.
+After the introduction of _PAGE_COW, a modified page's PTE can have either
+_PAGE_DIRTY or _PAGE_COW.  Change _PAGE_DIRTY to _PAGE_DIRTY_BITS.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: David Airlie <airlied@linux.ie>
+Cc: Joonas Lahtinen <joonas.lahtinen@linux.intel.com>
+Cc: Jani Nikula <jani.nikula@linux.intel.com>
+Cc: Daniel Vetter <daniel@ffwll.ch>
+Cc: Rodrigo Vivi <rodrigo.vivi@intel.com>
+Cc: Zhenyu Wang <zhenyuw@linux.intel.com>
+Cc: Zhi Wang <zhi.a.wang@intel.com>
 ---
- arch/x86/include/asm/pgtable.h | 24 ++++++++++++------------
- 1 file changed, 12 insertions(+), 12 deletions(-)
+ drivers/gpu/drm/i915/gvt/gtt.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index a02c67291cfc..c1650d0af1b5 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -185,6 +185,18 @@ static inline int pte_write(pte_t pte)
- 	return pte_flags(pte) & _PAGE_RW;
- }
+diff --git a/drivers/gpu/drm/i915/gvt/gtt.c b/drivers/gpu/drm/i915/gvt/gtt.c
+index 897c007ea96a..937b6083b2dc 100644
+--- a/drivers/gpu/drm/i915/gvt/gtt.c
++++ b/drivers/gpu/drm/i915/gvt/gtt.c
+@@ -1216,7 +1216,7 @@ static int split_2MB_gtt_entry(struct intel_vgpu *vgpu,
+ 	}
  
-+#define pmd_write pmd_write
-+static inline int pmd_write(pmd_t pmd)
-+{
-+	return pmd_flags(pmd) & _PAGE_RW;
-+}
-+
-+#define pud_write pud_write
-+static inline int pud_write(pud_t pud)
-+{
-+	return pud_flags(pud) & _PAGE_RW;
-+}
-+
- static inline int pte_huge(pte_t pte)
- {
- 	return pte_flags(pte) & _PAGE_PSE;
-@@ -1128,12 +1140,6 @@ extern int pmdp_clear_flush_young(struct vm_area_struct *vma,
- 				  unsigned long address, pmd_t *pmdp);
+ 	/* Clear dirty field. */
+-	se->val64 &= ~_PAGE_DIRTY;
++	se->val64 &= ~_PAGE_DIRTY_BITS;
  
- 
--#define pmd_write pmd_write
--static inline int pmd_write(pmd_t pmd)
--{
--	return pmd_flags(pmd) & _PAGE_RW;
--}
--
- #define __HAVE_ARCH_PMDP_HUGE_GET_AND_CLEAR
- static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm, unsigned long addr,
- 				       pmd_t *pmdp)
-@@ -1155,12 +1161,6 @@ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
- 	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
- }
- 
--#define pud_write pud_write
--static inline int pud_write(pud_t pud)
--{
--	return pud_flags(pud) & _PAGE_RW;
--}
--
- #ifndef pmdp_establish
- #define pmdp_establish pmdp_establish
- static inline pmd_t pmdp_establish(struct vm_area_struct *vma,
+ 	ops->clear_pse(se);
+ 	ops->clear_ips(se);
 -- 
 2.21.0
 
