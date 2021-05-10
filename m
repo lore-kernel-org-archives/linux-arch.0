@@ -2,162 +2,331 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C6F75C433B4
-	for <linux-arch@archiver.kernel.org>; Mon, 10 May 2021 08:17:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3175EC43460
+	for <linux-arch@archiver.kernel.org>; Mon, 10 May 2021 08:48:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9E68461076
-	for <linux-arch@archiver.kernel.org>; Mon, 10 May 2021 08:17:32 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0B3B861352
+	for <linux-arch@archiver.kernel.org>; Mon, 10 May 2021 08:48:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230216AbhEJISg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 10 May 2021 04:18:36 -0400
-Received: from youngberry.canonical.com ([91.189.89.112]:37274 "EHLO
-        youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230331AbhEJISe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 May 2021 04:18:34 -0400
-Received: from [50.53.41.238] (helo=[192.168.192.153])
-        by youngberry.canonical.com with esmtpsa  (TLS1.2) tls TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-        (Exim 4.93)
-        (envelope-from <john.johansen@canonical.com>)
-        id 1lg16V-0004Ab-0S; Mon, 10 May 2021 08:17:27 +0000
-Subject: Re: [RFC 09/12] apparmor: use get_unaligned() only for multi-byte
- words
-To:     Arnd Bergmann <arnd@kernel.org>, linux-arch@vger.kernel.org
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Vineet Gupta <vgupta@synopsys.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        James Morris <jmorris@namei.org>,
-        "Serge E. Hallyn" <serge@hallyn.com>,
-        linux-security-module@vger.kernel.org, linux-kernel@vger.kernel.org
-References: <20210507220813.365382-1-arnd@kernel.org>
- <20210507220813.365382-10-arnd@kernel.org>
-From:   John Johansen <john.johansen@canonical.com>
-Autocrypt: addr=john.johansen@canonical.com; prefer-encrypt=mutual; keydata=
- LS0tLS1CRUdJTiBQR1AgUFVCTElDIEtFWSBCTE9DSy0tLS0tCgptUUlOQkU1bXJQb0JFQURB
- azE5UHNnVmdCS2tJbW1SMmlzUFE2bzdLSmhUVEtqSmR3VmJrV1NuTm4rbzZVcDVrCm5LUDFm
- NDlFQlFsY2VXZzF5cC9Od2JSOGFkK2VTRU8vdW1hL0srUHFXdkJwdEtDOVNXRDk3Rkc0dUI0
- L2Nhb20KTEVVOTdzTFFNdG52R1dkeHJ4VlJHTTRhbnpXWU1neno1VFptSWlWVFo0M091NVZw
- YVMxVnoxWlN4UDNoL3hLTgpaci9UY1c1V1FhaTh1M1BXVm5ia2poU1pQSHYxQmdoTjY5cXhF
- UG9tckpCbTFnbXR4M1ppVm1GWGx1d1RtVGdKCk9rcEZvbDduYkowaWxuWUhyQTdTWDNDdFIx
- dXBlVXBNYS9XSWFuVk85NldkVGpISElhNDNmYmhtUXViZTR0eFMKM0ZjUUxPSlZxUXN4NmxF
- OUI3cUFwcG05aFExMHFQV3dkZlB5LyswVzZBV3ROdTVBU2lHVkNJbld6bDJIQnFZZAovWmxs
- OTN6VXErTklvQ244c0RBTTlpSCt3dGFHRGNKeXdJR0luK2VkS050SzcyQU1nQ2hUZy9qMVpv
- V0g2WmVXClBqdVVmdWJWelp0bzFGTW9HSi9TRjRNbWRRRzFpUU50ZjRzRlpiRWdYdXk5Y0dp
- MmJvbUYwenZ5QkpTQU5weGwKS05CRFlLek42S3owOUhVQWtqbEZNTmdvbUwvY2pxZ0FCdEF4
- NTlMK2RWSVpmYUYyODFwSWNVWnp3dmg1K0pvRwplT1c1dUJTTWJFN0wzOG5zem9veWtJSjVY
- ckFjaGtKeE5mejdrK0ZuUWVLRWtOekVkMkxXYzNRRjRCUVpZUlQ2ClBISGdhM1JneWtXNSsx
- d1RNcUpJTGRtdGFQYlhyRjNGdm5WMExSUGN2NHhLeDdCM2ZHbTd5Z2Rvb3dBUkFRQUIKdEIx
- S2IyaHVJRXB2YUdGdWMyVnVJRHhxYjJodVFHcHFiWGd1Ym1WMFBva0NPZ1FUQVFvQUpBSWJB
- d1VMQ1FnSApBd1VWQ2drSUN3VVdBZ01CQUFJZUFRSVhnQVVDVG8wWVZ3SVpBUUFLQ1JBRkx6
- WndHTlhEMkx4SkQvOVRKWkNwCndsbmNUZ1llcmFFTWVEZmtXdjhjMUlzTTFqMEFtRTRWdEwr
- ZkU3ODBaVlA5Z2tqZ2tkWVN4dDdlY0VUUFRLTWEKWlNpc3JsMVJ3cVUwb29nWGRYUVNweHJH
- SDAxaWN1LzJuMGpjWVNxWUtnZ1B4eTc4QkdzMkxacTRYUGZKVFptSApaR25YR3EvZURyL21T
- bmowYWF2QkptTVo2amJpUHo2eUh0QllQWjlmZG84YnRjendQNDFZZVdvSXUyNi84SUk2CmYw
- WG0zVkM1b0FhOHY3UmQrUldaYThUTXdsaHpIRXh4ZWwzanRJN0l6ek9zbm1FOS84RG0wQVJE
- NWlUTENYd1IKMWN3SS9KOUJGL1MxWHY4UE4xaHVUM0l0Q05kYXRncDh6cW9Ka2dQVmptdnlM
- NjRRM2ZFa1liZkhPV3NhYmE5LwprQVZ0Qk56OVJURmg3SUhEZkVDVmFUb3VqQmQ3QnRQcXIr
- cUlqV0ZhZEpEM0k1ZUxDVkp2VnJyb2xyQ0FUbEZ0Ck4zWWtRczZKbjFBaUlWSVUzYkhSOEdq
- ZXZnejVMbDZTQ0dIZ1Jya3lScG5TWWFVL3VMZ24zN042QVl4aS9RQUwKK2J5M0N5RUZManpX
- QUV2eVE4YnEzSXVjbjdKRWJoUy9KLy9kVXFMb2VVZjh0c0dpMDB6bXJJVFpZZUZZQVJoUQpN
- dHNmaXpJclZEdHoxaVBmL1pNcDVnUkJuaXlqcFhuMTMxY20zTTNndjZIclFzQUdubjhBSnJ1
- OEdEaTVYSllJCmNvLzEreC9xRWlOMm5DbGFBT3BiaHpOMmVVdlBEWTVXMHEzYkEvWnAybWZH
- NTJ2YlJJK3RRMEJyMUhkL3ZzbnQKVUhPOTAzbU1aZXAyTnpOM0JaNXFFdlB2RzRyVzVacTJE
- cHliV2JRclNtOW9iaUJLYjJoaGJuTmxiaUE4YW05bwpiaTVxYjJoaGJuTmxia0JqWVc1dmJt
- bGpZV3d1WTI5dFBva0NOd1FUQVFvQUlRVUNUbzBYV2dJYkF3VUxDUWdICkF3VVZDZ2tJQ3dV
- V0FnTUJBQUllQVFJWGdBQUtDUkFGTHpad0dOWEQySXRNRC85anliYzg3ZE00dUFIazZ5Tk0K
- TjBZL0JGbW10VFdWc09CaHFPbm9iNGkzOEJyRE8yQzFoUUNQQ1FlNExMczEvNHB0ZW92UXQ4
- QjJGeXJQVmp3Zwo3alpUSE5LNzRyNmxDQ1Z4eDN5dTFCN1U5UG80VlRrY3NsVmIxL3FtV3V4
- OFhXY040eXZrVHFsTCtHeHB5Sm45CjlaWmZmWEpjNk9oNlRtT2ZiS0d2TXV1djVhclNJQTNK
- SEZMZjlhTHZadEExaXNKVXI3cFM5YXBnOXVUVUdVcDcKd2ZWMFdUNlQzZUczbXRVVTJ1cDVK
- VjQ4NTBMMDVqSFM2dVdpZS9ZK3lmSk9iaXlyeE4vNlpxVzVHb25oTEJxLwptc3pjVjV2QlQz
- QkRWZTNSdkY2WGRNOU9oUG4xK1k4MXg1NCt2UTExM044aUx3RjdHR2ExNFp5SVZBTlpEMEkw
- CkhqUnZhMmsvUnFJUlR6S3l1UEg1cGtsY0tIVlBFRk1tT3pNVCtGT294Tmp2Uys3K3dHMktN
- RFlFbUhQcjFQSkIKWlNaZUh6SzE5dGZhbFBNcHBGeGkrc3lZTGFnTjBtQjdKSFF3WTdjclV1
- T0RoeWNxNjBZVnoxdGFFeWd1M1l2MgoyL0kxRUNHSHZLSEc2d2M5MG80M0MvZWxIRUNYbkVo
- N3RLcGxEY3BJQytPQ21NeEtIaFI0NitYY1p2Z3c0RGdiCjdjYTgzZVFSM0NHODlMdlFwVzJM
- TEtFRUJEajdoWmhrTGJra1BSWm0zdzhKWTQ0YXc4VnRneFdkblNFTUNMeEwKSU9OaDZ1Wjcv
- L0RZVnRjSWFNSllrZWJhWnRHZENwMElnVVpiMjQvVmR2WkNZYk82MkhrLzNWbzFuWHdIVUVz
- Mwo2RC92MWJUMFJaRmk2OUxnc0NjT2N4NGdZTGtDRFFST1pxejZBUkFBb3F3NmtrQmhXeU0x
- ZnZnYW1BVmplWjZuCktFZm5SV2JrQzk0TDFFc0pMdXAzV2IyWDBBQk5PSFNrYlNENHBBdUMy
- dEtGL0VHQnQ1Q1A3UWRWS1JHY1F6QWQKNmIyYzFJZHk5Ukx3Nnc0Z2krbm4vZDFQbTFra1lo
- a1NpNXpXYUlnMG01UlFVaytFbDh6a2Y1dGNFLzFOMFo1TwpLMkpoandGdTViWDBhMGw0Y0ZH
- V1ZRRWNpVk1ES1J0eE1qRXRrM1N4RmFsbTZaZFEycHAyODIyY2xucTR6WjltCld1MWQyd2F4
- aXorYjVJYTR3ZURZYTduNDFVUmNCRVViSkFnbmljSmtKdENUd3lJeElXMktuVnlPcmp2a1F6
- SUIKdmFQMEZkUDJ2dlpvUE1kbENJek9sSWtQTGd4RTBJV3VlVFhlQkpoTnMwMXBiOGJMcW1U
- SU1sdTRMdkJFTEEvdgplaWFqajVzOHk1NDJIL2FIc2ZCZjRNUVVoSHhPL0JaVjdoMDZLU1Vm
- SWFZN09nQWdLdUdOQjNVaWFJVVM1K2E5CmduRU9RTER4S1J5L2E3UTF2OVMrTnZ4KzdqOGlI
- M2prUUpoeFQ2WkJoWkdSeDBna0gzVCtGMG5ORG01TmFKVXMKYXN3Z0pycUZaa1VHZDJNcm0x
- cW5Ld1hpQXQ4U0ljRU5kcTMzUjBLS0tSQzgwWGd3ajhKbjMwdlhMU0crTk8xRwpIMFVNY0F4
- TXd5L3B2azZMVTVKR2paUjczSjVVTFZoSDRNTGJEZ2dEM21QYWlHOCtmb3RUckpVUHFxaGc5
- aHlVCkVQcFlHN3NxdDc0WG43OStDRVpjakxIenlsNnZBRkUyVzBreGxMdFF0VVpVSE8zNmFm
- RnY4cUdwTzNacVB2akIKVXVhdFhGNnR2VVFDd2YzSDZYTUFFUUVBQVlrQ0h3UVlBUW9BQ1FV
- Q1RtYXMrZ0liREFBS0NSQUZMelp3R05YRAoyRC9YRC8wZGRNLzRhaTFiK1RsMWp6bkthalgz
- a0crTWVFWWVJNGY0MHZjbzNyT0xyblJHRk9jYnl5ZlZGNjlNCktlcGllNE93b0kxamNUVTBB
- RGVjbmJXbkROSHByMFNjenhCTXJvM2Juckxoc212anVuVFlJdnNzQlp0QjRhVkoKanVMSUxQ
- VWxuaEZxYTdmYlZxMFpRamJpVi9ydDJqQkVOZG05cGJKWjZHam5wWUljQWJQQ0NhL2ZmTDQv
- U1FSUwpZSFhvaEdpaVM0eTVqQlRtSzVsdGZld0xPdzAyZmtleEgrSUpGcnJHQlhEU2c2bjJT
- Z3hubisrTkYzNGZYY205CnBpYXczbUtzSUNtKzBoZE5oNGFmR1o2SVdWOFBHMnRlb29WRHA0
- ZFlpaCsreFgvWFM4ekJDYzFPOXc0bnpsUDIKZ0t6bHFTV2JoaVdwaWZSSkJGYTRXdEFlSlRk
- WFlkMzdqL0JJNFJXV2hueXc3YUFQTkdqMzN5dEdITlVmNlJvMgovanRqNHRGMXkvUUZYcWpK
- Ry93R2pwZHRSZmJ0VWpxTEhJc3ZmUE5OSnEvOTU4cDc0bmRBQ2lkbFdTSHpqK09wCjI2S3Bi
- Rm5td05PMHBzaVVzbmh2SEZ3UE8vdkFibDNSc1I1KzBSbytodnMyY0VtUXV2OXIvYkRsQ2Zw
- enAydDMKY0srcmh4VXFpc094OERaZnoxQm5rYW9DUkZidnZ2ays3TC9mb21QbnRHUGtxSmNp
- WUU4VEdIa1p3MWhPa3UrNApPb00yR0I1bkVEbGorMlRGL2pMUStFaXBYOVBrUEpZdnhmUmxD
- NmRLOFBLS2ZYOUtkZm1BSWNnSGZuVjFqU24rCjh5SDJkakJQdEtpcVcwSjY5YUlzeXg3aVYv
- MDNwYVBDakpoN1hxOXZBenlkTjVVL1VBPT0KPTZQL2IKLS0tLS1FTkQgUEdQIFBVQkxJQyBL
- RVkgQkxPQ0stLS0tLQo=
-Organization: Canonical
-Message-ID: <a301b47e-dc27-cdc8-ab93-07816e5dc2e1@canonical.com>
-Date:   Mon, 10 May 2021 01:17:23 -0700
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
- Thunderbird/68.10.0
+        id S230141AbhEJItF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 10 May 2021 04:49:05 -0400
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:3894 "EHLO
+        mx0b-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S229566AbhEJItF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 May 2021 04:49:05 -0400
+Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 14A8Xxl8192072;
+        Mon, 10 May 2021 04:47:50 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
+ : date : message-id : in-reply-to : references : content-transfer-encoding
+ : mime-version; s=pp1; bh=KTQxO0IWEBnipVyxp6Fd/H0bA828QsZiHmmsIJMhYdA=;
+ b=jLzG2rGtACeEoK139T5ho4elQTOXjUTGYYKWuxonbHJWXF77RCJrbAqwXx+uJbK6uZ6U
+ 40aivppGHClTcgMx0SlZxRKRwIq3bbHhgJ0UxE6UGwCrAS+Q/wfVj9gXEqt2TrSov8A0
+ 90buWAW5NbTmB5gNBz6VpEJKYtpiGHIAJ0ACZIREGs++8mL5up1zhzZrvpqWOJETfejX
+ FKZ+B8Pilv/L4hKavZSRikY8hLFf/CgHTi33uIrs54hdjVNZkzMeEZVn5uIOaMC1jJx9
+ cARgmQ56FXQYv/bTDsRER81k0azLmYRriSP56Cb8nzQHqGj8yLn75K0jboGhVaySoQyb Ww== 
+Received: from pps.reinject (localhost [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 38f19a0jfg-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Mon, 10 May 2021 04:47:50 -0400
+Received: from m0098421.ppops.net (m0098421.ppops.net [127.0.0.1])
+        by pps.reinject (8.16.0.43/8.16.0.43) with SMTP id 14A8ZbP7008512;
+        Mon, 10 May 2021 04:47:49 -0400
+Received: from ppma03ams.nl.ibm.com (62.31.33a9.ip4.static.sl-reverse.com [169.51.49.98])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 38f19a0jev-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Mon, 10 May 2021 04:47:49 -0400
+Received: from pps.filterd (ppma03ams.nl.ibm.com [127.0.0.1])
+        by ppma03ams.nl.ibm.com (8.16.0.43/8.16.0.43) with SMTP id 14A8gohJ023630;
+        Mon, 10 May 2021 08:47:48 GMT
+Received: from b06cxnps3075.portsmouth.uk.ibm.com (d06relay10.portsmouth.uk.ibm.com [9.149.109.195])
+        by ppma03ams.nl.ibm.com with ESMTP id 38dj988sg1-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Mon, 10 May 2021 08:47:47 +0000
+Received: from d06av22.portsmouth.uk.ibm.com (d06av22.portsmouth.uk.ibm.com [9.149.105.58])
+        by b06cxnps3075.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 14A8ljpV16581018
+        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Mon, 10 May 2021 08:47:45 GMT
+Received: from d06av22.portsmouth.uk.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id A07314C050;
+        Mon, 10 May 2021 08:47:45 +0000 (GMT)
+Received: from d06av22.portsmouth.uk.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id 4729E4C052;
+        Mon, 10 May 2021 08:47:45 +0000 (GMT)
+Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
+        by d06av22.portsmouth.uk.ibm.com (Postfix) with ESMTP;
+        Mon, 10 May 2021 08:47:45 +0000 (GMT)
+From:   Niklas Schnelle <schnelle@linux.ibm.com>
+To:     Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <vgupta@synopsys.com>,
+        "David S. Miller" <davem@davemloft.net>
+Cc:     Nathan Chancellor <nathan@kernel.org>,
+        Nick Desaulniers <ndesaulniers@google.com>,
+        clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org,
+        linux-snps-arc@lists.infradead.org, sparclinux@vger.kernel.org
+Subject: [PATCH v5--cover-letter 3/3] asm-generic/io.h: warn in inb() and friends with undefined PCI_IOBASE
+Date:   Mon, 10 May 2021 10:47:43 +0200
+Message-Id: <20210510084743.1850777-4-schnelle@linux.ibm.com>
+X-Mailer: git-send-email 2.25.1
+In-Reply-To: <20210510084743.1850777-1-schnelle@linux.ibm.com>
+References: <20210510084743.1850777-1-schnelle@linux.ibm.com>
+X-TM-AS-GCONF: 00
+X-Proofpoint-GUID: y6A-vOpbDjPS-w1cYvAYxPhaxfXqjWCF
+X-Proofpoint-ORIG-GUID: AzhZuuaJFfarROUONmooVLD0mynIak1f
+Content-Transfer-Encoding: 8bit
+X-Proofpoint-UnRewURL: 0 URL was un-rewritten
 MIME-Version: 1.0
-In-Reply-To: <20210507220813.365382-10-arnd@kernel.org>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.391,18.0.761
+ definitions=2021-05-10_04:2021-05-10,2021-05-10 signatures=0
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 phishscore=0 suspectscore=0
+ priorityscore=1501 mlxscore=0 impostorscore=0 spamscore=0 bulkscore=0
+ mlxlogscore=999 adultscore=0 lowpriorityscore=0 clxscore=1011
+ malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2104190000 definitions=main-2105100061
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 5/7/21 3:07 PM, Arnd Bergmann wrote:
-> From: Arnd Bergmann <arnd@arndb.de>
-> 
-> Using get_unaligned() on a u8 pointer is pointless, and will
-> result in a compiler warning after a planned cleanup:
-> 
-> In file included from arch/x86/include/generated/asm/unaligned.h:1,
->                  from security/apparmor/policy_unpack.c:16:
-> security/apparmor/policy_unpack.c: In function 'unpack_u8':
-> include/asm-generic/unaligned.h:13:15: error: 'packed' attribute ignored for field of type 'u8' {aka 'unsigned char'} [-Werror=attributes]
->    13 |  const struct { type x __packed; } *__pptr = (typeof(__pptr))(ptr); \
->       |               ^
-> 
-> Simply dereference this pointer directly.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: John Johansen <john.johansen@canonical.com>
+When PCI_IOBASE is not defined, it is set to 0 such that it is ignored
+in calls to the readX/writeX primitives. This triggers clang's
+-Wnull-pointer-arithmetic warning and will result in illegal accesses on
+platforms that do not support I/O ports.
 
-> ---
->  security/apparmor/policy_unpack.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/security/apparmor/policy_unpack.c b/security/apparmor/policy_unpack.c
-> index b8efbda545cb..0acca6f2a93f 100644
-> --- a/security/apparmor/policy_unpack.c
-> +++ b/security/apparmor/policy_unpack.c
-> @@ -304,7 +304,7 @@ static bool unpack_u8(struct aa_ext *e, u8 *data, const char *name)
->  		if (!inbounds(e, sizeof(u8)))
->  			goto fail;
->  		if (data)
-> -			*data = get_unaligned((u8 *)e->pos);
-> +			*data = *((u8 *)e->pos);
->  		e->pos += sizeof(u8);
->  		return true;
->  	}
-> 
+Make things explicit and silence the warning by letting inb() and
+friends fail with WARN_ONCE() and a 0xff... return in case PCI_IOBASE is
+not defined.
+
+Link: https://lore.kernel.org/lkml/20210421111759.2059976-1-schnelle@linux.ibm.com/
+Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
+---
+ include/asm-generic/io.h | 65 +++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 61 insertions(+), 4 deletions(-)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index e93375c710b9..7b523683c241 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -8,6 +8,7 @@
+ #define __ASM_GENERIC_IO_H
+ 
+ #include <asm/page.h> /* I/O is all done through memory accesses */
++#include <linux/bug.h>
+ #include <linux/string.h> /* for memset() and memcpy() */
+ #include <linux/types.h>
+ 
+@@ -440,10 +441,6 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
+ #endif
+ #endif /* CONFIG_64BIT */
+ 
+-#ifndef PCI_IOBASE
+-#define PCI_IOBASE ((void __iomem *)0)
+-#endif
+-
+ #ifndef IO_SPACE_LIMIT
+ #define IO_SPACE_LIMIT 0xffff
+ #endif
+@@ -458,12 +455,17 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
+ #define _inb _inb
+ static inline u8 _inb(unsigned long addr)
+ {
++#ifdef PCI_IOBASE
+ 	u8 val;
+ 
+ 	__io_pbr();
+ 	val = __raw_readb(PCI_IOBASE + addr);
+ 	__io_par(val);
+ 	return val;
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++	return ~0;
++#endif
+ }
+ #endif
+ 
+@@ -471,12 +473,17 @@ static inline u8 _inb(unsigned long addr)
+ #define _inw _inw
+ static inline u16 _inw(unsigned long addr)
+ {
++#ifdef PCI_IOBASE
+ 	u16 val;
+ 
+ 	__io_pbr();
+ 	val = __le16_to_cpu((__le16 __force)__raw_readw(PCI_IOBASE + addr));
+ 	__io_par(val);
+ 	return val;
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++	return ~0;
++#endif
+ }
+ #endif
+ 
+@@ -484,12 +491,17 @@ static inline u16 _inw(unsigned long addr)
+ #define _inl _inl
+ static inline u32 _inl(unsigned long addr)
+ {
++#ifdef PCI_IOBASE
+ 	u32 val;
+ 
+ 	__io_pbr();
+ 	val = __le32_to_cpu((__le32 __force)__raw_readl(PCI_IOBASE + addr));
+ 	__io_par(val);
+ 	return val;
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++	return ~0;
++#endif
+ }
+ #endif
+ 
+@@ -497,9 +509,13 @@ static inline u32 _inl(unsigned long addr)
+ #define _outb _outb
+ static inline void _outb(u8 value, unsigned long addr)
+ {
++#ifdef PCI_IOBASE
+ 	__io_pbw();
+ 	__raw_writeb(value, PCI_IOBASE + addr);
+ 	__io_paw();
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++#endif
+ }
+ #endif
+ 
+@@ -507,9 +523,13 @@ static inline void _outb(u8 value, unsigned long addr)
+ #define _outw _outw
+ static inline void _outw(u16 value, unsigned long addr)
+ {
++#ifdef PCI_IOBASE
+ 	__io_pbw();
+ 	__raw_writew((u16 __force)cpu_to_le16(value), PCI_IOBASE + addr);
+ 	__io_paw();
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++#endif
+ }
+ #endif
+ 
+@@ -517,9 +537,13 @@ static inline void _outw(u16 value, unsigned long addr)
+ #define _outl _outl
+ static inline void _outl(u32 value, unsigned long addr)
+ {
++#ifdef PCI_IOBASE
+ 	__io_pbw();
+ 	__raw_writel((u32 __force)cpu_to_le32(value), PCI_IOBASE + addr);
+ 	__io_paw();
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++#endif
+ }
+ #endif
+ 
+@@ -606,7 +630,11 @@ static inline void outl_p(u32 value, unsigned long addr)
+ #define insb insb
+ static inline void insb(unsigned long addr, void *buffer, unsigned int count)
+ {
++#ifdef PCI_IOBASE
+ 	readsb(PCI_IOBASE + addr, buffer, count);
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++#endif
+ }
+ #endif
+ 
+@@ -614,7 +642,11 @@ static inline void insb(unsigned long addr, void *buffer, unsigned int count)
+ #define insw insw
+ static inline void insw(unsigned long addr, void *buffer, unsigned int count)
+ {
++#ifdef PCI_IOBASE
+ 	readsw(PCI_IOBASE + addr, buffer, count);
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++#endif
+ }
+ #endif
+ 
+@@ -622,7 +654,11 @@ static inline void insw(unsigned long addr, void *buffer, unsigned int count)
+ #define insl insl
+ static inline void insl(unsigned long addr, void *buffer, unsigned int count)
+ {
++#ifdef PCI_IOBASE
+ 	readsl(PCI_IOBASE + addr, buffer, count);
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++#endif
+ }
+ #endif
+ 
+@@ -631,7 +667,11 @@ static inline void insl(unsigned long addr, void *buffer, unsigned int count)
+ static inline void outsb(unsigned long addr, const void *buffer,
+ 			 unsigned int count)
+ {
++#ifdef PCI_IOBASE
+ 	writesb(PCI_IOBASE + addr, buffer, count);
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++#endif
+ }
+ #endif
+ 
+@@ -640,7 +680,11 @@ static inline void outsb(unsigned long addr, const void *buffer,
+ static inline void outsw(unsigned long addr, const void *buffer,
+ 			 unsigned int count)
+ {
++#ifdef PCI_IOBASE
+ 	writesw(PCI_IOBASE + addr, buffer, count);
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++#endif
+ }
+ #endif
+ 
+@@ -649,7 +693,11 @@ static inline void outsw(unsigned long addr, const void *buffer,
+ static inline void outsl(unsigned long addr, const void *buffer,
+ 			 unsigned int count)
+ {
++#ifdef PCI_IOBASE
+ 	writesl(PCI_IOBASE + addr, buffer, count);
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++#endif
+ }
+ #endif
+ 
+@@ -1020,18 +1068,27 @@ static inline void __iomem *ioremap_np(phys_addr_t offset, size_t size)
+ #define ioport_map ioport_map
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+ {
++#ifdef PCI_IOBASE
+ 	port &= IO_SPACE_LIMIT;
+ 	return (port > MMIO_UPPER_LIMIT) ? NULL : PCI_IOBASE + port;
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++	return NULL;
++#endif
+ }
+ #define __pci_ioport_unmap __pci_ioport_unmap
+ static inline void __pci_ioport_unmap(void __iomem *p)
+ {
++#ifdef PCI_IOBASE
+ 	uintptr_t start = (uintptr_t) PCI_IOBASE;
+ 	uintptr_t addr = (uintptr_t) p;
+ 
+ 	if (addr >= start && addr < start + IO_SPACE_LIMIT)
+ 		return;
+ 	iounmap(p);
++#else
++	WARN_ONCE(1, "No I/O port support\n");
++#endif
+ }
+ #endif
+ 
+-- 
+2.25.1
 
