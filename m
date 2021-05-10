@@ -2,142 +2,124 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7A863C43462
-	for <linux-arch@archiver.kernel.org>; Mon, 10 May 2021 08:54:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0E117C433ED
+	for <linux-arch@archiver.kernel.org>; Mon, 10 May 2021 10:16:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4C4F561106
-	for <linux-arch@archiver.kernel.org>; Mon, 10 May 2021 08:54:00 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D124461006
+	for <linux-arch@archiver.kernel.org>; Mon, 10 May 2021 10:16:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230199AbhEJIzB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 10 May 2021 04:55:01 -0400
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:61838 "EHLO
-        mx0b-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S230154AbhEJIy5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 May 2021 04:54:57 -0400
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 14A8XTqZ004884;
-        Mon, 10 May 2021 04:53:45 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
- : date : message-id : in-reply-to : references : mime-version :
- content-transfer-encoding; s=pp1;
- bh=evXVASPNHYxBuNpGpwUb76ljx34WoISjJiXB/0dEjGk=;
- b=dWWbkOfv7WCRADpDvj7bq9BWKdblXkdNeDlDZURAoP6sDNPYtIsZJISTkH+j3MpxTGvB
- qhkOicFAd1wWLbP+jaqyRFTY/CpENb346tBC6nVfx9trtG8jqEStSW8trjt8aoaIl+e5
- 57mJ2ZTUBhcQHK1mmE0sc3EVTHBjxzj3Nl8rBzF4VXKHGy3NVChM/UcJZT/UCMrgH14d
- bO0NovBBa1VQ0GTfv2bbW9HNpTUDbVBs291C18h9Ry7ElPmIwUYf4zXiHsc39q8DjkW4
- GHCVz1vdsL1ioISMSAAjflxHneeiYssWiWtzTMXABtP9rebGYdLZohy5fI7dxKmPEJUd 5A== 
-Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 38eycr4arm-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 10 May 2021 04:53:45 -0400
-Received: from m0098417.ppops.net (m0098417.ppops.net [127.0.0.1])
-        by pps.reinject (8.16.0.43/8.16.0.43) with SMTP id 14A8XVha005088;
-        Mon, 10 May 2021 04:53:45 -0400
-Received: from ppma04fra.de.ibm.com (6a.4a.5195.ip4.static.sl-reverse.com [149.81.74.106])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 38eycr4aqy-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 10 May 2021 04:53:45 -0400
-Received: from pps.filterd (ppma04fra.de.ibm.com [127.0.0.1])
-        by ppma04fra.de.ibm.com (8.16.0.43/8.16.0.43) with SMTP id 14A8pgRT005816;
-        Mon, 10 May 2021 08:53:43 GMT
-Received: from b06cxnps4074.portsmouth.uk.ibm.com (d06relay11.portsmouth.uk.ibm.com [9.149.109.196])
-        by ppma04fra.de.ibm.com with ESMTP id 38ef37g7ee-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 10 May 2021 08:53:43 +0000
-Received: from d06av21.portsmouth.uk.ibm.com (d06av21.portsmouth.uk.ibm.com [9.149.105.232])
-        by b06cxnps4074.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 14A8reZL37749094
-        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Mon, 10 May 2021 08:53:40 GMT
-Received: from d06av21.portsmouth.uk.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 8668552051;
-        Mon, 10 May 2021 08:53:40 +0000 (GMT)
-Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
-        by d06av21.portsmouth.uk.ibm.com (Postfix) with ESMTP id 3787F52050;
-        Mon, 10 May 2021 08:53:40 +0000 (GMT)
-From:   Niklas Schnelle <schnelle@linux.ibm.com>
-To:     Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <vgupta@synopsys.com>,
-        "David S. Miller" <davem@davemloft.net>
-Cc:     Nathan Chancellor <nathan@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org,
-        linux-snps-arc@lists.infradead.org, sparclinux@vger.kernel.org
-Subject: [PATCH v5 2/3] risc-v: Use generic io.h helpers for nommu
-Date:   Mon, 10 May 2021 10:53:38 +0200
-Message-Id: <20210510085339.1857696-3-schnelle@linux.ibm.com>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20210510085339.1857696-1-schnelle@linux.ibm.com>
-References: <20210510085339.1857696-1-schnelle@linux.ibm.com>
+        id S230442AbhEJKRg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 10 May 2021 06:17:36 -0400
+Received: from mail-vs1-f52.google.com ([209.85.217.52]:35626 "EHLO
+        mail-vs1-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230393AbhEJKR3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 May 2021 06:17:29 -0400
+Received: by mail-vs1-f52.google.com with SMTP id j13so8124988vsf.2;
+        Mon, 10 May 2021 03:16:24 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=sVvVN78+/ymEH+RZL6HvoVCZVksTZw7UVoQH006DAA8=;
+        b=uiiBmkHlh6s5t0Q6ekUiP2RK7fY7IrsyQ4X30oiYA8nOMTOpVbsOvsK7rvWIFRp5nB
+         Iyz9R163vNvnPCJjmJnKmSm9EVCKvRl3B8XAu/IQq0hbrCjB938R2BQfS2eqOpwdotGZ
+         9pFwtE0SkDsLD9aCYyjTNEeofBctawz9Do4erZDD9m6RaGkVyXC24qrPpqEUloTKapnG
+         6uYgPdJG0ouqCMdUKazKPGQj0VRN81LNyPxfW1MDE2XhFnh97MuO/gmBH6LojXMha+eq
+         K00aTjCBMcVu5XyNmqHszmx9GMMcQg4BSKMLVtzRWmxVcIZGbF9YWM1CgN4dKUh3KZ7S
+         ao/A==
+X-Gm-Message-State: AOAM531JjyLLwBGwA+OJvXqPpY+9fUftJOP2AN9bNMe6nZntmYtHtYJa
+        9mls5DQUw1KnpELouF1hp176F5u0ZHy/VKgocUs=
+X-Google-Smtp-Source: ABdhPJwCjZFq7knTQzQamMPg7B/M6YwpWZB1FCmai2ATFOyJJM+uqtP/4aHsoLXiIPOmyugP+gy2CWFKz8LbQiDSA/c=
+X-Received: by 2002:a67:8745:: with SMTP id j66mr19115560vsd.18.1620641784321;
+ Mon, 10 May 2021 03:16:24 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-TM-AS-GCONF: 00
-X-Proofpoint-GUID: ZkiAbvuhC_g9f1e7CgcLDmtaOg-OvXfA
-X-Proofpoint-ORIG-GUID: bfCl0hBnD87yqQ7_rrkWEnLuNngh6zg6
-X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.391,18.0.761
- definitions=2021-05-10_02:2021-05-10,2021-05-10 signatures=0
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 impostorscore=0
- lowpriorityscore=0 malwarescore=0 spamscore=0 suspectscore=0 adultscore=0
- mlxscore=0 clxscore=1015 priorityscore=1501 mlxlogscore=861 phishscore=0
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2104190000 definitions=main-2105100061
+References: <20210507220813.365382-1-arnd@kernel.org> <20210507220813.365382-2-arnd@kernel.org>
+In-Reply-To: <20210507220813.365382-2-arnd@kernel.org>
+From:   Geert Uytterhoeven <geert@linux-m68k.org>
+Date:   Mon, 10 May 2021 12:16:13 +0200
+Message-ID: <CAMuHMdV1=mJzbr1cLwo-zUnThh9J8BmdW870dJCvp_Kft8kM2w@mail.gmail.com>
+Subject: Re: [RFC 01/12] asm-generic: use asm-generic/unaligned.h for most architectures
+To:     Arnd Bergmann <arnd@kernel.org>
+Cc:     Linux-Arch <linux-arch@vger.kernel.org>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Vineet Gupta <vgupta@synopsys.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Richard Henderson <rth@twiddle.net>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>,
+        Michal Simek <monstr@monstr.eu>,
+        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
+        Helge Deller <deller@gmx.de>,
+        "David S. Miller" <davem@davemloft.net>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        "the arch/x86 maintainers" <x86@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>,
+        Max Filippov <jcmvbkbc@gmail.com>,
+        alpha <linux-alpha@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        Parisc List <linux-parisc@vger.kernel.org>,
+        sparclinux <sparclinux@vger.kernel.org>,
+        "open list:TENSILICA XTENSA PORT (xtensa)" 
+        <linux-xtensa@linux-xtensa.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Niklas Schnelle <niklas@komani.de>
+Hi Arnd,
 
-Without MMU support PCI_IOBASE is left undefined because PCI_IO_END is
-VMEMMAP_START. Nevertheless the in*()/out*() helper macros are left
-defined with uses of PCI_IOBASE.
+On Sat, May 8, 2021 at 12:09 AM Arnd Bergmann <arnd@kernel.org> wrote:
+> From: Arnd Bergmann <arnd@arndb.de>
+>
+> There are several architectures that just duplicate the contents
+> of asm-generic/unaligned.h, so change those over to use the
+> file directly, to make future modifications easier.
+>
+> The exceptions are:
+>
+> - arm32 sets HAVE_EFFICIENT_UNALIGNED_ACCESS, but wants the
+>   unaligned-struct version
+>
+> - ppc64le disables HAVE_EFFICIENT_UNALIGNED_ACCESS but includes
+>   the access-ok version
+>
+> - m68k (non-dragonball) also uses the access-ok version without
+>   setting HAVE_EFFICIENT_UNALIGNED_ACCESS.
 
-At the moment this only compiles because asm-generic/io.h defines
-PCI_IOBASE as 0 if it is undefined and so at macro expansion PCI_IOBASE
-is defined. This leads to compilation errors when asm-generic/io.h is
-changed to leave PCI_IOBASE undefined.  More importantly it is currently
-broken at runtime, as accessing a fixed I/O port number of an ISA device
-on NOMMU RISC-V would turn into a NULL pointer dereference.
+This not only applies to dragonball, which has the CPU32 core, but also
+to plain 68000, and any SoCs including the 68EC000 core.
 
-Instead only define the in*()/out*() helper macros with MMU support and
-fall back to the asm-generic/io.h helper stubs otherwise.
+It also applies to early Coldfire, but AFAIK Linux doesn't support these
+(see dfe1d26d4a90287e ("m68knommu: Allow ColdFire CPUs to use unaligned
+ accesses")).
 
-Signed-off-by: Niklas Schnelle <niklas@komani.de>
----
- arch/riscv/include/asm/io.h | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ > - sh4a has a custom inline asm version
+>
+> - openrisc is the only one using the memmove version that
+>   generally leads to worse code.
+>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-diff --git a/arch/riscv/include/asm/io.h b/arch/riscv/include/asm/io.h
-index c025a746a148..31a8b98c0f13 100644
---- a/arch/riscv/include/asm/io.h
-+++ b/arch/riscv/include/asm/io.h
-@@ -23,12 +23,12 @@
- #include <asm/mmio.h>
- 
- /*
-- *  I/O port access constants.
-+ *  I/O port access constants. Without MMU support leave PCI_IOBASE undefined
-+ *  and fall back to generic stubs for I/O access routines.
-  */
- #ifdef CONFIG_MMU
- #define IO_SPACE_LIMIT		(PCI_IO_SIZE - 1)
- #define PCI_IOBASE		((void __iomem *)PCI_IO_START)
--#endif /* CONFIG_MMU */
- 
- /*
-  * Emulation routines for the port-mapped IO space used by some PCI drivers.
-@@ -145,6 +145,7 @@ __io_writes_outs(writes, u64, q, __io_bw(), __io_aw())
- __io_writes_outs(outs, u64, q, __io_pbr(), __io_paw())
- #define outsq(addr, buffer, count) __outsq((void __iomem *)addr, buffer, count)
- #endif
-+#endif /* CONFIG_MMU */
- 
- #include <asm-generic/io.h>
- 
+>  arch/m68k/include/asm/unaligned.h       |  9 +-------
+
+Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
 -- 
-2.25.1
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
