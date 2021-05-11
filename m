@@ -2,246 +2,102 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-0.8 required=3.0 tests=BAYES_00,DKIM_ADSP_CUSTOM_MED,
+	FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E52D6C433B4
-	for <linux-arch@archiver.kernel.org>; Mon, 10 May 2021 23:34:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 04AD7C433ED
+	for <linux-arch@archiver.kernel.org>; Tue, 11 May 2021 07:29:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A30B461154
-	for <linux-arch@archiver.kernel.org>; Mon, 10 May 2021 23:34:30 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id CCE4E61927
+	for <linux-arch@archiver.kernel.org>; Tue, 11 May 2021 07:29:05 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229925AbhEJXff (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 10 May 2021 19:35:35 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45542 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229561AbhEJXfd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 May 2021 19:35:33 -0400
-Received: from mail-qt1-x82b.google.com (mail-qt1-x82b.google.com [IPv6:2607:f8b0:4864:20::82b])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CC71BC061574;
-        Mon, 10 May 2021 16:34:26 -0700 (PDT)
-Received: by mail-qt1-x82b.google.com with SMTP id f8so9180189qth.6;
-        Mon, 10 May 2021 16:34:26 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=VBkKGU/ki1TRk8sMHAAIgbib+6nzNUIdtQYyvnJ5USQ=;
-        b=CxW+dEAVXDk0b2mz4xXAAOo7sYkrFcE5NyMGbLT9v+fVGYHFySZSszVTHx4H/liqji
-         Xeq5aF0hmaVzNedK+/d1+rTH5aIzQVpZxviWs9tQSVhAQHdsHYpsiGrXFh9u5DhT9Zdg
-         UOLuhNpNuPl6307+StHDNUrYjsb6XR8CheLiAeP54NkA0/tKve4OYAUOIvtsTBmfYqfX
-         HaUySPfTrhoIhD7m1OE4acogxJl33PpXBFRPV5BXoAowrb44D61fGrkf9BsTxNXaH0w4
-         Q3sirpM2o1JXsSpmWHU/B7y+310h8D691jnYP+y8aTs+tcl8mr76M1RU+hghStXgptK/
-         m1RQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=VBkKGU/ki1TRk8sMHAAIgbib+6nzNUIdtQYyvnJ5USQ=;
-        b=QLT8TjWGD9WqHlkyHuC2lzMYLc1Cd0gzazxwpTVwQbo/CU9q51N9HXY3gUvjkeKqv/
-         WjWMDXeepjubPeXq+m00+xFoGUtVlf46hrVkOMDUsi/wBVWNjuRW3ImDKp3mgMNkeDFX
-         tE1uHh8uQPriAI2FebSJf2IncdwZ3xKTIMKmjkJAqxW7MXkaKUyIDhCXgMzImP1y75BA
-         z81pQB4YG00NkH9Azf14dUJYOS3DwMovzZzivf2Mix3BfRoTbo/0gPA6VFcJz/pkdIkK
-         0FGqk4KKMJ4ZpwbemEQd5Wk+L7gGZvXGzlbxZjcjT8Lee84kMciPoQ3ZkUH6a4uXzJSk
-         E/+Q==
-X-Gm-Message-State: AOAM5339LvzZLcI3Mm+43JJQCIKNgLeLyVNs2dny/9gay5c/6Ujc2mUE
-        ektDForauqgi7zWj12NY7SEXxrGpkhdVDA==
-X-Google-Smtp-Source: ABdhPJx3h/hkHoHuys3vF3Pv9tha50NlDAjZ7yH2vb6gQ0kPvY6LQcUL8DPQUTXcb5C3DWHyADBvBg==
-X-Received: by 2002:a05:622a:2c9:: with SMTP id a9mr10456062qtx.38.1620689665622;
-        Mon, 10 May 2021 16:34:25 -0700 (PDT)
-Received: from localhost ([207.98.216.60])
-        by smtp.gmail.com with ESMTPSA id z4sm12639919qtv.7.2021.05.10.16.34.24
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 10 May 2021 16:34:25 -0700 (PDT)
-From:   Yury Norov <yury.norov@gmail.com>
-To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc:     Yury Norov <yury.norov@gmail.com>,
-        Alexander Lobakin <alobakin@pm.me>,
-        Alexey Klimov <aklimov@redhat.com>,
-        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christian Borntraeger <borntraeger@de.ibm.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Ingo Molnar <mingo@redhat.com>,
-        Jacob Keller <jacob.e.keller@intel.com>,
-        Jarkko Sakkinen <jarkko@kernel.org>,
-        Jeff Dike <jdike@addtoit.com>,
-        Kees Cook <keescook@chromium.org>,
-        Mark Brown <broonie@kernel.org>,
-        Matti Vaittinen <matti.vaittinen@fi.rohmeurope.com>,
-        Nick Terrell <terrelln@fb.com>,
-        Palmer Dabbelt <palmerdabbelt@google.com>,
+        id S230423AbhEKHaK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 11 May 2021 03:30:10 -0400
+Received: from mga14.intel.com ([192.55.52.115]:2345 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S230343AbhEKHaJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 May 2021 03:30:09 -0400
+IronPort-SDR: 2a3sua9LSu5UwqCjj3ECqz0JxdHpWprz7vk3wu+76mZAE3VaVUd8Tf5nNJDeQbQN00E0eMWMIL
+ ukBx0dYAWnHw==
+X-IronPort-AV: E=McAfee;i="6200,9189,9980"; a="199055536"
+X-IronPort-AV: E=Sophos;i="5.82,290,1613462400"; 
+   d="scan'208";a="199055536"
+Received: from orsmga006.jf.intel.com ([10.7.209.51])
+  by fmsmga103.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 11 May 2021 00:29:02 -0700
+IronPort-SDR: C7OJU3FJBXjmJjf42PenthZldjvEx+Zg3fDBLwRehBrErTcGWOYpmfYxyezuSaufd/62hw6QOP
+ TN732OV4sUpw==
+X-IronPort-AV: E=Sophos;i="5.82,290,1613462400"; 
+   d="scan'208";a="392204982"
+Received: from smile.fi.intel.com (HELO smile) ([10.237.68.40])
+  by orsmga006-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 11 May 2021 00:28:54 -0700
+Received: from andy by smile with local (Exim 4.94)
+        (envelope-from <andy.shevchenko@gmail.com>)
+        id 1lgMp0-00BNQ4-HI; Tue, 11 May 2021 10:28:50 +0300
+Date:   Tue, 11 May 2021 10:28:50 +0300
+From:   Andy Shevchenko <andy.shevchenko@gmail.com>
+To:     Rikard Falkeborn <rikard.falkeborn@gmail.com>
+Cc:     Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>,
+        Yury Norov <yury.norov@gmail.com>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
         Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-        Richard Weinberger <richard@nod.at>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Vijayanand Jitta <vjitta@codeaurora.org>,
-        Vineet Gupta <vgupta@synopsys.com>,
-        Will Deacon <will@kernel.org>, Yogesh Lal <ylal@codeaurora.org>
-Subject: [PATCH] all: remove GENERIC_FIND_FIRST_BIT
-Date:   Mon, 10 May 2021 16:34:21 -0700
-Message-Id: <20210510233421.18684-1-yury.norov@gmail.com>
-X-Mailer: git-send-email 2.30.2
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        Linux-SH <linux-sh@vger.kernel.org>,
+        Alexey Klimov <aklimov@redhat.com>,
+        Arnd Bergmann <arnd@arndb.de>, David Sterba <dsterba@suse.com>,
+        Dennis Zhou <dennis@kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Jianpeng Ma <jianpeng.ma@intel.com>,
+        Joe Perches <joe@perches.com>,
+        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+        Josh Poimboeuf <jpoimboe@redhat.com>,
+        Rich Felker <dalias@libc.org>,
+        Stefano Brivio <sbrivio@redhat.com>,
+        Wei Yang <richard.weiyang@linux.alibaba.com>,
+        Wolfram Sang <wsa+renesas@sang-engineering.com>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>
+Subject: Re: [PATCH 11/12] tools: sync lib/find_bit implementation
+Message-ID: <YJoyMrqRtB3GSAny@smile.fi.intel.com>
+References: <20210401003153.97325-1-yury.norov@gmail.com>
+ <20210401003153.97325-12-yury.norov@gmail.com>
+ <1ac7bbc2-45d9-26ed-0b33-bf382b8d858b@I-love.SAKURA.ne.jp>
+ <CAHp75Vea0Y_LfWC7LNDoDZqO4t+SVHV5HZMzErfyMPoBAjjk1g@mail.gmail.com>
+ <YJm5Dpo+RspbAtye@rikard>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <YJm5Dpo+RspbAtye@rikard>
+Organization: Intel Finland Oy - BIC 0357606-4 - Westendinkatu 7, 02160 Espoo
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-In the 5.12 cycle we enabled the GENERIC_FIND_FIRST_BIT config option
-for ARM64 and MIPS. It increased performance and shrunk .text size; and
-so far I didn't receive any negative feedback on the change.
+On Tue, May 11, 2021 at 12:51:58AM +0200, Rikard Falkeborn wrote:
+> On Mon, May 10, 2021 at 06:44:44PM +0300, Andy Shevchenko wrote:
 
-https://lore.kernel.org/linux-arch/20210225135700.1381396-1-yury.norov@gmail.com/
+...
 
-I think it's time to make all architectures use find_{first,last}_bit()
-unconditionally and remove the corresponding config option.
+> Does the following work for you? For simplicity, I copied__is_constexpr from
+> include/linux/minmax.h (which isn't available in tools/). A proper patch
+> would reuse __is_constexpr (possibly refactoring it to a separate
+> header since bits.h including minmax.h for that only seems smelly)
 
-This patch doesn't introduce functional changes for arc, arm64, mips,
-s390 and x86 because they already enable GENERIC_FIND_FIRST_BIT. There
-will be no changes for arm because it implements find_{first,last}_bit
-in arch code. For other architectures I expect improvement both in
-performance and .text size.
+I think we need to have it in something like compiler.h (top level). Under
+'top level' I meant something with the function as of compiler.h but with
+Linuxisms rather than compiler attributes or so.
 
-It would be great if people with an access to real hardware would share
-the output of bloat-o-meter and lib/find_bit_benchmark.
+Separate header for the (single) macro is too much...
 
-Signed-off-by: Yury Norov <yury.norov@gmail.com>
----
- arch/arc/Kconfig                  |  1 -
- arch/arm64/Kconfig                |  1 -
- arch/mips/Kconfig                 |  1 -
- arch/s390/Kconfig                 |  1 -
- arch/x86/Kconfig                  |  1 -
- arch/x86/um/Kconfig               |  1 -
- include/asm-generic/bitops/find.h | 12 ------------
- lib/Kconfig                       |  3 ---
- 8 files changed, 21 deletions(-)
+> and fix
+> bits.h in the kernel header as well, to keep the files in sync.
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index bc8d6aecfbbd..9c991ba50db3 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -19,7 +19,6 @@ config ARC
- 	select COMMON_CLK
- 	select DMA_DIRECT_REMAP
- 	select GENERIC_ATOMIC64 if !ISA_ARCV2 || !(ARC_HAS_LL64 && ARC_HAS_LLSC)
--	select GENERIC_FIND_FIRST_BIT
- 	# for now, we don't need GENERIC_IRQ_PROBE, CONFIG_GENERIC_IRQ_CHIP
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_PCI_IOMAP
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index e09a9591af45..9d5b36f7d981 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -108,7 +108,6 @@ config ARM64
- 	select GENERIC_CPU_AUTOPROBE
- 	select GENERIC_CPU_VULNERABILITIES
- 	select GENERIC_EARLY_IOREMAP
--	select GENERIC_FIND_FIRST_BIT
- 	select GENERIC_IDLE_POLL_SETUP
- 	select GENERIC_IRQ_IPI
- 	select GENERIC_IRQ_PROBE
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index b72458215d20..3ddae7918386 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -27,7 +27,6 @@ config MIPS
- 	select GENERIC_ATOMIC64 if !64BIT
- 	select GENERIC_CMOS_UPDATE
- 	select GENERIC_CPU_AUTOPROBE
--	select GENERIC_FIND_FIRST_BIT
- 	select GENERIC_GETTIMEOFDAY
- 	select GENERIC_IOMAP
- 	select GENERIC_IRQ_PROBE
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index c1ff874e6c2e..3a10ceb8a097 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -125,7 +125,6 @@ config S390
- 	select GENERIC_CPU_AUTOPROBE
- 	select GENERIC_CPU_VULNERABILITIES
- 	select GENERIC_ENTRY
--	select GENERIC_FIND_FIRST_BIT
- 	select GENERIC_GETTIMEOFDAY
- 	select GENERIC_PTDUMP
- 	select GENERIC_SMP_IDLE_THREAD
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index b83364a15d34..6a7d8305365e 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -123,7 +123,6 @@ config X86
- 	select GENERIC_CPU_VULNERABILITIES
- 	select GENERIC_EARLY_IOREMAP
- 	select GENERIC_ENTRY
--	select GENERIC_FIND_FIRST_BIT
- 	select GENERIC_IOMAP
- 	select GENERIC_IRQ_EFFECTIVE_AFF_MASK	if SMP
- 	select GENERIC_IRQ_MATRIX_ALLOCATOR	if X86_LOCAL_APIC
-diff --git a/arch/x86/um/Kconfig b/arch/x86/um/Kconfig
-index 95d26a69088b..40d6a06e41c8 100644
---- a/arch/x86/um/Kconfig
-+++ b/arch/x86/um/Kconfig
-@@ -8,7 +8,6 @@ endmenu
- 
- config UML_X86
- 	def_bool y
--	select GENERIC_FIND_FIRST_BIT
- 
- config 64BIT
- 	bool "64-bit kernel" if "$(SUBARCH)" = "x86"
-diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-index 0d132ee2a291..8a7b70c79e15 100644
---- a/include/asm-generic/bitops/find.h
-+++ b/include/asm-generic/bitops/find.h
-@@ -95,8 +95,6 @@ unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
- }
- #endif
- 
--#ifdef CONFIG_GENERIC_FIND_FIRST_BIT
--
- /**
-  * find_first_bit - find the first set bit in a memory region
-  * @addr: The address to start the search at
-@@ -136,16 +134,6 @@ unsigned long find_first_zero_bit(const unsigned long *addr, unsigned long size)
- 
- 	return _find_first_zero_bit(addr, size);
- }
--#else /* CONFIG_GENERIC_FIND_FIRST_BIT */
--
--#ifndef find_first_bit
--#define find_first_bit(addr, size) find_next_bit((addr), (size), 0)
--#endif
--#ifndef find_first_zero_bit
--#define find_first_zero_bit(addr, size) find_next_zero_bit((addr), (size), 0)
--#endif
--
--#endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
- 
- #ifndef find_last_bit
- /**
-diff --git a/lib/Kconfig b/lib/Kconfig
-index a38cc61256f1..8346b3181214 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -59,9 +59,6 @@ config GENERIC_STRNLEN_USER
- config GENERIC_NET_UTILS
- 	bool
- 
--config GENERIC_FIND_FIRST_BIT
--	bool
--
- source "lib/math/Kconfig"
- 
- config NO_GENERIC_PCI_IOPORT_MAP
+Right.
+
 -- 
-2.25.1
+With Best Regards,
+Andy Shevchenko
+
 
