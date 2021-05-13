@@ -2,86 +2,216 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 82D5CC43461
-	for <linux-arch@archiver.kernel.org>; Thu, 13 May 2021 03:20:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 310D4C43460
+	for <linux-arch@archiver.kernel.org>; Thu, 13 May 2021 04:07:13 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5BB37613FB
-	for <linux-arch@archiver.kernel.org>; Thu, 13 May 2021 03:20:27 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 09447613BE
+	for <linux-arch@archiver.kernel.org>; Thu, 13 May 2021 04:07:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230472AbhEMDVe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 12 May 2021 23:21:34 -0400
-Received: from mga01.intel.com ([192.55.52.88]:3839 "EHLO mga01.intel.com"
+        id S229460AbhEMEIU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 13 May 2021 00:08:20 -0400
+Received: from mga02.intel.com ([134.134.136.20]:32791 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230186AbhEMDVe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 May 2021 23:21:34 -0400
-IronPort-SDR: jpcampUkN8j5ENkutHgnXttTP6UuQWbFX21OkssKz541OKdmrHjBDaIsHglOMfbgUTHtTo9wcM
- u7frGVag81Sg==
-X-IronPort-AV: E=McAfee;i="6200,9189,9982"; a="220844202"
+        id S229503AbhEMEIT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 May 2021 00:08:19 -0400
+IronPort-SDR: hMgtISa7ZemgShrRukB+WjgRvyBztgow5smns/2RtbjPquGtgQoncscIdE01IpeVhDrbRckWEt
+ fxa44Bs34u9Q==
+X-IronPort-AV: E=McAfee;i="6200,9189,9982"; a="186994108"
 X-IronPort-AV: E=Sophos;i="5.82,296,1613462400"; 
-   d="scan'208";a="220844202"
-Received: from fmsmga006.fm.intel.com ([10.253.24.20])
-  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 May 2021 20:20:20 -0700
-IronPort-SDR: mj7EoWy5caILec4mbk32Dm0KgdMRCgdis+B5aYwjfmce1/m431ZPlq/GAXkQxk0u9LSJU6JlnK
- f6t1SWydDh2g==
+   d="scan'208";a="186994108"
+Received: from orsmga001.jf.intel.com ([10.7.209.18])
+  by orsmga101.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 May 2021 21:07:06 -0700
+IronPort-SDR: JeNYgLTYN77sOLTwEQu1GwoYTvW8CYF49QYfmDt4yA1vkWkw449K8RgrPNTvDxX4W+7hvTfWDT
+ H2pk1XjgznDA==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="5.82,296,1613462400"; 
-   d="scan'208";a="623090674"
-Received: from allen-box.sh.intel.com (HELO [10.239.159.128]) ([10.239.159.128])
-  by fmsmga006.fm.intel.com with ESMTP; 12 May 2021 20:20:14 -0700
-Cc:     baolu.lu@linux.intel.com, linux-hyperv@vger.kernel.org,
-        brijesh.singh@amd.com, linux-mm@kvack.org, hpa@zytor.com,
-        kys@microsoft.com, will@kernel.org, sunilmut@microsoft.com,
-        linux-arch@vger.kernel.org, wei.liu@kernel.org,
-        sthemmin@microsoft.com, linux-scsi@vger.kernel.org, x86@kernel.org,
-        mingo@redhat.com, kuba@kernel.org, jejb@linux.ibm.com,
-        thomas.lendacky@amd.com, Tianyu Lan <Tianyu.Lan@microsoft.com>,
-        arnd@arndb.de, haiyangz@microsoft.com, bp@alien8.de,
-        tglx@linutronix.de, vkuznets@redhat.com,
-        martin.petersen@oracle.com, gregkh@linuxfoundation.org,
-        linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org,
-        netdev@vger.kernel.org, akpm@linux-foundation.org,
-        robin.murphy@arm.com, davem@davemloft.net
-Subject: Re: [Resend RFC PATCH V2 10/12] HV/IOMMU: Add Hyper-V dma ops support
-To:     Tianyu Lan <ltykernel@gmail.com>, Christoph Hellwig <hch@lst.de>,
-        konrad.wilk@oracle.com
-References: <20210414144945.3460554-1-ltykernel@gmail.com>
- <20210414144945.3460554-11-ltykernel@gmail.com>
- <20210414154729.GD32045@lst.de>
- <a316af73-2c96-f307-6285-593597e05123@gmail.com>
-From:   Lu Baolu <baolu.lu@linux.intel.com>
-Message-ID: <7cda690b-adb0-1f5f-2048-b52f75c0399f@linux.intel.com>
-Date:   Thu, 13 May 2021 11:19:26 +0800
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.7.1
+   d="scan'208";a="471602181"
+Received: from lkp-server01.sh.intel.com (HELO ddd90b05c979) ([10.239.97.150])
+  by orsmga001.jf.intel.com with ESMTP; 12 May 2021 21:07:05 -0700
+Received: from kbuild by ddd90b05c979 with local (Exim 4.92)
+        (envelope-from <lkp@intel.com>)
+        id 1lh2cq-00005z-Ip; Thu, 13 May 2021 04:07:04 +0000
+Date:   Thu, 13 May 2021 12:06:13 +0800
+From:   kernel test robot <lkp@intel.com>
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     linux-arch@vger.kernel.org
+Subject: [asm-generic:unaligned-rework-v2] BUILD SUCCESS
+ 3be8a90fd433063539ff7b563a29c34b449f1c34
+Message-ID: <609ca5b5.9bdrI1fuyiZEMQHe%lkp@intel.com>
+User-Agent: Heirloom mailx 12.5 6/20/10
 MIME-Version: 1.0
-In-Reply-To: <a316af73-2c96-f307-6285-593597e05123@gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 5/13/21 12:01 AM, Tianyu Lan wrote:
-> Hi Christoph and Konrad:
->       Current Swiotlb bounce buffer uses a pool for all devices. There
-> is a high overhead to get or free bounce buffer during performance test.
-> Swiotlb code now use a global spin lock to protect bounce buffer data.
-> Several device queues try to acquire the spin lock and this introduce
-> additional overhead.
-> 
-> For performance and security perspective, each devices should have a
-> separate swiotlb bounce buffer pool and so this part needs to rework.
-> I want to check this is right way to resolve performance issues with 
-> swiotlb bounce buffer. If you have some other suggestions,welcome.
+tree/branch: https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git unaligned-rework-v2
+branch HEAD: 3be8a90fd433063539ff7b563a29c34b449f1c34  asm-generic: simplify asm/unaligned.h
 
-Is this what you want?
+elapsed time: 720m
 
-https://lore.kernel.org/linux-iommu/20210510095026.3477496-1-tientzu@chromium.org/
+configs tested: 146
+configs skipped: 3
 
-Best regards,
-baolu
+The following configs have been built successfully.
+More configs may be tested in the coming days.
+
+gcc tested configs:
+arm                                 defconfig
+arm64                            allyesconfig
+arm64                               defconfig
+arm                              allyesconfig
+arm                              allmodconfig
+s390                       zfcpdump_defconfig
+xtensa                    xip_kc705_defconfig
+m68k                        m5407c3_defconfig
+arc                 nsimosci_hs_smp_defconfig
+ia64                        generic_defconfig
+sh                          lboxre2_defconfig
+powerpc                 mpc836x_rdk_defconfig
+mips                     loongson2k_defconfig
+sh                         microdev_defconfig
+powerpc                       ppc64_defconfig
+arm                           h5000_defconfig
+h8300                               defconfig
+openrisc                  or1klitex_defconfig
+mips                     cu1000-neo_defconfig
+arm                           omap1_defconfig
+m68k                        mvme147_defconfig
+powerpc                     skiroot_defconfig
+arm                              alldefconfig
+m68k                       m5208evb_defconfig
+arm                           viper_defconfig
+sh                        edosk7705_defconfig
+powerpc                      cm5200_defconfig
+powerpc                        warp_defconfig
+arm                  colibri_pxa270_defconfig
+powerpc                     kmeter1_defconfig
+s390                          debug_defconfig
+powerpc                   currituck_defconfig
+arm                        neponset_defconfig
+m68k                             allyesconfig
+s390                             allyesconfig
+powerpc                      bamboo_defconfig
+m68k                       bvme6000_defconfig
+arm                     am200epdkit_defconfig
+sh                        dreamcast_defconfig
+mips                           gcw0_defconfig
+powerpc                 mpc834x_itx_defconfig
+arm                          ixp4xx_defconfig
+sh                        sh7785lcr_defconfig
+mips                           ci20_defconfig
+powerpc                 mpc8272_ads_defconfig
+sh                             sh03_defconfig
+arm                           sama5_defconfig
+arm                       imx_v6_v7_defconfig
+sh                         ap325rxa_defconfig
+sparc                               defconfig
+powerpc                          g5_defconfig
+powerpc                 mpc834x_mds_defconfig
+ia64                          tiger_defconfig
+powerpc                       holly_defconfig
+arm                   milbeaut_m10v_defconfig
+arm                          exynos_defconfig
+arm                        multi_v5_defconfig
+arm                          simpad_defconfig
+mips                     loongson1b_defconfig
+m68k                        mvme16x_defconfig
+m68k                       m5249evb_defconfig
+powerpc                        cell_defconfig
+sh                           se7780_defconfig
+x86_64                            allnoconfig
+ia64                             allmodconfig
+ia64                                defconfig
+ia64                             allyesconfig
+m68k                             allmodconfig
+m68k                                defconfig
+nios2                               defconfig
+arc                              allyesconfig
+nds32                             allnoconfig
+nds32                               defconfig
+nios2                            allyesconfig
+csky                                defconfig
+alpha                               defconfig
+alpha                            allyesconfig
+xtensa                           allyesconfig
+h8300                            allyesconfig
+arc                                 defconfig
+sh                               allmodconfig
+parisc                              defconfig
+s390                             allmodconfig
+parisc                           allyesconfig
+s390                                defconfig
+i386                             allyesconfig
+sparc                            allyesconfig
+i386                                defconfig
+mips                             allyesconfig
+mips                             allmodconfig
+powerpc                          allyesconfig
+powerpc                          allmodconfig
+powerpc                           allnoconfig
+i386                 randconfig-a003-20210512
+i386                 randconfig-a001-20210512
+i386                 randconfig-a005-20210512
+i386                 randconfig-a004-20210512
+i386                 randconfig-a002-20210512
+i386                 randconfig-a006-20210512
+i386                 randconfig-a003-20210513
+i386                 randconfig-a001-20210513
+i386                 randconfig-a005-20210513
+i386                 randconfig-a004-20210513
+i386                 randconfig-a002-20210513
+i386                 randconfig-a006-20210513
+i386                 randconfig-a016-20210512
+i386                 randconfig-a014-20210512
+i386                 randconfig-a011-20210512
+i386                 randconfig-a015-20210512
+i386                 randconfig-a012-20210512
+i386                 randconfig-a013-20210512
+x86_64               randconfig-a003-20210512
+x86_64               randconfig-a004-20210512
+x86_64               randconfig-a001-20210512
+x86_64               randconfig-a005-20210512
+x86_64               randconfig-a002-20210512
+x86_64               randconfig-a006-20210512
+riscv                    nommu_k210_defconfig
+riscv                            allyesconfig
+riscv                    nommu_virt_defconfig
+riscv                             allnoconfig
+riscv                               defconfig
+riscv                          rv32_defconfig
+riscv                            allmodconfig
+um                               allmodconfig
+um                                allnoconfig
+um                               allyesconfig
+um                                  defconfig
+x86_64                    rhel-8.3-kselftests
+x86_64                              defconfig
+x86_64                               rhel-8.3
+x86_64                      rhel-8.3-kbuiltin
+x86_64                                  kexec
+x86_64                           allyesconfig
+
+clang tested configs:
+x86_64               randconfig-a003-20210513
+x86_64               randconfig-a004-20210513
+x86_64               randconfig-a001-20210513
+x86_64               randconfig-a005-20210513
+x86_64               randconfig-a002-20210513
+x86_64               randconfig-a006-20210513
+x86_64               randconfig-a015-20210512
+x86_64               randconfig-a012-20210512
+x86_64               randconfig-a011-20210512
+x86_64               randconfig-a013-20210512
+x86_64               randconfig-a016-20210512
+x86_64               randconfig-a014-20210512
+
+---
+0-DAY CI Kernel Test Service, Intel Corporation
+https://lists.01.org/hyperkitty/list/kbuild-all@lists.01.org
