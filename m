@@ -3,86 +3,59 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
 X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no autolearn_force=no
-	version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E3FBCC433B4
-	for <linux-arch@archiver.kernel.org>; Sat, 15 May 2021 06:28:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E2EF3C433B4
+	for <linux-arch@archiver.kernel.org>; Sat, 15 May 2021 06:40:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id C542461404
-	for <linux-arch@archiver.kernel.org>; Sat, 15 May 2021 06:28:34 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C0DB5613EB
+	for <linux-arch@archiver.kernel.org>; Sat, 15 May 2021 06:40:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230523AbhEOG3p (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 15 May 2021 02:29:45 -0400
-Received: from pegase2.c-s.fr ([93.17.235.10]:39263 "EHLO pegase2.c-s.fr"
+        id S231851AbhEOGld (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 15 May 2021 02:41:33 -0400
+Received: from verein.lst.de ([213.95.11.211]:52559 "EHLO verein.lst.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229980AbhEOG3o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 15 May 2021 02:29:44 -0400
-Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
-        by localhost (Postfix) with ESMTP id 4FhwSs2YMvz9sbb;
-        Sat, 15 May 2021 08:28:29 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from pegase2.c-s.fr ([172.26.127.65])
-        by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-        with ESMTP id zEapEaUkxjZf; Sat, 15 May 2021 08:28:29 +0200 (CEST)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase2.c-s.fr (Postfix) with ESMTP id 4FhwSs1YWcz9sbT;
-        Sat, 15 May 2021 08:28:29 +0200 (CEST)
-Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 1A8538B76E;
-        Sat, 15 May 2021 08:28:29 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id TQ3BUIWyNMAO; Sat, 15 May 2021 08:28:29 +0200 (CEST)
-Received: from [192.168.4.90] (unknown [192.168.4.90])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 5554B8B765;
-        Sat, 15 May 2021 08:28:28 +0200 (CEST)
-Subject: Re: [PATCH] arm64: Define only {pud/pmd}_{set/clear}_huge when
- usefull
-To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     Nicholas Piggin <npiggin@gmail.com>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Mike Rapoport <rppt@kernel.org>, naresh.kamboju@linaro.org,
-        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        sparclinux@vger.kernel.org, linux-mm@kvack.org
-References: <73ec95f40cafbbb69bdfb43a7f53876fd845b0ce.1620990479.git.christophe.leroy@csgroup.eu>
- <20210514144200.b49ee77c9b2a7f9998ffbf22@linux-foundation.org>
-From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-Message-ID: <ae1be8a1-8412-1288-31d4-23dc2cf4e5e7@csgroup.eu>
-Date:   Sat, 15 May 2021 08:28:25 +0200
-User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:78.0) Gecko/20100101
- Thunderbird/78.10.1
+        id S231481AbhEOGlc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 15 May 2021 02:41:32 -0400
+Received: by verein.lst.de (Postfix, from userid 2407)
+        id 0F3AA6736F; Sat, 15 May 2021 08:40:15 +0200 (CEST)
+Date:   Sat, 15 May 2021 08:40:15 +0200
+From:   Christoph Hellwig <hch@lst.de>
+To:     Arnd Bergmann <arnd@kernel.org>
+Cc:     linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
+        Christoph Hellwig <hch@lst.de>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Vineet Gupta <vgupta@synopsys.com>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Brian Cain <bcain@codeaurora.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Jeff Dike <jdike@addtoit.com>,
+        Richard Weinberger <richard@nod.at>,
+        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+        Sid Manning <sidneym@codeaurora.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Mike Rapoport <rppt@kernel.org>,
+        linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org,
+        uclinux-h8-devel@lists.sourceforge.jp,
+        linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        linux-riscv@lists.infradead.org, linux-um@lists.infradead.org
+Subject: Re: [PATCH 0/5] asm-generic: strncpy_from_user/strnlen_user cleanup
+Message-ID: <20210515064015.GA26545@lst.de>
+References: <20210514220942.879805-1-arnd@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20210514144200.b49ee77c9b2a7f9998ffbf22@linux-foundation.org>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210514220942.879805-1-arnd@kernel.org>
+User-Agent: Mutt/1.5.17 (2007-11-01)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-
-
-Le 14/05/2021 à 23:42, Andrew Morton a écrit :
-> On Fri, 14 May 2021 11:08:53 +0000 (UTC) Christophe Leroy <christophe.leroy@csgroup.eu> wrote:
-> 
->> When PUD and/or PMD are folded, those functions are useless
->> and we now have a stub in linux/pgtable.h
-> 
-> OK, help me out here please.  What patch does this fix?
-> 
-
-Both this one and the x86 one from the day before fix 1cff41494b15cd82c1ec418bb5c ("mm/pgtable: add 
-stubs for {pmd/pub}_{set/clear}_huge")
-
-I think both the x86 fix and the arm64 fix should be squashed into that patch at the end.
-
-I checked, the only other architecture involving pud_set_huge() and friends is powerpc, and powerpc 
-doesn't have this problem as it only defined those for book3s/64 platforms which have 4 level page 
-tables by definition.
-
-Thanks
-Christophe
+I generall like this consolidation, but for the patches that remote
+the arch / asm-generic versions, can you please elaborate a little
+more why the lib version is preferable?  The current commit logs are
+not very informative.
