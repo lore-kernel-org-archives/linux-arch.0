@@ -2,78 +2,109 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 48C9FC433B4
-	for <linux-arch@archiver.kernel.org>; Mon, 17 May 2021 10:45:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6C9B2C433B4
+	for <linux-arch@archiver.kernel.org>; Mon, 17 May 2021 15:32:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 15158611ED
-	for <linux-arch@archiver.kernel.org>; Mon, 17 May 2021 10:45:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 4DC9960FE6
+	for <linux-arch@archiver.kernel.org>; Mon, 17 May 2021 15:32:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236319AbhEQKq2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 17 May 2021 06:46:28 -0400
-Received: from mail.kernel.org ([198.145.29.99]:56118 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S236273AbhEQKq1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 May 2021 06:46:27 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 8047761028;
-        Mon, 17 May 2021 10:45:11 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1621248311;
-        bh=MfBhlIm6ttO2xvDas63oVgDfnITP1qZCHrHI4sM+oEM=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=chyQwoC8q/NtCwZkNBAB/oJENFUdQzdsi/FL4WrkTko3bUjXY8PsHReKxlMUt8xV4
-         VcWqWkXBV+3qBelh0O1jFAn4BlN2TdnEvIQ9WX+deZWijhrLkWvAdkyXzBDnF9oS20
-         s13p2KAbEqwZtQGy6HcCLyReDdaxS8VvwCb/JRbMHKxsJcRRnvfLh2NNMHM6XTG87y
-         EM9gFE1/A+AVvdFESMaopn2Irp0APzWTyBiF11Ic9JjbJITd4dqNMQeNo4R9Y+txEN
-         Ar29Xv+KiQOrGSJ0jwdfokAufVd2SXCkkATJSOvZVJLPOdXR4aTHxgq0eX9fjoft0j
-         aszM0dYdLoZxQ==
-Received: by mail-wr1-f53.google.com with SMTP id d11so5844146wrw.8;
-        Mon, 17 May 2021 03:45:11 -0700 (PDT)
-X-Gm-Message-State: AOAM533tuvWb+Wp+no8NL5hrp0O05OLIpacXncw8ZicNpUjhu8YoUBAm
-        UJiqtqQhaZ9d9C0pMkElzVoxV9Z7H7b3HHV099w=
-X-Google-Smtp-Source: ABdhPJydTmJ+TdDoabnzD0bVCQmcH8J9rgJ9iTHN3z/Oaaf0fuuf+kmZkxWd76uWziFDIrctGAy+de2BQK2TxZTjth0=
-X-Received: by 2002:adf:e589:: with SMTP id l9mr4904057wrm.361.1621248310197;
- Mon, 17 May 2021 03:45:10 -0700 (PDT)
+        id S245061AbhEQPdR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 17 May 2021 11:33:17 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:38832 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S244432AbhEQPbO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 May 2021 11:31:14 -0400
+Received: from in02.mta.xmission.com ([166.70.13.52])
+        by out03.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1lifBk-0003MZ-KS; Mon, 17 May 2021 09:29:48 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95] helo=fess.xmission.com)
+        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1lifBj-00BZOl-IR; Mon, 17 May 2021 09:29:48 -0600
+From:   ebiederm@xmission.com (Eric W. Biederman)
+To:     Ingo Molnar <mingo@kernel.org>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Florian Weimer <fweimer@redhat.com>,
+        "David S. Miller" <davem@davemloft.net>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Peter Collingbourne <pcc@google.com>,
+        Dmitry Vyukov <dvyukov@google.com>,
+        Alexander Potapenko <glider@google.com>,
+        sparclinux <sparclinux@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux API <linux-api@vger.kernel.org>,
+        kasan-dev <kasan-dev@googlegroups.com>,
+        Marco Elver <elver@google.com>
+References: <m15z031z0a.fsf@fess.ebiederm.org>
+        <YIxVWkT03TqcJLY3@elver.google.com>
+        <m1zgxfs7zq.fsf_-_@fess.ebiederm.org>
+        <m1r1irpc5v.fsf@fess.ebiederm.org>
+        <CANpmjNNfiSgntiOzgMc5Y41KVAV_3VexdXCMADekbQEqSP3vqQ@mail.gmail.com>
+        <m1czuapjpx.fsf@fess.ebiederm.org>
+        <CANpmjNNyifBNdpejc6ofT6+n6FtUw-Cap_z9Z9YCevd7Wf3JYQ@mail.gmail.com>
+        <m14kfjh8et.fsf_-_@fess.ebiederm.org>
+        <m1tuni8ano.fsf_-_@fess.ebiederm.org>
+        <m1a6oxewym.fsf_-_@fess.ebiederm.org> <YKDMWXj2YDkDy1DG@gmail.com>
+Date:   Mon, 17 May 2021 10:29:39 -0500
+In-Reply-To: <YKDMWXj2YDkDy1DG@gmail.com> (Ingo Molnar's message of "Sun, 16
+        May 2021 09:40:09 +0200")
+Message-ID: <m1wnrx750c.fsf@fess.ebiederm.org>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
-References: <20210514100106.3404011-1-arnd@kernel.org> <20210514100106.3404011-9-arnd@kernel.org>
- <YKJFRBynJXoFtTyy@infradead.org>
-In-Reply-To: <YKJFRBynJXoFtTyy@infradead.org>
-From:   Arnd Bergmann <arnd@kernel.org>
-Date:   Mon, 17 May 2021 12:44:02 +0200
-X-Gmail-Original-Message-ID: <CAK8P3a3kEy4SiZV1O3xW-Qzy=DYpJub93K4N8q=MWH8z1G31vQ@mail.gmail.com>
-Message-ID: <CAK8P3a3kEy4SiZV1O3xW-Qzy=DYpJub93K4N8q=MWH8z1G31vQ@mail.gmail.com>
-Subject: Re: [PATCH v2 08/13] partitions: msdos: fix one-byte get_unaligned()
-To:     Christoph Hellwig <hch@infradead.org>
-Cc:     linux-arch <linux-arch@vger.kernel.org>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Vineet Gupta <vgupta@synopsys.com>,
-        "Richard Russon (FlatCap)" <ldm@flatcap.org>,
-        Jens Axboe <axboe@kernel.dk>,
-        linux-ntfs-dev@lists.sourceforge.net,
-        linux-block <linux-block@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
+X-XM-SPF: eid=1lifBj-00BZOl-IR;;;mid=<m1wnrx750c.fsf@fess.ebiederm.org>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX199lR/IyLLJ1RHiRf25MlrgYHNCCIjDaII=
+X-SA-Exim-Connect-IP: 68.227.160.95
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: Re: [GIT PULL] siginfo: ABI fixes for v5.13-rc2
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, May 17, 2021 at 12:28 PM Christoph Hellwig <hch@infradead.org> wrote:
->
-> On Fri, May 14, 2021 at 12:00:56PM +0200, Arnd Bergmann wrote:
-> >  /* Borrowed from msdos.c */
-> > -#define SYS_IND(p)           (get_unaligned(&(p)->sys_ind))
-> > +#define SYS_IND(p)           ((p)->sys_ind)
->
-> Please just kill this macro entirely.
->
-> > -#define SYS_IND(p)   get_unaligned(&p->sys_ind)
-> > +#define SYS_IND(p)   (p->sys_ind)
->
-> Same here.
+Ingo Molnar <mingo@kernel.org> writes:
 
-Done, thanks for taking a look.
+> * Eric W. Biederman <ebiederm@xmission.com> wrote:
+>
+>> Looking deeper it was discovered that si_trapno is used for only
+>> a few select signals on alpha and sparc, and that none of the
+>> other _sigfault fields past si_addr are used at all.  Which means
+>> technically no regression on alpha and sparc.
+>
+> If there's no functional regression on any platform, could much of this 
+> wait until v5.14, or do we want some of these cleanups right now?
+>
+> The fixes seem to be for long-existing bugs, not fresh regressions, AFAICS. 
+> The asserts & cleanups are useful, but not regression fixes.
+>
+> I.e. this is a bit scary:
 
-       Arnd
+The new ABI for SIGTRAP TRAP perf that came in the merge window is
+broken and wrong.  We need to revert/disable the new SIGTRAP TRAP_PERF
+or have a fix before v5.13.
+
+The issue is old crap getting in the way of a new addition.  I think I
+might see a smaller code change on how to get to something compatible
+with this.
+
+>>  32 files changed, 377 insertions(+), 163 deletions(-)
+>
+> at -rc2 time.
+
+The additions are all tests to make certain everything is fine.
+The actual code change without the assertions (tests) is essentially
+a wash.
+
+Eric
+
