@@ -2,143 +2,249 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C9D5DC433B4
-	for <linux-arch@archiver.kernel.org>; Tue, 18 May 2021 03:47:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 08136C433ED
+	for <linux-arch@archiver.kernel.org>; Tue, 18 May 2021 03:58:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 99BC4611CC
-	for <linux-arch@archiver.kernel.org>; Tue, 18 May 2021 03:47:02 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D651F6124C
+	for <linux-arch@archiver.kernel.org>; Tue, 18 May 2021 03:58:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239767AbhERDsS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 17 May 2021 23:48:18 -0400
-Received: from out01.mta.xmission.com ([166.70.13.231]:48548 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236460AbhERDsS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 May 2021 23:48:18 -0400
+        id S237342AbhERD7G (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 17 May 2021 23:59:06 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:36684 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S242998AbhERD7A (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 May 2021 23:59:00 -0400
 Received: from in02.mta.xmission.com ([166.70.13.52])
-        by out01.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        by out03.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         (Exim 4.93)
         (envelope-from <ebiederm@xmission.com>)
-        id 1liqgi-00AIup-W9; Mon, 17 May 2021 21:46:38 -0600
+        id 1liqrO-001BZ4-7u; Mon, 17 May 2021 21:57:34 -0600
 Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95] helo=fess.xmission.com)
         by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         (Exim 4.93)
         (envelope-from <ebiederm@xmission.com>)
-        id 1liqgf-00DpMa-Cz; Mon, 17 May 2021 21:46:32 -0600
+        id 1liqrN-00Dqoh-3t; Mon, 17 May 2021 21:57:33 -0600
 From:   ebiederm@xmission.com (Eric W. Biederman)
-To:     Marco Elver <elver@google.com>
-Cc:     Arnd Bergmann <arnd@arndb.de>, Florian Weimer <fweimer@redhat.com>,
-        "David S. Miller" <davem@davemloft.net>,
-        Peter Zijlstra <peterz@infradead.org>,
+To:     Arnd Bergmann <arnd@kernel.org>
+Cc:     linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
+        Christoph Hellwig <hch@infradead.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Borislav Petkov <bp@alien8.de>,
+        Brian Gerst <brgerst@gmail.com>,
         Ingo Molnar <mingo@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
-        Peter Collingbourne <pcc@google.com>,
-        Dmitry Vyukov <dvyukov@google.com>,
-        Alexander Potapenko <glider@google.com>,
-        sparclinux <sparclinux@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Linux API <linux-api@vger.kernel.org>,
-        kasan-dev <kasan-dev@googlegroups.com>
-References: <YIpkvGrBFGlB5vNj@elver.google.com>
-        <m11rat9f85.fsf@fess.ebiederm.org>
-        <CAK8P3a0+uKYwL1NhY6Hvtieghba2hKYGD6hcKx5n8=4Gtt+pHA@mail.gmail.com>
-        <m15z031z0a.fsf@fess.ebiederm.org> <YIxVWkT03TqcJLY3@elver.google.com>
-        <m1zgxfs7zq.fsf_-_@fess.ebiederm.org>
-        <m1r1irpc5v.fsf@fess.ebiederm.org>
-        <CANpmjNNfiSgntiOzgMc5Y41KVAV_3VexdXCMADekbQEqSP3vqQ@mail.gmail.com>
-        <m1czuapjpx.fsf@fess.ebiederm.org>
-        <CANpmjNNyifBNdpejc6ofT6+n6FtUw-Cap_z9Z9YCevd7Wf3JYQ@mail.gmail.com>
-        <m14kfjh8et.fsf_-_@fess.ebiederm.org>
-        <m1tuni8ano.fsf_-_@fess.ebiederm.org>
-        <m1a6ot5e2h.fsf_-_@fess.ebiederm.org>
-        <CANpmjNM6rzyTp_+myecf8_773HLWDyJDbxFM6rWvzfKTLkXbhQ@mail.gmail.com>
-Date:   Mon, 17 May 2021 22:46:19 -0500
-In-Reply-To: <CANpmjNM6rzyTp_+myecf8_773HLWDyJDbxFM6rWvzfKTLkXbhQ@mail.gmail.com>
-        (Marco Elver's message of "Mon, 17 May 2021 22:53:20 +0200")
-Message-ID: <m1lf8c4sc4.fsf@fess.ebiederm.org>
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        linux-kernel@vger.kernel.org, Linux-MM <linux-mm@kvack.org>,
+        kexec@lists.infradead.org
+References: <20210517203343.3941777-1-arnd@kernel.org>
+        <20210517203343.3941777-2-arnd@kernel.org>
+Date:   Mon, 17 May 2021 22:57:24 -0500
+In-Reply-To: <20210517203343.3941777-2-arnd@kernel.org> (Arnd Bergmann's
+        message of "Mon, 17 May 2021 22:33:40 +0200")
+Message-ID: <m1y2cc3d97.fsf@fess.ebiederm.org>
 User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
 Content-Type: text/plain
-X-XM-SPF: eid=1liqgf-00DpMa-Cz;;;mid=<m1lf8c4sc4.fsf@fess.ebiederm.org>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
-X-XM-AID: U2FsdGVkX1+Pcm16K+cqYXv6QpoQzYfCpXsEiNIW9QY=
+X-XM-SPF: eid=1liqrN-00Dqoh-3t;;;mid=<m1y2cc3d97.fsf@fess.ebiederm.org>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX1+4F4J6T7VILKXf+JC2PApdv1NzJS5heMQ=
 X-SA-Exim-Connect-IP: 68.227.160.95
 X-SA-Exim-Mail-From: ebiederm@xmission.com
-Subject: Re: [PATCH v4 0/5] siginfo: ABI fixes for TRAP_PERF
+Subject: Re: [PATCH v3 1/4] kexec: simplify compat_sys_kexec_load
 X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
 X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Marco Elver <elver@google.com> writes:
+Arnd Bergmann <arnd@kernel.org> writes:
 
-> On Mon, 17 May 2021 at 21:58, Eric W. Biederman <ebiederm@xmission.com> wrote:
->>
->> During the merge window an issue with si_perf and the siginfo ABI came
->> up.  The alpha and sparc siginfo structure layout had changed with the
->> addition of SIGTRAP TRAP_PERF and the new field si_perf.
->>
->> The reason only alpha and sparc were affected is that they are the
->> only architectures that use si_trapno.
->>
->> Looking deeper it was discovered that si_trapno is used for only
->> a few select signals on alpha and sparc, and that none of the
->> other _sigfault fields past si_addr are used at all.  Which means
->> technically no regression on alpha and sparc.
->>
->> While the alignment concerns might be dismissed the abuse of
->> si_errno by SIGTRAP TRAP_PERF does have the potential to cause
->> regressions in existing userspace.
->>
->> While we still have time before userspace starts using and depending on
->> the new definition siginfo for SIGTRAP TRAP_PERF this set of changes
->> cleans up siginfo_t.
->>
->> - The si_trapno field is demoted from magic alpha and sparc status and
->>   made an ordinary union member of the _sigfault member of siginfo_t.
->>   Without moving it of course.
->>
->> - si_perf is replaced with si_perf_data and si_perf_type ending the
->>   abuse of si_errno.
->>
->> - Unnecessary additions to signalfd_siginfo are removed.
->>
->> v3: https://lkml.kernel.org/r/m1tuni8ano.fsf_-_@fess.ebiederm.org
->> v2: https://lkml.kernel.org/r/m14kfjh8et.fsf_-_@fess.ebiederm.org
->> v1: https://lkml.kernel.org/r/m1zgxfs7zq.fsf_-_@fess.ebiederm.org
->>
->> This version drops the tests and fine grained handling of si_trapno
->> on alpha and sparc (replaced assuming si_trapno is valid for
->> all but the faults that defined different data).
+> From: Arnd Bergmann <arnd@arndb.de>
 >
-> And just to clarify, the rest of the series (including static-asserts)
-> for the next merge-window will be sent once this series is all sorted,
-> correct?
-
-That is the plan.
-
-I really wonder about alphas use of si_trapno, and alphas use send_sig
-instead of force_sig.  It could be worth looking into those as it
-has the potential to simplify the code.
-
->> Eric W. Biederman (5):
->>       siginfo: Move si_trapno inside the union inside _si_fault
->>       signal: Implement SIL_FAULT_TRAPNO
->>       signal: Factor force_sig_perf out of perf_sigtrap
->>       signal: Deliver all of the siginfo perf data in _perf
->>       signalfd: Remove SIL_PERF_EVENT fields from signalfd_siginfo
+> The compat version of sys_kexec_load() uses compat_alloc_user_space to
+> convert the user-provided arguments into the native format.
 >
-> Looks good, thank you! I build-tested (defconfig -- x86_64, i386, arm,
-> arm64, m68k, sparc, alpha) this series together with a local patch to
-> pull in the static asserts from v3. Also re-ran perf_events kselftests
-> on x86_64 (native and 32bit compat).
+> Move the conversion into the regular implementation with
+> an in_compat_syscall() check to simplify it and avoid the
+> compat_alloc_user_space() call.
+>
+> compat_sys_kexec_load() now behaves the same as sys_kexec_load().
 
-Thanks,
+Is it possible to do this without in_compat_syscall(),
+and casting pointers to a wrong type?
 
-Can I have your Tested-by?
+We open ourselves up to bugs whenever we lie to the type system.
+
+Skimming through the code it looks like it should be possible
+to not need the in_compat_syscall and the casts to the wrong
+type by changing the order of the code a little bit.
 
 Eric
+
+
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  include/linux/kexec.h |  2 -
+>  kernel/kexec.c        | 95 +++++++++++++++++++------------------------
+>  2 files changed, 42 insertions(+), 55 deletions(-)
+>
+> diff --git a/include/linux/kexec.h b/include/linux/kexec.h
+> index 0c994ae37729..f61e310d7a85 100644
+> --- a/include/linux/kexec.h
+> +++ b/include/linux/kexec.h
+> @@ -88,14 +88,12 @@ struct kexec_segment {
+>  	size_t memsz;
+>  };
+>  
+> -#ifdef CONFIG_COMPAT
+>  struct compat_kexec_segment {
+>  	compat_uptr_t buf;
+>  	compat_size_t bufsz;
+>  	compat_ulong_t mem;	/* User space sees this as a (void *) ... */
+>  	compat_size_t memsz;
+>  };
+> -#endif
+>  
+>  #ifdef CONFIG_KEXEC_FILE
+>  struct purgatory_info {
+> diff --git a/kernel/kexec.c b/kernel/kexec.c
+> index c82c6c06f051..6618b1d9f00b 100644
+> --- a/kernel/kexec.c
+> +++ b/kernel/kexec.c
+> @@ -19,21 +19,46 @@
+>  
+>  #include "kexec_internal.h"
+>  
+> +static int copy_user_compat_segment_list(struct kimage *image,
+> +					 unsigned long nr_segments,
+> +					 void __user *segments)
+> +{
+> +	struct compat_kexec_segment __user *cs = segments;
+> +	struct compat_kexec_segment segment;
+> +	int i;
+> +
+> +	for (i = 0; i < nr_segments; i++) {
+> +		if (copy_from_user(&segment, &cs[i], sizeof(segment)))
+> +			return -EFAULT;
+> +
+> +		image->segment[i] = (struct kexec_segment) {
+> +			.buf   = compat_ptr(segment.buf),
+> +			.bufsz = segment.bufsz,
+> +			.mem   = segment.mem,
+> +			.memsz = segment.memsz,
+> +		};
+> +	}
+> +
+> +	return 0;
+> +}
+> +
+> +
+>  static int copy_user_segment_list(struct kimage *image,
+>  				  unsigned long nr_segments,
+>  				  struct kexec_segment __user *segments)
+>  {
+> -	int ret;
+>  	size_t segment_bytes;
+>  
+>  	/* Read in the segments */
+>  	image->nr_segments = nr_segments;
+>  	segment_bytes = nr_segments * sizeof(*segments);
+> -	ret = copy_from_user(image->segment, segments, segment_bytes);
+> -	if (ret)
+> -		ret = -EFAULT;
+> +	if (in_compat_syscall())
+> +		return copy_user_compat_segment_list(image, nr_segments, segments);
+>  
+> -	return ret;
+> +	if (copy_from_user(image->segment, segments, segment_bytes))
+> +		return -EFAULT;
+> +
+> +	return 0;
+>  }
+>  
+>  static int kimage_alloc_init(struct kimage **rimage, unsigned long entry,
+> @@ -233,8 +258,9 @@ static inline int kexec_load_check(unsigned long nr_segments,
+>  	return 0;
+>  }
+>  
+> -SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+> -		struct kexec_segment __user *, segments, unsigned long, flags)
+> +static int kernel_kexec_load(unsigned long entry, unsigned long nr_segments,
+> +			     struct kexec_segment __user * segments,
+> +			     unsigned long flags)
+>  {
+>  	int result;
+>  
+> @@ -265,57 +291,20 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+>  	return result;
+>  }
+>  
+> +SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+> +		struct kexec_segment __user *, segments, unsigned long, flags)
+> +{
+> +	return kernel_kexec_load(entry, nr_segments, segments, flags);
+> +}
+> +
+>  #ifdef CONFIG_COMPAT
+>  COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+>  		       compat_ulong_t, nr_segments,
+>  		       struct compat_kexec_segment __user *, segments,
+>  		       compat_ulong_t, flags)
+>  {
+> -	struct compat_kexec_segment in;
+> -	struct kexec_segment out, __user *ksegments;
+> -	unsigned long i, result;
+> -
+> -	result = kexec_load_check(nr_segments, flags);
+> -	if (result)
+> -		return result;
+> -
+> -	/* Don't allow clients that don't understand the native
+> -	 * architecture to do anything.
+> -	 */
+> -	if ((flags & KEXEC_ARCH_MASK) == KEXEC_ARCH_DEFAULT)
+> -		return -EINVAL;
+> -
+> -	ksegments = compat_alloc_user_space(nr_segments * sizeof(out));
+> -	for (i = 0; i < nr_segments; i++) {
+> -		result = copy_from_user(&in, &segments[i], sizeof(in));
+> -		if (result)
+> -			return -EFAULT;
+> -
+> -		out.buf   = compat_ptr(in.buf);
+> -		out.bufsz = in.bufsz;
+> -		out.mem   = in.mem;
+> -		out.memsz = in.memsz;
+> -
+> -		result = copy_to_user(&ksegments[i], &out, sizeof(out));
+> -		if (result)
+> -			return -EFAULT;
+> -	}
+> -
+> -	/* Because we write directly to the reserved memory
+> -	 * region when loading crash kernels we need a mutex here to
+> -	 * prevent multiple crash  kernels from attempting to load
+> -	 * simultaneously, and to prevent a crash kernel from loading
+> -	 * over the top of a in use crash kernel.
+> -	 *
+> -	 * KISS: always take the mutex.
+> -	 */
+> -	if (!mutex_trylock(&kexec_mutex))
+> -		return -EBUSY;
+> -
+> -	result = do_kexec_load(entry, nr_segments, ksegments, flags);
+> -
+> -	mutex_unlock(&kexec_mutex);
+> -
+> -	return result;
+> +	return kernel_kexec_load(entry, nr_segments,
+> +				 (struct kexec_segment __user *)segments,
+> +				 flags);
+>  }
+>  #endif
