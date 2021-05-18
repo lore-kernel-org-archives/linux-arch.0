@@ -2,74 +2,161 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-18.3 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_IN_DEF_DKIM_WL autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D7DD0C433B4
-	for <linux-arch@archiver.kernel.org>; Tue, 18 May 2021 06:41:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5BA63C433B4
+	for <linux-arch@archiver.kernel.org>; Tue, 18 May 2021 06:44:23 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B054060240
-	for <linux-arch@archiver.kernel.org>; Tue, 18 May 2021 06:41:50 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3FCE761263
+	for <linux-arch@archiver.kernel.org>; Tue, 18 May 2021 06:44:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239757AbhERGnF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 18 May 2021 02:43:05 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60826 "EHLO
+        id S241207AbhERGpj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 18 May 2021 02:45:39 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33224 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239746AbhERGnE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 May 2021 02:43:04 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5ED15C061573;
-        Mon, 17 May 2021 23:41:46 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=dWGhCQRTKQ7yccRLGUQNnETO9ChctiK/g8rLylI0oJA=; b=egmZl1PT7u82JatkbyGXeH/9NN
-        jhaKyX5We5mWcOM/lDZ5RxzGup4x8GVqidK0TN7wKRRvQP8IGmxzvVq0CAp6l4XeQH75hggx3bu48
-        UG6KWUgY+fOzytBC13USeGiBkRM6ecCNYUGMBajkM3mo3i5jKFWuwF95EbJjRnXQe7Xq/bQE33CN9
-        1caA4At3YDa1pGcKMU632544oIlZuT82e8wACee+qtmIxrzV5Y98nOwQgDulW9uUF8p6mjwUjxLef
-        s53WeXzYmmPZYoVHIRWyTWZZj6DhnqOUNohCzE69HpOT4zEqE+i1t2LBkBr8o5EjiwRS7qOX4NKAo
-        Mctg6q7w==;
-Received: from hch by casper.infradead.org with local (Exim 4.94 #2 (Red Hat Linux))
-        id 1litP3-00Dika-IP; Tue, 18 May 2021 06:40:47 +0000
-Date:   Tue, 18 May 2021 07:40:29 +0100
-From:   Christoph Hellwig <hch@infradead.org>
-To:     "Eric W. Biederman" <ebiederm@xmission.com>
-Cc:     Arnd Bergmann <arnd@kernel.org>, linux-arch@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Christoph Hellwig <hch@infradead.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Borislav Petkov <bp@alien8.de>,
-        Brian Gerst <brgerst@gmail.com>,
-        Ingo Molnar <mingo@kernel.org>,
-        "H. Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        linux-kernel@vger.kernel.org, Linux-MM <linux-mm@kvack.org>,
-        kexec@lists.infradead.org
-Subject: Re: [PATCH v3 1/4] kexec: simplify compat_sys_kexec_load
-Message-ID: <YKNhXQ883lRbqQGA@infradead.org>
-References: <20210517203343.3941777-1-arnd@kernel.org>
- <20210517203343.3941777-2-arnd@kernel.org>
- <m1y2cc3d97.fsf@fess.ebiederm.org>
+        with ESMTP id S1346822AbhERGpg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 May 2021 02:45:36 -0400
+Received: from mail-oi1-x22f.google.com (mail-oi1-x22f.google.com [IPv6:2607:f8b0:4864:20::22f])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6065EC0613ED
+        for <linux-arch@vger.kernel.org>; Mon, 17 May 2021 23:44:15 -0700 (PDT)
+Received: by mail-oi1-x22f.google.com with SMTP id f184so8841166oig.3
+        for <linux-arch@vger.kernel.org>; Mon, 17 May 2021 23:44:15 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20161025;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=Bcn5fb5DZjb4YtyFgvoiwHqnuY6hbdNmIIbEt5dAaVo=;
+        b=XDBwjWcK7W4iYUwj/u/gw3oqWIeA5hEElNrFlEm/M/WFUJONMDfGqLm0lYCC+OjVVz
+         mBgaZXFe6JWlW8DEdYhnwpSSaIRw0JBMAxOW0eBVYiQFPbdWqcu54BOcbIVGfHSisc53
+         0eyg+JwZ9Zva8VFoFU411tL9M2+QC38Hjni0baTANedHQf4FpzkVI0oa6ycvizeUlS3n
+         5kPELVbFvsBKGkfPkPB8Sc/9Eg/h0xc520RY7bKeRNVQmlg8SXch0vnHz/n109DuhTYB
+         8K9AfhJC/iujNgus17kDXKo/Uh34SKdrvrUQDCjtSEc9j/VfiBuN4vjJ0FXUFAU/LtOV
+         +NUA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=Bcn5fb5DZjb4YtyFgvoiwHqnuY6hbdNmIIbEt5dAaVo=;
+        b=heBPVp9fxcxt/KyXvxzK+8mpGKk22ICQCKRlaaFcTDSU+kPavZrC/cD50kbbIkqvEh
+         IsVE/kgWq9SH59xVa6xgJ4AA7TB/Y/kyAbnV4QBp//p0ufGan1hvlNWutUTDQlP8jFvI
+         gkb92+ZFYQ5YY8IgCI6Yrh5OtJ0br5bR0lFO1iWnXnSg+p0J75jPjSE6UBdQsb4j0qgb
+         FcW7F+LEJ89rOn8rYL9Mp25uRhWSdAZQ6dGpjOwPPzaB1Uzg52wxXEmP5idU33Yl/CtJ
+         +G7Uzi3idWiX/eD8N7cxQSw4qOKur0t9W/A3rGmUCZqP1dDyCZBugbrLm3nnIQWbcofl
+         H9ug==
+X-Gm-Message-State: AOAM531MGJDemhDt9TQFD/FnbJedr2laLc0RREkA2+48mo9D8s/CLlgd
+        HmGmlrzSHOzX2c4itD6Qa2DJPUVxhjWDVVOh5SqTxA==
+X-Google-Smtp-Source: ABdhPJyZJEKSXeod3K8VlVQioQOKfP1BRvVdjkXF95l+TeGhJwUZcia8n6Cqhfj41s9XfUXYiQJrlqfEJySBhCKYcEE=
+X-Received: by 2002:a05:6808:144f:: with SMTP id x15mr2779174oiv.172.1621320254598;
+ Mon, 17 May 2021 23:44:14 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <m1y2cc3d97.fsf@fess.ebiederm.org>
-X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
+References: <YIpkvGrBFGlB5vNj@elver.google.com> <m11rat9f85.fsf@fess.ebiederm.org>
+ <CAK8P3a0+uKYwL1NhY6Hvtieghba2hKYGD6hcKx5n8=4Gtt+pHA@mail.gmail.com>
+ <m15z031z0a.fsf@fess.ebiederm.org> <YIxVWkT03TqcJLY3@elver.google.com>
+ <m1zgxfs7zq.fsf_-_@fess.ebiederm.org> <m1r1irpc5v.fsf@fess.ebiederm.org>
+ <CANpmjNNfiSgntiOzgMc5Y41KVAV_3VexdXCMADekbQEqSP3vqQ@mail.gmail.com>
+ <m1czuapjpx.fsf@fess.ebiederm.org> <CANpmjNNyifBNdpejc6ofT6+n6FtUw-Cap_z9Z9YCevd7Wf3JYQ@mail.gmail.com>
+ <m14kfjh8et.fsf_-_@fess.ebiederm.org> <m1tuni8ano.fsf_-_@fess.ebiederm.org>
+ <m1a6ot5e2h.fsf_-_@fess.ebiederm.org> <CANpmjNM6rzyTp_+myecf8_773HLWDyJDbxFM6rWvzfKTLkXbhQ@mail.gmail.com>
+ <m1lf8c4sc4.fsf@fess.ebiederm.org>
+In-Reply-To: <m1lf8c4sc4.fsf@fess.ebiederm.org>
+From:   Marco Elver <elver@google.com>
+Date:   Tue, 18 May 2021 08:44:03 +0200
+Message-ID: <CANpmjNOcZkC3YDSK8rA7yagRNBLCxyNRcUSKNbx69sR9PSW-2w@mail.gmail.com>
+Subject: Re: [PATCH v4 0/5] siginfo: ABI fixes for TRAP_PERF
+To:     "Eric W. Biederman" <ebiederm@xmission.com>
+Cc:     Arnd Bergmann <arnd@arndb.de>, Florian Weimer <fweimer@redhat.com>,
+        "David S. Miller" <davem@davemloft.net>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Ingo Molnar <mingo@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Peter Collingbourne <pcc@google.com>,
+        Dmitry Vyukov <dvyukov@google.com>,
+        Alexander Potapenko <glider@google.com>,
+        sparclinux <sparclinux@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux API <linux-api@vger.kernel.org>,
+        kasan-dev <kasan-dev@googlegroups.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, May 17, 2021 at 10:57:24PM -0500, Eric W. Biederman wrote:
-> We open ourselves up to bugs whenever we lie to the type system.
-> 
-> Skimming through the code it looks like it should be possible
-> to not need the in_compat_syscall and the casts to the wrong
-> type by changing the order of the code a little bit.
+On Tue, 18 May 2021 at 05:47, Eric W. Biederman <ebiederm@xmission.com> wrote:
+>
+> Marco Elver <elver@google.com> writes:
+>
+> > On Mon, 17 May 2021 at 21:58, Eric W. Biederman <ebiederm@xmission.com> wrote:
+> >>
+> >> During the merge window an issue with si_perf and the siginfo ABI came
+> >> up.  The alpha and sparc siginfo structure layout had changed with the
+> >> addition of SIGTRAP TRAP_PERF and the new field si_perf.
+> >>
+> >> The reason only alpha and sparc were affected is that they are the
+> >> only architectures that use si_trapno.
+> >>
+> >> Looking deeper it was discovered that si_trapno is used for only
+> >> a few select signals on alpha and sparc, and that none of the
+> >> other _sigfault fields past si_addr are used at all.  Which means
+> >> technically no regression on alpha and sparc.
+> >>
+> >> While the alignment concerns might be dismissed the abuse of
+> >> si_errno by SIGTRAP TRAP_PERF does have the potential to cause
+> >> regressions in existing userspace.
+> >>
+> >> While we still have time before userspace starts using and depending on
+> >> the new definition siginfo for SIGTRAP TRAP_PERF this set of changes
+> >> cleans up siginfo_t.
+> >>
+> >> - The si_trapno field is demoted from magic alpha and sparc status and
+> >>   made an ordinary union member of the _sigfault member of siginfo_t.
+> >>   Without moving it of course.
+> >>
+> >> - si_perf is replaced with si_perf_data and si_perf_type ending the
+> >>   abuse of si_errno.
+> >>
+> >> - Unnecessary additions to signalfd_siginfo are removed.
+> >>
+> >> v3: https://lkml.kernel.org/r/m1tuni8ano.fsf_-_@fess.ebiederm.org
+> >> v2: https://lkml.kernel.org/r/m14kfjh8et.fsf_-_@fess.ebiederm.org
+> >> v1: https://lkml.kernel.org/r/m1zgxfs7zq.fsf_-_@fess.ebiederm.org
+> >>
+> >> This version drops the tests and fine grained handling of si_trapno
+> >> on alpha and sparc (replaced assuming si_trapno is valid for
+> >> all but the faults that defined different data).
+> >
+> > And just to clarify, the rest of the series (including static-asserts)
+> > for the next merge-window will be sent once this series is all sorted,
+> > correct?
+>
+> That is the plan.
+>
+> I really wonder about alphas use of si_trapno, and alphas use send_sig
+> instead of force_sig.  It could be worth looking into those as it
+> has the potential to simplify the code.
+>
+> >> Eric W. Biederman (5):
+> >>       siginfo: Move si_trapno inside the union inside _si_fault
+> >>       signal: Implement SIL_FAULT_TRAPNO
+> >>       signal: Factor force_sig_perf out of perf_sigtrap
+> >>       signal: Deliver all of the siginfo perf data in _perf
+> >>       signalfd: Remove SIL_PERF_EVENT fields from signalfd_siginfo
+> >
+> > Looks good, thank you! I build-tested (defconfig -- x86_64, i386, arm,
+> > arm64, m68k, sparc, alpha) this series together with a local patch to
+> > pull in the static asserts from v3. Also re-ran perf_events kselftests
+> > on x86_64 (native and 32bit compat).
+>
+> Thanks,
+>
+> Can I have your Tested-by?
 
-What kind of bug do you expect?  We must only copy from user addresses
-once anyway.  I've never seen bugs due the use of in_compat_syscall,
-but plenty due to cruft code trying to avoid it.
+Of course,
+
+  Tested-by: Marco Elver <elver@google.com>
+
+Thanks,
+-- Marco
