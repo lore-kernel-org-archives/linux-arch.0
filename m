@@ -3,24 +3,25 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
 X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=ham autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4FE18C47085
-	for <linux-arch@archiver.kernel.org>; Mon, 24 May 2021 16:01:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 78558C47084
+	for <linux-arch@archiver.kernel.org>; Mon, 24 May 2021 16:02:05 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 38EBC610CB
-	for <linux-arch@archiver.kernel.org>; Mon, 24 May 2021 16:01:39 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5DA9661403
+	for <linux-arch@archiver.kernel.org>; Mon, 24 May 2021 16:02:05 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233171AbhEXQDF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 May 2021 12:03:05 -0400
-Received: from mail.kernel.org ([198.145.29.99]:47738 "EHLO mail.kernel.org"
+        id S234918AbhEXQDc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 May 2021 12:03:32 -0400
+Received: from mail.kernel.org ([198.145.29.99]:49530 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S233469AbhEXQCO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 May 2021 12:02:14 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 90DBA6199C;
-        Mon, 24 May 2021 15:47:00 +0000 (UTC)
-Date:   Mon, 24 May 2021 16:46:58 +0100
+        id S235978AbhEXQCa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 May 2021 12:02:30 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id B8EF2619A5;
+        Mon, 24 May 2021 15:47:29 +0000 (UTC)
+Date:   Mon, 24 May 2021 16:47:27 +0100
 From:   Catalin Marinas <catalin.marinas@arm.com>
 To:     Will Deacon <will@kernel.org>
 Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
@@ -37,52 +38,24 @@ Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
         Juri Lelli <juri.lelli@redhat.com>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         "Rafael J. Wysocki" <rjw@rjwysocki.net>, kernel-team@android.com
-Subject: Re: [PATCH v6 18/21] arm64: Prevent offlining first CPU with 32-bit
- EL0 on mismatched system
-Message-ID: <20210524154657.GE14645@arm.com>
+Subject: Re: [PATCH v6 19/21] arm64: Hook up cmdline parameter to allow
+ mismatched 32-bit EL0
+Message-ID: <20210524154727.GF14645@arm.com>
 References: <20210518094725.7701-1-will@kernel.org>
- <20210518094725.7701-19-will@kernel.org>
+ <20210518094725.7701-20-will@kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20210518094725.7701-19-will@kernel.org>
+In-Reply-To: <20210518094725.7701-20-will@kernel.org>
 User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, May 18, 2021 at 10:47:22AM +0100, Will Deacon wrote:
-> diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-> index 959442f76ed7..72efdc611b14 100644
-> --- a/arch/arm64/kernel/cpufeature.c
-> +++ b/arch/arm64/kernel/cpufeature.c
-> @@ -2896,15 +2896,33 @@ void __init setup_cpu_features(void)
->  
->  static int enable_mismatched_32bit_el0(unsigned int cpu)
->  {
-> +	static int lucky_winner = -1;
-> +
->  	struct cpuinfo_arm64 *info = &per_cpu(cpu_data, cpu);
->  	bool cpu_32bit = id_aa64pfr0_32bit_el0(info->reg_id_aa64pfr0);
->  
->  	if (cpu_32bit) {
->  		cpumask_set_cpu(cpu, cpu_32bit_el0_mask);
->  		static_branch_enable_cpuslocked(&arm64_mismatched_32bit_el0);
-> -		setup_elf_hwcaps(compat_elf_hwcaps);
->  	}
->  
-> +	if (cpumask_test_cpu(0, cpu_32bit_el0_mask) == cpu_32bit)
-> +		return 0;
+On Tue, May 18, 2021 at 10:47:23AM +0100, Will Deacon wrote:
+> Allow systems with mismatched 32-bit support at EL0 to run 32-bit
+> applications based on a new kernel parameter.
+> 
+> Signed-off-by: Will Deacon <will@kernel.org>
 
-I don't fully understand this early return. AFAICT, we still call
-setup_elf_hwcaps() via setup_cpu_features() if the system supports
-32-bit EL0 (mismatched or not) at boot. For CPU hotplug, we can add the
-compat hwcaps later if we didn't set them up at boot. So this part is
-fine.
-
-However, if CPU0 is 32-bit-capable, it looks like we'd never disable the
-offlining on any of the 32-bit-capable CPUs and there's nothing that
-prevents offlining CPU0.
-
--- 
-Catalin
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
