@@ -2,83 +2,79 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-14.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A8C94C2B9F7
-	for <linux-arch@archiver.kernel.org>; Wed, 26 May 2021 05:23:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 778B7C47089
+	for <linux-arch@archiver.kernel.org>; Wed, 26 May 2021 05:50:23 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7A868613C1
-	for <linux-arch@archiver.kernel.org>; Wed, 26 May 2021 05:23:15 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 55AFC61408
+	for <linux-arch@archiver.kernel.org>; Wed, 26 May 2021 05:50:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229553AbhEZFYo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 26 May 2021 01:24:44 -0400
-Received: from verein.lst.de ([213.95.11.211]:33262 "EHLO verein.lst.de"
+        id S232191AbhEZFvx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 26 May 2021 01:51:53 -0400
+Received: from mail.kernel.org ([198.145.29.99]:47602 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229522AbhEZFYm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 May 2021 01:24:42 -0400
-Received: by verein.lst.de (Postfix, from userid 2407)
-        id 46E216736F; Wed, 26 May 2021 07:23:09 +0200 (CEST)
-Date:   Wed, 26 May 2021 07:23:08 +0200
-From:   Christoph Hellwig <hch@lst.de>
-To:     Guo Ren <guoren@kernel.org>
-Cc:     Christoph Hellwig <hch@lst.de>, Anup Patel <anup.patel@wdc.com>,
-        Palmer Dabbelt <palmerdabbelt@google.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        linux-riscv <linux-riscv@lists.infradead.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        linux-sunxi@lists.linux.dev, Guo Ren <guoren@linux.alibaba.com>
-Subject: Re: [PATCH V3 2/2] riscv: Use use_asid_allocator flush TLB
-Message-ID: <20210526052308.GA29213@lst.de>
-References: <1621945447-38820-1-git-send-email-guoren@kernel.org> <1621945447-38820-3-git-send-email-guoren@kernel.org> <20210525123556.GB4842@lst.de> <CAJF2gTSa3LJKTRBv6NOvg0HtoKPL-5YyP6wY2=AJhQtAZwBBzg@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAJF2gTSa3LJKTRBv6NOvg0HtoKPL-5YyP6wY2=AJhQtAZwBBzg@mail.gmail.com>
-User-Agent: Mutt/1.5.17 (2007-11-01)
+        id S232168AbhEZFvv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 May 2021 01:51:51 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id E67EC610FA;
+        Wed, 26 May 2021 05:50:04 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1622008207;
+        bh=yg8uTrr5bqsFHycHlXp37eTENi2y2zpYczTQ5Z9dzMo=;
+        h=From:To:Cc:Subject:Date:From;
+        b=EK6P9VU0nqF+SfGzh9yMPK4b23HaXiiD4pfBwQHmfB3JJM3pKD7bgr3tQ8KlkVE1u
+         53h3xtq2ncsP8wTuN/tRlMrVplN8GNa3NQCD5jiyr8QBaKth4MJWo685JzbL0CCMk5
+         jl0IQwkpOuWSWygGUwj6/RrE5bRnKcZBV0iAL79+5ezzZuq44P5k5oS22o6lHJx4dl
+         5KiLoyXgvus7uB+WowOU7I8JaJen/S/T8FOfQxNOHxQJrCf0i9muqAtAenNUe7lBoQ
+         vSgKPXKmV4H7zdP3ZKJ9h7WRNEvNsRofebeLKYMBSY8NxTeV+VBK96zmBETW/GJCNv
+         SPIO2IQo4bCPQ==
+From:   guoren@kernel.org
+To:     guoren@kernel.org, anup.patel@wdc.com, palmerdabbelt@google.com,
+        arnd@arndb.de, hch@lst.de
+Cc:     linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-sunxi@lists.linux.dev,
+        Guo Ren <guoren@linux.alibaba.com>
+Subject: [PATCH V4 0/2] riscv: Fixup asid_allocator remaining issues
+Date:   Wed, 26 May 2021 05:49:19 +0000
+Message-Id: <1622008161-41451-1-git-send-email-guoren@kernel.org>
+X-Mailer: git-send-email 2.7.4
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, May 26, 2021 at 11:12:40AM +0800, Guo Ren wrote:
-> > static inline void local_flush_tlb_range_asid(unsigned long start,
-> >                 unsigned long size, unsigned long asid)
-> >
-> > > +{
-> > > +     unsigned long tmp = start & PAGE_MASK;
-> > > +     unsigned long end = ALIGN(start + size, PAGE_SIZE);
-> > > +
-> > > +     if (size == -1) {
-> > > +             __asm__ __volatile__ ("sfence.vma x0, %0" : : "r" (asid) : "memory");
-> > > +             return;
-> >
-> > Please split the global (size == -1) case into separate helpers.
-> Do you mean:
+From: Guo Ren <guoren@linux.alibaba.com>
 
-No.  Basically a
+The patchset fixes the remaining problems of asid_allocator.
+ - Fixup _PAGE_GLOBAL for kernel virtual address mapping
+ - Optimize tlb_flush with asid & range
 
-static inline void local_flush_tlb_ll_asid(unsigned long asid)
-{
-	__asm__ __volatile__ ("sfence.vma x0, %0"
-				:
-				: "r" (asid)
-				: "memory");
-}
+Changes since v3:
+ - Optimize coding convention for
+   "riscv: Use use_asid_allocator flush TLB"
 
-and
+Changes since v2:
+ - Remove PAGE_UP/DOWN usage in tlbflush.h
+ - Optimize variable name
 
-static inline void local_flush_tlb_range_asid(unsigned long start,
-		unsigned long size, unsigned long asid)
+Changes since v1:
+ - Drop PAGE_UP wrong fixup
+ - Rebase on clean linux-5.13-rc2
+ - Add Reviewed-by
 
-{
-	unsigned long end = ALIGN(start + size, PAGE_SIZE), tmp;
+Guo Ren (2):
+  riscv: Fixup _PAGE_GLOBAL in _PAGE_KERNEL
+  riscv: Use use_asid_allocator flush TLB
 
-	for (tmp = start & PAGE_MASK; tmp < end; tmp += PAGE_SIZE) {
-		__asm__ __volatile__ ("sfence.vma %0, %1"
-					:
-					: "r" (tmp), "r" (asid)
-					: "memory");
-	}
-}
+ arch/riscv/include/asm/mmu_context.h |  2 ++
+ arch/riscv/include/asm/pgtable.h     |  3 ++-
+ arch/riscv/include/asm/tlbflush.h    | 23 ++++++++++++++++++
+ arch/riscv/mm/context.c              |  2 +-
+ arch/riscv/mm/tlbflush.c             | 46 +++++++++++++++++++++++++++++++++---
+ 5 files changed, 71 insertions(+), 5 deletions(-)
+
+-- 
+2.7.4
+
