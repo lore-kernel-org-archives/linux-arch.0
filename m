@@ -2,79 +2,215 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-19.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 778B7C47089
-	for <linux-arch@archiver.kernel.org>; Wed, 26 May 2021 05:50:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1A57FC4708A
+	for <linux-arch@archiver.kernel.org>; Wed, 26 May 2021 05:50:24 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 55AFC61408
+	by mail.kernel.org (Postfix) with ESMTP id E3779613F6
 	for <linux-arch@archiver.kernel.org>; Wed, 26 May 2021 05:50:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232191AbhEZFvx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S232211AbhEZFvx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Wed, 26 May 2021 01:51:53 -0400
-Received: from mail.kernel.org ([198.145.29.99]:47602 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:47670 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S232168AbhEZFvv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S232197AbhEZFvv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Wed, 26 May 2021 01:51:51 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id E67EC610FA;
-        Wed, 26 May 2021 05:50:04 +0000 (UTC)
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 3E90961378;
+        Wed, 26 May 2021 05:50:10 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1622008207;
-        bh=yg8uTrr5bqsFHycHlXp37eTENi2y2zpYczTQ5Z9dzMo=;
-        h=From:To:Cc:Subject:Date:From;
-        b=EK6P9VU0nqF+SfGzh9yMPK4b23HaXiiD4pfBwQHmfB3JJM3pKD7bgr3tQ8KlkVE1u
-         53h3xtq2ncsP8wTuN/tRlMrVplN8GNa3NQCD5jiyr8QBaKth4MJWo685JzbL0CCMk5
-         jl0IQwkpOuWSWygGUwj6/RrE5bRnKcZBV0iAL79+5ezzZuq44P5k5oS22o6lHJx4dl
-         5KiLoyXgvus7uB+WowOU7I8JaJen/S/T8FOfQxNOHxQJrCf0i9muqAtAenNUe7lBoQ
-         vSgKPXKmV4H7zdP3ZKJ9h7WRNEvNsRofebeLKYMBSY8NxTeV+VBK96zmBETW/GJCNv
-         SPIO2IQo4bCPQ==
+        s=k20201202; t=1622008212;
+        bh=oUqQsjWk/eKlS41GlTMA5rHbD9Z00zBqEiyeD2OkOOI=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=CFOJR0R4L8whZpMOkACO7IePTirWiWjitUw3GYvC12hzH9cpqTfWy1PeCSsP+7UVy
+         GGjlNNMNSaqJBDMZVw11lBoucnJMQPWUNb5KSPdUb1eyDIkz6ymR2H2jlt0gdwioko
+         G2QYj6X5zXTp8v0uxJSWltdfJsMyuTz+5AeHmI8z1HlFScuHkMjgLLISj/Kh9QBLF0
+         7kHkf9hCnGm5tSgsOgiSb/uYHpOSeXyS8KhxWdt4n3G4zj3hlRyIVyDqm8QXaPI4R7
+         QpWxZExXbAsOPEMiLgVTqYeV6Zb3SX1/hVl5a87ChGET+7cHURTKychDFYn5Nh+P84
+         y0N9il5PQeroA==
 From:   guoren@kernel.org
 To:     guoren@kernel.org, anup.patel@wdc.com, palmerdabbelt@google.com,
         arnd@arndb.de, hch@lst.de
 Cc:     linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-sunxi@lists.linux.dev,
         Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH V4 0/2] riscv: Fixup asid_allocator remaining issues
-Date:   Wed, 26 May 2021 05:49:19 +0000
-Message-Id: <1622008161-41451-1-git-send-email-guoren@kernel.org>
+Subject: [PATCH V4 2/2] riscv: Use use_asid_allocator flush TLB
+Date:   Wed, 26 May 2021 05:49:21 +0000
+Message-Id: <1622008161-41451-3-git-send-email-guoren@kernel.org>
 X-Mailer: git-send-email 2.7.4
+In-Reply-To: <1622008161-41451-1-git-send-email-guoren@kernel.org>
+References: <1622008161-41451-1-git-send-email-guoren@kernel.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-The patchset fixes the remaining problems of asid_allocator.
- - Fixup _PAGE_GLOBAL for kernel virtual address mapping
- - Optimize tlb_flush with asid & range
+Use static_branch_unlikely(&use_asid_allocator) to keep the origin
+tlb flush style, so it's no effect on the existing machine. Here
+are the optimized functions:
+ - flush_tlb_mm
+ - flush_tlb_page
+ - flush_tlb_range
 
-Changes since v3:
- - Optimize coding convention for
-   "riscv: Use use_asid_allocator flush TLB"
+All above are based on the below new implement functions:
+ - __sbi_tlb_flush_range_asid
+ - local_flush_tlb_range_asid
 
-Changes since v2:
- - Remove PAGE_UP/DOWN usage in tlbflush.h
- - Optimize variable name
+These functions are based on ASID instead of previous non-ASID
+tlb_flush implementation which invalidates more useful tlb
+entries.
 
-Changes since v1:
- - Drop PAGE_UP wrong fixup
- - Rebase on clean linux-5.13-rc2
- - Add Reviewed-by
-
-Guo Ren (2):
-  riscv: Fixup _PAGE_GLOBAL in _PAGE_KERNEL
-  riscv: Use use_asid_allocator flush TLB
-
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Reviewed-by: Anup Patel <anup.patel@wdc.com>
+Cc: Palmer Dabbelt <palmerdabbelt@google.com>
+Cc: Christoph Hellwig <hch@lst.de>
+---
  arch/riscv/include/asm/mmu_context.h |  2 ++
- arch/riscv/include/asm/pgtable.h     |  3 ++-
  arch/riscv/include/asm/tlbflush.h    | 23 ++++++++++++++++++
  arch/riscv/mm/context.c              |  2 +-
  arch/riscv/mm/tlbflush.c             | 46 +++++++++++++++++++++++++++++++++---
- 5 files changed, 71 insertions(+), 5 deletions(-)
+ 4 files changed, 69 insertions(+), 4 deletions(-)
 
+diff --git a/arch/riscv/include/asm/mmu_context.h b/arch/riscv/include/asm/mmu_context.h
+index b065941..7030837 100644
+--- a/arch/riscv/include/asm/mmu_context.h
++++ b/arch/riscv/include/asm/mmu_context.h
+@@ -33,6 +33,8 @@ static inline int init_new_context(struct task_struct *tsk,
+ 	return 0;
+ }
+ 
++DECLARE_STATIC_KEY_FALSE(use_asid_allocator);
++
+ #include <asm-generic/mmu_context.h>
+ 
+ #endif /* _ASM_RISCV_MMU_CONTEXT_H */
+diff --git a/arch/riscv/include/asm/tlbflush.h b/arch/riscv/include/asm/tlbflush.h
+index c84218a..cee476b 100644
+--- a/arch/riscv/include/asm/tlbflush.h
++++ b/arch/riscv/include/asm/tlbflush.h
+@@ -22,9 +22,32 @@ static inline void local_flush_tlb_page(unsigned long addr)
+ {
+ 	ALT_FLUSH_TLB_PAGE(__asm__ __volatile__ ("sfence.vma %0" : : "r" (addr) : "memory"));
+ }
++
++static inline void local_flush_tlb_all_asid(unsigned long asid)
++{
++	__asm__ __volatile__ ("sfence.vma x0, %0"
++			:
++			: "r" (asid)
++			: "memory");
++}
++
++static inline void local_flush_tlb_range_asid(unsigned long start,
++				unsigned long size, unsigned long asid)
++{
++	unsigned long tmp, end = ALIGN(start + size, PAGE_SIZE);
++
++	for (tmp = start & PAGE_MASK; tmp < end; tmp += PAGE_SIZE) {
++		__asm__ __volatile__ ("sfence.vma %0, %1"
++				:
++				: "r" (tmp), "r" (asid)
++				: "memory");
++		tmp += PAGE_SIZE;
++	}
++}
+ #else /* CONFIG_MMU */
+ #define local_flush_tlb_all()			do { } while (0)
+ #define local_flush_tlb_page(addr)		do { } while (0)
++#define local_flush_tlb_range_asid(addr)	do { } while (0)
+ #endif /* CONFIG_MMU */
+ 
+ #if defined(CONFIG_SMP) && defined(CONFIG_MMU)
+diff --git a/arch/riscv/mm/context.c b/arch/riscv/mm/context.c
+index 68aa312..45c1b04 100644
+--- a/arch/riscv/mm/context.c
++++ b/arch/riscv/mm/context.c
+@@ -18,7 +18,7 @@
+ 
+ #ifdef CONFIG_MMU
+ 
+-static DEFINE_STATIC_KEY_FALSE(use_asid_allocator);
++DEFINE_STATIC_KEY_FALSE(use_asid_allocator);
+ 
+ static unsigned long asid_bits;
+ static unsigned long num_asids;
+diff --git a/arch/riscv/mm/tlbflush.c b/arch/riscv/mm/tlbflush.c
+index 720b443..87b4e52 100644
+--- a/arch/riscv/mm/tlbflush.c
++++ b/arch/riscv/mm/tlbflush.c
+@@ -4,6 +4,7 @@
+ #include <linux/smp.h>
+ #include <linux/sched.h>
+ #include <asm/sbi.h>
++#include <asm/mmu_context.h>
+ 
+ void flush_tlb_all(void)
+ {
+@@ -39,18 +40,57 @@ static void __sbi_tlb_flush_range(struct cpumask *cmask, unsigned long start,
+ 	put_cpu();
+ }
+ 
++static void __sbi_tlb_flush_range_asid(struct cpumask *cmask,
++				       unsigned long start,
++				       unsigned long size,
++				       unsigned long asid)
++{
++	struct cpumask hmask;
++	unsigned int cpuid;
++
++	if (cpumask_empty(cmask))
++		return;
++
++	cpuid = get_cpu();
++
++	if (cpumask_any_but(cmask, cpuid) >= nr_cpu_ids) {
++		if (size == -1)
++			local_flush_tlb_all_asid(asid);
++		else
++			local_flush_tlb_range_asid(start, size, asid);
++	} else {
++		riscv_cpuid_to_hartid_mask(cmask, &hmask);
++		sbi_remote_sfence_vma_asid(cpumask_bits(&hmask),
++					   start, size, asid);
++	}
++
++	put_cpu();
++}
++
+ void flush_tlb_mm(struct mm_struct *mm)
+ {
+-	__sbi_tlb_flush_range(mm_cpumask(mm), 0, -1);
++	if (static_branch_unlikely(&use_asid_allocator))
++		__sbi_tlb_flush_range_asid(mm_cpumask(mm), 0, -1,
++					   atomic_long_read(&mm->context.id));
++	else
++		__sbi_tlb_flush_range(mm_cpumask(mm), 0, -1);
+ }
+ 
+ void flush_tlb_page(struct vm_area_struct *vma, unsigned long addr)
+ {
+-	__sbi_tlb_flush_range(mm_cpumask(vma->vm_mm), addr, PAGE_SIZE);
++	if (static_branch_unlikely(&use_asid_allocator))
++		__sbi_tlb_flush_range_asid(mm_cpumask(vma->vm_mm), addr, PAGE_SIZE,
++					   atomic_long_read(&vma->vm_mm->context.id));
++	else
++		__sbi_tlb_flush_range(mm_cpumask(vma->vm_mm), addr, PAGE_SIZE);
+ }
+ 
+ void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
+ 		     unsigned long end)
+ {
+-	__sbi_tlb_flush_range(mm_cpumask(vma->vm_mm), start, end - start);
++	if (static_branch_unlikely(&use_asid_allocator))
++		__sbi_tlb_flush_range_asid(mm_cpumask(vma->vm_mm), start, end - start,
++					   atomic_long_read(&vma->vm_mm->context.id));
++	else
++		__sbi_tlb_flush_range(mm_cpumask(vma->vm_mm), start, end - start);
+ }
 -- 
 2.7.4
 
