@@ -6,85 +6,96 @@ X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
 	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7D3C5C4708F
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 16:17:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A8C88C47425
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 16:34:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 61F8361405
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 16:17:45 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 87658610E7
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 16:34:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230110AbhFDQTb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Jun 2021 12:19:31 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43334 "EHLO
+        id S230446AbhFDQfu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Jun 2021 12:35:50 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46986 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230029AbhFDQTa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jun 2021 12:19:30 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 69D1BC061766;
-        Fri,  4 Jun 2021 09:17:44 -0700 (PDT)
+        with ESMTP id S229755AbhFDQfs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jun 2021 12:35:48 -0400
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4E999C061766;
+        Fri,  4 Jun 2021 09:34:02 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        d=infradead.org; s=desiato.20200630; h=In-Reply-To:Content-Type:MIME-Version:
         References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
         Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=4TIqxuAtjmYbU2OSV74pXFrJBXrS1Qz+P5gtj2DTtNc=; b=SGA/apo1OYgipms8RsEEofalK7
-        wfBmIfnzC2FPQwKF/lmRGA3cLcicoit+A1GfJjyrvke8HNLxq+ZlcarIPcpXYF4nEMjZR5Qfsxz63
-        fflFA9xF+roMwaMInlzptkd1Iqzroj7nkPdoIksdOaxji0z1slgmRPudOp+7Qza3wTsRc3hwoVN4m
-        V0I157ljSP6Irfo9cBWq7hV0FiYAPH38A0rwiILHXbCCgmmrjU7FEZc9yUSSyY4eZfYSyfkvBJSJu
-        EG9jvefnb0f69Znz/M8pvux20vn06+jVgv0V+PWO8EvVzK+GVLg5lJjY+t6l4yGyH/dkDDm+3grR3
-        qzAEZSIA==;
+        bh=N0LVJfeUK2IdvmsqBLNwzogFfs34S53qc1DZrppgaU4=; b=F8L7uCnO5EUTwc2U3xhWIM18n5
+        MqFThaLx/mSiSAIcZhiI8pfFpDI2US2iFzGX4p3YqPCprDpHXO6iNsOLDDx6Q4MV50K28820aUkem
+        TwftTZiRZirrmyljj143occwLCChEGCX6g4Ed+PXIU/5526DB9Z8Mj2+Jsbu0rpCPwbNmYvxyTBnz
+        SxKLPIp8h22zQ6iHcRnB9amCzfGvNPuv/15cC+pyEoOi1UCdwkMxoOCm7mkstC+R/ppXr3GGlz4if
+        GjyG+zpdnJ/8LaJ+CZ9/sJCLHwY5l8tRc+XEvAm5xZov581jPEFcZsW0jF3NgZyV/wwtjYN1LDkVn
+        3P96FQig==;
 Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94 #2 (Red Hat Linux))
-        id 1lpCVd-00DKM0-C6; Fri, 04 Jun 2021 16:17:27 +0000
+        by desiato.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1lpClV-003TzH-7M; Fri, 04 Jun 2021 16:33:52 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits))
+         key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id D48993001DB;
-        Fri,  4 Jun 2021 18:17:20 +0200 (CEST)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 7AF9E3001DB;
+        Fri,  4 Jun 2021 18:33:50 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
-        id B3132207AA26E; Fri,  4 Jun 2021 18:17:20 +0200 (CEST)
-Date:   Fri, 4 Jun 2021 18:17:20 +0200
+        id 69893207AA26C; Fri,  4 Jun 2021 18:33:50 +0200 (CEST)
+Date:   Fri, 4 Jun 2021 18:33:50 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
-To:     Alan Stern <stern@rowland.harvard.edu>
-Cc:     Will Deacon <will@kernel.org>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        paulmck@kernel.org, parri.andrea@gmail.com, boqun.feng@gmail.com,
-        npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk,
-        luc.maranget@inria.fr, akiyks@gmail.com,
-        linux-kernel@vger.kernel.org, linux-toolchains@vger.kernel.org,
-        linux-arch@vger.kernel.org
+To:     Segher Boessenkool <segher@kernel.crashing.org>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>, will@kernel.org,
+        paulmck@kernel.org, stern@rowland.harvard.edu,
+        parri.andrea@gmail.com, boqun.feng@gmail.com, npiggin@gmail.com,
+        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
+        akiyks@gmail.com, linux-kernel@vger.kernel.org,
+        linux-toolchains@vger.kernel.org, linux-arch@vger.kernel.org
 Subject: Re: [RFC] LKMM: Add volatile_if()
-Message-ID: <YLpSEM7sxSmsuc5t@hirez.programming.kicks-ass.net>
+Message-ID: <YLpV7qilaHkMc01f@hirez.programming.kicks-ass.net>
 References: <YLn8dzbNwvqrqqp5@hirez.programming.kicks-ass.net>
- <20210604104359.GE2318@willie-the-truck>
- <YLoPJDzlTsvpjFWt@hirez.programming.kicks-ass.net>
- <20210604134422.GA2793@willie-the-truck>
- <YLoxAOua/qsZXNmY@hirez.programming.kicks-ass.net>
- <20210604151356.GC2793@willie-the-truck>
- <YLpFHE5Cr45rWTUV@hirez.programming.kicks-ass.net>
- <YLpJ5K6O52o1cAVT@hirez.programming.kicks-ass.net>
- <20210604155154.GG1676809@rowland.harvard.edu>
+ <20210604160955.GG18427@gate.crashing.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20210604155154.GG1676809@rowland.harvard.edu>
+In-Reply-To: <20210604160955.GG18427@gate.crashing.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jun 04, 2021 at 11:51:54AM -0400, Alan Stern wrote:
-> On Fri, Jun 04, 2021 at 05:42:28PM +0200, Peter Zijlstra wrote:
+On Fri, Jun 04, 2021 at 11:09:55AM -0500, Segher Boessenkool wrote:
+> I didn't find a description of the expected precise semantics anywhere
+> in this patch.  This however is the most important thing required here!
 
-> > #define volatile_if(cond) if (({ bool __t = (cond); BUILD_BUG_ON(__builtin_constant_p(__t)); volatile_cond(__t); }))
-> 
-> That won't help with more complicated examples, such as:
-> 
-> 	volatile_if (READ_ONCE(*x) * 0 + READ_ONCE(*y))
+Fair enough; so a control-dependency is a LOAD->STORE memory ordering
+provided by conditional branches.
 
-That's effectively:
+The conditional branch instruction itself must have a data dependency on
+a previous LOAD, while the branch itself guards a STORE. Then because
+speculative STOREs result in out-of-thin-air values, the STORE must not
+become visible until the branch is decided, which can only be done if
+the LOAD is complete.
 
-	volatile_if (READ_ONCE(*y))
-		WRITE_ONCE(*y, 42);
+We make use of this, and would like the compiler to not ruin this code
+pattern for us.
 
-which is a valid, but daft, LOAD->STORE order, no? A compiler might
-maybe be able to WARN on that, but that's definitely beyond what we can
-do with macros.
+So we need the STORE to say inside the selection statement, we need the
+LOAD not be optimized away, and we need the conditional branch to be
+emitted.
+
+Alternatively, we need the LOAD to be upgraded to a LOAD-ACQUIRE (an
+option on platforms where this is sufficiently cheap). Which will also
+ensure the STORE happens after.
+
+So we can force the LOAD using READ_ONCE() (a volatile cast).
+
+We can prohibit hoisting by adding a compiler barrier to the expression.
+And then we use asm goto() to force emit a conditional branch. Combined
+this leaves the compiler very little room to mess things up, but it does
+produce sub-optimal code, and doesn't allow the LOAD-ACQUIRE upgrade
+Will would like (but he can't always have that anyway due to our other
+use of asm()).
+
+
+We also have a 'CONTROL DEPENDENCIES' section in
+Documentation/memory-barriers.txt for further reading.
