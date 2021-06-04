@@ -2,60 +2,84 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-8.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,NICE_REPLY_A,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4EEAEC4743D
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 16:54:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 62B9CC4743E
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 16:57:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2ED58613B4
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 16:54:48 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 47A79613E3
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 16:57:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229850AbhFDQ4d (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Jun 2021 12:56:33 -0400
-Received: from mail.kernel.org ([198.145.29.99]:35844 "EHLO mail.kernel.org"
+        id S229963AbhFDQ7G (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Jun 2021 12:59:06 -0400
+Received: from gate.crashing.org ([63.228.1.57]:36210 "EHLO gate.crashing.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229791AbhFDQ4d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 4 Jun 2021 12:56:33 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 1D7F4613DE;
-        Fri,  4 Jun 2021 16:54:47 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1622825687;
-        bh=YPazeuzSK6s1SjkSTRVdvHCtW1yCQUOaB+XSbd0sY5I=;
-        h=Subject:To:Cc:References:From:Date:In-Reply-To:From;
-        b=Gj9oADZdY1B/V7aHBgacFrK6kVejmG0DO3IVgTNWpeipYvvgP33EvEHDl5C6eMa0+
-         ObZN3aRVZ5JAHAVf/8al6QZqACzL/WQ245aBA27Q+EUdqx90+Q5/YC0b4Wvs8eijYu
-         LGFttuAbi5GmYRRdTeC97vfGt5VErIHSNqddWBNs+/k9gnk9pot8EEEmPykA+cccqO
-         vznsvjBHfFADtwjRFvNPhgOMQ5xjtJhRSV63WkzjnG1nY0nbsOKeb7etPKt/JndXRn
-         3KMNVtCP9sN4HY3mBwkRXNWvMSGWKbRWi6alDlQnBbEVfwBYzd9o+Tr5AIcBDiiH9o
-         ALs3UKpAZ2FhA==
-Subject: Re: [PATCH v3 0/4] shoot lazy tlbs
-To:     Nicholas Piggin <npiggin@gmail.com>,
-        Andrew Morton <akpm@linux-foundation.org>
-Cc:     Randy Dunlap <rdunlap@infradead.org>, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
-References: <20210601062303.3932513-1-npiggin@gmail.com>
-From:   Andy Lutomirski <luto@kernel.org>
-Message-ID: <603ffd67-3638-4c47-8067-c1bdfdf65f1b@kernel.org>
-Date:   Fri, 4 Jun 2021 09:54:46 -0700
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.10.1
-MIME-Version: 1.0
-In-Reply-To: <20210601062303.3932513-1-npiggin@gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+        id S229864AbhFDQ7G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 4 Jun 2021 12:59:06 -0400
+Received: from gate.crashing.org (localhost.localdomain [127.0.0.1])
+        by gate.crashing.org (8.14.1/8.14.1) with ESMTP id 154GqohH027719;
+        Fri, 4 Jun 2021 11:52:50 -0500
+Received: (from segher@localhost)
+        by gate.crashing.org (8.14.1/8.14.1/Submit) id 154GqmG1027681;
+        Fri, 4 Jun 2021 11:52:48 -0500
+X-Authentication-Warning: gate.crashing.org: segher set sender to segher@kernel.crashing.org using -f
+Date:   Fri, 4 Jun 2021 11:52:42 -0500
+From:   Segher Boessenkool <segher@kernel.crashing.org>
+To:     Peter Zijlstra <peterz@infradead.org>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Will Deacon <will@kernel.org>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        Alan Stern <stern@rowland.harvard.edu>,
+        Andrea Parri <parri.andrea@gmail.com>,
+        Boqun Feng <boqun.feng@gmail.com>,
+        Nick Piggin <npiggin@gmail.com>,
+        David Howells <dhowells@redhat.com>,
+        Jade Alglave <j.alglave@ucl.ac.uk>,
+        Luc Maranget <luc.maranget@inria.fr>,
+        Akira Yokosawa <akiyks@gmail.com>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        linux-toolchains@vger.kernel.org,
+        linux-arch <linux-arch@vger.kernel.org>
+Subject: Re: [RFC] LKMM: Add volatile_if()
+Message-ID: <20210604165242.GI18427@gate.crashing.org>
+References: <YLn8dzbNwvqrqqp5@hirez.programming.kicks-ass.net> <CAHk-=wievFk29DZgFLEFpH9yuZ0jfJqppLTJnOMvhe=+tDqgrw@mail.gmail.com> <YLpWwm1lDwBaUven@hirez.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <YLpWwm1lDwBaUven@hirez.programming.kicks-ass.net>
+User-Agent: Mutt/1.4.2.3i
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 5/31/21 11:22 PM, Nicholas Piggin wrote:
-> There haven't been objections to the series since last posting, this
-> is just a rebase and tidies up a few comments minor patch rearranging.
+On Fri, Jun 04, 2021 at 06:37:22PM +0200, Peter Zijlstra wrote:
+> On Fri, Jun 04, 2021 at 09:30:01AM -0700, Linus Torvalds wrote:
+> > Why is "volatile_if()" not just
+> > 
+> >        #define barier_true() ({ barrier(); 1; })
+> > 
+> >        #define volatile_if(x) if ((x) && barrier_true())
+> > 
+> > because that should essentially cause the same thing - the compiler
+> > should be *forced* to create one conditional branch (because "barrier"
+> > is an asm that can't be done on the false side, so it can't do it with
+> > arithmetic or other games), and after that we're done.
+> > 
+> > No need for per-architecture "asm goto" games. No new memory barriers.
+> > No actual new code generation (except for the empty asm volatile that
+> > is a barrier).
 > 
+> Because we weren't sure compilers weren't still allowed to optimize the
+> branch away.
 
-I continue to object to having too many modes.  I like my more generic
-improvements better.  Let me try to find some time to email again.
+barrier_true is a volatile asm, so it should be executed on the real
+machine exactly as often as on the abstract machine (and in order with
+other side effects).  And the && short-circuits, so you will always have
+the same effect as a branch.  But there of course is nothing that forces
+there to be a branch (as a silly example, the compiler could convert
+some control flow to go via computed return addresses).
+
+
+Segher
