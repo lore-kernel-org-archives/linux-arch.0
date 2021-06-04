@@ -2,97 +2,79 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0171CC4743D
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 18:23:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3CE8CC4743C
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 18:27:10 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D8DAA613E9
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 18:23:58 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 17B4B613FE
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 18:27:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230063AbhFDSZo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Jun 2021 14:25:44 -0400
-Received: from netrider.rowland.org ([192.131.102.5]:58765 "HELO
+        id S230019AbhFDS24 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Jun 2021 14:28:56 -0400
+Received: from netrider.rowland.org ([192.131.102.5]:33333 "HELO
         netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S229982AbhFDSZo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jun 2021 14:25:44 -0400
-Received: (qmail 1689062 invoked by uid 1000); 4 Jun 2021 14:23:57 -0400
-Date:   Fri, 4 Jun 2021 14:23:57 -0400
+        with SMTP id S229769AbhFDS2z (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jun 2021 14:28:55 -0400
+Received: (qmail 1689146 invoked by uid 1000); 4 Jun 2021 14:27:08 -0400
+Date:   Fri, 4 Jun 2021 14:27:08 -0400
 From:   Alan Stern <stern@rowland.harvard.edu>
-To:     Linus Torvalds <torvalds@linux-foundation.org>
-Cc:     Peter Zijlstra <peterz@infradead.org>,
-        Will Deacon <will@kernel.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nick Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-toolchains@vger.kernel.org,
-        linux-arch <linux-arch@vger.kernel.org>
+To:     Peter Zijlstra <peterz@infradead.org>
+Cc:     Will Deacon <will@kernel.org>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        paulmck@kernel.org, parri.andrea@gmail.com, boqun.feng@gmail.com,
+        npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk,
+        luc.maranget@inria.fr, akiyks@gmail.com,
+        linux-kernel@vger.kernel.org, linux-toolchains@vger.kernel.org,
+        linux-arch@vger.kernel.org
 Subject: Re: [RFC] LKMM: Add volatile_if()
-Message-ID: <20210604182357.GA1688170@rowland.harvard.edu>
+Message-ID: <20210604182708.GB1688170@rowland.harvard.edu>
 References: <YLn8dzbNwvqrqqp5@hirez.programming.kicks-ass.net>
- <CAHk-=wievFk29DZgFLEFpH9yuZ0jfJqppLTJnOMvhe=+tDqgrw@mail.gmail.com>
- <YLpWwm1lDwBaUven@hirez.programming.kicks-ass.net>
- <CAHk-=wjf-VJZd3Uxv3T3pSJYYVzyfK2--znG0VEOnNRchMGgdQ@mail.gmail.com>
+ <20210604104359.GE2318@willie-the-truck>
+ <YLoPJDzlTsvpjFWt@hirez.programming.kicks-ass.net>
+ <20210604134422.GA2793@willie-the-truck>
+ <YLoxAOua/qsZXNmY@hirez.programming.kicks-ass.net>
+ <20210604151356.GC2793@willie-the-truck>
+ <YLpFHE5Cr45rWTUV@hirez.programming.kicks-ass.net>
+ <YLpJ5K6O52o1cAVT@hirez.programming.kicks-ass.net>
+ <20210604155154.GG1676809@rowland.harvard.edu>
+ <YLpSEM7sxSmsuc5t@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wjf-VJZd3Uxv3T3pSJYYVzyfK2--znG0VEOnNRchMGgdQ@mail.gmail.com>
+In-Reply-To: <YLpSEM7sxSmsuc5t@hirez.programming.kicks-ass.net>
 User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jun 04, 2021 at 10:10:29AM -0700, Linus Torvalds wrote:
-> On Fri, Jun 4, 2021 at 9:37 AM Peter Zijlstra <peterz@infradead.org> wrote:
-> >
-> > >
-> > > Why is "volatile_if()" not just
-> > >
-> > >        #define barier_true() ({ barrier(); 1; })
-> > >
-> > >        #define volatile_if(x) if ((x) && barrier_true())
-> >
-> > Because we weren't sure compilers weren't still allowed to optimize the
-> > branch away.
+On Fri, Jun 04, 2021 at 06:17:20PM +0200, Peter Zijlstra wrote:
+> On Fri, Jun 04, 2021 at 11:51:54AM -0400, Alan Stern wrote:
+> > On Fri, Jun 04, 2021 at 05:42:28PM +0200, Peter Zijlstra wrote:
 > 
-> This isn't about some "compiler folks think".
+> > > #define volatile_if(cond) if (({ bool __t = (cond); BUILD_BUG_ON(__builtin_constant_p(__t)); volatile_cond(__t); }))
+> > 
+> > That won't help with more complicated examples, such as:
+> > 
+> > 	volatile_if (READ_ONCE(*x) * 0 + READ_ONCE(*y))
 > 
-> The above CANNOT be compiled any other way than with a branch.
+> That's effectively:
 > 
-> A compiler that optimizes a branch away is simply broken.
-> 
-> Of course, the actual condition (ie "x" above) has to be something
-> that the compiler cannot statically determine is a constant, but since
-> the whole - and only - point is that there will be a READ_ONCE() or
-> similar there, that's not an issue.
+> 	volatile_if (READ_ONCE(*y))
+> 		WRITE_ONCE(*y, 42);
 
-In fact there is one weird case where it is an issue (mentioned in 
-memory-barriers.txt):
+Sorry, what I meant to write was:
 
-If some obscure arch-specific header file does:
+	volatile_if (READ_ONCE(*x) * 0 + READ_ONCE(*y))
+		WRITE_ONCE(*z, 42);
 
-	#define FOO	1
-
-and an unwitting programmer writes:
-
-	volatile_if (READ_ONCE(*y) % FOO == 0)
-		WRITE_ONCE(*z, 5);
-
-then the compiler _can_ statically determine that the condition is a 
-constant, in spite of the READ_ONCE, but this fact isn't apparent to the 
-programmer.  The generated object code will include both the read and 
-the write, but there won't necessarily be any ordering between them.
-
-I don't know if cases like this exist in the kernel.  It wouldn't be 
-surprising if they did though, particularly in situations where a 
-feature (like multi-level page tables) may be compiled away.
+where there is no ordering between *x and *z.  It's not daft, and yes, a 
+macro won't be able to warn about it.
 
 Alan
+
+> which is a valid, but daft, LOAD->STORE order, no? A compiler might
+> maybe be able to WARN on that, but that's definitely beyond what we can
+> do with macros.
