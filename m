@@ -6,77 +6,55 @@ X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
 	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CB04BC47083
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 15:36:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4C9FCC47083
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 15:39:54 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id AA6BA61406
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 15:36:11 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2D29261405
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 15:39:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230029AbhFDPh4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Jun 2021 11:37:56 -0400
-Received: from netrider.rowland.org ([192.131.102.5]:42531 "HELO
-        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S229675AbhFDPh4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jun 2021 11:37:56 -0400
-Received: (qmail 1682974 invoked by uid 1000); 4 Jun 2021 11:36:09 -0400
-Date:   Fri, 4 Jun 2021 11:36:09 -0400
-From:   Alan Stern <stern@rowland.harvard.edu>
+        id S229809AbhFDPlj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Jun 2021 11:41:39 -0400
+Received: from gate.crashing.org ([63.228.1.57]:45009 "EHLO gate.crashing.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S229675AbhFDPlj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 4 Jun 2021 11:41:39 -0400
+Received: from gate.crashing.org (localhost.localdomain [127.0.0.1])
+        by gate.crashing.org (8.14.1/8.14.1) with ESMTP id 154FZJvk020323;
+        Fri, 4 Jun 2021 10:35:19 -0500
+Received: (from segher@localhost)
+        by gate.crashing.org (8.14.1/8.14.1/Submit) id 154FZIOg020322;
+        Fri, 4 Jun 2021 10:35:18 -0500
+X-Authentication-Warning: gate.crashing.org: segher set sender to segher@kernel.crashing.org using -f
+Date:   Fri, 4 Jun 2021 10:35:18 -0500
+From:   Segher Boessenkool <segher@kernel.crashing.org>
 To:     Peter Zijlstra <peterz@infradead.org>
-Cc:     Will Deacon <will@kernel.org>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        paulmck@kernel.org, parri.andrea@gmail.com, boqun.feng@gmail.com,
-        npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk,
-        luc.maranget@inria.fr, akiyks@gmail.com,
-        linux-kernel@vger.kernel.org, linux-toolchains@vger.kernel.org,
-        linux-arch@vger.kernel.org
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>, will@kernel.org,
+        paulmck@kernel.org, stern@rowland.harvard.edu,
+        parri.andrea@gmail.com, boqun.feng@gmail.com, npiggin@gmail.com,
+        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
+        akiyks@gmail.com, linux-kernel@vger.kernel.org,
+        linux-toolchains@vger.kernel.org, linux-arch@vger.kernel.org
 Subject: Re: [RFC] LKMM: Add volatile_if()
-Message-ID: <20210604153609.GF1676809@rowland.harvard.edu>
-References: <YLn8dzbNwvqrqqp5@hirez.programming.kicks-ass.net>
- <20210604104359.GE2318@willie-the-truck>
- <YLoPJDzlTsvpjFWt@hirez.programming.kicks-ass.net>
- <20210604134422.GA2793@willie-the-truck>
- <YLoxAOua/qsZXNmY@hirez.programming.kicks-ass.net>
- <20210604151356.GC2793@willie-the-truck>
- <YLpFHE5Cr45rWTUV@hirez.programming.kicks-ass.net>
-MIME-Version: 1.0
+Message-ID: <20210604153518.GD18427@gate.crashing.org>
+References: <YLn8dzbNwvqrqqp5@hirez.programming.kicks-ass.net> <YLoSJaOVbzKXU4/7@hirez.programming.kicks-ass.net>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <YLpFHE5Cr45rWTUV@hirez.programming.kicks-ass.net>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+In-Reply-To: <YLoSJaOVbzKXU4/7@hirez.programming.kicks-ass.net>
+User-Agent: Mutt/1.4.2.3i
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jun 04, 2021 at 05:22:04PM +0200, Peter Zijlstra wrote:
-> On Fri, Jun 04, 2021 at 04:13:57PM +0100, Will Deacon wrote:
-> 
-> > In fact, maybe it's actually necessary to bundle the load and branch
-> > together. I looked at some of the examples of compilers breaking control
-> > dependencies from memory-barriers.txt and the "boolean short-circuit"
-> > example seems to defeat volatile_if:
-> > 
-> > void foo(int *x, int *y)
-> > {
-> >         volatile_if (READ_ONCE(*x) || 1 > 0)
-> >                 WRITE_ONCE(*y, 42);
-> > }  
-> 
-> Yeah, I'm not too bothered about this. Broken is broken.
-> 
-> If this were a compiler feature, the above would be a compile error. But
-> alas, we're not there yet :/ and the best we get to say at this point
-> is: don't do that then.
+On Fri, Jun 04, 2021 at 01:44:37PM +0200, Peter Zijlstra wrote:
+> On naming (sorry Paul for forgetting that in the initial mail); while I
+> think using the volatile qualifier for the language feature (can we haz
+> plz, kthxbai) makes perfect sense, Paul felt that we might use a
+> 'better' name for the kernel use, ctrl_dep_if() was proposed.
 
-This is an example of a "syntactic" dependency versus a "semantic" 
-dependency.  We shouldn't expect syntactic control dependencies to be 
-preserved.
+In standard C statements do not have qualifiers.  Unless you can
+convince the ISO C committee to have them on "if", you will have a very
+hard time convincing any serious compiler to do this.
 
-As a rule, people don't write non-semantic dependencies on purpose.  But 
-they can occur in some situations, thanks to definitions the programmer 
-isn't aware of.  One example would be:
 
-(In some obscure header file): #define NUM_FOO 1
-
-(Then in real code): if (READ_ONCE(*x) % NUM_FOO) ...
-
-Alan
+Segher
