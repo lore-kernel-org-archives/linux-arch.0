@@ -2,129 +2,112 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 77303C4743C
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 18:30:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2CE57C4743E
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 18:55:29 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 602F4613FE
-	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 18:30:08 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0D87861414
+	for <linux-arch@archiver.kernel.org>; Fri,  4 Jun 2021 18:55:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230063AbhFDSby (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Jun 2021 14:31:54 -0400
-Received: from gate.crashing.org ([63.228.1.57]:39809 "EHLO gate.crashing.org"
+        id S229854AbhFDS5O (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Jun 2021 14:57:14 -0400
+Received: from mail.kernel.org ([198.145.29.99]:44508 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229769AbhFDSby (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 4 Jun 2021 14:31:54 -0400
-Received: from gate.crashing.org (localhost.localdomain [127.0.0.1])
-        by gate.crashing.org (8.14.1/8.14.1) with ESMTP id 154IPkRL003330;
-        Fri, 4 Jun 2021 13:25:46 -0500
-Received: (from segher@localhost)
-        by gate.crashing.org (8.14.1/8.14.1/Submit) id 154IPjK0003329;
-        Fri, 4 Jun 2021 13:25:45 -0500
-X-Authentication-Warning: gate.crashing.org: segher set sender to segher@kernel.crashing.org using -f
-Date:   Fri, 4 Jun 2021 13:25:44 -0500
-From:   Segher Boessenkool <segher@kernel.crashing.org>
-To:     Linus Torvalds <torvalds@linux-foundation.org>
+        id S229810AbhFDS5O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 4 Jun 2021 14:57:14 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id BD31D610E5;
+        Fri,  4 Jun 2021 18:55:26 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1622832926;
+        bh=lbGmGUKJAoociyTvGuDvE5GguSRrHVdRC6Z9+MlresY=;
+        h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:From;
+        b=XZ+Bs5499Dxc3msdbIaehNSelb7F5+yU42bjrzk3Oroyge8c/YVWyqoIzFt0JffDs
+         WXpcP5Ayd2dXMVhFLaCsCTK4Llpz6H4e7IiXUrnuTKB5nmhsGC5H+fwdO6CHVsw+qA
+         TiE58PW1hYN5SFu2qsWE3M3pKmAl2UD5Jhz4z2E0n+ybRaiQteKvz6RI/8Cy5LCmpS
+         rBTb6MDkhIy6Aj5T/Ms5txVL9WR+eJ0f+0PRToUHKHgTo/8Y3hRZpcxWhZvYeDm/Fq
+         4hAe1Y1W2VH4ughfMmOBVWkvbJX4qSmsQISe7dhOpzoUBbftGGipFxnB5FQjWBrnjx
+         GCMgmktzm4xEg==
+Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
+        id 8CC0B5C02AB; Fri,  4 Jun 2021 11:55:26 -0700 (PDT)
+Date:   Fri, 4 Jun 2021 11:55:26 -0700
+From:   "Paul E. McKenney" <paulmck@kernel.org>
+To:     Segher Boessenkool <segher@kernel.crashing.org>
 Cc:     Peter Zijlstra <peterz@infradead.org>,
-        Will Deacon <will@kernel.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Alan Stern <stern@rowland.harvard.edu>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nick Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-toolchains@vger.kernel.org,
-        linux-arch <linux-arch@vger.kernel.org>
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        will@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com,
+        boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com,
+        j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com,
+        linux-kernel@vger.kernel.org, linux-toolchains@vger.kernel.org,
+        linux-arch@vger.kernel.org
 Subject: Re: [RFC] LKMM: Add volatile_if()
-Message-ID: <20210604182544.GK18427@gate.crashing.org>
-References: <YLn8dzbNwvqrqqp5@hirez.programming.kicks-ass.net> <CAHk-=wievFk29DZgFLEFpH9yuZ0jfJqppLTJnOMvhe=+tDqgrw@mail.gmail.com> <YLpWwm1lDwBaUven@hirez.programming.kicks-ass.net> <CAHk-=wjf-VJZd3Uxv3T3pSJYYVzyfK2--znG0VEOnNRchMGgdQ@mail.gmail.com> <20210604172407.GJ18427@gate.crashing.org> <CAHk-=wj0Qvpn0pOOhJMGOim=psP3bhS2dEX1bAvQpmXs__vqiQ@mail.gmail.com>
-Mime-Version: 1.0
+Message-ID: <20210604185526.GW4397@paulmck-ThinkPad-P17-Gen-1>
+Reply-To: paulmck@kernel.org
+References: <YLn8dzbNwvqrqqp5@hirez.programming.kicks-ass.net>
+ <YLoSJaOVbzKXU4/7@hirez.programming.kicks-ass.net>
+ <20210604153518.GD18427@gate.crashing.org>
+ <YLpQj+S3vpTLX7cc@hirez.programming.kicks-ass.net>
+ <20210604164047.GH18427@gate.crashing.org>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wj0Qvpn0pOOhJMGOim=psP3bhS2dEX1bAvQpmXs__vqiQ@mail.gmail.com>
-User-Agent: Mutt/1.4.2.3i
+In-Reply-To: <20210604164047.GH18427@gate.crashing.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi!
-
-On Fri, Jun 04, 2021 at 10:38:43AM -0700, Linus Torvalds wrote:
-> On Fri, Jun 4, 2021 at 10:27 AM Segher Boessenkool
-> <segher@kernel.crashing.org> wrote:
-> > > Of course, we might want to make sure that the compiler doesn't go
-> > > "oh, empty asm, I can ignore it",
-> >
-> > It isn't allowed to do that.  GCC has this arguable misfeature where it
-> > doesn't show empty asm in the assembler output, but that has no bearing
-> > on anything but how human-readable the output is.
+On Fri, Jun 04, 2021 at 11:40:47AM -0500, Segher Boessenkool wrote:
+> On Fri, Jun 04, 2021 at 06:10:55PM +0200, Peter Zijlstra wrote:
+> > On Fri, Jun 04, 2021 at 10:35:18AM -0500, Segher Boessenkool wrote:
+> > > On Fri, Jun 04, 2021 at 01:44:37PM +0200, Peter Zijlstra wrote:
+> > > > On naming (sorry Paul for forgetting that in the initial mail); while I
+> > > > think using the volatile qualifier for the language feature (can we haz
+> > > > plz, kthxbai) makes perfect sense, Paul felt that we might use a
+> > > > 'better' name for the kernel use, ctrl_dep_if() was proposed.
+> > > 
+> > > In standard C statements do not have qualifiers.  Unless you can
+> > > convince the ISO C committee to have them on "if", you will have a very
+> > > hard time convincing any serious compiler to do this.
+> > 
+> > While some people like talking to the Committee, I would much rather
+> > explore language extensions with the compiler communities. Such
+> > extensions can then make their way into the Committee once they show
+> > their usefulness.
 > 
-> That sounds about right, but we have had people talking about the
-> compiler looking inside the asm string before.
+> My point is that you ask compiler developers to paint themselves into a
+> corner if you ask them to change such fundamental C syntax.
+
+Once we have some experience with a language extension, the official
+syntax for a standardized version of that extension can be bikeshedded.
+Committees being what they are, what we use in the meantime will
+definitely not be what is chosen, so there is not a whole lot of point
+in worrying about the exact syntax in the meantime.  ;-)
+
+> > If you have another proposal on how to express this; one you'd rather
+> > see implemented, I'm all ears.
 > 
-> So it worries me that some compiler person might at some point go all
-> breathy-voice on us and say "I am altering the deal. Pray I don't
-> alter it any further".
-
-GCC will never do that.  And neither will any other compiler that claims
-to implement the GCC asm extensions, if they are true to their word.
-
-GCC *does* look inside the assembler template to estimate what code size
-this asm will generate, and it tries to be pessimistic about its
-estimate so that this will always work, but it always is possible to
-mislead the compiler here, precisely because it does not actually
-pretend it understands assembler code (think .irp or anything with
-assembler macros for example).  In very rare cases this leads to
-(assembler) errors ("jump target out of range", that kind of thing).
-The most effective workaround is to write less silly code ;-)  And of
-course this is documented, see
-<https://gcc.gnu.org/onlinedocs/gcc/Size-of-an-asm.html>
-
-> Side note: when grepping for what "barrier()" does on different
-> architectures and different compilers, I note that yes, it really is
-> just an empty asm volatile with a "memory" barrier. That should in all
-> way sbe sufficient.
+> I would love to see something that meshes well with the rest of C.  But
+> there is no 1-1 translation from C code to machine code (not in either
+> direction), so anything that more or less depends on that will always
+> be awkward.  If you can actually express the dependency in your source
+> code that will get us 95% to where we want to be.
 > 
-> BUT.
+> > Data dependencies, control dependencies and address dependencies, C
+> > doesn't really like them, we rely on them. It would be awesome if we can
+> > fix this.
 > 
-> There's this really odd comment in <linux/compiler-intel.h> that talks
-> about some "ECC" compiler:
-> 
->   /* Intel ECC compiler doesn't support gcc specific asm stmts.
->    * It uses intrinsics to do the equivalent things.
->    */
-> 
-> and it defines it as "__memory_barrier()". This seems to be an ia64 thing, but:
+> Yes.  The problem is that C is a high-level language.  All C semantics
+> are expressed on a an "as-if" level, never as "do this, then that" --
+> well, of course that *is* what it says, it's an imperative language just
+> like most, but that is just how you *think* about things on a conceptual
+> level, there is nothing that says the machine code has to do the same
+> thing in the same order as you wrote!
 
-"ecc" apparently was "icc" but for Itanium.  It ceased to exist some
-time in the 2.4 era apparently.  It was still used in 2003.  Searching
-for "ecpc" (the C++ compiler driver) will find a bit more.
+Which is exactly why these conversations are often difficult.  There is
+a tension between pushing the as-if rule as far as possible within the
+compiler on the one hand and allowing developers to write code that does
+what is needed on the other.  ;-)
 
->  - I cannot get google to find me any documentation on such an intrinsic
-> 
->  - it seems to be bogus anyway, since we have "asm volatile" usage in
-> at least arch/ia64/mm/tlb.c
-> 
-> So I do note that "barrier()" has an odd definition in one odd ia64
-> case, and I can't find the semantics for it.
-> 
-> Admittedly I also cannot find it in myself to care.
-
-Yeah, I love code archaeology, but I have work to do as well :-)
-
-> I don't think that
-> "Intel ECC" compiler case actually exists, and even if it does I don't
-> think itanium is relevant any more. But it was an odd detail on what
-> "barrier()" actually might mean to the compiler.
-
-:-)
-
-
-Segher
+							Thanx, Paul
