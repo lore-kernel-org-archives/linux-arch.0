@@ -2,170 +2,187 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C0034C4743C
-	for <linux-arch@archiver.kernel.org>; Sat,  5 Jun 2021 00:27:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 49225C4743D
+	for <linux-arch@archiver.kernel.org>; Sat,  5 Jun 2021 01:42:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A133E613D2
-	for <linux-arch@archiver.kernel.org>; Sat,  5 Jun 2021 00:27:39 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 17528613BF
+	for <linux-arch@archiver.kernel.org>; Sat,  5 Jun 2021 01:42:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229920AbhFEA3Z (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 4 Jun 2021 20:29:25 -0400
-Received: from mail-pj1-f48.google.com ([209.85.216.48]:43880 "EHLO
-        mail-pj1-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229847AbhFEA3Z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jun 2021 20:29:25 -0400
-Received: by mail-pj1-f48.google.com with SMTP id l10-20020a17090a150ab0290162974722f2so6800884pja.2;
-        Fri, 04 Jun 2021 17:27:38 -0700 (PDT)
+        id S230286AbhFEBoY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 4 Jun 2021 21:44:24 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54214 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230169AbhFEBoY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jun 2021 21:44:24 -0400
+Received: from mail-pf1-x429.google.com (mail-pf1-x429.google.com [IPv6:2607:f8b0:4864:20::429])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1D172C061766;
+        Fri,  4 Jun 2021 18:42:37 -0700 (PDT)
+Received: by mail-pf1-x429.google.com with SMTP id u126so4715014pfu.13;
+        Fri, 04 Jun 2021 18:42:37 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=date:from:subject:to:cc:references:in-reply-to:mime-version
-         :message-id:content-transfer-encoding;
-        bh=bZWOWnyu5nOe9hcwFfo38NCzqJqFs6QIG+9+6hzf77k=;
-        b=sVqQhvrIPUBvhq9HtJAXuH25dYnILW0Sccv/4f3kBtq8+yjB9Q2rlbVMvEFBrhoCwL
-         8mqplKoEyo66t1+0ew+hojihXivOBR9xYtA22CBcYb9h1+P/N5WXqRC6zVN7Yb7hpK6N
-         IocfJS0SQ3z3Xd78/cL8L5GZYphnNEXqg9BWMPOa7YD+4p4VteyOP9rpHNHclY8KN3o4
-         WRwxq+nCsAJejGBX6AF6CAvv9npAJJHuOBrQ6RUH0u3pKT46ecjUodDLrIJPwIfWMCNx
-         FirBG6cPB7pE8mqYmveLri/nAP8JMAY+TC69u0QDfQrjYiJhMN473ti2/BgpztdJQ4W1
-         kxmw==
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=W8uxX4t8g+DxGYDGoM+1rG8fWNFKPCHDobEAy7P79JU=;
+        b=t/BsozX+HKFZD2zebtgF3JGrIwCTcVj4ffmsJERRbi/MNaFuO3WFo3bmI7M7Pw7IDj
+         5k7ho9NFtodvy2hED8NQ029kOKEcm+emddzxclcV+A/9uFGxWtrrqyVwZBqBZQayVv8o
+         uvzpSo3qbCEaRJsIsMf83kmaSWU82D3nQyk4UoworXY/8rBuy0UT3gajZ92D9fUUpVvL
+         nkRMAM3yjYbObExBGVtCTrrn8upzvtdmLXXteWz7/0ii5TkWeGOPk21w9hgHzbsJtd4n
+         8a+HzVHQmMqiendjAtp1CC0CeIVqy3BZs61INz/EoX+TblkTnx0ukJD5mdWH0Ta+yWQq
+         0Sng==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:subject:to:cc:references:in-reply-to
-         :mime-version:message-id:content-transfer-encoding;
-        bh=bZWOWnyu5nOe9hcwFfo38NCzqJqFs6QIG+9+6hzf77k=;
-        b=axWqBXmWTO2gQck/qrWQMgGPtr3HGCGc7PU1TFNMNgzhUWkJyiNkTjtN71/g12E4E2
-         6EVWf4aROumN5PbI8St/ibAUJeTsWIKyLD4mbQJdqBF1jl2fJn4Xw2DbKUSy+Jz+eoe6
-         DxeisolDxuGgKOc6ztqDPzQ5d8/0nqDSc7AiT1rgRaE/zA8z5pl6BiGwx2Xhkfn8Ddy2
-         Kk59ikf8F+BNU9GjBewCYci9vK/ectnMq14AO95RXj9j45/3ZVyy764y9n6rgZr0Ll4p
-         GjBNi8EQRXN/JB5z7dLgGSj4bVJcQ+UQcCjt4cUeMARYm/rGkLfsFDio8s0f3Egr4kb7
-         AVhg==
-X-Gm-Message-State: AOAM530HVSA84R+9AA3DfcbZSgUBVNhmDx2WsBTsNqrqO+mn9+I7AF7n
-        o6KuwNUaQv9EA0OKCHuh7LQ=
-X-Google-Smtp-Source: ABdhPJxjr6SRTKqd7M2yn2GGd8wbqclJvvKqlheGcJ1NnTc0q1WibCsKIJKVTsY5Sdd7a6n11TS1OQ==
-X-Received: by 2002:a17:902:f704:b029:f4:228d:4dca with SMTP id h4-20020a170902f704b02900f4228d4dcamr7003155plo.26.1622852798616;
-        Fri, 04 Jun 2021 17:26:38 -0700 (PDT)
-Received: from localhost (60-242-147-73.tpgi.com.au. [60.242.147.73])
-        by smtp.gmail.com with ESMTPSA id z17sm2589464pfq.218.2021.06.04.17.26.37
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=W8uxX4t8g+DxGYDGoM+1rG8fWNFKPCHDobEAy7P79JU=;
+        b=jvMX1RY1IwmoUtShecHs3l0pLldmTyaZSBm8jSfvl0fkiluOsrHH2LYoC/SaIJB/1R
+         tPZtfZO4/YqNJ/bCB9Fmv8dsYjND81YGgz+QFGXD+z8E4waei/ngk8XxbVmu9LpDgeA3
+         pF3qIdYP3gxpUzlbThPUzw1ILIFhawgEA8JWnI/muI3+2UGvi3OqhZ4SZbrElNyEwD66
+         kPiwY1yTGAPo0ppUzSciea0tUx3PPgitsmr71Q/Yb1Zqfp3Qklbtw+74wCobCDnjcsqo
+         yGp27f1MZuIheOfSiLL+15v+cic5D6ltXNdVTUvQCPeOfY6sJE2H9mDW0PlTiml7ZyEQ
+         qivg==
+X-Gm-Message-State: AOAM532j/uwP70VsEI/mQbEMjJhAn2Tv3ytpXiyZCe8uW3NNcV81BcVt
+        VwTw0BtedivS11+OJS4oTOI=
+X-Google-Smtp-Source: ABdhPJyaiJ+cifU73dwUkfKSCUG8g6xUPympTQc18g/8gDitQusrenWMupQEWYNpZsq0HZ+33JFCOQ==
+X-Received: by 2002:aa7:900f:0:b029:2ec:82d2:d23 with SMTP id m15-20020aa7900f0000b02902ec82d20d23mr5855353pfo.16.1622857354192;
+        Fri, 04 Jun 2021 18:42:34 -0700 (PDT)
+Received: from bobo.ozlabs.ibm.com (60-242-147-73.tpgi.com.au. [60.242.147.73])
+        by smtp.gmail.com with ESMTPSA id q68sm5779056pjq.45.2021.06.04.18.42.30
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 04 Jun 2021 17:26:38 -0700 (PDT)
-Date:   Sat, 05 Jun 2021 10:26:32 +1000
+        Fri, 04 Jun 2021 18:42:33 -0700 (PDT)
 From:   Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v3 0/4] shoot lazy tlbs
-To:     Andrew Morton <akpm@linux-foundation.org>,
+To:     Andrew Morton <akpm@linux-foundation.org>
+Cc:     Nicholas Piggin <npiggin@gmail.com>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org,
+        Anton Blanchard <anton@ozlabs.org>,
         Andy Lutomirski <luto@kernel.org>
-Cc:     Anton Blanchard <anton@ozlabs.org>, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-mm@kvack.org,
-        linuxppc-dev@lists.ozlabs.org, Randy Dunlap <rdunlap@infradead.org>
-References: <20210601062303.3932513-1-npiggin@gmail.com>
-        <603ffd67-3638-4c47-8067-c1bdfdf65f1b@kernel.org>
-        <991660c3-c2bf-c303-a55c-7454f0cc45f7@kernel.org>
-        <1622851909.wxi3vcx3m8.astroid@bobo.none>
-In-Reply-To: <1622851909.wxi3vcx3m8.astroid@bobo.none>
+Subject: [PATCH v4 2/4] lazy tlb: allow lazy tlb mm refcounting to be configurable
+Date:   Sat,  5 Jun 2021 11:42:14 +1000
+Message-Id: <20210605014216.446867-3-npiggin@gmail.com>
+X-Mailer: git-send-email 2.23.0
+In-Reply-To: <20210605014216.446867-1-npiggin@gmail.com>
+References: <20210605014216.446867-1-npiggin@gmail.com>
 MIME-Version: 1.0
-Message-Id: <1622852601.xyhcpcfd7y.astroid@bobo.none>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Excerpts from Nicholas Piggin's message of June 5, 2021 10:17 am:
-> Excerpts from Andy Lutomirski's message of June 5, 2021 3:05 am:
->> On 6/4/21 9:54 AM, Andy Lutomirski wrote:
->>> On 5/31/21 11:22 PM, Nicholas Piggin wrote:
->>>> There haven't been objections to the series since last posting, this
->>>> is just a rebase and tidies up a few comments minor patch rearranging.
->>>>
->>>=20
->>> I continue to object to having too many modes.  I like my more generic
->>> improvements better.  Let me try to find some time to email again.
->>>=20
->>=20
->> Specifically, this:
->>=20
->> https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/commit/?h=
-=3Dx86/mm
->=20
-> That's worse than what powerpc does with the shoot lazies code so=20
-> we wouldn't use it anyway.
->=20
-> The fact is mm-cpumask and lazy mm is very architecture specific, so I=20
-> don't really see that another "mode" is such a problem, it's for the=20
-> most part "this is what powerpc does" -> "this is what powerpc does".
-> The only mode in the context switch is just "take a ref on the lazy mm"
-> or "don't take a ref". Surely that's not too onerous to add!?
->=20
-> Actually the bigger part of it is actually the no-lazy mmu mode which
-> is not yet used, I thought it was a neat little demonstrator of how code
-> works with/without lazy but I will get rid of that for submission.
+Add CONFIG_MMU_TLB_REFCOUNT which enables refcounting of the lazy tlb mm
+when it is context switched. This can be disabled by architectures that
+don't require this refcounting if they clean up lazy tlb mms when the
+last refcount is dropped. Currently this is always enabled, which is
+what existing code does, so the patch is effectively a no-op.
 
-I admit that does add a bit more churn than necessary maybe that was
-the main objection.
+Rename rq->prev_mm to rq->prev_lazy_mm, because that's what it is.
 
-Here is the entire kernel/sched/core.c change after that is removed.
-Pretty simple now. I'll resubmit.
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/Kconfig             |  4 ++++
+ include/linux/sched/mm.h | 13 +++++++++++--
+ kernel/sched/core.c      | 22 ++++++++++++++++++----
+ kernel/sched/sched.h     |  4 +++-
+ 4 files changed, 36 insertions(+), 7 deletions(-)
 
-Thanks,
-Nick
-
-
+diff --git a/arch/Kconfig b/arch/Kconfig
+index c45b770d3579..1cff045cdde6 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -418,6 +418,10 @@ config ARCH_WANT_IRQS_OFF_ACTIVATE_MM
+ 	  irqs disabled over activate_mm. Architectures that do IPI based TLB
+ 	  shootdowns should enable this.
+ 
++# Use normal mm refcounting for MMU_LAZY_TLB kernel thread references.
++config MMU_LAZY_TLB_REFCOUNT
++	def_bool y
++
+ config ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	bool
+ 
+diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
+index bfd1baca5266..29e4638ad124 100644
+--- a/include/linux/sched/mm.h
++++ b/include/linux/sched/mm.h
+@@ -52,12 +52,21 @@ static inline void mmdrop(struct mm_struct *mm)
+ /* Helpers for lazy TLB mm refcounting */
+ static inline void mmgrab_lazy_tlb(struct mm_struct *mm)
+ {
+-	mmgrab(mm);
++	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_REFCOUNT))
++		mmgrab(mm);
+ }
+ 
+ static inline void mmdrop_lazy_tlb(struct mm_struct *mm)
+ {
+-	mmdrop(mm);
++	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_REFCOUNT)) {
++		mmdrop(mm);
++	} else {
++		/*
++		 * mmdrop_lazy_tlb must provide a full memory barrier, see the
++		 * membarrier comment finish_task_switch which relies on this.
++		 */
++		smp_mb();
++	}
+ }
+ 
+ /**
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index e359c76ea2e2..1be0b97e12ec 100644
+index e359c76ea2e2..5e10cb712be3 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
-@@ -4171,7 +4171,7 @@ static struct rq *finish_task_switch(struct task_stru=
-ct *prev)
+@@ -4171,7 +4171,7 @@ static struct rq *finish_task_switch(struct task_struct *prev)
  	__releases(rq->lock)
  {
- 	struct rq *rq =3D this_rq();
--	struct mm_struct *mm =3D rq->prev_mm;
-+	struct mm_struct *mm =3D NULL;
+ 	struct rq *rq = this_rq();
+-	struct mm_struct *mm = rq->prev_mm;
++	struct mm_struct *mm = NULL;
  	long prev_state;
-=20
+ 
  	/*
-@@ -4190,7 +4190,10 @@ static struct rq *finish_task_switch(struct task_str=
-uct *prev)
+@@ -4190,7 +4190,10 @@ static struct rq *finish_task_switch(struct task_struct *prev)
  		      current->comm, current->pid, preempt_count()))
  		preempt_count_set(FORK_PREEMPT_COUNT);
-=20
--	rq->prev_mm =3D NULL;
+ 
+-	rq->prev_mm = NULL;
 +#ifdef CONFIG_MMU_LAZY_TLB_REFCOUNT
-+	mm =3D rq->prev_lazy_mm;
-+	rq->prev_lazy_mm =3D NULL;
++	mm = rq->prev_lazy_mm;
++	rq->prev_lazy_mm = NULL;
 +#endif
-=20
+ 
  	/*
  	 * A task struct has one reference for the use as "current".
-@@ -4326,9 +4329,21 @@ context_switch(struct rq *rq, struct task_struct *pr=
-ev,
+@@ -4326,9 +4329,20 @@ context_switch(struct rq *rq, struct task_struct *prev,
  		switch_mm_irqs_off(prev->active_mm, next->mm, next);
-=20
+ 
  		if (!prev->mm) {                        // from kernel
 -			/* will mmdrop_lazy_tlb() in finish_task_switch(). */
--			rq->prev_mm =3D prev->active_mm;
+-			rq->prev_mm = prev->active_mm;
 +#ifdef CONFIG_MMU_LAZY_TLB_REFCOUNT
 +			/* Will mmdrop_lazy_tlb() in finish_task_switch(). */
-+			rq->prev_lazy_mm =3D prev->active_mm;
- 			prev->active_mm =3D NULL;
++			rq->prev_lazy_mm = prev->active_mm;
+ 			prev->active_mm = NULL;
 +#else
 +			/*
 +			 * Without MMU_LAZY_TLB_REFCOUNT there is no lazy
 +			 * tracking (because no rq->prev_lazy_mm) in
-+			 * finish_task_switch, so no mmdrop_lazy_tlb(),
-+			 * so no memory barrier for membarrier (see the
-+			 * membarrier comment in finish_task_switch()).
-+			 * Do it here.
++			 * finish_task_switch, so no mmdrop_lazy_tlb(), so no
++			 * memory barrier for membarrier (see the membarrier
++			 * comment in finish_task_switch()).  Do it here.
 +			 */
 +			smp_mb();
 +#endif
  		}
  	}
-=20
+ 
 diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
 index a189bec13729..0729cf19a987 100644
 --- a/kernel/sched/sched.h
@@ -178,7 +195,9 @@ index a189bec13729..0729cf19a987 100644
 +#ifdef CONFIG_MMU_LAZY_TLB_REFCOUNT
 +	struct mm_struct	*prev_lazy_mm;
 +#endif
-=20
+ 
  	unsigned int		clock_update_flags;
  	u64			clock;
+-- 
+2.23.0
 
