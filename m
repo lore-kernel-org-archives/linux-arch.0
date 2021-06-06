@@ -6,30 +6,24 @@ X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
 	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 07679C4743D
-	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 13:22:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 979A8C4743D
+	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 13:45:37 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D80AB6136E
-	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 13:22:02 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 71FB16140F
+	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 13:45:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230003AbhFFNXv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 6 Jun 2021 09:23:51 -0400
-Received: from gate.crashing.org ([63.228.1.57]:54877 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229531AbhFFNXv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 6 Jun 2021 09:23:51 -0400
-Received: from gate.crashing.org (localhost.localdomain [127.0.0.1])
-        by gate.crashing.org (8.14.1/8.14.1) with ESMTP id 156DHgDq028954;
-        Sun, 6 Jun 2021 08:17:42 -0500
-Received: (from segher@localhost)
-        by gate.crashing.org (8.14.1/8.14.1/Submit) id 156DHeno028953;
-        Sun, 6 Jun 2021 08:17:40 -0500
-X-Authentication-Warning: gate.crashing.org: segher set sender to segher@kernel.crashing.org using -f
-Date:   Sun, 6 Jun 2021 08:17:40 -0500
-From:   Segher Boessenkool <segher@kernel.crashing.org>
-To:     "Paul E. McKenney" <paulmck@kernel.org>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Alan Stern <stern@rowland.harvard.edu>,
+        id S230105AbhFFNrY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 6 Jun 2021 09:47:24 -0400
+Received: from netrider.rowland.org ([192.131.102.5]:33349 "HELO
+        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S230091AbhFFNrY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Jun 2021 09:47:24 -0400
+Received: (qmail 1736478 invoked by uid 1000); 6 Jun 2021 09:45:32 -0400
+Date:   Sun, 6 Jun 2021 09:45:32 -0400
+From:   Alan Stern <stern@rowland.harvard.edu>
+To:     Segher Boessenkool <segher@kernel.crashing.org>
+Cc:     "Paul E. McKenney" <paulmck@kernel.org>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
         Peter Zijlstra <peterz@infradead.org>,
         Will Deacon <will@kernel.org>,
         Andrea Parri <parri.andrea@gmail.com>,
@@ -43,37 +37,50 @@ Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
         linux-toolchains@vger.kernel.org,
         linux-arch <linux-arch@vger.kernel.org>
 Subject: Re: [RFC] LKMM: Add volatile_if()
-Message-ID: <20210606131740.GU18427@gate.crashing.org>
-References: <CAHk-=wik7T+FoDAfqFPuMGVp6HxKYOf8UeKt3+EmovfivSgQ2Q@mail.gmail.com> <20210604205600.GB4397@paulmck-ThinkPad-P17-Gen-1> <CAHk-=wgmUbU6XPHz=4NFoLMxH7j_SR-ky4sKzOBrckmvk5AJow@mail.gmail.com> <20210604214010.GD4397@paulmck-ThinkPad-P17-Gen-1> <CAHk-=wg0w5L7-iJU_kvEh9stXZoh2srRF4jKToKmSKyHv-njvA@mail.gmail.com> <20210605145739.GB1712909@rowland.harvard.edu> <20210606001418.GH4397@paulmck-ThinkPad-P17-Gen-1> <20210606012903.GA1723421@rowland.harvard.edu> <CAHk-=wgUsReyz4uFymB8mmpphuP0vQ3DktoWU_x4u6impbzphg@mail.gmail.com> <20210606044333.GI4397@paulmck-ThinkPad-P17-Gen-1>
-Mime-Version: 1.0
+Message-ID: <20210606134532.GA1736178@rowland.harvard.edu>
+References: <CAHk-=wiuLpmOGJyB385UyQioWMVKT6wN9UtyVXzt48AZittCKg@mail.gmail.com>
+ <CAHk-=wik7T+FoDAfqFPuMGVp6HxKYOf8UeKt3+EmovfivSgQ2Q@mail.gmail.com>
+ <20210604205600.GB4397@paulmck-ThinkPad-P17-Gen-1>
+ <CAHk-=wgmUbU6XPHz=4NFoLMxH7j_SR-ky4sKzOBrckmvk5AJow@mail.gmail.com>
+ <20210604214010.GD4397@paulmck-ThinkPad-P17-Gen-1>
+ <CAHk-=wg0w5L7-iJU_kvEh9stXZoh2srRF4jKToKmSKyHv-njvA@mail.gmail.com>
+ <20210605145739.GB1712909@rowland.harvard.edu>
+ <20210606001418.GH4397@paulmck-ThinkPad-P17-Gen-1>
+ <20210606012903.GA1723421@rowland.harvard.edu>
+ <20210606115336.GS18427@gate.crashing.org>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20210606044333.GI4397@paulmck-ThinkPad-P17-Gen-1>
-User-Agent: Mutt/1.4.2.3i
+In-Reply-To: <20210606115336.GS18427@gate.crashing.org>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sat, Jun 05, 2021 at 09:43:33PM -0700, Paul E. McKenney wrote:
-> So gcc might some day note a do-nothing asm and duplicate it for
-> the sole purpose of collapsing the "then" and "else" clauses.  I
-> guess I need to keep my paranoia for the time being, then.  :-/
+On Sun, Jun 06, 2021 at 06:53:36AM -0500, Segher Boessenkool wrote:
+> On Sat, Jun 05, 2021 at 09:29:03PM -0400, Alan Stern wrote:
+> > Interesting.  And changing one of the branches from barrier() to __asm__ 
+> > __volatile__("nop": : :"memory") also causes a branch to be emitted.  So 
+> > even though the compiler doesn't "look inside" assembly code, it does 
+> > compare two pieces at least textually and apparently assumes if they are 
+> > identical then they do the same thing.
+> 
+> And that is a simple fact, since the same assembler code (at the same
+> spot in the program) will do the same thing no matter how that ended up
+> there.
 
-Or a "do-something" asm, even.  What it does is make sure it is executed
-on the real machine exactly like on the abstract machine.  That is how C
-is defined, what a compiler *does*.
+Sure.  But the same assembler code at two different spots in the program 
+might not do the same thing.  (Think of code that stores the current EIP 
+register's value into a variable.)
 
-The programmer does not have any direct control over the generated code.
+So while de-duplicating such code may be allowed, it will give rise to 
+observable results at execution time.
 
-> Of course, there is no guarantee that gcc won't learn about
-> assembler constants.  :-/
+Alan
 
-I am not sure what you call an "assembler constant" here.  But you can
-be sure that GCC will not start doing anything here.  GCC does not try
-to understand what you wrote in an inline asm, it just fills in the
-operands and that is all.  It can do all the same things to it that it
-can do to any other code of course: duplicate it, deduplicate it,
-frobnicate it, etc.
-
-
-Segher
+> And the compiler always is allowed to duplicate, join, delete, you name
+> it, inline assembler code.  The only thing that it cares about is
+> semantics of the code, just like for any other code.
+> 
+> 
+> Segher
