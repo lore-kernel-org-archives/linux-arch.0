@@ -2,72 +2,106 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.6 required=3.0 tests=BAYES_00,DKIM_INVALID,
+	DKIM_SIGNED,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EFD55C4743E
-	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 17:18:24 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 83BCBC47096
+	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 17:22:27 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CB6C861408
-	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 17:18:24 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 4F5AC61408
+	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 17:22:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229723AbhFFRUN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 6 Jun 2021 13:20:13 -0400
-Received: from gate.crashing.org ([63.228.1.57]:44823 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229474AbhFFRUM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 6 Jun 2021 13:20:12 -0400
-Received: from gate.crashing.org (localhost.localdomain [127.0.0.1])
-        by gate.crashing.org (8.14.1/8.14.1) with ESMTP id 156HE02l006674;
-        Sun, 6 Jun 2021 12:14:00 -0500
-Received: (from segher@localhost)
-        by gate.crashing.org (8.14.1/8.14.1/Submit) id 156HDuDv006673;
-        Sun, 6 Jun 2021 12:13:56 -0500
-X-Authentication-Warning: gate.crashing.org: segher set sender to segher@kernel.crashing.org using -f
-Date:   Sun, 6 Jun 2021 12:13:56 -0500
-From:   Segher Boessenkool <segher@kernel.crashing.org>
-To:     Alan Stern <stern@rowland.harvard.edu>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Will Deacon <will@kernel.org>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nick Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-toolchains@vger.kernel.org,
-        linux-arch <linux-arch@vger.kernel.org>
-Subject: Re: [RFC] LKMM: Add volatile_if()
-Message-ID: <20210606171356.GV18427@gate.crashing.org>
-References: <20210604205600.GB4397@paulmck-ThinkPad-P17-Gen-1> <CAHk-=wgmUbU6XPHz=4NFoLMxH7j_SR-ky4sKzOBrckmvk5AJow@mail.gmail.com> <20210604214010.GD4397@paulmck-ThinkPad-P17-Gen-1> <CAHk-=wg0w5L7-iJU_kvEh9stXZoh2srRF4jKToKmSKyHv-njvA@mail.gmail.com> <20210605145739.GB1712909@rowland.harvard.edu> <20210606001418.GH4397@paulmck-ThinkPad-P17-Gen-1> <20210606012903.GA1723421@rowland.harvard.edu> <CAHk-=wgUsReyz4uFymB8mmpphuP0vQ3DktoWU_x4u6impbzphg@mail.gmail.com> <20210606125955.GT18427@gate.crashing.org> <20210606134749.GB1736178@rowland.harvard.edu>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210606134749.GB1736178@rowland.harvard.edu>
-User-Agent: Mutt/1.4.2.3i
+        id S229697AbhFFRYP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 6 Jun 2021 13:24:15 -0400
+Received: from mailgate.ics.forth.gr ([139.91.1.2]:26051 "EHLO
+        mailgate.ics.forth.gr" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229445AbhFFRYP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Jun 2021 13:24:15 -0400
+Received: from av3.ics.forth.gr (av3in.ics.forth.gr [139.91.1.77])
+        by mailgate.ics.forth.gr (8.15.2/ICS-FORTH/V10-1.8-GATE) with ESMTP id 156HMMSa051939
+        for <linux-arch@vger.kernel.org>; Sun, 6 Jun 2021 20:22:22 +0300 (EEST)
+DKIM-Signature: v=1; a=rsa-sha256; d=ics.forth.gr; s=av; c=relaxed/simple;
+        q=dns/txt; i=@ics.forth.gr; t=1623000137; x=1625592137;
+        h=From:Sender:Reply-To:Subject:Date:Message-ID:To:Cc:MIME-Version:Content-Type:
+        Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:Resent-From:
+        Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:In-Reply-To:References:List-Id:
+        List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
+        bh=ofh6S0qmxbTfwOwm6I6W/gPma32NXMANo65YCZP3Xvs=;
+        b=G6lDnSKK77R8A849bGJ25Ey3IPPHNmHKtsEWtiaT8ySLxRN1CgvFHRTz3lYdC3Gb
+        IiUd44ADfAmdZtwdIR/GQxZ/yhcvSk+iKUGJ7vN+78H0Jjk59TGxUhHz3Gr7GtKJ
+        WUoYzchYtTmjMKbw7L1+8yV+8xY8w1PkTJZY5zw+YbOJ6l8NuhGpEZLG0K+MA3GZ
+        96HXduLc+YlJYcyteF3C+2OJrOQbm8tGuIkVjkC6qGi215LnUjSTHui4T6fo57gD
+        iChGdQ736ul6Ki8jT30a3Jj6+zmr+zfKwWi8w7EfEtkXkDDzM7nl8oRQY24yzqaf
+        XFeSvKRKTknxtcvsHy930A==;
+X-AuditID: 8b5b014d-96ef2700000067b6-e0-60bd04486a19
+Received: from enigma.ics.forth.gr (webmail.ics.forth.gr [139.91.151.35])
+        by av3.ics.forth.gr (Symantec Messaging Gateway) with SMTP id 4A.2A.26550.8440DB06; Sun,  6 Jun 2021 20:22:16 +0300 (EEST)
+X-ICS-AUTH-INFO: Authenticated user:  at ics.forth.gr
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 8bit
+Date:   Sun, 06 Jun 2021 20:22:14 +0300
+From:   Nick Kossifidis <mick@ics.forth.gr>
+To:     guoren@kernel.org
+Cc:     anup.patel@wdc.com, palmerdabbelt@google.com, arnd@arndb.de,
+        wens@csie.org, maxime@cerno.tech, drew@beagleboard.org,
+        liush@allwinnertech.com, lazyparser@gmail.com, wefu@redhat.com,
+        linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-sunxi@lists.linux.dev,
+        Guo Ren <guoren@linux.alibaba.com>,
+        Christoph Hellwig <hch@lst.de>
+Subject: Re: [RFC PATCH v2 06/11] riscv: pgtable: Add DMA_COHERENT with custom
+ PTE attributes
+Organization: FORTH
+In-Reply-To: <1622970249-50770-10-git-send-email-guoren@kernel.org>
+References: <1622970249-50770-1-git-send-email-guoren@kernel.org>
+ <1622970249-50770-10-git-send-email-guoren@kernel.org>
+Message-ID: <610849b6f66e8d5a9653c9f62f46c48d@mailhost.ics.forth.gr>
+X-Sender: mick@mailhost.ics.forth.gr
+User-Agent: Roundcube Webmail/1.3.16
+X-Brightmail-Tracker: H4sIAAAAAAAAA+NgFtrAIsWRmVeSWpSXmKPExsXSHT1dWdeDZW+CwaPjlhZPPkxks/g76Ri7
+        xb0Vy9gtXuxtZLE4/mgXi8XK1UeZLC59ucZi0bHrK4vF5V1z2Cy2fW5hs5iybxebxcp1x5gt
+        Zvz4x2ixdeM6RouW/VNYLH4eOs/kIODxqu0Zk8fvX5MYPd79XsbocefceTaPDY9Ws3rsnHWX
+        3WPBplKPTas62Tx2PrT02Lyk3uPF5pmMHrtvNrB5vN93lc3j8yY5j/YD3UwB/FFcNimpOZll
+        qUX6dglcGfum72YvaOCoOHDmEnMD4062LkZODgkBE4ll0y4C2VwcQgLHGCU6fn+GSphKzN7b
+        yQhi8woISpyc+YQFxGYWsJCYemU/I4QtL9G8dTYziM0ioCrxvasZrIZNQFNi/qWDYLaIgKjE
+        +tnzwRYwCyxilth4eytYg7BAvMT2yc/YQWx+AWGJT3cvsnYxcnBwCjhL3N4FFhYSqJJYvvU6
+        K8QNLhLXd6xhhbhNReLD7wfsIOWiQPbmuUoTGAVnIbl0FpJLZyG5dAEj8ypGgcQyY73M5GK9
+        tPyikgy99KJNjOBIZfTdwXh781u9Q4xMHIyHGCU4mJVEeL1k9iQI8aYkVlalFuXHF5XmpBYf
+        YpTmYFES5+XVmxAvJJCeWJKanZpakFoEk2Xi4JRqYJqUqDJJ9reE+6uaOWYlzSFl7abzt07o
+        eluzd6NShuHpSS7vZfga6pniXtRdmlgW9XzGKZfsNedmN2Qw/9xV9UUrPaCL67Cw+GQLA2Oh
+        V4K9HDc2bDjW9v9FMoPBOa0gW6muVtffxmb3JP7U9saGPjX99P7PoVuJN/qX3SsrXSLUEC1p
+        n8d+4NFsRV8ZcyXZjqVRLWmhy35F31F6k2VmFcy0uy98+rJlwh8fce9MmT23duGWC5kX/N+H
+        cfYzBm/e8e7q6sOtZkW3wq2a0jm8T7ybs6zgp5LZtLM/xYTXSEuK3tFcVKG01OnQcY+vD1be
+        0/wb1lG/t9mfVcUk81yP9cTmWyJ2x+Q+ZDxkzszfosRSnJFoqMVcVJwIAKcjnVpDAwAA
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Jun 06, 2021 at 09:47:49AM -0400, Alan Stern wrote:
-> > GCC does not pretend it can understand the asm.  But it can see when
-> > two asm statements are identical.
+Στις 2021-06-06 12:04, guoren@kernel.org έγραψε:
+> From: Guo Ren <guoren@linux.alibaba.com>
 > 
-> How similar do two asm strings have to be before they are considered 
-> identical?  For instance, do changes to the amount of leading or 
-> trailing whitespace matter?
+> The dma-noncoherent SOCs need different virtual memory mappings
+> with different attributes:
+>  - noncached + Strong Order (for IO/DMA descriptor)
+>  - noncached + Weak Order (for writecombine usage, eg: frame
+>    buffer)
+> 
+> All above base on PTE attributes by MMU hardware. That means
+> address attributes are determined by PTE entry, not PMA. RISC-V
+> soc vendors have defined their own custom PTE attributes for
+> dma-noncoherency.
+> 
 
-They have to be identical to be considered identical.
+This patch violates the Privilege Spec section 4.4.1 that clearly 
+states:
 
-> Or what about including an empty assembly statement in one but not the 
-> other?
+"Bits63–54 are reserved for future standard use and must be zeroed by 
+software for forward compatibility"
 
-GCC does not parse the assembler template.
-
-
-Segher
+Standard use means that valid values can only be defined by the Priv. 
+Spec, not by the vendor (otherwise they'd be marked as "custom use" or 
+"platform use"), and since they "must" be zeroed by software we 'll be 
+violating the Privilege Spec if we do otherwise.
