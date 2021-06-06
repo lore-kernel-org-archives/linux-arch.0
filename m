@@ -2,42 +2,78 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2B4CDC4743E
-	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 19:15:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D05A5C4743E
+	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 19:23:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 0B1CE6124B
-	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 19:15:42 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A3AF76136D
+	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 19:23:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230271AbhFFTRa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 6 Jun 2021 15:17:30 -0400
-Received: from mail.kernel.org ([198.145.29.99]:57352 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230340AbhFFTRT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 6 Jun 2021 15:17:19 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 532AB61287;
-        Sun,  6 Jun 2021 19:15:29 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1623006929;
-        bh=wvJiq1aGB+9WeuKZmWAPp0jOhE+zr1mmCVbd1NGNGRA=;
-        h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:From;
-        b=kkj7nPcFYhr1VThzJW/TU+bNYpzdLKj6i9sie9zIil+K0cEyI9g16ci+In9LCUNjZ
-         8aVyEiDB6g7mz6Y5Lz86BaXOc95NzCy8Ixq3HLprgtWlG+/OK7/0Y2/j8b2GjSVFOy
-         8dRsgrKOGGkZuAJIKp8042ayAXHtW/ins+nCOuzbzsa7O8Sk9UN9ivQ+ywiw7wtT2m
-         gq7RekJk7T0gvYWXbiKeMKgcx6spjoGrgK4yy7EdBscPjMs4Z5/UrkZ6hmLmW3cfyO
-         B9OkooxTjqUr7VvwF7SV7wGtPiSBzZRPKHNGpa+9fAH5yeRxAnpp5HVU2ev85ZNend
-         TZB5vp9SW01KQ==
-Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-        id 1F6B05C014A; Sun,  6 Jun 2021 12:15:29 -0700 (PDT)
-Date:   Sun, 6 Jun 2021 12:15:29 -0700
-From:   "Paul E. McKenney" <paulmck@kernel.org>
+        id S229738AbhFFTZA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 6 Jun 2021 15:25:00 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56826 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229721AbhFFTZA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Jun 2021 15:25:00 -0400
+Received: from mail-lf1-x133.google.com (mail-lf1-x133.google.com [IPv6:2a00:1450:4864:20::133])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C3A2FC061767
+        for <linux-arch@vger.kernel.org>; Sun,  6 Jun 2021 12:23:09 -0700 (PDT)
+Received: by mail-lf1-x133.google.com with SMTP id m21so6689962lfg.13
+        for <linux-arch@vger.kernel.org>; Sun, 06 Jun 2021 12:23:09 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linux-foundation.org; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=SxzQ9kXsLpYpGaBDNbZGNnlILKugyXAISeA2/rdzd6k=;
+        b=HxIYzEoug2HZb7ZqR/KRiqAwIk7rncw5YLe1/7eduA90vqFUIDVWcI9D3JZejt77sN
+         T69H48eefkSR15ldviHrWBCMVFE2lB5hCWH8whL1cEmmIu6Ujv/RNLwnp7jVoWdMGZ4i
+         ZV3dofdUOCvm4jTYUiLHeIGrvq/KEAZeyZygs=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=SxzQ9kXsLpYpGaBDNbZGNnlILKugyXAISeA2/rdzd6k=;
+        b=Olq9d3/R5embCm+zLJ+qWX3Ex921D4sCB4mYWI321xWZzYBKDomjTYycks2j2MUyG4
+         qo60VHGzjZTMCK98kWF4WgT/vhFZN4jiw3qZQoR1p7eni5Vw74HoZr/FhHTlGkyq+YIR
+         qfQjQ6jYwSNj1Z92/76ZBPpWsH6T9I4kO1vxgZJSLf4MWUB5OpRbuHOHfiFYWJbo1Zau
+         iWYq8tNX28SgOn+JDq+W1EcqFkQqeMpSiRsIinz8YOCOB2rg7wuRzrHz+pILDkW21T/H
+         ecWFVmBox/TYosRrCsqr8mIHXym6OJm6pR8SoXFl7RLwwfYgHDc5NL/Ye70ZirTUrhUE
+         iBcQ==
+X-Gm-Message-State: AOAM531nLwMMbl3rZTIcO4dPADIpT5EHMa3XZCNNVw82iuhjUKepX3X8
+        OaPkz6PraYhDXEdM6dbPdZCni1luha78xRbHgmk=
+X-Google-Smtp-Source: ABdhPJxDYJHB1z7pNBFW12kxsXtXGU/5a0UnomS4dxo465nhY+rIH+uOeeSOl93kvYFqK8VRQjC4UA==
+X-Received: by 2002:ac2:558b:: with SMTP id v11mr7992362lfg.311.1623007382890;
+        Sun, 06 Jun 2021 12:23:02 -0700 (PDT)
+Received: from mail-lj1-f175.google.com (mail-lj1-f175.google.com. [209.85.208.175])
+        by smtp.gmail.com with ESMTPSA id 11sm1226555lfh.157.2021.06.06.12.23.01
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sun, 06 Jun 2021 12:23:01 -0700 (PDT)
+Received: by mail-lj1-f175.google.com with SMTP id z22so3041281ljh.8
+        for <linux-arch@vger.kernel.org>; Sun, 06 Jun 2021 12:23:01 -0700 (PDT)
+X-Received: by 2002:a2e:c52:: with SMTP id o18mr11849195ljd.411.1623007380966;
+ Sun, 06 Jun 2021 12:23:00 -0700 (PDT)
+MIME-Version: 1.0
+References: <CAHk-=wiuLpmOGJyB385UyQioWMVKT6wN9UtyVXzt48AZittCKg@mail.gmail.com>
+ <CAHk-=wik7T+FoDAfqFPuMGVp6HxKYOf8UeKt3+EmovfivSgQ2Q@mail.gmail.com>
+ <20210604205600.GB4397@paulmck-ThinkPad-P17-Gen-1> <CAHk-=wgmUbU6XPHz=4NFoLMxH7j_SR-ky4sKzOBrckmvk5AJow@mail.gmail.com>
+ <20210604214010.GD4397@paulmck-ThinkPad-P17-Gen-1> <CAHk-=wg0w5L7-iJU_kvEh9stXZoh2srRF4jKToKmSKyHv-njvA@mail.gmail.com>
+ <20210605145739.GB1712909@rowland.harvard.edu> <20210606001418.GH4397@paulmck-ThinkPad-P17-Gen-1>
+ <20210606012903.GA1723421@rowland.harvard.edu> <CAHk-=wgUsReyz4uFymB8mmpphuP0vQ3DktoWU_x4u6impbzphg@mail.gmail.com>
+ <20210606185922.GF7746@tucnak>
+In-Reply-To: <20210606185922.GF7746@tucnak>
+From:   Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun, 6 Jun 2021 12:22:44 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wis8zq3WrEupCY6wcBeW3bB0WMOzaUkXpb-CsKuxM=6-w@mail.gmail.com>
+Message-ID: <CAHk-=wis8zq3WrEupCY6wcBeW3bB0WMOzaUkXpb-CsKuxM=6-w@mail.gmail.com>
+Subject: Re: [RFC] LKMM: Add volatile_if()
 To:     Jakub Jelinek <jakub@redhat.com>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Alan Stern <stern@rowland.harvard.edu>,
+Cc:     Alan Stern <stern@rowland.harvard.edu>,
         Segher Boessenkool <segher@kernel.crashing.org>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
         Peter Zijlstra <peterz@infradead.org>,
         Will Deacon <will@kernel.org>,
         Andrea Parri <parri.andrea@gmail.com>,
@@ -50,51 +86,24 @@ Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
         linux-toolchains@vger.kernel.org,
         linux-arch <linux-arch@vger.kernel.org>
-Subject: Re: [RFC] LKMM: Add volatile_if()
-Message-ID: <20210606191529.GM4397@paulmck-ThinkPad-P17-Gen-1>
-Reply-To: paulmck@kernel.org
-References: <CAHk-=wik7T+FoDAfqFPuMGVp6HxKYOf8UeKt3+EmovfivSgQ2Q@mail.gmail.com>
- <20210604205600.GB4397@paulmck-ThinkPad-P17-Gen-1>
- <CAHk-=wgmUbU6XPHz=4NFoLMxH7j_SR-ky4sKzOBrckmvk5AJow@mail.gmail.com>
- <20210604214010.GD4397@paulmck-ThinkPad-P17-Gen-1>
- <CAHk-=wg0w5L7-iJU_kvEh9stXZoh2srRF4jKToKmSKyHv-njvA@mail.gmail.com>
- <20210605145739.GB1712909@rowland.harvard.edu>
- <20210606001418.GH4397@paulmck-ThinkPad-P17-Gen-1>
- <20210606012903.GA1723421@rowland.harvard.edu>
- <CAHk-=wgUsReyz4uFymB8mmpphuP0vQ3DktoWU_x4u6impbzphg@mail.gmail.com>
- <20210606185922.GF7746@tucnak>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210606185922.GF7746@tucnak>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Jun 06, 2021 at 08:59:22PM +0200, Jakub Jelinek wrote:
-> On Sat, Jun 05, 2021 at 08:41:00PM -0700, Linus Torvalds wrote:
-> > Something like this *does* seem to work:
-> > 
-> >    #define ____barrier(id) __asm__ __volatile__("#" #id: : :"memory")
-> >    #define __barrier(id) ____barrier(id)
-> >    #define barrier() __barrier(__COUNTER__)
-> > 
-> > which is "interesting" or "disgusting" depending on how you happen to feel.
-> 
+On Sun, Jun 6, 2021 at 11:59 AM Jakub Jelinek <jakub@redhat.com> wrote:
+>
 > I think just
 > #define barrier() __asm__ __volatile__("" : : "i" (__COUNTER__) : "memory")
-> should be enough (or "X" instead of "i" if some arch uses -fpic and will not
-> accept small constants in PIC code), for CSE gcc compares that the asm template
-> string and all arguments are the same.
+> should be enough
 
-This does seem to do the trick: https://godbolt.org/z/K5j3bYqGT
+Oh, I like that. Much better.
 
-So thank you for that!
+It avoids all the issues with comments etc, and because it's not using
+__COUNTER__ as a string, it doesn't need the preprocessor games with
+double expansion either.
 
-							Thanx, Paul
+So yeah, that seems like a nice solution to the issue, and should make
+the barriers all unique to the compiler.
 
-> As for volatile, that is implicit on asm without any output operands and
-> it is about whether the inline asm can be DCEd, not whether it can be CSEd.
-> 
-> 	Jakub
-> 
+             Linus
