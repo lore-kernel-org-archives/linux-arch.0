@@ -6,26 +6,26 @@ X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
 	URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 11B0BC4743D
-	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 19:23:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 85CBFC4743E
+	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 19:57:09 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id F173761057
-	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 19:23:30 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5FCA3613AD
+	for <linux-arch@archiver.kernel.org>; Sun,  6 Jun 2021 19:57:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230150AbhFFTZT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 6 Jun 2021 15:25:19 -0400
-Received: from gate.crashing.org ([63.228.1.57]:38735 "EHLO gate.crashing.org"
+        id S229813AbhFFT65 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 6 Jun 2021 15:58:57 -0400
+Received: from gate.crashing.org ([63.228.1.57]:47652 "EHLO gate.crashing.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229956AbhFFTZS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 6 Jun 2021 15:25:18 -0400
+        id S229772AbhFFT64 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 6 Jun 2021 15:58:56 -0400
 Received: from gate.crashing.org (localhost.localdomain [127.0.0.1])
-        by gate.crashing.org (8.14.1/8.14.1) with ESMTP id 156JJABB011187;
-        Sun, 6 Jun 2021 14:19:10 -0500
+        by gate.crashing.org (8.14.1/8.14.1) with ESMTP id 156JqiJX012123;
+        Sun, 6 Jun 2021 14:52:44 -0500
 Received: (from segher@localhost)
-        by gate.crashing.org (8.14.1/8.14.1/Submit) id 156JJ9oV011186;
-        Sun, 6 Jun 2021 14:19:09 -0500
+        by gate.crashing.org (8.14.1/8.14.1/Submit) id 156JqgQT012119;
+        Sun, 6 Jun 2021 14:52:42 -0500
 X-Authentication-Warning: gate.crashing.org: segher set sender to segher@kernel.crashing.org using -f
-Date:   Sun, 6 Jun 2021 14:19:09 -0500
+Date:   Sun, 6 Jun 2021 14:52:42 -0500
 From:   Segher Boessenkool <segher@kernel.crashing.org>
 To:     Linus Torvalds <torvalds@linux-foundation.org>
 Cc:     Alan Stern <stern@rowland.harvard.edu>,
@@ -43,91 +43,46 @@ Cc:     Alan Stern <stern@rowland.harvard.edu>,
         linux-toolchains@vger.kernel.org,
         linux-arch <linux-arch@vger.kernel.org>
 Subject: Re: [RFC] LKMM: Add volatile_if()
-Message-ID: <20210606191909.GZ18427@gate.crashing.org>
-References: <20210604205600.GB4397@paulmck-ThinkPad-P17-Gen-1> <CAHk-=wgmUbU6XPHz=4NFoLMxH7j_SR-ky4sKzOBrckmvk5AJow@mail.gmail.com> <20210604214010.GD4397@paulmck-ThinkPad-P17-Gen-1> <CAHk-=wg0w5L7-iJU_kvEh9stXZoh2srRF4jKToKmSKyHv-njvA@mail.gmail.com> <20210605145739.GB1712909@rowland.harvard.edu> <20210606001418.GH4397@paulmck-ThinkPad-P17-Gen-1> <20210606012903.GA1723421@rowland.harvard.edu> <CAHk-=wgUsReyz4uFymB8mmpphuP0vQ3DktoWU_x4u6impbzphg@mail.gmail.com> <20210606125955.GT18427@gate.crashing.org> <CAHk-=wgPUaj7tv-JYzKQ34ukP3LEuGf82g+Nyp96pTnxN=xOtA@mail.gmail.com>
+Message-ID: <20210606195242.GA18427@gate.crashing.org>
+References: <CAHk-=wgmUbU6XPHz=4NFoLMxH7j_SR-ky4sKzOBrckmvk5AJow@mail.gmail.com> <20210604214010.GD4397@paulmck-ThinkPad-P17-Gen-1> <CAHk-=wg0w5L7-iJU_kvEh9stXZoh2srRF4jKToKmSKyHv-njvA@mail.gmail.com> <20210605145739.GB1712909@rowland.harvard.edu> <20210606001418.GH4397@paulmck-ThinkPad-P17-Gen-1> <20210606012903.GA1723421@rowland.harvard.edu> <20210606115336.GS18427@gate.crashing.org> <CAHk-=wjgzAn9DfR9DpU-yKdg74v=fvyzTJMD8jNjzoX4kaUBHQ@mail.gmail.com> <20210606184021.GY18427@gate.crashing.org> <CAHk-=wjEHbGifWgA+04Y4_m43s-o+3bXpL5qPQL3ECg+86XuLg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wgPUaj7tv-JYzKQ34ukP3LEuGf82g+Nyp96pTnxN=xOtA@mail.gmail.com>
+In-Reply-To: <CAHk-=wjEHbGifWgA+04Y4_m43s-o+3bXpL5qPQL3ECg+86XuLg@mail.gmail.com>
 User-Agent: Mutt/1.4.2.3i
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Jun 06, 2021 at 11:25:46AM -0700, Linus Torvalds wrote:
-> On Sun, Jun 6, 2021 at 6:03 AM Segher Boessenkool
+On Sun, Jun 06, 2021 at 11:48:32AM -0700, Linus Torvalds wrote:
+> On Sun, Jun 6, 2021 at 11:43 AM Segher Boessenkool
 > <segher@kernel.crashing.org> wrote:
 > >
-> > On Sat, Jun 05, 2021 at 08:41:00PM -0700, Linus Torvalds wrote:
-> > >
-> > > I think it's something of a bug when it comes to "asm volatile", but
-> > > the documentation isn't exactly super-specific.
-> >
-> > Why would that be?  "asm volatile" does not prevent optimisation.
+> > You truly should have written a branch in tthe asm if you truly wanted
+> > a branch instruction.
 > 
-> Sure it does.
+> That's exactly what I don't want to do, and what the original patch by
+> PeterZ did.
+
+Yes, I know.  But it is literally the *only* way to *always* get a
+conditional branch: by writing one.
+
+> And to work well, it needs "asm goto", which is so recent that a lot
+> of compilers don't support it (thank God for clang dragging gcc
+> kicking and screaming to implement it at all - I'd asked for it over a
+> decade ago).
+
+GCC has had it since 2009.
+
+> So you get bad code generation in a lot of cases, which entirely
+> obviates the _point_ of this all - which is that we can avoid an
+> expensive operation (a memory barrier) by just doing clever code
+> generation.
 > 
-> That's the whole and only *POINT* of the "volatile".
-> 
-> It's the same as a vol;atile memory access. That very much prevents
-> certain optimizations. You can't just join two volatile reads or
-> writes, because they have side effects.
+> So if we can't get the clever code generation, it's all pretty much
+> moot, imnsho.
 
-You can though.  In exactly this same way:
-
-volatile int x;
-void g(int);
-void f(int n) { if (n) g(x); else g(x); }
-
-==>
-
-f:
-        movl    x(%rip), %edi
-        jmp     g
-
-You can do whatever you want with code with side effects.  The only
-thing required is that the side effects are executed as often as before
-and in the same order.  Merging identical sides of a diamond is just
-fine.
-
-> And the exact same thing is true of inline asm. Even when they are
-> *identical*, inline asms have side effects that gcc simply doesn't
-> understand.
-
-Only volatile asm does (including all asm without outputs).  But that
-still does not mean GCC cannot manipulate the asm!
-
-> And yes, those side effects can - and do - include "you can't just merge these".
-
-They do not.  That is not what a side effect is.
-
-> > It says this code has some unspecified side effect, and that is all!
-> 
-> And that should be sufficient. But gcc then violates it, because gcc
-> doesn't understand the side effects.
-> 
-> Now, the side effects may be *subtle*, but they are very very real.
-> Just placement of code wrt a branch will actually affect memory
-> ordering, as that one example was.
-
-You have a different definition of "side effect" than C does apparently.
-
-5.1.2.3/2:
-  Accessing a volatile object, modifying an object, modifying a file, or
-  calling a function that does any of those operations are all side
-  effects, which are changes in the state of the execution environment.
-  Evaluation of an expression in general includes both value
-  computations and initiation of side effects.  Value computation for an
-  lvalue expression includes determining the identity of the designated
-  object.
-
-> But that's what we need a compiler barrier for in the first place -
-> the compiler certainly doesn't understand about this very subtle
-> memory ordering issue, and we want to make sure that the code sequence
-> *remains* that "if A then write B".
-
-The compiler doesn't magically understand your intention, no.  Some real
-work will need to be done to make this work.
+Yes.
 
 
 Segher
