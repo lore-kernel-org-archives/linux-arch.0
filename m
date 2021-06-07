@@ -2,187 +2,134 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-17.7 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 66E44C47095
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Jun 2021 20:31:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 30BC9C47094
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Jun 2021 22:44:03 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 43D7561139
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Jun 2021 20:31:49 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 07D0B610C7
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Jun 2021 22:44:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230251AbhFGUdk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 7 Jun 2021 16:33:40 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49022 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231287AbhFGUdj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jun 2021 16:33:39 -0400
-Received: from mail-lf1-x133.google.com (mail-lf1-x133.google.com [IPv6:2a00:1450:4864:20::133])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id ADD54C061574
-        for <linux-arch@vger.kernel.org>; Mon,  7 Jun 2021 13:31:47 -0700 (PDT)
-Received: by mail-lf1-x133.google.com with SMTP id r198so25099156lff.11
-        for <linux-arch@vger.kernel.org>; Mon, 07 Jun 2021 13:31:47 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=kteMWI8wqvnKbw9QPTVRDBy7GPMe911SvO5GJ7EDIIo=;
-        b=DBmsALCCUaGl/AsAhStDaRku1s3wuNNlysYwZV3avf0trIA4fgd3qdx/kJYwf3UO6P
-         RVujQzv/zjbuLQIcZqiN0YqSfz9j8Ek1UF2WTIdcppVu2J0t0BJMi2j8GvoUqTRSapAQ
-         URU9aCCc0d1NcbPLvHkwwQ2JUUTVGUza1ifOc=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=kteMWI8wqvnKbw9QPTVRDBy7GPMe911SvO5GJ7EDIIo=;
-        b=b8fjly0rnWwz75WfWhjjNvdNFI1CKWwDzc3cLNtvTxMMGAPqPyXb/FYh/t90Zb+Pg0
-         KdEO5t5nRWGBvov3aTndMGQYdo/GKC5AwnPHoyrIYUZCO3Us23gN9Pud+HMv4BdiBPDE
-         a+frWxQ7uFQcVfF4MzNdInCVfsweWX2HH1M2loWsvBijNE4D5LTRCwggkWkdQ3o7+ERP
-         KuNKnjNvawo7O9psKMx6Ieurw8e2uGjr8bdF1AG9TRt7iltlWmp3yP7Th/sADY5Tekew
-         S5eJf5HKLZzbG7xXDzKe/K5fObHbKCB2EzZF+eGjba264m+JLEneGXN6sXwUYtWiXjia
-         /CNw==
-X-Gm-Message-State: AOAM531y1YtHNoB8QBduhfJLfoEUBFLjk0tuzJQnH7RMoG9mJCOLobD+
-        8bp9vYai7Jp9MR8dTjvNVazm6z+moVIUbxJLXvg=
-X-Google-Smtp-Source: ABdhPJydoMzcVeRf48UuCLF5cFw688wohmJHuPLmNwdhdpfgs2vRkPbIADPj5RoBYkQYgJ6xlmUXPQ==
-X-Received: by 2002:ac2:5d29:: with SMTP id i9mr12873407lfb.638.1623097903071;
-        Mon, 07 Jun 2021 13:31:43 -0700 (PDT)
-Received: from mail-lf1-f49.google.com (mail-lf1-f49.google.com. [209.85.167.49])
-        by smtp.gmail.com with ESMTPSA id i21sm1949921ljb.10.2021.06.07.13.31.41
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 07 Jun 2021 13:31:41 -0700 (PDT)
-Received: by mail-lf1-f49.google.com with SMTP id t7so21341889lff.0
-        for <linux-arch@vger.kernel.org>; Mon, 07 Jun 2021 13:31:41 -0700 (PDT)
-X-Received: by 2002:a05:6512:3f82:: with SMTP id x2mr12594362lfa.421.1623097901047;
- Mon, 07 Jun 2021 13:31:41 -0700 (PDT)
-MIME-Version: 1.0
-References: <20210604214010.GD4397@paulmck-ThinkPad-P17-Gen-1>
- <CAHk-=wg0w5L7-iJU_kvEh9stXZoh2srRF4jKToKmSKyHv-njvA@mail.gmail.com>
- <20210605145739.GB1712909@rowland.harvard.edu> <20210606001418.GH4397@paulmck-ThinkPad-P17-Gen-1>
- <20210606012903.GA1723421@rowland.harvard.edu> <CAHk-=wgUsReyz4uFymB8mmpphuP0vQ3DktoWU_x4u6impbzphg@mail.gmail.com>
- <20210606185922.GF7746@tucnak> <CAHk-=wis8zq3WrEupCY6wcBeW3bB0WMOzaUkXpb-CsKuxM=6-w@mail.gmail.com>
- <alpine.LNX.2.20.13.2106070017070.7184@monopod.intra.ispras.ru>
- <CAHk-=wjwXs5+SOZGTaZ0bP9nsoA+PymAcGE4CBDVX3edGUcVRg@mail.gmail.com> <20210607174206.GF18427@gate.crashing.org>
-In-Reply-To: <20210607174206.GF18427@gate.crashing.org>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Mon, 7 Jun 2021 13:31:24 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wiOTcBuxx1pYj=mQz-f0dvhbxq2a=ricTuHH5xwUKE5Yw@mail.gmail.com>
-Message-ID: <CAHk-=wiOTcBuxx1pYj=mQz-f0dvhbxq2a=ricTuHH5xwUKE5Yw@mail.gmail.com>
-Subject: Re: [RFC] LKMM: Add volatile_if()
-To:     Segher Boessenkool <segher@kernel.crashing.org>
-Cc:     Alexander Monakov <amonakov@ispras.ru>,
-        Jakub Jelinek <jakub@redhat.com>,
-        Alan Stern <stern@rowland.harvard.edu>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
+        id S230251AbhFGWpx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Jun 2021 18:45:53 -0400
+Received: from mail.kernel.org ([198.145.29.99]:58756 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S230237AbhFGWpx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 7 Jun 2021 18:45:53 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 71CE161090;
+        Mon,  7 Jun 2021 22:43:58 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1623105841;
+        bh=Yw5rjpX5d8vEagOcYCPCOfcNKG/SO6zfojyqFIO0VpQ=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=Kj880acHv3Vytdnt5xZudPfN553KUXCz4cahjcyMHdadvOGWIVI9FmIRWTUw9JRGp
+         UyIfvRdP+q+VF0GgnSHzUWZKOAUY9aH5rmnZJzm0NqJcPHCZS348HKZq3F4g2vASd7
+         ZdzXCG9CxLQECgGCtU4phuPwgKbPayRAI9o3fJdqecxvo9J2YZVXJI8YoTpkvSqfc8
+         3CIDCUFggWYJe4BvreAWuifea/Lso8Nrnk1rOzXRhsOLx6NcgcerzHFOX9UB96L3SK
+         Bz5tSW3jhZkGXYPm0IgCsKO0hb0LvJUutO3v4HcZdbkz6dZFDe1j+/idbvE7x7UF5z
+         kZ2jNacR+xIUA==
+Date:   Mon, 7 Jun 2021 23:43:55 +0100
+From:   Will Deacon <will@kernel.org>
+To:     Valentin Schneider <valentin.schneider@arm.com>
+Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Marc Zyngier <maz@kernel.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Peter Zijlstra <peterz@infradead.org>,
-        Will Deacon <will@kernel.org>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nick Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-toolchains@vger.kernel.org,
-        linux-arch <linux-arch@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+        Morten Rasmussen <morten.rasmussen@arm.com>,
+        Qais Yousef <qais.yousef@arm.com>,
+        Suren Baghdasaryan <surenb@google.com>,
+        Quentin Perret <qperret@google.com>, Tejun Heo <tj@kernel.org>,
+        Johannes Weiner <hannes@cmpxchg.org>,
+        Ingo Molnar <mingo@redhat.com>,
+        Juri Lelli <juri.lelli@redhat.com>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
+        Dietmar Eggemann <dietmar.eggemann@arm.com>,
+        Daniel Bristot de Oliveira <bristot@redhat.com>,
+        kernel-team@android.com
+Subject: Re: [PATCH v8 08/19] sched: Reject CPU affinity changes based on
+ task_cpu_possible_mask()
+Message-ID: <20210607224354.GA8215@willie-the-truck>
+References: <20210602164719.31777-1-will@kernel.org>
+ <20210602164719.31777-9-will@kernel.org>
+ <874kedeeqv.mognet@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <874kedeeqv.mognet@arm.com>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Jun 7, 2021 at 10:45 AM Segher Boessenkool
-<segher@kernel.crashing.org> wrote:
->
-> On Sun, Jun 06, 2021 at 03:38:06PM -0700, Linus Torvalds wrote:
+On Fri, Jun 04, 2021 at 06:11:52PM +0100, Valentin Schneider wrote:
+> On 02/06/21 17:47, Will Deacon wrote:
+> > Reject explicit requests to change the affinity mask of a task via
+> > set_cpus_allowed_ptr() if the requested mask is not a subset of the
+> > mask returned by task_cpu_possible_mask(). This ensures that the
+> > 'cpus_mask' for a given task cannot contain CPUs which are incapable of
+> > executing it, except in cases where the affinity is forced.
 > >
-> > Example: variable_test_bit(), which generates a "bt" instruction, does
+> > Reviewed-by: Quentin Perret <qperret@google.com>
+> > Signed-off-by: Will Deacon <will@kernel.org>
+> 
+> One comment/observation below, but regardless:
+> 
+> Reviewed-by: Valentin Schneider <Valentin.Schneider@arm.com>
+
+Thanks!
+
+> > diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+> > index 0c1b6f1a6c91..b23c7f0ab31a 100644
+> > --- a/kernel/sched/core.c
+> > +++ b/kernel/sched/core.c
+> > @@ -2347,15 +2347,17 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
+> >                                 u32 flags)
+> >  {
+> >       const struct cpumask *cpu_valid_mask = cpu_active_mask;
+> > +	const struct cpumask *cpu_allowed_mask = task_cpu_possible_mask(p);
+> >       unsigned int dest_cpu;
+> >       struct rq_flags rf;
+> >       struct rq *rq;
+> >       int ret = 0;
+> > +	bool kthread = p->flags & PF_KTHREAD;
 > >
-> >                      : "m" (*(unsigned long *)addr), "Ir" (nr) : "memory");
+> >       rq = task_rq_lock(p, &rf);
+> >       update_rq_clock(rq);
 > >
-> > and the memory clobber is obviously wrong: 'bt' only *reads* memory,
-> > but since the whole reason we use it is that it's not just that word
-> > at address 'addr', in order to make sure that any previous writes are
-> > actually stable in memory, we use that "memory" clobber.
->
-> You can split the "I" version from the "r" version, it does not need
-> the memory clobber.  If you know the actual maximum bit offset used you
-> don't need the clobber for "r" either.  Or you could even write
->   "m"(((unsigned long *)addr)[nr/32])
-> That should work for all cases.
+> > -	if (p->flags & PF_KTHREAD || is_migration_disabled(p)) {
+> > +	if (kthread || is_migration_disabled(p)) {
+> >               /*
+> >                * Kernel threads are allowed on online && !active CPUs,
+> >                * however, during cpu-hot-unplug, even these might get pushed
+> > @@ -2369,6 +2371,11 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
+> >               cpu_valid_mask = cpu_online_mask;
+> >       }
+> >
+> > +	if (!kthread && !cpumask_subset(new_mask, cpu_allowed_mask)) {
+> > +		ret = -EINVAL;
+> > +		goto out;
+> > +	}
+> > +
+> 
+> IIUC this wouldn't be required if guarantee_online_cpus() couldn't build a
+> mask that extends beyond task_cpu_possible_mask(p): if the new mask doesn't
+> intersect with that possible mask, it means we're carrying an empty cpumask
+> and the cpumask_any_and_distribute() below would return nr_cpu_ids, so we'd
+> bail with -EINVAL.
+> 
+> I don't really see a way around it though due to the expectations behind
+> guarantee_online_cpus() :/
 
-Note that the bit test thing really was just an example.
+Mostly agreed. I started out hacking SCA and only then started knocking the
+callers on the head. However, given how many callers there are for this
+thing, I'm much more comfortable having the mask check there to ensure that
+we return an error if the requested mask contains CPUs on which we're unable
+to run, and yes, guarantee_online_cpus() is one such caller.
 
-And some other cases don't actually have an address range at all,
-because they affect arbitrary ranges, not - like that bit test - just
-one particular range.
-
-To pick a couple of examples of that, think of
-
- (a) write memory barrier. On some architectures it's an explicit
-instruction, on x86 it's just a compiler barrier, since writes are
-ordered on the CPU anyway, and we only need to make sure that the
-compiler doesn't re-order writes around the barrier
-
-Again, we currently use that same "barrier()" macro for that:
-
-    #define __smp_wmb()     barrier()
-
-but as mentioned, the barrier() thing has a "memory" clobber, and that
-means that this write barrier - which is really really cheap on x86 -
-also unnecessarily ends up causing pointless reloads from globals. It
-obviously doesn't actually *change* memory, but it very much requires
-that writes are not moved around it.
-
- (b) things like cache flush and/or invalidate instructions, eg
-
-        asm volatile("wbinvd": : :"memory");
-
-Again, this one doesn't actually *modify* memory, and honestly, this
-one is not performance critical so the memory clobber is not actually
-a problem, but I'm pointing it out as an example of the exact same
-issue: the notion of an instruction that we don't want _writes_ to
-move around, but reads can happily be moved and/or cached around it.
-
- (c) this whole "volatile_if()" situation: we want to make sure writes
-can't move around it, but there's no reason to re-load memory values,
-because it doesn't modify memory, and we only need to make sure that
-any writes are delayed to after the conditional.
-
-We long long ago (over 20 years by now) used to do things like this:
-
-  struct __dummy { unsigned long a[100]; };
-  #define ADDR (*(volatile struct __dummy *) addr)
-
-      __asm__ __volatile__(
-              "btl %2,%1\n\tsbbl %0,%0"
-              :"=r" (oldbit)
-              :"m" (ADDR),"ir" (nr));
-
-for that test-bit thing. Note how the above doesn't need the memory
-clobber, because for gcc that ADDR thing (access to a big struct) ends
-up being a "BLKmode" read, and then gcc at least used to treat it as
-an arbitrary read.
-
-I forget just why we had to stop using that trick, I think it caused
-some reload confusion for some gcc version at some point. Probably
-exactly because inline asms had issues with some BLKmode thing. That
-change happened before 2001, we didn't have nice changelogs with
-detailed commit messages back then, so
-
-> > Anybody have ideas or suggestions for something like that?
->
-> Is it useful in general for the kernel to have separate "read" and
-> "write" clobbers in asm expressions?  And for other applications?
-
-See above. It's actually not all that uncommon that you have a "this
-doesn't modify memory, but you can't move writes around it". It's
-usually very much about cache handling or memory ordering operations,
-and that bit test example was probably a bad example exactly because
-it made it look like it's about some controlled range.
-
-The "write memory barroer" is likely the best and simplest example,
-but it's in not the only one.
-
-            Linus
+Will
