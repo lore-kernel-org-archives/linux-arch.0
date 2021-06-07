@@ -2,119 +2,197 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.7 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2E0ADC47094
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Jun 2021 22:44:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D1525C47094
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Jun 2021 22:52:10 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 08E8661185
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Jun 2021 22:44:59 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AE4BB61245
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Jun 2021 22:52:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230237AbhFGWqu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 7 Jun 2021 18:46:50 -0400
-Received: from gate.crashing.org ([63.228.1.57]:45316 "EHLO gate.crashing.org"
+        id S230331AbhFGWyB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Jun 2021 18:54:01 -0400
+Received: from mail.kernel.org ([198.145.29.99]:60770 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229997AbhFGWqt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 7 Jun 2021 18:46:49 -0400
-Received: from gate.crashing.org (localhost.localdomain [127.0.0.1])
-        by gate.crashing.org (8.14.1/8.14.1) with ESMTP id 157MedpN032068;
-        Mon, 7 Jun 2021 17:40:39 -0500
-Received: (from segher@localhost)
-        by gate.crashing.org (8.14.1/8.14.1/Submit) id 157MebTI032067;
-        Mon, 7 Jun 2021 17:40:37 -0500
-X-Authentication-Warning: gate.crashing.org: segher set sender to segher@kernel.crashing.org using -f
-Date:   Mon, 7 Jun 2021 17:40:37 -0500
-From:   Segher Boessenkool <segher@kernel.crashing.org>
-To:     "Paul E. McKenney" <paulmck@kernel.org>
-Cc:     Alan Stern <stern@rowland.harvard.edu>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
+        id S230183AbhFGWyB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 7 Jun 2021 18:54:01 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 82632610C7;
+        Mon,  7 Jun 2021 22:52:06 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1623106329;
+        bh=WaNp1TylVxIDpajJun/RGMsjtK/LLdNZo+wOLZ/qvqo=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=KgBgiXXfTHZj3F/lf9QX3uJkrtwE7qLK9joY82TANSb5yNP44Jr9ZDtj+LAd27vxV
+         W3/ufy+GsVHIlxF63/OaUj4InNRGBTYGPr5sx0BUR2B8lUuQ8d1duPewxPSvN2P7eX
+         yRDOzBB1x6P8+ILCPqIyQVTcjqe/SRuhxD2rp3imOzzBUmFwgRanw3YywTo9tQOKuW
+         ZfPvIKebXbqh0e/zcGW3btINSdp27bSSA+RCT/qbOehNoUawXoPd0y2nNPTkPpkuOi
+         +Pln20vS4TrEUSANKWX4ahsx3wW/yAVzk1XmmlKAZHH/EMPNfmUSLjqhayJFMIXstD
+         4VKUhMxucrnEw==
+Date:   Mon, 7 Jun 2021 23:52:03 +0100
+From:   Will Deacon <will@kernel.org>
+To:     Valentin Schneider <valentin.schneider@arm.com>
+Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Marc Zyngier <maz@kernel.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Peter Zijlstra <peterz@infradead.org>,
-        Will Deacon <will@kernel.org>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nick Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-toolchains@vger.kernel.org,
-        linux-arch <linux-arch@vger.kernel.org>
-Subject: Re: [RFC] LKMM: Add volatile_if()
-Message-ID: <20210607224037.GQ18427@gate.crashing.org>
-References: <CAHk-=wjEHbGifWgA+04Y4_m43s-o+3bXpL5qPQL3ECg+86XuLg@mail.gmail.com> <20210606195242.GA18427@gate.crashing.org> <CAHk-=wgd+Gx9bcmTwxhHbPq=RYb_A_gf=GcmUNOU3vYR1RBxbA@mail.gmail.com> <20210606202616.GC18427@gate.crashing.org> <20210606233729.GN4397@paulmck-ThinkPad-P17-Gen-1> <20210607141242.GD18427@gate.crashing.org> <20210607152712.GR4397@paulmck-ThinkPad-P17-Gen-1> <20210607182335.GI18427@gate.crashing.org> <20210607195144.GC1779688@rowland.harvard.edu> <20210607201633.GW4397@paulmck-ThinkPad-P17-Gen-1>
-Mime-Version: 1.0
+        Morten Rasmussen <morten.rasmussen@arm.com>,
+        Qais Yousef <qais.yousef@arm.com>,
+        Suren Baghdasaryan <surenb@google.com>,
+        Quentin Perret <qperret@google.com>, Tejun Heo <tj@kernel.org>,
+        Johannes Weiner <hannes@cmpxchg.org>,
+        Ingo Molnar <mingo@redhat.com>,
+        Juri Lelli <juri.lelli@redhat.com>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
+        Dietmar Eggemann <dietmar.eggemann@arm.com>,
+        Daniel Bristot de Oliveira <bristot@redhat.com>,
+        kernel-team@android.com
+Subject: Re: [PATCH v8 11/19] sched: Allow task CPU affinity to be restricted
+ on asymmetric systems
+Message-ID: <20210607225202.GB8215@willie-the-truck>
+References: <20210602164719.31777-1-will@kernel.org>
+ <20210602164719.31777-12-will@kernel.org>
+ <87zgw5d05b.mognet@arm.com>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20210607201633.GW4397@paulmck-ThinkPad-P17-Gen-1>
-User-Agent: Mutt/1.4.2.3i
+In-Reply-To: <87zgw5d05b.mognet@arm.com>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Jun 07, 2021 at 01:16:33PM -0700, Paul E. McKenney wrote:
-> On Mon, Jun 07, 2021 at 03:51:44PM -0400, Alan Stern wrote:
-> > On Mon, Jun 07, 2021 at 01:23:35PM -0500, Segher Boessenkool wrote:
-> > > On Mon, Jun 07, 2021 at 08:27:12AM -0700, Paul E. McKenney wrote:
-> > > > > > > > The barrier() thing can work - all we need to do is to simply make it
-> > > > > > > > impossible for gcc to validly create anything but a conditional
-> > > > > > > > branch.
-> > > 
-> > > > > > What would you suggest as a way of instructing the compiler to emit the
-> > > > > > conditional branch that we are looking for?
-> > > > > 
-> > > > > You write it in the assembler code.
-> > > > > 
-> > > > > Yes, it sucks.  But it is the only way to get a branch if you really
-> > > > > want one.  Now, you do not really need one here anyway, so there may be
-> > > > > some other way to satisfy the actual requirements.
-> > > > 
-> > > > Hmmm...  What do you see Peter asking for that is different than what
-> > > > I am asking for?  ;-)
-> > > 
-> > > I don't know what you are referring to, sorry?
-> > > 
-> > > I know what you asked for: literally some way to tell the compiler to
-> > > emit a conditional branch.  If that is what you want, the only way to
-> > > make sure that is what you get is by writing exactly that in assembler.
-> > 
-> > That's not necessarily it.
-> > 
-> > People would be happy to have an easy way of telling the compiler that 
-> > all writes in the "if" branch of an if statement must be ordered after 
-> > any reads that the condition depends on.  Or maybe all writes in either 
-> > the "if" branch or the "else" branch.  And maybe not all reads that the 
-> > condition depends on, but just the reads appearing syntactically in the 
-> > condition.  Or maybe even just the volatile reads appearing in the 
-> > condition.  Nobody has said exactly.
-> > 
-> > The exact method used for doing this doesn't matter.  It could be 
-> > accomplished by treating those reads as load-acquires.  Or it could be 
-> > done by ensuring that the object code contains a dependency (control or 
-> > data) from the reads to the writes.  Or it could be done by treating 
-> > the writes as store-releases.  But we do want the execution-time 
-> > penalty to be small.
-> > 
-> > In short, we want to guarantee somehow that the conditional writes are 
-> > not re-ordered before the reads in the condition.  (But note that 
-> > "conditional writes" includes identical writes occurring in both 
-> > branches.)
+On Fri, Jun 04, 2021 at 06:12:32PM +0100, Valentin Schneider wrote:
+> On 02/06/21 17:47, Will Deacon wrote:
+> > +static int restrict_cpus_allowed_ptr(struct task_struct *p,
+> > +				     struct cpumask *new_mask,
+> > +				     const struct cpumask *subset_mask)
+> > +{
+> > +	struct rq_flags rf;
+> > +	struct rq *rq;
+> > +	int err;
+> > +	struct cpumask *user_mask = NULL;
+> > +
+> > +	if (!p->user_cpus_ptr) {
+> > +		user_mask = kmalloc(cpumask_size(), GFP_KERNEL);
+> > +
+> > +		if (!user_mask)
+> > +			return -ENOMEM;
+> > +	}
+> > +
+> > +	rq = task_rq_lock(p, &rf);
+> > +
+> > +	/*
+> > +	 * Forcefully restricting the affinity of a deadline task is
+> > +	 * likely to cause problems, so fail and noisily override the
+> > +	 * mask entirely.
+> > +	 */
+> > +	if (task_has_dl_policy(p) && dl_bandwidth_enabled()) {
+> > +		err = -EPERM;
+> > +		goto err_unlock;
+> > +	}
+> > +
+> > +	if (!cpumask_and(new_mask, &p->cpus_mask, subset_mask)) {
+> > +		err = -EINVAL;
+> > +		goto err_unlock;
+> > +	}
+> > +
+> > +	/*
+> > +	 * We're about to butcher the task affinity, so keep track of what
+> > +	 * the user asked for in case we're able to restore it later on.
+> > +	 */
+> > +	if (user_mask) {
+> > +		cpumask_copy(user_mask, p->cpus_ptr);
+> > +		p->user_cpus_ptr = user_mask;
+> > +	}
+> > +
 > 
-> What Alan said!  ;-)
+> Shouldn't that be done before any of the bailouts above, so we can
+> potentially restore the mask even if we end up forcefully expanding the
+> affinity?
 
-Okay, I'll think about that.
+I don't think so. I deliberately only track the old mask if we've managed
+to take a subset for the 32-bit task. If we end up having to override the
+mask entirely, then I treat it the same way as an explicit affinity change
+(only with a warning printed) and don't then try to restore the old mask --
+it feels like we'd be overriding the affinity twice if we tried to do that.
 
-But you wrote:
+> > +	return __set_cpus_allowed_ptr_locked(p, new_mask, 0, rq, &rf);
+> > +
+> > +err_unlock:
+> > +	task_rq_unlock(rq, p, &rf);
+> > +	kfree(user_mask);
+> > +	return err;
+> > +}
+> > +
+> > +/*
+> > + * Restrict the CPU affinity of task @p so that it is a subset of
+> > + * task_cpu_possible_mask() and point @p->user_cpu_ptr to a copy of the
+> > + * old affinity mask. If the resulting mask is empty, we warn and walk
+> > + * up the cpuset hierarchy until we find a suitable mask.
+> > + */
+> > +void force_compatible_cpus_allowed_ptr(struct task_struct *p)
+> > +{
+> > +	cpumask_var_t new_mask;
+> > +	const struct cpumask *override_mask = task_cpu_possible_mask(p);
+> > +
+> > +	alloc_cpumask_var(&new_mask, GFP_KERNEL);
+> > +
+> > +	/*
+> > +	 * __migrate_task() can fail silently in the face of concurrent
+> > +	 * offlining of the chosen destination CPU, so take the hotplug
+> > +	 * lock to ensure that the migration succeeds.
+> > +	 */
+> > +	cpus_read_lock();
+> 
+> I'm thinking this might not be required with:
+> 
+>   http://lore.kernel.org/r/20210526205751.842360-3-valentin.schneider@arm.com
+> 
+> but then again this isn't merged yet :-)
 
-> > > > > > What would you suggest as a way of instructing the compiler to emit the
-> > > > > > conditional branch that we are looking for?
+Agreed, if that patch does what it says on the tin ;)
 
-... and that is what I answered.  I am sorry if you do not like being
-taken literally, but that is how I read technical remarks: as literally
-what they say.  If you say you want a branch, I take it you want a
-branch!  :-)
+I need to digest your reply to me, as this is mind-bending stuff.
 
+> > +static int
+> > +__sched_setaffinity(struct task_struct *p, const struct cpumask *mask);
+> > +
+> > +/*
+> > + * Restore the affinity of a task @p which was previously restricted by a
+> > + * call to force_compatible_cpus_allowed_ptr(). This will clear (and free)
+> > + * @p->user_cpus_ptr.
+> > + */
+> > +void relax_compatible_cpus_allowed_ptr(struct task_struct *p)
+> > +{
+> > +	unsigned long flags;
+> > +	struct cpumask *mask = p->user_cpus_ptr;
+> > +
+> > +	/*
+> > +	 * Try to restore the old affinity mask. If this fails, then
+> > +	 * we free the mask explicitly to avoid it being inherited across
+> > +	 * a subsequent fork().
+> > +	 */
+> > +	if (!mask || !__sched_setaffinity(p, mask))
+> > +		return;
+> > +
+> > +	raw_spin_lock_irqsave(&p->pi_lock, flags);
+> > +	release_user_cpus_ptr(p);
+> > +	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
+> 
+> AFAICT an affinity change can happen between __sched_setaffinity() and
+> reacquiring the ->pi_lock. Right now this can't be another
+> force_compatible_cpus_allowed_ptr() because this is only driven by
+> arch_setup_new_exec() against current, so we should be fine, but here be
+> dragons.
 
-Segher
+That's a good point. I'll add a comment for now, since I'm not sure who
+else might end up using this in future. Generally it's pretty agnostic to
+how it's being used, but we're certainly relying on the serialisation of
+restrict/relax calls.
+
+Will
