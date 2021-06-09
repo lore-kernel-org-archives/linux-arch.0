@@ -2,180 +2,123 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_RED autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6BC24C47095
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Jun 2021 08:51:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8F1CDC48BD1
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Jun 2021 10:37:45 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 5047861377
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Jun 2021 08:51:03 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7C2BA613B1
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Jun 2021 10:37:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231877AbhFIIw4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Jun 2021 04:52:56 -0400
-Received: from mail.kernel.org ([198.145.29.99]:45396 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S237776AbhFIIw4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Jun 2021 04:52:56 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 40D73613B6;
-        Wed,  9 Jun 2021 08:50:53 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1623228662;
-        bh=8tEls2a/j7rfLxExLeORjJlhhRMMnkNIAM3JBjeBXvQ=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=LQDflmZe8GCGk+yE+6t0jnBhybC3t6u+cv2dwtA8RYnfwgMeo8WJWR4Jrk7+oEHUG
-         +LZhm54B/GRv/+AzBai/pepBRapGN3Yvum4g4htxptOm6Hin60MyrUPSdVoPl6Ima3
-         63J43iUHA9zvuAOVzdCIYQlNhWzw3VSq+/Y3MZUi2GAooFLzxkS4DSacafOcOctPxH
-         v3FZAF2gvX6Wl9H4lgAvp++2zsKZ0H3xMxhlEZXW8aztVORCBq+5xgkHPoE3/tL15r
-         V7qg8oNM/cWsYEUomz3iFnSd9hjsy2q2Oouc/gWltLvLJigxqi1qzAGUlIn0ABKiLo
-         RVXEJ7ZZn38MQ==
-Date:   Wed, 9 Jun 2021 11:50:48 +0300
-From:   Mike Rapoport <rppt@kernel.org>
-To:     Anshuman Khandual <anshuman.khandual@arm.com>
-Cc:     linux-mm@kvack.org, akpm@linux-foundation.org,
-        Nick Hu <nickhu@andestech.com>,
-        Richard Henderson <rth@twiddle.net>,
-        Vineet Gupta <vgupta@synopsys.com>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>, Guo Ren <guoren@kernel.org>,
-        Brian Cain <bcain@codeaurora.org>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Michal Simek <monstr@monstr.eu>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Ley Foon Tan <ley.foon.tan@intel.com>,
-        Jonas Bonn <jonas@southpole.se>,
-        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-        Stafford Horne <shorne@gmail.com>,
-        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Christophe Leroy <christophe.leroy@csgroup.eu>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        "David S. Miller" <davem@davemloft.net>,
-        Jeff Dike <jdike@addtoit.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Chris Zankel <chris@zankel.net>, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org
-Subject: Re: [PATCH V2] mm/thp: Define default pmd_pgtable()
-Message-ID: <YMCA6Nsuu26k1746@kernel.org>
-References: <1623214799-29817-1-git-send-email-anshuman.khandual@arm.com>
+        id S234411AbhFIKjg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Jun 2021 06:39:36 -0400
+Received: from us-smtp-delivery-124.mimecast.com ([170.10.133.124]:35203 "EHLO
+        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S234088AbhFIKjf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jun 2021 06:39:35 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1623235060;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=GXhuyr8heOXQm5DhE+A2Fq3L85+vZLqOuEIP9E5CaCk=;
+        b=QpF7HR/7zOGh61YOtlY8dqcVkUj+yYVo4cmQJvAskdE/cJnbqHCDWYPV11ObBsIUrvcyT3
+        pysNVP/he+CVTa66STgetI7XHG5fjnSOw3u2IFroXl+sGkTRKqZVXKW6hm+MTP+b/Lghub
+        in61uffd3xSL54ub9vSD66/PiBsF31g=
+Received: from mail-wr1-f69.google.com (mail-wr1-f69.google.com
+ [209.85.221.69]) (Using TLS) by relay.mimecast.com with ESMTP id
+ us-mta-344-tvYUWy3xP--M09TfDKyl3Q-1; Wed, 09 Jun 2021 06:37:39 -0400
+X-MC-Unique: tvYUWy3xP--M09TfDKyl3Q-1
+Received: by mail-wr1-f69.google.com with SMTP id z4-20020adfe5440000b0290114f89c9931so10533519wrm.17
+        for <linux-arch@vger.kernel.org>; Wed, 09 Jun 2021 03:37:39 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:to:cc:references:from:organization:subject
+         :message-id:date:user-agent:mime-version:in-reply-to
+         :content-language:content-transfer-encoding;
+        bh=GXhuyr8heOXQm5DhE+A2Fq3L85+vZLqOuEIP9E5CaCk=;
+        b=SycI+kcxtw5UbQxi8pR35LDAVMpRp0qBnw7Y0j/5C0ZnvPRRYKqAUTxuN5ODQ5B4+I
+         hAsFEW3rj2BvdRYtd9GyDukIGxA67iyOPUR0oYlGssZI+nnjgs7cUYaZoJ2fgGk1DzkK
+         d9PJYzOkT1gnUYKYFsWbA/cYVuhP+JnbIIN+zsBu0IHzHwwu57YZ79PbpHMV0apxGu5e
+         Hv+LDXO22NVrZc0AuXr5xzI16SR4pN5il9fttz/7KkyPW3ZKywn6fFEjRW7UYe2c+epl
+         jEpJiQ2iO8g2vLCb4osOnYmcxseS7vXJV8PGr02zrHHO57Zluaqdoid6ivOTaDWb0eV+
+         IZAw==
+X-Gm-Message-State: AOAM533EJO7Mt+2357u1J4I9e7NCz4jHYU/gWq4KCRNqpcSGMDpSvW7c
+        0zF+tiGpS5k9jle5rwVngew9uUn8ANqh5Z9OidTEm8AitLnGHZzABojRvFpS0JV3sSkCnicAzcL
+        SqebJykuZx8Q/FycH6876WQ==
+X-Received: by 2002:a5d:4984:: with SMTP id r4mr27081040wrq.152.1623235058406;
+        Wed, 09 Jun 2021 03:37:38 -0700 (PDT)
+X-Google-Smtp-Source: ABdhPJxx5QPJlJibMJq5KkrldmC0yuk9Qgb+mpFY3QEuhdJz4/D402+HjHMF51cTVSM1EXp++YpYXw==
+X-Received: by 2002:a5d:4984:: with SMTP id r4mr27081015wrq.152.1623235058237;
+        Wed, 09 Jun 2021 03:37:38 -0700 (PDT)
+Received: from [192.168.3.132] (p5b0c611d.dip0.t-ipconnect.de. [91.12.97.29])
+        by smtp.gmail.com with ESMTPSA id l5sm5668999wmi.46.2021.06.09.03.37.37
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 09 Jun 2021 03:37:37 -0700 (PDT)
+To:     James Bottomley <James.Bottomley@HansenPartnership.com>,
+        Greg KH <greg@kroah.com>, Christoph Lameter <cl@gentwo.de>
+Cc:     Theodore Ts'o <tytso@mit.edu>, Jiri Kosina <jikos@kernel.org>,
+        ksummit@lists.linux.dev, linux-kernel@vger.kernel.org,
+        linux-block@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        linux-mm@kvack.org, netdev@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+References: <YH2hs6EsPTpDAqXc@mit.edu>
+ <nycvar.YFH.7.76.2104281228350.18270@cbobk.fhfr.pm>
+ <YIx7R6tmcRRCl/az@mit.edu>
+ <alpine.DEB.2.22.394.2105271522320.172088@gentwo.de>
+ <YK+esqGjKaPb+b/Q@kroah.com>
+ <c46dbda64558ab884af060f405e3f067112b9c8a.camel@HansenPartnership.com>
+From:   David Hildenbrand <david@redhat.com>
+Organization: Red Hat
+Subject: Re: Maintainers / Kernel Summit 2021 planning kick-off
+Message-ID: <b32c8672-06ee-bf68-7963-10aeabc0596c@redhat.com>
+Date:   Wed, 9 Jun 2021 12:37:37 +0200
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.10.1
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1623214799-29817-1-git-send-email-anshuman.khandual@arm.com>
+In-Reply-To: <c46dbda64558ab884af060f405e3f067112b9c8a.camel@HansenPartnership.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Anshuman,
-
-On Wed, Jun 09, 2021 at 10:29:59AM +0530, Anshuman Khandual wrote:
-> Currently most platforms define pmd_pgtable() as pmd_page() duplicating the
-> same code all over. Instead just define a default value i.e pmd_page() for
-> pmd_pgtable() and let platforms override when required via <asm/pgtable.h>.
-> All the existing platform that override pmd_pgtable() have been moved into
-> their respective <asm/pgtable.h> header in order to precede before the new
-> generic definition. This makes it much cleaner with reduced code.
+On 28.05.21 16:58, James Bottomley wrote:
+> On Thu, 2021-05-27 at 15:29 +0200, Greg KH wrote:
+>> On Thu, May 27, 2021 at 03:23:03PM +0200, Christoph Lameter wrote:
+>>> On Fri, 30 Apr 2021, Theodore Ts'o wrote:
+>>>
+>>>> I know we're all really hungry for some in-person meetups and
+>>>> discussions, but at least for LPC, Kernel Summit, and
+>>>> Maintainer's Summit, we're going to have to wait for another
+>>>> year,
+>>>
+>>> Well now that we are vaccinated: Can we still change it?
+>>>
+>>
+>> Speak for yourself, remember that Europe and other parts of the world
+>> are not as "flush" with vaccines as the US currently is :(
 > 
-> Cc: Nick Hu <nickhu@andestech.com>
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Guo Ren <guoren@kernel.org>
-> Cc: Brian Cain <bcain@codeaurora.org>
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Michal Simek <monstr@monstr.eu>
-> Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-> Cc: Ley Foon Tan <ley.foon.tan@intel.com>
-> Cc: Jonas Bonn <jonas@southpole.se>
-> Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-> Cc: Stafford Horne <shorne@gmail.com>
-> Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: Christophe Leroy <christophe.leroy@csgroup.eu>
-> Cc: Paul Walmsley <paul.walmsley@sifive.com>
-> Cc: Palmer Dabbelt <palmer@dabbelt.com>
-> Cc: Heiko Carstens <hca@linux.ibm.com>
-> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Cc: Jeff Dike <jdike@addtoit.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Chris Zankel <chris@zankel.net>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-mm@kvack.org
-> Cc: linux-kernel@vger.kernel.org
-> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
+> The rollout is accelerating in Europe.  At least in Germany, I know
+> people younger than me are already vaccinated. 
 
-One nit below, otherwise
+And I know people younger than you in Germany personally ( ;) ) that are 
+not vaccinated yet and might not even get the first shot before 
+September, not even dreaming about a second one + waiting until the 
+vaccine is fully in effect.
 
-Acked-by: Mike Rapoport <rppt@linux.ibm.com>
-
-> ---
-> This patch applies on linux-next (20210608) as there is a merge conflict
-> dependency on the following commit.
-> 
-> 40762590e8be ("mm: define default value for FIRST_USER_ADDRESS").
-> 
-> This patch has been built tested across multiple platforms.
-> 
-> Changes in V2:
-> 
-> - Changed m68k per Geert
-> 
-> Changes in V1:
-> 
-> https://lore.kernel.org/linux-arch/1623130327-13325-1-git-send-email-anshuman.khandual@arm.com/
-
-...
-
-> diff --git a/arch/m68k/include/asm/sun3_pgalloc.h b/arch/m68k/include/asm/sun3_pgalloc.h
-> index 000f64869b91..198036aff519 100644
-> --- a/arch/m68k/include/asm/sun3_pgalloc.h
-> +++ b/arch/m68k/include/asm/sun3_pgalloc.h
-> @@ -32,7 +32,6 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd, pgtable_t page
->  {
->  	pmd_val(*pmd) = __pa((unsigned long)page_address(page));
->  }
-> -#define pmd_pgtable(pmd) pmd_page(pmd)
->  
->  /*
->   * allocating and freeing a pmd is trivial: the 1-entry pmd is
-> diff --git a/arch/m68k/include/asm/sun3_pgtable.h b/arch/m68k/include/asm/sun3_pgtable.h
-> index 5b24283a0a42..127282bd8b96 100644
-> --- a/arch/m68k/include/asm/sun3_pgtable.h
-> +++ b/arch/m68k/include/asm/sun3_pgtable.h
-> @@ -96,6 +96,8 @@
->  
->  #ifndef __ASSEMBLY__
->  
-> +#define pmd_pgtable(pmd) pmd_page(pmd)
-> +
-
-Is this one really needed? Won't the generic definition work instead?
-
->  /*
->   * Conversion functions: convert a page and protection to a page entry,
->   * and a page entry and page directory to the page they refer to.
-> diff --git a/arch/microblaze/include/asm/pgalloc.h b/arch/microblaze/include/asm/pgalloc.h
-> index d56b9f670ad1..6c33b05f730f 100644
-> --- a/arch/microblaze/include/asm/pgalloc.h
-> +++ b/arch/microblaze/include/asm/pgalloc.h
-> @@ -28,8 +28,6 @@ static inline pgd_t *get_pgd(void)
->  
->  #define pgd_alloc(mm)		get_pgd()
->  
-> -#define pmd_pgtable(pmd)	pmd_page(pmd)
-> -
->  extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm);
->  
->  #define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, (pte))
+So yes, sure, nobody can stop people that think the pandemic is over 
+("we are vaccinated") from meeting in person. Just make sure to not 
+ignore the poor souls that really won't be traveling this year, because 
+"we are not vaccinated".
 
 -- 
-Sincerely yours,
-Mike.
+Thanks,
+
+David / dhildenb
+
