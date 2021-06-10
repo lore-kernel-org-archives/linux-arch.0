@@ -2,94 +2,109 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1F885C48BE0
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 20:58:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F1FB5C48BDF
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 22:10:40 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id F08F461375
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 20:58:14 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C927B613DE
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 22:10:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230247AbhFJVAK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 10 Jun 2021 17:00:10 -0400
-Received: from out03.mta.xmission.com ([166.70.13.233]:46278 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229963AbhFJVAJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jun 2021 17:00:09 -0400
-Received: from in02.mta.xmission.com ([166.70.13.52])
-        by out03.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1lrRkd-00G7Q2-LO; Thu, 10 Jun 2021 14:58:07 -0600
-Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95] helo=email.xmission.com)
-        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1lrRkb-003V64-TI; Thu, 10 Jun 2021 14:58:07 -0600
-From:   ebiederm@xmission.com (Eric W. Biederman)
-To:     <linux-arch@vger.kernel.org>
-Cc:     Jens Axboe <axboe@kernel.dk>, Oleg Nesterov <oleg@redhat.com>,
-        Al Viro <viro@ZenIV.linux.org.uk>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        <linux-kernel@vger.kernel.org>,
+        id S230155AbhFJWMg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 10 Jun 2021 18:12:36 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35270 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230059AbhFJWMg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jun 2021 18:12:36 -0400
+Received: from mail-ed1-x530.google.com (mail-ed1-x530.google.com [IPv6:2a00:1450:4864:20::530])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 350ECC061574
+        for <linux-arch@vger.kernel.org>; Thu, 10 Jun 2021 15:10:23 -0700 (PDT)
+Received: by mail-ed1-x530.google.com with SMTP id u24so34846775edy.11
+        for <linux-arch@vger.kernel.org>; Thu, 10 Jun 2021 15:10:23 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linux-foundation.org; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=IH1SveIFJ5wJ6kocsX0s8v3WiB0uqtridXReuF2KUMY=;
+        b=Qzof8FNEW2Ba5XPZGpDfZSR6rdtd6WGsu717h8Er0yjM+Qrz/xmDEYF47olKQxMaDV
+         /WuPvFIxyme1vchmGP1HhMrAqH5OzNDJ6D669STTMCTBS8PPP8U2SeAmmSAiNv3xHWUT
+         sYS5gTDilCKxc+IrHBQDdFNyeZ8axOedobMUc=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=IH1SveIFJ5wJ6kocsX0s8v3WiB0uqtridXReuF2KUMY=;
+        b=XQwS4Q+18gBAG16gIDBVjT59dcOcI5+W0UsdLdns4803Kw9f7yqs7rQn6C046zBt4G
+         vpiNrQCzoHFjCz1YJI2s0hZF8KcZapLZc+NFAK0hKMxW+YUdq3M7QnuKV137q4uIN0SA
+         jmE8+xF9M8n7kBNc/ZNx7hBPPw+fAU2ZP347uNWpOKeFUnngy80zJBOpgu7H/jg6t2tK
+         k6GhWnKaUcsl1LoPKj4xMX6+/UkGcpmhbW80fHYqXyDiRxnHXa77WmYfUK1zYJZCzCmx
+         mT+2+CfeiMhsby9DZh2Ikp50xsHwvyUv7PZxyjrFqsf0TnB3cS7sDN2QnkMqo+cx8sWC
+         UUnA==
+X-Gm-Message-State: AOAM5320JsPJOy66eUoyjy+KEmUMDZebF2+d83mPNELbtO4kkLFslH7k
+        KSZBX+Tm2ELNfQE+qN/4Ot5hagzzttqfoDwXNRg=
+X-Google-Smtp-Source: ABdhPJyssYsjis3j4KWZNQtO08DyRByznBlXN+uafErzQUpG3UCn80zDI8Bs/xlGFKJi6S3Limqmsg==
+X-Received: by 2002:aa7:d0cc:: with SMTP id u12mr640203edo.48.1623363021477;
+        Thu, 10 Jun 2021 15:10:21 -0700 (PDT)
+Received: from mail-ej1-f54.google.com (mail-ej1-f54.google.com. [209.85.218.54])
+        by smtp.gmail.com with ESMTPSA id qh23sm1451822ejb.77.2021.06.10.15.10.21
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 10 Jun 2021 15:10:21 -0700 (PDT)
+Received: by mail-ej1-f54.google.com with SMTP id l1so1445654ejb.6
+        for <linux-arch@vger.kernel.org>; Thu, 10 Jun 2021 15:10:21 -0700 (PDT)
+X-Received: by 2002:ac2:43b9:: with SMTP id t25mr578806lfl.253.1623362689248;
+ Thu, 10 Jun 2021 15:04:49 -0700 (PDT)
+MIME-Version: 1.0
+References: <87sg1p30a1.fsf@disp2133>
+In-Reply-To: <87sg1p30a1.fsf@disp2133>
+From:   Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Thu, 10 Jun 2021 15:04:33 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wjiBXCZBxLiCG5hxpd0vMkMjiocenponWygG5SCG6DXNw@mail.gmail.com>
+Message-ID: <CAHk-=wjiBXCZBxLiCG5hxpd0vMkMjiocenponWygG5SCG6DXNw@mail.gmail.com>
+Subject: Re: Kernel stack read with PTRACE_EVENT_EXIT and io_uring threads
+To:     "Eric W. Biederman" <ebiederm@xmission.com>
+Cc:     linux-arch <linux-arch@vger.kernel.org>,
+        Jens Axboe <axboe@kernel.dk>, Oleg Nesterov <oleg@redhat.com>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
         Richard Henderson <rth@twiddle.net>,
         Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
-        Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org,
+        Matt Turner <mattst88@gmail.com>,
+        alpha <linux-alpha@vger.kernel.org>,
         Geert Uytterhoeven <geert@linux-m68k.org>,
-        linux-m68k@lists.linux-m68k.org, Arnd Bergmann <arnd@kernel.org>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        Arnd Bergmann <arnd@kernel.org>,
         Ley Foon Tan <ley.foon.tan@intel.com>,
         Tejun Heo <tj@kernel.org>,
         Daniel Jacobowitz <drow@nevyn.them.org>,
         Kees Cook <keescook@chromium.org>
-Date:   Thu, 10 Jun 2021 15:57:58 -0500
-Message-ID: <87sg1p30a1.fsf@disp2133>
-User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
-MIME-Version: 1.0
-Content-Type: text/plain
-X-XM-SPF: eid=1lrRkb-003V64-TI;;;mid=<87sg1p30a1.fsf@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
-X-XM-AID: U2FsdGVkX1//8WQu+x+uCru6/HE74WQnaxGdKbF4cdU=
-X-SA-Exim-Connect-IP: 68.227.160.95
-X-SA-Exim-Mail-From: ebiederm@xmission.com
-Subject: Kernel stack read with PTRACE_EVENT_EXIT and io_uring threads
-X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
-X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+On Thu, Jun 10, 2021 at 1:58 PM Eric W. Biederman <ebiederm@xmission.com> wrote:
+>
+> The problem is sometimes we read all of the registers from
+> a context where they are not all saved.
 
-Folks,
+Ouch. Yes. And this is really painful because none of the *normal*
+architectures do this, so it gets absolutely no coverage.
 
-Digging through the guts of exit I found something I am not quite
-certain what to do with.  On some architectures such as alpha, m68k, and
-nios2 the kernel calls into system calls with a subset of the registers
-saved on the kernel stack, and the kernel calls into signal handling and
-a few other contexts with all of the registers saved on the kernel
-stack.  The problem is sometimes we read all of the registers from
-a context where they are not all saved.
+> I think at this point we need to say that the architectures that have a
+> do this need to be fixed to at least call do_exit and the kernel
+> function in create_io_thread with the deeper stack.
 
-When this was initially observed it looked just like a coredump problem
-and it could be solved by tweaking the coredump code.  That change was
-77f6ab8b7768 ("don't dump the threads that had been already exiting when
-zapped.")
+Yeah. We traditionally have that requirement for fork() and friends
+too (vfork/clone), so adding exit and io_uring to do so seems like the
+most straightforward thing.
 
-However I have looked farther and we have the location where get_signal
-is called from io_uring, and we have the ptrace_stop in
-PTRACE_EVENT_EXIT.  In PTRACE_EVENT_EXIT we could be called from exit(2)
-which is a syscall and we definitely won't have everything saved on the
-kernel stack.  I have not doubled checked create_io_thread but I don't
-think create_io_threads saves all of the registers on the kernel stack.
+But I really wish we had some way to test and trigger this so that we
+wouldn't get caught on this before. Something in task_pt_regs() that
+catches "this doesn't actually work" and does a WARN_ON_ONCE() on the
+affected architectures?
 
-I think at this point we need to say that the architectures that have a
-do this need to be fixed to at least call do_exit and the kernel
-function in create_io_thread with the deeper stack.
-
-Is that reasonable of me to ask?  Is there some other way to deal with
-this issue that I am not seeing?  Am I missing some critical detail that
-makes PTRACE_EVENT_EXIT in do_exit not a problem if someone reads the
-register with ptrace?
-
-Eric
-
+               Linus
