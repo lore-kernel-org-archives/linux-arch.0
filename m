@@ -2,83 +2,112 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
+	DKIM_SIGNED,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=no
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3F5D9C47094
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 13:00:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 31DBFC47094
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 13:34:33 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 24457613F1
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 13:00:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0B7D1610C7
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 13:34:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230508AbhFJNCH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 10 Jun 2021 09:02:07 -0400
-Received: from foss.arm.com ([217.140.110.172]:59454 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230312AbhFJNCF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Jun 2021 09:02:05 -0400
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 86B22106F;
-        Thu, 10 Jun 2021 06:00:08 -0700 (PDT)
-Received: from e113632-lin (usa-sjc-imap-foss1.foss.arm.com [10.121.207.14])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id C09813F73D;
-        Thu, 10 Jun 2021 06:00:05 -0700 (PDT)
-From:   Valentin Schneider <valentin.schneider@arm.com>
-To:     Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        id S230440AbhFJNg0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 10 Jun 2021 09:36:26 -0400
+Received: from heliosphere.sirena.org.uk ([172.104.155.198]:56066 "EHLO
+        heliosphere.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230413AbhFJNgY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jun 2021 09:36:24 -0400
+X-Greylist: delayed 918 seconds by postgrey-1.27 at vger.kernel.org; Thu, 10 Jun 2021 09:36:23 EDT
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=sirena.org.uk; s=20170815-heliosphere; h=In-Reply-To:Content-Type:
+        MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:
+        Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:
+        List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
+        bh=EGuuNBvtOxSepsx8cAIcPQNm7Di5nTQ54VReyLn7gyc=; b=EulokYgt/Nfgp8kSobLspIWJpd
+        Bp3VYsa4/gqXPeRl94NVmLkJeRfI0udoR06fEp7YI8M+1HP49R1SKamQY+OGeBILjeP3m+Tgu3Q3p
+        98FSCP8v6ng5gILjAvI6oRRZvJirTbUEhxgfofNn9dI+WVsG7JI+pu8MSWZbuW+2wE6U=;
+Received: from host86-167-10-84.range86-167.btcentralplus.com ([86.167.10.84] helo=fitzroy.sirena.org.uk)
+        by heliosphere.sirena.org.uk with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.94.2)
+        (envelope-from <broonie@sirena.org.uk>)
+        id 1lrKov-00AMQW-7z; Thu, 10 Jun 2021 13:34:05 +0000
+Received: by fitzroy.sirena.org.uk (Postfix, from userid 1000)
+        id DB095D0E9DF; Thu, 10 Jun 2021 14:34:03 +0100 (BST)
+Date:   Thu, 10 Jun 2021 14:34:03 +0100
+From:   Mark Brown <broonie@kernel.org>
+To:     Dave Martin <Dave.Martin@arm.com>
+Cc:     Catalin Marinas <catalin.marinas@arm.com>,
         Will Deacon <will@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Marc Zyngier <maz@kernel.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Morten Rasmussen <morten.rasmussen@arm.com>,
-        Qais Yousef <qais.yousef@arm.com>,
-        Suren Baghdasaryan <surenb@google.com>,
-        Quentin Perret <qperret@google.com>, Tejun Heo <tj@kernel.org>,
-        Johannes Weiner <hannes@cmpxchg.org>,
-        Ingo Molnar <mingo@redhat.com>,
-        Juri Lelli <juri.lelli@redhat.com>,
-        Vincent Guittot <vincent.guittot@linaro.org>,
-        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
-        Dietmar Eggemann <dietmar.eggemann@arm.com>,
-        Daniel Bristot de Oliveira <bristot@redhat.com>,
-        Mark Rutland <mark.rutland@arm.com>, kernel-team@android.com
-Subject: Re: [PATCH v9 12/20] sched: Allow task CPU affinity to be restricted on asymmetric systems
-In-Reply-To: <20210608180313.11502-13-will@kernel.org>
-References: <20210608180313.11502-1-will@kernel.org> <20210608180313.11502-13-will@kernel.org>
-Date:   Thu, 10 Jun 2021 14:00:03 +0100
-Message-ID: <875yyldgdo.mognet@arm.com>
+        Szabolcs Nagy <szabolcs.nagy@arm.com>,
+        Jeremy Linton <jeremy.linton@arm.com>,
+        "H . J . Lu" <hjl.tools@gmail.com>,
+        Yu-cheng Yu <yu-cheng.yu@intel.com>,
+        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        libc-alpha@sourceware.org
+Subject: Re: [PATCH v2 3/3] elf: Remove has_interp property from
+ arch_adjust_elf_prot()
+Message-ID: <YMIUy3oMQNboKoeg@sirena.org.uk>
+References: <20210604112450.13344-1-broonie@kernel.org>
+ <20210604112450.13344-4-broonie@kernel.org>
+ <20210609151724.GM4187@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="Cavun4J4NqaiGpjK"
+Content-Disposition: inline
+In-Reply-To: <20210609151724.GM4187@arm.com>
+X-Cookie: A penny saved has not been spent.
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 08/06/21 19:03, Will Deacon wrote:
-> Asymmetric systems may not offer the same level of userspace ISA support
-> across all CPUs, meaning that some applications cannot be executed by
-> some CPUs. As a concrete example, upcoming arm64 big.LITTLE designs do
-> not feature support for 32-bit applications on both clusters.
->
-> Although userspace can carefully manage the affinity masks for such
-> tasks, one place where it is particularly problematic is execve()
-> because the CPU on which the execve() is occurring may be incompatible
-> with the new application image. In such a situation, it is desirable to
-> restrict the affinity mask of the task and ensure that the new image is
-> entered on a compatible CPU. From userspace's point of view, this looks
-> the same as if the incompatible CPUs have been hotplugged off in the
-> task's affinity mask. Similarly, if a subsequent execve() reverts to
-> a compatible image, then the old affinity is restored if it is still
-> valid.
->
-> In preparation for restricting the affinity mask for compat tasks on
-> arm64 systems without uniform support for 32-bit applications, introduce
-> {force,relax}_compatible_cpus_allowed_ptr(), which respectively restrict
-> and restore the affinity mask for a task based on the compatible CPUs.
->
-> Reviewed-by: Quentin Perret <qperret@google.com>
-> Signed-off-by: Will Deacon <will@kernel.org>
 
-Reviewed-by: Valentin Schneider <valentin.schneider@arm.com>
+--Cavun4J4NqaiGpjK
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+
+On Wed, Jun 09, 2021 at 04:17:24PM +0100, Dave Martin wrote:
+> On Fri, Jun 04, 2021 at 12:24:50PM +0100, Mark Brown wrote:
+
+> > Since we have added an is_interp flag to arch_parse_elf_property() we can
+> > drop the has_interp flag from arch_elf_adjust_prot(), the only user was
+> > the arm64 code which no longer needs it and any future users will be able
+> > to use arch_parse_elf_properties() to determine if an interpreter is in
+> > use.
+
+> So far so good, but can we also drop the has_interp argument from
+> arch_parse_elf_properties()?
+
+> Cross-check with Yu-Cheng Yu's series, but I don't see this being used
+> any more (except for passthrough in binfmt_elf.c).
+
+> Since we are treating the interpreter and main executable orthogonally
+> to each other now, I don't think we should need a has_interp argument to
+> pass knowledge between the interpreter and executable handling phases
+> here.
+
+My thinking was that it might be useful for handling of some
+future property in the architecture code to know if there is an
+interpreter, providing the information at parse time would let it
+set up whatever is needed.  We've been doing this with the arm64
+BTI handling and while we're moving away from doing that I could
+imagine that there may be some other case where it makes sense,
+and it sounds like CET is one.
+
+--Cavun4J4NqaiGpjK
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAmDCFMsACgkQJNaLcl1U
+h9BZawf6Ay4UxH5bIDhtXPTAhZm8FN7huxDYlOaIL4TC2UpYorZjStY/QHhzapuP
+AtLu2hH2jnNdeJPtMpQWOPQWO+1ImClJTOsXv/UpjA4YPRaLEUFaIzvJcqU1UGgZ
+jeBAe56VHRuUaLxheAoXELBYcu3BkMHUad8w/Vep0coUorIy8Zqkoa44LlTa/JFu
+KbiToYyI/BTvvjdrBRhft0W3kL6uQZplkCD+2iuvpTetEAu1mLI8E8RE3KjKFy/j
+CCOt4Wpnj/q3CtKKd8B1pfMUO4NFct3VXygOvdEeeDqmiHS/Olh03LWfndTdvCCD
+k7lFSENNrlbwAWvFjrhbEM8aqjhyxQ==
+=hhB/
+-----END PGP SIGNATURE-----
+
+--Cavun4J4NqaiGpjK--
