@@ -2,116 +2,85 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=ham autolearn_force=no version=3.4.0
+	SPF_PASS autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5E513C47094
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 10:00:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5313DC47094
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 10:20:18 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4038F613DD
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 10:00:00 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2E22B613E9
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 10:20:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229910AbhFJKBz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 10 Jun 2021 06:01:55 -0400
-Received: from foss.arm.com ([217.140.110.172]:55696 "EHLO foss.arm.com"
+        id S229966AbhFJKWN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 10 Jun 2021 06:22:13 -0400
+Received: from foss.arm.com ([217.140.110.172]:56162 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229770AbhFJKBz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Jun 2021 06:01:55 -0400
+        id S229937AbhFJKWN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 10 Jun 2021 06:22:13 -0400
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 2EA0ED6E;
-        Thu, 10 Jun 2021 02:59:59 -0700 (PDT)
-Received: from arm.com (usa-sjc-imap-foss1.foss.arm.com [10.121.207.14])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id D0BA63F694;
-        Thu, 10 Jun 2021 02:59:57 -0700 (PDT)
-Date:   Thu, 10 Jun 2021 10:58:57 +0100
-From:   Dave Martin <Dave.Martin@arm.com>
-To:     "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
-Cc:     Mark Brown <broonie@kernel.org>,
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id AAF67D6E;
+        Thu, 10 Jun 2021 03:20:16 -0700 (PDT)
+Received: from e113632-lin (usa-sjc-imap-foss1.foss.arm.com [10.121.207.14])
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 0A2933F694;
+        Thu, 10 Jun 2021 03:20:13 -0700 (PDT)
+From:   Valentin Schneider <valentin.schneider@arm.com>
+To:     Will Deacon <will@kernel.org>
+Cc:     linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org,
         Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        Szabolcs Nagy <szabolcs.nagy@arm.com>,
-        Jeremy Linton <jeremy.linton@arm.com>,
-        "H . J . Lu" <hjl.tools@gmail.com>, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, libc-alpha@sourceware.org
-Subject: Re: [PATCH v2 3/3] elf: Remove has_interp property from
- arch_adjust_elf_prot()
-Message-ID: <20210610095853.GN4187@arm.com>
-References: <20210604112450.13344-1-broonie@kernel.org>
- <20210604112450.13344-4-broonie@kernel.org>
- <20210609151724.GM4187@arm.com>
- <6e0b1dbd-688c-aba6-e376-91ce9440d741@intel.com>
+        Marc Zyngier <maz@kernel.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Morten Rasmussen <morten.rasmussen@arm.com>,
+        Qais Yousef <qais.yousef@arm.com>,
+        Suren Baghdasaryan <surenb@google.com>,
+        Quentin Perret <qperret@google.com>, Tejun Heo <tj@kernel.org>,
+        Johannes Weiner <hannes@cmpxchg.org>,
+        Ingo Molnar <mingo@redhat.com>,
+        Juri Lelli <juri.lelli@redhat.com>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
+        Dietmar Eggemann <dietmar.eggemann@arm.com>,
+        Daniel Bristot de Oliveira <bristot@redhat.com>,
+        kernel-team@android.com, Li Zefan <lizefan@huawei.com>
+Subject: Re: [PATCH v8 06/19] cpuset: Don't use the cpu_possible_mask as a last resort for cgroup v1
+In-Reply-To: <20210607172042.GB7650@willie-the-truck>
+References: <20210602164719.31777-1-will@kernel.org> <20210602164719.31777-7-will@kernel.org> <877dj9ees8.mognet@arm.com> <20210607172042.GB7650@willie-the-truck>
+Date:   Thu, 10 Jun 2021 11:20:09 +0100
+Message-ID: <87fsxqc97q.mognet@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <6e0b1dbd-688c-aba6-e376-91ce9440d741@intel.com>
-User-Agent: Mutt/1.5.23 (2014-03-12)
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Jun 09, 2021 at 09:55:36AM -0700, Yu, Yu-cheng wrote:
-> On 6/9/2021 8:17 AM, Dave Martin wrote:
-> >On Fri, Jun 04, 2021 at 12:24:50PM +0100, Mark Brown wrote:
-> >>Since we have added an is_interp flag to arch_parse_elf_property() we can
-> >>drop the has_interp flag from arch_elf_adjust_prot(), the only user was
-> >>the arm64 code which no longer needs it and any future users will be able
-> >>to use arch_parse_elf_properties() to determine if an interpreter is in
-> >>use.
-> >
-> >So far so good, but can we also drop the has_interp argument from
-> >arch_parse_elf_properties()?
-> >
-> >Cross-check with Yu-Cheng Yu's series, but I don't see this being used
-> >any more (except for passthrough in binfmt_elf.c).
-> >
-> >Since we are treating the interpreter and main executable orthogonally
-> >to each other now, I don't think we should need a has_interp argument to
-> >pass knowledge between the interpreter and executable handling phases
-> >here.
-> >
-> 
-> For CET, arch_parse_elf_property() needs to know has_interp and is_interp.
-> Like the following, on top of your patches:
-> 
-> diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
-> index 607b782afe2c..9e6f142b5cef 100644
-> --- a/arch/x86/kernel/process_64.c
-> +++ b/arch/x86/kernel/process_64.c
-> @@ -837,8 +837,15 @@ unsigned long KSTK_ESP(struct task_struct *task)
->  }
-> 
->  int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
-> -			    bool compat, struct arch_elf_state *state)
-> +			    bool compat, bool has_interp, bool is_interp,
-> +			    struct arch_elf_state *state)
->  {
-> +	/*
-> +	 * Parse static-linked executable or the loader.
-> +	 */
-> +	if (has_interp != is_interp)
-> +		return 0;
-> +
+On 07/06/21 18:20, Will Deacon wrote:
+> On Fri, Jun 04, 2021 at 06:11:03PM +0100, Valentin Schneider wrote:
+>> On 02/06/21 17:47, Will Deacon wrote:
+>> > @@ -3322,9 +3322,13 @@ void cpuset_cpus_allowed(struct task_struct *tsk, struct cpumask *pmask)
+>> >
+>> >  void cpuset_cpus_allowed_fallback(struct task_struct *tsk)
+>> >  {
+>> > +	const struct cpumask *cs_mask;
+>> > +	const struct cpumask *possible_mask = task_cpu_possible_mask(tsk);
+>> > +
+>> >       rcu_read_lock();
+>> > -	do_set_cpus_allowed(tsk, is_in_v2_mode() ?
+>> > -		task_cs(tsk)->cpus_allowed : cpu_possible_mask);
+>> > +	cs_mask = task_cs(tsk)->cpus_allowed;
+>> > +	if (is_in_v2_mode() && cpumask_subset(cs_mask, possible_mask))
+>> > +		do_set_cpus_allowed(tsk, cs_mask);
+>>
+>> Since the task will still go through the is_cpu_allowed() loop in
+>> select_fallback_rq() after this, is the subset check actually required
+>> here?
+>
+> Yes, I think it's needed. do_set_cpus_allowed() doesn't do any checking
+> against the task_cpu_possible_mask, so if we returned to
+> select_fallback_rq() with a mask containing a mixture of 32-bit-capable and
+> 64-bit-only CPUs then we'd end up setting an affinity mask for a 32-bit
+> task which contains 64-bit-only cores.
+>
 
-[...]
-
-Ah, sorry, I did attempt to check this with your series, but I didn't
-attempt to build it.  I must have missed this somehow.
-
-But: does x86 actually need to do this?
-
-For arm64, we've discovered that it is better to treat the ELF
-interpreter and main executable independently when applying the ELF
-properties.
-
-So, can x86 actually port away from this?  arch_parse_elf_properties()
-and arch_adjust_elf_prot() would still know whether the interpreter is
-being considered or not, via the is_interp argument to both functions.
-This allows interpreter and main executable info to be stashed
-independently in the arch_elf_state.
-
-If x86 really needs to carry on following the existing model then that's
-fine, but we should try to keep x86 and arm64 aligned if at all possible.
-
-Cheers
----Dave
+Once again, you're right :-)
