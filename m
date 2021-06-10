@@ -2,124 +2,136 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
-	DKIM_SIGNED,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-14.3 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EC668C47094
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 13:54:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B3A84C47094
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 14:14:01 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CA324613FE
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 13:54:27 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9459E613E9
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Jun 2021 14:14:01 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230332AbhFJN4W (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 10 Jun 2021 09:56:22 -0400
-Received: from heliosphere.sirena.org.uk ([172.104.155.198]:58258 "EHLO
-        heliosphere.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230322AbhFJN4W (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jun 2021 09:56:22 -0400
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=sirena.org.uk; s=20170815-heliosphere; h=In-Reply-To:Content-Type:
-        MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:
-        Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:
-        List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
-        bh=npeI11EH2BuRp3VFaM5gorqsj/juTUtLuKX91wtGigw=; b=V817L4J+jRpY+/hSxV+fBk6cm2
-        p8D6Ddz+Ehs8MFx9Z1zF6SJF8MyViRwNNhqSn2MCgsIAgjG57Rm83dYZDVzhtiKQIRbilx/unOXcH
-        k1xG1NohySkYA4TtUevbHjXX+gcDaXng8AV2tPb/8j8XrUtgH1A3VGCz7v8i/DVf8hYg=;
-Received: from host86-167-10-84.range86-167.btcentralplus.com ([86.167.10.84] helo=fitzroy.sirena.org.uk)
-        by heliosphere.sirena.org.uk with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.94.2)
-        (envelope-from <broonie@sirena.org.uk>)
-        id 1lrKa4-00AMCR-B9; Thu, 10 Jun 2021 13:18:44 +0000
-Received: by fitzroy.sirena.org.uk (Postfix, from userid 1000)
-        id 6F928D0E9DF; Thu, 10 Jun 2021 14:19:05 +0100 (BST)
-Date:   Thu, 10 Jun 2021 14:19:05 +0100
-From:   Mark Brown <broonie@kernel.org>
-To:     Dave Martin <Dave.Martin@arm.com>
-Cc:     Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        Szabolcs Nagy <szabolcs.nagy@arm.com>,
-        Jeremy Linton <jeremy.linton@arm.com>,
-        "H . J . Lu" <hjl.tools@gmail.com>,
-        Yu-cheng Yu <yu-cheng.yu@intel.com>,
-        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        libc-alpha@sourceware.org
-Subject: Re: [PATCH v2 2/3] arm64: Enable BTI for main executable as well as
- the interpreter
-Message-ID: <YMIRSSMnP3UMwdRy@sirena.org.uk>
-References: <20210604112450.13344-1-broonie@kernel.org>
- <20210604112450.13344-3-broonie@kernel.org>
- <20210609151713.GL4187@arm.com>
+        id S230329AbhFJOP5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 10 Jun 2021 10:15:57 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42368 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230153AbhFJOP4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jun 2021 10:15:56 -0400
+Received: from mail-pf1-x435.google.com (mail-pf1-x435.google.com [IPv6:2607:f8b0:4864:20::435])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D8AE7C061574;
+        Thu, 10 Jun 2021 07:13:47 -0700 (PDT)
+Received: by mail-pf1-x435.google.com with SMTP id u18so1715544pfk.11;
+        Thu, 10 Jun 2021 07:13:47 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=subject:to:cc:references:from:message-id:date:user-agent
+         :mime-version:in-reply-to:content-language:content-transfer-encoding;
+        bh=uVvPHfIwriaeCqaGS4SWF2JfjGEeCNMTseqgcHKL0PY=;
+        b=ot0iffXK2/znAlvDWUx0DvEHPs9Hu42jQhvk3aHGx+T2NhWFpnwKA1vIkYGIy+cgYb
+         LxEbfgCrbULtFd7nVuJsfQAH+IMqZIL2R35dwiAl9sJZz1GKTswJr7viHRHzd8ec6z9L
+         cpBdHTN6hAjfnZCW/MdapYStRdZ2pSAmS2zSYAlKj+wqby1v1sKfa0Z3IJGU1Q2S8YcP
+         HqfC/opPsY22Z36tiTPSUNG8yLuAg9Bq77HzKuJDM2mT1cANyfp9SOlXy6wpSwett2B6
+         yucBibCk75zJ2NzA/8lMhfuq11vR41IllnpzmIyKLTH/P3wGLWQCIUfWmxQ4zGD/3HTx
+         tacA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
+         :user-agent:mime-version:in-reply-to:content-language
+         :content-transfer-encoding;
+        bh=uVvPHfIwriaeCqaGS4SWF2JfjGEeCNMTseqgcHKL0PY=;
+        b=Ob5AjVJlmewWgR91C2iGfH32rqVp9W5EnF11+BLWmpEgtRimFpEQMaBysOyo7RcTVj
+         kvxM2SaGFg8t5sfZ0L6oqoxpQjkqb7ySAyb9AFHodVAL9+Q8Z5jiZKjH9JAeNUFNeeKq
+         oYwL/EVQzB5PZX307pQc+Z1dcVZr09VYTuAbSCmARcFaDgDyZwFTv/oUze7mKDo27IId
+         zdrUSWdvZ6rQZ+a0M5xP8L82dq/cSAqGONkxuMCVmtwV/exS+dccGbDtkwIXsz+8T8Om
+         lyrwZspUfEnEq4X191QY4ap5ptVgz2zhFRZnhbEP0NbU0nTigIrw9MXypsXQAf8jnKP1
+         MC/w==
+X-Gm-Message-State: AOAM530It9T+D/oLpTv3sg30GnJpQoKABxSxMfca/I5TP5FZrDaRkoBG
+        bk4gPaWYunVAN/RQi3+Ix3s=
+X-Google-Smtp-Source: ABdhPJz4FYgWX1XRVYnd1fLznm93BCcmg2/a4wkuQ7x2l90mgEwjIr25Q5mcrDlHBGTMoQXHYCH6CA==
+X-Received: by 2002:a05:6a00:2353:b029:2f2:987a:5da2 with SMTP id j19-20020a056a002353b02902f2987a5da2mr3220673pfj.58.1623334427380;
+        Thu, 10 Jun 2021 07:13:47 -0700 (PDT)
+Received: from ?IPv6:2404:f801:0:5:8000::4b1? ([2404:f801:9000:1a:efea::4b1])
+        by smtp.gmail.com with ESMTPSA id h12sm3035510pgn.54.2021.06.10.07.13.34
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 10 Jun 2021 07:13:46 -0700 (PDT)
+Subject: Re: [RFC PATCH V3 01/11] x86/HV: Initialize GHCB page in Isolation VM
+To:     Joerg Roedel <joro@8bytes.org>
+Cc:     kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com,
+        wei.liu@kernel.org, decui@microsoft.com, tglx@linutronix.de,
+        mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com,
+        arnd@arndb.de, dave.hansen@linux.intel.com, luto@kernel.org,
+        peterz@infradead.org, akpm@linux-foundation.org,
+        kirill.shutemov@linux.intel.com, rppt@kernel.org,
+        hannes@cmpxchg.org, cai@lca.pw, krish.sadhukhan@oracle.com,
+        saravanand@fb.com, Tianyu.Lan@microsoft.com,
+        konrad.wilk@oracle.com, hch@lst.de, m.szyprowski@samsung.com,
+        robin.murphy@arm.com, boris.ostrovsky@oracle.com, jgross@suse.com,
+        sstabellini@kernel.org, will@kernel.org,
+        xen-devel@lists.xenproject.org, davem@davemloft.net,
+        kuba@kernel.org, jejb@linux.ibm.com, martin.petersen@oracle.com,
+        iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org,
+        linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-scsi@vger.kernel.org, netdev@vger.kernel.org,
+        vkuznets@redhat.com, thomas.lendacky@amd.com,
+        brijesh.singh@amd.com, sunilmut@microsoft.com
+References: <20210530150628.2063957-1-ltykernel@gmail.com>
+ <20210530150628.2063957-2-ltykernel@gmail.com> <YMC2RSr/J1WYCvtz@8bytes.org>
+From:   Tianyu Lan <ltykernel@gmail.com>
+Message-ID: <c9a7eaa8-a8b3-3ed3-c52c-7a2cea3c95bc@gmail.com>
+Date:   Thu, 10 Jun 2021 22:13:32 +0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.11.0
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="E21DmkTzCZLD726x"
-Content-Disposition: inline
-In-Reply-To: <20210609151713.GL4187@arm.com>
-X-Cookie: A penny saved has not been spent.
+In-Reply-To: <YMC2RSr/J1WYCvtz@8bytes.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+Hi Joerg：
+	Thanks for your review.
 
---E21DmkTzCZLD726x
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
 
-On Wed, Jun 09, 2021 at 04:17:13PM +0100, Dave Martin wrote:
-> On Fri, Jun 04, 2021 at 12:24:49PM +0100, Mark Brown wrote:
+On 6/9/2021 8:38 PM, Joerg Roedel wrote:
+> On Sun, May 30, 2021 at 11:06:18AM -0400, Tianyu Lan wrote:
+>> From: Tianyu Lan <Tianyu.Lan@microsoft.com>
+>>
+>> Hyper-V exposes GHCB page via SEV ES GHCB MSR for SNP guest
+>> to communicate with hypervisor. Map GHCB page for all
+>> cpus to read/write MSR register and submit hvcall request
+>> via GHCB.
+>>
+>> Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
+>> ---
+>>   arch/x86/hyperv/hv_init.c       | 60 ++++++++++++++++++++++++++++++---
+>>   arch/x86/include/asm/mshyperv.h |  2 ++
+>>   include/asm-generic/mshyperv.h  |  2 ++
+>>   3 files changed, 60 insertions(+), 4 deletions(-)
+>>
+>> diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+>> index bb0ae4b5c00f..dc74d01cb859 100644
+>> --- a/arch/x86/hyperv/hv_init.c
+>> +++ b/arch/x86/hyperv/hv_init.c
+>> @@ -60,6 +60,9 @@ static int hv_cpu_init(unsigned int cpu)
+>>   	struct hv_vp_assist_page **hvp = &hv_vp_assist_page[smp_processor_id()];
+>>   	void **input_arg;
+>>   	struct page *pg;
+>> +	u64 ghcb_gpa;
+>> +	void *ghcb_va;
+>> +	void **ghcb_base;
+> 
+> Any reason you can't reuse the SEV-ES support code in the Linux kernel?
+> It already has code to setup GHCBs for all vCPUs.
+> 
+> I see that you don't need #VC handling in your SNP VMs because of the
+> paravisor running underneath it, but just re-using the GHCB setup code
+> shouldn't be too hard.
+> 
 
-> > -		if (system_supports_bti() && has_interp == is_interp &&
-> > -		    (*p & GNU_PROPERTY_AARCH64_FEATURE_1_BTI))
-> > -			arch->flags |= ARM64_ELF_BTI;
-> > +		if (system_supports_bti() &&
-> > +		    (*p & GNU_PROPERTY_AARCH64_FEATURE_1_BTI)) {
-> > +			if (is_interp) {
-> > +				arch->flags |= ARM64_ELF_INTERP_BTI;
-> > +			} else {
-> > +				arch->flags |= ARM64_ELF_EXEC_BTI;
-> > +			}
+Thanks for your suggestion. I will have a try to use SEV-ES code.
 
-> Nit: surplus curlies? (coding-style.rst does actually say to drop them
-> when all branches of an if are single-statement one-liners -- I had
-> presumed I was just being pedantic...)
-
-I really think this hurts readability with the nested if inside
-another if with a multi-line condition.
-
-> > -	if (prot & PROT_EXEC)
-> > -		prot |= PROT_BTI;
-> > +		if (state->flags & ARM64_ELF_EXEC_BTI && !is_interp)
-> > +			prot |= PROT_BTI;
-> > +	}
-
-> Is it worth adding () around the bitwise-& expressions?  I'm always a
-> little uneasy about the operator precedence of binary &, although
-> without looking it up I think you're correct.
-
-Sure.  I'm fairly sure the compiler would've complained about
-this case if it were ambiguous, I'm vaguely surprised it didn't
-already.
-
-> Feel free to adopt if this appeals to you, otherwise I'm also fine with
-> your version.)
-
-I'll see what I think when I get back to looking at this
-properly.
-
---E21DmkTzCZLD726x
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAmDCEUMACgkQJNaLcl1U
-h9B3oAf8DRt9uAEt6gqwDA1mGvwN/9TRY6qqVi2u9dKZwDznwg6UO/8RA4d6zpMa
-xMS1GemBG2J+9Ew1xy7c4TbNHIXCMfo1ZlHlnZmCmbUyDBm9oCTRZ0TBMxpNd3nC
-sG/ENNWllk/kZ4HGL0NI1+N9OlY8IROrSc8eaIre6ivN6aQWa6Q1IMtdJBqBOD0A
-P2MtLevPcxASaETGmZIr/mW2HMzCAlE1+NnfeVwS2fZRJWavEoJN3jfRnNgwn/N1
-9Ot91bVhERHOHl9lNLSVtgQ/Odw1uph+4NArogEH1YE0IgHH9PmyvaKDRT4vyRR1
-pU87HhEyr1AkrAQPeACcfHdN+M6WmA==
-=0xVB
------END PGP SIGNATURE-----
-
---E21DmkTzCZLD726x--
