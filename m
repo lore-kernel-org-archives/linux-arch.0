@@ -7,45 +7,45 @@ X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E5562C49360
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 29574C48BE0
 	for <linux-arch@archiver.kernel.org>; Fri, 11 Jun 2021 08:34:46 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CE3D9613F1
+	by mail.kernel.org (Postfix) with ESMTP id 0B6DB61287
 	for <linux-arch@archiver.kernel.org>; Fri, 11 Jun 2021 08:34:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231246AbhFKIgm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S231210AbhFKIgm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Fri, 11 Jun 2021 04:36:42 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59888 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59884 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231487AbhFKIgl (ORCPT
+        with ESMTP id S231476AbhFKIgl (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Jun 2021 04:36:41 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6903EC061574;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 81A71C0613A2;
         Fri, 11 Jun 2021 01:34:43 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=rJpVdKSdgjpXE6p9Oop7DIQvMfxOIdi3nB3yxo4fMFE=; b=CWR8uW2z2v4Dcg+Wzx4PI0dnVw
-        XoKJVqJOzxVFYD+sRtJ0FInRN4sERX02CLhxY4IIvmxWATB2eKgxL6Gpyb1H+2mYp2DTZtDIVthgE
-        5Ul10rj4kp3xkVxtKQ7zdzJY0lDTzmSemg7ndBVLjAS9fpx8BnExlyCMcJu9PTJemO6Lpg6fqO0Rz
-        fSm0epZHPMtHBOvtjISYY09EsR14jOzRL0xopL+wkizEfh+1OfaeYdMug8pS54ZcT2q0654uQBNJh
-        W1UjAcQHOctvz45J9dVOso50uiM/3YQcHyCMe+ASOLWFLpP68WGdQ6strm9lRbkNS51xl0Xxhu6aQ
-        kI5bM2wQ==;
+        bh=Iw6vKfa5OdiVbFlE95UKe68jHgz/Hsb600FyiKKhXi4=; b=WFP5JjxSNrmb1VAkQVNBaJG7S+
+        VC412bTTvdb3H423k/mhZv/QXJ1Z/drs7Ymq//1X9OiNKQLuOP6QOSE47AzfvAROw7Qb2J6WwsMJp
+        bTzki2MPwc9JOchY2At/HkjX38HYsRmL/MSyM/Xjo/UWjA+pLg14nl6RyeLz5nSC52nv/tn/5fvN+
+        MhJN6BhyOexAmeqXDeHfx702fI6hm/ia/kwaR+ydhAqLREJsfmL9XP2E42ueXsaHm9Y/qYmGFa6w7
+        b37cRjw1ZDn6cd6hGsrZbZNahBF+aygXKfgoT0zErZpt1Zfq/GBl8gVb/Eosyug4qQwIdRk1saqOf
+        m/koGxug==;
 Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
         by casper.infradead.org with esmtpsa (Exim 4.94 #2 (Red Hat Linux))
-        id 1lrcY0-002ZVx-Ji; Fri, 11 Jun 2021 08:30:07 +0000
+        id 1lrcY0-002ZVy-KG; Fri, 11 Jun 2021 08:30:07 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 0C0083002C6;
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 4F93D3005A1;
         Fri, 11 Jun 2021 10:29:43 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id E3EF12BCF3930; Fri, 11 Jun 2021 10:29:42 +0200 (CEST)
-Message-ID: <20210611082838.222401495@infradead.org>
+        id 06BAA2BCF3936; Fri, 11 Jun 2021 10:29:43 +0200 (CEST)
+Message-ID: <20210611082838.550736351@infradead.org>
 User-Agent: quilt/0.66
-Date:   Fri, 11 Jun 2021 10:28:12 +0200
+Date:   Fri, 11 Jun 2021 10:28:17 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     Thomas Gleixner <tglx@linutronix.de>,
         Ingo Molnar <mingo@redhat.com>,
@@ -92,7 +92,7 @@ Cc:     Borislav Petkov <bp@alien8.de>, x86@kernel.org,
         Paolo Bonzini <pbonzini@redhat.com>,
         Stephen Rothwell <sfr@canb.auug.org.au>,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: [PATCH v2 2/7] sched: Introduce task_is_running()
+Subject: [PATCH v2 7/7] sched: Change task_struct::state
 References: <20210611082810.970791107@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -100,466 +100,956 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Replace a bunch of 'p->state == TASK_RUNNING' with a new helper:
-task_is_running(p).
+Change the type and name of task_struct::state. Drop the volatile and
+shrink it to an 'unsigned int'. Rename it in order to find all uses
+such that we can use READ_ONCE/WRITE_ONCE as appropriate.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Acked-by: Davidlohr Bueso <dave@stgolabs.net>
+Acked-by: Will Deacon <will@kernel.org>
+Acked-by: Daniel Thompson <daniel.thompson@linaro.org>
 ---
- arch/alpha/kernel/process.c    |    2 +-
- arch/arc/kernel/stacktrace.c   |    2 +-
- arch/arm/kernel/process.c      |    2 +-
- arch/arm64/kernel/process.c    |    2 +-
- arch/csky/kernel/stacktrace.c  |    2 +-
- arch/h8300/kernel/process.c    |    2 +-
- arch/hexagon/kernel/process.c  |    2 +-
- arch/ia64/kernel/process.c     |    4 ++--
- arch/m68k/kernel/process.c     |    2 +-
- arch/mips/kernel/process.c     |    2 +-
- arch/nds32/kernel/process.c    |    2 +-
- arch/nios2/kernel/process.c    |    2 +-
- arch/parisc/kernel/process.c   |    4 ++--
- arch/powerpc/kernel/process.c  |    4 ++--
- arch/riscv/kernel/stacktrace.c |    2 +-
- arch/s390/kernel/process.c     |    2 +-
- arch/s390/mm/fault.c           |    2 +-
- arch/sh/kernel/process_32.c    |    2 +-
- arch/sparc/kernel/process_32.c |    3 +--
- arch/sparc/kernel/process_64.c |    3 +--
- arch/um/kernel/process.c       |    2 +-
- arch/x86/kernel/process.c      |    4 ++--
- arch/xtensa/kernel/process.c   |    2 +-
- block/blk-mq.c                 |    2 +-
- include/linux/sched.h          |    2 ++
- kernel/kcsan/report.c          |    2 +-
- kernel/locking/lockdep.c       |    2 +-
- kernel/rcu/tree_plugin.h       |    2 +-
- kernel/sched/core.c            |    6 +++---
- kernel/sched/stats.h           |    2 +-
- kernel/signal.c                |    2 +-
- kernel/softirq.c               |    3 +--
- mm/compaction.c                |    2 +-
- 33 files changed, 40 insertions(+), 41 deletions(-)
+ arch/ia64/kernel/mca.c         |    2 -
+ arch/ia64/kernel/ptrace.c      |    8 +++---
+ arch/powerpc/xmon/xmon.c       |   13 +++++-----
+ block/blk-mq.c                 |    2 -
+ drivers/md/dm.c                |    6 ++--
+ fs/binfmt_elf.c                |    8 +++---
+ fs/binfmt_elf_fdpic.c          |    4 ++-
+ fs/userfaultfd.c               |    4 +--
+ include/linux/sched.h          |   31 +++++++++++------------
+ include/linux/sched/debug.h    |    2 -
+ include/linux/sched/signal.h   |    2 -
+ init/init_task.c               |    2 -
+ kernel/cgroup/cgroup-v1.c      |    2 -
+ kernel/debug/kdb/kdb_support.c |   18 +++++++------
+ kernel/fork.c                  |    4 +--
+ kernel/hung_task.c             |    2 -
+ kernel/kthread.c               |    4 +--
+ kernel/locking/mutex.c         |    6 ++--
+ kernel/locking/rtmutex.c       |    4 +--
+ kernel/locking/rwsem.c         |    2 -
+ kernel/ptrace.c                |   12 ++++-----
+ kernel/rcu/rcutorture.c        |    4 +--
+ kernel/rcu/tree_stall.h        |   12 ++++-----
+ kernel/sched/core.c            |   53 +++++++++++++++++++++--------------------
+ kernel/sched/deadline.c        |   10 +++----
+ kernel/sched/fair.c            |   11 +++++---
+ lib/syscall.c                  |    4 +--
+ net/core/dev.c                 |    2 -
+ 28 files changed, 123 insertions(+), 111 deletions(-)
 
---- a/arch/alpha/kernel/process.c
-+++ b/arch/alpha/kernel/process.c
-@@ -380,7 +380,7 @@ get_wchan(struct task_struct *p)
+--- a/arch/ia64/kernel/mca.c
++++ b/arch/ia64/kernel/mca.c
+@@ -1788,7 +1788,7 @@ format_mca_init_stack(void *mca_data, un
+ 	ti->task = p;
+ 	ti->cpu = cpu;
+ 	p->stack = ti;
+-	p->state = TASK_UNINTERRUPTIBLE;
++	p->__state = TASK_UNINTERRUPTIBLE;
+ 	cpumask_set_cpu(cpu, &p->cpus_mask);
+ 	INIT_LIST_HEAD(&p->tasks);
+ 	p->parent = p->real_parent = p->group_leader = p;
+--- a/arch/ia64/kernel/ptrace.c
++++ b/arch/ia64/kernel/ptrace.c
+@@ -641,11 +641,11 @@ ptrace_attach_sync_user_rbs (struct task
+ 	read_lock(&tasklist_lock);
+ 	if (child->sighand) {
+ 		spin_lock_irq(&child->sighand->siglock);
+-		if (child->state == TASK_STOPPED &&
++		if (READ_ONCE(child->__state) == TASK_STOPPED &&
+ 		    !test_and_set_tsk_thread_flag(child, TIF_RESTORE_RSE)) {
+ 			set_notify_resume(child);
+ 
+-			child->state = TASK_TRACED;
++			WRITE_ONCE(child->__state, TASK_TRACED);
+ 			stopped = 1;
+ 		}
+ 		spin_unlock_irq(&child->sighand->siglock);
+@@ -665,9 +665,9 @@ ptrace_attach_sync_user_rbs (struct task
+ 	read_lock(&tasklist_lock);
+ 	if (child->sighand) {
+ 		spin_lock_irq(&child->sighand->siglock);
+-		if (child->state == TASK_TRACED &&
++		if (READ_ONCE(child->__state) == TASK_TRACED &&
+ 		    (child->signal->flags & SIGNAL_STOP_STOPPED)) {
+-			child->state = TASK_STOPPED;
++			WRITE_ONCE(child->__state, TASK_STOPPED);
+ 		}
+ 		spin_unlock_irq(&child->sighand->siglock);
+ 	}
+--- a/arch/powerpc/xmon/xmon.c
++++ b/arch/powerpc/xmon/xmon.c
+@@ -3162,6 +3162,7 @@ memzcan(void)
+ 
+ static void show_task(struct task_struct *tsk)
  {
- 	unsigned long schedule_frame;
- 	unsigned long pc;
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
- 	/*
- 	 * This one depends on the frame size of schedule().  Do a
---- a/arch/arc/kernel/stacktrace.c
-+++ b/arch/arc/kernel/stacktrace.c
-@@ -83,7 +83,7 @@ seed_unwind_frame_info(struct task_struc
- 		 *    is safe-kept and BLINK at a well known location in there
- 		 */
- 
--		if (tsk->state == TASK_RUNNING)
-+		if (task_is_running(tsk))
- 			return -1;
- 
- 		frame_info->task = tsk;
---- a/arch/arm/kernel/process.c
-+++ b/arch/arm/kernel/process.c
-@@ -288,7 +288,7 @@ unsigned long get_wchan(struct task_stru
- 	struct stackframe frame;
- 	unsigned long stack_page;
- 	int count = 0;
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
- 
- 	frame.fp = thread_saved_fp(p);
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -598,7 +598,7 @@ unsigned long get_wchan(struct task_stru
- 	struct stackframe frame;
- 	unsigned long stack_page, ret = 0;
- 	int count = 0;
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
- 
- 	stack_page = (unsigned long)try_get_task_stack(p);
---- a/arch/csky/kernel/stacktrace.c
-+++ b/arch/csky/kernel/stacktrace.c
-@@ -115,7 +115,7 @@ unsigned long get_wchan(struct task_stru
- {
- 	unsigned long pc = 0;
- 
--	if (likely(task && task != current && task->state != TASK_RUNNING))
-+	if (likely(task && task != current && !task_is_running(task)))
- 		walk_stackframe(task, NULL, save_wchan, &pc);
- 	return pc;
- }
---- a/arch/h8300/kernel/process.c
-+++ b/arch/h8300/kernel/process.c
-@@ -134,7 +134,7 @@ unsigned long get_wchan(struct task_stru
- 	unsigned long stack_page;
- 	int count = 0;
- 
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
- 
- 	stack_page = (unsigned long)p;
---- a/arch/hexagon/kernel/process.c
-+++ b/arch/hexagon/kernel/process.c
-@@ -135,7 +135,7 @@ unsigned long get_wchan(struct task_stru
- 	unsigned long fp, pc;
- 	unsigned long stack_page;
- 	int count = 0;
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
- 
- 	stack_page = (unsigned long)task_stack_page(p);
---- a/arch/ia64/kernel/process.c
-+++ b/arch/ia64/kernel/process.c
-@@ -529,7 +529,7 @@ get_wchan (struct task_struct *p)
- 	unsigned long ip;
- 	int count = 0;
- 
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
++	unsigned int p_state = READ_ONCE(tsk->__state);
+ 	char state;
  
  	/*
-@@ -542,7 +542,7 @@ get_wchan (struct task_struct *p)
+@@ -3169,14 +3170,14 @@ static void show_task(struct task_struct
+ 	 * appropriate for calling from xmon. This could be moved
+ 	 * to a common, generic, routine used by both.
  	 */
- 	unw_init_from_blocked_task(&info, p);
- 	do {
--		if (p->state == TASK_RUNNING)
-+		if (task_is_running(p))
- 			return 0;
- 		if (unw_unwind(&info) < 0)
- 			return 0;
---- a/arch/m68k/kernel/process.c
-+++ b/arch/m68k/kernel/process.c
-@@ -268,7 +268,7 @@ unsigned long get_wchan(struct task_stru
- 	unsigned long fp, pc;
- 	unsigned long stack_page;
- 	int count = 0;
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
+-	state = (tsk->state == 0) ? 'R' :
+-		(tsk->state < 0) ? 'U' :
+-		(tsk->state & TASK_UNINTERRUPTIBLE) ? 'D' :
+-		(tsk->state & TASK_STOPPED) ? 'T' :
+-		(tsk->state & TASK_TRACED) ? 'C' :
++	state = (p_state == 0) ? 'R' :
++		(p_state < 0) ? 'U' :
++		(p_state & TASK_UNINTERRUPTIBLE) ? 'D' :
++		(p_state & TASK_STOPPED) ? 'T' :
++		(p_state & TASK_TRACED) ? 'C' :
+ 		(tsk->exit_state & EXIT_ZOMBIE) ? 'Z' :
+ 		(tsk->exit_state & EXIT_DEAD) ? 'E' :
+-		(tsk->state & TASK_INTERRUPTIBLE) ? 'S' : '?';
++		(p_state & TASK_INTERRUPTIBLE) ? 'S' : '?';
  
- 	stack_page = (unsigned long)task_stack_page(p);
---- a/arch/mips/kernel/process.c
-+++ b/arch/mips/kernel/process.c
-@@ -662,7 +662,7 @@ unsigned long get_wchan(struct task_stru
- 	unsigned long ra = 0;
- #endif
- 
--	if (!task || task == current || task->state == TASK_RUNNING)
-+	if (!task || task == current || task_is_running(task))
- 		goto out;
- 	if (!task_stack_page(task))
- 		goto out;
---- a/arch/nds32/kernel/process.c
-+++ b/arch/nds32/kernel/process.c
-@@ -239,7 +239,7 @@ unsigned long get_wchan(struct task_stru
- 	unsigned long stack_start, stack_end;
- 	int count = 0;
- 
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
- 
- 	if (IS_ENABLED(CONFIG_FRAME_POINTER)) {
---- a/arch/nios2/kernel/process.c
-+++ b/arch/nios2/kernel/process.c
-@@ -223,7 +223,7 @@ unsigned long get_wchan(struct task_stru
- 	unsigned long stack_page;
- 	int count = 0;
- 
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
- 
- 	stack_page = (unsigned long)p;
---- a/arch/parisc/kernel/process.c
-+++ b/arch/parisc/kernel/process.c
-@@ -249,7 +249,7 @@ get_wchan(struct task_struct *p)
- 	unsigned long ip;
- 	int count = 0;
- 
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
- 
- 	/*
-@@ -260,7 +260,7 @@ get_wchan(struct task_struct *p)
- 	do {
- 		if (unwind_once(&info) < 0)
- 			return 0;
--		if (p->state == TASK_RUNNING)
-+		if (task_is_running(p))
-                         return 0;
- 		ip = info.ip;
- 		if (!in_sched_functions(ip))
---- a/arch/powerpc/kernel/process.c
-+++ b/arch/powerpc/kernel/process.c
-@@ -2084,7 +2084,7 @@ static unsigned long __get_wchan(struct
- 	unsigned long ip, sp;
- 	int count = 0;
- 
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
- 
- 	sp = p->thread.ksp;
-@@ -2094,7 +2094,7 @@ static unsigned long __get_wchan(struct
- 	do {
- 		sp = *(unsigned long *)sp;
- 		if (!validate_sp(sp, p, STACK_FRAME_OVERHEAD) ||
--		    p->state == TASK_RUNNING)
-+		    task_is_running(p))
- 			return 0;
- 		if (count > 0) {
- 			ip = ((unsigned long *)sp)[STACK_FRAME_LR_SAVE];
---- a/arch/riscv/kernel/stacktrace.c
-+++ b/arch/riscv/kernel/stacktrace.c
-@@ -132,7 +132,7 @@ unsigned long get_wchan(struct task_stru
- {
- 	unsigned long pc = 0;
- 
--	if (likely(task && task != current && task->state != TASK_RUNNING))
-+	if (likely(task && task != current && !task_is_running(task)))
- 		walk_stackframe(task, NULL, save_wchan, &pc);
- 	return pc;
- }
---- a/arch/s390/kernel/process.c
-+++ b/arch/s390/kernel/process.c
-@@ -180,7 +180,7 @@ unsigned long get_wchan(struct task_stru
- 	struct unwind_state state;
- 	unsigned long ip = 0;
- 
--	if (!p || p == current || p->state == TASK_RUNNING || !task_stack_page(p))
-+	if (!p || p == current || task_is_running(p) || !task_stack_page(p))
- 		return 0;
- 
- 	if (!try_get_task_stack(p))
---- a/arch/s390/mm/fault.c
-+++ b/arch/s390/mm/fault.c
-@@ -702,7 +702,7 @@ static void pfault_interrupt(struct ext_
- 			 * interrupt since it must be a leftover of a PFAULT
- 			 * CANCEL operation which didn't remove all pending
- 			 * completion interrupts. */
--			if (tsk->state == TASK_RUNNING)
-+			if (task_is_running(tsk))
- 				tsk->thread.pfault_wait = -1;
- 		}
- 	} else {
---- a/arch/sh/kernel/process_32.c
-+++ b/arch/sh/kernel/process_32.c
-@@ -186,7 +186,7 @@ unsigned long get_wchan(struct task_stru
- {
- 	unsigned long pc;
- 
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
- 
- 	/*
---- a/arch/sparc/kernel/process_32.c
-+++ b/arch/sparc/kernel/process_32.c
-@@ -376,8 +376,7 @@ unsigned long get_wchan(struct task_stru
- 	struct reg_window32 *rw;
- 	int count = 0;
- 
--	if (!task || task == current ||
--            task->state == TASK_RUNNING)
-+	if (!task || task == current || task_is_running(task))
- 		goto out;
- 
- 	fp = task_thread_info(task)->ksp + bias;
---- a/arch/sparc/kernel/process_64.c
-+++ b/arch/sparc/kernel/process_64.c
-@@ -674,8 +674,7 @@ unsigned long get_wchan(struct task_stru
-         unsigned long ret = 0;
- 	int count = 0; 
- 
--	if (!task || task == current ||
--            task->state == TASK_RUNNING)
-+	if (!task || task == current || task_is_running(task))
- 		goto out;
- 
- 	tp = task_thread_info(task);
---- a/arch/um/kernel/process.c
-+++ b/arch/um/kernel/process.c
-@@ -369,7 +369,7 @@ unsigned long get_wchan(struct task_stru
- 	unsigned long stack_page, sp, ip;
- 	bool seen_sched = 0;
- 
--	if ((p == NULL) || (p == current) || (p->state == TASK_RUNNING))
-+	if ((p == NULL) || (p == current) || task_is_running(p))
- 		return 0;
- 
- 	stack_page = (unsigned long) task_stack_page(p);
---- a/arch/x86/kernel/process.c
-+++ b/arch/x86/kernel/process.c
-@@ -931,7 +931,7 @@ unsigned long get_wchan(struct task_stru
- 	unsigned long start, bottom, top, sp, fp, ip, ret = 0;
- 	int count = 0;
- 
--	if (p == current || p->state == TASK_RUNNING)
-+	if (p == current || task_is_running(p))
- 		return 0;
- 
- 	if (!try_get_task_stack(p))
-@@ -975,7 +975,7 @@ unsigned long get_wchan(struct task_stru
- 			goto out;
- 		}
- 		fp = READ_ONCE_NOCHECK(*(unsigned long *)fp);
--	} while (count++ < 16 && p->state != TASK_RUNNING);
-+	} while (count++ < 16 && !task_is_running(p));
- 
- out:
- 	put_task_stack(p);
---- a/arch/xtensa/kernel/process.c
-+++ b/arch/xtensa/kernel/process.c
-@@ -304,7 +304,7 @@ unsigned long get_wchan(struct task_stru
- 	unsigned long stack_page = (unsigned long) task_stack_page(p);
- 	int count = 0;
- 
--	if (!p || p == current || p->state == TASK_RUNNING)
-+	if (!p || p == current || task_is_running(p))
- 		return 0;
- 
- 	sp = p->thread.sp;
+ 	printf("%16px %16lx %16px %6d %6d %c %2d %s\n", tsk,
+ 		tsk->thread.ksp, tsk->thread.regs,
 --- a/block/blk-mq.c
 +++ b/block/blk-mq.c
-@@ -3926,7 +3926,7 @@ int blk_poll(struct request_queue *q, bl
- 		if (signal_pending_state(state, current))
- 			__set_current_state(TASK_RUNNING);
+@@ -3886,7 +3886,7 @@ static bool blk_mq_poll_hybrid(struct re
+ int blk_poll(struct request_queue *q, blk_qc_t cookie, bool spin)
+ {
+ 	struct blk_mq_hw_ctx *hctx;
+-	long state;
++	unsigned int state;
  
--		if (current->state == TASK_RUNNING)
-+		if (task_is_running(current))
- 			return 1;
- 		if (ret < 0 || !spin)
- 			break;
+ 	if (!blk_qc_t_valid(cookie) ||
+ 	    !test_bit(QUEUE_FLAG_POLL, &q->queue_flags))
+--- a/drivers/md/dm.c
++++ b/drivers/md/dm.c
+@@ -2328,7 +2328,7 @@ static bool md_in_flight_bios(struct map
+ 	return sum != 0;
+ }
+ 
+-static int dm_wait_for_bios_completion(struct mapped_device *md, long task_state)
++static int dm_wait_for_bios_completion(struct mapped_device *md, unsigned int task_state)
+ {
+ 	int r = 0;
+ 	DEFINE_WAIT(wait);
+@@ -2351,7 +2351,7 @@ static int dm_wait_for_bios_completion(s
+ 	return r;
+ }
+ 
+-static int dm_wait_for_completion(struct mapped_device *md, long task_state)
++static int dm_wait_for_completion(struct mapped_device *md, unsigned int task_state)
+ {
+ 	int r = 0;
+ 
+@@ -2478,7 +2478,7 @@ static void unlock_fs(struct mapped_devi
+  * are being added to md->deferred list.
+  */
+ static int __dm_suspend(struct mapped_device *md, struct dm_table *map,
+-			unsigned suspend_flags, long task_state,
++			unsigned suspend_flags, unsigned int task_state,
+ 			int dmf_suspended_flag)
+ {
+ 	bool do_lockfs = suspend_flags & DM_SUSPEND_LOCKFS_FLAG;
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -1537,7 +1537,8 @@ static int fill_psinfo(struct elf_prpsin
+ {
+ 	const struct cred *cred;
+ 	unsigned int i, len;
+-	
++	unsigned int state;
++
+ 	/* first copy the parameters from user space */
+ 	memset(psinfo, 0, sizeof(struct elf_prpsinfo));
+ 
+@@ -1559,7 +1560,8 @@ static int fill_psinfo(struct elf_prpsin
+ 	psinfo->pr_pgrp = task_pgrp_vnr(p);
+ 	psinfo->pr_sid = task_session_vnr(p);
+ 
+-	i = p->state ? ffz(~p->state) + 1 : 0;
++	state = READ_ONCE(p->__state);
++	i = state ? ffz(~state) + 1 : 0;
+ 	psinfo->pr_state = i;
+ 	psinfo->pr_sname = (i > 5) ? '.' : "RSDTZW"[i];
+ 	psinfo->pr_zomb = psinfo->pr_sname == 'Z';
+@@ -1571,7 +1573,7 @@ static int fill_psinfo(struct elf_prpsin
+ 	SET_GID(psinfo->pr_gid, from_kgid_munged(cred->user_ns, cred->gid));
+ 	rcu_read_unlock();
+ 	strncpy(psinfo->pr_fname, p->comm, sizeof(psinfo->pr_fname));
+-	
++
+ 	return 0;
+ }
+ 
+--- a/fs/binfmt_elf_fdpic.c
++++ b/fs/binfmt_elf_fdpic.c
+@@ -1331,6 +1331,7 @@ static int fill_psinfo(struct elf_prpsin
+ {
+ 	const struct cred *cred;
+ 	unsigned int i, len;
++	unsigned int state;
+ 
+ 	/* first copy the parameters from user space */
+ 	memset(psinfo, 0, sizeof(struct elf_prpsinfo));
+@@ -1353,7 +1354,8 @@ static int fill_psinfo(struct elf_prpsin
+ 	psinfo->pr_pgrp = task_pgrp_vnr(p);
+ 	psinfo->pr_sid = task_session_vnr(p);
+ 
+-	i = p->state ? ffz(~p->state) + 1 : 0;
++	state = READ_ONCE(p->__state);
++	i = state ? ffz(~state) + 1 : 0;
+ 	psinfo->pr_state = i;
+ 	psinfo->pr_sname = (i > 5) ? '.' : "RSDTZW"[i];
+ 	psinfo->pr_zomb = psinfo->pr_sname == 'Z';
+--- a/fs/userfaultfd.c
++++ b/fs/userfaultfd.c
+@@ -337,7 +337,7 @@ static inline bool userfaultfd_must_wait
+ 	return ret;
+ }
+ 
+-static inline long userfaultfd_get_blocking_state(unsigned int flags)
++static inline unsigned int userfaultfd_get_blocking_state(unsigned int flags)
+ {
+ 	if (flags & FAULT_FLAG_INTERRUPTIBLE)
+ 		return TASK_INTERRUPTIBLE;
+@@ -370,7 +370,7 @@ vm_fault_t handle_userfault(struct vm_fa
+ 	struct userfaultfd_wait_queue uwq;
+ 	vm_fault_t ret = VM_FAULT_SIGBUS;
+ 	bool must_wait;
+-	long blocking_state;
++	unsigned int blocking_state;
+ 
+ 	/*
+ 	 * We don't do userfault handling for the final child pid update.
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
-@@ -113,6 +113,8 @@ struct task_group;
+@@ -113,13 +113,13 @@ struct task_group;
  					 __TASK_TRACED | EXIT_DEAD | EXIT_ZOMBIE | \
  					 TASK_PARKED)
  
-+#define task_is_running(task)		(READ_ONCE((task)->state) == TASK_RUNNING)
-+
- #define task_is_traced(task)		((task->state & __TASK_TRACED) != 0)
+-#define task_is_running(task)		(READ_ONCE((task)->state) == TASK_RUNNING)
++#define task_is_running(task)		(READ_ONCE((task)->__state) == TASK_RUNNING)
  
- #define task_is_stopped(task)		((task->state & __TASK_STOPPED) != 0)
---- a/kernel/kcsan/report.c
-+++ b/kernel/kcsan/report.c
-@@ -460,7 +460,7 @@ static void set_other_info_task_blocking
- 	 * We may be instrumenting a code-path where current->state is already
- 	 * something other than TASK_RUNNING.
- 	 */
--	const bool is_running = current->state == TASK_RUNNING;
-+	const bool is_running = task_is_running(current);
- 	/*
- 	 * To avoid deadlock in case we are in an interrupt here and this is a
- 	 * race with a task on the same CPU (KCSAN_INTERRUPT_WATCHER), provide a
---- a/kernel/locking/lockdep.c
-+++ b/kernel/locking/lockdep.c
-@@ -760,7 +760,7 @@ static void lockdep_print_held_locks(str
- 	 * It's not reliable to print a task's held locks if it's not sleeping
- 	 * and it's not the current task.
- 	 */
--	if (p->state == TASK_RUNNING && p != current)
-+	if (p != current && task_is_running(p))
- 		return;
- 	for (i = 0; i < depth; i++) {
- 		printk(" #%d: ", i);
---- a/kernel/rcu/tree_plugin.h
-+++ b/kernel/rcu/tree_plugin.h
-@@ -2768,7 +2768,7 @@ EXPORT_SYMBOL_GPL(rcu_bind_current_to_no
- #ifdef CONFIG_SMP
- static char *show_rcu_should_be_on_cpu(struct task_struct *tsp)
- {
--	return tsp && tsp->state == TASK_RUNNING && !tsp->on_cpu ? "!" : "";
-+	return tsp && task_is_running(tsp) && !tsp->on_cpu ? "!" : "";
- }
- #else // #ifdef CONFIG_SMP
- static char *show_rcu_should_be_on_cpu(struct task_struct *tsp)
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -5989,7 +5989,7 @@ static inline void sched_submit_work(str
- {
- 	unsigned int task_flags;
+-#define task_is_traced(task)		((task->state & __TASK_TRACED) != 0)
++#define task_is_traced(task)		((READ_ONCE(task->__state) & __TASK_TRACED) != 0)
  
--	if (!tsk->state)
-+	if (task_is_running(tsk))
- 		return;
+-#define task_is_stopped(task)		((task->state & __TASK_STOPPED) != 0)
++#define task_is_stopped(task)		((READ_ONCE(task->__state) & __TASK_STOPPED) != 0)
  
- 	task_flags = tsk->flags;
-@@ -7964,7 +7964,7 @@ int __sched yield_to(struct task_struct
- 	if (curr->sched_class != p->sched_class)
- 		goto out_unlock;
+-#define task_is_stopped_or_traced(task)	((task->state & (__TASK_STOPPED | __TASK_TRACED)) != 0)
++#define task_is_stopped_or_traced(task)	((READ_ONCE(task->__state) & (__TASK_STOPPED | __TASK_TRACED)) != 0)
  
--	if (task_running(p_rq, p) || p->state)
-+	if (task_running(p_rq, p) || !task_is_running(p))
- 		goto out_unlock;
+ #ifdef CONFIG_DEBUG_ATOMIC_SLEEP
  
- 	yielded = curr->sched_class->yield_to_task(rq, p);
-@@ -8167,7 +8167,7 @@ void sched_show_task(struct task_struct
+@@ -134,14 +134,14 @@ struct task_group;
+ 	do {							\
+ 		WARN_ON_ONCE(is_special_task_state(state_value));\
+ 		current->task_state_change = _THIS_IP_;		\
+-		current->state = (state_value);			\
++		WRITE_ONCE(current->__state, (state_value));	\
+ 	} while (0)
  
- 	pr_info("task:%-15.15s state:%c", p->comm, task_state_to_char(p));
+ #define set_current_state(state_value)				\
+ 	do {							\
+ 		WARN_ON_ONCE(is_special_task_state(state_value));\
+ 		current->task_state_change = _THIS_IP_;		\
+-		smp_store_mb(current->state, (state_value));	\
++		smp_store_mb(current->__state, (state_value));	\
+ 	} while (0)
  
--	if (p->state == TASK_RUNNING)
-+	if (task_is_running(p))
- 		pr_cont("  running task    ");
- #ifdef CONFIG_DEBUG_STACK_USAGE
- 	free = stack_not_used(p);
---- a/kernel/sched/stats.h
-+++ b/kernel/sched/stats.h
-@@ -217,7 +217,7 @@ static inline void sched_info_depart(str
+ #define set_special_state(state_value)					\
+@@ -150,7 +150,7 @@ struct task_group;
+ 		WARN_ON_ONCE(!is_special_task_state(state_value));	\
+ 		raw_spin_lock_irqsave(&current->pi_lock, flags);	\
+ 		current->task_state_change = _THIS_IP_;			\
+-		current->state = (state_value);				\
++		WRITE_ONCE(current->__state, (state_value));		\
+ 		raw_spin_unlock_irqrestore(&current->pi_lock, flags);	\
+ 	} while (0)
+ #else
+@@ -192,10 +192,10 @@ struct task_group;
+  * Also see the comments of try_to_wake_up().
+  */
+ #define __set_current_state(state_value)				\
+-	current->state = (state_value)
++	WRITE_ONCE(current->__state, (state_value))
  
- 	rq_sched_info_depart(rq, delta);
- 
--	if (t->state == TASK_RUNNING)
-+	if (task_is_running(t))
- 		sched_info_enqueue(rq, t);
- }
- 
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -4719,7 +4719,7 @@ void kdb_send_sig(struct task_struct *t,
- 	}
- 	new_t = kdb_prev_t != t;
- 	kdb_prev_t = t;
--	if (t->state != TASK_RUNNING && new_t) {
-+	if (!task_is_running(t) && new_t) {
- 		spin_unlock(&t->sighand->siglock);
- 		kdb_printf("Process is not RUNNING, sending a signal from "
- 			   "kdb risks deadlock\n"
---- a/kernel/softirq.c
-+++ b/kernel/softirq.c
-@@ -92,8 +92,7 @@ static bool ksoftirqd_running(unsigned l
- 
- 	if (pending & SOFTIRQ_NOW_MASK)
- 		return false;
--	return tsk && (tsk->state == TASK_RUNNING) &&
--		!__kthread_should_park(tsk);
-+	return tsk && task_is_running(tsk) && !__kthread_should_park(tsk);
- }
- 
- #ifdef CONFIG_TRACE_IRQFLAGS
---- a/mm/compaction.c
-+++ b/mm/compaction.c
-@@ -1955,7 +1955,7 @@ static inline bool is_via_compact_memory
- 
- static bool kswapd_is_running(pg_data_t *pgdat)
- {
--	return pgdat->kswapd && (pgdat->kswapd->state == TASK_RUNNING);
-+	return pgdat->kswapd && task_is_running(pgdat->kswapd);
- }
+ #define set_current_state(state_value)					\
+-	smp_store_mb(current->state, (state_value))
++	smp_store_mb(current->__state, (state_value))
  
  /*
+  * set_special_state() should be used for those states when the blocking task
+@@ -207,13 +207,13 @@ struct task_group;
+ 	do {								\
+ 		unsigned long flags; /* may shadow */			\
+ 		raw_spin_lock_irqsave(&current->pi_lock, flags);	\
+-		current->state = (state_value);				\
++		WRITE_ONCE(current->__state, (state_value));		\
+ 		raw_spin_unlock_irqrestore(&current->pi_lock, flags);	\
+ 	} while (0)
+ 
+ #endif
+ 
+-#define get_current_state()	READ_ONCE(current->state)
++#define get_current_state()	READ_ONCE(current->__state)
+ 
+ /* Task command name length: */
+ #define TASK_COMM_LEN			16
+@@ -658,8 +658,7 @@ struct task_struct {
+ 	 */
+ 	struct thread_info		thread_info;
+ #endif
+-	/* -1 unrunnable, 0 runnable, >0 stopped: */
+-	volatile long			state;
++	unsigned int			__state;
+ 
+ 	/*
+ 	 * This begins the randomizable portion of task_struct. Only
+@@ -1524,7 +1523,7 @@ static inline pid_t task_pgrp_nr(struct
+ 
+ static inline unsigned int task_state_index(struct task_struct *tsk)
+ {
+-	unsigned int tsk_state = READ_ONCE(tsk->state);
++	unsigned int tsk_state = READ_ONCE(tsk->__state);
+ 	unsigned int state = (tsk_state | tsk->exit_state) & TASK_REPORT;
+ 
+ 	BUILD_BUG_ON_NOT_POWER_OF_2(TASK_REPORT_MAX);
+@@ -1832,10 +1831,10 @@ static __always_inline void scheduler_ip
+ 	 */
+ 	preempt_fold_need_resched();
+ }
+-extern unsigned long wait_task_inactive(struct task_struct *, long match_state);
++extern unsigned long wait_task_inactive(struct task_struct *, unsigned int match_state);
+ #else
+ static inline void scheduler_ipi(void) { }
+-static inline unsigned long wait_task_inactive(struct task_struct *p, long match_state)
++static inline unsigned long wait_task_inactive(struct task_struct *p, unsigned int match_state)
+ {
+ 	return 1;
+ }
+--- a/include/linux/sched/debug.h
++++ b/include/linux/sched/debug.h
+@@ -14,7 +14,7 @@ extern void dump_cpu_task(int cpu);
+ /*
+  * Only dump TASK_* tasks. (0 for all tasks)
+  */
+-extern void show_state_filter(unsigned long state_filter);
++extern void show_state_filter(unsigned int state_filter);
+ 
+ static inline void show_state(void)
+ {
+--- a/include/linux/sched/signal.h
++++ b/include/linux/sched/signal.h
+@@ -382,7 +382,7 @@ static inline int fatal_signal_pending(s
+ 	return task_sigpending(p) && __fatal_signal_pending(p);
+ }
+ 
+-static inline int signal_pending_state(long state, struct task_struct *p)
++static inline int signal_pending_state(unsigned int state, struct task_struct *p)
+ {
+ 	if (!(state & (TASK_INTERRUPTIBLE | TASK_WAKEKILL)))
+ 		return 0;
+--- a/init/init_task.c
++++ b/init/init_task.c
+@@ -71,7 +71,7 @@ struct task_struct init_task
+ 	.thread_info	= INIT_THREAD_INFO(init_task),
+ 	.stack_refcount	= REFCOUNT_INIT(1),
+ #endif
+-	.state		= 0,
++	.__state	= 0,
+ 	.stack		= init_stack,
+ 	.usage		= REFCOUNT_INIT(2),
+ 	.flags		= PF_KTHREAD,
+--- a/kernel/cgroup/cgroup-v1.c
++++ b/kernel/cgroup/cgroup-v1.c
+@@ -713,7 +713,7 @@ int cgroupstats_build(struct cgroupstats
+ 
+ 	css_task_iter_start(&cgrp->self, 0, &it);
+ 	while ((tsk = css_task_iter_next(&it))) {
+-		switch (tsk->state) {
++		switch (READ_ONCE(tsk->__state)) {
+ 		case TASK_RUNNING:
+ 			stats->nr_running++;
+ 			break;
+--- a/kernel/debug/kdb/kdb_support.c
++++ b/kernel/debug/kdb/kdb_support.c
+@@ -609,23 +609,25 @@ unsigned long kdb_task_state_string(cons
+  */
+ char kdb_task_state_char (const struct task_struct *p)
+ {
+-	int cpu;
+-	char state;
++	unsigned int p_state;
+ 	unsigned long tmp;
++	char state;
++	int cpu;
+ 
+ 	if (!p ||
+ 	    copy_from_kernel_nofault(&tmp, (char *)p, sizeof(unsigned long)))
+ 		return 'E';
+ 
+ 	cpu = kdb_process_cpu(p);
+-	state = (p->state == 0) ? 'R' :
+-		(p->state < 0) ? 'U' :
+-		(p->state & TASK_UNINTERRUPTIBLE) ? 'D' :
+-		(p->state & TASK_STOPPED) ? 'T' :
+-		(p->state & TASK_TRACED) ? 'C' :
++	p_state = READ_ONCE(p->__state);
++	state = (p_state == 0) ? 'R' :
++		(p_state < 0) ? 'U' :
++		(p_state & TASK_UNINTERRUPTIBLE) ? 'D' :
++		(p_state & TASK_STOPPED) ? 'T' :
++		(p_state & TASK_TRACED) ? 'C' :
+ 		(p->exit_state & EXIT_ZOMBIE) ? 'Z' :
+ 		(p->exit_state & EXIT_DEAD) ? 'E' :
+-		(p->state & TASK_INTERRUPTIBLE) ? 'S' : '?';
++		(p_state & TASK_INTERRUPTIBLE) ? 'S' : '?';
+ 	if (is_idle_task(p)) {
+ 		/* Idle task.  Is it really idle, apart from the kdb
+ 		 * interrupt? */
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -425,7 +425,7 @@ static int memcg_charge_kernel_stack(str
+ 
+ static void release_task_stack(struct task_struct *tsk)
+ {
+-	if (WARN_ON(tsk->state != TASK_DEAD))
++	if (WARN_ON(READ_ONCE(tsk->__state) != TASK_DEAD))
+ 		return;  /* Better to leak the stack than to free prematurely */
+ 
+ 	account_kernel_stack(tsk, -1);
+@@ -2392,7 +2392,7 @@ static __latent_entropy struct task_stru
+ 	atomic_dec(&p->cred->user->processes);
+ 	exit_creds(p);
+ bad_fork_free:
+-	p->state = TASK_DEAD;
++	WRITE_ONCE(p->__state, TASK_DEAD);
+ 	put_task_stack(p);
+ 	delayed_free_task(p);
+ fork_out:
+--- a/kernel/hung_task.c
++++ b/kernel/hung_task.c
+@@ -196,7 +196,7 @@ static void check_hung_uninterruptible_t
+ 			last_break = jiffies;
+ 		}
+ 		/* use "==" to skip the TASK_KILLABLE tasks waiting on NFS */
+-		if (t->state == TASK_UNINTERRUPTIBLE)
++		if (READ_ONCE(t->__state) == TASK_UNINTERRUPTIBLE)
+ 			check_hung_task(t, timeout);
+ 	}
+  unlock:
+--- a/kernel/kthread.c
++++ b/kernel/kthread.c
+@@ -457,7 +457,7 @@ struct task_struct *kthread_create_on_no
+ }
+ EXPORT_SYMBOL(kthread_create_on_node);
+ 
+-static void __kthread_bind_mask(struct task_struct *p, const struct cpumask *mask, long state)
++static void __kthread_bind_mask(struct task_struct *p, const struct cpumask *mask, unsigned int state)
+ {
+ 	unsigned long flags;
+ 
+@@ -473,7 +473,7 @@ static void __kthread_bind_mask(struct t
+ 	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
+ }
+ 
+-static void __kthread_bind(struct task_struct *p, unsigned int cpu, long state)
++static void __kthread_bind(struct task_struct *p, unsigned int cpu, unsigned int state)
+ {
+ 	__kthread_bind_mask(p, cpumask_of(cpu), state);
+ }
+--- a/kernel/locking/mutex.c
++++ b/kernel/locking/mutex.c
+@@ -923,7 +923,7 @@ __ww_mutex_add_waiter(struct mutex_waite
+  * Lock a mutex (possibly interruptible), slowpath:
+  */
+ static __always_inline int __sched
+-__mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
++__mutex_lock_common(struct mutex *lock, unsigned int state, unsigned int subclass,
+ 		    struct lockdep_map *nest_lock, unsigned long ip,
+ 		    struct ww_acquire_ctx *ww_ctx, const bool use_ww_ctx)
+ {
+@@ -1098,14 +1098,14 @@ __mutex_lock_common(struct mutex *lock,
+ }
+ 
+ static int __sched
+-__mutex_lock(struct mutex *lock, long state, unsigned int subclass,
++__mutex_lock(struct mutex *lock, unsigned int state, unsigned int subclass,
+ 	     struct lockdep_map *nest_lock, unsigned long ip)
+ {
+ 	return __mutex_lock_common(lock, state, subclass, nest_lock, ip, NULL, false);
+ }
+ 
+ static int __sched
+-__ww_mutex_lock(struct mutex *lock, long state, unsigned int subclass,
++__ww_mutex_lock(struct mutex *lock, unsigned int state, unsigned int subclass,
+ 		struct lockdep_map *nest_lock, unsigned long ip,
+ 		struct ww_acquire_ctx *ww_ctx)
+ {
+--- a/kernel/locking/rtmutex.c
++++ b/kernel/locking/rtmutex.c
+@@ -1135,7 +1135,7 @@ void __sched rt_mutex_init_waiter(struct
+  *
+  * Must be called with lock->wait_lock held and interrupts disabled
+  */
+-static int __sched __rt_mutex_slowlock(struct rt_mutex *lock, int state,
++static int __sched __rt_mutex_slowlock(struct rt_mutex *lock, unsigned int state,
+ 				       struct hrtimer_sleeper *timeout,
+ 				       struct rt_mutex_waiter *waiter)
+ {
+@@ -1190,7 +1190,7 @@ static void __sched rt_mutex_handle_dead
+ /*
+  * Slow path lock function:
+  */
+-static int __sched rt_mutex_slowlock(struct rt_mutex *lock, int state,
++static int __sched rt_mutex_slowlock(struct rt_mutex *lock, unsigned int state,
+ 				     struct hrtimer_sleeper *timeout,
+ 				     enum rtmutex_chainwalk chwalk)
+ {
+--- a/kernel/locking/rwsem.c
++++ b/kernel/locking/rwsem.c
+@@ -889,7 +889,7 @@ rwsem_spin_on_owner(struct rw_semaphore
+  * Wait for the read lock to be granted
+  */
+ static struct rw_semaphore __sched *
+-rwsem_down_read_slowpath(struct rw_semaphore *sem, long count, int state)
++rwsem_down_read_slowpath(struct rw_semaphore *sem, long count, unsigned int state)
+ {
+ 	long adjustment = -RWSEM_READER_BIAS;
+ 	long rcnt = (count >> RWSEM_READER_SHIFT);
+--- a/kernel/ptrace.c
++++ b/kernel/ptrace.c
+@@ -197,7 +197,7 @@ static bool ptrace_freeze_traced(struct
+ 	spin_lock_irq(&task->sighand->siglock);
+ 	if (task_is_traced(task) && !looks_like_a_spurious_pid(task) &&
+ 	    !__fatal_signal_pending(task)) {
+-		task->state = __TASK_TRACED;
++		WRITE_ONCE(task->__state, __TASK_TRACED);
+ 		ret = true;
+ 	}
+ 	spin_unlock_irq(&task->sighand->siglock);
+@@ -207,7 +207,7 @@ static bool ptrace_freeze_traced(struct
+ 
+ static void ptrace_unfreeze_traced(struct task_struct *task)
+ {
+-	if (task->state != __TASK_TRACED)
++	if (READ_ONCE(task->__state) != __TASK_TRACED)
+ 		return;
+ 
+ 	WARN_ON(!task->ptrace || task->parent != current);
+@@ -217,11 +217,11 @@ static void ptrace_unfreeze_traced(struc
+ 	 * Recheck state under the lock to close this race.
+ 	 */
+ 	spin_lock_irq(&task->sighand->siglock);
+-	if (task->state == __TASK_TRACED) {
++	if (READ_ONCE(task->__state) == __TASK_TRACED) {
+ 		if (__fatal_signal_pending(task))
+ 			wake_up_state(task, __TASK_TRACED);
+ 		else
+-			task->state = TASK_TRACED;
++			WRITE_ONCE(task->__state, TASK_TRACED);
+ 	}
+ 	spin_unlock_irq(&task->sighand->siglock);
+ }
+@@ -256,7 +256,7 @@ static int ptrace_check_attach(struct ta
+ 	 */
+ 	read_lock(&tasklist_lock);
+ 	if (child->ptrace && child->parent == current) {
+-		WARN_ON(child->state == __TASK_TRACED);
++		WARN_ON(READ_ONCE(child->__state) == __TASK_TRACED);
+ 		/*
+ 		 * child->sighand can't be NULL, release_task()
+ 		 * does ptrace_unlink() before __exit_signal().
+@@ -273,7 +273,7 @@ static int ptrace_check_attach(struct ta
+ 			 * ptrace_stop() changes ->state back to TASK_RUNNING,
+ 			 * so we should not worry about leaking __TASK_TRACED.
+ 			 */
+-			WARN_ON(child->state == __TASK_TRACED);
++			WARN_ON(READ_ONCE(child->__state) == __TASK_TRACED);
+ 			ret = -ESRCH;
+ 		}
+ 	}
+--- a/kernel/rcu/rcutorture.c
++++ b/kernel/rcu/rcutorture.c
+@@ -1831,10 +1831,10 @@ rcu_torture_stats_print(void)
+ 		srcutorture_get_gp_data(cur_ops->ttype, srcu_ctlp,
+ 					&flags, &gp_seq);
+ 		wtp = READ_ONCE(writer_task);
+-		pr_alert("??? Writer stall state %s(%d) g%lu f%#x ->state %#lx cpu %d\n",
++		pr_alert("??? Writer stall state %s(%d) g%lu f%#x ->state %#x cpu %d\n",
+ 			 rcu_torture_writer_state_getname(),
+ 			 rcu_torture_writer_state, gp_seq, flags,
+-			 wtp == NULL ? ~0UL : wtp->state,
++			 wtp == NULL ? ~0U : wtp->__state,
+ 			 wtp == NULL ? -1 : (int)task_cpu(wtp));
+ 		if (!splatted && wtp) {
+ 			sched_show_task(wtp);
+--- a/kernel/rcu/tree_stall.h
++++ b/kernel/rcu/tree_stall.h
+@@ -460,12 +460,12 @@ static void rcu_check_gp_kthread_starvat
+ 
+ 	if (rcu_is_gp_kthread_starving(&j)) {
+ 		cpu = gpk ? task_cpu(gpk) : -1;
+-		pr_err("%s kthread starved for %ld jiffies! g%ld f%#x %s(%d) ->state=%#lx ->cpu=%d\n",
++		pr_err("%s kthread starved for %ld jiffies! g%ld f%#x %s(%d) ->state=%#x ->cpu=%d\n",
+ 		       rcu_state.name, j,
+ 		       (long)rcu_seq_current(&rcu_state.gp_seq),
+ 		       data_race(rcu_state.gp_flags),
+ 		       gp_state_getname(rcu_state.gp_state), rcu_state.gp_state,
+-		       gpk ? gpk->state : ~0, cpu);
++		       gpk ? gpk->__state : ~0, cpu);
+ 		if (gpk) {
+ 			pr_err("\tUnless %s kthread gets sufficient CPU time, OOM is now expected behavior.\n", rcu_state.name);
+ 			pr_err("RCU grace-period kthread stack dump:\n");
+@@ -503,12 +503,12 @@ static void rcu_check_gp_kthread_expired
+ 	    time_after(jiffies, jiffies_fqs + RCU_STALL_MIGHT_MIN) &&
+ 	    gpk && !READ_ONCE(gpk->on_rq)) {
+ 		cpu = task_cpu(gpk);
+-		pr_err("%s kthread timer wakeup didn't happen for %ld jiffies! g%ld f%#x %s(%d) ->state=%#lx\n",
++		pr_err("%s kthread timer wakeup didn't happen for %ld jiffies! g%ld f%#x %s(%d) ->state=%#x\n",
+ 		       rcu_state.name, (jiffies - jiffies_fqs),
+ 		       (long)rcu_seq_current(&rcu_state.gp_seq),
+ 		       data_race(rcu_state.gp_flags),
+ 		       gp_state_getname(RCU_GP_WAIT_FQS), RCU_GP_WAIT_FQS,
+-		       gpk->state);
++		       gpk->__state);
+ 		pr_err("\tPossible timer handling issue on cpu=%d timer-softirq=%u\n",
+ 		       cpu, kstat_softirqs_cpu(TIMER_SOFTIRQ, cpu));
+ 	}
+@@ -735,9 +735,9 @@ void show_rcu_gp_kthreads(void)
+ 	ja = j - data_race(rcu_state.gp_activity);
+ 	jr = j - data_race(rcu_state.gp_req_activity);
+ 	jw = j - data_race(rcu_state.gp_wake_time);
+-	pr_info("%s: wait state: %s(%d) ->state: %#lx delta ->gp_activity %lu ->gp_req_activity %lu ->gp_wake_time %lu ->gp_wake_seq %ld ->gp_seq %ld ->gp_seq_needed %ld ->gp_flags %#x\n",
++	pr_info("%s: wait state: %s(%d) ->state: %#x delta ->gp_activity %lu ->gp_req_activity %lu ->gp_wake_time %lu ->gp_wake_seq %ld ->gp_seq %ld ->gp_seq_needed %ld ->gp_flags %#x\n",
+ 		rcu_state.name, gp_state_getname(rcu_state.gp_state),
+-		rcu_state.gp_state, t ? t->state : 0x1ffffL,
++		rcu_state.gp_state, t ? t->__state : 0x1ffff,
+ 		ja, jr, jw, (long)data_race(rcu_state.gp_wake_seq),
+ 		(long)data_race(rcu_state.gp_seq),
+ 		(long)data_race(rcu_get_root()->gp_seq_needed),
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2643,7 +2643,7 @@ static int affine_move_task(struct rq *r
+ 		return -EINVAL;
+ 	}
+ 
+-	if (task_running(rq, p) || p->state == TASK_WAKING) {
++	if (task_running(rq, p) || READ_ONCE(p->__state) == TASK_WAKING) {
+ 		/*
+ 		 * MIGRATE_ENABLE gets here because 'p == current', but for
+ 		 * anything else we cannot do is_migration_disabled(), punt
+@@ -2786,19 +2786,20 @@ EXPORT_SYMBOL_GPL(set_cpus_allowed_ptr);
+ void set_task_cpu(struct task_struct *p, unsigned int new_cpu)
+ {
+ #ifdef CONFIG_SCHED_DEBUG
++	unsigned int state = READ_ONCE(p->__state);
++
+ 	/*
+ 	 * We should never call set_task_cpu() on a blocked task,
+ 	 * ttwu() will sort out the placement.
+ 	 */
+-	WARN_ON_ONCE(p->state != TASK_RUNNING && p->state != TASK_WAKING &&
+-			!p->on_rq);
++	WARN_ON_ONCE(state != TASK_RUNNING && state != TASK_WAKING && !p->on_rq);
+ 
+ 	/*
+ 	 * Migrating fair class task must have p->on_rq = TASK_ON_RQ_MIGRATING,
+ 	 * because schedstat_wait_{start,end} rebase migrating task's wait_start
+ 	 * time relying on p->on_rq.
+ 	 */
+-	WARN_ON_ONCE(p->state == TASK_RUNNING &&
++	WARN_ON_ONCE(state == TASK_RUNNING &&
+ 		     p->sched_class == &fair_sched_class &&
+ 		     (p->on_rq && !task_on_rq_migrating(p)));
+ 
+@@ -2970,7 +2971,7 @@ int migrate_swap(struct task_struct *cur
+  * smp_call_function() if an IPI is sent by the same process we are
+  * waiting to become inactive.
+  */
+-unsigned long wait_task_inactive(struct task_struct *p, long match_state)
++unsigned long wait_task_inactive(struct task_struct *p, unsigned int match_state)
+ {
+ 	int running, queued;
+ 	struct rq_flags rf;
+@@ -2998,7 +2999,7 @@ unsigned long wait_task_inactive(struct
+ 		 * is actually now running somewhere else!
+ 		 */
+ 		while (task_running(rq, p)) {
+-			if (match_state && unlikely(p->state != match_state))
++			if (match_state && unlikely(READ_ONCE(p->__state) != match_state))
+ 				return 0;
+ 			cpu_relax();
+ 		}
+@@ -3013,7 +3014,7 @@ unsigned long wait_task_inactive(struct
+ 		running = task_running(rq, p);
+ 		queued = task_on_rq_queued(p);
+ 		ncsw = 0;
+-		if (!match_state || p->state == match_state)
++		if (!match_state || READ_ONCE(p->__state) == match_state)
+ 			ncsw = p->nvcsw | LONG_MIN; /* sets MSB */
+ 		task_rq_unlock(rq, p, &rf);
+ 
+@@ -3322,7 +3323,7 @@ static void ttwu_do_wakeup(struct rq *rq
+ 			   struct rq_flags *rf)
+ {
+ 	check_preempt_curr(rq, p, wake_flags);
+-	p->state = TASK_RUNNING;
++	WRITE_ONCE(p->__state, TASK_RUNNING);
+ 	trace_sched_wakeup(p);
+ 
+ #ifdef CONFIG_SMP
+@@ -3711,12 +3712,12 @@ try_to_wake_up(struct task_struct *p, un
+ 		 *  - we're serialized against set_special_state() by virtue of
+ 		 *    it disabling IRQs (this allows not taking ->pi_lock).
+ 		 */
+-		if (!(p->state & state))
++		if (!(READ_ONCE(p->__state) & state))
+ 			goto out;
+ 
+ 		success = 1;
+ 		trace_sched_waking(p);
+-		p->state = TASK_RUNNING;
++		WRITE_ONCE(p->__state, TASK_RUNNING);
+ 		trace_sched_wakeup(p);
+ 		goto out;
+ 	}
+@@ -3729,7 +3730,7 @@ try_to_wake_up(struct task_struct *p, un
+ 	 */
+ 	raw_spin_lock_irqsave(&p->pi_lock, flags);
+ 	smp_mb__after_spinlock();
+-	if (!(p->state & state))
++	if (!(READ_ONCE(p->__state) & state))
+ 		goto unlock;
+ 
+ 	trace_sched_waking(p);
+@@ -3795,7 +3796,7 @@ try_to_wake_up(struct task_struct *p, un
+ 	 * TASK_WAKING such that we can unlock p->pi_lock before doing the
+ 	 * enqueue, such as ttwu_queue_wakelist().
+ 	 */
+-	p->state = TASK_WAKING;
++	WRITE_ONCE(p->__state, TASK_WAKING);
+ 
+ 	/*
+ 	 * If the owning (remote) CPU is still in the middle of schedule() with
+@@ -3888,7 +3889,7 @@ bool try_invoke_on_locked_down_task(stru
+ 			ret = func(p, arg);
+ 		rq_unlock(rq, &rf);
+ 	} else {
+-		switch (p->state) {
++		switch (READ_ONCE(p->__state)) {
+ 		case TASK_RUNNING:
+ 		case TASK_WAKING:
+ 			break;
+@@ -4101,7 +4102,7 @@ int sched_fork(unsigned long clone_flags
+ 	 * nobody will actually run it, and a signal or other external
+ 	 * event cannot wake it up and insert it on the runqueue either.
+ 	 */
+-	p->state = TASK_NEW;
++	p->__state = TASK_NEW;
+ 
+ 	/*
+ 	 * Make sure we do not leak PI boosting priority to the child.
+@@ -4207,7 +4208,7 @@ void wake_up_new_task(struct task_struct
+ 	struct rq *rq;
+ 
+ 	raw_spin_lock_irqsave(&p->pi_lock, rf.flags);
+-	p->state = TASK_RUNNING;
++	WRITE_ONCE(p->__state, TASK_RUNNING);
+ #ifdef CONFIG_SMP
+ 	/*
+ 	 * Fork balancing, do it here and not earlier because:
+@@ -4569,7 +4570,7 @@ static struct rq *finish_task_switch(str
+ 	 * running on another CPU and we could rave with its RUNNING -> DEAD
+ 	 * transition, resulting in a double drop.
+ 	 */
+-	prev_state = prev->state;
++	prev_state = READ_ONCE(prev->__state);
+ 	vtime_task_switch(prev);
+ 	perf_event_task_sched_in(prev, current);
+ 	finish_task(prev);
+@@ -5263,7 +5264,7 @@ static inline void schedule_debug(struct
+ #endif
+ 
+ #ifdef CONFIG_DEBUG_ATOMIC_SLEEP
+-	if (!preempt && prev->state && prev->non_block_count) {
++	if (!preempt && READ_ONCE(prev->__state) && prev->non_block_count) {
+ 		printk(KERN_ERR "BUG: scheduling in a non-blocking section: %s/%d/%i\n",
+ 			prev->comm, prev->pid, prev->non_block_count);
+ 		dump_stack();
+@@ -5889,10 +5890,10 @@ static void __sched notrace __schedule(b
+ 	 *  - we form a control dependency vs deactivate_task() below.
+ 	 *  - ptrace_{,un}freeze_traced() can change ->state underneath us.
+ 	 */
+-	prev_state = prev->state;
++	prev_state = READ_ONCE(prev->__state);
+ 	if (!preempt && prev_state) {
+ 		if (signal_pending_state(prev_state, prev)) {
+-			prev->state = TASK_RUNNING;
++			WRITE_ONCE(prev->__state, TASK_RUNNING);
+ 		} else {
+ 			prev->sched_contributes_to_load =
+ 				(prev_state & TASK_UNINTERRUPTIBLE) &&
+@@ -6064,7 +6065,7 @@ void __sched schedule_idle(void)
+ 	 * current task can be in any other state. Note, idle is always in the
+ 	 * TASK_RUNNING state.
+ 	 */
+-	WARN_ON_ONCE(current->state);
++	WARN_ON_ONCE(current->__state);
+ 	do {
+ 		__schedule(false);
+ 	} while (need_resched());
+@@ -8191,26 +8192,28 @@ EXPORT_SYMBOL_GPL(sched_show_task);
+ static inline bool
+ state_filter_match(unsigned long state_filter, struct task_struct *p)
+ {
++	unsigned int state = READ_ONCE(p->__state);
++
+ 	/* no filter, everything matches */
+ 	if (!state_filter)
+ 		return true;
+ 
+ 	/* filter, but doesn't match */
+-	if (!(p->state & state_filter))
++	if (!(state & state_filter))
+ 		return false;
+ 
+ 	/*
+ 	 * When looking for TASK_UNINTERRUPTIBLE skip TASK_IDLE (allows
+ 	 * TASK_KILLABLE).
+ 	 */
+-	if (state_filter == TASK_UNINTERRUPTIBLE && p->state == TASK_IDLE)
++	if (state_filter == TASK_UNINTERRUPTIBLE && state == TASK_IDLE)
+ 		return false;
+ 
+ 	return true;
+ }
+ 
+ 
+-void show_state_filter(unsigned long state_filter)
++void show_state_filter(unsigned int state_filter)
+ {
+ 	struct task_struct *g, *p;
+ 
+@@ -8267,7 +8270,7 @@ void __init init_idle(struct task_struct
+ 	raw_spin_lock_irqsave(&idle->pi_lock, flags);
+ 	raw_spin_rq_lock(rq);
+ 
+-	idle->state = TASK_RUNNING;
++	idle->__state = TASK_RUNNING;
+ 	idle->se.exec_start = sched_clock();
+ 	/*
+ 	 * PF_KTHREAD should already be set at this point; regardless, make it
+@@ -9582,7 +9585,7 @@ static int cpu_cgroup_can_attach(struct
+ 		 * has happened. This would lead to problems with PELT, due to
+ 		 * move wanting to detach+attach while we're not attached yet.
+ 		 */
+-		if (task->state == TASK_NEW)
++		if (READ_ONCE(task->__state) == TASK_NEW)
+ 			ret = -EINVAL;
+ 		raw_spin_unlock_irq(&task->pi_lock);
+ 
+--- a/kernel/sched/deadline.c
++++ b/kernel/sched/deadline.c
+@@ -348,10 +348,10 @@ static void task_non_contending(struct t
+ 	if ((zerolag_time < 0) || hrtimer_active(&dl_se->inactive_timer)) {
+ 		if (dl_task(p))
+ 			sub_running_bw(dl_se, dl_rq);
+-		if (!dl_task(p) || p->state == TASK_DEAD) {
++		if (!dl_task(p) || READ_ONCE(p->__state) == TASK_DEAD) {
+ 			struct dl_bw *dl_b = dl_bw_of(task_cpu(p));
+ 
+-			if (p->state == TASK_DEAD)
++			if (READ_ONCE(p->__state) == TASK_DEAD)
+ 				sub_rq_bw(&p->dl, &rq->dl);
+ 			raw_spin_lock(&dl_b->lock);
+ 			__dl_sub(dl_b, p->dl.dl_bw, dl_bw_cpus(task_cpu(p)));
+@@ -1355,10 +1355,10 @@ static enum hrtimer_restart inactive_tas
+ 	sched_clock_tick();
+ 	update_rq_clock(rq);
+ 
+-	if (!dl_task(p) || p->state == TASK_DEAD) {
++	if (!dl_task(p) || READ_ONCE(p->__state) == TASK_DEAD) {
+ 		struct dl_bw *dl_b = dl_bw_of(task_cpu(p));
+ 
+-		if (p->state == TASK_DEAD && dl_se->dl_non_contending) {
++		if (READ_ONCE(p->__state) == TASK_DEAD && dl_se->dl_non_contending) {
+ 			sub_running_bw(&p->dl, dl_rq_of_se(&p->dl));
+ 			sub_rq_bw(&p->dl, dl_rq_of_se(&p->dl));
+ 			dl_se->dl_non_contending = 0;
+@@ -1722,7 +1722,7 @@ static void migrate_task_rq_dl(struct ta
+ {
+ 	struct rq *rq;
+ 
+-	if (p->state != TASK_WAKING)
++	if (READ_ONCE(p->__state) != TASK_WAKING)
+ 		return;
+ 
+ 	rq = task_rq(p);
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -993,11 +993,14 @@ update_stats_dequeue(struct cfs_rq *cfs_
+ 
+ 	if ((flags & DEQUEUE_SLEEP) && entity_is_task(se)) {
+ 		struct task_struct *tsk = task_of(se);
++		unsigned int state;
+ 
+-		if (tsk->state & TASK_INTERRUPTIBLE)
++		/* XXX racy against TTWU */
++		state = READ_ONCE(tsk->__state);
++		if (state & TASK_INTERRUPTIBLE)
+ 			__schedstat_set(se->statistics.sleep_start,
+ 				      rq_clock(rq_of(cfs_rq)));
+-		if (tsk->state & TASK_UNINTERRUPTIBLE)
++		if (state & TASK_UNINTERRUPTIBLE)
+ 			__schedstat_set(se->statistics.block_start,
+ 				      rq_clock(rq_of(cfs_rq)));
+ 	}
+@@ -6830,7 +6833,7 @@ static void migrate_task_rq_fair(struct
+ 	 * min_vruntime -- the latter is done by enqueue_entity() when placing
+ 	 * the task on the new runqueue.
+ 	 */
+-	if (p->state == TASK_WAKING) {
++	if (READ_ONCE(p->__state) == TASK_WAKING) {
+ 		struct sched_entity *se = &p->se;
+ 		struct cfs_rq *cfs_rq = cfs_rq_of(se);
+ 		u64 min_vruntime;
+@@ -11012,7 +11015,7 @@ static inline bool vruntime_normalized(s
+ 	 *   waiting for actually being woken up by sched_ttwu_pending().
+ 	 */
+ 	if (!se->sum_exec_runtime ||
+-	    (p->state == TASK_WAKING && p->sched_remote_wakeup))
++	    (READ_ONCE(p->__state) == TASK_WAKING && p->sched_remote_wakeup))
+ 		return true;
+ 
+ 	return false;
+--- a/lib/syscall.c
++++ b/lib/syscall.c
+@@ -68,13 +68,13 @@ static int collect_syscall(struct task_s
+  */
+ int task_current_syscall(struct task_struct *target, struct syscall_info *info)
+ {
+-	long state;
+ 	unsigned long ncsw;
++	unsigned int state;
+ 
+ 	if (target == current)
+ 		return collect_syscall(target, info);
+ 
+-	state = target->state;
++	state = READ_ONCE(target->__state);
+ 	if (unlikely(!state))
+ 		return -EAGAIN;
+ 
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -4363,7 +4363,7 @@ static inline void ____napi_schedule(str
+ 			 * makes sure to proceed with napi polling
+ 			 * if the thread is explicitly woken from here.
+ 			 */
+-			if (READ_ONCE(thread->state) != TASK_INTERRUPTIBLE)
++			if (READ_ONCE(thread->__state) != TASK_INTERRUPTIBLE)
+ 				set_bit(NAPI_STATE_SCHED_THREADED, &napi->state);
+ 			wake_up_process(thread);
+ 			return;
 
 
