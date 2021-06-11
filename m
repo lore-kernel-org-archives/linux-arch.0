@@ -2,61 +2,59 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 33B4DC48BE0
-	for <linux-arch@archiver.kernel.org>; Fri, 11 Jun 2021 08:37:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B421AC48BE0
+	for <linux-arch@archiver.kernel.org>; Fri, 11 Jun 2021 08:50:09 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 147D5613C3
-	for <linux-arch@archiver.kernel.org>; Fri, 11 Jun 2021 08:37:28 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9736E60FE9
+	for <linux-arch@archiver.kernel.org>; Fri, 11 Jun 2021 08:50:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229584AbhFKIjY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 11 Jun 2021 04:39:24 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60520 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230248AbhFKIjX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Jun 2021 04:39:23 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C3805C061574;
-        Fri, 11 Jun 2021 01:37:25 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
-        Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
-        Content-ID:Content-Description:In-Reply-To;
-        bh=7H9ckOY0q8/daAWi91yAwu+hjhrdU6assedtwAPtwYM=; b=lWne/qXftq6MxTMznHwljGyvT6
-        jEBXBkzEPopJHKbKwHpayR+3zDEjvO93iqbTLXeKANHVfY1DyyreIj2PxTK50ap1OcUKW+2i8aMTj
-        IfKUv1kVuljed1hu0hNwoWVJ2OXFcwTShq7kltvDRyq/DHn5QKYDld+lwQBsiAICcqg6vXnSLgFfq
-        /VQewNZBY7iEX9B1UK668EBeDM5V516xPsO4RXRqcL4MSQ9BQWrLWnPwfl1H5mh1UCphOy6yjOZ+4
-        907meFJCL4cxb9X0cKMJpDDuy9EwGkxwXSt6bPCn3gQrd9f/BABXUDO/ktiGkFNSeeEaRm5DzYgZn
-        6HjDbRWQ==;
-Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94 #2 (Red Hat Linux))
-        id 1lrcY1-002ZW3-7C; Fri, 11 Jun 2021 08:30:07 +0000
-Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits))
-        (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 47CE530059D;
-        Fri, 11 Jun 2021 10:29:43 +0200 (CEST)
-Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 025962BCF3933; Fri, 11 Jun 2021 10:29:43 +0200 (CEST)
-Message-ID: <20210611082838.472811363@infradead.org>
-User-Agent: quilt/0.66
-Date:   Fri, 11 Jun 2021 10:28:16 +0200
-From:   Peter Zijlstra <peterz@infradead.org>
-To:     Thomas Gleixner <tglx@linutronix.de>,
+        id S231262AbhFKIwG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 11 Jun 2021 04:52:06 -0400
+Received: from mail-ua1-f51.google.com ([209.85.222.51]:43627 "EHLO
+        mail-ua1-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231230AbhFKIwF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Jun 2021 04:52:05 -0400
+Received: by mail-ua1-f51.google.com with SMTP id f1so2310733uaj.10;
+        Fri, 11 Jun 2021 01:50:07 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=ifAGUPWDxWLdwD/TBCG2zW8z6+MGYCS4uLUux0tgU4s=;
+        b=cwSVbedGPH1HoQRU7LcjJut5OAMax5Vs/AvytjLY3x/2sZEmG9MoY0UsaxTSmXNqq3
+         fL6Zg20JQOObNHDt2GHNX710V8AwHqKTNqYE9ZgWwwGEKkclYj0bTq/HXIK31uFEN1p8
+         tF/ZC0OjuKzWvT/tklFjA/3gZfY/TKhIpLYPSaT7DzvRxT/CPOTfZVTuPz1k2c4XHFsp
+         fVIkmEoe723W5sqFll1Okfs30WseGcZ76CKAPviz46jEkpZeTTIpIkCEhW0Va6YdZUs/
+         WWjb46LCrPBh+xRII+666+17FCbe1tVk2d1I5TZkac/pdtkT/ILpvGIBPLumuEQxdeWm
+         jkpw==
+X-Gm-Message-State: AOAM532g7/zohzVsjVaFYTs+9/5/D7NF5NCla8gKugvmiL9ZLIRLlo67
+        mNuCw2K8b5sXrZ/bC/YnKqVN2ciP4f8HZQtyoqE=
+X-Google-Smtp-Source: ABdhPJzbyPX5gPeNCkUUxGlNBv5MPjCTQnfbsIAbZJkKiL21UsU0PKAX3/X6PRWC2NYqV9JQbybafT1XLL5zi6s4hwQ=
+X-Received: by 2002:ab0:484b:: with SMTP id c11mr1936247uad.100.1623401407055;
+ Fri, 11 Jun 2021 01:50:07 -0700 (PDT)
+MIME-Version: 1.0
+References: <20210611082810.970791107@infradead.org> <20210611082838.222401495@infradead.org>
+In-Reply-To: <20210611082838.222401495@infradead.org>
+From:   Geert Uytterhoeven <geert@linux-m68k.org>
+Date:   Fri, 11 Jun 2021 10:49:56 +0200
+Message-ID: <CAMuHMdWg=Z47A=WEQegn9W_FU-WFDWvmNOWDVm5Kge=d_-GYhA@mail.gmail.com>
+Subject: Re: [PATCH v2 2/7] sched: Introduce task_is_running()
+To:     Peter Zijlstra <peterz@infradead.org>
+Cc:     Thomas Gleixner <tglx@linutronix.de>,
         Ingo Molnar <mingo@redhat.com>,
-        Peter Zijlstra <peterz@infradead.org>,
         Juri Lelli <juri.lelli@redhat.com>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         Dietmar Eggemann <dietmar.eggemann@arm.com>,
         Steven Rostedt <rostedt@goodmis.org>,
         Ben Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>,
-        Daniel Bristot de Oliveira <bristot@redhat.com>
-Cc:     Borislav Petkov <bp@alien8.de>, x86@kernel.org,
+        Daniel Bristot de Oliveira <bristot@redhat.com>,
+        Borislav Petkov <bp@alien8.de>,
+        "the arch/x86 maintainers" <x86@kernel.org>,
         "H. Peter Anvin" <hpa@zytor.com>, Jens Axboe <axboe@kernel.dk>,
         Alasdair Kergon <agk@redhat.com>,
         Mike Snitzer <snitzer@redhat.com>,
@@ -91,87 +89,39 @@ Cc:     Borislav Petkov <bp@alien8.de>, x86@kernel.org,
         Andrew Morton <akpm@linux-foundation.org>,
         Paolo Bonzini <pbonzini@redhat.com>,
         Stephen Rothwell <sfr@canb.auug.org.au>,
-        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: [PATCH v2 6/7] sched,arch: Remove unused TASK_STATE offsets
-References: <20210611082810.970791107@infradead.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-All 6 architectures define TASK_STATE in asm-offsets, but then never
-actually use it. Remove the definitions to make sure they never will.
+Hoi Peter,
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/csky/kernel/asm-offsets.c       |    1 -
- arch/h8300/kernel/asm-offsets.c      |    1 -
- arch/microblaze/kernel/asm-offsets.c |    1 -
- arch/mips/kernel/asm-offsets.c       |    1 -
- arch/openrisc/kernel/asm-offsets.c   |    1 -
- arch/parisc/kernel/asm-offsets.c     |    1 -
- 6 files changed, 6 deletions(-)
+Thanks for your patch!
 
---- a/arch/csky/kernel/asm-offsets.c
-+++ b/arch/csky/kernel/asm-offsets.c
-@@ -9,7 +9,6 @@
- int main(void)
- {
- 	/* offsets into the task struct */
--	DEFINE(TASK_STATE,        offsetof(struct task_struct, state));
- 	DEFINE(TASK_THREAD_INFO,  offsetof(struct task_struct, stack));
- 	DEFINE(TASK_FLAGS,        offsetof(struct task_struct, flags));
- 	DEFINE(TASK_PTRACE,       offsetof(struct task_struct, ptrace));
---- a/arch/h8300/kernel/asm-offsets.c
-+++ b/arch/h8300/kernel/asm-offsets.c
-@@ -21,7 +21,6 @@
- int main(void)
- {
- 	/* offsets into the task struct */
--	OFFSET(TASK_STATE, task_struct, state);
- 	OFFSET(TASK_FLAGS, task_struct, flags);
- 	OFFSET(TASK_PTRACE, task_struct, ptrace);
- 	OFFSET(TASK_BLOCKED, task_struct, blocked);
---- a/arch/microblaze/kernel/asm-offsets.c
-+++ b/arch/microblaze/kernel/asm-offsets.c
-@@ -70,7 +70,6 @@ int main(int argc, char *argv[])
- 
- 	/* struct task_struct */
- 	DEFINE(TS_THREAD_INFO, offsetof(struct task_struct, stack));
--	DEFINE(TASK_STATE, offsetof(struct task_struct, state));
- 	DEFINE(TASK_FLAGS, offsetof(struct task_struct, flags));
- 	DEFINE(TASK_PTRACE, offsetof(struct task_struct, ptrace));
- 	DEFINE(TASK_BLOCKED, offsetof(struct task_struct, blocked));
---- a/arch/mips/kernel/asm-offsets.c
-+++ b/arch/mips/kernel/asm-offsets.c
-@@ -78,7 +78,6 @@ void output_ptreg_defines(void)
- void output_task_defines(void)
- {
- 	COMMENT("MIPS task_struct offsets.");
--	OFFSET(TASK_STATE, task_struct, state);
- 	OFFSET(TASK_THREAD_INFO, task_struct, stack);
- 	OFFSET(TASK_FLAGS, task_struct, flags);
- 	OFFSET(TASK_MM, task_struct, mm);
---- a/arch/openrisc/kernel/asm-offsets.c
-+++ b/arch/openrisc/kernel/asm-offsets.c
-@@ -37,7 +37,6 @@
- int main(void)
- {
- 	/* offsets into the task_struct */
--	DEFINE(TASK_STATE, offsetof(struct task_struct, state));
- 	DEFINE(TASK_FLAGS, offsetof(struct task_struct, flags));
- 	DEFINE(TASK_PTRACE, offsetof(struct task_struct, ptrace));
- 	DEFINE(TASK_THREAD, offsetof(struct task_struct, thread));
---- a/arch/parisc/kernel/asm-offsets.c
-+++ b/arch/parisc/kernel/asm-offsets.c
-@@ -42,7 +42,6 @@
- int main(void)
- {
- 	DEFINE(TASK_THREAD_INFO, offsetof(struct task_struct, stack));
--	DEFINE(TASK_STATE, offsetof(struct task_struct, state));
- 	DEFINE(TASK_FLAGS, offsetof(struct task_struct, flags));
- 	DEFINE(TASK_SIGPENDING, offsetof(struct task_struct, pending));
- 	DEFINE(TASK_PTRACE, offsetof(struct task_struct, ptrace));
+On Fri, Jun 11, 2021 at 10:36 AM Peter Zijlstra <peterz@infradead.org> wrote:
+> Replace a bunch of 'p->state == TASK_RUNNING' with a new helper:
+> task_is_running(p).
 
+You're also sticking a READ_ONCE() in the helper, which wasn't done
+by any of the old implementations? Care to mention why?
 
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> Acked-by: Davidlohr Bueso <dave@stgolabs.net>
+
+>  arch/m68k/kernel/process.c     |    2 +-
+
+Regardless:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
