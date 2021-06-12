@@ -2,56 +2,57 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3F19CC48BCF
-	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 12:37:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5E278C48BCF
+	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 12:37:52 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 268CD61287
-	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 12:37:45 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 40C4B6138C
+	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 12:37:52 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231169AbhFLMjn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 12 Jun 2021 08:39:43 -0400
-Received: from mail-qk1-f174.google.com ([209.85.222.174]:41512 "EHLO
-        mail-qk1-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231265AbhFLMjn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Jun 2021 08:39:43 -0400
-Received: by mail-qk1-f174.google.com with SMTP id c124so33891944qkd.8;
-        Sat, 12 Jun 2021 05:37:44 -0700 (PDT)
+        id S231180AbhFLMju (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 12 Jun 2021 08:39:50 -0400
+Received: from mail-qt1-f173.google.com ([209.85.160.173]:40823 "EHLO
+        mail-qt1-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231336AbhFLMju (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Jun 2021 08:39:50 -0400
+Received: by mail-qt1-f173.google.com with SMTP id t9so4801746qtw.7;
+        Sat, 12 Jun 2021 05:37:50 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=T2AOegu4kmOp+uckc/oXupIgYX7RqKTst12dJ0Jl2c8=;
-        b=gGYPLwX8NizCoZ3oxegKQzTBS2jNEpXBnjUHrJ5FTstg/L8Gc77Z82pivLGNvAmkSP
-         nYlCTx+f1XGarsSh9o4c5ii1UpouOIgd5w6uLmiVElEYZiHObF9cm9fN9NMcvye3bFoL
-         Ho1zcoYeoB2R2fs/S9PDxeW7pfMhN9L5XMhAXxJhGypH0Xy0phj+EYp2bWyn+BKzvSwZ
-         0t0Af4pKkKTtKFJLiEhhp9/mrpvrnyfcnB6n5aP7Sooi53zGA52ofOw7PLUSwlTOO238
-         tf1ZZ7wXhzGqpNx45/bYE0yeP2jNWx9b0s/JXf6PV7bDjv59ydof29L6MEpsloUtDMgp
-         Bikg==
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=lTQKmMRat0zLLjLTg60IuFoUE4mlUd1rf/gNdQ4/W4A=;
+        b=sud1x9t+JlGX6t3Z9dEy61OEyQ2SPI2v7pDnpNbqGtHdR1ln4fagnUl4r1TgyKbZI9
+         TDspQqb93S9sWLeRzWbRKpMkwGBd2vNVpFqY4K0t4xNnorqK3jca6nOzwPsxO1KOpu0a
+         fCDUHrR2emLWld2MwmhAjHihRzk+qU/FGkgYeWq+c336ObNTcEtY+Yv4uz+gsLr1XcSI
+         N8swN6ijbzakvpBRs3e6Xd9OnrBJiBxzgB1zb5W4VqdlY/7JTFJThlyLQP+nyYZkt/ht
+         FCwwzujOyWfJcBaN05zEEFkKxH1EdAP5rPE91vDoY7bMBge3BrjDF0oflLQYdC99bZ7P
+         f3NQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=T2AOegu4kmOp+uckc/oXupIgYX7RqKTst12dJ0Jl2c8=;
-        b=ZMP8zo33qv995ZmwS41bwKXJzZRAmtO3e5ZWLPRZnm45dMNtH+NefnluoGnpY2PSG2
-         bgimhuFcm/6v6Kqqwr4RrVix5vXr3PhsPqh8z6lxO1Z8ZHNPN+Et32pL5OvhfaQhimgL
-         EMkIin/cthEq9proBLslBRpH8rBCpea6sMz1gcDXgF6z52+DcDMtydTpQ51JTW0D5K7F
-         vprdqxzRgHiQ3sN7rQx8qzOXGFTadbI2ECJC01nsslF80p+NAozUsQjwF4R6SI5a/O84
-         cN6dT7plUosVSY+n15cy0JOlyJAMLICnopKzcQftGjDPYsbR+ghDw8Ys4+IgKI/dad2R
-         vpIQ==
-X-Gm-Message-State: AOAM532uyX6GZGxF/MAzMi+hHOwsJGGIAjGuTv9Uxn3KKYCce2msbMAc
-        wrNTSPjERXDUe1swmqWuMH02JvyafzqeFA==
-X-Google-Smtp-Source: ABdhPJw94DZ1WW/KEGRHhbhUFOJ07uSJUlekmAzQWmw5V+sL7Hz9S6Nqwb3kJhCZpFu1tjCKozKq0A==
-X-Received: by 2002:a37:2cc3:: with SMTP id s186mr8266165qkh.330.1623501403378;
-        Sat, 12 Jun 2021 05:36:43 -0700 (PDT)
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=lTQKmMRat0zLLjLTg60IuFoUE4mlUd1rf/gNdQ4/W4A=;
+        b=G8lRgIx9hkwRx3FsZe2fyofjzwLHiPzus8uoCv+zAOglhXVR86hRUrpwEYG+QHHDXO
+         1YOSi+Ryf7d4DPY6M7eMjNUxYz7Vs/LHQCuUc6QslmBeIqhZyYZs5quw+cIxCUOrpsjn
+         ZIeSjMF0G70dJG9ScKDFuGXqn+8+5gPSQgoURhyk16jMIgdEH+xfkCzfg1w98s99eBR1
+         L6aZbyT/0QnIBQdvbaMe8CWPx4I191wWnCKWM022I7UZ68d3BW7EeaCZ3CUs8IDsmP08
+         p7/FVjIphEUKtbuoCMDz0BDkYRe16IXmMm6EbK8N5U8h0SXgpmLXLScEA5WKJMW+RhTk
+         i9BQ==
+X-Gm-Message-State: AOAM532sidxMU4C0t2j9eK+8teTxevEj1p8e+ygdBVvytA65omDJJzsM
+        +o/4He4NlCCnYBcUZ7oQOoIhiw68z3XARw==
+X-Google-Smtp-Source: ABdhPJzA1m65c6QDYeb10DrdTDbQ6Hp+DkZNgU36GCf3VLChDERQFYzMptncBFb2A6KCfA1Q9EZSJw==
+X-Received: by 2002:a05:622a:1008:: with SMTP id d8mr6905020qte.257.1623501410183;
+        Sat, 12 Jun 2021 05:36:50 -0700 (PDT)
 Received: from localhost ([70.127.84.75])
-        by smtp.gmail.com with ESMTPSA id g2sm6098525qtb.63.2021.06.12.05.36.42
+        by smtp.gmail.com with ESMTPSA id p199sm6477550qka.128.2021.06.12.05.36.49
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 12 Jun 2021 05:36:43 -0700 (PDT)
+        Sat, 12 Jun 2021 05:36:49 -0700 (PDT)
 From:   Yury Norov <yury.norov@gmail.com>
 To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Benjamin Herrenschmidt <benh@kernel.crashing.org>,
@@ -80,99 +81,168 @@ To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Alexey Klimov <aklimov@redhat.com>,
         Ingo Molnar <mingo@redhat.com>
 Cc:     Yury Norov <yury.norov@gmail.com>
-Subject: [PATCH 0/8] all: use find_next_*_bit() instead of find_first_*_bit() where possible
-Date:   Sat, 12 Jun 2021 05:36:31 -0700
-Message-Id: <20210612123639.329047-1-yury.norov@gmail.com>
+Subject: [PATCH 5/8] lib: add find_first_and_bit()
+Date:   Sat, 12 Jun 2021 05:36:36 -0700
+Message-Id: <20210612123639.329047-6-yury.norov@gmail.com>
 X-Mailer: git-send-email 2.30.2
+In-Reply-To: <20210612123639.329047-1-yury.norov@gmail.com>
+References: <20210612123639.329047-1-yury.norov@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-find_first_*_bit() is simpler and faster than 'next' version [1], and they
-work identically if start == 0. But in many cases kernel code uses the
-'next' version where 'first' can be used. This series addresses this issue.
+Currently find_first_and_bit() is an alias to find_next_and_bit(). However,
+it is widely used in cpumask, so it worth to optimize it. This patch adds
+its own implementation for find_first_and_bit().
 
-Patches 1-3 move find.h under include/linux as it simplifies development.
-Patches 4-8 switch the kernel and tools to find_first_*_bit() implementation
-where appropriate. 
+On x86_64 find_bit_benchmark says:
 
-Yury Norov (8):
-  bitops: protect find_first_{,zero}_bit properly
-  bitops: move find_bit_*_le functions from le.h to find.h
-  include: move find.h from asm_generic to linux
-  arch: remove GENERIC_FIND_FIRST_BIT entirely
-  lib: add find_first_and_bit()
-  cpumask: use find_first_and_bit()
-  all: replace find_next{,_zero}_bit with find_first{,_zero}_bit where
-    appropriate
-  tools: sync tools/bitmap with mother linux
+Before (#define find_first_and_bit(...) find_next_and_bit(..., 0):
+Start testing find_bit() with random-filled bitmap
+[  140.291468] find_first_and_bit:           46890919 ns,  32671 iterations
+Start testing find_bit() with sparse bitmap
+[  140.295028] find_first_and_bit:               7103 ns,      1 iterations
 
- MAINTAINERS                                   |   4 +-
- arch/alpha/include/asm/bitops.h               |   2 -
- arch/arc/Kconfig                              |   1 -
- arch/arc/include/asm/bitops.h                 |   1 -
- arch/arm/include/asm/bitops.h                 |   1 -
- arch/arm64/Kconfig                            |   1 -
- arch/arm64/include/asm/bitops.h               |   1 -
- arch/csky/include/asm/bitops.h                |   1 -
- arch/h8300/include/asm/bitops.h               |   1 -
- arch/hexagon/include/asm/bitops.h             |   1 -
- arch/ia64/include/asm/bitops.h                |   2 -
- arch/m68k/include/asm/bitops.h                |   2 -
- arch/mips/Kconfig                             |   1 -
- arch/mips/include/asm/bitops.h                |   1 -
- arch/openrisc/include/asm/bitops.h            |   1 -
- arch/parisc/include/asm/bitops.h              |   2 -
- arch/powerpc/include/asm/bitops.h             |   2 -
- arch/powerpc/platforms/pasemi/dma_lib.c       |   4 +-
- arch/riscv/include/asm/bitops.h               |   1 -
- arch/s390/Kconfig                             |   1 -
- arch/s390/include/asm/bitops.h                |   1 -
- arch/s390/kvm/kvm-s390.c                      |   2 +-
- arch/sh/include/asm/bitops.h                  |   1 -
- arch/sparc/include/asm/bitops_32.h            |   1 -
- arch/sparc/include/asm/bitops_64.h            |   2 -
- arch/x86/Kconfig                              |   1 -
- arch/x86/include/asm/bitops.h                 |   2 -
- arch/x86/um/Kconfig                           |   1 -
- arch/xtensa/include/asm/bitops.h              |   1 -
- drivers/block/rnbd/rnbd-clt.c                 |   2 +-
- drivers/dma/ti/edma.c                         |   2 +-
- drivers/iio/adc/ad7124.c                      |   2 +-
- drivers/infiniband/hw/irdma/hw.c              |  16 +-
- drivers/media/cec/core/cec-core.c             |   2 +-
- drivers/media/mc/mc-devnode.c                 |   2 +-
- drivers/pci/controller/dwc/pci-dra7xx.c       |   2 +-
- drivers/scsi/lpfc/lpfc_sli.c                  |  10 +-
- drivers/soc/ti/k3-ringacc.c                   |   4 +-
- drivers/tty/n_tty.c                           |   2 +-
- drivers/virt/acrn/ioreq.c                     |   3 +-
- fs/f2fs/segment.c                             |   8 +-
- fs/ocfs2/cluster/heartbeat.c                  |   2 +-
- fs/ocfs2/dlm/dlmdomain.c                      |   4 +-
- fs/ocfs2/dlm/dlmmaster.c                      |  18 +--
- fs/ocfs2/dlm/dlmrecovery.c                    |   2 +-
- fs/ocfs2/dlm/dlmthread.c                      |   2 +-
- include/asm-generic/bitops.h                  |   1 -
- include/asm-generic/bitops/le.h               |  64 --------
- include/linux/bitmap.h                        |   1 +
- include/linux/cpumask.h                       |  30 ++--
- .../bitops => include/linux}/find.h           | 149 +++++++++++++++++-
- lib/Kconfig                                   |   3 -
- lib/find_bit.c                                |  21 +++
- lib/find_bit_benchmark.c                      |  21 +++
- lib/genalloc.c                                |   2 +-
- net/ncsi/ncsi-manage.c                        |   4 +-
- tools/include/asm-generic/bitops.h            |   1 -
- tools/include/linux/bitmap.h                  |   7 +-
- .../bitops => tools/include/linux}/find.h     |  54 +++++--
- tools/lib/find_bit.c                          |  20 +++
- 60 files changed, 319 insertions(+), 185 deletions(-)
- rename {tools/include/asm-generic/bitops => include/linux}/find.h (50%)
- rename {include/asm-generic/bitops => tools/include/linux}/find.h (83%)
+After:
+Start testing find_bit() with random-filled bitmap
+[  162.574907] find_first_and_bit:           25045813 ns,  32846 iterations
+Start testing find_bit() with sparse bitmap
+[  162.578458] find_first_and_bit:               4900 ns,      1 iterations
 
+(Thanks to Alexey Klimov for thorough testing.)
+
+Signed-off-by: Yury Norov <yury.norov@gmail.com>
+---
+ include/linux/find.h     | 27 +++++++++++++++++++++++++++
+ lib/find_bit.c           | 21 +++++++++++++++++++++
+ lib/find_bit_benchmark.c | 21 +++++++++++++++++++++
+ 3 files changed, 69 insertions(+)
+
+diff --git a/include/linux/find.h b/include/linux/find.h
+index ea57f7f38c49..6048f8c97418 100644
+--- a/include/linux/find.h
++++ b/include/linux/find.h
+@@ -12,6 +12,8 @@ extern unsigned long _find_next_bit(const unsigned long *addr1,
+ 		const unsigned long *addr2, unsigned long nbits,
+ 		unsigned long start, unsigned long invert, unsigned long le);
+ extern unsigned long _find_first_bit(const unsigned long *addr, unsigned long size);
++extern unsigned long _find_first_and_bit(const unsigned long *addr1,
++					 const unsigned long *addr2, unsigned long size);
+ extern unsigned long _find_first_zero_bit(const unsigned long *addr, unsigned long size);
+ extern unsigned long _find_last_bit(const unsigned long *addr, unsigned long size);
+ 
+@@ -123,6 +125,31 @@ unsigned long find_first_bit(const unsigned long *addr, unsigned long size)
+ }
+ #endif
+ 
++#ifndef find_first_and_bit
++/**
++ * find_first_and_bit - find the first set bit in both memory regions
++ * @addr1: The first address to base the search on
++ * @addr2: The second address to base the search on
++ * @size: The bitmap size in bits
++ *
++ * Returns the bit number for the next set bit
++ * If no bits are set, returns @size.
++ */
++static inline
++unsigned long find_first_and_bit(const unsigned long *addr1,
++				 const unsigned long *addr2,
++				 unsigned long size)
++{
++	if (small_const_nbits(size)) {
++		unsigned long val = *addr1 & *addr2 & GENMASK(size - 1, 0);
++
++		return val ? __ffs(val) : size;
++	}
++
++	return _find_first_and_bit(addr1, addr2, size);
++}
++#endif
++
+ #ifndef find_first_zero_bit
+ /**
+  * find_first_zero_bit - find the first cleared bit in a memory region
+diff --git a/lib/find_bit.c b/lib/find_bit.c
+index 0f8e2e369b1d..1b8e4b2a9cba 100644
+--- a/lib/find_bit.c
++++ b/lib/find_bit.c
+@@ -89,6 +89,27 @@ unsigned long _find_first_bit(const unsigned long *addr, unsigned long size)
+ EXPORT_SYMBOL(_find_first_bit);
+ #endif
+ 
++#ifndef find_first_and_bit
++/*
++ * Find the first set bit in two memory regions.
++ */
++unsigned long _find_first_and_bit(const unsigned long *addr1,
++				  const unsigned long *addr2,
++				  unsigned long size)
++{
++	unsigned long idx, val;
++
++	for (idx = 0; idx * BITS_PER_LONG < size; idx++) {
++		val = addr1[idx] & addr2[idx];
++		if (val)
++			return min(idx * BITS_PER_LONG + __ffs(val), size);
++	}
++
++	return size;
++}
++EXPORT_SYMBOL(_find_first_and_bit);
++#endif
++
+ #ifndef find_first_zero_bit
+ /*
+  * Find the first cleared bit in a memory region.
+diff --git a/lib/find_bit_benchmark.c b/lib/find_bit_benchmark.c
+index 5637c5711db9..db904b57d4b8 100644
+--- a/lib/find_bit_benchmark.c
++++ b/lib/find_bit_benchmark.c
+@@ -49,6 +49,25 @@ static int __init test_find_first_bit(void *bitmap, unsigned long len)
+ 	return 0;
+ }
+ 
++static int __init test_find_first_and_bit(void *bitmap, const void *bitmap2, unsigned long len)
++{
++	static DECLARE_BITMAP(cp, BITMAP_LEN) __initdata;
++	unsigned long i, cnt;
++	ktime_t time;
++
++	bitmap_copy(cp, bitmap, BITMAP_LEN);
++
++	time = ktime_get();
++	for (cnt = i = 0; i < len; cnt++) {
++		i = find_first_and_bit(cp, bitmap2, len);
++		__clear_bit(i, cp);
++	}
++	time = ktime_get() - time;
++	pr_err("find_first_and_bit: %18llu ns, %6ld iterations\n", time, cnt);
++
++	return 0;
++}
++
+ static int __init test_find_next_bit(const void *bitmap, unsigned long len)
+ {
+ 	unsigned long i, cnt;
+@@ -129,6 +148,7 @@ static int __init find_bit_test(void)
+ 	 * traverse only part of bitmap to avoid soft lockup.
+ 	 */
+ 	test_find_first_bit(bitmap, BITMAP_LEN / 10);
++	test_find_first_and_bit(bitmap, bitmap2, BITMAP_LEN / 2);
+ 	test_find_next_and_bit(bitmap, bitmap2, BITMAP_LEN);
+ 
+ 	pr_err("\nStart testing find_bit() with sparse bitmap\n");
+@@ -145,6 +165,7 @@ static int __init find_bit_test(void)
+ 	test_find_next_zero_bit(bitmap, BITMAP_LEN);
+ 	test_find_last_bit(bitmap, BITMAP_LEN);
+ 	test_find_first_bit(bitmap, BITMAP_LEN);
++	test_find_first_and_bit(bitmap, bitmap2, BITMAP_LEN);
+ 	test_find_next_and_bit(bitmap, bitmap2, BITMAP_LEN);
+ 
+ 	/*
 -- 
 2.30.2
 
