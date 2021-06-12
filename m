@@ -2,59 +2,64 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+X-Spam-Status: No, score=-7.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 44A67C48BCF
-	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 12:38:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9BE9AC48BCF
+	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 21:40:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2F857613AA
-	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 12:38:19 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 653F4610C9
+	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 21:40:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231311AbhFLMkR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 12 Jun 2021 08:40:17 -0400
-Received: from mail-qv1-f46.google.com ([209.85.219.46]:37454 "EHLO
-        mail-qv1-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231542AbhFLMkH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Jun 2021 08:40:07 -0400
-Received: by mail-qv1-f46.google.com with SMTP id x6so13118389qvx.4;
-        Sat, 12 Jun 2021 05:37:52 -0700 (PDT)
+        id S229777AbhFLVmU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 12 Jun 2021 17:42:20 -0400
+Received: from mail-pf1-f181.google.com ([209.85.210.181]:45037 "EHLO
+        mail-pf1-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229753AbhFLVmU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Jun 2021 17:42:20 -0400
+Received: by mail-pf1-f181.google.com with SMTP id u18so7433063pfk.11;
+        Sat, 12 Jun 2021 14:40:09 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=pGYip1TYwkBVOq/t4svj5wGlh/+ScwbEreTBrPkXi/s=;
-        b=qwxBASDfdCZdFScmA/IVTIh3Wyvgvef/wR69EcmQD6bijDwtjo3RoOefxXv50wpFr9
-         cPyg3bGdSldG8wwrypkfUO9DeImQWy3pa/WoW1Ad7AgPVgaHOykhTJP/sXqr+sO2m/1U
-         s9gNXBFuSnfXF7aS4ZkCxRySwRuz25DHjQXlwyW1Xef8/4ygpr8jgpCbDJnUxwu8pHB3
-         TzXjWBJG5L3nqu1VQtLSdy/zO1HduzZpzHFJ6efZ2TZn9H7J4UF82/zkVYf9EAofWwSx
-         dhyj0shH+JrVz3p3jDU0UolboiyAWAw0oT9Tzxs2+J9PF+/vNK9gDKbW16VL0qBlWD2v
-         trLw==
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=epMHjnPhbNNlT6Qw4ItgSYLiUlQgXsV+IiGQEE2nlc8=;
+        b=l66IJcNglArpOxWXoB+BLSXBEUKRmWftbpOZsqpk/Y5vB0ZjjYIcpuZSYc+m/mysjb
+         F+D13P7dPAWaURph7SUKPIHgyho8JRfEI4SrdN7yE4+jkly5Lb3N+GWoISiTtOl3Yb+F
+         d3TpGJcq4CWXGq7QtN6WAWJ5DobKZyNLYHHssdgqdVgWJ54JyECO4cSTqF4++jUTCm5t
+         uzSVbA0BF6D83NR+AmVPEECCzTLkuGwF0/y7xOXVlZD9E1ZDjxD99pcDqSpb5EZzwyuI
+         z/WezFkonHwaMMQ1gE/xWPB3CtrdHCRESZHobp5OkwAp2SCUn47quU/CBD9qHYTbppgv
+         NozQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=pGYip1TYwkBVOq/t4svj5wGlh/+ScwbEreTBrPkXi/s=;
-        b=fxNDVWgT9W7mWVOZ4bFCpH3a5DH6stHrEgeb0oI8PHzJRGQfY8GQ0Us4iozbyCsCAS
-         NnVcLEias0uTAfBM2UAQyTFAizSVyX78etVlJmB2LeZsKKiEkPlqpnRlfIUxMkU+kP6B
-         8syNaGpc+6GlgIQ538yrDn/WKKJ/Px12b3xn5zsBE6jxWlsLZeDHueYk/RC8kDWqZqkA
-         c38dQqquXCANimyrS/UxpEx9yXKXNrZvEfsj0YPIA6qUjMmhnGr3VOv8lcClUsjtD2Bq
-         j4Kd9fPyWaCA2GEvsC8KEf2hAx8MM2COA4ZjZKsgtOUWh16QMynVDBCSgxowb89a+4Nz
-         elVA==
-X-Gm-Message-State: AOAM5321YcZCsVAjdOkGfBA0VPCPqDZwziwtMrq+vCb35V+6AHEU4rtC
-        E7NoNAjf7dg4JCO8CobkXW8K+XG2OUaD5Q==
-X-Google-Smtp-Source: ABdhPJzcPXTmnQZ+0XckFTqbklKl+XY0/0UrTwtbheT2/LYqSuNqs6KgCcjV6LbpL4IZnsvMlB9KkQ==
-X-Received: by 2002:a05:6214:1909:: with SMTP id er9mr9371442qvb.13.1623501411544;
-        Sat, 12 Jun 2021 05:36:51 -0700 (PDT)
-Received: from localhost ([70.127.84.75])
-        by smtp.gmail.com with ESMTPSA id f130sm6434285qke.37.2021.06.12.05.36.51
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 12 Jun 2021 05:36:51 -0700 (PDT)
-From:   Yury Norov <yury.norov@gmail.com>
-To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=epMHjnPhbNNlT6Qw4ItgSYLiUlQgXsV+IiGQEE2nlc8=;
+        b=Wpnf8p1QBIbEhSPqvLFArPVms9FSFJTXV2mCqlk/+XvcjQIXREAxwQgCYxUH/Fbmc/
+         2wcKT0/CYfAMbeP7hh4NDzK6jBR++Q5xMfSd8+6ZOc+70LnA0CA6vY+9tuilKgMFm6LN
+         wlJjiTdARq+WecVK9EEWyZ59c+nroQYmF/tlHQe9XKQ6Q510YYgV9aaR2rw3WP5XP0Ip
+         AhAyV0pvG/nQLJ/rla1jcMA2071r1qNh8twDeUS29boI4r2xhokqVoifGPDW6Ypj6W+x
+         WnUV7uiNJIPaCPIbP9EjJPPraFyCaJHgkIHxRUYQ/HNnWGO9N671KraW3ucQylsTWap8
+         HsPg==
+X-Gm-Message-State: AOAM530Lo6DObHM1wFwOSm3XaZ2O42rO2a7Gps/TgldyPPLFxJCP4a/o
+        sG7WVuxj+OihPSP3qSfgnBLG6XbCrR5Ufqvmx9M=
+X-Google-Smtp-Source: ABdhPJxfD1D+qTKWopXSDHqGrm7Vt+8P4foDxF9sJm9/aQlPk8kCLVvI1AYum+VfEO2AwSpfkVox0MEJrky3qP+qEfA=
+X-Received: by 2002:a05:6a00:139c:b029:2f7:102c:5393 with SMTP id
+ t28-20020a056a00139cb02902f7102c5393mr7941129pfg.40.1623533949479; Sat, 12
+ Jun 2021 14:39:09 -0700 (PDT)
+MIME-Version: 1.0
+References: <20210612123639.329047-1-yury.norov@gmail.com> <20210612123639.329047-2-yury.norov@gmail.com>
+In-Reply-To: <20210612123639.329047-2-yury.norov@gmail.com>
+From:   Andy Shevchenko <andy.shevchenko@gmail.com>
+Date:   Sun, 13 Jun 2021 00:38:52 +0300
+Message-ID: <CAHp75VcfX4X5w7yeheostadvfTjhnnzgsTyhMM-9wgS9Lgfn1g@mail.gmail.com>
+Subject: Re: [PATCH 1/8] bitops: protect find_first_{,zero}_bit properly
+To:     Yury Norov <yury.norov@gmail.com>
+Cc:     Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
         Benjamin Herrenschmidt <benh@kernel.crashing.org>,
         Catalin Marinas <catalin.marinas@arm.com>,
         Will Deacon <will@kernel.org>,
@@ -64,7 +69,7 @@ To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
         Jonas Bonn <jonas@southpole.se>,
         Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
         Palmer Dabbelt <palmer@dabbelt.com>,
         Heiko Carstens <hca@linux.ibm.com>,
         Rich Felker <dalias@libc.org>,
@@ -79,90 +84,25 @@ To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Jakub Kicinski <kuba@kernel.org>,
         Daniel Bristot de Oliveira <bristot@redhat.com>,
         Alexey Klimov <aklimov@redhat.com>,
-        Ingo Molnar <mingo@redhat.com>
-Cc:     Yury Norov <yury.norov@gmail.com>
-Subject: [PATCH 6/8] cpumask: use find_first_and_bit()
-Date:   Sat, 12 Jun 2021 05:36:37 -0700
-Message-Id: <20210612123639.329047-7-yury.norov@gmail.com>
-X-Mailer: git-send-email 2.30.2
-In-Reply-To: <20210612123639.329047-1-yury.norov@gmail.com>
-References: <20210612123639.329047-1-yury.norov@gmail.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        Ingo Molnar <mingo@redhat.com>,
+        kernel test robot <lkp@intel.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Now we have an efficient implementation for find_first_and_bit(),
-so switch cpumask to use it where appropriate.
+On Sat, Jun 12, 2021 at 3:38 PM Yury Norov <yury.norov@gmail.com> wrote:
+>
+> find_first_bit() and find_first_zero_bit() are not protected with
+> ifdefs as other functions in find.h. It causes build errors on some
+> platforms if CONFIG_GENERIC_FIND_FIRST_BIT is enabled.
 
-Signed-off-by: Yury Norov <yury.norov@gmail.com>
----
- include/linux/cpumask.h | 30 ++++++++++++++++++++----------
- 1 file changed, 20 insertions(+), 10 deletions(-)
+Fixes?
 
-diff --git a/include/linux/cpumask.h b/include/linux/cpumask.h
-index bfc4690de4f4..6bee58600946 100644
---- a/include/linux/cpumask.h
-+++ b/include/linux/cpumask.h
-@@ -123,6 +123,12 @@ static inline unsigned int cpumask_first(const struct cpumask *srcp)
- 	return 0;
- }
- 
-+static inline unsigned int cpumask_first_and(const struct cpumask *srcp1,
-+					     const struct cpumask *srcp2)
-+{
-+	return 0;
-+}
-+
- static inline unsigned int cpumask_last(const struct cpumask *srcp)
- {
- 	return 0;
-@@ -167,7 +173,7 @@ static inline unsigned int cpumask_local_spread(unsigned int i, int node)
- 
- static inline int cpumask_any_and_distribute(const struct cpumask *src1p,
- 					     const struct cpumask *src2p) {
--	return cpumask_next_and(-1, src1p, src2p);
-+	return cpumask_first_and(src1p, src2p);
- }
- 
- static inline int cpumask_any_distribute(const struct cpumask *srcp)
-@@ -195,6 +201,19 @@ static inline unsigned int cpumask_first(const struct cpumask *srcp)
- 	return find_first_bit(cpumask_bits(srcp), nr_cpumask_bits);
- }
- 
-+/**
-+ * cpumask_first_and - return the first cpu from *srcp1 & *srcp2
-+ * @src1p: the first input
-+ * @src2p: the second input
-+ *
-+ * Returns >= nr_cpu_ids if no cpus set in both.  See also cpumask_next_and().
-+ */
-+static inline
-+unsigned int cpumask_first_and(const struct cpumask *srcp1, const struct cpumask *srcp2)
-+{
-+	return find_first_and_bit(cpumask_bits(srcp1), cpumask_bits(srcp2), nr_cpumask_bits);
-+}
-+
- /**
-  * cpumask_last - get the last CPU in a cpumask
-  * @srcp:	- the cpumask pointer
-@@ -585,15 +604,6 @@ static inline void cpumask_copy(struct cpumask *dstp,
-  */
- #define cpumask_any(srcp) cpumask_first(srcp)
- 
--/**
-- * cpumask_first_and - return the first cpu from *srcp1 & *srcp2
-- * @src1p: the first input
-- * @src2p: the second input
-- *
-- * Returns >= nr_cpu_ids if no cpus set in both.  See also cpumask_next_and().
-- */
--#define cpumask_first_and(src1p, src2p) cpumask_next_and(-1, (src1p), (src2p))
--
- /**
-  * cpumask_any_and - pick a "random" cpu from *mask1 & *mask2
-  * @mask1: the first input cpumask
+> Reported-by: kernel test robot <lkp@intel.com>
+> Signed-off-by: Yury Norov <yury.norov@gmail.com>
+
+
 -- 
-2.30.2
-
+With Best Regards,
+Andy Shevchenko
