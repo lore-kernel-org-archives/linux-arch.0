@@ -2,277 +2,274 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 969F3C49EA3
-	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 05:43:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D69AAC48BCF
+	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 12:36:48 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6EBAA6128A
-	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 05:43:48 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A50B861182
+	for <linux-arch@archiver.kernel.org>; Sat, 12 Jun 2021 12:36:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230236AbhFLFpo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 12 Jun 2021 01:45:44 -0400
-Received: from mail.kernel.org ([198.145.29.99]:38704 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229446AbhFLFpn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 12 Jun 2021 01:45:43 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 5410B61019;
-        Sat, 12 Jun 2021 05:43:37 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1623476624;
-        bh=jXSf9kPU6/p3Pl02zFLTjgmsn62vO+wR89LkyYwqjYE=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=jQzBYFAXgxUH9zPpsPc2S9koB6TyWpzCJ1FcyoOFUPs7glHYtJWXiwaYLZbOYr1MD
-         e8dUX72/dMktQcP+MfbQLugr1DigtCWPruv02QxyYGEBDlYcEvhTSF63D1F76zo+eL
-         vOmDN5XDSPdJfrU5UpdF1koBNLPwdNgaB2Yne6m3YDq4mBcFE1Twi6f4e9jRCCYQMf
-         fXFfPo4RoZ3j+NJMVPgoFRy/0IXayxTFHiwh1+yLk0mxoQNt6KiYCSMshhiOPS7yS1
-         6HDTiCLiwW9bME21jEq92F8Esv4cZpDqtMIPSa1vd/42SwMmpCSE4nvcQy4brkpojX
-         7a11xyl6jl4EA==
-Date:   Sat, 12 Jun 2021 08:43:33 +0300
-From:   Mike Rapoport <rppt@kernel.org>
-To:     Stephen Brennan <stephen@brennan.io>
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
-        Arnd Bergmann <arnd@arndb.de>,
+        id S230526AbhFLMir (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 12 Jun 2021 08:38:47 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60318 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230470AbhFLMiq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Jun 2021 08:38:46 -0400
+Received: from mail-qk1-x72e.google.com (mail-qk1-x72e.google.com [IPv6:2607:f8b0:4864:20::72e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 65950C061767;
+        Sat, 12 Jun 2021 05:36:47 -0700 (PDT)
+Received: by mail-qk1-x72e.google.com with SMTP id i67so33865467qkc.4;
+        Sat, 12 Jun 2021 05:36:47 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=DE2uGcyognsqUK5a+kjmtRMZ8LKRFECrTdhcl5wHUr4=;
+        b=fPGyp/0CsGrCUzL9sGvIJoeG5Rqa7rPCpjv7jS6jio5vxLpXLrhUdUfrMxQ32QAQr5
+         PJ/ydOqx2ukNEEgk172VfvkBcO+DhdLImMJ5wNAU5c0lsvRxnc6Yk6y3T17DBk6jFzgO
+         2RM7DiLV65iKK/sxvDUVknIYz7NdrgnijkckuR6Rsf+rt4qucj6IQqeUkaJiunZS1z3Y
+         9DbuXGQFbj92T7CDoNy/7hXV5K1jokKsM18/lFdKXnqdZtDKwcjzNCbS52fLJSrc9Gfb
+         SvgTPQIEzPk/0+YUUSlpU7nAWAQZ1tIUoMOjqUizlJ2pC7y+pmEQPfMVN0uI6C4kor4A
+         g6cg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=DE2uGcyognsqUK5a+kjmtRMZ8LKRFECrTdhcl5wHUr4=;
+        b=r/30DyAFl4jN27g507+mkL9GqsSzJLWl3N6oBtZG3Kwls5NxSJQpIDKPK5X9eQarBW
+         SD+NIPH0tcfuXbruDJn5pNCA+bns3T8JANu3wVksJCR8hOGa6yEFNMuFnUMRJ83fQhNr
+         k9r2JQPZ/alKxthUBrrFxhMI7vY7Eu3VttI417OTBti7h4wqXvCTVHgibtzU032QITCF
+         AvXWYz/jt9Z4u2WSGOzxE3TO80ZLZFlu2d4Q0tPJDvYlnBmz2TxoRzsXMXw4tonExCgF
+         BtmhPUbJ5n58JFLTJ8s+BXuKXLOqoeVyIVvpPx8p6pEgrXqCC0+fa23Xec0Yc4OSgoIW
+         xCRQ==
+X-Gm-Message-State: AOAM533vAZGaebNu7uzPOnHJBktWndUGzlm0reBpyyFJFF3S3yxM/U8J
+        yM5tpoJ1w+u74asnOD39GlakDKzor/TDZg==
+X-Google-Smtp-Source: ABdhPJye1XAZdtRzrrOjvaCMTUDkGmX8khjv+qzUZKq4Op5+wwRBcpQNf1nnC4NtJR5UBBq+gwVJCQ==
+X-Received: by 2002:a37:6084:: with SMTP id u126mr8358831qkb.294.1623501406350;
+        Sat, 12 Jun 2021 05:36:46 -0700 (PDT)
+Received: from localhost ([70.127.84.75])
+        by smtp.gmail.com with ESMTPSA id y195sm204067qkb.69.2021.06.12.05.36.45
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 12 Jun 2021 05:36:45 -0700 (PDT)
+From:   Yury Norov <yury.norov@gmail.com>
+To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Brian Cain <bcain@codeaurora.org>,
         Geert Uytterhoeven <geert@linux-m68k.org>,
-        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Matt Turner <mattst88@gmail.com>,
-        Mike Rapoport <rppt@linux.ibm.com>,
-        Richard Henderson <rth@twiddle.net>,
-        Vineet Gupta <vgupta@synopsys.com>, kexec@lists.infradead.org,
-        linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org,
-        linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org,
-        linux-mm@kvack.org, linux-riscv@lists.infradead.org,
-        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
-        linux-snps-arc@lists.infradead.org, linux-xtensa@linux-xtensa.org,
-        linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org
-Subject: Re: [PATCH v3 5/9] mm: remove CONFIG_DISCONTIGMEM
-Message-ID: <YMRJhezHRZrbrO0Y@kernel.org>
-References: <20210608091316.3622-1-rppt@kernel.org>
- <20210608091316.3622-6-rppt@kernel.org>
- <87r1h886n7.fsf@stepbren-lnx.us.oracle.com>
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Jonas Bonn <jonas@southpole.se>,
+        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Rich Felker <dalias@libc.org>,
+        David Hildenbrand <david@redhat.com>,
+        Jaegeuk Kim <jaegeuk@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Rasmus Villemoes <linux@rasmusvillemoes.dk>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Alexander Lobakin <alobakin@pm.me>,
+        Samuel Mendoza-Jonas <sam@mendozajonas.com>,
+        Jakub Kicinski <kuba@kernel.org>,
+        Daniel Bristot de Oliveira <bristot@redhat.com>,
+        Alexey Klimov <aklimov@redhat.com>,
+        Ingo Molnar <mingo@redhat.com>
+Cc:     Yury Norov <yury.norov@gmail.com>
+Subject: [PATCH 2/8] bitops: move find_bit_*_le functions from le.h to find.h
+Date:   Sat, 12 Jun 2021 05:36:33 -0700
+Message-Id: <20210612123639.329047-3-yury.norov@gmail.com>
+X-Mailer: git-send-email 2.30.2
+In-Reply-To: <20210612123639.329047-1-yury.norov@gmail.com>
+References: <20210612123639.329047-1-yury.norov@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87r1h886n7.fsf@stepbren-lnx.us.oracle.com>
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jun 11, 2021 at 01:53:48PM -0700, Stephen Brennan wrote:
-> Mike Rapoport <rppt@kernel.org> writes:
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> >
-> > There are no architectures that support DISCONTIGMEM left.
-> >
-> > Remove the configuration option and the dead code it was guarding in the
-> > generic memory management code.
-> >
-> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > ---
-> >  include/asm-generic/memory_model.h | 37 ++++--------------------------
-> >  include/linux/mmzone.h             |  8 ++++---
-> >  mm/Kconfig                         | 25 +++-----------------
-> >  mm/page_alloc.c                    | 13 -----------
-> >  4 files changed, 12 insertions(+), 71 deletions(-)
-> >
-> > diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
-> > index 7637fb46ba4f..a2c8ed60233a 100644
-> > --- a/include/asm-generic/memory_model.h
-> > +++ b/include/asm-generic/memory_model.h
-> > @@ -6,47 +6,18 @@
-> >  
-> >  #ifndef __ASSEMBLY__
-> >  
-> > +/*
-> > + * supports 3 memory models.
-> > + */
-> 
-> This comment could either be updated to reflect 2 memory models, or
-> removed entirely.
+It's convenient to have all find_bit declarations in one place.
 
-I counted SPARSE and SPARSE_VMEMMAP as 2.
+Signed-off-by: Yury Norov <yury.norov@gmail.com>
+---
+ include/asm-generic/bitops/find.h | 69 +++++++++++++++++++++++++++++++
+ include/asm-generic/bitops/le.h   | 64 ----------------------------
+ 2 files changed, 69 insertions(+), 64 deletions(-)
 
-The code below has three clauses: one for FLATMEM, one for SPARSE and one
-for VMEMMAP.
+diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+index 835f959a25f2..91b1b23f2b0c 100644
+--- a/include/asm-generic/bitops/find.h
++++ b/include/asm-generic/bitops/find.h
+@@ -190,4 +190,73 @@ extern unsigned long find_next_clump8(unsigned long *clump,
+ #define find_first_clump8(clump, bits, size) \
+ 	find_next_clump8((clump), (bits), (size), 0)
  
-> Thanks,
-> Stephen
-> 
-> >  #if defined(CONFIG_FLATMEM)
-> >  
-> >  #ifndef ARCH_PFN_OFFSET
-> >  #define ARCH_PFN_OFFSET		(0UL)
-> >  #endif
-> >  
-> > -#elif defined(CONFIG_DISCONTIGMEM)
-> > -
-> > -#ifndef arch_pfn_to_nid
-> > -#define arch_pfn_to_nid(pfn)	pfn_to_nid(pfn)
-> > -#endif
-> > -
-> > -#ifndef arch_local_page_offset
-> > -#define arch_local_page_offset(pfn, nid)	\
-> > -	((pfn) - NODE_DATA(nid)->node_start_pfn)
-> > -#endif
-> > -
-> > -#endif /* CONFIG_DISCONTIGMEM */
-> > -
-> > -/*
-> > - * supports 3 memory models.
-> > - */
-> > -#if defined(CONFIG_FLATMEM)
-> > -
-> >  #define __pfn_to_page(pfn)	(mem_map + ((pfn) - ARCH_PFN_OFFSET))
-> >  #define __page_to_pfn(page)	((unsigned long)((page) - mem_map) + \
-> >  				 ARCH_PFN_OFFSET)
-> > -#elif defined(CONFIG_DISCONTIGMEM)
-> > -
-> > -#define __pfn_to_page(pfn)			\
-> > -({	unsigned long __pfn = (pfn);		\
-> > -	unsigned long __nid = arch_pfn_to_nid(__pfn);  \
-> > -	NODE_DATA(__nid)->node_mem_map + arch_local_page_offset(__pfn, __nid);\
-> > -})
-> > -
-> > -#define __page_to_pfn(pg)						\
-> > -({	const struct page *__pg = (pg);					\
-> > -	struct pglist_data *__pgdat = NODE_DATA(page_to_nid(__pg));	\
-> > -	(unsigned long)(__pg - __pgdat->node_mem_map) +			\
-> > -	 __pgdat->node_start_pfn;					\
-> > -})
-> >  
-> >  #elif defined(CONFIG_SPARSEMEM_VMEMMAP)
-> >  
-> > @@ -70,7 +41,7 @@
-> >  	struct mem_section *__sec = __pfn_to_section(__pfn);	\
-> >  	__section_mem_map_addr(__sec) + __pfn;		\
-> >  })
-> > -#endif /* CONFIG_FLATMEM/DISCONTIGMEM/SPARSEMEM */
-> > +#endif /* CONFIG_FLATMEM/SPARSEMEM */
-> >  
-> >  /*
-> >   * Convert a physical address to a Page Frame Number and back
-> > diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
-> > index 0d53eba1c383..700032e99419 100644
-> > --- a/include/linux/mmzone.h
-> > +++ b/include/linux/mmzone.h
-> > @@ -738,10 +738,12 @@ struct zonelist {
-> >  	struct zoneref _zonerefs[MAX_ZONES_PER_ZONELIST + 1];
-> >  };
-> >  
-> > -#ifndef CONFIG_DISCONTIGMEM
-> > -/* The array of struct pages - for discontigmem use pgdat->lmem_map */
-> > +/*
-> > + * The array of struct pages for flatmem.
-> > + * It must be declared for SPARSEMEM as well because there are configurations
-> > + * that rely on that.
-> > + */
-> >  extern struct page *mem_map;
-> > -#endif
-> >  
-> >  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
-> >  struct deferred_split {
-> > diff --git a/mm/Kconfig b/mm/Kconfig
-> > index 02d44e3420f5..218b96ccc84a 100644
-> > --- a/mm/Kconfig
-> > +++ b/mm/Kconfig
-> > @@ -19,7 +19,7 @@ choice
-> >  
-> >  config FLATMEM_MANUAL
-> >  	bool "Flat Memory"
-> > -	depends on !(ARCH_DISCONTIGMEM_ENABLE || ARCH_SPARSEMEM_ENABLE) || ARCH_FLATMEM_ENABLE
-> > +	depends on !ARCH_SPARSEMEM_ENABLE || ARCH_FLATMEM_ENABLE
-> >  	help
-> >  	  This option is best suited for non-NUMA systems with
-> >  	  flat address space. The FLATMEM is the most efficient
-> > @@ -32,21 +32,6 @@ config FLATMEM_MANUAL
-> >  
-> >  	  If unsure, choose this option (Flat Memory) over any other.
-> >  
-> > -config DISCONTIGMEM_MANUAL
-> > -	bool "Discontiguous Memory"
-> > -	depends on ARCH_DISCONTIGMEM_ENABLE
-> > -	help
-> > -	  This option provides enhanced support for discontiguous
-> > -	  memory systems, over FLATMEM.  These systems have holes
-> > -	  in their physical address spaces, and this option provides
-> > -	  more efficient handling of these holes.
-> > -
-> > -	  Although "Discontiguous Memory" is still used by several
-> > -	  architectures, it is considered deprecated in favor of
-> > -	  "Sparse Memory".
-> > -
-> > -	  If unsure, choose "Sparse Memory" over this option.
-> > -
-> >  config SPARSEMEM_MANUAL
-> >  	bool "Sparse Memory"
-> >  	depends on ARCH_SPARSEMEM_ENABLE
-> > @@ -62,17 +47,13 @@ config SPARSEMEM_MANUAL
-> >  
-> >  endchoice
-> >  
-> > -config DISCONTIGMEM
-> > -	def_bool y
-> > -	depends on (!SELECT_MEMORY_MODEL && ARCH_DISCONTIGMEM_ENABLE) || DISCONTIGMEM_MANUAL
-> > -
-> >  config SPARSEMEM
-> >  	def_bool y
-> >  	depends on (!SELECT_MEMORY_MODEL && ARCH_SPARSEMEM_ENABLE) || SPARSEMEM_MANUAL
-> >  
-> >  config FLATMEM
-> >  	def_bool y
-> > -	depends on (!DISCONTIGMEM && !SPARSEMEM) || FLATMEM_MANUAL
-> > +	depends on !SPARSEMEM || FLATMEM_MANUAL
-> >  
-> >  config FLAT_NODE_MEM_MAP
-> >  	def_bool y
-> > @@ -85,7 +66,7 @@ config FLAT_NODE_MEM_MAP
-> >  #
-> >  config NEED_MULTIPLE_NODES
-> >  	def_bool y
-> > -	depends on DISCONTIGMEM || NUMA
-> > +	depends on NUMA
-> >  
-> >  #
-> >  # SPARSEMEM_EXTREME (which is the default) does some bootmem
-> > diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> > index aaa1655cf682..6fc22482eaa8 100644
-> > --- a/mm/page_alloc.c
-> > +++ b/mm/page_alloc.c
-> > @@ -331,20 +331,7 @@ compound_page_dtor * const compound_page_dtors[NR_COMPOUND_DTORS] = {
-> >  
-> >  int min_free_kbytes = 1024;
-> >  int user_min_free_kbytes = -1;
-> > -#ifdef CONFIG_DISCONTIGMEM
-> > -/*
-> > - * DiscontigMem defines memory ranges as separate pg_data_t even if the ranges
-> > - * are not on separate NUMA nodes. Functionally this works but with
-> > - * watermark_boost_factor, it can reclaim prematurely as the ranges can be
-> > - * quite small. By default, do not boost watermarks on discontigmem as in
-> > - * many cases very high-order allocations like THP are likely to be
-> > - * unsupported and the premature reclaim offsets the advantage of long-term
-> > - * fragmentation avoidance.
-> > - */
-> > -int watermark_boost_factor __read_mostly;
-> > -#else
-> >  int watermark_boost_factor __read_mostly = 15000;
-> > -#endif
-> >  int watermark_scale_factor = 10;
-> >  
-> >  static unsigned long nr_kernel_pages __initdata;
-> > -- 
-> > 2.28.0
-> 
-> _______________________________________________
-> linux-riscv mailing list
-> linux-riscv@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-riscv
-
++#if defined(__LITTLE_ENDIAN)
++
++static inline unsigned long find_next_zero_bit_le(const void *addr,
++		unsigned long size, unsigned long offset)
++{
++	return find_next_zero_bit(addr, size, offset);
++}
++
++static inline unsigned long find_next_bit_le(const void *addr,
++		unsigned long size, unsigned long offset)
++{
++	return find_next_bit(addr, size, offset);
++}
++
++static inline unsigned long find_first_zero_bit_le(const void *addr,
++		unsigned long size)
++{
++	return find_first_zero_bit(addr, size);
++}
++
++#elif defined(__BIG_ENDIAN)
++
++#ifndef find_next_zero_bit_le
++static inline
++unsigned long find_next_zero_bit_le(const void *addr, unsigned
++		long size, unsigned long offset)
++{
++	if (small_const_nbits(size)) {
++		unsigned long val = *(const unsigned long *)addr;
++
++		if (unlikely(offset >= size))
++			return size;
++
++		val = swab(val) | ~GENMASK(size - 1, offset);
++		return val == ~0UL ? size : ffz(val);
++	}
++
++	return _find_next_bit(addr, NULL, size, offset, ~0UL, 1);
++}
++#endif
++
++#ifndef find_next_bit_le
++static inline
++unsigned long find_next_bit_le(const void *addr, unsigned
++		long size, unsigned long offset)
++{
++	if (small_const_nbits(size)) {
++		unsigned long val = *(const unsigned long *)addr;
++
++		if (unlikely(offset >= size))
++			return size;
++
++		val = swab(val) & GENMASK(size - 1, offset);
++		return val ? __ffs(val) : size;
++	}
++
++	return _find_next_bit(addr, NULL, size, offset, 0UL, 1);
++}
++#endif
++
++#ifndef find_first_zero_bit_le
++#define find_first_zero_bit_le(addr, size) \
++	find_next_zero_bit_le((addr), (size), 0)
++#endif
++
++#else
++#error "Please fix <asm/byteorder.h>"
++#endif
++
+ #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
+diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
+index 5a28629cbf4d..d51beff60375 100644
+--- a/include/asm-generic/bitops/le.h
++++ b/include/asm-generic/bitops/le.h
+@@ -2,83 +2,19 @@
+ #ifndef _ASM_GENERIC_BITOPS_LE_H_
+ #define _ASM_GENERIC_BITOPS_LE_H_
+ 
+-#include <asm-generic/bitops/find.h>
+ #include <asm/types.h>
+ #include <asm/byteorder.h>
+-#include <linux/swab.h>
+ 
+ #if defined(__LITTLE_ENDIAN)
+ 
+ #define BITOP_LE_SWIZZLE	0
+ 
+-static inline unsigned long find_next_zero_bit_le(const void *addr,
+-		unsigned long size, unsigned long offset)
+-{
+-	return find_next_zero_bit(addr, size, offset);
+-}
+-
+-static inline unsigned long find_next_bit_le(const void *addr,
+-		unsigned long size, unsigned long offset)
+-{
+-	return find_next_bit(addr, size, offset);
+-}
+-
+-static inline unsigned long find_first_zero_bit_le(const void *addr,
+-		unsigned long size)
+-{
+-	return find_first_zero_bit(addr, size);
+-}
+-
+ #elif defined(__BIG_ENDIAN)
+ 
+ #define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
+ 
+-#ifndef find_next_zero_bit_le
+-static inline
+-unsigned long find_next_zero_bit_le(const void *addr, unsigned
+-		long size, unsigned long offset)
+-{
+-	if (small_const_nbits(size)) {
+-		unsigned long val = *(const unsigned long *)addr;
+-
+-		if (unlikely(offset >= size))
+-			return size;
+-
+-		val = swab(val) | ~GENMASK(size - 1, offset);
+-		return val == ~0UL ? size : ffz(val);
+-	}
+-
+-	return _find_next_bit(addr, NULL, size, offset, ~0UL, 1);
+-}
+-#endif
+-
+-#ifndef find_next_bit_le
+-static inline
+-unsigned long find_next_bit_le(const void *addr, unsigned
+-		long size, unsigned long offset)
+-{
+-	if (small_const_nbits(size)) {
+-		unsigned long val = *(const unsigned long *)addr;
+-
+-		if (unlikely(offset >= size))
+-			return size;
+-
+-		val = swab(val) & GENMASK(size - 1, offset);
+-		return val ? __ffs(val) : size;
+-	}
+-
+-	return _find_next_bit(addr, NULL, size, offset, 0UL, 1);
+-}
+ #endif
+ 
+-#ifndef find_first_zero_bit_le
+-#define find_first_zero_bit_le(addr, size) \
+-	find_next_zero_bit_le((addr), (size), 0)
+-#endif
+-
+-#else
+-#error "Please fix <asm/byteorder.h>"
+-#endif
+ 
+ static inline int test_bit_le(int nr, const void *addr)
+ {
 -- 
-Sincerely yours,
-Mike.
+2.30.2
+
