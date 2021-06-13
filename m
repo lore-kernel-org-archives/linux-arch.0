@@ -2,34 +2,72 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-10.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 05800C48BDF
-	for <linux-arch@archiver.kernel.org>; Sun, 13 Jun 2021 21:55:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E9FD0C48BE8
+	for <linux-arch@archiver.kernel.org>; Sun, 13 Jun 2021 22:19:26 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CB2506135A
-	for <linux-arch@archiver.kernel.org>; Sun, 13 Jun 2021 21:55:28 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id BB9B361357
+	for <linux-arch@archiver.kernel.org>; Sun, 13 Jun 2021 22:19:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232145AbhFMV53 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 13 Jun 2021 17:57:29 -0400
-Received: from out02.mta.xmission.com ([166.70.13.232]:41562 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232020AbhFMV50 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 13 Jun 2021 17:57:26 -0400
-Received: from in01.mta.xmission.com ([166.70.13.51])
-        by out02.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1lsY4e-00BfB2-O9; Sun, 13 Jun 2021 15:55:20 -0600
-Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95] helo=email.xmission.com)
-        by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1lsY4d-008LUl-KS; Sun, 13 Jun 2021 15:55:20 -0600
-From:   ebiederm@xmission.com (Eric W. Biederman)
-To:     Linus Torvalds <torvalds@linux-foundation.org>
+        id S232114AbhFMWV0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 13 Jun 2021 18:21:26 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43020 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232164AbhFMWV0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 13 Jun 2021 18:21:26 -0400
+Received: from mail-lf1-x129.google.com (mail-lf1-x129.google.com [IPv6:2a00:1450:4864:20::129])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0BF97C061766
+        for <linux-arch@vger.kernel.org>; Sun, 13 Jun 2021 15:19:11 -0700 (PDT)
+Received: by mail-lf1-x129.google.com with SMTP id m21so17731337lfg.13
+        for <linux-arch@vger.kernel.org>; Sun, 13 Jun 2021 15:19:10 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linux-foundation.org; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=RxQzyytN9Xv/POFiz8Y3R+utq4RPK0XbvLC7geKBN54=;
+        b=eI/+uvMTqWinqnHgENJVOiH6LZbpPCrFa2vhgarfRXuzeG+COM4dVsEynMvTS6y/6Q
+         LOq6njwdgJIYMLCwnwLTwRKUsWbB0E78FSxFRLi7qu5gVFnqwsbqt3rxLFr58x4618EA
+         f3HhTPMdbHBxITRJM9ZQoRDK+/EXfCFm4KkTI=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=RxQzyytN9Xv/POFiz8Y3R+utq4RPK0XbvLC7geKBN54=;
+        b=VWONMRPRUZHqdNWZ/q8otAqqxv0W+E/75pAeIZPlyQYYxrC3jxV6tVQqDCZoDxBnkJ
+         4oY3WT32Vd0Aj7JFvs3n2crNitjfVwc33UUanaxha46GuiKZU6sUoPpwTq8QGqURNcnD
+         PiXBXzjfL+6Y42dPHlRT3/BPKfZnwVuVhe71CxO6AWgHNJInEccHpYFBz2xPndeEPGXu
+         NyMw3DRST8CeHQfY24B3/XOgBWvYBtz8Whi8Xkb+79TnZjrDdVVtwzbaiKJ8Ld4AnLOZ
+         Rau8V+M5xWcPzJkjkNYRR4GyuwKGLo8gO0NBtwTiT7fZvHpDsphwNkT+ntYTGu8mobfd
+         llnQ==
+X-Gm-Message-State: AOAM533DT8yBP0/VzPeDQLLwgK9UtPAO3hcUltkAdab1CCRm4aiyKjrx
+        YvPW4fVXg83a4lXg9g3luQ2UwA7NQ78jJi4a
+X-Google-Smtp-Source: ABdhPJz8xO+giWPCT9W4tI4hU3uvXCm00KexG4x7bSdUH5gAupMAy3XvbfOnPlE5WazsIDPvJEL0vw==
+X-Received: by 2002:ac2:5fa5:: with SMTP id s5mr10124960lfe.497.1623622749104;
+        Sun, 13 Jun 2021 15:19:09 -0700 (PDT)
+Received: from mail-lj1-f178.google.com (mail-lj1-f178.google.com. [209.85.208.178])
+        by smtp.gmail.com with ESMTPSA id q2sm1586458ljj.7.2021.06.13.15.19.06
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sun, 13 Jun 2021 15:19:07 -0700 (PDT)
+Received: by mail-lj1-f178.google.com with SMTP id c11so17448892ljd.6
+        for <linux-arch@vger.kernel.org>; Sun, 13 Jun 2021 15:19:06 -0700 (PDT)
+X-Received: by 2002:a2e:2ac6:: with SMTP id q189mr11263791ljq.61.1623622746600;
+ Sun, 13 Jun 2021 15:19:06 -0700 (PDT)
+MIME-Version: 1.0
+References: <87sg1p30a1.fsf@disp2133> <CAHk-=wjiBXCZBxLiCG5hxpd0vMkMjiocenponWygG5SCG6DXNw@mail.gmail.com>
+ <87pmwsytb3.fsf@disp2133> <CAHk-=wgdO5VwSUFjfF9g=DAQNYmVxzTq73NtdisYErzdZKqDGg@mail.gmail.com>
+ <87sg1lwhvm.fsf@disp2133>
+In-Reply-To: <87sg1lwhvm.fsf@disp2133>
+From:   Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun, 13 Jun 2021 15:18:50 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wgsnMTr0V-0F4FOk30Q1h7CeT8wLvR1MSnjack7EpyWtQ@mail.gmail.com>
+Message-ID: <CAHk-=wgsnMTr0V-0F4FOk30Q1h7CeT8wLvR1MSnjack7EpyWtQ@mail.gmail.com>
+Subject: Re: Kernel stack read with PTRACE_EVENT_EXIT and io_uring threads
+To:     "Eric W. Biederman" <ebiederm@xmission.com>
 Cc:     linux-arch <linux-arch@vger.kernel.org>,
         Jens Axboe <axboe@kernel.dk>, Oleg Nesterov <oleg@redhat.com>,
         Al Viro <viro@zeniv.linux.org.uk>,
@@ -45,142 +83,66 @@ Cc:     linux-arch <linux-arch@vger.kernel.org>,
         Tejun Heo <tj@kernel.org>,
         Daniel Jacobowitz <drow@nevyn.them.org>,
         Kees Cook <keescook@chromium.org>
-References: <87sg1p30a1.fsf@disp2133>
-        <CAHk-=wjiBXCZBxLiCG5hxpd0vMkMjiocenponWygG5SCG6DXNw@mail.gmail.com>
-        <87pmwsytb3.fsf@disp2133>
-        <CAHk-=wgdO5VwSUFjfF9g=DAQNYmVxzTq73NtdisYErzdZKqDGg@mail.gmail.com>
-Date:   Sun, 13 Jun 2021 16:54:05 -0500
-In-Reply-To: <CAHk-=wgdO5VwSUFjfF9g=DAQNYmVxzTq73NtdisYErzdZKqDGg@mail.gmail.com>
-        (Linus Torvalds's message of "Fri, 11 Jun 2021 16:26:21 -0700")
-Message-ID: <87sg1lwhvm.fsf@disp2133>
-User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
-MIME-Version: 1.0
-Content-Type: text/plain
-X-XM-SPF: eid=1lsY4d-008LUl-KS;;;mid=<87sg1lwhvm.fsf@disp2133>;;;hst=in01.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
-X-XM-AID: U2FsdGVkX19b5C0aF+plb+/5FAhTXq2CXegUQeVKyl0=
-X-SA-Exim-Connect-IP: 68.227.160.95
-X-SA-Exim-Mail-From: ebiederm@xmission.com
-Subject: Re: Kernel stack read with PTRACE_EVENT_EXIT and io_uring threads
-X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
-X-SA-Exim-Scanned: Yes (on in01.mta.xmission.com)
+Content-Type: multipart/mixed; boundary="0000000000000fabcb05c4ad21da"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Linus Torvalds <torvalds@linux-foundation.org> writes:
+--0000000000000fabcb05c4ad21da
+Content-Type: text/plain; charset="UTF-8"
 
-> On Fri, Jun 11, 2021 at 2:40 PM Eric W. Biederman <ebiederm@xmission.com> wrote:
->>
->> Looking at copy_thread it looks like at least on alpha we are dealing
->> with a structure that defines all of the registers in copy_thread.
+On Sun, Jun 13, 2021 at 2:55 PM Eric W. Biederman <ebiederm@xmission.com> wrote:
 >
-> On the target side, yes.
+> The alpha_switch_to will remove the extra registers from the stack and
+> then call ret which if I understand alpha assembly correctly is
+> equivalent to jumping to where $26 points.  Which is
+> ret_from_kernel_thread (as setup by copy_thread).
 >
-> On the _source_ side, the code does
->
->         struct pt_regs *regs = current_pt_regs();
->
-> and that's the part that means that fork() and related functions need
-> to have done that DO_SWITCH_STACK(), so that they have the full
-> register set to be copied.
->
-> Otherwise it would copy random contents from the source stack.
->
-> But that
->
->         if (unlikely(p->flags & (PF_KTHREAD | PF_IO_WORKER))) {
->
-> ends up protecting us, and the code never uses that set of source
-> registers for the io worker threads.
+> Which leaves ret_from_kernel_thread and everything it calls without
+> the extra context saved on the stack.
 
-The test in copy_thread.  That isn't the case I am worried about.
+Uhhuh. Right you are, I think. It's been ages since I worked on that
+code and my alpha handbook is somewhere else, but yes, when
+alpha_switch_to() has context-switched to the new PCB state, it will
+then pop those registers in the new context and return.
 
-> So io_uring looks fine on alpha. I didn't check m68k and friends, but
-> I think they have the same thing going.
+So we do set up the right stack frame for the worker thread, but as
+you point out, it then gets used up immediately when running. So by
+the time the IO worker thread calls get_signal(), it's no longer
+useful.
 
-As I have read through the code more I don't think so.
+How very annoying.
 
-The code paths I am worried about are:
+The (obviously UNTESTED) patch might be something like the attached.
 
-	ret_from_kernel_thread
-        	io_wqe_worker
-                	get_signal
-                        	do_coredump
-                        	ptrace_stop
+I wouldn't be surprised if m68k has the exact same thing for the exact
+same reason, but I didn't check..
 
-	ret_from_kernel_thread
-        	io_sq_thread
-                	get_signal
-                        	do_coredump
-                        	ptrace_stop
+                  Linus
 
+--0000000000000fabcb05c4ad21da
+Content-Type: text/x-patch; charset="US-ASCII"; name="patch.diff"
+Content-Disposition: attachment; filename="patch.diff"
+Content-Transfer-Encoding: base64
+Content-ID: <f_kpvr1cy80>
+X-Attachment-Id: f_kpvr1cy80
 
-As I understand the code the new thread created by create_thread
-initially has a full complement of registers, and then is started
-by alpha_switch_to:
-
-	.align	4
-	.globl	alpha_switch_to
-	.type	alpha_switch_to, @function
-	.cfi_startproc
-alpha_switch_to:
-	DO_SWITCH_STACK
-	call_pal PAL_swpctx
-	lda	$8, 0x3fff
-	UNDO_SWITCH_STACK
-	bic	$sp, $8, $8
-	mov	$17, $0
-	ret
-	.cfi_endproc
-	.size	alpha_switch_to, .-alpha_switch_to
-
-
-The alpha_switch_to will remove the extra registers from the stack and
-then call ret which if I understand alpha assembly correctly is
-equivalent to jumping to where $26 points.  Which is
-ret_from_kernel_thread (as setup by copy_thread).
-
-Which leaves ret_from_kernel_thread and everything it calls without
-the extra context saved on the stack.
-
-I am still trying to understand how we get registers populated at a
-fixed offset on the stack during schedule.  As it looks like switch_to
-assumes the stack pointer is in the proper location.
-
->> It looks like we just need something like this to cover the userspace
->> side of exit.
->
-> Looks correct to me. Except I think you could just use "fork_like()"
-> instead of creating a new (and identical) "exit_like()" macro.
->
->> > But I really wish we had some way to test and trigger this so that we
->> > wouldn't get caught on this before. Something in task_pt_regs() that
->> > catches "this doesn't actually work" and does a WARN_ON_ONCE() on the
->> > affected architectures?
->>
->> I think that would require pushing an extra magic value in SWITCH_STACK
->> and not just popping it but deliberately changing that value in
->> UNDO_SWITCH_STACK.  Basically stack canaries.
->>
->> I don't see how we could do it in an arch independent way though.
->
-> No, I think you're right. There's no obvious generic solution to it,
-> and once we look at arch-specific ones we're vback to "just alpha,
-> m68k and nios needs this or cares" and tonce you're there you might as
-> well just fix it.
->
-> ia64 has soem "fast system call" model with limited registers too, but
-> I think that's limited to just a few very special system calls (ie it
-> does the reverse of what alpha does: alpha does the fast case by
-> default, and then marks fork/vfork/clone as special).
-
-I wonder if the arch specific solution should be to move the registers
-to a fixed location in task_struct (perhaps thread_struct ) so that the
-same patterns can apply across all architectures and we don't get
-surprises at all.
-
-What appears to be unique about alpha, m68k, and nios is that
-space is not always reserved for all of the registers, so we can't
-always count on them being saved after a task switch.
-
-Eric
+IGFyY2gvYWxwaGEva2VybmVsL3Byb2Nlc3MuYyB8IDExICsrKysrKysrKystCiAxIGZpbGUgY2hh
+bmdlZCwgMTAgaW5zZXJ0aW9ucygrKSwgMSBkZWxldGlvbigtKQoKZGlmZiAtLWdpdCBhL2FyY2gv
+YWxwaGEva2VybmVsL3Byb2Nlc3MuYyBiL2FyY2gvYWxwaGEva2VybmVsL3Byb2Nlc3MuYwppbmRl
+eCA1MTEyYWI5OTYzOTQuLmVkYmZlMDNmNGIyYyAxMDA2NDQKLS0tIGEvYXJjaC9hbHBoYS9rZXJu
+ZWwvcHJvY2Vzcy5jCisrKyBiL2FyY2gvYWxwaGEva2VybmVsL3Byb2Nlc3MuYwpAQCAtMjUxLDgg
+KzI1MSwxNyBAQCBpbnQgY29weV90aHJlYWQodW5zaWduZWQgbG9uZyBjbG9uZV9mbGFncywgdW5z
+aWduZWQgbG9uZyB1c3AsCiAKIAlpZiAodW5saWtlbHkocC0+ZmxhZ3MgJiAoUEZfS1RIUkVBRCB8
+IFBGX0lPX1dPUktFUikpKSB7CiAJCS8qIGtlcm5lbCB0aHJlYWQgKi8KKwkJLyoKKwkJICogR2l2
+ZSBpdCAqdHdvKiBzd2l0Y2ggc3RhY2tzLCBvbmUgZm9yIHRoZSBrZXJuZWwKKwkJICogc3RhdGUg
+cmV0dXJuIHRoYXQgaXMgdXNlZCB1cCBieSBhbHBoYV9zd2l0Y2hfdG8sCisJCSAqIGFuZCBvbmUg
+Zm9yIHRoZSAidXNlciBzdGF0ZSIgd2hpY2ggaXMgYWNjZXNzZWQKKwkJICogYnkgcHRyYWNlLgor
+CQkgKi8KKwkJY2hpbGRzdGFjay0tOworCQljaGlsZHRpLT5wY2Iua3NwID0gKHVuc2lnbmVkIGxv
+bmcpIGNoaWxkc3RhY2s7CisKIAkJbWVtc2V0KGNoaWxkc3RhY2ssIDAsCi0JCQlzaXplb2Yoc3Ry
+dWN0IHN3aXRjaF9zdGFjaykgKyBzaXplb2Yoc3RydWN0IHB0X3JlZ3MpKTsKKwkJCTIqc2l6ZW9m
+KHN0cnVjdCBzd2l0Y2hfc3RhY2spICsgc2l6ZW9mKHN0cnVjdCBwdF9yZWdzKSk7CiAJCWNoaWxk
+c3RhY2stPnIyNiA9ICh1bnNpZ25lZCBsb25nKSByZXRfZnJvbV9rZXJuZWxfdGhyZWFkOwogCQlj
+aGlsZHN0YWNrLT5yOSA9IHVzcDsJLyogZnVuY3Rpb24gKi8KIAkJY2hpbGRzdGFjay0+cjEwID0g
+a3RocmVhZF9hcmc7Cg==
+--0000000000000fabcb05c4ad21da--
