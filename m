@@ -2,124 +2,92 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-2.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E6973C48BE5
-	for <linux-arch@archiver.kernel.org>; Sun, 13 Jun 2021 00:32:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A6AECC48BDF
+	for <linux-arch@archiver.kernel.org>; Sun, 13 Jun 2021 20:00:24 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B6F4261179
-	for <linux-arch@archiver.kernel.org>; Sun, 13 Jun 2021 00:32:39 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 716196120E
+	for <linux-arch@archiver.kernel.org>; Sun, 13 Jun 2021 20:00:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229985AbhFMAeg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 12 Jun 2021 20:34:36 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45790 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229777AbhFMAed (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Jun 2021 20:34:33 -0400
-Received: from mail-qv1-xf34.google.com (mail-qv1-xf34.google.com [IPv6:2607:f8b0:4864:20::f34])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B8116C061574;
-        Sat, 12 Jun 2021 17:32:31 -0700 (PDT)
-Received: by mail-qv1-xf34.google.com with SMTP id w4so11169323qvr.11;
-        Sat, 12 Jun 2021 17:32:31 -0700 (PDT)
+        id S231788AbhFMUCY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 13 Jun 2021 16:02:24 -0400
+Received: from mail-lf1-f42.google.com ([209.85.167.42]:44711 "EHLO
+        mail-lf1-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231803AbhFMUCY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 13 Jun 2021 16:02:24 -0400
+Received: by mail-lf1-f42.google.com with SMTP id r198so17416086lff.11
+        for <linux-arch@vger.kernel.org>; Sun, 13 Jun 2021 13:00:22 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=date:from:to:cc:subject:message-id:references:mime-version
-         :content-disposition:in-reply-to;
-        bh=FNzPKnSXhXWUUtCqhfyDGdE5DfwKp+pUbI/lt2bIt54=;
-        b=X7BVkoFhomXc6Mr06l1zFOCcjKm24UnyDK5ut72hZIk362Qp/5S0LB6lpqL+26jwad
-         EFrFv6ZkFQT5s5kFXyH9bf4zYqqN40npBqk6sE94E78HmvMKff+5yE0dOE4QqRtOW9ng
-         6Z6etzslhE82ujx/f2Q/K68YF1s7XhjhSsF0+eqfzi9d2UD2ICH1MFAaW/J/Dc40n3kV
-         rjPj+A34eK9hKcCuE2MV+YBJCAitL6JFRy8amaN6D7V8VlcSPqsXPt76fUTM9P3JP/WR
-         cMKqm1m/+TzPSBHQ0vtgsQkosdhEzQVXp9k558BWb9AKRIuFxXMd6/hP+DM3QhlLCRbs
-         aMJg==
+        d=linux-foundation.org; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=XmFk46LbfcB3tAW54oV0NNBNWVA8tw96uj/nEJbZX8c=;
+        b=a8Ut4B9E3xQKleA2HYV5SURYsoc9doZ0SmKgf7wFF5ZvDPBJRRSuLis0laAkUgqZm3
+         0p9iNre0QjG8xFiWbULLQ4CrdXfHRBnqL8pDuUWAfL03X4Xd4pGGJfJ8UbTXwVoK1cz3
+         tA6ONd50v/3mnPhHfr2vLOGXKEJxcJxOUlWR8=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to;
-        bh=FNzPKnSXhXWUUtCqhfyDGdE5DfwKp+pUbI/lt2bIt54=;
-        b=Df/odb75Ffx6CQgqi1FerD/xcjVnk0fSnTbo5roqNK3TB7iaTueJGQKIjnDVUevr8r
-         iVNFY29AF6mqFgbMC7Hjh4OsM6a0GeA//DPQJyPTYQPQYH1t964PHll41BZR2wN/axAw
-         bKwdNamji5K8jE6J88d4Dw+LyR7ALOYw15xFCVACA/Mkalk1+xS6mRcuWxiCAyOoJqOm
-         oYNvzTwyHce8pzTY+aNnKKEwL6BOMEs1HmVYNKmMdDCUuFWo4dV4iI4wVnB3xNL3w8c6
-         gvAGgxBqg9HA4BrIZhBU8W2R/4yTP5C+zOfwOOdrgSEJNrAkzMd/bP1uHHPY+kCftJ/M
-         eWTg==
-X-Gm-Message-State: AOAM531PveSiXQ5ma0gv6UGKV7wJQlXAUDFeoGOJxIuMB72lugve0Kmk
-        mH1zhKieFcquSg3BNXb6YcY=
-X-Google-Smtp-Source: ABdhPJzem78VQKF5fPsK00zoYwH1QbcT2d8vLvKIOk+qMLiPR4DzgIdzj4zIy4RMpWfZs7QkFTtEvw==
-X-Received: by 2002:ad4:424b:: with SMTP id l11mr11991733qvq.58.1623544349820;
-        Sat, 12 Jun 2021 17:32:29 -0700 (PDT)
-Received: from localhost ([12.21.13.160])
-        by smtp.gmail.com with ESMTPSA id 7sm7076168qtx.33.2021.06.12.17.32.29
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 12 Jun 2021 17:32:29 -0700 (PDT)
-Date:   Sat, 12 Jun 2021 17:32:28 -0700
-From:   Yury Norov <yury.norov@gmail.com>
-To:     Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc:     Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Brian Cain <bcain@codeaurora.org>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Jonas Bonn <jonas@southpole.se>,
-        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Rich Felker <dalias@libc.org>,
-        David Hildenbrand <david@redhat.com>,
-        Jaegeuk Kim <jaegeuk@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Lobakin <alobakin@pm.me>,
-        Samuel Mendoza-Jonas <sam@mendozajonas.com>,
-        Jakub Kicinski <kuba@kernel.org>,
-        Daniel Bristot de Oliveira <bristot@redhat.com>,
-        Alexey Klimov <aklimov@redhat.com>,
-        Ingo Molnar <mingo@redhat.com>
-Subject: Re: [PATCH 7/8] all: replace find_next{,_zero}_bit with
- find_first{,_zero}_bit where appropriate
-Message-ID: <YMVSHCY9yEocmfVD@yury-ThinkPad>
-References: <20210612123639.329047-1-yury.norov@gmail.com>
- <20210612123639.329047-8-yury.norov@gmail.com>
- <CAHp75VerU1NJMweWCR7MsE9hiMFZyJP8m751OFKmGrJ1gVhMWw@mail.gmail.com>
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=XmFk46LbfcB3tAW54oV0NNBNWVA8tw96uj/nEJbZX8c=;
+        b=hIa/pNuujbK5/vC/8zXc9LSLqlaHJtq1aesg5uOULPAEIs+IrlJ97Svrhzi1Y90ObU
+         jkY5Q7+HKkwtgRE+8y5pvBw5oeML1pWkvSPqDCQzNcbarzqPIsIeZmvC8HzB/KnQzFKk
+         KsH23z+ABX3gYwxuARnq4g8hK48r+7Aa3rHjDLnMsfKj5dmMYN1Jo476tuIi7xvSHXak
+         8WvOFh2M6Wv0LOo3frAabUisQ8uJloAJYMi4xFFhgM8abytqYk77RDrzJnPkl4S6xatQ
+         VCFyFwdsB/WEKBuZbBoOQ2+3RUzOlldIFd7NhYd7zR6P3yB0alguhZL1pOusSE5VuBTw
+         eGiw==
+X-Gm-Message-State: AOAM532BDL/Yw862ILv8Lkh9XmkADoCJI7sVSxOTny69EM7vkuefumAZ
+        /wxXPwKPKx+EPnzW0XgW/hugszvxIZkCPH07
+X-Google-Smtp-Source: ABdhPJw3wfVpnu04+kYpX7MVtDCgv+djzThxdFS+sG/inSJjU5lyD1KE/buwWgc2IQDvdpw+IIqbkQ==
+X-Received: by 2002:a05:6512:23a0:: with SMTP id c32mr1677792lfv.554.1623614361259;
+        Sun, 13 Jun 2021 12:59:21 -0700 (PDT)
+Received: from mail-lj1-f175.google.com (mail-lj1-f175.google.com. [209.85.208.175])
+        by smtp.gmail.com with ESMTPSA id x11sm1264540lfn.137.2021.06.13.12.59.20
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sun, 13 Jun 2021 12:59:20 -0700 (PDT)
+Received: by mail-lj1-f175.google.com with SMTP id l4so4610059ljg.0
+        for <linux-arch@vger.kernel.org>; Sun, 13 Jun 2021 12:59:20 -0700 (PDT)
+X-Received: by 2002:a2e:b618:: with SMTP id r24mr5955872ljn.48.1623614360273;
+ Sun, 13 Jun 2021 12:59:20 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAHp75VerU1NJMweWCR7MsE9hiMFZyJP8m751OFKmGrJ1gVhMWw@mail.gmail.com>
+References: <87sg1p30a1.fsf@disp2133> <1623541098-6532-1-git-send-email-schmitzmic@gmail.com>
+In-Reply-To: <1623541098-6532-1-git-send-email-schmitzmic@gmail.com>
+From:   Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun, 13 Jun 2021 12:59:04 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wi2KnsPbv2BOKHa+hb3CmyxsWRQBmSrzqzNezZ=vxH6bg@mail.gmail.com>
+Message-ID: <CAHk-=wi2KnsPbv2BOKHa+hb3CmyxsWRQBmSrzqzNezZ=vxH6bg@mail.gmail.com>
+Subject: Re: [PATCH v1] m68k: save extra registers on sys_exit and
+ sys_exit_group syscall entry
+To:     Michael Schmitz <schmitzmic@gmail.com>
+Cc:     Geert Uytterhoeven <geert@linux-m68k.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        "Eric W. Biederman" <ebiederm@xmission.com>,
+        Andreas Schwab <schwab@linux-m68k.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Jun 13, 2021 at 12:47:31AM +0300, Andy Shevchenko wrote:
-> On Sat, Jun 12, 2021 at 3:39 PM Yury Norov <yury.norov@gmail.com> wrote:
-> >
-> > find_first{,_zero}_bit is a more effective analogue of 'next' version if
-> > start == 0. This patch replaces 'next' with 'first' where things look
-> > trivial.
-> 
-> Depending on the maintainers (but I think there will be at least few
-> in this case) they would like to have this be split on a per-driver
-> basis.
-> I counted 17 patches. I would split.
-> 
-> Since many of them are independent you may send without Cc'ing all
-> non-relevant people in each case.
+On Sat, Jun 12, 2021 at 4:38 PM Michael Schmitz <schmitzmic@gmail.com> wrote:
+>
+> do_exit() calls prace_stop() which may require access to all saved
+> registers. We only save those registers not preserved by C code
+> currently.
+>
+> Provide a special syscall entry for exit and exit_group syscalls
+> similar to that used by clone and clone3, which have the same
+> requirements.
 
-submitting-patches.rst says:
+ACK, this looks correct to me.
 
-        On the other hand, if you make a single change to numerous files,
-        group those changes into a single patch.  Thus a single logical change
-        is contained within a single patch.
+It might be a good idea to generate a test-case for this - some
+"ptrace child, catch exit of it, show registers" kind of thing - just
+to show what the effects of the bug was (and to show it's fixed). But
+maybe it's not worth the effort.
 
-Also refer 96d4f267e40f9 ("Remove 'type' argument from access_ok() functioin.")
-
-Yury
+                  Linus
