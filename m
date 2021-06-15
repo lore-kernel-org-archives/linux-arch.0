@@ -2,98 +2,128 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-2.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-6.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B7BB4C2B9F4
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 02:43:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CCB51C49361
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 02:46:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 95D4D61405
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 02:43:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B426B613F1
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 02:46:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230215AbhFOCpi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 14 Jun 2021 22:45:38 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48104 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230190AbhFOCpe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jun 2021 22:45:34 -0400
-Received: from mail-yb1-xb36.google.com (mail-yb1-xb36.google.com [IPv6:2607:f8b0:4864:20::b36])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 85B08C061574;
-        Mon, 14 Jun 2021 19:43:30 -0700 (PDT)
-Received: by mail-yb1-xb36.google.com with SMTP id i4so18366205ybe.2;
-        Mon, 14 Jun 2021 19:43:30 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=2z/FB/rbjsEGSE0I/ycIJryY05UbKzaovsaCJYEhAYk=;
-        b=Sua5NxWx9NLlw/uglvDupK+TSkyTwadFlrZQ+x3SIb39Hvz120OaazzzCVuvxdjw/t
-         JKF9rO/R4Qm5k/U9gBP+voLPLvHqGNv5LrDBA/0zOSP3Q5QmuksjkyF9ALJWHYelVvA7
-         kGwR62diNY/EoCPAhvSkK60p9xnFm8FwYg6HfWZ75K+xzXaktYtg92oIER1ZSVt6ahGT
-         jARBrVJb0WEaq8/1id1Gd5/p4uc6JWNcxmZBnO9RUSep8OusseUgFi2pksJ7kajcAWzk
-         GNHLwzJp4WFS6izYlKl9JpnHaH6RgmYtRscuZTcK8liDnjfcysF9iW5Cm3+txcWOkC/L
-         UCGw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=2z/FB/rbjsEGSE0I/ycIJryY05UbKzaovsaCJYEhAYk=;
-        b=rr/wTlg8LMZ32i9+les26RyuIfoWkDxJmZLZBDhPrBKcz62F0yfyrPXddtda54gnyD
-         eDr7T9JLocvfg7IhQ2tZ1JFjRh5HvesO57U5jh1666NvoYqCRgaR3DBixiOPqd3CvHEv
-         P+6qJZJy/L2M1cIEspqFhJZXX+OblTSSLvfrppeZkKKdSBO2PqMowCZPGyMHEEN+KHBC
-         GCEFiMp7QuLCzWsBSNAV+cmOf6+R0rZrHrxbF5Uw7xcBJCtY6j29dDfTp0Ug4AAA8xTt
-         Lppgv3AUsPzDbxHKu2+5dSzxM3nAwZBHXc6y6ikW6A5bYEeg/E8dndm2Zy49iK9d208u
-         X48g==
-X-Gm-Message-State: AOAM533F8x6JYMCp2CaEduyQjf+7SWqaXZx9b5U0oSYHwGRKfrrGcCft
-        OAE52ecW5WN98Cr39SZoOIj7MRNlvl5sxFkLmbE=
-X-Google-Smtp-Source: ABdhPJzeGuVkNdlonyK7Ip83AfkYuFQIGhXU4TjGQku/wU6+LaH/EGJEITgUSEDaUojptNwY4Xcfvk3Tx/0rAb1byEg=
-X-Received: by 2002:a25:be09:: with SMTP id h9mr30040462ybk.239.1623725009832;
- Mon, 14 Jun 2021 19:43:29 -0700 (PDT)
-MIME-Version: 1.0
-References: <20210615023812.50885-1-mcroce@linux.microsoft.com>
-In-Reply-To: <20210615023812.50885-1-mcroce@linux.microsoft.com>
-From:   Bin Meng <bmeng.cn@gmail.com>
-Date:   Tue, 15 Jun 2021 10:43:18 +0800
-Message-ID: <CAEUhbmUjht1ss+Z0a-kWYdn_Lk6TCzQhvxcD1FgJb0svmvhg1A@mail.gmail.com>
-Subject: Re: [PATCH 0/3] riscv: optimized mem* functions
-To:     Matteo Croce <mcroce@linux.microsoft.com>
-Cc:     linux-riscv <linux-riscv@lists.infradead.org>,
-        linux-kernel <linux-kernel@vger.kernel.org>,
-        linux-arch@vger.kernel.org,
-        Paul Walmsley <paul.walmsley@sifive.com>,
+        id S230236AbhFOCsi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 14 Jun 2021 22:48:38 -0400
+Received: from mail.kernel.org ([198.145.29.99]:47738 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S230190AbhFOCsh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 14 Jun 2021 22:48:37 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 35A78613B6;
+        Tue, 15 Jun 2021 01:07:07 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+        s=korg; t=1623719228;
+        bh=rG3719QpCm03Pct6ZPmHY7NKA0ZnZcb/msTIuT6DEZo=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+        b=eZANhhaATJcoaqqX0CoZzMiB5xCfNlYG9Su3V18leTk1kBzL+YIkFqHlxg/UX47Ec
+         nThGgd50wdgXkXS9MLOBIdYfmlZgT7VWzuhOZMWPDnMtb2Ywfxy1uVvuUJINMWiF2+
+         gdzUpU6w6uD2uzM6UDARM48ODr7UcAhW6S9+huTM=
+Date:   Mon, 14 Jun 2021 18:07:06 -0700
+From:   Andrew Morton <akpm@linux-foundation.org>
+To:     Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc:     Yury Norov <yury.norov@gmail.com>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>,
+        Yoshinori Sato <ysato@users.osdn.me>,
+        Brian Cain <bcain@codeaurora.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Jonas Bonn <jonas@southpole.se>,
+        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
         Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        Atish Patra <atish.patra@wdc.com>,
-        Emil Renner Berthing <kernel@esmil.dk>,
-        Akira Tsukamoto <akira.tsukamoto@gmail.com>,
-        Drew Fustini <drew@beagleboard.org>
-Content-Type: text/plain; charset="UTF-8"
+        Heiko Carstens <hca@linux.ibm.com>,
+        Rich Felker <dalias@libc.org>,
+        David Hildenbrand <david@redhat.com>,
+        Jaegeuk Kim <jaegeuk@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Rasmus Villemoes <linux@rasmusvillemoes.dk>,
+        Alexander Lobakin <alobakin@pm.me>,
+        Samuel Mendoza-Jonas <sam@mendozajonas.com>,
+        Jakub Kicinski <kuba@kernel.org>,
+        Daniel Bristot de Oliveira <bristot@redhat.com>,
+        Alexey Klimov <aklimov@redhat.com>,
+        Ingo Molnar <mingo@redhat.com>
+Subject: Re: [PATCH 7/8] all: replace find_next{,_zero}_bit with
+ find_first{,_zero}_bit where appropriate
+Message-Id: <20210614180706.1e8564854bfed648dd4c039b@linux-foundation.org>
+In-Reply-To: <CAHp75VeXJcPai=w3Fbx11TPf_CZTusD6U_E2R+XSaCcebV7uBw@mail.gmail.com>
+References: <20210612123639.329047-1-yury.norov@gmail.com>
+        <20210612123639.329047-8-yury.norov@gmail.com>
+        <CAHp75VerU1NJMweWCR7MsE9hiMFZyJP8m751OFKmGrJ1gVhMWw@mail.gmail.com>
+        <YMVSHCY9yEocmfVD@yury-ThinkPad>
+        <CAHp75VeXJcPai=w3Fbx11TPf_CZTusD6U_E2R+XSaCcebV7uBw@mail.gmail.com>
+X-Mailer: Sylpheed 3.5.1 (GTK+ 2.24.31; x86_64-pc-linux-gnu)
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Matteo,
+On Sun, 13 Jun 2021 12:41:38 +0300 Andy Shevchenko <andy.shevchenko@gmail.com> wrote:
 
-On Tue, Jun 15, 2021 at 10:39 AM Matteo Croce
-<mcroce@linux.microsoft.com> wrote:
->
-> From: Matteo Croce <mcroce@microsoft.com>
->
-> Replace the assembly mem{cpy,move,set} with C equivalent.
->
-> Try to access RAM with the largest bit width possible, but without
-> doing unaligned accesses.
->
-> Tested on a BeagleV Starlight with a SiFive U74 core, where the
-> improvement is noticeable.
->
+> On Sunday, June 13, 2021, Yury Norov <yury.norov@gmail.com> wrote:
+> 
+> > On Sun, Jun 13, 2021 at 12:47:31AM +0300, Andy Shevchenko wrote:
+> > > On Sat, Jun 12, 2021 at 3:39 PM Yury Norov <yury.norov@gmail.com> wrote:
+> > > >
+> > > > find_first{,_zero}_bit is a more effective analogue of 'next' version
+> > if
+> > > > start == 0. This patch replaces 'next' with 'first' where things look
+> > > > trivial.
+> > >
+> > > Depending on the maintainers (but I think there will be at least few
+> > > in this case) they would like to have this be split on a per-driver
+> > > basis.
+> > > I counted 17 patches. I would split.
+> > >
+> > > Since many of them are independent you may send without Cc'ing all
+> > > non-relevant people in each case.
+> >
+> > submitting-patches.rst says:
+> >
+> >         On the other hand, if you make a single change to numerous files,
+> >         group those changes into a single patch.  Thus a single logical
+> > change
+> >         is contained within a single patch.
+> >
+> > Also refer 96d4f267e40f9 ("Remove 'type' argument from access_ok()
+> > functioin.")
+> 
+> 
+> Mixing arch and non arch is not good, fs stuff can be separated as well,
+> so, at least 4 patches. Otherwise it might be not good for bissection /
+> reverting.
 
-There is already a patch on the ML for optimizing the assembly version.
-https://patchwork.kernel.org/project/linux-riscv/patch/20210216225555.4976-1-gary@garyguo.net/
+Actually I don't have a problem taking/merging splatterpatches like
+this one, as long as all relevant maintainers are cc'ed throughout. 
 
-Would you please try that and compare the results?
+If they review/test/ack then great.  If they don't then their stuff
+breaks during -rc and they get to fix it (this almost never happens
+anyway).
 
-Regards,
-Bin
+If the splatterpatch is prepared as a series of patches then that's OK
+as well.  I'll queue them all up behind linux-next so I can see when
+maintainers have merged them and drop the individual patches as/when
+needed.
+
+On balance...  I guess individual patches is a bit better because the
+more diligent maintainers will sometimes merge them and get them better
+tested.  But in practice, 95% of maintainers will eyeball it, say "yeah
+fine" and let Andrew handle it.
+
