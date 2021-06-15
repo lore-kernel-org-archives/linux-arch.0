@@ -2,96 +2,103 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C3E45C48BDF
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 08:47:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7BE09C48BE5
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 08:57:12 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A41E161420
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 08:47:45 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 5ABA561425
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 08:57:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230519AbhFOIts (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 15 Jun 2021 04:49:48 -0400
-Received: from mout.kundenserver.de ([212.227.126.130]:59837 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231161AbhFOIts (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jun 2021 04:49:48 -0400
-Received: from mail-wm1-f53.google.com ([209.85.128.53]) by
- mrelayeu.kundenserver.de (mreue012 [213.165.67.97]) with ESMTPSA (Nemesis) id
- 1MdwRi-1lLfir10Eg-00b5Va; Tue, 15 Jun 2021 10:47:43 +0200
-Received: by mail-wm1-f53.google.com with SMTP id l18-20020a1ced120000b029014c1adff1edso1170424wmh.4;
-        Tue, 15 Jun 2021 01:47:43 -0700 (PDT)
-X-Gm-Message-State: AOAM5330EjP6WWHsltiDv2xyBKLUHYXumQJ69RM7gt6B5CQR0P9Gueu8
-        GK/322yCMRloyydR1dO01cyYQQ54boSikRHb9J8=
-X-Google-Smtp-Source: ABdhPJwlOlvyBnTmdbYYrL60W15jGBG2tOZQL5Qf0MNgMdBpE8tHfalX5VQTsaiojZvIPdI3ABttEP6/qcGwH98RFS8=
-X-Received: by 2002:a1c:28a:: with SMTP id 132mr2715045wmc.120.1623746862894;
- Tue, 15 Jun 2021 01:47:42 -0700 (PDT)
+        id S230455AbhFOI7P convert rfc822-to-8bit (ORCPT
+        <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 15 Jun 2021 04:59:15 -0400
+Received: from eu-smtp-delivery-151.mimecast.com ([185.58.85.151]:57063 "EHLO
+        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S230332AbhFOI7P (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 15 Jun 2021 04:59:15 -0400
+Received: from AcuMS.aculab.com (156.67.243.121 [156.67.243.121]) (Using
+ TLS) by relay.mimecast.com with ESMTP id
+ uk-mta-68-ED9ugU7XN0-kOTjofplO1Q-1; Tue, 15 Jun 2021 09:57:08 +0100
+X-MC-Unique: ED9ugU7XN0-kOTjofplO1Q-1
+Received: from AcuMS.Aculab.com (10.202.163.6) by AcuMS.aculab.com
+ (10.202.163.6) with Microsoft SMTP Server (TLS) id 15.0.1497.18; Tue, 15 Jun
+ 2021 09:57:07 +0100
+Received: from AcuMS.Aculab.com ([fe80::994c:f5c2:35d6:9b65]) by
+ AcuMS.aculab.com ([fe80::994c:f5c2:35d6:9b65%12]) with mapi id
+ 15.00.1497.018; Tue, 15 Jun 2021 09:57:07 +0100
+From:   David Laight <David.Laight@ACULAB.COM>
+To:     'Matteo Croce' <mcroce@linux.microsoft.com>,
+        "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>
+CC:     "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Atish Patra <atish.patra@wdc.com>,
+        "Emil Renner Berthing" <kernel@esmil.dk>,
+        Akira Tsukamoto <akira.tsukamoto@gmail.com>,
+        Drew Fustini <drew@beagleboard.org>,
+        Bin Meng <bmeng.cn@gmail.com>
+Subject: RE: [PATCH 1/3] riscv: optimized memcpy
+Thread-Topic: [PATCH 1/3] riscv: optimized memcpy
+Thread-Index: AQHXYY/3XkdMIImxVUmoQbZ37iIZIqsUw3ig
+Date:   Tue, 15 Jun 2021 08:57:07 +0000
+Message-ID: <6cff2a895db94e6fadd4ddffb8906a73@AcuMS.aculab.com>
+References: <20210615023812.50885-1-mcroce@linux.microsoft.com>
+ <20210615023812.50885-2-mcroce@linux.microsoft.com>
+In-Reply-To: <20210615023812.50885-2-mcroce@linux.microsoft.com>
+Accept-Language: en-GB, en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+x-ms-exchange-transport-fromentityheader: Hosted
+x-originating-ip: [10.202.205.107]
 MIME-Version: 1.0
-References: <20210614153712.313707-1-marcin@juszkiewicz.com.pl> <20210614164454.GC29751@quack2.suse.cz>
-In-Reply-To: <20210614164454.GC29751@quack2.suse.cz>
-From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Tue, 15 Jun 2021 10:45:38 +0200
-X-Gmail-Original-Message-ID: <CAK8P3a3XbbJ8WnzdsE5f4Uk-O5Z_mBsjc21E6AKuVavvF-_3Cw@mail.gmail.com>
-Message-ID: <CAK8P3a3XbbJ8WnzdsE5f4Uk-O5Z_mBsjc21E6AKuVavvF-_3Cw@mail.gmail.com>
-Subject: Re: [PATCH] quota: finish disable quotactl_path syscall
-To:     Jan Kara <jack@suse.cz>
-Cc:     Marcin Juszkiewicz <marcin@juszkiewicz.com.pl>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Christian Brauner <christian.brauner@ubuntu.com>,
-        Sascha Hauer <s.hauer@pengutronix.de>,
-        linux-arch <linux-arch@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
-X-Provags-ID: V03:K1:KkbO7KzbEuX4jWx+R8lfjIckfLNoYmrZriVAoSBECDqAS6Qw2V4
- Czt9hWtaGxBHVSTq+6fBoVxr7WqCmy8XZRLeC2s14kjAsvmQ83qmCP0t45OQRXNZ4XosLjX
- QHY2ygrefDUekWJpjwg40Nz7g9QIEPtFzXZjQ68XLNYqVep/cBnFFf4OZg5C4pqt72viWBi
- QF9B8iR77171claJHQJ+w==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:J0cL1T0iGeE=:q0VTqCjwi2OsH24nZIEnmn
- q5doy+eIaGss//hXX8FMoG+Kun0t6FEZK6WTkd1H0Wkzg6WTJah051KK845DcBkXoAh9z1guK
- hWbrs5Z8o5rlT7UaGl3E0qQQxYE4wvxfTkl8UH2S3SX7S7rtJYjkjZnlYrNowv4JDej29ZbKR
- j+9IvVPLzLzQtGXucju5VAf8MaRhEQlB0mgwzV8udqzPZbB9CcjJDYHFQqYuE9H2npXFcaHX+
- cop+6l1dHCfyOKfgAKyvODVTYwKuX8Sz2fxHYSSsPHs6qp78BBgYIo6Voglh418HHxMzZex4B
- 3ypuUybf3bDqg4Qh0KYn43N7h6JG+WIDgvt4A0BN1nktB6sVH5qSoEwgBw4p0T1SWV9IwI0nA
- XfAuohviQDrbAQ6E7IBW+R6bWV78CXglTpeFntTjX2ubvawooyFctzQ/u+oldR+nCZd7pcFFJ
- vLVD/gJE3IpPuwKh+K+h/bCKtlf/3VYr5qiqGIS3LGv9CBu3I9xW0t9dikkUWT3OCoDALUfkd
- SF1gf+De13CJxhATbIWfnB2fA8tmvpoPYuvyrzd/eVMTRVVI0jBjjA6GMMQUgd0tynHbrRyV3
- gJgJ8dvNwWxKkLZYlDoGZ2m6nmzY6f8kuuh9/7eiVEV3QEexE3g6dLZpCjzEceNTBsPeJ/Db/
- pjkU=
+Authentication-Results: relay.mimecast.com;
+        auth=pass smtp.auth=C51A453 smtp.mailfrom=david.laight@aculab.com
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: aculab.com
+Content-Language: en-US
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Jun 14, 2021 at 6:45 PM Jan Kara <jack@suse.cz> wrote:
->
-> On Mon 14-06-21 17:37:12, Marcin Juszkiewicz wrote:
-> > In commit 5b9fedb31e47 ("quota: Disable quotactl_path syscall") Jan Kara
-> > disabled quotactl_path syscall on several architectures.
-> >
-> > This commit disables it on all architectures using unified list of
-> > system calls:
-> >
-> > - arm64
-> > - arc
-> > - csky
-> > - h8300
-> > - hexagon
-> > - nds32
-> > - nios2
-> > - openrisc
-> > - riscv (32/64)
-> >
-> > CC: Jan Kara <jack@suse.cz>
-> > CC: Christian Brauner <christian.brauner@ubuntu.com>
-> > CC: Sascha Hauer <s.hauer@pengutronix.de>
-> > Link: https://lore.kernel.org/lkml/20210512153621.n5u43jsytbik4yze@wittgenstein
-> >
-> > Signed-off-by: Marcin Juszkiewicz <marcin@juszkiewicz.com.pl>
->
-> Aha, I've missed that one. Thanks for catching this. Arnd, will you take
-> this patch or should I take it through my tree?
+From: Matteo Croce
+> Sent: 15 June 2021 03:38
+> 
+> Write a C version of memcpy() which uses the biggest data size allowed,
+> without generating unaligned accesses.
 
-I don't have any other fixes for 5.13 at the moment, so I would prefer it if
-you could pick it up.
+I'm surprised that the C loop:
 
-       Arnd
+> +		for (; count >= bytes_long; count -= bytes_long)
+> +			*d.ulong++ = *s.ulong++;
+
+ends up being faster than the ASM 'read lots' - 'write lots' loop.
+
+Especially since there was an earlier patch to convert
+copy_to/from_user() to use the ASM 'read lots' - 'write lots' loop
+instead of a tight single register copy loop.
+
+I'd also guess that the performance needs to be measured on
+different classes of riscv cpu.
+
+A simple cpu will behave differently to one that can execute
+multiple instructions per clock.
+Any form of 'out of order' execution also changes things.
+The other big change is whether the cpu can to a memory
+read and write in the same clock.
+
+I'd guess that riscv exist with some/all of those features.
+
+	David
+
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
+
