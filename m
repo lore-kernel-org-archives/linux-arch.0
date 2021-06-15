@@ -2,537 +2,421 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2AB95C2B9F4
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 00:55:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4BEADC2B9F4
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 02:41:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 00EB8613B9
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 00:55:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2019861350
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 02:41:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229689AbhFOA5k (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 14 Jun 2021 20:57:40 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52364 "EHLO
+        id S231434AbhFOCnh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 14 Jun 2021 22:43:37 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47588 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229649AbhFOA5k (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jun 2021 20:57:40 -0400
-Received: from mail-pj1-x1033.google.com (mail-pj1-x1033.google.com [IPv6:2607:f8b0:4864:20::1033])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1FD24C061767;
-        Mon, 14 Jun 2021 17:55:21 -0700 (PDT)
-Received: by mail-pj1-x1033.google.com with SMTP id g4so10810820pjk.0;
-        Mon, 14 Jun 2021 17:55:21 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=date:from:subject:to:cc:references:in-reply-to:mime-version
-         :message-id:content-transfer-encoding;
-        bh=QzrGxTnPUC0jBXV0ew4TX56ApKartjN9afHhkE9XLEE=;
-        b=FCfbIXXUJ9eD9iOp6G0KQqQGSKE4giS4Nt4l9IMPEFUcnjgYZddmFf6Wt8XKNl0KEw
-         qttfH81lEIgK7PMN6clfFzEiTLG6+VhHnO51V8zMbZ/TS68/i2LDxgoc1F9XDMp0qclr
-         SARt0s6cBrlzJ592WRTKguK2SES+kMtd/XF00k7Fhu28g3h4OiRh7hfoLqtXqQbLq7Mm
-         jsbl6lBzZ5611JE9efl8EesI5rAUjPeySV90w5LOPlVwiDr7AYu3TcVeaAH8lgEb4CVb
-         vvAkhABp51viWpluDNSyosBLo8v3IgE/7NoVvK8i10mt7pxPDuSRpgQbt3+Q869EmoJJ
-         ysdA==
+        with ESMTP id S231468AbhFOCnf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jun 2021 22:43:35 -0400
+Received: from mail-ej1-x632.google.com (mail-ej1-x632.google.com [IPv6:2a00:1450:4864:20::632])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 45766C0617AF;
+        Mon, 14 Jun 2021 19:41:31 -0700 (PDT)
+Received: by mail-ej1-x632.google.com with SMTP id ce15so19808084ejb.4;
+        Mon, 14 Jun 2021 19:41:31 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:subject:to:cc:references:in-reply-to
-         :mime-version:message-id:content-transfer-encoding;
-        bh=QzrGxTnPUC0jBXV0ew4TX56ApKartjN9afHhkE9XLEE=;
-        b=Sr7hEDz9WQnpIvCINcP5FXlKFpOPEd9GL3GHZKzezRsU7jdIaD41NXkggCbc9dXzMd
-         pD/s5bakVUxITDYZPGSam3XMeOdkkz/uRZtpR0hDTiJfWEc3cvMXCdhmH6l8/5q7EdqE
-         Ru1NDZMbROo0fiKkjZDdrTcmOG8ekhgXcMP+RaB+QSCQQ8CkU3dlwK2C8Fk8EGtxKcUK
-         XfQeFVb/oKtvpKRMaOwKvTCgs+YeQTg6xkisTdndWI7J7WzKmRa5FP/TzoPE0Tl3CtCs
-         wviIS3RLWfwKoYRYc8bxe4rluqwHlRyoQw2+7BN6Z9zdVvpVObdSdRr2YlD39rwWp5uX
-         JoZA==
-X-Gm-Message-State: AOAM531f4AlBJDYzwGDdkRYPP/VikKLOgjFC46kwF3JLpM+NzwK41Yjv
-        KMCZidpJ1TnXrfI6jqT6OcY=
-X-Google-Smtp-Source: ABdhPJx6GGY387qPBCOxNwRjZWcTOS6D6cRRTljNq3x31g0rJKHMy831BJ/WWcKDTMyTJ4anVdRfVQ==
-X-Received: by 2002:a17:902:e550:b029:110:3074:e7cd with SMTP id n16-20020a170902e550b02901103074e7cdmr1706050plf.25.1623718520421;
-        Mon, 14 Jun 2021 17:55:20 -0700 (PDT)
-Received: from localhost (60-242-147-73.tpgi.com.au. [60.242.147.73])
-        by smtp.gmail.com with ESMTPSA id c62sm13768027pfa.12.2021.06.14.17.55.19
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=OThMiBWqm2X7NaT3Fk/xKklrPu8milZY09O+f8YgZh0=;
+        b=G68ctj6Pmlw+06p0rD0u+DCxP5/XYDJWVgWMzntJ6lhCSIkUcDerwZPjfW5y72tWrt
+         k2uEYt54GNQFrGQ48Lcc0TVJrQ8Mye7MRlojh5N1qgpnOyREGjvl7MYHehriK/lkrMi9
+         mG3clPJBjIFEV+J/iJN/gZTnmdII7azbGzONRP8A/tvvY9VpxlYw57u689BO+0Ll255a
+         2eshHnk7Bgl6Dxueg0j6kDTt87dsaWZZtsE6AQbgMJ4jseSUwQoxoSF6Fy6foSpFrvbv
+         9G30r5O47mytsNM8SUZ/6qy4fLfmrRz+m9k4zKk42DT+2GN9iaquCIHXhDQb2NPE1ScM
+         xItw==
+X-Gm-Message-State: AOAM532EV50Q7do2tAD+M4Xpu4+Vtn69PuMcCJFbMnvs7khJ9YISlkmk
+        5f//MBdtsXvie3t+TycolkA=
+X-Google-Smtp-Source: ABdhPJzzUePkA5GTrHcS9fewGvf6Z628SeyPzKTgjrUu8tj8JkSjLwWjra5xnyQZWv9gOkPoN+xOhw==
+X-Received: by 2002:a17:907:270b:: with SMTP id w11mr16382855ejk.7.1623724822768;
+        Mon, 14 Jun 2021 19:40:22 -0700 (PDT)
+Received: from msft-t490s.teknoraver.net (net-37-119-128-179.cust.vodafonedsl.it. [37.119.128.179])
+        by smtp.gmail.com with ESMTPSA id cn25sm834966edb.69.2021.06.14.19.40.21
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 14 Jun 2021 17:55:19 -0700 (PDT)
-Date:   Tue, 15 Jun 2021 10:55:14 +1000
-From:   Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v4 2/4] lazy tlb: allow lazy tlb mm refcounting to be
- configurable
-To:     Andrew Morton <akpm@linux-foundation.org>,
-        Andy Lutomirski <luto@kernel.org>
-Cc:     Anton Blanchard <anton@ozlabs.org>, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-mm@kvack.org,
-        linuxppc-dev@lists.ozlabs.org,
-        Randy Dunlap <rdunlap@infradead.org>,
-        Rik van Riel <riel@surriel.com>,
-        Linus Torvalds <torvalds@linux-foundation.org>
-References: <20210605014216.446867-1-npiggin@gmail.com>
-        <20210605014216.446867-3-npiggin@gmail.com>
-        <8ac1d420-b861-f586-bacf-8c3949e9b5c4@kernel.org>
-        <1623629185.fxzl5xdab6.astroid@bobo.none>
-        <02e16a2f-2f58-b4f2-d335-065e007bcea2@kernel.org>
-        <1623643443.b9twp3txmw.astroid@bobo.none>
-        <1623645385.u2cqbcn3co.astroid@bobo.none>
-        <1623647326.0np4yc0lo0.astroid@bobo.none>
-        <aecf5bc8-9018-c021-287d-6a975b7a6235@kernel.org>
-In-Reply-To: <aecf5bc8-9018-c021-287d-6a975b7a6235@kernel.org>
+        Mon, 14 Jun 2021 19:40:22 -0700 (PDT)
+From:   Matteo Croce <mcroce@linux.microsoft.com>
+To:     linux-riscv@lists.infradead.org
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Atish Patra <atish.patra@wdc.com>,
+        Emil Renner Berthing <kernel@esmil.dk>,
+        Akira Tsukamoto <akira.tsukamoto@gmail.com>,
+        Drew Fustini <drew@beagleboard.org>,
+        Bin Meng <bmeng.cn@gmail.com>
+Subject: [PATCH 1/3] riscv: optimized memcpy
+Date:   Tue, 15 Jun 2021 04:38:10 +0200
+Message-Id: <20210615023812.50885-2-mcroce@linux.microsoft.com>
+X-Mailer: git-send-email 2.31.1
+In-Reply-To: <20210615023812.50885-1-mcroce@linux.microsoft.com>
+References: <20210615023812.50885-1-mcroce@linux.microsoft.com>
 MIME-Version: 1.0
-Message-Id: <1623715482.4lskm3cx10.astroid@bobo.none>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Excerpts from Andy Lutomirski's message of June 15, 2021 2:20 am:
-> Replying to several emails at once...
->=20
->=20
-> On 6/13/21 10:21 PM, Nicholas Piggin wrote:
->> Excerpts from Nicholas Piggin's message of June 14, 2021 2:47 pm:
->>> Excerpts from Nicholas Piggin's message of June 14, 2021 2:14 pm:
->>>> Excerpts from Andy Lutomirski's message of June 14, 2021 1:52 pm:
->>>>> On 6/13/21 5:45 PM, Nicholas Piggin wrote:
->>>>>> Excerpts from Andy Lutomirski's message of June 9, 2021 2:20 am:
->>>>>>> On 6/4/21 6:42 PM, Nicholas Piggin wrote:
->>>>>>>> Add CONFIG_MMU_TLB_REFCOUNT which enables refcounting of the lazy =
-tlb mm
->>>>>>>> when it is context switched. This can be disabled by architectures=
- that
->>>>>>>> don't require this refcounting if they clean up lazy tlb mms when =
-the
->>>>>>>> last refcount is dropped. Currently this is always enabled, which =
-is
->>>>>>>> what existing code does, so the patch is effectively a no-op.
->>>>>>>>
->>>>>>>> Rename rq->prev_mm to rq->prev_lazy_mm, because that's what it is.
->>>>>>>
->>>>>>> I am in favor of this approach, but I would be a lot more comfortab=
-le
->>>>>>> with the resulting code if task->active_mm were at least better
->>>>>>> documented and possibly even guarded by ifdefs.
->>>>>>
->>>>>> active_mm is fairly well documented in Documentation/active_mm.rst I=
-MO.
->>>>>> I don't think anything has changed in 20 years, I don't know what mo=
-re
->>>>>> is needed, but if you can add to documentation that would be nice. M=
-aybe
->>>>>> moving a bit of that into .c and .h files?
->>>>>>
->>>>>
->>>>> Quoting from that file:
->>>>>
->>>>>   - however, we obviously need to keep track of which address space w=
-e
->>>>>     "stole" for such an anonymous user. For that, we have "tsk->activ=
-e_mm",
->>>>>     which shows what the currently active address space is.
->>>>>
->>>>> This isn't even true right now on x86.
->>>>
->>>> From the perspective of core code, it is. x86 might do something crazy=
-=20
->>>> with it, but it has to make it appear this way to non-arch code that
->>>> uses active_mm.
->>>>
->>>> Is x86's scheme documented?
->=20
-> arch/x86/include/asm/tlbflush.h documents it a bit:
->=20
->         /*
->          * cpu_tlbstate.loaded_mm should match CR3 whenever interrupts
->          * are on.  This means that it may not match current->active_mm,
->          * which will contain the previous user mm when we're in lazy TLB
->          * mode even if we've already switched back to swapper_pg_dir.
->          *
->          * During switch_mm_irqs_off(), loaded_mm will be set to
->          * LOADED_MM_SWITCHING during the brief interrupts-off window
->          * when CR3 and loaded_mm would otherwise be inconsistent.  This
->          * is for nmi_uaccess_okay()'s benefit.
->          */
+From: Matteo Croce <mcroce@microsoft.com>
 
-So the only documentation relating to the current active_mm value or=20
-refcounting is that it may not match what the x86 specific code is=20
-doing?
+Write a C version of memcpy() which uses the biggest data size allowed,
+without generating unaligned accesses.
 
-All this complexity you accuse me of adding is entirely in x86 code.
-On other architectures, it's very simple and understandable, and=20
-documented. I don't know how else to explain this.
+The procedure is made of three steps:
+First copy data one byte at time until the destination buffer is aligned
+to a long boundary.
+Then copy the data one long at time shifting the current and the next u8
+to compose a long at every cycle.
+Finally, copy the remainder one byte at time.
 
->>>>
->>>>> With your patch applied:
->>>>>
->>>>>  To support all that, the "struct mm_struct" now has two counters: a
->>>>>  "mm_users" counter that is how many "real address space users" there=
- are,
->>>>>  and a "mm_count" counter that is the number of "lazy" users (ie anon=
-ymous
->>>>>  users) plus one if there are any real users.
->>>>>
->>>>> isn't even true any more.
->>>>
->>>> Well yeah but the active_mm concept hasn't changed. The refcounting=20
->>>> change is hopefully reasonably documented?
->=20
-> active_mm is *only* refcounting in the core code.  See below.
+On a BeagleV, the TCP RX throughput increased by 45%:
 
-It's just not. It's passed in to switch_mm. Most architectures except=20
-for x86 require this.
+before:
 
->>>>>
->>>>> I looked through all active_mm references in core code.  We have:
->>>>>
->>>>> kernel/sched/core.c: it's all refcounting, although it's a bit tangle=
-d
->>>>> with membarrier.
->>>>>
->>>>> kernel/kthread.c: same.  refcounting and membarrier stuff.
->>>>>
->>>>> kernel/exit.c: exit_mm() a BUG_ON().
->>>>>
->>>>> kernel/fork.c: initialization code and a warning.
->>>>>
->>>>> kernel/cpu.c: cpu offline stuff.  wouldn't be needed if active_mm wen=
-t away.
->>>>>
->>>>> fs/exec.c: nothing of interest
->>>>
->>>> I might not have been clear. Core code doesn't need active_mm if=20
->>>> active_mm somehow goes away. I'm saying active_mm can't go away becaus=
-e
->>>> it's needed to support (most) archs that do lazy tlb mm switching.
->>>>
->>>> The part I don't understand is when you say it can just go away. How?=20
->=20
-> #ifdef CONFIG_MMU_TLB_REFCOUNT
-> 	struct mm_struct *active_mm;
-> #endif
+$ iperf3 -c beaglev
+Connecting to host beaglev, port 5201
+[  5] local 192.168.85.6 port 44840 connected to 192.168.85.48 port 5201
+[ ID] Interval           Transfer     Bitrate         Retr  Cwnd
+[  5]   0.00-1.00   sec  76.4 MBytes   641 Mbits/sec   27    624 KBytes
+[  5]   1.00-2.00   sec  72.5 MBytes   608 Mbits/sec    0    708 KBytes
+[  5]   2.00-3.00   sec  73.8 MBytes   619 Mbits/sec   10    451 KBytes
+[  5]   3.00-4.00   sec  72.5 MBytes   608 Mbits/sec    0    564 KBytes
+[  5]   4.00-5.00   sec  73.8 MBytes   619 Mbits/sec    0    658 KBytes
+[  5]   5.00-6.00   sec  73.8 MBytes   619 Mbits/sec   14    522 KBytes
+[  5]   6.00-7.00   sec  73.8 MBytes   619 Mbits/sec    0    621 KBytes
+[  5]   7.00-8.00   sec  72.5 MBytes   608 Mbits/sec    0    706 KBytes
+[  5]   8.00-9.00   sec  73.8 MBytes   619 Mbits/sec   20    580 KBytes
+[  5]   9.00-10.00  sec  73.8 MBytes   619 Mbits/sec    0    672 KBytes
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bitrate         Retr
+[  5]   0.00-10.00  sec   736 MBytes   618 Mbits/sec   71             sender
+[  5]   0.00-10.01  sec   733 MBytes   615 Mbits/sec                  receiver
 
-Thanks for returning the snark.
+after:
 
->>>>
->>>>> I didn't go through drivers, but I maintain my point.  active_mm is
->>>>> there for refcounting.  So please don't just make it even more confus=
-ing
->>>>> -- do your performance improvement, but improve the code at the same
->>>>> time: get rid of active_mm, at least on architectures that opt out of
->>>>> the refcounting.
->>>>
->>>> powerpc opts out of the refcounting and can not "get rid of active_mm"=
-.
->>>> Not even in theory.
->>>
->>> That is to say, it does do a type of reference management that requires=
-=20
->>> active_mm so you can argue it has not entirely opted out of refcounting=
-.
->>> But we're not just doing refcounting for the sake of refcounting! That
->>> would make no sense.
->>>
->>> active_mm is required because that's the mm that we have switched to=20
->>> (from core code's perspective), and it is integral to know when to=20
->>> switch to a different mm. See how active_mm is a fundamental concept
->>> in core code? It's part of the contract between core code and the
->>> arch mm context management calls. reference counting follows from there
->>> but it's not the _reason_ for this code.
->=20
-> I don't understand what contract you're talking about.  The core code
-> maintains an active_mm counter and keeps that mm_struct from
-> disappearing.  That's *it*.  The core code does not care that active_mm
-> is active, and x86 provides evidence of that -- on x86,
-> current->active_mm may well be completely unused.
+$ iperf3 -c beaglev
+Connecting to host beaglev, port 5201
+[  5] local 192.168.85.6 port 44864 connected to 192.168.85.48 port 5201
+[ ID] Interval           Transfer     Bitrate         Retr  Cwnd
+[  5]   0.00-1.00   sec   109 MBytes   912 Mbits/sec   48    559 KBytes
+[  5]   1.00-2.00   sec   108 MBytes   902 Mbits/sec    0    690 KBytes
+[  5]   2.00-3.00   sec   106 MBytes   891 Mbits/sec   36    396 KBytes
+[  5]   3.00-4.00   sec   108 MBytes   902 Mbits/sec    0    567 KBytes
+[  5]   4.00-5.00   sec   106 MBytes   891 Mbits/sec    0    699 KBytes
+[  5]   5.00-6.00   sec   106 MBytes   891 Mbits/sec   32    414 KBytes
+[  5]   6.00-7.00   sec   106 MBytes   891 Mbits/sec    0    583 KBytes
+[  5]   7.00-8.00   sec   106 MBytes   891 Mbits/sec    0    708 KBytes
+[  5]   8.00-9.00   sec   106 MBytes   891 Mbits/sec   28    433 KBytes
+[  5]   9.00-10.00  sec   108 MBytes   902 Mbits/sec    0    591 KBytes
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bitrate         Retr
+[  5]   0.00-10.00  sec  1.04 GBytes   897 Mbits/sec  144             sender
+[  5]   0.00-10.01  sec  1.04 GBytes   894 Mbits/sec                  receiver
 
-I already acknowledged archs can do their own thing under the covers if=20
-they want.
+And the decreased CPU time of the memcpy() is observable with perf top.
+This is the `perf top -Ue task-clock` output when doing the test:
 
->=20
->>>
->>> Pretend the reference problem does not exit (whether by refcounting or=20
->>> shootdown or garbage collection or whatever). We still can't remove=20
->>> active_mm! We need it to know how to call into arch functions like=20
->>> switch_mm.
->=20
-> static inline void do_switch_mm(struct task_struct *prev_task, ...)
-> {
-> #ifdef CONFIG_MMU_TLB_REFCOUNT
-> 	switch_mm(...);
-> #else
-> 	switch_mm(fewer parameters);
-> 	/* or pass NULL or whatever. */
-> #endif
-> }
+before:
 
-And prev_task comes from active_mm, ergo core code requires the concept=20
-of active_mm.
+Overhead  Shared O  Symbol
+  42.22%  [kernel]  [k] memcpy
+  35.00%  [kernel]  [k] __asm_copy_to_user
+   3.50%  [kernel]  [k] sifive_l2_flush64_range
+   2.30%  [kernel]  [k] stmmac_napi_poll_rx
+   1.11%  [kernel]  [k] memset
 
-I already said I'm quite happy for wrappers to be added so those can=20
-compile out of an arch like x86. That's not doing anything for=20
-complexity of core code, because it still needs to maintain the active=20
-mm wrappers.
+after:
 
->>> I don't know if you just forgot that critical requirement in your above=
-=20
->>> list, or you actually are entirely using x86's mental model for this=20
->>> code which is doing something entirely different that does not need it=20
->>> at all. If that is the case I really don't mind some cleanup or wrapper=
-=20
->>> functions for x86 do entirely do its own thing, but if that's the case
->>> you can't criticize core code's use of active_mm due to the current
->>> state of x86. It's x86 that needs documentation and cleaning up.
->>=20
->> Ah, that must be where your confusion is coming from: x86's switch_mm=20
->> doesn't use prev anywhere, and the reference scheme it is using appears=20
->> to be under-documented, although vague references in changelogs suggest=20
->> it has not actually "opted out" of active_mm refcounting.
->=20
-> All of this is true, except I don't believe I'm confused.
+Overhead  Shared O  Symbol
+  45.69%  [kernel]  [k] __asm_copy_to_user
+  29.06%  [kernel]  [k] memcpy
+   4.09%  [kernel]  [k] sifive_l2_flush64_range
+   2.77%  [kernel]  [k] stmmac_napi_poll_rx
+   1.24%  [kernel]  [k] memset
 
-Well someone is. My patches don't change any of the fundamental=20
-complexity of core code's maintaining of active_mm, nor alleviate the
-requirement to keep active_mm around under the new config introduced,
-and yet you are saying:
+Signed-off-by: Matteo Croce <mcroce@microsoft.com>
+---
+ arch/riscv/include/asm/string.h |   8 ++-
+ arch/riscv/kernel/riscv_ksyms.c |   2 -
+ arch/riscv/lib/Makefile         |   2 +-
+ arch/riscv/lib/memcpy.S         | 108 --------------------------------
+ arch/riscv/lib/string.c         |  94 +++++++++++++++++++++++++++
+ 5 files changed, 101 insertions(+), 113 deletions(-)
+ delete mode 100644 arch/riscv/lib/memcpy.S
+ create mode 100644 arch/riscv/lib/string.c
 
-  I am in favor of this approach, but I would be a lot more comfortable
-  with the resulting code if task->active_mm were at least better
-  documented and possibly even guarded by ifdefs.
-
-It doesn't make sense. It can't be guarded by ifdefs even if we took
-away the shootdown IPI's use of it as part of reference / lifetime
-management.
-
-And that you don't like the state of the code but I'm trying to wrangle=20
-specifics out of you on that and it's difficult.
-
->>=20
->> That's understandable, but please redirect your objections to the proper=
-=20
->> place. git blame suggests 3d28ebceaffab.
->=20
-> Thanks for the snark.
-
-Is it not true? I don't mean that one patch causing all the x86=20
-complexity or even making the situation worse itself. But you seem to be=20
-asking my series to do things that really apply to the x86 changes over
-the past few years that got us here.
-
->=20
-> Here's the situation.
->=20
-> Before that patch, x86 more or less fully used the core scheme.  With
-> that patch, x86 has the property that loaded_mm (which is used) either
-> points to init_mm (which is permanently live) or to active_mm (which the
-> core code keeps alive, which is the whole point).  x86 still uses the
-> core active_mm refcounting scheme.  The result is a bit overcomplicated,
-> but it works, and it enabled massive improvements to the x86 arch code.
->=20
-> You are proposing a whole new simplification in which an arch can opt in
-> to telling the core code that it doesn't need to keep active_mm alive.
-> Great!  But now it's possible to get quite confused -- either an
-> elaborate dance is needed or current->active_mm could point to freed
-> memory.  This is poor design.
-
-powerpc still needs active_mm, there's zero point to configuring it away=20
-and maintaining exactly the same thing in a per-cpu variable in the arch
-code because the code has to be there in the core for all other archs
-anyway so that would be stupid.
-
-I would be more than happy to try help review a patch that helps the
-x86 situation, but my patch is not intended to do what x86 code wants.
-
-> I'm entirely in favor of allowing arches to opt out of active_mm
-> refcounting.  As you've noticed, it's quite expensive on large systems.
-> x86 would opt out, too, if given the opportunity [1].  But I think you
-> should do it right.  If an arch opts out of active_mm refcounting, then
-> keeping a lazy mm (if any!) alive becomes entirely the arch code's
-> responsibility.
->
-> Once that happens, task->active_mm is not just a waste
-> of 4-8 bytes of memory per task, it's actively harmful -- some code,
-> somewhere in the kernel, might dereference it and access freed memory!
-
-That's not an accurate description of my patches. powerpc still requires=20
-active_mm exactly the same, and the "elaborate dance" amounts to having
-CPUs stop using the mm as a lazy tlb when the last user goes away.
-
->=20
-> So please do your patches right.  By all means add a new config option,
-> but make that config option make active_mm go away entirely.  Then it
-> can't be misused.
-
-I already have a patch that's halfway there I pulled out of the series
-for the last submission. As I said, feel free to build on it.
-
->=20
-> NAK to the current set.
-
-I propose instead we do take the series, and write some patches on top=20
-of that which helps x86. Here's 1/n
-
-2/n is to make wrappers for active_mm maintenance in core code.
-
-3/n is adjust context_switch_nolazy() to just use init_mm (or NULL) directl=
-y
-and put ifdefs around active_mm.
-
-Is that what x86 wants?
-
-Thanks,
-Nick
-
-commit 99f90520821b9717d4447872354c2933894a1100
-Author: Nicholas Piggin <npiggin@gmail.com>
-Date:   Thu Jul 9 15:01:25 2020 +1000
-
-    lazy tlb: allow lazy tlb mm switching to be configurable
-   =20
-    Add CONFIG_MMU_LAZY_TLB which can be configured out to disable the lazy
-    tlb mechanism entirely, and switches to init_mm when switching to a
-    kernel thread.
-   =20
-    NOMMU systems could easily go without this and save a bit of code and
-    the refcount atomics, because their mm switch is a no-op. They have not
-    been switched over by default because the arch code needs to be audited
-    and tested for lazy tlb mm refcounting and converted to _lazy_tlb
-    refcounting if necessary.
-   =20
-    CONFIG_MMU_LAZY_TLB_REFCOUNT is also added, but it must always be
-    enabled if CONFIG_MMU_LAZY_TLB is enabled until the next patch which
-    provides an alternate scheme.
-   =20
-    Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
-
-diff --git a/arch/Kconfig b/arch/Kconfig
-index cf468c9777d8..3b80042bd0c2 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -418,6 +418,26 @@ config ARCH_WANT_IRQS_OFF_ACTIVATE_MM
- 	  irqs disabled over activate_mm. Architectures that do IPI based TLB
- 	  shootdowns should enable this.
-=20
-+# Enable "lazy TLB", which means a user->kernel thread context switch does=
- not
-+# switch the mm to init_mm and the kernel thread takes a reference to the =
-user
-+# mm to provide its kernel mapping. This is how Linux has traditionally wo=
-rked
-+# (see Documentation/vm/active_mm.rst), for performance. Switching to and =
-from
-+# idle thread is a performance-critical case.
-+#
-+# If mm context switches are inexpensive or free (in the case of NOMMU) th=
-en
-+# this could be disabled.
-+#
-+# It would make sense to have this depend on MMU, but need to audit and te=
-st
-+# the NOMMU architectures for lazy mm refcounting first.
-+config MMU_LAZY_TLB
-+	def_bool y
-+	depends on !NO_MMU_LAZY_TLB
+diff --git a/arch/riscv/include/asm/string.h b/arch/riscv/include/asm/string.h
+index 909049366555..6b5d6fc3eab4 100644
+--- a/arch/riscv/include/asm/string.h
++++ b/arch/riscv/include/asm/string.h
+@@ -12,9 +12,13 @@
+ #define __HAVE_ARCH_MEMSET
+ extern asmlinkage void *memset(void *, int, size_t);
+ extern asmlinkage void *__memset(void *, int, size_t);
 +
-+# This allows archs to disable MMU_LAZY_TLB. mmgrab/mmdrop in arch/ code h=
-as
-+# to be audited and switched to _lazy_tlb postfix as necessary.
-+config NO_MMU_LAZY_TLB
-+	def_bool n
++#ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
+ #define __HAVE_ARCH_MEMCPY
+-extern asmlinkage void *memcpy(void *, const void *, size_t);
+-extern asmlinkage void *__memcpy(void *, const void *, size_t);
++extern void *memcpy(void *dest, const void *src, size_t count);
++extern void *__memcpy(void *dest, const void *src, size_t count);
++#endif
 +
- # Use normal mm refcounting for MMU_LAZY_TLB kernel thread references.
- # MMU_LAZY_TLB_REFCOUNT=3Dn can improve the scalability of context switchi=
-ng
- # to/from kernel threads when the same mm is running on a lot of CPUs (a l=
-arge
-@@ -431,6 +451,7 @@ config ARCH_WANT_IRQS_OFF_ACTIVATE_MM
- # to a kthread ->active_mm (non-arch code has been converted already).
- config MMU_LAZY_TLB_REFCOUNT
- 	def_bool y
-+	depends on MMU_LAZY_TLB
- 	depends on !MMU_LAZY_TLB_SHOOTDOWN
-=20
- # This option allows MMU_LAZY_TLB_REFCOUNT=3Dn. It ensures no CPUs are usi=
-ng an
-@@ -445,6 +466,7 @@ config MMU_LAZY_TLB_REFCOUNT
- # MMU_LAZY_TLB_REFCOUNT=3Dn (see above).
- config MMU_LAZY_TLB_SHOOTDOWN
- 	bool
-+	depends on MMU_LAZY_TLB
-=20
- config ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	bool
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 5e10cb712be3..5cb039c686a6 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -4285,22 +4285,10 @@ asmlinkage __visible void schedule_tail(struct task=
-_struct *prev)
- 	calculate_sigpending();
- }
-=20
+ #define __HAVE_ARCH_MEMMOVE
+ extern asmlinkage void *memmove(void *, const void *, size_t);
+ extern asmlinkage void *__memmove(void *, const void *, size_t);
+diff --git a/arch/riscv/kernel/riscv_ksyms.c b/arch/riscv/kernel/riscv_ksyms.c
+index 5ab1c7e1a6ed..3f6d512a5b97 100644
+--- a/arch/riscv/kernel/riscv_ksyms.c
++++ b/arch/riscv/kernel/riscv_ksyms.c
+@@ -10,8 +10,6 @@
+  * Assembly functions that may be used (directly or indirectly) by modules
+  */
+ EXPORT_SYMBOL(memset);
+-EXPORT_SYMBOL(memcpy);
+ EXPORT_SYMBOL(memmove);
+ EXPORT_SYMBOL(__memset);
+-EXPORT_SYMBOL(__memcpy);
+ EXPORT_SYMBOL(__memmove);
+diff --git a/arch/riscv/lib/Makefile b/arch/riscv/lib/Makefile
+index 25d5c9664e57..2ffe85d4baee 100644
+--- a/arch/riscv/lib/Makefile
++++ b/arch/riscv/lib/Makefile
+@@ -1,9 +1,9 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ lib-y			+= delay.o
+-lib-y			+= memcpy.o
+ lib-y			+= memset.o
+ lib-y			+= memmove.o
+ lib-$(CONFIG_MMU)	+= uaccess.o
+ lib-$(CONFIG_64BIT)	+= tishift.o
++lib-$(CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE) += string.o
+ 
+ obj-$(CONFIG_FUNCTION_ERROR_INJECTION) += error-inject.o
+diff --git a/arch/riscv/lib/memcpy.S b/arch/riscv/lib/memcpy.S
+deleted file mode 100644
+index 51ab716253fa..000000000000
+--- a/arch/riscv/lib/memcpy.S
++++ /dev/null
+@@ -1,108 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0-only */
 -/*
-- * context_switch - switch to the new MM and the new thread's register sta=
-te.
+- * Copyright (C) 2013 Regents of the University of California
 - */
--static __always_inline struct rq *
--context_switch(struct rq *rq, struct task_struct *prev,
--	       struct task_struct *next, struct rq_flags *rf)
-+static __always_inline void
-+context_switch_mm(struct rq *rq, struct task_struct *prev,
-+	       struct task_struct *next)
- {
--	prepare_task_switch(rq, prev, next);
 -
+-#include <linux/linkage.h>
+-#include <asm/asm.h>
+-
+-/* void *memcpy(void *, const void *, size_t) */
+-ENTRY(__memcpy)
+-WEAK(memcpy)
+-	move t6, a0  /* Preserve return value */
+-
+-	/* Defer to byte-oriented copy for small sizes */
+-	sltiu a3, a2, 128
+-	bnez a3, 4f
+-	/* Use word-oriented copy only if low-order bits match */
+-	andi a3, t6, SZREG-1
+-	andi a4, a1, SZREG-1
+-	bne a3, a4, 4f
+-
+-	beqz a3, 2f  /* Skip if already aligned */
 -	/*
--	 * For paravirt, this is coupled with an exit in switch_to to
--	 * combine the page table reload and the switch backend into
--	 * one hypercall.
+-	 * Round to nearest double word-aligned address
+-	 * greater than or equal to start address
 -	 */
--	arch_start_context_switch(prev);
+-	andi a3, a1, ~(SZREG-1)
+-	addi a3, a3, SZREG
+-	/* Handle initial misalignment */
+-	sub a4, a3, a1
+-1:
+-	lb a5, 0(a1)
+-	addi a1, a1, 1
+-	sb a5, 0(t6)
+-	addi t6, t6, 1
+-	bltu a1, a3, 1b
+-	sub a2, a2, a4  /* Update count */
 -
- 	/*
- 	 * kernel -> kernel   lazy + transfer active
- 	 *   user -> kernel   lazy + mmgrab_lazy_tlb() active
-@@ -4345,6 +4333,40 @@ context_switch(struct rq *rq, struct task_struct *pr=
-ev,
- #endif
- 		}
- 	}
-+}
-+
-+static __always_inline void
-+context_switch_mm_nolazy(struct rq *rq, struct task_struct *prev,
-+	       struct task_struct *next)
-+{
-+	if (!next->mm)
-+		next->active_mm =3D &init_mm;
-+	membarrier_switch_mm(rq, prev->active_mm, next->active_mm);
-+	switch_mm_irqs_off(prev->active_mm, next->active_mm, next);
-+	if (!prev->mm)
-+		prev->active_mm =3D NULL;
-+}
-+
+-2:
+-	andi a4, a2, ~((16*SZREG)-1)
+-	beqz a4, 4f
+-	add a3, a1, a4
+-3:
+-	REG_L a4,       0(a1)
+-	REG_L a5,   SZREG(a1)
+-	REG_L a6, 2*SZREG(a1)
+-	REG_L a7, 3*SZREG(a1)
+-	REG_L t0, 4*SZREG(a1)
+-	REG_L t1, 5*SZREG(a1)
+-	REG_L t2, 6*SZREG(a1)
+-	REG_L t3, 7*SZREG(a1)
+-	REG_L t4, 8*SZREG(a1)
+-	REG_L t5, 9*SZREG(a1)
+-	REG_S a4,       0(t6)
+-	REG_S a5,   SZREG(t6)
+-	REG_S a6, 2*SZREG(t6)
+-	REG_S a7, 3*SZREG(t6)
+-	REG_S t0, 4*SZREG(t6)
+-	REG_S t1, 5*SZREG(t6)
+-	REG_S t2, 6*SZREG(t6)
+-	REG_S t3, 7*SZREG(t6)
+-	REG_S t4, 8*SZREG(t6)
+-	REG_S t5, 9*SZREG(t6)
+-	REG_L a4, 10*SZREG(a1)
+-	REG_L a5, 11*SZREG(a1)
+-	REG_L a6, 12*SZREG(a1)
+-	REG_L a7, 13*SZREG(a1)
+-	REG_L t0, 14*SZREG(a1)
+-	REG_L t1, 15*SZREG(a1)
+-	addi a1, a1, 16*SZREG
+-	REG_S a4, 10*SZREG(t6)
+-	REG_S a5, 11*SZREG(t6)
+-	REG_S a6, 12*SZREG(t6)
+-	REG_S a7, 13*SZREG(t6)
+-	REG_S t0, 14*SZREG(t6)
+-	REG_S t1, 15*SZREG(t6)
+-	addi t6, t6, 16*SZREG
+-	bltu a1, a3, 3b
+-	andi a2, a2, (16*SZREG)-1  /* Update count */
+-
+-4:
+-	/* Handle trailing misalignment */
+-	beqz a2, 6f
+-	add a3, a1, a2
+-
+-	/* Use word-oriented copy if co-aligned to word boundary */
+-	or a5, a1, t6
+-	or a5, a5, a3
+-	andi a5, a5, 3
+-	bnez a5, 5f
+-7:
+-	lw a4, 0(a1)
+-	addi a1, a1, 4
+-	sw a4, 0(t6)
+-	addi t6, t6, 4
+-	bltu a1, a3, 7b
+-
+-	ret
+-
+-5:
+-	lb a4, 0(a1)
+-	addi a1, a1, 1
+-	sb a4, 0(t6)
+-	addi t6, t6, 1
+-	bltu a1, a3, 5b
+-6:
+-	ret
+-END(__memcpy)
+diff --git a/arch/riscv/lib/string.c b/arch/riscv/lib/string.c
+new file mode 100644
+index 000000000000..525f9ee25a74
+--- /dev/null
++++ b/arch/riscv/lib/string.c
+@@ -0,0 +1,94 @@
++// SPDX-License-Identifier: GPL-2.0-only
 +/*
-+ * context_switch - switch to the new MM and the new thread's register sta=
-te.
++ * String functions optimized for hardware which doesn't
++ * handle unaligned memory accesses efficiently.
++ *
++ * Copyright (C) 2021 Matteo Croce
 + */
-+static __always_inline struct rq *
-+context_switch(struct rq *rq, struct task_struct *prev,
-+	       struct task_struct *next, struct rq_flags *rf)
++
++#include <linux/types.h>
++#include <linux/module.h>
++
++/* size below a classic byte at time copy is done */
++#define MIN_THRESHOLD 64
++
++/* convenience types to avoid cast between different pointer types */
++union types {
++	u8 *u8;
++	unsigned long *ulong;
++	uintptr_t uptr;
++};
++
++union const_types {
++	const u8 *u8;
++	unsigned long *ulong;
++};
++
++void *memcpy(void *dest, const void *src, size_t count)
 +{
-+	prepare_task_switch(rq, prev, next);
++	const int bytes_long = BITS_PER_LONG / 8;
++#ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
++	const int mask = bytes_long - 1;
++	const int distance = (src - dest) & mask;
++#endif
++	union const_types s = { .u8 = src };
++	union types d = { .u8 = dest };
 +
-+	/*
-+	 * For paravirt, this is coupled with an exit in switch_to to
-+	 * combine the page table reload and the switch backend into
-+	 * one hypercall.
-+	 */
-+	arch_start_context_switch(prev);
++#ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
++	if (count <= MIN_THRESHOLD)
++		goto copy_remainder;
 +
-+	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB))
-+		context_switch_mm(rq, prev, next);
-+	else
-+		context_switch_mm_nolazy(rq, prev, next);
-=20
- 	rq->clock_update_flags &=3D ~(RQCF_ACT_SKIP|RQCF_REQ_SKIP);
-=20
++	/* copy a byte at time until destination is aligned */
++	for (; count && d.uptr & mask; count--)
++		*d.u8++ = *s.u8++;
++
++	if (distance) {
++		unsigned long last, next;
++
++		/* move s backward to the previous alignment boundary */
++		s.u8 -= distance;
++
++		/* 32/64 bit wide copy from s to d.
++		 * d is aligned now but s is not, so read s alignment wise,
++		 * and do proper shift to get the right value.
++		 * Works only on Little Endian machines.
++		 */
++		for (next = s.ulong[0]; count >= bytes_long + mask; count -= bytes_long) {
++			last = next;
++			next = s.ulong[1];
++
++			d.ulong[0] = last >> (distance * 8) |
++				     next << ((bytes_long - distance) * 8);
++
++			d.ulong++;
++			s.ulong++;
++		}
++
++		/* restore s with the original offset */
++		s.u8 += distance;
++	} else
++#endif
++	{
++		/* if the source and dest lower bits are the same, do a simple
++		 * 32/64 bit wide copy.
++		 */
++		for (; count >= bytes_long; count -= bytes_long)
++			*d.ulong++ = *s.ulong++;
++	}
++
++	/* suppress warning when CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS=y */
++	goto copy_remainder;
++
++copy_remainder:
++	while (count--)
++		*d.u8++ = *s.u8++;
++
++	return dest;
++}
++EXPORT_SYMBOL(memcpy);
++
++void *__memcpy(void *dest, const void *src, size_t count)
++{
++	return memcpy(dest, src, count);
++}
++EXPORT_SYMBOL(__memcpy);
+-- 
+2.31.1
+
