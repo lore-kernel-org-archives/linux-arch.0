@@ -2,107 +2,121 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-17.3 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 28B03C48BE5
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 07:29:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3D355C48BDF
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 08:47:31 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 12221600CD
-	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 07:29:00 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 25BBB61421
+	for <linux-arch@archiver.kernel.org>; Tue, 15 Jun 2021 08:47:31 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229788AbhFOHbD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 15 Jun 2021 03:31:03 -0400
-Received: from pegase1.c-s.fr ([93.17.236.30]:11663 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229908AbhFOHbC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 15 Jun 2021 03:31:02 -0400
-Received: from localhost (mailhub3.si.c-s.fr [192.168.12.233])
-        by localhost (Postfix) with ESMTP id 4G40LK5WyBzBBQy;
-        Tue, 15 Jun 2021 09:28:57 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from pegase1.c-s.fr ([192.168.12.234])
-        by localhost (pegase1.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-        with ESMTP id utAMxQNL3e0X; Tue, 15 Jun 2021 09:28:57 +0200 (CEST)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase1.c-s.fr (Postfix) with ESMTP id 4G40LK2Q82zBBDH;
-        Tue, 15 Jun 2021 09:28:57 +0200 (CEST)
-Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 364218B7A3;
-        Tue, 15 Jun 2021 09:28:57 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id HMyoXwMPJYV4; Tue, 15 Jun 2021 09:28:57 +0200 (CEST)
-Received: from [192.168.4.90] (unknown [192.168.4.90])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id BFA318B7A2;
-        Tue, 15 Jun 2021 09:28:56 +0200 (CEST)
-Subject: Re: [PATCH 5/7] signal: Add unsafe_copy_siginfo_to_user()
-To:     Christoph Hellwig <hch@infradead.org>
-Cc:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@samba.org>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-kernel@vger.kernel.org
-References: <b813c1f4d3dab2f51300eac44d99029aa8e57830.1623739212.git.christophe.leroy@csgroup.eu>
- <684939dcfef612fac573d1b983a977215b71f64d.1623739212.git.christophe.leroy@csgroup.eu>
- <YMhOMoKKvew0YYCt@infradead.org>
- <7061fbee-cc82-2699-cf12-e5a4ae46940f@csgroup.eu>
- <YMhU3Df7foVo9BaM@infradead.org>
-From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-Message-ID: <ce8f56c6-3312-8fb6-7389-1498d6bb9cb7@csgroup.eu>
-Date:   Tue, 15 Jun 2021 09:28:54 +0200
-User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:78.0) Gecko/20100101
- Thunderbird/78.11.0
+        id S231168AbhFOIte (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 15 Jun 2021 04:49:34 -0400
+Received: from smtp-out2.suse.de ([195.135.220.29]:41400 "EHLO
+        smtp-out2.suse.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231161AbhFOIte (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jun 2021 04:49:34 -0400
+Received: from relay2.suse.de (relay2.suse.de [149.44.160.134])
+        by smtp-out2.suse.de (Postfix) with ESMTP id 236491FD55;
+        Tue, 15 Jun 2021 08:47:29 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+        t=1623746849; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=qsvBIKoBBDJEgHaKCzoXt6uHkCjR8pMwpup6Tl3TIWY=;
+        b=WwJmRcCYbA8r2cbd0yxaLSp4lsozxpCGL6nszt9InMByAVOLQ/Z5d+2k2XuFYFh9HPjXJD
+        ZodOGPzRpVMMb+SBx07LnMHJGoFS8aBCCnfqwQQHjppmJdh5iubbNnO5S+9AxJSi+GvAWD
+        WFdnDJP4wNe97E9c7jicUkbKP4kyxSM=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+        s=susede2_ed25519; t=1623746849;
+        h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=qsvBIKoBBDJEgHaKCzoXt6uHkCjR8pMwpup6Tl3TIWY=;
+        b=PYlBYDzM/Z9Ap6CCtY2GQf8IZ/Q159Cmyb0cRvl9Ay1zffhPvWJ8EV5idnd2VUgJOBjczc
+        i1zl/1p02vC2Q5DQ==
+Received: from quack2.suse.cz (unknown [10.100.200.198])
+        by relay2.suse.de (Postfix) with ESMTP id 12232A3BA5;
+        Tue, 15 Jun 2021 08:47:29 +0000 (UTC)
+Received: by quack2.suse.cz (Postfix, from userid 1000)
+        id C9A6F1F2C88; Tue, 15 Jun 2021 10:47:28 +0200 (CEST)
+Date:   Tue, 15 Jun 2021 10:47:28 +0200
+From:   Jan Kara <jack@suse.cz>
+To:     Marcin Juszkiewicz <marcin@juszkiewicz.com.pl>
+Cc:     Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org,
+        Jan Kara <jack@suse.cz>,
+        Christian Brauner <christian.brauner@ubuntu.com>,
+        Sascha Hauer <s.hauer@pengutronix.de>,
+        linux-arch@vger.kernel.org
+Subject: Re: [PATCH] quota: finish disable quotactl_path syscall
+Message-ID: <20210615084728.GG29751@quack2.suse.cz>
+References: <20210614153712.313707-1-marcin@juszkiewicz.com.pl>
+ <20210614164454.GC29751@quack2.suse.cz>
 MIME-Version: 1.0
-In-Reply-To: <YMhU3Df7foVo9BaM@infradead.org>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210614164454.GC29751@quack2.suse.cz>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-
-
-Le 15/06/2021 à 09:21, Christoph Hellwig a écrit :
-> On Tue, Jun 15, 2021 at 09:03:42AM +0200, Christophe Leroy wrote:
->>
->>
->> Le 15/06/2021 ?? 08:52, Christoph Hellwig a ??crit??:
->>> On Tue, Jun 15, 2021 at 06:41:01AM +0000, Christophe Leroy wrote:
->>>> +	unsafe_copy_to_user(__ucs_to, __ucs_from,			\
->>>> +			    sizeof(struct kernel_siginfo), label);	\
->>>> +	unsafe_clear_user(__ucs_expansion, SI_EXPANSION_SIZE, label);	\
->>>> +} while (0)
->>>
->>> unsafe_clear_user does not exist at this point, and even your later
->>> patch only adds it for powerpc.
->>>
->>
->> You missed below chunck I guess:
->>
->>> diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
->>> index c05e903cef02..37073caac474 100644
->>> --- a/include/linux/uaccess.h
->>> +++ b/include/linux/uaccess.h
->>> @@ -398,6 +398,7 @@ long strnlen_user_nofault(const void __user *unsafe_addr, long count);
->>>    #define unsafe_put_user(x,p,e) unsafe_op_wrap(__put_user(x,p),e)
->>>    #define unsafe_copy_to_user(d,s,l,e) unsafe_op_wrap(__copy_to_user(d,s,l),e)
->>>    #define unsafe_copy_from_user(d,s,l,e) unsafe_op_wrap(__copy_from_user(d,s,l),e)
->>> +#define unsafe_clear_user(d, l, e) unsafe_op_wrap(__clear_user(d, l), e)
+On Mon 14-06-21 18:44:54, Jan Kara wrote:
+> On Mon 14-06-21 17:37:12, Marcin Juszkiewicz wrote:
+> > In commit 5b9fedb31e47 ("quota: Disable quotactl_path syscall") Jan Kara
+> > disabled quotactl_path syscall on several architectures.
+> > 
+> > This commit disables it on all architectures using unified list of
+> > system calls:
+> > 
+> > - arm64
+> > - arc
+> > - csky
+> > - h8300
+> > - hexagon
+> > - nds32
+> > - nios2
+> > - openrisc
+> > - riscv (32/64)
+> > 
+> > CC: Jan Kara <jack@suse.cz>
+> > CC: Christian Brauner <christian.brauner@ubuntu.com>
+> > CC: Sascha Hauer <s.hauer@pengutronix.de>
+> > Link: https://lore.kernel.org/lkml/20210512153621.n5u43jsytbik4yze@wittgenstein
+> > 
+> > Signed-off-by: Marcin Juszkiewicz <marcin@juszkiewicz.com.pl>
 > 
-> That doesn't help with architectures that define user_access_begin but
-> do not define unsafe_clear_user. (i.e. x86).
-> 
+> Aha, I've missed that one. Thanks for catching this. Arnd, will you take
+> this patch or should I take it through my tree?
 
-Yes, the day they want to use unsafe_copy_siginfo_to_user() they'll have to implement 
-unsafe_clear_user().
+OK, I want this to make it for rc7 so I've pulled this patch to my tree and
+will push it to Linus in a few days.
 
-Until that day, they don't need unsafe_clear_user() and I'm sure the result would be disastrous if a 
-poor powerpc guy like me was trying to implement some low level x86 code.
+								Honza
 
-Similar to unsafe_get_compat_sigset(), an arch wanting to use it has to implement 
-unsafe_copy_from_user().
+> > diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+> > index 6de5a7fc066b..d2a942086fcb 100644
+> > --- a/include/uapi/asm-generic/unistd.h
+> > +++ b/include/uapi/asm-generic/unistd.h
+> > @@ -863,8 +863,7 @@ __SYSCALL(__NR_process_madvise, sys_process_madvise)
+> >  __SC_COMP(__NR_epoll_pwait2, sys_epoll_pwait2, compat_sys_epoll_pwait2)
+> >  #define __NR_mount_setattr 442
+> >  __SYSCALL(__NR_mount_setattr, sys_mount_setattr)
+> > -#define __NR_quotactl_path 443
+> > -__SYSCALL(__NR_quotactl_path, sys_quotactl_path)
+> > +/* 443 is reserved for quotactl_path */
+> >  
+> >  #define __NR_landlock_create_ruleset 444
+> >  __SYSCALL(__NR_landlock_create_ruleset, sys_landlock_create_ruleset)
+> > -- 
+> > 2.31.1
+> > 
+> -- 
+> Jan Kara <jack@suse.com>
+> SUSE Labs, CR
+-- 
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
