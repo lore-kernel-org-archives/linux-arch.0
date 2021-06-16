@@ -2,93 +2,95 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.4 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1FFB7C48BE8
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Jun 2021 16:52:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 90B69C48BE6
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Jun 2021 18:30:49 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E4643613C1
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Jun 2021 16:52:30 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 760F7613F1
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Jun 2021 18:30:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230167AbhFPQya (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 16 Jun 2021 12:54:30 -0400
-Received: from mail-pj1-f52.google.com ([209.85.216.52]:56291 "EHLO
-        mail-pj1-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230083AbhFPQya (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2021 12:54:30 -0400
-Received: by mail-pj1-f52.google.com with SMTP id k7so2065225pjf.5;
-        Wed, 16 Jun 2021 09:52:23 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
-         :user-agent:mime-version:in-reply-to:content-language
-         :content-transfer-encoding;
-        bh=8MKUHbuhcvvAbyVmhGO6tF9OydsRY8Yh0Heff4psMcU=;
-        b=Qx1uZvn6htngZ1WWlJ23cxY8+02jmvVndZRS5HfNm6PhPMNmp8kyOwKrvxvWwGoine
-         9pr3U2gpJQNLvBKbAIGO/1gYwBvjA5gjpCOilIOY+IA+sClaHqRlDfQj1XR4QwQ3FbW8
-         3G5UvXz0vHQELf3NJ9fAZCjWKl9nkW5mwFOzFZhF3QZ7NMh95VMqeDbqDAFGrzGEO0BO
-         s95K0r3Z7FEi+vssdwtjB5ZrXfbpPcEINoLNfGiEGmJKq33XXmHvYKR4sri872wUhPLj
-         +4JmWQ1iApPivj/qrUmcVhxsign5XTu2hKmgxEu6zD5cr2llCvn+krPnGweV5rByC3PN
-         yWPw==
-X-Gm-Message-State: AOAM531oMH2N4zNWcyVBLilmcdDWzJnL8cabQWQ4b006bwS2MvsMoL1w
-        /G0Qder6MW3ULapRNiqyittjfGjB7A0=
-X-Google-Smtp-Source: ABdhPJyzx+UQa7eUy6fLX7IIzx1UxFuf2kpE8zutUL05jvc6Tbl3mGv+6//eteoO9Q90ulyVAqOUPQ==
-X-Received: by 2002:a17:902:6a84:b029:f3:f285:7d8 with SMTP id n4-20020a1709026a84b02900f3f28507d8mr457172plk.57.1623862342073;
-        Wed, 16 Jun 2021 09:52:22 -0700 (PDT)
-Received: from [192.168.3.217] (c-73-241-217-19.hsd1.ca.comcast.net. [73.241.217.19])
-        by smtp.gmail.com with ESMTPSA id w7sm2574738pjy.11.2021.06.16.09.52.19
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Wed, 16 Jun 2021 09:52:21 -0700 (PDT)
-Subject: Re: [dm-devel] [PATCH 06/18] bvec: add a bvec_kmap_local helper
-To:     Christoph Hellwig <hch@lst.de>, Jens Axboe <axboe@kernel.dk>,
-        Thomas Gleixner <tglx@linutronix.de>
-Cc:     linux-arch@vger.kernel.org, linux-block@vger.kernel.org,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>,
-        Mike Snitzer <snitzer@redhat.com>,
-        Geoff Levand <geoff@infradead.org>,
-        linuxppc-dev@lists.ozlabs.org, linux-mips@vger.kernel.org,
-        Dongsheng Yang <dongsheng.yang@easystack.cn>,
-        linux-kernel@vger.kernel.org,
-        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
-        dm-devel@redhat.com, Ilya Dryomov <idryomov@gmail.com>,
-        Ira Weiny <ira.weiny@intel.com>, ceph-devel@vger.kernel.org
-References: <20210615132456.753241-1-hch@lst.de>
- <20210615132456.753241-7-hch@lst.de>
-From:   Bart Van Assche <bvanassche@acm.org>
-Message-ID: <244b92f2-7921-7f33-b83f-66f3fff57696@acm.org>
-Date:   Wed, 16 Jun 2021 09:52:18 -0700
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.11.0
+        id S231838AbhFPScy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 16 Jun 2021 14:32:54 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:33884 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231352AbhFPScy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2021 14:32:54 -0400
+Received: from in02.mta.xmission.com ([166.70.13.52])
+        by out03.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1ltaJF-00A84z-5r; Wed, 16 Jun 2021 12:30:41 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95] helo=email.xmission.com)
+        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1ltaJE-000z9Q-7B; Wed, 16 Jun 2021 12:30:40 -0600
+From:   ebiederm@xmission.com (Eric W. Biederman)
+To:     Linus Torvalds <torvalds@linux-foundation.org>
+Cc:     Michael Schmitz <schmitzmic@gmail.com>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Jens Axboe <axboe@kernel.dk>, Oleg Nesterov <oleg@redhat.com>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Richard Henderson <rth@twiddle.net>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>,
+        alpha <linux-alpha@vger.kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        Arnd Bergmann <arnd@kernel.org>,
+        Ley Foon Tan <ley.foon.tan@intel.com>,
+        Tejun Heo <tj@kernel.org>, Kees Cook <keescook@chromium.org>
+References: <87sg1p30a1.fsf@disp2133>
+        <CAHk-=wjiBXCZBxLiCG5hxpd0vMkMjiocenponWygG5SCG6DXNw@mail.gmail.com>
+        <87pmwsytb3.fsf@disp2133>
+        <CAHk-=wgdO5VwSUFjfF9g=DAQNYmVxzTq73NtdisYErzdZKqDGg@mail.gmail.com>
+        <87sg1lwhvm.fsf@disp2133>
+        <CAHk-=wgsnMTr0V-0F4FOk30Q1h7CeT8wLvR1MSnjack7EpyWtQ@mail.gmail.com>
+        <6e47eff8-d0a4-8390-1222-e975bfbf3a65@gmail.com>
+        <924ec53c-2fd9-2e1c-bbb1-3fda49809be4@gmail.com>
+        <87eed4v2dc.fsf@disp2133>
+        <5929e116-fa61-b211-342a-c706dcb834ca@gmail.com>
+        <87fsxjorgs.fsf@disp2133> <87zgvqor7d.fsf_-_@disp2133>
+        <CAHk-=wir2P6h+HKtswPEGDh+GKLMM6_h8aovpMcUHyQv2zJ5Og@mail.gmail.com>
+        <87mtrpg47k.fsf@disp2133>
+Date:   Wed, 16 Jun 2021 13:29:38 -0500
+In-Reply-To: <87mtrpg47k.fsf@disp2133> (Eric W. Biederman's message of "Wed,
+        16 Jun 2021 11:32:47 -0500")
+Message-ID: <87pmwlek8d.fsf_-_@disp2133>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
-In-Reply-To: <20210615132456.753241-7-hch@lst.de>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
+X-XM-SPF: eid=1ltaJE-000z9Q-7B;;;mid=<87pmwlek8d.fsf_-_@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX1/QcGeYYkSKc73XnoZZIXFLvqc9Us7t81k=
+X-SA-Exim-Connect-IP: 68.227.160.95
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: [PATCH 0/2] alpha/ptrace: Improved switch_stack handling
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 6/15/21 6:24 AM, Christoph Hellwig wrote:
-> +/**
-> + * bvec_kmap_local - map a bvec into the kernel virtual address space
-> + * @bvec: bvec to map
-> + *
-> + * Must be called on single-page bvecs only.  Call kunmap_local on the returned
-> + * address to unmap.
-> + */
-> +static inline void *bvec_kmap_local(struct bio_vec *bvec)
-> +{
-> +	return kmap_local_page(bvec->bv_page) + bvec->bv_offset;
-> +}
 
-Hi Christoph,
+This pair of changes has not received anything beyond build and boot
+testing.  I am posting these changes as they do a much better job of
+warning of problems and shutting down the security hole.  Making them
+a much better pattern than the my last patch.
 
-Would it be appropriate to add WARN_ON_ONCE(bvec->bv_offset >=
-PAGE_SIZE) in this function?
+I hope to get the test cases soon.
 
-Thanks,
+ arch/alpha/include/asm/thread_info.h   |  2 ++
+ arch/alpha/kernel/entry.S              | 62 ++++++++++++++++++++++++++--------
+ arch/alpha/kernel/process.c            |  3 ++
+ arch/alpha/kernel/ptrace.c             | 13 +++++--
+ arch/alpha/kernel/syscalls/syscall.tbl |  8 ++---
+ 5 files changed, 67 insertions(+), 21 deletions(-)
 
-Bart.
+Eric W. Biederman (2):
+      alpha/ptrace: Record and handle the absence of switch_stack
+      alpha/ptrace: Add missing switch_stack frames
+
