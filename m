@@ -2,109 +2,98 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.5 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D69E5C48BDF
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Jun 2021 08:32:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A9006C49EA2
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Jun 2021 13:34:48 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id AD3896121D
-	for <linux-arch@archiver.kernel.org>; Fri, 18 Jun 2021 08:32:27 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8EA3960FE5
+	for <linux-arch@archiver.kernel.org>; Fri, 18 Jun 2021 13:34:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233820AbhFRIee (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Jun 2021 04:34:34 -0400
-Received: from eu-smtp-delivery-151.mimecast.com ([185.58.86.151]:31970 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S233875AbhFRIe0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 Jun 2021 04:34:26 -0400
-Received: from AcuMS.aculab.com (156.67.243.121 [156.67.243.121]) (Using
- TLS) by relay.mimecast.com with ESMTP id
- uk-mta-11-fKdMvnO2P96mfGP2YKpuQQ-1; Fri, 18 Jun 2021 09:32:15 +0100
-X-MC-Unique: fKdMvnO2P96mfGP2YKpuQQ-1
-Received: from AcuMS.Aculab.com (10.202.163.4) by AcuMS.aculab.com
- (10.202.163.4) with Microsoft SMTP Server (TLS) id 15.0.1497.18; Fri, 18 Jun
- 2021 09:32:14 +0100
-Received: from AcuMS.Aculab.com ([fe80::994c:f5c2:35d6:9b65]) by
- AcuMS.aculab.com ([fe80::994c:f5c2:35d6:9b65%12]) with mapi id
- 15.00.1497.018; Fri, 18 Jun 2021 09:32:14 +0100
-From:   David Laight <David.Laight@ACULAB.COM>
-To:     'Matteo Croce' <mcroce@linux.microsoft.com>
-CC:     Guo Ren <guoren@kernel.org>,
-        linux-riscv <linux-riscv@lists.infradead.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        Atish Patra <atish.patra@wdc.com>,
-        Emil Renner Berthing <kernel@esmil.dk>,
-        "Akira Tsukamoto" <akira.tsukamoto@gmail.com>,
-        Drew Fustini <drew@beagleboard.org>,
-        Bin Meng <bmeng.cn@gmail.com>
-Subject: RE: [PATCH 1/3] riscv: optimized memcpy
-Thread-Topic: [PATCH 1/3] riscv: optimized memcpy
-Thread-Index: AQHXYuC4XkdMIImxVUmoQbZ37iIZIqsYtSAggABBV22AAHkiQA==
-Date:   Fri, 18 Jun 2021 08:32:14 +0000
-Message-ID: <0fe90e43868f49b5953afe5abba41327@AcuMS.aculab.com>
-References: <20210615023812.50885-1-mcroce@linux.microsoft.com>
- <20210615023812.50885-2-mcroce@linux.microsoft.com>
- <CAJF2gTTreOvQYYXHBYxznB9+vMaASKg8vwA5mkqVo1T6=eVhzw@mail.gmail.com>
- <CAFnufp1OHdRd-tbB+Hi0UnXARtxGPdkK6MJktnaNCNt65d3Oew@mail.gmail.com>
- <f9b78350d9504e889813fc47df41f3fe@AcuMS.aculab.com>
- <CAFnufp1CA7g=poF3UpKjX7YYz569Wxc1YORSv+uhpU5847xuXw@mail.gmail.com>
- <CAFnufp2LmXxs6+aH7cjH=T4Ye_Yo6yvJpF93JcY+HtVvXB44oQ@mail.gmail.com>
- <CAFnufp0qjJG4fr=rcAHYrZp3CVfSs0TBuDN_eAOwOM-K804yow@mail.gmail.com>
-In-Reply-To: <CAFnufp0qjJG4fr=rcAHYrZp3CVfSs0TBuDN_eAOwOM-K804yow@mail.gmail.com>
-Accept-Language: en-GB, en-US
-X-MS-Has-Attach: 
-X-MS-TNEF-Correlator: 
-x-ms-exchange-transport-fromentityheader: Hosted
-x-originating-ip: [10.202.205.107]
+        id S233837AbhFRNgy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Jun 2021 09:36:54 -0400
+Received: from mout.kundenserver.de ([212.227.17.24]:52731 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232253AbhFRNgw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jun 2021 09:36:52 -0400
+Received: from [192.168.1.155] ([77.4.121.131]) by mrelayeu.kundenserver.de
+ (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis) id
+ 1MXH3Y-1ln9Tn1L0o-00YfuT; Fri, 18 Jun 2021 15:34:21 +0200
+Subject: Re: Maintainers / Kernel Summit 2021 planning kick-off
+To:     David Hildenbrand <david@redhat.com>,
+        James Bottomley <James.Bottomley@HansenPartnership.com>,
+        Greg KH <greg@kroah.com>, Christoph Lameter <cl@gentwo.de>
+Cc:     Theodore Ts'o <tytso@mit.edu>, Jiri Kosina <jikos@kernel.org>,
+        ksummit@lists.linux.dev, linux-kernel@vger.kernel.org,
+        linux-block@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        linux-mm@kvack.org, netdev@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+References: <YH2hs6EsPTpDAqXc@mit.edu>
+ <nycvar.YFH.7.76.2104281228350.18270@cbobk.fhfr.pm>
+ <YIx7R6tmcRRCl/az@mit.edu>
+ <alpine.DEB.2.22.394.2105271522320.172088@gentwo.de>
+ <YK+esqGjKaPb+b/Q@kroah.com>
+ <c46dbda64558ab884af060f405e3f067112b9c8a.camel@HansenPartnership.com>
+ <b32c8672-06ee-bf68-7963-10aeabc0596c@redhat.com>
+From:   "Enrico Weigelt, metux IT consult" <lkml@metux.net>
+Message-ID: <87a0352d-7bd1-94fe-5586-2322c98cae15@metux.net>
+Date:   Fri, 18 Jun 2021 15:34:19 +0200
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.11.0
 MIME-Version: 1.0
-Authentication-Results: relay.mimecast.com;
-        auth=pass smtp.auth=C51A453 smtp.mailfrom=david.laight@aculab.com
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: aculab.com
-Content-Language: en-US
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
+In-Reply-To: <b32c8672-06ee-bf68-7963-10aeabc0596c@redhat.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: tl
+Content-Transfer-Encoding: 8bit
+X-Provags-ID: V03:K1:lXlgNZQBNbe/1PCHa9NFfMFVAMYHizpg0dHiP4mDYfild/2Fz/0
+ NK4rSXjwK84RuMdCre0U1oAL00q6B7ydKpimHGybcF5r2NJbTVLVJCas9h96LlCyaQquYJc
+ VWyWO+jOrQxCJmUlewkveLsLM82fyP16BwB8wZm/PCMsDHHbOS+dG9TvVxo7DUEPv6jY1Os
+ 1vksdXo+HUxTL5GPIhujw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:1Pbaw9XW4KY=:33uNPw5m/Ml0bAeU0h6qJ7
+ rt8QzEytx1ZkJAoE71JCmsnZ043EOrbxo7Egr9/38t0eFKuy9t7S7FewNVr/7xYmPxF5DNlVq
+ ghdrQRf/VVXhMWCdLpnQJuJ1YtW+8FZL359DWyXe/d6uuFFHreJunpyDHsBrIeY/h3difn8LT
+ iM3XnQ1H3LgcswgVOwczIplmsaLVp9RN/RYtkU1Zj09n0Jp35HgRC2hBXdZ9Fb9UPMilOHdGK
+ YEmesqTDoK8cXb+jiWNG5Vvv6DhIAgdn0GSM8/DwyzMsGT9ksvz+LN+WUPxt1/ldTiQS2hrUf
+ KR1F1Y8aIrzMhPD2y9rc59r6rz4v/7pDT/a0BsA2vXUurWfx5340xKWJlu19jHEAFgwc8bkPi
+ 28fxbqY1HwBahrqUPVOPxnTxJ4qeQCzLdqNUe1iRoxcxTOXTiK0hTy3YznsXKsPHsxLn2xUCq
+ ZaldkCEM9HF1rKhFHtQ7z725Yn+/yHbrMtyuaFD83XC+qXUg1B8yXYODuWwIW+NdPKymtN5hq
+ aEkwHXYn0gorLvybhxGodg=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-RnJvbTogTWF0dGVvIENyb2NlDQo+IFNlbnQ6IDE4IEp1bmUgMjAyMSAwMjowNQ0KLi4uDQo+ID4g
-PiBJdCdzIHJ1bm5pbmcgYXQgMSBHSHouDQo+ID4gPg0KPiA+ID4gSSBnZXQgMjU3IE1iL3Mgd2l0
-aCBhIG1lbWNweSwgYSBiaXQgbW9yZSB3aXRoIGEgbWVtc2V0LA0KPiA+ID4gYnV0IEkgZ2V0IDEy
-MDAgTWIvcyB3aXRoIGEgY3lsZSB3aGljaCBqdXN0IHJlYWRzIG1lbW9yeSB3aXRoIDY0IGJpdCBh
-ZGRyZXNzaW5nLg0KPiA+ID4NCj4gPg0KPiA+IEVyciwgSSBmb3JnZXQgYSBtbG9jaygpIGJlZm9y
-ZSBhY2Nlc3NpbmcgdGhlIG1lbW9yeSBpbiB1c2Vyc3BhY2UuDQoNCldoYXQgaXMgdGhlIG1sb2Nr
-KCkgZm9yPw0KVGhlIGRhdGEgZm9yIGEgcXVpY2sgbG9vcCB3b24ndCBnZXQgcGFnZWQgb3V0Lg0K
-WW91IHdhbnQgdG8gdGVzdCBjYWNoZSB0byBjYWNoZSBjb3BpZXMsIHNvIHRoZSBmaXJzdCBsb29w
-DQp3aWxsIGFsd2F5cyBiZSBzbG93Lg0KQWZ0ZXIgdGhhdCBlYWNoIGl0ZXJhdGlvbiBzaG91bGQg
-YmUgbXVjaCB0aGUgc2FtZS4NCkkgdXNlIGNvZGUgbGlrZToNCglmb3IgKDs7KSB7DQoJCXN0YXJ0
-ID0gcmVhZF90c2MoKTsNCgkJZG9fdGVzdCgpOw0KCQloaXN0b2dyYW1bKHJlYWRfdHNjKCkgLSBz
-dGFydCkgPj4gbl0rKw0KCX0NCihZb3UgbmVlZCB0byBleGNsdWRlIG91dGxpZXJzKQ0KdG8gZ2V0
-IGEgZGlzdHJpYnV0aW9uIGZvciB0aGUgZXhlY3V0aW9uIHRpbWVzLg0KVGVuZHMgdG8gYmUgcHJl
-dHR5IHN0YWJsZSAtIGV2ZW4gdGhvdWdoIGRpZmZlcmVudCBwcm9ncmFtDQpydW5zIGNhbiBnaXZl
-IGRpZmZlcmVudCB2YWx1ZXMhDQoJDQo+ID4gVGhlIHJlYWwgc3BlZWQgaGVyZSBpczoNCj4gPg0K
-PiA+IDggYml0IHJlYWQ6IDE1NS40MiBNYi9zDQo+ID4gNjQgYml0IHJlYWQ6IDI3Ny4yOSBNYi9z
-DQo+ID4gOCBiaXQgd3JpdGU6IDEzOC41NyBNYi9zDQo+ID4gNjQgYml0IHdyaXRlOiAyMzkuMjEg
-TWIvcw0KPiA+DQo+IA0KPiBBbnl3YXksIHRoYW5rcyBmb3IgdGhlIGluZm8gb24gbmlvMiB0aW1p
-bmdzLg0KPiBJZiB5b3UgdGhpbmsgdGhhdCBhbiB1bnJvbGxlZCBsb29wIHdvdWxkIGhlbHAsIHdl
-IGNhbiBhY2hpZXZlIHRoZSBzYW1lIGluIEMuDQo+IEkgdGhpbmsgd2UgY291bGQgY29kZSBzb21l
-dGhpbmcgc2ltaWxhciB0byBhIER1ZmYgZGV2aWNlIChvciB3aXRoIGp1bXANCj4gbGFiZWxzKSB0
-byB1bnJvbGwgdGhlIGxvb3AgYnV0IGF0IHRoZSBzYW1lIHRpbWUgZG9pbmcgZWZmaWNpZW50IHNt
-YWxsIGNvcGllcy4NCg0KVW5yb2xsaW5nIGhhcyB0byBiZSBkb25lIHdpdGggY2FyZS4NCkl0IHRl
-bmRzIHRvIGltcHJvdmUgYmVuY2htYXJrcywgYnV0IHRoZSBleHRyYSBjb2RlIGRpc3BsYWNlcw0K
-b3RoZXIgY29kZSBmcm9tIHRoZSBpLWNhY2hlIGFuZCBzbG93cyBkb3duIG92ZXJhbGwgcGVyZm9y
-bWFuY2UuDQpTbyB5b3UgbmVlZCAnanVzdCBlbm91Z2gnIHVucm9sbGluZyB0byBhdm9pZCBjcHUg
-c3RhbGxzLg0KDQpPbiB5b3VyIHN5c3RlbSBpdCBsb29rcyBsaWtlIHRoZSBtZW1vcnkvY2FjaGUg
-c3Vic3lzdGVtDQppcyB0aGUgYm90dGxlbmVjayBmb3IgdGhlIHRlc3RzIHlvdSBhcmUgZG9pbmcu
-DQpJJ2QgcmVhbGx5IGV4cGVjdCBhIDFHSHogY3B1IHRvIGJlIGFibGUgdG8gcmVhZC93cml0ZSBm
-cm9tDQppdHMgZGF0YSBjYWNoZSBldmVyeSBjbG9jay4NClNvIEknZCBleHBlY3QgdHJhbnNmZXIg
-cmF0ZXMgbmVhcmVyIDgwMDAgTUIvcywgbm90IDI1MCBNQi9zLg0KDQoJRGF2aWQNCg0KLQ0KUmVn
-aXN0ZXJlZCBBZGRyZXNzIExha2VzaWRlLCBCcmFtbGV5IFJvYWQsIE1vdW50IEZhcm0sIE1pbHRv
-biBLZXluZXMsIE1LMSAxUFQsIFVLDQpSZWdpc3RyYXRpb24gTm86IDEzOTczODYgKFdhbGVzKQ0K
+On 09.06.21 12:37, David Hildenbrand wrote:
 
+> Just make sure to not
+> ignore the poor souls that really won't be traveling this year, because
+> "we are not vaccinated".
+
+That's NOT correct.
+
+People can't travel freely because OPPRESSIVE regimes all around the
+world forbid traveling freely - and enforcing that with brute force.
+
+Last year, i've been gunpointed by a cop just for walking over a market
+place in Nuremberg with my family, wearing a shirt with some Tucholsky
+quote and having my hands in the pants pockets !
+
+It is NOT the unvaxed who are stopping anybody from travel - it is
+nobody else than the GOVERMENT and its compliant abettors.
+
+US americans should remind themselves of the 2nd amendment.
+
+
+--mtx
+
+-- 
+---
+Hinweis: unverschlüsselte E-Mails können leicht abgehört und manipuliert
+werden ! Für eine vertrauliche Kommunikation senden Sie bitte ihren
+GPG/PGP-Schlüssel zu.
+---
+Enrico Weigelt, metux IT consult
+Free software and Linux embedded engineering
+info@metux.net -- +49-151-27565287
