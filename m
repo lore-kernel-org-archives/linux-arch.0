@@ -2,119 +2,89 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+	USER_AGENT_GIT autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4B262C49361
-	for <linux-arch@archiver.kernel.org>; Sat, 19 Jun 2021 15:16:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5BE7AC48BDF
+	for <linux-arch@archiver.kernel.org>; Sun, 20 Jun 2021 08:14:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 274DD61264
-	for <linux-arch@archiver.kernel.org>; Sat, 19 Jun 2021 15:16:28 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 37C1E61002
+	for <linux-arch@archiver.kernel.org>; Sun, 20 Jun 2021 08:14:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234538AbhFSPSi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 19 Jun 2021 11:18:38 -0400
-Received: from gate.crashing.org ([63.228.1.57]:59443 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S234128AbhFSPSh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 19 Jun 2021 11:18:37 -0400
-Received: from gate.crashing.org (localhost.localdomain [127.0.0.1])
-        by gate.crashing.org (8.14.1/8.14.1) with ESMTP id 15JF26n5018966;
-        Sat, 19 Jun 2021 10:02:07 -0500
-Received: (from segher@localhost)
-        by gate.crashing.org (8.14.1/8.14.1/Submit) id 15JF2288018951;
-        Sat, 19 Jun 2021 10:02:02 -0500
-X-Authentication-Warning: gate.crashing.org: segher set sender to segher@kernel.crashing.org using -f
-Date:   Sat, 19 Jun 2021 10:02:02 -0500
-From:   Segher Boessenkool <segher@kernel.crashing.org>
-To:     Christophe Leroy <christophe.leroy@csgroup.eu>
-Cc:     Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-        maged michael <maged.michael@gmail.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Dave Watson <davejwatson@fb.com>,
-        Will Deacon <will.deacon@arm.com>,
-        Andrew Hunter <ahh@google.com>, David Sehr <sehr@google.com>,
-        Paul Mackerras <paulus@samba.org>,
-        "H. Peter Anvin" <hpa@zytor.com>,
-        linux-arch <linux-arch@vger.kernel.org>, x86 <x86@kernel.org>,
-        "Russell King, ARM Linux" <linux@armlinux.org.uk>,
-        Greg Hackmann <ghackmann@google.com>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Ingo Molnar <mingo@redhat.com>,
-        Alan Stern <stern@rowland.harvard.edu>,
-        Paul <paulmck@linux.vnet.ibm.com>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Avi Kivity <avi@scylladb.com>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        linux-api <linux-api@vger.kernel.org>,
-        linux-kernel <linux-kernel@vger.kernel.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Subject: Re: [PATCH for 4.16 v7 02/11] powerpc: membarrier: Skip memory barrier in switch_mm()
-Message-ID: <20210619150202.GZ5077@gate.crashing.org>
-References: <20180129202020.8515-1-mathieu.desnoyers@efficios.com> <20180129202020.8515-3-mathieu.desnoyers@efficios.com> <8b200dd5-f37b-b208-82fb-2775df7bcd49@csgroup.eu> <2077369633.12794.1624037192994.JavaMail.zimbra@efficios.com> <4d2026cc-28e1-7781-fc95-e6160bd8db86@csgroup.eu>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <4d2026cc-28e1-7781-fc95-e6160bd8db86@csgroup.eu>
-User-Agent: Mutt/1.4.2.3i
+        id S229571AbhFTIQq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 20 Jun 2021 04:16:46 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55798 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229491AbhFTIQp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 20 Jun 2021 04:16:45 -0400
+Received: from mail-pf1-x429.google.com (mail-pf1-x429.google.com [IPv6:2607:f8b0:4864:20::429])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9A51CC061574
+        for <linux-arch@vger.kernel.org>; Sun, 20 Jun 2021 01:14:32 -0700 (PDT)
+Received: by mail-pf1-x429.google.com with SMTP id h26so161692pfo.5
+        for <linux-arch@vger.kernel.org>; Sun, 20 Jun 2021 01:14:32 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=from:to:cc:subject:date:message-id;
+        bh=XIV/ZVf9L9J0riDbCeYYDPLzprfr30uDHayyxURrcKc=;
+        b=F0jWf2bDCUvr1D08Jyrfl9SdaGw4rgAcivmBfqWQivEkAf0RnzT9CA2Sg69TtcD4cs
+         /yKtrPQ93a7wjA2RaupaIGOyLh9xia/oulQ26wmYJnLMJo0LaZbcG1mlNiVMuBK88mSp
+         1gLTZLNIblRPXUx6Hzeq+s7/0PWLc/VueMi8i0ToEAPEixYIgHwMdYmqsf2FAPvFZuFL
+         KxR9XlQhgno6Sn0rXNOIhYkih2zi5BLDropZF4InZeocnP4C39x0hRqFtCPgsRyHzgIY
+         yf5RpxV8PUF663hQNqdPBVR0LS9FG93sTzxEyzbgpjqjuSnzYSd7VS5UfVsNzzr/9ieZ
+         9pEQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id;
+        bh=XIV/ZVf9L9J0riDbCeYYDPLzprfr30uDHayyxURrcKc=;
+        b=VWq/nWy7dr0X/LVMcwrVmReCTeDaEjquKGeCc9CY0tQ41bOci1iGVKPb0fYfXod4Ec
+         5nCb7oScAf2Q+zhsNcE2fQV3HZaTDVEYoi1A7ccZAk9gc2OChtmL8rD3NLkWnnGQOBj7
+         BUQz8esbwJEa3zrEmk2/GqGZZBOH75bg/RoO+evySAuGA+Uq+Q2PAtRsuKYzj443aX3A
+         Df3fSYPdZKYKrwB1B5Z0rF/APIjjQhdC1zHMlWyPpApVLXbJEAirdmtG8pqi6GeE28PI
+         1nnne1dAWq8+QqA0CKwiqPZkv8CN2PU+HOOWdKnXnED/00emfQoFkebrVOS0XuV8qF/4
+         +tnw==
+X-Gm-Message-State: AOAM530zp6Q/UkNskxGSa3LKGxG+Emf56fVLILH5xJpT2BBrevfty/LH
+        o0NH1TyFmwk+hf7LpOBrVY4=
+X-Google-Smtp-Source: ABdhPJywG3sIj+1VcRiEom34FMI1obI0+/CubUmbo5lC/Stu0oXW9zNhOkBQ15Uk9x+9kPhoNiHCOg==
+X-Received: by 2002:a62:1d0e:0:b029:2d8:30a3:687f with SMTP id d14-20020a621d0e0000b02902d830a3687fmr13553412pfd.17.1624176871953;
+        Sun, 20 Jun 2021 01:14:31 -0700 (PDT)
+Received: from xplor.waratah.dyndns.org (222-152-189-137-fibre.sparkbb.co.nz. [222.152.189.137])
+        by smtp.gmail.com with ESMTPSA id a9sm15012778pjm.51.2021.06.20.01.14.30
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Sun, 20 Jun 2021 01:14:31 -0700 (PDT)
+Received: by xplor.waratah.dyndns.org (Postfix, from userid 1000)
+        id 72101360145; Sun, 20 Jun 2021 20:14:27 +1200 (NZST)
+From:   Michael Schmitz <schmitzmic@gmail.com>
+To:     geert@linux-m68k.org, linux-arch@vger.kernel.org,
+        linux-m68k@lists.linux-m68k.org
+Cc:     ebiederm@xmission.com, torvalds@linux-foundation.org,
+        schwab@linux-m68k.org
+Subject: [PATCH v3] m68k: improved switch stack handling
+Date:   Sun, 20 Jun 2021 20:14:22 +1200
+Message-Id: <1624176865-15570-1-git-send-email-schmitzmic@gmail.com>
+X-Mailer: git-send-email 2.7.4
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sat, Jun 19, 2021 at 11:35:34AM +0200, Christophe Leroy wrote:
-> 
-> 
-> Le 18/06/2021 à 19:26, Mathieu Desnoyers a écrit :
-> >----- On Jun 18, 2021, at 1:13 PM, Christophe Leroy 
-> >christophe.leroy@csgroup.eu wrote:
-> >[...]
-> >>
-> >>I don't understand all that complexity to just replace a simple
-> >>'smp_mb__after_unlock_lock()'.
-> >>
-> >>#define smp_mb__after_unlock_lock()	smp_mb()
-> >>#define smp_mb()	barrier()
-> >># define barrier() __asm__ __volatile__("": : :"memory")
-> >>
-> >>
-> >>Am I missing some subtility ?
-> >
-> >On powerpc CONFIG_SMP, smp_mb() is actually defined as:
-> >
-> >#define smp_mb()        __smp_mb()
-> >#define __smp_mb()      mb()
-> >#define mb()   __asm__ __volatile__ ("sync" : : : "memory")
-> >
-> >So the original motivation here was to skip a "sync" instruction whenever
-> >switching between threads which are part of the same process. But based on
-> >recent discussions, I suspect my implementation may be inaccurately doing
-> >so though.
-> >
-> 
-> I see.
-> 
-> Then, if you think a 'sync' is a concern, shouldn't we try and remove the 
-> forest of 'sync' in the I/O accessors ?
-> 
-> I can't really understand why we need all those 'sync' and 'isync' and 
-> 'twi' around the accesses whereas I/O memory is usually mapped as 'Guarded' 
-> so memory access ordering is already garantied.
-> 
-> I'm sure we'll save a lot with that.
+m68k version of Eric's 'improved switch stack handling' patch for alpha. 
 
-The point of the twi in the I/O accessors was to make things easier to
-debug if the accesses fail: for the twi insn to complete the load will
-have to have completed as well.  On a correctly working system you never
-should need this (until something fails ;-) )
+The first two patches address m68k missing saving switch_stack on
+those syscalls that can may call ptrace_stop(), and adding a full stack
+frame in kernel threads.
 
-Without the twi you might need to enforce ordering in some cases still.
-The twi is a very heavy hammer, but some of that that gives us is no
-doubt actually needed.
+The last patch adds a 'status' field to m68k thread_info struct, and
+stores information about whether a syscall trace is in progress, and
+a full stack frame has been saved, in that field. This information can
+be used in arch/m68k/kernel/ptrace.c by get/put_reg() to guard against
+accessing incorrect information on the stack (haven't got around to
+that bit yet). I'm quite certain I haven't picked the most efficient
+implementation here - suggestions to optimize most welcome!
+
+Cheers,
+
+   Michael
 
 
-Segher
+
