@@ -6,31 +6,27 @@ X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
 	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E1752C4743C
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 16:53:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CFCD4C48BE5
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 18:59:15 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CAEFD60200
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 16:53:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AC2A160FD8
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 18:59:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232922AbhFUQzQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 21 Jun 2021 12:55:16 -0400
-Received: from out02.mta.xmission.com ([166.70.13.232]:39884 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232940AbhFUQx5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jun 2021 12:53:57 -0400
-Received: from in02.mta.xmission.com ([166.70.13.52])
-        by out02.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1lvN97-009Tro-7v; Mon, 21 Jun 2021 10:51:37 -0600
-Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95] helo=email.xmission.com)
-        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1lvN96-00D9Qn-9o; Mon, 21 Jun 2021 10:51:36 -0600
-From:   ebiederm@xmission.com (Eric W. Biederman)
-To:     Al Viro <viro@zeniv.linux.org.uk>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        id S231193AbhFUTB3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 21 Jun 2021 15:01:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35706 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230189AbhFUTB3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jun 2021 15:01:29 -0400
+Received: from zeniv-ca.linux.org.uk (zeniv-ca.linux.org.uk [IPv6:2607:5300:60:148a::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BB6D2C061574;
+        Mon, 21 Jun 2021 11:59:14 -0700 (PDT)
+Received: from viro by zeniv-ca.linux.org.uk with local (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1lvP8P-00AvlT-GG; Mon, 21 Jun 2021 18:59:01 +0000
+Date:   Mon, 21 Jun 2021 18:59:01 +0000
+From:   Al Viro <viro@zeniv.linux.org.uk>
+To:     Linus Torvalds <torvalds@linux-foundation.org>
+Cc:     "Eric W. Biederman" <ebiederm@xmission.com>,
         Michael Schmitz <schmitzmic@gmail.com>,
         linux-arch <linux-arch@vger.kernel.org>,
         Jens Axboe <axboe@kernel.dk>, Oleg Nesterov <oleg@redhat.com>,
@@ -44,81 +40,49 @@ Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
         Arnd Bergmann <arnd@kernel.org>,
         Ley Foon Tan <ley.foon.tan@intel.com>,
         Tejun Heo <tj@kernel.org>, Kees Cook <keescook@chromium.org>
-References: <CAHk-=wgdO5VwSUFjfF9g=DAQNYmVxzTq73NtdisYErzdZKqDGg@mail.gmail.com>
-        <87sg1lwhvm.fsf@disp2133>
-        <CAHk-=wgsnMTr0V-0F4FOk30Q1h7CeT8wLvR1MSnjack7EpyWtQ@mail.gmail.com>
-        <6e47eff8-d0a4-8390-1222-e975bfbf3a65@gmail.com>
-        <924ec53c-2fd9-2e1c-bbb1-3fda49809be4@gmail.com>
-        <87eed4v2dc.fsf@disp2133>
-        <5929e116-fa61-b211-342a-c706dcb834ca@gmail.com>
-        <87fsxjorgs.fsf@disp2133>
-        <CAHk-=wj5cJjpjAmDptmP9u4__6p3Y93SCQHG8Ef4+h=cnLiCsA@mail.gmail.com>
-        <YNCaMDQVYB04bk3j@zeniv-ca.linux.org.uk>
-        <YNCfNWC1UMvuE5d5@zeniv-ca.linux.org.uk>
-Date:   Mon, 21 Jun 2021 11:50:56 -0500
-In-Reply-To: <YNCfNWC1UMvuE5d5@zeniv-ca.linux.org.uk> (Al Viro's message of
-        "Mon, 21 Jun 2021 14:16:21 +0000")
-Message-ID: <87czsfi2kv.fsf@disp2133>
-User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
-MIME-Version: 1.0
-Content-Type: text/plain
-X-XM-SPF: eid=1lvN96-00D9Qn-9o;;;mid=<87czsfi2kv.fsf@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
-X-XM-AID: U2FsdGVkX1+rRKCOW0fN5lvEtZhHOcs8b3xyBuZW5K8=
-X-SA-Exim-Connect-IP: 68.227.160.95
-X-SA-Exim-Mail-From: ebiederm@xmission.com
 Subject: Re: Kernel stack read with PTRACE_EVENT_EXIT and io_uring threads
-X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
-X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
+Message-ID: <YNDhdb7XNQE6zQzL@zeniv-ca.linux.org.uk>
+References: <CAHk-=wgdO5VwSUFjfF9g=DAQNYmVxzTq73NtdisYErzdZKqDGg@mail.gmail.com>
+ <87sg1lwhvm.fsf@disp2133>
+ <CAHk-=wgsnMTr0V-0F4FOk30Q1h7CeT8wLvR1MSnjack7EpyWtQ@mail.gmail.com>
+ <6e47eff8-d0a4-8390-1222-e975bfbf3a65@gmail.com>
+ <924ec53c-2fd9-2e1c-bbb1-3fda49809be4@gmail.com>
+ <87eed4v2dc.fsf@disp2133>
+ <5929e116-fa61-b211-342a-c706dcb834ca@gmail.com>
+ <87fsxjorgs.fsf@disp2133>
+ <CAHk-=wj5cJjpjAmDptmP9u4__6p3Y93SCQHG8Ef4+h=cnLiCsA@mail.gmail.com>
+ <YNCaMDQVYB04bk3j@zeniv-ca.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <YNCaMDQVYB04bk3j@zeniv-ca.linux.org.uk>
+Sender: Al Viro <viro@ftp.linux.org.uk>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Al Viro <viro@zeniv.linux.org.uk> writes:
+On Mon, Jun 21, 2021 at 01:54:56PM +0000, Al Viro wrote:
+> On Tue, Jun 15, 2021 at 02:58:12PM -0700, Linus Torvalds wrote:
+> 
+> > And I think our horrible "kernel threads return to user space when
+> > done" is absolutely horrifically nasty. Maybe of the clever sort, but
+> > mostly of the historical horror sort.
+> 
+> How would you prefer to handle that, then?  Separate magical path from
+> kernel_execve() to switch to userland?  We used to have something of
+> that sort, and that had been a real horror...
+> 
+> As it is, it's "kernel thread is spawned at the point similar to
+> ret_from_fork(), runs the payload (which almost never returns) and
+> then proceeds out to userland, same way fork(2) would've done."
+> That way kernel_execve() doesn't have to do anything magical.
+> 
+> Al, digging through the old notes and current call graph...
 
-> On Mon, Jun 21, 2021 at 01:54:56PM +0000, Al Viro wrote:
->> On Tue, Jun 15, 2021 at 02:58:12PM -0700, Linus Torvalds wrote:
->> 
->> > And I think our horrible "kernel threads return to user space when
->> > done" is absolutely horrifically nasty. Maybe of the clever sort, but
->> > mostly of the historical horror sort.
->> 
->> How would you prefer to handle that, then?  Separate magical path from
->> kernel_execve() to switch to userland?  We used to have something of
->> that sort, and that had been a real horror...
->> 
->> As it is, it's "kernel thread is spawned at the point similar to
->> ret_from_fork(), runs the payload (which almost never returns) and
->> then proceeds out to userland, same way fork(2) would've done."
->> That way kernel_execve() doesn't have to do anything magical.
->> 
->> Al, digging through the old notes and current call graph...
->
-> 	FWIW, the major assumption back then had been that get_signal(),
-> signal_delivered() and all associated machinery (including coredumps)
-> runs *only* from SIGPENDING/NOTIFY_SIGNAL handling.
->
-> 	And "has complete registers on stack" is only a part of that;
-> there was other fun stuff in the area ;-/  Do we want coredumps for
-> those, and if we do, will the de_thread stuff work there?
+	There's a large mess around do_exit() - we have a bunch of
+callers all over arch/*; if nothing else, I very much doubt that really
+want to let tracer play with a thread in the middle of die_if_kernel()
+or similar.
 
-Do we want coredumps from processes that use io_uring? yes
-Exactly what we want from io_uring threads is less clear.  We can't
-really give much that is meaningful beyond the thread ids of the
-io_uring threads.
-
-What problems do are you seeing beyond the missing registers on the
-stack for kernel threads?
-
-I don't immediately see the connection between coredumps and de_thread.
-
-The function de_thread arranges for the fatal_signal_pending to be true,
-and that should work just fine for io_uring threads.  The io_uring
-threads process the fatal_signal with get_signal and then proceed to
-exit eventually calling do_exit.
-
-Eric
-
-
-
-
-
+We sure as hell do not want to arrange for anything on the kernel
+stack in such situations, no matter what's done in exit(2)...
