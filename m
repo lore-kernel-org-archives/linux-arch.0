@@ -2,97 +2,123 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9CEB3C4743C
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 16:06:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E1752C4743C
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 16:53:04 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 811BF611CE
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 16:06:43 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id CAEFD60200
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 16:53:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230326AbhFUQI4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 21 Jun 2021 12:08:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52896 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230059AbhFUQI4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jun 2021 12:08:56 -0400
-Received: from mail-lf1-x12e.google.com (mail-lf1-x12e.google.com [IPv6:2a00:1450:4864:20::12e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7F8A4C061756
-        for <linux-arch@vger.kernel.org>; Mon, 21 Jun 2021 09:06:41 -0700 (PDT)
-Received: by mail-lf1-x12e.google.com with SMTP id a11so18031106lfg.11
-        for <linux-arch@vger.kernel.org>; Mon, 21 Jun 2021 09:06:41 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=grhn+4m03Hl/IKclIMEKcZj1BLiA+WR5DwYi+XwSseA=;
-        b=Q+nWm9WmmmSMbAxOkMaCB9u9prznIbKgUSttcPTWKdMtZ0odlvJvuPtW7JSazKaLeU
-         cUPduhuCaDSDV5BTOvqkmm6hpl1DHLT5xIUhJ6DyinLbPrgEFXS3Mk2MEy94+LkhkW80
-         T4Lwo23p+PNIoBoAY6ZkmX/O+y56kyOcECF3A=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=grhn+4m03Hl/IKclIMEKcZj1BLiA+WR5DwYi+XwSseA=;
-        b=EjiCBLp22a8OyiFKmwZvmEAm2NY1EOCiJhpuLRtJgJkKKcDeIB68U/CgZGI00H0xOz
-         YwLDWtAnUC569CQKTMVYSTUEbm8UBSaU0xZONQu6d3WPGiv85PmXUxYXQUGQUSjVWaZf
-         y8UGm7cEdCJf30FYu1ZYRqB15UIFlO6Ab+VYspjXZqy9ub/QcwEgk1I64g1ry8AriKS8
-         DZ025Ln8BV8YT3JGa9CQmn0OpXQ6CZ0gJ3AVmUpJ9Jv9sryx6KmfhAazAhTi+TqIdtTf
-         OCJhQTWTn/QFpOAgGXURuwDL9kECkn9ZSc47RUJzuQo9vmIvJWGMzdcWTmZVmB2KQiu8
-         m1eQ==
-X-Gm-Message-State: AOAM5304DqfXLQJZQxtcCcpGST7DcdUdGME+9TLYtyswGnNDxn4EnJx5
-        DS2gB9yYPhKkSRYQ70DQC0NcnTCUZzS0y0lnZA0=
-X-Google-Smtp-Source: ABdhPJwuFDaalfW/Gc5lnAc+LQUSZmYmu9p5UcfuItPnCDU7bLP1dhVfp2Wyf/s9NgIoPzoEvI9f8Q==
-X-Received: by 2002:a05:6512:3592:: with SMTP id m18mr2863885lfr.389.1624291599344;
-        Mon, 21 Jun 2021 09:06:39 -0700 (PDT)
-Received: from mail-lf1-f46.google.com (mail-lf1-f46.google.com. [209.85.167.46])
-        by smtp.gmail.com with ESMTPSA id z30sm1916367lfu.42.2021.06.21.09.06.38
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 21 Jun 2021 09:06:38 -0700 (PDT)
-Received: by mail-lf1-f46.google.com with SMTP id x24so31056844lfr.10
-        for <linux-arch@vger.kernel.org>; Mon, 21 Jun 2021 09:06:38 -0700 (PDT)
-X-Received: by 2002:a05:6512:baa:: with SMTP id b42mr14369828lfv.487.1624291598641;
- Mon, 21 Jun 2021 09:06:38 -0700 (PDT)
-MIME-Version: 1.0
-References: <1624176865-15570-1-git-send-email-schmitzmic@gmail.com>
- <1624176865-15570-3-git-send-email-schmitzmic@gmail.com> <1547f9bc-441-6cfb-ad7c-57f7584dd63@linux-m68k.org>
-In-Reply-To: <1547f9bc-441-6cfb-ad7c-57f7584dd63@linux-m68k.org>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Mon, 21 Jun 2021 09:06:22 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wh2COuoJM822vRSxu8Wny6Qpe-XvpSyJhPJKMeXdYXe5w@mail.gmail.com>
-Message-ID: <CAHk-=wh2COuoJM822vRSxu8Wny6Qpe-XvpSyJhPJKMeXdYXe5w@mail.gmail.com>
-Subject: Re: [PATCH v3 2/3] m68k: correctly handle IO worker stack frame set-up
-To:     Finn Thain <fthain@linux-m68k.org>
-Cc:     Michael Schmitz <schmitzmic@gmail.com>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
+        id S232922AbhFUQzQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 21 Jun 2021 12:55:16 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:39884 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232940AbhFUQx5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jun 2021 12:53:57 -0400
+Received: from in02.mta.xmission.com ([166.70.13.52])
+        by out02.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1lvN97-009Tro-7v; Mon, 21 Jun 2021 10:51:37 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95] helo=email.xmission.com)
+        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1lvN96-00D9Qn-9o; Mon, 21 Jun 2021 10:51:36 -0600
+From:   ebiederm@xmission.com (Eric W. Biederman)
+To:     Al Viro <viro@zeniv.linux.org.uk>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Michael Schmitz <schmitzmic@gmail.com>,
         linux-arch <linux-arch@vger.kernel.org>,
+        Jens Axboe <axboe@kernel.dk>, Oleg Nesterov <oleg@redhat.com>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Richard Henderson <rth@twiddle.net>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>,
+        alpha <linux-alpha@vger.kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
         linux-m68k <linux-m68k@lists.linux-m68k.org>,
-        "Eric W. Biederman" <ebiederm@xmission.com>,
-        Andreas Schwab <schwab@linux-m68k.org>
-Content-Type: text/plain; charset="UTF-8"
+        Arnd Bergmann <arnd@kernel.org>,
+        Ley Foon Tan <ley.foon.tan@intel.com>,
+        Tejun Heo <tj@kernel.org>, Kees Cook <keescook@chromium.org>
+References: <CAHk-=wgdO5VwSUFjfF9g=DAQNYmVxzTq73NtdisYErzdZKqDGg@mail.gmail.com>
+        <87sg1lwhvm.fsf@disp2133>
+        <CAHk-=wgsnMTr0V-0F4FOk30Q1h7CeT8wLvR1MSnjack7EpyWtQ@mail.gmail.com>
+        <6e47eff8-d0a4-8390-1222-e975bfbf3a65@gmail.com>
+        <924ec53c-2fd9-2e1c-bbb1-3fda49809be4@gmail.com>
+        <87eed4v2dc.fsf@disp2133>
+        <5929e116-fa61-b211-342a-c706dcb834ca@gmail.com>
+        <87fsxjorgs.fsf@disp2133>
+        <CAHk-=wj5cJjpjAmDptmP9u4__6p3Y93SCQHG8Ef4+h=cnLiCsA@mail.gmail.com>
+        <YNCaMDQVYB04bk3j@zeniv-ca.linux.org.uk>
+        <YNCfNWC1UMvuE5d5@zeniv-ca.linux.org.uk>
+Date:   Mon, 21 Jun 2021 11:50:56 -0500
+In-Reply-To: <YNCfNWC1UMvuE5d5@zeniv-ca.linux.org.uk> (Al Viro's message of
+        "Mon, 21 Jun 2021 14:16:21 +0000")
+Message-ID: <87czsfi2kv.fsf@disp2133>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
+MIME-Version: 1.0
+Content-Type: text/plain
+X-XM-SPF: eid=1lvN96-00D9Qn-9o;;;mid=<87czsfi2kv.fsf@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX1+rRKCOW0fN5lvEtZhHOcs8b3xyBuZW5K8=
+X-SA-Exim-Connect-IP: 68.227.160.95
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: Re: Kernel stack read with PTRACE_EVENT_EXIT and io_uring threads
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Jun 20, 2021 at 8:57 PM Finn Thain <fthain@linux-m68k.org> wrote:
+Al Viro <viro@zeniv.linux.org.uk> writes:
+
+> On Mon, Jun 21, 2021 at 01:54:56PM +0000, Al Viro wrote:
+>> On Tue, Jun 15, 2021 at 02:58:12PM -0700, Linus Torvalds wrote:
+>> 
+>> > And I think our horrible "kernel threads return to user space when
+>> > done" is absolutely horrifically nasty. Maybe of the clever sort, but
+>> > mostly of the historical horror sort.
+>> 
+>> How would you prefer to handle that, then?  Separate magical path from
+>> kernel_execve() to switch to userland?  We used to have something of
+>> that sort, and that had been a real horror...
+>> 
+>> As it is, it's "kernel thread is spawned at the point similar to
+>> ret_from_fork(), runs the payload (which almost never returns) and
+>> then proceeds out to userland, same way fork(2) would've done."
+>> That way kernel_execve() doesn't have to do anything magical.
+>> 
+>> Al, digging through the old notes and current call graph...
 >
-> When the patch author is not the message sender, the message (commit log
-> entry) would normally begin with "From: Author <author@example.com>".
+> 	FWIW, the major assumption back then had been that get_signal(),
+> signal_delivered() and all associated machinery (including coredumps)
+> runs *only* from SIGPENDING/NOTIFY_SIGNAL handling.
+>
+> 	And "has complete registers on stack" is only a part of that;
+> there was other fun stuff in the area ;-/  Do we want coredumps for
+> those, and if we do, will the de_thread stuff work there?
 
-Yes,. But in this case (as, honestly, with most of the trial patches I
-send out) I'm perfectly happy to not get authorship attribution.
-That's particularly true for something that I can't even test, and is
-to code that I don't really know all that well.
+Do we want coredumps from processes that use io_uring? yes
+Exactly what we want from io_uring threads is less clear.  We can't
+really give much that is meaningful beyond the thread ids of the
+io_uring threads.
 
-I'm a big believer in trying to make sure people get proper credit and
-attribution, but I'm also the one exception to the rule.
+What problems do are you seeing beyond the missing registers on the
+stack for kernel threads?
 
-I get too much credit already, I don't need it for the patches that I
-send out that are "I think something like this should work" and then
-others do the heavy lifting of actually testing them and making sure
-everything is good.
+I don't immediately see the connection between coredumps and de_thread.
 
-                 Linus
+The function de_thread arranges for the fatal_signal_pending to be true,
+and that should work just fine for io_uring threads.  The io_uring
+threads process the fatal_signal with get_signal and then proceed to
+exit eventually calling do_exit.
+
+Eric
+
+
+
+
+
