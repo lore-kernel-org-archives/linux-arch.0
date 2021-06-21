@@ -2,31 +2,76 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EABEEC48BC2
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 23:06:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A9796C4743C
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 23:16:00 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CB5B561042
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 23:06:03 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7FA3F6023D
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Jun 2021 23:16:00 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229940AbhFUXIR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 21 Jun 2021 19:08:17 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34642 "EHLO
+        id S231597AbhFUXSO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 21 Jun 2021 19:18:14 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36830 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229915AbhFUXIR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jun 2021 19:08:17 -0400
-Received: from zeniv-ca.linux.org.uk (zeniv-ca.linux.org.uk [IPv6:2607:5300:60:148a::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8CEF6C061574;
-        Mon, 21 Jun 2021 16:06:02 -0700 (PDT)
-Received: from viro by zeniv-ca.linux.org.uk with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1lvSyp-00AzNi-P9; Mon, 21 Jun 2021 23:05:23 +0000
-Date:   Mon, 21 Jun 2021 23:05:23 +0000
-From:   Al Viro <viro@zeniv.linux.org.uk>
+        with ESMTP id S231373AbhFUXSM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jun 2021 19:18:12 -0400
+Received: from mail-lf1-x129.google.com (mail-lf1-x129.google.com [IPv6:2a00:1450:4864:20::129])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3CDD6C061756
+        for <linux-arch@vger.kernel.org>; Mon, 21 Jun 2021 16:15:56 -0700 (PDT)
+Received: by mail-lf1-x129.google.com with SMTP id d16so25383066lfn.3
+        for <linux-arch@vger.kernel.org>; Mon, 21 Jun 2021 16:15:56 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linux-foundation.org; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=stNy8kLF5vctj8WXK363X+Ab+aWkvJsrhuAKRgNlaFY=;
+        b=IL1c66HdRAXSPTueb6HvT7WAQ+hVTgraIpPVGrRtYIIPrdMk6idOyB+d7hgkhCbE/J
+         WSDn2K6/KFlAr4ZepO/VZSbAHdCjsBoc9mInrjOrnW0t0J2Sklo0eRJQKmRh1FXkY2rP
+         httftVRSDPt4omCrZhGPE4bzB66yBCzHc25jk=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=stNy8kLF5vctj8WXK363X+Ab+aWkvJsrhuAKRgNlaFY=;
+        b=kPL7Mljn3aMCQQ6ULs7HLjmu1U9wLWzcc/pq4MlwLaXw4kFeP3gV+F6M3I9JXXJ+cj
+         syOVi0WgdK8ODTw8V1wCHzBjeoNgCQHXd+pY8cY0yoEJFA1SwmdImT0ABHMt15wQO4KF
+         hqchFhCC5oz442DatnbK0yhs3mV/xR/r8jIrVqkSKXehUgfCNTbCkO6Pr/V10JPzdn4A
+         H1wr9tz9ar5kR3861eLAoozqFHEn4X+Dss1wUjofhV6XKvobuImIPvE13kY81rOCItkk
+         YcRmpf3bFtrR+APba1hWa1kUJ7WMQPU+eQcMdX0fkl283S1VMOoSFhj+AT5qoFob6RRG
+         u89w==
+X-Gm-Message-State: AOAM5339E8HaChxdLe1gEsxV8zfGI1d4CFrRZFYFSKJzNLYGolMUcJ0k
+        z0/Ju1eDpKQ1YTmTPxu0xmwgqyI97hDwfemmkGk=
+X-Google-Smtp-Source: ABdhPJwZArWk+RsDg6TZhRJQkuV8//95aE9VE62TrfYo9RW9O5FKym/1boRDdO78mnZTaPexqw0Fjg==
+X-Received: by 2002:a19:8c03:: with SMTP id o3mr465253lfd.499.1624317354356;
+        Mon, 21 Jun 2021 16:15:54 -0700 (PDT)
+Received: from mail-lf1-f50.google.com (mail-lf1-f50.google.com. [209.85.167.50])
+        by smtp.gmail.com with ESMTPSA id n15sm2009230lft.169.2021.06.21.16.15.53
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 21 Jun 2021 16:15:53 -0700 (PDT)
+Received: by mail-lf1-f50.google.com with SMTP id a11so19804529lfg.11
+        for <linux-arch@vger.kernel.org>; Mon, 21 Jun 2021 16:15:53 -0700 (PDT)
+X-Received: by 2002:a05:6512:15a2:: with SMTP id bp34mr498972lfb.40.1624317352941;
+ Mon, 21 Jun 2021 16:15:52 -0700 (PDT)
+MIME-Version: 1.0
+References: <CAHk-=wgdO5VwSUFjfF9g=DAQNYmVxzTq73NtdisYErzdZKqDGg@mail.gmail.com>
+ <87sg1lwhvm.fsf@disp2133> <CAHk-=wgsnMTr0V-0F4FOk30Q1h7CeT8wLvR1MSnjack7EpyWtQ@mail.gmail.com>
+ <6e47eff8-d0a4-8390-1222-e975bfbf3a65@gmail.com> <924ec53c-2fd9-2e1c-bbb1-3fda49809be4@gmail.com>
+ <87eed4v2dc.fsf@disp2133> <5929e116-fa61-b211-342a-c706dcb834ca@gmail.com>
+ <87fsxjorgs.fsf@disp2133> <CAHk-=wj5cJjpjAmDptmP9u4__6p3Y93SCQHG8Ef4+h=cnLiCsA@mail.gmail.com>
+ <YNCaMDQVYB04bk3j@zeniv-ca.linux.org.uk> <YNDhdb7XNQE6zQzL@zeniv-ca.linux.org.uk>
+ <CAHk-=whAsWXcJkpMM8ji77DkYkeJAT4Cj98WBX-S6=GnMQwhzg@mail.gmail.com> <87a6njf0ia.fsf@disp2133>
+In-Reply-To: <87a6njf0ia.fsf@disp2133>
+From:   Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon, 21 Jun 2021 16:15:37 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wh4_iMRmWcao6a8kCvR0Hhdrz+M9L+q4Bfcwx9E9D0huw@mail.gmail.com>
+Message-ID: <CAHk-=wh4_iMRmWcao6a8kCvR0Hhdrz+M9L+q4Bfcwx9E9D0huw@mail.gmail.com>
+Subject: Re: Kernel stack read with PTRACE_EVENT_EXIT and io_uring threads
 To:     "Eric W. Biederman" <ebiederm@xmission.com>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+Cc:     Al Viro <viro@zeniv.linux.org.uk>,
         Michael Schmitz <schmitzmic@gmail.com>,
         linux-arch <linux-arch@vger.kernel.org>,
         Jens Axboe <axboe@kernel.dk>, Oleg Nesterov <oleg@redhat.com>,
@@ -40,95 +85,18 @@ Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
         Arnd Bergmann <arnd@kernel.org>,
         Ley Foon Tan <ley.foon.tan@intel.com>,
         Tejun Heo <tj@kernel.org>, Kees Cook <keescook@chromium.org>
-Subject: Re: Kernel stack read with PTRACE_EVENT_EXIT and io_uring threads
-Message-ID: <YNEbM+B8Su7GDCSo@zeniv-ca.linux.org.uk>
-References: <CAHk-=wgsnMTr0V-0F4FOk30Q1h7CeT8wLvR1MSnjack7EpyWtQ@mail.gmail.com>
- <6e47eff8-d0a4-8390-1222-e975bfbf3a65@gmail.com>
- <924ec53c-2fd9-2e1c-bbb1-3fda49809be4@gmail.com>
- <87eed4v2dc.fsf@disp2133>
- <5929e116-fa61-b211-342a-c706dcb834ca@gmail.com>
- <87fsxjorgs.fsf@disp2133>
- <CAHk-=wj5cJjpjAmDptmP9u4__6p3Y93SCQHG8Ef4+h=cnLiCsA@mail.gmail.com>
- <YNCaMDQVYB04bk3j@zeniv-ca.linux.org.uk>
- <YNCfNWC1UMvuE5d5@zeniv-ca.linux.org.uk>
- <87czsfi2kv.fsf@disp2133>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87czsfi2kv.fsf@disp2133>
-Sender: Al Viro <viro@ftp.linux.org.uk>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Jun 21, 2021 at 11:50:56AM -0500, Eric W. Biederman wrote:
-> Al Viro <viro@zeniv.linux.org.uk> writes:
-> 
-> > On Mon, Jun 21, 2021 at 01:54:56PM +0000, Al Viro wrote:
-> >> On Tue, Jun 15, 2021 at 02:58:12PM -0700, Linus Torvalds wrote:
-> >> 
-> >> > And I think our horrible "kernel threads return to user space when
-> >> > done" is absolutely horrifically nasty. Maybe of the clever sort, but
-> >> > mostly of the historical horror sort.
-> >> 
-> >> How would you prefer to handle that, then?  Separate magical path from
-> >> kernel_execve() to switch to userland?  We used to have something of
-> >> that sort, and that had been a real horror...
-> >> 
-> >> As it is, it's "kernel thread is spawned at the point similar to
-> >> ret_from_fork(), runs the payload (which almost never returns) and
-> >> then proceeds out to userland, same way fork(2) would've done."
-> >> That way kernel_execve() doesn't have to do anything magical.
-> >> 
-> >> Al, digging through the old notes and current call graph...
-> >
-> > 	FWIW, the major assumption back then had been that get_signal(),
-> > signal_delivered() and all associated machinery (including coredumps)
-> > runs *only* from SIGPENDING/NOTIFY_SIGNAL handling.
-> >
-> > 	And "has complete registers on stack" is only a part of that;
-> > there was other fun stuff in the area ;-/  Do we want coredumps for
-> > those, and if we do, will the de_thread stuff work there?
-> 
-> Do we want coredumps from processes that use io_uring? yes
-> Exactly what we want from io_uring threads is less clear.  We can't
-> really give much that is meaningful beyond the thread ids of the
-> io_uring threads.
-> 
-> What problems do are you seeing beyond the missing registers on the
-> stack for kernel threads?
-> 
-> I don't immediately see the connection between coredumps and de_thread.
-> 
-> The function de_thread arranges for the fatal_signal_pending to be true,
-> and that should work just fine for io_uring threads.  The io_uring
-> threads process the fatal_signal with get_signal and then proceed to
-> exit eventually calling do_exit.
+On Mon, Jun 21, 2021 at 1:04 PM Eric W. Biederman <ebiederm@xmission.com> wrote:
+>
+> For other ptrace_event calls I am playing with seeing if I can split
+> them in two.  Like sending a signal.  So that we can have perform all
+> of the work in get_signal.
 
-I would like to see the testing in cases when the io-uring thread is
-the one getting hit by initial signal and when it's the normal one
-with associated io-uring ones.  The thread-collecting logics at least
-used to depend upon fairly subtle assumptions, and "kernel threads
-obviously can't show up as candidates" used to narrow the analysis
-down...
+That sounds like the right model, but I don't think it works.
+Particularly not for exit(). The second phase will never happen.
 
-In any case, WTF would we allow reads or writes to *any* registers of
-such threads?  It's not as simple as "just return zeroes", BTW - the
-values allowed in special registers might have non-trivial constraints
-on them.  The same goes for coredump - we don't _have_ registers to
-dump for those, period.
-
-Looks like the first things to do would be
-	* prohibit ptrace accessing any regsets of worker threads
-	* make coredump skip all register notes for those
-
-Note, BTW, that kernel_thread() and kernel_execve() do *NOT* step into
-ptrace_notify() - explicit CLONE_UNTRACED for the former and zero
-current->ptrace in the caller of the latter.  So fork and exec side
-has ptrace_event() crap limited to real syscalls.
-
-It's seccomp[1] and exit-related stuff that are messy...
-
-[1] "never trust somebody who introduces himself as Honest Joe and keeps
-carping on that all the time"; c.f. __secure_computing(), CONFIG_INTEGRITY,
-etc.
+              Linus
