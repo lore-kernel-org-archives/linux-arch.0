@@ -2,123 +2,160 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-19.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 904BAC4743C
-	for <linux-arch@archiver.kernel.org>; Wed, 23 Jun 2021 15:33:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1C0EDC4743C
+	for <linux-arch@archiver.kernel.org>; Wed, 23 Jun 2021 17:38:58 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7009B61166
-	for <linux-arch@archiver.kernel.org>; Wed, 23 Jun 2021 15:33:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 03F0D611CE
+	for <linux-arch@archiver.kernel.org>; Wed, 23 Jun 2021 17:38:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231348AbhFWPf3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 23 Jun 2021 11:35:29 -0400
-Received: from mga06.intel.com ([134.134.136.31]:41782 "EHLO mga06.intel.com"
+        id S229759AbhFWRlO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 23 Jun 2021 13:41:14 -0400
+Received: from mail.kernel.org ([198.145.29.99]:35776 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229523AbhFWPf3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 23 Jun 2021 11:35:29 -0400
-IronPort-SDR: YMuS9nuGLxL8LLqQTiY80Up+Ob/nNJLwF02gacMPFNR6hEN3EajS2GZu+wsEx+Y5K2YxNBsRlV
- hUolKam/m/+g==
-X-IronPort-AV: E=McAfee;i="6200,9189,10024"; a="268426912"
-X-IronPort-AV: E=Sophos;i="5.83,294,1616482800"; 
-   d="scan'208";a="268426912"
-Received: from orsmga001.jf.intel.com ([10.7.209.18])
-  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Jun 2021 08:32:12 -0700
-IronPort-SDR: W1HMA8i/s2rN5aZx8bk9b+9s828Sw0whd/8ZPx4tuBdvKLPElclGhCLS5piu/a0/2cKrU5dqUR
- 7NiWM0b99ejg==
-X-IronPort-AV: E=Sophos;i="5.83,294,1616482800"; 
-   d="scan'208";a="487357324"
-Received: from eagelaga-mobl.amr.corp.intel.com (HELO [10.209.43.81]) ([10.209.43.81])
-  by orsmga001-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Jun 2021 08:32:12 -0700
-Subject: Re: x86 CPU features detection for applications (and AMX)
-To:     Florian Weimer <fweimer@redhat.com>, libc-alpha@sourceware.org,
-        linux-api@vger.kernel.org, x86@kernel.org,
-        linux-arch@vger.kernel.org
-Cc:     "H.J. Lu" <hjl.tools@gmail.com>
-References: <87tulo39ms.fsf@oldenburg.str.redhat.com>
-From:   Dave Hansen <dave.hansen@intel.com>
-Autocrypt: addr=dave.hansen@intel.com; keydata=
- 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
- z5cecg==
-Message-ID: <e376bcb9-cd79-7665-5859-ae808dd286f1@intel.com>
-Date:   Wed, 23 Jun 2021 08:32:09 -0700
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
- Thunderbird/68.10.0
+        id S229688AbhFWRlO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 23 Jun 2021 13:41:14 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 463D2611C1;
+        Wed, 23 Jun 2021 17:38:53 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1624469936;
+        bh=LsdX3KU6rHhhTz7HcyPQTUF5UxnkSQL1LjLhYoWKqFw=;
+        h=From:To:Cc:Subject:Date:From;
+        b=Qw84XRhtkeGB7JM3QxZ6t9f0/y8C2OM14C+Bej0Njst+XSnFPogJJDTB0SwOAD0fq
+         zgNR3QhWbBbZ0H0ofOHJ4JW2xmsN2anfZ4uBn8VHF/JLhzdDgG5LfcjRVauu0T9cgO
+         i28MInicDQWrUidbSEzCzmh2xUD6b3J5TsGjE01Z2PfDcPm3KPqTh2t3uqXz/NI5rw
+         XCZODsHsekMNB2s5wQNADJiM5Fjqxop8rwRaoowNNKUx3lRUcRKXZdM7T2x/az0XMd
+         cMfgQCMh8MPGJYMVHwSiRAf+ZSzcv5VXcTrsj2suYKooryKDm6S95Ylrm9FDkO14xh
+         +7EL8lvueSlTw==
+From:   Will Deacon <will@kernel.org>
+To:     linux-arm-kernel@lists.infradead.org
+Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        Will Deacon <will@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Marc Zyngier <maz@kernel.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Morten Rasmussen <morten.rasmussen@arm.com>,
+        Qais Yousef <qais.yousef@arm.com>,
+        Suren Baghdasaryan <surenb@google.com>,
+        Quentin Perret <qperret@google.com>, Tejun Heo <tj@kernel.org>,
+        Johannes Weiner <hannes@cmpxchg.org>,
+        Ingo Molnar <mingo@redhat.com>,
+        Juri Lelli <juri.lelli@redhat.com>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        "Rafael J. Wysocki" <rjw@rjwysocki.net>,
+        Dietmar Eggemann <dietmar.eggemann@arm.com>,
+        Daniel Bristot de Oliveira <bristot@redhat.com>,
+        Valentin Schneider <valentin.schneider@arm.com>,
+        Mark Rutland <mark.rutland@arm.com>, kernel-team@android.com
+Subject: [PATCH v10 00/16] Add support for 32-bit tasks on asymmetric AArch32 systems
+Date:   Wed, 23 Jun 2021 18:38:32 +0100
+Message-Id: <20210623173848.318-1-will@kernel.org>
+X-Mailer: git-send-email 2.20.1
 MIME-Version: 1.0
-In-Reply-To: <87tulo39ms.fsf@oldenburg.str.redhat.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 6/23/21 8:04 AM, Florian Weimer wrote:
-> https://www.gnu.org/software/libc/manual/html_node/X86.html
-...
-> Previously kernel developers have expressed dismay that we didn't
-> coordinate the interface with them.  This is why I want raise this now.
+Hi again all,
 
-This looks basically like someone dumped a bunch of CPUID bit values and
-exposed them to applications without considering whether applications
-would ever need them.  For instance, why would an app ever care about:
+This is version TEN of the patches previously circulated at:
 
-	PKS – Protection keys for supervisor-mode pages.
+  v1: https://lore.kernel.org/r/20201027215118.27003-1-will@kernel.org
+  v2: https://lore.kernel.org/r/20201109213023.15092-1-will@kernel.org
+  v3: https://lore.kernel.org/r/20201113093720.21106-1-will@kernel.org
+  v4: https://lore.kernel.org/r/20201124155039.13804-1-will@kernel.org
+  v5: https://lore.kernel.org/r/20201208132835.6151-1-will@kernel.org
+  v6: https://lore.kernel.org/r/20210518094725.7701-1-will@kernel.org
+  v7: https://lore.kernel.org/r/20210525151432.16875-1-will@kernel.org
+  v8: https://lore.kernel.org/r/20210602164719.31777-1-will@kernel.org
+  v9: https://lore.kernel.org/r/20210608180313.11502-1-will@kernel.org
 
-And how could glibc ever give applications accurate information about
-whether PKS "is supported by the operating system"?  It just plain
-doesn't know, or at least only knows from a really weak ABI like
-/proc/cpuinfo.
+There was also a nice LWN writeup in case you've forgotten what this is
+about:
 
-It also doesn't seem to tell applications what they want which is, "can
-I, the application, *use* this feature?"
+	https://lwn.net/Articles/838339/
 
-> PS: Is it true that there is no public mailing list for Linux
-> discussions specific to x86?
+The only changes since v9 are that I've added some Reviewed-by tags from
+Valentin and rebased the series onto the stable arm64/for-next/cpufeature
+branch, where I have queued some of the arm64 prerequisites [1].
 
-Yes.  I've asked recently for something x86-related, but folks were to
-concerned what I was asking for was too specific, which was more of a
-brainstorming place to put x86-specific RFC's.
+Cheers,
 
-	https://subspace.kernel.org/lists.linux.dev.html
+Will
+
+[1] https://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git/log/?h=for-next/cpufeature
+
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Marc Zyngier <maz@kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Morten Rasmussen <morten.rasmussen@arm.com>
+Cc: Qais Yousef <qais.yousef@arm.com>
+Cc: Suren Baghdasaryan <surenb@google.com>
+Cc: Quentin Perret <qperret@google.com>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Johannes Weiner <hannes@cmpxchg.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Juri Lelli <juri.lelli@redhat.com>
+Cc: Vincent Guittot <vincent.guittot@linaro.org>
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Dietmar Eggemann <dietmar.eggemann@arm.com>
+Cc: Daniel Bristot de Oliveira <bristot@redhat.com>
+Cc: Valentin Schneider <valentin.schneider@arm.com>
+Cc: Mark Rutland <mark.rutland@arm.com>
+Cc: kernel-team@android.com
+
+--->8
+
+Will Deacon (16):
+  sched: Introduce task_cpu_possible_mask() to limit fallback rq
+    selection
+  cpuset: Don't use the cpu_possible_mask as a last resort for cgroup v1
+  cpuset: Honour task_cpu_possible_mask() in guarantee_online_cpus()
+  cpuset: Cleanup cpuset_cpus_allowed_fallback() use in
+    select_fallback_rq()
+  sched: Reject CPU affinity changes based on task_cpu_possible_mask()
+  sched: Introduce task_struct::user_cpus_ptr to track requested
+    affinity
+  sched: Split the guts of sched_setaffinity() into a helper function
+  sched: Allow task CPU affinity to be restricted on asymmetric systems
+  sched: Introduce dl_task_check_affinity() to check proposed affinity
+  arm64: Implement task_cpu_possible_mask()
+  arm64: exec: Adjust affinity for compat tasks with mismatched 32-bit
+    EL0
+  arm64: Prevent offlining first CPU with 32-bit EL0 on mismatched
+    system
+  arm64: Advertise CPUs capable of running 32-bit applications in sysfs
+  arm64: Hook up cmdline parameter to allow mismatched 32-bit EL0
+  arm64: Remove logic to kill 32-bit tasks on 64-bit-only cores
+  Documentation: arm64: describe asymmetric 32-bit support
+
+ .../ABI/testing/sysfs-devices-system-cpu      |   9 +
+ .../admin-guide/kernel-parameters.txt         |  11 +
+ Documentation/arm64/asymmetric-32bit.rst      | 155 ++++++++
+ Documentation/arm64/index.rst                 |   1 +
+ arch/arm64/include/asm/elf.h                  |   6 +-
+ arch/arm64/include/asm/mmu_context.h          |  13 +
+ arch/arm64/kernel/cpufeature.c                |  51 ++-
+ arch/arm64/kernel/process.c                   |  47 ++-
+ arch/arm64/kernel/signal.c                    |  26 --
+ include/linux/cpuset.h                        |   8 +-
+ include/linux/mmu_context.h                   |  14 +
+ include/linux/sched.h                         |  21 ++
+ init/init_task.c                              |   1 +
+ kernel/cgroup/cpuset.c                        |  59 +--
+ kernel/fork.c                                 |   2 +
+ kernel/sched/core.c                           | 340 ++++++++++++++----
+ kernel/sched/sched.h                          |   1 +
+ 17 files changed, 627 insertions(+), 138 deletions(-)
+ create mode 100644 Documentation/arm64/asymmetric-32bit.rst
+
+-- 
+2.32.0.93.g670b81a890-goog
+
