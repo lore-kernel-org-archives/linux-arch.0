@@ -4,31 +4,31 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.7 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 50CF8C49EA7
-	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 19:03:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 829B4C49EAF
+	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 19:04:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 22799613DC
-	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 19:03:39 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 72342613C3
+	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 19:04:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232681AbhFXTF4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 24 Jun 2021 15:05:56 -0400
-Received: from out02.mta.xmission.com ([166.70.13.232]:56404 "EHLO
+        id S232753AbhFXTGV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 24 Jun 2021 15:06:21 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:56512 "EHLO
         out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232417AbhFXTFy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jun 2021 15:05:54 -0400
-Received: from in02.mta.xmission.com ([166.70.13.52])
+        with ESMTP id S232750AbhFXTGU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jun 2021 15:06:20 -0400
+Received: from in01.mta.xmission.com ([166.70.13.51])
         by out02.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         (Exim 4.93)
         (envelope-from <ebiederm@xmission.com>)
-        id 1lwUdS-00GQKH-Ps; Thu, 24 Jun 2021 13:03:34 -0600
-Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:47224 helo=email.xmission.com)
-        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        id 1lwUdr-00GQMb-MZ; Thu, 24 Jun 2021 13:03:59 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:47234 helo=email.xmission.com)
+        by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         (Exim 4.93)
         (envelope-from <ebiederm@xmission.com>)
-        id 1lwUdR-003Hft-BL; Thu, 24 Jun 2021 13:03:34 -0600
+        id 1lwUdq-003SFv-2Z; Thu, 24 Jun 2021 13:03:59 -0600
 From:   ebiederm@xmission.com (Eric W. Biederman)
 To:     Linus Torvalds <torvalds@linux-foundation.org>
 Cc:     Al Viro <viro@zeniv.linux.org.uk>,
@@ -62,103 +62,64 @@ References: <CAHk-=wgdO5VwSUFjfF9g=DAQNYmVxzTq73NtdisYErzdZKqDGg@mail.gmail.com>
         <87tulpbp19.fsf@disp2133>
         <CAHk-=wi_kQAff1yx2ufGRo2zApkvqU8VGn7kgPT-Kv71FTs=AA@mail.gmail.com>
         <87zgvgabw1.fsf@disp2133> <875yy3850g.fsf_-_@disp2133>
-Date:   Thu, 24 Jun 2021 14:03:25 -0500
+Date:   Thu, 24 Jun 2021 14:03:50 -0500
 In-Reply-To: <875yy3850g.fsf_-_@disp2133> (Eric W. Biederman's message of
         "Thu, 24 Jun 2021 13:57:35 -0500")
-Message-ID: <87pmwb5blu.fsf_-_@disp2133>
+Message-ID: <87k0mj5bl5.fsf_-_@disp2133>
 User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
 Content-Type: text/plain
-X-XM-SPF: eid=1lwUdR-003Hft-BL;;;mid=<87pmwb5blu.fsf_-_@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
-X-XM-AID: U2FsdGVkX1+ubskzIAw9Nf7jzRrS5tUdPBJdmYtDWnM=
+X-XM-SPF: eid=1lwUdq-003SFv-2Z;;;mid=<87k0mj5bl5.fsf_-_@disp2133>;;;hst=in01.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX1/3wyY4A5bofMhmT8OEDykV2ogWm09ejcw=
 X-SA-Exim-Connect-IP: 68.227.160.95
 X-SA-Exim-Mail-From: ebiederm@xmission.com
-Subject: [PATCH 8/9] signal/task_exit: Use start_task_exit in place of do_exit
+Subject: [PATCH 9/9] signal: Move PTRACE_EVENT_EXIT into get_signal
 X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
-X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
+X-SA-Exim-Scanned: Yes (on in01.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 
-Reuse start_task_exit_locked to implement start_task_exit.
+This ensures that we always have all full set of registers available when
+PTRACE_EVENT_EXIT is called.  Something that is not guaranteed for callers
+of do_exit.
 
-Simplify the exit logic by having all exits go through get_signal.
-This simplifies the analysis of syncrhonization during exit and
-gurantees a full set of registers will be available for ptrace to
-examine at PTRACE_EVENT_EXIT.
+Additionally this guarantees PTRACE_EVENT_EXIT will not cause havoc
+with abnormal exits.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- include/linux/sched/signal.h |  1 +
- kernel/exit.c                |  4 +++-
- kernel/seccomp.c             |  2 +-
- kernel/signal.c              | 12 ++++++++++++
- 4 files changed, 17 insertions(+), 2 deletions(-)
+ kernel/exit.c   | 2 --
+ kernel/signal.c | 2 ++
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
-index a958381ba4a9..3f4e69c019b7 100644
---- a/include/linux/sched/signal.h
-+++ b/include/linux/sched/signal.h
-@@ -430,6 +430,7 @@ static inline void ptrace_signal_wake_up(struct task_struct *t, bool resume)
- 
- void start_group_exit(int exit_code);
- void start_task_exit_locked(struct task_struct *task, int exit_code);
-+void start_task_exit(int exit_code);
- 
- void task_join_group_stop(struct task_struct *task);
- 
 diff --git a/kernel/exit.c b/kernel/exit.c
-index 635f434122b7..51e0c82b3f7d 100644
+index 51e0c82b3f7d..309f1d71e340 100644
 --- a/kernel/exit.c
 +++ b/kernel/exit.c
-@@ -889,7 +889,9 @@ EXPORT_SYMBOL(complete_and_exit);
+@@ -763,8 +763,6 @@ void __noreturn do_exit(long code)
+ 	profile_task_exit(tsk);
+ 	kcov_task_exit(tsk);
  
- SYSCALL_DEFINE1(exit, int, error_code)
- {
--	do_exit((error_code&0xff)<<8);
-+	start_task_exit((error_code&0xff)<<8);
-+	/* get_signal will call do_exit */
-+	return 0;
- }
+-	ptrace_event(PTRACE_EVENT_EXIT, code);
+-
+ 	validate_creds_for_do_exit(tsk);
  
- 
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index b1c06fd1b205..e0c4c123a8bf 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -1248,7 +1248,7 @@ static int __seccomp_filter(int this_syscall, const struct seccomp_data *sd,
- 			force_sig_seccomp(this_syscall, data, true);
- 		} else {
- 			if (action == SECCOMP_RET_KILL_THREAD)
--				do_exit(SIGSYS);
-+				start_task_exit(SIGSYS);
- 			else
- 				start_group_exit(SIGSYS);
- 		}
+ 	/*
 diff --git a/kernel/signal.c b/kernel/signal.c
-index afbc001220dd..63fda9b6bbf9 100644
+index 63fda9b6bbf9..7214331836bc 100644
 --- a/kernel/signal.c
 +++ b/kernel/signal.c
-@@ -1424,6 +1424,18 @@ void start_task_exit_locked(struct task_struct *task, int exit_code)
- 	}
- }
+@@ -2890,6 +2890,8 @@ bool get_signal(struct ksignal *ksig)
+ 		if (exit_code & 0x7f)
+ 			current->flags |= PF_SIGNALED;
  
-+void start_task_exit(int exit_code)
-+{
-+	struct task_struct *task = current;
-+	if (!fatal_signal_pending(task)) {
-+		struct sighand_struct *const sighand = task->sighand;
-+		spin_lock_irq(&sighand->siglock);
-+		if (!fatal_signal_pending(current))
-+			start_task_exit_locked(task, exit_code);
-+		spin_unlock_irq(&sighand->siglock);
-+	}
-+}
++		ptrace_event(PTRACE_EVENT_EXIT, exit_code);
 +
- struct sighand_struct *__lock_task_sighand(struct task_struct *tsk,
- 					   unsigned long *flags)
- {
+ 		/*
+ 		 * PF_IO_WORKER threads will catch and exit on fatal signals
+ 		 * themselves. They have cleanup that must be performed, so
 -- 
 2.20.1
 
