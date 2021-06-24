@@ -2,32 +2,33 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0902AC49EA6
-	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 18:58:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0E9B9C49EA5
+	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 18:59:19 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D3BC7613DC
-	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 18:58:42 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id DB898613CC
+	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 18:59:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231878AbhFXTBB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 24 Jun 2021 15:01:01 -0400
-Received: from out02.mta.xmission.com ([166.70.13.232]:55430 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229464AbhFXTBA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jun 2021 15:01:00 -0400
-Received: from in02.mta.xmission.com ([166.70.13.52])
-        by out02.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        id S231407AbhFXTBh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 24 Jun 2021 15:01:37 -0400
+Received: from out01.mta.xmission.com ([166.70.13.231]:35718 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229464AbhFXTBh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jun 2021 15:01:37 -0400
+Received: from in01.mta.xmission.com ([166.70.13.51])
+        by out01.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         (Exim 4.93)
         (envelope-from <ebiederm@xmission.com>)
-        id 1lwUYe-00GPo3-3g; Thu, 24 Jun 2021 12:58:36 -0600
-Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:46976 helo=email.xmission.com)
-        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        id 1lwUZI-00096b-Ou; Thu, 24 Jun 2021 12:59:16 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:46990 helo=email.xmission.com)
+        by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         (Exim 4.93)
         (envelope-from <ebiederm@xmission.com>)
-        id 1lwUYb-003Gdf-NH; Thu, 24 Jun 2021 12:58:35 -0600
+        id 1lwUZE-003RF0-8B; Thu, 24 Jun 2021 12:59:16 -0600
 From:   ebiederm@xmission.com (Eric W. Biederman)
 To:     Linus Torvalds <torvalds@linux-foundation.org>
 Cc:     Al Viro <viro@zeniv.linux.org.uk>,
@@ -60,76 +61,71 @@ References: <CAHk-=wgdO5VwSUFjfF9g=DAQNYmVxzTq73NtdisYErzdZKqDGg@mail.gmail.com>
         <CAHk-=wh4_iMRmWcao6a8kCvR0Hhdrz+M9L+q4Bfcwx9E9D0huw@mail.gmail.com>
         <87tulpbp19.fsf@disp2133>
         <CAHk-=wi_kQAff1yx2ufGRo2zApkvqU8VGn7kgPT-Kv71FTs=AA@mail.gmail.com>
-        <87zgvgabw1.fsf@disp2133>
-Date:   Thu, 24 Jun 2021 13:57:35 -0500
-In-Reply-To: <87zgvgabw1.fsf@disp2133> (Eric W. Biederman's message of "Wed,
-        23 Jun 2021 09:33:50 -0500")
-Message-ID: <875yy3850g.fsf_-_@disp2133>
+        <87zgvgabw1.fsf@disp2133> <875yy3850g.fsf_-_@disp2133>
+Date:   Thu, 24 Jun 2021 13:59:04 -0500
+In-Reply-To: <875yy3850g.fsf_-_@disp2133> (Eric W. Biederman's message of
+        "Thu, 24 Jun 2021 13:57:35 -0500")
+Message-ID: <87zgvf6qdj.fsf_-_@disp2133>
 User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
 Content-Type: text/plain
-X-XM-SPF: eid=1lwUYb-003Gdf-NH;;;mid=<875yy3850g.fsf_-_@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
-X-XM-AID: U2FsdGVkX1/U76JadBwWKTlmHkHUkxGlFtBDXVbu+Hg=
+X-XM-SPF: eid=1lwUZE-003RF0-8B;;;mid=<87zgvf6qdj.fsf_-_@disp2133>;;;hst=in01.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX1+5j7k08D5eTmmAZgbcD6377xu6DvCzgsU=
 X-SA-Exim-Connect-IP: 68.227.160.95
 X-SA-Exim-Mail-From: ebiederm@xmission.com
-Subject: [PATCH 0/9] Refactoring exit
+Subject: [PATCH 1/9] signal/sh: Use force_sig(SIGKILL) instead of do_group_exit(SIGKILL)
 X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
-X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
+X-SA-Exim-Scanned: Yes (on in01.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 
-I dug into exit because PTRACE_EVENT_EXIT not being guaranteed to be
-called with a stack where ptrace read and write all of the userspace
-registers can lead to unfiltered reads and writes of kernel stack
-contents.
+Today the sh code allocates memory the first time a process uses
+the fpu.  If that memory allocation fails kill the affected task
+with force_sig(SIGKILL) rather than do_group_exit(SIGKILL).
 
-While looking into it I realized that there are a lot of little races
-between all of the ways an exit can be initiated.  I don't know of a way
-those races are harmful, but they make the code difficult to reason about.
+Calling do_group_exit from an exception handler can potentially lead
+to locking dead locks as do_group_exit is not designed to be called
+from interrupt context.  Instead use force_sig(SIGKILL) to kill
+the userspace process.  Sending signals in general and force_sig
+in particular has been tested from interrupt context so there
+should be no problems.
 
-The solution this set of changes adopts is to implement good primitives
-for asynchronous exit and exit_group requests and modifies exit(2) and
-exit_group(2) to use those primitives.
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+---
+ arch/sh/kernel/cpu/fpu.c | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
 
-The result should be more consistent determination of the reason for an
-exit, as well as PTRACE_EVENT_EXIT always being called from a context
-(get_signal) where ptrace is guaranteed to be able to read and write
-all of the registers.
+diff --git a/arch/sh/kernel/cpu/fpu.c b/arch/sh/kernel/cpu/fpu.c
+index ae354a2931e7..fd6db0ab1928 100644
+--- a/arch/sh/kernel/cpu/fpu.c
++++ b/arch/sh/kernel/cpu/fpu.c
+@@ -62,18 +62,20 @@ void fpu_state_restore(struct pt_regs *regs)
+ 	}
+ 
+ 	if (!tsk_used_math(tsk)) {
+-		local_irq_enable();
++		int ret;
+ 		/*
+ 		 * does a slab alloc which can sleep
+ 		 */
+-		if (init_fpu(tsk)) {
++		local_irq_enable();
++		ret = init_fpu(tsk);
++		local_irq_disable();
++		if (ret) {
+ 			/*
+ 			 * ran out of memory!
+ 			 */
+-			do_group_exit(SIGKILL);
++			force_sig(SIGKILL);
+ 			return;
+ 		}
+-		local_irq_disable();
+ 	}
+ 
+ 	grab_fpu(regs);
+-- 
+2.20.1
 
-I believe the set of changes could be justified for the cleanups alone
-even if PTRACE_EVENT_EXIT did not need to be moved.  Which makes me
-feel good about this approach.
-
-If a way can be found that coredumps can be started from complete_signal
-(needed for timely handling of fatal signals) instead of needing to
-start in do_coredump for proper synchronization force_siginfo_to_task
-and get_signal can be significantly simplified.  As it is a lot of
-checks are duplicated to ensure that everything works properly in the
-presence of do_coredump.
-
-So far the code has been lightly tested, and the descriptions of some
-of the patches are a bit light, but I think this shows the direction
-I am aiming to travel for sorting out exit(2) and exit_group(2).
-
-Eric W. Biederman (9):
-      signal/sh: Use force_sig(SIGKILL) instead of do_group_exit(SIGKILL)
-      signal/seccomp: Refactor seccomp signal and coredump generation
-      signal/seccomp: Dump core when there is only one live thread
-      signal: Factor start_group_exit out of complete_signal
-      signal/group_exit: Use start_group_exit in place of do_group_exit
-      signal: Fold do_group_exit into get_signal fixing io_uring threads
-      signal: Make individual tasks exiting a first class concept.
-      signal/task_exit: Use start_task_exit in place of do_exit
-      signal: Move PTRACE_EVENT_EXIT into get_signal
-
- arch/sh/kernel/cpu/fpu.c     |  10 +--
- fs/exec.c                    |  10 ++-
- include/linux/sched/jobctl.h |   2 +
- include/linux/sched/signal.h |   5 ++
- include/linux/sched/task.h   |   1 -
- kernel/exit.c                |  41 ++---------
- kernel/seccomp.c             |  45 +++---------
- kernel/signal.c              | 166 ++++++++++++++++++++++++++++++-------------
- 8 files changed, 154 insertions(+), 126 deletions(-)
