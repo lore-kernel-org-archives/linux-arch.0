@@ -4,31 +4,31 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.7 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5DD74C49EA5
-	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 19:01:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 57114C49EA7
+	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 19:02:31 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4210E613D3
-	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 19:01:51 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 4098B613D3
+	for <linux-arch@archiver.kernel.org>; Thu, 24 Jun 2021 19:02:31 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232417AbhFXTEJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 24 Jun 2021 15:04:09 -0400
-Received: from out01.mta.xmission.com ([166.70.13.231]:36464 "EHLO
+        id S232625AbhFXTEt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 24 Jun 2021 15:04:49 -0400
+Received: from out01.mta.xmission.com ([166.70.13.231]:36650 "EHLO
         out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232758AbhFXTEJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jun 2021 15:04:09 -0400
-Received: from in01.mta.xmission.com ([166.70.13.51])
+        with ESMTP id S232620AbhFXTEs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jun 2021 15:04:48 -0400
+Received: from in02.mta.xmission.com ([166.70.13.52])
         by out01.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         (Exim 4.93)
         (envelope-from <ebiederm@xmission.com>)
-        id 1lwUbl-0009To-5H; Thu, 24 Jun 2021 13:01:49 -0600
-Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:47182 helo=email.xmission.com)
-        by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        id 1lwUcL-0009Y8-Mg; Thu, 24 Jun 2021 13:02:25 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:47202 helo=email.xmission.com)
+        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         (Exim 4.93)
         (envelope-from <ebiederm@xmission.com>)
-        id 1lwUbk-003RqE-4d; Thu, 24 Jun 2021 13:01:48 -0600
+        id 1lwUcK-003HTb-23; Thu, 24 Jun 2021 13:02:24 -0600
 From:   ebiederm@xmission.com (Eric W. Biederman)
 To:     Linus Torvalds <torvalds@linux-foundation.org>
 Cc:     Al Viro <viro@zeniv.linux.org.uk>,
@@ -62,65 +62,166 @@ References: <CAHk-=wgdO5VwSUFjfF9g=DAQNYmVxzTq73NtdisYErzdZKqDGg@mail.gmail.com>
         <87tulpbp19.fsf@disp2133>
         <CAHk-=wi_kQAff1yx2ufGRo2zApkvqU8VGn7kgPT-Kv71FTs=AA@mail.gmail.com>
         <87zgvgabw1.fsf@disp2133> <875yy3850g.fsf_-_@disp2133>
-Date:   Thu, 24 Jun 2021 14:01:40 -0500
+Date:   Thu, 24 Jun 2021 14:02:16 -0500
 In-Reply-To: <875yy3850g.fsf_-_@disp2133> (Eric W. Biederman's message of
         "Thu, 24 Jun 2021 13:57:35 -0500")
-Message-ID: <87a6nf6q97.fsf_-_@disp2133>
+Message-ID: <874kdn6q87.fsf_-_@disp2133>
 User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
 Content-Type: text/plain
-X-XM-SPF: eid=1lwUbk-003RqE-4d;;;mid=<87a6nf6q97.fsf_-_@disp2133>;;;hst=in01.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
-X-XM-AID: U2FsdGVkX1/gBwk+RmoD5QJZcwa1NSYKgkgA35zQ/ig=
+X-XM-SPF: eid=1lwUcK-003HTb-23;;;mid=<874kdn6q87.fsf_-_@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX1/I97aJ4pXlAoUyWwPqGNNIcVUdMFX/Zgo=
 X-SA-Exim-Connect-IP: 68.227.160.95
 X-SA-Exim-Mail-From: ebiederm@xmission.com
-Subject: [PATCH 5/9] signal/group_exit: Use start_group_exit in place of do_group_exit
+Subject: [PATCH 6/9] signal: Fold do_group_exit into get_signal fixing io_uring threads
 X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
-X-SA-Exim-Scanned: Yes (on in01.mta.xmission.com)
+X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 
-Make thread exiting uniform by causing all threads to pass through
-get_signal when they are exiting.  This simplifies the analysis
-of sychronization during exit and guarantees that all full set
-of registers will be available for ptrace to examine for
-threads that stop at PTRACE_EVENT_EXIT.
+Forld do_group_exit into get_signal as it is the last caller.
+
+Move the group_exit logic above the PF_IO_WORKER exit, ensuring
+that if an PF_IO_WORKER catches SIGKILL every thread in
+the thread group will exit not just the the PF_IO_WORKER.
+
+Now that the information is easily available only set PF_SIGNALED
+when it was a signal that caused the exit.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- kernel/exit.c    | 4 ++--
- kernel/seccomp.c | 2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ include/linux/sched/task.h |  1 -
+ kernel/exit.c              | 31 -------------------------------
+ kernel/signal.c            | 35 +++++++++++++++++++++++++----------
+ 3 files changed, 25 insertions(+), 42 deletions(-)
 
+diff --git a/include/linux/sched/task.h b/include/linux/sched/task.h
+index ef02be869cf2..45525512e3d0 100644
+--- a/include/linux/sched/task.h
++++ b/include/linux/sched/task.h
+@@ -77,7 +77,6 @@ static inline void exit_thread(struct task_struct *tsk)
+ {
+ }
+ #endif
+-extern void do_group_exit(int);
+ 
+ extern void exit_files(struct task_struct *);
+ extern void exit_itimers(struct signal_struct *);
 diff --git a/kernel/exit.c b/kernel/exit.c
-index fd1c04193e18..921519d80b56 100644
+index 921519d80b56..635f434122b7 100644
 --- a/kernel/exit.c
 +++ b/kernel/exit.c
-@@ -931,8 +931,8 @@ do_group_exit(int exit_code)
-  */
- SYSCALL_DEFINE1(exit_group, int, error_code)
- {
--	do_group_exit((error_code & 0xff) << 8);
--	/* NOTREACHED */
-+	start_group_exit((error_code & 0xff) << 8);
-+	/* get_signal will call do_exit */
- 	return 0;
+@@ -892,37 +892,6 @@ SYSCALL_DEFINE1(exit, int, error_code)
+ 	do_exit((error_code&0xff)<<8);
  }
  
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 5301eca670a0..b1c06fd1b205 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -1250,7 +1250,7 @@ static int __seccomp_filter(int this_syscall, const struct seccomp_data *sd,
- 			if (action == SECCOMP_RET_KILL_THREAD)
- 				do_exit(SIGSYS);
- 			else
--				do_group_exit(SIGSYS);
-+				start_group_exit(SIGSYS);
+-/*
+- * Take down every thread in the group.  This is called by fatal signals
+- * as well as by sys_exit_group (below).
+- */
+-void
+-do_group_exit(int exit_code)
+-{
+-	struct signal_struct *sig = current->signal;
+-
+-	BUG_ON(exit_code & 0x80); /* core dumps don't get here */
+-
+-	if (signal_group_exit(sig))
+-		exit_code = sig->group_exit_code;
+-	else if (!thread_group_empty(current)) {
+-		struct sighand_struct *const sighand = current->sighand;
+-
+-		spin_lock_irq(&sighand->siglock);
+-		if (signal_group_exit(sig))
+-			/* Another thread got here before we took the lock.  */
+-			exit_code = sig->group_exit_code;
+-		else {
+-			sig->group_exit_code = exit_code;
+-			sig->flags = SIGNAL_GROUP_EXIT;
+-			zap_other_threads(current);
+-		}
+-		spin_unlock_irq(&sighand->siglock);
+-	}
+-
+-	do_exit(exit_code);
+-	/* NOTREACHED */
+-}
+ 
+ /*
+  * this kills every thread in the thread group. Note that any externally
+diff --git a/kernel/signal.c b/kernel/signal.c
+index c79c010ca5f3..95a076af600a 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -2646,6 +2646,7 @@ bool get_signal(struct ksignal *ksig)
+ {
+ 	struct sighand_struct *sighand = current->sighand;
+ 	struct signal_struct *signal = current->signal;
++	int exit_code;
+ 	int signr;
+ 
+ 	if (unlikely(current->task_works))
+@@ -2848,8 +2849,6 @@ bool get_signal(struct ksignal *ksig)
+ 		/*
+ 		 * Anything else is fatal, maybe with a core dump.
+ 		 */
+-		current->flags |= PF_SIGNALED;
+-
+ 		if (sig_kernel_coredump(signr)) {
+ 			if (print_fatal_signals)
+ 				print_fatal_signal(ksig->info.si_signo);
+@@ -2857,14 +2856,33 @@ bool get_signal(struct ksignal *ksig)
+ 			/*
+ 			 * If it was able to dump core, this kills all
+ 			 * other threads in the group and synchronizes with
+-			 * their demise.  If we lost the race with another
+-			 * thread getting here, it set group_exit_code
+-			 * first and our do_group_exit call below will use
+-			 * that value and ignore the one we pass it.
++			 * their demise.  If  another thread makes it
++			 * to do_coredump first, it will set group_exit_code
++			 * which will be passed to do_exit.
+ 			 */
+ 			do_coredump(&ksig->info);
  		}
- 		return -1;
+ 
++		/*
++		 * Death signals, no core dump.
++		 */
++		exit_code = signr;
++		if (signal_group_exit(signal)) {
++			exit_code = signal->group_exit_code;
++		} else {
++			spin_lock_irq(&sighand->siglock);
++			if (signal_group_exit(signal)) {
++				/* Another thread got here before we took the lock.  */
++				exit_code = signal->group_exit_code;
++			} else {
++				start_group_exit_locked(signal, exit_code);
++			}
++			spin_unlock_irq(&sighand->siglock);
++		}
++
++		if (exit_code & 0x7f)
++			current->flags |= PF_SIGNALED;
++
+ 		/*
+ 		 * PF_IO_WORKER threads will catch and exit on fatal signals
+ 		 * themselves. They have cleanup that must be performed, so
+@@ -2873,10 +2891,7 @@ bool get_signal(struct ksignal *ksig)
+ 		if (current->flags & PF_IO_WORKER)
+ 			goto out;
+ 
+-		/*
+-		 * Death signals, no core dump.
+-		 */
+-		do_group_exit(ksig->info.si_signo);
++		do_exit(exit_code);
+ 		/* NOTREACHED */
  	}
+ 	spin_unlock_irq(&sighand->siglock);
 -- 
 2.20.1
 
