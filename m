@@ -2,126 +2,114 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-23.4 required=3.0 tests=BAYES_00,DKIMWL_WL_MED,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,
-	USER_IN_DEF_DKIM_WL autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C388DC2B9F4
-	for <linux-arch@archiver.kernel.org>; Fri, 25 Jun 2021 17:45:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9DE41C49EA7
+	for <linux-arch@archiver.kernel.org>; Fri, 25 Jun 2021 23:31:17 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A2BD361864
-	for <linux-arch@archiver.kernel.org>; Fri, 25 Jun 2021 17:45:36 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 80E466195B
+	for <linux-arch@archiver.kernel.org>; Fri, 25 Jun 2021 23:31:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230087AbhFYRr4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 25 Jun 2021 13:47:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45268 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230085AbhFYRr4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 25 Jun 2021 13:47:56 -0400
-Received: from mail-lj1-x22f.google.com (mail-lj1-x22f.google.com [IPv6:2a00:1450:4864:20::22f])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 77816C061766
-        for <linux-arch@vger.kernel.org>; Fri, 25 Jun 2021 10:45:35 -0700 (PDT)
-Received: by mail-lj1-x22f.google.com with SMTP id d13so13516413ljg.12
-        for <linux-arch@vger.kernel.org>; Fri, 25 Jun 2021 10:45:35 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20161025;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=iNeEazWas8i0I5pBcB4dOYRPkmz0cs96RkB+Oe7gaq0=;
-        b=Ac52bmzzRQZNPpekUSeIo1vprJWyBsB2D6XCnvGCluM4dZ6WZ50+TRJJJ4HfCWDmc9
-         lumagY+Ziz6bqZpSUwMJMGnnb3wFVrYOKlk2H4g2BdjjEegYbXywOPrugRhUyFZ8EZcd
-         H/RX38fv0SCz4uA5bAdae+IsRb5zWoJuz2/b+jR4taXazXvI2I/Qo8XMgVUwoJdXTNgk
-         JBhubaIYShCYoBwjrNkfKm2CRjLyaDCmVg6xqtCTcecTIVFdgae/qsV+tUcwFAsyHMc/
-         DYA8muvxRDkFZ1xbrxJFyLIlv+03s+rWFjvYrYMOuqd/uzLpDZ/4OvUVH96/F4maQFAb
-         NXJw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=iNeEazWas8i0I5pBcB4dOYRPkmz0cs96RkB+Oe7gaq0=;
-        b=JTg792v54rAakkDbVpSkTozQSFmtR5fe7Eybm6XcGuWZFN3k9AQl+6EElocj0bc+ln
-         8WodK3zM8S01hyITg3KdL3GU4XfcA/EqARnd7C1a0XQ2iRSfT+ZOnwzGi5XjFTCz6G4G
-         ACA3COlwhU6Q074jOvkwWSvZgXNDR/Yg+8duQI7cif4fdU/EC6qX1mBSIgtFQI9L84bl
-         Y+vMp342PsFxOd2TUYlXwO1AHBOw+9RQev0lBpIl9YBOXFP9mUnYokoagWc0LxU3qrSx
-         /7hxQ3rIwHKTInYFDZh8lGFLqZFJEftwxX9CPXYbmb10Y9aopWWnXcb4BMg6M1odnD25
-         NCVw==
-X-Gm-Message-State: AOAM5326mMAa9l6PO1AjaS8QHnaewKQJdM9tIQtTfdGPivzxD2ZXiGb8
-        m6tz1v4m9xJ21ouAS57PHvNJe68xyTg+Koxs2JpPZg==
-X-Google-Smtp-Source: ABdhPJyKg9KDZxebXTZT/Q8tKpmXlmmJWeK8MlwoundUry0HUACHyeyHhEnBID/ZTAlR9vDWotblOTcc2rQdjLigUpk=
-X-Received: by 2002:a2e:a492:: with SMTP id h18mr9229016lji.495.1624643133384;
- Fri, 25 Jun 2021 10:45:33 -0700 (PDT)
+        id S229889AbhFYXdg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 25 Jun 2021 19:33:36 -0400
+Received: from mga07.intel.com ([134.134.136.100]:40509 "EHLO mga07.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S229826AbhFYXdf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 25 Jun 2021 19:33:35 -0400
+IronPort-SDR: pKAMUGstilS92Fa3/M2bs29zeobz/2en4wpJ42E8ebejmuc7v6sXlxCCsDt7WP9P/YT/pxM1FI
+ BAmc/1lv0xvg==
+X-IronPort-AV: E=McAfee;i="6200,9189,10026"; a="271612195"
+X-IronPort-AV: E=Sophos;i="5.83,300,1616482800"; 
+   d="scan'208";a="271612195"
+Received: from orsmga003.jf.intel.com ([10.7.209.27])
+  by orsmga105.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 25 Jun 2021 16:31:13 -0700
+IronPort-SDR: KdN4vs8+bgdyV534hmve1fq/tVteJ+UOPaeCL9MSbMDN0PqO6HEIWprSM4iVrVMXiKNLf+1w+F
+ EBxQcKVM+j0g==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.83,300,1616482800"; 
+   d="scan'208";a="407529066"
+Received: from irsmsx605.ger.corp.intel.com ([163.33.146.138])
+  by orsmga003.jf.intel.com with ESMTP; 25 Jun 2021 16:31:12 -0700
+Received: from tjmaciei-mobl1.localnet (10.212.209.179) by
+ IRSMSX605.ger.corp.intel.com (163.33.146.138) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2242.4; Sat, 26 Jun 2021 00:31:10 +0100
+From:   Thiago Macieira <thiago.macieira@intel.com>
+To:     <fweimer@redhat.com>
+CC:     <hjl.tools@gmail.com>, <libc-alpha@sourceware.org>,
+        <linux-api@vger.kernel.org>, <linux-arch@vger.kernel.org>,
+        <x86@kernel.org>
+Subject: Re: x86 CPU features detection for applications (and AMX)
+Date:   Fri, 25 Jun 2021 16:31:06 -0700
+Message-ID: <22261946.eFiGugXE7Z@tjmaciei-mobl1>
+Organization: Intel Corporation
+In-Reply-To: <87tulo39ms.fsf@oldenburg.str.redhat.com>
 MIME-Version: 1.0
-References: <20210625010200.362755-1-mcroce@linux.microsoft.com>
-In-Reply-To: <20210625010200.362755-1-mcroce@linux.microsoft.com>
-From:   Nick Desaulniers <ndesaulniers@google.com>
-Date:   Fri, 25 Jun 2021 10:45:21 -0700
-Message-ID: <CAKwvOd=rzoCFtUPrB+Hh8ZneGJwKc_2jW=QN6apb4T033r+kYg@mail.gmail.com>
-Subject: Re: [PATCH 0/3] lib/string: optimized mem* functions
-To:     Matteo Croce <mcroce@linux.microsoft.com>
-Cc:     linux-kernel@vger.kernel.org, Nick Kossifidis <mick@ics.forth.gr>,
-        Guo Ren <guoren@kernel.org>,
-        Christoph Hellwig <hch@infradead.org>,
-        David Laight <David.Laight@aculab.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Emil Renner Berthing <kernel@esmil.dk>,
-        Drew Fustini <drew@beagleboard.org>,
-        linux-arch@vger.kernel.org,
-        Andrew Morton <akpm@linux-foundation.org>,
-        linux-riscv@lists.infradead.org
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
+X-Originating-IP: [10.212.209.179]
+X-ClientProxiedBy: orsmsx603.amr.corp.intel.com (10.22.229.16) To
+ IRSMSX605.ger.corp.intel.com (163.33.146.138)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Jun 24, 2021 at 6:02 PM Matteo Croce <mcroce@linux.microsoft.com> wrote:
+On 23 Jun 2021 17:04:27 +0200, Florian Weimer wrote:
+> We have an interface in glibc to query CPU features:
+> X86-specific Facilities
+> <https://www.gnu.org/software/libc/manual/html_node/X86.html>
 >
-> From: Matteo Croce <mcroce@microsoft.com>
->
-> Rewrite the generic mem{cpy,move,set} so that memory is accessed with
-> the widest size possible, but without doing unaligned accesses.
->
-> This was originally posted as C string functions for RISC-V[1], but as
-> there was no specific RISC-V code, it was proposed for the generic
-> lib/string.c implementation.
->
-> Tested on RISC-V and on x86_64 by undefining __HAVE_ARCH_MEM{CPY,SET,MOVE}
-> and HAVE_EFFICIENT_UNALIGNED_ACCESS.
->
-> Further testing on big endian machines will be appreciated, as I don't
-> have such hardware at the moment.
+> CPU_FEATURE_USABLE all preconditions for a feature are met,
+> HAS_CPU_FEATURE means it's in silicon but possibly dormant.
+> CPU_FEATURE_USABLE is supposed to look at XCR0, AT_HWCAP2 etc. before
+> enabling the relevant bit (so it cannot pass through any unknown bits).
 
-Hi Matteo,
-Neat patches.  Do you have you any benchmark data showing the claimed
-improvements? Is it worthwhile to define these only when
-CC_OPTIMIZE_FOR_PERFORMANCE/CC_OPTIMIZE_FOR_PERFORMANCE_O3 are
-defined, not CC_OPTIMIZE_FOR_SIZE? I'd be curious to know the delta in
-ST_SIZE of these functions otherwise.
+It's a nice initiative, but it doesn't help library and applications that need 
+to be either cross-platform or backwards compatible.
 
-For big endian, you ought to be able to boot test in QEMU.  I think
-you'd find out pretty quickly if any of the above had issues.
-(Enabling KASAN is probably also a good idea for a test, too). Check
-out
-https://github.com/ClangBuiltLinux/boot-utils
-for ready made images and scripts for launching various architectures
-and endiannesses.
+The first problem is the cross-platformness need. Because we library and 
+application developers need to support other OSes, we'll need to deploy our 
+own CPUID-based detection. It's far better to use common code everywhere, 
+where one developer working on Linux can fix bugs in FreeBSD, macOS or Windows 
+or any of the permutations. Every platform-specific deviation adds to 
+maintenance requirements and is a source of potential latent bugs, now or in 
+the future due to refactoring. That is why doing everything in the form of 
+instructions would be far better and easier, rather than system calls.
 
->
-> [1] https://lore.kernel.org/linux-riscv/20210617152754.17960-1-mcroce@linux.microsoft.com/
->
-> Matteo Croce (3):
->   lib/string: optimized memcpy
->   lib/string: optimized memmove
->   lib/string: optimized memset
->
->  lib/string.c | 129 ++++++++++++++++++++++++++++++++++++++++++++-------
->  1 file changed, 112 insertions(+), 17 deletions(-)
->
-> --
-> 2.31.1
->
+[Unless said system calls were standardised and actually deployed. Making this 
+a cross-platform library that is not part of libc would be a major step in 
+that direction]
+
+The second problem is going to be backwards compatibility. Applications and 
+libraries may want to ship precompiled binaries that make use of the new CPU 
+features, whether they are open source or not. It comes as no surprise to 
+anyone that we CPU makers will have made software that use those features and 
+want to have it ready on Day 1 of the HW being available for the market (if 
+we're doing our jobs right). That often involves precompiling because everyone 
+who installed their compilers more than one year ago will not have the 
+necessary tools to build. That runs counter to the need to use a libc 
+interface that didn't exist until recently.
+
+And by "recently", I mean "anything since the glibc that came with Red Hat 
+Enterprise Linux 7" (2.17).
+
+So no, application and library developers will not use libc functions they 
+don't need to, especially if it adds to their problems, unless there's no way 
+around it.
+
+> Previously kernel developers have expressed dismay that we didn't
+> coordinate the interface with them.  This is why I want raise this now.
+
+You also need to coordinate with your users.
+
+A platform-specific API to solve a problem that is already solved is "knock 
+yourself out, we're not going to use this." So my first suggestion is to 
+remove the "platform-specific" part and make this a cross-platform solution.
+
+-- 
+Thiago Macieira - thiago.macieira (AT) intel.com
+  Software Architect - Intel DPG Cloud Engineering
 
 
---
-Thanks,
-~Nick Desaulniers
