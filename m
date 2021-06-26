@@ -2,46 +2,44 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-11.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5D112C49EA6
-	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CC0D9C49EAB
+	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:06 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 390956161F
-	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:03 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B69A361883
+	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229934AbhFZH3Y (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 26 Jun 2021 03:29:24 -0400
-Received: from szxga08-in.huawei.com ([45.249.212.255]:8306 "EHLO
-        szxga08-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229916AbhFZH3W (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 26 Jun 2021 03:29:22 -0400
-Received: from dggemv704-chm.china.huawei.com (unknown [172.30.72.55])
-        by szxga08-in.huawei.com (SkyGuard) with ESMTP id 4GBlfw6SS8z1BS2c;
-        Sat, 26 Jun 2021 15:21:44 +0800 (CST)
+        id S229974AbhFZH30 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 26 Jun 2021 03:29:26 -0400
+Received: from szxga02-in.huawei.com ([45.249.212.188]:5431 "EHLO
+        szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229929AbhFZH3Z (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 26 Jun 2021 03:29:25 -0400
+Received: from dggemv703-chm.china.huawei.com (unknown [172.30.72.54])
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4GBlj962tnz74RW;
+        Sat, 26 Jun 2021 15:23:41 +0800 (CST)
 Received: from dggpemm500001.china.huawei.com (7.185.36.107) by
- dggemv704-chm.china.huawei.com (10.3.19.47) with Microsoft SMTP Server
+ dggemv703-chm.china.huawei.com (10.3.19.46) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
  15.1.2176.2; Sat, 26 Jun 2021 15:26:58 +0800
 Received: from localhost.localdomain.localdomain (10.175.113.25) by
  dggpemm500001.china.huawei.com (7.185.36.107) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2176.2; Sat, 26 Jun 2021 15:26:58 +0800
+ 15.1.2176.2; Sat, 26 Jun 2021 15:26:57 +0800
 From:   Kefeng Wang <wangkefeng.wang@huawei.com>
 To:     Arnd Bergmann <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
         <linux-kernel@vger.kernel.org>
 CC:     Kefeng Wang <wangkefeng.wang@huawei.com>,
-        Sergey Senozhatsky <sergey.senozhatsky@gmail.com>,
-        Petr Mladek <pmladek@suse.com>
-Subject: [PATCH 2/9] kallsyms: Fix address-checks for kernel related range
-Date:   Sat, 26 Jun 2021 15:34:32 +0800
-Message-ID: <20210626073439.150586-3-wangkefeng.wang@huawei.com>
+        <linuxppc-dev@lists.ozlabs.org>, <linux-s390@vger.kernel.org>,
+        <iommu@lists.linux-foundation.org>, <bpf@vger.kernel.org>
+Subject: [PATCH 0/9] sections: Unify kernel sections range check and use
+Date:   Sat, 26 Jun 2021 15:34:30 +0800
+Message-ID: <20210626073439.150586-1-wangkefeng.wang@huawei.com>
 X-Mailer: git-send-email 2.26.2
-In-Reply-To: <20210626073439.150586-1-wangkefeng.wang@huawei.com>
-References: <20210626073439.150586-1-wangkefeng.wang@huawei.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7BIT
 Content-Type:   text/plain; charset=US-ASCII
@@ -53,48 +51,48 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The is_kernel_inittext/is_kernel_text/is_kernel function should not
-include the end address(the labels _einittext, _etext and _end) when
-check the address range.
+There are three head files(kallsyms.h, kernel.h and sections.h) which
+include the kernel sections range check, let's make some cleanup and
+unify them.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>
-Cc: Petr Mladek <pmladek@suse.com>
-Fixes: 04b8eb7a4ccd ("symbol lookup: introduce dereference_symbol_descriptor()")
-Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
----
- include/linux/kallsyms.h | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+1. cleanup arch specific text/data check and fix address boundary check in kallsyms.h
+2. make all the basic kernel range check function into sections.h
+3. update all the callers, and use the helper in sections.h to simplify the code
+4. use memory_intersects() in sections.h instead of private overlap for dma-debug
 
-diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
-index d773732cc8eb..c44c26977805 100644
---- a/include/linux/kallsyms.h
-+++ b/include/linux/kallsyms.h
-@@ -26,21 +26,21 @@ struct module;
- static inline int is_kernel_inittext(unsigned long addr)
- {
- 	if (addr >= (unsigned long)_sinittext
--	    && addr <= (unsigned long)_einittext)
-+	    && addr < (unsigned long)_einittext)
- 		return 1;
- 	return 0;
- }
- 
- static inline int is_kernel_text(unsigned long addr)
- {
--	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext))
-+	if ((addr >= (unsigned long)_stext && addr < (unsigned long)_etext))
- 		return 1;
- 	return in_gate_area_no_mm(addr);
- }
- 
- static inline int is_kernel(unsigned long addr)
- {
--	if (addr >= (unsigned long)_stext && addr <= (unsigned long)_end)
-+	if (addr >= (unsigned long)_stext && addr < (unsigned long)_end)
- 		return 1;
- 	return in_gate_area_no_mm(addr);
- }
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-arch@vger.kernel.org 
+Cc: iommu@lists.linux-foundation.org
+Cc: bpf@vger.kernel.org 
+
+Kefeng Wang (9):
+  kallsyms: Remove arch specific text and data check
+  kallsyms: Fix address-checks for kernel related range
+  sections: Move and rename core_kernel_data() to is_kernel_data()
+  sections: Move is_kernel_inittext() into sections.h
+  kallsyms: Rename is_kernel() and is_kernel_text()
+  sections: Add new is_kernel() and is_kernel_text()
+  s390: kprobes: Use is_kernel() helper
+  powerpc/mm: Use is_kernel_text() and is_kernel_inittext() helper
+  dma-debug: Use memory_intersects() directly
+
+ arch/powerpc/mm/pgtable_32.c   |  7 +---
+ arch/s390/kernel/kprobes.c     |  9 +----
+ arch/x86/kernel/unwind_orc.c   |  2 +-
+ arch/x86/net/bpf_jit_comp.c    |  2 +-
+ include/asm-generic/sections.h | 71 ++++++++++++++++++++++++++--------
+ include/linux/kallsyms.h       | 21 +++-------
+ include/linux/kernel.h         |  2 -
+ kernel/cfi.c                   |  2 +-
+ kernel/dma/debug.c             | 14 +------
+ kernel/extable.c               | 33 ++--------------
+ kernel/locking/lockdep.c       |  3 --
+ kernel/trace/ftrace.c          |  2 +-
+ mm/kasan/report.c              |  2 +-
+ net/sysctl_net.c               |  2 +-
+ 14 files changed, 76 insertions(+), 96 deletions(-)
+
 -- 
 2.26.2
 
