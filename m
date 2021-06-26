@@ -7,40 +7,37 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 60A68C49EA6
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CF9F7C49EA5
 	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:24 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4B12D616E8
+	by mail.kernel.org (Postfix) with ESMTP id B89BF6161F
 	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230099AbhFZH3i (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 26 Jun 2021 03:29:38 -0400
-Received: from szxga02-in.huawei.com ([45.249.212.188]:5437 "EHLO
+        id S230009AbhFZH3j (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 26 Jun 2021 03:29:39 -0400
+Received: from szxga02-in.huawei.com ([45.249.212.188]:5436 "EHLO
         szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230002AbhFZH33 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 26 Jun 2021 03:29:29 -0400
+        with ESMTP id S230001AbhFZH3a (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 26 Jun 2021 03:29:30 -0400
 Received: from dggemv703-chm.china.huawei.com (unknown [172.30.72.54])
-        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4GBljH58MFz74Wq;
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4GBljH4xk9z74Wk;
         Sat, 26 Jun 2021 15:23:47 +0800 (CST)
 Received: from dggpemm500001.china.huawei.com (7.185.36.107) by
  dggemv703-chm.china.huawei.com (10.3.19.46) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2176.2; Sat, 26 Jun 2021 15:27:02 +0800
+ 15.1.2176.2; Sat, 26 Jun 2021 15:27:00 +0800
 Received: from localhost.localdomain.localdomain (10.175.113.25) by
  dggpemm500001.china.huawei.com (7.185.36.107) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2176.2; Sat, 26 Jun 2021 15:27:01 +0800
+ 15.1.2176.2; Sat, 26 Jun 2021 15:27:00 +0800
 From:   Kefeng Wang <wangkefeng.wang@huawei.com>
 To:     Arnd Bergmann <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
         <linux-kernel@vger.kernel.org>
 CC:     Kefeng Wang <wangkefeng.wang@huawei.com>,
-        Christoph Hellwig <hch@lst.de>,
-        Marek Szyprowski <m.szyprowski@samsung.com>,
-        Robin Murphy <robin.murphy@arm.com>,
-        <iommu@lists.linux-foundation.org>
-Subject: [PATCH 9/9] dma-debug: Use memory_intersects() directly
-Date:   Sat, 26 Jun 2021 15:34:39 +0800
-Message-ID: <20210626073439.150586-10-wangkefeng.wang@huawei.com>
+        Andrey Ryabinin <ryabinin.a.a@gmail.com>
+Subject: [PATCH 6/9] sections: Add new is_kernel() and is_kernel_text()
+Date:   Sat, 26 Jun 2021 15:34:36 +0800
+Message-ID: <20210626073439.150586-7-wangkefeng.wang@huawei.com>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20210626073439.150586-1-wangkefeng.wang@huawei.com>
 References: <20210626073439.150586-1-wangkefeng.wang@huawei.com>
@@ -55,44 +52,112 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Use memory_intersects() directly instead of private overlap() function.
+The new is_kernel() check the kernel address ranges, and the
+new is_kernel_text() check the kernel text section ranges.
 
-Cc: Christoph Hellwig <hch@lst.de>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: Robin Murphy <robin.murphy@arm.com>
-Cc: iommu@lists.linux-foundation.org
+Then use them to make some code clear.
+
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrey Ryabinin <ryabinin.a.a@gmail.com>
 Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
 ---
- kernel/dma/debug.c | 14 ++------------
- 1 file changed, 2 insertions(+), 12 deletions(-)
+ include/asm-generic/sections.h | 27 +++++++++++++++++++++++++++
+ include/linux/kallsyms.h       |  4 ++--
+ kernel/extable.c               |  3 +--
+ mm/kasan/report.c              |  2 +-
+ 4 files changed, 31 insertions(+), 5 deletions(-)
 
-diff --git a/kernel/dma/debug.c b/kernel/dma/debug.c
-index 14de1271463f..8ef737223999 100644
---- a/kernel/dma/debug.c
-+++ b/kernel/dma/debug.c
-@@ -1066,20 +1066,10 @@ static void check_for_stack(struct device *dev,
- 	}
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index 9d622416a59c..06066d89137d 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -170,6 +170,20 @@ static inline bool is_kernel_rodata(unsigned long addr)
+ 	       addr < (unsigned long)__end_rodata;
  }
  
--static inline bool overlap(void *addr, unsigned long len, void *start, void *end)
--{
--	unsigned long a1 = (unsigned long)addr;
--	unsigned long b1 = a1 + len;
--	unsigned long a2 = (unsigned long)start;
--	unsigned long b2 = (unsigned long)end;
--
--	return !(b1 <= a2 || a1 >= b2);
--}
--
- static void check_for_illegal_area(struct device *dev, void *addr, unsigned long len)
++/**
++ * is_kernel_text - checks if the pointer address is located in the
++ *                  .text section
++ *
++ * @addr: address to check
++ *
++ * Returns: true if the address is located in .text, false otherwise.
++ */
++static inline bool is_kernel_text(unsigned long addr)
++{
++	return addr >= (unsigned long)_stext &&
++	       addr < (unsigned long)_etext;
++}
++
+ /**
+  * is_kernel_inittext - checks if the pointer address is located in the
+  *                    .init.text section
+@@ -184,4 +198,17 @@ static inline bool is_kernel_inittext(unsigned long addr)
+ 	       addr < (unsigned long)_einittext;
+ }
+ 
++/**
++ * is_kernel - checks if the pointer address is located in the kernel range
++ *
++ * @addr: address to check
++ *
++ * Returns: true if the address is located in kernel range, false otherwise.
++ */
++static inline bool is_kernel(unsigned long addr)
++{
++	return addr >= (unsigned long)_stext &&
++	       addr < (unsigned long)_end;
++}
++
+ #endif /* _ASM_GENERIC_SECTIONS_H_ */
+diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
+index 814e1cc8eabf..60460df66e83 100644
+--- a/include/linux/kallsyms.h
++++ b/include/linux/kallsyms.h
+@@ -25,14 +25,14 @@ struct module;
+ 
+ static inline int is_kernel_text_or_gate_area(unsigned long addr)
  {
--	if (overlap(addr, len, _stext, _etext) ||
--	    overlap(addr, len, __start_rodata, __end_rodata))
-+	if (memory_intersects(_stext, _etext, addr, len) ||
-+	    memory_intersects(__start_rodata, __end_rodata, addr, len))
- 		err_printk(dev, NULL, "device driver maps memory from kernel text or rodata [addr=%p] [len=%lu]\n", addr, len);
+-	if ((addr >= (unsigned long)_stext && addr < (unsigned long)_etext))
++	if (is_kernel_text(addr))
+ 		return 1;
+ 	return in_gate_area_no_mm(addr);
  }
  
+ static inline int is_kernel_or_gate_area(unsigned long addr)
+ {
+-	if (addr >= (unsigned long)_stext && addr < (unsigned long)_end)
++	if (is_kernel(addr))
+ 		return 1;
+ 	return in_gate_area_no_mm(addr);
+ }
+diff --git a/kernel/extable.c b/kernel/extable.c
+index 98ca627ac5ef..0ba383d850ff 100644
+--- a/kernel/extable.c
++++ b/kernel/extable.c
+@@ -64,8 +64,7 @@ const struct exception_table_entry *search_exception_tables(unsigned long addr)
+ 
+ int notrace core_kernel_text(unsigned long addr)
+ {
+-	if (addr >= (unsigned long)_stext &&
+-	    addr < (unsigned long)_etext)
++	if (is_kernel_text(addr))
+ 		return 1;
+ 
+ 	if (system_state < SYSTEM_RUNNING &&
+diff --git a/mm/kasan/report.c b/mm/kasan/report.c
+index 8fff1825b22c..3971917c73c5 100644
+--- a/mm/kasan/report.c
++++ b/mm/kasan/report.c
+@@ -212,7 +212,7 @@ static void describe_object(struct kmem_cache *cache, void *object,
+ 
+ static inline bool kernel_or_module_addr(const void *addr)
+ {
+-	if (addr >= (void *)_stext && addr < (void *)_end)
++	if (is_kernel((unsigned long)addr))
+ 		return true;
+ 	if (is_module_address((unsigned long)addr))
+ 		return true;
 -- 
 2.26.2
 
