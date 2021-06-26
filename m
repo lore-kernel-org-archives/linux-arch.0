@@ -2,162 +2,65 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
+	SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CF9F7C49EA5
-	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:24 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9158AC49EA5
+	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 10:39:08 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B89BF6161F
-	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:24 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 72D6561606
+	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 10:39:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230009AbhFZH3j (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 26 Jun 2021 03:29:39 -0400
-Received: from szxga02-in.huawei.com ([45.249.212.188]:5436 "EHLO
-        szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230001AbhFZH3a (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 26 Jun 2021 03:29:30 -0400
-Received: from dggemv703-chm.china.huawei.com (unknown [172.30.72.54])
-        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4GBljH4xk9z74Wk;
-        Sat, 26 Jun 2021 15:23:47 +0800 (CST)
-Received: from dggpemm500001.china.huawei.com (7.185.36.107) by
- dggemv703-chm.china.huawei.com (10.3.19.46) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2176.2; Sat, 26 Jun 2021 15:27:00 +0800
-Received: from localhost.localdomain.localdomain (10.175.113.25) by
- dggpemm500001.china.huawei.com (7.185.36.107) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2176.2; Sat, 26 Jun 2021 15:27:00 +0800
-From:   Kefeng Wang <wangkefeng.wang@huawei.com>
-To:     Arnd Bergmann <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
-        <linux-kernel@vger.kernel.org>
-CC:     Kefeng Wang <wangkefeng.wang@huawei.com>,
-        Andrey Ryabinin <ryabinin.a.a@gmail.com>
-Subject: [PATCH 6/9] sections: Add new is_kernel() and is_kernel_text()
-Date:   Sat, 26 Jun 2021 15:34:36 +0800
-Message-ID: <20210626073439.150586-7-wangkefeng.wang@huawei.com>
-X-Mailer: git-send-email 2.26.2
-In-Reply-To: <20210626073439.150586-1-wangkefeng.wang@huawei.com>
-References: <20210626073439.150586-1-wangkefeng.wang@huawei.com>
+        id S230005AbhFZKlT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 26 Jun 2021 06:41:19 -0400
+Received: from bilbo.ozlabs.org ([203.11.71.1]:44925 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S229949AbhFZKlQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 26 Jun 2021 06:41:16 -0400
+Received: by ozlabs.org (Postfix, from userid 1034)
+        id 4GBr2P2tvPz9sxS; Sat, 26 Jun 2021 20:38:53 +1000 (AEST)
+From:   Michael Ellerman <patch-notifications@ellerman.id.au>
+To:     Paul Mackerras <paulus@samba.org>,
+        Steven Price <steven.price@arm.com>, akpm@linux-foundation.org,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Christophe Leroy <christophe.leroy@csgroup.eu>, dja@axtens.net
+Cc:     linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org, linux-mm@kvack.org,
+        Oliver O'Halloran <oohall@gmail.com>
+In-Reply-To: <cover.1618828806.git.christophe.leroy@csgroup.eu>
+References: <cover.1618828806.git.christophe.leroy@csgroup.eu>
+Subject: Re: [PATCH v2 0/4] Convert powerpc to GENERIC_PTDUMP
+Message-Id: <162470383963.3589875.4353977558954497976.b4-ty@ellerman.id.au>
+Date:   Sat, 26 Jun 2021 20:37:19 +1000
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type:   text/plain; charset=US-ASCII
-X-Originating-IP: [10.175.113.25]
-X-ClientProxiedBy: dggems703-chm.china.huawei.com (10.3.19.180) To
- dggpemm500001.china.huawei.com (7.185.36.107)
-X-CFilter-Loop: Reflected
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The new is_kernel() check the kernel address ranges, and the
-new is_kernel_text() check the kernel text section ranges.
+On Mon, 19 Apr 2021 10:47:24 +0000 (UTC), Christophe Leroy wrote:
+> This series converts powerpc to generic PTDUMP.
+> 
+> For that, we first need to add missing hugepd support
+> to pagewalk and ptdump.
+> 
+> v2:
+> - Reworked the pagewalk modification to add locking and check ops->pte_entry
+> - Modified powerpc early IO mapping to have gaps between mappings
+> - Removed the logic that checked for contiguous physical memory
+> - Removed the articial level calculation in ptdump_pte_entry(), level 4 is ok for all.
+> - Removed page_size argument to note_page()
+> 
+> [...]
 
-Then use them to make some code clear.
+Patches 2 and 4 pplied to powerpc/next.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrey Ryabinin <ryabinin.a.a@gmail.com>
-Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
----
- include/asm-generic/sections.h | 27 +++++++++++++++++++++++++++
- include/linux/kallsyms.h       |  4 ++--
- kernel/extable.c               |  3 +--
- mm/kasan/report.c              |  2 +-
- 4 files changed, 31 insertions(+), 5 deletions(-)
+[2/4] powerpc/mm: Leave a gap between early allocated IO areas
+      https://git.kernel.org/powerpc/c/57307f1b6edd781fba2bf9f7ec5f4d17a881ea54
+[3/4] powerpc/mm: Properly coalesce pages in ptdump
+      https://git.kernel.org/powerpc/c/6ca6512c716afd6e37281372c4c35aa6afd71d10
 
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index 9d622416a59c..06066d89137d 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -170,6 +170,20 @@ static inline bool is_kernel_rodata(unsigned long addr)
- 	       addr < (unsigned long)__end_rodata;
- }
- 
-+/**
-+ * is_kernel_text - checks if the pointer address is located in the
-+ *                  .text section
-+ *
-+ * @addr: address to check
-+ *
-+ * Returns: true if the address is located in .text, false otherwise.
-+ */
-+static inline bool is_kernel_text(unsigned long addr)
-+{
-+	return addr >= (unsigned long)_stext &&
-+	       addr < (unsigned long)_etext;
-+}
-+
- /**
-  * is_kernel_inittext - checks if the pointer address is located in the
-  *                    .init.text section
-@@ -184,4 +198,17 @@ static inline bool is_kernel_inittext(unsigned long addr)
- 	       addr < (unsigned long)_einittext;
- }
- 
-+/**
-+ * is_kernel - checks if the pointer address is located in the kernel range
-+ *
-+ * @addr: address to check
-+ *
-+ * Returns: true if the address is located in kernel range, false otherwise.
-+ */
-+static inline bool is_kernel(unsigned long addr)
-+{
-+	return addr >= (unsigned long)_stext &&
-+	       addr < (unsigned long)_end;
-+}
-+
- #endif /* _ASM_GENERIC_SECTIONS_H_ */
-diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
-index 814e1cc8eabf..60460df66e83 100644
---- a/include/linux/kallsyms.h
-+++ b/include/linux/kallsyms.h
-@@ -25,14 +25,14 @@ struct module;
- 
- static inline int is_kernel_text_or_gate_area(unsigned long addr)
- {
--	if ((addr >= (unsigned long)_stext && addr < (unsigned long)_etext))
-+	if (is_kernel_text(addr))
- 		return 1;
- 	return in_gate_area_no_mm(addr);
- }
- 
- static inline int is_kernel_or_gate_area(unsigned long addr)
- {
--	if (addr >= (unsigned long)_stext && addr < (unsigned long)_end)
-+	if (is_kernel(addr))
- 		return 1;
- 	return in_gate_area_no_mm(addr);
- }
-diff --git a/kernel/extable.c b/kernel/extable.c
-index 98ca627ac5ef..0ba383d850ff 100644
---- a/kernel/extable.c
-+++ b/kernel/extable.c
-@@ -64,8 +64,7 @@ const struct exception_table_entry *search_exception_tables(unsigned long addr)
- 
- int notrace core_kernel_text(unsigned long addr)
- {
--	if (addr >= (unsigned long)_stext &&
--	    addr < (unsigned long)_etext)
-+	if (is_kernel_text(addr))
- 		return 1;
- 
- 	if (system_state < SYSTEM_RUNNING &&
-diff --git a/mm/kasan/report.c b/mm/kasan/report.c
-index 8fff1825b22c..3971917c73c5 100644
---- a/mm/kasan/report.c
-+++ b/mm/kasan/report.c
-@@ -212,7 +212,7 @@ static void describe_object(struct kmem_cache *cache, void *object,
- 
- static inline bool kernel_or_module_addr(const void *addr)
- {
--	if (addr >= (void *)_stext && addr < (void *)_end)
-+	if (is_kernel((unsigned long)addr))
- 		return true;
- 	if (is_module_address((unsigned long)addr))
- 		return true;
--- 
-2.26.2
-
+cheers
