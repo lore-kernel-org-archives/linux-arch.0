@@ -5,42 +5,41 @@ X-Spam-Level:
 X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 95D93C49EAB
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 78AF9C49EA6
 	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:10 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7398361456
+	by mail.kernel.org (Postfix) with ESMTP id 6151D61883
 	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229996AbhFZH31 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S229987AbhFZH31 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Sat, 26 Jun 2021 03:29:27 -0400
-Received: from szxga03-in.huawei.com ([45.249.212.189]:8326 "EHLO
-        szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229933AbhFZH3Z (ORCPT
+Received: from szxga02-in.huawei.com ([45.249.212.188]:5430 "EHLO
+        szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229930AbhFZH3Z (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Sat, 26 Jun 2021 03:29:25 -0400
-Received: from dggemv704-chm.china.huawei.com (unknown [172.30.72.54])
-        by szxga03-in.huawei.com (SkyGuard) with ESMTP id 4GBlhB5Rvrz6xt9;
-        Sat, 26 Jun 2021 15:22:50 +0800 (CST)
+Received: from dggemv703-chm.china.huawei.com (unknown [172.30.72.54])
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4GBlj96LBFz74Sq;
+        Sat, 26 Jun 2021 15:23:41 +0800 (CST)
 Received: from dggpemm500001.china.huawei.com (7.185.36.107) by
- dggemv704-chm.china.huawei.com (10.3.19.47) with Microsoft SMTP Server
+ dggemv703-chm.china.huawei.com (10.3.19.46) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2176.2; Sat, 26 Jun 2021 15:27:00 +0800
+ 15.1.2176.2; Sat, 26 Jun 2021 15:26:59 +0800
 Received: from localhost.localdomain.localdomain (10.175.113.25) by
  dggpemm500001.china.huawei.com (7.185.36.107) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2176.2; Sat, 26 Jun 2021 15:26:59 +0800
+ 15.1.2176.2; Sat, 26 Jun 2021 15:26:58 +0800
 From:   Kefeng Wang <wangkefeng.wang@huawei.com>
 To:     Arnd Bergmann <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
         <linux-kernel@vger.kernel.org>
 CC:     Kefeng Wang <wangkefeng.wang@huawei.com>,
-        Alexei Starovoitov <ast@kernel.org>,
-        Daniel Borkmann <daniel@iogearbox.net>,
-        Sami Tolvanen <samitolvanen@google.com>,
-        Nathan Chancellor <nathan@kernel.org>, <bpf@vger.kernel.org>
-Subject: [PATCH 5/9] kallsyms: Rename is_kernel() and is_kernel_text()
-Date:   Sat, 26 Jun 2021 15:34:35 +0800
-Message-ID: <20210626073439.150586-6-wangkefeng.wang@huawei.com>
+        Steven Rostedt <rostedt@goodmis.org>,
+        Ingo Molnar <mingo@redhat.com>,
+        "David S. Miller" <davem@davemloft.net>
+Subject: [PATCH 3/9] sections: Move and rename core_kernel_data() to is_kernel_data()
+Date:   Sat, 26 Jun 2021 15:34:33 +0800
+Message-ID: <20210626073439.150586-4-wangkefeng.wang@huawei.com>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20210626073439.150586-1-wangkefeng.wang@huawei.com>
 References: <20210626073439.150586-1-wangkefeng.wang@huawei.com>
@@ -55,82 +54,115 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The is_kernel[_text]() function check the address whether or not
-in kernel[_text] ranges, also they will check the address whether
-or not in gate area, so use better name.
+Move core_kernel_data() into sections.h and rename it to
+is_kernel_data(), also make it return bool value, then
+update all the callers.
 
-Cc: Alexei Starovoitov <ast@kernel.org>
-Cc: Daniel Borkmann <daniel@iogearbox.net>
-Cc: Sami Tolvanen <samitolvanen@google.com>
-Cc: Nathan Chancellor <nathan@kernel.org> 
 Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: bpf@vger.kernel.org
+Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "David S. Miller" <davem@davemloft.net>
 Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
 ---
- arch/x86/net/bpf_jit_comp.c | 2 +-
- include/linux/kallsyms.h    | 8 ++++----
- kernel/cfi.c                | 2 +-
- 3 files changed, 6 insertions(+), 6 deletions(-)
+ include/asm-generic/sections.h | 14 ++++++++++++++
+ include/linux/kernel.h         |  1 -
+ kernel/extable.c               | 18 ------------------
+ kernel/trace/ftrace.c          |  2 +-
+ net/sysctl_net.c               |  2 +-
+ 5 files changed, 16 insertions(+), 21 deletions(-)
 
-diff --git a/arch/x86/net/bpf_jit_comp.c b/arch/x86/net/bpf_jit_comp.c
-index 2a2e290fa5d8..b1ed4a0bfc86 100644
---- a/arch/x86/net/bpf_jit_comp.c
-+++ b/arch/x86/net/bpf_jit_comp.c
-@@ -376,7 +376,7 @@ static int __bpf_arch_text_poke(void *ip, enum bpf_text_poke_type t,
- int bpf_arch_text_poke(void *ip, enum bpf_text_poke_type t,
- 		       void *old_addr, void *new_addr)
- {
--	if (!is_kernel_text((long)ip) &&
-+	if (!is_kernel_text_or_gate_area((long)ip) &&
- 	    !is_bpf_text_address((long)ip))
- 		/* BPF poking in modules is not supported */
- 		return -EINVAL;
-diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
-index 3e172fc65fae..814e1cc8eabf 100644
---- a/include/linux/kallsyms.h
-+++ b/include/linux/kallsyms.h
-@@ -23,14 +23,14 @@
- struct cred;
- struct module;
- 
--static inline int is_kernel_text(unsigned long addr)
-+static inline int is_kernel_text_or_gate_area(unsigned long addr)
- {
- 	if ((addr >= (unsigned long)_stext && addr < (unsigned long)_etext))
- 		return 1;
- 	return in_gate_area_no_mm(addr);
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index 817309e289db..5727e67f4b7a 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -142,6 +142,20 @@ static inline bool init_section_intersects(void *virt, size_t size)
+ 	return memory_intersects(__init_begin, __init_end, virt, size);
  }
  
--static inline int is_kernel(unsigned long addr)
-+static inline int is_kernel_or_gate_area(unsigned long addr)
- {
- 	if (addr >= (unsigned long)_stext && addr < (unsigned long)_end)
- 		return 1;
-@@ -40,9 +40,9 @@ static inline int is_kernel(unsigned long addr)
- static inline int is_ksym_addr(unsigned long addr)
- {
- 	if (IS_ENABLED(CONFIG_KALLSYMS_ALL))
--		return is_kernel(addr);
-+		return is_kernel_or_gate_area(addr);
++/**
++ * is_kernel_data - checks if the pointer address is located in the
++ *		    .data section
++ *
++ * @addr: address to check
++ *
++ * Returns: true if the address is located in .data, false otherwise.
++ */
++static inline bool is_kernel_data(unsigned long addr)
++{
++	return addr >= (unsigned long)_sdata &&
++	       addr < (unsigned long)_edata;
++}
++
+ /**
+  * is_kernel_rodata - checks if the pointer address is located in the
+  *                    .rodata section
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index 1b2f0a7e00d6..0622418bafbc 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -230,7 +230,6 @@ extern char *next_arg(char *args, char **param, char **val);
  
--	return is_kernel_text(addr) || is_kernel_inittext(addr);
-+	return is_kernel_text_or_gate_area(addr) || is_kernel_inittext(addr);
+ extern int core_kernel_text(unsigned long addr);
+ extern int init_kernel_text(unsigned long addr);
+-extern int core_kernel_data(unsigned long addr);
+ extern int __kernel_text_address(unsigned long addr);
+ extern int kernel_text_address(unsigned long addr);
+ extern int func_ptr_is_kernel_text(void *ptr);
+diff --git a/kernel/extable.c b/kernel/extable.c
+index b0ea5eb0c3b4..da26203841d4 100644
+--- a/kernel/extable.c
++++ b/kernel/extable.c
+@@ -82,24 +82,6 @@ int notrace core_kernel_text(unsigned long addr)
+ 	return 0;
  }
  
- static inline void *dereference_symbol_descriptor(void *ptr)
-diff --git a/kernel/cfi.c b/kernel/cfi.c
-index e17a56639766..e7d90eff4382 100644
---- a/kernel/cfi.c
-+++ b/kernel/cfi.c
-@@ -282,7 +282,7 @@ static inline cfi_check_fn find_check_fn(unsigned long ptr)
+-/**
+- * core_kernel_data - tell if addr points to kernel data
+- * @addr: address to test
+- *
+- * Returns true if @addr passed in is from the core kernel data
+- * section.
+- *
+- * Note: On some archs it may return true for core RODATA, and false
+- *  for others. But will always be true for core RW data.
+- */
+-int core_kernel_data(unsigned long addr)
+-{
+-	if (addr >= (unsigned long)_sdata &&
+-	    addr < (unsigned long)_edata)
+-		return 1;
+-	return 0;
+-}
+-
+ int __kernel_text_address(unsigned long addr)
  {
- 	cfi_check_fn fn = NULL;
+ 	if (kernel_text_address(addr))
+diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
+index 72ef4dccbcc4..a21b13ebe98e 100644
+--- a/kernel/trace/ftrace.c
++++ b/kernel/trace/ftrace.c
+@@ -323,7 +323,7 @@ int __register_ftrace_function(struct ftrace_ops *ops)
+ 	if (!ftrace_enabled && (ops->flags & FTRACE_OPS_FL_PERMANENT))
+ 		return -EBUSY;
  
--	if (is_kernel_text(ptr))
-+	if (is_kernel_text_or_gate_area(ptr))
- 		return __cfi_check;
+-	if (!core_kernel_data((unsigned long)ops))
++	if (!is_kernel_data((unsigned long)ops))
+ 		ops->flags |= FTRACE_OPS_FL_DYNAMIC;
  
- 	/*
+ 	add_ftrace_ops(&ftrace_ops_list, ops);
+diff --git a/net/sysctl_net.c b/net/sysctl_net.c
+index f6cb0d4d114c..f1687c351755 100644
+--- a/net/sysctl_net.c
++++ b/net/sysctl_net.c
+@@ -144,7 +144,7 @@ static void ensure_safe_net_sysctl(struct net *net, const char *path,
+ 		addr = (unsigned long)ent->data;
+ 		if (is_module_address(addr))
+ 			where = "module";
+-		else if (core_kernel_data(addr))
++		else if (is_kernel_data(addr))
+ 			where = "kernel";
+ 		else
+ 			continue;
 -- 
 2.26.2
 
