@@ -5,42 +5,42 @@ X-Spam-Level:
 X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 118ABC49EA6
-	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 60A68C49EA6
+	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:24 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EF9B96193F
-	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:16 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 4B12D616E8
+	for <linux-arch@archiver.kernel.org>; Sat, 26 Jun 2021 07:27:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230049AbhFZH3f (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 26 Jun 2021 03:29:35 -0400
-Received: from szxga02-in.huawei.com ([45.249.212.188]:5435 "EHLO
+        id S230099AbhFZH3i (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 26 Jun 2021 03:29:38 -0400
+Received: from szxga02-in.huawei.com ([45.249.212.188]:5437 "EHLO
         szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229975AbhFZH32 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 26 Jun 2021 03:29:28 -0400
-Received: from dggemv711-chm.china.huawei.com (unknown [172.30.72.57])
-        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4GBljC6cDfz74V6;
-        Sat, 26 Jun 2021 15:23:43 +0800 (CST)
+        with ESMTP id S230002AbhFZH33 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 26 Jun 2021 03:29:29 -0400
+Received: from dggemv703-chm.china.huawei.com (unknown [172.30.72.54])
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4GBljH58MFz74Wq;
+        Sat, 26 Jun 2021 15:23:47 +0800 (CST)
 Received: from dggpemm500001.china.huawei.com (7.185.36.107) by
- dggemv711-chm.china.huawei.com (10.1.198.66) with Microsoft SMTP Server
+ dggemv703-chm.china.huawei.com (10.3.19.46) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2176.2; Sat, 26 Jun 2021 15:27:01 +0800
+ 15.1.2176.2; Sat, 26 Jun 2021 15:27:02 +0800
 Received: from localhost.localdomain.localdomain (10.175.113.25) by
  dggpemm500001.china.huawei.com (7.185.36.107) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2176.2; Sat, 26 Jun 2021 15:27:00 +0800
+ 15.1.2176.2; Sat, 26 Jun 2021 15:27:01 +0800
 From:   Kefeng Wang <wangkefeng.wang@huawei.com>
 To:     Arnd Bergmann <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
         <linux-kernel@vger.kernel.org>
 CC:     Kefeng Wang <wangkefeng.wang@huawei.com>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@de.ibm.com>,
-        <linux-s390@vger.kernel.org>
-Subject: [PATCH 7/9] s390: kprobes: Use is_kernel() helper
-Date:   Sat, 26 Jun 2021 15:34:37 +0800
-Message-ID: <20210626073439.150586-8-wangkefeng.wang@huawei.com>
+        Christoph Hellwig <hch@lst.de>,
+        Marek Szyprowski <m.szyprowski@samsung.com>,
+        Robin Murphy <robin.murphy@arm.com>,
+        <iommu@lists.linux-foundation.org>
+Subject: [PATCH 9/9] dma-debug: Use memory_intersects() directly
+Date:   Sat, 26 Jun 2021 15:34:39 +0800
+Message-ID: <20210626073439.150586-10-wangkefeng.wang@huawei.com>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20210626073439.150586-1-wangkefeng.wang@huawei.com>
 References: <20210626073439.150586-1-wangkefeng.wang@huawei.com>
@@ -55,51 +55,44 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Use is_kernel() helper instead of is_kernel_addr().
+Use memory_intersects() directly instead of private overlap() function.
 
-Cc: Heiko Carstens <hca@linux.ibm.com>
-Cc: Vasily Gorbik <gor@linux.ibm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: linux-s390@vger.kernel.org
+Cc: Christoph Hellwig <hch@lst.de>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: Robin Murphy <robin.murphy@arm.com>
+Cc: iommu@lists.linux-foundation.org
 Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
 ---
- arch/s390/kernel/kprobes.c | 9 ++-------
- 1 file changed, 2 insertions(+), 7 deletions(-)
+ kernel/dma/debug.c | 14 ++------------
+ 1 file changed, 2 insertions(+), 12 deletions(-)
 
-diff --git a/arch/s390/kernel/kprobes.c b/arch/s390/kernel/kprobes.c
-index 528bb31815c3..7e7a8d5219bb 100644
---- a/arch/s390/kernel/kprobes.c
-+++ b/arch/s390/kernel/kprobes.c
-@@ -92,11 +92,6 @@ static void copy_instruction(struct kprobe *p)
+diff --git a/kernel/dma/debug.c b/kernel/dma/debug.c
+index 14de1271463f..8ef737223999 100644
+--- a/kernel/dma/debug.c
++++ b/kernel/dma/debug.c
+@@ -1066,20 +1066,10 @@ static void check_for_stack(struct device *dev,
+ 	}
  }
- NOKPROBE_SYMBOL(copy_instruction);
  
--static inline int is_kernel_addr(void *addr)
+-static inline bool overlap(void *addr, unsigned long len, void *start, void *end)
 -{
--	return addr < (void *)_end;
+-	unsigned long a1 = (unsigned long)addr;
+-	unsigned long b1 = a1 + len;
+-	unsigned long a2 = (unsigned long)start;
+-	unsigned long b2 = (unsigned long)end;
+-
+-	return !(b1 <= a2 || a1 >= b2);
 -}
 -
- static int s390_get_insn_slot(struct kprobe *p)
+ static void check_for_illegal_area(struct device *dev, void *addr, unsigned long len)
  {
- 	/*
-@@ -105,7 +100,7 @@ static int s390_get_insn_slot(struct kprobe *p)
- 	 * field can be patched and executed within the insn slot.
- 	 */
- 	p->ainsn.insn = NULL;
--	if (is_kernel_addr(p->addr))
-+	if (is_kernel(p->addr))
- 		p->ainsn.insn = get_s390_insn_slot();
- 	else if (is_module_addr(p->addr))
- 		p->ainsn.insn = get_insn_slot();
-@@ -117,7 +112,7 @@ static void s390_free_insn_slot(struct kprobe *p)
- {
- 	if (!p->ainsn.insn)
- 		return;
--	if (is_kernel_addr(p->addr))
-+	if (is_kernel(p->addr))
- 		free_s390_insn_slot(p->ainsn.insn, 0);
- 	else
- 		free_insn_slot(p->ainsn.insn, 0);
+-	if (overlap(addr, len, _stext, _etext) ||
+-	    overlap(addr, len, __start_rodata, __end_rodata))
++	if (memory_intersects(_stext, _etext, addr, len) ||
++	    memory_intersects(__start_rodata, __end_rodata, addr, len))
+ 		err_printk(dev, NULL, "device driver maps memory from kernel text or rodata [addr=%p] [len=%lu]\n", addr, len);
+ }
+ 
 -- 
 2.26.2
 
