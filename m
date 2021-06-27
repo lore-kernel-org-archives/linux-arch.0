@@ -2,136 +2,88 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-18.3 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,USER_IN_DEF_DKIM_WL autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5D522C49EA6
-	for <linux-arch@archiver.kernel.org>; Sun, 27 Jun 2021 00:20:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B8FFBC49EA6
+	for <linux-arch@archiver.kernel.org>; Sun, 27 Jun 2021 22:14:09 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 2BBF161C49
-	for <linux-arch@archiver.kernel.org>; Sun, 27 Jun 2021 00:20:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8A3F761C32
+	for <linux-arch@archiver.kernel.org>; Sun, 27 Jun 2021 22:14:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230367AbhF0AW7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 26 Jun 2021 20:22:59 -0400
-Received: from linux.microsoft.com ([13.77.154.182]:39316 "EHLO
-        linux.microsoft.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229556AbhF0AW7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 26 Jun 2021 20:22:59 -0400
-Received: from mail-pl1-f181.google.com (mail-pl1-f181.google.com [209.85.214.181])
-        by linux.microsoft.com (Postfix) with ESMTPSA id ED67620B83FE;
-        Sat, 26 Jun 2021 17:20:35 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com ED67620B83FE
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-        s=default; t=1624753236;
-        bh=ql5M5jaT8pEIRhBidjp+VT0YSsjiH7tSOsIK7C/7Q1A=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=pdPBliyU2S4zT7al69YcjdoyXCckr9cj78nC4Bct308BQxhK+N+dSyGqxNx9cw5F0
-         5XwmCa92jlo70M4ocmpZWgAUcMPGUhWP7qf6xBTvpEP4OelKgYYXIVZ8BVxxCU0yjx
-         ZMTDKxSN7y4CR64uq6hmNs8n0Sbtcfgmeu0J67Yc=
-Received: by mail-pl1-f181.google.com with SMTP id o3so1647553plg.4;
-        Sat, 26 Jun 2021 17:20:35 -0700 (PDT)
-X-Gm-Message-State: AOAM5305/9Pa7YomHNknHAHJxn3ZNxRtSL/i1Ec6VAp5SGB2FMhhPLHf
-        3D2+H27gpXBJ/L4srWJTsaydlOeeBHzW9mUzJ40=
-X-Google-Smtp-Source: ABdhPJzR9XJThrU5IbGCcpYuM0v/cOsYB9rbLs2VQsUc4Y01I33kg2bqpRGVazOix/d1o8l6hZVA62FD9tp2xG5ntbg=
-X-Received: by 2002:a17:90a:a60f:: with SMTP id c15mr7478784pjq.187.1624753235319;
- Sat, 26 Jun 2021 17:20:35 -0700 (PDT)
-MIME-Version: 1.0
-References: <20210625010200.362755-1-mcroce@linux.microsoft.com> <CAKwvOd=rzoCFtUPrB+Hh8ZneGJwKc_2jW=QN6apb4T033r+kYg@mail.gmail.com>
-In-Reply-To: <CAKwvOd=rzoCFtUPrB+Hh8ZneGJwKc_2jW=QN6apb4T033r+kYg@mail.gmail.com>
-From:   Matteo Croce <mcroce@linux.microsoft.com>
-Date:   Sun, 27 Jun 2021 02:19:59 +0200
-X-Gmail-Original-Message-ID: <CAFnufp160uvpqNowZpDdOY4bSN1NJ5j81nYcX=9+rW9WZHfXcQ@mail.gmail.com>
-Message-ID: <CAFnufp160uvpqNowZpDdOY4bSN1NJ5j81nYcX=9+rW9WZHfXcQ@mail.gmail.com>
-Subject: Re: [PATCH 0/3] lib/string: optimized mem* functions
-To:     Nick Desaulniers <ndesaulniers@google.com>
-Cc:     Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Nick Kossifidis <mick@ics.forth.gr>,
-        Guo Ren <guoren@kernel.org>,
-        Christoph Hellwig <hch@infradead.org>,
-        David Laight <David.Laight@aculab.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Emil Renner Berthing <kernel@esmil.dk>,
-        Drew Fustini <drew@beagleboard.org>,
+        id S231702AbhF0WQc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 27 Jun 2021 18:16:32 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46964 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231700AbhF0WQc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 27 Jun 2021 18:16:32 -0400
+Received: from zeniv-ca.linux.org.uk (zeniv-ca.linux.org.uk [IPv6:2607:5300:60:148a::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CEA4EC061574;
+        Sun, 27 Jun 2021 15:14:07 -0700 (PDT)
+Received: from viro by zeniv-ca.linux.org.uk with local (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1lxd1w-00D2bT-AL; Sun, 27 Jun 2021 22:13:32 +0000
+Date:   Sun, 27 Jun 2021 22:13:32 +0000
+From:   Al Viro <viro@zeniv.linux.org.uk>
+To:     "Eric W. Biederman" <ebiederm@xmission.com>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Michael Schmitz <schmitzmic@gmail.com>,
         linux-arch <linux-arch@vger.kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        linux-riscv <linux-riscv@lists.infradead.org>
-Content-Type: text/plain; charset="UTF-8"
+        Jens Axboe <axboe@kernel.dk>, Oleg Nesterov <oleg@redhat.com>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Richard Henderson <rth@twiddle.net>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>,
+        alpha <linux-alpha@vger.kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        Arnd Bergmann <arnd@kernel.org>,
+        Ley Foon Tan <ley.foon.tan@intel.com>,
+        Tejun Heo <tj@kernel.org>, Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 0/9] Refactoring exit
+Message-ID: <YNj4DItToR8FphxC@zeniv-ca.linux.org.uk>
+References: <YNCaMDQVYB04bk3j@zeniv-ca.linux.org.uk>
+ <YNDhdb7XNQE6zQzL@zeniv-ca.linux.org.uk>
+ <CAHk-=whAsWXcJkpMM8ji77DkYkeJAT4Cj98WBX-S6=GnMQwhzg@mail.gmail.com>
+ <87a6njf0ia.fsf@disp2133>
+ <CAHk-=wh4_iMRmWcao6a8kCvR0Hhdrz+M9L+q4Bfcwx9E9D0huw@mail.gmail.com>
+ <87tulpbp19.fsf@disp2133>
+ <CAHk-=wi_kQAff1yx2ufGRo2zApkvqU8VGn7kgPT-Kv71FTs=AA@mail.gmail.com>
+ <87zgvgabw1.fsf@disp2133>
+ <875yy3850g.fsf_-_@disp2133>
+ <YNULA+Ff+eB66bcP@zeniv-ca.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <YNULA+Ff+eB66bcP@zeniv-ca.linux.org.uk>
+Sender: Al Viro <viro@ftp.linux.org.uk>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jun 25, 2021 at 7:45 PM Nick Desaulniers
-<ndesaulniers@google.com> wrote:
->
-> On Thu, Jun 24, 2021 at 6:02 PM Matteo Croce <mcroce@linux.microsoft.com> wrote:
-> >
-> > From: Matteo Croce <mcroce@microsoft.com>
-> >
-> > Rewrite the generic mem{cpy,move,set} so that memory is accessed with
-> > the widest size possible, but without doing unaligned accesses.
-> >
-> > This was originally posted as C string functions for RISC-V[1], but as
-> > there was no specific RISC-V code, it was proposed for the generic
-> > lib/string.c implementation.
-> >
-> > Tested on RISC-V and on x86_64 by undefining __HAVE_ARCH_MEM{CPY,SET,MOVE}
-> > and HAVE_EFFICIENT_UNALIGNED_ACCESS.
-> >
-> > Further testing on big endian machines will be appreciated, as I don't
-> > have such hardware at the moment.
->
-> Hi Matteo,
-> Neat patches.  Do you have you any benchmark data showing the claimed
-> improvements? Is it worthwhile to define these only when
-> CC_OPTIMIZE_FOR_PERFORMANCE/CC_OPTIMIZE_FOR_PERFORMANCE_O3 are
-> defined, not CC_OPTIMIZE_FOR_SIZE? I'd be curious to know the delta in
-> ST_SIZE of these functions otherwise.
->
+On Thu, Jun 24, 2021 at 10:45:23PM +0000, Al Viro wrote:
 
-I compared the current versions with the new one with bloat-o-meter,
-the kernel grows by ~400 bytes on x86_64 and RISC-V
+> 13) there's bdflush(1, whatever), which is equivalent to exit(0).
+> IMO it's long past the time to simply remove the sucker.
 
-x86_64
+Incidentally, calling that from ptraced process on alpha leads to
+the same headache for tracer.  _If_ we leave it around, this is
+another candidate for "hit yourself with that special signal" -
+both alpha and m68k have that syscall, and IMO adding an asm
+wrapper for that one is over the top.
 
-$ scripts/bloat-o-meter vmlinux.orig vmlinux
-add/remove: 0/0 grow/shrink: 4/1 up/down: 427/-6 (421)
-Function                                     old     new   delta
-memcpy                                        29     351    +322
-memset                                        29     117     +88
-strlcat                                       68      78     +10
-strlcpy                                       50      57      +7
-memmove                                       56      50      -6
-Total: Before=8556964, After=8557385, chg +0.00%
+Said that, we really ought to bury that thing:
 
-RISC-V
+commit 2f268ee88abb33968501a44368db55c63adaad40
+Author: Andrew Morton <akpm@digeo.com>
+Date:   Sat Dec 14 03:16:29 2002 -0800
 
-$ scripts/bloat-o-meter vmlinux.orig vmlinux
-add/remove: 0/0 grow/shrink: 4/2 up/down: 432/-36 (396)
-Function                                     old     new   delta
-memcpy                                        36     324    +288
-memset                                        32     148    +116
-strlcpy                                      116     132     +16
-strscpy_pad                                   84      96     +12
-strlcat                                      176     164     -12
-memmove                                       76      52     -24
-Total: Before=1225371, After=1225767, chg +0.03%
+    [PATCH] deprecate use of bdflush()
+	
+    Patch from Robert Love <rml@tech9.net>
+		
+    We can never get rid of it if we do not deprecate it - so do so and
+    print a stern warning to those who still run bdflush daemons.
 
-I will post benchmarks made on a RISC-V machine which can't handle
-unaligned accesses, and it will be the first user of the new
-functions.
-
-> For big endian, you ought to be able to boot test in QEMU.  I think
-> you'd find out pretty quickly if any of the above had issues.
-> (Enabling KASAN is probably also a good idea for a test, too). Check
-> out
-> https://github.com/ClangBuiltLinux/boot-utils
-> for ready made images and scripts for launching various architectures
-> and endiannesses.
->
-
-Will do!
-
--- 
-per aspera ad upstream
+Deprecated for 18.5 years by now - I seriously suspect that we have
+some contributors younger than that...
