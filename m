@@ -2,70 +2,39 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+X-Spam-Status: No, score=-10.2 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_2 autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 061CAC49361
-	for <linux-arch@archiver.kernel.org>; Mon, 28 Jun 2021 13:50:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3FC29C2B9F4
+	for <linux-arch@archiver.kernel.org>; Mon, 28 Jun 2021 15:19:53 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E6EB961C78
-	for <linux-arch@archiver.kernel.org>; Mon, 28 Jun 2021 13:50:29 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 1E65761941
+	for <linux-arch@archiver.kernel.org>; Mon, 28 Jun 2021 15:19:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232345AbhF1Nwx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 28 Jun 2021 09:52:53 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55666 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232313AbhF1Nwo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jun 2021 09:52:44 -0400
-Received: from mail-qk1-x72d.google.com (mail-qk1-x72d.google.com [IPv6:2607:f8b0:4864:20::72d])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 85896C061760;
-        Mon, 28 Jun 2021 06:50:14 -0700 (PDT)
-Received: by mail-qk1-x72d.google.com with SMTP id 65so9985058qko.5;
-        Mon, 28 Jun 2021 06:50:14 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=jgGEFkMArwto/hguJ5jTwXsSU4L7A/FJ08JPCBZFdjo=;
-        b=QplwyV5rzaOnfqkvF1RDY68wW2yI1YFYhMRcU7pWOqgNs/N/bZvgTUibr8EterCWA4
-         Ekg4bqUy8nZitFIyD419HvXNIRp46zq4M5rpXAU1sTVnIHOB/jZcNETK1LaVya0ndlz/
-         2jURLQCARDMBzkUm73devoFH3rv3GVs0S9EuwybXuNTlIkt9SjGd5YnIcQ8p1zQ5C4WA
-         tHGfcXJdoX8RM98TqBtqr4tQAM+TmEZ1uZHacFdNgH27MCoKwYMmfQ6XmMcXb6OULz9i
-         3v5uvBtUZPWB6F0S9ahtFlX2goc73mwKRU5f6BJSq6pyCNLIN/hOL5tlTDzI+fma8VN+
-         x5Aw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=jgGEFkMArwto/hguJ5jTwXsSU4L7A/FJ08JPCBZFdjo=;
-        b=te+7dZ2Oe1NaC50X1ojoarY4fP7S0U2KwAH3q5AVzZEAT83B85s2rqCxJYKiLo6rQR
-         HwZlV/cYvDtpaO3AdiWprn3+1gOLwBFS3QA/iLBKlLizmH63srKror/4WMArd/YyNYox
-         rOEHolKV+P43Pimg+YmjJTuJtsh8v7gMtR3Ru6a7BpW0HErfpr7fwl9sDfsh3CRxTpGY
-         uEqq6xQDifJIisEx3XzLEbmPi/rKaBYBtrJ/wbEY2YW6/tcfBejDu4KZMIHDGrodq8DR
-         odrOulEsPnHLIZy2DbZxJFIXqkRx42fB+y80BQaXgM5NhWKI91Dt++YNNyUBfxbxiUSX
-         ijbw==
-X-Gm-Message-State: AOAM532SDzDzBQsZ0SRGWRpmlbFvU4lDvjjqx2Nn5ituExgAe0y1KMR8
-        wuRs93+Vs9kyk2rGYuxZ29QxadUxLgo=
-X-Google-Smtp-Source: ABdhPJzmqYPGHZdApMOX5+0nI7tsbDj4KOUWei4oAqv0gB0IybDgSBjUSm8hGAP3XRTJk4pw3udWYg==
-X-Received: by 2002:a37:b8b:: with SMTP id 133mr8863456qkl.44.1624888213665;
-        Mon, 28 Jun 2021 06:50:13 -0700 (PDT)
-Received: from tannerlove.nyc.corp.google.com ([2620:0:1003:1000:8502:d4aa:337:d4d])
-        by smtp.gmail.com with ESMTPSA id f19sm10760518qkg.70.2021.06.28.06.50.13
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 28 Jun 2021 06:50:13 -0700 (PDT)
-From:   Tanner Love <tannerlove.kernel@gmail.com>
-To:     netdev@vger.kernel.org
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        id S232941AbhF1PVw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 28 Jun 2021 11:21:52 -0400
+Received: from mail.kernel.org ([198.145.29.99]:46586 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S233925AbhF1PRP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 28 Jun 2021 11:17:15 -0400
+Received: from oasis.local.home (cpe-66-24-58-225.stny.res.rr.com [66.24.58.225])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 026026144F;
+        Mon, 28 Jun 2021 15:14:47 +0000 (UTC)
+Date:   Mon, 28 Jun 2021 11:14:46 -0400
+From:   Steven Rostedt <rostedt@goodmis.org>
+To:     Tanner Love <tannerlove.kernel@gmail.com>
+Cc:     netdev@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org,
         "David S . Miller" <davem@davemloft.net>,
         Eric Dumazet <edumazet@google.com>,
         Mahesh Bandewar <maheshb@google.com>,
         "Darrick J . Wong" <djwong@kernel.org>,
         Arnd Bergmann <arnd@arndb.de>, Petr Mladek <pmladek@suse.com>,
         Sergey Senozhatsky <senozhatsky@chromium.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
         John Ogness <john.ogness@linutronix.de>,
         Ingo Molnar <mingo@redhat.com>,
         Jakub Kicinski <kuba@kernel.org>,
@@ -76,68 +45,36 @@ Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Yunsheng Lin <linyunsheng@huawei.com>,
         Willem de Bruijn <willemb@google.com>,
         Tanner Love <tannerlove@google.com>
-Subject: [PATCH net-next v3 2/2] net: update netdev_rx_csum_fault() print dump only once
-Date:   Mon, 28 Jun 2021 09:50:07 -0400
-Message-Id: <20210628135007.1358909-3-tannerlove.kernel@gmail.com>
-X-Mailer: git-send-email 2.32.0.93.g670b81a890-goog
-In-Reply-To: <20210628135007.1358909-1-tannerlove.kernel@gmail.com>
+Subject: Re: [PATCH net-next v3 1/2] once: implement DO_ONCE_LITE for
+ non-fast-path "do once" functionality
+Message-ID: <20210628111446.357b2418@oasis.local.home>
+In-Reply-To: <20210628135007.1358909-2-tannerlove.kernel@gmail.com>
 References: <20210628135007.1358909-1-tannerlove.kernel@gmail.com>
+        <20210628135007.1358909-2-tannerlove.kernel@gmail.com>
+X-Mailer: Claws Mail 3.17.3 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Tanner Love <tannerlove@google.com>
+On Mon, 28 Jun 2021 09:50:06 -0400
+Tanner Love <tannerlove.kernel@gmail.com> wrote:
 
-Printing this stack dump multiple times does not provide additional
-useful information, and consumes time in the data path. Printing once
-is sufficient.
+> Certain uses of "do once" functionality reside outside of fast path,
+> and so do not require jump label patching via static keys, making
+> existing DO_ONCE undesirable in such cases.
+> 
+> Replace uses of __section(".data.once") with DO_ONCE_LITE(_IF)?
 
-Changes
-  v2: Format indentation properly
+I hate the name "_LITE" but can't come up with something better.
 
-Signed-off-by: Tanner Love <tannerlove@google.com>
-Acked-by: Eric Dumazet <edumazet@google.com>
-Acked-by: Mahesh Bandewar <maheshb@google.com>
----
- net/core/dev.c | 14 +++++++++-----
- 1 file changed, 9 insertions(+), 5 deletions(-)
+Maybe: DO_ONCE_SLOW() ??
 
-diff --git a/net/core/dev.c b/net/core/dev.c
-index 991d09b67bd9..d609366da95c 100644
---- a/net/core/dev.c
-+++ b/net/core/dev.c
-@@ -148,6 +148,7 @@
- #include <net/devlink.h>
- #include <linux/pm_runtime.h>
- #include <linux/prandom.h>
-+#include <linux/once_lite.h>
- 
- #include "net-sysfs.h"
- 
-@@ -3487,13 +3488,16 @@ EXPORT_SYMBOL(__skb_gso_segment);
- 
- /* Take action when hardware reception checksum errors are detected. */
- #ifdef CONFIG_BUG
-+static void do_netdev_rx_csum_fault(struct net_device *dev, struct sk_buff *skb)
-+{
-+	pr_err("%s: hw csum failure\n", dev ? dev->name : "<unknown>");
-+	skb_dump(KERN_ERR, skb, true);
-+	dump_stack();
-+}
-+
- void netdev_rx_csum_fault(struct net_device *dev, struct sk_buff *skb)
- {
--	if (net_ratelimit()) {
--		pr_err("%s: hw csum failure\n", dev ? dev->name : "<unknown>");
--		skb_dump(KERN_ERR, skb, true);
--		dump_stack();
--	}
-+	DO_ONCE_LITE(do_netdev_rx_csum_fault, dev, skb);
- }
- EXPORT_SYMBOL(netdev_rx_csum_fault);
- #endif
--- 
-2.32.0.93.g670b81a890-goog
+Anyway, besides my bike-shedding comment above...
+
+Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+
+-- Steve
 
