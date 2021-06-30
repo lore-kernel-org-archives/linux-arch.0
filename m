@@ -2,104 +2,113 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C8DDBC11F69
-	for <linux-arch@archiver.kernel.org>; Wed, 30 Jun 2021 15:16:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 95E52C11F68
+	for <linux-arch@archiver.kernel.org>; Wed, 30 Jun 2021 15:36:49 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id AB90561493
-	for <linux-arch@archiver.kernel.org>; Wed, 30 Jun 2021 15:16:21 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 76B5361476
+	for <linux-arch@archiver.kernel.org>; Wed, 30 Jun 2021 15:36:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235671AbhF3PSt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 30 Jun 2021 11:18:49 -0400
-Received: from mout.kundenserver.de ([212.227.126.130]:33255 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235508AbhF3PSt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jun 2021 11:18:49 -0400
-Received: from [192.168.1.155] ([95.114.41.241]) by mrelayeu.kundenserver.de
- (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
- 1MF3U0-1m0qzA3KX2-00FX24; Wed, 30 Jun 2021 17:16:08 +0200
+        id S235743AbhF3PjR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 30 Jun 2021 11:39:17 -0400
+Received: from mga02.intel.com ([134.134.136.20]:5435 "EHLO mga02.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S235565AbhF3PjP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 30 Jun 2021 11:39:15 -0400
+X-IronPort-AV: E=McAfee;i="6200,9189,10031"; a="195524782"
+X-IronPort-AV: E=Sophos;i="5.83,312,1616482800"; 
+   d="scan'208";a="195524782"
+Received: from orsmga004.jf.intel.com ([10.7.209.38])
+  by orsmga101.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jun 2021 08:36:43 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.83,312,1616482800"; 
+   d="scan'208";a="558333537"
+Received: from irsmsx605.ger.corp.intel.com ([163.33.146.138])
+  by orsmga004.jf.intel.com with ESMTP; 30 Jun 2021 08:36:41 -0700
+Received: from tjmaciei-mobl1.localnet (10.209.13.190) by
+ IRSMSX605.ger.corp.intel.com (163.33.146.138) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2242.4; Wed, 30 Jun 2021 16:36:39 +0100
+From:   Thiago Macieira <thiago.macieira@intel.com>
+To:     Peter Zijlstra <peterz@infradead.org>,
+        "Enrico Weigelt, metux IT consult" <lkml@metux.net>
+CC:     <fweimer@redhat.com>, <hjl.tools@gmail.com>,
+        <libc-alpha@sourceware.org>, <linux-api@vger.kernel.org>,
+        <linux-arch@vger.kernel.org>, <x86@kernel.org>
 Subject: Re: x86 CPU features detection for applications (and AMX)
-To:     Florian Weimer <fweimer@redhat.com>
-Cc:     Thiago Macieira <thiago.macieira@intel.com>, hjl.tools@gmail.com,
-        libc-alpha@sourceware.org, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org, x86@kernel.org
-References: <22261946.eFiGugXE7Z@tjmaciei-mobl1>
- <3c5c29e2-1b52-3576-eda2-018fb1e58ff9@metux.net>
- <2379132.fg5cGID6mU@tjmaciei-mobl1>
- <e07294c9-b02a-e1c5-3620-7fae7269fdf1@metux.net>
- <87pmw3ifpv.fsf@oldenburg.str.redhat.com>
-From:   "Enrico Weigelt, metux IT consult" <lkml@metux.net>
-Message-ID: <030f1462-2bf9-39bc-d620-6d9fbe454a27@metux.net>
-Date:   Wed, 30 Jun 2021 17:16:06 +0200
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.11.0
+Date:   Wed, 30 Jun 2021 08:36:36 -0700
+Message-ID: <4315452.lxGN7TsiT6@tjmaciei-mobl1>
+Organization: Intel Corporation
+In-Reply-To: <534d0171-2cc5-cd0a-904f-cd3c499b55af@metux.net>
+References: <22261946.eFiGugXE7Z@tjmaciei-mobl1> <YNnMsJJzI83cpnAQ@hirez.programming.kicks-ass.net> <534d0171-2cc5-cd0a-904f-cd3c499b55af@metux.net>
 MIME-Version: 1.0
-In-Reply-To: <87pmw3ifpv.fsf@oldenburg.str.redhat.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: tl
-Content-Transfer-Encoding: 8bit
-X-Provags-ID: V03:K1:AyD6IunEr2ZVbQ6oYBfRq8AhWfgUWlhID3kd5E74rmHmA6gPuN5
- dPH2ajDyy3WEuUhOqy4OxS0TnAB7ONXUkzL1+52QpwrNAeZ6SdI0L8Xjl0iuQU1TuMGNYBs
- AzosIDWcQpHDUV8h9CLLFCFsEnR1yY1ZXBq2qUHfBvRZ7Sk3q6vkiUdtQ7Eke+eDA5RpWVD
- b+QCcwftECYMwOuGCGMfA==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:0quIKKXfv5c=:RRMbdvs69LyU0undJQsfFH
- z8mpAzkS1bPOkelKHRmRn+WYvyx2xBimmmQ2GSjKc8IUFsNBM5A/5x1pdBcsFbotjNFWgLde7
- ciU3sD5qI1ijjf7cn4Uy7bYNB3EXohhqFeQ0WZ4JrwZXY5W6HEwJl29KYNZQYtHLCtwj7smdI
- IGyCOBSnDLZQb28ZWK4DsmGILWvpS/WMnYu7SrhoNxTE9P0tj4xu73mCn5JmSJ2hpzYhDvshw
- 9Zn9Oco7aW0zxng4DeEkY2BxVmkbqIgA6ZWv21Mx2W0EWmiYHcWDtuNDoGuhK/tPjBc5pdVYc
- kYXYIfxYWZ3Kq7GgNC3QBvKQjAzbpLfX6i1d+OD0rEA55dcqTcX2Rp9iZAUYy7vaSAvoSlbgV
- m3gYk8+2ylgXyujmXVf0uWA9IJX9LfJe30orQV82xv1mxNbUzDuUE87tSfo7f2EpcFuLqIj6A
- PIfp6KxYqq5+A2IicovUgNqOwDM0l0z25EyIGeSTPnFZ2qx+ArFsFZy1r7lkIRsaZT59neVAj
- Gjac5Ki4g09Rl7jX2WhVEqUiWK49d3S14ksHwxY2fMqXpjuQC6K1Ej771S4lhbq5QS17mOqVk
- b1q6JlfZe7nZlNRtxTqNFGFW7FWR3PX2Vj124JtkfV9LvSg7dj1boYgNDXSe69gSgAqLZScaS
- 4YH08yhysCT+Z2WBvfHF1AN55nF2MObyq0xjtfjwZ/tAvnAFmP5EfpaW9gBzj43m0orKzw7j+
- neqaKXTJ2QRVk+TaqnpzbjpRK0m7YxZg1bH4AUVUcqJwRrDdcb65XUq81TFI+D+rOHt0vCUR6
- ioaTfpP3eapxF3s6Ec6tgt1qpWJB5zrYEmxLBkOGCmBS7WR/G7tHv9cNpDplzatEKL/1jz++X
- HqNw0YDo8YMqeaVi3bAZ/cUGEoU+GvmN+aMA0DFYw=
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
+X-Originating-IP: [10.209.13.190]
+X-ClientProxiedBy: orsmsx603.amr.corp.intel.com (10.22.229.16) To
+ IRSMSX605.ger.corp.intel.com (163.33.146.138)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 30.06.21 16:34, Florian Weimer wrote:
+On Wednesday, 30 June 2021 05:50:30 PDT Enrico Weigelt, metux IT consult 
+wrote:
+> > No, but because it's register state and part of XSAVE, it has immediate
+> > impact in ABI. In particular, the signal stack layout includes XSAVE (as
+> > does ptrace()).
+> 
+> OMGs, I've already suspected such sickness. I don't even dare thinking
+> about consequences for compilers and library ABIs.
+> 
+> Does anyone here know why they designed this as inline operations ? This
+> thing seems to be pretty much what typical TPUs are doing (or a subset
+> of it). Why not just adding a TPU next to the CPU on the same chip ?
 
-> It breaks integration with system-wide settings, such as user/group
-> databases, host name lookup, and cryptographic policies.  In many
-> environments, that is not really an option.
+To be clear: this is a SW ABI. It has nothing to do the presence or absence of 
+other processing units in the system.
 
-Not necessarily, these can still be applied (and fairly simple).
-You actually have to twist more extra knobs if to wanted those weird
-things to happen.
+The moment you receive a Unix signal with SA_SIGINFO, the mcontext state needs 
+to be saved somewhere. Where would you save it? Please remember that:
 
-The only thing that won't work easily is when the operator forces some
-custom libraries to be loaded arbitrarily into all processes. Yes,
-somebody could write his own nss plugins, but that's exactly the kind
-of audience that does NOT just use those (especially old) binary-only
-distros. In over 20 years, being inside dozens of corporations, I've
-only seen that exactly once. And it was me doing that.
+- signal handlers can be called at any point in the execution, including
+  in the middle of malloc()
+- signal handlers can longjmp out of the handler back into non-handler code
+- in a multithreaded application, each thread can be handling a signal 
+  simultaneously
 
-I actually wonder which kind of binary only application that shall be
-that's actually affected by that problem and actually used in the
-field that way.
+We could have the kernel hold on to that and have a system call to extract 
+them, but that's an ABI change and I think won't work for the longjmp case.
 
-Do you have some actual practical (not theoretical) example ?
+> > Userspace will have to do something like:
+> >   - check CPUID, if !AMX -> fail
+> >   - issue prctl(), if error -> fail
+> >   - issue XGETBV and check the AMX bit it set, if not -> fail
+> 
+> Can't we to this just by prctl() call ?
+> IOW: ask the kernel, who gonna say yes or no.
 
-By the way: today's method of choice for delivering binary only
-software is containers. (and I'd even count things like Steam into
-that category).
+That's possible. The kernel can't enable an AMX state on a system without AMX.
 
+> Are there any situations where kernel says yes, but process still can't
+> use it ? Why so ?
 
---mtx
+Today there is no such case that I can think of.
+
+> >   - request the signal stack size / spawn threads
+> 
+> Signal stack is separate from the usual stack, right ?
+> Why can't this all be done in one shot ?
+
+Yes, we're talking about the sigaltstack() call.
+
+What is "this all" in the sentence above?
 
 -- 
----
-Hinweis: unverschlüsselte E-Mails können leicht abgehört und manipuliert
-werden ! Für eine vertrauliche Kommunikation senden Sie bitte ihren
-GPG/PGP-Schlüssel zu.
----
-Enrico Weigelt, metux IT consult
-Free software and Linux embedded engineering
-info@metux.net -- +49-151-27565287
+Thiago Macieira - thiago.macieira (AT) intel.com
+  Software Architect - Intel DPG Cloud Engineering
+
+
+
