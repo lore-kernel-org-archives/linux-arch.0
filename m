@@ -2,181 +2,78 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_INVALID,
+	DKIM_SIGNED,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A6131C11F69
-	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 12:03:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E7C0EC07E96
+	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 12:03:44 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8AD69620E9
-	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 12:03:45 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id CA2B5620DC
+	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 12:03:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238449AbhGFMFq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 6 Jul 2021 08:05:46 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53032 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S242220AbhGFMCV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2021 08:02:21 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CB1D6C0612FC
-        for <linux-arch@vger.kernel.org>; Tue,  6 Jul 2021 04:33:26 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=FQ0Rt4ADicxMRIDuiknM9c5llFRaqB7OnvRwoRZLApA=; b=kNtu5xsz8ixACKTwJKYcp6g3qG
-        t1cwa60fjUblWu7/fMF4BLvME3tCPuecIK8vwsqVuwr7JYZ3TuadgdjHmtWr0BGvcgJ/B9YSFXDvC
-        buVRKfFeKE1yYQ0M7CX1jFpZ0K8NUT3z4WShadER/2hanOdsmULRxwJ1iOnLbwtZjmLPMRHRuvlBO
-        TaabpJDDQUq7cFE/zCqp1dF/BZlsknBJlj7ems00hqTOb31jVH1yTom/NmfQizLrcXiIvb9xgu98Y
-        SAPGea5xx5+65jo6T8KSX4+YpdNkgJiDldfigjudozT3iTstZO/dhHMRTEDzjLER0m6ET8u0Jad2L
-        PJ9fOehQ==;
-Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1m0jJH-00BChh-NX; Tue, 06 Jul 2021 11:32:25 +0000
-Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-        (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 50C913001DC;
-        Tue,  6 Jul 2021 13:32:15 +0200 (CEST)
-Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
-        id 438A3200843AD; Tue,  6 Jul 2021 13:32:15 +0200 (CEST)
-Date:   Tue, 6 Jul 2021 13:32:15 +0200
-From:   Peter Zijlstra <peterz@infradead.org>
+        id S237757AbhGFMFh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 6 Jul 2021 08:05:37 -0400
+Received: from mail.kernel.org ([198.145.29.99]:47600 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S237142AbhGFLf5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Jul 2021 07:35:57 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 1C8ED61CC3
+        for <linux-arch@vger.kernel.org>; Tue,  6 Jul 2021 11:25:43 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1625570743;
+        bh=NMv1p7GNORLOIb0kQ+W5gY4yPE7n7BoPYBjrqQwuwck=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=nnqX9nJpa3TJ7q2f3P1Jf2mMl+RNSjWwe2dvbujwRd+wyL52ZCAGLMkqeNTHD3/gs
+         q/2Cm4OOsbKcWfe0Hxp9C6o0nsvz3+U4EWuEng3x8u/SMbxaVWuQ1Saa7DuRZ62Yy8
+         /4sQKeCOW9sDLfnUiq9mqROo65C8TvxMnAU9iH/ZmGsF9ln8q+ncZFw8iDPQ6FgTAz
+         MIUDFTkjM1BgWlo7j9mr4FBJSPNjV4aEfbkmP5kbQb3rJbnYAt17/t4X/IylzineMo
+         985mzvQ2MkHbySD3jd7/MK2i5RHeqomQBwwcXa0o2Bcbeg21mlMcub4ybgfIUVTVPB
+         Ob2BHotSLzovA==
+Received: by mail-wm1-f54.google.com with SMTP id j34so13303196wms.5
+        for <linux-arch@vger.kernel.org>; Tue, 06 Jul 2021 04:25:43 -0700 (PDT)
+X-Gm-Message-State: AOAM530vZpnLxeaj3wDVlrb2Nrw5C6aiYq1te4tLaIuj/oy7QEbyvJ6w
+        LZtEDlWeAmAbAWzpmU6bfzHJJoRrIkRxO1+MT40=
+X-Google-Smtp-Source: ABdhPJw+3FtSynYnJGuSEZt6aCd17GeHOnQEnp/Dn+R4qP7dDbpZKK+ItcabATZBODUCtppZycBiSSuZkR2IRVESEXA=
+X-Received: by 2002:a1c:c90f:: with SMTP id f15mr4149832wmb.142.1625569051717;
+ Tue, 06 Jul 2021 03:57:31 -0700 (PDT)
+MIME-Version: 1.0
+References: <20210706041820.1536502-1-chenhuacai@loongson.cn>
+ <20210706041820.1536502-8-chenhuacai@loongson.cn> <CAK8P3a3FJSX6U9i0KYDKGVgPxi=OnrJJg73d74=KOkbEBoVa+g@mail.gmail.com>
+In-Reply-To: <CAK8P3a3FJSX6U9i0KYDKGVgPxi=OnrJJg73d74=KOkbEBoVa+g@mail.gmail.com>
+From:   Arnd Bergmann <arnd@kernel.org>
+Date:   Tue, 6 Jul 2021 12:57:16 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a2Q+vPhWZRSUs4jSZuX-mryHpPgQBgzjHQogjKh-X_TmQ@mail.gmail.com>
+Message-ID: <CAK8P3a2Q+vPhWZRSUs4jSZuX-mryHpPgQBgzjHQogjKh-X_TmQ@mail.gmail.com>
+Subject: Re: [PATCH 07/19] LoongArch: Add process management
 To:     Huacai Chen <chenhuacai@loongson.cn>
-Cc:     Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
+Cc:     Andy Lutomirski <luto@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
+        Peter Zijlstra <peterz@infradead.org>,
         Andrew Morton <akpm@linux-foundation.org>,
         David Airlie <airlied@linux.ie>,
         Linus Torvalds <torvalds@linux-foundation.org>,
-        linux-arch@vger.kernel.org, Xuefeng Li <lixuefeng@loongson.cn>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Xuefeng Li <lixuefeng@loongson.cn>,
         Huacai Chen <chenhuacai@gmail.com>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>
-Subject: Re: [PATCH 17/19] LoongArch: Add multi-processor (SMP) support
-Message-ID: <YOQ/P/C7yfgCeKct@hirez.programming.kicks-ass.net>
-References: <20210706041820.1536502-1-chenhuacai@loongson.cn>
- <20210706041820.1536502-18-chenhuacai@loongson.cn>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210706041820.1536502-18-chenhuacai@loongson.cn>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Jul 06, 2021 at 12:18:18PM +0800, Huacai Chen wrote:
-> diff --git a/arch/loongarch/include/asm/barrier.h b/arch/loongarch/include/asm/barrier.h
-> index 8ab8d8f15b88..ad09a3b31cba 100644
-> --- a/arch/loongarch/include/asm/barrier.h
-> +++ b/arch/loongarch/include/asm/barrier.h
-> @@ -20,6 +20,19 @@
->  #define mb()		fast_mb()
->  #define iob()		fast_iob()
->  
-> +#define __smp_mb()	__asm__ __volatile__("dbar 0" : : : "memory")
-> +#define __smp_rmb()	__asm__ __volatile__("dbar 0" : : : "memory")
-> +#define __smp_wmb()	__asm__ __volatile__("dbar 0" : : : "memory")
+On Tue, Jul 6, 2021 at 6:18 AM Huacai Chen <chenhuacai@loongson.cn> wrote:
 
-:-(
+> +void arch_cpu_idle(void)
+> +{
+> +       local_irq_enable();
+> +       __arch_cpu_idle();
+> +}
 
-> +
-> +#ifdef CONFIG_SMP
-> +#define __WEAK_LLSC_MB		"	dbar 0  \n"
-> +#else
-> +#define __WEAK_LLSC_MB		"		\n"
-> +#endif
+This looks racy: What happens if an interrupt is pending and hits before
+entering __arch_cpu_idle()?
 
-Isn't that spelled smp_mb() ?
+Usually CPU idle instructions are designed to be called with interrupts disabled
+and wait until an interrupt happens, including one that was already pending.
 
-> +
-> +#define __smp_mb__before_atomic()	barrier()
-> +#define __smp_mb__after_atomic()	__smp_mb()
-
-Clarification please.
-
-Does this imply LL is sequentially consistent, while SC is not?
-
-> +
->  /**
->   * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
->   * @index: array element index
-> @@ -48,6 +61,112 @@ static inline unsigned long array_index_mask_nospec(unsigned long index,
->  	return mask;
->  }
->  
-> +#define __smp_load_acquire(p)							\
-> +({										\
-> +	union { typeof(*p) __val; char __c[1]; } __u;				\
-> +	unsigned long __tmp = 0;							\
-> +	compiletime_assert_atomic_type(*p);					\
-> +	switch (sizeof(*p)) {							\
-> +	case 1:									\
-> +		*(__u8 *)__u.__c = *(volatile __u8 *)p;				\
-> +		__smp_mb();							\
-> +		break;								\
-> +	case 2:									\
-> +		*(__u16 *)__u.__c = *(volatile __u16 *)p;			\
-> +		__smp_mb();							\
-> +		break;								\
-> +	case 4:									\
-> +		__asm__ __volatile__(						\
-> +		"amor.w %[val], %[tmp], %[mem]	\n"				\
-> +		: [val] "=&r" (*(__u32 *)__u.__c)				\
-> +		: [mem] "ZB" (*(u32 *) p), [tmp] "r" (__tmp)			\
-> +		: "memory");							\
-> +		break;								\
-> +	case 8:									\
-> +		__asm__ __volatile__(						\
-> +		"amor.d %[val], %[tmp], %[mem]	\n"				\
-> +		: [val] "=&r" (*(__u64 *)__u.__c)				\
-> +		: [mem] "ZB" (*(u64 *) p), [tmp] "r" (__tmp)			\
-> +		: "memory");							\
-> +		break;								\
-> +	default:								\
-> +		barrier();							\
-> +		__builtin_memcpy((void *)__u.__c, (const void *)p, sizeof(*p));	\
-> +		__smp_mb();							\
-> +	}									\
-> +	__u.__val;								\
-> +})
-> +
-> +#define __smp_store_release(p, v)						\
-> +do {										\
-> +	union { typeof(*p) __val; char __c[1]; } __u =				\
-> +		{ .__val = (__force typeof(*p)) (v) };				\
-> +	unsigned long __tmp;							\
-> +	compiletime_assert_atomic_type(*p);					\
-> +	switch (sizeof(*p)) {							\
-> +	case 1:									\
-> +		__smp_mb();							\
-> +		*(volatile __u8 *)p = *(__u8 *)__u.__c;				\
-> +		break;								\
-> +	case 2:									\
-> +		__smp_mb();							\
-> +		*(volatile __u16 *)p = *(__u16 *)__u.__c;			\
-> +		break;								\
-> +	case 4:									\
-> +		__asm__ __volatile__(						\
-> +		"amswap.w %[tmp], %[val], %[mem]	\n"			\
-> +		: [mem] "+ZB" (*(u32 *)p), [tmp] "=&r" (__tmp)			\
-> +		: [val] "r" (*(__u32 *)__u.__c)					\
-> +		: );								\
-> +		break;								\
-> +	case 8:									\
-> +		__asm__ __volatile__(						\
-> +		"amswap.d %[tmp], %[val], %[mem]	\n"			\
-> +		: [mem] "+ZB" (*(u64 *)p), [tmp] "=&r" (__tmp)			\
-> +		: [val] "r" (*(__u64 *)__u.__c)					\
-> +		: );								\
-> +		break;								\
-> +	default:								\
-> +		__smp_mb();							\
-> +		__builtin_memcpy((void *)p, (const void *)__u.__c, sizeof(*p));	\
-> +		barrier();							\
-> +	}									\
-> +} while (0)
-
-What's the actual ordering of those AMO things?
-
+           Arnd
