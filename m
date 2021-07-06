@@ -2,187 +2,100 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-20.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 035CBC07E9B
-	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 11:31:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E7C49C07E9C
+	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 12:03:44 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id DDBD661CCB
-	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 11:31:10 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D2084620E5
+	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 12:03:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234875AbhGFLdq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 6 Jul 2021 07:33:46 -0400
-Received: from mail.kernel.org ([198.145.29.99]:42404 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S235665AbhGFLaS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Jul 2021 07:30:18 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 55E1561DD0;
-        Tue,  6 Jul 2021 11:21:33 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1625570494;
-        bh=KSZ7rKJwOjkrmzpOVQugWhLbgtTy/OWflm3K4vutGBM=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=IGyYjOHa9T1sxZg0uDONOeJNZ9NzpFMxzwydXbLrZCy4NbYUCuRCJU8PiR25MvnZf
-         mCHcf82hs6FulTY2VIliTPaQixmO16bvxtC1hQIVHoXipjcCrGpTQLbQmF2uPggj5m
-         ofl9u8xFwHlCy1AY7MeFoPVvwDUA/ub6Wq5BSXmA0exrsSjF08Hg1gMMBPJNJ9tORx
-         6DvoMnGmZJGikJ6OguNMslDFiQ5lzDfxzB2hJ1I88Lzs7kVNhMtwZvymjrVVN53sci
-         AoVNCRMdn9RPOME9h2YiQ871rd6SjpPETaMC+ok6CoI/tDvKQIum24Ltp+E8VoAhiT
-         yFgdvZur0or4w==
-From:   Sasha Levin <sashal@kernel.org>
-To:     linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc:     Martynas Pumputis <m@lambda.lt>, Lorenz Bauer <lmb@cloudflare.com>,
-        Eric Dumazet <edumazet@google.com>,
-        "David S . Miller" <davem@davemloft.net>,
-        Sasha Levin <sashal@kernel.org>, linux-alpha@vger.kernel.org,
-        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-        sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
-        netdev@vger.kernel.org, bpf@vger.kernel.org
-Subject: [PATCH AUTOSEL 5.12 139/160] net: retrieve netns cookie via getsocketopt
-Date:   Tue,  6 Jul 2021 07:18:05 -0400
-Message-Id: <20210706111827.2060499-139-sashal@kernel.org>
-X-Mailer: git-send-email 2.30.2
-In-Reply-To: <20210706111827.2060499-1-sashal@kernel.org>
-References: <20210706111827.2060499-1-sashal@kernel.org>
+        id S240634AbhGFMFm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 6 Jul 2021 08:05:42 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46936 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S237718AbhGFLg5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2021 07:36:57 -0400
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2A53DC0A8878
+        for <linux-arch@vger.kernel.org>; Tue,  6 Jul 2021 04:23:47 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=desiato.20200630; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=Rx9zsygjVKO6Fd94HbJP1bvxBX1w6e7olzywzjqToVI=; b=CYKtm9goucH5L0MK2NHyqLkIam
+        GYPxdPr6Ue/lhK/4pBiXnWaJWMClqPFZYPmjPswk7IliqaWdQYd4niBiG3jSym3Tj4F+KF22W1jaW
+        Snq9E8Ij078g++7C70WPt+en92sAy7MzVSrqJ1MA2HDN23m975ojKd2DOhNUlEPeo8ZpDEB8Av+Ot
+        EBqFKMIYXdVL5cx9eZ+Brsw2XPzyiPWpeOh9I1pPI+nimNCQ4FhUB91z5icRWHUDrDBpMv03qU53S
+        p7oixBkmG3xp9sKXDkD7BiOtoR/NYiVi4Gn5QFWXkC8yKIdiWNevh8KJNQtHbCqY443sNU9CypB07
+        q0EXQ7UQ==;
+Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
+        by desiato.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1m0jAo-00F1ox-0v; Tue, 06 Jul 2021 11:23:30 +0000
+Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits))
+        (Client did not present a certificate)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 76240300233;
+        Tue,  6 Jul 2021 13:23:28 +0200 (CEST)
+Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
+        id 46EC4200843AD; Tue,  6 Jul 2021 13:23:28 +0200 (CEST)
+Date:   Tue, 6 Jul 2021 13:23:28 +0200
+From:   Peter Zijlstra <peterz@infradead.org>
+To:     Huacai Chen <chenhuacai@loongson.cn>
+Cc:     Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        David Airlie <airlied@linux.ie>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        linux-arch@vger.kernel.org, Xuefeng Li <lixuefeng@loongson.cn>,
+        Huacai Chen <chenhuacai@gmail.com>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>
+Subject: Re: [PATCH 04/19] LoongArch: Add common headers
+Message-ID: <YOQ9MGbTrPKWl1N/@hirez.programming.kicks-ass.net>
+References: <20210706041820.1536502-1-chenhuacai@loongson.cn>
+ <20210706041820.1536502-5-chenhuacai@loongson.cn>
 MIME-Version: 1.0
-X-stable: review
-X-Patchwork-Hint: Ignore
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210706041820.1536502-5-chenhuacai@loongson.cn>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Martynas Pumputis <m@lambda.lt>
+On Tue, Jul 06, 2021 at 12:18:05PM +0800, Huacai Chen wrote:
+> +/* CSR */
+> +static inline u32 csr_readl(u32 reg)
+> +{
+> +	return __csrrd(reg);
+> +}
+> +
+> +static inline u64 csr_readq(u32 reg)
+> +{
+> +	return __dcsrrd(reg);
+> +}
+> +
+> +static inline void csr_writel(u32 val, u32 reg)
+> +{
+> +	__csrwr(val, reg);
+> +}
+> +
+> +static inline void csr_writeq(u64 val, u32 reg)
+> +{
+> +	__dcsrwr(val, reg);
+> +}
+> +
+> +static inline u32 csr_xchgl(u32 val, u32 mask, u32 reg)
+> +{
+> +	return __csrxchg(val, mask, reg);
+> +}
+> +
+> +static inline u64 csr_xchgq(u64 val, u64 mask, u32 reg)
+> +{
+> +	return __dcsrxchg(val, mask, reg);
+> +}
 
-[ Upstream commit e8b9eab99232c4e62ada9d7976c80fd5e8118289 ]
-
-It's getting more common to run nested container environments for
-testing cloud software. One of such examples is Kind [1] which runs a
-Kubernetes cluster in Docker containers on a single host. Each container
-acts as a Kubernetes node, and thus can run any Pod (aka container)
-inside the former. This approach simplifies testing a lot, as it
-eliminates complicated VM setups.
-
-Unfortunately, such a setup breaks some functionality when cgroupv2 BPF
-programs are used for load-balancing. The load-balancer BPF program
-needs to detect whether a request originates from the host netns or a
-container netns in order to allow some access, e.g. to a service via a
-loopback IP address. Typically, the programs detect this by comparing
-netns cookies with the one of the init ns via a call to
-bpf_get_netns_cookie(NULL). However, in nested environments the latter
-cannot be used given the Kubernetes node's netns is outside the init ns.
-To fix this, we need to pass the Kubernetes node netns cookie to the
-program in a different way: by extending getsockopt() with a
-SO_NETNS_COOKIE option, the orchestrator which runs in the Kubernetes
-node netns can retrieve the cookie and pass it to the program instead.
-
-Thus, this is following up on Eric's commit 3d368ab87cf6 ("net:
-initialize net->net_cookie at netns setup") to allow retrieval via
-SO_NETNS_COOKIE.  This is also in line in how we retrieve socket cookie
-via SO_COOKIE.
-
-  [1] https://kind.sigs.k8s.io/
-
-Signed-off-by: Lorenz Bauer <lmb@cloudflare.com>
-Signed-off-by: Martynas Pumputis <m@lambda.lt>
-Cc: Eric Dumazet <edumazet@google.com>
-Reviewed-by: Eric Dumazet <edumazet@google.com>
-Signed-off-by: David S. Miller <davem@davemloft.net>
-Signed-off-by: Sasha Levin <sashal@kernel.org>
----
- arch/alpha/include/uapi/asm/socket.h  | 2 ++
- arch/mips/include/uapi/asm/socket.h   | 2 ++
- arch/parisc/include/uapi/asm/socket.h | 2 ++
- arch/sparc/include/uapi/asm/socket.h  | 2 ++
- include/uapi/asm-generic/socket.h     | 2 ++
- net/core/sock.c                       | 7 +++++++
- 6 files changed, 17 insertions(+)
-
-diff --git a/arch/alpha/include/uapi/asm/socket.h b/arch/alpha/include/uapi/asm/socket.h
-index 57420356ce4c..6b3daba60987 100644
---- a/arch/alpha/include/uapi/asm/socket.h
-+++ b/arch/alpha/include/uapi/asm/socket.h
-@@ -127,6 +127,8 @@
- #define SO_PREFER_BUSY_POLL	69
- #define SO_BUSY_POLL_BUDGET	70
- 
-+#define SO_NETNS_COOKIE		71
-+
- #if !defined(__KERNEL__)
- 
- #if __BITS_PER_LONG == 64
-diff --git a/arch/mips/include/uapi/asm/socket.h b/arch/mips/include/uapi/asm/socket.h
-index 2d949969313b..cdf404a831b2 100644
---- a/arch/mips/include/uapi/asm/socket.h
-+++ b/arch/mips/include/uapi/asm/socket.h
-@@ -138,6 +138,8 @@
- #define SO_PREFER_BUSY_POLL	69
- #define SO_BUSY_POLL_BUDGET	70
- 
-+#define SO_NETNS_COOKIE		71
-+
- #if !defined(__KERNEL__)
- 
- #if __BITS_PER_LONG == 64
-diff --git a/arch/parisc/include/uapi/asm/socket.h b/arch/parisc/include/uapi/asm/socket.h
-index f60904329bbc..5b5351cdcb33 100644
---- a/arch/parisc/include/uapi/asm/socket.h
-+++ b/arch/parisc/include/uapi/asm/socket.h
-@@ -119,6 +119,8 @@
- #define SO_PREFER_BUSY_POLL	0x4043
- #define SO_BUSY_POLL_BUDGET	0x4044
- 
-+#define SO_NETNS_COOKIE		0x4045
-+
- #if !defined(__KERNEL__)
- 
- #if __BITS_PER_LONG == 64
-diff --git a/arch/sparc/include/uapi/asm/socket.h b/arch/sparc/include/uapi/asm/socket.h
-index 848a22fbac20..92675dc380fa 100644
---- a/arch/sparc/include/uapi/asm/socket.h
-+++ b/arch/sparc/include/uapi/asm/socket.h
-@@ -120,6 +120,8 @@
- #define SO_PREFER_BUSY_POLL	 0x0048
- #define SO_BUSY_POLL_BUDGET	 0x0049
- 
-+#define SO_NETNS_COOKIE          0x0050
-+
- #if !defined(__KERNEL__)
- 
- 
-diff --git a/include/uapi/asm-generic/socket.h b/include/uapi/asm-generic/socket.h
-index 4dcd13d097a9..d588c244ec2f 100644
---- a/include/uapi/asm-generic/socket.h
-+++ b/include/uapi/asm-generic/socket.h
-@@ -122,6 +122,8 @@
- #define SO_PREFER_BUSY_POLL	69
- #define SO_BUSY_POLL_BUDGET	70
- 
-+#define SO_NETNS_COOKIE		71
-+
- #if !defined(__KERNEL__)
- 
- #if __BITS_PER_LONG == 64 || (defined(__x86_64__) && defined(__ILP32__))
-diff --git a/net/core/sock.c b/net/core/sock.c
-index a266760cd65e..60750f9ae32d 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -1622,6 +1622,13 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
- 		v.val = sk->sk_bound_dev_if;
- 		break;
- 
-+	case SO_NETNS_COOKIE:
-+		lv = sizeof(u64);
-+		if (len != lv)
-+			return -EINVAL;
-+		v.val64 = sock_net(sk)->net_cookie;
-+		break;
-+
- 	default:
- 		/* We implement the SO_SNDLOWAT etc to not be settable
- 		 * (1003.1g 7).
--- 
-2.30.2
-
+What are these __csrfoo() things, I cannot seem to find a definition of
+them anywhere..
