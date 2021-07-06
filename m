@@ -2,41 +2,50 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-12.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 158E9C07E96
-	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 10:22:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A3CE6C07E96
+	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 10:34:13 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EFD2C619AA
-	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 10:22:48 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 88617619B7
+	for <linux-arch@archiver.kernel.org>; Tue,  6 Jul 2021 10:34:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231208AbhGFKZZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 6 Jul 2021 06:25:25 -0400
-Received: from mout.kundenserver.de ([212.227.126.131]:35093 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231394AbhGFKZX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2021 06:25:23 -0400
-Received: from mail-wm1-f53.google.com ([209.85.128.53]) by
- mrelayeu.kundenserver.de (mreue010 [213.165.67.97]) with ESMTPSA (Nemesis) id
- 1N5max-1l8ieV1tk3-017Dgk for <linux-arch@vger.kernel.org>; Tue, 06 Jul 2021
- 12:22:44 +0200
-Received: by mail-wm1-f53.google.com with SMTP id o22so13225496wms.0
-        for <linux-arch@vger.kernel.org>; Tue, 06 Jul 2021 03:22:44 -0700 (PDT)
-X-Gm-Message-State: AOAM532R5H5rgDE1VCb0mS3kcULL1plmotAUU/v7RCjHBcp7Y9WS8ZaM
-        jqLcLL1WJltkfdSBu+LWETc9YFsf9Zs9G5POHVA=
-X-Google-Smtp-Source: ABdhPJzrevsvJIL8zeBEF3uyIQkXM2O80m0whQODv/N1j0C+HtyqgWohf60GrLwAq09WfFwsiyNcmpXJxbwuAM6PZpU=
-X-Received: by 2002:a1c:c90f:: with SMTP id f15mr3965551wmb.142.1625566658404;
- Tue, 06 Jul 2021 03:17:38 -0700 (PDT)
+        id S231407AbhGFKgv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 6 Jul 2021 06:36:51 -0400
+Received: from mail.kernel.org ([198.145.29.99]:60380 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S231216AbhGFKgv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Jul 2021 06:36:51 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id D3294619B6
+        for <linux-arch@vger.kernel.org>; Tue,  6 Jul 2021 10:34:12 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1625567652;
+        bh=Xq+2Q7faFG1FmDVhft9w4npiFKNUwoJGUSYLQceBZgg=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=OYjYcxAOyYVtiN92CgJ9xuvfv/OJRX3UDycI944qXzqiXzbEnX8a7eNNYj4+t9xF7
+         yNuMklK1om7MdU64mnUHgl+mnkeN/Z8QogmMyoeT+/8fka9S+xnPRFzGSs5f9nLc6w
+         xF8zEFJlmKdFO1GPsOI+zp053m2HGV9zY8RDKCODtwTkoIYh7P4CoL/gO7N7xAvqQV
+         lltjJEwbsEZNX3HLqYgq0YDsYE0a3vhpCojaFmJCf6nu/haoY2Ule+2ebd/2Z5SoBX
+         /7o81N1UALFKY1G3ngLHGsms6Z+76uFQVHhM4DmOdbL6hVyrA4i27wuNXBt/4367O/
+         qGJqV6P7hn1LQ==
+Received: by mail-wr1-f48.google.com with SMTP id d2so1847987wrn.0
+        for <linux-arch@vger.kernel.org>; Tue, 06 Jul 2021 03:34:12 -0700 (PDT)
+X-Gm-Message-State: AOAM531j0HTsMlfcR+7Q6WlaQSpcPC3GWbejy7tKpohAr+bCgjkoSgqo
+        7P9cw01SJquqhY7nmXsSzJuFsOBv8pRft8oUNs8=
+X-Google-Smtp-Source: ABdhPJz0Vg8XCxb7nlGz7/JuhNN5WrUYcHYZeEeR7u77fnhZfEgdB+6XBrs91uu4tK5OLcnAjpx/2Q14mW1Ervxv+Kc=
+X-Received: by 2002:adf:e107:: with SMTP id t7mr21011079wrz.165.1625567651364;
+ Tue, 06 Jul 2021 03:34:11 -0700 (PDT)
 MIME-Version: 1.0
-References: <20210706041820.1536502-1-chenhuacai@loongson.cn> <20210706041820.1536502-13-chenhuacai@loongson.cn>
-In-Reply-To: <20210706041820.1536502-13-chenhuacai@loongson.cn>
-From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Tue, 6 Jul 2021 12:17:22 +0200
-X-Gmail-Original-Message-ID: <CAK8P3a0+jk=09mGdnWu9c+JWkwDKM+ffv=QvJs2uMY7WOg85AQ@mail.gmail.com>
-Message-ID: <CAK8P3a0+jk=09mGdnWu9c+JWkwDKM+ffv=QvJs2uMY7WOg85AQ@mail.gmail.com>
-Subject: Re: [PATCH 12/19] LoongArch: Add misc common routines
+References: <20210706041820.1536502-1-chenhuacai@loongson.cn>
+In-Reply-To: <20210706041820.1536502-1-chenhuacai@loongson.cn>
+From:   Arnd Bergmann <arnd@kernel.org>
+Date:   Tue, 6 Jul 2021 12:33:55 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a2Qu_BUcGFpgktXOwsomuhN6aje6mB6EwTka0GBaoL4hw@mail.gmail.com>
+Message-ID: <CAK8P3a2Qu_BUcGFpgktXOwsomuhN6aje6mB6EwTka0GBaoL4hw@mail.gmail.com>
+Subject: Re: [PATCH 00/19] arch: Add basic LoongArch support
 To:     Huacai Chen <chenhuacai@loongson.cn>
 Cc:     Andy Lutomirski <luto@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -47,219 +56,84 @@ Cc:     Andy Lutomirski <luto@kernel.org>,
         linux-arch <linux-arch@vger.kernel.org>,
         Xuefeng Li <lixuefeng@loongson.cn>,
         Huacai Chen <chenhuacai@gmail.com>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Chen Zhu <zhuchen@loongson.cn>
 Content-Type: text/plain; charset="UTF-8"
-X-Provags-ID: V03:K1:UMUo8q79E1s1Qb+BL8QpzKW0WHI/QpsAml+4FdNFqoUnybt6DBq
- 4r/9T9SBU4wejhmaCs+TgsynKnh/H4Bwscj9uEa+rVNwE9YuTXtBU0zWnZuwqp3ojlsLplC
- +UWkdUYq0wN5kMqPetVx8JCNlsQVqTgjceW9bmvwooM4572QWqFlrsybyUv0EvP9tVHMeC2
- yLOjaY+KMUh/bncwMm+Rg==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:1RzVyvnrolQ=:lcg7eAQrFY2d3S5ifnG87/
- pbIboYm1YW6xgIsEDhEbmGygrwMThzjI6EkSvhF6XOzDBYgu3M1GPGMF/s3F5gVSlHSmxL1cy
- VoG5rQcxhavZAuhnhhJEms/8/8y7gci8GX/oJIF9xJwaolR6GSZFDSeBQfqbh7XYJTacb6Ll6
- z8Zoafz3K+RAJO0KQvnH+3xXETEOMJcjIcEG5EdhnGIMGYaW3TonOl9iWZe6X18E9083p643R
- PveFSaQcwm1bIkpLg6iydd1Z6HPk6i1oj8s4+VY+xQdIkFlPcsY75O5H7mz0+DJEHd1OunIRe
- 6qWL6ZeEdFz8R72wO+Z79cNh4lWQnRW2izZZm4t4BaRs41sdkoaC2/VYjEEwQ0S260MpvTxla
- 2vmvVb7BUbuzKap3b+APK5qkS9CsWayFiJxwgDQIHtXCYNPH/A6g2+9jLIVeJaHPJcR0zMZ9v
- aokRBT6xwOcucb6CIQkwE5y20LSo1udIrBwDOyl9VZNbCUs9al1tzukKl89hDJjwibPOhgQvY
- dwUo0lcDOJiwV0QCpuAiEUj1J1KGGSc+UCAOI6OgUONjv1gdFNZfY9txrxN4GJZpW1j1luwLE
- k/f5tqkM1OfHzIgtlilzE7aJTgW4BuAgmfF8lT4Qwqi0iLLoNdSSR8pBgivpIyxPUF01hyHye
- PuJBr+8Zlfl2DOH4HXwFY8LIyFdbfK+gEXdhviUAh2WT53fLA/laq49ckQLfPfaIaHA6Hpjw0
- UuwNAbNVsK8pWGFQmIDp5oBqMqRzVgWIYMS8UJyTgASRSVvweZeT1Qi9zZuYgjGCzcC7kT1+e
- cej6h0RucmPfIQrZADZX6vC2rjwE/mwYfD9vClVM59sswan9E+EVEEF6cZ62K2Pd4ZDGZVsGH
- pL7zbR6ScuyNFci+kVf976KyYyj7zqMCcIGrjCctJ7UNRLI2OyyrJ/QKZP0J0FHDvdnVvxfAk
- XsbvTe+M+rrGJlB7b/gKkH7QsdCs8SdYdLSKpXDLFctVgffe1zAa7
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 On Tue, Jul 6, 2021 at 6:18 AM Huacai Chen <chenhuacai@loongson.cn> wrote:
+>
+> LoongArch is a new RISC ISA, which is a bit like MIPS or RISC-V.
+> LoongArch includes a reduced 32-bit version (LA32R), a standard 32-bit
+> version (LA32S) and a 64-bit version (LA64). LoongArch use ACPI as its
+> boot protocol LoongArch-specific interrupt controllers (similar to APIC)
+> are already added in the next revision of ACPI Specification (current
+> revision is 6.4).
+>
+> This patchset is adding basic LoongArch support in mainline kernel, we
+> can see a complete snapshot here:
+> https://github.com/loongson/linux/tree/loongarch-next
+>
+> Cross-compile tool chain to build kernel:
+> https://github.com/loongson/build-tools/releases
+>
+> Loongson and LoongArch documentations:
+> https://github.com/loongson/LoongArch-Documentation
+>
+> LoongArch-specific interrupt controllers:
+> https://mantis.uefi.org/mantis/view.php?id=2203
 
-> +
-> +#ifdef ARCH_HAS_USABLE_BUILTIN_POPCOUNT
-> +
-> +#include <asm/types.h>
-> +
-> +static inline unsigned int __arch_hweight32(unsigned int w)
-> +{
-> +       return __builtin_popcount(w);
-> +}
+(sorry for sending duplicate emails, it appears that the provide of my
+arnd@arndb.de address gets spam-filtered once more, so sending all my
+replies again from arnd@kernel.org)
 
-This looks like you incorrect copied it from MIPS: For a new architecture,
-you should know whether __builtin_popcount is usable or not.
+Thanks a lot for your submission, I've been waiting for this, and have just
+completed an initial quick review, will send out the individual replies in a
+bit.
 
-> +static inline unsigned long __xchg(volatile void *ptr, unsigned long x,
-> +                                  int size)
-> +{
-> +       switch (size) {
-> +       case 1:
-> +       case 2:
-> +               return __xchg_small(ptr, x, size);
+I have a few high-level comments about things that need to be improved
+before merging:
 
-If there is no native sub-word xchg(), then better make this BUILD_BUG(),
-see the riscv implementation.
+1. Copyright statements: I can see that you copied a lot of code from arch/mips,
+ and then a bit from arch/arm64 and possibly arch/riscv/, but every file just
+ lists loongson as the copyright holder and one or more employees as authors.
+ This clearly has to be resolved by listing the original authors as well.
 
-> +
-> +static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
-> +                                     unsigned long new, unsigned int size)
-> +{
-> +       switch (size) {
-> +       case 1:
-> +       case 2:
-> +               return __cmpxchg_small(ptr, old, new, size);
+2. Reducing the amount of copied code: my impression is that the bits you
+   wrote yourself are generally of higher quality than the bits you copied from
+   mips, usually because those have grown over a long time to accommodate
+   cases you should not worry about. In cases where there was no generic
+   implementation, we should try to come up with a version that can be shared
+   instead of adding another copy.
 
-Same here.
+3. 32-bit support: There are small bits of code for 32-bit support everywhere
+   throughout the code base, but there is also code that does not look like
+   it would work in that configuration. I would suggest you split out all 32-bit
+   code into a separate patch, the way you have done for SMP and NUMA
+   support. That way it can be reviewed separately, or deferred until when
+   you actually add support for a 32-bit platform. Please also clarify which
+   modes you plan to support: should every 64-bit kernel be able to run
+   LA32R and LA32S user space binaries, or do you require running the same
+   instruction set in both kernel and user space as RISC-V does?
+   Do you plan to have MIPS N32 style user space on 64-bit kernels?
 
-> +++ b/arch/loongarch/include/asm/fb.h
-> @@ -0,0 +1,23 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#ifndef _ASM_FB_H_
-> +#define _ASM_FB_H_
-> +
-> +#include <linux/fb.h>
-> +#include <linux/fs.h>
-> +#include <asm/page.h>
-> +
-> +static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
-> +                               unsigned long off)
-> +{
-> +       vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-> +}
+4. Toolchain sources: I see you only have binaries for an older gcc-8.3
+    release and no sources so far. I assume you are already busy porting
+    the internal patches to the latest gcc and will post that soon, but my
+    feeling is that the kernel port should not get merged until we have a
+    confirmation from the toolchain maintainers that they plan to merge
+    support for their following release. We should however make sure that
+    your kernel port is completely reviewed and can just get merged once
+    we get there.
 
-Do you have a writethrough or write-combine map type? noncached makes
-this slower than necessary.
-> +/*
-> + * On LoongArch I/O ports are memory mapped, so we access them using normal
-> + * load/store instructions. loongarch_io_port_base is the virtual address to
-> + * which all ports are being mapped.  For sake of efficiency some code
-> + * assumes that this is an address that can be loaded with a single lui
-> + * instruction, so the lower 16 bits must be zero. Should be true on any
-> + * sane architecture; generic code does not use this assumption.
-> + */
-> +extern unsigned long loongarch_io_port_base;
-> +
-> +static inline void set_io_port_base(unsigned long base)
-> +{
-> +       loongarch_io_port_base = base;
-> +}
+5. Platform support: You have copied the underlying logic from arch/mips,
+    but that still uses a method where most platforms (not the new
+    "generic" version) are mutually exclusive. Since you only support
+    one platform right now, it would be best to just simplify it to the point
+    where no platform specific code is needed in arch/loongarch/ and
+    it just works. If you add 32-bit support later on, that obviously requires
+    making a choice between two or three incompatible options.
 
-If you are able to map this to a fixed virtual address (in fixmap or elsewhere),
-you can just use the asm-generic version.
-
-> +/*
-> + * ISA I/O bus memory addresses are 1:1 with the physical address.
-> + */
-> +static inline unsigned long isa_virt_to_bus(volatile void *address)
-> +{
-> +       return virt_to_phys(address);
-> +}
-> +
-> +static inline void *isa_bus_to_virt(unsigned long address)
-> +{
-> +       return phys_to_virt(address);
-> +}
-> +/*
-> + * However PCI ones are not necessarily 1:1 and therefore these interfaces
-> + * are forbidden in portable PCI drivers.
-> + *
-> + * Allow them for x86 for legacy drivers, though.
-> + */
-> +#define virt_to_bus virt_to_phys
-> +#define bus_to_virt phys_to_virt
-
-As mentioned in another patch, these should not exist on new architectures.
-
-> +
-> +static inline void __iomem *ioremap_prot(phys_addr_t offset, unsigned long size,
-> +       unsigned long prot_val)
-> +{
-> +       /* This only works for !HIGHMEM currently */
-
-Do you support highmem? I would expect new architectures to no longer
-implement that. Just use a 64-bit kernel on systems with lots of ram.
-
-> +#define ioremap(offset, size)                                  \
-> +       ioremap_prot((offset), (size), _CACHE_SUC)
-> +#define ioremap_uc ioremap
-
-Remove ioremap_uc(), it should never be called here.
-
-> +/*
-> + * ioremap_wc     -   map bus memory into CPU space
-> + * @offset:    bus address of the memory
-> + * @size:      size of the resource to map
-> + *
-> + * ioremap_wc performs a platform specific sequence of operations to
-> + * make bus memory CPU accessible via the readb/readw/readl/writeb/
-> + * writew/writel functions and the other mmio helpers. The returned
-> + * address is not guaranteed to be usable directly as a virtual
-> + * address.
-> + *
-> + * This version of ioremap ensures that the memory is marked uncachable
-> + * but accelerated by means of write-combining feature. It is specifically
-> + * useful for PCIe prefetchable windows, which may vastly improve a
-> + * communications performance. If it was determined on boot stage, what
-> + * CPU CCA doesn't support WUC, the method shall fall-back to the
-> + * _CACHE_SUC option (see cpu_probe() method).
-> + */
-> +#define ioremap_wc(offset, size)                               \
-> +       ioremap_prot((offset), (size), boot_cpu_data.writecombine)
-
-It seems this is all copied from MIPS again. Are you sure you need to support
-both versions with a runtime conditional?
-
-> +#define __BUILD_MEMORY_SINGLE(pfx, bwlq, type)                         \
-> +                                                                       \
-> +static inline void pfx##write##bwlq(type val,                          \
-> +                                   volatile void __iomem *mem)         \
-> +{                                                                      \
-
-Please don't add another copy of these macros. Use the version from
-include/asm-generic, or modify it as needed if it doesn't quite work.
-
-> diff --git a/arch/loongarch/include/asm/vga.h b/arch/loongarch/include/asm/vga.h
-> new file mode 100644
-> index 000000000000..eef95f2f837a
-> --- /dev/null
-> +++ b/arch/loongarch/include/asm/vga.h
-> @@ -0,0 +1,56 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Access to VGA videoram
-> + *
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-
-I think it would be better not to support VGA console, but to use the EFI
-framebuffer.
-
-
-> diff --git a/arch/loongarch/kernel/cmpxchg.c b/arch/loongarch/kernel/cmpxchg.c
-> new file mode 100644
-> index 000000000000..30f9f1ee4f0a
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/cmpxchg.c
-> @@ -0,0 +1,100 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * Author: Huacai Chen <chenhuacai@loongson.cn>
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +
-> +#include <linux/bitops.h>
-> +#include <asm/cmpxchg.h>
-> +
-> +unsigned long __xchg_small(volatile void *ptr, unsigned long val, unsigned int size)
-> +{
-
-This file should not be there, I think you just copied it from the MIPS version.
-
-Which brings me to an important point: anything you copied from elsewhere
-is clearly not copyrighted by Loongson. I think you need to go through each
-file and update the copyright and author statements to reflect who actually
-wrote the code. At least you won't have to update this file if you remove it ;-)
-
-
-       Arnd
+        Arnd
