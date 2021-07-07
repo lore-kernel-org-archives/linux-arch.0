@@ -5,57 +5,57 @@ X-Spam-Level:
 X-Spam-Status: No, score=-15.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
 	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 04286C11F72
-	for <linux-arch@archiver.kernel.org>; Wed,  7 Jul 2021 15:35:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F194FC11F78
+	for <linux-arch@archiver.kernel.org>; Wed,  7 Jul 2021 15:35:29 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E2A4361CC2
-	for <linux-arch@archiver.kernel.org>; Wed,  7 Jul 2021 15:35:20 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id DCB8F61CBE
+	for <linux-arch@archiver.kernel.org>; Wed,  7 Jul 2021 15:35:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232345AbhGGPh5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 7 Jul 2021 11:37:57 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55308 "EHLO
+        id S232441AbhGGPiH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 7 Jul 2021 11:38:07 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55376 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231516AbhGGPhw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jul 2021 11:37:52 -0400
-Received: from mail-pj1-x1030.google.com (mail-pj1-x1030.google.com [IPv6:2607:f8b0:4864:20::1030])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 659FAC061574;
-        Wed,  7 Jul 2021 08:35:12 -0700 (PDT)
-Received: by mail-pj1-x1030.google.com with SMTP id cs1-20020a17090af501b0290170856e1a8aso3953562pjb.3;
-        Wed, 07 Jul 2021 08:35:12 -0700 (PDT)
+        with ESMTP id S232427AbhGGPiF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jul 2021 11:38:05 -0400
+Received: from mail-pf1-x42d.google.com (mail-pf1-x42d.google.com [IPv6:2607:f8b0:4864:20::42d])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C03EFC061574;
+        Wed,  7 Jul 2021 08:35:23 -0700 (PDT)
+Received: by mail-pf1-x42d.google.com with SMTP id d12so2528618pfj.2;
+        Wed, 07 Jul 2021 08:35:23 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=+XJfA3AqCHkXuREWq5JYX1SJ1GS8dmwfVs7cs/uDyzo=;
-        b=bui63f9RbeyQ+PjA944VL6eRYVLBMCTgOcLfL7xQd4MV+TGtlZkSCA8rNshpLHozV7
-         EDzApfYSVdzgDBhHovaSMLT5NdnaVwtG4C1pbdo7Q08juYDuuI3z2tDDwrE3ko8nbycA
-         bmcYDWSgYMR600u1g5+fy2uvqUffuDtVadjxcABOrsUHXRidIjPqqFGjuzQY8ChUFFp7
-         IAXd5yOEalFiSg3IZmkvTq6kg0rbxMFNSKHHbwwuHqkbyN1eHbPo1jJaSMwX8vsUtnyr
-         T2tqSkyBsX9X2+b02CuW2rweA2SgzcxtUt/E0fnHHNmW0W+cmQBpS8190Rui6bzRjt+3
-         C71g==
+        bh=XbGhpS5yStXGWn3Ym/sECphkTnEdMSaFIpokEER49XU=;
+        b=BtC8kdX2uIAXjsaHTdfZ3FZO+N9En6asx9AqhqBPqzz4yoUQnDknn819wfUH7ezd2p
+         szndynSEmvQctwLw1nuFyxQHD2Dn6g4fxu85DeZxhAJmC823C/auEHp7CuPVW4JmKWPC
+         +tLWV4Ub6Kt226chChhJxWigDi9zgY+gB1sip+rQGrKRyCoNohwasHCqxATli+kEBh11
+         UAE5z21Wd+jPm91+hFX8Ue7a1zEAL53PiQuV+JBupHHxKpCxYNAWhV6faTjvx4/AvCpz
+         z6ABnzr83wHK8D6bniKnHvLPW036vFU3jco8xhNqC0r/NaySaI0fJ184Z8ld4h0GYEYr
+         ZLPQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20161025;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=+XJfA3AqCHkXuREWq5JYX1SJ1GS8dmwfVs7cs/uDyzo=;
-        b=F2ZtGi1r3r1jCYWbIWTzF9dvrpoWErI3k5WHJAswJrukKE5I73PtopPwJzb0x/MEHK
-         A+oeKsmSa0hILa4GyFmVZGYDnpif3P0F7qP3LbinzYgp5LxIBJaygl+ghLgQRqueDiJf
-         94B+xgLrfHc1P6IxrbwTNSy1OLZ+GmjygtOEE5L8WaLX/fmEH0jq6G1K0mZgdpa0/8tB
-         tWdT1POOIZhwI3UfcQs9FM6j18BSrHL9wuc/PsTS5ZrmGRT45PQQQxxObgcvjheugCUZ
-         o7d6CZggXYoqTNssiKv23R0jwG1rkyLbJC6NRhxQ3y5ERBe13/TAQkhtXisNcIHoPRw8
-         fvNg==
-X-Gm-Message-State: AOAM532x9hFgOpkwp2NthwHViYBdSgqpT9mWoxrRVJTAsBKr5lrDwsBs
-        nJb5+gYPPrED59/NPUrjal8=
-X-Google-Smtp-Source: ABdhPJzfU3YRfZk3nkyd7QDC0TVwR1zYpPvF6PjFltyPDJmrt5nAGFOniT/ucBwrM64vLDEXGYARhg==
-X-Received: by 2002:a17:902:c78a:b029:129:7777:18c6 with SMTP id w10-20020a170902c78ab0290129777718c6mr17383657pla.36.1625672111967;
-        Wed, 07 Jul 2021 08:35:11 -0700 (PDT)
+        bh=XbGhpS5yStXGWn3Ym/sECphkTnEdMSaFIpokEER49XU=;
+        b=TNFJLrZ04AzIHbQ2d9BmFLx8Vpq87cMj6T85YrZMRLsrjIWzOFY18boM0XrmsUfbi3
+         i0CO6mFaeLW9r1ewkspqrasL42bc0cwSkr+/vIzG2vz+QZ6AMfRaNokiDLt0sn6A+c2P
+         W7TCLeZx841GzABR4xTgcxJsGHcpqu9tWDNzoBaqK7bN72Xnj+Gj1Ur9RxhnDg402MD9
+         LacU3jTKT4CHyTDlmIvUsEQKglchovsygEI9Yd2zkN8dJGbu2QwlL0PjksFmnix1W7zt
+         Uzbpftnvh8j4LJ3tvxa/hlw5EKHyYkA1fI5pHw8xRxwj5YZwlIr5qR5woHIJ/GbFJN02
+         bMlQ==
+X-Gm-Message-State: AOAM533dGqIXRDvZ1xPlaTdzg8YsnPrpkvAp5/wqBjfZgJ8gr6oCuvOw
+        i5Lgz2tUt02cFvnVZHj3fTw=
+X-Google-Smtp-Source: ABdhPJy77j4/OHtCtQz0cn9ku774dx02+q+pAFp0Fnosh6xARArR8grx/YZvqPCQ4ZIgKqBL1CVqwQ==
+X-Received: by 2002:a05:6a00:1709:b029:308:747d:b7be with SMTP id h9-20020a056a001709b0290308747db7bemr26526754pfc.41.1625672123297;
+        Wed, 07 Jul 2021 08:35:23 -0700 (PDT)
 Received: from ubuntu-Virtual-Machine.corp.microsoft.com ([2001:4898:80e8:0:6b7f:cf3e:bbf2:d229])
-        by smtp.gmail.com with ESMTPSA id y11sm21096877pfo.160.2021.07.07.08.35.11
+        by smtp.gmail.com with ESMTPSA id y11sm21096877pfo.160.2021.07.07.08.35.22
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 07 Jul 2021 08:35:11 -0700 (PDT)
+        Wed, 07 Jul 2021 08:35:22 -0700 (PDT)
 From:   Tianyu Lan <ltykernel@gmail.com>
 To:     kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com,
         wei.liu@kernel.org, decui@microsoft.com, tglx@linutronix.de,
@@ -78,9 +78,9 @@ Cc:     iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org,
         linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-scsi@vger.kernel.org, netdev@vger.kernel.org,
         vkuznets@redhat.com, brijesh.singh@amd.com, anparri@microsoft.com
-Subject: [RFC PATCH V4 03/12] HV: Mark vmbus ring buffer visible to host in Isolation VM
-Date:   Wed,  7 Jul 2021 11:34:44 -0400
-Message-Id: <20210707153456.3976348-4-ltykernel@gmail.com>
+Subject: [RFC PATCH V4 07/12] HV/Vmbus: Initialize VMbus ring buffer for Isolation VM
+Date:   Wed,  7 Jul 2021 11:34:48 -0400
+Message-Id: <20210707153456.3976348-8-ltykernel@gmail.com>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20210707153456.3976348-1-ltykernel@gmail.com>
 References: <20210707153456.3976348-1-ltykernel@gmail.com>
@@ -92,134 +92,189 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Tianyu Lan <Tianyu.Lan@microsoft.com>
 
-Mark vmbus ring buffer visible with set_memory_decrypted() when
-establish gpadl handle.
+VMbus ring buffer are shared with host and it's need to
+be accessed via extra address space of Isolation VM with
+SNP support. This patch is to map the ring buffer
+address in extra address space via ioremap(). HV host
+visibility hvcall smears data in the ring buffer and
+so reset the ring buffer memory to zero after calling
+visibility hvcall.
 
 Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
 ---
- drivers/hv/channel.c   | 38 ++++++++++++++++++++++++++++++++++++--
- include/linux/hyperv.h | 10 ++++++++++
- 2 files changed, 46 insertions(+), 2 deletions(-)
+ drivers/hv/Kconfig        |  1 +
+ drivers/hv/channel.c      | 10 +++++
+ drivers/hv/hyperv_vmbus.h |  2 +
+ drivers/hv/ring_buffer.c  | 84 ++++++++++++++++++++++++++++++---------
+ 4 files changed, 79 insertions(+), 18 deletions(-)
 
+diff --git a/drivers/hv/Kconfig b/drivers/hv/Kconfig
+index 66c794d92391..a8386998be40 100644
+--- a/drivers/hv/Kconfig
++++ b/drivers/hv/Kconfig
+@@ -7,6 +7,7 @@ config HYPERV
+ 	depends on X86 && ACPI && X86_LOCAL_APIC && HYPERVISOR_GUEST
+ 	select PARAVIRT
+ 	select X86_HV_CALLBACK_VECTOR
++	select VMAP_PFN
+ 	help
+ 	  Select this option to run Linux as a Hyper-V client operating
+ 	  system.
 diff --git a/drivers/hv/channel.c b/drivers/hv/channel.c
-index f3761c73b074..01048bb07082 100644
+index 01048bb07082..7350da9dbe97 100644
 --- a/drivers/hv/channel.c
 +++ b/drivers/hv/channel.c
-@@ -17,6 +17,7 @@
- #include <linux/hyperv.h>
- #include <linux/uio.h>
- #include <linux/interrupt.h>
-+#include <linux/set_memory.h>
- #include <asm/page.h>
- #include <asm/mshyperv.h>
+@@ -707,6 +707,16 @@ static int __vmbus_open(struct vmbus_channel *newchannel,
+ 	if (err)
+ 		goto error_clean_ring;
  
-@@ -465,7 +466,7 @@ static int __vmbus_establish_gpadl(struct vmbus_channel *channel,
- 	struct list_head *curr;
- 	u32 next_gpadl_handle;
- 	unsigned long flags;
--	int ret = 0;
-+	int ret = 0, index;
++	err = hv_ringbuffer_post_init(&newchannel->outbound,
++				      page, send_pages);
++	if (err)
++		goto error_free_gpadl;
++
++	err = hv_ringbuffer_post_init(&newchannel->inbound,
++				      &page[send_pages], recv_pages);
++	if (err)
++		goto error_free_gpadl;
++
+ 	/* Create and init the channel open message */
+ 	open_info = kzalloc(sizeof(*open_info) +
+ 			   sizeof(struct vmbus_channel_open_channel),
+diff --git a/drivers/hv/hyperv_vmbus.h b/drivers/hv/hyperv_vmbus.h
+index 40bc0eff6665..15cd23a561f3 100644
+--- a/drivers/hv/hyperv_vmbus.h
++++ b/drivers/hv/hyperv_vmbus.h
+@@ -172,6 +172,8 @@ extern int hv_synic_cleanup(unsigned int cpu);
+ /* Interface */
  
- 	next_gpadl_handle =
- 		(atomic_inc_return(&vmbus_connection.next_gpadl_handle) - 1);
-@@ -474,6 +475,13 @@ static int __vmbus_establish_gpadl(struct vmbus_channel *channel,
- 	if (ret)
- 		return ret;
+ void hv_ringbuffer_pre_init(struct vmbus_channel *channel);
++int hv_ringbuffer_post_init(struct hv_ring_buffer_info *ring_info,
++		struct page *pages, u32 page_cnt);
  
-+	ret = set_memory_decrypted((unsigned long)kbuffer,
-+				   HVPFN_UP(size));
-+	if (ret) {
-+		pr_warn("Failed to set host visibility.\n");
-+		return ret;
+ int hv_ringbuffer_init(struct hv_ring_buffer_info *ring_info,
+ 		       struct page *pages, u32 pagecnt, u32 max_pkt_size);
+diff --git a/drivers/hv/ring_buffer.c b/drivers/hv/ring_buffer.c
+index 2aee356840a2..d4f93fca1108 100644
+--- a/drivers/hv/ring_buffer.c
++++ b/drivers/hv/ring_buffer.c
+@@ -17,6 +17,8 @@
+ #include <linux/vmalloc.h>
+ #include <linux/slab.h>
+ #include <linux/prefetch.h>
++#include <linux/io.h>
++#include <asm/mshyperv.h>
+ 
+ #include "hyperv_vmbus.h"
+ 
+@@ -179,43 +181,89 @@ void hv_ringbuffer_pre_init(struct vmbus_channel *channel)
+ 	mutex_init(&channel->outbound.ring_buffer_mutex);
+ }
+ 
+-/* Initialize the ring buffer. */
+-int hv_ringbuffer_init(struct hv_ring_buffer_info *ring_info,
+-		       struct page *pages, u32 page_cnt, u32 max_pkt_size)
++int hv_ringbuffer_post_init(struct hv_ring_buffer_info *ring_info,
++		       struct page *pages, u32 page_cnt)
+ {
++	u64 physic_addr = page_to_pfn(pages) << PAGE_SHIFT;
++	unsigned long *pfns_wraparound;
++	void *vaddr;
+ 	int i;
+-	struct page **pages_wraparound;
+ 
+-	BUILD_BUG_ON((sizeof(struct hv_ring_buffer) != PAGE_SIZE));
++	if (!hv_isolation_type_snp())
++		return 0;
++
++	physic_addr += ms_hyperv.shared_gpa_boundary;
+ 
+ 	/*
+ 	 * First page holds struct hv_ring_buffer, do wraparound mapping for
+ 	 * the rest.
+ 	 */
+-	pages_wraparound = kcalloc(page_cnt * 2 - 1, sizeof(struct page *),
++	pfns_wraparound = kcalloc(page_cnt * 2 - 1, sizeof(unsigned long),
+ 				   GFP_KERNEL);
+-	if (!pages_wraparound)
++	if (!pfns_wraparound)
+ 		return -ENOMEM;
+ 
+-	pages_wraparound[0] = pages;
++	pfns_wraparound[0] = physic_addr >> PAGE_SHIFT;
+ 	for (i = 0; i < 2 * (page_cnt - 1); i++)
+-		pages_wraparound[i + 1] = &pages[i % (page_cnt - 1) + 1];
+-
+-	ring_info->ring_buffer = (struct hv_ring_buffer *)
+-		vmap(pages_wraparound, page_cnt * 2 - 1, VM_MAP, PAGE_KERNEL);
+-
+-	kfree(pages_wraparound);
++		pfns_wraparound[i + 1] = (physic_addr >> PAGE_SHIFT) +
++			i % (page_cnt - 1) + 1;
+ 
+-
+-	if (!ring_info->ring_buffer)
++	vaddr = vmap_pfn(pfns_wraparound, page_cnt * 2 - 1, PAGE_KERNEL_IO);
++	kfree(pfns_wraparound);
++	if (!vaddr)
+ 		return -ENOMEM;
+ 
+-	ring_info->ring_buffer->read_index =
+-		ring_info->ring_buffer->write_index = 0;
++	/* Clean memory after setting host visibility. */
++	memset((void *)vaddr, 0x00, page_cnt * PAGE_SIZE);
++
++	ring_info->ring_buffer = (struct hv_ring_buffer *)vaddr;
++	ring_info->ring_buffer->read_index = 0;
++	ring_info->ring_buffer->write_index = 0;
+ 
+ 	/* Set the feature bit for enabling flow control. */
+ 	ring_info->ring_buffer->feature_bits.value = 1;
+ 
++	return 0;
++}
++
++/* Initialize the ring buffer. */
++int hv_ringbuffer_init(struct hv_ring_buffer_info *ring_info,
++		       struct page *pages, u32 page_cnt, u32 max_pkt_size)
++{
++	int i;
++	struct page **pages_wraparound;
++
++	BUILD_BUG_ON((sizeof(struct hv_ring_buffer) != PAGE_SIZE));
++
++	if (!hv_isolation_type_snp()) {
++		/*
++		 * First page holds struct hv_ring_buffer, do wraparound mapping for
++		 * the rest.
++		 */
++		pages_wraparound = kcalloc(page_cnt * 2 - 1, sizeof(struct page *),
++					   GFP_KERNEL);
++		if (!pages_wraparound)
++			return -ENOMEM;
++
++		pages_wraparound[0] = pages;
++		for (i = 0; i < 2 * (page_cnt - 1); i++)
++			pages_wraparound[i + 1] = &pages[i % (page_cnt - 1) + 1];
++
++		ring_info->ring_buffer = (struct hv_ring_buffer *)
++			vmap(pages_wraparound, page_cnt * 2 - 1, VM_MAP, PAGE_KERNEL);
++
++		kfree(pages_wraparound);
++
++		if (!ring_info->ring_buffer)
++			return -ENOMEM;
++
++		ring_info->ring_buffer->read_index =
++			ring_info->ring_buffer->write_index = 0;
++
++		/* Set the feature bit for enabling flow control. */
++		ring_info->ring_buffer->feature_bits.value = 1;
 +	}
 +
- 	init_completion(&msginfo->waitevent);
- 	msginfo->waiting_channel = channel;
- 
-@@ -539,6 +547,15 @@ static int __vmbus_establish_gpadl(struct vmbus_channel *channel,
- 	/* At this point, we received the gpadl created msg */
- 	*gpadl_handle = gpadlmsg->gpadl;
- 
-+	if (type == HV_GPADL_BUFFER)
-+		index = 0;
-+	else
-+		index = channel->gpadl_range[1].gpadlhandle ? 2 : 1;
-+
-+	channel->gpadl_range[index].size = size;
-+	channel->gpadl_range[index].buffer = kbuffer;
-+	channel->gpadl_range[index].gpadlhandle = *gpadl_handle;
-+
- cleanup:
- 	spin_lock_irqsave(&vmbus_connection.channelmsg_lock, flags);
- 	list_del(&msginfo->msglistentry);
-@@ -549,6 +566,11 @@ static int __vmbus_establish_gpadl(struct vmbus_channel *channel,
- 	}
- 
- 	kfree(msginfo);
-+
-+	if (ret)
-+		set_memory_encrypted((unsigned long)kbuffer,
-+				     HVPFN_UP(size));
-+
- 	return ret;
- }
- 
-@@ -811,7 +833,7 @@ int vmbus_teardown_gpadl(struct vmbus_channel *channel, u32 gpadl_handle)
- 	struct vmbus_channel_gpadl_teardown *msg;
- 	struct vmbus_channel_msginfo *info;
- 	unsigned long flags;
--	int ret;
-+	int ret, i;
- 
- 	info = kzalloc(sizeof(*info) +
- 		       sizeof(struct vmbus_channel_gpadl_teardown), GFP_KERNEL);
-@@ -859,6 +881,18 @@ int vmbus_teardown_gpadl(struct vmbus_channel *channel, u32 gpadl_handle)
- 	spin_unlock_irqrestore(&vmbus_connection.channelmsg_lock, flags);
- 
- 	kfree(info);
-+
-+	/* Find gpadl buffer virtual address and size. */
-+	for (i = 0; i < VMBUS_GPADL_RANGE_COUNT; i++)
-+		if (channel->gpadl_range[i].gpadlhandle == gpadl_handle)
-+			break;
-+
-+	if (set_memory_encrypted((unsigned long)channel->gpadl_range[i].buffer,
-+			HVPFN_UP(channel->gpadl_range[i].size)))
-+		pr_warn("Fail to set mem host visibility.\n");
-+
-+	channel->gpadl_range[i].gpadlhandle = 0;
-+
- 	return ret;
- }
- EXPORT_SYMBOL_GPL(vmbus_teardown_gpadl);
-diff --git a/include/linux/hyperv.h b/include/linux/hyperv.h
-index 2e859d2f9609..06eccaba10c5 100644
---- a/include/linux/hyperv.h
-+++ b/include/linux/hyperv.h
-@@ -809,6 +809,14 @@ struct vmbus_device {
- 
- #define VMBUS_DEFAULT_MAX_PKT_SIZE 4096
- 
-+struct vmbus_gpadl_range {
-+	u32 gpadlhandle;
-+	u32 size;
-+	void *buffer;
-+};
-+
-+#define VMBUS_GPADL_RANGE_COUNT		3
-+
- struct vmbus_channel {
- 	struct list_head listentry;
- 
-@@ -829,6 +837,8 @@ struct vmbus_channel {
- 	struct completion rescind_event;
- 
- 	u32 ringbuffer_gpadlhandle;
-+	/* GPADL_RING and Send/Receive GPADL_BUFFER. */
-+	struct vmbus_gpadl_range gpadl_range[VMBUS_GPADL_RANGE_COUNT];
- 
- 	/* Allocated memory for ring buffer */
- 	struct page *ringbuffer_page;
+ 	ring_info->ring_size = page_cnt << PAGE_SHIFT;
+ 	ring_info->ring_size_div10_reciprocal =
+ 		reciprocal_value(ring_info->ring_size / 10);
 -- 
 2.25.1
 
