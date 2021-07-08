@@ -2,91 +2,119 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-12.5 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-10.5 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3F3FCC07E9C
-	for <linux-arch@archiver.kernel.org>; Thu,  8 Jul 2021 07:40:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2802CC07E99
+	for <linux-arch@archiver.kernel.org>; Thu,  8 Jul 2021 09:52:23 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1E75761C90
-	for <linux-arch@archiver.kernel.org>; Thu,  8 Jul 2021 07:40:10 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id F377761C1F
+	for <linux-arch@archiver.kernel.org>; Thu,  8 Jul 2021 09:52:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230437AbhGHHmu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 8 Jul 2021 03:42:50 -0400
-Received: from mo4-p02-ob.smtp.rzone.de ([85.215.255.80]:11526 "EHLO
-        mo4-p02-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229838AbhGHHmt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jul 2021 03:42:49 -0400
-X-Greylist: delayed 348 seconds by postgrey-1.27 at vger.kernel.org; Thu, 08 Jul 2021 03:42:48 EDT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; t=1625729648;
-    s=strato-dkim-0002; d=aepfle.de;
-    h=In-Reply-To:References:Message-ID:Subject:Cc:To:From:Date:Cc:Date:
-    From:Subject:Sender;
-    bh=Ie8bhNxcgTEIyaHnXue+qUsCeFcFU7OWzE+Hs21wg9g=;
-    b=nKxlYYk9ExTxZ9BuI9EhfpAje6vEfx0GVmBer00VZb2GlgTta4a3e6mEReme+AVLKJ
-    x1g28GBLyGoFvM6gaG5z7b+cV6ZJFLoem/obwXB9+z0+SoPV6pwNVVIIk3/UOPHsneyg
-    GWLwYXUqnjer9VpKH4m9Cx5Kv703S9RZFcbTVNL6kEIMVP91SRDKJaQgZM42hrAkVc4e
-    lmSSydRxnY+lu4pZdDi8VibLUhPOJminze/kIh5/0FPTHkurK2p5a/EfuKxM/KIN1xWG
-    WfgjyRn1yLU1J5t4Nvhf0XjMie6PdfNUCxeSR2W7CoeJ26/3wkjbXCgr0r3rPyjQAbxh
-    dA9w==
-Authentication-Results: strato.com;
-    dkim=none
-X-RZG-AUTH: ":P2EQZWCpfu+qG7CngxMFH1J+3q8wa/QDiZbDmui9LcK/RdXt7GAQpV1nK0bLlEYINdoY/p1XzQbc+3kk9TsJTnzSvdM+YSIzPms="
-X-RZG-CLASS-ID: mo00
-Received: from aepfle.de
-    by smtp.strato.de (RZmta 47.28.1 AUTH)
-    with ESMTPSA id 30791cx687Y4Yio
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256 bits))
-        (Client did not present a certificate);
-    Thu, 8 Jul 2021 09:34:04 +0200 (CEST)
-Date:   Thu, 8 Jul 2021 09:34:00 +0200
-From:   Olaf Hering <olaf@aepfle.de>
-To:     Tianyu Lan <ltykernel@gmail.com>
-Cc:     kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com,
-        wei.liu@kernel.org, decui@microsoft.com, tglx@linutronix.de,
-        mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com,
-        dave.hansen@linux.intel.com, luto@kernel.org, peterz@infradead.org,
-        konrad.wilk@oracle.com, boris.ostrovsky@oracle.com,
-        jgross@suse.com, sstabellini@kernel.org, joro@8bytes.org,
-        will@kernel.org, davem@davemloft.net, kuba@kernel.org,
-        jejb@linux.ibm.com, martin.petersen@oracle.com, arnd@arndb.de,
-        hch@lst.de, m.szyprowski@samsung.com, robin.murphy@arm.com,
-        rppt@kernel.org, akpm@linux-foundation.org,
-        kirill.shutemov@linux.intel.com, Tianyu.Lan@microsoft.com,
-        thomas.lendacky@amd.com, ardb@kernel.org,
-        nramas@linux.microsoft.com, robh@kernel.org, keescook@chromium.org,
-        rientjes@google.com, pgonda@google.com, martin.b.radev@gmail.com,
-        hannes@cmpxchg.org, saravanand@fb.com, krish.sadhukhan@oracle.com,
-        xen-devel@lists.xenproject.org, tj@kernel.org,
-        michael.h.kelley@microsoft.com, iommu@lists.linux-foundation.org,
-        linux-arch@vger.kernel.org, linux-hyperv@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org,
-        netdev@vger.kernel.org, vkuznets@redhat.com, brijesh.singh@amd.com,
-        anparri@microsoft.com
-Subject: Re: [RFC PATCH V4 01/12] x86/HV: Initialize shared memory boundary
- in the Isolation VM.
-Message-ID: <20210708073400.GA28528@aepfle.de>
-References: <20210707153456.3976348-1-ltykernel@gmail.com>
- <20210707153456.3976348-2-ltykernel@gmail.com>
+        id S231392AbhGHJzC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 8 Jul 2021 05:55:02 -0400
+Received: from szxga02-in.huawei.com ([45.249.212.188]:10432 "EHLO
+        szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231360AbhGHJzC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jul 2021 05:55:02 -0400
+Received: from dggemv703-chm.china.huawei.com (unknown [172.30.72.57])
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4GLBMP60LjzZpW0;
+        Thu,  8 Jul 2021 17:49:05 +0800 (CST)
+Received: from dggpeml500016.china.huawei.com (7.185.36.70) by
+ dggemv703-chm.china.huawei.com (10.3.19.46) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2176.2; Thu, 8 Jul 2021 17:52:18 +0800
+Received: from [10.174.148.223] (10.174.148.223) by
+ dggpeml500016.china.huawei.com (7.185.36.70) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2176.2; Thu, 8 Jul 2021 17:52:17 +0800
+Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
+To:     Anthony Yznaga <anthony.yznaga@oracle.com>,
+        <linux-kernel@vger.kernel.org>, <linux-fsdevel@vger.kernel.org>,
+        <linux-mm@kvack.org>, <linux-arch@vger.kernel.org>
+CC:     <mhocko@kernel.org>, <tglx@linutronix.de>, <mingo@redhat.com>,
+        <bp@alien8.de>, <x86@kernel.org>, <hpa@zytor.com>,
+        <viro@zeniv.linux.org.uk>, <akpm@linux-foundation.org>,
+        <arnd@arndb.de>, <ebiederm@xmission.com>, <keescook@chromium.org>,
+        <gerg@linux-m68k.org>, <ktkhai@virtuozzo.com>,
+        <christian.brauner@ubuntu.com>, <peterz@infradead.org>,
+        <esyr@redhat.com>, <jgg@ziepe.ca>, <christian@kellner.me>,
+        <areber@redhat.com>, <cyphar@cyphar.com>,
+        <steven.sistare@oracle.com>,
+        "Gonglei (Arei)" <arei.gonglei@huawei.com>
+References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+From:   "Longpeng (Mike, Cloud Infrastructure Service Product Dept.)" 
+        <longpeng2@huawei.com>
+Message-ID: <cc714571-4461-c9e0-7b24-e213664caa54@huawei.com>
+Date:   Thu, 8 Jul 2021 17:52:16 +0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64; rv:68.0) Gecko/20100101
+ Thunderbird/68.10.0
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20210707153456.3976348-2-ltykernel@gmail.com>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 8bit
+X-Originating-IP: [10.174.148.223]
+X-ClientProxiedBy: dggems704-chm.china.huawei.com (10.3.19.181) To
+ dggpeml500016.china.huawei.com (7.185.36.70)
+X-CFilter-Loop: Reflected
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Jul 07, Tianyu Lan wrote:
+Hi Anthony and Steven,
 
-> +++ b/include/asm-generic/mshyperv.h
-> @@ -34,8 +34,18 @@ struct ms_hyperv_info {
+ÔÚ 2020/7/28 1:11, Anthony Yznaga Ð´µÀ:
+> This patchset adds support for preserving an anonymous memory range across
+> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit for
+> sharing memory in this manner, as opposed to re-attaching to a named shared
+> memory segment, is to ensure it is mapped at the same virtual address in
+> the new process as it was in the old one.  An intended use for this is to
+> preserve guest memory for guests using vfio while qemu exec's an updated
+> version of itself.  By ensuring the memory is preserved at a fixed address,
+> vfio mappings and their associated kernel data structures can remain valid.
+> In addition, for the qemu use case, qemu instances that back guest RAM with
+> anonymous memory can be updated.
+> 
 
->  	void  __percpu **ghcb_base;
+We have a requirement like yours, but ours seems more complex. We want to
+isolate some memory regions from the VM's memory space and the start a child
+process who will using these memory regions.
 
-It would be cool if the cover letter states which commit id this series is based on.
+I've wrote a draft to support this feature, but I just find that my draft is
+pretty like yours.
 
-Thanks,
-Olaf
+It seems that you've already abandoned this patchset, why ?
+
+> Patches 1 and 2 ensure that loading of ELF load segments does not silently
+> clobber existing VMAS, and remove assumptions that the stack is the only
+> VMA in the mm when the stack is set up.  Patch 1 re-introduces the use of
+> MAP_FIXED_NOREPLACE to load ELF binaries that addresses the previous issues
+> and could be considered on its own.
+> 
+> Patches 3, 4, and 5 introduce the feature and an opt-in method for its use
+> using an ELF note.
+> 
+> Anthony Yznaga (5):
+>   elf: reintroduce using MAP_FIXED_NOREPLACE for elf executable mappings
+>   mm: do not assume only the stack vma exists in setup_arg_pages()
+>   mm: introduce VM_EXEC_KEEP
+>   exec, elf: require opt-in for accepting preserved mem
+>   mm: introduce MADV_DOEXEC
+> 
+>  arch/x86/Kconfig                       |   1 +
+>  fs/binfmt_elf.c                        | 196 +++++++++++++++++++++++++--------
+>  fs/exec.c                              |  33 +++++-
+>  include/linux/binfmts.h                |   7 +-
+>  include/linux/mm.h                     |   5 +
+>  include/uapi/asm-generic/mman-common.h |   3 +
+>  kernel/fork.c                          |   2 +-
+>  mm/madvise.c                           |  25 +++++
+>  mm/mmap.c                              |  47 ++++++++
+>  9 files changed, 266 insertions(+), 53 deletions(-)
+> 
+
+-- 
+Sincerely yours,
+Longpeng(Mike)
