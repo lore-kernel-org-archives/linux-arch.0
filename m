@@ -2,98 +2,129 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-4.0 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-9.5 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9BF7DC07E96
-	for <linux-arch@archiver.kernel.org>; Thu,  8 Jul 2021 13:31:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 27F46C07E9C
+	for <linux-arch@archiver.kernel.org>; Thu,  8 Jul 2021 13:54:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7AE04616E8
-	for <linux-arch@archiver.kernel.org>; Thu,  8 Jul 2021 13:31:29 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 09F9261459
+	for <linux-arch@archiver.kernel.org>; Thu,  8 Jul 2021 13:54:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231563AbhGHNeJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 8 Jul 2021 09:34:09 -0400
-Received: from mout.kundenserver.de ([212.227.126.187]:46099 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229901AbhGHNeJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jul 2021 09:34:09 -0400
-Received: from mail-wm1-f53.google.com ([209.85.128.53]) by
- mrelayeu.kundenserver.de (mreue012 [213.165.67.97]) with ESMTPSA (Nemesis) id
- 1M1rGy-1m3fyo2UVU-002JVg for <linux-arch@vger.kernel.org>; Thu, 08 Jul 2021
- 15:31:26 +0200
-Received: by mail-wm1-f53.google.com with SMTP id k32so894527wms.4
-        for <linux-arch@vger.kernel.org>; Thu, 08 Jul 2021 06:31:26 -0700 (PDT)
-X-Gm-Message-State: AOAM5327MeZFZ1oX4Sst84ecRJM7WgSvyaqlqtR0RfKX5xCBMe0zzzMd
-        WKvkjqmAOy9bhDDrq0btW0duP8wsGkrxUGvy+DA=
-X-Google-Smtp-Source: ABdhPJz92en+W1+M0bwaJyjLUElowbsWjUxd3dSWWu7j5BVGBjFyoQXk1nS3+FJZtHE6LKlvIm6UsiTr1073KNigPSg=
-X-Received: by 2002:a05:600c:3205:: with SMTP id r5mr5181215wmp.75.1625750655305;
- Thu, 08 Jul 2021 06:24:15 -0700 (PDT)
+        id S231852AbhGHN5Q (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 8 Jul 2021 09:57:16 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41324 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231747AbhGHN5P (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jul 2021 09:57:15 -0400
+Received: from mail-pg1-x535.google.com (mail-pg1-x535.google.com [IPv6:2607:f8b0:4864:20::535])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 150F8C061574;
+        Thu,  8 Jul 2021 06:54:33 -0700 (PDT)
+Received: by mail-pg1-x535.google.com with SMTP id y17so6004931pgf.12;
+        Thu, 08 Jul 2021 06:54:33 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=subject:to:cc:references:from:message-id:date:user-agent
+         :mime-version:in-reply-to:content-language:content-transfer-encoding;
+        bh=flXS1TuPwc//SKu4jyAw/jiI5sdlmmbGzljFY5ti5Is=;
+        b=XPkbMtvNl1RRRIvI1exOBM0vNgLKe6Jr87NeF6M+XhU9hnWhIdYPy6g62fwe5U7Scv
+         3OrZnM5xlgUHY4f2QkjgEeTcpa0o7dLnUyXfN9mRo8UFkwC9CeIap+ugcNZHLtK80D4t
+         8wj5AZpA2H01PaBi7V8Kr6OodXxWYwqaKRbRwr4D/HdqeXVSeWVPyWGFP9JDZE8rPpuq
+         b1I1cNp+0ih77D2DO6KbMwqCi2Da2EhcxiCcJG4ylxqWFEI1KpNBSWZO6ZthAYh6sGk7
+         5b0XLFqNbcA1I9TlauYSplfC94nkC/MEEMZPwarYocJlHfxxxZoTys2fUSvH0P62QbMn
+         xy8A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
+         :user-agent:mime-version:in-reply-to:content-language
+         :content-transfer-encoding;
+        bh=flXS1TuPwc//SKu4jyAw/jiI5sdlmmbGzljFY5ti5Is=;
+        b=NLxHFZW/mBFJXM6W0tGaJO7O4Q/uBfCU+CqtmdeH+0nS6uFSG29exkJs06dWHGDxld
+         t6T5Oo1oDKrZaOyIWl2fHAoMvT/dyRMcj6tFLJ1zNlmGkcOS0SZBBAkoshcI5/RRZcQn
+         ZKEHFANWtPdzDMJfBV3UT/b9fDARZO0vWODb//7uLI99YpQz/vK5rMVCHhNTtuA16PCQ
+         zFDrhcY7w5OuE5jRkcYxgfXmLM0GMKFgdOLSiWuXQJ448WIDaa4Hd9PEuGU5VYAhuXMb
+         kfBbVdF39XkFZCaYiee3ng1Eb4GWC+so6+kadEW15Oe6qOQpVk6lGhBY5zYJghD+vkAH
+         evjw==
+X-Gm-Message-State: AOAM533Y564Gjim3jKTITSHzSlv7hxEOSratmzCNOKng28apnROI6BgM
+        iNQv5nMx1gyexnCd80xn5Jc=
+X-Google-Smtp-Source: ABdhPJz+HRb86cNh6Rdrx5mbqP68t5brrjDI0iQFQSntirGPjVbEL5v53qALGvweTO+18SVX/9PgGQ==
+X-Received: by 2002:a63:f556:: with SMTP id e22mr32044865pgk.189.1625752472618;
+        Thu, 08 Jul 2021 06:54:32 -0700 (PDT)
+Received: from ?IPv6:2404:f801:0:5:8000::4b1? ([2404:f801:9000:1a:efea::4b1])
+        by smtp.gmail.com with ESMTPSA id s6sm10053656pjp.45.2021.07.08.06.54.18
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 08 Jul 2021 06:54:32 -0700 (PDT)
+Subject: Re: [Resend RFC PATCH V4 13/13] x86/HV: Not set memory
+ decrypted/encrypted during kexec alloc/free page in IVM
+To:     Dave Hansen <dave.hansen@intel.com>, kys@microsoft.com,
+        haiyangz@microsoft.com, sthemmin@microsoft.com, wei.liu@kernel.org,
+        decui@microsoft.com, tglx@linutronix.de, mingo@redhat.com,
+        bp@alien8.de, x86@kernel.org, hpa@zytor.com,
+        dave.hansen@linux.intel.com, luto@kernel.org, peterz@infradead.org,
+        konrad.wilk@oracle.com, boris.ostrovsky@oracle.com,
+        jgross@suse.com, sstabellini@kernel.org, joro@8bytes.org,
+        will@kernel.org, davem@davemloft.net, kuba@kernel.org,
+        jejb@linux.ibm.com, martin.petersen@oracle.com, arnd@arndb.de,
+        hch@lst.de, m.szyprowski@samsung.com, robin.murphy@arm.com,
+        kirill.shutemov@linux.intel.com, akpm@linux-foundation.org,
+        rppt@kernel.org, Tianyu.Lan@microsoft.com, thomas.lendacky@amd.com,
+        ardb@kernel.org, robh@kernel.org, nramas@linux.microsoft.com,
+        pgonda@google.com, martin.b.radev@gmail.com, david@redhat.com,
+        krish.sadhukhan@oracle.com, saravanand@fb.com,
+        xen-devel@lists.xenproject.org, keescook@chromium.org,
+        rientjes@google.com, hannes@cmpxchg.org,
+        michael.h.kelley@microsoft.com
+Cc:     iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org,
+        linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-scsi@vger.kernel.org, netdev@vger.kernel.org,
+        vkuznets@redhat.com, brijesh.singh@amd.com, anparri@microsoft.com
+References: <20210707154629.3977369-1-ltykernel@gmail.com>
+ <20210707154629.3977369-14-ltykernel@gmail.com>
+ <3b5a1bd0-369a-2723-97c1-4ab4edb14eda@intel.com>
+From:   Tianyu Lan <ltykernel@gmail.com>
+Message-ID: <e4508d82-826e-86be-96cf-feecc1b4a260@gmail.com>
+Date:   Thu, 8 Jul 2021 21:54:15 +0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.11.0
 MIME-Version: 1.0
-References: <20210706041820.1536502-1-chenhuacai@loongson.cn>
- <20210706041820.1536502-11-chenhuacai@loongson.cn> <CAK8P3a0zkiFrn9K14Hg8C-rfCk-GbyTGMnq_DFBd8o28q99tRg@mail.gmail.com>
- <CAAhV-H4WtGqgYF_zDhaS9+Ja7k=Zs8O2qWo5GqHDDf5cKw-zow@mail.gmail.com>
-In-Reply-To: <CAAhV-H4WtGqgYF_zDhaS9+Ja7k=Zs8O2qWo5GqHDDf5cKw-zow@mail.gmail.com>
-From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Thu, 8 Jul 2021 15:23:59 +0200
-X-Gmail-Original-Message-ID: <CAK8P3a1GQ=P-kNB5+wUkyqV0uD11uHCJZSQ7gbkwjev0GhuJTQ@mail.gmail.com>
-Message-ID: <CAK8P3a1GQ=P-kNB5+wUkyqV0uD11uHCJZSQ7gbkwjev0GhuJTQ@mail.gmail.com>
-Subject: Re: [PATCH 10/19] LoongArch: Add signal handling support
-To:     Huacai Chen <chenhuacai@gmail.com>
-Cc:     Huacai Chen <chenhuacai@loongson.cn>,
-        Andy Lutomirski <luto@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        David Airlie <airlied@linux.ie>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Xuefeng Li <lixuefeng@loongson.cn>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        "Eric W. Biederman" <ebiederm@xmission.com>
-Content-Type: text/plain; charset="UTF-8"
-X-Provags-ID: V03:K1:POxGMf9wvf4BsezPYnLR4XdCsbUKnBCgRgkAt2q+o+Mqjs/Gu8w
- F35WYY+Yru+BEFfwffRtui2XvietRSvOkcDWa99HEwUdLddtNuYKcwajuVrFoGK+JulDXF8
- GUQQNhiTG5R8pVAe7EtVKdFp9Xkz0MZudkIxtcuiYwx4iJBIPjhKKdOmOZ1s25vfcxbosrM
- q8WjbENDhqkCms42H9ytw==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:J8+lx8eDylA=:H4iWHDSWhFp0Xo3ub7mLpl
- UkQWTRt2Kne0nuM8E7T0fD9rbeG8xDbBJXyv+aK4v+3ahLk5HpP+qYGWEWUeydSNU6DxW/4Rf
- oNkAiHCXsz8bRj1iS37KKfBd1e+7VIcOdMoyUaHbtOXL1kXl0Kpew4zWVNQ49AhlJsFSLVeCE
- VyNoAeH3lN+ASdnKWfWs+pjgBOp8JvcLdsugsnXa5UD4qjxx5jzWEhDxNb64ZGCKBykx8AB4/
- vUZleUYi52bBZcnRb3jD59RAhsIvL498/BK7MnOFh8JCt/n3WUcM69K5b5faBvLAJ9fYFYrO5
- QMqRv9S1AW1vUUfdMGLI+VE6m0W1m54VEdN4yzKB1yA0Xgg9tT+TmDzSdz+MaXNPPkMi87IHo
- f8EG0j2UFpQmeszesP44Co3OQR3PIgGfV+DNLMXWxKXkJSFycNQ8Z0+eAWrNFBqwddt1uldJb
- 2bDaXdIyf/rYbVxaRSJkz7ZYzzb1R55ql8JA+xtDOcw8No/2lCK9TMOK9K7tV9aC8mHuNxb0O
- BrVGsq3M3KV9rABa0AzIkUIOSr7LXlr5IoUT4TAJKS674uy6DMtoed2OlToCYuK/3sm41ARrX
- iDJ9A9el6cSLYqeAm526tlyKHSW0rb7D9B8gHFhtEutdWZih/1RpWe//F5B3S1qZXAMYhxWGM
- e08xyskbYd37znAVELTkEaLBEzyh72QOjteghMmdV5H/wI/u0bJyd7TbeiHjqNpFuGX9KFGav
- UCeNSThRjRYFy+PIHruXfcm04beIb9C/U5sZouJ6Q4dW7F77pwB5T9MhRdtM2tP94uWP++6Io
- I24rIcoP8AZzJzQbYnl95jdK9K1Pxym7FPu6sCO5jvEp+t2NfoT/eDVupa8/1MGfcENutn8No
- GslopM8argY9SBGJrXtlWJcnCPWqWPKZliQSnUXn4EC3MZfPSPhyiV1IzuTjWX8yMh4s6ZWOr
- 0d9/tl0r7dY+WGhJz6yGLe3TXbj95cieLrmQEIlQppJpP4lqDihYF
+In-Reply-To: <3b5a1bd0-369a-2723-97c1-4ab4edb14eda@intel.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Jul 8, 2021 at 3:04 PM Huacai Chen <chenhuacai@gmail.com> wrote:
-> On Tue, Jul 6, 2021 at 6:17 PM Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Tue, Jul 6, 2021 at 6:18 AM Huacai Chen <chenhuacai@loongson.cn> wrote:
-> > > +
-> > > +#ifndef _NSIG
-> > > +#define _NSIG          128
-> > > +#endif
-> >
-> > Everything else uses 64 here, except for MIPS.
->
-> Once before we also wanted to use 64, but we also want to use LBT to
-> execute X86/MIPS/ARM binaries, so we chose the largest value (128).
-> Some applications, such as sighold02 in LTP, will fail if _NSIG is not
-> big enough.
+Hi Dave:
+      Thanks for your review.
 
-Have you tried separating the in-kernel _NSIG from the number used
-in the loongarch ABI? This may require a few changes to architecture
-independent signal handling code, but I think it would be a cleaner
-solution, and make it easier to port existing software without having
-to special-case loongarch along with mips.
+On 7/8/2021 12:14 AM, Dave Hansen wrote:
+> On 7/7/21 8:46 AM, Tianyu Lan wrote:
+>> @@ -598,7 +599,7 @@ void arch_kexec_unprotect_crashkres(void)
+>>    */
+>>   int arch_kexec_post_alloc_pages(void *vaddr, unsigned int pages, gfp_t gfp)
+>>   {
+>> -	if (sev_active())
+>> +	if (sev_active() || hv_is_isolation_supported())
+>>   		return 0;
+>>   
+>>   	/*
+>> @@ -611,7 +612,7 @@ int arch_kexec_post_alloc_pages(void *vaddr, unsigned int pages, gfp_t gfp)
+>>   
+>>   void arch_kexec_pre_free_pages(void *vaddr, unsigned int pages)
+>>   {
+>> -	if (sev_active())
+>> +	if (sev_active() || hv_is_isolation_supported())
+>>   		return;
+> 
+> You might want to take a look through the "protected guest" patches.  I
+> think this series is touching a few of the same locations that TDX and
+> recent SEV work touch.
+> 
+> https://lore.kernel.org/lkml/20210618225755.662725-5-sathyanarayanan.kuppuswamy@linux.intel.com/
 
-      Arnd
+Thanks for reminder. You are right. There will be a generic API to check 
+"proteced guest" type.
