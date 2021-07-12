@@ -2,130 +2,220 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-19.7 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DAA07C07E99
-	for <linux-arch@archiver.kernel.org>; Mon, 12 Jul 2021 09:40:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3175DC07E9C
+	for <linux-arch@archiver.kernel.org>; Mon, 12 Jul 2021 11:57:21 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id BD9026108B
-	for <linux-arch@archiver.kernel.org>; Mon, 12 Jul 2021 09:40:36 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 129B6610FA
+	for <linux-arch@archiver.kernel.org>; Mon, 12 Jul 2021 11:57:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237386AbhGLJnX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 12 Jul 2021 05:43:23 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43834 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237774AbhGLJnT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jul 2021 05:43:19 -0400
-Received: from mail-pl1-x636.google.com (mail-pl1-x636.google.com [IPv6:2607:f8b0:4864:20::636])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BF164C0613E5;
-        Mon, 12 Jul 2021 02:40:27 -0700 (PDT)
-Received: by mail-pl1-x636.google.com with SMTP id p4so4614513plo.11;
-        Mon, 12 Jul 2021 02:40:27 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=subject:from:to:cc:references:message-id:date:user-agent
-         :mime-version:in-reply-to:content-language:content-transfer-encoding;
-        bh=k4GGfq+hVsQvPEL9sGnkKkX1T5cHEpElvgl+H/D8GGg=;
-        b=EkbTRNsENXQloBh/r+302XMpUfivY4n/w5cVp65wMsO8W0nGbNZWXtUpGIviZUFMAy
-         hVFPC6f41UQksp8J6hOtkXkI1ILbHE9sNZcJkJnKx0RudbrlBVNOQLGk52plindDLFMf
-         0HidNEe5dnhfekaP3FOVdL3ce/SvQgBj9ik/lEvFt5vP9q7wJ5ZuDvmEpmvcF5JRom1t
-         2eapWgs0Md02bchF5N+TVdbkrIOrWMIsIpK0TzcTloe094d/by9NBbGKhQB62sMXf/ds
-         jqItDVYo/8NVUWioCBvu/2MyBq3LvV1RB8PjsNypw3SWcxG1OHtv43K0i0bJE0RuT+wZ
-         vSmQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:subject:from:to:cc:references:message-id:date
-         :user-agent:mime-version:in-reply-to:content-language
-         :content-transfer-encoding;
-        bh=k4GGfq+hVsQvPEL9sGnkKkX1T5cHEpElvgl+H/D8GGg=;
-        b=KnP1sN2evsKEsm/t9sSHosV4Vs/C8PVO8iFYGv9NXf+nVgq94saknqwyVtnDnYRp8G
-         5UdLUBNQ1hMJ4LWvsvEGb18f/x6Gbw7xACZHr9hqUCuJ/gN2jyu/3GJ7eFDjiSLPhnLm
-         4XkcIZvPqUM9QC7w9V8lPMH/pgQvHva2sjcvY+Z6KY5eDdyaSjbQuEAzfy/68pcjUE0o
-         ppy89XrE7XP2DQ3lL9riXPgyVIH+ajNW0fKygVi4cqFhadsTp9IfkNU90WQgUyX8x1kY
-         WeYdckF9+pC5JN78NiwMfYvT52thrwhwze1MlmZL7ACvj4DIrLHqadID9PjQHrkBxeSm
-         yW9Q==
-X-Gm-Message-State: AOAM532vPCjvcsVPN2QiRe7dWyAl38hkI9PtGJhD98Ysnl/A22QuUxEY
-        i1yeEeIFnbcr/8GIwCD12QQ=
-X-Google-Smtp-Source: ABdhPJwRdZQLr6WcRQHTJmvy3QekS6aYpqqDhr3YMzQ3fQO9CQGmdbyBFz8czGBJt97d+duRqdeEsg==
-X-Received: by 2002:a17:90b:4a4d:: with SMTP id lb13mr13276916pjb.221.1626082827215;
-        Mon, 12 Jul 2021 02:40:27 -0700 (PDT)
-Received: from ?IPv6:2404:f801:0:5:8000::4b1? ([2404:f801:9000:1a:efea::4b1])
-        by smtp.gmail.com with ESMTPSA id 31sm16879517pgu.17.2021.07.12.02.40.14
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 12 Jul 2021 02:40:26 -0700 (PDT)
-Subject: Re: [RFC PATCH V3 08/11] swiotlb: Add bounce buffer remap address
- setting function
-From:   Tianyu Lan <ltykernel@gmail.com>
-To:     Christoph Hellwig <hch@lst.de>, Robin Murphy <robin.murphy@arm.com>
-Cc:     kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com,
-        wei.liu@kernel.org, decui@microsoft.com, tglx@linutronix.de,
-        mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com,
-        arnd@arndb.de, dave.hansen@linux.intel.com, luto@kernel.org,
-        peterz@infradead.org, akpm@linux-foundation.org,
-        kirill.shutemov@linux.intel.com, rppt@kernel.org,
-        hannes@cmpxchg.org, cai@lca.pw, krish.sadhukhan@oracle.com,
-        saravanand@fb.com, Tianyu.Lan@microsoft.com,
-        konrad.wilk@oracle.com, m.szyprowski@samsung.com,
-        boris.ostrovsky@oracle.com, jgross@suse.com,
-        sstabellini@kernel.org, joro@8bytes.org, will@kernel.org,
-        xen-devel@lists.xenproject.org, davem@davemloft.net,
-        kuba@kernel.org, jejb@linux.ibm.com, martin.petersen@oracle.com,
-        iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org,
-        linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-scsi@vger.kernel.org, netdev@vger.kernel.org,
-        vkuznets@redhat.com, thomas.lendacky@amd.com,
-        brijesh.singh@amd.com, sunilmut@microsoft.com
-References: <20210530150628.2063957-1-ltykernel@gmail.com>
- <20210530150628.2063957-9-ltykernel@gmail.com>
- <20210607064312.GB24478@lst.de>
- <94038087-a33c-93c5-27bf-7ec1f6f5f0e3@arm.com> <20210614153252.GA1741@lst.de>
- <9e347c4c-d4b9-129c-10d2-0d7ff1b917cc@gmail.com>
-Message-ID: <873a6872-e2f5-7c6c-ec57-d21305380cd9@gmail.com>
-Date:   Mon, 12 Jul 2021 17:40:12 +0800
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
- Thunderbird/78.11.0
+        id S230207AbhGLMAI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 12 Jul 2021 08:00:08 -0400
+Received: from mail.kernel.org ([198.145.29.99]:32990 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S234637AbhGLL7q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 12 Jul 2021 07:59:46 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 93CC561106;
+        Mon, 12 Jul 2021 11:56:57 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1626091018;
+        bh=UuQT7MuELYKmhnUM/9E0W1LTcaYRAh38M3lJ7n5Epv8=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=Vf2MA1DQKEXhlDGR4yCSFSB/bP0FI92+7GLqQnJO+rhIk8pXi8NH6fd7SEF4IF/2Z
+         kNE1rCiUoICSf8B8YeLfU8h3ydoU92JQM+4/yQ0qapP+ocjJtZGY9DIvyeb4DBS6wm
+         8fhxBIa1BDb7XxzmyXyCHUV94GFlV5EmxsNkHAHbyErmxTG06WAXrFdCFxlDm7+iL8
+         vuk5OWt63fwg8ANb7SW4KeVmSjaXhz3LnEpzNcWAMOSCpUGpx9CrEUXzf1ulOSwEA5
+         ZMMAYeIT18madM8eWeJLrXK9OhM41LjmAFmT9qXQ7r7k33qzb6fr3fQmM/y/2lF7h2
+         61IZ9s3gQi47A==
+From:   Mark Brown <broonie@kernel.org>
+To:     Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>
+Cc:     Szabolcs Nagy <szabolcs.nagy@arm.com>,
+        Jeremy Linton <jeremy.linton@arm.com>,
+        Dave Martin <dave.martin@arm.com>,
+        "H . J . Lu" <hjl.tools@gmail.com>,
+        Yu-cheng Yu <yu-cheng.yu@intel.com>,
+        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        libc-alpha@sourceware.org, Mark Brown <broonie@kernel.org>
+Subject: [PATCH v4 1/4] elf: Allow architectures to parse properties on the main executable
+Date:   Mon, 12 Jul 2021 12:52:56 +0100
+Message-Id: <20210712115259.29547-2-broonie@kernel.org>
+X-Mailer: git-send-email 2.20.1
+In-Reply-To: <20210712115259.29547-1-broonie@kernel.org>
+References: <20210712115259.29547-1-broonie@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <9e347c4c-d4b9-129c-10d2-0d7ff1b917cc@gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
+X-Developer-Signature: v=1; a=openpgp-sha256; l=6014; h=from:subject; bh=UuQT7MuELYKmhnUM/9E0W1LTcaYRAh38M3lJ7n5Epv8=; b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBg7C0XKSWKoWKSPHkFHbhY+rhHSEcUKON/1AdxApOU nvYqkrSJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCYOwtFwAKCRAk1otyXVSH0GJxB/ 9mSG7Xe92bWYUDIopC1+wKTpxWK4nG+sycce8CuhIXxW8QLi8ooPOVa1Qs4izOFt9X9AeegUHpVGYE u0E+xku3/B+eANTaX6S3gZ2OAWfsDG6bRcwYzbB6vyEaD+TDrb7IZBEfv+1VQMlM7FEvEZDOMJ7ozA yqXvs/f5+YKwAVy1VXVEOGeP/LRVq9cfp+F6Bm/3MuVlDyEKUPGw2wDdZ4ml8ejvkVkwu9/KPxpYKi 5KyuZ31x6nqLxE5l39GIXf3UXV59BmrVHW2NVKywqWk6gTkg0GpBcUmn9VvDex+mTYo073rtEJAvGE rg5Pp70euJ182MNT1Nc5xl9f6rFq1R
+X-Developer-Key: i=broonie@kernel.org; a=openpgp; fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Christoph and Robin:
-      I introduced new interface set_memory_decrypted_map() to hide all
-the hypervisor code behind it in the latest version. In current generic
-code, only swiotlb bounce buffer needs to be decrypted and remapped in 
-the same time and so keep set_memory_decrypted(). If there were more 
-requests of set_memory_decrypted_map() for other platform, we may
-replace set_memory_decrypted() step by step. Please have a look.
-       https://lkml.org/lkml/2021/7/7/570
+Currently the ELF code only attempts to parse properties on the image
+that will start execution, either the interpreter or for statically linked
+executables the main executable. The expectation is that any property
+handling for the main executable will be done by the interpreter. This is
+a bit inconsistent since we do map the executable and is causing problems
+for the arm64 BTI support when used in conjunction with systemd's use of
+seccomp to implement MemoryDenyWriteExecute which stops the dynamic linker
+adjusting the permissions of executable segments.
 
-Thanks.
+Allow architectures to handle properties for both the dynamic linker and
+main executable, adjusting arch_parse_elf_properties() to have an is_interp
+flag as with arch_elf_adjust_prot() and calling it for both the main
+executable and any intepreter.
 
-On 6/15/2021 11:24 PM, Tianyu Lan wrote:
-> On 6/14/2021 11:32 PM, Christoph Hellwig wrote:
->> On Mon, Jun 14, 2021 at 02:49:51PM +0100, Robin Murphy wrote:
->>> FWIW, I think a better generalisation for this would be allowing
->>> set_memory_decrypted() to return an address rather than implicitly
->>> operating in-place, and hide all the various hypervisor hooks behind 
->>> that.
->>
->> Yes, something like that would be a good idea.  As-is
->> set_memory_decrypted is a pretty horribly API anyway due to passing
->> the address as void, and taking a size parameter while it works in units
->> of pages.  So I'd very much welcome a major overhaul of this API.
->>
-> 
-> Hi Christoph and Robin:
->      Thanks for your suggestion. I will try this idea in the next 
-> version. Besides make the address translation into set_memory_
-> decrypted() and return address, do you want to make other changes to the 
-> API in order to make it more reasonable(e.g size parameter)?
-> 
-> Thanks
+Signed-off-by: Mark Brown <broonie@kernel.org>
+Tested-by: Jeremy Linton <jeremy.linton@arm.com>
+---
+ arch/arm64/include/asm/elf.h |  3 ++-
+ fs/binfmt_elf.c              | 31 +++++++++++++++++++++++--------
+ include/linux/elf.h          |  4 +++-
+ 3 files changed, 28 insertions(+), 10 deletions(-)
+
+diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+index 8d1c8dcb87fd..a488a1329b16 100644
+--- a/arch/arm64/include/asm/elf.h
++++ b/arch/arm64/include/asm/elf.h
+@@ -261,6 +261,7 @@ struct arch_elf_state {
+ 
+ static inline int arch_parse_elf_property(u32 type, const void *data,
+ 					  size_t datasz, bool compat,
++					  bool has_interp, bool is_interp,
+ 					  struct arch_elf_state *arch)
+ {
+ 	/* No known properties for AArch32 yet */
+@@ -273,7 +274,7 @@ static inline int arch_parse_elf_property(u32 type, const void *data,
+ 		if (datasz != sizeof(*p))
+ 			return -ENOEXEC;
+ 
+-		if (system_supports_bti() &&
++		if (system_supports_bti() && has_interp == is_interp &&
+ 		    (*p & GNU_PROPERTY_AARCH64_FEATURE_1_BTI))
+ 			arch->flags |= ARM64_ELF_BTI;
+ 	}
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 439ed81e755a..81e151a57df2 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -716,8 +716,9 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
+  */
+ 
+ static int parse_elf_property(const char *data, size_t *off, size_t datasz,
+-			      struct arch_elf_state *arch,
+-			      bool have_prev_type, u32 *prev_type)
++			      struct arch_elf_state *arch, bool has_interp,
++			      bool is_interp, bool have_prev_type,
++			      u32 *prev_type)
+ {
+ 	size_t o, step;
+ 	const struct gnu_property *pr;
+@@ -751,7 +752,8 @@ static int parse_elf_property(const char *data, size_t *off, size_t datasz,
+ 	*prev_type = pr->pr_type;
+ 
+ 	ret = arch_parse_elf_property(pr->pr_type, data + o,
+-				      pr->pr_datasz, ELF_COMPAT, arch);
++				      pr->pr_datasz, ELF_COMPAT,
++				      has_interp, is_interp, arch);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -764,6 +766,7 @@ static int parse_elf_property(const char *data, size_t *off, size_t datasz,
+ #define NOTE_NAME_SZ (sizeof(GNU_PROPERTY_TYPE_0_NAME))
+ 
+ static int parse_elf_properties(struct file *f, const struct elf_phdr *phdr,
++				bool has_interp, bool is_interp,
+ 				struct arch_elf_state *arch)
+ {
+ 	union {
+@@ -813,7 +816,8 @@ static int parse_elf_properties(struct file *f, const struct elf_phdr *phdr,
+ 	have_prev_type = false;
+ 	do {
+ 		ret = parse_elf_property(note.data, &off, datasz, arch,
+-					 have_prev_type, &prev_type);
++					 has_interp, is_interp, have_prev_type,
++					 &prev_type);
+ 		have_prev_type = true;
+ 	} while (!ret);
+ 
+@@ -828,6 +832,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	unsigned long error;
+ 	struct elf_phdr *elf_ppnt, *elf_phdata, *interp_elf_phdata = NULL;
+ 	struct elf_phdr *elf_property_phdata = NULL;
++	struct elf_phdr *interp_elf_property_phdata = NULL;
+ 	unsigned long elf_bss, elf_brk;
+ 	int bss_prot = 0;
+ 	int retval, i;
+@@ -936,6 +941,10 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 				executable_stack = EXSTACK_DISABLE_X;
+ 			break;
+ 
++		case PT_GNU_PROPERTY:
++			elf_property_phdata = elf_ppnt;
++			break;
++
+ 		case PT_LOPROC ... PT_HIPROC:
+ 			retval = arch_elf_pt_proc(elf_ex, elf_ppnt,
+ 						  bprm->file, false,
+@@ -963,12 +972,11 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 			goto out_free_dentry;
+ 
+ 		/* Pass PT_LOPROC..PT_HIPROC headers to arch code */
+-		elf_property_phdata = NULL;
+ 		elf_ppnt = interp_elf_phdata;
+ 		for (i = 0; i < interp_elf_ex->e_phnum; i++, elf_ppnt++)
+ 			switch (elf_ppnt->p_type) {
+ 			case PT_GNU_PROPERTY:
+-				elf_property_phdata = elf_ppnt;
++				interp_elf_property_phdata = elf_ppnt;
+ 				break;
+ 
+ 			case PT_LOPROC ... PT_HIPROC:
+@@ -979,10 +987,17 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 					goto out_free_dentry;
+ 				break;
+ 			}
++
++		retval = parse_elf_properties(interpreter,
++					      interp_elf_property_phdata,
++					      true, true, &arch_state);
++		if (retval)
++			goto out_free_dentry;
++
+ 	}
+ 
+-	retval = parse_elf_properties(interpreter ?: bprm->file,
+-				      elf_property_phdata, &arch_state);
++	retval = parse_elf_properties(bprm->file, elf_property_phdata,
++				      interpreter != NULL, false, &arch_state);
+ 	if (retval)
+ 		goto out_free_dentry;
+ 
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index c9a46c4e183b..1c45ecf29147 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -88,13 +88,15 @@ struct arch_elf_state;
+ #ifndef CONFIG_ARCH_USE_GNU_PROPERTY
+ static inline int arch_parse_elf_property(u32 type, const void *data,
+ 					  size_t datasz, bool compat,
++					  bool has_interp, bool is_interp,
+ 					  struct arch_elf_state *arch)
+ {
+ 	return 0;
+ }
+ #else
+ extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
+-				   bool compat, struct arch_elf_state *arch);
++				   bool compat, bool has_interp, bool is_interp,
++				   struct arch_elf_state *arch);
+ #endif
+ 
+ #ifdef CONFIG_ARCH_HAVE_ELF_PROT
+-- 
+2.20.1
+
