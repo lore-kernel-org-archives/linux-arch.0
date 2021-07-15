@@ -2,72 +2,302 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5EBD8C636CA
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Jul 2021 18:12:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7FD60C636CA
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Jul 2021 18:13:01 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 49DC6613CC
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Jul 2021 18:12:50 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 69406613D7
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Jul 2021 18:12:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237729AbhGOSPn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 15 Jul 2021 14:15:43 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48656 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237690AbhGOSPm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jul 2021 14:15:42 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 17B55C06175F;
-        Thu, 15 Jul 2021 11:12:49 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=1wkBxUEbT0DVYtgLY8bo8fqQViCHE6yFAYwJFSkVK9o=; b=XNCqO8BCe71uTviFBhVmUUycKI
-        JDvtIxhdi/4acLD11VtR8tfkf/b+XqqtnxWrL2q7aIVcS+ulQtP7QPQav33pp8FMiNRDgz1KIEgiz
-        TNMnVp42zr/0wUo4S+Sw8zx1eV8WdkompgFrC8YIL9R6g+DvccShLFfWZd8zWV4mw7OYn4EPiXare
-        10S7AayZ19gJAaKczF9p6BrO5OMNiC9WCUUy6ZaMzyIECGttgTpIUkLHtJ7xVFueE68NR0UTFuda5
-        5khceIUdQP2lyJo+SmEP/frd2FNQCrWsawtt4gGUuk2nbP11BlQnmgSrK4tcjMBZg+qvI/04SaxgE
-        zog6uMLQ==;
-Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1m45p0-003blr-HW; Thu, 15 Jul 2021 18:11:16 +0000
-Date:   Thu, 15 Jul 2021 19:10:54 +0100
-From:   Matthew Wilcox <willy@infradead.org>
-To:     "Russell King (Oracle)" <linux@armlinux.org.uk>
-Cc:     linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org,
-        linux-mips@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-kernel@vger.kernel.org
-Subject: Re: [PATCH 1/3] arm: Rename PMD_ORDER to PMD_TABLE_ORDER
-Message-ID: <YPB6Lu2YiAWC7rDc@casper.infradead.org>
-References: <20210715134612.809280-1-willy@infradead.org>
- <20210715134612.809280-2-willy@infradead.org>
- <20210715164740.GN22278@shell.armlinux.org.uk>
+        id S237753AbhGOSPv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 15 Jul 2021 14:15:51 -0400
+Received: from out01.mta.xmission.com ([166.70.13.231]:48628 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S237690AbhGOSPu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jul 2021 14:15:50 -0400
+Received: from in02.mta.xmission.com ([166.70.13.52])
+        by out01.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1m45qy-00Bezt-Jx; Thu, 15 Jul 2021 12:12:56 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:57090 helo=email.xmission.com)
+        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1m45qv-00AozN-An; Thu, 15 Jul 2021 12:12:56 -0600
+From:   ebiederm@xmission.com (Eric W. Biederman)
+To:     Marco Elver <elver@google.com>
+Cc:     Arnd Bergmann <arnd@arndb.de>, Florian Weimer <fweimer@redhat.com>,
+        "David S. Miller" <davem@davemloft.net>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Ingo Molnar <mingo@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Peter Collingbourne <pcc@google.com>,
+        Dmitry Vyukov <dvyukov@google.com>,
+        Alexander Potapenko <glider@google.com>,
+        sparclinux <sparclinux@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux API <linux-api@vger.kernel.org>,
+        kasan-dev <kasan-dev@googlegroups.com>
+References: <YIpkvGrBFGlB5vNj@elver.google.com>
+        <m11rat9f85.fsf@fess.ebiederm.org>
+        <CAK8P3a0+uKYwL1NhY6Hvtieghba2hKYGD6hcKx5n8=4Gtt+pHA@mail.gmail.com>
+        <m15z031z0a.fsf@fess.ebiederm.org> <YIxVWkT03TqcJLY3@elver.google.com>
+        <m1zgxfs7zq.fsf_-_@fess.ebiederm.org> <87a6mnzbx2.fsf_-_@disp2133>
+Date:   Thu, 15 Jul 2021 13:12:46 -0500
+In-Reply-To: <87a6mnzbx2.fsf_-_@disp2133> (Eric W. Biederman's message of
+        "Thu, 15 Jul 2021 13:09:45 -0500")
+Message-ID: <87h7gvxx7l.fsf_-_@disp2133>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210715164740.GN22278@shell.armlinux.org.uk>
+Content-Type: text/plain
+X-XM-SPF: eid=1m45qv-00AozN-An;;;mid=<87h7gvxx7l.fsf_-_@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX1+WmhS/ukda531AwfF2+e6unIrXVWOREGA=
+X-SA-Exim-Connect-IP: 68.227.160.95
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: [PATCH 5/6] signal/alpha: si_trapno is only used with SIGFPE and SIGTRAP TRAP_UNK
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Jul 15, 2021 at 05:47:41PM +0100, Russell King (Oracle) wrote:
-> On Thu, Jul 15, 2021 at 02:46:10PM +0100, Matthew Wilcox (Oracle) wrote:
-> > This is the order of the page table allocation, not the order of a PMD.
-> > -#define PMD_ORDER	3
-> > +#define PMD_TABLE_ORDER	3
-> >  #else
-> >  #define PG_DIR_SIZE	0x4000
-> > -#define PMD_ORDER	2
-> > +#define PMD_TABLE_ORDER	2
-> 
-> I think PMD_ENTRY_ORDER would make more sense here - this is the
-> power-of-2 of an individual PMD entry, not of the entire table.
 
-But ... we have two kinds of PMD entries.  We have the direct entry that
-points to a 1-16MB sized chunk of memory, and we have the table entry that
-points to a 4k-32k chunk of memory that contains PTEs.  So I don't think
-calling it 'entry' order actually disambiguates anything.  That's why
-I went with 'table' -- I can't think of anything else to call it!
-PMD_PTE_ARRAY_ORDER doesn't seem like an improvement to me ...
+
+While reviewing the signal handlers on alpha it became clear that
+si_trapno is only set to a non-zero value when sending SIGFPE and when
+sending SITGRAP with si_code TRAP_UNK.
+
+Add send_sig_fault_trapno and send SIGTRAP TRAP_UNK, and SIGFPE with it.
+
+Remove the define of __ARCH_SI_TRAPNO and remove the always zero
+si_trapno parameter from send_sig_fault and force_sig_fault.
+
+v1: https://lkml.kernel.org/r/m1eeers7q7.fsf_-_@fess.ebiederm.org
+v2: https://lkml.kernel.org/r/20210505141101.11519-7-ebiederm@xmission.com
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+---
+ arch/alpha/include/uapi/asm/siginfo.h |  2 --
+ arch/alpha/kernel/osf_sys.c           |  2 +-
+ arch/alpha/kernel/signal.c            |  4 ++--
+ arch/alpha/kernel/traps.c             | 26 +++++++++++++-------------
+ arch/alpha/mm/fault.c                 |  4 ++--
+ include/linux/sched/signal.h          |  2 ++
+ kernel/signal.c                       | 21 +++++++++++++++++++++
+ 7 files changed, 41 insertions(+), 20 deletions(-)
+
+diff --git a/arch/alpha/include/uapi/asm/siginfo.h b/arch/alpha/include/uapi/asm/siginfo.h
+index 6e1a2af2f962..e08eae88182b 100644
+--- a/arch/alpha/include/uapi/asm/siginfo.h
++++ b/arch/alpha/include/uapi/asm/siginfo.h
+@@ -2,8 +2,6 @@
+ #ifndef _ALPHA_SIGINFO_H
+ #define _ALPHA_SIGINFO_H
+ 
+-#define __ARCH_SI_TRAPNO
+-
+ #include <asm-generic/siginfo.h>
+ 
+ #endif
+diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
+index d5367a1c6300..bbdb1a9a5fd8 100644
+--- a/arch/alpha/kernel/osf_sys.c
++++ b/arch/alpha/kernel/osf_sys.c
+@@ -876,7 +876,7 @@ SYSCALL_DEFINE5(osf_setsysinfo, unsigned long, op, void __user *, buffer,
+ 			if (fex & IEEE_TRAP_ENABLE_DZE) si_code = FPE_FLTDIV;
+ 			if (fex & IEEE_TRAP_ENABLE_INV) si_code = FPE_FLTINV;
+ 
+-			send_sig_fault(SIGFPE, si_code,
++			send_sig_fault_trapno(SIGFPE, si_code,
+ 				       (void __user *)NULL,  /* FIXME */
+ 				       0, current);
+  		}
+diff --git a/arch/alpha/kernel/signal.c b/arch/alpha/kernel/signal.c
+index 948b89789da8..bc077babafab 100644
+--- a/arch/alpha/kernel/signal.c
++++ b/arch/alpha/kernel/signal.c
+@@ -219,7 +219,7 @@ do_sigreturn(struct sigcontext __user *sc)
+ 
+ 	/* Send SIGTRAP if we're single-stepping: */
+ 	if (ptrace_cancel_bpt (current)) {
+-		send_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *) regs->pc, 0,
++		send_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *) regs->pc,
+ 			       current);
+ 	}
+ 	return;
+@@ -247,7 +247,7 @@ do_rt_sigreturn(struct rt_sigframe __user *frame)
+ 
+ 	/* Send SIGTRAP if we're single-stepping: */
+ 	if (ptrace_cancel_bpt (current)) {
+-		send_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *) regs->pc, 0,
++		send_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *) regs->pc,
+ 			       current);
+ 	}
+ 	return;
+diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
+index 921d4b6e4d95..e9e3de18793b 100644
+--- a/arch/alpha/kernel/traps.c
++++ b/arch/alpha/kernel/traps.c
+@@ -227,7 +227,7 @@ do_entArith(unsigned long summary, unsigned long write_mask,
+ 	}
+ 	die_if_kernel("Arithmetic fault", regs, 0, NULL);
+ 
+-	send_sig_fault(SIGFPE, si_code, (void __user *) regs->pc, 0, current);
++	send_sig_fault_trapno(SIGFPE, si_code, (void __user *) regs->pc, 0, current);
+ }
+ 
+ asmlinkage void
+@@ -268,13 +268,13 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 			regs->pc -= 4;	/* make pc point to former bpt */
+ 		}
+ 
+-		send_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *)regs->pc, 0,
++		send_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *)regs->pc,
+ 			       current);
+ 		return;
+ 
+ 	      case 1: /* bugcheck */
+-		send_sig_fault(SIGTRAP, TRAP_UNK, (void __user *) regs->pc, 0,
+-			       current);
++		send_sig_fault_trapno(SIGTRAP, TRAP_UNK,
++				      (void __user *) regs->pc, 0, current);
+ 		return;
+ 		
+ 	      case 2: /* gentrap */
+@@ -335,8 +335,8 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 			break;
+ 		}
+ 
+-		send_sig_fault(signo, code, (void __user *) regs->pc, regs->r16,
+-			       current);
++		send_sig_fault_trapno(signo, code, (void __user *) regs->pc,
++				      regs->r16, current);
+ 		return;
+ 
+ 	      case 4: /* opDEC */
+@@ -360,9 +360,9 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 			if (si_code == 0)
+ 				return;
+ 			if (si_code > 0) {
+-				send_sig_fault(SIGFPE, si_code,
+-					       (void __user *) regs->pc, 0,
+-					       current);
++				send_sig_fault_trapno(SIGFPE, si_code,
++						      (void __user *) regs->pc,
++						      0, current);
+ 				return;
+ 			}
+ 		}
+@@ -387,7 +387,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 		      ;
+ 	}
+ 
+-	send_sig_fault(SIGILL, ILL_ILLOPC, (void __user *)regs->pc, 0, current);
++	send_sig_fault(SIGILL, ILL_ILLOPC, (void __user *)regs->pc, current);
+ }
+ 
+ /* There is an ifdef in the PALcode in MILO that enables a 
+@@ -402,7 +402,7 @@ do_entDbg(struct pt_regs *regs)
+ {
+ 	die_if_kernel("Instruction fault", regs, 0, NULL);
+ 
+-	force_sig_fault(SIGILL, ILL_ILLOPC, (void __user *)regs->pc, 0);
++	force_sig_fault(SIGILL, ILL_ILLOPC, (void __user *)regs->pc);
+ }
+ 
+ 
+@@ -964,12 +964,12 @@ do_entUnaUser(void __user * va, unsigned long opcode,
+ 			si_code = SEGV_MAPERR;
+ 		mmap_read_unlock(mm);
+ 	}
+-	send_sig_fault(SIGSEGV, si_code, va, 0, current);
++	send_sig_fault(SIGSEGV, si_code, va, current);
+ 	return;
+ 
+ give_sigbus:
+ 	regs->pc -= 4;
+-	send_sig_fault(SIGBUS, BUS_ADRALN, va, 0, current);
++	send_sig_fault(SIGBUS, BUS_ADRALN, va, current);
+ 	return;
+ }
+ 
+diff --git a/arch/alpha/mm/fault.c b/arch/alpha/mm/fault.c
+index 09172f017efc..eee5102c3d88 100644
+--- a/arch/alpha/mm/fault.c
++++ b/arch/alpha/mm/fault.c
+@@ -219,13 +219,13 @@ do_page_fault(unsigned long address, unsigned long mmcsr,
+ 	mmap_read_unlock(mm);
+ 	/* Send a sigbus, regardless of whether we were in kernel
+ 	   or user mode.  */
+-	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *) address, 0);
++	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *) address);
+ 	if (!user_mode(regs))
+ 		goto no_context;
+ 	return;
+ 
+  do_sigsegv:
+-	force_sig_fault(SIGSEGV, si_code, (void __user *) address, 0);
++	force_sig_fault(SIGSEGV, si_code, (void __user *) address);
+ 	return;
+ 
+ #ifdef CONFIG_ALPHA_LARGE_VMALLOC
+diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
+index 99a9ab2b169a..6657184cef07 100644
+--- a/include/linux/sched/signal.h
++++ b/include/linux/sched/signal.h
+@@ -330,6 +330,8 @@ int force_sig_perf(void __user *addr, u32 type, u64 sig_data);
+ 
+ int force_sig_ptrace_errno_trap(int errno, void __user *addr);
+ int force_sig_fault_trapno(int sig, int code, void __user *addr, int trapno);
++int send_sig_fault_trapno(int sig, int code, void __user *addr, int trapno,
++			struct task_struct *t);
+ 
+ extern int send_sig_info(int, struct kernel_siginfo *, struct task_struct *);
+ extern void force_sigsegv(int sig);
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 87a374225277..ae06a424aa72 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -1824,6 +1824,23 @@ int force_sig_fault_trapno(int sig, int code, void __user *addr, int trapno)
+ 	return force_sig_info(&info);
+ }
+ 
++/* For the rare architectures that include trap information using
++ * si_trapno.
++ */
++int send_sig_fault_trapno(int sig, int code, void __user *addr, int trapno,
++			  struct task_struct *t)
++{
++	struct kernel_siginfo info;
++
++	clear_siginfo(&info);
++	info.si_signo = sig;
++	info.si_errno = 0;
++	info.si_code  = code;
++	info.si_addr  = addr;
++	info.si_trapno = trapno;
++	return send_sig_info(info.si_signo, &info, t);
++}
++
+ int kill_pgrp(struct pid *pid, int sig, int priv)
+ {
+ 	int ret;
+@@ -3262,6 +3279,10 @@ enum siginfo_layout siginfo_layout(unsigned sig, int si_code)
+ 			else if (IS_ENABLED(CONFIG_SPARC) &&
+ 				 (sig == SIGILL) && (si_code == ILL_ILLTRP))
+ 				layout = SIL_FAULT_TRAPNO;
++			else if (IS_ENABLED(CONFIG_ALPHA) &&
++				 ((sig == SIGFPE) ||
++				  ((sig == SIGTRAP) && (si_code == TRAP_UNK))))
++				layout = SIL_FAULT_TRAPNO;
+ #ifdef __ARCH_SI_TRAPNO
+ 			else if (layout == SIL_FAULT)
+ 				layout = SIL_FAULT_TRAPNO;
+-- 
+2.20.1
+
