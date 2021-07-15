@@ -2,101 +2,109 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-9.0 required=3.0 tests=BAYES_00,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CA429C1B08C
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Jul 2021 13:04:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D7722C47E48
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Jul 2021 13:30:34 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A7C5E613C7
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Jul 2021 13:04:01 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id BEB7C613C3
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Jul 2021 13:30:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230405AbhGONGy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 15 Jul 2021 09:06:54 -0400
-Received: from mail-wm1-f43.google.com ([209.85.128.43]:37684 "EHLO
-        mail-wm1-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229624AbhGONGx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jul 2021 09:06:53 -0400
-Received: by mail-wm1-f43.google.com with SMTP id y21-20020a7bc1950000b02902161fccabf1so6017091wmi.2;
-        Thu, 15 Jul 2021 06:03:58 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to;
-        bh=bJGICSHpYO0mCBny+k842bEvVqLK1SbOw3MzuL2d1yY=;
-        b=BPHpcpQWaWUT4p/Sm9aN6vUD08D6/OrtldnhWXlrO0QEC9KCWB4SM11uwn39fHtyKf
-         l4187YmtTnanmBBJtJyZ0tAmTQUAMTo9cpvQtQkmtOmh68MFTDlHlH4tuLArcqyiTyNY
-         lfhxt/e2ETfdyv6nWXOJWgkMCjdw+xUb1U5nECUDRTfUA0RibB2YF35n89lY1qF1XW3v
-         9ZX7janmaMyAxL8IayfPEbBRTs1yglhTEf9AYHhb8dGe72ERfYDYjv0/brCqTWsgwI5i
-         d1UmT15Zn9P2trQz8TZkjeV/sS9cLDrQC91nsBpJ+tBHGG+kY326MjPLGNQyH90o1ui0
-         Camw==
-X-Gm-Message-State: AOAM531J9PYDP9uvdkdUCkAoUSdRNSN19s1Yyp5vsvJIpsdwlHOzDLAJ
-        Y/F+BBT4zRasFmy5K6nhOIU=
-X-Google-Smtp-Source: ABdhPJyHb5wyZ5NLzoJUkEJliUgFAMAVKGopBAKAZ2T0I54iyj4rIaOGc0RWAOe5oNF3YZdG1AlzLQ==
-X-Received: by 2002:a7b:c846:: with SMTP id c6mr4464137wml.92.1626354238212;
-        Thu, 15 Jul 2021 06:03:58 -0700 (PDT)
-Received: from liuwe-devbox-debian-v2 ([51.145.34.42])
-        by smtp.gmail.com with ESMTPSA id b6sm8406146wmj.34.2021.07.15.06.03.57
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 15 Jul 2021 06:03:57 -0700 (PDT)
-Date:   Thu, 15 Jul 2021 13:03:56 +0000
-From:   Wei Liu <wei.liu@kernel.org>
-To:     Michael Kelley <mikelley@microsoft.com>
-Cc:     sthemmin@microsoft.com, kys@microsoft.com, wei.liu@kernel.org,
-        decui@microsoft.com, tglx@linutronix.de, mingo@redhat.com,
-        bp@alien8.de, x86@kernel.org, hpa@zytor.com, arnd@arndb.de,
-        linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
-        linux-arch@vger.kernel.org
-Subject: Re: [PATCH v2 0/3] Additional refactoring of Hyper-V arch specific
- code
-Message-ID: <20210715130356.qbmrfnbpqbdaim3j@liuwe-devbox-debian-v2>
-References: <1626287687-2045-1-git-send-email-mikelley@microsoft.com>
+        id S237637AbhGONd1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 15 Jul 2021 09:33:27 -0400
+Received: from out01.mta.xmission.com ([166.70.13.231]:55092 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S237618AbhGONd0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jul 2021 09:33:26 -0400
+Received: from in02.mta.xmission.com ([166.70.13.52])
+        by out01.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1m41Rg-00AcTY-Kv; Thu, 15 Jul 2021 07:30:32 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:49460 helo=email.xmission.com)
+        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1m41Rf-009x1e-Cw; Thu, 15 Jul 2021 07:30:32 -0600
+From:   ebiederm@xmission.com (Eric W. Biederman)
+To:     Michael Schmitz <schmitzmic@gmail.com>
+Cc:     geert@linux-m68k.org, linux-arch@vger.kernel.org,
+        linux-m68k@lists.linux-m68k.org, torvalds@linux-foundation.org,
+        schwab@linux-m68k.org
+References: <1624407696-20180-1-git-send-email-schmitzmic@gmail.com>
+Date:   Thu, 15 Jul 2021 08:29:49 -0500
+In-Reply-To: <1624407696-20180-1-git-send-email-schmitzmic@gmail.com> (Michael
+        Schmitz's message of "Wed, 23 Jun 2021 12:21:33 +1200")
+Message-ID: <87zgunzovm.fsf@disp2133>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1626287687-2045-1-git-send-email-mikelley@microsoft.com>
+Content-Type: text/plain
+X-XM-SPF: eid=1m41Rf-009x1e-Cw;;;mid=<87zgunzovm.fsf@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX19qDoQBF+W6wCsYMYjPYLIsWcESflkf144=
+X-SA-Exim-Connect-IP: 68.227.160.95
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: Re: [PATCH v4 0/3] m68k: Improved switch stack handling
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Jul 14, 2021 at 11:34:44AM -0700, Michael Kelley wrote:
-> This patch set moves additional Hyper-V code under arch/x86 into
-> arch-neutral hv_common.c where it can be shared by x86 and
-> and ARM64 implementations.  The move reduces the overall lines
-> of code across both architectures, and removes code under
-> arch/ that isn't really architecture-specific.
-> 
-> The code is moved into hv_common.c because it must be
-> built-in to the kernel image, and not be part of a module.
-> 
-> No functional changes are intended.
-> 
-> ---
-> Changes in v2:
-> * Fixed problem when building with CONFIG_HYPERV=n
->   (reported by kernel test robot <lkp@intel.com>)
-> 
+Michael Schmitz <schmitzmic@gmail.com> writes:
 
-Thanks for the quick turnaround. I've pushed these three patches to
-hyperv-next.
+> m68k version of Eric's patch series 'alpha/ptrace: Improved
+> switch_stack handling'.
+>
+> Registers d6, d7, a3-a6 are not saved on the stack by default
+> on every syscall entry by the m68k kernel. A separate switch
+> stack frame is pushed to save those registers as needed.
+> This leaves the majority of syscalls with only a subset of
+> registers on the stack, and access to unsaved registers in
+> those would expose or modify random stack addresses.  
+>
+> Patch 1 and 2 add a switch stack for all syscalls that were
+> found to need one to allow ptrace access to all registers
+> outside of syscall entry/exit tracing, as well as kernel
+> worker threads. This ought to protect against accidents.
+>
+> Patch 3 adds safety checks and debug output to m68k get_reg()
+> and put_reg() functions. Any unsafe register access during
+> process tracing will be prevented and reported. 
+>
+> Suggestions for optimizations or improvements welcome!
+>
+> Cheers,
+>
+>    Michael
+>    
+> Link: https://lore.kernel.org/r/<87pmwlek8d.fsf_-_@disp2133>
 
-Wei.
+I have been digging into this some more and I have found one place
+that I am having a challenge dealing with.
 
-> 
-> Michael Kelley (3):
->   Drivers: hv: Make portions of Hyper-V init code be arch neutral
->   Drivers: hv: Add arch independent default functions for some Hyper-V
->     handlers
->   Drivers: hv: Move Hyper-V misc functionality to arch-neutral code
-> 
->  arch/x86/hyperv/hv_init.c       | 101 +++-----------------
->  arch/x86/include/asm/mshyperv.h |   4 -
->  arch/x86/kernel/cpu/mshyperv.c  |  20 ----
->  drivers/hv/hv_common.c          | 205 ++++++++++++++++++++++++++++++++++++++++
->  include/asm-generic/mshyperv.h  |  10 ++
->  5 files changed, 226 insertions(+), 114 deletions(-)
-> 
-> -- 
-> 1.8.3.1
-> 
+In arch/m68k/fpsp040/skeleton.S there is an assembly version of
+copy_from_user that calls fpsp040_die when the bytes can not be read.
+
+Now fpsp040_die is just:
+
+/*
+ * This function is called if an error occur while accessing
+ * user-space from the fpsp040 code.
+ */
+asmlinkage void fpsp040_die(void)
+{
+	do_exit(SIGSEGV);
+}
+
+
+The problem here is the instruction emulation performed in the fpsp040
+code performs a very minimal saving of registers.  I don't think even
+the normal system call entry point registers that are saved are present
+at that point.
+
+Is there any chance you can help me figure out how to get a stack frame
+with all of the registers present before fpsp040_die is called?
+
+Eric
