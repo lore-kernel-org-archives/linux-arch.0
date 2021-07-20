@@ -2,212 +2,378 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+X-Spam-Status: No, score=-20.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4F679C63798
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5D3B4C6379C
 	for <linux-arch@archiver.kernel.org>; Tue, 20 Jul 2021 15:44:32 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 27A8861246
+	by mail.kernel.org (Postfix) with ESMTP id 5503F610F7
 	for <linux-arch@archiver.kernel.org>; Tue, 20 Jul 2021 15:44:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231366AbhGTPAs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 20 Jul 2021 11:00:48 -0400
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:4250 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S239972AbhGTOWd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Jul 2021 10:22:33 -0400
-Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 16KEpGqs050858;
-        Tue, 20 Jul 2021 11:02:02 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
- : date : message-id : mime-version : content-transfer-encoding; s=pp1;
- bh=4yJPyWET6+73QDcQFyJd/Bc3kxhxcfiUQwUkrG1J3a0=;
- b=efu1XCVbXaUaZpr0ZRQgTmYxOS54uIaAkS7tfrX87l5TqH/oXP8r8kvpzV/rxyXwrDpX
- LAr2T63O7IBfbaakEoh61CnphxQ3kqRI5d0BAKZlbFOa02zfXTc2NXosZpZF8cQwwhHd
- eKj0KLVtVZs2v1VNTsKNY4Vx1ojm+wLurL4uZfwVqAyNG7gcNnrKIo1xCm2+wwyADFKO
- nrTF20OlCH6nrld1iTFTb5ecPIIhrStEX9niI0sXFTQv6XWgUiFVPX8iaI5+TWRU58JJ
- ty+H7gHF1Bjt/sLTtLm7+ZJQ5LSK3ufwz+QYtCtVE0tqQyhEPWkOyS1b3chLne9jU7Vl mw== 
-Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 39wwg677ma-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 20 Jul 2021 11:01:59 -0400
-Received: from m0098419.ppops.net (m0098419.ppops.net [127.0.0.1])
-        by pps.reinject (8.16.0.43/8.16.0.43) with SMTP id 16KEpPkp051587;
-        Tue, 20 Jul 2021 11:01:59 -0400
-Received: from ppma03fra.de.ibm.com (6b.4a.5195.ip4.static.sl-reverse.com [149.81.74.107])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 39wwg677ee-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 20 Jul 2021 11:01:56 -0400
-Received: from pps.filterd (ppma03fra.de.ibm.com [127.0.0.1])
-        by ppma03fra.de.ibm.com (8.16.1.2/8.16.1.2) with SMTP id 16KEsOB3004898;
-        Tue, 20 Jul 2021 15:01:48 GMT
-Received: from b06cxnps3075.portsmouth.uk.ibm.com (d06relay10.portsmouth.uk.ibm.com [9.149.109.195])
-        by ppma03fra.de.ibm.com with ESMTP id 39upu88t5a-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 20 Jul 2021 15:01:48 +0000
-Received: from d06av21.portsmouth.uk.ibm.com (d06av21.portsmouth.uk.ibm.com [9.149.105.232])
-        by b06cxnps3075.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 16KF1kFR34079210
-        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Tue, 20 Jul 2021 15:01:46 GMT
-Received: from d06av21.portsmouth.uk.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id E67CC52059;
-        Tue, 20 Jul 2021 15:01:45 +0000 (GMT)
-Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
-        by d06av21.portsmouth.uk.ibm.com (Postfix) with ESMTP id 88F9D52050;
-        Tue, 20 Jul 2021 15:01:45 +0000 (GMT)
-From:   Niklas Schnelle <schnelle@linux.ibm.com>
-To:     Bjorn Helgaas <bhelgaas@google.com>
-Cc:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Paul Mackerras <paulus@samba.org>, linux-pci@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org,
-        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Subject: [PATCH v3] PCI: Move pci_dev_is/assign_added() to pci.h
-Date:   Tue, 20 Jul 2021 17:01:45 +0200
-Message-Id: <20210720150145.640727-1-schnelle@linux.ibm.com>
-X-Mailer: git-send-email 2.25.1
+        id S236686AbhGTPBB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 20 Jul 2021 11:01:01 -0400
+Received: from mail.kernel.org ([198.145.29.99]:36052 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S240445AbhGTOaw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Jul 2021 10:30:52 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 13F0560BBB;
+        Tue, 20 Jul 2021 15:10:04 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1626793807;
+        bh=CFMvQjOqEi8gTzK1f+RZk6KcJt32Ho+RGpYN7EncBPY=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=HNvLkdMcgNpc0MOv5GiOOv9HduxDpRdNHxi5oKYIXzX7NDyOuwB8d48fo5PUMB1Ud
+         YRFA39rWI4mmQK1ITW2AzbZ5qAryv5jX8uWcdQIzEpJP+pdYNKm5Fq9zTS871aYS+J
+         2M5U2LgxPxBckIPHJKvZTC3zUiHnXV4CKhr+M9SkhC998ZJrrDEpYVyDxHldl0VLmr
+         oDjX2+MB/P6yMdpUWd88mBWqmO5xRx52FO0gPlmL849q5A9Cd3s6PWSQo4MOrAji0B
+         7HQQiQHXfUR0fjY3fipfJwe0VRIsQ6+9ehbLcSN9N4TwScLOk49tKIIss94vTqWjak
+         Fpa8lg5WPDhjw==
+From:   Arnd Bergmann <arnd@kernel.org>
+To:     linux-arch@vger.kernel.org
+Cc:     Arnd Bergmann <arnd@arndb.de>,
+        Christoph Hellwig <hch@infradead.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Borislav Petkov <bp@alien8.de>,
+        Brian Gerst <brgerst@gmail.com>,
+        Eric Biederman <ebiederm@xmission.com>,
+        Ingo Molnar <mingo@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        linux-kernel@vger.kernel.org, Linux-MM <linux-mm@kvack.org>,
+        kexec@lists.infradead.org, Christoph Hellwig <hch@lst.de>
+Subject: [PATCH v4 3/4] mm: simplify compat numa syscalls
+Date:   Tue, 20 Jul 2021 17:09:49 +0200
+Message-Id: <20210720150950.3669610-4-arnd@kernel.org>
+X-Mailer: git-send-email 2.29.2
+In-Reply-To: <20210720150950.3669610-1-arnd@kernel.org>
+References: <20210720150950.3669610-1-arnd@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-TM-AS-GCONF: 00
-X-Proofpoint-GUID: _DcHbTAJjqF8GuaMyqVq3aSFzMnPY462
-X-Proofpoint-ORIG-GUID: _ecq_PxMqpK76NqtWINHCvv1PWBUdX3r
-X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.391,18.0.790
- definitions=2021-07-20_09:2021-07-19,2021-07-20 signatures=0
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 mlxscore=0 phishscore=0
- impostorscore=0 suspectscore=0 mlxlogscore=999 malwarescore=0 adultscore=0
- clxscore=1015 lowpriorityscore=0 priorityscore=1501 bulkscore=0
- spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2104190000 definitions=main-2107200091
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The helper function pci_dev_is_added() from drivers/pci/pci.h is used in
-PCI arch code of both s390 and powerpc leading to awkward relative
-includes. Move it to the global include/linux/pci.h and get rid of these
-includes just for that one function.
+From: Arnd Bergmann <arnd@arndb.de>
 
-Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
+The compat implementations for mbind, get_mempolicy, set_mempolicy
+and migrate_pages are just there to handle the subtly different
+layout of bitmaps on 32-bit hosts.
+
+The compat implementation however lacks some of the checks that
+are present in the native one, in particular for checking that
+the extra bits are all zero when user space has a larger mask
+size than the kernel. Worse, those extra bits do not get cleared
+when copying in or out of the kernel, which can lead to incorrect
+data as well.
+
+Unify the implementation to handle the compat bitmap layout directly
+in the get_nodes() and copy_nodes_to_user() helpers.  Splitting out
+the get_bitmap() helper from get_nodes() also helps readability of the
+native case.
+
+On x86, two additional problems are addressed by this: compat tasks can
+pass a bitmap at the end of a mapping, causing a fault when reading
+across the page boundary for a 64-bit word. x32 tasks might also run
+into problems with get_mempolicy corrupting data when an odd number of
+32-bit words gets passed.
+
+On parisc the migrate_pages() system call apparently had the wrong
+calling convention, as big-endian architectures expect the words
+inside of a bitmap to be swapped. This is not a problem though
+since parisc has no NUMA support.
+
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
-Since v1 (and bad v2):
-- Fixed accidental removal of PCI_DPC_RECOVERED, PCI_DPC_RECOVERING
-  defines and also move these to include/linux/pci.h
+ include/linux/compat.h |  17 ++--
+ mm/mempolicy.c         | 175 +++++++++++++----------------------------
+ 2 files changed, 63 insertions(+), 129 deletions(-)
 
- arch/powerpc/platforms/powernv/pci-sriov.c |  3 ---
- arch/powerpc/platforms/pseries/setup.c     |  1 -
- arch/s390/pci/pci_sysfs.c                  |  2 --
- drivers/pci/hotplug/acpiphp_glue.c         |  1 -
- drivers/pci/pci.h                          | 15 ---------------
- include/linux/pci.h                        | 15 +++++++++++++++
- 6 files changed, 15 insertions(+), 22 deletions(-)
-
-diff --git a/arch/powerpc/platforms/powernv/pci-sriov.c b/arch/powerpc/platforms/powernv/pci-sriov.c
-index 28aac933a439..2e0ca5451e85 100644
---- a/arch/powerpc/platforms/powernv/pci-sriov.c
-+++ b/arch/powerpc/platforms/powernv/pci-sriov.c
-@@ -9,9 +9,6 @@
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index c270124e4402..17b756b4df9e 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -397,14 +397,6 @@ struct compat_kexec_segment;
+ struct compat_mq_attr;
+ struct compat_msgbuf;
  
- #include "pci.h"
- 
--/* for pci_dev_is_added() */
--#include "../../../../drivers/pci/pci.h"
+-#define BITS_PER_COMPAT_LONG    (8*sizeof(compat_long_t))
 -
+-#define BITS_TO_COMPAT_LONGS(bits) DIV_ROUND_UP(bits, BITS_PER_COMPAT_LONG)
+-
+-long compat_get_bitmap(unsigned long *mask, const compat_ulong_t __user *umask,
+-		       unsigned long bitmap_size);
+-long compat_put_bitmap(compat_ulong_t __user *umask, unsigned long *mask,
+-		       unsigned long bitmap_size);
+ void copy_siginfo_to_external32(struct compat_siginfo *to,
+ 		const struct kernel_siginfo *from);
+ int copy_siginfo_from_user32(kernel_siginfo_t *to,
+@@ -978,6 +970,15 @@ static inline bool in_compat_syscall(void) { return false; }
+ 
+ #endif /* CONFIG_COMPAT */
+ 
++#define BITS_PER_COMPAT_LONG    (8*sizeof(compat_long_t))
++
++#define BITS_TO_COMPAT_LONGS(bits) DIV_ROUND_UP(bits, BITS_PER_COMPAT_LONG)
++
++long compat_get_bitmap(unsigned long *mask, const compat_ulong_t __user *umask,
++		       unsigned long bitmap_size);
++long compat_put_bitmap(compat_ulong_t __user *umask, unsigned long *mask,
++		       unsigned long bitmap_size);
++
  /*
-  * The majority of the complexity in supporting SR-IOV on PowerNV comes from
-  * the need to put the MMIO space for each VF into a separate PE. Internally
-diff --git a/arch/powerpc/platforms/pseries/setup.c b/arch/powerpc/platforms/pseries/setup.c
-index 631a0d57b6cd..17585ec9f955 100644
---- a/arch/powerpc/platforms/pseries/setup.c
-+++ b/arch/powerpc/platforms/pseries/setup.c
-@@ -74,7 +74,6 @@
- #include <asm/hvconsole.h>
+  * Some legacy ABIs like the i386 one use less than natural alignment for 64-bit
+  * types, and will need special compat treatment for that.  Most architectures
+diff --git a/mm/mempolicy.c b/mm/mempolicy.c
+index e32360e90274..9bc5dabdb7a7 100644
+--- a/mm/mempolicy.c
++++ b/mm/mempolicy.c
+@@ -1362,16 +1362,33 @@ static long do_mbind(unsigned long start, unsigned long len,
+ /*
+  * User space interface with variable sized bitmaps for nodelists.
+  */
++static int get_bitmap(unsigned long *mask, const unsigned long __user *nmask,
++		      unsigned long maxnode)
++{
++	unsigned long nlongs = BITS_TO_LONGS(maxnode);
++	int ret;
++
++	if (in_compat_syscall())
++		ret = compat_get_bitmap(mask,
++					(const compat_ulong_t __user *)nmask,
++					maxnode);
++	else
++		ret = copy_from_user(mask, nmask,
++				     nlongs * sizeof(unsigned long));
++
++	if (ret)
++		return -EFAULT;
++
++	if (maxnode % BITS_PER_LONG)
++		mask[nlongs - 1] &= (1UL << (maxnode % BITS_PER_LONG)) - 1;
++
++	return 0;
++}
  
- #include "pseries.h"
--#include "../../../../drivers/pci/pci.h"
- 
- DEFINE_STATIC_KEY_FALSE(shared_processor);
- EXPORT_SYMBOL_GPL(shared_processor);
-diff --git a/arch/s390/pci/pci_sysfs.c b/arch/s390/pci/pci_sysfs.c
-index 6e2450c2b9c1..8dbe54ef8f8e 100644
---- a/arch/s390/pci/pci_sysfs.c
-+++ b/arch/s390/pci/pci_sysfs.c
-@@ -13,8 +13,6 @@
- #include <linux/stat.h>
- #include <linux/pci.h>
- 
--#include "../../../drivers/pci/pci.h"
+ /* Copy a node mask from user space. */
+ static int get_nodes(nodemask_t *nodes, const unsigned long __user *nmask,
+ 		     unsigned long maxnode)
+ {
+-	unsigned long k;
+-	unsigned long t;
+-	unsigned long nlongs;
+-	unsigned long endmask;
 -
- #include <asm/sclp.h>
+ 	--maxnode;
+ 	nodes_clear(*nodes);
+ 	if (maxnode == 0 || !nmask)
+@@ -1379,49 +1396,29 @@ static int get_nodes(nodemask_t *nodes, const unsigned long __user *nmask,
+ 	if (maxnode > PAGE_SIZE*BITS_PER_BYTE)
+ 		return -EINVAL;
  
- #define zpci_attr(name, fmt, member)					\
-diff --git a/drivers/pci/hotplug/acpiphp_glue.c b/drivers/pci/hotplug/acpiphp_glue.c
-index f031302ad401..4cb963f88183 100644
---- a/drivers/pci/hotplug/acpiphp_glue.c
-+++ b/drivers/pci/hotplug/acpiphp_glue.c
-@@ -38,7 +38,6 @@
- #include <linux/slab.h>
- #include <linux/acpi.h>
+-	nlongs = BITS_TO_LONGS(maxnode);
+-	if ((maxnode % BITS_PER_LONG) == 0)
+-		endmask = ~0UL;
+-	else
+-		endmask = (1UL << (maxnode % BITS_PER_LONG)) - 1;
+-
+ 	/*
+ 	 * When the user specified more nodes than supported just check
+-	 * if the non supported part is all zero.
+-	 *
+-	 * If maxnode have more longs than MAX_NUMNODES, check
+-	 * the bits in that area first. And then go through to
+-	 * check the rest bits which equal or bigger than MAX_NUMNODES.
+-	 * Otherwise, just check bits [MAX_NUMNODES, maxnode).
++	 * if the non supported part is all zero, one word at a time,
++	 * starting at the end.
+ 	 */
+-	if (nlongs > BITS_TO_LONGS(MAX_NUMNODES)) {
+-		for (k = BITS_TO_LONGS(MAX_NUMNODES); k < nlongs; k++) {
+-			if (get_user(t, nmask + k))
+-				return -EFAULT;
+-			if (k == nlongs - 1) {
+-				if (t & endmask)
+-					return -EINVAL;
+-			} else if (t)
+-				return -EINVAL;
+-		}
+-		nlongs = BITS_TO_LONGS(MAX_NUMNODES);
+-		endmask = ~0UL;
+-	}
++	while (maxnode > MAX_NUMNODES) {
++		unsigned long bits = min_t(unsigned long, maxnode, BITS_PER_LONG);
++		unsigned long t;
  
--#include "../pci.h"
- #include "acpiphp.h"
+-	if (maxnode > MAX_NUMNODES && MAX_NUMNODES % BITS_PER_LONG != 0) {
+-		unsigned long valid_mask = endmask;
+-
+-		valid_mask &= ~((1UL << (MAX_NUMNODES % BITS_PER_LONG)) - 1);
+-		if (get_user(t, nmask + nlongs - 1))
++		if (get_bitmap(&t, &nmask[maxnode / BITS_PER_LONG], bits))
+ 			return -EFAULT;
+-		if (t & valid_mask)
++
++		if (maxnode - bits >= MAX_NUMNODES) {
++			maxnode -= bits;
++		} else {
++			maxnode = MAX_NUMNODES;
++			t &= ~((1UL << (MAX_NUMNODES % BITS_PER_LONG)) - 1);
++		}
++		if (t)
+ 			return -EINVAL;
+ 	}
  
- static LIST_HEAD(bridge_list);
-diff --git a/drivers/pci/pci.h b/drivers/pci/pci.h
-index 93dcdd431072..a159cd0f6f05 100644
---- a/drivers/pci/pci.h
-+++ b/drivers/pci/pci.h
-@@ -383,21 +383,6 @@ static inline bool pci_dev_is_disconnected(const struct pci_dev *dev)
- 	return dev->error_state == pci_channel_io_perm_failure;
+-	if (copy_from_user(nodes_addr(*nodes), nmask, nlongs*sizeof(unsigned long)))
+-		return -EFAULT;
+-	nodes_addr(*nodes)[nlongs-1] &= endmask;
+-	return 0;
++	return get_bitmap(nodes_addr(*nodes), nmask, maxnode);
  }
  
--/* pci_dev priv_flags */
--#define PCI_DEV_ADDED 0
--#define PCI_DPC_RECOVERED 1
--#define PCI_DPC_RECOVERING 2
--
--static inline void pci_dev_assign_added(struct pci_dev *dev, bool added)
--{
--	assign_bit(PCI_DEV_ADDED, &dev->priv_flags, added);
--}
--
--static inline bool pci_dev_is_added(const struct pci_dev *dev)
--{
--	return test_bit(PCI_DEV_ADDED, &dev->priv_flags);
--}
--
- #ifdef CONFIG_PCIEAER
- #include <linux/aer.h>
- 
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 540b377ca8f6..ea0e23dbc8ec 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -507,6 +507,21 @@ struct pci_dev {
- 	unsigned long	priv_flags;	/* Private flags for the PCI driver */
- };
- 
-+/* pci_dev priv_flags */
-+#define PCI_DEV_ADDED 0
-+#define PCI_DPC_RECOVERED 1
-+#define PCI_DPC_RECOVERING 2
-+
-+static inline void pci_dev_assign_added(struct pci_dev *dev, bool added)
-+{
-+	assign_bit(PCI_DEV_ADDED, &dev->priv_flags, added);
-+}
-+
-+static inline bool pci_dev_is_added(const struct pci_dev *dev)
-+{
-+	return test_bit(PCI_DEV_ADDED, &dev->priv_flags);
-+}
-+
- static inline struct pci_dev *pci_physfn(struct pci_dev *dev)
+ /* Copy a kernel node mask to user space */
+@@ -1430,6 +1427,10 @@ static int copy_nodes_to_user(unsigned long __user *mask, unsigned long maxnode,
  {
- #ifdef CONFIG_PCI_IOV
+ 	unsigned long copy = ALIGN(maxnode-1, 64) / 8;
+ 	unsigned int nbytes = BITS_TO_LONGS(nr_node_ids) * sizeof(long);
++	bool compat = in_compat_syscall();
++
++	if (compat)
++		nbytes = BITS_TO_COMPAT_LONGS(nr_node_ids) * sizeof(compat_long_t);
+ 
+ 	if (copy > nbytes) {
+ 		if (copy > PAGE_SIZE)
+@@ -1438,6 +1439,11 @@ static int copy_nodes_to_user(unsigned long __user *mask, unsigned long maxnode,
+ 			return -EFAULT;
+ 		copy = nbytes;
+ 	}
++
++	if (compat)
++		return compat_put_bitmap((compat_ulong_t __user *)mask,
++					 nodes_addr(*nodes), maxnode);
++
+ 	return copy_to_user(mask, nodes_addr(*nodes), copy) ? -EFAULT : 0;
+ }
+ 
+@@ -1648,72 +1654,22 @@ COMPAT_SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
+ 		       compat_ulong_t, maxnode,
+ 		       compat_ulong_t, addr, compat_ulong_t, flags)
+ {
+-	long err;
+-	unsigned long __user *nm = NULL;
+-	unsigned long nr_bits, alloc_size;
+-	DECLARE_BITMAP(bm, MAX_NUMNODES);
+-
+-	nr_bits = min_t(unsigned long, maxnode-1, nr_node_ids);
+-	alloc_size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
+-
+-	if (nmask)
+-		nm = compat_alloc_user_space(alloc_size);
+-
+-	err = kernel_get_mempolicy(policy, nm, nr_bits+1, addr, flags);
+-
+-	if (!err && nmask) {
+-		unsigned long copy_size;
+-		copy_size = min_t(unsigned long, sizeof(bm), alloc_size);
+-		err = copy_from_user(bm, nm, copy_size);
+-		/* ensure entire bitmap is zeroed */
+-		err |= clear_user(nmask, ALIGN(maxnode-1, 8) / 8);
+-		err |= compat_put_bitmap(nmask, bm, nr_bits);
+-	}
+-
+-	return err;
++	return kernel_get_mempolicy(policy, (unsigned long __user *)nmask,
++				    maxnode, addr, flags);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE3(set_mempolicy, int, mode, compat_ulong_t __user *, nmask,
+ 		       compat_ulong_t, maxnode)
+ {
+-	unsigned long __user *nm = NULL;
+-	unsigned long nr_bits, alloc_size;
+-	DECLARE_BITMAP(bm, MAX_NUMNODES);
+-
+-	nr_bits = min_t(unsigned long, maxnode-1, MAX_NUMNODES);
+-	alloc_size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
+-
+-	if (nmask) {
+-		if (compat_get_bitmap(bm, nmask, nr_bits))
+-			return -EFAULT;
+-		nm = compat_alloc_user_space(alloc_size);
+-		if (copy_to_user(nm, bm, alloc_size))
+-			return -EFAULT;
+-	}
+-
+-	return kernel_set_mempolicy(mode, nm, nr_bits+1);
++	return kernel_set_mempolicy(mode, (unsigned long __user *)nmask, maxnode);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
+ 		       compat_ulong_t, mode, compat_ulong_t __user *, nmask,
+ 		       compat_ulong_t, maxnode, compat_ulong_t, flags)
+ {
+-	unsigned long __user *nm = NULL;
+-	unsigned long nr_bits, alloc_size;
+-	nodemask_t bm;
+-
+-	nr_bits = min_t(unsigned long, maxnode-1, MAX_NUMNODES);
+-	alloc_size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
+-
+-	if (nmask) {
+-		if (compat_get_bitmap(nodes_addr(bm), nmask, nr_bits))
+-			return -EFAULT;
+-		nm = compat_alloc_user_space(alloc_size);
+-		if (copy_to_user(nm, nodes_addr(bm), alloc_size))
+-			return -EFAULT;
+-	}
+-
+-	return kernel_mbind(start, len, mode, nm, nr_bits+1, flags);
++	return kernel_mbind(start, len, mode, (unsigned long __user *)nmask,
++			    maxnode, flags);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
+@@ -1721,32 +1677,9 @@ COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
+ 		       const compat_ulong_t __user *, old_nodes,
+ 		       const compat_ulong_t __user *, new_nodes)
+ {
+-	unsigned long __user *old = NULL;
+-	unsigned long __user *new = NULL;
+-	nodemask_t tmp_mask;
+-	unsigned long nr_bits;
+-	unsigned long size;
+-
+-	nr_bits = min_t(unsigned long, maxnode - 1, MAX_NUMNODES);
+-	size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
+-	if (old_nodes) {
+-		if (compat_get_bitmap(nodes_addr(tmp_mask), old_nodes, nr_bits))
+-			return -EFAULT;
+-		old = compat_alloc_user_space(new_nodes ? size * 2 : size);
+-		if (new_nodes)
+-			new = old + size / sizeof(unsigned long);
+-		if (copy_to_user(old, nodes_addr(tmp_mask), size))
+-			return -EFAULT;
+-	}
+-	if (new_nodes) {
+-		if (compat_get_bitmap(nodes_addr(tmp_mask), new_nodes, nr_bits))
+-			return -EFAULT;
+-		if (new == NULL)
+-			new = compat_alloc_user_space(size);
+-		if (copy_to_user(new, nodes_addr(tmp_mask), size))
+-			return -EFAULT;
+-	}
+-	return kernel_migrate_pages(pid, nr_bits + 1, old, new);
++	return kernel_migrate_pages(pid, maxnode,
++				    (const unsigned long __user *)old_nodes,
++				    (const unsigned long __user *)new_nodes);
+ }
+ 
+ #endif /* CONFIG_COMPAT */
 -- 
-2.25.1
+2.29.2
 
