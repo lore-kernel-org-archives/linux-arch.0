@@ -2,88 +2,77 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-20.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-7.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D6585C6377A
-	for <linux-arch@archiver.kernel.org>; Wed, 21 Jul 2021 21:10:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B6B6BC6377B
+	for <linux-arch@archiver.kernel.org>; Wed, 21 Jul 2021 21:22:42 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id BB7E66124C
-	for <linux-arch@archiver.kernel.org>; Wed, 21 Jul 2021 21:10:08 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9733561249
+	for <linux-arch@archiver.kernel.org>; Wed, 21 Jul 2021 21:22:42 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229933AbhGUU3b (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 21 Jul 2021 16:29:31 -0400
-Received: from mail.kernel.org ([198.145.29.99]:36742 "EHLO mail.kernel.org"
+        id S229597AbhGUUmF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 21 Jul 2021 16:42:05 -0400
+Received: from mail.kernel.org ([198.145.29.99]:40282 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229553AbhGUU33 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Jul 2021 16:29:29 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 421DE61222;
-        Wed, 21 Jul 2021 21:10:05 +0000 (UTC)
+        id S229577AbhGUUmF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 21 Jul 2021 16:42:05 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 9861E61249;
+        Wed, 21 Jul 2021 21:22:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1626901805;
-        bh=en754w73iFqTn89Z6AhHNd60Ce4arYxw9aIjHkrE69E=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=c4Zlh6JurAtz9AhlNdCGTi6AfqUYPMmN9j9MovAScPSW8OxO3v95wsNVzNU7oJzJO
-         l6r8Bmf49Bg4iB2SQkYmOyoHD+boLQH8cRwwcCjgLXuy0hSlisQIc9b8cAeE+Rh/wp
-         vlIL/RPvZn1XDVicv+/rgMmyctMulQ/hTEbkqI0fM8w/8B1pBQHz7DCLz/n/A4jWSo
-         ibp0AWw3z7BcDhXp40J/DFTeQyeZmEmbxpVlFnG3cdrRytLkXd8B5yCN+9cu1vxMTL
-         btckhySf3apIZ53v+5zH/rMaebAaPpk9Ello2GfU/WJYEGjt5vTEEKD+4N4ZUZ67c4
-         FIv2s2bdpn1LA==
-Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-        id 127345C0A03; Wed, 21 Jul 2021 14:10:05 -0700 (PDT)
-From:   "Paul E. McKenney" <paulmck@kernel.org>
-To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        kernel-team@fb.com, mingo@kernel.org
-Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
-        peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
-        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        akiyks@gmail.com, Manfred Spraul <manfred@colorfullife.com>,
-        "Paul E . McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model 3/4] tools/memory-model: Heuristics using data_race() must handle all values
-Date:   Wed, 21 Jul 2021 14:10:02 -0700
-Message-Id: <20210721211003.869892-3-paulmck@kernel.org>
-X-Mailer: git-send-email 2.31.1.189.g2e36527f23
-In-Reply-To: <20210721210726.GA828672@paulmck-ThinkPad-P17-Gen-1>
-References: <20210721210726.GA828672@paulmck-ThinkPad-P17-Gen-1>
+        s=k20201202; t=1626902561;
+        bh=wVXjBvnDqeBXxEgGrM3dHFzG2SEW7Fk2iOjM5sBOS3k=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=CPyUZzWf3CDK7aK5PD1pTusv0T6/pupkiQsuurXls4hO4sNAxIwV+jQVYXlBZmwXh
+         LDUQWgfE4DW6lkMFdtbIohMGG07t31qNWAxn0afoU/w1hC1SFcm4aN7xCG4gONOv2Q
+         jB8JvOMguRgCGfMGd8g49EaFyPERsqT3l/Vf3ELRgoLlyBnP5Sdw+PSlB/lVz1ZaBv
+         KR2NGXvTFvP3telRK40WfyXRTu0k7V16sVatXbWvx+Jiv+O8RCDgWMphwpltkGOVk7
+         pQHSDSO8RbNussXEZpfgkk/8xwxIypyu79unVlndVEN5g0hEAe1jt6JOtA+N/lnkni
+         p5in5soEKvsew==
+Received: by mail-wr1-f52.google.com with SMTP id t5so3611605wrw.12;
+        Wed, 21 Jul 2021 14:22:41 -0700 (PDT)
+X-Gm-Message-State: AOAM530BMhMl6OI5bw3pl6Ei56C5S5IZLUYERFXUytyqylFlRYJNBe88
+        LJW3NN7/tBxIkdai3es+St+WYs8ul/NkS0x6czY=
+X-Google-Smtp-Source: ABdhPJxch64cTukt4PD+FaRfYlbdrPaAFs1B2RT26cj4vvJbfUqAnPkx2+be51IRpr6rQdKNapYLDFkqa48ysWy0vS0=
+X-Received: by 2002:adf:f2c6:: with SMTP id d6mr45877743wrp.286.1626902560213;
+ Wed, 21 Jul 2021 14:22:40 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20210720150950.3669610-1-arnd@kernel.org> <20210720150950.3669610-2-arnd@kernel.org>
+ <YPbtsU4GX6PL7/42@infradead.org>
+In-Reply-To: <YPbtsU4GX6PL7/42@infradead.org>
+From:   Arnd Bergmann <arnd@kernel.org>
+Date:   Wed, 21 Jul 2021 23:22:24 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a0OkF1G2kNTnn8Nh5aGAf5nnHNZqoQD3TB7mN2_VTV_9w@mail.gmail.com>
+Message-ID: <CAK8P3a0OkF1G2kNTnn8Nh5aGAf5nnHNZqoQD3TB7mN2_VTV_9w@mail.gmail.com>
+Subject: Re: [PATCH v4 1/4] kexec: avoid compat_alloc_user_space
+To:     Christoph Hellwig <hch@infradead.org>
+Cc:     linux-arch <linux-arch@vger.kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Borislav Petkov <bp@alien8.de>,
+        Brian Gerst <brgerst@gmail.com>,
+        Eric Biederman <ebiederm@xmission.com>,
+        Ingo Molnar <mingo@kernel.org>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux-MM <linux-mm@kvack.org>, kexec@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Manfred Spraul <manfred@colorfullife.com>
+On Tue, Jul 20, 2021 at 5:37 PM Christoph Hellwig <hch@infradead.org> wrote:
+>
+> This can be simplified a little more by killing off
+> copy_user_segment_list entirely, using memdup_user and dropping the
+> not really required _locked wrapper.  The locking move might make
+> most sense as a separate prep patch.
 
-Data loaded for use by some sorts of heuristics can tolerate the
-occasional erroneous value.  In this case the loads may use data_race()
-to give the compiler full freedom to optimize while also informing KCSAN
-of the intent.  However, for this to work, the heuristic needs to be
-able to tolerate any erroneous value that could possibly arise.  This
-commit therefore adds a paragraph spelling this out.
+Ok, I've integrated this as separate patches into my series now, will resend
+after some more build testing.
 
-Signed-off-by: Manfred Spraul <manfred@colorfullife.com>
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
----
- tools/memory-model/Documentation/access-marking.txt | 5 +++++
- 1 file changed, 5 insertions(+)
-
-diff --git a/tools/memory-model/Documentation/access-marking.txt b/tools/memory-model/Documentation/access-marking.txt
-index be7d507997cf8..fe4ad6d12d24c 100644
---- a/tools/memory-model/Documentation/access-marking.txt
-+++ b/tools/memory-model/Documentation/access-marking.txt
-@@ -126,6 +126,11 @@ consistent errors, which in turn are quite capable of breaking heuristics.
- Therefore use of data_race() should be limited to cases where some other
- code (such as a barrier() call) will force the occasional reload.
- 
-+Note that this use case requires that the heuristic be able to handle
-+any possible error.  In contrast, if the heuristics might be fatally
-+confused by one or more of the possible erroneous values, use READ_ONCE()
-+instead of data_race().
-+
- In theory, plain C-language loads can also be used for this use case.
- However, in practice this will have the disadvantage of causing KCSAN
- to generate false positives because KCSAN will have no way of knowing
--- 
-2.31.1.189.g2e36527f23
-
+      Arnd
