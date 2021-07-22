@@ -2,206 +2,152 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-20.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BB835C63799
-	for <linux-arch@archiver.kernel.org>; Thu, 22 Jul 2021 14:29:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 83C42C63797
+	for <linux-arch@archiver.kernel.org>; Thu, 22 Jul 2021 14:50:29 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A6A6E6101E
-	for <linux-arch@archiver.kernel.org>; Thu, 22 Jul 2021 14:29:41 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6470D61285
+	for <linux-arch@archiver.kernel.org>; Thu, 22 Jul 2021 14:50:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232493AbhGVNtF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 22 Jul 2021 09:49:05 -0400
-Received: from mail.kernel.org ([198.145.29.99]:45082 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S232416AbhGVNsy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Jul 2021 09:48:54 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id F14936127C;
-        Thu, 22 Jul 2021 14:29:26 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1626964169;
-        bh=EOoIV2dalOPoEOZSfB56YVD829AJM/wltGQv+39YEKM=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=eJPc+NbmXXXaKlj20nVhfscCVtIKkyAxPO7AioVBZYsLewdsbmpQIaYydtmRbVCuH
-         rd9PFjnJ/59OdaKmCuXeE0a/CM7uK6dJbxFhqCjvejP+RyaEAM26TCNCs5kNzkSleJ
-         z/z9I9kmy+XJ9YpsNVpzr58vQTXBcjzv0vdYR1Z5sRFgZyqMuGi4kpCBGG5iFMA5Ti
-         EeMjmsZwypvBDlya1Ck8MJ9MedeQR4CgiH9PLKEDqIjR/2mPGFcYGV//E/t8QkGrzT
-         HHnr14zixu2TEZr5MAZ6tcVgBaGyAGYZ8C2AGYPPKMSE6CCB5/rxFDreW1yfcqCItu
-         k5Su1ydchP2zA==
-From:   Arnd Bergmann <arnd@kernel.org>
-To:     netdev@vger.kernel.org
-Cc:     Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>,
-        Andrew Lunn <andrew@lunn.ch>, Christoph Hellwig <hch@lst.de>,
-        David Ahern <dsahern@kernel.org>,
-        "David S. Miller" <davem@davemloft.net>,
-        Eric Dumazet <edumazet@google.com>,
-        Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>,
-        Jakub Kicinski <kuba@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        Marco Elver <elver@google.com>, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org
-Subject: [PATCH net-next v6 4/6] net: socket: remove register_gifconf
-Date:   Thu, 22 Jul 2021 16:29:01 +0200
-Message-Id: <20210722142903.213084-5-arnd@kernel.org>
-X-Mailer: git-send-email 2.29.2
-In-Reply-To: <20210722142903.213084-1-arnd@kernel.org>
-References: <20210722142903.213084-1-arnd@kernel.org>
+        id S232464AbhGVOJx convert rfc822-to-8bit (ORCPT
+        <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 22 Jul 2021 10:09:53 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:39950 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232375AbhGVOJx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2021 10:09:53 -0400
+Received: from in02.mta.xmission.com ([166.70.13.52]:48098)
+        by out03.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1m6a1r-001nQ8-1s; Thu, 22 Jul 2021 08:50:27 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:53656 helo=email.xmission.com)
+        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1m6a1p-009t7o-Pi; Thu, 22 Jul 2021 08:50:26 -0600
+From:   ebiederm@xmission.com (Eric W. Biederman)
+To:     Michael Schmitz <schmitzmic@gmail.com>
+Cc:     geert@linux-m68k.org, linux-arch@vger.kernel.org,
+        linux-m68k@lists.linux-m68k.org, torvalds@linux-foundation.org,
+        schwab@linux-m68k.org
+References: <1624407696-20180-1-git-send-email-schmitzmic@gmail.com>
+        <87zgunzovm.fsf@disp2133>
+        <3b4f287b-7be2-0e7b-ae5a-6c11972601fb@gmail.com>
+        <1b656c02-925c-c4ba-03d3-f56075cdfac5@gmail.com>
+        <8735scvklk.fsf@disp2133>
+        <e9009e13-cfec-c494-0b3b-f334f75cd1e4@gmail.com>
+        <af434994-5c61-0e3a-c7bc-3ed966ccb44f@gmail.com>
+        <87h7gopvz2.fsf@disp2133>
+        <328e59fb-3e8c-e4cd-06b4-1975ce98614a@gmail.com>
+Date:   Thu, 22 Jul 2021 09:49:10 -0500
+In-Reply-To: <328e59fb-3e8c-e4cd-06b4-1975ce98614a@gmail.com> (Michael
+        Schmitz's message of "Wed, 21 Jul 2021 10:16:05 +1200")
+Message-ID: <877dhio13t.fsf@disp2133>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
+X-XM-SPF: eid=1m6a1p-009t7o-Pi;;;mid=<877dhio13t.fsf@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX1/ej+811tHbwtodrCZ2a0TVl7mUja4oBXU=
+X-SA-Exim-Connect-IP: 68.227.160.95
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: Re: [PATCH v4 0/3] m68k: Improved switch stack handling
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Arnd Bergmann <arnd@arndb.de>
+Michael Schmitz <schmitzmic@gmail.com> writes:
 
-Since dynamic registration of the gifconf() helper is only used for
-IPv4, and this can not be in a loadable module, this can be simplified
-noticeably by turning it into a direct function call as a preparation
-for cleaning up the compat handling.
+> Hi Eric,
+>
+> On 21/07/21 8:32 am, Eric W. Biederman wrote:
+>>
+>>> diff --git a/arch/m68k/fpsp040/skeleton.S b/arch/m68k/fpsp040/skeleton.S
+>>> index a8f4161..6c92d38 100644
+>>> --- a/arch/m68k/fpsp040/skeleton.S
+>>> +++ b/arch/m68k/fpsp040/skeleton.S
+>>> @@ -502,7 +502,17 @@ in_ea:
+>>>   	.section .fixup,#alloc,#execinstr
+>>>   	.even
+>>>   1:
+>>> +
+>>> +	SAVE_ALL_INT
+>>> +	SAVE_SWITCH_STACK
+>>          ^^^^^^^^^^
+>>
+>> I don't think this saves the registers in the well known fixed location
+>> on the stack because some registers are saved at the exception entry
+>> point.
+>
+> The FPU exception entry points are not using the exception entry code in
+> head.S. These entry points are stored in the exception vector table directly. No
+> saving of a syscall stack frame happens there. The FPU places its exception
+> frame on the stack, and that is what the FPU exception handlers use.
+>
+> (If these have to call out to the generic exception handlers again, they will
+> build a minimal stack frame, see code in skeleton.S.)
+>
+> Calling fpsp040_die() is no different from calling a syscall that may need to
+> have access to the full stack frame. The 'fixed location' is just 'on the stack
+> before calling  fpsp040_die()', again this is no different from calling
+> e.g. sys_fork() which does not take a pointer to the begin of the stack frame as
+> an argument.
+>
+> I must admit I never looked at how do_exit() figures out where the stack frame
+> containing the saved registers is stored, I just assumed it unwinds the stack up
+> to the point where the caller syscall was made, and works from there. The same
+> strategy ought to work here.
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
-changes in v6:
-- split register_gifconf from compat changes
----
- include/linux/inetdevice.h |  9 ++++++++
- include/linux/netdevice.h  |  8 -------
- net/core/dev_ioctl.c       | 43 +++++++++-----------------------------
- net/ipv4/devinet.c         |  4 +---
- 4 files changed, 20 insertions(+), 44 deletions(-)
+For do_exit the part we need to be careful with is PTRACE_EVENT_EXIT,
+which means it is ptrace that we need to look at.
 
-diff --git a/include/linux/inetdevice.h b/include/linux/inetdevice.h
-index 53aa0343bf69..67e042932681 100644
---- a/include/linux/inetdevice.h
-+++ b/include/linux/inetdevice.h
-@@ -178,6 +178,15 @@ static inline struct net_device *ip_dev_find(struct net *net, __be32 addr)
- 
- int inet_addr_onlink(struct in_device *in_dev, __be32 a, __be32 b);
- int devinet_ioctl(struct net *net, unsigned int cmd, struct ifreq *);
-+#ifdef CONFIG_INET
-+int inet_gifconf(struct net_device *dev, char __user *buf, int len, int size);
-+#else
-+static inline int inet_gifconf(struct net_device *dev, char __user *buf,
-+			       int len, int size)
-+{
-+	return 0;
-+}
-+#endif
- void devinet_init(void);
- struct in_device *inetdev_by_index(struct net *, int);
- __be32 inet_select_addr(const struct net_device *dev, __be32 dst, int scope);
-diff --git a/include/linux/netdevice.h b/include/linux/netdevice.h
-index 42f6f866d5f3..6630a9f0b0f0 100644
---- a/include/linux/netdevice.h
-+++ b/include/linux/netdevice.h
-@@ -3289,14 +3289,6 @@ static inline bool dev_has_header(const struct net_device *dev)
- 	return dev->header_ops && dev->header_ops->create;
- }
- 
--typedef int gifconf_func_t(struct net_device * dev, char __user * bufptr,
--			   int len, int size);
--int register_gifconf(unsigned int family, gifconf_func_t *gifconf);
--static inline int unregister_gifconf(unsigned int family)
--{
--	return register_gifconf(family, NULL);
--}
--
- #ifdef CONFIG_NET_FLOW_LIMIT
- #define FLOW_LIMIT_HISTORY	(1 << 7)  /* must be ^2 and !overflow buckets */
- struct sd_flow_limit {
-diff --git a/net/core/dev_ioctl.c b/net/core/dev_ioctl.c
-index 62f45da7ecfe..c22c3dc15ce9 100644
---- a/net/core/dev_ioctl.c
-+++ b/net/core/dev_ioctl.c
-@@ -1,6 +1,7 @@
- // SPDX-License-Identifier: GPL-2.0
- #include <linux/kmod.h>
- #include <linux/netdevice.h>
-+#include <linux/inetdevice.h>
- #include <linux/etherdevice.h>
- #include <linux/rtnetlink.h>
- #include <linux/net_tstamp.h>
-@@ -25,26 +26,6 @@ static int dev_ifname(struct net *net, struct ifreq *ifr)
- 	return netdev_get_name(net, ifr->ifr_name, ifr->ifr_ifindex);
- }
- 
--static gifconf_func_t *gifconf_list[NPROTO];
--
--/**
-- *	register_gifconf	-	register a SIOCGIF handler
-- *	@family: Address family
-- *	@gifconf: Function handler
-- *
-- *	Register protocol dependent address dumping routines. The handler
-- *	that is passed must not be freed or reused until it has been replaced
-- *	by another handler.
-- */
--int register_gifconf(unsigned int family, gifconf_func_t *gifconf)
--{
--	if (family >= NPROTO)
--		return -EINVAL;
--	gifconf_list[family] = gifconf;
--	return 0;
--}
--EXPORT_SYMBOL(register_gifconf);
--
- /*
-  *	Perform a SIOCGIFCONF call. This structure will change
-  *	size eventually, and there is nothing I can do about it.
-@@ -72,19 +53,15 @@ int dev_ifconf(struct net *net, struct ifconf *ifc, int size)
- 
- 	total = 0;
- 	for_each_netdev(net, dev) {
--		for (i = 0; i < NPROTO; i++) {
--			if (gifconf_list[i]) {
--				int done;
--				if (!pos)
--					done = gifconf_list[i](dev, NULL, 0, size);
--				else
--					done = gifconf_list[i](dev, pos + total,
--							       len - total, size);
--				if (done < 0)
--					return -EFAULT;
--				total += done;
--			}
--		}
-+		int done;
-+		if (!pos)
-+			done = inet_gifconf(dev, NULL, 0, size);
-+		else
-+			done = inet_gifconf(dev, pos + total,
-+					    len - total, size);
-+		if (done < 0)
-+			return -EFAULT;
-+		total += done;
- 	}
- 
- 	/*
-diff --git a/net/ipv4/devinet.c b/net/ipv4/devinet.c
-index 94b648d9eaff..c82aded8da7d 100644
---- a/net/ipv4/devinet.c
-+++ b/net/ipv4/devinet.c
-@@ -1243,7 +1243,7 @@ int devinet_ioctl(struct net *net, unsigned int cmd, struct ifreq *ifr)
- 	return ret;
- }
- 
--static int inet_gifconf(struct net_device *dev, char __user *buf, int len, int size)
-+int inet_gifconf(struct net_device *dev, char __user *buf, int len, int size)
- {
- 	struct in_device *in_dev = __in_dev_get_rtnl(dev);
- 	const struct in_ifaddr *ifa;
-@@ -2766,8 +2766,6 @@ void __init devinet_init(void)
- 		INIT_HLIST_HEAD(&inet_addr_lst[i]);
- 
- 	register_pernet_subsys(&devinet_ops);
--
--	register_gifconf(PF_INET, inet_gifconf);
- 	register_netdevice_notifier(&ip_netdev_notifier);
- 
- 	queue_delayed_work(system_power_efficient_wq, &check_lifetime_work, 0);
--- 
-2.29.2
+For m68k the code in put_reg and get_reg finds the registers by looking
+at task->thread.esp0.
 
+I was expecting m68k to use the same technique as alpha which expects a
+fixed offset from task_stack_page(task).
+
+So your code will work if you add code to update task->thread.esp0 which
+is also known as THREAD_ESP0 in entry.S
+
+>> Without being saved at the well known fixed location if some process
+>> stops in PTRACE_EVENT_EXIT in do_exit we likely get some complete
+>> gibberish.
+>>
+>> That is probably safe.
+>>
+>>>   	jbra	fpsp040_die
+>>> +	addql   #8,%sp
+>>> +	addql   #8,%sp
+>>> +	addql   #8,%sp
+>>> +	addql   #8,%sp
+>>> +	addql   #8,%sp
+>>> +	addql   #4,%sp
+>>> +	rts
+>> Especially as everything after jumping to fpsp040_die does not execute.
+>
+> Unless we change fpsp040_die() to call force_sig(SIGSEGV).
+
+Yes.  I think we would probably need to have it also call get_signal and
+all of that, because I don't think the very light call path for that
+exception includes testing if signals are pending.
+
+The way the code is structured it is actively incorrect to return from
+fpsp040_die, as the code does not know what to do if it reads a byte
+from userspace and there is nothing there.
+
+So instead of handling -EFAULT like most pieces of kernel code the code
+just immediately calls do_exit, and does not even attempt to handle
+the error.
+
+That is not my favorite strategy at all, but I suspect it isn't worth
+it, or safe to update the skeleton.S to handle errors.  Especially as we
+have not even figured out how to test that code yet.
+
+Eric
