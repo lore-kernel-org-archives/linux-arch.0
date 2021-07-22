@@ -7,21 +7,21 @@ X-Spam-Status: No, score=-10.2 required=3.0 tests=BAYES_00,
 	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 13084C63793
-	for <linux-arch@archiver.kernel.org>; Thu, 22 Jul 2021 16:26:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 50697C6377D
+	for <linux-arch@archiver.kernel.org>; Thu, 22 Jul 2021 16:26:54 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E172C61353
-	for <linux-arch@archiver.kernel.org>; Thu, 22 Jul 2021 16:26:26 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 398466135A
+	for <linux-arch@archiver.kernel.org>; Thu, 22 Jul 2021 16:26:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229530AbhGVPpu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 22 Jul 2021 11:45:50 -0400
-Received: from verein.lst.de ([213.95.11.211]:34919 "EHLO verein.lst.de"
+        id S229492AbhGVPqS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 22 Jul 2021 11:46:18 -0400
+Received: from verein.lst.de ([213.95.11.211]:34927 "EHLO verein.lst.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S229492AbhGVPpu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Jul 2021 11:45:50 -0400
+        id S229481AbhGVPqS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Jul 2021 11:46:18 -0400
 Received: by verein.lst.de (Postfix, from userid 2407)
-        id 29A4767373; Thu, 22 Jul 2021 18:26:23 +0200 (CEST)
-Date:   Thu, 22 Jul 2021 18:26:22 +0200
+        id 3E66D67373; Thu, 22 Jul 2021 18:26:51 +0200 (CEST)
+Date:   Thu, 22 Jul 2021 18:26:50 +0200
 From:   Christoph Hellwig <hch@lst.de>
 To:     Arnd Bergmann <arnd@kernel.org>
 Cc:     netdev@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
@@ -35,27 +35,18 @@ Cc:     netdev@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
         Kees Cook <keescook@chromium.org>,
         Marco Elver <elver@google.com>, linux-kernel@vger.kernel.org,
         linux-arch@vger.kernel.org
-Subject: Re: [PATCH net-next v6 5/6] net: socket: simplify dev_ifconf
- handling
-Message-ID: <20210722162622.GC9882@lst.de>
-References: <20210722142903.213084-1-arnd@kernel.org> <20210722142903.213084-6-arnd@kernel.org>
+Subject: Re: [PATCH net-next v6 6/6] net: socket: rework
+ compat_ifreq_ioctl()
+Message-ID: <20210722162650.GD9882@lst.de>
+References: <20210722142903.213084-1-arnd@kernel.org> <20210722142903.213084-7-arnd@kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20210722142903.213084-6-arnd@kernel.org>
+In-Reply-To: <20210722142903.213084-7-arnd@kernel.org>
 User-Agent: Mutt/1.5.17 (2007-11-01)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
-
-On Thu, Jul 22, 2021 at 04:29:02PM +0200, Arnd Bergmann wrote:
-> From: Arnd Bergmann <arnd@arndb.de>
-> 
-> The dev_ifconf() calling conventions make compat handling
-> more complicated than necessary, simplify this by moving
-> the in_compat_syscall() check into the function.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
 Looks good,
 
