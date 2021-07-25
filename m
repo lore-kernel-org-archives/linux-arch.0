@@ -2,87 +2,167 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.3 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_RED,
+	USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 06DD3C4338F
-	for <linux-arch@archiver.kernel.org>; Sun, 25 Jul 2021 11:54:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 19211C432BE
+	for <linux-arch@archiver.kernel.org>; Sun, 25 Jul 2021 20:48:40 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CEC5160F36
-	for <linux-arch@archiver.kernel.org>; Sun, 25 Jul 2021 11:54:00 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id F3AFE60E77
+	for <linux-arch@archiver.kernel.org>; Sun, 25 Jul 2021 20:48:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229538AbhGYLNZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 25 Jul 2021 07:13:25 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41294 "EHLO
+        id S230479AbhGYUIJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 25 Jul 2021 16:08:09 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45280 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229545AbhGYLNY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 25 Jul 2021 07:13:24 -0400
-Received: from mail-out.m-online.net (mail-out.m-online.net [IPv6:2001:a60:0:28:0:1:25:1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F1184C061757
-        for <linux-arch@vger.kernel.org>; Sun, 25 Jul 2021 04:53:54 -0700 (PDT)
-Received: from frontend01.mail.m-online.net (unknown [192.168.8.182])
-        by mail-out.m-online.net (Postfix) with ESMTP id 4GXhKX0PYNz1sByw;
-        Sun, 25 Jul 2021 13:53:52 +0200 (CEST)
-Received: from localhost (dynscan1.mnet-online.de [192.168.6.70])
-        by mail.m-online.net (Postfix) with ESMTP id 4GXhKW6r5Tz1rmXH;
-        Sun, 25 Jul 2021 13:53:51 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at mnet-online.de
-Received: from mail.mnet-online.de ([192.168.8.182])
-        by localhost (dynscan1.mail.m-online.net [192.168.6.70]) (amavisd-new, port 10024)
-        with ESMTP id B999Aqp59t7s; Sun, 25 Jul 2021 13:53:51 +0200 (CEST)
-X-Auth-Info: vXVOpj1x91SB9Ld/lYLuTCpSpXFNLeU0TFEGPZzfTlIM+Uw675N3m0ZDXWsRFUc0
-Received: from igel.home (ppp-46-244-170-80.dynamic.mnet-online.de [46.244.170.80])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.mnet-online.de (Postfix) with ESMTPSA;
-        Sun, 25 Jul 2021 13:53:51 +0200 (CEST)
-Received: by igel.home (Postfix, from userid 1000)
-        id AFD792C2589; Sun, 25 Jul 2021 13:53:50 +0200 (CEST)
-From:   Andreas Schwab <schwab@linux-m68k.org>
-To:     Michael Schmitz <schmitzmic@gmail.com>
-Cc:     "Eric W. Biederman" <ebiederm@xmission.com>, geert@linux-m68k.org,
-        linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
-        torvalds@linux-foundation.org
-Subject: Re: [PATCH v4 0/3] m68k: Improved switch stack handling
+        with ESMTP id S230477AbhGYUII (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 25 Jul 2021 16:08:08 -0400
+Received: from mail-pl1-x62a.google.com (mail-pl1-x62a.google.com [IPv6:2607:f8b0:4864:20::62a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 953ECC061757
+        for <linux-arch@vger.kernel.org>; Sun, 25 Jul 2021 13:48:37 -0700 (PDT)
+Received: by mail-pl1-x62a.google.com with SMTP id a20so9440446plm.0
+        for <linux-arch@vger.kernel.org>; Sun, 25 Jul 2021 13:48:37 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=subject:to:cc:references:from:message-id:date:user-agent
+         :mime-version:in-reply-to:content-transfer-encoding:content-language;
+        bh=+soFvlggdNemFNXTJHD7EfeCnCEyuBk0Q2su2ig+5L8=;
+        b=YbUUTDNk7o/e5YA1/aFcqfEKITpxP2h0EuKnA5r7WqwXnMivekCIcIQmbg1iwboQka
+         fMNAUchCEEB35l1T/bMYGc4Sco/iTnVs4acwuzDgPrUskiEFpXE7Wo7xeXm4WQ1ueKgZ
+         gpW4VqTCNPsKW2jzcpV9HwJ++paEjxxpS0eLdAAZQXnhUOezgKhIZxwQDlQIdDYuVJuM
+         J04nWgVmTOynoPC36dUcrRFZvLSu2oPivRCcC6GpKNEeN5Crtj4eM4KLw/79ufVw0Ra7
+         sC2yRovewpVjZboSunDlpEPTPt71zdToIv2FgNvAJE304e8VsiLCfXGcmAAI3ibkNOGl
+         uVvw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
+         :user-agent:mime-version:in-reply-to:content-transfer-encoding
+         :content-language;
+        bh=+soFvlggdNemFNXTJHD7EfeCnCEyuBk0Q2su2ig+5L8=;
+        b=piLlpWqQakzsYLNxyBlA/MI55ZrT9bHMf6HqaM0an5cMKgAizS1qgXrGYkDsaazlzX
+         Bree95th52qmHEsxAxmtyFQcRio+tWyKo4nSKJaKCkgPyYTcAVXg/slvzPzLFdH1+afL
+         dlLEIIs/X4F3GTk45yGUr6DroPCAV+xc3vY06Jl85NE4urFFt7BGLapwpb+GeMyetkcf
+         ogdAQvtPJblCdw+GN4RPiqxvVJ/0Bgo6GYKQ2Dzu+Bn3Xjbm2+KGeOAilJXEI1xcpLbW
+         NPiHXCcS83jLLjvhf+h7K3GsQHkMmnopUNt2hQIdcOPugO+9eobzrAsj8NRnl2AcfDRj
+         QxxQ==
+X-Gm-Message-State: AOAM531t1flS5arKzeKT5FpZfrVOuxdqd8XNxd/7DfXHFbquQM86Oz0c
+        m4+UOwNs5M54eY1JeXfnmkY=
+X-Google-Smtp-Source: ABdhPJxAwUjtf6aH2nU8kNF07zj4jThELQp/vaYPpNBhwADETnR0gtGwQwM2yIarqctVz6Yes5QGZg==
+X-Received: by 2002:a62:15c5:0:b029:32c:ea9f:a5ed with SMTP id 188-20020a6215c50000b029032cea9fa5edmr14360945pfv.27.1627246117087;
+        Sun, 25 Jul 2021 13:48:37 -0700 (PDT)
+Received: from ?IPv6:2001:df0:0:200c:29ad:8fa7:168b:a8c8? ([2001:df0:0:200c:29ad:8fa7:168b:a8c8])
+        by smtp.gmail.com with ESMTPSA id r128sm12785460pfc.155.2021.07.25.13.48.33
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sun, 25 Jul 2021 13:48:36 -0700 (PDT)
+Subject: Re: [PATCH v4 3/3] m68k: track syscalls being traced with shallow
+ user context stack
+To:     Geert Uytterhoeven <geert@linux-m68k.org>
+Cc:     Linux-Arch <linux-arch@vger.kernel.org>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        "Eric W. Biederman" <ebiederm@xmission.com>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Andreas Schwab <schwab@linux-m68k.org>
 References: <1624407696-20180-1-git-send-email-schmitzmic@gmail.com>
-        <87zgunzovm.fsf@disp2133>
-        <3b4f287b-7be2-0e7b-ae5a-6c11972601fb@gmail.com>
-        <1b656c02-925c-c4ba-03d3-f56075cdfac5@gmail.com>
-        <8735scvklk.fsf@disp2133>
-        <e9009e13-cfec-c494-0b3b-f334f75cd1e4@gmail.com>
-        <af434994-5c61-0e3a-c7bc-3ed966ccb44f@gmail.com>
-        <87h7gopvz2.fsf@disp2133>
-        <328e59fb-3e8c-e4cd-06b4-1975ce98614a@gmail.com>
-        <877dhio13t.fsf@disp2133>
-        <12992a3c-0740-f90e-aa4e-1ec1d8ea38f6@gmail.com>
-        <87tukkk6h3.fsf@disp2133>
-        <df6618bf-d1bc-4759-2d14-934c22d54a83@gmail.com>
-        <87eebn7w7y.fsf@igel.home>
-        <db43bef1-7938-4fc1-853d-c20d66521329@gmail.com>
-X-Yow:  SANTA CLAUS comes down a FIRE ESCAPE wearing bright
- blue LEG WARMERS..  He scrubs the POPE with a mild
- soap or detergent for 15 minutes, starring JANE FONDA!!
-Date:   Sun, 25 Jul 2021 13:53:50 +0200
-In-Reply-To: <db43bef1-7938-4fc1-853d-c20d66521329@gmail.com> (Michael
-        Schmitz's message of "Sun, 25 Jul 2021 19:44:11 +1200")
-Message-ID: <87y29u4njl.fsf@igel.home>
-User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/27.2 (gnu/linux)
+ <1624407696-20180-4-git-send-email-schmitzmic@gmail.com>
+ <CAMuHMdVA5d7z6awGrpJ+Tb3PRxz7Nczd_SLXZ=cAwsS8tFU_vg@mail.gmail.com>
+From:   Michael Schmitz <schmitzmic@gmail.com>
+Message-ID: <f99d3d82-150b-62fc-3b38-141710a4826e@gmail.com>
+Date:   Mon, 26 Jul 2021 08:48:30 +1200
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.11.0
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <CAMuHMdVA5d7z6awGrpJ+Tb3PRxz7Nczd_SLXZ=cAwsS8tFU_vg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Content-Language: en-US
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Jul 25 2021, Michael Schmitz wrote:
+Hi Geert,
 
-> I don't see that in ARAnyM.
+thanks for the feedback!
 
-ARAnyM lacks a lot in its fpu emulation.
+As far as I understand, Eric's 'refactor exit()' patch series has 
+obsoleted this band-aid fix of mine. The last remnant of code using 
+do_exit() is our fpsp040 copyin/copyout exception handling, and there's 
+another patch in testing for that. (I'd need access to a 040 hardware 
+setup to properly test that one, but that's a different matter.)
 
-Andreas.
+Eric, Andreas - please correct me if I'm wrong (again).
 
--- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 7578 EB47 D4E5 4D69 2510  2552 DF73 E780 A9DA AEC1
-"And now for something completely different."
+Just out of interest - what would be the correct way to set/clear a 
+single bit on Coldfire? Add/subtract the 1<<bit value?
+
+Cheers,
+
+     Michael
+
+
+On 25/07/21 10:05 pm, Geert Uytterhoeven wrote:
+> Hi Michael,
+>
+> On Wed, Jun 23, 2021 at 2:21 AM Michael Schmitz <schmitzmic@gmail.com> wrote:
+>> Add 'status' field to thread_info struct to hold syscall trace
+>> status info.
+>>
+>> Set flag bit in thread_info->status at syscall trace entry, clear
+>> flag bit on trace exit.
+>>
+>> Set another flag bit on entering syscall where the full stack
+>> frame has been saved. These flags can be checked whenever a
+>> syscall calls ptrace_stop().
+>>
+>> Check flag bits in get_reg()/put_reg() and prevent access to
+>> registers that are saved on the switch stack, in case the
+>> syscall did not actually save these registers on the switch
+>> stack.
+>>
+>> Tested on ARAnyM only - boots and survives running strace on a
+>> binary, nothing fancy.
+>>
+>> CC: Eric W. Biederman <ebiederm@xmission.com>
+>> CC: Linus Torvalds <torvalds@linux-foundation.org>
+>> CC: Andreas Schwab <schwab@linux-m68k.org>
+>> Signed-off-by: Michael Schmitz <schmitzmic@gmail.com>
+> Thanks for your patch!
+>
+>> --- a/arch/m68k/kernel/entry.S
+>> +++ b/arch/m68k/kernel/entry.S
+>> @@ -51,75 +51,115 @@
+>>
+>>   .text
+>>   ENTRY(__sys_fork)
+>> +       movel   %curptr@(TASK_STACK),%a1
+>> +       orb     #TIS_SWITCH_STACK, %a1@(TINFO_STATUS+3)
+> This doesn't work on Coldfire:
+>
+> arch/m68k/kernel/entry.S:55: Error: invalid instruction for this
+> architecture; needs 68000 or higher (68000 [68ec000, 68hc000, 68hc001,
+> 68008, 68302, 68306, 68307, 68322, 68356], 68010, 68020 [68k,
+> 68ec020], 68030 [68ec030], 68040 [68ec040], 68060 [68ec060], cpu32
+> [68330, 68331, 68332,
+>   68333, 68334, 68336, 68340, 68341, 68349, 68360], fidoa [fido]) --
+> statement `orb #(1<<1),%a1@(16+3)' ignored
+>
+>>          SAVE_SWITCH_STACK
+>>          jbsr    sys_fork
+>>          lea     %sp@(24),%sp
+>> +       movel   %curptr@(TASK_STACK),%a1
+>> +       andb    #TIS_NO_SWITCH_STACK, %a1@(TINFO_STATUS+3)
+> arch/m68k/kernel/entry.S:60: Error: invalid instruction for this
+> architecture; needs 68000 or higher (68000 [68ec000, 68hc000, 68hc001,
+> 68008, 68302, 68306, 68307, 68322, 68356], 68010, 68020 [68k,
+> 68ec020], 68030 [68ec030], 68040 [68ec040], 68060 [68ec060], cpu32
+> [68330, 68331, 68332, 68333, 68334, 68336, 68340, 68341, 68349,
+> 68360], fidoa [fido]) -- statement `andb #(~((1<<1))),%a1@(16+3)'
+> ignored
+>
+>>          rts
+> Gr{oetje,eeting}s,
+>
+>                          Geert
+>
