@@ -5,41 +5,41 @@ X-Spam-Level:
 X-Spam-Status: No, score=-19.7 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 554B7C4338F
-	for <linux-arch@archiver.kernel.org>; Mon, 26 Jul 2021 14:12:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 817E0C432BE
+	for <linux-arch@archiver.kernel.org>; Mon, 26 Jul 2021 14:12:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3BBFC60560
-	for <linux-arch@archiver.kernel.org>; Mon, 26 Jul 2021 14:12:10 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6E9BF60F58
+	for <linux-arch@archiver.kernel.org>; Mon, 26 Jul 2021 14:12:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234477AbhGZNbi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 26 Jul 2021 09:31:38 -0400
-Received: from mail.kernel.org ([198.145.29.99]:43172 "EHLO mail.kernel.org"
+        id S234498AbhGZNbk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 26 Jul 2021 09:31:40 -0400
+Received: from mail.kernel.org ([198.145.29.99]:43014 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S234271AbhGZNb0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Jul 2021 09:31:26 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 9A9B460F9D;
-        Mon, 26 Jul 2021 14:11:53 +0000 (UTC)
+        id S234398AbhGZNbc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Jul 2021 09:31:32 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 6CEF360560;
+        Mon, 26 Jul 2021 14:11:59 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1627308715;
-        bh=Lzb0rI8ezKQ/fVredrC1398NDBNvAdJ5u5ejW/DHsXk=;
+        s=k20201202; t=1627308721;
+        bh=k/+0BZVT585d7LUcyfp2e8qjSIzc/iRFeep7rM6abm8=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=sTg05R2g9pqjCuxEEH5ZiQzNKE76zEqQvKr1GsizTDii1s2zsKda+s7AKDdzusPst
-         esUwO3T4gVTOR9znMBhSzQEJ9OjMMeS4sDeCo2SWJQ93PXVVHrYzfqc93ak8blDXzY
-         0mfyOm5wM6qq/W+xuKZYz1leIfYVAP1a/uafMaZPRjO5owWZlEoyxKu6On2pJXUko8
-         XVrzwjPVV9TJWOUlRsFaOVoa1sPoyKfo/pD0Pdloj80el3PIvqzn/prcg3zujFgfqP
-         D8xMpYqG5wN2K7/MzuODsQ/3ktkRALfVkdbH4wFT0FADx2DsvRwgwXmpVfptbC8C68
-         D89sDQqLV3QTw==
+        b=BDqgP1ODlxzPWY/5clREbQWr4CDGiw84LHLWwYuRndOlHCJ/eg631+MMGzxold+li
+         smxh4VUWITzTdBiGdQiDlZR5LCSNQ6H4FaM9oJmwiVDEsbPyVk4g8tUs4zxQEBVygd
+         jbHQLoX8ouYmFOPkJvdTojD5fnxq0ceq/zZBoufSV9SYflQKMNCv02pPa7z8A2x09g
+         P6fGt7mcplSy8Ra7HoJ14AQtA4ApJ3AHtliHyFFY9x/y78xpfSRIkm4rI0XfdCoStu
+         YsQ4VICijEoSlCbntQOktrM7x+Z7BVzhkgP91FOv4ZZwGvEuM43Eit+LlfuZ07YUBW
+         dwrgNm44IQOwg==
 From:   Arnd Bergmann <arnd@kernel.org>
 To:     Russell King <linux@armlinux.org.uk>
 Cc:     Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org,
         linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
         linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>,
         Linus Walleij <linus.walleij@linaro.org>
-Subject: [PATCH v5 04/10] ARM: syscall: always store thread_info->abi_syscall
-Date:   Mon, 26 Jul 2021 16:11:35 +0200
-Message-Id: <20210726141141.2839385-5-arnd@kernel.org>
+Subject: [PATCH v5 07/10] ARM: oabi-compat: rework fcntl64() emulation
+Date:   Mon, 26 Jul 2021 16:11:38 +0200
+Message-Id: <20210726141141.2839385-8-arnd@kernel.org>
 X-Mailer: git-send-email 2.29.2
 In-Reply-To: <20210726141141.2839385-1-arnd@kernel.org>
 References: <20210726141141.2839385-1-arnd@kernel.org>
@@ -51,187 +51,138 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Arnd Bergmann <arnd@arndb.de>
 
-The system call number is used in a a couple of places, in particular
-ptrace, seccomp and /proc/<pid>/syscall.
+This is one of the last users of get_fs(), and this is fairly easy to
+change, since the infrastructure for it is already there.
 
-The last one apparently never worked reliably on ARM for tasks that are
-not currently getting traced.
-
-Storing the syscall number in the normal entry path makes it work,
-as well as allowing us to see if the current system call is for OABI
-compat mode, which is the next thing I want to hook into.
-
-Since the thread_info->syscall field is not just the number any more, it
-is now renamed to abi_syscall. In kernels that enable both OABI and EABI,
-the upper bits of this field encode 0x900000 (__NR_OABI_SYSCALL_BASE)
-for OABI tasks, while normal EABI tasks do not set the upper bits. This
-makes it possible to implement the in_oabi_syscall() helper later.
-
-All other users of thread_info->syscall go through the syscall_get_nr()
-helper, which in turn filters out the ABI bits.
-
-Note that the ABI information is lost with PTRACE_SET_SYSCALL, so one
-cannot set the internal number to a particular version, but this was
-already the case. We could change it to let gdb encode the ABI type along
-with the syscall in a CONFIG_OABI_COMPAT-enabled kernel, but that itself
-would be a (backwards-compatible) ABI change, so I don't do it here.
+The replacement here is essentially a copy of the existing fcntl64()
+syscall entry function.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arm/include/asm/syscall.h     |  5 ++++-
- arch/arm/include/asm/thread_info.h |  2 +-
- arch/arm/include/uapi/asm/unistd.h |  1 +
- arch/arm/kernel/asm-offsets.c      |  1 +
- arch/arm/kernel/entry-common.S     |  8 ++++++--
- arch/arm/kernel/ptrace.c           | 14 ++++++++------
- 6 files changed, 21 insertions(+), 10 deletions(-)
+ arch/arm/kernel/sys_oabi-compat.c | 93 ++++++++++++++++++++-----------
+ 1 file changed, 60 insertions(+), 33 deletions(-)
 
-diff --git a/arch/arm/include/asm/syscall.h b/arch/arm/include/asm/syscall.h
-index fd02761ba06c..f055e846a5cc 100644
---- a/arch/arm/include/asm/syscall.h
-+++ b/arch/arm/include/asm/syscall.h
-@@ -22,7 +22,10 @@ extern const unsigned long sys_call_table[];
- static inline int syscall_get_nr(struct task_struct *task,
- 				 struct pt_regs *regs)
+diff --git a/arch/arm/kernel/sys_oabi-compat.c b/arch/arm/kernel/sys_oabi-compat.c
+index 5ea365c35ca5..223ee46b6e75 100644
+--- a/arch/arm/kernel/sys_oabi-compat.c
++++ b/arch/arm/kernel/sys_oabi-compat.c
+@@ -194,56 +194,83 @@ struct oabi_flock64 {
+ 	pid_t	l_pid;
+ } __attribute__ ((packed,aligned(4)));
+ 
+-static long do_locks(unsigned int fd, unsigned int cmd,
+-				 unsigned long arg)
++static int get_oabi_flock(struct flock64 *kernel, struct oabi_flock64 __user *arg)
  {
--	return task_thread_info(task)->syscall;
-+	if (IS_ENABLED(CONFIG_AEABI) && !IS_ENABLED(CONFIG_OABI_COMPAT))
-+		return task_thread_info(task)->abi_syscall;
+-	struct flock64 kernel;
+ 	struct oabi_flock64 user;
+-	mm_segment_t fs;
+-	long ret;
+ 
+ 	if (copy_from_user(&user, (struct oabi_flock64 __user *)arg,
+ 			   sizeof(user)))
+ 		return -EFAULT;
+-	kernel.l_type	= user.l_type;
+-	kernel.l_whence	= user.l_whence;
+-	kernel.l_start	= user.l_start;
+-	kernel.l_len	= user.l_len;
+-	kernel.l_pid	= user.l_pid;
+-
+-	fs = get_fs();
+-	set_fs(KERNEL_DS);
+-	ret = sys_fcntl64(fd, cmd, (unsigned long)&kernel);
+-	set_fs(fs);
+-
+-	if (!ret && (cmd == F_GETLK64 || cmd == F_OFD_GETLK)) {
+-		user.l_type	= kernel.l_type;
+-		user.l_whence	= kernel.l_whence;
+-		user.l_start	= kernel.l_start;
+-		user.l_len	= kernel.l_len;
+-		user.l_pid	= kernel.l_pid;
+-		if (copy_to_user((struct oabi_flock64 __user *)arg,
+-				 &user, sizeof(user)))
+-			ret = -EFAULT;
+-	}
+-	return ret;
 +
-+	return task_thread_info(task)->abi_syscall & __NR_SYSCALL_MASK;
++	kernel->l_type	 = user.l_type;
++	kernel->l_whence = user.l_whence;
++	kernel->l_start	 = user.l_start;
++	kernel->l_len	 = user.l_len;
++	kernel->l_pid	 = user.l_pid;
++
++	return 0;
++}
++
++static int put_oabi_flock(struct flock64 *kernel, struct oabi_flock64 __user *arg)
++{
++	struct oabi_flock64 user;
++
++	user.l_type	= kernel->l_type;
++	user.l_whence	= kernel->l_whence;
++	user.l_start	= kernel->l_start;
++	user.l_len	= kernel->l_len;
++	user.l_pid	= kernel->l_pid;
++
++	if (copy_to_user((struct oabi_flock64 __user *)arg,
++			 &user, sizeof(user)))
++		return -EFAULT;
++
++	return 0;
  }
  
- static inline void syscall_rollback(struct task_struct *task,
-diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/asm/thread_info.h
-index 70d4cbc49ae1..17c56051747b 100644
---- a/arch/arm/include/asm/thread_info.h
-+++ b/arch/arm/include/asm/thread_info.h
-@@ -62,7 +62,7 @@ struct thread_info {
- 	unsigned long		stack_canary;
- #endif
- 	struct cpu_context_save	cpu_context;	/* cpu context */
--	__u32			syscall;	/* syscall number */
-+	__u32			abi_syscall;	/* ABI type and syscall nr */
- 	__u8			used_cp[16];	/* thread used copro */
- 	unsigned long		tp_value[2];	/* TLS registers */
- #ifdef CONFIG_CRUNCH
-diff --git a/arch/arm/include/uapi/asm/unistd.h b/arch/arm/include/uapi/asm/unistd.h
-index ae7749e15726..a1149911464c 100644
---- a/arch/arm/include/uapi/asm/unistd.h
-+++ b/arch/arm/include/uapi/asm/unistd.h
-@@ -15,6 +15,7 @@
- #define _UAPI__ASM_ARM_UNISTD_H
- 
- #define __NR_OABI_SYSCALL_BASE	0x900000
-+#define __NR_SYSCALL_MASK	0x0fffff
- 
- #if defined(__thumb__) || defined(__ARM_EABI__)
- #define __NR_SYSCALL_BASE	0
-diff --git a/arch/arm/kernel/asm-offsets.c b/arch/arm/kernel/asm-offsets.c
-index 70993af22d80..a0945b898ca3 100644
---- a/arch/arm/kernel/asm-offsets.c
-+++ b/arch/arm/kernel/asm-offsets.c
-@@ -48,6 +48,7 @@ int main(void)
-   DEFINE(TI_CPU,		offsetof(struct thread_info, cpu));
-   DEFINE(TI_CPU_DOMAIN,		offsetof(struct thread_info, cpu_domain));
-   DEFINE(TI_CPU_SAVE,		offsetof(struct thread_info, cpu_context));
-+  DEFINE(TI_ABI_SYSCALL,	offsetof(struct thread_info, abi_syscall));
-   DEFINE(TI_USED_CP,		offsetof(struct thread_info, used_cp));
-   DEFINE(TI_TP_VALUE,		offsetof(struct thread_info, tp_value));
-   DEFINE(TI_FPSTATE,		offsetof(struct thread_info, fpstate));
-diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
-index 7f0b7aba1498..e837af90cd44 100644
---- a/arch/arm/kernel/entry-common.S
-+++ b/arch/arm/kernel/entry-common.S
-@@ -226,6 +226,7 @@ ENTRY(vector_swi)
- 	/* saved_psr and saved_pc are now dead */
- 
- 	uaccess_disable tbl
-+	get_thread_info tsk
- 
- 	adr	tbl, sys_call_table		@ load syscall table pointer
- 
-@@ -237,13 +238,17 @@ ENTRY(vector_swi)
- 	 * get the old ABI syscall table address.
- 	 */
- 	bics	r10, r10, #0xff000000
-+	strne	r10, [tsk, #TI_ABI_SYSCALL]
-+	streq	scno, [tsk, #TI_ABI_SYSCALL]
- 	eorne	scno, r10, #__NR_OABI_SYSCALL_BASE
- 	ldrne	tbl, =sys_oabi_call_table
- #elif !defined(CONFIG_AEABI)
- 	bic	scno, scno, #0xff000000		@ mask off SWI op-code
-+	str	scno, [tsk, #TI_ABI_SYSCALL]
- 	eor	scno, scno, #__NR_SYSCALL_BASE	@ check OS number
-+#else
-+	str	scno, [tsk, #TI_ABI_SYSCALL]
- #endif
--	get_thread_info tsk
- 	/*
- 	 * Reload the registers that may have been corrupted on entry to
- 	 * the syscall assembly (by tracing or context tracking.)
-@@ -288,7 +293,6 @@ ENDPROC(vector_swi)
- 	 * context switches, and waiting for our parent to respond.
- 	 */
- __sys_trace:
--	mov	r1, scno
- 	add	r0, sp, #S_OFF
- 	bl	syscall_trace_enter
- 	mov	scno, r0
-diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
-index 2771e682220b..d886ea8910cb 100644
---- a/arch/arm/kernel/ptrace.c
-+++ b/arch/arm/kernel/ptrace.c
-@@ -25,6 +25,7 @@
- #include <linux/tracehook.h>
- #include <linux/unistd.h>
- 
-+#include <asm/syscall.h>
- #include <asm/traps.h>
- 
- #define CREATE_TRACE_POINTS
-@@ -811,7 +812,8 @@ long arch_ptrace(struct task_struct *child, long request,
- 			break;
- 
- 		case PTRACE_SET_SYSCALL:
--			task_thread_info(child)->syscall = data;
-+			task_thread_info(child)->abi_syscall = data &
-+							__NR_SYSCALL_MASK;
- 			ret = 0;
- 			break;
- 
-@@ -880,14 +882,14 @@ static void tracehook_report_syscall(struct pt_regs *regs,
- 	if (dir == PTRACE_SYSCALL_EXIT)
- 		tracehook_report_syscall_exit(regs, 0);
- 	else if (tracehook_report_syscall_entry(regs))
--		current_thread_info()->syscall = -1;
-+		current_thread_info()->abi_syscall = -1;
- 
- 	regs->ARM_ip = ip;
- }
- 
--asmlinkage int syscall_trace_enter(struct pt_regs *regs, int scno)
-+asmlinkage int syscall_trace_enter(struct pt_regs *regs)
+ asmlinkage long sys_oabi_fcntl64(unsigned int fd, unsigned int cmd,
+ 				 unsigned long arg)
  {
--	current_thread_info()->syscall = scno;
-+	int scno;
++	void __user *argp = (void __user *)arg;
++	struct fd f = fdget_raw(fd);
++	struct flock64 flock;
++	long err = -EBADF;
++
++	if (!f.file)
++		goto out;
++
+ 	switch (cmd) {
+-	case F_OFD_GETLK:
+-	case F_OFD_SETLK:
+-	case F_OFD_SETLKW:
+ 	case F_GETLK64:
++	case F_OFD_GETLK:
++		err = security_file_fcntl(f.file, cmd, arg);
++		if (err)
++			break;
++		err = get_oabi_flock(&flock, argp);
++		if (err)
++			break;
++		err = fcntl_getlk64(f.file, cmd, &flock);
++		if (!err)
++		       err = put_oabi_flock(&flock, argp);
++		break;
+ 	case F_SETLK64:
+ 	case F_SETLKW64:
+-		return do_locks(fd, cmd, arg);
+-
++	case F_OFD_SETLK:
++	case F_OFD_SETLKW:
++		err = security_file_fcntl(f.file, cmd, arg);
++		if (err)
++			break;
++		err = get_oabi_flock(&flock, argp);
++		if (err)
++			break;
++		err = fcntl_setlk64(fd, f.file, cmd, &flock);
++		break;
+ 	default:
+-		return sys_fcntl64(fd, cmd, arg);
++		err = sys_fcntl64(fd, cmd, arg);
++		break;
+ 	}
++	fdput(f);
++out:
++	return err;
+ }
  
- 	if (test_thread_flag(TIF_SYSCALL_TRACE))
- 		tracehook_report_syscall(regs, PTRACE_SYSCALL_ENTER);
-@@ -898,11 +900,11 @@ asmlinkage int syscall_trace_enter(struct pt_regs *regs, int scno)
- 		return -1;
- #else
- 	/* XXX: remove this once OABI gets fixed */
--	secure_computing_strict(current_thread_info()->syscall);
-+	secure_computing_strict(syscall_get_nr(current, regs));
- #endif
- 
- 	/* Tracer or seccomp may have changed syscall. */
--	scno = current_thread_info()->syscall;
-+	scno = syscall_get_nr(current, regs);
- 
- 	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
- 		trace_sys_enter(regs, scno);
+ struct oabi_epoll_event {
 -- 
 2.29.2
 
