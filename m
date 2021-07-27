@@ -7,30 +7,30 @@ X-Spam-Status: No, score=-19.7 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 90D6DC25AEA
-	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 14:51:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1D1DCC4320A
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 14:52:07 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 661CA61AF7
-	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 14:51:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0D61C61B04
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 14:52:07 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237078AbhG0Ous (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 27 Jul 2021 10:50:48 -0400
-Received: from mail.kernel.org ([198.145.29.99]:36248 "EHLO mail.kernel.org"
+        id S236760AbhG0Ou2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 27 Jul 2021 10:50:28 -0400
+Received: from mail.kernel.org ([198.145.29.99]:36020 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S236916AbhG0Ott (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S236881AbhG0Ott (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Tue, 27 Jul 2021 10:49:49 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id D161461B00;
-        Tue, 27 Jul 2021 14:49:31 +0000 (UTC)
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 190B261AFF;
+        Tue, 27 Jul 2021 14:49:19 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1627397377;
-        bh=waF0yGZ/74FCKFwfsSHiFG6HeMntkph0RFHmK2X6nWk=;
+        s=k20201202; t=1627397365;
+        bh=czPyPIxu2PTKCugBK9YtQzlToUphKkxEXLs4PNmX7jg=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=XenONNoSK2cLncTqqJgIRWkdacJuUk3tCFtmqztNrzRf62E+2ZdCK0GnSIsIu+dlv
-         qcGEi/Iz+oPD42JhJdKaGksnfmuNWft0N/+iDUWeJ7rsoW+OWZ/k6dWpnQNBt8+kwz
-         dexqr+/4ut9vd2esm0RkG/KrcnY4zQzJKKhBn/yKPmH2x9fmtb66Xptq19HxJPEV88
-         wP2JALUBp2AhG0A5obwSEHOqw/gKNp57a1ov3O6nCYs5EhuqCiqke2DVgzbogxYnQ6
-         nDvN8P5s3b6EsJxE0INjFM3F2whAxtmFr66NDXEk2sJaVnRy/+I3N2hf+RsC784t9S
-         6SVvPCVxy9a/w==
+        b=S5U4Sw6RZr+k+Bx+qsSik83rWJ1gJ3J+Xnjocua3sMYzOKHbVYjQfC9+EelM8p+bs
+         4yYTcFQ7ggj7/9L/nDbgjY7ayt505P/zljlokLVPofqFMQrEvNVfoW9HMuU4TqA0Co
+         TdN+v3mbVV1heJZaRF5cU7QERPA97113HBKPcg2JvNFknquwsyW9tlVacdjnIMqXSX
+         giQafSwRthQmNq0eRh7VJskmn2tjqTQ0Upx5ScJFTxOr6ZLAaYFUTQjrmyn933A70S
+         74C6f/8vRnm4eN8EXBJeJORsy9hMmPFHVQgiyP9SqQifHV6cf8WoTCKh6RQ+RTwTdh
+         dqfKPOvYSQEWw==
 From:   Arnd Bergmann <arnd@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     Arnd Bergmann <arnd@arndb.de>,
@@ -57,11 +57,10 @@ Cc:     Arnd Bergmann <arnd@arndb.de>,
         linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
         linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
         sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-api@vger.kernel.org, linux-mm@kvack.org,
-        Christoph Hellwig <hch@lst.de>
-Subject: [PATCH v5 3/6] mm: simplify compat_sys_move_pages
-Date:   Tue, 27 Jul 2021 16:48:56 +0200
-Message-Id: <20210727144859.4150043-4-arnd@kernel.org>
+        linux-api@vger.kernel.org, linux-mm@kvack.org
+Subject: [PATCH v5 1/6] kexec: move locking into do_kexec_load
+Date:   Tue, 27 Jul 2021 16:48:54 +0200
+Message-Id: <20210727144859.4150043-2-arnd@kernel.org>
 X-Mailer: git-send-email 2.29.2
 In-Reply-To: <20210727144859.4150043-1-arnd@kernel.org>
 References: <20210727144859.4150043-1-arnd@kernel.org>
@@ -73,91 +72,111 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Arnd Bergmann <arnd@arndb.de>
 
-The compat move_pages() implementation uses compat_alloc_user_space()
-for converting the pointer array. Moving the compat handling into
-the function itself is a bit simpler and lets us avoid the
-compat_alloc_user_space() call.
+The locking is the same between the native and compat version of
+sys_kexec_load(), so it can be done in the common implementation
+to reduce duplication.
 
-Reviewed-by: Christoph Hellwig <hch@lst.de>
+Co-developed-by: Eric Biederman <ebiederm@xmission.com>
+Co-developed-by: Christoph Hellwig <hch@infradead.org>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- mm/migrate.c | 45 ++++++++++++++++++++++++++++++---------------
- 1 file changed, 30 insertions(+), 15 deletions(-)
+ kernel/kexec.c | 44 ++++++++++++++++----------------------------
+ 1 file changed, 16 insertions(+), 28 deletions(-)
 
-diff --git a/mm/migrate.c b/mm/migrate.c
-index 34a9ad3e0a4f..60634d2653b9 100644
---- a/mm/migrate.c
-+++ b/mm/migrate.c
-@@ -1820,6 +1820,23 @@ static void do_pages_stat_array(struct mm_struct *mm, unsigned long nr_pages,
- 	mmap_read_unlock(mm);
+diff --git a/kernel/kexec.c b/kernel/kexec.c
+index c82c6c06f051..9c7aef8f4bb6 100644
+--- a/kernel/kexec.c
++++ b/kernel/kexec.c
+@@ -110,6 +110,17 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
+ 	unsigned long i;
+ 	int ret;
+ 
++	/*
++	 * Because we write directly to the reserved memory region when loading
++	 * crash kernels we need a mutex here to prevent multiple crash kernels
++	 * from attempting to load simultaneously, and to prevent a crash kernel
++	 * from loading over the top of a in use crash kernel.
++	 *
++	 * KISS: always take the mutex.
++	 */
++	if (!mutex_trylock(&kexec_mutex))
++		return -EBUSY;
++
+ 	if (flags & KEXEC_ON_CRASH) {
+ 		dest_image = &kexec_crash_image;
+ 		if (kexec_crash_image)
+@@ -121,7 +132,8 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
+ 	if (nr_segments == 0) {
+ 		/* Uninstall image */
+ 		kimage_free(xchg(dest_image, NULL));
+-		return 0;
++		ret = 0;
++		goto out_unlock;
+ 	}
+ 	if (flags & KEXEC_ON_CRASH) {
+ 		/*
+@@ -134,7 +146,7 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
+ 
+ 	ret = kimage_alloc_init(&image, entry, nr_segments, segments, flags);
+ 	if (ret)
+-		return ret;
++		goto out_unlock;
+ 
+ 	if (flags & KEXEC_PRESERVE_CONTEXT)
+ 		image->preserve_context = 1;
+@@ -171,6 +183,8 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
+ 		arch_kexec_protect_crashkres();
+ 
+ 	kimage_free(image);
++out_unlock:
++	mutex_unlock(&kexec_mutex);
+ 	return ret;
  }
  
-+static int get_compat_pages_array(const void __user *chunk_pages[],
-+				  const void __user * __user *pages,
-+				  unsigned long chunk_nr)
-+{
-+	compat_uptr_t __user *pages32 = (compat_uptr_t __user *)pages;
-+	compat_uptr_t p;
-+	int i;
-+
-+	for (i = 0; i < chunk_nr; i++) {
-+		if (get_user(p, pages32 + i))
-+			return -EFAULT;
-+		chunk_pages[i] = compat_ptr(p);
-+	}
-+
-+	return 0;
-+}
-+
- /*
-  * Determine the nodes of a user array of pages and store it in
-  * a user array of status.
-@@ -1839,8 +1856,15 @@ static int do_pages_stat(struct mm_struct *mm, unsigned long nr_pages,
- 		if (chunk_nr > DO_PAGES_STAT_CHUNK_NR)
- 			chunk_nr = DO_PAGES_STAT_CHUNK_NR;
+@@ -247,21 +261,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+ 		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
+ 		return -EINVAL;
  
--		if (copy_from_user(chunk_pages, pages, chunk_nr * sizeof(*chunk_pages)))
--			break;
-+		if (in_compat_syscall()) {
-+			if (get_compat_pages_array(chunk_pages, pages,
-+						   chunk_nr))
-+				break;
-+		} else {
-+			if (copy_from_user(chunk_pages, pages,
-+				      chunk_nr * sizeof(*chunk_pages)))
-+				break;
-+		}
- 
- 		do_pages_stat_array(mm, chunk_nr, chunk_pages, chunk_status);
- 
-@@ -1945,23 +1969,14 @@ SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
- 
- #ifdef CONFIG_COMPAT
- COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
--		       compat_uptr_t __user *, pages32,
-+		       compat_uptr_t __user *, pages,
- 		       const int __user *, nodes,
- 		       int __user *, status,
- 		       int, flags)
- {
--	const void __user * __user *pages;
--	int i;
+-	/* Because we write directly to the reserved memory
+-	 * region when loading crash kernels we need a mutex here to
+-	 * prevent multiple crash  kernels from attempting to load
+-	 * simultaneously, and to prevent a crash kernel from loading
+-	 * over the top of a in use crash kernel.
+-	 *
+-	 * KISS: always take the mutex.
+-	 */
+-	if (!mutex_trylock(&kexec_mutex))
+-		return -EBUSY;
 -
--	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
--	for (i = 0; i < nr_pages; i++) {
--		compat_uptr_t p;
+ 	result = do_kexec_load(entry, nr_segments, segments, flags);
+ 
+-	mutex_unlock(&kexec_mutex);
 -
--		if (get_user(p, pages32 + i) ||
--			put_user(compat_ptr(p), pages + i))
--			return -EFAULT;
--	}
--	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
-+	return kernel_move_pages(pid, nr_pages,
-+				 (const void __user *__user *)pages,
-+				 nodes, status, flags);
+ 	return result;
  }
- #endif /* CONFIG_COMPAT */
  
+@@ -301,21 +302,8 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+ 			return -EFAULT;
+ 	}
+ 
+-	/* Because we write directly to the reserved memory
+-	 * region when loading crash kernels we need a mutex here to
+-	 * prevent multiple crash  kernels from attempting to load
+-	 * simultaneously, and to prevent a crash kernel from loading
+-	 * over the top of a in use crash kernel.
+-	 *
+-	 * KISS: always take the mutex.
+-	 */
+-	if (!mutex_trylock(&kexec_mutex))
+-		return -EBUSY;
+-
+ 	result = do_kexec_load(entry, nr_segments, ksegments, flags);
+ 
+-	mutex_unlock(&kexec_mutex);
+-
+ 	return result;
+ }
+ #endif
 -- 
 2.29.2
 
