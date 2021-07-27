@@ -2,42 +2,46 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-19.7 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1D1DCC4320A
-	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 14:52:07 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C99D9C4338F
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 15:08:05 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 0D61C61B04
-	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 14:52:07 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A167E61B23
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 15:08:05 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236760AbhG0Ou2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 27 Jul 2021 10:50:28 -0400
-Received: from mail.kernel.org ([198.145.29.99]:36020 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S236881AbhG0Ott (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jul 2021 10:49:49 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 190B261AFF;
-        Tue, 27 Jul 2021 14:49:19 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1627397365;
-        bh=czPyPIxu2PTKCugBK9YtQzlToUphKkxEXLs4PNmX7jg=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=S5U4Sw6RZr+k+Bx+qsSik83rWJ1gJ3J+Xnjocua3sMYzOKHbVYjQfC9+EelM8p+bs
-         4yYTcFQ7ggj7/9L/nDbgjY7ayt505P/zljlokLVPofqFMQrEvNVfoW9HMuU4TqA0Co
-         TdN+v3mbVV1heJZaRF5cU7QERPA97113HBKPcg2JvNFknquwsyW9tlVacdjnIMqXSX
-         giQafSwRthQmNq0eRh7VJskmn2tjqTQ0Upx5ScJFTxOr6ZLAaYFUTQjrmyn933A70S
-         74C6f/8vRnm4eN8EXBJeJORsy9hMmPFHVQgiyP9SqQifHV6cf8WoTCKh6RQ+RTwTdh
-         dqfKPOvYSQEWw==
-From:   Arnd Bergmann <arnd@kernel.org>
-To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     Arnd Bergmann <arnd@arndb.de>,
+        id S232499AbhG0PID (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 27 Jul 2021 11:08:03 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57346 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232328AbhG0PID (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Jul 2021 11:08:03 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DEB76C061757;
+        Tue, 27 Jul 2021 08:08:02 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=wVt0blQj5cMNKK3RgGAsWldsmx4Nl3QUZ8dtyk7ITIw=; b=ZBdwDYuic7LwFr25GXHm7eDLta
+        83Fh/NTGn8WFh+rf+r8oSPxdv/zHWOdR+URvLjid7yh0XEkw6LcHg5G0vemJJgT24meRxB8QAZO4X
+        05eZDwqoEkZN+9SKIK61Q0Ak+2miPYCwN3X87QCboCnyBQVCg6pNmnz7Odu114s2wM+N2SrU8GXqf
+        SWnomiaZeXM4Elw2F5p08FKGCvXVnE2mDoByrj5wFEKlalaoT7OUFCkLXW3eM+gT3cL7/F0tq9faq
+        B13XbrPu1WdAAKAlaABUE0rPrOi/I4snCG0mAJhB6kKA4SRWaA6wCH3a9yxKaqU+IUkciUfsYQOnT
+        VRbSOgSQ==;
+Received: from hch by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1m8OYl-00F7jB-UP; Tue, 27 Jul 2021 15:00:05 +0000
+Date:   Tue, 27 Jul 2021 15:59:55 +0100
+From:   Christoph Hellwig <hch@infradead.org>
+To:     Arnd Bergmann <arnd@kernel.org>
+Cc:     Andrew Morton <akpm@linux-foundation.org>,
+        Arnd Bergmann <arnd@arndb.de>,
         Catalin Marinas <catalin.marinas@arm.com>,
         Will Deacon <will@kernel.org>,
         Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
         Helge Deller <deller@gmx.de>,
         Michael Ellerman <mpe@ellerman.id.au>,
         Benjamin Herrenschmidt <benh@kernel.crashing.org>,
@@ -58,125 +62,21 @@ Cc:     Arnd Bergmann <arnd@arndb.de>,
         linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
         sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
         linux-api@vger.kernel.org, linux-mm@kvack.org
-Subject: [PATCH v5 1/6] kexec: move locking into do_kexec_load
-Date:   Tue, 27 Jul 2021 16:48:54 +0200
-Message-Id: <20210727144859.4150043-2-arnd@kernel.org>
-X-Mailer: git-send-email 2.29.2
-In-Reply-To: <20210727144859.4150043-1-arnd@kernel.org>
+Subject: Re: [PATCH v5 0/6] compat: remove compat_alloc_user_space
+Message-ID: <YQAfa6iObAwwIpzb@infradead.org>
 References: <20210727144859.4150043-1-arnd@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20210727144859.4150043-1-arnd@kernel.org>
+X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by casper.infradead.org. See http://www.infradead.org/rpr.html
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Arnd Bergmann <arnd@arndb.de>
+On Tue, Jul 27, 2021 at 04:48:53PM +0200, Arnd Bergmann wrote:
+> Since these patches are now all that remains, it would be nice to
+> merge it all through Andrew's Linux-mm tree, which is already based
+> on top of linux-next.
 
-The locking is the same between the native and compat version of
-sys_kexec_load(), so it can be done in the common implementation
-to reduce duplication.
-
-Co-developed-by: Eric Biederman <ebiederm@xmission.com>
-Co-developed-by: Christoph Hellwig <hch@infradead.org>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- kernel/kexec.c | 44 ++++++++++++++++----------------------------
- 1 file changed, 16 insertions(+), 28 deletions(-)
-
-diff --git a/kernel/kexec.c b/kernel/kexec.c
-index c82c6c06f051..9c7aef8f4bb6 100644
---- a/kernel/kexec.c
-+++ b/kernel/kexec.c
-@@ -110,6 +110,17 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
- 	unsigned long i;
- 	int ret;
- 
-+	/*
-+	 * Because we write directly to the reserved memory region when loading
-+	 * crash kernels we need a mutex here to prevent multiple crash kernels
-+	 * from attempting to load simultaneously, and to prevent a crash kernel
-+	 * from loading over the top of a in use crash kernel.
-+	 *
-+	 * KISS: always take the mutex.
-+	 */
-+	if (!mutex_trylock(&kexec_mutex))
-+		return -EBUSY;
-+
- 	if (flags & KEXEC_ON_CRASH) {
- 		dest_image = &kexec_crash_image;
- 		if (kexec_crash_image)
-@@ -121,7 +132,8 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
- 	if (nr_segments == 0) {
- 		/* Uninstall image */
- 		kimage_free(xchg(dest_image, NULL));
--		return 0;
-+		ret = 0;
-+		goto out_unlock;
- 	}
- 	if (flags & KEXEC_ON_CRASH) {
- 		/*
-@@ -134,7 +146,7 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
- 
- 	ret = kimage_alloc_init(&image, entry, nr_segments, segments, flags);
- 	if (ret)
--		return ret;
-+		goto out_unlock;
- 
- 	if (flags & KEXEC_PRESERVE_CONTEXT)
- 		image->preserve_context = 1;
-@@ -171,6 +183,8 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
- 		arch_kexec_protect_crashkres();
- 
- 	kimage_free(image);
-+out_unlock:
-+	mutex_unlock(&kexec_mutex);
- 	return ret;
- }
- 
-@@ -247,21 +261,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
- 		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
- 		return -EINVAL;
- 
--	/* Because we write directly to the reserved memory
--	 * region when loading crash kernels we need a mutex here to
--	 * prevent multiple crash  kernels from attempting to load
--	 * simultaneously, and to prevent a crash kernel from loading
--	 * over the top of a in use crash kernel.
--	 *
--	 * KISS: always take the mutex.
--	 */
--	if (!mutex_trylock(&kexec_mutex))
--		return -EBUSY;
--
- 	result = do_kexec_load(entry, nr_segments, segments, flags);
- 
--	mutex_unlock(&kexec_mutex);
--
- 	return result;
- }
- 
-@@ -301,21 +302,8 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
- 			return -EFAULT;
- 	}
- 
--	/* Because we write directly to the reserved memory
--	 * region when loading crash kernels we need a mutex here to
--	 * prevent multiple crash  kernels from attempting to load
--	 * simultaneously, and to prevent a crash kernel from loading
--	 * over the top of a in use crash kernel.
--	 *
--	 * KISS: always take the mutex.
--	 */
--	if (!mutex_trylock(&kexec_mutex))
--		return -EBUSY;
--
- 	result = do_kexec_load(entry, nr_segments, ksegments, flags);
- 
--	mutex_unlock(&kexec_mutex);
--
- 	return result;
- }
- #endif
--- 
-2.29.2
-
+Is it?
