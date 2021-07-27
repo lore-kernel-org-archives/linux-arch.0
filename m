@@ -2,117 +2,217 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-19.7 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C28EFC4320A
-	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 14:13:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B1503C4338F
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 14:50:50 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id AC0CB61ABF
-	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 14:13:03 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9AF0661AFD
+	for <linux-arch@archiver.kernel.org>; Tue, 27 Jul 2021 14:50:50 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236928AbhG0ONC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 27 Jul 2021 10:13:02 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44602 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236947AbhG0ONB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Jul 2021 10:13:01 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A7CBAC061798
-        for <linux-arch@vger.kernel.org>; Tue, 27 Jul 2021 07:12:59 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=VnK52OWYi84+uO266Vk3zzmCHEf63b7EE1GA3SbnZ98=; b=n+4ImEHWH4j3Vxly/qqLXnyOid
-        AqduGSypjaToKFYior6+O2rN50YOt/pUyEdfJq1QqIAWlR56JA73HR28bFN0v8qaf5QiI7dFYwk9p
-        H1j/SEkr2oAJw8QflLFeEp/5mkAR5+NrimKjqjGmqZWMSG49pUZdxQ1l/4Jgb3sojOts+VpUweZhm
-        3qxnk/XfSlvi4Xft2Gdo2IcP31MnGyuCCUt8xrlOI9rvIjli3gCkOwEK9U/396SFOs8x/EYZqG7ii
-        55QbiJ5KR800S4Uthdauuaqoyg39Nv86svpkZMkQCKG6BsfV6z2zLpKwsTkq4LJYbTrDgk/w2ewhe
-        cnP6HchA==;
-Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1m8Nmc-00F5Ot-1J; Tue, 27 Jul 2021 14:10:32 +0000
-Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits))
-        (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 0798B300233;
-        Tue, 27 Jul 2021 16:10:07 +0200 (CEST)
-Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
-        id C54D921398335; Tue, 27 Jul 2021 16:10:07 +0200 (CEST)
-Date:   Tue, 27 Jul 2021 16:10:07 +0200
-From:   Peter Zijlstra <peterz@infradead.org>
-To:     Nicholas Piggin <npiggin@gmail.com>
-Cc:     Huacai Chen <chenhuacai@loongson.cn>,
-        David Airlie <airlied@linux.ie>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Huacai Chen <chenhuacai@gmail.com>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        linux-arch@vger.kernel.org, Xuefeng Li <lixuefeng@loongson.cn>,
-        Andy Lutomirski <luto@kernel.org>,
+        id S236703AbhG0Ouq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 27 Jul 2021 10:50:46 -0400
+Received: from mail.kernel.org ([198.145.29.99]:36102 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S236909AbhG0Ott (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jul 2021 10:49:49 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id F238F61B05;
+        Tue, 27 Jul 2021 14:49:25 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1627397371;
+        bh=uEwQ9C0cLg3IwMIORY/37dlh5O4fu4jNkU/FjsRvIrE=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=kj/IVvXy3JHWkqM0XFNYDPQdxSxj8JggLNuER9Hto8/iywRcIWO4ntU+1XOU+vznN
+         nwEKRsA+VKIKup4+NtVyRDYRpls5U2TXGCwqj3BJNmiv5sKmAucefRYvBWnZGg/gWZ
+         c82xtneZYpDFHr8DZcbROOlVG3lPysp9nfW3etc11bBGulX+P5auZXokAklC34LE09
+         zwwS/wKlWBr3BJYnxmJQmo/nNvm9893oVZ0YfCEUg2WJgjbqKzN5nBIr50IymV9mHv
+         xGRSVKAvWuWMXXuS4LWxtdDEitvbuLrJU8AGGYaPMslKu0GUWYCUOcXlo8lTk6GhMM
+         d1I9fnI2UDWGQ==
+From:   Arnd Bergmann <arnd@kernel.org>
+To:     Andrew Morton <akpm@linux-foundation.org>
+Cc:     Arnd Bergmann <arnd@arndb.de>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+        Helge Deller <deller@gmx.de>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Vasily Gorbik <gor@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@de.ibm.com>,
+        "David S. Miller" <davem@davemloft.net>,
         Thomas Gleixner <tglx@linutronix.de>,
-        Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 06/19] LoongArch: Add exception/interrupt handling
-Message-ID: <YQATv/MahhrKUu8Z@hirez.programming.kicks-ass.net>
-References: <20210706041820.1536502-1-chenhuacai@loongson.cn>
- <20210706041820.1536502-7-chenhuacai@loongson.cn>
- <YOQ5UBa0xYf7kAjg@hirez.programming.kicks-ass.net>
- <1625665981.7hbs7yesxx.astroid@bobo.none>
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        "Eric W. Biederman" <ebiederm@xmission.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        Feng Tang <feng.tang@intel.com>,
+        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
+        sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-api@vger.kernel.org, linux-mm@kvack.org
+Subject: [PATCH v5 2/6] kexec: avoid compat_alloc_user_space
+Date:   Tue, 27 Jul 2021 16:48:55 +0200
+Message-Id: <20210727144859.4150043-3-arnd@kernel.org>
+X-Mailer: git-send-email 2.29.2
+In-Reply-To: <20210727144859.4150043-1-arnd@kernel.org>
+References: <20210727144859.4150043-1-arnd@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1625665981.7hbs7yesxx.astroid@bobo.none>
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Jul 07, 2021 at 11:56:37PM +1000, Nicholas Piggin wrote:
-> Excerpts from Peter Zijlstra's message of July 6, 2021 9:06 pm:
-> > On Tue, Jul 06, 2021 at 12:18:07PM +0800, Huacai Chen wrote:
-> >> +	.align	5	/* 32 byte rollback region */
-> >> +SYM_FUNC_START(__arch_cpu_idle)
-> >> +	/* start of rollback region */
-> >> +	LONG_L	t0, tp, TI_FLAGS
-> >> +	nop
-> >> +	andi	t0, t0, _TIF_NEED_RESCHED
-> >> +	bnez	t0, 1f
-> >> +	nop
-> >> +	nop
-> >> +	nop
-> >> +	idle	0
-> >> +	/* end of rollback region */
-> >> +1:
-> >> +	jirl	zero, ra, 0
-> >> +SYM_FUNC_END(__arch_cpu_idle)
-> > 
-> >> +/*
-> >> + * Common Vectored Interrupt
-> >> + * Complete the register saves and invoke the do_vi() handler
-> >> + */
-> >> +SYM_FUNC_START(except_vec_vi_handler)
-> >> +	la	t1, __arch_cpu_idle
-> >> +	LONG_L  t0, sp, PT_EPC
-> >> +	/* 32 byte rollback region */
-> >> +	ori	t0, t0, 0x1f
-> >> +	xori	t0, t0, 0x1f
-> >> +	bne	t0, t1, 1f
-> >> +	LONG_S  t0, sp, PT_EPC
-> > 
-> > Seriously, you're having your interrupt handler recover from the idle
-> > race? On a *new* architecture?
-> 
-> It's heavily derived from MIPS (does that make the wholesale replacement 
-> of arch/mips copyright headers a bit questionable?).
-> 
-> I don't think it's such a bad trick though -- restartable sequences 
-> before they were cool. It can let you save an irq disable in some
-> cases (depending on the arch of course).
+From: Arnd Bergmann <arnd@arndb.de>
 
-In this case you're making *every* interrupt slower. Simply adding a new
-idle instruction, one that can be called with interrupts disabled and
-will terminate on a pending interrupt, would've solved the issues much
-nicer and reclaimed the cycles spend on this restart trick.
+kimage_alloc_init() expects a __user pointer, so compat_sys_kexec_load()
+uses compat_alloc_user_space() to convert the layout and put it back
+onto the user space caller stack.
+
+Moving the user space access into the syscall handler directly actually
+makes the code simpler, as the conversion for compat mode can now be
+done on kernel memory.
+
+Co-developed-by: Eric Biederman <ebiederm@xmission.com>
+Co-developed-by: Christoph Hellwig <hch@infradead.org>
+Link: https://lore.kernel.org/lkml/YPbtsU4GX6PL7%2F42@infradead.org/
+Link: https://lore.kernel.org/lkml/m1y2cbzmnw.fsf@fess.ebiederm.org/
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ kernel/kexec.c | 61 +++++++++++++++++++++-----------------------------
+ 1 file changed, 25 insertions(+), 36 deletions(-)
+
+diff --git a/kernel/kexec.c b/kernel/kexec.c
+index 9c7aef8f4bb6..b5e40f069768 100644
+--- a/kernel/kexec.c
++++ b/kernel/kexec.c
+@@ -19,26 +19,9 @@
+ 
+ #include "kexec_internal.h"
+ 
+-static int copy_user_segment_list(struct kimage *image,
+-				  unsigned long nr_segments,
+-				  struct kexec_segment __user *segments)
+-{
+-	int ret;
+-	size_t segment_bytes;
+-
+-	/* Read in the segments */
+-	image->nr_segments = nr_segments;
+-	segment_bytes = nr_segments * sizeof(*segments);
+-	ret = copy_from_user(image->segment, segments, segment_bytes);
+-	if (ret)
+-		ret = -EFAULT;
+-
+-	return ret;
+-}
+-
+ static int kimage_alloc_init(struct kimage **rimage, unsigned long entry,
+ 			     unsigned long nr_segments,
+-			     struct kexec_segment __user *segments,
++			     struct kexec_segment *segments,
+ 			     unsigned long flags)
+ {
+ 	int ret;
+@@ -58,10 +41,8 @@ static int kimage_alloc_init(struct kimage **rimage, unsigned long entry,
+ 		return -ENOMEM;
+ 
+ 	image->start = entry;
+-
+-	ret = copy_user_segment_list(image, nr_segments, segments);
+-	if (ret)
+-		goto out_free_image;
++	image->nr_segments = nr_segments;
++	memcpy(image->segment, segments, nr_segments * sizeof(*segments));
+ 
+ 	if (kexec_on_panic) {
+ 		/* Enable special crash kernel control page alloc policy. */
+@@ -104,7 +85,7 @@ static int kimage_alloc_init(struct kimage **rimage, unsigned long entry,
+ }
+ 
+ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
+-		struct kexec_segment __user *segments, unsigned long flags)
++		struct kexec_segment *segments, unsigned long flags)
+ {
+ 	struct kimage **dest_image, *image;
+ 	unsigned long i;
+@@ -250,7 +231,8 @@ static inline int kexec_load_check(unsigned long nr_segments,
+ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+ 		struct kexec_segment __user *, segments, unsigned long, flags)
+ {
+-	int result;
++	struct kexec_segment *ksegments;
++	unsigned long result;
+ 
+ 	result = kexec_load_check(nr_segments, flags);
+ 	if (result)
+@@ -261,7 +243,12 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+ 		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
+ 		return -EINVAL;
+ 
+-	result = do_kexec_load(entry, nr_segments, segments, flags);
++	ksegments = memdup_user(segments, nr_segments * sizeof(ksegments[0]));
++	if (IS_ERR(ksegments))
++		return PTR_ERR(ksegments);
++
++	result = do_kexec_load(entry, nr_segments, ksegments, flags);
++	kfree(ksegments);
+ 
+ 	return result;
+ }
+@@ -273,7 +260,7 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+ 		       compat_ulong_t, flags)
+ {
+ 	struct compat_kexec_segment in;
+-	struct kexec_segment out, __user *ksegments;
++	struct kexec_segment *ksegments;
+ 	unsigned long i, result;
+ 
+ 	result = kexec_load_check(nr_segments, flags);
+@@ -286,24 +273,26 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+ 	if ((flags & KEXEC_ARCH_MASK) == KEXEC_ARCH_DEFAULT)
+ 		return -EINVAL;
+ 
+-	ksegments = compat_alloc_user_space(nr_segments * sizeof(out));
++	ksegments = kmalloc_array(nr_segments, sizeof(ksegments[0]),
++			GFP_KERNEL);
++	if (!ksegments)
++		return -ENOMEM;
++
+ 	for (i = 0; i < nr_segments; i++) {
+ 		result = copy_from_user(&in, &segments[i], sizeof(in));
+ 		if (result)
+-			return -EFAULT;
++			goto fail;
+ 
+-		out.buf   = compat_ptr(in.buf);
+-		out.bufsz = in.bufsz;
+-		out.mem   = in.mem;
+-		out.memsz = in.memsz;
+-
+-		result = copy_to_user(&ksegments[i], &out, sizeof(out));
+-		if (result)
+-			return -EFAULT;
++		ksegments[i].buf   = compat_ptr(in.buf);
++		ksegments[i].bufsz = in.bufsz;
++		ksegments[i].mem   = in.mem;
++		ksegments[i].memsz = in.memsz;
+ 	}
+ 
+ 	result = do_kexec_load(entry, nr_segments, ksegments, flags);
+ 
++fail:
++	kfree(ksegments);
+ 	return result;
+ }
+ #endif
+-- 
+2.29.2
 
