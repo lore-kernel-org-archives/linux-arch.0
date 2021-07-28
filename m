@@ -2,109 +2,124 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1FB28C432BE
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 01:31:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0D1FFC4320E
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 08:07:16 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 04C1760F91
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 01:31:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E534C60F41
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 08:07:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234662AbhG1Bbh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 27 Jul 2021 21:31:37 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59428 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234616AbhG1Bbh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Jul 2021 21:31:37 -0400
-Received: from mail-pj1-x102d.google.com (mail-pj1-x102d.google.com [IPv6:2607:f8b0:4864:20::102d])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 040D1C061765
-        for <linux-arch@vger.kernel.org>; Tue, 27 Jul 2021 18:31:36 -0700 (PDT)
-Received: by mail-pj1-x102d.google.com with SMTP id mt6so2756628pjb.1
-        for <linux-arch@vger.kernel.org>; Tue, 27 Jul 2021 18:31:35 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=kernel-dk.20150623.gappssmtp.com; s=20150623;
-        h=subject:to:cc:references:from:message-id:date:user-agent
-         :mime-version:in-reply-to:content-language:content-transfer-encoding;
-        bh=yHc64D7GeFGFvPKcL3/klEXdsXGAyEbOGkW4X7dqYZk=;
-        b=fhSYS231qJ3sqkIYNi8KPw8MsfS0+ziEaNeUJJgkWRoGnsw+X6Zela3vLGucwxsOnQ
-         T/2eQecJMaDAtj1/fJv4pRgNYPjG5MBwhmQRzKVK7XHucRr9VlsyFnemk7Az0cFRvaoj
-         SXA55eSG8LWFjpI5M4/vVkrChJvWZRFUIvXxtX/YyI6Hetmvo8xUU0IsYqW0uPaYORh+
-         7fbNsmk6bU1nDAoUQ8bBanH/4Fg5DnH45lOS4h8rnJCcsSof3DVR671BuFi4Ezu9qGFc
-         pniezhy1QlK6TDYbbPRo+6/gzTozJcEPXqbmDtUTOLhYVoF+8NtbsE0cFeksRw7VSH/K
-         7dzg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
-         :user-agent:mime-version:in-reply-to:content-language
-         :content-transfer-encoding;
-        bh=yHc64D7GeFGFvPKcL3/klEXdsXGAyEbOGkW4X7dqYZk=;
-        b=FyqJYLBNMEtsZhPrfEpki3cknx68TsXn92Z6CBM8EBTEcZTOfguTVB2yneZx08+N0Q
-         n4suwdvWDytwPbolpQ6PdcjSEncFnLR7ZRi0uFrrsYnn8rZ/INglUVBPa2tzmo0Jalnr
-         z4SIDgpVTBwpbeshxGEpRwc/cxTefBZTHEKaVseA0ldoVVy12Tua0R4B8icrm+kwXA7O
-         pKRzMUvSPt0vneOYLETV286U8aZhhlHYKpi4D6RoJ2uS8SLzrtifaWVmqQglwmH4Ibmc
-         M0sh9riIzhK8txZffKm5l9AYiEVGRN8es6is+Pdg3QKR79YPC/XQNo3uUeyJ5iRlLXWj
-         yLvQ==
-X-Gm-Message-State: AOAM5331Z5QTxkH/FxJSXzZX3dZxZOo6PTaBL4zND9+mj7PAo3iAAhjH
-        6FQwYtE+lRp9jGY5EmZdq+KzW4w5nc0Liwk1
-X-Google-Smtp-Source: ABdhPJzWMYJQkYrSLemCw68WHvxxx2yrrdVHcAiwavOx0x2TeSqkNy6ZylLwTbIdJTyjO+rAuqNUqw==
-X-Received: by 2002:a62:b414:0:b029:317:52d:7fd5 with SMTP id h20-20020a62b4140000b0290317052d7fd5mr25840599pfn.30.1627435895354;
-        Tue, 27 Jul 2021 18:31:35 -0700 (PDT)
-Received: from [192.168.1.116] ([198.8.77.61])
-        by smtp.gmail.com with ESMTPSA id a16sm5054336pfo.66.2021.07.27.18.31.32
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 27 Jul 2021 18:31:34 -0700 (PDT)
-Subject: Re: switch the block layer to use kmap_local_page v3
-To:     Christoph Hellwig <hch@lst.de>,
-        Thomas Gleixner <tglx@linutronix.de>
-Cc:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Geoff Levand <geoff@infradead.org>,
-        Ilya Dryomov <idryomov@gmail.com>,
-        Dongsheng Yang <dongsheng.yang@easystack.cn>,
-        Mike Snitzer <snitzer@redhat.com>,
-        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
-        Ira Weiny <ira.weiny@intel.com>, dm-devel@redhat.com,
-        linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-block@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        ceph-devel@vger.kernel.org, linux-arch@vger.kernel.org
-References: <20210727055646.118787-1-hch@lst.de>
-From:   Jens Axboe <axboe@kernel.dk>
-Message-ID: <eba0b98f-5b0e-32c4-3b09-fa1946192517@kernel.dk>
-Date:   Tue, 27 Jul 2021 19:31:30 -0600
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
- Thunderbird/68.10.0
+        id S235088AbhG1IHP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Jul 2021 04:07:15 -0400
+Received: from szxga02-in.huawei.com ([45.249.212.188]:12416 "EHLO
+        szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S234556AbhG1IHO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2021 04:07:14 -0400
+Received: from dggemv704-chm.china.huawei.com (unknown [172.30.72.56])
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4GZR4Z5S8jzcjVG;
+        Wed, 28 Jul 2021 16:03:42 +0800 (CST)
+Received: from dggpemm500001.china.huawei.com (7.185.36.107) by
+ dggemv704-chm.china.huawei.com (10.3.19.47) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2176.2; Wed, 28 Jul 2021 16:07:11 +0800
+Received: from localhost.localdomain.localdomain (10.175.113.25) by
+ dggpemm500001.china.huawei.com (7.185.36.107) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2176.2; Wed, 28 Jul 2021 16:07:10 +0800
+From:   Kefeng Wang <wangkefeng.wang@huawei.com>
+To:     <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
+        <linux-kernel@vger.kernel.org>, <linuxppc-dev@lists.ozlabs.org>,
+        <rostedt@goodmis.org>, <mingo@redhat.com>, <davem@davemloft.net>,
+        <ast@kernel.org>, <ryabinin.a.a@gmail.com>
+CC:     <mpe@ellerman.id.au>, <benh@kernel.crashing.org>,
+        <paulus@samba.org>, Kefeng Wang <wangkefeng.wang@huawei.com>
+Subject: [PATCH v2 1/7] kallsyms: Remove arch specific text and data check
+Date:   Wed, 28 Jul 2021 16:13:14 +0800
+Message-ID: <20210728081320.20394-2-wangkefeng.wang@huawei.com>
+X-Mailer: git-send-email 2.26.2
+In-Reply-To: <20210728081320.20394-1-wangkefeng.wang@huawei.com>
+References: <20210728081320.20394-1-wangkefeng.wang@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <20210727055646.118787-1-hch@lst.de>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 7BIT
+Content-Type:   text/plain; charset=US-ASCII
+X-Originating-IP: [10.175.113.25]
+X-ClientProxiedBy: dggems704-chm.china.huawei.com (10.3.19.181) To
+ dggpemm500001.china.huawei.com (7.185.36.107)
+X-CFilter-Loop: Reflected
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 7/26/21 11:56 PM, Christoph Hellwig wrote:
-> Hi all,
-> 
-> this series switches the core block layer code and all users of the
-> existing bvec kmap helpers to use kmap_local_page.  Drivers that
-> currently use open coded kmap_atomic calls will converted in a follow
-> on series.
-> 
-> To do so a new kunmap variant is added that calls
-> flush_kernel_dcache_page.  I'm not entirely sure where to call
-> flush_dcache_page vs flush_kernel_dcache_page, so I've tried to follow
-> the documentation here, but additional feedback would be welcome.
-> 
-> Note that the ps3disk has a minir conflict with the
-> flush_kernel_dcache_page removal in linux-next through the -mm tree.
-> I had hoped that change would go into 5.14, but it seems like it is
-> being held for 5.15.
+After commit 4ba66a976072 ("arch: remove blackfin port"),
+no need arch-specific text/data check.
 
-Applied for 5.15, thanks.
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
+---
+ include/asm-generic/sections.h | 16 ----------------
+ include/linux/kallsyms.h       |  3 +--
+ kernel/locking/lockdep.c       |  3 ---
+ 3 files changed, 1 insertion(+), 21 deletions(-)
 
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index d16302d3eb59..817309e289db 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -64,22 +64,6 @@ extern __visible const void __nosave_begin, __nosave_end;
+ #define dereference_kernel_function_descriptor(p) ((void *)(p))
+ #endif
+ 
+-/* random extra sections (if any).  Override
+- * in asm/sections.h */
+-#ifndef arch_is_kernel_text
+-static inline int arch_is_kernel_text(unsigned long addr)
+-{
+-	return 0;
+-}
+-#endif
+-
+-#ifndef arch_is_kernel_data
+-static inline int arch_is_kernel_data(unsigned long addr)
+-{
+-	return 0;
+-}
+-#endif
+-
+ /*
+  * Check if an address is part of freed initmem. This is needed on architectures
+  * with virt == phys kernel mapping, for code that wants to check if an address
+diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
+index 6851c2313cad..2a241e3f063f 100644
+--- a/include/linux/kallsyms.h
++++ b/include/linux/kallsyms.h
+@@ -34,8 +34,7 @@ static inline int is_kernel_inittext(unsigned long addr)
+ 
+ static inline int is_kernel_text(unsigned long addr)
+ {
+-	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext) ||
+-	    arch_is_kernel_text(addr))
++	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext))
+ 		return 1;
+ 	return in_gate_area_no_mm(addr);
+ }
+diff --git a/kernel/locking/lockdep.c b/kernel/locking/lockdep.c
+index bf1c00c881e4..64b17e995108 100644
+--- a/kernel/locking/lockdep.c
++++ b/kernel/locking/lockdep.c
+@@ -803,9 +803,6 @@ static int static_obj(const void *obj)
+ 	if ((addr >= start) && (addr < end))
+ 		return 1;
+ 
+-	if (arch_is_kernel_data(addr))
+-		return 1;
+-
+ 	/*
+ 	 * in-kernel percpu var?
+ 	 */
 -- 
-Jens Axboe
+2.26.2
 
