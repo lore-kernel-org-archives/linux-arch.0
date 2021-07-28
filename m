@@ -2,189 +2,130 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-12.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
+	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F0DD0C432BE
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 16:11:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7BD6EC432BE
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 16:28:10 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id DBD8260F23
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 16:11:11 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 645C06101B
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 16:28:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237209AbhG1QLJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 28 Jul 2021 12:11:09 -0400
-Received: from out02.mta.xmission.com ([166.70.13.232]:47446 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237456AbhG1QKf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2021 12:10:35 -0400
-Received: from in01.mta.xmission.com ([166.70.13.51]:32964)
-        by out02.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1m8m8G-007CzP-LA; Wed, 28 Jul 2021 10:10:09 -0600
-Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:41378 helo=email.xmission.com)
-        by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1m8m8C-00A9Pq-J2; Wed, 28 Jul 2021 10:10:08 -0600
-From:   ebiederm@xmission.com (Eric W. Biederman)
-To:     Arnd Bergmann <arnd@kernel.org>
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
-        Arnd Bergmann <arnd@arndb.de>,
+        id S230086AbhG1Q2L (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Jul 2021 12:28:11 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38612 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229806AbhG1Q2K (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2021 12:28:10 -0400
+Received: from mail-io1-xd30.google.com (mail-io1-xd30.google.com [IPv6:2607:f8b0:4864:20::d30])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C084DC061757;
+        Wed, 28 Jul 2021 09:28:07 -0700 (PDT)
+Received: by mail-io1-xd30.google.com with SMTP id f11so3630581ioj.3;
+        Wed, 28 Jul 2021 09:28:07 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:content-transfer-encoding:in-reply-to;
+        bh=AF4TJrGWFJFMtVLuei7JHJB4Gj1GjFvl4JwVKfpCTQg=;
+        b=N4dFDdweMRNGIxbTls1wouDVv77PoGKNvdayOSofsdxbOx+HYtPYODvvE2cufKyswB
+         2lABzznnLC/fwRL1Ev/ZT2LJgrwE3FCxHwkBgcGhxeTLrpUhiLzWfNDPWeNtOMHCw2MT
+         VUknTvdIAHPjj/xH8t/G9d0MN6m5wJPWid7c92vAT4ji6dX/duT14dYthsuv5AiTcCQm
+         vzq0Km+9MmKJCe7GROt/D5Qm++HHzhvlXaPUXkAMKi4ojMOa6pfWxkdE/pLFaIIP9pPY
+         S8RlROTfGWLoS/AdI/ch+nmftRxakXYe04STS9mICjkUYsYEqTE3QwtKrPSoFTe1f2yH
+         vU+A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:content-transfer-encoding
+         :in-reply-to;
+        bh=AF4TJrGWFJFMtVLuei7JHJB4Gj1GjFvl4JwVKfpCTQg=;
+        b=CRxtWONnzmvLZEPqmbraQQbtDmo13TzvtSovhKvk2u0cKiOscF1OVAg5NhQwXu/I6m
+         iy3bw345zAekMIG9aABpA/DyHRxH/5zGIB+bG4Pl+6z8nIjSHp/u03fHnGcL0InHurWp
+         xao6p0qcI/KAEDeqJWPsRBjEU0AgKztcGlE3BIj2Usk4voQ+EBchr/FksW3+xYB9cJ+S
+         bp44/qPrQfrROCuoyo/XE9VXdqC9h8dACfImcpH6gY72VRlF/G1DLLco4hQZfaZQu7/0
+         oSqZx4tu4oTqywzLmOR3Qz36vDu+vc8qsPzcQQNj0VrUM7A0GOkcP+KjmyjI2wKrExqk
+         +snQ==
+X-Gm-Message-State: AOAM530Uk263JmI24dlAmvQxa1TRE+Il7odMLcIQAVs802ORiNbOCdex
+        nvlCBP05BIsTgqjWzD5El3c=
+X-Google-Smtp-Source: ABdhPJy59XDX6D0NjCNN5Abp58chFAMk9RYToI8QqF65aTuJCga7stE7tEYRvATnalm4oQ854CaD/A==
+X-Received: by 2002:a05:6602:2424:: with SMTP id g4mr217928iob.189.1627489687199;
+        Wed, 28 Jul 2021 09:28:07 -0700 (PDT)
+Received: from localhost ([12.28.44.171])
+        by smtp.gmail.com with ESMTPSA id w14sm275939ioa.47.2021.07.28.09.28.06
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 28 Jul 2021 09:28:06 -0700 (PDT)
+Date:   Wed, 28 Jul 2021 09:28:05 -0700
+From:   Yury Norov <yury.norov@gmail.com>
+To:     Joe Perches <joe@perches.com>
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
         Catalin Marinas <catalin.marinas@arm.com>,
         Will Deacon <will@kernel.org>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Brian Cain <bcain@codeaurora.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
         Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
-        Helge Deller <deller@gmx.de>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@samba.org>,
+        Jonas Bonn <jonas@southpole.se>,
+        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
         Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@de.ibm.com>,
-        "David S. Miller" <davem@davemloft.net>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Christoph Hellwig <hch@infradead.org>,
-        Feng Tang <feng.tang@intel.com>,
-        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
-        sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-api@vger.kernel.org, linux-mm@kvack.org
-References: <20210727144859.4150043-1-arnd@kernel.org>
-        <20210727144859.4150043-2-arnd@kernel.org>
-Date:   Wed, 28 Jul 2021 11:09:22 -0500
-In-Reply-To: <20210727144859.4150043-2-arnd@kernel.org> (Arnd Bergmann's
-        message of "Tue, 27 Jul 2021 16:48:54 +0200")
-Message-ID: <87eebifmj1.fsf@disp2133>
-User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
+        Rich Felker <dalias@libc.org>,
+        David Hildenbrand <david@redhat.com>,
+        Jaegeuk Kim <jaegeuk@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Rasmus Villemoes <linux@rasmusvillemoes.dk>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Alexander Lobakin <alobakin@pm.me>,
+        Samuel Mendoza-Jonas <sam@mendozajonas.com>,
+        Jakub Kicinski <kuba@kernel.org>,
+        Daniel Bristot de Oliveira <bristot@redhat.com>,
+        Alexey Klimov <aklimov@redhat.com>,
+        Ingo Molnar <mingo@redhat.com>
+Subject: Re: [PATCH 0/8] all: use find_next_*_bit() instead of
+ find_first_*_bit() where possible
+Message-ID: <YQGFlSSCKPVCdSo7@yury-ThinkPad>
+References: <20210612123639.329047-1-yury.norov@gmail.com>
+ <YQFxJnB+cH4SU9I3@yury-ThinkPad>
+ <7fd3eda0658e7ef4ba0463ecd39f7a17dbd4e5c3.camel@perches.com>
+ <YQF97Q1a0NL9VBr9@yury-ThinkPad>
+ <911b290063ecab50aef8da606ddbc2e27dffa6d7.camel@perches.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-X-XM-SPF: eid=1m8m8C-00A9Pq-J2;;;mid=<87eebifmj1.fsf@disp2133>;;;hst=in01.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
-X-XM-AID: U2FsdGVkX18xroipV9CATxhuOK1ETEIbw3EWCZZa/6o=
-X-SA-Exim-Connect-IP: 68.227.160.95
-X-SA-Exim-Mail-From: ebiederm@xmission.com
-Subject: Re: [PATCH v5 1/6] kexec: move locking into do_kexec_load
-X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
-X-SA-Exim-Scanned: Yes (on in01.mta.xmission.com)
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <911b290063ecab50aef8da606ddbc2e27dffa6d7.camel@perches.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Arnd Bergmann <arnd@kernel.org> writes:
+On Wed, Jul 28, 2021 at 09:06:18AM -0700, Joe Perches wrote:
+> On Wed, 2021-07-28 at 08:55 -0700, Yury Norov wrote:
+> > On Wed, Jul 28, 2021 at 08:13:32AM -0700, Joe Perches wrote:
+> > > On Wed, 2021-07-28 at 08:00 -0700, Yury Norov wrote:
+> > > > Ping again.
+> > > > 
+> > > > The rebased series together with other bitmap patches can be found
+> > > > here:
+> > > > 
+> > > > https://github.com/norov/linux/tree/bitmap-20210716
+> > > []
+> > > > >  .../bitops => include/linux}/find.h           | 149 +++++++++++++++++-
+> > > 
+> > > A file named find.h in a directory named bitops seems relatively sensible,
+> > > but a bitops specific file named find.h in include/linux does not.
+> >  
+> > 
+> > I'm OK with any name, it's not supposed to be included directly. What
+> > do you think about bitmap_find.h, or can you suggest a better name?
+> 
+> Dunno.
+> 
+> But I'm a bit curious about the duplicate function naming (conflicts?)
+> with functions in include/linux/bitmap.h
 
-> From: Arnd Bergmann <arnd@arndb.de>
->
-> The locking is the same between the native and compat version of
-> sys_kexec_load(), so it can be done in the common implementation
-> to reduce duplication.
-
-Acked-by: "Eric W. Biederman" <ebiederm@xmission.com>
-
->
-> Co-developed-by: Eric Biederman <ebiederm@xmission.com>
-> Co-developed-by: Christoph Hellwig <hch@infradead.org>
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> ---
->  kernel/kexec.c | 44 ++++++++++++++++----------------------------
->  1 file changed, 16 insertions(+), 28 deletions(-)
->
-> diff --git a/kernel/kexec.c b/kernel/kexec.c
-> index c82c6c06f051..9c7aef8f4bb6 100644
-> --- a/kernel/kexec.c
-> +++ b/kernel/kexec.c
-> @@ -110,6 +110,17 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
->  	unsigned long i;
->  	int ret;
->  
-> +	/*
-> +	 * Because we write directly to the reserved memory region when loading
-> +	 * crash kernels we need a mutex here to prevent multiple crash kernels
-> +	 * from attempting to load simultaneously, and to prevent a crash kernel
-> +	 * from loading over the top of a in use crash kernel.
-> +	 *
-> +	 * KISS: always take the mutex.
-> +	 */
-> +	if (!mutex_trylock(&kexec_mutex))
-> +		return -EBUSY;
-> +
->  	if (flags & KEXEC_ON_CRASH) {
->  		dest_image = &kexec_crash_image;
->  		if (kexec_crash_image)
-> @@ -121,7 +132,8 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
->  	if (nr_segments == 0) {
->  		/* Uninstall image */
->  		kimage_free(xchg(dest_image, NULL));
-> -		return 0;
-> +		ret = 0;
-> +		goto out_unlock;
->  	}
->  	if (flags & KEXEC_ON_CRASH) {
->  		/*
-> @@ -134,7 +146,7 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
->  
->  	ret = kimage_alloc_init(&image, entry, nr_segments, segments, flags);
->  	if (ret)
-> -		return ret;
-> +		goto out_unlock;
->  
->  	if (flags & KEXEC_PRESERVE_CONTEXT)
->  		image->preserve_context = 1;
-> @@ -171,6 +183,8 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
->  		arch_kexec_protect_crashkres();
->  
->  	kimage_free(image);
-> +out_unlock:
-> +	mutex_unlock(&kexec_mutex);
->  	return ret;
->  }
->  
-> @@ -247,21 +261,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
->  		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
->  		return -EINVAL;
->  
-> -	/* Because we write directly to the reserved memory
-> -	 * region when loading crash kernels we need a mutex here to
-> -	 * prevent multiple crash  kernels from attempting to load
-> -	 * simultaneously, and to prevent a crash kernel from loading
-> -	 * over the top of a in use crash kernel.
-> -	 *
-> -	 * KISS: always take the mutex.
-> -	 */
-> -	if (!mutex_trylock(&kexec_mutex))
-> -		return -EBUSY;
-> -
->  	result = do_kexec_load(entry, nr_segments, segments, flags);
->  
-> -	mutex_unlock(&kexec_mutex);
-> -
->  	return result;
->  }
->  
-> @@ -301,21 +302,8 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
->  			return -EFAULT;
->  	}
->  
-> -	/* Because we write directly to the reserved memory
-> -	 * region when loading crash kernels we need a mutex here to
-> -	 * prevent multiple crash  kernels from attempting to load
-> -	 * simultaneously, and to prevent a crash kernel from loading
-> -	 * over the top of a in use crash kernel.
-> -	 *
-> -	 * KISS: always take the mutex.
-> -	 */
-> -	if (!mutex_trylock(&kexec_mutex))
-> -		return -EBUSY;
-> -
->  	result = do_kexec_load(entry, nr_segments, ksegments, flags);
->  
-> -	mutex_unlock(&kexec_mutex);
-> -
->  	return result;
->  }
->  #endif
+What names duplicate?
