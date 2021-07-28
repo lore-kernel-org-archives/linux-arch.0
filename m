@@ -3,102 +3,224 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
 X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS,UNPARSEABLE_RELAY autolearn=ham
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 95C11C4320A
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 16:08:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E785DC432BE
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 16:10:55 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 73CB66069E
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 16:08:05 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D57DF604DB
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 16:10:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237352AbhG1QIF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 28 Jul 2021 12:08:05 -0400
-Received: from smtprelay0094.hostedemail.com ([216.40.44.94]:48740 "EHLO
-        smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S237707AbhG1QHD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Jul 2021 12:07:03 -0400
-Received: from omf08.hostedemail.com (clb03-v110.bra.tucows.net [216.40.38.60])
-        by smtprelay05.hostedemail.com (Postfix) with ESMTP id BD60A183C7631;
-        Wed, 28 Jul 2021 16:06:26 +0000 (UTC)
-Received: from [HIDDEN] (Authenticated sender: joe@perches.com) by omf08.hostedemail.com (Postfix) with ESMTPA id 38B461A29FA;
-        Wed, 28 Jul 2021 16:06:20 +0000 (UTC)
-Message-ID: <911b290063ecab50aef8da606ddbc2e27dffa6d7.camel@perches.com>
-Subject: Re: [PATCH 0/8] all: use find_next_*_bit() instead of
- find_first_*_bit() where possible
-From:   Joe Perches <joe@perches.com>
-To:     Yury Norov <yury.norov@gmail.com>
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        id S237181AbhG1QK4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Jul 2021 12:10:56 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:38752 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S237464AbhG1QKu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2021 12:10:50 -0400
+Received: from in01.mta.xmission.com ([166.70.13.51]:43296)
+        by out03.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1m8m8j-00HGYH-Fq; Wed, 28 Jul 2021 10:10:37 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:41390 helo=email.xmission.com)
+        by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1m8m8a-00AA3v-G4; Wed, 28 Jul 2021 10:10:31 -0600
+From:   ebiederm@xmission.com (Eric W. Biederman)
+To:     Arnd Bergmann <arnd@kernel.org>
+Cc:     Andrew Morton <akpm@linux-foundation.org>,
+        Arnd Bergmann <arnd@arndb.de>,
         Catalin Marinas <catalin.marinas@arm.com>,
         Will Deacon <will@kernel.org>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Brian Cain <bcain@codeaurora.org>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
         Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Jonas Bonn <jonas@southpole.se>,
-        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
+        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+        Helge Deller <deller@gmx.de>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
         Heiko Carstens <hca@linux.ibm.com>,
-        Rich Felker <dalias@libc.org>,
-        David Hildenbrand <david@redhat.com>,
-        Jaegeuk Kim <jaegeuk@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Alexander Lobakin <alobakin@pm.me>,
-        Samuel Mendoza-Jonas <sam@mendozajonas.com>,
-        Jakub Kicinski <kuba@kernel.org>,
-        Daniel Bristot de Oliveira <bristot@redhat.com>,
-        Alexey Klimov <aklimov@redhat.com>,
-        Ingo Molnar <mingo@redhat.com>
-Date:   Wed, 28 Jul 2021 09:06:18 -0700
-In-Reply-To: <YQF97Q1a0NL9VBr9@yury-ThinkPad>
-References: <20210612123639.329047-1-yury.norov@gmail.com>
-         <YQFxJnB+cH4SU9I3@yury-ThinkPad>
-         <7fd3eda0658e7ef4ba0463ecd39f7a17dbd4e5c3.camel@perches.com>
-         <YQF97Q1a0NL9VBr9@yury-ThinkPad>
-Content-Type: text/plain; charset="ISO-8859-1"
-User-Agent: Evolution 3.40.0-1 
+        Vasily Gorbik <gor@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@de.ibm.com>,
+        "David S. Miller" <davem@davemloft.net>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Christoph Hellwig <hch@infradead.org>,
+        Feng Tang <feng.tang@intel.com>,
+        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
+        sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-api@vger.kernel.org, linux-mm@kvack.org
+References: <20210727144859.4150043-1-arnd@kernel.org>
+        <20210727144859.4150043-3-arnd@kernel.org>
+Date:   Wed, 28 Jul 2021 11:10:20 -0500
+In-Reply-To: <20210727144859.4150043-3-arnd@kernel.org> (Arnd Bergmann's
+        message of "Tue, 27 Jul 2021 16:48:55 +0200")
+Message-ID: <87a6m6fmhf.fsf@disp2133>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Rspamd-Queue-Id: 38B461A29FA
-X-Stat-Signature: aj4gi8ripoqgyzad7npab69s56hu9a3c
-X-Rspamd-Server: rspamout02
-X-Session-Marker: 6A6F6540706572636865732E636F6D
-X-Session-ID: U2FsdGVkX1+FrxhVqumFzssxLoZaxyh5do3Usq3FKbI=
-X-HE-Tag: 1627488380-718719
+Content-Type: text/plain
+X-XM-SPF: eid=1m8m8a-00AA3v-G4;;;mid=<87a6m6fmhf.fsf@disp2133>;;;hst=in01.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX18jESHy/qa/BMuMj4KVyetONWlkP5WqcQ8=
+X-SA-Exim-Connect-IP: 68.227.160.95
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: Re: [PATCH v5 2/6] kexec: avoid compat_alloc_user_space
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in01.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, 2021-07-28 at 08:55 -0700, Yury Norov wrote:
-> On Wed, Jul 28, 2021 at 08:13:32AM -0700, Joe Perches wrote:
-> > On Wed, 2021-07-28 at 08:00 -0700, Yury Norov wrote:
-> > > Ping again.
-> > > 
-> > > The rebased series together with other bitmap patches can be found
-> > > here:
-> > > 
-> > > https://github.com/norov/linux/tree/bitmap-20210716
-> > []
-> > > >  .../bitops => include/linux}/find.h           | 149 +++++++++++++++++-
-> > 
-> > A file named find.h in a directory named bitops seems relatively sensible,
-> > but a bitops specific file named find.h in include/linux does not.
->  
-> 
-> I'm OK with any name, it's not supposed to be included directly. What
-> do you think about bitmap_find.h, or can you suggest a better name?
+Arnd Bergmann <arnd@kernel.org> writes:
 
-Dunno.
+> From: Arnd Bergmann <arnd@arndb.de>
+>
+> kimage_alloc_init() expects a __user pointer, so compat_sys_kexec_load()
+> uses compat_alloc_user_space() to convert the layout and put it back
+> onto the user space caller stack.
+>
+> Moving the user space access into the syscall handler directly actually
+> makes the code simpler, as the conversion for compat mode can now be
+> done on kernel memory.
 
-But I'm a bit curious about the duplicate function naming (conflicts?)
-with functions in include/linux/bitmap.h
+Acked-by: "Eric W. Biederman" <ebiederm@xmission.com>
 
-
-
+>
+> Co-developed-by: Eric Biederman <ebiederm@xmission.com>
+> Co-developed-by: Christoph Hellwig <hch@infradead.org>
+> Link: https://lore.kernel.org/lkml/YPbtsU4GX6PL7%2F42@infradead.org/
+> Link: https://lore.kernel.org/lkml/m1y2cbzmnw.fsf@fess.ebiederm.org/
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  kernel/kexec.c | 61 +++++++++++++++++++++-----------------------------
+>  1 file changed, 25 insertions(+), 36 deletions(-)
+>
+> diff --git a/kernel/kexec.c b/kernel/kexec.c
+> index 9c7aef8f4bb6..b5e40f069768 100644
+> --- a/kernel/kexec.c
+> +++ b/kernel/kexec.c
+> @@ -19,26 +19,9 @@
+>  
+>  #include "kexec_internal.h"
+>  
+> -static int copy_user_segment_list(struct kimage *image,
+> -				  unsigned long nr_segments,
+> -				  struct kexec_segment __user *segments)
+> -{
+> -	int ret;
+> -	size_t segment_bytes;
+> -
+> -	/* Read in the segments */
+> -	image->nr_segments = nr_segments;
+> -	segment_bytes = nr_segments * sizeof(*segments);
+> -	ret = copy_from_user(image->segment, segments, segment_bytes);
+> -	if (ret)
+> -		ret = -EFAULT;
+> -
+> -	return ret;
+> -}
+> -
+>  static int kimage_alloc_init(struct kimage **rimage, unsigned long entry,
+>  			     unsigned long nr_segments,
+> -			     struct kexec_segment __user *segments,
+> +			     struct kexec_segment *segments,
+>  			     unsigned long flags)
+>  {
+>  	int ret;
+> @@ -58,10 +41,8 @@ static int kimage_alloc_init(struct kimage **rimage, unsigned long entry,
+>  		return -ENOMEM;
+>  
+>  	image->start = entry;
+> -
+> -	ret = copy_user_segment_list(image, nr_segments, segments);
+> -	if (ret)
+> -		goto out_free_image;
+> +	image->nr_segments = nr_segments;
+> +	memcpy(image->segment, segments, nr_segments * sizeof(*segments));
+>  
+>  	if (kexec_on_panic) {
+>  		/* Enable special crash kernel control page alloc policy. */
+> @@ -104,7 +85,7 @@ static int kimage_alloc_init(struct kimage **rimage, unsigned long entry,
+>  }
+>  
+>  static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
+> -		struct kexec_segment __user *segments, unsigned long flags)
+> +		struct kexec_segment *segments, unsigned long flags)
+>  {
+>  	struct kimage **dest_image, *image;
+>  	unsigned long i;
+> @@ -250,7 +231,8 @@ static inline int kexec_load_check(unsigned long nr_segments,
+>  SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+>  		struct kexec_segment __user *, segments, unsigned long, flags)
+>  {
+> -	int result;
+> +	struct kexec_segment *ksegments;
+> +	unsigned long result;
+>  
+>  	result = kexec_load_check(nr_segments, flags);
+>  	if (result)
+> @@ -261,7 +243,12 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+>  		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
+>  		return -EINVAL;
+>  
+> -	result = do_kexec_load(entry, nr_segments, segments, flags);
+> +	ksegments = memdup_user(segments, nr_segments * sizeof(ksegments[0]));
+> +	if (IS_ERR(ksegments))
+> +		return PTR_ERR(ksegments);
+> +
+> +	result = do_kexec_load(entry, nr_segments, ksegments, flags);
+> +	kfree(ksegments);
+>  
+>  	return result;
+>  }
+> @@ -273,7 +260,7 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+>  		       compat_ulong_t, flags)
+>  {
+>  	struct compat_kexec_segment in;
+> -	struct kexec_segment out, __user *ksegments;
+> +	struct kexec_segment *ksegments;
+>  	unsigned long i, result;
+>  
+>  	result = kexec_load_check(nr_segments, flags);
+> @@ -286,24 +273,26 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+>  	if ((flags & KEXEC_ARCH_MASK) == KEXEC_ARCH_DEFAULT)
+>  		return -EINVAL;
+>  
+> -	ksegments = compat_alloc_user_space(nr_segments * sizeof(out));
+> +	ksegments = kmalloc_array(nr_segments, sizeof(ksegments[0]),
+> +			GFP_KERNEL);
+> +	if (!ksegments)
+> +		return -ENOMEM;
+> +
+>  	for (i = 0; i < nr_segments; i++) {
+>  		result = copy_from_user(&in, &segments[i], sizeof(in));
+>  		if (result)
+> -			return -EFAULT;
+> +			goto fail;
+>  
+> -		out.buf   = compat_ptr(in.buf);
+> -		out.bufsz = in.bufsz;
+> -		out.mem   = in.mem;
+> -		out.memsz = in.memsz;
+> -
+> -		result = copy_to_user(&ksegments[i], &out, sizeof(out));
+> -		if (result)
+> -			return -EFAULT;
+> +		ksegments[i].buf   = compat_ptr(in.buf);
+> +		ksegments[i].bufsz = in.bufsz;
+> +		ksegments[i].mem   = in.mem;
+> +		ksegments[i].memsz = in.memsz;
+>  	}
+>  
+>  	result = do_kexec_load(entry, nr_segments, ksegments, flags);
+>  
+> +fail:
+> +	kfree(ksegments);
+>  	return result;
+>  }
+>  #endif
