@@ -2,104 +2,160 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.9 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,UNWANTED_LANGUAGE_BODY,
-	URIBL_BLOCKED,USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-2.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AED5FC4320E
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 08:07:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BE617C432BE
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 10:17:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 94A6F60BD3
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 08:07:27 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A36C760F9E
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Jul 2021 10:17:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235338AbhG1IH1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 28 Jul 2021 04:07:27 -0400
-Received: from szxga08-in.huawei.com ([45.249.212.255]:12274 "EHLO
-        szxga08-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235291AbhG1IHZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2021 04:07:25 -0400
-Received: from dggemv703-chm.china.huawei.com (unknown [172.30.72.54])
-        by szxga08-in.huawei.com (SkyGuard) with ESMTP id 4GZR1x6DR0z1CPk3;
-        Wed, 28 Jul 2021 16:01:25 +0800 (CST)
-Received: from dggpemm500001.china.huawei.com (7.185.36.107) by
- dggemv703-chm.china.huawei.com (10.3.19.46) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2176.2; Wed, 28 Jul 2021 16:07:11 +0800
-Received: from localhost.localdomain.localdomain (10.175.113.25) by
- dggpemm500001.china.huawei.com (7.185.36.107) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2176.2; Wed, 28 Jul 2021 16:07:11 +0800
-From:   Kefeng Wang <wangkefeng.wang@huawei.com>
-To:     <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
-        <linux-kernel@vger.kernel.org>, <linuxppc-dev@lists.ozlabs.org>,
-        <rostedt@goodmis.org>, <mingo@redhat.com>, <davem@davemloft.net>,
-        <ast@kernel.org>, <ryabinin.a.a@gmail.com>
-CC:     <mpe@ellerman.id.au>, <benh@kernel.crashing.org>,
-        <paulus@samba.org>, Kefeng Wang <wangkefeng.wang@huawei.com>,
-        Sergey Senozhatsky <sergey.senozhatsky@gmail.com>,
-        Petr Mladek <pmladek@suse.com>,
-        "Sergey Senozhatsky" <senozhatsky@chromium.org>
-Subject: [PATCH v2 2/7] kallsyms: Fix address-checks for kernel related range
-Date:   Wed, 28 Jul 2021 16:13:15 +0800
-Message-ID: <20210728081320.20394-3-wangkefeng.wang@huawei.com>
-X-Mailer: git-send-email 2.26.2
-In-Reply-To: <20210728081320.20394-1-wangkefeng.wang@huawei.com>
-References: <20210728081320.20394-1-wangkefeng.wang@huawei.com>
+        id S231893AbhG1KRD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Jul 2021 06:17:03 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37088 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231238AbhG1KRC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2021 06:17:02 -0400
+Received: from mail-io1-xd33.google.com (mail-io1-xd33.google.com [IPv6:2607:f8b0:4864:20::d33])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F16DCC061757
+        for <linux-arch@vger.kernel.org>; Wed, 28 Jul 2021 03:17:00 -0700 (PDT)
+Received: by mail-io1-xd33.google.com with SMTP id l126so2316671ioa.12
+        for <linux-arch@vger.kernel.org>; Wed, 28 Jul 2021 03:17:00 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=Z6hRWpZ78wbXvPLe7seihYElF19Rbq1YOoOpz7HjqhU=;
+        b=bwLuB2V5H1LuGQi/fT1RngnqmblipQg3gpoWwLf0VubE1/ScEa9fbgNLOzjz2VnPyq
+         Pf5ArkLrbsplq2COWwMut53IWj0Xu4Ro5SgkP0LGOhrr8Rd+nm3aa/g28af9vvZGnIMZ
+         2o+C53/P73Q/gMVM8uNuMbk6yiCc+gU8/+JiQxVnSuHq4wfQ3XRGDUhSRY77WHjximG5
+         bmqtYOBrxbLV50KM9is80HFcQptaAb/BUus7SBv3db8P/8T51BvPsTdoXzMRS59hHn8z
+         ZbksLnII0sSQk6q0yGsRENqFaS/vUj/XGBSy56/9LKW7AnZgGfNd7+M10MSzcPlRBqEE
+         P4kg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=Z6hRWpZ78wbXvPLe7seihYElF19Rbq1YOoOpz7HjqhU=;
+        b=G0zGx2hBtC4YGEZ/ISam+IWRvtI47+TbQ9RcyldZ/Q+ZBUWGUH1C86rF4NV42lg6m/
+         4+b4ETkngAZogxrzz259An7nzJoviStQ5uii90ifHmINMUCjFmmyGZ4T89b2hFvppj1i
+         CnBAMJbTZ7cJ9Ra2NEL4tqq4hqTEyv2uKKd7eNHLdjHXGLQBZCigkuvpmX7sfEIcR9B+
+         x8bobU/nfPPytxuQRxBj0P1cqK9F9DlbT/oEtcpWk+h68tMloXGF8JcppXNDERiQZbPU
+         9C4Pzk1X3IQdLk99Tvoy35IWFcNxIV1U4RWlDnzZu5C3mfFg4NRanDtF0wFRcjS9i+WI
+         UXEw==
+X-Gm-Message-State: AOAM531d1Dm9+tFW03DHtFGMlT0fSXDEFOAQvx6sOjyTaFRflSP4KgHT
+        ZOiafSfdps5JOucGacTYlRJ3UK01bEoiHCTCVwU=
+X-Google-Smtp-Source: ABdhPJwOrQyY+ezeMbXDRhxwhzXFsEOngZuqVZL3A8UQVp+ThE7dTANPk+fYKiPDweGslkBoeCF0cxz22KSAd5EpX4Y=
+X-Received: by 2002:a6b:510c:: with SMTP id f12mr22500609iob.59.1627467420438;
+ Wed, 28 Jul 2021 03:17:00 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type:   text/plain; charset=US-ASCII
-X-Originating-IP: [10.175.113.25]
-X-ClientProxiedBy: dggems704-chm.china.huawei.com (10.3.19.181) To
- dggpemm500001.china.huawei.com (7.185.36.107)
-X-CFilter-Loop: Reflected
+References: <20210706041820.1536502-1-chenhuacai@loongson.cn>
+ <20210706041820.1536502-7-chenhuacai@loongson.cn> <YOQ5UBa0xYf7kAjg@hirez.programming.kicks-ass.net>
+ <1625665981.7hbs7yesxx.astroid@bobo.none> <YQATv/MahhrKUu8Z@hirez.programming.kicks-ass.net>
+ <CAK8P3a1RduCKfRG34hf-Aia8n_2pThZ-s0D-m+qABMs2o3=bMw@mail.gmail.com>
+In-Reply-To: <CAK8P3a1RduCKfRG34hf-Aia8n_2pThZ-s0D-m+qABMs2o3=bMw@mail.gmail.com>
+From:   Huacai Chen <chenhuacai@gmail.com>
+Date:   Wed, 28 Jul 2021 18:16:49 +0800
+Message-ID: <CAAhV-H5bfYc849Z2QGkztxfPQ7V-ZkHOhS8gbqA0k3=8teTCGA@mail.gmail.com>
+Subject: Re: [PATCH 06/19] LoongArch: Add exception/interrupt handling
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     Peter Zijlstra <peterz@infradead.org>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        Huacai Chen <chenhuacai@loongson.cn>,
+        David Airlie <airlied@linux.ie>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Andy Lutomirski <luto@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The is_kernel_inittext/is_kernel_text/is_kernel function should not
-include the end address(the labels _einittext, _etext and _end) when
-check the address range, the issue exists since Linux v2.6.12.
+Hi, Arnd and Peter,
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>
-Cc: Petr Mladek <pmladek@suse.com>
-Acked-by: Sergey Senozhatsky <senozhatsky@chromium.org>
-Reviewed-by: Petr Mladek <pmladek@suse.com>
-Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
----
- include/linux/kallsyms.h | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+On Tue, Jul 27, 2021 at 11:08 PM Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Tue, Jul 27, 2021 at 4:10 PM Peter Zijlstra <peterz@infradead.org> wrote:
+> > On Wed, Jul 07, 2021 at 11:56:37PM +1000, Nicholas Piggin wrote:
+> > > >> +/*
+> > > >> + * Common Vectored Interrupt
+> > > >> + * Complete the register saves and invoke the do_vi() handler
+> > > >> + */
+> > > >> +SYM_FUNC_START(except_vec_vi_handler)
+> > > >> +  la      t1, __arch_cpu_idle
+> > > >> +  LONG_L  t0, sp, PT_EPC
+> > > >> +  /* 32 byte rollback region */
+> > > >> +  ori     t0, t0, 0x1f
+> > > >> +  xori    t0, t0, 0x1f
+> > > >> +  bne     t0, t1, 1f
+> > > >> +  LONG_S  t0, sp, PT_EPC
+> > > >
+> > > > Seriously, you're having your interrupt handler recover from the idle
+> > > > race? On a *new* architecture?
+> > >
+> > > It's heavily derived from MIPS (does that make the wholesale replacement
+> > > of arch/mips copyright headers a bit questionable?).
+> > >
+> > > I don't think it's such a bad trick though -- restartable sequences
+> > > before they were cool. It can let you save an irq disable in some
+> > > cases (depending on the arch of course).
+> >
+> > In this case you're making *every* interrupt slower. Simply adding a new
+> > idle instruction, one that can be called with interrupts disabled and
+> > will terminate on a pending interrupt, would've solved the issues much
+> > nicer and reclaimed the cycles spend on this restart trick.
+>
+> Are we actually sure that loongarch /needs/ this version?
+>
+> The code was clearly copied from the mips default r4k_wait()
+> function, but mips also has this one:
+>
+> /*
+>  * This variant is preferable as it allows testing need_resched and going to
+>  * sleep depending on the outcome atomically.  Unfortunately the "It is
+>  * implementation-dependent whether the pipeline restarts when a non-enabled
+>  * interrupt is requested" restriction in the MIPS32/MIPS64 architecture makes
+>  * using this version a gamble.
+>  */
+> void __cpuidle r4k_wait_irqoff(void)
+> {
+>         if (!need_resched())
+>                 __asm__(
+>                 "       .set    push            \n"
+>                 "       .set    arch=r4000      \n"
+>                 "       wait                    \n"
+>                 "       .set    pop             \n");
+>         raw_local_irq_enable();
+> }
+>
+>         case CPU_LOONGSON64:
+>                 if ((c->processor_id & (PRID_IMP_MASK | PRID_REV_MASK)) >=
+>                                 (PRID_IMP_LOONGSON_64C |
+> PRID_REV_LOONGSON3A_R2_0) ||
+>                                 (c->processor_id & PRID_IMP_MASK) ==
+> PRID_IMP_LOONGSON_64R)
+>                         cpu_wait = r4k_wait;
+> ...
+>                 cpu_wait = r4k_wait;
+>                 if (read_c0_config7() & MIPS_CONF7_WII)
+>                         cpu_wait = r4k_wait_irqoff;
+>                 if (cpu_has_mips_r6) {
+>                         cpu_wait = r4k_wait_irqoff;
+>
+> So a lot of the newer mips variants already get the fixed
+> version. Maybe the hardware developers fixed it without telling
+> the kernel people about it?
+Very very unfortunately, the idle instruction of LoongArch cannot
+executed with irq disabled. In other word, LoongArch should use a
+variant like r4k_wait(), not r4k_wait_irqoff().
 
-diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
-index 2a241e3f063f..b016c62f30a6 100644
---- a/include/linux/kallsyms.h
-+++ b/include/linux/kallsyms.h
-@@ -27,21 +27,21 @@ struct module;
- static inline int is_kernel_inittext(unsigned long addr)
- {
- 	if (addr >= (unsigned long)_sinittext
--	    && addr <= (unsigned long)_einittext)
-+	    && addr < (unsigned long)_einittext)
- 		return 1;
- 	return 0;
- }
- 
- static inline int is_kernel_text(unsigned long addr)
- {
--	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext))
-+	if ((addr >= (unsigned long)_stext && addr < (unsigned long)_etext))
- 		return 1;
- 	return in_gate_area_no_mm(addr);
- }
- 
- static inline int is_kernel(unsigned long addr)
- {
--	if (addr >= (unsigned long)_stext && addr <= (unsigned long)_end)
-+	if (addr >= (unsigned long)_stext && addr < (unsigned long)_end)
- 		return 1;
- 	return in_gate_area_no_mm(addr);
- }
--- 
-2.26.2
-
+Huacai
+>
+>          Arnd
