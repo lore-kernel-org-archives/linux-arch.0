@@ -2,143 +2,120 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-23.3 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_SANE_1 autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,
+	SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 42FC6C4338F
-	for <linux-arch@archiver.kernel.org>; Sat, 31 Jul 2021 00:32:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 39A4AC4338F
+	for <linux-arch@archiver.kernel.org>; Sat, 31 Jul 2021 01:46:51 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1296260E93
-	for <linux-arch@archiver.kernel.org>; Sat, 31 Jul 2021 00:32:37 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0F99260E97
+	for <linux-arch@archiver.kernel.org>; Sat, 31 Jul 2021 01:46:51 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234357AbhGaAcl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 30 Jul 2021 20:32:41 -0400
-Received: from mail.kernel.org ([198.145.29.99]:48794 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S234448AbhGaAck (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 30 Jul 2021 20:32:40 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 7E0A260FE7;
-        Sat, 31 Jul 2021 00:32:34 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1627691555;
-        bh=o+PLNhrJjYzJClkCiD1x2ngH38naHAhxH0uspRMZAk0=;
-        h=Subject:To:Cc:References:From:Date:In-Reply-To:From;
-        b=Fob9LrC7lLW8/Nupz+JnUcvUWuJy7rdK6mqt5l6vB9mpv9tbhBMqv5bfxWvURlr30
-         5lIc/NL9RSkw9Yq4Bw6ak54rXQL1e1dj7ZFX1ltvJZSNqYl8S7GCfOub7XDUQzEspn
-         cgsvmB0nKl1fUej7/1Ycak74kHxKaGDHrlRlEIxrpr0BLvvK3B2tIiaVkdiqDfRqSC
-         AHyBHuqGs3vBL5G07jo9fgiKBmpFxO3DoolQonsPYsczpYTlS3fakoJnJjzct+qs5S
-         WQxiXn+VNJbA9JTOiFyLZd7CSR6jddfaTUukpSu3cXq0Kkp75O+App2GDM3hZ+KY5E
-         CUJ9C95gyztiw==
-Subject: Re: [PATCH] vmlinux.lds.h: Handle clang's module.{c,d}tor sections
-To:     Fangrui Song <maskray@google.com>
-Cc:     Nick Desaulniers <ndesaulniers@google.com>,
-        Kees Cook <keescook@chromium.org>,
-        Arnd Bergmann <arnd@arndb.de>, Marco Elver <elver@google.com>,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        kasan-dev@googlegroups.com, clang-built-linux@googlegroups.com,
-        stable@vger.kernel.org
-References: <20210730223815.1382706-1-nathan@kernel.org>
- <CAKwvOdnJ9VMZfZrZprD6k0oWxVJVSNePUM7fbzFTJygXfO24Pw@mail.gmail.com>
- <20210730225936.ce3hcjdg2sptvbh7@google.com>
-From:   Nathan Chancellor <nathan@kernel.org>
-Message-ID: <baf67422-8662-02f2-0bbf-6afb141875af@kernel.org>
-Date:   Fri, 30 Jul 2021 17:32:33 -0700
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
- Thunderbird/78.12.0
+        id S231425AbhGaBqz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 30 Jul 2021 21:46:55 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41062 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231335AbhGaBqz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jul 2021 21:46:55 -0400
+Received: from mail-ej1-x636.google.com (mail-ej1-x636.google.com [IPv6:2a00:1450:4864:20::636])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D2195C06175F
+        for <linux-arch@vger.kernel.org>; Fri, 30 Jul 2021 18:46:48 -0700 (PDT)
+Received: by mail-ej1-x636.google.com with SMTP id hw6so6092723ejc.10
+        for <linux-arch@vger.kernel.org>; Fri, 30 Jul 2021 18:46:48 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=hev-cc.20150623.gappssmtp.com; s=20150623;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=KqIm8Zx3pH/8PTwn/CTBJTXMqgv5eudoeGRkjwQqxtc=;
+        b=L/QSVVezt0cqXjQPE9US2gRjgmtfl+TAERp/86G+EX4lbcznP8MEdi7R6VAO5BqDDm
+         HaLOlczk8i7EpxboZYhJYH9Jzyi0zXfu23mXgC5uKWRAVfRlPQQq0FvePJFmBLZiMHXp
+         g0QSrHDDOAgYJr6MmJeY4ZrKe97ZK3Z5M077KhjitlCDXlfkSUDRE/aX4a2TVndvU+rR
+         LQCGvJu9cXXjTf3isZx+6gJMAZ+GKV8qKuJQBK+LfmbcC62C1yRF7B7JmK16qF8Cv7dO
+         yFoGbLPApoel6pgaZEiqDnxkqu7qRMSQvAlR6y93l4ZQLaZPEGrawB1lt3wLN+l2foZb
+         H8nQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=KqIm8Zx3pH/8PTwn/CTBJTXMqgv5eudoeGRkjwQqxtc=;
+        b=IaW/ZwQ7zRzjxgANYsdfW7j65M8suSSxpAla2R1WSHBb/0wfpezrKY/MhHxeHDoboi
+         wAJByKsKDgQMvBSizoo1ie+3WRU8P16YIHFMpCty9I4diNOkZ0Q63gGhpgjlp3LvCM2M
+         NQ0R0sSyTjEEtC/2uOkEkqh8Y3WXJ5IUBBJA6+KkbS3BzG9NdMiIzdJkBqNJ/hVjNyNP
+         imZrkh/9eMHw8OSZ6ZcRyYxxqjJegH5VFYq0WqBuho/BSd+f8p79CLZZVUFrzdBtQx4J
+         RV4IVifxnq9jEydDD/Ey8fFpkcctMMDbDCOO3ej9kM8DYcjWXsJHS24uUt5jUSSaCxCP
+         jyag==
+X-Gm-Message-State: AOAM530iiA8t6nz5kL9EE198vISYsSWjGMKW+CyzHPmiSbJLtOTuv14M
+        7neqbfMqMD6WsQ522moFComZ5SKHre0rvjZUe0RPbg==
+X-Google-Smtp-Source: ABdhPJwvlrI/hzUx9/Wrzz8E2F7f0aafIG816hhuftMtSl4WLttOCjFi/OIxxz3hEv+ZiFPmUfn3pFcWzmo29ZiWthM=
+X-Received: by 2002:a17:906:f15:: with SMTP id z21mr5595441eji.177.1627696006842;
+ Fri, 30 Jul 2021 18:46:46 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20210730225936.ce3hcjdg2sptvbh7@google.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+References: <20210728114822.1243-1-wangrui@loongson.cn> <20210729093923.GD21151@willie-the-truck>
+ <CAHirt9hNxsHPVWPa+RpUC6av0tcHPESb4Pr20ovAixwNEh4hrQ@mail.gmail.com> <7574da60-fb71-dad2-b099-a815a0a18c22@redhat.com>
+In-Reply-To: <7574da60-fb71-dad2-b099-a815a0a18c22@redhat.com>
+From:   hev <r@hev.cc>
+Date:   Sat, 31 Jul 2021 09:46:35 +0800
+Message-ID: <CAHirt9jzXZbUc5bA6X_fHNNRAeTFWcykQyZk15Gnv1n5tUwCQw@mail.gmail.com>
+Subject: Re: [RFC PATCH v1 1/5] locking/atomic: Implement atomic_fetch_and_or
+To:     Waiman Long <llong@redhat.com>
+Cc:     Will Deacon <will@kernel.org>, Rui Wang <wangrui@loongson.cn>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>,
+        Boqun Feng <boqun.feng@gmail.com>, Guo Ren <guoren@kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Huacai Chen <chenhuacai@gmail.com>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Huacai Chen <chenhuacai@loongson.cn>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 7/30/2021 3:59 PM, Fangrui Song wrote:
-> On 2021-07-30, Nick Desaulniers wrote:
->> On Fri, Jul 30, 2021 at 3:38 PM Nathan Chancellor <nathan@kernel.org> 
->> wrote:
->>>
->>> A recent change in LLVM causes module_{c,d}tor sections to appear when
->>> CONFIG_K{A,C}SAN are enabled, which results in orphan section warnings
->>> because these are not handled anywhere:
->>>
->>> ld.lld: warning: 
->>> arch/x86/pci/built-in.a(legacy.o):(.text.asan.module_ctor) is being 
->>> placed in '.text.asan.module_ctor'
->>> ld.lld: warning: 
->>> arch/x86/pci/built-in.a(legacy.o):(.text.asan.module_dtor) is being 
->>> placed in '.text.asan.module_dtor'
->>> ld.lld: warning: 
->>> arch/x86/pci/built-in.a(legacy.o):(.text.tsan.module_ctor) is being 
->>> placed in '.text.tsan.module_ctor'
->>
->> ^ .text.tsan.*
-> 
-> I was wondering why the orphan section warning only arose recently.
-> Now I see: the function asan.module_ctor has the SHF_GNU_RETAIN flag, so
-> it is in a separate section even with -fno-function-sections (default).
+Hi,
 
-Thanks for the explanation, I will add this to the commit message.
+On Sat, Jul 31, 2021 at 2:40 AM Waiman Long <llong@redhat.com> wrote:
+>
+> On 7/29/21 6:18 AM, hev wrote:
+> > Hi, Will,
+> >
+> > On Thu, Jul 29, 2021 at 5:39 PM Will Deacon <will@kernel.org> wrote:
+> >> On Wed, Jul 28, 2021 at 07:48:22PM +0800, Rui Wang wrote:
+> >>> From: wangrui <wangrui@loongson.cn>
+> >>>
+> >>> This patch introduce a new atomic primitive 'and_or', It may be have three
+> >>> types of implemeations:
+> >>>
+> >>>   * The generic implementation is based on arch_cmpxchg.
+> >>>   * The hardware supports atomic 'and_or' of single instruction.
+> >> Do any architectures actually support this instruction?
+> > No, I'm not sure now.
+> >
+> >> On arm64, we can clear arbitrary bits and we can set arbitrary bits, but we
+> >> can't combine the two in a fashion which provides atomicity and
+> >> forward-progress guarantees.
+> >>
+> >> Please can you explain how this new primitive will be used, in case there's
+> >> an alternative way of doing it which maps better to what CPUs can actually
+> >> do?
+> > I think we can easily exchange arbitrary bits of a machine word with atomic
+> > andnot_or/and_or. Otherwise, we can only use xchg8/16 to do it. It depends on
+> > hardware support, and the key point is that the bits to be exchanged
+> > must be in the
+> > same sub-word. qspinlock adjusted memory layout for this reason, and waste some
+> > bits(_Q_PENDING_BITS == 8).
+>
+> It is not actually a waste of bits. With _Q_PENDING_BITS==8, more
+> optimized code can be used for pending bit processing. It is only in the
+> rare case that NR_CPUS >= 16k - 1 that we have to fall back to
+> _Q_PENDING_BITS==1. In fact, that should be the only condition that will
+> make _Q_PENDING_BITS=1.
 
-> It seems that with -ffunction-sections the issue should have been caught
-> much earlier.
-> 
->>>
->>> Place them in the TEXT_TEXT section so that these technologies continue
->>> to work with the newer compiler versions. All of the KASAN and KCSAN
->>> KUnit tests continue to pass after this change.
->>>
->>> Cc: stable@vger.kernel.org
->>> Link: https://github.com/ClangBuiltLinux/linux/issues/1432
->>> Link: 
->>> https://github.com/llvm/llvm-project/commit/7b789562244ee941b7bf2cefeb3fc08a59a01865 
->>>
->>> Signed-off-by: Nathan Chancellor <nathan@kernel.org>
->>> ---
->>>  include/asm-generic/vmlinux.lds.h | 1 +
->>>  1 file changed, 1 insertion(+)
->>>
->>> diff --git a/include/asm-generic/vmlinux.lds.h 
->>> b/include/asm-generic/vmlinux.lds.h
->>> index 17325416e2de..3b79b1e76556 100644
->>> --- a/include/asm-generic/vmlinux.lds.h
->>> +++ b/include/asm-generic/vmlinux.lds.h
->>> @@ -586,6 +586,7 @@
->>>                 
->>> NOINSTR_TEXT                                            \
->>>                 
->>> *(.text..refcount)                                      \
->>>                 
->>> *(.ref.text)                                            \
->>> +               *(.text.asan 
->>> .text.asan.*)                              \
->>
->> Will this match .text.tsan.module_ctor?
+Yes, you are right. The memory layout is adjusted so that
+locked/pending and tail do ont share bits, so normal store
+instructions can be used to clear_pending and
+clear_pending_set_locked. It's faster than atomic.
 
-No, I forgot to test CONFIG_KCSAN with this version, rather than the 
-prior one I had on GitHub so I will send v2 shortly.
-
-> asan.module_ctor is the only function AddressSanitizer synthesizes in 
-> the instrumented translation unit.
-> There is no function called "asan".
-> 
-> (Even if a function "asan" exists due to -ffunction-sections
-> -funique-section-names, TEXT_MAIN will match .text.asan, so the
-> .text.asan pattern will match nothing.)
-
-Sounds good, I will update it to remove the .text.asan and replace it 
-with .text.tsan.*
-
->> Do we want to add these conditionally on
->> CONFIG_KASAN_GENERIC/CONFIG_KCSAN like we do for SANITIZER_DISCARDS?
-
-I do not think there is a point in doing so but I can if others feel 
-strongly.
-
-Thank you both for the comments for the comments!
-
-Cheers,
-Nathan
+Regards,
+Rui
