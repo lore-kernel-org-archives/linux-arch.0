@@ -2,337 +2,148 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-18.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,
-	USER_AGENT_GIT autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-10.4 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6700EC19F3D
-	for <linux-arch@archiver.kernel.org>; Wed,  4 Aug 2021 19:16:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C7C0BC4338F
+	for <linux-arch@archiver.kernel.org>; Wed,  4 Aug 2021 19:27:25 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4763A60F94
-	for <linux-arch@archiver.kernel.org>; Wed,  4 Aug 2021 19:16:17 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id AA63761073
+	for <linux-arch@archiver.kernel.org>; Wed,  4 Aug 2021 19:27:25 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240584AbhHDTQ3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 4 Aug 2021 15:16:29 -0400
-Received: from smtprelay-out1.synopsys.com ([149.117.73.133]:58772 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S240500AbhHDTQV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Aug 2021 15:16:21 -0400
-Received: from mailhost.synopsys.com (sv1-mailhost1.synopsys.com [10.205.2.131])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits))
-        (Client CN "mailhost.synopsys.com", Issuer "SNPSica2" (verified OK))
-        by smtprelay-out1.synopsys.com (Postfix) with ESMTPS id B5A3A40DB8;
-        Wed,  4 Aug 2021 19:16:06 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=synopsys.com; s=mail;
-        t=1628104567; bh=k8lJ3O2ItHDU9leG8nrZCL45I4wyf47eCvD5cbay4Vk=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=Pd1+lxVyHNqcrzUL22cFPDqgv9PqWVPPM/IXLyts1ayyyVsD1I/446IzEjzuq3Dni
-         iZkR82Nkzie3AbNoYqhRgveY2KQZWcREroi0Q1tQ+gF4Ldh9qsEhOuql4J3UEoNRSn
-         JIlWVM1jJxQ3LT5TpHKmA7yPtBZwv6j35aTfiYr7d9k5ySkiR7k3qd2GYyYvJMu6g8
-         HSxSF6AhXQz/43/1Oh9ApyitPOpmSWaZJXcjkFL5PztIj3m4qRHgWHbHQNJJuev6wj
-         H+aBf78cmzaXpRAKd5m0ixip6Cld3mQjFdiV/+A+0/ALk+TZRUR7PCAZziDpw9SzhF
-         HJFfkazyFounQ==
-Received: from vineetg-Latitude-7400.internal.synopsys.com (snps-fugpbdpduq.internal.synopsys.com [10.202.17.37])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits))
-        (Client did not present a certificate)
-        by mailhost.synopsys.com (Postfix) with ESMTPSA id 78F76A0096;
-        Wed,  4 Aug 2021 19:16:06 +0000 (UTC)
-X-SNPS-Relay: synopsys.com
-From:   Vineet Gupta <Vineet.Gupta1@synopsys.com>
-To:     linux-snps-arc@lists.infradead.org
-Cc:     Peter Zijlstra <peterz@infradead.org>,
-        Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-        Mark Rutland <mark.rutland@arm.com>,
-        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Vladimir Isaev <Vladimir.Isaev@synopsys.com>,
-        Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 09/11] ARC: cmpxchg/xchg: rewrite as macros to make type safe
-Date:   Wed,  4 Aug 2021 12:15:52 -0700
-Message-Id: <20210804191554.1252776-10-vgupta@synopsys.com>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20210804191554.1252776-1-vgupta@synopsys.com>
-References: <20210804191554.1252776-1-vgupta@synopsys.com>
+        id S239108AbhHDT1h (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 4 Aug 2021 15:27:37 -0400
+Received: from mga01.intel.com ([192.55.52.88]:42490 "EHLO mga01.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S237768AbhHDT1g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 4 Aug 2021 15:27:36 -0400
+X-IronPort-AV: E=McAfee;i="6200,9189,10066"; a="235953155"
+X-IronPort-AV: E=Sophos;i="5.84,295,1620716400"; 
+   d="scan'208";a="235953155"
+Received: from fmsmga005.fm.intel.com ([10.253.24.32])
+  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 04 Aug 2021 12:27:22 -0700
+X-IronPort-AV: E=Sophos;i="5.84,295,1620716400"; 
+   d="scan'208";a="671072064"
+Received: from cmalmber-mobl1.amr.corp.intel.com (HELO [10.212.219.120]) ([10.212.219.120])
+  by fmsmga005-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 04 Aug 2021 12:27:18 -0700
+Subject: Re: [PATCH V2 03/14] x86/set_memory: Add x86_set_memory_enc static
+ call support
+To:     Tianyu Lan <ltykernel@gmail.com>, kys@microsoft.com,
+        haiyangz@microsoft.com, sthemmin@microsoft.com, wei.liu@kernel.org,
+        decui@microsoft.com, tglx@linutronix.de, mingo@redhat.com,
+        bp@alien8.de, x86@kernel.org, hpa@zytor.com,
+        dave.hansen@linux.intel.com, luto@kernel.org, peterz@infradead.org,
+        konrad.wilk@oracle.com, boris.ostrovsky@oracle.com,
+        jgross@suse.com, sstabellini@kernel.org, joro@8bytes.org,
+        will@kernel.org, davem@davemloft.net, kuba@kernel.org,
+        jejb@linux.ibm.com, martin.petersen@oracle.com, arnd@arndb.de,
+        hch@lst.de, m.szyprowski@samsung.com, robin.murphy@arm.com,
+        Tianyu.Lan@microsoft.com, rppt@kernel.org,
+        kirill.shutemov@linux.intel.com, akpm@linux-foundation.org,
+        brijesh.singh@amd.com, thomas.lendacky@amd.com, pgonda@google.com,
+        david@redhat.com, krish.sadhukhan@oracle.com, saravanand@fb.com,
+        aneesh.kumar@linux.ibm.com, xen-devel@lists.xenproject.org,
+        martin.b.radev@gmail.com, ardb@kernel.org, rientjes@google.com,
+        tj@kernel.org, keescook@chromium.org,
+        michael.h.kelley@microsoft.com
+Cc:     iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org,
+        linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-scsi@vger.kernel.org, netdev@vger.kernel.org,
+        vkuznets@redhat.com, parri.andrea@gmail.com
+References: <20210804184513.512888-1-ltykernel@gmail.com>
+ <20210804184513.512888-4-ltykernel@gmail.com>
+From:   Dave Hansen <dave.hansen@intel.com>
+Autocrypt: addr=dave.hansen@intel.com; keydata=
+ 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
+ z5cecg==
+Message-ID: <5823af8a-7dbb-dbb0-5ea2-d9846aa2a36a@intel.com>
+Date:   Wed, 4 Aug 2021 12:27:15 -0700
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
+ Thunderbird/68.10.0
 MIME-Version: 1.0
+In-Reply-To: <20210804184513.512888-4-ltykernel@gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Existing code forces/assume args to type "long" which won't work in LP64
-regime, so prepare code for that
+On 8/4/21 11:44 AM, Tianyu Lan wrote:
+> +static int default_set_memory_enc(unsigned long addr, int numpages, bool enc);
+> +DEFINE_STATIC_CALL(x86_set_memory_enc, default_set_memory_enc);
+> +
+>  #define CPA_FLUSHTLB 1
+>  #define CPA_ARRAY 2
+>  #define CPA_PAGES_ARRAY 4
+> @@ -1981,6 +1985,11 @@ int set_memory_global(unsigned long addr, int numpages)
+>  }
+>  
+>  static int __set_memory_enc_dec(unsigned long addr, int numpages, bool enc)
+> +{
+> +	return static_call(x86_set_memory_enc)(addr, numpages, enc);
+> +}
+> +
+> +static int default_set_memory_enc(unsigned long addr, int numpages, bool enc)
+>  {
+>  	struct cpa_data cpa;
+>  	int ret;
 
-Interestingly this should be a non functional change but I do see
-some codegen changes
+It doesn't make a lot of difference to add this infrastructure and then
+ignore it for the existing in-tree user:
 
-| bloat-o-meter vmlinux-cmpxchg-A vmlinux-cmpxchg-B
-| add/remove: 0/0 grow/shrink: 17/12 up/down: 218/-150 (68)
-|
-| Function                                     old     new   delta
-| rwsem_optimistic_spin                        518     550     +32
-| rwsem_down_write_slowpath                   1244    1274     +30
-| __do_sys_perf_event_open                    2576    2600     +24
-| down_read                                    192     200      +8
-| __down_read                                  192     200      +8
-...
-| task_work_run                                168     148     -20
-| dma_fence_chain_walk.part                    760     736     -24
-| __genradix_ptr_alloc                         674     646     -28
+> static int __set_memory_enc_dec(unsigned long addr, int numpages, bool enc)
+> {
+>         struct cpa_data cpa;
+>         int ret;
+> 
+>         /* Nothing to do if memory encryption is not active */
+>         if (!mem_encrypt_active())
+>                 return 0;
 
-Total: Before=6187409, After=6187477, chg +0.00%
-
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/cmpxchg.h | 209 ++++++++++++++++++---------------
- 1 file changed, 117 insertions(+), 92 deletions(-)
-
-diff --git a/arch/arc/include/asm/cmpxchg.h b/arch/arc/include/asm/cmpxchg.h
-index bac9b564a140..00deb076d6f6 100644
---- a/arch/arc/include/asm/cmpxchg.h
-+++ b/arch/arc/include/asm/cmpxchg.h
-@@ -6,6 +6,7 @@
- #ifndef __ASM_ARC_CMPXCHG_H
- #define __ASM_ARC_CMPXCHG_H
- 
-+#include <linux/build_bug.h>
- #include <linux/types.h>
- 
- #include <asm/barrier.h>
-@@ -13,62 +14,77 @@
- 
- #ifdef CONFIG_ARC_HAS_LLSC
- 
--static inline unsigned long
--__cmpxchg(volatile void *ptr, unsigned long expected, unsigned long new)
--{
--	unsigned long prev;
--
--	/*
--	 * Explicit full memory barrier needed before/after as
--	 * LLOCK/SCOND themselves don't provide any such semantics
--	 */
--	smp_mb();
--
--	__asm__ __volatile__(
--	"1:	llock   %0, [%1]	\n"
--	"	brne    %0, %2, 2f	\n"
--	"	scond   %3, [%1]	\n"
--	"	bnz     1b		\n"
--	"2:				\n"
--	: "=&r"(prev)	/* Early clobber, to prevent reg reuse */
--	: "r"(ptr),	/* Not "m": llock only supports reg direct addr mode */
--	  "ir"(expected),
--	  "r"(new)	/* can't be "ir". scond can't take LIMM for "b" */
--	: "cc", "memory"); /* so that gcc knows memory is being written here */
--
--	smp_mb();
--
--	return prev;
--}
--
--#else /* !CONFIG_ARC_HAS_LLSC */
--
--static inline unsigned long
--__cmpxchg(volatile void *ptr, unsigned long expected, unsigned long new)
--{
--	unsigned long flags;
--	int prev;
--	volatile unsigned long *p = ptr;
--
--	/*
--	 * spin lock/unlock provide the needed smp_mb() before/after
--	 */
--	atomic_ops_lock(flags);
--	prev = *p;
--	if (prev == expected)
--		*p = new;
--	atomic_ops_unlock(flags);
--	return prev;
--}
-+/*
-+ * if (*ptr == @old)
-+ *      *ptr = @new
-+ */
-+#define __cmpxchg(ptr, old, new)					\
-+({									\
-+	__typeof__(*(ptr)) _prev;					\
-+									\
-+	__asm__ __volatile__(						\
-+	"1:	llock  %0, [%1]	\n"					\
-+	"	brne   %0, %2, 2f	\n"				\
-+	"	scond  %3, [%1]	\n"					\
-+	"	bnz     1b		\n"				\
-+	"2:				\n"				\
-+	: "=&r"(_prev)	/* Early clobber prevent reg reuse */		\
-+	: "r"(ptr),	/* Not "m": llock only supports reg */		\
-+	  "ir"(old),							\
-+	  "r"(new)	/* Not "ir": scond can't take LIMM */		\
-+	: "cc",								\
-+	  "memory");	/* gcc knows memory is clobbered */		\
-+									\
-+	_prev;								\
-+})
- 
--#endif
-+#define arch_cmpxchg(ptr, old, new)				        \
-+({									\
-+	__typeof__(ptr) _p_ = (ptr);					\
-+	__typeof__(*(ptr)) _o_ = (old);					\
-+	__typeof__(*(ptr)) _n_ = (new);					\
-+	__typeof__(*(ptr)) _prev_;					\
-+									\
-+	switch(sizeof((_p_))) {						\
-+	case 4:								\
-+	        /*							\
-+		 * Explicit full memory barrier needed before/after	\
-+	         */							\
-+		smp_mb();						\
-+		_prev_ = __cmpxchg(_p_, _o_, _n_);			\
-+		smp_mb();						\
-+		break;							\
-+	default:							\
-+		BUILD_BUG();						\
-+	}								\
-+	_prev_;								\
-+})
- 
--#define arch_cmpxchg(ptr, o, n) ({			\
--	(typeof(*(ptr)))__cmpxchg((ptr),		\
--				  (unsigned long)(o),	\
--				  (unsigned long)(n));	\
-+#else
-+
-+#define arch_cmpxchg(ptr, old, new)				        \
-+({									\
-+	volatile __typeof__(ptr) _p_ = (ptr);				\
-+	__typeof__(*(ptr)) _o_ = (old);					\
-+	__typeof__(*(ptr)) _n_ = (new);					\
-+	__typeof__(*(ptr)) _prev_;					\
-+	unsigned long __flags;						\
-+									\
-+	BUILD_BUG_ON(sizeof(_p_) != 4);					\
-+									\
-+	/*								\
-+	 * spin lock/unlock provide the needed smp_mb() before/after	\
-+	 */								\
-+	atomic_ops_lock(__flags);					\
-+	_prev_ = *_p_;							\
-+	if (_prev_ == _o_)						\
-+		*_p_ = _n_;						\
-+	atomic_ops_unlock(__flags);					\
-+	_prev_;								\
- })
- 
-+#endif
-+
- /*
-  * atomic_cmpxchg is same as cmpxchg
-  *   LLSC: only different in data-type, semantics are exactly same
-@@ -77,55 +93,64 @@ __cmpxchg(volatile void *ptr, unsigned long expected, unsigned long new)
-  */
- #define arch_atomic_cmpxchg(v, o, n) ((int)arch_cmpxchg(&((v)->counter), (o), (n)))
- 
--
- /*
-- * xchg (reg with memory) based on "Native atomic" EX insn
-+ * xchg
-  */
--static inline unsigned long __xchg(unsigned long val, volatile void *ptr,
--				   int size)
--{
--	extern unsigned long __xchg_bad_pointer(void);
--
--	switch (size) {
--	case 4:
--		smp_mb();
--
--		__asm__ __volatile__(
--		"	ex  %0, [%1]	\n"
--		: "+r"(val)
--		: "r"(ptr)
--		: "memory");
-+#ifdef CONFIG_ARC_HAS_LLSC
- 
--		smp_mb();
-+#define __xchg(ptr, val)						\
-+({									\
-+	__asm__ __volatile__(						\
-+	"	ex  %0, [%1]	\n"	/* set new value */	        \
-+	: "+r"(val)							\
-+	: "r"(ptr)							\
-+	: "memory");							\
-+	_val_;		/* get old value */				\
-+})
- 
--		return val;
--	}
--	return __xchg_bad_pointer();
--}
-+#define arch_xchg(ptr, val)						\
-+({									\
-+	__typeof__(ptr) _p_ = (ptr);					\
-+	__typeof__(*(ptr)) _val_ = (val);				\
-+									\
-+	switch(sizeof(*(_p_))) {					\
-+	case 4:								\
-+		smp_mb();						\
-+		_val_ = __xchg(_p_, _val_);				\
-+	        smp_mb();						\
-+		break;							\
-+	default:							\
-+		BUILD_BUG();						\
-+	}								\
-+	_val_;								\
-+})
- 
--#define _xchg(ptr, with) ((typeof(*(ptr)))__xchg((unsigned long)(with), (ptr), \
--						 sizeof(*(ptr))))
-+#else  /* !CONFIG_ARC_HAS_LLSC */
- 
- /*
-- * xchg() maps directly to ARC EX instruction which guarantees atomicity.
-- * However in !LLSC config, it also needs to be use @atomic_ops_lock spinlock
-- * due to a subtle reason:
-- *  - For !LLSC, cmpxchg() needs to use that lock (see above) and there is lot
-- *    of  kernel code which calls xchg()/cmpxchg() on same data (see llist.h)
-- *    Hence xchg() needs to follow same locking rules.
-+ * EX instructions is baseline and present in !LLSC too. But in this
-+ * regime it still needs use @atomic_ops_lock spinlock to allow interop
-+ * with cmpxchg() which uses spinlock in !LLSC
-+ * (llist.h use xchg and cmpxchg on sama data)
-  */
- 
--#ifndef CONFIG_ARC_HAS_LLSC
--
--#define arch_xchg(ptr, with)		\
--({					\
--	unsigned long flags;		\
--	typeof(*(ptr)) old_val;		\
--					\
--	atomic_ops_lock(flags);		\
--	old_val = _xchg(ptr, with);	\
--	atomic_ops_unlock(flags);	\
--	old_val;			\
-+#define arch_xchg(ptr, val)					        \
-+({									\
-+	__typeof__(ptr) _p_ = (ptr);					\
-+	__typeof__(*(ptr)) _val_ = (val);				\
-+									\
-+	unsigned long __flags;						\
-+									\
-+	atomic_ops_lock(__flags);					\
-+									\
-+	__asm__ __volatile__(						\
-+	"	ex  %0, [%1]	\n"					\
-+	: "+r"(_val_)							\
-+	: "r"(_p_)							\
-+	: "memory");							\
-+									\
-+	atomic_ops_unlock(__flags);					\
-+	_val_;								\
- })
- 
- #endif
--- 
-2.25.1
+Shouldn't the default be to just "return 0"?  Then on
+mem_encrypt_active() systems, do the bulk of what is in
+__set_memory_enc_dec() today.
 
