@@ -2,103 +2,97 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B413EC432BE
-	for <linux-arch@archiver.kernel.org>; Thu,  5 Aug 2021 19:47:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 92270C4338F
+	for <linux-arch@archiver.kernel.org>; Fri,  6 Aug 2021 08:41:10 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8283E60F02
-	for <linux-arch@archiver.kernel.org>; Thu,  5 Aug 2021 19:47:51 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 79DAE61159
+	for <linux-arch@archiver.kernel.org>; Fri,  6 Aug 2021 08:41:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238800AbhHETsF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 5 Aug 2021 15:48:05 -0400
-Received: from netrider.rowland.org ([192.131.102.5]:35765 "HELO
-        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S237055AbhHETsE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Aug 2021 15:48:04 -0400
-Received: (qmail 436831 invoked by uid 1000); 5 Aug 2021 15:47:49 -0400
-Date:   Thu, 5 Aug 2021 15:47:49 -0400
-From:   Alan Stern <stern@rowland.harvard.edu>
-To:     Jade Alglave <j.alglave@ucl.ac.uk>
-Cc:     Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Segher Boessenkool <segher@kernel.crashing.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nick Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-toolchains@vger.kernel.org,
-        linux-arch <linux-arch@vger.kernel.org>
-Subject: Re: [RFC] LKMM: Add volatile_if()
-Message-ID: <20210805194749.GA436115@rowland.harvard.edu>
-References: <20210605145739.GB1712909@rowland.harvard.edu>
- <20210606001418.GH4397@paulmck-ThinkPad-P17-Gen-1>
- <20210606012903.GA1723421@rowland.harvard.edu>
- <20210606115336.GS18427@gate.crashing.org>
- <CAHk-=wjgzAn9DfR9DpU-yKdg74v=fvyzTJMD8jNjzoX4kaUBHQ@mail.gmail.com>
- <20210606182213.GA1741684@rowland.harvard.edu>
- <CAHk-=whDrTbYT6Y=9+XUuSd5EAHWtB9NBUvQLMFxooHjxtzEGA@mail.gmail.com>
- <YL34NZ12mKoiSLvu@hirez.programming.kicks-ass.net>
- <20210607115234.GA7205@willie-the-truck>
- <20210730172020.GA32396@knuckles.cs.ucl.ac.uk>
+        id S241278AbhHFIlZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 6 Aug 2021 04:41:25 -0400
+Received: from mail.kernel.org ([198.145.29.99]:40094 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S238955AbhHFIlY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Aug 2021 04:41:24 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 1889660EE8;
+        Fri,  6 Aug 2021 08:41:07 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1628239269;
+        bh=2X17xjmGHGlgrytSaj7r9Rx++xVMsl8LbGTJrxDcYVY=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=guSu2m5Q46GebwXsmOvz75ZiYpZHxyQflS5B1n4Hrnfz7jFFXeHmFtYg0ywOy1Us3
+         0i4y9Hzv6mT5wywO/LcsnpYtnmgVyL3uW9s+Z1wBY44GMJOOt4nD18wXPWit4o3e+X
+         07zKakiC/AzjL2P2+Ze49RVCaNgzA97L8PjNS0nyhFT9IerEFC7XldeUbvV2mfOM2d
+         HBOeYGQBL9FH6aoPZSrvs+/GMQlimZNcD5I6tSisskK1cEoSkvBFzOfiC9MT0XvqcH
+         Chbj9FtCClMEg/m24AI3QB10r0RcaAcV6OTFm/D+ccLXRaBtp4blSyrKOQg6VVJtgW
+         F3xj2zeaj9C4A==
+Date:   Fri, 6 Aug 2021 09:41:04 +0100
+From:   Will Deacon <will@kernel.org>
+To:     Peter Zijlstra <peterz@infradead.org>
+Cc:     Vineet Gupta <Vineet.Gupta1@synopsys.com>,
+        "linux-snps-arc@lists.infradead.org" 
+        <linux-snps-arc@lists.infradead.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Mark Rutland <mark.rutland@arm.com>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        Vladimir Isaev <Vladimir.Isaev@synopsys.com>
+Subject: Re: [PATCH 00/11] ARC atomics update
+Message-ID: <20210806084104.GA2015@willie-the-truck>
+References: <20210804191554.1252776-1-vgupta@synopsys.com>
+ <20210805090209.GA22037@worktop.programming.kicks-ass.net>
+ <2c2bed36-1bcf-ae34-0e94-9110c7e2b242@synopsys.com>
+ <YQwaIIFvzdNcWnww@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20210730172020.GA32396@knuckles.cs.ucl.ac.uk>
+In-Reply-To: <YQwaIIFvzdNcWnww@hirez.programming.kicks-ass.net>
 User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jul 30, 2021 at 06:20:22PM +0100, Jade Alglave wrote:
-> I hope this material can help inform this conversation and I would love
-> to hear your thoughts.
+On Thu, Aug 05, 2021 at 07:04:32PM +0200, Peter Zijlstra wrote:
+> On Thu, Aug 05, 2021 at 04:18:29PM +0000, Vineet Gupta wrote:
+> > On 8/5/21 2:02 AM, Peter Zijlstra wrote:
+> > > On Wed, Aug 04, 2021 at 12:15:43PM -0700, Vineet Gupta wrote:
+> > > 
+> > >> Vineet Gupta (10):
+> > >>    ARC: atomics: disintegrate header
+> > >>    ARC: atomic: !LLSC: remove hack in atomic_set() for for UP
+> > >>    ARC: atomic: !LLSC: use int data type consistently
+> > >>    ARC: atomic64: LLSC: elide unused atomic_{and,or,xor,andnot}_return
+> > >>    ARC: atomics: implement relaxed variants
+> > >>    ARC: bitops: fls/ffs to take int (vs long) per asm-generic defines
+> > >>    ARC: xchg: !LLSC: remove UP micro-optimization/hack
+> > >>    ARC: cmpxchg/xchg: rewrite as macros to make type safe
+> > >>    ARC: cmpxchg/xchg: implement relaxed variants (LLSC config only)
+> > >>    ARC: atomic_cmpxchg/atomic_xchg: implement relaxed variants
+> > >>
+> > >> Will Deacon (1):
+> > >>    ARC: switch to generic bitops
+> > > 
+> > > Didn't see any weird things:
+> > > 
+> > > Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > 
+> > Thx Peter. A lot of this is your code anyways ;-)
+> > 
+> > Any initial thoughts/comments on patch 06/11 - is there an obvious 
+> > reason that generic bitops take signed @nr or the hurdle is need to be 
+> > done consistently cross-arch.
+> 
+> That does indeed seem daft and ready for a cleanup. Will any
+> recollection from when you touched this?
 
-Thoughts on section 3...
+I had a patch to fix this but it blew up in the robot and I didn't get round
+to reworking it:
 
-The paragraph on Branching Effect is pretty meager.  Exactly what 
-effects does a conditional branch instruction generate?  I imagine 
-there's a register read of the flags register, to see whether the branch 
-should be taken.  And evidently there's a branch effect, which may take 
-the register read as input but doesn't have any obvious outputs.  
-Anything else? -- there don't seem to be any register writes.
+https://lore.kernel.org/patchwork/patch/1245555/
 
-Why are Store Exclusive instructions explicitly disallowed in the 
-definition of dependency through registers?  Is this because ARM CPUs 
-don't forward values written by such instructions to po-later reads?  If 
-so, why don't they?  (Paul asked a similar question.)
-
-Since the recursive definition of dependency through registers starts 
-with either a register write or intrinsic order of events in an 
-instruction, it appears that there cannot be any dependency through 
-registers starting from a branching effect.  So why does the definition 
-of address dependency talk about a dependency through registers from B4 
-(a branching effect) to R2?  (Paul also asked about this -- does writing 
-to the program counter get treated as a register write?  But almost no 
-instructions explicitly read from the program counter.)
-
-What is the whole point of the special handling of branching effects in 
-the definition of address dependencies?  It isn't obvious and the text 
-doesn't explain it.
-
-Figure 26 includes a lot of terms that seem like herd primitives.  They 
-must be relatively new, because they aren't mentioned in the 
-documentation that I've got.  (I'm referring to such terms as iico_data, 
-iico_ctrl, intrinsic, same-instance, DATA, and NDATA.)  Are they 
-explained anywhere?
-
-Way back in Section 1, various Intrinsic dependency relations were 
-introduced.  The reason for treating Intrinsic control dependencies 
-specially seems to be that the CPU can speculate past such dependencies 
-(though it would be nice if the text made this point explicitly).  But 
-why do you differentiate between data and order Intrinsic dependencies?  
-Is this also related to some specific behavior of ARM CPUs?
-
-Alan
+Will
