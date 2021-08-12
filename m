@@ -2,72 +2,91 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-11.7 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_CR_TRAILER,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-21.7 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,INCLUDES_PULL_REQUEST,
+	MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,SPF_HELO_NONE,SPF_PASS autolearn=ham
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E101DC4338F
-	for <linux-arch@archiver.kernel.org>; Wed, 11 Aug 2021 07:31:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C669EC432BE
+	for <linux-arch@archiver.kernel.org>; Thu, 12 Aug 2021 00:25:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id BF56E60FD9
-	for <linux-arch@archiver.kernel.org>; Wed, 11 Aug 2021 07:31:51 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9F27D6109E
+	for <linux-arch@archiver.kernel.org>; Thu, 12 Aug 2021 00:25:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233224AbhHKHcN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 11 Aug 2021 03:32:13 -0400
-Received: from mail.kernel.org ([198.145.29.99]:46628 "EHLO mail.kernel.org"
+        id S233180AbhHLA0D (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 11 Aug 2021 20:26:03 -0400
+Received: from mail.kernel.org ([198.145.29.99]:58696 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S233182AbhHKHcN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Aug 2021 03:32:13 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 3899760EBD;
-        Wed, 11 Aug 2021 07:31:50 +0000 (UTC)
+        id S230072AbhHLA0A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Aug 2021 20:26:00 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 325886104F;
+        Thu, 12 Aug 2021 00:25:36 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1628667110;
-        bh=mtgL+TewTjL/J591sAI5LQuP3blpaY9K05ufSeoRX3c=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=vBnUFgyOZV7R3876Hz4qqRSAKIzZv5GUoL0iXtaRswPijBl9kdYA+6OXr+1GtA1Lo
-         Y25TKCFD9QNj8Y+IEWgkpNCNLAbpyS6wN6HjeoHPdpddukcvgYWgWmZuVA1qZVY1ta
-         /JYbPYE+jljCzg3bjRZJg9PE+vzaRXOP01qxwucvbpHKv1EmQ8jZuCliBoVwv29Zzs
-         jtwOHgFQGVYA/CjgX1hW010/O5D/aDI9nx5ehVZWlSf8/uC9oLvWhLt31jY6mK3C3W
-         I5sXEXLnQFFVr98IG1Z6hLRTAHsG/3TQO5w9rIlJT4hzRnTUNmm76Hi09ThCWqpY6p
-         ASLqIKWW1FvrA==
-Received: by mail-wm1-f48.google.com with SMTP id f9-20020a05600c1549b029025b0f5d8c6cso3684318wmg.4;
-        Wed, 11 Aug 2021 00:31:50 -0700 (PDT)
-X-Gm-Message-State: AOAM532rxiG3SsTjlA6YLuZtvaFbDofBthrBMVaynvPpCswa4kVOG5I8
-        /tbrFjPlGkOOPNU7V9/Y6RuF9P/Bbkrr6JllZGo=
-X-Google-Smtp-Source: ABdhPJza5YqWz118KynNjbnjYQmGJ2D0uhOBcFej6fVLAMreII/eTgUTKqnvy0Wr0EmnqDHjvEU+iQ9kbXB7xdMaDtk=
-X-Received: by 2002:a05:600c:3b08:: with SMTP id m8mr8472833wms.84.1628667108840;
- Wed, 11 Aug 2021 00:31:48 -0700 (PDT)
+        s=k20201202; t=1628727936;
+        bh=nalF53ncdHbhwNRz2ufsd/JwJEBSeVGXufbQHvjVoOE=;
+        h=Date:From:To:Cc:Subject:Reply-To:From;
+        b=KS5TpNYDP+iA/LTGm+t8Wv35iUgSiurp+K92vjb99xKVsl5mqvpSzdQIvfGFRDHrq
+         xbDp3jLMOg6wOyu+kXZq1HJUrjH2ILIK2PY7VmXDQ08p0HFy0pE7PtErtApFPLh22i
+         bm+biFUfLkMPXJbL3CRmHBbPFaX6BL7qR3He+SyEQE1T6754Q7IVk+XbhPQaIIibNY
+         ZsUuE5DABfbmopLCLmH8Koa+2sxb9X/4oZiLTjoPYirT6teDBPSWbcvhA51RDG3uKy
+         xpEDlArMltW2XrRAIHW+gIFxaPFDCaK3/Dkh0QaRtBpMAMUNd/TiFsPcLntkC4LgaD
+         cKHnmn4d0Im3w==
+Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
+        id EC1A95C048D; Wed, 11 Aug 2021 17:25:35 -0700 (PDT)
+Date:   Wed, 11 Aug 2021 17:25:35 -0700
+From:   "Paul E. McKenney" <paulmck@kernel.org>
+To:     mingo@kernel.org
+Cc:     manfred@colorfullife.com, stern@rowland.harvard.edu,
+        parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org,
+        boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com,
+        j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com,
+        dlustig@nvidia.com, joel@joelfernandes.org, tglx@linutronix.de,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        kernel-team@fb.com
+Subject: [GIT PULL lkmm] LKMM commits for v5.15
+Message-ID: <20210812002535.GA405507@paulmck-ThinkPad-P17-Gen-1>
+Reply-To: paulmck@kernel.org
 MIME-Version: 1.0
-References: <20210726141141.2839385-1-arnd@kernel.org> <YRNwmGL2b52dQUuv@infradead.org>
-In-Reply-To: <YRNwmGL2b52dQUuv@infradead.org>
-From:   Arnd Bergmann <arnd@kernel.org>
-Date:   Wed, 11 Aug 2021 09:31:32 +0200
-X-Gmail-Original-Message-ID: <CAK8P3a3aCgy5z4sNWO_xbV2PwdrW1c6eavRYeMT3WE91eG65rw@mail.gmail.com>
-Message-ID: <CAK8P3a3aCgy5z4sNWO_xbV2PwdrW1c6eavRYeMT3WE91eG65rw@mail.gmail.com>
-Subject: Re: [PATCH v5 00/10] ARM: remove set_fs callers and implementation
-To:     Christoph Hellwig <hch@infradead.org>
-Cc:     Russell King <linux@armlinux.org.uk>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux-MM <linux-mm@kvack.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Linus Walleij <linus.walleij@linaro.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Aug 11, 2021 at 8:39 AM Christoph Hellwig <hch@infradead.org> wrote:
->
-> From my high-level perspective this looks great and I'd love to see it
-> merged:
->
-> Acked-by: Christoph Hellwig <hch@lst.de>
+Hello, Ingo!
 
-Thank you for taking another look, and for the reminder. I've now added the
-series to Russell's patch tracker.
+This pull request contains changes for the Linux-kernel memory model
+(LKMM).  These changes focus on documentation, providing additional
+examples and use cases.  These have been posted to LKML:
 
-       Arnd
+https://lore.kernel.org/lkml/20210721211003.869892-1-paulmck@kernel.org/
+https://lore.kernel.org/lkml/20210721211003.869892-2-paulmck@kernel.org/
+https://lore.kernel.org/lkml/20210721211003.869892-3-paulmck@kernel.org/
+https://lore.kernel.org/lkml/20210721211003.869892-4-paulmck@kernel.org/
+
+They have been exposed to -next and the kernel test robot, not that these
+services do all that much for documentation changes.
+
+The following changes since commit 2734d6c1b1a089fb593ef6a23d4b70903526fe0c:
+
+  Linux 5.14-rc2 (2021-07-18 14:13:49 -0700)
+
+are available in the Git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git lkmm
+
+for you to fetch changes up to 87859a8e3f083bd57b34e6a962544d775a76b15f:
+
+  tools/memory-model: Document data_race(READ_ONCE()) (2021-07-27 11:48:55 -0700)
+
+----------------------------------------------------------------
+Manfred Spraul (1):
+      tools/memory-model: Heuristics using data_race() must handle all values
+
+Paul E. McKenney (3):
+      tools/memory-model: Make read_foo_diagnostic() more clearly diagnostic
+      tools/memory-model: Add example for heuristic lockless reads
+      tools/memory-model: Document data_race(READ_ONCE())
+
+ .../memory-model/Documentation/access-marking.txt  | 151 ++++++++++++++++++---
+ 1 file changed, 135 insertions(+), 16 deletions(-)
