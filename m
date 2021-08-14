@@ -2,164 +2,200 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.2 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,INCLUDES_PATCH,MAILING_LIST_MULTI,
-	NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-8.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C4A17C4338F
-	for <linux-arch@archiver.kernel.org>; Sat, 14 Aug 2021 01:04:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A9422C4338F
+	for <linux-arch@archiver.kernel.org>; Sat, 14 Aug 2021 02:44:48 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A4BBC61102
-	for <linux-arch@archiver.kernel.org>; Sat, 14 Aug 2021 01:04:33 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7D51860C3E
+	for <linux-arch@archiver.kernel.org>; Sat, 14 Aug 2021 02:44:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236038AbhHNBFA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Aug 2021 21:05:00 -0400
-Received: from mail.kernel.org ([198.145.29.99]:58190 "EHLO mail.kernel.org"
+        id S236519AbhHNCpO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Aug 2021 22:45:14 -0400
+Received: from mga11.intel.com ([192.55.52.93]:23501 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S235870AbhHNBFA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Aug 2021 21:05:00 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 6EEBF61042;
-        Sat, 14 Aug 2021 01:04:31 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1628903072;
-        bh=DFe7UDoGnT6+u9OBWO0ZI9GbCic4YsZIgmx3Avqy5h0=;
-        h=Subject:To:Cc:References:From:Date:In-Reply-To:From;
-        b=qdpJK4WjJaQf1C0jjNsURq189sWEPYwVEXf63nkPTHGo5GuEaWMbh4tazJvxpM4wr
-         N1LTQk4snhQeGf3Us8ww/eldAa7mGSGvez7Z7Tg0KsFaOCCz7SxepAocx0IAv5no1M
-         tf7jVd0ZbiKZDDAs64w9Vdwba09qv4K2uJ+sKt8o8hd+4bfY6MuZajZ/EyxwLsvhWt
-         NqbbGp6bCtWe5QEn9goO0GkyOHRGnkQX78kg0YcqGABXZlPsfOSSwkPPeUClNRRHgF
-         BZlIcwOJVRO3f6S/9B3mAt86poApD6jz/7qsP7DvFLSV6Y/VVl+/1KjCxWPpal1kAN
-         X2FPeoxyoIGyw==
-Subject: Re: [PATCH v3 0/6] asm-generic: strncpy_from_user/strnlen_user
- cleanup
-To:     Arnd Bergmann <arnd@kernel.org>, linux-arch@vger.kernel.org
-Cc:     Arnd Bergmann <arnd@arndb.de>,
-        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
-        Brian Cain <bcain@codeaurora.org>,
-        Chris Zankel <chris@zankel.net>,
-        Christian Borntraeger <borntraeger@de.ibm.com>,
-        Christoph Hellwig <hch@lst.de>, Guo Ren <guoren@kernel.org>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Helge Deller <deller@gmx.de>, Jeff Dike <jdike@addtoit.com>,
-        Linus Walleij <linus.walleij@linaro.org>,
-        Max Filippov <jcmvbkbc@gmail.com>,
-        Michal Simek <monstr@monstr.eu>,
-        Richard Weinberger <richard@nod.at>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Yoshinori Sato <ysato@users.sourceforge.j>,
-        Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>
-References: <20210722124814.778059-1-arnd@kernel.org>
-From:   Vineet Gupta <vgupta@kernel.org>
-Message-ID: <110b8a69-db5e-e5bc-4391-856a2ed45495@kernel.org>
-Date:   Fri, 13 Aug 2021 18:04:30 -0700
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.11.0
+        id S236466AbhHNCpO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Aug 2021 22:45:14 -0400
+X-IronPort-AV: E=McAfee;i="6200,9189,10075"; a="212539330"
+X-IronPort-AV: E=Sophos;i="5.84,320,1620716400"; 
+   d="scan'208";a="212539330"
+Received: from fmsmga004.fm.intel.com ([10.253.24.48])
+  by fmsmga102.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Aug 2021 19:44:45 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.84,320,1620716400"; 
+   d="scan'208";a="508481115"
+Received: from lkp-server01.sh.intel.com (HELO d053b881505b) ([10.239.97.150])
+  by fmsmga004.fm.intel.com with ESMTP; 13 Aug 2021 19:44:44 -0700
+Received: from kbuild by d053b881505b with local (Exim 4.92)
+        (envelope-from <lkp@intel.com>)
+        id 1mEjf9-000OKW-Gn; Sat, 14 Aug 2021 02:44:43 +0000
+Date:   Sat, 14 Aug 2021 10:43:43 +0800
+From:   kernel test robot <lkp@intel.com>
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     linux-arch@vger.kernel.org
+Subject: [asm-generic:master] BUILD SUCCESS
+ a71bfc0079762b4d3cb36dcc5fe6c23c806cfc8c
+Message-ID: <61172ddf.v/vt2cQzLv/q0yZq%lkp@intel.com>
+User-Agent: Heirloom mailx 12.5 6/20/10
 MIME-Version: 1.0
-In-Reply-To: <20210722124814.778059-1-arnd@kernel.org>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Arnd,
+tree/branch: https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git master
+branch HEAD: a71bfc0079762b4d3cb36dcc5fe6c23c806cfc8c  Merge branch 'asm-generic-uaccess-7' of git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic into asm-generic
 
-On 7/22/21 5:48 AM, Arnd Bergmann wrote:
-> From: Arnd Bergmann <arnd@arndb.de>
-> 
-> I had run into some regressions for the previous version of this
-> series, the new version is based on v5.14-rc2 instead.
-> 
-> These two functions appear to be unnecessarily different between
-> architectures, and the asm-generic version is a bit questionable,
-> even for NOMMU architectures.
-> 
-> Clean this up to just use the generic library version for anything
-> that uses the generic version today. I've expanded on the patch
-> descriptions a little, as suggested by Christoph Hellwig, but I
-> suspect a more detailed review would uncover additional problems
-> with the custom versions that are getting removed.
-> 
-> I ended up adding patches for csky and microblaze as they had the
-> same implementation that I removed elsewhere, these are now gone
-> as well.
-> 
-> If I hear no objections from architecture maintainers or new
-> build regressions, I'll queue these up in the asm-generic tree
-> for 5.15.
-> 
->         Arnd
-> 
-> Link: https://lore.kernel.org/linux-arch/20210515101803.924427-1-arnd@kernel.org/
+elapsed time: 724m
 
-Are you planning to add this to asm-generic tree for 5.15 anytime soon.
-Also while there, any chance you could pick up [1] too which was Acked 
-by Will.
+configs tested: 128
+configs skipped: 3
 
-Thx,
--Vineet
+The following configs have been built successfully.
+More configs may be tested in the coming days.
 
-[1] 
-https://lore.kernel.org/linux-arch/20210805191408.2003237-1-vgupta@synopsys.com/
+gcc tested configs:
+arm                                 defconfig
+arm64                            allyesconfig
+arm64                               defconfig
+arm                              allyesconfig
+arm                              allmodconfig
+i386                 randconfig-c001-20210812
+i386                 randconfig-c001-20210813
+openrisc                  or1klitex_defconfig
+m68k                        m5407c3_defconfig
+powerpc                    klondike_defconfig
+mips                     loongson1c_defconfig
+arm                          ep93xx_defconfig
+arm                          iop32x_defconfig
+sh                           se7750_defconfig
+powerpc                    socrates_defconfig
+riscv                             allnoconfig
+powerpc                     ksi8560_defconfig
+powerpc                 mpc837x_rdb_defconfig
+m68k                        m5307c3_defconfig
+mips                malta_qemu_32r6_defconfig
+mips                        qi_lb60_defconfig
+arm                        mvebu_v7_defconfig
+mips                        bcm63xx_defconfig
+powerpc                     mpc5200_defconfig
+mips                      fuloong2e_defconfig
+xtensa                       common_defconfig
+mips                       lemote2f_defconfig
+arm                  colibri_pxa300_defconfig
+arm                         hackkit_defconfig
+mips                    maltaup_xpa_defconfig
+powerpc                    gamecube_defconfig
+arm                             ezx_defconfig
+s390                             alldefconfig
+sh                   sh7724_generic_defconfig
+sh                          sdk7780_defconfig
+arm                             mxs_defconfig
+powerpc                        warp_defconfig
+m68k                        stmark2_defconfig
+x86_64                            allnoconfig
+ia64                             allmodconfig
+ia64                                defconfig
+ia64                             allyesconfig
+m68k                                defconfig
+m68k                             allmodconfig
+m68k                             allyesconfig
+nios2                               defconfig
+arc                              allyesconfig
+nds32                             allnoconfig
+nds32                               defconfig
+nios2                            allyesconfig
+csky                                defconfig
+alpha                               defconfig
+alpha                            allyesconfig
+xtensa                           allyesconfig
+h8300                            allyesconfig
+arc                                 defconfig
+sh                               allmodconfig
+parisc                              defconfig
+s390                             allyesconfig
+s390                             allmodconfig
+parisc                           allyesconfig
+s390                                defconfig
+i386                             allyesconfig
+sparc                            allyesconfig
+sparc                               defconfig
+i386                                defconfig
+mips                             allyesconfig
+mips                             allmodconfig
+powerpc                          allyesconfig
+powerpc                          allmodconfig
+powerpc                           allnoconfig
+x86_64               randconfig-a006-20210812
+x86_64               randconfig-a004-20210812
+x86_64               randconfig-a003-20210812
+x86_64               randconfig-a005-20210812
+x86_64               randconfig-a002-20210812
+x86_64               randconfig-a001-20210812
+i386                 randconfig-a004-20210813
+i386                 randconfig-a003-20210813
+i386                 randconfig-a001-20210813
+i386                 randconfig-a002-20210813
+i386                 randconfig-a006-20210813
+i386                 randconfig-a005-20210813
+i386                 randconfig-a004-20210814
+i386                 randconfig-a002-20210814
+i386                 randconfig-a001-20210814
+i386                 randconfig-a003-20210814
+i386                 randconfig-a006-20210814
+i386                 randconfig-a005-20210814
+x86_64               randconfig-a011-20210813
+x86_64               randconfig-a013-20210813
+x86_64               randconfig-a012-20210813
+x86_64               randconfig-a016-20210813
+x86_64               randconfig-a015-20210813
+x86_64               randconfig-a014-20210813
+x86_64               randconfig-a013-20210814
+x86_64               randconfig-a011-20210814
+x86_64               randconfig-a016-20210814
+x86_64               randconfig-a012-20210814
+x86_64               randconfig-a014-20210814
+x86_64               randconfig-a015-20210814
+i386                 randconfig-a011-20210814
+i386                 randconfig-a015-20210814
+i386                 randconfig-a013-20210814
+i386                 randconfig-a014-20210814
+i386                 randconfig-a016-20210814
+i386                 randconfig-a012-20210814
+riscv                    nommu_k210_defconfig
+riscv                            allyesconfig
+riscv                    nommu_virt_defconfig
+riscv                               defconfig
+riscv                          rv32_defconfig
+riscv                            allmodconfig
+x86_64                    rhel-8.3-kselftests
+um                           x86_64_defconfig
+um                             i386_defconfig
+x86_64                           allyesconfig
+x86_64                              defconfig
+x86_64                               rhel-8.3
+x86_64                                  kexec
 
+clang tested configs:
+x86_64               randconfig-c001-20210814
+x86_64               randconfig-c001-20210813
+x86_64               randconfig-a006-20210813
+x86_64               randconfig-a004-20210813
+x86_64               randconfig-a003-20210813
+x86_64               randconfig-a002-20210813
+x86_64               randconfig-a005-20210813
+x86_64               randconfig-a001-20210813
+x86_64               randconfig-a013-20210814
+x86_64               randconfig-a011-20210814
+x86_64               randconfig-a016-20210814
+x86_64               randconfig-a012-20210814
+x86_64               randconfig-a014-20210814
+x86_64               randconfig-a015-20210814
 
-> 
-> Arnd Bergmann (9):
->    asm-generic/uaccess.h: remove __strncpy_from_user/__strnlen_user
->    h8300: remove stale strncpy_from_user
->    hexagon: use generic strncpy/strnlen from_user
->    arc: use generic strncpy/strnlen from_user
->    csky: use generic strncpy/strnlen from_user
->    microblaze: use generic strncpy/strnlen from_user
->    asm-generic: uaccess: remove inline strncpy_from_user/strnlen_user
->    asm-generic: remove extra strn{cpy_from,len}_user declarations
->    asm-generic: reverse GENERIC_{STRNCPY_FROM,STRNLEN}_USER symbols
-> 
->   arch/alpha/Kconfig                        |   2 -
->   arch/arc/include/asm/uaccess.h            |  72 -------------
->   arch/arc/mm/extable.c                     |  12 ---
->   arch/arm/Kconfig                          |   2 -
->   arch/arm64/Kconfig                        |   2 -
->   arch/csky/include/asm/uaccess.h           |   6 --
->   arch/csky/lib/usercopy.c                  | 102 ------------------
->   arch/h8300/kernel/h8300_ksyms.c           |   2 -
->   arch/h8300/lib/Makefile                   |   2 +-
->   arch/h8300/lib/strncpy.S                  |  35 ------
->   arch/hexagon/include/asm/uaccess.h        |  31 ------
->   arch/hexagon/kernel/hexagon_ksyms.c       |   1 -
->   arch/hexagon/mm/Makefile                  |   2 +-
->   arch/hexagon/mm/strnlen_user.S            | 126 ----------------------
->   arch/ia64/Kconfig                         |   2 +
->   arch/m68k/Kconfig                         |   2 -
->   arch/microblaze/include/asm/uaccess.h     |  19 +---
->   arch/microblaze/kernel/microblaze_ksyms.c |   3 -
->   arch/microblaze/lib/uaccess_old.S         |  90 ----------------
->   arch/mips/Kconfig                         |   2 +
->   arch/nds32/Kconfig                        |   2 -
->   arch/nios2/Kconfig                        |   2 -
->   arch/openrisc/Kconfig                     |   2 -
->   arch/parisc/Kconfig                       |   2 +-
->   arch/powerpc/Kconfig                      |   2 -
->   arch/riscv/Kconfig                        |   2 -
->   arch/s390/Kconfig                         |   2 +
->   arch/sh/Kconfig                           |   2 -
->   arch/sparc/Kconfig                        |   2 -
->   arch/um/Kconfig                           |   2 +
->   arch/um/include/asm/uaccess.h             |   5 +-
->   arch/um/kernel/skas/uaccess.c             |  14 ++-
->   arch/x86/Kconfig                          |   2 -
->   arch/xtensa/Kconfig                       |   3 +-
->   arch/xtensa/include/asm/uaccess.h         |   3 +-
->   include/asm-generic/uaccess.h             |  52 ++-------
->   lib/Kconfig                               |  10 +-
->   37 files changed, 43 insertions(+), 581 deletions(-)
->   delete mode 100644 arch/h8300/lib/strncpy.S
->   delete mode 100644 arch/hexagon/mm/strnlen_user.S
-> 
-
+---
+0-DAY CI Kernel Test Service, Intel Corporation
+https://lists.01.org/hyperkitty/list/kbuild-all@lists.01.org
