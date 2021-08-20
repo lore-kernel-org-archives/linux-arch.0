@@ -2,146 +2,142 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,NICE_REPLY_A,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5362DC4338F
-	for <linux-arch@archiver.kernel.org>; Fri, 20 Aug 2021 18:25:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 05634C432BE
+	for <linux-arch@archiver.kernel.org>; Fri, 20 Aug 2021 18:25:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 360FE61266
-	for <linux-arch@archiver.kernel.org>; Fri, 20 Aug 2021 18:25:33 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id DFA4E6127B
+	for <linux-arch@archiver.kernel.org>; Fri, 20 Aug 2021 18:25:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229512AbhHTS0J (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 20 Aug 2021 14:26:09 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60982 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237222AbhHTSX4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Aug 2021 14:23:56 -0400
-Received: from mail-pg1-x534.google.com (mail-pg1-x534.google.com [IPv6:2607:f8b0:4864:20::534])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E4CD8C0611C2;
-        Fri, 20 Aug 2021 11:21:13 -0700 (PDT)
-Received: by mail-pg1-x534.google.com with SMTP id x4so9986632pgh.1;
-        Fri, 20 Aug 2021 11:21:13 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20161025;
-        h=subject:to:cc:references:from:message-id:date:user-agent
-         :mime-version:in-reply-to:content-language:content-transfer-encoding;
-        bh=FnnZUNvhPvIx/VcFIRs7Mx/cKrQt7VgripjVwaHxsaI=;
-        b=nOkgFzUUeuE2uOq6KpBWbmk2uCSVbcFBzkWKWriACYTXwD2Dfd42Y/PQxXFWgP/UQB
-         TogIgojLtlyPz9QZAvWYG7x2Pth4sWyW9aCIzNRMkahsKt7LnIP0hQceLcgKHpy70hBM
-         tN3pbDH8t4qDq8nt48kTuMyGdfR+karexcyZbSVJGxqKp8Xjr7WSOFalJR4zWRTyN9eU
-         cS/bv7TIGxxMVY+JEwNGmD+vn6WhpJX2S3CF5XZsTbPF9biARKkYXKoQGAuaOxtAT4R5
-         vG04+TCNyrhDuU8ZUFurYQVnP2CxwvKxr71yt2ETcHsuHN50myIZUfVBAsyoQwK7oxl8
-         TKsA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
-         :user-agent:mime-version:in-reply-to:content-language
-         :content-transfer-encoding;
-        bh=FnnZUNvhPvIx/VcFIRs7Mx/cKrQt7VgripjVwaHxsaI=;
-        b=lT24w5jkNezfMbpXVvKatR1Q2ooiBJKVbkGOWLAUWqUqPK1fChPlRGutWHnMcKli4B
-         +I5gwSGOsG9xZfjHafYNuDsXrD88yeMQaG+yZz5iHVSAihq6pgfY4WQSlpgB37utNHKv
-         Y9gycczLVkgtIJR90y1hTOYMerkkJZypgo06fzPj1QBLlcGGCeBNcuBZ4VoHT25GskBm
-         OR10/MPvGqbq49X5IvX0EoDrAz+MYQzkXn9566ut2+enWpO7NSIEACs2uQxOftFGk0Rd
-         w5+3linZdJm0FQhAkSuhMYQWFXUzgsTmI+6v0aFMsaXWrlDkzRG8a1Tp/e9b4bp7o3S7
-         N7Ig==
-X-Gm-Message-State: AOAM5325vx1yIGrnTs7qAVEevL3yG+xkDjscNbOhTTMalBdkHpHrcb01
-        eQpU/sfM5KP0Ff9HR53q/r8=
-X-Google-Smtp-Source: ABdhPJxzsYelAgPwIrLwHXwqEGliJ5vS+we4MW2tj375Z/nX9HFwmx8yp+6BPHWxDivdPsW7WY4m1A==
-X-Received: by 2002:a62:78c1:0:b0:3e2:bdc:6952 with SMTP id t184-20020a6278c1000000b003e20bdc6952mr20448852pfc.45.1629483673512;
-        Fri, 20 Aug 2021 11:21:13 -0700 (PDT)
-Received: from ?IPv6:2404:f801:0:5:8000::50b? ([2404:f801:9000:18:efec::50b])
-        by smtp.gmail.com with ESMTPSA id n12sm9253074pgr.2.2021.08.20.11.20.59
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 20 Aug 2021 11:21:13 -0700 (PDT)
-Subject: Re: [PATCH V3 12/13] HV/Netvsc: Add Isolation VM support for netvsc
- driver
-To:     Michael Kelley <mikelley@microsoft.com>,
-        KY Srinivasan <kys@microsoft.com>,
-        Haiyang Zhang <haiyangz@microsoft.com>,
-        Stephen Hemminger <sthemmin@microsoft.com>,
-        "wei.liu@kernel.org" <wei.liu@kernel.org>,
-        Dexuan Cui <decui@microsoft.com>,
-        "tglx@linutronix.de" <tglx@linutronix.de>,
-        "mingo@redhat.com" <mingo@redhat.com>,
-        "bp@alien8.de" <bp@alien8.de>, "x86@kernel.org" <x86@kernel.org>,
-        "hpa@zytor.com" <hpa@zytor.com>,
-        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
-        "luto@kernel.org" <luto@kernel.org>,
-        "peterz@infradead.org" <peterz@infradead.org>,
-        "konrad.wilk@oracle.com" <konrad.wilk@oracle.com>,
-        "boris.ostrovsky@oracle.com" <boris.ostrovsky@oracle.com>,
-        "jgross@suse.com" <jgross@suse.com>,
-        "sstabellini@kernel.org" <sstabellini@kernel.org>,
-        "joro@8bytes.org" <joro@8bytes.org>,
-        "will@kernel.org" <will@kernel.org>,
-        "davem@davemloft.net" <davem@davemloft.net>,
-        "kuba@kernel.org" <kuba@kernel.org>,
-        "jejb@linux.ibm.com" <jejb@linux.ibm.com>,
-        "martin.petersen@oracle.com" <martin.petersen@oracle.com>,
-        "arnd@arndb.de" <arnd@arndb.de>, "hch@lst.de" <hch@lst.de>,
-        "m.szyprowski@samsung.com" <m.szyprowski@samsung.com>,
-        "robin.murphy@arm.com" <robin.murphy@arm.com>,
-        "thomas.lendacky@amd.com" <thomas.lendacky@amd.com>,
-        "brijesh.singh@amd.com" <brijesh.singh@amd.com>,
-        "ardb@kernel.org" <ardb@kernel.org>,
-        Tianyu Lan <Tianyu.Lan@microsoft.com>,
-        "pgonda@google.com" <pgonda@google.com>,
-        "martin.b.radev@gmail.com" <martin.b.radev@gmail.com>,
-        "akpm@linux-foundation.org" <akpm@linux-foundation.org>,
-        "kirill.shutemov@linux.intel.com" <kirill.shutemov@linux.intel.com>,
-        "rppt@kernel.org" <rppt@kernel.org>,
-        "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>,
-        "saravanand@fb.com" <saravanand@fb.com>,
-        "krish.sadhukhan@oracle.com" <krish.sadhukhan@oracle.com>,
-        "aneesh.kumar@linux.ibm.com" <aneesh.kumar@linux.ibm.com>,
-        "xen-devel@lists.xenproject.org" <xen-devel@lists.xenproject.org>,
-        "rientjes@google.com" <rientjes@google.com>,
-        "hannes@cmpxchg.org" <hannes@cmpxchg.org>,
-        "tj@kernel.org" <tj@kernel.org>
-Cc:     "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "linux-scsi@vger.kernel.org" <linux-scsi@vger.kernel.org>,
-        "netdev@vger.kernel.org" <netdev@vger.kernel.org>,
-        vkuznets <vkuznets@redhat.com>,
-        "parri.andrea@gmail.com" <parri.andrea@gmail.com>,
-        "dave.hansen@intel.com" <dave.hansen@intel.com>
-References: <20210809175620.720923-1-ltykernel@gmail.com>
- <20210809175620.720923-13-ltykernel@gmail.com>
- <MWHPR21MB15936FE72E65A62FBA3EF4F2D7C09@MWHPR21MB1593.namprd21.prod.outlook.com>
-From:   Tianyu Lan <ltykernel@gmail.com>
-Message-ID: <713480b3-f924-60dd-96a4-b6318930383f@gmail.com>
-Date:   Sat, 21 Aug 2021 02:20:58 +0800
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
- Thunderbird/78.13.0
+        id S236250AbhHTS0K (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 20 Aug 2021 14:26:10 -0400
+Received: from mga18.intel.com ([134.134.136.126]:48046 "EHLO mga18.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S236023AbhHTSYG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Aug 2021 14:24:06 -0400
+X-IronPort-AV: E=McAfee;i="6200,9189,10082"; a="203964940"
+X-IronPort-AV: E=Sophos;i="5.84,338,1620716400"; 
+   d="scan'208";a="203964940"
+Received: from fmsmga003.fm.intel.com ([10.253.24.29])
+  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Aug 2021 11:23:07 -0700
+X-IronPort-AV: E=Sophos;i="5.84,338,1620716400"; 
+   d="scan'208";a="523799153"
+Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
+  by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Aug 2021 11:23:07 -0700
+From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
+To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
+        linux-doc@vger.kernel.org, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V. Shankar" <ravi.v.shankar@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>,
+        Pengfei Xu <pengfei.xu@intel.com>,
+        Haitao Huang <haitao.huang@intel.com>,
+        Rick P Edgecombe <rick.p.edgecombe@intel.com>
+Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v29 01/10] x86/cet/ibt: Add Kconfig option for Indirect Branch Tracking
+Date:   Fri, 20 Aug 2021 11:22:36 -0700
+Message-Id: <20210820182245.1188-2-yu-cheng.yu@intel.com>
+X-Mailer: git-send-email 2.21.0
+In-Reply-To: <20210820182245.1188-1-yu-cheng.yu@intel.com>
+References: <20210820182245.1188-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <MWHPR21MB15936FE72E65A62FBA3EF4F2D7C09@MWHPR21MB1593.namprd21.prod.outlook.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 8/20/2021 2:14 AM, Michael Kelley wrote:
->> @@ -477,6 +521,15 @@ static int netvsc_init_buf(struct hv_device *device,
->>   		goto cleanup;
->>   	}
->>
->> +	if (hv_isolation_type_snp()) {
->> +		vaddr = netvsc_remap_buf(net_device->send_buf, buf_size);
->> +		if (!vaddr)
->> +			goto cleanup;
-> I don't think this error case is handled correctly.  Doesn't the remapping
-> of the recv buf need to be undone?
->
+Indirect Branch Tracking (IBT) provides protection against CALL-/JMP-
+oriented programming attacks.  It is active when the kernel has this
+feature enabled, and the processor and the application support it.
+When this feature is enabled, legacy non-IBT applications continue to
+work, but without IBT protection.
 
-Yes, actually I thought to return error here and free_netvsc_device() 
-will help to unmap recv_buffer finally. But I forget to set ret = 
--ENOMEM when add netvsc_remap_buf() helper.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+---
+ arch/x86/Kconfig                         | 19 +++++++++++++++++++
+ arch/x86/include/asm/disabled-features.h |  8 +++++++-
+ 2 files changed, 26 insertions(+), 1 deletion(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 34692f02118c..b063d6d2491f 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1932,6 +1932,25 @@ config X86_SHADOW_STACK
+ 
+ 	  If unsure, say N.
+ 
++config X86_IBT
++	prompt "Intel Indirect Branch Tracking"
++	def_bool n
++	depends on X86_SHADOW_STACK
++	depends on $(cc-option,-fcf-protection)
++	help
++	  Indirect Branch Tracking (IBT) provides protection against
++	  CALL-/JMP-oriented programming attacks.  It is active when
++	  the kernel has this feature enabled, and the processor and
++	  the application support it.  When this feature is enabled,
++	  legacy non-IBT applications continue to work, but without
++	  IBT protection.
++	  Support for this feature is present on Tiger Lake family of
++	  processors released in 2020 or later.  Enabling this feature
++	  increases kernel text size by 3.7 KB.
++	  See Documentation/x86/intel_cet.rst for more information.
++
++	  If unsure, say N.
++
+ config EFI
+ 	bool "EFI runtime service support"
+ 	depends on ACPI
+diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
+index b7728f7afb2b..e3a08fcd72f4 100644
+--- a/arch/x86/include/asm/disabled-features.h
++++ b/arch/x86/include/asm/disabled-features.h
+@@ -71,6 +71,12 @@
+ #define DISABLE_SHSTK	(1 << (X86_FEATURE_SHSTK & 31))
+ #endif
+ 
++#ifdef CONFIG_X86_IBT
++#define DISABLE_IBT	0
++#else
++#define DISABLE_IBT	(1 << (X86_FEATURE_IBT & 31))
++#endif
++
+ /*
+  * Make sure to add features to the correct mask
+  */
+@@ -93,7 +99,7 @@
+ #define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_UMIP| \
+ 			 DISABLE_ENQCMD|DISABLE_SHSTK)
+ #define DISABLED_MASK17	0
+-#define DISABLED_MASK18	0
++#define DISABLED_MASK18	(DISABLE_IBT)
+ #define DISABLED_MASK19	0
+ #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 20)
+ 
+-- 
+2.21.0
 
