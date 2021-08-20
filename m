@@ -5,29 +5,29 @@ X-Spam-Level:
 X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9A383C4320E
-	for <linux-arch@archiver.kernel.org>; Fri, 20 Aug 2021 18:22:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A8D16C4320E
+	for <linux-arch@archiver.kernel.org>; Fri, 20 Aug 2021 18:23:43 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8359A6127C
-	for <linux-arch@archiver.kernel.org>; Fri, 20 Aug 2021 18:22:45 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 84E6661266
+	for <linux-arch@archiver.kernel.org>; Fri, 20 Aug 2021 18:23:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238535AbhHTSXV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 20 Aug 2021 14:23:21 -0400
-Received: from mga05.intel.com ([192.55.52.43]:22601 "EHLO mga05.intel.com"
+        id S236939AbhHTSYU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 20 Aug 2021 14:24:20 -0400
+Received: from mga18.intel.com ([134.134.136.126]:48048 "EHLO mga18.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S237940AbhHTSWX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Aug 2021 14:22:23 -0400
-X-IronPort-AV: E=McAfee;i="6200,9189,10082"; a="302407847"
+        id S237460AbhHTSYM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Aug 2021 14:24:12 -0400
+X-IronPort-AV: E=McAfee;i="6200,9189,10082"; a="203964946"
 X-IronPort-AV: E=Sophos;i="5.84,338,1620716400"; 
-   d="scan'208";a="302407847"
-Received: from fmsmga002.fm.intel.com ([10.253.24.26])
-  by fmsmga105.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Aug 2021 11:18:53 -0700
+   d="scan'208";a="203964946"
+Received: from fmsmga003.fm.intel.com ([10.253.24.29])
+  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Aug 2021 11:23:08 -0700
 X-IronPort-AV: E=Sophos;i="5.84,338,1620716400"; 
-   d="scan'208";a="533074811"
+   d="scan'208";a="523799160"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by fmsmga002-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Aug 2021 11:18:53 -0700
+  by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Aug 2021 11:23:08 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -56,151 +56,208 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Pengfei Xu <pengfei.xu@intel.com>,
         Haitao Huang <haitao.huang@intel.com>,
         Rick P Edgecombe <rick.p.edgecombe@intel.com>
-Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH v29 32/32] mm: Introduce PROT_SHADOW_STACK for shadow stack
-Date:   Fri, 20 Aug 2021 11:12:01 -0700
-Message-Id: <20210820181201.31490-33-yu-cheng.yu@intel.com>
+Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v29 03/10] x86/cet/ibt: Handle signals for Indirect Branch Tracking
+Date:   Fri, 20 Aug 2021 11:22:38 -0700
+Message-Id: <20210820182245.1188-4-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
-In-Reply-To: <20210820181201.31490-1-yu-cheng.yu@intel.com>
-References: <20210820181201.31490-1-yu-cheng.yu@intel.com>
+In-Reply-To: <20210820182245.1188-1-yu-cheng.yu@intel.com>
+References: <20210820182245.1188-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-There are three possible options to create a shadow stack allocation API:
-an arch_prctl, a new syscall, or adding PROT_SHADOW_STACK to mmap() and
-mprotect().  Each has its advantages and compromises.
+IBT state machine tracks CALL/JMP instructions.  When a such instruction is
+executed and before arriving at an ENDBR, it is in WAIT_FOR_ENDBR state,
+which can be read from CET_WAIT_ENDBR bit of MSR_IA32_U_CET.
 
-An arch_prctl() is the least intrusive.  However, the existing x86
-arch_prctl() takes only two parameters.  Multiple parameters must be
-passed in a memory buffer.  There is a proposal to pass more parameters in
-registers [1], but no active discussion on that.
+Further details are described in Intel SDM Vol. 1, Sec. 18.3.
 
-A new syscall minimizes compatibility issues and offers an extensible frame
-work to other architectures, but this will likely result in some overlap of
-mmap()/mprotect().
+In handling signals, WAIT_FOR_ENDBR state is saved/restored with a new
+UC_WAIT_ENDBR flag being introduced.
 
-The introduction of PROT_SHADOW_STACK to mmap()/mprotect() takes advantage
-of existing APIs.  The x86-specific PROT_SHADOW_STACK is translated to
-VM_SHADOW_STACK and a shadow stack mapping is created without reinventing
-the wheel.  There are potential pitfalls though.  The most obvious one
-would be using this as a bypass to shadow stack protection.  However, the
-attacker would have to get to the syscall first.
-
-[1] https://lore.kernel.org/lkml/20200828121624.108243-1-hjl.tools@gmail.com/
+A legacy IA32 signal frame does not have ucontext, and cannot be supported
+with a uc flag.  Thus, IBT feature is not supported for ia32 app's, which
+is handled in a separate patch.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Reviewed-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Cyrill Gorcunov <gorcunov@gmail.com>
+Cc: Florian Weimer <fweimer@redhat.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
 Cc: Kees Cook <keescook@chromium.org>
+Link: https://lore.kernel.org/linux-api/f6e61dae-9805-c855-8873-7481ceb7ea79@intel.com/
 ---
- arch/x86/include/asm/mman.h      | 60 +++++++++++++++++++++++++++++++-
- arch/x86/include/uapi/asm/mman.h |  2 ++
- include/linux/mm.h               |  1 +
- 3 files changed, 62 insertions(+), 1 deletion(-)
+ arch/x86/ia32/ia32_signal.c          | 15 ++++++++--
+ arch/x86/include/asm/cet.h           |  4 +++
+ arch/x86/include/uapi/asm/ucontext.h |  5 ++++
+ arch/x86/kernel/ibt.c                | 41 ++++++++++++++++++++++++++++
+ arch/x86/kernel/signal.c             |  6 ++++
+ 5 files changed, 68 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/mman.h b/arch/x86/include/asm/mman.h
-index 629f6c81263a..b77933923b9a 100644
---- a/arch/x86/include/asm/mman.h
-+++ b/arch/x86/include/asm/mman.h
-@@ -20,11 +20,69 @@
- 		((vm_flags) & VM_PKEY_BIT2 ? _PAGE_PKEY_BIT2 : 0) |	\
- 		((vm_flags) & VM_PKEY_BIT3 ? _PAGE_PKEY_BIT3 : 0))
+diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+index d7a30bc98e66..77d0fa90cc19 100644
+--- a/arch/x86/ia32/ia32_signal.c
++++ b/arch/x86/ia32/ia32_signal.c
+@@ -129,6 +129,7 @@ COMPAT_SYSCALL_DEFINE0(rt_sigreturn)
+ {
+ 	struct pt_regs *regs = current_pt_regs();
+ 	struct rt_sigframe_ia32 __user *frame;
++	unsigned int uc_flags;
+ 	sigset_t set;
  
--#define arch_calc_vm_prot_bits(prot, key) (		\
-+#define pkey_vm_prot_bits(prot, key) (			\
- 		((key) & 0x1 ? VM_PKEY_BIT0 : 0) |      \
- 		((key) & 0x2 ? VM_PKEY_BIT1 : 0) |      \
- 		((key) & 0x4 ? VM_PKEY_BIT2 : 0) |      \
- 		((key) & 0x8 ? VM_PKEY_BIT3 : 0))
-+#else
-+#define pkey_vm_prot_bits(prot, key) (0)
+ 	frame = (struct rt_sigframe_ia32 __user *)(regs->sp - 4);
+@@ -137,6 +138,11 @@ COMPAT_SYSCALL_DEFINE0(rt_sigreturn)
+ 		goto badframe;
+ 	if (__get_user(set.sig[0], (__u64 __user *)&frame->uc.uc_sigmask))
+ 		goto badframe;
++	if (__get_user(uc_flags, &frame->uc.uc_flags))
++		goto badframe;
++
++	if (uc_flags & UC_WAIT_ENDBR)
++		ibt_set_wait_endbr();
+ 
+ 	set_current_blocked(&set);
+ 
+@@ -312,6 +318,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
+ 			compat_sigset_t *set, struct pt_regs *regs)
+ {
+ 	struct rt_sigframe_ia32 __user *frame;
++	unsigned int uc_flags = 0;
+ 	void __user *restorer;
+ 	void __user *fp = NULL;
+ 
+@@ -339,6 +346,9 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
+ 	if (setup_signal_shadow_stack(1, restorer))
+ 		return -EFAULT;
+ 
++	if (ibt_get_clear_wait_endbr())
++		uc_flags |= UC_WAIT_ENDBR;
++
+ 	if (!user_access_begin(frame, sizeof(*frame)))
+ 		return -EFAULT;
+ 
+@@ -348,9 +358,8 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
+ 
+ 	/* Create the ucontext.  */
+ 	if (static_cpu_has(X86_FEATURE_XSAVE))
+-		unsafe_put_user(UC_FP_XSTATE, &frame->uc.uc_flags, Efault);
+-	else
+-		unsafe_put_user(0, &frame->uc.uc_flags, Efault);
++		uc_flags |= UC_FP_XSTATE;
++	unsafe_put_user(uc_flags, &frame->uc.uc_flags, Efault);
+ 	unsafe_put_user(0, &frame->uc.uc_link, Efault);
+ 	unsafe_compat_save_altstack(&frame->uc.uc_stack, regs->sp, Efault);
+ 
+diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+index 3dfca29a7c0b..2618faf3fda5 100644
+--- a/arch/x86/include/asm/cet.h
++++ b/arch/x86/include/asm/cet.h
+@@ -46,9 +46,13 @@ static inline int restore_signal_shadow_stack(void) { return 0; }
+ #ifdef CONFIG_X86_IBT
+ int ibt_setup(void);
+ void ibt_disable(void);
++int ibt_get_clear_wait_endbr(void);
++int ibt_set_wait_endbr(void);
+ #else
+ static inline int ibt_setup(void) { return 0; }
+ static inline void ibt_disable(void) {}
++static inline int ibt_get_clear_wait_endbr(void) { return 0; }
++static inline int ibt_set_wait_endbr(void) { return 0; }
  #endif
  
-+static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
-+						   unsigned long pkey)
+ #ifdef CONFIG_X86_SHADOW_STACK
+diff --git a/arch/x86/include/uapi/asm/ucontext.h b/arch/x86/include/uapi/asm/ucontext.h
+index 5657b7a49f03..905419de2cc7 100644
+--- a/arch/x86/include/uapi/asm/ucontext.h
++++ b/arch/x86/include/uapi/asm/ucontext.h
+@@ -51,6 +51,11 @@
+ #define UC_STRICT_RESTORE_SS	0x4
+ #endif
+ 
++/*
++ * Indicates IBT WAIT-ENDBR status.
++ */
++#define UC_WAIT_ENDBR		0x08
++
+ #include <asm-generic/ucontext.h>
+ 
+ #endif /* _ASM_X86_UCONTEXT_H */
+diff --git a/arch/x86/kernel/ibt.c b/arch/x86/kernel/ibt.c
+index 4ab7af33b274..5ab8632a1f7e 100644
+--- a/arch/x86/kernel/ibt.c
++++ b/arch/x86/kernel/ibt.c
+@@ -56,3 +56,44 @@ void ibt_disable(void)
+ 	ibt_set_clear_msr_bits(0, CET_ENDBR_EN);
+ 	current->thread.shstk.ibt = 0;
+ }
++
++int ibt_get_clear_wait_endbr(void)
 +{
-+	unsigned long vm_prot_bits = pkey_vm_prot_bits(prot, pkey);
++	u64 msr_val = 0;
 +
-+	if (prot & PROT_SHADOW_STACK)
-+		vm_prot_bits |= VM_SHADOW_STACK;
++	if (!current->thread.shstk.ibt)
++		return 0;
 +
-+	return vm_prot_bits;
-+}
++	fpregs_lock();
 +
-+#define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
-+
-+#ifdef CONFIG_X86_SHADOW_STACK
-+static inline bool arch_validate_prot(unsigned long prot, unsigned long addr)
-+{
-+	unsigned long valid = PROT_READ | PROT_WRITE | PROT_EXEC | PROT_SEM |
-+			      PROT_SHADOW_STACK;
-+
-+	if (prot & ~valid)
-+		return false;
-+
-+	if (prot & PROT_SHADOW_STACK) {
-+		if (!current->thread.shstk.size)
-+			return false;
++	if (!test_thread_flag(TIF_NEED_FPU_LOAD)) {
++		if (!rdmsrl_safe(MSR_IA32_U_CET, &msr_val))
++			wrmsrl(MSR_IA32_U_CET, msr_val & ~CET_WAIT_ENDBR);
++	} else {
++		struct cet_user_state *cet;
 +
 +		/*
-+		 * A shadow stack mapping is indirectly writable by only
-+		 * the CALL and WRUSS instructions, but not other write
-+		 * instructions).  PROT_SHADOW_STACK and PROT_WRITE are
-+		 * mutually exclusive.
++		 * If !TIF_NEED_FPU_LOAD and get_xsave_addr() returns zero,
++		 * XFEATURE_CET_USER is in init state (cet is not active).
++		 * Return zero status.
 +		 */
-+		if (prot & PROT_WRITE)
-+			return false;
++		cet = get_xsave_addr(&current->thread.fpu.state.xsave,
++				     XFEATURE_CET_USER);
++		if (cet) {
++			msr_val = cet->user_cet;
++			cet->user_cet = msr_val & ~CET_WAIT_ENDBR;
++		}
 +	}
 +
-+	return true;
++	fpregs_unlock();
++
++	return msr_val & CET_WAIT_ENDBR;
 +}
 +
-+#define arch_validate_prot arch_validate_prot
-+
-+static inline bool arch_validate_flags(struct vm_area_struct *vma, unsigned long vm_flags)
++int ibt_set_wait_endbr(void)
 +{
-+	/*
-+	 * Shadow stack must be anonymous and not shared.
-+	 */
-+	if ((vm_flags & VM_SHADOW_STACK) && !vma_is_anonymous(vma))
-+		return false;
++	if (!current->thread.shstk.ibt)
++		return 0;
 +
-+	return true;
++	return ibt_set_clear_msr_bits(CET_WAIT_ENDBR, 0);
 +}
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 661e46803b84..a1285650852e 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -135,6 +135,9 @@ static int restore_sigcontext(struct pt_regs *regs,
+ 	 */
+ 	if (unlikely(!(uc_flags & UC_STRICT_RESTORE_SS) && user_64bit_mode(regs)))
+ 		force_valid_ss(regs);
 +
-+#define arch_validate_flags(vma, vm_flags) arch_validate_flags(vma, vm_flags)
++	if (uc_flags & UC_WAIT_ENDBR)
++		ibt_set_wait_endbr();
+ #endif
+ 
+ 	return fpu__restore_sig((void __user *)sc.fpstate,
+@@ -455,6 +458,9 @@ static unsigned long frame_uc_flags(struct pt_regs *regs)
+ 	if (likely(user_64bit_mode(regs)))
+ 		flags |= UC_STRICT_RESTORE_SS;
+ 
++	if (ibt_get_clear_wait_endbr())
++		flags |= UC_WAIT_ENDBR;
 +
-+#endif /* CONFIG_X86_SHADOW_STACK */
-+
- #endif /* _ASM_X86_MMAN_H */
-diff --git a/arch/x86/include/uapi/asm/mman.h b/arch/x86/include/uapi/asm/mman.h
-index f28fa4acaeaf..4c36b263cf0a 100644
---- a/arch/x86/include/uapi/asm/mman.h
-+++ b/arch/x86/include/uapi/asm/mman.h
-@@ -4,6 +4,8 @@
+ 	return flags;
+ }
  
- #define MAP_32BIT	0x40		/* only give out 32bit addresses */
- 
-+#define PROT_SHADOW_STACK	0x10	/* shadow stack pages */
-+
- #include <asm-generic/mman.h>
- 
- #endif /* _UAPI_ASM_X86_MMAN_H */
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 07e642af59d3..041e7e8ff702 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -349,6 +349,7 @@ extern unsigned int kobjsize(const void *objp);
- 
- #if defined(CONFIG_X86)
- # define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
-+# define VM_ARCH_CLEAR	VM_SHADOW_STACK
- #elif defined(CONFIG_PPC)
- # define VM_SAO		VM_ARCH_1	/* Strong Access Ordering (powerpc) */
- #elif defined(CONFIG_PARISC)
 -- 
 2.21.0
 
