@@ -2,103 +2,130 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-6.7 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 373C4C4320A
-	for <linux-arch@archiver.kernel.org>; Wed, 25 Aug 2021 14:52:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9BCACC4320A
+	for <linux-arch@archiver.kernel.org>; Wed, 25 Aug 2021 15:56:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1E05A610E9
-	for <linux-arch@archiver.kernel.org>; Wed, 25 Aug 2021 14:52:38 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8064A61151
+	for <linux-arch@archiver.kernel.org>; Wed, 25 Aug 2021 15:56:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240493AbhHYOxX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 25 Aug 2021 10:53:23 -0400
-Received: from mail.kernel.org ([198.145.29.99]:54138 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S240395AbhHYOxW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 25 Aug 2021 10:53:22 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 36A4E610CD;
-        Wed, 25 Aug 2021 14:52:36 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1629903156;
-        bh=JavDwpgii8kF2lXyvHOwR8IF/SUWfOr82rbSiTe1nco=;
-        h=Date:From:To:Cc:Subject:In-Reply-To:From;
-        b=etlal+X6PK/iyyE+nCKJqe8xvh6sOY35Jz8lqksr6gEQVCToh4OokpBhqzSLN+EQd
-         CbpLIssWEQtnZPMe70kfBxZJeme2Vw5EfXhChn/2RVE74/XOQ0ogJdDJbJSxQ6B6tW
-         NpWtwQV/bKLoQqX4+aw+rClsxeZQuTcMptgtwqLJE9cPhKmxBAMOvE9u1TAbpbyusm
-         2r/bieajK+y11XHoHy7rRrWGS+kpuVvgAm5FMOgzMz/YOJ/ryEgttZaNO+A2gFqSgV
-         gSDOXXqDHEGwZCzB6XgcGfNipfy8ECvl8ldyO/Fs4RX/PiHXnplmt9Ddb5SbfOzVkW
-         H7gyI/GMyzCTg==
-Date:   Wed, 25 Aug 2021 09:52:35 -0500
-From:   Bjorn Helgaas <helgaas@kernel.org>
-To:     Andi Kleen <ak@linux.intel.com>
-Cc:     "Michael S. Tsirkin" <mst@redhat.com>,
-        Dan Williams <dan.j.williams@intel.com>,
-        "Kuppuswamy, Sathyanarayanan" 
-        <sathyanarayanan.kuppuswamy@linux.intel.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Andy Lutomirski <luto@kernel.org>,
-        Bjorn Helgaas <bhelgaas@google.com>,
-        Richard Henderson <rth@twiddle.net>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        James E J Bottomley <James.Bottomley@hansenpartnership.com>,
-        Helge Deller <deller@gmx.de>,
-        "David S . Miller" <davem@davemloft.net>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Peter H Anvin <hpa@zytor.com>,
-        Dave Hansen <dave.hansen@intel.com>,
-        Tony Luck <tony.luck@intel.com>,
-        Kirill Shutemov <kirill.shutemov@linux.intel.com>,
-        Sean Christopherson <seanjc@google.com>,
-        Kuppuswamy Sathyanarayanan <knsathya@kernel.org>,
-        X86 ML <x86@kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Linux PCI <linux-pci@vger.kernel.org>,
-        linux-alpha@vger.kernel.org, linux-mips@vger.kernel.org,
-        linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux Doc Mailing List <linux-doc@vger.kernel.org>,
-        virtualization@lists.linux-foundation.org,
-        Rajat Jain <rajatja@google.com>
-Subject: Re: [PATCH v4 11/15] pci: Add pci_iomap_shared{,_range}
-Message-ID: <20210825145235.GA3565590@bjorn-Precision-5520>
+        id S239399AbhHYP5V (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 25 Aug 2021 11:57:21 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:59200 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S240495AbhHYP5V (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Aug 2021 11:57:21 -0400
+Received: from in01.mta.xmission.com ([166.70.13.51]:34002)
+        by out02.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1mIvGU-00BJtr-36; Wed, 25 Aug 2021 09:56:34 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:55852 helo=email.xmission.com)
+        by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1mIvGS-00DL13-SD; Wed, 25 Aug 2021 09:56:33 -0600
+From:   ebiederm@xmission.com (Eric W. Biederman)
+To:     Michael Schmitz <schmitzmic@gmail.com>
+Cc:     Brad Boyer <flar@allandria.com>,
+        Andreas Schwab <schwab@linux-m68k.org>, geert@linux-m68k.org,
+        linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        torvalds@linux-foundation.org
+References: <e9009e13-cfec-c494-0b3b-f334f75cd1e4@gmail.com>
+        <af434994-5c61-0e3a-c7bc-3ed966ccb44f@gmail.com>
+        <87h7gopvz2.fsf@disp2133>
+        <328e59fb-3e8c-e4cd-06b4-1975ce98614a@gmail.com>
+        <877dhio13t.fsf@disp2133>
+        <12992a3c-0740-f90e-aa4e-1ec1d8ea38f6@gmail.com>
+        <87tukkk6h3.fsf@disp2133>
+        <df6618bf-d1bc-4759-2d14-934c22d54a83@gmail.com>
+        <87eebn7w7y.fsf@igel.home>
+        <db43bef1-7938-4fc1-853d-c20d66521329@gmail.com>
+        <20210725101253.GA6096@allandria.com>
+        <be3ddf9a-745e-4798-17a7-a9d0ddd7eef7@gmail.com>
+        <87a6m8kgtx.fsf_-_@disp2133>
+        <33327fd4-47fc-2eab-04e4-242697a23d5f@gmail.com>
+        <87tukghjfs.fsf_-_@disp2133>
+Date:   Wed, 25 Aug 2021 10:56:26 -0500
+In-Reply-To: <87tukghjfs.fsf_-_@disp2133> (Eric W. Biederman's message of
+        "Mon, 26 Jul 2021 16:08:39 -0500")
+Message-ID: <87v93tmsb9.fsf@disp2133>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <bb8c6f96-2597-bb80-bd08-7958405e1bf5@linux.intel.com>
+Content-Type: text/plain
+X-XM-SPF: eid=1mIvGS-00DL13-SD;;;mid=<87v93tmsb9.fsf@disp2133>;;;hst=in01.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX19jEnItnpOVDV2Rm9Ei+HQwl2CuUif63q4=
+X-SA-Exim-Connect-IP: 68.227.160.95
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: Re: [PATCH] signal/m68k: Use force_sigsegv(SIGSEGV) in fpsp040_die
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in01.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Aug 24, 2021 at 01:50:00PM -0700, Andi Kleen wrote:
-> 
-> On 8/24/2021 1:31 PM, Bjorn Helgaas wrote:
-> > On Tue, Aug 24, 2021 at 01:14:02PM -0700, Andi Kleen wrote:
-> > > On 8/24/2021 11:55 AM, Bjorn Helgaas wrote:
-> > > > [+cc Rajat; I still don't know what "shared memory with a hypervisor
-> > > > in a confidential guest" means,
-> > > A confidential guest is a guest which uses memory encryption to isolate
-> > > itself from the host. It doesn't trust the host. But it still needs to
-> > > communicate with the host for IO, so it has some special memory areas that
-> > > are explicitly marked shared. These are used to do IO with the host. All
-> > > their usage needs to be carefully hardened to avoid any security attacks on
-> > > the guest, that's why we want to limit this interaction only to a small set
-> > > of hardened drivers. For MMIO, the set is currently only virtio and MSI-X.
-> > Good material for the commit log next time around.  Thanks!
-> 
-> This is all in the patch intro too, which should make it into the merge
-> commits.
+ebiederm@xmission.com (Eric W. Biederman) writes:
 
-It's good if the cover letter makes into the merge commit log.
+> In the fpsp040 code when copyin or copyout fails call
+> force_sigsegv(SIGSEGV) instead of do_exit(SIGSEGV).
+>
+> This solves a couple of problems.  Because do_exit embeds the ptrace
+> stop PTRACE_EVENT_EXIT a complete stack frame needs to be present for
+> that to work correctly.  There is always the information needed for a
+> ptrace stop where get_signal is called.  So exiting with a signal
+> solves the ptrace issue.
+>
+> Further exiting with a signal ensures that all of the threads in a
+> process are killed not just the thread that malfunctioned.  Which
+> avoids confusing userspace.
+>
+> To make force_sigsegv(SIGSEGV) work in fpsp040_die modify the code to
+> save all of the registers and jump to ret_from_exception (which
+> ultimately calls get_signal) after fpsp040_die returns.
+>
+> v2: Updated the branches to use gas's pseudo ops that automatically
+>     calculate the best branch instruction to use for the purpose.
+>
+> v1: Link: https://lkml.kernel.org/r/87a6m8kgtx.fsf_-_@disp2133
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 
-It's probably just because my git foo is lacking, but merge commit
-logs don't seem as discoverable as the actual patch commit logs.  Five
-years from now, if I want to learn about pci_iomap_shared() history, I
-would "git log -p lib/pci_iomap.c" and search for it.  But I don't
-think I would see the merge commit then.
+Any chance I can get an ack on this patch?
 
-Bjorn
+Eric
+
+> ---
+>  arch/m68k/fpsp040/skeleton.S | 3 ++-
+>  arch/m68k/kernel/traps.c     | 2 +-
+>  2 files changed, 3 insertions(+), 2 deletions(-)
+>
+> diff --git a/arch/m68k/fpsp040/skeleton.S b/arch/m68k/fpsp040/skeleton.S
+> index a8f41615d94a..439395aa6fb4 100644
+> --- a/arch/m68k/fpsp040/skeleton.S
+> +++ b/arch/m68k/fpsp040/skeleton.S
+> @@ -502,7 +502,8 @@ in_ea:
+>  	.section .fixup,#alloc,#execinstr
+>  	.even
+>  1:
+> -	jbra	fpsp040_die
+> +	jbsr	fpsp040_die
+> +	jbra	.Lnotkern
+>  
+>  	.section __ex_table,#alloc
+>  	.align	4
+> diff --git a/arch/m68k/kernel/traps.c b/arch/m68k/kernel/traps.c
+> index 9e1261462bcc..5b19fcdcd69e 100644
+> --- a/arch/m68k/kernel/traps.c
+> +++ b/arch/m68k/kernel/traps.c
+> @@ -1150,7 +1150,7 @@ asmlinkage void set_esp0(unsigned long ssp)
+>   */
+>  asmlinkage void fpsp040_die(void)
+>  {
+> -	do_exit(SIGSEGV);
+> +	force_sigsegv(SIGSEGV);
+>  }
+>  
+>  #ifdef CONFIG_M68KFPU_EMU
