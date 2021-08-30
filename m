@@ -7,25 +7,25 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0D038C25AED
-	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:23:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4B25DC25AF1
+	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:23:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EBF8F60243
-	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:23:36 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3553961008
+	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:23:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238750AbhH3SY2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 30 Aug 2021 14:24:28 -0400
-Received: from mga06.intel.com ([134.134.136.31]:24500 "EHLO mga06.intel.com"
+        id S238874AbhH3SYb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 30 Aug 2021 14:24:31 -0400
+Received: from mga12.intel.com ([192.55.52.136]:62711 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S238588AbhH3SYH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 30 Aug 2021 14:24:07 -0400
-X-IronPort-AV: E=McAfee;i="6200,9189,10092"; a="279340869"
+        id S238674AbhH3SYJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 30 Aug 2021 14:24:09 -0400
+X-IronPort-AV: E=McAfee;i="6200,9189,10092"; a="197891457"
 X-IronPort-AV: E=Sophos;i="5.84,364,1620716400"; 
-   d="scan'208";a="279340869"
+   d="scan'208";a="197891457"
 Received: from fmsmga002.fm.intel.com ([10.253.24.26])
-  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:23:11 -0700
+  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:23:10 -0700
 X-IronPort-AV: E=Sophos;i="5.84,364,1620716400"; 
-   d="scan'208";a="540650969"
+   d="scan'208";a="540650960"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
   by fmsmga002-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:23:10 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
@@ -57,9 +57,9 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Haitao Huang <haitao.huang@intel.com>,
         Rick P Edgecombe <rick.p.edgecombe@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v30 09/10] x86/vdso/32: Add ENDBR to __kernel_vsyscall entry point
-Date:   Mon, 30 Aug 2021 11:22:20 -0700
-Message-Id: <20210830182221.3535-10-yu-cheng.yu@intel.com>
+Subject: [PATCH v30 06/10] x86/cet/ibt: Update arch_prctl functions for Indirect Branch Tracking
+Date:   Mon, 30 Aug 2021 11:22:17 -0700
+Message-Id: <20210830182221.3535-7-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20210830182221.3535-1-yu-cheng.yu@intel.com>
 References: <20210830182221.3535-1-yu-cheng.yu@intel.com>
@@ -71,45 +71,39 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: "H.J. Lu" <hjl.tools@gmail.com>
 
-ENDBR is a special new instruction for the Indirect Branch Tracking (IBT)
-component of CET.  IBT prevents attacks by ensuring that (most) indirect
-branches and function calls may only land at ENDBR instructions.  Branches
-that don't follow the rules will result in control flow (#CF) exceptions.
-
-ENDBR is a noop when IBT is unsupported or disabled.  Most ENDBR
-instructions are inserted automatically by the compiler, but branch
-targets written in assembly must have ENDBR added manually.
-
-Add that to __kernel_vsyscall entry point.
+Update ARCH_X86_CET_STATUS and ARCH_X86_CET_DISABLE for Indirect Branch
+Tracking.
 
 Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
-Cc: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/entry/vdso/vdso32/system_call.S | 2 ++
- 1 file changed, 2 insertions(+)
+ arch/x86/kernel/cet_prctl.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/arch/x86/entry/vdso/vdso32/system_call.S b/arch/x86/entry/vdso/vdso32/system_call.S
-index 6ddd7a937b3e..d321c2ded33a 100644
---- a/arch/x86/entry/vdso/vdso32/system_call.S
-+++ b/arch/x86/entry/vdso/vdso32/system_call.S
-@@ -7,6 +7,7 @@
- #include <asm/dwarf2.h>
- #include <asm/cpufeatures.h>
- #include <asm/alternative.h>
-+#include <asm/vdso.h>
+diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
+index b426d200e070..bd3c80d402e7 100644
+--- a/arch/x86/kernel/cet_prctl.c
++++ b/arch/x86/kernel/cet_prctl.c
+@@ -22,6 +22,9 @@ static int cet_copy_status_to_user(struct thread_shstk *shstk, u64 __user *ubuf)
+ 		buf[2] = shstk->size;
+ 	}
  
- 	.text
- 	.globl __kernel_vsyscall
-@@ -14,6 +15,7 @@
- 	ALIGN
- __kernel_vsyscall:
- 	CFI_STARTPROC
-+	ENDBR32
- 	/*
- 	 * Reshuffle regs so that all of any of the entry instructions
- 	 * will preserve enough state.
++	if (shstk->ibt)
++		buf[0] |= GNU_PROPERTY_X86_FEATURE_1_IBT;
++
+ 	return copy_to_user(ubuf, buf, sizeof(buf));
+ }
+ 
+@@ -46,6 +49,8 @@ int prctl_cet(int option, u64 arg2)
+ 			return -EINVAL;
+ 		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
+ 			shstk_disable();
++		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_IBT)
++			ibt_disable();
+ 		return 0;
+ 
+ 	case ARCH_X86_CET_LOCK:
 -- 
 2.21.0
 
