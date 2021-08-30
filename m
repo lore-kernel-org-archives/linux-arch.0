@@ -7,27 +7,27 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DA34EC2BA57
-	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:16:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0CB12C47422
+	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:16:28 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id BD11A60FED
-	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:16:33 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id DBFD26102A
+	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:16:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238684AbhH3SRZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 30 Aug 2021 14:17:25 -0400
+        id S238631AbhH3SRU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 30 Aug 2021 14:17:20 -0400
 Received: from mga18.intel.com ([134.134.136.126]:43867 "EHLO mga18.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S238602AbhH3SRU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 30 Aug 2021 14:17:20 -0400
-X-IronPort-AV: E=McAfee;i="6200,9189,10092"; a="205460095"
+        id S238566AbhH3SRO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 30 Aug 2021 14:17:14 -0400
+X-IronPort-AV: E=McAfee;i="6200,9189,10092"; a="205460081"
 X-IronPort-AV: E=Sophos;i="5.84,364,1620716400"; 
-   d="scan'208";a="205460095"
+   d="scan'208";a="205460081"
 Received: from fmsmga003.fm.intel.com ([10.253.24.29])
-  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:16:20 -0700
+  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:16:19 -0700
 X-IronPort-AV: E=Sophos;i="5.84,364,1620716400"; 
-   d="scan'208";a="530533332"
+   d="scan'208";a="530533311"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:16:20 -0700
+  by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:16:18 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -58,9 +58,9 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Rick P Edgecombe <rick.p.edgecombe@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>,
         "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH v30 21/32] mm/mprotect: Exclude shadow stack from preserve_write
-Date:   Mon, 30 Aug 2021 11:15:17 -0700
-Message-Id: <20210830181528.1569-22-yu-cheng.yu@intel.com>
+Subject: [PATCH v30 15/32] x86/mm: Check Shadow Stack page fault errors
+Date:   Mon, 30 Aug 2021 11:15:11 -0700
+Message-Id: <20210830181528.1569-16-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20210830181528.1569-1-yu-cheng.yu@intel.com>
 References: <20210830181528.1569-1-yu-cheng.yu@intel.com>
@@ -70,64 +70,96 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-In change_pte_range(), when a PTE is changed for prot_numa, _PAGE_RW is
-preserved to avoid the additional write fault after the NUMA hinting fault.
-However, pte_write() now includes both normal writable and shadow stack
-(RW=0, Dirty=1) PTEs, but the latter does not have _PAGE_RW and has no need
-to preserve it.
+Shadow stack accesses are those that are performed by the CPU where it
+expects to encounter a shadow stack mapping.  These accesses are performed
+implicitly by CALL/RET at the site of the shadow stack pointer.  These
+accesses are made explicitly by shadow stack management instructions like
+WRUSSQ.
 
-Exclude shadow stack from preserve_write test, and apply the same change to
-change_huge_pmd().
+Shadow stacks accesses to shadow-stack mapping can see faults in normal,
+valid operation just like regular accesses to regular mappings.  Shadow
+stacks need some of the same features like delayed allocation, swap and
+copy-on-write.
+
+Shadow stack accesses can also result in errors, such as when a shadow
+stack overflows, or if a shadow stack access occurs to a non-shadow-stack
+mapping.
+
+In handling a shadow stack page fault, verify it occurs within a shadow
+stack mapping.  It is always an error otherwise.  For valid shadow stack
+accesses, set FAULT_FLAG_WRITE to effect copy-on-write.  Because clearing
+_PAGE_DIRTY (vs. _PAGE_RW) is used to trigger the fault, shadow stack read
+fault and shadow stack write fault are not differentiated and both are
+handled as a write access.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
-v25:
-- Move is_shadow_stack_mapping() to a separate line.
-
-v24:
-- Change arch_shadow_stack_mapping() to is_shadow_stack_mapping().
+v30:
+- Update Subject line and add a verb.
 ---
- mm/huge_memory.c | 7 +++++++
- mm/mprotect.c    | 7 +++++++
- 2 files changed, 14 insertions(+)
+ arch/x86/include/asm/trap_pf.h |  2 ++
+ arch/x86/mm/fault.c            | 19 +++++++++++++++++++
+ 2 files changed, 21 insertions(+)
 
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index d35acb59dde9..bb38ecdf992f 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1776,6 +1776,13 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
- 		return 0;
+diff --git a/arch/x86/include/asm/trap_pf.h b/arch/x86/include/asm/trap_pf.h
+index 10b1de500ab1..afa524325e55 100644
+--- a/arch/x86/include/asm/trap_pf.h
++++ b/arch/x86/include/asm/trap_pf.h
+@@ -11,6 +11,7 @@
+  *   bit 3 ==				1: use of reserved bit detected
+  *   bit 4 ==				1: fault was an instruction fetch
+  *   bit 5 ==				1: protection keys block access
++ *   bit 6 ==				1: shadow stack access fault
+  *   bit 15 ==				1: SGX MMU page-fault
+  */
+ enum x86_pf_error_code {
+@@ -20,6 +21,7 @@ enum x86_pf_error_code {
+ 	X86_PF_RSVD	=		1 << 3,
+ 	X86_PF_INSTR	=		1 << 4,
+ 	X86_PF_PK	=		1 << 5,
++	X86_PF_SHSTK	=		1 << 6,
+ 	X86_PF_SGX	=		1 << 15,
+ };
  
- 	preserve_write = prot_numa && pmd_write(*pmd);
-+
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index b2eefdefc108..ad3350297e4b 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -1100,6 +1100,17 @@ access_error(unsigned long error_code, struct vm_area_struct *vma)
+ 				       (error_code & X86_PF_INSTR), foreign))
+ 		return 1;
+ 
 +	/*
-+	 * Preserve only normal writable huge PMD, but not shadow
-+	 * stack (RW=0, Dirty=1).
++	 * Verify a shadow stack access is within a shadow stack VMA.
++	 * It is always an error otherwise.  Normal data access to a
++	 * shadow stack area is checked in the case followed.
 +	 */
-+	if (is_shadow_stack_mapping(vma->vm_flags))
-+		preserve_write = false;
- 	ret = 1;
- 
- #ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
-diff --git a/mm/mprotect.c b/mm/mprotect.c
-index 9b424f2fd3a9..94cb799216ec 100644
---- a/mm/mprotect.c
-+++ b/mm/mprotect.c
-@@ -77,6 +77,13 @@ static unsigned long change_pte_range(struct vm_area_struct *vma, pmd_t *pmd,
- 			pte_t ptent;
- 			bool preserve_write = prot_numa && pte_write(oldpte);
- 
-+			/*
-+			 * Preserve only normal writable PTE, but not shadow
-+			 * stack (RW=0, Dirty=1).
-+			 */
-+			if (is_shadow_stack_mapping(vma->vm_flags))
-+				preserve_write = false;
++	if (error_code & X86_PF_SHSTK) {
++		if (!(vma->vm_flags & VM_SHADOW_STACK))
++			return 1;
++		return 0;
++	}
 +
- 			/*
- 			 * Avoid trapping faults against the zero or KSM
- 			 * pages. See similar comment in change_huge_pmd.
+ 	if (error_code & X86_PF_WRITE) {
+ 		/* write, present and write, not present: */
+ 		if (unlikely(!(vma->vm_flags & VM_WRITE)))
+@@ -1293,6 +1304,14 @@ void do_user_addr_fault(struct pt_regs *regs,
+ 
+ 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
+ 
++	/*
++	 * Clearing _PAGE_DIRTY is used to detect shadow stack access.
++	 * This method cannot distinguish shadow stack read vs. write.
++	 * For valid shadow stack accesses, set FAULT_FLAG_WRITE to effect
++	 * copy-on-write.
++	 */
++	if (error_code & X86_PF_SHSTK)
++		flags |= FAULT_FLAG_WRITE;
+ 	if (error_code & X86_PF_WRITE)
+ 		flags |= FAULT_FLAG_WRITE;
+ 	if (error_code & X86_PF_INSTR)
 -- 
 2.21.0
 
