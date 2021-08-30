@@ -5,27 +5,27 @@ X-Spam-Level:
 X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 233E8C432BE
-	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:23:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0BDECC19F35
+	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:23:34 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 10CB460FED
-	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:23:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id EE68160FD9
+	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:23:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238733AbhH3SYW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 30 Aug 2021 14:24:22 -0400
+        id S229839AbhH3SYZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 30 Aug 2021 14:24:25 -0400
 Received: from mga05.intel.com ([192.55.52.43]:57612 "EHLO mga05.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S238513AbhH3SYE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 30 Aug 2021 14:24:04 -0400
-X-IronPort-AV: E=McAfee;i="6200,9189,10092"; a="303905711"
+        id S238530AbhH3SYF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 30 Aug 2021 14:24:05 -0400
+X-IronPort-AV: E=McAfee;i="6200,9189,10092"; a="303905713"
 X-IronPort-AV: E=Sophos;i="5.84,364,1620716400"; 
-   d="scan'208";a="303905711"
+   d="scan'208";a="303905713"
 Received: from fmsmga002.fm.intel.com ([10.253.24.26])
   by fmsmga105.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:23:09 -0700
 X-IronPort-AV: E=Sophos;i="5.84,364,1620716400"; 
-   d="scan'208";a="540650946"
+   d="scan'208";a="540650954"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
   by fmsmga002-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:23:09 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
@@ -57,9 +57,9 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Haitao Huang <haitao.huang@intel.com>,
         Rick P Edgecombe <rick.p.edgecombe@intel.com>
 Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v30 02/10] x86/cet/ibt: Add user-mode Indirect Branch Tracking support
-Date:   Mon, 30 Aug 2021 11:22:13 -0700
-Message-Id: <20210830182221.3535-3-yu-cheng.yu@intel.com>
+Subject: [PATCH v30 04/10] x86/cet/ibt: Disable IBT for ia32
+Date:   Mon, 30 Aug 2021 11:22:15 -0700
+Message-Id: <20210830182221.3535-5-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20210830182221.3535-1-yu-cheng.yu@intel.com>
 References: <20210830182221.3535-1-yu-cheng.yu@intel.com>
@@ -69,129 +69,83 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Introduce user-mode Indirect Branch Tracking (IBT) support.  Add routines
-for the setup/disable of IBT.
+In a signal, a task's IBT status needs to be saved to the signal frame, and
+later restored in sigreturn.  For the purpose, previous versions of the
+series add a new struct to the signal frame.  However, a new signal frame
+format (or re-using a reserved space) introduces complex compatibility
+issues.
+
+In the discussion (see link below), Andy Lutomirski proposed using a
+ucontext flag.  The approach is clean and eliminates most compatibility
+issues.
+
+However, a legacy IA32 signal frame does not have ucontext and cannot
+support a uc flag.  Thus,
+
+- Disable IBT for ia32.
+- In ia32 sigreturn, verify ibt is disabled.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Acked-by: Andy Lutomirski <luto@kernel.org>
+Cc: Cyrill Gorcunov <gorcunov@gmail.com>
+Cc: Florian Weimer <fweimer@redhat.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
 Cc: Kees Cook <keescook@chromium.org>
+Link: https://lore.kernel.org/linux-api/f6e61dae-9805-c855-8873-7481ceb7ea79@intel.com/
 ---
-v28:
-- When IBT feature is not present, make ibt_setup() return success,
-  since this is a setup function.
+ arch/x86/ia32/ia32_signal.c |  7 +++++++
+ arch/x86/include/asm/elf.h  | 13 ++++++++++++-
+ 2 files changed, 19 insertions(+), 1 deletion(-)
 
-v27:
-- Change struct thread_shstk: ibt_enabled to ibt.
-- Create a helper for set/clear bits of MSR_IA32_U_CET.
----
- arch/x86/include/asm/cet.h |  9 ++++++
- arch/x86/kernel/Makefile   |  1 +
- arch/x86/kernel/ibt.c      | 58 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 68 insertions(+)
- create mode 100644 arch/x86/kernel/ibt.c
-
-diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
-index fb32cb093ebb..bc04b2d3487d 100644
---- a/arch/x86/include/asm/cet.h
-+++ b/arch/x86/include/asm/cet.h
-@@ -11,6 +11,7 @@ struct thread_shstk {
- 	u64	base;
- 	u64	size;
- 	u64	locked:1;
-+	u64	ibt:1;
- };
+diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+index 77d0fa90cc19..946039cb3150 100644
+--- a/arch/x86/ia32/ia32_signal.c
++++ b/arch/x86/ia32/ia32_signal.c
+@@ -104,6 +104,13 @@ COMPAT_SYSCALL_DEFINE0(sigreturn)
+ 	struct sigframe_ia32 __user *frame = (struct sigframe_ia32 __user *)(regs->sp-8);
+ 	sigset_t set;
  
- #ifdef CONFIG_X86_SHADOW_STACK
-@@ -39,6 +40,14 @@ static inline int setup_signal_shadow_stack(int proc32, void __user *restorer) {
- static inline int restore_signal_shadow_stack(void) { return 0; }
- #endif
- 
++	/*
++	 * Verify legacy sigreturn does not have IBT enabled.
++	 */
 +#ifdef CONFIG_X86_IBT
-+int ibt_setup(void);
-+void ibt_disable(void);
-+#else
-+static inline int ibt_setup(void) { return 0; }
-+static inline void ibt_disable(void) {}
++	if (current->thread.shstk.ibt)
++		goto badframe;
 +#endif
-+
- #ifdef CONFIG_X86_SHADOW_STACK
- int prctl_cet(int option, u64 arg2);
- #else
-diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
-index 39e826b5cabd..cce07a920fec 100644
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -152,6 +152,7 @@ obj-$(CONFIG_UNWINDER_GUESS)		+= unwind_guess.o
- obj-$(CONFIG_AMD_MEM_ENCRYPT)		+= sev.o
- obj-$(CONFIG_X86_SHADOW_STACK)		+= shstk.o
- obj-$(CONFIG_X86_SHADOW_STACK)		+= shstk.o cet_prctl.o
-+obj-$(CONFIG_X86_IBT)			+= ibt.o
- ###
- # 64 bit specific files
- ifeq ($(CONFIG_X86_64),y)
-diff --git a/arch/x86/kernel/ibt.c b/arch/x86/kernel/ibt.c
-new file mode 100644
-index 000000000000..4ab7af33b274
---- /dev/null
-+++ b/arch/x86/kernel/ibt.c
-@@ -0,0 +1,58 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * ibt.c - Intel Indirect Branch Tracking support
-+ *
-+ * Copyright (c) 2021, Intel Corporation.
-+ * Yu-cheng Yu <yu-cheng.yu@intel.com>
-+ */
-+
-+#include <linux/user.h>
-+#include <asm/fpu/internal.h>
-+#include <asm/fpu/xstate.h>
-+#include <asm/fpu/types.h>
-+#include <asm/msr.h>
-+#include <asm/cet.h>
-+
-+static int ibt_set_clear_msr_bits(u64 set, u64 clear)
+ 	if (!access_ok(frame, sizeof(*frame)))
+ 		goto badframe;
+ 	if (__get_user(set.sig[0], &frame->sc.oldmask)
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index 3281a3d01bd2..cf9eeb30c00c 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -6,6 +6,7 @@
+  * ELF register definitions..
+  */
+ #include <linux/thread_info.h>
++#include <uapi/linux/elf.h>
+ 
+ #include <asm/ptrace.h>
+ #include <asm/user.h>
+@@ -403,7 +404,17 @@ struct arch_elf_state {
+ }
+ 
+ #define arch_elf_pt_proc(ehdr, phdr, elf, interp, state) (0)
+-#define arch_check_elf(ehdr, interp, interp_ehdr, state) (0)
++static inline int arch_check_elf(void *ehdr, bool interp,
++				 void *interp_ehdr,
++				 struct arch_elf_state *state)
 +{
-+	u64 msr;
-+	int r;
-+
-+	fpregs_lock();
-+
-+	if (test_thread_flag(TIF_NEED_FPU_LOAD))
-+		fpregs_restore_userregs();
-+
-+	r = rdmsrl_safe(MSR_IA32_U_CET, &msr);
-+	if (!r) {
-+		msr = (msr & ~clear) | set;
-+		r = wrmsrl_safe(MSR_IA32_U_CET, msr);
-+	}
-+
-+	fpregs_unlock();
-+
-+	return r;
++	/*
++	 * Disable IBT for ia32
++	 */
++	if (elf_check_arch_ia32((struct elf32_hdr *)ehdr))
++		state->gnu_property &= ~GNU_PROPERTY_X86_FEATURE_1_IBT;
++	return 0;
 +}
-+
-+int ibt_setup(void)
-+{
-+	int r;
-+
-+	if (!cpu_feature_enabled(X86_FEATURE_IBT))
-+		return 0;
-+
-+	r = ibt_set_clear_msr_bits(CET_ENDBR_EN | CET_NO_TRACK_EN, 0);
-+	if (!r)
-+		current->thread.shstk.ibt = 1;
-+
-+	return r;
-+}
-+
-+void ibt_disable(void)
-+{
-+	if (!current->thread.shstk.ibt)
-+		return;
-+
-+	ibt_set_clear_msr_bits(0, CET_ENDBR_EN);
-+	current->thread.shstk.ibt = 0;
-+}
+ 
+ /* Do not change the values. See get_align_mask() */
+ enum align_flags {
 -- 
 2.21.0
 
