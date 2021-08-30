@@ -7,27 +7,27 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A7214C4320E
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DC220C19F35
 	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:16:47 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 93C5560F6C
+	by mail.kernel.org (Postfix) with ESMTP id C676C61053
 	for <linux-arch@archiver.kernel.org>; Mon, 30 Aug 2021 18:16:47 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238733AbhH3SRi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 30 Aug 2021 14:17:38 -0400
-Received: from mga18.intel.com ([134.134.136.126]:43870 "EHLO mga18.intel.com"
+        id S238723AbhH3SRh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 30 Aug 2021 14:17:37 -0400
+Received: from mga18.intel.com ([134.134.136.126]:43858 "EHLO mga18.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S238616AbhH3SRS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 30 Aug 2021 14:17:18 -0400
-X-IronPort-AV: E=McAfee;i="6200,9189,10092"; a="205460090"
+        id S238635AbhH3SRU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 30 Aug 2021 14:17:20 -0400
+X-IronPort-AV: E=McAfee;i="6200,9189,10092"; a="205460102"
 X-IronPort-AV: E=Sophos;i="5.84,364,1620716400"; 
-   d="scan'208";a="205460090"
+   d="scan'208";a="205460102"
 Received: from fmsmga003.fm.intel.com ([10.253.24.29])
-  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:16:20 -0700
+  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:16:21 -0700
 X-IronPort-AV: E=Sophos;i="5.84,364,1620716400"; 
-   d="scan'208";a="530533325"
+   d="scan'208";a="530533339"
 Received: from yyu32-desk.sc.intel.com ([143.183.136.146])
-  by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:16:19 -0700
+  by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Aug 2021 11:16:20 -0700
 From:   Yu-cheng Yu <yu-cheng.yu@intel.com>
 To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -56,11 +56,10 @@ To:     x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
         Pengfei Xu <pengfei.xu@intel.com>,
         Haitao Huang <haitao.huang@intel.com>,
         Rick P Edgecombe <rick.p.edgecombe@intel.com>
-Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH v30 19/32] mm/mmap: Add shadow stack pages to memory accounting
-Date:   Mon, 30 Aug 2021 11:15:15 -0700
-Message-Id: <20210830181528.1569-20-yu-cheng.yu@intel.com>
+Cc:     Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v30 23/32] x86/cet/shstk: Add user-mode shadow stack support
+Date:   Mon, 30 Aug 2021 11:15:19 -0700
+Message-Id: <20210830181528.1569-24-yu-cheng.yu@intel.com>
 X-Mailer: git-send-email 2.21.0
 In-Reply-To: <20210830181528.1569-1-yu-cheng.yu@intel.com>
 References: <20210830181528.1569-1-yu-cheng.yu@intel.com>
@@ -70,96 +69,243 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Account shadow stack pages to stack memory.
+Introduce basic shadow stack enabling/disabling/allocation routines.
+A task's shadow stack is allocated from memory with VM_SHADOW_STACK flag
+and has a fixed size of min(RLIMIT_STACK, 4GB).
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Reviewed-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 Cc: Kees Cook <keescook@chromium.org>
 ---
-v26:
-- Remove redundant #ifdef CONFIG_MMU.
+v30:
+- Remove superfluous comments for struct thread_shstk.
+- Replace 'populate' with 'unused'.
 
-v25:
-- Remove #ifdef CONFIG_ARCH_HAS_SHADOW_STACK for is_shadow_stack_mapping().
+v28:
+- Update shstk_setup() with wrmsrl_safe(), returns success when shadow
+  stack feature is not present (since this is a setup function).
 
-v24:
-- Change arch_shadow_stack_mapping() to is_shadow_stack_mapping().
-- Change VM_SHSTK to VM_SHADOW_STACK.
+v27:
+- Change 'struct cet_status' to 'struct thread_shstk', and change member
+  types from unsigned long to u64.
+- Re-order local variables in reverse order of length.
+- WARN_ON_ONCE() when vm_munmap() fails.
 ---
- arch/x86/include/asm/pgtable.h | 3 +++
- arch/x86/mm/pgtable.c          | 5 +++++
- include/linux/pgtable.h        | 7 +++++++
- mm/mmap.c                      | 5 +++++
- 4 files changed, 20 insertions(+)
+ arch/x86/include/asm/cet.h       |  27 +++++++
+ arch/x86/include/asm/processor.h |   5 ++
+ arch/x86/kernel/Makefile         |   1 +
+ arch/x86/kernel/shstk.c          | 134 +++++++++++++++++++++++++++++++
+ 4 files changed, 167 insertions(+)
+ create mode 100644 arch/x86/include/asm/cet.h
+ create mode 100644 arch/x86/kernel/shstk.c
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index 8dee420e382e..83ef43886a2a 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -1640,6 +1640,9 @@ static inline bool arch_faults_on_old_pte(void)
- #define maybe_mkwrite maybe_mkwrite
- extern pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct *vma);
- 
-+#define is_shadow_stack_mapping is_shadow_stack_mapping
-+extern bool is_shadow_stack_mapping(vm_flags_t vm_flags);
+diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+new file mode 100644
+index 000000000000..9dce4914d03d
+--- /dev/null
++++ b/arch/x86/include/asm/cet.h
+@@ -0,0 +1,27 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_X86_CET_H
++#define _ASM_X86_CET_H
 +
- #endif	/* __ASSEMBLY__ */
- 
- #endif /* _ASM_X86_PGTABLE_H */
-diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index c22c8e9c37e8..61a364b9ae0a 100644
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -884,3 +884,8 @@ int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
- 
- #endif /* CONFIG_X86_64 */
- #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
++#ifndef __ASSEMBLY__
++#include <linux/types.h>
 +
-+bool is_shadow_stack_mapping(vm_flags_t vm_flags)
-+{
-+	return vm_flags & VM_SHADOW_STACK;
-+}
-diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
-index e24d2c992b11..71aa63e2b014 100644
---- a/include/linux/pgtable.h
-+++ b/include/linux/pgtable.h
-@@ -1484,6 +1484,13 @@ static inline bool arch_has_pfn_modify_check(void)
- }
- #endif /* !_HAVE_ARCH_PFN_MODIFY_ALLOWED */
- 
-+#ifndef is_shadow_stack_mapping
-+static inline bool is_shadow_stack_mapping(vm_flags_t vm_flags)
-+{
-+	return false;
-+}
++struct task_struct;
++
++struct thread_shstk {
++	u64	base;
++	u64	size;
++};
++
++#ifdef CONFIG_X86_SHADOW_STACK
++int shstk_setup(void);
++void shstk_free(struct task_struct *p);
++void shstk_disable(void);
++#else
++static inline int shstk_setup(void) { return 0; }
++static inline void shstk_free(struct task_struct *p) {}
++static inline void shstk_disable(void) {}
 +#endif
 +
- /*
-  * Architecture PAGE_KERNEL_* fallbacks
-  *
-diff --git a/mm/mmap.c b/mm/mmap.c
-index ca54d36d203a..6be9ff4007ab 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -1721,6 +1721,9 @@ static inline int accountable_mapping(struct file *file, vm_flags_t vm_flags)
- 	if (file && is_file_hugepages(file))
- 		return 0;
- 
-+	if (is_shadow_stack_mapping(vm_flags))
-+		return 1;
++#endif /* __ASSEMBLY__ */
 +
- 	return (vm_flags & (VM_NORESERVE | VM_SHARED | VM_WRITE)) == VM_WRITE;
- }
++#endif /* _ASM_X86_CET_H */
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index f3020c54e2cb..10497634b7a4 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -27,6 +27,7 @@ struct vm86;
+ #include <asm/unwind_hints.h>
+ #include <asm/vmxfeatures.h>
+ #include <asm/vdso/processor.h>
++#include <asm/cet.h>
  
-@@ -3370,6 +3373,8 @@ void vm_stat_account(struct mm_struct *mm, vm_flags_t flags, long npages)
- 		mm->stack_vm += npages;
- 	else if (is_data_mapping(flags))
- 		mm->data_vm += npages;
-+	else if (is_shadow_stack_mapping(flags))
-+		mm->stack_vm += npages;
- }
+ #include <linux/personality.h>
+ #include <linux/cache.h>
+@@ -527,6 +528,10 @@ struct thread_struct {
+ 	 */
+ 	u32			pkru;
  
- static vm_fault_t special_mapping_fault(struct vm_fault *vmf);
++#ifdef CONFIG_X86_SHADOW_STACK
++	struct thread_shstk	shstk;
++#endif
++
+ 	/* Floating point and extended processor state */
+ 	struct fpu		fpu;
+ 	/*
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index 3e625c61f008..9e064845e497 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -150,6 +150,7 @@ obj-$(CONFIG_UNWINDER_FRAME_POINTER)	+= unwind_frame.o
+ obj-$(CONFIG_UNWINDER_GUESS)		+= unwind_guess.o
+ 
+ obj-$(CONFIG_AMD_MEM_ENCRYPT)		+= sev.o
++obj-$(CONFIG_X86_SHADOW_STACK)		+= shstk.o
+ ###
+ # 64 bit specific files
+ ifeq ($(CONFIG_X86_64),y)
+diff --git a/arch/x86/kernel/shstk.c b/arch/x86/kernel/shstk.c
+new file mode 100644
+index 000000000000..583dd3fa8c3f
+--- /dev/null
++++ b/arch/x86/kernel/shstk.c
+@@ -0,0 +1,134 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * shstk.c - Intel shadow stack support
++ *
++ * Copyright (c) 2021, Intel Corporation.
++ * Yu-cheng Yu <yu-cheng.yu@intel.com>
++ */
++
++#include <linux/types.h>
++#include <linux/mm.h>
++#include <linux/mman.h>
++#include <linux/slab.h>
++#include <linux/uaccess.h>
++#include <linux/sched/signal.h>
++#include <linux/compat.h>
++#include <linux/sizes.h>
++#include <linux/user.h>
++#include <asm/msr.h>
++#include <asm/fpu/internal.h>
++#include <asm/fpu/xstate.h>
++#include <asm/fpu/types.h>
++#include <asm/cet.h>
++
++static void start_update_msrs(void)
++{
++	fpregs_lock();
++	if (test_thread_flag(TIF_NEED_FPU_LOAD))
++		fpregs_restore_userregs();
++}
++
++static void end_update_msrs(void)
++{
++	fpregs_unlock();
++}
++
++static unsigned long alloc_shstk(unsigned long size)
++{
++	int flags = MAP_ANONYMOUS | MAP_PRIVATE;
++	struct mm_struct *mm = current->mm;
++	unsigned long addr, unused;
++
++	mmap_write_lock(mm);
++	addr = do_mmap(NULL, 0, size, PROT_READ, flags, VM_SHADOW_STACK, 0,
++		       &unused, NULL);
++	mmap_write_unlock(mm);
++
++	return addr;
++}
++
++int shstk_setup(void)
++{
++	struct thread_shstk *shstk = &current->thread.shstk;
++	unsigned long addr, size;
++	int err;
++
++	if (!cpu_feature_enabled(X86_FEATURE_SHSTK))
++		return 0;
++
++	size = round_up(min_t(unsigned long long, rlimit(RLIMIT_STACK), SZ_4G), PAGE_SIZE);
++	addr = alloc_shstk(size);
++	if (IS_ERR_VALUE(addr))
++		return PTR_ERR((void *)addr);
++
++	start_update_msrs();
++	err = wrmsrl_safe(MSR_IA32_PL3_SSP, addr + size);
++	if (!err)
++		wrmsrl_safe(MSR_IA32_U_CET, CET_SHSTK_EN);
++	end_update_msrs();
++
++	if (!err) {
++		shstk->base = addr;
++		shstk->size = size;
++	}
++
++	return err;
++}
++
++void shstk_free(struct task_struct *tsk)
++{
++	struct thread_shstk *shstk = &tsk->thread.shstk;
++
++	if (!cpu_feature_enabled(X86_FEATURE_SHSTK) ||
++	    !shstk->size ||
++	    !shstk->base)
++		return;
++
++	if (!tsk->mm)
++		return;
++
++	while (1) {
++		int r;
++
++		r = vm_munmap(shstk->base, shstk->size);
++
++		/*
++		 * vm_munmap() returns -EINTR when mmap_lock is held by
++		 * something else, and that lock should not be held for a
++		 * long time.  Retry it for the case.
++		 */
++		if (r == -EINTR) {
++			cond_resched();
++			continue;
++		}
++
++		/*
++		 * For all other types of vm_munmap() failure, either the
++		 * system is out of memory or there is bug.
++		 */
++		WARN_ON_ONCE(r);
++		break;
++	}
++
++	shstk->base = 0;
++	shstk->size = 0;
++}
++
++void shstk_disable(void)
++{
++	struct thread_shstk *shstk = &current->thread.shstk;
++	u64 msr_val;
++
++	if (!cpu_feature_enabled(X86_FEATURE_SHSTK) ||
++	    !shstk->size ||
++	    !shstk->base)
++		return;
++
++	start_update_msrs();
++	rdmsrl(MSR_IA32_U_CET, msr_val);
++	wrmsrl(MSR_IA32_U_CET, msr_val & ~CET_SHSTK_EN);
++	wrmsrl(MSR_IA32_PL3_SSP, 0);
++	end_update_msrs();
++
++	shstk_free(current);
++}
 -- 
 2.21.0
 
