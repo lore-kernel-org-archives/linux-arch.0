@@ -4,34 +4,34 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 X-Spam-Level: 
 X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 79F07C04FE3
-	for <linux-arch@archiver.kernel.org>; Tue, 31 Aug 2021 14:42:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C71C7C43214
+	for <linux-arch@archiver.kernel.org>; Tue, 31 Aug 2021 14:42:31 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 623C861058
-	for <linux-arch@archiver.kernel.org>; Tue, 31 Aug 2021 14:42:27 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id B11C76103D
+	for <linux-arch@archiver.kernel.org>; Tue, 31 Aug 2021 14:42:31 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238688AbhHaOnU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 31 Aug 2021 10:43:20 -0400
-Received: from mga11.intel.com ([192.55.52.93]:16873 "EHLO mga11.intel.com"
+        id S238736AbhHaOnW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 31 Aug 2021 10:43:22 -0400
+Received: from mga09.intel.com ([134.134.136.24]:10940 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S238463AbhHaOnH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Aug 2021 10:43:07 -0400
-X-IronPort-AV: E=McAfee;i="6200,9189,10093"; a="215357845"
+        id S238353AbhHaOm7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 31 Aug 2021 10:42:59 -0400
+X-IronPort-AV: E=McAfee;i="6200,9189,10093"; a="218496805"
 X-IronPort-AV: E=Sophos;i="5.84,366,1620716400"; 
-   d="scan'208";a="215357845"
-Received: from fmsmga005.fm.intel.com ([10.253.24.32])
-  by fmsmga102.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 31 Aug 2021 07:42:11 -0700
+   d="scan'208";a="218496805"
+Received: from fmsmga001.fm.intel.com ([10.253.24.23])
+  by orsmga102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 31 Aug 2021 07:42:03 -0700
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="5.84,366,1620716400"; 
-   d="scan'208";a="689989657"
+   d="scan'208";a="600974352"
 Received: from irvmail001.ir.intel.com ([10.43.11.63])
-  by fmsmga005.fm.intel.com with ESMTP; 31 Aug 2021 07:42:06 -0700
+  by fmsmga001.fm.intel.com with ESMTP; 31 Aug 2021 07:41:59 -0700
 Received: from alobakin-mobl.ger.corp.intel.com (psmrokox-mobl.ger.corp.intel.com [10.213.6.58])
-        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 17VEfmfY002209;
-        Tue, 31 Aug 2021 15:42:04 +0100
+        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 17VEfmfU002209;
+        Tue, 31 Aug 2021 15:41:56 +0100
 From:   Alexander Lobakin <alexandr.lobakin@intel.com>
 To:     linux-hardening@vger.kernel.org
 Cc:     "Kristen C Accardi" <kristen.c.accardi@intel.com>,
@@ -53,9 +53,9 @@ Cc:     "Kristen C Accardi" <kristen.c.accardi@intel.com>,
         Alexander Lobakin <alexandr.lobakin@intel.com>,
         linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com
-Subject: [PATCH v6 kspp-next 08/22] Make sure ORC lookup covers the entire _etext - _stext
-Date:   Tue, 31 Aug 2021 16:41:00 +0200
-Message-Id: <20210831144114.154-9-alexandr.lobakin@intel.com>
+Subject: [PATCH v6 kspp-next 04/22] kbuild: merge vmlinux_link() between ARCH=um and other architectures
+Date:   Tue, 31 Aug 2021 16:40:56 +0200
+Message-Id: <20210831144114.154-5-alexandr.lobakin@intel.com>
 X-Mailer: git-send-email 2.31.1
 In-Reply-To: <20210831144114.154-1-alexandr.lobakin@intel.com>
 References: <20210831144114.154-1-alexandr.lobakin@intel.com>
@@ -65,42 +65,106 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Kristen Carlson Accardi <kristen@linux.intel.com>
+From: Masahiro Yamada <masahiroy@kernel.org>
 
-When using -ffunction-sections to place each function in
-it's own text section so it can be randomized at load time, the
-linker will place most of the functions into separate .text.*
-sections. SIZEOF(.text) won't work here for calculating the ORC
-lookup table size, the total text size must be calculated to
-include .text AND all .text.*.
+For ARCH=um, ${CC} is used as the linker driver. Hence, the linker
+options are prefixed with -Wl, .
 
-Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
-Reviewed-by: Tony Luck <tony.luck@intel.com>
-Tested-by: Tony Luck <tony.luck@intel.com>
+Merge the similar code.
+
+I replaced the -T option with the long option --script= so that it
+works well with/without ${wl}.
+
+Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 Reviewed-by: Kees Cook <keescook@chromium.org>
-[ alobakin: move it to vmlinux.lds.h and make arch-indep ]
-Signed-off-by: Alexander Lobakin <alexandr.lobakin@intel.com>
 ---
- include/asm-generic/vmlinux.lds.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ scripts/link-vmlinux.sh | 56 +++++++++++++++++------------------------
+ 1 file changed, 23 insertions(+), 33 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 5d6da19b02bc..01fdeb5dd216 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -887,10 +887,11 @@
- 		KEEP(*(.orc_unwind))					\
- 		__stop_orc_unwind = .;					\
- 	}								\
-+	text_size = _etext - _stext;					\
- 	. = ALIGN(4);							\
- 	.orc_lookup : AT(ADDR(.orc_lookup) - LOAD_OFFSET) {		\
- 		orc_lookup = .;						\
--		. += (((SIZEOF(.text) + LOOKUP_BLOCK_SIZE - 1) /	\
-+		. += (((text_size + LOOKUP_BLOCK_SIZE - 1) /		\
- 			LOOKUP_BLOCK_SIZE) + 1) * 4;			\
- 		orc_lookup_end = .;					\
- 	}
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 7b9c62e4d54a..d74cee5c4326 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -149,13 +149,12 @@ objtool_link()
+ # ${2}, ${3}, ... - optional extra .o files
+ vmlinux_link()
+ {
+-	local lds="${objtree}/${KBUILD_LDS}"
+ 	local output=${1}
+-	local objects
+-	local strip_debug
+-	local map_option
+ 	local objs
+ 	local libs
++	local ld
++	local ldflags
++	local ldlibs
+ 
+ 	info LD ${output}
+ 
+@@ -171,42 +170,33 @@ vmlinux_link()
+ 		libs="${KBUILD_VMLINUX_LIBS}"
+ 	fi
+ 
++	if [ "${SRCARCH}" = "um" ]; then
++		wl=-Wl,
++		ld="${CC}"
++		ldflags="${CFLAGS_vmlinux}"
++		ldlibs="-lutil -lrt -lpthread"
++	else
++		wl=
++		ld="${LD}"
++		ldflags="${KBUILD_LDFLAGS} ${LDFLAGS_vmlinux}"
++		ldlibs=
++	fi
++
++	ldflags="${ldflags} ${wl}--script=${objtree}/${KBUILD_LDS}"
++
+ 	# The kallsyms linking does not need debug symbols included.
+ 	if [ "$output" != "${output#.tmp_vmlinux.kallsyms}" ] ; then
+-		strip_debug=-Wl,--strip-debug
++		ldflags="${ldflags} ${wl}--strip-debug"
+ 	fi
+ 
+ 	if [ -n "${CONFIG_VMLINUX_MAP}" ]; then
+-		map_option="-Map=${output}.map"
++		ldflags="${ldflags} ${wl}-Map=${output}.map"
+ 	fi
+ 
+-	if [ "${SRCARCH}" != "um" ]; then
+-		objects="--whole-archive ${objs} --no-whole-archive	\
+-			 --start-group ${libs} --end-group		\
+-			 $@"
+-
+-		${LD} ${KBUILD_LDFLAGS} ${LDFLAGS_vmlinux}	\
+-			${strip_debug#-Wl,}			\
+-			-o ${output}				\
+-			${map_option}				\
+-			-T ${lds} ${objects}
+-	else
+-		objects="-Wl,--whole-archive			\
+-			${KBUILD_VMLINUX_OBJS}			\
+-			-Wl,--no-whole-archive			\
+-			-Wl,--start-group			\
+-			${KBUILD_VMLINUX_LIBS}			\
+-			-Wl,--end-group				\
+-			${@}"
+-
+-		${CC} ${CFLAGS_vmlinux}				\
+-			${strip_debug}				\
+-			-o ${output}				\
+-			${map_option:+-Wl,${map_option}}	\
+-			-Wl,-T,${lds}				\
+-			${objects}				\
+-			-lutil -lrt -lpthread
+-	fi
++	${ld} ${ldflags} -o ${output}					\
++		${wl}--whole-archive ${objs} ${wl}--no-whole-archive	\
++		${wl}--start-group ${libs} ${wl}--end-group		\
++		$@ ${ldlibs}
+ }
+ 
+ # generate .BTF typeinfo from DWARF debuginfo
 -- 
 2.31.1
 
