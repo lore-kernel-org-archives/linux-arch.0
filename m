@@ -7,31 +7,31 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C71C7C43214
-	for <linux-arch@archiver.kernel.org>; Tue, 31 Aug 2021 14:42:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 60E26C4320E
+	for <linux-arch@archiver.kernel.org>; Tue, 31 Aug 2021 14:42:46 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B11C76103D
-	for <linux-arch@archiver.kernel.org>; Tue, 31 Aug 2021 14:42:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 497E060200
+	for <linux-arch@archiver.kernel.org>; Tue, 31 Aug 2021 14:42:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238736AbhHaOnW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 31 Aug 2021 10:43:22 -0400
-Received: from mga09.intel.com ([134.134.136.24]:10940 "EHLO mga09.intel.com"
+        id S238929AbhHaOnj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 31 Aug 2021 10:43:39 -0400
+Received: from mga09.intel.com ([134.134.136.24]:10972 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S238353AbhHaOm7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Aug 2021 10:42:59 -0400
-X-IronPort-AV: E=McAfee;i="6200,9189,10093"; a="218496805"
+        id S238538AbhHaOnQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 31 Aug 2021 10:43:16 -0400
+X-IronPort-AV: E=McAfee;i="6200,9189,10093"; a="218496879"
 X-IronPort-AV: E=Sophos;i="5.84,366,1620716400"; 
-   d="scan'208";a="218496805"
-Received: from fmsmga001.fm.intel.com ([10.253.24.23])
-  by orsmga102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 31 Aug 2021 07:42:03 -0700
+   d="scan'208";a="218496879"
+Received: from orsmga006.jf.intel.com ([10.7.209.51])
+  by orsmga102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 31 Aug 2021 07:42:20 -0700
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="5.84,366,1620716400"; 
-   d="scan'208";a="600974352"
+   d="scan'208";a="427495137"
 Received: from irvmail001.ir.intel.com ([10.43.11.63])
-  by fmsmga001.fm.intel.com with ESMTP; 31 Aug 2021 07:41:59 -0700
+  by orsmga006.jf.intel.com with ESMTP; 31 Aug 2021 07:42:15 -0700
 Received: from alobakin-mobl.ger.corp.intel.com (psmrokox-mobl.ger.corp.intel.com [10.213.6.58])
-        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 17VEfmfU002209;
-        Tue, 31 Aug 2021 15:41:56 +0100
+        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 17VEfmfc002209;
+        Tue, 31 Aug 2021 15:42:12 +0100
 From:   Alexander Lobakin <alexandr.lobakin@intel.com>
 To:     linux-hardening@vger.kernel.org
 Cc:     "Kristen C Accardi" <kristen.c.accardi@intel.com>,
@@ -53,9 +53,9 @@ Cc:     "Kristen C Accardi" <kristen.c.accardi@intel.com>,
         Alexander Lobakin <alexandr.lobakin@intel.com>,
         linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com
-Subject: [PATCH v6 kspp-next 04/22] kbuild: merge vmlinux_link() between ARCH=um and other architectures
-Date:   Tue, 31 Aug 2021 16:40:56 +0200
-Message-Id: <20210831144114.154-5-alexandr.lobakin@intel.com>
+Subject: [PATCH v6 kspp-next 12/22] linkage: add macros for putting ASM functions into own sections
+Date:   Tue, 31 Aug 2021 16:41:04 +0200
+Message-Id: <20210831144114.154-13-alexandr.lobakin@intel.com>
 X-Mailer: git-send-email 2.31.1
 In-Reply-To: <20210831144114.154-1-alexandr.lobakin@intel.com>
 References: <20210831144114.154-1-alexandr.lobakin@intel.com>
@@ -65,106 +65,106 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Masahiro Yamada <masahiroy@kernel.org>
+With ClangLTO or -ffunction-sections (DCE, FG-KASLR), compiler
+places C functions into separate sections by default.
+However, this doesn't happen with ASM functions which are still
+being placed into .text.
+Introduce a pack of macros which generate a new unique section
+for the describing function named in the same fashion
+(.text.<func_name>).
+This will be needed to make input .text section empty to harden
+the kernel even more.
 
-For ARCH=um, ${CC} is used as the linker driver. Hence, the linker
-options are prefixed with -Wl, .
-
-Merge the similar code.
-
-I replaced the -T option with the long option --script= so that it
-works well with/without ${wl}.
-
-Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
-Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Alexander Lobakin <alexandr.lobakin@intel.com>
 ---
- scripts/link-vmlinux.sh | 56 +++++++++++++++++------------------------
- 1 file changed, 23 insertions(+), 33 deletions(-)
+ include/linux/linkage.h | 76 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 76 insertions(+)
 
-diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index 7b9c62e4d54a..d74cee5c4326 100755
---- a/scripts/link-vmlinux.sh
-+++ b/scripts/link-vmlinux.sh
-@@ -149,13 +149,12 @@ objtool_link()
- # ${2}, ${3}, ... - optional extra .o files
- vmlinux_link()
- {
--	local lds="${objtree}/${KBUILD_LDS}"
- 	local output=${1}
--	local objects
--	local strip_debug
--	local map_option
- 	local objs
- 	local libs
-+	local ld
-+	local ldflags
-+	local ldlibs
+diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+index dbf8506decca..ef8641a7dc1b 100644
+--- a/include/linux/linkage.h
++++ b/include/linux/linkage.h
+@@ -355,4 +355,80 @@
  
- 	info LD ${output}
+ #endif /* __ASSEMBLY__ */
  
-@@ -171,42 +170,33 @@ vmlinux_link()
- 		libs="${KBUILD_VMLINUX_LIBS}"
- 	fi
- 
-+	if [ "${SRCARCH}" = "um" ]; then
-+		wl=-Wl,
-+		ld="${CC}"
-+		ldflags="${CFLAGS_vmlinux}"
-+		ldlibs="-lutil -lrt -lpthread"
-+	else
-+		wl=
-+		ld="${LD}"
-+		ldflags="${KBUILD_LDFLAGS} ${LDFLAGS_vmlinux}"
-+		ldlibs=
-+	fi
++/*
++ * Allow ASM symbols to have their own unique sections if they are being
++ * generated by the compiler for C functions (DCE, FG-KASLR, LTO).
++ */
++#if (defined(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION) && !defined(MODULE)) || \
++    (defined(CONFIG_FG_KASLR) && !defined(MODULE)) || \
++    (defined(CONFIG_MODULE_FG_KASLR) && defined(MODULE)) || \
++    (defined(CONFIG_LTO_CLANG))
 +
-+	ldflags="${ldflags} ${wl}--script=${objtree}/${KBUILD_LDS}"
++#define ASM_PUSH_SECTION(name)				\
++	".pushsection .text." #name
 +
- 	# The kallsyms linking does not need debug symbols included.
- 	if [ "$output" != "${output#.tmp_vmlinux.kallsyms}" ] ; then
--		strip_debug=-Wl,--strip-debug
-+		ldflags="${ldflags} ${wl}--strip-debug"
- 	fi
- 
- 	if [ -n "${CONFIG_VMLINUX_MAP}" ]; then
--		map_option="-Map=${output}.map"
-+		ldflags="${ldflags} ${wl}-Map=${output}.map"
- 	fi
- 
--	if [ "${SRCARCH}" != "um" ]; then
--		objects="--whole-archive ${objs} --no-whole-archive	\
--			 --start-group ${libs} --end-group		\
--			 $@"
--
--		${LD} ${KBUILD_LDFLAGS} ${LDFLAGS_vmlinux}	\
--			${strip_debug#-Wl,}			\
--			-o ${output}				\
--			${map_option}				\
--			-T ${lds} ${objects}
--	else
--		objects="-Wl,--whole-archive			\
--			${KBUILD_VMLINUX_OBJS}			\
--			-Wl,--no-whole-archive			\
--			-Wl,--start-group			\
--			${KBUILD_VMLINUX_LIBS}			\
--			-Wl,--end-group				\
--			${@}"
--
--		${CC} ${CFLAGS_vmlinux}				\
--			${strip_debug}				\
--			-o ${output}				\
--			${map_option:+-Wl,${map_option}}	\
--			-Wl,-T,${lds}				\
--			${objects}				\
--			-lutil -lrt -lpthread
--	fi
-+	${ld} ${ldflags} -o ${output}					\
-+		${wl}--whole-archive ${objs} ${wl}--no-whole-archive	\
-+		${wl}--start-group ${libs} ${wl}--end-group		\
-+		$@ ${ldlibs}
- }
- 
- # generate .BTF typeinfo from DWARF debuginfo
++#define SYM_TEXT_SECTION(name)				\
++	.pushsection .text.##name
++
++#else /* just .text */
++
++#define ASM_PUSH_SECTION(name)				\
++	".pushsection .text"
++
++#define SYM_TEXT_SECTION(name)				\
++	.pushsection .text
++
++#endif /* just .text */
++
++#ifdef __ASSEMBLY__
++
++#define SYM_TEXT_END_SECTION				\
++	.popsection
++
++#define SYM_FUNC_START_LOCAL_ALIAS_SECTION(name)	\
++	SYM_TEXT_SECTION(name) ASM_NL			\
++	SYM_FUNC_START_LOCAL_ALIAS(name)
++
++#define SYM_FUNC_START_LOCAL_SECTION(name)		\
++	SYM_TEXT_SECTION(name) ASM_NL			\
++	SYM_FUNC_START_LOCAL(name)
++
++#define SYM_FUNC_START_NOALIGN_SECTION(name)		\
++	SYM_TEXT_SECTION(name) ASM_NL			\
++	SYM_FUNC_START_NOALIGN(name)
++
++#define SYM_FUNC_START_WEAK_SECTION(name)		\
++	SYM_TEXT_SECTION(name) ASM_NL			\
++	SYM_FUNC_START_WEAK(name)
++
++#define SYM_FUNC_START_SECTION(name)			\
++	SYM_TEXT_SECTION(name) ASM_NL			\
++	SYM_FUNC_START(name)
++
++#define SYM_CODE_START_LOCAL_NOALIGN_SECTION(name)	\
++	SYM_TEXT_SECTION(name) ASM_NL			\
++	SYM_CODE_START_LOCAL_NOALIGN(name)
++
++#define SYM_CODE_START_NOALIGN_SECTION(name)		\
++	SYM_TEXT_SECTION(name) ASM_NL			\
++	SYM_CODE_START_NOALIGN(name)
++
++#define SYM_CODE_START_SECTION(name)			\
++	SYM_TEXT_SECTION(name) ASM_NL			\
++	SYM_CODE_START(name)
++
++#define SYM_FUNC_END_ALIAS_SECTION(name)		\
++	SYM_FUNC_END_ALIAS(name) ASM_NL			\
++	SYM_TEXT_END_SECTION
++
++#define SYM_FUNC_END_SECTION(name)			\
++	SYM_FUNC_END(name) ASM_NL			\
++	SYM_TEXT_END_SECTION
++
++#define SYM_CODE_END_SECTION(name)			\
++	SYM_CODE_END(name) ASM_NL			\
++	SYM_TEXT_END_SECTION
++
++#endif /* __ASSEMBLY__ */
++
+ #endif /* _LINUX_LINKAGE_H */
 -- 
 2.31.1
 
