@@ -7,30 +7,30 @@ X-Spam-Status: No, score=-15.9 required=3.0 tests=BAYES_00,DKIM_ADSP_ALL,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A4B5CC43219
-	for <linux-arch@archiver.kernel.org>; Wed,  8 Sep 2021 19:13:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 85993C4167D
+	for <linux-arch@archiver.kernel.org>; Wed,  8 Sep 2021 19:13:37 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8D01261168
-	for <linux-arch@archiver.kernel.org>; Wed,  8 Sep 2021 19:13:36 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 746CD61158
+	for <linux-arch@archiver.kernel.org>; Wed,  8 Sep 2021 19:13:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1348539AbhIHTOn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 8 Sep 2021 15:14:43 -0400
-Received: from home.keithp.com ([63.227.221.253]:36082 "EHLO elaine.keithp.com"
+        id S1350577AbhIHTOo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 8 Sep 2021 15:14:44 -0400
+Received: from home.keithp.com ([63.227.221.253]:36086 "EHLO elaine.keithp.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1349170AbhIHTO3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S241184AbhIHTO3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Wed, 8 Sep 2021 15:14:29 -0400
 Received: from localhost (localhost [127.0.0.1])
-        by elaine.keithp.com (Postfix) with ESMTP id 4C7193F30884;
-        Wed,  8 Sep 2021 12:05:52 -0700 (PDT)
+        by elaine.keithp.com (Postfix) with ESMTP id 7C6753F30892;
+        Wed,  8 Sep 2021 12:05:49 -0700 (PDT)
 X-Virus-Scanned: Debian amavisd-new at keithp.com
 Received: from elaine.keithp.com ([127.0.0.1])
         by localhost (elaine.keithp.com [127.0.0.1]) (amavisd-new, port 10024)
-        with LMTP id hrJI3NCUC0ro; Wed,  8 Sep 2021 12:05:51 -0700 (PDT)
+        with LMTP id pQrw0rspp1ef; Wed,  8 Sep 2021 12:05:48 -0700 (PDT)
 Received: from keithp.com (168-103-156-98.tukw.qwest.net [168.103.156.98])
-        by elaine.keithp.com (Postfix) with ESMTPSA id 2E7DD3F30890;
-        Wed,  8 Sep 2021 12:05:49 -0700 (PDT)
+        by elaine.keithp.com (Postfix) with ESMTPSA id 6A82E3F30882;
+        Wed,  8 Sep 2021 12:05:48 -0700 (PDT)
 Received: by keithp.com (Postfix, from userid 1000)
-        id 65CAB1E6013C; Wed,  8 Sep 2021 12:06:09 -0700 (PDT)
+        id 54D1D1E6012A; Wed,  8 Sep 2021 12:06:09 -0700 (PDT)
 From:   Keith Packard <keithpac@amazon.com>
 To:     linux-kernel@vger.kernel.org
 Cc:     Abbott Liu <liuwenliang@huawei.com>,
@@ -83,168 +83,113 @@ Cc:     Abbott Liu <liuwenliang@huawei.com>,
         virtualization@lists.linux-foundation.org,
         "Wolfram Sang (Renesas)" <wsa+renesas@sang-engineering.com>,
         YiFei Zhu <yifeifz2@illinois.edu>, Yonghong Song <yhs@fb.com>
-Subject: [PATCH v4 6/7] ARM: Use TPIDRPRW for current
-Date:   Wed,  8 Sep 2021 12:06:04 -0700
-Message-Id: <20210908190605.419064-7-keithpac@amazon.com>
+Subject: [PATCH v4 2/7] ARM: Pass task to secondary_start_kernel
+Date:   Wed,  8 Sep 2021 12:06:00 -0700
+Message-Id: <20210908190605.419064-3-keithpac@amazon.com>
 X-Mailer: git-send-email 2.33.0
 In-Reply-To: <20210908190605.419064-1-keithpac@amazon.com>
 References: <id:20210907220038.91021-1-keithpac@amazon.com>
  <20210908190605.419064-1-keithpac@amazon.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Store current task pointer in CPU thread ID register TPIDRPRW so that
-accessing it doesn't depend on being able to locate thread_info off of
-the kernel stack pointer.
+This avoids needing to compute the task pointer in this function,
+allowing it to be used as the source of identification in the future.
 
 Signed-off-by: Keith Packard <keithpac@amazon.com>
 ---
- arch/arm/Kconfig                 |  4 +++
- arch/arm/include/asm/assembler.h |  8 +++++
- arch/arm/include/asm/current.h   | 54 ++++++++++++++++++++++++++++++++
- arch/arm/kernel/entry-armv.S     |  4 +++
- arch/arm/kernel/setup.c          |  1 +
- arch/arm/kernel/smp.c            |  1 +
- 6 files changed, 72 insertions(+)
- create mode 100644 arch/arm/include/asm/current.h
+ arch/arm/include/asm/smp.h   | 3 ++-
+ arch/arm/kernel/head-nommu.S | 1 +
+ arch/arm/kernel/head.S       | 1 +
+ arch/arm/kernel/smp.c        | 8 +++++---
+ 4 files changed, 9 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 24804f11302d..414fe23fd5ac 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -1172,6 +1172,10 @@ config SMP_ON_UP
- 
- 	  If you don't know what to do here, say Y.
- 
-+config CURRENT_POINTER_IN_TPIDRPRW
-+	def_bool y
-+	depends on (CPU_V6K || CPU_V7) && !CPU_V6
-+
- config ARM_CPU_TOPOLOGY
- 	bool "Support cpu topology definition"
- 	depends on SMP && CPU_V7
-diff --git a/arch/arm/include/asm/assembler.h b/arch/arm/include/asm/assembler.h
-index e2b1fd558bf3..ea12fe3bb589 100644
---- a/arch/arm/include/asm/assembler.h
-+++ b/arch/arm/include/asm/assembler.h
-@@ -209,6 +209,14 @@
- 	mov	\rd, \rd, lsl #THREAD_SIZE_ORDER + PAGE_SHIFT
- 	.endm
- 
-+/*
-+ * Set current task_info
-+ * @src: Source register containing task_struct pointer
-+ */
-+	.macro	set_current src : req
-+	mcr	p15, 0, \src, c13, c0, 4
-+	.endm
-+
- /*
-  * Increment/decrement the preempt count.
+diff --git a/arch/arm/include/asm/smp.h b/arch/arm/include/asm/smp.h
+index 86a7fd721556..d43b64635d77 100644
+--- a/arch/arm/include/asm/smp.h
++++ b/arch/arm/include/asm/smp.h
+@@ -48,7 +48,7 @@ extern void set_smp_ipi_range(int ipi_base, int nr_ipi);
+  * Called from platform specific assembly code, this is the
+  * secondary CPU entry point.
   */
-diff --git a/arch/arm/include/asm/current.h b/arch/arm/include/asm/current.h
-new file mode 100644
-index 000000000000..ec25737855e5
---- /dev/null
-+++ b/arch/arm/include/asm/current.h
-@@ -0,0 +1,54 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright © 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-+ *
-+ * Author Keith Packard <keithpac@amazon.com>
-+ */
-+
-+#ifndef _ASM_ARM_CURRENT_H_
-+#define _ASM_ARM_CURRENT_H_
-+
-+#ifndef __ASSEMBLY__
-+
-+register unsigned long current_stack_pointer asm ("sp");
-+
-+/*
-+ * Same as asm-generic/current.h, except that we store current
-+ * in TPIDRPRW. TPIDRPRW only exists on V6K and V7
-+ */
-+#ifdef CONFIG_CURRENT_POINTER_IN_TPIDRPRW
-+
-+struct task_struct;
-+
-+static inline void set_current(struct task_struct *tsk)
-+{
-+	/* Set TPIDRPRW */
-+	asm volatile("mcr p15, 0, %0, c13, c0, 4" : : "r" (tsk) : "memory");
-+}
-+
-+static __always_inline struct task_struct *get_current(void)
-+{
-+	struct task_struct *tsk;
-+
-+	/*
-+	 * Read TPIDRPRW.
-+	 * We want to allow caching the value, so avoid using volatile and
-+	 * instead use a fake stack read to hazard against barrier().
-+	 */
-+	asm("mrc p15, 0, %0, c13, c0, 4" : "=r" (tsk)
-+		: "Q" (*(const unsigned long *)current_stack_pointer));
-+
-+	return tsk;
-+}
-+#define current get_current()
-+#else
-+
-+#define set_current(tsk) do {} while (0)
-+
-+#include <asm-generic/current.h>
-+
-+#endif /* CONFIG_SMP */
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* _ASM_ARM_CURRENT_H_ */
-diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.S
-index 0ea8529a4872..db3947ee9c3e 100644
---- a/arch/arm/kernel/entry-armv.S
-+++ b/arch/arm/kernel/entry-armv.S
-@@ -761,6 +761,10 @@ ENTRY(__switch_to)
- 	ldr	r6, [r2, #TI_CPU_DOMAIN]
- #endif
- 	switch_tls r1, r4, r5, r3, r7
-+#ifdef CONFIG_CURRENT_POINTER_IN_TPIDRPRW
-+	ldr	r7, [r2, #TI_TASK]
-+	set_current r7
-+#endif
- #if defined(CONFIG_STACKPROTECTOR) && !defined(CONFIG_SMP)
- 	ldr	r7, [r2, #TI_TASK]
- 	ldr	r8, =__stack_chk_guard
-diff --git a/arch/arm/kernel/setup.c b/arch/arm/kernel/setup.c
-index d0dc60afe54f..2fdf8c31d6c9 100644
---- a/arch/arm/kernel/setup.c
-+++ b/arch/arm/kernel/setup.c
-@@ -586,6 +586,7 @@ void __init smp_setup_processor_id(void)
- 	u32 mpidr = is_smp() ? read_cpuid_mpidr() & MPIDR_HWID_BITMASK : 0;
- 	u32 cpu = MPIDR_AFFINITY_LEVEL(mpidr, 0);
+-asmlinkage void secondary_start_kernel(unsigned int cpu);
++asmlinkage void secondary_start_kernel(unsigned int cpu, struct task_struct *task);
  
-+	set_current(&init_task);
- 	cpu_logical_map(0) = cpu;
- 	for (i = 1; i < nr_cpu_ids; ++i)
- 		cpu_logical_map(i) = i == cpu ? 0 : i;
+ 
+ /*
+@@ -62,6 +62,7 @@ struct secondary_data {
+ 	unsigned long swapper_pg_dir;
+ 	void *stack;
+ 	unsigned int cpu;
++	struct task_struct *task;
+ };
+ extern struct secondary_data secondary_data;
+ extern void secondary_startup(void);
+diff --git a/arch/arm/kernel/head-nommu.S b/arch/arm/kernel/head-nommu.S
+index 5aa8ef42717f..218715c135ed 100644
+--- a/arch/arm/kernel/head-nommu.S
++++ b/arch/arm/kernel/head-nommu.S
+@@ -115,6 +115,7 @@ ENTRY(secondary_startup)
+ 	ret	r12
+ 1:	bl	__after_proc_init
+ 	ldr	r0, [r7, #16]			@ set up cpu number
++	ldr	r1, [r7, #20]			@ set up task pointer
+ 	ldr	sp, [r7, #12]			@ set up the stack pointer
+ 	mov	fp, #0
+ 	b	secondary_start_kernel
+diff --git a/arch/arm/kernel/head.S b/arch/arm/kernel/head.S
+index 0e541af738e2..4a6cb0b0808b 100644
+--- a/arch/arm/kernel/head.S
++++ b/arch/arm/kernel/head.S
+@@ -395,6 +395,7 @@ ENDPROC(secondary_startup_arm)
+ ENTRY(__secondary_switched)
+ 	ldr_l	r7, secondary_data + 12		@ get secondary_data.stack
+ 	ldr_l	r0, secondary_data + 16		@ get secondary_data.cpu
++	ldr_l	r1, secondary_data + 20		@ get secondary_data.task
+ 	mov	sp, r7
+ 	mov	fp, #0
+ 	b	secondary_start_kernel
 diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-index 8ccf10b34f08..09771916442a 100644
+index 55cb1689a4b3..5e999f1f1aea 100644
 --- a/arch/arm/kernel/smp.c
 +++ b/arch/arm/kernel/smp.c
-@@ -410,6 +410,7 @@ asmlinkage void secondary_start_kernel(unsigned int cpu, struct task_struct *tas
+@@ -154,6 +154,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
+ 	secondary_data.swapper_pg_dir = get_arch_pgd(swapper_pg_dir);
+ #endif
+ 	secondary_data.cpu = cpu;
++	secondary_data.task = idle;
+ 	sync_cache_w(&secondary_data);
+ 
+ 	/*
+@@ -375,13 +376,14 @@ void arch_cpu_idle_dead(void)
+ 	 * to be repeated to undo the effects of taking the CPU offline.
+ 	 */
+ 	__asm__("mov	r0, %1\n"
++	"	mov	r1, %2\n"
+ 	"	mov	sp, %0\n"
+ 	"	mov	fp, #0\n"
+ 	"	b	secondary_start_kernel"
+ 		:
+ 		: "r" (task_stack_page(current) + THREAD_SIZE - 8),
+-		  "r" (cpu)
+-		: "r0");
++		  "r" (cpu), "r" (current)
++		: "r0", "r1");
+ }
+ #endif /* CONFIG_HOTPLUG_CPU */
+ 
+@@ -404,7 +406,7 @@ static void smp_store_cpu_info(unsigned int cpuid)
+  * This is the secondary CPU boot entry.  We're using this CPUs
+  * idle thread stack, but a set of temporary page tables.
+  */
+-asmlinkage void secondary_start_kernel(unsigned int cpu)
++asmlinkage void secondary_start_kernel(unsigned int cpu, struct task_struct *task)
  {
  	struct mm_struct *mm = &init_mm;
  
-+	set_current(task);
- 	secondary_biglittle_init();
- 
- 	/*
 -- 
 2.33.0
 
