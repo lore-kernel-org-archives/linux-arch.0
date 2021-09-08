@@ -7,30 +7,30 @@ X-Spam-Status: No, score=-15.9 required=3.0 tests=BAYES_00,DKIM_ADSP_ALL,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5D28FC43219
-	for <linux-arch@archiver.kernel.org>; Wed,  8 Sep 2021 19:13:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A9A77C433F5
+	for <linux-arch@archiver.kernel.org>; Wed,  8 Sep 2021 19:13:27 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 4358861158
-	for <linux-arch@archiver.kernel.org>; Wed,  8 Sep 2021 19:13:26 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A0440610C8
+	for <linux-arch@archiver.kernel.org>; Wed,  8 Sep 2021 19:13:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1349963AbhIHTOb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 8 Sep 2021 15:14:31 -0400
-Received: from home.keithp.com ([63.227.221.253]:36044 "EHLO elaine.keithp.com"
+        id S1350246AbhIHTOd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 8 Sep 2021 15:14:33 -0400
+Received: from home.keithp.com ([63.227.221.253]:36052 "EHLO elaine.keithp.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S240049AbhIHTO1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S242332AbhIHTO1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Wed, 8 Sep 2021 15:14:27 -0400
 Received: from localhost (localhost [127.0.0.1])
-        by elaine.keithp.com (Postfix) with ESMTP id B7B0F3F30886;
-        Wed,  8 Sep 2021 12:05:47 -0700 (PDT)
+        by elaine.keithp.com (Postfix) with ESMTP id C1B3A3F3088B;
+        Wed,  8 Sep 2021 12:05:51 -0700 (PDT)
 X-Virus-Scanned: Debian amavisd-new at keithp.com
 Received: from elaine.keithp.com ([127.0.0.1])
         by localhost (elaine.keithp.com [127.0.0.1]) (amavisd-new, port 10024)
-        with LMTP id jjqKtPL7fQVo; Wed,  8 Sep 2021 12:05:47 -0700 (PDT)
+        with LMTP id hA43RMvmbiP7; Wed,  8 Sep 2021 12:05:51 -0700 (PDT)
 Received: from keithp.com (168-103-156-98.tukw.qwest.net [168.103.156.98])
-        by elaine.keithp.com (Postfix) with ESMTPSA id 4484C3F30881;
-        Wed,  8 Sep 2021 12:05:47 -0700 (PDT)
+        by elaine.keithp.com (Postfix) with ESMTPSA id 2D6443F30884;
+        Wed,  8 Sep 2021 12:05:49 -0700 (PDT)
 Received: by keithp.com (Postfix, from userid 1000)
-        id 4D1691E6011A; Wed,  8 Sep 2021 12:06:09 -0700 (PDT)
+        id 61B2C1E6013B; Wed,  8 Sep 2021 12:06:09 -0700 (PDT)
 From:   Keith Packard <keithpac@amazon.com>
 To:     linux-kernel@vger.kernel.org
 Cc:     Abbott Liu <liuwenliang@huawei.com>,
@@ -83,90 +83,109 @@ Cc:     Abbott Liu <liuwenliang@huawei.com>,
         virtualization@lists.linux-foundation.org,
         "Wolfram Sang (Renesas)" <wsa+renesas@sang-engineering.com>,
         YiFei Zhu <yifeifz2@illinois.edu>, Yonghong Song <yhs@fb.com>
-Subject: [PATCH v4 0/7] ARM: support THREAD_INFO_IN_TASK
-Date:   Wed,  8 Sep 2021 12:05:58 -0700
-Message-Id: <20210908190605.419064-1-keithpac@amazon.com>
+Subject: [PATCH v4 5/7] ARM: Stop using TPIDRPRW to hold per_cpu_offset
+Date:   Wed,  8 Sep 2021 12:06:03 -0700
+Message-Id: <20210908190605.419064-6-keithpac@amazon.com>
 X-Mailer: git-send-email 2.33.0
-In-Reply-To: <id:20210907220038.91021-1-keithpac@amazon.com>
+In-Reply-To: <20210908190605.419064-1-keithpac@amazon.com>
 References: <id:20210907220038.91021-1-keithpac@amazon.com>
+ <20210908190605.419064-1-keithpac@amazon.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Placing thread_info in the kernel stack leaves it vulnerable to stack
-overflow attacks. This short series addresses that by using the
-existing THREAD_INFO_IN_TASK infrastructure.
-
-This is the fourth version of this series, in this version the changes
-are restricted to hardware which provides the TPIDRPRW register. This
-register is repurposed from holding the per_cpu_offset value to
-holding the 'current' value as that allows fetching this value
-atomically so that it can be used in a preemptable context.
-
-The series is broken into seven pieces:
-
- 1) Change the secondary_start_kernel API to receive the cpu
-    number. This avoids needing to be able to find this value independently in
-    future patches.
-
- 2) Change the secondary_start_kernel API to also receive the 'task'
-    value. Passing the value to this function also avoids needing to
-    be able to discover it independently.
-
- 3) A cleanup which avoids assuming that THREAD_INFO_IN_TASK is not set.
-
- 4) Patches across the kernel which ensure that linux/sched.h has been
-    included whenever raw_smp_processor_id() is used.
-
- 5) Disable the optimization storing per_cpu_offset in TPIDRPRW. This
-    leaves the register free to hold 'current' instead.
-
- 6) Use TPIDRPRW for 'current'. This is enabled for either CPU_V6K or
-    CPU_V7, but not if CPU_V6 is also enabled.
-
- 7) Enable THREAD_INFO_IN_TASK whenever TPIDRPRW is used to hold 'current'.
+We're going to store TPIDRPRW here instead
 
 Signed-off-by: Keith Packard <keithpac@amazon.com>
+---
+ arch/arm/include/asm/percpu.h | 31 -------------------------------
+ arch/arm/kernel/setup.c       |  7 -------
+ arch/arm/kernel/smp.c         |  3 ---
+ 3 files changed, 41 deletions(-)
 
-Keith Packard (7):
-  ARM: Pass cpu number to secondary_start_kernel
-  ARM: Pass task to secondary_start_kernel
-  ARM: Use smp_processor_id() in vfp_pm_suspend instead of ti->cpu
-  Make sure task_struct is available for raw_smp_processor_id
-  ARM: Stop using TPIDRPRW to hold per_cpu_offset
-  ARM: Use TPIDRPRW for current
-  ARM: Move thread_info into task_struct (v7 only)
-
- arch/arm/Kconfig                   |  5 +++
- arch/arm/include/asm/assembler.h   | 12 +++++++
- arch/arm/include/asm/current.h     | 54 ++++++++++++++++++++++++++++++
- arch/arm/include/asm/percpu.h      | 31 -----------------
- arch/arm/include/asm/smp.h         |  8 ++++-
- arch/arm/include/asm/thread_info.h | 12 ++++++-
- arch/arm/kernel/asm-offsets.c      |  4 +++
- arch/arm/kernel/entry-armv.S       |  8 +++++
- arch/arm/kernel/head-nommu.S       |  2 ++
- arch/arm/kernel/head.S             |  2 ++
- arch/arm/kernel/setup.c            | 14 +-------
- arch/arm/kernel/smp.c              | 16 +++++----
- arch/arm/mm/proc-v7-bugs.c         |  1 +
- arch/arm/vfp/vfpmodule.c           | 15 +++++++--
- drivers/vhost/vhost.c              |  1 +
- drivers/vhost/vhost.h              |  1 +
- include/asm-generic/irq_regs.h     |  1 +
- include/linux/of_address.h         |  1 +
- include/linux/random.h             |  1 +
- include/linux/topology.h           |  1 +
- init/calibrate.c                   |  1 +
- kernel/bpf/bpf_lru_list.h          |  1 +
- kernel/bpf/percpu_freelist.h       |  1 +
- kernel/sched/cpuacct.c             |  2 +-
- lib/irq_regs.c                     |  1 +
- 25 files changed, 140 insertions(+), 56 deletions(-)
- create mode 100644 arch/arm/include/asm/current.h
-
+diff --git a/arch/arm/include/asm/percpu.h b/arch/arm/include/asm/percpu.h
+index e2fcb3cfd3de..eeafcd6a3e01 100644
+--- a/arch/arm/include/asm/percpu.h
++++ b/arch/arm/include/asm/percpu.h
+@@ -7,37 +7,6 @@
+ 
+ register unsigned long current_stack_pointer asm ("sp");
+ 
+-/*
+- * Same as asm-generic/percpu.h, except that we store the per cpu offset
+- * in the TPIDRPRW. TPIDRPRW only exists on V6K and V7
+- */
+-#if defined(CONFIG_SMP) && !defined(CONFIG_CPU_V6)
+-static inline void set_my_cpu_offset(unsigned long off)
+-{
+-	/* Set TPIDRPRW */
+-	asm volatile("mcr p15, 0, %0, c13, c0, 4" : : "r" (off) : "memory");
+-}
+-
+-static inline unsigned long __my_cpu_offset(void)
+-{
+-	unsigned long off;
+-
+-	/*
+-	 * Read TPIDRPRW.
+-	 * We want to allow caching the value, so avoid using volatile and
+-	 * instead use a fake stack read to hazard against barrier().
+-	 */
+-	asm("mrc p15, 0, %0, c13, c0, 4" : "=r" (off)
+-		: "Q" (*(const unsigned long *)current_stack_pointer));
+-
+-	return off;
+-}
+-#define __my_cpu_offset __my_cpu_offset()
+-#else
+-#define set_my_cpu_offset(x)	do {} while(0)
+-
+-#endif /* CONFIG_SMP */
+-
+ #include <asm-generic/percpu.h>
+ 
+ #endif /* _ASM_ARM_PERCPU_H_ */
+diff --git a/arch/arm/kernel/setup.c b/arch/arm/kernel/setup.c
+index ca0201635fac..d0dc60afe54f 100644
+--- a/arch/arm/kernel/setup.c
++++ b/arch/arm/kernel/setup.c
+@@ -590,13 +590,6 @@ void __init smp_setup_processor_id(void)
+ 	for (i = 1; i < nr_cpu_ids; ++i)
+ 		cpu_logical_map(i) = i == cpu ? 0 : i;
+ 
+-	/*
+-	 * clear __my_cpu_offset on boot CPU to avoid hang caused by
+-	 * using percpu variable early, for example, lockdep will
+-	 * access percpu variable inside lock_release
+-	 */
+-	set_my_cpu_offset(0);
+-
+ 	pr_info("Booting Linux on physical CPU 0x%x\n", mpidr);
+ }
+ 
+diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
+index 5e999f1f1aea..8ccf10b34f08 100644
+--- a/arch/arm/kernel/smp.c
++++ b/arch/arm/kernel/smp.c
+@@ -410,8 +410,6 @@ asmlinkage void secondary_start_kernel(unsigned int cpu, struct task_struct *tas
+ {
+ 	struct mm_struct *mm = &init_mm;
+ 
+-	set_my_cpu_offset(per_cpu_offset(cpu));
+-
+ 	secondary_biglittle_init();
+ 
+ 	/*
+@@ -495,7 +493,6 @@ void __init smp_cpus_done(unsigned int max_cpus)
+ 
+ void __init smp_prepare_boot_cpu(void)
+ {
+-	set_my_cpu_offset(per_cpu_offset(smp_processor_id()));
+ }
+ 
+ void __init smp_prepare_cpus(unsigned int max_cpus)
 -- 
 2.33.0
 
