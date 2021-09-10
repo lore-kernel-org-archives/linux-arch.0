@@ -2,153 +2,155 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B1A1FC433FE
-	for <linux-arch@archiver.kernel.org>; Fri, 10 Sep 2021 12:30:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9238BC433F5
+	for <linux-arch@archiver.kernel.org>; Fri, 10 Sep 2021 14:19:58 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 97ABE611EF
-	for <linux-arch@archiver.kernel.org>; Fri, 10 Sep 2021 12:30:12 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 78BE661059
+	for <linux-arch@archiver.kernel.org>; Fri, 10 Sep 2021 14:19:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233119AbhIJMbW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 10 Sep 2021 08:31:22 -0400
-Received: from mga04.intel.com ([192.55.52.120]:57381 "EHLO mga04.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S232997AbhIJMbW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Sep 2021 08:31:22 -0400
-X-IronPort-AV: E=McAfee;i="6200,9189,10102"; a="219205329"
-X-IronPort-AV: E=Sophos;i="5.85,282,1624345200"; 
-   d="scan'208";a="219205329"
-Received: from orsmga006.jf.intel.com ([10.7.209.51])
-  by fmsmga104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 Sep 2021 05:30:11 -0700
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="5.85,282,1624345200"; 
-   d="scan'208";a="431539785"
-Received: from irvmail001.ir.intel.com ([10.43.11.63])
-  by orsmga006.jf.intel.com with ESMTP; 10 Sep 2021 05:30:05 -0700
-Received: from alobakin-mobl.ger.corp.intel.com (alobakin-mobl.ger.corp.intel.com [10.237.140.50])
-        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 18ACU3af025901;
-        Fri, 10 Sep 2021 13:30:03 +0100
-From:   Alexander Lobakin <alexandr.lobakin@intel.com>
-To:     Miroslav Benes <mbenes@suse.cz>
-Cc:     Alexander Lobakin <alexandr.lobakin@intel.com>,
-        linux-hardening@vger.kernel.org,
-        Kristen C Accardi <kristen.c.accardi@intel.com>,
-        Kristen Carlson Accardi <kristen@linux.intel.com>,
-        Kees Cook <keescook@chromium.org>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        "H. Peter Anvin" <hpa@zytor.com>, Jessica Yu <jeyu@kernel.org>,
-        Nathan Chancellor <nathan@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Marios Pomonis <pomonis@google.com>,
-        Sami Tolvanen <samitolvanen@google.com>,
-        Tony Luck <tony.luck@intel.com>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Jesse Brandeburg <jesse.brandeburg@intel.com>,
-        Lukasz Czapnik <lukasz.czapnik@intel.com>,
-        Marta A Plantykow <marta.a.plantykow@intel.com>,
-        Michal Kubiak <michal.kubiak@intel.com>,
-        Michal Swiatkowski <michal.swiatkowski@intel.com>,
-        linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com,
-        live-patching@vger.kernel.org
-Subject: Re: [PATCH v6 kspp-next 16/22] livepatch: only match unique symbols when using fgkaslr
-Date:   Fri, 10 Sep 2021 14:29:53 +0200
-Message-Id: <20210910122953.400-1-alexandr.lobakin@intel.com>
-X-Mailer: git-send-email 2.31.1
-In-Reply-To: <alpine.LSU.2.21.2109091347400.20761@pobox.suse.cz>
-References: <20210831144115.154-1-alexandr.lobakin@intel.com> <20210831144114.154-17-alexandr.lobakin@intel.com> <alpine.LSU.2.21.2109091347400.20761@pobox.suse.cz>
+        id S234045AbhIJOVG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 10 Sep 2021 10:21:06 -0400
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:49182 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S233837AbhIJOVG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Sep 2021 10:21:06 -0400
+Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 18AE4dT0003764;
+        Fri, 10 Sep 2021 10:19:47 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
+ : date : message-id : in-reply-to : references : mime-version :
+ content-transfer-encoding; s=pp1;
+ bh=tRUcJmxZI06bgFTd2YoWwdkI1EIf07riiKhsAJZnDaQ=;
+ b=ZrjhJ1IuAdWNBJqiskGsC8nlcEPv2s1p+8+Z2NVAeJzdMN7tF1ohextJz5ctdeZ1WNRX
+ Mz/Gt2nmzq4JLvifwugJKJlHp9YhYxJPsA6iM9ww2a0YQ7Id3zypWL44V9zaex7rLrK1
+ ZYLCP//kh+qz0aLcmSs982ehIrdsHC/St4FUg9MEv4CxnjKCE5XfudqJfS+WuxG1mbFN
+ ZEi5dWH3+5JR2Sp7Wn1VwhU6qzmNYqEgH0w0ZA2Sieg23npxhE6n7WQVAqxWoX76ec70
+ OXwOR+VNT4bIjt8uhJ/oOfJSy0NtC0wnKdgOzbS2Mzppoll1dNbFbg5TKCQzQqgNpzd8 wg== 
+Received: from pps.reinject (localhost [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 3ayu41hdew-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Fri, 10 Sep 2021 10:19:47 -0400
+Received: from m0098410.ppops.net (m0098410.ppops.net [127.0.0.1])
+        by pps.reinject (8.16.0.43/8.16.0.43) with SMTP id 18AE53FG004823;
+        Fri, 10 Sep 2021 10:19:46 -0400
+Received: from ppma04ams.nl.ibm.com (63.31.33a9.ip4.static.sl-reverse.com [169.51.49.99])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 3ayu41hde0-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Fri, 10 Sep 2021 10:19:46 -0400
+Received: from pps.filterd (ppma04ams.nl.ibm.com [127.0.0.1])
+        by ppma04ams.nl.ibm.com (8.16.1.2/8.16.1.2) with SMTP id 18AEHawv025614;
+        Fri, 10 Sep 2021 14:19:44 GMT
+Received: from b06avi18878370.portsmouth.uk.ibm.com (b06avi18878370.portsmouth.uk.ibm.com [9.149.26.194])
+        by ppma04ams.nl.ibm.com with ESMTP id 3axcnq23d2-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Fri, 10 Sep 2021 14:19:43 +0000
+Received: from d06av24.portsmouth.uk.ibm.com (mk.ibm.com [9.149.105.60])
+        by b06avi18878370.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 18AEFIxU58655226
+        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Fri, 10 Sep 2021 14:15:18 GMT
+Received: from d06av24.portsmouth.uk.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id 3045C42041;
+        Fri, 10 Sep 2021 14:19:41 +0000 (GMT)
+Received: from d06av24.portsmouth.uk.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id BE31142042;
+        Fri, 10 Sep 2021 14:19:40 +0000 (GMT)
+Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
+        by d06av24.portsmouth.uk.ibm.com (Postfix) with ESMTP;
+        Fri, 10 Sep 2021 14:19:40 +0000 (GMT)
+From:   Niklas Schnelle <schnelle@linux.ibm.com>
+To:     Bjorn Helgaas <bhelgaas@google.com>
+Cc:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        "Oliver O'Halloran" <oohall@gmail.com>, linux-pci@vger.kernel.org,
+        linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org,
+        linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Subject: [PATCH 1/1] powerpc: Drop superfluous pci_dev_is_added() calls
+Date:   Fri, 10 Sep 2021 16:19:40 +0200
+Message-Id: <20210910141940.2598035-2-schnelle@linux.ibm.com>
+X-Mailer: git-send-email 2.25.1
+In-Reply-To: <20210910141940.2598035-1-schnelle@linux.ibm.com>
+References: <20210910141940.2598035-1-schnelle@linux.ibm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
+X-TM-AS-GCONF: 00
+X-Proofpoint-GUID: za8VTNRr0shtqDgsPfee0Ni4ctKNrmje
+X-Proofpoint-ORIG-GUID: LucwXuB3CGUb9u06TqyoDzboh2KLAZa7
+X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.391,18.0.790
+ definitions=2021-09-10_04:2021-09-09,2021-09-10 signatures=0
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 spamscore=0 mlxlogscore=999
+ suspectscore=0 clxscore=1015 impostorscore=0 malwarescore=0 phishscore=0
+ priorityscore=1501 lowpriorityscore=0 bulkscore=0 adultscore=0 mlxscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109030001
+ definitions=main-2109100081
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Miroslav Benes <mbenes@suse.cz>
-Date: Thu, 9 Sep 2021 13:53:35 +0200 (CEST)
+On powerpc, pci_dev_is_added() is called as part of SR-IOV fixups
+that are done under pcibios_add_device() which in turn is only called in
+pci_device_add() whih is called when a PCI device is scanned.
 
-> Hi,
+Now pci_dev_assign_added() is called in pci_bus_add_device() which is
+only called after scanning the device. Thus pci_dev_is_added() is always
+false and can be dropped.
 
-Hi!
+Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
+---
+ arch/powerpc/platforms/powernv/pci-sriov.c | 6 ------
+ arch/powerpc/platforms/pseries/setup.c     | 3 +--
+ 2 files changed, 1 insertion(+), 8 deletions(-)
 
-> On Tue, 31 Aug 2021, Alexander Lobakin wrote:
-> 
-> > From: Kristen Carlson Accardi <kristen@linux.intel.com>
-> > 
-> > If any type of function granular randomization is enabled, the sympos
-> > algorithm will fail, as it will be impossible to resolve symbols when
-> > there are duplicates using the previous symbol position.
-> > 
-> > Override the value of sympos to always be zero if fgkaslr is enabled for
-> > either the core kernel or modules, forcing the algorithm
-> > to require that only unique symbols are allowed to be patched.
-> > 
-> > Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
-> > Signed-off-by: Alexander Lobakin <alexandr.lobakin@intel.com>
-> > ---
-> >  kernel/livepatch/core.c | 11 +++++++++++
-> >  1 file changed, 11 insertions(+)
-> > 
-> > diff --git a/kernel/livepatch/core.c b/kernel/livepatch/core.c
-> > index 335d988bd811..852bbfa9da7b 100644
-> > --- a/kernel/livepatch/core.c
-> > +++ b/kernel/livepatch/core.c
-> > @@ -169,6 +169,17 @@ static int klp_find_object_symbol(const char *objname, const char *name,
-> >  	else
-> >  		kallsyms_on_each_symbol(klp_find_callback, &args);
-> >  
-> > +	/*
-> > +	 * If any type of function granular randomization is enabled, it
-> > +	 * will be impossible to resolve symbols when there are duplicates
-> > +	 * using the previous symbol position (i.e. sympos != 0). Override
-> > +	 * the value of sympos to always be zero in this case. This will
-> > +	 * force the algorithm to require that only unique symbols are
-> > +	 * allowed to be patched.
-> > +	 */
-> > +	if (IS_ENABLED(CONFIG_FG_KASLR))
-> > +		sympos = 0;
-> > +
-> 
-> I ran the live patching tests and no problem occurred, which is great. We 
-> do not have a test for old_sympos, which makes the testing less telling, 
-> but at least nothing blows up with the section randomization itself.
+diff --git a/arch/powerpc/platforms/powernv/pci-sriov.c b/arch/powerpc/platforms/powernv/pci-sriov.c
+index 28aac933a439..deddbb233fde 100644
+--- a/arch/powerpc/platforms/powernv/pci-sriov.c
++++ b/arch/powerpc/platforms/powernv/pci-sriov.c
+@@ -9,9 +9,6 @@
+ 
+ #include "pci.h"
+ 
+-/* for pci_dev_is_added() */
+-#include "../../../../drivers/pci/pci.h"
+-
+ /*
+  * The majority of the complexity in supporting SR-IOV on PowerNV comes from
+  * the need to put the MMIO space for each VF into a separate PE. Internally
+@@ -228,9 +225,6 @@ static void pnv_pci_ioda_fixup_iov_resources(struct pci_dev *pdev)
+ 
+ void pnv_pci_ioda_fixup_iov(struct pci_dev *pdev)
+ {
+-	if (WARN_ON(pci_dev_is_added(pdev)))
+-		return;
+-
+ 	if (pdev->is_virtfn) {
+ 		struct pnv_ioda_pe *pe = pnv_ioda_get_pe(pdev);
+ 
+diff --git a/arch/powerpc/platforms/pseries/setup.c b/arch/powerpc/platforms/pseries/setup.c
+index f79126f16258..2188054470c1 100644
+--- a/arch/powerpc/platforms/pseries/setup.c
++++ b/arch/powerpc/platforms/pseries/setup.c
+@@ -74,7 +74,6 @@
+ #include <asm/hvconsole.h>
+ 
+ #include "pseries.h"
+-#include "../../../../drivers/pci/pci.h"
+ 
+ DEFINE_STATIC_KEY_FALSE(shared_processor);
+ EXPORT_SYMBOL(shared_processor);
+@@ -750,7 +749,7 @@ static void pseries_pci_fixup_iov_resources(struct pci_dev *pdev)
+ 	const int *indexes;
+ 	struct device_node *dn = pci_device_to_OF_node(pdev);
+ 
+-	if (!pdev->is_physfn || pci_dev_is_added(pdev))
++	if (!pdev->is_physfn)
+ 		return;
+ 	/*Firmware must support open sriov otherwise dont configure*/
+ 	indexes = of_get_property(dn, "ibm,open-sriov-vf-bar-info", NULL);
+-- 
+2.25.1
 
-Great, thanks!
-
-> However, I want to reiterate what I wrote for the same patch in v5 
-> series.
-> 
-> The above hunk should work, but I wonder if we should make it more 
-> explicit. With the change the user will get the error with "unresolvable 
-> ambiguity for symbol..." if they specify sympos and the symbol is not 
-> unique. It could confuse them.
-> 
-> So, how about it making it something like
-> 
-> if (IS_ENABLED(CONFIG_FG_KASLR) || IS_ENABLED(CONFIG_MODULE_FG_KASLR))
->         if (sympos) {
->                 pr_err("fgkaslr is enabled, specifying sympos for symbol '%s' in object '%s' does not work.\n",
->                         name, objname);
->                 *addr = 0;
->                 return -EINVAL;
->         }
-> 
-> ? (there could be goto to the error out at the end of the function to 
-> save copy-pasting).
-> 
-> In that case, if sympos is not specified, the user will get the message 
-> which matches the reality. If the user specifies it, they will get the 
-> error in case of fgkaslr (no matter if the symbol is found or not).
-
-Not familiar with livepatching unfortunately, hope Kristen and/or
-Kees will comment on this. Looks fine for me anyways.
-
-> What do you think?
-> 
-> Miroslav
-
-Thanks,
-Al
