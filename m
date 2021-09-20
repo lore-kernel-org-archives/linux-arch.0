@@ -2,101 +2,122 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.7 required=3.0 tests=BAYES_00,DKIM_SIGNED,
-	DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=no autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-5.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B87ABC433EF
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AC0E6C433F5
 	for <linux-arch@archiver.kernel.org>; Tue, 21 Sep 2021 02:02:45 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 9E73960FA0
+	by mail.kernel.org (Postfix) with ESMTP id 9076A610A8
 	for <linux-arch@archiver.kernel.org>; Tue, 21 Sep 2021 02:02:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235919AbhIUCEH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 20 Sep 2021 22:04:07 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35646 "EHLO
+        id S229608AbhIUCD6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 20 Sep 2021 22:03:58 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60536 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239960AbhIUB7r (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Sep 2021 21:59:47 -0400
-Received: from mail-lf1-x12f.google.com (mail-lf1-x12f.google.com [IPv6:2a00:1450:4864:20::12f])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4DDBDC08EB1E
-        for <linux-arch@vger.kernel.org>; Mon, 20 Sep 2021 11:04:17 -0700 (PDT)
-Received: by mail-lf1-x12f.google.com with SMTP id z24so45074882lfu.13
-        for <linux-arch@vger.kernel.org>; Mon, 20 Sep 2021 11:04:17 -0700 (PDT)
+        with ESMTP id S234662AbhIUBpM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Sep 2021 21:45:12 -0400
+Received: from mail-pf1-x436.google.com (mail-pf1-x436.google.com [IPv6:2607:f8b0:4864:20::436])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 21645C05937A;
+        Mon, 20 Sep 2021 14:14:14 -0700 (PDT)
+Received: by mail-pf1-x436.google.com with SMTP id m26so17470304pff.3;
+        Mon, 20 Sep 2021 14:14:14 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=C96pDQyYyFg5qDGVLf3sLPlA5hQ7a8vVkj08bMsCj8M=;
-        b=EGycjJn+wnDLv4w5lW3U5Wn7gsAcaf6LTG1FqdE09AUzqmx2sOt3hXMLK/y4zNH99+
-         fl7CiEBkM9aBwsZrcqA4birLn9joAVXIKzRyWchC462H9YmTKBBw+fnnMc/T3VbhuGn3
-         Xr99GVBCb/6unRKmeB3xNNMDiBYkcm1rJQ8Fs=
+        d=gmail.com; s=20210112;
+        h=sender:subject:to:cc:references:from:message-id:date:user-agent
+         :mime-version:in-reply-to:content-language:content-transfer-encoding;
+        bh=wJbe26PbHhpGOrBm34WfP3EQpBDDdiCtuFeJHFErXao=;
+        b=XsOg/+RTS1dlQNb9LQapBJTEFbCTAMTz0fxmiMQT2IuwKXO/HGmAf4Tv+771pP9njY
+         nMxicCI6TJ7kfiCsL1P9Iq9ia/ZdNxasSfvohF+q+MAN/DS82gHpFxtGPjZ2VVFzOSMB
+         qFKTjVaN6yM9ZYqWlNSs8iqKIhrcc902zTIgS3z/24bT9yGe6DQpfxbfjfW/sH7chB8w
+         hwgxBaJWDPs//QlPZB/rbFStytxNc8xWs+xR8cuUN2HsumNl5VkD7mI713EsofTW81i7
+         q8WkCNTCpbd5NXvqfelOHpsKEV6NKhzoLcqcVsiXPz52vQCKD9vOQ3xesM06Sh4fahOQ
+         vN2w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=C96pDQyYyFg5qDGVLf3sLPlA5hQ7a8vVkj08bMsCj8M=;
-        b=ZJmFEwxzSjUwf3MdEGPk5hdPClMzF2Czx8bSiMs+HY2NsO0oDrlzHKSncJ/PVOxtEv
-         Qq4aN49dbB+z+7Vh7YLBsfjNpQ4i7TKPBtIb0yYJ5zAzDmDfFPFY89smDxEP8iKzaqN+
-         qtkk3W+gzUPBlg76PvWveXLrU6psFRWAPGM+2R8nVTptV/ZRqt5SG05VfVfvWEEpn4xL
-         ntr3SwJJyV8fZucFdDV9UEAfLe7zEvGNFx/LdPjCd9EXaS0HiJ84HPv/pe19FRZ4Yyxq
-         HOgpp+M/VaqRwXA/ARd38HmBOIjfM4bCarbyifUTebXOtqnDMJJSbwKSCx2fq7zfgohk
-         PBFA==
-X-Gm-Message-State: AOAM532yhIv3ouydSJoqlg4La4jJV4CPG7mre/QJ14DTE4cuN9ygt/Qm
-        isRELsumeZ5avbFdM0j6a12vlp9hbbqmXVVZ
-X-Google-Smtp-Source: ABdhPJzymeZxMiZ/iJ+U+bYWQG8h/BTp0+Ji8s41JLOJk/QX7NAtlOWmH6hB+0aJ727OEIF8Wo62Xw==
-X-Received: by 2002:a05:6512:13a5:: with SMTP id p37mr4782736lfa.403.1632161055361;
-        Mon, 20 Sep 2021 11:04:15 -0700 (PDT)
-Received: from mail-lf1-f41.google.com (mail-lf1-f41.google.com. [209.85.167.41])
-        by smtp.gmail.com with ESMTPSA id q7sm1853218ljg.137.2021.09.20.11.04.14
-        for <linux-arch@vger.kernel.org>
+        h=x-gm-message-state:sender:subject:to:cc:references:from:message-id
+         :date:user-agent:mime-version:in-reply-to:content-language
+         :content-transfer-encoding;
+        bh=wJbe26PbHhpGOrBm34WfP3EQpBDDdiCtuFeJHFErXao=;
+        b=pAB9PV995tNH42WiD5igGo40ltmnpk9Xv91Q3pAF63CML4jxpOugaNr5qWKywhGRvA
+         VDKu0I1V6LIKWqiT3kVJZv5YCtbJZ39nIQXIRD3NzhRIiUedu4KK4YpHZb3WnF+T+7xJ
+         by1KLMFNzRO8GcVO3/lmXK5UPhb7Giw416PwcLGYmk8y9r+VXjsUJBXMPJMwqSZiJGAl
+         6BcX0zoCA8G1ExPpySukgItKqMy+y7QwUORUyqMhywJJEAPsk0fN1UyO3yjzsgo9i54M
+         UNqvjgwRBEjOAxqQZVZ3pwy5aWruqgpkAzb8vSWNBeW0yNSdbBrcLZGtrc9N9bQliU45
+         wqIQ==
+X-Gm-Message-State: AOAM5301iSS+dii+GIlmAo3nNVUDSOEVboQCHrY3kfo3/aoRHLiV7as/
+        6rokvisuVeFjGwoMlqM82jU=
+X-Google-Smtp-Source: ABdhPJxT+Kq7mMohFE4vU+4/4A3kHTJgOAReFUeXiGCwjRSGFhNml42MoQBZbYpHGt5HUM9KI8UGng==
+X-Received: by 2002:a05:6a00:c3:b0:43d:e6be:b2a6 with SMTP id e3-20020a056a0000c300b0043de6beb2a6mr27203762pfj.34.1632172453197;
+        Mon, 20 Sep 2021 14:14:13 -0700 (PDT)
+Received: from [192.168.1.11] ([71.212.134.125])
+        by smtp.googlemail.com with ESMTPSA id p24sm14925238pfh.136.2021.09.20.14.14.12
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 20 Sep 2021 11:04:14 -0700 (PDT)
-Received: by mail-lf1-f41.google.com with SMTP id u8so19749830lff.9
-        for <linux-arch@vger.kernel.org>; Mon, 20 Sep 2021 11:04:14 -0700 (PDT)
-X-Received: by 2002:a05:651c:1250:: with SMTP id h16mr4886099ljh.68.1632161051649;
- Mon, 20 Sep 2021 11:04:11 -0700 (PDT)
+        Mon, 20 Sep 2021 14:14:12 -0700 (PDT)
+Sender: Richard Henderson <rth7680@gmail.com>
+Subject: Re: [PATCH V3 14/22] LoongArch: Add signal handling support
+To:     Huacai Chen <chenhuacai@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Cc:     "Eric W. Biederman" <ebiederm@xmission.com>,
+        Huacai Chen <chenhuacai@loongson.cn>,
+        Andy Lutomirski <luto@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        David Airlie <airlied@linux.ie>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
+        LKML <linux-kernel@vger.kernel.org>,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Yanteng Si <siyanteng@loongson.cn>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>
+References: <20210917035736.3934017-1-chenhuacai@loongson.cn>
+ <20210917035736.3934017-15-chenhuacai@loongson.cn> <87tuii52o2.fsf@disp2133>
+ <CAAhV-H5MZ9uYyEnVoHXBXkrux1HdcPsKQ66zvB2oeMfq_AP7_A@mail.gmail.com>
+ <CAK8P3a0xghZKNBWbZ-qUWQVKyus4xqJMhSV_baQO7zKDoTtGQg@mail.gmail.com>
+ <CAAhV-H7A=C3Tujt2YNv1np9pEP_Hxc-chGnOdmDCzx5tUt7F5g@mail.gmail.com>
+From:   Richard Henderson <rth@twiddle.net>
+Message-ID: <a0fb870d-3b79-ca77-305f-6178974729e4@twiddle.net>
+Date:   Mon, 20 Sep 2021 14:14:10 -0700
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.13.0
 MIME-Version: 1.0
-References: <CAHk-=wirexiZR+VO=H3xemGKOMkh8OasmXaKXTKUmAKYCzi8AQ@mail.gmail.com>
- <20210920134424.GA346531@roeck-us.net> <CAHk-=wgheheFx9myQyy5osh79BAazvmvYURAtub2gQtMvLrhqQ@mail.gmail.com>
- <CAHk-=wgnSFePkt9_TxgdgFvMz6ZyofLFQLuV_Tc7MQVXYdgSng@mail.gmail.com>
-In-Reply-To: <CAHk-=wgnSFePkt9_TxgdgFvMz6ZyofLFQLuV_Tc7MQVXYdgSng@mail.gmail.com>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Mon, 20 Sep 2021 11:03:55 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wg9Th7A8eGiWK4gY8fGG41k6J3JQhip=4NCa9xUR7kMVQ@mail.gmail.com>
-Message-ID: <CAHk-=wg9Th7A8eGiWK4gY8fGG41k6J3JQhip=4NCa9xUR7kMVQ@mail.gmail.com>
-Subject: Re: Linux 5.15-rc2
-To:     Guenter Roeck <linux@roeck-us.net>
-Cc:     Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-sparc <sparclinux@vger.kernel.org>,
-        "David S. Miller" <davem@davemloft.net>,
-        linux-arch <linux-arch@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <CAAhV-H7A=C3Tujt2YNv1np9pEP_Hxc-chGnOdmDCzx5tUt7F5g@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Sep 20, 2021 at 10:04 AM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> But let me build a few more sparc configs (and this time do it
-> properly for both 32-bit and 64-bit) before I actually commit it and
-> push it out.
+On 9/19/21 7:36 PM, Huacai Chen wrote:
+> Hi, Arnd,
+> 
+> On Sun, Sep 19, 2021 at 5:59 PM Arnd Bergmann <arnd@arndb.de> wrote:
+>>
+>> On Sat, Sep 18, 2021 at 9:12 AM Huacai Chen <chenhuacai@gmail.com> wrote:
+>>> On Sat, Sep 18, 2021 at 5:10 AM Eric W. Biederman <ebiederm@xmission.com> wrote:
+>>>> For example does LoongArch have a version without built in floating
+>>>> point support?
+>>>
+>>> Some of these structures seems need rethinking, But we really have
+>>> LoongArch-based MCUs now (no FP, no SMP, and even no MMU).
+>>
+>> NOMMU Linux is kind-of on the way out as interest is fading, so I hope you
+>> don't plan on supporting this in the future.
+>>
+>> Do you expect to see future products with MMU but no FP or no SMP?
+> OK, we will not care no-MMU hardware in Linux, but no-FP and no-SMP
+> hardware will be supported.
 
-Actually, I think I _had_ tested sparc64 properly before, it's just
-that I had only done the bigger configurations that had CONFIG_PCI
-enabled and that didn't show the failure due to that.
+Please consider requiring the FP registers to be present even on no-FP hardware.
 
-But I have now done the allnoconfig and tinyconfig builds that showed
-the problem, and verified that the trivial "depend on CONFIG_PCI"
-fixes things for me.
+With this plus the FP data movement instructions (FMOV, MOVGR2FR, MOVFR2GR, FLD, FST), it 
+is possible to implement soft-float without requiring a separate soft-float ABI.  This can 
+vastly simplify compatibility and deployment.
 
-Looks like the only remaining problem in your build configuration list
-that isn't queued up somewhere is that odd nouveau use of pwrsrc and
-the errno range thing. I'll apply it directly.
 
-I'm sure that other configs will have a lot of other cases, but it is
-good to see at least your set shrinking.
-
-            Linus
+r~
