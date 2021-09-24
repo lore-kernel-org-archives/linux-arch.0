@@ -2,80 +2,164 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1E3D9C433EF
-	for <linux-arch@archiver.kernel.org>; Fri, 24 Sep 2021 20:01:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1C175C433EF
+	for <linux-arch@archiver.kernel.org>; Fri, 24 Sep 2021 20:22:41 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id EDBDC6124B
-	for <linux-arch@archiver.kernel.org>; Fri, 24 Sep 2021 20:01:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id F11C36124B
+	for <linux-arch@archiver.kernel.org>; Fri, 24 Sep 2021 20:22:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1348304AbhIXUCq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 24 Sep 2021 16:02:46 -0400
-Received: from gate.crashing.org ([63.228.1.57]:60688 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1345661AbhIXUCq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Sep 2021 16:02:46 -0400
-Received: from gate.crashing.org (localhost.localdomain [127.0.0.1])
-        by gate.crashing.org (8.14.1/8.14.1) with ESMTP id 18OJtaHF002175;
-        Fri, 24 Sep 2021 14:55:36 -0500
-Received: (from segher@localhost)
-        by gate.crashing.org (8.14.1/8.14.1/Submit) id 18OJtZvk002172;
-        Fri, 24 Sep 2021 14:55:35 -0500
-X-Authentication-Warning: gate.crashing.org: segher set sender to segher@kernel.crashing.org using -f
-Date:   Fri, 24 Sep 2021 14:55:35 -0500
-From:   Segher Boessenkool <segher@kernel.crashing.org>
-To:     Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+        id S1348414AbhIXUYN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 24 Sep 2021 16:24:13 -0400
+Received: from mail.efficios.com ([167.114.26.124]:56612 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1348406AbhIXUYL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Sep 2021 16:24:11 -0400
+Received: from localhost (localhost [127.0.0.1])
+        by mail.efficios.com (Postfix) with ESMTP id 4F88B32A286;
+        Fri, 24 Sep 2021 16:22:37 -0400 (EDT)
+Received: from mail.efficios.com ([127.0.0.1])
+        by localhost (mail03.efficios.com [127.0.0.1]) (amavisd-new, port 10032)
+        with ESMTP id ubnydGavbSbG; Fri, 24 Sep 2021 16:22:36 -0400 (EDT)
+Received: from localhost (localhost [127.0.0.1])
+        by mail.efficios.com (Postfix) with ESMTP id 9519632A046;
+        Fri, 24 Sep 2021 16:22:36 -0400 (EDT)
+DKIM-Filter: OpenDKIM Filter v2.10.3 mail.efficios.com 9519632A046
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=efficios.com;
+        s=default; t=1632514956;
+        bh=YOIiaTIjSWSIDVY7x919ScLocg4hGeXlWAaaAgSsT3g=;
+        h=Date:From:To:Message-ID:MIME-Version;
+        b=EcWiwkWHgCbolkPK54UoSOGHyBh7sLnqQysFiJ6LBzQqRavhhHJEFqSHcv6uz7Q7D
+         eAs2k9d5EKD3DPviyLjnW3+3SRYGZZ+yXFMGyGOQRNEzuJlM+EMy/KS+qGIjVOBSbe
+         ourNAhWdTdzxTLT6RhoCDtrTnf42fvy8oIVOLcc3+OLQVuDTi1qLAawaxDehGXjNEJ
+         zR0WxyEA4dPzKj2Znh6Nx841pM4iNBXk4IRbRFkQNJCdqwBNC9ajNV8DNipmpw2OLU
+         DS3yRuh1fGM9rwl0Z/QGb4+RNq/glWZwWXXa2NWleakxIIPNSYY4GGdiyFjWFcVht6
+         aqkXxS6x+fLDQ==
+X-Virus-Scanned: amavisd-new at efficios.com
+Received: from mail.efficios.com ([127.0.0.1])
+        by localhost (mail03.efficios.com [127.0.0.1]) (amavisd-new, port 10026)
+        with ESMTP id 6uiIKt2BVKzp; Fri, 24 Sep 2021 16:22:36 -0400 (EDT)
+Received: from mail03.efficios.com (mail03.efficios.com [167.114.26.124])
+        by mail.efficios.com (Postfix) with ESMTP id 7FB4032A30A;
+        Fri, 24 Sep 2021 16:22:36 -0400 (EDT)
+Date:   Fri, 24 Sep 2021 16:22:36 -0400 (EDT)
+From:   Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+To:     Alan Stern <stern@rowland.harvard.edu>
 Cc:     Peter Zijlstra <peterz@infradead.org>,
         Linus Torvalds <torvalds@linux-foundation.org>,
-        will@kernel.org, paulmck@kernel.org, stern@rowland.harvard.edu,
-        parri.andrea@gmail.com, boqun.feng@gmail.com, npiggin@gmail.com,
-        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        akiyks@gmail.com, linux-kernel@vger.kernel.org,
-        linux-toolchains@vger.kernel.org, linux-arch@vger.kernel.org
+        Will Deacon <will@kernel.org>, paulmck <paulmck@kernel.org>,
+        Andrea Parri <parri.andrea@gmail.com>,
+        Boqun Feng <boqun.feng@gmail.com>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        David Howells <dhowells@redhat.com>,
+        j alglave <j.alglave@ucl.ac.uk>,
+        luc maranget <luc.maranget@inria.fr>, akiyks@gmail.com,
+        linux-kernel <linux-kernel@vger.kernel.org>,
+        linux-toolchains <linux-toolchains@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <1103437077.37428.1632514956401.JavaMail.zimbra@efficios.com>
+In-Reply-To: <20210924195223.GA287835@rowland.harvard.edu>
+References: <YLn8dzbNwvqrqqp5@hirez.programming.kicks-ass.net> <20210924183858.GA25901@localhost> <20210924195223.GA287835@rowland.harvard.edu>
 Subject: Re: [RFC] LKMM: Add volatile_if()
-Message-ID: <20210924195535.GC17780@gate.crashing.org>
-References: <YLn8dzbNwvqrqqp5@hirez.programming.kicks-ass.net> <20210924183858.GA25901@localhost>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210924183858.GA25901@localhost>
-User-Agent: Mutt/1.4.2.3i
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+X-Originating-IP: [167.114.26.124]
+X-Mailer: Zimbra 8.8.15_GA_4125 (ZimbraWebClient - FF92 (Linux)/8.8.15_GA_4059)
+Thread-Topic: LKMM: Add volatile_if()
+Thread-Index: gKJxIHbLtmSI3npLIydDVLk94GMdmg==
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi!
+----- On Sep 24, 2021, at 3:52 PM, Alan Stern stern@rowland.harvard.edu wrote:
 
-On Fri, Sep 24, 2021 at 02:38:58PM -0400, Mathieu Desnoyers wrote:
-> Following the LPC2021 BoF about control dependency, I re-read the kernel
-> documentation about control dependency, and ended up thinking that what
-> we have now is utterly fragile.
+> On Fri, Sep 24, 2021 at 02:38:58PM -0400, Mathieu Desnoyers wrote:
+>> Hi,
+>> 
+>> Following the LPC2021 BoF about control dependency, I re-read the kernel
+>> documentation about control dependency, and ended up thinking that what
+>> we have now is utterly fragile.
+>> 
+>> Considering that the goal here is to prevent the compiler from being able to
+>> optimize a conditional branch into something which lacks the control
+>> dependency, while letting the compiler choose the best conditional
+>> branch in each case, how about the following approach ?
+>> 
+>> #define ctrl_dep_eval(x)        ({ BUILD_BUG_ON(__builtin_constant_p((_Bool)
+>> x)); x; })
+>> #define ctrl_dep_emit_loop(x)   ({ __label__ l_dummy; l_dummy: asm volatile goto
+>> ("" : : : "cc", "memory" : l_dummy); (x); })
+>> #define ctrl_dep_if(x)          if ((ctrl_dep_eval(x) && ctrl_dep_emit_loop(1))
+>> || ctrl_dep_emit_loop(0))
+>> 
+>> The idea is to forbid the compiler from considering the two branches as
+>> identical by adding a dummy loop in each branch with an empty asm goto.
+>> Considering that the compiler should not assume anything about the
+>> contents of the asm goto (it's been designed so the generated assembly
+>> can be modified at runtime), then the compiler can hardly know whether
+>> each branch will trigger an infinite loop or not, which should prevent
+>> unwanted optimisations.
+>> 
+>> With this approach, the following code now keeps the control dependency:
+>> 
+>> 	z = READ_ONCE(var1);
+>>         ctrl_dep_if (z)
+>>                 WRITE_ONCE(var2, 5);
+>>         else
+>>                 WRITE_ONCE(var2, 5);
+>> 
+>> And the ctrl_dep_eval() checking the constant triggers a build error
+>> for:
+>> 
+>>         y = READ_ONCE(var1);
+>>         ctrl_dep_if (y % 1)
+>>                 WRITE_ONCE(var2, 5);
+>>         else
+>>                 WRITE_ONCE(var2, 6);
+>> 
+>> Which is good to have to ensure the compiler don't end up removing the
+>> conditional branch because the resulting evaluation ends up evaluating a
+>> constant.
+>> 
+>> Thoughts ?
 > 
-> Considering that the goal here is to prevent the compiler from being able to
-> optimize a conditional branch into something which lacks the control
-> dependency, while letting the compiler choose the best conditional
-> branch in each case, how about the following approach ?
-> 
-> #define ctrl_dep_eval(x)        ({ BUILD_BUG_ON(__builtin_constant_p((_Bool) x)); x; })
-> #define ctrl_dep_emit_loop(x)   ({ __label__ l_dummy; l_dummy: asm volatile goto ("" : : : "cc", "memory" : l_dummy); (x); })
-> #define ctrl_dep_if(x)          if ((ctrl_dep_eval(x) && ctrl_dep_emit_loop(1)) || ctrl_dep_emit_loop(0))
+> As I remember the earlier discussion, Linus felt that the kernel doesn't
+> really need any sort of explicit control dependency (although we called
+> it "volatile if").  In many cases there is an actual semantic
+> dependency, so it doesn't matter what the compiler does -- the hardware
+> will enforce the actual dependency.  In other cases, we can work around
+> the issue by using acquire loads or release stores.
 
-[The "cc" clobber only pessimises things: the asm doesn't actually
-clobber the default condition code register (which is what "cc" means),
-and you can have conditional branches using other condition code
-registers, or on other registers even (general purpose registers is
-common.]
+IMHO, having to chase down what the instruction selection does on every
+architecture for every supported compiler for each control dependency in
+order to confirm that the control dependency is still present in the resulting
+assembly is fragile. If the kernel really doesn't need explicit control
+dependency, then maybe the whole notion of "control dependency"-based
+ordering should be removed in favor of explicit acquire loads/release stores
+and barriers.
 
-> The idea is to forbid the compiler from considering the two branches as
-> identical by adding a dummy loop in each branch with an empty asm goto.
-> Considering that the compiler should not assume anything about the
-> contents of the asm goto (it's been designed so the generated assembly
-> can be modified at runtime), then the compiler can hardly know whether
-> each branch will trigger an infinite loop or not, which should prevent
-> unwanted optimisations.
+> In fact, Linus's biggest wish was to have a weak form of compiler
+> barrier, one which would block the compiler from reordering accesses
+> across the barrier but wouldn't invalidate the compiler's knowledge
+> about the values of earlier reads (which barrier() would do).
 
-The compiler looks if the code is identical, nothing more, nothing less.
-There are no extra guarantees.  In principle the compiler could see both
-copies are empty asms looping to self, and so consider them equal.
+Then maybe we could simply tweak the ctrl_dep_emit_loop() implementation and
+remove the "memory" clobber. Then its only effect is to prevent the compiler
+from knowing whether there is an infinite loop, thus preventing reordering
+accesses across the conditional branch without requiring the compiler to
+discard earlier reads:
 
+#define ctrl_dep_emit_loop(x)   ({ __label__ l_dummy; l_dummy: asm_volatile_goto ("" : : : : l_dummy); (x); })
 
-Segher
+and for the records, the ctrl_dep_eval(x) implementation needs extra parentheses:
+
+#define ctrl_dep_eval(x)        ({ BUILD_BUG_ON(__builtin_constant_p((_Bool) (x))); (x); })
+
+Thanks,
+
+Mathieu
+
+-- 
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
