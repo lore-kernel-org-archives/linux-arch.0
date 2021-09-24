@@ -1,137 +1,118 @@
 Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
-	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3BD9DC433F5
-	for <linux-arch@archiver.kernel.org>; Fri, 24 Sep 2021 13:49:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1DE1EC433FE
+	for <linux-arch@archiver.kernel.org>; Fri, 24 Sep 2021 18:39:03 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 1A77D6103C
-	for <linux-arch@archiver.kernel.org>; Fri, 24 Sep 2021 13:49:25 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E7B2F60E52
+	for <linux-arch@archiver.kernel.org>; Fri, 24 Sep 2021 18:39:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1346324AbhIXNu4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 24 Sep 2021 09:50:56 -0400
-Received: from pegase2.c-s.fr ([93.17.235.10]:48661 "EHLO pegase2.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1346246AbhIXNu4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Sep 2021 09:50:56 -0400
-Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
-        by localhost (Postfix) with ESMTP id 4HGD0Z2Ghmz9sVr;
-        Fri, 24 Sep 2021 15:49:18 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from pegase2.c-s.fr ([172.26.127.65])
-        by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-        with ESMTP id Sr-aHIJnT2hD; Fri, 24 Sep 2021 15:49:18 +0200 (CEST)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase2.c-s.fr (Postfix) with ESMTP id 4HGD0X5JDkz9sVs;
-        Fri, 24 Sep 2021 15:49:16 +0200 (CEST)
+        id S1346390AbhIXSkf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 24 Sep 2021 14:40:35 -0400
+Received: from mail.efficios.com ([167.114.26.124]:49536 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1346362AbhIXSkf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Sep 2021 14:40:35 -0400
 Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 9AEDD8B77E;
-        Fri, 24 Sep 2021 15:49:16 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id uoZyYyvOfIn5; Fri, 24 Sep 2021 15:49:16 +0200 (CEST)
-Received: from PO20335.IDSI0.si.c-s.fr (unknown [192.168.202.215])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 5359E8B780;
-        Fri, 24 Sep 2021 15:49:16 +0200 (CEST)
-Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
-        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1) with ESMTPS id 18ODn5pO1293056
-        (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-        Fri, 24 Sep 2021 15:49:05 +0200
-Received: (from chleroy@localhost)
-        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1/Submit) id 18ODn4Zl1293054;
-        Fri, 24 Sep 2021 15:49:04 +0200
-X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
-From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-To:     Andrew Morton <akpm@linux-foundation.org>, arnd@arndb.de
-Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
-        linux-kernel@vger.kernel.org, linux-mm@kvack.org,
-        linux-s390@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-arch@vger.kernel.org,
-        Gerald Schaefer <gerald.schaefer@linux.ibm.com>
-Subject: [PATCH 1/3] mm: Make generic arch_is_kernel_initmem_freed() do what it says
-Date:   Fri, 24 Sep 2021 15:48:45 +0200
-Message-Id: <0b55650058a5bf64f7d74781871a1ada2298c8b4.1632491308.git.christophe.leroy@csgroup.eu>
-X-Mailer: git-send-email 2.31.1
+        by mail.efficios.com (Postfix) with ESMTP id 043AB3296AF;
+        Fri, 24 Sep 2021 14:39:01 -0400 (EDT)
+Received: from mail.efficios.com ([127.0.0.1])
+        by localhost (mail03.efficios.com [127.0.0.1]) (amavisd-new, port 10032)
+        with ESMTP id HAZ6d7h-iFTj; Fri, 24 Sep 2021 14:39:00 -0400 (EDT)
+Received: from localhost (localhost [127.0.0.1])
+        by mail.efficios.com (Postfix) with ESMTP id 63A053296AE;
+        Fri, 24 Sep 2021 14:39:00 -0400 (EDT)
+DKIM-Filter: OpenDKIM Filter v2.10.3 mail.efficios.com 63A053296AE
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=efficios.com;
+        s=default; t=1632508740;
+        bh=71VnkTZl6HZ62SXVLyDKn1rthumUvdAsNNnKGkSuYDc=;
+        h=Date:From:To:Message-ID:MIME-Version;
+        b=PRmrqBP6qSN6bSSUZKgjAnhpXV9AVTnPx3RJdEodwA5e1pC9096DUA2BF/wOocCfD
+         8MECN8rXCtGOEUJ4l+wDZ7xtli6YcsatrX5coOQ4+xdFogiEUZWBePFftOZkGdCpcR
+         M/PDJHKS5DI8Uqr3kQH3hL+ZUrz7vadk4fOjb5GnVX4YdLjxN4AfXrJaMlYK5UAkwO
+         cZGt4QvjXLQ6BCZmiYdh0VSCvTXFq8BVUI2TDIgBsKhA7w5sEFmN07LDA9Mq0vm81r
+         TsceFsBz14utuXXRPpgHb7cbAg1ctipsSfiDMb3KotjmtAdpsiwhnmVGuDv/sHx/gc
+         cLd6j9FzqOvDA==
+X-Virus-Scanned: amavisd-new at efficios.com
+Received: from mail.efficios.com ([127.0.0.1])
+        by localhost (mail03.efficios.com [127.0.0.1]) (amavisd-new, port 10026)
+        with ESMTP id q8KBgvl0QZvT; Fri, 24 Sep 2021 14:39:00 -0400 (EDT)
+Received: from localhost (192-222-180-24.qc.cable.ebox.net [192.222.180.24])
+        by mail.efficios.com (Postfix) with ESMTPSA id E8B15329732;
+        Fri, 24 Sep 2021 14:38:59 -0400 (EDT)
+Date:   Fri, 24 Sep 2021 14:38:58 -0400
+From:   Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+To:     Peter Zijlstra <peterz@infradead.org>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>, will@kernel.org,
+        paulmck@kernel.org, stern@rowland.harvard.edu,
+        parri.andrea@gmail.com, boqun.feng@gmail.com, npiggin@gmail.com,
+        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
+        akiyks@gmail.com, linux-kernel@vger.kernel.org,
+        linux-toolchains@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [RFC] LKMM: Add volatile_if()
+Message-ID: <20210924183858.GA25901@localhost>
+References: <YLn8dzbNwvqrqqp5@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <YLn8dzbNwvqrqqp5@hirez.programming.kicks-ass.net>
+User-Agent: Mutt/1.10.1 (2018-07-13)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Commit 7a5da02de8d6 ("locking/lockdep: check for freed initmem in
-static_obj()") added arch_is_kernel_initmem_freed() which is supposed
-to report whether an object is part of already freed init memory.
+Hi,
 
-For the time being, the generic version of arch_is_kernel_initmem_freed()
-always reports 'false', allthough free_initmem() is generically called
-on all architectures.
+Following the LPC2021 BoF about control dependency, I re-read the kernel
+documentation about control dependency, and ended up thinking that what
+we have now is utterly fragile.
 
-Therefore, change the generic version of arch_is_kernel_initmem_freed()
-to check whether free_initmem() has been called. If so, then check
-if a given address falls into init memory.
+Considering that the goal here is to prevent the compiler from being able to
+optimize a conditional branch into something which lacks the control
+dependency, while letting the compiler choose the best conditional
+branch in each case, how about the following approach ?
 
-In order to use function init_section_contains(), the fonction is
-moved at the end of asm-generic/section.h
+#define ctrl_dep_eval(x)        ({ BUILD_BUG_ON(__builtin_constant_p((_Bool) x)); x; })
+#define ctrl_dep_emit_loop(x)   ({ __label__ l_dummy; l_dummy: asm volatile goto ("" : : : "cc", "memory" : l_dummy); (x); })
+#define ctrl_dep_if(x)          if ((ctrl_dep_eval(x) && ctrl_dep_emit_loop(1)) || ctrl_dep_emit_loop(0))
 
-Cc: Gerald Schaefer <gerald.schaefer@linux.ibm.com>
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
----
- include/asm-generic/sections.h | 31 +++++++++++++++++--------------
- 1 file changed, 17 insertions(+), 14 deletions(-)
+The idea is to forbid the compiler from considering the two branches as
+identical by adding a dummy loop in each branch with an empty asm goto.
+Considering that the compiler should not assume anything about the
+contents of the asm goto (it's been designed so the generated assembly
+can be modified at runtime), then the compiler can hardly know whether
+each branch will trigger an infinite loop or not, which should prevent
+unwanted optimisations.
 
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index d16302d3eb59..d1e5bb2c6b72 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -80,20 +80,6 @@ static inline int arch_is_kernel_data(unsigned long addr)
- }
- #endif
- 
--/*
-- * Check if an address is part of freed initmem. This is needed on architectures
-- * with virt == phys kernel mapping, for code that wants to check if an address
-- * is part of a static object within [_stext, _end]. After initmem is freed,
-- * memory can be allocated from it, and such allocations would then have
-- * addresses within the range [_stext, _end].
-- */
--#ifndef arch_is_kernel_initmem_freed
--static inline int arch_is_kernel_initmem_freed(unsigned long addr)
--{
--	return 0;
--}
--#endif
--
- /**
-  * memory_contains - checks if an object is contained within a memory region
-  * @begin: virtual address of the beginning of the memory region
-@@ -172,4 +158,21 @@ static inline bool is_kernel_rodata(unsigned long addr)
- 	       addr < (unsigned long)__end_rodata;
- }
- 
-+/*
-+ * Check if an address is part of freed initmem. This is needed on architectures
-+ * with virt == phys kernel mapping, for code that wants to check if an address
-+ * is part of a static object within [_stext, _end]. After initmem is freed,
-+ * memory can be allocated from it, and such allocations would then have
-+ * addresses within the range [_stext, _end].
-+ */
-+#ifndef arch_is_kernel_initmem_freed
-+static inline int arch_is_kernel_initmem_freed(unsigned long addr)
-+{
-+	if (system_state < SYSTEM_RUNNING)
-+		return 0;
-+
-+	return init_section_contains((void *)addr, 1);
-+}
-+#endif
-+
- #endif /* _ASM_GENERIC_SECTIONS_H_ */
+With this approach, the following code now keeps the control dependency:
+
+	z = READ_ONCE(var1);
+        ctrl_dep_if (z)
+                WRITE_ONCE(var2, 5);
+        else
+                WRITE_ONCE(var2, 5);
+
+And the ctrl_dep_eval() checking the constant triggers a build error
+for:
+
+        y = READ_ONCE(var1);
+        ctrl_dep_if (y % 1)
+                WRITE_ONCE(var2, 5);
+        else
+                WRITE_ONCE(var2, 6);
+
+Which is good to have to ensure the compiler don't end up removing the
+conditional branch because the resulting evaluation ends up evaluating a
+constant.
+
+Thoughts ?
+
+Thanks,
+
+Mathieu
+
 -- 
-2.31.1
-
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
