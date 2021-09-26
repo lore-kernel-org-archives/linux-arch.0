@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9AA4CC433EF
-	for <linux-arch@archiver.kernel.org>; Sun, 26 Sep 2021 07:18:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3E424C433F5
+	for <linux-arch@archiver.kernel.org>; Sun, 26 Sep 2021 07:18:20 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 85B6860F94
-	for <linux-arch@archiver.kernel.org>; Sun, 26 Sep 2021 07:18:18 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2709C60EE0
+	for <linux-arch@archiver.kernel.org>; Sun, 26 Sep 2021 07:18:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231246AbhIZHTw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 26 Sep 2021 03:19:52 -0400
-Received: from szxga02-in.huawei.com ([45.249.212.188]:19367 "EHLO
+        id S231147AbhIZHTy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 26 Sep 2021 03:19:54 -0400
+Received: from szxga02-in.huawei.com ([45.249.212.188]:19368 "EHLO
         szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231230AbhIZHTs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Sep 2021 03:19:48 -0400
-Received: from dggemv704-chm.china.huawei.com (unknown [172.30.72.53])
-        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4HHH7R5LN6zRQ3R;
-        Sun, 26 Sep 2021 15:13:55 +0800 (CST)
+        with ESMTP id S231235AbhIZHTu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Sep 2021 03:19:50 -0400
+Received: from dggemv711-chm.china.huawei.com (unknown [172.30.72.55])
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4HHH7T1ZgyzRTFJ;
+        Sun, 26 Sep 2021 15:13:57 +0800 (CST)
 Received: from dggpemm500001.china.huawei.com (7.185.36.107) by
- dggemv704-chm.china.huawei.com (10.3.19.47) with Microsoft SMTP Server
+ dggemv711-chm.china.huawei.com (10.1.198.66) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2308.8; Sun, 26 Sep 2021 15:18:10 +0800
+ 15.1.2308.8; Sun, 26 Sep 2021 15:18:12 +0800
 Received: from localhost.localdomain.localdomain (10.175.113.25) by
  dggpemm500001.china.huawei.com (7.185.36.107) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2308.8; Sun, 26 Sep 2021 15:18:09 +0800
+ 15.1.2308.8; Sun, 26 Sep 2021 15:18:11 +0800
 From:   Kefeng Wang <wangkefeng.wang@huawei.com>
 To:     <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
         <linux-kernel@vger.kernel.org>, <linuxppc-dev@lists.ozlabs.org>,
@@ -34,10 +34,12 @@ To:     <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
 CC:     <mpe@ellerman.id.au>, <benh@kernel.crashing.org>,
         <paulus@samba.org>, <bpf@vger.kernel.org>,
         Kefeng Wang <wangkefeng.wang@huawei.com>,
-        "Borislav Petkov" <bp@alien8.de>, <x86@kernel.org>
-Subject: [PATCH v3 5/9] x86: mm: Rename __is_kernel_text() to is_x86_32_kernel_text()
-Date:   Sun, 26 Sep 2021 15:20:44 +0800
-Message-ID: <20210926072048.190336-6-wangkefeng.wang@huawei.com>
+        "Alexander Potapenko" <glider@google.com>,
+        Andrey Konovalov <andreyknvl@gmail.com>,
+        Dmitry Vyukov <dvyukov@google.com>
+Subject: [PATCH v3 7/9] mm: kasan: Use is_kernel() helper
+Date:   Sun, 26 Sep 2021 15:20:46 +0800
+Message-ID: <20210926072048.190336-8-wangkefeng.wang@huawei.com>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20210926072048.190336-1-wangkefeng.wang@huawei.com>
 References: <20210926072048.190336-1-wangkefeng.wang@huawei.com>
@@ -52,68 +54,30 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Commit b56cd05c55a1 ("x86/mm: Rename is_kernel_text to __is_kernel_text"),
-add '__' prefix not to get in conflict with existing is_kernel_text() in
-<linux/kallsyms.h>.
+Directly use is_kernel() helper in kernel_or_module_addr().
 
-We will add __is_kernel_text() for the basic kernel text range check in the
-next patch, so use private is_x86_32_kernel_text() naming for x86 special
-check.
-
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: x86@kernel.org
+Cc: Andrey Ryabinin <ryabinin.a.a@gmail.com>
+Cc: Alexander Potapenko <glider@google.com>
+Cc: Andrey Konovalov <andreyknvl@gmail.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
 Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
 ---
- arch/x86/mm/init_32.c | 14 +++++---------
- 1 file changed, 5 insertions(+), 9 deletions(-)
+ mm/kasan/report.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index bd90b8fe81e4..523743ee9dea 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -238,11 +238,7 @@ page_table_range_init(unsigned long start, unsigned long end, pgd_t *pgd_base)
- 	}
- }
+diff --git a/mm/kasan/report.c b/mm/kasan/report.c
+index 3239fd8f8747..1c955e1c98d5 100644
+--- a/mm/kasan/report.c
++++ b/mm/kasan/report.c
+@@ -226,7 +226,7 @@ static void describe_object(struct kmem_cache *cache, void *object,
  
--/*
-- * The <linux/kallsyms.h> already defines is_kernel_text,
-- * using '__' prefix not to get in conflict.
-- */
--static inline int __is_kernel_text(unsigned long addr)
-+static inline int is_x86_32_kernel_text(unsigned long addr)
+ static inline bool kernel_or_module_addr(const void *addr)
  {
- 	if (addr >= (unsigned long)_text && addr <= (unsigned long)__init_end)
- 		return 1;
-@@ -333,8 +329,8 @@ kernel_physical_mapping_init(unsigned long start,
- 				addr2 = (pfn + PTRS_PER_PTE-1) * PAGE_SIZE +
- 					PAGE_OFFSET + PAGE_SIZE-1;
- 
--				if (__is_kernel_text(addr) ||
--				    __is_kernel_text(addr2))
-+				if (is_x86_32_kernel_text(addr) ||
-+				    is_x86_32_kernel_text(addr2))
- 					prot = PAGE_KERNEL_LARGE_EXEC;
- 
- 				pages_2m++;
-@@ -359,7 +355,7 @@ kernel_physical_mapping_init(unsigned long start,
- 				 */
- 				pgprot_t init_prot = __pgprot(PTE_IDENT_ATTR);
- 
--				if (__is_kernel_text(addr))
-+				if (is_x86_32_kernel_text(addr))
- 					prot = PAGE_KERNEL_EXEC;
- 
- 				pages_4k++;
-@@ -820,7 +816,7 @@ static void mark_nxdata_nx(void)
- 	 */
- 	unsigned long start = PFN_ALIGN(_etext);
- 	/*
--	 * This comes from __is_kernel_text upper limit. Also HPAGE where used:
-+	 * This comes from is_x86_32_kernel_text upper limit. Also HPAGE where used:
- 	 */
- 	unsigned long size = (((unsigned long)__init_end + HPAGE_SIZE) & HPAGE_MASK) - start;
- 
+-	if (addr >= (void *)_stext && addr < (void *)_end)
++	if (is_kernel((unsigned long)addr))
+ 		return true;
+ 	if (is_module_address((unsigned long)addr))
+ 		return true;
 -- 
 2.26.2
 
