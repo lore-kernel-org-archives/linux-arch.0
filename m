@@ -2,2544 +2,1232 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B1DFDC433EF
-	for <linux-arch@archiver.kernel.org>; Mon, 27 Sep 2021 06:53:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C85E1C433EF
+	for <linux-arch@archiver.kernel.org>; Mon, 27 Sep 2021 06:53:34 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7BD816113D
-	for <linux-arch@archiver.kernel.org>; Mon, 27 Sep 2021 06:53:04 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A7A17611AF
+	for <linux-arch@archiver.kernel.org>; Mon, 27 Sep 2021 06:53:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233056AbhI0Gyk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 27 Sep 2021 02:54:40 -0400
-Received: from mail.kernel.org ([198.145.29.99]:43328 "EHLO mail.kernel.org"
+        id S233087AbhI0GzL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 27 Sep 2021 02:55:11 -0400
+Received: from mail.kernel.org ([198.145.29.99]:43780 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S233126AbhI0Gyj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Sep 2021 02:54:39 -0400
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 0F9666113D;
-        Mon, 27 Sep 2021 06:53:02 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1632725582;
-        bh=aC+JOUjODsKJqhTqQMWs4fKNAJVfzcdB14mYKV+koOw=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=LJevEo1KuVVYJKzc+NaMk6MLKwXFPwcrjCW95c1x1E/fE/0WFUNFUvZhEZJJoxh0e
-         Cm6U/LyoJDUtUXxC/w+wNo4lsOc79lmN1z+DJGySIMazAhMbMAcT9Y70zs3KbuvYJY
-         Vf5hQ9y8gcn66um+7Lr8MIYDuNE62whiyxbn2AKFw6FhCMHE9Tf8RpcaGagIo3kk6U
-         0oNUUhhudfY9GVXJeGnOOhJ3oiXY6qpH+1pFXAOBpwgmKIlmGI9YZpbCgXmY1CrUQW
-         J46wPMB5QYRAtb6dZLWhLPNsIJcOOGKJrmCioib9Z+UC/Xh5labe8Taw7dvpKPO+Hx
-         wZerfDzhYgdAw==
-Received: by mail-ot1-f49.google.com with SMTP id 77-20020a9d0ed3000000b00546e10e6699so23173313otj.2;
-        Sun, 26 Sep 2021 23:53:02 -0700 (PDT)
-X-Gm-Message-State: AOAM531N0qfDVS1KLDBwudB56F/KY8r9zhalGZIPPhx7PFm6Zk0B9JPh
-        L0uj17ukalwVg78lkxsG0UOHPEoTTkbypv3jcbc=
-X-Google-Smtp-Source: ABdhPJzXkK6pR1o0t4w/8Pw7PVRv07GedXaDth8nSbn95Wt02lY6pXSKXAzXKVwITeO5tzW/aUs6FJbR+96+U+pswkg=
-X-Received: by 2002:a9d:200b:: with SMTP id n11mr15715886ota.30.1632725581149;
- Sun, 26 Sep 2021 23:53:01 -0700 (PDT)
-MIME-Version: 1.0
-References: <20210927064300.624279-1-chenhuacai@loongson.cn> <20210927064300.624279-10-chenhuacai@loongson.cn>
-In-Reply-To: <20210927064300.624279-10-chenhuacai@loongson.cn>
-From:   Ard Biesheuvel <ardb@kernel.org>
-Date:   Mon, 27 Sep 2021 08:52:49 +0200
-X-Gmail-Original-Message-ID: <CAMj1kXGmrTvgE60NDfx+v=woC7cfuSg=1fTv7T7gntLEEvTnDw@mail.gmail.com>
-Message-ID: <CAMj1kXGmrTvgE60NDfx+v=woC7cfuSg=1fTv7T7gntLEEvTnDw@mail.gmail.com>
-Subject: Re: [PATCH V4 09/22] LoongArch: Add boot and setup routines
-To:     Huacai Chen <chenhuacai@loongson.cn>
-Cc:     Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
+        id S233094AbhI0GzK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Sep 2021 02:55:10 -0400
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 8CBA76113D;
+        Mon, 27 Sep 2021 06:53:28 +0000 (UTC)
+From:   Huacai Chen <chenhuacai@loongson.cn>
+To:     Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
         Peter Zijlstra <peterz@infradead.org>,
         Andrew Morton <akpm@linux-foundation.org>,
         David Airlie <airlied@linux.ie>,
         Jonathan Corbet <corbet@lwn.net>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux Doc Mailing List <linux-doc@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Xuefeng Li <lixuefeng@loongson.cn>,
+        Linus Torvalds <torvalds@linux-foundation.org>
+Cc:     linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
+        linux-kernel@vger.kernel.org, Xuefeng Li <lixuefeng@loongson.cn>,
         Yanteng Si <siyanteng@loongson.cn>,
         Huacai Chen <chenhuacai@gmail.com>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        linux-efi <linux-efi@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+        Huacai Chen <chenhuacai@loongson.cn>,
+        Jessica Yu <jeyu@kernel.org>,
+        Luis Chamberlain <mcgrof@kernel.org>
+Subject: [PATCH V4 15/22] LoongArch: Add elf and module support
+Date:   Mon, 27 Sep 2021 14:42:52 +0800
+Message-Id: <20210927064300.624279-16-chenhuacai@loongson.cn>
+X-Mailer: git-send-email 2.27.0
+In-Reply-To: <20210927064300.624279-1-chenhuacai@loongson.cn>
+References: <20210927064300.624279-1-chenhuacai@loongson.cn>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, 27 Sept 2021 at 08:49, Huacai Chen <chenhuacai@loongson.cn> wrote:
->
-> This patch adds basic boot, setup and reset routines for LoongArch.
-> LoongArch uses UEFI-based firmware and uses ACPI as the boot protocol.
->
-> Now the boot information passed to kernel is like this:
-> 1, kernel get a0, a1 and a2 from bootloader.
-> 2, a0 is "argc", a1 is "argc", so "cmdline" comes from a0/a1.
-> 3, a2 is "envrion", which is a pointer to a "struct bootparamsinterface"
-> 4, "struct bootparamsinterface" include a "systemtable" pointer, whose
->    type is "efi_system_table_t". Most information, include ACPI tables,
->    come from here.
->
+This patch adds elf definition and module relocate codes.
 
-Could you please quote the relevant sections of the UEFI and ACPI
-specifications where this boot protocol is described?
+Cc: Jessica Yu <jeyu@kernel.org>
+Cc: Luis Chamberlain <mcgrof@kernel.org>
+Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
+---
+ arch/loongarch/include/asm/cpufeature.h  |  24 +
+ arch/loongarch/include/asm/elf.h         | 306 +++++++++++
+ arch/loongarch/include/asm/exec.h        |  10 +
+ arch/loongarch/include/asm/module.h      |  15 +
+ arch/loongarch/include/asm/vermagic.h    |  19 +
+ arch/loongarch/include/uapi/asm/auxvec.h |  17 +
+ arch/loongarch/include/uapi/asm/hwcap.h  |  20 +
+ arch/loongarch/kernel/elf.c              |  41 ++
+ arch/loongarch/kernel/module.c           | 652 +++++++++++++++++++++++
+ 9 files changed, 1104 insertions(+)
+ create mode 100644 arch/loongarch/include/asm/cpufeature.h
+ create mode 100644 arch/loongarch/include/asm/elf.h
+ create mode 100644 arch/loongarch/include/asm/exec.h
+ create mode 100644 arch/loongarch/include/asm/module.h
+ create mode 100644 arch/loongarch/include/asm/vermagic.h
+ create mode 100644 arch/loongarch/include/uapi/asm/auxvec.h
+ create mode 100644 arch/loongarch/include/uapi/asm/hwcap.h
+ create mode 100644 arch/loongarch/kernel/elf.c
+ create mode 100644 arch/loongarch/kernel/module.c
 
-> Cc: Ard Biesheuvel <ardb@kernel.org>
-> Cc: linux-efi@vger.kernel.org
-> Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
-> ---
->  arch/loongarch/include/asm/acenv.h      |  17 +
->  arch/loongarch/include/asm/acpi.h       |  37 ++
->  arch/loongarch/include/asm/boot_param.h |  91 +++++
->  arch/loongarch/include/asm/bootinfo.h   |  33 ++
->  arch/loongarch/include/asm/dmi.h        |  24 ++
->  arch/loongarch/include/asm/efi.h        |  32 ++
->  arch/loongarch/include/asm/fw.h         |  18 +
->  arch/loongarch/include/asm/reboot.h     |  10 +
->  arch/loongarch/include/asm/setup.h      |  21 ++
->  arch/loongarch/kernel/acpi.c            | 324 ++++++++++++++++
->  arch/loongarch/kernel/cacheinfo.c       | 122 ++++++
->  arch/loongarch/kernel/cmdline.c         |  28 ++
->  arch/loongarch/kernel/cpu-probe.c       | 301 +++++++++++++++
->  arch/loongarch/kernel/efi.c             |  95 +++++
->  arch/loongarch/kernel/env.c             | 170 +++++++++
->  arch/loongarch/kernel/head.S            |  72 ++++
->  arch/loongarch/kernel/mem.c             |  83 +++++
->  arch/loongarch/kernel/reset.c           |  90 +++++
->  arch/loongarch/kernel/setup.c           | 469 ++++++++++++++++++++++++
->  arch/loongarch/kernel/time.c            | 237 ++++++++++++
->  arch/loongarch/kernel/topology.c        |  13 +
->  21 files changed, 2287 insertions(+)
->  create mode 100644 arch/loongarch/include/asm/acenv.h
->  create mode 100644 arch/loongarch/include/asm/acpi.h
->  create mode 100644 arch/loongarch/include/asm/boot_param.h
->  create mode 100644 arch/loongarch/include/asm/bootinfo.h
->  create mode 100644 arch/loongarch/include/asm/dmi.h
->  create mode 100644 arch/loongarch/include/asm/efi.h
->  create mode 100644 arch/loongarch/include/asm/fw.h
->  create mode 100644 arch/loongarch/include/asm/reboot.h
->  create mode 100644 arch/loongarch/include/asm/setup.h
->  create mode 100644 arch/loongarch/kernel/acpi.c
->  create mode 100644 arch/loongarch/kernel/cacheinfo.c
->  create mode 100644 arch/loongarch/kernel/cmdline.c
->  create mode 100644 arch/loongarch/kernel/cpu-probe.c
->  create mode 100644 arch/loongarch/kernel/efi.c
->  create mode 100644 arch/loongarch/kernel/env.c
->  create mode 100644 arch/loongarch/kernel/head.S
->  create mode 100644 arch/loongarch/kernel/mem.c
->  create mode 100644 arch/loongarch/kernel/reset.c
->  create mode 100644 arch/loongarch/kernel/setup.c
->  create mode 100644 arch/loongarch/kernel/time.c
->  create mode 100644 arch/loongarch/kernel/topology.c
->
-> diff --git a/arch/loongarch/include/asm/acenv.h b/arch/loongarch/include/asm/acenv.h
-> new file mode 100644
-> index 000000000000..d1f41fbc9070
-> --- /dev/null
-> +++ b/arch/loongarch/include/asm/acenv.h
-> @@ -0,0 +1,17 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * LoongArch specific ACPICA environments and implementation
-> + *
-> + * Author: Jianmin Lv <lvjianmin@loongson.cn>
-> + *         Huacai Chen <chenhuacai@loongson.cn>
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +
-> +#ifndef _ASM_LOONGARCH_ACENV_H
-> +#define _ASM_LOONGARCH_ACENV_H
-> +
-> +/* The head file is required by ACPI core, but we have nothing to fill
-> + * it now, update it later when needed.
-> + */
-> +
-> +#endif /* _ASM_LOONGARCH_ACENV_H */
-> diff --git a/arch/loongarch/include/asm/acpi.h b/arch/loongarch/include/asm/acpi.h
-> new file mode 100644
-> index 000000000000..29e2214d5901
-> --- /dev/null
-> +++ b/arch/loongarch/include/asm/acpi.h
-> @@ -0,0 +1,37 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Author: Jianmin Lv <lvjianmin@loongson.cn>
-> + *         Huacai Chen <chenhuacai@loongson.cn>
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +
-> +#ifndef _ASM_LOONGARCH_ACPI_H
-> +#define _ASM_LOONGARCH_ACPI_H
-> +
-> +#ifdef CONFIG_ACPI
-> +extern int acpi_strict;
-> +extern int acpi_disabled;
-> +extern int acpi_pci_disabled;
-> +extern int acpi_noirq;
-> +
-> +#define acpi_os_ioremap ioremap
-> +
-> +static inline void disable_acpi(void)
-> +{
-> +       acpi_disabled = 1;
-> +       acpi_pci_disabled = 1;
-> +       acpi_noirq = 1;
-> +}
-> +
-> +static inline bool acpi_has_cpu_in_madt(void)
-> +{
-> +       return true;
-> +}
-> +
-> +extern struct list_head acpi_wakeup_device_list;
-> +
-> +#endif /* !CONFIG_ACPI */
-> +
-> +#define ACPI_TABLE_UPGRADE_MAX_PHYS (max_low_pfn << PAGE_SHIFT)
-> +
-> +#endif /* _ASM_LOONGARCH_ACPI_H */
-> diff --git a/arch/loongarch/include/asm/boot_param.h b/arch/loongarch/include/asm/boot_param.h
-> new file mode 100644
-> index 000000000000..f515431d838b
-> --- /dev/null
-> +++ b/arch/loongarch/include/asm/boot_param.h
-> @@ -0,0 +1,91 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +#ifndef __ASM_BOOT_PARAM_H_
-> +#define __ASM_BOOT_PARAM_H_
-> +
-> +#ifdef CONFIG_VT
-> +#include <linux/screen_info.h>
-> +#endif
-> +
-> +#define ADDRESS_TYPE_SYSRAM    1
-> +#define ADDRESS_TYPE_RESERVED  2
-> +#define ADDRESS_TYPE_ACPI      3
-> +#define ADDRESS_TYPE_NVS       4
-> +#define ADDRESS_TYPE_PMEM      5
-> +
-> +#define LOONGSON3_BOOT_MEM_MAP_MAX 128
-> +
-> +#define LOONGSON_EFIBOOT_SIGNATURE     "BPI"
-> +#define LOONGSON_MEM_LINKLIST          "MEM"
-> +#define LOONGSON_VBIOS_LINKLIST                "VBIOS"
-> +#define LOONGSON_SCREENINFO_LINKLIST   "SINFO"
-> +
-> +/* Values for Version BPI */
-> +enum bpi_version {
-> +       BPI_VERSION_V1 = 1000, /* Signature="BPI01000" */
-> +       BPI_VERSION_V2 = 1001, /* Signature="BPI01001" */
-> +};
-> +
-> +/* Flags in bootparamsinterface */
-> +#define BPI_FLAGS_UEFI_SUPPORTED BIT(0)
-> +
-> +struct _extention_list_hdr {
-> +       u64     signature;
-> +       u32     length;
-> +       u8      revision;
-> +       u8      checksum;
-> +       struct  _extention_list_hdr *next;
-> +} __packed;
-> +
-> +struct bootparamsinterface {
-> +       u64     signature;      /* {"B", "P", "I", "0", "1", ... } */
-> +       void    *systemtable;
-> +       struct  _extention_list_hdr *extlist;
-> +       u64     flags;
-> +} __packed;
-> +
-> +struct loongsonlist_mem_map {
-> +       struct  _extention_list_hdr header;     /* {"M", "E", "M"} */
-> +       u8      map_count;
-> +       struct  loongson_mem_map {
-> +               u32 mem_type;
-> +               u64 mem_start;
-> +               u64 mem_size;
-> +       } __packed map[LOONGSON3_BOOT_MEM_MAP_MAX];
-> +} __packed;
-> +
-> +struct loongsonlist_vbios {
-> +       struct  _extention_list_hdr header;     /* {"V", "B", "I", "O", "S"} */
-> +       u64     vbios_addr;
-> +} __packed;
-> +
-> +struct loongsonlist_screeninfo {
-> +       struct  _extention_list_hdr header;     /* {"S", "I", "N", "F", "O"} */
-> +       struct  screen_info si;
-> +} __packed;
-> +
-> +struct loongson_board_info {
-> +       int bios_size;
-> +       char *bios_vendor;
-> +       char *bios_version;
-> +       char *bios_release_date;
-> +       char *board_name;
-> +       char *board_vendor;
-> +};
-> +
-> +struct loongson_system_configuration {
-> +       int bpi_ver;
-> +       int nr_cpus;
-> +       int nr_nodes;
-> +       int nr_io_pics;
-> +       int boot_cpu_id;
-> +       int cores_per_node;
-> +       int cores_per_package;
-> +       char *cpuname;
-> +       u64 vgabios_addr;
-> +};
-> +
-> +extern struct loongson_board_info b_info;
-> +extern struct bootparamsinterface *efi_bp;
-> +extern struct loongsonlist_mem_map *loongson_mem_map;
-> +extern struct loongson_system_configuration loongson_sysconf;
-> +#endif
-> diff --git a/arch/loongarch/include/asm/bootinfo.h b/arch/loongarch/include/asm/bootinfo.h
-> new file mode 100644
-> index 000000000000..41838633d1aa
-> --- /dev/null
-> +++ b/arch/loongarch/include/asm/bootinfo.h
-> @@ -0,0 +1,33 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#ifndef _ASM_BOOTINFO_H
-> +#define _ASM_BOOTINFO_H
-> +
-> +#include <linux/types.h>
-> +#include <asm/setup.h>
-> +
-> +const char *get_system_type(void);
-> +
-> +extern void early_memblock_init(void);
-> +extern void detect_memory_region(phys_addr_t start, phys_addr_t sz_min,  phys_addr_t sz_max);
-> +
-> +extern void early_init(void);
-> +extern void platform_init(void);
-> +
-> +extern void free_init_pages(const char *what, unsigned long begin, unsigned long end);
-> +
-> +/*
-> + * Initial kernel command line, usually setup by fw_init_cmdline()
-> + */
-> +extern char arcs_cmdline[COMMAND_LINE_SIZE];
-> +
-> +/*
-> + * Registers a0, a1, a3 and a4 as passed to the kernel entry by firmware
-> + */
-> +extern unsigned long fw_arg0, fw_arg1, fw_arg2, fw_arg3;
-> +
-> +extern unsigned long initrd_start, initrd_end;
-> +
-> +#endif /* _ASM_BOOTINFO_H */
-> diff --git a/arch/loongarch/include/asm/dmi.h b/arch/loongarch/include/asm/dmi.h
-> new file mode 100644
-> index 000000000000..fbe98f0e56e0
-> --- /dev/null
-> +++ b/arch/loongarch/include/asm/dmi.h
-> @@ -0,0 +1,24 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#ifndef _ASM_DMI_H
-> +#define _ASM_DMI_H
-> +
-> +#include <linux/io.h>
-> +#include <linux/memblock.h>
-> +
-> +#define dmi_early_remap(x, l)  dmi_remap(x, l)
-> +#define dmi_early_unmap(x, l)  dmi_unmap(x)
-> +#define dmi_alloc(l)           memblock_alloc_low(l, PAGE_SIZE)
-> +
-> +static inline void *dmi_remap(u64 phys_addr, unsigned long size)
-> +{
-> +       return ((void *)TO_CAC(phys_addr));
-> +}
-> +
-> +static inline void dmi_unmap(void *addr)
-> +{
-> +}
-> +
-> +#endif /* _ASM_DMI_H */
-> diff --git a/arch/loongarch/include/asm/efi.h b/arch/loongarch/include/asm/efi.h
-> new file mode 100644
-> index 000000000000..90e8e35d7f4b
-> --- /dev/null
-> +++ b/arch/loongarch/include/asm/efi.h
-> @@ -0,0 +1,32 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#ifndef _ASM_LOONGARCH_EFI_H
-> +#define _ASM_LOONGARCH_EFI_H
-> +
-> +#include <linux/efi.h>
-> +
-> +extern void __init efi_init(void);
-> +extern void __init efi_runtime_init(void);
-> +extern void efifb_setup_from_dmi(struct screen_info *si, const char *opt);
-> +
-> +#define ARCH_EFI_IRQ_FLAGS_MASK  0x00000001  /*bit0: CP0 Status.IE*/
-> +
-> +#define arch_efi_call_virt_setup()               \
-> +({                                               \
-> +})
-> +
-> +#define arch_efi_call_virt(p, f, args...)        \
-> +({                                               \
-> +       efi_##f##_t * __f;                       \
-> +       __f = p->f;                              \
-> +       __f(args);                               \
-> +})
-> +
-> +#define arch_efi_call_virt_teardown()            \
-> +({                                               \
-> +})
-> +
-> +
-> +#endif /* _ASM_LOONGARCH_EFI_H */
-> diff --git a/arch/loongarch/include/asm/fw.h b/arch/loongarch/include/asm/fw.h
-> new file mode 100644
-> index 000000000000..8a0e8e7c625f
-> --- /dev/null
-> +++ b/arch/loongarch/include/asm/fw.h
-> @@ -0,0 +1,18 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#ifndef __ASM_FW_H_
-> +#define __ASM_FW_H_
-> +
-> +#include <asm/bootinfo.h>
-> +
-> +extern int fw_argc;
-> +extern long *_fw_argv, *_fw_envp;
-> +
-> +#define fw_argv(index)         ((char *)(long)_fw_argv[(index)])
-> +#define fw_envp(index)         ((char *)(long)_fw_envp[(index)])
-> +
-> +extern void fw_init_cmdline(void);
-> +
-> +#endif /* __ASM_FW_H_ */
-> diff --git a/arch/loongarch/include/asm/reboot.h b/arch/loongarch/include/asm/reboot.h
-> new file mode 100644
-> index 000000000000..0e96b0f42993
-> --- /dev/null
-> +++ b/arch/loongarch/include/asm/reboot.h
-> @@ -0,0 +1,10 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#ifndef _ASM_REBOOT_H
-> +#define _ASM_REBOOT_H
-> +
-> +extern void (*pm_restart)(void);
-> +
-> +#endif /* _ASM_REBOOT_H */
-> diff --git a/arch/loongarch/include/asm/setup.h b/arch/loongarch/include/asm/setup.h
-> new file mode 100644
-> index 000000000000..fc1fb741b4da
-> --- /dev/null
-> +++ b/arch/loongarch/include/asm/setup.h
-> @@ -0,0 +1,21 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +
-> +#ifndef _LOONGARCH_SETUP_H
-> +#define _LOONGARCH_SETUP_H
-> +
-> +#include <linux/types.h>
-> +#include <uapi/asm/setup.h>
-> +
-> +#define VECSIZE 0x200
-> +
-> +extern unsigned long eentry;
-> +extern unsigned long tlbrentry;
-> +extern void cpu_cache_init(void);
-> +extern void per_cpu_trap_init(int cpu);
-> +extern void set_handler(unsigned long offset, void *addr, unsigned long len);
-> +extern void set_merr_handler(unsigned long offset, void *addr, unsigned long len);
-> +
-> +#endif /* __SETUP_H */
-> diff --git a/arch/loongarch/kernel/acpi.c b/arch/loongarch/kernel/acpi.c
-> new file mode 100644
-> index 000000000000..3f77c937e9ad
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/acpi.c
-> @@ -0,0 +1,324 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * acpi.c - Architecture-Specific Low-Level ACPI Boot Support
-> + *
-> + * Author: Jianmin Lv <lvjianmin@loongson.cn>
-> + *         Huacai Chen <chenhuacai@loongson.cn>
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +
-> +#include <linux/init.h>
-> +#include <linux/acpi.h>
-> +#include <linux/irq.h>
-> +#include <linux/irqdomain.h>
-> +#include <linux/memblock.h>
-> +#include <linux/serial_core.h>
-> +#include <asm/io.h>
-> +#include <asm/loongson.h>
-> +
-> +int acpi_disabled;
-> +EXPORT_SYMBOL(acpi_disabled);
-> +int acpi_noirq;
-> +int acpi_pci_disabled;
-> +EXPORT_SYMBOL(acpi_pci_disabled);
-> +int acpi_strict = 1; /* We have no workarounds on LoongArch */
-> +int num_processors;
-> +int disabled_cpus;
-> +enum acpi_irq_model_id acpi_irq_model = ACPI_IRQ_MODEL_PLATFORM;
-> +
-> +u64 acpi_saved_sp;
-> +
-> +#define MAX_CORE_PIC 256
-> +
-> +#define PREFIX                 "ACPI: "
-> +
-> +/*
-> + * Following __acpi_xx functions should be implemented for sepecific cpu.
-> + */
-> +int acpi_gsi_to_irq(u32 gsi, unsigned int *irqp)
-> +{
-> +       if (irqp != NULL)
-> +               *irqp = acpi_register_gsi(NULL, gsi, -1, -1);
-> +       return 0;
-> +}
-> +EXPORT_SYMBOL_GPL(acpi_gsi_to_irq);
-> +
-> +int acpi_isa_irq_to_gsi(unsigned int isa_irq, u32 *gsi)
-> +{
-> +       if (gsi)
-> +               *gsi = isa_irq;
-> +       return 0;
-> +}
-> +
-> +/*
-> + * success: return IRQ number (>=0)
-> + * failure: return < 0
-> + */
-> +int acpi_register_gsi(struct device *dev, u32 gsi, int trigger, int polarity)
-> +{
-> +       int id, hwirq;
-> +       struct irq_domain *domain;
-> +       struct irq_fwspec fwspec;
-> +
-> +       switch (gsi) {
-> +       case GSI_MIN_CPU_IRQ ... GSI_MAX_CPU_IRQ:
-> +               hwirq = gsi - GSI_MIN_CPU_IRQ;
-> +               return irq_create_mapping(liointc_domain, hwirq);
-> +
-> +       case GSI_MIN_PCH_IRQ ... GSI_MAX_PCH_IRQ:
-> +               id = find_pch_pic(gsi);
-> +               if (id < 0)
-> +                       return -1;
-> +
-> +               domain = pch_pic_domain[id];
-> +               if (!domain)
-> +                       return gsi;
-> +
-> +               hwirq = gsi - acpi_pchpic[id]->gsi_base;
-> +               fwspec.param_count = 2;
-> +               fwspec.param[0] = hwirq;
-> +               fwspec.param[1] = IRQ_TYPE_LEVEL_HIGH;
-> +
-> +               return irq_domain_alloc_irqs(domain, 1, NUMA_NO_NODE, &fwspec);
-> +       }
-> +
-> +       return -1;
-> +}
-> +EXPORT_SYMBOL_GPL(acpi_register_gsi);
-> +
-> +void acpi_unregister_gsi(u32 gsi)
-> +{
-> +
-> +}
-> +EXPORT_SYMBOL_GPL(acpi_unregister_gsi);
-> +
-> +void __iomem *__init __acpi_map_table(unsigned long phys, unsigned long size)
-> +{
-> +
-> +       if (!phys || !size)
-> +               return NULL;
-> +
-> +       return early_memremap(phys, size);
-> +}
-> +void __init __acpi_unmap_table(void __iomem *map, unsigned long size)
-> +{
-> +       if (!map || !size)
-> +               return;
-> +
-> +       early_memunmap(map, size);
-> +}
-> +
-> +void __init acpi_boot_table_init(void)
-> +{
-> +       /*
-> +        * If acpi_disabled, bail out
-> +        */
-> +       if (acpi_disabled)
-> +               return;
-> +
-> +       /*
-> +        * Initialize the ACPI boot-time table parser.
-> +        */
-> +       if (acpi_table_init()) {
-> +               disable_acpi();
-> +               return;
-> +       }
-> +}
-> +
-> +static int __init
-> +acpi_parse_cpuintc(union acpi_subtable_headers *header, const unsigned long end)
-> +{
-> +       struct acpi_madt_core_pic *processor = NULL;
-> +
-> +       processor = (struct acpi_madt_core_pic *)header;
-> +       if (BAD_MADT_ENTRY(processor, end))
-> +               return -EINVAL;
-> +
-> +       acpi_table_print_madt_entry(&header->common);
-> +
-> +       return 0;
-> +}
-> +
-> +static int __init
-> +acpi_parse_liointc(union acpi_subtable_headers *header, const unsigned long end)
-> +{
-> +       struct acpi_madt_lio_pic *liointc = NULL;
-> +
-> +       liointc = (struct acpi_madt_lio_pic *)header;
-> +
-> +       if (BAD_MADT_ENTRY(liointc, end))
-> +               return -EINVAL;
-> +
-> +       acpi_liointc = liointc;
-> +
-> +       return 0;
-> +}
-> +
-> +static int __init
-> +acpi_parse_eiointc(union acpi_subtable_headers *header, const unsigned long end)
-> +{
-> +       static int id = 0;
-> +       struct acpi_madt_eio_pic *eiointc = NULL;
-> +
-> +       eiointc = (struct acpi_madt_eio_pic *)header;
-> +
-> +       if (BAD_MADT_ENTRY(eiointc, end))
-> +               return -EINVAL;
-> +
-> +       acpi_eiointc[id++] = eiointc;
-> +       loongson_sysconf.nr_io_pics = id;
-> +
-> +       return 0;
-> +}
-> +
-> +static int __init
-> +acpi_parse_htintc(union acpi_subtable_headers *header, const unsigned long end)
-> +{
-> +       struct acpi_madt_ht_pic *htintc = NULL;
-> +
-> +       htintc = (struct acpi_madt_ht_pic *)header;
-> +
-> +       if (BAD_MADT_ENTRY(htintc, end))
-> +               return -EINVAL;
-> +
-> +       acpi_htintc = htintc;
-> +       loongson_sysconf.nr_io_pics = 1;
-> +
-> +       return 0;
-> +}
-> +
-> +static int __init
-> +acpi_parse_pch_pic(union acpi_subtable_headers *header, const unsigned long end)
-> +{
-> +       static int id = 0;
-> +       struct acpi_madt_bio_pic *pchpic = NULL;
-> +
-> +       pchpic = (struct acpi_madt_bio_pic *)header;
-> +
-> +       if (BAD_MADT_ENTRY(pchpic, end))
-> +               return -EINVAL;
-> +
-> +       acpi_pchpic[id++] = pchpic;
-> +
-> +       return 0;
-> +}
-> +
-> +static int __init
-> +acpi_parse_pch_msi(union acpi_subtable_headers *header, const unsigned long end)
-> +{
-> +       static int id = 0;
-> +       struct acpi_madt_msi_pic *pchmsi = NULL;
-> +
-> +       pchmsi = (struct acpi_madt_msi_pic *)header;
-> +
-> +       if (BAD_MADT_ENTRY(pchmsi, end))
-> +               return -EINVAL;
-> +
-> +       acpi_pchmsi[id++] = pchmsi;
-> +
-> +       return 0;
-> +}
-> +
-> +static int __init
-> +acpi_parse_pch_lpc(union acpi_subtable_headers *header, const unsigned long end)
-> +{
-> +       struct acpi_madt_lpc_pic *pchlpc = NULL;
-> +
-> +       pchlpc = (struct acpi_madt_lpc_pic *)header;
-> +
-> +       if (BAD_MADT_ENTRY(pchlpc, end))
-> +               return -EINVAL;
-> +
-> +       acpi_pchlpc = pchlpc;
-> +
-> +       return 0;
-> +}
-> +
-> +static void __init acpi_process_madt(void)
-> +{
-> +       int error;
-> +
-> +       /* Parse MADT CPUINTC entries */
-> +       error = acpi_table_parse_madt(ACPI_MADT_TYPE_CORE_PIC, acpi_parse_cpuintc, MAX_CORE_PIC);
-> +       if (error < 0) {
-> +               disable_acpi();
-> +               pr_err(PREFIX "Invalid BIOS MADT (CPUINTC entries), ACPI disabled\n");
-> +               return;
-> +       }
-> +
-> +       loongson_sysconf.nr_cpus = num_processors;
-> +
-> +       /* Parse MADT LIOINTC entries */
-> +       error = acpi_table_parse_madt(ACPI_MADT_TYPE_LIO_PIC, acpi_parse_liointc, 1);
-> +       if (error < 0) {
-> +               disable_acpi();
-> +               pr_err(PREFIX "Invalid BIOS MADT (LIOINTC entries), ACPI disabled\n");
-> +               return;
-> +       }
-> +
-> +       /* Parse MADT EIOINTC entries */
-> +       error = acpi_table_parse_madt(ACPI_MADT_TYPE_EIO_PIC, acpi_parse_eiointc, MAX_IO_PICS);
-> +       if (error < 0) {
-> +               disable_acpi();
-> +               pr_err(PREFIX "Invalid BIOS MADT (EIOINTC entries), ACPI disabled\n");
-> +               return;
-> +       }
-> +
-> +       /* Parse MADT HTVEC entries */
-> +       error = acpi_table_parse_madt(ACPI_MADT_TYPE_HT_PIC, acpi_parse_htintc, 1);
-> +       if (error < 0) {
-> +               disable_acpi();
-> +               pr_err(PREFIX "Invalid BIOS MADT (HTVEC entries), ACPI disabled\n");
-> +               return;
-> +       }
-> +
-> +       /* Parse MADT PCHPIC entries */
-> +       error = acpi_table_parse_madt(ACPI_MADT_TYPE_BIO_PIC, acpi_parse_pch_pic, MAX_IO_PICS);
-> +       if (error < 0) {
-> +               disable_acpi();
-> +               pr_err(PREFIX "Invalid BIOS MADT (PCHPIC entries), ACPI disabled\n");
-> +               return;
-> +       }
-> +
-> +       /* Parse MADT PCHMSI entries */
-> +       error = acpi_table_parse_madt(ACPI_MADT_TYPE_MSI_PIC, acpi_parse_pch_msi, MAX_IO_PICS);
-> +       if (error < 0) {
-> +               disable_acpi();
-> +               pr_err(PREFIX "Invalid BIOS MADT (PCHMSI entries), ACPI disabled\n");
-> +               return;
-> +       }
-> +
-> +       /* Parse MADT PCHLPC entries */
-> +       error = acpi_table_parse_madt(ACPI_MADT_TYPE_LPC_PIC, acpi_parse_pch_lpc, 1);
-> +       if (error < 0) {
-> +               disable_acpi();
-> +               pr_err(PREFIX "Invalid BIOS MADT (PCHLPC entries), ACPI disabled\n");
-> +               return;
-> +       }
-> +}
-> +
-> +int __init acpi_boot_init(void)
-> +{
-> +       /*
-> +        * If acpi_disabled, bail out
-> +        */
-> +       if (acpi_disabled)
-> +               return -1;
-> +
-> +       loongson_sysconf.boot_cpu_id = read_csr_cpuid();
-> +
-> +       /*
-> +        * Process the Multiple APIC Description Table (MADT), if present
-> +        */
-> +       acpi_process_madt();
-> +
-> +       /* Do not enable ACPI SPCR console by default */
-> +       acpi_parse_spcr(earlycon_acpi_spcr_enable, false);
-> +
-> +       return 0;
-> +}
-> +
-> +void __init arch_reserve_mem_area(acpi_physical_address addr, size_t size)
-> +{
-> +       memblock_mark_nomap(addr, size);
-> +}
-> diff --git a/arch/loongarch/kernel/cacheinfo.c b/arch/loongarch/kernel/cacheinfo.c
-> new file mode 100644
-> index 000000000000..bedeb3eb1157
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/cacheinfo.c
-> @@ -0,0 +1,122 @@
-> +// SPDX-License-Identifier: GPL-2.0-only
-> +/*
-> + * LoongArch cacheinfo support
-> + *
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#include <linux/cacheinfo.h>
-> +
-> +/* Populates leaf and increments to next leaf */
-> +#define populate_cache(cache, leaf, c_level, c_type)           \
-> +do {                                                           \
-> +       leaf->type = c_type;                                    \
-> +       leaf->level = c_level;                                  \
-> +       leaf->coherency_line_size = c->cache.linesz;            \
-> +       leaf->number_of_sets = c->cache.sets;                   \
-> +       leaf->ways_of_associativity = c->cache.ways;            \
-> +       leaf->size = c->cache.linesz * c->cache.sets *          \
-> +               c->cache.ways;                                  \
-> +       leaf++;                                                 \
-> +} while (0)
-> +
-> +int init_cache_level(unsigned int cpu)
-> +{
-> +       struct cpuinfo_loongarch *c = &current_cpu_data;
-> +       struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
-> +       int levels = 0, leaves = 0;
-> +
-> +       /*
-> +        * If Dcache is not set, we assume the cache structures
-> +        * are not properly initialized.
-> +        */
-> +       if (c->dcache.waysize)
-> +               levels += 1;
-> +       else
-> +               return -ENOENT;
-> +
-> +
-> +       leaves += (c->icache.waysize) ? 2 : 1;
-> +
-> +       if (c->vcache.waysize) {
-> +               levels++;
-> +               leaves++;
-> +       }
-> +
-> +       if (c->scache.waysize) {
-> +               levels++;
-> +               leaves++;
-> +       }
-> +
-> +       if (c->tcache.waysize) {
-> +               levels++;
-> +               leaves++;
-> +       }
-> +
-> +       this_cpu_ci->num_levels = levels;
-> +       this_cpu_ci->num_leaves = leaves;
-> +       return 0;
-> +}
-> +
-> +static inline bool cache_leaves_are_shared(struct cacheinfo *this_leaf,
-> +                                          struct cacheinfo *sib_leaf)
-> +{
-> +       return !((this_leaf->level == 1) || (this_leaf->level == 2));
-> +}
-> +
-> +static void cache_cpumap_setup(unsigned int cpu)
-> +{
-> +       struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
-> +       struct cacheinfo *this_leaf, *sib_leaf;
-> +       unsigned int index;
-> +
-> +       for (index = 0; index < this_cpu_ci->num_leaves; index++) {
-> +               unsigned int i;
-> +
-> +               this_leaf = this_cpu_ci->info_list + index;
-> +               /* skip if shared_cpu_map is already populated */
-> +               if (!cpumask_empty(&this_leaf->shared_cpu_map))
-> +                       continue;
-> +
-> +               cpumask_set_cpu(cpu, &this_leaf->shared_cpu_map);
-> +               for_each_online_cpu(i) {
-> +                       struct cpu_cacheinfo *sib_cpu_ci = get_cpu_cacheinfo(i);
-> +
-> +                       if (i == cpu || !sib_cpu_ci->info_list)
-> +                               continue;/* skip if itself or no cacheinfo */
-> +                       sib_leaf = sib_cpu_ci->info_list + index;
-> +                       if (cache_leaves_are_shared(this_leaf, sib_leaf)) {
-> +                               cpumask_set_cpu(cpu, &sib_leaf->shared_cpu_map);
-> +                               cpumask_set_cpu(i, &this_leaf->shared_cpu_map);
-> +                       }
-> +               }
-> +       }
-> +}
-> +
-> +int populate_cache_leaves(unsigned int cpu)
-> +{
-> +       int level = 1;
-> +       struct cpuinfo_loongarch *c = &current_cpu_data;
-> +       struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
-> +       struct cacheinfo *this_leaf = this_cpu_ci->info_list;
-> +
-> +       if (c->icache.waysize) {
-> +               populate_cache(dcache, this_leaf, level, CACHE_TYPE_DATA);
-> +               populate_cache(icache, this_leaf, level++, CACHE_TYPE_INST);
-> +       } else {
-> +               populate_cache(dcache, this_leaf, level++, CACHE_TYPE_UNIFIED);
-> +       }
-> +
-> +       if (c->vcache.waysize)
-> +               populate_cache(vcache, this_leaf, level++, CACHE_TYPE_UNIFIED);
-> +
-> +       if (c->scache.waysize)
-> +               populate_cache(scache, this_leaf, level++, CACHE_TYPE_UNIFIED);
-> +
-> +       if (c->tcache.waysize)
-> +               populate_cache(tcache, this_leaf, level++, CACHE_TYPE_UNIFIED);
-> +
-> +       cache_cpumap_setup(cpu);
-> +       this_cpu_ci->cpu_map_populated = true;
-> +
-> +       return 0;
-> +}
-> diff --git a/arch/loongarch/kernel/cmdline.c b/arch/loongarch/kernel/cmdline.c
-> new file mode 100644
-> index 000000000000..46bf4486b54c
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/cmdline.c
-> @@ -0,0 +1,28 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#include <linux/init.h>
-> +#include <linux/kernel.h>
-> +#include <linux/string.h>
-> +
-> +#include <asm/fw.h>
-> +
-> +int fw_argc;
-> +long *_fw_argv, *_fw_envp;
-> +
-> +void __init fw_init_cmdline(void)
-> +{
-> +       int i;
-> +
-> +       fw_argc = fw_arg0;
-> +       _fw_argv = (long *)fw_arg1;
-> +       _fw_envp = (long *)fw_arg2;
-> +
-> +       arcs_cmdline[0] = '\0';
-> +       for (i = 1; i < fw_argc; i++) {
-> +               strlcat(arcs_cmdline, fw_argv(i), COMMAND_LINE_SIZE);
-> +               if (i < (fw_argc - 1))
-> +                       strlcat(arcs_cmdline, " ", COMMAND_LINE_SIZE);
-> +       }
-> +}
-> diff --git a/arch/loongarch/kernel/cpu-probe.c b/arch/loongarch/kernel/cpu-probe.c
-> new file mode 100644
-> index 000000000000..acf7eb19f75d
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/cpu-probe.c
-> @@ -0,0 +1,301 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * Processor capabilities determination functions.
-> + *
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#include <linux/init.h>
-> +#include <linux/kernel.h>
-> +#include <linux/ptrace.h>
-> +#include <linux/smp.h>
-> +#include <linux/stddef.h>
-> +#include <linux/export.h>
-> +#include <linux/printk.h>
-> +#include <linux/uaccess.h>
-> +
-> +#include <asm/cpu-features.h>
-> +#include <asm/elf.h>
-> +#include <asm/fpu.h>
-> +#include <asm/loongarch.h>
-> +#include <asm/pgtable-bits.h>
-> +#include <asm/setup.h>
-> +
-> +/* Hardware capabilities */
-> +unsigned int elf_hwcap __read_mostly;
-> +EXPORT_SYMBOL_GPL(elf_hwcap);
-> +
-> +/*
-> + * Determine the FCSR mask for FPU hardware.
-> + */
-> +static inline void cpu_set_fpu_fcsr_mask(struct cpuinfo_loongarch *c)
-> +{
-> +       unsigned long sr, mask, fcsr, fcsr0, fcsr1;
-> +
-> +       fcsr = c->fpu_csr0;
-> +       mask = FPU_CSR_ALL_X | FPU_CSR_ALL_E | FPU_CSR_ALL_S | FPU_CSR_RM;
-> +
-> +       sr = read_csr_euen();
-> +       enable_fpu();
-> +
-> +       fcsr0 = fcsr & mask;
-> +       write_fcsr(LOONGARCH_FCSR0, fcsr0);
-> +       fcsr0 = read_fcsr(LOONGARCH_FCSR0);
-> +
-> +       fcsr1 = fcsr | ~mask;
-> +       write_fcsr(LOONGARCH_FCSR0, fcsr1);
-> +       fcsr1 = read_fcsr(LOONGARCH_FCSR0);
-> +
-> +       write_fcsr(LOONGARCH_FCSR0, fcsr);
-> +
-> +       write_csr_euen(sr);
-> +
-> +       c->fpu_mask = ~(fcsr0 ^ fcsr1) & ~mask;
-> +}
-> +
-> +static inline void set_elf_platform(int cpu, const char *plat)
-> +{
-> +       if (cpu == 0)
-> +               __elf_platform = plat;
-> +}
-> +
-> +/* MAP BASE */
-> +unsigned long vm_map_base;
-> +EXPORT_SYMBOL_GPL(vm_map_base);
-> +
-> +static void cpu_probe_addrbits(struct cpuinfo_loongarch *c)
-> +{
-> +#ifdef __NEED_ADDRBITS_PROBE
-> +       c->pabits = (read_cpucfg(LOONGARCH_CPUCFG1) & CPUCFG1_PABITS) >> 4;
-> +       c->vabits = (read_cpucfg(LOONGARCH_CPUCFG1) & CPUCFG1_VABITS) >> 12;
-> +       vm_map_base = 0UL - (1UL << c->vabits);
-> +#endif
-> +}
-> +
-> +static void set_isa(struct cpuinfo_loongarch *c, unsigned int isa)
-> +{
-> +       switch (isa) {
-> +       case LOONGARCH_CPU_ISA_LA64:
-> +               c->isa_level |= LOONGARCH_CPU_ISA_LA64;
-> +               fallthrough;
-> +       case LOONGARCH_CPU_ISA_LA32S:
-> +               c->isa_level |= LOONGARCH_CPU_ISA_LA32S;
-> +               fallthrough;
-> +       case LOONGARCH_CPU_ISA_LA32R:
-> +               c->isa_level |= LOONGARCH_CPU_ISA_LA32R;
-> +               break;
-> +       }
-> +}
-> +
-> +static void cpu_probe_common(struct cpuinfo_loongarch *c)
-> +{
-> +       unsigned int config;
-> +       unsigned long asid_mask;
-> +
-> +       c->options = LOONGARCH_CPU_CPUCFG | LOONGARCH_CPU_CSR |
-> +                    LOONGARCH_CPU_TLB | LOONGARCH_CPU_VINT | LOONGARCH_CPU_WATCH;
-> +
-> +       elf_hwcap |= HWCAP_LOONGARCH_CRC32;
-> +
-> +       config = read_cpucfg(LOONGARCH_CPUCFG1);
-> +       if (config & CPUCFG1_UAL) {
-> +               c->options |= LOONGARCH_CPU_UAL;
-> +               elf_hwcap |= HWCAP_LOONGARCH_UAL;
-> +       }
-> +
-> +       config = read_cpucfg(LOONGARCH_CPUCFG2);
-> +       if (config & CPUCFG2_LAM) {
-> +               c->options |= LOONGARCH_CPU_LAM;
-> +               elf_hwcap |= HWCAP_LOONGARCH_LAM;
-> +       }
-> +       if (config & CPUCFG2_FP) {
-> +               c->options |= LOONGARCH_CPU_FPU;
-> +               elf_hwcap |= HWCAP_LOONGARCH_FPU;
-> +       }
-> +       if (config & CPUCFG2_COMPLEX) {
-> +               c->options |= LOONGARCH_CPU_COMPLEX;
-> +               elf_hwcap |= HWCAP_LOONGARCH_COMPLEX;
-> +       }
-> +       if (config & CPUCFG2_CRYPTO) {
-> +               c->options |= LOONGARCH_CPU_CRYPTO;
-> +               elf_hwcap |= HWCAP_LOONGARCH_CRYPTO;
-> +       }
-> +       if (config & CPUCFG2_LVZP) {
-> +               c->options |= LOONGARCH_CPU_LVZ;
-> +               elf_hwcap |= HWCAP_LOONGARCH_LVZ;
-> +       }
-> +
-> +       config = read_cpucfg(LOONGARCH_CPUCFG6);
-> +       if (config & CPUCFG6_PMP)
-> +               c->options |= LOONGARCH_CPU_PMP;
-> +
-> +       config = iocsr_readl(LOONGARCH_IOCSR_FEATURES);
-> +       if (config & IOCSRF_CSRIPI)
-> +               c->options |= LOONGARCH_CPU_CSRIPI;
-> +       if (config & IOCSRF_EXTIOI)
-> +               c->options |= LOONGARCH_CPU_EXTIOI;
-> +       if (config & IOCSRF_FREQSCALE)
-> +               c->options |= LOONGARCH_CPU_SCALEFREQ;
-> +       if (config & IOCSRF_VM)
-> +               c->options |= LOONGARCH_CPU_HYPERVISOR;
-> +
-> +       config = csr_readl(LOONGARCH_CSR_ASID);
-> +       config = (config & CSR_ASID_BIT) >> CSR_ASID_BIT_SHIFT;
-> +       asid_mask = GENMASK(config - 1, 0);
-> +       set_cpu_asid_mask(c, asid_mask);
-> +
-> +       config = read_csr_prcfg1();
-> +       c->kscratch_mask = GENMASK((config & CSR_CONF1_KSNUM) - 1, 0);
-> +       c->kscratch_mask &= ~(EXC_KSCRATCH_MASK | PERCPU_KSCRATCH_MASK | KVM_KSCRATCH_MASK);
-> +
-> +       config = read_csr_prcfg3();
-> +       switch (config & CSR_CONF3_TLBTYPE) {
-> +       case 0:
-> +               c->tlbsizemtlb = 0;
-> +               c->tlbsizestlbsets = 0;
-> +               c->tlbsizestlbways = 0;
-> +               c->tlbsize = 0;
-> +               break;
-> +       case 1:
-> +               c->tlbsizemtlb = ((config & CSR_CONF3_MTLBSIZE) >> CSR_CONF3_MTLBSIZE_SHIFT) + 1;
-> +               c->tlbsizestlbsets = 0;
-> +               c->tlbsizestlbways = 0;
-> +               c->tlbsize = c->tlbsizemtlb + c->tlbsizestlbsets * c->tlbsizestlbways;
-> +               break;
-> +       case 2:
-> +               c->tlbsizemtlb = ((config & CSR_CONF3_MTLBSIZE) >> CSR_CONF3_MTLBSIZE_SHIFT) + 1;
-> +               c->tlbsizestlbsets = 1 << ((config & CSR_CONF3_STLBIDX) >> CSR_CONF3_STLBIDX_SHIFT);
-> +               c->tlbsizestlbways = ((config & CSR_CONF3_STLBWAYS) >> CSR_CONF3_STLBWAYS_SHIFT) + 1;
-> +               c->tlbsize = c->tlbsizemtlb + c->tlbsizestlbsets * c->tlbsizestlbways;
-> +               break;
-> +       default:
-> +               pr_warn("Warning: unimplemented tlb type\n");
-> +       }
-> +}
-> +
-> +#define MAX_NAME_LEN   32
-> +#define VENDOR_OFFSET  0
-> +#define CPUNAME_OFFSET 9
-> +
-> +static char cpu_full_name[MAX_NAME_LEN] = "        -        ";
-> +
-> +static inline void cpu_probe_loongson(struct cpuinfo_loongarch *c, unsigned int cpu)
-> +{
-> +       uint64_t *vendor = (void *)(&cpu_full_name[VENDOR_OFFSET]);
-> +       uint64_t *cpuname = (void *)(&cpu_full_name[CPUNAME_OFFSET]);
-> +
-> +       __cpu_full_name[cpu] = cpu_full_name;
-> +       *vendor = iocsr_readq(LOONGARCH_IOCSR_VENDOR);
-> +       *cpuname = iocsr_readq(LOONGARCH_IOCSR_CPUNAME);
-> +
-> +       switch (c->processor_id & PRID_IMP_MASK) {
-> +       case PRID_IMP_LOONGSON_32:
-> +               c->cputype = CPU_LOONGSON32;
-> +               set_isa(c, LOONGARCH_CPU_ISA_LA32S);
-> +               __cpu_family[cpu] = "Loongson-32bit";
-> +               pr_info("Standard 32-bit Loongson Processor probed\n");
-> +               break;
-> +       case PRID_IMP_LOONGSON_64R:
-> +               c->cputype = CPU_LOONGSON64;
-> +               set_isa(c, LOONGARCH_CPU_ISA_LA64);
-> +               __cpu_family[cpu] = "Loongson-64bit";
-> +               pr_info("Reduced 64-bit Loongson Processor probed\n");
-> +               break;
-> +       case PRID_IMP_LOONGSON_64C:
-> +               c->cputype = CPU_LOONGSON64;
-> +               set_isa(c, LOONGARCH_CPU_ISA_LA64);
-> +               __cpu_family[cpu] = "Loongson-64bit";
-> +               pr_info("Classic 64-bit Loongson Processor probed\n");
-> +               break;
-> +       case PRID_IMP_LOONGSON_64G:
-> +               c->cputype = CPU_LOONGSON64;
-> +               set_isa(c, LOONGARCH_CPU_ISA_LA64);
-> +               __cpu_family[cpu] = "Loongson-64bit";
-> +               pr_info("Generic 64-bit Loongson Processor probed\n");
-> +               break;
-> +       default: /* Default to 64 bit */
-> +               c->cputype = CPU_LOONGSON64;
-> +               set_isa(c, LOONGARCH_CPU_ISA_LA64);
-> +               __cpu_family[cpu] = "Loongson-64bit";
-> +               pr_info("Unknown 64-bit Loongson Processor probed\n");
-> +       }
-> +}
-> +
-> +#ifdef CONFIG_64BIT
-> +/* For use by uaccess.h */
-> +u64 __ua_limit;
-> +EXPORT_SYMBOL(__ua_limit);
-> +#endif
-> +
-> +const char *__cpu_family[NR_CPUS];
-> +const char *__cpu_full_name[NR_CPUS];
-> +const char *__elf_platform;
-> +
-> +static void cpu_report(void)
-> +{
-> +       struct cpuinfo_loongarch *c = &current_cpu_data;
-> +
-> +       pr_info("CPU%d revision is: %08x (%s)\n",
-> +               smp_processor_id(), c->processor_id, cpu_family_string());
-> +       if (c->options & LOONGARCH_CPU_FPU)
-> +               pr_info("FPU%d revision is: %08x\n", smp_processor_id(), c->fpu_vers);
-> +}
-> +
-> +void cpu_probe(void)
-> +{
-> +       unsigned int cpu = smp_processor_id();
-> +       struct cpuinfo_loongarch *c = &current_cpu_data;
-> +
-> +       /*
-> +        * Set a default elf platform, cpu probe may later
-> +        * overwrite it with a more precise value
-> +        */
-> +       set_elf_platform(cpu, "loongarch");
-> +
-> +       c->cputype      = CPU_UNKNOWN;
-> +       c->processor_id = read_cpucfg(LOONGARCH_CPUCFG0);
-> +       c->fpu_vers     = (read_cpucfg(LOONGARCH_CPUCFG2) >> 3) & 0x3;
-> +
-> +       c->fpu_csr0     = FPU_CSR_RN;
-> +       c->fpu_mask     = FPU_CSR_RSVD;
-> +
-> +       cpu_probe_common(c);
-> +
-> +       per_cpu_trap_init(cpu);
-> +
-> +       switch (c->processor_id & PRID_COMP_MASK) {
-> +       case PRID_COMP_LOONGSON:
-> +               cpu_probe_loongson(c, cpu);
-> +               break;
-> +       }
-> +
-> +       BUG_ON(!__cpu_family[cpu]);
-> +       BUG_ON(c->cputype == CPU_UNKNOWN);
-> +
-> +       cpu_probe_addrbits(c);
-> +
-> +#ifdef CONFIG_64BIT
-> +       if (cpu == 0)
-> +               __ua_limit = ~((1ull << cpu_vabits) - 1);
-> +#endif
-> +
-> +       cpu_report();
-> +}
-> +
-> +void cpu_set_cluster(struct cpuinfo_loongarch *cpuinfo, unsigned int cluster)
-> +{
-> +       /* Ensure the core number fits in the field */
-> +       WARN_ON(cluster > (LOONGARCH_GLOBALNUMBER_CLUSTER >>
-> +                          LOONGARCH_GLOBALNUMBER_CLUSTER_SHF));
-> +
-> +       cpuinfo->globalnumber &= ~LOONGARCH_GLOBALNUMBER_CLUSTER;
-> +       cpuinfo->globalnumber |= cluster << LOONGARCH_GLOBALNUMBER_CLUSTER_SHF;
-> +}
-> +
-> +void cpu_set_core(struct cpuinfo_loongarch *cpuinfo, unsigned int core)
-> +{
-> +       /* Ensure the core number fits in the field */
-> +       WARN_ON(core > (LOONGARCH_GLOBALNUMBER_CORE >> LOONGARCH_GLOBALNUMBER_CORE_SHF));
-> +
-> +       cpuinfo->globalnumber &= ~LOONGARCH_GLOBALNUMBER_CORE;
-> +       cpuinfo->globalnumber |= core << LOONGARCH_GLOBALNUMBER_CORE_SHF;
-> +}
-> diff --git a/arch/loongarch/kernel/efi.c b/arch/loongarch/kernel/efi.c
-> new file mode 100644
-> index 000000000000..c05abd143e44
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/efi.c
-> @@ -0,0 +1,95 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * EFI initialization
-> + *
-> + * Author: Jianmin Lv <lvjianmin@loongson.cn>
-> + *         Huacai Chen <chenhuacai@loongson.cn>
-> + *
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +
-> +#include <linux/acpi.h>
-> +#include <linux/efi.h>
-> +#include <linux/efi-bgrt.h>
-> +#include <linux/init.h>
-> +#include <linux/kernel.h>
-> +#include <linux/export.h>
-> +#include <linux/io.h>
-> +#include <linux/kobject.h>
-> +#include <linux/memblock.h>
-> +#include <linux/reboot.h>
-> +#include <linux/uaccess.h>
-> +
-> +#include <asm/efi.h>
-> +#include <asm/boot_param.h>
-> +
-> +static efi_config_table_type_t arch_tables[] __initdata = {{},};
-> +
-> +void __init efi_runtime_init(void)
-> +{
-> +       if (!efi_enabled(EFI_BOOT))
-> +               return;
-> +
-> +       if (!efi.runtime)
-> +               return;
-> +
-> +       if (efi_runtime_disabled()) {
-> +               pr_info("EFI runtime services will be disabled.\n");
-> +               return;
-> +       }
-> +
-> +       efi_native_runtime_setup();
-> +       set_bit(EFI_RUNTIME_SERVICES, &efi.flags);
-> +}
-> +
-> +void __init efi_init(void)
-> +{
-> +       unsigned long efi_config_table;
-> +       efi_system_table_t *efi_systab;
-> +
-> +       if (!efi_bp)
-> +               return;
-> +
-> +       efi_systab = (efi_system_table_t *)efi_bp->systemtable;
-> +       if (!efi_systab) {
-> +               pr_err("Can't find EFI system table.\n");
-> +               return;
-> +       }
-> +
-> +       set_bit(EFI_64BIT, &efi.flags);
-> +       efi_config_table = (unsigned long)efi_systab->tables;
-> +       efi.runtime      = (efi_runtime_services_t *)efi_systab->runtime;
-> +       efi.runtime_version = efi.runtime ? (unsigned int)efi.runtime->hdr.revision : 0;
-> +
-> +       efi_config_parse_tables((void *)efi_systab->tables, efi_systab->nr_tables, arch_tables);
-> +}
-> +
-> +static ssize_t boardinfo_show(struct kobject *kobj,
-> +                             struct kobj_attribute *attr, char *buf)
-> +{
-> +       return sprintf(buf,
-> +               "BIOS Information\n"
-> +               "Vendor\t\t\t: %s\n"
-> +               "Version\t\t\t: %s\n"
-> +               "ROM Size\t\t: %d KB\n"
-> +               "Release Date\t\t: %s\n\n"
-> +               "Board Information\n"
-> +               "Manufacturer\t\t: %s\n"
-> +               "Board Name\t\t: %s\n"
-> +               "Family\t\t\t: LOONGSON64\n\n",
-> +               b_info.bios_vendor, b_info.bios_version,
-> +               b_info.bios_size, b_info.bios_release_date,
-> +               b_info.board_vendor, b_info.board_name);
-> +}
-> +
-> +static struct kobj_attribute boardinfo_attr = __ATTR(boardinfo, 0444,
-> +                                                    boardinfo_show, NULL);
-> +
-> +static int __init boardinfo_init(void)
-> +{
-> +       if (!efi_kobj)
-> +               return -EINVAL;
-> +
-> +       return sysfs_create_file(efi_kobj, &boardinfo_attr.attr);
-> +}
-> +late_initcall(boardinfo_init);
-> diff --git a/arch/loongarch/kernel/env.c b/arch/loongarch/kernel/env.c
-> new file mode 100644
-> index 000000000000..234fe282a98c
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/env.c
-> @@ -0,0 +1,170 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * Author: Huacai Chen <chenhuacai@loongson.cn>
-> + *
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#include <linux/export.h>
-> +#include <linux/acpi.h>
-> +#include <linux/efi.h>
-> +#include <asm/fw.h>
-> +#include <asm/time.h>
-> +#include <asm/bootinfo.h>
-> +#include <asm/loongson.h>
-> +
-> +struct bootparamsinterface *efi_bp;
-> +struct loongsonlist_mem_map *loongson_mem_map;
-> +struct loongsonlist_vbios *pvbios;
-> +struct loongson_system_configuration loongson_sysconf;
-> +EXPORT_SYMBOL(loongson_sysconf);
-> +
-> +u64 loongson_chipcfg[MAX_PACKAGES];
-> +u64 loongson_chiptemp[MAX_PACKAGES];
-> +u64 loongson_freqctrl[MAX_PACKAGES];
-> +unsigned long long smp_group[MAX_PACKAGES];
-> +
-> +static void __init register_addrs_set(u64 *registers, const u64 addr, int num)
-> +{
-> +       u64 i;
-> +
-> +       for (i = 0; i < num; i++) {
-> +               *registers = (i << 44) | addr;
-> +               registers++;
-> +       }
-> +}
-> +
-> +static u8 ext_listhdr_checksum(u8 *buffer, u32 length)
-> +{
-> +       u8 sum = 0;
-> +       u8 *end = buffer + length;
-> +
-> +       while (buffer < end) {
-> +               sum = (u8)(sum + *(buffer++));
-> +       }
-> +
-> +       return (sum);
-> +}
-> +
-> +static int parse_mem(struct _extention_list_hdr *head)
-> +{
-> +       loongson_mem_map = (struct loongsonlist_mem_map *)head;
-> +       if (ext_listhdr_checksum((u8 *)loongson_mem_map, head->length)) {
-> +               pr_warn("mem checksum error\n");
-> +               return -EPERM;
-> +       }
-> +
-> +       return 0;
-> +}
-> +
-> +static int parse_vbios(struct _extention_list_hdr *head)
-> +{
-> +       pvbios = (struct loongsonlist_vbios *)head;
-> +
-> +       if (ext_listhdr_checksum((u8 *)pvbios, head->length)) {
-> +               pr_warn("vbios_addr checksum error\n");
-> +               return -EPERM;
-> +       }
-> +
-> +       loongson_sysconf.vgabios_addr = pvbios->vbios_addr;
-> +
-> +       return 0;
-> +}
-> +
-> +static int parse_screeninfo(struct _extention_list_hdr *head)
-> +{
-> +       struct loongsonlist_screeninfo *pscreeninfo;
-> +
-> +       pscreeninfo = (struct loongsonlist_screeninfo *)head;
-> +       if (ext_listhdr_checksum((u8 *)pscreeninfo, head->length)) {
-> +               pr_warn("screeninfo_addr checksum error\n");
-> +               return -EPERM;
-> +       }
-> +
-> +       memcpy(&screen_info, &pscreeninfo->si, sizeof(screen_info));
-> +
-> +       return 0;
-> +}
-> +
-> +static int list_find(struct _extention_list_hdr *head)
-> +{
-> +       struct _extention_list_hdr *fhead = head;
-> +
-> +       if (fhead == NULL) {
-> +               pr_warn("the link is empty!\n");
-> +               return -1;
-> +       }
-> +
-> +       while (fhead != NULL) {
-> +               if (memcmp(&(fhead->signature), LOONGSON_MEM_LINKLIST, 3) == 0) {
-> +                       if (parse_mem(fhead) != 0) {
-> +                               pr_warn("parse mem failed\n");
-> +                               return -EPERM;
-> +                       }
-> +               } else if (memcmp(&(fhead->signature), LOONGSON_VBIOS_LINKLIST, 5) == 0) {
-> +                       if (parse_vbios(fhead) != 0) {
-> +                               pr_warn("parse vbios failed\n");
-> +                               return -EPERM;
-> +                       }
-> +               } else if (memcmp(&(fhead->signature), LOONGSON_SCREENINFO_LINKLIST, 5) == 0) {
-> +                       if (parse_screeninfo(fhead) != 0) {
-> +                               pr_warn("parse screeninfo failed\n");
-> +                               return -EPERM;
-> +                       }
-> +               }
-> +               fhead = fhead->next;
-> +       }
-> +
-> +       return 0;
-> +}
-> +
-> +static void __init parse_bpi_flags(void)
-> +{
-> +       if (efi_bp->flags & BPI_FLAGS_UEFI_SUPPORTED)
-> +               set_bit(EFI_BOOT, &efi.flags);
-> +       else
-> +               clear_bit(EFI_BOOT, &efi.flags);
-> +}
-> +
-> +static int get_bpi_version(void *signature)
-> +{
-> +       char data[8];
-> +       int r, version = 0;
-> +
-> +       memset(data, 0, 8);
-> +       memcpy(data, signature + 4, 4);
-> +       r = kstrtoint(data, 10, &version);
-> +
-> +       if (r < 0 || version < BPI_VERSION_V1)
-> +               panic("Fatal error, invalid BPI version: %d\n", version);
-> +
-> +       if (version >= BPI_VERSION_V2)
-> +               parse_bpi_flags();
-> +
-> +       return version;
-> +}
-> +
-> +void __init fw_init_environ(void)
-> +{
-> +       efi_bp = (struct bootparamsinterface *)_fw_envp;
-> +       loongson_sysconf.bpi_ver = get_bpi_version(&efi_bp->signature);
-> +
-> +       register_addrs_set(smp_group, TO_UNCAC(0x1fe01000), 16);
-> +       register_addrs_set(loongson_chipcfg, TO_UNCAC(0x1fe00180), 16);
-> +       register_addrs_set(loongson_chiptemp, TO_UNCAC(0x1fe0019c), 16);
-> +       register_addrs_set(loongson_freqctrl, TO_UNCAC(0x1fe001d0), 16);
-> +
-> +       if (list_find(efi_bp->extlist))
-> +               pr_warn("Scan bootparam failed\n");
-> +}
-> +
-> +static int __init init_cpu_fullname(void)
-> +{
-> +       int cpu;
-> +
-> +       if (loongson_sysconf.cpuname && !strncmp(loongson_sysconf.cpuname, "Loongson", 8)) {
-> +               for (cpu = 0; cpu < NR_CPUS; cpu++)
-> +                       __cpu_full_name[cpu] = loongson_sysconf.cpuname;
-> +       }
-> +       return 0;
-> +}
-> +arch_initcall(init_cpu_fullname);
-> diff --git a/arch/loongarch/kernel/head.S b/arch/loongarch/kernel/head.S
-> new file mode 100644
-> index 000000000000..53e02fb0559d
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/head.S
-> @@ -0,0 +1,72 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#include <linux/init.h>
-> +#include <linux/threads.h>
-> +
-> +#include <asm/addrspace.h>
-> +#include <asm/asm.h>
-> +#include <asm/asmmacro.h>
-> +#include <asm/regdef.h>
-> +#include <asm/loongarch.h>
-> +#include <asm/stackframe.h>
-> +
-> +SYM_ENTRY(_stext, SYM_L_GLOBAL, SYM_A_NONE)
-> +
-> +       __REF
-> +
-> +SYM_CODE_START(kernel_entry)                   # kernel entry point
-> +
-> +       /* We might not get launched at the address the kernel is linked to,
-> +          so we jump there.  */
-> +       la.abs          t0, 0f
-> +       jirl            zero, t0, 0
-> +0:
-> +       la              t0, __bss_start         # clear .bss
-> +       st.d            zero, t0, 0
-> +       la              t1, __bss_stop - LONGSIZE
-> +1:
-> +       addi.d          t0, t0, LONGSIZE
-> +       st.d            zero, t0, 0
-> +       bne             t0, t1, 1b
-> +
-> +       la              t0, fw_arg0
-> +       st.d            a0, t0, 0               # firmware arguments
-> +       la              t0, fw_arg1
-> +       st.d            a1, t0, 0
-> +       la              t0, fw_arg2
-> +       st.d            a2, t0, 0
-> +       la              t0, fw_arg3
-> +       st.d            a3, t0, 0
-> +
-> +       /* Config direct window and set PG */
-> +       li.d            t0, CSR_DMW0_INIT       # UC, PLV0, 0x8000 xxxx xxxx xxxx
-> +       csrwr           t0, LOONGARCH_CSR_DMWIN0
-> +       li.d            t0, CSR_DMW1_INIT       # CA, PLV0, 0x9000 xxxx xxxx xxxx
-> +       csrwr           t0, LOONGARCH_CSR_DMWIN1
-> +       /* Enable PG */
-> +       li.w            t0, 0xb0                # PLV=0, IE=0, PG=1
-> +       csrwr           t0, LOONGARCH_CSR_CRMD
-> +       li.w            t0, 0x04                # PLV=0, PIE=1, PWE=0
-> +       csrwr           t0, LOONGARCH_CSR_PRMD
-> +       li.w            t0, 0x00                # FPE=0, SXE=0, ASXE=0, BTE=0
-> +       csrwr           t0, LOONGARCH_CSR_EUEN
-> +
-> +       /* KScratch3 used for percpu base, initialized as 0 */
-> +       csrwr           zero, PERCPU_BASE_KS
-> +       /* GPR21 used for percpu base (runtime), initialized as 0 */
-> +       or              x0, zero, zero
-> +
-> +       la              tp, init_thread_union
-> +       /* Set the SP after an empty pt_regs.  */
-> +       PTR_LI          sp, (_THREAD_SIZE - 32 - PT_SIZE)
-> +       PTR_ADDU        sp, sp, tp
-> +       set_saved_sp    sp, t0, t1
-> +       PTR_ADDIU       sp, sp, -4 * SZREG      # init stack pointer
-> +
-> +       bl              start_kernel
-> +
-> +SYM_CODE_END(kernel_entry)
-> +
-> +SYM_ENTRY(kernel_entry_end, SYM_L_GLOBAL, SYM_A_NONE)
-> diff --git a/arch/loongarch/kernel/mem.c b/arch/loongarch/kernel/mem.c
-> new file mode 100644
-> index 000000000000..c1ac71034448
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/mem.c
-> @@ -0,0 +1,83 @@
-> +// SPDX-License-Identifier: GPL-2.0-or-later
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#include <linux/fs.h>
-> +#include <linux/mm.h>
-> +#include <linux/memblock.h>
-> +
-> +#include <asm/bootinfo.h>
-> +#include <asm/loongson.h>
-> +#include <asm/sections.h>
-> +
-> +void __init early_memblock_init(void)
-> +{
-> +       int i;
-> +       u32 mem_type;
-> +       u64 mem_start, mem_end, mem_size;
-> +
-> +       /* parse memory information */
-> +       for (i = 0; i < loongson_mem_map->map_count; i++) {
-> +               mem_type = loongson_mem_map->map[i].mem_type;
-> +               mem_start = loongson_mem_map->map[i].mem_start;
-> +               mem_size = loongson_mem_map->map[i].mem_size;
-> +               mem_end = mem_start + mem_size;
-> +
-> +               switch (mem_type) {
-> +               case ADDRESS_TYPE_SYSRAM:
-> +                       memblock_add(mem_start, mem_size);
-> +                       if (max_low_pfn < (mem_end >> PAGE_SHIFT))
-> +                               max_low_pfn = mem_end >> PAGE_SHIFT;
-> +                       break;
-> +               }
-> +       }
-> +       memblock_set_current_limit(PFN_PHYS(max_low_pfn));
-> +}
-> +
-> +void __init fw_init_memory(void)
-> +{
-> +       int i;
-> +       u32 mem_type;
-> +       u64 mem_start, mem_end, mem_size;
-> +       unsigned long start_pfn, end_pfn;
-> +       static unsigned long num_physpages;
-> +
-> +       /* parse memory information */
-> +       for (i = 0; i < loongson_mem_map->map_count; i++) {
-> +               mem_type = loongson_mem_map->map[i].mem_type;
-> +               mem_start = loongson_mem_map->map[i].mem_start;
-> +               mem_size = loongson_mem_map->map[i].mem_size;
-> +               mem_end = mem_start + mem_size;
-> +
-> +               switch (mem_type) {
-> +               case ADDRESS_TYPE_SYSRAM:
-> +                       mem_start = PFN_ALIGN(mem_start);
-> +                       mem_end = PFN_ALIGN(mem_end - PAGE_SIZE + 1);
-> +                       num_physpages += (mem_size >> PAGE_SHIFT);
-> +                       memblock_set_node(mem_start, mem_size, &memblock.memory, 0);
-> +                       break;
-> +               case ADDRESS_TYPE_ACPI:
-> +               case ADDRESS_TYPE_RESERVED:
-> +                       memblock_reserve(loongson_mem_map->map[i].mem_start,
-> +                                        loongson_mem_map->map[i].mem_size);
-> +                       break;
-> +               }
-> +       }
-> +
-> +       get_pfn_range_for_nid(0, &start_pfn, &end_pfn);
-> +       pr_info("start_pfn=0x%lx, end_pfn=0x%lx, num_physpages:0x%lx\n",
-> +                               start_pfn, end_pfn, num_physpages);
-> +
-> +       NODE_DATA(0)->node_start_pfn = start_pfn;
-> +       NODE_DATA(0)->node_spanned_pages = end_pfn - start_pfn;
-> +
-> +       /* used by finalize_initrd() */
-> +       max_low_pfn = end_pfn;
-> +
-> +       /* Reserve the first 2MB */
-> +       memblock_reserve(PHYS_OFFSET, 0x200000);
-> +
-> +       /* Reserve the kernel text/data/bss */
-> +       memblock_reserve(__pa_symbol(&_text),
-> +                        __pa_symbol(&_end) - __pa_symbol(&_text));
-> +}
-> diff --git a/arch/loongarch/kernel/reset.c b/arch/loongarch/kernel/reset.c
-> new file mode 100644
-> index 000000000000..b140c2aa2c5a
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/reset.c
-> @@ -0,0 +1,90 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#include <linux/kernel.h>
-> +#include <linux/acpi.h>
-> +#include <linux/efi.h>
-> +#include <linux/export.h>
-> +#include <linux/pm.h>
-> +#include <linux/types.h>
-> +#include <linux/reboot.h>
-> +#include <linux/delay.h>
-> +#include <linux/console.h>
-> +
-> +#include <acpi/reboot.h>
-> +#include <asm/compiler.h>
-> +#include <asm/idle.h>
-> +#include <asm/loongarch.h>
-> +#include <asm/reboot.h>
-> +
-> +static void default_halt(void)
-> +{
-> +       local_irq_disable();
-> +       clear_csr_ecfg(ECFG0_IM);
-> +
-> +       pr_notice("\n\n** You can safely turn off the power now **\n\n");
-> +       console_flush_on_panic(CONSOLE_FLUSH_PENDING);
-> +
-> +       while (true) {
-> +               __arch_cpu_idle();
-> +       }
-> +}
-> +
-> +static void default_poweroff(void)
-> +{
-> +#ifdef CONFIG_EFI
-> +       efi.reset_system(EFI_RESET_SHUTDOWN, EFI_SUCCESS, 0, NULL);
-> +#endif
-> +       while (true) {
-> +               __arch_cpu_idle();
-> +       }
-> +}
-> +
-> +static void default_restart(void)
-> +{
-> +#ifdef CONFIG_EFI
-> +       if (efi_capsule_pending(NULL))
-> +               efi_reboot(REBOOT_WARM, NULL);
-> +       else
-> +               efi_reboot(REBOOT_COLD, NULL);
-> +#endif
-> +       if (!acpi_disabled)
-> +               acpi_reboot();
-> +
-> +       while (true) {
-> +               __arch_cpu_idle();
-> +       }
-> +}
-> +
-> +void (*pm_restart)(void);
-> +EXPORT_SYMBOL(pm_restart);
-> +
-> +void (*pm_power_off)(void);
-> +EXPORT_SYMBOL(pm_power_off);
-> +
-> +void machine_halt(void)
-> +{
-> +       default_halt();
-> +}
-> +
-> +void machine_power_off(void)
-> +{
-> +       pm_power_off();
-> +}
-> +
-> +void machine_restart(char *command)
-> +{
-> +       do_kernel_restart(command);
-> +       pm_restart();
-> +}
-> +
-> +static int __init loongarch_reboot_setup(void)
-> +{
-> +       pm_restart = default_restart;
-> +       pm_power_off = default_poweroff;
-> +
-> +       return 0;
-> +}
-> +
-> +arch_initcall(loongarch_reboot_setup);
-> diff --git a/arch/loongarch/kernel/setup.c b/arch/loongarch/kernel/setup.c
-> new file mode 100644
-> index 000000000000..7ec32959b36c
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/setup.c
-> @@ -0,0 +1,469 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + *
-> + * Derived from MIPS:
-> + * Copyright (C) 1995 Linus Torvalds
-> + * Copyright (C) 1995 Waldorf Electronics
-> + * Copyright (C) 1994, 95, 96, 97, 98, 99, 2000, 01, 02, 03  Ralf Baechle
-> + * Copyright (C) 1996 Stoned Elipot
-> + * Copyright (C) 1999 Silicon Graphics, Inc.
-> + * Copyright (C) 2000, 2001, 2002, 2007         Maciej W. Rozycki
-> + */
-> +#include <linux/init.h>
-> +#include <linux/acpi.h>
-> +#include <linux/dmi.h>
-> +#include <linux/efi.h>
-> +#include <linux/export.h>
-> +#include <linux/screen_info.h>
-> +#include <linux/memblock.h>
-> +#include <linux/initrd.h>
-> +#include <linux/ioport.h>
-> +#include <linux/root_dev.h>
-> +#include <linux/console.h>
-> +#include <linux/pfn.h>
-> +#include <linux/platform_device.h>
-> +#include <linux/sizes.h>
-> +#include <linux/device.h>
-> +#include <linux/dma-map-ops.h>
-> +#include <linux/swiotlb.h>
-> +
-> +#include <asm/addrspace.h>
-> +#include <asm/bootinfo.h>
-> +#include <asm/cache.h>
-> +#include <asm/cpu.h>
-> +#include <asm/dma.h>
-> +#include <asm/efi.h>
-> +#include <asm/fw.h>
-> +#include <asm/loongson.h>
-> +#include <asm/pgalloc.h>
-> +#include <asm/sections.h>
-> +#include <asm/setup.h>
-> +#include <asm/time.h>
-> +
-> +#define SMBIOS_BIOSSIZE_OFFSET         0x09
-> +#define SMBIOS_BIOSEXTERN_OFFSET       0x13
-> +#define SMBIOS_FREQLOW_OFFSET          0x16
-> +#define SMBIOS_FREQHIGH_OFFSET         0x17
-> +#define SMBIOS_FREQLOW_MASK            0xFF
-> +#define SMBIOS_CORE_PACKAGE_OFFSET     0x23
-> +#define LOONGSON_EFI_ENABLE            (1 << 3)
-> +
-> +#ifdef CONFIG_VT
-> +struct screen_info screen_info;
-> +#endif
-> +
-> +DEFINE_PER_CPU(unsigned long, kernelsp);
-> +unsigned long fw_arg0, fw_arg1, fw_arg2, fw_arg3;
-> +struct cpuinfo_loongarch cpu_data[NR_CPUS] __read_mostly;
-> +
-> +EXPORT_SYMBOL(cpu_data);
-> +
-> +struct loongson_board_info b_info;
-> +static const char dmi_empty_string[] = "        ";
-> +
-> +/*
-> + * Setup information
-> + *
-> + * These are initialized so they are in the .data section
-> + */
-> +
-> +char __initdata arcs_cmdline[COMMAND_LINE_SIZE];
-> +static char __initdata command_line[COMMAND_LINE_SIZE];
-> +
-> +static struct resource code_resource = { .name = "Kernel code", };
-> +static struct resource data_resource = { .name = "Kernel data", };
-> +static struct resource bss_resource = { .name = "Kernel bss", };
-> +
-> +const char *get_system_type(void)
-> +{
-> +       return "generic-loongson-machine";
-> +}
-> +
-> +static const char *dmi_string_parse(const struct dmi_header *dm, u8 s)
-> +{
-> +       const u8 *bp = ((u8 *) dm) + dm->length;
-> +
-> +       if (s) {
-> +               s--;
-> +               while (s > 0 && *bp) {
-> +                       bp += strlen(bp) + 1;
-> +                       s--;
-> +               }
-> +
-> +               if (*bp != 0) {
-> +                       size_t len = strlen(bp)+1;
-> +                       size_t cmp_len = len > 8 ? 8 : len;
-> +
-> +                       if (!memcmp(bp, dmi_empty_string, cmp_len))
-> +                               return dmi_empty_string;
-> +
-> +                       return bp;
-> +               }
-> +       }
-> +
-> +       return "";
-> +}
-> +
-> +static void __init parse_cpu_table(const struct dmi_header *dm)
-> +{
-> +       long freq_temp = 0;
-> +       char *dmi_data = (char *)dm;
-> +
-> +       freq_temp = ((*(dmi_data + SMBIOS_FREQHIGH_OFFSET) << 8) +
-> +                       ((*(dmi_data + SMBIOS_FREQLOW_OFFSET)) & SMBIOS_FREQLOW_MASK));
-> +       cpu_clock_freq = freq_temp * 1000000;
-> +
-> +       loongson_sysconf.cpuname = (void *)dmi_string_parse(dm, dmi_data[16]);
-> +       loongson_sysconf.cores_per_package = *(dmi_data + SMBIOS_CORE_PACKAGE_OFFSET);
-> +
-> +       pr_info("CpuClock = %llu\n", cpu_clock_freq);
-> +}
-> +
-> +static void __init parse_bios_table(const struct dmi_header *dm)
-> +{
-> +       int bios_extern;
-> +       char *dmi_data = (char *)dm;
-> +
-> +       bios_extern = *(dmi_data + SMBIOS_BIOSEXTERN_OFFSET);
-> +       b_info.bios_size = *(dmi_data + SMBIOS_BIOSSIZE_OFFSET);
-> +
-> +       if (bios_extern & LOONGSON_EFI_ENABLE)
-> +               set_bit(EFI_BOOT, &efi.flags);
-> +       else
-> +               clear_bit(EFI_BOOT, &efi.flags);
-> +}
-> +
-> +static void __init find_tokens(const struct dmi_header *dm, void *dummy)
-> +{
-> +       switch (dm->type) {
-> +       case 0x0: /* Extern BIOS */
-> +               parse_bios_table(dm);
-> +               break;
-> +       case 0x4: /* Calling interface */
-> +               parse_cpu_table(dm);
-> +               break;
-> +       }
-> +}
-> +static void __init smbios_parse(void)
-> +{
-> +       b_info.bios_vendor = (void *)dmi_get_system_info(DMI_BIOS_VENDOR);
-> +       b_info.bios_version = (void *)dmi_get_system_info(DMI_BIOS_VERSION);
-> +       b_info.bios_release_date = (void *)dmi_get_system_info(DMI_BIOS_DATE);
-> +       b_info.board_vendor = (void *)dmi_get_system_info(DMI_BOARD_VENDOR);
-> +       b_info.board_name = (void *)dmi_get_system_info(DMI_BOARD_NAME);
-> +       dmi_walk(find_tokens, NULL);
-> +}
-> +
-> +/*
-> + * Manage initrd
-> + */
-> +#ifdef CONFIG_BLK_DEV_INITRD
-> +
-> +static unsigned long __init init_initrd(void)
-> +{
-> +       if (!phys_initrd_start || !phys_initrd_size)
-> +               goto disable;
-> +
-> +       initrd_start = (unsigned long)phys_to_virt(phys_initrd_start);
-> +       initrd_end   = (unsigned long)phys_to_virt(phys_initrd_start + phys_initrd_size);
-> +
-> +       if (!initrd_start || initrd_end <= initrd_start)
-> +               goto disable;
-> +
-> +       if (initrd_start & ~PAGE_MASK) {
-> +               pr_err("initrd start must be page aligned\n");
-> +               goto disable;
-> +       }
-> +       if (initrd_start < PAGE_OFFSET) {
-> +               pr_err("initrd start < PAGE_OFFSET\n");
-> +               goto disable;
-> +       }
-> +
-> +       ROOT_DEV = Root_RAM0;
-> +
-> +       return 0;
-> +disable:
-> +       initrd_start = 0;
-> +       initrd_end = 0;
-> +       return 0;
-> +}
-> +
-> +static void __init finalize_initrd(void)
-> +{
-> +       unsigned long size = initrd_end - initrd_start;
-> +
-> +       if (size == 0) {
-> +               pr_info("Initrd not found or empty");
-> +               goto disable;
-> +       }
-> +       if (__pa(initrd_end) > PFN_PHYS(max_low_pfn)) {
-> +               pr_err("Initrd extends beyond end of memory");
-> +               goto disable;
-> +       }
-> +
-> +
-> +       memblock_reserve(__pa(initrd_start), size);
-> +       initrd_below_start_ok = 1;
-> +
-> +       pr_info("Initial ramdisk at: 0x%lx (%lu bytes)\n",
-> +               initrd_start, size);
-> +       return;
-> +disable:
-> +       pr_cont(" - disabling initrd\n");
-> +       initrd_start = 0;
-> +       initrd_end = 0;
-> +}
-> +
-> +#else  /* !CONFIG_BLK_DEV_INITRD */
-> +
-> +static unsigned long __init init_initrd(void)
-> +{
-> +       return 0;
-> +}
-> +
-> +#define finalize_initrd()      do {} while (0)
-> +
-> +#endif
-> +
-> +static int usermem __initdata;
-> +
-> +static int __init early_parse_mem(char *p)
-> +{
-> +       phys_addr_t start, size;
-> +
-> +       /*
-> +        * If a user specifies memory size, we
-> +        * blow away any automatically generated
-> +        * size.
-> +        */
-> +       if (usermem == 0) {
-> +               usermem = 1;
-> +               memblock_remove(memblock_start_of_DRAM(),
-> +                       memblock_end_of_DRAM() - memblock_start_of_DRAM());
-> +       }
-> +       start = 0;
-> +       size = memparse(p, &p);
-> +       if (*p == '@')
-> +               start = memparse(p + 1, &p);
-> +
-> +       memblock_add(start, size);
-> +
-> +       return 0;
-> +}
-> +early_param("mem", early_parse_mem);
-> +
-> +static int __init early_parse_memmap(char *p)
-> +{
-> +       char *oldp;
-> +       u64 start_at, mem_size;
-> +
-> +       if (!p)
-> +               return -EINVAL;
-> +
-> +       if (!strncmp(p, "exactmap", 8)) {
-> +               pr_err("\"memmap=exactmap\" invalid on LoongArch\n");
-> +               return 0;
-> +       }
-> +
-> +       oldp = p;
-> +       mem_size = memparse(p, &p);
-> +       if (p == oldp)
-> +               return -EINVAL;
-> +
-> +       if (*p == '@') {
-> +               start_at = memparse(p+1, &p);
-> +               memblock_add(start_at, mem_size);
-> +       } else if (*p == '#') {
-> +               pr_err("\"memmap=nn#ss\" (force ACPI data) invalid on LoongArch\n");
-> +               return -EINVAL;
-> +       } else if (*p == '$') {
-> +               start_at = memparse(p+1, &p);
-> +               memblock_add(start_at, mem_size);
-> +               memblock_reserve(start_at, mem_size);
-> +       } else {
-> +               pr_err("\"memmap\" invalid format!\n");
-> +               return -EINVAL;
-> +       }
-> +
-> +       if (*p == '\0') {
-> +               usermem = 1;
-> +               return 0;
-> +       } else
-> +               return -EINVAL;
-> +}
-> +early_param("memmap", early_parse_memmap);
-> +
-> +static void __init check_kernel_sections_mem(void)
-> +{
-> +       phys_addr_t start = __pa_symbol(&_text);
-> +       phys_addr_t size = __pa_symbol(&_end) - start;
-> +
-> +       if (!memblock_is_region_memory(start, size)) {
-> +               pr_info("Kernel sections are not in the memory maps\n");
-> +               memblock_add(start, size);
-> +       }
-> +}
-> +
-> +static void __init bootcmdline_append(const char *s, size_t max)
-> +{
-> +       if (!s[0] || !max)
-> +               return;
-> +
-> +       if (boot_command_line[0])
-> +               strlcat(boot_command_line, " ", COMMAND_LINE_SIZE);
-> +
-> +       strlcat(boot_command_line, s, max);
-> +}
-> +
-> +static void __init bootcmdline_init(char **cmdline_p)
-> +{
-> +       boot_command_line[0] = 0;
-> +
-> +       /*
-> +        * Take arguments from the bootloader at first. Early code should have
-> +        * filled arcs_cmdline with arguments from the bootloader.
-> +        */
-> +       bootcmdline_append(arcs_cmdline, COMMAND_LINE_SIZE);
-> +
-> +       strlcpy(command_line, boot_command_line, COMMAND_LINE_SIZE);
-> +       *cmdline_p = command_line;
-> +
-> +       parse_early_param();
-> +}
-> +
-> +/*
-> + * arch_mem_init - initialize memory management subsystem
-> + */
-> +static void __init arch_mem_init(char **cmdline_p)
-> +{
-> +       if (usermem)
-> +               pr_info("User-defined physical RAM map overwrite\n");
-> +
-> +       check_kernel_sections_mem();
-> +
-> +       memblock_set_node(0, PHYS_ADDR_MAX, &memblock.memory, 0);
-> +       pagetable_init();
-> +
-> +       /*
-> +        * Prevent memblock from allocating high memory.
-> +        * This cannot be done before max_low_pfn is detected, so up
-> +        * to this point is possible to only reserve physical memory
-> +        * with memblock_reserve; memblock_alloc* can be used
-> +        * only after this point
-> +        */
-> +       memblock_set_current_limit(PFN_PHYS(max_low_pfn));
-> +
-> +       /*
-> +        * In order to reduce the possibility of kernel panic when failed to
-> +        * get IO TLB memory under CONFIG_SWIOTLB, it is better to allocate
-> +        * low memory as small as possible before plat_swiotlb_setup(), so
-> +        * make sparse_init() using top-down allocation.
-> +        */
-> +       memblock_set_bottom_up(false);
-> +       sparse_init();
-> +       memblock_set_bottom_up(true);
-> +
-> +       swiotlb_init(1);
-> +
-> +       dma_contiguous_reserve(PFN_PHYS(max_low_pfn));
-> +
-> +       memblock_dump_all();
-> +
-> +       early_memtest(PFN_PHYS(ARCH_PFN_OFFSET), PFN_PHYS(max_low_pfn));
-> +}
-> +
-> +static void __init resource_init(void)
-> +{
-> +       u64 i;
-> +       phys_addr_t start, end;
-> +
-> +       code_resource.start = __pa_symbol(&_text);
-> +       code_resource.end = __pa_symbol(&_etext) - 1;
-> +       data_resource.start = __pa_symbol(&_etext);
-> +       data_resource.end = __pa_symbol(&_edata) - 1;
-> +       bss_resource.start = __pa_symbol(&__bss_start);
-> +       bss_resource.end = __pa_symbol(&__bss_stop) - 1;
-> +
-> +       for_each_mem_range(i, &start, &end) {
-> +               struct resource *res;
-> +
-> +               res = memblock_alloc(sizeof(struct resource), SMP_CACHE_BYTES);
-> +               if (!res)
-> +                       panic("%s: Failed to allocate %zu bytes\n", __func__,
-> +                             sizeof(struct resource));
-> +
-> +               res->start = start;
-> +               /*
-> +                * In memblock, end points to the first byte after the
-> +                * range while in resourses, end points to the last byte in
-> +                * the range.
-> +                */
-> +               res->end = end - 1;
-> +               res->flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
-> +               res->name = "System RAM";
-> +
-> +               request_resource(&iomem_resource, res);
-> +
-> +               /*
-> +                *  We don't know which RAM region contains kernel data,
-> +                *  so we try it repeatedly and let the resource manager
-> +                *  test it.
-> +                */
-> +               request_resource(res, &code_resource);
-> +               request_resource(res, &data_resource);
-> +               request_resource(res, &bss_resource);
-> +       }
-> +}
-> +
-> +void __init platform_init(void)
-> +{
-> +       efi_init();
-> +#ifdef CONFIG_ACPI_TABLE_UPGRADE
-> +       acpi_table_upgrade();
-> +#endif
-> +#ifdef CONFIG_ACPI
-> +       acpi_gbl_use_default_register_widths = false;
-> +       acpi_boot_table_init();
-> +       acpi_boot_init();
-> +#endif
-> +
-> +       fw_init_memory();
-> +       dmi_setup();
-> +       smbios_parse();
-> +       pr_info("The BIOS Version: %s\n", b_info.bios_version);
-> +
-> +       efi_runtime_init();
-> +}
-> +
-> +void __init setup_arch(char **cmdline_p)
-> +{
-> +       cpu_probe();
-> +
-> +       fw_init_cmdline();
-> +       fw_init_environ();
-> +       early_memblock_init();
-> +       bootcmdline_init(cmdline_p);
-> +
-> +       init_initrd();
-> +       platform_init();
-> +       finalize_initrd();
-> +
-> +       arch_mem_init(cmdline_p);
-> +
-> +       resource_init();
-> +
-> +       paging_init();
-> +}
-> +
-> +static int __init register_gop_device(void)
-> +{
-> +       void *pd;
-> +
-> +       if (screen_info.orig_video_isVGA != VIDEO_TYPE_EFI)
-> +               return 0;
-> +       pd = platform_device_register_data(NULL, "efi-framebuffer", 0,
-> +                       &screen_info, sizeof(screen_info));
-> +       return PTR_ERR_OR_ZERO(pd);
-> +}
-> +subsys_initcall(register_gop_device);
-> diff --git a/arch/loongarch/kernel/time.c b/arch/loongarch/kernel/time.c
-> new file mode 100644
-> index 000000000000..2e00802a3742
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/time.c
-> @@ -0,0 +1,237 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * Common time service routines for LoongArch machines.
-> + *
-> + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> + */
-> +#include <linux/clockchips.h>
-> +#include <linux/delay.h>
-> +#include <linux/export.h>
-> +#include <linux/init.h>
-> +#include <linux/interrupt.h>
-> +#include <linux/kernel.h>
-> +#include <linux/sched_clock.h>
-> +#include <linux/spinlock.h>
-> +
-> +#include <asm/cpu-features.h>
-> +#include <asm/loongarch.h>
-> +#include <asm/time.h>
-> +
-> +u64 cpu_clock_freq;
-> +EXPORT_SYMBOL(cpu_clock_freq);
-> +u64 const_clock_freq;
-> +EXPORT_SYMBOL(const_clock_freq);
-> +
-> +static DEFINE_RAW_SPINLOCK(state_lock);
-> +static DEFINE_PER_CPU(struct clock_event_device, constant_clockevent_device);
-> +
-> +static void constant_event_handler(struct clock_event_device *dev)
-> +{
-> +}
-> +
-> +irqreturn_t constant_timer_interrupt(int irq, void *data)
-> +{
-> +       int cpu = smp_processor_id();
-> +       struct clock_event_device *cd;
-> +
-> +       /* Clear Timer Interrupt */
-> +       write_csr_tintclear(CSR_TINTCLR_TI);
-> +       cd = &per_cpu(constant_clockevent_device, cpu);
-> +       cd->event_handler(cd);
-> +
-> +       return IRQ_HANDLED;
-> +}
-> +
-> +static int constant_set_state_oneshot(struct clock_event_device *evt)
-> +{
-> +       unsigned long timer_config;
-> +
-> +       raw_spin_lock(&state_lock);
-> +
-> +       timer_config = csr_readq(LOONGARCH_CSR_TCFG);
-> +       timer_config |= CSR_TCFG_EN;
-> +       timer_config &= ~CSR_TCFG_PERIOD;
-> +       csr_writeq(timer_config, LOONGARCH_CSR_TCFG);
-> +
-> +       raw_spin_unlock(&state_lock);
-> +
-> +       return 0;
-> +}
-> +
-> +static int constant_set_state_oneshot_stopped(struct clock_event_device *evt)
-> +{
-> +       unsigned long timer_config;
-> +
-> +       raw_spin_lock(&state_lock);
-> +
-> +       timer_config = csr_readq(LOONGARCH_CSR_TCFG);
-> +       timer_config &= ~CSR_TCFG_EN;
-> +       csr_writeq(timer_config, LOONGARCH_CSR_TCFG);
-> +
-> +       raw_spin_unlock(&state_lock);
-> +
-> +       return 0;
-> +}
-> +
-> +static int constant_set_state_periodic(struct clock_event_device *evt)
-> +{
-> +       unsigned long period;
-> +       unsigned long timer_config;
-> +
-> +       raw_spin_lock(&state_lock);
-> +
-> +       period = const_clock_freq / HZ;
-> +       timer_config = period & CSR_TCFG_VAL;
-> +       timer_config |= (CSR_TCFG_PERIOD | CSR_TCFG_EN);
-> +       csr_writeq(timer_config, LOONGARCH_CSR_TCFG);
-> +
-> +       raw_spin_unlock(&state_lock);
-> +
-> +       return 0;
-> +}
-> +
-> +static int constant_set_state_shutdown(struct clock_event_device *evt)
-> +{
-> +       return 0;
-> +}
-> +
-> +static int constant_timer_next_event(unsigned long delta, struct clock_event_device *evt)
-> +{
-> +       unsigned long timer_config;
-> +
-> +       delta &= CSR_TCFG_VAL;
-> +       timer_config = delta | CSR_TCFG_EN;
-> +       csr_writeq(timer_config, LOONGARCH_CSR_TCFG);
-> +
-> +       return 0;
-> +}
-> +
-> +static unsigned long __init get_loops_per_jiffy(void)
-> +{
-> +       unsigned long lpj = (unsigned long)const_clock_freq;
-> +
-> +       do_div(lpj, HZ);
-> +
-> +       return lpj;
-> +}
-> +
-> +static long init_timeval;
-> +
-> +void sync_counter(void)
-> +{
-> +       /* Ensure counter begin at 0 */
-> +       csr_writeq(-init_timeval, LOONGARCH_CSR_CNTC);
-> +}
-> +
-> +int constant_clockevent_init(void)
-> +{
-> +       unsigned int irq;
-> +       unsigned int cpu = smp_processor_id();
-> +       unsigned long min_delta = 0x600;
-> +       unsigned long max_delta = (1UL << 48) - 1;
-> +       struct clock_event_device *cd;
-> +       static int timer_irq_installed = 0;
-> +
-> +       irq = get_timer_irq();
-> +
-> +       cd = &per_cpu(constant_clockevent_device, cpu);
-> +
-> +       cd->name = "Constant";
-> +       cd->features = CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_PERCPU;
-> +
-> +       cd->irq = irq;
-> +       cd->rating = 320;
-> +       cd->cpumask = cpumask_of(cpu);
-> +       cd->set_state_oneshot = constant_set_state_oneshot;
-> +       cd->set_state_oneshot_stopped = constant_set_state_oneshot_stopped;
-> +       cd->set_state_periodic = constant_set_state_periodic;
-> +       cd->set_state_shutdown = constant_set_state_shutdown;
-> +       cd->set_next_event = constant_timer_next_event;
-> +       cd->event_handler = constant_event_handler;
-> +
-> +       clockevents_config_and_register(cd, const_clock_freq, min_delta, max_delta);
-> +
-> +       if (timer_irq_installed)
-> +               return 0;
-> +
-> +       timer_irq_installed = 1;
-> +
-> +       sync_counter();
-> +
-> +       if (request_irq(irq, constant_timer_interrupt, IRQF_PERCPU | IRQF_TIMER, "timer", NULL))
-> +               pr_err("Failed to request irq %d (timer)\n", irq);
-> +
-> +       lpj_fine = get_loops_per_jiffy();
-> +       pr_info("Constant clock event device register\n");
-> +
-> +       return 0;
-> +}
-> +
-> +static u64 read_const_counter(struct clocksource *clk)
-> +{
-> +       return drdtime();
-> +}
-> +
-> +static struct clocksource clocksource_const = {
-> +       .name = "Constant",
-> +       .rating = 400,
-> +       .read = read_const_counter,
-> +       .mask = CLOCKSOURCE_MASK(64),
-> +       .flags = CLOCK_SOURCE_IS_CONTINUOUS,
-> +       .mult = 0,
-> +       .shift = 10,
-> +};
-> +
-> +unsigned long long notrace sched_clock(void)
-> +{
-> +       /* 64-bit arithmetic can overflow, so use 128-bit. */
-> +       u64 t1, t2, t3;
-> +       unsigned long long rv;
-> +       u64 mult = clocksource_const.mult;
-> +       u64 shift = clocksource_const.shift;
-> +       u64 cnt = read_const_counter(NULL);
-> +
-> +       __asm__ (
-> +               "nor            %[t1], $r0, %[shift]    \n\t"
-> +               "mulh.du        %[t2], %[cnt], %[mult]  \n\t"
-> +               "mul.d          %[t3], %[cnt], %[mult]  \n\t"
-> +               "slli.d         %[t2], %[t2], 1         \n\t"
-> +               "srl.d          %[rv], %[t3], %[shift]  \n\t"
-> +               "sll.d          %[t1], %[t2], %[t1]     \n\t"
-> +               "or             %[rv], %[t1], %[rv]     \n\t"
-> +               : [rv] "=&r" (rv), [t1] "=&r" (t1), [t2] "=&r" (t2), [t3] "=&r" (t3)
-> +               : [cnt] "r" (cnt), [mult] "r" (mult), [shift] "r" (shift)
-> +               : );
-> +
-> +       return rv;
-> +}
-> +
-> +int __init constant_clocksource_init(void)
-> +{
-> +       int res;
-> +       unsigned long freq;
-> +
-> +       freq = const_clock_freq;
-> +
-> +       clocksource_const.mult =
-> +               clocksource_hz2mult(freq, clocksource_const.shift);
-> +
-> +       res = clocksource_register_hz(&clocksource_const, freq);
-> +
-> +       pr_info("Constant clock source device register\n");
-> +
-> +       return res;
-> +}
-> +
-> +void __init time_init(void)
-> +{
-> +       if (!cpu_has_cpucfg)
-> +               const_clock_freq = cpu_clock_freq;
-> +       else
-> +               const_clock_freq = calc_const_freq();
-> +
-> +       init_timeval = drdtime() - csr_readq(LOONGARCH_CSR_CNTC);
-> +
-> +       constant_clockevent_init();
-> +       constant_clocksource_init();
-> +}
-> diff --git a/arch/loongarch/kernel/topology.c b/arch/loongarch/kernel/topology.c
-> new file mode 100644
-> index 000000000000..3b2cbb95875b
-> --- /dev/null
-> +++ b/arch/loongarch/kernel/topology.c
-> @@ -0,0 +1,13 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +#include <linux/cpu.h>
-> +#include <linux/init.h>
-> +#include <linux/percpu.h>
-> +
-> +static struct cpu cpu_device;
-> +
-> +static int __init topology_init(void)
-> +{
-> +       return register_cpu(&cpu_device, 0);
-> +}
-> +
-> +subsys_initcall(topology_init);
-> --
-> 2.27.0
->
+diff --git a/arch/loongarch/include/asm/cpufeature.h b/arch/loongarch/include/asm/cpufeature.h
+new file mode 100644
+index 000000000000..7e4c6a769830
+--- /dev/null
++++ b/arch/loongarch/include/asm/cpufeature.h
+@@ -0,0 +1,24 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * CPU feature definitions for module loading, used by
++ * module_cpu_feature_match(), see uapi/asm/hwcap.h for LoongArch CPU features.
++ *
++ * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
++ */
++
++#ifndef __ASM_CPUFEATURE_H
++#define __ASM_CPUFEATURE_H
++
++#include <uapi/asm/hwcap.h>
++#include <asm/elf.h>
++
++#define MAX_CPU_FEATURES (8 * sizeof(elf_hwcap))
++
++#define cpu_feature(x)		ilog2(HWCAP_ ## x)
++
++static inline bool cpu_have_feature(unsigned int num)
++{
++	return elf_hwcap & (1UL << num);
++}
++
++#endif /* __ASM_CPUFEATURE_H */
+diff --git a/arch/loongarch/include/asm/elf.h b/arch/loongarch/include/asm/elf.h
+new file mode 100644
+index 000000000000..36380746de02
+--- /dev/null
++++ b/arch/loongarch/include/asm/elf.h
+@@ -0,0 +1,306 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_ELF_H
++#define _ASM_ELF_H
++
++#include <linux/auxvec.h>
++#include <linux/fs.h>
++#include <linux/mm_types.h>
++
++#include <uapi/linux/elf.h>
++
++#include <asm/current.h>
++#include <asm/vdso.h>
++
++/* ELF header e_flags defines. */
++
++/* The ABI of a file. */
++#define EF_LARCH_ABI_LP32		0x00000001	/* LP32 ABI.  */
++#define EF_LARCH_ABI_LPX32		0x00000002	/* LPX32 ABI  */
++#define EF_LARCH_ABI_LP64		0x00000003	/* LP64 ABI  */
++#define EF_LARCH_ABI			0x00000003
++
++/* LoongArch relocation types used by the dynamic linker */
++#define R_LARCH_NONE				0
++#define R_LARCH_32				1
++#define R_LARCH_64				2
++#define R_LARCH_RELATIVE			3
++#define R_LARCH_COPY				4
++#define R_LARCH_JUMP_SLOT			5
++#define R_LARCH_TLS_DTPMOD32			6
++#define R_LARCH_TLS_DTPMOD64			7
++#define R_LARCH_TLS_DTPREL32			8
++#define R_LARCH_TLS_DTPREL64			9
++#define R_LARCH_TLS_TPREL32			10
++#define R_LARCH_TLS_TPREL64			11
++#define R_LARCH_IRELATIVE			12
++#define R_LARCH_MARK_LA				20
++#define R_LARCH_MARK_PCREL			21
++#define R_LARCH_SOP_PUSH_PCREL			22
++#define R_LARCH_SOP_PUSH_ABSOLUTE		23
++#define R_LARCH_SOP_PUSH_DUP			24
++#define R_LARCH_SOP_PUSH_GPREL			25
++#define R_LARCH_SOP_PUSH_TLS_TPREL		26
++#define R_LARCH_SOP_PUSH_TLS_GOT		27
++#define R_LARCH_SOP_PUSH_TLS_GD			28
++#define R_LARCH_SOP_PUSH_PLT_PCREL		29
++#define R_LARCH_SOP_ASSERT			30
++#define R_LARCH_SOP_NOT				31
++#define R_LARCH_SOP_SUB				32
++#define R_LARCH_SOP_SL				33
++#define R_LARCH_SOP_SR				34
++#define R_LARCH_SOP_ADD				35
++#define R_LARCH_SOP_AND				36
++#define R_LARCH_SOP_IF_ELSE			37
++#define R_LARCH_SOP_POP_32_S_10_5		38
++#define R_LARCH_SOP_POP_32_U_10_12		39
++#define R_LARCH_SOP_POP_32_S_10_12		40
++#define R_LARCH_SOP_POP_32_S_10_16		41
++#define R_LARCH_SOP_POP_32_S_10_16_S2		42
++#define R_LARCH_SOP_POP_32_S_5_20		43
++#define R_LARCH_SOP_POP_32_S_0_5_10_16_S2	44
++#define R_LARCH_SOP_POP_32_S_0_10_10_16_S2	45
++#define R_LARCH_SOP_POP_32_U			46
++#define R_LARCH_ADD8				47
++#define R_LARCH_ADD16				48
++#define R_LARCH_ADD24				49
++#define R_LARCH_ADD32				50
++#define R_LARCH_ADD64				51
++#define R_LARCH_SUB8				52
++#define R_LARCH_SUB16				53
++#define R_LARCH_SUB24				54
++#define R_LARCH_SUB32				55
++#define R_LARCH_SUB64				56
++#define R_LARCH_GNU_VTINHERIT			57
++#define R_LARCH_GNU_VTENTRY			58
++
++#ifndef ELF_ARCH
++
++/* ELF register definitions */
++
++/*
++ * General purpose have the following registers:
++ *	Register	Number
++ *	GPRs		32
++ *	EPC		1
++ *	BADVADDR	1
++ *	CRMD		1
++ *	PRMD		1
++ *	EUEN		1
++ *	ECFG		1
++ *	ESTAT		1
++ *	Reserved	6
++ */
++#define ELF_NGREG	45
++
++/*
++ * Floating point have the following registers:
++ *	Register	Number
++ *	FPR		32
++ *	FCC		1
++ *	FCSR		1
++ */
++#define ELF_NFPREG	34
++
++typedef unsigned long elf_greg_t;
++typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++
++typedef double elf_fpreg_t;
++typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
++
++void loongarch_dump_regs64(u64 *uregs, const struct pt_regs *regs);
++
++#ifdef CONFIG_32BIT
++/*
++ * This is used to ensure we don't load something for the wrong architecture.
++ */
++#define elf_check_arch elf32_check_arch
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_CLASS	ELFCLASS32
++
++#define ELF_CORE_COPY_REGS(dest, regs) \
++	loongarch_dump_regs32((u32 *)&(dest), (regs));
++
++#endif /* CONFIG_32BIT */
++
++#ifdef CONFIG_64BIT
++/*
++ * This is used to ensure we don't load something for the wrong architecture.
++ */
++#define elf_check_arch elf64_check_arch
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_CLASS	ELFCLASS64
++
++#define ELF_CORE_COPY_REGS(dest, regs) \
++	loongarch_dump_regs64((u64 *)&(dest), (regs));
++
++#endif /* CONFIG_64BIT */
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_DATA	ELFDATA2LSB
++#define ELF_ARCH	EM_LOONGARCH
++
++#endif /* !defined(ELF_ARCH) */
++
++#define loongarch_elf_check_machine(x) ((x)->e_machine == EM_LOONGARCH)
++
++#define vmcore_elf32_check_arch loongarch_elf_check_machine
++#define vmcore_elf64_check_arch loongarch_elf_check_machine
++
++/*
++ * Return non-zero if HDR identifies an 32bit ELF binary.
++ */
++#define elf32_check_arch(hdr)						\
++({									\
++	int __res = 1;							\
++	struct elfhdr *__h = (hdr);					\
++									\
++	if (!loongarch_elf_check_machine(__h))				\
++		__res = 0;						\
++	if (__h->e_ident[EI_CLASS] != ELFCLASS32)			\
++		__res = 0;						\
++									\
++	__res;								\
++})
++
++/*
++ * Return non-zero if HDR identifies an 64bit ELF binary.
++ */
++#define elf64_check_arch(hdr)						\
++({									\
++	int __res = 1;							\
++	struct elfhdr *__h = (hdr);					\
++									\
++	if (!loongarch_elf_check_machine(__h))				\
++		__res = 0;						\
++	if (__h->e_ident[EI_CLASS] != ELFCLASS64)			\
++		__res = 0;						\
++									\
++	__res;								\
++})
++
++#ifdef CONFIG_32BIT
++
++#define SET_PERSONALITY2(ex, state)					\
++do {									\
++	current->thread.vdso = &vdso_info;				\
++									\
++	loongarch_set_personality_fcsr(state);				\
++									\
++	if (personality(current->personality) != PER_LINUX)		\
++		set_personality(PER_LINUX);				\
++} while (0)
++
++#endif /* CONFIG_32BIT */
++
++#ifdef CONFIG_64BIT
++
++#define SET_PERSONALITY2(ex, state)					\
++do {									\
++	unsigned int p;							\
++									\
++	clear_thread_flag(TIF_32BIT_REGS);				\
++	clear_thread_flag(TIF_32BIT_ADDR);				\
++									\
++	current->thread.vdso = &vdso_info;				\
++	loongarch_set_personality_fcsr(state);				\
++									\
++	p = personality(current->personality);				\
++	if (p != PER_LINUX32 && p != PER_LINUX)				\
++		set_personality(PER_LINUX);				\
++} while (0)
++
++#endif /* CONFIG_64BIT */
++
++#define CORE_DUMP_USE_REGSET
++#define ELF_EXEC_PAGESIZE	PAGE_SIZE
++
++/*
++ * This yields a mask that user programs can use to figure out what
++ * instruction set this cpu supports. This could be done in userspace,
++ * but it's not easy, and we've already done it here.
++ */
++
++#define ELF_HWCAP	(elf_hwcap)
++extern unsigned int elf_hwcap;
++#include <asm/hwcap.h>
++
++/*
++ * This yields a string that ld.so will use to load implementation
++ * specific libraries for optimization.	 This is more specific in
++ * intent than poking at uname or /proc/cpuinfo.
++ */
++
++#define ELF_PLATFORM  __elf_platform
++extern const char *__elf_platform;
++
++/* The regs[11] (a7) holds the syscall number and should not cleared */
++#define ELF_PLAT_INIT(_r, load_addr)	do { \
++	_r->regs[1] = _r->regs[2] = _r->regs[3] = _r->regs[4] = 0;	\
++	_r->regs[5] = _r->regs[6] = _r->regs[7] = _r->regs[8] = 0;	\
++	_r->regs[9] = _r->regs[10] = _r->regs[12] = _r->regs[13] = 0;	\
++	_r->regs[14] = _r->regs[15] = _r->regs[16] = _r->regs[17] = 0;	\
++	_r->regs[18] = _r->regs[19] = _r->regs[20] = _r->regs[21] = 0;	\
++	_r->regs[22] = _r->regs[23] = _r->regs[24] = _r->regs[25] = 0;	\
++	_r->regs[26] = _r->regs[27] = _r->regs[28] = _r->regs[29] = 0;	\
++	_r->regs[30] = _r->regs[31] = 0;				\
++} while (0)
++
++/*
++ * This is the location that an ET_DYN program is loaded if exec'ed. Typical
++ * use of this is to invoke "./ld.so someprog" to test out a new version of
++ * the loader. We need to make sure that it is out of the way of the program
++ * that it will "exec", and that there is sufficient room for the brk.
++ */
++
++#ifndef ELF_ET_DYN_BASE
++#define ELF_ET_DYN_BASE		(TASK_SIZE / 3 * 2)
++#endif
++
++/* update AT_VECTOR_SIZE_ARCH if the number of NEW_AUX_ENT entries changes */
++#define ARCH_DLINFO							\
++do {									\
++	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
++		    (unsigned long)current->mm->context.vdso);		\
++} while (0)
++
++#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
++struct linux_binprm;
++extern int arch_setup_additional_pages(struct linux_binprm *bprm,
++				       int uses_interp);
++
++struct arch_elf_state {
++	int fp_abi;
++	int interp_fp_abi;
++};
++
++#define LOONGARCH_ABI_FP_ANY	(0)
++
++#define INIT_ARCH_ELF_STATE {			\
++	.fp_abi = LOONGARCH_ABI_FP_ANY,		\
++	.interp_fp_abi = LOONGARCH_ABI_FP_ANY,	\
++}
++
++
++extern int arch_elf_pt_proc(void *ehdr, void *phdr, struct file *elf,
++			    bool is_interp, struct arch_elf_state *state);
++
++extern int arch_check_elf(void *ehdr, bool has_interpreter, void *interp_ehdr,
++			  struct arch_elf_state *state);
++
++extern void loongarch_set_personality_fcsr(struct arch_elf_state *state);
++
++#define elf_read_implies_exec(ex, stk) loongarch_elf_read_implies_exec(&(ex), stk)
++extern int loongarch_elf_read_implies_exec(void *elf_ex, int exstack);
++
++#endif /* _ASM_ELF_H */
+diff --git a/arch/loongarch/include/asm/exec.h b/arch/loongarch/include/asm/exec.h
+new file mode 100644
+index 000000000000..00df07ce3529
+--- /dev/null
++++ b/arch/loongarch/include/asm/exec.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_EXEC_H
++#define _ASM_EXEC_H
++
++extern unsigned long arch_align_stack(unsigned long sp);
++
++#endif /* _ASM_EXEC_H */
+diff --git a/arch/loongarch/include/asm/module.h b/arch/loongarch/include/asm/module.h
+new file mode 100644
+index 000000000000..6df72c6228e0
+--- /dev/null
++++ b/arch/loongarch/include/asm/module.h
+@@ -0,0 +1,15 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_MODULE_H
++#define _ASM_MODULE_H
++
++#include <asm-generic/module.h>
++
++#define RELA_STACK_DEPTH 16
++
++struct mod_arch_specific {
++};
++
++#endif /* _ASM_MODULE_H */
+diff --git a/arch/loongarch/include/asm/vermagic.h b/arch/loongarch/include/asm/vermagic.h
+new file mode 100644
+index 000000000000..9882dfd4702a
+--- /dev/null
++++ b/arch/loongarch/include/asm/vermagic.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
++
++#define MODULE_PROC_FAMILY "LOONGARCH "
++
++#ifdef CONFIG_32BIT
++#define MODULE_KERNEL_TYPE "32BIT "
++#elif defined CONFIG_64BIT
++#define MODULE_KERNEL_TYPE "64BIT "
++#endif
++
++#define MODULE_ARCH_VERMAGIC \
++	MODULE_PROC_FAMILY MODULE_KERNEL_TYPE
++
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/loongarch/include/uapi/asm/auxvec.h b/arch/loongarch/include/uapi/asm/auxvec.h
+new file mode 100644
+index 000000000000..5a2200fd75bf
+--- /dev/null
++++ b/arch/loongarch/include/uapi/asm/auxvec.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
++/*
++ * Author: Hanlu Li <lihanlu@loongson.cn>
++ *         Huacai Chen <chenhuacai@loongson.cn>
++ *
++ * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
++ */
++
++#ifndef __ASM_AUXVEC_H
++#define __ASM_AUXVEC_H
++
++/* Location of VDSO image. */
++#define AT_SYSINFO_EHDR		33
++
++#define AT_VECTOR_SIZE_ARCH 1 /* entries in ARCH_DLINFO */
++
++#endif /* __ASM_AUXVEC_H */
+diff --git a/arch/loongarch/include/uapi/asm/hwcap.h b/arch/loongarch/include/uapi/asm/hwcap.h
+new file mode 100644
+index 000000000000..8840b72fa8e8
+--- /dev/null
++++ b/arch/loongarch/include/uapi/asm/hwcap.h
+@@ -0,0 +1,20 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++#ifndef _UAPI_ASM_HWCAP_H
++#define _UAPI_ASM_HWCAP_H
++
++/* HWCAP flags */
++#define HWCAP_LOONGARCH_CPUCFG		(1 << 0)
++#define HWCAP_LOONGARCH_LAM		(1 << 1)
++#define HWCAP_LOONGARCH_UAL		(1 << 2)
++#define HWCAP_LOONGARCH_FPU		(1 << 3)
++#define HWCAP_LOONGARCH_LSX		(1 << 4)
++#define HWCAP_LOONGARCH_LASX		(1 << 5)
++#define HWCAP_LOONGARCH_CRC32		(1 << 6)
++#define HWCAP_LOONGARCH_COMPLEX		(1 << 7)
++#define HWCAP_LOONGARCH_CRYPTO		(1 << 8)
++#define HWCAP_LOONGARCH_LVZ		(1 << 9)
++#define HWCAP_LOONGARCH_LBT_X86		(1 << 10)
++#define HWCAP_LOONGARCH_LBT_ARM		(1 << 11)
++#define HWCAP_LOONGARCH_LBT_MIPS	(1 << 12)
++
++#endif /* _UAPI_ASM_HWCAP_H */
+diff --git a/arch/loongarch/kernel/elf.c b/arch/loongarch/kernel/elf.c
+new file mode 100644
+index 000000000000..072dfd40f0b5
+--- /dev/null
++++ b/arch/loongarch/kernel/elf.c
+@@ -0,0 +1,41 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Author: Huacai Chen <chenhuacai@loongson.cn>
++ * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
++ */
++
++#include <linux/binfmts.h>
++#include <linux/elf.h>
++#include <linux/export.h>
++#include <linux/sched.h>
++
++#include <asm/cpu-features.h>
++#include <asm/cpu-info.h>
++
++int arch_elf_pt_proc(void *_ehdr, void *_phdr, struct file *elf,
++		     bool is_interp, struct arch_elf_state *state)
++{
++	return 0;
++}
++
++int arch_check_elf(void *_ehdr, bool has_interpreter, void *_interp_ehdr,
++		   struct arch_elf_state *state)
++{
++	return 0;
++}
++
++void loongarch_set_personality_fcsr(struct arch_elf_state *state)
++{
++	current->thread.fpu.fcsr = boot_cpu_data.fpu_csr0;
++}
++
++int loongarch_elf_read_implies_exec(void *elf_ex, int exstack)
++{
++	if (exstack != EXSTACK_DISABLE_X) {
++		/* The binary doesn't request a non-executable stack */
++		return 1;
++	}
++
++	return 0;
++}
++EXPORT_SYMBOL(loongarch_elf_read_implies_exec);
+diff --git a/arch/loongarch/kernel/module.c b/arch/loongarch/kernel/module.c
+new file mode 100644
+index 000000000000..af7c403b032b
+--- /dev/null
++++ b/arch/loongarch/kernel/module.c
+@@ -0,0 +1,652 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Author: Hanlu Li <lihanlu@loongson.cn>
++ *         Huacai Chen <chenhuacai@loongson.cn>
++ *
++ * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
++ */
++
++#undef DEBUG
++
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/mm.h>
++#include <linux/vmalloc.h>
++#include <linux/slab.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++#include <linux/kernel.h>
++
++static int rela_stack_push(s64 stack_value, s64 *rela_stack, size_t *rela_stack_top)
++{
++	if (*rela_stack_top >= RELA_STACK_DEPTH)
++		return -ENOEXEC;
++
++	rela_stack[(*rela_stack_top)++] = stack_value;
++	pr_debug("%s stack_value = 0x%llx\n", __func__, stack_value);
++
++	return 0;
++}
++
++static int rela_stack_pop(s64 *stack_value, s64 *rela_stack, size_t *rela_stack_top)
++{
++	if (*rela_stack_top == 0)
++		return -ENOEXEC;
++
++	*stack_value = rela_stack[--(*rela_stack_top)];
++	pr_debug("%s stack_value = 0x%llx\n", __func__, *stack_value);
++
++	return 0;
++}
++
++static int apply_r_larch_none(struct module *me, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	return 0;
++}
++
++static int apply_r_larch_32(struct module *me, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*location = v;
++	return 0;
++}
++
++static int apply_r_larch_64(struct module *me, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*(Elf_Addr *)location = v;
++	return 0;
++}
++
++static int apply_r_larch_mark_la(struct module *me, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	return 0;
++}
++
++static int apply_r_larch_mark_pcrel(struct module *me, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	return 0;
++}
++
++static int apply_r_larch_sop_push_pcrel(struct module *me, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	return rela_stack_push(v - (u64)location, rela_stack, rela_stack_top);
++}
++
++static int apply_r_larch_sop_push_absolute(struct module *me, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	return rela_stack_push(v, rela_stack, rela_stack_top);
++}
++
++static int apply_r_larch_sop_push_dup(struct module *me, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_push_plt_pcrel(struct module *me, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	return apply_r_larch_sop_push_pcrel(me, location, v, rela_stack, rela_stack_top);
++}
++
++static int apply_r_larch_sop_sub(struct module *me, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2;
++
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 - opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_sl(struct module *me, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2;
++
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 << opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_sr(struct module *me, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2;
++
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 >> opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_add(struct module *me, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2;
++
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 + opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++static int apply_r_larch_sop_and(struct module *me, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2;
++
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 & opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_if_else(struct module *me, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2, opr3;
++
++	err = rela_stack_pop(&opr3, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 ? opr2 : opr3, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_10_5(struct module *me, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 5-bit signed */
++	if ((opr1 & ~(u64)0xf) &&
++	    (opr1 & ~(u64)0xf) != ~(u64)0xf) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) [14 ... 10] = opr [4 ... 0] */
++	*location = (*location & (~(u32)0x7c00)) | ((opr1 & 0x1f) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_u_10_12(struct module *me, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 12-bit unsigned */
++	if (opr1 & ~(u64)0xfff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) [21 ... 10] = opr [11 ... 0] */
++	*location = (*location & (~(u32)0x3ffc00)) | ((opr1 & 0xfff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_10_12(struct module *me, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 12-bit signed */
++	if ((opr1 & ~(u64)0x7ff) &&
++	    (opr1 & ~(u64)0x7ff) != ~(u64)0x7ff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) [21 ... 10] = opr [11 ... 0] */
++	*location = (*location & (~(u32)0x3ffc00)) | ((opr1 & 0xfff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_10_16(struct module *me, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 16-bit signed */
++	if ((opr1 & ~(u64)0x7fff) &&
++	    (opr1 & ~(u64)0x7fff) != ~(u64)0x7fff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) [25 ... 10] = opr [15 ... 0] */
++	*location = (*location & 0xfc0003ff) | ((opr1 & 0xffff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_10_16_s2(struct module *me, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 4-aligned */
++	if (opr1 % 4) {
++		pr_err("module %s: opr1 = 0x%llx unaligned! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	opr1 >>= 2;
++	/* check 18-bit signed */
++	if ((opr1 & ~(u64)0x7fff) &&
++	    (opr1 & ~(u64)0x7fff) != ~(u64)0x7fff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) [25 ... 10] = opr [17 ... 2] */
++	*location = (*location & 0xfc0003ff) | ((opr1 & 0xffff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_5_20(struct module *me, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 20-bit signed */
++	if ((opr1 & ~(u64)0x7ffff) &&
++	    (opr1 & ~(u64)0x7ffff) != ~(u64)0x7ffff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) [24 ... 5] = opr [19 ... 0] */
++	*location = (*location & (~(u32)0x1ffffe0)) | ((opr1 & 0xfffff) << 5);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_0_5_10_16_s2(struct module *me, u32 *location, Elf_Addr v,
++							s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 4-aligned */
++	if (opr1 % 4) {
++		pr_err("module %s: opr1 = 0x%llx unaligned! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	opr1 >>= 2;
++	/* check 23-bit signed */
++	if ((opr1 & ~(u64)0xfffff) &&
++	    (opr1 & ~(u64)0xfffff) != ~(u64)0xfffff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/*
++	 * (*(uint32_t *) PC) [4 ... 0] = opr [22 ... 18]
++	 * (*(uint32_t *) PC) [25 ... 10] = opr [17 ... 2]
++	 */
++	*location = (*location & 0xfc0003e0)
++		| ((opr1 & 0x1f0000) >> 16) | ((opr1 & 0xffff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_0_10_10_16_s2(struct module *me, u32 *location, Elf_Addr v,
++							s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 4-aligned */
++	if (opr1 % 4) {
++		pr_err("module %s: opr1 = 0x%llx unaligned! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	opr1 >>= 2;
++	/* check 28-bit signed */
++	if ((opr1 & ~(u64)0x1ffffff) &&
++	    (opr1 & ~(u64)0x1ffffff) != ~(u64)0x1ffffff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/*
++	 * (*(uint32_t *) PC) [9 ... 0] = opr [27 ... 18]
++	 * (*(uint32_t *) PC) [25 ... 10] = opr [17 ... 2]
++	 */
++	*location = (*location & 0xfc000000)
++		| ((opr1 & 0x3ff0000) >> 16) | ((opr1 & 0xffff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_u(struct module *me, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 32-bit unsigned */
++	if (opr1 & ~(u64)0xffffffff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			me->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) = opr */
++	*location = (u32)opr1;
++
++	return 0;
++}
++
++static int apply_r_larch_add32(struct module *me, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*(s32 *)location += v;
++	return 0;
++}
++
++static int apply_r_larch_add64(struct module *me, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*(s64 *)location += v;
++	return 0;
++}
++
++static int apply_r_larch_sub32(struct module *me, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*(s32 *)location -= v;
++	return 0;
++}
++
++static int apply_r_larch_sub64(struct module *me, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*(s64 *)location -= v;
++	return 0;
++}
++
++/*
++ * reloc_handlers_rela() - Apply a particular relocation to a module
++ * @me: the module to apply the reloc to
++ * @location: the address at which the reloc is to be applied
++ * @v: the value of the reloc, with addend for RELA-style
++ * @rela_stack: the stack used for store relocation info, LOCAL to THIS module
++ * @rela_stac_top: where the stack operation(pop/push) applies to
++ *
++ * Return: 0 upon success, else -ERRNO
++ */
++typedef int (*reloc_rela_handler)(struct module *me, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top);
++
++/* The handlers for known reloc types */
++static reloc_rela_handler reloc_rela_handlers[] = {
++	[R_LARCH_NONE]				= apply_r_larch_none,
++	[R_LARCH_32]				= apply_r_larch_32,
++	[R_LARCH_64]				= apply_r_larch_64,
++	[R_LARCH_MARK_LA]			= apply_r_larch_mark_la,
++	[R_LARCH_MARK_PCREL]			= apply_r_larch_mark_pcrel,
++	[R_LARCH_SOP_PUSH_PCREL]		= apply_r_larch_sop_push_pcrel,
++	[R_LARCH_SOP_PUSH_ABSOLUTE]		= apply_r_larch_sop_push_absolute,
++	[R_LARCH_SOP_PUSH_DUP]			= apply_r_larch_sop_push_dup,
++	[R_LARCH_SOP_PUSH_PLT_PCREL]		= apply_r_larch_sop_push_plt_pcrel,
++	[R_LARCH_SOP_SUB]			= apply_r_larch_sop_sub,
++	[R_LARCH_SOP_SL]			= apply_r_larch_sop_sl,
++	[R_LARCH_SOP_SR]			= apply_r_larch_sop_sr,
++	[R_LARCH_SOP_ADD]			= apply_r_larch_sop_add,
++	[R_LARCH_SOP_AND]			= apply_r_larch_sop_and,
++	[R_LARCH_SOP_IF_ELSE]			= apply_r_larch_sop_if_else,
++	[R_LARCH_SOP_POP_32_S_10_5]		= apply_r_larch_sop_pop_32_s_10_5,
++	[R_LARCH_SOP_POP_32_U_10_12]		= apply_r_larch_sop_pop_32_u_10_12,
++	[R_LARCH_SOP_POP_32_S_10_12]		= apply_r_larch_sop_pop_32_s_10_12,
++	[R_LARCH_SOP_POP_32_S_10_16]		= apply_r_larch_sop_pop_32_s_10_16,
++	[R_LARCH_SOP_POP_32_S_10_16_S2]		= apply_r_larch_sop_pop_32_s_10_16_s2,
++	[R_LARCH_SOP_POP_32_S_5_20]		= apply_r_larch_sop_pop_32_s_5_20,
++	[R_LARCH_SOP_POP_32_S_0_5_10_16_S2]	= apply_r_larch_sop_pop_32_s_0_5_10_16_s2,
++	[R_LARCH_SOP_POP_32_S_0_10_10_16_S2]	= apply_r_larch_sop_pop_32_s_0_10_10_16_s2,
++	[R_LARCH_SOP_POP_32_U]			= apply_r_larch_sop_pop_32_u,
++	[R_LARCH_ADD32]				= apply_r_larch_add32,
++	[R_LARCH_ADD64]				= apply_r_larch_add64,
++	[R_LARCH_SUB32]				= apply_r_larch_sub32,
++	[R_LARCH_SUB64]				= apply_r_larch_sub64,
++};
++
++int apply_relocate(Elf_Shdr *sechdrs, const char *strtab,
++		   unsigned int symindex, unsigned int relsec,
++		   struct module *me)
++{
++	int i, err;
++	unsigned int type;
++	s64 rela_stack[RELA_STACK_DEPTH];
++	size_t rela_stack_top = 0;
++	reloc_rela_handler handler;
++	void *location;
++	Elf_Addr v;
++	Elf_Sym *sym;
++	Elf_Rel *rel = (void *) sechdrs[relsec].sh_addr;
++
++	pr_debug("%s: Applying relocate section %u to %u\n", __func__, relsec,
++	       sechdrs[relsec].sh_info);
++
++	rela_stack_top = 0;
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
++		/* This is where to make the change */
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr + rel[i].r_offset;
++		/* This is the symbol it is referring to */
++		sym = (Elf_Sym *)sechdrs[symindex].sh_addr + ELF_R_SYM(rel[i].r_info);
++		if (IS_ERR_VALUE(sym->st_value)) {
++			/* Ignore unresolved weak symbol */
++			if (ELF_ST_BIND(sym->st_info) == STB_WEAK)
++				continue;
++			pr_warn("%s: Unknown symbol %s\n", me->name, strtab + sym->st_name);
++			return -ENOENT;
++		}
++
++		type = ELF_R_TYPE(rel[i].r_info);
++
++		if (type < ARRAY_SIZE(reloc_rela_handlers))
++			handler = reloc_rela_handlers[type];
++		else
++			handler = NULL;
++
++		if (!handler) {
++			pr_err("%s: Unknown relocation type %u\n", me->name, type);
++			return -EINVAL;
++		}
++
++		v = sym->st_value;
++		err = handler(me, location, v, rela_stack, &rela_stack_top);
++		if (err)
++			return err;
++	}
++
++	return 0;
++}
++
++int apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
++		       unsigned int symindex, unsigned int relsec,
++		       struct module *me)
++{
++	int i, err;
++	unsigned int type;
++	s64 rela_stack[RELA_STACK_DEPTH];
++	size_t rela_stack_top = 0;
++	reloc_rela_handler handler;
++	void *location;
++	Elf_Addr v;
++	Elf_Sym *sym;
++	Elf_Rela *rel = (void *) sechdrs[relsec].sh_addr;
++
++	pr_debug("%s: Applying relocate section %u to %u\n", __func__, relsec,
++	       sechdrs[relsec].sh_info);
++
++	rela_stack_top = 0;
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
++		/* This is where to make the change */
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr + rel[i].r_offset;
++		/* This is the symbol it is referring to */
++		sym = (Elf_Sym *)sechdrs[symindex].sh_addr + ELF_R_SYM(rel[i].r_info);
++		if (IS_ERR_VALUE(sym->st_value)) {
++			/* Ignore unresolved weak symbol */
++			if (ELF_ST_BIND(sym->st_info) == STB_WEAK)
++				continue;
++			pr_warn("%s: Unknown symbol %s\n", me->name, strtab + sym->st_name);
++			return -ENOENT;
++		}
++
++		type = ELF_R_TYPE(rel[i].r_info);
++
++		if (type < ARRAY_SIZE(reloc_rela_handlers))
++			handler = reloc_rela_handlers[type];
++		else
++			handler = NULL;
++
++		if (!handler) {
++			pr_err("%s: Unknown relocation type %u\n", me->name, type);
++			return -EINVAL;
++		}
++
++		pr_debug("type %d st_value %llx r_addend %llx loc %llx\n",
++		       (int)ELF64_R_TYPE(rel[i].r_info),
++		       sym->st_value, rel[i].r_addend, (u64)location);
++
++		v = sym->st_value + rel[i].r_addend;
++		err = handler(me, location, v, rela_stack, &rela_stack_top);
++		if (err)
++			return err;
++	}
++
++	return 0;
++}
+-- 
+2.27.0
+
