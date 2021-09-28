@@ -2,105 +2,125 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 26D99C433FE
-	for <linux-arch@archiver.kernel.org>; Tue, 28 Sep 2021 05:39:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E653DC433FE
+	for <linux-arch@archiver.kernel.org>; Tue, 28 Sep 2021 07:16:02 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id F3F396113E
-	for <linux-arch@archiver.kernel.org>; Tue, 28 Sep 2021 05:39:22 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id D047C611CA
+	for <linux-arch@archiver.kernel.org>; Tue, 28 Sep 2021 07:16:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234919AbhI1Fk6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 28 Sep 2021 01:40:58 -0400
-Received: from verein.lst.de ([213.95.11.211]:50132 "EHLO verein.lst.de"
+        id S239174AbhI1HRl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 28 Sep 2021 03:17:41 -0400
+Received: from pegase2.c-s.fr ([93.17.235.10]:44487 "EHLO pegase2.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S234243AbhI1Fk5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Sep 2021 01:40:57 -0400
-Received: by verein.lst.de (Postfix, from userid 2407)
-        id ED5FC67373; Tue, 28 Sep 2021 07:39:11 +0200 (CEST)
-Date:   Tue, 28 Sep 2021 07:39:11 +0200
-From:   Christoph Hellwig <hch@lst.de>
-To:     Tianyu Lan <ltykernel@gmail.com>
-Cc:     Christoph Hellwig <hch@lst.de>,
-        "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "linux-scsi@vger.kernel.org" <linux-scsi@vger.kernel.org>,
-        "netdev@vger.kernel.org" <netdev@vger.kernel.org>,
-        vkuznets <vkuznets@redhat.com>,
-        "parri.andrea@gmail.com" <parri.andrea@gmail.com>,
-        "dave.hansen@intel.com" <dave.hansen@intel.com>,
-        Michael Kelley <mikelley@microsoft.com>,
-        KY Srinivasan <kys@microsoft.com>,
-        Haiyang Zhang <haiyangz@microsoft.com>,
-        Stephen Hemminger <sthemmin@microsoft.com>,
-        "wei.liu@kernel.org" <wei.liu@kernel.org>,
-        Dexuan Cui <decui@microsoft.com>,
-        "tglx@linutronix.de" <tglx@linutronix.de>,
-        "mingo@redhat.com" <mingo@redhat.com>,
-        "bp@alien8.de" <bp@alien8.de>, "x86@kernel.org" <x86@kernel.org>,
-        "hpa@zytor.com" <hpa@zytor.com>,
-        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
-        "luto@kernel.org" <luto@kernel.org>,
-        "peterz@infradead.org" <peterz@infradead.org>,
-        "konrad.wilk@oracle.com" <konrad.wilk@oracle.com>,
-        "boris.ostrovsky@oracle.com" <boris.ostrovsky@oracle.com>,
-        "jgross@suse.com" <jgross@suse.com>,
-        "sstabellini@kernel.org" <sstabellini@kernel.org>,
-        "joro@8bytes.org" <joro@8bytes.org>,
-        "will@kernel.org" <will@kernel.org>,
-        "davem@davemloft.net" <davem@davemloft.net>,
-        "kuba@kernel.org" <kuba@kernel.org>,
-        "jejb@linux.ibm.com" <jejb@linux.ibm.com>,
-        "martin.petersen@oracle.com" <martin.petersen@oracle.com>,
-        "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>,
-        "arnd@arndb.de" <arnd@arndb.de>,
-        "m.szyprowski@samsung.com" <m.szyprowski@samsung.com>,
-        "robin.murphy@arm.com" <robin.murphy@arm.com>,
-        "brijesh.singh@amd.com" <brijesh.singh@amd.com>,
-        Tianyu Lan <Tianyu.Lan@microsoft.com>,
-        "thomas.lendacky@amd.com" <thomas.lendacky@amd.com>,
-        "pgonda@google.com" <pgonda@google.com>,
-        "akpm@linux-foundation.org" <akpm@linux-foundation.org>,
-        "kirill.shutemov@linux.intel.com" <kirill.shutemov@linux.intel.com>,
-        "rppt@kernel.org" <rppt@kernel.org>,
-        "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>,
-        "aneesh.kumar@linux.ibm.com" <aneesh.kumar@linux.ibm.com>,
-        "saravanand@fb.com" <saravanand@fb.com>,
-        "krish.sadhukhan@oracle.com" <krish.sadhukhan@oracle.com>,
-        "xen-devel@lists.xenproject.org" <xen-devel@lists.xenproject.org>,
-        "tj@kernel.org" <tj@kernel.org>,
-        "rientjes@google.com" <rientjes@google.com>
-Subject: Re: [PATCH V5 12/12] net: netvsc: Add Isolation VM support for
- netvsc driver
-Message-ID: <20210928053911.GA29208@lst.de>
-References: <20210914133916.1440931-1-ltykernel@gmail.com> <20210914133916.1440931-13-ltykernel@gmail.com> <MWHPR21MB15939A5D74CA1DF25EE816ADD7DB9@MWHPR21MB1593.namprd21.prod.outlook.com> <43e22b84-7273-4099-42ea-54b06f398650@gmail.com> <e379a60b-4d74-9167-983f-f70c96bb279e@gmail.com>
+        id S239142AbhI1HRk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Sep 2021 03:17:40 -0400
+Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
+        by localhost (Postfix) with ESMTP id 4HJW4w1csMz9sY4;
+        Tue, 28 Sep 2021 09:16:00 +0200 (CEST)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from pegase2.c-s.fr ([172.26.127.65])
+        by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
+        with ESMTP id dsEG85IsB9d9; Tue, 28 Sep 2021 09:16:00 +0200 (CEST)
+Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
+        by pegase2.c-s.fr (Postfix) with ESMTP id 4HJW4w0hDKz9sXy;
+        Tue, 28 Sep 2021 09:16:00 +0200 (CEST)
+Received: from localhost (localhost [127.0.0.1])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 01A628B775;
+        Tue, 28 Sep 2021 09:16:00 +0200 (CEST)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from messagerie.si.c-s.fr ([127.0.0.1])
+        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
+        with ESMTP id YYYmKCpsbY4J; Tue, 28 Sep 2021 09:15:59 +0200 (CEST)
+Received: from PO20335.IDSI0.si.c-s.fr (unknown [192.168.203.48])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id A26C08B763;
+        Tue, 28 Sep 2021 09:15:59 +0200 (CEST)
+Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
+        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1) with ESMTPS id 18S7FnZ51452321
+        (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
+        Tue, 28 Sep 2021 09:15:49 +0200
+Received: (from chleroy@localhost)
+        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1/Submit) id 18S7Fnpb1452320;
+        Tue, 28 Sep 2021 09:15:49 +0200
+X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
+From:   Christophe Leroy <christophe.leroy@csgroup.eu>
+To:     Andrew Morton <akpm@linux-foundation.org>, arnd@arndb.de
+Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
+        linux-kernel@vger.kernel.org, linux-mm@kvack.org,
+        linux-s390@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-arch@vger.kernel.org,
+        Gerald Schaefer <gerald.schaefer@linux.ibm.com>
+Subject: [PATCH v2 4/4] s390: Use generic version of arch_is_kernel_initmem_freed()
+Date:   Tue, 28 Sep 2021 09:15:37 +0200
+Message-Id: <d4a15dc0e699e6a60858bff4d183a9b1aea90433.1632813331.git.christophe.leroy@csgroup.eu>
+X-Mailer: git-send-email 2.31.1
+In-Reply-To: <ffa99e8e91e756b081427b27e408f275b7d43df7.1632813331.git.christophe.leroy@csgroup.eu>
+References: <ffa99e8e91e756b081427b27e408f275b7d43df7.1632813331.git.christophe.leroy@csgroup.eu>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <e379a60b-4d74-9167-983f-f70c96bb279e@gmail.com>
-User-Agent: Mutt/1.5.17 (2007-11-01)
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Sep 27, 2021 at 10:26:43PM +0800, Tianyu Lan wrote:
-> Hi Christoph:
->     Gentile ping. The swiotlb and shared memory mapping changes in this
-> patchset needs your reivew. Could you have a look?
+Generic version of arch_is_kernel_initmem_freed() now does the same
+as s390 version.
 
-I'm a little too busy for a review of such a huge patchset right now.
-That being said here are my comments from a very quick review:
+Remove the s390 version.
 
- - the bare memremap usage in swiotlb looks strange and I'd
-   definitively expect a well documented wrapper.
- - given that we can now hand out swiotlb memory for coherent mappings
-   we need to carefully audit what happens when this memremaped
-   memory gets mmaped or used through dma_get_sgtable
- - the netscv changes I'm not happy with at all.  A large part of it
-   is that the driver already has a bad structure, but this series
-   is making it significantly worse.  We'll need to find a way
-   to use the proper dma mapping abstractions here.  One option
-   if you want to stick to the double vmapped buffer would be something
-   like using dma_alloc_noncontigous plus a variant of
-   dma_vmap_noncontiguous that takes the shared_gpa_boundary into
-   account.
+Cc: Gerald Schaefer <gerald.schaefer@linux.ibm.com>
+Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+---
+v2: No change
+---
+ arch/s390/include/asm/sections.h | 12 ------------
+ arch/s390/mm/init.c              |  3 ---
+ 2 files changed, 15 deletions(-)
+
+diff --git a/arch/s390/include/asm/sections.h b/arch/s390/include/asm/sections.h
+index 85881dd48022..3fecaa4e8b74 100644
+--- a/arch/s390/include/asm/sections.h
++++ b/arch/s390/include/asm/sections.h
+@@ -2,20 +2,8 @@
+ #ifndef _S390_SECTIONS_H
+ #define _S390_SECTIONS_H
+ 
+-#define arch_is_kernel_initmem_freed arch_is_kernel_initmem_freed
+-
+ #include <asm-generic/sections.h>
+ 
+-extern bool initmem_freed;
+-
+-static inline int arch_is_kernel_initmem_freed(unsigned long addr)
+-{
+-	if (!initmem_freed)
+-		return 0;
+-	return addr >= (unsigned long)__init_begin &&
+-	       addr < (unsigned long)__init_end;
+-}
+-
+ /*
+  * .boot.data section contains variables "shared" between the decompressor and
+  * the decompressed kernel. The decompressor will store values in them, and
+diff --git a/arch/s390/mm/init.c b/arch/s390/mm/init.c
+index a04faf49001a..8c6f258a6183 100644
+--- a/arch/s390/mm/init.c
++++ b/arch/s390/mm/init.c
+@@ -58,8 +58,6 @@ unsigned long empty_zero_page, zero_page_mask;
+ EXPORT_SYMBOL(empty_zero_page);
+ EXPORT_SYMBOL(zero_page_mask);
+ 
+-bool initmem_freed;
+-
+ static void __init setup_zero_pages(void)
+ {
+ 	unsigned int order;
+@@ -214,7 +212,6 @@ void __init mem_init(void)
+ 
+ void free_initmem(void)
+ {
+-	initmem_freed = true;
+ 	__set_memory((unsigned long)_sinittext,
+ 		     (unsigned long)(_einittext - _sinittext) >> PAGE_SHIFT,
+ 		     SET_MEMORY_RW | SET_MEMORY_NX);
+-- 
+2.31.1
+
