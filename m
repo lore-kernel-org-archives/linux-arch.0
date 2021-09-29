@@ -2,103 +2,158 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 401C5C433EF
-	for <linux-arch@archiver.kernel.org>; Wed, 29 Sep 2021 14:54:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F165FC433EF
+	for <linux-arch@archiver.kernel.org>; Wed, 29 Sep 2021 14:54:44 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 22F4461440
-	for <linux-arch@archiver.kernel.org>; Wed, 29 Sep 2021 14:54:40 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id DAA4D6140F
+	for <linux-arch@archiver.kernel.org>; Wed, 29 Sep 2021 14:54:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1344791AbhI2O4S (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 29 Sep 2021 10:56:18 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49306 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1344787AbhI2O4S (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Sep 2021 10:56:18 -0400
-Received: from mail-lf1-x132.google.com (mail-lf1-x132.google.com [IPv6:2a00:1450:4864:20::132])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A4800C06161C
-        for <linux-arch@vger.kernel.org>; Wed, 29 Sep 2021 07:54:36 -0700 (PDT)
-Received: by mail-lf1-x132.google.com with SMTP id j5so7065016lfg.8
-        for <linux-arch@vger.kernel.org>; Wed, 29 Sep 2021 07:54:36 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=aNDg8rH1IqsEJHwICt9FxmmYGgFjw33LIv8Cr+MhvCs=;
-        b=VFYPi4rv9wgyl4t8uz6CJR4Q7ZjHLJ2oS8yeRT8WjzQvB5Mm4tn4CqGiZi6Lcxt2FT
-         Oym7hvM8rN6crEe6JMre7ZZUqaGTGI0QWaK+jC3F8ZIIwuXQ0zvyEw9PXsP/dvonGW+t
-         jyPb4DeHtEtasd42m/XYhIm1KCy7sPuk6ShXk=
+        id S1344794AbhI2O4X (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 29 Sep 2021 10:56:23 -0400
+Received: from smtp-relay-internal-1.canonical.com ([185.125.188.123]:54124
+        "EHLO smtp-relay-internal-1.canonical.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1344796AbhI2O4U (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Sep 2021 10:56:20 -0400
+Received: from mail-wm1-f69.google.com (mail-wm1-f69.google.com [209.85.128.69])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+        (No client certificate requested)
+        by smtp-relay-internal-1.canonical.com (Postfix) with ESMTPS id 4004A3F4BE
+        for <linux-arch@vger.kernel.org>; Wed, 29 Sep 2021 14:54:38 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=canonical.com;
+        s=20210705; t=1632927278;
+        bh=KeLkiElzlzQvNNsdjcFFS61hMwkuiVlVaM0dpBDB2C8=;
+        h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+         MIME-Version;
+        b=AA67gU2cxJXMMRaO8pbCndiNI7QUFQFjL0S63L4aKUJSdbJGDqDGhSQp6QS9y92yS
+         dnGtXy+gfpE2uAhU4RrbM9qiHGTTEPw6c8aQusgiXWR+bL5SQjBzw4r/QPBqhLK6Az
+         UBXfb+T8ZYUbMz8zjg6+a4uRuw3xU2VV7x5W5UQWAYQpPofvJxPOLY7QKesV/tmdxU
+         5bvZnRoey63Rm7gmjDY+iwKbW0Gm6yEMDc26v/Eze4F0cfS/gK3P5y80IyLLCQUhaI
+         FqUyPBLsLNEhTgIeB5V0VOo6UFWfwpTdfczoCpn2KXvBxwIWSQfQH1rojNAZtH5/QV
+         PzzYCnAU8n79Q==
+Received: by mail-wm1-f69.google.com with SMTP id k35-20020a05600c1ca300b0030d13cecf46so943876wms.4
+        for <linux-arch@vger.kernel.org>; Wed, 29 Sep 2021 07:54:38 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=aNDg8rH1IqsEJHwICt9FxmmYGgFjw33LIv8Cr+MhvCs=;
-        b=J2MsMxaEiz303Ye926kSf6ZPBFurm/MbDgRene/ATZMcG26yvtCFOErYOW7nuhH8GB
-         qUAh20pDcNMtpd1yok6QcVN1J398RSSIuuKbbPHMBfRJrTiMwqheIDexF8VWeix/1qzn
-         vQ+L0NWBfbPjAT8Z9C08JHTrXkMC2UitxA9ZlzTEsTASKFZMHn5Xs9L37VCtOQ6qWcnm
-         ZojS1CxYc366GIyKvffi/MhkQdVQWCBGyY89uicXsBFzO2sCzF6yzSmXdPTCJc8CG5eO
-         hhhusoFNfdf4xVvyWJquyGm8ph1gXBPuXrxi7+46NEwYSyH5Ih1gxdkhslRAFP28R2cY
-         Sfqw==
-X-Gm-Message-State: AOAM530UFn0t+TRNpsUyiVUN+ojTSZlwCU6EE9iEeyxRXZWBiHDkSNvt
-        4VjlujAECJiVETfU+2JrducELwguRE5IXVB6
-X-Google-Smtp-Source: ABdhPJxhhtDFOPKx2lXAci1SHDlKjve3/M20bUBpHPMY1P51HvwIWczAuXj7dKBKNbEyIMWz4tV9nw==
-X-Received: by 2002:a05:651c:213:: with SMTP id y19mr318077ljn.273.1632927274401;
-        Wed, 29 Sep 2021 07:54:34 -0700 (PDT)
-Received: from mail-lf1-f43.google.com (mail-lf1-f43.google.com. [209.85.167.43])
-        by smtp.gmail.com with ESMTPSA id j13sm16442lfm.100.2021.09.29.07.54.31
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Wed, 29 Sep 2021 07:54:32 -0700 (PDT)
-Received: by mail-lf1-f43.google.com with SMTP id i25so11908477lfg.6
-        for <linux-arch@vger.kernel.org>; Wed, 29 Sep 2021 07:54:31 -0700 (PDT)
-X-Received: by 2002:a2e:5815:: with SMTP id m21mr329675ljb.95.1632927270683;
- Wed, 29 Sep 2021 07:54:30 -0700 (PDT)
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=KeLkiElzlzQvNNsdjcFFS61hMwkuiVlVaM0dpBDB2C8=;
+        b=bzvi8WAcv9HrvvsKfJZ91Gai4n1MzREI1R9EKXDt9iDnJfIt51vlk27xQJg8BDkMCP
+         V53dfao+fOMmBuAGfqsgzjZu5mt8vw4RMDuSewIpktKhizdZlLKODmfa1IiZXegI9E1O
+         2Uo6qoUCo8Zhh7zdsXPhR4Lq2NqzGL2M0zCOhcT8t01Y6+bpoGiGRgG6/tKZtR0ZuwuI
+         SCF9061J85wRt3Ye6uZZKgu/Qla31kgxFSW8ngDrsw0xEtzw9ALJTyWaRJDQUbgid+hO
+         SDHo8pa+Kf+ZHjxL3N9EJ+A0I5cu/QMf40DVRGLDKYt0vXXzJFiT9fap5ht1xV4so7VR
+         BL4A==
+X-Gm-Message-State: AOAM530B/CD4a89LWFZzXtjYhRRzEPokF46Ax9rv2iQKNUeQwoyaUZAr
+        nHIWAvXjZLIrYAOzRAtbzi4Ql53xf/cHR4o0eFcnqoRvHo9BXcY1X9X5PfOmxaXXWG+li6n+6Py
+        lUFtRJJvtgdi7O1TXH9vT2eWvJGBVvuyyUF1mMOE=
+X-Received: by 2002:a05:6000:186a:: with SMTP id d10mr293232wri.113.1632927277895;
+        Wed, 29 Sep 2021 07:54:37 -0700 (PDT)
+X-Google-Smtp-Source: ABdhPJznSOSKp7IsVxoGkS1FzlBdLKaSOLFFxwn3CJ2ynXMOJFl6ygDinvXG42wU0gmBr6aiM6e8Lg==
+X-Received: by 2002:a05:6000:186a:: with SMTP id d10mr293200wri.113.1632927277749;
+        Wed, 29 Sep 2021 07:54:37 -0700 (PDT)
+Received: from alex.home (lfbn-lyo-1-470-249.w2-7.abo.wanadoo.fr. [2.7.60.249])
+        by smtp.gmail.com with ESMTPSA id e8sm127119wrr.42.2021.09.29.07.54.36
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 29 Sep 2021 07:54:37 -0700 (PDT)
+From:   Alexandre Ghiti <alexandre.ghiti@canonical.com>
+To:     Jonathan Corbet <corbet@lwn.net>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Zong Li <zong.li@sifive.com>, Anup Patel <anup@brainfault.org>,
+        Atish Patra <Atish.Patra@wdc.com>,
+        Christoph Hellwig <hch@lst.de>,
+        Andrey Ryabinin <ryabinin.a.a@gmail.com>,
+        Alexander Potapenko <glider@google.com>,
+        Andrey Konovalov <andreyknvl@gmail.com>,
+        Dmitry Vyukov <dvyukov@google.com>,
+        Ard Biesheuvel <ardb@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Kees Cook <keescook@chromium.org>,
+        Guo Ren <guoren@linux.alibaba.com>,
+        Heinrich Schuchardt <heinrich.schuchardt@canonical.com>,
+        Mayuresh Chitale <mchitale@ventanamicro.com>,
+        linux-doc@vger.kernel.org, linux-riscv@lists.infradead.org,
+        linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com,
+        linux-efi@vger.kernel.org, linux-arch@vger.kernel.org
+Cc:     Alexandre Ghiti <alexandre.ghiti@canonical.com>
+Subject: [PATCH v2 03/10] asm-generic: Prepare for riscv use of pud_alloc_one and pud_free
+Date:   Wed, 29 Sep 2021 16:51:06 +0200
+Message-Id: <20210929145113.1935778-4-alexandre.ghiti@canonical.com>
+X-Mailer: git-send-email 2.30.2
+In-Reply-To: <20210929145113.1935778-1-alexandre.ghiti@canonical.com>
+References: <20210929145113.1935778-1-alexandre.ghiti@canonical.com>
 MIME-Version: 1.0
-References: <20210928211507.20335-1-mathieu.desnoyers@efficios.com> <CAHk-=wg23CqjGWjjxDQ7yxrb+eF5at2KFU03GZa18Znx=+Xvow@mail.gmail.com>
-In-Reply-To: <CAHk-=wg23CqjGWjjxDQ7yxrb+eF5at2KFU03GZa18Znx=+Xvow@mail.gmail.com>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Wed, 29 Sep 2021 07:54:14 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wjd_BJiJYZ99PAoc4mQ3QTiZrt-tRdznj3g9kU8-gYsAA@mail.gmail.com>
-Message-ID: <CAHk-=wjd_BJiJYZ99PAoc4mQ3QTiZrt-tRdznj3g9kU8-gYsAA@mail.gmail.com>
-Subject: Re: [RFC PATCH] LKMM: Add ctrl_dep() macro for control dependency
-To:     Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc:     Will Deacon <will@kernel.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Segher Boessenkool <segher@kernel.crashing.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Alan Stern <stern@rowland.harvard.edu>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nick Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        linux-toolchains@vger.kernel.org,
-        linux-arch <linux-arch@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Sep 29, 2021 at 7:47 AM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> And if there *is* need ("look, we have that same store in both the if-
-> and the else-statement" or whatever), then say so, and state that
-> thing.
+In the following commits, riscv will almost use the generic versions of
+pud_alloc_one and pud_free but an additional check is required since those
+functions are only relevant when using at least a 4-level page table, which
+will be determined at runtime on riscv.
 
-Side note: I'd also like the commit that introduces this to talk very
-explicitly about the particular case that it is used doe and that it
-fixes. No "this can happen". A "this happened, here's the _actual_
-wrong code generation, and look how this new ctrl_dep() macro fixes
-it".
+So move the content of those functions into other functions that riscv
+can use without duplicating code.
 
-When it's this subtle, I don't want theoretical arguments. I want
-actual outstanding and real bugs.
+Signed-off-by: Alexandre Ghiti <alexandre.ghiti@canonical.com>
+---
+ include/asm-generic/pgalloc.h | 24 ++++++++++++++++++------
+ 1 file changed, 18 insertions(+), 6 deletions(-)
 
-Because I get the feeling that there were very few actual realistic
-examples of this, only made-up theoretical cases that wouldn't ever
-really be found in real code.
+diff --git a/include/asm-generic/pgalloc.h b/include/asm-generic/pgalloc.h
+index 02932efad3ab..977bea16cf1b 100644
+--- a/include/asm-generic/pgalloc.h
++++ b/include/asm-generic/pgalloc.h
+@@ -147,6 +147,15 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ 
+ #if CONFIG_PGTABLE_LEVELS > 3
+ 
++static inline pud_t *__pud_alloc_one(struct mm_struct *mm, unsigned long addr)
++{
++	gfp_t gfp = GFP_PGTABLE_USER;
++
++	if (mm == &init_mm)
++		gfp = GFP_PGTABLE_KERNEL;
++	return (pud_t *)get_zeroed_page(gfp);
++}
++
+ #ifndef __HAVE_ARCH_PUD_ALLOC_ONE
+ /**
+  * pud_alloc_one - allocate a page for PUD-level page table
+@@ -159,20 +168,23 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+  */
+ static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	gfp_t gfp = GFP_PGTABLE_USER;
+-
+-	if (mm == &init_mm)
+-		gfp = GFP_PGTABLE_KERNEL;
+-	return (pud_t *)get_zeroed_page(gfp);
++	return __pud_alloc_one(mm, addr);
+ }
+ #endif
+ 
+-static inline void pud_free(struct mm_struct *mm, pud_t *pud)
++static inline void __pud_free(struct mm_struct *mm, pud_t *pud)
+ {
+ 	BUG_ON((unsigned long)pud & (PAGE_SIZE-1));
+ 	free_page((unsigned long)pud);
+ }
+ 
++#ifndef __HAVE_ARCH_PUD_FREE
++static inline void pud_free(struct mm_struct *mm, pud_t *pud)
++{
++	__pud_free(mm, pud);
++}
++#endif
++
+ #endif /* CONFIG_PGTABLE_LEVELS > 3 */
+ 
+ #ifndef __HAVE_ARCH_PGD_FREE
+-- 
+2.30.2
 
-                Linus
