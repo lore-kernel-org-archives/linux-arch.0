@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EB0D7C433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 310C7C433FE
+	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:29 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D0E8061980
-	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:26 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 1ADE061875
+	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1348548AbhI3HLH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 30 Sep 2021 03:11:07 -0400
-Received: from szxga03-in.huawei.com ([45.249.212.189]:24198 "EHLO
-        szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1348533AbhI3HLG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Sep 2021 03:11:06 -0400
-Received: from dggemv703-chm.china.huawei.com (unknown [172.30.72.54])
-        by szxga03-in.huawei.com (SkyGuard) with ESMTP id 4HKkqK2tXjz8tYF;
-        Thu, 30 Sep 2021 15:08:29 +0800 (CST)
+        id S1348555AbhI3HLJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 30 Sep 2021 03:11:09 -0400
+Received: from szxga02-in.huawei.com ([45.249.212.188]:13862 "EHLO
+        szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1348536AbhI3HLH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Sep 2021 03:11:07 -0400
+Received: from dggemv703-chm.china.huawei.com (unknown [172.30.72.53])
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4HKkkz4m1rz8yxW;
+        Thu, 30 Sep 2021 15:04:43 +0800 (CST)
 Received: from dggpemm500001.china.huawei.com (7.185.36.107) by
  dggemv703-chm.china.huawei.com (10.3.19.46) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2308.8; Thu, 30 Sep 2021 15:09:20 +0800
+ 15.1.2308.8; Thu, 30 Sep 2021 15:09:22 +0800
 Received: from localhost.localdomain.localdomain (10.175.113.25) by
  dggpemm500001.china.huawei.com (7.185.36.107) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2308.8; Thu, 30 Sep 2021 15:09:19 +0800
+ 15.1.2308.8; Thu, 30 Sep 2021 15:09:21 +0800
 From:   Kefeng Wang <wangkefeng.wang@huawei.com>
 To:     <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
         <linux-kernel@vger.kernel.org>, <linuxppc-dev@lists.ozlabs.org>,
@@ -35,10 +35,13 @@ CC:     <mpe@ellerman.id.au>, <benh@kernel.crashing.org>,
         <paulus@samba.org>, <bpf@vger.kernel.org>,
         <linux-alpha@vger.kernel.org>,
         Christophe Leroy <christophe.leroy@csgroup.eu>,
-        Kefeng Wang <wangkefeng.wang@huawei.com>
-Subject: [PATCH v4 08/11] extable: Use is_kernel_text() helper
-Date:   Thu, 30 Sep 2021 15:11:40 +0800
-Message-ID: <20210930071143.63410-9-wangkefeng.wang@huawei.com>
+        Kefeng Wang <wangkefeng.wang@huawei.com>,
+        Richard Henderson <rth@twiddle.net>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>
+Subject: [PATCH v4 11/11] alpha: Use is_kernel_text() helper
+Date:   Thu, 30 Sep 2021 15:11:43 +0800
+Message-ID: <20210930071143.63410-12-wangkefeng.wang@huawei.com>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20210930071143.63410-1-wangkefeng.wang@huawei.com>
 References: <20210930071143.63410-1-wangkefeng.wang@huawei.com>
@@ -53,29 +56,31 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The core_kernel_text() should check the gate area, as it is part
-of kernel text range, use is_kernel_text() in core_kernel_text().
+Use is_kernel_text() helper to simplify code.
 
-Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
 Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
 ---
- kernel/extable.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ arch/alpha/kernel/traps.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
 
-diff --git a/kernel/extable.c b/kernel/extable.c
-index 98ca627ac5ef..0ba383d850ff 100644
---- a/kernel/extable.c
-+++ b/kernel/extable.c
-@@ -64,8 +64,7 @@ const struct exception_table_entry *search_exception_tables(unsigned long addr)
- 
- int notrace core_kernel_text(unsigned long addr)
- {
--	if (addr >= (unsigned long)_stext &&
--	    addr < (unsigned long)_etext)
-+	if (is_kernel_text(addr))
- 		return 1;
- 
- 	if (system_state < SYSTEM_RUNNING &&
+diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
+index e805106409f7..2ae34702456c 100644
+--- a/arch/alpha/kernel/traps.c
++++ b/arch/alpha/kernel/traps.c
+@@ -129,9 +129,7 @@ dik_show_trace(unsigned long *sp, const char *loglvl)
+ 		extern char _stext[], _etext[];
+ 		unsigned long tmp = *sp;
+ 		sp++;
+-		if (tmp < (unsigned long) &_stext)
+-			continue;
+-		if (tmp >= (unsigned long) &_etext)
++		if (!is_kernel_text(tmp))
+ 			continue;
+ 		printk("%s[<%lx>] %pSR\n", loglvl, tmp, (void *)tmp);
+ 		if (i > 40) {
 -- 
 2.26.2
 
