@@ -2,141 +2,152 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 59388C433EF
-	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 16:30:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 89AC4C433F5
+	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 16:58:57 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 3AEF36162E
-	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 16:30:33 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6927B617E6
+	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 16:58:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1350390AbhI3QcO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 30 Sep 2021 12:32:14 -0400
-Received: from us-smtp-delivery-124.mimecast.com ([216.205.24.124]:26966 "EHLO
+        id S1349312AbhI3RAj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 30 Sep 2021 13:00:39 -0400
+Received: from us-smtp-delivery-124.mimecast.com ([170.10.133.124]:50647 "EHLO
         us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1351270AbhI3QcH (ORCPT
+        by vger.kernel.org with ESMTP id S1344261AbhI3RAi (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Sep 2021 12:32:07 -0400
+        Thu, 30 Sep 2021 13:00:38 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1633019424;
+        s=mimecast20190719; t=1633021135;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
          to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
          in-reply-to:in-reply-to:references:references;
-        bh=u7/zMdrPeVyZNLTntHruwDpYub+H9qwtzzzSUntktcA=;
-        b=KtA1vjLn+sdHoDiIp9U80N+wzWoU16UzI9ctPdYu1NI7JyATuhgYtjUVHt83ENNgKPDPN8
-        8KV7+pvJgacC5DYhXHCadsS8lsfBNvim4lVPj5xRaG3qLw59KAsqGS5R7/vt9DosZQKLfh
-        xw3VplwDXdw7nRGGt04wxPB7kzwep+0=
-Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
- [209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
- us-mta-505-z2r_DDwdMRWSxVzVoPhJUw-1; Thu, 30 Sep 2021 12:30:22 -0400
-X-MC-Unique: z2r_DDwdMRWSxVzVoPhJUw-1
-Received: from smtp.corp.redhat.com (int-mx07.intmail.prod.int.phx2.redhat.com [10.5.11.22])
-        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
-        (No client certificate requested)
-        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 3FA3A18125C0;
-        Thu, 30 Sep 2021 16:30:19 +0000 (UTC)
-Received: from localhost (unknown [10.39.195.132])
-        by smtp.corp.redhat.com (Postfix) with ESMTP id A3A2B1017E3E;
-        Thu, 30 Sep 2021 16:30:18 +0000 (UTC)
-Date:   Thu, 30 Sep 2021 17:30:17 +0100
-From:   Stefan Hajnoczi <stefanha@redhat.com>
-To:     Andy Lutomirski <luto@kernel.org>
-Cc:     Sohil Mehta <sohil.mehta@intel.com>,
-        the arch/x86 maintainers <x86@kernel.org>,
-        Tony Luck <tony.luck@intel.com>,
-        Dave Hansen <dave.hansen@intel.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        "H. Peter Anvin" <hpa@zytor.com>, Jens Axboe <axboe@kernel.dk>,
-        Christian Brauner <christian@brauner.io>,
-        "Peter Zijlstra (Intel)" <peterz@infradead.org>,
-        Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Raj Ashok <ashok.raj@intel.com>,
-        Jacob Pan <jacob.jun.pan@linux.intel.com>,
-        Gayatri Kammela <gayatri.kammela@intel.com>,
-        Zeng Guang <guang.zeng@intel.com>,
-        "Williams, Dan J" <dan.j.williams@intel.com>,
-        Randy E Witt <randy.e.witt@intel.com>,
-        "Shankar, Ravi V" <ravi.v.shankar@intel.com>,
-        Ramesh Thomas <ramesh.thomas@intel.com>,
-        Linux API <linux-api@vger.kernel.org>,
-        linux-arch@vger.kernel.org,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-kselftest@vger.kernel.org
-Subject: Re: [RFC PATCH 00/13] x86 User Interrupts support
-Message-ID: <YVXmGTo5Uzp44QQq@stefanha-x1.localdomain>
-References: <20210913200132.3396598-1-sohil.mehta@intel.com>
- <456bf9cf-87b8-4c3d-ac0c-7e392bcf26de@www.fastmail.com>
+        bh=1ZIqihkoQq6wIRYi9LhWdCqUUXnDlaND1FW0gU9oESk=;
+        b=URRKfKKmc6Hp13hSYXiFatp0XEbVKKmFHyLq1rzgwfUf/2nEapSFo7zMkNz6uBuccGIjyd
+        yFm8iklcuf+rYLd90Th2JKdsNyrqKgHRkO+HoxoD0u2e9dHJBN4v+I77gFGCFych9FStJV
+        fwANpFM28HeVgzDQ9NAhVIU4iD1Zm8s=
+Received: from mail-qv1-f71.google.com (mail-qv1-f71.google.com
+ [209.85.219.71]) (Using TLS) by relay.mimecast.com with ESMTP id
+ us-mta-530-H9eAeOCzOEiypiJOBA62_g-1; Thu, 30 Sep 2021 12:58:54 -0400
+X-MC-Unique: H9eAeOCzOEiypiJOBA62_g-1
+Received: by mail-qv1-f71.google.com with SMTP id p75-20020a0c90d1000000b0037efc8547d4so11169767qvp.16
+        for <linux-arch@vger.kernel.org>; Thu, 30 Sep 2021 09:58:54 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:from:subject:to:cc:references:message-id:date
+         :user-agent:mime-version:in-reply-to:content-transfer-encoding
+         :content-language;
+        bh=1ZIqihkoQq6wIRYi9LhWdCqUUXnDlaND1FW0gU9oESk=;
+        b=boizRJUfhNRdOmEjleHb8O0z3igBe0HS5HzSB+Gtyjuxkl24IJzWksCa3GcQij7CGI
+         qBBIU4RXSVm/Eb2bE5MH4P5ca6OD9lpS/ThgMeJy0rBGAJq/TDqT6EDPdhPm7TUJ8ltp
+         fxS6O0gT/neFZA5bc0cNvUimgcog3IM2w4s1kMVLOETaecp1ugHwZ6l4NcUCZKDC8pEM
+         xpZTBIxuPnKdGut0BOTUWbqGz8HN4IZOCUEu+rkxS50ZtwS7QGLC7BhG6PeLv8oJp5AZ
+         43MnAXI68FZHV2rDtn2MMC9UHpRHS7Q82SBaCEMuxqINOb6hAeAWfdrjDOU8GdqycNzY
+         Tgcg==
+X-Gm-Message-State: AOAM532E+i0kInYp0tmYsvteOff/1q4KEKbItgFwnQNS11guAkPbS21R
+        16MfJBI1SfRzUaThZ9QDZJZg+pCRv6wHs+cgTcumBqzYtrHSNfVWIrWv97DlzNgdoS94rMVRkqP
+        BitW0dVIbhq5WyMSEAgCPAw==
+X-Received: by 2002:a05:622a:3cb:: with SMTP id k11mr7575867qtx.233.1633021133602;
+        Thu, 30 Sep 2021 09:58:53 -0700 (PDT)
+X-Google-Smtp-Source: ABdhPJzAebG6rBOzuQnF7H08UlB7Hf8EqfYw6Ix04hP8U3b1W+2X0tPZ5kxUQJS2/YkFCWH8K3GZSw==
+X-Received: by 2002:a05:622a:3cb:: with SMTP id k11mr7575844qtx.233.1633021133402;
+        Thu, 30 Sep 2021 09:58:53 -0700 (PDT)
+Received: from llong.remote.csb ([2601:191:8500:76c0::cdbc])
+        by smtp.gmail.com with ESMTPSA id o13sm2111020qtk.37.2021.09.30.09.58.52
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 30 Sep 2021 09:58:52 -0700 (PDT)
+From:   Waiman Long <llong@redhat.com>
+X-Google-Original-From: Waiman Long <longman@redhat.com>
+Subject: Re: [PATCH v15 0/6] Add NUMA-awareness to qspinlock
+To:     Barry Song <21cnbao@gmail.com>, alex.kogan@oracle.com
+Cc:     arnd@arndb.de, bp@alien8.de, daniel.m.jordan@oracle.com,
+        dave.dice@oracle.com, guohanjun@huawei.com, hpa@zytor.com,
+        jglauber@marvell.com, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+        linux@armlinux.org.uk, mingo@redhat.com, peterz@infradead.org,
+        steven.sistare@oracle.com, tglx@linutronix.de, will.deacon@arm.com,
+        x86@kernel.org
+References: <20210514200743.3026725-1-alex.kogan@oracle.com>
+ <20210930094447.9719-1-21cnbao@gmail.com>
+Message-ID: <a6340beb-3b4a-2518-9340-ea0fc7583dbe@redhat.com>
+Date:   Thu, 30 Sep 2021 12:58:51 -0400
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.11.0
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="IzEoHzzIxT1o87/+"
-Content-Disposition: inline
-In-Reply-To: <456bf9cf-87b8-4c3d-ac0c-7e392bcf26de@www.fastmail.com>
-X-Scanned-By: MIMEDefang 2.84 on 10.5.11.22
+In-Reply-To: <20210930094447.9719-1-21cnbao@gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Content-Language: en-US
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+On 9/30/21 5:44 AM, Barry Song wrote:
+>> We have done some performance evaluation with the locktorture module
+>> as well as with several benchmarks from the will-it-scale repo.
+>> The following locktorture results are from an Oracle X5-4 server
+>> (four Intel Xeon E7-8895 v3 @ 2.60GHz sockets with 18 hyperthreaded
+>> cores each). Each number represents an average (over 25 runs) of the
+>> total number of ops (x10^7) reported at the end of each run. The
+>> standard deviation is also reported in (), and in general is about 3%
+>> from the average. The 'stock' kernel is v5.12.0,
+> I assume x5-4 server has the crossbar topology and its numa diameter is
+> 1hop, and all tests were done on this kind of symmetrical topology. Am
+> I right?
+>
+>      ┌─┐                 ┌─┐
+>      │ ├─────────────────┤ │
+>      └─┤1               1└┬┘
+>        │  1           1   │
+>        │    1       1     │
+>        │      1   1       │
+>        │        1         │
+>        │      1   1       │
+>        │     1      1     │
+>        │   1         1    │
+>       ┌┼┐1             1  ├─┐
+>       │┼┼─────────────────┤ │
+>       └─┘                 └─┘
+>
+>
+> what if the hardware is using the ring topology and other topologies with
+> 2-hops or even 3-hops such as:
+>
+>       ┌─┐                 ┌─┐
+>       │ ├─────────────────┤ │
+>       └─┤                 └┬┘
+>         │                  │
+>         │                  │
+>         │                  │
+>         │                  │
+>         │                  │
+>         │                  │
+>         │                  │
+>        ┌┤                  ├─┐
+>        │┼┬─────────────────┤ │
+>        └─┘                 └─┘
+>
+>
+> or:
+>
+>
+>      ┌───┐       ┌───┐      ┌────┐      ┌─────┐
+>      │   │       │   │      │    │      │     │
+>      │   │       │   │      │    │      │     │
+>      ├───┼───────┼───┼──────┼────┼──────┼─────┤
+>      │   │       │   │      │    │      │     │
+>      └───┘       └───┘      └────┘      └─────┘
+>
+> do we need to consider the distances of numa nodes in the secondary
+> queue? does it still make sense to treat everyone else equal in
+> secondary queue?
 
---IzEoHzzIxT1o87/+
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+The purpose of this patch series is to minimize cacheline transfer from 
+one numa node to another. Taking the fine grained detail of the numa 
+topology into account will complicate the code without much performance 
+benefit from my point of view. Let's keep it simple first. We can always 
+improve it later on if one can show real benefit of doing so.
 
-On Tue, Sep 28, 2021 at 09:31:34PM -0700, Andy Lutomirski wrote:
-> On Mon, Sep 13, 2021, at 1:01 PM, Sohil Mehta wrote:
-> > User Interrupts Introduction
-> > =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D
-> >
-> > User Interrupts (Uintr) is a hardware technology that enables delivering
-> > interrupts directly to user space.
-> >
-> > Today, virtually all communication across privilege boundaries happens =
-by going
-> > through the kernel. These include signals, pipes, remote procedure call=
-s and
-> > hardware interrupt based notifications. User interrupts provide the fou=
-ndation
-> > for more efficient (low latency and low CPU utilization) versions of th=
-ese
-> > common operations by avoiding transitions through the kernel.
-> >
->=20
-> ...
->=20
-> I spent some time reviewing the docs (ISE) and contemplating how this all=
- fits together, and I have a high level question:
->=20
-> Can someone give an example of a realistic workload that would benefit fr=
-om SENDUIPI and precisely how it would use SENDUIPI?  Or an example of a re=
-alistic workload that would benefit from hypothetical device-initiated user=
- interrupts and how it would use them?  I'm having trouble imagining someth=
-ing that wouldn't work as well or better by simply polling, at least on DMA=
--coherent architectures like x86.
+Cheers,
+Longman
 
-I was wondering the same thing. One thing came to mind:
-
-An application that wants to be *interrupted* from what it's doing
-rather than waiting until the next polling point. For example,
-applications that are CPU-intensive and have green threads. I can't name
-a real application like this though :P.
-
-Stefan
-
---IzEoHzzIxT1o87/+
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAEBCAAdFiEEhpWov9P5fNqsNXdanKSrs4Grc8gFAmFV5hkACgkQnKSrs4Gr
-c8gkYAf8DF5mZAyvdq7MYNw7V3LLjLXQA/PJX65e9s/VzX1DOImgxepjEQfAkQUT
-/IncDgMu0mkE0+jU/ZwEngFzI77d5uDzt/xV8cVHjqfE7vCy8SASNg4HFijkl7aF
-aS+vZ2XK89S28S8ocQ/d7GPE80E+IEuxjInzASwimHFCmFtW8U+ka4CmIxbsw6e1
-1ahYfTSnKrwSR2qSzW7cwU4WZFibG0TR0Lgz/oBm9dQuqu7IArWmSTNRKAQPJtqU
-Q+TtjQh/s1Gvvzq8gvdBB6/2mWVE4fUfwatayUBb3HdcUt+5/J32kT/vjeY9HSZL
-PkwYaTLC72ly4H9nhy2lYDD7XbfgFQ==
-=O0C0
------END PGP SIGNATURE-----
-
---IzEoHzzIxT1o87/+--
 
