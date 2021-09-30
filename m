@@ -2,123 +2,105 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1D8FFC433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 10:13:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E7F25C433FE
+	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 11:25:46 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 03544615E2
-	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 10:13:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id CFD08619E2
+	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 11:25:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1349835AbhI3KOz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 30 Sep 2021 06:14:55 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59834 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1349804AbhI3KOy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Sep 2021 06:14:54 -0400
-Received: from mail-ed1-x529.google.com (mail-ed1-x529.google.com [IPv6:2a00:1450:4864:20::529])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 541D4C06176C
-        for <linux-arch@vger.kernel.org>; Thu, 30 Sep 2021 03:13:11 -0700 (PDT)
-Received: by mail-ed1-x529.google.com with SMTP id s17so19809071edd.8
-        for <linux-arch@vger.kernel.org>; Thu, 30 Sep 2021 03:13:11 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=monstr-eu.20210112.gappssmtp.com; s=20210112;
-        h=subject:to:cc:references:from:message-id:date:user-agent
-         :mime-version:in-reply-to:content-language:content-transfer-encoding;
-        bh=di22f+1qtT1rJlDsDU5gv52bfkIzi99/0/f5YELZTOw=;
-        b=ppyHc1xu2ZjQ/kTBT2c/n07AkMuYUtXvdy0s7QXVTxECAFMjweuXUCK7xVE+xwaX0C
-         6o8ZrsH3/9Aynnbf9fMbiY9C8vrkZKxMS2dYyF99LaMNbMDmo+1MshkoCVBu64oPE6ga
-         zFJAQfJwiWTcCZsmLrqej5kKbY2vHfu7puIu4/K01CNJFBuzzGgBrIqsTKFJtWl1D8WY
-         Zs33o3bUzbg+B6tae1aWxdGoSxVf8Jp54BcOj5rIAhOIm93rKhQ0OmZemre71DGprt/y
-         YIumJdsINVkRuayzKbrt7Bx5i0AKwik6J4Ki1n3eaMHv8bBS9zWjaa6znfhzuZJX3poI
-         GbLg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
-         :user-agent:mime-version:in-reply-to:content-language
-         :content-transfer-encoding;
-        bh=di22f+1qtT1rJlDsDU5gv52bfkIzi99/0/f5YELZTOw=;
-        b=un4ubl3Rqkqp2R0rp79T1xKP3BvMqJ9eRc71oUXniRdOVsuA/XMEDwnbOion+wfUfY
-         CfsSIgpOxs2MM597xpPDOCuvRztMGekBEMC5Z3DJxss5b6BROPePw+Q7HJhTjFvDcYKb
-         AhfpjQnrOm7svfDTtb5dsmYUbfDevLD5hlJno4pdf+c9Zw8ZRANf2gUrEQz55+Bqda47
-         Yvbh6ZsYOMCSRZ1YkSIWGRTR5wlmsBtl71Qgz6wtJ7JsTAsUabFb8HUA8f9Exdhv4ZlJ
-         53qrWdVHFEcBKezjWy3woO7POyQrQF1sybLxCXcBptOlrvXlHeU/UexjEvK/Z/L9g2WN
-         TtCA==
-X-Gm-Message-State: AOAM5317Ynge+SYWqk09ez5q7ZZCUPUvIw81bGDLay//ZdZzIyBDnujy
-        LkjKFQqZcKaki/jl51QQMlrkCQ==
-X-Google-Smtp-Source: ABdhPJzUmXdUqIGI8syP1K7qbkNoLgpokgx7oGftLZ5Q5kO7Xtw6c5x1cXA4qfoDB4xaMGW2mjnWyg==
-X-Received: by 2002:a17:906:4d99:: with SMTP id s25mr5632392eju.175.1632996789937;
-        Thu, 30 Sep 2021 03:13:09 -0700 (PDT)
-Received: from ?IPv6:2a02:768:2307:40d6::45a? ([2a02:768:2307:40d6::45a])
-        by smtp.gmail.com with ESMTPSA id j14sm1265961edl.21.2021.09.30.03.13.08
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 30 Sep 2021 03:13:09 -0700 (PDT)
-Subject: Re: [PATCH v4 10/11] microblaze: Use is_kernel_text() helper
-To:     Kefeng Wang <wangkefeng.wang@huawei.com>, arnd@arndb.de,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, rostedt@goodmis.org,
-        mingo@redhat.com, davem@davemloft.net, ast@kernel.org,
-        ryabinin.a.a@gmail.com, akpm@linux-foundation.org
-Cc:     mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org,
-        bpf@vger.kernel.org, linux-alpha@vger.kernel.org,
-        Christophe Leroy <christophe.leroy@csgroup.eu>
-References: <20210930071143.63410-1-wangkefeng.wang@huawei.com>
- <20210930071143.63410-11-wangkefeng.wang@huawei.com>
-From:   Michal Simek <monstr@monstr.eu>
-Message-ID: <2a23c06c-62e5-d4f8-4c7c-4e5c055a9e69@monstr.eu>
-Date:   Thu, 30 Sep 2021 12:13:08 +0200
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.14.0
+        id S1350462AbhI3L12 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 30 Sep 2021 07:27:28 -0400
+Received: from pegase2.c-s.fr ([93.17.235.10]:43829 "EHLO pegase2.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1350446AbhI3L1Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Sep 2021 07:27:25 -0400
+Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
+        by localhost (Postfix) with ESMTP id 4HKrX53XdRz9sX4;
+        Thu, 30 Sep 2021 13:25:41 +0200 (CEST)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from pegase2.c-s.fr ([172.26.127.65])
+        by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
+        with ESMTP id LzOt_4N5Ef7X; Thu, 30 Sep 2021 13:25:41 +0200 (CEST)
+Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
+        by pegase2.c-s.fr (Postfix) with ESMTP id 4HKrX52fN1z9sX3;
+        Thu, 30 Sep 2021 13:25:41 +0200 (CEST)
+Received: from localhost (localhost [127.0.0.1])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 41DAD8B773;
+        Thu, 30 Sep 2021 13:25:41 +0200 (CEST)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from messagerie.si.c-s.fr ([127.0.0.1])
+        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
+        with ESMTP id UPPPsYZg8-CX; Thu, 30 Sep 2021 13:25:41 +0200 (CEST)
+Received: from PO20335.IDSI0.si.c-s.fr (unknown [192.168.203.149])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 085B38B763;
+        Thu, 30 Sep 2021 13:25:40 +0200 (CEST)
+Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
+        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1) with ESMTPS id 18UBO9xY1558826
+        (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
+        Thu, 30 Sep 2021 13:24:09 +0200
+Received: (from chleroy@localhost)
+        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1/Submit) id 18UBO9lm1558825;
+        Thu, 30 Sep 2021 13:24:09 +0200
+X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
+From:   Christophe Leroy <christophe.leroy@csgroup.eu>
+To:     Andrew Morton <akpm@linux-foundation.org>, arnd@arndb.de
+Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
+        linux-kernel@vger.kernel.org, linux-mm@kvack.org,
+        linux-s390@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-arch@vger.kernel.org,
+        Kefeng Wang <wangkefeng.wang@huawei.com>
+Subject: [PATCH v3 3/4] powerpc: Use generic version of arch_is_kernel_initmem_freed()
+Date:   Thu, 30 Sep 2021 13:23:45 +0200
+Message-Id: <c53764eb45d41491e2b21da2e7812239897dbebb.1633001016.git.christophe.leroy@csgroup.eu>
+X-Mailer: git-send-email 2.31.1
+In-Reply-To: <9ecfdee7dd4d741d172cb93ff1d87f1c58127c9a.1633001016.git.christophe.leroy@csgroup.eu>
+References: <9ecfdee7dd4d741d172cb93ff1d87f1c58127c9a.1633001016.git.christophe.leroy@csgroup.eu>
 MIME-Version: 1.0
-In-Reply-To: <20210930071143.63410-11-wangkefeng.wang@huawei.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+Generic version of arch_is_kernel_initmem_freed() now does the same
+as powerpc version.
 
+Remove the powerpc version.
 
-On 9/30/21 9:11 AM, Kefeng Wang wrote:
-> Use is_kernel_text() helper to simplify code.
-> 
-> Cc: Michal Simek <monstr@monstr.eu>
-> Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
-> ---
->  arch/microblaze/mm/pgtable.c | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/microblaze/mm/pgtable.c b/arch/microblaze/mm/pgtable.c
-> index c1833b159d3b..9f73265aad4e 100644
-> --- a/arch/microblaze/mm/pgtable.c
-> +++ b/arch/microblaze/mm/pgtable.c
-> @@ -34,6 +34,7 @@
->  #include <linux/mm_types.h>
->  #include <linux/pgtable.h>
->  #include <linux/memblock.h>
-> +#include <linux/kallsyms.h>
->  
->  #include <asm/pgalloc.h>
->  #include <linux/io.h>
-> @@ -171,7 +172,7 @@ void __init mapin_ram(void)
->  	for (s = 0; s < lowmem_size; s += PAGE_SIZE) {
->  		f = _PAGE_PRESENT | _PAGE_ACCESSED |
->  				_PAGE_SHARED | _PAGE_HWEXEC;
-> -		if ((char *) v < _stext || (char *) v >= _etext)
-> +		if (!is_kernel_text(v))
->  			f |= _PAGE_WRENABLE;
->  		else
->  			/* On the MicroBlaze, no user access
-> 
+Cc: Kefeng Wang <wangkefeng.wang@huawei.com>
+Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+---
+v3: No change
+v2: No change
+---
+ arch/powerpc/include/asm/sections.h | 13 -------------
+ 1 file changed, 13 deletions(-)
 
-Acked-by: Michal Simek <michal.simek@xilinx.com>
-
-Thanks,
-Michal
-
+diff --git a/arch/powerpc/include/asm/sections.h b/arch/powerpc/include/asm/sections.h
+index 6e4af4492a14..79cb7a25a5fb 100644
+--- a/arch/powerpc/include/asm/sections.h
++++ b/arch/powerpc/include/asm/sections.h
+@@ -6,21 +6,8 @@
+ #include <linux/elf.h>
+ #include <linux/uaccess.h>
+ 
+-#define arch_is_kernel_initmem_freed arch_is_kernel_initmem_freed
+-
+ #include <asm-generic/sections.h>
+ 
+-extern bool init_mem_is_free;
+-
+-static inline int arch_is_kernel_initmem_freed(unsigned long addr)
+-{
+-	if (!init_mem_is_free)
+-		return 0;
+-
+-	return addr >= (unsigned long)__init_begin &&
+-		addr < (unsigned long)__init_end;
+-}
+-
+ extern char __head_end[];
+ 
+ #ifdef __powerpc64__
 -- 
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Xilinx Microblaze
-Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
+2.31.1
 
