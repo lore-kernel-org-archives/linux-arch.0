@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E968FC433EF
-	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D0085C4332F
+	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:37 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D3AA7617E6
-	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:35 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id BE1E461882
+	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1348525AbhI3HLQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 30 Sep 2021 03:11:16 -0400
-Received: from szxga01-in.huawei.com ([45.249.212.187]:27937 "EHLO
-        szxga01-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1348542AbhI3HLI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Sep 2021 03:11:08 -0400
-Received: from dggemv704-chm.china.huawei.com (unknown [172.30.72.56])
-        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4HKklQ2FYTzbn06;
-        Thu, 30 Sep 2021 15:05:06 +0800 (CST)
+        id S1348618AbhI3HLS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 30 Sep 2021 03:11:18 -0400
+Received: from szxga02-in.huawei.com ([45.249.212.188]:13861 "EHLO
+        szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1348529AbhI3HLE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Sep 2021 03:11:04 -0400
+Received: from dggemv711-chm.china.huawei.com (unknown [172.30.72.53])
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4HKkkt5J6Bz8yyF;
+        Thu, 30 Sep 2021 15:04:38 +0800 (CST)
 Received: from dggpemm500001.china.huawei.com (7.185.36.107) by
- dggemv704-chm.china.huawei.com (10.3.19.47) with Microsoft SMTP Server
+ dggemv711-chm.china.huawei.com (10.1.198.66) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2308.8; Thu, 30 Sep 2021 15:09:14 +0800
+ 15.1.2308.8; Thu, 30 Sep 2021 15:09:17 +0800
 Received: from localhost.localdomain.localdomain (10.175.113.25) by
  dggpemm500001.china.huawei.com (7.185.36.107) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2308.8; Thu, 30 Sep 2021 15:09:13 +0800
+ 15.1.2308.8; Thu, 30 Sep 2021 15:09:17 +0800
 From:   Kefeng Wang <wangkefeng.wang@huawei.com>
 To:     <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
         <linux-kernel@vger.kernel.org>, <linuxppc-dev@lists.ozlabs.org>,
@@ -36,9 +36,9 @@ CC:     <mpe@ellerman.id.au>, <benh@kernel.crashing.org>,
         <linux-alpha@vger.kernel.org>,
         Christophe Leroy <christophe.leroy@csgroup.eu>,
         Kefeng Wang <wangkefeng.wang@huawei.com>
-Subject: [PATCH v4 01/11] kallsyms: Remove arch specific text and data check
-Date:   Thu, 30 Sep 2021 15:11:33 +0800
-Message-ID: <20210930071143.63410-2-wangkefeng.wang@huawei.com>
+Subject: [PATCH v4 06/11] sections: Provide internal __is_kernel() and __is_kernel_text() helper
+Date:   Thu, 30 Sep 2021 15:11:38 +0800
+Message-ID: <20210930071143.63410-7-wangkefeng.wang@huawei.com>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20210930071143.63410-1-wangkefeng.wang@huawei.com>
 References: <20210930071143.63410-1-wangkefeng.wang@huawei.com>
@@ -53,72 +53,75 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-After commit 4ba66a976072 ("arch: remove blackfin port"),
-no need arch-specific text/data check.
+An internal __is_kernel() helper which only check the
+kernel address ranges, and an internal __is_kernel_text()
+helper which only check text section ranges.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
 ---
- include/asm-generic/sections.h | 16 ----------------
- include/linux/kallsyms.h       |  3 +--
- kernel/locking/lockdep.c       |  3 ---
- 3 files changed, 1 insertion(+), 21 deletions(-)
+ include/asm-generic/sections.h | 29 +++++++++++++++++++++++++++++
+ include/linux/kallsyms.h       |  4 ++--
+ 2 files changed, 31 insertions(+), 2 deletions(-)
 
 diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index d16302d3eb59..817309e289db 100644
+index 811583ca8bd0..a7abeadddc7a 100644
 --- a/include/asm-generic/sections.h
 +++ b/include/asm-generic/sections.h
-@@ -64,22 +64,6 @@ extern __visible const void __nosave_begin, __nosave_end;
- #define dereference_kernel_function_descriptor(p) ((void *)(p))
- #endif
+@@ -186,4 +186,33 @@ static inline bool is_kernel_inittext(unsigned long addr)
+ 	       addr < (unsigned long)_einittext;
+ }
  
--/* random extra sections (if any).  Override
-- * in asm/sections.h */
--#ifndef arch_is_kernel_text
--static inline int arch_is_kernel_text(unsigned long addr)
--{
--	return 0;
--}
--#endif
--
--#ifndef arch_is_kernel_data
--static inline int arch_is_kernel_data(unsigned long addr)
--{
--	return 0;
--}
--#endif
--
- /*
-  * Check if an address is part of freed initmem. This is needed on architectures
-  * with virt == phys kernel mapping, for code that wants to check if an address
++/**
++ * __is_kernel_text - checks if the pointer address is located in the
++ *                    .text section
++ *
++ * @addr: address to check
++ *
++ * Returns: true if the address is located in .text, false otherwise.
++ * Note: an internal helper, only check the range of _stext to _etext.
++ */
++static inline bool __is_kernel_text(unsigned long addr)
++{
++	return addr >= (unsigned long)_stext &&
++	       addr < (unsigned long)_etext;
++}
++
++/**
++ * __is_kernel - checks if the pointer address is located in the kernel range
++ *
++ * @addr: address to check
++ *
++ * Returns: true if the address is located in the kernel range, false otherwise.
++ * Note: an internal helper, only check the range of _stext to _end.
++ */
++static inline bool __is_kernel(unsigned long addr)
++{
++	return addr >= (unsigned long)_stext &&
++	       addr < (unsigned long)_end;
++}
++
+ #endif /* _ASM_GENERIC_SECTIONS_H_ */
 diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
-index 6851c2313cad..2a241e3f063f 100644
+index 8a9d329c927c..5fb17dd4b6fa 100644
 --- a/include/linux/kallsyms.h
 +++ b/include/linux/kallsyms.h
-@@ -34,8 +34,7 @@ static inline int is_kernel_inittext(unsigned long addr)
+@@ -26,14 +26,14 @@ struct module;
  
  static inline int is_kernel_text(unsigned long addr)
  {
--	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext) ||
--	    arch_is_kernel_text(addr))
-+	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext))
+-	if ((addr >= (unsigned long)_stext && addr < (unsigned long)_etext))
++	if (__is_kernel_text(addr))
  		return 1;
  	return in_gate_area_no_mm(addr);
  }
-diff --git a/kernel/locking/lockdep.c b/kernel/locking/lockdep.c
-index 7096384dc60f..dcdbcee391cd 100644
---- a/kernel/locking/lockdep.c
-+++ b/kernel/locking/lockdep.c
-@@ -803,9 +803,6 @@ static int static_obj(const void *obj)
- 	if ((addr >= start) && (addr < end))
- 		return 1;
  
--	if (arch_is_kernel_data(addr))
--		return 1;
--
- 	/*
- 	 * in-kernel percpu var?
- 	 */
+ static inline int is_kernel(unsigned long addr)
+ {
+-	if (addr >= (unsigned long)_stext && addr < (unsigned long)_end)
++	if (__is_kernel(addr))
+ 		return 1;
+ 	return in_gate_area_no_mm(addr);
+ }
 -- 
 2.26.2
 
