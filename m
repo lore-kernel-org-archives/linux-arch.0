@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4D4F4C43217
-	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 27F6CC4321E
+	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:35 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 31B52617E6
-	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:34 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 144E1617E6
+	for <linux-arch@archiver.kernel.org>; Thu, 30 Sep 2021 07:09:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1348584AbhI3HLN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 30 Sep 2021 03:11:13 -0400
-Received: from szxga01-in.huawei.com ([45.249.212.187]:27938 "EHLO
+        id S1348595AbhI3HLP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 30 Sep 2021 03:11:15 -0400
+Received: from szxga01-in.huawei.com ([45.249.212.187]:27939 "EHLO
         szxga01-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1348552AbhI3HLJ (ORCPT
+        with ESMTP id S1348554AbhI3HLJ (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Sep 2021 03:11:09 -0400
 Received: from dggemv704-chm.china.huawei.com (unknown [172.30.72.56])
-        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4HKklR021Szbmyw;
+        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4HKklR0RdKzbn02;
         Thu, 30 Sep 2021 15:05:07 +0800 (CST)
 Received: from dggpemm500001.china.huawei.com (7.185.36.107) by
  dggemv704-chm.china.huawei.com (10.3.19.47) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2308.8; Thu, 30 Sep 2021 15:09:19 +0800
+ 15.1.2308.8; Thu, 30 Sep 2021 15:09:21 +0800
 Received: from localhost.localdomain.localdomain (10.175.113.25) by
  dggpemm500001.china.huawei.com (7.185.36.107) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2308.8; Thu, 30 Sep 2021 15:09:17 +0800
+ 15.1.2308.8; Thu, 30 Sep 2021 15:09:21 +0800
 From:   Kefeng Wang <wangkefeng.wang@huawei.com>
 To:     <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
         <linux-kernel@vger.kernel.org>, <linuxppc-dev@lists.ozlabs.org>,
@@ -36,12 +36,10 @@ CC:     <mpe@ellerman.id.au>, <benh@kernel.crashing.org>,
         <linux-alpha@vger.kernel.org>,
         Christophe Leroy <christophe.leroy@csgroup.eu>,
         Kefeng Wang <wangkefeng.wang@huawei.com>,
-        Alexander Potapenko <glider@google.com>,
-        Andrey Konovalov <andreyknvl@gmail.com>,
-        Dmitry Vyukov <dvyukov@google.com>
-Subject: [PATCH v4 07/11] mm: kasan: Use is_kernel() helper
-Date:   Thu, 30 Sep 2021 15:11:39 +0800
-Message-ID: <20210930071143.63410-8-wangkefeng.wang@huawei.com>
+        Michal Simek <monstr@monstr.eu>
+Subject: [PATCH v4 10/11] microblaze: Use is_kernel_text() helper
+Date:   Thu, 30 Sep 2021 15:11:42 +0800
+Message-ID: <20210930071143.63410-11-wangkefeng.wang@huawei.com>
 X-Mailer: git-send-email 2.26.2
 In-Reply-To: <20210930071143.63410-1-wangkefeng.wang@huawei.com>
 References: <20210930071143.63410-1-wangkefeng.wang@huawei.com>
@@ -56,30 +54,35 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Directly use is_kernel() helper in kernel_or_module_addr().
+Use is_kernel_text() helper to simplify code.
 
-Cc: Andrey Ryabinin <ryabinin.a.a@gmail.com>
-Cc: Alexander Potapenko <glider@google.com>
-Cc: Andrey Konovalov <andreyknvl@gmail.com>
-Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Michal Simek <monstr@monstr.eu>
 Signed-off-by: Kefeng Wang <wangkefeng.wang@huawei.com>
 ---
- mm/kasan/report.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/microblaze/mm/pgtable.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/mm/kasan/report.c b/mm/kasan/report.c
-index 3239fd8f8747..1c955e1c98d5 100644
---- a/mm/kasan/report.c
-+++ b/mm/kasan/report.c
-@@ -226,7 +226,7 @@ static void describe_object(struct kmem_cache *cache, void *object,
+diff --git a/arch/microblaze/mm/pgtable.c b/arch/microblaze/mm/pgtable.c
+index c1833b159d3b..9f73265aad4e 100644
+--- a/arch/microblaze/mm/pgtable.c
++++ b/arch/microblaze/mm/pgtable.c
+@@ -34,6 +34,7 @@
+ #include <linux/mm_types.h>
+ #include <linux/pgtable.h>
+ #include <linux/memblock.h>
++#include <linux/kallsyms.h>
  
- static inline bool kernel_or_module_addr(const void *addr)
- {
--	if (addr >= (void *)_stext && addr < (void *)_end)
-+	if (is_kernel((unsigned long)addr))
- 		return true;
- 	if (is_module_address((unsigned long)addr))
- 		return true;
+ #include <asm/pgalloc.h>
+ #include <linux/io.h>
+@@ -171,7 +172,7 @@ void __init mapin_ram(void)
+ 	for (s = 0; s < lowmem_size; s += PAGE_SIZE) {
+ 		f = _PAGE_PRESENT | _PAGE_ACCESSED |
+ 				_PAGE_SHARED | _PAGE_HWEXEC;
+-		if ((char *) v < _stext || (char *) v >= _etext)
++		if (!is_kernel_text(v))
+ 			f |= _PAGE_WRENABLE;
+ 		else
+ 			/* On the MicroBlaze, no user access
 -- 
 2.26.2
 
