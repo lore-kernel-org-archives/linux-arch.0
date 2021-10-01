@@ -2,54 +2,54 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 65CCCC433F5
-	for <linux-arch@archiver.kernel.org>; Fri,  1 Oct 2021 18:13:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 89B0DC433EF
+	for <linux-arch@archiver.kernel.org>; Fri,  1 Oct 2021 18:13:20 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 53F5561263
-	for <linux-arch@archiver.kernel.org>; Fri,  1 Oct 2021 18:13:17 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 6CBA261A03
+	for <linux-arch@archiver.kernel.org>; Fri,  1 Oct 2021 18:13:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1355784AbhJASOt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 1 Oct 2021 14:14:49 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50260 "EHLO
+        id S1355848AbhJASPD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 1 Oct 2021 14:15:03 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50232 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1355731AbhJASOf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Oct 2021 14:14:35 -0400
-Received: from mail-pl1-x62b.google.com (mail-pl1-x62b.google.com [IPv6:2607:f8b0:4864:20::62b])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5FEB6C0613E3;
-        Fri,  1 Oct 2021 11:12:49 -0700 (PDT)
-Received: by mail-pl1-x62b.google.com with SMTP id n2so6809469plk.12;
-        Fri, 01 Oct 2021 11:12:49 -0700 (PDT)
+        with ESMTP id S1355761AbhJASOs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Oct 2021 14:14:48 -0400
+Received: from mail-pf1-x430.google.com (mail-pf1-x430.google.com [IPv6:2607:f8b0:4864:20::430])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7AA50C0613E4;
+        Fri,  1 Oct 2021 11:13:04 -0700 (PDT)
+Received: by mail-pf1-x430.google.com with SMTP id h1so4555257pfv.12;
+        Fri, 01 Oct 2021 11:13:04 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20210112;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=sW0jJ5BzCWKEZDvFC9cMEYLIv2cIm64unRMGWihrNWQ=;
-        b=Hjjio5YfbTL06CUplVnQJQJhcQPKaiyKvx26hAhLV3vk1nJOntgtfOuJtcvYMOsnFb
-         VRx1gO+rerN95uQpdWOqxRrPG3Jy6DaNSeml+AagbFNyv/bvPN3qkA6KctHIuS/tA6io
-         YiEd0mfN/Xv496SYNRDlfmOf54pO4xw3B7YcumaxycffAsDCJy7l0N+P7bufKNlkgU8T
-         sHBo4sVwP3il0jQhaKjUapuaCP5ae1tL9XcbLk+yGYn8zziBifO0RQW6fEmovylhX4nw
-         LyQ8RR2JTeS+IwrAEBtPSlPWoKpMQyHtZw/wyxgCmm/TvhZaKCdL30uGYjTkrAoGU3sO
-         MmKA==
+        bh=jQRHCblSluQbIpKux4YUTKcJ4EpZKx7DnMWO8vXdRIU=;
+        b=JpJB8on8KCekNV6APNk79jaBTmAAXIMYyrv8jaOwxRMB7h8GF+3I5QZp77fkYBTOEk
+         PAnYIrlNbI346YWFB0jHiNGHAHJKLgFu8yo4jPSPorX/FLAoDw5y5akQmblzzjKNMWur
+         3SJyCsEYzTwY8CbLxqxLXnQg/8tkPZFEfRf8w26esAftDVjw05iN+BxYJVA4KVQxxrPb
+         EM+WLSQmt6KlsyqHytXuXGrwx6OZlJHMuMAKhtt5wE0fQCWi8AAsnGy6IDK7NlIrPRJ4
+         V/6J+Mn6yJWJGKlI4nlVkLwrO0L+3mvQWFBjcvZuHOPPUXDMv6di6hehpfBuKK9N6Wxg
+         xA0w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=sW0jJ5BzCWKEZDvFC9cMEYLIv2cIm64unRMGWihrNWQ=;
-        b=t7wzv/53R6rzRf18XNrXYLitVnv10I0LpK1+jlLs78v6Tc4GQHQHeUC1wWK955qiTi
-         cGzUbO8gUxyS9MwNDPLH8kN512QFoNndY+xDi5D+HaKrYDqbZa4FmlukFaVUktN5Dxu0
-         OvUTgOJSEeJfS394Xsc2YOrGjwup38E3hu1KvIcwCVtC/gxB2nrjNyxnhBojz5z+qeG9
-         Ic/gpbuImUxIMjXjLA6FX13HTwsPhZaB2ezr95qSggWdBH0iQTiiixPhgz2FEDObfncF
-         Ko0zlQpH3ulNAzk4nH4q7qjWQbqTsgOxb6ON44NGr38UMKtfOKLLGKOCB8jfGm+l2LVZ
-         QYUA==
-X-Gm-Message-State: AOAM533Xgasu9ztymTgv5spXHXG6LN5hW6WQV3gW7dOHl6QJtdDGTdKs
-        gUiqt1EBKFDHw4ZZNfLR+56/qZqhCMA=
-X-Google-Smtp-Source: ABdhPJzTli1lgOmLPmYx3FXRy4h6bEUXTfXqlWFX2kweIYnlQRpIf0Lo6E+elReKGpgFRHbQJn7LAw==
-X-Received: by 2002:a17:902:c409:b0:13c:a5e1:cafc with SMTP id k9-20020a170902c40900b0013ca5e1cafcmr10687285plk.52.1633111968675;
-        Fri, 01 Oct 2021 11:12:48 -0700 (PDT)
+        bh=jQRHCblSluQbIpKux4YUTKcJ4EpZKx7DnMWO8vXdRIU=;
+        b=2Mwq8NcA2nDVSYVHykPL2nR3k9oSpQQtYb8GG2xXTrF/eBMb7OZXh6tnvRm4A8k8R2
+         Gy39xSCFGGoIX0nWnWYtPakAHMB3vmYxG3JcNsqyhb3Y5TRRcRSqJxlbZrODGL8Qc3R3
+         Tah2CAwiYByxNBY6HlJqqDL9Jc7ZYO/A+q3j5mO7NSG9hjoZQQD29STTVG/PPQX0kvAG
+         1tmkXMXGTJS47Dnb8hwAKfXLcLYqbnuooGQRGHxTIhuqThqVNFfA9qTWWtzR9sFASKe0
+         jyknQ4ktu6lBT2zIzKHxu4HQtXOlrXSTFU6YO44+9RRUaCRuqWcoydqdRGQoHHdxSO3L
+         Oj0Q==
+X-Gm-Message-State: AOAM533DpDlhky3ud1jFMlAYBsLtrw68ESXsVbFhxSAg/4hcHMAlkk5m
+        IUocHlhd5WPJcEYMbFXcYNs=
+X-Google-Smtp-Source: ABdhPJymg4NsZq3tJG+1dEEgxkdiiZIuJNdUsgU+8t+z13Plr/rqUYI0RPW44NUkOqFp3tD8FcNCIA==
+X-Received: by 2002:aa7:9e1c:0:b0:44b:b97a:12c2 with SMTP id y28-20020aa79e1c000000b0044bb97a12c2mr11558717pfq.71.1633111983954;
+        Fri, 01 Oct 2021 11:13:03 -0700 (PDT)
 Received: from localhost (searspoint.nvidia.com. [216.228.112.21])
-        by smtp.gmail.com with ESMTPSA id z8sm6797304pgc.53.2021.10.01.11.12.47
+        by smtp.gmail.com with ESMTPSA id d19sm7020209pfn.102.2021.10.01.11.13.02
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 01 Oct 2021 11:12:48 -0700 (PDT)
+        Fri, 01 Oct 2021 11:13:03 -0700 (PDT)
 From:   Yury Norov <yury.norov@gmail.com>
 To:     Stephen Rothwell <sfr@canb.auug.org.au>
 Cc:     Yury Norov <yury.norov@gmail.com>,
@@ -101,11 +101,10 @@ Cc:     Yury Norov <yury.norov@gmail.com>,
         Ulf Hansson <ulf.hansson@linaro.org>,
         Will Deacon <will@kernel.org>,
         Wolfram Sang <wsa+renesas@sang-engineering.com>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        kernel test robot <lkp@intel.com>
-Subject: [PATCH 01/16] bitops: protect find_first_{,zero}_bit properly
-Date:   Fri,  1 Oct 2021 11:12:30 -0700
-Message-Id: <20211001181245.228419-2-yury.norov@gmail.com>
+        Yoshinori Sato <ysato@users.sourceforge.jp>
+Subject: [PATCH 06/16] cpumask: use find_first_and_bit()
+Date:   Fri,  1 Oct 2021 11:12:35 -0700
+Message-Id: <20211001181245.228419-7-yury.norov@gmail.com>
 X-Mailer: git-send-email 2.30.2
 In-Reply-To: <20211001181245.228419-1-yury.norov@gmail.com>
 References: <20211001181245.228419-1-yury.norov@gmail.com>
@@ -115,49 +114,77 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-find_first_bit() and find_first_zero_bit() are not protected with
-ifdefs as other functions in find.h. It causes build errors on some
-platforms if CONFIG_GENERIC_FIND_FIRST_BIT is enabled.
+Now we have an efficient implementation for find_first_and_bit(),
+so switch cpumask to use it where appropriate.
 
 Signed-off-by: Yury Norov <yury.norov@gmail.com>
-Fixes: 2cc7b6a44ac2 ("lib: add fast path for find_first_*_bit() and find_last_bit()")
-Reported-by: kernel test robot <lkp@intel.com>
 Tested-by: Wolfram Sang <wsa+renesas@sang-engineering.com>
 ---
- include/asm-generic/bitops/find.h | 5 +++++
- 1 file changed, 5 insertions(+)
+ include/linux/cpumask.h | 30 ++++++++++++++++++++----------
+ 1 file changed, 20 insertions(+), 10 deletions(-)
 
-diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-index 0d132ee2a291..835f959a25f2 100644
---- a/include/asm-generic/bitops/find.h
-+++ b/include/asm-generic/bitops/find.h
-@@ -97,6 +97,7 @@ unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
- 
- #ifdef CONFIG_GENERIC_FIND_FIRST_BIT
- 
-+#ifndef find_first_bit
- /**
-  * find_first_bit - find the first set bit in a memory region
-  * @addr: The address to start the search at
-@@ -116,7 +117,9 @@ unsigned long find_first_bit(const unsigned long *addr, unsigned long size)
- 
- 	return _find_first_bit(addr, size);
+diff --git a/include/linux/cpumask.h b/include/linux/cpumask.h
+index 1e7399fc69c0..c4e1b9ea0ba4 100644
+--- a/include/linux/cpumask.h
++++ b/include/linux/cpumask.h
+@@ -123,6 +123,12 @@ static inline unsigned int cpumask_first(const struct cpumask *srcp)
+ 	return 0;
  }
-+#endif
  
-+#ifndef find_first_zero_bit
- /**
-  * find_first_zero_bit - find the first cleared bit in a memory region
-  * @addr: The address to start the search at
-@@ -136,6 +139,8 @@ unsigned long find_first_zero_bit(const unsigned long *addr, unsigned long size)
- 
- 	return _find_first_zero_bit(addr, size);
- }
-+#endif
++static inline unsigned int cpumask_first_and(const struct cpumask *srcp1,
++					     const struct cpumask *srcp2)
++{
++	return 0;
++}
 +
- #else /* CONFIG_GENERIC_FIND_FIRST_BIT */
+ static inline unsigned int cpumask_last(const struct cpumask *srcp)
+ {
+ 	return 0;
+@@ -167,7 +173,7 @@ static inline unsigned int cpumask_local_spread(unsigned int i, int node)
  
- #ifndef find_first_bit
+ static inline int cpumask_any_and_distribute(const struct cpumask *src1p,
+ 					     const struct cpumask *src2p) {
+-	return cpumask_next_and(-1, src1p, src2p);
++	return cpumask_first_and(src1p, src2p);
+ }
+ 
+ static inline int cpumask_any_distribute(const struct cpumask *srcp)
+@@ -195,6 +201,19 @@ static inline unsigned int cpumask_first(const struct cpumask *srcp)
+ 	return find_first_bit(cpumask_bits(srcp), nr_cpumask_bits);
+ }
+ 
++/**
++ * cpumask_first_and - return the first cpu from *srcp1 & *srcp2
++ * @src1p: the first input
++ * @src2p: the second input
++ *
++ * Returns >= nr_cpu_ids if no cpus set in both.  See also cpumask_next_and().
++ */
++static inline
++unsigned int cpumask_first_and(const struct cpumask *srcp1, const struct cpumask *srcp2)
++{
++	return find_first_and_bit(cpumask_bits(srcp1), cpumask_bits(srcp2), nr_cpumask_bits);
++}
++
+ /**
+  * cpumask_last - get the last CPU in a cpumask
+  * @srcp:	- the cpumask pointer
+@@ -585,15 +604,6 @@ static inline void cpumask_copy(struct cpumask *dstp,
+  */
+ #define cpumask_any(srcp) cpumask_first(srcp)
+ 
+-/**
+- * cpumask_first_and - return the first cpu from *srcp1 & *srcp2
+- * @src1p: the first input
+- * @src2p: the second input
+- *
+- * Returns >= nr_cpu_ids if no cpus set in both.  See also cpumask_next_and().
+- */
+-#define cpumask_first_and(src1p, src2p) cpumask_next_and(-1, (src1p), (src2p))
+-
+ /**
+  * cpumask_any_and - pick a "random" cpu from *mask1 & *mask2
+  * @mask1: the first input cpumask
 -- 
 2.30.2
 
