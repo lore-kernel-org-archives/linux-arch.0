@@ -2,96 +2,115 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D230BC433FE
-	for <linux-arch@archiver.kernel.org>; Fri,  1 Oct 2021 16:36:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 78F0DC4332F
+	for <linux-arch@archiver.kernel.org>; Fri,  1 Oct 2021 16:42:05 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id B4518610A3
-	for <linux-arch@archiver.kernel.org>; Fri,  1 Oct 2021 16:36:10 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 63F2C61A63
+	for <linux-arch@archiver.kernel.org>; Fri,  1 Oct 2021 16:42:05 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1355046AbhJAQhy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 1 Oct 2021 12:37:54 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55588 "EHLO
+        id S232131AbhJAQns (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 1 Oct 2021 12:43:48 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56916 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1355081AbhJAQhx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Oct 2021 12:37:53 -0400
-Received: from mail-lf1-x131.google.com (mail-lf1-x131.google.com [IPv6:2a00:1450:4864:20::131])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B5E3AC061775
-        for <linux-arch@vger.kernel.org>; Fri,  1 Oct 2021 09:36:08 -0700 (PDT)
-Received: by mail-lf1-x131.google.com with SMTP id u18so41240956lfd.12
-        for <linux-arch@vger.kernel.org>; Fri, 01 Oct 2021 09:36:08 -0700 (PDT)
+        with ESMTP id S232109AbhJAQns (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Oct 2021 12:43:48 -0400
+Received: from mail-qk1-x735.google.com (mail-qk1-x735.google.com [IPv6:2607:f8b0:4864:20::735])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AF650C061775
+        for <linux-arch@vger.kernel.org>; Fri,  1 Oct 2021 09:42:03 -0700 (PDT)
+Received: by mail-qk1-x735.google.com with SMTP id d207so9806916qkg.0
+        for <linux-arch@vger.kernel.org>; Fri, 01 Oct 2021 09:42:03 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=jD7nwgHxMSeInUUrs6FJvRIyAdhMaTevfxCsu5BdLTM=;
-        b=PpsqrsGdIFtn0KUPuJCzf5kI4Ojb7JegjF0BMY8LGcnxojJcyAKH5k+wMEqCTVCgzl
-         1JQOIKyWlYlFXvLkV+P4j2KXRW+vn73pOipkMa/rdLBsfXs2C5ON06epk0gG2f0lb3JE
-         TuSCdW5hFzBNhpbQQUh5N3vycq4ZQXUL7ShOc=
+        d=linaro.org; s=google;
+        h=subject:to:cc:references:from:message-id:date:user-agent
+         :mime-version:in-reply-to:content-language:content-transfer-encoding;
+        bh=aQbL8pXIXocxX9H8b/2nNpVZyCyOOEJ+2eX3f4bQsb0=;
+        b=wXbQCGjvp4GLHV24dvNcEoftO+b+jxKTmz0SX5x2HR0+WKCJvkioVyd5rDUb2pCsyj
+         o4MwxX88vRap3XoIMPH26Rln/IMU3v7eS9oXh7nMXv+ICLXwXcGBr6pwdAR2E1rH+e9G
+         KNiwnEpz/fBuGfOjg9/YJkFPWP0jIasbrHIi5xoe9Jmc2rwoK0LDzR/wU1wjZbeFmvdD
+         YEhrospe7J6JtzCADzrRF55UOLO4nVmGg2KvlI4Zwe+SSleJ/yccWHSdHTqccQETU7z8
+         JuQIl058Sfvctk3JRr/BoFuVNjJ4FsVaTDrdfRW23LqaJ1v9W9MoKhc5ea1v1Qa+zBz4
+         WCMA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=jD7nwgHxMSeInUUrs6FJvRIyAdhMaTevfxCsu5BdLTM=;
-        b=Jj4pjimEKAmoIEycmBZAiz2DLs7oiG5+GhGVV6Uvm8UOQg7KUKPySFZrNo1royZ5SW
-         MoYZuBWyZQalQIMDAd9AbISq5BJuUwUUQu0oSCgvIx6L+iOYmS6qL+lhEqjMNFtIxFmR
-         D+jhC4YU3m+Gy3ghylsvk+elcXTljOgjYnIa+lA2mFaItZa2OYYZq4aB3HdvTvYbG+OO
-         U1pFarskGtnTKj+jwRswQJgV9bAhNV6Qdmq5QJO35ZuN0KoSf3npWODs83p+fqGKG2hX
-         XgOFnU8mIWq0FLeP2rtLPVxUUz4HWRBaXATnUMXDRO48STCGJMHv7neQfLzSvQfYRMqr
-         k1dA==
-X-Gm-Message-State: AOAM531KjEL0SRarQYQQntrzBkRSn4XF5XMPtaFThL0WYeOOxqPhr9vy
-        r6/crJEtvADvbv0mRL17vTAsI2BpbblitVGaeKo=
-X-Google-Smtp-Source: ABdhPJyQ7GyTFWC6cEHxIRueFndoG1fdQwi3bv3+XTF+CJWCKj6B0fG6cjlcmx+zo7cpK6M4MW5mVA==
-X-Received: by 2002:ac2:5451:: with SMTP id d17mr6264226lfn.367.1633106166352;
-        Fri, 01 Oct 2021 09:36:06 -0700 (PDT)
-Received: from mail-lf1-f51.google.com (mail-lf1-f51.google.com. [209.85.167.51])
-        by smtp.gmail.com with ESMTPSA id m25sm708283lji.52.2021.10.01.09.36.04
-        for <linux-arch@vger.kernel.org>
+        h=x-gm-message-state:subject:to:cc:references:from:message-id:date
+         :user-agent:mime-version:in-reply-to:content-language
+         :content-transfer-encoding;
+        bh=aQbL8pXIXocxX9H8b/2nNpVZyCyOOEJ+2eX3f4bQsb0=;
+        b=zQMZKMC+eNMx6BQp+tl9Wjf3c5xMg79AIY4Oyxk8UJooSfSrXtpGiMBjYyLNlESyzZ
+         YFooUQ956U8rwkCLJ3ZtUkREsPTjbGGGayBEx9n6nXcZuNnDiFQb69A1X97xDASZHb8b
+         pO5gX1/DJxxIUZQWPunMeouvVTdsTeIjo/OYSenL+RIZhiYYYEARaxLwMbrKggAP1ohT
+         FspnWmK+7RJ7i0fFQ8qM6A66VPAZS/8HJKubA1Vg6+MAvSJWguYFyIkIPWsgoBMvhFSW
+         tvAVFYTPXcWKQkausSNNoIb/nNs4m4taX+eS8U6OFGCOlAr5JQyYiaOZHc3Bo46udqeb
+         fQaw==
+X-Gm-Message-State: AOAM5312wpFC+sd6Rvx5WCIZjxCcYF63n8cJixwffOi720h7AYwtmwb3
+        +mwoh2/UvwG6j1JggK+LgePEmA==
+X-Google-Smtp-Source: ABdhPJxEISaAeFeyVBnUq/DuWLEI7heMQCiSZdmm/c7At99cOYDg6yzkNykzMscChFIJiV2TCPFeTA==
+X-Received: by 2002:ae9:eb58:: with SMTP id b85mr10034928qkg.323.1633106522896;
+        Fri, 01 Oct 2021 09:42:02 -0700 (PDT)
+Received: from [192.168.3.43] (c-67-174-166-185.hsd1.ga.comcast.net. [67.174.166.185])
+        by smtp.gmail.com with ESMTPSA id p12sm3298438qkj.54.2021.10.01.09.42.01
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 01 Oct 2021 09:36:04 -0700 (PDT)
-Received: by mail-lf1-f51.google.com with SMTP id e15so41004061lfr.10
-        for <linux-arch@vger.kernel.org>; Fri, 01 Oct 2021 09:36:04 -0700 (PDT)
-X-Received: by 2002:a19:ef01:: with SMTP id n1mr6592631lfh.150.1633106163819;
- Fri, 01 Oct 2021 09:36:03 -0700 (PDT)
+        Fri, 01 Oct 2021 09:42:02 -0700 (PDT)
+Subject: Re: [RFC PATCH 00/13] x86 User Interrupts support
+To:     Stefan Hajnoczi <stefanha@redhat.com>,
+        Sohil Mehta <sohil.mehta@intel.com>,
+        Peter Maydell <peter.maydell@linaro.org>,
+        =?UTF-8?Q?Alex_Benn=c3=a9e?= <alex.bennee@linaro.org>
+Cc:     Andy Lutomirski <luto@kernel.org>,
+        the arch/x86 maintainers <x86@kernel.org>,
+        Tony Luck <tony.luck@intel.com>,
+        Dave Hansen <dave.hansen@intel.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        "H. Peter Anvin" <hpa@zytor.com>, Jens Axboe <axboe@kernel.dk>,
+        Christian Brauner <christian@brauner.io>,
+        "Peter Zijlstra (Intel)" <peterz@infradead.org>,
+        Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Raj Ashok <ashok.raj@intel.com>,
+        Jacob Pan <jacob.jun.pan@linux.intel.com>,
+        Gayatri Kammela <gayatri.kammela@intel.com>,
+        Zeng Guang <guang.zeng@intel.com>,
+        "Williams, Dan J" <dan.j.williams@intel.com>,
+        Randy E Witt <randy.e.witt@intel.com>,
+        "Shankar, Ravi V" <ravi.v.shankar@intel.com>,
+        Ramesh Thomas <ramesh.thomas@intel.com>,
+        Linux API <linux-api@vger.kernel.org>,
+        linux-arch@vger.kernel.org,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        linux-kselftest@vger.kernel.org, qemu-devel@nongnu.org
+References: <20210913200132.3396598-1-sohil.mehta@intel.com>
+ <456bf9cf-87b8-4c3d-ac0c-7e392bcf26de@www.fastmail.com>
+ <YVXmGTo5Uzp44QQq@stefanha-x1.localdomain>
+ <778d40fe-ad8e-fd7c-4caa-499910bb0925@intel.com>
+ <YVc47ohb4nxrBO5h@stefanha-x1.localdomain>
+From:   Richard Henderson <richard.henderson@linaro.org>
+Message-ID: <3abdadab-9b7e-7cc0-5ec5-17fa385ce7d4@linaro.org>
+Date:   Fri, 1 Oct 2021 12:41:59 -0400
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.13.0
 MIME-Version: 1.0
-References: <20210928211507.20335-1-mathieu.desnoyers@efficios.com>
- <87lf3f7eh6.fsf@oldenburg.str.redhat.com> <20210929174146.GF22689@gate.crashing.org>
- <2088260319.47978.1633104808220.JavaMail.zimbra@efficios.com> <871r54ww2k.fsf@oldenburg.str.redhat.com>
-In-Reply-To: <871r54ww2k.fsf@oldenburg.str.redhat.com>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Fri, 1 Oct 2021 09:35:47 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wgexLqNnngLPts=wXrRcoP_XHO03iPJbsAg8HYuJbbAvw@mail.gmail.com>
-Message-ID: <CAHk-=wgexLqNnngLPts=wXrRcoP_XHO03iPJbsAg8HYuJbbAvw@mail.gmail.com>
-Subject: Re: [RFC PATCH] LKMM: Add ctrl_dep() macro for control dependency
-To:     Florian Weimer <fweimer@redhat.com>
-Cc:     Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-        Segher Boessenkool <segher@kernel.crashing.org>,
-        Will Deacon <will@kernel.org>, paulmck <paulmck@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        linux-kernel <linux-kernel@vger.kernel.org>,
-        Alan Stern <stern@rowland.harvard.edu>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        j alglave <j.alglave@ucl.ac.uk>,
-        luc maranget <luc.maranget@inria.fr>,
-        akiyks <akiyks@gmail.com>,
-        linux-toolchains <linux-toolchains@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <YVc47ohb4nxrBO5h@stefanha-x1.localdomain>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Oct 1, 2021 at 9:26 AM Florian Weimer <fweimer@redhat.com> wrote:
->
-> Will any conditional branch do, or is it necessary that it depends in
-> some way on the data read?
+On 10/1/21 12:35 PM, Stefan Hajnoczi wrote:
+> QEMU's TCG threads execute translated code. There are events that
+> require interrupting these threads. Today a check is performed at the
+> start of every translated block. Most of the time the check is false and
+> it's a waste of CPU.
+> 
+> User interrupts can eliminate the need for checks by interrupting TCG
+> threads when events occur.
 
-The condition needs to be dependent on the read.
+We used to use interrupts, and stopped because we need to wait until the guest is in a 
+stable state.  The guest is always in a stable state at the beginning of each TB.
 
-(Easy way to see it: if the read isn't related to the conditional or
-write data/address, the read could just be delayed to after the
-condition and the store had been done).
+See 378df4b2375.
 
-               Linus
+
+r~
