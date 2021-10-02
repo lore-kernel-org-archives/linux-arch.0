@@ -2,138 +2,99 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 96420C433F5
-	for <linux-arch@archiver.kernel.org>; Sat,  2 Oct 2021 09:25:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DB37DC433EF
+	for <linux-arch@archiver.kernel.org>; Sat,  2 Oct 2021 10:50:13 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 77DC36136A
-	for <linux-arch@archiver.kernel.org>; Sat,  2 Oct 2021 09:25:22 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A60CC61A51
+	for <linux-arch@archiver.kernel.org>; Sat,  2 Oct 2021 10:50:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232717AbhJBJ1G (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 2 Oct 2021 05:27:06 -0400
-Received: from mail-vs1-f54.google.com ([209.85.217.54]:35694 "EHLO
-        mail-vs1-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232719AbhJBJZX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 Oct 2021 05:25:23 -0400
-Received: by mail-vs1-f54.google.com with SMTP id f18so14116319vsp.2;
-        Sat, 02 Oct 2021 02:23:37 -0700 (PDT)
+        id S232757AbhJBKv6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 2 Oct 2021 06:51:58 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44788 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232621AbhJBKv5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 Oct 2021 06:51:57 -0400
+Received: from mail-ua1-x933.google.com (mail-ua1-x933.google.com [IPv6:2607:f8b0:4864:20::933])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F314EC061570;
+        Sat,  2 Oct 2021 03:50:11 -0700 (PDT)
+Received: by mail-ua1-x933.google.com with SMTP id c33so8542960uae.9;
+        Sat, 02 Oct 2021 03:50:11 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=hApVBQxpxEC5vFy5Vo/ksJtoWpp3dT/2xS6YTcdOE2Y=;
+        b=P4RPrTAKw+Xf8YTtm1ijdqPK6rNH7thWGY11M24OTN89QTWl5phavzvMYOnB841xaO
+         r5MWL3qF0YjZMBCfKSLHQRRNKkUn7oUB7u1AB8WQ9VMVs/Z5Dcs9/3GSbjZyaPLZH8A2
+         evdyYUhjPjgJHbpf+zYErf0n6OmVD5++ogTQblzFSFWscBYnRRW0PDibXMndfme0RWwB
+         2fM6DeJixjQERPJAd0Hg7Or7bcDhf0AUJMEJb8JqRHpYpL/T6t+jwTcewby+QDbvSdQx
+         9554NPbY9bEAtg7YGN95WBS5y3gWzoGLGS2MlqX7jJfRGQad1anu9rrz0/tbtbEQiY+u
+         cOqw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:mime-version:references:in-reply-to:from:date
          :message-id:subject:to:cc;
-        bh=Lj27fX+w/X1fzAaixWVl+EMSmBzqib+t1AvqNPW0Qfo=;
-        b=eQ7Xi9BjwHarBUNbWz9NkWr+Fq1PS//jsakctwN1H55+6xYfn/5LXwsCHrYFZTnUcN
-         mwY9NJ2FfvWu3wmzbKuXrU4cXn5mqLsTR+efLwMLgNDEMAWvHqEkC1Ik1WFbgAvIz2Gx
-         JuEmKDTYxqlB2l312wzigYfwJemW5sYFhCM0NfF9vpNfGv0hzOSF9UNhjuEdtnXfk9yU
-         +JV7vk5s/EldK0mGmu9saoMP1nnYXQ8OPZdp5na8Mvyp8T5XCGp8apmtWP8pJ3+9C2/p
-         Oz2qn2Q2SE80s6k8HBIQ6iGYUF6tBC1YlRtYk+B5o1q8F2GiFLEMTWrTF/w9WIiGgS8A
-         0qxw==
-X-Gm-Message-State: AOAM532FJKaFkA2ueioqhCgwtr7GJs9sIsBrPlBln+xYP93w8czVziVJ
-        p4hIiGc02j1P9w0wLDl2qshMRPZ42IoTmnUuAeg=
-X-Google-Smtp-Source: ABdhPJyIkTe18axoKGGfe6/riaB8UL54KfoHPvrebxDva0p8GQNYtsCXNMqktxYUF4cWRNiUDZV6LfcDHAZk9sL3kO8=
-X-Received: by 2002:a67:c295:: with SMTP id k21mr5066492vsj.37.1633166617532;
- Sat, 02 Oct 2021 02:23:37 -0700 (PDT)
+        bh=hApVBQxpxEC5vFy5Vo/ksJtoWpp3dT/2xS6YTcdOE2Y=;
+        b=uymqnCFHD+6bYu7Vhsud5hvIA18SypWr3nmXHyJqwpDQ8xabJ4YjgLjlX539ekf1J8
+         +4GvPvwB0I9PvAKFB+hdgpHyuENxRY1B5ZZkAJihjvs4OILgzwNttcnBp2PSq41wjjWW
+         Fw18nW4hWzDmVkU78AV0fhqmDeU3Czsy3jT5fqNxODHsbQDaDZj/K+5FBPwLbJUn7IwU
+         6cVRjePHuR5DnedLJzTIEJky+Ez2L4U8xhjVL5FrEu2GktFcZ7m32R/VJBlHqpawf6hI
+         G9bcvVK41FnieFnCdsLYUTgA2q1K0UtcZeMmsFsebwTcUBzOsoTO/APfQy84nGgutdKT
+         es5w==
+X-Gm-Message-State: AOAM532cCgyMtKRvWRx4K9f0s2mGfFpQvHho5J7nC5fvux3n+z6oKe8Q
+        FziTmOraHPCgY8RDVRU35UnIGAYQwbOjKfO0Bzc=
+X-Google-Smtp-Source: ABdhPJxrt0PHaUYomQoyBR7LSumjrjkCTVkFlD8OoKphsiOwEiX4pq6aBotbO+VWDsjqM++E1d15YgXCMvWwLVyq5kc=
+X-Received: by 2002:ab0:550f:: with SMTP id t15mr1343048uaa.22.1633171810757;
+ Sat, 02 Oct 2021 03:50:10 -0700 (PDT)
 MIME-Version: 1.0
-References: <20211001181245.228419-1-yury.norov@gmail.com> <20211001181245.228419-4-yury.norov@gmail.com>
-In-Reply-To: <20211001181245.228419-4-yury.norov@gmail.com>
-From:   Geert Uytterhoeven <geert@linux-m68k.org>
-Date:   Sat, 2 Oct 2021 11:23:26 +0200
-Message-ID: <CAMuHMdUbzBBpCvw+44BAEVWtLfXLH_75JUcsUkedyxZYmdwL7w@mail.gmail.com>
-Subject: Re: [PATCH 03/16] include: move find.h from asm_generic to linux
-To:     Yury Norov <yury.norov@gmail.com>
-Cc:     Stephen Rothwell <sfr@canb.auug.org.au>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Linux MM <linux-mm@kvack.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        "open list:KERNEL SELFTEST FRAMEWORK" 
-        <linux-kselftest@vger.kernel.org>,
-        Linux MMC List <linux-mmc@vger.kernel.org>,
-        linux-perf-users@vger.kernel.org, KVM list <kvm@vger.kernel.org>,
-        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-        Alexander Lobakin <alobakin@pm.me>,
-        Alexander Shishkin <alexander.shishkin@linux.intel.com>,
-        Alexey Klimov <aklimov@redhat.com>,
-        Andrea Merello <andrea.merello@gmail.com>,
-        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        Arnaldo Carvalho de Melo <acme@redhat.com>,
-        Arnd Bergmann <arnd@arndb.de>, Ben Gardon <bgardon@google.com>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Brian Cain <bcain@codeaurora.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christoph Lameter <cl@linux.com>,
-        Daniel Bristot de Oliveira <bristot@redhat.com>,
-        David Hildenbrand <david@redhat.com>,
-        Dennis Zhou <dennis@kernel.org>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Ian Rogers <irogers@google.com>,
-        Ingo Molnar <mingo@redhat.com>,
-        Jaegeuk Kim <jaegeuk@kernel.org>,
-        Jakub Kicinski <kuba@kernel.org>, Jiri Olsa <jolsa@redhat.com>,
-        Joe Perches <joe@perches.com>, Jonas Bonn <jonas@southpole.se>,
-        Leo Yan <leo.yan@linaro.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Namhyung Kim <namhyung@kernel.org>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paolo Bonzini <pbonzini@redhat.com>,
-        Peter Xu <peterx@redhat.com>,
+References: <20210927064300.624279-1-chenhuacai@loongson.cn>
+ <20210927064300.624279-7-chenhuacai@loongson.cn> <91d12c483421cc7bd69d8ee7f28243d65877a7af.camel@mengyan1223.wang>
+In-Reply-To: <91d12c483421cc7bd69d8ee7f28243d65877a7af.camel@mengyan1223.wang>
+From:   Huacai Chen <chenhuacai@gmail.com>
+Date:   Sat, 2 Oct 2021 18:49:59 +0800
+Message-ID: <CAAhV-H6Pt5=DCC39PhJg6jHgpo+GyTGH=KonpncOVFMpD=__Ow@mail.gmail.com>
+Subject: Re: [PATCH V4 06/22] LoongArch: Add CPU definition headers
+To:     Xi Ruoyao <xry111@mengyan1223.wang>
+Cc:     Huacai Chen <chenhuacai@loongson.cn>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
         Peter Zijlstra <peterz@infradead.org>,
-        Petr Mladek <pmladek@suse.com>,
-        Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-        Rich Felker <dalias@libc.org>,
-        Samuel Mendoza-Jonas <sam@mendozajonas.com>,
-        Sean Christopherson <seanjc@google.com>,
-        Sergey Senozhatsky <senozhatsky@chromium.org>,
-        Shuah Khan <shuah@kernel.org>,
-        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Tejun Heo <tj@kernel.org>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Ulf Hansson <ulf.hansson@linaro.org>,
-        Will Deacon <will@kernel.org>,
-        Wolfram Sang <wsa+renesas@sang-engineering.com>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>
+        Andrew Morton <akpm@linux-foundation.org>,
+        David Airlie <airlied@linux.ie>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
+        LKML <linux-kernel@vger.kernel.org>,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Yanteng Si <siyanteng@loongson.cn>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Yuri,
+Hi, Ruoyao,
 
-Thanks for your patch!
-
-On Fri, Oct 1, 2021 at 8:12 PM Yury Norov <yury.norov@gmail.com> wrote:
-> find_bit API and bitmap API are closely related, but inclusion paths
-> are different - include/asm-generic and include/linux, correspondingly.
-> In the past it made a lot of troubles due to circular dependencies
-> and/or undefined symbols. Fix this by moving find.h under include/linux.
-
-.. and including it from include/linux/bitmap.h, like the other helper includes?
-
-> Signed-off-by: Yury Norov <yury.norov@gmail.com>
-> Tested-by: Wolfram Sang <wsa+renesas@sang-engineering.com>
-
->  arch/m68k/include/asm/bitops.h               |  2 --
-
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-
-> --- a/include/linux/bitmap.h
-> +++ b/include/linux/bitmap.h
-> @@ -6,6 +6,7 @@
+On Thu, Sep 30, 2021 at 11:30 PM Xi Ruoyao <xry111@mengyan1223.wang> wrote:
 >
->  #include <linux/align.h>
->  #include <linux/bitops.h>
-> +#include <linux/find.h>
->  #include <linux/limits.h>
->  #include <linux/string.h>
->  #include <linux/types.h>
+> On Mon, 2021-09-27 at 14:42 +0800, Huacai Chen wrote:
+>
+> > +#define t0     $r12    /* caller saved */
+> > +#define t1     $r13
+> > +#define t2     $r14
+> > +#define t3     $r15
+> > +#define t4     $r16
+> > +#define t5     $r17
+> > +#define t6     $r18
+> > +#define t7     $r19
+> > +#define t8     $r20
+> > +#define x0     $r21
+>
+> In the doc it's said x0 will be used to name a 256-bit vector register.
+> Maybe it's better to rename this one?
+OK, I want to rename it to u0 (U means Unused in userspace).
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Huacai
+>
