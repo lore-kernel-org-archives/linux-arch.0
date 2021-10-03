@@ -2,88 +2,91 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 110C2C433FE
-	for <linux-arch@archiver.kernel.org>; Sun,  3 Oct 2021 02:50:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5BE74C433F5
+	for <linux-arch@archiver.kernel.org>; Sun,  3 Oct 2021 09:09:53 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id E1F4F61AF0
-	for <linux-arch@archiver.kernel.org>; Sun,  3 Oct 2021 02:50:33 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 436F661B25
+	for <linux-arch@archiver.kernel.org>; Sun,  3 Oct 2021 09:09:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229603AbhJCCwT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 2 Oct 2021 22:52:19 -0400
-Received: from zeniv-ca.linux.org.uk ([142.44.231.140]:41542 "EHLO
-        zeniv-ca.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229514AbhJCCwS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 Oct 2021 22:52:18 -0400
-Received: from viro by zeniv-ca.linux.org.uk with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1mWrXy-009Wzm-I7; Sun, 03 Oct 2021 02:48:14 +0000
-Date:   Sun, 3 Oct 2021 02:48:14 +0000
-From:   Al Viro <viro@zeniv.linux.org.uk>
-To:     Huacai Chen <chenhuacai@loongson.cn>
-Cc:     Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
+        id S229595AbhJCJLi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 3 Oct 2021 05:11:38 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54628 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229522AbhJCJLi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 Oct 2021 05:11:38 -0400
+Received: from mail-vk1-xa33.google.com (mail-vk1-xa33.google.com [IPv6:2607:f8b0:4864:20::a33])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 78228C0613EC;
+        Sun,  3 Oct 2021 02:09:51 -0700 (PDT)
+Received: by mail-vk1-xa33.google.com with SMTP id h132so6331357vke.8;
+        Sun, 03 Oct 2021 02:09:51 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=1a09NfC0dZaTGSyNXP7YpV6IMJS3eCI+qR6k57xC1hY=;
+        b=SPtlNUxzyCGS8ZIu8rhhw9KsG+/NDyKz6hE/b0ZbISCL/NG8edbZLMHXbthMc6mH/J
+         Fae7MBoMrKPw1r+8snn9bUlXnDbUhbpaIsO9Zc+s8A6aUx5YiVRApST1BAulUyC94uZD
+         1iIPCjIc2SqQv5itQh471wEJbOZPpr8gU8fG8YMvHiwESRf590ghIJuQiullZNj52R96
+         qzLXHXNZuGKyTJ7pOSEMqGuQa1Kv7fVb6Z6x2v9ogDxs5Y5/DtAELzE25wiIN3IgoM/w
+         jdEvG2+Bb2Djr3ftoQQo7kwjB9sks/8BffUrFjYfz6kp2l2xku3Ux3Yy+AOO/Q4iFCdX
+         QvBQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=1a09NfC0dZaTGSyNXP7YpV6IMJS3eCI+qR6k57xC1hY=;
+        b=1RM9mKOb8Nh67X+yRg/mN8oqhr8Y2lm6Um8cOyz1h2n/CGTF3l3/jSEYG2ncS4syaJ
+         OEUhXT0Mo9MFWKAVTA3MKkdEeZOflboFtDd18j34BS/gr+TYQODXQRvWFFq2bC/pdnXu
+         EfdOtbKTfYPshlI99Zu+r8HaS0GyPjcXv42apqWPlqjmYC+WbB/oMrESlJlRJATdVDEb
+         oKUf0xnjVfR6CUUzzprdrnsUnKTHVoPWaNwxdlgDDzW+xo1OvO1TiOyr9AJw/nOT5hkg
+         b9nsTCNDySmqJ3MRP7AzZAySHH1a6Uwtw9WYph2MxecL+71rPMKrOp4DZ51wTl9pdonk
+         wuHw==
+X-Gm-Message-State: AOAM533Utabsn9a6sc4g4HyNf0GvmQ6yMoXVpl+AvJwupBSBkg8/46V5
+        XZE0M7JYa1g/UYTM3gtpCS+0h8rjJ8ynO4FYYW0=
+X-Google-Smtp-Source: ABdhPJwlJdZUSdB2pmCEUkoCQ/2cdUAgQYYcNSqu8vU5hzyv9CRIwGm023JUFg3iO2qnuy1ja3T1Ba1mP0SbAJwcOKA=
+X-Received: by 2002:a1f:b2d6:: with SMTP id b205mr12461416vkf.11.1633252190627;
+ Sun, 03 Oct 2021 02:09:50 -0700 (PDT)
+MIME-Version: 1.0
+References: <20210927064300.624279-1-chenhuacai@loongson.cn>
+ <20210927064300.624279-15-chenhuacai@loongson.cn> <YVkVeREEIy23yVFX@zeniv-ca.linux.org.uk>
+In-Reply-To: <YVkVeREEIy23yVFX@zeniv-ca.linux.org.uk>
+From:   Huacai Chen <chenhuacai@gmail.com>
+Date:   Sun, 3 Oct 2021 17:09:38 +0800
+Message-ID: <CAAhV-H5oex-q_Pq4ibhXzvoQTQORmi+O8waJQwEm6jyDJ=xF4A@mail.gmail.com>
+Subject: Re: [PATCH V4 14/22] LoongArch: Add signal handling support
+To:     Al Viro <viro@zeniv.linux.org.uk>
+Cc:     Huacai Chen <chenhuacai@loongson.cn>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
         Peter Zijlstra <peterz@infradead.org>,
         Andrew Morton <akpm@linux-foundation.org>,
         David Airlie <airlied@linux.ie>,
         Jonathan Corbet <corbet@lwn.net>,
         Linus Torvalds <torvalds@linux-foundation.org>,
-        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
-        linux-kernel@vger.kernel.org, Xuefeng Li <lixuefeng@loongson.cn>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
+        LKML <linux-kernel@vger.kernel.org>,
+        Xuefeng Li <lixuefeng@loongson.cn>,
         Yanteng Si <siyanteng@loongson.cn>,
-        Huacai Chen <chenhuacai@gmail.com>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>
-Subject: Re: [PATCH V4 11/22] LoongArch: Add process management
-Message-ID: <YVkZ7jLWJpvZz9us@zeniv-ca.linux.org.uk>
-References: <20210927064300.624279-1-chenhuacai@loongson.cn>
- <20210927064300.624279-12-chenhuacai@loongson.cn>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20210927064300.624279-12-chenhuacai@loongson.cn>
-Sender: Al Viro <viro@ftp.linux.org.uk>
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Eric Biederman <ebiederm@xmission.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Sep 27, 2021 at 02:42:48PM +0800, Huacai Chen wrote:
+Hi, Al,
 
-> +/*
-> + * Does the process account for user or for system time?
-> + */
-> +#define user_mode(regs) (((regs)->csr_prmd & PLV_MASK) == PLV_USER)
-> +
-> +static inline int is_syscall_success(struct pt_regs *regs)
-> +{
-> +	return !regs->regs[7];
-> +}
+On Sun, Oct 3, 2021 at 10:36 AM Al Viro <viro@zeniv.linux.org.uk> wrote:
 >
-> +static inline long regs_return_value(struct pt_regs *regs)
-> +{
-> +	if (is_syscall_success(regs) || !user_mode(regs))
-> +		return regs->regs[4];
-> +	else
-> +		return -regs->regs[4];
-> +}
+> On Mon, Sep 27, 2021 at 02:42:51PM +0800, Huacai Chen wrote:
+> > This patch adds signal handling support for LoongArch.
+>
+> No matter what you get in regs[4] after sys_rt_sigreturn(),
+> you should *NOT* treat it as restartable.  IOW, you need to set
+> regs[0] to 0 in there (or in restore_sigcontext()).  See e.g.
+> 653d48b22166 for details of similar bug on arm.
+Thanks, regs[0] should be cleared here.
 
-Huh???  That looks like you've copied those from MIPS, but on MIPS we have
-things like
-        li      t0, -EMAXERRNO - 1      # error?
-        sltu    t0, t0, v0
-        sd      t0, PT_R7(sp)           # set error flag
-        beqz    t0, 1f
-
-        ld      t1, PT_R2(sp)           # syscall number
-        dnegu   v0                      # error
-        sd      t1, PT_R0(sp)           # save it for syscall restarting
-1:      sd      v0, PT_R2(sp)           # result
-right after the call of sys_...(), along with the restart logics
-looking like
-        if (regs->regs[0]) {
-                switch(regs->regs[2]) {
-                case ERESTART_RESTARTBLOCK:
-                case ERESTARTNOHAND:
-IOW, syscall return values from -EMAXERRNO to -1 are negated, with
-regs[7] set accordingly.  Nothing of that sort is done in your
-patchset after syscall, and if it had been, your restart logics in
-signal handling would've been wrong anyway.
-
-What's going on there?
+Huacai
