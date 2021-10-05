@@ -2,154 +2,168 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E6606C4332F
-	for <linux-arch@archiver.kernel.org>; Tue,  5 Oct 2021 06:02:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9B67DC4332F
+	for <linux-arch@archiver.kernel.org>; Tue,  5 Oct 2021 10:59:46 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D046D60F4B
-	for <linux-arch@archiver.kernel.org>; Tue,  5 Oct 2021 06:02:33 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 841C661139
+	for <linux-arch@archiver.kernel.org>; Tue,  5 Oct 2021 10:59:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231752AbhJEGEW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 5 Oct 2021 02:04:22 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38780 "EHLO
+        id S234201AbhJELBg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 5 Oct 2021 07:01:36 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51932 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231597AbhJEGET (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Oct 2021 02:04:19 -0400
-Received: from gandalf.ozlabs.org (gandalf.ozlabs.org [IPv6:2404:9400:2:0:216:3eff:fee2:21ea])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A3838C061745;
-        Mon,  4 Oct 2021 23:02:29 -0700 (PDT)
-Received: from authenticated.ozlabs.org (localhost [127.0.0.1])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange ECDHE (P-256) server-signature RSA-PSS (4096 bits) server-digest SHA256)
-        (No client certificate requested)
-        by mail.ozlabs.org (Postfix) with ESMTPSA id 4HNn6Z0Lw4z4xbT;
-        Tue,  5 Oct 2021 17:02:14 +1100 (AEDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=canb.auug.org.au;
-        s=201702; t=1633413746;
-        bh=NxMykwAtSBGQYw1NN1b8tuLk3z/eu8KgxmvlevpwR08=;
-        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-        b=AuN21dHC9+MvuIwLhRD96bDPhCznYUF4mW6sVZScbRUzl9khYXUvaDeVKY7j3EpSi
-         SxLzKS1Bs4wrte7aWbXpZFWoemH0PNGO4D37mni3TZjB1HF9v41Jp65nKUZ8k7EWb7
-         1WS06ttvm7jDrexi/wdAcBbdmsaNmdqfqkCfLltRleNNHw6/4tsoys9pHDR4kMpQ3X
-         hiZ975kZUM946XlJkVfu3fcj8ixvWtI9+4vCQ14o+3BoPZXOQo2KwupnUaz3BSOQLv
-         PP+voIhGccH2rnqTb4t4QCc3N3EFgiuOYx9ydItftfDiXwetSYPCE98mkJ03f/99MZ
-         0OvLwF5mq8Z4Q==
-Date:   Tue, 5 Oct 2021 17:02:13 +1100
-From:   Stephen Rothwell <sfr@canb.auug.org.au>
-To:     Yury Norov <yury.norov@gmail.com>
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
-        linux-kernel@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org,
-        linux-mmc@vger.kernel.org, linux-perf-users@vger.kernel.org,
-        kvm@vger.kernel.org,
-        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
-        Alexander Lobakin <alobakin@pm.me>,
-        Alexander Shishkin <alexander.shishkin@linux.intel.com>,
-        Alexey Klimov <aklimov@redhat.com>,
-        Andrea Merello <andrea.merello@gmail.com>,
-        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        Arnaldo Carvalho de Melo <acme@redhat.com>,
-        Arnd Bergmann <arnd@arndb.de>, Ben Gardon <bgardon@google.com>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Brian Cain <bcain@codeaurora.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Christoph Lameter <cl@linux.com>,
-        Daniel Bristot de Oliveira <bristot@redhat.com>,
-        David Hildenbrand <david@redhat.com>,
-        Dennis Zhou <dennis@kernel.org>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Ian Rogers <irogers@google.com>,
-        Ingo Molnar <mingo@redhat.com>,
-        Jaegeuk Kim <jaegeuk@kernel.org>,
-        Jakub Kicinski <kuba@kernel.org>, Jiri Olsa <jolsa@redhat.com>,
-        Joe Perches <joe@perches.com>, Jonas Bonn <jonas@southpole.se>,
-        Leo Yan <leo.yan@linaro.org>,
+        with ESMTP id S234160AbhJELBf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Oct 2021 07:01:35 -0400
+Received: from mail-qv1-xf4a.google.com (mail-qv1-xf4a.google.com [IPv6:2607:f8b0:4864:20::f4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 39C94C06174E
+        for <linux-arch@vger.kernel.org>; Tue,  5 Oct 2021 03:59:44 -0700 (PDT)
+Received: by mail-qv1-xf4a.google.com with SMTP id gi5-20020a056214248500b00382f7a7c7e6so3100043qvb.21
+        for <linux-arch@vger.kernel.org>; Tue, 05 Oct 2021 03:59:44 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20210112;
+        h=date:message-id:mime-version:subject:from:to:cc;
+        bh=7p97hglZNgfpwLYScP5gJSznCljkQgJf1oM6gC4sW1s=;
+        b=C+l/ThvUROjSZj3WgNiRhFh/iKAes2tpTY59M3jBlJt1rMc1JuzxrSzdI6yfw+nSvX
+         9/DIymhhEHv/WEyxbhbWp6jAdLJwcYr6ebOxFD9ffGEfKQWVutaM1kKYoOxqAzFCo0m+
+         VUsJRx7fleGCq8czAZUq6m0rK4IcO2dl8DywRC2ZJOZtnaO/c5xvwp9pWEUmYYnfUWzD
+         FTTrc8Np3ydXHObUwkrfxJDiJJK+oiVGXZhfP6huEaYO4eQnq0TTxJzBq51kvUjk3wyU
+         AySN++yGjmq9dU838IWIdR+/E4kZSER9GqWlZzIDjO5G+k7pCP9aFNXp6pUC3NkimQ2D
+         lY+A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:date:message-id:mime-version:subject:from:to:cc;
+        bh=7p97hglZNgfpwLYScP5gJSznCljkQgJf1oM6gC4sW1s=;
+        b=rsyCZ/4wTpmdzLhGUyQKkbx+do6tg7uwjEa2TchBlXiboVZT9Yd+D3G169KGWT7PO1
+         Mwzfv0MycpfbGiP+KUS9ke5HWU9/t9uqsdqX7gh5NdHRsM/38qjnK0twBIcf/SMdwCYR
+         KHGOlae8eIqsCNgJImpJBp/tzwMhhO4kFHycZjxaLoUGFQN+9ODA16ksngnfYyA2JriX
+         s73EREcz+H8b3gnFmMBPHRVGdQt+5UwefkZiWwizS9Gl9YogDepdIttM5/V5oFQhDJY7
+         rEg3gDS138eekxK2i4trHIsEzdOmasQpfk/7DRz9ukm6kcwCVuBGm+5C347WNi3GMW5J
+         2HUg==
+X-Gm-Message-State: AOAM532wzGPiMBfTVYQ6PSoILU/dehqN4Oy2GhZm6USdqUMy6y9ioc5M
+        6c8vBtyj3SdmWKUogUGMO+dBj7WeVw==
+X-Google-Smtp-Source: ABdhPJxAJaG0cIPFEGzdLeaP0ICszNZi0oHL1XII6owt4EA7b097238oGaxzgagUHkjyFc9C5B3vYmiJxA==
+X-Received: from elver.muc.corp.google.com ([2a00:79e0:15:13:e44f:5054:55f8:fcb8])
+ (user=elver job=sendgmr) by 2002:a0c:aa15:: with SMTP id d21mr26637930qvb.18.1633431583153;
+ Tue, 05 Oct 2021 03:59:43 -0700 (PDT)
+Date:   Tue,  5 Oct 2021 12:58:42 +0200
+Message-Id: <20211005105905.1994700-1-elver@google.com>
+Mime-Version: 1.0
+X-Mailer: git-send-email 2.33.0.800.g4c38ced690-goog
+Subject: [PATCH -rcu/kcsan 00/23] kcsan: Support detecting a subset of missing
+ memory barriers
+From:   Marco Elver <elver@google.com>
+To:     elver@google.com, "Paul E . McKenney" <paulmck@kernel.org>
+Cc:     Alexander Potapenko <glider@google.com>,
+        Boqun Feng <boqun.feng@gmail.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Dmitry Vyukov <dvyukov@google.com>,
+        Ingo Molnar <mingo@kernel.org>,
+        Josh Poimboeuf <jpoimboe@redhat.com>,
         Mark Rutland <mark.rutland@arm.com>,
-        Namhyung Kim <namhyung@kernel.org>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paolo Bonzini <pbonzini@redhat.com>,
-        Peter Xu <peterx@redhat.com>,
         Peter Zijlstra <peterz@infradead.org>,
-        Petr Mladek <pmladek@suse.com>,
-        Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-        Rich Felker <dalias@libc.org>,
-        Samuel Mendoza-Jonas <sam@mendozajonas.com>,
-        Sean Christopherson <seanjc@google.com>,
-        Sergey Senozhatsky <senozhatsky@chromium.org>,
-        Shuah Khan <shuah@kernel.org>,
-        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Tejun Heo <tj@kernel.org>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Ulf Hansson <ulf.hansson@linaro.org>,
-        Will Deacon <will@kernel.org>,
-        Wolfram Sang <wsa+renesas@sang-engineering.com>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: Re: [PATCH RESEND 3 00/16] Bitmap patches for 5.15
-Message-ID: <20211005170213.6e4ca629@canb.auug.org.au>
-In-Reply-To: <20211005054059.475634-1-yury.norov@gmail.com>
-References: <20211005054059.475634-1-yury.norov@gmail.com>
-MIME-Version: 1.0
-Content-Type: multipart/signed; boundary="Sig_/UQDD3e=d/fr65N4eQ6HWDaN";
- protocol="application/pgp-signature"; micalg=pgp-sha256
+        Thomas Gleixner <tglx@linutronix.de>,
+        Waiman Long <longman@redhat.com>,
+        Will Deacon <will@kernel.org>, kasan-dev@googlegroups.com,
+        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
+        linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-mm@kvack.org, x86@kernel.org
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
---Sig_/UQDD3e=d/fr65N4eQ6HWDaN
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+Detection of some missing memory barriers has been on the KCSAN feature
+wishlist for some time: this series adds support for modeling a subset
+of weak memory as defined by the LKMM, which enables detection of a
+subset of data races due to missing memory barriers.
 
-Hi Yury,
+KCSAN's approach to detecting missing memory barriers is based on
+modeling access reordering. Each memory access for which a watchpoint is
+set up, is also selected for simulated reordering within the scope of
+its function (at most 1 in-flight access).
 
-On Mon,  4 Oct 2021 22:40:43 -0700 Yury Norov <yury.norov@gmail.com> wrote:
->
-> Please pull this bitmap series. The git tree is here:
->         https://github.com/norov/linux/tree/bitmap-master-5.15
+We are limited to modeling the effects of "buffering" (delaying the
+access), since the runtime cannot "prefetch" accesses. Once an access
+has been selected for reordering, it is checked along every other access
+until the end of the function scope. If an appropriate memory barrier is
+encountered, the access will no longer be considered for reordering.
 
-Actually branch bitmap-master-5.15 of https://github.com/norov/linux.git
+When the result of a memory operation should be ordered by a barrier,
+KCSAN can then detect data races where the conflict only occurs as a
+result of a missing barrier due to reordering accesses.
 
-I would prefer a more generic branch name (unless this is a short term
-tree - since I will fetch it every day until you tell me to stop)
+Some more details and an example are captured in the updated
+<Documentation/dev-tools/kcsan.rst>.
 
-Added to linux-next from today.
+Some light fuzzing with the feature also resulted in a discussion [1]
+around an issue which appears to be allowed, but unlikely in practice.
 
-Thanks for adding your subsystem tree as a participant of linux-next.  As
-you may know, this is not a judgement of your code.  The purpose of
-linux-next is for integration testing and to lower the impact of
-conflicts between subsystems in the next merge window.=20
+[1] https://lkml.kernel.org/r/YRo58c+JGOvec7tc@elver.google.com
 
-You will need to ensure that the patches/commits in your tree/series have
-been:
-     * submitted under GPL v2 (or later) and include the Contributor's
-        Signed-off-by,
-     * posted to the relevant mailing list,
-     * reviewed by you (or another maintainer of your subsystem tree),
-     * successfully unit tested, and=20
-     * destined for the current or next Linux merge window.
 
-Basically, this should be just what you would send to Linus (or ask him
-to fetch).  It is allowed to be rebased if you deem it necessary.
+The first half of the series are core KCSAN changes, documentation
+updates, and test changes. The second half adds instrumentation to
+barriers, atomics, bitops, along with enabling barrier instrumentation
+for some currently uninstrumented subsystems. The last two patches are
+objtool changes to add the usual entries to the uaccess whitelist, but
+also instruct objtool to remove memory barrier instrumentation from
+noinstr code (on x86).
 
---=20
-Cheers,
-Stephen Rothwell=20
-sfr@canb.auug.org.au
+The series is rebased on -rcu/kcsan. The objtool patches currently
+conflict with pending changes in -tip/objtool/core, which could be
+separated from this series if needed.
 
---Sig_/UQDD3e=d/fr65N4eQ6HWDaN
-Content-Type: application/pgp-signature
-Content-Description: OpenPGP digital signature
+Marco Elver (23):
+  kcsan: Refactor reading of instrumented memory
+  kcsan: Remove redundant zero-initialization of globals
+  kcsan: Avoid checking scoped accesses from nested contexts
+  kcsan: Add core support for a subset of weak memory modeling
+  kcsan: Add core memory barrier instrumentation functions
+  kcsan, kbuild: Add option for barrier instrumentation only
+  kcsan: Call scoped accesses reordered in reports
+  kcsan: Show location access was reordered to
+  kcsan: Document modeling of weak memory
+  kcsan: test: Match reordered or normal accesses
+  kcsan: test: Add test cases for memory barrier instrumentation
+  kcsan: Ignore GCC 11+ warnings about TSan runtime support
+  kcsan: selftest: Add test case to check memory barrier instrumentation
+  locking/barriers, kcsan: Add instrumentation for barriers
+  locking/barriers, kcsan: Support generic instrumentation
+  locking/atomics, kcsan: Add instrumentation for barriers
+  asm-generic/bitops, kcsan: Add instrumentation for barriers
+  x86/barriers, kcsan: Use generic instrumentation for non-smp barriers
+  x86/qspinlock, kcsan: Instrument barrier of pv_queued_spin_unlock()
+  mm, kcsan: Enable barrier instrumentation
+  sched, kcsan: Enable memory barrier instrumentation
+  objtool, kcsan: Add memory barrier instrumentation to whitelist
+  objtool, kcsan: Remove memory barrier instrumentation from noinstr
 
------BEGIN PGP SIGNATURE-----
+ Documentation/dev-tools/kcsan.rst             |  72 ++-
+ arch/x86/include/asm/barrier.h                |  10 +-
+ arch/x86/include/asm/qspinlock.h              |   1 +
+ include/asm-generic/barrier.h                 |  54 ++-
+ .../asm-generic/bitops/instrumented-atomic.h  |   3 +
+ .../asm-generic/bitops/instrumented-lock.h    |   3 +
+ include/linux/atomic/atomic-instrumented.h    | 135 +++++-
+ include/linux/kcsan-checks.h                  |  51 ++-
+ include/linux/kcsan.h                         |  11 +-
+ include/linux/sched.h                         |   3 +
+ include/linux/spinlock.h                      |   2 +-
+ init/init_task.c                              |   9 +-
+ kernel/kcsan/Makefile                         |   2 +
+ kernel/kcsan/core.c                           | 326 +++++++++++---
+ kernel/kcsan/kcsan_test.c                     | 416 ++++++++++++++++--
+ kernel/kcsan/report.c                         |  51 ++-
+ kernel/kcsan/selftest.c                       | 141 ++++++
+ kernel/sched/Makefile                         |   7 +-
+ lib/Kconfig.kcsan                             |  16 +
+ mm/Makefile                                   |   2 +
+ scripts/Makefile.kcsan                        |  15 +-
+ scripts/Makefile.lib                          |   5 +
+ scripts/atomic/gen-atomic-instrumented.sh     |  41 +-
+ tools/objtool/check.c                         |  36 +-
+ 24 files changed, 1240 insertions(+), 172 deletions(-)
 
-iQEzBAEBCAAdFiEENIC96giZ81tWdLgKAVBC80lX0GwFAmFb6mUACgkQAVBC80lX
-0Gxbewf/Ww/E+XPHdQ1mp59XC0GkoUKOxCBfGR1vs7uFtk/jjJjQgZczaO5K0V8B
-5AV4HEuVQrACgBuuHnKuciVhbzgu5zwK6AitIcZTU904LwEr+mUZuhKteKdGMzlp
-fIWXLaQEDg3eHhTk3IYFiCJK/xQqU4TxVD4vCCGveKRh2C603nww/En/sYfFrmOk
-1ofCL8wN1uxqI+rsm21e2cXvb4IlMto5uimejQmP55fyX9zsdZ95ZUHg3jLb4sy3
-JAP298Vgeqhv3ynmkjYzYilP4TC0psiyQMGvwuzlFMN/qaywyQ1OeKYCm0ymgAXr
-lnHzfD2RdD0mlcaxkqWAWThdw6GFag==
-=qIlm
------END PGP SIGNATURE-----
+-- 
+2.33.0.800.g4c38ced690-goog
 
---Sig_/UQDD3e=d/fr65N4eQ6HWDaN--
