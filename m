@@ -2,45 +2,45 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 30AD6C433EF
-	for <linux-arch@archiver.kernel.org>; Fri,  8 Oct 2021 11:22:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 421EDC433EF
+	for <linux-arch@archiver.kernel.org>; Fri,  8 Oct 2021 11:22:31 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 189C561038
-	for <linux-arch@archiver.kernel.org>; Fri,  8 Oct 2021 11:22:26 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 2629161038
+	for <linux-arch@archiver.kernel.org>; Fri,  8 Oct 2021 11:22:31 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240128AbhJHLYK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 8 Oct 2021 07:24:10 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60672 "EHLO
+        id S240216AbhJHLYQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 8 Oct 2021 07:24:16 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60690 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S240126AbhJHLYJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2021 07:24:09 -0400
+        with ESMTP id S240199AbhJHLYP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2021 07:24:15 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 61F26C061570
-        for <linux-arch@vger.kernel.org>; Fri,  8 Oct 2021 04:22:14 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EC333C061755
+        for <linux-arch@vger.kernel.org>; Fri,  8 Oct 2021 04:22:19 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Subject:Cc:To:From:Date:Message-ID:
-        Sender:Reply-To:MIME-Version:Content-Type:Content-Transfer-Encoding:
-        Content-ID:Content-Description:In-Reply-To:References;
-        bh=hmkYnnIILnrl0z+glbF3vsotGauPDPEqjLkfBoI45PI=; b=LKgVK+sK+ywL2z8kw9WNRo0CeT
-        0EmU+O0/FKquDSv96dqLRI/slOVjiMFRkGhxHh7dltuDazsg3T/NZxngkCyHNrApJWKlvQVwwPAAZ
-        uGoXGpRIJPLfJN9sZ5hZHT7bExcesvGroZnPloFQqsXHBtOAEyyZKmCjB6NmGkryK/K3jzhFJHsSx
-        WLDlqCsIpdWVv/Smn5nahS4Pv5liqlvW6TMFKRki6Colunl8aFQGXM8elb1NA4XLNyRKTeESdBTal
-        LWkAkyK7XWBWH+9KxVN/vUJ3ZkeXruZLXVEs/xwaFjZxtkw6vOVgIoFcECC5fmHFl2ayWCCdp31Z9
-        DKeIiebg==;
+        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
+        Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
+        Content-ID:Content-Description:In-Reply-To;
+        bh=xqtSQc07C3rrqTOXV9I/wLRnSKhuTNgADm5tRsfdrx4=; b=SkgFyPFjM/KbZ8Eps+chA1mS6i
+        2GwpjDzDVsJ7Rhw1EPLwHUeYS0IwL50azEkhK41OT/fCYI7TJndJ59PwCpFrEVm6PInsqDzqLiehV
+        BSk4J133jTdMLgMC0qarXQndk0Q1Yq33sWF7HfsBC64g7C5uzfNW59Zk48xYKDYQUl4sPZUc5YqPQ
+        M+WmJQMor8ihO7sLDwsNkIzpBtL4G8F91TM4qQdJKF5gPGvAF9h1Xr1tuq/coOZBXw+HbeR7EzCPY
+        nxRUVv5PkxJNEQYvTDolmn7LnJ1Ng+GEhsBp2M8o4vFOzOrFhObUVeXN8tjA0vSUGmXkPFL5ZHd0y
+        1Z62PJbw==;
 Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
         by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1mYnsJ-0032fy-0h; Fri, 08 Oct 2021 11:17:21 +0000
+        id 1mYnsH-0032fr-Jc; Fri, 08 Oct 2021 11:17:21 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 0041130077A;
-        Fri,  8 Oct 2021 13:17:07 +0200 (CEST)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 9CD26302A31;
+        Fri,  8 Oct 2021 13:17:08 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id CCA9E2DB84A65; Fri,  8 Oct 2021 13:17:07 +0200 (CEST)
-Message-ID: <20211008111527.438276127@infradead.org>
+        id E0CCF2DB84A69; Fri,  8 Oct 2021 13:17:07 +0200 (CEST)
+Message-ID: <20211008111626.271115116@infradead.org>
 User-Agent: quilt/0.66
-Date:   Fri, 08 Oct 2021 13:15:27 +0200
+Date:   Fri, 08 Oct 2021 13:15:31 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     keescook@chromium.org, jannh@google.com
 Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
@@ -65,89 +65,95 @@ Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
         jonas@southpole.se, mpe@ellerman.id.au, paul.walmsley@sifive.com,
         hca@linux.ibm.com, ysato@users.sourceforge.jp, davem@davemloft.net,
         chris@zankel.net
-Subject: [PATCH 0/7] wchan: Fix wchan support
+Subject: [PATCH 4/7] x86: Fix get_wchan() to support the ORC unwinder
+References: <20211008111527.438276127@infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi,
+From: Qi Zheng <zhengqi.arch@bytedance.com>
 
-This fixes up wchan which is various degrees of broken across the
-architectures.
+Currently, the kernel CONFIG_UNWINDER_ORC option is enabled by default
+on x86, but the implementation of get_wchan() is still based on the frame
+pointer unwinder, so the /proc/<pid>/wchan usually returned 0 regardless
+of whether the task <pid> is running.
 
-Patch 4 fixes wchan for x86, which has been returning 0 for the past many
-releases.
+Reimplement get_wchan() by calling stack_trace_save_tsk(), which is
+adapted to the ORC and frame pointer unwinders.
 
-Patch 5 fixes the fundamental race against scheduling.
-
-Patch 6 deletes a lot and makes STACKTRACE unconditional
-
-patch 7 fixes up a few STACKTRACE arch oddities
-
-0day says all builds are good, so it must be perfect :-) I'm planning on
-queueing up at least the first 5 patches, but I'm hoping the last two patches
-can be too.
-
-Also available here:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/peterz/queue.git sched/wchan
-
+Fixes: ee9f8fce9964 ("x86/unwind: Add the ORC unwinder")
+Signed-off-by: Qi Zheng <zhengqi.arch@bytedance.com>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/alpha/include/asm/processor.h      |  2 +-
- arch/alpha/kernel/process.c             |  5 ++-
- arch/arc/include/asm/processor.h        |  2 --
- arch/arc/kernel/stacktrace.c            | 19 +---------
- arch/arm/include/asm/processor.h        |  2 --
- arch/arm/kernel/process.c               | 24 -------------
- arch/arm64/include/asm/processor.h      |  2 --
- arch/arm64/kernel/process.c             | 28 ---------------
- arch/csky/include/asm/processor.h       |  2 --
- arch/csky/kernel/stacktrace.c           | 26 ++++----------
- arch/h8300/include/asm/processor.h      |  2 +-
- arch/h8300/kernel/process.c             |  5 +--
- arch/hexagon/include/asm/processor.h    |  3 --
- arch/hexagon/kernel/process.c           | 28 ---------------
- arch/ia64/include/asm/processor.h       |  3 --
- arch/ia64/kernel/process.c              | 31 -----------------
- arch/m68k/include/asm/processor.h       |  2 +-
- arch/m68k/kernel/process.c              |  4 +--
- arch/microblaze/include/asm/processor.h |  2 --
- arch/microblaze/kernel/process.c        |  6 ----
- arch/mips/include/asm/processor.h       |  2 --
- arch/mips/kernel/process.c              | 31 +----------------
- arch/mips/kernel/stacktrace.c           | 27 ++++++++------
- arch/nds32/include/asm/processor.h      |  2 --
- arch/nds32/kernel/process.c             | 28 ---------------
- arch/nds32/kernel/stacktrace.c          | 21 +++++------
- arch/nios2/include/asm/processor.h      |  2 +-
- arch/nios2/kernel/process.c             |  5 +--
- arch/openrisc/include/asm/processor.h   |  1 -
- arch/openrisc/kernel/process.c          |  6 ----
- arch/parisc/include/asm/processor.h     |  2 --
- arch/parisc/kernel/process.c            | 27 --------------
- arch/powerpc/include/asm/processor.h    |  2 --
- arch/powerpc/kernel/process.c           | 40 ---------------------
- arch/riscv/include/asm/processor.h      |  3 --
- arch/riscv/kernel/stacktrace.c          | 23 ------------
- arch/s390/include/asm/processor.h       |  1 -
- arch/s390/kernel/process.c              | 29 ---------------
- arch/sh/include/asm/processor_32.h      |  2 --
- arch/sh/kernel/process_32.c             | 22 ------------
- arch/sparc/include/asm/processor_32.h   |  2 +-
- arch/sparc/include/asm/processor_64.h   |  2 --
- arch/sparc/kernel/process_32.c          |  5 +--
- arch/sparc/kernel/process_64.c          | 31 -----------------
- arch/um/include/asm/processor-generic.h |  1 -
- arch/um/kernel/process.c                | 35 -------------------
- arch/x86/include/asm/processor.h        |  2 --
- arch/x86/kernel/process.c               | 62 ---------------------------------
- arch/xtensa/include/asm/processor.h     |  2 --
- arch/xtensa/kernel/process.c            | 32 -----------------
- fs/proc/array.c                         |  7 ++--
- fs/proc/base.c                          | 19 +++++-----
- include/linux/sched.h                   |  1 +
- kernel/sched/core.c                     | 34 ++++++++++++++++++
- lib/Kconfig.debug                       |  7 +---
- scripts/leaking_addresses.pl            |  3 +-
- 56 files changed, 97 insertions(+), 622 deletions(-)
+ arch/x86/kernel/process.c |   51 ++--------------------------------------------
+ 1 file changed, 3 insertions(+), 48 deletions(-)
+
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -944,58 +944,13 @@ unsigned long arch_randomize_brk(struct
+  */
+ unsigned long get_wchan(struct task_struct *p)
+ {
+-	unsigned long start, bottom, top, sp, fp, ip, ret = 0;
+-	int count = 0;
++	unsigned long entry = 0;
+ 
+ 	if (p == current || task_is_running(p))
+ 		return 0;
+ 
+-	if (!try_get_task_stack(p))
+-		return 0;
+-
+-	start = (unsigned long)task_stack_page(p);
+-	if (!start)
+-		goto out;
+-
+-	/*
+-	 * Layout of the stack page:
+-	 *
+-	 * ----------- topmax = start + THREAD_SIZE - sizeof(unsigned long)
+-	 * PADDING
+-	 * ----------- top = topmax - TOP_OF_KERNEL_STACK_PADDING
+-	 * stack
+-	 * ----------- bottom = start
+-	 *
+-	 * The tasks stack pointer points at the location where the
+-	 * framepointer is stored. The data on the stack is:
+-	 * ... IP FP ... IP FP
+-	 *
+-	 * We need to read FP and IP, so we need to adjust the upper
+-	 * bound by another unsigned long.
+-	 */
+-	top = start + THREAD_SIZE - TOP_OF_KERNEL_STACK_PADDING;
+-	top -= 2 * sizeof(unsigned long);
+-	bottom = start;
+-
+-	sp = READ_ONCE(p->thread.sp);
+-	if (sp < bottom || sp > top)
+-		goto out;
+-
+-	fp = READ_ONCE_NOCHECK(((struct inactive_task_frame *)sp)->bp);
+-	do {
+-		if (fp < bottom || fp > top)
+-			goto out;
+-		ip = READ_ONCE_NOCHECK(*(unsigned long *)(fp + sizeof(unsigned long)));
+-		if (!in_sched_functions(ip)) {
+-			ret = ip;
+-			goto out;
+-		}
+-		fp = READ_ONCE_NOCHECK(*(unsigned long *)fp);
+-	} while (count++ < 16 && !task_is_running(p));
+-
+-out:
+-	put_task_stack(p);
+-	return ret;
++	stack_trace_save_tsk(p, &entry, 1, 0);
++	return entry;
+ }
+ 
+ long do_arch_prctl_common(struct task_struct *task, int option,
+
 
