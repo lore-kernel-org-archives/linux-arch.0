@@ -2,45 +2,45 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9BD32C433EF
-	for <linux-arch@archiver.kernel.org>; Fri,  8 Oct 2021 11:19:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C8C7DC433EF
+	for <linux-arch@archiver.kernel.org>; Fri,  8 Oct 2021 11:22:20 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 7A48D6103C
-	for <linux-arch@archiver.kernel.org>; Fri,  8 Oct 2021 11:19:13 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 9B96161029
+	for <linux-arch@archiver.kernel.org>; Fri,  8 Oct 2021 11:22:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240117AbhJHLUz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 8 Oct 2021 07:20:55 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59852 "EHLO
+        id S240187AbhJHLYE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 8 Oct 2021 07:24:04 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60648 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S240367AbhJHLUs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2021 07:20:48 -0400
-Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 91FA7C061762
-        for <linux-arch@vger.kernel.org>; Fri,  8 Oct 2021 04:18:53 -0700 (PDT)
+        with ESMTP id S240126AbhJHLYD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2021 07:24:03 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AEB24C061570
+        for <linux-arch@vger.kernel.org>; Fri,  8 Oct 2021 04:22:08 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
+        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=umSfuLmNyx4dR8mDkBis1oRVsQNuMXaIh5WYIShus0o=; b=kyV7a5VCRDjg0lCxTwlu9BoLfA
-        j0FlmMCPFG1UizZ0ewTSHVjKcuv2XpbfoGf4ChD2nr0alhYJWtbCl/hhaL2E5HEECcqf+i3fLo8KY
-        hR69k8ZNf/NrwVCnlgLrNA3p4REQnE7mvSfJNf/Ntui5NkxQlJB5VpsQ8QD6SupueH5NJFlZUEwjI
-        f8r4AVLvc0NoPelOJaxHuIntff438VPrTbdXZWTCcZnTNxlKTyUU9kvXfcUtCvzWi+GpezSVoOIaO
-        Q7bNrKBgZuXqq6InRVW81DbNKdFDhFtDGFLEHc6BwfSVc8DZ4P/t8f5aR8ebv1QHpp9mZkUmut+4d
-        EagtDrSg==;
+        bh=yKKSjQPEnCfcZmt5gUs0/OGmQc6HpFW+TX3lGOKtFIA=; b=k+IHGVPAZOqkcmZukn/zWFMXoM
+        ZsHwklLO0eb9YmTp01zAApO+oBahjAfNKIU0CZLwIC6/FO3hAj0BnhJ/TfRLSHyqcenNgte4mqfec
+        yU6uhUkPeQFTaJrkjYYAys2ay9C+yaxEjdOWlVYSZuEZY4Vi73F6mZLlDg5RkutOH8p4eW2cxKZkM
+        JQfP2TQIE0NDBdAQeDXiSFUN84Gwjvnn+dg2n5Y5JNLzrjgq3YHPk7jkCN9Elu1hT0GtvjwPumNfr
+        3odHdRZfcSHYbVEZcBq2Cj5889IAyLJcMuWLOzcR2JwijoywebOohtOYny5+RenAJuwX8bx99OuHR
+        4/3N+GJA==;
 Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
-        by desiato.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1mYnsI-008eLg-6Z; Fri, 08 Oct 2021 11:17:15 +0000
+        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1mYnsH-0032ft-KN; Fri, 08 Oct 2021 11:17:21 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id C0074302D44;
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 06BCD302A13;
         Fri,  8 Oct 2021 13:17:08 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id F0ABC2DB84A6C; Fri,  8 Oct 2021 13:17:07 +0200 (CEST)
-Message-ID: <20211008111626.455137084@infradead.org>
+        id D699F2DB84A66; Fri,  8 Oct 2021 13:17:07 +0200 (CEST)
+Message-ID: <20211008111626.151570317@infradead.org>
 User-Agent: quilt/0.66
-Date:   Fri, 08 Oct 2021 13:15:34 +0200
+Date:   Fri, 08 Oct 2021 13:15:29 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     keescook@chromium.org, jannh@google.com
 Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
@@ -65,7 +65,7 @@ Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
         jonas@southpole.se, mpe@ellerman.id.au, paul.walmsley@sifive.com,
         hca@linux.ibm.com, ysato@users.sourceforge.jp, davem@davemloft.net,
         chris@zankel.net
-Subject: [PATCH 7/7] arch: Fix STACKTRACE_SUPPORT
+Subject: [PATCH 2/7] leaking_addresses: Always print a trailing newline
 References: <20211008111527.438276127@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -73,121 +73,35 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-A few archs got save_stack_trace_tsk() vs in_sched_functions() wrong.
+From: Kees Cook <keescook@chromium.org>
 
+For files that lack trailing newlines and match a leaking address (e.g.
+wchan[1]), the leaking_addresses.pl report would run together with the
+next line, making things look corrupted.
+
+Unconditionally remove the newline on input, and write it back out on
+output.
+
+[1] https://lore.kernel.org/all/20210103142726.GC30643@xsang-OptiPlex-9020/
+
+Signed-off-by: Kees Cook <keescook@chromium.org>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/csky/kernel/stacktrace.c  |    7 ++++++-
- arch/mips/kernel/stacktrace.c  |   27 ++++++++++++++++-----------
- arch/nds32/kernel/stacktrace.c |   21 +++++++++++----------
- 3 files changed, 33 insertions(+), 22 deletions(-)
+ scripts/leaking_addresses.pl |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
---- a/arch/csky/kernel/stacktrace.c
-+++ b/arch/csky/kernel/stacktrace.c
-@@ -122,12 +122,17 @@ static bool save_trace(unsigned long pc,
- 	return __save_trace(pc, arg, false);
- }
+--- a/scripts/leaking_addresses.pl
++++ b/scripts/leaking_addresses.pl
+@@ -455,8 +455,9 @@ sub parse_file
  
-+static bool save_trace_nosched(unsigned long pc, void *arg)
-+{
-+	return __save_trace(pc, arg, true);
-+}
-+
- /*
-  * Save stack-backtrace addresses into a stack_trace buffer.
-  */
- void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
- {
--	walk_stackframe(tsk, NULL, save_trace, trace);
-+	walk_stackframe(tsk, NULL, save_trace_nosched, trace);
- }
- EXPORT_SYMBOL_GPL(save_stack_trace_tsk);
- 
---- a/arch/mips/kernel/stacktrace.c
-+++ b/arch/mips/kernel/stacktrace.c
-@@ -66,16 +66,7 @@ static void save_context_stack(struct st
- #endif
- }
- 
--/*
-- * Save stack-backtrace addresses into a stack_trace buffer.
-- */
--void save_stack_trace(struct stack_trace *trace)
--{
--	save_stack_trace_tsk(current, trace);
--}
--EXPORT_SYMBOL_GPL(save_stack_trace);
--
--void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
-+static void __save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace, bool savesched)
- {
- 	struct pt_regs dummyregs;
- 	struct pt_regs *regs = &dummyregs;
-@@ -88,6 +79,20 @@ void save_stack_trace_tsk(struct task_st
- 		regs->cp0_epc = tsk->thread.reg31;
- 	} else
- 		prepare_frametrace(regs);
--	save_context_stack(trace, tsk, regs, tsk == current);
-+	save_context_stack(trace, tsk, regs, savesched);
-+}
-+
-+/*
-+ * Save stack-backtrace addresses into a stack_trace buffer.
-+ */
-+void save_stack_trace(struct stack_trace *trace)
-+{
-+	__save_stack_trace_tsk(current, trace, true);
-+}
-+EXPORT_SYMBOL_GPL(save_stack_trace);
-+
-+void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
-+{
-+	__save_stack_trace_tsk(tsk, trace, false);
- }
- EXPORT_SYMBOL_GPL(save_stack_trace_tsk);
---- a/arch/nds32/kernel/stacktrace.c
-+++ b/arch/nds32/kernel/stacktrace.c
-@@ -6,25 +6,16 @@
- #include <linux/stacktrace.h>
- #include <linux/ftrace.h>
- 
--void save_stack_trace(struct stack_trace *trace)
--{
--	save_stack_trace_tsk(current, trace);
--}
--EXPORT_SYMBOL_GPL(save_stack_trace);
--
--void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
-+static void __save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace, bool savesched)
- {
- 	unsigned long *fpn;
- 	int skip = trace->skip;
--	int savesched;
- 	int graph_idx = 0;
- 
- 	if (tsk == current) {
- 		__asm__ __volatile__("\tori\t%0, $fp, #0\n":"=r"(fpn));
--		savesched = 1;
- 	} else {
- 		fpn = (unsigned long *)thread_saved_fp(tsk);
--		savesched = 0;
+ 	open my $fh, "<", $file or return;
+ 	while ( <$fh> ) {
++		chomp;
+ 		if (may_leak_address($_)) {
+-			print $file . ': ' . $_;
++			printf("$file: $_\n");
+ 		}
  	}
- 
- 	while (!kstack_end(fpn) && !((unsigned long)fpn & 0x3)
-@@ -50,4 +41,14 @@ void save_stack_trace_tsk(struct task_st
- 		fpn = (unsigned long *)fpp;
- 	}
- }
-+void save_stack_trace(struct stack_trace *trace)
-+{
-+	__save_stack_trace_tsk(current, trace, true);
-+}
-+EXPORT_SYMBOL_GPL(save_stack_trace);
-+
-+void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
-+{
-+	__save_stack_trace_tsk(tsk, trace, false);
-+}
- EXPORT_SYMBOL_GPL(save_stack_trace_tsk);
+ 	close $fh;
 
 
