@@ -2,173 +2,147 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 63D99C433FE
-	for <linux-arch@archiver.kernel.org>; Sat,  9 Oct 2021 12:52:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9EFCCC433EF
+	for <linux-arch@archiver.kernel.org>; Sat,  9 Oct 2021 20:40:11 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 44DE660E53
-	for <linux-arch@archiver.kernel.org>; Sat,  9 Oct 2021 12:52:20 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 7BF26610A4
+	for <linux-arch@archiver.kernel.org>; Sat,  9 Oct 2021 20:40:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232600AbhJIMyF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 9 Oct 2021 08:54:05 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37848 "EHLO
+        id S230296AbhJIUmH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 9 Oct 2021 16:42:07 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56476 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231132AbhJIMyE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 9 Oct 2021 08:54:04 -0400
-Received: from mail-ed1-x535.google.com (mail-ed1-x535.google.com [IPv6:2a00:1450:4864:20::535])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E786CC061570;
-        Sat,  9 Oct 2021 05:52:07 -0700 (PDT)
-Received: by mail-ed1-x535.google.com with SMTP id d9so22944791edh.5;
-        Sat, 09 Oct 2021 05:52:07 -0700 (PDT)
+        with ESMTP id S230052AbhJIUmG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 9 Oct 2021 16:42:06 -0400
+Received: from mail-pj1-x1032.google.com (mail-pj1-x1032.google.com [IPv6:2607:f8b0:4864:20::1032])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5C720C061762
+        for <linux-arch@vger.kernel.org>; Sat,  9 Oct 2021 13:40:09 -0700 (PDT)
+Received: by mail-pj1-x1032.google.com with SMTP id on6so10126845pjb.5
+        for <linux-arch@vger.kernel.org>; Sat, 09 Oct 2021 13:40:09 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=date:from:to:cc:subject:message-id:references:mime-version
-         :content-disposition:in-reply-to;
-        bh=975/0lKre2jbukZyrsOHoZ3KIJn08g0A4cVpQ8XD8kI=;
-        b=hVcr+o1302lP3dfkILDlV1SWMYeqJQl7pYfgbS3boQXLZweylwSzlGJGLLJwQNk8Kh
-         CwL7ZYgMcu859cwij3WRju+M/6IBw1l5qVyv2sqs6vEeLyQuIkqRBOLAvpHG2flk3GUu
-         tn0JJzxP25bxoKIzhRhoiWy9CUZiPDduVKRLOFHRfOkYUOyLurBQIqcI3eVAOA/JbRy2
-         URi2wY4/k/7uTuVYTbc7wFkTe2AuqPP9pdDjOKvn430JKAXbvj/JUkCfUmvxV47WBwOb
-         Mj3LP/fA8TkfpmWrugYinFcFGixuwTX3+KlDePQpccjqsQkgWcVl0e5M7KhxZopGYHU0
-         f0Lw==
+        d=intel-com.20210112.gappssmtp.com; s=20210112;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=PNkbI6CC4MPwch06xoRoPuOpZuZRykTcMawJcvuLIGc=;
+        b=Muu3r0eHUqB/dNHg2SbcMZBR59fyebiqEBsvk6PezrQlxQGwEI1ZicQJ1XHU8yb+jR
+         kHSIW8u2KEJn+hh/8bqD+oSUoLGTMzHi2MKjMWxijaluyFQ9X/HFL9QP8jG3kJvP1+yC
+         MFrvKW7dOAqDY1UzAuwqQRxVpGtbg2xoYhxoIQminXJgv3DKYb4mwO0GqHZDYiNWBRPr
+         zX9FmLpjC1P17blRe4cxwK4BawnSAcTVigJTMtvWGUVR4Krw0LhW/yHMyjDs7LwJths0
+         zTeiN6ZgCa7R3RDBLb9WPt7ZUqU0TGXpSpq1OOroQI9pRt1DcheHTMwoozKzKGHc51Jc
+         ai5Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to;
-        bh=975/0lKre2jbukZyrsOHoZ3KIJn08g0A4cVpQ8XD8kI=;
-        b=58bRgh0YaApsf9ucmbdBUrwwnu1g2tFopow5ehNT7NW94QMrRzcmLItk2H/kFz3+mY
-         XwF2sELqV8jQ1CXDwarwvo4La6X5Eujv9cCj9tAtqskh+bmyKYtKHgYdBoKWGSKRR8FH
-         NTGZ78bUZ03A0lOfOGEui5NGDLWavOV0HNzQwqzHsc47Cqe43Bkmoyfs7a69XU0azDtY
-         ZH6w+0Lk7CrjSJCksaEtw1sM3DSKNNcLt1/Jr2UoncN2VlC09vPYUGZa8xfqIRG3INHq
-         mOYw5ZdlytbhIh9FNlt6eTGLY8/LVRL1sQPgNAVsj0qHMJnAhsFVUWxnKpPfeKnTh23/
-         q/lw==
-X-Gm-Message-State: AOAM532aokajDtWcxh8tk8E55SWI3Lws098OzbiEPI8hEr58pY9114MT
-        RfIC26JzHIZE6YUjsIiGiQ==
-X-Google-Smtp-Source: ABdhPJwyfUp4OaPU6ugKRCPVVsevXJUZSC5gxhhEWZth3zrYETY0kH108F0bm4pu2qMTrK4qsPlwXg==
-X-Received: by 2002:a17:906:7848:: with SMTP id p8mr11404695ejm.212.1633783926493;
-        Sat, 09 Oct 2021 05:52:06 -0700 (PDT)
-Received: from localhost.localdomain ([46.53.249.82])
-        by smtp.gmail.com with ESMTPSA id l23sm967292ejn.15.2021.10.09.05.52.04
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 09 Oct 2021 05:52:06 -0700 (PDT)
-Date:   Sat, 9 Oct 2021 15:52:02 +0300
-From:   Alexey Dobriyan <adobriyan@gmail.com>
-To:     Kees Cook <keescook@chromium.org>
-Cc:     Peter Zijlstra <peterz@infradead.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Shuah Khan <shuah@kernel.org>, linux-kselftest@vger.kernel.org,
-        Josh Poimboeuf <jpoimboe@redhat.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Alexey Gladkov <gladkov.alexey@gmail.com>, jannh@google.com,
-        vcaputo@pengaru.com, mingo@redhat.com, juri.lelli@redhat.com,
-        vincent.guittot@linaro.org, dietmar.eggemann@arm.com,
-        rostedt@goodmis.org, bsegall@google.com, mgorman@suse.de,
-        bristot@redhat.com, christian.brauner@ubuntu.com,
-        amistry@google.com, Kenta.Tada@sony.com, legion@kernel.org,
-        michael.weiss@aisec.fraunhofer.de, mhocko@suse.com, deller@gmx.de,
-        zhengqi.arch@bytedance.com, me@tobin.cc, tycho@tycho.pizza,
-        tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, axboe@kernel.dk,
-        metze@samba.org, laijs@linux.alibaba.com, luto@kernel.org,
-        dave.hansen@linux.intel.com, ebiederm@xmission.com,
-        ohoono.kwon@samsung.com, kaleshsingh@google.com,
-        yifeifz2@illinois.edu, linux-arch@vger.kernel.org,
-        vgupta@kernel.org, linux@armlinux.org.uk, will@kernel.org,
-        guoren@kernel.org, bcain@codeaurora.org, monstr@monstr.eu,
-        tsbogend@alpha.franken.de, nickhu@andestech.com,
-        jonas@southpole.se, mpe@ellerman.id.au, paul.walmsley@sifive.com,
-        hca@linux.ibm.com, ysato@users.sourceforge.jp, davem@davemloft.net,
-        chris@zankel.net, linux-kernel@vger.kernel.org,
-        linux-fsdevel@vger.kernel.org, linux-hardening@vger.kernel.org
-Subject: Re: [PATCH] selftests: proc: Make sure wchan works when it exists
-Message-ID: <YWGQckkJuKB4yAfg@localhost.localdomain>
-References: <20211008235504.2957528-1-keescook@chromium.org>
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=PNkbI6CC4MPwch06xoRoPuOpZuZRykTcMawJcvuLIGc=;
+        b=GBpEVgQFmvvWBs+cfN9zLfYfQZDVDQ5S1fumSXCfbiLmAvFys236YK9kwTDK0rTiZ/
+         y/iUOpVt9SHoifIpQ4dYHSSWtMWfLMoDzjlXsagtUCs1Mlt7zARRutiQRlpNaBwE1j/D
+         fZ7rrOAgGslBgQZ6oXaND4BL7LKZga+i0KoVCSN4cP8BCVRjAnSEU4oBw2xUbyxKXp0K
+         T6YS6US+ED3LpRu+ml76zm5IRTzZklhd8Q+vTuOvTi/AEVO64I0gsumWf6GS+2+NrBaR
+         O1FyXZsH14ytgaMAG4Xe/mEnwcbNcsdtLI6GtPR9S8hbbz985SRQDH2O6VAmd9GXJCkS
+         pJSw==
+X-Gm-Message-State: AOAM5315lI0hiFOLrh2fmKlAsJtVO1ziKrXY7aDG/2xEB0HzIB00jT4o
+        1TIVp12pqVeex1IRBf0IfZ91oIePqD7gjM7L1eymKw==
+X-Google-Smtp-Source: ABdhPJySd5zqNERLKr8S37E5WA9IMnevPxuJEZ9BVS6uY8X2FGjPzRDwsaOEKoQH/I5/2YcevgWJ2BJGpdsvJiUJb30=
+X-Received: by 2002:a17:90a:d686:: with SMTP id x6mr20678375pju.8.1633812008773;
+ Sat, 09 Oct 2021 13:40:08 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20211008235504.2957528-1-keescook@chromium.org>
+References: <20211009003711.1390019-1-sathyanarayanan.kuppuswamy@linux.intel.com>
+ <20211009003711.1390019-13-sathyanarayanan.kuppuswamy@linux.intel.com> <20211009053103-mutt-send-email-mst@kernel.org>
+In-Reply-To: <20211009053103-mutt-send-email-mst@kernel.org>
+From:   Dan Williams <dan.j.williams@intel.com>
+Date:   Sat, 9 Oct 2021 13:39:57 -0700
+Message-ID: <CAPcyv4hDhjRXYCX_aiOboLF0eaTo6VySbZDa5NQu2ed9Ty2Ekw@mail.gmail.com>
+Subject: Re: [PATCH v5 12/16] PCI: Add pci_iomap_host_shared(), pci_iomap_host_shared_range()
+To:     "Michael S. Tsirkin" <mst@redhat.com>
+Cc:     Kuppuswamy Sathyanarayanan 
+        <sathyanarayanan.kuppuswamy@linux.intel.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Andy Lutomirski <luto@kernel.org>,
+        Bjorn Helgaas <bhelgaas@google.com>,
+        Richard Henderson <rth@twiddle.net>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        James E J Bottomley <James.Bottomley@hansenpartnership.com>,
+        Helge Deller <deller@gmx.de>,
+        "David S . Miller" <davem@davemloft.net>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Paolo Bonzini <pbonzini@redhat.com>,
+        David Hildenbrand <david@redhat.com>,
+        Andrea Arcangeli <aarcange@redhat.com>,
+        Josh Poimboeuf <jpoimboe@redhat.com>,
+        Peter H Anvin <hpa@zytor.com>,
+        Dave Hansen <dave.hansen@intel.com>,
+        Tony Luck <tony.luck@intel.com>,
+        Andi Kleen <ak@linux.intel.com>,
+        Kirill Shutemov <kirill.shutemov@linux.intel.com>,
+        Sean Christopherson <seanjc@google.com>,
+        Kuppuswamy Sathyanarayanan <knsathya@kernel.org>,
+        X86 ML <x86@kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux PCI <linux-pci@vger.kernel.org>,
+        linux-alpha@vger.kernel.org, linux-mips@vger.kernel.org,
+        linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux Doc Mailing List <linux-doc@vger.kernel.org>,
+        virtualization@lists.linux-foundation.org
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Oct 08, 2021 at 04:55:04PM -0700, Kees Cook wrote:
-> This makes sure that wchan contains a sensible symbol when a process is
-> blocked.
+On Sat, Oct 9, 2021 at 2:53 AM Michael S. Tsirkin <mst@redhat.com> wrote:
+>
+> On Fri, Oct 08, 2021 at 05:37:07PM -0700, Kuppuswamy Sathyanarayanan wrote:
+> > From: Andi Kleen <ak@linux.intel.com>
+> >
+> > For Confidential VM guests like TDX, the host is untrusted and hence
+> > the devices emulated by the host or any data coming from the host
+> > cannot be trusted. So the drivers that interact with the outside world
+> > have to be hardened by sharing memory with host on need basis
+> > with proper hardening fixes.
+> >
+> > For the PCI driver case, to share the memory with the host add
+> > pci_iomap_host_shared() and pci_iomap_host_shared_range() APIs.
+> >
+> > Signed-off-by: Andi Kleen <ak@linux.intel.com>
+> > Signed-off-by: Kuppuswamy Sathyanarayanan <sathyanarayanan.kuppuswamy@linux.intel.com>
+>
+> So I proposed to make all pci mappings shared, eliminating the need
+> to patch drivers.
+>
+> To which Andi replied
+>         One problem with removing the ioremap opt-in is that
+>         it's still possible for drivers to get at devices without going through probe.
+>
+> To which Greg replied:
+> https://lore.kernel.org/all/YVXBNJ431YIWwZdQ@kroah.com/
+>         If there are in-kernel PCI drivers that do not do this, they need to be
+>         fixed today.
+>
+> Can you guys resolve the differences here?
 
-> Specifically this calls the sleep() syscall, and expects the
-> architecture to have called schedule() from a function that has "sleep"
-> somewhere in its name.
+I agree with you and Greg here. If a driver is accessing hardware
+resources outside of the bind lifetime of one of the devices it
+supports, and in a way that neither modrobe-policy nor
+device-authorization -policy infrastructure can block, that sounds
+like a bug report. Fix those drivers instead of sprinkling
+ioremap_shared in select places and with unclear rules about when a
+driver is allowed to do "shared" mappings. Let the new
+device-authorization mechanism (with policy in userspace) be the
+central place where all of these driver "trust" issues are managed.
 
-This exposes internal kernel symbol to userspace.
-Why would want to test that?
+> And once they are resolved, mention this in the commit log so
+> I don't get to re-read the series just to find out nothing
+> changed in this respect?
+>
+> I frankly do not believe we are anywhere near being able to harden
+> an arbitrary kernel config against attack.
+> How about creating a defconfig that makes sense for TDX then?
+> Anyone deviating from that better know what they are doing,
+> this API tweaking is just putting policy into the kernel  ...
 
-Doing s/sleep/SLEEP/g doesn't change kernel but now the test is broken.
-
-> For example, on the architectures I tested
-> (x86_64, arm64, arm, mips, and powerpc) this is "hrtimer_nanosleep":
-
-> +/*
-> + * Make sure that wchan returns a reasonable symbol when blocked.
-> + */
-
-Test should be "contains C identifier" then?
-
-> +int main(void)
-> +{
-> +	char buf[64];
-> +	pid_t child;
-> +	int sync[2], fd;
-> +
-> +	if (pipe(sync) < 0)
-> +		perror_exit("pipe");
-> +
-> +	child = fork();
-> +	if (child < 0)
-> +		perror_exit("fork");
-> +	if (child == 0) {
-> +		/* Child */
-> +		if (close(sync[0]) < 0)
-> +			perror_exit("child close sync[0]");
-> +		if (close(sync[1]) < 0)
-> +			perror_exit("child close sync[1]");
-
-Redundant close().
-
-> +		sleep(10);
-> +		_exit(0);
-> +	}
-> +	/* Parent */
-> +	if (close(sync[1]) < 0)
-> +		perror_exit("parent close sync[1]");
-
-Redundant close().
-
-> +	if (read(sync[0], buf, 1) != 0)
-> +		perror_exit("parent read sync[0]");
-
-Racy if child is scheduled out after first close in the child.
-
-> +	snprintf(buf, sizeof(buf), "/proc/%d/wchan", child);
-> +	fd = open(buf, O_RDONLY);
-> +	if (fd < 0) {
-> +		if (errno == ENOENT)
-> +			return 4;
-> +		perror_exit(buf);
-> +	}
-> +
-> +	memset(buf, 0, sizeof(buf));
-> +	if (read(fd, buf, sizeof(buf) - 1) < 1)
-> +		perror_exit(buf);
-> +	if (strstr(buf, "sleep") == NULL) {
-> +		fprintf(stderr, "FAIL: did not find 'sleep' in wchan '%s'\n", buf);
-> +		return 1;
-> +	}
-> +	printf("ok: found 'sleep' in wchan '%s'\n", buf);
-> +
-> +	if (kill(child, SIGKILL) < 0)
-> +		perror_exit("kill");
-> +	if (waitpid(child, NULL, 0) != child) {
-> +		fprintf(stderr, "waitpid: got the wrong child!?\n");
-> +		return 1;
-> +	}
-> +
-> +	return 0;
-> +}
+Right, userspace authorization policy and select driver fixups seems
+to be the answer to the raised concerns.
