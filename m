@@ -2,45 +2,45 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E8530C433F5
-	for <linux-arch@archiver.kernel.org>; Mon, 11 Oct 2021 15:27:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6AEC9C43219
+	for <linux-arch@archiver.kernel.org>; Mon, 11 Oct 2021 15:27:37 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D31BC60F3A
-	for <linux-arch@archiver.kernel.org>; Mon, 11 Oct 2021 15:27:35 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 58ECB60F4B
+	for <linux-arch@archiver.kernel.org>; Mon, 11 Oct 2021 15:27:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239035AbhJKP3d (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 11 Oct 2021 11:29:33 -0400
+        id S238991AbhJKP3f (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 11 Oct 2021 11:29:35 -0400
 Received: from pegase2.c-s.fr ([93.17.235.10]:59181 "EHLO pegase2.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S238922AbhJKP32 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 Oct 2021 11:29:28 -0400
+        id S239007AbhJKP3d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 11 Oct 2021 11:29:33 -0400
 Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
-        by localhost (Postfix) with ESMTP id 4HSjMB1FTVz9sTy;
-        Mon, 11 Oct 2021 17:26:46 +0200 (CEST)
+        by localhost (Postfix) with ESMTP id 4HSjMC4kv3z9sV6;
+        Mon, 11 Oct 2021 17:26:47 +0200 (CEST)
 X-Virus-Scanned: amavisd-new at c-s.fr
 Received: from pegase2.c-s.fr ([172.26.127.65])
         by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-        with ESMTP id AsxrHphiyLPy; Mon, 11 Oct 2021 17:26:46 +0200 (CEST)
+        with ESMTP id 69ySF6czzl1u; Mon, 11 Oct 2021 17:26:47 +0200 (CEST)
 Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase2.c-s.fr (Postfix) with ESMTP id 4HSjM30wYRz9sV1;
+        by pegase2.c-s.fr (Postfix) with ESMTP id 4HSjM314Xvz9sTq;
         Mon, 11 Oct 2021 17:26:39 +0200 (CEST)
 Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id E420B8B775;
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id ECA8F8B778;
         Mon, 11 Oct 2021 17:26:38 +0200 (CEST)
 X-Virus-Scanned: amavisd-new at c-s.fr
 Received: from messagerie.si.c-s.fr ([127.0.0.1])
         by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id FeFUPOjlFDO5; Mon, 11 Oct 2021 17:26:38 +0200 (CEST)
+        with ESMTP id rVKjXVkBNBqi; Mon, 11 Oct 2021 17:26:38 +0200 (CEST)
 Received: from PO20335.IDSI0.si.c-s.fr (unknown [172.25.230.103])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 46F0F8B779;
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 309EC8B763;
         Mon, 11 Oct 2021 17:26:38 +0200 (CEST)
 Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
-        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1) with ESMTPS id 19BFQWTu1585035
+        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1) with ESMTPS id 19BFQV4Z1585023
         (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-        Mon, 11 Oct 2021 17:26:32 +0200
+        Mon, 11 Oct 2021 17:26:31 +0200
 Received: (from chleroy@localhost)
-        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1/Submit) id 19BFQWnt1585034;
-        Mon, 11 Oct 2021 17:26:32 +0200
+        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1/Submit) id 19BFQVSQ1585022;
+        Mon, 11 Oct 2021 17:26:31 +0200
 X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
 From:   Christophe Leroy <christophe.leroy@csgroup.eu>
 To:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
@@ -55,70 +55,86 @@ Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
         linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
         linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org
-Subject: [PATCH v1 08/10] lkdtm: Really write into kernel text in WRITE_KERN
-Date:   Mon, 11 Oct 2021 17:25:35 +0200
-Message-Id: <624940395e5d81967246f911a65740b9a15b5a70.1633964380.git.christophe.leroy@csgroup.eu>
+Subject: [PATCH v1 05/10] asm-generic: Define 'funct_descr_t' to commonly describe function descriptors
+Date:   Mon, 11 Oct 2021 17:25:32 +0200
+Message-Id: <02224551451ab9c37055499fc621c41246c81125.1633964380.git.christophe.leroy@csgroup.eu>
 X-Mailer: git-send-email 2.31.1
 In-Reply-To: <cover.1633964380.git.christophe.leroy@csgroup.eu>
 References: <cover.1633964380.git.christophe.leroy@csgroup.eu>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1633965929; l=1755; s=20211009; h=from:subject:message-id; bh=rbjcmdqW//k3GGJUaNfCP5ioRFNRJA1GdoGwljTgTIs=; b=VHxFrubt06zojvGrh4AyOrnUEfhxbTLmxNZmBOWwip5R264pE8YqB38E84FGVhXc4wANmW5UBtxz CVA20KJtC2xqR0+kY4IclmYKq96iNlIn+hUHQHurWpsTuS9/smte
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1633965928; l=2235; s=20211009; h=from:subject:message-id; bh=EBbDfN2Js8pQu1zMhsvpM5K62fnKFSITgBasmcu5as4=; b=JKx5mIowPw90iGVlBO2cLzOk7AJXLyrHko1ih+4Zfp7YiLHDC4neRwtP47l53x5+Cna9yu4BvxlT lEz9g+OzDrsifJiEfV5/MPXZeMXmrgFmMaLfA1AVFfDF/BdIYO8D
 X-Developer-Key: i=christophe.leroy@csgroup.eu; a=ed25519; pk=HIzTzUj91asvincQGOFx6+ZF5AoUuP9GdOtQChs7Mm0=
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-WRITE_KERN is supposed to overwrite some kernel text, namely
-do_overwritten() function.
+We have three architectures using function descriptors, each with its
+own name.
 
-But at the time being it overwrites do_overwritten() function
-descriptor, not function text.
+Add a common typedef that can be used in generic code.
 
-Fix it by dereferencing the function descriptor to obtain
-function text pointer.
-
-And make do_overwritten() noinline so that it is really
-do_overwritten() which is called by lkdtm_WRITE_KERN().
+Also add a stub typedef for architecture without function descriptors,
+to avoid a forest of #ifdefs.
 
 Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
 ---
- drivers/misc/lkdtm/perms.c | 8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
+ arch/ia64/include/asm/sections.h    | 1 +
+ arch/parisc/include/asm/sections.h  | 1 +
+ arch/powerpc/include/asm/sections.h | 1 +
+ include/asm-generic/sections.h      | 3 +++
+ 4 files changed, 6 insertions(+)
 
-diff --git a/drivers/misc/lkdtm/perms.c b/drivers/misc/lkdtm/perms.c
-index 60b3b2fe929d..442d60ed25ef 100644
---- a/drivers/misc/lkdtm/perms.c
-+++ b/drivers/misc/lkdtm/perms.c
-@@ -5,6 +5,7 @@
-  * even non-readable regions.
+diff --git a/arch/ia64/include/asm/sections.h b/arch/ia64/include/asm/sections.h
+index 80f5868afb06..929b5c535620 100644
+--- a/arch/ia64/include/asm/sections.h
++++ b/arch/ia64/include/asm/sections.h
+@@ -8,6 +8,7 @@
   */
- #include "lkdtm.h"
-+#include <linux/kallsyms.h>
- #include <linux/slab.h>
- #include <linux/vmalloc.h>
- #include <linux/mman.h>
-@@ -37,7 +38,7 @@ static noinline void do_nothing(void)
- }
  
- /* Must immediately follow do_nothing for size calculuations to work out. */
--static void do_overwritten(void)
-+static noinline void do_overwritten(void)
- {
- 	pr_info("do_overwritten wasn't overwritten!\n");
- 	return;
-@@ -113,8 +114,9 @@ void lkdtm_WRITE_KERN(void)
- 	size_t size;
- 	volatile unsigned char *ptr;
+ #define HAVE_DEREFERENCE_FUNCTION_DESCRIPTOR 1
++typedef struct fdesc funct_descr_t;
  
--	size = (unsigned long)do_overwritten - (unsigned long)do_nothing;
--	ptr = (unsigned char *)do_overwritten;
-+	size = (unsigned long)dereference_symbol_descriptor(do_overwritten) -
-+	       (unsigned long)dereference_symbol_descriptor(do_nothing);
-+	ptr = dereference_symbol_descriptor(do_overwritten);
+ #include <linux/elf.h>
+ #include <linux/uaccess.h>
+diff --git a/arch/parisc/include/asm/sections.h b/arch/parisc/include/asm/sections.h
+index 2e781ee19b66..329e80f7af0a 100644
+--- a/arch/parisc/include/asm/sections.h
++++ b/arch/parisc/include/asm/sections.h
+@@ -4,6 +4,7 @@
  
- 	pr_info("attempting bad %zu byte write at %px\n", size, ptr);
- 	memcpy((void *)ptr, (unsigned char *)do_nothing, size);
+ #ifdef CONFIG_64BIT
+ #define HAVE_DEREFERENCE_FUNCTION_DESCRIPTOR 1
++typedef Elf64_Fdesc funct_descr_t;
+ #endif
+ 
+ /* nothing to see, move along */
+diff --git a/arch/powerpc/include/asm/sections.h b/arch/powerpc/include/asm/sections.h
+index b7f1ba04e756..d0d5287fa568 100644
+--- a/arch/powerpc/include/asm/sections.h
++++ b/arch/powerpc/include/asm/sections.h
+@@ -10,6 +10,7 @@
+ 
+ #ifdef PPC64_ELF_ABI_v1
+ #define HAVE_DEREFERENCE_FUNCTION_DESCRIPTOR 1
++typedef struct ppc64_opd_entry funct_descr_t;
+ #endif
+ 
+ #include <asm-generic/sections.h>
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index 1db5cfd69817..436412d94054 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -63,6 +63,9 @@ extern __visible const void __nosave_begin, __nosave_end;
+ #else
+ #define dereference_function_descriptor(p) ((void *)(p))
+ #define dereference_kernel_function_descriptor(p) ((void *)(p))
++typedef struct {
++	unsigned long addr;
++} funct_descr_t;
+ #endif
+ 
+ /* random extra sections (if any).  Override
 -- 
 2.31.1
 
