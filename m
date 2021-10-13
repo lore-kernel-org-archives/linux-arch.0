@@ -2,49 +2,49 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B333CC433FE
-	for <linux-arch@archiver.kernel.org>; Wed, 13 Oct 2021 17:57:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C5A43C433FE
+	for <linux-arch@archiver.kernel.org>; Wed, 13 Oct 2021 17:57:59 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 952EE60174
-	for <linux-arch@archiver.kernel.org>; Wed, 13 Oct 2021 17:57:55 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id A916B61152
+	for <linux-arch@archiver.kernel.org>; Wed, 13 Oct 2021 17:57:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238343AbhJMR75 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 13 Oct 2021 13:59:57 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42602 "EHLO
+        id S238386AbhJMR77 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 13 Oct 2021 13:59:59 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42618 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238258AbhJMR74 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Oct 2021 13:59:56 -0400
-Received: from mail-pg1-x52e.google.com (mail-pg1-x52e.google.com [IPv6:2607:f8b0:4864:20::52e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0A87CC061753
+        with ESMTP id S238339AbhJMR75 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Oct 2021 13:59:57 -0400
+Received: from mail-pf1-x429.google.com (mail-pf1-x429.google.com [IPv6:2607:f8b0:4864:20::429])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3A967C061765
         for <linux-arch@vger.kernel.org>; Wed, 13 Oct 2021 10:57:53 -0700 (PDT)
-Received: by mail-pg1-x52e.google.com with SMTP id r201so3088267pgr.4
+Received: by mail-pf1-x429.google.com with SMTP id c29so3187421pfp.2
         for <linux-arch@vger.kernel.org>; Wed, 13 Oct 2021 10:57:53 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=chromium.org; s=google;
-        h=from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=tovZs/fMamUNhc9V1ZyRuitMxRBIyX1nI5NaXzCb1hY=;
-        b=G2qErgjv5HIfhOUry8jDhzJppHdZE25hAmIYtv/loO+niQCfapFhBGvRWsOBJLizPg
-         AWT7H19YivWexKf2RxMOYI7qy7LBwic4NCRwwvkEPxTK85KAECjiBduVd79ggD6MNlQ3
-         PwMusKJy8PAMRDONeipR+AKRPwnMTeTPncnCA=
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=Rp/JVQM4Zv+z3R4Pp047EZ8OQIJJhiuVH2ShyShd8FQ=;
+        b=AGf5J4fnB0CIf5oxKxNnebjHnga1X27gio9TLxKDp4cDcoEwjJkAv0RTYHBrcorpdn
+         SDIGdpyqqgIZhXiJZTCki+bz8p6xidCP/Hiysv2vJB9Nael8hi4PJ5xzrSnIVLjQWXII
+         4tUmK26ouXhNJAnDDBCpgiRcfyPY8NmpLk3RU=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=tovZs/fMamUNhc9V1ZyRuitMxRBIyX1nI5NaXzCb1hY=;
-        b=GF7jwSHWYdTB6ickcyiNQi/kOIOQ5H1dSOckpMWezjUPkV4Kfv9B0Avz1W0L50RclC
-         GAp+jQ69xshBMkI+UeCPynIFDlsXub6DebcdaSqwL/8lC0xy7wQZCbNxM5y7S7Z2UFgh
-         0d3WVNwaIvGhs0mYjj0FgX6s966LH/dClncRLH7qvl8IeEmCqp2w8zjMHAOjmlSJkAId
-         +7Phw7RWTcHdYXRwe70+iElEwk+n+pjeF/+Y9jb1Rb1G7EuD9rFvlEn8C2xPYVEniolR
-         k5LrHFab8sAn2+98tndu8UlsVs2QZmG5ILhkqNQsRMGY6gCMySmvZTJcyy9Mg0XTbAVj
-         LqRw==
-X-Gm-Message-State: AOAM530SMAEpIOOLOev+4cm8kEVooCuWyPVFD/p1oKKc70Ma1JIifSln
-        tk8EEZc/hjUsu9W6g76/ltK9IA==
-X-Google-Smtp-Source: ABdhPJzCKTW81GqeouHKZKjp+D5/8WyFEtj3voLvuSJY69lPRmI2Nh2pCbNkaKmEWld21LKZUBGxgQ==
-X-Received: by 2002:a05:6a00:8c7:b0:44c:a7f9:d8d1 with SMTP id s7-20020a056a0008c700b0044ca7f9d8d1mr756635pfu.49.1634147872423;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=Rp/JVQM4Zv+z3R4Pp047EZ8OQIJJhiuVH2ShyShd8FQ=;
+        b=O7zLpOIP68UkYpNAsQ8sMb0RryGdPZW43G7ZQz+Zbs9lciVxNACBYoCDOu2VLTXS1U
+         ODwa0gWubhqZQFxQ2lCOYNM290seTPIF90605NK+1iSaZPYLH/egttHfh4wlrKFAWDz4
+         gukqIcgM4gvYarJcIi4ihIOd6IdAi+yYRoqHP7ql53NDEbLbkxrCL8eoVejBRJLGs+mw
+         ZImP9B7nbPNmN/b7KgTaRuubc0cmKhFL8JJ7dtDFQbnwv+8f9OAbGotyErB/Cngj79wW
+         qUWGcsGMPSoYrcIuBtHFconOpXIKh85h+mEypxMsJpzczMVerFTVzmsEYbLFfWKCnbqB
+         EMcw==
+X-Gm-Message-State: AOAM533+V4Vo6w1BCgJP/s5XMboPnaEpNI9c8yOyK88tfvTlKgxLvtRx
+        pP+YZrSXi5IK8zCAdd8j84WPyA==
+X-Google-Smtp-Source: ABdhPJzzqggQEfz5rWpsNrPSPD8dksHrIMYyrtHC5TUFXM/iotEJD9Nvzsjyf2oRj3qDSc5gKHiYFQ==
+X-Received: by 2002:a63:e10d:: with SMTP id z13mr442755pgh.375.1634147872778;
         Wed, 13 Oct 2021 10:57:52 -0700 (PDT)
 Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
-        by smtp.gmail.com with ESMTPSA id d67sm155299pfd.151.2021.10.13.10.57.51
+        by smtp.gmail.com with ESMTPSA id i15sm184365pfq.21.2021.10.13.10.57.51
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
         Wed, 13 Oct 2021 10:57:52 -0700 (PDT)
 From:   Kees Cook <keescook@chromium.org>
@@ -71,49 +71,83 @@ Cc:     Kees Cook <keescook@chromium.org>,
         Fangrui Song <maskray@google.com>,
         linux-kernel@vger.kernel.org, x86@kernel.org,
         linux-arch@vger.kernel.org, linux-hardening@vger.kernel.org
-Subject: [PATCH 0/4] x86: Various clean-ups in support of FGKASLR
-Date:   Wed, 13 Oct 2021 10:57:38 -0700
-Message-Id: <20211013175742.1197608-1-keescook@chromium.org>
+Subject: [PATCH 2/4] x86/boot: Allow a "silent" kaslr random byte fetch
+Date:   Wed, 13 Oct 2021 10:57:40 -0700
+Message-Id: <20211013175742.1197608-3-keescook@chromium.org>
 X-Mailer: git-send-email 2.30.2
+In-Reply-To: <20211013175742.1197608-1-keescook@chromium.org>
+References: <20211013175742.1197608-1-keescook@chromium.org>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1156; h=from:subject; bh=PRf65j0JLkeyuy0M8f8WYpGBuH2Z9LGCXYFpyuGxQQ4=; b=owEBbQKS/ZANAwAKAYly9N/cbcAmAcsmYgBhZx4UR5tiE4MGhsX6k9YeysDLLv8D+UhwbD5cdGmc M3oPcB6JAjMEAAEKAB0WIQSlw/aPIp3WD3I+bhOJcvTf3G3AJgUCYWceFAAKCRCJcvTf3G3AJsetD/ 9jqt/mMainURcBkfvabgTOLY7SRxtWhpfdp++dz9638RboQjKK/pgK1aMBtMqEAT0nvJtZGoM2JGjl V+W0N3WaIATR8h73k+fgtgD2zIagC7IibIhV06Tj3tSztXwCvEe+tMaQEfpYFaaNc/Tw5lFpcx4AKx eOphkWsQSvzyQIq1F6dX7QXLn5HZjCQB5QAOo21siALDbAAExXUqGoc1W96ILJuAVCg3nJCP92pADz gOfRDCvPwI+1/WEdpe8qgDpI+EhrRs+3z+D1sBi3S+WsQthGxnoj+Cr8yYyeOih10wCOnixEutJAo6 0jhz01Bn5Wv78B0vwxSp2uPs1Qw2mf5zsDwbQdCaqj+cQbqEcyTNRlxcwsAkgU1V5oSYh5XyNbORRM pxZxmtir61MsEkHgx8juWagLoab5D7Tszt5m6y0a+y0CpqFjR98b+P2jLHtN9j83QEnE+lYx8pXH9k VER+Yrzu6DTNobQcAwJiObxxWzRnvrmHqfU49BF92SBkov6axqsXziXbS5fjRJmN6ZceJpeCW7SvIA XRdw/QgHEV2Wf/dyRZAPBySso5Dra6Ry1KaDBHtULwsy7NCjSLZQupWLz/v/Q9/yDafPmMJmkMN6GK 6vru6cw6mIsWUB6Fwck+eMzTdtk1gEuxfrDG3sD2Q+pNjVW9752yKR7iCnXA==
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1845; h=from:subject; bh=QYsHdjNAtpfLq0fC/fv08OJWSBanqdK3WCZTPqw/9/s=; b=owEBbQKS/ZANAwAKAYly9N/cbcAmAcsmYgBhZx4V4ONsRXTnUoTv5VE1BbZVcnOmEFIIPdvBhYBT k3QraSKJAjMEAAEKAB0WIQSlw/aPIp3WD3I+bhOJcvTf3G3AJgUCYWceFQAKCRCJcvTf3G3AJpVREA CkYyOkUtZaF+Mud9ViQGaUPLcCI1HQbGZwtEHWyhrvXtV6LhGtQllhonYGicjqofzZPd6VFr3wpfP6 4B4EpTlXgvkr83DGSN0Lh2/z3O2QIrDsz3zXQYwMVVAqWY+9BVuNUgFtpiHrKODBFfcRHVAtCH3Msu hwLWa+7A3XxKUWbpLw2pmyIydVpuPAFZW2JZ/5tZDxhG6UjKgw+hu99phR8lL6cx4PlTt4+Mp1W18g JJfAkLhKJdvmOSAMUIZWqnnw+iM6+9/bVdFzCEJcMHnFsATRc1yVv2IaTkZpVXMLV96PAdgGny4zBk oX6IBB6UB9aj60WoVaONIxaM+ebV2o6HfE5UFP7DmBHA6IPMVUpfK9F5kUWvkKrH71FPqoOwJuc6jH l2Lu8GguqnBYXTRPPTJgOAxt3AahlwxlNlBs6TSRYc6RBGirisMTtlsZjdtbkL2vEnDd2QW6q0O2W+ L75t7fTCJq5Px5dBCU8MDIvhC4MwHyMy3t45oivfYs+4oIPeguiVsxV66z6vS4MryzM+JHT53eZ498 STKepS+eXsnCSzBbZUrxsvbe4Z8kpDR1EI+uII91hWxJxT98GqYesqXbWrevxmMMv7zoS3WsAi3MMG tkQBpRDL7CXB0eol2vprTxzr7eI9rZsWDpskFepd9u98TYVSYf0HFRHyonkA==
 X-Developer-Key: i=keescook@chromium.org; a=openpgp; fpr=A5C3F68F229DD60F723E6E138972F4DFDC6DC026
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi,
+Under earlyprintk, each RNG call produces a debug report line. To support
+the future FGKASLR feature, which will fetch random bytes during function
+shuffling, this is not useful information (each line is identical and
+tells us nothing new), needlessly spamming the console. Instead, allow
+for a NULL "purpose" to suppress the debug reporting.
 
-These are a small set of patches that clean up various things that are
-each stand-alone improvements, but they're also needed for the coming
-FGKASLR series[1]. I thought it best to just get these landed instead
-of having them continue to tag along with FGKASLR, especially the
-early malloc() fix, which is a foot-gun waiting to happen. :)
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/x86/lib/kaslr.c | 18 ++++++++++++------
+ 1 file changed, 12 insertions(+), 6 deletions(-)
 
-Thanks!
-
--Kees
-
-[1] https://lore.kernel.org/lkml/20210831144114.154-1-alexandr.lobakin@intel.com/
-
-Kees Cook (2):
-  x86/boot: Allow a "silent" kaslr random byte fetch
-  x86/boot/compressed: Avoid duplicate malloc() implementations
-
-Kristen Carlson Accardi (2):
-  x86/tools/relocs: Support >64K section headers
-  vmlinux.lds.h: Have ORC lookup cover entire _etext - _stext
-
- arch/x86/boot/compressed/kaslr.c  |   4 --
- arch/x86/boot/compressed/misc.c   |   3 +
- arch/x86/boot/compressed/misc.h   |   2 +
- arch/x86/lib/kaslr.c              |  18 ++++--
- arch/x86/tools/relocs.c           | 103 ++++++++++++++++++++++--------
- include/asm-generic/vmlinux.lds.h |   3 +-
- include/linux/decompress/mm.h     |  12 +++-
- 7 files changed, 107 insertions(+), 38 deletions(-)
-
+diff --git a/arch/x86/lib/kaslr.c b/arch/x86/lib/kaslr.c
+index a53665116458..2b3eb8c948a3 100644
+--- a/arch/x86/lib/kaslr.c
++++ b/arch/x86/lib/kaslr.c
+@@ -56,11 +56,14 @@ unsigned long kaslr_get_random_long(const char *purpose)
+ 	unsigned long raw, random = get_boot_seed();
+ 	bool use_i8254 = true;
+ 
+-	debug_putstr(purpose);
+-	debug_putstr(" KASLR using");
++	if (purpose) {
++		debug_putstr(purpose);
++		debug_putstr(" KASLR using");
++	}
+ 
+ 	if (has_cpuflag(X86_FEATURE_RDRAND)) {
+-		debug_putstr(" RDRAND");
++		if (purpose)
++			debug_putstr(" RDRAND");
+ 		if (rdrand_long(&raw)) {
+ 			random ^= raw;
+ 			use_i8254 = false;
+@@ -68,7 +71,8 @@ unsigned long kaslr_get_random_long(const char *purpose)
+ 	}
+ 
+ 	if (has_cpuflag(X86_FEATURE_TSC)) {
+-		debug_putstr(" RDTSC");
++		if (purpose)
++			debug_putstr(" RDTSC");
+ 		raw = rdtsc();
+ 
+ 		random ^= raw;
+@@ -76,7 +80,8 @@ unsigned long kaslr_get_random_long(const char *purpose)
+ 	}
+ 
+ 	if (use_i8254) {
+-		debug_putstr(" i8254");
++		if (purpose)
++			debug_putstr(" i8254");
+ 		random ^= i8254();
+ 	}
+ 
+@@ -86,7 +91,8 @@ unsigned long kaslr_get_random_long(const char *purpose)
+ 	    : "a" (random), "rm" (mix_const));
+ 	random += raw;
+ 
+-	debug_putstr("...\n");
++	if (purpose)
++		debug_putstr("...\n");
+ 
+ 	return random;
+ }
 -- 
 2.30.2
 
