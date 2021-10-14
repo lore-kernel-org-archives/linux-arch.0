@@ -2,161 +2,108 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8E30FC433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 14 Oct 2021 03:01:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A743FC433FE
+	for <linux-arch@archiver.kernel.org>; Thu, 14 Oct 2021 06:24:01 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6A202610D0
-	for <linux-arch@archiver.kernel.org>; Thu, 14 Oct 2021 03:01:23 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8C62E600CC
+	for <linux-arch@archiver.kernel.org>; Thu, 14 Oct 2021 06:24:01 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229846AbhJNDDZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 13 Oct 2021 23:03:25 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52820 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229838AbhJNDDY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Oct 2021 23:03:24 -0400
-Received: from mail-ua1-x92d.google.com (mail-ua1-x92d.google.com [IPv6:2607:f8b0:4864:20::92d])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BC8FFC061570;
-        Wed, 13 Oct 2021 20:01:20 -0700 (PDT)
-Received: by mail-ua1-x92d.google.com with SMTP id e2so8571960uax.7;
-        Wed, 13 Oct 2021 20:01:20 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=f/CZ3h41DYsFMAqGi5C28jlvcQjjjxXwdgVx1UeMUqU=;
-        b=dOC+24nlC1p6+PhEkce9QFi/JokIB7H4RtKCST+pjZJ155B3+Nbupy+nGfA4Z2Z8b+
-         35NsrVFLusp8hep969Gol4XDCuRjKxiaH+//CfVeTlENH+JOFdEpBb8afIaEOScwKmo2
-         yjuk3kQKmmyYJsk5dljIDsrJrUr3EHKOdHODAgGv3Qdaembzc/qqjvBsR3XjGtk26zU+
-         piuPEt2Gy0A+/WBvEj2vs2142LkPPrbeSK9pcfmKxOnH0/l9A0tmmelBrGbRrjDuoSJm
-         xcdFAK2vFPJjtx9fXRWTn+Liyq0mlsQEseIYMqhpMZH4/L09vGcLvyKU95j5vvSF4IyU
-         4/8w==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=f/CZ3h41DYsFMAqGi5C28jlvcQjjjxXwdgVx1UeMUqU=;
-        b=1jvdyNLbNfacAV2I0ztmL8NeDvOtRsSqUckZbh9p/W/smeGFsHBRJj/aVrAtkglqLn
-         G5MSWMomYg4ZgwDxf6A+7pSLDFgmsAH6J+tEPRby6KP0hAyK+zTCzoINdyVJ02t/RR7P
-         8D10WEW+ItDB2M3Ka4rFRZroczkgHAuYVB+ps2IUKKRR6KnBwU6ZyjaN6MDoa9Nje2n8
-         jmNgx6RRbH5fSwOSREb8SufN7lcsITG5jhSUTDcGez/gx2usSetbqd0eij7ApllKrP78
-         tfxJ/rVBiLNPVnlwt2M+gYRYh2wWLu0mvhCR2b+V58BD7DPPptmkz/d91QMumMkiiaEt
-         s8zg==
-X-Gm-Message-State: AOAM531NQVfGfmVd7jTCzh8QyK9GNpf/nKxjTDsI9CEXnpAx0/Gz+jIX
-        Ptt9+GkfFxa6L9/I4K0zQ6rVeagYdTX3Z1C/TWY=
-X-Google-Smtp-Source: ABdhPJxYY6ovGCJYATjdLZaiIF1rw1Hx7UZB4cKPjBLokqyTS0rHd8ySPxin0PpRI3ThKuqePR3LSJeXRYzjkCYi4So=
-X-Received: by 2002:a67:c19d:: with SMTP id h29mr3419511vsj.18.1634180479914;
- Wed, 13 Oct 2021 20:01:19 -0700 (PDT)
-MIME-Version: 1.0
-References: <20211013063656.3084555-1-chenhuacai@loongson.cn>
- <20211013071117.3097969-1-chenhuacai@loongson.cn> <20211013071117.3097969-2-chenhuacai@loongson.cn>
- <YWbXdEyonDpXJFK2@bombadil.infradead.org>
-In-Reply-To: <YWbXdEyonDpXJFK2@bombadil.infradead.org>
-From:   Huacai Chen <chenhuacai@gmail.com>
-Date:   Thu, 14 Oct 2021 11:01:08 +0800
-Message-ID: <CAAhV-H5-8yPjZhOkV2+v+XB85+2qs5342hDdTYAV1ctPAdb7+A@mail.gmail.com>
-Subject: Re: [PATCH V5 15/22] LoongArch: Add elf and module support
-To:     Luis Chamberlain <mcgrof@kernel.org>
-Cc:     Huacai Chen <chenhuacai@loongson.cn>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Peter Zijlstra <peterz@infradead.org>,
+        id S229584AbhJNG0E (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 14 Oct 2021 02:26:04 -0400
+Received: from pegase2.c-s.fr ([93.17.235.10]:40411 "EHLO pegase2.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S229530AbhJNG0E (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 14 Oct 2021 02:26:04 -0400
+Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
+        by localhost (Postfix) with ESMTP id 4HVK9T6nbXz9sSL;
+        Thu, 14 Oct 2021 08:23:57 +0200 (CEST)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from pegase2.c-s.fr ([172.26.127.65])
+        by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
+        with ESMTP id CvtZxXja-epj; Thu, 14 Oct 2021 08:23:57 +0200 (CEST)
+Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
+        by pegase2.c-s.fr (Postfix) with ESMTP id 4HVK9T5vlfz9sSK;
+        Thu, 14 Oct 2021 08:23:57 +0200 (CEST)
+Received: from localhost (localhost [127.0.0.1])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id B25FB8B788;
+        Thu, 14 Oct 2021 08:23:57 +0200 (CEST)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from messagerie.si.c-s.fr ([127.0.0.1])
+        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
+        with ESMTP id 9CecoLzJnjFF; Thu, 14 Oct 2021 08:23:57 +0200 (CEST)
+Received: from PO20335.IDSI0.si.c-s.fr (unknown [192.168.202.231])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 670478B763;
+        Thu, 14 Oct 2021 08:23:57 +0200 (CEST)
+Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
+        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1) with ESMTPS id 19E5oQQr2266030
+        (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
+        Thu, 14 Oct 2021 07:50:26 +0200
+Received: (from chleroy@localhost)
+        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1/Submit) id 19E5oQCx2266029;
+        Thu, 14 Oct 2021 07:50:26 +0200
+X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
+From:   Christophe Leroy <christophe.leroy@csgroup.eu>
+To:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
         Andrew Morton <akpm@linux-foundation.org>,
-        David Airlie <airlied@linux.ie>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        Xuefeng Li <lixuefeng@loongson.cn>,
-        Yanteng Si <siyanteng@loongson.cn>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Jessica Yu <jeyu@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+        Helge Deller <deller@gmx.de>, Arnd Bergmann <arnd@arndb.de>,
+        Kees Cook <keescook@chromium.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
+        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org
+Subject: [PATCH v2 09/13] lkdtm: Force do_nothing() out of line
+Date:   Thu, 14 Oct 2021 07:49:58 +0200
+Message-Id: <44c2261293843b71cd0a7f485f889dd51deb5fe7.1634190022.git.christophe.leroy@csgroup.eu>
+X-Mailer: git-send-email 2.31.1
+In-Reply-To: <cover.1634190022.git.christophe.leroy@csgroup.eu>
+References: <cover.1634190022.git.christophe.leroy@csgroup.eu>
+MIME-Version: 1.0
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1634190596; l=1269; s=20211009; h=from:subject:message-id; bh=nSN/ioO339qfxQaSJCJwz7QKogrcJ3f1Q+xuI0OSdUc=; b=SZl099RfUAV+FVdlnVISlQznXLCQsoqksayWb2M+8ULE2HhrQME0NQADNu3fs/gMPsgAnsTZ9Esk Np5U4MTuD2D1rOZ7sGCel7PdwzwFG+ENEKVrBlWY5U/OCStZGBJg
+X-Developer-Key: i=christophe.leroy@csgroup.eu; a=ed25519; pk=HIzTzUj91asvincQGOFx6+ZF5AoUuP9GdOtQChs7Mm0=
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi, Luis,
+LKDTM tests display that the run do_nothing() at a given
+address, but in reality do_nothing() is inlined into the
+caller.
 
-On Wed, Oct 13, 2021 at 8:56 PM Luis Chamberlain <mcgrof@kernel.org> wrote:
->
-> On Wed, Oct 13, 2021 at 03:11:10PM +0800, Huacai Chen wrote:
-> > diff --git a/arch/loongarch/include/asm/vermagic.h b/arch/loongarch/include/asm/vermagic.h
-> > new file mode 100644
-> > index 000000000000..9882dfd4702a
-> > --- /dev/null
-> > +++ b/arch/loongarch/include/asm/vermagic.h
-> > @@ -0,0 +1,19 @@
-> > +/* SPDX-License-Identifier: GPL-2.0 */
-> > +/*
-> > + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> > + */
-> > +#ifndef _ASM_VERMAGIC_H
-> > +#define _ASM_VERMAGIC_H
-> > +
-> > +#define MODULE_PROC_FAMILY "LOONGARCH "
->
-> I take it this not a mips arch? There are other longarchs under
-> arch/mips/include/asm/vermagic.h which is why I ask.
-Yes, LoongArch is not compatible with MIPS, old Loongson is MIPS and
-new Loongson isn't.
+Force it out of line so that it really runs text at the
+displayed address.
 
->
-> > diff --git a/arch/loongarch/kernel/module.c b/arch/loongarch/kernel/module.c
-> > new file mode 100644
-> > index 000000000000..af7c403b032b
-> > --- /dev/null
-> > +++ b/arch/loongarch/kernel/module.c
-> > @@ -0,0 +1,652 @@
-> > +// SPDX-License-Identifier: GPL-2.0+
-> > +/*
-> > + * Author: Hanlu Li <lihanlu@loongson.cn>
-> > + *         Huacai Chen <chenhuacai@loongson.cn>
-> > + *
-> > + * Copyright (C) 2020-2021 Loongson Technology Corporation Limited
-> > + */
-> > +
-> > +#undef DEBUG
->
-> Please remove this undef DEBUG line.
-OK, thanks.
+Acked-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+---
+ drivers/misc/lkdtm/perms.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
->
-> > +
-> > +#include <linux/moduleloader.h>
-> > +#include <linux/elf.h>
-> > +#include <linux/mm.h>
-> > +#include <linux/vmalloc.h>
-> > +#include <linux/slab.h>
-> > +#include <linux/fs.h>
-> > +#include <linux/string.h>
-> > +#include <linux/kernel.h>
-> > +
-> > +static int rela_stack_push(s64 stack_value, s64 *rela_stack, size_t *rela_stack_top)
-> > +{
-> > +     if (*rela_stack_top >= RELA_STACK_DEPTH)
-> > +             return -ENOEXEC;
-> > +
-> > +     rela_stack[(*rela_stack_top)++] = stack_value;
-> > +     pr_debug("%s stack_value = 0x%llx\n", __func__, stack_value);
->
-> If you are going to use pr_debug() so much you may want to add
-> a define for #define pr_fmt(fmt) at the very top.
-OK, thanks.
+diff --git a/drivers/misc/lkdtm/perms.c b/drivers/misc/lkdtm/perms.c
+index 2dede2ef658f..60b3b2fe929d 100644
+--- a/drivers/misc/lkdtm/perms.c
++++ b/drivers/misc/lkdtm/perms.c
+@@ -21,7 +21,7 @@
+ /* This is non-const, so it will end up in the .data section. */
+ static u8 data_area[EXEC_SIZE];
+ 
+-/* This is cost, so it will end up in the .rodata section. */
++/* This is const, so it will end up in the .rodata section. */
+ static const unsigned long rodata = 0xAA55AA55;
+ 
+ /* This is marked __ro_after_init, so it should ultimately be .rodata. */
+@@ -31,7 +31,7 @@ static unsigned long ro_after_init __ro_after_init = 0x55AA5500;
+  * This just returns to the caller. It is designed to be copied into
+  * non-executable memory regions.
+  */
+-static void do_nothing(void)
++static noinline void do_nothing(void)
+ {
+ 	return;
+ }
+-- 
+2.31.1
 
->
-> > +int apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
-> > +                    unsigned int symindex, unsigned int relsec,
-> > +                    struct module *me)
-> > +{
->
-> Nit: Please use struct module *mod, it is much more common in other places.
->
-OK, thanks.
-
-> Other than that, this looks fine to me.
->
-> Reviewed-by: Luis Chamberlain <mcgrof@kernel.org>
->
->   Luis
