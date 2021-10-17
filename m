@@ -2,45 +2,45 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A2CDBC433F5
-	for <linux-arch@archiver.kernel.org>; Sun, 17 Oct 2021 12:39:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 290C1C433EF
+	for <linux-arch@archiver.kernel.org>; Sun, 17 Oct 2021 12:39:49 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 8BE4361212
-	for <linux-arch@archiver.kernel.org>; Sun, 17 Oct 2021 12:39:29 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 0DE4960F36
+	for <linux-arch@archiver.kernel.org>; Sun, 17 Oct 2021 12:39:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S245740AbhJQMlg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 17 Oct 2021 08:41:36 -0400
+        id S242264AbhJQMlz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 17 Oct 2021 08:41:55 -0400
 Received: from pegase2.c-s.fr ([93.17.235.10]:49285 "EHLO pegase2.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S245744AbhJQMlc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 17 Oct 2021 08:41:32 -0400
+        id S245741AbhJQMlj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 17 Oct 2021 08:41:39 -0400
 Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
-        by localhost (Postfix) with ESMTP id 4HXKM31ywGz9sSh;
-        Sun, 17 Oct 2021 14:39:11 +0200 (CEST)
+        by localhost (Postfix) with ESMTP id 4HXKM50NRjz9sSj;
+        Sun, 17 Oct 2021 14:39:13 +0200 (CEST)
 X-Virus-Scanned: amavisd-new at c-s.fr
 Received: from pegase2.c-s.fr ([172.26.127.65])
         by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-        with ESMTP id v8OuPocdFoYJ; Sun, 17 Oct 2021 14:39:11 +0200 (CEST)
+        with ESMTP id KxCut_vZnzFg; Sun, 17 Oct 2021 14:39:12 +0200 (CEST)
 Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase2.c-s.fr (Postfix) with ESMTP id 4HXKM00NMNz9sSj;
+        by pegase2.c-s.fr (Postfix) with ESMTP id 4HXKM00hn3z9sSl;
         Sun, 17 Oct 2021 14:39:08 +0200 (CEST)
 Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id DD2268B773;
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id E388C8B78C;
         Sun, 17 Oct 2021 14:39:07 +0200 (CEST)
 X-Virus-Scanned: amavisd-new at c-s.fr
 Received: from messagerie.si.c-s.fr ([127.0.0.1])
         by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id WuIjW5Q_6MW1; Sun, 17 Oct 2021 14:39:07 +0200 (CEST)
+        with ESMTP id 4A2tbkX3C7Ao; Sun, 17 Oct 2021 14:39:07 +0200 (CEST)
 Received: from PO20335.IDSI0.si.c-s.fr (unknown [192.168.203.38])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id B4D858B763;
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id DCC668B77A;
         Sun, 17 Oct 2021 14:39:06 +0200 (CEST)
 Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
-        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1) with ESMTPS id 19HCcseW2946737
+        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1) with ESMTPS id 19HCctwd2946749
         (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-        Sun, 17 Oct 2021 14:38:54 +0200
+        Sun, 17 Oct 2021 14:38:55 +0200
 Received: (from chleroy@localhost)
-        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1/Submit) id 19HCcsgK2946736;
-        Sun, 17 Oct 2021 14:38:54 +0200
+        by PO20335.IDSI0.si.c-s.fr (8.16.1/8.16.1/Submit) id 19HCctX22946748;
+        Sun, 17 Oct 2021 14:38:55 +0200
 X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
 From:   Christophe Leroy <christophe.leroy@csgroup.eu>
 To:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
@@ -54,92 +54,88 @@ To:     Benjamin Herrenschmidt <benh@kernel.crashing.org>,
 Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
         linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
         linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        Daniel Axtens <dja@axtens.net>,
-        Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v3 02/12] powerpc: Use 'struct func_desc' instead of 'struct ppc64_opd_entry'
-Date:   Sun, 17 Oct 2021 14:38:15 +0200
-Message-Id: <4a912da3c89569bf5bff897d2588538e74198f35.1634457599.git.christophe.leroy@csgroup.eu>
+        linux-arch@vger.kernel.org, linux-mm@kvack.org
+Subject: [PATCH v3 05/12] ia64: Rename 'ip' to 'addr' in 'struct fdesc'
+Date:   Sun, 17 Oct 2021 14:38:18 +0200
+Message-Id: <a5f6c5fddce196e2d4d284aa11d990d106d68ebd.1634457599.git.christophe.leroy@csgroup.eu>
 X-Mailer: git-send-email 2.31.1
 In-Reply-To: <cover.1634457599.git.christophe.leroy@csgroup.eu>
 References: <cover.1634457599.git.christophe.leroy@csgroup.eu>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1634474303; l=2500; s=20211009; h=from:subject:message-id; bh=Iq40Rens/Xlw+IOo3EjhmDf6EixeHqq4/73sqQ/rn00=; b=bFTTEPFTyPUbLUNDWYUikgpTMofF9s8jmOcHYA5FpiENJIGyyPWx3D0Jb2x4aB4FkKNAmxnk23tm OhnGUhzgAaj2KUJ9d4nwSYNAY7ffBnu3famcwWf2auDGpqwCWKRC
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1634474303; l=2104; s=20211009; h=from:subject:message-id; bh=8mSa7ASkgXnnA2nQV7V0MRrw7vLh7/y/KV6dw2/7ooc=; b=BefbOe9TuqcE8p3mpL6sKgNJf3nUND6g87Hr3dUK97uqH4+IrRYdYgBO6tm6ZDi8BCYqOOLabqDj UVsPTI6WBqqIAw1+G4Om5wqDd0YuOosE0ySkqOQyV8ejtnGluPgu
 X-Developer-Key: i=christophe.leroy@csgroup.eu; a=ed25519; pk=HIzTzUj91asvincQGOFx6+ZF5AoUuP9GdOtQChs7Mm0=
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-'struct ppc64_opd_entry' is somehow redundant with 'struct func_desc',
-the later is more correct/complete as it includes the third
-field which is unused.
+There are three architectures with function descriptors, try to
+have common names for the address they contain in order to
+refactor some functions into generic functions later.
 
-So use 'struct func_desc' instead of 'struct ppc64_opd_entry'
+powerpc has 'entry'
+ia64 has 'ip'
+parisc has 'addr'
+
+Vote for 'addr' and update 'struct fdesc' accordingly.
 
 Reviewed-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Daniel Axtens <dja@axtens.net>
-Reviewed-by: Nicholas Piggin <npiggin@gmail.com>
 Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
 ---
- arch/powerpc/include/asm/sections.h |  4 ++--
- arch/powerpc/kernel/module_64.c     | 10 +++++-----
- 2 files changed, 7 insertions(+), 7 deletions(-)
+ arch/ia64/include/asm/elf.h      | 2 +-
+ arch/ia64/include/asm/sections.h | 2 +-
+ arch/ia64/kernel/module.c        | 6 +++---
+ 3 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/sections.h b/arch/powerpc/include/asm/sections.h
-index 6e4af4492a14..abd2e5213197 100644
---- a/arch/powerpc/include/asm/sections.h
-+++ b/arch/powerpc/include/asm/sections.h
-@@ -74,10 +74,10 @@ static inline int overlaps_kernel_text(unsigned long start, unsigned long end)
- #undef dereference_function_descriptor
- static inline void *dereference_function_descriptor(void *ptr)
- {
--	struct ppc64_opd_entry *desc = ptr;
-+	struct func_desc *desc = ptr;
+diff --git a/arch/ia64/include/asm/elf.h b/arch/ia64/include/asm/elf.h
+index 6629301a2620..2ef5f9966ad1 100644
+--- a/arch/ia64/include/asm/elf.h
++++ b/arch/ia64/include/asm/elf.h
+@@ -226,7 +226,7 @@ struct got_entry {
+  * Layout of the Function Descriptor
+  */
+ struct fdesc {
+-	uint64_t ip;
++	uint64_t addr;
+ 	uint64_t gp;
+ };
+ 
+diff --git a/arch/ia64/include/asm/sections.h b/arch/ia64/include/asm/sections.h
+index 3a033d2008b3..35f24e52149a 100644
+--- a/arch/ia64/include/asm/sections.h
++++ b/arch/ia64/include/asm/sections.h
+@@ -35,7 +35,7 @@ static inline void *dereference_function_descriptor(void *ptr)
+ 	struct fdesc *desc = ptr;
  	void *p;
  
--	if (!get_kernel_nofault(p, (void *)&desc->funcaddr))
+-	if (!get_kernel_nofault(p, (void *)&desc->ip))
 +	if (!get_kernel_nofault(p, (void *)&desc->addr))
  		ptr = p;
  	return ptr;
  }
-diff --git a/arch/powerpc/kernel/module_64.c b/arch/powerpc/kernel/module_64.c
-index 6baa676e7cb6..a89da0ee25e2 100644
---- a/arch/powerpc/kernel/module_64.c
-+++ b/arch/powerpc/kernel/module_64.c
-@@ -64,19 +64,19 @@ static unsigned int local_entry_offset(const Elf64_Sym *sym)
- #else
+diff --git a/arch/ia64/kernel/module.c b/arch/ia64/kernel/module.c
+index 2cba53c1da82..4f6400cbf79e 100644
+--- a/arch/ia64/kernel/module.c
++++ b/arch/ia64/kernel/module.c
+@@ -602,15 +602,15 @@ get_fdesc (struct module *mod, uint64_t value, int *okp)
+ 		return value;
  
- /* An address is address of the OPD entry, which contains address of fn. */
--typedef struct ppc64_opd_entry func_desc_t;
-+typedef struct func_desc func_desc_t;
+ 	/* Look for existing function descriptor. */
+-	while (fdesc->ip) {
+-		if (fdesc->ip == value)
++	while (fdesc->addr) {
++		if (fdesc->addr == value)
+ 			return (uint64_t)fdesc;
+ 		if ((uint64_t) ++fdesc >= mod->arch.opd->sh_addr + mod->arch.opd->sh_size)
+ 			BUG();
+ 	}
  
- static func_desc_t func_desc(unsigned long addr)
- {
--	return *(struct ppc64_opd_entry *)addr;
-+	return *(struct func_desc *)addr;
+ 	/* Create new one */
+-	fdesc->ip = value;
++	fdesc->addr = value;
+ 	fdesc->gp = mod->arch.gp;
+ 	return (uint64_t) fdesc;
  }
- static unsigned long func_addr(unsigned long addr)
- {
--	return func_desc(addr).funcaddr;
-+	return func_desc(addr).addr;
- }
- static unsigned long stub_func_addr(func_desc_t func)
- {
--	return func.funcaddr;
-+	return func.addr;
- }
- static unsigned int local_entry_offset(const Elf64_Sym *sym)
- {
-@@ -187,7 +187,7 @@ static int relacmp(const void *_x, const void *_y)
- static unsigned long get_stubs_size(const Elf64_Ehdr *hdr,
- 				    const Elf64_Shdr *sechdrs)
- {
--	/* One extra reloc so it's always 0-funcaddr terminated */
-+	/* One extra reloc so it's always 0-addr terminated */
- 	unsigned long relocs = 1;
- 	unsigned i;
- 
 -- 
 2.31.1
 
