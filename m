@@ -2,157 +2,112 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D0B8AC433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 21 Oct 2021 13:15:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D76A7C4332F
+	for <linux-arch@archiver.kernel.org>; Thu, 21 Oct 2021 13:34:29 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id A98B7611CE
-	for <linux-arch@archiver.kernel.org>; Thu, 21 Oct 2021 13:15:25 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C2830611CE
+	for <linux-arch@archiver.kernel.org>; Thu, 21 Oct 2021 13:34:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230283AbhJUNRk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 21 Oct 2021 09:17:40 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50144 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230231AbhJUNRk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Oct 2021 09:17:40 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 31C76C12274B;
-        Thu, 21 Oct 2021 06:15:24 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=8oC+9/7d65CDd50X9ejYe0EZ6JvFYMshxTkIPVHIbY0=; b=bxvnNifaB9+92fSCQJL0ZPvnlF
-        wGT2hT5DDng9WpFi0vuH6xH7nQ7TnR2GyKSBQTb6GGDD9CooVaLx/khTsdZXEp+T4Fh5OmQMgmUAt
-        GJ6OBZH+kLWzDUDK0Zv0eS58cPVdhkNdBUFxpUBlZ8hdrULXWBtgGPSVOUW0w3elHz/8Dp7K7wi4I
-        CeeN0jqtIr64QjBJEQGwbYwU/09/KtjbDdOUZ6TrrB0BwhkJOYM10ivNS0kYOfDx5PbxDjV7JIXUT
-        wpigHAczK8ggJr6JCgM8i9kimOVTxlVMJGfeJWvVaxwJdF70N9dDpuLcEtOHnajx18AaPtJvevCeG
-        myDeok7g==;
-Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1mdXru-00DHjS-R9; Thu, 21 Oct 2021 13:12:41 +0000
-Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits))
-        (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id E93FE3002BC;
-        Thu, 21 Oct 2021 15:12:25 +0200 (CEST)
-Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
-        id CE0FC2BD29975; Thu, 21 Oct 2021 15:12:25 +0200 (CEST)
-Date:   Thu, 21 Oct 2021 15:12:25 +0200
-From:   Peter Zijlstra <peterz@infradead.org>
-To:     Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>,
-        Ingo Molnar <mingo@kernel.org>,
-        Waiman Long <longman@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        Guo Ren <guoren@kernel.org>,
-        Palmer Dabbelt <palmerdabbelt@google.com>,
-        Anup Patel <anup@brainfault.org>,
-        linux-riscv <linux-riscv@lists.infradead.org>,
-        Christoph =?iso-8859-1?Q?M=FCllner?= <christophm30@gmail.com>,
-        Stafford Horne <shorne@gmail.com>
-Subject: Re: [PATCH] locking: Generic ticket lock
-Message-ID: <YXFnOWTyVoae6h5P@hirez.programming.kicks-ass.net>
-References: <YXFli3mzMishRpEq@hirez.programming.kicks-ass.net>
+        id S230334AbhJUNgo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 21 Oct 2021 09:36:44 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:54244 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230072AbhJUNgo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Oct 2021 09:36:44 -0400
+Received: from in02.mta.xmission.com ([166.70.13.52]:40512)
+        by out03.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1mdYD5-005DQ9-NZ; Thu, 21 Oct 2021 07:34:19 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:46380 helo=email.xmission.com)
+        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1mdYD4-003epC-7e; Thu, 21 Oct 2021 07:34:19 -0600
+From:   ebiederm@xmission.com (Eric W. Biederman)
+To:     Geert Uytterhoeven <geert@linux-m68k.org>
+Cc:     Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Rich Felker <dalias@libc.org>,
+        "open list\:TENSILICA XTENSA PORT \(xtensa\)" 
+        <linux-xtensa@linux-xtensa.org>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        "open list\:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>,
+        Max Filippov <jcmvbkbc@gmail.com>,
+        Paul Mackerras <paulus@samba.org>,
+        H Peter Anvin <hpa@zytor.com>,
+        sparclinux <sparclinux@vger.kernel.org>,
+        Vincent Chen <deanbo422@gmail.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        linux-s390 <linux-s390@vger.kernel.org>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Linux-sh list <linux-sh@vger.kernel.org>,
+        Christian Borntraeger <borntraeger@de.ibm.com>,
+        Ingo Molnar <mingo@redhat.com>,
+        Jonas Bonn <jonas@southpole.se>,
+        Kees Cook <keescook@chromium.org>,
+        Vasily Gorbik <gor@linux.ibm.com>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Openrisc <openrisc@lists.librecores.org>,
+        Borislav Petkov <bp@alien8.de>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Andy Lutomirski <luto@kernel.org>,
+        Chris Zankel <chris@zankel.net>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Nick Hu <nickhu@andestech.com>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        Oleg Nesterov <oleg@redhat.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Maciej Rozycki <macro@orcam.me.uk>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        David Miller <davem@davemloft.net>,
+        Greentime Hu <green.hu@gmail.com>
+References: <87y26nmwkb.fsf@disp2133> <877de7jrev.fsf@disp2133>
+        <CAMuHMdURxrdjsXq7+q-AWTwxVUdmddOj2vvNHv6M=WtsU5nRvg@mail.gmail.com>
+Date:   Thu, 21 Oct 2021 08:33:51 -0500
+In-Reply-To: <CAMuHMdURxrdjsXq7+q-AWTwxVUdmddOj2vvNHv6M=WtsU5nRvg@mail.gmail.com>
+        (Geert Uytterhoeven's message of "Thu, 21 Oct 2021 10:09:46 +0200")
+Message-ID: <87tuhaijsw.fsf@disp2133>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <YXFli3mzMishRpEq@hirez.programming.kicks-ass.net>
+Content-Type: text/plain
+X-XM-SPF: eid=1mdYD4-003epC-7e;;;mid=<87tuhaijsw.fsf@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX1+Mpe2HbWR2YDGhZ3vVJNTbKaHiNpeOXoM=
+X-SA-Exim-Connect-IP: 68.227.160.95
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: Re: [PATCH 21/20] signal: Replace force_sigsegv(SIGSEGV) with force_fatal_sig(SIGSEGV)
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Oct 21, 2021 at 03:05:15PM +0200, Peter Zijlstra wrote:
-> 
-> There's currently a number of architectures that want/have graduated
-> from test-and-set locks and are looking at qspinlock.
-> 
-> *HOWEVER* qspinlock is very complicated and requires a lot of an
-> architecture to actually work correctly. Specifically it requires
-> forward progress between a fair number of atomic primitives, including
-> an xchg16 operation, which I've seen a fair number of fundamentally
-> broken implementations of in the tree (specifically for qspinlock no
-> less).
-> 
-> The benefit of qspinlock over ticket lock is also non-obvious, esp.
-> at low contention (the vast majority of cases in the kernel), and it
-> takes a fairly large number of CPUs (typically also NUMA) to make
-> qspinlock beat ticket locks.
-> 
-> Esp. things like ARM64's WFE can move the balance a lot in favour of
-> simpler locks by reducing the cacheline pressure due to waiters (see
-> their smp_cond_load_acquire() implementation for details).
-> 
-> Unless you've audited qspinlock for your architecture and found it
-> sound *and* can show actual benefit, simpler is better.
-> 
-> Therefore provide ticket locks, which depend on a single atomic
-> operation (fetch_add) while still providing fairness.
-> 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> ---
->  include/asm-generic/qspinlock.h         |   30 +++++++++
->  include/asm-generic/ticket_lock_types.h |   11 +++
->  include/asm-generic/ticket_lock.h       |   97 ++++++++++++++++++++++++++++++++
->  3 files changed, 138 insertions(+)
+Geert Uytterhoeven <geert@linux-m68k.org> writes:
 
-A few notes...
+> Hi Eric,
+>
+> Patch 21/20?
 
-> + * It relies on smp_store_release() + atomic_*_acquire() to be RCsc (or no
-> + * weaker than RCtso if you're Power, also see smp_mb__after_unlock_lock()),
+In reviewing another part of the patchset Linus asked if force_sigsegv
+could go away.  It can't completely but I can get this far.
 
-This should hold true to RISC-V in its current form, AFAICT
-atomic_fetch_add ends up using AMOADD, and therefore the argument made
-in the unlock+lock thread [1], gives that this results in RW,RW
-ordering.
-
-[1] https://lore.kernel.org/lkml/5412ab37-2979-5717-4951-6a61366df0f2@nvidia.com/
+Given that it is just a cleanup it makes most sense to me as an
+additional patch on top of what is already here.
 
 
-I've compile tested on openrisc/simple_smp_defconfig using the below.
+> On Wed, Oct 20, 2021 at 11:52 PM Eric W. Biederman
+> <ebiederm@xmission.com> wrote:
+>> Now that force_fatal_sig exists it is unnecessary and a bit confusing
+>> to use force_sigsegv in cases where the simpler force_fatal_sig is
+>> wanted.  So change every instance we can to make the code clearer.
+>>
+>> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+>
+>>  arch/m68k/kernel/traps.c        | 2 +-
+>
+> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
---- a/arch/openrisc/Kconfig
-+++ b/arch/openrisc/Kconfig
-@@ -30,7 +30,6 @@ config OPENRISC
- 	select HAVE_DEBUG_STACKOVERFLOW
- 	select OR1K_PIC
- 	select CPU_NO_EFFICIENT_FFS if !OPENRISC_HAVE_INST_FF1
--	select ARCH_USE_QUEUED_SPINLOCKS
- 	select ARCH_USE_QUEUED_RWLOCKS
- 	select OMPIC if SMP
- 	select ARCH_WANT_FRAME_POINTERS
---- a/arch/openrisc/include/asm/Kbuild
-+++ b/arch/openrisc/include/asm/Kbuild
-@@ -1,9 +1,8 @@
- # SPDX-License-Identifier: GPL-2.0
- generic-y += extable.h
- generic-y += kvm_para.h
--generic-y += mcs_spinlock.h
--generic-y += qspinlock_types.h
--generic-y += qspinlock.h
-+generic-y += ticket_lock_types.h
-+generic-y += ticket_lock.h
- generic-y += qrwlock_types.h
- generic-y += qrwlock.h
- generic-y += user.h
---- a/arch/openrisc/include/asm/spinlock.h
-+++ b/arch/openrisc/include/asm/spinlock.h
-@@ -15,7 +15,7 @@
- #ifndef __ASM_OPENRISC_SPINLOCK_H
- #define __ASM_OPENRISC_SPINLOCK_H
- 
--#include <asm/qspinlock.h>
-+#include <asm/ticket_lock.h>
- 
- #include <asm/qrwlock.h>
- 
---- a/arch/openrisc/include/asm/spinlock_types.h
-+++ b/arch/openrisc/include/asm/spinlock_types.h
-@@ -1,7 +1,7 @@
- #ifndef _ASM_OPENRISC_SPINLOCK_TYPES_H
- #define _ASM_OPENRISC_SPINLOCK_TYPES_H
- 
--#include <asm/qspinlock_types.h>
-+#include <asm/ticket_lock_types.h>
- #include <asm/qrwlock_types.h>
- 
- #endif /* _ASM_OPENRISC_SPINLOCK_TYPES_H */
+Thank you.
+
+Eric
