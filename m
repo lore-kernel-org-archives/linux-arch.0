@@ -2,45 +2,45 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 65081C433FE
-	for <linux-arch@archiver.kernel.org>; Fri, 22 Oct 2021 15:24:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EB32EC433FE
+	for <linux-arch@archiver.kernel.org>; Fri, 22 Oct 2021 15:24:34 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 50E276112D
-	for <linux-arch@archiver.kernel.org>; Fri, 22 Oct 2021 15:24:31 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id CFBA26112F
+	for <linux-arch@archiver.kernel.org>; Fri, 22 Oct 2021 15:24:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233379AbhJVP0r (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 22 Oct 2021 11:26:47 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38778 "EHLO
+        id S233378AbhJVP0v (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 22 Oct 2021 11:26:51 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38794 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233358AbhJVP0p (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Oct 2021 11:26:45 -0400
+        with ESMTP id S233396AbhJVP0s (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Oct 2021 11:26:48 -0400
 Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F189DC061764;
-        Fri, 22 Oct 2021 08:24:27 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2EEB7C061764;
+        Fri, 22 Oct 2021 08:24:31 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=YuyqTWtmDeLmcAb29SJGW5zk7v4U9whchNt4bJc1pC4=; b=OWYiEhdCJozrOv5Ampb5c8qs1s
-        SObZb3sQ+eisOGy/Geizw37COSGwsBhOus9PfuHCcGGtFEVlDZrV3lEPzBoS/LPE7mtuUhGZQo7tg
-        l95LdTfw7s3pHMtZzzMaUuwASILvOUckcgPULk30fK888DWKEkDIgxf2WwRhDxFdzj6xB8z36JxsO
-        jXgak5ar95yisRw0otfVzq8Pqsa33WVfLqit7tte2Ob6dnx0j8bpt4N9hN89wM6uEVze2Oi+sbN3c
-        rfIIfVCISFoNXVvq76Z/CmHNQhh7XLuBfbKQme9/+BZQst0CdSfvGH5f14FuIlvCM9Z1D5H1pnRMh
-        aH6tzIVg==;
+        bh=SOZiH7zEvb/UAGtTABgZgYKuT53K1n/CxOiXrQNfO48=; b=NyBraLUTPb2ilfFHn8w8dMr5Em
+        1TsYyhfxsFZ2KIjAVHxG8Su4Fo3MfZBmphLgp0s78zCZnafoKpv1MLXcGIPu4tIWuzlHoFotvNy1s
+        Y6//9MPmxsfCs9y8iNR6ll5basA4LVdOvVAYlipOkidnkDTwlwXHQPS5zXSD+5S3DeRiNHosOPpSj
+        4fEIijfLeyVdJyrdGJsaafyWfcoV143o8Sl6xbjdtgSVirDNHjLSW6XxLUX5eCx4npn4v1vSXpPm3
+        sR/c2rEbuvg7pZLng/qm+wM+0U7qSE6sozgYtd/883BatBUO5LrkQHEr47FcBR0d5jGOViyEh9cvd
+        LaoNJIPA==;
 Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
         by desiato.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1mdwOE-00BbM2-52; Fri, 22 Oct 2021 15:23:26 +0000
+        id 1mdwOE-00BbM7-Tz; Fri, 22 Oct 2021 15:23:27 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 887473006C2;
-        Fri, 22 Oct 2021 17:23:23 +0200 (CEST)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 7765530099C;
+        Fri, 22 Oct 2021 17:23:25 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 6A7462C0CA17E; Fri, 22 Oct 2021 17:23:23 +0200 (CEST)
-Message-ID: <20211022152104.285488044@infradead.org>
+        id 792D12C0CA181; Fri, 22 Oct 2021 17:23:23 +0200 (CEST)
+Message-ID: <20211022152104.487919043@infradead.org>
 User-Agent: quilt/0.66
-Date:   Fri, 22 Oct 2021 17:09:36 +0200
+Date:   Fri, 22 Oct 2021 17:09:39 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     keescook@chromium.org, x86@kernel.org
 Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
@@ -52,7 +52,7 @@ Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
         mpe@ellerman.id.au, paul.walmsley@sifive.com, palmer@dabbelt.com,
         hca@linux.ibm.com, gor@linux.ibm.com, borntraeger@de.ibm.com,
         linux-arch@vger.kernel.org, ardb@kernel.org
-Subject: [PATCH 3/7] ARM: implement ARCH_STACKWALK
+Subject: [PATCH 6/7] arch: __get_wchan() || ARCH_STACKWALK
 References: <20211022150933.883959987@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -60,168 +60,353 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Ard Biesheuvel <ardb@kernel.org>
+Use ARCH_STACKWALK to implement a generic __get_wchan().
 
-Implement the flavor of CONFIG_STACKTRACE that relies mostly on generic
-code, and only need a small arch_stack_walk() helper that performs the
-actual frame unwinding.
+STACKTRACE should be possible, but the various implementations of
+stack_trace_save_tsk() are not consistent enough for this to work.
+ARCH_STACKWALK is a smaller set of architectures with a better defined
+interface.
 
-Note that this removes the SMP check that used to live in
-__save_stack_trace(), but this is no longer needed now that the generic
-version of save_stack_trace_tsk() takes care not to walk the call stack
-of tasks that are live on other CPUs.
+Since get_wchan() pins the task in a blocked state, it is not
+necessary to take a reference on the task stack, the task isn't going
+anywhere.
 
-Signed-off-by: Ard Biesheuvel <ardb@kernel.org>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/arm/Kconfig             |    1 
- arch/arm/kernel/stacktrace.c |  114 +++++++------------------------------------
- 2 files changed, 20 insertions(+), 95 deletions(-)
+ arch/arm/include/asm/processor.h     |    2 -
+ arch/arm/kernel/process.c            |   22 --------------------
+ arch/arm64/include/asm/processor.h   |    2 -
+ arch/arm64/kernel/process.c          |   26 ------------------------
+ arch/powerpc/include/asm/processor.h |    2 -
+ arch/powerpc/kernel/process.c        |   37 -----------------------------------
+ arch/riscv/include/asm/processor.h   |    3 --
+ arch/riscv/kernel/stacktrace.c       |   21 -------------------
+ arch/s390/include/asm/processor.h    |    1 
+ arch/s390/kernel/process.c           |   29 ---------------------------
+ arch/x86/include/asm/processor.h     |    2 -
+ arch/x86/kernel/process.c            |   25 -----------------------
+ kernel/sched/core.c                  |   24 ++++++++++++++++++++++
+ 13 files changed, 24 insertions(+), 172 deletions(-)
 
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -24,6 +24,7 @@ config ARM
- 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if CPU_V7 || CPU_V7M || CPU_V6K
-+	select ARCH_STACKWALK
- 	select ARCH_HAS_GCOV_PROFILE_ALL
- 	select ARCH_KEEP_MEMBLOCK
- 	select ARCH_MIGHT_HAVE_PC_PARPORT
---- a/arch/arm/kernel/stacktrace.c
-+++ b/arch/arm/kernel/stacktrace.c
-@@ -2,6 +2,7 @@
- #include <linux/export.h>
- #include <linux/sched.h>
- #include <linux/sched/debug.h>
-+#include <linux/sched/task_stack.h>
- #include <linux/stacktrace.h>
+--- a/arch/arm/include/asm/processor.h
++++ b/arch/arm/include/asm/processor.h
+@@ -84,8 +84,6 @@ struct task_struct;
+ /* Free all resources held by a thread. */
+ extern void release_thread(struct task_struct *);
  
- #include <asm/sections.h>
-@@ -87,106 +88,29 @@ void notrace walk_stackframe(struct stac
- EXPORT_SYMBOL(walk_stackframe);
- 
- #ifdef CONFIG_STACKTRACE
--struct stack_trace_data {
--	struct stack_trace *trace;
--	unsigned int no_sched_functions;
--	unsigned int skip;
--};
+-unsigned long __get_wchan(struct task_struct *p);
 -
--static int save_trace(struct stackframe *frame, void *d)
+ #define task_pt_regs(p) \
+ 	((struct pt_regs *)(THREAD_START_SP + task_stack_page(p)) - 1)
+ 
+--- a/arch/arm/kernel/process.c
++++ b/arch/arm/kernel/process.c
+@@ -276,28 +276,6 @@ int copy_thread(unsigned long clone_flag
+ 	return 0;
+ }
+ 
+-unsigned long __get_wchan(struct task_struct *p)
 -{
--	struct stack_trace_data *data = d;
--	struct stack_trace *trace = data->trace;
--	struct pt_regs *regs;
--	unsigned long addr = frame->pc;
+-	struct stackframe frame;
+-	unsigned long stack_page;
+-	int count = 0;
 -
--	if (data->no_sched_functions && in_sched_functions(addr))
+-	frame.fp = thread_saved_fp(p);
+-	frame.sp = thread_saved_sp(p);
+-	frame.lr = 0;			/* recovered from the stack */
+-	frame.pc = thread_saved_pc(p);
+-	stack_page = (unsigned long)task_stack_page(p);
+-	do {
+-		if (frame.sp < stack_page ||
+-		    frame.sp >= stack_page + THREAD_SIZE ||
+-		    unwind_frame(&frame) < 0)
+-			return 0;
+-		if (!in_sched_functions(frame.pc))
+-			return frame.pc;
+-	} while (count ++ < 16);
+-	return 0;
+-}
+-
+ #ifdef CONFIG_MMU
+ #ifdef CONFIG_KUSER_HELPERS
+ /*
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -257,8 +257,6 @@ struct task_struct;
+ /* Free all resources held by a thread. */
+ extern void release_thread(struct task_struct *);
+ 
+-unsigned long __get_wchan(struct task_struct *p);
+-
+ void update_sctlr_el1(u64 sctlr);
+ 
+ /* Thread switching */
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -528,32 +528,6 @@ struct task_struct *__switch_to(struct t
+ 	return last;
+ }
+ 
+-unsigned long __get_wchan(struct task_struct *p)
+-{
+-	struct stackframe frame;
+-	unsigned long stack_page, ret = 0;
+-	int count = 0;
+-
+-	stack_page = (unsigned long)try_get_task_stack(p);
+-	if (!stack_page)
 -		return 0;
--	if (data->skip) {
--		data->skip--;
+-
+-	start_backtrace(&frame, thread_saved_fp(p), thread_saved_pc(p));
+-
+-	do {
+-		if (unwind_frame(p, &frame))
+-			goto out;
+-		if (!in_sched_functions(frame.pc)) {
+-			ret = frame.pc;
+-			goto out;
+-		}
+-	} while (count++ < 16);
+-
+-out:
+-	put_task_stack(p);
+-	return ret;
+-}
+-
+ unsigned long arch_align_stack(unsigned long sp)
+ {
+ 	if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space)
+--- a/arch/powerpc/include/asm/processor.h
++++ b/arch/powerpc/include/asm/processor.h
+@@ -300,8 +300,6 @@ struct thread_struct {
+ 
+ #define task_pt_regs(tsk)	((tsk)->thread.regs)
+ 
+-unsigned long __get_wchan(struct task_struct *p);
+-
+ #define KSTK_EIP(tsk)  ((tsk)->thread.regs? (tsk)->thread.regs->nip: 0)
+ #define KSTK_ESP(tsk)  ((tsk)->thread.regs? (tsk)->thread.regs->gpr[1]: 0)
+ 
+--- a/arch/powerpc/kernel/process.c
++++ b/arch/powerpc/kernel/process.c
+@@ -2111,43 +2111,6 @@ int validate_sp(unsigned long sp, struct
+ 
+ EXPORT_SYMBOL(validate_sp);
+ 
+-static unsigned long ___get_wchan(struct task_struct *p)
+-{
+-	unsigned long ip, sp;
+-	int count = 0;
+-
+-	sp = p->thread.ksp;
+-	if (!validate_sp(sp, p, STACK_FRAME_OVERHEAD))
 -		return 0;
+-
+-	do {
+-		sp = *(unsigned long *)sp;
+-		if (!validate_sp(sp, p, STACK_FRAME_OVERHEAD) ||
+-		    task_is_running(p))
+-			return 0;
+-		if (count > 0) {
+-			ip = ((unsigned long *)sp)[STACK_FRAME_LR_SAVE];
+-			if (!in_sched_functions(ip))
+-				return ip;
+-		}
+-	} while (count++ < 16);
+-	return 0;
+-}
+-
+-unsigned long __get_wchan(struct task_struct *p)
+-{
+-	unsigned long ret;
+-
+-	if (!try_get_task_stack(p))
+-		return 0;
+-
+-	ret = ___get_wchan(p);
+-
+-	put_task_stack(p);
+-
+-	return ret;
+-}
+-
+ static int kstack_depth_to_print = CONFIG_PRINT_STACK_DEPTH;
+ 
+ void __no_sanitize_address show_stack(struct task_struct *tsk,
+--- a/arch/riscv/include/asm/processor.h
++++ b/arch/riscv/include/asm/processor.h
+@@ -66,9 +66,6 @@ static inline void release_thread(struct
+ {
+ }
+ 
+-extern unsigned long __get_wchan(struct task_struct *p);
+-
+-
+ static inline void wait_for_interrupt(void)
+ {
+ 	__asm__ __volatile__ ("wfi");
+--- a/arch/riscv/kernel/stacktrace.c
++++ b/arch/riscv/kernel/stacktrace.c
+@@ -118,27 +118,6 @@ void show_stack(struct task_struct *task
+ 	dump_backtrace(NULL, task, loglvl);
+ }
+ 
+-static bool save_wchan(void *arg, unsigned long pc)
+-{
+-	if (!in_sched_functions(pc)) {
+-		unsigned long *p = arg;
+-		*p = pc;
+-		return false;
+-	}
+-	return true;
+-}
+-
+-unsigned long __get_wchan(struct task_struct *task)
+-{
+-	unsigned long pc = 0;
+-
+-	if (!try_get_task_stack(task))
+-		return 0;
+-	walk_stackframe(task, NULL, save_wchan, &pc);
+-	put_task_stack(task);
+-	return pc;
+-}
+-
+ noinline void arch_stack_walk(stack_trace_consume_fn consume_entry, void *cookie,
+ 		     struct task_struct *task, struct pt_regs *regs)
+ {
+--- a/arch/s390/include/asm/processor.h
++++ b/arch/s390/include/asm/processor.h
+@@ -192,7 +192,6 @@ static inline void release_thread(struct
+ void guarded_storage_release(struct task_struct *tsk);
+ void gs_load_bc_cb(struct pt_regs *regs);
+ 
+-unsigned long __get_wchan(struct task_struct *p);
+ #define task_pt_regs(tsk) ((struct pt_regs *) \
+         (task_stack_page(tsk) + THREAD_SIZE) - 1)
+ #define KSTK_EIP(tsk)	(task_pt_regs(tsk)->psw.addr)
+--- a/arch/s390/kernel/process.c
++++ b/arch/s390/kernel/process.c
+@@ -181,35 +181,6 @@ void execve_tail(void)
+ 	asm volatile("sfpc %0" : : "d" (0));
+ }
+ 
+-unsigned long __get_wchan(struct task_struct *p)
+-{
+-	struct unwind_state state;
+-	unsigned long ip = 0;
+-
+-	if (!task_stack_page(p))
+-		return 0;
+-
+-	if (!try_get_task_stack(p))
+-		return 0;
+-
+-	unwind_for_each_frame(&state, p, NULL, 0) {
+-		if (state.stack_info.type != STACK_TYPE_TASK) {
+-			ip = 0;
+-			break;
+-		}
+-
+-		ip = unwind_get_return_address(&state);
+-		if (!ip)
+-			break;
+-
+-		if (!in_sched_functions(ip))
+-			break;
 -	}
 -
--	trace->entries[trace->nr_entries++] = addr;
--
--	if (trace->nr_entries >= trace->max_entries)
--		return 1;
--
--	if (!in_entry_text(frame->pc))
--		return 0;
--
--	regs = (struct pt_regs *)frame->sp;
--	if ((unsigned long)&regs[1] > ALIGN(frame->sp, THREAD_SIZE))
--		return 0;
--
--	trace->entries[trace->nr_entries++] = regs->ARM_pc;
--
--	return trace->nr_entries >= trace->max_entries;
+-	put_task_stack(p);
+-	return ip;
 -}
 -
--/* This must be noinline to so that our skip calculation works correctly */
--static noinline void __save_stack_trace(struct task_struct *tsk,
--	struct stack_trace *trace, unsigned int nosched)
-+noinline notrace void arch_stack_walk(stack_trace_consume_fn consume_entry,
-+				      void *cookie, struct task_struct *task,
-+				      struct pt_regs *regs)
+ unsigned long arch_align_stack(unsigned long sp)
  {
--	struct stack_trace_data data;
- 	struct stackframe frame;
+ 	if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space)
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -588,8 +588,6 @@ static inline void load_sp0(unsigned lon
+ /* Free all resources held by a thread. */
+ extern void release_thread(struct task_struct *);
  
--	data.trace = trace;
--	data.skip = trace->skip;
--	data.no_sched_functions = nosched;
+-unsigned long __get_wchan(struct task_struct *p);
 -
--	if (tsk != current) {
--#ifdef CONFIG_SMP
--		/*
--		 * What guarantees do we have here that 'tsk' is not
--		 * running on another CPU?  For now, ignore it as we
--		 * can't guarantee we won't explode.
--		 */
--		return;
--#else
--		frame.fp = thread_saved_fp(tsk);
--		frame.sp = thread_saved_sp(tsk);
--		frame.lr = 0;		/* recovered from the stack */
--		frame.pc = thread_saved_pc(tsk);
--#endif
-+	if (regs) {
-+		frame.fp = IS_ENABLED(CONFIG_THUMB2_KERNEL) ? regs->ARM_r7
-+							    : regs->ARM_fp;
-+		frame.sp = regs->ARM_sp;
-+		frame.lr = regs->ARM_lr;
-+		frame.pc = regs->ARM_pc;
- 	} else {
--		/* We don't want this function nor the caller */
--		data.skip += 2;
--		frame.fp = (unsigned long)__builtin_frame_address(0);
--		frame.sp = current_stack_pointer;
--		frame.lr = (unsigned long)__builtin_return_address(0);
--		frame.pc = (unsigned long)__save_stack_trace;
-+		frame.fp = thread_saved_fp(task);
-+		frame.sp = thread_saved_sp(task);
-+		frame.lr = 0;                   /* recovered from the stack */
-+		frame.pc = thread_saved_pc(task);
- 	}
+ /*
+  * Generic CPUID function
+  * clear %ecx since some cpus (Cyrix MII) do not set or clear %ecx
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -43,7 +43,6 @@
+ #include <asm/io_bitmap.h>
+ #include <asm/proto.h>
+ #include <asm/frame.h>
+-#include <asm/unwind.h>
  
--	walk_stackframe(&frame, save_trace, &data);
--}
--
--void save_stack_trace_regs(struct pt_regs *regs, struct stack_trace *trace)
--{
--	struct stack_trace_data data;
--	struct stackframe frame;
--
--	data.trace = trace;
--	data.skip = trace->skip;
--	data.no_sched_functions = 0;
--
--	frame.fp = regs->ARM_fp;
--	frame.sp = regs->ARM_sp;
--	frame.lr = regs->ARM_lr;
--	frame.pc = regs->ARM_pc;
--
--	walk_stackframe(&frame, save_trace, &data);
--}
--
--void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
--{
--	__save_stack_trace(tsk, trace, 1);
--}
--EXPORT_SYMBOL(save_stack_trace_tsk);
--
--void save_stack_trace(struct stack_trace *trace)
--{
--	__save_stack_trace(current, trace, 0);
-+	for (;;) {
-+		if (unwind_frame(&frame) < 0 ||
-+		    !consume_entry(cookie, frame.pc))
-+			break;
-+	}
+ #include "process.h"
+ 
+@@ -942,30 +941,6 @@ unsigned long arch_randomize_brk(struct
+ 	return randomize_page(mm->brk, 0x02000000);
  }
--EXPORT_SYMBOL_GPL(save_stack_trace);
- #endif
+ 
+-/*
+- * Called from fs/proc with a reference on @p to find the function
+- * which called into schedule(). This needs to be done carefully
+- * because the task might wake up and we might look at a stack
+- * changing under us.
+- */
+-unsigned long __get_wchan(struct task_struct *p)
+-{
+-	struct unwind_state state;
+-	unsigned long addr = 0;
+-
+-	for (unwind_start(&state, p, NULL, NULL); !unwind_done(&state);
+-	     unwind_next_frame(&state)) {
+-		addr = unwind_get_return_address(&state);
+-		if (!addr)
+-			break;
+-		if (in_sched_functions(addr))
+-			continue;
+-		break;
+-	}
+-
+-	return addr;
+-}
+-
+ long do_arch_prctl_common(struct task_struct *task, int option,
+ 			  unsigned long cpuid_enabled)
+ {
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -1966,6 +1966,30 @@ bool sched_task_on_rq(struct task_struct
+ 	return task_on_rq_queued(p);
+ }
+ 
++#ifdef CONFIG_ARCH_STACKWALK
++
++static bool consume_wchan(void *cookie, unsigned long addr)
++{
++	unsigned long *wchan = cookie;
++
++	if (in_sched_functions(addr))
++		return true;
++
++	*wchan = addr;
++	return false;
++}
++
++static unsigned long __get_wchan(struct task_struct *p)
++{
++	unsigned long wchan = 0;
++
++	arch_stack_walk(consume_wchan, &wchan, p, NULL);
++
++	return wchan;
++}
++
++#endif /* CONFIG_ARCH_STACKWALK */
++
+ static int try_get_wchan(struct task_struct *p, void *arg)
+ {
+ 	unsigned long *wchan = arg;
 
 
