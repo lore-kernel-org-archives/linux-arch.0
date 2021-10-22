@@ -2,80 +2,165 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EFF74C433F5
-	for <linux-arch@archiver.kernel.org>; Fri, 22 Oct 2021 15:28:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1636FC433EF
+	for <linux-arch@archiver.kernel.org>; Fri, 22 Oct 2021 15:28:48 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id CD2C161208
-	for <linux-arch@archiver.kernel.org>; Fri, 22 Oct 2021 15:28:01 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id ECABC611BD
+	for <linux-arch@archiver.kernel.org>; Fri, 22 Oct 2021 15:28:47 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233417AbhJVPaS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 22 Oct 2021 11:30:18 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39662 "EHLO
+        id S233206AbhJVPbE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 22 Oct 2021 11:31:04 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39836 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233413AbhJVPaS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Oct 2021 11:30:18 -0400
-Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 89D1CC061764;
-        Fri, 22 Oct 2021 08:28:00 -0700 (PDT)
+        with ESMTP id S233263AbhJVPbD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Oct 2021 11:31:03 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 46353C061764;
+        Fri, 22 Oct 2021 08:28:45 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=desiato.20200630; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=JPMv/aZIcv7sKoHIe3TOsCau3cg3s9vKutzxK4SOJrw=; b=kplLvyFCj1XhEHMCXmQBliFpec
-        xfqCvJ4ky1pU73rhW3i84Gd5IadVE/nGbWk04h58YmbLW0h4Hbk3eW07s1WmKwUSaB7FMq9NaOmPb
-        roN5zttrsO4/0GGF0rbd9OM8sKD2IjHRXrPsKAEvyILRghtIoDQpk1lhmr9+rYoShnB651zIU3FJc
-        LTX8r8smF8l5N0luE6TB7kbI7faZpAkv5QvvCT0LVw1bboJmb1WVK+uJtVRx9y1h8cjCd+U94NTsq
-        5cmE5QurZGlJ9MNqz1AIN8uF/0QCHsSdAH3KRPXjsEBTz5v7IgjAp4Kw+RebwipexdyD70wfBIAN8
-        myCw01TA==;
-Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=worktop.programming.kicks-ass.net)
-        by desiato.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1mdwSI-00BbT0-Pk; Fri, 22 Oct 2021 15:27:39 +0000
-Received: by worktop.programming.kicks-ass.net (Postfix, from userid 1000)
-        id 22927986249; Fri, 22 Oct 2021 17:27:38 +0200 (CEST)
-Date:   Fri, 22 Oct 2021 17:27:38 +0200
+        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
+        Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
+        Content-ID:Content-Description:In-Reply-To;
+        bh=NG3632i+4v3MDTRJw3HCsO0U7kLnqAJBZ49cEMZvijs=; b=PFKSGYIijyAVIlHtcYr/NeGAES
+        eRm9M9jAOqCtZo1aJQ0b5X3dW0N963Ee7GMw8HlkYcd/ILutVlagUEHlYnm8kNvkUXuP748P2tNB7
+        ZCQ3JYIyIgcAaqbnxKOWyVm8qoZoGum6NRc+y75pvSoUEsfX8+cb4jEHFfjh+eb59BvdKiwgjxOdw
+        va5VV/Q9BOfyODRHXibbnr53rSzDwINtMJBPU+11GFw4zmmwEDWkM0xsDoJMjKTjvw1WHoU8azR0y
+        T5ujCVssWBJE+DkQ/NV+SUa5xg/AedZ911VDBNNzZyId8ZUpb3kny/ocBXYbNxoo3mwvD/CvoDOur
+        1O1vNOiQ==;
+Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
+        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1mdwOE-00DyY9-U7; Fri, 22 Oct 2021 15:23:53 +0000
+Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits))
+        (Client did not present a certificate)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 7763E300288;
+        Fri, 22 Oct 2021 17:23:25 +0200 (CEST)
+Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
+        id 7D7992C0CA182; Fri, 22 Oct 2021 17:23:23 +0200 (CEST)
+Message-ID: <20211022152104.555771734@infradead.org>
+User-Agent: quilt/0.66
+Date:   Fri, 22 Oct 2021 17:09:40 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     keescook@chromium.org, x86@kernel.org
-Cc:     linux-kernel@vger.kernel.org, juri.lelli@redhat.com,
-        vincent.guittot@linaro.org, dietmar.eggemann@arm.com,
-        rostedt@goodmis.org, bsegall@google.com, mgorman@suse.de,
-        bristot@redhat.com, akpm@linux-foundation.org,
+Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
+        juri.lelli@redhat.com, vincent.guittot@linaro.org,
+        dietmar.eggemann@arm.com, rostedt@goodmis.org, bsegall@google.com,
+        mgorman@suse.de, bristot@redhat.com, akpm@linux-foundation.org,
         mark.rutland@arm.com, zhengqi.arch@bytedance.com,
         linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org,
         mpe@ellerman.id.au, paul.walmsley@sifive.com, palmer@dabbelt.com,
         hca@linux.ibm.com, gor@linux.ibm.com, borntraeger@de.ibm.com,
-        linux-arch@vger.kernel.org, ardb@kernel.org,
-        Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH 0/7] arch: More wchan fixes
-Message-ID: <20211022152738.GC174703@worktop.programming.kicks-ass.net>
+        linux-arch@vger.kernel.org, ardb@kernel.org
+Subject: [PATCH 7/7] selftests: proc: Make sure wchan works when it exists
 References: <20211022150933.883959987@infradead.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20211022150933.883959987@infradead.org>
+Content-Type: text/plain; charset=UTF-8
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+From: Kees Cook <keescook@chromium.org>
 
-*sigh*,...
+This makes sure that wchan contains a sensible symbol when a process is
+blocked. Specifically this calls the sleep() syscall, and expects the
+architecture to have called schedule() from a function that has "sleep"
+somewhere in its name. For example, on the architectures I tested
+(x86_64, arm64, arm, mips, and powerpc) this is "hrtimer_nanosleep":
 
-On Fri, Oct 22, 2021 at 05:09:33PM +0200, Peter Zijlstra wrote:
-> Hi,
-> 
-> Respin of the rest of the get_wchan() rework [1]. Given the many problems with
-> STACKTRACE this series focuses on the newer ARCH_STACKWALK since that's a
-> smaller set of architectures to review with a better specified interface.
-> 
-> The idea is to piece-wise convert the rest of the architectures to
-> ARCH_STACKWALK, but that can be done at leasure.
-> 
-> PowerPC and ARM64 are a bit funny in that their __switch_to() is in C and ends
-> up on the stack. For now simply mark it __sched to make it work. Mark wanted to
-> maybe do something different, but I think this ought to get us started.
+$ tools/testing/selftests/proc/proc-pid-wchan
+ok: found 'sleep' in wchan 'hrtimer_nanosleep'
+
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Link: https://lkml.kernel.org/r/20211008235504.2957528-1-keescook@chromium.org
+---
+ tools/testing/selftests/proc/Makefile         |    1 
+ tools/testing/selftests/proc/proc-pid-wchan.c |   69 ++++++++++++++++++++++++++
+ 2 files changed, 70 insertions(+)
+ create mode 100644 tools/testing/selftests/proc/proc-pid-wchan.c
+
+--- a/tools/testing/selftests/proc/Makefile
++++ b/tools/testing/selftests/proc/Makefile
+@@ -8,6 +8,7 @@ TEST_GEN_PROGS += fd-002-posix-eq
+ TEST_GEN_PROGS += fd-003-kthread
+ TEST_GEN_PROGS += proc-loadavg-001
+ TEST_GEN_PROGS += proc-pid-vm
++TEST_GEN_PROGS += proc-pid-wchan
+ TEST_GEN_PROGS += proc-self-map-files-001
+ TEST_GEN_PROGS += proc-self-map-files-002
+ TEST_GEN_PROGS += proc-self-syscall
+--- /dev/null
++++ b/tools/testing/selftests/proc/proc-pid-wchan.c
+@@ -0,0 +1,69 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Make sure that wchan returns a reasonable symbol when blocked.
++ */
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <errno.h>
++#include <fcntl.h>
++#include <signal.h>
++#include <stdio.h>
++#include <string.h>
++#include <unistd.h>
++#include <sys/wait.h>
++
++#define perror_exit(str) do { perror(str); _exit(1); } while (0)
++
++int main(void)
++{
++	char buf[64];
++	pid_t child;
++	int sync[2], fd;
++
++	if (pipe(sync) < 0)
++		perror_exit("pipe");
++
++	child = fork();
++	if (child < 0)
++		perror_exit("fork");
++	if (child == 0) {
++		/* Child */
++		if (close(sync[0]) < 0)
++			perror_exit("child close sync[0]");
++		if (close(sync[1]) < 0)
++			perror_exit("child close sync[1]");
++		sleep(10);
++		_exit(0);
++	}
++	/* Parent */
++	if (close(sync[1]) < 0)
++		perror_exit("parent close sync[1]");
++	if (read(sync[0], buf, 1) != 0)
++		perror_exit("parent read sync[0]");
++
++	snprintf(buf, sizeof(buf), "/proc/%d/wchan", child);
++	fd = open(buf, O_RDONLY);
++	if (fd < 0) {
++		if (errno == ENOENT)
++			return 4;
++		perror_exit(buf);
++	}
++
++	memset(buf, 0, sizeof(buf));
++	if (read(fd, buf, sizeof(buf) - 1) < 1)
++		perror_exit(buf);
++	if (strstr(buf, "sleep") == NULL) {
++		fprintf(stderr, "FAIL: did not find 'sleep' in wchan '%s'\n", buf);
++		return 1;
++	}
++	printf("ok: found 'sleep' in wchan '%s'\n", buf);
++
++	if (kill(child, SIGKILL) < 0)
++		perror_exit("kill");
++	if (waitpid(child, NULL, 0) != child) {
++		fprintf(stderr, "waitpid: got the wrong child!?\n");
++		return 1;
++	}
++
++	return 0;
++}
 
 
-[1] https://lkml.kernel.org/r/20211008111527.438276127@infradead.org
-
-Patches are also available at:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/peterz/queue.git sched/wchan
