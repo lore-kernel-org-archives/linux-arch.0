@@ -2,103 +2,74 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7A6A6C433EF
-	for <linux-arch@archiver.kernel.org>; Mon, 25 Oct 2021 20:54:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 157EEC433F5
+	for <linux-arch@archiver.kernel.org>; Mon, 25 Oct 2021 20:55:39 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 6338760EDF
-	for <linux-arch@archiver.kernel.org>; Mon, 25 Oct 2021 20:54:50 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E900A60FDC
+	for <linux-arch@archiver.kernel.org>; Mon, 25 Oct 2021 20:55:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234362AbhJYU5K (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 25 Oct 2021 16:57:10 -0400
-Received: from mail-wr1-f46.google.com ([209.85.221.46]:45772 "EHLO
-        mail-wr1-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233842AbhJYU5C (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Oct 2021 16:57:02 -0400
-Received: by mail-wr1-f46.google.com with SMTP id a16so13883330wrh.12;
-        Mon, 25 Oct 2021 13:54:39 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to;
-        bh=Fljl4WgLX/RcDUKivgrEUuWkkPxadHqWT4JD6/OvqJY=;
-        b=sFqn0yL7Mayf0ddqrpsW8P+8nWh9qqGkoorufwgMJ/8xxQ6Bnv09iREaIE5S5FWCl4
-         InMDinUBf3eg15K5JjfSJvPnhazovpIlIASorlsdhdg8wwkxsos+waGiC/vG0AAd4TF9
-         Y5sFFdwb5DoiquhPd0BNr5Ks36BTKgWApXpcEge1pWSiCIjLH4bfVfwuHHwC81EyMu08
-         w2BJLszalEKeMtbNWVkRSawMgESPEKPyN/abFJ8XCbU+PTGCpAQM4fXXvHoyWb6R8VCX
-         IOhkzyIh0s+NaJnUoCRWm3h01xh6xMyyLMO1JMhmFf2Mb2v6IcYArXO/3V3gkNw8zxJy
-         f9EA==
-X-Gm-Message-State: AOAM531RJNxTveVtG/utVIG0/XSh/GI6mf8aLyn1mMigx1GVQiois3ME
-        Gex6pybJV5c9jfgvX2FIl2k=
-X-Google-Smtp-Source: ABdhPJwJqAHyUNYlwokS65gx98+Xc0CWlqIMhvB9ZZLYxbfducvvrDped5qEYEt67ILVs8SMgZqnhA==
-X-Received: by 2002:a05:6000:1b90:: with SMTP id r16mr25878748wru.153.1635195278570;
-        Mon, 25 Oct 2021 13:54:38 -0700 (PDT)
-Received: from liuwe-devbox-debian-v2 ([51.145.34.42])
-        by smtp.gmail.com with ESMTPSA id m9sm441723wrx.39.2021.10.25.13.54.37
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 25 Oct 2021 13:54:38 -0700 (PDT)
-Date:   Mon, 25 Oct 2021 20:54:36 +0000
-From:   Wei Liu <wei.liu@kernel.org>
-To:     Borislav Petkov <bp@alien8.de>
-Cc:     Tianyu Lan <ltykernel@gmail.com>, Wei Liu <wei.liu@kernel.org>,
-        kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com,
-        decui@microsoft.com, tglx@linutronix.de, mingo@redhat.com,
-        x86@kernel.org, hpa@zytor.com, dave.hansen@linux.intel.com,
-        luto@kernel.org, peterz@infradead.org, davem@davemloft.net,
-        kuba@kernel.org, gregkh@linuxfoundation.org, arnd@arndb.de,
-        brijesh.singh@amd.com, jroedel@suse.de, Tianyu.Lan@microsoft.com,
-        thomas.lendacky@amd.com, rientjes@google.com, pgonda@google.com,
-        akpm@linux-foundation.org, kirill.shutemov@linux.intel.com,
-        rppt@kernel.org, saravanand@fb.com, aneesh.kumar@linux.ibm.com,
-        hannes@cmpxchg.org, tj@kernel.org, michael.h.kelley@microsoft.com,
-        linux-arch@vger.kernel.org, linux-hyperv@vger.kernel.org,
-        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
-        vkuznets@redhat.com, konrad.wilk@oracle.com, hch@lst.de,
-        robin.murphy@arm.com, joro@8bytes.org, parri.andrea@gmail.com,
-        dave.hansen@intel.com
-Subject: Re: [PATCH V8 5/9] x86/sev-es: Expose sev_es_ghcb_hv_call() to call
- ghcb hv call out of sev code
-Message-ID: <20211025205436.febcnpnky3xybojz@liuwe-devbox-debian-v2>
-References: <20211021154110.3734294-1-ltykernel@gmail.com>
- <20211021154110.3734294-6-ltykernel@gmail.com>
- <YXGTwppQ8syUyJ72@zn.tnic>
- <00946764-7fe0-675f-7b3e-9fb3b8e3eb89@gmail.com>
- <20211025112033.eqelx54p2dmlhykw@liuwe-devbox-debian-v2>
- <YXaT5HcLoX59jZH2@zn.tnic>
- <f5b6f9e8-5888-bd5f-143f-a7b12ec17bbb@gmail.com>
- <YXbdV8N51hMMsP6X@zn.tnic>
+        id S234116AbhJYU6A (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 25 Oct 2021 16:58:00 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:56310 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S234566AbhJYU5q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Oct 2021 16:57:46 -0400
+Received: from in02.mta.xmission.com ([166.70.13.52]:46434)
+        by out02.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1mf706-00AmGX-0a; Mon, 25 Oct 2021 14:55:22 -0600
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:39982 helo=email.xmission.com)
+        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1mf704-00CQtV-7C; Mon, 25 Oct 2021 14:55:21 -0600
+From:   ebiederm@xmission.com (Eric W. Biederman)
+To:     "Maciej W. Rozycki" <macro@orcam.me.uk>
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Oleg Nesterov <oleg@redhat.com>,
+        Al Viro <viro@ZenIV.linux.org.uk>,
+        Kees Cook <keescook@chromium.org>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        linux-mips@vger.kernel.org
+References: <87y26nmwkb.fsf@disp2133>
+        <20211020174406.17889-5-ebiederm@xmission.com>
+        <alpine.DEB.2.21.2110240622100.45807@angie.orcam.me.uk>
+Date:   Mon, 25 Oct 2021 15:55:13 -0500
+In-Reply-To: <alpine.DEB.2.21.2110240622100.45807@angie.orcam.me.uk> (Maciej
+        W. Rozycki's message of "Sun, 24 Oct 2021 06:24:17 +0200 (CEST)")
+Message-ID: <87y26gx1se.fsf@disp2133>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <YXbdV8N51hMMsP6X@zn.tnic>
+Content-Type: text/plain
+X-XM-SPF: eid=1mf704-00CQtV-7C;;;mid=<87y26gx1se.fsf@disp2133>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX1+evW9omsIww1rKO9bifehdIM1qfwCNJao=
+X-SA-Exim-Connect-IP: 68.227.160.95
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: Re: [PATCH 05/20] signal/mips: Update (_save|_restore)_fp_context to fail with -EFAULT
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Oct 25, 2021 at 06:37:43PM +0200, Borislav Petkov wrote:
-> On Mon, Oct 25, 2021 at 08:27:39PM +0800, Tianyu Lan wrote:
-> >       I just sent out v9 version and compile hv ghcb related functions
-> > when CONFIG_AMD_MEM_ENCRYPT is selected. The sev_es_ghcb_hv_call()
-> > stub is not necessary in the series and remove it. Please have a look
-> > and give your ack if it's ok. Then Wei can merge it through Hyper-V
-> > next branch.
-> 
-> I have merged it after running a bunch of randbuild tests and had to fix
-> one or two:
-> 
-> https://git.kernel.org/tip/007faec014cb5d26983c1f86fd08c6539b41392e
-> 
-> From my POV that branch is not going to change anymore so Wei can now
-> merge this tip branch - tip:x86/sev - and write a proper merge commit
-> message explaining why he's merging a tip branch and then apply the rest
-> of the HyperV stuff ontop.
+"Maciej W. Rozycki" <macro@orcam.me.uk> writes:
 
-Thanks Borislav.
+> On Wed, 20 Oct 2021, Eric W. Biederman wrote:
+>
+>> When an instruction to save or restore a register from the stack fails
+>> in _save_fp_context or _restore_fp_context return with -EFAULT.  This
+>> change was made to r2300_fpu.S[1] but it looks like it got lost with
+>> the introduction of EX2[2].  This is also what the other implementation
+>> of _save_fp_context and _restore_fp_context in r4k_fpu.S does, and
+>> what is needed for the callers to be able to handle the error.
+>
+>  Umm, right, good catch, thanks!  I think this ought to be backported.
+>
+> Acked-by: Maciej W. Rozycki <macro@orcam.me.uk>
+>
 
-> 
-> Thx.
-> 
-> -- 
-> Regards/Gruss,
->     Boris.
-> 
-> https://people.kernel.org/tglx/notes-about-netiquette
+I will add a CC stable.  So it can be backported after it is merged.
+
+Eric
