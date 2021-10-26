@@ -2,82 +2,170 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EB6F3C433FE
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Oct 2021 07:03:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DFA50C433F5
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Oct 2021 09:33:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D2FCD60E8B
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Oct 2021 07:03:10 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C1F8A60E08
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Oct 2021 09:33:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234578AbhJZHFc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Oct 2021 03:05:32 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38338 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234545AbhJZHFc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Oct 2021 03:05:32 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DB13DC061745;
-        Tue, 26 Oct 2021 00:03:08 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=yOVnpOO/5xsqTdBpo8mL+Ltjo2bLl6z6mBz9wfQs/DU=; b=ks6XJRXZ5y+5VZcS3b5DVFHuqj
-        R9oUANLsSYe37eQrtvDX126RQYf+lPZEPWmvuhGQ4o356l9iBFF8829wsy8egyeDwSlvnKtazLWAa
-        mCnwksJ2D17DCw8nZDGUolL1V3Q0NGVaY5a7DH0Ydl1Yfyksisj36ZT6ZJkAUI+Dgz11z8HvHK0Ch
-        CqQFlapn7fuBIgJ8k9v0WwRZofbEIP/zn/q0Kj/cAaEMAAwCOmCRopc4wdJA+eMitPQf99ZXJcwWI
-        NnX4/cewNHYkbaDUhtT+Pi8gZPkfljpCLmW+ez/EuIuYXH1FyNa9VRw+k7Vo4H+UO+idBmtkfdTNA
-        Zi8WWM0Q==;
-Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1mfGQK-00GfiF-3E; Tue, 26 Oct 2021 06:59:21 +0000
-Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-        (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 5BB443001BF;
-        Tue, 26 Oct 2021 08:59:01 +0200 (CEST)
-Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
-        id 388392D80369E; Tue, 26 Oct 2021 08:59:01 +0200 (CEST)
-Date:   Tue, 26 Oct 2021 08:59:01 +0200
-From:   Peter Zijlstra <peterz@infradead.org>
-To:     Boqun Feng <boqun.feng@gmail.com>
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-doc@vger.kernel.org,
-        "Paul E . McKenney " <paulmck@kernel.org>,
-        Dan Lustig <dlustig@nvidia.com>, Will Deacon <will@kernel.org>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Alexander Shishkin <alexander.shishkin@linux.intel.com>,
-        Peter Anvin <hpa@zytor.com>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Ingo Molnar <mingo@kernel.org>,
-        Vince Weaver <vincent.weaver@maine.edu>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Jiri Olsa <jolsa@redhat.com>,
-        Arnaldo Carvalho de Melo <acme@redhat.com>,
-        Stephane Eranian <eranian@google.com>, palmer@dabbelt.com,
-        paul.walmsley@sifive.com, mpe@ellerman.id.au,
-        Jonathan Corbet <corbet@lwn.net>
-Subject: Re: [RFC v2 0/3] memory model: Make unlock(A)+lock(B) on the same
- CPU RCtso
-Message-ID: <YXenNR6SX5Jot5Dt@hirez.programming.kicks-ass.net>
-References: <20211025145416.698183-1-boqun.feng@gmail.com>
+        id S234077AbhJZJf7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Oct 2021 05:35:59 -0400
+Received: from foss.arm.com ([217.140.110.172]:55922 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S230226AbhJZJf6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 26 Oct 2021 05:35:58 -0400
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 97339101E;
+        Tue, 26 Oct 2021 02:33:34 -0700 (PDT)
+Received: from C02TD0UTHF1T.local (unknown [10.57.74.144])
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 7A4313F70D;
+        Tue, 26 Oct 2021 02:33:29 -0700 (PDT)
+Date:   Tue, 26 Oct 2021 10:33:19 +0100
+From:   Mark Rutland <mark.rutland@arm.com>
+To:     Peter Zijlstra <peterz@infradead.org>
+Cc:     Kees Cook <keescook@chromium.org>, x86@kernel.org,
+        linux-kernel@vger.kernel.org, juri.lelli@redhat.com,
+        vincent.guittot@linaro.org, dietmar.eggemann@arm.com,
+        rostedt@goodmis.org, bsegall@google.com, mgorman@suse.de,
+        bristot@redhat.com, akpm@linux-foundation.org,
+        zhengqi.arch@bytedance.com, linux@armlinux.org.uk,
+        catalin.marinas@arm.com, will@kernel.org, mpe@ellerman.id.au,
+        paul.walmsley@sifive.com, palmer@dabbelt.com, hca@linux.ibm.com,
+        gor@linux.ibm.com, borntraeger@de.ibm.com,
+        linux-arch@vger.kernel.org, ardb@kernel.org
+Subject: Re: [PATCH 2/7] stacktrace,sched: Make stack_trace_save_tsk() more
+ robust
+Message-ID: <20211026093319.GA30152@C02TD0UTHF1T.local>
+References: <20211022150933.883959987@infradead.org>
+ <20211022152104.215612498@infradead.org>
+ <202110220919.46F58199D@keescook>
+ <20211022165431.GF86184@C02TD0UTHF1T.local>
+ <20211022170135.GF174703@worktop.programming.kicks-ass.net>
+ <YXcVySsxQO4Iakbq@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20211025145416.698183-1-boqun.feng@gmail.com>
+In-Reply-To: <YXcVySsxQO4Iakbq@hirez.programming.kicks-ass.net>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Oct 25, 2021 at 10:54:13PM +0800, Boqun Feng wrote:
-> Boqun Feng (3):
->   tools/memory-model: Provide extra ordering for unlock+lock pair on the
->     same CPU
->   tools/memory-model: doc: Describe the requirement of the litmus-tests
->     directory
->   tools/memory-model: litmus: Add two tests for unlock(A)+lock(B)
->     ordering
+On Mon, Oct 25, 2021 at 10:38:33PM +0200, Peter Zijlstra wrote:
+> On Fri, Oct 22, 2021 at 07:01:35PM +0200, Peter Zijlstra wrote:
+> > On Fri, Oct 22, 2021 at 05:54:31PM +0100, Mark Rutland wrote:
+> > 
+> > > > Pardon my thin understanding of the scheduler, but I assume this change
+> > > > doesn't mean stack_trace_save_tsk() stops working for "current", right?
+> > > > In trying to answer this for myself, I couldn't convince myself what value
+> > > > current->__state have here. Is it one of TASK_(UN)INTERRUPTIBLE ?
+> > > 
+> > > Regardless of that, current->on_rq will be non-zero, so you're right that this
+> > > causes stack_trace_save_tsk() to not work for current, e.g.
+> > > 
+> > > | # cat /proc/self/stack 
+> > > | # wc  /proc/self/stack 
+> > > |         0         0         0 /proc/self/stack
+> > > 
+> > > TBH, I think that (taking a step back from this issue in particular)
+> > > stack_trace_save_tsk() *shouldn't* work for current, and callers *should* be
+> > > forced to explicitly handle current separately from blocked tasks.
+> > 
+> > That..
+> 
+> So I think I'd prefer the following approach to that (and i'm not
+> currently volunteering for it):
+> 
+>  - convert all archs to ARCH_STACKWALK; this gets the semantics out of
+>    arch code and into the single kernel/stacktrace.c file.
+> 
+>  - bike-shed a new/improved stack_trace_save*() API and implement it
+>    *once* in generic code based on arch_stack_walk().
+> 
+>  - convert users; delete old etc..
+> 
+> For now, current users of stack_trace_save_tsk() very much expect
+> tsk==current to work.
 
-I'm obviously all in favour of this :-)
+While I still think it's best to have distinct arch_stack_walk_*()
+functions, I'm perfectly happy to say we need to convert arches to
+ARCH_STACKWALK first, and punt bikeshedding until that's done.
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > > So we could fix this in the stacktrace code with:
+> > > 
+> > > | diff --git a/kernel/stacktrace.c b/kernel/stacktrace.c
+> > > | index a1cdbf8c3ef8..327af9ff2c55 100644
+> > > | --- a/kernel/stacktrace.c
+> > > | +++ b/kernel/stacktrace.c
+> > > | @@ -149,7 +149,10 @@ unsigned int stack_trace_save_tsk(struct task_struct *tsk, unsigned long *store,
+> > > |                 .skip   = skipnr + (current == tsk),
+> > > |         };
+> > > |  
+> > > | -       task_try_func(tsk, try_arch_stack_walk_tsk, &c);
+> > > | +       if (tsk == current)
+> > > | +               try_arch_stack_walk_tsk(tsk, &c);
+> > > | +       else
+> > > | +               task_try_func(tsk, try_arch_stack_walk_tsk, &c);
+> > > |  
+> > > |         return c.len;
+> > > |  }
+> > > 
+> > > ... and we could rename task_try_func() to blocked_task_try_func(), and
+> > > later push the distinction into higher-level callers.
+> > 
+> > I think I favour this fix if we have to. But that's for next week :-)
+> 
+> I ended up with the below delta to this patch.
+
+With the abov in mind, the below looks good to me!
+
+Thanks,
+Mark.
+
+> --- a/kernel/stacktrace.c
+> +++ b/kernel/stacktrace.c
+> @@ -101,7 +101,7 @@ static bool stack_trace_consume_entry_no
+>  }
+>  
+>  /**
+> - * stack_trace_save - Save a stack trace into a storage array
+> + * stack_trace_save - Save a stack trace (of current) into a storage array
+>   * @store:	Pointer to storage array
+>   * @size:	Size of the storage array
+>   * @skipnr:	Number of entries to skip at the start of the stack trace
+> @@ -132,7 +132,7 @@ static int try_arch_stack_walk_tsk(struc
+>  
+>  /**
+>   * stack_trace_save_tsk - Save a task stack trace into a storage array
+> - * @task:	The task to examine
+> + * @task:	The task to examine (current allowed)
+>   * @store:	Pointer to storage array
+>   * @size:	Size of the storage array
+>   * @skipnr:	Number of entries to skip at the start of the stack trace
+> @@ -149,13 +149,25 @@ unsigned int stack_trace_save_tsk(struct
+>  		.skip	= skipnr + (current == tsk),
+>  	};
+>  
+> -	task_try_func(tsk, try_arch_stack_walk_tsk, &c);
+> +	/*
+> +	 * If the task doesn't have a stack (e.g., a zombie), the stack is
+> +	 * empty.
+> +	 */
+> +	if (!try_get_task_stack(tsk))
+> +		return 0;
+> +
+> +	if (tsk == current)
+> +		try_arch_stack_walk_tsk(tsk, &c);
+> +	else
+> +		task_try_func(tsk, try_arch_stack_walk_tsk, &c);
+> +
+> +	put_task_stack(tsk);
+>  
+>  	return c.len;
+>  }
+>  
+>  /**
+> - * stack_trace_save_regs - Save a stack trace based on pt_regs into a storage array
+> + * stack_trace_save_regs - Save a stack trace (of current) based on pt_regs into a storage array
+>   * @regs:	Pointer to pt_regs to examine
+>   * @store:	Pointer to storage array
+>   * @size:	Size of the storage array
