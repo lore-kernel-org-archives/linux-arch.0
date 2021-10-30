@@ -2,118 +2,101 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F183EC433EF
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Oct 2021 19:34:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B0738C433F5
+	for <linux-arch@archiver.kernel.org>; Sat, 30 Oct 2021 00:08:16 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D8BB960F92
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Oct 2021 19:34:28 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 95A0960F21
+	for <linux-arch@archiver.kernel.org>; Sat, 30 Oct 2021 00:08:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230215AbhJ2Tg4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 29 Oct 2021 15:36:56 -0400
-Received: from out03.mta.xmission.com ([166.70.13.233]:37482 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229474AbhJ2Tg4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Oct 2021 15:36:56 -0400
-Received: from in01.mta.xmission.com ([166.70.13.51]:57118)
-        by out03.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1mgXdx-007QLV-Jn; Fri, 29 Oct 2021 13:34:25 -0600
-Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:32942 helo=email.xmission.com)
-        by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1mgXdw-00EJtM-9Y; Fri, 29 Oct 2021 13:34:24 -0600
-From:   ebiederm@xmission.com (Eric W. Biederman)
-To:     Christian Borntraeger <borntraeger@de.ibm.com>
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Oleg Nesterov <oleg@redhat.com>,
-        Al Viro <viro@ZenIV.linux.org.uk>,
-        Kees Cook <keescook@chromium.org>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>, linux-s390@vger.kernel.org
-References: <87y26nmwkb.fsf@disp2133>
-        <20211020174406.17889-11-ebiederm@xmission.com>
-        <7c99f791-4a87-ae52-bee7-cb794b0741d2@de.ibm.com>
-        <87y26dp2hj.fsf@disp2133>
-Date:   Fri, 29 Oct 2021 14:32:36 -0500
-In-Reply-To: <87y26dp2hj.fsf@disp2133> (Eric W. Biederman's message of "Thu,
-        28 Oct 2021 10:56:24 -0500")
-Message-ID: <87v91fhbjf.fsf@disp2133>
-User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
-MIME-Version: 1.0
-Content-Type: text/plain
-X-XM-SPF: eid=1mgXdw-00EJtM-9Y;;;mid=<87v91fhbjf.fsf@disp2133>;;;hst=in01.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
-X-XM-AID: U2FsdGVkX1+IQGABJNds1K89FHzqTI6D9ZKRfirmdT4=
-X-SA-Exim-Connect-IP: 68.227.160.95
-X-SA-Exim-Mail-From: ebiederm@xmission.com
-Subject: Re: [PATCH 11/20] signal/s390: Use force_sigsegv in default_trap_handler
-X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
-X-SA-Exim-Scanned: Yes (on in01.mta.xmission.com)
+        id S231715AbhJ3AKo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 29 Oct 2021 20:10:44 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35336 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231712AbhJ3AKk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Oct 2021 20:10:40 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7D30FC061767
+        for <linux-arch@vger.kernel.org>; Fri, 29 Oct 2021 17:08:11 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id a20-20020a25ae14000000b005c1961310aeso16307985ybj.3
+        for <linux-arch@vger.kernel.org>; Fri, 29 Oct 2021 17:08:11 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20210112;
+        h=reply-to:date:message-id:mime-version:subject:from:to:cc;
+        bh=MitYekao9rqnFTXUAu9e8R+/MKTk3btas9HJLycPsWc=;
+        b=my9LTkQDSabE3uNrKhMOQ2hYTIoQgwsz/LmNZkzGOHCRzyJkKca1ngJ6utKC9iC1/t
+         QhlZalPYJZ3tgsKfRNlq+6LD1g/RkJRw3mpUHu57gpL3p8H4xmmgccC2UXx7yejWm9fR
+         rSItlwVGidUiWjDE0OGLnmeeJOFw37ispjN9W2SB+/QIv5hkcfQ4EqQjaYp3VHyHuvqH
+         HhZBOmCTkaaUXbGgfSaD/fhTUC4E/H6VJtf1MuAyHpTJpB19zZeudVRj7NzZWeZqDyz0
+         KVjRq/ta9HEWXn0OELRkX+g6dFHCrO4QRSGfGSbBT9TEVl8SHHR4+O3IK4ZCX22eO0z/
+         12vA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:reply-to:date:message-id:mime-version:subject
+         :from:to:cc;
+        bh=MitYekao9rqnFTXUAu9e8R+/MKTk3btas9HJLycPsWc=;
+        b=dbWRRYnnlagmib1+UTHbUM7VdCkl8pffY6c/VEjDrVHBkCxSFqTqqFWYCUhjqclqg1
+         gV8OhHeZ9L8+zcnNfpowInZFFF/H4JzpBpJUHsdORdwlrIYTVTBUxpg+uxFu1paLRcxY
+         roF6wgoM4tdsNSr6kr/N7MsYSSBgtMhHWcrdIJQvoao1I4AK6f3Wi2ence94Rpln3tGM
+         NcdOQratO/4sBxg9LZLaoGlIblBHKtVbXg+Idyx9BX+tYc/LgM/c1C/dHjpbl4gvaEVQ
+         IEmFkJf1RRUBuSlNqvj9Tfniu3EQH8fcHbr8t+gl9QM0xKvuKYyPr8yR+XWt02uhrNTb
+         3RZA==
+X-Gm-Message-State: AOAM531ZAo2wLzsvSZnh61xQKzVz3udwvb1glBkUx2zAKvtlg2pOY/Qz
+        kXGSc4K0bXE+4K1JDwNnd3vY5x8EZes=
+X-Google-Smtp-Source: ABdhPJwZ2XQbbdMh4Oubf+Z+oTyEdeydN5FjqJXnMZxUNKnOYppZlMFuqVxKis25KfxbME9PXm4evnP2z0A=
+X-Received: from seanjc798194.pdx.corp.google.com ([2620:15c:90:200:ce6:9e5f:4ab5:a0d2])
+ (user=seanjc job=sendgmr) by 2002:a25:3082:: with SMTP id w124mr15887159ybw.6.1635552490730;
+ Fri, 29 Oct 2021 17:08:10 -0700 (PDT)
+Reply-To: Sean Christopherson <seanjc@google.com>
+Date:   Fri, 29 Oct 2021 17:07:52 -0700
+Message-Id: <20211030000800.3065132-1-seanjc@google.com>
+Mime-Version: 1.0
+X-Mailer: git-send-email 2.33.1.1089.g2158813163f-goog
+Subject: [PATCH v2 0/8] KVM: x86: Hyper-V hypercall fix and cleanups
+From:   Sean Christopherson <seanjc@google.com>
+To:     Paolo Bonzini <pbonzini@redhat.com>,
+        "K. Y. Srinivasan" <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
+        Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
+        Arnd Bergmann <arnd@arndb.de>
+Cc:     Sean Christopherson <seanjc@google.com>,
+        Vitaly Kuznetsov <vkuznets@redhat.com>,
+        Wanpeng Li <wanpengli@tencent.com>,
+        Jim Mattson <jmattson@google.com>,
+        Joerg Roedel <joro@8bytes.org>, kvm@vger.kernel.org,
+        linux-hyperv@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org, Ajay Garg <ajaygargnsit@gmail.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-ebiederm@xmission.com (Eric W. Biederman) writes:
+Fix a bug where KVM incorrectly skips an "all_cpus" IPI request, and misc
+cleanups and enhancements for KVM handling of Hyper-V hypercalls.
 
-> Christian Borntraeger <borntraeger@de.ibm.com> writes:
->
->> Am 20.10.21 um 19:43 schrieb Eric W. Biederman:
->>> Reading the history it is unclear why default_trap_handler calls
->>> do_exit.  It is not even menthioned in the commit where the change
->>> happened.  My best guess is that because it is unknown why the
->>> exception happened it was desired to guarantee the process never
->>> returned to userspace.
->>>
->>> Using do_exit(SIGSEGV) has the problem that it will only terminate one
->>> thread of a process, leaving the process in an undefined state.
->>>
->>> Use force_sigsegv(SIGSEGV) instead which effectively has the same
->>> behavior except that is uses the ordinary signal mechanism and
->>> terminates all threads of a process and is generally well defined.
->>
->> Do I get that right, that programs can not block SIGSEGV from force_sigsegv
->> with a signal handler? Thats how I read the code. If this is true
->> then
->>
->> Reviewed-by: Christian Borntraeger <borntraeger@de.ibm.com>
->
-> 99% true, and it is what force_sigsegv(SIGSEGV) intends to do.
->
-> Andy Lutormorski pointed at a race where a thread can call sigaction
-> and change the signal handler after force_sigsegv has run but before
-> the process dequeues the SIGSEGV.
+Note, I couldn't find any documentation on the DEBUG hypercalls, I'm
+basically just guessing that they don't have a variable sized header
+and thus should reject hypercalls with a non-zero VARHEAD field.
 
-I now have a simple patch that closes the sigaction vs force_sig race,
-that I am adding to this set of changes.  So now I can say programs can
-not block force_sigsegv(SIGSEGV) with a signal handler or any other
-method.
+Sean Christopherson (8):
+  KVM: x86: Ignore sparse banks size for an "all CPUs", non-sparse IPI
+    req
+  KVM: x86: Get the number of Hyper-V sparse banks from the VARHEAD
+    field
+  KVM: x86: Refactor kvm_hv_flush_tlb() to reduce indentation
+  KVM: x86: Add a helper to get the sparse VP_SET for IPIs and TLB
+    flushes
+  KVM: x86: Don't bother reading sparse banks that end up being ignored
+  KVM: x86: Shove vp_bitmap handling down into sparse_set_to_vcpu_mask()
+  KVM: x86: Reject fixeds-size Hyper-V hypercalls with non-zero
+    "var_cnt"
+  KVM: x86: Add checks for reserved-to-zero Hyper-V hypercall fields
 
-Eric
+ arch/x86/kvm/hyperv.c             | 172 ++++++++++++++++++------------
+ arch/x86/kvm/trace.h              |  14 +--
+ include/asm-generic/hyperv-tlfs.h |   7 ++
+ 3 files changed, 120 insertions(+), 73 deletions(-)
 
->>> Cc: Heiko Carstens <hca@linux.ibm.com>
->>> Cc: Vasily Gorbik <gor@linux.ibm.com>
->>> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
->>> Cc: linux-s390@vger.kernel.org
->>> Fixes: ca2ab03237ec ("[PATCH] s390: core changes")
->>> History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
->>> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
->>> ---
->>>   arch/s390/kernel/traps.c | 2 +-
->>>   1 file changed, 1 insertion(+), 1 deletion(-)
->>>
->>> diff --git a/arch/s390/kernel/traps.c b/arch/s390/kernel/traps.c
->>> index bcefc2173de4..51729ea2cf8e 100644
->>> --- a/arch/s390/kernel/traps.c
->>> +++ b/arch/s390/kernel/traps.c
->>> @@ -84,7 +84,7 @@ static void default_trap_handler(struct pt_regs *regs)
->>>   {
->>>   	if (user_mode(regs)) {
->>>   		report_user_fault(regs, SIGSEGV, 0);
->>> -		do_exit(SIGSEGV);
->>> +		force_sigsegv(SIGSEGV);
->>>   	} else
->>>   		die(regs, "Unknown program exception");
->>>   }
->>>
+-- 
+2.33.1.1089.g2158813163f-goog
+
