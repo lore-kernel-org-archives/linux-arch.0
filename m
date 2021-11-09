@@ -2,188 +2,156 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 55423C433F5
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Nov 2021 04:11:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E4966C433EF
+	for <linux-arch@archiver.kernel.org>; Tue,  9 Nov 2021 19:11:34 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 39A6F61100
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Nov 2021 04:11:48 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id C253961075
+	for <linux-arch@archiver.kernel.org>; Tue,  9 Nov 2021 19:11:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239759AbhKIEOc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 8 Nov 2021 23:14:32 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58304 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239395AbhKIEOX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Nov 2021 23:14:23 -0500
-Received: from mail-pl1-x62f.google.com (mail-pl1-x62f.google.com [IPv6:2607:f8b0:4864:20::62f])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 59FF3C061766;
-        Mon,  8 Nov 2021 20:11:38 -0800 (PST)
-Received: by mail-pl1-x62f.google.com with SMTP id u11so18580163plf.3;
-        Mon, 08 Nov 2021 20:11:38 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=mQV34cqT+5uDm9EJBkW1FMD8FZHvkjExjjx6fGh4VcI=;
-        b=PuGtZqMwxMh0+H4n4RjIwW9lQofP3rBqYcZPzRlmtg5myURTIFMdz51vwCAFrIbqY8
-         QPh0UD2hNz9wrRQZtP461Drmx2InZpT9Z6tCBquaDFXKfprTLzqTd5wcOzR+2zRS8p27
-         NtjExZPcjGXr2nVKJ/oL9pDh7WJhtaLZHZRzNmlU5Z2WxfD727+G/cM/rCQlODspu9BT
-         j+ecvhrqXbqaoZtab0vhJVfZx0HESqUL/bRGppziK98CuBRmw6Ym6KfBNEjO1Ay3QUCz
-         nTlWCwZURw33CEcBEtBQFUsKHi8ZpypiTGVVXHaE5N0mSSMVvWiNR/hTEKzV+DS0VFe6
-         8lXA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=mQV34cqT+5uDm9EJBkW1FMD8FZHvkjExjjx6fGh4VcI=;
-        b=y4x6MRZZR49S+8HphxVazzQW8bjCgS0lGDybcCjA2U5Hz+3AXATJcb/iM01HbEF05L
-         I2vup1WKcq6+mAn7yyEFw0HgmpxQ0hDaPGz++op7KyXQnYWR6MRwPgTR5iGBM7EjM5N6
-         Hfl3846ZKaZqDBW4pyuwaMAhJtAsbV+pKJSLFtwoZPrkV9HnVJPrQh6e9vi36ga5dT+q
-         6fao82/uUMR6HvqiquGPCkm9u/BF2YiWQjyeojgWAieOaRpFBEYxNG8+k1iCyUnbTqbA
-         os2aHRB92BglZhselOY7CJ/36quYr/ITbUT/mB/AiQnkxzwVYawxi5gM4RVzcS4pr/A/
-         dpsQ==
-X-Gm-Message-State: AOAM530ApvCxSF6svtyQlS5AyMZ0C5tke16W4UEAEjDtV5e9DKLNuO57
-        89QZDE0Jc8Y2b3zYCFiT1Xk=
-X-Google-Smtp-Source: ABdhPJwDNNVbeTXijVR6cgCKYSwC1U11bBHeS8R6qI10SX3+oy3npTCbjjCi57dE0IP/EzyNCeXUhw==
-X-Received: by 2002:a17:90b:4a89:: with SMTP id lp9mr3951797pjb.6.1636431097931;
-        Mon, 08 Nov 2021 20:11:37 -0800 (PST)
-Received: from bobo.ozlabs.ibm.com (60-241-46-56.tpgi.com.au. [60.241.46.56])
-        by smtp.gmail.com with ESMTPSA id o19sm18278063pfu.56.2021.11.08.20.11.35
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 08 Nov 2021 20:11:37 -0800 (PST)
-From:   Nicholas Piggin <npiggin@gmail.com>
-To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     Nicholas Piggin <npiggin@gmail.com>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        Andy Lutomirski <luto@kernel.org>, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Subject: [PATCH v5 3/4] lazy tlb: shoot lazies, a non-refcounting lazy tlb option
-Date:   Tue,  9 Nov 2021 14:11:18 +1000
-Message-Id: <20211109041119.1972927-4-npiggin@gmail.com>
-X-Mailer: git-send-email 2.23.0
-In-Reply-To: <20211109041119.1972927-1-npiggin@gmail.com>
-References: <20211109041119.1972927-1-npiggin@gmail.com>
+        id S242976AbhKITOU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 9 Nov 2021 14:14:20 -0500
+Received: from mail-cusazon11020016.outbound.protection.outlook.com ([52.101.61.16]:55004
+        "EHLO na01-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S242971AbhKITOT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 9 Nov 2021 14:14:19 -0500
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=Ie5DP2e0DrG7Lxl+E/OdrmxvjdHrXqgQTT03AOkeCOQa7ydCQkUvALFnHydahZ2To8F7HHMtuYQtI+ltgLOWaHjR/010lzov/4JIae2O+ugLC/1aXxB6MNFN5TB5k4KFdYljIoXWHqJkG2OedFYm0w+eNehPLM3J6EbuXE67Tv4AUNQLNiY4RRKx3gJ6Dmkb9yCPpFzO+I7dS9UCUz5cWmu3mhDkUftO32jrUmbWfDVxPxgFnr4uznCuOF6yMJFrCaQY4p7CajTAFX5VCb9ez4PkXTbv61Sc48GDbS+xCOiKb8sJDDAJFDg2+S2a5/ldcXiOn/8YChbYFBW8+nZZIQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=R3Bcb1ZlpyFnveclqZT0KmlcYzd8G5+hIO96JlpeFL8=;
+ b=GvEca2GO2VcnFP//14TligCxn8oLlYl5YGUD36hGdT9lLsbAO3Omi1yDBz6F8NVbPxPYCRiFvqyxY+I23G0gsTjOcGfUsgTAb6eK7vmvXinxDVaofUVZ5xSLT6p+W+pDM0Lxwegxo0QmwBIO9o2HYaj/VhXvgxXR9Z9FOisZpsNUEV9fyINfOjGROuOw8gjF8g6/NW2uY4Jel3vduZ0V3nLhny5UsTe6wZsmJC0YAOzsJ0I4Ff1L/IPCX4Wim7mvs53H9WMm4doKOB1jo3vS1MvMmRZ81BybZt4KZsSTCiG5VwTMLqKa5ANdSaPijvNEa9zRVJrE9yqenfBozvkhww==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=microsoft.com; dmarc=pass action=none
+ header.from=microsoft.com; dkim=pass header.d=microsoft.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=R3Bcb1ZlpyFnveclqZT0KmlcYzd8G5+hIO96JlpeFL8=;
+ b=ZGe0VZ8QDz1ca1r58FQ4/zFSjhtME7rbnr9DdpeqXdatU/XGnBmYIhE8QAVmftTjPhCYj50AhnifgaDDfQ2pHGqCKoHn6IHmuVrbDd6ViRK2qWFx9bOG+MhlPFOO5Zc50QX5lyE0ef/XOlXk4Luqg/uMz0GUrGFBB00JFPCv4a4=
+Received: from BN8PR21MB1140.namprd21.prod.outlook.com (2603:10b6:408:72::11)
+ by BN8PR21MB1172.namprd21.prod.outlook.com (2603:10b6:408:74::16) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.4713.4; Tue, 9 Nov
+ 2021 19:11:29 +0000
+Received: from BN8PR21MB1140.namprd21.prod.outlook.com
+ ([fe80::48fb:8577:ba03:23a5]) by BN8PR21MB1140.namprd21.prod.outlook.com
+ ([fe80::48fb:8577:ba03:23a5%9]) with mapi id 15.20.4713.005; Tue, 9 Nov 2021
+ 19:11:28 +0000
+From:   Sunil Muthuswamy <sunilmut@microsoft.com>
+To:     Bjorn Helgaas <helgaas@kernel.org>,
+        Sunil Muthuswamy <sunilmut@linux.microsoft.com>
+CC:     KY Srinivasan <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
+        "wei.liu@kernel.org" <wei.liu@kernel.org>,
+        "maz@kernel.org" <maz@kernel.org>,
+        Dexuan Cui <decui@microsoft.com>,
+        "tglx@linutronix.de" <tglx@linutronix.de>,
+        "mingo@redhat.com" <mingo@redhat.com>,
+        "bp@alien8.de" <bp@alien8.de>, "hpa@zytor.com" <hpa@zytor.com>,
+        "lorenzo.pieralisi@arm.com" <lorenzo.pieralisi@arm.com>,
+        "robh@kernel.org" <robh@kernel.org>, "kw@linux.com" <kw@linux.com>,
+        "bhelgaas@google.com" <bhelgaas@google.com>,
+        "arnd@arndb.de" <arnd@arndb.de>, "x86@kernel.org" <x86@kernel.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+        "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Subject: RE: [EXTERNAL] Re: [PATCH v3 1/2] PCI: hv: Make the code arch neutral
+ by adding arch specific interfaces
+Thread-Topic: [EXTERNAL] Re: [PATCH v3 1/2] PCI: hv: Make the code arch
+ neutral by adding arch specific interfaces
+Thread-Index: AQHXwRPKo1wIQ2n9aUePdw/5KVA2savcRmmAgB9xZ6A=
+Date:   Tue, 9 Nov 2021 19:11:28 +0000
+Message-ID: <BN8PR21MB1140B95A5D59F9119CE35421C0929@BN8PR21MB1140.namprd21.prod.outlook.com>
+References: <1634226794-9540-2-git-send-email-sunilmut@linux.microsoft.com>
+ <20211020185709.GA2630556@bhelgaas>
+In-Reply-To: <20211020185709.GA2630556@bhelgaas>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+msip_labels: MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_ActionId=9b86821a-a139-4a08-b329-d10c08952c7e;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_ContentBits=0;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Enabled=true;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Method=Standard;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Name=Internal;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_SetDate=2021-11-09T19:07:05Z;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_SiteId=72f988bf-86f1-41af-91ab-2d7cd011db47;
+authentication-results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=microsoft.com;
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-correlation-id: d948588b-781e-43cd-3c97-08d9a3b4bbcb
+x-ms-traffictypediagnostic: BN8PR21MB1172:
+x-microsoft-antispam-prvs: <BN8PR21MB11726527A5FB531CECED7DCAC0929@BN8PR21MB1172.namprd21.prod.outlook.com>
+x-ms-oob-tlc-oobclassifiers: OLM:2657;
+x-ms-exchange-senderadcheck: 1
+x-ms-exchange-antispam-relay: 0
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info: urcjQn0nnAGBHsziW9PRXfRqUpFPAI8zp4WreE1ItoOQkbnpzEkaapiCGawqH2FUngUSvhi0FJwJIFr1a/+NiPhjbcPb5QYx+H4flQW+fCVdRjpnK1G55mbUjhCXIfBe7MXFY5FOKre9h4UZZ7PNdxu4hOjFO+yW5viIzBHWwHklyfjbYm4acGRSa+uRUij4SYi8MQHgWwpJ6RiWTyk3hcZfoN1BKLUBCwQiaHYg37DqO1hwwWLJe4l1tGuhTLREiYoy93IjIdxBTUD4PbE6nH+ZRYttiTOJPHDG/Luny4Y0u1hW8WssvmjOE63OMrHkth2zv8DqnJqenBvThyauGzj1uaCv692AbgZ3W/f4ByVznQXqpsWOWI7R41dTOG7RYudbftXxV4JmYbKZRRHkkJK4Y1/8Y7csISgPFQqDqvyaYXhM49254ILVVLGChCKSh8104WpbLp77k08Q/1Zwr/aRbRF2a5GB36ABnK4StCdt34XHiveVIaMuzu8NLlz1JccM61M4o5lbR01Pr5P33l5FibOqGQP1+DGcf+XCmoJJCh5pr81avniknZ8tRhQy8Gen2M0R0MDd9FLZ+0bd60M34oTwjkpJPurX/YBGq6vdEbCTaN6WJUhPg9uZnmYgPnNmdddGpQthYVuH1AbtdCRLgk9WF1zo4UOkF0F1mQB8p1Eo0suP4WZnqKIxcxR0MQkhjWJLlzTh0a72N4pMcQ==
+x-forefront-antispam-report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:BN8PR21MB1140.namprd21.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230001)(4636009)(366004)(186003)(8990500004)(82950400001)(10290500003)(66946007)(7416002)(508600001)(76116006)(38070700005)(66556008)(66476007)(54906003)(316002)(110136005)(7696005)(8676002)(6506007)(66446008)(4326008)(71200400001)(53546011)(64756008)(33656002)(4744005)(52536014)(2906002)(122000001)(38100700002)(86362001)(82960400001)(9686003)(8936002)(5660300002);DIR:OUT;SFP:1102;
+x-ms-exchange-antispam-messagedata-chunkcount: 1
+x-ms-exchange-antispam-messagedata-0: =?us-ascii?Q?TiDYrGsYObH9Shq+/OrSKYQstj+au6VXQYpDhRiGiuxpRQx6n/OiJgG+45AZ?=
+ =?us-ascii?Q?YUFYGeWgz0EIR8THm+p9ANAkBQiNHcwulNTsYjUBw9vXM61bJ8Rpt+dJXO82?=
+ =?us-ascii?Q?DI7vPvR7nihTVxu9+lBrVM9/fhMs64oVItGFYGjt6c4T5gYtjjcaQ8X17ELp?=
+ =?us-ascii?Q?6EokNUjiN3E30G6xiO1kbmjirQ6TyBNpDEqChPLjyIVss3HNcxsAGPSRtcT1?=
+ =?us-ascii?Q?jSw4uw3il02E/qBPZCGZeJmKaADGMKtoWyTXwJ5o9JlBzRyYnBtDmdS96p1m?=
+ =?us-ascii?Q?qfJNt0MjSWhYjaiNi/Z7o1E5YPVYDsSjgN5ngJWzinBtNiTkvS6hYoX+oUab?=
+ =?us-ascii?Q?veUDITvOdNYgH2nbB+68kgFNJLuGTIhm/3n/1dRhLEJHQwljC0HcKIRLJzTq?=
+ =?us-ascii?Q?RIqwHP/Hf1TLMQHW0CUXm/CiDfTcDYg55h4npQJ/HIMwH8+5O3/MeAP8IbhK?=
+ =?us-ascii?Q?SXd+QKbODL6t6pizW6mYASVfO4NSEJr0RCeN2huvnvI8MY22/IIwy56DwWmV?=
+ =?us-ascii?Q?ap+0EHFd5t7F8FVMrH6tvEpp6BbSo8wzLWphhaaMy27dOctzNYrX4QXUTMHw?=
+ =?us-ascii?Q?q1AYHBzvfGt+iHUH8hHdVBZHw43GaMM6sMtl0NZQkNs6n0JLBGUF7HZozuKK?=
+ =?us-ascii?Q?7oGlWEatvk++B/gR5v81IFT46Hsgurj+A2NthCwyDQEo8gJmp24ETRh/SXlE?=
+ =?us-ascii?Q?FsXMo3HntPIklpW3mJe1NtCl0E4t28BO4SVzgt4dT+nf3uDcoVnG4MH8l77Y?=
+ =?us-ascii?Q?0YE+d5UDnzqnHFRreE0klXAanWAprVkwBuB8PwZWfVVY49jXZR4godgMPOFa?=
+ =?us-ascii?Q?squhK4wrKo20UMdEmx33K7vQsVe+5C+fcnrFRdetS7usB1W2HWLgNSnEgGsy?=
+ =?us-ascii?Q?umKs0+a2a0JC3wrXpOx9ZixB3hIA0MtuebYv7rB3R65WJndVBwiLaYH5DjPh?=
+ =?us-ascii?Q?O+y5H/J0/FDxGDbVNiDjVdz2bR62kH4nySZ+VLVW+uoRLRYBpNFJIl5cr1l4?=
+ =?us-ascii?Q?eIeUNtrRwYi7q2OZg/+qvkkRnju5VrsEwQ2S9WPksMOz09rf+GL1iQivnOQl?=
+ =?us-ascii?Q?K87Dhm+KbJvJppfbYX/J3/Ps8ZkCVQmDjcAHrhb8OK2rYCi9jVvSN4f0ZnsP?=
+ =?us-ascii?Q?qK7buRjPktIOWDeVHcp+iriKVeKBNBgJkkmsJtYbBMbZE+mbtcIRoObOScqT?=
+ =?us-ascii?Q?z4PUoPfq+/Voi4oytG30S4amR3eGzKk/X2+0ZzTlo3uROVNGgOrXo4dgtBNZ?=
+ =?us-ascii?Q?VlUm6M81fQF/WtkM0sR2ofi1RbJIC8MDm9q0NKw9DWm72Uu19XlUKSNqsLTf?=
+ =?us-ascii?Q?9R2uaDQcfS6d8r9gIACh043A4FXo3AbendNdtI9E1AvxTUcM/ikRjcP17SJe?=
+ =?us-ascii?Q?HpBJlUQGJ7VMvqnF9b0DJiqEa4q8WTm/vGu5Gz2I6Q7zC+He9ZFuUKMBM0dm?=
+ =?us-ascii?Q?ZG81GulTM4k+nghsv7CfwjE32Yi+Xo3nPiELH0PWMwZetYaQXymhCusoygcG?=
+ =?us-ascii?Q?elWhKiWgTBYZEaicSHfz3GzqnL4rJtcqRiZJMtlM/SbfncLfrfhK5enpJIOg?=
+ =?us-ascii?Q?YiLSQ7V+Csy481/KoqmyqgBpYGDJzhZwNH7uuNifRhggkO/gLVYxD8DD87WR?=
+ =?us-ascii?Q?F8ve8lD5Ubi3Oye8FdOChQtRHm7t63Rdpsksjb+ADgliLwa20hDorrcjlsuD?=
+ =?us-ascii?Q?cUHRzd2yXaf+4UVbf5V4Avc1NiDR/FPpBuof0wKdvJn7NIBeDXTiEIb7TnjE?=
+ =?us-ascii?Q?Un83/k4tsg=3D=3D?=
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-OriginatorOrg: microsoft.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: BN8PR21MB1140.namprd21.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: d948588b-781e-43cd-3c97-08d9a3b4bbcb
+X-MS-Exchange-CrossTenant-originalarrivaltime: 09 Nov 2021 19:11:28.8176
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 72f988bf-86f1-41af-91ab-2d7cd011db47
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: KiFEnWIJbW8ZPMW48mEqGy9rJlmJr9W8oqOybDjouC2aLjFdaACZzj+8hi7NkzWO/8y4fej9PNIXnOEjWuwOZjntrUE7lQeinjAVXzXxslk=
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: BN8PR21MB1172
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On big systems, the mm refcount can become highly contented when doing
-a lot of context switching with threaded applications (particularly
-switching between the idle thread and an application thread).
+On Wednesday, October 20, 2021 11:57 AM,
+Bjorn Helgaas <helgaas@kernel.org> wrote:
 
-Abandoning lazy tlb slows switching down quite a bit in the important
-user->idle->user cases, so instead implement a non-refcounted scheme
-that causes __mmdrop() to IPI all CPUs in the mm_cpumask and shoot down
-any remaining lazy ones.
+> On Thu, Oct 14, 2021 at 08:53:13AM -0700, Sunil Muthuswamy wrote:
+> > From: Sunil Muthuswamy <sunilmut@microsoft.com>
+> >
+> > Encapsulate arch dependencies in Hyper-V vPCI through a set of interfac=
+es,
+> > listed below. Adding these arch specific interfaces will allow for an
+> > implementation for other arch, such as ARM64.
+> >
+> > Implement the interfaces for X64, which is essentially just moving over=
+ the
+> > current implementation.
+>=20
+> I think you mean x86, not X64, right?
 
-Shootdown IPIs are some concern, but they have not been observed to be
-a big problem with this scheme (the powerpc implementation generated
-314 additional interrupts on a 144 CPU system during a kernel compile).
-There are a number of strategies that could be employed to reduce IPIs
-if they turn out to be a problem for some workload.
+Yes. This will get addressed in v4.
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/Kconfig  | 15 +++++++++++++++
- kernel/fork.c | 51 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 66 insertions(+)
-
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 73d98edc5cdc..2b70a9e7b142 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -444,6 +444,21 @@ config ARCH_WANT_IRQS_OFF_ACTIVATE_MM
- # already).
- config MMU_LAZY_TLB_REFCOUNT
- 	def_bool y
-+	depends on !MMU_LAZY_TLB_SHOOTDOWN
-+
-+# This option allows MMU_LAZY_TLB_REFCOUNT=n. It ensures no CPUs are using an
-+# mm as a lazy tlb beyond its last reference count, by shooting down these
-+# users before the mm is deallocated. __mmdrop() first IPIs all CPUs that may
-+# be using the mm as a lazy tlb, so that they may switch themselves to using
-+# init_mm for their active mm. mm_cpumask(mm) is used to determine which CPUs
-+# may be using mm as a lazy tlb mm.
-+#
-+# To implement this, an arch *must*:
-+# - At the time of the final mmdrop of the mm, ensure mm_cpumask(mm) contains
-+#   at least all possible CPUs in which the mm is lazy.
-+# - It must meet the requirements for MMU_LAZY_TLB_REFCOUNT=n (see above).
-+config MMU_LAZY_TLB_SHOOTDOWN
-+	bool
- 
- config ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	bool
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 38681ad44c76..a7da9b0bc402 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -686,6 +686,53 @@ static void check_mm(struct mm_struct *mm)
- #define allocate_mm()	(kmem_cache_alloc(mm_cachep, GFP_KERNEL))
- #define free_mm(mm)	(kmem_cache_free(mm_cachep, (mm)))
- 
-+static void do_shoot_lazy_tlb(void *arg)
-+{
-+	struct mm_struct *mm = arg;
-+
-+	if (current->active_mm == mm) {
-+		WARN_ON_ONCE(current->mm);
-+		current->active_mm = &init_mm;
-+		switch_mm(mm, &init_mm, current);
-+	}
-+}
-+
-+static void do_check_lazy_tlb(void *arg)
-+{
-+	struct mm_struct *mm = arg;
-+
-+	WARN_ON_ONCE(current->active_mm == mm);
-+}
-+
-+static void shoot_lazy_tlbs(struct mm_struct *mm)
-+{
-+	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_SHOOTDOWN)) {
-+		/*
-+		 * IPI overheads have not found to be expensive, but they could
-+		 * be reduced in a number of possible ways, for example (in
-+		 * roughly increasing order of complexity):
-+		 * - A batch of mms requiring IPIs could be gathered and freed
-+		 *   at once.
-+		 * - CPUs could store their active mm somewhere that can be
-+		 *   remotely checked without a lock, to filter out
-+		 *   false-positives in the cpumask.
-+		 * - After mm_users or mm_count reaches zero, switching away
-+		 *   from the mm could clear mm_cpumask to reduce some IPIs
-+		 *   (some batching or delaying would help).
-+		 * - A delayed freeing and RCU-like quiescing sequence based on
-+		 *   mm switching to avoid IPIs completely.
-+		 */
-+		on_each_cpu_mask(mm_cpumask(mm), do_shoot_lazy_tlb, (void *)mm, 1);
-+		if (IS_ENABLED(CONFIG_DEBUG_VM))
-+			on_each_cpu(do_check_lazy_tlb, (void *)mm, 1);
-+	} else {
-+		/*
-+		 * In this case, lazy tlb mms are refounted and would not reach
-+		 * __mmdrop until all CPUs have switched away and mmdrop()ed.
-+		 */
-+	}
-+}
-+
- /*
-  * Called when the last reference to the mm
-  * is dropped: either by a lazy thread or by
-@@ -695,6 +742,10 @@ void __mmdrop(struct mm_struct *mm)
- {
- 	BUG_ON(mm == &init_mm);
- 	WARN_ON_ONCE(mm == current->mm);
-+
-+	/* Ensure no CPUs are using this as their lazy tlb mm */
-+	shoot_lazy_tlbs(mm);
-+
- 	WARN_ON_ONCE(mm == current->active_mm);
- 	mm_free_pgd(mm);
- 	destroy_context(mm);
--- 
-2.23.0
-
+- Sunil
