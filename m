@@ -2,92 +2,120 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F1473C433EF
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Nov 2021 22:51:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6DFB4C433FE
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Nov 2021 13:20:36 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D8A7261037
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Nov 2021 22:51:42 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 3CF16611BF
+	for <linux-arch@archiver.kernel.org>; Wed, 10 Nov 2021 13:20:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241537AbhKIWy2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 9 Nov 2021 17:54:28 -0500
-Received: from mail.kernel.org ([198.145.29.99]:40472 "EHLO mail.kernel.org"
+        id S231484AbhKJNXW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 10 Nov 2021 08:23:22 -0500
+Received: from mail.kernel.org ([198.145.29.99]:46694 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1345607AbhKIWyF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 9 Nov 2021 17:54:05 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 99AB661037;
-        Tue,  9 Nov 2021 22:51:16 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1636498276;
-        bh=MkQelUtPGxTk7CP+eGXpJiNBb67EtzdkLMHSuc0qB9w=;
-        h=From:Date:Subject:To:Cc:From;
-        b=N/qMtQ9ZzLxmhQ7iDPj0rvDOFfH6gDK0kJL07c3E53WnJ/4GtkHUgBnmMypjf4hYn
-         1AtglV02GzwTHeP4z3W0cAdaqsP62rm+TJYYg+l2PdccpNGNcorX9fDtI+61Nq3Qh2
-         sdl3HaQvpLsppulRBbvJo7L58MqxU7qud9b6Eo/WDWNnNUA/6U81uhDw2/TP1pdQDY
-         CEinaTcZ6+mt7iK9/onIzsa2bnPMkzzAj43ygPdn6DyqI8NCnvmzirDn/ubSujunjy
-         Gjc+hwLbQmFhPHZo/lvQVaKYPiWtYjzYOi5/PBYn7ha5CPec52TFpQfvXEljIQiYn1
-         c9jiZOprKt1Eg==
-Received: by mail-wr1-f42.google.com with SMTP id c4so568230wrd.9;
-        Tue, 09 Nov 2021 14:51:16 -0800 (PST)
-X-Gm-Message-State: AOAM532AHwaGgLhrAoiLrXY2AVTFRAd6rnT58nQ65K/E1QRxQZf2F56j
-        hzJZ2lZx0pDlKyVSnf7Y0IA69Bt/eQxl620YHQU=
-X-Google-Smtp-Source: ABdhPJyVTDedbofxrUet8EqsY0J9JI7QrXutZ1HLIU0wRv24nwwbxfEXM8/oIdKm1IwJahjuQ+NS6kEK3vu3d1MB+cg=
-X-Received: by 2002:a05:6000:18c7:: with SMTP id w7mr14052067wrq.411.1636498275112;
- Tue, 09 Nov 2021 14:51:15 -0800 (PST)
-MIME-Version: 1.0
-From:   Arnd Bergmann <arnd@kernel.org>
-Date:   Tue, 9 Nov 2021 23:50:59 +0100
-X-Gmail-Original-Message-ID: <CAK8P3a0G2BoQ5fa29SASLcYbY9Znwq9wCp4vXbcsZCX+Tios4w@mail.gmail.com>
-Message-ID: <CAK8P3a0G2BoQ5fa29SASLcYbY9Znwq9wCp4vXbcsZCX+Tios4w@mail.gmail.com>
-Subject: [GIT PULL] asm-generic: asm/syscall.h cleanup
-To:     Linus Torvalds <torvalds@linux-foundation.org>
-Cc:     linux-arch <linux-arch@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Peter Collingbourne <pcc@google.com>
-Content-Type: text/plain; charset="UTF-8"
+        id S231162AbhKJNXW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Nov 2021 08:23:22 -0500
+Received: from disco-boy.misterjones.org (disco-boy.misterjones.org [51.254.78.96])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id DAFEF6115A;
+        Wed, 10 Nov 2021 13:20:34 +0000 (UTC)
+Received: from sofa.misterjones.org ([185.219.108.64] helo=why.misterjones.org)
+        by disco-boy.misterjones.org with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.94.2)
+        (envelope-from <maz@kernel.org>)
+        id 1mknWi-004cJz-PR; Wed, 10 Nov 2021 13:20:32 +0000
+Date:   Wed, 10 Nov 2021 13:20:32 +0000
+Message-ID: <87v91087vj.wl-maz@kernel.org>
+From:   Marc Zyngier <maz@kernel.org>
+To:     Sunil Muthuswamy <sunilmut@linux.microsoft.com>
+Cc:     kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com,
+        wei.liu@kernel.org, decui@microsoft.com, tglx@linutronix.de,
+        mingo@redhat.com, bp@alien8.de, hpa@zytor.com,
+        lorenzo.pieralisi@arm.com, robh@kernel.org, kw@linux.com,
+        bhelgaas@google.com, arnd@arndb.de, sunilmut@microsoft.com,
+        x86@kernel.org, linux-kernel@vger.kernel.org,
+        linux-hyperv@vger.kernel.org, linux-pci@vger.kernel.org,
+        linux-arch@vger.kernel.org
+Subject: Re: [PATCH v4 2/2] arm64: PCI: hv: Add support for Hyper-V vPCI
+In-Reply-To: <1636496060-29424-3-git-send-email-sunilmut@linux.microsoft.com>
+References: <1636496060-29424-1-git-send-email-sunilmut@linux.microsoft.com>
+        <1636496060-29424-3-git-send-email-sunilmut@linux.microsoft.com>
+User-Agent: Wanderlust/2.15.9 (Almost Unreal) SEMI-EPG/1.14.7 (Harue)
+ FLIM-LB/1.14.9 (=?UTF-8?B?R29qxY0=?=) APEL-LB/10.8 EasyPG/1.0.0 Emacs/27.1
+ (x86_64-pc-linux-gnu) MULE/6.0 (HANACHIRUSATO)
+MIME-Version: 1.0 (generated by SEMI-EPG 1.14.7 - "Harue")
+Content-Type: text/plain; charset=US-ASCII
+X-SA-Exim-Connect-IP: 185.219.108.64
+X-SA-Exim-Rcpt-To: sunilmut@linux.microsoft.com, kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com, wei.liu@kernel.org, decui@microsoft.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, lorenzo.pieralisi@arm.com, robh@kernel.org, kw@linux.com, bhelgaas@google.com, arnd@arndb.de, sunilmut@microsoft.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
+X-SA-Exim-Mail-From: maz@kernel.org
+X-SA-Exim-Scanned: No (on disco-boy.misterjones.org); SAEximRunCond expanded to false
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The following changes since commit 6880fa6c56601bb8ed59df6c30fd390cc5f6dd8f:
+On Tue, 09 Nov 2021 22:14:20 +0000,
+Sunil Muthuswamy <sunilmut@linux.microsoft.com> wrote:
+> 
+> From: Sunil Muthuswamy <sunilmut@microsoft.com>
+> 
+> Add support for Hyper-V vPCI for arm64 by implementing the arch specific
+> interfaces. Introduce an IRQ domain and chip specific to Hyper-v vPCI that
+> is based on SPIs. The IRQ domain parents itself to the arch GIC IRQ domain
+> for basic vector management.
+> 
+> Signed-off-by: Sunil Muthuswamy <sunilmut@microsoft.com>
+> ---
+> In v2, v3 & v4:
+>  Changes are described in the cover letter.
+> 
+>  arch/arm64/include/asm/hyperv-tlfs.h |   9 ++
+>  drivers/pci/Kconfig                  |   2 +-
+>  drivers/pci/controller/Kconfig       |   2 +-
+>  drivers/pci/controller/pci-hyperv.c  | 207 ++++++++++++++++++++++++++-
+>  4 files changed, 217 insertions(+), 3 deletions(-)
 
-  Linux 5.15-rc1 (2021-09-12 16:28:37 -0700)
+[...]
 
-are available in the Git repository at:
+> +static int hv_pci_vec_irq_domain_activate(struct irq_domain *domain,
+> +					  struct irq_data *irqd, bool reserve)
+> +{
+> +	static int cpu;
+> +
+> +	/*
+> +	 * Pick a cpu using round-robin as the irq affinity that can be
+> +	 * temporarily used for composing MSI from the hypervisor. GIC
+> +	 * will eventually set the right affinity for the irq and the
+> +	 * 'unmask' will retarget the interrupt to that cpu.
+> +	 */
+> +	if (cpu >= cpumask_last(cpu_online_mask))
+> +		cpu = 0;
+> +	cpu = cpumask_next(cpu, cpu_online_mask);
+> +	irq_data_update_effective_affinity(irqd, cpumask_of(cpu));
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
-tags/asm-generic-5.16
+The mind boggles.
 
-for you to fetch changes up to 7962c2eddbfe7cce879acb06f9b4f205789e57b7:
+Let's imagine a single machine. cpu_online_mask only has bit 0 set,
+and nr_cpumask_bits is 1. This is the first run, and cpu is 1:
 
-  arch: remove unused function syscall_set_arguments() (2021-09-14
-16:06:20 +0200)
+	cpu = cpumask_next(cpu, cpu_online_mask);
 
-----------------------------------------------------------------
-asm-generic: asm/syscall.h cleanup
+cpu is now set to 1. Which is not a valid CPU number, but a valid
+return value indicating that there is no next CPU as it is equal to
+nr_cpumask_bits. cpumask_of(cpu) will then diligently return crap,
+which you carefully store into the irq descriptor. The IRQ subsystem
+thanks you.
 
-This is a single cleanup from Peter Collingbourne, removing
-some dead code.
+The same reasoning applies to any number of CPUs, and you obviously
+never checked what any of this does :-(. As to what the behaviour is
+when multiple CPUs run this function in parallel, let's not even
+bother (locking is overrated).
 
-----------------------------------------------------------------
-Peter Collingbourne (1):
-      arch: remove unused function syscall_set_arguments()
+Logic and concurrency issues aside, why do you even bother setting
+some round-robin affinity if all you need is to set *something* so
+that a hypervisor message can be composed? Why not use the first
+online CPU? At least it will be correct.
 
- arch/arm/include/asm/syscall.h        | 10 ----------
- arch/arm64/include/asm/syscall.h      | 10 ----------
- arch/csky/include/asm/syscall.h       |  9 ---------
- arch/ia64/include/asm/syscall.h       | 17 ++---------------
- arch/ia64/kernel/ptrace.c             | 31 ++++++++++++-------------------
- arch/microblaze/include/asm/syscall.h | 33 ---------------------------------
- arch/nds32/include/asm/syscall.h      | 22 ----------------------
- arch/nios2/include/asm/syscall.h      | 11 -----------
- arch/openrisc/include/asm/syscall.h   |  7 -------
- arch/powerpc/include/asm/syscall.h    | 10 ----------
- arch/riscv/include/asm/syscall.h      |  9 ---------
- arch/s390/include/asm/syscall.h       | 12 ------------
- arch/sh/include/asm/syscall_32.h      | 12 ------------
- arch/sparc/include/asm/syscall.h      | 10 ----------
- arch/um/include/asm/syscall-generic.h | 14 --------------
- arch/x86/include/asm/syscall.h        | 33 ---------------------------------
- arch/xtensa/include/asm/syscall.h     | 11 -----------
- include/asm-generic/syscall.h         | 16 ----------------
- 18 files changed, 14 insertions(+), 263 deletions(-)
+	M.
+
+-- 
+Without deviation from the norm, progress is not possible.
