@@ -2,58 +2,59 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 19542C433EF
-	for <linux-arch@archiver.kernel.org>; Thu, 18 Nov 2021 08:14:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0B95EC433EF
+	for <linux-arch@archiver.kernel.org>; Thu, 18 Nov 2021 08:15:00 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id 031D861B64
-	for <linux-arch@archiver.kernel.org>; Thu, 18 Nov 2021 08:14:57 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id E121161B64
+	for <linux-arch@archiver.kernel.org>; Thu, 18 Nov 2021 08:14:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S244576AbhKRIRy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 18 Nov 2021 03:17:54 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42418 "EHLO
+        id S244583AbhKRIR4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 18 Nov 2021 03:17:56 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42482 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S244382AbhKRIRQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Nov 2021 03:17:16 -0500
-Received: from mail-wm1-x34a.google.com (mail-wm1-x34a.google.com [IPv6:2a00:1450:4864:20::34a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0A5E7C07978D
-        for <linux-arch@vger.kernel.org>; Thu, 18 Nov 2021 00:11:46 -0800 (PST)
-Received: by mail-wm1-x34a.google.com with SMTP id i131-20020a1c3b89000000b00337f92384e0so3988422wma.5
-        for <linux-arch@vger.kernel.org>; Thu, 18 Nov 2021 00:11:45 -0800 (PST)
+        with ESMTP id S244456AbhKRIRO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Nov 2021 03:17:14 -0500
+Received: from mail-wm1-x349.google.com (mail-wm1-x349.google.com [IPv6:2a00:1450:4864:20::349])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 700F5C079786
+        for <linux-arch@vger.kernel.org>; Thu, 18 Nov 2021 00:11:43 -0800 (PST)
+Received: by mail-wm1-x349.google.com with SMTP id r6-20020a1c4406000000b0033119c22fdbso2252444wma.4
+        for <linux-arch@vger.kernel.org>; Thu, 18 Nov 2021 00:11:43 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=TQFyZU0v42DaaTkISoD0OFzde9Hlzhfr9CYPS/61CiQ=;
-        b=MK2Vd4YjbDEaS4uhhlqIaoDY1M9QXC49+u0npJjk0pQSVRSj0R2jfpTqwJGYkXnYSg
-         ZMtPSof/yRprWktVdqMYdgvpsVx6ZQUJJlLswELGAWRPazAPzMqcizSADthjnvISCsuN
-         /n1yMdNWCSSQe2mO5WLugpNZDLHdOT6248Xx5n1W5CcPt4s0I0N5GiS0akJuVV/JlMwC
-         vzeF/+kKiT40V3zbMU+Jhl/QbcW9Gh/U1jQOICERskGk3AtIhxav51zndyo0kpWy7FEb
-         Dj7/2yy2mXXUxZaZEH0RM4+WkS7peFjxGJKnqohDrxd/HtH85/+daZm98XnnlX/gUBIf
-         7yAQ==
+        bh=FxnGx7glVXa5fb5vt97IxdOcLQo6ydeIuX4RCBDcgdw=;
+        b=JzkdiCAfhGg1puCqyu7Gsl+OgpTDx9etUPuyNiUexgDmRwNvmteFPISWaLcOxGAqLq
+         9DosLJK7r1BjtZ7VJduWE8TJKifTcPcJfLgzlYGR3Z/kyu7tjT3NHRQHF9l24ehmTlCC
+         orKe2mqttixGcaP/+prUUVqGluahucnMKt5EtPGuD0ppVMZmAzuCqMPxo7nPc3FNfKFz
+         ATUxY5vds/9KHGWQHQ6sYWo/VlJRQ+rYWLpPTW6oGYbaZzWbbyAYQVUWXGYRAhjg302o
+         o/DdWseUPPUOUUpUFbVVaoFnkBSoDqCEeTVPtHy2ouz2y3UlkvpRPpISS4SSx05GZlzo
+         wxcA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=TQFyZU0v42DaaTkISoD0OFzde9Hlzhfr9CYPS/61CiQ=;
-        b=zfb9MEByeBHyxaqSqFkW95w/tReb4nyKS9/difzGZ3gk64wn4zR6uoKL1d1mKYysBA
-         qCE5PcoihsZ7G37tQ81GW+a3bCX6I/57c3hBHnaAcCYywddUjh8+vmrpUz7s4XAgJOdV
-         5U5GXBSvMJcpRW3SYW/vR7qo18PqwWz3KzFxk1vcT8Aq56iPF939U1zUO88MBDeEShPB
-         ygIXZi3fxt1Ur/Y++cBU21Eu4pGrWyqYI5QVdSSjFu+ZD1KyYfg4GhaDV0vU0g59UeNG
-         voSa/O/tWekw9NX9V34KciYuKCIrFDgE6ysCHZWCcNAiKouCr4ym1lHRlexhRFfk8LKf
-         rwhg==
-X-Gm-Message-State: AOAM531iHX6AKSWp8Q/soXCSp/jGCkYj7m1TXfTFDj/qp/cURh5deZ+P
-        ayu2nDoBrhfDB2RtmNvy/9MotSpknQ==
-X-Google-Smtp-Source: ABdhPJyYeDMuiGGrUuyFw2pju3cXA4aPKZm0z0EkkEKVPp8TQ9/6cOOcc4ejq3nzYH027uUD8CjFPxhEPw==
+        bh=FxnGx7glVXa5fb5vt97IxdOcLQo6ydeIuX4RCBDcgdw=;
+        b=rh/z0xsYm4k9E7iqrwIu2SgYqPxMNXF03Pt2aNOCVBGIgsEY7pzIpovhs2EX2cGco2
+         mYZKFJKyO09K1C2owmUIdvhRlKh8Xmq9qpuQ19kv/LXPhy9XlxW48c1ZfPcAUUDrMKN/
+         4ws2q/BL34RVDaZcbW0f1Z5wTUZuNlNUtllisxDZjm+xxB2GV1yOV+Hrc1eerpowQIx9
+         uaGdSImS5pTxLvEJoGEqiOeQ9TqltBW5gnS39ttESIJ+hfwNX58RAyZpzAp+W0rxj/Zz
+         i1/VA1ZATyqCWBCKd0SyAvQifD0/fNJjGdKpDtP4o1iaZFXL9Ay9jWx6HiY6miy3eKfZ
+         5oEg==
+X-Gm-Message-State: AOAM532EVYg6LCccoXseR5OjWkDC6yOm9N/N4nG3Y9nhiCTOGeHnMVnB
+        lCX0mGHDK+fiayxFhBZHkf6iCLOF7w==
+X-Google-Smtp-Source: ABdhPJz6FEP6GyzxCsPawUoKdjXDHZ0RCNsA/bONWiEy1yb4suQyU+ePefNEIdgwlRx7lrw+TRjThbgJRw==
 X-Received: from elver.muc.corp.google.com ([2a00:79e0:15:13:7155:1b7:fca5:3926])
- (user=elver job=sendgmr) by 2002:a05:600c:1990:: with SMTP id
- t16mr7680724wmq.48.1637223104386; Thu, 18 Nov 2021 00:11:44 -0800 (PST)
-Date:   Thu, 18 Nov 2021 09:10:23 +0100
+ (user=elver job=sendgmr) by 2002:a05:600c:1d01:: with SMTP id
+ l1mr7928633wms.44.1637223102036; Thu, 18 Nov 2021 00:11:42 -0800 (PST)
+Date:   Thu, 18 Nov 2021 09:10:22 +0100
 In-Reply-To: <20211118081027.3175699-1-elver@google.com>
-Message-Id: <20211118081027.3175699-20-elver@google.com>
+Message-Id: <20211118081027.3175699-19-elver@google.com>
 Mime-Version: 1.0
 References: <20211118081027.3175699-1-elver@google.com>
 X-Mailer: git-send-email 2.34.0.rc2.393.gf8c9666880-goog
-Subject: [PATCH v2 19/23] x86/qspinlock, kcsan: Instrument barrier of pv_queued_spin_unlock()
+Subject: [PATCH v2 18/23] x86/barriers, kcsan: Use generic instrumentation for
+ non-smp barriers
 From:   Marco Elver <elver@google.com>
 To:     elver@google.com, "Paul E. McKenney" <paulmck@kernel.org>
 Cc:     Alexander Potapenko <glider@google.com>,
@@ -75,30 +76,42 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-If CONFIG_PARAVIRT_SPINLOCKS=y, queued_spin_unlock() is implemented
-using pv_queued_spin_unlock() which is entirely inline asm based. As
-such, we do not receive any KCSAN barrier instrumentation via regular
-atomic operations.
-
-Add the missing KCSAN barrier instrumentation for the
-CONFIG_PARAVIRT_SPINLOCKS case.
+Prefix all barriers with __, now that asm-generic/barriers.h supports
+defining the final instrumented version of these barriers. The change is
+limited to barriers used by x86-64.
 
 Signed-off-by: Marco Elver <elver@google.com>
 ---
- arch/x86/include/asm/qspinlock.h | 1 +
- 1 file changed, 1 insertion(+)
+ arch/x86/include/asm/barrier.h | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
-index d86ab942219c..d87451df480b 100644
---- a/arch/x86/include/asm/qspinlock.h
-+++ b/arch/x86/include/asm/qspinlock.h
-@@ -53,6 +53,7 @@ static inline void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+index 3ba772a69cc8..35389b2af88e 100644
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -19,9 +19,9 @@
+ #define wmb() asm volatile(ALTERNATIVE("lock; addl $0,-4(%%esp)", "sfence", \
+ 				       X86_FEATURE_XMM2) ::: "memory", "cc")
+ #else
+-#define mb() 	asm volatile("mfence":::"memory")
+-#define rmb()	asm volatile("lfence":::"memory")
+-#define wmb()	asm volatile("sfence" ::: "memory")
++#define __mb()	asm volatile("mfence":::"memory")
++#define __rmb()	asm volatile("lfence":::"memory")
++#define __wmb()	asm volatile("sfence" ::: "memory")
+ #endif
  
- static inline void queued_spin_unlock(struct qspinlock *lock)
- {
-+	kcsan_release();
- 	pv_queued_spin_unlock(lock);
- }
+ /**
+@@ -51,8 +51,8 @@ static inline unsigned long array_index_mask_nospec(unsigned long index,
+ /* Prevent speculative execution past this barrier. */
+ #define barrier_nospec() alternative("", "lfence", X86_FEATURE_LFENCE_RDTSC)
+ 
+-#define dma_rmb()	barrier()
+-#define dma_wmb()	barrier()
++#define __dma_rmb()	barrier()
++#define __dma_wmb()	barrier()
+ 
+ #define __smp_mb()	asm volatile("lock; addl $0,-4(%%" _ASM_SP ")" ::: "memory", "cc")
  
 -- 
 2.34.0.rc2.393.gf8c9666880-goog
