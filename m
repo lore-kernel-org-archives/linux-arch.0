@@ -2,21 +2,21 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0769FC433EF
-	for <linux-arch@archiver.kernel.org>; Thu, 18 Nov 2021 09:30:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A542DC4332F
+	for <linux-arch@archiver.kernel.org>; Thu, 18 Nov 2021 09:33:53 +0000 (UTC)
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D9ADC61B5F
-	for <linux-arch@archiver.kernel.org>; Thu, 18 Nov 2021 09:30:50 +0000 (UTC)
+	by mail.kernel.org (Postfix) with ESMTP id 8F6DE61B73
+	for <linux-arch@archiver.kernel.org>; Thu, 18 Nov 2021 09:33:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S245158AbhKRJds (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 18 Nov 2021 04:33:48 -0500
-Received: from mail.loongson.cn ([114.242.206.163]:48778 "EHLO loongson.cn"
+        id S245189AbhKRJgu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 18 Nov 2021 04:36:50 -0500
+Received: from mail.loongson.cn ([114.242.206.163]:49540 "EHLO loongson.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S243206AbhKRJdn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 18 Nov 2021 04:33:43 -0500
+        id S245185AbhKRJg2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 18 Nov 2021 04:36:28 -0500
 Received: from localhost.localdomain (unknown [111.9.175.10])
-        by mail.loongson.cn (Coremail) with SMTP id AQAAf9AxbuQeHZZhYxcAAA--.269S4;
-        Thu, 18 Nov 2021 17:30:17 +0800 (CST)
+        by mail.loongson.cn (Coremail) with SMTP id AQAAf9Ax3uTZHZZhoBcAAA--.294S2;
+        Thu, 18 Nov 2021 17:33:18 +0800 (CST)
 From:   Huang Pei <huangpei@loongson.cn>
 To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
         ambrosehua@gmail.com
@@ -30,62 +30,96 @@ Cc:     Bibo Mao <maobibo@loongson.cn>,
         Gao Juxin <gaojuxin@loongson.cn>,
         Fuxin Zhang <zhangfx@lemote.com>,
         Huacai Chen <chenhuacai@loongson.cn>
-Subject: [PATCH 3/4] MIPS: use 3-level pgtable for 64KB page size on MIPS_VA_BITS_48
-Date:   Thu, 18 Nov 2021 17:30:04 +0800
-Message-Id: <20211118093005.3121-3-huangpei@loongson.cn>
+Subject: [PATCH] MIPS: simplify copy_user_high_page for MIPS64 w/o cache alias
+Date:   Thu, 18 Nov 2021 17:33:10 +0800
+Message-Id: <20211118093310.3195-1-huangpei@loongson.cn>
 X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20211118093005.3121-1-huangpei@loongson.cn>
-References: <20211118093005.3121-1-huangpei@loongson.cn>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-CM-TRANSID: AQAAf9AxbuQeHZZhYxcAAA--.269S4
-X-Coremail-Antispam: 1UD129KBjvdXoWrZFy7JF4DWryrGF15Ar45trb_yoWfCFb_JF
-        1UtrWfGr1rGrW8u34aqrWrtF1a93WUWryfCr12gr15u3yS9F13ta1UXa1DZr13Cayq9rWf
-        XrWrAry3Cr4ayjkaLaAFLSUrUUUUjb8apTn2vfkv8UJUUUU8Yxn0WfASr-VFAUDa7-sFnT
-        9fnUUIcSsGvfJTRUUUbP8FF20E14v26rWj6s0DM7CY07I20VC2zVCF04k26cxKx2IYs7xG
-        6rWj6s0DM7CIcVAFz4kK6r1j6r18M28IrcIa0xkI8VA2jI8067AKxVWUXwA2048vs2IY02
-        0Ec7CjxVAFwI0_Xr0E3s1l8cAvFVAK0II2c7xJM28CjxkF64kEwVA0rcxSw2x7M28EF7xv
-        wVC0I7IYx2IY67AKxVW7JVWDJwA2z4x0Y4vE2Ix0cI8IcVCY1x0267AKxVW8Jr0_Cr1UM2
-        8EF7xvwVC2z280aVAFwI0_Cr1j6rxdM28EF7xvwVC2z280aVCY1x0267AKxVW0oVCq3wAS
-        0I0E0xvYzxvE52x082IY62kv0487Mc02F40EFcxC0VAKzVAqx4xG6I80ewAv7VC0I7IYx2
-        IY67AKxVWUGVWUXwAv7VC2z280aVAFwI0_Jr0_Gr1lOx8S6xCaFVCjc4AY6r1j6r4UM4x0
-        Y48IcxkI7VAKI48JM4x0x7Aq67IIx4CEVc8vx2IErcIFxwACI402YVCY1x02628vn2kIc2
-        xKxwCY1x0262kKe7AKxVWUAVWUtwCY02Avz4vE14v_GFWl42xK82IYc2Ij64vIr41l4I8I
-        3I0E4IkC6x0Yz7v_Jr0_Gr1lx2IqxVAqx4xG67AKxVWUJVWUGwC20s026x8GjcxK67AKxV
-        WUGVWUWwC2zVAF1VAY17CE14v26r1q6r43MIIYrxkI7VAKI48JMIIF0xvE2Ix0cI8IcVAF
-        wI0_JFI_Gr1lIxAIcVC0I7IYx2IY6xkF7I0E14v26F4j6r4UJwCI42IY6xAIw20EY4v20x
-        vaj40_Jr0_JF4lIxAIcVC2z280aVAFwI0_Jr0_Gr1lIxAIcVC2z280aVCY1x0267AKxVW8
-        JVW8JrUvcSsGvfC2KfnxnUUI43ZEXa7VUbnXo7UUUUU==
+X-CM-TRANSID: AQAAf9Ax3uTZHZZhoBcAAA--.294S2
+X-Coremail-Antispam: 1UD129KBjvJXoW7WF17tF47Xw1rWw4DAr1UJrb_yoW8ZF1rpF
+        W7Gw43KrWFgrW7u3Z3Xwsrury3Jas2yay8XF47ta4Y9wnxWF1aqF1FqFWIqF1YqrWkGa15
+        W3yqgay5WFn8u3DanT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+        9KBjDU0xBIdaVrnRJUUU9j14x267AKxVW8JVW5JwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
+        1l84ACjcxK6xIIjxv20xvE14v26ryj6F1UM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4U
+        JVWxJr1l84ACjcxK6I8E87Iv67AKxVWxJr0_GcWl84ACjcxK6I8E87Iv6xkF7I0E14v26r
+        xl6s0DM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40Ex7xfMcIj
+        6xIIjxv20xvE14v26r1Y6r17McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4IkC6x0Yz7v_Jr
+        0_Gr1lF7xvr2IYc2Ij64vIr41lF7I21c0EjII2zVCS5cI20VAGYxC7M4IIrI8v6xkF7I0E
+        8cxan2IY04v7MxkIecxEwVAFwVW8uwCF04k20xvY0x0EwIxGrwCFx2IqxVCFs4IE7xkEbV
+        WUJVW8JwC20s026c02F40E14v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E67AF
+        67kF1VAFwI0_Jw0_GFylIxkGc2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVWUCVW8JwCI42
+        IY6xIIjxv20xvEc7CjxVAFwI0_Cr0_Gr1UMIIF0xvE42xK8VAvwI8IcIk0rVW3JVWrJr1l
+        IxAIcVC2z280aVAFwI0_Jr0_Gr1lIxAIcVC2z280aVCY1x0267AKxVW8JVW8JrUvcSsGvf
+        C2KfnxnUUI43ZEXa7VUbnNVDUUUUU==
 X-CM-SenderInfo: xkxd0whshlqz5rrqw2lrqou0/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-It hangup when booting Loongson 3A1000 with BOTH
-CONFIG_PAGE_SIZE_64KB and CONFIG_MIPS_VA_BITS_48, that it turn
-out to use 2-level pgtable instead of 3-level. 64KB page size
-with 2-level pgtable only cover 42 bits VA, use 3-level pgtable
-to cover all 48 bits VA(55 bits)
+Borrow from ARM64
 
-Fixes: 1e321fa917fb ("MIPS64: Support of at least 48 bits of SEGBITS)
+MIPS64 CPU has enough direct mapped memory space to access all
+physical memory. In case of no cache alias, bypass both kmap_atomic
+and kmap_coherent for better real-time performance.
+
 Signed-off-by: Huang Pei <huangpei@loongson.cn>
 ---
- arch/mips/Kconfig | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/mips/mm/init.c | 37 +++++++++++++++++++++++++------------
+ 1 file changed, 25 insertions(+), 12 deletions(-)
 
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index de60ad190057..0215dc1529e9 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -3097,7 +3097,7 @@ config STACKTRACE_SUPPORT
- config PGTABLE_LEVELS
- 	int
- 	default 4 if PAGE_SIZE_4KB && MIPS_VA_BITS_48
--	default 3 if 64BIT && !PAGE_SIZE_64KB
-+	default 3 if 64BIT && (!PAGE_SIZE_64KB || MIPS_VA_BITS_48)
- 	default 2
+diff --git a/arch/mips/mm/init.c b/arch/mips/mm/init.c
+index 325e1552cbea..54f8464fbb95 100644
+--- a/arch/mips/mm/init.c
++++ b/arch/mips/mm/init.c
+@@ -171,21 +171,34 @@ void copy_user_highpage(struct page *to, struct page *from,
+ {
+ 	void *vfrom, *vto;
  
- config MIPS_AUTO_PFN_OFFSET
+-	vto = kmap_atomic(to);
+-	if (cpu_has_dc_aliases &&
+-	    page_mapcount(from) && !Page_dcache_dirty(from)) {
+-		vfrom = kmap_coherent(from, vaddr);
++	if (IS_ENABLED(CONFIG_64BIT) && !cpu_has_dc_aliases) {
++		vfrom = page_address(from);
++		vto   = page_address(to);
+ 		copy_page(vto, vfrom);
+-		kunmap_coherent();
++		/*
++		 * even without cache alias, still need to maintain
++		 * coherence between icache and dcache
++		 */
++		if (!cpu_has_ic_fills_f_dc)
++			flush_data_cache_page((unsigned long)vto);
++
+ 	} else {
+-		vfrom = kmap_atomic(from);
+-		copy_page(vto, vfrom);
+-		kunmap_atomic(vfrom);
++		vto = kmap_atomic(to);
++		if (cpu_has_dc_aliases &&
++		    page_mapcount(from) && !Page_dcache_dirty(from)) {
++			vfrom = kmap_coherent(from, vaddr);
++			copy_page(vto, vfrom);
++			kunmap_coherent();
++		} else {
++			vfrom = kmap_atomic(from);
++			copy_page(vto, vfrom);
++			kunmap_atomic(vfrom);
++		}
++		if ((!cpu_has_ic_fills_f_dc) ||
++		      pages_do_alias((unsigned long)vto, vaddr & PAGE_MASK))
++			flush_data_cache_page((unsigned long)vto);
++		kunmap_atomic(vto);
+ 	}
+-	if ((!cpu_has_ic_fills_f_dc) ||
+-	    pages_do_alias((unsigned long)vto, vaddr & PAGE_MASK))
+-		flush_data_cache_page((unsigned long)vto);
+-	kunmap_atomic(vto);
+ 	/* Make sure this page is cleared on other CPU's too before using it */
+ 	smp_wmb();
+ }
 -- 
 2.20.1
 
