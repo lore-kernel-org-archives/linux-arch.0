@@ -2,55 +2,90 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C6830C433EF
-	for <linux-arch@archiver.kernel.org>; Mon, 22 Nov 2021 16:59:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D7A08C433FE
+	for <linux-arch@archiver.kernel.org>; Mon, 22 Nov 2021 20:48:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231771AbhKVRC6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 22 Nov 2021 12:02:58 -0500
-Received: from mail.kernel.org ([198.145.29.99]:58970 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S230370AbhKVRC5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Nov 2021 12:02:57 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 98DE160F51;
-        Mon, 22 Nov 2021 16:59:50 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1637600391;
-        bh=7rlk0Z/QE97jTJY/pIOkev1o3iWMYQSxn+wWGvx6Ir8=;
-        h=In-Reply-To:References:To:From:Subject:Cc:Date:From;
-        b=ntyIr8vSUCKvtJqKkT8NaPBKbB3ufYKPHE6iuMMZNa0yi1ZY9VMd4vywtv8crqZ6b
-         iReDuIkAojGcuZOoWg8dI8Rfv4XVGVkPbAPn9dNv6cN0BNbw+ER1IgZzYTci+GSfSL
-         h6SzuBsZeH2SQyUREfqW21XjzHPSKoaNG1tVs4U3GBpcInNBnWLNX5rzpIkHsDWrlY
-         aFX7p0fBxtZo3caOB+cBFs7aBUqf5kxHl4i2m5Gpd6xRHtJ+cRPRW1T/+7FCt0mBAw
-         KBQBsESZh7M9HZfFSCdMVGYedsoKi/g5aizlox0XGSOmy+xLn46sF1YsE4jmjUDjG3
-         BEvhN0l3+a5lA==
-Content-Type: text/plain; charset="utf-8"
+        id S235366AbhKVUwE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 22 Nov 2021 15:52:04 -0500
+Received: from mout.kundenserver.de ([212.227.126.131]:35853 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231444AbhKVUwE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Nov 2021 15:52:04 -0500
+Received: from mail-wr1-f42.google.com ([209.85.221.42]) by
+ mrelayeu.kundenserver.de (mreue011 [213.165.67.97]) with ESMTPSA (Nemesis) id
+ 1MHoAg-1mtAFF3MWs-00Eyqk; Mon, 22 Nov 2021 21:48:55 +0100
+Received: by mail-wr1-f42.google.com with SMTP id r8so34958081wra.7;
+        Mon, 22 Nov 2021 12:48:55 -0800 (PST)
+X-Gm-Message-State: AOAM5322QLzpJOIMMfKJE6El0Bb9FPzt3XvwyDcXVBoVfHOmsDw2KCit
+        swaKKKGGXi5gTq6BUD67g7cAhKgpMX9yCXcb5QA=
+X-Google-Smtp-Source: ABdhPJwf+d8ctWPtfnfnh90ZtW1kb/NXAtGxWpODV7GJ5lqYNV7ntpKGV2T3UpIDDYaCPfzwOX3Viuecq2sgKQ0oXhg=
+X-Received: by 2002:adf:df89:: with SMTP id z9mr80369wrl.336.1637614135426;
+ Mon, 22 Nov 2021 12:48:55 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-In-Reply-To: <CAPFHKzcph=MiDWgiZ2TLAZukARsL1wi2FGAfLQ2MX_T+oe4KyQ@mail.gmail.com>
-References: <20211122142456.181724-1-atenart@kernel.org> <CAPFHKzcph=MiDWgiZ2TLAZukARsL1wi2FGAfLQ2MX_T+oe4KyQ@mail.gmail.com>
-To:     Jonathon Reinhart <jonathon.reinhart@gmail.com>
-From:   Antoine Tenart <atenart@kernel.org>
-Subject: Re: [PATCH net-next v2] sections: global data can be in .bss
-Cc:     "David S. Miller" <davem@davemloft.net>,
-        Jakub Kicinski <kuba@kernel.org>, arnd@arndb.de,
-        Linux Netdev List <netdev@vger.kernel.org>,
-        linux-arch@vger.kernel.org, tglx@linutronix.de,
-        peterz@infradead.org, Steven Rostedt <rostedt@goodmis.org>
-Message-ID: <163760038800.3195.16423720862554044024@kwain>
-Date:   Mon, 22 Nov 2021 17:59:48 +0100
+References: <YZvIlz7J6vOEY+Xu@yuki>
+In-Reply-To: <YZvIlz7J6vOEY+Xu@yuki>
+From:   Arnd Bergmann <arnd@arndb.de>
+Date:   Mon, 22 Nov 2021 21:48:39 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a0x5Bw7=0ng-s+KsUywqJYa0tk9cSWmZhx+cZRBOR87ZA@mail.gmail.com>
+Message-ID: <CAK8P3a0x5Bw7=0ng-s+KsUywqJYa0tk9cSWmZhx+cZRBOR87ZA@mail.gmail.com>
+Subject: Re: [PATCH] uapi: Make __{u,s}64 match {u,}int64_t in userspace
+To:     Cyril Hrubis <chrubis@suse.cz>
+Cc:     Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux API <linux-api@vger.kernel.org>,
+        LTP List <ltp@lists.linux.it>,
+        GNU C Library <libc-alpha@sourceware.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>
+Content-Type: text/plain; charset="UTF-8"
+X-Provags-ID: V03:K1:ibn68auOeHgaiHe1p9lElBs9W6KeLkwY0hvTg1HdiVzCoXKxL2F
+ y7NX5WLQmEOVES0gL9rpTrytdQGUneW6z2CJEGBPpqkxAA4T0kn1BgEzXEBnsI4lbpwAaeR
+ znmzLBh8jRHjR6qgrjUWAYb0i9AGd3FZd6RBXBBm/+WEl9uDWe4fsQI5jm57T7P7vh7MQ5M
+ 2Ig1Ip0xi3htxrzXqyofQ==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:C0D2V81tFDc=:Oe2YZnOA8AtmukOxMl3WJR
+ /4uoAAmxuyoURTJTFdq6jGNjYdtdfAqkouRBMnG0vgkZdT92atfw2Cs0w1IQ1q+U+CQz6MHDq
+ lDeUxoz0mh0T6JpdUOh+N+WJk8e3EgvqeUWKMg+9nYpUwJMru2tn3f6RTIZOsa/aqouqBAW81
+ c1gS7dxU7P2YCSwOwXtfi60RNtTW1PzaabHpiujifDhIuwF6Y3LF9ROHWFm3KpfgOEZPpTZYc
+ iHQqgdv4zZebQXhtY2HXg50TjfyrYBDr3VJRa+9ClIRER5cBnxVXh9gT0/DxKUV5ygrVNjcLR
+ oWQQUUf/DTgaNiqpTOvKjgYK2ZWwpIOMXT5kDCwtd/S1Cl/olay2UVVUOyobkF+QIWf0nC/mn
+ 41ZgxFUX8bNWF5CA0KNtpWjhFDePwClYTfliJvtgFi6fnNSFnCUEh+iRRa7HwORIwrfzu7XUn
+ EyVDXrI3B/b/ScwurpNf2Rlndzma8y6iXTQkmWAMmD/t4tPHd2pAyCt68so3HLHVovBvmWLCE
+ 0x7X8IBJPolpGTGr7kP6P0P03u5OTWtsms6fUGDxl+RSH8bwwbLJYYyyOBetN++iaztp+NxCZ
+ tx8scXxEgWacIBzZh2zRUlAR02IpsdbSMrrClNPzTjKHQtlPpVzOm5bFNz4me9IjjfG9JCHfb
+ e57iL4mIwAp1N4hmuDDuqagJ4PCMZrEe6mn+9rkd8Nb0GExhpxcm8gD+3P5EzDtO4rPI=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Quoting Jonathon Reinhart (2021-11-22 17:56:55)
-> On Mon, Nov 22, 2021 at 9:24 AM Antoine Tenart <atenart@kernel.org> wrote:
-> >
-> > - @Jonathon: with your analysis and suggestion I think you should be
-> >   listed as a co-developer. If that's fine please say so, and reply
-> >   with both a Co-developed-by and a Signed-off-by tags.
->=20
-> Added, thanks. Although it appears I may have missed the boat.
+On Mon, Nov 22, 2021 at 5:43 PM Cyril Hrubis <chrubis@suse.cz> wrote:
+>
+> +
+> +#include <asm/bitsperlong.h>
+> +
+>  /*
+> - * int-ll64 is used everywhere now.
+> + * int-ll64 is used everywhere in kernel now.
+>   */
+> -#include <asm-generic/int-ll64.h>
+> +#if __BITS_PER_LONG == 64 && !defined(__KERNEL__)
+> +# include <asm-generic/int-l64.h>
+> +#else
+> +# include <asm-generic/int-ll64.h>
+> +#endif
 
-Yes, the patch was applied quickly. Anyway, thanks for the investigation!
+I don't think this is correct on all 64-bit architectures, as far as I
+remember the
+definition can use either 'long' or 'long long' depending on the user space
+toolchain.
 
-Antoine
+Out of the ten supported 64-bit architectures, there are four that already
+use asm-generic/int-l64.h conditionally, and six that don't, and I
+think at least
+some of those are intentional.
+
+I think it would be safer to do this one architecture at a time to make
+sure this doesn't regress on those that require the int-ll64.h version.
+
+There should also be a check for __SANE_USERSPACE_TYPES__
+to let userspace ask for the ll64 version everywhere.
+
+          Arnd
