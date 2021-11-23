@@ -2,125 +2,84 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 33C6BC433EF
-	for <linux-arch@archiver.kernel.org>; Mon, 22 Nov 2021 22:20:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 38B34C433FE
+	for <linux-arch@archiver.kernel.org>; Tue, 23 Nov 2021 07:50:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234824AbhKVWX7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 22 Nov 2021 17:23:59 -0500
-Received: from out1-smtp.messagingengine.com ([66.111.4.25]:46035 "EHLO
-        out1-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S233754AbhKVWX6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Nov 2021 17:23:58 -0500
-Received: from compute5.internal (compute5.nyi.internal [10.202.2.45])
-        by mailout.nyi.internal (Postfix) with ESMTP id F04595C0216;
-        Mon, 22 Nov 2021 17:20:49 -0500 (EST)
-Received: from imap45 ([10.202.2.95])
-  by compute5.internal (MEProxy); Mon, 22 Nov 2021 17:20:49 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=owlfolio.org; h=
-        mime-version:message-id:in-reply-to:references:date:from:to:cc
-        :subject:content-type; s=fm1; bh=FCiOZI9Dv20tAQ/7weQX2U+Lw8g5MWM
-        QEAl+y42pkKY=; b=QeNEi/AvK+hUIh19j4A+w35hKQD6AvtNdPGl90BKWAdJZbi
-        X0dlB5XmiTonKKlE3TfNxWUA8CnP8C4D3Koui8OWgTNn6cgpFdmjmxPVqWvXY02x
-        eUv5KaGaRNAiDXPnZlqP5GV6z5t64Op5ijxfokgiWt+prR/83JcgUu1KmW4p6u4p
-        JWrYxfBvURPXEk9/RcT3Wf4G5HJcfA4NmjpabgA2+JAD9CwuOe2LTy+LKjjO84Hf
-        6dgD0noO2GJRdKgwZlxuBSIBEnp8ChH+YV1go5nPw1qeqQOiqOnk2m7OB//nGa+r
-        i5Wy9GudkLvgQ858Yy1KHtLuJw6dgrELjCE7RlA==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-        messagingengine.com; h=cc:content-type:date:from:in-reply-to
-        :message-id:mime-version:references:subject:to:x-me-proxy
-        :x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; bh=FCiOZI
-        9Dv20tAQ/7weQX2U+Lw8g5MWMQEAl+y42pkKY=; b=ewXBhaKwZLdmIj+sVkHsf9
-        a0YSi9sP0qm9FmmmKZiGKfjGEJqBOI0PwYjRT/tm8wPlVyMQpaHenat9tthmfJNp
-        hvhhMkVPyq9aBgnxPz7vG+NaGRlLAooKioTubxNhyzraHFL6zN0O0DAfN1GZWG3u
-        oNc2JXxb4rwNDCXYigmtGzeO8OZZsWGUoR1PXsSygAO/6RVqSRZXMkhjAzPmOR4o
-        AoWnsRjtL5HXh4BSry0m48O5ZyiUxmlQvE3YrzNCIQy3zKIE7blR9Ue/2e6bWgJd
-        mWBHpKCQyrbMfufQXgNpdfSqdFgJTBs564Da0Xhkrhd6YyKbSUpNw9cdAoAvzxtg
-        ==
-X-ME-Sender: <xms:wRecYZdfCh09993z-RORgZjn0BOI_8kLoYaGF3jMOdIUfnPfmvsI8g>
-    <xme:wRecYXN5dggdlACAyRkvZsUt6oqUnQoyl00nJRjjEt5w9bYXw5dkjLf34AjrdJpZR
-    YmCfMH1KLoUNkLkxxg>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvuddrgeeggdduiedtucetufdoteggodetrfdotf
-    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
-    uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
-    cujfgurhepofgfggfkjghffffhvffutgesthdtredtreertdenucfhrhhomhepfdgkrggt
-    khcuhggvihhnsggvrhhgfdcuoeiirggtkhesohiflhhfohhlihhordhorhhgqeenucggtf
-    frrghtthgvrhhnpefhuefhveeuffetfffgjeetgfekkeehfedtfeelgfehffffveehkeel
-    fefgheffudenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhroh
-    hmpeiirggtkhesohiflhhfohhlihhordhorhhg
-X-ME-Proxy: <xmx:wRecYShg87In53jYFl4bkLTO_d4fVgJeFcvgzaVd7xtXrC2El82iwg>
-    <xmx:wRecYS9Nx3NXMazQy4eNpUK3utqVVP3bE3-db4qGrhIhD0g_oDntPg>
-    <xmx:wRecYVvby4ByQWrYB4nSaXRaL2-thVvNo16RHugYiavRR9uod8TCFQ>
-    <xmx:wRecYdI655DXx77lkf7cprqbo_ioS7XxEV5dg57HePNcF6rLB4g8Og>
-Received: by mailuser.nyi.internal (Postfix, from userid 501)
-        id 5B74024A0079; Mon, 22 Nov 2021 17:20:49 -0500 (EST)
-X-Mailer: MessagingEngine.com Webmail Interface
-User-Agent: Cyrus-JMAP/3.5.0-alpha0-1371-g2296cc3491-fm-20211109.003-g2296cc34
-Mime-Version: 1.0
-Message-Id: <c5993ee9-1b5d-4469-9c0e-8d4e0fbd575a@www.fastmail.com>
-In-Reply-To: <YZvIlz7J6vOEY+Xu@yuki>
-References: <YZvIlz7J6vOEY+Xu@yuki>
-Date:   Mon, 22 Nov 2021 22:19:59 +0000
-From:   "Zack Weinberg" <zack@owlfolio.org>
-To:     "Cyril Hrubis" <chrubis@suse.cz>, linux-kernel@vger.kernel.org
-Cc:     linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        libc-alpha@sourceware.org, ltp@lists.linux.it
-Subject: Re: [PATCH] uapi: Make __{u,s}64 match {u,}int64_t in userspace
-Content-Type: text/plain
+        id S234303AbhKWHxa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 23 Nov 2021 02:53:30 -0500
+Received: from mail.loongson.cn ([114.242.206.163]:52076 "EHLO loongson.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S234417AbhKWHxa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Nov 2021 02:53:30 -0500
+Received: from localhost.localdomain (unknown [111.9.175.10])
+        by mail.loongson.cn (Coremail) with SMTP id AQAAf9AxF+genZxh3IgAAA--.1089S4;
+        Tue, 23 Nov 2021 15:50:03 +0800 (CST)
+From:   Huang Pei <huangpei@loongson.cn>
+To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        ambrosehua@gmail.com
+Cc:     Bibo Mao <maobibo@loongson.cn>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        linux-mips@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org, Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Paul Burton <paulburton@kernel.org>,
+        Li Xuefeng <lixuefeng@loongson.cn>,
+        Yang Tiezhu <yangtiezhu@loongson.cn>,
+        Gao Juxin <gaojuxin@loongson.cn>,
+        Fuxin Zhang <zhangfx@lemote.com>,
+        Huacai Chen <chenhuacai@loongson.cn>, lkp@intel.com
+Subject: [PATCH 2/6] slip: fix macro redefine warning
+Date:   Tue, 23 Nov 2021 15:49:23 +0800
+Message-Id: <20211123074927.12461-3-huangpei@loongson.cn>
+X-Mailer: git-send-email 2.20.1
+In-Reply-To: <20211123074927.12461-1-huangpei@loongson.cn>
+References: <20211123074927.12461-1-huangpei@loongson.cn>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-CM-TRANSID: AQAAf9AxF+genZxh3IgAAA--.1089S4
+X-Coremail-Antispam: 1UD129KBjvdXoWrKryDAr15tF43tw4rWw1Dtrb_yoW3WFg_Kw
+        13Zr93XF1YkFnYqrW3Kr4rAFWYkw1UXwn7Wwnag343Xw1j9w48AFWkCa18Jr9xCr4vvFnx
+        C3yYkry0y343KjkaLaAFLSUrUUUUUb8apTn2vfkv8UJUUUU8Yxn0WfASr-VFAUDa7-sFnT
+        9fnUUIcSsGvfJTRUUUbDxFF20E14v26rWj6s0DM7CY07I20VC2zVCF04k26cxKx2IYs7xG
+        6rWj6s0DM7CIcVAFz4kK6r1j6r18M28IrcIa0xkI8VA2jI8067AKxVWUXwA2048vs2IY02
+        0Ec7CjxVAFwI0_Xr0E3s1l8cAvFVAK0II2c7xJM28CjxkF64kEwVA0rcxSw2x7M28EF7xv
+        wVC0I7IYx2IY67AKxVW5JVW7JwA2z4x0Y4vE2Ix0cI8IcVCY1x0267AKxVW8Jr0_Cr1UM2
+        8EF7xvwVC2z280aVAFwI0_Gr1j6F4UJwA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_GcCE3s1l
+        e2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2j2WlYx0E2Ix0cI
+        8IcVAFwI0_Jr0_Jr4lYx0Ex4A2jsIE14v26r1j6r4UMcvjeVCFs4IE7xkEbVWUJVW8JwAC
+        jcxG0xvY0x0EwIxGrwACjI8F5VA0II8E6IAqYI8I648v4I1lFIxGxcIEc7CjxVA2Y2ka0x
+        kIwI1l42xK82IYc2Ij64vIr41l4I8I3I0E4IkC6x0Yz7v_Jr0_Gr1lx2IqxVAqx4xG67AK
+        xVWUJVWUGwC20s026x8GjcxK67AKxVWUGVWUWwC2zVAF1VAY17CE14v26r1q6r43MIIYrx
+        kI7VAKI48JMIIF0xvE2Ix0cI8IcVAFwI0_Jr0_JF4lIxAIcVC0I7IYx2IY6xkF7I0E14v2
+        6r4j6F4UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I8E87Iv67AKxVWUJVW8Jw
+        CI42IY6I8E87Iv6xkF7I0E14v26r4j6r4UJbIYCTnIWIevJa73UjIFyTuYvjfUOJPEUUUU
+        U
+X-CM-SenderInfo: xkxd0whshlqz5rrqw2lrqou0/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Nov 22, 2021, at 4:43 PM, Cyril Hrubis wrote:
-> This changes the __u64 and __s64 in userspace on 64bit platforms from
-> long long (unsigned) int to just long (unsigned) int in order to match
-> the uint64_t and int64_t size in userspace.
-...
-> +
-> +#include <asm/bitsperlong.h>
-> +
->  /*
-> - * int-ll64 is used everywhere now.
-> + * int-ll64 is used everywhere in kernel now.
->   */
-> -#include <asm-generic/int-ll64.h>
-> +#if __BITS_PER_LONG == 64 && !defined(__KERNEL__)
-> +# include <asm-generic/int-l64.h>
-> +#else
-> +# include <asm-generic/int-ll64.h>
-> +#endif
+MIPS/IA64 define END as assembly function ending, which conflict
+with END definition in slip.h, just undef it at first
 
-I am all for matching __uN / __sN to uintN_t / intN_t in userspace, but may I suggest the technically simpler and guaranteed-to-be-accurate
+Reported-by: lkp@intel.com
+Signed-off-by: Huang Pei <huangpei@loongson.cn>
+---
+ drivers/net/slip/slip.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
- /*
-- * int-ll64 is used everywhere now.
-+ * int-ll64 is used everywhere in kernel now.
-+ * In user space match <stdint.h>.
-  */
-+#ifdef __KERNEL__
- # include <asm-generic/int-ll64.h>
-+#elif __has_include (<bits/types.h>)
-+# include <bits/types.h>
-+typedef __int8_t __s8;
-+typedef __uint8_t __u8;
-+typedef __int16_t __s16;
-+typedef __uint16_t __u16;
-+typedef __int32_t __s32;
-+typedef __uint32_t __u32;
-+typedef __int64_t __s64;
-+typedef __uint64_t __u64;
-+#else
-+# include <stdint.h>
-+typedef int8_t __s8;
-+typedef uint8_t __u8;
-+typedef int16_t __s16;
-+typedef uint16_t __u16;
-+typedef int32_t __s32;
-+typedef uint32_t __u32;
-+typedef int64_t __s64;
-+typedef uint64_t __u64;
-+#endif
+diff --git a/drivers/net/slip/slip.h b/drivers/net/slip/slip.h
+index c420e5948522..3d7f88b330c1 100644
+--- a/drivers/net/slip/slip.h
++++ b/drivers/net/slip/slip.h
+@@ -40,6 +40,8 @@
+ 					   insmod -oslip_maxdev=nnn	*/
+ #define SL_MTU		296		/* 296; I am used to 600- FvK	*/
+ 
++/* some arch define END as assembly function ending, just undef it */
++#undef	END
+ /* SLIP protocol characters. */
+ #define END             0300		/* indicates end of frame	*/
+ #define ESC             0333		/* indicates byte stuffing	*/
+-- 
+2.20.1
 
-The middle clause could be dropped if we are okay with all uapi headers potentially exposing the non-implementation-namespace names defined by <stdint.h>.  I do not know what the musl libc equivalent of <bits/types.h> is.
-
-zw
