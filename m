@@ -2,84 +2,62 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 704CCC433FE
-	for <linux-arch@archiver.kernel.org>; Thu, 25 Nov 2021 15:49:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 38539C433EF
+	for <linux-arch@archiver.kernel.org>; Thu, 25 Nov 2021 18:46:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232996AbhKYPxF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 25 Nov 2021 10:53:05 -0500
-Received: from mail.kernel.org ([198.145.29.99]:60420 "EHLO mail.kernel.org"
+        id S242568AbhKYStP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 25 Nov 2021 13:49:15 -0500
+Received: from mail.kernel.org ([198.145.29.99]:46258 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1356149AbhKYPve (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 Nov 2021 10:51:34 -0500
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 85A06610E8;
-        Thu, 25 Nov 2021 15:48:23 +0000 (UTC)
+        id S242665AbhKYSrN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Nov 2021 13:47:13 -0500
+Received: by mail.kernel.org (Postfix) with ESMTPS id 4C8C0610CA;
+        Thu, 25 Nov 2021 18:44:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1637855303;
-        bh=U7MnU5/31mywm76pdPoiwNd1pEooMskUeZ3nm7n/GBE=;
-        h=From:Date:Subject:To:Cc:From;
-        b=HbEF+WgTNYB3xPn4IM34ql3drUawHVQYUXgKN8gPbOUU9TArGoYNNmH09EPLFBw8B
-         F4S18r/ti+4uUNSgXWwgpTv0UxREd8lPzajhj0hwfK1N3c6XNb0HgqyVBflMjl+SCf
-         24g/ZKONqVk11QaqIncwuYMr4H0DoIIXo6tjiAM56obPTFTqBVjpcgbGgLfd3/Sc5v
-         tFVWcNgNbp4r3XXswKUOOIKNYNz3SkC1UU6ka9d8/FiYywRmbjrsX8E7jH+J1JCJoS
-         ei8QcReE5rE8Y75kCY1eWvE5/HagT/g437QIP0eHMsvlhBU9eXh/Hb434zrtjGaK4J
-         xvrXsPKNJOa9A==
-Received: by mail-wm1-f51.google.com with SMTP id p27-20020a05600c1d9b00b0033bf8532855so4964842wms.3;
-        Thu, 25 Nov 2021 07:48:23 -0800 (PST)
-X-Gm-Message-State: AOAM530pw0A7Qjn6VMtmyMOJc/Ec/YVzKMUmFlMXNkBCPVLgpdx/dJeQ
-        ud7Zcnip4ao1LSHkbwYfKTJGepgGjjZ+iv62lpk=
-X-Google-Smtp-Source: ABdhPJxbqqGkf5AOVj86Ru2m9pY6KCLxo9YD5MjcXG82yvgpiF9EdnoAXupJRtGrvNIRhAhII9KPjTwE1tLzjXEtikg=
-X-Received: by 2002:a05:600c:6d2:: with SMTP id b18mr8588376wmn.98.1637855302022;
- Thu, 25 Nov 2021 07:48:22 -0800 (PST)
-MIME-Version: 1.0
-From:   Arnd Bergmann <arnd@kernel.org>
-Date:   Thu, 25 Nov 2021 16:48:06 +0100
-X-Gmail-Original-Message-ID: <CAK8P3a1JPS=3Zz3H9ptaAnqonnPUo546BP0rAAWT5KOcZEj55g@mail.gmail.com>
-Message-ID: <CAK8P3a1JPS=3Zz3H9ptaAnqonnPUo546BP0rAAWT5KOcZEj55g@mail.gmail.com>
-Subject: [GIT PULL] asm-generic: syscall table updates
-To:     Linus Torvalds <torvalds@linux-foundation.org>
-Cc:     Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        s=k20201202; t=1637865842;
+        bh=RMyMRjbvG2n75tpdHny3DubP33sskUbHGgBU5+Ru884=;
+        h=Subject:From:In-Reply-To:References:Date:To:Cc:From;
+        b=HfTJoDxOqf+ctIlgxvzvdeI2+IjzS303cDz5Yu1Afzds6eWrwpTo0xJmfIWxgggA7
+         hvetwER2A0wQkfd6CuQQAPt08vT4ZRnc5P6Bf+veFHNrB0v+E7wckPuTNNTmnJwBMq
+         hzCf39lVBH85EGw0b4KWVoBxejPklByTlrpywmuOKmKyh+x+DLU4AG5X7LItyZM/gR
+         m4AAoOzBclXkDpivXn+IK5Dotikbu4NpInjpppJSYg8yaFfg2PyzA/mBB9JyLQRixd
+         aqNXISJX8NdZ50dfg3HMGMZEBYVOeVO9UZvCDbu9nt8gUUmer7EagPrPRMSv3ICAIY
+         QgQTmcQGEvQPA==
+Received: from pdx-korg-docbuild-2.ci.codeaurora.org (localhost.localdomain [127.0.0.1])
+        by pdx-korg-docbuild-2.ci.codeaurora.org (Postfix) with ESMTP id 46DAB609D5;
+        Thu, 25 Nov 2021 18:44:02 +0000 (UTC)
+Subject: Re: [GIT PULL] asm-generic: syscall table updates
+From:   pr-tracker-bot@kernel.org
+In-Reply-To: <CAK8P3a1JPS=3Zz3H9ptaAnqonnPUo546BP0rAAWT5KOcZEj55g@mail.gmail.com>
+References: <CAK8P3a1JPS=3Zz3H9ptaAnqonnPUo546BP0rAAWT5KOcZEj55g@mail.gmail.com>
+X-PR-Tracked-List-Id: <linux-arch.vger.kernel.org>
+X-PR-Tracked-Message-Id: <CAK8P3a1JPS=3Zz3H9ptaAnqonnPUo546BP0rAAWT5KOcZEj55g@mail.gmail.com>
+X-PR-Tracked-Remote: git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-5.16-2
+X-PR-Tracked-Commit-Id: a0eb2da92b715d0c97b96b09979689ea09faefe6
+X-PR-Merge-Tree: torvalds/linux.git
+X-PR-Merge-Refname: refs/heads/master
+X-PR-Merge-Commit-Id: b501b85957deb17f1fe0a861fee820255519d526
+Message-Id: <163786584228.16379.1846651949947500762.pr-tracker-bot@kernel.org>
+Date:   Thu, 25 Nov 2021 18:44:02 +0000
+To:     Arnd Bergmann <arnd@kernel.org>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
         linux-arch <linux-arch@vger.kernel.org>,
         Linux API <linux-api@vger.kernel.org>,
         =?UTF-8?Q?Andr=C3=A9_Almeida?= <andrealmeid@collabora.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The following changes since commit fa55b7dcdc43c1aa1ba12bca9d2dd4318c2a0dbf=
-:
+The pull request you sent on Thu, 25 Nov 2021 16:48:06 +0100:
 
-  Linux 5.16-rc1 (2021-11-14 13:56:52 -0800)
+> git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-5.16-2
 
-are available in the Git repository at:
+has been merged into torvalds/linux.git:
+https://git.kernel.org/torvalds/c/b501b85957deb17f1fe0a861fee820255519d526
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
-tags/asm-generic-5.16-2
+Thank you!
 
-for you to fetch changes up to a0eb2da92b715d0c97b96b09979689ea09faefe6:
-
-  futex: Wireup futex_waitv syscall (2021-11-25 14:26:12 +0100)
-
-----------------------------------------------------------------
-asm-generic: syscall table updates
-
-Andr=C3=A9 Almeida sends an update for the newly added futex_waitv
-syscall that was initially only added to a few architectures.
-
-Some additional ones have since made it through architecture
-maintainer trees, this finishes the remaining ones.
-
-----------------------------------------------------------------
-Andr=C3=A9 Almeida (1):
-      futex: Wireup futex_waitv syscall
-
- arch/alpha/kernel/syscalls/syscall.tbl      | 1 +
- arch/ia64/kernel/syscalls/syscall.tbl       | 1 +
- arch/m68k/kernel/syscalls/syscall.tbl       | 1 +
- arch/microblaze/kernel/syscalls/syscall.tbl | 1 +
- arch/powerpc/kernel/syscalls/syscall.tbl    | 1 +
- arch/sh/kernel/syscalls/syscall.tbl         | 1 +
- arch/sparc/kernel/syscalls/syscall.tbl      | 1 +
- arch/xtensa/kernel/syscalls/syscall.tbl     | 1 +
- 8 files changed, 8 insertions(+)
+-- 
+Deet-doot-dot, I am a bot.
+https://korg.docs.kernel.org/prtracker.html
