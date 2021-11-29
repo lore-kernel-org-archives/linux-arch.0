@@ -2,226 +2,229 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 33C69C433EF
-	for <linux-arch@archiver.kernel.org>; Sun, 28 Nov 2021 04:47:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 163DEC433EF
+	for <linux-arch@archiver.kernel.org>; Mon, 29 Nov 2021 09:01:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1345553AbhK1EvD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 27 Nov 2021 23:51:03 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52434 "EHLO
+        id S241953AbhK2JEt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 29 Nov 2021 04:04:49 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51718 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233339AbhK1EtD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 Nov 2021 23:49:03 -0500
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 12FAAC061574
-        for <linux-arch@vger.kernel.org>; Sat, 27 Nov 2021 20:45:48 -0800 (PST)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 0757A60C19
-        for <linux-arch@vger.kernel.org>; Sun, 28 Nov 2021 04:45:47 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 08485C004E1;
-        Sun, 28 Nov 2021 04:45:45 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1638074746;
-        bh=ZbpWTxb1aglqpSe8DgXusNYOrzGJ91cJat6TKWD0/NE=;
-        h=In-Reply-To:References:Date:From:To:Cc:Subject:From;
-        b=NGe39pbvod0+dozPTBXxyZJPAAeNv8x7bgwkG49fg3LrNNdH/mTZ0q+U/huSYLz9s
-         FsudwDjJV8S+AkHZKuQ4jrLb9PLnbMrO+z6p1nFWQ2QfBgK4NorbAfEqdXWRBRIaQT
-         1PRvVPnJa5EIWdqo+w9JYLcYPfTUBwVqBpa9s7KyoXeZIPeFVm/xpl9lZeG+l0jneC
-         4HfY2CSCD4/U6Jrlp0STeIKZWPxNTh9JKfQ00lGZInUs0/XOYjnv8SlYpk0UZSjr8H
-         S3T6WxrRuG1CvqO6Ipjrr1N46VbJiAylX0Pjf7zOeiv1w/RzCr7PbCkICM+zGAapoc
-         IvA5W60dakV9g==
+        with ESMTP id S240029AbhK2JCr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Nov 2021 04:02:47 -0500
+Received: from mail-qt1-x835.google.com (mail-qt1-x835.google.com [IPv6:2607:f8b0:4864:20::835])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 25536C061374;
+        Mon, 29 Nov 2021 00:48:29 -0800 (PST)
+Received: by mail-qt1-x835.google.com with SMTP id n15so15888418qta.0;
+        Mon, 29 Nov 2021 00:48:29 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=ItEAYKU3F6ZMzjeJrS4XI6sKMzUfcWZjmcqkDWVUXwI=;
+        b=a+k8hqQ/8UPeA66xzAZg70hsiPM+lJH0YLsAf1TmCYq18DQttu2qSDU9hqgnuUpxLT
+         NVfE+/e0vG5dSjsS7dE+3yEy6nCFH6RxV3UbdlcJ5w2La17HvkYCe4m74huwMGxm2S3H
+         lSwHgqDUGF+BVCsH+oZp2l0Jt5GX0WKqXjiZqYr9MYidYDlGaK4XdhsO9OHI6URXgYu8
+         DDJSk/u6oK+NpEg3mqjAyXOJw68AgOrvfgGn8r9Aa7YJwL5zOJfSzBkMTII876Jyh9vE
+         Id8HqQPy/DHx6/PS4JXxtQR+cC+ZP5ykUdfsBnGfgAtVvBQeABDeEuVVuXnFGII3mx5p
+         CssA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=ItEAYKU3F6ZMzjeJrS4XI6sKMzUfcWZjmcqkDWVUXwI=;
+        b=eae6w522RMo4cd48VqdRGBZ7GyMSh7am0JUBA0Nw0/N3SbysLlfBbaqjrRnr3GFlcY
+         dIRAwCCwVz0RSLrh09Tc7II/f5WOc90n88rgPb94MmT8F83kMiIxltUavcDXBb2aftPx
+         vQL/+OXq+rRhkhzdf1Yv5evib7IMlQhy8u3EIylD25gl5xc7pdIiRTYCVTPw6dXfuLPS
+         SzX+24qkfV68haHOdj4+c5ABBIVFuPKECidWtr66QNuaMLCkVNB7rjrVG1HQu1kXmsG4
+         97ucJa7BPOJuUjYHjSQra6UMskURil/WxncMlx/uotKU0FdIDsIB6VZBprQYkLALBeSe
+         YeXw==
+X-Gm-Message-State: AOAM5310bNykzpzMWS5Veqc+kJvz/rSI3agN8sDl5VYHn1bWAOK1Fm4w
+        nbM85mUJ+igMQFVZhSUezzM=
+X-Google-Smtp-Source: ABdhPJwvG2HvAGdJeeRHSwZnojeN/R3RienXKSIOM/skzSEjxmAlX/J6WUpt0SLTOq5x8wuBbiB0xQ==
+X-Received: by 2002:a05:622a:1d3:: with SMTP id t19mr42663143qtw.181.1638175708233;
+        Mon, 29 Nov 2021 00:48:28 -0800 (PST)
+Received: from auth1-smtp.messagingengine.com (auth1-smtp.messagingengine.com. [66.111.4.227])
+        by smtp.gmail.com with ESMTPSA id h13sm8516048qtk.25.2021.11.29.00.48.26
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 29 Nov 2021 00:48:27 -0800 (PST)
 Received: from compute6.internal (compute6.nyi.internal [10.202.2.46])
-        by mailauth.nyi.internal (Postfix) with ESMTP id D07C227C0054;
-        Sat, 27 Nov 2021 23:45:44 -0500 (EST)
-Received: from imap48 ([10.202.2.98])
-  by compute6.internal (MEProxy); Sat, 27 Nov 2021 23:45:44 -0500
-X-ME-Sender: <xms:eAmjYQEdZ0-o8ofYtWheoLhWdYUeBi4cq039QwwgyP_-ZAgt1q9dTA>
-    <xme:eAmjYZVb2FWUhFJgsw1zl5aj2GWzwrYDC3rAIsJuI93CIJ7ZAzK3u8n63vqMiSOyC
-    g8_NAQwgMrnVjLF0S4>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvuddrheehgdejiecutefuodetggdotefrodftvf
+        by mailauth.nyi.internal (Postfix) with ESMTP id 734BF27C0054;
+        Mon, 29 Nov 2021 03:48:25 -0500 (EST)
+Received: from mailfrontend2 ([10.202.2.163])
+  by compute6.internal (MEProxy); Mon, 29 Nov 2021 03:48:26 -0500
+X-ME-Sender: <xms:2ZOkYcXcFR3zFG3N3VRUYdkpBLbLU6SuJePcJgbyoBS1n1NZHSiMuA>
+    <xme:2ZOkYQkaOqq71jAoqNsV-ffkXYxpxTGQmPpbdHVUxegXXAMmjheBW77Tc_ejqdQXJ
+    NlYKmLMP4aNqE3uRw>
+X-ME-Received: <xmr:2ZOkYQaEzXMQzcbb-LlKh9UkRB4Xuoz1iztbgMlLSUyIV-wnFJFTzVI4lla6_w>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvuddrheekgdeivdcutefuodetggdotefrodftvf
     curfhrohhfihhlvgemucfhrghsthforghilhdpqfgfvfdpuffrtefokffrpgfnqfghnecu
     uegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivghnthhsucdlqddutddtmdenuc
-    fjughrpefofgggkfgjfhffhffvufgtgfesthhqredtreerjeenucfhrhhomhepfdetnhgu
-    hicunfhuthhomhhirhhskhhifdcuoehluhhtoheskhgvrhhnvghlrdhorhhgqeenucggtf
-    frrghtthgvrhhnpeeugfeufeevkeehvddtfffgkeelhefgkeehveetgeeikeegheeivdff
-    gfejteduhfenucffohhmrghinhepkhgvrhhnvghlrdhorhhgnecuvehluhhsthgvrhfuih
-    iivgeptdenucfrrghrrghmpehmrghilhhfrhhomheprghnugihodhmvghsmhhtphgruhht
-    hhhpvghrshhonhgrlhhithihqdduudeiudekheeifedvqddvieefudeiiedtkedqlhhuth
-    hopeepkhgvrhhnvghlrdhorhhgsehlihhnuhigrdhluhhtohdruhhs
-X-ME-Proxy: <xmx:eAmjYaI0I4rs5rHbyRnLI8xGlIJZtM1Jy8NGBM26prCVaHB4S3Nd7Q>
-    <xmx:eAmjYSFhgrh2rmnQ0HRXd68c3SsZGgmCH9KSoaJuslBn4LNrGh7agw>
-    <xmx:eAmjYWXFdhcSg2Wm4m1tOQHwgJuXERTCWl6GtFCd4J3hcfhKsln7pw>
-    <xmx:eAmjYSQM5l3EmkmIFlvUYUtMCRrICQpynBAFeH3pchZosN1KSbpW08jN6Mg>
-Received: by mailuser.nyi.internal (Postfix, from userid 501)
-        id 2857421E006E; Sat, 27 Nov 2021 23:45:44 -0500 (EST)
-X-Mailer: MessagingEngine.com Webmail Interface
-User-Agent: Cyrus-JMAP/3.5.0-alpha0-1371-g2296cc3491-fm-20211109.003-g2296cc34
-Mime-Version: 1.0
-Message-Id: <3b5fb404-7228-48d6-a290-9dd1d6095325@www.fastmail.com>
-In-Reply-To: <878rxaik09.fsf@oldenburg.str.redhat.com>
-References: <87h7bzjaer.fsf@oldenburg.str.redhat.com>
- <4728eeae-8f1b-4541-b05a-4a0f35a459f7@www.fastmail.com>
- <87lf1ais27.fsf@oldenburg.str.redhat.com>
- <9641b76e-9ae0-4c26-97b6-76ecde34f0ef@www.fastmail.com>
- <878rxaik09.fsf@oldenburg.str.redhat.com>
-Date:   Sat, 27 Nov 2021 20:45:23 -0800
-From:   "Andy Lutomirski" <luto@kernel.org>
-To:     "Florian Weimer" <fweimer@redhat.com>
-Cc:     linux-arch@vger.kernel.org,
-        "Linux API" <linux-api@vger.kernel.org>,
-        linux-x86_64@vger.kernel.org, kernel-hardening@lists.openwall.com,
-        linux-mm@kvack.org, "the arch/x86 maintainers" <x86@kernel.org>,
-        musl@lists.openwall.com,
-        "Dave Hansen via Libc-alpha" <libc-alpha@sourceware.org>,
-        "Linux Kernel Mailing List" <linux-kernel@vger.kernel.org>,
-        "Dave Hansen" <dave.hansen@intel.com>,
-        "Kees Cook" <keescook@chromium.org>
-Subject: Re: [PATCH] x86: Implement arch_prctl(ARCH_VSYSCALL_LOCKOUT) to disable
- vsyscall
-Content-Type: text/plain;charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+    fjughrpeffhffvuffkfhggtggujgesthdtredttddtvdenucfhrhhomhepuehoqhhunhcu
+    hfgvnhhguceosghoqhhunhdrfhgvnhhgsehgmhgrihhlrdgtohhmqeenucggtffrrghtth
+    gvrhhnpedvleeigedugfegveejhfejveeuveeiteejieekvdfgjeefudehfefhgfegvdeg
+    jeenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpegsoh
+    hquhhnodhmvghsmhhtphgruhhthhhpvghrshhonhgrlhhithihqdeiledvgeehtdeigedq
+    udejjeekheehhedvqdgsohhquhhnrdhfvghngheppehgmhgrihhlrdgtohhmsehfihigmh
+    gvrdhnrghmvg
+X-ME-Proxy: <xmx:2ZOkYbUGiiHKxVw0d_kOMFcc5xoyA-BUG5FXzWEirhaf1JJDRarCOQ>
+    <xmx:2ZOkYWk966q9m-wb3GwPVBb5upZvHKgIu4-0G4wcFm90nKHvzkikXw>
+    <xmx:2ZOkYQcYCEskBVC8WBN_uPPhFMtY26S20P3wAgL3GNr8SONNhNb70w>
+    <xmx:2ZOkYVfVJQi6ugUp1EpMKu9YEEGtLuyQuIFZTOwSc61Y6e5-nDmRfOtEuqE>
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Mon,
+ 29 Nov 2021 03:48:24 -0500 (EST)
+Date:   Mon, 29 Nov 2021 16:47:27 +0800
+From:   Boqun Feng <boqun.feng@gmail.com>
+To:     Marco Elver <elver@google.com>
+Cc:     "Paul E. McKenney" <paulmck@kernel.org>,
+        Alexander Potapenko <glider@google.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Dmitry Vyukov <dvyukov@google.com>,
+        Ingo Molnar <mingo@kernel.org>,
+        Josh Poimboeuf <jpoimboe@redhat.com>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Waiman Long <longman@redhat.com>,
+        Will Deacon <will@kernel.org>, kasan-dev@googlegroups.com,
+        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
+        linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-mm@kvack.org, x86@kernel.org
+Subject: Re: [PATCH v2 03/23] kcsan: Avoid checking scoped accesses from
+ nested contexts
+Message-ID: <YaSTn3JbkHsiV5Tm@boqun-archlinux>
+References: <20211118081027.3175699-1-elver@google.com>
+ <20211118081027.3175699-4-elver@google.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20211118081027.3175699-4-elver@google.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Nov 26, 2021, at 3:18 PM, Florian Weimer wrote:
-> * Andy Lutomirski:
->
->> On Fri, Nov 26, 2021, at 12:24 PM, Florian Weimer wrote:
->>> * Andy Lutomirski:
->>>
->>>> On Fri, Nov 26, 2021, at 5:47 AM, Florian Weimer wrote:
->>>>> Distributions struggle with changing the default for vsyscall
->>>>> emulation because it is a clear break of userspace ABI, something
->>>>> that should not happen.
->>>>>
->>>>> The legacy vsyscall interface is supposed to be used by libcs only,
->>>>> not by applications.  This commit adds a new arch_prctl request,
->>>>> ARCH_VSYSCALL_LOCKOUT.  Newer libcs can adopt this request to sign=
-al
->>>>> to the kernel that the process does not need vsyscall emulation.
->>>>> The kernel can then disable it for the remaining lifetime of the
->>>>> process.  Legacy libcs do not perform this call, so vsyscall remai=
-ns
->>>>> enabled for them.  This approach should achieves backwards
->>>>> compatibility (perfect compatibility if the assumption that only l=
-ibcs
->>>>> use vsyscall is accurate), and it provides full hardening for new
->>>>> binaries.
->>>>
->>>> Why is a lockout needed instead of just a toggle?  By the time an
->>>> attacker can issue prctls, an emulated vsyscall seems like a pretty
->>>> minor exploit technique.  And programs that load legacy modules or
->>>> instrument other programs might need to re-enable them.
->>>
->>> For glibc, I plan to add an environment variable to disable the lock=
-out.
->>> There's no ELF markup that would allow us to do this during dlopen.
->>> (And after this change, you can run an old distribution in a chroot
->>> for legacy software, something that the userspace ABI break prevents=
-.)
->>>
->>> If it can be disabled, people will definitely say, =E2=80=9Cwe get m=
-ore complete
->>> hardening if we break old userspace=E2=80=9D.  I want to avoid that.=
-  (People
->>> will say that anyway because there's this fairly large window of lib=
-cs
->>> that don't use vsyscalls anymore, but have not been patched yet to do
->>> the lockout.)
->>
->> I=E2=80=99m having trouble following the logic. What I mean is that I=
- think it
->> should be possible to do the arch_prctl again to turn vsyscalls back
->> on.
->
-> The =E2=80=9CBy the time an attacker can issue prctls=E2=80=9D argumen=
-t does resonate
-> with me, but I'm not the one who needs convincing.
+Hi Marco,
 
-Who else needs convincing?  It's your patch.
+On Thu, Nov 18, 2021 at 09:10:07AM +0100, Marco Elver wrote:
+> Avoid checking scoped accesses from nested contexts (such as nested
+> interrupts or in scheduler code) which share the same kcsan_ctx.
+> 
+> This is to avoid detecting false positive races of accesses in the same
 
-This could possibly be much more generic: have a mask of legacy features=
- to disable and a separate mask of lock bits.
+Could you provide an example for a false positive?
 
->
-> I can turn this into a toggle, and we could probably default our builds
-> to vsyscalls=3Dxonly.  Given the userspace ABI impact, we'd still have=
- to
-> upstream the toggle.  Do you see a chance of a patch a long these lines
-> going in at all, given that it's an incomplete solution for
-> vsyscall=3Demulate?
+I think we do want to detect the following race:
 
-There is basically no reason for anyone to use vsyscall=3Demulate any mo=
-re.  I'm aware of exactly one use case, and it's quite bizarre and invol=
-ves instrumenting an outdated binary with an outdated instrumentation to=
-ol.  If either one is recent (last few years), vsyscall=3Dxonly is fine.
+	static int v = SOME_VALUE; // a percpu variable.
+	static int other_v = ... ;
 
->
->>> Maybe the lockout also simplifies the implementation?
->>>
->>>> Also, the interaction with emulate mode is somewhat complex. For no=
-w,
->>>> let=E2=80=99s support this in xonly mode only. A complete implement=
-ation will
->>>> require nontrivial mm work.  I had that implemented pre-KPTI, but K=
-PTI
->>>> made it more complicated.
->>>
->>> I admit I only looked at the code in emulate_vsyscall.  It has code =
-that
->>> seems to deal with faults not due to instruction fetch, and also che=
-cks
->>> for vsyscall=3Demulate mode.  But it seems that we don't get to this=
- point
->>> for reads in vsyscall=3Demulate mode, presumably because the page is
->>> already mapped?
->>
->> Yes, and, with KPTI off, it=E2=80=99s nontrivial to unmap it. I have =
-code for
->> this, but I=E2=80=99m not sure the complexity is worthwhile.
->
-> Huh.  KPTI is the new thing, right?  Does it make things harder or not?
-> I'm confused.
->
-> If we knew at execve time that the new process image doesn't have
-> vsyscall, would that be easier to set up?  vsyscall opt-out could be
-> triggered by an ELF NOTE segment on the program interpreter (or main
-> program if there isn't one).
+	void foo(..)
+	{
+		int tmp;
+		int other_tmp;
 
-Nah, it's a different issue.  The vsyscall mapping isn't a normal mappin=
-g at all.  It's in the *kernel* address range, so it's not in the user p=
-ortion of the page tables.  This means that, per mm, there is only the p=
-gd entry that can be changed.  With kpti off, it can be fudged using the=
- U bit (hah!).  With kpti on, the same trick would work, but the whole p=
-agetable arrangement is different, and the patch would need updating.
+		preempt_disable();
+		{
+			ASSERT_EXCLUSIVE_ACCESSS_SCOPED(v);
+			tmp = v;
+			
+			other_tmp = other_v; // int_handler() may run here
+			
+			v = tmp + 2;
+		}
+		preempt_enabled();
+	}
 
-The patch looks a bit like this:
+	void int_handler() // an interrupt handler
+	{
+		v++;
+	}
 
-https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/commit/?h=
-=3Dx86/vdso_permm&id=3D18432aa9942e8c36c3ba008d2908c246127d135c
+, if I understand correctly, we can detect this currently, but with this
+patch, we cannot detect this if the interrupt happens while we're doing
+the check for "other_tmp = other_v;", right? Of course, running tests
+multiple times may eventually catch this, but I just want to understand
+what's this patch for, thanks!
 
-except I screwed up and there's a bunch of irrelevant stuff in there. Bu=
-t the patch would need updating for new kernels.  In any event, none of =
-this is needed in xonly mode.
+Regards,
+Boqun
 
->
->>>> Finally, /proc/self/maps should be wired up via the gate_area code.
->>>
->>> Should the "[vsyscall]" string change to something else if execution=
- is
->>> disabled?
->>
->> I think the line should disappear entirely, just like booting with
->> vsyscall=3Dnone.
->
-> Hmm.  But only for vsyscall=3Dxonly, right?  With vsyscall=3Demulate,
-> reading at those addresses will still succeed.
-
-IMO if vsyscall is disabled for a process, reads and executes should bot=
-h fail.  This is trivial in xonly mode.
-
->
-> Thanks,
-> Florian
+> thread with currently scoped accesses: consider setting up a watchpoint
+> for a non-scoped (normal) access that also "conflicts" with a current
+> scoped access. In a nested interrupt (or in the scheduler), which shares
+> the same kcsan_ctx, we cannot check scoped accesses set up in the parent
+> context -- simply ignore them in this case.
+> 
+> With the introduction of kcsan_ctx::disable_scoped, we can also clean up
+> kcsan_check_scoped_accesses()'s recursion guard, and do not need to
+> modify the list's prev pointer.
+> 
+> Signed-off-by: Marco Elver <elver@google.com>
+> ---
+>  include/linux/kcsan.h |  1 +
+>  kernel/kcsan/core.c   | 18 +++++++++++++++---
+>  2 files changed, 16 insertions(+), 3 deletions(-)
+> 
+> diff --git a/include/linux/kcsan.h b/include/linux/kcsan.h
+> index fc266ecb2a4d..13cef3458fed 100644
+> --- a/include/linux/kcsan.h
+> +++ b/include/linux/kcsan.h
+> @@ -21,6 +21,7 @@
+>   */
+>  struct kcsan_ctx {
+>  	int disable_count; /* disable counter */
+> +	int disable_scoped; /* disable scoped access counter */
+>  	int atomic_next; /* number of following atomic ops */
+>  
+>  	/*
+> diff --git a/kernel/kcsan/core.c b/kernel/kcsan/core.c
+> index e34a1710b7bc..bd359f8ee63a 100644
+> --- a/kernel/kcsan/core.c
+> +++ b/kernel/kcsan/core.c
+> @@ -204,15 +204,17 @@ check_access(const volatile void *ptr, size_t size, int type, unsigned long ip);
+>  static noinline void kcsan_check_scoped_accesses(void)
+>  {
+>  	struct kcsan_ctx *ctx = get_ctx();
+> -	struct list_head *prev_save = ctx->scoped_accesses.prev;
+>  	struct kcsan_scoped_access *scoped_access;
+>  
+> -	ctx->scoped_accesses.prev = NULL;  /* Avoid recursion. */
+> +	if (ctx->disable_scoped)
+> +		return;
+> +
+> +	ctx->disable_scoped++;
+>  	list_for_each_entry(scoped_access, &ctx->scoped_accesses, list) {
+>  		check_access(scoped_access->ptr, scoped_access->size,
+>  			     scoped_access->type, scoped_access->ip);
+>  	}
+> -	ctx->scoped_accesses.prev = prev_save;
+> +	ctx->disable_scoped--;
+>  }
+>  
+>  /* Rules for generic atomic accesses. Called from fast-path. */
+> @@ -465,6 +467,15 @@ kcsan_setup_watchpoint(const volatile void *ptr, size_t size, int type, unsigned
+>  		goto out;
+>  	}
+>  
+> +	/*
+> +	 * Avoid races of scoped accesses from nested interrupts (or scheduler).
+> +	 * Assume setting up a watchpoint for a non-scoped (normal) access that
+> +	 * also conflicts with a current scoped access. In a nested interrupt,
+> +	 * which shares the context, it would check a conflicting scoped access.
+> +	 * To avoid, disable scoped access checking.
+> +	 */
+> +	ctx->disable_scoped++;
+> +
+>  	/*
+>  	 * Save and restore the IRQ state trace touched by KCSAN, since KCSAN's
+>  	 * runtime is entered for every memory access, and potentially useful
+> @@ -578,6 +589,7 @@ kcsan_setup_watchpoint(const volatile void *ptr, size_t size, int type, unsigned
+>  	if (!kcsan_interrupt_watcher)
+>  		local_irq_restore(irq_flags);
+>  	kcsan_restore_irqtrace(current);
+> +	ctx->disable_scoped--;
+>  out:
+>  	user_access_restore(ua_flags);
+>  }
+> -- 
+> 2.34.0.rc2.393.gf8c9666880-goog
+> 
