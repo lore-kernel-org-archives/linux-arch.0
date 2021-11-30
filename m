@@ -2,55 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 86D22C433FE
-	for <linux-arch@archiver.kernel.org>; Tue, 30 Nov 2021 11:46:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E9D37C43219
+	for <linux-arch@archiver.kernel.org>; Tue, 30 Nov 2021 11:46:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236916AbhK3LuP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 30 Nov 2021 06:50:15 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45148 "EHLO
+        id S241101AbhK3LuQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 30 Nov 2021 06:50:16 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45170 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S241145AbhK3Ltj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Nov 2021 06:49:39 -0500
-Received: from mail-qv1-xf49.google.com (mail-qv1-xf49.google.com [IPv6:2607:f8b0:4864:20::f49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A8A90C06174A
-        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:45:52 -0800 (PST)
-Received: by mail-qv1-xf49.google.com with SMTP id ke1-20020a056214300100b003b5a227e98dso29052196qvb.14
-        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:45:52 -0800 (PST)
+        with ESMTP id S241168AbhK3Ltl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Nov 2021 06:49:41 -0500
+Received: from mail-wr1-x449.google.com (mail-wr1-x449.google.com [IPv6:2a00:1450:4864:20::449])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 087F5C061761
+        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:45:58 -0800 (PST)
+Received: by mail-wr1-x449.google.com with SMTP id o4-20020adfca04000000b0018f07ad171aso3516062wrh.20
+        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:45:57 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=rzdCErYR7QVJMqQ7C8iOEn+pKBOJL+BpLP2uqDT2sRI=;
-        b=iiJU/NFxnkO4QpNuEziwm44ZddXcfbqTjJ27RND0XQcNYVVoxyYjAqEozptVgUXNwN
-         tUotgFLhO6hTdCXy/8o38iy2aym7FJT+LW4h57+kXk+ITZwaPtmf/ukrKduYHtwrNNVy
-         u6zRnFErKVJc5tA07nIb20yQJs/rjFgBkkJfiMGCJ0+/frkqjjvq7sB5Qlsbun/G1B3v
-         mpVqufLXr0RiWnvRXu2PZPDLndJRxYoHPg3pEXSdStYWib1eEQIROpsu8lv6/UvQvgN4
-         KcSqzQSZ9rtkXbOEAqLYcx/YblyNiiImRh54NndbnYSq+4cJ1Y/85RKTI5bPUsrRqqxr
-         ZZsA==
+        bh=JzBhpw0Qm81Z9lbF5IGyZhQAb+5o04LDLkCFlxupKLc=;
+        b=pHRgTgtBe9w8GJo+UVuCrCXkkBePrXHeJXXGSGxiMQTDZhPB1HMZjVhCQEHB+8iuxA
+         QTqapU0TX6O4TE0Y48efyZW2bq1hF37Xt0PGzM68wPVdqNEwB+3nHHqWFUL1gWu3kHtR
+         Cq7Wrdud5dEh12cWU90OhIU4V/9Q7ULAOS9mOORJ6Eqe+R8j1ryew/Yd+VDrcTllPVFh
+         5lcxmqYwyS4EYnDSPUY2x7vLF1W4hPQ8ICF36xbdENuMBTVVtdo+SbNEIlEehDKxtwYR
+         kgzu3xNPjqGc6hHJvBg6+Ezt/2WHsUBVgd1XEwAmeXQPIFvn+uf/vjPzU0O+2NhHvmqd
+         ksUQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=rzdCErYR7QVJMqQ7C8iOEn+pKBOJL+BpLP2uqDT2sRI=;
-        b=LLwNu/37zIkd4EBSa/09WVL2YsNQsZ9cmZDrbSlBkxfrstsN7LuUMd1UX8VwRZQAfO
-         pQohOcrb+tGllVT7X/J7VPUPqr1+bpVdClcZJD5VKn3SpXmzz2v+GSg8NVg4aDbtaMbY
-         UeAeBb/sRLO86+f+DHP28Zw0yD1UJ5+0p5jd2vgSNKcI11FQcHk04X2ywkYkr/38fo6/
-         w1IcZY9LlJv4F2ReC5CRBuXb8SnUjQYyaVtAxUlNGxFKoAwG7lpnrQGJRZQO8tlTZqlv
-         eCPOCMJQfvvdsO50M/arHL2tnSjXOvwI6GLGXk2M3NmZS6zqdnqoMBBtrgMz+I1pzOo9
-         Gjww==
-X-Gm-Message-State: AOAM530xzA0Rua4d5nF/xroebsBkBP24/N3MGVwikedvQuiigkpi9dmA
-        8gHqHVXnMunQUAhdeZ+A55+rRYektg==
-X-Google-Smtp-Source: ABdhPJxS2DvHFjm5rRAa2Cv18Mr86xucn8I+904NmrEkNJGoQhVDVa+JTgno3MDa7PBFHMKHIzeyW8Gdjg==
+        bh=JzBhpw0Qm81Z9lbF5IGyZhQAb+5o04LDLkCFlxupKLc=;
+        b=CUCBUG6cBkT1flP4LbvS0UxFHe479i1baBNptRQYVGncLV1wWLHLhJ39kua34UtyRg
+         HG+IEEWbcZBZ59C9E15uoilRmAktNcpJZpUJgGMFsfEm3NrAUVlaqI07jq/0kHw40X5l
+         Eriq93deICiEGYsjGtJ1Z6Diel2Qx7CICVbrFMVNKiAYZ6OF0WxCvCcX4OwUh7WZkmMY
+         +zV7j1MOhYjcG7YxZ6kGcfCoKZBGzfG7mKeeGsQk7oR8tskSaaSTd4YkxshNqAf9ED+0
+         ETzilxOTFUL2/MH0Yg4Fyxx2zO7Mw0z0pI7OsYeGzdOGKp6hkMfpxVOR3rlRGCt6Q+2I
+         E0TQ==
+X-Gm-Message-State: AOAM533F/1uYLgrfxCDElQsfUgPaw5herslBebb6J8zPeE8KhbZjFNZo
+        1Q5JxqkUOIfSYFbFffl+fhi3GQlOsg==
+X-Google-Smtp-Source: ABdhPJyGlw39n0+Jfq+xh033MGOvVeVGOoalcV20EEznri+jie430fZfA9+7esf3Wo7SpGvol2V1AwHpQw==
 X-Received: from elver.muc.corp.google.com ([2a00:79e0:15:13:86b7:11e9:7797:99f0])
- (user=elver job=sendgmr) by 2002:ac8:5c45:: with SMTP id j5mr51253786qtj.58.1638272751779;
- Tue, 30 Nov 2021 03:45:51 -0800 (PST)
-Date:   Tue, 30 Nov 2021 12:44:28 +0100
+ (user=elver job=sendgmr) by 2002:a7b:cc8f:: with SMTP id p15mr4408290wma.129.1638272756667;
+ Tue, 30 Nov 2021 03:45:56 -0800 (PST)
+Date:   Tue, 30 Nov 2021 12:44:30 +0100
 In-Reply-To: <20211130114433.2580590-1-elver@google.com>
-Message-Id: <20211130114433.2580590-21-elver@google.com>
+Message-Id: <20211130114433.2580590-23-elver@google.com>
 Mime-Version: 1.0
 References: <20211130114433.2580590-1-elver@google.com>
 X-Mailer: git-send-email 2.34.0.rc2.393.gf8c9666880-goog
-Subject: [PATCH v3 20/25] mm, kcsan: Enable barrier instrumentation
+Subject: [PATCH v3 22/25] objtool, kcsan: Add memory barrier instrumentation
+ to whitelist
 From:   Marco Elver <elver@google.com>
 To:     elver@google.com, "Paul E. McKenney" <paulmck@kernel.org>
 Cc:     Alexander Potapenko <glider@google.com>,
@@ -71,40 +72,29 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Some memory management calls imply memory barriers that are required to
-avoid false positives. For example, without the correct instrumentation,
-we could observe data races of the following variant:
-
-                   T0           |           T1
-        ------------------------+------------------------
-                                |
-         *a = 42;    ---+       |
-         kfree(a);      |       |
-                        |       | b = kmalloc(..); // b == a
-          <reordered> <-+       | *b = 42;         // not a data race!
-                                |
-
-Therefore, instrument memory barriers in all allocator code currently
-not being instrumented in a default build.
+Adds KCSAN's memory barrier instrumentation to objtool's uaccess
+whitelist.
 
 Signed-off-by: Marco Elver <elver@google.com>
 ---
- mm/Makefile | 2 ++
- 1 file changed, 2 insertions(+)
+ tools/objtool/check.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/mm/Makefile b/mm/Makefile
-index d6c0042e3aa0..7919cd7f13f2 100644
---- a/mm/Makefile
-+++ b/mm/Makefile
-@@ -15,6 +15,8 @@ KCSAN_SANITIZE_slab_common.o := n
- KCSAN_SANITIZE_slab.o := n
- KCSAN_SANITIZE_slub.o := n
- KCSAN_SANITIZE_page_alloc.o := n
-+# But enable explicit instrumentation for memory barriers.
-+KCSAN_INSTRUMENT_BARRIERS := y
- 
- # These files are disabled because they produce non-interesting and/or
- # flaky coverage that is not a function of syscall inputs. E.g. slab is out of
+diff --git a/tools/objtool/check.c b/tools/objtool/check.c
+index 21735829b860..61dfb66b30b6 100644
+--- a/tools/objtool/check.c
++++ b/tools/objtool/check.c
+@@ -849,6 +849,10 @@ static const char *uaccess_safe_builtin[] = {
+ 	"__asan_report_store16_noabort",
+ 	/* KCSAN */
+ 	"__kcsan_check_access",
++	"__kcsan_mb",
++	"__kcsan_wmb",
++	"__kcsan_rmb",
++	"__kcsan_release",
+ 	"kcsan_found_watchpoint",
+ 	"kcsan_setup_watchpoint",
+ 	"kcsan_check_scoped_accesses",
 -- 
 2.34.0.rc2.393.gf8c9666880-goog
 
