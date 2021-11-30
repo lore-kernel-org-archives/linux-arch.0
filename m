@@ -2,56 +2,55 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B32BEC433EF
-	for <linux-arch@archiver.kernel.org>; Tue, 30 Nov 2021 11:46:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 86D22C433FE
+	for <linux-arch@archiver.kernel.org>; Tue, 30 Nov 2021 11:46:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241344AbhK3Lt7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 30 Nov 2021 06:49:59 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45098 "EHLO
+        id S236916AbhK3LuP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 30 Nov 2021 06:50:15 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45148 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S240983AbhK3LtR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Nov 2021 06:49:17 -0500
-Received: from mail-ed1-x549.google.com (mail-ed1-x549.google.com [IPv6:2a00:1450:4864:20::549])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 69FB2C0613B1
-        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:45:48 -0800 (PST)
-Received: by mail-ed1-x549.google.com with SMTP id n11-20020aa7c68b000000b003e7d68e9874so16699627edq.8
-        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:45:48 -0800 (PST)
+        with ESMTP id S241145AbhK3Ltj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Nov 2021 06:49:39 -0500
+Received: from mail-qv1-xf49.google.com (mail-qv1-xf49.google.com [IPv6:2607:f8b0:4864:20::f49])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A8A90C06174A
+        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:45:52 -0800 (PST)
+Received: by mail-qv1-xf49.google.com with SMTP id ke1-20020a056214300100b003b5a227e98dso29052196qvb.14
+        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:45:52 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=FxnGx7glVXa5fb5vt97IxdOcLQo6ydeIuX4RCBDcgdw=;
-        b=IuT8ETl+CUu5djE2Sc10KkM6Tnru1Bt8YznawbCvRm9Jgvp9dSU0yLe6+joi6N8O7z
-         AIQMX+OAPVIR41Cfns6ghKjzo+Oma52RXEvce97BWN8XleA4vFUT7GdZPuKFrpZGlHcF
-         6yYRNP/ViTSHKPJfti0Eaj1rJb2iVf9U20oiJZuzUw0D5yJerS3Bzu0/Hx+jtOL+x1E1
-         R2wPF1vj6a03NK0VTctonSiFDQ5cYmZGKeIfRYdvtl5e6D9EGeuanhZY7SdpfSTa6yMo
-         5PmPh+xd9A8VTGIvQ+j2BqV2x4NHt+irBixkDfvH2/M2xazm3E9FnFudLg/aEvPjG3A7
-         dYGg==
+        bh=rzdCErYR7QVJMqQ7C8iOEn+pKBOJL+BpLP2uqDT2sRI=;
+        b=iiJU/NFxnkO4QpNuEziwm44ZddXcfbqTjJ27RND0XQcNYVVoxyYjAqEozptVgUXNwN
+         tUotgFLhO6hTdCXy/8o38iy2aym7FJT+LW4h57+kXk+ITZwaPtmf/ukrKduYHtwrNNVy
+         u6zRnFErKVJc5tA07nIb20yQJs/rjFgBkkJfiMGCJ0+/frkqjjvq7sB5Qlsbun/G1B3v
+         mpVqufLXr0RiWnvRXu2PZPDLndJRxYoHPg3pEXSdStYWib1eEQIROpsu8lv6/UvQvgN4
+         KcSqzQSZ9rtkXbOEAqLYcx/YblyNiiImRh54NndbnYSq+4cJ1Y/85RKTI5bPUsrRqqxr
+         ZZsA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=FxnGx7glVXa5fb5vt97IxdOcLQo6ydeIuX4RCBDcgdw=;
-        b=PMTsoWsPTLr9zT4V2RwciwXQtrgE/JlOs8XXCBA1NPYeGe3zuXNjZxECTWy8fggQAR
-         QZvFui4C8mCnpOMwR304hxJJ4AEHRmq4yiMZJUGSrbK7C7hUp55o9zWEOU0Mi2IMJ2dB
-         mM+1KJ/ZZVqBefNIasfGhXVkf8pt5fDoVmcKaAozHp/vu7F6Pc8GQOD0C0H1fqeAztg7
-         dLH9+26j2GWiiBuN8r9eHUT7PaDlKKDSO1q0nuLjgvYUZaz28G7x1rCD+YE2wwA7BY4l
-         qdw1+LKF53hYsqD7klI4FkDACZD1gLC+f6mVZWrKmvRLRvpGvn9EWMmz9Hdqhw7h6TPa
-         kYAg==
-X-Gm-Message-State: AOAM531J+/mChnCdK8BacEI8rsXBHioFJxQzAB9VmlgDGQaME0oeluUI
-        svQ5Elg9ih9/TlrIGjt96SB0Un8k0Q==
-X-Google-Smtp-Source: ABdhPJxhBj5XWZjZdXBGffDMCoQxOuz6ni/khGb4YnRO6y4oi2+lwBW5Amf+ofP9vXsmezHPbLSJ3bZlIQ==
+        bh=rzdCErYR7QVJMqQ7C8iOEn+pKBOJL+BpLP2uqDT2sRI=;
+        b=LLwNu/37zIkd4EBSa/09WVL2YsNQsZ9cmZDrbSlBkxfrstsN7LuUMd1UX8VwRZQAfO
+         pQohOcrb+tGllVT7X/J7VPUPqr1+bpVdClcZJD5VKn3SpXmzz2v+GSg8NVg4aDbtaMbY
+         UeAeBb/sRLO86+f+DHP28Zw0yD1UJ5+0p5jd2vgSNKcI11FQcHk04X2ywkYkr/38fo6/
+         w1IcZY9LlJv4F2ReC5CRBuXb8SnUjQYyaVtAxUlNGxFKoAwG7lpnrQGJRZQO8tlTZqlv
+         eCPOCMJQfvvdsO50M/arHL2tnSjXOvwI6GLGXk2M3NmZS6zqdnqoMBBtrgMz+I1pzOo9
+         Gjww==
+X-Gm-Message-State: AOAM530xzA0Rua4d5nF/xroebsBkBP24/N3MGVwikedvQuiigkpi9dmA
+        8gHqHVXnMunQUAhdeZ+A55+rRYektg==
+X-Google-Smtp-Source: ABdhPJxS2DvHFjm5rRAa2Cv18Mr86xucn8I+904NmrEkNJGoQhVDVa+JTgno3MDa7PBFHMKHIzeyW8Gdjg==
 X-Received: from elver.muc.corp.google.com ([2a00:79e0:15:13:86b7:11e9:7797:99f0])
- (user=elver job=sendgmr) by 2002:a17:907:9720:: with SMTP id
- jg32mr69349183ejc.304.1638272746945; Tue, 30 Nov 2021 03:45:46 -0800 (PST)
-Date:   Tue, 30 Nov 2021 12:44:26 +0100
+ (user=elver job=sendgmr) by 2002:ac8:5c45:: with SMTP id j5mr51253786qtj.58.1638272751779;
+ Tue, 30 Nov 2021 03:45:51 -0800 (PST)
+Date:   Tue, 30 Nov 2021 12:44:28 +0100
 In-Reply-To: <20211130114433.2580590-1-elver@google.com>
-Message-Id: <20211130114433.2580590-19-elver@google.com>
+Message-Id: <20211130114433.2580590-21-elver@google.com>
 Mime-Version: 1.0
 References: <20211130114433.2580590-1-elver@google.com>
 X-Mailer: git-send-email 2.34.0.rc2.393.gf8c9666880-goog
-Subject: [PATCH v3 18/25] x86/barriers, kcsan: Use generic instrumentation for
- non-smp barriers
+Subject: [PATCH v3 20/25] mm, kcsan: Enable barrier instrumentation
 From:   Marco Elver <elver@google.com>
 To:     elver@google.com, "Paul E. McKenney" <paulmck@kernel.org>
 Cc:     Alexander Potapenko <glider@google.com>,
@@ -72,43 +71,40 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Prefix all barriers with __, now that asm-generic/barriers.h supports
-defining the final instrumented version of these barriers. The change is
-limited to barriers used by x86-64.
+Some memory management calls imply memory barriers that are required to
+avoid false positives. For example, without the correct instrumentation,
+we could observe data races of the following variant:
+
+                   T0           |           T1
+        ------------------------+------------------------
+                                |
+         *a = 42;    ---+       |
+         kfree(a);      |       |
+                        |       | b = kmalloc(..); // b == a
+          <reordered> <-+       | *b = 42;         // not a data race!
+                                |
+
+Therefore, instrument memory barriers in all allocator code currently
+not being instrumented in a default build.
 
 Signed-off-by: Marco Elver <elver@google.com>
 ---
- arch/x86/include/asm/barrier.h | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ mm/Makefile | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
-index 3ba772a69cc8..35389b2af88e 100644
---- a/arch/x86/include/asm/barrier.h
-+++ b/arch/x86/include/asm/barrier.h
-@@ -19,9 +19,9 @@
- #define wmb() asm volatile(ALTERNATIVE("lock; addl $0,-4(%%esp)", "sfence", \
- 				       X86_FEATURE_XMM2) ::: "memory", "cc")
- #else
--#define mb() 	asm volatile("mfence":::"memory")
--#define rmb()	asm volatile("lfence":::"memory")
--#define wmb()	asm volatile("sfence" ::: "memory")
-+#define __mb()	asm volatile("mfence":::"memory")
-+#define __rmb()	asm volatile("lfence":::"memory")
-+#define __wmb()	asm volatile("sfence" ::: "memory")
- #endif
+diff --git a/mm/Makefile b/mm/Makefile
+index d6c0042e3aa0..7919cd7f13f2 100644
+--- a/mm/Makefile
++++ b/mm/Makefile
+@@ -15,6 +15,8 @@ KCSAN_SANITIZE_slab_common.o := n
+ KCSAN_SANITIZE_slab.o := n
+ KCSAN_SANITIZE_slub.o := n
+ KCSAN_SANITIZE_page_alloc.o := n
++# But enable explicit instrumentation for memory barriers.
++KCSAN_INSTRUMENT_BARRIERS := y
  
- /**
-@@ -51,8 +51,8 @@ static inline unsigned long array_index_mask_nospec(unsigned long index,
- /* Prevent speculative execution past this barrier. */
- #define barrier_nospec() alternative("", "lfence", X86_FEATURE_LFENCE_RDTSC)
- 
--#define dma_rmb()	barrier()
--#define dma_wmb()	barrier()
-+#define __dma_rmb()	barrier()
-+#define __dma_wmb()	barrier()
- 
- #define __smp_mb()	asm volatile("lock; addl $0,-4(%%" _ASM_SP ")" ::: "memory", "cc")
- 
+ # These files are disabled because they produce non-interesting and/or
+ # flaky coverage that is not a function of syscall inputs. E.g. slab is out of
 -- 
 2.34.0.rc2.393.gf8c9666880-goog
 
