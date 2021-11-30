@@ -2,56 +2,55 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C77D1C433F5
-	for <linux-arch@archiver.kernel.org>; Tue, 30 Nov 2021 11:47:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 33566C433FE
+	for <linux-arch@archiver.kernel.org>; Tue, 30 Nov 2021 11:47:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241053AbhK3LuW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 30 Nov 2021 06:50:22 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45360 "EHLO
+        id S241242AbhK3LuX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 30 Nov 2021 06:50:23 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45282 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S241271AbhK3Ltp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Nov 2021 06:49:45 -0500
+        with ESMTP id S241127AbhK3Lte (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Nov 2021 06:49:34 -0500
 Received: from mail-wm1-x349.google.com (mail-wm1-x349.google.com [IPv6:2a00:1450:4864:20::349])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C489DC061191
-        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:46:05 -0800 (PST)
-Received: by mail-wm1-x349.google.com with SMTP id j193-20020a1c23ca000000b003306ae8bfb7so10280890wmj.7
-        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:46:05 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 04114C06175C
+        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:45:51 -0800 (PST)
+Received: by mail-wm1-x349.google.com with SMTP id z138-20020a1c7e90000000b003319c5f9164so13605426wmc.7
+        for <linux-arch@vger.kernel.org>; Tue, 30 Nov 2021 03:45:50 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=ykQMG7f7HitTY02bjgroWOqQwac8nTYOVAZLqTXm/og=;
-        b=qfKYXOVzY2MTzD2zIwUpOpLCYIanN5AfAyzY4pD6y/00NCNsZhMgCXyQuHgqHRjMQP
-         2Q4GpB2kKiA9NG+mxwbdwhx/T6uztpsr0cPDZKwOOV4NBkpo8wKmqUMwj6QIZ50+WTGC
-         rj+XujQ6x15SViviNrLc8ryKZTpDmfQ59NmqPKusALt7vIXW09vUdxRhx/IHgX0O1Fi0
-         peXM6+tWJqwR46RttMZspmzxuv6mgkZjTPQRNEx0+Evh/SfhzkOebPUPea948l/PAD60
-         8d8gkegUNMa+NHH1FPVvEqF67z8VdDW4GAXutQLRg58SDKDe/Mh9BClDvEsEpsff6SiM
-         sbTA==
+        bh=TQFyZU0v42DaaTkISoD0OFzde9Hlzhfr9CYPS/61CiQ=;
+        b=UzkPOK44rKyoX0ydzg9d6O+jrGkdKn2U4Uh9I6GaB3gkQKhjEvJW6OswApZ/DpFhIs
+         MjWkd+FkuLnMui5ECel20ebBFkuRLa1f1neQ6VVz1S7yCh0IvJGlwo8aeF9bhgAZqyug
+         l2zCEvskzXpYTMvQpQGB0z4ARki5+15v+PWKTCRoN0cGTSZ65LPhGkDFa7K5dBSQtt1+
+         LiZoJY4ePdc7NQgpEjukKVvNVBinKAvWLDa3Mfnn9KnFectfd/m0Z+qn/ceEmQlEYCrQ
+         OGNEtLuGhqXgJgSt12TdFVVE+Mz8qn5rbzRLOK/zD3ItiiBRgqjdDcz7tWKq+w3BIhpz
+         +2gg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=ykQMG7f7HitTY02bjgroWOqQwac8nTYOVAZLqTXm/og=;
-        b=VBQUDawlkR/su1oQVUPbIy11XIOS8zm9nQQWJDxISO7T1yg6mRv+YZf/2ynL8sp3/6
-         5yqV/wGozns8mtPtP0Gq4r83mfQ/NAyuD8D0TDW4bCnGi6OhvnYnnPWwHys9Z/H5Ei5U
-         EnvosjpEnzUOOs3dbvNbKzg/+vI64HG4moVRoDymPhHvnuzkLPg72xqzPaYXY3BqeSnU
-         8RB49NsvbkQj8aFz7iCyx5kU4XlZKTeSqV4cYR6kFRwAb9+D7hyyODm9ZlUzu0mMGT7W
-         SCQTYcMIZpcsYdN5O+hrOnevPMh0/isWf5BO7EXow9KutSzBDg7qareaFhd1PZe4KKX/
-         g2Bw==
-X-Gm-Message-State: AOAM531Axr0gjs6FOpOUEE+L1BKV6nsyZ/Va4L5uUhn/MkzYNWcX6fSS
-        Uf6we5T+VEH9znuPZaDKwhMScYYXTQ==
-X-Google-Smtp-Source: ABdhPJw6whH8Hls3EC+BgAy91BvIDfMtsebOG9cJCkHwE7EfRIVxArLwzYtCPhRhlBjkro/EFip+BpGtoQ==
+        bh=TQFyZU0v42DaaTkISoD0OFzde9Hlzhfr9CYPS/61CiQ=;
+        b=a0L6vgwQdpKoh2fmmsvxT3XHQCIiSsvcjhx1Mat8HZg6XHnyE8o2E8ByZC/2Cn2n75
+         f2vUFLi33aIXwoIttvEMCszChqmhvZXNLfvqMGzwkGqJNkp86NaLyq2IVuReErpvlNht
+         A3Yroe7fXfUyQ16n6HF26zoDcEyjeCSb5sbDRkTy8nZfG+oohbhPcPxlgHJbCrazgn6T
+         nsGBbD9BggW96LauOfPwkbLPlUXbTPGiCflJUh/fAVOYxD7KNGy/mxT8tCgQ+cEKyl0s
+         8IOB+abyRGSudjXIypmqz+fWHIZxT7DSHlIIQxf+MoaZw+bbTSLpBCL494CI4BcM2nnw
+         o37g==
+X-Gm-Message-State: AOAM532MY20wwZ9dVDfrz1JLo2v0zptLGqh36bim4ziDxLV88F0XOrBz
+        TYpTsaN7Q5AIodSSdVlPcWvDseanPw==
+X-Google-Smtp-Source: ABdhPJxb0DkHs7VvMvArdCvCQrK9MrDdf3hAA2QD7Q29GE02b72kjglRFvit2CdEhNhUNiK6zoXiTRV6/Q==
 X-Received: from elver.muc.corp.google.com ([2a00:79e0:15:13:86b7:11e9:7797:99f0])
- (user=elver job=sendgmr) by 2002:a05:600c:4f0b:: with SMTP id
- l11mr626212wmq.0.1638272763966; Tue, 30 Nov 2021 03:46:03 -0800 (PST)
-Date:   Tue, 30 Nov 2021 12:44:33 +0100
+ (user=elver job=sendgmr) by 2002:a05:600c:19c8:: with SMTP id
+ u8mr4203223wmq.155.1638272749477; Tue, 30 Nov 2021 03:45:49 -0800 (PST)
+Date:   Tue, 30 Nov 2021 12:44:27 +0100
 In-Reply-To: <20211130114433.2580590-1-elver@google.com>
-Message-Id: <20211130114433.2580590-26-elver@google.com>
+Message-Id: <20211130114433.2580590-20-elver@google.com>
 Mime-Version: 1.0
 References: <20211130114433.2580590-1-elver@google.com>
 X-Mailer: git-send-email 2.34.0.rc2.393.gf8c9666880-goog
-Subject: [PATCH v3 25/25] kcsan: Support WEAK_MEMORY with Clang where no
- objtool support exists
+Subject: [PATCH v3 19/25] x86/qspinlock, kcsan: Instrument barrier of pv_queued_spin_unlock()
 From:   Marco Elver <elver@google.com>
 To:     elver@google.com, "Paul E. McKenney" <paulmck@kernel.org>
 Cc:     Alexander Potapenko <glider@google.com>,
@@ -72,77 +71,31 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Clang and GCC behave a little differently when it comes to the
-__no_sanitize_thread attribute, which has valid reasons, and depending
-on context either one could be right.
+If CONFIG_PARAVIRT_SPINLOCKS=y, queued_spin_unlock() is implemented
+using pv_queued_spin_unlock() which is entirely inline asm based. As
+such, we do not receive any KCSAN barrier instrumentation via regular
+atomic operations.
 
-Traditionally, user space ThreadSanitizer [1] still expects instrumented
-builtin atomics (to avoid false positives) and __tsan_func_{entry,exit}
-(to generate meaningful stack traces), even if the function has the
-attribute no_sanitize("thread").
-
-[1] https://clang.llvm.org/docs/ThreadSanitizer.html#attribute-no-sanitize-thread
-
-GCC doesn't follow the same policy (for better or worse), and removes
-all kinds of instrumentation if no_sanitize is added. Arguably, since
-this may be a problem for user space ThreadSanitizer, we expect this may
-change in future.
-
-Since KCSAN != ThreadSanitizer, the likelihood of false positives even
-without barrier instrumentation everywhere, is much lower by design.
-
-At least for Clang, however, to fully remove all sanitizer
-instrumentation, we must add the disable_sanitizer_instrumentation
-attribute, which is available since Clang 14.0.
+Add the missing KCSAN barrier instrumentation for the
+CONFIG_PARAVIRT_SPINLOCKS case.
 
 Signed-off-by: Marco Elver <elver@google.com>
 ---
-v3:
-* New patch.
----
- include/linux/compiler_types.h | 13 ++++++++++++-
- lib/Kconfig.kcsan              |  2 +-
- 2 files changed, 13 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/qspinlock.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
-index 1d32f4c03c9e..3c1795fdb568 100644
---- a/include/linux/compiler_types.h
-+++ b/include/linux/compiler_types.h
-@@ -198,9 +198,20 @@ struct ftrace_likely_data {
- # define __no_kasan_or_inline __always_inline
- #endif
+diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
+index d86ab942219c..d87451df480b 100644
+--- a/arch/x86/include/asm/qspinlock.h
++++ b/arch/x86/include/asm/qspinlock.h
+@@ -53,6 +53,7 @@ static inline void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
  
--#define __no_kcsan __no_sanitize_thread
- #ifdef __SANITIZE_THREAD__
-+/*
-+ * Clang still emits instrumentation for __tsan_func_{entry,exit}() and builtin
-+ * atomics even with __no_sanitize_thread (to avoid false positives in userspace
-+ * ThreadSanitizer). The kernel's requirements are stricter and we really do not
-+ * want any instrumentation with __no_kcsan.
-+ *
-+ * Therefore we add __disable_sanitizer_instrumentation where available to
-+ * disable all instrumentation. See Kconfig.kcsan where this is mandatory.
-+ */
-+# define __no_kcsan __no_sanitize_thread __disable_sanitizer_instrumentation
- # define __no_sanitize_or_inline __no_kcsan notrace __maybe_unused
-+#else
-+# define __no_kcsan
- #endif
+ static inline void queued_spin_unlock(struct qspinlock *lock)
+ {
++	kcsan_release();
+ 	pv_queued_spin_unlock(lock);
+ }
  
- #ifndef __no_sanitize_or_inline
-diff --git a/lib/Kconfig.kcsan b/lib/Kconfig.kcsan
-index e4394ea8068b..63b70b8c5551 100644
---- a/lib/Kconfig.kcsan
-+++ b/lib/Kconfig.kcsan
-@@ -198,7 +198,7 @@ config KCSAN_WEAK_MEMORY
- 	# We can either let objtool nop __tsan_func_{entry,exit}() and builtin
- 	# atomics instrumentation in .noinstr.text, or use a compiler that can
- 	# implement __no_kcsan to really remove all instrumentation.
--	depends on STACK_VALIDATION || CC_IS_GCC
-+	depends on STACK_VALIDATION || CC_IS_GCC || CLANG_VERSION >= 140000
- 	help
- 	  Enable support for modeling a subset of weak memory, which allows
- 	  detecting a subset of data races due to missing memory barriers.
 -- 
 2.34.0.rc2.393.gf8c9666880-goog
 
