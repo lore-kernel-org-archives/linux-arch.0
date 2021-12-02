@@ -2,200 +2,93 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A7B63C433FE
-	for <linux-arch@archiver.kernel.org>; Thu,  2 Dec 2021 00:51:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 96683C433F5
+	for <linux-arch@archiver.kernel.org>; Thu,  2 Dec 2021 02:13:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1354643AbhLBAyl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 1 Dec 2021 19:54:41 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49638 "EHLO
+        id S1352292AbhLBCQv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 1 Dec 2021 21:16:51 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39650 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1344704AbhLBAyj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Dec 2021 19:54:39 -0500
-Received: from sin.source.kernel.org (sin.source.kernel.org [IPv6:2604:1380:40e1:4800::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B62EFC061748;
-        Wed,  1 Dec 2021 16:51:17 -0800 (PST)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by sin.source.kernel.org (Postfix) with ESMTPS id 79B38CE2079;
-        Thu,  2 Dec 2021 00:51:15 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A4665C00446;
-        Thu,  2 Dec 2021 00:51:13 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1638406273;
-        bh=a3TZYdz2Z8fwcDIg3kbsL1+jsy0L1ksMQY3QtehlESA=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=N53IlzFhkbJm0Ufhv915xQ5P3720+l8rJmfb1axCs8XZ2DaL7Mt4bsXhTqL3Uf00d
-         qjVAoVSL7RRhSlJjgwnoz2jMRQk5pp8DV9HQHjDJFoTenOXzwGHeKJNX3NS7hCJNc2
-         hh0+Pm4UnN2ZBzoyB66aVrCpie5/TH5Hz3ye+YHRkobfwFkU08PJhDHZRSWh4gb69Y
-         VOFeGo6LK8slI8yZVfxFSsh67Vr59QKDnsAxmOW3NBn8WkMPxTMeBUXV4x1kJcb8BJ
-         1XF6s84rKlj9yg8XTNi5xGlrRl/burREqLmNpnW/TtpDpsd86Md5/lLmBvBepVDDEa
-         V5yZRXgJDCl9g==
-Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-        id 6A6C35C0FCD; Wed,  1 Dec 2021 16:51:13 -0800 (PST)
-From:   "Paul E. McKenney" <paulmck@kernel.org>
-To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        kernel-team@fb.com, mingo@kernel.org
-Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
-        peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
-        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        akiyks@gmail.com, Michael Ellerman <mpe@ellerman.id.au>,
-        Palmer Dabbelt <palmerdabbelt@google.com>,
-        "Paul E . McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model 1/3] tools/memory-model: Provide extra ordering for unlock+lock pair on the same CPU
-Date:   Wed,  1 Dec 2021 16:50:51 -0800
-Message-Id: <20211202005053.3131071-1-paulmck@kernel.org>
-X-Mailer: git-send-email 2.31.1.189.g2e36527f23
-In-Reply-To: <20211202005027.GA3130970@paulmck-ThinkPad-P17-Gen-1>
-References: <20211202005027.GA3130970@paulmck-ThinkPad-P17-Gen-1>
+        with ESMTP id S234798AbhLBCQu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Dec 2021 21:16:50 -0500
+Received: from mail-pj1-x102a.google.com (mail-pj1-x102a.google.com [IPv6:2607:f8b0:4864:20::102a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D2F47C061748
+        for <linux-arch@vger.kernel.org>; Wed,  1 Dec 2021 18:13:28 -0800 (PST)
+Received: by mail-pj1-x102a.google.com with SMTP id nn15-20020a17090b38cf00b001ac7dd5d40cso3360542pjb.3
+        for <linux-arch@vger.kernel.org>; Wed, 01 Dec 2021 18:13:28 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20210112;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=xqdq69bklkVGPaiuC/hhcniUDsb69a5Tsomp+eMdT8Y=;
+        b=kLe2Jr2E6gqbImzVXFbWuWelxOvMTjUr3eE3r6UXGeXlSFHQJujz3lKGG1L8GrT/jA
+         tZc+qlJVZ58JjH0g5XNMGk6jNl01J+5YdmbMgSs4RYG+rZnunYfoVS5CVwrghZldDJyO
+         QsL/vfDrNDDfrswvVpKh4G3/Rp546pliFVtuK/l3YPREcTeI5wXswL8GsLhOo8t+L3zO
+         eEWvcu/xAKtGB5MCBINyHO9v189tvqdZBzA343XYcBSiMvbmvZ5h5HhvMN1neTO3sFuf
+         4KjN5JhpI1gvBnhZ1ekaA2hzk6QsMmK5uzhPhUAXOQETZO338FaIlVCWBJjU9Mdq9WON
+         fmYQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=xqdq69bklkVGPaiuC/hhcniUDsb69a5Tsomp+eMdT8Y=;
+        b=F/Jz+QVlca2VS1CoC0HkSL3RtOZdBSUdwtX4bDa1Kcy9exxzJukV8oa4OhMof6f7d7
+         ObMovHAFQKft2d4riwaw5iej4yt/oCieGvaso8v7/8DzkovceERmtUVVFgay+swrzWM6
+         HF28wD/dacKJ7Yc0ZdEcgOPq7D6PN5UtUQdFo6bfDVCWmn+eV4zjZ2Y27/6vqn4xHy93
+         12N2zMKcVJtKApvI1IGJFlkmuG0LsDpQwBLX8bgk9nt7pJp3V9Sf+FGG9qAd0V90wC9l
+         6v35SGIoM0sgSYhKNI+wo7QgPMxaf1ubGUa/m3TlbnfxoPdMWl1MmztZ/B38hjwszcAw
+         7JHQ==
+X-Gm-Message-State: AOAM530WvnTaut26NgF3Xrhf5f9zBd3dUN4dIFoX4jGp2+BlmfhioHCA
+        GCfZjmA436vplW8cxI/haP9RbQ==
+X-Google-Smtp-Source: ABdhPJwI9/kW+841BCq3bJVjpyet3MmhhrawiCLnHAmmZ9PuYqso3ZTZlCgmtcoT/lCxdVVnUZYA0g==
+X-Received: by 2002:a17:90b:92:: with SMTP id bb18mr2454366pjb.133.1638411208204;
+        Wed, 01 Dec 2021 18:13:28 -0800 (PST)
+Received: from google.com (157.214.185.35.bc.googleusercontent.com. [35.185.214.157])
+        by smtp.gmail.com with ESMTPSA id j7sm1152501pfc.74.2021.12.01.18.13.27
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 01 Dec 2021 18:13:27 -0800 (PST)
+Date:   Thu, 2 Dec 2021 02:13:24 +0000
+From:   Sean Christopherson <seanjc@google.com>
+To:     Vitaly Kuznetsov <vkuznets@redhat.com>
+Cc:     Wanpeng Li <wanpengli@tencent.com>,
+        Jim Mattson <jmattson@google.com>,
+        Joerg Roedel <joro@8bytes.org>, kvm@vger.kernel.org,
+        linux-hyperv@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org, Ajay Garg <ajaygargnsit@gmail.com>,
+        Paolo Bonzini <pbonzini@redhat.com>,
+        "K. Y. Srinivasan" <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
+        Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
+        Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 8/8] KVM: x86: Add checks for reserved-to-zero Hyper-V
+ hypercall fields
+Message-ID: <YagrxIknF9DX8l8L@google.com>
+References: <20211030000800.3065132-1-seanjc@google.com>
+ <20211030000800.3065132-9-seanjc@google.com>
+ <87v91cjhch.fsf@vitty.brq.redhat.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87v91cjhch.fsf@vitty.brq.redhat.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Boqun Feng <boqun.feng@gmail.com>
+On Mon, Nov 01, 2021, Vitaly Kuznetsov wrote:
+> Sean Christopherson <seanjc@google.com> writes:
+> 
+> > Add checks for the three fields in Hyper-V's hypercall params that must
+> > be zero.  Per the TLFS, HV_STATUS_INVALID_HYPERCALL_INPUT is returned if
+> > "A reserved bit in the specified hypercall input value is non-zero."
+> >
+> > Note, the TLFS has an off-by-one bug for the last reserved field, which
+> > it defines as being bits 64:60.  The same section states "The input field
+> > 64-bit value called a hypercall input value.", i.e. bit 64 doesn't
+> > exist.
+> 
+> This version are you looking at? I can't see this issue in 6.0b
 
-A recent discussion[1] shows that we are in favor of strengthening the
-ordering of unlock + lock on the same CPU: a unlock and a po-after lock
-should provide the so-called RCtso ordering, that is a memory access S
-po-before the unlock should be ordered against a memory access R
-po-after the lock, unless S is a store and R is a load.
+It's the web-based documentation, the 6.0b PDF indeed does not have the same bug.
 
-The strengthening meets programmers' expection that "sequence of two
-locked regions to be ordered wrt each other" (from Linus), and can
-reduce the mental burden when using locks. Therefore add it in LKMM.
-
-[1]: https://lore.kernel.org/lkml/20210909185937.GA12379@rowland.harvard.edu/
-
-Co-developed-by: Alan Stern <stern@rowland.harvard.edu>
-Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-Reviewed-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
-Acked-by: Palmer Dabbelt <palmerdabbelt@google.com> (RISC-V)
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
----
- .../Documentation/explanation.txt             | 44 +++++++++++--------
- tools/memory-model/linux-kernel.cat           |  6 +--
- 2 files changed, 28 insertions(+), 22 deletions(-)
-
-diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
-index 5d72f3112e565..394ee57d58f2f 100644
---- a/tools/memory-model/Documentation/explanation.txt
-+++ b/tools/memory-model/Documentation/explanation.txt
-@@ -1813,15 +1813,16 @@ spin_trylock() -- we can call these things lock-releases and
- lock-acquires -- have two properties beyond those of ordinary releases
- and acquires.
- 
--First, when a lock-acquire reads from a lock-release, the LKMM
--requires that every instruction po-before the lock-release must
--execute before any instruction po-after the lock-acquire.  This would
--naturally hold if the release and acquire operations were on different
--CPUs, but the LKMM says it holds even when they are on the same CPU.
--For example:
-+First, when a lock-acquire reads from or is po-after a lock-release,
-+the LKMM requires that every instruction po-before the lock-release
-+must execute before any instruction po-after the lock-acquire.  This
-+would naturally hold if the release and acquire operations were on
-+different CPUs and accessed the same lock variable, but the LKMM says
-+it also holds when they are on the same CPU, even if they access
-+different lock variables.  For example:
- 
- 	int x, y;
--	spinlock_t s;
-+	spinlock_t s, t;
- 
- 	P0()
- 	{
-@@ -1830,9 +1831,9 @@ For example:
- 		spin_lock(&s);
- 		r1 = READ_ONCE(x);
- 		spin_unlock(&s);
--		spin_lock(&s);
-+		spin_lock(&t);
- 		r2 = READ_ONCE(y);
--		spin_unlock(&s);
-+		spin_unlock(&t);
- 	}
- 
- 	P1()
-@@ -1842,10 +1843,10 @@ For example:
- 		WRITE_ONCE(x, 1);
- 	}
- 
--Here the second spin_lock() reads from the first spin_unlock(), and
--therefore the load of x must execute before the load of y.  Thus we
--cannot have r1 = 1 and r2 = 0 at the end (this is an instance of the
--MP pattern).
-+Here the second spin_lock() is po-after the first spin_unlock(), and
-+therefore the load of x must execute before the load of y, even though
-+the two locking operations use different locks.  Thus we cannot have
-+r1 = 1 and r2 = 0 at the end (this is an instance of the MP pattern).
- 
- This requirement does not apply to ordinary release and acquire
- fences, only to lock-related operations.  For instance, suppose P0()
-@@ -1872,13 +1873,13 @@ instructions in the following order:
- 
- and thus it could load y before x, obtaining r2 = 0 and r1 = 1.
- 
--Second, when a lock-acquire reads from a lock-release, and some other
--stores W and W' occur po-before the lock-release and po-after the
--lock-acquire respectively, the LKMM requires that W must propagate to
--each CPU before W' does.  For example, consider:
-+Second, when a lock-acquire reads from or is po-after a lock-release,
-+and some other stores W and W' occur po-before the lock-release and
-+po-after the lock-acquire respectively, the LKMM requires that W must
-+propagate to each CPU before W' does.  For example, consider:
- 
- 	int x, y;
--	spinlock_t x;
-+	spinlock_t s;
- 
- 	P0()
- 	{
-@@ -1908,7 +1909,12 @@ each CPU before W' does.  For example, consider:
- 
- If r1 = 1 at the end then the spin_lock() in P1 must have read from
- the spin_unlock() in P0.  Hence the store to x must propagate to P2
--before the store to y does, so we cannot have r2 = 1 and r3 = 0.
-+before the store to y does, so we cannot have r2 = 1 and r3 = 0.  But
-+if P1 had used a lock variable different from s, the writes could have
-+propagated in either order.  (On the other hand, if the code in P0 and
-+P1 had all executed on a single CPU, as in the example before this
-+one, then the writes would have propagated in order even if the two
-+critical sections used different lock variables.)
- 
- These two special requirements for lock-release and lock-acquire do
- not arise from the operational model.  Nevertheless, kernel developers
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index 2a9b4fe4a84eb..d70315fddef6e 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -27,7 +27,7 @@ include "lock.cat"
- (* Release Acquire *)
- let acq-po = [Acquire] ; po ; [M]
- let po-rel = [M] ; po ; [Release]
--let po-unlock-rf-lock-po = po ; [UL] ; rf ; [LKR] ; po
-+let po-unlock-lock-po = po ; [UL] ; (po|rf) ; [LKR] ; po
- 
- (* Fences *)
- let R4rmb = R \ Noreturn	(* Reads for which rmb works *)
-@@ -70,12 +70,12 @@ let rwdep = (dep | ctrl) ; [W]
- let overwrite = co | fr
- let to-w = rwdep | (overwrite & int) | (addr ; [Plain] ; wmb)
- let to-r = addr | (dep ; [Marked] ; rfi)
--let ppo = to-r | to-w | fence | (po-unlock-rf-lock-po & int)
-+let ppo = to-r | to-w | fence | (po-unlock-lock-po & int)
- 
- (* Propagation: Ordering from release operations and strong fences. *)
- let A-cumul(r) = (rfe ; [Marked])? ; r
- let cumul-fence = [Marked] ; (A-cumul(strong-fence | po-rel) | wmb |
--	po-unlock-rf-lock-po) ; [Marked]
-+	po-unlock-lock-po) ; [Marked]
- let prop = [Marked] ; (overwrite & ext)? ; cumul-fence* ;
- 	[Marked] ; rfe? ; [Marked]
- 
--- 
-2.31.1.189.g2e36527f23
-
+https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/hypercall-interface#hypercall-inputs
