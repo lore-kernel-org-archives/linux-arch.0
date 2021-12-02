@@ -2,74 +2,183 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C8A44C433EF
-	for <linux-arch@archiver.kernel.org>; Thu,  2 Dec 2021 00:50:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3BCE3C433F5
+	for <linux-arch@archiver.kernel.org>; Thu,  2 Dec 2021 00:51:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233346AbhLBAxx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 1 Dec 2021 19:53:53 -0500
-Received: from ams.source.kernel.org ([145.40.68.75]:43586 "EHLO
-        ams.source.kernel.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232778AbhLBAxv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Dec 2021 19:53:51 -0500
+        id S1344761AbhLBAyj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 1 Dec 2021 19:54:39 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49630 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1354966AbhLBAyi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Dec 2021 19:54:38 -0500
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 58E3DC061574;
+        Wed,  1 Dec 2021 16:51:16 -0800 (PST)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 3E1D0B80DAC;
-        Thu,  2 Dec 2021 00:50:29 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CA097C00446;
-        Thu,  2 Dec 2021 00:50:27 +0000 (UTC)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 18185B8200D;
+        Thu,  2 Dec 2021 00:51:15 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id AFE9AC53FCC;
+        Thu,  2 Dec 2021 00:51:13 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1638406227;
-        bh=MMgsoq9/0/HVmpKPtq5En3YiaceVuZgx/9XCLc5cXSU=;
-        h=Date:From:To:Cc:Subject:Reply-To:From;
-        b=OmNX4thOxqzJPC6JLh+0urpVobPGXu4Yc+AEBceUUvXC537wz/EyT21Xa8FE3HNgL
-         nGeZzsI8npu371NSGOsxXz8A1Ad8nbZxzKwZ5zCB+1DVd8bdRMpdjBYQ6bxV15+MaO
-         9Q/UcYqOUBXPu5ueew+4MWHWFcezFBRQnY2GmjBONugj1ar59FVp3wFeJ/w1SK4pA4
-         aQNBa8GMl5XnUTxO8x8wqAZrnxoHPyPS8lNcXVClAOIZiZe4setF9cri+iZQHVTNah
-         faL223BAE+Gmt3qw529X5AYpOaSsa7X5KHc2J2qkP3atfr6gCIdE64iSML36RZ0FGG
-         nF6XqpySt4vTg==
+        s=k20201202; t=1638406273;
+        bh=usHTyL5u4Wf3/UMC1gxnsM2gVUInm3kaU+A4fFlwv3Q=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=usukUZL2sP4JVPihRiXVVHKbhGCSBFWAiLxTkC4/HS8hnsBAf39bgUUAFbKoX9IIX
+         MWv4V/yuLxALEXXGXf90XXhD7ojz5jswgKyjawmcg3ePDfC3BLVZo9oI91JShslvJs
+         3PXuD1p7aRmjbv3jcPUvSVkafK/ispN54KqzoywWXZdo2zkIy5IrgcHyj7ao0HcVvT
+         qBdtIfbzzqcsBL4WWCwY1aj6K9VFaFNg2LqeHPr9MuR0k9U5lgrD9m8OsrPctBLYTB
+         GVLMFBGSxCyCKcJ1QDwEnW6NDEqcjMHIBls3aJKPCTZGQvoctVhIimQkyJLA16grPo
+         h/e5785Hb3LhA==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-        id 8D0A25C0FCD; Wed,  1 Dec 2021 16:50:27 -0800 (PST)
-Date:   Wed, 1 Dec 2021 16:50:27 -0800
+        id 703B25C1010; Wed,  1 Dec 2021 16:51:13 -0800 (PST)
 From:   "Paul E. McKenney" <paulmck@kernel.org>
 To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         kernel-team@fb.com, mingo@kernel.org
 Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
         peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
         dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        akiyks@gmail.com
-Subject: [PATCH memory-model 0/3] LKMM updates for v5.17
-Message-ID: <20211202005027.GA3130970@paulmck-ThinkPad-P17-Gen-1>
-Reply-To: paulmck@kernel.org
+        akiyks@gmail.com, "Paul E . McKenney" <paulmck@kernel.org>
+Subject: [PATCH memory-model 3/3] tools/memory-model: litmus: Add two tests for unlock(A)+lock(B) ordering
+Date:   Wed,  1 Dec 2021 16:50:53 -0800
+Message-Id: <20211202005053.3131071-3-paulmck@kernel.org>
+X-Mailer: git-send-email 2.31.1.189.g2e36527f23
+In-Reply-To: <20211202005027.GA3130970@paulmck-ThinkPad-P17-Gen-1>
+References: <20211202005027.GA3130970@paulmck-ThinkPad-P17-Gen-1>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hello!
+From: Boqun Feng <boqun.feng@gmail.com>
 
-This series provides additional documentation and examples for the
-Linux-kernel memory model (LKMM):
+The memory model has been updated to provide a stronger ordering
+guarantee for unlock(A)+lock(B) on the same CPU/thread. Therefore add
+two litmus tests describing this new guarantee, these tests are simple
+yet can clearly show the usage of the new guarantee, also they can serve
+as the self tests for the modification in the model.
 
-1.	Provide extra ordering for unlock+lock pair on the same CPU,
-	courtesy of Boqun Feng.
+Co-developed-by: Alan Stern <stern@rowland.harvard.edu>
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+---
+ ...LB+unlocklockonceonce+poacquireonce.litmus | 35 +++++++++++++++++++
+ ...unlocklockonceonce+fencermbonceonce.litmus | 33 +++++++++++++++++
+ tools/memory-model/litmus-tests/README        |  8 +++++
+ 3 files changed, 76 insertions(+)
+ create mode 100644 tools/memory-model/litmus-tests/LB+unlocklockonceonce+poacquireonce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/MP+unlocklockonceonce+fencermbonceonce.litmus
 
-2.	Describe the requirement of the litmus-tests directory, courtesy
-	of Boqun Feng.
+diff --git a/tools/memory-model/litmus-tests/LB+unlocklockonceonce+poacquireonce.litmus b/tools/memory-model/litmus-tests/LB+unlocklockonceonce+poacquireonce.litmus
+new file mode 100644
+index 0000000000000..eb34123a6ffe0
+--- /dev/null
++++ b/tools/memory-model/litmus-tests/LB+unlocklockonceonce+poacquireonce.litmus
+@@ -0,0 +1,35 @@
++C LB+unlocklockonceonce+poacquireonce
++
++(*
++ * Result: Never
++ *
++ * If two locked critical sections execute on the same CPU, all accesses
++ * in the first must execute before any accesses in the second, even if the
++ * critical sections are protected by different locks.  Note: Even when a
++ * write executes before a read, their memory effects can be reordered from
++ * the viewpoint of another CPU (the kind of reordering allowed by TSO).
++ *)
++
++{}
++
++P0(spinlock_t *s, spinlock_t *t, int *x, int *y)
++{
++	int r1;
++
++	spin_lock(s);
++	r1 = READ_ONCE(*x);
++	spin_unlock(s);
++	spin_lock(t);
++	WRITE_ONCE(*y, 1);
++	spin_unlock(t);
++}
++
++P1(int *x, int *y)
++{
++	int r2;
++
++	r2 = smp_load_acquire(y);
++	WRITE_ONCE(*x, 1);
++}
++
++exists (0:r1=1 /\ 1:r2=1)
+diff --git a/tools/memory-model/litmus-tests/MP+unlocklockonceonce+fencermbonceonce.litmus b/tools/memory-model/litmus-tests/MP+unlocklockonceonce+fencermbonceonce.litmus
+new file mode 100644
+index 0000000000000..2feb1398be716
+--- /dev/null
++++ b/tools/memory-model/litmus-tests/MP+unlocklockonceonce+fencermbonceonce.litmus
+@@ -0,0 +1,33 @@
++C MP+unlocklockonceonce+fencermbonceonce
++
++(*
++ * Result: Never
++ *
++ * If two locked critical sections execute on the same CPU, stores in the
++ * first must propagate to each CPU before stores in the second do, even if
++ * the critical sections are protected by different locks.
++ *)
++
++{}
++
++P0(spinlock_t *s, spinlock_t *t, int *x, int *y)
++{
++	spin_lock(s);
++	WRITE_ONCE(*x, 1);
++	spin_unlock(s);
++	spin_lock(t);
++	WRITE_ONCE(*y, 1);
++	spin_unlock(t);
++}
++
++P1(int *x, int *y)
++{
++	int r1;
++	int r2;
++
++	r1 = READ_ONCE(*y);
++	smp_rmb();
++	r2 = READ_ONCE(*x);
++}
++
++exists (1:r1=1 /\ 1:r2=0)
+diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
+index 681f9067fa9ed..d311a0ff1ae64 100644
+--- a/tools/memory-model/litmus-tests/README
++++ b/tools/memory-model/litmus-tests/README
+@@ -63,6 +63,10 @@ LB+poonceonces.litmus
+ 	As above, but with store-release replaced with WRITE_ONCE()
+ 	and load-acquire replaced with READ_ONCE().
+ 
++LB+unlocklockonceonce+poacquireonce.litmus
++	Does a unlock+lock pair provides ordering guarantee between a
++	load and a store?
++
+ MP+onceassign+derefonce.litmus
+ 	As below, but with rcu_assign_pointer() and an rcu_dereference().
+ 
+@@ -90,6 +94,10 @@ MP+porevlocks.litmus
+ 	As below, but with the first access of the writer process
+ 	and the second access of reader process protected by a lock.
+ 
++MP+unlocklockonceonce+fencermbonceonce.litmus
++	Does a unlock+lock pair provides ordering guarantee between a
++	store and another store?
++
+ MP+fencewmbonceonce+fencermbonceonce.litmus
+ 	Does a smp_wmb() (between the stores) and an smp_rmb() (between
+ 	the loads) suffice for the message-passing litmus test, where one
+-- 
+2.31.1.189.g2e36527f23
 
-3.	Add two tests for unlock(A)+lock(B) ordering, courtesy of
-	Boqun Feng.
-
-						Thanx, Paul
-
-------------------------------------------------------------------------
-
- Documentation/explanation.txt                              |   44 +++++++------
- README                                                     |   12 +++
- linux-kernel.cat                                           |    6 -
- litmus-tests/LB+unlocklockonceonce+poacquireonce.litmus    |   35 ++++++++++
- litmus-tests/MP+unlocklockonceonce+fencermbonceonce.litmus |   33 +++++++++
- litmus-tests/README                                        |    8 ++
- 6 files changed, 116 insertions(+), 22 deletions(-)
