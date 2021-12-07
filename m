@@ -2,57 +2,58 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8B656C433F5
-	for <linux-arch@archiver.kernel.org>; Tue,  7 Dec 2021 22:09:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 44FA8C433FE
+	for <linux-arch@archiver.kernel.org>; Tue,  7 Dec 2021 22:09:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S242126AbhLGWNU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 7 Dec 2021 17:13:20 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43246 "EHLO
+        id S242175AbhLGWN1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 7 Dec 2021 17:13:27 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43290 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S242153AbhLGWNS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Dec 2021 17:13:18 -0500
-Received: from mail-pl1-x649.google.com (mail-pl1-x649.google.com [IPv6:2607:f8b0:4864:20::649])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 27B0AC061748
-        for <linux-arch@vger.kernel.org>; Tue,  7 Dec 2021 14:09:47 -0800 (PST)
-Received: by mail-pl1-x649.google.com with SMTP id p24-20020a170902a41800b001438d6c7d71so99574plq.7
-        for <linux-arch@vger.kernel.org>; Tue, 07 Dec 2021 14:09:47 -0800 (PST)
+        with ESMTP id S242177AbhLGWNV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Dec 2021 17:13:21 -0500
+Received: from mail-pj1-x1049.google.com (mail-pj1-x1049.google.com [IPv6:2607:f8b0:4864:20::1049])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8F9F4C061A72
+        for <linux-arch@vger.kernel.org>; Tue,  7 Dec 2021 14:09:50 -0800 (PST)
+Received: by mail-pj1-x1049.google.com with SMTP id gf12-20020a17090ac7cc00b001a968c11642so372192pjb.4
+        for <linux-arch@vger.kernel.org>; Tue, 07 Dec 2021 14:09:50 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=reply-to:date:in-reply-to:message-id:mime-version:references
          :subject:from:to:cc;
-        bh=iQDtWCeRApkNxvgSf3YZuTCTKLwT5JTxHh4XbwJlOF8=;
-        b=j5Tjlp1+fQIwr+HynktQ1gsZzx01M2pRoJMnKTxaPKyV38VfTFFhU42vy8OmXqvrUx
-         Jef/37Wn0sxInn7kSQcJ24PpXFYpE/gOhZwS1Tgv36QCfIxxRQnWRnwlSGNzARQTCfZz
-         JZH7xKUPTaTb+VLakJXelWmUm6FttSZg3oWDyZcHFOhQyOkved5x5Y3s0CHf7fff7Rer
-         27vNKFRvWGRelWbdoSFHAbgpRcYA8wEZAN/MPfawqs+sHRWIQKInDQsQ+xWIm845F1NV
-         bvLATookEaVS1TQpF7iqMH0A5BNZYqX2/+qeSV9BCBBexz40/er+oPmNTM2hekKs3r1E
-         EzUA==
+        bh=JNBI+S2Jw5Vs4x4pkp+oETPJ8WHMJe4kYnIfeY40RAo=;
+        b=H0Ol+y/a13fDttBnOc0z9kTIyBRa7LB9zOK5FeI6QQMlBRx6rp+ElP7mpguG1NFW6Q
+         3TrlFcPjXek6+IluQsPwdB/sH+raBYdQvJkp8XfHLIohUErExFS5iMOsjdNxUAUyMjii
+         ZIED1vVYFbjCovBwJhmBTSVw4Vc3KldLKGLDNJbwhwxwbH4zZk2jEpQabC+nlDTIXfz4
+         lUnW46E8xqCkKwNd2SRQGrzNcdREWA1Bf8c2fX6bGf3rLxk/BXR65nLxbpAUFaxIj65Q
+         jWISYOmjde1Cb0/nRiB9BS4KijuJ5KTG5oYZHghGblqQbtSfMkypGOln6kCYugCOAJbM
+         sbCg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:reply-to:date:in-reply-to:message-id
          :mime-version:references:subject:from:to:cc;
-        bh=iQDtWCeRApkNxvgSf3YZuTCTKLwT5JTxHh4XbwJlOF8=;
-        b=owPYeL7deZzx22Fag5Li1XiUTOji3Vde+06V/zz/jgA3NLCv7OkjXlMW/VneAYpHty
-         NaoyhyRkfZNS+HZ+gqJyMCXmHoACmpMvYQHTsmE7V9DYvTOvk8l9hDN8ZSo/qDxkLTPB
-         VGLyLWFPybxODREo/0LdQSs7G09mMewtaQHotMaJvVgzjFJ+q2qQKkc8WeAY4fXae5pW
-         kwn4DdAJqLtVlnBdWc7/HMIm1VHF+2M80SEwxCgexuQsQLm8ZB/F8jBaCz4GPNDYOxQx
-         2FiqbFCudn9CInFWF+hksH6sWwW3k8uhJiYvIeFIRkQEMWPY4YFkPbE5+AXLRxSzqZjt
-         zn5g==
-X-Gm-Message-State: AOAM531P6wl5EOKqu6csfTK10gTHHG1Kad4/o5DjEgHHpDtszgXPDqdV
-        vYR4It1BHoLulbkUP90Mp8+DNp3fwzc=
-X-Google-Smtp-Source: ABdhPJxwIWI6EO7Di+1vHiHCvjTsyUvE6JHMu1iC+F7VJ2ivqyHTsKcZcjJPDnxA8I95E2jOYruKTPLkgoM=
+        bh=JNBI+S2Jw5Vs4x4pkp+oETPJ8WHMJe4kYnIfeY40RAo=;
+        b=yKm4teuzA9r6RxB4lynhQUaQxmEPJwLpawIpECH7NLozQ61mjGTwuZwFjW6AWSsK/m
+         8BUIAlzqe5LQugYfX+/Px8yJ5soysHBCVtSV2p1wEj3FeBKUY17RKcWFj8P74mDK1ZHZ
+         be74UQdo++gqyIGsNVhPjSCIsFEM9nClasPQsRbLjM+DnfIAXR6UtTQh74SBI58YAB8z
+         UB3fCDhmr4TI593nU402I6LE5vD5YqQsFMVa/AxFH+DFK9J1v9owkdlZ9S4e1woDoMIy
+         r3GVdcQlvBf+DLNQaUNd8FFJBhLoRwSS+h39lok2AOR5h3kE0f6fXaygvNOQyt4veCpd
+         L74w==
+X-Gm-Message-State: AOAM532TA701NgWQv1kOZ6PqljbK7U0oeFKJIJeNRFnlzvqI8rdR6vKH
+        QP4Tp4BvMxSr7EFTFNzE+tcPJEtgl6A=
+X-Google-Smtp-Source: ABdhPJzYI9Ielu744KQZUdFhLMEjd4KuXafE47GaJMqZ01zbaWxslijUvytjk8sHKu8mR2UEuWlq6yHLnvk=
 X-Received: from seanjc.c.googlers.com ([fda3:e722:ac3:cc00:7f:e700:c0a8:3e5])
- (user=seanjc job=sendgmr) by 2002:a17:902:7c02:b0:143:9d6a:8e42 with SMTP id
- x2-20020a1709027c0200b001439d6a8e42mr54202143pll.80.1638914986582; Tue, 07
- Dec 2021 14:09:46 -0800 (PST)
+ (user=seanjc job=sendgmr) by 2002:a17:902:b7cb:b0:141:b33a:9589 with SMTP id
+ v11-20020a170902b7cb00b00141b33a9589mr54924224plz.9.1638914990041; Tue, 07
+ Dec 2021 14:09:50 -0800 (PST)
 Reply-To: Sean Christopherson <seanjc@google.com>
-Date:   Tue,  7 Dec 2021 22:09:24 +0000
+Date:   Tue,  7 Dec 2021 22:09:26 +0000
 In-Reply-To: <20211207220926.718794-1-seanjc@google.com>
-Message-Id: <20211207220926.718794-7-seanjc@google.com>
+Message-Id: <20211207220926.718794-9-seanjc@google.com>
 Mime-Version: 1.0
 References: <20211207220926.718794-1-seanjc@google.com>
 X-Mailer: git-send-email 2.34.1.400.ga245620fadb-goog
-Subject: [PATCH v3 6/8] KVM: x86: Shove vp_bitmap handling down into sparse_set_to_vcpu_mask()
+Subject: [PATCH v3 8/8] KVM: x86: Add checks for reserved-to-zero Hyper-V
+ hypercall fields
 From:   Sean Christopherson <seanjc@google.com>
 To:     Paolo Bonzini <pbonzini@redhat.com>,
         "K. Y. Srinivasan" <kys@microsoft.com>,
@@ -72,145 +73,59 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Move the vp_bitmap "allocation" that's needed to handle mismatched vp_index
-values down into sparse_set_to_vcpu_mask() and drop __always_inline from
-said helper.  The need for an intermediate vp_bitmap is a detail that's
-specific to the sparse translation with mismatched VP<=>vCPU indexes and
-does not need to be exposed to the caller.
+Add checks for the three fields in Hyper-V's hypercall params that must
+be zero.  Per the TLFS, HV_STATUS_INVALID_HYPERCALL_INPUT is returned if
+"A reserved bit in the specified hypercall input value is non-zero."
 
-Regarding the __always_inline, prior to commit f21dd494506a ("KVM: x86:
-hyperv: optimize sparse VP set processing") the helper, then named
-hv_vcpu_in_sparse_set(), was a tiny bit of code that effectively boiled
-down to a handful of bit ops.  The __always_inline was understandable, if
-not justifiable.  Since the aforementioned change, sparse_set_to_vcpu_mask()
-is a chunky 350-450+ bytes of code without KASAN=y, and balloons to 1100+
-with KASAN=y.  In other words, it has no business being forcefully inlined.
+Note, some versions of the TLFS have an off-by-one bug for the last
+reserved field, and define it as being bits 64:60.  See
+https://github.com/MicrosoftDocs/Virtualization-Documentation/pull/1682.
 
 Signed-off-by: Sean Christopherson <seanjc@google.com>
 Reviewed-by: Vitaly Kuznetsov <vkuznets@redhat.com>
 ---
- arch/x86/kvm/hyperv.c | 65 +++++++++++++++++++++++++------------------
- 1 file changed, 38 insertions(+), 27 deletions(-)
+ arch/x86/kvm/hyperv.c             | 5 +++++
+ include/asm-generic/hyperv-tlfs.h | 6 ++++++
+ 2 files changed, 11 insertions(+)
 
 diff --git a/arch/x86/kvm/hyperv.c b/arch/x86/kvm/hyperv.c
-index a470cde7a7a7..f33a5e890048 100644
+index 522ccd2f0db4..3be59f13b467 100644
 --- a/arch/x86/kvm/hyperv.c
 +++ b/arch/x86/kvm/hyperv.c
-@@ -1710,32 +1710,47 @@ int kvm_hv_get_msr_common(struct kvm_vcpu *vcpu, u32 msr, u64 *pdata, bool host)
- 		return kvm_hv_get_msr(vcpu, msr, pdata, host);
- }
- 
--static __always_inline unsigned long *sparse_set_to_vcpu_mask(
--	struct kvm *kvm, u64 *sparse_banks, u64 valid_bank_mask,
--	u64 *vp_bitmap, unsigned long *vcpu_bitmap)
-+static void sparse_set_to_vcpu_mask(struct kvm *kvm, u64 *sparse_banks,
-+				    u64 valid_bank_mask, unsigned long *vcpu_mask)
- {
- 	struct kvm_hv *hv = to_kvm_hv(kvm);
-+	bool has_mismatch = atomic_read(&hv->num_mismatched_vp_indexes);
-+	u64 vp_bitmap[KVM_HV_MAX_SPARSE_VCPU_SET_BITS];
- 	struct kvm_vcpu *vcpu;
- 	int bank, sbank = 0;
- 	unsigned long i;
-+	u64 *bitmap;
- 
--	memset(vp_bitmap, 0,
--	       KVM_HV_MAX_SPARSE_VCPU_SET_BITS * sizeof(*vp_bitmap));
-+	BUILD_BUG_ON(sizeof(vp_bitmap) >
-+		     sizeof(*vcpu_mask) * BITS_TO_LONGS(KVM_MAX_VCPUS));
-+
-+	/*
-+	 * If vp_index == vcpu_idx for all vCPUs, fill vcpu_mask directly, else
-+	 * fill a temporary buffer and manually test each vCPU's VP index.
-+	 */
-+	if (likely(!has_mismatch))
-+		bitmap = (u64 *)vcpu_mask;
-+	else
-+		bitmap = vp_bitmap;
-+
-+	/*
-+	 * Each set of 64 VPs is packed into sparse_banks, with valid_bank_mask
-+	 * having a '1' for each bank that exists in sparse_banks.  Sets must
-+	 * be in ascending order, i.e. bank0..bankN.
-+	 */
-+	memset(bitmap, 0, sizeof(vp_bitmap));
- 	for_each_set_bit(bank, (unsigned long *)&valid_bank_mask,
- 			 KVM_HV_MAX_SPARSE_VCPU_SET_BITS)
--		vp_bitmap[bank] = sparse_banks[sbank++];
-+		bitmap[bank] = sparse_banks[sbank++];
- 
--	if (likely(!atomic_read(&hv->num_mismatched_vp_indexes))) {
--		/* for all vcpus vp_index == vcpu_idx */
--		return (unsigned long *)vp_bitmap;
--	}
-+	if (likely(!has_mismatch))
-+		return;
- 
--	bitmap_zero(vcpu_bitmap, KVM_MAX_VCPUS);
-+	bitmap_zero(vcpu_mask, KVM_MAX_VCPUS);
- 	kvm_for_each_vcpu(i, vcpu, kvm) {
- 		if (test_bit(kvm_hv_get_vpindex(vcpu), (unsigned long *)vp_bitmap))
--			__set_bit(i, vcpu_bitmap);
-+			__set_bit(i, vcpu_mask);
- 	}
--	return vcpu_bitmap;
- }
- 
- struct kvm_hv_hcall {
-@@ -1772,9 +1787,7 @@ static u64 kvm_hv_flush_tlb(struct kvm_vcpu *vcpu, struct kvm_hv_hcall *hc, bool
- 	struct kvm *kvm = vcpu->kvm;
- 	struct hv_tlb_flush_ex flush_ex;
- 	struct hv_tlb_flush flush;
--	u64 vp_bitmap[KVM_HV_MAX_SPARSE_VCPU_SET_BITS];
--	DECLARE_BITMAP(vcpu_bitmap, KVM_MAX_VCPUS);
--	unsigned long *vcpu_mask;
-+	DECLARE_BITMAP(vcpu_mask, KVM_MAX_VCPUS);
- 	u64 valid_bank_mask;
- 	u64 sparse_banks[KVM_HV_MAX_SPARSE_VCPU_SET_BITS];
- 	bool all_cpus;
-@@ -1867,11 +1880,9 @@ static u64 kvm_hv_flush_tlb(struct kvm_vcpu *vcpu, struct kvm_hv_hcall *hc, bool
- 	if (all_cpus) {
- 		kvm_make_all_cpus_request(kvm, KVM_REQ_TLB_FLUSH_GUEST);
- 	} else {
--		vcpu_mask = sparse_set_to_vcpu_mask(kvm, sparse_banks, valid_bank_mask,
--						    vp_bitmap, vcpu_bitmap);
-+		sparse_set_to_vcpu_mask(kvm, sparse_banks, valid_bank_mask, vcpu_mask);
- 
--		kvm_make_vcpus_request_mask(kvm, KVM_REQ_TLB_FLUSH_GUEST,
--					    vcpu_mask);
-+		kvm_make_vcpus_request_mask(kvm, KVM_REQ_TLB_FLUSH_GUEST, vcpu_mask);
+@@ -2237,6 +2237,11 @@ int kvm_hv_hypercall(struct kvm_vcpu *vcpu)
+ 		goto hypercall_complete;
  	}
  
- ret_success:
-@@ -1904,9 +1915,7 @@ static u64 kvm_hv_send_ipi(struct kvm_vcpu *vcpu, struct kvm_hv_hcall *hc, bool
- 	struct kvm *kvm = vcpu->kvm;
- 	struct hv_send_ipi_ex send_ipi_ex;
- 	struct hv_send_ipi send_ipi;
--	u64 vp_bitmap[KVM_HV_MAX_SPARSE_VCPU_SET_BITS];
--	DECLARE_BITMAP(vcpu_bitmap, KVM_MAX_VCPUS);
--	unsigned long *vcpu_mask;
-+	DECLARE_BITMAP(vcpu_mask, KVM_MAX_VCPUS);
- 	unsigned long valid_bank_mask;
- 	u64 sparse_banks[KVM_HV_MAX_SPARSE_VCPU_SET_BITS];
- 	u32 vector;
-@@ -1962,11 +1971,13 @@ static u64 kvm_hv_send_ipi(struct kvm_vcpu *vcpu, struct kvm_hv_hcall *hc, bool
- 	if ((vector < HV_IPI_LOW_VECTOR) || (vector > HV_IPI_HIGH_VECTOR))
- 		return HV_STATUS_INVALID_HYPERCALL_INPUT;
- 
--	vcpu_mask = all_cpus ? NULL :
--		sparse_set_to_vcpu_mask(kvm, sparse_banks, valid_bank_mask,
--					vp_bitmap, vcpu_bitmap);
-+	if (all_cpus) {
-+		kvm_send_ipi_to_many(kvm, vector, NULL);
-+	} else {
-+		sparse_set_to_vcpu_mask(kvm, sparse_banks, valid_bank_mask, vcpu_mask);
- 
--	kvm_send_ipi_to_many(kvm, vector, vcpu_mask);
-+		kvm_send_ipi_to_many(kvm, vector, vcpu_mask);
++	if (unlikely(hc.param & HV_HYPERCALL_RSVD_MASK)) {
++		ret = HV_STATUS_INVALID_HYPERCALL_INPUT;
++		goto hypercall_complete;
 +	}
++
+ 	if (hc.fast && is_xmm_fast_hypercall(&hc)) {
+ 		if (unlikely(hv_vcpu->enforce_cpuid &&
+ 			     !(hv_vcpu->cpuid_cache.features_edx &
+diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
+index 8a04c8fba598..2354378eef4c 100644
+--- a/include/asm-generic/hyperv-tlfs.h
++++ b/include/asm-generic/hyperv-tlfs.h
+@@ -184,11 +184,17 @@ enum HV_GENERIC_SET_FORMAT {
+ #define HV_HYPERCALL_FAST_BIT		BIT(16)
+ #define HV_HYPERCALL_VARHEAD_OFFSET	17
+ #define HV_HYPERCALL_VARHEAD_MASK	GENMASK_ULL(26, 17)
++#define HV_HYPERCALL_RSVD0_MASK		GENMASK_ULL(31, 27)
+ #define HV_HYPERCALL_REP_COMP_OFFSET	32
+ #define HV_HYPERCALL_REP_COMP_1		BIT_ULL(32)
+ #define HV_HYPERCALL_REP_COMP_MASK	GENMASK_ULL(43, 32)
++#define HV_HYPERCALL_RSVD1_MASK		GENMASK_ULL(47, 44)
+ #define HV_HYPERCALL_REP_START_OFFSET	48
+ #define HV_HYPERCALL_REP_START_MASK	GENMASK_ULL(59, 48)
++#define HV_HYPERCALL_RSVD2_MASK		GENMASK_ULL(63, 60)
++#define HV_HYPERCALL_RSVD_MASK		(HV_HYPERCALL_RSVD0_MASK | \
++					 HV_HYPERCALL_RSVD1_MASK | \
++					 HV_HYPERCALL_RSVD2_MASK)
  
- ret_success:
- 	return HV_STATUS_SUCCESS;
+ /* hypercall status code */
+ #define HV_STATUS_SUCCESS			0
 -- 
 2.34.1.400.ga245620fadb-goog
 
