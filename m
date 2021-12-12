@@ -2,31 +2,31 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 583E4C433F5
-	for <linux-arch@archiver.kernel.org>; Sun, 12 Dec 2021 19:39:46 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C11E3C433EF
+	for <linux-arch@archiver.kernel.org>; Sun, 12 Dec 2021 19:40:01 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230097AbhLLTjp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 12 Dec 2021 14:39:45 -0500
-Received: from condef-05.nifty.com ([202.248.20.70]:60255 "EHLO
-        condef-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229595AbhLLTjp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 Dec 2021 14:39:45 -0500
-Received: from conuserg-08.nifty.com ([10.126.8.71])by condef-05.nifty.com with ESMTP id 1BCJV20O011775
-        for <linux-arch@vger.kernel.org>; Mon, 13 Dec 2021 04:31:02 +0900
+        id S230103AbhLLTkB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 12 Dec 2021 14:40:01 -0500
+Received: from condef-01.nifty.com ([202.248.20.66]:36764 "EHLO
+        condef-01.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229595AbhLLTkA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 Dec 2021 14:40:00 -0500
+Received: from conuserg-08.nifty.com ([10.126.8.71])by condef-01.nifty.com with ESMTP id 1BCJV37U028651
+        for <linux-arch@vger.kernel.org>; Mon, 13 Dec 2021 04:31:03 +0900
 Received: from grover.. (133-32-232-101.west.xps.vectant.ne.jp [133.32.232.101]) (authenticated)
-        by conuserg-08.nifty.com with ESMTP id 1BCJTqAk000552;
-        Mon, 13 Dec 2021 04:29:52 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 1BCJTqAk000552
+        by conuserg-08.nifty.com with ESMTP id 1BCJTqAo000552;
+        Mon, 13 Dec 2021 04:29:56 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 1BCJTqAo000552
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1639337393;
-        bh=FXw958wyo8ETkKfX7PUkbCcYnUmIcy1cqQ//+4bN/Sg=;
-        h=From:To:Cc:Subject:Date:From;
-        b=ohvtGUFWSUwc68OTx4V2VSL2Wv0mzlcaItMXt9jwLUaF37y0y5w++Hdivpi6k8cgz
-         96UrTLG0976RF4BOZrskI2YFO7GJcwbVMIOsHgqei7Ikn2o774YMePwh7y5izqUokg
-         CM7vSOxLPHo1LhvsfCOImQlYbnRzAirsTYvDqDKMXfzrlVhrkH3IyGiTW7fyjG9xbG
-         YaGLO2pExbYrar9c6TQUHzJBdUcz1e4kQyoJySslYGnzo0WkOiYsNnKxxv9L+rsN9w
-         tWYebiiak+JP/IvuNV2UB/8Zh2bcuwiqEESoUaLYux/i/xNJTvwaoHv/R27ZerMBBS
-         TaXme7Ke5Dxuw==
+        s=dec2015msa; t=1639337396;
+        bh=2g0tBurhBmvuApdFMavEEHFbPrAFXCWxdFQ5K1KWeCA=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=qb36dAb7EH/VE+6ua4zaAYZfs3QbELmdy8H9Who9cyvYp0dxwf6pQeARSebHzS1+o
+         fvwS45+mYGRWfOnZaU3BSMf4jtW4jkQtNjzUokl6RwRvrbQB4dU7+Ut7f1ttsyX8BX
+         bijuc5IsNTHq7r00VBTcsGt3jmZbGfDhA3NLYB+lyedrBtXHNsbQkmx0GNAGDEmCwo
+         RjreLSkQyx1diS2grHcjknTnXANOIz18qjxxleeph3MO6vZzs7SYCt0Y6tsa35m6Jd
+         6E9nBp4Wg2XRiePtkDNC3f65pGzU/OfkQ6RvoXUDCivpq3A6k9FtoodfaIUITpZv1W
+         gnR6vmJI9lD4A==
 X-Nifty-SrcIP: [133.32.232.101]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
@@ -35,68 +35,90 @@ Cc:     Michal Simek <michal.simek@xilinx.com>, linux-arch@vger.kernel.org,
         David Woodhouse <dwmw2@infradead.org>,
         keyrings@vger.kernel.org, Richard Weinberger <richard@nod.at>,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 00/10] kbuild: do not quote string values in Makefile
-Date:   Mon, 13 Dec 2021 04:29:31 +0900
-Message-Id: <20211212192941.1149247-1-masahiroy@kernel.org>
+Subject: [PATCH 04/10] certs: refactor file cleaning
+Date:   Mon, 13 Dec 2021 04:29:35 +0900
+Message-Id: <20211212192941.1149247-5-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.32.0
+In-Reply-To: <20211212192941.1149247-1-masahiroy@kernel.org>
+References: <20211212192941.1149247-1-masahiroy@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+'make clean' removes files listed in 'targets'. It is redundant to
+specify both 'targets' and 'clean-files'.
 
-This patch refactors the code as outlined in:
+Move 'targets' assignments out of the ifeq-conditionals so
+scripts/Makefile.clean can see them.
 
-  https://lore.kernel.org/linux-kbuild/CAK7LNAR-VXwHFEJqCcrFDZj+_4+Xd6oynbj_0eS8N504_ydmyw@mail.gmail.com/
+One effective change is that certs/certs/signing_key.x509 is now
+deleted by 'make clean' instead of 'make mrproper. This certificate
+is embedded in the kernel. It is not used in any way by external
+module builds.
 
-First some patches refactor certs/Makefile. This Makefile is written
-in a too complicated way.
+Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+---
 
-I will revert cd8c917a56f20f48748dd43d9ae3caff51d5b987
-after this lands in the upstream.
+ Makefile       | 2 +-
+ certs/Makefile | 9 +++++----
+ 2 files changed, 6 insertions(+), 5 deletions(-)
 
-
-
-Masahiro Yamada (10):
-  certs: use $@ to simplify the key generation rule
-  certs: unify duplicated cmd_extract_certs and improve the log
-  certs: remove unneeded -I$(srctree) option for system_certificates.o
-  certs: refactor file cleaning
-  certs: remove misleading comments about GCC PR
-  kbuild: stop using config_filename in scripts/Makefile.modsign
-  certs: simplify $(srctree)/ handling and remove config_filename macro
-  kbuild: do not include include/config/auto.conf from shell scripts
-  kbuild: do not quote string values in include/config/auto.conf
-  microblaze: use built-in function to get CPU_{MAJOR,MINOR,REV}
-
- Makefile                                      |  6 +--
- arch/arc/Makefile                             |  4 +-
- arch/arc/boot/dts/Makefile                    |  4 +-
- arch/h8300/boot/dts/Makefile                  |  6 +--
- arch/microblaze/Makefile                      |  8 ++--
- arch/nds32/boot/dts/Makefile                  |  7 +--
- arch/nios2/boot/dts/Makefile                  |  2 +-
- arch/openrisc/boot/dts/Makefile               |  7 +--
- arch/powerpc/boot/Makefile                    |  2 +-
- arch/riscv/boot/dts/canaan/Makefile           |  4 +-
- arch/sh/boot/dts/Makefile                     |  4 +-
- arch/xtensa/Makefile                          |  2 +-
- arch/xtensa/boot/dts/Makefile                 |  5 +-
- certs/Makefile                                | 48 ++++++-------------
- drivers/acpi/Makefile                         |  2 +-
- drivers/base/firmware_loader/builtin/Makefile |  4 +-
- init/Makefile                                 |  2 +-
- net/wireless/Makefile                         |  4 +-
- scripts/Kbuild.include                        | 47 ------------------
- scripts/Makefile.modinst                      |  4 +-
- scripts/gen_autoksyms.sh                      |  6 +--
- scripts/kconfig/confdata.c                    |  2 +-
- scripts/link-vmlinux.sh                       | 47 +++++++++---------
- scripts/setlocalversion                       |  9 ++--
- usr/Makefile                                  |  2 +-
- 25 files changed, 74 insertions(+), 164 deletions(-)
-
+diff --git a/Makefile b/Makefile
+index 0a6ecc8bb2d2..4e8ac0730f51 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1503,7 +1503,7 @@ MRPROPER_FILES += include/config include/generated          \
+ 		  debian snap tar-install \
+ 		  .config .config.old .version \
+ 		  Module.symvers \
+-		  certs/signing_key.pem certs/signing_key.x509 \
++		  certs/signing_key.pem \
+ 		  certs/x509.genkey \
+ 		  vmlinux-gdb.py \
+ 		  *.spec
+diff --git a/certs/Makefile b/certs/Makefile
+index e7d6ee183496..0dc523e8ca7c 100644
+--- a/certs/Makefile
++++ b/certs/Makefile
+@@ -22,12 +22,11 @@ $(eval $(call config_filename,SYSTEM_TRUSTED_KEYS))
+ # GCC doesn't include .incbin files in -MD generated dependencies (PR#66871)
+ $(obj)/system_certificates.o: $(obj)/x509_certificate_list
+ 
+-targets += x509_certificate_list
+ $(obj)/x509_certificate_list: scripts/extract-cert $(SYSTEM_TRUSTED_KEYS_SRCPREFIX)$(SYSTEM_TRUSTED_KEYS_FILENAME) FORCE
+ 	$(call if_changed,extract_certs,$(SYSTEM_TRUSTED_KEYS_SRCPREFIX)$(CONFIG_SYSTEM_TRUSTED_KEYS))
+ endif # CONFIG_SYSTEM_TRUSTED_KEYRING
+ 
+-clean-files := x509_certificate_list .x509.list x509_revocation_list
++targets += x509_certificate_list
+ 
+ ifeq ($(CONFIG_MODULE_SIG),y)
+ 	SIGN_KEY = y
+@@ -84,18 +83,20 @@ endif
+ # GCC PR#66871 again.
+ $(obj)/system_certificates.o: $(obj)/signing_key.x509
+ 
+-targets += signing_key.x509
+ $(obj)/signing_key.x509: scripts/extract-cert $(X509_DEP) FORCE
+ 	$(call if_changed,extract_certs,$(MODULE_SIG_KEY_SRCPREFIX)$(CONFIG_MODULE_SIG_KEY))
+ endif # CONFIG_MODULE_SIG
+ 
++targets += signing_key.x509
++
+ ifeq ($(CONFIG_SYSTEM_REVOCATION_LIST),y)
+ 
+ $(eval $(call config_filename,SYSTEM_REVOCATION_KEYS))
+ 
+ $(obj)/revocation_certificates.o: $(obj)/x509_revocation_list
+ 
+-targets += x509_revocation_list
+ $(obj)/x509_revocation_list: scripts/extract-cert $(SYSTEM_REVOCATION_KEYS_SRCPREFIX)$(SYSTEM_REVOCATION_KEYS_FILENAME) FORCE
+ 	$(call if_changed,extract_certs,$(SYSTEM_REVOCATION_KEYS_SRCPREFIX)$(CONFIG_SYSTEM_REVOCATION_KEYS))
+ endif
++
++targets += x509_revocation_list
 -- 
 2.32.0
 
