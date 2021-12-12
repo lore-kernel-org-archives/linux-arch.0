@@ -2,31 +2,31 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C11E3C433EF
-	for <linux-arch@archiver.kernel.org>; Sun, 12 Dec 2021 19:40:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CA9CCC433EF
+	for <linux-arch@archiver.kernel.org>; Sun, 12 Dec 2021 19:40:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230103AbhLLTkB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 12 Dec 2021 14:40:01 -0500
-Received: from condef-01.nifty.com ([202.248.20.66]:36764 "EHLO
-        condef-01.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229595AbhLLTkA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 Dec 2021 14:40:00 -0500
-Received: from conuserg-08.nifty.com ([10.126.8.71])by condef-01.nifty.com with ESMTP id 1BCJV37U028651
+        id S230100AbhLLTkJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 12 Dec 2021 14:40:09 -0500
+Received: from condef-04.nifty.com ([202.248.20.69]:34262 "EHLO
+        condef-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229595AbhLLTkJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 Dec 2021 14:40:09 -0500
+Received: from conuserg-08.nifty.com ([10.126.8.71])by condef-04.nifty.com with ESMTP id 1BCJV3VS023326
         for <linux-arch@vger.kernel.org>; Mon, 13 Dec 2021 04:31:03 +0900
 Received: from grover.. (133-32-232-101.west.xps.vectant.ne.jp [133.32.232.101]) (authenticated)
-        by conuserg-08.nifty.com with ESMTP id 1BCJTqAo000552;
-        Mon, 13 Dec 2021 04:29:56 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 1BCJTqAo000552
+        by conuserg-08.nifty.com with ESMTP id 1BCJTqAu000552;
+        Mon, 13 Dec 2021 04:30:00 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 1BCJTqAu000552
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1639337396;
-        bh=2g0tBurhBmvuApdFMavEEHFbPrAFXCWxdFQ5K1KWeCA=;
+        s=dec2015msa; t=1639337401;
+        bh=UTYKGj88xYToscrUiygI8mCc6KISWEtozuMy+fS5oOs=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=qb36dAb7EH/VE+6ua4zaAYZfs3QbELmdy8H9Who9cyvYp0dxwf6pQeARSebHzS1+o
-         fvwS45+mYGRWfOnZaU3BSMf4jtW4jkQtNjzUokl6RwRvrbQB4dU7+Ut7f1ttsyX8BX
-         bijuc5IsNTHq7r00VBTcsGt3jmZbGfDhA3NLYB+lyedrBtXHNsbQkmx0GNAGDEmCwo
-         RjreLSkQyx1diS2grHcjknTnXANOIz18qjxxleeph3MO6vZzs7SYCt0Y6tsa35m6Jd
-         6E9nBp4Wg2XRiePtkDNC3f65pGzU/OfkQ6RvoXUDCivpq3A6k9FtoodfaIUITpZv1W
-         gnR6vmJI9lD4A==
+        b=KCgeTjseCnfEnf23cAtZpH+SF1PG0fz94Jpmlvqj0rdXjFDYgkDHcMXziM2yJ5H21
+         +OYWsJWkMJ187PTnH0UP5p7uAKOYtcKcoerV0vpo0c9t9qUwEbs4rrOkS5rJYG+sYf
+         mkKieUCPcYuxbhuxivVDGd+X2o/4hrxMfLJMWwuWuzD7UWHiRiP4Fg9ADWzlYaXOHV
+         x/lNyL9ESqR48kcOllow/sxJoe/pOJm7CsPi4al9IU45pr30i+AjJCHoaoWq695NSx
+         9yPDuUtXA/f3GK8vm3c6nuDktGb8/IUPNxHXb+AuYFQ+fcr6z/lW50RN/FaDO/b3YE
+         CtJ9/RihBpFYQ==
 X-Nifty-SrcIP: [133.32.232.101]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
@@ -35,9 +35,9 @@ Cc:     Michal Simek <michal.simek@xilinx.com>, linux-arch@vger.kernel.org,
         David Woodhouse <dwmw2@infradead.org>,
         keyrings@vger.kernel.org, Richard Weinberger <richard@nod.at>,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 04/10] certs: refactor file cleaning
-Date:   Mon, 13 Dec 2021 04:29:35 +0900
-Message-Id: <20211212192941.1149247-5-masahiroy@kernel.org>
+Subject: [PATCH 10/10] microblaze: use built-in function to get CPU_{MAJOR,MINOR,REV}
+Date:   Mon, 13 Dec 2021 04:29:41 +0900
+Message-Id: <20211212192941.1149247-11-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.32.0
 In-Reply-To: <20211212192941.1149247-1-masahiroy@kernel.org>
 References: <20211212192941.1149247-1-masahiroy@kernel.org>
@@ -47,78 +47,32 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-'make clean' removes files listed in 'targets'. It is redundant to
-specify both 'targets' and 'clean-files'.
-
-Move 'targets' assignments out of the ifeq-conditionals so
-scripts/Makefile.clean can see them.
-
-One effective change is that certs/certs/signing_key.x509 is now
-deleted by 'make clean' instead of 'make mrproper. This certificate
-is embedded in the kernel. It is not used in any way by external
-module builds.
+Use built-in functions instead of shell commands to avoid forking
+processes.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- Makefile       | 2 +-
- certs/Makefile | 9 +++++----
- 2 files changed, 6 insertions(+), 5 deletions(-)
+ arch/microblaze/Makefile | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index 0a6ecc8bb2d2..4e8ac0730f51 100644
---- a/Makefile
-+++ b/Makefile
-@@ -1503,7 +1503,7 @@ MRPROPER_FILES += include/config include/generated          \
- 		  debian snap tar-install \
- 		  .config .config.old .version \
- 		  Module.symvers \
--		  certs/signing_key.pem certs/signing_key.x509 \
-+		  certs/signing_key.pem \
- 		  certs/x509.genkey \
- 		  vmlinux-gdb.py \
- 		  *.spec
-diff --git a/certs/Makefile b/certs/Makefile
-index e7d6ee183496..0dc523e8ca7c 100644
---- a/certs/Makefile
-+++ b/certs/Makefile
-@@ -22,12 +22,11 @@ $(eval $(call config_filename,SYSTEM_TRUSTED_KEYS))
- # GCC doesn't include .incbin files in -MD generated dependencies (PR#66871)
- $(obj)/system_certificates.o: $(obj)/x509_certificate_list
+diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
+index a25e76d89e86..1826d9ce4459 100644
+--- a/arch/microblaze/Makefile
++++ b/arch/microblaze/Makefile
+@@ -6,9 +6,9 @@ UTS_SYSNAME = -DUTS_SYSNAME=\"Linux\"
+ # What CPU version are we building for, and crack it open
+ # as major.minor.rev
+ CPU_VER   := $(CONFIG_XILINX_MICROBLAZE0_HW_VER)
+-CPU_MAJOR := $(shell echo $(CPU_VER) | cut -d '.' -f 1)
+-CPU_MINOR := $(shell echo $(CPU_VER) | cut -d '.' -f 2)
+-CPU_REV   := $(shell echo $(CPU_VER) | cut -d '.' -f 3)
++CPU_MAJOR := $(word 1, $(subst ., , $(CPU_VER)))
++CPU_MINOR := $(word 2, $(subst ., , $(CPU_VER)))
++CPU_REV   := $(word 3, $(subst ., , $(CPU_VER)))
  
--targets += x509_certificate_list
- $(obj)/x509_certificate_list: scripts/extract-cert $(SYSTEM_TRUSTED_KEYS_SRCPREFIX)$(SYSTEM_TRUSTED_KEYS_FILENAME) FORCE
- 	$(call if_changed,extract_certs,$(SYSTEM_TRUSTED_KEYS_SRCPREFIX)$(CONFIG_SYSTEM_TRUSTED_KEYS))
- endif # CONFIG_SYSTEM_TRUSTED_KEYRING
+ export CPU_VER CPU_MAJOR CPU_MINOR CPU_REV
  
--clean-files := x509_certificate_list .x509.list x509_revocation_list
-+targets += x509_certificate_list
- 
- ifeq ($(CONFIG_MODULE_SIG),y)
- 	SIGN_KEY = y
-@@ -84,18 +83,20 @@ endif
- # GCC PR#66871 again.
- $(obj)/system_certificates.o: $(obj)/signing_key.x509
- 
--targets += signing_key.x509
- $(obj)/signing_key.x509: scripts/extract-cert $(X509_DEP) FORCE
- 	$(call if_changed,extract_certs,$(MODULE_SIG_KEY_SRCPREFIX)$(CONFIG_MODULE_SIG_KEY))
- endif # CONFIG_MODULE_SIG
- 
-+targets += signing_key.x509
-+
- ifeq ($(CONFIG_SYSTEM_REVOCATION_LIST),y)
- 
- $(eval $(call config_filename,SYSTEM_REVOCATION_KEYS))
- 
- $(obj)/revocation_certificates.o: $(obj)/x509_revocation_list
- 
--targets += x509_revocation_list
- $(obj)/x509_revocation_list: scripts/extract-cert $(SYSTEM_REVOCATION_KEYS_SRCPREFIX)$(SYSTEM_REVOCATION_KEYS_FILENAME) FORCE
- 	$(call if_changed,extract_certs,$(SYSTEM_REVOCATION_KEYS_SRCPREFIX)$(CONFIG_SYSTEM_REVOCATION_KEYS))
- endif
-+
-+targets += x509_revocation_list
 -- 
 2.32.0
 
