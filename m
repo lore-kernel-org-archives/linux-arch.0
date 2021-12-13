@@ -2,234 +2,154 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 53465C433FE
-	for <linux-arch@archiver.kernel.org>; Mon, 13 Dec 2021 07:14:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E3302C433FE
+	for <linux-arch@archiver.kernel.org>; Mon, 13 Dec 2021 13:23:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232340AbhLMHOa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 13 Dec 2021 02:14:30 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49846 "EHLO
+        id S237379AbhLMNX5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 13 Dec 2021 08:23:57 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52264 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232350AbhLMHO0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Dec 2021 02:14:26 -0500
-Received: from mail-pl1-x631.google.com (mail-pl1-x631.google.com [IPv6:2607:f8b0:4864:20::631])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 57F25C061751;
-        Sun, 12 Dec 2021 23:14:26 -0800 (PST)
-Received: by mail-pl1-x631.google.com with SMTP id b11so10509133pld.12;
-        Sun, 12 Dec 2021 23:14:26 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=from:to:cc:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding;
-        bh=+gXR2p8k1/PM0XtEt/0ngEhyw9jjKsa0NFun+bwBeIs=;
-        b=Y9jWrZ7mmcFm1CdvprZ7HLCuxfumTtMf18/VOWp/uWxShROPJOra6//TjvSPxBj6HD
-         dFJHI4NgCoI9kd93wN9SG7gQdcSzsz+im4We1y46LjvkwHLt3ugyYq1tEbnZEwDtJP/a
-         Q3qXas6tYBz2IzUM6zK3lrwQ3+qA2+aREs5hGhK7LpASCCsx7++8a3WdguAP5SiD+sJN
-         j5PW3+syWx+I9V21jhxexxKmsG1pBgAxox/sC5/zwmBOIGZaWWHqq9+aNxeWTQcbdTOu
-         mL4+nhqYXTLQV++kWXFkw2Lr930uZzNWQGkH3mdckBzfRjGEZbeIPY0q0xzIJ7YbJWEb
-         PtCA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
-         :references:mime-version:content-transfer-encoding;
-        bh=+gXR2p8k1/PM0XtEt/0ngEhyw9jjKsa0NFun+bwBeIs=;
-        b=BvwXFWd88tKVQDbuwzWr3IlU7rF6swUqyuQ7DRso63y9+BCjBGTuqR4z3j3B4zJVZk
-         2EfTjmd1H5Cv8hgKjP3nSugmgbWMwq6nJD1ZafltwJcYatxRSQ6dyY8aR4JKhthMzBDd
-         BbfHudWL5laLSrmKM/XzUB3hpyCWPJdSSf2aIqqB+fOIs9Y9G0m9Pl0b7Nu1kmucQnjn
-         et3lGjA+F/qu5js//EEK/QQSUxVV8sh0riAkwlcfLWbZvlBIH1rhUfDP8LNWSOqSZm0i
-         girsJs/llHfetp7dAHECeZ5ZlCTDVq4BLOfd6hr6ComUbn1xLjQLrsM0esbfPtTlJ7SL
-         XyBA==
-X-Gm-Message-State: AOAM531Iv/m1tVIpd4gVysUi/5mJs5qC+PuOM6mPLrRN7kz3243z+yw9
-        aXzQQE6pbt8p667GlNajnj4=
-X-Google-Smtp-Source: ABdhPJw8MV1ZLLlmNVAc7VkVa4Knm7gANgAW5UHixpRAi/MABLA4cOD/q1fMNUPrXzk7BtmqbbaC+w==
-X-Received: by 2002:a17:90b:38c7:: with SMTP id nn7mr42845584pjb.105.1639379665820;
-        Sun, 12 Dec 2021 23:14:25 -0800 (PST)
-Received: from ubuntu-Virtual-Machine.corp.microsoft.com ([2001:4898:80e8:36:a586:a4cb:7d3:4f27])
-        by smtp.gmail.com with ESMTPSA id qe12sm6079401pjb.29.2021.12.12.23.14.24
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 12 Dec 2021 23:14:25 -0800 (PST)
-From:   Tianyu Lan <ltykernel@gmail.com>
-To:     kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com,
-        wei.liu@kernel.org, decui@microsoft.com, tglx@linutronix.de,
-        mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com,
-        x86@kernel.org, hpa@zytor.com, davem@davemloft.net,
-        kuba@kernel.org, jejb@linux.ibm.com, martin.petersen@oracle.com,
-        arnd@arndb.de, hch@infradead.org, m.szyprowski@samsung.com,
-        robin.murphy@arm.com, thomas.lendacky@amd.com,
-        Tianyu.Lan@microsoft.com, michael.h.kelley@microsoft.com
-Cc:     iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org,
-        linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-scsi@vger.kernel.org, netdev@vger.kernel.org,
-        vkuznets@redhat.com, brijesh.singh@amd.com, konrad.wilk@oracle.com,
-        hch@lst.de, joro@8bytes.org, parri.andrea@gmail.com,
-        dave.hansen@intel.com
-Subject: [PATCH V7 4/5] scsi: storvsc: Add Isolation VM support for storvsc driver
-Date:   Mon, 13 Dec 2021 02:14:05 -0500
-Message-Id: <20211213071407.314309-5-ltykernel@gmail.com>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20211213071407.314309-1-ltykernel@gmail.com>
-References: <20211213071407.314309-1-ltykernel@gmail.com>
+        with ESMTP id S231676AbhLMNX4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Dec 2021 08:23:56 -0500
+X-Greylist: delayed 78 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Mon, 13 Dec 2021 05:23:56 PST
+Received: from mail.avm.de (mail.avm.de [IPv6:2001:bf0:244:244::120])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3612BC061574;
+        Mon, 13 Dec 2021 05:23:56 -0800 (PST)
+Received: from mail-auth.avm.de (unknown [IPv6:2001:bf0:244:244::71])
+        by mail.avm.de (Postfix) with ESMTPS;
+        Mon, 13 Dec 2021 14:23:54 +0100 (CET)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=avm.de; s=mail;
+        t=1639401834; bh=UL7R1cXd59fb63aQbLKzvJrfMdZNkVMOW+WjYF0O2lE=;
+        h=Resent-From:Resent-Date:Resent-To:Date:From:To:Cc:Subject:
+         References:In-Reply-To:From;
+        b=LnK1S9W2lDaDMjL3JsmNWe9zklp+3oEQVGRoQCFweNE4VX6vQSINp1cWtnCBMjqfl
+         k5VtwaDpOSp4oAVihVCDLpemqAU9VGojeZwCuCNkE2RJWeOF3Dxc7ktXKkNxjnnek0
+         F12tlSyg8aIgzo5po4noAQQhTkG65l+6RjNoGpYY=
+Received: from buildd.core.avm.de (buildd-sv-01.avm.de [172.16.0.225])
+        by mail-auth.avm.de (Postfix) with ESMTPSA id 66EAA8048E;
+        Mon, 13 Dec 2021 14:23:54 +0100 (CET)
+Received: from mail.avm.de ([212.42.244.120])
+          by mail-notes.avm.de (HCL Domino Release 11.0.1FP4)
+          with ESMTP id 2021121314075056-9118 ;
+          Mon, 13 Dec 2021 14:07:50 +0100 
+Received: from buildd.core.avm.de (buildd-sv-01.avm.de [172.16.0.225])
+        by mail.avm.de (Postfix) with ESMTP
+        for <n.schier@avm.de>; Mon, 13 Dec 2021 14:07:50 +0100 (CET)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=avm.de; s=mail;
+        t=1639400870; bh=UL7R1cXd59fb63aQbLKzvJrfMdZNkVMOW+WjYF0O2lE=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=MFcXzraGo7wfo7p42UVDEm65E53pV5/RXMFap05JhCIVmT/kfabzzDcGY/Kv3HjEL
+         u3wSoGScAoWmxB+y7e7Mro1QiGwKTX7liXgERsBEotrwOUJj+S9Ca7OSL1C94sfU1d
+         YeaYvShhYmfGDnCEmvsETeu4UpL7VfTtW7peWl2E=
+Received: by buildd.core.avm.de (Postfix, from userid 1000)
+        id 6CE28181273; Mon, 13 Dec 2021 14:07:50 +0100 (CET)
+Date:   Mon, 13 Dec 2021 14:07:50 +0100
+From:   Nicolas Schier <n.schier@avm.de>
+To:     Masahiro Yamada <masahiroy@kernel.org>
+Cc:     linux-kbuild@vger.kernel.org,
+        Michal Simek <michal.simek@xilinx.com>,
+        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        David Howells <dhowells@redhat.com>,
+        David Woodhouse <dwmw2@infradead.org>,
+        keyrings@vger.kernel.org, Richard Weinberger <richard@nod.at>
+Subject: Re: [PATCH 02/10] certs: unify duplicated cmd_extract_certs and
+ improve the log
+Message-ID: <YbdFplCZHvzeOON+@buildd.core.avm.de>
+References: <20211212192941.1149247-1-masahiroy@kernel.org>
+ <20211212192941.1149247-3-masahiroy@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20211212192941.1149247-3-masahiroy@kernel.org>
+X-MIMETrack: Itemize by SMTP Server on ANIS1/AVM(Release 11.0.1FP4|October 01,
+ 2021) at 13.12.2021 14:07:50,  Serialize by http on ANIS1/AVM(Release
+ 11.0.1FP4|October 01, 2021) at 13.12.2021 14:09:57,    Serialize complete at
+ 13.12.2021 14:09:57
+X-TNEFEvaluated: 1
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+X-Notes-UNID: 43EAD04059685BA508288FD257D3054C
+X-purgate-ID: 149429::1639401834-0000060F-81CC5DBE/0/0
+X-purgate-type: clean
+X-purgate-size: 2784
+X-purgate-Ad: Categorized by eleven eXpurgate (R) http://www.eleven.de
+X-purgate: This mail is considered clean (visit http://www.eleven.de for further information)
+X-purgate: clean
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Tianyu Lan <Tianyu.Lan@microsoft.com>
+On Mon, Dec 13, 2021 at 04:29:33AM +0900, Masahiro Yamada wrote:
+> cmd_extract_certs is defined twice. Unify them.
+> 
+> The current log shows the input file $(2), which might be empty.
+> You cannot know what is being created from the log, "EXTRACT_CERTS".
+> 
+> Change the log to show the output file with better alignment.
+> 
+> [Before]
+> 
+>   EXTRACT_CERTS   certs/signing_key.pem
+>   CC      certs/system_keyring.o
+>   EXTRACT_CERTS
+>   AS      certs/system_certificates.o
+>   CC      certs/common.o
+>   CC      certs/blacklist.o
+>   EXTRACT_CERTS
+>   AS      certs/revocation_certificates.o
+> 
+> [After]
+> 
+>   CERT    certs/signing_key.x509
+>   CC      certs/system_keyring.o
+>   CERT    certs/x509_certificate_list
+>   AS      certs/system_certificates.o
+>   CC      certs/common.o
+>   CC      certs/blacklist.o
+>   CERT    certs/x509_revocation_list
+>   AS      certs/revocation_certificates.o
+> 
+> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+> ---
 
-In Isolation VM, all shared memory with host needs to mark visible
-to host via hvcall. vmbus_establish_gpadl() has already done it for
-storvsc rx/tx ring buffer. The page buffer used by vmbus_sendpacket_
-mpb_desc() still needs to be handled. Use DMA API(scsi_dma_map/unmap)
-to map these memory during sending/receiving packet and return swiotlb
-bounce buffer dma address. In Isolation VM, swiotlb  bounce buffer is
-marked to be visible to host and the swiotlb force mode is enabled.
+Reviewed-by: Nicolas Schier <n.schier@avm.de>
 
-Set device's dma min align mask to HV_HYP_PAGE_SIZE - 1 in order to
-keep the original data offset in the bounce buffer.
-
-Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
----
- drivers/hv/vmbus_drv.c     |  4 ++++
- drivers/scsi/storvsc_drv.c | 37 +++++++++++++++++++++----------------
- include/linux/hyperv.h     |  1 +
- 3 files changed, 26 insertions(+), 16 deletions(-)
-
-diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
-index 392c1ac4f819..ae6ec503399a 100644
---- a/drivers/hv/vmbus_drv.c
-+++ b/drivers/hv/vmbus_drv.c
-@@ -33,6 +33,7 @@
- #include <linux/random.h>
- #include <linux/kernel.h>
- #include <linux/syscore_ops.h>
-+#include <linux/dma-map-ops.h>
- #include <clocksource/hyperv_timer.h>
- #include "hyperv_vmbus.h"
- 
-@@ -2078,6 +2079,7 @@ struct hv_device *vmbus_device_create(const guid_t *type,
- 	return child_device_obj;
- }
- 
-+static u64 vmbus_dma_mask = DMA_BIT_MASK(64);
- /*
-  * vmbus_device_register - Register the child device
-  */
-@@ -2118,6 +2120,8 @@ int vmbus_device_register(struct hv_device *child_device_obj)
- 	}
- 	hv_debug_add_dev_dir(child_device_obj);
- 
-+	child_device_obj->device.dma_mask = &vmbus_dma_mask;
-+	child_device_obj->device.dma_parms = &child_device_obj->dma_parms;
- 	return 0;
- 
- err_kset_unregister:
-diff --git a/drivers/scsi/storvsc_drv.c b/drivers/scsi/storvsc_drv.c
-index 20595c0ba0ae..ae293600d799 100644
---- a/drivers/scsi/storvsc_drv.c
-+++ b/drivers/scsi/storvsc_drv.c
-@@ -21,6 +21,8 @@
- #include <linux/device.h>
- #include <linux/hyperv.h>
- #include <linux/blkdev.h>
-+#include <linux/dma-mapping.h>
-+
- #include <scsi/scsi.h>
- #include <scsi/scsi_cmnd.h>
- #include <scsi/scsi_host.h>
-@@ -1336,6 +1338,7 @@ static void storvsc_on_channel_callback(void *context)
- 					continue;
- 				}
- 				request = (struct storvsc_cmd_request *)scsi_cmd_priv(scmnd);
-+				scsi_dma_unmap(scmnd);
- 			}
- 
- 			storvsc_on_receive(stor_device, packet, request);
-@@ -1749,7 +1752,6 @@ static int storvsc_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *scmnd)
- 	struct hv_host_device *host_dev = shost_priv(host);
- 	struct hv_device *dev = host_dev->dev;
- 	struct storvsc_cmd_request *cmd_request = scsi_cmd_priv(scmnd);
--	int i;
- 	struct scatterlist *sgl;
- 	unsigned int sg_count;
- 	struct vmscsi_request *vm_srb;
-@@ -1831,10 +1833,11 @@ static int storvsc_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *scmnd)
- 	payload_sz = sizeof(cmd_request->mpb);
- 
- 	if (sg_count) {
--		unsigned int hvpgoff, hvpfns_to_add;
- 		unsigned long offset_in_hvpg = offset_in_hvpage(sgl->offset);
- 		unsigned int hvpg_count = HVPFN_UP(offset_in_hvpg + length);
--		u64 hvpfn;
-+		struct scatterlist *sg;
-+		unsigned long hvpfn, hvpfns_to_add;
-+		int j, i = 0;
- 
- 		if (hvpg_count > MAX_PAGE_BUFFER_COUNT) {
- 
-@@ -1848,21 +1851,22 @@ static int storvsc_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *scmnd)
- 		payload->range.len = length;
- 		payload->range.offset = offset_in_hvpg;
- 
-+		sg_count = scsi_dma_map(scmnd);
-+		if (sg_count < 0)
-+			return SCSI_MLQUEUE_DEVICE_BUSY;
- 
--		for (i = 0; sgl != NULL; sgl = sg_next(sgl)) {
-+		for_each_sg(sgl, sg, sg_count, j) {
- 			/*
--			 * Init values for the current sgl entry. hvpgoff
--			 * and hvpfns_to_add are in units of Hyper-V size
--			 * pages. Handling the PAGE_SIZE != HV_HYP_PAGE_SIZE
--			 * case also handles values of sgl->offset that are
--			 * larger than PAGE_SIZE. Such offsets are handled
--			 * even on other than the first sgl entry, provided
--			 * they are a multiple of PAGE_SIZE.
-+			 * Init values for the current sgl entry. hvpfns_to_add
-+			 * is in units of Hyper-V size pages. Handling the
-+			 * PAGE_SIZE != HV_HYP_PAGE_SIZE case also handles
-+			 * values of sgl->offset that are larger than PAGE_SIZE.
-+			 * Such offsets are handled even on other than the first
-+			 * sgl entry, provided they are a multiple of PAGE_SIZE.
- 			 */
--			hvpgoff = HVPFN_DOWN(sgl->offset);
--			hvpfn = page_to_hvpfn(sg_page(sgl)) + hvpgoff;
--			hvpfns_to_add =	HVPFN_UP(sgl->offset + sgl->length) -
--						hvpgoff;
-+			hvpfn = HVPFN_DOWN(sg_dma_address(sg));
-+			hvpfns_to_add = HVPFN_UP(sg_dma_address(sg) +
-+						 sg_dma_len(sg)) - hvpfn;
- 
- 			/*
- 			 * Fill the next portion of the PFN array with
-@@ -1872,7 +1876,7 @@ static int storvsc_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *scmnd)
- 			 * the PFN array is filled.
- 			 */
- 			while (hvpfns_to_add--)
--				payload->range.pfn_array[i++] =	hvpfn++;
-+				payload->range.pfn_array[i++] = hvpfn++;
- 		}
- 	}
- 
-@@ -2016,6 +2020,7 @@ static int storvsc_probe(struct hv_device *device,
- 	stor_device->vmscsi_size_delta = sizeof(struct vmscsi_win8_extension);
- 	spin_lock_init(&stor_device->lock);
- 	hv_set_drvdata(device, stor_device);
-+	dma_set_min_align_mask(&device->device, HV_HYP_PAGE_SIZE - 1);
- 
- 	stor_device->port_number = host->host_no;
- 	ret = storvsc_connect_to_vsp(device, storvsc_ringbuffer_size, is_fc);
-diff --git a/include/linux/hyperv.h b/include/linux/hyperv.h
-index b823311eac79..650a0574b746 100644
---- a/include/linux/hyperv.h
-+++ b/include/linux/hyperv.h
-@@ -1261,6 +1261,7 @@ struct hv_device {
- 
- 	struct vmbus_channel *channel;
- 	struct kset	     *channels_kset;
-+	struct device_dma_parameters dma_parms;
- 
- 	/* place holder to keep track of the dir for hv device in debugfs */
- 	struct dentry *debug_dir;
--- 
-2.25.1
-
+> 
+>  certs/Makefile | 9 +++------
+>  1 file changed, 3 insertions(+), 6 deletions(-)
+> 
+> diff --git a/certs/Makefile b/certs/Makefile
+> index 97fd6cc02972..945e53d90d38 100644
+> --- a/certs/Makefile
+> +++ b/certs/Makefile
+> @@ -12,6 +12,9 @@ else
+>  obj-$(CONFIG_SYSTEM_BLACKLIST_KEYRING) += blacklist_nohashes.o
+>  endif
+>  
+> +quiet_cmd_extract_certs  = CERT    $@
+> +      cmd_extract_certs  = scripts/extract-cert $(2) $@
+> +
+>  ifeq ($(CONFIG_SYSTEM_TRUSTED_KEYRING),y)
+>  
+>  $(eval $(call config_filename,SYSTEM_TRUSTED_KEYS))
+> @@ -22,9 +25,6 @@ $(obj)/system_certificates.o: $(obj)/x509_certificate_list
+>  # Cope with signing_key.x509 existing in $(srctree) not $(objtree)
+>  AFLAGS_system_certificates.o := -I$(srctree)
+>  
+> -quiet_cmd_extract_certs  = EXTRACT_CERTS   $(patsubst "%",%,$(2))
+> -      cmd_extract_certs  = scripts/extract-cert $(2) $@
+> -
+>  targets += x509_certificate_list
+>  $(obj)/x509_certificate_list: scripts/extract-cert $(SYSTEM_TRUSTED_KEYS_SRCPREFIX)$(SYSTEM_TRUSTED_KEYS_FILENAME) FORCE
+>  	$(call if_changed,extract_certs,$(SYSTEM_TRUSTED_KEYS_SRCPREFIX)$(CONFIG_SYSTEM_TRUSTED_KEYS))
+> @@ -98,9 +98,6 @@ $(eval $(call config_filename,SYSTEM_REVOCATION_KEYS))
+>  
+>  $(obj)/revocation_certificates.o: $(obj)/x509_revocation_list
+>  
+> -quiet_cmd_extract_certs  = EXTRACT_CERTS   $(patsubst "%",%,$(2))
+> -      cmd_extract_certs  = scripts/extract-cert $(2) $@
+> -
+>  targets += x509_revocation_list
+>  $(obj)/x509_revocation_list: scripts/extract-cert $(SYSTEM_REVOCATION_KEYS_SRCPREFIX)$(SYSTEM_REVOCATION_KEYS_FILENAME) FORCE
+>  	$(call if_changed,extract_certs,$(SYSTEM_REVOCATION_KEYS_SRCPREFIX)$(CONFIG_SYSTEM_REVOCATION_KEYS))
+> -- 
+> 2.32.0
+> 
