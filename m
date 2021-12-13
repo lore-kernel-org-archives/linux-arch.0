@@ -2,110 +2,92 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 91B5AC4332F
-	for <linux-arch@archiver.kernel.org>; Mon, 13 Dec 2021 13:34:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 76E9CC433F5
+	for <linux-arch@archiver.kernel.org>; Mon, 13 Dec 2021 14:51:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237641AbhLMNeJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 13 Dec 2021 08:34:09 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54752 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237638AbhLMNeJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Dec 2021 08:34:09 -0500
-Received: from mail.avm.de (mail.avm.de [IPv6:2001:bf0:244:244::119])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8800EC061574;
-        Mon, 13 Dec 2021 05:34:08 -0800 (PST)
-Received: from mail-auth.avm.de (dovecot-mx-01.avm.de [212.42.244.71])
-        by mail.avm.de (Postfix) with ESMTPS;
-        Mon, 13 Dec 2021 14:34:06 +0100 (CET)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=avm.de; s=mail;
-        t=1639402447; bh=+dc+6tzjoJlOfZESnyJg2NqDO3PbqPjD88TylPg6x5k=;
-        h=Resent-From:Resent-Date:Resent-To:Date:From:To:Cc:Subject:
-         References:In-Reply-To:From;
-        b=SzZaJ5tLj1HxI2FEQih/A25O/XUYNpgVvBx52UGZbsOWfjqcebHpSptR3apELzcPv
-         gxok7saAO/8r//Z3F1NcEo89laOi52XCD+942oGQaUgaku+TV87SSdroBal0Ce/UJ5
-         DyErhYCLDjWl7SjoF4WU5gi2yPU9Tl7yMXwzZdzY=
-Received: from buildd.core.avm.de (buildd-sv-01.avm.de [172.16.0.225])
-        by mail-auth.avm.de (Postfix) with ESMTPSA id 999C6804FF;
-        Mon, 13 Dec 2021 14:34:06 +0100 (CET)
-Received: from mail.avm.de ([212.42.244.94])
-          by mail-notes.avm.de (HCL Domino Release 11.0.1FP4)
-          with ESMTP id 2021121314180464-9437 ;
-          Mon, 13 Dec 2021 14:18:04 +0100 
-Received: from buildd.core.avm.de (buildd-sv-01.avm.de [172.16.0.225])
-        by mail.avm.de (Postfix) with ESMTP
-        for <n.schier@avm.de>; Mon, 13 Dec 2021 14:18:04 +0100 (CET)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=avm.de; s=mail;
-        t=1639401484; bh=+dc+6tzjoJlOfZESnyJg2NqDO3PbqPjD88TylPg6x5k=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=EkxnHO7efqzBwu0hVQr4I/ucyG/8H1A5y14vlw5itwwwAZC5GL7ZPWXNvIbWvRc26
-         aQlxV+E4eRK6Sl+9KWDSUG1Q6v6PmuZAoZcZupEuyxRRRzriX+p7xQbQI73RPlr9ud
-         Vp/vQtgs7NnVDWh84tVo4n5Z0cVkDsAWvJdhFaXM=
-Received: by buildd.core.avm.de (Postfix, from userid 1000)
-        id 7BD9A18176D; Mon, 13 Dec 2021 14:18:04 +0100 (CET)
-Date:   Mon, 13 Dec 2021 14:18:04 +0100
-From:   Nicolas Schier <n.schier@avm.de>
-To:     Masahiro Yamada <masahiroy@kernel.org>
-Cc:     linux-kbuild@vger.kernel.org,
-        Michal Simek <michal.simek@xilinx.com>,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        David Howells <dhowells@redhat.com>,
-        David Woodhouse <dwmw2@infradead.org>,
-        keyrings@vger.kernel.org, Richard Weinberger <richard@nod.at>
-Subject: Re: [PATCH 10/10] microblaze: use built-in function to get
- CPU_{MAJOR,MINOR,REV}
-Message-ID: <YbdIDBIPz/Yyi2cw@buildd.core.avm.de>
-References: <20211212192941.1149247-1-masahiroy@kernel.org>
- <20211212192941.1149247-11-masahiroy@kernel.org>
+        id S233042AbhLMOv2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 13 Dec 2021 09:51:28 -0500
+Received: from out01.mta.xmission.com ([166.70.13.231]:52936 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231349AbhLMOv1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Dec 2021 09:51:27 -0500
+Received: from in02.mta.xmission.com ([166.70.13.52]:45796)
+        by out01.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1mwmfk-007Cyd-Mm; Mon, 13 Dec 2021 07:51:24 -0700
+Received: from ip68-227-160-95.om.om.cox.net ([68.227.160.95]:40216 helo=email.froward.int.ebiederm.org.xmission.com)
+        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1mwmfj-00BB7w-LH; Mon, 13 Dec 2021 07:51:24 -0700
+From:   ebiederm@xmission.com (Eric W. Biederman)
+To:     Heiko Carstens <hca@linux.ibm.com>
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Alexey Gladkov <legion@kernel.org>,
+        Kyle Huey <me@kylehuey.com>, Oleg Nesterov <oleg@redhat.com>,
+        Kees Cook <keescook@chromium.org>,
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Vasily Gorbik <gor@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@de.ibm.com>,
+        Alexander Gordeev <agordeev@linux.ibm.com>
+References: <87a6ha4zsd.fsf@email.froward.int.ebiederm.org>
+        <20211208202532.16409-1-ebiederm@xmission.com>
+        <YbY2CDkZbOFRBN0i@osiris>
+Date:   Mon, 13 Dec 2021 08:50:44 -0600
+In-Reply-To: <YbY2CDkZbOFRBN0i@osiris> (Heiko Carstens's message of "Sun, 12
+        Dec 2021 18:48:56 +0100")
+Message-ID: <87czm036ez.fsf@email.froward.int.ebiederm.org>
+User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/26.1 (gnu/linux)
 MIME-Version: 1.0
-In-Reply-To: <20211212192941.1149247-11-masahiroy@kernel.org>
-X-MIMETrack: Itemize by SMTP Server on ANIS1/AVM(Release 11.0.1FP4|October 01,
- 2021) at 13.12.2021 14:18:04,  Serialize by http on ANIS1/AVM(Release
- 11.0.1FP4|October 01, 2021) at 13.12.2021 14:18:58,    Serialize complete at
- 13.12.2021 14:18:58
-X-TNEFEvaluated: 1
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-X-Notes-UNID: 07DBF18074CC90F87F10266110A523D0
-X-purgate-ID: 149429::1639402447-0000056E-41EE63CB/0/0
-X-purgate-type: clean
-X-purgate-size: 1161
-X-purgate-Ad: Categorized by eleven eXpurgate (R) http://www.eleven.de
-X-purgate: This mail is considered clean (visit http://www.eleven.de for further information)
-X-purgate: clean
+Content-Type: text/plain
+X-XM-SPF: eid=1mwmfj-00BB7w-LH;;;mid=<87czm036ez.fsf@email.froward.int.ebiederm.org>;;;hst=in02.mta.xmission.com;;;ip=68.227.160.95;;;frm=ebiederm@xmission.com;;;spf=neutral
+X-XM-AID: U2FsdGVkX18KAzcwgpDXJi2izmCoG3YxLtoPlPFwE2s=
+X-SA-Exim-Connect-IP: 68.227.160.95
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: Re: [PATCH 01/10] exit/s390: Remove dead reference to do_exit from copy_thread
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Dec 13, 2021 at 04:29:41AM +0900, Masahiro Yamada wrote:
-> Use built-in functions instead of shell commands to avoid forking
-> processes.
-> 
-> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
-> ---
+Heiko Carstens <hca@linux.ibm.com> writes:
 
-Reviewed-by: Nicolas Schier <n.schier@avm.de>
+> On Wed, Dec 08, 2021 at 02:25:23PM -0600, Eric W. Biederman wrote:
+>> My s390 assembly is not particularly good so I have read the history
+>> of the reference to do_exit copy_thread and have been able to
+>> verify that do_exit is not used.
+>> 
+>> The general argument is that s390 has been changed to use the generic
+>> kernel_thread and kernel_execve and the generic versions do not call
+>> do_exit.  So it is strange to see a do_exit reference sitting there.
+>> 
+>> The history of the do_exit reference in s390's version of copy_thread
+>> seems conclusive that the do_exit reference is something that lingers
+>> and should have been removed several years ago.
+> ...
+>> Remove this dead reference to do_exit to make it clear that s390 is
+>> not doing anything with do_exit in copy_thread.
+>>
+>> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+>> ---
+>>  arch/s390/kernel/process.c | 1 -
+>>  1 file changed, 1 deletion(-)
+>
+> Applied to s390 tree. Just in case you want to apply this to your tree too:
+> Acked-by: Heiko Carstens <hca@linux.ibm.com>
 
-> 
->  arch/microblaze/Makefile | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
-> 
-> diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
-> index a25e76d89e86..1826d9ce4459 100644
-> --- a/arch/microblaze/Makefile
-> +++ b/arch/microblaze/Makefile
-> @@ -6,9 +6,9 @@ UTS_SYSNAME = -DUTS_SYSNAME=\"Linux\"
->  # What CPU version are we building for, and crack it open
->  # as major.minor.rev
->  CPU_VER   := $(CONFIG_XILINX_MICROBLAZE0_HW_VER)
-> -CPU_MAJOR := $(shell echo $(CPU_VER) | cut -d '.' -f 1)
-> -CPU_MINOR := $(shell echo $(CPU_VER) | cut -d '.' -f 2)
-> -CPU_REV   := $(shell echo $(CPU_VER) | cut -d '.' -f 3)
-> +CPU_MAJOR := $(word 1, $(subst ., , $(CPU_VER)))
-> +CPU_MINOR := $(word 2, $(subst ., , $(CPU_VER)))
-> +CPU_REV   := $(word 3, $(subst ., , $(CPU_VER)))
->  
->  export CPU_VER CPU_MAJOR CPU_MINOR CPU_REV
->  
-> -- 
-> 2.32.0
-> 
+Thank you for looking at this and confirming I had read that the code
+properly and that the do_exit reference was no longer used.
+
+I will probably take this through my tree as well just so I don't have
+that trailing do_exit reference.
+
+At this point I will give things a bit more for people to review or say
+something about the other changes and if there is no negative feedback
+I think I will just apply the lot.
+
+Eric
+
