@@ -2,55 +2,55 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 42227C433FE
-	for <linux-arch@archiver.kernel.org>; Tue, 14 Dec 2021 16:22:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3514CC433F5
+	for <linux-arch@archiver.kernel.org>; Tue, 14 Dec 2021 16:22:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235855AbhLNQWk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 14 Dec 2021 11:22:40 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59480 "EHLO
+        id S233692AbhLNQWo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 14 Dec 2021 11:22:44 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59418 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235658AbhLNQWj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2021 11:22:39 -0500
-Received: from mail-ed1-x549.google.com (mail-ed1-x549.google.com [IPv6:2a00:1450:4864:20::549])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 913C5C061574
-        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:22:38 -0800 (PST)
-Received: by mail-ed1-x549.google.com with SMTP id 30-20020a508e5e000000b003f02e458b17so17467863edx.17
-        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:22:38 -0800 (PST)
+        with ESMTP id S235836AbhLNQWd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2021 11:22:33 -0500
+Received: from mail-wm1-x34a.google.com (mail-wm1-x34a.google.com [IPv6:2a00:1450:4864:20::34a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 00BCCC06175B
+        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:22:33 -0800 (PST)
+Received: by mail-wm1-x34a.google.com with SMTP id a85-20020a1c7f58000000b0033ddc0eacc8so13388767wmd.9
+        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:22:32 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=l+xyVLYgnwfnFRoJMzTKh10TTGj06mIlcmxJ5/UGlBQ=;
-        b=QooFOWp2lk3/dKVKqOC7MDgcKwTO9DGY48nPfSpN6VPUKJEZ0SbsY1PzLSGm0HOGyh
-         A0v+L3T0XhHrYN84dELB+dSr61gJdgPYVpYRMz7zu8WU3qXKDQzRIi0NL2e8SVfMvc8p
-         c14YgIf/6oMVYfqCfWyzQ5jBFZ4txHdG+dSpPpw3+/pgqTcFFQEo1WS7Igeun3EJI3B/
-         JO6EPKjSnDb2mm6geVtm1W5m058MaTfx2hfyOSP6BjwFa/8xWrVisENezxQfB1oZssEC
-         FSfyawA8GY+PgsVbf/6u8Vw6m/CqLTjPwLCN+lvMtHUr0RIO9cq3e1mEylRB0+I899xL
-         RoLg==
+        bh=v27suEImYCH1RWXe/1ZFLgxZ+ZgAGIliQ0KnY8gXJkw=;
+        b=S+neo1BC67KP01dukd8NNmSIdQmnHn24FhUGscdevRCdK/42TvHClIY3O5ml7Quo0U
+         BPRKv50AiEGkEyZO4VY8Ng2Q3AsHH/9n5YZMpXK3nOBS1PMJ+Rv012vrceW90vT3rOnT
+         1M8jdsL0QHxtwu2/qODH4gqnvQ2l6bDZDTyoQoPw980LzWS0pyxejw6CfpJD6bFTxjxn
+         OlxHBThm13zT0CZcBBkFLgBqf7/tkopsGYLF9i4Jpsy70Vdh+Xs5morzyT2tI1qfhjgI
+         HMPN0CtrKqzm5YSzy+Lij9L/18UpwAXbipEO21jBLUpDlIRUX8MhC/zlI+FVqlmtEmOq
+         Y4Xg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=l+xyVLYgnwfnFRoJMzTKh10TTGj06mIlcmxJ5/UGlBQ=;
-        b=EcWWXjipwygmsc8V+Cl8Joa1d6N7p1PaXBKeheLeMqmXEd+TRUl4N4WmJdbm25bc4T
-         AiWTaToHINA42n2Lk/QHce5KNpubRDROM2JpukF8kChAeYy2iGwLsvWCAEWQjjad70wj
-         l4rm3uKETKmMGZCjWqan7JGwvQ4AJkV62Z8LOjTl2jlWNPO3ywDxYL99DwlnQMMfVMTX
-         baQe2QCdcfvA3x2j1wdCFOnyHj/afDxvCob9pc3L4mTFmt5LfN3rsXQ0kiAZEXgYtfuD
-         2sGAHuar9l73RAbQuAzRd+YnQ2wbWGjsXCLrJ35e1xkZdn24LQ6A3H8XvBN1B5SSk8jF
-         gFYQ==
-X-Gm-Message-State: AOAM531z8dTRHfr2R3mh26iYSfzfT7b9WtCxCR7RP+3CS5FJYMHnHjll
-        qFZIU4jiVfgFPpqK3tKRadZPT1dlDGo=
-X-Google-Smtp-Source: ABdhPJztDlcuNNiWUlHLDRp2NxbkZc1rACcRnXIrugF8C58vuD1abHGLk1hNOWIpStZ9q4sY8JIsWSVOIBI=
+        bh=v27suEImYCH1RWXe/1ZFLgxZ+ZgAGIliQ0KnY8gXJkw=;
+        b=4U76LRjZTTFGAsMK5n8yXbVxdqKx3zJ1/9/LOh1TatiY40sPrrstlTL2ytE29JoOfZ
+         vdDgcwevJKRwUPD3WKTC9lk4Y6HXTcW5q5jC6+yVNkTPQa5aXCGdKDWAUwSp7sPdzCtJ
+         eYN01qi2e3h0TUH6cLzjWKc6nU2QKy7xTEfgCtg259STDQBnD9ZiH5Rb40y+P998JhX/
+         LgYWU6JUokJPUrevE85AVhJgIkY27x0T+kGKK9GJ4Ohain9DxYzhkjRecftR7/JCNUhU
+         Z6eYUzF9tMtdGtftKnWGxoiJZdaJt57QJ1bWlHXCJCXCs1W5jcgnj2zxrmNb/zz9qTZ7
+         Va3w==
+X-Gm-Message-State: AOAM531uuf6SKsbOO13mIZC2olf9+aoM6q21CpPQuBYQwtkY+idzHq6R
+        9olABmtVJZOSoiCJt5T5P6h+P7l9MNw=
+X-Google-Smtp-Source: ABdhPJwWpA7c1G+q3WbDfvjyQeS9ZstbuSBGtacVhYhTANMjcKvuP3bS1lPvI1M15XVB7V7hiKxTaFSM7ac=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:357e:2b9d:5b13:a652])
- (user=glider job=sendgmr) by 2002:a17:906:d975:: with SMTP id
- rp21mr6647872ejb.756.1639498956586; Tue, 14 Dec 2021 08:22:36 -0800 (PST)
-Date:   Tue, 14 Dec 2021 17:20:23 +0100
+ (user=glider job=sendgmr) by 2002:a1c:43c2:: with SMTP id q185mr36440wma.30.1639498951456;
+ Tue, 14 Dec 2021 08:22:31 -0800 (PST)
+Date:   Tue, 14 Dec 2021 17:20:21 +0100
 In-Reply-To: <20211214162050.660953-1-glider@google.com>
-Message-Id: <20211214162050.660953-17-glider@google.com>
+Message-Id: <20211214162050.660953-15-glider@google.com>
 Mime-Version: 1.0
 References: <20211214162050.660953-1-glider@google.com>
 X-Mailer: git-send-email 2.34.1.173.g76aa8bc2d0-goog
-Subject: [PATCH 16/43] kmsan: mm: call KMSAN hooks from SLUB code
+Subject: [PATCH 14/43] MAINTAINERS: add entry for KMSAN
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -87,137 +87,38 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-In order to report uninitialized memory coming from heap allocations
-KMSAN has to poison them unless they're created with __GFP_ZERO.
-
-It's handy that we need KMSAN hooks in the places where
-init_on_alloc/init_on_free initialization is performed.
+Add entry for KMSAN maintainers/reviewers.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
 ---
-Link: https://linux-review.googlesource.com/id/I6954b386c5c5d7f99f48bb6cbcc74b75136ce86e
+Link: https://linux-review.googlesource.com/id/Ic5836c2bceb6b63f71a60d3327d18af3aa3dab77
 ---
- mm/slab.h |  1 +
- mm/slub.c | 26 +++++++++++++++++++++++---
- 2 files changed, 24 insertions(+), 3 deletions(-)
+ MAINTAINERS | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
-diff --git a/mm/slab.h b/mm/slab.h
-index 56ad7eea3ddfb..6175a74047b47 100644
---- a/mm/slab.h
-+++ b/mm/slab.h
-@@ -521,6 +521,7 @@ static inline void slab_post_alloc_hook(struct kmem_cache *s,
- 			memset(p[i], 0, s->object_size);
- 		kmemleak_alloc_recursive(p[i], s->object_size, 1,
- 					 s->flags, flags);
-+		kmsan_slab_alloc(s, p[i], flags);
- 	}
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 13f9a84a617e3..94add5a5404e4 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -10615,6 +10615,18 @@ F:	kernel/kmod.c
+ F:	lib/test_kmod.c
+ F:	tools/testing/selftests/kmod/
  
- 	memcg_slab_post_alloc_hook(s, objcg, flags, size, p);
-diff --git a/mm/slub.c b/mm/slub.c
-index abe7db581d686..5a63486e52531 100644
---- a/mm/slub.c
-+++ b/mm/slub.c
-@@ -22,6 +22,7 @@
- #include <linux/proc_fs.h>
- #include <linux/seq_file.h>
- #include <linux/kasan.h>
-+#include <linux/kmsan.h>
- #include <linux/cpu.h>
- #include <linux/cpuset.h>
- #include <linux/mempolicy.h>
-@@ -346,10 +347,13 @@ static inline void *freelist_dereference(const struct kmem_cache *s,
- 			    (unsigned long)ptr_addr);
- }
- 
-+/*
-+ * See the comment to get_freepointer_safe().
-+ */
- static inline void *get_freepointer(struct kmem_cache *s, void *object)
- {
- 	object = kasan_reset_tag(object);
--	return freelist_dereference(s, object + s->offset);
-+	return kmsan_init(freelist_dereference(s, object + s->offset));
- }
- 
- static void prefetch_freepointer(const struct kmem_cache *s, void *object)
-@@ -357,18 +361,28 @@ static void prefetch_freepointer(const struct kmem_cache *s, void *object)
- 	prefetchw(object + s->offset);
- }
- 
-+/*
-+ * When running under KMSAN, get_freepointer_safe() may return an uninitialized
-+ * pointer value in the case the current thread loses the race for the next
-+ * memory chunk in the freelist. In that case this_cpu_cmpxchg_double() in
-+ * slab_alloc_node() will fail, so the uninitialized value won't be used, but
-+ * KMSAN will still check all arguments of cmpxchg because of imperfect
-+ * handling of inline assembly.
-+ * To work around this problem, use kmsan_init() to force initialize the
-+ * return value of get_freepointer_safe().
-+ */
- static inline void *get_freepointer_safe(struct kmem_cache *s, void *object)
- {
- 	unsigned long freepointer_addr;
- 	void *p;
- 
- 	if (!debug_pagealloc_enabled_static())
--		return get_freepointer(s, object);
-+		return kmsan_init(get_freepointer(s, object));
- 
- 	object = kasan_reset_tag(object);
- 	freepointer_addr = (unsigned long)object + s->offset;
- 	copy_from_kernel_nofault(&p, (void **)freepointer_addr, sizeof(p));
--	return freelist_ptr(s, p, freepointer_addr);
-+	return kmsan_init(freelist_ptr(s, p, freepointer_addr));
- }
- 
- static inline void set_freepointer(struct kmem_cache *s, void *object, void *fp)
-@@ -1678,6 +1692,7 @@ static inline void *kmalloc_large_node_hook(void *ptr, size_t size, gfp_t flags)
- 	ptr = kasan_kmalloc_large(ptr, size, flags);
- 	/* As ptr might get tagged, call kmemleak hook after KASAN. */
- 	kmemleak_alloc(ptr, size, 1, flags);
-+	kmsan_kmalloc_large(ptr, size, flags);
- 	return ptr;
- }
- 
-@@ -1685,12 +1700,14 @@ static __always_inline void kfree_hook(void *x)
- {
- 	kmemleak_free(x);
- 	kasan_kfree_large(x);
-+	kmsan_kfree_large(x);
- }
- 
- static __always_inline bool slab_free_hook(struct kmem_cache *s,
- 						void *x, bool init)
- {
- 	kmemleak_free_recursive(x, s->flags);
-+	kmsan_slab_free(s, x);
- 
- 	debug_check_no_locks_freed(x, s->object_size);
- 
-@@ -3729,6 +3746,7 @@ int kmem_cache_alloc_bulk(struct kmem_cache *s, gfp_t flags, size_t size,
- 	 */
- 	slab_post_alloc_hook(s, objcg, flags, size, p,
- 				slab_want_init_on_alloc(flags, s));
++KMSAN
++M:	Alexander Potapenko <glider@google.com>
++R:	Marco Elver <elver@google.com>
++R:	Dmitry Vyukov <dvyukov@google.com>
++L:	kasan-dev@googlegroups.com
++S:	Maintained
++F:	Documentation/dev-tools/kmsan.rst
++F:	include/linux/kmsan*.h
++F:	lib/Kconfig.kmsan
++F:	mm/kmsan/
++F:	scripts/Makefile.kmsan
 +
- 	return i;
- error:
- 	slub_put_cpu_ptr(s->cpu_slab);
-@@ -5905,6 +5923,7 @@ static char *create_unique_id(struct kmem_cache *s)
- 	p += sprintf(p, "%07u", s->size);
- 
- 	BUG_ON(p > name + ID_STR_LENGTH - 1);
-+	kmsan_unpoison_memory(name, p - name);
- 	return name;
- }
- 
-@@ -6006,6 +6025,7 @@ static int sysfs_slab_alias(struct kmem_cache *s, const char *name)
- 	al->name = name;
- 	al->next = alias_list;
- 	alias_list = al;
-+	kmsan_unpoison_memory(al, sizeof(struct saved_alias));
- 	return 0;
- }
- 
+ KPROBES
+ M:	Naveen N. Rao <naveen.n.rao@linux.ibm.com>
+ M:	Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
 -- 
 2.34.1.173.g76aa8bc2d0-goog
 
