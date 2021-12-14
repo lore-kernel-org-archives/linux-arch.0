@@ -2,55 +2,55 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A1501C433EF
-	for <linux-arch@archiver.kernel.org>; Tue, 14 Dec 2021 16:23:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 35F9DC433EF
+	for <linux-arch@archiver.kernel.org>; Tue, 14 Dec 2021 16:23:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235909AbhLNQXx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 14 Dec 2021 11:23:53 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59698 "EHLO
+        id S236158AbhLNQXz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 14 Dec 2021 11:23:55 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59760 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235895AbhLNQXl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2021 11:23:41 -0500
-Received: from mail-wm1-x349.google.com (mail-wm1-x349.google.com [IPv6:2a00:1450:4864:20::349])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EF829C0617A1
-        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:23:25 -0800 (PST)
-Received: by mail-wm1-x349.google.com with SMTP id j25-20020a05600c1c1900b00332372c252dso8129891wms.1
-        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:23:25 -0800 (PST)
+        with ESMTP id S235980AbhLNQXg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2021 11:23:36 -0500
+Received: from mail-wr1-x44a.google.com (mail-wr1-x44a.google.com [IPv6:2a00:1450:4864:20::44a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 72ABFC061799
+        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:23:19 -0800 (PST)
+Received: by mail-wr1-x44a.google.com with SMTP id m12-20020adff38c000000b001a0cb286eacso627114wro.9
+        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:23:19 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=lDpTBNT0I1htzh1pdmjOA/Qp6nY6br0HXEMQd54phuU=;
-        b=ArbC5Qlw/tWeRiWIZ1Y48jy30BP5Te592XfZpzZzD9zBlvepDTy+VQtTG21UxQ8inK
-         yQOL5/iUYpmsTAyvZc8sQ9pumSl56H835fYEsQC9eio3bftA2y4TABqOc425Iji7rzD0
-         do7F/rEnnb+z0YaTwIqETnbFACe96SBPqBguZuj54fKEJhmlonknYdgCZJITPILp2O8R
-         g/Ch0maZBcRaaUc1L/BUARrklla29VQPtw7qZiFG7IkzEUDEQh2/qgw8/gSMxyyP557X
-         lu6CsOw225+EBUfCeJYIAFjyIdvEIiMwSAf2MXapEHMvfzu2rBKYIJpXiVaqCG5w0PwO
-         hITg==
+        bh=K7KNAkPu1tNb8bk4GPAMmgVYqdU6o+fe9Mb7fPVoOyI=;
+        b=G0L/Wdncp6Gni0cblJguzTT3iS9QmzVrffr3F/SfdUNYfhxPW9fK7kTpBD4PnldE1q
+         ppln1bGIuFkwcycMoMXPBzJCPg64PGFdw6LxG/xXSdTjx9b7aO+phT9wOvWs7F9e/j9a
+         dVjrC4LrZYW65Q8Mxljf+M2EXFWMJu/dZmj731PaaqJ2aRorwhDuwU5TDTo66+7L/g/a
+         OZXlOAjxK7I56M4gxWcNfBT1Ta0iLNBOGmoTs5MhpoamF9qbyxugIJhBLcYtr9bQDgPr
+         +XZSssz5qZ+zxw+qIUjWCnUuQRw4oJpTS0W4LBdCbg4jljRNLmRAzcLKNLnUamEzkSYt
+         QKcw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=lDpTBNT0I1htzh1pdmjOA/Qp6nY6br0HXEMQd54phuU=;
-        b=fO2PhCaSGLuXnl+jp30bLIrhDT02ImdWfDczHOmxkjZuCn/pOcq1gAhWrIprxIk8ue
-         BvIebx+Bv01s5fcNqTLnfbzOkz/bJEevNw1IOh1IOlvqDi4pCQAZggHweMFHI3B2+klR
-         OzWwr6O3HC6LwnVpUKQG+C7OZjrCxnMdkqykWHe40n8aVWI3LF2cnmOAsQH3kEEEf9Mf
-         PZrJpAh3aRDncdmxQDm2ukVBPrtMFxOc0rmDOeiRlCvUVigkUqACltOlgf1r+IvaiTt7
-         DGKy++p//gbz4o1ouj/piNOitKNdiODKQuU8v3YWxtHHxFxZgc/OPwdA1hht6IK1y9jW
-         q7aQ==
-X-Gm-Message-State: AOAM532YxloKsppBayhDeBwJwvHcCqtP8Z2XcawbbfbDq++tx1vc7BId
-        fKZOikgY65abyQEfZtGyW7vmYKu8p5g=
-X-Google-Smtp-Source: ABdhPJzd3+JglaYvwaWg/MkbkJuCDnCFW7n3Gc9z2XLMoLSMqx+inrD6O9GNKx7jFbb1Shu5Z94RjWGqmAw=
+        bh=K7KNAkPu1tNb8bk4GPAMmgVYqdU6o+fe9Mb7fPVoOyI=;
+        b=fz7RIp5CNG1PVqqZu/+SOOYozIfRSspOZWCeX9YuI0QaQBqR44WkZOjOKtsDmc7ovK
+         OBDSNSAFNusQfx0ivuBmAjxB37dCEqWfeEadFo0pEpCSqqHvBbmNiqkgwLhemD109BDi
+         k4/oEG1X71HEKS2n4/AntYVWgMcJI++u63raiDn9saGlzI9mDdK7QunueBNSVAfWrkqt
+         zbAmtPRVjFz3AFnj7FkoaycwnGm3olYJmB0iIkHpBS9YnqvA6Nn9L4sZWCXyCuurBe2o
+         En5Oacm0FB4KZlqLwS6f3A9dx83AxanPZvR7is7tW7mTwFUIp8Ak+wzOrTMCRVEVKZlN
+         w2ZA==
+X-Gm-Message-State: AOAM531fpRNamRm4LgWLhlPrirCqtur9NbUzOXjOVCYwKypY+Irpxt1+
+        qRChAYZqg5PzL0dgRHESYpkcogILQmg=
+X-Google-Smtp-Source: ABdhPJyh8hwv6S6A0JAsQFUdEw4jAxTz8TFmEuQoPKffBGTuVheoEhUhVINkFtZLYMlQqoKqsIhCPBJ7rWE=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:357e:2b9d:5b13:a652])
- (user=glider job=sendgmr) by 2002:a05:600c:1d1b:: with SMTP id
- l27mr5819855wms.1.1639499003427; Tue, 14 Dec 2021 08:23:23 -0800 (PST)
-Date:   Tue, 14 Dec 2021 17:20:40 +0100
+ (user=glider job=sendgmr) by 2002:a05:600c:3b83:: with SMTP id
+ n3mr9260wms.116.1639498997872; Tue, 14 Dec 2021 08:23:17 -0800 (PST)
+Date:   Tue, 14 Dec 2021 17:20:38 +0100
 In-Reply-To: <20211214162050.660953-1-glider@google.com>
-Message-Id: <20211214162050.660953-34-glider@google.com>
+Message-Id: <20211214162050.660953-32-glider@google.com>
 Mime-Version: 1.0
 References: <20211214162050.660953-1-glider@google.com>
 X-Mailer: git-send-email 2.34.1.173.g76aa8bc2d0-goog
-Subject: [PATCH 33/43] kmsan: disable physical page merging in biovec
+Subject: [PATCH 31/43] kmsan: disable strscpy() optimization under KMSAN
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -87,37 +87,36 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-KMSAN metadata for consequent physical pages may be inconsequent,
-therefore accessing such pages together may lead to metadata
-corruption.
-We disable merging pages in biovec to prevent such corruptions.
+Disable the efficient 8-byte reading under KMSAN to avoid false positives.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
+
 ---
 
-Link: https://linux-review.googlesource.com/id/Iece16041be5ee47904fbc98121b105e5be5fea5c
+Link: https://linux-review.googlesource.com/id/Iffd8336965e88fce915db2e6a9d6524422975f69
 ---
- block/blk.h | 7 +++++++
- 1 file changed, 7 insertions(+)
+ lib/string.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/block/blk.h b/block/blk.h
-index ccde6e6f17360..e0c62a5d5639e 100644
---- a/block/blk.h
-+++ b/block/blk.h
-@@ -103,6 +103,13 @@ static inline bool biovec_phys_mergeable(struct request_queue *q,
- 	phys_addr_t addr1 = page_to_phys(vec1->bv_page) + vec1->bv_offset;
- 	phys_addr_t addr2 = page_to_phys(vec2->bv_page) + vec2->bv_offset;
+diff --git a/lib/string.c b/lib/string.c
+index 485777c9da832..4ece4c7e7831b 100644
+--- a/lib/string.c
++++ b/lib/string.c
+@@ -197,6 +197,14 @@ ssize_t strscpy(char *dest, const char *src, size_t count)
+ 		max = 0;
+ #endif
  
 +	/*
-+	 * Merging consequent physical pages may not work correctly under KMSAN
-+	 * if their metadata pages aren't consequent. Just disable merging.
++	 * read_word_at_a_time() below may read uninitialized bytes after the
++	 * trailing zero and use them in comparisons. Disable this optimization
++	 * under KMSAN to prevent false positive reports.
 +	 */
 +	if (IS_ENABLED(CONFIG_KMSAN))
-+		return false;
++		max = 0;
 +
- 	if (addr1 + vec1->bv_len != addr2)
- 		return false;
- 	if (xen_domain() && !xen_biovec_phys_mergeable(vec1, vec2->bv_page))
+ 	while (max >= sizeof(unsigned long)) {
+ 		unsigned long c, data;
+ 
 -- 
 2.34.1.173.g76aa8bc2d0-goog
 
