@@ -2,55 +2,55 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DE34FC433FE
-	for <linux-arch@archiver.kernel.org>; Tue, 14 Dec 2021 16:22:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DC0E2C433FE
+	for <linux-arch@archiver.kernel.org>; Tue, 14 Dec 2021 16:22:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235826AbhLNQWz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 14 Dec 2021 11:22:55 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59276 "EHLO
+        id S235857AbhLNQW6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 14 Dec 2021 11:22:58 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59526 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235663AbhLNQV5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2021 11:21:57 -0500
-Received: from mail-wm1-x34a.google.com (mail-wm1-x34a.google.com [IPv6:2a00:1450:4864:20::34a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8C525C06173E
-        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:21:57 -0800 (PST)
-Received: by mail-wm1-x34a.google.com with SMTP id 138-20020a1c0090000000b00338bb803204so11507054wma.1
-        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:21:57 -0800 (PST)
+        with ESMTP id S235837AbhLNQWw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2021 11:22:52 -0500
+Received: from mail-wr1-x449.google.com (mail-wr1-x449.google.com [IPv6:2a00:1450:4864:20::449])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 63C86C06173F
+        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:22:52 -0800 (PST)
+Received: by mail-wr1-x449.google.com with SMTP id v17-20020adfedd1000000b0017c5e737b02so4843210wro.18
+        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:22:52 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=FXfeBchMfCdhuWi7P/c/cIQefpZCnVfOT656QFTkr+0=;
-        b=rq4gED9OFGTopBP/h6U7GjMpe16CAVeGeHHMWF1VLMCL/cqIp/qiPpx4glUgvShgk1
-         EkSX9gp/VQNQU3SylYvaqYyMvibQHhBg5sdPlaVPzR9GUxJfz4sDC+eO4p8B0yV/EnG5
-         Q+LNLpcH58pH4zk/c181fED98u9j5txn3fFQrK5ARbC8kqPipeyptURB3RM/buoMHqua
-         FrMvA+lEKucUHpWMNVWnqCh04HOhsUbN3S6yMJKEOl7kBKEyHO5xY3Q8cJtNiUGbu4X9
-         A6IQPDzxqIHzfa4rqaT8/nrZwD0lbINSsPAPp21LEr6Mleh7u7KaI/iVQ1abzcblJfJ1
-         2CTg==
+        bh=n9hdbxHO53pPet9rVLXGJjutLvzY9K7ZBDkEw/sZKCE=;
+        b=JHEdQfKv7HR3RWanTG4ZydCDLNq2lrvP4HdZTn5IwnSpjM0qsm+p2r8ZUTpBiAafC8
+         AbZmuX3hs+QHumnreQKR/wXxbZbyh6O8uXOK660iyElIgkT34bHEwtakJkkMXVe2kIaY
+         r8eGAvVksDisZy1RRbBXmpjVGBbwjaAoK1MGxW8Nmq8+9wBg27pQsts9zu6ZTa9mzXHB
+         5QlQTAGVPBZ51vjVlHvv3fNVTZ2G4eq+0V7zlB2In/ViuSb06ajg56lchx7kFmT9VT5f
+         /7Yo3X6pCK0XEbrztcdPbAK2XNRMT4Z8dEGdUZCxnhqQylBUTRxGFuuec79E+ZaBC4Rc
+         7KUA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=FXfeBchMfCdhuWi7P/c/cIQefpZCnVfOT656QFTkr+0=;
-        b=hMAzpJucmcFek78NI80W05JW0QaPHLBIU/SbAWrRJmkjXX7O7pvYbYmiKrbPR3+P3x
-         UJTRk5K9LXbrRfmOWLmnL1aUpLFy+zI+EjQb4sETzVN7PKTcaYDErneeBqphu0n1/+P7
-         TtaaFMAjDJKh63cCHo/+pILkgDA3C/33WSTZ4znuHLt4JpMJMsUn5/Y6jqxstrd/bizQ
-         uY00YA0nDju7yF86HuS6qZHjHuSYGrJbi6vNGGAYOxkyLHX4xH/imTDawjs66/iC2ZC6
-         6G15cg6kMxQs4K9Mw9AACgqvdVAo7eqJjDtCNOE5DeWhrM0OfAbnS9vw5c7BRZpQWcFM
-         q+YA==
-X-Gm-Message-State: AOAM531O8OXeIlj9VMLr93uuqXH0xLdQR5+riU85HVmRogZfkV1jYUtm
-        IOEVQaJlMYb9OkKINYzkoI+I4F6t8Yo=
-X-Google-Smtp-Source: ABdhPJy4QNvRmDfM0eG011hD4RxNjSwaKd4qO7sKL/WYj9gWuHMNHmlS9FUP/lJt7VznT2PlfxW/ubfArUA=
+        bh=n9hdbxHO53pPet9rVLXGJjutLvzY9K7ZBDkEw/sZKCE=;
+        b=4QfkpYAhGd5suBes/m4VIX0mHWTdG3CmVeWqlNGKgxRLFXuHM9HNpuEFRNE9iLPmdh
+         ihRlZUWXJaYA4JvE79hUcOjMGAm7ol+pqAMSo1NrGRaatKPXoFE4XOlUyzM45GSCJ0e2
+         +vkI/blgfDT3WC2FJp9Csih77X7pi+WaIOXKvNSDgyBMxsLyZ7PGsiMrwc3mzSK0wDWE
+         qTMmkbF0PxL7cQy7XBt7DcGKv9QISW0iqPHZpYYd5OQHQl0SLjl7GrJAPSayvjMXA9oV
+         nvhSn6FBbYlB5RqmgvxL9mgqn/Un5ARYwvbmOvMio8kmKxAkmyJiu+kSjFAhEvFC4Zcc
+         yEGw==
+X-Gm-Message-State: AOAM532GttKzUECCwwy1oUC8+L55bL0YJJ5lpjxov8t0Zla11eSqyQnW
+        ZgKfkaPlyChvONAJLJNUexvjoID9/rI=
+X-Google-Smtp-Source: ABdhPJysWuIKajBu41fBxQFQ/tie5K32G3b9ULI3MmpkCFPKsk2dJs2OmxSKdjDhXSGcDI1uWyhJxYHBE1s=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:357e:2b9d:5b13:a652])
- (user=glider job=sendgmr) by 2002:a1c:4c04:: with SMTP id z4mr8271378wmf.11.1639498915988;
- Tue, 14 Dec 2021 08:21:55 -0800 (PST)
-Date:   Tue, 14 Dec 2021 17:20:08 +0100
+ (user=glider job=sendgmr) by 2002:a7b:cb98:: with SMTP id m24mr2273632wmi.188.1639498970919;
+ Tue, 14 Dec 2021 08:22:50 -0800 (PST)
+Date:   Tue, 14 Dec 2021 17:20:28 +0100
 In-Reply-To: <20211214162050.660953-1-glider@google.com>
-Message-Id: <20211214162050.660953-2-glider@google.com>
+Message-Id: <20211214162050.660953-22-glider@google.com>
 Mime-Version: 1.0
 References: <20211214162050.660953-1-glider@google.com>
 X-Mailer: git-send-email 2.34.1.173.g76aa8bc2d0-goog
-Subject: [PATCH 01/43] arch/x86: add missing include to sparsemem.h
+Subject: [PATCH 21/43] kmsan: mark noinstr as __no_sanitize_memory
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -87,42 +87,30 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Dmitry Vyukov <dvyukov@google.com>
+noinstr functions should never be instrumented, so make KMSAN skip them
+by applying the __no_sanitize_memory attribute.
 
-Somehow all existing inclusions of sparsemem.h are preceded by inclusion
-of <linux/types.h>, but KMSAN contains code that transitively includes
-sparsemem.h without that header, resulting in a compilation error:
-
-  sparsemem.h:34:32: error: unknown type name 'phys_addr_t'
-  extern int phys_to_target_node(phys_addr_t start);
-                                 ^
-  sparsemem.h:36:39: error: unknown type name 'u64'
-  extern int memory_add_physaddr_to_nid(u64 start);
-                                        ^
-
-Because sparsemem.h does actually use phys_addr_t and u64, include
-types.h explicitly.
-
-Signed-off-by: Dmitry Vyukov <dvyukov@google.com>
+Signed-off-by: Alexander Potapenko <glider@google.com>
 ---
-Link: https://linux-review.googlesource.com/id/Ifae221ce85d870d8f8d17173bd44d5cf9be2950f
+Link: https://linux-review.googlesource.com/id/I3c9abe860b97b49bc0c8026918b17a50448dec0d
 ---
- arch/x86/include/asm/sparsemem.h | 2 ++
- 1 file changed, 2 insertions(+)
+ include/linux/compiler_types.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/sparsemem.h b/arch/x86/include/asm/sparsemem.h
-index 6a9ccc1b2be5d..64df897c0ee30 100644
---- a/arch/x86/include/asm/sparsemem.h
-+++ b/arch/x86/include/asm/sparsemem.h
-@@ -2,6 +2,8 @@
- #ifndef _ASM_X86_SPARSEMEM_H
- #define _ASM_X86_SPARSEMEM_H
+diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
+index 1d32f4c03c9ef..37b82564e93e5 100644
+--- a/include/linux/compiler_types.h
++++ b/include/linux/compiler_types.h
+@@ -210,7 +210,8 @@ struct ftrace_likely_data {
+ /* Section for code which can't be instrumented at all */
+ #define noinstr								\
+ 	noinline notrace __attribute((__section__(".noinstr.text")))	\
+-	__no_kcsan __no_sanitize_address __no_profile __no_sanitize_coverage
++	__no_kcsan __no_sanitize_address __no_profile __no_sanitize_coverage \
++	__no_sanitize_memory
  
-+#include <linux/types.h>
-+
- #ifdef CONFIG_SPARSEMEM
- /*
-  * generic non-linear memory support:
+ #endif /* __KERNEL__ */
+ 
 -- 
 2.34.1.173.g76aa8bc2d0-goog
 
