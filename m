@@ -2,55 +2,55 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2D90DC433EF
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DE34FC433FE
 	for <linux-arch@archiver.kernel.org>; Tue, 14 Dec 2021 16:22:56 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235880AbhLNQWy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 14 Dec 2021 11:22:54 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59544 "EHLO
+        id S235826AbhLNQWz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 14 Dec 2021 11:22:55 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59276 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235872AbhLNQWu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2021 11:22:50 -0500
-Received: from mail-wm1-x349.google.com (mail-wm1-x349.google.com [IPv6:2a00:1450:4864:20::349])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BF519C061757
-        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:22:49 -0800 (PST)
-Received: by mail-wm1-x349.google.com with SMTP id l6-20020a05600c4f0600b0033321934a39so8114176wmq.9
-        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:22:49 -0800 (PST)
+        with ESMTP id S235663AbhLNQV5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2021 11:21:57 -0500
+Received: from mail-wm1-x34a.google.com (mail-wm1-x34a.google.com [IPv6:2a00:1450:4864:20::34a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8C525C06173E
+        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:21:57 -0800 (PST)
+Received: by mail-wm1-x34a.google.com with SMTP id 138-20020a1c0090000000b00338bb803204so11507054wma.1
+        for <linux-arch@vger.kernel.org>; Tue, 14 Dec 2021 08:21:57 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=L9bpZFAJqwWr0sK9cJmNI2AyaK0oQbsHwHE0NZymKYw=;
-        b=psK3I4np4MgxxiZg24Ts6iYYQ66nfNvuOqGX5AV9cqUH1vZZOxWpAWjpD9z7asOJqr
-         A4CCuPFhy50SccNFOdcppzE9XFAmI2LJPzFGf5VLD1TaoeUH/M9J/OeKmNVCs56IuPTO
-         XgnJfweCAiaABHyvxz7o+vsCL0xBmxUIYsIMueUOq21Wm1yTojJtPI9Z3jNdrAqVvh/q
-         69vsjF1Kv8a5bNSD6N7FJS6B4Q4G4OBPOIfQJuhZPf/tLUF3Ro21MZoroHW2P5hUno3R
-         jrQ6N6CzhD5gex4V8nbCtj7x715xxTwRuMHnd9Toq71qs921Xei6dnI+DQpnY+bUI0/6
-         s/sw==
+        bh=FXfeBchMfCdhuWi7P/c/cIQefpZCnVfOT656QFTkr+0=;
+        b=rq4gED9OFGTopBP/h6U7GjMpe16CAVeGeHHMWF1VLMCL/cqIp/qiPpx4glUgvShgk1
+         EkSX9gp/VQNQU3SylYvaqYyMvibQHhBg5sdPlaVPzR9GUxJfz4sDC+eO4p8B0yV/EnG5
+         Q+LNLpcH58pH4zk/c181fED98u9j5txn3fFQrK5ARbC8kqPipeyptURB3RM/buoMHqua
+         FrMvA+lEKucUHpWMNVWnqCh04HOhsUbN3S6yMJKEOl7kBKEyHO5xY3Q8cJtNiUGbu4X9
+         A6IQPDzxqIHzfa4rqaT8/nrZwD0lbINSsPAPp21LEr6Mleh7u7KaI/iVQ1abzcblJfJ1
+         2CTg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=L9bpZFAJqwWr0sK9cJmNI2AyaK0oQbsHwHE0NZymKYw=;
-        b=FeMs7j8IulY7HbSptperGoovWbdhC62Zsy0gj3Xga2zb/rJoyJwuh9K8wQsOpbXm6A
-         DO42BfaY1kbR0rYDv0OYF1en8wQNyMxPPg9bBlsF9+bxhdD2HVihCIt3kDIQGknlMQaG
-         Vw7dgHuuFNBZKruo8h45raeS0ZCnFjJhN6NkE5hgXRcMaYcU6DD146U8R9BoNCItZ96/
-         /sK96tbFjbPdgWsdKOAruyGiiqi+LoNp/QH4lQKjOaEyVSauPVdKf0iqaAFF61aTo3mP
-         amyRCJUX6lzOzFq9TDpdXgFKO+W/l858ZBksmnvkdy3Z/AbcCYodEPY+sUUeQ1sw2+P7
-         OLUA==
-X-Gm-Message-State: AOAM532KoxHbcbltHSavcydhhcvdv4Cs+apGrHsqxamKt4frQaZ/JfAe
-        vjIou7aREMiB5qEH6vhmCIneA/aCZIQ=
-X-Google-Smtp-Source: ABdhPJzq0aOyE1rk6smoEKoJQb17yWIza1caNiEXRrMx6w9vfjQeetvWU3p7URL7lNRDdTsZsQQeu0EE/T0=
+        bh=FXfeBchMfCdhuWi7P/c/cIQefpZCnVfOT656QFTkr+0=;
+        b=hMAzpJucmcFek78NI80W05JW0QaPHLBIU/SbAWrRJmkjXX7O7pvYbYmiKrbPR3+P3x
+         UJTRk5K9LXbrRfmOWLmnL1aUpLFy+zI+EjQb4sETzVN7PKTcaYDErneeBqphu0n1/+P7
+         TtaaFMAjDJKh63cCHo/+pILkgDA3C/33WSTZ4znuHLt4JpMJMsUn5/Y6jqxstrd/bizQ
+         uY00YA0nDju7yF86HuS6qZHjHuSYGrJbi6vNGGAYOxkyLHX4xH/imTDawjs66/iC2ZC6
+         6G15cg6kMxQs4K9Mw9AACgqvdVAo7eqJjDtCNOE5DeWhrM0OfAbnS9vw5c7BRZpQWcFM
+         q+YA==
+X-Gm-Message-State: AOAM531O8OXeIlj9VMLr93uuqXH0xLdQR5+riU85HVmRogZfkV1jYUtm
+        IOEVQaJlMYb9OkKINYzkoI+I4F6t8Yo=
+X-Google-Smtp-Source: ABdhPJy4QNvRmDfM0eG011hD4RxNjSwaKd4qO7sKL/WYj9gWuHMNHmlS9FUP/lJt7VznT2PlfxW/ubfArUA=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:357e:2b9d:5b13:a652])
- (user=glider job=sendgmr) by 2002:adf:df0b:: with SMTP id y11mr6688786wrl.181.1639498968312;
- Tue, 14 Dec 2021 08:22:48 -0800 (PST)
-Date:   Tue, 14 Dec 2021 17:20:27 +0100
+ (user=glider job=sendgmr) by 2002:a1c:4c04:: with SMTP id z4mr8271378wmf.11.1639498915988;
+ Tue, 14 Dec 2021 08:21:55 -0800 (PST)
+Date:   Tue, 14 Dec 2021 17:20:08 +0100
 In-Reply-To: <20211214162050.660953-1-glider@google.com>
-Message-Id: <20211214162050.660953-21-glider@google.com>
+Message-Id: <20211214162050.660953-2-glider@google.com>
 Mime-Version: 1.0
 References: <20211214162050.660953-1-glider@google.com>
 X-Mailer: git-send-email 2.34.1.173.g76aa8bc2d0-goog
-Subject: [PATCH 20/43] instrumented.h: add KMSAN support
+Subject: [PATCH 01/43] arch/x86: add missing include to sparsemem.h
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -87,54 +87,42 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-To avoid false positives, KMSAN needs to unpoison the data copied from
-the userspace. To detect infoleaks - check the memory buffer passed to
-copy_to_user().
+From: Dmitry Vyukov <dvyukov@google.com>
 
-Signed-off-by: Alexander Potapenko <glider@google.com>
----
-Link: https://linux-review.googlesource.com/id/I43e93b9c02709e6be8d222342f1b044ac8bdbaaf
----
- include/linux/instrumented.h | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+Somehow all existing inclusions of sparsemem.h are preceded by inclusion
+of <linux/types.h>, but KMSAN contains code that transitively includes
+sparsemem.h without that header, resulting in a compilation error:
 
-diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
-index ee8f7d17d34f5..c73c1b19e9227 100644
---- a/include/linux/instrumented.h
-+++ b/include/linux/instrumented.h
-@@ -2,7 +2,7 @@
+  sparsemem.h:34:32: error: unknown type name 'phys_addr_t'
+  extern int phys_to_target_node(phys_addr_t start);
+                                 ^
+  sparsemem.h:36:39: error: unknown type name 'u64'
+  extern int memory_add_physaddr_to_nid(u64 start);
+                                        ^
+
+Because sparsemem.h does actually use phys_addr_t and u64, include
+types.h explicitly.
+
+Signed-off-by: Dmitry Vyukov <dvyukov@google.com>
+---
+Link: https://linux-review.googlesource.com/id/Ifae221ce85d870d8f8d17173bd44d5cf9be2950f
+---
+ arch/x86/include/asm/sparsemem.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/x86/include/asm/sparsemem.h b/arch/x86/include/asm/sparsemem.h
+index 6a9ccc1b2be5d..64df897c0ee30 100644
+--- a/arch/x86/include/asm/sparsemem.h
++++ b/arch/x86/include/asm/sparsemem.h
+@@ -2,6 +2,8 @@
+ #ifndef _ASM_X86_SPARSEMEM_H
+ #define _ASM_X86_SPARSEMEM_H
  
++#include <linux/types.h>
++
+ #ifdef CONFIG_SPARSEMEM
  /*
-  * This header provides generic wrappers for memory access instrumentation that
-- * the compiler cannot emit for: KASAN, KCSAN.
-+ * the compiler cannot emit for: KASAN, KCSAN, KMSAN.
-  */
- #ifndef _LINUX_INSTRUMENTED_H
- #define _LINUX_INSTRUMENTED_H
-@@ -10,6 +10,7 @@
- #include <linux/compiler.h>
- #include <linux/kasan-checks.h>
- #include <linux/kcsan-checks.h>
-+#include <linux/kmsan-checks.h>
- #include <linux/types.h>
- 
- /**
-@@ -117,6 +118,7 @@ instrument_copy_to_user(void __user *to, const void *from, unsigned long n)
- {
- 	kasan_check_read(from, n);
- 	kcsan_check_read(from, n);
-+	kmsan_copy_to_user(to, from, n, 0);
- }
- 
- /**
-@@ -151,6 +153,7 @@ static __always_inline void
- instrument_copy_from_user_after(const void *to, const void __user *from,
- 				unsigned long n, unsigned long left)
- {
-+	kmsan_unpoison_memory(to, n - left);
- }
- 
- #endif /* _LINUX_INSTRUMENTED_H */
+  * generic non-linear memory support:
 -- 
 2.34.1.173.g76aa8bc2d0-goog
 
