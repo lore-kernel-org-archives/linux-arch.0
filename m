@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 61BDCC433EF
-	for <linux-arch@archiver.kernel.org>; Tue, 14 Dec 2021 02:55:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 93EB6C43217
+	for <linux-arch@archiver.kernel.org>; Tue, 14 Dec 2021 02:55:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232473AbhLNCzZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 13 Dec 2021 21:55:25 -0500
-Received: from conuserg-11.nifty.com ([210.131.2.78]:41811 "EHLO
+        id S229725AbhLNCz2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 13 Dec 2021 21:55:28 -0500
+Received: from conuserg-11.nifty.com ([210.131.2.78]:41829 "EHLO
         conuserg-11.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229725AbhLNCzZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Dec 2021 21:55:25 -0500
+        with ESMTP id S232050AbhLNCz0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Dec 2021 21:55:26 -0500
 Received: from grover.. (133-32-232-101.west.xps.vectant.ne.jp [133.32.232.101]) (authenticated)
-        by conuserg-11.nifty.com with ESMTP id 1BE2s0bc012823;
-        Tue, 14 Dec 2021 11:54:02 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-11.nifty.com 1BE2s0bc012823
+        by conuserg-11.nifty.com with ESMTP id 1BE2s0bh012823;
+        Tue, 14 Dec 2021 11:54:06 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-11.nifty.com 1BE2s0bh012823
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1639450442;
-        bh=LGynaWzvzbJKWj82OApHAklbGHeVobCQAmfnlsI/HGk=;
+        s=dec2015msa; t=1639450447;
+        bh=4XnqdxB/jmNQDTR4+enp7rYM+3kt4+2zAQ+n7Gz8fa4=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=ACTz+RJ/Fx/9ZbT5HV9NlfphtPCmqQSCoyAcBn5hZBMbbhV4yk9inMq8oDaDFe+3U
-         MEvzzBMiv0gRDHhU5C6JPUugNeDX78A5mM1bRnbME2qyrCH8ZVwtU33gIhBvS4cXRE
-         2LhiVmDgzHXlZb5hGmz8kK20C8b6P8pchl0u/HekhKCr3skejW5iWXQxN96BeWZ8sv
-         uBjXoPMWzyYmV9Vr+aMRPiArtr66qfj1tvTMik0MaP59y9/q3Qg+9lW4MKTY4v+L49
-         nQDmr+MYJyII2vF29uE1FC/wHJQqeviBUM+jx9U09n0E7LwRJqFpzJTGOjwfWbFFR3
-         Nm7OlpOk3dZBA==
+        b=NWWVSGX/HbTEIAfDfQ0ej8gtj8Muxol4VzrXGqAEo/zzAw+O5FFSbClXZkXkZT3VI
+         IUTLI8y8djcvH7bEAz8bCU1z9FJVwbfppbNTgXmR+xM82I3qgZne/RMEalx3QS3yeL
+         IQx32Slov+nbK2yInks4itIRA8Ypj+dzuftpTLkSOC+nXbQiQH6vqZvWNcjnEs2ee9
+         fQdCTjnN4uzyVqZrPzTLixapN8rIG9FnNgHPuev40y68iIuZvu+lyg9Q0gxNCruQH3
+         mwzicIp98dCMjzB8VeYbJsPmBD3VM17Ai2864E0ZyJ1H/ofl4dj+8uHISOy1gZiF0X
+         Kb71y+GBcstEg==
 X-Nifty-SrcIP: [133.32.232.101]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
@@ -35,9 +35,9 @@ Cc:     linux-kernel@vger.kernel.org,
         keyrings@vger.kernel.org, Richard Weinberger <richard@nod.at>,
         Nicolas Schier <n.schier@avm.de>,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH v2 01/11] certs: use $< and $@ to simplify the key generation rule
-Date:   Tue, 14 Dec 2021 11:53:45 +0900
-Message-Id: <20211214025355.1267796-2-masahiroy@kernel.org>
+Subject: [PATCH v2 06/11] kbuild: stop using config_filename in scripts/Makefile.modsign
+Date:   Tue, 14 Dec 2021 11:53:50 +0900
+Message-Id: <20211214025355.1267796-7-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.32.0
 In-Reply-To: <20211214025355.1267796-1-masahiroy@kernel.org>
 References: <20211214025355.1267796-1-masahiroy@kernel.org>
@@ -47,34 +47,35 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Do not repeat $(obj)/x509.genkey or $(obj)/signing_key.pem
+Toward the goal of removing the config_filename macro, drop
+the double-quotes and add $(srctree)/ prefix in an ad hoc way.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 Reviewed-by: Nicolas Schier <n.schier@avm.de>
 ---
 
-Changes in v2:
-  - Use $< instead of x509.genkey
+(no changes since v1)
 
- certs/Makefile | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ scripts/Makefile.modinst | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/certs/Makefile b/certs/Makefile
-index a702b70f3cb9..aba9e782f940 100644
---- a/certs/Makefile
-+++ b/certs/Makefile
-@@ -60,9 +60,8 @@ keytype-$(CONFIG_MODULE_SIG_KEY_TYPE_ECDSA) := -newkey ec -pkeyopt ec_paramgen_c
- 
- quiet_cmd_gen_key = GENKEY  $@
-       cmd_gen_key = openssl req -new -nodes -utf8 -$(CONFIG_MODULE_SIG_HASH) -days 36500 \
--		-batch -x509 -config $(obj)/x509.genkey \
--		-outform PEM -out $(obj)/signing_key.pem \
--		-keyout $(obj)/signing_key.pem $(keytype-y) 2>&1
-+		-batch -x509 -config $< \
-+		-outform PEM -out $@ -keyout $@ $(keytype-y) 2>&1
- 
- $(obj)/signing_key.pem: $(obj)/x509.genkey FORCE
- 	$(call if_changed,gen_key)
+diff --git a/scripts/Makefile.modinst b/scripts/Makefile.modinst
+index ff9b09e4cfca..df7e3d578ef5 100644
+--- a/scripts/Makefile.modinst
++++ b/scripts/Makefile.modinst
+@@ -66,9 +66,10 @@ endif
+ # Don't stop modules_install even if we can't sign external modules.
+ #
+ ifeq ($(CONFIG_MODULE_SIG_ALL),y)
++CONFIG_MODULE_SIG_KEY := $(CONFIG_MODULE_SIG_KEY:"%"=%)
++sig-key := $(if $(wildcard $(CONFIG_MODULE_SIG_KEY)),,$(srctree)/)$(CONFIG_MODULE_SIG_KEY)
+ quiet_cmd_sign = SIGN    $@
+-$(eval $(call config_filename,MODULE_SIG_KEY))
+-      cmd_sign = scripts/sign-file $(CONFIG_MODULE_SIG_HASH) $(MODULE_SIG_KEY_SRCPREFIX)$(CONFIG_MODULE_SIG_KEY) certs/signing_key.x509 $@ \
++      cmd_sign = scripts/sign-file $(CONFIG_MODULE_SIG_HASH) $(sig-key) certs/signing_key.x509 $@ \
+                  $(if $(KBUILD_EXTMOD),|| true)
+ else
+ quiet_cmd_sign :=
 -- 
 2.32.0
 
