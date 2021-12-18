@@ -2,216 +2,216 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E237FC433FE
-	for <linux-arch@archiver.kernel.org>; Sat, 18 Dec 2021 14:31:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 269CCC433F5
+	for <linux-arch@archiver.kernel.org>; Sat, 18 Dec 2021 18:53:25 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233452AbhLRObx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 18 Dec 2021 09:31:53 -0500
-Received: from mail-vi1eur05on2137.outbound.protection.outlook.com ([40.107.21.137]:19872
-        "EHLO EUR05-VI1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S230237AbhLRObx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 18 Dec 2021 09:31:53 -0500
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=c+WLDFqlZ4x5bhv5yU3vBV3d4X64hryHHuktuZx9YK9C9NP2/11Q4GwDW7a45XQVMHPU55dY+cDUoZ+BoOtH92MJNIRnOlQytf92k61C7rpjkZQjLnvwZBs6FW0/5X+FCWjhhttS3iQMKHXbfphn1uXfp9vRe9jjQZeOqueygzvqtGmbdkFx+OEaaMX6EXw3RcJre69Fc9lKnKPn+vV3LgnIZUXheASSlsimp5NtOuV7I5DQcqVjMzcwpkB4QMiI8E7bchEmwqc61THYasOapCg43DEUO7+zKj84FhY+j7YZCNc1Oxv7Wok7dKsaTenAEiF7/NPZIfeqLi4SFdQ1Jg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=GxDT9bbu+LB4qwOjc5O4MNgs+jXEZ+Qpsn9QoQWCZUI=;
- b=T1cjSvKQiHXjzS0NHy+kjFrorvETOIquMzwfT9g5g0ViBNQFdxrF/0Yl0S/iYQ5O6pmkHG+fQGjO9mVcKajotlb9Ygu4ZoOPQs8/88CkyP4IHBF2WNa6ow8E0qInWGcOpI+hGSQ7btlc85EpI80gdLAmQxfIt+tG8g2qqu5b8PmwYRFcRvFpfiST3g9TTGGiUqEoRlVNY7m26Ej4nMd0R5w4kwEdiD3iiauhDb4zrOxosYJ7feWppvM1f4kV2gaXtdrlBPUMmHssuJz5lqlVB5ruPFDWd0HxpXe656OHzLbbomJkH9Ft60+4Wvq/K/110Uce78pZpRlprCiUTVE3fw==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=virtuozzo.com; dmarc=pass action=none
- header.from=virtuozzo.com; dkim=pass header.d=virtuozzo.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=virtuozzo.com;
- s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=GxDT9bbu+LB4qwOjc5O4MNgs+jXEZ+Qpsn9QoQWCZUI=;
- b=fNc6rF9+EKRQ55Q4JWXxC0TH+3/XsfB65MiweBcQzP6gM5xBKA30liofOAI98/yfKmlmEhYxeD+6PozBuyJA2PtpjElR9tAqB7s7PnBf4tM8eV7nkiA1cpFS485riHFkQZ3yJbJHmQNhSU7U1FLDvPCIKsdopnqoDvFh6kwIZxc=
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=virtuozzo.com;
-Received: from VE1PR08MB5630.eurprd08.prod.outlook.com (2603:10a6:800:1ae::7)
- by VI1PR08MB3997.eurprd08.prod.outlook.com (2603:10a6:803:e0::30) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.4801.17; Sat, 18 Dec
- 2021 14:31:48 +0000
-Received: from VE1PR08MB5630.eurprd08.prod.outlook.com
- ([fe80::5807:e24c:a173:3b71]) by VE1PR08MB5630.eurprd08.prod.outlook.com
- ([fe80::5807:e24c:a173:3b71%4]) with mapi id 15.20.4801.017; Sat, 18 Dec 2021
- 14:31:48 +0000
-Subject: Re: [PATCH/RFC] mm: add and use batched version of
- __tlb_remove_table()
-To:     Dave Hansen <dave.hansen@intel.com>, Will Deacon <will@kernel.org>,
+        id S229845AbhLRSxY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 18 Dec 2021 13:53:24 -0500
+Received: from relay.sw.ru ([185.231.240.75]:47180 "EHLO relay.sw.ru"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S230518AbhLRSxY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 18 Dec 2021 13:53:24 -0500
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=virtuozzo.com; s=relay; h=MIME-Version:Message-Id:Date:Subject:From:
+        Content-Type; bh=CUK8G9h0txM8jg4Wz5XNPXV2nob8NVpfVEBWSB3/xEU=; b=OIU36YHibQgf
+        TDfD6o7/it4Px2shvKg7iSEUx59OCAjQlPuA31Rn6zjj9sGqwswHK3L/UyiypKWaL3ff3+wiO9BvG
+        z5909AfCcIelZ4EQGEW2uV1Uvqqccttotd11JD8MWYcPIcs6nq1m9DY5MNfXBY7Xlq1+vbDgWMDMn
+        YJxXQ=;
+Received: from [192.168.15.79] (helo=cobook.home)
+        by relay.sw.ru with esmtp (Exim 4.94.2)
+        (envelope-from <nikita.yushchenko@virtuozzo.com>)
+        id 1myepD-003qf7-O5; Sat, 18 Dec 2021 21:52:55 +0300
+From:   Nikita Yushchenko <nikita.yushchenko@virtuozzo.com>
+To:     Will Deacon <will@kernel.org>,
         "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>,
         Andrew Morton <akpm@linux-foundation.org>,
         Nick Piggin <npiggin@gmail.com>,
         Peter Zijlstra <peterz@infradead.org>,
         Catalin Marinas <catalin.marinas@arm.com>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@linux.ibm.com>,
-        "David S. Miller" <davem@davemloft.net>,
         Thomas Gleixner <tglx@linutronix.de>,
         Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
         Dave Hansen <dave.hansen@linux.intel.com>,
-        Arnd Bergmann <arnd@arndb.de>
+        Arnd Bergmann <arnd@arndb.de>, Sam Ravnborg <sam@ravnborg.org>
 Cc:     x86@kernel.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
-        sparclinux@vger.kernel.org, kernel@openvz.org
-References: <20211217081909.596413-1-nikita.yushchenko@virtuozzo.com>
- <fcbb726d-fe6a-8fe4-20fd-6a10cdef007a@intel.com>
-From:   Nikita Yushchenko <nikita.yushchenko@virtuozzo.com>
-Message-ID: <d6094dc4-3976-e06f-696b-c55f696fe287@virtuozzo.com>
-Date:   Sat, 18 Dec 2021 17:31:43 +0300
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.14.0
-In-Reply-To: <fcbb726d-fe6a-8fe4-20fd-6a10cdef007a@intel.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-X-ClientProxiedBy: AM6P194CA0074.EURP194.PROD.OUTLOOK.COM
- (2603:10a6:209:8f::15) To VE1PR08MB5630.eurprd08.prod.outlook.com
- (2603:10a6:800:1ae::7)
+        linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel@openvz.org
+Subject: [PATCH/RFC v2 1/3] tlb: mmu_gather: introduce CONFIG_MMU_GATHER_TABLE_FREE_COMMON
+Date:   Sat, 18 Dec 2021 21:52:04 +0300
+Message-Id: <20211218185205.1744125-2-nikita.yushchenko@virtuozzo.com>
+X-Mailer: git-send-email 2.30.2
+In-Reply-To: <20211218185205.1744125-1-nikita.yushchenko@virtuozzo.com>
+References: <20211218185205.1744125-1-nikita.yushchenko@virtuozzo.com>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 8f98acc0-fce1-403f-2641-08d9c2331fd8
-X-MS-TrafficTypeDiagnostic: VI1PR08MB3997:EE_
-X-Microsoft-Antispam-PRVS: <VI1PR08MB3997B05C6CAECD75EF97A8FCF4799@VI1PR08MB3997.eurprd08.prod.outlook.com>
-X-MS-Oob-TLC-OOBClassifiers: OLM:10000;
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info: RzXu6fqi1R0YLR7mYCVba7pbvp5GjXce7rDCo0fK5vyCW2xE+WLhGeZTUCqWk2AvzE0E/eVKYtY/X6myCipZJOVaaiZhqI3pRxZVmZcHKkfpDRMY/aSk8k9ADO57rjbzccvIa1z0HXWpBrJv2JZZlzh+OGiV+7k8D7tbUKQyvaurJ0kk9WgU/7MOqwDKHvhPwSSUU2Z3YqsL9xOqVd0R8ZvbOzIunQtkxV2IdHTdjTPM42PQSJh2LPePbC16V/PnBTwm3OGmUa2ryjokw44ofYU8baafKE+9bmvfA+vFTyKVoH2kCxbb2ddavKyaz7Zw5St+ybO7ReTtAldduXUf16LH5I0K0C1ddKI52Dq1aUdnmX0qKslhRxJy4t5dy0TsLYDNJQixpzKzZkSi6gfDkzRF90pIkEanU0S3ji5PC2I2Z6q5+oI+odQ8hNmOSBBj1BqImCbn2+Bq5Y24UdxJ1Z66h1L6LQBR3MccRA2POyF9TPcWqrrORJ/u+SDmx+XjvhHdevgDW+QN+W1QgeesxC0xqSHc+jvE/HamFYNcmf7CuOfc98frP4BOlOQu+3RiSU7r9ncak8O+UDPbujjNHxkfYnRcB/mfONdhVBXotbdrymemFG1I/F0ABdlxDNqaQJr1UzPrGFDOTVlRoDgK/YdZKjCD1dl8HeypKKLB+IgZD/eyk/tGntRW8KXSsdmQbjU0kAmI/ewTqQxpkQHEpERsJpyIlMGym3VBGK3p0V2Jeg90XgMs2kWK9Js1qXX5
-X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:VE1PR08MB5630.eurprd08.prod.outlook.com;PTR:;CAT:NONE;SFS:(4636009)(366004)(921005)(31696002)(107886003)(6486002)(86362001)(5660300002)(66946007)(83380400001)(66556008)(6666004)(66476007)(186003)(8676002)(316002)(508600001)(36756003)(2616005)(6506007)(26005)(8936002)(44832011)(7416002)(38100700002)(6512007)(4326008)(110136005)(2906002)(31686004)(43740500002)(45980500001);DIR:OUT;SFP:1102;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0: =?utf-8?B?b01NT2hRZnA3RU0xQ0RqdXJWb0VIa2FSejlTQlB4Nzc0V3BmU0Fhb3VGSmY2?=
- =?utf-8?B?ekRtdWdKeDEvOWV3OFBGNDFjV3ppcjYvenpNNlpONE5PY3R3NzMzUzlUbTI1?=
- =?utf-8?B?UUFNRGRWUXl2NDM1T2hwYUFHbXJOTXdXcXFVa0ovYk5zam15UmkrUkVFQld3?=
- =?utf-8?B?TTBTUkh5Y0dIU1JTT3Z1RHF3cjNaQlJhMllJQlRBV3QrcjROamdBNEJLUi9s?=
- =?utf-8?B?ZEFMS3UrRDE1ZExPOVBYYVFremQrNkFPREdoejM2MmRUbFFDMEJiYk1JVFN6?=
- =?utf-8?B?Z1kvcVJyRVQyRkJyT25JN3ZHUjdublgyaEdOa0FjeHU2MlJsZmp4MndIWVJT?=
- =?utf-8?B?TjNkbG1ZUFhxNk5TeG1tL2pEamd0VG9DaFZYWS9tZlVJakg1RVl1Y2FEcGd6?=
- =?utf-8?B?aTgrdzE0Z1FrcExuam1YS2Q5SFZtQmVPdkVvalA0R3FYbkUvd1VESVlSUTkw?=
- =?utf-8?B?NXI3UjRPdm9SQUxuUGhJemI3RkhFdDlYVkt4eU1Jc2VCdXJsWExvSWVZNUR4?=
- =?utf-8?B?b3F6dk5GZmZnbGx0T3VCVE1WaTdTY0RTeGRod0lSekEvZVJML2dJQXM2dHhU?=
- =?utf-8?B?SXpVM2hwa0Z5M1VqZnRZWTNKcUMzSHp4Y1FnRmd4RCsyZWpMNDQ2YUV0UVcx?=
- =?utf-8?B?NmgwNFR3aVRwNU1XL1Q1SWorU2pFZStodER4TjBseDN0bFB0aFdPRHZOa0N3?=
- =?utf-8?B?RlpDb0ZCd2RFZ203MG82Ryt6STBZazBKL3hFVVhBQnhXc3YwcS9lSEp3YUdR?=
- =?utf-8?B?SURoREJqRXc5NnQ5Y2VvRDFMVEl6ak1GVGgxTUlsUytmZmVNNDRGUGJZN1Nt?=
- =?utf-8?B?Z0owNXRteVFlZy9rcDJaTE4xVTNDV1pYVDNQRFJLa0VEKzRXaWxhR3RDNFZ4?=
- =?utf-8?B?eUtQQ2hZTkplQWNRYUFNVHFuUE1UVzUybVROaGJxdEEzS0NrR1FDRGNFWUts?=
- =?utf-8?B?b1A1ZkErb2FQcFhJYTB3T1hCVUV6WWNoS0VGMHdWZFRoMUtqSGc1UHA3SmR5?=
- =?utf-8?B?NXJSNkdSTHdCTC8xNzRYRVU5WVZNMGgxN2dReG5yOUd1SE9QQnZoS1M0QTlP?=
- =?utf-8?B?TmhjbmdJYzgrSS82b3RHYnRlUWdGTTJxcW4xK01EZnFVVWlpbVd4aWRGMW55?=
- =?utf-8?B?SExvamVBL3M4VjNnMkdZdEdrK21RUXRJMDFCaEMwYUcrblo3SnpVTnMrNTdT?=
- =?utf-8?B?TWxvT2xhTnNhS0xMdFcxUXF4Q0x0Myt6Yk05TnZQMUZ6QW5MbDh2UFJlNzNP?=
- =?utf-8?B?WmlZMzZYdXVpc3ZnTEYvQXppemtxQmxHS2ZjRjc3YTBnYWpLMGZQTTdidC9F?=
- =?utf-8?B?RGprNVNaTkhiK3QxNVNaTlUrQWVCZk9KV1pjcTZwWWo2ZHhnV3B3ZU15bEtE?=
- =?utf-8?B?ZWhCSU1RQ1ZTdUhUcE1PZlFOVkhPRldFSVJ6N0dJSllnSmJsdVNnVU5WRnAv?=
- =?utf-8?B?eVQ2TVV4dWpOVXZ2VythRHA4WVM4SUdOVVl0VnB3SDZCeitoWUkvYnZXd0Rm?=
- =?utf-8?B?V2NoL1QzT0dxZDVsN2t6c3VJdnR2VU5PR1JYN3dqZEQ4Z1lRY1NyOHNqaU94?=
- =?utf-8?B?WHJ0cTNqK3p6UVJFOHNOSThqdTNkM21iTGdTRDRYdmpwWm1DenVBaFdIUGdK?=
- =?utf-8?B?MFZWTWJiT2pwczZiMTA4QktrOWc4SlhBY3BzZE9FVTh3RHI2TUF0bGphWmFt?=
- =?utf-8?B?MlJlbjluSHhuU3A3eXBnb0UrUXo2dE9rSUhhV3dtaWMySjlBTmVGYjN5SWxP?=
- =?utf-8?B?ZGNUd2dkc3dESFVIR0VJMVBWd0tsUHhBK0tkb0ZWaTZ4Yms3YTh6Um0xdGs1?=
- =?utf-8?B?Q0MxUnFEZDFpYWptRWJLRUpDbHA2blJVcmlaOWJwaCt1S3N2aEhyZ1ZTTzNJ?=
- =?utf-8?B?Zm9wNXFrbUxjclhTS0Q5T3JHQVlWVnhGblhYZUZ5b1NIUDhyQ2dwVG5xa0tp?=
- =?utf-8?B?MElxR1lZb3lKcUNqS1VyZEl2Z0l2KzFQZmsvd0U2aHNpOEJEam1GQXhWRVUr?=
- =?utf-8?B?THVvSHltdWhscmx1UnhSbjNtVHlFdVBTQXB1MGtZS1JFdVl3T3NqQmdSRGhX?=
- =?utf-8?B?ekphekd6WWFyWEdZL1B5NGplOFFHL3pjVTQwYU85ZEY4SGdWZmxBVzNyTVgr?=
- =?utf-8?B?eWhxelZKbm5mNlVrWTV0MjhrZFUyeGp5RlAvTTJoUTB0U0hKbVhnQ3V6S2gy?=
- =?utf-8?B?dStNSGVjSzBLeXBVOFFON0FjKzlCQi93aFVuMjBHUWNkRWhKeEUyS0ZCZUZB?=
- =?utf-8?B?Z1VJUFZIQWdPT1l3YlFNSisvWHlBPT0=?=
-X-OriginatorOrg: virtuozzo.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 8f98acc0-fce1-403f-2641-08d9c2331fd8
-X-MS-Exchange-CrossTenant-AuthSource: VE1PR08MB5630.eurprd08.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 18 Dec 2021 14:31:48.4568
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 0bc7f26d-0264-416e-a6fc-8352af79c58f
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: Di02MfvmZq/ZzeKPwiVnRju+jpJ8HzLGAoa/XlQXOKBEaFBw4gGqhLhFEXSSuGqsus6a7rVb6e5N6FLVpEVy2tI8mYtpmuhom0qvwDsyVVU=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: VI1PR08MB3997
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
->> This allows archs to optimize it, by
->> freeing multiple tables in a single release_pages() call. This is
->> faster than individual put_page() calls, especially with memcg
->> accounting enabled.
-> 
-> Could we quantify "faster"?  There's a non-trivial amount of code being
-> added here and it would be nice to back it up with some cold-hard numbers.
+For architectures that use free_page_and_swap_cache() as their
+__tlb_remove_table(), place that common implementation into
+mm/mmu_gather.c, ifdef'ed by CONFIG_MMU_GATHER_TABLE_FREE_COMMON.
 
-I currently don't have numbers for this patch taken alone. This patch originates from work done some 
-years ago to reduce cost of memory accounting, and x86-only version of this patch was in 
-virtuozzo/openvz kernel since then. Other patches from that work have been upstreamed, but this one was 
-missed.
+Signed-off-by: Nikita Yushchenko <nikita.yushchenko@virtuozzo.com>
+---
+ arch/Kconfig                 |  3 +++
+ arch/arm/Kconfig             |  1 +
+ arch/arm/include/asm/tlb.h   |  5 -----
+ arch/arm64/Kconfig           |  1 +
+ arch/arm64/include/asm/tlb.h |  5 -----
+ arch/x86/Kconfig             |  1 +
+ arch/x86/include/asm/tlb.h   | 14 --------------
+ include/asm-generic/tlb.h    |  5 +++++
+ mm/mmu_gather.c              | 10 ++++++++++
+ 9 files changed, 21 insertions(+), 24 deletions(-)
 
-Still it's obvious that release_pages() shall be faster that a loop calling put_page() - isn't that 
-exactly the reason why release_pages() exists and is different from a loop calling put_page()?
+diff --git a/arch/Kconfig b/arch/Kconfig
+index d3c4ab249e9c..9eba553cd86f 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -415,6 +415,9 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
+ config MMU_GATHER_TABLE_FREE
+ 	bool
+ 
++config MMU_GATHER_TABLE_FREE_COMMON
++	bool
++
+ config MMU_GATHER_RCU_TABLE_FREE
+ 	bool
+ 	select MMU_GATHER_TABLE_FREE
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index c2724d986fa0..cc272e1ad12c 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -110,6 +110,7 @@ config ARM
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select MMU_GATHER_RCU_TABLE_FREE if SMP && ARM_LPAE
++	select MMU_GATHER_TABLE_FREE_COMMON
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RSEQ
+ 	select HAVE_STACKPROTECTOR
+diff --git a/arch/arm/include/asm/tlb.h b/arch/arm/include/asm/tlb.h
+index b8cbe03ad260..9d9b21649ca0 100644
+--- a/arch/arm/include/asm/tlb.h
++++ b/arch/arm/include/asm/tlb.h
+@@ -29,11 +29,6 @@
+ #include <linux/swap.h>
+ #include <asm/tlbflush.h>
+ 
+-static inline void __tlb_remove_table(void *_table)
+-{
+-	free_page_and_swap_cache((struct page *)_table);
+-}
+-
+ #include <asm-generic/tlb.h>
+ 
+ static inline void
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index c4207cf9bb17..0f99f30d99f6 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -196,6 +196,7 @@ config ARM64
+ 	select HAVE_FUNCTION_ARG_ACCESS_API
+ 	select HAVE_FUTEX_CMPXCHG if FUTEX
+ 	select MMU_GATHER_RCU_TABLE_FREE
++	select MMU_GATHER_TABLE_FREE_COMMON
+ 	select HAVE_RSEQ
+ 	select HAVE_STACKPROTECTOR
+ 	select HAVE_SYSCALL_TRACEPOINTS
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index c995d1f4594f..401826260a5c 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -11,11 +11,6 @@
+ #include <linux/pagemap.h>
+ #include <linux/swap.h>
+ 
+-static inline void __tlb_remove_table(void *_table)
+-{
+-	free_page_and_swap_cache((struct page *)_table);
+-}
+-
+ #define tlb_flush tlb_flush
+ static void tlb_flush(struct mmu_gather *tlb);
+ 
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5c2ccb85f2ef..379d6832d3de 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -235,6 +235,7 @@ config X86
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select MMU_GATHER_RCU_TABLE_FREE		if PARAVIRT
++	select MMU_GATHER_TABLE_FREE_COMMON
+ 	select HAVE_POSIX_CPU_TIMERS_TASK_WORK
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RELIABLE_STACKTRACE		if X86_64 && (UNWINDER_FRAME_POINTER || UNWINDER_ORC) && STACK_VALIDATION
+diff --git a/arch/x86/include/asm/tlb.h b/arch/x86/include/asm/tlb.h
+index 1bfe979bb9bc..96e3b4f922c9 100644
+--- a/arch/x86/include/asm/tlb.h
++++ b/arch/x86/include/asm/tlb.h
+@@ -23,18 +23,4 @@ static inline void tlb_flush(struct mmu_gather *tlb)
+ 	flush_tlb_mm_range(tlb->mm, start, end, stride_shift, tlb->freed_tables);
+ }
+ 
+-/*
+- * While x86 architecture in general requires an IPI to perform TLB
+- * shootdown, enablement code for several hypervisors overrides
+- * .flush_tlb_others hook in pv_mmu_ops and implements it by issuing
+- * a hypercall. To keep software pagetable walkers safe in this case we
+- * switch to RCU based table free (MMU_GATHER_RCU_TABLE_FREE). See the comment
+- * below 'ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE' in include/asm-generic/tlb.h
+- * for more details.
+- */
+-static inline void __tlb_remove_table(void *table)
+-{
+-	free_page_and_swap_cache(table);
+-}
+-
+ #endif /* _ASM_X86_TLB_H */
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 2c68a545ffa7..877431da21cf 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -158,6 +158,11 @@
+  *  Useful if your architecture doesn't use IPIs for remote TLB invalidates
+  *  and therefore doesn't naturally serialize with software page-table walkers.
+  *
++ *  MMU_GATHER_TABLE_FREE_COMMON
++ *
++ *  Provide default implementation of __tlb_remove_table() based on
++ *  free_page_and_swap_cache().
++ *
+  *  MMU_GATHER_NO_RANGE
+  *
+  *  Use this if your architecture lacks an efficient flush_tlb_range().
+diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+index 1b9837419bf9..eb2f30a92462 100644
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -93,6 +93,13 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_
+ 
+ #ifdef CONFIG_MMU_GATHER_TABLE_FREE
+ 
++#ifdef CONFIG_MMU_GATHER_TABLE_FREE_COMMON
++static inline void __tlb_remove_table(void *table)
++{
++	free_page_and_swap_cache((struct page *)table);
++}
++#endif
++
+ static void __tlb_remove_table_free(struct mmu_table_batch *batch)
+ {
+ 	int i;
+@@ -132,6 +139,9 @@ static void __tlb_remove_table_free(struct mmu_table_batch *batch)
+  * pressure. To guarantee progress we fall back to single table freeing, see
+  * the implementation of tlb_remove_table_one().
+  *
++ * This is also used to keep software pagetable walkers safe when architecture
++ * natively uses IPIs for TLB flushes, but hypervisor enablement code replaced
++ * that by issuing a hypercall.
+  */
+ 
+ static void tlb_remove_table_smp_sync(void *arg)
+-- 
+2.30.2
 
->>   static void __tlb_remove_table_free(struct mmu_table_batch *batch)
->>   {
->> -	int i;
->> -
->> -	for (i = 0; i < batch->nr; i++)
->> -		__tlb_remove_table(batch->tables[i]);
->> -
->> +	__tlb_remove_tables(batch->tables, batch->nr);
->>   	free_page((unsigned long)batch);
->>   }
-> 
-> This leaves a single call-site for __tlb_remove_table():
-> 
->> static void tlb_remove_table_one(void *table)
->> {
->>          tlb_remove_table_sync_one();
->>          __tlb_remove_table(table);
->> }
-> 
-> Is that worth it, or could it just be:
-> 
-> 	__tlb_remove_tables(&table, 1);
-
-I was considering that while preparing the patch, however that resulted into even larger change in 
-archs, due to removal of non-batched call, and I decided not to follow this way.
-
-And, Peter's suggestion to integrate free_page_and_swap()-based implementation of __tlb_remove_table() 
-into mm/mmu_gather.c under ifdef, and then do the optimization locally in mm/mmu_gather.c, looks better.
-
->> +void free_pages_and_swap_cache_nolru(struct page **pages, int nr)
->> +{
->> +	__free_pages_and_swap_cache(pages, nr, false);
->>   }
-> 
-> This went unmentioned in the changelog.  But, it seems like there's a
-> specific optimization here.  In the exiting code,
-> free_pages_and_swap_cache() is wasteful if no page in pages[] is on the
-> LRU.  It doesn't need the lru_add_drain().
-
-This is a somewhat different topic.
-
-In scope of this patch, the _nolru version was added because there was no lru draining in the looped 
-call to __tlb_remove_table(). Having it added to the batched version, although won't break things, does 
-add overhead that was not there before, which is in direct conflict with the original goal.
-
-If the version with draining lru is indeed not needed, it can be cleaned out in scope of a different 
-patchset.
-
-> 		if (!do_lru)
-> 			VM_WARN_ON_ONCE_PAGE(PageLRU(pagep[i]),
-> 					     pagep[i]);
-> 		free_swap_cache(...);
-
-This looks like a good safety measure, will add it.
-
-> But, even more than that, do all the architectures even need the
-> free_swap_cache()?
-
-I was under impression that process page tables are a valid target for swapping out. Although I can be 
-wrong here.
-
-Nikita
