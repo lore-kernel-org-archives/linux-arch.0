@@ -2,158 +2,111 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6E36DC433F5
-	for <linux-arch@archiver.kernel.org>; Sun, 19 Dec 2021 01:34:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C779EC433EF
+	for <linux-arch@archiver.kernel.org>; Sun, 19 Dec 2021 14:23:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232860AbhLSBeR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 18 Dec 2021 20:34:17 -0500
-Received: from mga17.intel.com ([192.55.52.151]:14836 "EHLO mga17.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S232124AbhLSBeQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 18 Dec 2021 20:34:16 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1639877656; x=1671413656;
-  h=subject:to:cc:references:from:message-id:date:
-   mime-version:in-reply-to:content-transfer-encoding;
-  bh=cv74yQu4yaEw55arUJxxiaDLp4QaHtBmtA1P6ilYt3E=;
-  b=O5/OTkRYebyQw7PZ59bM+NBnbptArQN9zkRzP8WcX69LInZC20Y9p/8G
-   bhf3mNgRUskOU+YOR0UkPdUH4GIVV7OZstVTrPfJ53lgmPRTLSlRK9Jjx
-   bPgf5+HgvGqruqXuUE57ZsyC3tnE1oAvSosLrCSWetNE+/r10agMBp7BH
-   yeEd1at2ww/gjYN0RpNCjTGzqsbXjKm+eeEGvIY6PANB5vlX9nBhSQ71b
-   2kfizmIFHrI2PkzBoQleEEZM+0ZOSwuKlLwBsdpPpXtcd1jNCF8DXoYol
-   3YEr4Pp4BUcw5qzjuBmsRoIA3rLY6CAW4/HDEIEpug01wqjhEGRacZoJ0
-   g==;
-X-IronPort-AV: E=McAfee;i="6200,9189,10202"; a="220645226"
-X-IronPort-AV: E=Sophos;i="5.88,217,1635231600"; 
-   d="scan'208";a="220645226"
-Received: from orsmga005.jf.intel.com ([10.7.209.41])
-  by fmsmga107.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Dec 2021 17:34:16 -0800
-X-IronPort-AV: E=Sophos;i="5.88,217,1635231600"; 
-   d="scan'208";a="683817902"
-Received: from dravipat-mobl.amr.corp.intel.com (HELO [10.209.5.57]) ([10.209.5.57])
-  by orsmga005-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Dec 2021 17:34:15 -0800
-Subject: Re: [PATCH/RFC] mm: add and use batched version of
- __tlb_remove_table()
-To:     Nikita Yushchenko <nikita.yushchenko@virtuozzo.com>,
-        Will Deacon <will@kernel.org>,
-        "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Nick Piggin <npiggin@gmail.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@linux.ibm.com>,
-        "David S. Miller" <davem@davemloft.net>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Arnd Bergmann <arnd@arndb.de>
-Cc:     x86@kernel.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
-        sparclinux@vger.kernel.org, kernel@openvz.org
-References: <20211217081909.596413-1-nikita.yushchenko@virtuozzo.com>
- <fcbb726d-fe6a-8fe4-20fd-6a10cdef007a@intel.com>
- <d6094dc4-3976-e06f-696b-c55f696fe287@virtuozzo.com>
-From:   Dave Hansen <dave.hansen@intel.com>
-Autocrypt: addr=dave.hansen@intel.com; keydata=
- xsFNBE6HMP0BEADIMA3XYkQfF3dwHlj58Yjsc4E5y5G67cfbt8dvaUq2fx1lR0K9h1bOI6fC
- oAiUXvGAOxPDsB/P6UEOISPpLl5IuYsSwAeZGkdQ5g6m1xq7AlDJQZddhr/1DC/nMVa/2BoY
- 2UnKuZuSBu7lgOE193+7Uks3416N2hTkyKUSNkduyoZ9F5twiBhxPJwPtn/wnch6n5RsoXsb
- ygOEDxLEsSk/7eyFycjE+btUtAWZtx+HseyaGfqkZK0Z9bT1lsaHecmB203xShwCPT49Blxz
- VOab8668QpaEOdLGhtvrVYVK7x4skyT3nGWcgDCl5/Vp3TWA4K+IofwvXzX2ON/Mj7aQwf5W
- iC+3nWC7q0uxKwwsddJ0Nu+dpA/UORQWa1NiAftEoSpk5+nUUi0WE+5DRm0H+TXKBWMGNCFn
- c6+EKg5zQaa8KqymHcOrSXNPmzJuXvDQ8uj2J8XuzCZfK4uy1+YdIr0yyEMI7mdh4KX50LO1
- pmowEqDh7dLShTOif/7UtQYrzYq9cPnjU2ZW4qd5Qz2joSGTG9eCXLz5PRe5SqHxv6ljk8mb
- ApNuY7bOXO/A7T2j5RwXIlcmssqIjBcxsRRoIbpCwWWGjkYjzYCjgsNFL6rt4OL11OUF37wL
- QcTl7fbCGv53KfKPdYD5hcbguLKi/aCccJK18ZwNjFhqr4MliQARAQABzShEYXZpZCBDaHJp
- c3RvcGhlciBIYW5zZW4gPGRhdmVAc3I3MS5uZXQ+wsF7BBMBAgAlAhsDBgsJCAcDAgYVCAIJ
- CgsEFgIDAQIeAQIXgAUCTo3k0QIZAQAKCRBoNZUwcMmSsMO2D/421Xg8pimb9mPzM5N7khT0
- 2MCnaGssU1T59YPE25kYdx2HntwdO0JA27Wn9xx5zYijOe6B21ufrvsyv42auCO85+oFJWfE
- K2R/IpLle09GDx5tcEmMAHX6KSxpHmGuJmUPibHVbfep2aCh9lKaDqQR07gXXWK5/yU1Dx0r
- VVFRaHTasp9fZ9AmY4K9/BSA3VkQ8v3OrxNty3OdsrmTTzO91YszpdbjjEFZK53zXy6tUD2d
- e1i0kBBS6NLAAsqEtneplz88T/v7MpLmpY30N9gQU3QyRC50jJ7LU9RazMjUQY1WohVsR56d
- ORqFxS8ChhyJs7BI34vQusYHDTp6PnZHUppb9WIzjeWlC7Jc8lSBDlEWodmqQQgp5+6AfhTD
- kDv1a+W5+ncq+Uo63WHRiCPuyt4di4/0zo28RVcjtzlGBZtmz2EIC3vUfmoZbO/Gn6EKbYAn
- rzz3iU/JWV8DwQ+sZSGu0HmvYMt6t5SmqWQo/hyHtA7uF5Wxtu1lCgolSQw4t49ZuOyOnQi5
- f8R3nE7lpVCSF1TT+h8kMvFPv3VG7KunyjHr3sEptYxQs4VRxqeirSuyBv1TyxT+LdTm6j4a
- mulOWf+YtFRAgIYyyN5YOepDEBv4LUM8Tz98lZiNMlFyRMNrsLV6Pv6SxhrMxbT6TNVS5D+6
- UorTLotDZKp5+M7BTQRUY85qARAAsgMW71BIXRgxjYNCYQ3Xs8k3TfAvQRbHccky50h99TUY
- sqdULbsb3KhmY29raw1bgmyM0a4DGS1YKN7qazCDsdQlxIJp9t2YYdBKXVRzPCCsfWe1dK/q
- 66UVhRPP8EGZ4CmFYuPTxqGY+dGRInxCeap/xzbKdvmPm01Iw3YFjAE4PQ4hTMr/H76KoDbD
- cq62U50oKC83ca/PRRh2QqEqACvIH4BR7jueAZSPEDnzwxvVgzyeuhwqHY05QRK/wsKuhq7s
- UuYtmN92Fasbxbw2tbVLZfoidklikvZAmotg0dwcFTjSRGEg0Gr3p/xBzJWNavFZZ95Rj7Et
- db0lCt0HDSY5q4GMR+SrFbH+jzUY/ZqfGdZCBqo0cdPPp58krVgtIGR+ja2Mkva6ah94/oQN
- lnCOw3udS+Eb/aRcM6detZr7XOngvxsWolBrhwTQFT9D2NH6ryAuvKd6yyAFt3/e7r+HHtkU
- kOy27D7IpjngqP+b4EumELI/NxPgIqT69PQmo9IZaI/oRaKorYnDaZrMXViqDrFdD37XELwQ
- gmLoSm2VfbOYY7fap/AhPOgOYOSqg3/Nxcapv71yoBzRRxOc4FxmZ65mn+q3rEM27yRztBW9
- AnCKIc66T2i92HqXCw6AgoBJRjBkI3QnEkPgohQkZdAb8o9WGVKpfmZKbYBo4pEAEQEAAcLB
- XwQYAQIACQUCVGPOagIbDAAKCRBoNZUwcMmSsJeCEACCh7P/aaOLKWQxcnw47p4phIVR6pVL
- e4IEdR7Jf7ZL00s3vKSNT+nRqdl1ugJx9Ymsp8kXKMk9GSfmZpuMQB9c6io1qZc6nW/3TtvK
- pNGz7KPPtaDzvKA4S5tfrWPnDr7n15AU5vsIZvgMjU42gkbemkjJwP0B1RkifIK60yQqAAlT
- YZ14P0dIPdIPIlfEPiAWcg5BtLQU4Wg3cNQdpWrCJ1E3m/RIlXy/2Y3YOVVohfSy+4kvvYU3
- lXUdPb04UPw4VWwjcVZPg7cgR7Izion61bGHqVqURgSALt2yvHl7cr68NYoFkzbNsGsye9ft
- M9ozM23JSgMkRylPSXTeh5JIK9pz2+etco3AfLCKtaRVysjvpysukmWMTrx8QnI5Nn5MOlJj
- 1Ov4/50JY9pXzgIDVSrgy6LYSMc4vKZ3QfCY7ipLRORyalFDF3j5AGCMRENJjHPD6O7bl3Xo
- 4DzMID+8eucbXxKiNEbs21IqBZbbKdY1GkcEGTE7AnkA3Y6YB7I/j9mQ3hCgm5muJuhM/2Fr
- OPsw5tV/LmQ5GXH0JQ/TZXWygyRFyyI2FqNTx4WHqUn3yFj8rwTAU1tluRUYyeLy0ayUlKBH
- ybj0N71vWO936MqP6haFERzuPAIpxj2ezwu0xb1GjTk4ynna6h5GjnKgdfOWoRtoWndMZxbA
- z5cecg==
-Message-ID: <290cfe1c-564f-9779-0757-5ca281055e77@intel.com>
-Date:   Sat, 18 Dec 2021 17:34:13 -0800
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
- Thunderbird/68.10.0
+        id S235907AbhLSOXf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 19 Dec 2021 09:23:35 -0500
+Received: from eu-smtp-delivery-151.mimecast.com ([185.58.86.151]:42948 "EHLO
+        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S233051AbhLSOXd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 19 Dec 2021 09:23:33 -0500
+Received: from AcuMS.aculab.com (156.67.243.121 [156.67.243.121]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id
+ uk-mta-47-lARwkb-CPHSriFWVJJMrNw-1; Sun, 19 Dec 2021 14:23:30 +0000
+X-MC-Unique: lARwkb-CPHSriFWVJJMrNw-1
+Received: from AcuMS.Aculab.com (fd9f:af1c:a25b:0:994c:f5c2:35d6:9b65) by
+ AcuMS.aculab.com (fd9f:af1c:a25b:0:994c:f5c2:35d6:9b65) with Microsoft SMTP
+ Server (TLS) id 15.0.1497.26; Sun, 19 Dec 2021 14:23:29 +0000
+Received: from AcuMS.Aculab.com ([fe80::994c:f5c2:35d6:9b65]) by
+ AcuMS.aculab.com ([fe80::994c:f5c2:35d6:9b65%12]) with mapi id
+ 15.00.1497.026; Sun, 19 Dec 2021 14:23:29 +0000
+From:   David Laight <David.Laight@ACULAB.COM>
+To:     'John Garry' <john.garry@huawei.com>,
+        Niklas Schnelle <schnelle@linux.ibm.com>,
+        Arnd Bergmann <arnd@kernel.org>
+CC:     Linus Torvalds <torvalds@linux-foundation.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        linux-pci <linux-pci@vger.kernel.org>,
+        "Linux Kernel Mailing List" <linux-kernel@vger.kernel.org>
+Subject: RE: [GIT PULL 1/2] asm-generic: rework PCI I/O space access
+Thread-Topic: [GIT PULL 1/2] asm-generic: rework PCI I/O space access
+Thread-Index: AQHX81JQISxKPCuGHU2T1v53saw8BKw53sKg
+Date:   Sun, 19 Dec 2021 14:23:29 +0000
+Message-ID: <3a10b91258bf432baf51932a08335f6e@AcuMS.aculab.com>
+References: <CAK8P3a2oZ-+qd3Nhpy9VVXCJB3DU5N-y-ta2JpP0t6NHh=GVXw@mail.gmail.com>
+ <CAHk-=wg80je=K7madF4e7WrRNp37e3qh6y10Svhdc7O8SZ_-8g@mail.gmail.com>
+ <CAK8P3a1D5DzmNGsEPQomkyMCmMrtD6pQ11JRMh78vbY53edp-Q@mail.gmail.com>
+ <CAK8P3a0MNbx-iuzW_-=0ab6-TTZzwV-PT_6gAC1Gp5PgYyHcrA@mail.gmail.com>
+ <db043b76-880d-5fad-69cf-96abcd9cd34f@huawei.com>
+ <CAK8P3a3HHeP+Gw_k2P7Qtig0OmErf0HN30G22+qHic_uZTh11Q@mail.gmail.com>
+ <a74dfb1f-befd-92ce-4c30-233cb08e04d3@huawei.com>
+ <CAK8P3a3B4FCaPPHhzBdpkv0fsjE0jREwGFCdPeHEDHxxRBEjng@mail.gmail.com>
+ <5e8dfbd2-a6c0-6d02-53e9-1f29aebcc44e@huawei.com>
+ <CAK8P3a08Zcyx0J4_LGAfU_AtUyEK+XtQJxYBQ52VXfWu8-o8_w@mail.gmail.com>
+ <dd2d49ef-3154-3c87-67b9-c134567ba947@huawei.com>
+ <CAK8P3a3KTaa-AwCOjhaASMx63B3DUBZCZe6RKWk-=Qu7xr_ijQ@mail.gmail.com>
+ <47744c7bce7b7bb37edee7f249d61dc57ac1fbc5.camel@linux.ibm.com>
+ <CAK8P3a2eZ25PLSqEf_wmGs912WK8xRMuQHik2yAKj-WRQnDuRg@mail.gmail.com>
+ <849d70bddde1cfcb3ab1163970a148ff447ee94b.camel@linux.ibm.com>
+ <53746e42-23a2-049d-9b38-dcfbaaae728f@huawei.com>
+In-Reply-To: <53746e42-23a2-049d-9b38-dcfbaaae728f@huawei.com>
+Accept-Language: en-GB, en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+x-ms-exchange-transport-fromentityheader: Hosted
+x-originating-ip: [10.202.205.107]
 MIME-Version: 1.0
-In-Reply-To: <d6094dc4-3976-e06f-696b-c55f696fe287@virtuozzo.com>
-Content-Type: text/plain; charset=utf-8
+Authentication-Results: relay.mimecast.com;
+        auth=pass smtp.auth=C51A453 smtp.mailfrom=david.laight@aculab.com
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: aculab.com
 Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 12/18/21 6:31 AM, Nikita Yushchenko wrote:
->>> This allows archs to optimize it, by
->>> freeing multiple tables in a single release_pages() call. This is
->>> faster than individual put_page() calls, especially with memcg
->>> accounting enabled.
->>
->> Could we quantify "faster"?  There's a non-trivial amount of code being
->> added here and it would be nice to back it up with some cold-hard
->> numbers.
-> 
-> I currently don't have numbers for this patch taken alone. This patch
-> originates from work done some years ago to reduce cost of memory
-> accounting, and x86-only version of this patch was in virtuozzo/openvz
-> kernel since then. Other patches from that work have been upstreamed,
-> but this one was missed.
-> 
-> Still it's obvious that release_pages() shall be faster that a loop
-> calling put_page() - isn't that exactly the reason why release_pages()
-> exists and is different from a loop calling put_page()?
+RnJvbTogSm9obiBHYXJyeQ0KPiBTZW50OiAxNyBEZWNlbWJlciAyMDIxIDE0OjI4DQo+IA0KPiBP
+biAxNy8xMi8yMDIxIDEzOjUyLCBOaWtsYXMgU2NobmVsbGUgd3JvdGU6DQo+IA0KPiBUaGFua3Mg
+Zm9yIGxvb2tpbmcgYXQgdGhpcyBhZ2Fpbi4NCj4gDQo+ID4+PiBJIGhhdmUgdGVzdGVkIHRoaXMg
+b24gczM5MCB3aXRoIEhBU19JT1BPUlQ9biBhbmQgYWxseWVzY29uZmlnIGFzIHdlbGwNCj4gPj4+
+IGFzIHJ1bm5pbmcgaXQgd2l0aCBkZWZjb25maWcuIEkndmUgYWxzbyBiZWVuIHVzaW5nIGl0IG9u
+IG15IFJ5emVuIDM5OTBYDQo+ID4+PiB3b3Jrc3RhdGlvbiB3aXRoIExFR0FDWV9QQ0k9biBmb3Ig
+YSBmZXcgZGF5cy4gSSBkbyBnZXQgYWJvdXQgNjAgTWlCDQo+ID4+PiBmZXdlciBtb2R1bGVzIGNv
+bXBhcmVkIHdpdGggYSBzaW1pbGFyIGNvbmZpZyBvZiB2NS4xNS44LiBIYXJkIHRvIHNheQ0KPiA+
+Pj4gd2hpY2ggb3RoZXIgc3lzdGVtcyBtaWdodCBtaXNzIHRoaW5ncyBvZiBjb3Vyc2UuDQo+ID4+
+Pg0KPiA+Pj4gSSBoYXZlIG5vdCB5ZXQgd29ya2VkIG9uIHRoZSBkaXNjdXNzZWQgSU9QT1JUX05B
+VElWRSBmbGFnLiBNb3N0bHkgSSdtDQo+ID4+PiB3b25kZXJpbmcgdHdvIHRoaW5ncy4gRm9yIG9u
+ZSBpdCBmZWVscyBsaWtlIHRoYXQgY291bGQgYmUgYSBzZXBhcmF0ZQ0KPiA+Pj4gY2hhbmdlIG9u
+IHRvcCBzaW5jZSBIQVNfSU9QT1JUICsgTEVHQUNZX1BDSSBpcyBhbHJlYWR5IHF1aXRlIGJpZy4N
+Cj4gPj4+IFNlY29uZGx5IEknbSB3b25kZXJpbmcgYWJvdXQgZ29vZCB3YXlzIG9mIGlkZW50aWZ5
+aW5nIHN1Y2ggZHJpdmVycyBhbmQNCj4gPj4+IGhvdyBtdWNoIHRoaXMgb3ZlcmxhcHMgd2l0aCB0
+aGUgSVNBIGNvbmZpZyBmbGFnLg0KPiANCj4gSSB3YXMgaW50ZXJlc3RpbmcgaW4gdGhlIElPUE9S
+VF9OQVRJVkUgZmxhZyAob3Igd2hhdGV2ZXIgd2UgY2FsbCBpdCkgYXMNCj4gaXQgc29sdmVzIHRo
+ZSBwcm9ibGVtIG9mIGRyaXZlcnMgd2hpY2ggInVuY29uZGl0aW9uYWxseSBkbyBpbmIoKS9vdXRi
+KCkNCj4gd2l0aG91dCBjaGVja2luZyB0aGUgdmFsaWRpdHkgb2YgdGhlIGFkZHJlc3MgdXNpbmcg
+ZmlybXdhcmUgb3Igb3RoZXINCj4gbWV0aG9kcyBmaXJzdCIgYmVpbmcgYnVpbHQgZm9yIChhbmQg
+bG9hZGVkIG9uIGFuZCBjcmFzaGluZykgdW5zdWl0YWJsZQ0KPiBzeXN0ZW1zLiBTdWNoIGEgcHJv
+YmxlbSBpcyBpbiBbMF0NCj4gDQo+IFNvIGlmIHdlIHdhbnQgdG8gc3VwcG9ydCB0aGF0IGxhdGVy
+LCB0aGVuIGl0IHNlZW1zIHRoYXQgc29tZW9uZSB3b3VsZA0KPiBuZWVkIHRvIGdvIGJhY2sgYW5k
+IHJlLWVkaXQgbWFueSBzYW1lIGRyaXZlciBLY29uZmlncyDigJMgbGlrZSBod29uLCBmb3INCj4g
+ZXhhbXBsZS4gSSB0aGluayBpdCdzIGJldHRlciB0byBhdm9pZCB0aGF0IGFuZCBkbyBpdCBub3cu
+DQoNCkNvdWxkIHlvdSBkbyBzb21ldGhpbmcgd2hlcmUgdmFsaWQgYXJndW1lbnRzIHRvIGluYigp
+IGhhdmUgdG8gY29tZQ0KZnJvbSBzb21lIGtlcm5lbCBtYXBwaW5nL3ZhbGlkYXRpb24gZnVuY3Rp
+b24gYW5kIGFyZSBuZXZlciBpbiB0aGUNCnJhbmdlIFsweDAsIDB4MTAwMDApLg0KVGhlbiBkcml2
+ZXJzIHRoYXQgYXJlIGNoZWF0aW5nIHRoZSBzeXN0ZW0gd2lsbCBmYWlsLg0KDQpPciwgbWF5YmUs
+IG9ubHkgYWxsb3cgWzB4MCwgMHgxMDAwMCkgb24gc3lzdGVtcyB0aGF0IGhhdmUgYSBzdWl0YWJs
+ZSBidXMuDQpXaXRoIHRoZSBtYXBwaW5nIGZ1bmN0aW9ucyByZXR1cm5pbmcgYSBkaWZmZXJlbnQg
+dmFsdWUgKGVnIHRoZSBLVkEgaW50bw0KdGhlIFBDSSBtYXN0ZXIgd2luZG93KSB0aGF0IGNhbiBi
+ZSBzZXBhcmF0ZWx5IHZlcmlmaWVkLg0KVGhhdCB3b3VsZCBsZXQgZHJpdmVycyBkbyAoc2F5KSBp
+bmIoMHgxMjApIG9uIHN5c3RlbXMgdGhhdCBoYXZlIChzb21ldGhpbmcNCmxpa2UpIGFuZCBJU0Eg
+YnVzLCBidXQgbm90IG9uIFBDSS1vbmx5IHN5c3RlbXMgd2hpY2ggc3VwcG9ydCBQQ0kgSU8NCmFj
+Y2Vzc2VzIHRocm91Z2ggYSBwaHlzaWNhbCBhZGRyZXNzIHdpbmRvdy4NCg0KCURhdmlkDQoNCi0N
+ClJlZ2lzdGVyZWQgQWRkcmVzcyBMYWtlc2lkZSwgQnJhbWxleSBSb2FkLCBNb3VudCBGYXJtLCBN
+aWx0b24gS2V5bmVzLCBNSzEgMVBULCBVSw0KUmVnaXN0cmF0aW9uIE5vOiAxMzk3Mzg2IChXYWxl
+cykNCg==
 
-Yep, but this patch does a bunch of stuff to some really hot paths.  It
-would be greatly appreciated if you could put in the effort to actually
-put some numbers behind this.  Plenty of weird stuff happens on
-computers that we suck at predicting.
-
-I'd be happy with even a quick little micro.  My favorite is:
-
-	https://github.com/antonblanchard/will-it-scale
-
-Although, I do wonder if anything will even be measurable.  Please at
-least try.
-
-...
->> But, even more than that, do all the architectures even need the
->> free_swap_cache()?
-> 
-> I was under impression that process page tables are a valid target for
-> swapping out. Although I can be wrong here.
-
-It's not out of the realm of possibilities.  But, last I checked, the
-only path we free page tables in was when VMAs are being torn down.  I
-have a longstanding TODO item to reclaim them if they're empty (all
-zeros) or to zero them out if they're mapping page cache.
