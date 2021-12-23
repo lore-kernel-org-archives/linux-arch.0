@@ -2,94 +2,118 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 80F47C433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 23 Dec 2021 17:20:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 80831C433F5
+	for <linux-arch@archiver.kernel.org>; Thu, 23 Dec 2021 21:43:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1349488AbhLWRUs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 23 Dec 2021 12:20:48 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56292 "EHLO
+        id S245106AbhLWVnT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 23 Dec 2021 16:43:19 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58126 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1349465AbhLWRUq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Dec 2021 12:20:46 -0500
-Received: from mail-ed1-x52c.google.com (mail-ed1-x52c.google.com [IPv6:2a00:1450:4864:20::52c])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F3E31C061756
-        for <linux-arch@vger.kernel.org>; Thu, 23 Dec 2021 09:20:45 -0800 (PST)
-Received: by mail-ed1-x52c.google.com with SMTP id y22so24079803edq.2
-        for <linux-arch@vger.kernel.org>; Thu, 23 Dec 2021 09:20:45 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=s6ewMJ2Z+IzcgF6xIUMHr0fBNib7MLyFPwMExIntXDQ=;
-        b=Nh/JZnZIQKCHcPVE2zpqDRAQAn0zb++R5dsUx6CD9Px4tIKzLNH7ltOy99r46sform
-         XbYcxDbgfY9qMeDQTvAylVkdl84hTQIpccqjy/whmUbb0NTpxCu88QbVwqlRJXpX5Jhg
-         1p8NIZQrFDAHm6FTOXtluShv4LkDp+sGEoVI4=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=s6ewMJ2Z+IzcgF6xIUMHr0fBNib7MLyFPwMExIntXDQ=;
-        b=jE32J9i+2OsMofAOmcoBMkOAEdkVk6B8GWbphOp0cWR5xCcf3MG0z5iZnIhVMiMc1K
-         yjm76RNYtGTqUsRZkPaDjQddA8PzLNYhTPrkIgGzbFwIyXj6cvY6JXKH0/YwYdUOKEU6
-         huhnZsIJjkrHm68yDdtXYG9hcoRgc3c4knWOTNTaVi3RMXE5c6+Ls86JwGgx37FvAVv0
-         4U3nBIJ3jcXcZbeWRqBkEEpX07+R22b87kNRIwLWFPSBjApvqJS7OY5JRQ+b1ONjI1iw
-         Oa/eedJ6sxVqmavCMZXTAtYvN8+gpif7+98wKiACVKFHGj6jb7WPqWX8iz+QX19Px5wW
-         bI9w==
-X-Gm-Message-State: AOAM531hj3H+XT+AueRwpq5o7NDb/DXwWuuDA1CqYqWnQ7RkKihroMC1
-        /4NyADGEUy3JB+LvyFRhtylU08JaODdqmA/WDtY=
-X-Google-Smtp-Source: ABdhPJyqbdnmGeB8/Z34Ww+bvooY0IiZ72BONsB3/52CuAsm0fRnN07yssxDlHJKea9WsoQ5vsBpWA==
-X-Received: by 2002:a05:6402:2693:: with SMTP id w19mr2801175edd.63.1640280044405;
-        Thu, 23 Dec 2021 09:20:44 -0800 (PST)
-Received: from mail-wr1-f51.google.com (mail-wr1-f51.google.com. [209.85.221.51])
-        by smtp.gmail.com with ESMTPSA id q21sm2163677edt.45.2021.12.23.09.20.42
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 23 Dec 2021 09:20:43 -0800 (PST)
-Received: by mail-wr1-f51.google.com with SMTP id t18so12728468wrg.11
-        for <linux-arch@vger.kernel.org>; Thu, 23 Dec 2021 09:20:42 -0800 (PST)
-X-Received: by 2002:a05:6000:10d2:: with SMTP id b18mr2336024wrx.193.1640280042472;
- Thu, 23 Dec 2021 09:20:42 -0800 (PST)
+        with ESMTP id S240686AbhLWVnS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Dec 2021 16:43:18 -0500
+Received: from sin.source.kernel.org (sin.source.kernel.org [IPv6:2604:1380:40e1:4800::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4206AC061401;
+        Thu, 23 Dec 2021 13:43:18 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by sin.source.kernel.org (Postfix) with ESMTPS id 7AE5DCE2208;
+        Thu, 23 Dec 2021 21:43:16 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C85FEC36AEA;
+        Thu, 23 Dec 2021 21:43:14 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1640295794;
+        bh=YZG2vX676ItJy3+kJRWOsS2iMCGgY1eqBlxO8esua7k=;
+        h=From:Date:Subject:To:Cc:From;
+        b=AFfyfJfylrPYTx9StY/CF6lMb4wD5XehUOUZH9qMPNQ/u4I33ZQIGVkN4fK1oTsEL
+         S3J8hke9AyyiwFMd8LxSexuGbGtAhtR8UHNu2vmxwMF8a/PrbxzLy4GqXkS5pOt1LY
+         2NMgZF50eiKyoVXlMQwtMpwHVJTP6S1LgkwLeImtAOCny0E/YI0IMVZKHaww3ZX7K7
+         11QDAh+hCfe37h72ZpYNWboHz3TFIvVt17IY2KIuM6vox2EhyO/PxlfvVTv0UFYj2/
+         Fc+zV1Ce/uD0AhadNpJOoBfQX6deMd6K1c0ZwVSwCRtXSCHVDLMf4LP4D0tN2AyoiP
+         tneGAJlVQVZjA==
+Received: by mail-wr1-f49.google.com with SMTP id s1so13889004wra.6;
+        Thu, 23 Dec 2021 13:43:14 -0800 (PST)
+X-Gm-Message-State: AOAM531UTSYgI11rmZGPgBJQxyrui03Qyr5Vza0bzllzcoOPcXAacpr1
+        3eX3j+B0hImR9nSFSfY15XQ/hvajODlrShegk+k=
+X-Google-Smtp-Source: ABdhPJxGnmkmwfJuofdStb9OMaZZAS7Asd+mhazJrq2O1sPYplNi8Szl6RNei35+vaGLMqTCAbvXATegCNAhfMORJlo=
+X-Received: by 2002:a5d:6989:: with SMTP id g9mr2832508wru.12.1640295793148;
+ Thu, 23 Dec 2021 13:43:13 -0800 (PST)
 MIME-Version: 1.0
-References: <87a6ha4zsd.fsf@email.froward.int.ebiederm.org>
- <20211208202532.16409-9-ebiederm@xmission.com> <YcNsG0Lp94V13whH@archlinux-ax161>
- <87zgoswkym.fsf@email.froward.int.ebiederm.org> <YcNyjxac3wlKPywk@archlinux-ax161>
- <87pmpow7ga.fsf@email.froward.int.ebiederm.org> <CAHk-=wgtFAA9SbVYg0gR1tqPMC17-NYcs0GQkaYg1bGhh1uJQQ@mail.gmail.com>
- <87o858uh80.fsf@email.froward.int.ebiederm.org> <87a6grvqy8.fsf_-_@email.froward.int.ebiederm.org>
-In-Reply-To: <87a6grvqy8.fsf_-_@email.froward.int.ebiederm.org>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Thu, 23 Dec 2021 09:20:26 -0800
-X-Gmail-Original-Message-ID: <CAHk-=whmsosJkXoN+arC6eUdayq42pTZzr1j0rG3=RsPBgqujA@mail.gmail.com>
-Message-ID: <CAHk-=whmsosJkXoN+arC6eUdayq42pTZzr1j0rG3=RsPBgqujA@mail.gmail.com>
-Subject: Re: [PATCH] kthread: Generalize pf_io_worker so it can point to
- struct kthread
-To:     "Eric W. Biederman" <ebiederm@xmission.com>
-Cc:     Nathan Chancellor <nathan@kernel.org>,
+From:   Arnd Bergmann <arnd@kernel.org>
+Date:   Thu, 23 Dec 2021 22:42:57 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a2ajcXkh4OAfJseUSiCsfU7gOXbDwiWHNGKgByzDwcycg@mail.gmail.com>
+Message-ID: <CAK8P3a2ajcXkh4OAfJseUSiCsfU7gOXbDwiWHNGKgByzDwcycg@mail.gmail.com>
+Subject: [GIT PULL] asm-generic: cleanups for 5.17
+To:     Linus Torvalds <torvalds@linux-foundation.org>
+Cc:     linux-arch <linux-arch@vger.kernel.org>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Alexey Gladkov <legion@kernel.org>,
-        Kyle Huey <me@kylehuey.com>, Oleg Nesterov <oleg@redhat.com>,
-        Kees Cook <keescook@chromium.org>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@de.ibm.com>,
-        Alexander Gordeev <agordeev@linux.ibm.com>,
-        Martin Schwidefsky <schwidefsky@de.ibm.com>,
-        Mike Christie <michael.christie@oracle.com>,
-        virtualization@lists.linux-foundation.org,
-        Christian Brauner <christian.brauner@ubuntu.com>,
-        Jens Axboe <axboe@kernel.dk>
+        Alexandre Ghiti <alexandre.ghiti@canonical.com>, wasin@wasin.io
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Dec 22, 2021 at 9:19 PM Eric W. Biederman <ebiederm@xmission.com> wrote:
->
-> Instead of continuing to use the set_child_tid field of task_struct
-> generalize the pf_io_worker field of task_struct and use it to hold
-> the kthread pointer.
+The following changes since commit d58071a8a76d779eedab38033ae4c821c30295a5:
 
-Well that patch certainly looks like a nice cleanup to me. Thanks.
+  Linux 5.16-rc3 (2021-11-28 14:09:19 -0800)
 
-                Linus
+are available in the Git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+tags/asm-generic-5.17
+
+for you to fetch changes up to 733e417518a69b71061c3bafc2bf106109565eee:
+
+  asm-generic/error-injection.h: fix a spelling mistake, and a coding
+style issue (2021-12-17 14:12:14 +0100)
+
+----------------------------------------------------------------
+asm-generic: cleanups for 5.17
+
+A few minor cleanups for cross-architecture code: Alexandre Ghiti
+deals with removing some leftovers from drivers and features that
+have been removed, and Wasin Thonkaew has a cosmetic change.
+
+----------------------------------------------------------------
+As with the soc pull requests, this is also early, as I won't be working
+before the start of the merge window.
+
+Alexandre Ghiti (4):
+      Documentation, arch: Remove leftovers from raw device
+      Documentation, arch: Remove leftovers from CIFS_WEAK_PW_HASH
+      arch: Remove leftovers from mandatory file locking
+      arch: Remove leftovers from prism54 wireless driver
+
+Wasin Thonkaew (1):
+      asm-generic/error-injection.h: fix a spelling mistake, and a
+coding style issue
+
+ Documentation/admin-guide/cifs/usage.rst    | 7 +++----
+ Documentation/admin-guide/devices.txt       | 8 +-------
+ arch/arm/configs/cm_x300_defconfig          | 1 -
+ arch/arm/configs/ezx_defconfig              | 1 -
+ arch/arm/configs/imote2_defconfig           | 1 -
+ arch/arm/configs/nhk8815_defconfig          | 1 -
+ arch/arm/configs/pxa_defconfig              | 1 -
+ arch/arm/configs/spear13xx_defconfig        | 1 -
+ arch/arm/configs/spear3xx_defconfig         | 1 -
+ arch/arm/configs/spear6xx_defconfig         | 1 -
+ arch/mips/configs/decstation_64_defconfig   | 1 -
+ arch/mips/configs/decstation_defconfig      | 1 -
+ arch/mips/configs/decstation_r4k_defconfig  | 1 -
+ arch/mips/configs/fuloong2e_defconfig       | 1 -
+ arch/mips/configs/ip27_defconfig            | 1 -
+ arch/mips/configs/malta_defconfig           | 1 -
+ arch/mips/configs/malta_kvm_defconfig       | 1 -
+ arch/mips/configs/malta_qemu_32r6_defconfig | 1 -
+ arch/mips/configs/maltaaprp_defconfig       | 1 -
+ arch/mips/configs/maltasmvp_defconfig       | 1 -
+ arch/mips/configs/maltasmvp_eva_defconfig   | 1 -
+ arch/mips/configs/maltaup_defconfig         | 1 -
+ arch/mips/configs/maltaup_xpa_defconfig     | 1 -
+ arch/powerpc/configs/pmac32_defconfig       | 1 -
+ arch/powerpc/configs/ppc6xx_defconfig       | 1 -
+ arch/powerpc/configs/pseries_defconfig      | 1 -
+ arch/sh/configs/titan_defconfig             | 1 -
+ include/asm-generic/error-injection.h       | 4 ++--
+ 28 files changed, 6 insertions(+), 38 deletions(-)
