@@ -2,41 +2,41 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 352F6C433FE
-	for <linux-arch@archiver.kernel.org>; Thu, 23 Dec 2021 00:24:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B610BC43219
+	for <linux-arch@archiver.kernel.org>; Thu, 23 Dec 2021 00:24:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1345547AbhLWAYP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 22 Dec 2021 19:24:15 -0500
-Received: from mga17.intel.com ([192.55.52.151]:59169 "EHLO mga17.intel.com"
+        id S1345674AbhLWAYR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 22 Dec 2021 19:24:17 -0500
+Received: from mga17.intel.com ([192.55.52.151]:59161 "EHLO mga17.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1345645AbhLWAXq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Dec 2021 19:23:46 -0500
+        id S238271AbhLWAXp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Dec 2021 19:23:45 -0500
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1640219026; x=1671755026;
+  t=1640219024; x=1671755024;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references:mime-version:content-transfer-encoding;
-  bh=6bgGNBnZwENMN8GpY2U+2AbjFachztYCvAD4DvsBiQw=;
-  b=oIgdReW2znaIz80ygtLYnZzJqe8FqNIw0LFQAVq0EMIt7pmxnvLrNlHG
-   j14iQTezO7Us0L2AX2IZbG875GgsdhImOAX/dpHKxPzBg5o5HZ9lXR3Mn
-   DL0dqtKHVO/+uOUsaoQb9FVhcYJO1phnwLowc3uJqPUsfqOYLqs5jpS7i
-   5UBsrNOiQz3fbTTXg/YvApDbw5I7n8imXvg1u9DMVEz5fukJpmcTiTuSD
-   J3MEd4bGp7n77B+5FnJXGgouPb0LalVljOEVL1wf2rTf6+y4r4eHePJkx
-   DT8eiTc5OHWQSIuw95bcCa66mBZadMQ6UA4pllke9QIYQqEk17dC2Syc+
-   w==;
-X-IronPort-AV: E=McAfee;i="6200,9189,10206"; a="221405076"
+  bh=M+ClnG2JXQETKhE6oHghASQqo8EvKsdBr8Mky4esG5A=;
+  b=YQtfOAzuZunz/vi5oU0+bmmMPF9YjuAEopOJWBy8hrjRfohBb6Jv38hp
+   ki9200VjIQ7/yPrabo3AtozpbuXTJMZLeM9ppRhp9i1a27K4KRrVm0+aH
+   973ZTPPuiqTYJ41XFq4ObtxXHLdk7GJfr5GzbMp85b6pMG2ti3wcSB9la
+   QPbz9pX1AbPcXQcEXgdtW8I/1Lk0Nm3JWUk+w0bPXf/4JKVXgJ/D1I5KT
+   yest3Y1/KtxrP+aiN91n7NkzCSH9Yd+GSsIOQ1m1bSaPedglQeE7BnqsB
+   2ATbxMUTBHl5zP4fcDs1itTRJjPq25F/UsmQFxHOxQ4UJJVOhxJI4Hu2c
+   A==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10206"; a="221405044"
 X-IronPort-AV: E=Sophos;i="5.88,228,1635231600"; 
-   d="scan'208";a="221405076"
-Received: from orsmga004.jf.intel.com ([10.7.209.38])
-  by fmsmga107.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Dec 2021 16:23:46 -0800
+   d="scan'208";a="221405044"
+Received: from orsmga003.jf.intel.com ([10.7.209.27])
+  by fmsmga107.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Dec 2021 16:23:27 -0800
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="5.88,227,1635231600"; 
-   d="scan'208";a="617312145"
+   d="scan'208";a="466831979"
 Received: from irvmail001.ir.intel.com ([10.43.11.63])
-  by orsmga004.jf.intel.com with ESMTP; 22 Dec 2021 16:23:37 -0800
+  by orsmga003.jf.intel.com with ESMTP; 22 Dec 2021 16:23:18 -0800
 Received: from newjersey.igk.intel.com (newjersey.igk.intel.com [10.102.20.203])
-        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 1BN0N79J032467;
-        Thu, 23 Dec 2021 00:23:35 GMT
+        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 1BN0N799032467;
+        Thu, 23 Dec 2021 00:23:15 GMT
 From:   Alexander Lobakin <alexandr.lobakin@intel.com>
 To:     linux-hardening@vger.kernel.org, x86@kernel.org
 Cc:     Alexander Lobakin <alexandr.lobakin@intel.com>,
@@ -74,9 +74,9 @@ Cc:     Alexander Lobakin <alexandr.lobakin@intel.com>,
         linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
         linux-arch@vger.kernel.org, live-patching@vger.kernel.org,
         llvm@lists.linux.dev
-Subject: [PATCH v9 14/15] Documentation: add documentation for FG-KASLR
-Date:   Thu, 23 Dec 2021 01:22:08 +0100
-Message-Id: <20211223002209.1092165-15-alexandr.lobakin@intel.com>
+Subject: [PATCH v9 04/15] arch: introduce ASM function sections
+Date:   Thu, 23 Dec 2021 01:21:58 +0100
+Message-Id: <20211223002209.1092165-5-alexandr.lobakin@intel.com>
 X-Mailer: git-send-email 2.33.1
 In-Reply-To: <20211223002209.1092165-1-alexandr.lobakin@intel.com>
 References: <20211223002209.1092165-1-alexandr.lobakin@intel.com>
@@ -86,227 +86,411 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Kristen Carlson Accardi <kristen@linux.intel.com>
+Sometimes it is useful to create a separate section for every
+function (symbol in general) to be able then to selectively merge
+them back into on or several others. This is how DCE and a part of
+LTO work.
+Currently, only C functions are in scope and the compilers are able
+to do this automatically when `-ffunction-section` is specified.
 
-Describe the main principles behind the FG-KASLR hardening feature
-in a new doc section.
+Add a basic infra for supporting ASM function sections. If any of
+the required build options (DCE, LTO, FG-KASLR later) is on and
+the target architecture claims it supports them, all ASM functions
+and "code" will be placed into separate named sections by default.
+This is achieved using --sectname-subst GAS flag which will then
+substitute "%S" in a .pushsection or .section directive with the
+name of the current section. So,
 
-Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
+.section .entry.text      # current section is .entry.text
+SYM_FUNC_START(foo)
+ -> .pushsection %S.foo   # now the section is .entry.text.foo
+do_something
+SYM_FUNC_END(foo)
+ -> .popsection           # back to .entry.text
+
+Now the function "foo" is placed into .entry.text.foo and can be
+garbage-collected if there are no consumers for it.
+Otherwise, the linker script will merge it back into .entry.text.
+
+Since modpost is being run on vmlinux.o, i.e. before the final
+linking, expand its okay-list to cover new potential sections
+(which will get processed afterwards).
+
+Suggested-by: Peter Zijlstra <peterz@infradead.org> # always do, then merge
+Suggested-by: Nicolas Pitre <nico@fluxnic.net> # --sectname-subst flag
 Signed-off-by: Alexander Lobakin <alexandr.lobakin@intel.com>
 ---
- .../admin-guide/kernel-parameters.txt         |   6 +
- Documentation/security/fgkaslr.rst            | 172 ++++++++++++++++++
- Documentation/security/index.rst              |   1 +
- 3 files changed, 179 insertions(+)
- create mode 100644 Documentation/security/fgkaslr.rst
+ Makefile                          |  18 +++++
+ arch/Kconfig                      |   6 ++
+ include/asm-generic/vmlinux.lds.h |  21 +++---
+ include/linux/linkage.h           | 118 +++++++++++++++++++++++++++++-
+ init/Kconfig                      |  11 +++
+ scripts/mod/modpost.c             |   6 +-
+ 6 files changed, 167 insertions(+), 13 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index fc34332c8d9a..b79423c5a41a 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2224,6 +2224,12 @@
- 			kernel and module base offset ASLR (Address Space
- 			Layout Randomization).
+diff --git a/Makefile b/Makefile
+index 9dc15c67d132..b921b1fabf70 100644
+--- a/Makefile
++++ b/Makefile
+@@ -888,6 +888,24 @@ ifeq ($(CONFIG_LD_HAS_Z_UNIQUE_SYMBOL)$(CONFIG_LIVEPATCH),yy)
+ KBUILD_LDFLAGS += -z unique-symbol
+ endif
  
-+	nofgkaslr	[KNL]
-+			When CONFIG_FG_KASLR is set, this parameter
-+			disables kernel function granular ASLR
-+			(Address Space Layout Randomization).
-+			See Documentation/security/fgkaslr.rst.
++# Allow ASM code to generate separate sections for each function. See
++# `include/linux/linkage.h` for explanation. This flag is to enable GAS to
++# insert the name of the previous section instead of `%S` inside .pushsection
++ifdef CONFIG_HAVE_ASM_FUNCTION_SECTIONS
++ifneq ($(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION)$(CONFIG_LTO_CLANG),)
++SECSUBST_AFLAGS := -Wa,--sectname-subst
++KBUILD_AFLAGS_KERNEL += $(SECSUBST_AFLAGS)
++KBUILD_CFLAGS_KERNEL += $(SECSUBST_AFLAGS)
++export SECSUBST_AFLAGS
++endif
 +
- 	kasan_multi_shot
- 			[KNL] Enforce KASAN (Kernel Address Sanitizer) to print
- 			report on every invalid memory access. Without this
-diff --git a/Documentation/security/fgkaslr.rst b/Documentation/security/fgkaslr.rst
-new file mode 100644
-index 000000000000..50dc24f675b5
---- /dev/null
-+++ b/Documentation/security/fgkaslr.rst
-@@ -0,0 +1,172 @@
-+.. SPDX-License-Identifier: GPL-2.0
++# Same for modules. LD DCE doesn't work for them, thus not checking for it
++ifneq ($(CONFIG_LTO_CLANG),)
++KBUILD_AFLAGS_MODULE += -Wa,--sectname-subst
++KBUILD_CFLAGS_MODULE += -Wa,--sectname-subst
++endif
++endif # CONFIG_HAVE_ASM_FUNCTION_SECTIONS
 +
-+=====================================================================
-+Function Granular Kernel Address Space Layout Randomization (fgkaslr)
-+=====================================================================
-+
-+:Date: 6 April 2020
-+:Author: Kristen Accardi
-+
-+Kernel Address Space Layout Randomization (KASLR) was merged into the kernel
-+with the objective of increasing the difficulty of code reuse attacks. Code
-+reuse attacks reused existing code snippets to get around existing memory
-+protections. They exploit software bugs which expose addresses of useful code
-+snippets to control the flow of execution for their own nefarious purposes.
-+KASLR as it was originally implemented moves the entire kernel code text as a
-+unit at boot time in order to make addresses less predictable. The order of the
-+code within the segment is unchanged - only the base address is shifted. There
-+are a few shortcomings to this algorithm.
-+
-+1. Low Entropy - there are only so many locations the kernel can fit in. This
-+   means an attacker could guess without too much trouble.
-+2. Knowledge of a single address can reveal the offset of the base address,
-+   exposing all other locations for a published/known kernel image.
-+3. Info leaks abound.
-+
-+Finer grained ASLR has been proposed as a way to make ASLR more resistant
-+to info leaks. It is not a new concept at all, and there are many variations
-+possible. Function reordering is an implementation of finer grained ASLR
-+which randomizes the layout of an address space on a function level
-+granularity. The term "fgkaslr" is used in this document to refer to the
-+technique of function reordering when used with KASLR, as well as finer grained
-+KASLR in general.
-+
-+The objective of this patch set is to improve a technology that is already
-+merged into the kernel (KASLR). This code will not prevent all code reuse
-+attacks, and should be considered as one of several tools that can be used.
-+
-+Implementation Details
-+======================
-+
-+The over-arching objective of the fgkaslr implementation is incremental
-+improvement over the existing KASLR algorithm. It is designed to work with
-+the existing solution, and there are two main area where code changes occur:
-+Build time, and Load time.
-+
-+Build time
-+----------
-+
-+GCC has had an option to place functions into individual .text sections
-+for many years now (-ffunction-sections). This option is used to implement
-+function reordering at load time. The final compiled vmlinux retains all the
-+section headers, which can be used to help find the address ranges of each
-+function. Using this information and an expanded table of relocation addresses,
-+individual text sections can be shuffled immediately after decompression.
-+Some data tables inside the kernel that have assumptions about order
-+require sorting after the update. In order to modify these tables,
-+a few key symbols from the objcopy symbol stripping process are preserved
-+for use after shuffling the text segments. Any special input sections which are
-+defined by the kernel build process and collected into the .text output
-+segment are left unmodified and will still be present inside the .text segment,
-+unrandomized other than normal base address randomization.
-+
-+Load time
-+---------
-+
-+The boot kernel was modified to parse the vmlinux elf file after
-+decompression to check for symbols for modifying data tables, and to
-+look for any .text.* sections to randomize. The sections are then shuffled,
-+and tables are updated or resorted. The existing code which updated relocation
-+addresses was modified to account for not just a fixed delta from the load
-+address, but the offset that the function section was moved to. This requires
-+inspection of each address to see if it was impacted by a randomization.
-+
-+In order to hide the new layout, symbols reported through /proc/kallsyms will
-+be displayed in a random order.
-+
-+Performance Impact
-+==================
-+
-+There are two areas where function reordering can impact performance: boot
-+time latency, and run time performance.
-+
-+Boot time latency
-+-----------------
-+
-+This implementation of finer grained KASLR impacts the boot time of the kernel
-+in several places. It requires additional parsing of the kernel ELF file to
-+obtain the section headers of the sections to be randomized. It calls the
-+random number generator for each section to be randomized to determine that
-+section's new memory location. It copies the decompressed kernel into a new
-+area of memory to avoid corruption when laying out the newly randomized
-+sections. It increases the number of relocations the kernel has to perform at
-+boot time vs. standard KASLR, and it also requires a lookup on each address
-+that needs to be relocated to see if it was in a randomized section and needs
-+to be adjusted by a new offset. Finally, it re-sorts a few data tables that
-+are required to be sorted by address.
-+
-+Booting a test VM on a modern, well appointed system showed an increase in
-+latency of approximately 1 second.
-+
-+Run time
-+--------
-+
-+The performance impact at run-time of function reordering varies by workload.
-+Randomly reordering the functions will cause an increase in cache misses
-+for some workloads. Some workloads perform significantly worse under FGKASLR,
-+while others stay the same or even improve. In general, it will depend on the
-+code flow whether or not finer grained KASLR will impact a workload, and how
-+the underlying code was designed. Because the layout changes per boot, each
-+time a system is rebooted the performance of a workload may change.
-+
-+Image Size
-+==========
-+
-+fgkaslr increases the size of the kernel binary due to the extra section
-+headers that are included, as well as the extra relocations that need to
-+be added. You can expect fgkaslr to increase the size of the resulting
-+vmlinux by about 3%, and the compressed image (bzImage) by 15%.
-+
-+Memory Usage
-+============
-+
-+fgkaslr increases the amount of heap that is required at boot time,
-+although this extra memory is released when the kernel has finished
-+decompression. As a result, it may not be appropriate to use this feature
-+on systems without much memory.
-+
-+Building
-+========
-+
-+To enable fine grained KASLR, you need to have the following config options
-+set (including all the ones you would use to build normal KASLR)
-+
-+``CONFIG_FG_KASLR=y``
-+
-+fgkaslr for the kernel is only supported for the X86_64 architecture.
-+
-+Modules
-+=======
-+
-+Modules are randomized similarly to the rest of the kernel by shuffling
-+the sections at load time prior to moving them into memory. The module must
-+also have been build with the -ffunction-sections compiler option.
-+
-+Although fgkaslr for the kernel is only supported for the X86_64 architecture,
-+it is possible to use fgkaslr with modules on other architectures. To enable
-+this feature, select the following config option:
-+
-+``CONFIG_MODULE_FG_KASLR``
-+
-+This option is selected automatically for X86_64 when CONFIG_FG_KASLR is set.
-+
-+Disabling
-+=========
-+
-+Disabling normal kaslr using the nokaslr command line option also disables
-+fgkaslr. In addition, it is possible to disable fgkaslr separately by booting
-+with "nofgkaslr" on the commandline.
-+
-+Further Information
-+===================
-+
-+There are a lot of academic papers which explore finer grained ASLR.
-+This paper in particular contributed significantly to the implementation design.
-+
-+Selfrando: Securing the Tor Browser against De-anonymization Exploits,
-+M. Conti, S. Crane, T. Frassetto, et al.
-+
-+For more information on how function layout impacts performance, see:
-+
-+Optimizing Function Placement for Large-Scale Data-Center Applications,
-+G. Ottoni, B. Maher
-diff --git a/Documentation/security/index.rst b/Documentation/security/index.rst
-index 16335de04e8c..41444124090f 100644
---- a/Documentation/security/index.rst
-+++ b/Documentation/security/index.rst
-@@ -7,6 +7,7 @@ Security Documentation
+ ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+ KBUILD_CFLAGS_KERNEL += -ffunction-sections -fdata-sections
+ LDFLAGS_vmlinux += --gc-sections
+diff --git a/arch/Kconfig b/arch/Kconfig
+index d3c4ab249e9c..b31a836bc252 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -1312,6 +1312,12 @@ config ARCH_HAS_PARANOID_L1D_FLUSH
+ config DYNAMIC_SIGFRAME
+ 	bool
  
-    credentials
-    IMA-templates
-+   fgkaslr
-    keys/index
-    lsm
-    lsm-development
++config ARCH_SUPPORTS_ASM_FUNCTION_SECTIONS
++	bool
++	help
++	  An arch should select this if it can be built and run with its
++	  ASM functions placed into separate sections to improve DCE and LTO.
++
+ source "kernel/gcov/Kconfig"
+ 
+ source "scripts/gcc-plugins/Kconfig"
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 42f3866bca69..e7b8a84e0e64 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -84,6 +84,9 @@
+ /* Align . to a 8 byte boundary equals to maximum function alignment. */
+ #define ALIGN_FUNCTION()  . = ALIGN(8)
+ 
++/* This is useful for collecting individual sections back into one main */
++#define SECT_WILDCARD(sect)	sect sect.[0-9a-zA-Z_]*
++
+ /*
+  * LD_DEAD_CODE_DATA_ELIMINATION option enables -fdata-sections, which
+  * generates .data.identifier sections, which need to be pulled in with
+@@ -97,12 +100,12 @@
+  * sections to be brought in with rodata.
+  */
+ #if defined(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION) || defined(CONFIG_LTO_CLANG)
+-#define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
+-#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..L* .data..compoundliteral* .data.$__unnamed_* .data.$L*
+-#define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
+-#define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]* .rodata..L*
+-#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral*
+-#define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
++#define TEXT_MAIN SECT_WILDCARD(.text)
++#define DATA_MAIN SECT_WILDCARD(.data) .data..L* .data..compoundliteral* .data.$__unnamed_* .data.$L*
++#define SDATA_MAIN SECT_WILDCARD(.sdata)
++#define RODATA_MAIN SECT_WILDCARD(.rodata) .rodata..L*
++#define BSS_MAIN SECT_WILDCARD(.bss) .bss..compoundliteral*
++#define SBSS_MAIN SECT_WILDCARD(.sbss)
+ #else
+ #define TEXT_MAIN .text
+ #define DATA_MAIN .data
+@@ -564,7 +567,7 @@
+ #define NOINSTR_TEXT							\
+ 		ALIGN_FUNCTION();					\
+ 		__noinstr_text_start = .;				\
+-		*(.noinstr.text)					\
++		*(SECT_WILDCARD(.noinstr.text))				\
+ 		__noinstr_text_end = .;
+ 
+ /*
+@@ -621,7 +624,7 @@
+ #define ENTRY_TEXT							\
+ 		ALIGN_FUNCTION();					\
+ 		__entry_text_start = .;					\
+-		*(.entry.text)						\
++		*(SECT_WILDCARD(.entry.text))				\
+ 		__entry_text_end = .;
+ 
+ #define IRQENTRY_TEXT							\
+@@ -643,7 +646,7 @@
+ 		__static_call_text_end = .;
+ 
+ /* Section used for early init (in .S files) */
+-#define HEAD_TEXT  KEEP(*(.head.text))
++#define HEAD_TEXT  KEEP(*(SECT_WILDCARD(.head.text)))
+ 
+ #define HEAD_TEXT_SECTION							\
+ 	.head.text : AT(ADDR(.head.text) - LOAD_OFFSET) {		\
+diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+index dbf8506decca..0c0ddf4429dc 100644
+--- a/include/linux/linkage.h
++++ b/include/linux/linkage.h
+@@ -73,6 +73,37 @@
+ #define __ALIGN_STR	".align 4,0x90"
+ #endif
+ 
++/*
++ * Allow ASM symbols to have their own unique sections if they are being
++ * generated by the compiler for C functions (DCE, LTO).
++ */
++#if defined(CONFIG_HAVE_ASM_FUNCTION_SECTIONS) && \
++    ((defined(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION) && !defined(MODULE)) || \
++     (defined(CONFIG_LTO_CLANG)))
++
++#define SYM_PUSH_SECTION(name)				\
++	.pushsection %S.name, "ax"
++
++#define SYM_POP_SECTION()				\
++	.popsection
++
++#define __ASM_PUSH_SECTION(name)			\
++	".pushsection %S." name ", \"ax\""
++
++#else /* Just .text */
++
++#define SYM_PUSH_SECTION(name)
++#define SYM_POP_SECTION()
++#define __ASM_PUSH_SECTION(name)
++
++#endif /* Just .text */
++
++#define ASM_PUSH_SECTION(name)				\
++	__ASM_PUSH_SECTION(__stringify(name))
++
++#define ASM_POP_SECTION()				\
++	__stringify(SYM_POP_SECTION())
++
+ #ifdef __ASSEMBLY__
+ 
+ /* SYM_T_FUNC -- type used by assembler to mark functions */
+@@ -209,6 +240,15 @@
+ 	SYM_START(name, SYM_L_LOCAL, SYM_A_ALIGN)
+ #endif
+ 
++/*
++ * SYM_FUNC_START_WEAK -- use where there are two global names for one
++ * function, and one of them is weak
++ */
++#ifndef SYM_FUNC_START_WEAK_ALIAS
++#define SYM_FUNC_START_WEAK_ALIAS(name)			\
++	SYM_START(name, SYM_L_WEAK, SYM_A_ALIGN)
++#endif
++
+ /*
+  * SYM_FUNC_START_ALIAS -- use where there are two global names for one
+  * function
+@@ -225,12 +265,24 @@
+  * later.
+  */
+ #define SYM_FUNC_START(name)				\
++	SYM_PUSH_SECTION(name) ASM_NL			\
++	SYM_START(name, SYM_L_GLOBAL, SYM_A_ALIGN)
++#endif
++
++/*
++ * SYM_FUNC_START_SECT -- use for global functions, will be conditionally
++ * placed into a section specified in the second argument
++ */
++#ifndef SYM_FUNC_START_SECT
++#define SYM_FUNC_START_SECT(name, to)			\
++	SYM_PUSH_SECTION(to) ASM_NL			\
+ 	SYM_START(name, SYM_L_GLOBAL, SYM_A_ALIGN)
+ #endif
+ 
+ /* SYM_FUNC_START_NOALIGN -- use for global functions, w/o alignment */
+ #ifndef SYM_FUNC_START_NOALIGN
+ #define SYM_FUNC_START_NOALIGN(name)			\
++	SYM_PUSH_SECTION(name) ASM_NL			\
+ 	SYM_START(name, SYM_L_GLOBAL, SYM_A_NONE)
+ #endif
+ 
+@@ -238,24 +290,38 @@
+ #ifndef SYM_FUNC_START_LOCAL
+ /* the same as SYM_FUNC_START_LOCAL_ALIAS, see comment near SYM_FUNC_START */
+ #define SYM_FUNC_START_LOCAL(name)			\
++	SYM_PUSH_SECTION(name) ASM_NL			\
+ 	SYM_START(name, SYM_L_LOCAL, SYM_A_ALIGN)
+ #endif
+ 
+ /* SYM_FUNC_START_LOCAL_NOALIGN -- use for local functions, w/o alignment */
+ #ifndef SYM_FUNC_START_LOCAL_NOALIGN
+ #define SYM_FUNC_START_LOCAL_NOALIGN(name)		\
++	SYM_PUSH_SECTION(name) ASM_NL			\
++	SYM_START(name, SYM_L_LOCAL, SYM_A_NONE)
++#endif
++
++/*
++ * SYM_FUNC_START_LOCAL_NOALIGN_SECT -- use for local functions, w/o alignment,
++ * will be conditionally placed into a section specified in the second argument
++ */
++#ifndef SYM_FUNC_START_LOCAL_NOALIGN_SECT
++#define SYM_FUNC_START_LOCAL_NOALIGN_SECT(name, to)	\
++	SYM_PUSH_SECTION(to) ASM_NL			\
+ 	SYM_START(name, SYM_L_LOCAL, SYM_A_NONE)
+ #endif
+ 
+ /* SYM_FUNC_START_WEAK -- use for weak functions */
+ #ifndef SYM_FUNC_START_WEAK
+ #define SYM_FUNC_START_WEAK(name)			\
++	SYM_PUSH_SECTION(name) ASM_NL			\
+ 	SYM_START(name, SYM_L_WEAK, SYM_A_ALIGN)
+ #endif
+ 
+ /* SYM_FUNC_START_WEAK_NOALIGN -- use for weak functions, w/o alignment */
+ #ifndef SYM_FUNC_START_WEAK_NOALIGN
+ #define SYM_FUNC_START_WEAK_NOALIGN(name)		\
++	SYM_PUSH_SECTION(name) ASM_NL			\
+ 	SYM_START(name, SYM_L_WEAK, SYM_A_NONE)
+ #endif
+ 
+@@ -272,24 +338,59 @@
+ #ifndef SYM_FUNC_END
+ /* the same as SYM_FUNC_END_ALIAS, see comment near SYM_FUNC_START */
+ #define SYM_FUNC_END(name)				\
+-	SYM_END(name, SYM_T_FUNC)
++	SYM_END(name, SYM_T_FUNC) ASM_NL		\
++	SYM_POP_SECTION()
+ #endif
+ 
+ /* SYM_CODE_START -- use for non-C (special) functions */
+ #ifndef SYM_CODE_START
+ #define SYM_CODE_START(name)				\
++	SYM_PUSH_SECTION(name) ASM_NL			\
++	SYM_START(name, SYM_L_GLOBAL, SYM_A_ALIGN)
++#endif
++
++/*
++ * SYM_CODE_START_SECT -- use for non-C (special) functions, will be
++ * conditionally placed into a section specified in the second argument
++ */
++#ifndef SYM_CODE_START_SECT
++#define SYM_CODE_START_SECT(name, to)			\
++	SYM_PUSH_SECTION(to) ASM_NL			\
+ 	SYM_START(name, SYM_L_GLOBAL, SYM_A_ALIGN)
+ #endif
+ 
+ /* SYM_CODE_START_NOALIGN -- use for non-C (special) functions, w/o alignment */
+ #ifndef SYM_CODE_START_NOALIGN
+ #define SYM_CODE_START_NOALIGN(name)			\
++	SYM_PUSH_SECTION(name) ASM_NL			\
++	SYM_START(name, SYM_L_GLOBAL, SYM_A_NONE)
++#endif
++
++/*
++ * SYM_CODE_START_NOALIGN_SECT -- use for non-C (special) functions,
++ * w/o alignment, will be conditionally placed into a section specified
++ * in the second argument
++ */
++#ifndef SYM_CODE_START_NOALIGN_SECT
++#define SYM_CODE_START_NOALIGN_SECT(name, to)		\
++	SYM_PUSH_SECTION(to) ASM_NL			\
+ 	SYM_START(name, SYM_L_GLOBAL, SYM_A_NONE)
+ #endif
+ 
+ /* SYM_CODE_START_LOCAL -- use for local non-C (special) functions */
+ #ifndef SYM_CODE_START_LOCAL
+ #define SYM_CODE_START_LOCAL(name)			\
++	SYM_PUSH_SECTION(name) ASM_NL			\
++	SYM_START(name, SYM_L_LOCAL, SYM_A_ALIGN)
++#endif
++
++/*
++ * SYM_CODE_START_LOCAL -- use for local non-C (special) functions, will
++ * be conditionally placing into a section specified in the second argument
++ */
++#ifndef SYM_CODE_START_LOCAL_SECT
++#define SYM_CODE_START_LOCAL_SECT(name, to)		\
++	SYM_PUSH_SECTION(to) ASM_NL			\
+ 	SYM_START(name, SYM_L_LOCAL, SYM_A_ALIGN)
+ #endif
+ 
+@@ -299,13 +400,26 @@
+  */
+ #ifndef SYM_CODE_START_LOCAL_NOALIGN
+ #define SYM_CODE_START_LOCAL_NOALIGN(name)		\
++	SYM_PUSH_SECTION(name) ASM_NL			\
++	SYM_START(name, SYM_L_LOCAL, SYM_A_NONE)
++#endif
++
++/*
++ * SYM_CODE_START_LOCAL_NOALIGN_SECT -- use for local non-C (special)
++ * functions, w/o alignment, will be conditionally placed into a section
++ * specified in the second argument
++ */
++#ifndef SYM_CODE_START_LOCAL_NOALIGN_SECT
++#define SYM_CODE_START_LOCAL_NOALIGN_SECT(name, to)	\
++	SYM_PUSH_SECTION(to) ASM_NL			\
+ 	SYM_START(name, SYM_L_LOCAL, SYM_A_NONE)
+ #endif
+ 
+ /* SYM_CODE_END -- the end of SYM_CODE_START_LOCAL, SYM_CODE_START, ... */
+ #ifndef SYM_CODE_END
+ #define SYM_CODE_END(name)				\
+-	SYM_END(name, SYM_T_NONE)
++	SYM_END(name, SYM_T_NONE) ASM_NL		\
++	SYM_POP_SECTION()
+ #endif
+ 
+ /* === data annotations === */
+diff --git a/init/Kconfig b/init/Kconfig
+index 37926d19a74a..3babc0aeac61 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1386,6 +1386,17 @@ config CC_OPTIMIZE_FOR_SIZE
+ 
+ endchoice
+ 
++config HAVE_ASM_FUNCTION_SECTIONS
++	depends on ARCH_SUPPORTS_ASM_FUNCTION_SECTIONS
++	depends on $(cc-option,-Wa$(comma)--sectname-subst)
++	def_bool y
++	help
++	  This enables ASM function sections if both architecture
++	  and toolchain supports that. It allows creating a separate
++	  .text section for each ASM function in order to improve
++	  DCE and LTO (works the same way as -ffunction-sections for
++	  C code).
++
+ config HAVE_LD_DEAD_CODE_DATA_ELIMINATION
+ 	bool
+ 	help
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index f39cc73a082c..a6e9e75ff3e5 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -960,7 +960,9 @@ static void check_section(const char *modname, struct elf_info *elf,
+ 		".kprobes.text", ".cpuidle.text", ".noinstr.text"
+ #define OTHER_TEXT_SECTIONS ".ref.text", ".head.text", ".spinlock.text", \
+ 		".fixup", ".entry.text", ".exception.text", ".text.*", \
+-		".coldtext", ".softirqentry.text"
++		".coldtext", ".softirqentry.text", ".text.unlikely.*", \
++		".noinstr.text.*", ".head.text.*", ".fixup.*", \
++		".entry.text.*"
+ 
+ #define INIT_SECTIONS      ".init.*"
+ #define MEM_INIT_SECTIONS  ".meminit.*"
+@@ -1041,7 +1043,7 @@ enum mismatch {
+ struct sectioncheck {
+ 	const char *fromsec[20];
+ 	const char *bad_tosec[20];
+-	const char *good_tosec[20];
++	const char *good_tosec[25];
+ 	enum mismatch mismatch;
+ 	const char *symbol_white_list[20];
+ 	void (*handler)(const char *modname, struct elf_info *elf,
 -- 
 2.33.1
 
