@@ -2,302 +2,219 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AB207C433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 23 Dec 2021 00:26:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 54BCCC433F5
+	for <linux-arch@archiver.kernel.org>; Thu, 23 Dec 2021 00:37:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230243AbhLWA0f (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 22 Dec 2021 19:26:35 -0500
-Received: from mga09.intel.com ([134.134.136.24]:53166 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1345757AbhLWAYC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Dec 2021 19:24:02 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1640219042; x=1671755042;
-  h=from:to:cc:subject:date:message-id:in-reply-to:
-   references:mime-version:content-transfer-encoding;
-  bh=+KrOqIqb4aeQ6x0G1EHmcHniPYRjIzt9aPk8YuSf44w=;
-  b=UmzSkarp70lbdny1BCH/IXH1WJ2gz2gDlj7yFWGO4w4MDmVUaMWT5H0K
-   6vE84T+303rLuEt1zi2ndrBGn+gw/te5BrLOwcB7y88tS3Sjfc5SFg8qX
-   ZJdqL9JH1hrMtILIvHkxDmonTLd3LoPL5FyYz4TPrEluYnz9rClkUGB2D
-   RDybQ/H9XoQkw/YZqS6wD920xpLGwsjPYcA94EH4UFUvkX4aziDQk362h
-   Dhbz7N+hnFpBjUst2URYOgPrptDHVLTRuva5kaBVadmk/bXkq5n5MATeq
-   ggW8WcdGAQPTEawosQOHL9uwP6nN2Js6+UY94scf156F9B2r8EZM40kEC
-   w==;
-X-IronPort-AV: E=McAfee;i="6200,9189,10206"; a="240533510"
-X-IronPort-AV: E=Sophos;i="5.88,228,1635231600"; 
-   d="scan'208";a="240533510"
-Received: from orsmga008.jf.intel.com ([10.7.209.65])
-  by orsmga102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Dec 2021 16:23:48 -0800
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="5.88,228,1635231600"; 
-   d="scan'208";a="521881976"
-Received: from irvmail001.ir.intel.com ([10.43.11.63])
-  by orsmga008.jf.intel.com with ESMTP; 22 Dec 2021 16:23:33 -0800
-Received: from newjersey.igk.intel.com (newjersey.igk.intel.com [10.102.20.203])
-        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 1BN0N79H032467;
-        Thu, 23 Dec 2021 00:23:31 GMT
-From:   Alexander Lobakin <alexandr.lobakin@intel.com>
-To:     linux-hardening@vger.kernel.org, x86@kernel.org
-Cc:     Alexander Lobakin <alexandr.lobakin@intel.com>,
-        Jesse Brandeburg <jesse.brandeburg@intel.com>,
-        Kristen Carlson Accardi <kristen@linux.intel.com>,
+        id S232757AbhLWAh0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 22 Dec 2021 19:37:26 -0500
+Received: from ams.source.kernel.org ([145.40.68.75]:38292 "EHLO
+        ams.source.kernel.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S229667AbhLWAh0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Dec 2021 19:37:26 -0500
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id D36B7B81F28;
+        Thu, 23 Dec 2021 00:37:24 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E0594C36AE8;
+        Thu, 23 Dec 2021 00:37:20 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1640219843;
+        bh=R+PnJO62iQW/YeL2VscuAmW7DtVT3VV/1zYEbE4HVvg=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=O+1aNe82E0T69lQT/Z88kSWPfixooqIrWMvIe31aNzxaGPolC5JMe5ztDkO7mdBLT
+         ptkEYvc+5f8eDxg0MAWD0X0KBl2qud/Oo0eMtu2G+RJoe63r5Co0KRy0TuC1VaTjqf
+         xm8CrARBuzR9wcpShVvWdwiyv9mBihAEFKrkHUw5SJY7NnUqJYJuncznKk2GxzJ+2h
+         j0Hi6myvF5jkeajZxoz9ApepWvIXDg+/N+yia9v5TtUTWu8+/nAjdiPMtMnKk5DoIv
+         Mumgi8I6jNiUKRMEnYYjMaUSBwYhQP4nLABhj0VCnJb2wkwP3wBfOTxAZ4liDIQxHC
+         zHyamWG8wl69w==
+Date:   Wed, 22 Dec 2021 17:37:17 -0700
+From:   Nathan Chancellor <nathan@kernel.org>
+To:     "Eric W. Biederman" <ebiederm@xmission.com>
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Alexey Gladkov <legion@kernel.org>,
+        Kyle Huey <me@kylehuey.com>, Oleg Nesterov <oleg@redhat.com>,
         Kees Cook <keescook@chromium.org>,
-        Miklos Szeredi <miklos@szeredi.hu>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Tony Luck <tony.luck@intel.com>,
-        Bruce Schlobohm <bruce.schlobohm@intel.com>,
-        Jessica Yu <jeyu@kernel.org>,
-        kernel test robot <lkp@intel.com>,
-        Miroslav Benes <mbenes@suse.cz>,
-        Evgenii Shatokhin <eshatokhin@virtuozzo.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Michal Marek <michal.lkml@markovi.net>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        "David S. Miller" <davem@davemloft.net>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Will Deacon <will@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-        Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Josh Poimboeuf <jpoimboe@redhat.com>,
-        Nathan Chancellor <nathan@kernel.org>,
-        Masami Hiramatsu <mhiramat@kernel.org>,
-        Marios Pomonis <pomonis@google.com>,
-        Sami Tolvanen <samitolvanen@google.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Nicolas Pitre <nico@fluxnic.net>,
-        linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
-        linux-arch@vger.kernel.org, live-patching@vger.kernel.org,
-        llvm@lists.linux.dev
-Subject: [PATCH v9 12/15] module: Reorder functions
-Date:   Thu, 23 Dec 2021 01:22:06 +0100
-Message-Id: <20211223002209.1092165-13-alexandr.lobakin@intel.com>
-X-Mailer: git-send-email 2.33.1
-In-Reply-To: <20211223002209.1092165-1-alexandr.lobakin@intel.com>
-References: <20211223002209.1092165-1-alexandr.lobakin@intel.com>
+        Al Viro <viro@zeniv.linux.org.uk>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Vasily Gorbik <gor@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@de.ibm.com>,
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH 09/10] kthread: Ensure struct kthread is present for all
+ kthreads
+Message-ID: <YcPEvfyWK8DKPGlL@archlinux-ax161>
+References: <87a6ha4zsd.fsf@email.froward.int.ebiederm.org>
+ <20211208202532.16409-9-ebiederm@xmission.com>
+ <YcNsG0Lp94V13whH@archlinux-ax161>
+ <87zgoswkym.fsf@email.froward.int.ebiederm.org>
+ <YcNyjxac3wlKPywk@archlinux-ax161>
+ <87pmpow7ga.fsf@email.froward.int.ebiederm.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87pmpow7ga.fsf@email.froward.int.ebiederm.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Kristen Carlson Accardi <kristen@linux.intel.com>
+On Wed, Dec 22, 2021 at 05:22:45PM -0600, Eric W. Biederman wrote:
+> Nathan Chancellor <nathan@kernel.org> writes:
+> 
+> > On Wed, Dec 22, 2021 at 12:30:57PM -0600, Eric W. Biederman wrote:
+> >> Nathan Chancellor <nathan@kernel.org> writes:
+> >> 
+> >> > Hi Eric,
+> >> >
+> >> > On Wed, Dec 08, 2021 at 02:25:31PM -0600, Eric W. Biederman wrote:
+> >> >> Today the rules are a bit iffy and arbitrary about which kernel
+> >> >> threads have struct kthread present.  Both idle threads and thread
+> >> >> started with create_kthread want struct kthread present so that is
+> >> >> effectively all kernel threads.  Make the rule that if PF_KTHREAD
+> >> >> and the task is running then struct kthread is present.
+> >> >> 
+> >> >> This will allow the kernel thread code to using tsk->exit_code
+> >> >> with different semantics from ordinary processes.
+> >> >> 
+> >> >> To make ensure that struct kthread is present for all
+> >> >> kernel threads move it's allocation into copy_process.
+> >> >> 
+> >> >> Add a deallocation of struct kthread in exec for processes
+> >> >> that were kernel threads.
+> >> >> 
+> >> >> Move the allocation of struct kthread for the initial thread
+> >> >> earlier so that it is not repeated for each additional idle
+> >> >> thread.
+> >> >> 
+> >> >> Move the initialization of struct kthread into set_kthread_struct
+> >> >> so that the structure is always and reliably initailized.
+> >> >> 
+> >> >> Clear set_child_tid in free_kthread_struct to ensure the kthread
+> >> >> struct is reliably freed during exec.  The function
+> >> >> free_kthread_struct does not need to clear vfork_done during exec as
+> >> >> exec_mm_release called from exec_mmap has already cleared vfork_done.
+> >> >> 
+> >> >> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+> >> >
+> >> > This patch as commit 40966e316f86 ("kthread: Ensure struct kthread is
+> >> > present for all kthreads") in -next causes an ARCH=arm
+> >> > multi_v5_defconfig kernel to fail to boot in QEMU. I had to apply commit
+> >> > 6692c98c7df5 ("fork: Stop protecting back_fork_cleanup_cgroup_lock with
+> >> > CONFIG_NUMA") to get it to build and I applied commit dd621ee0cf8e
+> >> > ("kthread: Warn about failed allocations for the init kthread") to avoid
+> >> > the known runtime warning.
+> >> >
+> >> > $ make -skj"$(nproc)" ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- distclean multi_v5_defconfig all
+> >> >
+> >> > $ qemu-system-arm \
+> >> >     -initrd rootfs.cpio \
+> >> >     -append earlycon \
+> >> >     -machine palmetto-bmc \
+> >> >     -no-reboot \
+> >> >     -dtb arch/arm/boot/dts/aspeed-bmc-opp-palmetto.dtb \
+> >> >     -display none \
+> >> >     -kernel arch/arm/boot/zImage \
+> >> >     -m 512m \
+> >> >     -nodefaults \
+> >> >     -serial mon:stdio
+> >> > qemu-system-arm: warning: nic ftgmac100.0 has no peer
+> >> > qemu-system-arm: warning: nic ftgmac100.1 has no peer
+> >> > Booting Linux on physical CPU 0x0
+> >> > Linux version 5.16.0-rc1-00016-g40966e316f86-dirty (nathan@archlinux-ax161) (arm-linux-gnueabi-gcc (Debian 10.2.1-6) 10.2.1 20210110, GNU ld (GNU Binutils for Debian) 2.35.2) #1 PREEMPT Wed Dec 22 18:08:53 UTC 2021
+> >> > CPU: ARM926EJ-S [41069265] revision 5 (ARMv5TEJ), cr=00093177
+> >> > CPU: VIVT data cache, VIVT instruction cache
+> >> > OF: fdt: Machine model: Palmetto BMC
+> >> > earlycon: ns16550a0 at MMIO 0x1e784000 (options '')
+> >> > printk: bootconsole [ns16550a0] enabled
+> >> > Memory policy: Data cache writethrough
+> >> > cma: Reserved 16 MiB at 0x5b000000
+> >> > Zone ranges:
+> >> >   DMA      [mem 0x0000000040000000-0x000000005edfffff]
+> >> >   Normal   empty
+> >> >   HighMem  [mem 0x000000005ee00000-0x000000005fffffff]
+> >> > Movable zone start for each node
+> >> > Early memory node ranges
+> >> >   node   0: [mem 0x0000000040000000-0x000000005bffffff]
+> >> >   node   0: [mem 0x000000005c000000-0x000000005dffffff]
+> >> >   node   0: [mem 0x000000005e000000-0x000000005edfffff]
+> >> >   node   0: [mem 0x000000005ee00000-0x000000005fffffff]
+> >> > Initmem setup node 0 [mem 0x0000000040000000-0x000000005fffffff]
+> >> > Built 1 zonelists, mobility grouping on.  Total pages: 130084
+> >> > Kernel command line: earlycon
+> >> > Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+> >> > Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+> >> > mem auto-init: stack:off, heap alloc:off, heap free:off
+> >> > Memory: 433140K/524288K available (9628K kernel code, 2019K rwdata, 2368K rodata, 340K init, 661K bss, 74764K reserved, 16384K cma-reserved, 0K highmem)
+> >> > SLUB: HWalign=32, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+> >> > rcu: Preemptible hierarchical RCU implementation.
+> >> > rcu:    RCU event tracing is enabled.
+> >> >         Trampoline variant of Tasks RCU enabled.
+> >> > rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+> >> > NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+> >> > i2c controller registered, irq 16
+> >> > random: get_random_bytes called from start_kernel+0x408/0x624 with crng_init=0
+> >> > clocksource: FTTMR010-TIMER2: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 79635851949 ns
+> >> > sched_clock: 32 bits at 24MHz, resolution 41ns, wraps every 89478484971ns
+> >> > Switching to timer-based delay loop, resolution 41ns
+> >> > Console: colour dummy device 80x30
+> >> > printk: console [tty0] enabled
+> >> > printk: bootconsole [ns16550a0] disabled
+> >> >
+> >> > After that, it just hangs.
+> >> >
+> >> > The rootfs is available at https://github.com/ClangBuiltLinux/boot-utils
+> >> > in the images/arm folder.
+> >> >
+> >> > If there is any more information that I can provide or changes to test,
+> >> > please let me know.
+> 
+> I have managed to reproduce, fix and verify my fix, please
+> see below.
+> 
+> 
+> Subject: [PATCH] kthread: Never put_user the set_child_tid address
+> 
+> Kernel threads abuse set_child_tid.  Historically that has been fine
+> as set_child_tid was initialized after the kernel thread had been
+> forked.  Unfortunately storing struct kthread in set_child_tid after
+> the thread is running makes struct kthread being unusable for storing
+> result codes of the thread.
+> 
+> When set_child_tid is set to struct kthread during fork that results
+> in schedule_tail writing the thread id to the beggining of struct
+> kthread (if put_user does not realize it is a kernel address).
+> 
+> Solve this by skipping the put_user for all kthreads.
+> 
+> Reported-by: Nathan Chancellor <nathan@kernel.org>
+> Link: https://lkml.kernel.org/r/YcNsG0Lp94V13whH@archlinux-ax161
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 
-Introduce a new config option to allow modules to be re-ordered
-by function. This option can be enabled independently of the
-kernel text KASLR or FG_KASLR settings so that it can be used
-by architectures that do not support either of these features.
-This option will be selected by default if CONFIG_FG_KASLR is
-selected.
+Thanks a lot for the quick fix. I can confirm that it resolves the
+failure on my side.
 
-If a module has functions split out into separate text sections
-(i.e. compiled with the -ffunction-sections flag), reorder the
-functions to provide some code diversification to modules.
+Tested-by: Nathan Chancellor <nathan@kernel.org>
 
-alobakin:
-Make it work with ClangCFI -- in such builds, .text section must
-always come first and be page-aligned. Exclude it from the shuffle
-list and leave as it is.
-Make this feature depend on `-z unique-symbol` as well, due to the
-very same reasons.
-Traditionally, use common shuffle_array() from <linux/random.h>.
-
-Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Acked-by: Ard Biesheuvel <ardb@kernel.org>
-Tested-by: Ard Biesheuvel <ardb@kernel.org>
-Reviewed-by: Tony Luck <tony.luck@intel.com>
-Tested-by: Tony Luck <tony.luck@intel.com>
-Acked-by: Jessica Yu <jeyu@kernel.org>
-Tested-by: Jessica Yu <jeyu@kernel.org>
-Reported-by: kernel test robot <lkp@intel.com> # swap.cocci
-Co-developed-by: Alexander Lobakin <alexandr.lobakin@intel.com>
-Signed-off-by: Alexander Lobakin <alexandr.lobakin@intel.com>
----
- Makefile                |  6 +++-
- include/linux/linkage.h |  1 +
- init/Kconfig            | 14 ++++++++
- kernel/module.c         | 73 +++++++++++++++++++++++++++++++++++++++--
- 4 files changed, 91 insertions(+), 3 deletions(-)
-
-diff --git a/Makefile b/Makefile
-index 3346269341d4..74d270c77d96 100644
---- a/Makefile
-+++ b/Makefile
-@@ -900,7 +900,7 @@ export SECSUBST_AFLAGS
- endif
- 
- # Same for modules. LD DCE doesn't work for them, thus not checking for it
--ifneq ($(CONFIG_LTO_CLANG),)
-+ifneq ($(CONFIG_MODULE_FG_KASLR)$(CONFIG_LTO_CLANG),)
- KBUILD_AFLAGS_MODULE += -Wa,--sectname-subst
- KBUILD_CFLAGS_MODULE += -Wa,--sectname-subst
- endif
-@@ -909,6 +909,10 @@ endif # CONFIG_HAVE_ASM_FUNCTION_SECTIONS
- # ClangLTO implies `-ffunction-sections -fdata-sections`, no need
- # to specify them manually and trigger a pointless full rebuild
- ifndef CONFIG_LTO_CLANG
-+ifdef CONFIG_MODULE_FG_KASLR
-+KBUILD_CFLAGS_MODULE += -ffunction-sections
-+endif
-+
- ifneq ($(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION)$(CONFIG_FG_KASLR),)
- KBUILD_CFLAGS_KERNEL += -ffunction-sections
- endif
-diff --git a/include/linux/linkage.h b/include/linux/linkage.h
-index f3c96fb6a534..deb26069278a 100644
---- a/include/linux/linkage.h
-+++ b/include/linux/linkage.h
-@@ -80,6 +80,7 @@
- #if defined(CONFIG_HAVE_ASM_FUNCTION_SECTIONS) && \
-     ((defined(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION) && !defined(MODULE)) || \
-      (defined(CONFIG_FG_KASLR) && !defined(MODULE)) || \
-+     (defined(CONFIG_MODULE_FG_KASLR) && defined(MODULE)) || \
-      (defined(CONFIG_LTO_CLANG)))
- 
- #define SYM_PUSH_SECTION(name)				\
-diff --git a/init/Kconfig b/init/Kconfig
-index 381b063b4925..38c82e21efd7 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -2376,6 +2376,20 @@ config UNUSED_KSYMS_WHITELIST
- 	  one per line. The path can be absolute, or relative to the kernel
- 	  source tree.
- 
-+config MODULE_FG_KASLR
-+	bool "Module Function Granular Layout Randomization"
-+	depends on $(cc-option,-ffunction-sections)
-+	depends on LD_HAS_Z_UNIQUE_SYMBOL || !LIVEPATCH
-+	default FG_KASLR
-+	depends on BROKEN
-+	help
-+	  This option randomizes the module text section by reordering the text
-+	  section by function at module load time. In order to use this
-+	  feature, the module must have been compiled with the
-+	  -ffunction-sections compiler flag.
-+
-+	  If unsure, say N.
-+
- endif # MODULES
- 
- config MODULES_TREE_LOOKUP
-diff --git a/kernel/module.c b/kernel/module.c
-index 84a9141a5e15..802e1098eaf4 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -57,6 +57,7 @@
- #include <linux/bsearch.h>
- #include <linux/dynamic_debug.h>
- #include <linux/audit.h>
-+#include <linux/random.h>
- #include <uapi/linux/module.h>
- #include "module-internal.h"
- 
-@@ -1527,7 +1528,7 @@ static void free_sect_attrs(struct module_sect_attrs *sect_attrs)
- 
- 	for (section = 0; section < sect_attrs->nsections; section++)
- 		kfree(sect_attrs->attrs[section].battr.attr.name);
--	kfree(sect_attrs);
-+	kvfree(sect_attrs);
- }
- 
- static void add_sect_attrs(struct module *mod, const struct load_info *info)
-@@ -1544,7 +1545,7 @@ static void add_sect_attrs(struct module *mod, const struct load_info *info)
- 	size[0] = ALIGN(struct_size(sect_attrs, attrs, nloaded),
- 			sizeof(sect_attrs->grp.bin_attrs[0]));
- 	size[1] = (nloaded + 1) * sizeof(sect_attrs->grp.bin_attrs[0]);
--	sect_attrs = kzalloc(size[0] + size[1], GFP_KERNEL);
-+	sect_attrs = kvzalloc(size[0] + size[1], GFP_KERNEL);
- 	if (sect_attrs == NULL)
- 		return;
- 
-@@ -2416,6 +2417,71 @@ static bool module_init_layout_section(const char *sname)
- 	return module_init_section(sname);
- }
- 
-+/*
-+ * randomize_text()
-+ * Look through the core section looking for executable code sections.
-+ * Store sections in an array and then shuffle the sections
-+ * to reorder the functions.
-+ */
-+static void randomize_text(struct module *mod, struct load_info *info)
-+{
-+	int max_sections = info->hdr->e_shnum;
-+	int num_text_sections = 0;
-+	Elf_Shdr **text_list;
-+	int i, size;
-+
-+	text_list = kvmalloc_array(max_sections, sizeof(*text_list), GFP_KERNEL);
-+	if (!text_list)
-+		return;
-+
-+	for (i = 0; i < max_sections; i++) {
-+		Elf_Shdr *shdr = &info->sechdrs[i];
-+		const char *sname = info->secstrings + shdr->sh_name;
-+
-+		if (!(shdr->sh_flags & SHF_ALLOC) ||
-+		    !(shdr->sh_flags & SHF_EXECINSTR) ||
-+		    (shdr->sh_flags & ARCH_SHF_SMALL) ||
-+		    module_init_layout_section(sname))
-+			continue;
-+
-+		/*
-+		 * With CONFIG_CFI_CLANG, .text with __cfi_check() must come
-+		 * before any other text sections, and be aligned to PAGE_SIZE.
-+		 * Don't include it in the shuffle list.
-+		 */
-+		if (IS_ENABLED(CONFIG_CFI_CLANG) && !strcmp(sname, ".text"))
-+			continue;
-+
-+		if (!num_text_sections)
-+			size = shdr->sh_entsize;
-+
-+		text_list[num_text_sections] = shdr;
-+		num_text_sections++;
-+	}
-+
-+	if (!num_text_sections)
-+		goto exit;
-+
-+	shuffle_array(text_list, num_text_sections);
-+
-+	for (i = 0; i < num_text_sections; i++) {
-+		Elf_Shdr *shdr = text_list[i];
-+
-+		/*
-+		 * get_offset has a section index for it's last
-+		 * argument, that is only used by arch_mod_section_prepend(),
-+		 * which is only defined by parisc. Since this type
-+		 * of randomization isn't supported on parisc, we can
-+		 * safely pass in zero as the last argument, as it is
-+		 * ignored.
-+		 */
-+		shdr->sh_entsize = get_offset(mod, &size, shdr, 0);
-+	}
-+
-+exit:
-+	kvfree(text_list);
-+}
-+
- /*
-  * Lay out the SHF_ALLOC sections in a way not dissimilar to how ld
-  * might -- code, read-only data, read-write data, small data.  Tally
-@@ -2510,6 +2576,9 @@ static void layout_sections(struct module *mod, struct load_info *info)
- 			break;
- 		}
- 	}
-+
-+	if (IS_ENABLED(CONFIG_MODULE_FG_KASLR))
-+		randomize_text(mod, info);
- }
- 
- static void set_license(struct module *mod, const char *license)
--- 
-2.33.1
-
+> ---
+>  kernel/sched/core.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+> index ee222b89c692..d8adbea77be1 100644
+> --- a/kernel/sched/core.c
+> +++ b/kernel/sched/core.c
+> @@ -4908,7 +4908,7 @@ asmlinkage __visible void schedule_tail(struct task_struct *prev)
+>  	finish_task_switch(prev);
+>  	preempt_enable();
+>  
+> -	if (current->set_child_tid)
+> +	if (!(current->flags & PF_KTHREAD) && current->set_child_tid)
+>  		put_user(task_pid_vnr(current), current->set_child_tid);
+>  
+>  	calculate_sigpending();
+> -- 
+> 2.29.2
+> 
+> 
+> Eric
