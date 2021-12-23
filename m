@@ -2,41 +2,41 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3668BC46467
-	for <linux-arch@archiver.kernel.org>; Thu, 23 Dec 2021 00:23:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8A58EC433FE
+	for <linux-arch@archiver.kernel.org>; Thu, 23 Dec 2021 00:23:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1345564AbhLWAXj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 22 Dec 2021 19:23:39 -0500
-Received: from mga18.intel.com ([134.134.136.126]:24836 "EHLO mga18.intel.com"
+        id S1345666AbhLWAXn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 22 Dec 2021 19:23:43 -0500
+Received: from mga11.intel.com ([192.55.52.93]:24287 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1345531AbhLWAXb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Dec 2021 19:23:31 -0500
+        id S1345503AbhLWAXd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Dec 2021 19:23:33 -0500
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1640219011; x=1671755011;
+  t=1640219013; x=1671755013;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references:mime-version:content-transfer-encoding;
-  bh=+ZKioNI98dzYjZhoWodWGrSrTmXJR0JsKnk/05ECZhY=;
-  b=dR4wvOPLareKjC8G7ixxP9EeptH0t70pxFpKmDTpkUcGtjf2q8Ewao1P
-   5K29YqHcBIgWwmEWxZG5DjK34WnjadKTe6KYmaXajQyONl178UqpCGkfk
-   rT8mHXMq+vHL04h3WPtQ3VNAlUnbj0alwZ9o0wTXRRlYs8SOmI3pzWC5P
-   ha0vxf7k0tpfvLrMvlV/1LT0oGXl7E2WVDEdCycuAo1+wnxJdFPN4U6Wk
-   JJOx3toC39Pw4YoqwkD5oQ6E8xzLBSu6nXeTbkbjyQjm/TbVbf0t/Vx+o
-   xjwmmdLvyKh0IXmiKP/tjtXtBdkNvcuReRcR74cfwzuk1LmyoGVUhS+Wh
-   A==;
-X-IronPort-AV: E=McAfee;i="6200,9189,10206"; a="227574757"
+  bh=d4waWPSOn2iXftgNDJfpbm8+6fkn7TwbPenUwqBmKBg=;
+  b=bF2o32PFWOb2+s+7HKbGL7wKxi3/wvf5recV9AnSjyIwdyvHKPNFkjEv
+   DR+vUkMPKivP89Fls/3GLHsIS2WYr8/5h1hcoyvY3ublNqFfWyAJ92WE9
+   e6DdsXewHjKXXX1e+KEqKaAcUy3oVZstvSZzxQu5ChDArRQ8FHoOjaXr5
+   t/Fc8yiS45fq8puR0XSzK664AS2q6fQRliXCm2Pjcm9hGUvOt646p1wI2
+   4MoEBbRJ+d0L+fYnOzYm4Molq/hWXjLU6anD2QAXowLUOatArRiKsmDAX
+   0Qd5J70YDqWWAwLEquhXtsu0f7eGSgbxlptG6u76h9WO2EafAZXHpfSNZ
+   Q==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10206"; a="238264212"
 X-IronPort-AV: E=Sophos;i="5.88,228,1635231600"; 
-   d="scan'208";a="227574757"
-Received: from orsmga004.jf.intel.com ([10.7.209.38])
-  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Dec 2021 16:23:30 -0800
+   d="scan'208";a="238264212"
+Received: from fmsmga008.fm.intel.com ([10.253.24.58])
+  by fmsmga102.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Dec 2021 16:23:33 -0800
 X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="5.88,227,1635231600"; 
-   d="scan'208";a="617312120"
+X-IronPort-AV: E=Sophos;i="5.88,228,1635231600"; 
+   d="scan'208";a="570733414"
 Received: from irvmail001.ir.intel.com ([10.43.11.63])
-  by orsmga004.jf.intel.com with ESMTP; 22 Dec 2021 16:23:22 -0800
+  by fmsmga008.fm.intel.com with ESMTP; 22 Dec 2021 16:23:25 -0800
 Received: from newjersey.igk.intel.com (newjersey.igk.intel.com [10.102.20.203])
-        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 1BN0N79B032467;
-        Thu, 23 Dec 2021 00:23:19 GMT
+        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 1BN0N79D032467;
+        Thu, 23 Dec 2021 00:23:23 GMT
 From:   Alexander Lobakin <alexandr.lobakin@intel.com>
 To:     linux-hardening@vger.kernel.org, x86@kernel.org
 Cc:     Alexander Lobakin <alexandr.lobakin@intel.com>,
@@ -74,9 +74,9 @@ Cc:     Alexander Lobakin <alexandr.lobakin@intel.com>,
         linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
         linux-arch@vger.kernel.org, live-patching@vger.kernel.org,
         llvm@lists.linux.dev
-Subject: [PATCH v9 06/15] x86: decouple ORC table sorting into a separate file
-Date:   Thu, 23 Dec 2021 01:22:00 +0100
-Message-Id: <20211223002209.1092165-7-alexandr.lobakin@intel.com>
+Subject: [PATCH v9 08/15] x86/tools: Add relative relocs for randomized functions
+Date:   Thu, 23 Dec 2021 01:22:02 +0100
+Message-Id: <20211223002209.1092165-9-alexandr.lobakin@intel.com>
 X-Mailer: git-send-email 2.33.1
 In-Reply-To: <20211223002209.1092165-1-alexandr.lobakin@intel.com>
 References: <20211223002209.1092165-1-alexandr.lobakin@intel.com>
@@ -86,262 +86,189 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-In order to be able to sort ORC entries from both the kernel and
-the pre-boot compressed environment, place ORC sorting function
-into the new file arch/x86/lib/orc.c.
-It can be then included directly by the pre-boot code, and
-ORC_COMPRESSED_BOOT definition guards out the sort_mutex which
-is unavailable and unneeded in that environment.
+From: Kristen Carlson Accardi <kristen@linux.intel.com>
 
-Placing orc_ip() into `include/asm/orc_types.h` wipes out
-sorttable.h's little code dup.
+When reordering functions, the relative offsets for relocs that
+are either in the randomized sections, or refer to the randomized
+sections will need to be adjusted. Add code to detect whether a
+reloc satisfies these cases, and if so, add them to the appropriate
+reloc list.
 
-Suggested-by: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
+Reviewed-by: Tony Luck <tony.luck@intel.com>
+Tested-by: Tony Luck <tony.luck@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+[ alobakin: don't split relocs' usage string across lines ]
 Signed-off-by: Alexander Lobakin <alexandr.lobakin@intel.com>
 ---
- arch/x86/include/asm/orc_types.h       |  7 +++
- arch/x86/kernel/unwind_orc.c           | 63 +--------------------
- arch/x86/lib/Makefile                  |  1 +
- arch/x86/lib/orc.c                     | 76 ++++++++++++++++++++++++++
- scripts/sorttable.h                    |  5 --
- tools/arch/x86/include/asm/orc_types.h |  7 +++
- 6 files changed, 92 insertions(+), 67 deletions(-)
- create mode 100644 arch/x86/lib/orc.c
+ arch/x86/boot/compressed/Makefile |  7 ++++++-
+ arch/x86/tools/relocs.c           | 32 +++++++++++++++++++++++++++----
+ arch/x86/tools/relocs.h           |  4 ++--
+ arch/x86/tools/relocs_common.c    | 14 +++++++++-----
+ 4 files changed, 45 insertions(+), 12 deletions(-)
 
-diff --git a/arch/x86/include/asm/orc_types.h b/arch/x86/include/asm/orc_types.h
-index 5a2baf28a1dc..7708548713c4 100644
---- a/arch/x86/include/asm/orc_types.h
-+++ b/arch/x86/include/asm/orc_types.h
-@@ -67,6 +67,13 @@ struct orc_entry {
- #endif
- } __packed;
+diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
+index 4bf32db56010..2cf809f5c642 100644
+--- a/arch/x86/boot/compressed/Makefile
++++ b/arch/x86/boot/compressed/Makefile
+@@ -107,6 +107,11 @@ $(obj)/vmlinux: $(vmlinux-objs-y) $(efi-obj-y) FORCE
+ 	$(call if_changed,ld)
  
-+static inline unsigned long orc_ip(const int *ip)
-+{
-+	return (unsigned long)ip + *ip;
-+}
+ OBJCOPYFLAGS_vmlinux.bin :=  -R .comment -S
 +
-+void orc_sort(int *ip_table, struct orc_entry *orc_table, u32 num_orcs);
++ifdef CONFIG_FG_KASLR
++RELOCS_ARGS += --fg-kaslr
++endif
 +
- #endif /* __ASSEMBLY__ */
+ $(obj)/vmlinux.bin: vmlinux FORCE
+ 	$(call if_changed,objcopy)
  
- #endif /* _ORC_TYPES_H */
-diff --git a/arch/x86/kernel/unwind_orc.c b/arch/x86/kernel/unwind_orc.c
-index 2de3c8c5eba9..e5748bf15966 100644
---- a/arch/x86/kernel/unwind_orc.c
-+++ b/arch/x86/kernel/unwind_orc.c
-@@ -25,11 +25,6 @@ extern struct orc_entry __stop_orc_unwind[];
- static bool orc_init __ro_after_init;
- static unsigned int lookup_num_blocks __ro_after_init;
+@@ -114,7 +119,7 @@ targets += $(patsubst $(obj)/%,%,$(vmlinux-objs-y)) vmlinux.bin.all vmlinux.relo
  
--static inline unsigned long orc_ip(const int *ip)
--{
--	return (unsigned long)ip + *ip;
--}
--
- static struct orc_entry *__orc_find(int *ip_table, struct orc_entry *u_table,
- 				    unsigned int num_entries, unsigned long ip)
- {
-@@ -188,53 +183,6 @@ static struct orc_entry *orc_find(unsigned long ip)
+ CMD_RELOCS = arch/x86/tools/relocs
+ quiet_cmd_relocs = RELOCS  $@
+-      cmd_relocs = $(CMD_RELOCS) $< > $@;$(CMD_RELOCS) --abs-relocs $<
++      cmd_relocs = $(CMD_RELOCS) $(RELOCS_ARGS) $< > $@;$(CMD_RELOCS) $(RELOCS_ARGS) --abs-relocs $<
+ $(obj)/vmlinux.relocs: vmlinux FORCE
+ 	$(call if_changed,relocs)
+ 
+diff --git a/arch/x86/tools/relocs.c b/arch/x86/tools/relocs.c
+index c736cf2ac76b..8aa1f39be561 100644
+--- a/arch/x86/tools/relocs.c
++++ b/arch/x86/tools/relocs.c
+@@ -45,6 +45,8 @@ struct section {
+ };
+ static struct section *secs;
+ 
++static int fgkaslr_mode;
++
+ static const char * const sym_regex_kernel[S_NSYMTYPES] = {
+ /*
+  * Following symbols have been audited. There values are constant and do
+@@ -823,6 +825,24 @@ static int is_percpu_sym(ElfW(Sym) *sym, const char *symname)
+ 		strncmp(symname, "init_per_cpu_", 13);
  }
  
- #ifdef CONFIG_MODULES
--
--static DEFINE_MUTEX(sort_mutex);
--static int *cur_orc_ip_table = __start_orc_unwind_ip;
--static struct orc_entry *cur_orc_table = __start_orc_unwind;
--
--static void orc_sort_swap(void *_a, void *_b, int size)
--{
--	struct orc_entry *orc_a, *orc_b;
--	struct orc_entry orc_tmp;
--	int *a = _a, *b = _b, tmp;
--	int delta = _b - _a;
--
--	/* Swap the .orc_unwind_ip entries: */
--	tmp = *a;
--	*a = *b + delta;
--	*b = tmp - delta;
--
--	/* Swap the corresponding .orc_unwind entries: */
--	orc_a = cur_orc_table + (a - cur_orc_ip_table);
--	orc_b = cur_orc_table + (b - cur_orc_ip_table);
--	orc_tmp = *orc_a;
--	*orc_a = *orc_b;
--	*orc_b = orc_tmp;
--}
--
--static int orc_sort_cmp(const void *_a, const void *_b)
--{
--	struct orc_entry *orc_a;
--	const int *a = _a, *b = _b;
--	unsigned long a_val = orc_ip(a);
--	unsigned long b_val = orc_ip(b);
--
--	if (a_val > b_val)
--		return 1;
--	if (a_val < b_val)
--		return -1;
--
--	/*
--	 * The "weak" section terminator entries need to always be on the left
--	 * to ensure the lookup code skips them in favor of real entries.
--	 * These terminator entries exist to handle any gaps created by
--	 * whitelisted .o files which didn't get objtool generation.
--	 */
--	orc_a = cur_orc_table + (a - cur_orc_ip_table);
--	return orc_a->sp_reg == ORC_REG_UNDEFINED && !orc_a->end ? -1 : 1;
--}
--
- void unwind_module_init(struct module *mod, void *_orc_ip, size_t orc_ip_size,
- 			void *_orc, size_t orc_size)
++static int is_function_section(struct section *sec)
++{
++	if (!fgkaslr_mode)
++		return 0;
++
++	return !strncmp(sec_name(sec->shdr.sh_info), ".text.", 6);
++}
++
++static int is_randomized_sym(ElfW(Sym) *sym)
++{
++	if (!fgkaslr_mode)
++		return 0;
++
++	if (sym->st_shndx > shnum)
++		return 0;
++
++	return !strncmp(sec_name(sym_index(sym)), ".text.", 6);
++}
+ 
+ static int do_reloc64(struct section *sec, Elf_Rel *rel, ElfW(Sym) *sym,
+ 		      const char *symname)
+@@ -848,12 +868,15 @@ static int do_reloc64(struct section *sec, Elf_Rel *rel, ElfW(Sym) *sym,
+ 	case R_X86_64_PC32:
+ 	case R_X86_64_PLT32:
+ 		/*
+-		 * PC relative relocations don't need to be adjusted unless
+-		 * referencing a percpu symbol.
++		 * we need to keep pc relative relocations for sections which
++		 * might be randomized, and for the percpu section.
++		 * We also need to keep relocations for any offset which might
++		 * reference an address in a section which has been randomized.
+ 		 *
+ 		 * NB: R_X86_64_PLT32 can be treated as R_X86_64_PC32.
+ 		 */
+-		if (is_percpu_sym(sym, symname))
++		if (is_function_section(sec) || is_randomized_sym(sym) ||
++		    is_percpu_sym(sym, symname))
+ 			add_reloc(&relocs32neg, offset);
+ 		break;
+ 
+@@ -1168,8 +1191,9 @@ static void print_reloc_info(void)
+ 
+ void process(FILE *fp, int use_real_mode, int as_text,
+ 	     int show_absolute_syms, int show_absolute_relocs,
+-	     int show_reloc_info)
++	     int show_reloc_info, int fgkaslr)
  {
-@@ -246,16 +194,7 @@ void unwind_module_init(struct module *mod, void *_orc_ip, size_t orc_ip_size,
- 		     orc_size % sizeof(*orc) != 0 ||
- 		     num_entries != orc_size / sizeof(*orc));
++	fgkaslr_mode = fgkaslr;
+ 	regex_init(use_real_mode);
+ 	read_ehdr(fp);
+ 	read_shdrs(fp);
+diff --git a/arch/x86/tools/relocs.h b/arch/x86/tools/relocs.h
+index 4c49c82446eb..269db511b243 100644
+--- a/arch/x86/tools/relocs.h
++++ b/arch/x86/tools/relocs.h
+@@ -32,8 +32,8 @@ enum symtype {
  
--	/*
--	 * The 'cur_orc_*' globals allow the orc_sort_swap() callback to
--	 * associate an .orc_unwind_ip table entry with its corresponding
--	 * .orc_unwind entry so they can both be swapped.
--	 */
--	mutex_lock(&sort_mutex);
--	cur_orc_ip_table = orc_ip;
--	cur_orc_table = orc;
--	sort(orc_ip, num_entries, sizeof(int), orc_sort_cmp, orc_sort_swap);
--	mutex_unlock(&sort_mutex);
-+	orc_sort(orc_ip, orc, num_entries);
+ void process_32(FILE *fp, int use_real_mode, int as_text,
+ 		int show_absolute_syms, int show_absolute_relocs,
+-		int show_reloc_info);
++		int show_reloc_info, int fgkaslr);
+ void process_64(FILE *fp, int use_real_mode, int as_text,
+ 		int show_absolute_syms, int show_absolute_relocs,
+-		int show_reloc_info);
++		int show_reloc_info, int fgkaslr);
+ #endif /* RELOCS_H */
+diff --git a/arch/x86/tools/relocs_common.c b/arch/x86/tools/relocs_common.c
+index 6634352a20bc..d6acda36575a 100644
+--- a/arch/x86/tools/relocs_common.c
++++ b/arch/x86/tools/relocs_common.c
+@@ -12,14 +12,13 @@ void die(char *fmt, ...)
  
- 	mod->arch.orc_unwind_ip = orc_ip;
- 	mod->arch.orc_unwind = orc;
-diff --git a/arch/x86/lib/Makefile b/arch/x86/lib/Makefile
-index c6506c6a7092..4335518adcaf 100644
---- a/arch/x86/lib/Makefile
-+++ b/arch/x86/lib/Makefile
-@@ -50,6 +50,7 @@ lib-$(CONFIG_INSTRUCTION_DECODER) += insn.o inat.o insn-eval.o
- lib-$(CONFIG_RANDOMIZE_BASE) += kaslr.o
- lib-$(CONFIG_FUNCTION_ERROR_INJECTION)	+= error-inject.o
- lib-$(CONFIG_RETPOLINE) += retpoline.o
-+lib-$(CONFIG_UNWINDER_ORC) += orc.o
- 
- obj-y += msr.o msr-reg.o msr-reg-export.o hweight.o
- obj-y += iomem.o
-diff --git a/arch/x86/lib/orc.c b/arch/x86/lib/orc.c
-new file mode 100644
-index 000000000000..5c37494bbbb5
---- /dev/null
-+++ b/arch/x86/lib/orc.c
-@@ -0,0 +1,76 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * ORC sorting shared by the compressed boot code and ORC module
-+ * support.
-+ */
-+
-+#include <asm/orc_types.h>
-+#include <linux/mutex.h>
-+#include <linux/sort.h>
-+
-+#ifndef ORC_COMPRESSED_BOOT
-+static DEFINE_MUTEX(sort_mutex);
-+
-+#define sort_mutex_lock()	mutex_lock(&sort_mutex)
-+#define sort_mutex_unlock()	mutex_unlock(&sort_mutex)
-+#else /* ORC_COMPRESSED_BOOT */
-+#define sort_mutex_lock()
-+#define sort_mutex_unlock()
-+#endif /* ORC_COMPRESSED_BOOT */
-+
-+static int *cur_orc_ip_table;
-+static struct orc_entry *cur_orc_table;
-+
-+static void orc_sort_swap(void *_a, void *_b, int size)
-+{
-+	struct orc_entry *orc_a, *orc_b;
-+	int *a = _a, *b = _b, tmp;
-+	int delta = _b - _a;
-+
-+	/* Swap the .orc_unwind_ip entries: */
-+	tmp = *a;
-+	*a = *b + delta;
-+	*b = tmp - delta;
-+
-+	/* Swap the corresponding .orc_unwind entries: */
-+	orc_a = cur_orc_table + (a - cur_orc_ip_table);
-+	orc_b = cur_orc_table + (b - cur_orc_ip_table);
-+	swap(*orc_a, *orc_b);
-+}
-+
-+static int orc_sort_cmp(const void *_a, const void *_b)
-+{
-+	const int *a = _a, *b = _b;
-+	unsigned long a_val = orc_ip(a);
-+	unsigned long b_val = orc_ip(b);
-+	struct orc_entry *orc_a;
-+
-+	if (a_val > b_val)
-+		return 1;
-+	if (a_val < b_val)
-+		return -1;
-+
-+	/*
-+	 * The "weak" section terminator entries need to always be on the left
-+	 * to ensure the lookup code skips them in favor of real entries.
-+	 * These terminator entries exist to handle any gaps created by
-+	 * whitelisted .o files which didn't get objtool generation.
-+	 */
-+	orc_a = cur_orc_table + (a - cur_orc_ip_table);
-+	return orc_a->sp_reg == ORC_REG_UNDEFINED && !orc_a->end ? -1 : 1;
-+}
-+
-+void orc_sort(int *ip_table, struct orc_entry *orc_table, u32 num_orcs)
-+{
-+	/*
-+	 * The 'cur_orc_*' globals allow the orc_sort_swap() callback to
-+	 * associate an .orc_unwind_ip table entry with its corresponding
-+	 * .orc_unwind entry so they can both be swapped.
-+	 */
-+	sort_mutex_lock();
-+	cur_orc_ip_table = ip_table;
-+	cur_orc_table = orc_table;
-+	sort(ip_table, num_orcs, sizeof(int), orc_sort_cmp,
-+	     orc_sort_swap);
-+	sort_mutex_unlock();
-+}
-diff --git a/scripts/sorttable.h b/scripts/sorttable.h
-index a2baa2fefb13..44f8d7d654ff 100644
---- a/scripts/sorttable.h
-+++ b/scripts/sorttable.h
-@@ -96,11 +96,6 @@ struct orc_entry *g_orc_table;
- 
- pthread_t orc_sort_thread;
- 
--static inline unsigned long orc_ip(const int *ip)
--{
--	return (unsigned long)ip + *ip;
--}
--
- static int orc_sort_cmp(const void *_a, const void *_b)
+ static void usage(void)
  {
- 	struct orc_entry *orc_a;
-diff --git a/tools/arch/x86/include/asm/orc_types.h b/tools/arch/x86/include/asm/orc_types.h
-index 5a2baf28a1dc..7708548713c4 100644
---- a/tools/arch/x86/include/asm/orc_types.h
-+++ b/tools/arch/x86/include/asm/orc_types.h
-@@ -67,6 +67,13 @@ struct orc_entry {
- #endif
- } __packed;
+-	die("relocs [--abs-syms|--abs-relocs|--reloc-info|--text|--realmode]" \
+-	    " vmlinux\n");
++	die("relocs [--abs-syms|--abs-relocs|--reloc-info|--text|--realmode|--fg-kaslr] vmlinux\n");
+ }
  
-+static inline unsigned long orc_ip(const int *ip)
-+{
-+	return (unsigned long)ip + *ip;
-+}
-+
-+void orc_sort(int *ip_table, struct orc_entry *orc_table, u32 num_orcs);
-+
- #endif /* __ASSEMBLY__ */
- 
- #endif /* _ORC_TYPES_H */
+ int main(int argc, char **argv)
+ {
+ 	int show_absolute_syms, show_absolute_relocs, show_reloc_info;
+-	int as_text, use_real_mode;
++	int as_text, use_real_mode, fgkaslr_opt;
+ 	const char *fname;
+ 	FILE *fp;
+ 	int i;
+@@ -30,6 +29,7 @@ int main(int argc, char **argv)
+ 	show_reloc_info = 0;
+ 	as_text = 0;
+ 	use_real_mode = 0;
++	fgkaslr_opt = 0;
+ 	fname = NULL;
+ 	for (i = 1; i < argc; i++) {
+ 		char *arg = argv[i];
+@@ -54,6 +54,10 @@ int main(int argc, char **argv)
+ 				use_real_mode = 1;
+ 				continue;
+ 			}
++			if (strcmp(arg, "--fg-kaslr") == 0) {
++				fgkaslr_opt = 1;
++				continue;
++			}
+ 		}
+ 		else if (!fname) {
+ 			fname = arg;
+@@ -75,11 +79,11 @@ int main(int argc, char **argv)
+ 	if (e_ident[EI_CLASS] == ELFCLASS64)
+ 		process_64(fp, use_real_mode, as_text,
+ 			   show_absolute_syms, show_absolute_relocs,
+-			   show_reloc_info);
++			   show_reloc_info, fgkaslr_opt);
+ 	else
+ 		process_32(fp, use_real_mode, as_text,
+ 			   show_absolute_syms, show_absolute_relocs,
+-			   show_reloc_info);
++			   show_reloc_info, fgkaslr_opt);
+ 	fclose(fp);
+ 	return 0;
+ }
 -- 
 2.33.1
 
