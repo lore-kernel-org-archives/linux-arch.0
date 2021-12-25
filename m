@@ -2,83 +2,44 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0A239C433FE
-	for <linux-arch@archiver.kernel.org>; Fri, 24 Dec 2021 06:38:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EA239C433F5
+	for <linux-arch@archiver.kernel.org>; Sat, 25 Dec 2021 10:02:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241364AbhLXGiT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 24 Dec 2021 01:38:19 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33636 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229862AbhLXGiT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Dec 2021 01:38:19 -0500
-Received: from bombadil.infradead.org (bombadil.infradead.org [IPv6:2607:7c80:54:e::133])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2B77FC061401;
-        Thu, 23 Dec 2021 22:38:19 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=bombadil.20210309; h=In-Reply-To:Content-Type:MIME-Version
-        :References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=B+P6/b0Tq7K4487B9M5tJlyJyCrS1rmaPRalccK0nLM=; b=BE8KiPx2efWAi46hmsX9ctm9FN
-        uUpMc3hmUlqSgFHhGgCK57aW86dQ/BvimE8JxtBjzOmlDhh+OCOttS1/6kgFmaVFuiD7Y1B2xYOxV
-        rxqTTC4611IZYe3JlaA96rGvavoyXjgVTH8MUrnnH5D8jTLNlg0/17xYT9sQRIq9cOWX3x3RGlF66
-        OJbZvvl9Z5I5ce939Hnwn7v28xXTtwyenz+maWEGt+/wRb7i9l0OtkwvnVi6ctgXAZ3n+IuYEaSlm
-        sjpWXlYvkRvLyVsrqf56EN/5bHXx8RhV9xd7iFJ7kBsz/P0GhxBqgc5usArz6BOMWoYZTtA3uevdA
-        W7Y2YD2Q==;
-Received: from hch by bombadil.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1n0eDW-00DnyK-1T; Fri, 24 Dec 2021 06:38:14 +0000
-Date:   Thu, 23 Dec 2021 22:38:14 -0800
-From:   Christoph Hellwig <hch@infradead.org>
-To:     Alexander Lobakin <alexandr.lobakin@intel.com>
-Cc:     linux-hardening@vger.kernel.org, x86@kernel.org,
-        Jesse Brandeburg <jesse.brandeburg@intel.com>,
-        Kristen Carlson Accardi <kristen@linux.intel.com>,
-        Kees Cook <keescook@chromium.org>,
-        Miklos Szeredi <miklos@szeredi.hu>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Tony Luck <tony.luck@intel.com>,
-        Bruce Schlobohm <bruce.schlobohm@intel.com>,
-        Jessica Yu <jeyu@kernel.org>,
-        kernel test robot <lkp@intel.com>,
-        Miroslav Benes <mbenes@suse.cz>,
-        Evgenii Shatokhin <eshatokhin@virtuozzo.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Michal Marek <michal.lkml@markovi.net>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        "David S. Miller" <davem@davemloft.net>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Will Deacon <will@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-        Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Josh Poimboeuf <jpoimboe@redhat.com>,
-        Nathan Chancellor <nathan@kernel.org>,
-        Masami Hiramatsu <mhiramat@kernel.org>,
-        Marios Pomonis <pomonis@google.com>,
-        Sami Tolvanen <samitolvanen@google.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>, Nicolas Pitre <nico@fluxnic.net>,
-        linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
-        linux-arch@vger.kernel.org, live-patching@vger.kernel.org,
-        llvm@lists.linux.dev
-Subject: Re: [PATCH v9 00/15] Function Granular KASLR
-Message-ID: <YcVq1pMHWvPFHH5g@infradead.org>
-References: <20211223002209.1092165-1-alexandr.lobakin@intel.com>
+        id S231286AbhLYKCs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 25 Dec 2021 05:02:48 -0500
+Received: from wine-hub.it ([138.197.181.163]:60095 "EHLO wine-hub.localdomain"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S229561AbhLYKCr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 25 Dec 2021 05:02:47 -0500
+X-Greylist: delayed 411 seconds by postgrey-1.27 at vger.kernel.org; Sat, 25 Dec 2021 05:02:47 EST
+Received: by wine-hub.localdomain (Postfix, from userid 10000)
+        id 674588586A; Sat, 25 Dec 2021 09:55:58 +0000 (UTC)
+To:     linux-arch@vger.kernel.org
+Subject: =?UTF-8?Q?Gent.Le_=E2=9D=A4=EF=B8=8F_You_have_unread_message?=  =?UTF-8?Q?s_from_Allison_(2)!_Click_Here:_https://bit.ly/32s?=  =?UTF-8?Q?W8BP=3F4w2r_=E2=9D=A4=EF=B8=8F,_grazie_per_averci_?=  =?UTF-8?Q?contattato.?=
+Date:   Sat, 25 Dec 2021 09:55:58 +0000
+From:   Wine Hub c/o Hubic Marketing <info@wine-hub.it>
+Reply-To: info@wine-hub.it
+Message-ID: <p3vBAPYOweWWmtQcBI22hCCeXWj0fDhQKdSYs5NZc@ipv4.wine-hub.it>
+X-Mailer: PHPMailer 6.5.0 (https://github.com/PHPMailer/PHPMailer)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20211223002209.1092165-1-alexandr.lobakin@intel.com>
-X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by bombadil.infradead.org. See http://www.infradead.org/rpr.html
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Dec 23, 2021 at 01:21:54AM +0100, Alexander Lobakin wrote:
-> This is a massive rework and a respin of Kristen Accardi's marvellous
-> FG-KASLR series (v5).
+Gent.Le ❤️ You have unread messages from Allison (2)! Click Here: https://bit.ly/32sW8BP?4w2r ❤️, 
 
-Here would be the place to explain what this series actually does and
-why it is marvellous.
+grazie per averci contattato, il nostro staff ti risponderà al più presto.
+
+Cordiali saluti,
+
+WINE HUB c/o HUBIC MARKETING.
+Tel. 0574 572 146
+Mail. info@wine-hub.it
+Sede. Viale della Repubblica 159, 59100 - Prato.
+
+
+-- 
+Questa e-mail è stata inviata da un modulo di contatto sul sito Wine Hub (https://wine-hub.it)
+
