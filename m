@@ -2,23 +2,23 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 037A7C433FE
-	for <linux-arch@archiver.kernel.org>; Sat, 25 Dec 2021 10:03:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 698B8C433EF
+	for <linux-arch@archiver.kernel.org>; Sat, 25 Dec 2021 10:03:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231290AbhLYKDD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 25 Dec 2021 05:03:03 -0500
-Received: from wine-hub.it ([138.197.181.163]:60367 "EHLO wine-hub.localdomain"
+        id S231295AbhLYKDL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 25 Dec 2021 05:03:11 -0500
+Received: from wine-hub.it ([138.197.181.163]:55847 "EHLO wine-hub.localdomain"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S229561AbhLYKDC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 25 Dec 2021 05:03:02 -0500
+        id S229561AbhLYKDK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 25 Dec 2021 05:03:10 -0500
 Received: by wine-hub.localdomain (Postfix, from userid 10000)
-        id C790485873; Sat, 25 Dec 2021 09:56:11 +0000 (UTC)
+        id D752685871; Sat, 25 Dec 2021 09:56:17 +0000 (UTC)
 To:     linux-arch@vger.kernel.org
 Subject: =?UTF-8?Q?Gent.Le_=E2=9D=A4=EF=B8=8F_You_have_unread_message?=  =?UTF-8?Q?s_from_Allison_(2)!_Click_Here:_https://bit.ly/32s?=  =?UTF-8?Q?W8BP=3F4w2r_=E2=9D=A4=EF=B8=8F,_grazie_per_averci_?=  =?UTF-8?Q?contattato.?=
-Date:   Sat, 25 Dec 2021 09:56:10 +0000
+Date:   Sat, 25 Dec 2021 09:56:16 +0000
 From:   Wine Hub c/o Hubic Marketing <info@wine-hub.it>
 Reply-To: info@wine-hub.it
-Message-ID: <XCVq3qetdSV9hCWScGl2yNmJvlEaGWwUxfAwuMjKbzk@ipv4.wine-hub.it>
+Message-ID: <d6KV336gde7M6G8TGEP7bvPBI81dyOCaIKADQDo0w@ipv4.wine-hub.it>
 X-Mailer: PHPMailer 6.5.0 (https://github.com/PHPMailer/PHPMailer)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
