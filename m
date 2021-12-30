@@ -2,106 +2,190 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8B939C433EF
-	for <linux-arch@archiver.kernel.org>; Thu, 30 Dec 2021 16:19:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D6E61C43217
+	for <linux-arch@archiver.kernel.org>; Thu, 30 Dec 2021 18:31:42 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241240AbhL3QT0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 30 Dec 2021 11:19:26 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35542 "EHLO
+        id S241706AbhL3Sbk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 30 Dec 2021 13:31:40 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36582 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S241231AbhL3QT0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Dec 2021 11:19:26 -0500
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 19865C06173E;
-        Thu, 30 Dec 2021 08:19:26 -0800 (PST)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 6743061700;
-        Thu, 30 Dec 2021 16:19:25 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C891DC36AEF;
-        Thu, 30 Dec 2021 16:19:24 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1640881164;
-        bh=arlWW/UtCGQmMH5E2Pogag5ZNNfDUyUhSMYEtoB3GwU=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=nallgZfdxZjoVCuHYZ4XlZvCFvFjCagAjfY/7DnXl6uLT3rQXZhTqfX8CxA2KfD5s
-         ggMTdGtk4qkhT64rRpeqYTGP0AX7rd5U9SpMvtI5EA3ixEunFcmItWDP+Dny71TOkU
-         2N+6dF/itqqOSChjsVTnbC/RnZjqsumYlT6QDIepmBYHjzM3WHIoXjPTsXx998T4MH
-         AbHzEa9iCb3R8ZQuSPQxkbKl22DO8o6HOrukaINf9SUG+j2QRXNBifWfkcqIVJpn3F
-         2oqxztcYkbMDMWDWXHLWL9/qwAxBjNURJG+yFFF4BLBbRogQN0MJupw1+goKz9KbcM
-         BfBhOeAdyvsxQ==
-Received: by mail-wr1-f52.google.com with SMTP id d9so51458108wrb.0;
-        Thu, 30 Dec 2021 08:19:24 -0800 (PST)
-X-Gm-Message-State: AOAM532osZQpPnndUEtZIgzOHkp5U++kfLnr7S6WN14jxOZUNNgk0gXd
-        6EjB9ZFeEYfDz+9kg/nTx6c548y3b0UM/JrdXSE=
-X-Google-Smtp-Source: ABdhPJzh0JRUZ8uDOReUUyLcA2Hj2LVO0R3PZ4wX3Eigt9m04vC/yXSrbqUBq3MAhxfR6QKgikfyV3h0Maj9zD2gdAs=
-X-Received: by 2002:a5d:6989:: with SMTP id g9mr25095895wru.12.1640881163018;
- Thu, 30 Dec 2021 08:19:23 -0800 (PST)
+        with ESMTP id S241700AbhL3Sbk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Dec 2021 13:31:40 -0500
+Received: from mail-yb1-xb30.google.com (mail-yb1-xb30.google.com [IPv6:2607:f8b0:4864:20::b30])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 06132C061746
+        for <linux-arch@vger.kernel.org>; Thu, 30 Dec 2021 10:31:39 -0800 (PST)
+Received: by mail-yb1-xb30.google.com with SMTP id d201so50680095ybc.7
+        for <linux-arch@vger.kernel.org>; Thu, 30 Dec 2021 10:31:39 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20210112;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=JP5kiPGw0N0oi5xSZm+ISguC0oX5vc7WiKHH8sRb6Bk=;
+        b=PDOo4NGA+JWALhHknpcOO+4JAgLgYO13CeQB3gQa/gjVoUYjKJ6o09cp7s2qABTIXt
+         kmo2zbQjSCl93GSBoQQvgqrZZjVONwg1DqnMmlcUFrcyhy1s+Zssb4zOhmWrc9y0HqSp
+         HSwJViWXz1iaunrmIdbPOBKG1UCeQCUFTJfb1YCp4UoTzx/aDSqJ90c/JQHbbPW2+pB6
+         /01tAa36sPtmfeo+OaWiC8vLE/xkj1F2G5V5eXZLkKKJL2nx+cyu4eWdl5JflDddcc5Z
+         ChXHcbHulpVmYI55zRdTNEhYVrGPy4EgZLgEPgli0o2fgCU+eT5h6BPQFtfut1eLkloD
+         B2Gg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=JP5kiPGw0N0oi5xSZm+ISguC0oX5vc7WiKHH8sRb6Bk=;
+        b=EEjoNTEYGd4/nAlP/vUfCVbrO2+9zHkoSc2pXrZivaImhnsfGk1hcfnXMXQn4rruU2
+         xUDyDHYAXI7N6QgDQ61AACErXVzehYf9rCC3GU15631mmXHhwBOrsaY7EMVR3Q2MdOd+
+         aA3nm3Bqkvwq/6uLBwztYZTS9RlE8j+UJ+2uEtt1FsBcL6gAWW9cZuq/e7ezHO4+XqlZ
+         89R3O8/hOXlnZHDkDU1m5hhWyukDKl3sv8SuT5xnYlGWNnLwY+FalP0PnjgC6vnrCpBn
+         fyjXL4sg/9h00gdMOTOj7p1zGoITmGmdfIK5i+AwlyGz1m0N4K+NEnFJFEVcvQXmCJVw
+         IHNw==
+X-Gm-Message-State: AOAM5303WdTDq0DPvXjq1coWt4KiHDu1aCkhQr9/0fkprgeCeHZBbZKm
+        iA2r1aedypyx3PgdxpKtm7v6L0kpIJ8qQy/xGP9l7A==
+X-Google-Smtp-Source: ABdhPJy1mifAcHASiq5T0VrQGF0UUuFWmc9T30vsJuNoN6G21ys/G/ibBLAo4HPnkKhC2ktRgJEaxHdror0bkuziioM=
+X-Received: by 2002:a25:98c4:: with SMTP id m4mr39483356ybo.613.1640889098887;
+ Thu, 30 Dec 2021 10:31:38 -0800 (PST)
 MIME-Version: 1.0
-References: <20211227164317.4146918-1-schnelle@linux.ibm.com>
- <20211227164317.4146918-31-schnelle@linux.ibm.com> <YcrIHxTDipVNUuCA@kroah.com>
- <b9d0c0b88ef66f9beb51a880e765177670a76394.camel@linux.ibm.com> <Ycw6kXhd+NV0GMWc@kroah.com>
-In-Reply-To: <Ycw6kXhd+NV0GMWc@kroah.com>
-From:   Arnd Bergmann <arnd@kernel.org>
-Date:   Thu, 30 Dec 2021 11:19:05 -0500
-X-Gmail-Original-Message-ID: <CAK8P3a1p6_=s4XcJiJSkuZJBrCpwCXQ1MX6EadY00KdypVQisg@mail.gmail.com>
-Message-ID: <CAK8P3a1p6_=s4XcJiJSkuZJBrCpwCXQ1MX6EadY00KdypVQisg@mail.gmail.com>
-Subject: Re: [RFC 30/32] /dev/port: don't compile file operations without CONFIG_DEVPORT
-To:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc:     Niklas Schnelle <schnelle@linux.ibm.com>,
-        Bjorn Helgaas <bhelgaas@google.com>,
-        John Garry <john.garry@huawei.com>,
-        Nick Hu <nickhu@andestech.com>,
-        Greentime Hu <green.hu@gmail.com>,
-        Vincent Chen <deanbo422@gmail.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>, Guo Ren <guoren@kernel.org>,
+References: <20211223002209.1092165-1-alexandr.lobakin@intel.com>
+ <20211223002209.1092165-3-alexandr.lobakin@intel.com> <Yc2Tqc69W9ukKDI1@zn.tnic>
+In-Reply-To: <Yc2Tqc69W9ukKDI1@zn.tnic>
+From:   =?UTF-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>
+Date:   Thu, 30 Dec 2021 10:31:27 -0800
+Message-ID: <CAFP8O3K1mkiCGMTEeuSifZtr2piHsKTjP5TOA25nqpv2SrbzYQ@mail.gmail.com>
+Subject: Re: [PATCH v9 02/15] livepatch: use `-z unique-symbol` if available
+ to nuke pos-based search
+To:     Alexander Lobakin <alexandr.lobakin@intel.com>
+Cc:     Borislav Petkov <bp@alien8.de>, linux-hardening@vger.kernel.org,
+        x86@kernel.org, Jesse Brandeburg <jesse.brandeburg@intel.com>,
+        Kristen Carlson Accardi <kristen@linux.intel.com>,
+        Kees Cook <keescook@chromium.org>,
+        Miklos Szeredi <miklos@szeredi.hu>,
+        Ard Biesheuvel <ardb@kernel.org>,
+        Tony Luck <tony.luck@intel.com>,
+        Bruce Schlobohm <bruce.schlobohm@intel.com>,
+        Jessica Yu <jeyu@kernel.org>,
+        kernel test robot <lkp@intel.com>,
+        Miroslav Benes <mbenes@suse.cz>,
+        Evgenii Shatokhin <eshatokhin@virtuozzo.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Masahiro Yamada <masahiroy@kernel.org>,
+        Michal Marek <michal.lkml@markovi.net>,
+        Nick Desaulniers <ndesaulniers@google.com>,
+        Herbert Xu <herbert@gondor.apana.org.au>,
+        "David S. Miller" <davem@davemloft.net>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Will Deacon <will@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        Andy Lutomirski <luto@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
         Arnd Bergmann <arnd@arndb.de>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        linux-pci <linux-pci@vger.kernel.org>,
-        linux-riscv <linux-riscv@lists.infradead.org>,
-        linux-csky@vger.kernel.org
+        Josh Poimboeuf <jpoimboe@redhat.com>,
+        Nathan Chancellor <nathan@kernel.org>,
+        Masami Hiramatsu <mhiramat@kernel.org>,
+        Marios Pomonis <pomonis@google.com>,
+        Sami Tolvanen <samitolvanen@google.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>, Nicolas Pitre <nico@fluxnic.net>,
+        linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
+        linux-arch@vger.kernel.org, live-patching@vger.kernel.org,
+        llvm@lists.linux.dev
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Dec 29, 2021 at 5:38 AM Greg Kroah-Hartman
-<gregkh@linuxfoundation.org> wrote:
-> > > > -static const struct file_operations __maybe_unused port_fops = {
-> > > > +#ifdef CONFIG_DEVPORT
-> > > > +static const struct file_operations port_fops = {
-> > > >   .llseek         = memory_lseek,
-> > > >   .read           = read_port,
-> > > >   .write          = write_port,
-> > > >   .open           = open_port,
-> > > >  };
-> > > > +#endif
-> > >
-> > > Why is this #ifdef needed if it is already __maybe_unused?
-> >
-> > Because read_port() calls inb() and write_port() calls outb() they
-> > wouldn't compile once these are no longer defined. Then however the
-> > read_port/write_port symbols in the struct initialization above
-> > couldn't be resolved.
-> >
-> > >
-> > > In looking closer, this change could be taken now as the use of this
-> > > variable already is behind this same #ifdef statement, right?
-> >
-> > Yes
+On Thu, Dec 30, 2021 at 3:11 AM Borislav Petkov <bp@alien8.de> wrote:
 >
-> Great, feel free to send this individually, not as a RFC patch, and I
-> will be glad to queue it up.
+> On Thu, Dec 23, 2021 at 01:21:56AM +0100, Alexander Lobakin wrote:
+> > [PATCH v9 02/15] livepatch: use `-z unique-symbol` if available to nuke pos-based search
+>
+> nuke?
+>
+> I think you wanna say something about avoiding position-based search if
+> toolchain supports -z ...
+>
+> > Position-based search, which means that if we have several symbols
+> > with the same name, we additionally need to provide an "index" of
+> > the desired symbol, is fragile. Par exemple, it breaks when two
+>                                   ^^^^^^^^^^^^
+>
+> We already have hard time with the English in commit messages, let's
+> avoid the French pls.
+>
+> > symbols with the same name are located in different sections.
+> >
+> > Since a while, LD has a flag `-z unique-symbol` which appends
+> > numeric suffixes to the functions with the same name (in symtab
+> > and strtab).
+> > Check for its availability and always prefer when the livepatching
+> > is on.
+>
+> Why only then?
+>
+> It looks to me like we want this unconditionally, no?
+>
+> > This needs a little adjustment to the modpost to make it
+> > strip suffixes before adding exports.
+> >
+> > depmod needs some treatment as well, tho its false-positibe warnings
+>
+> Unknown word [false-positibe] in commit message, suggestions:
+>         ['false-positive', 'false-positioned', 'prepositional']
+>
+> Please introduce a spellchecker into your patch creation workflow.
+>
+> > about unknown symbols are harmless and don't alter the return code.
+> > And there is a bunch more livepatch code to optimize-out after
+> > introducing this, but let's leave it for later.
+>
+> ...
+>
+> > @@ -171,17 +173,21 @@ static int klp_find_object_symbol(const char *objname, const char *name,
+> >
+> >       /*
+> >        * Ensure an address was found. If sympos is 0, ensure symbol is unique;
+> > -      * otherwise ensure the symbol position count matches sympos.
+> > +      * otherwise ensure the symbol position count matches sympos. If the LD
+> > +      * `-z unique` flag is enabled, sympos checks are not relevant.
+>            ^^^^^^^^^^^
+>
+> -z unique-symbol
+>
+> >        */
+> > -     if (args.addr == 0)
+> > +     if (args.addr == 0) {
+> >               pr_err("symbol '%s' not found in symbol table\n", name);
+> > -     else if (args.count > 1 && sympos == 0) {
+> > +     } else if (IS_ENABLED(CONFIG_LD_HAS_Z_UNIQUE_SYMBOL)) {
+> > +             goto out_ok;
+>
+> This is silly - just do it all here.
+>
+> > +     } else if (args.count > 1 && sympos == 0) {
+> >               pr_err("unresolvable ambiguity for symbol '%s' in object '%s'\n",
+> >                      name, objname);
+> >       } else if (sympos != args.count && sympos > 0) {
+> >               pr_err("symbol position %lu for symbol '%s' in object '%s' not found\n",
+> >                      sympos, name, objname ? objname : "vmlinux");
+> >       } else {
+> > +out_ok:
+> >               *addr = args.addr;
+> >               return 0;
+> >       }
+>
+> Looks straight-forward otherwise but I'm no livepatcher so I'd prefer if
+> they have a look too.
+>
+> --
+> Regards/Gruss,
+>     Boris.
+>
+> https://people.kernel.org/tglx/notes-about-netiquette
+>
 
-I think this patch should contain the 'depends on HAS_IOPORT' that
-is currently added in a different patch (char: impi, tpm: depend on
-HAS_IOPORT).
+Apologies since I haven't read the patch series.
 
-However, we can't merge that version until HAS_IOPORT is actually
-added to the kernel.
+The option does not exist in ld.lld and I am a bit concerning about
+its semantics: https://maskray.me/blog/2020-11-15-explain-gnu-linker-options#z-unique-symbol
 
-      Arnd
+I thought that someone forwarded my comments (originally posted months
+on a feature request ago) here but seems not.
+(I am a ld.lld maintainer.)
