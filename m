@@ -2,373 +2,177 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 46CEDC43219
-	for <linux-arch@archiver.kernel.org>; Wed,  5 Jan 2022 19:33:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E1A61C433EF
+	for <linux-arch@archiver.kernel.org>; Wed,  5 Jan 2022 19:47:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S243562AbiAETdR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 5 Jan 2022 14:33:17 -0500
-Received: from linux.microsoft.com ([13.77.154.182]:59738 "EHLO
-        linux.microsoft.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S243540AbiAETdO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jan 2022 14:33:14 -0500
-Received: by linux.microsoft.com (Postfix, from userid 1109)
-        id D491320B717A; Wed,  5 Jan 2022 11:33:13 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com D491320B717A
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-        s=default; t=1641411193;
-        bh=8TYc9VdkH5Y1le0NbUGUbj06rSqcYull5fxvJwO4IXk=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=Q981Ob0l2PtjGzRVRL0BfJlwcHOsK76WMRp/4cifosXCDF/Q8Dc9k15Rpq6yJkqkx
-         CXJtJePpnW72xEct+RKDZovj1yaTPeb3CcUxbc+AWtMMqpS++ADf7q5xX5l2b1WiYx
-         gHU8H2AY5bBAK5UuMJXseJ1sZTmdxmUt9QfAODtc=
-From:   Sunil Muthuswamy <sunilmut@linux.microsoft.com>
-To:     kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com,
-        wei.liu@kernel.org, maz@kernel.org, decui@microsoft.com,
-        tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com,
-        lorenzo.pieralisi@arm.com, robh@kernel.org, kw@linux.com,
-        bhelgaas@google.com, arnd@arndb.de
-Cc:     x86@kernel.org, linux-kernel@vger.kernel.org,
-        linux-hyperv@vger.kernel.org, linux-pci@vger.kernel.org,
-        linux-arch@vger.kernel.org,
-        Sunil Muthuswamy <sunilmut@microsoft.com>
-Subject: [PATCH v8 1/2] PCI: hv: Make the code arch neutral by adding arch specific interfaces
-Date:   Wed,  5 Jan 2022 11:32:35 -0800
-Message-Id: <1641411156-31705-2-git-send-email-sunilmut@linux.microsoft.com>
-X-Mailer: git-send-email 1.8.3.1
-In-Reply-To: <1641411156-31705-1-git-send-email-sunilmut@linux.microsoft.com>
-References: <1641411156-31705-1-git-send-email-sunilmut@linux.microsoft.com>
+        id S243656AbiAETry (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 5 Jan 2022 14:47:54 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58756 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S243651AbiAETrx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jan 2022 14:47:53 -0500
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AE3FAC061245;
+        Wed,  5 Jan 2022 11:47:52 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id C357DB81D6D;
+        Wed,  5 Jan 2022 19:47:50 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4F8F0C36AE0;
+        Wed,  5 Jan 2022 19:47:49 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1641412069;
+        bh=t/Luv/nk2DzaSNkJU//u39w5XVRhppoSx5pKsM3k/v4=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:From;
+        b=VUv9O2qdqKxA+jG4CFc2u3LsBBtVCfotavPXFO/fA1pTVEWrxgynepfFoNwDmpPe3
+         gm6mzSwrf0Mu9v8LI0ep1L8d0gF07n+txTEieNZIGWxOqW9SiL4CAOcvJbfSVMhQ+3
+         AXwKESLwYk/C/VLxQ9B09ONeiabtURx+gn19Ju8IEKSa/0hYllteATy6HWhv5F/Jtp
+         78FWTCTutn0mw70OCHpRgC8L6tBrcnnp3ILK1zuW9o6rgJRHSCKyS7qdLXCdCEZ3Sf
+         pZgJlDurZwMThwqJkqgUgnGVT16YwqrnJM1KhaMG1e1LQ7K8PhR9cgiSRWv4dC4Mip
+         cFT1uhvBqjObQ==
+Date:   Wed, 5 Jan 2022 13:47:48 -0600
+From:   Bjorn Helgaas <helgaas@kernel.org>
+To:     John Garry <john.garry@huawei.com>
+Cc:     Niklas Schnelle <schnelle@linux.ibm.com>,
+        Mauro Carvalho Chehab <mchehab@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Hans Verkuil <hverkuil-cisco@xs4all.nl>,
+        Ettore Chimenti <ek5.chimenti@gmail.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Arnd Bergmann <arnd@kernel.org>,
+        Bjorn Helgaas <bhelgaas@google.com>,
+        Nick Hu <nickhu@andestech.com>,
+        Greentime Hu <green.hu@gmail.com>,
+        Vincent Chen <deanbo422@gmail.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>, Guo Ren <guoren@kernel.org>,
+        Damien Le Moal <damien.lemoal@opensource.wdc.com>,
+        Ian Abbott <abbotti@mev.co.uk>,
+        H Hartley Sweeten <hsweeten@visionengravers.com>,
+        Linus Walleij <linus.walleij@linaro.org>,
+        Bartosz Golaszewski <brgl@bgdev.pl>,
+        Jean Delvare <jdelvare@suse.com>,
+        Guenter Roeck <linux@roeck-us.net>,
+        Dmitry Torokhov <dmitry.torokhov@gmail.com>,
+        Karsten Keil <isdn@linux-pingi.de>,
+        Sathya Prakash <sathya.prakash@broadcom.com>,
+        Sreekanth Reddy <sreekanth.reddy@broadcom.com>,
+        Suganath Prabu Subramani 
+        <suganath-prabu.subramani@broadcom.com>,
+        Michael Grzeschik <m.grzeschik@pengutronix.de>,
+        "David S. Miller" <davem@davemloft.net>,
+        Jakub Kicinski <kuba@kernel.org>,
+        Jesse Brandeburg <jesse.brandeburg@intel.com>,
+        Tony Nguyen <anthony.l.nguyen@intel.com>,
+        Kalle Valo <kvalo@kernel.org>, Jouni Malinen <j@w1.fi>,
+        "James E.J. Bottomley" <jejb@linux.ibm.com>,
+        "Martin K. Petersen" <martin.petersen@oracle.com>,
+        Hannes Reinecke <hare@suse.com>,
+        Kashyap Desai <kashyap.desai@broadcom.com>,
+        Sumit Saxena <sumit.saxena@broadcom.com>,
+        Shivasharan S <shivasharan.srikanteshwara@broadcom.com>,
+        Nilesh Javali <njavali@marvell.com>,
+        GR-QLogic-Storage-Upstream@marvell.com,
+        Mark Brown <broonie@kernel.org>,
+        Sudip Mukherjee <sudipm.mukherjee@gmail.com>,
+        Teddy Wang <teddy.wang@siliconmotion.com>,
+        Forest Bond <forest@alittletooquiet.net>,
+        Jiri Slaby <jirislaby@kernel.org>,
+        Wim Van Sebroeck <wim@linux-watchdog.org>,
+        Jaroslav Kysela <perex@perex.cz>,
+        Takashi Iwai <tiwai@suse.com>, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-pci@vger.kernel.org,
+        linux-riscv@lists.infradead.org, linux-csky@vger.kernel.org,
+        linux-ide@vger.kernel.org, linux-gpio@vger.kernel.org,
+        linux-hwmon@vger.kernel.org, linux-i2c@vger.kernel.org,
+        linux-input@vger.kernel.org, netdev@vger.kernel.org,
+        linux-media@vger.kernel.org, MPT-FusionLinux.pdl@broadcom.com,
+        linux-scsi@vger.kernel.org, intel-wired-lan@lists.osuosl.org,
+        linux-wireless@vger.kernel.org, megaraidlinux.pdl@broadcom.com,
+        linux-spi@vger.kernel.org, linux-fbdev@vger.kernel.org,
+        linux-serial@vger.kernel.org, dri-devel@lists.freedesktop.org,
+        linux-watchdog@vger.kernel.org
+Subject: Re: [RFC 01/32] Kconfig: introduce and depend on LEGACY_PCI
+Message-ID: <20220105194748.GA215560@bhelgaas>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <3f39d8a2-2e57-a671-2926-eb4f2bf20c76@huawei.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Sunil Muthuswamy <sunilmut@microsoft.com>
+On Wed, Jan 05, 2022 at 05:42:16PM +0000, John Garry wrote:
+> On 29/12/2021 16:55, Niklas Schnelle wrote:
+> > On Wed, 2021-12-29 at 10:03 -0600, Bjorn Helgaas wrote:
+> > > On Wed, Dec 29, 2021 at 01:12:07PM +0100, Mauro Carvalho Chehab wrote:
+> > > > Em Wed, 29 Dec 2021 12:45:38 +0100
+> > > > Niklas Schnelle<schnelle@linux.ibm.com>  escreveu:
+> > > > > ...
+> > > > > I do think we agree that once done correctly there is value in
+> > > > > such an option independent of HAS_IOPORT only gating inb() etc uses.
+> > > I'm not sure I'm convinced about this.  For s390, you could do this
+> > > patch series, where you don't define inb() at all, and you add new
+> > > dependencies to prevent compile errors.  Or you could define inb() to
+> > > return ~0, which is what happens on other platforms when the device is
+> > > not present.
+> > > 
+> > > > Personally, I don't see much value on a Kconfig var for legacy PCI I/O
+> > > > space. From maintenance PoV, bots won't be triggered if someone use
+> > > > HAS_IOPORT instead of the PCI specific one - or vice-versa. So, we
+> > > > could end having a mix of both at the wrong places, in long term.
+> > > > 
+> > > > Also, assuming that PCIe hardware will some day abandon support for
+> > > > "legacy" PCI I/O space, I guess some runtime logic would be needed,
+> > > > in order to work with both kinds of PCIe controllers. So, having a
+> > > > Kconfig option won't help much, IMO.
+> > > > 
+> > > > So, my personal preference would be to have just one Kconfig var, but
+> > > > I'm ok if the PCI maintainers decide otherwise.
+> > > I don't really like the "LEGACY_PCI" Kconfig option.  "Legacy" just
+> > > means something old and out of favor; it doesn't say*what*  that
+> > > something is.
+> > > 
+> > > I think you're specifically interested in I/O port space usage, and it
+> > > seems that you want all PCI drivers that *only* use I/O port space to
+> > > depend on LEGACY_PCI?  Drivers that can use either I/O or memory
+> > > space or both would not depend on LEGACY_PCI?  This seems a little
+> > > murky and error-prone.
+> > I'd like to hear Arnd's opinion on this but you're the PCI maintainer
+> > so of course your buy-in would be quite important for such an option.
 
-Encapsulate arch dependencies in Hyper-V vPCI through a set of
-arch-dependent interfaces. Adding these arch specific interfaces will
-allow for an implementation for other architectures, such as arm64.
+I'd like to hear Arnd's opinion, too.  If we do add LEGACY_PCI, I
+think we need a clear guide for when to use it, e.g., "a PCI driver
+that uses inb() must depend on LEGACY_PCI" or whatever it is.
 
-There are no functional changes expected from this patch.
+I must be missing something because I don't see what we gain from
+this.  We have PCI drivers, e.g., megaraid [1], for devices that have
+either MEM or I/O BARs.  I think we want to build drivers like that on
+any arch that supports PCI.
 
-Signed-off-by: Sunil Muthuswamy <sunilmut@microsoft.com>
-Reviewed-by: Boqun Feng <boqun.feng@gmail.com>
-Reviewed-by: Marc Zyngier <maz@kernel.org>
----
-In v2, v3, v4, v5, v6, v7 & v8:
- Changes are described in the cover letter. No changes from v4 -> v5,
- v6 -> v7 or v7 -> v8.
+If the arch doesn't support I/O port space, devices that only have I/O
+BARs won't work, of course, and hopefully the PCI core and driver can
+figure that out and gracefully fail the probe.
 
- arch/x86/include/asm/hyperv-tlfs.h  | 33 ++++++++++++
- arch/x86/include/asm/mshyperv.h     |  7 ---
- drivers/pci/controller/pci-hyperv.c | 79 ++++++++++++++++++++---------
- include/asm-generic/hyperv-tlfs.h   | 33 ------------
- 4 files changed, 87 insertions(+), 65 deletions(-)
+But that same driver should still work with devices that have MEM
+BARs.  If inb() isn't always present, I guess we could litter these
+drivers with #ifdefs, but that would be pretty ugly.  IMO inb() should
+be present but do something innocuous like return ~0, as it would if
+I/O port space is supported but there's no device at that address.
 
-diff --git a/arch/x86/include/asm/hyperv-tlfs.h b/arch/x86/include/asm/hyperv-tlfs.h
-index 381e88122a5f..0a9407dc0859 100644
---- a/arch/x86/include/asm/hyperv-tlfs.h
-+++ b/arch/x86/include/asm/hyperv-tlfs.h
-@@ -602,6 +602,39 @@ enum hv_interrupt_type {
- 	HV_X64_INTERRUPT_TYPE_MAXIMUM           = 0x000A,
- };
- 
-+union hv_msi_address_register {
-+	u32 as_uint32;
-+	struct {
-+		u32 reserved1:2;
-+		u32 destination_mode:1;
-+		u32 redirection_hint:1;
-+		u32 reserved2:8;
-+		u32 destination_id:8;
-+		u32 msi_base:12;
-+	};
-+} __packed;
-+
-+union hv_msi_data_register {
-+	u32 as_uint32;
-+	struct {
-+		u32 vector:8;
-+		u32 delivery_mode:3;
-+		u32 reserved1:3;
-+		u32 level_assert:1;
-+		u32 trigger_mode:1;
-+		u32 reserved2:16;
-+	};
-+} __packed;
-+
-+/* HvRetargetDeviceInterrupt hypercall */
-+union hv_msi_entry {
-+	u64 as_uint64;
-+	struct {
-+		union hv_msi_address_register address;
-+		union hv_msi_data_register data;
-+	} __packed;
-+};
-+
- #include <asm-generic/hyperv-tlfs.h>
- 
- #endif
-diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-index da3972fe5a7a..a1c3dceff8eb 100644
---- a/arch/x86/include/asm/mshyperv.h
-+++ b/arch/x86/include/asm/mshyperv.h
-@@ -169,13 +169,6 @@ bool hv_vcpu_is_preempted(int vcpu);
- static inline void hv_apic_init(void) {}
- #endif
- 
--static inline void hv_set_msi_entry_from_desc(union hv_msi_entry *msi_entry,
--					      struct msi_desc *msi_desc)
--{
--	msi_entry->address.as_uint32 = msi_desc->msg.address_lo;
--	msi_entry->data.as_uint32 = msi_desc->msg.data;
--}
--
- struct irq_domain *hv_create_pci_msi_domain(void);
- 
- int hv_map_ioapic_interrupt(int ioapic_id, bool level, int vcpu, int vector,
-diff --git a/drivers/pci/controller/pci-hyperv.c b/drivers/pci/controller/pci-hyperv.c
-index 6733cb14e775..ead7d6cb6bf1 100644
---- a/drivers/pci/controller/pci-hyperv.c
-+++ b/drivers/pci/controller/pci-hyperv.c
-@@ -43,9 +43,6 @@
- #include <linux/pci-ecam.h>
- #include <linux/delay.h>
- #include <linux/semaphore.h>
--#include <linux/irqdomain.h>
--#include <asm/irqdomain.h>
--#include <asm/apic.h>
- #include <linux/irq.h>
- #include <linux/msi.h>
- #include <linux/hyperv.h>
-@@ -583,6 +580,42 @@ struct hv_pci_compl {
- 
- static void hv_pci_onchannelcallback(void *context);
- 
-+#ifdef CONFIG_X86
-+#define DELIVERY_MODE	APIC_DELIVERY_MODE_FIXED
-+#define FLOW_HANDLER	handle_edge_irq
-+#define FLOW_NAME	"edge"
-+
-+static int hv_pci_irqchip_init(void)
-+{
-+	return 0;
-+}
-+
-+static struct irq_domain *hv_pci_get_root_domain(void)
-+{
-+	return x86_vector_domain;
-+}
-+
-+static unsigned int hv_msi_get_int_vector(struct irq_data *data)
-+{
-+	struct irq_cfg *cfg = irqd_cfg(data);
-+
-+	return cfg->vector;
-+}
-+
-+static void hv_set_msi_entry_from_desc(union hv_msi_entry *msi_entry,
-+				       struct msi_desc *msi_desc)
-+{
-+	msi_entry->address.as_uint32 = msi_desc->msg.address_lo;
-+	msi_entry->data.as_uint32 = msi_desc->msg.data;
-+}
-+
-+static int hv_msi_prepare(struct irq_domain *domain, struct device *dev,
-+			  int nvec, msi_alloc_info_t *info)
-+{
-+	return pci_msi_prepare(domain, dev, nvec, info);
-+}
-+#endif /* CONFIG_X86 */
-+
- /**
-  * hv_pci_generic_compl() - Invoked for a completion packet
-  * @context:		Set up by the sender of the packet.
-@@ -1191,14 +1224,6 @@ static void hv_msi_free(struct irq_domain *domain, struct msi_domain_info *info,
- 	put_pcichild(hpdev);
- }
- 
--static int hv_set_affinity(struct irq_data *data, const struct cpumask *dest,
--			   bool force)
--{
--	struct irq_data *parent = data->parent_data;
--
--	return parent->chip->irq_set_affinity(parent, dest, force);
--}
--
- static void hv_irq_mask(struct irq_data *data)
- {
- 	pci_msi_mask_irq(data);
-@@ -1217,7 +1242,6 @@ static void hv_irq_mask(struct irq_data *data)
- static void hv_irq_unmask(struct irq_data *data)
- {
- 	struct msi_desc *msi_desc = irq_data_get_msi_desc(data);
--	struct irq_cfg *cfg = irqd_cfg(data);
- 	struct hv_retarget_device_interrupt *params;
- 	struct hv_pcibus_device *hbus;
- 	struct cpumask *dest;
-@@ -1246,7 +1270,7 @@ static void hv_irq_unmask(struct irq_data *data)
- 			   (hbus->hdev->dev_instance.b[7] << 8) |
- 			   (hbus->hdev->dev_instance.b[6] & 0xf8) |
- 			   PCI_FUNC(pdev->devfn);
--	params->int_target.vector = cfg->vector;
-+	params->int_target.vector = hv_msi_get_int_vector(data);
- 
- 	/*
- 	 * Honoring apic->delivery_mode set to APIC_DELIVERY_MODE_FIXED by
-@@ -1347,7 +1371,7 @@ static u32 hv_compose_msi_req_v1(
- 	int_pkt->wslot.slot = slot;
- 	int_pkt->int_desc.vector = vector;
- 	int_pkt->int_desc.vector_count = 1;
--	int_pkt->int_desc.delivery_mode = APIC_DELIVERY_MODE_FIXED;
-+	int_pkt->int_desc.delivery_mode = DELIVERY_MODE;
- 
- 	/*
- 	 * Create MSI w/ dummy vCPU set, overwritten by subsequent retarget in
-@@ -1377,7 +1401,7 @@ static u32 hv_compose_msi_req_v2(
- 	int_pkt->wslot.slot = slot;
- 	int_pkt->int_desc.vector = vector;
- 	int_pkt->int_desc.vector_count = 1;
--	int_pkt->int_desc.delivery_mode = APIC_DELIVERY_MODE_FIXED;
-+	int_pkt->int_desc.delivery_mode = DELIVERY_MODE;
- 	cpu = hv_compose_msi_req_get_cpu(affinity);
- 	int_pkt->int_desc.processor_array[0] =
- 		hv_cpu_number_to_vp_number(cpu);
-@@ -1397,7 +1421,7 @@ static u32 hv_compose_msi_req_v3(
- 	int_pkt->int_desc.vector = vector;
- 	int_pkt->int_desc.reserved = 0;
- 	int_pkt->int_desc.vector_count = 1;
--	int_pkt->int_desc.delivery_mode = APIC_DELIVERY_MODE_FIXED;
-+	int_pkt->int_desc.delivery_mode = DELIVERY_MODE;
- 	cpu = hv_compose_msi_req_get_cpu(affinity);
- 	int_pkt->int_desc.processor_array[0] =
- 		hv_cpu_number_to_vp_number(cpu);
-@@ -1419,7 +1443,6 @@ static u32 hv_compose_msi_req_v3(
-  */
- static void hv_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
- {
--	struct irq_cfg *cfg = irqd_cfg(data);
- 	struct hv_pcibus_device *hbus;
- 	struct vmbus_channel *channel;
- 	struct hv_pci_dev *hpdev;
-@@ -1470,7 +1493,7 @@ static void hv_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
- 		size = hv_compose_msi_req_v1(&ctxt.int_pkts.v1,
- 					dest,
- 					hpdev->desc.win_slot.slot,
--					cfg->vector);
-+					hv_msi_get_int_vector(data));
- 		break;
- 
- 	case PCI_PROTOCOL_VERSION_1_2:
-@@ -1478,14 +1501,14 @@ static void hv_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
- 		size = hv_compose_msi_req_v2(&ctxt.int_pkts.v2,
- 					dest,
- 					hpdev->desc.win_slot.slot,
--					cfg->vector);
-+					hv_msi_get_int_vector(data));
- 		break;
- 
- 	case PCI_PROTOCOL_VERSION_1_4:
- 		size = hv_compose_msi_req_v3(&ctxt.int_pkts.v3,
- 					dest,
- 					hpdev->desc.win_slot.slot,
--					cfg->vector);
-+					hv_msi_get_int_vector(data));
- 		break;
- 
- 	default:
-@@ -1594,14 +1617,14 @@ static void hv_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
- static struct irq_chip hv_msi_irq_chip = {
- 	.name			= "Hyper-V PCIe MSI",
- 	.irq_compose_msi_msg	= hv_compose_msi_msg,
--	.irq_set_affinity	= hv_set_affinity,
-+	.irq_set_affinity	= irq_chip_set_affinity_parent,
- 	.irq_ack		= irq_chip_ack_parent,
- 	.irq_mask		= hv_irq_mask,
- 	.irq_unmask		= hv_irq_unmask,
- };
- 
- static struct msi_domain_ops hv_msi_ops = {
--	.msi_prepare	= pci_msi_prepare,
-+	.msi_prepare	= hv_msi_prepare,
- 	.msi_free	= hv_msi_free,
- };
- 
-@@ -1625,12 +1648,12 @@ static int hv_pcie_init_irq_domain(struct hv_pcibus_device *hbus)
- 	hbus->msi_info.flags = (MSI_FLAG_USE_DEF_DOM_OPS |
- 		MSI_FLAG_USE_DEF_CHIP_OPS | MSI_FLAG_MULTI_PCI_MSI |
- 		MSI_FLAG_PCI_MSIX);
--	hbus->msi_info.handler = handle_edge_irq;
--	hbus->msi_info.handler_name = "edge";
-+	hbus->msi_info.handler = FLOW_HANDLER;
-+	hbus->msi_info.handler_name = FLOW_NAME;
- 	hbus->msi_info.data = hbus;
- 	hbus->irq_domain = pci_msi_create_irq_domain(hbus->fwnode,
- 						     &hbus->msi_info,
--						     x86_vector_domain);
-+						     hv_pci_get_root_domain());
- 	if (!hbus->irq_domain) {
- 		dev_err(&hbus->hdev->device,
- 			"Failed to build an MSI IRQ domain\n");
-@@ -3542,9 +3565,15 @@ static void __exit exit_hv_pci_drv(void)
- 
- static int __init init_hv_pci_drv(void)
- {
-+	int ret;
-+
- 	if (!hv_is_hyperv_initialized())
- 		return -ENODEV;
- 
-+	ret = hv_pci_irqchip_init();
-+	if (ret)
-+		return ret;
-+
- 	/* Set the invalid domain number's bit, so it will not be used */
- 	set_bit(HVPCI_DOM_INVALID, hvpci_dom_map);
- 
-diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
-index 8ed6733d5146..8f97c2927bee 100644
---- a/include/asm-generic/hyperv-tlfs.h
-+++ b/include/asm-generic/hyperv-tlfs.h
-@@ -540,39 +540,6 @@ enum hv_interrupt_source {
- 	HV_INTERRUPT_SOURCE_IOAPIC,
- };
- 
--union hv_msi_address_register {
--	u32 as_uint32;
--	struct {
--		u32 reserved1:2;
--		u32 destination_mode:1;
--		u32 redirection_hint:1;
--		u32 reserved2:8;
--		u32 destination_id:8;
--		u32 msi_base:12;
--	};
--} __packed;
--
--union hv_msi_data_register {
--	u32 as_uint32;
--	struct {
--		u32 vector:8;
--		u32 delivery_mode:3;
--		u32 reserved1:3;
--		u32 level_assert:1;
--		u32 trigger_mode:1;
--		u32 reserved2:16;
--	};
--} __packed;
--
--/* HvRetargetDeviceInterrupt hypercall */
--union hv_msi_entry {
--	u64 as_uint64;
--	struct {
--		union hv_msi_address_register address;
--		union hv_msi_data_register data;
--	} __packed;
--};
--
- union hv_ioapic_rte {
- 	u64 as_uint64;
- 
--- 
-2.25.1
+[1] https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/scsi/megaraid.c?id=v5.15#n4210
 
-
+> I can't see the value in the LEGACY_PCI config - however I don't really
+> understand Arnd's original intention.
+> 
+> It was written that it would allow us to control "whether we have any
+> pre-PCIe devices or those PCIe drivers that need PIO accessors other than
+> ioport_map()/pci_iomap()".
+> 
+> However I just don't see why CONFIG_PCI=y and CONFIG_HAS_IOPORT=y aren't
+> always the gating factor here. Arnd?
+> 
+> Thanks,
+> John
