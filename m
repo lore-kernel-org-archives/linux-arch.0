@@ -2,35 +2,35 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0BCEBC433EF
-	for <linux-arch@archiver.kernel.org>; Sat,  8 Jan 2022 16:44:47 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8AE06C43219
+	for <linux-arch@archiver.kernel.org>; Sat,  8 Jan 2022 16:44:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234697AbiAHQop (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 8 Jan 2022 11:44:45 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53092 "EHLO
+        id S234723AbiAHQom (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 8 Jan 2022 11:44:42 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53072 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234722AbiAHQok (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2022 11:44:40 -0500
+        with ESMTP id S232124AbiAHQog (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2022 11:44:36 -0500
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 89339C06173F
-        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 08:44:40 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2522EC06173F
+        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 08:44:36 -0800 (PST)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 29AE760DF0
-        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 16:44:40 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 698EFC36AEF;
-        Sat,  8 Jan 2022 16:44:39 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id A927860DD0
+        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 16:44:35 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E69B3C36AEF;
+        Sat,  8 Jan 2022 16:44:34 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1641660279;
-        bh=8QnnEAQzxd3ws7BHDkrTxXyGch3lQVCI4n1OHmf5M5U=;
+        s=k20201202; t=1641660275;
+        bh=yDoOe4UwcHpvI4lvTKMEryFWVpWlenvaZDNNNclnJoE=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=rF8QFsbIMcGBr1U5y8/pXL+EfJa32pzTSdYzFgYmToqPlFUXatWy1M9uUcpbDrtrp
-         rVQLt/jBPIa6MBvvg6PqoYgoAQyx0Rf+oZj46edL8T8Pr3Ym4Whr3qbwUqe4TJfhqj
-         AVwUVtWniDWr3OBWg0m79jM/ltpdvvkquHwe3kfGCrZH3DTd9CMqRSSpD5xcjWvZ5X
-         SA333cy9bQigcr1rl2yd9Awz22kKRUE8zAH2oCCEo2KfrvUHKP/xlisMXdAiG7aNPx
-         /KFPTgWlrDy5wmerDdjlXpTHXbguCa+hqj6xGFTiwVoxZy/BS3SAfbW3oVQqFmDvmc
-         FmIeHtX3TurPw==
+        b=r3IkvhwWWHhRcORWc95cYxl3JBHz9QHqFg3GicxqeO4scRWEn5+GAU7+QXvzaQiJu
+         /t6TFUZP4ot00mZAAozBixOfCTjbJ0M2wWN0Nck3kravEBBMEZjMhI17BeOQ4QtAgB
+         TAAeAIT0X8HOYseASDVhjZz4+JPBgThT+RsGEkN7JweaLGMQQEmsFfRpGdUT7GrFiI
+         R1fkR/UrIud6v2FczSgTzelxa5hlD7NLt6WOQpC4QK1c3hFKfxW6qtfFDgj/lgIdMU
+         YcvRH6xgb1NkCB3TVSaJYSF95qiUH/AI+c/xHGdI20dqWnZEXzHJ4LkXLoZOpx6Uv0
+         nKfAKa94/vq/w==
 From:   Andy Lutomirski <luto@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>,
         Linux-MM <linux-mm@kvack.org>
@@ -45,10 +45,11 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>,
         Peter Zijlstra <peterz@infradead.org>,
         Nadav Amit <nadav.amit@gmail.com>,
         Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-        Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH 20/23] x86/mm: Remove leave_mm() in favor of unlazy_mm_irqs_off()
-Date:   Sat,  8 Jan 2022 08:44:05 -0800
-Message-Id: <5e80aa6deb3f0a7bdcba5e9f20c48df50b752fd3.1641659630.git.luto@kernel.org>
+        Andy Lutomirski <luto@kernel.org>,
+        Linus Torvalds <torvalds@linux-foundation.org>
+Subject: [PATCH 16/23] sched: Use lightweight hazard pointers to grab lazy mms
+Date:   Sat,  8 Jan 2022 08:44:01 -0800
+Message-Id: <7c9c388c388df8e88bb5d14828053ac0cb11cf69.1641659630.git.luto@kernel.org>
 X-Mailer: git-send-email 2.33.1
 In-Reply-To: <cover.1641659630.git.luto@kernel.org>
 References: <cover.1641659630.git.luto@kernel.org>
@@ -58,183 +59,464 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-x86's mm_cpumask() precisely tracks every CPU using an mm, with one
-major caveat: x86 internally switches back to init_mm more
-aggressively than the core code.  This means that it's possible for
-x86 to point CR3 to init_mm and drop current->active_mm from
-mm_cpumask().  The core scheduler doesn't know when this happens,
-which is currently fine.
+Currently, switching between a real user mm and a kernel context (including
+idle) performs an atomic operation on a per-mm counter via mmgrab() and
+mmdrop().  For a single-threaded program, this isn't a big problem: a pair
+of atomic operations when entering and returning from idle isn't free, but
+it's not very expensive in the grand scheme of things.  For a heavily
+multithreaded program on a large system, however, the overhead can be very
+large -- all CPUs can end up hammering the same cacheline with atomic
+operations, and scalability suffers.
 
-But if we want to use mm_cpumask() to optimize
-for_each_possible_lazymm_cpu(), we need to keep mm_cpumask() in
-sync with the core scheduler.
+The purpose of mmgrab() and mmdrop() is to make "lazy tlb" mode safe.  When
+Linux switches from user to kernel mm context, instead of immediately
+reprogramming the MMU to use init_mm, the kernel continues to use the most
+recent set of user page tables.  This is safe as long as those page tables
+aren't freed.
 
-This patch removes x86's bespoke leave_mm() and uses the core scheduler's
-unlazy_mm_irqs_off() so that a lazy mm can be dropped and ->active_mm
-cleaned up together.  This allows for_each_possible_lazymm_cpu() to be
-wired up on x86.
+RCU can't be used to keep the pagetables alive, since RCU read locks can't
+be held when idle.
 
-As a side effect, non-x86 architectures that use ACPI C3 will now leave
-lazy mm mode before entering C3.  This can only possibly affect ia64,
-because only x86 and ia64 enable CONFIG_ACPI_PROCESSOR_CSTATE.
+To improve scalability, this patch adds a percpu hazard pointer scheme to
+keep lazily-used mms alive.  Each CPU has a single pointer to an mm that
+must not be freed, and __mmput() checks the pointers belonging to all CPUs
+that might be lazily using the mm in question.
 
+By default, this means walking all online CPUs, but arch code can override
+the set of CPUs to check if they can do something more clever.  For
+architectures that have accurate mm_cpumask(), mm_cpumask() is a reasonable
+choice.  For architectures that can guarantee that *no* remote CPUs are
+lazily using an mm after the user portion of the pagetables are torn down
+(any architcture that uses IPI shootdowns in exit_mmap() and unlazies the
+MMU in the IPI handler, e.g. x86 on bare metal), the set of CPUs to check
+could be empty.
+
+XXX: I *think* this is correct when hot-unplugging a CPU, but this needs
+double-checking and maybe even a WARN to make sure the ordering is correct.
+
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Rik van Riel <riel@surriel.com>
+Cc: Anton Blanchard <anton@ozlabs.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linux-MM <linux-mm@kvack.org>
+Cc: Paul Mackerras <paulus@ozlabs.org>
+Cc: Randy Dunlap <rdunlap@infradead.org>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/include/asm/mmu.h  |  2 --
- arch/x86/mm/tlb.c           | 29 +++--------------------------
- arch/x86/xen/mmu_pv.c       |  2 +-
- drivers/cpuidle/cpuidle.c   |  2 +-
- drivers/idle/intel_idle.c   |  4 ++--
- include/linux/mmu_context.h |  4 +---
- kernel/sched/sched.h        |  2 --
- 7 files changed, 8 insertions(+), 37 deletions(-)
+ include/linux/sched/mm.h |   3 +
+ kernel/fork.c            |  11 ++
+ kernel/sched/core.c      | 230 +++++++++++++++++++++++++++++++++------
+ kernel/sched/sched.h     |  10 +-
+ 4 files changed, 221 insertions(+), 33 deletions(-)
 
-diff --git a/arch/x86/include/asm/mmu.h b/arch/x86/include/asm/mmu.h
-index 5d7494631ea9..03ba71420ff3 100644
---- a/arch/x86/include/asm/mmu.h
-+++ b/arch/x86/include/asm/mmu.h
-@@ -63,7 +63,5 @@ typedef struct {
- 		.lock = __MUTEX_INITIALIZER(mm.context.lock),		\
+diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
+index 7509b2b2e99d..3ceba11c049c 100644
+--- a/include/linux/sched/mm.h
++++ b/include/linux/sched/mm.h
+@@ -76,6 +76,9 @@ static inline bool mmget_not_zero(struct mm_struct *mm)
+ 
+ /* mmput gets rid of the mappings and all user-space */
+ extern void mmput(struct mm_struct *);
++
++extern void mm_unlazy_mm_count(struct mm_struct *mm);
++
+ #ifdef CONFIG_MMU
+ /* same as above but performs the slow path from the async context. Can
+  * be called from the atomic context as well
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 38681ad44c76..2df72cf3c0d2 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -1122,6 +1122,17 @@ static inline void __mmput(struct mm_struct *mm)
  	}
- 
--void leave_mm(int cpu);
--#define leave_mm leave_mm
- 
- #endif /* _ASM_X86_MMU_H */
-diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
-index 36ce9dffb963..e502565176b9 100644
---- a/arch/x86/mm/tlb.c
-+++ b/arch/x86/mm/tlb.c
-@@ -8,6 +8,7 @@
- #include <linux/export.h>
- #include <linux/cpu.h>
- #include <linux/debugfs.h>
-+#include <linux/mmu_context.h>
- #include <linux/sched/smt.h>
- #include <linux/sched/mm.h>
- 
-@@ -294,28 +295,6 @@ static void load_new_mm_cr3(pgd_t *pgdir, u16 new_asid, bool need_flush)
- 	write_cr3(new_mm_cr3);
+ 	if (mm->binfmt)
+ 		module_put(mm->binfmt->module);
++
++	/*
++	 * We hold one mm_count reference.  Convert all remaining lazy_mm
++	 * references to mm_count references so that the mm will be genuinely
++	 * unused when mm_count goes to zero.  Do this after exit_mmap() so
++	 * that, if the architecture shoots down remote TLB entries via IPI in
++	 * exit_mmap() and calls unlazy_mm_irqs_off() when doing so, most or
++	 * all lazy_mm references can be removed without
++	 * mm_unlazy_mm_count()'s help.
++	 */
++	mm_unlazy_mm_count(mm);
+ 	mmdrop(mm);
  }
  
--void leave_mm(int cpu)
--{
--	struct mm_struct *loaded_mm = this_cpu_read(cpu_tlbstate.loaded_mm);
--
--	/*
--	 * It's plausible that we're in lazy TLB mode while our mm is init_mm.
--	 * If so, our callers still expect us to flush the TLB, but there
--	 * aren't any user TLB entries in init_mm to worry about.
--	 *
--	 * This needs to happen before any other sanity checks due to
--	 * intel_idle's shenanigans.
--	 */
--	if (loaded_mm == &init_mm)
--		return;
--
--	/* Warn if we're not lazy. */
--	WARN_ON(!this_cpu_read(cpu_tlbstate_shared.is_lazy));
--
--	switch_mm(NULL, &init_mm, NULL);
--}
--EXPORT_SYMBOL_GPL(leave_mm);
--
- void switch_mm(struct mm_struct *prev, struct mm_struct *next,
- 	       struct task_struct *tsk)
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 95eb0e78f74c..64e4058b3c61 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -20,6 +20,7 @@
+ 
+ #include <asm/switch_to.h>
+ #include <asm/tlb.h>
++#include <asm/mmu.h>
+ 
+ #include "../workqueue_internal.h"
+ #include "../../fs/io-wq.h"
+@@ -4750,6 +4751,144 @@ prepare_task_switch(struct rq *rq, struct task_struct *prev,
+ 	prepare_arch_switch(next);
+ }
+ 
++/*
++ * Called after each context switch.
++ *
++ * Strictly speaking, no action at all is required here.  This rq
++ * can hold an extra reference to at most one mm, so the memory
++ * wasted by deferring the mmdrop() forever is bounded.  That being
++ * said, it's straightforward to safely drop spare references
++ * in the common case.
++ */
++static void mmdrop_lazy(struct rq *rq)
++{
++	struct mm_struct *old_mm;
++
++	old_mm = READ_ONCE(rq->drop_mm);
++
++	do {
++		/*
++		 * If there is nothing to drop or if we are still using old_mm,
++		 * then don't call mmdrop().
++		 */
++		if (likely(!old_mm || old_mm == rq->lazy_mm))
++			return;
++	} while (!try_cmpxchg_relaxed(&rq->drop_mm, &old_mm, NULL));
++
++	mmdrop(old_mm);
++}
++
++#ifndef for_each_possible_lazymm_cpu
++#define for_each_possible_lazymm_cpu(cpu, mm) for_each_online_cpu((cpu))
++#endif
++
++static bool __try_mm_drop_rq_ref(struct rq *rq, struct mm_struct *mm)
++{
++	struct mm_struct *old_drop_mm = smp_load_acquire(&rq->drop_mm);
++
++	/*
++	 * We know that old_mm != mm: this is the only function that
++	 * might set drop_mm to mm, and we haven't set it yet.
++	 */
++	WARN_ON_ONCE(old_drop_mm == mm);
++
++	if (!old_drop_mm) {
++		/*
++		 * Just set rq->drop_mm to mm and our reference will
++		 * get dropped eventually after rq is done with it.
++		 */
++		return try_cmpxchg(&rq->drop_mm, &old_drop_mm, mm);
++	}
++
++	/*
++	 * The target cpu could still be using old_drop_mm.  We know that, if
++	 * old_drop_mm still exists, then old_drop_mm->mm_users == 0.  Can we
++	 * drop it?
++	 *
++	 * NB: it is critical that we load rq->lazy_mm again after loading
++	 * drop_mm.  If we looked at a prior value of lazy_mm (which we
++	 * already know to be mm), then we would be subject to a race:
++	 *
++	 * Us:
++	 *     Load rq->lazy_mm.
++	 * Remote CPU:
++	 *     Switch to old_drop_mm (with mm_users > 0)
++	 *     Become lazy and set rq->lazy_mm = old_drop_mm
++	 * Third CPU:
++	 *     Set old_drop_mm->mm_users to 0.
++	 *     Set rq->drop_mm = old_drop_mm
++	 * Us:
++	 *     Incorrectly believe that old_drop_mm is unused
++	 *     because rq->lazy_mm != old_drop_mm
++	 *
++	 * In other words, to verify that rq->lazy_mm is not keeping a given
++	 * mm alive, we must load rq->lazy_mm _after_ we know that mm_users ==
++	 * 0 and therefore that rq will not switch to that mm.
++	 */
++	if (smp_load_acquire(&rq->lazy_mm) != mm) {
++		/*
++		 * We got lucky!  rq _was_ using mm, but it stopped.
++		 * Just drop our reference.
++		 */
++		mmdrop(mm);
++		return true;
++	}
++
++	/*
++	 * If we got here, rq->lazy_mm != old_drop_mm, and we ruled
++	 * out the race described above.  rq is done with old_drop_mm,
++	 * so we can steal the reference held by rq and replace it with
++	 * our reference to mm.
++	 */
++	if (cmpxchg(&rq->drop_mm, old_drop_mm, mm) != old_drop_mm)
++		return false;
++
++	mmdrop(old_drop_mm);
++	return true;
++}
++
++/*
++ * This converts all lazy_mm references to mm to mm_count refcounts.  Our
++ * caller holds an mm_count reference, so we don't need to worry about mm
++ * being freed out from under us.
++ */
++void mm_unlazy_mm_count(struct mm_struct *mm)
++{
++	unsigned int drop_count = 0;
++	int cpu;
++
++	/*
++	 * mm_users is zero, so no cpu will set its rq->lazy_mm to mm.
++	 */
++	WARN_ON_ONCE(atomic_read(&mm->mm_users) != 0);
++
++	for_each_possible_lazymm_cpu(cpu, mm) {
++		struct rq *rq = cpu_rq(cpu);
++
++		if (smp_load_acquire(&rq->lazy_mm) != mm)
++			continue;
++
++		/*
++		 * Grab one reference.  Do it as a batch so we do a maximum
++		 * of two atomic operations instead of one per lazy reference.
++		 */
++		if (!drop_count) {
++			/*
++			 * Collect lots of references.  We'll drop the ones we
++			 * don't use.
++			 */
++			drop_count = num_possible_cpus();
++			atomic_add(drop_count, &mm->mm_count);
++		}
++		drop_count--;
++
++		while (!__try_mm_drop_rq_ref(rq, mm))
++			;
++	}
++
++	atomic_sub(drop_count, &mm->mm_count);
++}
++
+ /**
+  * finish_task_switch - clean up after a task-switch
+  * @prev: the thread we just switched away from.
+@@ -4773,7 +4912,6 @@ static struct rq *finish_task_switch(struct task_struct *prev)
+ 	__releases(rq->lock)
  {
-@@ -512,8 +491,6 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
- 	 * from lazy TLB mode to normal mode if active_mm isn't changing.
- 	 * When this happens, we don't assume that CR3 (and hence
- 	 * cpu_tlbstate.loaded_mm) matches next.
--	 *
--	 * NB: leave_mm() calls us with prev == NULL and tsk == NULL.
- 	 */
+ 	struct rq *rq = this_rq();
+-	struct mm_struct *mm = rq->prev_mm;
+ 	long prev_state;
  
- 	/* We don't want flush_tlb_func() to run concurrently with us. */
-@@ -523,7 +500,7 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
  	/*
- 	 * Verify that CR3 is what we think it is.  This will catch
- 	 * hypothetical buggy code that directly switches to swapper_pg_dir
--	 * without going through leave_mm() / switch_mm_irqs_off() or that
-+	 * without going through switch_mm_irqs_off() or that
- 	 * does something like write_cr3(read_cr3_pa()).
+@@ -4792,8 +4930,6 @@ static struct rq *finish_task_switch(struct task_struct *prev)
+ 		      current->comm, current->pid, preempt_count()))
+ 		preempt_count_set(FORK_PREEMPT_COUNT);
+ 
+-	rq->prev_mm = NULL;
+-
+ 	/*
+ 	 * A task struct has one reference for the use as "current".
+ 	 * If a task dies, then it sets TASK_DEAD in tsk->state and calls
+@@ -4824,12 +4960,7 @@ static struct rq *finish_task_switch(struct task_struct *prev)
+ 
+ 	fire_sched_in_preempt_notifiers(current);
+ 
+-	/*
+-	 * If an architecture needs to take a specific action for
+-	 * SYNC_CORE, it can do so in switch_mm_irqs_off().
+-	 */
+-	if (mm)
+-		mmdrop(mm);
++	mmdrop_lazy(rq);
+ 
+ 	if (unlikely(prev_state == TASK_DEAD)) {
+ 		if (prev->sched_class->task_dead)
+@@ -4891,36 +5022,55 @@ context_switch(struct rq *rq, struct task_struct *prev,
+ 	 */
+ 	arch_start_context_switch(prev);
+ 
++	/*
++	 * Sanity check: if something went wrong and the previous mm was
++	 * freed while we were still using it, KASAN might not notice
++	 * without help.
++	 */
++	kasan_check_byte(prev->active_mm);
++
+ 	/*
+ 	 * kernel -> kernel   lazy + transfer active
+-	 *   user -> kernel   lazy + mmgrab() active
++	 *   user -> kernel   lazy + lazy_mm grab active
  	 *
- 	 * Only do this check if CONFIG_DEBUG_VM=y because __read_cr3()
-@@ -732,7 +709,7 @@ temp_mm_state_t use_temporary_mm(struct mm_struct *mm)
- 	 * restoring the previous mm.
+-	 * kernel ->   user   switch + mmdrop() active
++	 * kernel ->   user   switch + lazy_mm release active
+ 	 *   user ->   user   switch
  	 */
- 	if (this_cpu_read(cpu_tlbstate_shared.is_lazy))
--		leave_mm(smp_processor_id());
-+		unlazy_mm_irqs_off();
+ 	if (!next->mm) {                                // to kernel
+ 		enter_lazy_tlb(prev->active_mm, next);
  
- 	temp_state.mm = this_cpu_read(cpu_tlbstate.loaded_mm);
- 	switch_mm_irqs_off(NULL, mm, current);
-diff --git a/arch/x86/xen/mmu_pv.c b/arch/x86/xen/mmu_pv.c
-index 3359c23573c5..ba849185810a 100644
---- a/arch/x86/xen/mmu_pv.c
-+++ b/arch/x86/xen/mmu_pv.c
-@@ -898,7 +898,7 @@ static void drop_mm_ref_this_cpu(void *info)
- 	struct mm_struct *mm = info;
+ 		next->active_mm = prev->active_mm;
+-		if (prev->mm)                           // from user
+-			mmgrab(prev->active_mm);
+-		else
++		if (prev->mm) {                         // from user
++			SCHED_WARN_ON(rq->lazy_mm);
++
++			/*
++			 * Acqure a lazy_mm reference to the active
++			 * (lazy) mm.  No explicit barrier needed: we still
++			 * hold an explicit (mm_users) reference.  __mmput()
++			 * can't be called until we call mmput() to drop
++			 * our reference, and __mmput() is a release barrier.
++			 */
++			WRITE_ONCE(rq->lazy_mm, next->active_mm);
++		} else {
+ 			prev->active_mm = NULL;
++		}
+ 	} else {                                        // to user
+ 		membarrier_switch_mm(rq, prev->active_mm, next->mm);
+ 		switch_mm_irqs_off(prev->active_mm, next->mm, next);
  
- 	if (this_cpu_read(cpu_tlbstate.loaded_mm) == mm)
--		leave_mm(smp_processor_id());
-+		unlazy_mm_irqs_off();
+ 		/*
+-		 * sys_membarrier() requires an smp_mb() between setting
+-		 * rq->curr->mm to a membarrier-enabled mm and returning
+-		 * to userspace.
++		 * An arch implementation of for_each_possible_lazymm_cpu()
++		 * may skip this CPU now that we have switched away from
++		 * prev->active_mm, so we must not reference it again.
+ 		 */
++
+ 		membarrier_finish_switch_mm(next->mm);
  
- 	/*
- 	 * If this cpu still has a stale cr3 reference, then make sure
-diff --git a/drivers/cpuidle/cpuidle.c b/drivers/cpuidle/cpuidle.c
-index ef2ea1b12cd8..b865822a6278 100644
---- a/drivers/cpuidle/cpuidle.c
-+++ b/drivers/cpuidle/cpuidle.c
-@@ -223,7 +223,7 @@ int cpuidle_enter_state(struct cpuidle_device *dev, struct cpuidle_driver *drv,
+ 		if (!prev->mm) {                        // from kernel
+-			/* will mmdrop() in finish_task_switch(). */
+-			rq->prev_mm = prev->active_mm;
+ 			prev->active_mm = NULL;
++
++			/* Drop our lazy_mm reference to the old lazy mm. */
++			smp_store_release(&rq->lazy_mm, NULL);
+ 		}
  	}
  
- 	if (target_state->flags & CPUIDLE_FLAG_TLB_FLUSHED)
--		leave_mm(dev->cpu);
-+		unlazy_mm_irqs_off();
+@@ -4938,7 +5088,8 @@ context_switch(struct rq *rq, struct task_struct *prev,
+ void __change_current_mm(struct mm_struct *mm, bool mm_is_brand_new)
+ {
+ 	struct task_struct *tsk = current;
+-	struct mm_struct *old_active_mm, *mm_to_drop = NULL;
++	struct mm_struct *old_active_mm;
++	bool was_kernel;
  
- 	/* Take note of the planned idle state. */
- 	sched_idle_set_state(target_state);
-diff --git a/drivers/idle/intel_idle.c b/drivers/idle/intel_idle.c
-index e6c543b5ee1d..bb5d3b3e28df 100644
---- a/drivers/idle/intel_idle.c
-+++ b/drivers/idle/intel_idle.c
-@@ -115,8 +115,8 @@ static unsigned int mwait_substates __initdata;
-  * If the local APIC timer is not known to be reliable in the target idle state,
-  * enable one-shot tick broadcasting for the target CPU before executing MWAIT.
-  *
-- * Optionally call leave_mm() for the target CPU upfront to avoid wakeups due to
-- * flushing user TLBs.
-+ * Optionally call unlazy_mm_irqs_off() for the target CPU upfront to avoid
-+ * wakeups due to flushing user TLBs.
-  *
-  * Must be called under local_irq_disable().
-  */
-diff --git a/include/linux/mmu_context.h b/include/linux/mmu_context.h
-index b9b970f7ab45..035e8e42eb78 100644
---- a/include/linux/mmu_context.h
-+++ b/include/linux/mmu_context.h
-@@ -10,9 +10,7 @@
- # define switch_mm_irqs_off switch_mm
- #endif
+ 	BUG_ON(!mm);	/* likely to cause corruption if we continue */
  
--#ifndef leave_mm
--static inline void leave_mm(int cpu) { }
--#endif
-+extern void unlazy_mm_irqs_off(void);
+@@ -4958,12 +5109,9 @@ void __change_current_mm(struct mm_struct *mm, bool mm_is_brand_new)
+ 	if (tsk->mm) {
+ 		/* We're detaching from an old mm.  Sync stats. */
+ 		sync_mm_rss(tsk->mm);
++		was_kernel = false;
+ 	} else {
+-		/*
+-		 * Switching from kernel mm to user.  Drop the old lazy
+-		 * mm reference.
+-		 */
+-		mm_to_drop = tsk->active_mm;
++		was_kernel = true;
+ 	}
  
- /*
-  * CPUs that are capable of running user task @p. Must contain at least one
-diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
-index 1010e63962d9..e57121bc84d5 100644
---- a/kernel/sched/sched.h
-+++ b/kernel/sched/sched.h
-@@ -3071,5 +3071,3 @@ extern int preempt_dynamic_mode;
- extern int sched_dynamic_mode(const char *str);
- extern void sched_dynamic_update(int mode);
+ 	old_active_mm = tsk->active_mm;
+@@ -4992,6 +5140,10 @@ void __change_current_mm(struct mm_struct *mm, bool mm_is_brand_new)
+ 
+ 	membarrier_finish_switch_mm(mm);
+ 	vmacache_flush(tsk);
++
++	if (was_kernel)
++		smp_store_release(&this_rq()->lazy_mm, NULL);
++
+ 	task_unlock(tsk);
+ 
+ #ifdef finish_arch_post_lock_switch
+@@ -5009,9 +5161,6 @@ void __change_current_mm(struct mm_struct *mm, bool mm_is_brand_new)
+ 		finish_arch_post_lock_switch();
+ 	}
  #endif
 -
--extern void unlazy_mm_irqs_off(void);
+-	if (mm_to_drop)
+-		mmdrop(mm_to_drop);
+ }
+ 
+ void __change_current_mm_to_kernel(void)
+@@ -5044,8 +5193,17 @@ void __change_current_mm_to_kernel(void)
+ 	membarrier_update_current_mm(NULL);
+ 	vmacache_flush(tsk);
+ 
+-	/* active_mm is still 'old_mm' */
+-	mmgrab(old_mm);
++	/*
++	 * active_mm is still 'old_mm'
++	 *
++	 * Acqure a lazy_mm reference to the active (lazy) mm.  As in
++	 * context_switch(), no explicit barrier needed: we still hold an
++	 * explicit (mm_users) reference.  __mmput() can't be called until we
++	 * call mmput() to drop our reference, and __mmput() is a release
++	 * barrier.
++	 */
++	WRITE_ONCE(this_rq()->lazy_mm, old_mm);
++
+ 	enter_lazy_tlb(old_mm, tsk);
+ 
+ 	local_irq_enable();
+@@ -8805,6 +8963,7 @@ void __init init_idle(struct task_struct *idle, int cpu)
+ void unlazy_mm_irqs_off(void)
+ {
+ 	struct mm_struct *mm = current->active_mm;
++	struct rq *rq = this_rq();
+ 
+ 	lockdep_assert_irqs_disabled();
+ 
+@@ -8815,10 +8974,17 @@ void unlazy_mm_irqs_off(void)
+ 		return;
+ 
+ 	switch_mm_irqs_off(mm, &init_mm, current);
+-	mmgrab(&init_mm);
+ 	current->active_mm = &init_mm;
++
++	/*
++	 * We don't need a lazy reference to init_mm -- it's not about
++	 * to go away.
++	 */
++	smp_store_release(&rq->lazy_mm, NULL);
++
+ 	finish_arch_post_lock_switch();
+-	mmdrop(mm);
++
++	mmdrop_lazy(rq);
+ }
+ 
+ #ifdef CONFIG_SMP
+diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
+index b496a9ee9aec..1010e63962d9 100644
+--- a/kernel/sched/sched.h
++++ b/kernel/sched/sched.h
+@@ -977,7 +977,15 @@ struct rq {
+ 	struct task_struct	*idle;
+ 	struct task_struct	*stop;
+ 	unsigned long		next_balance;
+-	struct mm_struct	*prev_mm;
++
++	/*
++	 * Fast refcounting scheme for lazy mm.  lazy_mm is a hazard pointer:
++	 * setting it to point to a lazily used mm keeps that mm from being
++	 * freed.  drop_mm points to am mm that needs an mmdrop() call
++	 * after the CPU owning the rq is done with it.
++	 */
++	struct mm_struct	*lazy_mm;
++	struct mm_struct	*drop_mm;
+ 
+ 	unsigned int		clock_update_flags;
+ 	u64			clock;
 -- 
 2.33.1
 
