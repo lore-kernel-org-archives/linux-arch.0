@@ -2,32 +2,32 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C9B68C4332F
-	for <linux-arch@archiver.kernel.org>; Sat,  8 Jan 2022 16:44:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EB6D6C43219
+	for <linux-arch@archiver.kernel.org>; Sat,  8 Jan 2022 16:44:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234695AbiAHQoZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 8 Jan 2022 11:44:25 -0500
-Received: from ams.source.kernel.org ([145.40.68.75]:33418 "EHLO
+        id S234706AbiAHQo0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 8 Jan 2022 11:44:26 -0500
+Received: from ams.source.kernel.org ([145.40.68.75]:33468 "EHLO
         ams.source.kernel.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232038AbiAHQoW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2022 11:44:22 -0500
+        with ESMTP id S234655AbiAHQoY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2022 11:44:24 -0500
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id DE538B8075E
-        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 16:44:21 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4E76AC36AE3;
-        Sat,  8 Jan 2022 16:44:20 +0000 (UTC)
+        by ams.source.kernel.org (Postfix) with ESMTPS id D2CA2B80B3D
+        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 16:44:23 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7EE1AC36AE0;
+        Sat,  8 Jan 2022 16:44:22 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1641660260;
-        bh=bUrRFZAr479LQP/6WPwNI+9QSQKTdrq6o7ocsecDxbU=;
+        s=k20201202; t=1641660262;
+        bh=HiBwx4mEtQnTc2WUpUmEOonDFLkmsmydNayy9m64VSo=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=HZ333cMtnVBA70AW2odanHwWzISHcbq2v8sHljXikH2mkdQZhlc9Ej6nG9o6YiAGU
-         JAMax/oSICJXzkPkJkuLtc+lJpSFR/2IJ8d2CxOZ5yDhFB4iL16bCvdurC3VmLS8p0
-         XdRjpXEIJcrn7YP5BfOvRkEIK+ZwGDlLSRR8mPRAQUjlWfwMfBhz+/6dl7q6A2supO
-         teM2enjF/rxtXkArCAH64SyMEzGfoqitT7V3KfrpNbbcjQz3B/hvJX+vBCmUW3zdvT
-         uNVP5rvUGXLYhJaRgFM1pEHYiruMtHIx7LEotVnN3xVRE/aq/dSs1skvVkCzrJ3OwX
-         tjaFoWDe+Q3Hg==
+        b=CtuXWiYgNBgfp5jlSiNLYtFt2CiAU59U2LgHizBP/dUVyrQwrBYVX9+SWSEkl8PGT
+         eObayJdoFqyHCK8HSK3krTIjNdm7ydCpttcbshOMSeNl9OtEvUw35bP7DkZ09hrMDF
+         j5eh54OZysoUhXTJ2aAjrEDVruVexhI0VqWjiveDz5Q7E3u+6wxHmeVrS+vHNpAlNP
+         VWrLQv1R9GaAc0ngFWIFZRwFhsjCikcnqI9LTGhNysp6dmOR4XsUBEOJ6NLrPw07Gv
+         nhSlp+8KEM42aG0rLAZaB7sZZbyzoB5O/rmGpVBBjApn2X8hJGVep+qrUapQDvMAY8
+         8v/Or3RgKfdOQ==
 From:   Andy Lutomirski <luto@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>,
         Linux-MM <linux-mm@kvack.org>
@@ -43,9 +43,9 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>,
         Nadav Amit <nadav.amit@gmail.com>,
         Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
         Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH 03/23] membarrier: Remove membarrier_arch_switch_mm() prototype in core code
-Date:   Sat,  8 Jan 2022 08:43:48 -0800
-Message-Id: <651efcf54f1d16467b12077b5366dfce587191d3.1641659630.git.luto@kernel.org>
+Subject: [PATCH 05/23] membarrier, kthread: Use _ONCE accessors for task->mm
+Date:   Sat,  8 Jan 2022 08:43:50 -0800
+Message-Id: <e6e7c11c38a3880e56fb7dfff4fa67090d831a3b.1641659630.git.luto@kernel.org>
 X-Mailer: git-send-email 2.33.1
 In-Reply-To: <cover.1641659630.git.luto@kernel.org>
 References: <cover.1641659630.git.luto@kernel.org>
@@ -55,41 +55,101 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-membarrier_arch_switch_mm()'s sole implementation and caller are in
-arch/powerpc.  Having a fallback implementation in include/linux is
-confusing -- remove it.
-
-It's still mentioned in a comment, but a subsequent patch will remove
-it.
+membarrier reads cpu_rq(remote cpu)->curr->mm without locking.  Use
+READ_ONCE() and WRITE_ONCE() to remove the data races.
 
 Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 Cc: Nicholas Piggin <npiggin@gmail.com>
 Cc: Peter Zijlstra <peterz@infradead.org>
 Acked-by: Nicholas Piggin <npiggin@gmail.com>
-Acked-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- include/linux/sched/mm.h | 7 -------
- 1 file changed, 7 deletions(-)
+ fs/exec.c                 | 2 +-
+ kernel/exit.c             | 2 +-
+ kernel/kthread.c          | 4 ++--
+ kernel/sched/membarrier.c | 7 ++++---
+ 4 files changed, 8 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
-index c256a7fc0423..0df706c099e5 100644
---- a/include/linux/sched/mm.h
-+++ b/include/linux/sched/mm.h
-@@ -350,13 +350,6 @@ extern void membarrier_exec_mmap(struct mm_struct *mm);
- extern void membarrier_update_current_mm(struct mm_struct *next_mm);
+diff --git a/fs/exec.c b/fs/exec.c
+index 3abbd0294e73..38b05e01c5bd 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1006,7 +1006,7 @@ static int exec_mmap(struct mm_struct *mm)
+ 	local_irq_disable();
+ 	active_mm = tsk->active_mm;
+ 	tsk->active_mm = mm;
+-	tsk->mm = mm;
++	WRITE_ONCE(tsk->mm, mm);  /* membarrier reads this without locks */
+ 	/*
+ 	 * This prevents preemption while active_mm is being loaded and
+ 	 * it and mm are being updated, which could cause problems for
+diff --git a/kernel/exit.c b/kernel/exit.c
+index 91a43e57a32e..70f2cbc42015 100644
+--- a/kernel/exit.c
++++ b/kernel/exit.c
+@@ -491,7 +491,7 @@ static void exit_mm(void)
+ 	 */
+ 	smp_mb__after_spinlock();
+ 	local_irq_disable();
+-	current->mm = NULL;
++	WRITE_ONCE(current->mm, NULL);
+ 	membarrier_update_current_mm(NULL);
+ 	enter_lazy_tlb(mm, current);
+ 	local_irq_enable();
+diff --git a/kernel/kthread.c b/kernel/kthread.c
+index 396ae78a1a34..3b18329f885c 100644
+--- a/kernel/kthread.c
++++ b/kernel/kthread.c
+@@ -1358,7 +1358,7 @@ void kthread_use_mm(struct mm_struct *mm)
+ 		mmgrab(mm);
+ 		tsk->active_mm = mm;
+ 	}
+-	tsk->mm = mm;
++	WRITE_ONCE(tsk->mm, mm);  /* membarrier reads this without locks */
+ 	membarrier_update_current_mm(mm);
+ 	switch_mm_irqs_off(active_mm, mm, tsk);
+ 	membarrier_finish_switch_mm(mm);
+@@ -1399,7 +1399,7 @@ void kthread_unuse_mm(struct mm_struct *mm)
+ 	smp_mb__after_spinlock();
+ 	sync_mm_rss(mm);
+ 	local_irq_disable();
+-	tsk->mm = NULL;
++	WRITE_ONCE(tsk->mm, NULL);  /* membarrier reads this without locks */
+ 	membarrier_update_current_mm(NULL);
+ 	/* active_mm is still 'mm' */
+ 	enter_lazy_tlb(mm, tsk);
+diff --git a/kernel/sched/membarrier.c b/kernel/sched/membarrier.c
+index 30e964b9689d..327830f89c37 100644
+--- a/kernel/sched/membarrier.c
++++ b/kernel/sched/membarrier.c
+@@ -411,7 +411,7 @@ static int membarrier_private_expedited(int flags, int cpu_id)
+ 			goto out;
+ 		rcu_read_lock();
+ 		p = rcu_dereference(cpu_rq(cpu_id)->curr);
+-		if (!p || p->mm != mm) {
++		if (!p || READ_ONCE(p->mm) != mm) {
+ 			rcu_read_unlock();
+ 			goto out;
+ 		}
+@@ -424,7 +424,7 @@ static int membarrier_private_expedited(int flags, int cpu_id)
+ 			struct task_struct *p;
  
- #else
--#ifdef CONFIG_ARCH_HAS_MEMBARRIER_CALLBACKS
--static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
--					     struct mm_struct *next,
--					     struct task_struct *tsk)
--{
--}
--#endif
- static inline void membarrier_exec_mmap(struct mm_struct *mm)
- {
- }
+ 			p = rcu_dereference(cpu_rq(cpu)->curr);
+-			if (p && p->mm == mm)
++			if (p && READ_ONCE(p->mm) == mm)
+ 				__cpumask_set_cpu(cpu, tmpmask);
+ 		}
+ 		rcu_read_unlock();
+@@ -522,7 +522,8 @@ static int sync_runqueues_membarrier_state(struct mm_struct *mm)
+ 		struct task_struct *p;
+ 
+ 		p = rcu_dereference(rq->curr);
+-		if (p && p->mm == mm)
++		/* exec and kthread_use_mm() write ->mm without locks */
++		if (p && READ_ONCE(p->mm) == mm)
+ 			__cpumask_set_cpu(cpu, tmpmask);
+ 	}
+ 	rcu_read_unlock();
 -- 
 2.33.1
 
