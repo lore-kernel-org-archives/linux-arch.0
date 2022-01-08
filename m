@@ -2,109 +2,132 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 168E4C433F5
-	for <linux-arch@archiver.kernel.org>; Sat,  8 Jan 2022 18:35:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 145E2C433EF
+	for <linux-arch@archiver.kernel.org>; Sat,  8 Jan 2022 19:13:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232279AbiAHSfv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 8 Jan 2022 13:35:51 -0500
-Received: from out01.mta.xmission.com ([166.70.13.231]:55136 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232254AbiAHSfv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2022 13:35:51 -0500
-Received: from in01.mta.xmission.com ([166.70.13.51]:45910)
-        by out01.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1n6GZC-001B9H-7N; Sat, 08 Jan 2022 11:35:50 -0700
-Received: from ip68-110-24-146.om.om.cox.net ([68.110.24.146]:34964 helo=email.froward.int.ebiederm.org.xmission.com)
-        by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1n6GZA-000yWM-0L; Sat, 08 Jan 2022 11:35:49 -0700
-From:   "Eric W. Biederman" <ebiederm@xmission.com>
-To:     Al Viro <viro@zeniv.linux.org.uk>
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Linus Torvalds <torvalds@linux-foundation.org>,
+        id S229538AbiAHTNY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 8 Jan 2022 14:13:24 -0500
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:33690 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S230409AbiAHTNX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2022 14:13:23 -0500
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 208J1dSM028622;
+        Sat, 8 Jan 2022 19:13:14 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=date : from : to : cc :
+ subject : message-id : references : content-type : in-reply-to :
+ mime-version; s=pp1; bh=ZtrEmj7RpLT0D2CRHKuWX77vx/C+jmz39Z1GFmH3mLs=;
+ b=tHqU1llKYcXRmyJ2hPlZPcDrCzMthnMjQ6FHBCKK/+d2tuoN5POvef0cikqmXgKGkqu8
+ gxo3qWCqEWGyizloBiONrA/qTFUYqRqU/Ihxd+iSN1negkudiRNvbw7Sqod3CieychtI
+ 2LlMdVm+tU0q4Lp3WaLL4k+9DaOpmQkaQbQOfay8tGtvFB/kMPG+266ctHesN8njk6QT
+ lbclNazsdI/GTT/7LvlkHLcgnEJF/xxgPOFUZdJHfQA1z9UM7OXf73BqcKZr+I5CqFNl
+ NE+I/NrgIJvrAALOxz9nz3zgDWioqKrYIJMpyvyVJsGVeXfAr1jYadDDHBXZXFA3Rnwe DQ== 
+Received: from pps.reinject (localhost [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 3df37w1e36-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Sat, 08 Jan 2022 19:13:13 +0000
+Received: from m0098414.ppops.net (m0098414.ppops.net [127.0.0.1])
+        by pps.reinject (8.16.0.43/8.16.0.43) with SMTP id 208J4kFu006144;
+        Sat, 8 Jan 2022 19:13:13 GMT
+Received: from ppma06ams.nl.ibm.com (66.31.33a9.ip4.static.sl-reverse.com [169.51.49.102])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 3df37w1e2w-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Sat, 08 Jan 2022 19:13:13 +0000
+Received: from pps.filterd (ppma06ams.nl.ibm.com [127.0.0.1])
+        by ppma06ams.nl.ibm.com (8.16.1.2/8.16.1.2) with SMTP id 208J7cox001250;
+        Sat, 8 Jan 2022 19:13:11 GMT
+Received: from b06cxnps4074.portsmouth.uk.ibm.com (d06relay11.portsmouth.uk.ibm.com [9.149.109.196])
+        by ppma06ams.nl.ibm.com with ESMTP id 3df1vhb012-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Sat, 08 Jan 2022 19:13:11 +0000
+Received: from d06av25.portsmouth.uk.ibm.com (d06av25.portsmouth.uk.ibm.com [9.149.105.61])
+        by b06cxnps4074.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 208JD8Ae32506164
+        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Sat, 8 Jan 2022 19:13:08 GMT
+Received: from d06av25.portsmouth.uk.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id C87AD11C04A;
+        Sat,  8 Jan 2022 19:13:08 +0000 (GMT)
+Received: from d06av25.portsmouth.uk.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id 646E911C04C;
+        Sat,  8 Jan 2022 19:13:08 +0000 (GMT)
+Received: from osiris (unknown [9.145.35.196])
+        by d06av25.portsmouth.uk.ibm.com (Postfix) with ESMTPS;
+        Sat,  8 Jan 2022 19:13:08 +0000 (GMT)
+Date:   Sat, 8 Jan 2022 20:13:06 +0100
+From:   Heiko Carstens <hca@linux.ibm.com>
+To:     "Eric W. Biederman" <ebiederm@xmission.com>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux API <linux-api@vger.kernel.org>,
         Alexey Gladkov <legion@kernel.org>,
         Kyle Huey <me@kylehuey.com>, Oleg Nesterov <oleg@redhat.com>,
         Kees Cook <keescook@chromium.org>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@de.ibm.com>,
-        Alexander Gordeev <agordeev@linux.ibm.com>,
-        Martin Schwidefsky <schwidefsky@de.ibm.com>
+        Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [PATCH 1/8] signal: Make SIGKILL during coredumps an explicit
+ special case
+Message-ID: <YdniQob7w5hTwB1v@osiris>
 References: <87a6ha4zsd.fsf@email.froward.int.ebiederm.org>
-        <20211208202532.16409-6-ebiederm@xmission.com>
-        <YdelKq9U86/dHPcm@zeniv-ca.linux.org.uk>
-Date:   Sat, 08 Jan 2022 12:35:40 -0600
-In-Reply-To: <YdelKq9U86/dHPcm@zeniv-ca.linux.org.uk> (Al Viro's message of
-        "Fri, 7 Jan 2022 02:27:54 +0000")
-Message-ID: <87mtk6xegz.fsf@email.froward.int.ebiederm.org>
-User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/27.1 (gnu/linux)
+ <20211213225350.27481-1-ebiederm@xmission.com>
+ <CAHk-=wiS2P+p9VJXV_fWd5ntashbA0QVzJx15rTnWOCAAVJU_Q@mail.gmail.com>
+ <87sfu3b7wm.fsf@email.froward.int.ebiederm.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87sfu3b7wm.fsf@email.froward.int.ebiederm.org>
+X-TM-AS-GCONF: 00
+X-Proofpoint-GUID: iK6vptB3IxazjPD9tBOXzl9b-opgXk7z
+X-Proofpoint-ORIG-GUID: 7N4-cUVmsiUdvBVeWxNSY1UpZbWLMSIk
+X-Proofpoint-UnRewURL: 0 URL was un-rewritten
 MIME-Version: 1.0
-Content-Type: text/plain
-X-XM-SPF: eid=1n6GZA-000yWM-0L;;;mid=<87mtk6xegz.fsf@email.froward.int.ebiederm.org>;;;hst=in01.mta.xmission.com;;;ip=68.110.24.146;;;frm=ebiederm@xmission.com;;;spf=neutral
-X-XM-AID: U2FsdGVkX1/1ipY1OWZW4SaoF1lvXkFf3VgC4j/5rJo=
-X-SA-Exim-Connect-IP: 68.110.24.146
-X-SA-Exim-Mail-From: ebiederm@xmission.com
-Subject: Re: [PATCH 06/10] exit: Implement kthread_exit
-X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
-X-SA-Exim-Scanned: Yes (on in01.mta.xmission.com)
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.205,Aquarius:18.0.790,Hydra:6.0.425,FMLib:17.11.62.513
+ definitions=2022-01-08_07,2022-01-07_01,2021-12-02_01
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 adultscore=0 mlxlogscore=693
+ priorityscore=1501 suspectscore=0 clxscore=1011 spamscore=0 phishscore=0
+ mlxscore=0 impostorscore=0 bulkscore=0 malwarescore=0 lowpriorityscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2110150000
+ definitions=main-2201080145
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Al Viro <viro@zeniv.linux.org.uk> writes:
+On Tue, Jan 04, 2022 at 01:47:05PM -0600, Eric W. Biederman wrote:
+> Currently I suspect changing wait_event_uninterruptible to
+> wait_event_killable, is causing problems.
+> 
+> Or perhaps there is some reason tasks that have already entered do_exit
+> need to have fatal_signal_pending set. (The will have
+> fatal_signal_pending set up until they enter get_signal which calls
+> do_group_exit which calls do_exit).
+> 
+> Which is why I am trying to reproduce the reported failure so I can get
+> the kernel to tell me what is going on.  If this is not resolved quickly
+> I won't send you this change, and I will pull it out of linux-next.
 
-> IMO the right way to handle that would be
-> 	1) turn these two do_exit() into do_exit(0), to reduce
-> confusion
-> 	2) deal with all do_exit() in kthread payloads.  Your
-> name for the primitive is fine, IMO.
-> 	3) make that primitive pass the return value by way of
-> a field in struct kthread, adjusting kthread_stop() accordingly
-> and passing 0 to do_exit() in kthread_exit() itself.
->
-> (2) is not as trivial as you seem to hope, though.  Your patches
-> in drivers/staging/rt*/ had papered over the problem in there,
-> but hadn't really solved it.
->
-> thread_exit() should've been shot, all right, but it really ought
-> to have been complete_and_exit() there.  The thing is, complete()
-> + return does *not* guarantee that driver won't get unloaded before
-> the thread terminates.  Possibly freeing its .code and leaving
-> a thread to resume running in there as soon as it regains CPU.
->
-> The point of complete_and_exit() is that it's noreturn *and* in
-> core kernel.  So it can be safely used in a modular kthread,
-> if paired with wait_for_completion() in or before module_exit.
-> complete() + do_exit() (or complete + return as you've gotten
-> there) doesn't give such guarantees at all.
+It would have been good if you would have removed this from linux-next
+already.
 
+Anyway, now I also had to spend quite some time to bisect why several test
+suites just hang with linux-next. It's probably because of holidays that
+you didn't get more bug reports.
 
-I think we are mostly in agreement here.
+On s390
 
-There are kernel threads started by modules that do:
-	complete(...);
-        return 0;
+- ltp
+- elfutils selftests
+- seccomp kernel selftests
 
-That should be at a minimum calling complete_and_exit.  Possibly should
-be restructured to use kthread_stop().
+hang with linux-next.
 
-Some of those users of the now removed thread_exit() in staging are
-among the offenders.
+I bisected the problem to this patch using elfutils selftests:
 
-However thread_exit() was implemented as:
-	#define thread_exit() complete_and_exit(NULL, 0)
+git clone git://sourceware.org/git/elfutils.git
+cd elfutils
+autoreconf -fi
+./configure --enable-maintainer-mode --disable-debuginfod
+make -j $(nproc) > /dev/null
+cd tests
+make -j $(nproc) check
 
-Which does nothing with a completion, it was just a really funny way to
-spell "do_exit(0)".
-
-While I agree digging through all of the kernel threads and finding the
-ones that should be calling complete_and_exit is a fine idea.  It is
-a concern independent of these patches.
-
-> I'm (re)crawling through that zoo right now, will post when
-> I get more details.
-
-Eric
+Note: I actually didn't verify if this also causes ltp+seccomp selftests
+      to hang. I just assume it is the case.
