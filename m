@@ -2,35 +2,35 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 568ABC4167B
-	for <linux-arch@archiver.kernel.org>; Sat,  8 Jan 2022 16:44:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2A71AC433FE
+	for <linux-arch@archiver.kernel.org>; Sat,  8 Jan 2022 16:44:47 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234700AbiAHQon (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 8 Jan 2022 11:44:43 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53084 "EHLO
+        id S234660AbiAHQop (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 8 Jan 2022 11:44:45 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53102 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234697AbiAHQoi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2022 11:44:38 -0500
+        with ESMTP id S234673AbiAHQon (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2022 11:44:43 -0500
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2C1F7C061746
-        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 08:44:38 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E7A80C061401
+        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 08:44:42 -0800 (PST)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id C027C60DD0
-        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 16:44:37 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0E5CDC36AE0;
-        Sat,  8 Jan 2022 16:44:37 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 8681060DD0
+        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 16:44:42 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C3E3FC36AED;
+        Sat,  8 Jan 2022 16:44:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1641660277;
-        bh=4/phD45ccBwKpoEpuFHVuaC4/6+F9ASvK+hhO/SU8Fo=;
+        s=k20201202; t=1641660282;
+        bh=vHQAtfJ1+OgjeriZePikcaC9D/iAK/oYRR/naawsr2g=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=fXxmmXTBkFoFc6QR/NgokKjHl/kD2AA7EmiuQeyFtV6de+D5/klMZnZR18SFCwNat
-         nlYbn+f/Tj+XDTl9Kc/6FfiMbDc0dBF52mcyPFq0Y+WWUDSHsabaUQAlKtbjXoc7yK
-         xsNL10IiLydVRUmGKmf7kx6c7EOS7Sgrenl5SStfYcVnvAxxBUcI91U0xxjRgFJitT
-         DsBmXeKzpJVHu/fSNV+EV4FM2LYmnjvFRJDhm+ly7uXb5284aUJdaXoalZOMVpE8ER
-         jSwt8bkjFo1QGts8nHMiMNpb3hb4t3eOkaCRIAFVqVEColWw53avbh4E7vzularl3k
-         hGh9mVafpDgIA==
+        b=aACd1MXlpkQJQQcnnNNlV12g06l4RWnDcLP8nKrsMAbq33gFkGpGx/qLyCU2Y+301
+         4mLpwCwOq8IV9o3P+SqaG8R306edy1pe9BXs8dlAvDoLvXh81DM9sIyHyFp6OZMLVO
+         3M2F8QA3Ez+S15ZocfYALEDWw8vlKNsQesnBHqGK+6yfSuhT/CWtgWWMMF6mZECaaU
+         TrzQBxV1v0XCTMhj5bAZhXSohc12CCoo7ntkh0gYVqZTBFtMqEdyo600w4JT1sP1el
+         aje6L7XWI/jygOh1JR92JrtYEqdH1V2FxPXaLMj5jM0kPBn3c87iH6UY4R33oe/a9H
+         CFkWflxotEV6g==
 From:   Andy Lutomirski <luto@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>,
         Linux-MM <linux-mm@kvack.org>
@@ -46,9 +46,9 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>,
         Nadav Amit <nadav.amit@gmail.com>,
         Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
         Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH 18/23] x86/mm: Allow temporary mms when IRQs are on
-Date:   Sat,  8 Jan 2022 08:44:03 -0800
-Message-Id: <a8a92ce490b57447ef56898c55133473e481896e.1641659630.git.luto@kernel.org>
+Subject: [PATCH 22/23] x86/mm: Optimize for_each_possible_lazymm_cpu()
+Date:   Sat,  8 Jan 2022 08:44:07 -0800
+Message-Id: <13849aa0218e0f32ac16b82950c682395a8fb5c7.1641659630.git.luto@kernel.org>
 X-Mailer: git-send-email 2.33.1
 In-Reply-To: <cover.1641659630.git.luto@kernel.org>
 References: <cover.1641659630.git.luto@kernel.org>
@@ -58,60 +58,45 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-EFI runtime services should use temporary mms, but EFI runtime services
-want IRQs on.  Preemption must still be disabled in a temporary mm context.
-
-At some point, the entirely temporary mm mechanism should be moved out of
-arch code.
+Now that x86 does not switch away from a lazy mm behind the scheduler's
+back and thus clear a CPU from mm_cpumask() that the scheduler thinks is
+lazy, x86 can use mm_cpumask() to optimize for_each_possible_lazymm_cpu().
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/mm/tlb.c | 19 ++++++++++++-------
- 1 file changed, 12 insertions(+), 7 deletions(-)
+ arch/x86/include/asm/mmu.h | 4 ++++
+ arch/x86/mm/tlb.c          | 4 +++-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
 
+diff --git a/arch/x86/include/asm/mmu.h b/arch/x86/include/asm/mmu.h
+index 03ba71420ff3..da55f768e68c 100644
+--- a/arch/x86/include/asm/mmu.h
++++ b/arch/x86/include/asm/mmu.h
+@@ -63,5 +63,9 @@ typedef struct {
+ 		.lock = __MUTEX_INITIALIZER(mm.context.lock),		\
+ 	}
+ 
++/* On x86, mm_cpumask(mm) contains all CPUs that might be lazily using mm */
++#define for_each_possible_lazymm_cpu(cpu, mm) \
++	for_each_cpu((cpu), mm_cpumask((mm)))
++
+ 
+ #endif /* _ASM_X86_MMU_H */
 diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
-index 4e371f30e2ab..36ce9dffb963 100644
+index 225b407812c7..04eb43e96e23 100644
 --- a/arch/x86/mm/tlb.c
 +++ b/arch/x86/mm/tlb.c
-@@ -708,18 +708,23 @@ void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
-  * that override the kernel memory protections (e.g., W^X), without exposing the
-  * temporary page-table mappings that are required for these write operations to
-  * other CPUs. Using a temporary mm also allows to avoid TLB shootdowns when the
-- * mapping is torn down.
-+ * mapping is torn down.  Temporary mms can also be used for EFI runtime service
-+ * calls or similar functionality.
-  *
-- * Context: The temporary mm needs to be used exclusively by a single core. To
-- *          harden security IRQs must be disabled while the temporary mm is
-- *          loaded, thereby preventing interrupt handler bugs from overriding
-- *          the kernel memory protection.
-+ * It is illegal to schedule while using a temporary mm -- the context switch
-+ * code is unaware of the temporary mm and does not know how to context switch.
-+ * Use a real (non-temporary) mm in a kernel thread if you need to sleep.
-+ *
-+ * Note: For sensitive memory writes, the temporary mm needs to be used
-+ *       exclusively by a single core, and IRQs should be disabled while the
-+ *       temporary mm is loaded, thereby preventing interrupt handler bugs from
-+ *       overriding the kernel memory protection.
-  */
- temp_mm_state_t use_temporary_mm(struct mm_struct *mm)
- {
- 	temp_mm_state_t temp_state;
- 
--	lockdep_assert_irqs_disabled();
-+	lockdep_assert_preemption_disabled();
- 
+@@ -706,7 +706,9 @@ temp_mm_state_t use_temporary_mm(struct mm_struct *mm)
  	/*
  	 * Make sure not to be in TLB lazy mode, as otherwise we'll end up
-@@ -751,7 +756,7 @@ temp_mm_state_t use_temporary_mm(struct mm_struct *mm)
- 
- void unuse_temporary_mm(temp_mm_state_t prev_state)
- {
--	lockdep_assert_irqs_disabled();
-+	lockdep_assert_preemption_disabled();
- 	switch_mm_irqs_off(NULL, prev_state.mm, current);
- 
- 	/*
+ 	 * with a stale address space WITHOUT being in lazy mode after
+-	 * restoring the previous mm.
++	 * restoring the previous mm.  Additionally, once we switch mms,
++	 * for_each_possible_lazymm_cpu() will no longer report this CPU,
++	 * so a lazymm pin wouldn't work.
+ 	 */
+ 	if (this_cpu_read(cpu_tlbstate_shared.is_lazy))
+ 		unlazy_mm_irqs_off();
 -- 
 2.33.1
 
