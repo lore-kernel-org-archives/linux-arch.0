@@ -2,35 +2,32 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4B942C4332F
-	for <linux-arch@archiver.kernel.org>; Sat,  8 Jan 2022 16:44:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D236BC433FE
+	for <linux-arch@archiver.kernel.org>; Sat,  8 Jan 2022 16:44:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234728AbiAHQoe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 8 Jan 2022 11:44:34 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53040 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234673AbiAHQob (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2022 11:44:31 -0500
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 83394C061401
-        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 08:44:31 -0800 (PST)
+        id S232231AbiAHQoa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 8 Jan 2022 11:44:30 -0500
+Received: from dfw.source.kernel.org ([139.178.84.217]:50246 "EHLO
+        dfw.source.kernel.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S234698AbiAHQo0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2022 11:44:26 -0500
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 0AAD760DE4
-        for <linux-arch@vger.kernel.org>; Sat,  8 Jan 2022 16:44:31 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4DB21C36AE0;
-        Sat,  8 Jan 2022 16:44:30 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 9E34E60DD7;
+        Sat,  8 Jan 2022 16:44:25 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D8EB3C36AEF;
+        Sat,  8 Jan 2022 16:44:24 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1641660270;
-        bh=pgtinwacUtnBeJrky/D8oYhqQ9FWRPsgYNyqIlGtAfk=;
+        s=k20201202; t=1641660265;
+        bh=nCJ6JL8IVos0CgiyyAGe15m3ZdsuNKsEv9GJVjhwIOI=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=c6CfzbD6d8c3+LBQbBZ9SOvugdwriXJbrBmrj+CT88nV8D2tiCbMznJTXpviUKJ3o
-         eKvuobEEx8o/V4L+TppMNaNt1pQW6X+LgeZZIsvgUaKb7xVQdOK5/niGFP4AXBtCga
-         cfc6TkgRb3efnluBFPjcEXZzjSvLEJKBCTAFYwNRpmkf3VR2+ew9sdZhaqszswH1ZC
-         wQB3zJbsLNS/NCVmnllHpBLH4xpKNsVB2P16kvJMzXDUUeJUt68ZgpGN+nZ1Cbhyrj
-         Yl8w1ol3618Gwx+MTJVTZxodFBavlpjI7uNZpw61vp1LzzFv/oa6ZWHq4HqzOQ3rCk
-         8OMKx8WOaVHaQ==
+        b=WtHuJMx7z0eKUfRVr+x8ybkHoQH5R7jphHS4lUHOVZi4MG9PdHrBL9P0lyvCaSaIH
+         1EkYq/MwLrm81oeFXOYQblb7oQVYh1/gidhXADq0+Wyq1LReeiV2H7p5p7yI+7c3o1
+         0Vr1Lq+hGO6rgLqtctcq8b/Fk1I/9k/ybOzc2qkMjkVsNu5T9gzTBfGhkpIhD8fVPW
+         Y4PB3RuJZwBSuUxn1RzK/aXpei0NaV9vsRwFI+hnxmcCYTrh7c7pAFUa8EvpmB49sd
+         dVNQNxJv1gZjDjYnff2yjZK2OTJwPVe9QtRy6WJUYBkSjz8CjlxtdivNGFs6Vsgpqi
+         RIi+11VU5yWcA==
 From:   Andy Lutomirski <luto@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>,
         Linux-MM <linux-mm@kvack.org>
@@ -45,10 +42,16 @@ Cc:     Nicholas Piggin <npiggin@gmail.com>,
         Peter Zijlstra <peterz@infradead.org>,
         Nadav Amit <nadav.amit@gmail.com>,
         Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-        Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH 12/23] Rework "sched/core: Fix illegal RCU from offline CPUs"
-Date:   Sat,  8 Jan 2022 08:43:57 -0800
-Message-Id: <bbe374507b9938f303f8a1e40116b7629f3e06b5.1641659630.git.luto@kernel.org>
+        Andy Lutomirski <luto@kernel.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Paul Mackerras <paulus@samba.org>,
+        linuxppc-dev@lists.ozlabs.org,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>,
+        linux-arm-kernel@lists.infradead.org, stable@vger.kernel.org
+Subject: [PATCH 07/23] membarrier: Rewrite sync_core_before_usermode() and improve documentation
+Date:   Sat,  8 Jan 2022 08:43:52 -0800
+Message-Id: <d2f76c148fa039d2dea404c03e5fcd2f3dbf3750.1641659630.git.luto@kernel.org>
 X-Mailer: git-send-email 2.33.1
 In-Reply-To: <cover.1641659630.git.luto@kernel.org>
 References: <cover.1641659630.git.luto@kernel.org>
@@ -58,447 +61,482 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This reworks commit bf2c59fce4074e55d622089b34be3a6bc95484fb.  The problem
-solved by that commit was that mmdrop() after cpuhp_report_idle_dead() is
-an illegal use of RCU, so, with that commit applied, mmdrop() of the last
-lazy mm on an offlined CPU was done by the BSP.
+The old sync_core_before_usermode() comments suggested that a
+non-icache-syncing return-to-usermode instruction is x86-specific and that
+all other architectures automatically notice cross-modified code on return
+to userspace.
 
-With the upcoming reworking of lazy mm references, retaining that design
-would involve the cpu hotplug code poking into internal scheduler details.
+This is misleading.  The incantation needed to modify code from one
+CPU and execute it on another CPU is highly architecture dependent.
+On x86, according to the SDM, one must modify the code, issue SFENCE
+if the modification was WC or nontemporal, and then issue a "serializing
+instruction" on the CPU that will execute the code.  membarrier() can do
+the latter.
 
-Rework the fix.  Add a helper unlazy_mm_irqs_off() to fully switch a CPU to
-init_mm, releasing any previous lazy active_mm, and do this before
-cpuhp_report_idle_dead().
+On arm, arm64 and powerpc, one must flush the icache and then flush the
+pipeline on the target CPU, although the CPU manuals don't necessarily use
+this language.
 
-Note that the actual refcounting of init_mm is inconsistent both before and
-after this patch.  Most (all?) arches mmgrab(&init_mm) when booting an AP
-and set current->active_mm = &init_mm on that AP.  This is consistent with
-the current ->active_mm refcounting rules, but archtectures don't do a
-corresponding mmdrop() when a CPU goes offine.  The result is that each
-offline/online cycle leaks one init_mm reference.  This seems fairly
-harmless.
+So let's drop any pretense that we can have a generic way to define or
+implement membarrier's SYNC_CORE operation and instead require all
+architectures to define the helper and supply their own documentation as to
+how to use it.  This means x86, arm64, and powerpc for now.  Let's also
+rename the function from sync_core_before_usermode() to
+membarrier_sync_core_before_usermode() because the precise flushing details
+may very well be specific to membarrier, and even the concept of
+"sync_core" in the kernel is mostly an x86-ism.
 
+(It may well be the case that, on real x86 processors, synchronizing the
+ icache (which requires no action at all) and "flushing the pipeline" is
+ sufficient, but trying to use this language would be confusing at best.
+ LFENCE does something awfully like "flushing the pipeline", but the SDM
+ does not permit LFENCE as an alternative to a "serializing instruction"
+ for this purpose.)
+
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: x86@kernel.org
+Cc: stable@vger.kernel.org
+Acked-by: Will Deacon <will@kernel.org> # for arm64
+Fixes: 70216e18e519 ("membarrier: Provide core serializing command, *_SYNC_CORE")
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/arm/kernel/smp.c                        |  2 -
- arch/arm64/kernel/smp.c                      |  2 -
- arch/csky/kernel/smp.c                       |  2 -
- arch/ia64/kernel/process.c                   |  1 -
- arch/mips/cavium-octeon/smp.c                |  1 -
- arch/mips/kernel/smp-bmips.c                 |  2 -
- arch/mips/kernel/smp-cps.c                   |  1 -
- arch/mips/loongson64/smp.c                   |  2 -
- arch/powerpc/platforms/85xx/smp.c            |  2 -
- arch/powerpc/platforms/powermac/smp.c        |  2 -
- arch/powerpc/platforms/powernv/smp.c         |  1 -
- arch/powerpc/platforms/pseries/hotplug-cpu.c |  2 -
- arch/powerpc/platforms/pseries/pmem.c        |  1 -
- arch/riscv/kernel/cpu-hotplug.c              |  2 -
- arch/s390/kernel/smp.c                       |  1 -
- arch/sh/kernel/smp.c                         |  1 -
- arch/sparc/kernel/smp_64.c                   |  2 -
- arch/x86/kernel/smpboot.c                    |  2 -
- arch/xtensa/kernel/smp.c                     |  1 -
- include/linux/sched/hotplug.h                |  6 ---
- kernel/cpu.c                                 | 18 +-------
- kernel/sched/core.c                          | 43 +++++++++++---------
- kernel/sched/idle.c                          |  1 +
- kernel/sched/sched.h                         |  1 +
- 24 files changed, 27 insertions(+), 72 deletions(-)
+ .../membarrier-sync-core/arch-support.txt     | 69 ++++++-------------
+ arch/arm/include/asm/membarrier.h             | 21 ++++++
+ arch/arm64/include/asm/membarrier.h           | 19 +++++
+ arch/powerpc/include/asm/membarrier.h         | 10 +++
+ arch/x86/Kconfig                              |  1 -
+ arch/x86/include/asm/membarrier.h             | 25 +++++++
+ arch/x86/include/asm/sync_core.h              | 20 ------
+ arch/x86/kernel/alternative.c                 |  2 +-
+ arch/x86/kernel/cpu/mce/core.c                |  2 +-
+ arch/x86/mm/tlb.c                             |  3 +-
+ drivers/misc/sgi-gru/grufault.c               |  2 +-
+ drivers/misc/sgi-gru/gruhandles.c             |  2 +-
+ drivers/misc/sgi-gru/grukservices.c           |  2 +-
+ include/linux/sched/mm.h                      |  1 -
+ include/linux/sync_core.h                     | 21 ------
+ init/Kconfig                                  |  3 -
+ kernel/sched/membarrier.c                     | 14 +++-
+ 17 files changed, 115 insertions(+), 102 deletions(-)
+ create mode 100644 arch/arm/include/asm/membarrier.h
+ create mode 100644 arch/arm64/include/asm/membarrier.h
+ create mode 100644 arch/x86/include/asm/membarrier.h
+ delete mode 100644 include/linux/sync_core.h
 
-diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-index 842427ff2b3c..19863ad2f852 100644
---- a/arch/arm/kernel/smp.c
-+++ b/arch/arm/kernel/smp.c
-@@ -323,8 +323,6 @@ void arch_cpu_idle_dead(void)
- {
- 	unsigned int cpu = smp_processor_id();
- 
--	idle_task_exit();
--
- 	local_irq_disable();
- 
- 	/*
-diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
-index 6f6ff072acbd..4b38fb42543f 100644
---- a/arch/arm64/kernel/smp.c
-+++ b/arch/arm64/kernel/smp.c
-@@ -366,8 +366,6 @@ void cpu_die(void)
- 	unsigned int cpu = smp_processor_id();
- 	const struct cpu_operations *ops = get_cpu_ops(cpu);
- 
--	idle_task_exit();
--
- 	local_daif_mask();
- 
- 	/* Tell __cpu_die() that this CPU is now safe to dispose of */
-diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
-index e2993539af8e..4b17c3b8fcba 100644
---- a/arch/csky/kernel/smp.c
-+++ b/arch/csky/kernel/smp.c
-@@ -309,8 +309,6 @@ void __cpu_die(unsigned int cpu)
- 
- void arch_cpu_idle_dead(void)
- {
--	idle_task_exit();
--
- 	cpu_report_death();
- 
- 	while (!secondary_stack)
-diff --git a/arch/ia64/kernel/process.c b/arch/ia64/kernel/process.c
-index e56d63f4abf9..ddb13db7ff7e 100644
---- a/arch/ia64/kernel/process.c
-+++ b/arch/ia64/kernel/process.c
-@@ -209,7 +209,6 @@ static inline void play_dead(void)
- 
- 	max_xtp();
- 	local_irq_disable();
--	idle_task_exit();
- 	ia64_jump_to_sal(&sal_boot_rendez_state[this_cpu]);
- 	/*
- 	 * The above is a point of no-return, the processor is
-diff --git a/arch/mips/cavium-octeon/smp.c b/arch/mips/cavium-octeon/smp.c
-index 89954f5f87fb..7130ec7e9b61 100644
---- a/arch/mips/cavium-octeon/smp.c
-+++ b/arch/mips/cavium-octeon/smp.c
-@@ -343,7 +343,6 @@ void play_dead(void)
- {
- 	int cpu = cpu_number_map(cvmx_get_core_num());
- 
--	idle_task_exit();
- 	octeon_processor_boot = 0xff;
- 	per_cpu(cpu_state, cpu) = CPU_DEAD;
- 
-diff --git a/arch/mips/kernel/smp-bmips.c b/arch/mips/kernel/smp-bmips.c
-index b6ef5f7312cf..bd1e650dd176 100644
---- a/arch/mips/kernel/smp-bmips.c
-+++ b/arch/mips/kernel/smp-bmips.c
-@@ -388,8 +388,6 @@ static void bmips_cpu_die(unsigned int cpu)
- 
- void __ref play_dead(void)
- {
--	idle_task_exit();
--
- 	/* flush data cache */
- 	_dma_cache_wback_inv(0, ~0);
- 
-diff --git a/arch/mips/kernel/smp-cps.c b/arch/mips/kernel/smp-cps.c
-index bcd6a944b839..23221fcee423 100644
---- a/arch/mips/kernel/smp-cps.c
-+++ b/arch/mips/kernel/smp-cps.c
-@@ -472,7 +472,6 @@ void play_dead(void)
- 	unsigned int cpu;
- 
- 	local_irq_disable();
--	idle_task_exit();
- 	cpu = smp_processor_id();
- 	cpu_death = CPU_DEATH_POWER;
- 
-diff --git a/arch/mips/loongson64/smp.c b/arch/mips/loongson64/smp.c
-index 09ebe84a17fe..a1fe59f354d1 100644
---- a/arch/mips/loongson64/smp.c
-+++ b/arch/mips/loongson64/smp.c
-@@ -788,8 +788,6 @@ void play_dead(void)
- 	unsigned int cpu = smp_processor_id();
- 	void (*play_dead_at_ckseg1)(int *);
- 
--	idle_task_exit();
--
- 	prid_imp = read_c0_prid() & PRID_IMP_MASK;
- 	prid_rev = read_c0_prid() & PRID_REV_MASK;
- 
-diff --git a/arch/powerpc/platforms/85xx/smp.c b/arch/powerpc/platforms/85xx/smp.c
-index c6df294054fe..9de9e1fcc87a 100644
---- a/arch/powerpc/platforms/85xx/smp.c
-+++ b/arch/powerpc/platforms/85xx/smp.c
-@@ -121,8 +121,6 @@ static void smp_85xx_cpu_offline_self(void)
- 	/* mask all irqs to prevent cpu wakeup */
- 	qoriq_pm_ops->irq_mask(cpu);
- 
--	idle_task_exit();
--
- 	mtspr(SPRN_TCR, 0);
- 	mtspr(SPRN_TSR, mfspr(SPRN_TSR));
- 
-diff --git a/arch/powerpc/platforms/powermac/smp.c b/arch/powerpc/platforms/powermac/smp.c
-index 3256a316e884..69d2bdd8246d 100644
---- a/arch/powerpc/platforms/powermac/smp.c
-+++ b/arch/powerpc/platforms/powermac/smp.c
-@@ -924,7 +924,6 @@ static void pmac_cpu_offline_self(void)
- 	int cpu = smp_processor_id();
- 
- 	local_irq_disable();
--	idle_task_exit();
- 	pr_debug("CPU%d offline\n", cpu);
- 	generic_set_cpu_dead(cpu);
- 	smp_wmb();
-@@ -939,7 +938,6 @@ static void pmac_cpu_offline_self(void)
- 	int cpu = smp_processor_id();
- 
- 	local_irq_disable();
--	idle_task_exit();
- 
- 	/*
- 	 * turn off as much as possible, we'll be
-diff --git a/arch/powerpc/platforms/powernv/smp.c b/arch/powerpc/platforms/powernv/smp.c
-index cbb67813cd5d..cba21d053dae 100644
---- a/arch/powerpc/platforms/powernv/smp.c
-+++ b/arch/powerpc/platforms/powernv/smp.c
-@@ -169,7 +169,6 @@ static void pnv_cpu_offline_self(void)
- 
- 	/* Standard hot unplug procedure */
- 
--	idle_task_exit();
- 	cpu = smp_processor_id();
- 	DBG("CPU%d offline\n", cpu);
- 	generic_set_cpu_dead(cpu);
-diff --git a/arch/powerpc/platforms/pseries/hotplug-cpu.c b/arch/powerpc/platforms/pseries/hotplug-cpu.c
-index d646c22e94ab..c11ccd038866 100644
---- a/arch/powerpc/platforms/pseries/hotplug-cpu.c
-+++ b/arch/powerpc/platforms/pseries/hotplug-cpu.c
-@@ -19,7 +19,6 @@
- #include <linux/kernel.h>
- #include <linux/interrupt.h>
- #include <linux/delay.h>
--#include <linux/sched.h>	/* for idle_task_exit */
- #include <linux/sched/hotplug.h>
- #include <linux/cpu.h>
- #include <linux/of.h>
-@@ -63,7 +62,6 @@ static void pseries_cpu_offline_self(void)
- 	unsigned int hwcpu = hard_smp_processor_id();
- 
- 	local_irq_disable();
--	idle_task_exit();
- 	if (xive_enabled())
- 		xive_teardown_cpu();
- 	else
-diff --git a/arch/powerpc/platforms/pseries/pmem.c b/arch/powerpc/platforms/pseries/pmem.c
-index 439ac72c2470..5280fcd5b37d 100644
---- a/arch/powerpc/platforms/pseries/pmem.c
-+++ b/arch/powerpc/platforms/pseries/pmem.c
-@@ -9,7 +9,6 @@
- #include <linux/kernel.h>
- #include <linux/interrupt.h>
- #include <linux/delay.h>
--#include <linux/sched.h>	/* for idle_task_exit */
- #include <linux/sched/hotplug.h>
- #include <linux/cpu.h>
- #include <linux/of.h>
-diff --git a/arch/riscv/kernel/cpu-hotplug.c b/arch/riscv/kernel/cpu-hotplug.c
-index df84e0c13db1..6cced2d79f07 100644
---- a/arch/riscv/kernel/cpu-hotplug.c
-+++ b/arch/riscv/kernel/cpu-hotplug.c
-@@ -77,8 +77,6 @@ void __cpu_die(unsigned int cpu)
-  */
- void cpu_stop(void)
- {
--	idle_task_exit();
--
- 	(void)cpu_report_death();
- 
- 	cpu_ops[smp_processor_id()]->cpu_stop();
-diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
-index 1a04e5bdf655..328930549803 100644
---- a/arch/s390/kernel/smp.c
-+++ b/arch/s390/kernel/smp.c
-@@ -987,7 +987,6 @@ void __cpu_die(unsigned int cpu)
- 
- void __noreturn cpu_die(void)
- {
--	idle_task_exit();
- 	__bpon();
- 	pcpu_sigp_retry(pcpu_devices + smp_processor_id(), SIGP_STOP, 0);
- 	for (;;) ;
-diff --git a/arch/sh/kernel/smp.c b/arch/sh/kernel/smp.c
-index 65924d9ec245..cbd14604a736 100644
---- a/arch/sh/kernel/smp.c
-+++ b/arch/sh/kernel/smp.c
-@@ -106,7 +106,6 @@ int native_cpu_disable(unsigned int cpu)
- 
- void play_dead_common(void)
- {
--	idle_task_exit();
- 	irq_ctx_exit(raw_smp_processor_id());
- 	mb();
- 
-diff --git a/arch/sparc/kernel/smp_64.c b/arch/sparc/kernel/smp_64.c
-index 0224d8f19ed6..450dc9513ff0 100644
---- a/arch/sparc/kernel/smp_64.c
-+++ b/arch/sparc/kernel/smp_64.c
-@@ -1301,8 +1301,6 @@ void cpu_play_dead(void)
- 	int cpu = smp_processor_id();
- 	unsigned long pstate;
- 
--	idle_task_exit();
--
- 	if (tlb_type == hypervisor) {
- 		struct trap_per_cpu *tb = &trap_block[cpu];
- 
-diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
-index 85f6e242b6b4..a57a709f2c35 100644
---- a/arch/x86/kernel/smpboot.c
-+++ b/arch/x86/kernel/smpboot.c
-@@ -1656,8 +1656,6 @@ void native_cpu_die(unsigned int cpu)
- 
- void play_dead_common(void)
- {
--	idle_task_exit();
--
- 	/* Ack it */
- 	(void)cpu_report_death();
- 
-diff --git a/arch/xtensa/kernel/smp.c b/arch/xtensa/kernel/smp.c
-index 1254da07ead1..fb011807d041 100644
---- a/arch/xtensa/kernel/smp.c
-+++ b/arch/xtensa/kernel/smp.c
-@@ -329,7 +329,6 @@ void arch_cpu_idle_dead(void)
-  */
- void __ref cpu_die(void)
- {
--	idle_task_exit();
- 	local_irq_disable();
- 	__asm__ __volatile__(
- 			"	movi	a2, cpu_restart\n"
-diff --git a/include/linux/sched/hotplug.h b/include/linux/sched/hotplug.h
-index 412cdaba33eb..18fa3e63123e 100644
---- a/include/linux/sched/hotplug.h
-+++ b/include/linux/sched/hotplug.h
-@@ -18,10 +18,4 @@ extern int sched_cpu_dying(unsigned int cpu);
- # define sched_cpu_dying	NULL
- #endif
- 
--#ifdef CONFIG_HOTPLUG_CPU
--extern void idle_task_exit(void);
--#else
--static inline void idle_task_exit(void) {}
--#endif
--
- #endif /* _LINUX_SCHED_HOTPLUG_H */
-diff --git a/kernel/cpu.c b/kernel/cpu.c
-index be16816bb87c..709e2a7583ad 100644
---- a/kernel/cpu.c
-+++ b/kernel/cpu.c
-@@ -3,7 +3,6 @@
-  *
-  * This code is licenced under the GPL.
-  */
--#include <linux/sched/mm.h>
- #include <linux/proc_fs.h>
- #include <linux/smp.h>
- #include <linux/init.h>
-@@ -605,21 +604,6 @@ static int bringup_cpu(unsigned int cpu)
- 	return bringup_wait_for_ap(cpu);
- }
- 
--static int finish_cpu(unsigned int cpu)
--{
--	struct task_struct *idle = idle_thread_get(cpu);
--	struct mm_struct *mm = idle->active_mm;
--
--	/*
--	 * idle_task_exit() will have switched to &init_mm, now
--	 * clean up any remaining active_mm state.
--	 */
--	if (mm != &init_mm)
--		idle->active_mm = &init_mm;
--	mmdrop(mm);
--	return 0;
--}
--
- /*
-  * Hotplug state machine related functions
-  */
-@@ -1699,7 +1683,7 @@ static struct cpuhp_step cpuhp_hp_states[] = {
- 	[CPUHP_BRINGUP_CPU] = {
- 		.name			= "cpu:bringup",
- 		.startup.single		= bringup_cpu,
--		.teardown.single	= finish_cpu,
-+		.teardown.single	= NULL,
- 		.cant_stop		= true,
- 	},
- 	/* Final state before CPU kills itself */
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index acd52a7d1349..32275b4ff141 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -8678,6 +8678,30 @@ void __init init_idle(struct task_struct *idle, int cpu)
- #endif
- }
- 
+diff --git a/Documentation/features/sched/membarrier-sync-core/arch-support.txt b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
+index 883d33b265d6..4009b26bf5c3 100644
+--- a/Documentation/features/sched/membarrier-sync-core/arch-support.txt
++++ b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
+@@ -5,51 +5,26 @@
+ #
+ # Architecture requirements
+ #
+-# * arm/arm64/powerpc
+ #
+-# Rely on implicit context synchronization as a result of exception return
+-# when returning from IPI handler, and when returning to user-space.
+-#
+-# * x86
+-#
+-# x86-32 uses IRET as return from interrupt, which takes care of the IPI.
+-# However, it uses both IRET and SYSEXIT to go back to user-space. The IRET
+-# instruction is core serializing, but not SYSEXIT.
+-#
+-# x86-64 uses IRET as return from interrupt, which takes care of the IPI.
+-# However, it can return to user-space through either SYSRETL (compat code),
+-# SYSRETQ, or IRET.
+-#
+-# Given that neither SYSRET{L,Q}, nor SYSEXIT, are core serializing, we rely
+-# instead on write_cr3() performed by switch_mm() to provide core serialization
+-# after changing the current mm, and deal with the special case of kthread ->
+-# uthread (temporarily keeping current mm into active_mm) by issuing a
+-# sync_core_before_usermode() in that specific case.
+-#
+-    -----------------------
+-    |         arch |status|
+-    -----------------------
+-    |       alpha: | TODO |
+-    |         arc: | TODO |
+-    |         arm: |  ok  |
+-    |       arm64: |  ok  |
+-    |        csky: | TODO |
+-    |       h8300: | TODO |
+-    |     hexagon: | TODO |
+-    |        ia64: | TODO |
+-    |        m68k: | TODO |
+-    |  microblaze: | TODO |
+-    |        mips: | TODO |
+-    |       nds32: | TODO |
+-    |       nios2: | TODO |
+-    |    openrisc: | TODO |
+-    |      parisc: | TODO |
+-    |     powerpc: |  ok  |
+-    |       riscv: | TODO |
+-    |        s390: | TODO |
+-    |          sh: | TODO |
+-    |       sparc: | TODO |
+-    |          um: | TODO |
+-    |         x86: |  ok  |
+-    |      xtensa: | TODO |
+-    -----------------------
++# An architecture that wants to support
++# MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE needs to define precisely what it
++# is supposed to do and implement membarrier_sync_core_before_usermode() to
++# make it do that.  Then it can select ARCH_HAS_MEMBARRIER_SYNC_CORE via
++# Kconfig and document what SYNC_CORE does on that architecture in this
++# list.
++#
++# On x86, a program can safely modify code, issue
++# MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE, and then execute that code, via
++# the modified address or an alias, from any thread in the calling process.
++#
++# On arm and arm64, a program can modify code, flush the icache as needed,
++# and issue MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE to force a "context
++# synchronizing event", aka pipeline flush on all CPUs that might run the
++# calling process.  Then the program can execute the modified code as long
++# as it is executed from an address consistent with the icache flush and
++# the CPU's cache type.  On arm, cacheflush(2) can be used for the icache
++# flushing operation.
++#
++# On powerpc, a program can use MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE
++# similarly to arm64.  It would be nice if the powerpc maintainers could
++# add a more clear explanantion.
+diff --git a/arch/arm/include/asm/membarrier.h b/arch/arm/include/asm/membarrier.h
+new file mode 100644
+index 000000000000..c162a0758657
+--- /dev/null
++++ b/arch/arm/include/asm/membarrier.h
+@@ -0,0 +1,21 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_ARM_MEMBARRIER_H
++#define _ASM_ARM_MEMBARRIER_H
++
++#include <asm/barrier.h>
++
 +/*
-+ * Drops current->active_mm and switches current->active_mm to &init_mm.
-+ * Caller must have IRQs off and must have current->mm == NULL (i.e. must
-+ * be in a kernel thread).
++ * On arm, anyone trying to use membarrier() to handle JIT code is required
++ * to first flush the icache (most likely by using cacheflush(2) and then
++ * do SYNC_CORE.  All that's needed after the icache flush is to execute a
++ * "context synchronization event".
++ *
++ * Returning to user mode is a context synchronization event, so no
++ * specific action by the kernel is needed other than ensuring that the
++ * kernel is entered.
 + */
-+void unlazy_mm_irqs_off(void)
++static inline void membarrier_sync_core_before_usermode(void)
 +{
-+	struct mm_struct *mm = current->active_mm;
-+
-+	lockdep_assert_irqs_disabled();
-+
-+	if (WARN_ON_ONCE(current->mm))
-+		return;
-+
-+	if (mm == &init_mm)
-+		return;
-+
-+	switch_mm_irqs_off(mm, &init_mm, current);
-+	mmgrab(&init_mm);
-+	current->active_mm = &init_mm;
-+	finish_arch_post_lock_switch();
-+	mmdrop(mm);
 +}
 +
- #ifdef CONFIG_SMP
++#endif /* _ASM_ARM_MEMBARRIER_H */
+diff --git a/arch/arm64/include/asm/membarrier.h b/arch/arm64/include/asm/membarrier.h
+new file mode 100644
+index 000000000000..db8e0ea57253
+--- /dev/null
++++ b/arch/arm64/include/asm/membarrier.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_ARM64_MEMBARRIER_H
++#define _ASM_ARM64_MEMBARRIER_H
++
++#include <asm/barrier.h>
++
++/*
++ * On arm64, anyone trying to use membarrier() to handle JIT code is
++ * required to first flush the icache and then do SYNC_CORE.  All that's
++ * needed after the icache flush is to execute a "context synchronization
++ * event".  Right now, ERET does this, and we are guaranteed to ERET before
++ * any user code runs.  If Linux ever programs the CPU to make ERET stop
++ * being a context synchronizing event, then this will need to be adjusted.
++ */
++static inline void membarrier_sync_core_before_usermode(void)
++{
++}
++
++#endif /* _ASM_ARM64_MEMBARRIER_H */
+diff --git a/arch/powerpc/include/asm/membarrier.h b/arch/powerpc/include/asm/membarrier.h
+index b90766e95bd1..466abe6fdcea 100644
+--- a/arch/powerpc/include/asm/membarrier.h
++++ b/arch/powerpc/include/asm/membarrier.h
+@@ -1,4 +1,14 @@
+ #ifndef _ASM_POWERPC_MEMBARRIER_H
+ #define _ASM_POWERPC_MEMBARRIER_H
  
- int cpuset_cpumask_can_shrink(const struct cpumask *cur,
-@@ -8771,25 +8795,6 @@ void sched_setnuma(struct task_struct *p, int nid)
- #endif /* CONFIG_NUMA_BALANCING */
++#include <asm/barrier.h>
++
++/*
++ * The RFI family of instructions are context synchronising, and
++ * that is how we return to userspace, so nothing is required here.
++ */
++static inline void membarrier_sync_core_before_usermode(void)
++{
++}
++
+ #endif /* _ASM_POWERPC_MEMBARRIER_H */
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index d9830e7e1060..5060c38bf560 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -90,7 +90,6 @@ config X86
+ 	select ARCH_HAS_SET_DIRECT_MAP
+ 	select ARCH_HAS_STRICT_KERNEL_RWX
+ 	select ARCH_HAS_STRICT_MODULE_RWX
+-	select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
+ 	select ARCH_HAS_SYSCALL_WRAPPER
+ 	select ARCH_HAS_UBSAN_SANITIZE_ALL
+ 	select ARCH_HAS_DEBUG_WX
+diff --git a/arch/x86/include/asm/membarrier.h b/arch/x86/include/asm/membarrier.h
+new file mode 100644
+index 000000000000..9b72a1b49359
+--- /dev/null
++++ b/arch/x86/include/asm/membarrier.h
+@@ -0,0 +1,25 @@
++#ifndef _ASM_X86_MEMBARRIER_H
++#define _ASM_X86_MEMBARRIER_H
++
++#include <asm/sync_core.h>
++
++/*
++ * Ensure that the CPU notices any instruction changes before the next time
++ * it returns to usermode.
++ */
++static inline void membarrier_sync_core_before_usermode(void)
++{
++	/* With PTI, we unconditionally serialize before running user code. */
++	if (static_cpu_has(X86_FEATURE_PTI))
++		return;
++
++	/*
++	 * Even if we're in an interrupt, we might reschedule before returning,
++	 * in which case we could switch to a different thread in the same mm
++	 * and return using SYSRET or SYSEXIT.  Instead of trying to keep
++	 * track of our need to sync the core, just sync right away.
++	 */
++	sync_core();
++}
++
++#endif /* _ASM_X86_MEMBARRIER_H */
+diff --git a/arch/x86/include/asm/sync_core.h b/arch/x86/include/asm/sync_core.h
+index ab7382f92aff..bfe4ac4e6be2 100644
+--- a/arch/x86/include/asm/sync_core.h
++++ b/arch/x86/include/asm/sync_core.h
+@@ -88,24 +88,4 @@ static inline void sync_core(void)
+ 	iret_to_self();
+ }
  
- #ifdef CONFIG_HOTPLUG_CPU
 -/*
-- * Ensure that the idle task is using init_mm right before its CPU goes
-- * offline.
+- * Ensure that a core serializing instruction is issued before returning
+- * to user-mode. x86 implements return to user-space through sysexit,
+- * sysrel, and sysretq, which are not core serializing.
 - */
--void idle_task_exit(void)
+-static inline void sync_core_before_usermode(void)
 -{
--	struct mm_struct *mm = current->active_mm;
+-	/* With PTI, we unconditionally serialize before running user code. */
+-	if (static_cpu_has(X86_FEATURE_PTI))
+-		return;
 -
--	BUG_ON(cpu_online(smp_processor_id()));
--	BUG_ON(current != this_rq()->idle);
--
--	if (mm != &init_mm) {
--		switch_mm(mm, &init_mm, current);
--		finish_arch_post_lock_switch();
--	}
--
--	/* finish_cpu(), as ran on the BP, will clean up the active_mm state */
+-	/*
+-	 * Even if we're in an interrupt, we might reschedule before returning,
+-	 * in which case we could switch to a different thread in the same mm
+-	 * and return using SYSRET or SYSEXIT.  Instead of trying to keep
+-	 * track of our need to sync the core, just sync right away.
+-	 */
+-	sync_core();
 -}
 -
- static int __balance_push_cpu_stop(void *arg)
- {
- 	struct task_struct *p = arg;
-diff --git a/kernel/sched/idle.c b/kernel/sched/idle.c
-index d17b0a5ce6ac..af6a98e7a8d1 100644
---- a/kernel/sched/idle.c
-+++ b/kernel/sched/idle.c
-@@ -285,6 +285,7 @@ static void do_idle(void)
- 		local_irq_disable();
+ #endif /* _ASM_X86_SYNC_CORE_H */
+diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+index e9da3dc71254..b47cd22b2eb1 100644
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -17,7 +17,7 @@
+ #include <linux/kprobes.h>
+ #include <linux/mmu_context.h>
+ #include <linux/bsearch.h>
+-#include <linux/sync_core.h>
++#include <asm/sync_core.h>
+ #include <asm/text-patching.h>
+ #include <asm/alternative.h>
+ #include <asm/sections.h>
+diff --git a/arch/x86/kernel/cpu/mce/core.c b/arch/x86/kernel/cpu/mce/core.c
+index 193204aee880..a2529e09f620 100644
+--- a/arch/x86/kernel/cpu/mce/core.c
++++ b/arch/x86/kernel/cpu/mce/core.c
+@@ -41,12 +41,12 @@
+ #include <linux/irq_work.h>
+ #include <linux/export.h>
+ #include <linux/set_memory.h>
+-#include <linux/sync_core.h>
+ #include <linux/task_work.h>
+ #include <linux/hardirq.h>
  
- 		if (cpu_is_offline(cpu)) {
-+			unlazy_mm_irqs_off();
- 			tick_nohz_idle_stop_tick();
- 			cpuhp_report_idle_dead();
- 			arch_cpu_idle_dead();
-diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
-index 3d3e5793e117..b496a9ee9aec 100644
---- a/kernel/sched/sched.h
-+++ b/kernel/sched/sched.h
-@@ -3064,3 +3064,4 @@ extern int sched_dynamic_mode(const char *str);
- extern void sched_dynamic_update(int mode);
+ #include <asm/intel-family.h>
+ #include <asm/processor.h>
++#include <asm/sync_core.h>
+ #include <asm/traps.h>
+ #include <asm/tlbflush.h>
+ #include <asm/mce.h>
+diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
+index 1ae15172885e..74b7a615bc15 100644
+--- a/arch/x86/mm/tlb.c
++++ b/arch/x86/mm/tlb.c
+@@ -12,6 +12,7 @@
+ #include <linux/sched/mm.h>
+ 
+ #include <asm/tlbflush.h>
++#include <asm/membarrier.h>
+ #include <asm/mmu_context.h>
+ #include <asm/nospec-branch.h>
+ #include <asm/cache.h>
+@@ -491,7 +492,7 @@ static void sync_core_if_membarrier_enabled(struct mm_struct *next)
+ #ifdef CONFIG_MEMBARRIER
+ 	if (unlikely(atomic_read(&next->membarrier_state) &
+ 		     MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE))
+-		sync_core_before_usermode();
++		membarrier_sync_core_before_usermode();
  #endif
+ }
  
-+extern void unlazy_mm_irqs_off(void);
+diff --git a/drivers/misc/sgi-gru/grufault.c b/drivers/misc/sgi-gru/grufault.c
+index d7ef61e602ed..462c667bd6c4 100644
+--- a/drivers/misc/sgi-gru/grufault.c
++++ b/drivers/misc/sgi-gru/grufault.c
+@@ -20,8 +20,8 @@
+ #include <linux/io.h>
+ #include <linux/uaccess.h>
+ #include <linux/security.h>
+-#include <linux/sync_core.h>
+ #include <linux/prefetch.h>
++#include <asm/sync_core.h>
+ #include "gru.h"
+ #include "grutables.h"
+ #include "grulib.h"
+diff --git a/drivers/misc/sgi-gru/gruhandles.c b/drivers/misc/sgi-gru/gruhandles.c
+index 1d75d5e540bc..c8cba1c1b00f 100644
+--- a/drivers/misc/sgi-gru/gruhandles.c
++++ b/drivers/misc/sgi-gru/gruhandles.c
+@@ -16,7 +16,7 @@
+ #define GRU_OPERATION_TIMEOUT	(((cycles_t) local_cpu_data->itc_freq)*10)
+ #define CLKS2NSEC(c)		((c) *1000000000 / local_cpu_data->itc_freq)
+ #else
+-#include <linux/sync_core.h>
++#include <asm/sync_core.h>
+ #include <asm/tsc.h>
+ #define GRU_OPERATION_TIMEOUT	((cycles_t) tsc_khz*10*1000)
+ #define CLKS2NSEC(c)		((c) * 1000000 / tsc_khz)
+diff --git a/drivers/misc/sgi-gru/grukservices.c b/drivers/misc/sgi-gru/grukservices.c
+index 0ea923fe6371..ce03ff3f7c3a 100644
+--- a/drivers/misc/sgi-gru/grukservices.c
++++ b/drivers/misc/sgi-gru/grukservices.c
+@@ -16,10 +16,10 @@
+ #include <linux/miscdevice.h>
+ #include <linux/proc_fs.h>
+ #include <linux/interrupt.h>
+-#include <linux/sync_core.h>
+ #include <linux/uaccess.h>
+ #include <linux/delay.h>
+ #include <linux/export.h>
++#include <asm/sync_core.h>
+ #include <asm/io_apic.h>
+ #include "gru.h"
+ #include "grulib.h"
+diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
+index e8919995d8dd..e107f292fc42 100644
+--- a/include/linux/sched/mm.h
++++ b/include/linux/sched/mm.h
+@@ -7,7 +7,6 @@
+ #include <linux/sched.h>
+ #include <linux/mm_types.h>
+ #include <linux/gfp.h>
+-#include <linux/sync_core.h>
+ 
+ /*
+  * Routines for handling mm_structs
+diff --git a/include/linux/sync_core.h b/include/linux/sync_core.h
+deleted file mode 100644
+index 013da4b8b327..000000000000
+--- a/include/linux/sync_core.h
++++ /dev/null
+@@ -1,21 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#ifndef _LINUX_SYNC_CORE_H
+-#define _LINUX_SYNC_CORE_H
+-
+-#ifdef CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
+-#include <asm/sync_core.h>
+-#else
+-/*
+- * This is a dummy sync_core_before_usermode() implementation that can be used
+- * on all architectures which return to user-space through core serializing
+- * instructions.
+- * If your architecture returns to user-space through non-core-serializing
+- * instructions, you need to write your own functions.
+- */
+-static inline void sync_core_before_usermode(void)
+-{
+-}
+-#endif
+-
+-#endif /* _LINUX_SYNC_CORE_H */
+-
+diff --git a/init/Kconfig b/init/Kconfig
+index 11f8a845f259..bbaf93f9438b 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -2364,9 +2364,6 @@ source "kernel/Kconfig.locks"
+ config ARCH_HAS_NON_OVERLAPPING_ADDRESS_SPACE
+ 	bool
+ 
+-config ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
+-	bool
+-
+ # It may be useful for an architecture to override the definitions of the
+ # SYSCALL_DEFINE() and __SYSCALL_DEFINEx() macros in <linux/syscalls.h>
+ # and the COMPAT_ variants in <linux/compat.h>, in particular to use a
+diff --git a/kernel/sched/membarrier.c b/kernel/sched/membarrier.c
+index 327830f89c37..eb73eeaedc7d 100644
+--- a/kernel/sched/membarrier.c
++++ b/kernel/sched/membarrier.c
+@@ -5,6 +5,14 @@
+  * membarrier system call
+  */
+ #include "sched.h"
++#ifdef CONFIG_ARCH_HAS_MEMBARRIER_SYNC_CORE
++#include <asm/membarrier.h>
++#else
++static inline void membarrier_sync_core_before_usermode(void)
++{
++	compiletime_assert(0, "architecture does not implement membarrier_sync_core_before_usermode");
++}
++#endif
+ 
+ /*
+  * The basic principle behind the regular memory barrier mode of
+@@ -231,12 +239,12 @@ static void ipi_sync_core(void *info)
+ 	 * the big comment at the top of this file.
+ 	 *
+ 	 * A sync_core() would provide this guarantee, but
+-	 * sync_core_before_usermode() might end up being deferred until
+-	 * after membarrier()'s smp_mb().
++	 * membarrier_sync_core_before_usermode() might end up being deferred
++	 * until after membarrier()'s smp_mb().
+ 	 */
+ 	smp_mb();	/* IPIs should be serializing but paranoid. */
+ 
+-	sync_core_before_usermode();
++	membarrier_sync_core_before_usermode();
+ }
+ 
+ static void ipi_rseq(void *info)
 -- 
 2.33.1
 
