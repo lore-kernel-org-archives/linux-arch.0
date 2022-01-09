@@ -2,125 +2,122 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 816A0C433F5
-	for <linux-arch@archiver.kernel.org>; Sun,  9 Jan 2022 18:16:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3C454C433F5
+	for <linux-arch@archiver.kernel.org>; Sun,  9 Jan 2022 19:11:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236410AbiAISQQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 9 Jan 2022 13:16:16 -0500
-Received: from conuserg-09.nifty.com ([210.131.2.76]:31213 "EHLO
-        conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236378AbiAISQL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2022 13:16:11 -0500
-Received: from grover.. (133-32-232-101.west.xps.vectant.ne.jp [133.32.232.101]) (authenticated)
-        by conuserg-09.nifty.com with ESMTP id 209IFWZx030890;
-        Mon, 10 Jan 2022 03:15:32 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-09.nifty.com 209IFWZx030890
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1641752132;
-        bh=xJqrI0VPWaFJ8l3XbINJ/1PkDU8rQXznE1lusSMRuuw=;
-        h=From:To:Cc:Subject:Date:From;
-        b=0lRmUzhj46SJOuGSEv9Y4r4r26/ApSiS4iwtN8LfORqQ/p93z2beYGUkh5llI4VMe
-         cLJo0rjxdjXlleVz7O2nSPzvqltWm3jpEpv9W/54tn04gP0L61QIqK0J08x0GlWxLP
-         unkVHIdY115BMKXMWTRgfovD0P7uiq3PYXtTf2w3K3ElxKXdBZx+731/L0SG6us0oh
-         T5ddcVq02OPTeRvYzM/8+Nj32WuyhSND67NdpzftiUffn12UJ64/iZrh9xkuMldY04
-         PEwBdyfpX2CLSf8OeZLH8iFzh2+sqvPOONkSNn5pONVyJ9lFZmzqhbsMlHDx7s1kZl
-         G2SrCKeCCoDFg==
-X-Nifty-SrcIP: [133.32.232.101]
-From:   Masahiro Yamada <masahiroy@kernel.org>
-To:     linux-kbuild@vger.kernel.org
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 1/5] sh: rename suffix-y to suffix_y
-Date:   Mon, 10 Jan 2022 03:15:25 +0900
-Message-Id: <20220109181529.351420-1-masahiroy@kernel.org>
-X-Mailer: git-send-email 2.32.0
+        id S234570AbiAITLR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 9 Jan 2022 14:11:17 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56982 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S233385AbiAITLQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2022 14:11:16 -0500
+Received: from mail-ed1-x52d.google.com (mail-ed1-x52d.google.com [IPv6:2a00:1450:4864:20::52d])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5FC63C06173F
+        for <linux-arch@vger.kernel.org>; Sun,  9 Jan 2022 11:11:15 -0800 (PST)
+Received: by mail-ed1-x52d.google.com with SMTP id b36so364250edf.12
+        for <linux-arch@vger.kernel.org>; Sun, 09 Jan 2022 11:11:15 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linux-foundation.org; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=YPOuTFQ/EFRlwfSEA3ipij++Ulf3u+5g+8CZYfsItBk=;
+        b=AWGxyD2i+0VTrdb8KlRqAQ5n6fHAko3chHEhczjSNVua/1NPfcI4nbx0hg+4qt6xiX
+         sS/zBrw6wnKvw92Ksmt5nmllSDLmc3J8Ra1HcjYvjIUoJZ8AzFA72hfzrOyU1vpJJ1ex
+         IcvSo8dXW4uOAiE4lOmNhJmQ68qhxiDj69vU8=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=YPOuTFQ/EFRlwfSEA3ipij++Ulf3u+5g+8CZYfsItBk=;
+        b=ldy2LL9E6LghZZmmG4BrM/SbkN1sWZnbJp+nOM2zEq2mzXVH/21FxYKe9fjbPPKF/x
+         sFSNR+zFWg3sziuyGWfULmv9+HuDZpOMFd2mtOcQfuyWyrmcnKY5f4c5eZg61vhHyCju
+         PHCvUrk29sjv5lIOqA5kcjqJ0i1Tp3mosmZW3zkBveNbANYBO9aPfSduKp5cTa+tjPqU
+         CR+YVmeNkHyGWXSTlDK45gFzUKnnbOCf7oiLMM7KJOKODutqGTIHXgnOxAa35xMB94Mv
+         jUlzgYJinX3OQNbTwuZdK9CJNXoWNnK8/2SdEbp4PG+qG7MQHhskb+6Dse52v2nAg46T
+         yOhw==
+X-Gm-Message-State: AOAM531UMzXnGIfPRja46szh+8+RZj0aN55H0rf2ZSTuU7jL5M4mWrxi
+        4Pag/qrvtrZEb81WBDQSgl2jL8M1sBA0PqWgpas=
+X-Google-Smtp-Source: ABdhPJwLSjwvnzwnmodaAG8ro56d/2uPFEygcCa36ZFm6U2z/YPRD7R4+xPLWurFm1uDnDfT46e7zw==
+X-Received: by 2002:a17:906:d8a3:: with SMTP id qc3mr8065634ejb.231.1641755473626;
+        Sun, 09 Jan 2022 11:11:13 -0800 (PST)
+Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com. [209.85.128.52])
+        by smtp.gmail.com with ESMTPSA id sa6sm1632827ejc.6.2022.01.09.11.11.11
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sun, 09 Jan 2022 11:11:12 -0800 (PST)
+Received: by mail-wm1-f52.google.com with SMTP id v123so7430533wme.2
+        for <linux-arch@vger.kernel.org>; Sun, 09 Jan 2022 11:11:11 -0800 (PST)
+X-Received: by 2002:a05:600c:4f13:: with SMTP id l19mr19329898wmq.152.1641755471150;
+ Sun, 09 Jan 2022 11:11:11 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <cover.1641659630.git.luto@kernel.org> <7c9c388c388df8e88bb5d14828053ac0cb11cf69.1641659630.git.luto@kernel.org>
+ <739A3109-04DD-4BA5-A02B-52EE30E820AE@gmail.com> <CAHk-=wiEZO-uyFELSZgYmxF7eOLHrvh-kMWY5qTKjckOdNQxpA@mail.gmail.com>
+ <B728EEE2-1EB9-4ACD-9F4E-423276380C0C@gmail.com>
+In-Reply-To: <B728EEE2-1EB9-4ACD-9F4E-423276380C0C@gmail.com>
+From:   Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun, 9 Jan 2022 11:10:55 -0800
+X-Gmail-Original-Message-ID: <CAHk-=wgtS7aNL=bxuwVFKiUzijc1EFiFXWTNLH-CHEgxciUVdg@mail.gmail.com>
+Message-ID: <CAHk-=wgtS7aNL=bxuwVFKiUzijc1EFiFXWTNLH-CHEgxciUVdg@mail.gmail.com>
+Subject: Re: [PATCH 16/23] sched: Use lightweight hazard pointers to grab lazy mms
+To:     Nadav Amit <nadav.amit@gmail.com>
+Cc:     Andy Lutomirski <luto@kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Linux-MM <linux-mm@kvack.org>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        Anton Blanchard <anton@ozlabs.org>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@ozlabs.org>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>,
+        Rik van Riel <riel@surriel.com>,
+        Dave Hansen <dave.hansen@intel.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-'export suffix-y' does not work reliably because hyphens are disallowed
-in shell variables.
+On Sun, Jan 9, 2022 at 12:49 AM Nadav Amit <nadav.amit@gmail.com> wrote:
+>
+> I do not know whether it is a pure win, but there is a tradeoff.
 
-A similar issue was fixed by commit 2bfbe7881ee0 ("kbuild: Do not use
-hyphen in exported variable name").
+Hmm. I guess only some serious testing would tell.
 
-If I do similar in dash, ARCH=sh fails to build.
+On x86, I'd be a bit worried about removing lazy TLB simply because
+even with ASID support there (called PCIDs by Intel for NIH reasons),
+the actual ASID space on x86 was at least originally very very
+limited.
 
-  $ mv linux linux~
-  $ cd linux~
-  $ dash
-  $ make O=foo/bar ARCH=sh CROSS_COMPILE=sh4-linux-gnu- defconfig all
-  make[1]: Entering directory '/home/masahiro/linux~/foo/bar'
-    [ snip ]
-  make[4]: *** No rule to make target 'arch/sh/boot/compressed/vmlinux.bin.', needed by 'arch/sh/boot/compressed/piggy.o'.  Stop.
-  make[3]: *** [/home/masahiro/linux~/arch/sh/boot/Makefile:40: arch/sh/boot/compressed/vmlinux] Error 2
-  make[2]: *** [/home/masahiro/linux~/arch/sh/Makefile:194: zImage] Error 2
-  make[1]: *** [/home/masahiro/linux~/Makefile:350: __build_one_by_one] Error 2
-  make[1]: Leaving directory '/home/masahiro/linux~/foo/bar'
-  make: *** [Makefile:219: __sub-make] Error 2
+Architecturally, x86 may expose 12 bits of ASID space, but iirc at
+least the first few implementations actually only internally had one
+or two bits, and hashed the 12 bits down to that internal very limited
+hardware TLB ID space.
 
-The maintainer of GNU Make stated that there is no consistent way to
-export variables that do not meet the shell's naming criteria.
-(https://savannah.gnu.org/bugs/?55719)
+We only use a handful of ASIDs per CPU on x86 partly for this reason
+(but also since there's no remote hardware TLB shootdown, there's no
+reason to have a bigger global ASID space, so ASIDs aren't _that_
+common).
 
-Consequently, you cannot use hyphens in exported variables.
+And I don't know how many non-PCID x86 systems (perhaps virtualized?)
+there might be out there.
 
-Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
----
+But it would be very interesting to test some "disable lazy tlb"
+patch. The main problem workloads tend to be IO, and I'm not sure how
+many of the automated performance tests would catch issues. I guess
+some threaded pipe ping-pong test (with each thread pinned to
+different cores) would show it.
 
- arch/sh/boot/Makefile            | 16 ++++++++--------
- arch/sh/boot/compressed/Makefile |  2 +-
- 2 files changed, 9 insertions(+), 9 deletions(-)
+And I guess there is some load that triggered the original powerpc
+patch by Nick&co, and that Andy has been using..
 
-diff --git a/arch/sh/boot/Makefile b/arch/sh/boot/Makefile
-index 5c123f5b2797..1f5d2df3c7e0 100644
---- a/arch/sh/boot/Makefile
-+++ b/arch/sh/boot/Makefile
-@@ -19,12 +19,12 @@ CONFIG_ZERO_PAGE_OFFSET	?= 0x00001000
- CONFIG_ENTRY_OFFSET	?= 0x00001000
- CONFIG_PHYSICAL_START	?= $(CONFIG_MEMORY_START)
- 
--suffix-y := bin
--suffix-$(CONFIG_KERNEL_GZIP)	:= gz
--suffix-$(CONFIG_KERNEL_BZIP2)	:= bz2
--suffix-$(CONFIG_KERNEL_LZMA)	:= lzma
--suffix-$(CONFIG_KERNEL_XZ)	:= xz
--suffix-$(CONFIG_KERNEL_LZO)	:= lzo
-+suffix_y := bin
-+suffix_$(CONFIG_KERNEL_GZIP)	:= gz
-+suffix_$(CONFIG_KERNEL_BZIP2)	:= bz2
-+suffix_$(CONFIG_KERNEL_LZMA)	:= lzma
-+suffix_$(CONFIG_KERNEL_XZ)	:= xz
-+suffix_$(CONFIG_KERNEL_LZO)	:= lzo
- 
- targets := zImage vmlinux.srec romImage uImage uImage.srec uImage.gz \
- 	   uImage.bz2 uImage.lzma uImage.xz uImage.lzo uImage.bin \
-@@ -106,10 +106,10 @@ OBJCOPYFLAGS_uImage.srec := -I binary -O srec
- $(obj)/uImage.srec: $(obj)/uImage FORCE
- 	$(call if_changed,objcopy)
- 
--$(obj)/uImage: $(obj)/uImage.$(suffix-y)
-+$(obj)/uImage: $(obj)/uImage.$(suffix_y)
- 	@ln -sf $(notdir $<) $@
- 	@echo '  Image $@ is ready'
- 
- export CONFIG_PAGE_OFFSET CONFIG_MEMORY_START CONFIG_BOOT_LINK_OFFSET \
-        CONFIG_PHYSICAL_START CONFIG_ZERO_PAGE_OFFSET CONFIG_ENTRY_OFFSET \
--       KERNEL_MEMORY suffix-y
-+       KERNEL_MEMORY suffix_y
-diff --git a/arch/sh/boot/compressed/Makefile b/arch/sh/boot/compressed/Makefile
-index cf3174df7859..c1eb9a62de55 100644
---- a/arch/sh/boot/compressed/Makefile
-+++ b/arch/sh/boot/compressed/Makefile
-@@ -64,5 +64,5 @@ OBJCOPYFLAGS += -R .empty_zero_page
- 
- LDFLAGS_piggy.o := -r --format binary --oformat $(ld-bfd) -T
- 
--$(obj)/piggy.o: $(obj)/vmlinux.scr $(obj)/vmlinux.bin.$(suffix-y) FORCE
-+$(obj)/piggy.o: $(obj)/vmlinux.scr $(obj)/vmlinux.bin.$(suffix_y) FORCE
- 	$(call if_changed,ld)
--- 
-2.32.0
+Anybody willing to cook up a patch and run some benchmarks? Perhaps
+one that basically just replaces "set ->mm to NULL" with "set ->mm to
+&init_mm" - so that the lazy TLB code is still *there*, but it never
+triggers..
 
+I think it's mainly 'copy_thread()' in kernel/fork.c and the 'init_mm'
+initializer in mm/init-mm.c, but there's probably other things too
+that have that knowledge of the special "tsk->mm = NULL" situation.
+
+                  Linus
