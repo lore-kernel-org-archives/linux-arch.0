@@ -2,123 +2,83 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C5860C433F5
-	for <linux-arch@archiver.kernel.org>; Sun,  9 Jan 2022 08:49:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 09C4DC433F5
+	for <linux-arch@archiver.kernel.org>; Sun,  9 Jan 2022 18:16:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233371AbiAIItK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 9 Jan 2022 03:49:10 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34690 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229867AbiAIItJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2022 03:49:09 -0500
-Received: from mail-pg1-x52e.google.com (mail-pg1-x52e.google.com [IPv6:2607:f8b0:4864:20::52e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6C95AC06173F
-        for <linux-arch@vger.kernel.org>; Sun,  9 Jan 2022 00:49:09 -0800 (PST)
-Received: by mail-pg1-x52e.google.com with SMTP id s1so8648852pga.5
-        for <linux-arch@vger.kernel.org>; Sun, 09 Jan 2022 00:49:09 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=mime-version:subject:from:in-reply-to:date:cc
-         :content-transfer-encoding:message-id:references:to;
-        bh=o9EmHZcSICKN316fHMY91MizRyPQShQCNbAS0hB713c=;
-        b=XYpfUt383JWJwGaKWZpAKdo+YiAFBQ5m/K4QI6Tne9Whlr0hkgZwS9tvANsRb4ENTK
-         jqvkZCoyQRExqElL0pgO2DleCTZSlnnSXQmS057zcjyB4kw7w3ARhRZm1fiBg7jH9GtL
-         zCJuzLANVVdTJ5pFBLn0d62zhCCUj80qr1QlwnNxiiJ/HtKz8soDFznLgZ5UMiVAsu33
-         pdRL0eImc8vQlH3I6U96B+8mD0nSeyA23HgCDOCyXNqzdHLlOMXXcNr2MlFkSflf7y5Z
-         G584l0qyC8KYW+kJZDfa69zndj+MqgtypqUHo9pmUonJ/9/st8mCX14r5ooGHskfg/WC
-         vs3A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:subject:from:in-reply-to:date:cc
-         :content-transfer-encoding:message-id:references:to;
-        bh=o9EmHZcSICKN316fHMY91MizRyPQShQCNbAS0hB713c=;
-        b=IRxtdG8YSwviNN3U8Fz0+l2LnWbxPgASjSAV36Y3JWdMPVEieBmlMpHGNfJJIviRES
-         iebvzkvKbxcAcw8ewldGVvSaQSDzUNCJppKb3oQd0ODY4cNFB2ng3plApNbAYBJR3lx/
-         vGbp6fm04pwCLmlixHK1cZxT4yo6qvhGWyMFPE3YXGc+LNmWgQ+gzqelfwsVSfbEGB2V
-         K5wUH2/bCFKrPS8DNrbVEcMe/pnayCyKRnq/HiCujoyYoSXW8nK0AdhjTsgH9/fg06cH
-         VjMPzm8+U+V+ukJN3p56bPRKTmfmiwgIGIPJb+zhgTtb/wAE2U6VriZrCmwPjnMK55pJ
-         jrEA==
-X-Gm-Message-State: AOAM533+Jd6j8TBpyrseHAgsUXXFWNwZUKR264OTdp2eJ1J1cKxlpBck
-        rV4BLUg4bJweKGy2UJua48dtrNz4pN8=
-X-Google-Smtp-Source: ABdhPJw54hlsdqK5QlC8xHoSFSJbx4qK6uGUtHw76Ab4RaLHRTPSSAtuWGbuy+FRrO+Ni/5OI8XHmw==
-X-Received: by 2002:a63:9544:: with SMTP id t4mr4391363pgn.175.1641718148228;
-        Sun, 09 Jan 2022 00:49:08 -0800 (PST)
-Received: from smtpclient.apple (c-24-6-216-183.hsd1.ca.comcast.net. [24.6.216.183])
-        by smtp.gmail.com with ESMTPSA id x19sm2545676pgi.19.2022.01.09.00.49.06
-        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
-        Sun, 09 Jan 2022 00:49:07 -0800 (PST)
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (Mac OS X Mail 14.0 \(3654.120.0.1.13\))
-Subject: Re: [PATCH 16/23] sched: Use lightweight hazard pointers to grab lazy
- mms
-From:   Nadav Amit <nadav.amit@gmail.com>
-In-Reply-To: <CAHk-=wiEZO-uyFELSZgYmxF7eOLHrvh-kMWY5qTKjckOdNQxpA@mail.gmail.com>
-Date:   Sun, 9 Jan 2022 00:49:06 -0800
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
-        Linux-MM <linux-mm@kvack.org>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        Anton Blanchard <anton@ozlabs.org>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@ozlabs.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>,
-        Rik van Riel <riel@surriel.com>,
-        Dave Hansen <dave.hansen@intel.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Content-Transfer-Encoding: quoted-printable
-Message-Id: <B728EEE2-1EB9-4ACD-9F4E-423276380C0C@gmail.com>
-References: <cover.1641659630.git.luto@kernel.org>
- <7c9c388c388df8e88bb5d14828053ac0cb11cf69.1641659630.git.luto@kernel.org>
- <739A3109-04DD-4BA5-A02B-52EE30E820AE@gmail.com>
- <CAHk-=wiEZO-uyFELSZgYmxF7eOLHrvh-kMWY5qTKjckOdNQxpA@mail.gmail.com>
-To:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Andy Lutomirski <luto@kernel.org>
-X-Mailer: Apple Mail (2.3654.120.0.1.13)
+        id S236379AbiAISQK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 9 Jan 2022 13:16:10 -0500
+Received: from conuserg-09.nifty.com ([210.131.2.76]:31187 "EHLO
+        conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S234535AbiAISQJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2022 13:16:09 -0500
+Received: from grover.. (133-32-232-101.west.xps.vectant.ne.jp [133.32.232.101]) (authenticated)
+        by conuserg-09.nifty.com with ESMTP id 209IFWa0030890;
+        Mon, 10 Jan 2022 03:15:33 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-09.nifty.com 209IFWa0030890
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
+        s=dec2015msa; t=1641752133;
+        bh=BZ3qIKu57D8pRZHuFfM9UpnlJfsK2QYlIGz0shtBiGg=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=Xvo2l/iruGPUnO+b/eNRSKmS8gWyftSAayhOmNIl2DhQbXO4j6+vx6smmvO/joSBE
+         kM0KMFNJMrrxFvzQ0gEIzYytsu+W4QlnkoXv5wOJleARRAfv0h2og7OuMUCPQY39Pq
+         jkIuyfmJBcrKmr+o+n5ywlXQyFc+K2jzCxb+92zhhFcgGRP47Oh07A3uJ2GXgahAGk
+         eVdwNGUOPqOci4TeQby9yl0AWlxUa0upHxl2yzXq3Lvl72k5y0BJFHZ1Nn5aSaQ6CT
+         gZiGvOSlJxfaLactaFaj1CljEsN73DiRq4VT8QbfEHaP+GdXnbyDPaXljSankmZmYD
+         g3+xFKvwQfvVA==
+X-Nifty-SrcIP: [133.32.232.101]
+From:   Masahiro Yamada <masahiroy@kernel.org>
+To:     linux-kbuild@vger.kernel.org
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Masahiro Yamada <masahiroy@kernel.org>
+Subject: [PATCH 2/5] kbuild: drop $(size_append) from cmd_zstd
+Date:   Mon, 10 Jan 2022 03:15:26 +0900
+Message-Id: <20220109181529.351420-2-masahiroy@kernel.org>
+X-Mailer: git-send-email 2.32.0
+In-Reply-To: <20220109181529.351420-1-masahiroy@kernel.org>
+References: <20220109181529.351420-1-masahiroy@kernel.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+The appended file size is only used by the decompressors, which some
+architectures support.
 
+As the comment "zstd22 is used for kernel compression" says, cmd_zstd22
+is used in arch/{mips,s390,x86}/boot/compressed/Makefile.
 
-> On Jan 8, 2022, at 10:48 PM, Linus Torvalds =
-<torvalds@linux-foundation.org> wrote:
->=20
-> On Sat, Jan 8, 2022 at 9:56 PM Nadav Amit <nadav.amit@gmail.com> =
-wrote:
->>=20
->> Just wondering: In a world of ASID/PCID - does the =E2=80=9Clazy =
-TLB=E2=80=9D really
->> have a worthy advantage?
->>=20
->> Considering the fact that with PTI anyhow address spaces are switched
->> all the time, can=E2=80=99t we just get rid of it?
->=20
+On the other hand, there is no good reason to append the file size to
+cmd_zstd since it is used for other purposes.
 
-[snip]
+Actually cmd_zstd is only used in usr/Makefile, where the appended file
+size is rather harmful.
 
->=20
-> Or maybe it's only worth it on platforms where it's free (UP, possibly
-> other situations - like if you have IPI and it's "free").
+The initramfs with its file size appended is considered as corrupted
+data, so commit 65e00e04e5ae ("initramfs: refactor the initramfs build
+rules") added 'override size_append := :' to make it no-op.
 
-On UP it might be free, but on x86+IPIs there is a tradeoff.
+As a conclusion, this $(size_append) should not exist here.
 
-When you decide which CPUs you want to send the IPI to, in the
-common flow (no tables freed) you check whether they use
-=E2=80=9Clazy TLB=E2=80=9D or not in order to filter out the lazy ones. =
-In the
-past this was on a cacheline with other frequently-dirtied data so
-many times the cacheline bounced from cache to cache. Worse, the
-test used an indirect branch so was expensive with Spectre v2
-mitigations. I fixed it some time ago, so things are better and
-today the cacheline of is_lazy should bounce less between caches,
-but there is a tradeoff in maintaining and checking both cpumask
-and then is_lazy for each CPU in cpumask.
+Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+---
 
-It is possible for instance to get rid of is_lazy, keep the CPU
-on mm_cpumask when switching to kernel thread, and then if/when
-an IPI is received remove it from cpumask to avoid further
-unnecessary TLB shootdown IPIs.
+ scripts/Makefile.lib | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-I do not know whether it is a pure win, but there is a tradeoff.=
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index d1f865b8c0cb..5366466ea0e4 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -473,7 +473,7 @@ quiet_cmd_xzmisc = XZMISC  $@
+ # be used because it would require zstd to allocate a 128 MB buffer.
+ 
+ quiet_cmd_zstd = ZSTD    $@
+-      cmd_zstd = { cat $(real-prereqs) | $(ZSTD) -19; $(size_append); } > $@
++      cmd_zstd = cat $(real-prereqs) | $(ZSTD) -19 > $@
+ 
+ quiet_cmd_zstd22 = ZSTD22  $@
+       cmd_zstd22 = { cat $(real-prereqs) | $(ZSTD) -22 --ultra; $(size_append); } > $@
+-- 
+2.32.0
+
