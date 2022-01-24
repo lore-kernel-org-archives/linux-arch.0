@@ -2,119 +2,103 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A5D30C433FE
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Jan 2022 15:08:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 54822C43219
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Jan 2022 20:54:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238698AbiAXPH7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Jan 2022 10:07:59 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46070 "EHLO
+        id S1348025AbiAXUxP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Jan 2022 15:53:15 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43052 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237584AbiAXPH5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jan 2022 10:07:57 -0500
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0F9D6C06173B
-        for <linux-arch@vger.kernel.org>; Mon, 24 Jan 2022 07:07:57 -0800 (PST)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 9F48D61460
-        for <linux-arch@vger.kernel.org>; Mon, 24 Jan 2022 15:07:56 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AD940C340EC;
-        Mon, 24 Jan 2022 15:07:53 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1643036876;
-        bh=AgvHJ05mKlanHTKPxlvF3HP9xWj1bFujzXnIQtNs0qQ=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=l02j+vlYqO61Bd6S0IaSsfTGDwHDY2cHjOrjyjczxTlej/cgXYkzWwIkThqPjHFDU
-         e0PxYRJPAsvvXV3zmHG6gTfXDYymbuGsrnWl+u+7SEm7kaAkwu0hrIuojyCPps+dl1
-         4gAhlG/PqNZ4dRAzHa0BvRBERGKjoRTll2LqQ3m228P9V/T9hJ7T5AvPwIq44N/cO6
-         WDhnrwyX2MTIIhWz7H+czuBwiaz9L7O+OmZbBQPbvb7tgGqFsXJ1+4YeOtlQ2AIkcP
-         pHlHp4jxcWk8me/WiQy0VGRvoZXmxc4FB5VO9c+1QU+aQtnTLAGywQ35soFSUoBfu3
-         hQkZFXBv6evUA==
-From:   Mark Brown <broonie@kernel.org>
-To:     Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>
-Cc:     Szabolcs Nagy <szabolcs.nagy@arm.com>,
-        Jeremy Linton <jeremy.linton@arm.com>,
-        "H . J . Lu" <hjl.tools@gmail.com>,
-        Yu-cheng Yu <yu-cheng.yu@intel.com>,
-        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        libc-alpha@sourceware.org, Mark Brown <broonie@kernel.org>,
-        Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v8 4/4] elf: Remove has_interp property from arch_parse_elf_property()
-Date:   Mon, 24 Jan 2022 15:07:04 +0000
-Message-Id: <20220124150704.2559523-5-broonie@kernel.org>
-X-Mailer: git-send-email 2.30.2
-In-Reply-To: <20220124150704.2559523-1-broonie@kernel.org>
-References: <20220124150704.2559523-1-broonie@kernel.org>
+        with ESMTP id S1390680AbiAXUqD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jan 2022 15:46:03 -0500
+Received: from mail-lj1-x230.google.com (mail-lj1-x230.google.com [IPv6:2a00:1450:4864:20::230])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 627FDC061345
+        for <linux-arch@vger.kernel.org>; Mon, 24 Jan 2022 11:55:57 -0800 (PST)
+Received: by mail-lj1-x230.google.com with SMTP id z7so9184013ljj.4
+        for <linux-arch@vger.kernel.org>; Mon, 24 Jan 2022 11:55:57 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20210112;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=CsGwBiMEkwe4bLg19ywjdJZ3/5M1hRBHlVRcQEjbGmo=;
+        b=rtbY+gqfHYd5dj6xP5LOP4QpTVnE0wZG3g8n7uzpDUJ4jVInle5CceB62w4oNxWy8u
+         xXN8vN7IrBOKmQcgtvQFaTfgpVvlZ1C7rg8TWBiysAfRSiqHZV5kZTrpHFseJFjMV4Od
+         +Jk5BAqTQjingEkJlsAfH3x7sfC03xhNfh0ADDu2Y2dMke7fwHzLmPKHUaTG7d2OKHNx
+         fysiqoVSVENsXqjTFvu/VWsdgDVMLFS6QU1EAZh0HnTGPYzaozPOI7hgaS4vbnNHE24k
+         ov5CQ5YvZP7tmNZBSSD6kToX7EO1i/6HTOWafDrGLNTOSJU6Ciew4FpN1aYt0fGglLwQ
+         8/vQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=CsGwBiMEkwe4bLg19ywjdJZ3/5M1hRBHlVRcQEjbGmo=;
+        b=W9OkvOPtU9+ZwxVpAN8wRbWgl9gXXlNM/zCHjABG6WpV04JLBBvcqkqSv7QdYQAT3/
+         8PctQQNbkwXphT0/+gkFLS37HfRNW5E7SZHHYd4T+gt3xIfEiCZ6su1cv0l+M7MkvGeG
+         3KYQpwlOFZRYgA8HqvwAUaClTo81VgjvNUw9KDhqXK4xk7p345+fySsE4xXWbByYq0sp
+         YZikM1eh7yXtt4B2pQCtSBhOp5+JxBfzxaSoop4VAZbfOv1l1K+EBD9KdOhlB3KW8J97
+         esSsKAoyLCE/QA/11/xKhxdiyDor9H1bzeO/Prk2ethzFYQAnxFsoY35RHREnr4afIwZ
+         if7g==
+X-Gm-Message-State: AOAM530Oz7PRnMCXx58oV7Ic+rGBbboyQW95frotPfktfbGMQE5i6aU2
+        5+0GANTABA93gAuLC29zINov19QIsOW8xpt8RWWILQ==
+X-Google-Smtp-Source: ABdhPJyOtLsKZqsENjScci++5Pp4Q0kOx1naLw57dM5+mMcu04T6dj7bnpqZLaem4TA31GMKPuqL3D7+h16zW5aDmyc=
+X-Received: by 2002:a2e:8283:: with SMTP id y3mr12029632ljg.128.1643054155425;
+ Mon, 24 Jan 2022 11:55:55 -0800 (PST)
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2173; h=from:subject; bh=AgvHJ05mKlanHTKPxlvF3HP9xWj1bFujzXnIQtNs0qQ=; b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBh7sCV5pbroCzNdrQI6WswDIxBtw80BpnySXQ1Hojz LOHZoKGJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCYe7AlQAKCRAk1otyXVSH0O0vB/ 9KE5CJ10Jv+de4lujwv4rzrdy9amy41Qfx8+qwkEdVL9RKrSl/lcHJMf1bWD2ooFU4UguhiR/NK3Dy dDvb5tPAjR+pfY4mV+ChjNX33tpGLDOX4/uMkZcen4ZisJLbdcDOKRFELofpmd43nWNvrQTc3gu6mW P3todCZycJiwdtQS1KvRXviiR4YCLgMtyaljjjG1wKRoXlykvd3//rvdHuDoBhWgF9stBaaeW/yHnf 97oMXIc6EYAFTMbkvtpIauGQTwV2YHe7Kgtcl/Ve7icYEoqv44lLSP2K0SWOZ4HVzZ8AP5L/wG666b ja8EwxE9GcmgqnTQXv5G3ogbtCrLjB
-X-Developer-Key: i=broonie@kernel.org; a=openpgp; fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
-Content-Transfer-Encoding: 8bit
+References: <20220120053100.408816-1-masahiroy@kernel.org>
+In-Reply-To: <20220120053100.408816-1-masahiroy@kernel.org>
+From:   Nick Desaulniers <ndesaulniers@google.com>
+Date:   Mon, 24 Jan 2022 11:55:43 -0800
+Message-ID: <CAKwvOd=52G2J2nXRbefjJ57B_ySZaZ6SD8UwwHziZMPoR6ABHQ@mail.gmail.com>
+Subject: Re: [PATCH] Revert "Makefile: Do not quote value for CONFIG_CC_IMPLICIT_FALLTHROUGH"
+To:     Masahiro Yamada <masahiroy@kernel.org>
+Cc:     linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, Michal Marek <michal.lkml@markovi.net>,
+        carnil@debian.org, Kees Cook <keescook@chromium.org>,
+        "Gustavo A . R . Silva" <gustavoars@kernel.org>,
+        Nathan Chancellor <nathan@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Since all current users of arch_parse_elf_property() are able to treat the
-interpreter and main executable orthogonaly the has_interp argument is now
-redundant so remove it.
++ Salvatore, Kees, Gustavo, Nathan
 
-Signed-off-by: Mark Brown <broonie@kernel.org>
-Tested-by: Jeremy Linton <jeremy.linton@arm.com>
-Reviewed-By: Dave Martin <Dave.Martin@arm.com>
----
- arch/arm64/include/asm/elf.h | 2 +-
- fs/binfmt_elf.c              | 2 +-
- include/linux/elf.h          | 4 ++--
- 3 files changed, 4 insertions(+), 4 deletions(-)
+On Wed, Jan 19, 2022 at 9:31 PM Masahiro Yamada <masahiroy@kernel.org> wrote:
+>
+> This reverts commit cd8c917a56f20f48748dd43d9ae3caff51d5b987.
+>
+> Commit 129ab0d2d9f3 ("kbuild: do not quote string values in
+> include/config/auto.conf") provided the final solution.
+>
+> Now reverting the temporary workaround.
+>
+> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index c4aa60db76a4..8009e8f07f1e 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -268,7 +268,7 @@ static inline int arm64_elf_bti_flag(bool is_interp)
- 
- static inline int arch_parse_elf_property(u32 type, const void *data,
- 					  size_t datasz, bool compat,
--					  bool has_interp, bool is_interp,
-+					  bool is_interp,
- 					  struct arch_elf_state *arch)
- {
- 	/* No known properties for AArch32 yet */
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index c1620358ab77..caedfdcead61 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -753,7 +753,7 @@ static int parse_elf_property(const char *data, size_t *off, size_t datasz,
- 
- 	ret = arch_parse_elf_property(pr->pr_type, data + o,
- 				      pr->pr_datasz, ELF_COMPAT,
--				      has_interp, is_interp, arch);
-+				      is_interp, arch);
- 	if (ret)
- 		return ret;
- 
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index d8392531899d..cdb080d4b34a 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -88,14 +88,14 @@ struct arch_elf_state;
- #ifndef CONFIG_ARCH_USE_GNU_PROPERTY
- static inline int arch_parse_elf_property(u32 type, const void *data,
- 					  size_t datasz, bool compat,
--					  bool has_interp, bool is_interp,
-+					  bool is_interp,
- 					  struct arch_elf_state *arch)
- {
- 	return 0;
- }
- #else
- extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
--				   bool compat, bool has_interp, bool is_interp,
-+				   bool compat, bool is_interp,
- 				   struct arch_elf_state *arch);
- #endif
- 
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+
+> ---
+>
+>  Makefile | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/Makefile b/Makefile
+> index 3f07f0f04475..c94559a97dca 100644
+> --- a/Makefile
+> +++ b/Makefile
+> @@ -778,7 +778,7 @@ stackp-flags-$(CONFIG_STACKPROTECTOR_STRONG)      := -fstack-protector-strong
+>  KBUILD_CFLAGS += $(stackp-flags-y)
+>
+>  KBUILD_CFLAGS-$(CONFIG_WERROR) += -Werror
+> -KBUILD_CFLAGS += $(KBUILD_CFLAGS-y) $(CONFIG_CC_IMPLICIT_FALLTHROUGH:"%"=%)
+> +KBUILD_CFLAGS += $(KBUILD_CFLAGS-y) $(CONFIG_CC_IMPLICIT_FALLTHROUGH)
+>
+>  ifdef CONFIG_CC_IS_CLANG
+>  KBUILD_CPPFLAGS += -Qunused-arguments
+> --
+> 2.32.0
+>
+
+
 -- 
-2.30.2
-
+Thanks,
+~Nick Desaulniers
