@@ -2,36 +2,19 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 421E8C433EF
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Jan 2022 20:49:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 379FCC433F5
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Jan 2022 21:11:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240181AbiA0UtQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Jan 2022 15:49:16 -0500
-Received: from mail-out2.in.tum.de ([131.159.0.36]:49089 "EHLO
-        mail-out2.informatik.tu-muenchen.de" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S235860AbiA0UtQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Jan 2022 15:49:16 -0500
-Received: from mailrelay1.rbg.tum.de (mailrelay1.in.tum.de [131.159.254.14])
-        by mail-out2.informatik.tu-muenchen.de (Postfix) with ESMTP id 2FDFC240086;
-        Thu, 27 Jan 2022 21:49:14 +0100 (CET)
-Received: by mailrelay1.rbg.tum.de (Postfix, from userid 112)
-        id 2D1AAFDD; Thu, 27 Jan 2022 21:49:14 +0100 (CET)
-Received: from mailrelay1.rbg.tum.de (localhost [127.0.0.1])
-        by mailrelay1.rbg.tum.de (Postfix) with ESMTP id 0A005FDC;
-        Thu, 27 Jan 2022 21:49:14 +0100 (CET)
-Received: from mail.in.tum.de (mailproxy.in.tum.de [IPv6:2a09:80c0::78])
-        by mailrelay1.rbg.tum.de (Postfix) with ESMTPS id 0502F592;
-        Thu, 27 Jan 2022 21:49:14 +0100 (CET)
-Received: by mail.in.tum.de (Postfix, from userid 112)
-        id F2C494A040E; Thu, 27 Jan 2022 21:49:13 +0100 (CET)
-Received: (Authenticated sender: heidekrp)
-        by mail.in.tum.de (Postfix) with ESMTPSA id 0AE414A0238;
-        Thu, 27 Jan 2022 21:49:12 +0100 (CET)
-        (Extended-Queue-bit xtech_em@fff.in.tum.de)
-Date:   Thu, 27 Jan 2022 21:49:07 +0100
-From:   Paul =?iso-8859-1?Q?Heidekr=FCger?= <paul.heidekrueger@in.tum.de>
-To:     Alan Stern <stern@rowland.harvard.edu>
+        id S1344220AbiA0VLw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Jan 2022 16:11:52 -0500
+Received: from netrider.rowland.org ([192.131.102.5]:40407 "HELO
+        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1344170AbiA0VLu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jan 2022 16:11:50 -0500
+Received: (qmail 185924 invoked by uid 1000); 27 Jan 2022 16:11:48 -0500
+Date:   Thu, 27 Jan 2022 16:11:48 -0500
+From:   Alan Stern <stern@rowland.harvard.edu>
+To:     Paul =?iso-8859-1?Q?Heidekr=FCger?= <paul.heidekrueger@in.tum.de>
 Cc:     Andrea Parri <parri.andrea@gmail.com>,
         Will Deacon <will@kernel.org>,
         Peter Zijlstra <peterz@infradead.org>,
@@ -49,42 +32,99 @@ Cc:     Andrea Parri <parri.andrea@gmail.com>,
         Marco Elver <elver@google.com>,
         Charalampos Mainas <charalampos.mainas@gmail.com>,
         Pramod Bhatotia <pramod.bhatotia@in.tum.de>
-Subject: Re: [PATCH] tools/memory-model: Clarify syntactic and semantic
+Subject: [PATCH] tools/memory-model: Explain syntactic and semantic
  dependencies
-Message-ID: <YfMFQ5IZiGBRw7SH@Pauls-MacBook-Pro.local>
+Message-ID: <YfMKlLInsK0Qr77f@rowland.harvard.edu>
 References: <20220125172819.3087760-1-paul.heidekrueger@in.tum.de>
  <YfBk265vVo4FL4MJ@rowland.harvard.edu>
  <YfJ7Rr9Kdk4u78lt@Pauls-MacBook-Pro.local>
  <YfLQmgsXp6pg0XIy@rowland.harvard.edu>
+ <YfMFQ5IZiGBRw7SH@Pauls-MacBook-Pro.local>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <YfLQmgsXp6pg0XIy@rowland.harvard.edu>
+In-Reply-To: <YfMFQ5IZiGBRw7SH@Pauls-MacBook-Pro.local>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Jan 27, 2022 at 12:04:26PM -0500, Alan Stern wrote:
-> On Thu, Jan 27, 2022 at 12:00:22PM +0100, Paul Heidekrüger wrote:
-> > On Tue, Jan 25, 2022 at 04:00:11PM -0500, Alan Stern wrote:
-> > > That's a very abstract way of describing the situation; it doesn't do a 
-> > > good job of getting the real idea across.  It also mixes up two separate 
-> > > ideas: behaviors being unaffected by a syntactic dependency and 
-> > > behaviors being undefined.  They should be described separately. 
-> > 
-> > Many thanks for the feedback! I agree, the explanation works a lot
-> > better once readers have been introduced to data, addr and ctrl
-> > relations. 
-> > 
-> > > I would prefer something along these lines...
-> > 
-> > Shall I resubmit the patch with you as co-developer, or, given that it's
-> > arguably your work now, would you like to submit the patch yourself?
-> 
-> I'll submit it myself, with Suggested-by: you.  How does that sound?
+Paul Heidekrüger pointed out that the Linux Kernel Memory Model
+documentation doesn't mention the distinction between syntactic and
+semantic dependencies.  This is an important difference, because the
+compiler can easily break dependencies that are only syntactic, not
+semantic.
 
-Sounds good! 
+This patch adds a few paragraphs to the LKMM documentation explaining
+these issues and illustrating how they can matter.
 
-Many thanks,
-Paul
+Suggested-by: Paul Heidekrüger <paul.heidekrueger@in.tum.de>
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+
+---
+
+
+[as1970]
+
+
+ tools/memory-model/Documentation/explanation.txt |   47 +++++++++++++++++++++++
+ 1 file changed, 47 insertions(+)
+
+Index: usb-devel/tools/memory-model/Documentation/explanation.txt
+===================================================================
+--- usb-devel.orig/tools/memory-model/Documentation/explanation.txt
++++ usb-devel/tools/memory-model/Documentation/explanation.txt
+@@ -485,6 +485,53 @@ have R ->po X.  It wouldn't make sense f
+ somehow on a value that doesn't get loaded from shared memory until
+ later in the code!
+ 
++Here's a trick question: When is a dependency not a dependency?  Answer:
++When it is purely syntactic rather than semantic.  We say a dependency
++between two accesses is purely syntactic if the second access doesn't
++actually depend on the result of the first.  Here is a trivial example:
++
++	r1 = READ_ONCE(x);
++	WRITE_ONCE(y, r1 * 0);
++
++There appears to be a data dependency from the load of x to the store of
++y, since the value to be stored is computed from the value that was
++loaded.  But in fact, the value stored does not really depend on
++anything since it will always be 0.  Thus the data dependency is only
++syntactic (it appears to exist in the code) but not semantic (the second
++access will always be the same, regardless of the value of the first
++access).  Given code like this, a compiler could simply eliminate the
++load from x, which would certainly destroy any dependency.
++
++(It's natural to object that no one in their right mind would write code
++like the above.  However, macro expansions can easily give rise to this
++sort of thing, in ways that generally are not apparent to the
++programmer.)
++
++Another mechanism that can give rise to purely syntactic dependencies is
++related to the notion of "undefined behavior".  Certain program behaviors
++are called "undefined" in the C language specification, which means that
++when they occur there are no guarantees at all about the outcome.
++Consider the following example:
++
++	int a[1];
++	int i;
++
++	r1 = READ_ONCE(i);
++	r2 = READ_ONCE(a[r1]);
++
++Access beyond the end or before the beginning of an array is one kind of
++undefined behavior.  Therefore the compiler doesn't have to worry about
++what will happen if r1 is nonzero, and it can assume that r1 will always
++be zero without actually loading anything from i.  (If the assumption
++turns out to be wrong, the resulting behavior will be undefined anyway
++so the compiler doesn't care!)  Thus the load from i can be eliminated,
++breaking the address dependency.
++
++The LKMM is unaware that purely syntactic dependencies are different
++from semantic dependencies and therefore mistakenly predicts that the
++accesses in the two examples above will be ordered.  This is another
++example of how the compiler can undermine the memory model.  Be warned.
++
+ 
+ THE READS-FROM RELATION: rf, rfi, and rfe
+ -----------------------------------------
