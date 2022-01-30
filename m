@@ -2,37 +2,37 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BABF0C433EF
-	for <linux-arch@archiver.kernel.org>; Sun, 30 Jan 2022 21:25:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AE011C4332F
+	for <linux-arch@archiver.kernel.org>; Sun, 30 Jan 2022 21:25:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1356767AbiA3VZK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 30 Jan 2022 16:25:10 -0500
-Received: from mga07.intel.com ([134.134.136.100]:9102 "EHLO mga07.intel.com"
+        id S1356835AbiA3VZc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 30 Jan 2022 16:25:32 -0500
+Received: from mga07.intel.com ([134.134.136.100]:9049 "EHLO mga07.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1356858AbiA3VXn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 30 Jan 2022 16:23:43 -0500
+        id S1356642AbiA3VYB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 30 Jan 2022 16:24:01 -0500
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1643577823; x=1675113823;
+  t=1643577841; x=1675113841;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references;
-  bh=EqRq2q1dVEJOlLae8vGVwGnmb22Q/jCe3uza6jx7E4E=;
-  b=SEQPdXswVuKKQR0j59zigkANcH/Qo6D4Msfp7s96CsJ/RSjL6lQVDcZy
-   I47gVAkAqI+NAhKrIS0gtE6K55L7pqne3k94bTSU2qAotf+H0paR80j+w
-   6/F6fiJpMHpssu2CTmpsRZA7nte6OhCqkuX7E7Ri0T3c52izhVH8Lzdya
-   E6ovBDySn++DdtpPfjm8Vh4KtGMWn/VfwEN6d9wXdXVsFQKAhPTkYNIKA
-   OBBMZQEGM8P5Zeb/NEaQ9E6cq+aY8njcmEFkNGgXCgNkKbX3JAXeL2/CM
-   degvzXxGDkWKVw4djKlnoolrVX45K7Ra6XnxXoCOXhOwJ28wc4IKDpqDy
-   w==;
-X-IronPort-AV: E=McAfee;i="6200,9189,10243"; a="310685825"
+  bh=Em5mNWM4OERuM6Gg1HCpB/weTfMZ74vCRnQkfPKE0BY=;
+  b=PhvrEzIBP2v2icfMzi5/YAojt6eKstTVynL0TFtCobpH0EWNXXbgdEQe
+   q8QFP66iJb8UPugmMnnJlZw4ZYYZCKUIkQ9BQMp+GWkgpUqPj8FhnvVOe
+   51VyviuGPDNf5/Bt44C4rwub8cvpaQwIF77Iroe6BHwi5j8ySVDlBEHgt
+   QVufsG6Or2+oxmdMEZl901mr3eosjQS60AXk8lDAGJ1YTXNRW84qgxV20
+   MLeMyiaxwoT7kPbG5uA9YPETOTffL5htrmzzAQi2dV+snqvZT3N4dJd0L
+   kPqDR99kFFacFruJWOVXAZp4j/VdoQ9aTV/+ikEMQi/t66BUWhyIV8U+9
+   Q==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10243"; a="310685828"
 X-IronPort-AV: E=Sophos;i="5.88,329,1635231600"; 
-   d="scan'208";a="310685825"
+   d="scan'208";a="310685828"
 Received: from orsmga008.jf.intel.com ([10.7.209.65])
-  by orsmga105.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jan 2022 13:22:10 -0800
+  by orsmga105.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jan 2022 13:22:11 -0800
 X-IronPort-AV: E=Sophos;i="5.88,329,1635231600"; 
-   d="scan'208";a="536856960"
+   d="scan'208";a="536856983"
 Received: from avmallar-mobl1.amr.corp.intel.com (HELO rpedgeco-desk.amr.corp.intel.com) ([10.209.123.171])
-  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jan 2022 13:22:09 -0800
+  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jan 2022 13:22:10 -0800
 From:   Rick Edgecombe <rick.p.edgecombe@intel.com>
 To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -62,9 +62,9 @@ To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         joao.moreira@intel.com, John Allen <john.allen@amd.com>,
         kcc@google.com, eranian@google.com
 Cc:     rick.p.edgecombe@intel.com, Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 29/35] x86/cet/shstk: Introduce shadow stack token setup/verify routines
-Date:   Sun, 30 Jan 2022 13:18:32 -0800
-Message-Id: <20220130211838.8382-30-rick.p.edgecombe@intel.com>
+Subject: [PATCH 31/35] x86/cet/shstk: Add arch_prctl elf feature functions
+Date:   Sun, 30 Jan 2022 13:18:34 -0800
+Message-Id: <20220130211838.8382-32-rick.p.edgecombe@intel.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220130211838.8382-1-rick.p.edgecombe@intel.com>
 References: <20220130211838.8382-1-rick.p.edgecombe@intel.com>
@@ -74,249 +74,228 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
 
-A shadow stack restore token marks a restore point of the shadow stack, and
-the address in a token must point directly above the token, which is within
-the same shadow stack.  This is distinctively different from other pointers
-on the shadow stack, since those pointers point to executable code area.
+Some CPU features that adjust the behavior of existing instructions
+should be enabled only if the application supports these modifications.
 
-Introduce token setup and verify routines.  Also introduce WRUSS, which is
-a kernel-mode instruction but writes directly to user shadow stack.  It is
-used to construct user signal stack as described above.
+Provide a per-thread arch_prctl interface for modifying, checking and
+locking the enablement status of features like these. This interface
+operates on the per-thread state which is copied for new threads. It is
+intended to be mostly used early in an application (i.e. a dynamic loader)
+such that the behavior will be inherited for new threads created by the
+application.
+
+Today the only user is shadow stack, but keep the names generic because
+other features like LAM can use it as well.
+
+The interface is as below:
+arch_prctl(ARCH_X86_FEATURE_STATUS, u64 *args)
+    Get feature status.
+
+    The parameter 'args' is a pointer to a user buffer. The kernel returns
+    the following information:
+
+    *args = shadow stack/IBT status
+    *(args + 1) = shadow stack base address
+    *(args + 2) = shadow stack size
+
+    32-bit binaries use the same interface, but only lower 32-bits of each
+    item.
+
+arch_prctl(ARCH_X86_FEATURE_DISABLE, unsigned int features)
+    Disable features specified in 'features'. Return -EPERM if any of the
+    passed feature are locked. Return -ECANCELED if any of the features
+    failed to disable. In this case call ARCH_X86_FEATURE_STATUS to find
+    out which features are still enabled.
+
+arch_prctl(ARCH_X86_FEATURE_ENABLE, unsigned int features)
+    Enable feature specified in 'features'. Return -EPERM if any of the
+    passed feature are locked. Return -ECANCELED if any of the features
+    failed to enable. In this case call ARCH_X86_FEATURE_STATUS to find
+    out which features were enabled.
+
+arch_prctl(ARCH_X86_FEATURE_LOCK, unsigned int features)
+    Lock in all features at their current enabled or disabled status.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Cc: Kees Cook <keescook@chromium.org>
 ---
 
 v1:
- - Use xsave helpers.
+ - Changed from ENOSYS and ENOTSUPP error codes per checkpatch.
+ - Changed interface/filename to be more generic so it can be shared with
+   LAM.
+ - Add lock mask, such that some features can be locked, while leaving others
+   to be enabled later.
+ - Add ARCH_X86_FEATURE_ENABLE to use instead of parsing the elf header
+ - Change ARCH_X86_FEATURE_DISABLE to actually return an error on
+   failure.
 
-Yu-cheng v30:
- - Update commit log, remove description about signals.
- - Update various comments.
- - Remove variable 'ssp' init and adjust return value accordingly.
- - Check get_user_shstk_addr() return value.
- - Replace 'ia32' with 'proc32'.
-
-Yu-cheng v29:
- - Update comments for the use of get_xsave_addr().
-
-Yu-cheng v28:
- - Add comments for get_xsave_addr().
-
-Yu-cheng v27:
- - For shstk_check_rstor_token(), instead of an input param, use current
-   shadow stack pointer.
- - In response to comments, fix/simplify a few syntax/format issues.
-
- arch/x86/include/asm/cet.h           |   7 ++
- arch/x86/include/asm/special_insns.h |  30 +++++++
- arch/x86/kernel/shstk.c              | 122 +++++++++++++++++++++++++++
- 3 files changed, 159 insertions(+)
+ arch/x86/include/asm/cet.h          |  6 +++
+ arch/x86/include/asm/processor.h    |  1 +
+ arch/x86/include/uapi/asm/prctl.h   | 10 +++++
+ arch/x86/kernel/Makefile            |  2 +-
+ arch/x86/kernel/elf_feature_prctl.c | 66 +++++++++++++++++++++++++++++
+ arch/x86/kernel/process.c           |  2 +-
+ arch/x86/kernel/shstk.c             |  1 +
+ 7 files changed, 86 insertions(+), 2 deletions(-)
+ create mode 100644 arch/x86/kernel/elf_feature_prctl.c
 
 diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
-index 63ee8b45080d..6e8a7a807dcc 100644
+index faff8dc86159..cbc7cfcba5dc 100644
 --- a/arch/x86/include/asm/cet.h
 +++ b/arch/x86/include/asm/cet.h
-@@ -19,6 +19,9 @@ int shstk_alloc_thread_stack(struct task_struct *p, unsigned long clone_flags,
- void shstk_free(struct task_struct *p);
- int shstk_disable(void);
- void reset_thread_shstk(void);
-+int shstk_setup_rstor_token(bool proc32, unsigned long restorer,
-+			    unsigned long *new_ssp);
-+int shstk_check_rstor_token(bool proc32, unsigned long *new_ssp);
- #else
- static inline void shstk_setup(void) {}
- static inline int shstk_alloc_thread_stack(struct task_struct *p,
-@@ -27,6 +30,10 @@ static inline int shstk_alloc_thread_stack(struct task_struct *p,
- static inline void shstk_free(struct task_struct *p) {}
- static inline void shstk_disable(void) {}
- static inline void reset_thread_shstk(void) {}
-+static inline int shstk_setup_rstor_token(bool proc32, unsigned long restorer,
-+					  unsigned long *new_ssp) { return 0; }
-+static inline int shstk_check_rstor_token(bool proc32,
-+					  unsigned long *new_ssp) { return 0; }
+@@ -40,6 +40,12 @@ static inline int setup_signal_shadow_stack(int proc32, void __user *restorer) {
+ static inline int restore_signal_shadow_stack(void) { return 0; }
  #endif /* CONFIG_X86_SHADOW_STACK */
  
- #endif /* __ASSEMBLY__ */
-diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
-index 68c257a3de0d..f45f378ca1fc 100644
---- a/arch/x86/include/asm/special_insns.h
-+++ b/arch/x86/include/asm/special_insns.h
-@@ -222,6 +222,36 @@ static inline void clwb(volatile void *__p)
- 		: [pax] "a" (p));
- }
- 
 +#ifdef CONFIG_X86_SHADOW_STACK
-+static inline int write_user_shstk_32(u32 __user *addr, u32 val)
++int prctl_elf_feature(int option, u64 arg2);
++#else
++static inline int prctl_elf_feature(int option, u64 arg2) { return -EINVAL; }
++#endif
++
+ #endif /* __ASSEMBLY__ */
+ 
+ #endif /* _ASM_X86_CET_H */
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index a9f4e9c4ca81..100af0f570c9 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -531,6 +531,7 @@ struct thread_struct {
+ 
+ #ifdef CONFIG_X86_SHADOW_STACK
+ 	struct thread_shstk	shstk;
++	u64			feat_prctl_locked;
+ #endif
+ 
+ 	/* Floating point and extended processor state */
+diff --git a/arch/x86/include/uapi/asm/prctl.h b/arch/x86/include/uapi/asm/prctl.h
+index 500b96e71f18..aa294c7bcf41 100644
+--- a/arch/x86/include/uapi/asm/prctl.h
++++ b/arch/x86/include/uapi/asm/prctl.h
+@@ -20,4 +20,14 @@
+ #define ARCH_MAP_VDSO_32		0x2002
+ #define ARCH_MAP_VDSO_64		0x2003
+ 
++#define ARCH_X86_FEATURE_STATUS		0x3001
++#define ARCH_X86_FEATURE_DISABLE	0x3002
++#define ARCH_X86_FEATURE_LOCK		0x3003
++#define ARCH_X86_FEATURE_ENABLE		0x3004
++
++/* x86 feature bits to be used with ARCH_X86_FEATURE arch_prctl()s */
++#define LINUX_X86_FEATURE_IBT		0x00000001
++#define LINUX_X86_FEATURE_SHSTK		0x00000002
++
++
+ #endif /* _ASM_X86_PRCTL_H */
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index d60ae6c365c7..531dba96d4dc 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -153,7 +153,7 @@ obj-$(CONFIG_AMD_MEM_ENCRYPT)		+= sev.o
+ 
+ obj-$(CONFIG_ARCH_HAS_CC_PLATFORM)	+= cc_platform.o
+ 
+-obj-$(CONFIG_X86_SHADOW_STACK)		+= shstk.o
++obj-$(CONFIG_X86_SHADOW_STACK)		+= shstk.o elf_feature_prctl.o
+ ###
+ # 64 bit specific files
+ ifeq ($(CONFIG_X86_64),y)
+diff --git a/arch/x86/kernel/elf_feature_prctl.c b/arch/x86/kernel/elf_feature_prctl.c
+new file mode 100644
+index 000000000000..47de201db3f7
+--- /dev/null
++++ b/arch/x86/kernel/elf_feature_prctl.c
+@@ -0,0 +1,66 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <linux/errno.h>
++#include <linux/uaccess.h>
++#include <linux/prctl.h>
++#include <linux/compat.h>
++#include <linux/mman.h>
++#include <linux/elfcore.h>
++#include <linux/processor.h>
++#include <asm/prctl.h>
++#include <asm/cet.h>
++
++/* See Documentation/x86/intel_cet.rst. */
++
++static int elf_feat_copy_status_to_user(struct thread_shstk *shstk, u64 __user *ubuf)
 +{
-+	if (WARN_ONCE(!IS_ENABLED(CONFIG_IA32_EMULATION) &&
-+		      !IS_ENABLED(CONFIG_X86_X32),
-+		      "%s used but not supported.\n", __func__)) {
-+		return -EFAULT;
++	u64 buf[3] = {};
++
++	if (shstk->size) {
++		buf[0] = LINUX_X86_FEATURE_SHSTK;
++		buf[1] = shstk->base;
++		buf[2] = shstk->size;
 +	}
 +
-+	asm_volatile_goto("1: wrussd %[val], (%[addr])\n"
-+			  _ASM_EXTABLE(1b, %l[fail])
-+			  :: [addr] "r" (addr), [val] "r" (val)
-+			  :: fail);
-+	return 0;
-+fail:
-+	return -EFAULT;
++	return copy_to_user(ubuf, buf, sizeof(buf));
 +}
 +
-+static inline int write_user_shstk_64(u64 __user *addr, u64 val)
++int prctl_elf_feature(int option, u64 arg2)
 +{
-+	asm_volatile_goto("1: wrussq %[val], (%[addr])\n"
-+			  _ASM_EXTABLE(1b, %l[fail])
-+			  :: [addr] "r" (addr), [val] "r" (val)
-+			  :: fail);
-+	return 0;
-+fail:
-+	return -EFAULT;
-+}
-+#endif /* CONFIG_X86_SHADOW_STACK */
++	struct thread_struct *thread = &current->thread;
++	u64 feat_succ = 0;
 +
- #define nop() asm volatile ("nop")
- 
- static inline void serialize(void)
-diff --git a/arch/x86/kernel/shstk.c b/arch/x86/kernel/shstk.c
-index 358f24e806cc..e0caab50ca77 100644
---- a/arch/x86/kernel/shstk.c
-+++ b/arch/x86/kernel/shstk.c
-@@ -23,6 +23,33 @@
- #include <asm/special_insns.h>
- #include <asm/fpu/api.h>
- 
-+/*
-+ * Create a restore token on the shadow stack.  A token is always 8-byte
-+ * and aligned to 8.
-+ */
-+static int create_rstor_token(bool proc32, unsigned long ssp,
-+			      unsigned long *token_addr)
-+{
-+	unsigned long addr;
++	if (!cpu_feature_enabled(X86_FEATURE_SHSTK))
++		return -EOPNOTSUPP;
 +
-+	/* Aligned to 8 is aligned to 4, so test 8 first */
-+	if ((!proc32 && !IS_ALIGNED(ssp, 8)) || !IS_ALIGNED(ssp, 4))
-+		return -EINVAL;
++	switch (option) {
++	case ARCH_X86_FEATURE_STATUS:
++		return elf_feat_copy_status_to_user(&thread->shstk, (u64 __user *)arg2);
++	case ARCH_X86_FEATURE_DISABLE:
++		if (arg2 & thread->feat_prctl_locked)
++			return -EPERM;
 +
-+	addr = ALIGN_DOWN(ssp, 8) - 8;
++		if (arg2 & LINUX_X86_FEATURE_SHSTK && !shstk_disable())
++			feat_succ |= LINUX_X86_FEATURE_SHSTK;
 +
-+	/* Is the token for 64-bit? */
-+	if (!proc32)
-+		ssp |= BIT(0);
++		if (feat_succ != arg2)
++			return -ECANCELED;
++		return 0;
++	case ARCH_X86_FEATURE_ENABLE:
++		if (arg2 & thread->feat_prctl_locked)
++			return -EPERM;
 +
-+	if (write_user_shstk_64((u64 __user *)addr, (u64)ssp))
-+		return -EFAULT;
++		if (arg2 & LINUX_X86_FEATURE_SHSTK && !shstk_setup())
++			feat_succ |= LINUX_X86_FEATURE_SHSTK;
 +
-+	*token_addr = addr;
-+
-+	return 0;
-+}
-+
- static unsigned long alloc_shstk(unsigned long size)
- {
- 	int flags = MAP_ANONYMOUS | MAP_PRIVATE;
-@@ -213,3 +240,98 @@ int shstk_disable(void)
- 	shstk_free(current);
- 	return 0;
- }
-+
-+static unsigned long get_user_shstk_addr(void)
-+{
-+	void *xstate;
-+	unsigned long long ssp;
-+
-+	xstate = start_update_xsave_msrs(XFEATURE_CET_USER);
-+
-+	xsave_rdmsrl(xstate, MSR_IA32_PL3_SSP, &ssp);
-+
-+	end_update_xsave_msrs();
-+
-+	return ssp;
-+}
-+
-+/*
-+ * Create a restore token on shadow stack, and then push the user-mode
-+ * function return address.
-+ */
-+int shstk_setup_rstor_token(bool proc32, unsigned long ret_addr,
-+			    unsigned long *new_ssp)
-+{
-+	struct thread_shstk *shstk = &current->thread.shstk;
-+	unsigned long ssp, token_addr;
-+	int err;
-+
-+	if (!shstk->size)
++		if (feat_succ != arg2)
++			return -ECANCELED;
++		return 0;
++	case ARCH_X86_FEATURE_LOCK:
++		thread->feat_prctl_locked |= arg2;
 +		return 0;
 +
-+	if (!ret_addr)
++	default:
 +		return -EINVAL;
-+
-+	ssp = get_user_shstk_addr();
-+	if (!ssp)
-+		return -EINVAL;
-+
-+	err = create_rstor_token(proc32, ssp, &token_addr);
-+	if (err)
-+		return err;
-+
-+	if (proc32) {
-+		ssp = token_addr - sizeof(u32);
-+		err = write_user_shstk_32((u32 __user *)ssp, (u32)ret_addr);
-+	} else {
-+		ssp = token_addr - sizeof(u64);
-+		err = write_user_shstk_64((u64 __user *)ssp, (u64)ret_addr);
 +	}
-+
-+	if (!err)
-+		*new_ssp = ssp;
-+
-+	return err;
 +}
-+
-+/*
-+ * Verify the user shadow stack has a valid token on it, and then set
-+ * *new_ssp according to the token.
-+ */
-+int shstk_check_rstor_token(bool proc32, unsigned long *new_ssp)
-+{
-+	unsigned long token_addr;
-+	unsigned long token;
-+	bool shstk32;
-+
-+	token_addr = get_user_shstk_addr();
-+	if (!token_addr)
-+		return -EINVAL;
-+
-+	if (get_user(token, (unsigned long __user *)token_addr))
-+		return -EFAULT;
-+
-+	/* Is mode flag correct? */
-+	shstk32 = !(token & BIT(0));
-+	if (proc32 ^ shstk32)
-+		return -EINVAL;
-+
-+	/* Is busy flag set? */
-+	if (token & BIT(1))
-+		return -EINVAL;
-+
-+	/* Mask out flags */
-+	token &= ~3UL;
-+
-+	/* Restore address aligned? */
-+	if ((!proc32 && !IS_ALIGNED(token, 8)) || !IS_ALIGNED(token, 4))
-+		return -EINVAL;
-+
-+	/* Token placed properly? */
-+	if (((ALIGN_DOWN(token, 8) - 8) != token_addr) || token >= TASK_SIZE_MAX)
-+		return -EINVAL;
-+
-+	*new_ssp = token;
-+
-+	return 0;
-+}
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index 0fbcf33255fa..11bf09b60f9d 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -1005,5 +1005,5 @@ long do_arch_prctl_common(struct task_struct *task, int option,
+ 		return fpu_xstate_prctl(task, option, arg2);
+ 	}
+ 
+-	return -EINVAL;
++	return prctl_elf_feature(option, arg2);
+ }
+diff --git a/arch/x86/kernel/shstk.c b/arch/x86/kernel/shstk.c
+index 682d85a63a1d..f330be17e2d1 100644
+--- a/arch/x86/kernel/shstk.c
++++ b/arch/x86/kernel/shstk.c
+@@ -130,6 +130,7 @@ int shstk_setup(void)
+ 
+ void reset_thread_shstk(void)
+ {
++	current->thread.feat_prctl_locked = 0;
+ 	memset(&current->thread.shstk, 0, sizeof(struct thread_shstk));
+ }
+ 
 -- 
 2.17.1
 
