@@ -2,171 +2,258 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 55093C433FE
-	for <linux-arch@archiver.kernel.org>; Sun, 30 Jan 2022 14:58:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2A6ADC43219
+	for <linux-arch@archiver.kernel.org>; Sun, 30 Jan 2022 21:21:52 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235685AbiA3O65 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 30 Jan 2022 09:58:57 -0500
-Received: from ams.source.kernel.org ([145.40.68.75]:58328 "EHLO
-        ams.source.kernel.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1345912AbiA3O6y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 30 Jan 2022 09:58:54 -0500
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id D2107B8296F;
-        Sun, 30 Jan 2022 14:58:51 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B6C61C340E4;
-        Sun, 30 Jan 2022 14:58:44 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1643554730;
-        bh=GL1zKW+fnVss13mOmdWWVRmOagcQ6XFxtwi7aOMdkXw=;
-        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-        b=iqwJ3iNFmreR4JSoSb4n27mVOKwAewuQXXOFGNk4buR2bUqeaXL0Pnz8qH7UMdbOL
-         YVTNx/bXBnSh3ddVHi9MjxOyx4o56pVqJkaF5orz2suVUp6L7z7MNGvI9jwWDluvQM
-         abfTwVqaEnksmOuCzx9B/LQOMLDwXIF0sgsiGg1/L/TgqCl5f0hfPSayS9WYnP1rNE
-         Wf4xIlKEeKSB4bzDrcS6HvjQXQPUtiudZiKxLkmdfDy181KMyWBXUosw397yqxSx0e
-         AcVsnpixAiVrsts7NdGblMAN8BclBYHagOWoUo+t4wO+G3vfpXR3yhnk9TmfX070XJ
-         oaa3r6iUZCoWg==
-Date:   Sun, 30 Jan 2022 15:05:10 +0000
-From:   Jonathan Cameron <jic23@kernel.org>
-To:     Niklas Schnelle <schnelle@linux.ibm.com>
-Cc:     Geert Uytterhoeven <geert@linux-m68k.org>,
-        Arnd Bergmann <arnd@kernel.org>,
-        Bjorn Helgaas <bhelgaas@google.com>,
-        John Garry <john.garry@huawei.com>,
-        Nick Hu <nickhu@andestech.com>,
-        Greentime Hu <green.hu@gmail.com>,
-        Vincent Chen <deanbo422@gmail.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>, Guo Ren <guoren@kernel.org>,
-        Lars-Peter Clausen <lars@metafoo.de>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        linux-pci <linux-pci@vger.kernel.org>,
-        linux-riscv <linux-riscv@lists.infradead.org>,
-        linux-csky@vger.kernel.org, linux-iio@vger.kernel.org,
-        Michael Hennerich <Michael.Hennerich@analog.com>
-Subject: Re: [RFC 12/32] iio: adc: Kconfig: add HAS_IOPORT dependencies
-Message-ID: <20220130150510.66ea7cd4@jic23-huawei>
-In-Reply-To: <20211228170031.12dac755@jic23-huawei>
-References: <20211227164317.4146918-1-schnelle@linux.ibm.com>
-        <20211227164317.4146918-13-schnelle@linux.ibm.com>
-        <CAMuHMdXDL6XXfohzJFTTV6tR=gg=bcCQq935eKUbNaNLHp9xiw@mail.gmail.com>
-        <b21410ee32857b4913e4ba4595f9e8da299c501f.camel@linux.ibm.com>
-        <20211228170031.12dac755@jic23-huawei>
-X-Mailer: Claws Mail 4.0.0 (GTK+ 3.24.31; x86_64-pc-linux-gnu)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+        id S1356445AbiA3VVt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 30 Jan 2022 16:21:49 -0500
+Received: from mga06.intel.com ([134.134.136.31]:52015 "EHLO mga06.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1356315AbiA3VVs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 30 Jan 2022 16:21:48 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1643577708; x=1675113708;
+  h=from:to:cc:subject:date:message-id:in-reply-to:
+   references;
+  bh=Sl3QurZ5nHWYFT7c2lQcYAYIIsbunX9GgpPAPWDc6Q8=;
+  b=IpzG+qpkINBHgfqBZBvMLrqVC4/DU1CfR7bnjewpyYibB94/8RA42K+O
+   WxzzlWlCrM9VR+BA5GMTtdxthwqFYsLYVUVLd5SUc7qhqVq8NRI5OvWEB
+   fcJJzsuXqVwud92ls6VJ0LyasOrydgw5NM4GGNVhxEeJLcLT4zpri9V+w
+   m8Ooc/cqj51SiBI59tZJ7UtJchVvQii++plazW99EN30x6OHwuRZhu7FJ
+   lgZUCedSfUMjB8+gmg+7CejQ4U/cxv8q29MjP0gZOzyIz42UWsE/CGN9E
+   Hcjltb1iHSWmM2ahVcYYYDN+Un+ehHv0DoEbiVxnVeI5IBqv5SKBA4Eep
+   A==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10243"; a="308104876"
+X-IronPort-AV: E=Sophos;i="5.88,329,1635231600"; 
+   d="scan'208";a="308104876"
+Received: from orsmga008.jf.intel.com ([10.7.209.65])
+  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jan 2022 13:21:47 -0800
+X-IronPort-AV: E=Sophos;i="5.88,329,1635231600"; 
+   d="scan'208";a="536856649"
+Received: from avmallar-mobl1.amr.corp.intel.com (HELO rpedgeco-desk.amr.corp.intel.com) ([10.209.123.171])
+  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jan 2022 13:21:46 -0800
+From:   Rick Edgecombe <rick.p.edgecombe@intel.com>
+To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
+        linux-doc@vger.kernel.org, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
+        Arnd Bergmann <arnd@arndb.de>,
+        Andy Lutomirski <luto@kernel.org>,
+        Balbir Singh <bsingharora@gmail.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Cyrill Gorcunov <gorcunov@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Eugene Syromiatnikov <esyr@redhat.com>,
+        Florian Weimer <fweimer@redhat.com>,
+        "H . J . Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Kravetz <mike.kravetz@oracle.com>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Randy Dunlap <rdunlap@infradead.org>,
+        "Ravi V . Shankar" <ravi.v.shankar@intel.com>,
+        Dave Martin <Dave.Martin@arm.com>,
+        Weijiang Yang <weijiang.yang@intel.com>,
+        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
+        joao.moreira@intel.com, John Allen <john.allen@amd.com>,
+        kcc@google.com, eranian@google.com
+Cc:     rick.p.edgecombe@intel.com, Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH 01/35] Documentation/x86: Add CET description
+Date:   Sun, 30 Jan 2022 13:18:04 -0800
+Message-Id: <20220130211838.8382-2-rick.p.edgecombe@intel.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220130211838.8382-1-rick.p.edgecombe@intel.com>
+References: <20220130211838.8382-1-rick.p.edgecombe@intel.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, 28 Dec 2021 17:01:25 +0000
-Jonathan Cameron <jic23@jic23.retrosnub.co.uk> wrote:
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
 
-> On Tue, 28 Dec 2021 13:50:20 +0100
-> Niklas Schnelle <schnelle@linux.ibm.com> wrote:
-> 
-> > On Tue, 2021-12-28 at 11:32 +0100, Geert Uytterhoeven wrote:  
-> > > Hi Niklas,
-> > > 
-> > > On Mon, Dec 27, 2021 at 5:53 PM Niklas Schnelle <schnelle@linux.ibm.com> wrote:    
-> > > > In a future patch HAS_IOPORT=n will result in inb()/outb() and friends
-> > > > not being declared. We thus need to add HAS_IOPORT as dependency for
-> > > > those drivers using them.
-> > > > 
-> > > > Co-developed-by: Arnd Bergmann <arnd@kernel.org>
-> > > > Signed-off-by: Arnd Bergmann <arnd@kernel.org>
-> > > > Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>    
-> 
-> As a side note, whilst it doesn't always happen and I regularly forget
-> to fix it up whilst applying, it's really helpful to make sure the driver
-> name is somewhere in the patch title.
-> 
-> e.g. iio: adc: ad7606: add HAS_IOPORT dependencies.
-> 
-> > > 
-> > > Thanks for your patch!
-> > >     
-> > > > --- a/drivers/iio/adc/Kconfig
-> > > > +++ b/drivers/iio/adc/Kconfig
-> > > > @@ -119,7 +119,7 @@ config AD7606
-> > > > 
-> > > >  config AD7606_IFACE_PARALLEL
-> > > >         tristate "Analog Devices AD7606 ADC driver with parallel interface support"
-> > > > -       depends on HAS_IOMEM
-> > > > +       depends on HAS_IOPORT    
-> > > 
-> > > While this driver uses ins[bw](), this seems unrelated to legacy
-> > > I/O space, as the driver maps a MMIO region.  Probably different
-> > > accessors should be used instead.    
-> > 
-> > You're right on first glance it looks like a misuse of the ins[bw]()
-> > accessors. I do wonder how that even works, if PCI_IOBASE is 0 it would
-> > result in readsw()/readsb() with presumably the correct address but no
-> > idea how this interacts witth x86's special I/O instructions.
-> >   
-> > > 
-> > > Note that this driver has no in-tree users. Same for the SPI variant,
-> > > but at least that one has modern json-schema DT bindings ;-)    
-> > 
-> > Can't find any mention in the MAINTAINERS file either.  
-> 
-> It falls under the Analog devices catch all.
-> We don't list them all individually because there are a lot of them and
-> it would just be noise in many case.
-> 
-> Added Michael to CC. You already have Lars.
-> 
-> ANALOG DEVICES INC IIO DRIVERS
-> M:	Lars-Peter Clausen <lars@metafoo.de>
-> M:	Michael Hennerich <Michael.Hennerich@analog.com>
-> S:	Supported
-> W:	http://wiki.analog.com/
-> W:	http://ez.analog.com/community/linux-device-drivers
-> F:	Documentation/ABI/testing/sysfs-bus-iio-frequency-ad9523
-> F:	Documentation/ABI/testing/sysfs-bus-iio-frequency-adf4350
-> F:	Documentation/devicetree/bindings/iio/*/adi,*
-> F:	Documentation/devicetree/bindings/iio/dac/adi,ad5758.yaml
-> F:	drivers/iio/*/ad*
-> F:	drivers/iio/adc/ltc249*
-> F:	drivers/iio/amplifiers/hmc425a.c
-> F:	drivers/staging/iio/*/ad*
-> X:	drivers/iio/*/adjd*
-> 
-> https://wiki.analog.com/resources/tools-software/linux-drivers/iio-adc/ad7606
-> includes some details.
-> 
-> I'll leave it to the Lars or Michael to confirm what is going on here.
+Introduce a new document on Control-flow Enforcement Technology (CET).
 
-Can someone (probably at Analog Devices) take a look at this?
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
+Cc: Kees Cook <keescook@chromium.org>
 
-Thanks,
+---
 
-Jonathan
+v1:
+ - Update and clarify the docs.
+ - Moved kernel parameters documentation to other patch.
 
-> 
-> Jonathan
-> 
-> >   
-> > >     
-> > > >         select AD7606
-> > > >         help
-> > > >           Say yes here to build parallel interface support for Analog Devices:    
-> > > 
-> > > Gr{oetje,eeting}s,
-> > > 
-> > >                         Geert
-> > > 
-> > > --
-> > > Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-> > > 
-> > > In personal conversations with technical people, I call myself a hacker. But
-> > > when I'm talking to journalists I just say "programmer" or something like that.
-> > >                                 -- Linus Torvalds    
-> >   
-> 
+ Documentation/x86/cet.rst   | 145 ++++++++++++++++++++++++++++++++++++
+ Documentation/x86/index.rst |   1 +
+ 2 files changed, 146 insertions(+)
+ create mode 100644 Documentation/x86/cet.rst
+
+diff --git a/Documentation/x86/cet.rst b/Documentation/x86/cet.rst
+new file mode 100644
+index 000000000000..ff0f9a148959
+--- /dev/null
++++ b/Documentation/x86/cet.rst
+@@ -0,0 +1,145 @@
++.. SPDX-License-Identifier: GPL-2.0
++
++=========================================
++Control-flow Enforcement Technology (CET)
++=========================================
++
++[1] Overview
++============
++
++Control-flow Enforcement Technology (CET) is term referring to several
++related x86 processor features that provides protection against control
++flow hijacking attacks. The HW feature itself can be set up to protect
++both applications and the kernel. Only user-mode protection is implemented
++in the 64-bit kernel, including shadow stack support for running legacy
++32-bit applications.
++
++CET introduces Shadow Stack and Indirect Branch Tracking. Shadow stack is
++a secondary stack allocated from memory and cannot be directly modified by
++applications. When executing a CALL instruction, the processor pushes the
++return address to both the normal stack and the shadow stack. Upon
++function return, the processor pops the shadow stack copy and compares it
++to the normal stack copy. If the two differ, the processor raises a
++control-protection fault. Indirect branch tracking verifies indirect
++CALL/JMP targets are intended as marked by the compiler with 'ENDBR'
++opcodes. Not all CPU's have both Shadow Stack and Indirect Branch Tracking
++and only Shadow Stack is currently supported in the kernel.
++
++The Kconfig options is X86_SHADOW_STACK, and it can be disabled with
++no_user_shstk.
++
++To build a CET-enabled kernel, Binutils v2.31 and GCC v8.1 or LLVM v10.0.1
++or later are required. To build a CET-enabled application, GLIBC v2.28 or
++later is also required.
++
++At run time, /proc/cpuinfo shows CET features if the processor supports
++CET.
++
++[2] Application Enabling
++========================
++
++An application's CET capability is marked in its ELF header and can be
++verified from readelf/llvm-readelf output:
++
++    readelf -n <application> | grep -a SHSTK
++        properties: x86 feature: SHSTK
++
++The kernel does not process these applications directly. Applications must
++enable them using the interface descriped in section 4. Typically this
++would be done in dynamic loader or static runtime objects, as is the case
++in glibc.
++
++[3] Backward Compatibility
++==========================
++
++GLIBC provides a few CET tunables via the GLIBC_TUNABLES environment
++variable:
++
++GLIBC_TUNABLES=glibc.tune.hwcaps=-SHSTK,-WRSS
++    Turn off SHSTK/WRSS.
++
++GLIBC_TUNABLES=glibc.tune.x86_shstk=<on, permissive>
++    This controls how dlopen() handles SHSTK legacy libraries::
++
++        on         - continue with SHSTK enabled;
++        permissive - continue with SHSTK off.
++
++Details can be found in the GLIBC manual pages.
++
++[4] CET arch_prctl()'s
++======================
++
++Elf features are enabled using the below arch_prctl's.
++
++arch_prctl(ARCH_X86_FEATURE_STATUS, u64 *args)
++    Get feature status.
++
++    The parameter 'args' is a pointer to a user buffer. The kernel returns
++    the following information:
++
++    *args = shadow stack/IBT status
++    *(args + 1) = shadow stack base address
++    *(args + 2) = shadow stack size
++
++    32-bit binaries use the same interface, but only lower 32-bits of each
++    item.
++
++arch_prctl(ARCH_X86_FEATURE_DISABLE, unsigned int features)
++    Disable features specified in 'features'. Return -EPERM if any of the
++    passed feature are locked. Return -ECANCELED if any of the features
++    failed to disable. In this case call ARCH_X86_FEATURE_STATUS to find
++    out which features are still enabled.
++
++arch_prctl(ARCH_X86_FEATURE_ENABLE, unsigned int features)
++    Enable feature specified in 'features'. Return -EPERM if any of the
++    passed feature are locked. Return -ECANCELED if any of the features
++    failed to enable. In this case call ARCH_X86_FEATURE_STATUS to find
++    out which features were enabled.
++
++arch_prctl(ARCH_X86_FEATURE_LOCK, unsigned int features)
++    Lock in all features at their current enabled or disabled status.
++
++
++Currently shadow stack and WRSS are supported via this interface. WRSS
++can only be enabled with shadow stack, and is automatically disabled
++if shadow stack is disabled.
++
++[5] The implementation of the Shadow Stack
++==========================================
++
++Shadow Stack size
++-----------------
++
++A task's shadow stack is allocated from memory to a fixed size of
++MIN(RLIMIT_STACK, 4 GB). In other words, the shadow stack is allocated to
++the maximum size of the normal stack, but capped to 4 GB. However,
++a compat-mode application's address space is smaller, each of its thread's
++shadow stack size is MIN(1/4 RLIMIT_STACK, 4 GB).
++
++Signal
++------
++
++The main program and its signal handlers use the same shadow stack.
++Because the shadow stack stores only return addresses, a large shadow
++stack covers the condition that both the program stack and the signal
++alternate stack run out.
++
++The kernel creates a restore token for the shadow stack and pushes the
++restorer address to the shadow stack. Then verifies that token when
++restoring from the signal handler.
++
++Fork
++----
++
++The shadow stack's vma has VM_SHADOW_STACK flag set; its PTEs are required
++to be read-only and dirty. When a shadow stack PTE is not RO and dirty, a
++shadow access triggers a page fault with the shadow stack access bit set
++in the page fault error code.
++
++When a task forks a child, its shadow stack PTEs are copied and both the
++parent's and the child's shadow stack PTEs are cleared of the dirty bit.
++Upon the next shadow stack access, the resulting shadow stack page fault
++is handled by page copy/re-use.
++
++When a pthread child is created, the kernel allocates a new shadow stack
++for the new thread.
+diff --git a/Documentation/x86/index.rst b/Documentation/x86/index.rst
+index f498f1d36cd3..b5f083a61eab 100644
+--- a/Documentation/x86/index.rst
++++ b/Documentation/x86/index.rst
+@@ -21,6 +21,7 @@ x86-specific Documentation
+    tlb
+    mtrr
+    pat
++   cet
+    intel-iommu
+    intel_txt
+    amd-memory-encryption
+-- 
+2.17.1
 
