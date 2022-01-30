@@ -2,37 +2,37 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B6CFDC35272
-	for <linux-arch@archiver.kernel.org>; Sun, 30 Jan 2022 21:22:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 59E0BC4167D
+	for <linux-arch@archiver.kernel.org>; Sun, 30 Jan 2022 21:22:05 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1356527AbiA3VWA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 30 Jan 2022 16:22:00 -0500
-Received: from mga06.intel.com ([134.134.136.31]:52029 "EHLO mga06.intel.com"
+        id S1356542AbiA3VWC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 30 Jan 2022 16:22:02 -0500
+Received: from mga06.intel.com ([134.134.136.31]:52015 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1356487AbiA3VV5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 30 Jan 2022 16:21:57 -0500
+        id S1356500AbiA3VV6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 30 Jan 2022 16:21:58 -0500
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1643577717; x=1675113717;
+  t=1643577718; x=1675113718;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references;
-  bh=HHh4lkLfyu0d0fqFw9G2b577iSJVRa+u0pjug6+8QXs=;
-  b=amZqJmuLHKZtS2FgwRnWB0MfOwEq1+9sd3lO13l9Cbt6syHJjKjCftZA
-   oREnnzqWUMipU0FI+QUrv7nAWnFSWxA25qzi5LHsKOWpK0pZcYwBOWOLA
-   oI6WORC8v35qhSqXqVs+pzdGOE7Ai59tLd+YCPCMWpUdLAwlrrqjnyyZC
-   EFxAHRU/cQUpSS/cEbE8qnDS+CJ2h/IxXmhXJxA7xVxVJAhKbUdcRmrk/
-   nRQAWC3+Xr7SqwkdgKYTtcBZMcv5RGzeCPE5EpY6VnVVG+CZhdPSSOPKL
-   7hS5lOGj9VL/nFwSIXuwZ01iYAxh8qc25tplYgttCKMt0XzFSx0VLmd9Q
-   w==;
-X-IronPort-AV: E=McAfee;i="6200,9189,10243"; a="308104918"
+  bh=jMzw65MKfqq52oVnmq5qfAZv3M9YR8fJMyeeTLiS5eo=;
+  b=cum+Pm8eXAKvWbw1zCV4gZjc5rUHQnB21mFBAyv11K7mm8g63WjH2nj5
+   Hotbv+5IJkjszH1keB6OIZ14var2V1TSuvZxgunDQ2BHK6aJeDViQzxoL
+   opXRyGZb8kWaPd33HDFItnsYwrgN8QuGKMdHsNXTHUzQFfu3VFvQPcNG5
+   ENv95JXnySwRMhtAhjoDO2dBkXiUgOR15Pggwlcpt1Pfg6MSBCVB73DLm
+   Y8kqck1wReR7sUCGqEZBbEK4EgNJphc9GP5n/BglUZ7vcU7mmcyosAr1Q
+   vthH9uuBHTZdR4EDjiiCo9FVm7nVRIvfIvIGwwUfOzZhYim7JlWjAx5Cv
+   A==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10243"; a="308104930"
 X-IronPort-AV: E=Sophos;i="5.88,329,1635231600"; 
-   d="scan'208";a="308104918"
+   d="scan'208";a="308104930"
 Received: from orsmga008.jf.intel.com ([10.7.209.65])
-  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jan 2022 13:21:55 -0800
+  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jan 2022 13:21:57 -0800
 X-IronPort-AV: E=Sophos;i="5.88,329,1635231600"; 
-   d="scan'208";a="536856751"
+   d="scan'208";a="536856781"
 Received: from avmallar-mobl1.amr.corp.intel.com (HELO rpedgeco-desk.amr.corp.intel.com) ([10.209.123.171])
-  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jan 2022 13:21:54 -0800
+  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jan 2022 13:21:56 -0800
 From:   Rick Edgecombe <rick.p.edgecombe@intel.com>
 To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -62,9 +62,9 @@ To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         joao.moreira@intel.com, John Allen <john.allen@amd.com>,
         kcc@google.com, eranian@google.com
 Cc:     rick.p.edgecombe@intel.com, Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 11/35] x86/mm: Update pte_modify for _PAGE_COW
-Date:   Sun, 30 Jan 2022 13:18:14 -0800
-Message-Id: <20220130211838.8382-12-rick.p.edgecombe@intel.com>
+Subject: [PATCH 14/35] mm: Introduce VM_SHADOW_STACK for shadow stack memory
+Date:   Sun, 30 Jan 2022 13:18:17 -0800
+Message-Id: <20220130211838.8382-15-rick.p.edgecombe@intel.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220130211838.8382-1-rick.p.edgecombe@intel.com>
 References: <20220130211838.8382-1-rick.p.edgecombe@intel.com>
@@ -74,90 +74,92 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
 
-The read-only and Dirty PTE has been used to indicate copy-on-write pages.
-However, newer x86 processors also regard a read-only and Dirty PTE as a
-shadow stack page.  In order to separate the two, the software-defined
-_PAGE_COW is created to replace _PAGE_DIRTY for the copy-on-write case, and
-pte_*() are updated.
-
-Pte_modify() changes a PTE to 'newprot', but it doesn't use the pte_*().
-Introduce fixup_dirty_pte(), which sets a dirty PTE, based on _PAGE_RW,
-to either _PAGE_DIRTY or _PAGE_COW.
-
-Apply the same changes to pmd_modify().
+A shadow stack PTE must be read-only and have _PAGE_DIRTY set.  However,
+read-only and Dirty PTEs also exist for copy-on-write (COW) pages.  These
+two cases are handled differently for page faults.  Introduce
+VM_SHADOW_STACK to track shadow stack VMAs.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Reviewed-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
+Cc: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/include/asm/pgtable.h | 37 ++++++++++++++++++++++++++++++++++
- 1 file changed, 37 insertions(+)
+ Documentation/filesystems/proc.rst | 1 +
+ arch/x86/mm/mmap.c                 | 2 ++
+ fs/proc/task_mmu.c                 | 3 +++
+ include/linux/mm.h                 | 8 ++++++++
+ 4 files changed, 14 insertions(+)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index a4a75e78a934..5c3886f6ccda 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -773,6 +773,23 @@ static inline pmd_t pmd_mkinvalid(pmd_t pmd)
+diff --git a/Documentation/filesystems/proc.rst b/Documentation/filesystems/proc.rst
+index 061744c436d9..3f8c0fbb9cb3 100644
+--- a/Documentation/filesystems/proc.rst
++++ b/Documentation/filesystems/proc.rst
+@@ -555,6 +555,7 @@ encoded manner. The codes are the following:
+     mt    arm64 MTE allocation tags are enabled
+     um    userfaultfd missing tracking
+     uw    userfaultfd wr-protect tracking
++    ss    shadow stack page
+     ==    =======================================
  
- static inline u64 flip_protnone_guard(u64 oldval, u64 val, u64 mask);
+ Note that there is no guarantee that every flag and associated mnemonic will
+diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
+index c90c20904a60..f3f52c5e2fd6 100644
+--- a/arch/x86/mm/mmap.c
++++ b/arch/x86/mm/mmap.c
+@@ -165,6 +165,8 @@ unsigned long get_mmap_base(int is_legacy)
  
-+static inline pteval_t fixup_dirty_pte(pteval_t pteval)
-+{
-+	pte_t pte = __pte(pteval);
-+
-+	/*
-+	 * Fix up potential shadow stack page flags because the RO, Dirty
-+	 * PTE is special.
-+	 */
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
-+		if (pte_dirty(pte)) {
-+			pte = pte_mkclean(pte);
-+			pte = pte_mkdirty(pte);
-+		}
-+	}
-+	return pte_val(pte);
-+}
-+
- static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ const char *arch_vma_name(struct vm_area_struct *vma)
  {
- 	pteval_t val = pte_val(pte), oldval = val;
-@@ -783,16 +800,36 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
- 	 */
- 	val &= _PAGE_CHG_MASK;
- 	val |= check_pgprot(newprot) & ~_PAGE_CHG_MASK;
-+	val = fixup_dirty_pte(val);
- 	val = flip_protnone_guard(oldval, val, PTE_PFN_MASK);
- 	return __pte(val);
++	if (vma->vm_flags & VM_SHADOW_STACK)
++		return "[shadow stack]";
+ 	return NULL;
  }
  
-+static inline int pmd_write(pmd_t pmd);
-+static inline pmdval_t fixup_dirty_pmd(pmdval_t pmdval)
-+{
-+	pmd_t pmd = __pmd(pmdval);
-+
-+	/*
-+	 * Fix up potential shadow stack page flags because the RO, Dirty
-+	 * PMD is special.
-+	 */
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
-+		if (pmd_dirty(pmd)) {
-+			pmd = pmd_mkclean(pmd);
-+			pmd = pmd_mkdirty(pmd);
-+		}
-+	}
-+	return pmd_val(pmd);
-+}
-+
- static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
- {
- 	pmdval_t val = pmd_val(pmd), oldval = val;
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index 18f8c3acbb85..78d9b0fd2aee 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -679,6 +679,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+ #ifdef CONFIG_HAVE_ARCH_USERFAULTFD_MINOR
+ 		[ilog2(VM_UFFD_MINOR)]	= "ui",
+ #endif /* CONFIG_HAVE_ARCH_USERFAULTFD_MINOR */
++#ifdef CONFIG_ARCH_HAS_SHADOW_STACK
++		[ilog2(VM_SHADOW_STACK)] = "ss",
++#endif
+ 	};
+ 	size_t i;
  
- 	val &= _HPAGE_CHG_MASK;
- 	val |= check_pgprot(newprot) & ~_HPAGE_CHG_MASK;
-+	val = fixup_dirty_pmd(val);
- 	val = flip_protnone_guard(oldval, val, PHYSICAL_PMD_PAGE_MASK);
- 	return __pmd(val);
- }
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 2e74c0ab6d25..311c6018d503 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -308,11 +308,13 @@ extern unsigned int kobjsize(const void *objp);
+ #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures */
++#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+ #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+ #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+ #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
+ #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
++#define VM_HIGH_ARCH_5	BIT(VM_HIGH_ARCH_BIT_5)
+ #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
+ 
+ #ifdef CONFIG_ARCH_HAS_PKEYS
+@@ -328,6 +330,12 @@ extern unsigned int kobjsize(const void *objp);
+ #endif
+ #endif /* CONFIG_ARCH_HAS_PKEYS */
+ 
++#ifdef CONFIG_X86_SHADOW_STACK
++# define VM_SHADOW_STACK	VM_HIGH_ARCH_5
++#else
++# define VM_SHADOW_STACK	VM_NONE
++#endif
++
+ #if defined(CONFIG_X86)
+ # define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+ #elif defined(CONFIG_PPC)
 -- 
 2.17.1
 
