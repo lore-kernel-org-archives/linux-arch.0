@@ -2,115 +2,83 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 44C00C433FE
-	for <linux-arch@archiver.kernel.org>; Mon, 31 Jan 2022 18:45:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C6111C4332F
+	for <linux-arch@archiver.kernel.org>; Mon, 31 Jan 2022 22:19:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1357324AbiAaSp2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 31 Jan 2022 13:45:28 -0500
-Received: from us-smtp-delivery-124.mimecast.com ([170.10.129.124]:58442 "EHLO
-        us-smtp-delivery-124.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1355479AbiAaSp1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 31 Jan 2022 13:45:27 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1643654726;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=vtLdnydhSAxPSqAH4Eff+DcCHxcUpx4pphU3ycHuRAA=;
-        b=F8RHP4PDheT8vRCH7jAa9+p7kRmYpHs+8gYXnCfcbOznv89LMGpFm8CPdEKs5FtDBMPxzF
-        p+ungUpoSZcVzy4JytulTDg5lk+IgctmUDHY/Ig5+AwYYVQdil/6CXiCGxVb1IQqCtaZzD
-        xGeoKwAYNlExlVK5zfFNgVyEw8BicNQ=
-Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
- [209.132.183.4]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- us-mta-145-gIdbnm9XMoie-uVd8V9g0g-1; Mon, 31 Jan 2022 13:45:25 -0500
-X-MC-Unique: gIdbnm9XMoie-uVd8V9g0g-1
-Received: from smtp.corp.redhat.com (int-mx02.intmail.prod.int.phx2.redhat.com [10.5.11.12])
-        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
-        (No client certificate requested)
-        by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 011FF1923B8D;
-        Mon, 31 Jan 2022 18:45:21 +0000 (UTC)
-Received: from oldenburg.str.redhat.com (unknown [10.39.193.205])
-        by smtp.corp.redhat.com (Postfix) with ESMTPS id 42C7B7D526;
-        Mon, 31 Jan 2022 18:45:12 +0000 (UTC)
-From:   Florian Weimer <fweimer@redhat.com>
-To:     "H.J. Lu" <hjl.tools@gmail.com>
-Cc:     Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        "the arch/x86 maintainers" <x86@kernel.org>,
-        "H . Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>,
-        LKML <linux-kernel@vger.kernel.org>,
-        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
-        Linux-MM <linux-mm@kvack.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux API <linux-api@vger.kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Borislav Petkov <bp@alien8.de>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V . Shankar" <ravi.v.shankar@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
-        joao.moreira@intel.com, John Allen <john.allen@amd.com>,
-        Kostya Serebryany <kcc@google.com>,
-        Stephane Eranian <eranian@google.com>
-Subject: Re: [PATCH 34/35] x86/cet/shstk: Support wrss for userspace
-References: <20220130211838.8382-1-rick.p.edgecombe@intel.com>
-        <20220130211838.8382-35-rick.p.edgecombe@intel.com>
-        <87wnig8hj6.fsf@oldenburg.str.redhat.com>
-        <CAMe9rOrVvjL1F3UgOWL-gAGRyyiG6r20TWUusEUFhZMEEAjH7w@mail.gmail.com>
-Date:   Mon, 31 Jan 2022 19:45:10 +0100
-In-Reply-To: <CAMe9rOrVvjL1F3UgOWL-gAGRyyiG6r20TWUusEUFhZMEEAjH7w@mail.gmail.com>
-        (H. J. Lu's message of "Mon, 31 Jan 2022 10:26:49 -0800")
-Message-ID: <87a6fb7nih.fsf@oldenburg.str.redhat.com>
-User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/27.2 (gnu/linux)
+        id S232653AbiAaWTy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 31 Jan 2022 17:19:54 -0500
+Received: from mout.kundenserver.de ([217.72.192.73]:44207 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232213AbiAaWTx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 31 Jan 2022 17:19:53 -0500
+Received: from mail-ot1-f47.google.com ([209.85.210.47]) by
+ mrelayeu.kundenserver.de (mreue107 [213.165.67.113]) with ESMTPSA (Nemesis)
+ id 1M8QFi-1nAHJO2u12-004S46; Mon, 31 Jan 2022 23:19:50 +0100
+Received: by mail-ot1-f47.google.com with SMTP id g15-20020a9d6b0f000000b005a062b0dc12so14447815otp.4;
+        Mon, 31 Jan 2022 14:19:49 -0800 (PST)
+X-Gm-Message-State: AOAM5300s7H3HiZT7/ALZlbQL4+XMBMcpcRCqxXse+CMwLgyREt7CTVh
+        ReWIzABKLRLNgXPntwPlS7C6QAO1JxlT/LE6Q+o=
+X-Google-Smtp-Source: ABdhPJzNvIQa/ifQ4mpIl/LfU521F5G6KLcdIXkWgKV/jA7MRG2n/k6e84fLlMfFqeGk7bXCvjxkFnVtwxdt/dBnQNc=
+X-Received: by 2002:a9d:654f:: with SMTP id q15mr12902241otl.119.1643667588784;
+ Mon, 31 Jan 2022 14:19:48 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain
-X-Scanned-By: MIMEDefang 2.79 on 10.5.11.12
+References: <20220131064933.3780271-1-hch@lst.de>
+In-Reply-To: <20220131064933.3780271-1-hch@lst.de>
+From:   Arnd Bergmann <arnd@arndb.de>
+Date:   Mon, 31 Jan 2022 23:19:32 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a1YzdC1ev0FP-Pe0YyjsY+H3dNWErPGtB=zfcs3kVmkyw@mail.gmail.com>
+Message-ID: <CAK8P3a1YzdC1ev0FP-Pe0YyjsY+H3dNWErPGtB=zfcs3kVmkyw@mail.gmail.com>
+Subject: Re: consolidate the compat fcntl definitions v2
+To:     Christoph Hellwig <hch@lst.de>
+Cc:     Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>,
+        "the arch/x86 maintainers" <x86@kernel.org>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>,
+        Parisc List <linux-parisc@vger.kernel.org>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        linux-s390 <linux-s390@vger.kernel.org>,
+        sparclinux <sparclinux@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+X-Provags-ID: V03:K1:Oz3mvogPccg/7xXrnVYc1t/5reQ5uLC3I9ySHFqCfH22nktDZk2
+ GiO2dxDqCqyaYLIVwvk51XQiOo3ffvYcODm+qVyNbWffBolCk5kBCIdNwuJYUoz/U0M04P7
+ YHPXOhWvKBhmn7zB1/uVYYlbhSUZG2fW6bmi32+wpXkhigUNfqpwvyzTmUcex77PxItycdN
+ hIkWF+6OjrEKXlrkvjnAw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:aSNwj6GN85Q=:6u43FVFakJeCUyjujdXZAJ
+ nH1Eb1BCXn0p06iSS1ZrO055xSbokdvwGcAVA5hsWPMSsXvKy87UdhVhRzrdb9Uqf8TSfGHWg
+ m/rTBm4dsO9IxFqzCZBXGSz1a8FeujW//AujuH47pp41pjzE/CXFAukbGKA2gMs1idFSIbP4N
+ YUuRhRON1JoIpyXjxfwSoBqeBH6Iw/7yHika7VEJf8kTLTt288ET8b+Y/3/dHdqYLqTJIpiby
+ u+GSgygb0FARlJqqStxb7IbhwpPBW/F28dNddp/A5ETdLGn2UeGS5ILnDIEZpFwh3D5sYa3vw
+ KvkxeMQD5RHL0RU6ABF3VwKCNoh+HbLQ1shYXxgqr/vVkCzEcEDvbMps/iCVjzlB1av/EiLMO
+ 3bZ7FjR4cmvVVEGsCy3pkZJodILX2o5u3fFzoRb3sUZHXtl0KrRCE5Y1KpSjEQ6yhhXBZpdI8
+ wopTxBWbnQoinQjtRjMcROObLew2B4rJ6dBqJ7uAPiKXBPp031Kv0jbqAphCyfpS0pgEROnJr
+ X70gzHhsnbhgAENY3wlEN5xEOuwVOU0PPuTptiZATzOYBUagezvXWz1RAYR+5/RMRhpQ2OJrA
+ W1kH50NLO2Ar7eKx23ya8N8jQDQgb3PUHIOYVOeD1YQAl870H1Mosoh94GYKTaeieLlnKv0fj
+ uurqEyb9ilCd/OB27VlNBel/Xj8IJKutEccZMwF+6plyO69uWSiaMhkEs9Zxhfskzk/E=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-* H. J. Lu:
-
-> On Sun, Jan 30, 2022 at 11:57 PM Florian Weimer <fweimer@redhat.com> wrote:
->>
->> * Rick Edgecombe:
->>
->> > For the current shadow stack implementation, shadow stacks contents cannot
->> > be arbitrarily provisioned with data. This property helps apps protect
->> > themselves better, but also restricts any potential apps that may want to
->> > do exotic things at the expense of a little security.
->> >
->> > The x86 shadow stack feature introduces a new instruction, wrss, which
->> > can be enabled to write directly to shadow stack permissioned memory from
->> > userspace. Allow it to get enabled via the prctl interface.
->>
->> Why can't this be turned on unconditionally?
+On Mon, Jan 31, 2022 at 7:49 AM Christoph Hellwig <hch@lst.de> wrote:
 >
-> WRSS can be a security risk since it defeats the whole purpose of
-> Shadow Stack.  If an application needs to write to shadow stack,
-> it can make a syscall to enable it.  After the CET patches are checked
-> in Linux kernel, I will make a proposal to allow applications or shared
-> libraries to opt-in WRSS through a linker option, a compiler option or
-> a function attribute.
+> Hi all,
+>
+> currenty the compat fcnt definitions are duplicate for all compat
+> architectures, and the native fcntl64 definitions aren't even usable
+> from userspace due to a bogus CONFIG_64BIT ifdef.  This series tries
+> to sort out all that.
+>
+> Changes since v1:
+>  - only make the F*64 defines uapi visible for 32-bit architectures
 
-Ahh, that makes sense.  I assumed that without WRSS, the default was to
-allow plain writes. 8-)
+Looks all good to me,
 
-Thanks,
-Florian
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 
+I think it would be best to merge this through the risc-v tree along
+with the coming compat support
+that depends on it. Alternatively, I can put it into my asm-generic
+tree for 5.18.
+
+         Arnd
