@@ -2,44 +2,44 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A1312C3526E
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Feb 2022 19:02:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6A543C4332F
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Feb 2022 19:02:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241621AbiBITBx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Feb 2022 14:01:53 -0500
-Received: from gmail-smtp-in.l.google.com ([23.128.96.19]:38032 "EHLO
+        id S241635AbiBITBz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Feb 2022 14:01:55 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34194 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S241953AbiBITAn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 14:00:43 -0500
-Received: from mga01.intel.com (mga01.intel.com [192.55.52.88])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1FAEAC03E92B;
-        Wed,  9 Feb 2022 11:00:19 -0800 (PST)
+        with ESMTP id S241982AbiBITAp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 14:00:45 -0500
+Received: from mga18.intel.com (mga18.intel.com [134.134.136.126])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 411E5C03C19D;
+        Wed,  9 Feb 2022 11:00:36 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1644433219; x=1675969219;
+  t=1644433236; x=1675969236;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references:mime-version:content-transfer-encoding;
-  bh=Yg+C8F7oXSf3fHkZtcL9h1OHdH9KdRrch9oP4ovQrw4=;
-  b=XNaeLeE+ioMo+5afgu+d4ex7beBD1Gr1Xfo1B2Jdz1gWM6oaITRmHK13
-   yE/aEmkaOClB9GC+nYKkxqGSmvnwaUXpRhASE8bu5Ay92/VvXjt1rVWpJ
-   9IbX6cxMpaaaucZSzqpiqP4XsTrxImbogTDOmN2rTJP21f5pqnhRvcO6l
-   0ccJvDr9joYmyY1apAU/QBWwUsFjcXq9tgPZyoBOc52gkEKDw/LY2GyoE
-   Kg0DyTQiSxMOWyq6BFdrOUNcca57hSdxQwBorRAPzw3T0BLcUH+voYy/l
-   ytbV010PzL/8JoI1c4eGlmgsEneqCRMKCYG1J+DijhOJ9lxiuDRbn8UzJ
+  bh=3TFoJ8hml7DfFEwN1MeCftGLxN9fAc0FL9jRFOXIT44=;
+  b=iY3BbgsG9rBd08M2OkWr5HiRdpN7sRL89OQ1Ycj1kYMbTokO//Hg/bi8
+   djm+x+5+OjUKdZRfKLbFvBc0kh5JgcEy7tRBREWCZtuwkR+vBQiRaNGVX
+   mGZ4RX7egvS6AXw4tBwFz60XQDz2BHubi3dTsG3MmfpIXlE9MT8N7UtEI
+   gNYgdAToX77bcTcogrdS2SUuXFMGPx0GOcoStgqujJr69rG1+hE3AMlqi
+   Peg6lPrGmthtRR0ajHb8je/7QkUtIxNfVbbEcSriSTHB5kAaCkZxH4YuA
+   dS1Yu/mClY9RB4E2gPPi6OTk1dCWcutj6bGsMiFxHqiNfLcdjQ+uO5z0G
    A==;
-X-IronPort-AV: E=McAfee;i="6200,9189,10253"; a="273850090"
+X-IronPort-AV: E=McAfee;i="6200,9189,10253"; a="232869378"
 X-IronPort-AV: E=Sophos;i="5.88,356,1635231600"; 
-   d="scan'208";a="273850090"
-Received: from fmsmga008.fm.intel.com ([10.253.24.58])
-  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 09 Feb 2022 10:59:09 -0800
+   d="scan'208";a="232869378"
+Received: from orsmga008.jf.intel.com ([10.7.209.65])
+  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 09 Feb 2022 10:59:04 -0800
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="5.88,356,1635231600"; 
-   d="scan'208";a="585681729"
+   d="scan'208";a="541248491"
 Received: from irvmail001.ir.intel.com ([10.43.11.63])
-  by fmsmga008.fm.intel.com with ESMTP; 09 Feb 2022 10:59:01 -0800
+  by orsmga008.jf.intel.com with ESMTP; 09 Feb 2022 10:58:52 -0800
 Received: from newjersey.igk.intel.com (newjersey.igk.intel.com [10.102.20.203])
-        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 219IwjQT031082;
-        Wed, 9 Feb 2022 18:58:58 GMT
+        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 219IwjQP031082;
+        Wed, 9 Feb 2022 18:58:50 GMT
 From:   Alexander Lobakin <alexandr.lobakin@intel.com>
 To:     linux-hardening@vger.kernel.org, x86@kernel.org
 Cc:     Alexander Lobakin <alexandr.lobakin@intel.com>,
@@ -78,9 +78,9 @@ Cc:     Alexander Lobakin <alexandr.lobakin@intel.com>,
         linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
         linux-arch@vger.kernel.org, live-patching@vger.kernel.org,
         llvm@lists.linux.dev
-Subject: [PATCH v10 06/15] x86: decouple ORC table sorting into a separate file
-Date:   Wed,  9 Feb 2022 19:57:43 +0100
-Message-Id: <20220209185752.1226407-7-alexandr.lobakin@intel.com>
+Subject: [PATCH v10 02/15] livepatch: avoid position-based search if `-z unique-symbol` is available
+Date:   Wed,  9 Feb 2022 19:57:39 +0100
+Message-Id: <20220209185752.1226407-3-alexandr.lobakin@intel.com>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20220209185752.1226407-1-alexandr.lobakin@intel.com>
 References: <20220209185752.1226407-1-alexandr.lobakin@intel.com>
@@ -90,266 +90,179 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-In order to be able to sort ORC entries from both the kernel and
-the pre-boot compressed environment, place ORC sorting function
-into the new file arch/x86/lib/orc.c.
-It can be then included directly by the pre-boot code, and
-ORC_COMPRESSED_BOOT definition guards out the sort_mutex which
-is unavailable and unneeded in that environment.
+Position-based search, which means that if there are several symbols
+with the same name, the user needs to additionally provide the
+"index" of a desired symbol, is fragile. For example, it breaks
+when two symbols with the same name are located in different
+sections.
 
-Placing orc_ip() into `include/asm/orc_types.h` wipes out
-sorttable.h's little code dup.
+Since a while, LD has a flag `-z unique-symbol` which appends
+numeric suffixes to the functions with the same name (in symtab
+and strtab). It can be used to effectively prevent from having
+any ambiguity when referring to a symbol by its name.
+Check for its availability and always prefer when the livepatching
+is on. It can be used unconditionally later on after broader testing
+on a wide variety of machines, but for now let's stick to the actual
+CONFIG_LIVEPATCH=y case, which is true for most of distro configs
+anyways.
+This needs a little adjustment to the modpost to make it strip
+suffixes before adding exports. depmod needs some treatment as well,
+tho its false-positive warnings about unknown symbols are harmless
+and don't alter the return code.
 
+There is probably a bunch more livepatch code to optimize-out after
+introducing this, leave it for later as well.
+
+Suggested-by: H.J. Lu <hjl.tools@gmail.com>
 Suggested-by: Peter Zijlstra <peterz@infradead.org>
+Suggested-by: Josh Poimboeuf <jpoimboe@redhat.com>
+Suggested-by: Miroslav Benes <mbenes@suse.cz>
 Signed-off-by: Alexander Lobakin <alexandr.lobakin@intel.com>
 ---
- arch/x86/include/asm/orc_types.h       |  7 +++
- arch/x86/kernel/unwind_orc.c           | 63 +--------------------
- arch/x86/lib/Makefile                  |  3 +
- arch/x86/lib/orc.c                     | 78 ++++++++++++++++++++++++++
- scripts/sorttable.h                    |  5 --
- tools/arch/x86/include/asm/orc_types.h |  7 +++
- 6 files changed, 96 insertions(+), 67 deletions(-)
- create mode 100644 arch/x86/lib/orc.c
+ Makefile                |  6 ++++++
+ init/Kconfig            |  3 +++
+ kernel/livepatch/core.c | 17 +++++++++++++----
+ scripts/mod/modpost.c   | 42 ++++++++++++++++++++++-------------------
+ 4 files changed, 45 insertions(+), 23 deletions(-)
 
-diff --git a/arch/x86/include/asm/orc_types.h b/arch/x86/include/asm/orc_types.h
-index 5a2baf28a1dc..7708548713c4 100644
---- a/arch/x86/include/asm/orc_types.h
-+++ b/arch/x86/include/asm/orc_types.h
-@@ -67,6 +67,13 @@ struct orc_entry {
- #endif
- } __packed;
+diff --git a/Makefile b/Makefile
+index ceb987e5c87b..fa9f947c9839 100644
+--- a/Makefile
++++ b/Makefile
+@@ -871,6 +871,12 @@ ifdef CONFIG_DEBUG_SECTION_MISMATCH
+ KBUILD_CFLAGS += -fno-inline-functions-called-once
+ endif
  
-+static inline unsigned long orc_ip(const int *ip)
-+{
-+	return (unsigned long)ip + *ip;
-+}
++# Prefer linking with the `-z unique-symbol` if available, this eliminates
++# position-based search
++ifeq ($(CONFIG_LD_HAS_Z_UNIQUE_SYMBOL)$(CONFIG_LIVEPATCH),yy)
++KBUILD_LDFLAGS += -z unique-symbol
++endif
 +
-+void orc_sort(int *ip_table, struct orc_entry *orc_table, u32 num_orcs);
+ ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+ KBUILD_CFLAGS_KERNEL += -ffunction-sections -fdata-sections
+ LDFLAGS_vmlinux += --gc-sections
+diff --git a/init/Kconfig b/init/Kconfig
+index e9119bf54b1f..8e900d17d42b 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -86,6 +86,9 @@ config CC_HAS_ASM_INLINE
+ config CC_HAS_NO_PROFILE_FN_ATTR
+ 	def_bool $(success,echo '__attribute__((no_profile_instrument_function)) int x();' | $(CC) -x c - -c -o /dev/null -Werror)
+ 
++config LD_HAS_Z_UNIQUE_SYMBOL
++	def_bool $(ld-option,-z unique-symbol)
 +
- #endif /* __ASSEMBLY__ */
+ config CONSTRUCTORS
+ 	bool
  
- #endif /* _ORC_TYPES_H */
-diff --git a/arch/x86/kernel/unwind_orc.c b/arch/x86/kernel/unwind_orc.c
-index 2de3c8c5eba9..e5748bf15966 100644
---- a/arch/x86/kernel/unwind_orc.c
-+++ b/arch/x86/kernel/unwind_orc.c
-@@ -25,11 +25,6 @@ extern struct orc_entry __stop_orc_unwind[];
- static bool orc_init __ro_after_init;
- static unsigned int lookup_num_blocks __ro_after_init;
+diff --git a/kernel/livepatch/core.c b/kernel/livepatch/core.c
+index 585494ec464f..7a330465a8c7 100644
+--- a/kernel/livepatch/core.c
++++ b/kernel/livepatch/core.c
+@@ -143,11 +143,13 @@ static int klp_find_callback(void *data, const char *name,
+ 	args->count++;
  
--static inline unsigned long orc_ip(const int *ip)
--{
--	return (unsigned long)ip + *ip;
--}
--
- static struct orc_entry *__orc_find(int *ip_table, struct orc_entry *u_table,
- 				    unsigned int num_entries, unsigned long ip)
- {
-@@ -188,53 +183,6 @@ static struct orc_entry *orc_find(unsigned long ip)
+ 	/*
+-	 * Finish the search when the symbol is found for the desired position
+-	 * or the position is not defined for a non-unique symbol.
++	 * Finish the search when unique symbol names are enabled
++	 * or the symbol is found for the desired position or the
++	 * position is not defined for a non-unique symbol.
+ 	 */
+-	if ((args->pos && (args->count == args->pos)) ||
+-	    (!args->pos && (args->count > 1)))
++	if (IS_ENABLED(CONFIG_LD_HAS_Z_UNIQUE_SYMBOL) ||
++	    (args->pos && args->count == args->pos) ||
++	    (!args->pos && args->count > 1))
+ 		return 1;
+ 
+ 	return 0;
+@@ -169,6 +171,13 @@ static int klp_find_object_symbol(const char *objname, const char *name,
+ 	else
+ 		kallsyms_on_each_symbol(klp_find_callback, &args);
+ 
++	/*
++	 * If the LD's `-z unique-symbol` flag is available and enabled,
++	 * sympos checks are not relevant.
++	 */
++	if (IS_ENABLED(CONFIG_LD_HAS_Z_UNIQUE_SYMBOL))
++		sympos = 0;
++
+ 	/*
+ 	 * Ensure an address was found. If sympos is 0, ensure symbol is unique;
+ 	 * otherwise ensure the symbol position count matches sympos.
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index 4648b7afe5cc..ec521ccebea6 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -689,11 +689,28 @@ static void handle_modversion(const struct module *mod,
+ 	sym_set_crc(symname, crc);
  }
  
- #ifdef CONFIG_MODULES
--
--static DEFINE_MUTEX(sort_mutex);
--static int *cur_orc_ip_table = __start_orc_unwind_ip;
--static struct orc_entry *cur_orc_table = __start_orc_unwind;
--
--static void orc_sort_swap(void *_a, void *_b, int size)
--{
--	struct orc_entry *orc_a, *orc_b;
--	struct orc_entry orc_tmp;
--	int *a = _a, *b = _b, tmp;
--	int delta = _b - _a;
--
--	/* Swap the .orc_unwind_ip entries: */
--	tmp = *a;
--	*a = *b + delta;
--	*b = tmp - delta;
--
--	/* Swap the corresponding .orc_unwind entries: */
--	orc_a = cur_orc_table + (a - cur_orc_ip_table);
--	orc_b = cur_orc_table + (b - cur_orc_ip_table);
--	orc_tmp = *orc_a;
--	*orc_a = *orc_b;
--	*orc_b = orc_tmp;
--}
--
--static int orc_sort_cmp(const void *_a, const void *_b)
--{
--	struct orc_entry *orc_a;
--	const int *a = _a, *b = _b;
--	unsigned long a_val = orc_ip(a);
--	unsigned long b_val = orc_ip(b);
--
--	if (a_val > b_val)
--		return 1;
--	if (a_val < b_val)
--		return -1;
--
--	/*
--	 * The "weak" section terminator entries need to always be on the left
--	 * to ensure the lookup code skips them in favor of real entries.
--	 * These terminator entries exist to handle any gaps created by
--	 * whitelisted .o files which didn't get objtool generation.
--	 */
--	orc_a = cur_orc_table + (a - cur_orc_ip_table);
--	return orc_a->sp_reg == ORC_REG_UNDEFINED && !orc_a->end ? -1 : 1;
--}
--
- void unwind_module_init(struct module *mod, void *_orc_ip, size_t orc_ip_size,
- 			void *_orc, size_t orc_size)
++static char *remove_dot(char *s)
++{
++	size_t n = strcspn(s, ".");
++
++	if (n && s[n]) {
++		size_t m = strspn(s + n + 1, "0123456789");
++
++		if (m && (s[n + m + 1] == '.' || s[n + m + 1] == 0))
++			s[n] = 0;
++
++		/* strip trailing .lto */
++		if (strends(s, ".lto"))
++			s[strlen(s) - 4] = '\0';
++	}
++
++	return s;
++}
++
+ static void handle_symbol(struct module *mod, struct elf_info *info,
+ 			  const Elf_Sym *sym, const char *symname)
  {
-@@ -246,16 +194,7 @@ void unwind_module_init(struct module *mod, void *_orc_ip, size_t orc_ip_size,
- 		     orc_size % sizeof(*orc) != 0 ||
- 		     num_entries != orc_size / sizeof(*orc));
+ 	enum export export;
+-	const char *name;
  
--	/*
--	 * The 'cur_orc_*' globals allow the orc_sort_swap() callback to
--	 * associate an .orc_unwind_ip table entry with its corresponding
--	 * .orc_unwind entry so they can both be swapped.
--	 */
--	mutex_lock(&sort_mutex);
--	cur_orc_ip_table = orc_ip;
--	cur_orc_table = orc;
--	sort(orc_ip, num_entries, sizeof(int), orc_sort_cmp, orc_sort_swap);
--	mutex_unlock(&sort_mutex);
-+	orc_sort(orc_ip, orc, num_entries);
+ 	if (strstarts(symname, "__ksymtab"))
+ 		export = export_from_secname(info, get_secindex(info, sym));
+@@ -734,8 +751,11 @@ static void handle_symbol(struct module *mod, struct elf_info *info,
+ 	default:
+ 		/* All exported symbols */
+ 		if (strstarts(symname, "__ksymtab_")) {
+-			name = symname + strlen("__ksymtab_");
+-			sym_add_exported(name, mod, export);
++			char *name;
++
++			name = NOFAIL(strdup(symname + strlen("__ksymtab_")));
++			sym_add_exported(remove_dot(name), mod, export);
++			free(name);
+ 		}
+ 		if (strcmp(symname, "init_module") == 0)
+ 			mod->has_init = 1;
+@@ -1980,22 +2000,6 @@ static void check_sec_ref(struct module *mod, const char *modname,
+ 	}
+ }
  
- 	mod->arch.orc_unwind_ip = orc_ip;
- 	mod->arch.orc_unwind = orc;
-diff --git a/arch/x86/lib/Makefile b/arch/x86/lib/Makefile
-index f76747862bd2..ff094cecebc4 100644
---- a/arch/x86/lib/Makefile
-+++ b/arch/x86/lib/Makefile
-@@ -50,6 +50,9 @@ lib-$(CONFIG_INSTRUCTION_DECODER) += insn.o inat.o insn-eval.o
- lib-$(CONFIG_RANDOMIZE_BASE) += kaslr.o
- lib-$(CONFIG_FUNCTION_ERROR_INJECTION)	+= error-inject.o
- lib-$(CONFIG_RETPOLINE) += retpoline.o
-+ifdef CONFIG_MODULES
-+lib-$(CONFIG_UNWINDER_ORC) += orc.o
-+endif
- 
- obj-y += msr.o msr-reg.o msr-reg-export.o hweight.o
- obj-y += iomem.o
-diff --git a/arch/x86/lib/orc.c b/arch/x86/lib/orc.c
-new file mode 100644
-index 000000000000..6a42842bf4ef
---- /dev/null
-+++ b/arch/x86/lib/orc.c
-@@ -0,0 +1,78 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * ORC sorting shared by the compressed boot code and ORC module
-+ * support.
-+ */
-+
-+#include <asm/orc_types.h>
-+#include <linux/mutex.h>
-+#include <linux/sort.h>
-+
-+#ifndef ORC_COMPRESSED_BOOT
-+static DEFINE_MUTEX(sort_mutex);
-+
-+#define sort_mutex_lock()	mutex_lock(&sort_mutex)
-+#define sort_mutex_unlock()	mutex_unlock(&sort_mutex)
-+#else /* ORC_COMPRESSED_BOOT */
-+#define sort_mutex_lock()
-+#define sort_mutex_unlock()
-+#endif /* ORC_COMPRESSED_BOOT */
-+
-+static int *cur_orc_ip_table;
-+static struct orc_entry *cur_orc_table;
-+
-+static void orc_sort_swap(void *_a, void *_b, int size)
-+{
-+	struct orc_entry *orc_a, *orc_b;
-+	int *a = _a, *b = _b, tmp;
-+	int delta = _b - _a;
-+
-+	/* Swap the .orc_unwind_ip entries: */
-+	tmp = *a;
-+	*a = *b + delta;
-+	*b = tmp - delta;
-+
-+	/* Swap the corresponding .orc_unwind entries: */
-+	orc_a = cur_orc_table + (a - cur_orc_ip_table);
-+	orc_b = cur_orc_table + (b - cur_orc_ip_table);
-+	swap(*orc_a, *orc_b);
-+}
-+
-+static int orc_sort_cmp(const void *_a, const void *_b)
-+{
-+	const int *a = _a, *b = _b;
-+	unsigned long a_val = orc_ip(a);
-+	unsigned long b_val = orc_ip(b);
-+	struct orc_entry *orc_a;
-+
-+	if (a_val > b_val)
-+		return 1;
-+	if (a_val < b_val)
-+		return -1;
-+
-+	/*
-+	 * The "weak" section terminator entries need to always be on the left
-+	 * to ensure the lookup code skips them in favor of real entries.
-+	 * These terminator entries exist to handle any gaps created by
-+	 * whitelisted .o files which didn't get objtool generation.
-+	 */
-+	orc_a = cur_orc_table + (a - cur_orc_ip_table);
-+
-+	return orc_a->sp_reg == ORC_REG_UNDEFINED && !orc_a->end ? -1 : 1;
-+}
-+
-+void orc_sort(int *ip_table, struct orc_entry *orc_table, u32 num_orcs)
-+{
-+	/*
-+	 * The 'cur_orc_*' globals allow the orc_sort_swap() callback to
-+	 * associate an .orc_unwind_ip table entry with its corresponding
-+	 * .orc_unwind entry so they can both be swapped.
-+	 */
-+	sort_mutex_lock();
-+
-+	cur_orc_ip_table = ip_table;
-+	cur_orc_table = orc_table;
-+	sort(ip_table, num_orcs, sizeof(int), orc_sort_cmp, orc_sort_swap);
-+
-+	sort_mutex_unlock();
-+}
-diff --git a/scripts/sorttable.h b/scripts/sorttable.h
-index deb7c1d3e979..a6bb46f36854 100644
---- a/scripts/sorttable.h
-+++ b/scripts/sorttable.h
-@@ -103,11 +103,6 @@ struct orc_entry *g_orc_table;
- 
- pthread_t orc_sort_thread;
- 
--static inline unsigned long orc_ip(const int *ip)
+-static char *remove_dot(char *s)
 -{
--	return (unsigned long)ip + *ip;
+-	size_t n = strcspn(s, ".");
+-
+-	if (n && s[n]) {
+-		size_t m = strspn(s + n + 1, "0123456789");
+-		if (m && (s[n + m + 1] == '.' || s[n + m + 1] == 0))
+-			s[n] = 0;
+-
+-		/* strip trailing .lto */
+-		if (strends(s, ".lto"))
+-			s[strlen(s) - 4] = '\0';
+-	}
+-	return s;
 -}
 -
- static int orc_sort_cmp(const void *_a, const void *_b)
+ static void read_symbols(const char *modname)
  {
- 	struct orc_entry *orc_a;
-diff --git a/tools/arch/x86/include/asm/orc_types.h b/tools/arch/x86/include/asm/orc_types.h
-index 5a2baf28a1dc..7708548713c4 100644
---- a/tools/arch/x86/include/asm/orc_types.h
-+++ b/tools/arch/x86/include/asm/orc_types.h
-@@ -67,6 +67,13 @@ struct orc_entry {
- #endif
- } __packed;
- 
-+static inline unsigned long orc_ip(const int *ip)
-+{
-+	return (unsigned long)ip + *ip;
-+}
-+
-+void orc_sort(int *ip_table, struct orc_entry *orc_table, u32 num_orcs);
-+
- #endif /* __ASSEMBLY__ */
- 
- #endif /* _ORC_TYPES_H */
+ 	const char *symname;
 -- 
 2.34.1
 
