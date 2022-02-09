@@ -2,182 +2,135 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3AD2BC43217
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Feb 2022 02:40:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id ADA16C433FE
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Feb 2022 06:43:50 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1344021AbiBICk3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 8 Feb 2022 21:40:29 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50154 "EHLO
+        id S232942AbiBIGno (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Feb 2022 01:43:44 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34222 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S242091AbiBIBKc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Feb 2022 20:10:32 -0500
-Received: from mail-pj1-x102c.google.com (mail-pj1-x102c.google.com [IPv6:2607:f8b0:4864:20::102c])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1511FC061576
-        for <linux-arch@vger.kernel.org>; Tue,  8 Feb 2022 17:10:32 -0800 (PST)
-Received: by mail-pj1-x102c.google.com with SMTP id c5-20020a17090a1d0500b001b904a7046dso2053301pjd.1
-        for <linux-arch@vger.kernel.org>; Tue, 08 Feb 2022 17:10:32 -0800 (PST)
+        with ESMTP id S232761AbiBIGnm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 01:43:42 -0500
+Received: from mail-lf1-x12b.google.com (mail-lf1-x12b.google.com [IPv6:2a00:1450:4864:20::12b])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 83DDEC0401C7;
+        Tue,  8 Feb 2022 22:43:46 -0800 (PST)
+Received: by mail-lf1-x12b.google.com with SMTP id u6so2276156lfm.10;
+        Tue, 08 Feb 2022 22:43:46 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=chromium.org; s=google;
+        d=gmail.com; s=20210112;
         h=date:from:to:cc:subject:message-id:references:mime-version
-         :content-disposition:in-reply-to;
-        bh=krZ7XDngCuaQ/kaEDAhJETqO/lCcgabbGCGZ64ZW5mg=;
-        b=B01e8AvROu8wzAWvnNc18YbXO4k2zAp/FgRgRHBcFtqjYpKfCKhf7Kc6cTHWN3J1h+
-         Ckp20PmKRI8ExSgFiVFMDw1LR/I0GvkZyP8im4vYtSfL6Hyvf9Qg+MXw9i4rui+Giqwl
-         3JFxHmZuIKASMn6wPqEmWknLrINw4rKAFikTo=
+         :content-disposition:in-reply-to:user-agent;
+        bh=pAAzM9YEmsN6BS7NBJa5z8OM37Zy1PTMVGmhl1fo81w=;
+        b=FlVvYLWZE91QEPrPjnkeKbrPdSH+5IeJN/XcHoBhkj2vD8EH3wR/24NglxFpdb+eTM
+         +Odo2S8UX7+C1f+j+JnNN86RN0MrROOerK5spsgTF6441CEsncZo/EiJgLd0UrXyq4ew
+         qHQXBblQ10ly18eF9co0j+Qc2WNfBqX5upTijJ/pjxqLnI8t+ay/agCNONO08mJ5AA1F
+         0ITPdrQi+oJsoFHrbIY0yP36MjyXKjJalN84O6oJ72h0/6YvgWje0y4XPRZiDWDr5CDT
+         n5JCD0U1OKqfyDCf0nIdC1BI7qsCi7MOC0jApbRuMropCtd+nHE/kgkqk9z586rPkztl
+         FYLg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to;
-        bh=krZ7XDngCuaQ/kaEDAhJETqO/lCcgabbGCGZ64ZW5mg=;
-        b=dG9gDiRz5xsO/kq21JRnFtmH4mxx3+qnynbQz1DM0OwOnCI1Z8ddHxW4zqeix9LfZM
-         x+IuHDIhKp+BmEPOZ48zRs3/5WWZ2cl2A504W9urAT0UN7upIh0AGokbVWqRXh0vUOuf
-         dxivz3/6wDFQYHpxxNvQTCtilEt+P89Io9S3F41qzpI2rHceFf4rXz7upnXnlT/swl6T
-         asmhLVQ4w2HewozAQ1K3ypX/ZnjWGbUltMDCSfjqqGGelP6+G/5if/EDUvm4VftsR2fu
-         2IuDJ0O36v/LUZssTpNlxUIjuO9MyvZr8q9/ezfb1uOP93cQG7AxfxUJxUi0EiIPmLen
-         pHQg==
-X-Gm-Message-State: AOAM532rMm3OK0362jgWBBHHBo7Phgj7ilQBhpaTNWDzFJyjLIg9FvDT
-        EN1r9v66vBZlchtyqvWa8lmkgA==
-X-Google-Smtp-Source: ABdhPJzRY0y5DOmxHW5tLxcTUeq347A0tFTU13T02PtIPhjLsx9UZtCJcdBxPe9IpIDlMO7MS7TXZg==
-X-Received: by 2002:a17:903:41c6:: with SMTP id u6mr7045085ple.74.1644369031529;
-        Tue, 08 Feb 2022 17:10:31 -0800 (PST)
-Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
-        by smtp.gmail.com with ESMTPSA id b4sm17437326pfl.106.2022.02.08.17.10.31
+         :mime-version:content-disposition:in-reply-to:user-agent;
+        bh=pAAzM9YEmsN6BS7NBJa5z8OM37Zy1PTMVGmhl1fo81w=;
+        b=4J2o/wuZ3ZQn0gX1G8vxcly/RJJ04IULveF2oUi6s904Rdv2l0RuKSEVer3DbcVXPB
+         DKmOd/MpbEpR5T7uEo+T+HS6iHZ2F0xe0afrqF04UXpDPijGR6pSnzD9GGsk+46BJp1h
+         bbooWN/flwAcmF7YdbIwvncQBsFX+xaIxUnuJqA8o4z47OKOPo0XacX9LLJCxFK2qMiR
+         YjaNV/mr0jLuOCxDkOFr/Lcr/OxOEzD0jrsBuTWcmcnX3jBLR+Xo8L9qWuD+q/EU+UtF
+         HdmHRJQMoXHFSDysW4WVlbJjGHRGfdLFYvE8YWrrz+DKavER1CHmI4N2woQqBO0JZA8c
+         PAXg==
+X-Gm-Message-State: AOAM532hYOySh1LlGWvsXEs/cEH2IYboDCuNimrzb5I5ktnU8/gMdXL3
+        nIQPv1w6y3B1u0Y73GDYBoM=
+X-Google-Smtp-Source: ABdhPJypQnDZgbJ8Curzq6PkvfxuGqIegGNX0qm0cm40T1ctE7nHCinC134HL2iJXR+3MIPZGN5BQw==
+X-Received: by 2002:a05:6512:b11:: with SMTP id w17mr590074lfu.381.1644389024921;
+        Tue, 08 Feb 2022 22:43:44 -0800 (PST)
+Received: from grain.localdomain ([5.18.251.97])
+        by smtp.gmail.com with ESMTPSA id e13sm2328340ljj.85.2022.02.08.22.43.43
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 08 Feb 2022 17:10:31 -0800 (PST)
-Date:   Tue, 8 Feb 2022 17:10:30 -0800
-From:   Kees Cook <keescook@chromium.org>
-To:     Rick Edgecombe <rick.p.edgecombe@intel.com>
-Cc:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Borislav Petkov <bp@alien8.de>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H . J . Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        "Ravi V . Shankar" <ravi.v.shankar@intel.com>,
-        Dave Martin <Dave.Martin@arm.com>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
-        joao.moreira@intel.com, John Allen <john.allen@amd.com>,
-        kcc@google.com, eranian@google.com,
-        Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [PATCH 03/35] x86/cpufeatures: Add CET CPU feature flags for
- Control-flow Enforcement Technology (CET)
-Message-ID: <202202081709.96226C0B@keescook>
+        Tue, 08 Feb 2022 22:43:43 -0800 (PST)
+Received: by grain.localdomain (Postfix, from userid 1000)
+        id 349FD5A0020; Wed,  9 Feb 2022 09:43:43 +0300 (MSK)
+Date:   Wed, 9 Feb 2022 09:43:43 +0300
+From:   Cyrill Gorcunov <gorcunov@gmail.com>
+To:     "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>
+Cc:     "Lutomirski, Andy" <luto@kernel.org>,
+        "bsingharora@gmail.com" <bsingharora@gmail.com>,
+        "hpa@zytor.com" <hpa@zytor.com>,
+        "Syromiatnikov, Eugene" <esyr@redhat.com>,
+        "peterz@infradead.org" <peterz@infradead.org>,
+        "rdunlap@infradead.org" <rdunlap@infradead.org>,
+        "keescook@chromium.org" <keescook@chromium.org>,
+        "0x7f454c46@gmail.com" <0x7f454c46@gmail.com>,
+        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
+        "kirill.shutemov@linux.intel.com" <kirill.shutemov@linux.intel.com>,
+        "Eranian, Stephane" <eranian@google.com>,
+        "linux-mm@kvack.org" <linux-mm@kvack.org>,
+        "adrian@lisas.de" <adrian@lisas.de>,
+        "fweimer@redhat.com" <fweimer@redhat.com>,
+        "nadav.amit@gmail.com" <nadav.amit@gmail.com>,
+        "jannh@google.com" <jannh@google.com>,
+        "avagin@gmail.com" <avagin@gmail.com>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "kcc@google.com" <kcc@google.com>, "bp@alien8.de" <bp@alien8.de>,
+        "oleg@redhat.com" <oleg@redhat.com>,
+        "hjl.tools@gmail.com" <hjl.tools@gmail.com>,
+        "pavel@ucw.cz" <pavel@ucw.cz>,
+        "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
+        "arnd@arndb.de" <arnd@arndb.de>,
+        "Moreira, Joao" <joao.moreira@intel.com>,
+        "tglx@linutronix.de" <tglx@linutronix.de>,
+        "mike.kravetz@oracle.com" <mike.kravetz@oracle.com>,
+        "x86@kernel.org" <x86@kernel.org>,
+        "Yang, Weijiang" <weijiang.yang@intel.com>,
+        "rppt@kernel.org" <rppt@kernel.org>,
+        "Dave.Martin@arm.com" <Dave.Martin@arm.com>,
+        "john.allen@amd.com" <john.allen@amd.com>,
+        "mingo@redhat.com" <mingo@redhat.com>,
+        "Hansen, Dave" <dave.hansen@intel.com>,
+        "corbet@lwn.net" <corbet@lwn.net>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
+        "Shankar, Ravi V" <ravi.v.shankar@intel.com>,
+        Pavel Tikhomirov <ptikhomirov@virtuozzo.com>,
+        alexander.mikhalitsyn@virtuozzo.com
+Subject: Re: [PATCH 00/35] Shadow stacks for userspace
+Message-ID: <YgNin5wkSaixCwdx@grain>
 References: <20220130211838.8382-1-rick.p.edgecombe@intel.com>
- <20220130211838.8382-4-rick.p.edgecombe@intel.com>
+ <YgAWVSGQg8FPCeba@kernel.org>
+ <YgDIIpCm3UITk896@lisas.de>
+ <8f96c2a6-9c03-f97a-df52-73ffc1d87957@intel.com>
+ <YgI1A0CtfmT7GMIp@kernel.org>
+ <YgI37n+3JfLSNQCQ@grain>
+ <357664de-b089-4617-99d1-de5098953c80@www.fastmail.com>
+ <YgKiKEcsNt7mpMHN@grain>
+ <8e36f20723ca175db49ed3cc73e42e8aa28d2615.camel@intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20220130211838.8382-4-rick.p.edgecombe@intel.com>
+In-Reply-To: <8e36f20723ca175db49ed3cc73e42e8aa28d2615.camel@intel.com>
+User-Agent: Mutt/2.0.7 (2021-05-04)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Jan 30, 2022 at 01:18:06PM -0800, Rick Edgecombe wrote:
-> From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+On Wed, Feb 09, 2022 at 02:18:42AM +0000, Edgecombe, Rick P wrote:
+...
 > 
-> Add CPU feature flags for Control-flow Enforcement Technology (CET).
+> Still wrapping my head around the CRIU save and restore steps, but
+> another general approach might be to give ptrace the ability to
+> temporarily pause/resume/set CET enablement and SSP for a stopped
+> thread. Then injected code doesn't need to jump through any hoops or
+> possibly run into road blocks. I'm not sure how much this opens things
+> up if the thread has to be stopped...
 > 
-> CPUID.(EAX=7,ECX=0):ECX[bit 7] Shadow stack
-> CPUID.(EAX=7,ECX=0):EDX[bit 20] Indirect Branch Tracking
+> Cyrill, could it fit into the CRIU pause and resume flow? What action
+> causes the final resuming of execution of the restored process for
+> checkpointing and for restore? Wondering if we could somehow make CET
+> re-enable exactly then.
+> 
+> And I guess this also needs a way to create shadow stack allocations at
+> a specific address to match where they were in the dumped process. That
+> is missing in this series.
 
-It looks like this only adds the SHSTK bit, maybe drop mention of IBT
-here.
-
-I wonder if we could land this (and the IBT part) without waiting for
-everything else in the respective series?
-
--Kees
-
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
-> Cc: Kees Cook <keescook@chromium.org>
-> ---
-> 
-> v1:
->  - Remove IBT, can be added in a follow on IBT series.
-> 
-> Yu-cheng v25:
->  - Make X86_FEATURE_IBT depend on X86_FEATURE_SHSTK.
-> 
-> Yu-cheng v24:
->  - Update for splitting CONFIG_X86_CET to CONFIG_X86_SHADOW_STACK and
->    CONFIG_X86_IBT.
->  - Move DISABLE_IBT definition to the IBT series.
-> 
->  arch/x86/include/asm/cpufeatures.h       | 1 +
->  arch/x86/include/asm/disabled-features.h | 8 +++++++-
->  arch/x86/kernel/cpu/cpuid-deps.c         | 1 +
->  3 files changed, 9 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-> index 6db4e2932b3d..c3eb94b13fef 100644
-> --- a/arch/x86/include/asm/cpufeatures.h
-> +++ b/arch/x86/include/asm/cpufeatures.h
-> @@ -355,6 +355,7 @@
->  #define X86_FEATURE_OSPKE		(16*32+ 4) /* OS Protection Keys Enable */
->  #define X86_FEATURE_WAITPKG		(16*32+ 5) /* UMONITOR/UMWAIT/TPAUSE Instructions */
->  #define X86_FEATURE_AVX512_VBMI2	(16*32+ 6) /* Additional AVX512 Vector Bit Manipulation Instructions */
-> +#define X86_FEATURE_SHSTK		(16*32+ 7) /* Shadow Stack */
->  #define X86_FEATURE_GFNI		(16*32+ 8) /* Galois Field New Instructions */
->  #define X86_FEATURE_VAES		(16*32+ 9) /* Vector AES */
->  #define X86_FEATURE_VPCLMULQDQ		(16*32+10) /* Carry-Less Multiplication Double Quadword */
-> diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
-> index 8f28fafa98b3..b7728f7afb2b 100644
-> --- a/arch/x86/include/asm/disabled-features.h
-> +++ b/arch/x86/include/asm/disabled-features.h
-> @@ -65,6 +65,12 @@
->  # define DISABLE_SGX	(1 << (X86_FEATURE_SGX & 31))
->  #endif
->  
-> +#ifdef CONFIG_X86_SHADOW_STACK
-> +#define DISABLE_SHSTK	0
-> +#else
-> +#define DISABLE_SHSTK	(1 << (X86_FEATURE_SHSTK & 31))
-> +#endif
-> +
->  /*
->   * Make sure to add features to the correct mask
->   */
-> @@ -85,7 +91,7 @@
->  #define DISABLED_MASK14	0
->  #define DISABLED_MASK15	0
->  #define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_UMIP| \
-> -			 DISABLE_ENQCMD)
-> +			 DISABLE_ENQCMD|DISABLE_SHSTK)
->  #define DISABLED_MASK17	0
->  #define DISABLED_MASK18	0
->  #define DISABLED_MASK19	0
-> diff --git a/arch/x86/kernel/cpu/cpuid-deps.c b/arch/x86/kernel/cpu/cpuid-deps.c
-> index c881bcafba7d..bf1b55a1ba21 100644
-> --- a/arch/x86/kernel/cpu/cpuid-deps.c
-> +++ b/arch/x86/kernel/cpu/cpuid-deps.c
-> @@ -78,6 +78,7 @@ static const struct cpuid_dep cpuid_deps[] = {
->  	{ X86_FEATURE_XFD,			X86_FEATURE_XSAVES    },
->  	{ X86_FEATURE_XFD,			X86_FEATURE_XGETBV1   },
->  	{ X86_FEATURE_AMX_TILE,			X86_FEATURE_XFD       },
-> +	{ X86_FEATURE_SHSTK,			X86_FEATURE_XSAVES    },
->  	{}
->  };
->  
-> -- 
-> 2.17.1
-> 
-
--- 
-Kees Cook
+Thanks Rick! This sounds like an option. I need a couple of days to refresh
+my memory about criu internals. Let me CC a few current active criu developers
+(CC list is already big enough though:), maybe this will speedup the procedure.
