@@ -2,44 +2,44 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6A543C4332F
-	for <linux-arch@archiver.kernel.org>; Wed,  9 Feb 2022 19:02:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 43D09C433FE
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Feb 2022 19:03:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241635AbiBITBz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Feb 2022 14:01:55 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34194 "EHLO
+        id S241857AbiBITDT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Feb 2022 14:03:19 -0500
+Received: from gmail-smtp-in.l.google.com ([23.128.96.19]:49514 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S241982AbiBITAp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 14:00:45 -0500
-Received: from mga18.intel.com (mga18.intel.com [134.134.136.126])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 411E5C03C19D;
-        Wed,  9 Feb 2022 11:00:36 -0800 (PST)
+        with ESMTP id S241726AbiBITDC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 14:03:02 -0500
+Received: from mga14.intel.com (mga14.intel.com [192.55.52.115])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5859CC043180;
+        Wed,  9 Feb 2022 11:01:46 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1644433236; x=1675969236;
+  t=1644433306; x=1675969306;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references:mime-version:content-transfer-encoding;
-  bh=3TFoJ8hml7DfFEwN1MeCftGLxN9fAc0FL9jRFOXIT44=;
-  b=iY3BbgsG9rBd08M2OkWr5HiRdpN7sRL89OQ1Ycj1kYMbTokO//Hg/bi8
-   djm+x+5+OjUKdZRfKLbFvBc0kh5JgcEy7tRBREWCZtuwkR+vBQiRaNGVX
-   mGZ4RX7egvS6AXw4tBwFz60XQDz2BHubi3dTsG3MmfpIXlE9MT8N7UtEI
-   gNYgdAToX77bcTcogrdS2SUuXFMGPx0GOcoStgqujJr69rG1+hE3AMlqi
-   Peg6lPrGmthtRR0ajHb8je/7QkUtIxNfVbbEcSriSTHB5kAaCkZxH4YuA
-   dS1Yu/mClY9RB4E2gPPi6OTk1dCWcutj6bGsMiFxHqiNfLcdjQ+uO5z0G
+  bh=/bF5RmnQNXXN3+vz6F4r6xI2KMbv9yOGNKvu69qEHKw=;
+  b=jzna3XPMrO8mfSNc9ScrYOrkR0IIVIwCO2mwiffdemMyhRtrX5+Sd7BB
+   m6q+zs91Mo6C5d9SYNpcv9YZN6lG3mW2jUXf0pf8EXWOIR/j385CWEDnR
+   GMES+jY0kparVgYtm9vS+hyrW6T5Z7riJIwnIwTw3jhyEQ4u9zrv0VWjr
+   OkiqnIlmazW+MCrjDNAk1FPhRTOUPL5WVE9fOLSskHhnciB5Fde7PXIhb
+   fN+crwvZrvebBMch/mS28L3hfsBRmVkaZhUeckFP22DPrT+824fwJuWWa
+   a1i3RvAvPhpZw8Oc+/xxEK4q8Fhe+M0pi8h+jHvqNzXym9ucn6xKa2Yci
    A==;
-X-IronPort-AV: E=McAfee;i="6200,9189,10253"; a="232869378"
+X-IronPort-AV: E=McAfee;i="6200,9189,10253"; a="249516091"
 X-IronPort-AV: E=Sophos;i="5.88,356,1635231600"; 
-   d="scan'208";a="232869378"
-Received: from orsmga008.jf.intel.com ([10.7.209.65])
-  by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 09 Feb 2022 10:59:04 -0800
+   d="scan'208";a="249516091"
+Received: from fmsmga003.fm.intel.com ([10.253.24.29])
+  by fmsmga103.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 09 Feb 2022 10:59:14 -0800
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="5.88,356,1635231600"; 
-   d="scan'208";a="541248491"
+   d="scan'208";a="622393036"
 Received: from irvmail001.ir.intel.com ([10.43.11.63])
-  by orsmga008.jf.intel.com with ESMTP; 09 Feb 2022 10:58:52 -0800
+  by FMSMGA003.fm.intel.com with ESMTP; 09 Feb 2022 10:59:05 -0800
 Received: from newjersey.igk.intel.com (newjersey.igk.intel.com [10.102.20.203])
-        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 219IwjQP031082;
-        Wed, 9 Feb 2022 18:58:50 GMT
+        by irvmail001.ir.intel.com (8.14.3/8.13.6/MailSET/Hub) with ESMTP id 219IwjQV031082;
+        Wed, 9 Feb 2022 18:59:02 GMT
 From:   Alexander Lobakin <alexandr.lobakin@intel.com>
 To:     linux-hardening@vger.kernel.org, x86@kernel.org
 Cc:     Alexander Lobakin <alexandr.lobakin@intel.com>,
@@ -78,9 +78,9 @@ Cc:     Alexander Lobakin <alexandr.lobakin@intel.com>,
         linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
         linux-arch@vger.kernel.org, live-patching@vger.kernel.org,
         llvm@lists.linux.dev
-Subject: [PATCH v10 02/15] livepatch: avoid position-based search if `-z unique-symbol` is available
-Date:   Wed,  9 Feb 2022 19:57:39 +0100
-Message-Id: <20220209185752.1226407-3-alexandr.lobakin@intel.com>
+Subject: [PATCH v10 08/15] x86/tools: Add relative relocs for randomized functions
+Date:   Wed,  9 Feb 2022 19:57:45 +0100
+Message-Id: <20220209185752.1226407-9-alexandr.lobakin@intel.com>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20220209185752.1226407-1-alexandr.lobakin@intel.com>
 References: <20220209185752.1226407-1-alexandr.lobakin@intel.com>
@@ -90,179 +90,192 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Position-based search, which means that if there are several symbols
-with the same name, the user needs to additionally provide the
-"index" of a desired symbol, is fragile. For example, it breaks
-when two symbols with the same name are located in different
-sections.
+From: Kristen Carlson Accardi <kristen@linux.intel.com>
 
-Since a while, LD has a flag `-z unique-symbol` which appends
-numeric suffixes to the functions with the same name (in symtab
-and strtab). It can be used to effectively prevent from having
-any ambiguity when referring to a symbol by its name.
-Check for its availability and always prefer when the livepatching
-is on. It can be used unconditionally later on after broader testing
-on a wide variety of machines, but for now let's stick to the actual
-CONFIG_LIVEPATCH=y case, which is true for most of distro configs
-anyways.
-This needs a little adjustment to the modpost to make it strip
-suffixes before adding exports. depmod needs some treatment as well,
-tho its false-positive warnings about unknown symbols are harmless
-and don't alter the return code.
+When reordering functions, the relative offsets for relocs that
+are either in the randomized sections, or refer to the randomized
+sections will need to be adjusted. Add code to detect whether a
+reloc satisfies these cases, and if so, add them to the appropriate
+reloc list.
 
-There is probably a bunch more livepatch code to optimize-out after
-introducing this, leave it for later as well.
+Alexander Lobakin:
 
-Suggested-by: H.J. Lu <hjl.tools@gmail.com>
-Suggested-by: Peter Zijlstra <peterz@infradead.org>
-Suggested-by: Josh Poimboeuf <jpoimboe@redhat.com>
-Suggested-by: Miroslav Benes <mbenes@suse.cz>
+Don't split relocs' usage string across lines to ease grepping.
+
+Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
+Reviewed-by: Tony Luck <tony.luck@intel.com>
+Tested-by: Tony Luck <tony.luck@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 Signed-off-by: Alexander Lobakin <alexandr.lobakin@intel.com>
 ---
- Makefile                |  6 ++++++
- init/Kconfig            |  3 +++
- kernel/livepatch/core.c | 17 +++++++++++++----
- scripts/mod/modpost.c   | 42 ++++++++++++++++++++++-------------------
- 4 files changed, 45 insertions(+), 23 deletions(-)
+ arch/x86/boot/compressed/Makefile |  7 ++++++-
+ arch/x86/tools/relocs.c           | 32 +++++++++++++++++++++++++++----
+ arch/x86/tools/relocs.h           |  4 ++--
+ arch/x86/tools/relocs_common.c    | 14 +++++++++-----
+ 4 files changed, 45 insertions(+), 12 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index ceb987e5c87b..fa9f947c9839 100644
---- a/Makefile
-+++ b/Makefile
-@@ -871,6 +871,12 @@ ifdef CONFIG_DEBUG_SECTION_MISMATCH
- KBUILD_CFLAGS += -fno-inline-functions-called-once
- endif
+diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
+index e7ee94d5f55a..b1f5817c5737 100644
+--- a/arch/x86/boot/compressed/Makefile
++++ b/arch/x86/boot/compressed/Makefile
+@@ -110,6 +110,11 @@ $(obj)/vmlinux: $(vmlinux-objs-y) $(efi-obj-y) FORCE
+ 	$(call if_changed,ld)
  
-+# Prefer linking with the `-z unique-symbol` if available, this eliminates
-+# position-based search
-+ifeq ($(CONFIG_LD_HAS_Z_UNIQUE_SYMBOL)$(CONFIG_LIVEPATCH),yy)
-+KBUILD_LDFLAGS += -z unique-symbol
+ OBJCOPYFLAGS_vmlinux.bin :=  -R .comment -S
++
++ifdef CONFIG_FG_KASLR
++RELOCS_ARGS += --fg-kaslr
 +endif
 +
- ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
- KBUILD_CFLAGS_KERNEL += -ffunction-sections -fdata-sections
- LDFLAGS_vmlinux += --gc-sections
-diff --git a/init/Kconfig b/init/Kconfig
-index e9119bf54b1f..8e900d17d42b 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -86,6 +86,9 @@ config CC_HAS_ASM_INLINE
- config CC_HAS_NO_PROFILE_FN_ATTR
- 	def_bool $(success,echo '__attribute__((no_profile_instrument_function)) int x();' | $(CC) -x c - -c -o /dev/null -Werror)
+ $(obj)/vmlinux.bin: vmlinux FORCE
+ 	$(call if_changed,objcopy)
  
-+config LD_HAS_Z_UNIQUE_SYMBOL
-+	def_bool $(ld-option,-z unique-symbol)
+@@ -117,7 +122,7 @@ targets += $(patsubst $(obj)/%,%,$(vmlinux-objs-y)) vmlinux.bin.all vmlinux.relo
+ 
+ CMD_RELOCS = arch/x86/tools/relocs
+ quiet_cmd_relocs = RELOCS  $@
+-      cmd_relocs = $(CMD_RELOCS) $< > $@;$(CMD_RELOCS) --abs-relocs $<
++      cmd_relocs = $(CMD_RELOCS) $(RELOCS_ARGS) $< > $@;$(CMD_RELOCS) $(RELOCS_ARGS) --abs-relocs $<
+ $(obj)/vmlinux.relocs: vmlinux FORCE
+ 	$(call if_changed,relocs)
+ 
+diff --git a/arch/x86/tools/relocs.c b/arch/x86/tools/relocs.c
+index e2c5b296120d..96b6042fc76f 100644
+--- a/arch/x86/tools/relocs.c
++++ b/arch/x86/tools/relocs.c
+@@ -45,6 +45,8 @@ struct section {
+ };
+ static struct section *secs;
+ 
++static int fgkaslr_mode;
 +
- config CONSTRUCTORS
- 	bool
- 
-diff --git a/kernel/livepatch/core.c b/kernel/livepatch/core.c
-index 585494ec464f..7a330465a8c7 100644
---- a/kernel/livepatch/core.c
-+++ b/kernel/livepatch/core.c
-@@ -143,11 +143,13 @@ static int klp_find_callback(void *data, const char *name,
- 	args->count++;
- 
- 	/*
--	 * Finish the search when the symbol is found for the desired position
--	 * or the position is not defined for a non-unique symbol.
-+	 * Finish the search when unique symbol names are enabled
-+	 * or the symbol is found for the desired position or the
-+	 * position is not defined for a non-unique symbol.
- 	 */
--	if ((args->pos && (args->count == args->pos)) ||
--	    (!args->pos && (args->count > 1)))
-+	if (IS_ENABLED(CONFIG_LD_HAS_Z_UNIQUE_SYMBOL) ||
-+	    (args->pos && args->count == args->pos) ||
-+	    (!args->pos && args->count > 1))
- 		return 1;
- 
- 	return 0;
-@@ -169,6 +171,13 @@ static int klp_find_object_symbol(const char *objname, const char *name,
- 	else
- 		kallsyms_on_each_symbol(klp_find_callback, &args);
- 
-+	/*
-+	 * If the LD's `-z unique-symbol` flag is available and enabled,
-+	 * sympos checks are not relevant.
-+	 */
-+	if (IS_ENABLED(CONFIG_LD_HAS_Z_UNIQUE_SYMBOL))
-+		sympos = 0;
-+
- 	/*
- 	 * Ensure an address was found. If sympos is 0, ensure symbol is unique;
- 	 * otherwise ensure the symbol position count matches sympos.
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 4648b7afe5cc..ec521ccebea6 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -689,11 +689,28 @@ static void handle_modversion(const struct module *mod,
- 	sym_set_crc(symname, crc);
+ static const char * const sym_regex_kernel[S_NSYMTYPES] = {
+ /*
+  * Following symbols have been audited. There values are constant and do
+@@ -823,6 +825,24 @@ static int is_percpu_sym(ElfW(Sym) *sym, const char *symname)
+ 		strncmp(symname, "init_per_cpu_", 13);
  }
  
-+static char *remove_dot(char *s)
++static int is_function_section(struct section *sec)
 +{
-+	size_t n = strcspn(s, ".");
++	if (!fgkaslr_mode)
++		return 0;
 +
-+	if (n && s[n]) {
-+		size_t m = strspn(s + n + 1, "0123456789");
-+
-+		if (m && (s[n + m + 1] == '.' || s[n + m + 1] == 0))
-+			s[n] = 0;
-+
-+		/* strip trailing .lto */
-+		if (strends(s, ".lto"))
-+			s[strlen(s) - 4] = '\0';
-+	}
-+
-+	return s;
++	return !strncmp(sec_name(sec->shdr.sh_info), ".text.", 6);
 +}
 +
- static void handle_symbol(struct module *mod, struct elf_info *info,
- 			  const Elf_Sym *sym, const char *symname)
- {
- 	enum export export;
--	const char *name;
- 
- 	if (strstarts(symname, "__ksymtab"))
- 		export = export_from_secname(info, get_secindex(info, sym));
-@@ -734,8 +751,11 @@ static void handle_symbol(struct module *mod, struct elf_info *info,
- 	default:
- 		/* All exported symbols */
- 		if (strstarts(symname, "__ksymtab_")) {
--			name = symname + strlen("__ksymtab_");
--			sym_add_exported(name, mod, export);
-+			char *name;
++static int is_randomized_sym(ElfW(Sym) *sym)
++{
++	if (!fgkaslr_mode)
++		return 0;
 +
-+			name = NOFAIL(strdup(symname + strlen("__ksymtab_")));
-+			sym_add_exported(remove_dot(name), mod, export);
-+			free(name);
- 		}
- 		if (strcmp(symname, "init_module") == 0)
- 			mod->has_init = 1;
-@@ -1980,22 +2000,6 @@ static void check_sec_ref(struct module *mod, const char *modname,
- 	}
++	if (sym->st_shndx > shnum)
++		return 0;
++
++	return !strncmp(sec_name(sym_index(sym)), ".text.", 6);
++}
+ 
+ static int do_reloc64(struct section *sec, Elf_Rel *rel, ElfW(Sym) *sym,
+ 		      const char *symname)
+@@ -848,12 +868,15 @@ static int do_reloc64(struct section *sec, Elf_Rel *rel, ElfW(Sym) *sym,
+ 	case R_X86_64_PC32:
+ 	case R_X86_64_PLT32:
+ 		/*
+-		 * PC relative relocations don't need to be adjusted unless
+-		 * referencing a percpu symbol.
++		 * we need to keep pc relative relocations for sections which
++		 * might be randomized, and for the percpu section.
++		 * We also need to keep relocations for any offset which might
++		 * reference an address in a section which has been randomized.
+ 		 *
+ 		 * NB: R_X86_64_PLT32 can be treated as R_X86_64_PC32.
+ 		 */
+-		if (is_percpu_sym(sym, symname))
++		if (is_function_section(sec) || is_randomized_sym(sym) ||
++		    is_percpu_sym(sym, symname))
+ 			add_reloc(&relocs32neg, offset);
+ 		break;
+ 
+@@ -1168,8 +1191,9 @@ static void print_reloc_info(void)
+ 
+ void process(FILE *fp, int use_real_mode, int as_text,
+ 	     int show_absolute_syms, int show_absolute_relocs,
+-	     int show_reloc_info)
++	     int show_reloc_info, int fgkaslr)
+ {
++	fgkaslr_mode = fgkaslr;
+ 	regex_init(use_real_mode);
+ 	read_ehdr(fp);
+ 	read_shdrs(fp);
+diff --git a/arch/x86/tools/relocs.h b/arch/x86/tools/relocs.h
+index 4c49c82446eb..269db511b243 100644
+--- a/arch/x86/tools/relocs.h
++++ b/arch/x86/tools/relocs.h
+@@ -32,8 +32,8 @@ enum symtype {
+ 
+ void process_32(FILE *fp, int use_real_mode, int as_text,
+ 		int show_absolute_syms, int show_absolute_relocs,
+-		int show_reloc_info);
++		int show_reloc_info, int fgkaslr);
+ void process_64(FILE *fp, int use_real_mode, int as_text,
+ 		int show_absolute_syms, int show_absolute_relocs,
+-		int show_reloc_info);
++		int show_reloc_info, int fgkaslr);
+ #endif /* RELOCS_H */
+diff --git a/arch/x86/tools/relocs_common.c b/arch/x86/tools/relocs_common.c
+index 6634352a20bc..d6acda36575a 100644
+--- a/arch/x86/tools/relocs_common.c
++++ b/arch/x86/tools/relocs_common.c
+@@ -12,14 +12,13 @@ void die(char *fmt, ...)
+ 
+ static void usage(void)
+ {
+-	die("relocs [--abs-syms|--abs-relocs|--reloc-info|--text|--realmode]" \
+-	    " vmlinux\n");
++	die("relocs [--abs-syms|--abs-relocs|--reloc-info|--text|--realmode|--fg-kaslr] vmlinux\n");
  }
  
--static char *remove_dot(char *s)
--{
--	size_t n = strcspn(s, ".");
--
--	if (n && s[n]) {
--		size_t m = strspn(s + n + 1, "0123456789");
--		if (m && (s[n + m + 1] == '.' || s[n + m + 1] == 0))
--			s[n] = 0;
--
--		/* strip trailing .lto */
--		if (strends(s, ".lto"))
--			s[strlen(s) - 4] = '\0';
--	}
--	return s;
--}
--
- static void read_symbols(const char *modname)
+ int main(int argc, char **argv)
  {
- 	const char *symname;
+ 	int show_absolute_syms, show_absolute_relocs, show_reloc_info;
+-	int as_text, use_real_mode;
++	int as_text, use_real_mode, fgkaslr_opt;
+ 	const char *fname;
+ 	FILE *fp;
+ 	int i;
+@@ -30,6 +29,7 @@ int main(int argc, char **argv)
+ 	show_reloc_info = 0;
+ 	as_text = 0;
+ 	use_real_mode = 0;
++	fgkaslr_opt = 0;
+ 	fname = NULL;
+ 	for (i = 1; i < argc; i++) {
+ 		char *arg = argv[i];
+@@ -54,6 +54,10 @@ int main(int argc, char **argv)
+ 				use_real_mode = 1;
+ 				continue;
+ 			}
++			if (strcmp(arg, "--fg-kaslr") == 0) {
++				fgkaslr_opt = 1;
++				continue;
++			}
+ 		}
+ 		else if (!fname) {
+ 			fname = arg;
+@@ -75,11 +79,11 @@ int main(int argc, char **argv)
+ 	if (e_ident[EI_CLASS] == ELFCLASS64)
+ 		process_64(fp, use_real_mode, as_text,
+ 			   show_absolute_syms, show_absolute_relocs,
+-			   show_reloc_info);
++			   show_reloc_info, fgkaslr_opt);
+ 	else
+ 		process_32(fp, use_real_mode, as_text,
+ 			   show_absolute_syms, show_absolute_relocs,
+-			   show_reloc_info);
++			   show_reloc_info, fgkaslr_opt);
+ 	fclose(fp);
+ 	return 0;
+ }
 -- 
 2.34.1
 
