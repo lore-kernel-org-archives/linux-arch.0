@@ -2,282 +2,170 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6CE5FC433EF
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 02:20:46 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3A0D8C433FE
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 02:38:01 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231190AbiBJCUl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Feb 2022 21:20:41 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:39694 "EHLO
+        id S231542AbiBJCh5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Feb 2022 21:37:57 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:50014 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230372AbiBJCUj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 21:20:39 -0500
-Received: from condef-05.nifty.com (condef-05.nifty.com [202.248.20.70])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8B13722B36;
-        Wed,  9 Feb 2022 18:20:38 -0800 (PST)
-Received: from conuserg-12.nifty.com ([10.126.8.75])by condef-05.nifty.com with ESMTP id 21A2CEgX007238;
-        Thu, 10 Feb 2022 11:12:14 +0900
-Received: from localhost.localdomain (133-32-232-101.west.xps.vectant.ne.jp [133.32.232.101]) (authenticated)
-        by conuserg-12.nifty.com with ESMTP id 21A2BVGw030193;
-        Thu, 10 Feb 2022 11:11:32 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-12.nifty.com 21A2BVGw030193
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1644459092;
-        bh=9rlTIDf+U0DYlyosnkaUCepGIAJ7vKKws/NpiQ+PL4I=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=BX06GH+WTisBdFFp+EltlSA9tkoYjTNeBLO7faiKnMDs7ZLUmIsKRWStl5IhyytnX
-         PYJGfycgxdchdg12CxlQoENG8h9dVJFRLEOE5kpRGXBkVRAukfS87erh35xanyWtvQ
-         QAQPOPAGSc6IcOr9vHsXKARlCN83342LfRCHcxQy/aiLrLLHDqH3hVEPK9aJmhfYrg
-         YhYutTdWp/eMzVoIsD8wVBxf56ihdHWdWwtnSVorxcDXqwVYN50JYWcglod/oWsIsu
-         e+W/jMKXF4K6MvXOVnJiMTPdMmVtxXVdvL9UvkMAWi6GHkhSDu1twcEjuCXWdqzpI0
-         bI7Zvcnr1SnJw==
-X-Nifty-SrcIP: [133.32.232.101]
-From:   Masahiro Yamada <masahiroy@kernel.org>
-To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
-        linux-kernel@vger.kernel.org,
-        Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 1/6] signal.h: add linux/signal.h and asm/signal.h to UAPI compile-test coverage
-Date:   Thu, 10 Feb 2022 11:11:24 +0900
-Message-Id: <20220210021129.3386083-2-masahiroy@kernel.org>
-X-Mailer: git-send-email 2.32.0
-In-Reply-To: <20220210021129.3386083-1-masahiroy@kernel.org>
-References: <20220210021129.3386083-1-masahiroy@kernel.org>
+        with ESMTP id S231453AbiBJChz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 21:37:55 -0500
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EB9C620F42;
+        Wed,  9 Feb 2022 18:37:57 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id C0E1761A04;
+        Thu, 10 Feb 2022 02:37:56 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id EF411C340E7;
+        Thu, 10 Feb 2022 02:37:53 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1644460676;
+        bh=Hz8lGy4gshpW8UEDEsTd4W5QPRJ4DB6xlgp8dtJmJVs=;
+        h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+        b=qBoGpg3x7UdPi5W24ulRcPFLrg5AX4Vwf8vlXAVP8tXZooNbKLpjRx+HwugslUA1U
+         A1uiJqFP0r/cM7S3kT2Naj4yn+Bm+ufOmPXbGHyqhEJR8TowGrp1eJiIm/NyoDy5Cj
+         rBQIbHJPI8il1HrAUl7GVs7Hyvin8cPoUzuWvTmEFxhOFH/CQ3Dko7Itpwm5EzF2F2
+         EP2bGeCDzGMzDfPtAB21ITDZjhX5K+X6bAZCQ93e36CJn5oH7TtT8B68mkGE2zLqdE
+         3BChVLbpuin+iwBD5fdIeeZ0qdXKM6tjCHde41DmMo5Lg+fUwqRteJfktFGf3GTS/d
+         ilUECoKuBJnIQ==
+Message-ID: <9d664c91-2116-42cc-ef8d-e6d236de43d0@kernel.org>
+Date:   Wed, 9 Feb 2022 18:37:53 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.5.0
+Subject: Re: [PATCH 00/35] Shadow stacks for userspace
+Content-Language: en-US
+To:     "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>,
+        "gorcunov@gmail.com" <gorcunov@gmail.com>
+Cc:     "bsingharora@gmail.com" <bsingharora@gmail.com>,
+        "hpa@zytor.com" <hpa@zytor.com>,
+        "Syromiatnikov, Eugene" <esyr@redhat.com>,
+        "peterz@infradead.org" <peterz@infradead.org>,
+        "rdunlap@infradead.org" <rdunlap@infradead.org>,
+        "keescook@chromium.org" <keescook@chromium.org>,
+        "0x7f454c46@gmail.com" <0x7f454c46@gmail.com>,
+        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
+        "kirill.shutemov@linux.intel.com" <kirill.shutemov@linux.intel.com>,
+        "Eranian, Stephane" <eranian@google.com>,
+        "linux-mm@kvack.org" <linux-mm@kvack.org>,
+        "adrian@lisas.de" <adrian@lisas.de>,
+        "fweimer@redhat.com" <fweimer@redhat.com>,
+        "nadav.amit@gmail.com" <nadav.amit@gmail.com>,
+        "jannh@google.com" <jannh@google.com>,
+        "avagin@gmail.com" <avagin@gmail.com>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "kcc@google.com" <kcc@google.com>, "bp@alien8.de" <bp@alien8.de>,
+        "oleg@redhat.com" <oleg@redhat.com>,
+        "hjl.tools@gmail.com" <hjl.tools@gmail.com>,
+        "pavel@ucw.cz" <pavel@ucw.cz>,
+        "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
+        "arnd@arndb.de" <arnd@arndb.de>,
+        "Moreira, Joao" <joao.moreira@intel.com>,
+        "tglx@linutronix.de" <tglx@linutronix.de>,
+        "mike.kravetz@oracle.com" <mike.kravetz@oracle.com>,
+        "x86@kernel.org" <x86@kernel.org>,
+        "Yang, Weijiang" <weijiang.yang@intel.com>,
+        "rppt@kernel.org" <rppt@kernel.org>,
+        "Dave.Martin@arm.com" <Dave.Martin@arm.com>,
+        "john.allen@amd.com" <john.allen@amd.com>,
+        "mingo@redhat.com" <mingo@redhat.com>,
+        "Hansen, Dave" <dave.hansen@intel.com>,
+        "corbet@lwn.net" <corbet@lwn.net>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
+        "Shankar, Ravi V" <ravi.v.shankar@intel.com>
+References: <20220130211838.8382-1-rick.p.edgecombe@intel.com>
+ <YgAWVSGQg8FPCeba@kernel.org> <YgDIIpCm3UITk896@lisas.de>
+ <8f96c2a6-9c03-f97a-df52-73ffc1d87957@intel.com>
+ <YgI1A0CtfmT7GMIp@kernel.org> <YgI37n+3JfLSNQCQ@grain>
+ <357664de-b089-4617-99d1-de5098953c80@www.fastmail.com>
+ <YgKiKEcsNt7mpMHN@grain>
+ <8e36f20723ca175db49ed3cc73e42e8aa28d2615.camel@intel.com>
+From:   Andy Lutomirski <luto@kernel.org>
+In-Reply-To: <8e36f20723ca175db49ed3cc73e42e8aa28d2615.camel@intel.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-linux/signal.h and asm/signal.h are currently excluded from the UAPI
-compile-test because of the errors like follows:
+On 2/8/22 18:18, Edgecombe, Rick P wrote:
+> On Tue, 2022-02-08 at 20:02 +0300, Cyrill Gorcunov wrote:
+>> On Tue, Feb 08, 2022 at 08:21:20AM -0800, Andy Lutomirski wrote:
+>>>>> But such a knob will immediately reduce the security value of
+>>>>> the entire
+>>>>> thing, and I don't have good ideas how to deal with it :(
+>>>>
+>>>> Probably a kind of latch in the task_struct which would trigger
+>>>> off once
+>>>> returt to a different address happened, thus we would be able to
+>>>> jump inside
+>>>> paratite code. Of course such trigger should be available under
+>>>> proper
+>>>> capability only.
+>>>
+>>> I'm not fully in touch with how parasite, etc works.  Are we
+>>> talking about save or restore?
+>>
+>> We use parasite code in question during checkpoint phase as far as I
+>> remember.
+>> push addr/lret trick is used to run "injected" code (code injection
+>> itself is
+>> done via ptrace) in compat mode at least. Dima, Andrei, I didn't look
+>> into this code
+>> for years already, do we still need to support compat mode at all?
+>>
+>>> If it's restore, what exactly does CRIU need to do?  Is it just
+>>> that CRIU needs to return
+>>> out from its resume code into the to-be-resumed program without
+>>> tripping CET?  Would it
+>>> be acceptable for CRIU to require that at least one shstk slot be
+>>> free at save time?
+>>> Or do we need a mechanism to atomically switch to a completely full
+>>> shadow stack at resume?
+>>>
+>>> Off the top of my head, a sigreturn (or sigreturn-like mechanism)
+>>> that is intended for
+>>> use for altshadowstack could safely verify a token on the
+>>> altshdowstack, possibly
+>>> compare to something in ucontext (or not -- this isn't clearly
+>>> necessary) and switch
+>>> back to the previous stack.  CRIU could use that too.  Obviously
+>>> CRIU will need a way
+>>> to populate the relevant stacks, but WRUSS can be used for that,
+>>> and I think this
+>>> is a fundamental requirement for CRIU -- CRIU restore absolutely
+>>> needs a way to write
+>>> the saved shadow stack data into the shadow stack.
+> 
+> Still wrapping my head around the CRIU save and restore steps, but
+> another general approach might be to give ptrace the ability to
+> temporarily pause/resume/set CET enablement and SSP for a stopped
+> thread. Then injected code doesn't need to jump through any hoops or
+> possibly run into road blocks. I'm not sure how much this opens things
+> up if the thread has to be stopped...
 
-    HDRTEST usr/include/asm/signal.h
-  In file included from <command-line>:
-  ./usr/include/asm/signal.h:103:9: error: unknown type name ‘size_t’
-    103 |         size_t ss_size;
-        |         ^~~~~~
+Hmm, that's maybe not insane.
 
-The errors can be fixed by replacing size_t with __kernel_size_t.
+An alternative would be to add a bona fide ptrace call-a-function 
+mechanism.  I can think of two potentially usable variants:
 
-Then, remove the no-header-test entries from user/include/Makefile.
+1. Straight call.  PTRACE_CALL_FUNCTION(addr) just emulates CALL addr, 
+shadow stack push and all.
 
-Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
----
+2. Signal-style.  PTRACE_CALL_FUNCTION_SIGFRAME injects an actual signal 
+frame just like a real signal is being delivered with the specified 
+handler.  There could be a variant to opt-in to also using a specified 
+altstack and altshadowstack.
 
- arch/alpha/include/uapi/asm/signal.h   | 2 +-
- arch/arm/include/uapi/asm/signal.h     | 2 +-
- arch/h8300/include/uapi/asm/signal.h   | 2 +-
- arch/ia64/include/uapi/asm/signal.h    | 2 +-
- arch/m68k/include/uapi/asm/signal.h    | 2 +-
- arch/mips/include/uapi/asm/signal.h    | 2 +-
- arch/parisc/include/uapi/asm/signal.h  | 2 +-
- arch/powerpc/include/uapi/asm/signal.h | 2 +-
- arch/s390/include/uapi/asm/signal.h    | 2 +-
- arch/sparc/include/uapi/asm/signal.h   | 3 ++-
- arch/x86/include/uapi/asm/signal.h     | 2 +-
- arch/xtensa/include/uapi/asm/signal.h  | 2 +-
- include/uapi/asm-generic/signal.h      | 2 +-
- usr/include/Makefile                   | 2 --
- 14 files changed, 14 insertions(+), 15 deletions(-)
+2 would be more expensive but would avoid the need for much in the way 
+of asm magic.  The injected code could be plain C (or Rust or Zig or 
+whatever).
 
-diff --git a/arch/alpha/include/uapi/asm/signal.h b/arch/alpha/include/uapi/asm/signal.h
-index a69dd8d080a8..1413075f7616 100644
---- a/arch/alpha/include/uapi/asm/signal.h
-+++ b/arch/alpha/include/uapi/asm/signal.h
-@@ -100,7 +100,7 @@ struct sigaction {
- typedef struct sigaltstack {
- 	void __user *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- /* sigstack(2) is deprecated, and will be withdrawn in a future version
-diff --git a/arch/arm/include/uapi/asm/signal.h b/arch/arm/include/uapi/asm/signal.h
-index c9a3ea1d8d41..9e2178420db2 100644
---- a/arch/arm/include/uapi/asm/signal.h
-+++ b/arch/arm/include/uapi/asm/signal.h
-@@ -93,7 +93,7 @@ struct sigaction {
- typedef struct sigaltstack {
- 	void __user *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- 
-diff --git a/arch/h8300/include/uapi/asm/signal.h b/arch/h8300/include/uapi/asm/signal.h
-index 2cd0dce2b6a6..1165481f80f6 100644
---- a/arch/h8300/include/uapi/asm/signal.h
-+++ b/arch/h8300/include/uapi/asm/signal.h
-@@ -85,7 +85,7 @@ struct sigaction {
- typedef struct sigaltstack {
- 	void *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- 
-diff --git a/arch/ia64/include/uapi/asm/signal.h b/arch/ia64/include/uapi/asm/signal.h
-index 38166a88e4c9..63d574e802a2 100644
---- a/arch/ia64/include/uapi/asm/signal.h
-+++ b/arch/ia64/include/uapi/asm/signal.h
-@@ -90,7 +90,7 @@ struct siginfo;
- typedef struct sigaltstack {
- 	void __user *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- 
-diff --git a/arch/m68k/include/uapi/asm/signal.h b/arch/m68k/include/uapi/asm/signal.h
-index 4619291df601..80f520b9b10b 100644
---- a/arch/m68k/include/uapi/asm/signal.h
-+++ b/arch/m68k/include/uapi/asm/signal.h
-@@ -83,7 +83,7 @@ struct sigaction {
- typedef struct sigaltstack {
- 	void __user *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- #endif /* _UAPI_M68K_SIGNAL_H */
-diff --git a/arch/mips/include/uapi/asm/signal.h b/arch/mips/include/uapi/asm/signal.h
-index e6c78a15cb2f..94a00f82e373 100644
---- a/arch/mips/include/uapi/asm/signal.h
-+++ b/arch/mips/include/uapi/asm/signal.h
-@@ -100,7 +100,7 @@ struct sigaction {
- /* IRIX compatible stack_t  */
- typedef struct sigaltstack {
- 	void __user *ss_sp;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- 	int ss_flags;
- } stack_t;
- 
-diff --git a/arch/parisc/include/uapi/asm/signal.h b/arch/parisc/include/uapi/asm/signal.h
-index e5a2657477ac..8e4895c5ea5d 100644
---- a/arch/parisc/include/uapi/asm/signal.h
-+++ b/arch/parisc/include/uapi/asm/signal.h
-@@ -67,7 +67,7 @@ struct siginfo;
- typedef struct sigaltstack {
- 	void __user *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- #endif /* !__ASSEMBLY */
-diff --git a/arch/powerpc/include/uapi/asm/signal.h b/arch/powerpc/include/uapi/asm/signal.h
-index 04873dd311c2..37d41d87c45b 100644
---- a/arch/powerpc/include/uapi/asm/signal.h
-+++ b/arch/powerpc/include/uapi/asm/signal.h
-@@ -86,7 +86,7 @@ struct sigaction {
- typedef struct sigaltstack {
- 	void __user *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- 
-diff --git a/arch/s390/include/uapi/asm/signal.h b/arch/s390/include/uapi/asm/signal.h
-index 0189f326aac5..e74d6ba1bd3b 100644
---- a/arch/s390/include/uapi/asm/signal.h
-+++ b/arch/s390/include/uapi/asm/signal.h
-@@ -108,7 +108,7 @@ struct sigaction {
- typedef struct sigaltstack {
-         void __user *ss_sp;
-         int ss_flags;
--        size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- 
-diff --git a/arch/sparc/include/uapi/asm/signal.h b/arch/sparc/include/uapi/asm/signal.h
-index 53758d53ac0e..d395af9b46d2 100644
---- a/arch/sparc/include/uapi/asm/signal.h
-+++ b/arch/sparc/include/uapi/asm/signal.h
-@@ -2,6 +2,7 @@
- #ifndef _UAPI__SPARC_SIGNAL_H
- #define _UAPI__SPARC_SIGNAL_H
- 
-+#include <asm/posix_types.h>
- #include <asm/sigcontext.h>
- #include <linux/compiler.h>
- 
-@@ -171,7 +172,7 @@ struct __old_sigaction {
- typedef struct sigaltstack {
- 	void			__user *ss_sp;
- 	int			ss_flags;
--	size_t			ss_size;
-+	__kernel_size_t		ss_size;
- } stack_t;
- 
- 
-diff --git a/arch/x86/include/uapi/asm/signal.h b/arch/x86/include/uapi/asm/signal.h
-index 164a22a72984..777c3a0f4e23 100644
---- a/arch/x86/include/uapi/asm/signal.h
-+++ b/arch/x86/include/uapi/asm/signal.h
-@@ -104,7 +104,7 @@ struct sigaction {
- typedef struct sigaltstack {
- 	void __user *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- #endif /* __ASSEMBLY__ */
-diff --git a/arch/xtensa/include/uapi/asm/signal.h b/arch/xtensa/include/uapi/asm/signal.h
-index 79ddabaa4e5d..b8c824dd4b74 100644
---- a/arch/xtensa/include/uapi/asm/signal.h
-+++ b/arch/xtensa/include/uapi/asm/signal.h
-@@ -103,7 +103,7 @@ struct sigaction {
- typedef struct sigaltstack {
- 	void *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- #endif	/* __ASSEMBLY__ */
-diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-generic/signal.h
-index f634822906e4..0eb69dc8e572 100644
---- a/include/uapi/asm-generic/signal.h
-+++ b/include/uapi/asm-generic/signal.h
-@@ -85,7 +85,7 @@ struct sigaction {
- typedef struct sigaltstack {
- 	void __user *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- #endif /* __ASSEMBLY__ */
-diff --git a/usr/include/Makefile b/usr/include/Makefile
-index 8dbd1d8a245f..e7230a5a402a 100644
---- a/usr/include/Makefile
-+++ b/usr/include/Makefile
-@@ -24,7 +24,6 @@ override c_flags = $(UAPI_CFLAGS) -Wp,-MMD,$(depfile) -I$(objtree)/usr/include
- #
- # Sorted alphabetically.
- no-header-test += asm/shmbuf.h
--no-header-test += asm/signal.h
- no-header-test += asm/ucontext.h
- no-header-test += drm/vmwgfx_drm.h
- no-header-test += linux/am437x-vpfe.h
-@@ -44,7 +43,6 @@ no-header-test += linux/patchkey.h
- no-header-test += linux/phonet.h
- no-header-test += linux/reiserfs_xattr.h
- no-header-test += linux/sctp.h
--no-header-test += linux/signal.h
- no-header-test += linux/sysctl.h
- no-header-test += linux/usb/audio.h
- no-header-test += linux/v4l2-mediabus.h
--- 
-2.32.0
+All of this only really handles save, not restore.  I don't understand 
+restore enough to fully understand the issue.
 
+--Andy
