@@ -2,38 +2,37 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B32E4C433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 09:40:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 552FCC433EF
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 09:42:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236340AbiBJJkc convert rfc822-to-8bit (ORCPT
+        id S238089AbiBJJmz convert rfc822-to-8bit (ORCPT
         <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 10 Feb 2022 04:40:32 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:59138 "EHLO
+        Thu, 10 Feb 2022 04:42:55 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:33090 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238908AbiBJJkb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Feb 2022 04:40:31 -0500
+        with ESMTP id S237813AbiBJJmy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Feb 2022 04:42:54 -0500
 Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.126.134])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4A95410C3;
-        Thu, 10 Feb 2022 01:40:32 -0800 (PST)
-Received: from mail-wr1-f42.google.com ([209.85.221.42]) by
- mrelayeu.kundenserver.de (mreue009 [213.165.67.97]) with ESMTPSA (Nemesis) id
- 1MxUfh-1oFX5L24aX-00xt21; Thu, 10 Feb 2022 10:40:30 +0100
-Received: by mail-wr1-f42.google.com with SMTP id d27so8451187wrc.6;
-        Thu, 10 Feb 2022 01:40:30 -0800 (PST)
-X-Gm-Message-State: AOAM5330XjSYe/7nqSXVruoINMfqRxMc40GNJ5JbNMna/RyGeHX7m0Eb
-        a5XYNc9XwQmLynFn4HsNXWHo4e+bNDiGAskl9Lo=
-X-Google-Smtp-Source: ABdhPJxOhGkktvjEs/wpvFPsXEosQr6yPQWLtEscjbMpLHy9iLtcw4CraVI5M4aBdc/Azk2mkol1DndLfivhVLqUl98=
-X-Received: by 2002:adf:f6ce:: with SMTP id y14mr1747654wrp.219.1644486030095;
- Thu, 10 Feb 2022 01:40:30 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7F5ACB8;
+        Thu, 10 Feb 2022 01:42:54 -0800 (PST)
+Received: from mail-wr1-f52.google.com ([209.85.221.52]) by
+ mrelayeu.kundenserver.de (mreue010 [213.165.67.97]) with ESMTPSA (Nemesis) id
+ 1N6KpF-1oON1B2ubp-016fKk; Thu, 10 Feb 2022 10:42:52 +0100
+Received: by mail-wr1-f52.google.com with SMTP id o24so5799634wro.3;
+        Thu, 10 Feb 2022 01:42:52 -0800 (PST)
+X-Gm-Message-State: AOAM532/HSira21YaoUeLlFKj2aA0oN2Hb0hoYliLyGBgf1VU52Bbe4i
+        uVjVhrQIsRQaSlNvXa6E8EZjB3/q/1e8a8DUnK4=
+X-Google-Smtp-Source: ABdhPJzhHs9stg1CGjBG4tYNZmGgHgYXJf8g0kYd6wB04Op66IuXzXvecmd40GTVBsPrfi8m3IvRyQ/IC3YdpZH/xvo=
+X-Received: by 2002:adf:e5ce:: with SMTP id a14mr696840wrn.317.1644486172328;
+ Thu, 10 Feb 2022 01:42:52 -0800 (PST)
 MIME-Version: 1.0
-References: <20220210021129.3386083-1-masahiroy@kernel.org> <20220210021129.3386083-7-masahiroy@kernel.org>
-In-Reply-To: <20220210021129.3386083-7-masahiroy@kernel.org>
+References: <20220210021129.3386083-1-masahiroy@kernel.org> <20220210021129.3386083-5-masahiroy@kernel.org>
+In-Reply-To: <20220210021129.3386083-5-masahiroy@kernel.org>
 From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Thu, 10 Feb 2022 10:40:14 +0100
-X-Gmail-Original-Message-ID: <CAK8P3a1t7QOB2tyb0tkLWXfDw0WHD_NZP+Eabz8KR2xfw9aTQA@mail.gmail.com>
-Message-ID: <CAK8P3a1t7QOB2tyb0tkLWXfDw0WHD_NZP+Eabz8KR2xfw9aTQA@mail.gmail.com>
-Subject: Re: [PATCH 6/6] reiserfs_xattr.h: add linux/reiserfs_xattr.h to UAPI
- compile-test coverage
+Date:   Thu, 10 Feb 2022 10:42:36 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a20A4bMNYiLCgaPZbnAG-gY=c5Qh_AqbupF3kLYUz5yZg@mail.gmail.com>
+Message-ID: <CAK8P3a20A4bMNYiLCgaPZbnAG-gY=c5Qh_AqbupF3kLYUz5yZg@mail.gmail.com>
+Subject: Re: [PATCH 4/6] fsmap.h: add linux/fsmap.h to UAPI compile-test coverage
 To:     Masahiro Yamada <masahiroy@kernel.org>
 Cc:     Andrew Morton <akpm@linux-foundation.org>,
         linux-arch <linux-arch@vger.kernel.org>,
@@ -41,37 +40,37 @@ Cc:     Andrew Morton <akpm@linux-foundation.org>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8BIT
-X-Provags-ID: V03:K1:OYK0cEPrf/9LUfrrC+eIDgFS8fFIiT8xBLg58iuxoDzPm3Svapp
- yBDoQJ98LBqlrQ/ex5Ajh23Y21A27BG84PhZu2+D0SQ71pLM7Po4wJHTDDMVXW+acrG57NZ
- 2Q00QERs1qaM5KaOS7BxDw2R02dOWJKQXSmPHqtkLyyoN6/5zk1jQxUTWbReOeSBB7+XlpE
- sJ72U1rqjyWLJSQKyOJSw==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:3A4B7uUcwjI=:eC0VIB4gIHZLZjvFM1zj7g
- GxNuyG1S7vWowke3ZYb4l7ADreoM+2ilT6NHYsoerGTE7TahaNB4K4K6ItiW8eZa+m4pHwsqJ
- py9bipnEQywqvYdNBn65DrokDVIIEGN/wQ96qPVKO2B25OBTehN8X0Eb4wwVnRZANplrOc7JR
- P9HRg+1R9M9b5JrDWCMAhr9FCMW2uzzO2lcRlrKL2VhrynjrBIG9gC4HEnh03Fafg35t9wPqW
- N8HyfPXbr1u3vdVAgRiKLzY3kuGgjWHMns3KYf6S7nBk8GwYMT7B4xnpHwtjJoK2se9jnZ7B5
- c+ienIJRwcgWEE9Nk1HBLuPmXkcO0c+zgXga/N3FbqANUvfkJlcnapl0kj6spBOQb+8pBZkVn
- 8wqZ47blq8NpChCZHJrHNbBTkgi7W4MLoDhUiKK3QgfwnHjO93AfhMSqyIK1mvf9Y6+WNG6/K
- 021pWUE6Kf0fG0WFnPm5NEIh+XEJrJmzYHHwGE9wq5uvknTiU+iL7Z4ghXzODXW+qcGwJ/Vho
- qLlBiMrllJN2TrzFp0Ky5rDA7X4ThT0HB3hWI8N5n+j6uCtB6xhcYbwIlSBDSf69a+bffI6Bk
- EbzMqkZmPmss3KlVLiiGRbCDhQuh5lc+O+Sb0wDaZeKCpziupVXl+GSBc9HSreMy+4I85dlhW
- A75lIOQj4b/w7QJ2St7Xam+BgT5dEFvDk4QMCCbZ+TzSxjmI0hjp+0EKiodjdPqz9ZleJlt20
- L8jmrrkhNnXZSWwapnqDvk1OSS05d2slN4VhABPEos7vQfTWMgachj5xaFh2OJEHCSvDhavGd
- r3wiEPG2oOZQ/Hc/mI2xcArx21zXGRnjARuJKEmzuTv7ugavqs=
+X-Provags-ID: V03:K1:SKFBc6gh2BQcpDMOOfR5sBuuKK6JA4YwdeXfHeOqsJTo1BqQp+Q
+ vDb6a6EHi/CGoN105kxDSq1BrVdWYbnY1gAfg7t36fDIfsWRMjj6tyHSdDOgusICDXmdJce
+ qwMMScjjNCGAL8e4ulAdqfqaO1yVRlNEyBKU3wbMjsna9fZgyMsAzZ7gMi5FfxgLxjOgY/T
+ oiM4cTkFq3ozKZ6SQ5GXQ==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:FvvoPiJvMLg=:x70AYA8UT3KJCdbwfBIuh8
+ zXRs2tv4mOrNoDvp83YN3oPxcGqQzP6Q4wAQmLL2kXCSVzwe+OL1L8btAOwMw/3/wgGd1Rk0J
+ HdOPI0RCW+TKSb6XJ097CenjHUPQY2fnQMd56+HWcEQotyO6XhJia8wPJ3LtFPM42unIZwCLJ
+ WRzak2zrqysMZ8brYVpoTjUAkgUNEOnw0U47XIJ91Fersdg89/v888V0HWdr6BgafuDf/KgkN
+ pw6rw8uMVfbYyIQZHYP6QcOv1JS4faXX4eGZuW8f/fk3BWsFpJZsYUJGUpyx0Hjdg/QrQ5ZcC
+ KfXbLzytaI3HMDbNXwwKpn69O74/Z7xiG/wX5U4nN5Def3IVR9I80jpVeQkKhpAGAtkZYn7Dm
+ hLR2W+gblrve1hW6p7WGngOWEeV72fqIjjaU32D2XygdaOs/F7yyfy0nfkHB5SwmtvwnhJtf/
+ WJqFmnM+a5Cp7nYewiX6ccP38EKK/8iaFLG3vkVAiIX82o1r/SUzl/B0sS14qKDF/ult0sB6Q
+ 0UhML/t8YBxDwKm6eWwOYSbD+T/jw6cPZwX0zJQ/ib7wf6oEYzqueCzsPDgcguFTxdKP7koj2
+ Tw+6OVQ/lSr6+7jyzYJtcs91je5skSnWbaeEH+IlSyyLwCiplFNvQOXLlZj31OyWYBD+t2ySV
+ XoymN4FNGF4ZUYzUYrPQJP6Y/GptZjylnsp+2u++1lYTdHg1zZ+6tJAwsw3i+XhkyVeVWoUsm
+ qmPeDfikSexYe6wLRDuK3gPp8YB6R9dYHnyqZEPM0SXTXegVS1Nk/K1lKLMCy+R7OL4c4v7sd
+ aYwrWw8kLfO9gohTkyqL5CNiIPLd0Yu5j5xLNoqPd3i5x4wClE=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 On Thu, Feb 10, 2022 at 3:11 AM Masahiro Yamada <masahiroy@kernel.org> wrote:
 >
-> linux/reiserfs_xattr.h is currently excluded from the UAPI compile-test
-> because of the error like follows:
+> linux/fsmap.h is currently excluded from the UAPI compile-test because
+> of the error like follows:
 >
->     HDRTEST usr/include/linux/reiserfs_xattr.h
+>     HDRTEST usr/include/linux/fsmap.h
 >   In file included from <command-line>:
->   ./usr/include/linux/reiserfs_xattr.h:22:9: error: unknown type name ‘size_t’
->      22 |         size_t length;
->         |         ^~~~~~
+>   ./usr/include/linux/fsmap.h:72:19: error: unknown type name ‘size_t’
+>      72 | static __inline__ size_t
+>         |                   ^~~~~~
 >
 > The error can be fixed by replacing size_t with __kernel_size_t.
 >
