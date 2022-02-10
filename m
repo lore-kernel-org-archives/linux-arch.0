@@ -2,37 +2,38 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 552FCC433EF
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 09:42:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1AECAC433F5
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 09:43:14 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238089AbiBJJmz convert rfc822-to-8bit (ORCPT
+        id S238921AbiBJJnK convert rfc822-to-8bit (ORCPT
         <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 10 Feb 2022 04:42:55 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:33090 "EHLO
+        Thu, 10 Feb 2022 04:43:10 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:33210 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237813AbiBJJmy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Feb 2022 04:42:54 -0500
-Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.126.134])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7F5ACB8;
-        Thu, 10 Feb 2022 01:42:54 -0800 (PST)
-Received: from mail-wr1-f52.google.com ([209.85.221.52]) by
+        with ESMTP id S237813AbiBJJnJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Feb 2022 04:43:09 -0500
+Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.126.135])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 50E84198
+        for <linux-arch@vger.kernel.org>; Thu, 10 Feb 2022 01:43:10 -0800 (PST)
+Received: from mail-wr1-f45.google.com ([209.85.221.45]) by
  mrelayeu.kundenserver.de (mreue010 [213.165.67.97]) with ESMTPSA (Nemesis) id
- 1N6KpF-1oON1B2ubp-016fKk; Thu, 10 Feb 2022 10:42:52 +0100
-Received: by mail-wr1-f52.google.com with SMTP id o24so5799634wro.3;
-        Thu, 10 Feb 2022 01:42:52 -0800 (PST)
-X-Gm-Message-State: AOAM532/HSira21YaoUeLlFKj2aA0oN2Hb0hoYliLyGBgf1VU52Bbe4i
-        uVjVhrQIsRQaSlNvXa6E8EZjB3/q/1e8a8DUnK4=
-X-Google-Smtp-Source: ABdhPJzhHs9stg1CGjBG4tYNZmGgHgYXJf8g0kYd6wB04Op66IuXzXvecmd40GTVBsPrfi8m3IvRyQ/IC3YdpZH/xvo=
-X-Received: by 2002:adf:e5ce:: with SMTP id a14mr696840wrn.317.1644486172328;
- Thu, 10 Feb 2022 01:42:52 -0800 (PST)
+ 1MmlCY-1nzR3i0nG2-00jtxd; Thu, 10 Feb 2022 10:38:04 +0100
+Received: by mail-wr1-f45.google.com with SMTP id o24so5777689wro.3;
+        Thu, 10 Feb 2022 01:38:04 -0800 (PST)
+X-Gm-Message-State: AOAM533kp+AEBUaVNUg6ZmbOJEWztxtLWnPklf0Y6tAEDEjjH6kSeSey
+        pB1W+XW88RgTxZ2XM1D4vy9w4HnyV6mqNffl8OY=
+X-Google-Smtp-Source: ABdhPJxyuPFqVuAPp0m7wxkmSqedZ5gdhAYe8N0BP0zMGS9YdwnNAcEToFaurnCdHolQDzxAj8ZmIRKq3k4br+ZsfeY=
+X-Received: by 2002:adf:e5ce:: with SMTP id a14mr681191wrn.317.1644485883806;
+ Thu, 10 Feb 2022 01:38:03 -0800 (PST)
 MIME-Version: 1.0
-References: <20220210021129.3386083-1-masahiroy@kernel.org> <20220210021129.3386083-5-masahiroy@kernel.org>
-In-Reply-To: <20220210021129.3386083-5-masahiroy@kernel.org>
+References: <20220210021129.3386083-1-masahiroy@kernel.org> <20220210021129.3386083-4-masahiroy@kernel.org>
+In-Reply-To: <20220210021129.3386083-4-masahiroy@kernel.org>
 From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Thu, 10 Feb 2022 10:42:36 +0100
-X-Gmail-Original-Message-ID: <CAK8P3a20A4bMNYiLCgaPZbnAG-gY=c5Qh_AqbupF3kLYUz5yZg@mail.gmail.com>
-Message-ID: <CAK8P3a20A4bMNYiLCgaPZbnAG-gY=c5Qh_AqbupF3kLYUz5yZg@mail.gmail.com>
-Subject: Re: [PATCH 4/6] fsmap.h: add linux/fsmap.h to UAPI compile-test coverage
+Date:   Thu, 10 Feb 2022 10:37:47 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a07kN8H-8Zx2vX8b0rHfAjaeWyg4-c1aNEVhTF=miOEpA@mail.gmail.com>
+Message-ID: <CAK8P3a07kN8H-8Zx2vX8b0rHfAjaeWyg4-c1aNEVhTF=miOEpA@mail.gmail.com>
+Subject: Re: [PATCH 3/6] android/binder.h: add linux/android/binder(fs).h to
+ UAPI compile-test coverage
 To:     Masahiro Yamada <masahiroy@kernel.org>
 Cc:     Andrew Morton <akpm@linux-foundation.org>,
         linux-arch <linux-arch@vger.kernel.org>,
@@ -40,41 +41,42 @@ Cc:     Andrew Morton <akpm@linux-foundation.org>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8BIT
-X-Provags-ID: V03:K1:SKFBc6gh2BQcpDMOOfR5sBuuKK6JA4YwdeXfHeOqsJTo1BqQp+Q
- vDb6a6EHi/CGoN105kxDSq1BrVdWYbnY1gAfg7t36fDIfsWRMjj6tyHSdDOgusICDXmdJce
- qwMMScjjNCGAL8e4ulAdqfqaO1yVRlNEyBKU3wbMjsna9fZgyMsAzZ7gMi5FfxgLxjOgY/T
- oiM4cTkFq3ozKZ6SQ5GXQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:FvvoPiJvMLg=:x70AYA8UT3KJCdbwfBIuh8
- zXRs2tv4mOrNoDvp83YN3oPxcGqQzP6Q4wAQmLL2kXCSVzwe+OL1L8btAOwMw/3/wgGd1Rk0J
- HdOPI0RCW+TKSb6XJ097CenjHUPQY2fnQMd56+HWcEQotyO6XhJia8wPJ3LtFPM42unIZwCLJ
- WRzak2zrqysMZ8brYVpoTjUAkgUNEOnw0U47XIJ91Fersdg89/v888V0HWdr6BgafuDf/KgkN
- pw6rw8uMVfbYyIQZHYP6QcOv1JS4faXX4eGZuW8f/fk3BWsFpJZsYUJGUpyx0Hjdg/QrQ5ZcC
- KfXbLzytaI3HMDbNXwwKpn69O74/Z7xiG/wX5U4nN5Def3IVR9I80jpVeQkKhpAGAtkZYn7Dm
- hLR2W+gblrve1hW6p7WGngOWEeV72fqIjjaU32D2XygdaOs/F7yyfy0nfkHB5SwmtvwnhJtf/
- WJqFmnM+a5Cp7nYewiX6ccP38EKK/8iaFLG3vkVAiIX82o1r/SUzl/B0sS14qKDF/ult0sB6Q
- 0UhML/t8YBxDwKm6eWwOYSbD+T/jw6cPZwX0zJQ/ib7wf6oEYzqueCzsPDgcguFTxdKP7koj2
- Tw+6OVQ/lSr6+7jyzYJtcs91je5skSnWbaeEH+IlSyyLwCiplFNvQOXLlZj31OyWYBD+t2ySV
- XoymN4FNGF4ZUYzUYrPQJP6Y/GptZjylnsp+2u++1lYTdHg1zZ+6tJAwsw3i+XhkyVeVWoUsm
- qmPeDfikSexYe6wLRDuK3gPp8YB6R9dYHnyqZEPM0SXTXegVS1Nk/K1lKLMCy+R7OL4c4v7sd
- aYwrWw8kLfO9gohTkyqL5CNiIPLd0Yu5j5xLNoqPd3i5x4wClE=
+X-Provags-ID: V03:K1:c/BbFZ5D1fK5UZMctKsor9U6uDxXVPmqFomyNPi5TWKLgvq2Dwi
+ 0dsQp76fHAMUch5kg1AbIlwHf3dPcS2tJMhAKdJn6zL6/T9uxE+BA8wgJz2g3RYVBKHb/30
+ GnOmU2B4U9UsoJnhTnDFOTekt9bCbyQqYL6Xp90dyNOLDcuxAd1GiNHW05eqn6RPSzUMJLD
+ FnWT8ipfqwV5kcRaGyL0w==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:k9FZneEZ10I=:gfFpsIbz4URS+tHOasrHsR
+ wdBu4fzHHwZhGZgXLo+QC2iR+B2YXBlVG0RPZsVqXa2VvQ4CgY3YhZiHGukocmyknjl/p+rir
+ pdI+wTfj+0D19mprFUavXwBQXLEcJvEgI0KaGdk1K/d3LNMhuZgkJw5nWX6Yjvs2c+MEBXEd8
+ IkVVOokzyhT+wjOvHWuwEYeizR/ei5twQJcBr0lqgFeBVF5FPM0cFBTAVmqtE6WYoFmUebBPq
+ BygLMR0UKBdQqNeYW00extBdV1GkAXpTy1fm0Y9sFdvkr7nmnYP5ssnSrR1NpcNojOhjT7m83
+ wcjlC1tzfM8xtiCjK4Mgu+zP58MPEva9fGiOcC3b57LUpqV6Q4qgFqLL8kSjh8yLuabPbHSFB
+ gV8qzd2RA6YfnQBbxgLs8tDS3G0T9FXu+TQdFgttBT6Up/aqD8lICxGTA1ev1DpSqwLnzO+bT
+ IUZ6wXGt+HYwiahHqUybReBKlHjHmKmc4KmBmLPtaArGLrQz1S6NvqwMkTSC3zed4VO/e8Ua5
+ McckcsRog3F7NYxK/aqgOPGsFbgDH9SeLfHGaWbS3Wiy+VEKK4QzdQtY0STbg9c82ZQMKQXFf
+ AxahakWpAZqm+/pphzd+ea8McfWn9Hpr+0ZXsTT0LfgxpRMUgHHq+lmYBcxCmZTHdC1tWH9OQ
+ 5zCNfvfF9qp43rDp8Ogc+OPa4w1JTGwesqM/koIaB3EFGlK00GEJ2+/JJgDLoxfIWczo=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 On Thu, Feb 10, 2022 at 3:11 AM Masahiro Yamada <masahiroy@kernel.org> wrote:
 >
-> linux/fsmap.h is currently excluded from the UAPI compile-test because
-> of the error like follows:
+> linux/android/binder.h and linux/android/binderfs.h are currently
+> excluded from the UAPI compile-test because of the errors like follows:
 >
->     HDRTEST usr/include/linux/fsmap.h
+>     HDRTEST usr/include/linux/android/binder.h
 >   In file included from <command-line>:
->   ./usr/include/linux/fsmap.h:72:19: error: unknown type name ‘size_t’
->      72 | static __inline__ size_t
->         |                   ^~~~~~
+>   ./usr/include/linux/android/binder.h:291:9: error: unknown type name ‘pid_t’
+>     291 |         pid_t           sender_pid;
+>         |         ^~~~~
+>   ./usr/include/linux/android/binder.h:292:9: error: unknown type name ‘uid_t’
+>     292 |         uid_t           sender_euid;
+>         |         ^~~~~
 >
-> The error can be fixed by replacing size_t with __kernel_size_t.
+> The errors can be fixed by replacing {pid,uid}_t with __kernel_{pid,uid}_t.
 >
-> Then, remove the no-header-test entry from user/include/Makefile.
+> Then, remove the no-header-test entries from user/include/Makefile.
 >
 > Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 
