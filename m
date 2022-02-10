@@ -2,183 +2,92 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E725AC4332F
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 02:54:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 44609C433F5
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 09:39:51 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229514AbiBJCyM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Feb 2022 21:54:12 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:57582 "EHLO
+        id S238798AbiBJJjs convert rfc822-to-8bit (ORCPT
+        <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 10 Feb 2022 04:39:48 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:58510 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230136AbiBJCyK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 21:54:10 -0500
-Received: from mail-pj1-x1032.google.com (mail-pj1-x1032.google.com [IPv6:2607:f8b0:4864:20::1032])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9CBB12409C;
-        Wed,  9 Feb 2022 18:54:12 -0800 (PST)
-Received: by mail-pj1-x1032.google.com with SMTP id c5-20020a17090a1d0500b001b904a7046dso5581711pjd.1;
-        Wed, 09 Feb 2022 18:54:12 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=LYtzFa4ASuB/belwk4SpigACGs97QFCNc+YA+b4+Pu8=;
-        b=ooyOBN7rERkODAn/O7i91EVsu/B8py9/9Ax69BwNB/kc8twYaVRYQbpcJLPfemS8hb
-         HkZrVDMhaV95LcunHTo0tXcqRJZORHlOHEddL00vfE0PK8esTG7SYwyfiB500tCWC5ri
-         l6pU4DRAUF2bgKokxVocV+eyMRJSuUiaChrZncXI+PVNYsSVUld+MssdbvKffnPGzFCP
-         /mFWpEPHIlrNEUqjbs//hj1a3I/579YtM3Jds8TxeUAfuDxW/OEsiijqam43ukxKjsH2
-         DVh6iBEBwC5CIYV0XcyMGIqDOrpfE98dazgVv4DXpTrUcv9pfj8LdcCQ7wiJQIrh4Oh5
-         3Jlw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=LYtzFa4ASuB/belwk4SpigACGs97QFCNc+YA+b4+Pu8=;
-        b=uALWmATrZX74RaBe98UHtNXaO4Hi28sKD9ehr2ue7uiuMjaZ3NQA18CDPRmfozkRPB
-         q+0wadNFhmTb3/TM7B0xzKK9+dpDvM1dYrpNeU2tg4jRqDGiCPOmOFedjqwQRR5IjxWv
-         LOw2NYLFOcnfO8oLhRyyUP75QfWZG/ghB/uQ6bJIQgJc6GAQeLS+qUAudQmEJnKDFZTE
-         LiM+RRRh+fGVtXxtkUk7K9tBqVG3FNPpzqZdsj80X0V4nWLFubaf0hNMyU+XT6thyJGM
-         MDWqlXurgp/6Sve2NGtls/J+sDubocjwNa5eK2UF0Xg1pwrgeSbWcgETWOF15RCyvlOx
-         1obA==
-X-Gm-Message-State: AOAM530nZC8cGP8fB+AEg4rfvv3nPQsqbLNJGOd5A5yCHrW+XLpquTcY
-        F0VgsjdM+eMcxlvorzJYHPUwl4a3DyCy0WezQmM=
-X-Google-Smtp-Source: ABdhPJzYBhEkkbttuvOrcTM53VUGSP9oL8rWSIPgIMmpLUpLM1VPVkR+SLhvmLHyyTITlBZxB9qfd23OzJjqo7RcYHM=
-X-Received: by 2002:a17:903:2351:: with SMTP id c17mr367198plh.4.1644461651987;
- Wed, 09 Feb 2022 18:54:11 -0800 (PST)
+        with ESMTP id S238786AbiBJJjs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Feb 2022 04:39:48 -0500
+X-Greylist: delayed 102 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Thu, 10 Feb 2022 01:39:49 PST
+Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.126.187])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E88AA220;
+        Thu, 10 Feb 2022 01:39:48 -0800 (PST)
+Received: from mail-wm1-f45.google.com ([209.85.128.45]) by
+ mrelayeu.kundenserver.de (mreue012 [213.165.67.97]) with ESMTPSA (Nemesis) id
+ 1M3Eqr-1nJSJC0kQ9-003h6D; Thu, 10 Feb 2022 10:39:47 +0100
+Received: by mail-wm1-f45.google.com with SMTP id i19so1652570wmq.5;
+        Thu, 10 Feb 2022 01:39:47 -0800 (PST)
+X-Gm-Message-State: AOAM531cb0eqtPrq/hCj9B/hPBhQNdci/UadveB7HA3H/hnCgUdoURyD
+        GycahrxyX7E3dkwlbQAmsYFFmtQe7P7Nov0WHIk=
+X-Google-Smtp-Source: ABdhPJzUBE9AmHKtA86Xv3LRiM760+wqDeJhZfBxDNdjYz5WjMMMxnuXS2W7stLYFq1NMZvK6WNceMm+VXnOfCsZ8qY=
+X-Received: by 2002:a05:600c:1f06:: with SMTP id bd6mr1419523wmb.98.1644485986746;
+ Thu, 10 Feb 2022 01:39:46 -0800 (PST)
 MIME-Version: 1.0
-References: <20220130211838.8382-1-rick.p.edgecombe@intel.com>
- <YgAWVSGQg8FPCeba@kernel.org> <YgDIIpCm3UITk896@lisas.de> <8f96c2a6-9c03-f97a-df52-73ffc1d87957@intel.com>
- <YgI1A0CtfmT7GMIp@kernel.org> <YgI37n+3JfLSNQCQ@grain> <357664de-b089-4617-99d1-de5098953c80@www.fastmail.com>
- <YgKiKEcsNt7mpMHN@grain> <8e36f20723ca175db49ed3cc73e42e8aa28d2615.camel@intel.com>
- <9d664c91-2116-42cc-ef8d-e6d236de43d0@kernel.org>
-In-Reply-To: <9d664c91-2116-42cc-ef8d-e6d236de43d0@kernel.org>
-From:   "H.J. Lu" <hjl.tools@gmail.com>
-Date:   Wed, 9 Feb 2022 18:53:35 -0800
-Message-ID: <CAMe9rOo+RbmK5GyFKe2q3GGFP4Oi3o16x9xVpD7HpoEn=v0mfQ@mail.gmail.com>
-Subject: Re: [PATCH 00/35] Shadow stacks for userspace
-To:     Andy Lutomirski <luto@kernel.org>,
-        Felix Willgerodt <felix.willgerodt@intel.com>
-Cc:     "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>,
-        "gorcunov@gmail.com" <gorcunov@gmail.com>,
-        "bsingharora@gmail.com" <bsingharora@gmail.com>,
-        "hpa@zytor.com" <hpa@zytor.com>,
-        "Syromiatnikov, Eugene" <esyr@redhat.com>,
-        "peterz@infradead.org" <peterz@infradead.org>,
-        "rdunlap@infradead.org" <rdunlap@infradead.org>,
-        "keescook@chromium.org" <keescook@chromium.org>,
-        "0x7f454c46@gmail.com" <0x7f454c46@gmail.com>,
-        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
-        "kirill.shutemov@linux.intel.com" <kirill.shutemov@linux.intel.com>,
-        "Eranian, Stephane" <eranian@google.com>,
-        "linux-mm@kvack.org" <linux-mm@kvack.org>,
-        "adrian@lisas.de" <adrian@lisas.de>,
-        "fweimer@redhat.com" <fweimer@redhat.com>,
-        "nadav.amit@gmail.com" <nadav.amit@gmail.com>,
-        "jannh@google.com" <jannh@google.com>,
-        "avagin@gmail.com" <avagin@gmail.com>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "kcc@google.com" <kcc@google.com>, "bp@alien8.de" <bp@alien8.de>,
-        "oleg@redhat.com" <oleg@redhat.com>, "pavel@ucw.cz" <pavel@ucw.cz>,
-        "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
-        "arnd@arndb.de" <arnd@arndb.de>,
-        "Moreira, Joao" <joao.moreira@intel.com>,
-        "tglx@linutronix.de" <tglx@linutronix.de>,
-        "mike.kravetz@oracle.com" <mike.kravetz@oracle.com>,
-        "x86@kernel.org" <x86@kernel.org>,
-        "Yang, Weijiang" <weijiang.yang@intel.com>,
-        "rppt@kernel.org" <rppt@kernel.org>,
-        "Dave.Martin@arm.com" <Dave.Martin@arm.com>,
-        "john.allen@amd.com" <john.allen@amd.com>,
-        "mingo@redhat.com" <mingo@redhat.com>,
-        "Hansen, Dave" <dave.hansen@intel.com>,
-        "corbet@lwn.net" <corbet@lwn.net>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
-        "Shankar, Ravi V" <ravi.v.shankar@intel.com>
+References: <20220210021129.3386083-1-masahiroy@kernel.org> <20220210021129.3386083-3-masahiroy@kernel.org>
+In-Reply-To: <20220210021129.3386083-3-masahiroy@kernel.org>
+From:   Arnd Bergmann <arnd@arndb.de>
+Date:   Thu, 10 Feb 2022 10:39:31 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a1qbAXeKuuswuCSmMqC8k4wC-uQZqjiSd8WsFuqM906MA@mail.gmail.com>
+Message-ID: <CAK8P3a1qbAXeKuuswuCSmMqC8k4wC-uQZqjiSd8WsFuqM906MA@mail.gmail.com>
+Subject: Re: [PATCH 2/6] shmbuf.h: add asm/shmbuf.h to UAPI compile-test coverage
+To:     Masahiro Yamada <masahiroy@kernel.org>
+Cc:     Andrew Morton <akpm@linux-foundation.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+X-Provags-ID: V03:K1:jyMslo3fNya4WydPD3YHn1XYJyEHge1unk7I3p/UHh5+V+hBae5
+ wgwCe5jLJ7oH/GBSFMm+AzIAUuyxeWRUzleqR1Kg4VjxdY+wUtO2cBkAWo80I7QcJR0QdGC
+ SSd23Vwu7H9HxnW/jJg5UFRzKhoTzz9XFoJLe1u8gcCE3xFYjAY9CpYgp88mhorTOTzoOgt
+ C9plEZhksApmrn2eQq4nw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:qkRBoUw9+k8=:lXxLoYCwEmC9akTlT8jJQI
+ 6kbqoGW9UuaUcSJ1ZBgsrj8IPjccg4OIYivU0eoXpC7uAzD+JtBooH1dxwvvUuaof27+GU8Y+
+ 6LgmrIXEVHL7B7rmhM+AHKQVhFtaor6+NLv9FFVKOBJnuj8DqfvZQnv9XXR2SSlZegoqK7YrP
+ /gHmqkNruerBOpcrU0GWwvBfqMjydhwiT7ImPkmcU8E8A9zSPJnuZXOE3T4KDUR4z7M/T8Etj
+ nU4Nhn5kPWo4Ea87WOVjRnG7KQvevb8xS9Uy8YgHJrcmGJE9MSEkp4GPGCH1r48+cO4CPSCB2
+ OVJrNoaBdZBjlX/r4IqO2WO9cZgiHLLJV7wNcOukIaxTISzF29vTvq6PVZCqgBurxWbk2w1MH
+ 0HtDCM5j/INvXcnlL663pl5mTD83RZNSZlMBk/xj7A6sUqRbY4EibnVCBXZAI/0Mr1hc3PlE/
+ m56xyLVy36Gz42Kf2qZY9wyXp7EUw/HheO2JvckLkm1BTT9QhF85BUfezhmGlqHFXU3U/jcCj
+ CMSzU7vBA2pRSpsA7XRMluWEpVU8ZWU6X2l3koizq7OZ5wSf2kcRoJThd9tuILN8OPhPv05GY
+ V8BIe5KgdDpz100hFhtOnejFtUYaYj19GyHrzBddHTvmajCQeqH8GyjNyupFfMZg3+x7RrU0n
+ TR9qFV6tQXktJLcrSrswbQTU1t+gFLqmdN0iiwXSx8B2gSyErTiHpII7BKvm/Biif511qU6z1
+ rR0OBWlvI4GY55v2t5sCYm0FOtOXqV5j3GVr++TuPZkteqBeKLOGSdkE0LUv8E0fJT5hcbd6V
+ imjiOhtcrki+7JriX/1dlX488JJ2humobMlx0Ww+tCMCgDdMjU=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Feb 9, 2022 at 6:37 PM Andy Lutomirski <luto@kernel.org> wrote:
+On Thu, Feb 10, 2022 at 3:11 AM Masahiro Yamada <masahiroy@kernel.org> wrote:
 >
-> On 2/8/22 18:18, Edgecombe, Rick P wrote:
-> > On Tue, 2022-02-08 at 20:02 +0300, Cyrill Gorcunov wrote:
-> >> On Tue, Feb 08, 2022 at 08:21:20AM -0800, Andy Lutomirski wrote:
-> >>>>> But such a knob will immediately reduce the security value of
-> >>>>> the entire
-> >>>>> thing, and I don't have good ideas how to deal with it :(
-> >>>>
-> >>>> Probably a kind of latch in the task_struct which would trigger
-> >>>> off once
-> >>>> returt to a different address happened, thus we would be able to
-> >>>> jump inside
-> >>>> paratite code. Of course such trigger should be available under
-> >>>> proper
-> >>>> capability only.
-> >>>
-> >>> I'm not fully in touch with how parasite, etc works.  Are we
-> >>> talking about save or restore?
-> >>
-> >> We use parasite code in question during checkpoint phase as far as I
-> >> remember.
-> >> push addr/lret trick is used to run "injected" code (code injection
-> >> itself is
-> >> done via ptrace) in compat mode at least. Dima, Andrei, I didn't look
-> >> into this code
-> >> for years already, do we still need to support compat mode at all?
-> >>
-> >>> If it's restore, what exactly does CRIU need to do?  Is it just
-> >>> that CRIU needs to return
-> >>> out from its resume code into the to-be-resumed program without
-> >>> tripping CET?  Would it
-> >>> be acceptable for CRIU to require that at least one shstk slot be
-> >>> free at save time?
-> >>> Or do we need a mechanism to atomically switch to a completely full
-> >>> shadow stack at resume?
-> >>>
-> >>> Off the top of my head, a sigreturn (or sigreturn-like mechanism)
-> >>> that is intended for
-> >>> use for altshadowstack could safely verify a token on the
-> >>> altshdowstack, possibly
-> >>> compare to something in ucontext (or not -- this isn't clearly
-> >>> necessary) and switch
-> >>> back to the previous stack.  CRIU could use that too.  Obviously
-> >>> CRIU will need a way
-> >>> to populate the relevant stacks, but WRUSS can be used for that,
-> >>> and I think this
-> >>> is a fundamental requirement for CRIU -- CRIU restore absolutely
-> >>> needs a way to write
-> >>> the saved shadow stack data into the shadow stack.
-> >
-> > Still wrapping my head around the CRIU save and restore steps, but
-> > another general approach might be to give ptrace the ability to
-> > temporarily pause/resume/set CET enablement and SSP for a stopped
-> > thread. Then injected code doesn't need to jump through any hoops or
-> > possibly run into road blocks. I'm not sure how much this opens things
-> > up if the thread has to be stopped...
+> asm/shmbuf.h is currently excluded from the UAPI compile-test because of
+> the errors like follows:
 >
-> Hmm, that's maybe not insane.
+>     HDRTEST usr/include/asm/shmbuf.h
+>   In file included from ./usr/include/asm/shmbuf.h:6,
+>                    from <command-line>:
+>   ./usr/include/asm-generic/shmbuf.h:26:33: error: field ‘shm_perm’ has incomplete type
+>      26 |         struct ipc64_perm       shm_perm;       /* operation perms */
+>         |                                 ^~~~~~~~
+>   ./usr/include/asm-generic/shmbuf.h:27:9: error: unknown type name ‘size_t’
+>      27 |         size_t                  shm_segsz;      /* size of segment (bytes) */
+>         |         ^~~~~~
+>   ./usr/include/asm-generic/shmbuf.h:40:9: error: unknown type name ‘__kernel_pid_t’
+>      40 |         __kernel_pid_t          shm_cpid;       /* pid of creator */
+>         |         ^~~~~~~~~~~~~~
+>   ./usr/include/asm-generic/shmbuf.h:41:9: error: unknown type name ‘__kernel_pid_t’
+>      41 |         __kernel_pid_t          shm_lpid;       /* pid of last operator */
+>         |         ^~~~~~~~~~~~~~
 >
-> An alternative would be to add a bona fide ptrace call-a-function
-> mechanism.  I can think of two potentially usable variants:
+> The errors can be fixed by replacing size_t with __kernel_size_t and by
+> including proper headers.
 >
-> 1. Straight call.  PTRACE_CALL_FUNCTION(addr) just emulates CALL addr,
-> shadow stack push and all.
+> Then, remove the no-header-test entry from user/include/Makefile.
 >
-> 2. Signal-style.  PTRACE_CALL_FUNCTION_SIGFRAME injects an actual signal
-> frame just like a real signal is being delivered with the specified
-> handler.  There could be a variant to opt-in to also using a specified
-> altstack and altshadowstack.
->
-> 2 would be more expensive but would avoid the need for much in the way
-> of asm magic.  The injected code could be plain C (or Rust or Zig or
-> whatever).
->
-> All of this only really handles save, not restore.  I don't understand
-> restore enough to fully understand the issue.
+> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 
-FWIW, CET enabled GDB can call a function in a CET enabled process.
-Adding Felix who may know more about it.
-
-
--- 
-H.J.
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
