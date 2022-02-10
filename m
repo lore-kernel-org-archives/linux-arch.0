@@ -2,84 +2,88 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D58EFC433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 09:46:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BBA99C433EF
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 10:30:52 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238968AbiBJJqe convert rfc822-to-8bit (ORCPT
-        <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 10 Feb 2022 04:46:34 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:35266 "EHLO
+        id S239660AbiBJKat (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 10 Feb 2022 05:30:49 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:44066 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238777AbiBJJqd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Feb 2022 04:46:33 -0500
-X-Greylist: delayed 309 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Thu, 10 Feb 2022 01:46:34 PST
-Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.17.24])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DFF511A7
-        for <linux-arch@vger.kernel.org>; Thu, 10 Feb 2022 01:46:34 -0800 (PST)
-Received: from mail-wr1-f42.google.com ([209.85.221.42]) by
- mrelayeu.kundenserver.de (mreue107 [213.165.67.113]) with ESMTPSA (Nemesis)
- id 1MA88C-1nTfkU014k-00BYfr; Thu, 10 Feb 2022 10:41:24 +0100
-Received: by mail-wr1-f42.google.com with SMTP id k18so8410970wrg.11;
-        Thu, 10 Feb 2022 01:41:23 -0800 (PST)
-X-Gm-Message-State: AOAM532FlZbzThx9zWPgYSmUFoDGJC+hFyS/v5J9R9p3sn2ApYzDZ5x/
-        Sas5baxFJwnIk2DNNyhzU/HFySxP3/sv7fmPsNc=
-X-Google-Smtp-Source: ABdhPJwFAXHn/oxpkrKGkjNdQCVhvPPwJqoR18BfcNL1lEqEkdOenRkU6MzFWE9oH1War435497Ub7+zNJE6VpNe5D8=
-X-Received: by 2002:adf:e5ce:: with SMTP id a14mr691958wrn.317.1644486083668;
- Thu, 10 Feb 2022 01:41:23 -0800 (PST)
+        with ESMTP id S239658AbiBJKas (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Feb 2022 05:30:48 -0500
+Received: from gandalf.ozlabs.org (mail.ozlabs.org [IPv6:2404:9400:2221:ea00::3])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B1F08B92;
+        Thu, 10 Feb 2022 02:30:49 -0800 (PST)
+Received: from authenticated.ozlabs.org (localhost [127.0.0.1])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange ECDHE (P-256) server-signature RSA-PSS (4096 bits) server-digest SHA256)
+        (No client certificate requested)
+        by mail.ozlabs.org (Postfix) with ESMTPSA id 4JvY1J0XpGz4xdh;
+        Thu, 10 Feb 2022 21:30:43 +1100 (AEDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ellerman.id.au;
+        s=201909; t=1644489045;
+        bh=/j80aUQlKa/S6QbooAK3y3Gg9NwGU+PKEkWBN3ktOAM=;
+        h=From:To:Cc:Subject:In-Reply-To:References:Date:From;
+        b=TCawh+Udct1RMjVH8ZU19XAOaHAEWi8UE1gSqYxtxWKCdRgozgSyMUWR+VA7h+4A3
+         Y2Gyi5C40KuLmrAQqF/6A+MsFAN+YhOqhEfvn2Y+2ycFiYtPbcbTshYBObJyP8KJpD
+         tNOxEYpjJyuyllbretPziOS745L4qVaZMOpvP4gCycccURrg7tABnvGHCU0WMDfdnc
+         pPjeHrx9ubrYDqQVG9HhvZVJg0KptHYyoMC5QExkKEF4mRtdrzhg24JzeaTF3mQcwc
+         2uscyDi9MUqhI1cZoTyihNTNMY8RpFcVwAawyAl3q5b1LQ+bP6NK6OGjQFoPNiLAgA
+         c4imi8H1U2f+A==
+From:   Michael Ellerman <mpe@ellerman.id.au>
+To:     Christophe Leroy <christophe.leroy@csgroup.eu>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+        Helge Deller <deller@gmx.de>, Arnd Bergmann <arnd@arndb.de>,
+        Kees Cook <keescook@chromium.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
+        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org
+Subject: Re: [PATCH v3 08/12] asm-generic: Refactor
+ dereference_[kernel]_function_descriptor()
+In-Reply-To: <93a2006a5d90292baf69cb1c34af5785da53efde.1634457599.git.christophe.leroy@csgroup.eu>
+References: <cover.1634457599.git.christophe.leroy@csgroup.eu>
+ <93a2006a5d90292baf69cb1c34af5785da53efde.1634457599.git.christophe.leroy@csgroup.eu>
+Date:   Thu, 10 Feb 2022 21:30:43 +1100
+Message-ID: <8735kr814c.fsf@mpe.ellerman.id.au>
 MIME-Version: 1.0
-References: <20220210021129.3386083-1-masahiroy@kernel.org> <20220210021129.3386083-6-masahiroy@kernel.org>
-In-Reply-To: <20220210021129.3386083-6-masahiroy@kernel.org>
-From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Thu, 10 Feb 2022 10:41:07 +0100
-X-Gmail-Original-Message-ID: <CAK8P3a3biD8Fmd2GMTkwPtU1ezinvyvbBZqey0cAiJh4_5svKQ@mail.gmail.com>
-Message-ID: <CAK8P3a3biD8Fmd2GMTkwPtU1ezinvyvbBZqey0cAiJh4_5svKQ@mail.gmail.com>
-Subject: Re: [PATCH 5/6] kexec.h: add linux/kexec.h to UAPI compile-test coverage
-To:     Masahiro Yamada <masahiroy@kernel.org>
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-X-Provags-ID: V03:K1:ehHi4GhNJ7W0pBtKH6PXaACeiIpDdyufnrP9Kn4RSrxY28y506Y
- tv9ROIN7wsDt+fkuc5im9FXCHrt9coUqTp3xS9sWgFw+iTVimamqcQgewNppZi1G3ClkwZW
- xugVn7mWYP6SWeR6MrYmS9BMtbcJnmI5hl1No4L9BGvXOdlfxLE39JGiB3h2vgLq4htBNdU
- +jNNPTtNf61R3gOmmRw+Q==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:7ScsKC1nxzo=:222LMN1bT7TviN5PhhGGVX
- ARcddAIuywx6Tif+RiRINGOFpci+iPPcdYzqlfR5J9smBO57UoHLogIAdWnjz9O1yJyoPE5tG
- qoO+f0No7Pk4oQveOxCEYWpnMSlSJIHY11SqJ+adjat2a3VNEAasWaEoBwN9zZhUUp4B3z3QT
- wZ1f7ssZB+ZIAb1Yqedjn1DRd2plA8H/rDE3Vc9ARNukfD0ovNZ4p8pbkk389pWGslDi2ZluN
- c1C6/+gyfzr2UcHTRsWQpptFDvZ1zTxSjW/lD1QRY5JaB5iCJISkiLKBUg3iTpJr+lfNocKuj
- EbcyFSunX8LyIIC8GKbsVFKKqWXI6W0EDBADC3KQfdyJ2WZE5YQT63sHDDb6p1qQDSIZPlp8Z
- CPP7Il135ir2PB4xFILzPD6FO5MCGNeM5Imkc+ldEyq70C7JrjQoDRvwISL9u1b5jiBarkiOP
- Qx5qJhUZjy9Dr17BpHK6upmErjNNEgGJWqusNRDzMyfrI/RJeJnHwOuOFWTUpj+eozvOCEKtg
- PKHtMNZiYgYbrvAXnMQepwdE7Udfq4JaRLfSoW2yHmmxyazcXj44KOX8YarefQpZnCgvBgD78
- 7SLL0kwdvJjutlxpNwwhud646+4FfQaluHTxduSQunJ3IdKGAK+Bcv9eRHCu8Tf02npk+TbKo
- QBbxlz6jODi4X7NNaz3LkNI08cuLBpul1baKmKRZRkdoJQEF1ldRRZjrZMyY42GlKbe4S9fuR
- bDedaraqjSYLNL9CPehs9hlbWjCF1nV4P1O1Kq4t5FhLhlWAwVlIie8RYiitFdtaOwj8IrBOJ
- syoca3I5VfAZgh88agai7NI1X5WtaHvHo1UgWm9gmFlsa56vO0=
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Feb 10, 2022 at 3:11 AM Masahiro Yamada <masahiroy@kernel.org> wrote:
->
-> linux/kexec.h is currently excluded from the UAPI compile-test because
-> of the errors like follows:
->
->     HDRTEST usr/include/linux/kexec.h
->   In file included from <command-line>:
->   ./usr/include/linux/kexec.h:56:9: error: unknown type name ‘size_t’
->      56 |         size_t bufsz;
->         |         ^~~~~~
->   ./usr/include/linux/kexec.h:58:9: error: unknown type name ‘size_t’
->      58 |         size_t memsz;
->         |         ^~~~~~
->
-> The errors can be fixed by replacing size_t with __kernel_size_t.
->
-> Then, remove the no-header-test entry from user/include/Makefile.
->
-> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+Christophe Leroy <christophe.leroy@csgroup.eu> writes:
+> diff --git a/kernel/extable.c b/kernel/extable.c
+> index b0ea5eb0c3b4..1ef13789bea9 100644
+> --- a/kernel/extable.c
+> +++ b/kernel/extable.c
+> @@ -159,12 +160,32 @@ int kernel_text_address(unsigned long addr)
+>  }
+>  
+>  /*
+> - * On some architectures (PPC64, IA64) function pointers
+> + * On some architectures (PPC64, IA64, PARISC) function pointers
+>   * are actually only tokens to some data that then holds the
+>   * real function address. As a result, to find if a function
+>   * pointer is part of the kernel text, we need to do some
+>   * special dereferencing first.
+>   */
+> +#ifdef CONFIG_HAVE_FUNCTION_DESCRIPTORS
+> +void *dereference_function_descriptor(void *ptr)
+> +{
+> +	func_desc_t *desc = ptr;
+> +	void *p;
+> +
+> +	if (!get_kernel_nofault(p, (void *)&desc->addr))
+> +		ptr = p;
+> +	return ptr;
+> +}
 
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+This needs an EXPORT_SYMBOL_GPL(), otherwise the build breaks after
+patch 10 with CONFIG_LKDTM=m.
+
+cheers
