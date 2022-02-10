@@ -2,43 +2,43 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A09E5C433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 02:16:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C833AC433EF
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 02:17:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230377AbiBJCQD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Feb 2022 21:16:03 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:36550 "EHLO
+        id S231433AbiBJCRv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Feb 2022 21:17:51 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:38350 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230372AbiBJCQC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 21:16:02 -0500
-Received: from condef-04.nifty.com (condef-04.nifty.com [202.248.20.69])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6A8A6264B;
-        Wed,  9 Feb 2022 18:16:04 -0800 (PST)
-Received: from conuserg-12.nifty.com ([10.126.8.75])by condef-04.nifty.com with ESMTP id 21A2CEEn028502;
-        Thu, 10 Feb 2022 11:12:14 +0900
+        with ESMTP id S230372AbiBJCRv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 21:17:51 -0500
+Received: from condef-09.nifty.com (condef-09.nifty.com [202.248.20.74])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7E67A22B18;
+        Wed,  9 Feb 2022 18:17:52 -0800 (PST)
+Received: from conuserg-12.nifty.com ([10.126.8.75])by condef-09.nifty.com with ESMTP id 21A2CFEP025231;
+        Thu, 10 Feb 2022 11:12:15 +0900
 Received: from localhost.localdomain (133-32-232-101.west.xps.vectant.ne.jp [133.32.232.101]) (authenticated)
-        by conuserg-12.nifty.com with ESMTP id 21A2BVH3030193;
-        Thu, 10 Feb 2022 11:11:35 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-12.nifty.com 21A2BVH3030193
+        by conuserg-12.nifty.com with ESMTP id 21A2BVH0030193;
+        Thu, 10 Feb 2022 11:11:33 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-12.nifty.com 21A2BVH0030193
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1644459095;
-        bh=rkmmaG81+CGD7vgz9hJpVQO2/VXHXcuVX9wVZdpGLMU=;
+        s=dec2015msa; t=1644459093;
+        bh=mLWWEi1eNL+fE8D/ke2cTxgfWwEUC2jo0gGhItPyzZk=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=peI9or4mZVTEEKja0i7XgnT0TqcNSKKYLOhDMrCMg1c9sbDG3hV7YKKNlZGP/Q4n6
-         ZYNRKdfeJJ5RskR+r9lT+qtzcCOhdBPq18jpgfpMGnNRL/rN4bRll3jmNQEm72yHyu
-         6/hI4Mx7NQtvHvcPLEQjACqNXbfmkv5kXSSr6LsocAOhbIqtX78sEuUgOckK0MIr1v
-         2zHM1AHhU/Gky6hJlaTSBkkVMJZaLKAkyQYaWXFqEwlFte+SJMo3ekDP+mII4Kr7xZ
-         Pakouqkpi9yKrfDOkfWkMEMx/U6fQhNvjUVNgO5em9x7j7kf+jaeJ7K1EyBnVmuEO+
-         FitV+3TMM/HSQ==
+        b=ds6XXxftljXHuqTMlRT1Xup0SdU7zZCfpwYKwAEeY0PCITuVRMN3uRLt3A0/M1X1V
+         Kv/L25kt8Lgh57bvHWdwb540wDHT8ym9lLcIJg6YPRcr+SOjwuRkr8Uy99hRtIiLht
+         OlsFVFAUusy99HPpj14K3KdnDP8JCBW2m6gB6VZ+Qmn1nboVgQL3F9n4/jyvs1AKqx
+         XN+5LK2eLbhd0uMudNOThT2aTXuW8DKWOkRQDgbu1eQXluCgReX6MkGBGpSAo+udBI
+         eldyuhbJqmMD4ljK0KmYWTtcfF+KGlCoIMC7F8sPJ5LBQKcimmoh+zPdXV9wUj+0ab
+         fDo7I9CufRdHA==
 X-Nifty-SrcIP: [133.32.232.101]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
         linux-kernel@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 6/6] reiserfs_xattr.h: add linux/reiserfs_xattr.h to UAPI compile-test coverage
-Date:   Thu, 10 Feb 2022 11:11:29 +0900
-Message-Id: <20220210021129.3386083-7-masahiroy@kernel.org>
+Subject: [PATCH 3/6] android/binder.h: add linux/android/binder(fs).h to UAPI compile-test coverage
+Date:   Thu, 10 Feb 2022 11:11:26 +0900
+Message-Id: <20220210021129.3386083-4-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.32.0
 In-Reply-To: <20220210021129.3386083-1-masahiroy@kernel.org>
 References: <20220210021129.3386083-1-masahiroy@kernel.org>
@@ -49,51 +49,57 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-linux/reiserfs_xattr.h is currently excluded from the UAPI compile-test
-because of the error like follows:
+linux/android/binder.h and linux/android/binderfs.h are currently
+excluded from the UAPI compile-test because of the errors like follows:
 
-    HDRTEST usr/include/linux/reiserfs_xattr.h
+    HDRTEST usr/include/linux/android/binder.h
   In file included from <command-line>:
-  ./usr/include/linux/reiserfs_xattr.h:22:9: error: unknown type name ‘size_t’
-     22 |         size_t length;
-        |         ^~~~~~
+  ./usr/include/linux/android/binder.h:291:9: error: unknown type name ‘pid_t’
+    291 |         pid_t           sender_pid;
+        |         ^~~~~
+  ./usr/include/linux/android/binder.h:292:9: error: unknown type name ‘uid_t’
+    292 |         uid_t           sender_euid;
+        |         ^~~~~
 
-The error can be fixed by replacing size_t with __kernel_size_t.
+The errors can be fixed by replacing {pid,uid}_t with __kernel_{pid,uid}_t.
 
-Then, remove the no-header-test entry from user/include/Makefile.
+Then, remove the no-header-test entries from user/include/Makefile.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- include/uapi/linux/reiserfs_xattr.h | 2 +-
- usr/include/Makefile                | 1 -
- 2 files changed, 1 insertion(+), 2 deletions(-)
+ include/uapi/linux/android/binder.h | 4 ++--
+ usr/include/Makefile                | 2 --
+ 2 files changed, 2 insertions(+), 4 deletions(-)
 
-diff --git a/include/uapi/linux/reiserfs_xattr.h b/include/uapi/linux/reiserfs_xattr.h
-index 28f10842f047..503ad018ce5b 100644
---- a/include/uapi/linux/reiserfs_xattr.h
-+++ b/include/uapi/linux/reiserfs_xattr.h
-@@ -19,7 +19,7 @@ struct reiserfs_xattr_header {
- struct reiserfs_security_handle {
- 	const char *name;
- 	void *value;
--	size_t length;
-+	__kernel_size_t length;
- };
+diff --git a/include/uapi/linux/android/binder.h b/include/uapi/linux/android/binder.h
+index 3246f2c74696..11157fae8a8e 100644
+--- a/include/uapi/linux/android/binder.h
++++ b/include/uapi/linux/android/binder.h
+@@ -288,8 +288,8 @@ struct binder_transaction_data {
  
- #endif  /*  _LINUX_REISERFS_XATTR_H  */
+ 	/* General information about the transaction. */
+ 	__u32	        flags;
+-	pid_t		sender_pid;
+-	uid_t		sender_euid;
++	__kernel_pid_t	sender_pid;
++	__kernel_uid_t	sender_euid;
+ 	binder_size_t	data_size;	/* number of bytes of data */
+ 	binder_size_t	offsets_size;	/* number of bytes of offsets */
+ 
 diff --git a/usr/include/Makefile b/usr/include/Makefile
-index 48bb789099d5..5e703af0f83c 100644
+index b0b6cc455930..717c7d4c89bb 100644
 --- a/usr/include/Makefile
 +++ b/usr/include/Makefile
-@@ -36,7 +36,6 @@ no-header-test += linux/omap3isp.h
- no-header-test += linux/omapfb.h
- no-header-test += linux/patchkey.h
- no-header-test += linux/phonet.h
--no-header-test += linux/reiserfs_xattr.h
- no-header-test += linux/sctp.h
- no-header-test += linux/sysctl.h
- no-header-test += linux/usb/audio.h
+@@ -26,8 +26,6 @@ override c_flags = $(UAPI_CFLAGS) -Wp,-MMD,$(depfile) -I$(objtree)/usr/include
+ no-header-test += asm/ucontext.h
+ no-header-test += drm/vmwgfx_drm.h
+ no-header-test += linux/am437x-vpfe.h
+-no-header-test += linux/android/binder.h
+-no-header-test += linux/android/binderfs.h
+ no-header-test += linux/coda.h
+ no-header-test += linux/cyclades.h
+ no-header-test += linux/errqueue.h
 -- 
 2.32.0
 
