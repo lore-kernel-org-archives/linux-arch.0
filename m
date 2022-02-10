@@ -2,43 +2,43 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 78A92C433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 02:19:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F29A5C433F5
+	for <linux-arch@archiver.kernel.org>; Thu, 10 Feb 2022 02:20:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229808AbiBJCTA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 9 Feb 2022 21:19:00 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:38896 "EHLO
+        id S230415AbiBJCUl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 9 Feb 2022 21:20:41 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:39696 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229704AbiBJCS7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 21:18:59 -0500
-Received: from condef-01.nifty.com (condef-01.nifty.com [202.248.20.66])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AB7A725CA;
-        Wed,  9 Feb 2022 18:19:00 -0800 (PST)
-Received: from conuserg-12.nifty.com ([10.126.8.75])by condef-01.nifty.com with ESMTP id 21A2CEFY024863;
+        with ESMTP id S229704AbiBJCUj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2022 21:20:39 -0500
+Received: from condef-10.nifty.com (condef-10.nifty.com [202.248.20.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A71C922B3E;
+        Wed,  9 Feb 2022 18:20:41 -0800 (PST)
+Received: from conuserg-12.nifty.com ([10.126.8.75])by condef-10.nifty.com with ESMTP id 21A2CEu3020648;
         Thu, 10 Feb 2022 11:12:14 +0900
 Received: from localhost.localdomain (133-32-232-101.west.xps.vectant.ne.jp [133.32.232.101]) (authenticated)
-        by conuserg-12.nifty.com with ESMTP id 21A2BVGx030193;
-        Thu, 10 Feb 2022 11:11:32 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-12.nifty.com 21A2BVGx030193
+        by conuserg-12.nifty.com with ESMTP id 21A2BVH2030193;
+        Thu, 10 Feb 2022 11:11:34 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-12.nifty.com 21A2BVH2030193
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1644459093;
-        bh=BgrcsyoUOdWLgz4rAIphuCEW51c0c/5R+2Ow60R9bB4=;
+        s=dec2015msa; t=1644459095;
+        bh=m1Mtw5y9Bf5RZ4MURQ8EIMvDxV6oJIXKhKHtyEcMzzg=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=feNGzLID3LYlOV5n4mKLtXUPF4kgKQ2Abd84X5tlxdFtpKDaiFAVs2xfCcQu8cEDS
-         k+4p/Bb6BN8a+1umUvAc6TkLtPggeYWvpayf5A+miDrgOhCB/hRBx+ph1lV8anUzGp
-         cwTSRrfsVyUDhmq6inujkOyNMVPCbifK8cLYH/OiMygLh7DzITppkBYKgabDuxXHFM
-         kR7BnOAjsO1CGP8TfFpcwq4qWD9cb3BK/Wy960k0eOySl1QQv+RYuTGatFa9g8H21Z
-         Vf4rYyrQj8UgKnAn7Omy/MTrV3ZIvvWnXWfqNCPxUzkA/LfLMqqfc5l5/aezzWpTL6
-         IacZ41RYUZTMg==
+        b=g+DVott1MKQy6T+LFYOgJdyjdMWeO97ujnib1/2R0WZJ3bNPShbKlpuSOBvKD3Rds
+         lt7CA6dxwg8YmMSpbEbZMAr+VSAxv1ClNWq0tHVtC2YkjPsCBtKGVJL9Th9yxUXb0C
+         V5Z+ZBxUhJiZwruT4QnGCUPwe8HzrJ9ra4MX1gSYOaWnRwvKxEAup+uBi9TpKeKdwT
+         6T/y3UGNwmnzpILF7WtCXpEj1icQzG8/nc1IX4U8lLPuy3BPM09rfr5iT7kDpNHRFG
+         HWu6tnyRw1rue/SGk1f0r1hqiQgYSvOg5mv6ydkwNFTszQGZRwtZawpr/opRvi/g52
+         nQ43x+rpRiH4g==
 X-Nifty-SrcIP: [133.32.232.101]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
         linux-kernel@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 2/6] shmbuf.h: add asm/shmbuf.h to UAPI compile-test coverage
-Date:   Thu, 10 Feb 2022 11:11:25 +0900
-Message-Id: <20220210021129.3386083-3-masahiroy@kernel.org>
+Subject: [PATCH 5/6] kexec.h: add linux/kexec.h to UAPI compile-test coverage
+Date:   Thu, 10 Feb 2022 11:11:28 +0900
+Message-Id: <20220210021129.3386083-6-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.32.0
 In-Reply-To: <20220210021129.3386083-1-masahiroy@kernel.org>
 References: <20220210021129.3386083-1-masahiroy@kernel.org>
@@ -49,210 +49,57 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-asm/shmbuf.h is currently excluded from the UAPI compile-test because of
-the errors like follows:
+linux/kexec.h is currently excluded from the UAPI compile-test because
+of the errors like follows:
 
-    HDRTEST usr/include/asm/shmbuf.h
-  In file included from ./usr/include/asm/shmbuf.h:6,
-                   from <command-line>:
-  ./usr/include/asm-generic/shmbuf.h:26:33: error: field ‘shm_perm’ has incomplete type
-     26 |         struct ipc64_perm       shm_perm;       /* operation perms */
-        |                                 ^~~~~~~~
-  ./usr/include/asm-generic/shmbuf.h:27:9: error: unknown type name ‘size_t’
-     27 |         size_t                  shm_segsz;      /* size of segment (bytes) */
+    HDRTEST usr/include/linux/kexec.h
+  In file included from <command-line>:
+  ./usr/include/linux/kexec.h:56:9: error: unknown type name ‘size_t’
+     56 |         size_t bufsz;
         |         ^~~~~~
-  ./usr/include/asm-generic/shmbuf.h:40:9: error: unknown type name ‘__kernel_pid_t’
-     40 |         __kernel_pid_t          shm_cpid;       /* pid of creator */
-        |         ^~~~~~~~~~~~~~
-  ./usr/include/asm-generic/shmbuf.h:41:9: error: unknown type name ‘__kernel_pid_t’
-     41 |         __kernel_pid_t          shm_lpid;       /* pid of last operator */
-        |         ^~~~~~~~~~~~~~
+  ./usr/include/linux/kexec.h:58:9: error: unknown type name ‘size_t’
+     58 |         size_t memsz;
+        |         ^~~~~~
 
-The errors can be fixed by replacing size_t with __kernel_size_t and by
-including proper headers.
+The errors can be fixed by replacing size_t with __kernel_size_t.
 
 Then, remove the no-header-test entry from user/include/Makefile.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- arch/mips/include/uapi/asm/shmbuf.h    | 7 +++++--
- arch/parisc/include/uapi/asm/shmbuf.h  | 2 ++
- arch/powerpc/include/uapi/asm/shmbuf.h | 5 ++++-
- arch/sparc/include/uapi/asm/shmbuf.h   | 5 ++++-
- arch/x86/include/uapi/asm/shmbuf.h     | 6 +++++-
- arch/xtensa/include/uapi/asm/shmbuf.h  | 5 ++++-
- include/uapi/asm-generic/shmbuf.h      | 4 +++-
- usr/include/Makefile                   | 1 -
- 8 files changed, 27 insertions(+), 8 deletions(-)
+ include/uapi/linux/kexec.h | 4 ++--
+ usr/include/Makefile       | 1 -
+ 2 files changed, 2 insertions(+), 3 deletions(-)
 
-diff --git a/arch/mips/include/uapi/asm/shmbuf.h b/arch/mips/include/uapi/asm/shmbuf.h
-index 680bb95b2240..eb74d304b779 100644
---- a/arch/mips/include/uapi/asm/shmbuf.h
-+++ b/arch/mips/include/uapi/asm/shmbuf.h
-@@ -2,6 +2,9 @@
- #ifndef _ASM_SHMBUF_H
- #define _ASM_SHMBUF_H
+diff --git a/include/uapi/linux/kexec.h b/include/uapi/linux/kexec.h
+index 778dc191c265..fb7e2ef60825 100644
+--- a/include/uapi/linux/kexec.h
++++ b/include/uapi/linux/kexec.h
+@@ -54,9 +54,9 @@
+  */
+ struct kexec_segment {
+ 	const void *buf;
+-	size_t bufsz;
++	__kernel_size_t bufsz;
+ 	const void *mem;
+-	size_t memsz;
++	__kernel_size_t memsz;
+ };
  
-+#include <asm/ipcbuf.h>
-+#include <asm/posix_types.h>
-+
- /*
-  * The shmid64_ds structure for the MIPS architecture.
-  * Note extra padding because this structure is passed back and forth
-@@ -16,7 +19,7 @@
- #ifdef __mips64
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	long			shm_atime;	/* last attach time */
- 	long			shm_dtime;	/* last detach time */
- 	long			shm_ctime;	/* last change time */
-@@ -29,7 +32,7 @@ struct shmid64_ds {
- #else
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	unsigned long		shm_atime;	/* last attach time */
- 	unsigned long		shm_dtime;	/* last detach time */
- 	unsigned long		shm_ctime;	/* last change time */
-diff --git a/arch/parisc/include/uapi/asm/shmbuf.h b/arch/parisc/include/uapi/asm/shmbuf.h
-index 5da3089be65e..532da742fb56 100644
---- a/arch/parisc/include/uapi/asm/shmbuf.h
-+++ b/arch/parisc/include/uapi/asm/shmbuf.h
-@@ -3,6 +3,8 @@
- #define _PARISC_SHMBUF_H
- 
- #include <asm/bitsperlong.h>
-+#include <asm/ipcbuf.h>
-+#include <asm/posix_types.h>
- 
- /* 
-  * The shmid64_ds structure for parisc architecture.
-diff --git a/arch/powerpc/include/uapi/asm/shmbuf.h b/arch/powerpc/include/uapi/asm/shmbuf.h
-index 00422b2f3c63..439a3a02ba64 100644
---- a/arch/powerpc/include/uapi/asm/shmbuf.h
-+++ b/arch/powerpc/include/uapi/asm/shmbuf.h
-@@ -2,6 +2,9 @@
- #ifndef _ASM_POWERPC_SHMBUF_H
- #define _ASM_POWERPC_SHMBUF_H
- 
-+#include <asm/ipcbuf.h>
-+#include <asm/posix_types.h>
-+
- /*
-  * This program is free software; you can redistribute it and/or
-  * modify it under the terms of the GNU General Public License
-@@ -34,7 +37,7 @@ struct shmid64_ds {
- 	unsigned long		shm_ctime;	/* last change time */
- 	unsigned long		__unused4;
- #endif
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_pid_t		shm_cpid;	/* pid of creator */
- 	__kernel_pid_t		shm_lpid;	/* pid of last operator */
- 	unsigned long		shm_nattch;	/* no. of current attaches */
-diff --git a/arch/sparc/include/uapi/asm/shmbuf.h b/arch/sparc/include/uapi/asm/shmbuf.h
-index a5d7d8d681c4..ed4f061c7a15 100644
---- a/arch/sparc/include/uapi/asm/shmbuf.h
-+++ b/arch/sparc/include/uapi/asm/shmbuf.h
-@@ -2,6 +2,9 @@
- #ifndef _SPARC_SHMBUF_H
- #define _SPARC_SHMBUF_H
- 
-+#include <asm/ipcbuf.h>
-+#include <asm/posix_types.h>
-+
- /* 
-  * The shmid64_ds structure for sparc architecture.
-  * Note extra padding because this structure is passed back and forth
-@@ -25,7 +28,7 @@ struct shmid64_ds {
- 	unsigned long		shm_ctime_high;
- 	unsigned long		shm_ctime;	/* last change time */
- #endif
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_pid_t		shm_cpid;	/* pid of creator */
- 	__kernel_pid_t		shm_lpid;	/* pid of last operator */
- 	unsigned long		shm_nattch;	/* no. of current attaches */
-diff --git a/arch/x86/include/uapi/asm/shmbuf.h b/arch/x86/include/uapi/asm/shmbuf.h
-index fce18eaa070c..13775bfdfee2 100644
---- a/arch/x86/include/uapi/asm/shmbuf.h
-+++ b/arch/x86/include/uapi/asm/shmbuf.h
-@@ -5,6 +5,10 @@
- #if !defined(__x86_64__) || !defined(__ILP32__)
- #include <asm-generic/shmbuf.h>
- #else
-+
-+#include <asm/ipcbuf.h>
-+#include <asm/posix_types.h>
-+
- /*
-  * The shmid64_ds structure for x86 architecture with x32 ABI.
-  *
-@@ -15,7 +19,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_long_t		shm_atime;	/* last attach time */
- 	__kernel_long_t		shm_dtime;	/* last detach time */
- 	__kernel_long_t		shm_ctime;	/* last change time */
-diff --git a/arch/xtensa/include/uapi/asm/shmbuf.h b/arch/xtensa/include/uapi/asm/shmbuf.h
-index 554a57a6a90f..bb8bdddae9b5 100644
---- a/arch/xtensa/include/uapi/asm/shmbuf.h
-+++ b/arch/xtensa/include/uapi/asm/shmbuf.h
-@@ -20,9 +20,12 @@
- #ifndef _XTENSA_SHMBUF_H
- #define _XTENSA_SHMBUF_H
- 
-+#include <asm/ipcbuf.h>
-+#include <asm/posix_types.h>
-+
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	unsigned long		shm_atime;	/* last attach time */
- 	unsigned long		shm_atime_high;
- 	unsigned long		shm_dtime;	/* last detach time */
-diff --git a/include/uapi/asm-generic/shmbuf.h b/include/uapi/asm-generic/shmbuf.h
-index 2bab955e0fed..2979b6dd2c56 100644
---- a/include/uapi/asm-generic/shmbuf.h
-+++ b/include/uapi/asm-generic/shmbuf.h
-@@ -3,6 +3,8 @@
- #define __ASM_GENERIC_SHMBUF_H
- 
- #include <asm/bitsperlong.h>
-+#include <asm/ipcbuf.h>
-+#include <asm/posix_types.h>
- 
- /*
-  * The shmid64_ds structure for x86 architecture.
-@@ -24,7 +26,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- #if __BITS_PER_LONG == 64
- 	long			shm_atime;	/* last attach time */
- 	long			shm_dtime;	/* last detach time */
+ #endif /* __KERNEL__ */
 diff --git a/usr/include/Makefile b/usr/include/Makefile
-index e7230a5a402a..b0b6cc455930 100644
+index 9e35d022fd88..48bb789099d5 100644
 --- a/usr/include/Makefile
 +++ b/usr/include/Makefile
-@@ -23,7 +23,6 @@ override c_flags = $(UAPI_CFLAGS) -Wp,-MMD,$(depfile) -I$(objtree)/usr/include
- # Please consider to fix the header first.
- #
- # Sorted alphabetically.
--no-header-test += asm/shmbuf.h
- no-header-test += asm/ucontext.h
- no-header-test += drm/vmwgfx_drm.h
- no-header-test += linux/am437x-vpfe.h
+@@ -31,7 +31,6 @@ no-header-test += linux/cyclades.h
+ no-header-test += linux/errqueue.h
+ no-header-test += linux/hdlc/ioctl.h
+ no-header-test += linux/ivtv.h
+-no-header-test += linux/kexec.h
+ no-header-test += linux/matroxfb.h
+ no-header-test += linux/omap3isp.h
+ no-header-test += linux/omapfb.h
 -- 
 2.32.0
 
