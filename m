@@ -2,35 +2,35 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3117BC4167D
-	for <linux-arch@archiver.kernel.org>; Mon, 14 Feb 2022 16:37:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B0257C433FE
+	for <linux-arch@archiver.kernel.org>; Mon, 14 Feb 2022 16:37:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241856AbiBNQhl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 14 Feb 2022 11:37:41 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:43788 "EHLO
+        id S234866AbiBNQhq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 14 Feb 2022 11:37:46 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:43780 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237032AbiBNQhJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Feb 2022 11:37:09 -0500
+        with ESMTP id S1356595AbiBNQhc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Feb 2022 11:37:32 -0500
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 73FAE6517D;
-        Mon, 14 Feb 2022 08:36:53 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B292B4D633;
+        Mon, 14 Feb 2022 08:37:24 -0800 (PST)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 11168614E2;
-        Mon, 14 Feb 2022 16:36:53 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A67DEC340F1;
-        Mon, 14 Feb 2022 16:36:42 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 4F3B7614DA;
+        Mon, 14 Feb 2022 16:37:24 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E3700C340EF;
+        Mon, 14 Feb 2022 16:37:13 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1644856612;
-        bh=XYviTV8III28kBrCQmsfuK51xOc09ZOif7iEHrUTuIg=;
+        s=k20201202; t=1644856643;
+        bh=JepNdDlcl+vjLJWkKWFbQ8vIdC8P4ZqTHDtlQLygTvQ=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=JVfOMM7vTqw4XdpMNlrmm2jS83mfS0hYdjkQzrKj6vrH9+Dvn0L42AdShO8RRf9Zt
-         dCgJRVDvimHn/Uhy8K6/LoOqKmFRoenKTwmfXsum/yC+2647Q4iFanRlWF3K/xS92S
-         gCEmlRiZlTgkTyjEKX3J6/tBJHCW3fBRdNZcGJninmBDlMLvinDaCzw9S7lbmfV8Yj
-         asCqU2GVX1KEmy6ol6Y4c8F7ub3PAxvrL7Bv3Yonu/G0OWA7/HKZkm9UtkPubPBkfM
-         dXhuOWxE8SbyX8yNCneVJdVo8zXW4C1x2+08uIEcESmpPYEb+YIs98IFRoa3DME4D0
-         G0ya2TSp8tVbQ==
+        b=Yg/pItSQEzs71U/F185pU77Adjq+Wuerpy4kR6BgmvnTJ6TSm1zrt/F8Hi0vGnBb+
+         /8Qj5B7b7QxWzSyj+YeaQuhTnchKrNXCzC5slLNGTccGG7g8bl+2UbzUrHWSpXGIt7
+         xOg1fig8QiFMO5I3dgU5J+VFGv9rj3JE/Q8LpSpGVH3h3UIE6QskDu0wdEwCOfzQ3s
+         aEs8d4j4C6ZkWevO+OIcqOgq9ygDqYeks1ido77hfRKhPW+Q6EC6HRyawN1COLV7LZ
+         IgymdocysjOODUy7N4XtW+MjvAWPMlGA3mGuN1K+i4O4Oyp887hWbHPbK6Uy2BO2A4
+         4Bp3sWpanrwTw==
 From:   Arnd Bergmann <arnd@kernel.org>
 To:     Linus Torvalds <torvalds@linux-foundation.org>,
         Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org,
@@ -54,9 +54,9 @@ Cc:     linux@armlinux.org.uk, will@kernel.org, guoren@kernel.org,
         linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
         sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
         linux-xtensa@linux-xtensa.org
-Subject: [PATCH 06/14] mips: use simpler access_ok()
-Date:   Mon, 14 Feb 2022 17:34:44 +0100
-Message-Id: <20220214163452.1568807-7-arnd@kernel.org>
+Subject: [PATCH 09/14] m68k: drop custom __access_ok()
+Date:   Mon, 14 Feb 2022 17:34:47 +0100
+Message-Id: <20220214163452.1568807-10-arnd@kernel.org>
 X-Mailer: git-send-email 2.29.2
 In-Reply-To: <20220214163452.1568807-1-arnd@kernel.org>
 References: <20220214163452.1568807-1-arnd@kernel.org>
@@ -68,76 +68,44 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Arnd Bergmann <arnd@arndb.de>
 
-Before unifying the mips version of __access_ok() with the generic
-code, this converts it to the same algorithm. This is a change in
-behavior on mips64, as now address in the user segment, the lower
-2^62 bytes, is taken to be valid, relying on a page fault for
-addresses that are within that segment but not valid on that CPU.
+While most m68k platforms use separate address spaces for user
+and kernel space, at least coldfire does not, and the other
+ones have a TASK_SIZE that is less than the entire 4GB address
+range.
 
-The new version should be the most effecient way to do this, but
-it gets rid of the special handling for size=0 that most other
-architectures ignore as well.
+Using the generic implementation of __access_ok() stops coldfire
+user space from trivially accessing kernel memory, and is probably
+the right thing elsewhere for consistency as well.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/mips/include/asm/uaccess.h | 22 ++++------------------
- 1 file changed, 4 insertions(+), 18 deletions(-)
+ arch/m68k/include/asm/uaccess.h | 13 -------------
+ 1 file changed, 13 deletions(-)
 
-diff --git a/arch/mips/include/asm/uaccess.h b/arch/mips/include/asm/uaccess.h
-index db9a8e002b62..d7c89dc3426c 100644
---- a/arch/mips/include/asm/uaccess.h
-+++ b/arch/mips/include/asm/uaccess.h
-@@ -19,6 +19,7 @@
- #ifdef CONFIG_32BIT
- 
- #define __UA_LIMIT 0x80000000UL
-+#define TASK_SIZE_MAX	__UA_LIMIT
- 
- #define __UA_ADDR	".word"
- #define __UA_LA		"la"
-@@ -33,6 +34,7 @@
- extern u64 __ua_limit;
- 
- #define __UA_LIMIT	__ua_limit
-+#define TASK_SIZE_MAX	XKSSEG
- 
- #define __UA_ADDR	".dword"
- #define __UA_LA		"dla"
-@@ -42,22 +44,6 @@ extern u64 __ua_limit;
- 
- #endif /* CONFIG_64BIT */
- 
--/*
-- * Is a address valid? This does a straightforward calculation rather
-- * than tests.
-- *
-- * Address valid if:
-- *  - "addr" doesn't have any high-bits set
-- *  - AND "size" doesn't have any high-bits set
-- *  - AND "addr+size" doesn't have any high-bits set
-- *  - OR we are in kernel mode.
-- *
-- * __ua_size() is a trick to avoid runtime checking of positive constant
-- * sizes; for those we already know at compile time that the size is ok.
-- */
--#define __ua_size(size)							\
--	((__builtin_constant_p(size) && (signed long) (size) > 0) ? 0 : (size))
+diff --git a/arch/m68k/include/asm/uaccess.h b/arch/m68k/include/asm/uaccess.h
+index d6bb5720365a..64914872a5c9 100644
+--- a/arch/m68k/include/asm/uaccess.h
++++ b/arch/m68k/include/asm/uaccess.h
+@@ -10,19 +10,6 @@
+ #include <linux/compiler.h>
+ #include <linux/types.h>
+ #include <asm/extable.h>
 -
+-/* We let the MMU do all checking */
+-static inline int __access_ok(const void __user *addr,
+-			    unsigned long size)
+-{
+-	/*
+-	 * XXX: for !CONFIG_CPU_HAS_ADDRESS_SPACES this really needs to check
+-	 * for TASK_SIZE!
+-	 * Removing this helper is probably sufficient.
+-	 */
+-	return 1;
+-}
+-#define __access_ok __access_ok
+ #include <asm-generic/access_ok.h>
+ 
  /*
-  * access_ok: - Checks if a user space pointer is valid
-  * @addr: User space pointer to start of block to check
-@@ -79,9 +65,9 @@ extern u64 __ua_limit;
- static inline int __access_ok(const void __user *p, unsigned long size)
- {
- 	unsigned long addr = (unsigned long)p;
--	unsigned long end = addr + size - !!size;
-+	unsigned long limit = TASK_SIZE_MAX;
- 
--	return (__UA_LIMIT & (addr | end | __ua_size(size))) == 0;
-+	return (size <= limit) && (addr <= (limit - size));
- }
- 
- #define access_ok(addr, size)					\
 -- 
 2.29.2
 
