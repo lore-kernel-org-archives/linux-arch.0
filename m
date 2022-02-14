@@ -2,25 +2,53 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 85AB8C4332F
-	for <linux-arch@archiver.kernel.org>; Mon, 14 Feb 2022 20:46:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8DCA0C433EF
+	for <linux-arch@archiver.kernel.org>; Mon, 14 Feb 2022 21:01:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229883AbiBNUqW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 14 Feb 2022 15:46:22 -0500
-Received: from gmail-smtp-in.l.google.com ([23.128.96.19]:39114 "EHLO
+        id S229956AbiBNVBT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 14 Feb 2022 16:01:19 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:36480 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229697AbiBNUp6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Feb 2022 15:45:58 -0500
-Received: from zeniv-ca.linux.org.uk (zeniv-ca.linux.org.uk [IPv6:2607:5300:60:148a::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 076FE23A1BA;
-        Mon, 14 Feb 2022 12:44:00 -0800 (PST)
-Received: from viro by zeniv-ca.linux.org.uk with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1nJhmV-001mcz-Ba; Mon, 14 Feb 2022 20:17:07 +0000
-Date:   Mon, 14 Feb 2022 20:17:07 +0000
-From:   Al Viro <viro@zeniv.linux.org.uk>
-To:     Linus Torvalds <torvalds@linux-foundation.org>
-Cc:     Arnd Bergmann <arnd@kernel.org>,
-        Christoph Hellwig <hch@infradead.org>,
+        with ESMTP id S229452AbiBNVBS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Feb 2022 16:01:18 -0500
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6ABAA7A9A0;
+        Mon, 14 Feb 2022 13:01:09 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 85B276114B;
+        Mon, 14 Feb 2022 19:46:10 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id EB7E9C36AE5;
+        Mon, 14 Feb 2022 19:46:09 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1644867970;
+        bh=kZ0Ha+ZttRWbRYErkpKyuJC1dyK+QrO2i6Uu5KgHMvM=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=Y0tFdEItPyIpX9Q57aljIliTeAqJEjfsGhV5sRnV7cHDKUAHBtZxnjnJQ0aG/E0DY
+         ntmMdawRiR6T8SjqmJRkg+eiX9WIai06zkYCR7faiov+1eO6KA28Xd0WJ3G4HzZ7Ki
+         PswrJdfwevWrM+GcXzzieldjGJJj+F38X56atyYmYHaGjvacQFUxk+Q3y53FA51+T8
+         ZklKna1hQALqex7ucGzH+u+kKR6+AMMF6Gi34rWhxaWoueN0V5gBdQpdknscuvJdj6
+         4dVyfkX9O/n11Gjix37hL+YmaFTxTy2u9mOy0+3ugdzfzd4uf88HSfSBljtkByDhnd
+         ubPSK5lCMcVZQ==
+Received: by mail-wr1-f41.google.com with SMTP id u1so14852926wrg.11;
+        Mon, 14 Feb 2022 11:46:09 -0800 (PST)
+X-Gm-Message-State: AOAM530+hUo7NYph3CoxZKeAS43/bo2W3QPt8WJJKe7U6Fn0KDR5F9k4
+        RArsrLOi1yqH17m35h1qJUJXZtctpKBtOdHzC0c=
+X-Google-Smtp-Source: ABdhPJyfeYwWpAfp1t9O1z8BIiteD6oMiQUhUFLNHvAQyjgPbxD0FyJauHtAzbL5TNr8UyIGWRM1U9VPuoeyXIyyYo0=
+X-Received: by 2002:adf:f6ce:: with SMTP id y14mr445399wrp.219.1644867968239;
+ Mon, 14 Feb 2022 11:46:08 -0800 (PST)
+MIME-Version: 1.0
+References: <20220214163452.1568807-1-arnd@kernel.org> <20220214163452.1568807-5-arnd@kernel.org>
+ <YgqLFYqIqkIsNC92@infradead.org>
+In-Reply-To: <YgqLFYqIqkIsNC92@infradead.org>
+From:   Arnd Bergmann <arnd@kernel.org>
+Date:   Mon, 14 Feb 2022 20:45:52 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a1F3JaYaJPy9bSCG1+YV6EN05PE0DbwpD_GT1qRwFSJ-w@mail.gmail.com>
+Message-ID: <CAK8P3a1F3JaYaJPy9bSCG1+YV6EN05PE0DbwpD_GT1qRwFSJ-w@mail.gmail.com>
+Subject: Re: [PATCH 04/14] x86: use more conventional access_ok() definition
+To:     Christoph Hellwig <hch@infradead.org>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
         Christoph Hellwig <hch@lst.de>,
         linux-arch <linux-arch@vger.kernel.org>,
         Linux-MM <linux-mm@kvack.org>,
@@ -40,7 +68,7 @@ Cc:     Arnd Bergmann <arnd@kernel.org>,
         linux-s390 <linux-s390@vger.kernel.org>,
         Brian Cain <bcain@codeaurora.org>,
         Helge Deller <deller@gmx.de>,
-        the arch/x86 maintainers <x86@kernel.org>,
+        "the arch/x86 maintainers" <x86@kernel.org>,
         Russell King - ARM Linux <linux@armlinux.org.uk>,
         linux-csky@vger.kernel.org, Ingo Molnar <mingo@redhat.com>,
         Geert Uytterhoeven <geert@linux-m68k.org>,
@@ -66,37 +94,28 @@ Cc:     Arnd Bergmann <arnd@kernel.org>,
         Richard Weinberger <richard@nod.at>,
         Andrew Morton <akpm@linux-foundation.org>,
         linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
-        David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 04/14] x86: use more conventional access_ok() definition
-Message-ID: <Ygq4wy9fikDYmuHU@zeniv-ca.linux.org.uk>
-References: <20220214163452.1568807-1-arnd@kernel.org>
- <20220214163452.1568807-5-arnd@kernel.org>
- <YgqLFYqIqkIsNC92@infradead.org>
- <CAK8P3a1F3JaYaJPy9bSCG1+YV6EN05PE0DbwpD_GT1qRwFSJ-w@mail.gmail.com>
- <CAHk-=whq6_Nh3cB3FieP481VcRyCu69X3=wO1yLHGmcZEj69SA@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAHk-=whq6_Nh3cB3FieP481VcRyCu69X3=wO1yLHGmcZEj69SA@mail.gmail.com>
-Sender: Al Viro <viro@ftp.linux.org.uk>
+        David Miller <davem@davemloft.net>,
+        Al Viro <viro@zeniv.linux.org.uk>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Feb 14, 2022 at 12:01:05PM -0800, Linus Torvalds wrote:
-> On Mon, Feb 14, 2022 at 11:46 AM Arnd Bergmann <arnd@kernel.org> wrote:
-> >
-> > As Al pointed out, they turned out to be necessary on sparc64, but the only
-> > definitions are on sparc64 and x86, so it's possible that they serve a similar
-> > purpose here, in which case changing the limit from TASK_SIZE to
-> > TASK_SIZE_MAX is probably wrong as well.
-> 
-> x86-64 has always(*) used TASK_SIZE_MAX for access_ok(), and the
-> get_user() assembler implementation does the same.
-> 
-> I think any __range_not_ok() users that use TASK_SIZE are entirely
-> historical, and should be just fixed.
+On Mon, Feb 14, 2022 at 6:02 PM Christoph Hellwig <hch@infradead.org> wrote:
+>
+> On Mon, Feb 14, 2022 at 05:34:42PM +0100, Arnd Bergmann wrote:
+> > +#define __range_not_ok(addr, size, limit)    (!__access_ok(addr, size))
+> > +#define __chk_range_not_ok(addr, size, limit)        (!__access_ok((void __user *)addr, size))
+>
+> Can we just kill these off insted of letting themm obsfucate the code?
 
-IIRC, that was mostly userland stack trace collection in perf.
-I'll try to dig in archives and see what shows up - it's been
-a while ago...
+As Al pointed out, they turned out to be necessary on sparc64, but the only
+definitions are on sparc64 and x86, so it's possible that they serve a similar
+purpose here, in which case changing the limit from TASK_SIZE to
+TASK_SIZE_MAX is probably wrong as well.
+
+So either I need to revert the original definition as I did on sparc64, or
+they can be removed completely. Hopefully Al or the x86 maintainers
+can clarify.
+
+         Arnd
