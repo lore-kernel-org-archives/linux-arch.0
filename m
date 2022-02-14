@@ -2,71 +2,114 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9D5A4C433EF
-	for <linux-arch@archiver.kernel.org>; Mon, 14 Feb 2022 07:50:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6875AC4332F
+	for <linux-arch@archiver.kernel.org>; Mon, 14 Feb 2022 10:02:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231545AbiBNHud (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 14 Feb 2022 02:50:33 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:32862 "EHLO
+        id S1344232AbiBNKC6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 14 Feb 2022 05:02:58 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:54752 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231537AbiBNHuc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Feb 2022 02:50:32 -0500
-Received: from bombadil.infradead.org (bombadil.infradead.org [IPv6:2607:7c80:54:e::133])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C2F545AEE3;
-        Sun, 13 Feb 2022 23:50:25 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=bombadil.20210309; h=In-Reply-To:Content-Type:MIME-Version
-        :Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:Content-Transfer-Encoding
-        :Content-ID:Content-Description:References;
-        bh=jciESuD7KkzOvrqFddq5ei3J58DoUHqc9C5Rydzc4hg=; b=ErVgdFGCyNNxww5f7hf/07MEwA
-        eO/VTA8rQ8dirRDJco/8BjyYJASyRoVeJc3JhpACcw2y9KulXRrMp4dG1qfeMn81z/J0ruwzdpfT9
-        X2LL1vtZ4q38flprm7P8gEtPpEISjO7UMA3BywnfI/G466qY3gk9WMTF9Ilys74Sye2ZOKvPkoNlO
-        1RtAHerqFSq5PFk+s78fw/rPdHBmahvBCzG+h36GLtTPENrZevdDgViDcnW3UVrn550LFwIf0FWgi
-        5dSK4a6ZXKB/SWWt55zkB5pw0VckR7OX6kVs4mNd21LvQ0cnBSqomwZzh+2+Cm4EdbmmlmqsXhBBA
-        lJrLrufg==;
-Received: from hch by bombadil.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1nJW7p-00DlZB-4w; Mon, 14 Feb 2022 07:50:21 +0000
-Date:   Sun, 13 Feb 2022 23:50:21 -0800
-From:   Christoph Hellwig <hch@infradead.org>
-To:     Arnd Bergmann <arnd@kernel.org>
-Cc:     Stafford Horne <shorne@gmail.com>,
-        Michal Simek <michal.simek@xilinx.com>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        Christoph Hellwig <hch@infradead.org>,
-        "Eric W . Biederman" <ebiederm@xmission.com>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        "Peter Zijlstra (Intel)" <peterz@infradead.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Nick Hu <nickhu@andestech.com>,
-        Greentime Hu <green.hu@gmail.com>,
-        Vincent Chen <deanbo422@gmail.com>
-Subject: Re: [PATCH] microblaze: remove CONFIG_SET_FS
-Message-ID: <YgoJvSFFTSb6apGl@infradead.org>
+        with ESMTP id S1345833AbiBNKB4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Feb 2022 05:01:56 -0500
+Received: from mail-vs1-f51.google.com (mail-vs1-f51.google.com [209.85.217.51])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BC28F21809;
+        Mon, 14 Feb 2022 01:48:18 -0800 (PST)
+Received: by mail-vs1-f51.google.com with SMTP id i27so461787vsr.10;
+        Mon, 14 Feb 2022 01:48:18 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=sVctF2TLthiqqvEqHlD1AtmIxo0t7StGx/mG39a8KA8=;
+        b=Omicg4dZeiSI5ckDJ3d/jOfQKgyohi7mVaiN8Zryu69Vp55HDWzwHGtZrKndX/LJ3e
+         aO4ViHztGz5QtOJnNProV1T1Kj7Rcj6JLjYb7w7yWLf/pUo5bn1nFTboWJVToOoGLnyx
+         NibK1BvOEsZn4Ak6mnjvfdwqpm+0jPRAEn8m1X5tTPQbiWqcKOxmYx7xATz807zJsBov
+         XzQsO3zvEZyjcj2zeXJagmMEvVyvCRh+ZcvF0O9jW7Kl98L+jzfHz4sZzxVLHCRPDRYS
+         iyxjtkYdVtLzoMOkBNOtoeOByE1j3sCtlskdEhdgktis3Xh5wdPjX0bBfBEfBzXvFB8m
+         2ELg==
+X-Gm-Message-State: AOAM531JK2SXFV0Yg+iK4hC8G8/g6pVH56ckJooxv1QWlOr9LEYPF3/i
+        GKjJNXzcId0C2em9JZqXvoO+wWhWG1J0tA==
+X-Google-Smtp-Source: ABdhPJxK1yoGjORC2jMYqIjSeLaQXh0GndnYrnTpHuyh84ceIWoMDuE38NCVZBSsbnQyGfxUF+YD6A==
+X-Received: by 2002:a05:6102:3e90:: with SMTP id m16mr3348863vsv.4.1644832097754;
+        Mon, 14 Feb 2022 01:48:17 -0800 (PST)
+Received: from mail-vs1-f51.google.com (mail-vs1-f51.google.com. [209.85.217.51])
+        by smtp.gmail.com with ESMTPSA id p196sm78903vke.27.2022.02.14.01.48.17
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 14 Feb 2022 01:48:17 -0800 (PST)
+Received: by mail-vs1-f51.google.com with SMTP id g21so5359152vsp.6;
+        Mon, 14 Feb 2022 01:48:17 -0800 (PST)
+X-Received: by 2002:a05:6102:440d:: with SMTP id df13mr981415vsb.5.1644832097058;
+ Mon, 14 Feb 2022 01:48:17 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a0eAv168eepvdZQbYDstTQHc-Hb2_PMS3bseV3caB4oAA@mail.gmail.com>
-X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by bombadil.infradead.org. See http://www.infradead.org/rpr.html
+References: <1644805853-21338-1-git-send-email-anshuman.khandual@arm.com> <1644805853-21338-31-git-send-email-anshuman.khandual@arm.com>
+In-Reply-To: <1644805853-21338-31-git-send-email-anshuman.khandual@arm.com>
+From:   Geert Uytterhoeven <geert@linux-m68k.org>
+Date:   Mon, 14 Feb 2022 10:48:06 +0100
+X-Gmail-Original-Message-ID: <CAMuHMdVqeyFhzJHLvE+erA4dO+eqpqzx8hVUj9LDk0iPwR1ByQ@mail.gmail.com>
+Message-ID: <CAMuHMdVqeyFhzJHLvE+erA4dO+eqpqzx8hVUj9LDk0iPwR1ByQ@mail.gmail.com>
+Subject: Re: [PATCH 30/30] mm/mmap: Drop ARCH_HAS_VM_GET_PAGE_PROT
+To:     Anshuman Khandual <anshuman.khandual@arm.com>
+Cc:     linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+        Christoph Hellwig <hch@infradead.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-I like the series a lot.
+Hi Anshuman,
 
-Superficial comments:
+On Mon, Feb 14, 2022 at 7:54 AM Anshuman Khandual
+<anshuman.khandual@arm.com> wrote:
+> All platforms now define their own vm_get_page_prot() and also there is no
+> generic version left to fallback on. Hence drop ARCH_HAS_GET_PAGE_PROT.
+>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: linux-mm@kvack.org
+> Cc: linux-kernel@vger.kernel.org
+> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
 
-for nds32 is there any good reason why __get_user / __set_user check
-the address limit directly?  Maybe we should unify this and make it work
-like the other architectures.
+Thanks for your patch!
 
-With "uaccess: add generic __{get,put}_kernel_nofault" we should be able
-to remove HAVE_GET_KERNEL_NOFAULT entirely and just check if the helpers
-are already defined in linux/uaccess.h.
+> -       select ARCH_HAS_VM_GET_PAGE_PROT
 
-The new generic __access_ok, and the 3 fixed up version early on
-have a whole lot of superflous braces.
+So before, all architectures selected ARCH_HAS_VM_GET_PAGE_PROT...
+
+> --- a/mm/mmap.c
+> +++ b/mm/mmap.c
+> @@ -81,7 +81,6 @@ static void unmap_region(struct mm_struct *mm,
+>                 struct vm_area_struct *vma, struct vm_area_struct *prev,
+>                 unsigned long start, unsigned long end);
+>
+> -#ifndef CONFIG_ARCH_HAS_VM_GET_PAGE_PROT
+
+... hence the block below was not included.
+
+>  /* description of effects of mapping type and prot in current implementation.
+>   * this is due to the limited x86 page protection hardware.  The expected
+>   * behavior is in parens:
+> @@ -102,8 +101,6 @@ static void unmap_region(struct mm_struct *mm,
+>   *                                                             w: (no) no
+>   *                                                             x: (yes) yes
+>   */
+> -#endif /* CONFIG_ARCH_HAS_VM_GET_PAGE_PROT */
+> -
+
+So shouldn't the whole block be removed instead?
+Do I need more coffee??
+
+>  static pgprot_t vm_pgprot_modify(pgprot_t oldprot, unsigned long vm_flags)
+>  {
+>         return pgprot_modify(oldprot, vm_get_page_prot(vm_flags));
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
