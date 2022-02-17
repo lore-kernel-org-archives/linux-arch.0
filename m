@@ -2,51 +2,51 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4776EC4332F
-	for <linux-arch@archiver.kernel.org>; Thu, 17 Feb 2022 18:50:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 190EFC433F5
+	for <linux-arch@archiver.kernel.org>; Thu, 17 Feb 2022 18:50:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S244672AbiBQSub (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 17 Feb 2022 13:50:31 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:45692 "EHLO
+        id S244676AbiBQSud (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 17 Feb 2022 13:50:33 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:45656 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S244661AbiBQSu0 (ORCPT
+        with ESMTP id S244656AbiBQSu0 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2022 13:50:26 -0500
-Received: from mail-ej1-x62f.google.com (mail-ej1-x62f.google.com [IPv6:2a00:1450:4864:20::62f])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 33797532E8;
-        Thu, 17 Feb 2022 10:50:10 -0800 (PST)
-Received: by mail-ej1-x62f.google.com with SMTP id hw13so9371183ejc.9;
-        Thu, 17 Feb 2022 10:50:10 -0800 (PST)
+Received: from mail-ej1-x632.google.com (mail-ej1-x632.google.com [IPv6:2a00:1450:4864:20::632])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 266D1532E3;
+        Thu, 17 Feb 2022 10:50:08 -0800 (PST)
+Received: by mail-ej1-x632.google.com with SMTP id hw13so9370984ejc.9;
+        Thu, 17 Feb 2022 10:50:08 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20210112;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=9GeIjFGNQlPHjVyxQ9p3WniDxYBdTULWXBibB0Q7WqU=;
-        b=AT/d0bDaXwtZUv7jKZa/T/kHh8PiMCYDol1M3oUDLpiPOrdMfuKNcAaeyYOM4FOEDf
-         GUPNBXssMOCFu7E1YMimiFFyCBECoRonkTXSm0OEjHiSAq00kFr7fuQgpWsdVWM6bqAj
-         pDty8X5XIYiHt1VIXXkhq5giWimZ6IG71n9/9Fn/42JUXQIBj1vJ5R023OqxSadstq/2
-         NfwdgdIq2mFCEWH6AnX0S1rr9PS3Fk5FNJ42bjX9ahNZct4ir37/PSwXnYaAomg6hDjI
-         2/5s5iNRIbn4btEc2OhD4CmzrblK0tf/jxPq+vK2saGrpMUCPr9fWmIVNy+7u3YVHKQr
-         SlVQ==
+        bh=FpBWiiaR04aEkFVsFIobErPGGU69qIWZRAZ0zLpDwAk=;
+        b=c2asecRRx+vL9d/KAaw+7Qk8bKQr682XQKiP5ncBROE8yBceEkrg0vF+KZLEYtf+pX
+         48yxCW7KEp60jqF3eLYktmaWDbJJWD95L2rkthySbEBpvfi1kfKxXAfK8jqMd8d3Vu12
+         2B8E4S5QY9CT2EAc0EIXFSqZWiqkeN7ySwzW8EuBtyQh3/xeRTgWs+/etLtCKQWvgZ/+
+         Hfn4wDSW4QsCU8X2IfzlBqaCUq+B+Y/L4MzXxcQfqhYoQuGk0gxYPnIJOIZ3FNd9KGWE
+         LtEswyev4pT+5dHSMcW3T0dT7zsjsAzP3T4SAfXdnVi2dVVB77Yyn+F8O5dYZgUnqILe
+         IpDw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=9GeIjFGNQlPHjVyxQ9p3WniDxYBdTULWXBibB0Q7WqU=;
-        b=lGTvUoaxv3Zwrz0FtPf8IgHoy/iHXAFx+KFrvMWFppF9amoL+/v6iTOjUjgXl+bdNM
-         /zeWgI9AMLFEL07R8yx5x2WJjL0WEk9YcuAObdJCXxJxcoJ2iSRUFwlqdnOGRtDdzBIm
-         NibDDeDBmkHsRBGYHrzPeEeam3km5b86pXPCFmO8BMK7ZZl71VbErIZAVL+gGz/yGPMr
-         a6UMLrpOOvIC7rhU30VlnxQn72OJlZkTq5dmOZWbfF2GxlYCSVpYKri0TVuuEIHwJgWp
-         7XWgj0VFXqBYoR46Ld2eZdhT2UAMhcI6iGAJuS7Wf1Z2Bi+MVMbXPFMpXlc4u29Flsyg
-         gJSQ==
-X-Gm-Message-State: AOAM5327cEnJ3tJx4QvUcM4+9G8khdhoCJvk4Db/0bel7B494IDIAlxp
-        VeNPBX3Ir6i2KAT0XmhQ154=
-X-Google-Smtp-Source: ABdhPJzEhaB0/+2MD0xixooNGABMXJOaaCXHVRbquvgJgqLFVkWEcuyfSRGuWC3n9nrrnkE4qcxY1g==
-X-Received: by 2002:a17:906:805:b0:6ce:41a8:113 with SMTP id e5-20020a170906080500b006ce41a80113mr3507086ejd.366.1645123808806;
-        Thu, 17 Feb 2022 10:50:08 -0800 (PST)
+        bh=FpBWiiaR04aEkFVsFIobErPGGU69qIWZRAZ0zLpDwAk=;
+        b=tORuIJ3pxf9q14Xj8tVi3bdLhV113jC5rngIKXoQ9JwkptKI9abO+Tsz+0jFmlt7vm
+         j3t09bQu1REak2V1JmW5JfIJfFK2bntaTVBZTeyQiiB5MLwq/inTMtZq4BldbqFmD1rf
+         IgoLJ7JpsYKLvsvAa8up5yCKItgxQgQ4/mxzlozwpF17PnwPEuzC6F1iEsju8vEFqh8j
+         ZwWfdTX7Sp/jW5a5PsSOmg59v82w3t+Huqh6RXec1/dVLZe255WRxml749LckDBuDKZE
+         g+ki82JHm5QjtU7xHYze1lDN3N7fg7Cof3pXl+wrgN5aIYu4Os198rPNgi0XRxIo9ht+
+         6gHQ==
+X-Gm-Message-State: AOAM531pbyKExd0CM07tet4UTGR7qCn5L3efatm3Jz7gsKCCl4/gafKo
+        oBGzKPjhujA4PqJt706ILRY=
+X-Google-Smtp-Source: ABdhPJw7pGHg63Wd6YbBVyy9xUXridLW6IguhuGjOhd6bVObozVss8jPIV3gNzSSkSPXYpbSgDgcqg==
+X-Received: by 2002:a17:906:3bcb:b0:6cf:cf86:28d7 with SMTP id v11-20020a1709063bcb00b006cfcf8628d7mr3441587ejf.274.1645123806736;
+        Thu, 17 Feb 2022 10:50:06 -0800 (PST)
 Received: from localhost.localdomain (dhcp-077-250-038-153.chello.nl. [77.250.38.153])
-        by smtp.googlemail.com with ESMTPSA id q7sm3493268edv.93.2022.02.17.10.50.07
+        by smtp.googlemail.com with ESMTPSA id q7sm3493268edv.93.2022.02.17.10.50.05
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 17 Feb 2022 10:50:08 -0800 (PST)
+        Thu, 17 Feb 2022 10:50:06 -0800 (PST)
 From:   Jakob Koschel <jakobkoschel@gmail.com>
 To:     Linus Torvalds <torvalds@linux-foundation.org>,
         linux-kernel@vger.kernel.org
@@ -62,9 +62,9 @@ Cc:     linux-arch@vger.kernel.org,
         Brian Johannesmeyer <bjohannesmeyer@gmail.com>,
         Cristiano Giuffrida <c.giuffrida@vu.nl>,
         "Bos, H.J." <h.j.bos@vu.nl>, Jakob Koschel <jakobkoschel@gmail.com>
-Subject: [RFC PATCH 11/13] ath6kl: remove use of list iterator after the loop
-Date:   Thu, 17 Feb 2022 19:48:27 +0100
-Message-Id: <20220217184829.1991035-12-jakobkoschel@gmail.com>
+Subject: [RFC PATCH 09/13] drbd: future proof usage of list iterator after the loop
+Date:   Thu, 17 Feb 2022 19:48:25 +0100
+Message-Id: <20220217184829.1991035-10-jakobkoschel@gmail.com>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20220217184829.1991035-1-jakobkoschel@gmail.com>
 References: <20220217184829.1991035-1-jakobkoschel@gmail.com>
@@ -74,27 +74,28 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Since the list iteration cannot abort early, cur_ep_dist->list will
-always reference to ep_list and can therefore be replaced.
+With the speculative safe version of the list iterator req will be NULL
+if the terminating condition was hit and needs to be reset to req
+derived from the head, before calling list_for_each_entry_safe_from().
 
 Signed-off-by: Jakob Koschel <jakobkoschel@gmail.com>
 ---
- drivers/net/wireless/ath/ath6kl/htc_mbox.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/block/drbd/drbd_main.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/drivers/net/wireless/ath/ath6kl/htc_mbox.c b/drivers/net/wireless/ath/ath6kl/htc_mbox.c
-index e3874421c4c0..cf5b05860799 100644
---- a/drivers/net/wireless/ath/ath6kl/htc_mbox.c
-+++ b/drivers/net/wireless/ath/ath6kl/htc_mbox.c
-@@ -104,7 +104,7 @@ static void ath6kl_credit_init(struct ath6kl_htc_credit_info *cred_info,
- 	 * it use list_for_each_entry_reverse to walk around the whole ep list.
- 	 * Therefore assign this lowestpri_ep_dist after walk around the ep_list
- 	 */
--	cred_info->lowestpri_ep_dist = cur_ep_dist->list;
-+	cred_info->lowestpri_ep_dist = *ep_list;
- 
- 	WARN_ON(cred_info->cur_free_credits <= 0);
- 
+diff --git a/drivers/block/drbd/drbd_main.c b/drivers/block/drbd/drbd_main.c
+index 6f450816c4fa..d98205b46f59 100644
+--- a/drivers/block/drbd/drbd_main.c
++++ b/drivers/block/drbd/drbd_main.c
+@@ -227,6 +227,8 @@ void tl_release(struct drbd_connection *connection, unsigned int barrier_nr,
+ 	list_for_each_entry(req, &connection->transfer_log, tl_requests)
+ 		if (req->epoch == expect_epoch)
+ 			break;
++	if (!req)
++		req = list_entry(req, &connection->transfer_log, tl_requests);
+ 	list_for_each_entry_safe_from(req, r, &connection->transfer_log, tl_requests) {
+ 		if (req->epoch != expect_epoch)
+ 			break;
 -- 
 2.25.1
 
