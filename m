@@ -2,113 +2,129 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 83E5AC433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 17 Feb 2022 19:15:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 603C1C433EF
+	for <linux-arch@archiver.kernel.org>; Thu, 17 Feb 2022 19:29:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S245078AbiBQTPk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 17 Feb 2022 14:15:40 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:36226 "EHLO
+        id S245183AbiBQT3c (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 17 Feb 2022 14:29:32 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:48380 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S245024AbiBQTPj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2022 14:15:39 -0500
-Received: from mail-ej1-x62d.google.com (mail-ej1-x62d.google.com [IPv6:2a00:1450:4864:20::62d])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2F3B890265
-        for <linux-arch@vger.kernel.org>; Thu, 17 Feb 2022 11:15:24 -0800 (PST)
-Received: by mail-ej1-x62d.google.com with SMTP id lw4so9517540ejb.12
-        for <linux-arch@vger.kernel.org>; Thu, 17 Feb 2022 11:15:24 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=amacapital-net.20210112.gappssmtp.com; s=20210112;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=+RZ8CAgnGa1bk5gBxds4oezzFjZLQMV+wOvrmesI1Hw=;
-        b=aC4vKGs+W+TwIvfSuol31sXb0DdwmBd+7ynpizLCKhXxCJFdEAZpxJvcWGa/FztIyE
-         kaM//DxAJXCDh5aNx4GSOgCqArnp/pPXpeZOwL6NCOz09LePB9aHf9rLmhVNdEQhmOfG
-         zcHXwBp2FYlRXI6tXnhZ/KCBgXws1BhNZED9tFrHvUNz3V476fnXQSLMeM+Shpqaev6m
-         W07DvhrokY4sorGqrqwhi0S/cnzs7UTqO0cIGR6WWEAN8VmZadQ9VO/+zsTblOwHPeWg
-         SsUN3Cw66rH7ga20AFYG5KTR6BdWsnByVkv9VANJJ9bhC1jZcqQ2NhN41BgDZLcdhMyk
-         TY3g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=+RZ8CAgnGa1bk5gBxds4oezzFjZLQMV+wOvrmesI1Hw=;
-        b=oZ0Yj+wgYatXfeNfJtHVzL4FykFCdccNlmfI/uFgC4MwkCVTXp9QWq99Y0dMuDNkT9
-         MW4RNrS6QKh0CiNCCeGmei/NCo4QzZrO1Q3H2qUOn4LO80mVi3pqmOuLjZpP69hHhOHG
-         6M18+pxImnGUqip0USWgsBLCh0Fbl6gxYBMkopgrE3jSCjJDs5KYSRdVz5er8Vh43XbJ
-         RAKExeuCAewkTHh2pcMXICxM6vpI4C/kQuhB9cPmiwZI/OJGxM1gjzeeelDcbUuFZTt0
-         n482x3zGYlIWV+KxUtTlQvzLPyvQDyS9e2f0QgRzjEjFTXF0xMH0AKNvSFXD4zF3pOyC
-         lHng==
-X-Gm-Message-State: AOAM533QWpDN4cSn8zqyLx+jaTXuMni9OhjPNVcP+3bHxvRlWx93E3Ch
-        ssvBt3hDr5AUVRTYteTG+9sR6U55bxNGFP5F4x6jhg==
-X-Google-Smtp-Source: ABdhPJw48Oadf8QR2zY/o5TdRU0UiMjXS1n08+Rvo/jef0cepMooOXBMnDr3m4SH0a9wsDyMLo89s3cuvktj12QRONA=
-X-Received: by 2002:a17:906:4b52:b0:6cd:3863:b35e with SMTP id
- j18-20020a1709064b5200b006cd3863b35emr3488094ejv.415.1645125322737; Thu, 17
- Feb 2022 11:15:22 -0800 (PST)
-MIME-Version: 1.0
-References: <20220216131332.1489939-1-arnd@kernel.org> <20220216131332.1489939-14-arnd@kernel.org>
-In-Reply-To: <20220216131332.1489939-14-arnd@kernel.org>
-From:   Andy Lutomirski <luto@amacapital.net>
-Date:   Thu, 17 Feb 2022 11:15:11 -0800
-Message-ID: <CALCETrVOvYPN4_6hS8wpm2v9bGZupZ5x4=vZAseG57OUgvLGfw@mail.gmail.com>
-Subject: Re: [PATCH v2 13/18] uaccess: generalize access_ok()
-To:     Arnd Bergmann <arnd@kernel.org>
+        with ESMTP id S232139AbiBQT3c (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2022 14:29:32 -0500
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3D3DE129BB2;
+        Thu, 17 Feb 2022 11:29:17 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id CD70A61CFC;
+        Thu, 17 Feb 2022 19:29:16 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id A37C5C340E8;
+        Thu, 17 Feb 2022 19:29:15 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
+        s=korg; t=1645126156;
+        bh=kHigbTssltdpECsVACXjUmCjoYc8nJe1TohCmnF/uDk=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=O0uHw0H9e1BKIXKJ2/u7FYUc5Y24CS+0asyxuvN2f7vHivb+GQMOmznT82N8OROTl
+         ciHE8TSSR3HCcxH1cGTveCtkMFi00xnkQIuCZGRvpvN4TDSGie2q4rtWDyUu6b8fyb
+         CpZGKfeAyYH2IRlf3sjYb6ycq76erMuPHJklVVz4=
+Date:   Thu, 17 Feb 2022 20:29:13 +0100
+From:   Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+To:     Jakob Koschel <jakobkoschel@gmail.com>
 Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, linux-api@vger.kernel.org, arnd@arndb.de,
-        linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk,
-        linux@armlinux.org.uk, will@kernel.org, guoren@kernel.org,
-        bcain@codeaurora.org, geert@linux-m68k.org, monstr@monstr.eu,
-        tsbogend@alpha.franken.de, nickhu@andestech.com,
-        green.hu@gmail.com, dinguyen@kernel.org, shorne@gmail.com,
-        deller@gmx.de, mpe@ellerman.id.au, peterz@infradead.org,
-        mingo@redhat.com, mark.rutland@arm.com, hca@linux.ibm.com,
-        dalias@libc.org, davem@davemloft.net, richard@nod.at,
-        x86@kernel.org, jcmvbkbc@gmail.com, ebiederm@xmission.com,
-        akpm@linux-foundation.org, ardb@kernel.org,
-        linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org,
-        linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org,
-        linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
-        linux-mips@vger.kernel.org, openrisc@lists.librecores.org,
-        linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
-        linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
-        linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org
-Content-Type: text/plain; charset="UTF-8"
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Arnd Bergman <arnd@arndb.de>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Kees Cook <keescook@chromium.org>,
+        Mike Rapoport <rppt@kernel.org>,
+        "Gustavo A. R. Silva" <gustavo@embeddedor.com>,
+        Brian Johannesmeyer <bjohannesmeyer@gmail.com>,
+        Cristiano Giuffrida <c.giuffrida@vu.nl>,
+        "Bos, H.J." <h.j.bos@vu.nl>
+Subject: Re: [RFC PATCH 01/13] list: introduce speculative safe
+ list_for_each_entry()
+Message-ID: <Yg6iCS0XZB6EtMP7@kroah.com>
+References: <20220217184829.1991035-1-jakobkoschel@gmail.com>
+ <20220217184829.1991035-2-jakobkoschel@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20220217184829.1991035-2-jakobkoschel@gmail.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Feb 16, 2022 at 5:19 AM Arnd Bergmann <arnd@kernel.org> wrote:
->
-> From: Arnd Bergmann <arnd@arndb.de>
->
-> There are many different ways that access_ok() is defined across
-> architectures, but in the end, they all just compare against the
-> user_addr_max() value or they accept anything.
->
-> Provide one definition that works for most architectures, checking
-> against TASK_SIZE_MAX for user processes or skipping the check inside
-> of uaccess_kernel() sections.
->
-> For architectures without CONFIG_SET_FS(), this should be the fastest
-> check, as it comes down to a single comparison of a pointer against a
-> compile-time constant, while the architecture specific versions tend to
-> do something more complex for historic reasons or get something wrong.
+On Thu, Feb 17, 2022 at 07:48:17PM +0100, Jakob Koschel wrote:
+> list_for_each_entry() selects either the correct value (pos) or a safe
+> value for the additional mispredicted iteration (NULL) for the list
+> iterator.
+> list_for_each_entry() calls select_nospec(), which performs
+> a branch-less select.
+> 
+> On x86, this select is performed via a cmov. Otherwise, it's performed
+> via various shift/mask/etc. operations.
+> 
+> Kasper Acknowledgements: Jakob Koschel, Brian Johannesmeyer, Kaveh
+> Razavi, Herbert Bos, Cristiano Giuffrida from the VUSec group at VU
+> Amsterdam.
+> 
+> Co-developed-by: Brian Johannesmeyer <bjohannesmeyer@gmail.com>
+> Signed-off-by: Brian Johannesmeyer <bjohannesmeyer@gmail.com>
+> Signed-off-by: Jakob Koschel <jakobkoschel@gmail.com>
+> ---
+>  arch/x86/include/asm/barrier.h | 12 ++++++++++++
+>  include/linux/list.h           |  3 ++-
+>  include/linux/nospec.h         | 16 ++++++++++++++++
+>  3 files changed, 30 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+> index 35389b2af88e..722797ad74e2 100644
+> --- a/arch/x86/include/asm/barrier.h
+> +++ b/arch/x86/include/asm/barrier.h
+> @@ -48,6 +48,18 @@ static inline unsigned long array_index_mask_nospec(unsigned long index,
+>  /* Override the default implementation from linux/nospec.h. */
+>  #define array_index_mask_nospec array_index_mask_nospec
+>  
+> +/* Override the default implementation from linux/nospec.h. */
+> +#define select_nospec(cond, exptrue, expfalse)				\
+> +({									\
+> +	typeof(exptrue) _out = (exptrue);				\
+> +									\
+> +	asm volatile("test %1, %1\n\t"					\
+> +	    "cmove %2, %0"						\
+> +	    : "+r" (_out)						\
+> +	    : "r" (cond), "r" (expfalse));				\
+> +	_out;								\
+> +})
+> +
+>  /* Prevent speculative execution past this barrier. */
+>  #define barrier_nospec() alternative("", "lfence", X86_FEATURE_LFENCE_RDTSC)
+>  
+> diff --git a/include/linux/list.h b/include/linux/list.h
+> index dd6c2041d09c..1a1b39fdd122 100644
+> --- a/include/linux/list.h
+> +++ b/include/linux/list.h
+> @@ -636,7 +636,8 @@ static inline void list_splice_tail_init(struct list_head *list,
+>   */
+>  #define list_for_each_entry(pos, head, member)				\
+>  	for (pos = list_first_entry(head, typeof(*pos), member);	\
+> -	     !list_entry_is_head(pos, head, member);			\
+> +	    ({ bool _cond = !list_entry_is_head(pos, head, member);	\
+> +	     pos = select_nospec(_cond, pos, NULL); _cond; }); \
+>  	     pos = list_next_entry(pos, member))
+>  
 
-This isn't actually optimal.  On x86, TASK_SIZE_MAX is a bizarre
-constant that has a very specific value to work around a bug^Wdesign
-error^Wfeature of Intel CPUs.  TASK_SIZE_MAX is the maximum address at
-which userspace is permitted to allocate memory, but there is a huge
-gap between user and kernel addresses, and any value in the gap would
-be adequate for the comparison.  If we wanted to optimize this, simply
-checking the high bit (which x86 can do without any immediate
-constants at all) would be sufficient and, for an access known to fit
-in 32 bits, one could get even fancier and completely ignore the size
-of the access.  (For accesses not known to fit in 32 bits, I suspect
-some creativity could still come up with a construction that's
-substantially faster than the one in your patch.)
+You are not "introducing" a new macro for this, you are modifying the
+existing one such that all users of it now have the select_nospec() call
+in it.
 
-So there's plenty of room for optimization here.
+Is that intentional?  This is going to hit a _lot_ of existing entries
+that probably do not need it at all.
 
-(This is not in any respect a NAK -- it's just an observation that
-this could be even better.)
+Why not just create list_for_each_entry_nospec()?
+
+thanks,
+
+greg k-h
