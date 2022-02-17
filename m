@@ -2,51 +2,51 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7E0F6C433FE
-	for <linux-arch@archiver.kernel.org>; Thu, 17 Feb 2022 18:50:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 847D7C433F5
+	for <linux-arch@archiver.kernel.org>; Thu, 17 Feb 2022 18:50:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S244668AbiBQSu3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 17 Feb 2022 13:50:29 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:45658 "EHLO
+        id S244670AbiBQSub (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 17 Feb 2022 13:50:31 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:45660 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S244657AbiBQSu0 (ORCPT
+        with ESMTP id S244659AbiBQSu0 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2022 13:50:26 -0500
-Received: from mail-ej1-x634.google.com (mail-ej1-x634.google.com [IPv6:2a00:1450:4864:20::634])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3A714532DC;
-        Thu, 17 Feb 2022 10:50:07 -0800 (PST)
-Received: by mail-ej1-x634.google.com with SMTP id bg10so9440255ejb.4;
-        Thu, 17 Feb 2022 10:50:07 -0800 (PST)
+Received: from mail-ed1-x52d.google.com (mail-ed1-x52d.google.com [IPv6:2a00:1450:4864:20::52d])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 10BA2532E5;
+        Thu, 17 Feb 2022 10:50:09 -0800 (PST)
+Received: by mail-ed1-x52d.google.com with SMTP id z22so11335916edd.1;
+        Thu, 17 Feb 2022 10:50:08 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20210112;
         h=from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=0f0QJvPY6l0YYLP/JaHLlRhitBBVJpxHfsxb6a5gC7w=;
-        b=NOHnBOOXAe/1NOKIQEtHf1BD/jt26baU7KPvJ3ZJu0lACzvjtWpWH0bHsrMSFrMiG4
-         fbsIYo888fQ1/DhUvWC4j4rq17q3qLHPiZH8GljDv9JANH/ilWYaaKyjm+ySqwluPLHO
-         ycesZ4+dZL1mP39QZkzjg22+FQtYM+/WEG71sWfD3bLEwjDThIvdGADqEnV50FVzYDXB
-         t6pFv+LYM07FfktZxJQIMr0tpsLM5HsZCIBpwyg7u7T5t+qA6zrvHtU4Fa+ur+Anf14n
-         6NpdYq57CtPS5KKpw5dVGov8WfN+u2ZVvY9VjVWEvIb7fWIOjk3hj0MWQblEhoHzT9yl
-         wNHg==
+        bh=/E7vDJlr3ShCmm14rXXbmLyiW36foVXBUCP88CYbZEQ=;
+        b=UZNPaJbQTUyjcPbr/PNBbpLXQRT7b7gb4jnh8EQAYcDSaxNcnhmHXvL8dFXa4HwFff
+         ZBW0wACsTlHyQ5wWSmgJ8NQFgE5BWKRMrVIO+2Pt7/v71HX2bJUwn/ThGTRtJRQHdq8b
+         1CXkbmgbaAqofVAMOW6tWeegzhzQWbcwr/6PAhz4+hoaT4+ZNlG+l3+M2wVNdBZP+yxJ
+         EPKctpk/bEedKWCtPMie0yZpg3BEuwbXeUSp+anEzwJcDIs5yfUJlRgncigJx+4Hvwvj
+         Hdf6JRkQMBsA8wZmeLAYbs1SdpbRoq57z/xUVZA3zyOh3BM/9cPhu72bRO+3bwX8a0+h
+         Xu3w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
          :references:mime-version:content-transfer-encoding;
-        bh=0f0QJvPY6l0YYLP/JaHLlRhitBBVJpxHfsxb6a5gC7w=;
-        b=duq8XzKXq1ywrdUaSHoTlph8PgdwqWPkbQ7Wfew+O8zSj4NEajZAQukeC3uPlB7XFV
-         fCW0kNOKdpEe7gQSkO7ZexaYnt9KQnid54I2ni1UtRyT/VN6fEH9cWAkrNuLt3ViKOSf
-         unK73Od5Sb82lo94b0uqEYie8yaBgOjeulqoXle3YtBOArgwf7jas1BUDTze+RhgYzud
-         hrOkTsL8/oZ0WyDtci0ymmVyo9akyCgYFSx85HC+tfpzwW2AAHcNWyoYThn1hQC9iM//
-         QE5fajwovhHg294u9AYmmEdcePXsLs733V43tzPli/m/lIOSqMOq4UkyWM0i9HjnV992
-         WHGw==
-X-Gm-Message-State: AOAM531zQCLajO7cAQU1uk/hdOzhH26iwGs9s9V0WjMpqj1sV7VnP+Q/
-        EkHpYR3UODzsw/ZY1RASYek=
-X-Google-Smtp-Source: ABdhPJxjICCO3Vhtu+h5/lwmu13mORMlDwV7qSQHPyl3AlJ7a6Vo6Bk6htNd9lAOcvIdXee4sR6crQ==
-X-Received: by 2002:a17:906:eb4a:b0:6cf:bb0e:69fb with SMTP id mc10-20020a170906eb4a00b006cfbb0e69fbmr3501911ejb.149.1645123805842;
-        Thu, 17 Feb 2022 10:50:05 -0800 (PST)
+        bh=/E7vDJlr3ShCmm14rXXbmLyiW36foVXBUCP88CYbZEQ=;
+        b=sFsDuocLH5gct/BUFdeHOd28HsemhTgH6PEQDXRNnR8FJaAf8/nZ1ZCsNz4Q/b76m4
+         r+XRFzxWxMdm4l9XrOX8aJsnbPoEakH2QBE0Yb9k9Kua4XRpjPWM2RCd+9YYopOzh3Yd
+         LLjmYC6NtCLfLJGemUmsNDaIOBw/YOVEe06kPeVtCooSECGzM6g+eyLjXKl3amG1dAmq
+         ntXHap80y1UIDxjHR3KQ/xh+HHKDmslcYDIC5RwQrBiWRCNjpAFfzzvBeEqaAcOFzTkM
+         viOvMmBmYXR11ccTuYLTKrjtgzHBAf69pBjEtnHfbul8b5ZLWrJ8c55hsTQCc4AvHm9I
+         DVlw==
+X-Gm-Message-State: AOAM532d7r7sM3ISFLGLOgg7U/MX6fNW6kugBPrdqIasGXmeaO1ywLxg
+        1TaOqWRbX5pv4N/A4KwMv6SsCEsj8SiRxEgC3GJMoQ==
+X-Google-Smtp-Source: ABdhPJwohka0Px+31wNalaj/bE14nYoTr+UZeDUWbd8NMqNlF11xv6t6hTAYV4SuzQfXhziq5TgK/g==
+X-Received: by 2002:aa7:cc12:0:b0:410:cb7b:a9ba with SMTP id q18-20020aa7cc12000000b00410cb7ba9bamr4125709edt.196.1645123807668;
+        Thu, 17 Feb 2022 10:50:07 -0800 (PST)
 Received: from localhost.localdomain (dhcp-077-250-038-153.chello.nl. [77.250.38.153])
-        by smtp.googlemail.com with ESMTPSA id q7sm3493268edv.93.2022.02.17.10.50.05
+        by smtp.googlemail.com with ESMTPSA id q7sm3493268edv.93.2022.02.17.10.50.06
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 17 Feb 2022 10:50:05 -0800 (PST)
+        Thu, 17 Feb 2022 10:50:07 -0800 (PST)
 From:   Jakob Koschel <jakobkoschel@gmail.com>
 To:     Linus Torvalds <torvalds@linux-foundation.org>,
         linux-kernel@vger.kernel.org
@@ -62,9 +62,9 @@ Cc:     linux-arch@vger.kernel.org,
         Brian Johannesmeyer <bjohannesmeyer@gmail.com>,
         Cristiano Giuffrida <c.giuffrida@vu.nl>,
         "Bos, H.J." <h.j.bos@vu.nl>, Jakob Koschel <jakobkoschel@gmail.com>
-Subject: [RFC PATCH 08/13] net: dsa: future proof usage of list iterator after the loop
-Date:   Thu, 17 Feb 2022 19:48:24 +0100
-Message-Id: <20220217184829.1991035-9-jakobkoschel@gmail.com>
+Subject: [RFC PATCH 10/13] powerpc/spufs: future proof usage of list iterator after the loop
+Date:   Thu, 17 Feb 2022 19:48:26 +0100
+Message-Id: <20220217184829.1991035-11-jakobkoschel@gmail.com>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20220217184829.1991035-1-jakobkoschel@gmail.com>
 References: <20220217184829.1991035-1-jakobkoschel@gmail.com>
@@ -74,27 +74,27 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-With the speculative safe version of the list iterator p will be NULL if
-the terminating condition was hit and needs to be reset to p derived
-from the head, before using p->list.
+With the speculative safe version of the list iterator spu will be NULL
+if the terminating condition was hit and needs to be reset to spu
+derived from the head, before returning spu.
 
 Signed-off-by: Jakob Koschel <jakobkoschel@gmail.com>
 ---
- drivers/net/dsa/sja1105/sja1105_vl.c | 2 ++
+ arch/powerpc/platforms/cell/spufs/sched.c | 2 ++
  1 file changed, 2 insertions(+)
 
-diff --git a/drivers/net/dsa/sja1105/sja1105_vl.c b/drivers/net/dsa/sja1105/sja1105_vl.c
-index f5dca6a9b0f9..a4f2b95b09c4 100644
---- a/drivers/net/dsa/sja1105/sja1105_vl.c
-+++ b/drivers/net/dsa/sja1105/sja1105_vl.c
-@@ -40,6 +40,8 @@ static int sja1105_insert_gate_entry(struct sja1105_gating_config *gating_cfg,
- 			if (e->interval < p->interval)
- 				break;
+diff --git a/arch/powerpc/platforms/cell/spufs/sched.c b/arch/powerpc/platforms/cell/spufs/sched.c
+index 369206489895..5b2afda1653d 100644
+--- a/arch/powerpc/platforms/cell/spufs/sched.c
++++ b/arch/powerpc/platforms/cell/spufs/sched.c
+@@ -384,6 +384,8 @@ static struct spu *ctx_location(struct spu *ref, int offset, int node)
  		}
-+		if (!p)
-+			p = list_entry(p, &gating_cfg->entries, list);
- 		list_add(&e->list, p->list.prev);
  	}
+ 
++	if (!spu)
++		spu = list_entry(spu, ref->aff_list.prev, aff_list);
+ 	return spu;
+ }
  
 -- 
 2.25.1
