@@ -2,33 +2,33 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C0192C4332F
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Feb 2022 06:41:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 14FB3C433EF
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Feb 2022 06:41:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1345484AbiBUGlf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 21 Feb 2022 01:41:35 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:42222 "EHLO
+        id S1345456AbiBUGli (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 21 Feb 2022 01:41:38 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:42294 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1345495AbiBUGlX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Feb 2022 01:41:23 -0500
+        with ESMTP id S1345402AbiBUGl2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Feb 2022 01:41:28 -0500
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 5E6B32A721;
-        Sun, 20 Feb 2022 22:40:11 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 0B236275DE;
+        Sun, 20 Feb 2022 22:40:24 -0800 (PST)
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 2556D1509;
-        Sun, 20 Feb 2022 22:40:11 -0800 (PST)
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id CE150150C;
+        Sun, 20 Feb 2022 22:40:23 -0800 (PST)
 Received: from p8cg001049571a15.arm.com (unknown [10.163.49.67])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id 8AFA53F70D;
-        Sun, 20 Feb 2022 22:40:08 -0800 (PST)
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id 8CE873F70D;
+        Sun, 20 Feb 2022 22:40:21 -0800 (PST)
 From:   Anshuman Khandual <anshuman.khandual@arm.com>
 To:     linux-mm@kvack.org, akpm@linux-foundation.org
 Cc:     linux-kernel@vger.kernel.org,
         Anshuman Khandual <anshuman.khandual@arm.com>,
         Christoph Hellwig <hch@infradead.org>,
-        linux-arch@vger.kernel.org, Dinh Nguyen <dinguyen@kernel.org>
-Subject: [PATCH V2 25/30] nios2/mm: Enable ARCH_HAS_VM_GET_PAGE_PROT
-Date:   Mon, 21 Feb 2022 12:08:34 +0530
-Message-Id: <1645425519-9034-26-git-send-email-anshuman.khandual@arm.com>
+        linux-arch@vger.kernel.org
+Subject: [PATCH V2 29/30] mm/mmap: Drop generic vm_get_page_prot()
+Date:   Mon, 21 Feb 2022 12:08:38 +0530
+Message-Id: <1645425519-9034-30-git-send-email-anshuman.khandual@arm.com>
 X-Mailer: git-send-email 2.7.4
 In-Reply-To: <1645425519-9034-1-git-send-email-anshuman.khandual@arm.com>
 References: <1645425519-9034-1-git-send-email-anshuman.khandual@arm.com>
@@ -36,114 +36,69 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This defines and exports a platform specific custom vm_get_page_prot() via
-subscribing ARCH_HAS_VM_GET_PAGE_PROT. Subsequently all __SXXX and __PXXX
-macros can be dropped which are no longer needed.
+All available platforms export their own vm_get_page_prot() implementation
+via ARCH_HAS_VM_GET_PAGE_PROT. Hence a generic implementation is no longer
+needed.
 
-Cc: Dinh Nguyen <dinguyen@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-mm@kvack.org
 Cc: linux-kernel@vger.kernel.org
 Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
-Acked-by: Dinh Nguyen <dinguyen@kernel.org>
 ---
- arch/nios2/Kconfig               |  1 +
- arch/nios2/include/asm/pgtable.h | 16 ------------
- arch/nios2/mm/init.c             | 45 ++++++++++++++++++++++++++++++++
- 3 files changed, 46 insertions(+), 16 deletions(-)
+ mm/mmap.c | 40 ----------------------------------------
+ 1 file changed, 40 deletions(-)
 
-diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
-index 33fd06f5fa41..85a58a357a3b 100644
---- a/arch/nios2/Kconfig
-+++ b/arch/nios2/Kconfig
-@@ -6,6 +6,7 @@ config NIOS2
- 	select ARCH_HAS_SYNC_DMA_FOR_CPU
- 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
- 	select ARCH_HAS_DMA_SET_UNCACHED
-+	select ARCH_HAS_VM_GET_PAGE_PROT
- 	select ARCH_NO_SWAP
- 	select COMMON_CLK
- 	select TIMER_OF
-diff --git a/arch/nios2/include/asm/pgtable.h b/arch/nios2/include/asm/pgtable.h
-index 4a995fa628ee..2678dad58a63 100644
---- a/arch/nios2/include/asm/pgtable.h
-+++ b/arch/nios2/include/asm/pgtable.h
-@@ -40,24 +40,8 @@ struct mm_struct;
+diff --git a/mm/mmap.c b/mm/mmap.c
+index 2fc597cf8b8d..368bc8aee45b 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -102,46 +102,6 @@ static void unmap_region(struct mm_struct *mm,
+  *								w: (no) no
+  *								x: (yes) yes
   */
+-pgprot_t vm_get_page_prot(unsigned long vm_flags)
+-{
+-	switch (vm_flags & (VM_READ | VM_WRITE | VM_EXEC | VM_SHARED)) {
+-	case VM_NONE:
+-		return __P000;
+-	case VM_READ:
+-		return __P001;
+-	case VM_WRITE:
+-		return __P010;
+-	case VM_READ | VM_WRITE:
+-		return __P011;
+-	case VM_EXEC:
+-		return __P100;
+-	case VM_EXEC | VM_READ:
+-		return __P101;
+-	case VM_EXEC | VM_WRITE:
+-		return __P110;
+-	case VM_EXEC | VM_READ | VM_WRITE:
+-		return __P111;
+-	case VM_SHARED:
+-		return __S000;
+-	case VM_SHARED | VM_READ:
+-		return __S001;
+-	case VM_SHARED | VM_WRITE:
+-		return __S010;
+-	case VM_SHARED | VM_READ | VM_WRITE:
+-		return __S011;
+-	case VM_SHARED | VM_EXEC:
+-		return __S100;
+-	case VM_SHARED | VM_EXEC | VM_READ:
+-		return __S101;
+-	case VM_SHARED | VM_EXEC | VM_WRITE:
+-		return __S110;
+-	case VM_SHARED | VM_EXEC | VM_READ | VM_WRITE:
+-		return __S111;
+-	default:
+-		BUILD_BUG();
+-	}
+-}
+-EXPORT_SYMBOL(vm_get_page_prot);
+ #endif	/* CONFIG_ARCH_HAS_VM_GET_PAGE_PROT */
  
- /* Remove W bit on private pages for COW support */
--#define __P000	MKP(0, 0, 0)
--#define __P001	MKP(0, 0, 1)
--#define __P010	MKP(0, 0, 0)	/* COW */
--#define __P011	MKP(0, 0, 1)	/* COW */
--#define __P100	MKP(1, 0, 0)
--#define __P101	MKP(1, 0, 1)
--#define __P110	MKP(1, 0, 0)	/* COW */
--#define __P111	MKP(1, 0, 1)	/* COW */
- 
- /* Shared pages can have exact HW mapping */
--#define __S000	MKP(0, 0, 0)
--#define __S001	MKP(0, 0, 1)
--#define __S010	MKP(0, 1, 0)
--#define __S011	MKP(0, 1, 1)
--#define __S100	MKP(1, 0, 0)
--#define __S101	MKP(1, 0, 1)
--#define __S110	MKP(1, 1, 0)
--#define __S111	MKP(1, 1, 1)
- 
- /* Used all over the kernel */
- #define PAGE_KERNEL __pgprot(_PAGE_PRESENT | _PAGE_CACHED | _PAGE_READ | \
-diff --git a/arch/nios2/mm/init.c b/arch/nios2/mm/init.c
-index 613fcaa5988a..311b2146a248 100644
---- a/arch/nios2/mm/init.c
-+++ b/arch/nios2/mm/init.c
-@@ -124,3 +124,48 @@ const char *arch_vma_name(struct vm_area_struct *vma)
- {
- 	return (vma->vm_start == KUSER_BASE) ? "[kuser]" : NULL;
- }
-+
-+pgprot_t vm_get_page_prot(unsigned long vm_flags)
-+{
-+	switch (vm_flags & (VM_READ | VM_WRITE | VM_EXEC | VM_SHARED)) {
-+	case VM_NONE:
-+		return MKP(0, 0, 0);
-+	case VM_READ:
-+		return MKP(0, 0, 1);
-+	/* COW */
-+	case VM_WRITE:
-+		return MKP(0, 0, 0);
-+	/* COW */
-+	case VM_WRITE | VM_READ:
-+		return MKP(0, 0, 1);
-+	case VM_EXEC:
-+		return MKP(1, 0, 0);
-+	case VM_EXEC | VM_READ:
-+		return MKP(1, 0, 1);
-+	/* COW */
-+	case VM_EXEC | VM_WRITE:
-+		return MKP(1, 0, 0);
-+	/* COW */
-+	case VM_EXEC | VM_WRITE | VM_READ:
-+		return MKP(1, 0, 1);
-+	case VM_SHARED:
-+		return MKP(0, 0, 0);
-+	case VM_SHARED | VM_READ:
-+		return MKP(0, 0, 1);
-+	case VM_SHARED | VM_WRITE:
-+		return MKP(0, 1, 0);
-+	case VM_SHARED | VM_WRITE | VM_READ:
-+		return MKP(0, 1, 1);
-+	case VM_SHARED | VM_EXEC:
-+		return MKP(1, 0, 0);
-+	case VM_SHARED | VM_EXEC | VM_READ:
-+		return MKP(1, 0, 1);
-+	case VM_SHARED | VM_EXEC | VM_WRITE:
-+		return MKP(1, 1, 0);
-+	case VM_SHARED | VM_EXEC | VM_WRITE | VM_READ:
-+		return MKP(1, 1, 1);
-+	default:
-+		BUILD_BUG();
-+	}
-+}
-+EXPORT_SYMBOL(vm_get_page_prot);
+ static pgprot_t vm_pgprot_modify(pgprot_t oldprot, unsigned long vm_flags)
 -- 
 2.25.1
 
