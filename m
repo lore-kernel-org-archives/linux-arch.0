@@ -2,33 +2,33 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0A282C433FE
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Feb 2022 06:38:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C2C18C433EF
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Feb 2022 06:39:05 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1345265AbiBUGjP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 21 Feb 2022 01:39:15 -0500
-Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:40756 "EHLO
+        id S1345270AbiBUGjZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 21 Feb 2022 01:39:25 -0500
+Received: from mxb-00190b01.gslb.pphosted.com ([23.128.96.19]:40948 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1345271AbiBUGjM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Feb 2022 01:39:12 -0500
+        with ESMTP id S1345268AbiBUGjS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Feb 2022 01:39:18 -0500
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id A4E501AF33;
-        Sun, 20 Feb 2022 22:38:49 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 478A82251E;
+        Sun, 20 Feb 2022 22:38:56 -0800 (PST)
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 6967F1396;
-        Sun, 20 Feb 2022 22:38:49 -0800 (PST)
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 16739113E;
+        Sun, 20 Feb 2022 22:38:56 -0800 (PST)
 Received: from p8cg001049571a15.arm.com (unknown [10.163.49.67])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id 2757C3F70D;
-        Sun, 20 Feb 2022 22:38:46 -0800 (PST)
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id 954B53F70D;
+        Sun, 20 Feb 2022 22:38:53 -0800 (PST)
 From:   Anshuman Khandual <anshuman.khandual@arm.com>
 To:     linux-mm@kvack.org, akpm@linux-foundation.org
 Cc:     linux-kernel@vger.kernel.org,
         Anshuman Khandual <anshuman.khandual@arm.com>,
         Christoph Hellwig <hch@infradead.org>,
         linux-arch@vger.kernel.org
-Subject: [PATCH V2 01/30] mm/debug_vm_pgtable: Drop protection_map[] usage
-Date:   Mon, 21 Feb 2022 12:08:10 +0530
-Message-Id: <1645425519-9034-2-git-send-email-anshuman.khandual@arm.com>
+Subject: [PATCH V2 03/30] mm/mmap: Add new config ARCH_HAS_VM_GET_PAGE_PROT
+Date:   Mon, 21 Feb 2022 12:08:12 +0530
+Message-Id: <1645425519-9034-4-git-send-email-anshuman.khandual@arm.com>
 X-Mailer: git-send-email 2.7.4
 In-Reply-To: <1645425519-9034-1-git-send-email-anshuman.khandual@arm.com>
 References: <1645425519-9034-1-git-send-email-anshuman.khandual@arm.com>
@@ -36,118 +36,54 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Although protection_map[] contains the platform defined page protection map
-for a given vm_flags combination, vm_get_page_prot() is the right interface
-to use. This will also reduce dependency on protection_map[] which is going
-to be dropped off completely later on.
+Add a new config ARCH_HAS_VM_GET_PAGE_PROT, which when subscribed enables a
+given platform to define its own vm_get_page_prot(). This framework will
+help remove protection_map[] dependency going forward.
 
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-mm@kvack.org
 Cc: linux-kernel@vger.kernel.org
+Suggested-by: Christoph Hellwig <hch@infradead.org>
 Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
 ---
- mm/debug_vm_pgtable.c | 31 +++++++++++++++++++------------
- 1 file changed, 19 insertions(+), 12 deletions(-)
+ mm/Kconfig | 3 +++
+ mm/mmap.c  | 2 ++
+ 2 files changed, 5 insertions(+)
 
-diff --git a/mm/debug_vm_pgtable.c b/mm/debug_vm_pgtable.c
-index db2abd9e415b..30fd11a2ed32 100644
---- a/mm/debug_vm_pgtable.c
-+++ b/mm/debug_vm_pgtable.c
-@@ -93,7 +93,7 @@ struct pgtable_debug_args {
+diff --git a/mm/Kconfig b/mm/Kconfig
+index 257ed9c86de3..fa436478a94c 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -747,6 +747,9 @@ config ARCH_HAS_CACHE_LINE_SIZE
+ config ARCH_HAS_FILTER_PGPROT
+ 	bool
  
- static void __init pte_basic_tests(struct pgtable_debug_args *args, int idx)
- {
--	pgprot_t prot = protection_map[idx];
-+	pgprot_t prot = vm_get_page_prot(idx);
- 	pte_t pte = pfn_pte(args->fixed_pte_pfn, prot);
- 	unsigned long val = idx, *ptr = &val;
- 
-@@ -101,7 +101,7 @@ static void __init pte_basic_tests(struct pgtable_debug_args *args, int idx)
- 
- 	/*
- 	 * This test needs to be executed after the given page table entry
--	 * is created with pfn_pte() to make sure that protection_map[idx]
-+	 * is created with pfn_pte() to make sure that vm_get_page_prot(idx)
- 	 * does not have the dirty bit enabled from the beginning. This is
- 	 * important for platforms like arm64 where (!PTE_RDONLY) indicate
- 	 * dirty bit being set.
-@@ -190,7 +190,7 @@ static void __init pte_savedwrite_tests(struct pgtable_debug_args *args)
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- static void __init pmd_basic_tests(struct pgtable_debug_args *args, int idx)
- {
--	pgprot_t prot = protection_map[idx];
-+	pgprot_t prot = vm_get_page_prot(idx);
- 	unsigned long val = idx, *ptr = &val;
- 	pmd_t pmd;
- 
-@@ -202,7 +202,7 @@ static void __init pmd_basic_tests(struct pgtable_debug_args *args, int idx)
- 
- 	/*
- 	 * This test needs to be executed after the given page table entry
--	 * is created with pfn_pmd() to make sure that protection_map[idx]
-+	 * is created with pfn_pmd() to make sure that vm_get_page_prot(idx)
- 	 * does not have the dirty bit enabled from the beginning. This is
- 	 * important for platforms like arm64 where (!PTE_RDONLY) indicate
- 	 * dirty bit being set.
-@@ -325,7 +325,7 @@ static void __init pmd_savedwrite_tests(struct pgtable_debug_args *args)
- #ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
- static void __init pud_basic_tests(struct pgtable_debug_args *args, int idx)
- {
--	pgprot_t prot = protection_map[idx];
-+	pgprot_t prot = vm_get_page_prot(idx);
- 	unsigned long val = idx, *ptr = &val;
- 	pud_t pud;
- 
-@@ -337,7 +337,7 @@ static void __init pud_basic_tests(struct pgtable_debug_args *args, int idx)
- 
- 	/*
- 	 * This test needs to be executed after the given page table entry
--	 * is created with pfn_pud() to make sure that protection_map[idx]
-+	 * is created with pfn_pud() to make sure that vm_get_page_prot(idx)
- 	 * does not have the dirty bit enabled from the beginning. This is
- 	 * important for platforms like arm64 where (!PTE_RDONLY) indicate
- 	 * dirty bit being set.
-@@ -1106,14 +1106,14 @@ static int __init init_args(struct pgtable_debug_args *args)
- 	/*
- 	 * Initialize the debugging data.
- 	 *
--	 * protection_map[0] (or even protection_map[8]) will help create
--	 * page table entries with PROT_NONE permission as required for
--	 * pxx_protnone_tests().
-+	 * vm_get_page_prot(VM_NONE) or vm_get_page_prot(VM_SHARED|VM_NONE)
-+	 * will help create page table entries with PROT_NONE permission as
-+	 * required for pxx_protnone_tests().
- 	 */
- 	memset(args, 0, sizeof(*args));
- 	args->vaddr              = get_random_vaddr();
- 	args->page_prot          = vm_get_page_prot(VMFLAGS);
--	args->page_prot_none     = protection_map[0];
-+	args->page_prot_none     = vm_get_page_prot(VM_NONE);
- 	args->is_contiguous_page = false;
- 	args->pud_pfn            = ULONG_MAX;
- 	args->pmd_pfn            = ULONG_MAX;
-@@ -1248,12 +1248,19 @@ static int __init debug_vm_pgtable(void)
- 		return ret;
- 
- 	/*
--	 * Iterate over the protection_map[] to make sure that all
-+	 * Iterate over each possible vm_flags to make sure that all
- 	 * the basic page table transformation validations just hold
- 	 * true irrespective of the starting protection value for a
- 	 * given page table entry.
-+	 *
-+	 * Protection based vm_flags combinatins are always linear
-+	 * and increasing i.e starting from VM_NONE and going upto
-+	 * (VM_SHARED | READ | WRITE | EXEC).
- 	 */
--	for (idx = 0; idx < ARRAY_SIZE(protection_map); idx++) {
-+#define VM_FLAGS_START	(VM_NONE)
-+#define VM_FLAGS_END	(VM_SHARED | VM_EXEC | VM_WRITE | VM_READ)
++config ARCH_HAS_VM_GET_PAGE_PROT
++	bool
 +
-+	for (idx = VM_FLAGS_START; idx <= VM_FLAGS_END; idx++) {
- 		pte_basic_tests(&args, idx);
- 		pmd_basic_tests(&args, idx);
- 		pud_basic_tests(&args, idx);
+ config ARCH_HAS_PTE_DEVMAP
+ 	bool
+ 
+diff --git a/mm/mmap.c b/mm/mmap.c
+index 670c68f5fbf1..ffd70a0c8ddf 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -81,6 +81,7 @@ static void unmap_region(struct mm_struct *mm,
+ 		struct vm_area_struct *vma, struct vm_area_struct *prev,
+ 		unsigned long start, unsigned long end);
+ 
++#ifndef CONFIG_ARCH_HAS_VM_GET_PAGE_PROT
+ /* description of effects of mapping type and prot in current implementation.
+  * this is due to the limited x86 page protection hardware.  The expected
+  * behavior is in parens:
+@@ -136,6 +137,7 @@ pgprot_t vm_get_page_prot(unsigned long vm_flags)
+ 	return arch_filter_pgprot(ret);
+ }
+ EXPORT_SYMBOL(vm_get_page_prot);
++#endif	/* CONFIG_ARCH_HAS_VM_GET_PAGE_PROT */
+ 
+ static pgprot_t vm_pgprot_modify(pgprot_t oldprot, unsigned long vm_flags)
+ {
 -- 
 2.25.1
 
