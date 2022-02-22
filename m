@@ -2,201 +2,123 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C58CDC433FE
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Feb 2022 10:33:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 65363C433F5
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Feb 2022 14:15:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231322AbiBVKeC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Feb 2022 05:34:02 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59828 "EHLO
+        id S232838AbiBVOPt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Feb 2022 09:15:49 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36904 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231273AbiBVKdl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Feb 2022 05:33:41 -0500
-Received: from pegase2.c-s.fr (pegase2.c-s.fr [93.17.235.10])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 41B4F15B3DF;
-        Tue, 22 Feb 2022 02:33:12 -0800 (PST)
-Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
-        by localhost (Postfix) with ESMTP id 4K2wVH1Zjyz9sSX;
-        Tue, 22 Feb 2022 11:32:55 +0100 (CET)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from pegase2.c-s.fr ([172.26.127.65])
-        by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-        with ESMTP id RiMi_WsiuT-o; Tue, 22 Feb 2022 11:32:55 +0100 (CET)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase2.c-s.fr (Postfix) with ESMTP id 4K2wV94NjPz9sSh;
-        Tue, 22 Feb 2022 11:32:49 +0100 (CET)
-Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 870788B779;
-        Tue, 22 Feb 2022 11:32:49 +0100 (CET)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id tymd31yq-Hgr; Tue, 22 Feb 2022 11:32:49 +0100 (CET)
-Received: from PO20335.IDSI0.si.c-s.fr (unknown [172.25.230.108])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 1D60E8B778;
-        Tue, 22 Feb 2022 11:32:49 +0100 (CET)
-Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
-        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.16.1) with ESMTPS id 21MAWgOH1075965
-        (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-        Tue, 22 Feb 2022 11:32:42 +0100
-Received: (from chleroy@localhost)
-        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.17.1/Submit) id 21MAWgRT1075964;
-        Tue, 22 Feb 2022 11:32:42 +0100
-X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
-From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-To:     Aaron Tomlin <atomlin@redhat.com>,
-        Luis Chamberlain <mcgrof@kernel.org>,
-        Jessica Yu <jeyu@kernel.org>
-Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
-        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        kgdb-bugreport@lists.sourceforge.net, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-modules@vger.kernel.org
-Subject: [PATCH v4 2/6] module: Prepare for handling several RB trees
-Date:   Tue, 22 Feb 2022 11:32:16 +0100
-Message-Id: <f8f7e052b8190fa98abe4a2a2adb9619b47c4b3e.1645525635.git.christophe.leroy@csgroup.eu>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <cover.1645525635.git.christophe.leroy@csgroup.eu>
-References: <cover.1645525635.git.christophe.leroy@csgroup.eu>
+        with ESMTP id S232829AbiBVOPr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Feb 2022 09:15:47 -0500
+Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 44FEC160420
+        for <linux-arch@vger.kernel.org>; Tue, 22 Feb 2022 06:15:22 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id F33ACB81754
+        for <linux-arch@vger.kernel.org>; Tue, 22 Feb 2022 14:15:20 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D010CC340F3;
+        Tue, 22 Feb 2022 14:15:17 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1645539319;
+        bh=sHHdLDoYjS+X7SW4eOp5R6pJ+pWe3Bi0v0TDpRLQLgg=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=ZLR4fTZohlsw+zWq2LZmwmGbtaX1Zyj5BS0NzD1b8y6K48Xw5h1+16V3ZBJ9tc0AT
+         ovkZAFwc6zp6+myxYDQP0e3dG+8CysPM08zGZjqflPeEbQDN7RL9pkPcJ34+HPT+8R
+         sF+Vl4BW9zqgViRvSSfgJuLaqWYnebrHvstApXps7V1hf5Znv742fOBozvyw6mIPjl
+         HNuJc94sg/gzwlbV2Gfd22vN+9kxIOu/5bPmyIBmt4ycWTQbMVK7p4xreGEUN65aXw
+         eBq1CHbiVKePAeglUNpuenRRlUCuwQMzBRInqf3zmr4v4oQz7RcOKxZP6GKCCIJIjX
+         5xoI265lq5wHg==
+Date:   Tue, 22 Feb 2022 14:15:14 +0000
+From:   Mark Brown <broonie@kernel.org>
+To:     Catalin Marinas <catalin.marinas@arm.com>
+Cc:     Will Deacon <will@kernel.org>,
+        Szabolcs Nagy <szabolcs.nagy@arm.com>,
+        Jeremy Linton <jeremy.linton@arm.com>,
+        "H . J . Lu" <hjl.tools@gmail.com>,
+        Yu-cheng Yu <yu-cheng.yu@intel.com>,
+        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        libc-alpha@sourceware.org
+Subject: Re: [PATCH v8 0/4] arm64: Enable BTI for the executable as well as
+ the interpreter
+Message-ID: <YhTv8p5JVPjqW8nE@sirena.org.uk>
+References: <20220124150704.2559523-1-broonie@kernel.org>
+ <20220215183456.GB9026@willie-the-truck>
+ <Ygz9YX3jBY0MpepU@arm.com>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1645525927; l=4776; s=20211009; h=from:subject:message-id; bh=Y55P+lefbDvXl7Onl0oN61fsJiw/jOLXz7/hnTxCB40=; b=T4TgUgtng1Z89lSYq4tAQ5GtC7ah6hMe5JwBz08myA7GN+AB1D/vdJZtYUYggS408vpP4j5K9d3v k7LHQtJyBV4IOsaJ2mBGMLKOkd9xJIFJV/KcKHjmAzMvjlbIGcle
-X-Developer-Key: i=christophe.leroy@csgroup.eu; a=ed25519; pk=HIzTzUj91asvincQGOFx6+ZF5AoUuP9GdOtQChs7Mm0=
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="njsqzvVrJx5rdbfb"
+Content-Disposition: inline
+In-Reply-To: <Ygz9YX3jBY0MpepU@arm.com>
+X-Cookie: I smell a wumpus.
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-In order to separate text and data, we need to setup
-two rb trees.
 
-Modify functions to give the tree as a parameter.
+--njsqzvVrJx5rdbfb
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
----
- kernel/module/internal.h    |  4 ++--
- kernel/module/main.c        | 16 ++++++++--------
- kernel/module/tree_lookup.c | 20 ++++++++++----------
- 3 files changed, 20 insertions(+), 20 deletions(-)
+On Wed, Feb 16, 2022 at 01:34:25PM +0000, Catalin Marinas wrote:
+> On Tue, Feb 15, 2022 at 06:34:56PM +0000, Will Deacon wrote:
 
-diff --git a/kernel/module/internal.h b/kernel/module/internal.h
-index 07561753158d..26a1a3711d66 100644
---- a/kernel/module/internal.h
-+++ b/kernel/module/internal.h
-@@ -157,13 +157,13 @@ extern struct mod_tree_root mod_tree;
- void mod_tree_insert(struct module *mod);
- void mod_tree_remove_init(struct module *mod);
- void mod_tree_remove(struct module *mod);
--struct module *mod_find(unsigned long addr);
-+struct module *mod_find(unsigned long addr, struct mod_tree_root *tree);
- #else /* !CONFIG_MODULES_TREE_LOOKUP */
- 
- static inline void mod_tree_insert(struct module *mod) { }
- static inline void mod_tree_remove_init(struct module *mod) { }
- static inline void mod_tree_remove(struct module *mod) { }
--static inline struct module *mod_find(unsigned long addr)
-+static inline struct module *mod_find(unsigned long addr, struct mod_tree_root *tree)
- {
- 	struct module *mod;
- 
-diff --git a/kernel/module/main.c b/kernel/module/main.c
-index 3b75cb97f8c2..c0b961e02909 100644
---- a/kernel/module/main.c
-+++ b/kernel/module/main.c
-@@ -91,22 +91,22 @@ struct symsearch {
-  * Bounds of module text, for speeding up __module_address.
-  * Protected by module_mutex.
-  */
--static void __mod_update_bounds(void *base, unsigned int size)
-+static void __mod_update_bounds(void *base, unsigned int size, struct mod_tree_root *tree)
- {
- 	unsigned long min = (unsigned long)base;
- 	unsigned long max = min + size;
- 
--	if (min < module_addr_min)
--		module_addr_min = min;
--	if (max > module_addr_max)
--		module_addr_max = max;
-+	if (min < tree->addr_min)
-+		tree->addr_min = min;
-+	if (max > tree->addr_max)
-+		tree->addr_max = max;
- }
- 
- static void mod_update_bounds(struct module *mod)
- {
--	__mod_update_bounds(mod->core_layout.base, mod->core_layout.size);
-+	__mod_update_bounds(mod->core_layout.base, mod->core_layout.size, &mod_tree);
- 	if (mod->init_layout.size)
--		__mod_update_bounds(mod->init_layout.base, mod->init_layout.size);
-+		__mod_update_bounds(mod->init_layout.base, mod->init_layout.size, &mod_tree);
- }
- 
- static void module_assert_mutex_or_preempt(void)
-@@ -3051,7 +3051,7 @@ struct module *__module_address(unsigned long addr)
- 
- 	module_assert_mutex_or_preempt();
- 
--	mod = mod_find(addr);
-+	mod = mod_find(addr, &mod_tree);
- 	if (mod) {
- 		BUG_ON(!within_module(addr, mod));
- 		if (mod->state == MODULE_STATE_UNFORMED)
-diff --git a/kernel/module/tree_lookup.c b/kernel/module/tree_lookup.c
-index 0bc4ec3b22ce..995fe68059db 100644
---- a/kernel/module/tree_lookup.c
-+++ b/kernel/module/tree_lookup.c
-@@ -61,14 +61,14 @@ static const struct latch_tree_ops mod_tree_ops = {
- 	.comp = mod_tree_comp,
- };
- 
--static noinline void __mod_tree_insert(struct mod_tree_node *node)
-+static noinline void __mod_tree_insert(struct mod_tree_node *node, struct mod_tree_root *tree)
- {
--	latch_tree_insert(&node->node, &mod_tree.root, &mod_tree_ops);
-+	latch_tree_insert(&node->node, &tree->root, &mod_tree_ops);
- }
- 
--static void __mod_tree_remove(struct mod_tree_node *node)
-+static void __mod_tree_remove(struct mod_tree_node *node, struct mod_tree_root *tree)
- {
--	latch_tree_erase(&node->node, &mod_tree.root, &mod_tree_ops);
-+	latch_tree_erase(&node->node, &tree->root, &mod_tree_ops);
- }
- 
- /*
-@@ -80,28 +80,28 @@ void mod_tree_insert(struct module *mod)
- 	mod->core_layout.mtn.mod = mod;
- 	mod->init_layout.mtn.mod = mod;
- 
--	__mod_tree_insert(&mod->core_layout.mtn);
-+	__mod_tree_insert(&mod->core_layout.mtn, &mod_tree);
- 	if (mod->init_layout.size)
--		__mod_tree_insert(&mod->init_layout.mtn);
-+		__mod_tree_insert(&mod->init_layout.mtn, &mod_tree);
- }
- 
- void mod_tree_remove_init(struct module *mod)
- {
- 	if (mod->init_layout.size)
--		__mod_tree_remove(&mod->init_layout.mtn);
-+		__mod_tree_remove(&mod->init_layout.mtn, &mod_tree);
- }
- 
- void mod_tree_remove(struct module *mod)
- {
--	__mod_tree_remove(&mod->core_layout.mtn);
-+	__mod_tree_remove(&mod->core_layout.mtn, &mod_tree);
- 	mod_tree_remove_init(mod);
- }
- 
--struct module *mod_find(unsigned long addr)
-+struct module *mod_find(unsigned long addr, struct mod_tree_root *tree)
- {
- 	struct latch_tree_node *ltn;
- 
--	ltn = latch_tree_find((void *)addr, &mod_tree.root, &mod_tree_ops);
-+	ltn = latch_tree_find((void *)addr, &tree->root, &mod_tree_ops);
- 	if (!ltn)
- 		return NULL;
- 
--- 
-2.34.1
+> > This appears to be a user-visible change which cannot be detected or
+> > disabled from userspace. If there is code out there which does not work
+> > when BTI is enabled, won't that now explode when the kernel enables it?
+> > How are we supposed to handle such a regression?
 
+> If this ever happens, the only workaround is to disable BTI on the
+> kernel command line. If we need a knob closer to user, we could add a
+> sysctl option (as we did for the tagged address ABI, though I doubt
+> people are even aware that exists). The dynamic loader doesn't do
+> anything smart when deciding to map objects with PROT_BTI (like env
+> variables), it simply relies on the ELF information.
+
+The dynamic loader is the place where I'd expect to do any
+per-executable workarounds, but currently that's not actually
+implemented anywhere.  Someone could also make a tool to strip BTI
+annotations from executables.
+
+> I think the only difference would be with a BTI-unware dynamic loader
+> (e.g. older distro). Here the main executable, if compiled with BTI,
+> would be mapped as executable while the rest of the libraries are
+> non-BTI. The interworking should be fine but we can't test everything
+> since such BTI binaries would not normally be part of the distro.
+
+> If there are dodgy libraries out there that do tricks and branch into
+> the middle of a function in the main executable, they will fail with
+> this series but also fail if MDWE is disabled and the dynamic linker is
+> BTI-aware. So this hardly counts as a use-case.
+
+I'm not aware of any issues we've run into which are due to interworking
+between binaries rather than within a binary due to either miscompilation
+or doing something in hand coded assembler that needs updating for BTI.
+It doesn't mean it can't happen but it's hard to see what people might
+be doing.
+
+> For consistency, I think whoever does the initial mapping should also
+> set the correct attributes as we do for static binaries. If you think
+> another knob is needed other than the cmdline, I'm fine with it.
+
+Might also be worth pointing out that we already map the vDSO with BTI
+enabled if it's built with BTI.
+
+--njsqzvVrJx5rdbfb
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAmIU7/IACgkQJNaLcl1U
+h9ADUwf+OhJEkXOirLj5jU5NaKV0GWE0p7t4zjt8reYjBA9Ktc2GhfBP08nXjZMq
+dgSqPCiB7Rh21Krl9h9CNSa/cVXi5ghIws7pOVXhRRjBHezCiGBx6d16XX8luLt3
+leGnBo3sHTv6dfO9YaLhvQp+PrDdTLyeZOp1BZiIuEaqWHBdLguSlxOkK9RmFLA1
+X6DQ2e6S/sFj6PAWJRhXveK02eniBs+xB1U1Qne5On43GB9xYKSaKKa75xq8RmVb
+isiENMQaeaG8y/YkVZx1txN7/uJ9G74mrpm/SqJcpcbJp98D0i4T4s0nlyoxKV/f
+Sgr50KRd4xkx51TlmENNLgdtpmW/cw==
+=0wYJ
+-----END PGP SIGNATURE-----
+
+--njsqzvVrJx5rdbfb--
