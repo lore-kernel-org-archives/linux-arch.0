@@ -2,310 +2,112 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BF8FAC4332F
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Feb 2022 05:44:46 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E1557C4332F
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Feb 2022 10:32:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229876AbiBVFpJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Feb 2022 00:45:09 -0500
-Received: from gmail-smtp-in.l.google.com ([23.128.96.19]:49308 "EHLO
+        id S231174AbiBVKdS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Feb 2022 05:33:18 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59122 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229887AbiBVFpJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Feb 2022 00:45:09 -0500
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id B060B26AC5;
-        Mon, 21 Feb 2022 21:44:43 -0800 (PST)
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id CD011106F;
-        Mon, 21 Feb 2022 21:44:42 -0800 (PST)
-Received: from [10.163.49.161] (unknown [10.163.49.161])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id E838A3F66F;
-        Mon, 21 Feb 2022 21:44:39 -0800 (PST)
-Subject: Re: [PATCH V2 08/30] m68k/mm: Enable ARCH_HAS_VM_GET_PAGE_PROT
-To:     Geert Uytterhoeven <geert@linux-m68k.org>
-Cc:     Linux MM <linux-mm@kvack.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Christoph Hellwig <hch@infradead.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        linux-m68k <linux-m68k@lists.linux-m68k.org>
-References: <1645425519-9034-1-git-send-email-anshuman.khandual@arm.com>
- <1645425519-9034-9-git-send-email-anshuman.khandual@arm.com>
- <CAMuHMdUrA4u5BTRuqTSn++vXFNn0w=HRmp9ZD_8SNZ1wMUKwwQ@mail.gmail.com>
-From:   Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <5801fc8d-0046-8c08-0893-05dde66d48b1@arm.com>
-Date:   Tue, 22 Feb 2022 11:14:40 +0530
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101
- Thunderbird/68.10.0
+        with ESMTP id S229785AbiBVKdQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Feb 2022 05:33:16 -0500
+Received: from pegase2.c-s.fr (pegase2.c-s.fr [93.17.235.10])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 08D59159E9C;
+        Tue, 22 Feb 2022 02:32:51 -0800 (PST)
+Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
+        by localhost (Postfix) with ESMTP id 4K2wV94QtFz9sSj;
+        Tue, 22 Feb 2022 11:32:49 +0100 (CET)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from pegase2.c-s.fr ([172.26.127.65])
+        by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
+        with ESMTP id KhXs1n8nazcn; Tue, 22 Feb 2022 11:32:49 +0100 (CET)
+Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
+        by pegase2.c-s.fr (Postfix) with ESMTP id 4K2wV93ZFcz9sS4;
+        Tue, 22 Feb 2022 11:32:49 +0100 (CET)
+Received: from localhost (localhost [127.0.0.1])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 678BE8B781;
+        Tue, 22 Feb 2022 11:32:49 +0100 (CET)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from messagerie.si.c-s.fr ([127.0.0.1])
+        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
+        with ESMTP id aAHTjz21EQky; Tue, 22 Feb 2022 11:32:49 +0100 (CET)
+Received: from PO20335.IDSI0.si.c-s.fr (unknown [172.25.230.108])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id 290468B77B;
+        Tue, 22 Feb 2022 11:32:49 +0100 (CET)
+Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
+        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.16.1) with ESMTPS id 21MAWiFp1075982
+        (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
+        Tue, 22 Feb 2022 11:32:44 +0100
+Received: (from chleroy@localhost)
+        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.17.1/Submit) id 21MAWhg21075981;
+        Tue, 22 Feb 2022 11:32:43 +0100
+X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
+From:   Christophe Leroy <christophe.leroy@csgroup.eu>
+To:     Aaron Tomlin <atomlin@redhat.com>,
+        Luis Chamberlain <mcgrof@kernel.org>,
+        Jessica Yu <jeyu@kernel.org>
+Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
+        linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        kgdb-bugreport@lists.sourceforge.net, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        Paul Mackerras <paulus@samba.org>
+Subject: [PATCH v4 6/6] powerpc: Select ARCH_WANTS_MODULES_DATA_IN_VMALLOC on book3s/32 and 8xx
+Date:   Tue, 22 Feb 2022 11:32:20 +0100
+Message-Id: <bb3d7fa8b4f52d0942240b5d95041be8909a7daa.1645525635.git.christophe.leroy@csgroup.eu>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <cover.1645525635.git.christophe.leroy@csgroup.eu>
+References: <cover.1645525635.git.christophe.leroy@csgroup.eu>
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdUrA4u5BTRuqTSn++vXFNn0w=HRmp9ZD_8SNZ1wMUKwwQ@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1645525928; l=1645; s=20211009; h=from:subject:message-id; bh=K04OWtjguCoft4Etc2/16pdJhJKZWZgWbhOpnNSgE7U=; b=hpk03SBCszNo742+2VK/eQLT92kOJCrSS+maM/ldh4eoCtbxQ0D87Y7BYTqu+2LyHwxlc99CUMOc cc433DAAB/dzMLBXJGZIifit9O7AQfafd+1sMzIYAzRMqytJi3zJ
+X-Developer-Key: i=christophe.leroy@csgroup.eu; a=ed25519; pk=HIzTzUj91asvincQGOFx6+ZF5AoUuP9GdOtQChs7Mm0=
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+book3s/32 and 8xx have a separate area for allocating modules,
+defined by MODULES_VADDR / MODULES_END.
 
+On book3s/32, it is not possible to protect against execution
+on a page basis. A full 256M segment is either Exec or NoExec.
+The module area is in an Exec segment while vmalloc area is
+in a NoExec segment.
 
-On 2/21/22 5:24 PM, Geert Uytterhoeven wrote:
-> Hi Anshuman,
-> 
-> On Mon, Feb 21, 2022 at 9:45 AM Anshuman Khandual
-> <anshuman.khandual@arm.com> wrote:
->> This defines and exports a platform specific custom vm_get_page_prot() via
->> subscribing ARCH_HAS_VM_GET_PAGE_PROT. Subsequently all __SXXX and __PXXX
->> macros can be dropped which are no longer needed.
->>
->> Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
->> Cc: linux-m68k@lists.linux-m68k.org
->> Cc: linux-kernel@vger.kernel.org
->> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
-> 
-> Thanks for your patch!
-> 
->> --- a/arch/m68k/mm/init.c
->> +++ b/arch/m68k/mm/init.c
->> @@ -128,3 +128,107 @@ void __init mem_init(void)
->>         memblock_free_all();
->>         init_pointer_tables();
->>  }
->> +
->> +#ifdef CONFIG_COLDFIRE
->> +/*
->> + * Page protections for initialising protection_map. See mm/mmap.c
->> + * for use. In general, the bit positions are xwr, and P-items are
->> + * private, the S-items are shared.
->> + */
->> +pgprot_t vm_get_page_prot(unsigned long vm_flags)
-> 
-> Wouldn't it make more sense to add this to arch/m68k/mm/mcfmmu.c?
+In order to protect module data against execution, select
+ARCH_WANTS_MODULES_DATA_IN_VMALLOC.
 
-Sure, will move (#ifdef CONFIG_COLDFIRE will not be required anymore).
+For the 8xx (and possibly other 32 bits platform in the future),
+there is no such constraint on Exec/NoExec protection, however
+there is a critical distance between kernel functions and callers
+that needs to remain below 32Mbytes in order to avoid costly
+trampolines. By allocating data outside of module area, we
+increase the chance for module text to remain within acceptable
+distance from kernel core text.
 
-> 
->> +{
->> +       switch (vm_flags & (VM_READ | VM_WRITE | VM_EXEC | VM_SHARED)) {
->> +       case VM_NONE:
->> +               return PAGE_NONE;
->> +       case VM_READ:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_READABLE);
->> +       case VM_WRITE:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_WRITABLE);
->> +       case VM_WRITE | VM_READ:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_READABLE | CF_PAGE_WRITABLE);
->> +       case VM_EXEC:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_EXEC);
->> +       case VM_EXEC | VM_READ:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_READABLE | CF_PAGE_EXEC);
->> +       case VM_EXEC | VM_WRITE:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_WRITABLE | CF_PAGE_EXEC);
->> +       case VM_EXEC | VM_WRITE | VM_READ:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_READABLE | CF_PAGE_WRITABLE |
->> +                               CF_PAGE_EXEC);
->> +       case VM_SHARED:
->> +               return PAGE_NONE;
->> +       case VM_SHARED | VM_READ:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_READABLE);
-> 
-> This is the same as the plain VM_READ case.
-> Perhaps they can be merged?
+So select ARCH_WANTS_MODULES_DATA_IN_VMALLOC for 8xx as well.
 
-IMHO, it is worth preserving the existing switch case sequence as vm_flags
-moves linearly from VM_NONE to (VM_SHARED|VM_EXEC|VM_WRITE|VM_READ). This
-proposal did not attempt to further optimize any common page prot values
-for various vm_flags combinations even on other platforms.
+Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+---
+ arch/powerpc/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
 
-> 
->> +       case VM_SHARED | VM_WRITE:
->> +               return PAGE_SHARED;
->> +       case VM_SHARED | VM_WRITE | VM_READ:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_READABLE | CF_PAGE_SHARED);
->> +       case VM_SHARED | VM_EXEC:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_EXEC);
-> 
-> Same as plain VM_EXEC.
-> 
->> +       case VM_SHARED | VM_EXEC | VM_READ:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_READABLE | CF_PAGE_EXEC);
-> 
-> Same as plain VM_EXEC | VM_READ.
-> 
->> +       case VM_SHARED | VM_EXEC | VM_WRITE:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_SHARED | CF_PAGE_EXEC);
->> +       case VM_SHARED | VM_EXEC | VM_WRITE | VM_READ:
->> +               return __pgprot(CF_PAGE_VALID | CF_PAGE_ACCESSED |
->> +                               CF_PAGE_READABLE | CF_PAGE_SHARED |
->> +                               CF_PAGE_EXEC);
->> +       default:
->> +               BUILD_BUG();
->> +       }
->> +}
->> +#endif
->> +
->> +#ifdef CONFIG_SUN3
->> +/*
->> + * Page protections for initialising protection_map. The sun3 has only two
->> + * protection settings, valid (implying read and execute) and writeable. These
->> + * are as close as we can get...
->> + */
->> +pgprot_t vm_get_page_prot(unsigned long vm_flags)
-> 
-> Wouldn't it make more sense to add this to arch/m68k/mm/sun3mmu.c?
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 28e4047e99e8..478ee49a4fb4 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -156,6 +156,7 @@ config PPC
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select ARCH_WANT_IRQS_OFF_ACTIVATE_MM
+ 	select ARCH_WANT_LD_ORPHAN_WARN
++	select ARCH_WANTS_MODULES_DATA_IN_VMALLOC	if PPC_BOOK3S_32 || PPC_8xx
+ 	select ARCH_WEAK_RELEASE_ACQUIRE
+ 	select BINFMT_ELF
+ 	select BUILDTIME_TABLE_SORT
+-- 
+2.34.1
 
-Sure, will move (#ifdef CONFIG_SUN3 will not be required anymore).
-
-> 
->> +{
->> +       switch (vm_flags & (VM_READ | VM_WRITE | VM_EXEC | VM_SHARED)) {
->> +       case VM_NONE:
->> +               return PAGE_NONE;
->> +       case VM_READ:
->> +               return PAGE_READONLY;
->> +       case VM_WRITE:
->> +       case VM_WRITE | VM_READ:
-> 
-> So you did merge some of them...
-
-Only when they follow vm_flags linear sequence.
-
-> 
->> +               return PAGE_COPY;
->> +       case VM_EXEC:
->> +       case VM_EXEC | VM_READ:
->> +               return PAGE_READONLY;
-> 
-> But not all? More below...
-
-Right, because did not want to shuffle up vm_flags linear sequence.
-
-> 
->> +       case VM_EXEC | VM_WRITE:
->> +       case VM_EXEC | VM_WRITE | VM_READ:
->> +               return PAGE_COPY;
->> +       case VM_SHARED:
->> +               return PAGE_NONE;
->> +       case VM_SHARED | VM_READ:
->> +               return PAGE_READONLY;
->> +       case VM_SHARED | VM_WRITE:
->> +       case VM_SHARED | VM_WRITE | VM_READ:
->> +               return PAGE_SHARED;
->> +       case VM_SHARED | VM_EXEC:
->> +       case VM_SHARED | VM_EXEC | VM_READ:
->> +               return PAGE_READONLY;
->> +       case VM_SHARED | VM_EXEC | VM_WRITE:
->> +       case VM_SHARED | VM_EXEC | VM_WRITE | VM_READ:
->> +               return PAGE_SHARED;
->> +       default:
->> +               BUILD_BUG();
->> +       }
->> +}
->> +#endif
->> +EXPORT_SYMBOL(vm_get_page_prot);
->> diff --git a/arch/m68k/mm/motorola.c b/arch/m68k/mm/motorola.c
->> index ecbe948f4c1a..495ba0ea083c 100644
->> --- a/arch/m68k/mm/motorola.c
->> +++ b/arch/m68k/mm/motorola.c
->> @@ -400,12 +400,9 @@ void __init paging_init(void)
->>
->>         /* Fix the cache mode in the page descriptors for the 680[46]0.  */
->>         if (CPU_IS_040_OR_060) {
->> -               int i;
->>  #ifndef mm_cachebits
->>                 mm_cachebits = _PAGE_CACHE040;
->>  #endif
->> -               for (i = 0; i < 16; i++)
->> -                       pgprot_val(protection_map[i]) |= _PAGE_CACHE040;
->>         }
->>
->>         min_addr = m68k_memory[0].addr;
->> @@ -483,3 +480,48 @@ void __init paging_init(void)
->>         max_zone_pfn[ZONE_DMA] = memblock_end_of_DRAM();
->>         free_area_init(max_zone_pfn);
->>  }
->> +
->> +/*
->> + * The m68k can't do page protection for execute, and considers that
->> + * the same are read. Also, write permissions imply read permissions.
->> + * This is the closest we can get..
->> + */
->> +pgprot_t vm_get_page_prot(unsigned long vm_flags)
-> 
-> Good, this one is in arch/m68k/mm/motorola.c :-)
-> 
->> +{
->> +       unsigned long cachebits = 0;
->> +
->> +       if (CPU_IS_040_OR_060)
->> +               cachebits = _PAGE_CACHE040;
-> 
-> If you would use the non-"_C"-variants (e.g. PAGE_NONE instead of
-> PAGE_NONE_C) below, you would get the cachebits handling for free!
-> After that, the "_C" variants are no longer used, and can be removed.
-> Cfr. arch/m68k/include/asm/motorola_pgtable.h:
-
-Right.
-
-> 
->     #define PAGE_NONE       __pgprot(_PAGE_PROTNONE | _PAGE_ACCESSED |
-> mm_cachebits)
->     #define PAGE_SHARED     __pgprot(_PAGE_PRESENT | _PAGE_ACCESSED |
-> mm_cachebits)
->     #define PAGE_COPY       __pgprot(_PAGE_PRESENT | _PAGE_RONLY |
-> _PAGE_ACCESSED | mm_cachebits)
->     #define PAGE_READONLY   __pgprot(_PAGE_PRESENT | _PAGE_RONLY |
-> _PAGE_ACCESSED | mm_cachebits)
->     #define PAGE_KERNEL     __pgprot(_PAGE_PRESENT | _PAGE_DIRTY |
-> _PAGE_ACCESSED | mm_cachebits)
-> 
->     /* Alternate definitions that are compile time constants, for
->        initializing protection_map.  The cachebits are fixed later.  */
->     #define PAGE_NONE_C     __pgprot(_PAGE_PROTNONE | _PAGE_ACCESSED)
->     #define PAGE_SHARED_C   __pgprot(_PAGE_PRESENT | _PAGE_ACCESSED)
->     #define PAGE_COPY_C     __pgprot(_PAGE_PRESENT | _PAGE_RONLY |
-> _PAGE_ACCESSED)
->     #define PAGE_READONLY_C __pgprot(_PAGE_PRESENT | _PAGE_RONLY |
-> _PAGE_ACCESSED)
-
-Will drop all _C definitions and change switch case as mentioned above.
-
-> 
-> BTW, this shows you left a reference in a comment to the now-gone
-> "protection_map".  There are several more across the tree.
-
-Right, will remove them all.
-
-> 
->> +
->> +       switch (vm_flags & (VM_READ | VM_WRITE | VM_EXEC | VM_SHARED)) {
->> +       case VM_NONE:
->> +               return __pgprot(pgprot_val(PAGE_NONE_C) | cachebits);
->> +       case VM_READ:
->> +               return __pgprot(pgprot_val(PAGE_READONLY_C) | cachebits);
->> +       case VM_WRITE:
->> +       case VM_WRITE | VM_READ:
->> +               return __pgprot(pgprot_val(PAGE_COPY_C) | cachebits);
->> +       case VM_EXEC:
->> +       case VM_EXEC | VM_READ:
->> +               return __pgprot(pgprot_val(PAGE_READONLY_C) | cachebits);
->> +       case VM_EXEC | VM_WRITE:
->> +       case VM_EXEC | VM_WRITE | VM_READ:
->> +               return __pgprot(pgprot_val(PAGE_COPY_C) | cachebits);
->> +       case VM_SHARED:
->> +               return __pgprot(pgprot_val(PAGE_NONE_C) | cachebits);
-> 
-> Same as the VM_NONE case.  More to be merged below...
-
-As explained earlier.
