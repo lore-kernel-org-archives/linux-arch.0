@@ -2,56 +2,136 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BAEC3C433EF
-	for <linux-arch@archiver.kernel.org>; Wed, 23 Feb 2022 08:59:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5B1E9C4332F
+	for <linux-arch@archiver.kernel.org>; Wed, 23 Feb 2022 09:22:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239133AbiBWI7y (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 23 Feb 2022 03:59:54 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40922 "EHLO
+        id S234659AbiBWJWk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 23 Feb 2022 04:22:40 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49412 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239132AbiBWI7w (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Feb 2022 03:59:52 -0500
-X-Greylist: delayed 848 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Wed, 23 Feb 2022 00:59:25 PST
-Received: from mail.olerise.pl (mail.olerise.pl [46.183.184.59])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D300A7CDDD
-        for <linux-arch@vger.kernel.org>; Wed, 23 Feb 2022 00:59:25 -0800 (PST)
-Received: by mail.olerise.pl (Postfix, from userid 1001)
-        id 826A944968; Wed, 23 Feb 2022 09:41:08 +0100 (CET)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=olerise.pl; s=mail;
-        t=1645605836; bh=ZNYiuZLXlxCdAPtstEG/gwJieB5RBwA/cHj1SZ3Mpl0=;
-        h=Date:From:To:Subject:From;
-        b=JUzCB7b1p3JnWXxNgmYarUi65GecJuEyUx6Fy116ZAxH/8pEiQsy6sbGyyFAZcVL3
-         EGd59OeNOTeP+y1ACbIJiPUPSdfAFtdR4VFOV/Z6FCSfYNion8w8q1jkO5m1h0/wA9
-         dw/fQ3YWo/MtloscX6IBOboNiwflchQR99sDLeggWDswtBRO7Sl+xl2EQ/RgezZAuX
-         pL6nK9+g2caOuGW2x3XnA3A9P4K6QYZIYP8oiaCSCVJONEBUIGx2CIbC0kOln3DnVf
-         o5wF/Qf4jar08yX+ZdUIAljRni/kN47JCjob82oEm04YBoRoNHLroqo+wrFxEByWBv
-         Z6B7nm2YBHumg==
-Received: by mail.olerise.pl for <linux-arch@vger.kernel.org>; Wed, 23 Feb 2022 08:40:28 GMT
-Message-ID: <20220223084500-0.1.1x.fhzw.0.qhmxhmwlc0@olerise.pl>
-Date:   Wed, 23 Feb 2022 08:40:28 GMT
-From:   =?UTF-8?Q? "Miko=C5=82aj_Rudzik" ?= <mikolaj.rudzik@olerise.pl>
-To:     <linux-arch@vger.kernel.org>
-Subject: =?UTF-8?Q?Nap=C5=82yw_Klient=C3=B3w_ze_strony?=
-X-Mailer: mail.olerise.pl
+        with ESMTP id S229992AbiBWJWj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Feb 2022 04:22:39 -0500
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 18D8A3A71F;
+        Wed, 23 Feb 2022 01:22:12 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id A88AB61676;
+        Wed, 23 Feb 2022 09:22:11 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 13426C340F3;
+        Wed, 23 Feb 2022 09:22:11 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1645608131;
+        bh=qr8aGN/GfpzREfWWEWfy67hMxOcd5xgEZdDkbd5B0Fc=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=fvP1S9ICDfQF8hCsfx1j5bfZ8MyW/1rG6leAkItXfaKKhotabi5LJfUSgdtHnAs1e
+         e//NBoK00IXi9zTUjPv7rNpA1RU7H3GNLpb9V1grfG21006D6HV2Tb4+Qk5tLh0HIo
+         Y8xDpIW1XwC917uzpPR1esP/YuSq+XHVf/PTy1JzpDjvNBh8Jh8OysgZZO5Bjpcj+Q
+         EJYwG2Z8BOyrYZNJ4iSfk1NrfuQSK+S4t7xQPNsmD2s/GQ8tcuq/JigD7ZEI9VXG1f
+         eljgFZP39JEv9+yiNsBLF4dJImtQrUvYwdNENxl33kkrfAUIOs6Dsce/NuZ/ym9xNY
+         WkfVAuCjEyWQw==
+Received: by mail-ua1-f43.google.com with SMTP id 10so1100160uar.9;
+        Wed, 23 Feb 2022 01:22:11 -0800 (PST)
+X-Gm-Message-State: AOAM533GHSt2VO5OSbN+/PMx85QJ5OXAdQ125cZm9ZqDIt+0V7ZFSAZ6
+        sGYfO00CUeafNlgt1z+1b/gNa4WNVJ+uoaUYCOU=
+X-Google-Smtp-Source: ABdhPJydckZxxdHIMfr4RcZ21Y/DNoqRFXVrN4eEPW4jdar5CY+FIz7J7onmSF87bCDroUCQYiJcpWM17ymdodrxxjk=
+X-Received: by 2002:ab0:5543:0:b0:33c:9e1c:a30d with SMTP id
+ u3-20020ab05543000000b0033c9e1ca30dmr11349278uaa.97.1645608129880; Wed, 23
+ Feb 2022 01:22:09 -0800 (PST)
 MIME-Version: 1.0
+References: <20220201150545.1512822-14-guoren@kernel.org> <mhng-5c3b969c-9a23-48dc-ab10-a1addc6a5349@palmer-ri-x1c9>
+In-Reply-To: <mhng-5c3b969c-9a23-48dc-ab10-a1addc6a5349@palmer-ri-x1c9>
+From:   Guo Ren <guoren@kernel.org>
+Date:   Wed, 23 Feb 2022 17:21:59 +0800
+X-Gmail-Original-Message-ID: <CAJF2gTQd_5Ei9RDUg5uYAAjf0+idCqUtxdemb0CEMsxq7m3+UA@mail.gmail.com>
+Message-ID: <CAJF2gTQd_5Ei9RDUg5uYAAjf0+idCqUtxdemb0CEMsxq7m3+UA@mail.gmail.com>
+Subject: Re: [PATCH V5 13/21] riscv: compat: process: Add UXL_32 support in start_thread
+To:     Palmer Dabbelt <palmer@dabbelt.com>
+Cc:     Arnd Bergmann <arnd@arndb.de>, Anup Patel <anup@brainfault.org>,
+        Greg KH <gregkh@linuxfoundation.org>,
+        liush <liush@allwinnertech.com>, Wei Fu <wefu@redhat.com>,
+        Drew Fustini <drew@beagleboard.org>,
+        Wang Junqiang <wangjunqiang@iscas.ac.cn>,
+        Christoph Hellwig <hch@lst.de>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        linux-riscv <linux-riscv@lists.infradead.org>,
+        linux-csky@vger.kernel.org,
+        linux-s390 <linux-s390@vger.kernel.org>,
+        sparclinux <sparclinux@vger.kernel.org>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        Parisc List <linux-parisc@vger.kernel.org>,
+        "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        "the arch/x86 maintainers" <x86@kernel.org>,
+        Guo Ren <guoren@linux.alibaba.com>
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Dzie=C5=84 dobry,
+On Wed, Feb 23, 2022 at 9:42 AM Palmer Dabbelt <palmer@dabbelt.com> wrote:
+>
+> On Tue, 01 Feb 2022 07:05:37 PST (-0800), guoren@kernel.org wrote:
+> > From: Guo Ren <guoren@linux.alibaba.com>
+> >
+> > If the current task is in COMPAT mode, set SR_UXL_32 in status for
+> > returning userspace. We need CONFIG _COMPAT to prevent compiling
+> > errors with rv32 defconfig.
+> >
+> > Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+> > Signed-off-by: Guo Ren <guoren@kernel.org>
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: Palmer Dabbelt <palmer@dabbelt.com>
+> > ---
+> >  arch/riscv/kernel/process.c | 5 +++++
+> >  1 file changed, 5 insertions(+)
+> >
+> > diff --git a/arch/riscv/kernel/process.c b/arch/riscv/kernel/process.c
+> > index 03ac3aa611f5..1a666ad299b4 100644
+> > --- a/arch/riscv/kernel/process.c
+> > +++ b/arch/riscv/kernel/process.c
+> > @@ -97,6 +97,11 @@ void start_thread(struct pt_regs *regs, unsigned lon=
+g pc,
+> >       }
+> >       regs->epc =3D pc;
+> >       regs->sp =3D sp;
+> > +
+> > +#ifdef CONFIG_COMPAT
+> > +     if (is_compat_task())
+> > +             regs->status |=3D SR_UXL_32;
+>
+> Not sure if I'm just misunderstanding the bit ops here, but aren't we
+> trying to set the UXL field to 1 (for UXL=3D32)?  That should be a bit
+> field set op, not just an OR.
+You are right, I would modify like this:
++     if (is_compat_task())
++             regs->status =3D =EF=BC=88regs->status & ~SR_UXL) | SR_UXL_32=
+;
++     else
++.            regs->status =3D =EF=BC=88regs->status & ~SR_UXL) | SR_UXL_64=
+;
 
-chcia=C5=82bym poinformowa=C4=87 Pa=C5=84stwa o mo=C5=BCliwo=C5=9Bci pozy=
-skania nowych zlece=C5=84 ze strony www.
 
-Widzimy zainteresowanie potencjalnych Klient=C3=B3w Pa=C5=84stwa firm=C4=85=
-, dlatego ch=C4=99tnie pomo=C5=BCemy Pa=C5=84stwu dotrze=C4=87 z ofert=C4=
-=85 do wi=C4=99kszego grona odbiorc=C3=B3w poprzez efektywne metody pozyc=
-jonowania strony w Google.
+>
+> > +#endif
+> >  }
+> >
+> >  void flush_thread(void)
+>
+> Additionally: this isn't really an issue so much with this patch, but it
+> does bring up that we're relying on someone else to have set UXL=3D64 on
+> CONFIG_COMPAT=3Dn systems.  I don't see that in any spec anywhere, so we
+> should really be setting UXL in Linux for all systems (ie, not just those=
+ with
+> COMPAT=3Dy).
 
-Czy m=C3=B3g=C5=82bym liczy=C4=87 na kontakt zwrotny?
 
 
-Pozdrawiam
-Miko=C5=82aj Rudzik
+--=20
+Best Regards
+ Guo Ren
+
+ML: https://lore.kernel.org/linux-csky/
