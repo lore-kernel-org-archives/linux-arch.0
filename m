@@ -2,117 +2,95 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 18184C433EF
-	for <linux-arch@archiver.kernel.org>; Mon, 28 Feb 2022 13:49:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 83440C433F5
+	for <linux-arch@archiver.kernel.org>; Mon, 28 Feb 2022 18:37:47 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236748AbiB1NuB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 28 Feb 2022 08:50:01 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59168 "EHLO
+        id S239792AbiB1SiX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 28 Feb 2022 13:38:23 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55466 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236740AbiB1NuA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 28 Feb 2022 08:50:00 -0500
-Received: from mail-vs1-f41.google.com (mail-vs1-f41.google.com [209.85.217.41])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7BEC84A3E7;
-        Mon, 28 Feb 2022 05:49:20 -0800 (PST)
-Received: by mail-vs1-f41.google.com with SMTP id u10so12962347vsu.13;
-        Mon, 28 Feb 2022 05:49:20 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=9ZlhBssXvwBUH+DmkM+uVIB26RD/VtgYSa5UcFW0OSE=;
-        b=ME1GTl9CGgA+A8M1UU52UG/Gtlss9C0iIg4sxO0WmL4Cd8Ic6L3kRYcInardep7fO7
-         qCrM852oJ1TUbDt5C5/9eOi4SuXkd/rwskANIZGpJDToD8R9dARY5tBW0fT61hKnyvS8
-         V6ernEVfyJKnqMblapwQU3+kAx85skIcTcyM40Clr6SHq6FWsr+/lVGspn1VThtwt2IM
-         KNN0SXnrDy7atslQ8/Wufx+7gG6GzbfEVKhzJX9a5xneNo0k3odS+C7zKTflZMcmkY2d
-         A7qASNElSJOigQl2zBS47az4uhgWQZqoeH6E/pnc9WStivpg3+AxFFsysiEgHqZu+8WT
-         wIlQ==
-X-Gm-Message-State: AOAM5314yER7xvTQWX8RbYr0BQ7tT9BHwmA/PGgumRZYcGuzBDeBHZfj
-        ASk+J2wwVgLMec50WYnFg0DlluAiuMbjyQ==
-X-Google-Smtp-Source: ABdhPJweMf/Et4YuLWxLus2oWw/go9t2rgdokcne6lJ/T6d4SmO528QF5G51ga8DIXgqHdlR6bqNMw==
-X-Received: by 2002:a67:d804:0:b0:31b:a7fd:2d9 with SMTP id e4-20020a67d804000000b0031ba7fd02d9mr7354987vsj.3.1646056159463;
-        Mon, 28 Feb 2022 05:49:19 -0800 (PST)
-Received: from mail-vs1-f44.google.com (mail-vs1-f44.google.com. [209.85.217.44])
-        by smtp.gmail.com with ESMTPSA id q131-20020a1f2a89000000b003209a39cc60sm1668859vkq.5.2022.02.28.05.49.18
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 28 Feb 2022 05:49:18 -0800 (PST)
-Received: by mail-vs1-f44.google.com with SMTP id j3so12992566vsi.7;
-        Mon, 28 Feb 2022 05:49:18 -0800 (PST)
-X-Received: by 2002:a67:af08:0:b0:31b:9451:bc39 with SMTP id
- v8-20020a67af08000000b0031b9451bc39mr7516436vsl.68.1646056157983; Mon, 28 Feb
- 2022 05:49:17 -0800 (PST)
+        with ESMTP id S240879AbiB1Shw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 28 Feb 2022 13:37:52 -0500
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 249389A98A
+        for <linux-arch@vger.kernel.org>; Mon, 28 Feb 2022 10:24:11 -0800 (PST)
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id A2E171042;
+        Mon, 28 Feb 2022 10:24:11 -0800 (PST)
+Received: from arm.com (arrakis.cambridge.arm.com [10.1.196.175])
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 0E23C3F70D;
+        Mon, 28 Feb 2022 10:24:09 -0800 (PST)
+Date:   Mon, 28 Feb 2022 18:24:07 +0000
+From:   Catalin Marinas <catalin.marinas@arm.com>
+To:     Mark Brown <broonie@kernel.org>
+Cc:     Will Deacon <will@kernel.org>,
+        Szabolcs Nagy <szabolcs.nagy@arm.com>,
+        Jeremy Linton <jeremy.linton@arm.com>,
+        "H . J . Lu" <hjl.tools@gmail.com>,
+        Yu-cheng Yu <yu-cheng.yu@intel.com>,
+        Kees Cook <keescook@chromium.org>,
+        Eric Biederman <ebiederm@xmission.com>,
+        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        libc-alpha@sourceware.org
+Subject: Re: [PATCH v10 2/2] arm64: Enable BTI for main executable as well as
+ the interpreter
+Message-ID: <Yh0TR3l6kWpsg0uu@arm.com>
+References: <20220228130606.1070960-1-broonie@kernel.org>
+ <20220228130606.1070960-3-broonie@kernel.org>
 MIME-Version: 1.0
-References: <1646045273-9343-1-git-send-email-anshuman.khandual@arm.com>
- <1646045273-9343-10-git-send-email-anshuman.khandual@arm.com> <Yhyqjo/4bozJB6j5@shell.armlinux.org.uk>
-In-Reply-To: <Yhyqjo/4bozJB6j5@shell.armlinux.org.uk>
-From:   Geert Uytterhoeven <geert@linux-m68k.org>
-Date:   Mon, 28 Feb 2022 14:49:06 +0100
-X-Gmail-Original-Message-ID: <CAMuHMdWve8XkqtMJCTB_BH9JRZ8C4f7ynF60D1fvx3hxaK4YzA@mail.gmail.com>
-Message-ID: <CAMuHMdWve8XkqtMJCTB_BH9JRZ8C4f7ynF60D1fvx3hxaK4YzA@mail.gmail.com>
-Subject: Re: [PATCH V3 09/30] arm/mm: Enable ARCH_HAS_VM_GET_PAGE_PROT
-To:     "Russell King (Oracle)" <linux@armlinux.org.uk>
-Cc:     Anshuman Khandual <anshuman.khandual@arm.com>,
-        Linux MM <linux-mm@kvack.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Christoph Hellwig <hch@infradead.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        sparclinux <sparclinux@vger.kernel.org>,
-        "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>,
-        linux-m68k <linux-m68k@lists.linux-m68k.org>,
-        linux-s390 <linux-s390@vger.kernel.org>,
-        linux-riscv <linux-riscv@lists.infradead.org>,
-        alpha <linux-alpha@vger.kernel.org>,
-        Linux-sh list <linux-sh@vger.kernel.org>,
-        arcml <linux-snps-arc@lists.infradead.org>,
-        linux-csky@vger.kernel.org,
-        "open list:TENSILICA XTENSA PORT (xtensa)" 
-        <linux-xtensa@linux-xtensa.org>,
-        Parisc List <linux-parisc@vger.kernel.org>,
-        Openrisc <openrisc@lists.librecores.org>,
-        linux-um <linux-um@lists.infradead.org>,
-        "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>,
-        "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20220228130606.1070960-3-broonie@kernel.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Russell,
+On Mon, Feb 28, 2022 at 01:06:06PM +0000, Mark Brown wrote:
+> diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+> index 5369e649fa79..82aaf361fa17 100644
+> --- a/arch/arm64/kernel/process.c
+> +++ b/arch/arm64/kernel/process.c
+> @@ -701,23 +701,49 @@ core_initcall(tagged_addr_init);
+>  #endif	/* CONFIG_ARM64_TAGGED_ADDR_ABI */
+>  
+>  #ifdef CONFIG_BINFMT_ELF
+> +static unsigned int bti_main;
+> +
+>  int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
+>  			 bool has_interp, bool is_interp)
+>  {
+> -	/*
+> -	 * For dynamically linked executables the interpreter is
+> -	 * responsible for setting PROT_BTI on everything except
+> -	 * itself.
+> -	 */
+> -	if (is_interp != has_interp)
+> -		return prot;
+> -
+> -	if (!(state->flags & ARM64_ELF_BTI))
+> -		return prot;
+> -
+> -	if (prot & PROT_EXEC)
+> +	if ((prot & PROT_EXEC) &&
+> +	    (is_interp || !has_interp || bti_main) &&
+> +	    (state->flags & arm64_elf_bti_flag(is_interp)))
+>  		prot |= PROT_BTI;
+>  
+>  	return prot;
+>  }
 
-On Mon, Feb 28, 2022 at 11:57 AM Russell King (Oracle)
-<linux@armlinux.org.uk> wrote:
-> On Mon, Feb 28, 2022 at 04:17:32PM +0530, Anshuman Khandual wrote:
-> > This defines and exports a platform specific custom vm_get_page_prot() via
-> > subscribing ARCH_HAS_VM_GET_PAGE_PROT. Subsequently all __SXXX and __PXXX
-> > macros can be dropped which are no longer needed.
->
-> What I would really like to know is why having to run _code_ to work out
-> what the page protections need to be is better than looking it up in a
-> table.
->
-> Not only is this more expensive in terms of CPU cycles, it also brings
-> additional code size with it.
->
-> I'm struggling to see what the benefit is.
+TBH, I liked the other series more as we were getting rid of
+'has_interp' in patches 3 and 4. Now we keep it around only for the
+bti_main case on dynamic executables (i.e. we need to distinguish them
+from static). We could still get rid of has_interp if bti_main was
+default on and it affected static binaries as well (for consistency, it
+wouldn't be a bad idea).
 
-I was wondering about that as well. But at least for code size on
-m68k, this didn't have much impact.  Looking at the generated code,
-the increase due to using code for the (few different) cases is offset
-by a 16-bit jump table (which is to be credited to the compiler).
+I think the risk of ABI breaking is negligible in a glibc distro since
+currently the dynamic loader sets PROT_BTI on the main exe anyway, just
+as the kernel does after this series.
 
-In terms of CPU cycles, it's indeed worse than before.
+Anyway, from a correctness perspective, this patch looks fine to me,
+just a preference for the other series:
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
