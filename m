@@ -2,146 +2,151 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 78652C433EF
-	for <linux-arch@archiver.kernel.org>; Mon, 28 Feb 2022 20:23:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7669BC4332F
+	for <linux-arch@archiver.kernel.org>; Mon, 28 Feb 2022 20:27:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229487AbiB1UXx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 28 Feb 2022 15:23:53 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33212 "EHLO
+        id S229559AbiB1U2Q (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 28 Feb 2022 15:28:16 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44920 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229436AbiB1UXw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 28 Feb 2022 15:23:52 -0500
-Received: from mail-ej1-x629.google.com (mail-ej1-x629.google.com [IPv6:2a00:1450:4864:20::629])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9F8A055BD3
-        for <linux-arch@vger.kernel.org>; Mon, 28 Feb 2022 12:23:12 -0800 (PST)
-Received: by mail-ej1-x629.google.com with SMTP id a8so27195614ejc.8
-        for <linux-arch@vger.kernel.org>; Mon, 28 Feb 2022 12:23:12 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=Rhevy6fb5H45VxDHjLDNCxtPhjJ0u7uFLdfSx9pxlIs=;
-        b=SFiiDaskyFzzbW4jCoUqiJYglpNWscp1lwtLHE93w8dRI3h8eXZkrLgebAKqQfA9oZ
-         haXikdZXvfEB810zRURGwChdn/CvMC8Q7Pab3hpE0iVI/nf3FVJvcryQMcC1uZhcoZUU
-         P6IZH9h2w6s9V+B5fc5q6pR5l/tJkcQrm5JJ0=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=Rhevy6fb5H45VxDHjLDNCxtPhjJ0u7uFLdfSx9pxlIs=;
-        b=zBsUbJCjWGiR15UfL2lEYSVgzb0A4SybYkiofkvpgZkjlzfxQ5hdVv1I4dPBO7PoZn
-         IhAV+qcvMZQsljogEcLMQFOlfup5hsIo2RwxN9Us7kRKbGG18ZZbN9SNDzrLtGKIfJLY
-         NuQE9tJ0AHrF4Ja8kVn0M6DJKqK9d37lS/8L8kSP08z/HwJM5EIk/d4a2j9fMEO035Xd
-         5Xu1PzsqVuYJgVHLorgVIaRMafSqR5CR5sLi5r8GNCLkow8uqkLfpCnq/1rVJcu20sUS
-         T6tAsQrm4FC3wyA6Wu7EUlI1Rd3VSbaTyOnFvPwdfH4/tZ5XNu2cmgFxqW+5Xgu2pyYk
-         6a/g==
-X-Gm-Message-State: AOAM530ipI6OE/LwQunsgNorTRX083KVWGquRcogna7D+yj/ap33Y/dX
-        urCIJCfPMF0zQGDBLgQpEC4OwNpLBxaWCvyQEEo=
-X-Google-Smtp-Source: ABdhPJyihVAaoayh/I6UfTys7yeopLel+yaaZeCiW9cMWh4SyX+XZ1ycLRtZ7txZLRn++zok9skZ+Q==
-X-Received: by 2002:a17:906:2555:b0:6b7:5a75:b4f1 with SMTP id j21-20020a170906255500b006b75a75b4f1mr79015ejb.60.1646079790727;
-        Mon, 28 Feb 2022 12:23:10 -0800 (PST)
-Received: from mail-ed1-f41.google.com (mail-ed1-f41.google.com. [209.85.208.41])
-        by smtp.gmail.com with ESMTPSA id z17-20020a1709060bf100b006cf2730b5f2sm4645050ejg.30.2022.02.28.12.23.10
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 28 Feb 2022 12:23:10 -0800 (PST)
-Received: by mail-ed1-f41.google.com with SMTP id h15so19231195edv.7
-        for <linux-arch@vger.kernel.org>; Mon, 28 Feb 2022 12:23:10 -0800 (PST)
-X-Received: by 2002:a2e:924d:0:b0:246:370c:5618 with SMTP id
- v13-20020a2e924d000000b00246370c5618mr15110351ljg.358.1646079300900; Mon, 28
- Feb 2022 12:15:00 -0800 (PST)
+        with ESMTP id S229496AbiB1U2P (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 28 Feb 2022 15:28:15 -0500
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 43DC647AE4;
+        Mon, 28 Feb 2022 12:27:36 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id D5D7960C24;
+        Mon, 28 Feb 2022 20:27:35 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4B278C340F2;
+        Mon, 28 Feb 2022 20:27:17 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1646080055;
+        bh=Afapf1pYfGXISLziFelpEK++X0t+Auwfn5socGkEaSE=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=WaNbKRVb+8PyC2XBMMuGUDzadTZQU7i4YPRjxMq7iFSKes7Vv4DyIVaBobjJOeoL6
+         oZt4Z44m7gTyg1BoNpW3KqQNTUkAjhFc5lq/9nDsrzoowLNwwYMZwXLWcCTYAyEPZ6
+         FgRG1DnhR9He9KtCfA3xkUkfsj4noS1+aNDR7H18/oFJ53uCYVt06GHHWvlNDWy5b9
+         jCLHRm1IW6RzLfF1lbcUVgAKGt6HNzjcfD4o4Uh92jK8FiWxDRV1NuYdYY0w1HgQHQ
+         aE3OLyBUl05iyG/BGvpez2NppZwA0Yp+RXEqG49Dg0AL+dnXtsEA9xWNx+dEx8RCQN
+         TZJGMvbUKSsaw==
+Date:   Mon, 28 Feb 2022 22:27:12 +0200
+From:   Mike Rapoport <rppt@kernel.org>
+To:     Andy Lutomirski <luto@kernel.org>
+Cc:     "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>,
+        "gorcunov@gmail.com" <gorcunov@gmail.com>,
+        "bsingharora@gmail.com" <bsingharora@gmail.com>,
+        "hpa@zytor.com" <hpa@zytor.com>,
+        "Syromiatnikov, Eugene" <esyr@redhat.com>,
+        "peterz@infradead.org" <peterz@infradead.org>,
+        "rdunlap@infradead.org" <rdunlap@infradead.org>,
+        "keescook@chromium.org" <keescook@chromium.org>,
+        "0x7f454c46@gmail.com" <0x7f454c46@gmail.com>,
+        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
+        "kirill.shutemov@linux.intel.com" <kirill.shutemov@linux.intel.com>,
+        "Eranian, Stephane" <eranian@google.com>,
+        "linux-mm@kvack.org" <linux-mm@kvack.org>,
+        "adrian@lisas.de" <adrian@lisas.de>,
+        "fweimer@redhat.com" <fweimer@redhat.com>,
+        "nadav.amit@gmail.com" <nadav.amit@gmail.com>,
+        "jannh@google.com" <jannh@google.com>,
+        "avagin@gmail.com" <avagin@gmail.com>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "kcc@google.com" <kcc@google.com>, "bp@alien8.de" <bp@alien8.de>,
+        "oleg@redhat.com" <oleg@redhat.com>,
+        "hjl.tools@gmail.com" <hjl.tools@gmail.com>,
+        "pavel@ucw.cz" <pavel@ucw.cz>,
+        "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
+        "arnd@arndb.de" <arnd@arndb.de>,
+        "Moreira, Joao" <joao.moreira@intel.com>,
+        "tglx@linutronix.de" <tglx@linutronix.de>,
+        "mike.kravetz@oracle.com" <mike.kravetz@oracle.com>,
+        "x86@kernel.org" <x86@kernel.org>,
+        "Yang, Weijiang" <weijiang.yang@intel.com>,
+        "Dave.Martin@arm.com" <Dave.Martin@arm.com>,
+        "john.allen@amd.com" <john.allen@amd.com>,
+        "mingo@redhat.com" <mingo@redhat.com>,
+        "Hansen, Dave" <dave.hansen@intel.com>,
+        "corbet@lwn.net" <corbet@lwn.net>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
+        "Shankar, Ravi V" <ravi.v.shankar@intel.com>
+Subject: Re: [PATCH 00/35] Shadow stacks for userspace
+Message-ID: <Yh0wIMjFdDl8vaNM@kernel.org>
+References: <20220130211838.8382-1-rick.p.edgecombe@intel.com>
+ <YgAWVSGQg8FPCeba@kernel.org>
+ <YgDIIpCm3UITk896@lisas.de>
+ <8f96c2a6-9c03-f97a-df52-73ffc1d87957@intel.com>
+ <YgI1A0CtfmT7GMIp@kernel.org>
+ <YgI37n+3JfLSNQCQ@grain>
+ <357664de-b089-4617-99d1-de5098953c80@www.fastmail.com>
+ <YgKiKEcsNt7mpMHN@grain>
+ <8e36f20723ca175db49ed3cc73e42e8aa28d2615.camel@intel.com>
+ <9d664c91-2116-42cc-ef8d-e6d236de43d0@kernel.org>
 MIME-Version: 1.0
-References: <20220228110822.491923-1-jakobkoschel@gmail.com>
- <20220228110822.491923-3-jakobkoschel@gmail.com> <2e4e95d6-f6c9-a188-e1cd-b1eae465562a@amd.com>
- <CAHk-=wgQps58DPEOe4y5cTh5oE9EdNTWRLXzgMiETc+mFX7jzw@mail.gmail.com>
- <CAHk-=wj8fkosQ7=bps5K+DDazBXk=ypfn49A0sEq+7-nZnyfXA@mail.gmail.com> <CAHk-=wiTCvLQkHcJ3y0hpqH7FEk9D28LDvZZogC6OVLk7naBww@mail.gmail.com>
-In-Reply-To: <CAHk-=wiTCvLQkHcJ3y0hpqH7FEk9D28LDvZZogC6OVLk7naBww@mail.gmail.com>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Mon, 28 Feb 2022 12:14:44 -0800
-X-Gmail-Original-Message-ID: <CAHk-=wj27SZQ3kPTesBzkiGhe-mA3gOQqr_adt_bMFzmg1VNaA@mail.gmail.com>
-Message-ID: <CAHk-=wj27SZQ3kPTesBzkiGhe-mA3gOQqr_adt_bMFzmg1VNaA@mail.gmail.com>
-Subject: Re: [PATCH 2/6] treewide: remove using list iterator after loop body
- as a ptr
-To:     =?UTF-8?Q?Christian_K=C3=B6nig?= <christian.koenig@amd.com>
-Cc:     Jakob Koschel <jakobkoschel@gmail.com>,
-        alsa-devel@alsa-project.org, linux-aspeed@lists.ozlabs.org,
-        "Gustavo A. R. Silva" <gustavo@embeddedor.com>,
-        linux-iio@vger.kernel.org, nouveau@lists.freedesktop.org,
-        Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-        dri-devel <dri-devel@lists.freedesktop.org>,
-        Cristiano Giuffrida <c.giuffrida@vu.nl>,
-        amd-gfx list <amd-gfx@lists.freedesktop.org>,
-        samba-technical@lists.samba.org,
-        linux1394-devel@lists.sourceforge.net, drbd-dev@lists.linbit.com,
-        linux-arch <linux-arch@vger.kernel.org>,
-        CIFS <linux-cifs@vger.kernel.org>,
-        KVM list <kvm@vger.kernel.org>,
-        linux-scsi <linux-scsi@vger.kernel.org>,
-        linux-rdma <linux-rdma@vger.kernel.org>,
-        linux-staging@lists.linux.dev, "Bos, H.J." <h.j.bos@vu.nl>,
-        Jason Gunthorpe <jgg@ziepe.ca>,
-        intel-wired-lan@lists.osuosl.org,
-        kgdb-bugreport@lists.sourceforge.net,
-        bcm-kernel-feedback-list@broadcom.com,
-        Dan Carpenter <dan.carpenter@oracle.com>,
-        Linux Media Mailing List <linux-media@vger.kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        Arnd Bergman <arnd@arndb.de>,
-        Linux PM <linux-pm@vger.kernel.org>,
-        intel-gfx <intel-gfx@lists.freedesktop.org>,
-        Brian Johannesmeyer <bjohannesmeyer@gmail.com>,
-        Nathan Chancellor <nathan@kernel.org>,
-        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-        Christophe JAILLET <christophe.jaillet@wanadoo.fr>,
-        v9fs-developer@lists.sourceforge.net,
-        linux-tegra <linux-tegra@vger.kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        linux-sgx@vger.kernel.org,
-        linux-block <linux-block@vger.kernel.org>,
-        Netdev <netdev@vger.kernel.org>, linux-usb@vger.kernel.org,
-        linux-wireless <linux-wireless@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Linux F2FS Dev Mailing List 
-        <linux-f2fs-devel@lists.sourceforge.net>,
-        tipc-discussion@lists.sourceforge.net,
-        Linux Crypto Mailing List <linux-crypto@vger.kernel.org>,
-        dma <dmaengine@vger.kernel.org>,
-        linux-mediatek@lists.infradead.org,
-        Andrew Morton <akpm@linux-foundation.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
-        Mike Rapoport <rppt@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <9d664c91-2116-42cc-ef8d-e6d236de43d0@kernel.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Feb 28, 2022 at 12:10 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> We can do
->
->         typeof(pos) pos
->
-> in the 'for ()' loop, and never use __iter at all.
->
-> That means that inside the for-loop, we use a _different_ 'pos' than outside.
+On Wed, Feb 09, 2022 at 06:37:53PM -0800, Andy Lutomirski wrote:
+> On 2/8/22 18:18, Edgecombe, Rick P wrote:
+> > On Tue, 2022-02-08 at 20:02 +0300, Cyrill Gorcunov wrote:
+> > 
+> > Still wrapping my head around the CRIU save and restore steps, but
+> > another general approach might be to give ptrace the ability to
+> > temporarily pause/resume/set CET enablement and SSP for a stopped
+> > thread. Then injected code doesn't need to jump through any hoops or
+> > possibly run into road blocks. I'm not sure how much this opens things
+> > up if the thread has to be stopped...
+> 
+> Hmm, that's maybe not insane.
+> 
+> An alternative would be to add a bona fide ptrace call-a-function mechanism.
+> I can think of two potentially usable variants:
+> 
+> 1. Straight call.  PTRACE_CALL_FUNCTION(addr) just emulates CALL addr,
+> shadow stack push and all.
+> 
+> 2. Signal-style.  PTRACE_CALL_FUNCTION_SIGFRAME injects an actual signal
+> frame just like a real signal is being delivered with the specified handler.
+> There could be a variant to opt-in to also using a specified altstack and
+> altshadowstack.
 
-The thing that makes me throw up in my mouth a bit is that in that
+Using ptrace() will not solve CRIU's issue with sigreturn because sigreturn
+is called from the victim context rather than from the criu process that
+controls the dump and uses ptrace().
 
-        typeof(pos) pos
+Even with the current shadow stack interface Rick proposed, CRIU can restore
+the victim using ptrace without any additional knobs, but we loose an
+important ability to "self-cure" the victim from the parasite in case
+anything goes wrong with criu control process.
 
-the first 'pos' (that we use for just the typeof) is that outer-level
-'pos', IOW it's a *different* 'pos' than the second 'pos' in that same
-declaration that declares the inner level shadowing new 'pos'
-variable.
+Moreover, the issue with backward compatibility is not with ptrace but with
+sigreturn and it seems that criu is not its only user.
 
-If I was a compiler person, I would say "Linus, that thing is too ugly
-to live", and I would hate it. I'm just hoping that even compiler
-people say "that's *so* ugly it's almost beautiful".
+So I think we need a way to allow direct calls to sigreturn that will
+bypass check and restore of the shadow stack.
 
-Because it does seem to work. It's not pretty, but hey, it's not like
-our headers are really ever be winning any beauty contests...
+I only know that there are sigreturn users except criu that show up in
+Debian codesearch, and I don't know how do they use it, but for full
+backward compatibility we'd need to have no-CET sigreturn as default and
+add a new, say UC_CHECK_SHSTK flag to rt_sigframe->uc.uc_flags or even a
+new syscall for libc signal handling.
+ 
+> 2 would be more expensive but would avoid the need for much in the way of
+> asm magic.  The injected code could be plain C (or Rust or Zig or whatever).
+> 
+> All of this only really handles save, not restore.  I don't understand
+> restore enough to fully understand the issue.
 
-                Linus
+Restore is more complex, will get to it later.
+ 
+> --Andy
+
+-- 
+Sincerely yours,
+Mike.
