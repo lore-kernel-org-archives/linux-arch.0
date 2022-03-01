@@ -2,87 +2,141 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AE13FC433FE
-	for <linux-arch@archiver.kernel.org>; Tue,  1 Mar 2022 18:14:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C41AFC433F5
+	for <linux-arch@archiver.kernel.org>; Tue,  1 Mar 2022 18:21:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236920AbiCASPL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 1 Mar 2022 13:15:11 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43766 "EHLO
+        id S236884AbiCASWJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 1 Mar 2022 13:22:09 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57120 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236845AbiCASPJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Mar 2022 13:15:09 -0500
-Received: from mail-lf1-f53.google.com (mail-lf1-f53.google.com [209.85.167.53])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E04016514C;
-        Tue,  1 Mar 2022 10:14:17 -0800 (PST)
-Received: by mail-lf1-f53.google.com with SMTP id w27so28304626lfa.5;
-        Tue, 01 Mar 2022 10:14:17 -0800 (PST)
+        with ESMTP id S234093AbiCASWH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Mar 2022 13:22:07 -0500
+Received: from mail-pj1-x1031.google.com (mail-pj1-x1031.google.com [IPv6:2607:f8b0:4864:20::1031])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9FA0F6514C
+        for <linux-arch@vger.kernel.org>; Tue,  1 Mar 2022 10:21:25 -0800 (PST)
+Received: by mail-pj1-x1031.google.com with SMTP id m11-20020a17090a7f8b00b001beef6143a8so711525pjl.4
+        for <linux-arch@vger.kernel.org>; Tue, 01 Mar 2022 10:21:25 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=chromium.org; s=google;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=fds8Vu27HO3VizdZYZX37G2L0kdPjlGJwjydpAC62lk=;
+        b=kbDptrdu0f26KgjbD0o2z38w3lkKGDPgX1iTHeFHCTnyp8GdCq5qMftyKUSBh6duUj
+         WfNj/A6u5i3SYTvNHtilrjGbJ7XPB9BN5cThiWBPQtUhCrDH1721OqL04qTC03fUauzy
+         3YHA9gzqSMuaks5H7GdDPribo7C8kJL0W2A2s=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=Ati6pz51+/93fkjrp3qu8EZp+J9aKKrBiRYbSU6Fg0U=;
-        b=Om1b/3NSga/xQw9wOdywHI2V9HI8m4djhIgNTKV3srkMs4k0nk+2GOvMb2tndm9t5g
-         twyHsKrnN511CmtFTobiO4r5Zp78Yy1vXEEh+J/Ro/yKd0pMORUeoixw/56M8Yywlnkc
-         Uhy3Kkaj8p3pXXSVHdDWsndVxzWADMj7G6WOjVo8aklMX+TWNORD1ljunV8N41n66E0B
-         3/Km1TkKz0nodT5N/m/GO8uCK9OLXYLUf5EYuGS70p1qjYrLReKtCzek70GybFfi2i7j
-         oFDcbM7o6Ho+Avai07riui3B6AWFiQQUnQnv+x7sdOtPx4aaOiafUmZrs+Rvl/U2zDkA
-         QrMA==
-X-Gm-Message-State: AOAM5321BECP3ZttYhVGCgeX7GIhqGX5B3f0lTBtJ0xqKwWdHAP3WuqX
-        LVeZrvIMtb20lN1g0S9ibsODiJqo8HG8lOWHCsU=
-X-Google-Smtp-Source: ABdhPJwwTCy5Iu77Y+Yoc3pN2nsGqYdY3FbTWRPKg/kzAovjLy1lxlN7CbrtLeLiVxVccp2ScsWZHip7IloooCUnZqM=
-X-Received: by 2002:ac2:58d8:0:b0:442:bc4b:afb7 with SMTP id
- u24-20020ac258d8000000b00442bc4bafb7mr15934522lfo.99.1646158456152; Tue, 01
- Mar 2022 10:14:16 -0800 (PST)
-MIME-Version: 1.0
-References: <20220301010412.431299-1-namhyung@kernel.org> <20220301010412.431299-3-namhyung@kernel.org>
- <Yh3heodejlBiwqLj@hirez.programming.kicks-ass.net> <20220301094523.5e4bc77d@gandalf.local.home>
-In-Reply-To: <20220301094523.5e4bc77d@gandalf.local.home>
-From:   Namhyung Kim <namhyung@kernel.org>
-Date:   Tue, 1 Mar 2022 10:14:05 -0800
-Message-ID: <CAM9d7ci_8JsvA2U8fLxON0y+5cATmJH5xUZgzWnbAkXLumO2bw@mail.gmail.com>
-Subject: Re: [PATCH 2/4] locking: Apply contention tracepoints in the slow path
-To:     Steven Rostedt <rostedt@goodmis.org>
-Cc:     Peter Zijlstra <peterz@infradead.org>,
-        Ingo Molnar <mingo@kernel.org>, Will Deacon <will@kernel.org>,
-        Waiman Long <longman@redhat.com>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        LKML <linux-kernel@vger.kernel.org>,
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=fds8Vu27HO3VizdZYZX37G2L0kdPjlGJwjydpAC62lk=;
+        b=nJG2ORRaPFKUxpzAf3vTudafL4yiOwMUxBjWki+CF96fCpvf+GunOfIZotxQxdlt1y
+         y8ORuBJQ3lvrXizK1JUC9EAm5yPlnfr4jRHKIoPP5Y6Ay327XVeBs2al+nfdLYCCWyQQ
+         sWnyqGE1Eb29CwSw7qAwFcwuWQP+z3LPD7wzTOEv8ptTh04QEL/NeT/uOiO+acbu1DC2
+         I9+lBvUbih55ALjQ83lYICgRnbw5GC5uB41Z+zs2EIvQIpVBSq6nhMHmxIAl3OfBTRsn
+         Y3Rw6yq5bl1241ZOR70UmEEDUnLCvlbHE9U/mc0BkYPlKFwAEcte0IrN0eju+3tmwMjX
+         Wc9Q==
+X-Gm-Message-State: AOAM530cCRCpy7PWXhjlx10Qwtnve4vulQqlYzRT1SUa1EMtriFs2GRw
+        kXaqjnBAPlfwJQy+JU6JYynVvg==
+X-Google-Smtp-Source: ABdhPJxFvMPIFzTXAIIVPlg/eGuYakalp78L+LNg6VrEL06CzJLvdAz6UlqMRKRHGibjFN8E9JB6yg==
+X-Received: by 2002:a17:90b:4d86:b0:1bd:223f:6cb5 with SMTP id oj6-20020a17090b4d8600b001bd223f6cb5mr16669777pjb.151.1646158885116;
+        Tue, 01 Mar 2022 10:21:25 -0800 (PST)
+Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
+        by smtp.gmail.com with ESMTPSA id oa2-20020a17090b1bc200b001bcff056f09sm2678996pjb.13.2022.03.01.10.21.24
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 01 Mar 2022 10:21:24 -0800 (PST)
+Date:   Tue, 1 Mar 2022 10:21:24 -0800
+From:   Kees Cook <keescook@chromium.org>
+To:     Jakob Koschel <jakobkoschel@gmail.com>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>,
+        alsa-devel@alsa-project.org, linux-aspeed@lists.ozlabs.org,
+        "Gustavo A. R. Silva" <gustavo@embeddedor.com>,
+        linux-iio@vger.kernel.org, nouveau@lists.freedesktop.org,
+        Rasmus Villemoes <linux@rasmusvillemoes.dk>,
+        dri-devel <dri-devel@lists.freedesktop.org>,
+        Cristiano Giuffrida <c.giuffrida@vu.nl>,
+        amd-gfx list <amd-gfx@lists.freedesktop.org>,
+        samba-technical@lists.samba.org,
+        linux1394-devel@lists.sourceforge.net, drbd-dev@lists.linbit.com,
+        linux-arch <linux-arch@vger.kernel.org>,
+        CIFS <linux-cifs@vger.kernel.org>,
+        KVM list <kvm@vger.kernel.org>,
+        linux-scsi <linux-scsi@vger.kernel.org>,
+        linux-rdma <linux-rdma@vger.kernel.org>,
+        linux-staging@lists.linux.dev, "Bos, H.J." <h.j.bos@vu.nl>,
+        Jason Gunthorpe <jgg@ziepe.ca>,
+        intel-wired-lan@lists.osuosl.org,
+        kgdb-bugreport@lists.sourceforge.net,
+        bcm-kernel-feedback-list@broadcom.com,
+        Dan Carpenter <dan.carpenter@oracle.com>,
+        Linux Media Mailing List <linux-media@vger.kernel.org>,
+        Arnd Bergman <arnd@arndb.de>,
+        Linux PM <linux-pm@vger.kernel.org>,
+        intel-gfx <intel-gfx@lists.freedesktop.org>,
+        Brian Johannesmeyer <bjohannesmeyer@gmail.com>,
+        Nathan Chancellor <nathan@kernel.org>,
+        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
+        Christophe JAILLET <christophe.jaillet@wanadoo.fr>,
+        v9fs-developer@lists.sourceforge.net,
+        linux-tegra <linux-tegra@vger.kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
-        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-        Byungchul Park <byungchul.park@lge.com>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
-        bpf <bpf@vger.kernel.org>, Radoslaw Burny <rburny@google.com>
-Content-Type: text/plain; charset="UTF-8"
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        linux-sgx@vger.kernel.org,
+        linux-block <linux-block@vger.kernel.org>,
+        Netdev <netdev@vger.kernel.org>, linux-usb@vger.kernel.org,
+        linux-wireless <linux-wireless@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux F2FS Dev Mailing List 
+        <linux-f2fs-devel@lists.sourceforge.net>,
+        tipc-discussion@lists.sourceforge.net,
+        Linux Crypto Mailing List <linux-crypto@vger.kernel.org>,
+        dma <dmaengine@vger.kernel.org>,
+        linux-mediatek@lists.infradead.org,
+        Andrew Morton <akpm@linux-foundation.org>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 2/6] treewide: remove using list iterator after loop body
+ as a ptr
+Message-ID: <202203011016.48A181EE50@keescook>
+References: <20220228110822.491923-1-jakobkoschel@gmail.com>
+ <20220228110822.491923-3-jakobkoschel@gmail.com>
+ <2e4e95d6-f6c9-a188-e1cd-b1eae465562a@amd.com>
+ <CAHk-=wgQps58DPEOe4y5cTh5oE9EdNTWRLXzgMiETc+mFX7jzw@mail.gmail.com>
+ <CAHk-=wj8fkosQ7=bps5K+DDazBXk=ypfn49A0sEq+7-nZnyfXA@mail.gmail.com>
+ <CAHk-=wiTCvLQkHcJ3y0hpqH7FEk9D28LDvZZogC6OVLk7naBww@mail.gmail.com>
+ <FC710A1A-524E-481B-A668-FC258F529A2E@gmail.com>
+ <CAHk-=whLK11HyvpUtEftOjc3Gup2V77KpAQ2fycj3uai=qceHw@mail.gmail.com>
+ <CEDAD0D9-56EE-4105-9107-72C2EAD940B0@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CEDAD0D9-56EE-4105-9107-72C2EAD940B0@gmail.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Steve,
+On Tue, Mar 01, 2022 at 12:28:15PM +0100, Jakob Koschel wrote:
+> Based on the coccinelle script there are ~480 cases that need fixing
+> in total. I'll now finish all of them and then split them by
+> submodules as Greg suggested and repost a patch set per submodule.
+> Sounds good?
 
-On Tue, Mar 1, 2022 at 6:45 AM Steven Rostedt <rostedt@goodmis.org> wrote:
->
-> On Tue, 1 Mar 2022 10:03:54 +0100
-> Peter Zijlstra <peterz@infradead.org> wrote:
->
-> > diff --git a/kernel/locking/rtmutex.c b/kernel/locking/rtmutex.c
-> > index 8555c4efe97c..18b9f4bf6f34 100644
-> > --- a/kernel/locking/rtmutex.c
-> > +++ b/kernel/locking/rtmutex.c
-> > @@ -1579,6 +1579,8 @@ static int __sched __rt_mutex_slowlock(struct rt_mutex_base *lock,
-> >
-> >       set_current_state(state);
-> >
-> > +     trace_contention_begin(lock, _RET_IP_, LCB_F_RT);
->
-> I guess one issue with this is that _RET_IP_ will return the rt_mutex
-> address if this is not inlined, making the _RET_IP_ rather useless.
->
-> Now, if we can pass the _RET_IP_ into __rt_mutex_slowlock() then we could
-> reference that.
+To help with this splitting, see:
+https://github.com/kees/kernel-tools/blob/trunk/split-on-maintainer
 
-Right, that's what I did in patch 03 and 04 for mutex and rwsem.
-But I forgot to update rt_mutex, will fix.
+It's not perfect, but it'll get you really close. For example, if you
+had a single big tree-wide patch applied to your tree:
 
-Thanks,
-Namhyung
+$ rm 0*.patch
+$ git format-patch -1 HEAD
+$ mv 0*.patch treewide.patch
+$ split-on-maintainer treewide.patch
+$ ls 0*.patch
+
+If you have a build log before the patch that spits out warnings, the
+--build-log argument can extract those warnings on a per-file basis, too
+(though this can be fragile).
+
+-- 
+Kees Cook
