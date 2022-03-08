@@ -2,134 +2,149 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 490BAC433EF
-	for <linux-arch@archiver.kernel.org>; Tue,  8 Mar 2022 14:12:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 69D6CC433FE
+	for <linux-arch@archiver.kernel.org>; Tue,  8 Mar 2022 16:50:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241594AbiCHONh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 8 Mar 2022 09:13:37 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59540 "EHLO
+        id S231637AbiCHQvV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 8 Mar 2022 11:51:21 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58868 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1346397AbiCHONg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Mar 2022 09:13:36 -0500
-Received: from smtp.smtpout.orange.fr (smtp04.smtpout.orange.fr [80.12.242.126])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 25625140FB
-        for <linux-arch@vger.kernel.org>; Tue,  8 Mar 2022 06:12:37 -0800 (PST)
-Received: from localhost.localdomain ([106.133.35.112])
-        by smtp.orange.fr with ESMTPA
-        id RaZInDouy9VRxRaZcnRk3S; Tue, 08 Mar 2022 15:12:35 +0100
-X-ME-Helo: localhost.localdomain
-X-ME-Auth: MDU0YmViZGZmMDIzYiBlMiM2NTczNTRjNWZkZTMwOGRiOGQ4ODf3NWI1ZTMyMzdiODlhOQ==
-X-ME-Date: Tue, 08 Mar 2022 15:12:35 +0100
-X-ME-IP: 106.133.35.112
-From:   Vincent Mailhol <mailhol.vincent@wanadoo.fr>
-To:     Rikard Falkeborn <rikard.falkeborn@gmail.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Cc:     Arnd Bergmann <arnd@arndb.de>,
-        Andy Shevchenko <andy.shevchenko@gmail.com>,
-        Kees Cook <keescook@chromium.org>,
-        Alexander Lobakin <alexandr.lobakin@intel.com>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        Emil Velikov <emil.l.velikov@gmail.com>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Linus Walleij <linus.walleij@linaro.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        kernel test robot <lkp@intel.com>,
-        Syed Nayyar Waris <syednwaris@gmail.com>,
-        William Breathitt Gray <vilhelm.gray@gmail.com>,
-        Masahiro Yamada <yamada.masahiro@socionext.com>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Vincent Mailhol <mailhol.vincent@wanadoo.fr>
-Subject: [PATCH v2] linux/bits.h: GENMASK_INPUT_CHECK: reduce W=2 noise by 31% treewide
-Date:   Tue,  8 Mar 2022 23:12:01 +0900
-Message-Id: <20220308141201.2343757-1-mailhol.vincent@wanadoo.fr>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20220304124416.1181029-1-mailhol.vincent@wanadoo.fr>
-References: <20220304124416.1181029-1-mailhol.vincent@wanadoo.fr>
+        with ESMTP id S238511AbiCHQvU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Mar 2022 11:51:20 -0500
+Received: from mga01.intel.com (mga01.intel.com [192.55.52.88])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9E36050041
+        for <linux-arch@vger.kernel.org>; Tue,  8 Mar 2022 08:50:22 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1646758222; x=1678294222;
+  h=date:from:to:cc:subject:message-id:mime-version:
+   content-transfer-encoding;
+  bh=Df4Nr7azvvAsHOIpnvMiYycHl8jxit4VV44YTeNSXUs=;
+  b=VF619315mhd5ROXdjLvSy9wI83wdHcbZ0ZxHc8Sh9flSK3gUJdadRpUK
+   OHGKVzP3Qz3uw+6c6ABIPIwt9p76gmSp1Hqq7/vnWSH7hq/wLTfWVL1Bs
+   qNKfEHGDQ87Za1Vqbc6mjraflHv1nggb/tfZXMu/DKBSGySwEdOHG41+c
+   wqpFW5xWZh10nePoMkpJtsAq0E3+AsYzhG3y1kwOdra/fm5AfbLyhGUfd
+   QY3J40HsbFZhj2V5l9A5JeqCTgNgE0CcWONf8oaRO29+Fe4PdZI6Zg7Tj
+   Zd7LaCRRy5b5ElcHdjRaESYUXV1vMeRrOTSpeNWF02YQCVmdX6/vbS94v
+   Q==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10280"; a="279455054"
+X-IronPort-AV: E=Sophos;i="5.90,165,1643702400"; 
+   d="scan'208";a="279455054"
+Received: from orsmga007.jf.intel.com ([10.7.209.58])
+  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 08 Mar 2022 08:45:35 -0800
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.90,165,1643702400"; 
+   d="scan'208";a="537633793"
+Received: from lkp-server02.sh.intel.com (HELO 89b41b6ae01c) ([10.239.97.151])
+  by orsmga007.jf.intel.com with ESMTP; 08 Mar 2022 08:45:33 -0800
+Received: from kbuild by 89b41b6ae01c with local (Exim 4.92)
+        (envelope-from <lkp@intel.com>)
+        id 1nRcxo-0001jI-J7; Tue, 08 Mar 2022 16:45:32 +0000
+Date:   Wed, 09 Mar 2022 00:44:44 +0800
+From:   kernel test robot <lkp@intel.com>
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     linux-arch@vger.kernel.org
+Subject: [arnd-asm-generic:asm-generic] BUILD SUCCESS
+ 3edb65f4e8fdec0569edf6a0e74675d2e5e6fe0e
+Message-ID: <622787fc.m42dO3bL/RNvPQ+e%lkp@intel.com>
+User-Agent: Heirloom mailx 12.5 6/20/10
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This patch silences a -Wtypes-limits warning in GENMASK_INPUT_CHECK()
-which is accountable for 31% of all warnings when compiling with W=2.
+tree/branch: https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git asm-generic
+branch HEAD: 3edb65f4e8fdec0569edf6a0e74675d2e5e6fe0e  nds32: Remove the architecture
 
-Indeed, GENMASK_INPUT_CHECK() will generate some warnings at W=2 level
-if invoked with an unsigned integer and zero. For example, this:
+elapsed time: 1587m
 
-| #include <linux/bits.h>
-| unsigned int foo(unsigned int bar)
-| { return GENMASK(bar, 0); }
+configs tested: 74
+configs skipped: 3
 
-would yield 30 lines of warning. Extract:
+The following configs have been built successfully.
+More configs may be tested in the coming days.
 
-| In file included from ./include/linux/bits.h:22,
-|                  from ./foo.c:1:
-| foo.c: In function 'foo':
-| ./include/linux/bits.h:25:36: warning: comparison of unsigned expression in '< 0' is always false [-Wtype-limits]
-|    25 |                 __is_constexpr((l) > (h)), (l) > (h), 0)))
-|       |                                    ^
+gcc tested configs:
+arm64                               defconfig
+arm                              allmodconfig
+arm                              allyesconfig
+arm                                 defconfig
+arm64                            allyesconfig
+sh                          landisk_defconfig
+sh                          urquell_defconfig
+mips                           ip32_defconfig
+mips                      fuloong2e_defconfig
+m68k                          atari_defconfig
+mips                    maltaup_xpa_defconfig
+openrisc                 simple_smp_defconfig
+sh                        edosk7705_defconfig
+powerpc                 mpc834x_itx_defconfig
+m68k                       m5249evb_defconfig
+arm                            hisi_defconfig
+riscv                               defconfig
+arm                  randconfig-c002-20220308
+arm                  randconfig-c002-20220307
+ia64                                defconfig
+ia64                             allmodconfig
+ia64                             allyesconfig
+m68k                                defconfig
+m68k                             allyesconfig
+m68k                             allmodconfig
+nds32                             allnoconfig
+nios2                               defconfig
+arc                              allyesconfig
+nios2                            allyesconfig
+nds32                               defconfig
+alpha                               defconfig
+csky                                defconfig
+alpha                            allyesconfig
+arc                                 defconfig
+sh                               allmodconfig
+h8300                            allyesconfig
+xtensa                           allyesconfig
+s390                                defconfig
+parisc                              defconfig
+parisc64                            defconfig
+s390                             allmodconfig
+parisc                           allyesconfig
+s390                             allyesconfig
+i386                             allyesconfig
+i386                              debian-10.3
+i386                   debian-10.3-kselftests
+i386                                defconfig
+sparc                               defconfig
+sparc                            allyesconfig
+mips                             allyesconfig
+mips                             allmodconfig
+powerpc                          allyesconfig
+powerpc                          allmodconfig
+powerpc                           allnoconfig
+riscv                             allnoconfig
+riscv                            allmodconfig
+riscv                            allyesconfig
+riscv                    nommu_k210_defconfig
+riscv                    nommu_virt_defconfig
+riscv                          rv32_defconfig
+um                             i386_defconfig
+um                           x86_64_defconfig
+x86_64                           allyesconfig
+x86_64                    rhel-8.3-kselftests
+x86_64                              defconfig
+x86_64                               rhel-8.3
+x86_64                          rhel-8.3-func
+x86_64                         rhel-8.3-kunit
+x86_64                                  kexec
 
-This pattern is harmless (false positive) and for that reason,
--Wtypes-limits was moved to W=2. c.f. [1].
+clang tested configs:
+x86_64                        randconfig-c007
+riscv                randconfig-c006-20220308
+powerpc              randconfig-c003-20220308
+i386                          randconfig-c001
+arm                  randconfig-c002-20220308
+mips                 randconfig-c004-20220308
 
-However because it occurs in header files (example: find_first_bit()
-from linux/find.h [2]), GENMASK_INPUT_CHECK() is accountable for
-roughly 31% (164714/532484) of all W=2 warnings for an
-allyesconfig. This is an issue because that noise makes it harder to
-triage and find relevant W=2 warnings.
-
-Reference (using gcc 11.2, linux v5.17-rc6 on x86_64):
-
-| $ make allyesconfig
-| $ sed -i '/CONFIG_WERROR/d' .config
-| $ make W=2 -j8 2> kernel_w2.log > /dev/null
-| $ grep "\./include/linux/bits\.h:.*: warning" kernel_w2\.log | wc -l
-| 164714
-| $ grep ": warning: " kernel_w2.log | wc -l
-| 532484
-
-In this patch, we silence this warning by:
-
-  * replacing the comparison > by and logical and && in the first
-    argument of __builtin_choose_expr().
-
-  * casting the high bit of the mask to a signed integer in the second
-    argument of __builtin_choose_expr().
-
-[1] https://lore.kernel.org/lkml/20200708190756.16810-1-rikard.falkeborn@gmail.com/
-[2] https://elixir.bootlin.com/linux/v5.17-rc6/source/include/linux/find.h#L119
-
-Link: https://lore.kernel.org/lkml/cover.1590017578.git.syednwaris@gmail.com/
-Link: https://lore.kernel.org/lkml/20220304124416.1181029-1-mailhol.vincent@wanadoo.fr/
-Fixes: 295bcca84916 ("linux/bits.h: add compile time sanity check of GENMASK inputs")
-Signed-off-by: Vincent Mailhol <mailhol.vincent@wanadoo.fr>
 ---
-* Changelog *
-
-v1 -> v2:
-
-  * Rewrote the commit message to make it less verbose
-  * Add in CC all people from:
-  https://lore.kernel.org/lkml/cover.1590017578.git.syednwaris@gmail.com/
----
- include/linux/bits.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/include/linux/bits.h b/include/linux/bits.h
-index 87d112650dfb..542e9a8985b1 100644
---- a/include/linux/bits.h
-+++ b/include/linux/bits.h
-@@ -22,7 +22,7 @@
- #include <linux/build_bug.h>
- #define GENMASK_INPUT_CHECK(h, l) \
- 	(BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
--		__is_constexpr((l) > (h)), (l) > (h), 0)))
-+		__is_constexpr((h)) && __is_constexpr((l)), (l) > (int)(h), 0)))
- #else
- /*
-  * BUILD_BUG_ON_ZERO is not available in h files included from asm files,
--- 
-2.34.1
-
+0-DAY CI Kernel Test Service, Intel Corporation
+https://lists.01.org/hyperkitty/list/kbuild-all@lists.01.org
