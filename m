@@ -2,55 +2,57 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 37D21C433F5
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Mar 2022 23:28:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 49B6FC433EF
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Mar 2022 23:28:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1344975AbiCPX3k (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 16 Mar 2022 19:29:40 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36064 "EHLO
+        id S1346911AbiCPX3u (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 16 Mar 2022 19:29:50 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36240 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1343911AbiCPX3k (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Mar 2022 19:29:40 -0400
-Received: from mail-pj1-x1029.google.com (mail-pj1-x1029.google.com [IPv6:2607:f8b0:4864:20::1029])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 28A29167C4
-        for <linux-arch@vger.kernel.org>; Wed, 16 Mar 2022 16:28:25 -0700 (PDT)
-Received: by mail-pj1-x1029.google.com with SMTP id kx13-20020a17090b228d00b001c6715c9847so1662766pjb.1
-        for <linux-arch@vger.kernel.org>; Wed, 16 Mar 2022 16:28:25 -0700 (PDT)
+        with ESMTP id S1346799AbiCPX3t (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Mar 2022 19:29:49 -0400
+Received: from mail-pf1-x432.google.com (mail-pf1-x432.google.com [IPv6:2607:f8b0:4864:20::432])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 99B6F167D2
+        for <linux-arch@vger.kernel.org>; Wed, 16 Mar 2022 16:28:29 -0700 (PDT)
+Received: by mail-pf1-x432.google.com with SMTP id l8so5421787pfu.1
+        for <linux-arch@vger.kernel.org>; Wed, 16 Mar 2022 16:28:29 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=rivosinc-com.20210112.gappssmtp.com; s=20210112;
-        h=subject:date:message-id:mime-version:content-transfer-encoding:cc
-         :from:to;
-        bh=G2OlpynL+svPG/qBCVApCbgh8fee1f/XrsL4DL/Bf0Q=;
-        b=OtaZ9yqhWB4tye3HNb/4HSG53Ngt9PyiVKbt4tKiDRePwVvwEya9svqm2s5w3VOs8/
-         yc5YXBiYJ5lI37j7IwRDhHc86YnavSlVsh0QAtvZb4djSLS4+IhqRPG1UroOa6lAYHr2
-         MmdFeBcb5MqiiXN9c0cZAnTi3wMI/B1Z3iSzCUEZVZYrwPOrXxRi/ycPnKNM2hdrjT1d
-         ie9NE6P8P/kdLZ/hzrBMaChScpMTxQMof4mqs0RbevtIK7WFu960AcDmPUpRF2qSwADe
-         J1d0UjMM8OCE0iWgumuCsMKONO032+3frQbABHiQ0inzP7hO/d2ZcCst7FmOhhFQK3zm
-         GXRg==
+        h=subject:date:message-id:in-reply-to:references:mime-version
+         :content-transfer-encoding:cc:from:to;
+        bh=TemgJXj/dxR4o9xjuRPFVAtvCpC+RuCkyAl1o75jaTw=;
+        b=5NAASYUylgaEPqqdOEpfJYNUGMgV0gFaeMRax5C5dSSZLOGAdqEJZnhq0wtD7zPoW0
+         G5ob4+N2yFpwbpch0DWhTknq6SOGVQuAlyx5O3Q4z+CabPYf0Q0nUxJYIRUm+1UXldia
+         CUfn33UFTj/UQ6niZ6ytLeUqcODuQ8vUjiiE5/y4Cga4QKby77CDm6r7N0bPNRi39KC4
+         O/zvHvMm0khtUBVhRQ1vvm59igRk3I3+zGiCD9QZkEZ4zSYXLICNZRMaGnxXlOOI5pc8
+         96R6MSsMUafEA9jSOCcTsTp6f+fYDXiBsUqlxz1cBR4CM7sz772W9JvY9llYBqeaxTjL
+         2xnw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:subject:date:message-id:mime-version
-         :content-transfer-encoding:cc:from:to;
-        bh=G2OlpynL+svPG/qBCVApCbgh8fee1f/XrsL4DL/Bf0Q=;
-        b=DTcKmotojsh3gESECSfB5Qaxhn59yVTlrWHug7bcbxMJXBx3yAdDwZWAeTgpgryWPv
-         BxrVWL5FHrR9v4swjYey1O1ccvYNdNeTcPQDcqS6Si6oV+q9gXi4oovdNBDCxaBSHnhh
-         x2alANShnbOTg/eVtYmcAaq+SnRgWnYuI2k5fpgN3qoVpkpXR5S9AhBEfEqxE4yr7mUm
-         CpQ8uR3sFt3Ktg7574MJsfweHch+0szQ8A6hR4tKB+aZ8BN6n+8Orr/Of5R9+X0R5O3k
-         hx6tnxfs51jXHoGB5eW6nLYfqJlMBKywa/UcT9iDmxFB7hrLvzsqv4Kh+18DI0nsptcq
-         AATQ==
-X-Gm-Message-State: AOAM5307TxKWVsHQQ1p8ecXAZ87U6PYfiLGklcUh7AI+JKpi4HGOzFvr
-        4lXiBaTqUKaQsWOXHP8zNC6Dug==
-X-Google-Smtp-Source: ABdhPJwvtB81UtChoOLXVE+LBbgrtmta/Nk4/MhmrLCtsDTPfNUpp+6kUErqrPWaxRw1IuW1/C269Q==
-X-Received: by 2002:a17:90a:4306:b0:1b9:80b3:7a3d with SMTP id q6-20020a17090a430600b001b980b37a3dmr12666080pjg.66.1647473304308;
-        Wed, 16 Mar 2022 16:28:24 -0700 (PDT)
+        h=x-gm-message-state:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding:cc:from:to;
+        bh=TemgJXj/dxR4o9xjuRPFVAtvCpC+RuCkyAl1o75jaTw=;
+        b=YW+lNx3auV/ArM/usvCeFzbfc57Hk97ISeK/i3mwYSo0vIILqhvtmI9FCTvH7IaSIT
+         UFhzv57ZuVw3PfacUlRZdknb0nLXcGxFB5cAM+HfmGqicBbwszJc/mMyJO+VParJUFCq
+         v5bImjAzaLdmAQo8sNxFuLcO0Fs7dtMRUA6eAurnyD/7jdPgMSLGLmuWZvEhnsRAeh3b
+         VqSGMQeLFlJgPZausQqBULIMk+YahVDlCVJbAKe++6HupW4+TyCVs5yzb0+oR4ZusufJ
+         JgOiW3rzBr8UGDifL6kdDtWF8oGifGd8Hi3EMEC0JXOzG2vAqivn+RAfH0cbBEHsm8TO
+         SFQQ==
+X-Gm-Message-State: AOAM532r1eCtCS+2Js0OLtmhRzH/E7Q1QfYnaq/oAIIzBjGofcb961wg
+        ojT7HHqUw80DqQea0CleBcpwwg==
+X-Google-Smtp-Source: ABdhPJzu2zL3dDL4hiAgSK4z9Dcw0idEICTak8foXBS3lSnxmO9pbBmuyGxzNgKWSyVr5slYVp3eQg==
+X-Received: by 2002:a05:6a00:1a89:b0:4f7:b90b:17ee with SMTP id e9-20020a056a001a8900b004f7b90b17eemr2233942pfv.46.1647473308139;
+        Wed, 16 Mar 2022 16:28:28 -0700 (PDT)
 Received: from localhost ([12.3.194.138])
-        by smtp.gmail.com with ESMTPSA id i187-20020a626dc4000000b004f6e0f346e7sm4189585pfc.39.2022.03.16.16.28.23
+        by smtp.gmail.com with ESMTPSA id d16-20020a056a00245000b004f7728a4346sm4436763pfj.79.2022.03.16.16.28.27
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 16 Mar 2022 16:28:23 -0700 (PDT)
-Subject: [PATCH 0/5] Generic Ticket Spinlocks
-Date:   Wed, 16 Mar 2022 16:25:55 -0700
-Message-Id: <20220316232600.20419-1-palmer@rivosinc.com>
+        Wed, 16 Mar 2022 16:28:27 -0700 (PDT)
+Subject: [PATCH 3/5] openrisc: Move to ticket-spinlock
+Date:   Wed, 16 Mar 2022 16:25:58 -0700
+Message-Id: <20220316232600.20419-4-palmer@rivosinc.com>
 X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20220316232600.20419-1-palmer@rivosinc.com>
+References: <20220316232600.20419-1-palmer@rivosinc.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Cc:     jonas@southpole.se, stefan.kristiansson@saunalahti.fi,
@@ -61,34 +63,88 @@ Cc:     jonas@southpole.se, stefan.kristiansson@saunalahti.fi,
         Arnd Bergmann <arnd@arndb.de>, jszhang@kernel.org,
         wangkefeng.wang@huawei.com, openrisc@lists.librecores.org,
         linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org,
-        linux-arch@vger.kernel.org
+        linux-arch@vger.kernel.org, Palmer Dabbelt <palmer@rivosinc.com>
 From:   Palmer Dabbelt <palmer@rivosinc.com>
 To:         linux-riscv@lists.infradead.org, peterz@infradead.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Peter sent an RFC out about a year ago
-<https://lore.kernel.org/lkml/YHbBBuVFNnI4kjj3@hirez.programming.kicks-ass.net/>,
-but after a spirited discussion it looks like we lost track of things.
-IIRC there was broad consensus on this being the way to go, but there
-was a lot of discussion so I wasn't sure.  Given that it's been a year,
-I figured it'd be best to just send this out again formatted a bit more
-explicitly as a patch.
+From: Peter Zijlstra <peterz@infradead.org>
 
-This has had almost no testing (just a build test on RISC-V defconfig),
-but I wanted to send it out largely as-is because I didn't have a SOB
-from Peter on the code.  I had sent around something sort of similar in
-spirit, but this looks completely re-written.  Just to play it safe I
-wanted to send out almost exactly as it was posted.  I'd probably rename
-this tspinlock and tspinlock_types, as the mis-match kind of makes my
-eyes go funny, but I don't really care that much.  I'll also go through
-the other ports and see if there's any more candidates, I seem to
-remember there having been more than just OpenRISC but it's been a
-while.
+We have no indications that openrisc meets the qspinlock requirements,
+so move to ticket-spinlock as that is more likey to be correct.
 
-I'm in no big rush for this and given the complex HW dependencies I
-think it's best to target it for 5.19, that'd give us a full merge
-window for folks to test/benchmark it on their systems to make sure it's
-OK.  RISC-V has a forward progress guarantee so we should be safe, but
-these can always trip things up.
+Signed-off-by: Palmer Dabbelt <palmer@rivosinc.com>
+
+---
+
+I have specifically not included Peter's SOB on this, as he sent his
+original patch
+<https://lore.kernel.org/lkml/YHbBBuVFNnI4kjj3@hirez.programming.kicks-ass.net/>
+without one.
+---
+ arch/openrisc/Kconfig                      | 1 -
+ arch/openrisc/include/asm/Kbuild           | 5 ++---
+ arch/openrisc/include/asm/spinlock.h       | 3 +--
+ arch/openrisc/include/asm/spinlock_types.h | 2 +-
+ 4 files changed, 4 insertions(+), 7 deletions(-)
+
+diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
+index f724b3f1aeed..f5fa226362f6 100644
+--- a/arch/openrisc/Kconfig
++++ b/arch/openrisc/Kconfig
+@@ -30,7 +30,6 @@ config OPENRISC
+ 	select HAVE_DEBUG_STACKOVERFLOW
+ 	select OR1K_PIC
+ 	select CPU_NO_EFFICIENT_FFS if !OPENRISC_HAVE_INST_FF1
+-	select ARCH_USE_QUEUED_SPINLOCKS
+ 	select ARCH_USE_QUEUED_RWLOCKS
+ 	select OMPIC if SMP
+ 	select ARCH_WANT_FRAME_POINTERS
+diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
+index ca5987e11053..cb260e7d73db 100644
+--- a/arch/openrisc/include/asm/Kbuild
++++ b/arch/openrisc/include/asm/Kbuild
+@@ -1,9 +1,8 @@
+ # SPDX-License-Identifier: GPL-2.0
+ generic-y += extable.h
+ generic-y += kvm_para.h
+-generic-y += mcs_spinlock.h
+-generic-y += qspinlock_types.h
+-generic-y += qspinlock.h
++generic-y += ticket-lock.h
++generic-y += ticket-lock-types.h
+ generic-y += qrwlock_types.h
+ generic-y += qrwlock.h
+ generic-y += user.h
+diff --git a/arch/openrisc/include/asm/spinlock.h b/arch/openrisc/include/asm/spinlock.h
+index 264944a71535..40e4c9fdc349 100644
+--- a/arch/openrisc/include/asm/spinlock.h
++++ b/arch/openrisc/include/asm/spinlock.h
+@@ -15,8 +15,7 @@
+ #ifndef __ASM_OPENRISC_SPINLOCK_H
+ #define __ASM_OPENRISC_SPINLOCK_H
+ 
+-#include <asm/qspinlock.h>
+-
++#include <asm/ticket-lock.h>
+ #include <asm/qrwlock.h>
+ 
+ #define arch_spin_relax(lock)	cpu_relax()
+diff --git a/arch/openrisc/include/asm/spinlock_types.h b/arch/openrisc/include/asm/spinlock_types.h
+index 7c6fb1208c88..58ea31fa65ce 100644
+--- a/arch/openrisc/include/asm/spinlock_types.h
++++ b/arch/openrisc/include/asm/spinlock_types.h
+@@ -1,7 +1,7 @@
+ #ifndef _ASM_OPENRISC_SPINLOCK_TYPES_H
+ #define _ASM_OPENRISC_SPINLOCK_TYPES_H
+ 
+-#include <asm/qspinlock_types.h>
++#include <asm/ticket-lock-types.h>
+ #include <asm/qrwlock_types.h>
+ 
+ #endif /* _ASM_OPENRISC_SPINLOCK_TYPES_H */
+-- 
+2.34.1
+
