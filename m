@@ -2,51 +2,51 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 918DFC433FE
-	for <linux-arch@archiver.kernel.org>; Sat, 19 Mar 2022 14:42:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4D6EBC433EF
+	for <linux-arch@archiver.kernel.org>; Sat, 19 Mar 2022 14:42:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S243292AbiCSOnm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 19 Mar 2022 10:43:42 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51202 "EHLO
+        id S243303AbiCSOnr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 19 Mar 2022 10:43:47 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49606 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S243290AbiCSOnl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Mar 2022 10:43:41 -0400
-Received: from mail-pj1-x1030.google.com (mail-pj1-x1030.google.com [IPv6:2607:f8b0:4864:20::1030])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A5979185441;
-        Sat, 19 Mar 2022 07:42:17 -0700 (PDT)
-Received: by mail-pj1-x1030.google.com with SMTP id mm17-20020a17090b359100b001c6da62a559so1040107pjb.3;
-        Sat, 19 Mar 2022 07:42:17 -0700 (PDT)
+        with ESMTP id S243283AbiCSOms (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Mar 2022 10:42:48 -0400
+Received: from mail-pg1-x535.google.com (mail-pg1-x535.google.com [IPv6:2607:f8b0:4864:20::535])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 47A1A180040;
+        Sat, 19 Mar 2022 07:41:25 -0700 (PDT)
+Received: by mail-pg1-x535.google.com with SMTP id c2so7124440pga.10;
+        Sat, 19 Mar 2022 07:41:25 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20210112;
         h=sender:from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=ZciAJAGeynvJEACcbW7wBMm6Dy/89lLKY/L3NXL5dpw=;
-        b=W3Qk45G6ck5u8WBUzz7OeKLElV2XRWvBwp+PEvBhccOe3ZKYhQQi9ZNugJ9+sg6wjH
-         0+zmCGaIY2ejV+Df/v26MA95FIFjS9Fb+sKcWzS5XTckeuNBko31ebqqLsykpvHXo/JT
-         ISAhF4D7JEV8UdLwRzkCHHYxZGytal7XZrLfJ10JsebVpo2lCfcqIhLgmErzDEWX3eUb
-         10pRPpIt+/ZMHBZf3IZB4ZrCVFGdFhhFwgoeM7tY6edv7h4uoseGPcYaU6lT/0s2SYOl
-         YMn7fuDyge9O8Vl/MstOsAH2nvd1uR3CBkd6XLzqTx5Yli9s7ytoASaFdEVyPHwpaLws
-         2hHQ==
+        bh=cQ5dyUwD/Jmo6A4RuMfzvSC36joeXVD+CNhD7AUsJVg=;
+        b=h79DFpa5EkjRsS7zxtAwsNxxN2TlG+tgETEuuqthXgjttcnUGWmZu8/9+76Ybk+7u4
+         A9T6u+I5Zynabzfodu+T/QBl5z7zYeVBA+rRBOrRnIE9f4nHlUID5k5sef1SudFI6sSW
+         8fv3atqXeX6a9TddpuJybdLBRt8InoD9i9078a6hKfNbcfXgrinEikbLKm1QdvgHNJl3
+         ZGoO0iPtXE+ujYm/1FX6McAFkmdCMA56D2m1NqpE7uVZQEiYlyHfxhXV3LbxO+fQkctf
+         S2iXv0ASKOM0NJI2DWGhSMh7GeUHw9LewAMnYwvB/nUSPZgDTP5VGlt0rUicQiGJt/YU
+         /w3Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:sender:from:to:cc:subject:date:message-id
          :in-reply-to:references:mime-version:content-transfer-encoding;
-        bh=ZciAJAGeynvJEACcbW7wBMm6Dy/89lLKY/L3NXL5dpw=;
-        b=pIihdyPR6k/1Wm4X1l1yQc9af9fNjS7G3Fn/K+Ziy0C1yIOU33vUbnKMLUYJM9u//w
-         hTrjkxSjUR2Xeduw98Zdf73uoLAJg0PhKGXCMtUv98WUsOG9FALROM87AnMcAL5si7Jp
-         LkDEXz9fp6AAuoIB3EX+OtJrxuc8MhH4MEmXLIj10TO4lF3A5yiN/mt4HB4ofnmygsz3
-         3BgMdmQtuUsB8qA66nubhM9SYla2EIVyd61r71YA3Uz1KEckINLA0Mt7kB/1zbYjEu1p
-         6VfHswfOZWlljgeNYqPaP5R5d1TyVb2kruCGeebbCvZKMYm2BWm/HX7jPj5i7+9m5c9r
-         xmlg==
-X-Gm-Message-State: AOAM531+AnCooIREM1qwfCbE6f+RJn9TlMhi5Qqex0pueEDdp/j0KMLf
-        i5mXaYH3Sn02GYGyBoA7UVU=
-X-Google-Smtp-Source: ABdhPJy/6J59d0xTm7D23tUBrg/edAd5ZyhwgbG+9nIQTfAGY/DekRYpxp2l8EocRaBwpGMaas4gUg==
-X-Received: by 2002:a17:902:f683:b0:153:ee22:18b7 with SMTP id l3-20020a170902f68300b00153ee2218b7mr4447570plg.159.1647700936906;
-        Sat, 19 Mar 2022 07:42:16 -0700 (PDT)
+        bh=cQ5dyUwD/Jmo6A4RuMfzvSC36joeXVD+CNhD7AUsJVg=;
+        b=BsI780JdhRhdCXVlhgfwAjK8FkXZ48gy2UZKY7lJ6nJ83E7Z7WKdpSF4IpJSA61O3k
+         ldudwY3kxsVrhDbaJS9HR7Seeqwx4n9VZkpJSPbL+YGXI6lhiAnMcIv5nIfjAkGaX/L6
+         eyLmeYXVVCPeN5HeazZzg+GcL7oJ50WVRkSrpUwGrd/OPQL+PK+I/OVsYaI9L4JIqYm+
+         npWFy1O23n38vMAV0x8EAlvDlcAC4uduArVL4phYZux+qRYl/VFv54XaPxqqd4E7f05+
+         dmLdsqguU9tlvICKuoHHTlJK8FzQ6945rbw/fyT3LQHoWgFO4K0aLCH5rjRW6RRPDeAt
+         BSwg==
+X-Gm-Message-State: AOAM530zJ7bMyl8f75z9NH8WdGHScaXQ3Y0SVivMIrqSrIWXtin5u2gX
+        L/MResIdVDRDwLwZVPT+ti8=
+X-Google-Smtp-Source: ABdhPJzAiPxnOscU+odFEhvhJ7a90HRI6N155jiufohqStGZpubaRq9JYtOUHUGuup9KqQzBhHMeSw==
+X-Received: by 2002:a05:6a00:140c:b0:4e1:530c:edc0 with SMTP id l12-20020a056a00140c00b004e1530cedc0mr15174776pfu.18.1647700884571;
+        Sat, 19 Mar 2022 07:41:24 -0700 (PDT)
 Received: from localhost.localdomain ([50.7.60.25])
-        by smtp.gmail.com with ESMTPSA id q12-20020a17090aa00c00b001bc6f1baaaesm14546829pjp.39.2022.03.19.07.42.07
+        by smtp.gmail.com with ESMTPSA id q12-20020a17090aa00c00b001bc6f1baaaesm14546829pjp.39.2022.03.19.07.41.14
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 19 Mar 2022 07:42:16 -0700 (PDT)
+        Sat, 19 Mar 2022 07:41:24 -0700 (PDT)
 Sender: Huacai Chen <chenhuacai@gmail.com>
 From:   Huacai Chen <chenhuacai@kernel.org>
 X-Google-Original-From: Huacai Chen <chenhuacai@loongson.cn>
@@ -62,10 +62,12 @@ Cc:     linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
         Yanteng Si <siyanteng@loongson.cn>,
         Huacai Chen <chenhuacai@gmail.com>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Huacai Chen <chenhuacai@loongson.cn>
-Subject: [PATCH V8 16/22] LoongArch: Add misc common routines
-Date:   Sat, 19 Mar 2022 22:38:11 +0800
-Message-Id: <20220319143817.1026708-9-chenhuacai@loongson.cn>
+        Huacai Chen <chenhuacai@loongson.cn>,
+        Eric Biederman <ebiederm@xmission.com>,
+        Al Viro <viro@zeniv.linux.org.uk>
+Subject: [PATCH V8 14/22] LoongArch: Add signal handling support
+Date:   Sat, 19 Mar 2022 22:38:09 +0800
+Message-Id: <20220319143817.1026708-7-chenhuacai@loongson.cn>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20220319143817.1026708-1-chenhuacai@loongson.cn>
 References: <20220319142759.1026237-1-chenhuacai@loongson.cn>
@@ -76,1018 +78,725 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This patch adds some misc common routines for LoongArch, including:
-asm-offsets routines, cmpxchg and futex functions, i/o memory access
-functions, rtc functions, frame-buffer functions, procfs information
-display, etc.
+This patch adds signal handling support for LoongArch.
 
+Cc: Eric Biederman <ebiederm@xmission.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
 ---
- arch/loongarch/include/asm/asm-offsets.h |   5 +
- arch/loongarch/include/asm/fb.h          |  23 ++
- arch/loongarch/include/asm/futex.h       | 107 ++++++++++
- arch/loongarch/include/asm/io.h          | 129 ++++++++++++
- arch/loongarch/include/uapi/asm/swab.h   |  52 +++++
- arch/loongarch/kernel/asm-offsets.c      | 255 +++++++++++++++++++++++
- arch/loongarch/kernel/cmpxchg.c          | 101 +++++++++
- arch/loongarch/kernel/io.c               |  94 +++++++++
- arch/loongarch/kernel/proc.c             | 122 +++++++++++
- arch/loongarch/kernel/rtc.c              |  36 ++++
- 10 files changed, 924 insertions(+)
- create mode 100644 arch/loongarch/include/asm/asm-offsets.h
- create mode 100644 arch/loongarch/include/asm/fb.h
- create mode 100644 arch/loongarch/include/asm/futex.h
- create mode 100644 arch/loongarch/include/asm/io.h
- create mode 100644 arch/loongarch/include/uapi/asm/swab.h
- create mode 100644 arch/loongarch/kernel/asm-offsets.c
- create mode 100644 arch/loongarch/kernel/cmpxchg.c
- create mode 100644 arch/loongarch/kernel/io.c
- create mode 100644 arch/loongarch/kernel/proc.c
- create mode 100644 arch/loongarch/kernel/rtc.c
+ arch/loongarch/include/uapi/asm/sigcontext.h |  63 ++
+ arch/loongarch/include/uapi/asm/signal.h     |  13 +
+ arch/loongarch/include/uapi/asm/ucontext.h   |  35 ++
+ arch/loongarch/kernel/signal.c               | 569 +++++++++++++++++++
+ 4 files changed, 680 insertions(+)
+ create mode 100644 arch/loongarch/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/loongarch/include/uapi/asm/signal.h
+ create mode 100644 arch/loongarch/include/uapi/asm/ucontext.h
+ create mode 100644 arch/loongarch/kernel/signal.c
 
-diff --git a/arch/loongarch/include/asm/asm-offsets.h b/arch/loongarch/include/asm/asm-offsets.h
+diff --git a/arch/loongarch/include/uapi/asm/sigcontext.h b/arch/loongarch/include/uapi/asm/sigcontext.h
 new file mode 100644
-index 000000000000..d9ad88d293e7
+index 000000000000..efeb8b3f8236
 --- /dev/null
-+++ b/arch/loongarch/include/asm/asm-offsets.h
-@@ -0,0 +1,5 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
++++ b/arch/loongarch/include/uapi/asm/sigcontext.h
+@@ -0,0 +1,63 @@
++/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
 +/*
++ * Author: Hanlu Li <lihanlu@loongson.cn>
++ *         Huacai Chen <chenhuacai@loongson.cn>
++ *
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
-+#include <generated/asm-offsets.h>
-diff --git a/arch/loongarch/include/asm/fb.h b/arch/loongarch/include/asm/fb.h
-new file mode 100644
-index 000000000000..3116bde8772d
---- /dev/null
-+++ b/arch/loongarch/include/asm/fb.h
-@@ -0,0 +1,23 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#ifndef _ASM_FB_H_
-+#define _ASM_FB_H_
++#ifndef _UAPI_ASM_SIGCONTEXT_H
++#define _UAPI_ASM_SIGCONTEXT_H
 +
-+#include <linux/fb.h>
-+#include <linux/fs.h>
-+#include <asm/page.h>
-+
-+static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
-+				unsigned long off)
-+{
-+	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
-+}
-+
-+static inline int fb_is_primary_device(struct fb_info *info)
-+{
-+	return 0;
-+}
-+
-+#endif /* _ASM_FB_H_ */
-diff --git a/arch/loongarch/include/asm/futex.h b/arch/loongarch/include/asm/futex.h
-new file mode 100644
-index 000000000000..b27d55f92db7
---- /dev/null
-+++ b/arch/loongarch/include/asm/futex.h
-@@ -0,0 +1,107 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#ifndef _ASM_FUTEX_H
-+#define _ASM_FUTEX_H
-+
-+#include <linux/futex.h>
-+#include <linux/uaccess.h>
-+#include <asm/barrier.h>
-+#include <asm/compiler.h>
-+#include <asm/errno.h>
-+
-+#define __futex_atomic_op(insn, ret, oldval, uaddr, oparg)		\
-+{									\
-+	__asm__ __volatile__(						\
-+	"1:	ll.w	%1, %4 # __futex_atomic_op\n"		\
-+	"	" insn	"				\n"	\
-+	"2:	sc.w	$t0, %2				\n"	\
-+	"	beq	$t0, $zero, 1b			\n"	\
-+	"3:						\n"	\
-+	"	.section .fixup,\"ax\"			\n"	\
-+	"4:	li.w	%0, %6				\n"	\
-+	"	b	3b				\n"	\
-+	"	.previous				\n"	\
-+	"	.section __ex_table,\"a\"		\n"	\
-+	"	"__UA_ADDR "\t1b, 4b			\n"	\
-+	"	"__UA_ADDR "\t2b, 4b			\n"	\
-+	"	.previous				\n"	\
-+	: "=r" (ret), "=&r" (oldval),				\
-+	  "=ZC" (*uaddr)					\
-+	: "0" (0), "ZC" (*uaddr), "Jr" (oparg),			\
-+	  "i" (-EFAULT)						\
-+	: "memory", "t0");					\
-+}
-+
-+static inline int
-+arch_futex_atomic_op_inuser(int op, int oparg, int *oval, u32 __user *uaddr)
-+{
-+	int oldval = 0, ret = 0;
-+
-+	pagefault_disable();
-+
-+	switch (op) {
-+	case FUTEX_OP_SET:
-+		__futex_atomic_op("move $t0, %z5", ret, oldval, uaddr, oparg);
-+		break;
-+	case FUTEX_OP_ADD:
-+		__futex_atomic_op("add.w $t0, %1, %z5", ret, oldval, uaddr, oparg);
-+		break;
-+	case FUTEX_OP_OR:
-+		__futex_atomic_op("or	$t0, %1, %z5", ret, oldval, uaddr, oparg);
-+		break;
-+	case FUTEX_OP_ANDN:
-+		__futex_atomic_op("and	$t0, %1, %z5", ret, oldval, uaddr, ~oparg);
-+		break;
-+	case FUTEX_OP_XOR:
-+		__futex_atomic_op("xor	$t0, %1, %z5", ret, oldval, uaddr, oparg);
-+		break;
-+	default:
-+		ret = -ENOSYS;
-+	}
-+
-+	pagefault_enable();
-+
-+	if (!ret)
-+		*oval = oldval;
-+
-+	return ret;
-+}
-+
-+static inline int
-+futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr, u32 oldval, u32 newval)
-+{
-+	int ret = 0;
-+	u32 val = 0;
-+
-+	if (!access_ok(uaddr, sizeof(u32)))
-+		return -EFAULT;
-+
-+	__asm__ __volatile__(
-+	"# futex_atomic_cmpxchg_inatomic			\n"
-+	"1:	ll.w	%1, %3					\n"
-+	"	bne	%1, %z4, 3f				\n"
-+	"	or	$t0, %z5, $zero				\n"
-+	"2:	sc.w	$t0, %2					\n"
-+	"	beq	$zero, $t0, 1b				\n"
-+	"3:							\n"
-+	"	.section .fixup,\"ax\"				\n"
-+	"4:	li.d	%0, %6					\n"
-+	"	b	3b					\n"
-+	"	.previous					\n"
-+	"	.section __ex_table,\"a\"			\n"
-+	"	"__UA_ADDR "\t1b, 4b				\n"
-+	"	"__UA_ADDR "\t2b, 4b				\n"
-+	"	.previous					\n"
-+	: "+r" (ret), "=&r" (val), "=" GCC_OFF_SMALL_ASM() (*uaddr)
-+	: GCC_OFF_SMALL_ASM() (*uaddr), "Jr" (oldval), "Jr" (newval),
-+	  "i" (-EFAULT)
-+	: "memory", "t0");
-+
-+	*uval = val;
-+
-+	return ret;
-+}
-+
-+#endif /* _ASM_FUTEX_H */
-diff --git a/arch/loongarch/include/asm/io.h b/arch/loongarch/include/asm/io.h
-new file mode 100644
-index 000000000000..21f64149396a
---- /dev/null
-+++ b/arch/loongarch/include/asm/io.h
-@@ -0,0 +1,129 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#ifndef _ASM_IO_H
-+#define _ASM_IO_H
-+
-+#define ARCH_HAS_IOREMAP_WC
-+
-+#include <linux/compiler.h>
-+#include <linux/kernel.h>
 +#include <linux/types.h>
++#include <linux/posix_types.h>
 +
-+#include <asm/addrspace.h>
-+#include <asm/bug.h>
-+#include <asm/byteorder.h>
-+#include <asm/cpu.h>
-+#include <asm/page.h>
-+#include <asm/pgtable-bits.h>
-+#include <asm/string.h>
++/* FP context was used */
++#define USED_FP			(1 << 0)
++/* Load/Store access flags for address error */
++#define ADRERR_RD		(1 << 30)
++#define ADRERR_WR		(1 << 31)
 +
-+/*
-+ * On LoongArch, I/O ports mappring is following:
-+ *
-+ *		|	  ....		|
-+ *		|-----------------------|
-+ *		| pci io ports(16K~32M)	|
-+ *		|-----------------------|
-+ *		| isa io ports(0  ~16K)	|
-+ * PCI_IOBASE ->|-----------------------|
-+ *		|	  ....		|
-+ */
-+#define PCI_IOBASE	((void __iomem *)(vm_map_base + (2 * PAGE_SIZE)))
-+#define PCI_IOSIZE	SZ_32M
-+#define ISA_IOSIZE	SZ_16K
-+#define IO_SPACE_LIMIT	(PCI_IOSIZE - 1)
++struct sigcontext {
++	__u64	sc_pc;
++	__u64	sc_regs[32];
++	__u32	sc_flags;
++	__u64	sc_extcontext[0] __attribute__((__aligned__(16)));
++};
 +
-+/*
-+ * Change "struct page" to physical address.
-+ */
-+#define page_to_phys(page)	((phys_addr_t)page_to_pfn(page) << PAGE_SHIFT)
++#define CONTEXT_INFO_ALIGN	16
++struct _ctxinfo {
++	__u32	magic;
++	__u32	size;
++	__u64	padding;	/* padding to 16 bytes */
++};
 +
-+extern void __init __iomem *early_ioremap(u64 phys_addr, unsigned long size);
-+extern void __init early_iounmap(void __iomem *addr, unsigned long size);
++/* FPU context */
++#define FPU_CTX_MAGIC		0x46505501
++#define FPU_CTX_ALIGN		8
++struct fpu_context {
++	__u64	regs[32];
++	__u64	fcc;
++	__u32	fcsr;
++};
 +
-+#define early_memremap early_ioremap
-+#define early_memunmap early_iounmap
++/* LSX context */
++#define LSX_CTX_MAGIC		0x53580001
++#define LSX_CTX_ALIGN		16
++struct lsx_context {
++	__u64	regs[2*32];
++	__u64	fcc;
++	__u32	fcsr;
++	__u32	vcsr;
++};
 +
-+static inline void __iomem *ioremap_prot(phys_addr_t offset, unsigned long size,
-+					 unsigned long prot_val)
-+{
-+	if (prot_val == _CACHE_CC)
-+		return (void __iomem *)(unsigned long)(CAC_BASE + offset);
-+	else
-+		return (void __iomem *)(unsigned long)(UNCAC_BASE + offset);
-+}
++/* LASX context */
++#define LASX_CTX_MAGIC		0x41535801
++#define LASX_CTX_ALIGN		32
++struct lasx_context {
++	__u64	regs[4*32];
++	__u64	fcc;
++	__u32	fcsr;
++	__u32	vcsr;
++};
 +
-+/*
-+ * ioremap -   map bus memory into CPU space
-+ * @offset:    bus address of the memory
-+ * @size:      size of the resource to map
-+ *
-+ * ioremap performs a platform specific sequence of operations to
-+ * make bus memory CPU accessible via the readb/readw/readl/writeb/
-+ * writew/writel functions and the other mmio helpers. The returned
-+ * address is not guaranteed to be usable directly as a virtual
-+ * address.
-+ */
-+#define ioremap(offset, size)					\
-+	ioremap_prot((offset), (size), _CACHE_SUC)
-+
-+/*
-+ * ioremap_wc - map bus memory into CPU space
-+ * @offset:     bus address of the memory
-+ * @size:       size of the resource to map
-+ *
-+ * ioremap_wc performs a platform specific sequence of operations to
-+ * make bus memory CPU accessible via the readb/readw/readl/writeb/
-+ * writew/writel functions and the other mmio helpers. The returned
-+ * address is not guaranteed to be usable directly as a virtual
-+ * address.
-+ *
-+ * This version of ioremap ensures that the memory is marked uncachable
-+ * but accelerated by means of write-combining feature. It is specifically
-+ * useful for PCIe prefetchable windows, which may vastly improve a
-+ * communications performance. If it was determined on boot stage, what
-+ * CPU CCA doesn't support WUC, the method shall fall-back to the
-+ * _CACHE_SUC option (see cpu_probe() method).
-+ */
-+#define ioremap_wc(offset, size)				\
-+	ioremap_prot((offset), (size), _CACHE_WUC)
-+
-+/*
-+ * ioremap_cache -  map bus memory into CPU space
-+ * @offset:	    bus address of the memory
-+ * @size:	    size of the resource to map
-+ *
-+ * ioremap_cache performs a platform specific sequence of operations to
-+ * make bus memory CPU accessible via the readb/readw/readl/writeb/
-+ * writew/writel functions and the other mmio helpers. The returned
-+ * address is not guaranteed to be usable directly as a virtual
-+ * address.
-+ *
-+ * This version of ioremap ensures that the memory is marked cachable by
-+ * the CPU.  Also enables full write-combining.	 Useful for some
-+ * memory-like regions on I/O busses.
-+ */
-+#define ioremap_cache(offset, size)				\
-+	ioremap_prot((offset), (size), _CACHE_CC)
-+
-+static inline void iounmap(const volatile void __iomem *addr)
-+{
-+}
-+
-+#define mmiowb() asm volatile ("dbar 0" ::: "memory")
-+
-+/*
-+ * String version of I/O memory access operations.
-+ */
-+extern void __memset_io(volatile void __iomem *dst, int c, size_t count);
-+extern void __memcpy_toio(volatile void __iomem *to, const void *from, size_t count);
-+extern void __memcpy_fromio(void *to, const volatile void __iomem *from, size_t count);
-+#define memset_io(c, v, l)     __memset_io((c), (v), (l))
-+#define memcpy_fromio(a, c, l) __memcpy_fromio((a), (c), (l))
-+#define memcpy_toio(c, a, l)   __memcpy_toio((c), (a), (l))
-+
-+#include <asm-generic/io.h>
-+
-+#endif /* _ASM_IO_H */
-diff --git a/arch/loongarch/include/uapi/asm/swab.h b/arch/loongarch/include/uapi/asm/swab.h
++#endif /* _UAPI_ASM_SIGCONTEXT_H */
+diff --git a/arch/loongarch/include/uapi/asm/signal.h b/arch/loongarch/include/uapi/asm/signal.h
 new file mode 100644
-index 000000000000..95e02676b6fa
+index 000000000000..992d965aa13f
 --- /dev/null
-+++ b/arch/loongarch/include/uapi/asm/swab.h
-@@ -0,0 +1,52 @@
++++ b/arch/loongarch/include/uapi/asm/signal.h
+@@ -0,0 +1,13 @@
 +/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
 +/*
-+ * Authors: Jun Yi <yijun@loongson.cn>
-+ *          Huacai Chen <chenhuacai@loongson.cn>
-+ *
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
-+#ifndef _ASM_SWAB_H
-+#define _ASM_SWAB_H
++#ifndef _UAPI_ASM_SIGNAL_H
++#define _UAPI_ASM_SIGNAL_H
 +
-+#include <linux/compiler.h>
-+#include <linux/types.h>
++#define MINSIGSTKSZ 4096
++#define SIGSTKSZ    16384
 +
-+#define __SWAB_64_THRU_32__
++#include <asm-generic/signal.h>
 +
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 x)
-+{
-+	__asm__(
-+	"	revb.2h	%0, %1			\n"
-+	: "=r" (x)
-+	: "r" (x));
-+
-+	return x;
-+}
-+#define __arch_swab16 __arch_swab16
-+
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
-+{
-+	__asm__(
-+	"	revb.2h	%0, %1			\n"
-+	"	rotri.w	%0, %0, 16		\n"
-+	: "=r" (x)
-+	: "r" (x));
-+
-+	return x;
-+}
-+#define __arch_swab32 __arch_swab32
-+
-+#ifdef __loongarch64
-+static inline __attribute_const__ __u64 __arch_swab64(__u64 x)
-+{
-+	__asm__(
-+	"	revb.4h	%0, %1			\n"
-+	"	revh.d	%0, %0			\n"
-+	: "=r" (x)
-+	: "r" (x));
-+
-+	return x;
-+}
-+#define __arch_swab64 __arch_swab64
-+#endif /* __loongarch64 */
-+#endif /* _ASM_SWAB_H */
-diff --git a/arch/loongarch/kernel/asm-offsets.c b/arch/loongarch/kernel/asm-offsets.c
++#endif
+diff --git a/arch/loongarch/include/uapi/asm/ucontext.h b/arch/loongarch/include/uapi/asm/ucontext.h
 new file mode 100644
-index 000000000000..b5e89333eff7
+index 000000000000..12577e22b1c7
 --- /dev/null
-+++ b/arch/loongarch/kernel/asm-offsets.c
-@@ -0,0 +1,255 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * asm-offsets.c: Calculate pt_regs and task_struct offsets.
-+ *
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++++ b/arch/loongarch/include/uapi/asm/ucontext.h
+@@ -0,0 +1,35 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++#ifndef __LOONGARCH_UAPI_ASM_UCONTEXT_H
++#define __LOONGARCH_UAPI_ASM_UCONTEXT_H
++
++/**
++ * struct ucontext - user context structure
++ * @uc_flags:
++ * @uc_link:
++ * @uc_stack:
++ * @uc_mcontext:	holds basic processor state
++ * @uc_sigmask:
++ * @uc_extcontext:	holds extended processor state
 + */
-+#include <linux/compat.h>
-+#include <linux/types.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/kbuild.h>
-+#include <linux/suspend.h>
-+#include <asm/cpu-info.h>
-+#include <asm/ptrace.h>
-+#include <asm/processor.h>
++struct ucontext {
++	unsigned long		uc_flags;
++	struct ucontext		*uc_link;
++	stack_t			uc_stack;
++	sigset_t		uc_sigmask;
++	/* There's some padding here to allow sigset_t to be expanded in the
++	 * future.  Though this is unlikely, other architectures put uc_sigmask
++	 * at the end of this structure and explicitly state it can be
++	 * expanded, so we didn't want to box ourselves in here. */
++	__u8		  __unused[1024 / 8 - sizeof(sigset_t)];
++	/* We can't put uc_sigmask at the end of this structure because we need
++	 * to be able to expand sigcontext in the future.  For example, the
++	 * vector ISA extension will almost certainly add ISA state.  We want
++	 * to ensure all user-visible ISA state can be saved and restored via a
++	 * ucontext, so we're putting this at the end in order to allow for
++	 * infinite extensibility.  Since we know this will be extended and we
++	 * assume sigset_t won't be extended an extreme amount, we're
++	 * prioritizing this. */
++	struct sigcontext	uc_mcontext;
++};
 +
-+void output_ptreg_defines(void)
-+{
-+	COMMENT("LoongArch pt_regs offsets.");
-+	OFFSET(PT_R0, pt_regs, regs[0]);
-+	OFFSET(PT_R1, pt_regs, regs[1]);
-+	OFFSET(PT_R2, pt_regs, regs[2]);
-+	OFFSET(PT_R3, pt_regs, regs[3]);
-+	OFFSET(PT_R4, pt_regs, regs[4]);
-+	OFFSET(PT_R5, pt_regs, regs[5]);
-+	OFFSET(PT_R6, pt_regs, regs[6]);
-+	OFFSET(PT_R7, pt_regs, regs[7]);
-+	OFFSET(PT_R8, pt_regs, regs[8]);
-+	OFFSET(PT_R9, pt_regs, regs[9]);
-+	OFFSET(PT_R10, pt_regs, regs[10]);
-+	OFFSET(PT_R11, pt_regs, regs[11]);
-+	OFFSET(PT_R12, pt_regs, regs[12]);
-+	OFFSET(PT_R13, pt_regs, regs[13]);
-+	OFFSET(PT_R14, pt_regs, regs[14]);
-+	OFFSET(PT_R15, pt_regs, regs[15]);
-+	OFFSET(PT_R16, pt_regs, regs[16]);
-+	OFFSET(PT_R17, pt_regs, regs[17]);
-+	OFFSET(PT_R18, pt_regs, regs[18]);
-+	OFFSET(PT_R19, pt_regs, regs[19]);
-+	OFFSET(PT_R20, pt_regs, regs[20]);
-+	OFFSET(PT_R21, pt_regs, regs[21]);
-+	OFFSET(PT_R22, pt_regs, regs[22]);
-+	OFFSET(PT_R23, pt_regs, regs[23]);
-+	OFFSET(PT_R24, pt_regs, regs[24]);
-+	OFFSET(PT_R25, pt_regs, regs[25]);
-+	OFFSET(PT_R26, pt_regs, regs[26]);
-+	OFFSET(PT_R27, pt_regs, regs[27]);
-+	OFFSET(PT_R28, pt_regs, regs[28]);
-+	OFFSET(PT_R29, pt_regs, regs[29]);
-+	OFFSET(PT_R30, pt_regs, regs[30]);
-+	OFFSET(PT_R31, pt_regs, regs[31]);
-+	OFFSET(PT_CRMD, pt_regs, csr_crmd);
-+	OFFSET(PT_PRMD, pt_regs, csr_prmd);
-+	OFFSET(PT_EUEN, pt_regs, csr_euen);
-+	OFFSET(PT_ECFG, pt_regs, csr_ecfg);
-+	OFFSET(PT_ESTAT, pt_regs, csr_estat);
-+	OFFSET(PT_ERA, pt_regs, csr_era);
-+	OFFSET(PT_BVADDR, pt_regs, csr_badvaddr);
-+	OFFSET(PT_ORIG_A0, pt_regs, orig_a0);
-+	DEFINE(PT_SIZE, sizeof(struct pt_regs));
-+	BLANK();
-+}
-+
-+void output_task_defines(void)
-+{
-+	COMMENT("LoongArch task_struct offsets.");
-+	OFFSET(TASK_STATE, task_struct, __state);
-+	OFFSET(TASK_THREAD_INFO, task_struct, stack);
-+	OFFSET(TASK_FLAGS, task_struct, flags);
-+	OFFSET(TASK_MM, task_struct, mm);
-+	OFFSET(TASK_PID, task_struct, pid);
-+	DEFINE(TASK_STRUCT_SIZE, sizeof(struct task_struct));
-+	BLANK();
-+}
-+
-+void output_thread_info_defines(void)
-+{
-+	COMMENT("LoongArch thread_info offsets.");
-+	OFFSET(TI_TASK, thread_info, task);
-+	OFFSET(TI_FLAGS, thread_info, flags);
-+	OFFSET(TI_TP_VALUE, thread_info, tp_value);
-+	OFFSET(TI_CPU, thread_info, cpu);
-+	OFFSET(TI_PRE_COUNT, thread_info, preempt_count);
-+	OFFSET(TI_REGS, thread_info, regs);
-+	DEFINE(_THREAD_SIZE, THREAD_SIZE);
-+	DEFINE(_THREAD_MASK, THREAD_MASK);
-+	DEFINE(_IRQ_STACK_SIZE, IRQ_STACK_SIZE);
-+	DEFINE(_IRQ_STACK_START, IRQ_STACK_START);
-+	BLANK();
-+}
-+
-+void output_thread_defines(void)
-+{
-+	COMMENT("LoongArch specific thread_struct offsets.");
-+	OFFSET(THREAD_REG01, task_struct, thread.reg01);
-+	OFFSET(THREAD_REG03, task_struct, thread.reg03);
-+	OFFSET(THREAD_REG22, task_struct, thread.reg22);
-+	OFFSET(THREAD_REG23, task_struct, thread.reg23);
-+	OFFSET(THREAD_REG24, task_struct, thread.reg24);
-+	OFFSET(THREAD_REG25, task_struct, thread.reg25);
-+	OFFSET(THREAD_REG26, task_struct, thread.reg26);
-+	OFFSET(THREAD_REG27, task_struct, thread.reg27);
-+	OFFSET(THREAD_REG28, task_struct, thread.reg28);
-+	OFFSET(THREAD_REG29, task_struct, thread.reg29);
-+	OFFSET(THREAD_REG30, task_struct, thread.reg30);
-+	OFFSET(THREAD_REG31, task_struct, thread.reg31);
-+	OFFSET(THREAD_CSRCRMD, task_struct,
-+	       thread.csr_crmd);
-+	OFFSET(THREAD_CSRPRMD, task_struct,
-+	       thread.csr_prmd);
-+	OFFSET(THREAD_CSREUEN, task_struct,
-+	       thread.csr_euen);
-+	OFFSET(THREAD_CSRECFG, task_struct,
-+	       thread.csr_ecfg);
-+
-+	OFFSET(THREAD_SCR0, task_struct, thread.scr0);
-+	OFFSET(THREAD_SCR1, task_struct, thread.scr1);
-+	OFFSET(THREAD_SCR2, task_struct, thread.scr2);
-+	OFFSET(THREAD_SCR3, task_struct, thread.scr3);
-+
-+	OFFSET(THREAD_EFLAGS, task_struct, thread.eflags);
-+
-+	OFFSET(THREAD_FPU, task_struct, thread.fpu);
-+
-+	OFFSET(THREAD_BVADDR, task_struct, \
-+	       thread.csr_badvaddr);
-+	OFFSET(THREAD_ECODE, task_struct, \
-+	       thread.error_code);
-+	OFFSET(THREAD_TRAPNO, task_struct, thread.trap_nr);
-+	BLANK();
-+}
-+
-+void output_thread_fpu_defines(void)
-+{
-+	OFFSET(THREAD_FPR0, loongarch_fpu, fpr[0]);
-+	OFFSET(THREAD_FPR1, loongarch_fpu, fpr[1]);
-+	OFFSET(THREAD_FPR2, loongarch_fpu, fpr[2]);
-+	OFFSET(THREAD_FPR3, loongarch_fpu, fpr[3]);
-+	OFFSET(THREAD_FPR4, loongarch_fpu, fpr[4]);
-+	OFFSET(THREAD_FPR5, loongarch_fpu, fpr[5]);
-+	OFFSET(THREAD_FPR6, loongarch_fpu, fpr[6]);
-+	OFFSET(THREAD_FPR7, loongarch_fpu, fpr[7]);
-+	OFFSET(THREAD_FPR8, loongarch_fpu, fpr[8]);
-+	OFFSET(THREAD_FPR9, loongarch_fpu, fpr[9]);
-+	OFFSET(THREAD_FPR10, loongarch_fpu, fpr[10]);
-+	OFFSET(THREAD_FPR11, loongarch_fpu, fpr[11]);
-+	OFFSET(THREAD_FPR12, loongarch_fpu, fpr[12]);
-+	OFFSET(THREAD_FPR13, loongarch_fpu, fpr[13]);
-+	OFFSET(THREAD_FPR14, loongarch_fpu, fpr[14]);
-+	OFFSET(THREAD_FPR15, loongarch_fpu, fpr[15]);
-+	OFFSET(THREAD_FPR16, loongarch_fpu, fpr[16]);
-+	OFFSET(THREAD_FPR17, loongarch_fpu, fpr[17]);
-+	OFFSET(THREAD_FPR18, loongarch_fpu, fpr[18]);
-+	OFFSET(THREAD_FPR19, loongarch_fpu, fpr[19]);
-+	OFFSET(THREAD_FPR20, loongarch_fpu, fpr[20]);
-+	OFFSET(THREAD_FPR21, loongarch_fpu, fpr[21]);
-+	OFFSET(THREAD_FPR22, loongarch_fpu, fpr[22]);
-+	OFFSET(THREAD_FPR23, loongarch_fpu, fpr[23]);
-+	OFFSET(THREAD_FPR24, loongarch_fpu, fpr[24]);
-+	OFFSET(THREAD_FPR25, loongarch_fpu, fpr[25]);
-+	OFFSET(THREAD_FPR26, loongarch_fpu, fpr[26]);
-+	OFFSET(THREAD_FPR27, loongarch_fpu, fpr[27]);
-+	OFFSET(THREAD_FPR28, loongarch_fpu, fpr[28]);
-+	OFFSET(THREAD_FPR29, loongarch_fpu, fpr[29]);
-+	OFFSET(THREAD_FPR30, loongarch_fpu, fpr[30]);
-+	OFFSET(THREAD_FPR31, loongarch_fpu, fpr[31]);
-+
-+	OFFSET(THREAD_FCSR, loongarch_fpu, fcsr);
-+	OFFSET(THREAD_FCC,  loongarch_fpu, fcc);
-+	OFFSET(THREAD_VCSR, loongarch_fpu, vcsr);
-+	BLANK();
-+}
-+
-+void output_mm_defines(void)
-+{
-+	COMMENT("Size of struct page");
-+	DEFINE(STRUCT_PAGE_SIZE, sizeof(struct page));
-+	BLANK();
-+	COMMENT("Linux mm_struct offsets.");
-+	OFFSET(MM_USERS, mm_struct, mm_users);
-+	OFFSET(MM_PGD, mm_struct, pgd);
-+	OFFSET(MM_CONTEXT, mm_struct, context);
-+	BLANK();
-+	DEFINE(_PGD_T_SIZE, sizeof(pgd_t));
-+	DEFINE(_PMD_T_SIZE, sizeof(pmd_t));
-+	DEFINE(_PTE_T_SIZE, sizeof(pte_t));
-+	BLANK();
-+	DEFINE(_PGD_T_LOG2, PGD_T_LOG2);
-+#ifndef __PAGETABLE_PMD_FOLDED
-+	DEFINE(_PMD_T_LOG2, PMD_T_LOG2);
-+#endif
-+	DEFINE(_PTE_T_LOG2, PTE_T_LOG2);
-+	BLANK();
-+	DEFINE(_PGD_ORDER, PGD_ORDER);
-+#ifndef __PAGETABLE_PMD_FOLDED
-+	DEFINE(_PMD_ORDER, PMD_ORDER);
-+#endif
-+	DEFINE(_PTE_ORDER, PTE_ORDER);
-+	BLANK();
-+	DEFINE(_PMD_SHIFT, PMD_SHIFT);
-+	DEFINE(_PGDIR_SHIFT, PGDIR_SHIFT);
-+	BLANK();
-+	DEFINE(_PTRS_PER_PGD, PTRS_PER_PGD);
-+	DEFINE(_PTRS_PER_PMD, PTRS_PER_PMD);
-+	DEFINE(_PTRS_PER_PTE, PTRS_PER_PTE);
-+	BLANK();
-+	DEFINE(_PAGE_SHIFT, PAGE_SHIFT);
-+	DEFINE(_PAGE_SIZE, PAGE_SIZE);
-+	BLANK();
-+}
-+
-+void output_sc_defines(void)
-+{
-+	COMMENT("Linux sigcontext offsets.");
-+	OFFSET(SC_REGS, sigcontext, sc_regs);
-+	OFFSET(SC_PC, sigcontext, sc_pc);
-+	BLANK();
-+}
-+
-+void output_signal_defines(void)
-+{
-+	COMMENT("Linux signal numbers.");
-+	DEFINE(_SIGHUP, SIGHUP);
-+	DEFINE(_SIGINT, SIGINT);
-+	DEFINE(_SIGQUIT, SIGQUIT);
-+	DEFINE(_SIGILL, SIGILL);
-+	DEFINE(_SIGTRAP, SIGTRAP);
-+	DEFINE(_SIGIOT, SIGIOT);
-+	DEFINE(_SIGABRT, SIGABRT);
-+	DEFINE(_SIGFPE, SIGFPE);
-+	DEFINE(_SIGKILL, SIGKILL);
-+	DEFINE(_SIGBUS, SIGBUS);
-+	DEFINE(_SIGSEGV, SIGSEGV);
-+	DEFINE(_SIGSYS, SIGSYS);
-+	DEFINE(_SIGPIPE, SIGPIPE);
-+	DEFINE(_SIGALRM, SIGALRM);
-+	DEFINE(_SIGTERM, SIGTERM);
-+	DEFINE(_SIGUSR1, SIGUSR1);
-+	DEFINE(_SIGUSR2, SIGUSR2);
-+	DEFINE(_SIGCHLD, SIGCHLD);
-+	DEFINE(_SIGPWR, SIGPWR);
-+	DEFINE(_SIGWINCH, SIGWINCH);
-+	DEFINE(_SIGURG, SIGURG);
-+	DEFINE(_SIGIO, SIGIO);
-+	DEFINE(_SIGSTOP, SIGSTOP);
-+	DEFINE(_SIGTSTP, SIGTSTP);
-+	DEFINE(_SIGCONT, SIGCONT);
-+	DEFINE(_SIGTTIN, SIGTTIN);
-+	DEFINE(_SIGTTOU, SIGTTOU);
-+	DEFINE(_SIGVTALRM, SIGVTALRM);
-+	DEFINE(_SIGPROF, SIGPROF);
-+	DEFINE(_SIGXCPU, SIGXCPU);
-+	DEFINE(_SIGXFSZ, SIGXFSZ);
-+	BLANK();
-+}
-diff --git a/arch/loongarch/kernel/cmpxchg.c b/arch/loongarch/kernel/cmpxchg.c
++#endif /* __LOONGARCH_UAPI_ASM_UCONTEXT_H */
+diff --git a/arch/loongarch/kernel/signal.c b/arch/loongarch/kernel/signal.c
 new file mode 100644
-index 000000000000..f10212dba59a
+index 000000000000..97c7d1cb704c
 --- /dev/null
-+++ b/arch/loongarch/kernel/cmpxchg.c
-@@ -0,0 +1,101 @@
-+// SPDX-License-Identifier: GPL-2.0
++++ b/arch/loongarch/kernel/signal.c
+@@ -0,0 +1,569 @@
++// SPDX-License-Identifier: GPL-2.0+
 +/*
-+ * Author: Huacai Chen <chenhuacai@loongson.cn>
++ * Author: Hanlu Li <lihanlu@loongson.cn>
++ *         Huacai Chen <chenhuacai@loongson.cn>
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + *
 + * Derived from MIPS:
-+ * Copyright (C) 2017 Imagination Technologies
-+ * Author: Paul Burton <paul.burton@mips.com>
++ * Copyright (C) 1991, 1992  Linus Torvalds
++ * Copyright (C) 1994 - 2000  Ralf Baechle
++ * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
++ * Copyright (C) 2014, Imagination Technologies Ltd.
 + */
-+
-+#include <linux/bug.h>
-+#include <asm/barrier.h>
-+#include <asm/cmpxchg.h>
-+
-+unsigned long __xchg_small(volatile void *ptr, unsigned long val, unsigned int size)
-+{
-+	u32 old32, mask, temp;
-+	volatile u32 *ptr32;
-+	unsigned int shift;
-+
-+	/* Check that ptr is naturally aligned */
-+	WARN_ON((unsigned long)ptr & (size - 1));
-+
-+	/* Mask value to the correct size. */
-+	mask = GENMASK((size * BITS_PER_BYTE) - 1, 0);
-+	val &= mask;
-+
-+	/*
-+	 * Calculate a shift & mask that correspond to the value we wish to
-+	 * exchange within the naturally aligned 4 byte integerthat includes
-+	 * it.
-+	 */
-+	shift = (unsigned long)ptr & 0x3;
-+	shift *= BITS_PER_BYTE;
-+	mask <<= shift;
-+
-+	/*
-+	 * Calculate a pointer to the naturally aligned 4 byte integer that
-+	 * includes our byte of interest, and load its value.
-+	 */
-+	ptr32 = (volatile u32 *)((unsigned long)ptr & ~0x3);
-+
-+	asm volatile (
-+	"1:	ll.w		%0, %3		\n"
-+	"	and		%1, %0, %4	\n"
-+	"	or		%1, %1, %5	\n"
-+	"	sc.w		%1, %2		\n"
-+	"	beqz		%1, 1b		\n"
-+	: "=&r" (old32), "=&r" (temp), "=" GCC_OFF_SMALL_ASM() (*ptr32)
-+	: GCC_OFF_SMALL_ASM() (*ptr32), "Jr" (~mask), "Jr" (val << shift)
-+	: "memory");
-+
-+	return (old32 & mask) >> shift;
-+}
-+
-+unsigned long __cmpxchg_small(volatile void *ptr, unsigned long old,
-+			      unsigned long new, unsigned int size)
-+{
-+	u32 old32, mask, temp;
-+	volatile u32 *ptr32;
-+	unsigned int shift;
-+
-+	/* Check that ptr is naturally aligned */
-+	WARN_ON((unsigned long)ptr & (size - 1));
-+
-+	/* Mask inputs to the correct size. */
-+	mask = GENMASK((size * BITS_PER_BYTE) - 1, 0);
-+	old &= mask;
-+	new &= mask;
-+
-+	/*
-+	 * Calculate a shift & mask that correspond to the value we wish to
-+	 * compare & exchange within the naturally aligned 4 byte integer
-+	 * that includes it.
-+	 */
-+	shift = (unsigned long)ptr & 0x3;
-+	shift *= BITS_PER_BYTE;
-+	old <<= shift;
-+	new <<= shift;
-+	mask <<= shift;
-+
-+	/*
-+	 * Calculate a pointer to the naturally aligned 4 byte integer that
-+	 * includes our byte of interest, and load its value.
-+	 */
-+	ptr32 = (volatile u32 *)((unsigned long)ptr & ~0x3);
-+
-+	asm volatile (
-+	"1:	ll.w		%0, %3		\n"
-+	"	and		%1, %0, %4	\n"
-+	"	bne		%1, %5, 2f	\n"
-+	"	or		%1, %1, %6	\n"
-+	"	sc.w		%1, %2		\n"
-+	"	beqz		%1, 1b		\n"
-+	"2:					\n"
-+	: "=&r" (old32), "=&r" (temp), "=" GCC_OFF_SMALL_ASM() (*ptr32)
-+	: GCC_OFF_SMALL_ASM() (*ptr32), "Jr" (~mask), "Jr" (old), "Jr" (new)
-+	: "memory");
-+
-+	return (old32 & mask) >> shift;
-+}
-diff --git a/arch/loongarch/kernel/io.c b/arch/loongarch/kernel/io.c
-new file mode 100644
-index 000000000000..cb85bda5a6ad
---- /dev/null
-+++ b/arch/loongarch/kernel/io.c
-@@ -0,0 +1,94 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#include <linux/export.h>
-+#include <linux/types.h>
-+#include <linux/io.h>
-+
-+/*
-+ * Copy data from IO memory space to "real" memory space.
-+ */
-+void __memcpy_fromio(void *to, const volatile void __iomem *from, size_t count)
-+{
-+	while (count && !IS_ALIGNED((unsigned long)from, 8)) {
-+		*(u8 *)to = __raw_readb(from);
-+		from++;
-+		to++;
-+		count--;
-+	}
-+
-+	while (count >= 8) {
-+		*(u64 *)to = __raw_readq(from);
-+		from += 8;
-+		to += 8;
-+		count -= 8;
-+	}
-+
-+	while (count) {
-+		*(u8 *)to = __raw_readb(from);
-+		from++;
-+		to++;
-+		count--;
-+	}
-+}
-+EXPORT_SYMBOL(__memcpy_fromio);
-+
-+/*
-+ * Copy data from "real" memory space to IO memory space.
-+ */
-+void __memcpy_toio(volatile void __iomem *to, const void *from, size_t count)
-+{
-+	while (count && !IS_ALIGNED((unsigned long)to, 8)) {
-+		__raw_writeb(*(u8 *)from, to);
-+		from++;
-+		to++;
-+		count--;
-+	}
-+
-+	while (count >= 8) {
-+		__raw_writeq(*(u64 *)from, to);
-+		from += 8;
-+		to += 8;
-+		count -= 8;
-+	}
-+
-+	while (count) {
-+		__raw_writeb(*(u8 *)from, to);
-+		from++;
-+		to++;
-+		count--;
-+	}
-+}
-+EXPORT_SYMBOL(__memcpy_toio);
-+
-+/*
-+ * "memset" on IO memory space.
-+ */
-+void __memset_io(volatile void __iomem *dst, int c, size_t count)
-+{
-+	u64 qc = (u8)c;
-+
-+	qc |= qc << 8;
-+	qc |= qc << 16;
-+	qc |= qc << 32;
-+
-+	while (count && !IS_ALIGNED((unsigned long)dst, 8)) {
-+		__raw_writeb(c, dst);
-+		dst++;
-+		count--;
-+	}
-+
-+	while (count >= 8) {
-+		__raw_writeq(qc, dst);
-+		dst += 8;
-+		count -= 8;
-+	}
-+
-+	while (count) {
-+		__raw_writeb(c, dst);
-+		dst++;
-+		count--;
-+	}
-+}
-+EXPORT_SYMBOL(__memset_io);
-diff --git a/arch/loongarch/kernel/proc.c b/arch/loongarch/kernel/proc.c
-new file mode 100644
-index 000000000000..1f2ee5b15b50
---- /dev/null
-+++ b/arch/loongarch/kernel/proc.c
-@@ -0,0 +1,122 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#include <linux/delay.h>
-+#include <linux/kernel.h>
++#include <linux/audit.h>
++#include <linux/cache.h>
++#include <linux/context_tracking.h>
++#include <linux/irqflags.h>
 +#include <linux/sched.h>
-+#include <linux/seq_file.h>
-+#include <asm/bootinfo.h>
-+#include <asm/cpu.h>
++#include <linux/mm.h>
++#include <linux/personality.h>
++#include <linux/smp.h>
++#include <linux/kernel.h>
++#include <linux/signal.h>
++#include <linux/errno.h>
++#include <linux/wait.h>
++#include <linux/ptrace.h>
++#include <linux/unistd.h>
++#include <linux/compiler.h>
++#include <linux/syscalls.h>
++#include <linux/uaccess.h>
++#include <linux/tracehook.h>
++
++#include <asm/asm.h>
++#include <asm/cacheflush.h>
 +#include <asm/cpu-features.h>
-+#include <asm/idle.h>
-+#include <asm/processor.h>
-+#include <asm/time.h>
++#include <asm/fpu.h>
++#include <asm/ucontext.h>
++#include <asm/vdso.h>
++
++#ifdef DEBUG_SIG
++#  define DEBUGP(fmt, args...) printk("%s: " fmt, __func__, ##args)
++#else
++#  define DEBUGP(fmt, args...)
++#endif
++
++/* Make sure we will not lose FPU ownership */
++#define lock_fpu_owner()	({ preempt_disable(); pagefault_disable(); })
++#define unlock_fpu_owner()	({ pagefault_enable(); preempt_enable(); })
++
++/* Assembly functions to move context to/from the FPU */
++extern asmlinkage int
++_save_fp_context(void __user *fpregs, void __user *fcc, void __user *csr);
++extern asmlinkage int
++_restore_fp_context(void __user *fpregs, void __user *fcc, void __user *csr);
++
++struct rt_sigframe {
++	struct siginfo rs_info;
++	struct ucontext rs_uctx;
++};
++
++struct _ctx_layout {
++	struct _ctxinfo *addr;
++	unsigned int size;
++};
++
++struct extctx_layout {
++	unsigned long size;
++	unsigned int flags;
++	struct _ctx_layout fpu;
++	struct _ctx_layout lsx;
++	struct _ctx_layout lasx;
++	struct _ctx_layout end;
++};
++
++static void __user *get_ctx_through_ctxinfo(struct _ctxinfo *info)
++{
++	return (void __user *)((char *)info + sizeof(struct _ctxinfo));
++}
 +
 +/*
-+ * No lock; only written during early bootup by CPU 0.
++ * Thread saved context copy to/from a signal context presumed to be on the
++ * user stack, and therefore accessed with appropriate macros from uaccess.h.
 + */
-+static RAW_NOTIFIER_HEAD(proc_cpuinfo_chain);
-+
-+int __ref register_proc_cpuinfo_notifier(struct notifier_block *nb)
++static int copy_fpu_to_sigcontext(struct fpu_context __user *ctx)
 +{
-+	return raw_notifier_chain_register(&proc_cpuinfo_chain, nb);
++	int i;
++	int err = 0;
++	uint64_t __user *regs	= (uint64_t *)&ctx->regs;
++	uint64_t __user *fcc	= &ctx->fcc;
++	uint32_t __user *fcsr	= &ctx->fcsr;
++
++	for (i = 0; i < NUM_FPU_REGS; i++) {
++		err |=
++		    __put_user(get_fpr64(&current->thread.fpu.fpr[i], 0),
++			       &regs[i]);
++	}
++	err |= __put_user(current->thread.fpu.fcc, fcc);
++	err |= __put_user(current->thread.fpu.fcsr, fcsr);
++
++	return err;
 +}
 +
-+int proc_cpuinfo_notifier_call_chain(unsigned long val, void *v)
++static int copy_fpu_from_sigcontext(struct fpu_context __user *ctx)
 +{
-+	return raw_notifier_call_chain(&proc_cpuinfo_chain, val, v);
++	int i;
++	int err = 0;
++	u64 fpr_val;
++	uint64_t __user *regs	= (uint64_t *)&ctx->regs;
++	uint64_t __user *fcc	= &ctx->fcc;
++	uint32_t __user *fcsr	= &ctx->fcsr;
++
++	for (i = 0; i < NUM_FPU_REGS; i++) {
++		err |= __get_user(fpr_val, &regs[i]);
++		set_fpr64(&current->thread.fpu.fpr[i], 0, fpr_val);
++	}
++	err |= __get_user(current->thread.fpu.fcc, fcc);
++	err |= __get_user(current->thread.fpu.fcsr, fcsr);
++
++	return err;
 +}
 +
-+static int show_cpuinfo(struct seq_file *m, void *v)
++/*
++ * Wrappers for the assembly _{save,restore}_fp_context functions.
++ */
++static int save_hw_fpu_context(struct fpu_context __user *ctx)
 +{
-+	unsigned long n = (unsigned long) v - 1;
-+	unsigned int version = cpu_data[n].processor_id & 0xff;
-+	unsigned int fp_version = cpu_data[n].fpu_vers;
-+	struct proc_cpuinfo_notifier_args proc_cpuinfo_notifier_args;
++	uint64_t __user *regs	= (uint64_t *)&ctx->regs;
++	uint64_t __user *fcc	= &ctx->fcc;
++	uint32_t __user *fcsr	= &ctx->fcsr;
 +
++	return _save_fp_context(regs, fcc, fcsr);
++}
++
++static int restore_hw_fpu_context(struct fpu_context __user *ctx)
++{
++	uint64_t __user *regs	= (uint64_t *)&ctx->regs;
++	uint64_t __user *fcc	= &ctx->fcc;
++	uint32_t __user *fcsr	= &ctx->fcsr;
++
++	return _restore_fp_context(regs, fcc, fcsr);
++}
++
++int fpcsr_pending(unsigned int __user *fpcsr)
++{
++	int err, sig = 0;
++	unsigned int csr, enabled;
++
++	err = __get_user(csr, fpcsr);
++	enabled = ((csr & FPU_CSR_ALL_E) << 24);
 +	/*
-+	 * For the first processor also print the system type
++	 * If the signal handler set some FPU exceptions, clear it and
++	 * send SIGFPE.
 +	 */
-+	if (n == 0)
-+		seq_printf(m, "system type\t\t: %s\n", get_system_type());
++	if (csr & enabled) {
++		csr &= ~enabled;
++		err |= __put_user(csr, fpcsr);
++		sig = SIGFPE;
++	}
++	return err ?: sig;
++}
 +
-+	seq_printf(m, "processor\t\t: %ld\n", n);
-+	seq_printf(m, "package\t\t\t: %d\n", cpu_data[n].package);
-+	seq_printf(m, "core\t\t\t: %d\n", cpu_core(&cpu_data[n]));
-+	seq_printf(m, "CPU Family\t\t: %s\n", __cpu_family[n]);
-+	seq_printf(m, "Model Name\t\t: %s\n", __cpu_full_name[n]);
-+	seq_printf(m, "CPU Revision\t\t: 0x%02x\n", version);
-+	seq_printf(m, "FPU Revision\t\t: 0x%02x\n", fp_version);
-+	seq_printf(m, "CPU MHz\t\t\t: %llu.%02llu\n",
-+		      cpu_clock_freq / 1000000, (cpu_clock_freq / 10000) % 100);
-+	seq_printf(m, "BogoMIPS\t\t: %llu.%02llu\n",
-+		      (lpj_fine * cpu_clock_freq / const_clock_freq) / (500000/HZ),
-+		      ((lpj_fine * cpu_clock_freq / const_clock_freq) / (5000/HZ)) % 100);
-+	seq_printf(m, "TLB Entries\t\t: %d\n", cpu_data[n].tlbsize);
-+	seq_printf(m, "Address Sizes\t\t: %d bits physical, %d bits virtual\n",
-+		      cpu_pabits + 1, cpu_vabits + 1);
++/*
++ * Helper routines
++ */
++static int protected_save_fpu_context(struct extctx_layout *extctx)
++{
++	int err = 0;
++	struct _ctxinfo __user *info = extctx->fpu.addr;
++	struct fpu_context __user *fpu_ctx = (struct fpu_context *)get_ctx_through_ctxinfo(info);
++	uint64_t __user *regs	= (uint64_t *)&fpu_ctx->regs;
++	uint64_t __user *fcc	= &fpu_ctx->fcc;
++	uint32_t __user *fcsr	= &fpu_ctx->fcsr;
 +
-+	seq_printf(m, "ISA\t\t\t:");
-+	if (cpu_has_loongarch32)
-+		seq_printf(m, "%s", " loongarch32");
-+	if (cpu_has_loongarch64)
-+		seq_printf(m, "%s", " loongarch64");
-+	seq_printf(m, "\n");
++	while (1) {
++		lock_fpu_owner();
++		if (is_fpu_owner())
++			err = save_hw_fpu_context(fpu_ctx);
++		else
++			err = copy_fpu_to_sigcontext(fpu_ctx);
++		unlock_fpu_owner();
 +
-+	seq_printf(m, "Features\t\t:");
-+	if (cpu_has_cpucfg)	seq_printf(m, "%s", " cpucfg");
-+	if (cpu_has_lam)	seq_printf(m, "%s", " lam");
-+	if (cpu_has_ual)	seq_printf(m, "%s", " ual");
-+	if (cpu_has_fpu)	seq_printf(m, "%s", " fpu");
-+	if (cpu_has_lsx)	seq_printf(m, "%s", " lsx");
-+	if (cpu_has_lasx)	seq_printf(m, "%s", " lasx");
-+	if (cpu_has_complex)	seq_printf(m, "%s", " complex");
-+	if (cpu_has_crypto)	seq_printf(m, "%s", " crypto");
-+	if (cpu_has_lvz)	seq_printf(m, "%s", " lvz");
-+	if (cpu_has_lbt_x86)	seq_printf(m, "%s", " lbt_x86");
-+	if (cpu_has_lbt_arm)	seq_printf(m, "%s", " lbt_arm");
-+	if (cpu_has_lbt_mips)	seq_printf(m, "%s", " lbt_mips");
-+	seq_printf(m, "\n");
++		err |= __put_user(FPU_CTX_MAGIC, &info->magic);
++		err |= __put_user(extctx->fpu.size, &info->size);
 +
-+	seq_printf(m, "Hardware Watchpoint\t: %s",
-+		      cpu_has_watch ? "yes, " : "no\n");
-+	if (cpu_has_watch) {
-+		seq_printf(m, "iwatch count: %d, dwatch count: %d\n",
-+		      cpu_data[n].watch_ireg_count, cpu_data[n].watch_dreg_count);
++		if (likely(!err))
++			break;
++		/* Touch the FPU context and try again */
++		err = __put_user(0, &regs[0]) |
++			__put_user(0, &regs[31]) |
++			__put_user(0, fcc) |
++			__put_user(0, fcsr);
++		if (err)
++			return err;	/* really bad sigcontext */
 +	}
 +
-+	proc_cpuinfo_notifier_args.m = m;
-+	proc_cpuinfo_notifier_args.n = n;
++	return err;
++}
 +
-+	raw_notifier_call_chain(&proc_cpuinfo_chain, 0,
-+				&proc_cpuinfo_notifier_args);
++static int protected_restore_fpu_context(struct extctx_layout *extctx)
++{
++	int err = 0, sig = 0, tmp __maybe_unused;
++	struct _ctxinfo __user *info = extctx->fpu.addr;
++	struct fpu_context __user *fpu_ctx = (struct fpu_context *)get_ctx_through_ctxinfo(info);
++	uint64_t __user *regs	= (uint64_t *)&fpu_ctx->regs;
++	uint64_t __user *fcc	= &fpu_ctx->fcc;
++	uint32_t __user *fcsr	= &fpu_ctx->fcsr;
 +
-+	seq_printf(m, "\n");
++	err = sig = fpcsr_pending(fcsr);
++	if (err < 0)
++		return err;
++
++	while (1) {
++		lock_fpu_owner();
++		if (is_fpu_owner())
++			err = restore_hw_fpu_context(fpu_ctx);
++		else
++			err = copy_fpu_from_sigcontext(fpu_ctx);
++		unlock_fpu_owner();
++
++		if (likely(!err))
++			break;
++		/* Touch the FPU context and try again */
++		err = __get_user(tmp, &regs[0]) |
++			__get_user(tmp, &regs[31]) |
++			__get_user(tmp, fcc) |
++			__get_user(tmp, fcsr);
++		if (err)
++			break;	/* really bad sigcontext */
++	}
++
++	return err ?: sig;
++}
++
++static int setup_sigcontext(struct pt_regs *regs, struct sigcontext __user *sc,
++			    struct extctx_layout *extctx)
++{
++	int i, err = 0;
++	struct _ctxinfo __user *info;
++
++	err |= __put_user(regs->csr_era, &sc->sc_pc);
++	err |= __put_user(extctx->flags, &sc->sc_flags);
++
++	err |= __put_user(0, &sc->sc_regs[0]);
++	for (i = 1; i < 32; i++)
++		err |= __put_user(regs->regs[i], &sc->sc_regs[i]);
++
++	if (extctx->fpu.addr)
++		err |= protected_save_fpu_context(extctx);
++
++	/* Set the "end" magic */
++	info = (struct _ctxinfo *)extctx->end.addr;
++	err |= __put_user(0, &info->magic);
++	err |= __put_user(0, &info->size);
++
++	return err;
++}
++
++static int parse_extcontext(struct sigcontext __user *sc, struct extctx_layout *extctx)
++{
++	int err = 0;
++	unsigned int magic, size;
++	struct _ctxinfo __user *info = (struct _ctxinfo __user *)&sc->sc_extcontext;
++
++	while(1) {
++		err |= __get_user(magic, &info->magic);
++		err |= __get_user(size, &info->size);
++		if (err)
++			return err;
++
++		switch (magic) {
++		case 0: /* END */
++			goto done;
++
++		case FPU_CTX_MAGIC:
++			if (size < (sizeof(struct _ctxinfo) +
++				    sizeof(struct fpu_context)))
++				goto invalid;
++			extctx->fpu.addr = info;
++			break;
++
++		default:
++			goto invalid;
++		}
++
++		info = (struct _ctxinfo *)((char *)info + size);
++	}
++
++done:
++	return 0;
++
++invalid:
++	return -EINVAL;
++}
++
++static int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *sc)
++{
++	int i, err = 0;
++	struct extctx_layout extctx;
++
++	memset(&extctx, 0, sizeof(struct extctx_layout));
++
++	err = __get_user(extctx.flags, &sc->sc_flags);
++	if (err)
++		goto bad;
++
++	err = parse_extcontext(sc, &extctx);
++	if (err)
++		goto bad;
++
++	conditional_used_math(extctx.flags & USED_FP);
++
++	/*
++	 * The signal handler may have used FPU; give it up if the program
++	 * doesn't want it following sigreturn.
++	 */
++	if (!(extctx.flags & USED_FP))
++		lose_fpu(0);
++
++	/* Always make any pending restarted system calls return -EINTR */
++	current->restart_block.fn = do_no_restart_syscall;
++
++	err |= __get_user(regs->csr_era, &sc->sc_pc);
++	for (i = 1; i < 32; i++)
++		err |= __get_user(regs->regs[i], &sc->sc_regs[i]);
++
++	if (extctx.fpu.addr)
++		err |= protected_restore_fpu_context(&extctx);
++
++bad:
++	return err;
++}
++
++static unsigned int handle_flags(void)
++{
++	unsigned int flags = 0;
++
++	flags |= used_math() ? USED_FP : 0;
++
++	switch (current->thread.error_code) {
++	case 1:
++		flags |= ADRERR_RD;
++		break;
++	case 2:
++		flags |= ADRERR_WR;
++		break;
++	}
++
++	return flags;
++}
++
++static unsigned long extframe_alloc(struct extctx_layout *extctx,
++				    struct _ctx_layout *layout,
++				    size_t size, unsigned int align, unsigned long base)
++{
++	unsigned long new_base = base - size;
++
++	new_base = round_down(new_base, (align < 16 ? 16 : align));
++	new_base -= sizeof(struct _ctxinfo);
++
++	layout->addr = (void *)new_base;
++	layout->size = (unsigned int)(base - new_base);
++	extctx->size += layout->size;
++
++	return new_base;
++}
++
++static unsigned long setup_extcontext(struct extctx_layout *extctx, unsigned long sp)
++{
++	unsigned long new_sp = sp;
++
++	memset(extctx, 0, sizeof(struct extctx_layout));
++
++	extctx->flags = handle_flags();
++
++	/* Grow down, alloc "end" context info first. */
++	new_sp -= sizeof(struct _ctxinfo);
++	extctx->end.addr = (void *)new_sp;
++	extctx->end.size = (unsigned int)sizeof(struct _ctxinfo);
++	extctx->size += extctx->end.size;
++
++	if (extctx->flags & USED_FP) {
++		if (cpu_has_fpu)
++			new_sp = extframe_alloc(extctx, &extctx->fpu,
++			  sizeof(struct fpu_context), FPU_CTX_ALIGN, new_sp);
++	}
++
++	return new_sp;
++}
++
++void __user *get_sigframe(struct ksignal *ksig, struct pt_regs *regs,
++			  struct extctx_layout *extctx)
++{
++	unsigned long sp;
++
++	/* Default to using normal stack */
++	sp = regs->regs[3];
++
++	/*
++	 * If we are on the alternate signal stack and would overflow it, don't.
++	 * Return an always-bogus address instead so we will die with SIGSEGV.
++	 */
++	if (on_sig_stack(sp) &&
++	    !likely(on_sig_stack(sp - sizeof(struct rt_sigframe))))
++		return (void __user __force *)(-1UL);
++
++	sp = sigsp(sp, ksig);
++	sp = round_down(sp, 16);
++	sp = setup_extcontext(extctx, sp);
++	sp -= sizeof(struct rt_sigframe);
++
++	if (!IS_ALIGNED(sp, 16))
++		BUG();
++
++	return (void __user *)sp;
++}
++
++/*
++ * Atomically swap in the new signal mask, and wait for a signal.
++ */
++
++asmlinkage long sys_rt_sigreturn(void)
++{
++	int sig;
++	sigset_t set;
++	struct pt_regs *regs;
++	struct rt_sigframe __user *frame;
++
++	regs = current_pt_regs();
++	frame = (struct rt_sigframe __user *)regs->regs[3];
++	if (!access_ok(frame, sizeof(*frame)))
++		goto badframe;
++	if (__copy_from_user(&set, &frame->rs_uctx.uc_sigmask, sizeof(set)))
++		goto badframe;
++
++	set_current_blocked(&set);
++
++	sig = restore_sigcontext(regs, &frame->rs_uctx.uc_mcontext);
++	if (sig < 0)
++		goto badframe;
++	else if (sig)
++		force_sig(sig);
++
++	regs->regs[0] = 0; /* No syscall restarting */
++	if (restore_altstack(&frame->rs_uctx.uc_stack))
++		goto badframe;
++
++	return regs->regs[4];
++
++badframe:
++	force_sig(SIGSEGV);
++	return 0;
++}
++
++static int setup_rt_frame(void *sig_return, struct ksignal *ksig,
++			  struct pt_regs *regs, sigset_t *set)
++{
++	int err = 0;
++	struct extctx_layout extctx;
++	struct rt_sigframe __user *frame;
++
++	frame = get_sigframe(ksig, regs, &extctx);
++	if (!access_ok(frame, sizeof(*frame) + extctx.size))
++		return -EFAULT;
++
++	/* Create siginfo.  */
++	err |= copy_siginfo_to_user(&frame->rs_info, &ksig->info);
++
++	/* Create the ucontext.	 */
++	err |= __put_user(0, &frame->rs_uctx.uc_flags);
++	err |= __put_user(NULL, &frame->rs_uctx.uc_link);
++	err |= __save_altstack(&frame->rs_uctx.uc_stack, regs->regs[3]);
++	err |= setup_sigcontext(regs, &frame->rs_uctx.uc_mcontext, &extctx);
++	err |= __copy_to_user(&frame->rs_uctx.uc_sigmask, set, sizeof(*set));
++
++	if (err)
++		return -EFAULT;
++
++	/*
++	 * Arguments to signal handler:
++	 *
++	 *   a0 = signal number
++	 *   a1 = pointer to siginfo
++	 *   a2 = pointer to ucontext
++	 *
++	 * c0_era point to the signal handler, $r3 (sp) points to
++	 * the struct rt_sigframe.
++	 */
++	regs->regs[4] = ksig->sig;
++	regs->regs[5] = (unsigned long) &frame->rs_info;
++	regs->regs[6] = (unsigned long) &frame->rs_uctx;
++	regs->regs[3] = (unsigned long) frame;
++	regs->regs[1] = (unsigned long) sig_return;
++	regs->csr_era = (unsigned long) ksig->ka.sa.sa_handler;
++
++	DEBUGP("SIG deliver (%s:%d): sp=0x%p pc=0x%lx ra=0x%lx\n",
++	       current->comm, current->pid,
++	       frame, regs->csr_era, regs->regs[1]);
 +
 +	return 0;
 +}
 +
-+static void *c_start(struct seq_file *m, loff_t *pos)
++static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
 +{
-+	unsigned long i = *pos;
++	int ret;
++	sigset_t *oldset = sigmask_to_save();
++	void *vdso = current->mm->context.vdso;
 +
-+	return i < NR_CPUS ? (void *)(i + 1) : NULL;
++	/* Are we from a system call? */
++	if (regs->regs[0]) {
++		switch (regs->regs[4]) {
++		case -ERESTART_RESTARTBLOCK:
++		case -ERESTARTNOHAND:
++			regs->regs[4] = -EINTR;
++			break;
++		case -ERESTARTSYS:
++			if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
++				regs->regs[4] = -EINTR;
++				break;
++			}
++			fallthrough;
++		case -ERESTARTNOINTR:
++			regs->regs[4] = regs->orig_a0;
++			regs->csr_era -= 4;
++		}
++
++		regs->regs[0] = 0;	/* Don't deal with this again.	*/
++	}
++
++	rseq_signal_deliver(ksig, regs);
++
++	ret = setup_rt_frame(vdso + current->thread.vdso->offset_sigreturn, ksig, regs, oldset);
++
++	signal_setup_done(ret, ksig, 0);
 +}
 +
-+static void *c_next(struct seq_file *m, void *v, loff_t *pos)
++void arch_do_signal_or_restart(struct pt_regs *regs, bool has_signal)
 +{
-+	++*pos;
-+	return c_start(m, pos);
-+}
++	struct ksignal ksig;
 +
-+static void c_stop(struct seq_file *m, void *v)
-+{
-+}
++	if (has_signal && get_signal(&ksig)) {
++		/* Whee!  Actually deliver the signal.	*/
++		handle_signal(&ksig, regs);
++		return;
++	}
 +
-+const struct seq_operations cpuinfo_op = {
-+	.start	= c_start,
-+	.next	= c_next,
-+	.stop	= c_stop,
-+	.show	= show_cpuinfo,
-+};
-diff --git a/arch/loongarch/kernel/rtc.c b/arch/loongarch/kernel/rtc.c
-new file mode 100644
-index 000000000000..d7568385219f
---- /dev/null
-+++ b/arch/loongarch/kernel/rtc.c
-@@ -0,0 +1,36 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
++	/* Are we from a system call? */
++	if (regs->regs[0]) {
++		switch (regs->regs[4]) {
++		case -ERESTARTNOHAND:
++		case -ERESTARTSYS:
++		case -ERESTARTNOINTR:
++			regs->regs[4] = regs->orig_a0;
++			regs->csr_era -= 4;
++			break;
 +
-+#include <linux/init.h>
-+#include <linux/kernel.h>
-+#include <linux/platform_device.h>
-+#include <asm/loongson.h>
++		case -ERESTART_RESTARTBLOCK:
++			regs->regs[4] = regs->orig_a0;
++			regs->regs[11] = __NR_restart_syscall;
++			regs->csr_era -= 4;
++			break;
++		}
++		regs->regs[0] = 0;	/* Don't deal with this again.	*/
++	}
 +
-+#define RTC_TOYREAD0    0x2C
-+#define RTC_YEAR        0x30
-+
-+unsigned long loongson_get_rtc_time(void)
-+{
-+	unsigned int year, mon, day, hour, min, sec;
-+	unsigned int value;
-+
-+	value = ls7a_readl(LS7A_RTC_REG_BASE + RTC_TOYREAD0);
-+	sec = (value >> 4) & 0x3f;
-+	min = (value >> 10) & 0x3f;
-+	hour = (value >> 16) & 0x1f;
-+	day = (value >> 21) & 0x1f;
-+	mon = (value >> 26) & 0x3f;
-+	year = ls7a_readl(LS7A_RTC_REG_BASE + RTC_YEAR);
-+
-+	year = 1900 + year;
-+
-+	return mktime64(year, mon, day, hour, min, sec);
-+}
-+
-+void read_persistent_clock64(struct timespec64 *ts)
-+{
-+	ts->tv_sec = loongson_get_rtc_time();
-+	ts->tv_nsec = 0;
++	/*
++	 * If there's no signal to deliver, we just put the saved sigmask
++	 * back
++	 */
++	restore_saved_sigmask();
 +}
 -- 
 2.27.0
