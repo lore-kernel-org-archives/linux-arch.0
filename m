@@ -2,51 +2,51 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4D6EBC433EF
-	for <linux-arch@archiver.kernel.org>; Sat, 19 Mar 2022 14:42:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2EB3DC433F5
+	for <linux-arch@archiver.kernel.org>; Sat, 19 Mar 2022 14:43:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S243303AbiCSOnr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 19 Mar 2022 10:43:47 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49606 "EHLO
+        id S243290AbiCSOoV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 19 Mar 2022 10:44:21 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51846 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S243283AbiCSOms (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Mar 2022 10:42:48 -0400
-Received: from mail-pg1-x535.google.com (mail-pg1-x535.google.com [IPv6:2607:f8b0:4864:20::535])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 47A1A180040;
-        Sat, 19 Mar 2022 07:41:25 -0700 (PDT)
-Received: by mail-pg1-x535.google.com with SMTP id c2so7124440pga.10;
-        Sat, 19 Mar 2022 07:41:25 -0700 (PDT)
+        with ESMTP id S243318AbiCSOoS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Mar 2022 10:44:18 -0400
+Received: from mail-pj1-x1034.google.com (mail-pj1-x1034.google.com [IPv6:2607:f8b0:4864:20::1034])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BAB6D25ECA0;
+        Sat, 19 Mar 2022 07:42:47 -0700 (PDT)
+Received: by mail-pj1-x1034.google.com with SMTP id mj15-20020a17090b368f00b001c637aa358eso12788412pjb.0;
+        Sat, 19 Mar 2022 07:42:47 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20210112;
         h=sender:from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=cQ5dyUwD/Jmo6A4RuMfzvSC36joeXVD+CNhD7AUsJVg=;
-        b=h79DFpa5EkjRsS7zxtAwsNxxN2TlG+tgETEuuqthXgjttcnUGWmZu8/9+76Ybk+7u4
-         A9T6u+I5Zynabzfodu+T/QBl5z7zYeVBA+rRBOrRnIE9f4nHlUID5k5sef1SudFI6sSW
-         8fv3atqXeX6a9TddpuJybdLBRt8InoD9i9078a6hKfNbcfXgrinEikbLKm1QdvgHNJl3
-         ZGoO0iPtXE+ujYm/1FX6McAFkmdCMA56D2m1NqpE7uVZQEiYlyHfxhXV3LbxO+fQkctf
-         S2iXv0ASKOM0NJI2DWGhSMh7GeUHw9LewAMnYwvB/nUSPZgDTP5VGlt0rUicQiGJt/YU
-         /w3Q==
+        bh=BnvxKtcxua6ET21Wu4RYGi88E19MVLNMoiSko413f50=;
+        b=CljDZafP6W9Vk9bqWADAyVlQNoByKWKSfs59RpNq9ZtGH2MXS3cJr2eNU4Bl6rYV9C
+         n2Fn8yRbOhseSmEoO+HecvhttvMiv9dM7MTB3SFoB4Cr/YOpVPXjGuMTm4i/M/IFs+9d
+         BD1dbon8UG0s84permUubrckJwkRF87muIs6/zYMWbvW7fTz0/wwzAFRzzxAamTdbLay
+         Fryv8AwQ3SNjqu9UMcWMJEsy2V1vt0+cMvy+yFOZ+HJsWjWbUTMV45Tu28SIfp0ci/ER
+         WFWhlpXzO45GxPKclBc7eE9Tbkildn9NUezMF3soUYLWXUM+RtKvzeQ/k2ApBEgRbWJz
+         9kZA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:sender:from:to:cc:subject:date:message-id
          :in-reply-to:references:mime-version:content-transfer-encoding;
-        bh=cQ5dyUwD/Jmo6A4RuMfzvSC36joeXVD+CNhD7AUsJVg=;
-        b=BsI780JdhRhdCXVlhgfwAjK8FkXZ48gy2UZKY7lJ6nJ83E7Z7WKdpSF4IpJSA61O3k
-         ldudwY3kxsVrhDbaJS9HR7Seeqwx4n9VZkpJSPbL+YGXI6lhiAnMcIv5nIfjAkGaX/L6
-         eyLmeYXVVCPeN5HeazZzg+GcL7oJ50WVRkSrpUwGrd/OPQL+PK+I/OVsYaI9L4JIqYm+
-         npWFy1O23n38vMAV0x8EAlvDlcAC4uduArVL4phYZux+qRYl/VFv54XaPxqqd4E7f05+
-         dmLdsqguU9tlvICKuoHHTlJK8FzQ6945rbw/fyT3LQHoWgFO4K0aLCH5rjRW6RRPDeAt
-         BSwg==
-X-Gm-Message-State: AOAM530zJ7bMyl8f75z9NH8WdGHScaXQ3Y0SVivMIrqSrIWXtin5u2gX
-        L/MResIdVDRDwLwZVPT+ti8=
-X-Google-Smtp-Source: ABdhPJzAiPxnOscU+odFEhvhJ7a90HRI6N155jiufohqStGZpubaRq9JYtOUHUGuup9KqQzBhHMeSw==
-X-Received: by 2002:a05:6a00:140c:b0:4e1:530c:edc0 with SMTP id l12-20020a056a00140c00b004e1530cedc0mr15174776pfu.18.1647700884571;
-        Sat, 19 Mar 2022 07:41:24 -0700 (PDT)
+        bh=BnvxKtcxua6ET21Wu4RYGi88E19MVLNMoiSko413f50=;
+        b=zaKWm19Uqr8Jw5lzvoxfmVknBhiDI5PH7Zw/jzto9N+5YxNdSmXc9Mv3EvQcGWFnap
+         d5eOeXMKPx955r+/6ltDRmRC+qQbLnvOSsZ9YANYgSsWClaXYP7HNCjtxj9GXgLgMbY2
+         ibM5VQKi1JV5/T0TzZ9ZJmZuQ6VeqYIhKZwsVS0QLDS4RnTuM50sCc0gCdlNtn8e/4E2
+         shJgyzIPwKvD/n/ZjzK73Uqu2QNq5D75XvQNI0ZHa6nJDwTkukQrn4gqez9TKqRW9K9C
+         Smx6bjyyTGSXShpzJrXkYbJpLMl5I1nTSNH1rXh5C9U1FeTCRK82PbBphyttG2c8IyrH
+         TZFQ==
+X-Gm-Message-State: AOAM5319eOZW5ZTzAo3KG2kKg8rDdSmlhO1GhpDmjSPQYnPImfwWQfAt
+        YnHOiZptOX5hATQBLWyx9Dc=
+X-Google-Smtp-Source: ABdhPJxopp99BC9gE4IBZMYCydSDGuDQ/fDvPr0FpuVttGSHwYhO2ITGJxWX98ZVSJUKnlTR/R+eeQ==
+X-Received: by 2002:a17:903:32c3:b0:152:c1b:e840 with SMTP id i3-20020a17090332c300b001520c1be840mr4494602plr.40.1647700967160;
+        Sat, 19 Mar 2022 07:42:47 -0700 (PDT)
 Received: from localhost.localdomain ([50.7.60.25])
-        by smtp.gmail.com with ESMTPSA id q12-20020a17090aa00c00b001bc6f1baaaesm14546829pjp.39.2022.03.19.07.41.14
+        by smtp.gmail.com with ESMTPSA id q12-20020a17090aa00c00b001bc6f1baaaesm14546829pjp.39.2022.03.19.07.42.38
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 19 Mar 2022 07:41:24 -0700 (PDT)
+        Sat, 19 Mar 2022 07:42:46 -0700 (PDT)
 Sender: Huacai Chen <chenhuacai@gmail.com>
 From:   Huacai Chen <chenhuacai@kernel.org>
 X-Google-Original-From: Huacai Chen <chenhuacai@loongson.cn>
@@ -62,12 +62,10 @@ Cc:     linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
         Yanteng Si <siyanteng@loongson.cn>,
         Huacai Chen <chenhuacai@gmail.com>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Eric Biederman <ebiederm@xmission.com>,
-        Al Viro <viro@zeniv.linux.org.uk>
-Subject: [PATCH V8 14/22] LoongArch: Add signal handling support
-Date:   Sat, 19 Mar 2022 22:38:09 +0800
-Message-Id: <20220319143817.1026708-7-chenhuacai@loongson.cn>
+        Huacai Chen <chenhuacai@loongson.cn>
+Subject: [PATCH V8 17/22] LoongArch: Add some library functions
+Date:   Sat, 19 Mar 2022 22:38:12 +0800
+Message-Id: <20220319143817.1026708-10-chenhuacai@loongson.cn>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20220319143817.1026708-1-chenhuacai@loongson.cn>
 References: <20220319142759.1026237-1-chenhuacai@loongson.cn>
@@ -78,726 +76,480 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This patch adds signal handling support for LoongArch.
+This patch adds some library functions for LoongArch, including: delay,
+memset, memcpy, memmove, copy_user, strncpy_user, strnlen_user and tlb
+dump functions.
 
-Cc: Eric Biederman <ebiederm@xmission.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
 ---
- arch/loongarch/include/uapi/asm/sigcontext.h |  63 ++
- arch/loongarch/include/uapi/asm/signal.h     |  13 +
- arch/loongarch/include/uapi/asm/ucontext.h   |  35 ++
- arch/loongarch/kernel/signal.c               | 569 +++++++++++++++++++
- 4 files changed, 680 insertions(+)
- create mode 100644 arch/loongarch/include/uapi/asm/sigcontext.h
- create mode 100644 arch/loongarch/include/uapi/asm/signal.h
- create mode 100644 arch/loongarch/include/uapi/asm/ucontext.h
- create mode 100644 arch/loongarch/kernel/signal.c
+ arch/loongarch/include/asm/delay.h  |  26 +++++++
+ arch/loongarch/include/asm/string.h |  17 +++++
+ arch/loongarch/lib/clear_user.S     |  43 +++++++++++
+ arch/loongarch/lib/copy_user.S      |  47 ++++++++++++
+ arch/loongarch/lib/delay.c          |  43 +++++++++++
+ arch/loongarch/lib/dump_tlb.c       | 111 ++++++++++++++++++++++++++++
+ arch/loongarch/lib/memcpy.S         |  32 ++++++++
+ arch/loongarch/lib/memmove.S        |  45 +++++++++++
+ arch/loongarch/lib/memset.S         |  30 ++++++++
+ 9 files changed, 394 insertions(+)
+ create mode 100644 arch/loongarch/include/asm/delay.h
+ create mode 100644 arch/loongarch/include/asm/string.h
+ create mode 100644 arch/loongarch/lib/clear_user.S
+ create mode 100644 arch/loongarch/lib/copy_user.S
+ create mode 100644 arch/loongarch/lib/delay.c
+ create mode 100644 arch/loongarch/lib/dump_tlb.c
+ create mode 100644 arch/loongarch/lib/memcpy.S
+ create mode 100644 arch/loongarch/lib/memmove.S
+ create mode 100644 arch/loongarch/lib/memset.S
 
-diff --git a/arch/loongarch/include/uapi/asm/sigcontext.h b/arch/loongarch/include/uapi/asm/sigcontext.h
+diff --git a/arch/loongarch/include/asm/delay.h b/arch/loongarch/include/asm/delay.h
 new file mode 100644
-index 000000000000..efeb8b3f8236
+index 000000000000..016b3aca65cb
 --- /dev/null
-+++ b/arch/loongarch/include/uapi/asm/sigcontext.h
-@@ -0,0 +1,63 @@
-+/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
-+/*
-+ * Author: Hanlu Li <lihanlu@loongson.cn>
-+ *         Huacai Chen <chenhuacai@loongson.cn>
-+ *
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#ifndef _UAPI_ASM_SIGCONTEXT_H
-+#define _UAPI_ASM_SIGCONTEXT_H
-+
-+#include <linux/types.h>
-+#include <linux/posix_types.h>
-+
-+/* FP context was used */
-+#define USED_FP			(1 << 0)
-+/* Load/Store access flags for address error */
-+#define ADRERR_RD		(1 << 30)
-+#define ADRERR_WR		(1 << 31)
-+
-+struct sigcontext {
-+	__u64	sc_pc;
-+	__u64	sc_regs[32];
-+	__u32	sc_flags;
-+	__u64	sc_extcontext[0] __attribute__((__aligned__(16)));
-+};
-+
-+#define CONTEXT_INFO_ALIGN	16
-+struct _ctxinfo {
-+	__u32	magic;
-+	__u32	size;
-+	__u64	padding;	/* padding to 16 bytes */
-+};
-+
-+/* FPU context */
-+#define FPU_CTX_MAGIC		0x46505501
-+#define FPU_CTX_ALIGN		8
-+struct fpu_context {
-+	__u64	regs[32];
-+	__u64	fcc;
-+	__u32	fcsr;
-+};
-+
-+/* LSX context */
-+#define LSX_CTX_MAGIC		0x53580001
-+#define LSX_CTX_ALIGN		16
-+struct lsx_context {
-+	__u64	regs[2*32];
-+	__u64	fcc;
-+	__u32	fcsr;
-+	__u32	vcsr;
-+};
-+
-+/* LASX context */
-+#define LASX_CTX_MAGIC		0x41535801
-+#define LASX_CTX_ALIGN		32
-+struct lasx_context {
-+	__u64	regs[4*32];
-+	__u64	fcc;
-+	__u32	fcsr;
-+	__u32	vcsr;
-+};
-+
-+#endif /* _UAPI_ASM_SIGCONTEXT_H */
-diff --git a/arch/loongarch/include/uapi/asm/signal.h b/arch/loongarch/include/uapi/asm/signal.h
-new file mode 100644
-index 000000000000..992d965aa13f
---- /dev/null
-+++ b/arch/loongarch/include/uapi/asm/signal.h
-@@ -0,0 +1,13 @@
-+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++++ b/arch/loongarch/include/asm/delay.h
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0 */
 +/*
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
-+#ifndef _UAPI_ASM_SIGNAL_H
-+#define _UAPI_ASM_SIGNAL_H
++#ifndef _ASM_DELAY_H
++#define _ASM_DELAY_H
 +
-+#define MINSIGSTKSZ 4096
-+#define SIGSTKSZ    16384
++#include <linux/param.h>
 +
-+#include <asm-generic/signal.h>
++extern void __delay(unsigned long loops);
++extern void __ndelay(unsigned long ns);
++extern void __udelay(unsigned long us);
 +
++#define ndelay(ns) __ndelay(ns)
++#define udelay(us) __udelay(us)
++
++/* make sure "usecs *= ..." in udelay do not overflow. */
++#if HZ >= 1000
++#define MAX_UDELAY_MS	1
++#elif HZ <= 200
++#define MAX_UDELAY_MS	5
++#else
++#define MAX_UDELAY_MS	(1000 / HZ)
 +#endif
-diff --git a/arch/loongarch/include/uapi/asm/ucontext.h b/arch/loongarch/include/uapi/asm/ucontext.h
-new file mode 100644
-index 000000000000..12577e22b1c7
---- /dev/null
-+++ b/arch/loongarch/include/uapi/asm/ucontext.h
-@@ -0,0 +1,35 @@
-+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+#ifndef __LOONGARCH_UAPI_ASM_UCONTEXT_H
-+#define __LOONGARCH_UAPI_ASM_UCONTEXT_H
 +
-+/**
-+ * struct ucontext - user context structure
-+ * @uc_flags:
-+ * @uc_link:
-+ * @uc_stack:
-+ * @uc_mcontext:	holds basic processor state
-+ * @uc_sigmask:
-+ * @uc_extcontext:	holds extended processor state
-+ */
-+struct ucontext {
-+	unsigned long		uc_flags;
-+	struct ucontext		*uc_link;
-+	stack_t			uc_stack;
-+	sigset_t		uc_sigmask;
-+	/* There's some padding here to allow sigset_t to be expanded in the
-+	 * future.  Though this is unlikely, other architectures put uc_sigmask
-+	 * at the end of this structure and explicitly state it can be
-+	 * expanded, so we didn't want to box ourselves in here. */
-+	__u8		  __unused[1024 / 8 - sizeof(sigset_t)];
-+	/* We can't put uc_sigmask at the end of this structure because we need
-+	 * to be able to expand sigcontext in the future.  For example, the
-+	 * vector ISA extension will almost certainly add ISA state.  We want
-+	 * to ensure all user-visible ISA state can be saved and restored via a
-+	 * ucontext, so we're putting this at the end in order to allow for
-+	 * infinite extensibility.  Since we know this will be extended and we
-+	 * assume sigset_t won't be extended an extreme amount, we're
-+	 * prioritizing this. */
-+	struct sigcontext	uc_mcontext;
-+};
-+
-+#endif /* __LOONGARCH_UAPI_ASM_UCONTEXT_H */
-diff --git a/arch/loongarch/kernel/signal.c b/arch/loongarch/kernel/signal.c
++#endif /* _ASM_DELAY_H */
+diff --git a/arch/loongarch/include/asm/string.h b/arch/loongarch/include/asm/string.h
 new file mode 100644
-index 000000000000..97c7d1cb704c
+index 000000000000..7b29cc9c70aa
 --- /dev/null
-+++ b/arch/loongarch/kernel/signal.c
-@@ -0,0 +1,569 @@
-+// SPDX-License-Identifier: GPL-2.0+
++++ b/arch/loongarch/include/asm/string.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0 */
 +/*
-+ * Author: Hanlu Li <lihanlu@loongson.cn>
-+ *         Huacai Chen <chenhuacai@loongson.cn>
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_STRING_H
++#define _ASM_STRING_H
++
++#define __HAVE_ARCH_MEMSET
++extern void *memset(void *__s, int __c, size_t __count);
++
++#define __HAVE_ARCH_MEMCPY
++extern void *memcpy(void *__to, __const__ void *__from, size_t __n);
++
++#define __HAVE_ARCH_MEMMOVE
++extern void *memmove(void *__dest, __const__ void *__src, size_t __n);
++
++#endif /* _ASM_STRING_H */
+diff --git a/arch/loongarch/lib/clear_user.S b/arch/loongarch/lib/clear_user.S
+new file mode 100644
+index 000000000000..b8168d22ac80
+--- /dev/null
++++ b/arch/loongarch/lib/clear_user.S
+@@ -0,0 +1,43 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++
++#include <asm/asm.h>
++#include <asm/asmmacro.h>
++#include <asm/export.h>
++#include <asm/regdef.h>
++
++.macro fixup_ex from, to, offset, fix
++.if \fix
++	.section .fixup, "ax"
++\to:	addi.d	v0, a1, \offset
++	jr	ra
++	.previous
++.endif
++	.section __ex_table, "a"
++	PTR	\from\()b, \to\()b
++	.previous
++.endm
++
++/*
++ * unsigned long __clear_user(void *addr, size_t size)
++ *
++ * a0: addr
++ * a1: size
++ */
++SYM_FUNC_START(__clear_user)
++	beqz	a1, 2f
++
++1:	st.b	zero, a0, 0
++	addi.d	a0, a0, 1
++	addi.d	a1, a1, -1
++	bgt	a1, zero, 1b
++
++2:	move	v0, a1
++	jr	ra
++
++	fixup_ex 1, 3, 0, 1
++SYM_FUNC_END(__clear_user)
++
++EXPORT_SYMBOL(__clear_user)
+diff --git a/arch/loongarch/lib/copy_user.S b/arch/loongarch/lib/copy_user.S
+new file mode 100644
+index 000000000000..43ed26304954
+--- /dev/null
++++ b/arch/loongarch/lib/copy_user.S
+@@ -0,0 +1,47 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++
++#include <asm/asm.h>
++#include <asm/asmmacro.h>
++#include <asm/export.h>
++#include <asm/regdef.h>
++
++.macro fixup_ex from, to, offset, fix
++.if \fix
++	.section .fixup, "ax"
++\to:	addi.d	v0, a2, \offset
++	jr	ra
++	.previous
++.endif
++	.section __ex_table, "a"
++	PTR	\from\()b, \to\()b
++	.previous
++.endm
++
++/*
++ * unsigned long __copy_user(void *to, const void *from, size_t n)
++ *
++ * a0: to
++ * a1: from
++ * a2: n
++ */
++SYM_FUNC_START(__copy_user)
++	beqz	a2, 3f
++
++1:	ld.b	t0, a1, 0
++2:	st.b	t0, a0, 0
++	addi.d	a0, a0, 1
++	addi.d	a1, a1, 1
++	addi.d	a2, a2, -1
++	bgt	a2, zero, 1b
++
++3:	move	v0, a2
++	jr	ra
++
++	fixup_ex 1, 4, 0, 1
++	fixup_ex 2, 4, 0, 0
++SYM_FUNC_END(__copy_user)
++
++EXPORT_SYMBOL(__copy_user)
+diff --git a/arch/loongarch/lib/delay.c b/arch/loongarch/lib/delay.c
+new file mode 100644
+index 000000000000..5d856694fcfe
+--- /dev/null
++++ b/arch/loongarch/lib/delay.c
+@@ -0,0 +1,43 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#include <linux/delay.h>
++#include <linux/export.h>
++#include <linux/smp.h>
++#include <linux/timex.h>
++
++#include <asm/compiler.h>
++#include <asm/processor.h>
++
++void __delay(unsigned long cycles)
++{
++	u64 t0 = get_cycles();
++
++	while ((unsigned long)(get_cycles() - t0) < cycles)
++		cpu_relax();
++}
++EXPORT_SYMBOL(__delay);
++
++/*
++ * Division by multiplication: you don't have to worry about
++ * loss of precision.
++ *
++ * Use only for very small delays ( < 1 msec).	Should probably use a
++ * lookup table, really, as the multiplications take much too long with
++ * short delays.  This is a "reasonable" implementation, though (and the
++ * first constant multiplications gets optimized away if the delay is
++ * a constant)
++ */
++
++void __udelay(unsigned long us)
++{
++	__delay((us * 0x000010c7ull * HZ * lpj_fine) >> 32);
++}
++EXPORT_SYMBOL(__udelay);
++
++void __ndelay(unsigned long ns)
++{
++	__delay((ns * 0x00000005ull * HZ * lpj_fine) >> 32);
++}
++EXPORT_SYMBOL(__ndelay);
+diff --git a/arch/loongarch/lib/dump_tlb.c b/arch/loongarch/lib/dump_tlb.c
+new file mode 100644
+index 000000000000..b6c6b401390a
+--- /dev/null
++++ b/arch/loongarch/lib/dump_tlb.c
+@@ -0,0 +1,111 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + *
 + * Derived from MIPS:
-+ * Copyright (C) 1991, 1992  Linus Torvalds
-+ * Copyright (C) 1994 - 2000  Ralf Baechle
-+ * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
-+ * Copyright (C) 2014, Imagination Technologies Ltd.
++ * Copyright (C) 1994, 1995 by Waldorf Electronics, written by Ralf Baechle.
++ * Copyright (C) 1999 by Silicon Graphics, Inc.
 + */
-+#include <linux/audit.h>
-+#include <linux/cache.h>
-+#include <linux/context_tracking.h>
-+#include <linux/irqflags.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/personality.h>
-+#include <linux/smp.h>
 +#include <linux/kernel.h>
-+#include <linux/signal.h>
-+#include <linux/errno.h>
-+#include <linux/wait.h>
-+#include <linux/ptrace.h>
-+#include <linux/unistd.h>
-+#include <linux/compiler.h>
-+#include <linux/syscalls.h>
-+#include <linux/uaccess.h>
-+#include <linux/tracehook.h>
++#include <linux/mm.h>
 +
-+#include <asm/asm.h>
-+#include <asm/cacheflush.h>
-+#include <asm/cpu-features.h>
-+#include <asm/fpu.h>
-+#include <asm/ucontext.h>
-+#include <asm/vdso.h>
++#include <asm/loongarch.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/tlb.h>
 +
-+#ifdef DEBUG_SIG
-+#  define DEBUGP(fmt, args...) printk("%s: " fmt, __func__, ##args)
-+#else
-+#  define DEBUGP(fmt, args...)
-+#endif
-+
-+/* Make sure we will not lose FPU ownership */
-+#define lock_fpu_owner()	({ preempt_disable(); pagefault_disable(); })
-+#define unlock_fpu_owner()	({ pagefault_enable(); preempt_enable(); })
-+
-+/* Assembly functions to move context to/from the FPU */
-+extern asmlinkage int
-+_save_fp_context(void __user *fpregs, void __user *fcc, void __user *csr);
-+extern asmlinkage int
-+_restore_fp_context(void __user *fpregs, void __user *fcc, void __user *csr);
-+
-+struct rt_sigframe {
-+	struct siginfo rs_info;
-+	struct ucontext rs_uctx;
-+};
-+
-+struct _ctx_layout {
-+	struct _ctxinfo *addr;
-+	unsigned int size;
-+};
-+
-+struct extctx_layout {
-+	unsigned long size;
-+	unsigned int flags;
-+	struct _ctx_layout fpu;
-+	struct _ctx_layout lsx;
-+	struct _ctx_layout lasx;
-+	struct _ctx_layout end;
-+};
-+
-+static void __user *get_ctx_through_ctxinfo(struct _ctxinfo *info)
++void dump_tlb_regs(void)
 +{
-+	return (void __user *)((char *)info + sizeof(struct _ctxinfo));
++	const int field = 2 * sizeof(unsigned long);
++
++	pr_info("Index    : %0x\n", read_csr_tlbidx());
++	pr_info("PageSize : %0x\n", read_csr_pagesize());
++	pr_info("EntryHi  : %0*lx\n", field, read_csr_entryhi());
++	pr_info("EntryLo0 : %0*lx\n", field, read_csr_entrylo0());
++	pr_info("EntryLo1 : %0*lx\n", field, read_csr_entrylo1());
 +}
 +
++static void dump_tlb(int first, int last)
++{
++	unsigned long s_entryhi, entryhi, asid;
++	unsigned long long entrylo0, entrylo1, pa;
++	unsigned int index;
++	unsigned int s_index, s_asid;
++	unsigned int pagesize, c0, c1, i;
++	unsigned long asidmask = cpu_asid_mask(&current_cpu_data);
++	int pwidth = 11;
++	int vwidth = 11;
++	int asidwidth = DIV_ROUND_UP(ilog2(asidmask) + 1, 4);
++
++	s_entryhi = read_csr_entryhi();
++	s_index = read_csr_tlbidx();
++	s_asid = read_csr_asid();
++
++	for (i = first; i <= last; i++) {
++		write_csr_index(i);
++		tlb_read();
++		pagesize = read_csr_pagesize();
++		entryhi	 = read_csr_entryhi();
++		entrylo0 = read_csr_entrylo0();
++		entrylo1 = read_csr_entrylo1();
++		index = read_csr_tlbidx();
++		asid = read_csr_asid();
++
++		/* EHINV bit marks entire entry as invalid */
++		if (index & CSR_TLBIDX_EHINV)
++			continue;
++		/*
++		 * ASID takes effect in absence of G (global) bit.
++		 */
++		if (!((entrylo0 | entrylo1) & ENTRYLO_G) &&
++		    asid != s_asid)
++			continue;
++
++		/*
++		 * Only print entries in use
++		 */
++		pr_info("Index: %2d pgsize=%x ", i, (1 << pagesize));
++
++		c0 = (entrylo0 & ENTRYLO_C) >> ENTRYLO_C_SHIFT;
++		c1 = (entrylo1 & ENTRYLO_C) >> ENTRYLO_C_SHIFT;
++
++		pr_cont("va=%0*lx asid=%0*lx",
++			vwidth, (entryhi & ~0x1fffUL), asidwidth, asid & asidmask);
++
++		/* NR/NX are in awkward places, so mask them off separately */
++		pa = entrylo0 & ~(ENTRYLO_NR | ENTRYLO_NX);
++		pa = pa & PAGE_MASK;
++		pr_cont("\n\t[");
++		pr_cont("ri=%d xi=%d ",
++			(entrylo0 & ENTRYLO_NR) ? 1 : 0,
++			(entrylo0 & ENTRYLO_NX) ? 1 : 0);
++		pr_cont("pa=%0*llx c=%d d=%d v=%d g=%d plv=%lld] [",
++			pwidth, pa, c0,
++			(entrylo0 & ENTRYLO_D) ? 1 : 0,
++			(entrylo0 & ENTRYLO_V) ? 1 : 0,
++			(entrylo0 & ENTRYLO_G) ? 1 : 0,
++			(entrylo0 & ENTRYLO_PLV) >> ENTRYLO_PLV_SHIFT);
++		/* NR/NX are in awkward places, so mask them off separately */
++		pa = entrylo1 & ~(ENTRYLO_NR | ENTRYLO_NX);
++		pa = pa & PAGE_MASK;
++		pr_cont("ri=%d xi=%d ",
++			(entrylo1 & ENTRYLO_NR) ? 1 : 0,
++			(entrylo1 & ENTRYLO_NX) ? 1 : 0);
++		pr_cont("pa=%0*llx c=%d d=%d v=%d g=%d plv=%lld]\n",
++			pwidth, pa, c1,
++			(entrylo1 & ENTRYLO_D) ? 1 : 0,
++			(entrylo1 & ENTRYLO_V) ? 1 : 0,
++			(entrylo1 & ENTRYLO_G) ? 1 : 0,
++			(entrylo1 & ENTRYLO_PLV) >> ENTRYLO_PLV_SHIFT);
++	}
++	pr_info("\n");
++
++	write_csr_entryhi(s_entryhi);
++	write_csr_tlbidx(s_index);
++	write_csr_asid(s_asid);
++}
++
++void dump_tlb_all(void)
++{
++	dump_tlb(0, current_cpu_data.tlbsize - 1);
++}
+diff --git a/arch/loongarch/lib/memcpy.S b/arch/loongarch/lib/memcpy.S
+new file mode 100644
+index 000000000000..d53f1148d26b
+--- /dev/null
++++ b/arch/loongarch/lib/memcpy.S
+@@ -0,0 +1,32 @@
++/* SPDX-License-Identifier: GPL-2.0 */
 +/*
-+ * Thread saved context copy to/from a signal context presumed to be on the
-+ * user stack, and therefore accessed with appropriate macros from uaccess.h.
-+ */
-+static int copy_fpu_to_sigcontext(struct fpu_context __user *ctx)
-+{
-+	int i;
-+	int err = 0;
-+	uint64_t __user *regs	= (uint64_t *)&ctx->regs;
-+	uint64_t __user *fcc	= &ctx->fcc;
-+	uint32_t __user *fcsr	= &ctx->fcsr;
-+
-+	for (i = 0; i < NUM_FPU_REGS; i++) {
-+		err |=
-+		    __put_user(get_fpr64(&current->thread.fpu.fpr[i], 0),
-+			       &regs[i]);
-+	}
-+	err |= __put_user(current->thread.fpu.fcc, fcc);
-+	err |= __put_user(current->thread.fpu.fcsr, fcsr);
-+
-+	return err;
-+}
-+
-+static int copy_fpu_from_sigcontext(struct fpu_context __user *ctx)
-+{
-+	int i;
-+	int err = 0;
-+	u64 fpr_val;
-+	uint64_t __user *regs	= (uint64_t *)&ctx->regs;
-+	uint64_t __user *fcc	= &ctx->fcc;
-+	uint32_t __user *fcsr	= &ctx->fcsr;
-+
-+	for (i = 0; i < NUM_FPU_REGS; i++) {
-+		err |= __get_user(fpr_val, &regs[i]);
-+		set_fpr64(&current->thread.fpu.fpr[i], 0, fpr_val);
-+	}
-+	err |= __get_user(current->thread.fpu.fcc, fcc);
-+	err |= __get_user(current->thread.fpu.fcsr, fcsr);
-+
-+	return err;
-+}
-+
-+/*
-+ * Wrappers for the assembly _{save,restore}_fp_context functions.
-+ */
-+static int save_hw_fpu_context(struct fpu_context __user *ctx)
-+{
-+	uint64_t __user *regs	= (uint64_t *)&ctx->regs;
-+	uint64_t __user *fcc	= &ctx->fcc;
-+	uint32_t __user *fcsr	= &ctx->fcsr;
-+
-+	return _save_fp_context(regs, fcc, fcsr);
-+}
-+
-+static int restore_hw_fpu_context(struct fpu_context __user *ctx)
-+{
-+	uint64_t __user *regs	= (uint64_t *)&ctx->regs;
-+	uint64_t __user *fcc	= &ctx->fcc;
-+	uint32_t __user *fcsr	= &ctx->fcsr;
-+
-+	return _restore_fp_context(regs, fcc, fcsr);
-+}
-+
-+int fpcsr_pending(unsigned int __user *fpcsr)
-+{
-+	int err, sig = 0;
-+	unsigned int csr, enabled;
-+
-+	err = __get_user(csr, fpcsr);
-+	enabled = ((csr & FPU_CSR_ALL_E) << 24);
-+	/*
-+	 * If the signal handler set some FPU exceptions, clear it and
-+	 * send SIGFPE.
-+	 */
-+	if (csr & enabled) {
-+		csr &= ~enabled;
-+		err |= __put_user(csr, fpcsr);
-+		sig = SIGFPE;
-+	}
-+	return err ?: sig;
-+}
-+
-+/*
-+ * Helper routines
-+ */
-+static int protected_save_fpu_context(struct extctx_layout *extctx)
-+{
-+	int err = 0;
-+	struct _ctxinfo __user *info = extctx->fpu.addr;
-+	struct fpu_context __user *fpu_ctx = (struct fpu_context *)get_ctx_through_ctxinfo(info);
-+	uint64_t __user *regs	= (uint64_t *)&fpu_ctx->regs;
-+	uint64_t __user *fcc	= &fpu_ctx->fcc;
-+	uint32_t __user *fcsr	= &fpu_ctx->fcsr;
-+
-+	while (1) {
-+		lock_fpu_owner();
-+		if (is_fpu_owner())
-+			err = save_hw_fpu_context(fpu_ctx);
-+		else
-+			err = copy_fpu_to_sigcontext(fpu_ctx);
-+		unlock_fpu_owner();
-+
-+		err |= __put_user(FPU_CTX_MAGIC, &info->magic);
-+		err |= __put_user(extctx->fpu.size, &info->size);
-+
-+		if (likely(!err))
-+			break;
-+		/* Touch the FPU context and try again */
-+		err = __put_user(0, &regs[0]) |
-+			__put_user(0, &regs[31]) |
-+			__put_user(0, fcc) |
-+			__put_user(0, fcsr);
-+		if (err)
-+			return err;	/* really bad sigcontext */
-+	}
-+
-+	return err;
-+}
-+
-+static int protected_restore_fpu_context(struct extctx_layout *extctx)
-+{
-+	int err = 0, sig = 0, tmp __maybe_unused;
-+	struct _ctxinfo __user *info = extctx->fpu.addr;
-+	struct fpu_context __user *fpu_ctx = (struct fpu_context *)get_ctx_through_ctxinfo(info);
-+	uint64_t __user *regs	= (uint64_t *)&fpu_ctx->regs;
-+	uint64_t __user *fcc	= &fpu_ctx->fcc;
-+	uint32_t __user *fcsr	= &fpu_ctx->fcsr;
-+
-+	err = sig = fpcsr_pending(fcsr);
-+	if (err < 0)
-+		return err;
-+
-+	while (1) {
-+		lock_fpu_owner();
-+		if (is_fpu_owner())
-+			err = restore_hw_fpu_context(fpu_ctx);
-+		else
-+			err = copy_fpu_from_sigcontext(fpu_ctx);
-+		unlock_fpu_owner();
-+
-+		if (likely(!err))
-+			break;
-+		/* Touch the FPU context and try again */
-+		err = __get_user(tmp, &regs[0]) |
-+			__get_user(tmp, &regs[31]) |
-+			__get_user(tmp, fcc) |
-+			__get_user(tmp, fcsr);
-+		if (err)
-+			break;	/* really bad sigcontext */
-+	}
-+
-+	return err ?: sig;
-+}
-+
-+static int setup_sigcontext(struct pt_regs *regs, struct sigcontext __user *sc,
-+			    struct extctx_layout *extctx)
-+{
-+	int i, err = 0;
-+	struct _ctxinfo __user *info;
-+
-+	err |= __put_user(regs->csr_era, &sc->sc_pc);
-+	err |= __put_user(extctx->flags, &sc->sc_flags);
-+
-+	err |= __put_user(0, &sc->sc_regs[0]);
-+	for (i = 1; i < 32; i++)
-+		err |= __put_user(regs->regs[i], &sc->sc_regs[i]);
-+
-+	if (extctx->fpu.addr)
-+		err |= protected_save_fpu_context(extctx);
-+
-+	/* Set the "end" magic */
-+	info = (struct _ctxinfo *)extctx->end.addr;
-+	err |= __put_user(0, &info->magic);
-+	err |= __put_user(0, &info->size);
-+
-+	return err;
-+}
-+
-+static int parse_extcontext(struct sigcontext __user *sc, struct extctx_layout *extctx)
-+{
-+	int err = 0;
-+	unsigned int magic, size;
-+	struct _ctxinfo __user *info = (struct _ctxinfo __user *)&sc->sc_extcontext;
-+
-+	while(1) {
-+		err |= __get_user(magic, &info->magic);
-+		err |= __get_user(size, &info->size);
-+		if (err)
-+			return err;
-+
-+		switch (magic) {
-+		case 0: /* END */
-+			goto done;
-+
-+		case FPU_CTX_MAGIC:
-+			if (size < (sizeof(struct _ctxinfo) +
-+				    sizeof(struct fpu_context)))
-+				goto invalid;
-+			extctx->fpu.addr = info;
-+			break;
-+
-+		default:
-+			goto invalid;
-+		}
-+
-+		info = (struct _ctxinfo *)((char *)info + size);
-+	}
-+
-+done:
-+	return 0;
-+
-+invalid:
-+	return -EINVAL;
-+}
-+
-+static int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *sc)
-+{
-+	int i, err = 0;
-+	struct extctx_layout extctx;
-+
-+	memset(&extctx, 0, sizeof(struct extctx_layout));
-+
-+	err = __get_user(extctx.flags, &sc->sc_flags);
-+	if (err)
-+		goto bad;
-+
-+	err = parse_extcontext(sc, &extctx);
-+	if (err)
-+		goto bad;
-+
-+	conditional_used_math(extctx.flags & USED_FP);
-+
-+	/*
-+	 * The signal handler may have used FPU; give it up if the program
-+	 * doesn't want it following sigreturn.
-+	 */
-+	if (!(extctx.flags & USED_FP))
-+		lose_fpu(0);
-+
-+	/* Always make any pending restarted system calls return -EINTR */
-+	current->restart_block.fn = do_no_restart_syscall;
-+
-+	err |= __get_user(regs->csr_era, &sc->sc_pc);
-+	for (i = 1; i < 32; i++)
-+		err |= __get_user(regs->regs[i], &sc->sc_regs[i]);
-+
-+	if (extctx.fpu.addr)
-+		err |= protected_restore_fpu_context(&extctx);
-+
-+bad:
-+	return err;
-+}
-+
-+static unsigned int handle_flags(void)
-+{
-+	unsigned int flags = 0;
-+
-+	flags |= used_math() ? USED_FP : 0;
-+
-+	switch (current->thread.error_code) {
-+	case 1:
-+		flags |= ADRERR_RD;
-+		break;
-+	case 2:
-+		flags |= ADRERR_WR;
-+		break;
-+	}
-+
-+	return flags;
-+}
-+
-+static unsigned long extframe_alloc(struct extctx_layout *extctx,
-+				    struct _ctx_layout *layout,
-+				    size_t size, unsigned int align, unsigned long base)
-+{
-+	unsigned long new_base = base - size;
-+
-+	new_base = round_down(new_base, (align < 16 ? 16 : align));
-+	new_base -= sizeof(struct _ctxinfo);
-+
-+	layout->addr = (void *)new_base;
-+	layout->size = (unsigned int)(base - new_base);
-+	extctx->size += layout->size;
-+
-+	return new_base;
-+}
-+
-+static unsigned long setup_extcontext(struct extctx_layout *extctx, unsigned long sp)
-+{
-+	unsigned long new_sp = sp;
-+
-+	memset(extctx, 0, sizeof(struct extctx_layout));
-+
-+	extctx->flags = handle_flags();
-+
-+	/* Grow down, alloc "end" context info first. */
-+	new_sp -= sizeof(struct _ctxinfo);
-+	extctx->end.addr = (void *)new_sp;
-+	extctx->end.size = (unsigned int)sizeof(struct _ctxinfo);
-+	extctx->size += extctx->end.size;
-+
-+	if (extctx->flags & USED_FP) {
-+		if (cpu_has_fpu)
-+			new_sp = extframe_alloc(extctx, &extctx->fpu,
-+			  sizeof(struct fpu_context), FPU_CTX_ALIGN, new_sp);
-+	}
-+
-+	return new_sp;
-+}
-+
-+void __user *get_sigframe(struct ksignal *ksig, struct pt_regs *regs,
-+			  struct extctx_layout *extctx)
-+{
-+	unsigned long sp;
-+
-+	/* Default to using normal stack */
-+	sp = regs->regs[3];
-+
-+	/*
-+	 * If we are on the alternate signal stack and would overflow it, don't.
-+	 * Return an always-bogus address instead so we will die with SIGSEGV.
-+	 */
-+	if (on_sig_stack(sp) &&
-+	    !likely(on_sig_stack(sp - sizeof(struct rt_sigframe))))
-+		return (void __user __force *)(-1UL);
-+
-+	sp = sigsp(sp, ksig);
-+	sp = round_down(sp, 16);
-+	sp = setup_extcontext(extctx, sp);
-+	sp -= sizeof(struct rt_sigframe);
-+
-+	if (!IS_ALIGNED(sp, 16))
-+		BUG();
-+
-+	return (void __user *)sp;
-+}
-+
-+/*
-+ * Atomically swap in the new signal mask, and wait for a signal.
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
 +
-+asmlinkage long sys_rt_sigreturn(void)
-+{
-+	int sig;
-+	sigset_t set;
-+	struct pt_regs *regs;
-+	struct rt_sigframe __user *frame;
++#include <asm/asmmacro.h>
++#include <asm/export.h>
++#include <asm/regdef.h>
 +
-+	regs = current_pt_regs();
-+	frame = (struct rt_sigframe __user *)regs->regs[3];
-+	if (!access_ok(frame, sizeof(*frame)))
-+		goto badframe;
-+	if (__copy_from_user(&set, &frame->rs_uctx.uc_sigmask, sizeof(set)))
-+		goto badframe;
++/*
++ * void *memcpy(void *dst, const void *src, size_t n)
++ *
++ * a0: dst
++ * a1: src
++ * a2: n
++ */
++SYM_FUNC_START(memcpy)
++	move	a3, a0
++	beqz	a2, 2f
 +
-+	set_current_blocked(&set);
++1:	ld.b	t0, a1, 0
++	st.b	t0, a0, 0
++	addi.d	a0, a0, 1
++	addi.d	a1, a1, 1
++	addi.d	a2, a2, -1
++	bgt	a2, zero, 1b
 +
-+	sig = restore_sigcontext(regs, &frame->rs_uctx.uc_mcontext);
-+	if (sig < 0)
-+		goto badframe;
-+	else if (sig)
-+		force_sig(sig);
++2:	move	v0, a3
++	jr	ra
++SYM_FUNC_END(memcpy)
 +
-+	regs->regs[0] = 0; /* No syscall restarting */
-+	if (restore_altstack(&frame->rs_uctx.uc_stack))
-+		goto badframe;
++EXPORT_SYMBOL(memcpy)
+diff --git a/arch/loongarch/lib/memmove.S b/arch/loongarch/lib/memmove.S
+new file mode 100644
+index 000000000000..18907d83a83b
+--- /dev/null
++++ b/arch/loongarch/lib/memmove.S
+@@ -0,0 +1,45 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
 +
-+	return regs->regs[4];
++#include <asm/asmmacro.h>
++#include <asm/export.h>
++#include <asm/regdef.h>
 +
-+badframe:
-+	force_sig(SIGSEGV);
-+	return 0;
-+}
++/*
++ * void *rmemcpy(void *dst, const void *src, size_t n)
++ *
++ * a0: dst
++ * a1: src
++ * a2: n
++ */
++SYM_FUNC_START(rmemcpy)
++	move	a3, a0
++	beqz	a2, 2f
 +
-+static int setup_rt_frame(void *sig_return, struct ksignal *ksig,
-+			  struct pt_regs *regs, sigset_t *set)
-+{
-+	int err = 0;
-+	struct extctx_layout extctx;
-+	struct rt_sigframe __user *frame;
++	add.d	a0, a0, a2
++	add.d	a1, a1, a2
 +
-+	frame = get_sigframe(ksig, regs, &extctx);
-+	if (!access_ok(frame, sizeof(*frame) + extctx.size))
-+		return -EFAULT;
++1:	ld.b	t0, a1, -1
++	st.b	t0, a0, -1
++	addi.d	a0, a0, -1
++	addi.d	a1, a1, -1
++	addi.d	a2, a2, -1
++	bgt	a2, zero, 1b
 +
-+	/* Create siginfo.  */
-+	err |= copy_siginfo_to_user(&frame->rs_info, &ksig->info);
++2:	move	v0, a3
++	jr	ra
++SYM_FUNC_END(rmemcpy)
 +
-+	/* Create the ucontext.	 */
-+	err |= __put_user(0, &frame->rs_uctx.uc_flags);
-+	err |= __put_user(NULL, &frame->rs_uctx.uc_link);
-+	err |= __save_altstack(&frame->rs_uctx.uc_stack, regs->regs[3]);
-+	err |= setup_sigcontext(regs, &frame->rs_uctx.uc_mcontext, &extctx);
-+	err |= __copy_to_user(&frame->rs_uctx.uc_sigmask, set, sizeof(*set));
++SYM_FUNC_START(memmove)
++	blt	a0, a1, 1f	/* dst < src, memcpy */
++	blt	a1, a0, 2f	/* src < dst, rmemcpy */
++	jr	ra		/* dst == src, return */
 +
-+	if (err)
-+		return -EFAULT;
++1:	b	memcpy
 +
-+	/*
-+	 * Arguments to signal handler:
-+	 *
-+	 *   a0 = signal number
-+	 *   a1 = pointer to siginfo
-+	 *   a2 = pointer to ucontext
-+	 *
-+	 * c0_era point to the signal handler, $r3 (sp) points to
-+	 * the struct rt_sigframe.
-+	 */
-+	regs->regs[4] = ksig->sig;
-+	regs->regs[5] = (unsigned long) &frame->rs_info;
-+	regs->regs[6] = (unsigned long) &frame->rs_uctx;
-+	regs->regs[3] = (unsigned long) frame;
-+	regs->regs[1] = (unsigned long) sig_return;
-+	regs->csr_era = (unsigned long) ksig->ka.sa.sa_handler;
++2:	b	rmemcpy
++SYM_FUNC_END(memmove)
 +
-+	DEBUGP("SIG deliver (%s:%d): sp=0x%p pc=0x%lx ra=0x%lx\n",
-+	       current->comm, current->pid,
-+	       frame, regs->csr_era, regs->regs[1]);
++EXPORT_SYMBOL(memmove)
+diff --git a/arch/loongarch/lib/memset.S b/arch/loongarch/lib/memset.S
+new file mode 100644
+index 000000000000..3fc3e7da5263
+--- /dev/null
++++ b/arch/loongarch/lib/memset.S
+@@ -0,0 +1,30 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
 +
-+	return 0;
-+}
++#include <asm/asmmacro.h>
++#include <asm/export.h>
++#include <asm/regdef.h>
 +
-+static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
-+{
-+	int ret;
-+	sigset_t *oldset = sigmask_to_save();
-+	void *vdso = current->mm->context.vdso;
++/*
++ * void *memset(void *s, int c, size_t n)
++ *
++ * a0: s
++ * a1: c
++ * a2: n
++ */
++SYM_FUNC_START(memset)
++	move	a3, a0
++	beqz	a2, 2f
 +
-+	/* Are we from a system call? */
-+	if (regs->regs[0]) {
-+		switch (regs->regs[4]) {
-+		case -ERESTART_RESTARTBLOCK:
-+		case -ERESTARTNOHAND:
-+			regs->regs[4] = -EINTR;
-+			break;
-+		case -ERESTARTSYS:
-+			if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
-+				regs->regs[4] = -EINTR;
-+				break;
-+			}
-+			fallthrough;
-+		case -ERESTARTNOINTR:
-+			regs->regs[4] = regs->orig_a0;
-+			regs->csr_era -= 4;
-+		}
++1:	st.b	a1, a0, 0
++	addi.d	a0, a0, 1
++	addi.d	a2, a2, -1
++	bgt	a2, zero, 1b
 +
-+		regs->regs[0] = 0;	/* Don't deal with this again.	*/
-+	}
++2:	move	v0, a3
++	jr	ra
++SYM_FUNC_END(memset)
 +
-+	rseq_signal_deliver(ksig, regs);
-+
-+	ret = setup_rt_frame(vdso + current->thread.vdso->offset_sigreturn, ksig, regs, oldset);
-+
-+	signal_setup_done(ret, ksig, 0);
-+}
-+
-+void arch_do_signal_or_restart(struct pt_regs *regs, bool has_signal)
-+{
-+	struct ksignal ksig;
-+
-+	if (has_signal && get_signal(&ksig)) {
-+		/* Whee!  Actually deliver the signal.	*/
-+		handle_signal(&ksig, regs);
-+		return;
-+	}
-+
-+	/* Are we from a system call? */
-+	if (regs->regs[0]) {
-+		switch (regs->regs[4]) {
-+		case -ERESTARTNOHAND:
-+		case -ERESTARTSYS:
-+		case -ERESTARTNOINTR:
-+			regs->regs[4] = regs->orig_a0;
-+			regs->csr_era -= 4;
-+			break;
-+
-+		case -ERESTART_RESTARTBLOCK:
-+			regs->regs[4] = regs->orig_a0;
-+			regs->regs[11] = __NR_restart_syscall;
-+			regs->csr_era -= 4;
-+			break;
-+		}
-+		regs->regs[0] = 0;	/* Don't deal with this again.	*/
-+	}
-+
-+	/*
-+	 * If there's no signal to deliver, we just put the saved sigmask
-+	 * back
-+	 */
-+	restore_saved_sigmask();
-+}
++EXPORT_SYMBOL(memset)
 -- 
 2.27.0
 
