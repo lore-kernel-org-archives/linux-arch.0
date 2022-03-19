@@ -2,51 +2,51 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C108BC433F5
-	for <linux-arch@archiver.kernel.org>; Sat, 19 Mar 2022 14:40:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 27D21C433F5
+	for <linux-arch@archiver.kernel.org>; Sat, 19 Mar 2022 14:41:56 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238535AbiCSOmM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 19 Mar 2022 10:42:12 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46506 "EHLO
+        id S243267AbiCSOnP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 19 Mar 2022 10:43:15 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50618 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S243259AbiCSOmK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Mar 2022 10:42:10 -0400
-Received: from mail-pf1-x432.google.com (mail-pf1-x432.google.com [IPv6:2607:f8b0:4864:20::432])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B882415D381;
-        Sat, 19 Mar 2022 07:40:43 -0700 (PDT)
-Received: by mail-pf1-x432.google.com with SMTP id s42so12006174pfg.0;
-        Sat, 19 Mar 2022 07:40:43 -0700 (PDT)
+        with ESMTP id S242937AbiCSOnO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Mar 2022 10:43:14 -0400
+Received: from mail-pj1-x102e.google.com (mail-pj1-x102e.google.com [IPv6:2607:f8b0:4864:20::102e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3D1FD185441;
+        Sat, 19 Mar 2022 07:41:52 -0700 (PDT)
+Received: by mail-pj1-x102e.google.com with SMTP id kx5-20020a17090b228500b001c6ed9db871so456203pjb.1;
+        Sat, 19 Mar 2022 07:41:52 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20210112;
         h=sender:from:to:cc:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding;
-        bh=NI4PXMzHC/Jp/9wvgeZCOge7f0IBlR6bX8G+W40JXJc=;
-        b=Px80yiB6asf5+d6toxUChCXj7tCm/w99hlYzQ3IXRCMAPbREdHeOjh362skqu4hNqK
-         AUk2QYQhrycXfxu+8XkXb+UTUpKl9FvU8P1hVhQNoPX/XXj1IvApgNKwP2y3Mno/1Ibj
-         6xrWdM4dO+Y8caij0XRJHsKEjyqHAuMtSCR9bGEFH4udYQYUq16oLTo/2LR7WPT9uq3u
-         xc/lH4lvFiTdL4OB8usHkjjENSexk0wJSKtUTBeNJai+uog1TZqrZx5c4btgxVvAKCJ0
-         wkdlYk+Wogf4U2b3ob8B7HSUEeKDPuQIvC5qmvYD/0hcHkIp3pkXZAlCk4BkXK0jiowY
-         JMpQ==
+        bh=TKSbjntAvXGhrnM2zQJlK6BF13ORDe+n0ygLrVWase0=;
+        b=ipg9507wzWsYWqPzAOOeI7apABEL5OYpBDxs/EKxIZDyOPAhdbOUthHGn533URJDRB
+         R6f2rJ6Hu59se+Fk3oii5+CkJKPfnpweLkeKkRK+ik92jg/RP5+60m5N0Opo4SPuqMNB
+         7av/uo5d+fyNJ+H/fq/qePOTqO6XbM9Z0TlzDghjLYf8lvWIF4C8rri8N+wgF39aV169
+         eifiEY7GU92etDUmall6AigfwIE8SPyh4cRPvijPWKAeTkOb+7FIGJbQ/fGL19E7qboL
+         Fr4HmgG2qT2/FFcl06zVmm3dAOiR5p0i/GmfxbggvM4cNdgtsEhkCO3KFzSqBxGCbe4/
+         +3uw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:sender:from:to:cc:subject:date:message-id
          :in-reply-to:references:mime-version:content-transfer-encoding;
-        bh=NI4PXMzHC/Jp/9wvgeZCOge7f0IBlR6bX8G+W40JXJc=;
-        b=XFbCx16He7/j31gHVwMdmeJWmot2V6qq8EYmhXxf1vE1hEuI43OUw25NdKmb/TvLkL
-         JfZuVu0WOL6gQXJe9vzRRvcfJkM80gkton94G6EFZJKZ5ZzvZQ+J+70b4GCLttYiP/bP
-         jeKJOAK4moVswnwQJyKGtZKP5Ui2oS7ECeirjdZKyjwiCtfE+mz6LMgYHKxTv+855vO7
-         d9VRkNkd0Nax5kN97kuG9iyUcANsdmWtK87xNfpKD2yT/9JjChClCH9XoNINgNSpeoU4
-         vBA0N0ZgeFcy5u5/AI3bdx7WjsVtAKkv60w5XL52mxAwTob6bAwkpzNUkE+2BhmpSxHr
-         4wOg==
-X-Gm-Message-State: AOAM530mhbWJI20Q9uVHv96gasDgXBDDhYVtphfZetQ8aTPuGLX2SJCK
-        3BGqs4n8Jp1zJrTnc5fwS48=
-X-Google-Smtp-Source: ABdhPJx0Kh0s2RRDNMxbG1H4B3n+cnaNSjWEkoomxWjCkdGtZ703UI/Smpo2BrjpWAyXJkO9hkKSJw==
-X-Received: by 2002:a65:63d8:0:b0:380:2be6:806a with SMTP id n24-20020a6563d8000000b003802be6806amr11620932pgv.20.1647700843004;
-        Sat, 19 Mar 2022 07:40:43 -0700 (PDT)
+        bh=TKSbjntAvXGhrnM2zQJlK6BF13ORDe+n0ygLrVWase0=;
+        b=69uSmNNdLJATe7LwyQ++a1xhSwVLoda2HHbjKHKSWwAIGw59lO5OSGt0B06jDE3hDy
+         i96hyYlJxdfJSPdLeEWoVGefELH7/D55UFaxRo+LNJfxlBOyRbqrX/zJm7nsZ+JB2r5c
+         1SMTgOUUbZ+lnPUfHFSk0NC/evi0plfzqufSFRsBhZWbU1C8ONDGkReqc3d997ORp0Ci
+         aqjdl0/UmsX82dnIeIVj/3idm8AmdZl7EzKDtgLQShUBfeeU2qy4z2wupw1UMbrEPBzo
+         tGUmtbV7EexRPpGIspB96o2DHsOsiMtf4aQ9ZJgFGayeH4kF+xxQ7h+2Yr+cbeUUjgza
+         URSA==
+X-Gm-Message-State: AOAM531ls0P1t5s2FEjS7a1LxCO8WOet6t1a5Z+M4L5xSzFOZt5lQHEl
+        E0MXL0Vr9RyOlKxm2N7XRSE=
+X-Google-Smtp-Source: ABdhPJzrHvFaWfTwRP4TvpXsJsVNud8Y4cP0+SpwC9f0YKaXOSS/oDKQNU5EaF4hqJ3O30Bk/FFFQA==
+X-Received: by 2002:a17:90a:d195:b0:1bf:a0a8:6c3a with SMTP id fu21-20020a17090ad19500b001bfa0a86c3amr27456035pjb.162.1647700911438;
+        Sat, 19 Mar 2022 07:41:51 -0700 (PDT)
 Received: from localhost.localdomain ([50.7.60.25])
-        by smtp.gmail.com with ESMTPSA id q12-20020a17090aa00c00b001bc6f1baaaesm14546829pjp.39.2022.03.19.07.40.34
+        by smtp.gmail.com with ESMTPSA id q12-20020a17090aa00c00b001bc6f1baaaesm14546829pjp.39.2022.03.19.07.41.42
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 19 Mar 2022 07:40:42 -0700 (PDT)
+        Sat, 19 Mar 2022 07:41:51 -0700 (PDT)
 Sender: Huacai Chen <chenhuacai@gmail.com>
 From:   Huacai Chen <chenhuacai@kernel.org>
 X-Google-Original-From: Huacai Chen <chenhuacai@loongson.cn>
@@ -62,10 +62,12 @@ Cc:     linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
         Yanteng Si <siyanteng@loongson.cn>,
         Huacai Chen <chenhuacai@gmail.com>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Huacai Chen <chenhuacai@loongson.cn>
-Subject: [PATCH V8 13/22] LoongArch: Add system call support
-Date:   Sat, 19 Mar 2022 22:38:08 +0800
-Message-Id: <20220319143817.1026708-6-chenhuacai@loongson.cn>
+        Huacai Chen <chenhuacai@loongson.cn>,
+        Jessica Yu <jeyu@kernel.org>,
+        Luis Chamberlain <mcgrof@kernel.org>
+Subject: [PATCH V8 15/22] LoongArch: Add elf and module support
+Date:   Sat, 19 Mar 2022 22:38:10 +0800
+Message-Id: <20220319143817.1026708-8-chenhuacai@loongson.cn>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20220319143817.1026708-1-chenhuacai@loongson.cn>
 References: <20220319142759.1026237-1-chenhuacai@loongson.cn>
@@ -76,70 +78,438 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This patch adds system call support and related uaccess.h for LoongArch.
+This patch adds elf definition and module relocate codes.
 
-Q: Why keep __ARCH_WANT_NEW_STAT definition while there is statx:
-A: Until the latest glibc release (2.34), statx is only used for 32-bit
-   platforms, or 64-bit platforms with 32-bit timestamp. I.e., Most 64-
-   bit platforms still use newstat now.
-
-Q: Why keep _ARCH_WANT_SYS_CLONE definition while there is clone3:
-A: The latest glibc release (2.34) has some basic support for clone3 but
-   it isn't complete. E.g., pthread_create() and spawni() have converted
-   to use clone3 but fork() will still use clone. Moreover, some seccomp
-   related applications can still not work perfectly with clone3.
-
+Cc: Jessica Yu <jeyu@kernel.org>
+Reviewed-by: Luis Chamberlain <mcgrof@kernel.org>
 Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
 ---
- arch/loongarch/include/asm/seccomp.h     |  20 ++
- arch/loongarch/include/asm/syscall.h     |  74 ++++++
- arch/loongarch/include/asm/uaccess.h     | 315 +++++++++++++++++++++++
- arch/loongarch/include/asm/unistd.h      |  11 +
- arch/loongarch/include/uapi/asm/unistd.h |   6 +
- arch/loongarch/kernel/entry.S            |  89 +++++++
- arch/loongarch/kernel/syscall.c          |  63 +++++
- 7 files changed, 578 insertions(+)
- create mode 100644 arch/loongarch/include/asm/seccomp.h
- create mode 100644 arch/loongarch/include/asm/syscall.h
- create mode 100644 arch/loongarch/include/asm/uaccess.h
- create mode 100644 arch/loongarch/include/asm/unistd.h
- create mode 100644 arch/loongarch/include/uapi/asm/unistd.h
- create mode 100644 arch/loongarch/kernel/entry.S
- create mode 100644 arch/loongarch/kernel/syscall.c
+ arch/loongarch/include/asm/cpufeature.h  |  24 +
+ arch/loongarch/include/asm/elf.h         | 301 +++++++++++
+ arch/loongarch/include/asm/exec.h        |  10 +
+ arch/loongarch/include/asm/module.h      |  15 +
+ arch/loongarch/include/asm/vermagic.h    |  19 +
+ arch/loongarch/include/uapi/asm/auxvec.h |  17 +
+ arch/loongarch/include/uapi/asm/hwcap.h  |  20 +
+ arch/loongarch/kernel/elf.c              |  30 ++
+ arch/loongarch/kernel/module.c           | 658 +++++++++++++++++++++++
+ 9 files changed, 1094 insertions(+)
+ create mode 100644 arch/loongarch/include/asm/cpufeature.h
+ create mode 100644 arch/loongarch/include/asm/elf.h
+ create mode 100644 arch/loongarch/include/asm/exec.h
+ create mode 100644 arch/loongarch/include/asm/module.h
+ create mode 100644 arch/loongarch/include/asm/vermagic.h
+ create mode 100644 arch/loongarch/include/uapi/asm/auxvec.h
+ create mode 100644 arch/loongarch/include/uapi/asm/hwcap.h
+ create mode 100644 arch/loongarch/kernel/elf.c
+ create mode 100644 arch/loongarch/kernel/module.c
 
-diff --git a/arch/loongarch/include/asm/seccomp.h b/arch/loongarch/include/asm/seccomp.h
+diff --git a/arch/loongarch/include/asm/cpufeature.h b/arch/loongarch/include/asm/cpufeature.h
 new file mode 100644
-index 000000000000..31d6ab42e43e
+index 000000000000..4da22a8e63de
 --- /dev/null
-+++ b/arch/loongarch/include/asm/seccomp.h
-@@ -0,0 +1,20 @@
++++ b/arch/loongarch/include/asm/cpufeature.h
+@@ -0,0 +1,24 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * CPU feature definitions for module loading, used by
++ * module_cpu_feature_match(), see uapi/asm/hwcap.h for LoongArch CPU features.
++ *
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
 +
-+#ifndef _ASM_SECCOMP_H
-+#define _ASM_SECCOMP_H
++#ifndef __ASM_CPUFEATURE_H
++#define __ASM_CPUFEATURE_H
 +
-+#include <asm/unistd.h>
++#include <uapi/asm/hwcap.h>
++#include <asm/elf.h>
 +
-+#include <asm-generic/seccomp.h>
++#define MAX_CPU_FEATURES (8 * sizeof(elf_hwcap))
++
++#define cpu_feature(x)		ilog2(HWCAP_ ## x)
++
++static inline bool cpu_have_feature(unsigned int num)
++{
++	return elf_hwcap & (1UL << num);
++}
++
++#endif /* __ASM_CPUFEATURE_H */
+diff --git a/arch/loongarch/include/asm/elf.h b/arch/loongarch/include/asm/elf.h
+new file mode 100644
+index 000000000000..20d30b912bf0
+--- /dev/null
++++ b/arch/loongarch/include/asm/elf.h
+@@ -0,0 +1,301 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_ELF_H
++#define _ASM_ELF_H
++
++#include <linux/auxvec.h>
++#include <linux/fs.h>
++#include <linux/mm_types.h>
++
++#include <uapi/linux/elf.h>
++
++#include <asm/current.h>
++#include <asm/vdso.h>
++
++/* ELF header e_flags defines. */
++
++/* The ABI of a file. */
++#define EF_LARCH_ABI_LP32		0x00000001	/* LP32 ABI.  */
++#define EF_LARCH_ABI_LP64		0x00000003	/* LP64 ABI  */
++#define EF_LARCH_ABI			0x00000003
++
++/* LoongArch relocation types used by the dynamic linker */
++#define R_LARCH_NONE				0
++#define R_LARCH_32				1
++#define R_LARCH_64				2
++#define R_LARCH_RELATIVE			3
++#define R_LARCH_COPY				4
++#define R_LARCH_JUMP_SLOT			5
++#define R_LARCH_TLS_DTPMOD32			6
++#define R_LARCH_TLS_DTPMOD64			7
++#define R_LARCH_TLS_DTPREL32			8
++#define R_LARCH_TLS_DTPREL64			9
++#define R_LARCH_TLS_TPREL32			10
++#define R_LARCH_TLS_TPREL64			11
++#define R_LARCH_IRELATIVE			12
++#define R_LARCH_MARK_LA				20
++#define R_LARCH_MARK_PCREL			21
++#define R_LARCH_SOP_PUSH_PCREL			22
++#define R_LARCH_SOP_PUSH_ABSOLUTE		23
++#define R_LARCH_SOP_PUSH_DUP			24
++#define R_LARCH_SOP_PUSH_GPREL			25
++#define R_LARCH_SOP_PUSH_TLS_TPREL		26
++#define R_LARCH_SOP_PUSH_TLS_GOT		27
++#define R_LARCH_SOP_PUSH_TLS_GD			28
++#define R_LARCH_SOP_PUSH_PLT_PCREL		29
++#define R_LARCH_SOP_ASSERT			30
++#define R_LARCH_SOP_NOT				31
++#define R_LARCH_SOP_SUB				32
++#define R_LARCH_SOP_SL				33
++#define R_LARCH_SOP_SR				34
++#define R_LARCH_SOP_ADD				35
++#define R_LARCH_SOP_AND				36
++#define R_LARCH_SOP_IF_ELSE			37
++#define R_LARCH_SOP_POP_32_S_10_5		38
++#define R_LARCH_SOP_POP_32_U_10_12		39
++#define R_LARCH_SOP_POP_32_S_10_12		40
++#define R_LARCH_SOP_POP_32_S_10_16		41
++#define R_LARCH_SOP_POP_32_S_10_16_S2		42
++#define R_LARCH_SOP_POP_32_S_5_20		43
++#define R_LARCH_SOP_POP_32_S_0_5_10_16_S2	44
++#define R_LARCH_SOP_POP_32_S_0_10_10_16_S2	45
++#define R_LARCH_SOP_POP_32_U			46
++#define R_LARCH_ADD8				47
++#define R_LARCH_ADD16				48
++#define R_LARCH_ADD24				49
++#define R_LARCH_ADD32				50
++#define R_LARCH_ADD64				51
++#define R_LARCH_SUB8				52
++#define R_LARCH_SUB16				53
++#define R_LARCH_SUB24				54
++#define R_LARCH_SUB32				55
++#define R_LARCH_SUB64				56
++#define R_LARCH_GNU_VTINHERIT			57
++#define R_LARCH_GNU_VTENTRY			58
++
++#ifndef ELF_ARCH
++
++/* ELF register definitions */
++
++/*
++ * General purpose have the following registers:
++ *	Register	Number
++ *	GPRs		32
++ *	ORIG_A0		1
++ *	ERA		1
++ *	BADVADDR	1
++ *	CRMD		1
++ *	PRMD		1
++ *	EUEN		1
++ *	ECFG		1
++ *	ESTAT		1
++ *	Reserved	5
++ */
++#define ELF_NGREG	45
++
++/*
++ * Floating point have the following registers:
++ *	Register	Number
++ *	FPR		32
++ *	FCC		1
++ *	FCSR		1
++ */
++#define ELF_NFPREG	34
++
++typedef unsigned long elf_greg_t;
++typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++
++typedef double elf_fpreg_t;
++typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
++
++void loongarch_dump_regs64(u64 *uregs, const struct pt_regs *regs);
 +
 +#ifdef CONFIG_32BIT
-+# define SECCOMP_ARCH_NATIVE		AUDIT_ARCH_LOONGARCH32
-+# define SECCOMP_ARCH_NATIVE_NR		NR_syscalls
-+# define SECCOMP_ARCH_NATIVE_NAME	"loongarch32"
-+#else
-+# define SECCOMP_ARCH_NATIVE		AUDIT_ARCH_LOONGARCH64
-+# define SECCOMP_ARCH_NATIVE_NR		NR_syscalls
-+# define SECCOMP_ARCH_NATIVE_NAME	"loongarch64"
++/*
++ * This is used to ensure we don't load something for the wrong architecture.
++ */
++#define elf_check_arch elf32_check_arch
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_CLASS	ELFCLASS32
++
++#define ELF_CORE_COPY_REGS(dest, regs) \
++	loongarch_dump_regs32((u32 *)&(dest), (regs));
++
++#endif /* CONFIG_32BIT */
++
++#ifdef CONFIG_64BIT
++/*
++ * This is used to ensure we don't load something for the wrong architecture.
++ */
++#define elf_check_arch elf64_check_arch
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_CLASS	ELFCLASS64
++
++#define ELF_CORE_COPY_REGS(dest, regs) \
++	loongarch_dump_regs64((u64 *)&(dest), (regs));
++
++#endif /* CONFIG_64BIT */
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_DATA	ELFDATA2LSB
++#define ELF_ARCH	EM_LOONGARCH
++
++#endif /* !defined(ELF_ARCH) */
++
++#define loongarch_elf_check_machine(x) ((x)->e_machine == EM_LOONGARCH)
++
++#define vmcore_elf32_check_arch loongarch_elf_check_machine
++#define vmcore_elf64_check_arch loongarch_elf_check_machine
++
++/*
++ * Return non-zero if HDR identifies an 32bit ELF binary.
++ */
++#define elf32_check_arch(hdr)						\
++({									\
++	int __res = 1;							\
++	struct elfhdr *__h = (hdr);					\
++									\
++	if (!loongarch_elf_check_machine(__h))				\
++		__res = 0;						\
++	if (__h->e_ident[EI_CLASS] != ELFCLASS32)			\
++		__res = 0;						\
++									\
++	__res;								\
++})
++
++/*
++ * Return non-zero if HDR identifies an 64bit ELF binary.
++ */
++#define elf64_check_arch(hdr)						\
++({									\
++	int __res = 1;							\
++	struct elfhdr *__h = (hdr);					\
++									\
++	if (!loongarch_elf_check_machine(__h))				\
++		__res = 0;						\
++	if (__h->e_ident[EI_CLASS] != ELFCLASS64)			\
++		__res = 0;						\
++									\
++	__res;								\
++})
++
++#ifdef CONFIG_32BIT
++
++#define SET_PERSONALITY2(ex, state)					\
++do {									\
++	current->thread.vdso = &vdso_info;				\
++									\
++	loongarch_set_personality_fcsr(state);				\
++									\
++	if (personality(current->personality) != PER_LINUX)		\
++		set_personality(PER_LINUX);				\
++} while (0)
++
++#endif /* CONFIG_32BIT */
++
++#ifdef CONFIG_64BIT
++
++#define SET_PERSONALITY2(ex, state)					\
++do {									\
++	unsigned int p;							\
++									\
++	clear_thread_flag(TIF_32BIT_REGS);				\
++	clear_thread_flag(TIF_32BIT_ADDR);				\
++									\
++	current->thread.vdso = &vdso_info;				\
++	loongarch_set_personality_fcsr(state);				\
++									\
++	p = personality(current->personality);				\
++	if (p != PER_LINUX32 && p != PER_LINUX)				\
++		set_personality(PER_LINUX);				\
++} while (0)
++
++#endif /* CONFIG_64BIT */
++
++#define CORE_DUMP_USE_REGSET
++#define ELF_EXEC_PAGESIZE	PAGE_SIZE
++
++/*
++ * This yields a mask that user programs can use to figure out what
++ * instruction set this cpu supports. This could be done in userspace,
++ * but it's not easy, and we've already done it here.
++ */
++
++#define ELF_HWCAP	(elf_hwcap)
++extern unsigned int elf_hwcap;
++#include <asm/hwcap.h>
++
++/*
++ * This yields a string that ld.so will use to load implementation
++ * specific libraries for optimization.	 This is more specific in
++ * intent than poking at uname or /proc/cpuinfo.
++ */
++
++#define ELF_PLATFORM  __elf_platform
++extern const char *__elf_platform;
++
++#define ELF_PLAT_INIT(_r, load_addr)	do { \
++	_r->regs[1] = _r->regs[2] = _r->regs[3] = _r->regs[4] = 0;	\
++	_r->regs[5] = _r->regs[6] = _r->regs[7] = _r->regs[8] = 0;	\
++	_r->regs[9] = _r->regs[10] = _r->regs[11] = _r->regs[12] = 0;	\
++	_r->regs[13] = _r->regs[14] = _r->regs[15] = _r->regs[16] = 0;	\
++	_r->regs[17] = _r->regs[18] = _r->regs[19] = _r->regs[20] = 0;	\
++	_r->regs[21] = _r->regs[22] = _r->regs[23] = _r->regs[24] = 0;	\
++	_r->regs[25] = _r->regs[26] = _r->regs[27] = _r->regs[28] = 0;	\
++	_r->regs[29] = _r->regs[30] = _r->regs[31] = 0;			\
++} while (0)
++
++/*
++ * This is the location that an ET_DYN program is loaded if exec'ed. Typical
++ * use of this is to invoke "./ld.so someprog" to test out a new version of
++ * the loader. We need to make sure that it is out of the way of the program
++ * that it will "exec", and that there is sufficient room for the brk.
++ */
++
++#define ELF_ET_DYN_BASE		(TASK_SIZE / 3 * 2)
++
++/* update AT_VECTOR_SIZE_ARCH if the number of NEW_AUX_ENT entries changes */
++#define ARCH_DLINFO							\
++do {									\
++	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
++		    (unsigned long)current->mm->context.vdso);		\
++} while (0)
++
++#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
++struct linux_binprm;
++extern int arch_setup_additional_pages(struct linux_binprm *bprm,
++				       int uses_interp);
++
++struct arch_elf_state {
++	int fp_abi;
++	int interp_fp_abi;
++};
++
++#define LOONGARCH_ABI_FP_ANY	(0)
++
++#define INIT_ARCH_ELF_STATE {			\
++	.fp_abi = LOONGARCH_ABI_FP_ANY,		\
++	.interp_fp_abi = LOONGARCH_ABI_FP_ANY,	\
++}
++
++#define elf_read_implies_exec(ex, exec_stk) (exec_stk == EXSTACK_DEFAULT)
++
++extern int arch_elf_pt_proc(void *ehdr, void *phdr, struct file *elf,
++			    bool is_interp, struct arch_elf_state *state);
++
++extern int arch_check_elf(void *ehdr, bool has_interpreter, void *interp_ehdr,
++			  struct arch_elf_state *state);
++
++extern void loongarch_set_personality_fcsr(struct arch_elf_state *state);
++
++#endif /* _ASM_ELF_H */
+diff --git a/arch/loongarch/include/asm/exec.h b/arch/loongarch/include/asm/exec.h
+new file mode 100644
+index 000000000000..ba0220812ebb
+--- /dev/null
++++ b/arch/loongarch/include/asm/exec.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_EXEC_H
++#define _ASM_EXEC_H
++
++extern unsigned long arch_align_stack(unsigned long sp);
++
++#endif /* _ASM_EXEC_H */
+diff --git a/arch/loongarch/include/asm/module.h b/arch/loongarch/include/asm/module.h
+new file mode 100644
+index 000000000000..fa93c876c7ec
+--- /dev/null
++++ b/arch/loongarch/include/asm/module.h
+@@ -0,0 +1,15 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_MODULE_H
++#define _ASM_MODULE_H
++
++#include <asm-generic/module.h>
++
++#define RELA_STACK_DEPTH 16
++
++struct mod_arch_specific {
++};
++
++#endif /* _ASM_MODULE_H */
+diff --git a/arch/loongarch/include/asm/vermagic.h b/arch/loongarch/include/asm/vermagic.h
+new file mode 100644
+index 000000000000..8b47ccfe3aad
+--- /dev/null
++++ b/arch/loongarch/include/asm/vermagic.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
++
++#define MODULE_PROC_FAMILY "LOONGARCH "
++
++#ifdef CONFIG_32BIT
++#define MODULE_KERNEL_TYPE "32BIT "
++#elif defined CONFIG_64BIT
++#define MODULE_KERNEL_TYPE "64BIT "
 +#endif
 +
-+#endif /* _ASM_SECCOMP_H */
-diff --git a/arch/loongarch/include/asm/syscall.h b/arch/loongarch/include/asm/syscall.h
++#define MODULE_ARCH_VERMAGIC \
++	MODULE_PROC_FAMILY MODULE_KERNEL_TYPE
++
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/loongarch/include/uapi/asm/auxvec.h b/arch/loongarch/include/uapi/asm/auxvec.h
 new file mode 100644
-index 000000000000..e286dc58476e
+index 000000000000..922d9e6b5058
 --- /dev/null
-+++ b/arch/loongarch/include/asm/syscall.h
-@@ -0,0 +1,74 @@
-+/* SPDX-License-Identifier: GPL-2.0+ */
++++ b/arch/loongarch/include/uapi/asm/auxvec.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
 +/*
 + * Author: Hanlu Li <lihanlu@loongson.cn>
 + *         Huacai Chen <chenhuacai@loongson.cn>
@@ -147,523 +517,83 @@ index 000000000000..e286dc58476e
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
 +
-+#ifndef __ASM_LOONGARCH_SYSCALL_H
-+#define __ASM_LOONGARCH_SYSCALL_H
++#ifndef __ASM_AUXVEC_H
++#define __ASM_AUXVEC_H
 +
-+#include <linux/compiler.h>
-+#include <uapi/linux/audit.h>
-+#include <linux/elf-em.h>
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/uaccess.h>
-+#include <asm/ptrace.h>
-+#include <asm/unistd.h>
++/* Location of VDSO image. */
++#define AT_SYSINFO_EHDR		33
 +
-+extern void *sys_call_table[];
++#define AT_VECTOR_SIZE_ARCH 1 /* entries in ARCH_DLINFO */
 +
-+static inline long syscall_get_nr(struct task_struct *task,
-+				  struct pt_regs *regs)
-+{
-+	return regs->regs[11];
-+}
-+
-+static inline void syscall_rollback(struct task_struct *task,
-+				    struct pt_regs *regs)
-+{
-+        regs->regs[4] = regs->orig_a0;
-+}
-+
-+static inline long syscall_get_error(struct task_struct *task,
-+				     struct pt_regs *regs)
-+{
-+	unsigned long error = regs->regs[4];
-+
-+	return IS_ERR_VALUE(error) ? error : 0;
-+}
-+
-+static inline long syscall_get_return_value(struct task_struct *task,
-+					    struct pt_regs *regs)
-+{
-+	return regs->regs[4];
-+}
-+
-+static inline void syscall_set_return_value(struct task_struct *task,
-+					    struct pt_regs *regs,
-+					    int error, long val)
-+{
-+	regs->regs[4] = (long) error ? error : val;
-+}
-+
-+static inline void syscall_get_arguments(struct task_struct *task,
-+					 struct pt_regs *regs,
-+					 unsigned long *args)
-+{
-+	args[0] = regs->orig_a0;
-+	memcpy(&args[1], &regs->regs[5], 5 * sizeof(long));
-+}
-+
-+static inline int syscall_get_arch(struct task_struct *task)
-+{
-+	return AUDIT_ARCH_LOONGARCH64;
-+}
-+
-+static inline bool arch_syscall_is_vdso_sigreturn(struct pt_regs *regs)
-+{
-+	return false;
-+}
-+
-+#endif	/* __ASM_LOONGARCH_SYSCALL_H */
-diff --git a/arch/loongarch/include/asm/uaccess.h b/arch/loongarch/include/asm/uaccess.h
++#endif /* __ASM_AUXVEC_H */
+diff --git a/arch/loongarch/include/uapi/asm/hwcap.h b/arch/loongarch/include/uapi/asm/hwcap.h
 new file mode 100644
-index 000000000000..5cbfa5be996f
+index 000000000000..8840b72fa8e8
 --- /dev/null
-+++ b/arch/loongarch/include/asm/uaccess.h
-@@ -0,0 +1,315 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ *
-+ * Derived from MIPS:
-+ * Copyright (C) 1996, 1997, 1998, 1999, 2000, 03, 04 by Ralf Baechle
-+ * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
-+ * Copyright (C) 2007  Maciej W. Rozycki
-+ * Copyright (C) 2014, Imagination Technologies Ltd.
-+ */
-+#ifndef _ASM_UACCESS_H
-+#define _ASM_UACCESS_H
-+
-+#include <linux/kernel.h>
-+#include <linux/string.h>
-+#include <linux/extable.h>
-+#include <asm-generic/extable.h>
-+
-+extern u64 __ua_limit;
-+
-+#define __UA_LIMIT	__ua_limit
-+
-+#define __UA_ADDR	".dword"
-+#define __UA_ADDU	"add.d"
-+#define __UA_LA		"la.abs"
-+
-+/*
-+ * Is a address valid? This does a straightforward calculation rather
-+ * than tests.
-+ *
-+ * Address valid if:
-+ *  - "addr" doesn't have any high-bits set
-+ *  - AND "size" doesn't have any high-bits set
-+ *  - AND "addr+size" doesn't have any high-bits set
-+ *  - OR we are in kernel mode.
-+ *
-+ * __ua_size() is a trick to avoid runtime checking of positive constant
-+ * sizes; for those we already know at compile time that the size is ok.
-+ */
-+#define __ua_size(size)							\
-+	((__builtin_constant_p(size) && (signed long) (size) > 0) ? 0 : (size))
-+
-+/*
-+ * access_ok: - Checks if a user space pointer is valid
-+ * @addr: User space pointer to start of block to check
-+ * @size: Size of block to check
-+ *
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-+ *
-+ * Checks if a pointer to a block of memory in user space is valid.
-+ *
-+ * Returns true (nonzero) if the memory block may be valid, false (zero)
-+ * if it is definitely invalid.
-+ *
-+ * Note that, depending on architecture, this function probably just
-+ * checks that the pointer is in the user space range - after calling
-+ * this function, memory access functions may still return -EFAULT.
-+ */
-+static inline int __access_ok(const void __user *p, unsigned long size)
-+{
-+	unsigned long addr = (unsigned long)p;
-+	unsigned long end = addr + size - !!size;
-+
-+	return (__UA_LIMIT & (addr | end | __ua_size(size))) == 0;
-+}
-+
-+#define access_ok(addr, size)					\
-+	likely(__access_ok((addr), (size)))
-+
-+/*
-+ * get_user: - Get a simple variable from user space.
-+ * @x:	 Variable to store result.
-+ * @ptr: Source address, in user space.
-+ *
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-+ *
-+ * This macro copies a single simple variable from user space to kernel
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and the result of
-+ * dereferencing @ptr must be assignable to @x without a cast.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ * On error, the variable @x is set to zero.
-+ */
-+#define get_user(x, ptr) \
-+({									\
-+	const __typeof__(*(ptr)) __user *__p = (ptr);			\
-+									\
-+	might_fault();							\
-+	access_ok(__p, sizeof(*__p)) ? __get_user((x), __p) :		\
-+				       ((x) = 0, -EFAULT);		\
-+})
-+
-+/*
-+ * put_user: - Write a simple value into user space.
-+ * @x:	 Value to copy to user space.
-+ * @ptr: Destination address, in user space.
-+ *
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-+ *
-+ * This macro copies a single simple value from kernel space to user
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and @x must be assignable
-+ * to the result of dereferencing @ptr.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ */
-+#define put_user(x, ptr) \
-+({									\
-+	__typeof__(*(ptr)) __user *__p = (ptr);				\
-+									\
-+	might_fault();							\
-+	access_ok(__p, sizeof(*__p)) ? __put_user((x), __p) : -EFAULT;	\
-+})
-+
-+/*
-+ * __get_user: - Get a simple variable from user space, with less checking.
-+ * @x:	 Variable to store result.
-+ * @ptr: Source address, in user space.
-+ *
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-+ *
-+ * This macro copies a single simple variable from user space to kernel
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and the result of
-+ * dereferencing @ptr must be assignable to @x without a cast.
-+ *
-+ * Caller must check the pointer with access_ok() before calling this
-+ * function.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ * On error, the variable @x is set to zero.
-+ */
-+#define __get_user(x, ptr) \
-+({									\
-+	int __gu_err = 0;						\
-+									\
-+	__chk_user_ptr(ptr);						\
-+	__get_user_common((x), sizeof(*(ptr)), ptr);			\
-+	__gu_err;							\
-+})
-+
-+/*
-+ * __put_user: - Write a simple value into user space, with less checking.
-+ * @x:	 Value to copy to user space.
-+ * @ptr: Destination address, in user space.
-+ *
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-+ *
-+ * This macro copies a single simple value from kernel space to user
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and @x must be assignable
-+ * to the result of dereferencing @ptr.
-+ *
-+ * Caller must check the pointer with access_ok() before calling this
-+ * function.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ */
-+#define __put_user(x, ptr) \
-+({									\
-+	int __pu_err = 0;						\
-+	__typeof__(*(ptr)) __pu_val;					\
-+									\
-+	__pu_val = (x);							\
-+	__chk_user_ptr(ptr);						\
-+	__put_user_common(ptr, sizeof(*(ptr)));				\
-+	__pu_err;							\
-+})
-+
-+struct __large_struct { unsigned long buf[100]; };
-+#define __m(x) (*(struct __large_struct __user *)(x))
-+
-+#define __get_user_common(val, size, ptr)				\
-+do {									\
-+	switch (size) {							\
-+	case 1: __get_data_asm(val, "ld.b", ptr); break;		\
-+	case 2: __get_data_asm(val, "ld.h", ptr); break;		\
-+	case 4: __get_data_asm(val, "ld.w", ptr); break;		\
-+	case 8: __get_data_asm(val, "ld.d", ptr); break;		\
-+	default: BUILD_BUG(); break;					\
-+	}								\
-+} while (0)
-+
-+#define __get_kernel_common(val, size, ptr) __get_user_common(val, size, ptr)
-+
-+#define __get_data_asm(val, insn, ptr)					\
-+{									\
-+	long __gu_tmp;							\
-+									\
-+	__asm__ __volatile__(						\
-+	"1:	" insn "	%1, %2				\n"	\
-+	"2:							\n"	\
-+	"	.section .fixup,\"ax\"				\n"	\
-+	"3:	li.w	%0, %3					\n"	\
-+	"	or	%1, $r0, $r0				\n"	\
-+	"	b	2b					\n"	\
-+	"	.previous					\n"	\
-+	"	.section __ex_table,\"a\"			\n"	\
-+	"	"__UA_ADDR "\t1b, 3b				\n"	\
-+	"	.previous					\n"	\
-+	: "+r" (__gu_err), "=r" (__gu_tmp)				\
-+	: "m" (__m(ptr)), "i" (-EFAULT));				\
-+									\
-+	(val) = (__typeof__(*(ptr))) __gu_tmp;				\
-+}
-+
-+#define __put_user_common(ptr, size)					\
-+do {									\
-+	switch (size) {							\
-+	case 1: __put_data_asm("st.b", ptr); break;			\
-+	case 2: __put_data_asm("st.h", ptr); break;			\
-+	case 4: __put_data_asm("st.w", ptr); break;			\
-+	case 8: __put_data_asm("st.d", ptr); break;			\
-+	default: BUILD_BUG(); break;					\
-+	}								\
-+} while (0)
-+
-+#define __put_kernel_common(ptr, size) __put_user_common(ptr, size)
-+
-+#define __put_data_asm(insn, ptr)					\
-+{									\
-+	__asm__ __volatile__(						\
-+	"1:	" insn "	%z2, %1		# __put_user_asm\n"	\
-+	"2:							\n"	\
-+	"	.section	.fixup,\"ax\"			\n"	\
-+	"3:	li.w	%0, %3					\n"	\
-+	"	b	2b					\n"	\
-+	"	.previous					\n"	\
-+	"	.section	__ex_table,\"a\"		\n"	\
-+	"	" __UA_ADDR "	1b, 3b				\n"	\
-+	"	.previous					\n"	\
-+	: "+r" (__pu_err), "=m" (__m(ptr))				\
-+	: "Jr" (__pu_val), "i" (-EFAULT));				\
-+}
-+
-+#define HAVE_GET_KERNEL_NOFAULT
-+
-+#define __get_kernel_nofault(dst, src, type, err_label)			\
-+do {									\
-+	int __gu_err = 0;						\
-+									\
-+	__get_kernel_common(*((type *)(dst)), sizeof(type),		\
-+			    (__force type *)(src));			\
-+	if (unlikely(__gu_err))						\
-+		goto err_label;						\
-+} while (0)
-+
-+#define __put_kernel_nofault(dst, src, type, err_label)			\
-+do {									\
-+	type __pu_val;							\
-+	int __pu_err = 0;						\
-+									\
-+	__pu_val = *(__force type *)(src);				\
-+	__put_kernel_common(((type *)(dst)), sizeof(type));		\
-+	if (unlikely(__pu_err))						\
-+		goto err_label;						\
-+} while (0)
-+
-+extern unsigned long __copy_user(void *to, const void *from, __kernel_size_t n);
-+
-+static inline unsigned long __must_check
-+raw_copy_from_user(void *to, const void __user *from, unsigned long n)
-+{
-+	return __copy_user(to, from, n);
-+}
-+
-+static inline unsigned long __must_check
-+raw_copy_to_user(void __user *to, const void *from, unsigned long n)
-+{
-+	return __copy_user(to, from, n);
-+}
-+
-+#define INLINE_COPY_FROM_USER
-+#define INLINE_COPY_TO_USER
-+
-+/*
-+ * __clear_user: - Zero a block of memory in user space, with less checking.
-+ * @addr: Destination address, in user space.
-+ * @size: Number of bytes to zero.
-+ *
-+ * Zero a block of memory in user space.  Caller must check
-+ * the specified block with access_ok() before calling this function.
-+ *
-+ * Returns number of bytes that could not be cleared.
-+ * On success, this will be zero.
-+ */
-+extern unsigned long __clear_user(void __user *addr, __kernel_size_t size);
-+
-+#define clear_user(addr, n)						\
-+({									\
-+	void __user *__cl_addr = (addr);				\
-+	unsigned long __cl_size = (n);					\
-+	if (__cl_size && access_ok(__cl_addr, __cl_size))		\
-+		__cl_size = __clear_user(__cl_addr, __cl_size);		\
-+	__cl_size;							\
-+})
-+
-+extern long strncpy_from_user(char *to, const char __user *from, long n);
-+extern long strnlen_user(const char __user *str, long n);
-+
-+#endif /* _ASM_UACCESS_H */
-diff --git a/arch/loongarch/include/asm/unistd.h b/arch/loongarch/include/asm/unistd.h
-new file mode 100644
-index 000000000000..cfddb0116a8c
---- /dev/null
-+++ b/arch/loongarch/include/asm/unistd.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0+ */
-+/*
-+ * Author: Hanlu Li <lihanlu@loongson.cn>
-+ *         Huacai Chen <chenhuacai@loongson.cn>
-+ *
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+
-+#include <uapi/asm/unistd.h>
-+
-+#define NR_syscalls (__NR_syscalls)
-diff --git a/arch/loongarch/include/uapi/asm/unistd.h b/arch/loongarch/include/uapi/asm/unistd.h
-new file mode 100644
-index 000000000000..b344b1f91715
---- /dev/null
-+++ b/arch/loongarch/include/uapi/asm/unistd.h
-@@ -0,0 +1,6 @@
++++ b/arch/loongarch/include/uapi/asm/hwcap.h
+@@ -0,0 +1,20 @@
 +/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+#define __ARCH_WANT_NEW_STAT
-+#define __ARCH_WANT_SYS_CLONE
-+#define __ARCH_WANT_SYS_CLONE3
++#ifndef _UAPI_ASM_HWCAP_H
++#define _UAPI_ASM_HWCAP_H
 +
-+#include <asm-generic/unistd.h>
-diff --git a/arch/loongarch/kernel/entry.S b/arch/loongarch/kernel/entry.S
++/* HWCAP flags */
++#define HWCAP_LOONGARCH_CPUCFG		(1 << 0)
++#define HWCAP_LOONGARCH_LAM		(1 << 1)
++#define HWCAP_LOONGARCH_UAL		(1 << 2)
++#define HWCAP_LOONGARCH_FPU		(1 << 3)
++#define HWCAP_LOONGARCH_LSX		(1 << 4)
++#define HWCAP_LOONGARCH_LASX		(1 << 5)
++#define HWCAP_LOONGARCH_CRC32		(1 << 6)
++#define HWCAP_LOONGARCH_COMPLEX		(1 << 7)
++#define HWCAP_LOONGARCH_CRYPTO		(1 << 8)
++#define HWCAP_LOONGARCH_LVZ		(1 << 9)
++#define HWCAP_LOONGARCH_LBT_X86		(1 << 10)
++#define HWCAP_LOONGARCH_LBT_ARM		(1 << 11)
++#define HWCAP_LOONGARCH_LBT_MIPS	(1 << 12)
++
++#endif /* _UAPI_ASM_HWCAP_H */
+diff --git a/arch/loongarch/kernel/elf.c b/arch/loongarch/kernel/elf.c
 new file mode 100644
-index 000000000000..d5b3dbcf5425
+index 000000000000..183e94fc9c69
 --- /dev/null
-+++ b/arch/loongarch/kernel/entry.S
-@@ -0,0 +1,89 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
++++ b/arch/loongarch/kernel/elf.c
+@@ -0,0 +1,30 @@
++// SPDX-License-Identifier: GPL-2.0
 +/*
++ * Author: Huacai Chen <chenhuacai@loongson.cn>
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ *
-+ * Derived from MIPS:
-+ * Copyright (C) 1994 - 2000, 2001, 2003 Ralf Baechle
-+ * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
-+ * Copyright (C) 2001 MIPS Technologies, Inc.
 + */
 +
-+#include <asm/asm.h>
-+#include <asm/asmmacro.h>
-+#include <asm/loongarch.h>
-+#include <asm/regdef.h>
-+#include <asm/stackframe.h>
-+#include <asm/thread_info.h>
++#include <linux/binfmts.h>
++#include <linux/elf.h>
++#include <linux/export.h>
++#include <linux/sched.h>
 +
-+	.text
-+	.cfi_sections	.debug_frame
-+	.align	5
-+SYM_FUNC_START(handle_syscall)
-+	csrrd	t0, PERCPU_BASE_KS
-+	la.abs	t1, kernelsp
-+	add.d	t1, t1, t0
-+	move	t2, sp
-+	ld.d	sp, t1, 0
++#include <asm/cpu-features.h>
++#include <asm/cpu-info.h>
 +
-+	addi.d	sp, sp, -PT_SIZE
-+	cfi_st	t2, PT_R3
-+	cfi_rel_offset  sp, PT_R3
-+	st.d	zero, sp, PT_R0
-+	csrrd	t2, LOONGARCH_CSR_PRMD
-+	st.d	t2, sp, PT_PRMD
-+	csrrd	t2, LOONGARCH_CSR_CRMD
-+	st.d	t2, sp, PT_CRMD
-+	csrrd	t2, LOONGARCH_CSR_EUEN
-+	st.d	t2, sp, PT_EUEN
-+	csrrd	t2, LOONGARCH_CSR_ECFG
-+	st.d	t2, sp, PT_ECFG
-+	csrrd	t2, LOONGARCH_CSR_ESTAT
-+	st.d	t2, sp, PT_ESTAT
-+	cfi_st	ra, PT_R1
-+	cfi_st	a0, PT_R4
-+	cfi_st	a1, PT_R5
-+	cfi_st	a2, PT_R6
-+	cfi_st	a3, PT_R7
-+	cfi_st	a4, PT_R8
-+	cfi_st	a5, PT_R9
-+	cfi_st	a6, PT_R10
-+	cfi_st	a7, PT_R11
-+	csrrd	ra, LOONGARCH_CSR_ERA
-+	st.d	ra, sp, PT_ERA
-+	cfi_rel_offset ra, PT_ERA
++int arch_elf_pt_proc(void *_ehdr, void *_phdr, struct file *elf,
++		     bool is_interp, struct arch_elf_state *state)
++{
++	return 0;
++}
 +
-+	cfi_st	tp, PT_R2
-+	cfi_st	u0, PT_R21
-+	cfi_st	fp, PT_R22
++int arch_check_elf(void *_ehdr, bool has_interpreter, void *_interp_ehdr,
++		   struct arch_elf_state *state)
++{
++	return 0;
++}
 +
-+	SAVE_STATIC
-+
-+	move	u0, t0
-+	li.d	tp, ~_THREAD_MASK
-+	and	tp, tp, sp
-+
-+	move	a0, sp
-+	bl	do_syscall
-+
-+	RESTORE_ALL_AND_RET
-+SYM_FUNC_END(handle_syscall)
-+
-+SYM_CODE_START(ret_from_fork)
-+	bl	schedule_tail		# a0 = struct task_struct *prev
-+	move	a0, sp
-+	bl 	syscall_exit_to_user_mode
-+	RESTORE_STATIC
-+	RESTORE_SOME
-+	RESTORE_SP_AND_RET
-+SYM_CODE_END(ret_from_fork)
-+
-+SYM_CODE_START(ret_from_kernel_thread)
-+	bl	schedule_tail		# a0 = struct task_struct *prev
-+	move	a0, s1
-+	jirl	ra, s0, 0
-+	move	a0, sp
-+	bl	syscall_exit_to_user_mode
-+	RESTORE_STATIC
-+	RESTORE_SOME
-+	RESTORE_SP_AND_RET
-+SYM_CODE_END(ret_from_kernel_thread)
-diff --git a/arch/loongarch/kernel/syscall.c b/arch/loongarch/kernel/syscall.c
++void loongarch_set_personality_fcsr(struct arch_elf_state *state)
++{
++	current->thread.fpu.fcsr = boot_cpu_data.fpu_csr0;
++}
+diff --git a/arch/loongarch/kernel/module.c b/arch/loongarch/kernel/module.c
 new file mode 100644
-index 000000000000..3fc4211db989
+index 000000000000..63b5c8f1b13a
 --- /dev/null
-+++ b/arch/loongarch/kernel/syscall.c
-@@ -0,0 +1,63 @@
++++ b/arch/loongarch/kernel/module.c
+@@ -0,0 +1,658 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Author: Hanlu Li <lihanlu@loongson.cn>
@@ -671,61 +601,656 @@ index 000000000000..3fc4211db989
 + *
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
-+#include <linux/capability.h>
-+#include <linux/entry-common.h>
-+#include <linux/errno.h>
-+#include <linux/linkage.h>
-+#include <linux/syscalls.h>
-+#include <linux/unistd.h>
 +
-+#include <asm/asm.h>
-+#include <asm/signal.h>
-+#include <asm/switch_to.h>
-+#include <asm-generic/syscalls.h>
++#define pr_fmt(fmt) "kmod: " fmt
 +
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call)	[nr] = (call),
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/mm.h>
++#include <linux/vmalloc.h>
++#include <linux/slab.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++#include <linux/kernel.h>
 +
-+SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len, unsigned long,
-+		prot, unsigned long, flags, unsigned long, fd, off_t, offset)
++static int rela_stack_push(s64 stack_value, s64 *rela_stack, size_t *rela_stack_top)
 +{
-+	if (offset & ~PAGE_MASK)
-+		return -EINVAL;
++	if (*rela_stack_top >= RELA_STACK_DEPTH)
++		return -ENOEXEC;
 +
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
++	rela_stack[(*rela_stack_top)++] = stack_value;
++	pr_debug("%s stack_value = 0x%llx\n", __func__, stack_value);
++
++	return 0;
 +}
 +
-+void *sys_call_table[__NR_syscalls] = {
-+	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
-+#include <asm/unistd.h>
-+};
-+
-+typedef long (*sys_call_fn)(unsigned long, unsigned long,
-+	unsigned long, unsigned long, unsigned long, unsigned long);
-+
-+void noinstr do_syscall(struct pt_regs *regs)
++static int rela_stack_pop(s64 *stack_value, s64 *rela_stack, size_t *rela_stack_top)
 +{
-+	unsigned long nr;
-+	sys_call_fn syscall_fn;
++	if (*rela_stack_top == 0)
++		return -ENOEXEC;
 +
-+	nr = regs->regs[11];
-+	/* Set for syscall restarting */
-+	if (nr < NR_syscalls)
-+		regs->regs[0] = nr + 1;
++	*stack_value = rela_stack[--(*rela_stack_top)];
++	pr_debug("%s stack_value = 0x%llx\n", __func__, *stack_value);
 +
-+	regs->csr_era += 4;
-+	regs->orig_a0 = regs->regs[4];
-+	regs->regs[4] = -ENOSYS;
++	return 0;
++}
 +
-+	nr = syscall_enter_from_user_mode(regs, nr);
++static int apply_r_larch_none(struct module *mod, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	return 0;
++}
 +
-+	if (nr < NR_syscalls) {
-+		syscall_fn = sys_call_table[nr];
-+		regs->regs[4] = syscall_fn(regs->orig_a0, regs->regs[5], regs->regs[6],
-+					   regs->regs[7], regs->regs[8], regs->regs[9]);
++static int apply_r_larch_32(struct module *mod, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*location = v;
++	return 0;
++}
++
++static int apply_r_larch_64(struct module *mod, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*(Elf_Addr *)location = v;
++	return 0;
++}
++
++static int apply_r_larch_mark_la(struct module *mod, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	return 0;
++}
++
++static int apply_r_larch_mark_pcrel(struct module *mod, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	return 0;
++}
++
++static int apply_r_larch_sop_push_pcrel(struct module *mod, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	return rela_stack_push(v - (u64)location, rela_stack, rela_stack_top);
++}
++
++static int apply_r_larch_sop_push_absolute(struct module *mod, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	return rela_stack_push(v, rela_stack, rela_stack_top);
++}
++
++static int apply_r_larch_sop_push_dup(struct module *mod, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_push_plt_pcrel(struct module *mod, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	return apply_r_larch_sop_push_pcrel(mod, location, v, rela_stack, rela_stack_top);
++}
++
++static int apply_r_larch_sop_sub(struct module *mod, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2;
++
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 - opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_sl(struct module *mod, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2;
++
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 << opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_sr(struct module *mod, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2;
++
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 >> opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_add(struct module *mod, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2;
++
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 + opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++static int apply_r_larch_sop_and(struct module *mod, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2;
++
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 & opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_if_else(struct module *mod, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1, opr2, opr3;
++
++	err = rela_stack_pop(&opr3, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr2, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++	err = rela_stack_push(opr1 ? opr2 : opr3, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_10_5(struct module *mod, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 5-bit signed */
++	if ((opr1 & ~(u64)0xf) &&
++	    (opr1 & ~(u64)0xf) != ~(u64)0xf) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
 +	}
 +
-+	syscall_exit_to_user_mode(regs);
++	/* (*(uint32_t *) PC) [14 ... 10] = opr [4 ... 0] */
++	*location = (*location & (~(u32)0x7c00)) | ((opr1 & 0x1f) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_u_10_12(struct module *mod, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 12-bit unsigned */
++	if (opr1 & ~(u64)0xfff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) [21 ... 10] = opr [11 ... 0] */
++	*location = (*location & (~(u32)0x3ffc00)) | ((opr1 & 0xfff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_10_12(struct module *mod, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 12-bit signed */
++	if ((opr1 & ~(u64)0x7ff) &&
++	    (opr1 & ~(u64)0x7ff) != ~(u64)0x7ff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) [21 ... 10] = opr [11 ... 0] */
++	*location = (*location & (~(u32)0x3ffc00)) | ((opr1 & 0xfff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_10_16(struct module *mod, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 16-bit signed */
++	if ((opr1 & ~(u64)0x7fff) &&
++	    (opr1 & ~(u64)0x7fff) != ~(u64)0x7fff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) [25 ... 10] = opr [15 ... 0] */
++	*location = (*location & 0xfc0003ff) | ((opr1 & 0xffff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_10_16_s2(struct module *mod, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 4-aligned */
++	if (opr1 % 4) {
++		pr_err("module %s: opr1 = 0x%llx unaligned! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	opr1 >>= 2;
++	/* check 18-bit signed */
++	if ((opr1 & ~(u64)0x7fff) &&
++	    (opr1 & ~(u64)0x7fff) != ~(u64)0x7fff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) [25 ... 10] = opr [17 ... 2] */
++	*location = (*location & 0xfc0003ff) | ((opr1 & 0xffff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_5_20(struct module *mod, u32 *location, Elf_Addr v,
++						s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 20-bit signed */
++	if ((opr1 & ~(u64)0x7ffff) &&
++	    (opr1 & ~(u64)0x7ffff) != ~(u64)0x7ffff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) [24 ... 5] = opr [19 ... 0] */
++	*location = (*location & (~(u32)0x1ffffe0)) | ((opr1 & 0xfffff) << 5);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_0_5_10_16_s2(struct module *mod, u32 *location, Elf_Addr v,
++							s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 4-aligned */
++	if (opr1 % 4) {
++		pr_err("module %s: opr1 = 0x%llx unaligned! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	opr1 >>= 2;
++	/* check 23-bit signed */
++	if ((opr1 & ~(u64)0xfffff) &&
++	    (opr1 & ~(u64)0xfffff) != ~(u64)0xfffff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/*
++	 * (*(uint32_t *) PC) [4 ... 0] = opr [22 ... 18]
++	 * (*(uint32_t *) PC) [25 ... 10] = opr [17 ... 2]
++	 */
++	*location = (*location & 0xfc0003e0)
++		| ((opr1 & 0x1f0000) >> 16) | ((opr1 & 0xffff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_s_0_10_10_16_s2(struct module *mod, u32 *location, Elf_Addr v,
++							s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 4-aligned */
++	if (opr1 % 4) {
++		pr_err("module %s: opr1 = 0x%llx unaligned! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	opr1 >>= 2;
++	/* check 28-bit signed */
++	if ((opr1 & ~(u64)0x1ffffff) &&
++	    (opr1 & ~(u64)0x1ffffff) != ~(u64)0x1ffffff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/*
++	 * (*(uint32_t *) PC) [9 ... 0] = opr [27 ... 18]
++	 * (*(uint32_t *) PC) [25 ... 10] = opr [17 ... 2]
++	 */
++	*location = (*location & 0xfc000000)
++		| ((opr1 & 0x3ff0000) >> 16) | ((opr1 & 0xffff) << 10);
++
++	return 0;
++}
++
++static int apply_r_larch_sop_pop_32_u(struct module *mod, u32 *location, Elf_Addr v,
++					s64 *rela_stack, size_t *rela_stack_top)
++{
++	int err = 0;
++	s64 opr1;
++
++	err = rela_stack_pop(&opr1, rela_stack, rela_stack_top);
++	if (err)
++		return err;
++
++	/* check 32-bit unsigned */
++	if (opr1 & ~(u64)0xffffffff) {
++		pr_err("module %s: opr1 = 0x%llx overflow! dangerous %s relocation\n",
++			mod->name, opr1, __func__);
++		return -ENOEXEC;
++	}
++
++	/* (*(uint32_t *) PC) = opr */
++	*location = (u32)opr1;
++
++	return 0;
++}
++
++static int apply_r_larch_add32(struct module *mod, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*(s32 *)location += v;
++	return 0;
++}
++
++static int apply_r_larch_add64(struct module *mod, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*(s64 *)location += v;
++	return 0;
++}
++
++static int apply_r_larch_sub32(struct module *mod, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*(s32 *)location -= v;
++	return 0;
++}
++
++static int apply_r_larch_sub64(struct module *mod, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top)
++{
++	*(s64 *)location -= v;
++	return 0;
++}
++
++/*
++ * reloc_handlers_rela() - Apply a particular relocation to a module
++ * @mod: the module to apply the reloc to
++ * @location: the address at which the reloc is to be applied
++ * @v: the value of the reloc, with addend for RELA-style
++ * @rela_stack: the stack used for store relocation info, LOCAL to THIS module
++ * @rela_stac_top: where the stack operation(pop/push) applies to
++ *
++ * Return: 0 upon success, else -ERRNO
++ */
++typedef int (*reloc_rela_handler)(struct module *mod, u32 *location, Elf_Addr v,
++				s64 *rela_stack, size_t *rela_stack_top);
++
++/* The handlers for known reloc types */
++static reloc_rela_handler reloc_rela_handlers[] = {
++	[R_LARCH_NONE]				= apply_r_larch_none,
++	[R_LARCH_32]				= apply_r_larch_32,
++	[R_LARCH_64]				= apply_r_larch_64,
++	[R_LARCH_MARK_LA]			= apply_r_larch_mark_la,
++	[R_LARCH_MARK_PCREL]			= apply_r_larch_mark_pcrel,
++	[R_LARCH_SOP_PUSH_PCREL]		= apply_r_larch_sop_push_pcrel,
++	[R_LARCH_SOP_PUSH_ABSOLUTE]		= apply_r_larch_sop_push_absolute,
++	[R_LARCH_SOP_PUSH_DUP]			= apply_r_larch_sop_push_dup,
++	[R_LARCH_SOP_PUSH_PLT_PCREL]		= apply_r_larch_sop_push_plt_pcrel,
++	[R_LARCH_SOP_SUB]			= apply_r_larch_sop_sub,
++	[R_LARCH_SOP_SL]			= apply_r_larch_sop_sl,
++	[R_LARCH_SOP_SR]			= apply_r_larch_sop_sr,
++	[R_LARCH_SOP_ADD]			= apply_r_larch_sop_add,
++	[R_LARCH_SOP_AND]			= apply_r_larch_sop_and,
++	[R_LARCH_SOP_IF_ELSE]			= apply_r_larch_sop_if_else,
++	[R_LARCH_SOP_POP_32_S_10_5]		= apply_r_larch_sop_pop_32_s_10_5,
++	[R_LARCH_SOP_POP_32_U_10_12]		= apply_r_larch_sop_pop_32_u_10_12,
++	[R_LARCH_SOP_POP_32_S_10_12]		= apply_r_larch_sop_pop_32_s_10_12,
++	[R_LARCH_SOP_POP_32_S_10_16]		= apply_r_larch_sop_pop_32_s_10_16,
++	[R_LARCH_SOP_POP_32_S_10_16_S2]		= apply_r_larch_sop_pop_32_s_10_16_s2,
++	[R_LARCH_SOP_POP_32_S_5_20]		= apply_r_larch_sop_pop_32_s_5_20,
++	[R_LARCH_SOP_POP_32_S_0_5_10_16_S2]	= apply_r_larch_sop_pop_32_s_0_5_10_16_s2,
++	[R_LARCH_SOP_POP_32_S_0_10_10_16_S2]	= apply_r_larch_sop_pop_32_s_0_10_10_16_s2,
++	[R_LARCH_SOP_POP_32_U]			= apply_r_larch_sop_pop_32_u,
++	[R_LARCH_ADD32]				= apply_r_larch_add32,
++	[R_LARCH_ADD64]				= apply_r_larch_add64,
++	[R_LARCH_SUB32]				= apply_r_larch_sub32,
++	[R_LARCH_SUB64]				= apply_r_larch_sub64,
++};
++
++int apply_relocate(Elf_Shdr *sechdrs, const char *strtab,
++		   unsigned int symindex, unsigned int relsec,
++		   struct module *mod)
++{
++	int i, err;
++	unsigned int type;
++	s64 rela_stack[RELA_STACK_DEPTH];
++	size_t rela_stack_top = 0;
++	reloc_rela_handler handler;
++	void *location;
++	Elf_Addr v;
++	Elf_Sym *sym;
++	Elf_Rel *rel = (void *) sechdrs[relsec].sh_addr;
++
++	pr_debug("%s: Applying relocate section %u to %u\n", __func__, relsec,
++	       sechdrs[relsec].sh_info);
++
++	rela_stack_top = 0;
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
++		/* This is where to make the change */
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr + rel[i].r_offset;
++		/* This is the symbol it is referring to */
++		sym = (Elf_Sym *)sechdrs[symindex].sh_addr + ELF_R_SYM(rel[i].r_info);
++		if (IS_ERR_VALUE(sym->st_value)) {
++			/* Ignore unresolved weak symbol */
++			if (ELF_ST_BIND(sym->st_info) == STB_WEAK)
++				continue;
++			pr_warn("%s: Unknown symbol %s\n", mod->name, strtab + sym->st_name);
++			return -ENOENT;
++		}
++
++		type = ELF_R_TYPE(rel[i].r_info);
++
++		if (type < ARRAY_SIZE(reloc_rela_handlers))
++			handler = reloc_rela_handlers[type];
++		else
++			handler = NULL;
++
++		if (!handler) {
++			pr_err("%s: Unknown relocation type %u\n", mod->name, type);
++			return -EINVAL;
++		}
++
++		v = sym->st_value;
++		err = handler(mod, location, v, rela_stack, &rela_stack_top);
++		if (err)
++			return err;
++	}
++
++	return 0;
++}
++
++int apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
++		       unsigned int symindex, unsigned int relsec,
++		       struct module *mod)
++{
++	int i, err;
++	unsigned int type;
++	s64 rela_stack[RELA_STACK_DEPTH];
++	size_t rela_stack_top = 0;
++	reloc_rela_handler handler;
++	void *location;
++	Elf_Addr v;
++	Elf_Sym *sym;
++	Elf_Rela *rel = (void *) sechdrs[relsec].sh_addr;
++
++	pr_debug("%s: Applying relocate section %u to %u\n", __func__, relsec,
++	       sechdrs[relsec].sh_info);
++
++	rela_stack_top = 0;
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
++		/* This is where to make the change */
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr + rel[i].r_offset;
++		/* This is the symbol it is referring to */
++		sym = (Elf_Sym *)sechdrs[symindex].sh_addr + ELF_R_SYM(rel[i].r_info);
++		if (IS_ERR_VALUE(sym->st_value)) {
++			/* Ignore unresolved weak symbol */
++			if (ELF_ST_BIND(sym->st_info) == STB_WEAK)
++				continue;
++			pr_warn("%s: Unknown symbol %s\n", mod->name, strtab + sym->st_name);
++			return -ENOENT;
++		}
++
++		type = ELF_R_TYPE(rel[i].r_info);
++
++		if (type < ARRAY_SIZE(reloc_rela_handlers))
++			handler = reloc_rela_handlers[type];
++		else
++			handler = NULL;
++
++		if (!handler) {
++			pr_err("%s: Unknown relocation type %u\n", mod->name, type);
++			return -EINVAL;
++		}
++
++		pr_debug("type %d st_value %llx r_addend %llx loc %llx\n",
++		       (int)ELF64_R_TYPE(rel[i].r_info),
++		       sym->st_value, rel[i].r_addend, (u64)location);
++
++		v = sym->st_value + rel[i].r_addend;
++		err = handler(mod, location, v, rela_stack, &rela_stack_top);
++		if (err)
++			return err;
++	}
++
++	return 0;
++}
++
++void *module_alloc(unsigned long size)
++{
++	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
++			GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE, __builtin_return_address(0));
 +}
 -- 
 2.27.0
