@@ -2,38 +2,38 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0116CC433FE
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Mar 2022 09:42:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C33FAC433EF
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Mar 2022 09:47:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1345956AbiCUJoP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 21 Mar 2022 05:44:15 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51920 "EHLO
+        id S235734AbiCUJsu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 21 Mar 2022 05:48:50 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39044 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1345969AbiCUJoN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Mar 2022 05:44:13 -0400
-Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.17.13])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D35001350AC;
-        Mon, 21 Mar 2022 02:42:47 -0700 (PDT)
-Received: from mail-wr1-f41.google.com ([209.85.221.41]) by
- mrelayeu.kundenserver.de (mreue106 [213.165.67.113]) with ESMTPSA (Nemesis)
- id 1MsIbU-1oLRVM0yOA-00tkvb; Mon, 21 Mar 2022 10:42:46 +0100
-Received: by mail-wr1-f41.google.com with SMTP id r10so19861803wrp.3;
-        Mon, 21 Mar 2022 02:42:46 -0700 (PDT)
-X-Gm-Message-State: AOAM533aeaByClywtDYNhhd7ufOyjhZJouBXHTd6e57pFgsiLd9KkBG8
-        vKr0hH1uAs4jc459oVE0NP4JszIqRKZaMwttsdI=
-X-Google-Smtp-Source: ABdhPJwkq1FLAD225Eea2kcRUR2sWY4ab1/G2z0OQte1KuaMBsakyF/QdgKdIrAo10lFEv61K8gbZU+EWwJDOvZX33c=
+        with ESMTP id S1346025AbiCUJsl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Mar 2022 05:48:41 -0400
+Received: from mout.kundenserver.de (mout.kundenserver.de [217.72.192.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 168AD1350A4;
+        Mon, 21 Mar 2022 02:47:14 -0700 (PDT)
+Received: from mail-wr1-f48.google.com ([209.85.221.48]) by
+ mrelayeu.kundenserver.de (mreue107 [213.165.67.113]) with ESMTPSA (Nemesis)
+ id 1MOzjW-1niHLI2G8y-00PQYd; Mon, 21 Mar 2022 10:47:12 +0100
+Received: by mail-wr1-f48.google.com with SMTP id h4so1886414wrc.13;
+        Mon, 21 Mar 2022 02:47:12 -0700 (PDT)
+X-Gm-Message-State: AOAM532fABBkxkanJAfZPCNauoHejVllUnZlaKMU87qgQmjA3xaeECVh
+        PqqRJBS6PxAlByq8h+x1icqAue1KP/fwoNz2JZc=
+X-Google-Smtp-Source: ABdhPJyOugVZs0WuLZGA5S5fvh4E/SZOrX2XaObUjw113bg3VATG3qE5f/uf70NlJtAeFLbVSJkTwKN5RI+nUV2zcU0=
 X-Received: by 2002:a5d:6d0f:0:b0:203:9157:1c48 with SMTP id
- e15-20020a5d6d0f000000b0020391571c48mr17324397wrq.192.1647855765838; Mon, 21
- Mar 2022 02:42:45 -0700 (PDT)
+ e15-20020a5d6d0f000000b0020391571c48mr17167113wrq.192.1647852867006; Mon, 21
+ Mar 2022 01:54:27 -0700 (PDT)
 MIME-Version: 1.0
 References: <20220319142759.1026237-1-chenhuacai@loongson.cn>
- <20220319143130.1026432-1-chenhuacai@loongson.cn> <20220319143130.1026432-7-chenhuacai@loongson.cn>
-In-Reply-To: <20220319143130.1026432-7-chenhuacai@loongson.cn>
+ <20220319143817.1026708-1-chenhuacai@loongson.cn> <20220319143817.1026708-6-chenhuacai@loongson.cn>
+In-Reply-To: <20220319143817.1026708-6-chenhuacai@loongson.cn>
 From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Mon, 21 Mar 2022 10:42:29 +0100
-X-Gmail-Original-Message-ID: <CAK8P3a0wVKWFASv6cVDOZmX=1h7EeAVyrxLFXmoH5REVaAoNhQ@mail.gmail.com>
-Message-ID: <CAK8P3a0wVKWFASv6cVDOZmX=1h7EeAVyrxLFXmoH5REVaAoNhQ@mail.gmail.com>
-Subject: Re: [PATCH V8 07/22] LoongArch: Add atomic/locking headers
+Date:   Mon, 21 Mar 2022 09:54:11 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a2kroHVN3fTabuFVMz08SXytz-SC8X11BxxszsUCksJ4g@mail.gmail.com>
+Message-ID: <CAK8P3a2kroHVN3fTabuFVMz08SXytz-SC8X11BxxszsUCksJ4g@mail.gmail.com>
+Subject: Re: [PATCH V8 13/22] LoongArch: Add system call support
 To:     Huacai Chen <chenhuacai@kernel.org>
 Cc:     Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -49,81 +49,96 @@ Cc:     Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
         Yanteng Si <siyanteng@loongson.cn>,
         Huacai Chen <chenhuacai@gmail.com>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Guo Ren <guoren@kernel.org>,
-        Palmer Dabbelt <palmer@dabbelt.com>
+        Huacai Chen <chenhuacai@loongson.cn>
 Content-Type: text/plain; charset="UTF-8"
-X-Provags-ID: V03:K1:cGMrCqph8HJu7ee//vUaC4KO121C4Qvdi45F+lo3pu6si7Hiuyy
- IewIcYpkHv90N1g6JHpCbOhSLTaXlSvMFm4PNPJbTj/RAH9EW8GjyskOkkfUghAjIxBBf/r
- 9Us4usFkwgyV1KPFGc1oH0fp9wFN6c1oTmqBQSKuj5WFEgoWt7grgL7PUamQcWzitV2dhHy
- 7SVcGMJEn+xLXE+8+kbTQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:xHfyISuKSXo=:EN1aIqlABHA0g4N2THTWMB
- DbfFSbg2Xv87HVmTfuuhIYVdlTqRtdEPlo7Tm4/u4sKRU9XO98VJSfl1v3pU523sd02mCDkrg
- +OOjRJc7ivVPPOpnrj5ruf7874WO29ykFVYA4BtmPR0Na55pRCMhPflZcWQqgw+UAxltsbVQV
- /pxGjt3m9ye0zkNTZCFLFyrS61z11lwoFHjhM6XCRFIi1xjc/Uj7rSBiTExelQaQncUrWJ1dO
- JyPwgycmvoWU0mJGK8zjd+PuHDnUDlRuaCnoPBnkcuyCDv/NO353utZG6jLEC6J24CvUaJitE
- oTiAa68ZhIkbbgAyWf6Cm9cXYH0y5zz96QnOpOjs6YV1o9DKgY5FUB6BDh4U/4h9inK3rF6ZZ
- HBU26KyTNJMRg2Z6skSWTSbxMZ5Me7KYSjFDTp7Gq6SaF1HZYOScBlJ9h0Sc//Db8yOYPkMhm
- YOf32aI1XQFcs9rtVqQJHJe589Ydm6TaB60TdUbe7lTx91p129ajDOtbf+IZdUZRdrRml5abt
- zV7pPL5QihdzC06TKoC+mL+EQHoY7n399kn7Km2KDhIlb/aa0VxQVQlYLPpakD6N9doQcDJtl
- ojUlBTdHxPX7C0m3rVOr4DBYo5qYUVD3QHn05fmZEXKkcudtCaq4Onjrk0BUCv1R7StmikA56
- /GVkte1bhQLwUaPHNuk6Q1A/J7qOrf6FHw6IZV0F9JqZQreZunM1cVxs1PX/oE8bAjhFPBAUM
- jbqCkwmrKmiAVDa/VKyXyUbfurciEK86cWQyd07WPkvBQjkVU/l4X+DbBOU4XZO18Hig7+WwY
- xC92hsSDKIdq5TRfSP/iYx02ewQ4Ix/ORC9JCCwJ3oidPY0+4A=
+X-Provags-ID: V03:K1:rCdFpqmPfHoRNRNaxUfc7r0fQcv9wGvASDzi0v1Tk9Btj28/S55
+ G4RecOA35Q8EeyTP6FMkSBtB3yoxWpgQ4SyAzfpm9nOCoBWBdgYWYEy0+31VkMMx61HN1s/
+ yYP+Mqrvd/SiAz4zPg5weyXLGuLlyxT4vjPQ0mvvi+b0z3DPKtYtgCj2xj68uvVVhztSW4x
+ FCNi15ETYUXu6smuqmf8g==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:Sxg/epg92uQ=:ue5eF+gDBmWW08+qFfFcXf
+ h83T+kssmzjynZ90jvgxYSD0o7DLi8Z2MXjo7fWY1RocC1iefr29urjy0iZAGIcqlez2win+0
+ jgSswiKGZPDWEexrAlLxrrtpHb7Je4UOvs8VkqflJB7OT32gtPby6b+UxVFkJByH/xxk+Em1H
+ IXoLzJurcMvjOIU6QREsMwJy0yIBSObf6GfK/vBNsvi+I4MQNlCZYK1DOvDO61XlzWGD6BgjY
+ I4/KcjFGTqlNphgQ4ZFUEPNJZzTtS+CHJ0slSx5xZxn3nX1feVXNz3zDWRZO4q+NvHpoE5qKM
+ PLC6sGYt+egiQ+vU5OXUCgWD6I8aRUmVlpwDHMtJ7HzwoxhhERdwwmUYCoS8U0xUvrC/vXPj+
+ nnzayW9BEqsuItYZNp38NqLSMJIeAnQSdi0x7doN0/nH0ZsPzomUwL9fFw/khXCcp/GSkCq9+
+ 65XURyCCN+1ZtEsA/6Mh5yPZCnZMY/OeuPWBqUhaNrETThdBBM/bJvMxA8+snJXq54LhOve0b
+ rRsLZc2BOt9fb8+3RcFqfWtI9q1VUHUz4dnFC4Zxj0p18yV3AHgdHtocoJndSdvjNu3a4ulz1
+ AlelrsUTFDTgVlPdlDO4Q1yXeKkNeIyUP/X33z4X8JmJfm9IAiTC6BUXsKEGm/yUgbJaowyFF
+ MF6r+gvDxeSfg5OpiPQ9a88OGEh6FDUNPmh1/162ceKoaO8qAQgSU6GelmLD8n7CwHo/8LlDJ
+ QlhXlwf1hkhlEcEIv+6JESi/YMRiGl6eZDFhRXhduGxJ8cImQGibR/BvVMHupUbf6nDqmzulx
+ EHvViHDD/BI1PA9ymfsczDFwPaz89pkDxU+YRYHJox8FWlTeXk=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sat, Mar 19, 2022 at 3:31 PM Huacai Chen <chenhuacai@kernel.org> wrote:
-> LoongArch has no native sub-word xchg/cmpxchg instructions now, but
-> LoongArch-based CPUs support NUMA (e.g., quad-core Loongson-3A5000
-> supports as many as 16 nodes, 64 cores in total). So, we emulate sub-
-> word xchg/cmpxchg in software and use qspinlock/qrwlock rather than
-> ticket locks.
-...
-> +extern unsigned long __xchg_small(volatile void *ptr, unsigned long x,
-> +                                 unsigned int size);
+On Sat, Mar 19, 2022 at 3:38 PM Huacai Chen <chenhuacai@kernel.org> wrote:
+>
+> This patch adds system call support and related uaccess.h for LoongArch.
+>
+> Q: Why keep __ARCH_WANT_NEW_STAT definition while there is statx:
+> A: Until the latest glibc release (2.34), statx is only used for 32-bit
+>    platforms, or 64-bit platforms with 32-bit timestamp. I.e., Most 64-
+>    bit platforms still use newstat now.
+>
+> Q: Why keep _ARCH_WANT_SYS_CLONE definition while there is clone3:
+> A: The latest glibc release (2.34) has some basic support for clone3 but
+>    it isn't complete. E.g., pthread_create() and spawni() have converted
+>    to use clone3 but fork() will still use clone. Moreover, some seccomp
+>    related applications can still not work perfectly with clone3.
+
+Please leave those out of the mainline kernel support though: Any users
+of existing glibc binaries can keep using patched kernels for the moment,
+and then later drop those pages when the proper glibc support gets
+merged.
+
+> +#define __ua_size(size)                                                        \
+> +       ((__builtin_constant_p(size) && (signed long) (size) > 0) ? 0 : (size))
 > +
-> +static inline unsigned long __xchg(volatile void *ptr, unsigned long x,
-> +                                  int size)
+> +/*
+> + * access_ok: - Checks if a user space pointer is valid
+> + * @addr: User space pointer to start of block to check
+> + * @size: Size of block to check
+> + *
+> + * Context: User context only. This function may sleep if pagefaults are
+> + *          enabled.
+> + *
+> + * Checks if a pointer to a block of memory in user space is valid.
+> + *
+> + * Returns true (nonzero) if the memory block may be valid, false (zero)
+> + * if it is definitely invalid.
+> + *
+> + * Note that, depending on architecture, this function probably just
+> + * checks that the pointer is in the user space range - after calling
+> + * this function, memory access functions may still return -EFAULT.
+> + */
+> +static inline int __access_ok(const void __user *p, unsigned long size)
 > +{
-> +       switch (size) {
-> +       case 1:
-> +       case 2:
-> +               return __xchg_small(ptr, x, size);
+> +       unsigned long addr = (unsigned long)p;
+> +       unsigned long end = addr + size - !!size;
 > +
-
-I think it's better to not define the "small" versions at all, since they are
-inefficient and probably not safe to use for the few things that try to call
-them, such as the qspinlock implementation.
-
-I have an experimental patch set that removes these from the kernel
-altogether and makes xchg()/cmpxchg() only work on 32-bit or
-64-bit values.
-
-> diff --git a/arch/loongarch/include/asm/spinlock.h b/arch/loongarch/include/asm/spinlock.h
-> new file mode 100644
-> index 000000000000..7cb3476999be
-> --- /dev/null
-> +++ b/arch/loongarch/include/asm/spinlock.h
+> +       return (__UA_LIMIT & (addr | end | __ua_size(size))) == 0;
+> +}
 > +
-> +#include <asm/processor.h>
-> +#include <asm/qspinlock.h>
-> +#include <asm/qrwlock.h>
-> +
+> +#define access_ok(addr, size)                                  \
+> +       likely(__access_ok((addr), (size)))
 
-There is a patch series from Peter Zijlstra, Palmer Dabbelt and Guo Ren
-that is currently under review for risc-v and csky, to add a generic ticket lock
-implementation that does not rely on sub-word atomics [1]. I think we
-also want to convert mips, xtensa, openrisc, and sparc64 to use that,
-since they have the same issue with the lack of 16-bit atomics.
+I rewrote this bit a series that is currently queued for 5.18, so you
+will have to adapt it to the new version, by just removing your
+custom definitions.
 
-Please coordinate the inclusion of the patches with them and use that
-spinlock implementation for the initial merge, to avoid further discussion
-on the topic. If at a later point you are able to come up with a qspinlock
-implementation that has convincing forward-progress guarantees and
-can be shown to be better, we can revisit this.
+> +#define __get_user(x, ptr) \
+> +({                                                                     \
+> +       int __gu_err = 0;                                               \
+> +                                                                       \
+> +       __chk_user_ptr(ptr);                                            \
+> +       __get_user_common((x), sizeof(*(ptr)), ptr);                    \
+> +       __gu_err;                                                       \
+> +})
 
-      Arnd
+It would be good to also provide a
+__kernel_kernel_nofault()/__put_kernel_nofault()
+implementation, as the default based on __get_user()/__put_user is not
+ideal.
 
-[1] https://lore.kernel.org/lkml/20220319035457.2214979-1-guoren@kernel.org/
+        Arnd
