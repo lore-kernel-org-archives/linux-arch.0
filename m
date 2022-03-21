@@ -2,39 +2,37 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7E9AFC433EF
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Mar 2022 10:49:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7DAE1C433FE
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Mar 2022 11:15:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S244521AbiCUKvQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 21 Mar 2022 06:51:16 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33930 "EHLO
+        id S1345004AbiCULQn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 21 Mar 2022 07:16:43 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37074 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1346498AbiCUKvO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Mar 2022 06:51:14 -0400
-Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.126.135])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AA69E33E05;
-        Mon, 21 Mar 2022 03:49:45 -0700 (PDT)
-Received: from mail-lj1-f174.google.com ([209.85.208.174]) by
- mrelayeu.kundenserver.de (mreue010 [213.165.67.97]) with ESMTPSA (Nemesis) id
- 1N63i4-1o7j4y0AO0-016OGt; Mon, 21 Mar 2022 11:49:44 +0100
-Received: by mail-lj1-f174.google.com with SMTP id 17so4269401ljw.8;
-        Mon, 21 Mar 2022 03:49:43 -0700 (PDT)
-X-Gm-Message-State: AOAM533fEfKyRDrZl6t5ZGj0/hTxVU3+Q71+iJK8Mpc4XkNfkp1gAo6H
-        p2hKIlCXOlWKUyooNf879P11KDvamRqofD2bEgk=
-X-Google-Smtp-Source: ABdhPJzcZ0Yxl2PaNSM+qTLSuTVghKJG3OLAZNn+JUNcoqLnve1kS8gk8xn9EpeRekkC77XHfghVaNA2oBBlHj9vNLU=
-X-Received: by 2002:a05:6000:178c:b0:204:648:b4c4 with SMTP id
- e12-20020a056000178c00b002040648b4c4mr6283444wrg.219.1647856201405; Mon, 21
- Mar 2022 02:50:01 -0700 (PDT)
+        with ESMTP id S233736AbiCULQm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Mar 2022 07:16:42 -0400
+Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.17.24])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BF9A554F99;
+        Mon, 21 Mar 2022 04:15:14 -0700 (PDT)
+Received: from mail-wm1-f51.google.com ([209.85.128.51]) by
+ mrelayeu.kundenserver.de (mreue109 [213.165.67.113]) with ESMTPSA (Nemesis)
+ id 1MhDEq-1o1iwU4Btq-00eIp5; Mon, 21 Mar 2022 12:15:13 +0100
+Received: by mail-wm1-f51.google.com with SMTP id bi13-20020a05600c3d8d00b0038c2c33d8f3so7460077wmb.4;
+        Mon, 21 Mar 2022 04:15:12 -0700 (PDT)
+X-Gm-Message-State: AOAM531nrNOtTOrV1uTHOBAJuVJiM0llPWnSOSRP2RHda1BJHRBEqeoy
+        kcKHu2aW3KVq8lxPnojYv4A8PCYDQekmi/j6LTU=
+X-Google-Smtp-Source: ABdhPJzKxQl6VSttlmzvEi1hOv2leyycaxxTRshXcWMv4AXgfyXlahFpsNNQtY+AZ5wBEfDoPO06uRJRVwd5uyfNNS0=
+X-Received: by 2002:a05:600c:4b83:b0:38c:49b5:5bfc with SMTP id
+ e3-20020a05600c4b8300b0038c49b55bfcmr24337091wmp.33.1647857360314; Mon, 21
+ Mar 2022 03:09:20 -0700 (PDT)
 MIME-Version: 1.0
 References: <20220319142759.1026237-1-chenhuacai@loongson.cn>
- <20220319143817.1026708-1-chenhuacai@loongson.cn> <20220319143817.1026708-3-chenhuacai@loongson.cn>
- <CAK8P3a2gKGuMTLawFSf1hd3LY7rCVUquTPVHMcxBTok6+y-Rag@mail.gmail.com> <CAAhV-H6eDSU20gjLgEKM318i1ksk23thv9cLJKmAo_cBzjtEkw@mail.gmail.com>
-In-Reply-To: <CAAhV-H6eDSU20gjLgEKM318i1ksk23thv9cLJKmAo_cBzjtEkw@mail.gmail.com>
+In-Reply-To: <20220319142759.1026237-1-chenhuacai@loongson.cn>
 From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Mon, 21 Mar 2022 10:49:45 +0100
-X-Gmail-Original-Message-ID: <CAK8P3a0PXeEAvZeq0djqCFqPSkFe5z-bg81kcs69ZTcBSL=24Q@mail.gmail.com>
-Message-ID: <CAK8P3a0PXeEAvZeq0djqCFqPSkFe5z-bg81kcs69ZTcBSL=24Q@mail.gmail.com>
-Subject: Re: [PATCH V8 10/22] LoongArch: Add exception/interrupt handling
+Date:   Mon, 21 Mar 2022 11:09:04 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a12dY57+ZPEREAUrsNf45S0_4-yYHen6p0-PjJEivjczg@mail.gmail.com>
+Message-ID: <CAK8P3a12dY57+ZPEREAUrsNf45S0_4-yYHen6p0-PjJEivjczg@mail.gmail.com>
+Subject: Re: [PATCH V8 00/22] arch: Add basic LoongArch support
 To:     Huacai Chen <chenhuacai@kernel.org>
 Cc:     Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -48,46 +46,53 @@ Cc:     Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
         Xuefeng Li <lixuefeng@loongson.cn>,
         Yanteng Si <siyanteng@loongson.cn>,
+        Huacai Chen <chenhuacai@gmail.com>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
         Huacai Chen <chenhuacai@loongson.cn>
 Content-Type: text/plain; charset="UTF-8"
-X-Provags-ID: V03:K1:YoaeS4jNV/JubHRnF4GIrDNIMQNQmUO1gQu8S3NIm8f/RE/rKV6
- Dj4TegO2P6SEPv6EMhaH+ipnUUQGfji0yPu/I7NGFMqGnrRfPztjMoPZpE9ICiadMbEHlur
- /g0U2q7gJhR+Pr3+Lo9Svw+6VKExaLPmKG3AJYlyxnXi9Bo7YSogW3CpqEtptzO2ovBm2bm
- L+3OZIs0KtSfxHojkkBNQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:Ml/XYeb+7Tc=:Yf1FWxdgbKn0Ji8IgXKODS
- pKYHfR9ttwBrINb1uxK5fiD2QaTJlo3WBl96fUdM1zD7pvc84ylCS/8lxdCSlA4fAETjxATwc
- 8pujZ9+trxJMmJsh7hBE8SshtzczxZrx+WGseKLqf48BjRkUNZHYZMrziv6uvNWnsTuhjAXbZ
- WXQnReI9jVrfmyX6T224qlp3k8sKZo17fupBCvVgT8SGE9NsOQZCcGUrA6Y0M3OU5AxBvfZJ8
- GJ18HAXZ3/rCXT0YtgSkLGnX1b5Jf/VIK+lUKNlNmf/RILSSDIOoMlUplaXsKYwc0+rkBxSYL
- t4pyaF1+W/KcOSL3OKv1HI2Z8DTwvXZMNBSevGiThWwXHISCGoTdMY8RWCwb+HV/jGCITVJ4C
- 6UBbtBdWi1sM21s5yCafx3QCGBUb46kyR4Nh7jI0wpvXs2QBgocQE+jO1ENtqBYOFvibz6xzF
- LdEdt6ZNG+I2fWM4pyNMAYFs4neDRneG+XxUw6M1Aj3oEQI7lBY9baA4SkNX3DrnCOzMb1I+w
- ySAjVYdYg/7hCOjQ/L68gh21NAhB52+Ky99ZgsRSWVTZlnQdPeulCAkizwOT8a/9v84535AsZ
- q21obqH30JD1vV6WtvuRNyn+Yhb++ON9jFELtxiJLvhNlu/0oAaBhCYNcaS6ElldjMHQtbDeS
- 1psRTY5VUYYQZzpNuL42SuIosIriV71s3e1h+LH52XQl6EVwxQ8YvOV6xatXmjhDGTvreIr1O
- UGWuqxFSR0kipQebTTFk7tQVuHAczVS/W1nYNN89+YUuWHWRYH/Tk8/IFCDI2dbTYF3LbtBH7
- K+lN/4iMG6kX+7mBARcv85Ru221KSOLddg/7tJCQj2K2FV8DDk=
+X-Provags-ID: V03:K1:ZnGkfk570X1mQgyfANU13nhtx8Unvo25TN3oV2Riz+Tha+mptO5
+ LUYkQe3vwkCqXCPjGIjuR3VgXdTqpzTiYgDl6npzESHpjpMEhoKv+I80lWpGVDjWpkjjrss
+ hF3Fr68I/fRF+wzC16d2CX08JR7qLFF39jGBieyiFIHDmIBhx3hQOUw/y1aA4z87NQzin/t
+ EEavyeCv3+D9aNMwhTA8w==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:gTy4IGEUdE0=:9wy/OcskBTsPHIi+puE+dH
+ 08jh+kRc/1DFhA9C9Z0/G2JBNxpJNsb3hBSaGRyJ+9JhoBCfz8R56X55PAg7E104WpkVe1LTX
+ 8oKRwaYaD4qxgOtTWZNyL4JSxGB5a3rj7Bz5ndCUhxv/44SYOzsfU8LGiPWF6F+uBobPKoKrQ
+ DlV6s26wKQcphKt3c0V61+X3ZolWwnyqK8wTu6qszfhMjRyQ4dPa9ihsFwj9AK2VEy4lRxzE6
+ IfNSFPgNz64o4q089G5P8f9+9is2Cmb0/iP/MkqfGCewWMd+WdPR87a3qBwTeDoxzC1G6y9XB
+ oeEyTWP7KrRZayvw/Hg0SLjRnDpt5x24L/dqoqWbTJf8jAIsmEwUazMtdMw3/1z1wLnuvThEw
+ 4ZU+JN6SV3kV1tgcj49y/fCdQqI+MJ7ehV7mrjIEQ3h8W3S3kAWEzNbgUW4x7LmyjYfZH6T1H
+ xmEdDSMrYV+807AugkiCbRlYa/N4acUIxlFf+uUAcLL8cZUyg2ndFTJxFFcdDfx3XXOxc9UGc
+ 1C759GZ8UVEB0L4bzV5OFMw5d8VTWIHhx+aYG2LwKusfWVTwUz1etR6SbqZKu0wIjgavL5uE/
+ IiaGfRuYWZzLiB8PJlVggKIsh7KB0+e9iW5xuss4CvkFMMO4ijuSRVFwNNe8RCr4weGzBYq65
+ sjX2vKjFJxlxGeqYyphYf4xigEtsVZM1opX3yBMu/Ptzn2oo4g2vM+MMd0byMmvwGzACe1h01
+ lW6SqAO/ge5nib1z1BpwlEXwZDBE1wDGZm0qxSNmj3QUJ+Pq0caAdd6LLhRbeHLv+jRXx8L/A
+ 1XPsupWL4sg7tIeAfiPSA/Xtc/qoJT2tDwJEnudA1lBFKZ9kO4=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Mar 21, 2022 at 9:46 AM Huacai Chen <chenhuacai@kernel.org> wrote:
-> On Mon, Mar 21, 2022 at 4:38 PM Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Sat, Mar 19, 2022 at 3:38 PM Huacai Chen <chenhuacai@kernel.org> wrote:
-> >
-> > > +unsigned long eentry;
-> > > +EXPORT_SYMBOL_GPL(eentry);
-> > > +unsigned long tlbrentry;
-> > > +EXPORT_SYMBOL_GPL(tlbrentry);
-> >
-> > Why are these exported to modules? Maybe add a comment here, or remove
-> > the export if it's not actually needed.
+On Sat, Mar 19, 2022 at 3:27 PM Huacai Chen <chenhuacai@kernel.org> wrote:
 >
-> They are used by the kvm module in our internal repo.
+> LoongArch is a new RISC ISA, which is a bit like MIPS or RISC-V.
+> LoongArch includes a reduced 32-bit version (LA32R), a standard 32-bit
+> version (LA32S) and a 64-bit version (LA64). LoongArch use ACPI as its
+> boot protocol LoongArch-specific interrupt controllers (similar to APIC)
+> are already added in the next revision of ACPI Specification (current
+> revision is 6.4).
+>
+> This patchset is adding basic LoongArch support in mainline kernel, we
+> can see a complete snapshot here:
+> https://github.com/loongson/linux/tree/loongarch-next
 
-Ok, that is fine then. For the moment, please add a comment about it here,
-or remove the exports in the initial merge and add them back when you
-submit the kvm code.
+This looks fine to me for the most part, and I only had comments on
+a couple of things that we we had discussed before. I think the syscall
+interface and the spinlock implementation bits can be addressed now
+by leaving the controversial bits out of the submission, but the boot
+interface still remains to be resolved.
+
+As discussed before, I think the best way to do this is to not have a
+documented custom interface but instead use the UEFI wrapper
+code for both the (current) ACPI based boot and potential DT based
+embedded systems that may get added later.
 
        Arnd
