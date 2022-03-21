@@ -2,53 +2,53 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B67B6C433FE
-	for <linux-arch@archiver.kernel.org>; Mon, 21 Mar 2022 08:53:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A81D1C433FE
+	for <linux-arch@archiver.kernel.org>; Mon, 21 Mar 2022 09:41:25 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1343500AbiCUIy4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 21 Mar 2022 04:54:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36774 "EHLO
+        id S1345888AbiCUJmt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 21 Mar 2022 05:42:49 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46892 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S240765AbiCUIyz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Mar 2022 04:54:55 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DFB3A3CA67;
-        Mon, 21 Mar 2022 01:53:30 -0700 (PDT)
+        with ESMTP id S244989AbiCUJms (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Mar 2022 05:42:48 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 078C45B3FC;
+        Mon, 21 Mar 2022 02:41:23 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 7C1F361166;
-        Mon, 21 Mar 2022 08:53:30 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D4192C340F2;
-        Mon, 21 Mar 2022 08:53:29 +0000 (UTC)
+        by ams.source.kernel.org (Postfix) with ESMTPS id A6DA9B8117E;
+        Mon, 21 Mar 2022 09:41:21 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3A6FCC36AE2;
+        Mon, 21 Mar 2022 09:41:20 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1647852809;
-        bh=U2Ovm8ntcG6XtGmB1msmTfFNN3ysz5JeGnJ11m8KPWA=;
+        s=k20201202; t=1647855680;
+        bh=PA5/9WnwkF/956PEUqe0HUC0jBHuB/WEpZFZAjgcOPo=;
         h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=t1ZPR+JjQZJDXK527T7aciTdnEJplNDW7uaduQA4+TeNAIjcPTXQ1y2tFjTdHGoAH
-         MDp+U1RIWvrktWZlM2hGpSAStqCZNMrKdH391wZ80nVLMrjuQbCbkR5RgnMzN+L+Y5
-         VznBqAEnO1aA51civ+Sf6blc33EiDuEQPffKqIooT+kSXXOyekogDTDtjOPn0aClHs
-         NF8L4BX2t6JZwq2dr5FMBHcMZjbUa1piR6+5CAYL/Ri2FsNHP/EsIyZZEI5IGcKg94
-         EbIm3Y50Xu9eSxKcg6XW6u02MhEIOS+5RIrpTqq37IiRzEAyC2BhixBtYpKVEaQrHu
-         jDhoI4o3WYv8g==
-Received: by mail-ua1-f51.google.com with SMTP id t40so5179941uad.2;
-        Mon, 21 Mar 2022 01:53:29 -0700 (PDT)
-X-Gm-Message-State: AOAM533QGJShKMJJEQCbWnc9gMgU7QAwo2Z6Fd77Th9QZe68+687xYEu
-        0PJ1b4X5FOozcaZ6jIbXaIhwxhiZ2FlmL8KlH2w=
-X-Google-Smtp-Source: ABdhPJwvWzWeFCt9MQpdxmPAWk8GoAGAd6IR8abJAWJLuqH0wSI5SrmxBLkNkoXsJmZZYCaqq9Hcc7WStQXsiKGWNQo=
-X-Received: by 2002:ab0:6544:0:b0:352:ec5d:b570 with SMTP id
- x4-20020ab06544000000b00352ec5db570mr6089068uap.96.1647852808843; Mon, 21 Mar
- 2022 01:53:28 -0700 (PDT)
+        b=Ig0yIp6nnvDCXMfOIfWkuqoa298Gqho8BLob4gl9UraOtx/IOf6QLLql5Fa2rPT7P
+         rexB5w4Dm+yYA/YmqTLEVsK9Ik+VPEB6KOL5Y7dv7Zady4hgf83Crfc2sW6WpHWcwL
+         n6sqTIauXgZSHNXybUCgM9WZn8kR8a9Nf6wNaaRyZu4nEYj/Cs+Tm+Irz/ObnzcPd+
+         NAqqUNouzsJ8R58YHwpr+XkU25t8RFmjZVdFAL5TEg1PkasnmX9t53XhfMnhhsuFSQ
+         7DAQcyoHIid5E+j93KzTuJHWyVZH1KSHticgdTZXtuvNf46KeUXti1P6XHpc1brATX
+         RPBaJTsvyPWYA==
+Received: by mail-ua1-f45.google.com with SMTP id 34so5535051uao.13;
+        Mon, 21 Mar 2022 02:41:20 -0700 (PDT)
+X-Gm-Message-State: AOAM531VSa1HlXnBgf5pSacTFSrtnv8NKyxS63PlKETJYBzY9XqrJhpE
+        JN8RWZKKRY9S1Fu/wcxQK6ynDjG41DFwkcvTJZg=
+X-Google-Smtp-Source: ABdhPJz2Dhu98c64JwlgRM4uWbyOOQxZ9DSBqgniZPOgIEr9/bx2eRULm+DkFPicObxWP4o8HfxCwc5WYhqfrMcLIGY=
+X-Received: by 2002:ab0:30b8:0:b0:356:c867:9283 with SMTP id
+ b24-20020ab030b8000000b00356c8679283mr2197618uam.118.1647855679197; Mon, 21
+ Mar 2022 02:41:19 -0700 (PDT)
 MIME-Version: 1.0
 References: <20220319142759.1026237-1-chenhuacai@loongson.cn>
- <20220319143130.1026432-1-chenhuacai@loongson.cn> <20220319143130.1026432-5-chenhuacai@loongson.cn>
- <CAK8P3a3ycOKLvKunyatRETN0n3=D+=Y-EZF3aYH95G5WF8M7bg@mail.gmail.com>
-In-Reply-To: <CAK8P3a3ycOKLvKunyatRETN0n3=D+=Y-EZF3aYH95G5WF8M7bg@mail.gmail.com>
+ <20220319143817.1026708-1-chenhuacai@loongson.cn> <20220319143817.1026708-6-chenhuacai@loongson.cn>
+ <CAK8P3a2kroHVN3fTabuFVMz08SXytz-SC8X11BxxszsUCksJ4g@mail.gmail.com>
+In-Reply-To: <CAK8P3a2kroHVN3fTabuFVMz08SXytz-SC8X11BxxszsUCksJ4g@mail.gmail.com>
 From:   Huacai Chen <chenhuacai@kernel.org>
-Date:   Mon, 21 Mar 2022 16:53:20 +0800
-X-Gmail-Original-Message-ID: <CAAhV-H6jDDFNvaEp6P1abFtf7zcvzT1xXFnp8wYBbn9-i4t59A@mail.gmail.com>
-Message-ID: <CAAhV-H6jDDFNvaEp6P1abFtf7zcvzT1xXFnp8wYBbn9-i4t59A@mail.gmail.com>
-Subject: Re: [PATCH V8 05/22] LoongArch: Add build infrastructure
+Date:   Mon, 21 Mar 2022 17:41:11 +0800
+X-Gmail-Original-Message-ID: <CAAhV-H6zE7p6Tq8rg1Fq5cK5L38z-VHjxsZ+qm8+Cp5x=u_bUQ@mail.gmail.com>
+Message-ID: <CAAhV-H6zE7p6Tq8rg1Fq5cK5L38z-VHjxsZ+qm8+Cp5x=u_bUQ@mail.gmail.com>
+Subject: Re: [PATCH V8 13/22] LoongArch: Add system call support
 To:     Arnd Bergmann <arnd@arndb.de>
 Cc:     Andy Lutomirski <luto@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -71,20 +71,87 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 Hi, Arnd,
 
-On Mon, Mar 21, 2022 at 4:31 PM Arnd Bergmann <arnd@arndb.de> wrote:
+On Mon, Mar 21, 2022 at 5:01 PM Arnd Bergmann <arnd@arndb.de> wrote:
 >
-> On Sat, Mar 19, 2022 at 3:31 PM Huacai Chen <chenhuacai@kernel.org> wrote:
-> > This patch adds Kbuild, Makefile, Kconfig and link script for LoongArch
-> > build infrastructure.
+> On Sat, Mar 19, 2022 at 3:38 PM Huacai Chen <chenhuacai@kernel.org> wrote:
+> >
+> > This patch adds system call support and related uaccess.h for LoongArch.
+> >
+> > Q: Why keep __ARCH_WANT_NEW_STAT definition while there is statx:
+> > A: Until the latest glibc release (2.34), statx is only used for 32-bit
+> >    platforms, or 64-bit platforms with 32-bit timestamp. I.e., Most 64-
+> >    bit platforms still use newstat now.
+> >
+> > Q: Why keep _ARCH_WANT_SYS_CLONE definition while there is clone3:
+> > A: The latest glibc release (2.34) has some basic support for clone3 but
+> >    it isn't complete. E.g., pthread_create() and spawni() have converted
+> >    to use clone3 but fork() will still use clone. Moreover, some seccomp
+> >    related applications can still not work perfectly with clone3.
 >
-> Looks good, but I spotted one detail:
+> Please leave those out of the mainline kernel support though: Any users
+> of existing glibc binaries can keep using patched kernels for the moment,
+> and then later drop those pages when the proper glibc support gets
+> merged.
+The glibc commit d8ea0d0168b190bdf138a20358293c939509367f ("Add an
+internal wrapper for clone, clone2 and clone3") modified nearly
+everything in order to move to clone3(), except arch_fork() which used
+by fork(). And I cannot find any submitted patches to solve it. So I
+don't think this is just a forget, maybe there are other fundamental
+problems?
+
 >
-> > +       select HAVE_FUTEX_CMPXCHG if FUTEX
+> > +#define __ua_size(size)                                                        \
+> > +       ((__builtin_constant_p(size) && (signed long) (size) > 0) ? 0 : (size))
+> > +
+> > +/*
+> > + * access_ok: - Checks if a user space pointer is valid
+> > + * @addr: User space pointer to start of block to check
+> > + * @size: Size of block to check
+> > + *
+> > + * Context: User context only. This function may sleep if pagefaults are
+> > + *          enabled.
+> > + *
+> > + * Checks if a pointer to a block of memory in user space is valid.
+> > + *
+> > + * Returns true (nonzero) if the memory block may be valid, false (zero)
+> > + * if it is definitely invalid.
+> > + *
+> > + * Note that, depending on architecture, this function probably just
+> > + * checks that the pointer is in the user space range - after calling
+> > + * this function, memory access functions may still return -EFAULT.
+> > + */
+> > +static inline int __access_ok(const void __user *p, unsigned long size)
+> > +{
+> > +       unsigned long addr = (unsigned long)p;
+> > +       unsigned long end = addr + size - !!size;
+> > +
+> > +       return (__UA_LIMIT & (addr | end | __ua_size(size))) == 0;
+> > +}
+> > +
+> > +#define access_ok(addr, size)                                  \
+> > +       likely(__access_ok((addr), (size)))
 >
-> HAVE_FUTEX_CMPXCHG no longer exists, everyone supports it now,
-> so you should drop this line as well.
-Thanks, this will be removed.
+> I rewrote this bit a series that is currently queued for 5.18, so you
+> will have to adapt it to the new version, by just removing your
+> custom definitions.
+OK, this will be updated.
+
+>
+> > +#define __get_user(x, ptr) \
+> > +({                                                                     \
+> > +       int __gu_err = 0;                                               \
+> > +                                                                       \
+> > +       __chk_user_ptr(ptr);                                            \
+> > +       __get_user_common((x), sizeof(*(ptr)), ptr);                    \
+> > +       __gu_err;                                                       \
+> > +})
+>
+> It would be good to also provide a
+> __kernel_kernel_nofault()/__put_kernel_nofault()
+> implementation, as the default based on __get_user()/__put_user is not
+> ideal.
+They are provided in this file below.
 
 Huacai
 >
->        ARnd
+>         Arnd
