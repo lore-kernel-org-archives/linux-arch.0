@@ -2,165 +2,178 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EACF2C433F5
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Mar 2022 14:42:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B6E38C4332F
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Mar 2022 14:42:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238098AbiCVOng (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Mar 2022 10:43:36 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44338 "EHLO
+        id S238106AbiCVOnh convert rfc822-to-8bit (ORCPT
+        <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Mar 2022 10:43:37 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44324 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238254AbiCVOnP (ORCPT
+        with ESMTP id S238247AbiCVOnP (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Mar 2022 10:43:15 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6282C6AA52;
-        Tue, 22 Mar 2022 07:41:47 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 1369CB81D08;
-        Tue, 22 Mar 2022 14:41:46 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DC2B2C340EC;
-        Tue, 22 Mar 2022 14:41:39 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1647960104;
-        bh=0gzQGGxdHWRt9A+64eem+dLQzBOPjB9Pfn9kxqzAZaI=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=CpikaUWuQt56x1sx9EXwKtcq6scEeta+u7wRO4aGANqT0USCNDCqzgJnWqma8zQjw
-         DaeEWdV/uqRzKCRUqcq+/UScLNmBwObdYenLG0hwjuUu5ttah1dXGhFKt2hWfPNNBo
-         KDe6xISHwnDIwgW8bz8Y3ZPqJ9cM+Xw+ygmkd+1E1Rgnw086H1yWIfs3+0mSCqIjeI
-         o5/mcKdoW0rO8xKkD3IBVBFhNNRkNhWbDBsY6uynB6zKvLeUV/6992AZlzG5dRDHdh
-         9tABuHiGzLThbMFH45ixkzChZ3afonhVK7Bv/ZBhiixYpGsF0xR8Dq2/N64JpfqXgz
-         p6D/p4pQTjmSA==
-From:   guoren@kernel.org
-To:     guoren@kernel.org, palmer@dabbelt.com, arnd@arndb.de,
-        gregkh@linuxfoundation.org, hch@lst.de
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org, linux-csky@vger.kernel.org,
-        linux-s390@vger.kernel.org, sparclinux@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, linux-parisc@vger.kernel.org,
-        linux-mips@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        x86@kernel.org, heiko@sntech.de, Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH V9 14/20] riscv: compat: Add elf.h implementation
-Date:   Tue, 22 Mar 2022 22:39:57 +0800
-Message-Id: <20220322144003.2357128-15-guoren@kernel.org>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20220322144003.2357128-1-guoren@kernel.org>
-References: <20220322144003.2357128-1-guoren@kernel.org>
+Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.126.130])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6042233E09;
+        Tue, 22 Mar 2022 07:41:46 -0700 (PDT)
+Received: from mail-wm1-f50.google.com ([209.85.128.50]) by
+ mrelayeu.kundenserver.de (mreue011 [213.165.67.97]) with ESMTPSA (Nemesis) id
+ 1MxE5Y-1oGgme2JAm-00xdQD; Tue, 22 Mar 2022 15:41:44 +0100
+Received: by mail-wm1-f50.google.com with SMTP id r64so11292291wmr.4;
+        Tue, 22 Mar 2022 07:41:44 -0700 (PDT)
+X-Gm-Message-State: AOAM530BDjO7Ptc7KG3n2uMNgMLdtoACHLIVfFqpOrFENIjylRb7mIzk
+        rz0ukRuhYOLDyNi+xdBXpOAJ+K2gLkSSVmIqZ3s=
+X-Google-Smtp-Source: ABdhPJw00aHA9GFbzzznIWn5mHtAHfYTPmhqzO6UEPK2HL9vxQvPUMxGCmZQnRZD3CkDmdl5/Fe8OWNuPz92L/qaiek=
+X-Received: by 2002:a1c:f219:0:b0:38c:782c:3bb with SMTP id
+ s25-20020a1cf219000000b0038c782c03bbmr4133952wmc.94.1647960104135; Tue, 22
+ Mar 2022 07:41:44 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20220318071130.163942-1-chenjiahao16@huawei.com>
+ <CAK8P3a3==vLKZUOceuMh3X1U5_sN82Vpm8J_3P-H-+q3sKKMxg@mail.gmail.com> <88ff36b3-558b-9c3f-f21d-5ef05b3227c5@huawei.com>
+In-Reply-To: <88ff36b3-558b-9c3f-f21d-5ef05b3227c5@huawei.com>
+From:   Arnd Bergmann <arnd@arndb.de>
+Date:   Tue, 22 Mar 2022 15:41:27 +0100
+X-Gmail-Original-Message-ID: <CAK8P3a3_iZihNmgRNz7Ntrp8sj0hB_Yrpu5iT++ivMjsUXH7+w@mail.gmail.com>
+Message-ID: <CAK8P3a3_iZihNmgRNz7Ntrp8sj0hB_Yrpu5iT++ivMjsUXH7+w@mail.gmail.com>
+Subject: Re: [PATCH -next] uaccess: fix __access_ok limit setup in compat mode
+To:     "chenjiahao (C)" <chenjiahao16@huawei.com>
+Cc:     Arnd Bergmann <arnd@arndb.de>,
+        "Eric W . Biederman" <ebiederm@xmission.com>,
+        Sam Ravnborg <sam@ravnborg.org>,
+        Stafford Horne <shorne@gmail.com>,
+        Dinh Nguyen <dinguyen@kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux API <linux-api@vger.kernel.org>,
+        Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>,
+        "the arch/x86 maintainers" <x86@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+X-Provags-ID: V03:K1:xhNDHgu7aAbv+8rDLCqGmegm5QwYM2Yemq5liH+S6AlDcX9vO8r
+ leaQiEzw5kWftGHrGXtbRtqGp9NVWEhPsCC0cTLpcHzOZ/WIZrTQP9czq1maaENSXV33PdE
+ lxRw3DRWuoPxdToxFqxwzB1CrR8ZqJ5LGbKqtWZbhSoL5X8I591TSSEIbg1uwAL6kPxMXwe
+ ngmAijhLONTMbvIzXX5hg==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:O4XSNy/4Jnk=:kstbtJLZznfpFcRZ6/O0lF
+ f03ml5tZo3q0oMeA9a8jwE2dEQefNuHIvqLcXvWTz726WgpUGXzBdUQTmkki8LbOQA4PHkAtG
+ OsHyG1amlxU4Vf40UOuAsvSwx1o5YqhXdmIsDIMeNYz1TR9/V/TvnJoWqdndk3/Jt805IAINk
+ nRvfo9+t5zyH6r6U8rjunMIVK5qkxAgo2tpsLBKvysGMMhdyYQ3D7MwtECepigU9GDZ8MhbCD
+ ln05zBDOKsJCyRvfzLdWob7RfCajtfXCYgxQGNyZUP4t/PaHqf6iHTpIjOSw3Plv45WTnfLxE
+ fLGR3008WCwHvlOTsxGHLO1y+znz5PLvHFrWlw9pVyG09vrJ4qYcOg1jZH/g5jwtaQ3jBX2Wc
+ T7SJe7BAoiUSF5S6y40BEahXhLhNiiN52n/9CfiBsLm3wbWCYohFESPDW1ne6i78E024rD+F7
+ bbX/enNzJrUq3yO2CDaTO7gmwjJV074r/lPvXmU2JGHj9/Aa7Cntt+o1JyKD1Wl6SDqDeOhnV
+ 5KsIg439Jr+SngEVyQKkL9OZ831wgdoAgWwNup5MTz4439Yj4G2uF66Kzhh+1fATTah/je03e
+ r7XDon8CJfeBC3sysM36Es6pag30jyumjzGm1cklvm5XnTmfb5bW9qYFRvwOb89Hx+wrB9EMl
+ +ylyO7NVrbLUHfmBywUr7K8xmg2ffHzvuUNfQ527BeBHTfq+VrW4p+F81kxgmBa79cIc=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Guo Ren <guoren@linux.alibaba.com>
+On Tue, Mar 22, 2022 at 1:55 PM chenjiahao (C) <chenjiahao16@huawei.com> wrote:
+> 在 2022/3/18 15:44, Arnd Bergmann 写道:
+> >
+> > This should not result in any user visible difference, in both cases
+> > user process will see a -EFAULT return code from its system call.
+> > Are you able to come up with a test case that shows an observable
+> > difference in behavior?
+>
+> Actually, this patch do comes from a testcase failure, the code is
+> pasted below:
 
-Implement necessary type and macro for compat elf. See the code
-comment for detail.
+Thank you for the test case!
 
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Signed-off-by: Guo Ren <guoren@kernel.org>
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
-Tested-by: Heiko Stuebner <heiko@sntech.de>
----
- arch/riscv/include/asm/elf.h | 41 +++++++++++++++++++++++++++++++++++-
- 1 file changed, 40 insertions(+), 1 deletion(-)
+> #define TMPFILE "__1234567890"
+> #define BUF_SIZE    1024
+>
+> int main()
+> {
+>      char buf[BUF_SIZE] = {0};
+>      int fd;
+>      int ret;
+>      int err;
+>
+>      fd = open(TMPFILE, O_CREAT | O_RDWR);
+>      if(-1 == fd)
+>      {
+>          perror("open");
+>          return 1;
+>      }
+>
+>      ret = pread64(fd, buf, -1, 1);
+>      if((-1 == ret) && (EFAULT == errno))
+>      {
+>          close(fd);
+>          unlink(TMPFILE);
+>          printf("PASS\n");
+>          return 0;
+>      }
+>      err = errno;
+>      perror("pread64");
+>      printf("err = %d\n", err);
+>      close(fd);
+>      unlink(TMPFILE);
+>      printf("FAIL\n");
+>
+>      return 1;
+>   }
+>
+> The expected result is:
+>
+> PASS
+>
+> but the result of 32-bit testcase running in x86-64 kernel with compat
+> mode is:
+>
+> pread64: Success
+> err = 0
+> FAIL
+>
+>
+> In my explanation, pread64 is called with count '0xffffffffull' and
+> offset '1', which might still not trigger
+>
+> page fault in 64-bit kernel.
+>
+>
+> This patch uses TASK_SIZE as the addr_limit to performance a stricter
+> address check and intercepts
 
-diff --git a/arch/riscv/include/asm/elf.h b/arch/riscv/include/asm/elf.h
-index f53c40026c7a..a234656cfb5d 100644
---- a/arch/riscv/include/asm/elf.h
-+++ b/arch/riscv/include/asm/elf.h
-@@ -8,6 +8,8 @@
- #ifndef _ASM_RISCV_ELF_H
- #define _ASM_RISCV_ELF_H
- 
-+#include <uapi/linux/elf.h>
-+#include <linux/compat.h>
- #include <uapi/asm/elf.h>
- #include <asm/auxvec.h>
- #include <asm/byteorder.h>
-@@ -18,11 +20,13 @@
-  */
- #define ELF_ARCH	EM_RISCV
- 
-+#ifndef ELF_CLASS
- #ifdef CONFIG_64BIT
- #define ELF_CLASS	ELFCLASS64
- #else
- #define ELF_CLASS	ELFCLASS32
- #endif
-+#endif
- 
- #define ELF_DATA	ELFDATA2LSB
- 
-@@ -31,6 +35,8 @@
-  */
- #define elf_check_arch(x) ((x)->e_machine == EM_RISCV)
- 
-+#define compat_elf_check_arch(x) ((x)->e_machine == EM_RISCV)
-+
- #define CORE_DUMP_USE_REGSET
- #define ELF_EXEC_PAGESIZE	(PAGE_SIZE)
- 
-@@ -43,8 +49,14 @@
- #define ELF_ET_DYN_BASE		((TASK_SIZE / 3) * 2)
- 
- #ifdef CONFIG_64BIT
-+#ifdef CONFIG_COMPAT
-+#define STACK_RND_MASK		(test_thread_flag(TIF_32BIT) ? \
-+				 0x7ff >> (PAGE_SHIFT - 12) : \
-+				 0x3ffff >> (PAGE_SHIFT - 12))
-+#else
- #define STACK_RND_MASK		(0x3ffff >> (PAGE_SHIFT - 12))
- #endif
-+#endif
- /*
-  * This yields a mask that user programs can use to figure out what
-  * instruction set this CPU supports.  This could be done in user space,
-@@ -60,11 +72,19 @@ extern unsigned long elf_hwcap;
-  */
- #define ELF_PLATFORM	(NULL)
- 
-+#define COMPAT_ELF_PLATFORM	(NULL)
-+
- #ifdef CONFIG_MMU
- #define ARCH_DLINFO						\
- do {								\
-+	/*							\
-+	 * Note that we add ulong after elf_addr_t because	\
-+	 * casting current->mm->context.vdso triggers a cast	\
-+	 * warning of cast from pointer to integer for		\
-+	 * COMPAT ELFCLASS32.					\
-+	 */							\
- 	NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
--		(elf_addr_t)current->mm->context.vdso);		\
-+		(elf_addr_t)(ulong)current->mm->context.vdso);	\
- 	NEW_AUX_ENT(AT_L1I_CACHESIZE,				\
- 		get_cache_size(1, CACHE_TYPE_INST));		\
- 	NEW_AUX_ENT(AT_L1I_CACHEGEOMETRY,			\
-@@ -90,4 +110,23 @@ do {							\
- 		*(struct user_regs_struct *)regs;	\
- } while (0);
- 
-+#ifdef CONFIG_COMPAT
-+
-+#define SET_PERSONALITY(ex)					\
-+do {    if ((ex).e_ident[EI_CLASS] == ELFCLASS32)		\
-+		set_thread_flag(TIF_32BIT);			\
-+	else							\
-+		clear_thread_flag(TIF_32BIT);			\
-+	if (personality(current->personality) != PER_LINUX32)	\
-+		set_personality(PER_LINUX |			\
-+			(current->personality & (~PER_MASK)));	\
-+} while (0)
-+
-+#define COMPAT_ELF_ET_DYN_BASE		((TASK_SIZE_32 / 3) * 2)
-+
-+/* rv32 registers */
-+typedef compat_ulong_t			compat_elf_greg_t;
-+typedef compat_elf_greg_t		compat_elf_gregset_t[ELF_NGREG];
-+
-+#endif /* CONFIG_COMPAT */
- #endif /* _ASM_RISCV_ELF_H */
--- 
-2.25.1
+I see. So while the kernel behavior was not meant to change from
+my patch, it clearly did, which may cause problems. However, I'm
+not sure if the changed behavior is actually wrong.
 
+> the illegal pointer address from 32-bit userspace at a very early time.
+> Which is roughly the same
+>
+> address limit check as __access_ok in arch/ia64.
+>
+>
+> This is why this fixes my testcase failure above, or have I missed
+> anything else?
+
+My interpretation of what is going on here is that the pread64() call
+still behaves according to the documented behavior, returning a small
+number of bytes from the file, up to the first faulting address.
+
+As the manual page for pread64() describes,
+
+       On  success,  pread()  returns  the  number  of  bytes read
+       (a return of zero indicates end of file) and pwrite() returns
+       the number of bytes written.
+       Note that it is not an error for a successful call to transfer
+       fewer bytes than requested  (see  read(2)
+       and write(2)).
+
+The difference after my patch is that originally it returned
+-EFAULT because part of the buffer is outside of the
+addressable memory, but now it returns success because
+part of the buffer is inside the addressable memory ;-)
+
+I'm also not sure about which patch caused the change in
+behavior, can you double-check that? The one you cited,
+967747bbc084 ("uaccess: remove CONFIG_SET_FS"), does
+not actually touch the x86 implementation, and commit
+36903abedfe8 ("x86: remove __range_not_ok()") does touch
+x86 but the limit was already TASK_SIZE_MAX since commit
+47058bb54b57 ("x86: remove address space overrides using
+set_fs()") back in linux-5.10.
+
+        Arnd
