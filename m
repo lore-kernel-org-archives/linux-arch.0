@@ -2,122 +2,119 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 98D60C433EF
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Mar 2022 14:42:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0543FC433EF
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Mar 2022 15:37:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238176AbiCVOoS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Mar 2022 10:44:18 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48772 "EHLO
+        id S234609AbiCVPiq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Mar 2022 11:38:46 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35622 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238156AbiCVOoH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Mar 2022 10:44:07 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F178189337;
-        Tue, 22 Mar 2022 07:42:25 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 8B403B81D07;
-        Tue, 22 Mar 2022 14:42:24 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E29A4C36AE2;
-        Tue, 22 Mar 2022 14:42:14 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1647960143;
-        bh=qyoPYJlSA6NEig6jnwlt/QYfSWiYQ9maXb6WEkmPDVA=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=OfR6sAJka8wfUUiM43qGreLVN5SPIpmmMPa66UNRB2ZiKpNvdeF61xiBk2WKBEIR2
-         hLgcIe9UOXgyQsz7Aywb54SIphKL7HXbUMYmXNflLuU4IteYo2TDiRQT4nzR0KyFGp
-         8W+rr+gxr/Qr3D4fk4bqZ+zkcCwtdK0iRxo9IHlMw4MeRSpRafyDMMAzy5brqIRvpO
-         +3M6wL/0MLp9ikO/2uFX7sA6UIj8lavazZHBe0dJI3uTlVLv5YxnITVnLb/XK6WDKt
-         QsksuB3qJ9qf9OTr4iigCk8pYmZRsfjYl7xPamOLY9kiRhUZjLz3nmF4PYb9rSY1pM
-         QPEp+dv60eKkQ==
-From:   guoren@kernel.org
-To:     guoren@kernel.org, palmer@dabbelt.com, arnd@arndb.de,
-        gregkh@linuxfoundation.org, hch@lst.de
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org, linux-csky@vger.kernel.org,
-        linux-s390@vger.kernel.org, sparclinux@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, linux-parisc@vger.kernel.org,
-        linux-mips@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        x86@kernel.org, heiko@sntech.de, Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH V9 20/20] riscv: compat: Add COMPAT Kbuild skeletal support
-Date:   Tue, 22 Mar 2022 22:40:03 +0800
-Message-Id: <20220322144003.2357128-21-guoren@kernel.org>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20220322144003.2357128-1-guoren@kernel.org>
-References: <20220322144003.2357128-1-guoren@kernel.org>
+        with ESMTP id S232168AbiCVPiq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Mar 2022 11:38:46 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 319D942ECC;
+        Tue, 22 Mar 2022 08:37:18 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:Content-Type:
+        In-Reply-To:From:References:Cc:To:Subject:MIME-Version:Date:Message-ID:Sender
+        :Reply-To:Content-ID:Content-Description;
+        bh=Zq9b6qW9yqhzWMBguVnnbJQ6vTAg5F0MU+Zq1pB747c=; b=aIJTZtt6pziYzGkma+W+rGdydn
+        GeuoZw+OPZ9XCXNgkQtGrplz61bo2oXckqq06onWdSJWftdWCJwDi5ZBx7ILWmkwxQOaTT0xtAtr4
+        BGTFHrKXXXXWMyhdvjdd+IBV6NGc9HFOFqD/TI76JXceavlpCsPex4+yCKdBsShH0Z+jIVRSf2aQE
+        hlC34JB5soOZz5mbo+T7puKZoYMBuRuIbNmWMuPHuPMyzmZLnUQACvWPI0U8Jf0z27i1yYgKjxdlG
+        S0GEJ58BO+VYPBMaxlKIwuMa4Hiuemk3ARKBo1udE38xLefQtlTFbbPukQqx6SkYpF/SBH+oR0RPz
+        MBvut3Cw==;
+Received: from [2601:1c0:6280:3f0::aa0b]
+        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1nWgZN-00Bicc-Mw; Tue, 22 Mar 2022 15:37:14 +0000
+Message-ID: <b8095bf8-961f-827c-2bd6-2ffa6298b730@infradead.org>
+Date:   Tue, 22 Mar 2022 08:37:07 -0700
 MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.7.0
+Subject: Re: [TREE] "Fast Kernel Headers" Tree -v3
+Content-Language: en-US
+To:     Kari Argillander <kari.argillander@stargateuniverse.net>,
+        Ingo Molnar <mingo@kernel.org>
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Nathan Chancellor <nathan@kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Ard Biesheuvel <ardb@kernel.org>,
+        Josh Poimboeuf <jpoimboe@redhat.com>,
+        Jonathan Corbet <corbet@lwn.net>, kari.argillander@gmail.com
+References: <Ydm7ReZWQPrbIugn@gmail.com> <YjBr10JXLGHfEFfi@gmail.com>
+ <CAKBF=pvWzuPx0JB3XZ-v+i7KGbhMQTgH6xtii_Bed+qKRFx+ww@mail.gmail.com>
+From:   Randy Dunlap <rdunlap@infradead.org>
+In-Reply-To: <CAKBF=pvWzuPx0JB3XZ-v+i7KGbhMQTgH6xtii_Bed+qKRFx+ww@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Guo Ren <guoren@linux.alibaba.com>
+Hi Kari,
 
-Adds initial skeletal COMPAT Kbuild (Running 32bit U-mode on
-64bit S-mode) support.
- - Setup kconfig & dummy functions for compiling.
- - Implement compat_start_thread by the way.
+On 3/22/22 00:59, Kari Argillander wrote:
+> 15.3.2022 12.35 Ingo Molnar (mingo@kernel.org) wrote:
+>>
+>> This is -v3 of the "Fast Kernel Headers" tree, which is an ongoing rework
+>> of the Linux kernel's header hierarchy & header dependencies, with the dual
+>> goals of:
+>>
+>>  - speeding up the kernel build (both absolute and incremental build times)
+>>
+>>  - decoupling subsystem type & API definitions from each other
+>>
+>> The fast-headers tree consists of over 25 sub-trees internally, spanning
+>> over 2,300 commits, which can be found at:
+>>
+>>     git://git.kernel.org/pub/scm/linux/kernel/git/mingo/tip.git master
+> 
+> I have had problems to build master branch (defconfig) with gcc9
+>     gcc (Ubuntu 9.4.0-1ubuntu1~20.04) 9.4.0
+> 
+> I did also test v2 and problems where there too. I have no problem with gcc10 or
+> Clang11. Error I get is:
+> 
+> In file included from ./include/linux/rcuwait_api.h:7,
+>                  from ./include/linux/rcuwait.h:6,
+>                  from ./include/linux/irq_work.h:7,
+>                  from ./include/linux/perf_event_types.h:44,
+>                  from ./include/linux/perf_event_api.h:17,
+>                  from arch/x86/kernel/kprobes/opt.c:8:
+> ./include/linux/rcuwait_api.h: In function ‘rcuwait_active’:
+> ./include/linux/rcupdate.h:328:9: error: dereferencing pointer to
+> incomplete type ‘struct task_struct’
+>   328 |  typeof(*p) *local = (typeof(*p) *__force)READ_ONCE(p); \
+>       |         ^
+> ./include/linux/rcupdate.h:439:31: note: in expansion of macro
+> ‘__rcu_access_pointer’
+>   439 | #define rcu_access_pointer(p) __rcu_access_pointer((p),
+> __UNIQUE_ID(rcu), __rcu)
+>       |                               ^~~~~~~~~~~~~~~~~~~~
+> ./include/linux/rcuwait_api.h:15:11: note: in expansion of macro
+> ‘rcu_access_pointer’
+>    15 |  return !!rcu_access_pointer(w->task);
+> 
+>     Argillander
 
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Signed-off-by: Guo Ren <guoren@kernel.org>
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
-Tested-by: Heiko Stuebner <heiko@sntech.de>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
----
- arch/riscv/Kconfig | 19 +++++++++++++++++++
- 1 file changed, 19 insertions(+)
+You could try the patch here:
+https://lore.kernel.org/all/917e9ce0-c8cf-61b2-d1ba-ebf25bbd979d@infradead.org/
 
-diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 5adcbd9b5e88..6f11df8c189f 100644
---- a/arch/riscv/Kconfig
-+++ b/arch/riscv/Kconfig
-@@ -73,6 +73,7 @@ config RISCV
- 	select HAVE_ARCH_KGDB if !XIP_KERNEL
- 	select HAVE_ARCH_KGDB_QXFER_PKT
- 	select HAVE_ARCH_MMAP_RND_BITS if MMU
-+	select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
- 	select HAVE_ARCH_SECCOMP_FILTER
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE if 64BIT && MMU
-@@ -123,12 +124,18 @@ config ARCH_MMAP_RND_BITS_MIN
- 	default 18 if 64BIT
- 	default 8
- 
-+config ARCH_MMAP_RND_COMPAT_BITS_MIN
-+	default 8
-+
- # max bits determined by the following formula:
- #  VA_BITS - PAGE_SHIFT - 3
- config ARCH_MMAP_RND_BITS_MAX
- 	default 24 if 64BIT # SV39 based
- 	default 17
- 
-+config ARCH_MMAP_RND_COMPAT_BITS_MAX
-+	default 17
-+
- # set if we run in machine mode, cleared if we run in supervisor mode
- config RISCV_M_MODE
- 	bool
-@@ -406,6 +413,18 @@ config CRASH_DUMP
- 
- 	  For more details see Documentation/admin-guide/kdump/kdump.rst
- 
-+config COMPAT
-+	bool "Kernel support for 32-bit U-mode"
-+	default 64BIT
-+	depends on 64BIT && MMU
-+	help
-+	  This option enables support for a 32-bit U-mode running under a 64-bit
-+	  kernel at S-mode. riscv32-specific components such as system calls,
-+	  the user helper functions (vdso), signal rt_frame functions and the
-+	  ptrace interface are handled appropriately by the kernel.
-+
-+	  If you want to execute 32-bit userspace applications, say Y.
-+
- endmenu
- 
- menu "Boot options"
+although the build error that it fixes doesn't look exactly the same
+as yours.
+
+>> There's various changes in -v3, and it's now ported to the latest kernel
+>> (v5.17-rc8).
+>>
+>> Diffstat difference:
+>>
+>>  -v2: 25332 files changed, 178498 insertions(+), 74790 deletions(-)
+>>  -v3: 25513 files changed, 180947 insertions(+), 74572 deletions(-)
+
+
 -- 
-2.25.1
-
+~Randy
