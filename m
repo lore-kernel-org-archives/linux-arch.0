@@ -2,108 +2,89 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 578BFC433EF
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Mar 2022 16:28:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4A8E5C433EF
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Mar 2022 16:40:00 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237989AbiCVQ3i (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Mar 2022 12:29:38 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40752 "EHLO
+        id S239184AbiCVQlZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Mar 2022 12:41:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45620 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234303AbiCVQ3h (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Mar 2022 12:29:37 -0400
-Received: from mail-lf1-x12b.google.com (mail-lf1-x12b.google.com [IPv6:2a00:1450:4864:20::12b])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A57963D483
-        for <linux-arch@vger.kernel.org>; Tue, 22 Mar 2022 09:28:07 -0700 (PDT)
-Received: by mail-lf1-x12b.google.com with SMTP id l20so30629010lfg.12
-        for <linux-arch@vger.kernel.org>; Tue, 22 Mar 2022 09:28:07 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=24K1hLJb9rmuEHEKW5a8QYhjnmRyomvMSDjxeIg/X38=;
-        b=VYS/UqPlwEg8dUg0nl76d7UJ1IUszygkxcr1j2/1mvgghsV+p3mYrgwsp34aOKQ6tk
-         ScvhZMD1nx0OBvbT+5UaohuxHTKJjXselVVpziaLmccjKez67+onMBakhk/M73Kxl+Ut
-         p2gOZHShBVjr2xBbgB8NPD9eut9eQpbmThYAM=
+        with ESMTP id S239183AbiCVQlZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Mar 2022 12:41:25 -0400
+Received: from mail-lj1-f176.google.com (mail-lj1-f176.google.com [209.85.208.176])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 900AB6E55A;
+        Tue, 22 Mar 2022 09:39:57 -0700 (PDT)
+Received: by mail-lj1-f176.google.com with SMTP id q5so24692548ljb.11;
+        Tue, 22 Mar 2022 09:39:57 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:mime-version:references:in-reply-to:from:date
          :message-id:subject:to:cc;
-        bh=24K1hLJb9rmuEHEKW5a8QYhjnmRyomvMSDjxeIg/X38=;
-        b=a8EqkZMuOf/3tR4Dmmhi19JRxjoA/0fI1W3zJhnOqQvOiOEbUpGpWfjWdRuECtRt1M
-         AMjqcNcy0g+h3SCWRpBv8HJX1Mm3L0Gspjg4N+TMbFkV+62+e9uz9vdc4gZs10kxmbH5
-         c6nQDrGfTT9n8DC2Lyi1Dct2OMFLXneLaW/XOpUhHbooj2PXB5IvnG87V+y5xaf8SkT+
-         tbmeqMyxUL54M2FXAFLuL1ECuHp7P1fjUM+wFJJ5wqOIZI5J54Dd1Q/dMkg28yAz+kru
-         G081mZvsVLcxaldsg1YIPPlw9R58F5P1UW+xLSDhw+qXNkrNrikvqgAox4XgD2Y7CivP
-         mjtg==
-X-Gm-Message-State: AOAM531j/+4i7Ovrx+vrzRZQQD2QZmTR5CPzgtMnEeCUFH7/ZTOytjje
-        9mRWYhfvJol53jobj3ejLl0mz76T4cG4JDJR0OU=
-X-Google-Smtp-Source: ABdhPJxdFaOydgfjJAkuDDgdG8bvLd3oS1m8l2CxU6KAHY4JNlPH+czQpJs1OAERi1OQMJDA5rUgow==
-X-Received: by 2002:a05:6512:1594:b0:44a:2d71:f14d with SMTP id bp20-20020a056512159400b0044a2d71f14dmr7212780lfb.446.1647966483670;
-        Tue, 22 Mar 2022 09:28:03 -0700 (PDT)
-Received: from mail-lj1-f179.google.com (mail-lj1-f179.google.com. [209.85.208.179])
-        by smtp.gmail.com with ESMTPSA id c27-20020a2ebf1b000000b00247eba13667sm2488952ljr.16.2022.03.22.09.28.03
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 22 Mar 2022 09:28:03 -0700 (PDT)
-Received: by mail-lj1-f179.google.com with SMTP id g24so23473424lja.7
-        for <linux-arch@vger.kernel.org>; Tue, 22 Mar 2022 09:28:03 -0700 (PDT)
-X-Received: by 2002:a2e:6f17:0:b0:248:124:9c08 with SMTP id
- k23-20020a2e6f17000000b0024801249c08mr19763021ljc.506.1647966097175; Tue, 22
- Mar 2022 09:21:37 -0700 (PDT)
+        bh=+z636ynkHRELaXITIsopPF4jHcBApicZM14jpe3tGzw=;
+        b=irezaqSSqLdBt2qMZCJXvCoI59MgJq1a9F0UUWvONPJshU+4JxJoVRxNyZnERccXsz
+         ynHguFT4GwcBe7H7rLjmkM67Ka0G4D4uPFLWp+IAF6tfp3XKUCuWuvYDIxWiUM9q54Be
+         AcGiyBiiXVzu4kI88rja0zM5kwWHelbGEjUlQESeK5Mz9HbdYDNDSn4HcVvDnsIPD9nm
+         yGOxjD/dcOtueEL6l5qvqgit4rinqp140A4hwdeyNciJCmqQpZ/xeQuKoymZKEo0N7sN
+         A0nUYrSHpRRyu/P5uGRFYKwf8K+yx1ubqF0qv3KJsy3iPRQ7BCLP4w65VRM3Irc87eiK
+         tAPA==
+X-Gm-Message-State: AOAM531YGS9h/Cg/of5kqx+sPis+bAr/FgJnrfZ3EbRQU+ZxZXcBnu+h
+        29eJxY6hY8Dj2zFrgssd/PA93WPZy53mlbp7b6w=
+X-Google-Smtp-Source: ABdhPJzmNwaA+S9mbxm3QKGORbTHyOH3ENafnCoDzOrBSFZyJBcREvJ28TfDn85NU4dHlg3bhXm3A16Z16QxW8c9cGY=
+X-Received: by 2002:a05:651c:1549:b0:249:9448:d643 with SMTP id
+ y9-20020a05651c154900b002499448d643mr1916178ljp.457.1647967195779; Tue, 22
+ Mar 2022 09:39:55 -0700 (PDT)
 MIME-Version: 1.0
-References: <20220217162848.303601-1-Jason@zx2c4.com> <20220322155820.GA1745955@roeck-us.net>
-In-Reply-To: <20220322155820.GA1745955@roeck-us.net>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Tue, 22 Mar 2022 09:21:20 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wjH7rNyP_S7ut3EUPfa_dOYAP1T6yOxS6hdVi3zPV9SzA@mail.gmail.com>
-Message-ID: <CAHk-=wjH7rNyP_S7ut3EUPfa_dOYAP1T6yOxS6hdVi3zPV9SzA@mail.gmail.com>
-Subject: Re: [PATCH v1] random: block in /dev/urandom
-To:     Guenter Roeck <linux@roeck-us.net>
-Cc:     "Jason A. Donenfeld" <Jason@zx2c4.com>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Linux Crypto Mailing List <linux-crypto@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Dinh Nguyen <dinguyen@kernel.org>,
-        Nick Hu <nickhu@andestech.com>,
-        Max Filippov <jcmvbkbc@gmail.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        "David S . Miller" <davem@davemloft.net>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Michal Simek <monstr@monstr.eu>,
-        Borislav Petkov <bp@alien8.de>, Guo Ren <guoren@kernel.org>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Joshua Kinard <kumba@gentoo.org>,
-        David Laight <David.Laight@aculab.com>,
-        Dominik Brodowski <linux@dominikbrodowski.net>,
-        Eric Biggers <ebiggers@google.com>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>,
+References: <20220316224548.500123-1-namhyung@kernel.org> <20220316224548.500123-3-namhyung@kernel.org>
+ <YjSBRNxzaE9c+F/1@boqun-archlinux> <YjS2rlezTh9gdlDh@hirez.programming.kicks-ass.net>
+ <CAM9d7cjUR6shddKM2h9uFXgQf+0F504fnJmKRSfc3+PG3TmEyg@mail.gmail.com>
+ <20220318180750.744f08d4@gandalf.local.home> <CAM9d7ci-91efxreUvLBhkAcs0rpngzR9+3BnZBDb4zLai2Ewcw@mail.gmail.com>
+ <CAM9d7cgCEsH6grH556Js6VX-cXAO_3hT7C+RSm+sxxBDgxHvig@mail.gmail.com> <20220322085915.6c2e7ff9@gandalf.local.home>
+In-Reply-To: <20220322085915.6c2e7ff9@gandalf.local.home>
+From:   Namhyung Kim <namhyung@kernel.org>
+Date:   Tue, 22 Mar 2022 09:39:44 -0700
+Message-ID: <CAM9d7ciG3Oq7VutnRpzDLqA0Cbkg=D8Aw_Gv1gC+F7+haSzf-g@mail.gmail.com>
+Subject: Re: [PATCH 2/2] locking: Apply contention tracepoints in the slow path
+To:     Steven Rostedt <rostedt@goodmis.org>
+Cc:     Peter Zijlstra <peterz@infradead.org>,
+        Boqun Feng <boqun.feng@gmail.com>,
+        Ingo Molnar <mingo@kernel.org>, Will Deacon <will@kernel.org>,
+        Waiman Long <longman@redhat.com>,
+        LKML <linux-kernel@vger.kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Kees Cook <keescook@chromium.org>,
-        Lennart Poettering <mzxreary@0pointer.de>,
-        Konstantin Ryabitsev <konstantin@linuxfoundation.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "Theodore Ts'o" <tytso@mit.edu>
+        Byungchul Park <byungchul.park@lge.com>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Radoslaw Burny <rburny@google.com>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        bpf <bpf@vger.kernel.org>
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Mar 22, 2022 at 8:58 AM Guenter Roeck <linux@roeck-us.net> wrote:
+On Tue, Mar 22, 2022 at 5:59 AM Steven Rostedt <rostedt@goodmis.org> wrote:
 >
-> This patch (or a later version of it) made it into mainline and causes a
-> large number of qemu boot test failures for various architectures (arm,
-> m68k, microblaze, sparc32, xtensa are the ones I observed). Common
-> denominator is that boot hangs at "Saving random seed:". A sample bisect
-> log is attached. Reverting this patch fixes the problem.
+> On Mon, 21 Mar 2022 22:31:30 -0700
+> Namhyung Kim <namhyung@kernel.org> wrote:
+>
+> > > Thanks for the info.  But it's unclear to me if it provides the custom
+> > > event with the same or different name.  Can I use both of the original
+> > > and the custom events at the same time?
+>
+> Sorry, missed your previous question.
 
-Ok, it was worth trying, but yeah, it clearly causes problems for
-various platforms that can't do jitter entropy and have nothing else
-happening either.
+No problem!
 
-Will revert.
+>
+> >
+> > I've read the code and understood that it's a separate event that can
+> > be used together.  Then I think we can leave the tracepoint with the
+> > return value and let users customize it for their needs later.
+>
+> Right, thanks for looking deeper at it.
 
-Thanks.
+And thanks for your review.  I'll post a v4 soon.
 
-               Linus
+Thanks,
+Namhyung
