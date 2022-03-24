@@ -2,149 +2,171 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 953C8C433F5
-	for <linux-arch@archiver.kernel.org>; Thu, 24 Mar 2022 02:32:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E4E09C433F5
+	for <linux-arch@archiver.kernel.org>; Thu, 24 Mar 2022 23:19:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241959AbiCXCeI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 23 Mar 2022 22:34:08 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34618 "EHLO
+        id S1355749AbiCXXVF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 24 Mar 2022 19:21:05 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40376 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234745AbiCXCeI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Mar 2022 22:34:08 -0400
-Received: from mail-pg1-x52a.google.com (mail-pg1-x52a.google.com [IPv6:2607:f8b0:4864:20::52a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 54D51939B1;
-        Wed, 23 Mar 2022 19:32:34 -0700 (PDT)
-Received: by mail-pg1-x52a.google.com with SMTP id k14so2740136pga.0;
-        Wed, 23 Mar 2022 19:32:34 -0700 (PDT)
+        with ESMTP id S1353127AbiCXXVD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Mar 2022 19:21:03 -0400
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D7F725521D;
+        Thu, 24 Mar 2022 16:19:25 -0700 (PDT)
+Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
+        by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 22OJEFA0010798;
+        Thu, 24 Mar 2022 23:19:10 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : cc :
+ subject : date : message-id : in-reply-to : references :
+ content-transfer-encoding : content-type : mime-version;
+ s=corp-2021-07-09; bh=Y6qzjfd1jXNtwC/Gtts9PBfVnly3kKV+IIjdQ0u7DRA=;
+ b=eoQP/A2cbNKMMKgjCjzbcKMvIiBVOloKwNM81vINDIwCoSx7ttcOTr/PnVoSj7Q7EUw5
+ xF5uD+ZWCQWBLAeOHpj+ghw3tP+X0oxhIBUZ4EpjD0PqurodHohsYEcj+Dfzy/zpvgTT
+ 9moO7fNhMzYvOgzMqNblD9ZnmpS2/fckNMyLZRY6xzGX3Zjf6Tm9suF89j2zXJYtkH6u
+ GTf1CQ/m0wYzhIt2uhAgRWCYHvoMEmRXmaUBnPvUO3nhVWddi1ne6pVNwn4UUQAcGowi
+ MfjnyqViVC25GNyWEWByVHMDImlHPabQ6BwGvP13Bjn4ivfoiyCSPWsTUbVgYtnwUT0e Vw== 
+Received: from aserp3030.oracle.com ([141.146.126.71])
+        by mx0b-00069f02.pphosted.com with ESMTP id 3ew6ssdxp9-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Thu, 24 Mar 2022 23:19:10 +0000
+Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
+        by aserp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 22ONCk1u186692;
+        Thu, 24 Mar 2022 23:19:09 GMT
+Received: from nam12-bn8-obe.outbound.protection.outlook.com (mail-bn8nam12lp2169.outbound.protection.outlook.com [104.47.55.169])
+        by aserp3030.oracle.com with ESMTP id 3ew57920as-2
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Thu, 24 Mar 2022 23:19:09 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=B4W2o5TvEjv6Fkp3SCQAfvwpzphA45nbpbS8PyuRY/fRwAd4KWXqniCDidYvCzRjDa+Y1BqmPbPxUT+WzJvUGF4BTJ3TRUX1SpAWE6MYgC5qJfwMOF468bQ8aZKbhv5RX802EcL6fJHkkQCCNQeej/Vb0KSLraUFFLPFnl8KWEhcyvGOg/hY1tSgwG7S3R/yQzIGLFLr6UmHN7pIh1nDXsmktuv92TRl3HAhSZIo0nP3Buk7xnsoFCAuLyRI2XLU9XPegsXOKdisJprOL0fpK2UFeowe8eZ8lBXh32zQwdGMKI60rnrvi5644crVB6iHkTFpQGp49iOEb0HhDB15NQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=Y6qzjfd1jXNtwC/Gtts9PBfVnly3kKV+IIjdQ0u7DRA=;
+ b=d6/MV7u8KcBficmCbtvQBiM3M7HKan223znbj1Y3Chfmr//l1b55kZxUGelakcwr8wWWGDhNXpYcBKqxc0kutFx3jUDO9op6LPtJvbamYD4f3zcUnkb6AWDrlZmYD04On5z50N63WCCYM3P35NNdTYdop5w/Fl6FMSdxXix3JJJuNLViaiG8k6oRafFjZvn3WlwVQaLNmEsOmt0YrIbDJV6Qjv5tIJ05mv4nCrtCnZ2HOc+jMVWJpfPXaGrSh/YTSOlT9ZNu+9KO9TC5Hyq/+JYaE7lDbjqCpnA3N1eDjQgiyBbvKN1GljpQb5aBSh/8iA9t8MJcqP8mAny51lm1mw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=0JCu2rchO2mLo2ocjFa7FXnEzu0+qIWGmr+CpcJYkME=;
-        b=omFiFyrBIaDd9kG2A8zDsIjZricwiOad7au0Id2doy9ddFqy8Ez55YIQlO2T5Aradx
-         SydyoSdKGKqmae7v8YDImg9Sp975lTYxFMn8DdYIkkOCCT3pDt9a/1OYryomUkYPAa0v
-         FEkBNpEjKjfetnegTq1FVqOlqhqTjRuFBHOOTdSCYePx4WkFeRd4eRsrd3GdkzzaWf9w
-         XBioUYa/2dV7xuvLD/CzWzYJ7RcJglipJPd5ve8jxcBiRcc5I1okYlV3BKKuvNB+49uv
-         wA0GGDYk9C/muZ4Vhk4ymS1cpqAQa8KE7z1Dl3qiKDVoZR1ZYOVYmLkZJhUb7jtYNRL9
-         Gbnw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=0JCu2rchO2mLo2ocjFa7FXnEzu0+qIWGmr+CpcJYkME=;
-        b=RRnTE+FgfK/BTrWFpZV8hZcS994Zi5y4a83gWRo7q+kmt10O6zndlBU3v+MjEplXbj
-         TuAOjD33H+qz4R1vxxcsAvMcC8q8572VlnYC7GOc1l7XI8p8hzTb4j9ZvBbVxORdz66L
-         21wY6VsYTCtgRModPv/tejnEnEJAW4G5F5SVEiInr6apRKuQcCHR5hb+NjYjrPhOaJrm
-         GR3DJNnlr7rd/KDX3aknggBFraCZwnpmekns0aoysU8aK6WnHQkNl9F2nbK5ZRZzX5hz
-         xL1DVZ3kNYBlsko9dA75A9maRn5dSXRXM07l0HdHcUtK019DAL70sS6bGEz1kxm4Z3/G
-         AzbQ==
-X-Gm-Message-State: AOAM532oHHeBDFAKFHTS6GWRsB/ePiwa6m831R8AVCzMCRCnPN6/M0F2
-        q+dHCSh8uEJBwN9zhhMKUXjIt0/QGvfgA4hzURuicCPHjCCHqQ==
-X-Google-Smtp-Source: ABdhPJxrz0JrJ37/ep6Ttsy6vk1ZKwcClvYc1axasbbOj9eEuClvembSfrhUCbYMq1lxtzZ5cu223yAUtTTJ58wNHqQ=
-X-Received: by 2002:a05:6a00:890:b0:4f6:686e:a8a9 with SMTP id
- q16-20020a056a00089000b004f6686ea8a9mr2958051pfj.83.1648089153763; Wed, 23
- Mar 2022 19:32:33 -0700 (PDT)
+ d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=Y6qzjfd1jXNtwC/Gtts9PBfVnly3kKV+IIjdQ0u7DRA=;
+ b=rc40LA0wrLeLIuoVqfdewiX57LRmghpvuENcD9TgmLB7TqLB9u9UUVE3OQMrTn5VCKA6rn2mDTNLyU241/yxvT1PD6KdIF4De4oEyMCCfOmRbRgQGLK+Jpt2dBnJh6OHc/7IGZUSMMpZ5339STWm/YiCouf7z77+dD2B3DRl2Is=
+Received: from SJ0PR10MB4576.namprd10.prod.outlook.com (2603:10b6:a03:2ae::5)
+ by SJ0PR10MB5439.namprd10.prod.outlook.com (2603:10b6:a03:303::15) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.5102.16; Thu, 24 Mar
+ 2022 23:19:08 +0000
+Received: from SJ0PR10MB4576.namprd10.prod.outlook.com
+ ([fe80::6530:9b91:af1f:6225]) by SJ0PR10MB4576.namprd10.prod.outlook.com
+ ([fe80::6530:9b91:af1f:6225%6]) with mapi id 15.20.5102.019; Thu, 24 Mar 2022
+ 23:19:08 +0000
+From:   Libo Chen <libo.chen@oracle.com>
+To:     masahiroy@kernel.org, tglx@linutronix.de, peterz@infradead.org,
+        mingo@kernel.org
+Cc:     linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
+Subject: [PATCH] lib/Kconfig: remove DEBUG_PER_CPU_MAPS dependency for CPUMASK_OFFSTACK
+Date:   Thu, 24 Mar 2022 16:18:59 -0700
+Message-Id: <20220324231859.1287918-2-libo.chen@oracle.com>
+X-Mailer: git-send-email 2.27.0
+In-Reply-To: <20220324231859.1287918-1-libo.chen@oracle.com>
+References: <20220324231859.1287918-1-libo.chen@oracle.com>
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-ClientProxiedBy: SA0PR11CA0139.namprd11.prod.outlook.com
+ (2603:10b6:806:131::24) To SJ0PR10MB4576.namprd10.prod.outlook.com
+ (2603:10b6:a03:2ae::5)
 MIME-Version: 1.0
-References: <20220319142759.1026237-1-chenhuacai@loongson.cn>
- <20220319143817.1026708-1-chenhuacai@loongson.cn> <20220319143817.1026708-6-chenhuacai@loongson.cn>
- <CAK8P3a2kroHVN3fTabuFVMz08SXytz-SC8X11BxxszsUCksJ4g@mail.gmail.com>
- <CAAhV-H6zE7p6Tq8rg1Fq5cK5L38z-VHjxsZ+qm8+Cp5x=u_bUQ@mail.gmail.com>
- <CAK8P3a38nUyAt8gGEYregqivdP7NsXS0RuU1NX4_EAVvwGQBWA@mail.gmail.com> <20220322160234.hxyiugzm3qstyun2@wittgenstein>
-In-Reply-To: <20220322160234.hxyiugzm3qstyun2@wittgenstein>
-From:   Feiyang Chen <chris.chenfeiyang@gmail.com>
-Date:   Thu, 24 Mar 2022 10:32:22 +0800
-Message-ID: <CACWXhKmh7=mTZRgV=7PMxnMub1hTaLZ==Fo996Qggns=dSHTMg@mail.gmail.com>
-Subject: Re: [PATCH V8 13/22] LoongArch: Add system call support
-To:     Arnd Bergmann <arnd@arndb.de>,
-        Christian Brauner <brauner@kernel.org>
-Cc:     Huacai Chen <chenhuacai@kernel.org>,
-        Andy Lutomirski <luto@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        David Airlie <airlied@linux.ie>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Xuefeng Li <lixuefeng@loongson.cn>,
-        Yanteng Si <siyanteng@loongson.cn>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        "H.J. Lu" <hjl.tools@gmail.com>
-Content-Type: text/plain; charset="UTF-8"
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id: 89a22866-d823-4815-07bf-08da0decb24d
+X-MS-TrafficTypeDiagnostic: SJ0PR10MB5439:EE_
+X-Microsoft-Antispam-PRVS: <SJ0PR10MB5439527C3B890958AFD1F5BD85199@SJ0PR10MB5439.namprd10.prod.outlook.com>
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info: h8P9REJ/afb5kKJaTuKsZ5uUP1rWBLi87ZbIr5JZo2CG1yNnY2uCLfKMR4Pc5+iuXoYRqKXZMTwi/mDyoMlDdChKgaYd5NhZzcWp49yoIDPEyqr6g+aWF/AxHSiQ6Kbrb9qcCQWUrqCAe6/TTp1Ma9K9qPHeLddGCaPmUpFYKncfIXu1WcCIWD8t7/ENvQemAQCuXzhX8NZ/uaU1ecopQCEhap2Pa1dfHx/mrwDW6UlQ2dwVJiWWbEywLB2rD1WrYr8Q6zC5nF6SpxfklDmgWVEj/+gGjLhlGSU/8nuU+uWRkVjpBbtxJTcNJEp9j3SntTIe/OG0z+JLdyM39oCvmwT1Q9OKAS57OgPu+8FMkYfU5KJPd8YHd+Y7+UiHGbM2eIwq4mZTFx1xcVKqRd40Lf8vy9+sBKoow6GNYBjWlUQR29YJ3yploVVqp4KOd8pYkd1ht5OcmqnddpBb5FPpsLVZ/Jk9BGcT1Jm1H2Mfc/+txkXARApLCRjuewk9wXPuK7uOiYvOwunZ/Ooto4C25OX1uWQoKdWFi/QAIUhLkdFyMnBpfp1uZuSN49b69pPkorrlc0vgCpQho4Bk58u/IcMIionq/5O6PGsCXjpIMQj92fJypEGO55n35ijFlJPbvcrKmCWnBIHTLteM08hgWaF0G1q6OEohhFowDtG/u3gMFks40pUStRO/8NHZ7t6cZct2MDR6V9YHKSRmZL6hFg==
+X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:SJ0PR10MB4576.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230001)(366004)(316002)(38350700002)(6506007)(6666004)(6512007)(38100700002)(52116002)(36756003)(83380400001)(2616005)(186003)(1076003)(2906002)(86362001)(26005)(66476007)(66556008)(8936002)(44832011)(5660300002)(4326008)(8676002)(66946007)(6486002)(508600001);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?T8bQeBR1yyylt4sqegF1txhl9jUCLJzuaVVsTjbPmDMaDfVJSr2BWio3ETDG?=
+ =?us-ascii?Q?YYRX5AO1S5HYNpz+4GSnPzuSZP1rZR9wVboJ7rMFknHNmRVHnkWFZrsR8dnY?=
+ =?us-ascii?Q?sTsGafVSPj0mvZtodPBJUKaFhWsSr1jrAp2jep+8HxOfXFOXTNdzGJIWMWBY?=
+ =?us-ascii?Q?37KDfDQLnxI/qDgm2y8jj3+jBuqsJf3Q38SrWw7dTVeEETsfoL52P3b5Gg5N?=
+ =?us-ascii?Q?RGpPMqFN0Kw4vi6LJI1wKaruFk6Y9oyv1GQwBIS0l0t+Oh35tA3OUMoKrVW4?=
+ =?us-ascii?Q?JPvop3S6Czj+bwQzet9V7+RF/ZcnYRgEKp84LujhBZRmVFH7GVOE5/Sixqqn?=
+ =?us-ascii?Q?48X+3Fws6o/vsG8FpzrXdKkBprCzxfrbwynV0JUSoKWelkVw9wLlpB/ud1Nl?=
+ =?us-ascii?Q?Ssq8FMv6GHWEHacJwunMeQjuZtThJJ5lMzZCirShNTrDtuTXvQo4XYEguAnp?=
+ =?us-ascii?Q?whX1+0CsRr2l4U8a0c1NBWhDMHie5FEMr7SsDw5xdHqgd0boj3CI6US13y3T?=
+ =?us-ascii?Q?VvAm/NDx9Ojl8ESzaTCbEM4nnk8V4vbgUXk03bhYp2IUMwBDLsSt4xcJJfkh?=
+ =?us-ascii?Q?ApWDthMPJraqH5Y/9cyBoTSGdGLXSkoKnXf4oC806eC+3jHazvpW2HOA/yGi?=
+ =?us-ascii?Q?oxbVZoc0BHhy5CaeG5avgO9wqJB6BYAhxaf6l/uaNXuL9pwWqDrcxIqLEaFv?=
+ =?us-ascii?Q?Whxo/ezVTaWTfg/ae4HM3bzcG9lDKsyYAGUYAp35jDOrxwCG0coZ1/lql9Em?=
+ =?us-ascii?Q?BzX/BgjJh5nr/zszJmtaYXp7J4wMQUP/CqISPrV5mSgRtn9fAjIdAszLY5jT?=
+ =?us-ascii?Q?He/FWE7v9yaKWdAA5mtat98sOQ5VjvvYxmEm94DvRgMsCqzFa6YoqO7rfoe2?=
+ =?us-ascii?Q?DMsLVq9zftc0/8XfVa19sYP5Llzjv5QjbigQ9Os+vSaHFL9gFw4mJa5MlScs?=
+ =?us-ascii?Q?HqjOEoKPtrNzgSEcJIY5eAad06x2Lrra7cga8r7FIfQ67PqY5i6lCN09Im7x?=
+ =?us-ascii?Q?NwMkN6D7lDSZDRKq8Pz3iBaVOGWip7bKOBiUh9dE2be3hUKhov/kzoNBZfYU?=
+ =?us-ascii?Q?Q6/FWujXteGiQ72jjcV0iTpqhQpnotggeTrFMe1tLM5+n43iLL5SmbPRo2iR?=
+ =?us-ascii?Q?sjNahVl9VN0sdHnnj92tfEmEratx3HCjnMd3vQl/tDTS21UCplIsspNpY7AX?=
+ =?us-ascii?Q?rwXCT/+ZT7EoGH7dWTmwEoTtd+ayRXsMZachYW1Purgn0HYMBJAe6/SKJbVm?=
+ =?us-ascii?Q?jIJwxyj+KwpBRotdGi6rB8qooYexzx9eYSVR3+GqHfvEB0rHuer0Z1RW0v03?=
+ =?us-ascii?Q?eoopphrHWiI+eqpP7QQ7+2C7yBvxUkAltUt07D26dCc+PHT0U1rUn9Y9zVbB?=
+ =?us-ascii?Q?Lfym0h1yjHqmHaA8fq+g8cDgFWmDPvjV4W+YBcCx+j6LALM8+o++vm1ezug6?=
+ =?us-ascii?Q?XjNU/7sO9OkGk07QeIb/2iQfqnL+udye?=
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 89a22866-d823-4815-07bf-08da0decb24d
+X-MS-Exchange-CrossTenant-AuthSource: SJ0PR10MB4576.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 24 Mar 2022 23:19:08.3057
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: lzzW7/rtsNXw2e2r+BcFhIeRDYJc5/ugdtryLeIXem8VMChCgxU4eWl2QE7iFHT2czEeHu6DBu3q96ZNgO6J0g==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SJ0PR10MB5439
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10296 signatures=694973
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 suspectscore=0 spamscore=0
+ mlxlogscore=999 phishscore=0 bulkscore=0 malwarescore=0 mlxscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2202240000
+ definitions=main-2203240123
+X-Proofpoint-ORIG-GUID: nnr5XzACTeOVhkyYZM0qWPY1ews-7BFf
+X-Proofpoint-GUID: nnr5XzACTeOVhkyYZM0qWPY1ews-7BFf
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, 23 Mar 2022 at 00:02, Christian Brauner <brauner@kernel.org> wrote:
->
-> On Mon, Mar 21, 2022 at 10:47:49AM +0100, Arnd Bergmann wrote:
-> > On Mon, Mar 21, 2022 at 10:41 AM Huacai Chen <chenhuacai@kernel.org> wrote:
-> > > On Mon, Mar 21, 2022 at 5:01 PM Arnd Bergmann <arnd@arndb.de> wrote:
-> > > >
-> > > > On Sat, Mar 19, 2022 at 3:38 PM Huacai Chen <chenhuacai@kernel.org> wrote:
-> > > > >
-> > > > > This patch adds system call support and related uaccess.h for LoongArch.
-> > > > >
-> > > > > Q: Why keep __ARCH_WANT_NEW_STAT definition while there is statx:
-> > > > > A: Until the latest glibc release (2.34), statx is only used for 32-bit
-> > > > >    platforms, or 64-bit platforms with 32-bit timestamp. I.e., Most 64-
-> > > > >    bit platforms still use newstat now.
-> > > > >
-> > > > > Q: Why keep _ARCH_WANT_SYS_CLONE definition while there is clone3:
-> > > > > A: The latest glibc release (2.34) has some basic support for clone3 but
-> > > > >    it isn't complete. E.g., pthread_create() and spawni() have converted
-> > > > >    to use clone3 but fork() will still use clone. Moreover, some seccomp
-> > > > >    related applications can still not work perfectly with clone3.
-> > > >
-> > > > Please leave those out of the mainline kernel support though: Any users
-> > > > of existing glibc binaries can keep using patched kernels for the moment,
-> > > > and then later drop those pages when the proper glibc support gets
-> > > > merged.
-> > > The glibc commit d8ea0d0168b190bdf138a20358293c939509367f ("Add an
-> > > internal wrapper for clone, clone2 and clone3") modified nearly
-> > > everything in order to move to clone3(), except arch_fork() which used
-> > > by fork(). And I cannot find any submitted patches to solve it. So I
-> > > don't think this is just a forget, maybe there are other fundamental
-> > > problems?
-> >
-> > I don't think there are fundamental issues, they probably did not consider
-> > it necessary because so far all architectures supported clone().
-> >
-> > Adding Christian Brauner and H.J. Lu for clarificatoin.
->
-> Probably, yes. I don't know of any fundamental problems there either.
->
+Forcing CPUMASK_OFFSTACK to be conditoned on DEBUG_PER_CPU_MAPS doesn't
+make a lot of sense nowaday. Even the original patch dating back to 2008,
+aab46da0520a ("cpumask: Add CONFIG_CPUMASK_OFFSTACK") didn't give any
+rationale for such dependency.
 
-Hi, Arnd, Christian,
+Nowhere in the code supports the presumption that DEBUG_PER_CPU_MAPS is
+necessary for CONFIG_CPUMASK_OFFSTACK. Make no mistake, it's good to
+have DEBUG_PER_CPU_MAPS for debugging purpose or precaution, but it's
+simply not a hard requirement for CPUMASK_OFFSTACK. Moreover, x86 Kconfig
+already can set CPUMASK_OFFSTACK=y without DEBUG_PER_CPU_MAPS=y.
+There is no reason other architectures cannot given the fact that they
+have even fewer, if any, arch-specific CONFIG_DEBUG_PER_CPU_MAPS code than
+x86.
 
-As far as I know, software that uses the linux sandbox is still using clone(),
-such as chromium:
+Signed-off-by: Libo Chen <libo.chen@oracle.com>
+---
+ lib/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-commit 218438259dd795456f0a48f67cbe5b4e520db88b
-Author: Matthew Denton <mpdenton@chromium.org>
-Date: Thu Jun 3 20:06:13 2021 +0000
+diff --git a/lib/Kconfig b/lib/Kconfig
+index 9b5a692ce00c..a017f5fe4e38 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -502,7 +502,7 @@ config CHECK_SIGNATURE
+ 	bool
+ 
+ config CPUMASK_OFFSTACK
+-	bool "Force CPU masks off stack" if DEBUG_PER_CPU_MAPS
++	bool "Force CPU masks off stack"
+ 	help
+ 	  Use dynamic allocation for cpumask_var_t, instead of putting
+ 	  them on the stack.  This is a bit more expensive, but avoids
+-- 
+2.27.0
 
-    Linux sandbox: return ENOSYS for clone3
-
-    Because clone3 uses a pointer argument rather than a flags argument, we
-    cannot examine the contents with seccomp, which is essential to
-    preventing sandboxed processes from starting other processes. So, we
-    won't be able to support clone3 in Chromium. This CL modifies the
-    BPF policy to return ENOSYS for clone3 so glibc always uses the fallback
-    to clone.
-
-    Bug: 1213452
-    Change-Id: I7c7c585a319e0264eac5b1ebee1a45be2d782303
-    Reviewed-on:
-https://chromium-review.googlesource.com/c/chromium/src/+/2936184
-    Reviewed-by: Robert Sesek <rsesek@chromium.org>
-    Commit-Queue: Matthew Denton <mpdenton@chromium.org>
-    Cr-Commit-Position: refs/heads/master@{#888980}
-
-Besides arch_fork(), I think removing clone() may lead to more problems.
-
-Thanks,
-Feiyang
