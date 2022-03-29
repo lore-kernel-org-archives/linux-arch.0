@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D5ED6C433FE
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Mar 2022 12:41:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A22A3C433F5
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Mar 2022 12:41:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236449AbiC2Mmt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Mar 2022 08:42:49 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60334 "EHLO
+        id S236436AbiC2Mmv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 29 Mar 2022 08:42:51 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33922 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236436AbiC2Mmj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2022 08:42:39 -0400
-Received: from mail-ej1-x64a.google.com (mail-ej1-x64a.google.com [IPv6:2a00:1450:4864:20::64a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AE5D220D82B
-        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:40:45 -0700 (PDT)
-Received: by mail-ej1-x64a.google.com with SMTP id nd34-20020a17090762a200b006e0ef16745cso2726654ejc.20
-        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:40:45 -0700 (PDT)
+        with ESMTP id S236456AbiC2Mmq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2022 08:42:46 -0400
+Received: from mail-ej1-x649.google.com (mail-ej1-x649.google.com [IPv6:2a00:1450:4864:20::649])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 33A7821405E
+        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:40:51 -0700 (PDT)
+Received: by mail-ej1-x649.google.com with SMTP id jl19-20020a17090775d300b006dff5abe965so8143871ejc.18
+        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:40:51 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=f/cngww90lUXjaM8lQFtWcyKhuwI9PqnftLYJV81Lhc=;
-        b=ZhkI15SJzz773ZYscrUiWSWJETsRZFPteEYHqIHePZDMxUIF+3PQF+2Fw76owrqA6c
-         UPmlNmwXK1Z6638+mZDSIi3ZaYImXqe+Uh0pSLh1rhQp3Xoe7jl74OrGzrvEG7z0eTSq
-         o8MSM+eKeJVRDYa5y/OP8y60rroWEDJ8vzz/DDepligD6r9qfkOI3I92z4rW1hHLRtic
-         cm0rD0pMAAL/xX1aSmAtPrmorukG9QpyLNGeNh6R44fL+JlPunKHnHJWEF85pS921n3e
-         lbvxIMwP6/gs5F0Sdc52ZKShD71Ts7NFaxuC1noz1+PVJK55QErm2j6Lz/PX6SBoULEe
-         K4FA==
+        bh=UaSjyZbuX4mRK40KL0zvcfvrCfayHvnW+1lMpNenzMM=;
+        b=pT67FL+iJPznO4FlucflrliCBhKvTTg3KzQEhmg/BoDC0PIplw3vRbgledaaV+22QV
+         PJ/2UpcagqAHZUoUmS6KMEOgg3Z7MJ6MkNWm1ZXIgZy3JMhpaXGLkAOvgIFYB1qAJ0KF
+         I6NW2lJcnoBn97EYtu4eiCl6ODsGpg3JBpDnaoBDHnydn7JC8QLk7eLmg2KpVSgBLImy
+         ia3dXD2aOt8PinRoXSw+HiAUjr2cNNWGiXvsfmcUXKj+k0Ec0UTSj4Yj90p9F6jv5nLE
+         8q9nAN/NikHW+3ZZmHM89/rK8iQoXaim6KSGFGoalxm66Xa0wGT7M2cU/uJ7ZdLT9o7f
+         Az0Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=f/cngww90lUXjaM8lQFtWcyKhuwI9PqnftLYJV81Lhc=;
-        b=7swRDP05p4cR0pOkV4n/HOL3ND5tji6tTNaTOcUQXdsQgKDvFCSE6TetrGy0wIMzji
-         6q7R1tH8YlbjLckeSKPoFvr8kGo1d9iZNmwQZEn2Lka0wHvagWcEq+lcWQTEyZlOB4nI
-         R2K5F2vZO3OfTwy7kCnePit/kfujRxPkec/7WaI354MEcBcKaRrqPQHreuOwMsdsWku1
-         0b7DHIXpNrjGblq00wHZPl/0+pVW7jMjXhUSPgvEvwX4gcj84uT0y8XtazxcUIXebZO0
-         Mqkz+JiLvtAk60Cbd25dIGh1ekgwmFGAntCme8FIGxgvoGSW9ttRyBq9bRYYp2cp/Ito
-         27UQ==
-X-Gm-Message-State: AOAM533DvfJIuLWo14QfbQituDJExD2h7c87aizpGYDUKFkqSaTM1C73
-        BDjbMIk7plFhfs6diZ9QdfEA8eoaXUQ=
-X-Google-Smtp-Source: ABdhPJx0Sl5gQKr3lXwaLxCri9MHvRT0DK5gtdgM1us4GPzvAAhQsz1qiosUClgYfwn1c4jOcnHsaUZStL0=
+        bh=UaSjyZbuX4mRK40KL0zvcfvrCfayHvnW+1lMpNenzMM=;
+        b=a5rsL52x4pUjLzXzyfUfEwnYgC+cYu87RF1YH78Fnu5JGBTkDkNwGb90FUUM3Pfxx5
+         0pnqr8oekSuokiML0QGkPGBWEiriPFmVL/HDnOwvgNBDoJBgHfee6cz1VG2bMzbRzWJn
+         LYPDYXkZszdWGJ2CyEI8fGaxB7SQfnZM2oTfBhZRcG/hcPoQPmy2P+7LNjKpKf3wOD5n
+         HaQNeK9aVKCadaP79S3yUbYAFLe8p7R0iaQG4+x/LmXou8iqy2EHxamrq92kZQlX9BJE
+         A1iUAPq8o8DXqLBy5Yjgo4NvDu0PLTBWIKZDL/n+TYWDdbB6eyRJBXafvRQU7ayCk9lr
+         el+w==
+X-Gm-Message-State: AOAM530yDB8h66gBB7QZVVC36pyvQStHvpa9cZr5QVuJusCoHD0AuCL8
+        +/8L4ETAKmWDSwx9uZLFTw8qchfonFU=
+X-Google-Smtp-Source: ABdhPJzc7uQQqv9/qIuIbMIwaZGD04hNlnYkXly8TbXNnnJOwrMOtsjceNSNZRkURUbxFzT9/MpcuG+W9FY=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:36eb:759:798f:98c3])
- (user=glider job=sendgmr) by 2002:a17:906:478e:b0:6db:7c67:c7e0 with SMTP id
- cw14-20020a170906478e00b006db7c67c7e0mr34151057ejc.335.1648557643821; Tue, 29
- Mar 2022 05:40:43 -0700 (PDT)
-Date:   Tue, 29 Mar 2022 14:39:35 +0200
+ (user=glider job=sendgmr) by 2002:a05:6402:1293:b0:418:fe9d:99c3 with SMTP id
+ w19-20020a056402129300b00418fe9d99c3mr4374732edv.146.1648557649372; Tue, 29
+ Mar 2022 05:40:49 -0700 (PDT)
+Date:   Tue, 29 Mar 2022 14:39:37 +0200
 In-Reply-To: <20220329124017.737571-1-glider@google.com>
-Message-Id: <20220329124017.737571-7-glider@google.com>
+Message-Id: <20220329124017.737571-9-glider@google.com>
 Mime-Version: 1.0
 References: <20220329124017.737571-1-glider@google.com>
 X-Mailer: git-send-email 2.35.1.1021.g381101b075-goog
-Subject: [PATCH v2 06/48] asm-generic: instrument usercopy in cacheflush.h
+Subject: [PATCH v2 08/48] kmsan: introduce __no_sanitize_memory and __no_kmsan_checks
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -88,50 +88,81 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Notify memory tools about usercopy events in copy_to_user_page() and
-copy_from_user_page().
+__no_sanitize_memory is a function attribute that instructs KMSAN to
+skip a function during instrumentation. This is needed to e.g. implement
+the noinstr functions.
+
+__no_kmsan_checks is a function attribute that makes KMSAN
+ignore the uninitialized values coming from the function's
+inputs, and initialize the function's outputs.
+
+Functions marked with this attribute can't be inlined into functions
+not marked with it, and vice versa. This behavior is overridden by
+__always_inline.
+
+__SANITIZE_MEMORY__ is a macro that's defined iff the file is
+instrumented with KMSAN. This is not the same as CONFIG_KMSAN, which is
+defined for every file.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
 ---
-Link: https://linux-review.googlesource.com/id/Ic1ee8da1886325f46ad67f52176f48c2c836c48f
+Link: https://linux-review.googlesource.com/id/I004ff0360c918d3cd8b18767ddd1381c6d3281be
 ---
- include/asm-generic/cacheflush.h | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ include/linux/compiler-clang.h | 23 +++++++++++++++++++++++
+ include/linux/compiler-gcc.h   |  6 ++++++
+ 2 files changed, 29 insertions(+)
 
-diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
-index 4f07afacbc239..0f63eb325025f 100644
---- a/include/asm-generic/cacheflush.h
-+++ b/include/asm-generic/cacheflush.h
-@@ -2,6 +2,8 @@
- #ifndef _ASM_GENERIC_CACHEFLUSH_H
- #define _ASM_GENERIC_CACHEFLUSH_H
- 
-+#include <linux/instrumented.h>
-+
- struct mm_struct;
- struct vm_area_struct;
- struct page;
-@@ -105,6 +107,7 @@ static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
- #ifndef copy_to_user_page
- #define copy_to_user_page(vma, page, vaddr, dst, src, len)	\
- 	do { \
-+		instrument_copy_to_user(dst, src, len); \
- 		memcpy(dst, src, len); \
- 		flush_icache_user_page(vma, page, vaddr, len); \
- 	} while (0)
-@@ -112,7 +115,11 @@ static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
- 
- #ifndef copy_from_user_page
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+	do { \
-+		instrument_copy_from_user_before(dst, src, len); \
-+		memcpy(dst, src, len); \
-+		instrument_copy_from_user_after(dst, src, len, 0); \
-+	} while (0)
+diff --git a/include/linux/compiler-clang.h b/include/linux/compiler-clang.h
+index 3c4de9b6c6e3e..5f11a6f269e28 100644
+--- a/include/linux/compiler-clang.h
++++ b/include/linux/compiler-clang.h
+@@ -51,6 +51,29 @@
+ #define __no_sanitize_undefined
  #endif
  
- #endif /* _ASM_GENERIC_CACHEFLUSH_H */
++#if __has_feature(memory_sanitizer)
++#define __SANITIZE_MEMORY__
++/*
++ * Unlike other sanitizers, KMSAN still inserts code into functions marked with
++ * no_sanitize("kernel-memory"). Using disable_sanitizer_instrumentation
++ * provides the behavior consistent with other __no_sanitize_ attributes,
++ * guaranteeing that __no_sanitize_memory functions remain uninstrumented.
++ */
++#define __no_sanitize_memory __disable_sanitizer_instrumentation
++
++/*
++ * The __no_kmsan_checks attribute ensures that a function does not produce
++ * false positive reports by:
++ *  - initializing all local variables and memory stores in this function;
++ *  - skipping all shadow checks;
++ *  - passing initialized arguments to this function's callees.
++ */
++#define __no_kmsan_checks __attribute__((no_sanitize("kernel-memory")))
++#else
++#define __no_sanitize_memory
++#define __no_kmsan_checks
++#endif
++
+ /*
+  * Support for __has_feature(coverage_sanitizer) was added in Clang 13 together
+  * with no_sanitize("coverage"). Prior versions of Clang support coverage
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index ccbbd31b3aae5..f6e69387aad05 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -129,6 +129,12 @@
+ #define __SANITIZE_ADDRESS__
+ #endif
+ 
++/*
++ * GCC does not support KMSAN.
++ */
++#define __no_sanitize_memory
++#define __no_kmsan_checks
++
+ /*
+  * Turn individual warnings and errors on and off locally, depending
+  * on version.
 -- 
 2.35.1.1021.g381101b075-goog
 
